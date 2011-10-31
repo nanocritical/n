@@ -1,0 +1,1055 @@
+import c99 as c
+
+import io math glib.test
+
+bool __is64bit
+
+if U64 == c.long
+  os.out.say '64 bit machine'
+  say '64 bit machine'
+  __is64bit = true
+else
+  __is64bit = false
+
+
+fun foo a : c.long = x y : U32
+  if __is64bit
+    x = U32.truncate a >> 32
+  else
+    x = 0
+
+  y = U32.slice a & 0xffffffff
+  return x y
+
+
+fun bar a b : i32 = x :string
+  prefix := if a == 0 { "test" } else { "ahaha!" }
+  postfix := if b == 1 -- Do not allow both { and newline?
+      "retest"
+    else
+      "no more test"
+  return prefix + postfix
+
+
+fun help = void
+  say \
+'''My help message.
+Over many lines:
+  -a	  Try that!
+  -b	  Or this one.
+  --help  This message.
+'''
+
+-- type[] is different from C's type[]. type[] is a strongly-typed array, with a size field.
+-- *type is an address, and is like C's type[] (except wrt sizeof() behavior)
+
+-- We probably should allow variable name shadowing. It's really a source of
+-- problems in C or C++ because of macro expansion and method arguments/class
+-- fields clashes. We won't allow these.
+
+fun main args : string[] = os.Err
+  a, b := false, false
+  for s y in args
+    if s == '--help'
+      help
+      return 0
+    if s == '-a'
+      aa, err := bool.parse y
+      if err
+	return 1
+
+      a = aa
+    elif s == '-b'
+      bb, except err := bool.parse y
+
+
+interface Singer
+  fun work arg :string
+
+
+type Fields =
+  x y : i32
+  -- The only __ctor does not take any arguments. Static methods are used in other cases.
+  -- __ctor is meant to be used only rarely.
+  --
+  -- Because there is a second return value, you are not allowed to
+  -- create a Fields without an explicit binding of the second return
+  -- value.
+  fun __ctor = .: Fields _: os.Err
+    -- . is created because it's a return value...
+    -- So __ctor is not really built-in... Just guarantees that first return value
+    -- has the right type?
+    .__memclear
+    if biglock.locked
+      return . os.Err.INVAL
+    return . os.Err.OK
+
+  fun __dtor .: Fields = void
+  ? .x == 0 and .y == 0
+    return
+
+  -- This is reserved and is the type of this object. Not defined for
+  -- standalone functions.
+
+  -- You cannot define
+  -- fun __copy other : !This = void
+  --
+  -- Sorry, we don't allow copy with side effects. A copy should always be a
+  -- copy. We try to enforce that as much as possible from the language's point
+  -- of view.
+  --
+  fun __copy other : .This = void
+    _!memcopy other
+    _!x = other.x + 1
+
+
+type Baryton<Y : any> : Singer =
+  import Lock
+  from Fields import
+  from module import -- Why not?
+  from othermod import foo -- Would be static function
+
+  _hidden : i32
+
+  static fun mk = Baryton<Y>
+    return .ctor
+
+  fun setall x y : i32 = void
+  fun setx x : i32 = void
+    -- Only allow explicit capture, by copy, always.
+    printer :=
+      fun(.) val : i32 = void
+	os.say val + .y
+    globalprinter = printer
+
+    globalprinter x
+    .x = x
+    ._hidden += 1
+
+    ref := &.
+    printerbyref :=
+      fun[ref] val : i32 = void
+        os.say val + .y
+
+    -- Unsafe, captured a reference to .
+    globalprinter = printer
+
+  /method getx = i32
+    /_hidden = 1
+    return .x
+
+  fun work arg :string
+  fun<T> morework args : T[]
+
+
+fun<T : any> constref b :  /Baryton<T> = /i32
+  return /b/x
+
+
+fun<T : any> mutableref b :  !Baryton<T> = !i32
+  return !b!x
+
+fun<T : any> getfield b:  !T = i32
+  return b.x
+
+-- Or could be written (should, really)
+fun<T : any> getfield b:  .T = i32
+  return b.x
+
+
+-- When I'm using a reference, do I want to know that I'm dereferencing? Not
+-- when I'm using a value, but yes when I'm setting it.
+fun useref x : !i32 = i32
+  return x.
+
+fun setref x : !i32 = i32
+  x! = 3
+
+fun ref x : !i32 = !i32
+  return x
+
+fun constref x : !i32 = .i32
+  -- Implicit convertion from mutable to const
+  return x
+
+type Object =
+  x y i32
+  fun copyx other : .Object = void
+    !x = other.x
+  fun copyxto other : !Object = void
+    other!x = .x
+
+
+-- If we really are keeping C semantics, and we want to make it easy to call
+-- external functions, we need to be careful about what restrictions we allow.
+-- Or any external call would require unsing "unsafe" everywhere to break out
+-- of local restrictions.
+
+-- We want to say all of these things about references.
+--
+--   Mutable | Const
+--	mutable |
+--	! | .
+--     
+--   Can take copy of ref | Cannot take copy of ref
+--      shareable, mayshare |
+--	shared |
+--      unique |
+--   Nullable | Non-nullable
+--	nullable |
+-- 
+-- Should we just never allow ref taking? For instance, would have to use
+-- a smart pointer.
+fun takeref obj :sp<Object> = ret : Fields
+  ret.o = obj
+  return ret
+
+
+-- I have the feeling we should assume "unique" always, and allow explicit
+-- marking such as shared<> and shareable<>. shared<> is a managed
+-- smart-pointer, shareable<> is a reference that is copyable (and escapable),
+-- but the user is in charge of doing it right. It's ok to take a local copy of
+-- the reference. What is not OK is to let them escape function scopes (i.e.
+-- via return values or state).
+
+-- Could also be written as in:
+-- The idea being that shared is a 'function', that binds stronger than ':'. Is
+-- that what a template is in general?
+
+fun takeref obj : shared .Object = ret : Fields
+  ret.o = obj
+  return ret
+
+
+type Template Y : any =
+  x : Y
+  y : shared .Y
+
+
+type shared Y : any =
+  _px : .Y
+  _count : i32
+
+
+type Iterable X : any = (Iterable X)
+
+
+type Morecomplex X Y : any = (Iterable X) () Hasy (Keyed Y)
+  _len : U32
+  _y : Y
+
+  fun getbykey y : Y = X
+  fun __get x : U32 = X
+  fun __iter = (Iterator X)
+
+type Morecomplexiter X Y : any = (Iterator X)
+  _c : wide .(Morecomplex X Y)
+  _pos : U32
+  
+  fun __hasnext = bool
+    return _pos < _c.len - 1
+  fun __next = .X
+    p := _pos
+    _pos += 1
+    return c.[p]
+
+
+type Dataimpl =
+type Data =
+  _ : Dataimpl
+
+-- Could we allow this, without the use of a reference? Just means there is an
+-- allocator that we link to, but that we cannot see? There isn't really a
+-- requirement that we should always see the sizes statically/by header
+-- inclusion. Why is that a generic requirement?
+
+
+fun<X> pair2array p : X,X = X[]
+  return p.asarray -- Not runtime free.
+
+fun<Y : Iterable X> wants2elements v : Y = U32
+  n : U32 := 0
+  for x in v:
+    n += x + (foo x)
+  return n + v[1]
+
+
+-- . read-only ref
+-- ! read-write ref
+-- ? nullable marker
+
+-- To go from nullable to regular ref, you need an explicit check. Simple analysis only?
+-- And "malloc" returns non-nullable refs.
+
+fun barfoo x : .Type = int32
+
+fun foobar x : ?.Type = int32
+  if x == null
+    return 0
+  else
+    return barfoo x
+
+
+unique type Alwaysoneref =
+  x y : i32
+
+
+type Values : i32
+| FIRST = 2
+| SECOND
+| THIRD
+| FOURTH
+
+fun valuescount = U32
+  return Values.__count
+
+fun valuesstring v : Values = string
+  return Values.__strings[v]
+
+
+-- Copyable because there are no references.
+type Copyable =
+  x y : i32
+
+type Noncopyable =
+  x y :  i32
+  obj :  !Object
+
+type Madecopyable =
+  x y : i32
+  obj : !Object
+  method __copyctor other : .Madecopyable = .: .Madecopyable
+  ? other.obj != null
+    .__memcopy(other)
+    .obj
+    
+
+-- The only references that can be passed are "safe":  i.e. cannot be
+-- remembered, i.e. escaped. Otherwise references must be 
+
+
+
+-- Really, what I want to be explicit, is when I'm giving a reference the
+-- callee may remember. I don't care if I pass by reference but that he cannot
+-- remember it. Unless it's another thread, it's really not something I would
+-- worry about.
+fun foo = void
+  x := 0U32
+  y : U32 := 0
+  maytakeref !x
+  cannottakeref x
+
+fun maytakeref x : !U32 = void
+  globalxref = x
+fun cannottakeref x : .U32 = void
+  os.say .x
+
+
+fun Baryton<Y>/setall x y = void
+  /x = x
+  /y = y
+
+
+fun lock<T> lk : T = void
+! not (caller.has lk)
+  lk.dolock
+! caller.has lk
+
+
+-- ! are property we declare (and that a we could try to prove)
+-- ? are property to check at runtime (or earlier, and may optimized away if proven so)
+--
+-- Is there really a distinction? I think there is, but it's a question of
+-- optimization in a way. ? means we want it checked: statically or at runtime.
+-- ! are affirmations: it would be great to check them, but it might be
+-- impossible or expensive to do so.
+--
+-- We can reuse ?/! properties to infer things on callers.
+--
+-- ?/! are side-effect free. We enforce it at compile-time. We prevent code
+-- with side-effect from running -- in that context. It's like calling a pure
+-- function (in fact that's how it is implemented).
+--
+-- So ? can always be removed at runtime.
+--
+-- Additionally, we want to make ! propositions a logic language. We're making
+-- statements about what the function does. That could be an additional distinction:
+-- ? asks, ! affirm.
+--
+-- But we want to allow stating something about the context, i.e. the caller.
+--   _.caller.has lock
+-- 
+
+-- A different approach, is to have ! code by compile-time code that manipulates
+-- a state that analyzes instantation. For instance, whenever
+--   fun root = void
+--     with globallock:
+--       foobar
+--   
+--   fun foobar = void
+--   ! _.caller.haslock globallock
+--
+-- is called/instantiated, i.e. at compile time, we run that piece of code and check
+-- that indeed it is true.
+--   Proof by execution?
+--
+-- This is to relate to the smart-circuit / circuit generation idea.
+--
+--
+fun onecaller = void
+! _.exclusive_unlocked
+--
+-- Can only be called by one caller at a time, to be enforced at compilation time (i.e.
+-- only accept the strictest cases). Analyze the call graph, i.e. with an understanding
+-- of where parallel threads of executions are, and ensure that this is correct.
+
+-- ! and ~ manipulate the static state graph, and can do as much work as they
+-- want to label it (only allowed to label their own "level"). Then there is a
+-- normalized pass on the gprah catching a category of conflicts in the labelling
+-- of nodes. We would likely also allow custom analysis passes.
+
+
+fun Baryton.work arg :string = void
+! _.has lock
+! caller.has .lock and \
+    not caller.caller.has .lock
+! prop23 arg
+? arg.length >= 2
+? .lock
+  c := arg[0]
+  d := arg[1]
+  .x = c.code
+  .y = y.code
+? .x != 0 and .y != 0
+
+
+interface Tintf
+  x y : i32
+
+
+fun<T : Tintf> Baryton.morework args : T[]
+  for a in args
+    ? a.__Type == T
+    .x *= a.__Type.convert a
+    .y += a.__Type.convert a
+
+
+-- In file examples.nh:
+
+import c99 as c
+
+
+module Some:
+  foo aa : c.long = U32 -- Error, does not have the same name
+  bar a b : i32 = U32
+
+
+-- SLICES
+-- How are they compatible with no memory management?
+-- A slice is an array whose memory belong to an other array.
+fun sliceex1 x : U32[] = U32[]
+  return x[1:]
+
+
+type Slice T : any = (Iterable T)
+  p : .T
+  len : Size
+  orig : shared T[]
+
+fun(T : any) takeslice a:T[] off:Size len:Size = r : (Slice T)
+? off + len < a.len
+  r.p = a.p
+  r.off = off
+  r.len = len
+  return r
+
+-- Here, memory sharing is implicit.
+type Slice T : any = (Iterable T)
+  p : .T
+  len : Size
+
+fun(T : any) takeslice a:T[] off:Size len:Size = r : (Slice T)
+? off + len < a.len
+  r.p = a.p + off
+  r.len = len
+  return r
+
+
+fun<T> takeslice a:T[] (off len):Size = r:(Slice T)
+
+
+-- Loose or unique "by default" when escaping?
+fun cannotfree x :loose !U32 = U32
+  y :.U32 = x
+  return y.[0]
+
+fun canfree x :unique !U32 = U32
+  y :.U32 = x
+  -- There are no more references to x
+  return y.[0]
+
+fun escape_example = loose !U32
+  r :(loose !U32) := malloc U32.size
+  !r = 0
+  return r
+
+fun escape_error = !U32
+  r := malloc U32.size
+  !r = 0
+  return r -- Error. Cannot escape scoped reference.
+
+fun escape_shared = shared !U32
+  r : shared _ := malloc U32.size  -- We don't want to repeat U32, classic case.
+  !r = 0
+  return r
+
+fun multiple_implicit = void
+  a : _, b : shared _ := foobar 1 2
+  a, b : shared _ := foobar 1 2  -- Equivalent.
+
+fun free_early = void
+  r := malloc U32.size
+  !r = 0
+  r.free -- ? really?
+
+fun catch_escaped = void
+  p :loose !U32 := escape_example
+  q :unique !U32 := escape_example
+
+-- Responsibility is transferred to the function, and it's completely fine to
+-- return it as scoped.
+fun takesuniq x :unique !U32 = !U32
+
+
+
+-- Can we avoid explicit derefencing entirely?
+-- The pointer manipulations would be indirect?
+-- No, but we don't support pointer arithmetic: everything happens via a slice.
+
+fun U16be x:.U8 sz:!Size = U16
+  BUGON sz < 2
+  slice := Slice.mkraw x 0 2
+  return (U16.zext slice[0]) << 1 | slice[1]
+
+fun U16be x:.U8 sz:!Size = U16
+  BUGON sz < 2
+  slice := Slice.mkraw x 0 2
+  return (U16.zext slice[0]) << 1 | slice[1]
+
+fun U32le x:.8 sz:!Size = U16
+  BUGON sz < 4
+  slice := Slice.mkraw x 0 4
+  U0 := U32.zext slice[0]
+  U1 := U32.zext slice[1]
+  U2 := U32.zext slice[2]
+  U3 := U32.zext slice[3]
+  return (U0 << 24) | (U1 << 16) | (U2 << 8) | U3
+
+fun foo x:?!U32 y:U32 = void
+  if x != null
+    !U32 = y
+
+fun nth x:?!U32 idx:Size = U32
+  if x == null
+    return 0
+  else
+    return (Slice.mkraw x 0 Size.MAX)[idx]
+
+
+-- Is [] a slice or an array? Should we really have standalone arrays? What for?
+-- Shared slice?
+-- Slice of shared memory?
+fun<T> mkarray len:Size = []T
+  raw := malloc<T>(len)
+  slice := Slice.mk(raw, 0, len)
+  return slice
+
+fun<T> advance a:[]T = []T
+  BUGON a.pos == a.len
+  a.pos += 1
+  return a
+
+fun<T> advance_inplace a:[]T = void
+  BUGON a.pos == a.len
+  a!pos += 1
+  return a
+
+
+-- []T, []!T, ![]T, .[]T, [].T
+-- Can we accomodate all 3 cases?
+
+type Slice T : any =
+  raw : !T
+  pos len : Size
+
+type Slice T : any =
+  raw : shared !T
+  pos len : Size
+
+type Slice T : any =
+  raw : .T
+  pos len : Size
+
+-- A simple solution is to pass T straight in, without any pointer marking.
+type Slice T : lang.Ref = 
+  raw : T
+  pos len : Size
+
+-- But then []U32 means nothing. Only [].U32 and []!U32 make sense. In a sense,
+-- it's not crazy: [].U32 *is* a range of (valid) U32 addresses.
+-- [](shared .)U32, shared [].U32
+--
+-- I think I like this approach, even though it's regrettable to loose the []U32 syntax.
+
+
+-- Why have raw and pos fields? Not just raw?
+type Slice T :lang.Ref =
+  raw :T
+  pos :Size
+
+-- The advantage is with shared slices, where the sharing of the base pointers
+-- is explicit, and we keep a reference to the base of the data.
+
+
+type Bitdb =
+  parts []bitdb.Part
+
+  fun load pn:io.Path = err:Err
+    return err
+  fun get p:!bitdb.Part name:.string = err:Err
+    return err
+  fun get_byidcode p:!bitdb.Part idcode:U64 = err:Err
+    return err
+  fun get_frombit_anyspeed p:!bitdb.Part name:.string = err:Err
+    return err
+  fun getall_fordevice r:[]bitdb.Part device:.string = void
+    return
+
+
+-- The reason we need macros in addition to templates is to mess with control
+-- structures. Return more than one level, for instance. Or create our own for
+-- loop.
+-- Could we just support it in the language.
+fun makro x:U32 = Err
+  if x == 3
+    fun.__caller__.return Err.INVAL
+
+fun makro2 x:U32 = void
+  if x == 3
+    fun.__caller__.break
+
+
+type Block Args :[]any = (Function Args [])
+  
+
+fun myfor x:U32 b:Block = void
+
+
+-- Introspection
+
+type Type =
+  __codeloc__ :Codelocation
+  __size__ :Size
+  fun<T :any> zext other :.T = This
+
+type Function =
+  __codeloc__ :Codelocation
+  __code__ :.U8
+  __size__ :Size
+  __args__ :[]Type
+  __retargs__ :[]Type
+
+type Myfun = Function
+  fun __ctor__ = This
+    __code__ = "\x23\x1\x0\x23"
+    __size__ = 4
+    __args__ = [U32]
+    __retargs__ = [U32]
+
+fun mkmyfun = Myfun
+  f := Myfun.__ctor__ -- ??
+  g : Myfun := _ -- ??
+  return f
+
+fun usefun x:U32 = U32
+  return (mkmyfun) x
+
+
+fun prevtolast x:[].U32 = U32
+  match x
+  | [] -> return 0
+  | x::[] -> return 0
+  | x::y::[] -> return x
+  | _::tl -> return (prevtolast tl)
+
+fun prevtolast x:[].U32 = U32
+  match x
+  | [] { return 0 }
+  | x::[] { return 0 }
+  | x::y::[] { return x }
+  | _::tl { return (prevtolast tl) }
+
+
+
+-- Sum types?
+-- They really are great to enforce choice: i.e. parts of a structure are only
+-- valid in one case.
+
+type Morecomplex =
+  field :U32
+  other :string
+
+type Oneof =
+  | Try U32
+  | Or U8
+  | Maybe Morecomplex
+
+fun getval x:Oneof = U32
+  match x
+  | Try v
+    return U32.zext v
+  | Or v
+    return U32.zext v
+  | Maybe mc
+    return mc.field
+
+fun onelineif = void
+  -- We could do the following, but that doesn't scale to multiple lines.
+  -- So why would we?
+  -- if x -> say 'Yeah!'
+  if x { say 'Yeah!' }
+  if (math.PI >> 2341) == 1 { Say 'really?' }
+
+fun inlineif = void
+  y := if b { if not b { 1 } else { 4 } } else 3
+
+
+-- The last statement of a block can be bound?
+-- Implies we must enforce type constistency for all the "results" of a
+-- block. Most expressions return void in N. So that doesn't work:
+fun blockresult = U32
+  y :U32 := 0
+  x = while true
+    if y == 100
+      13
+    else
+      y += 1
+  return x
+
+
+
+-- Conversions
+type Integer =
+  static fun<T :Integer> zext x:T = This  -- Zero extension
+  static fun<T :Integer> trunc x:T = This  -- Truncation
+  static fun<T :Signed Integer> reinterp x:T = This  -- Bitwise reintepret
+
+type U32 = Integer Unsigned
+  static fun zext x:U8 = This
+  static fun zext x:U16 = This
+  static fun trunc x:U64 = This
+  static fun reinterp x:i32 = This
+  static fun reinterp x:i64 = This
+
+
+-- Escape analysis
+-- It can become arbitrarilly difficult to follow the escape of a particular scoped pointer.
+-- So we have to be conservative.
+fun deep x:.U32 = vector<.U32>
+  r : vector<.U32> = { x }
+  return r
+~ fun.mayescape x
+
+fun top = .U32
+  x : .U32 = null
+  x = malloc<U32> 1
+  return deep x
+~ fun.mayescape x
+
+-- Aside: should we have (fun.escapes x) and (fun.mayescape x)?
+
+-- Here, do we know that deep escaped x?
+-- Well, analysis on deep tells us that. And recursively so.
+-- So we know that x has been escaped and may be included in the result of deep.
+-- But we're not sure, so we can neither (i) free x, (ii) nor free x and rely
+-- on the scope above to free it, as we're not sure it is, in fact, in deep's
+-- result.
+
+-- Difference between capture and escape? If we disallow global variables,
+-- there is no such thing as capture. Or should we allow them but explicitly
+-- tag functions that mess with them?
+
+-- If we have a mayescape, then this cannot be a scoped pointer. It can be a
+-- unique pointer (managed), or shared (managed), or loose (unmanaged).
+
+-- All of these are valid:
+fun deep x:unique .U32 = vector<unique .U32>
+fun deep x:unique .U32 = vector<shared .U32>
+fun deep x:shared .U32 = vector<shared .U32>
+fun deep x:loose .U32 = vector<loose .U32>
+
+
+-- Must unique be managed? Can static analysis handle them? I.e. decide which
+-- code paths will need to free it or not? I don't think so, but static analysis
+-- can tell us if a unique pointer can in fact be a scoped pointer, and therefore
+-- let us optimize away the management. This is also true for shared pointers.
+
+-- So should pointers be, say, shared by default relying on optimizations to
+-- remove most of the overhead? I don't think so: we want to encourage sane and simple
+-- memory allocation and passing strategy (top-down; no escape of reference). This will
+-- have higher performance.
+
+-- Memory pools and scoped pointers
+-- Memory pools must be compatible with scoped pointers, because that's really
+-- the point.  The question is, how do we avoid freeing the pointers when a
+-- pool was used? Is the idea that scoped pointers are always allocated from a
+-- pool and are always freed in the same scope they were allocated? Escape
+-- analysis would let us free scoped pointers earlier, when we know they're not
+-- used further. But then we would to inline everythin or differentiate
+-- according to the calling context, etc. Not very useful.
+-- 
+-- So the idea is: a scoped pointer is always allocated from an implicit pool,
+-- so yeah, they're compatible.
+--
+-- Of course, the other, likely more frequent case of scoped is when the pointer
+-- comes from a stack allocated variable.
+
+fun bigscope = U32
+  lg := scopedalloc<Largeobject> 1
+  ? lg.__type__ == !Largeobject
+  init lg
+  return lg.someval
+
+-- That means that to escape a scoped pointer, we have to copy it. But that's a
+-- bit painful mostly because copy may not be well-defined. Could we somehow
+-- avoid that? Like hold the pool for longer? I.e. unique would contain a reference
+-- to the pool and that is what is freed?
+type<T :Freeable> unique =
+  p :!T
+  f :!Freeable  -- f may be different from p
+
+fun foo p:. unique U32 = void
+  .p = 42
+
+fun bar = U32
+  x :U32 := 0
+  foo .x  -- .x is scoped
+  return x
+
+-- The point of scoped: make sure that we don't do anything "illegal" with that
+-- pointer, meaning, make sure we don't escape it.
+
+-- Shared is a managed pointer that can escape. Assuming scoped is consistent,
+-- the challenge is to convert from scoped to shared. If scoped don't always
+-- come from a pool (e.g. because we know it may escape, therefore allocate it
+-- by itself), then we should be able to wrap it in a shared pointer without
+-- having to do anything.
+
+fun foo p:.U32 = U32
+  return p.
+
+fun callfoo p:shared .U32 = U32
+  return foo p  -- That's legal.
+
+fun choose x :U32 \
+	   a b c :.U32 = .U32
+  match x
+  | 0 { return a }
+  | 1 { return b }
+  | _ { return c }
+~ fun.mayescape a b c
+
+-- So callchoose "works", but it's hard to see how it would be legal.
+fun callchoose a b c :shared .U32 = U32
+  return (choose 123 a b c).  -- How is that legal?
+
+
+-- Shared unwrapping and threading
+--
+-- So, the idea is that a shared pointer can be unwrapped whenwe know:
+-- - the pointer will not escape the scope,
+-- - there is a single thread of execution.
+-- Functions that affect threading needs to be marked as such. But then
+-- threads can only accept shared pointers. Even though scoped pointer
+-- could be just fine. For that, we need to track thread contexts.
+
+type Thread =
+  fun join = Err
+  ~ fun.thread.end
+
+fun startthread p:!U32 = Thread
+~ fun.thread.start
+
+fun main = int
+  x := scopedalloc<U32> 128
+  t := startthread x
+  -- ...
+  t.join
+  -- Therefore this is safe
+  return 0
+
+fun altmain = int
+  x := scopedmalloc<U32> 128
+  t := Thread.mk
+  t.start x
+  -- ...
+  return 0
+  -- t is destroyed before x is, so safe again.
+
+-- In other words, we want to track if thread contexts "escape" as well.
+-- Thread contexts are not passed explictly to a function (WHY NOT?), but
+-- we could still track them it via annotations.
+-- 
+-- This is akin to escaping a pointer not by return but by capture by an object.
+
+fun bgwork list :[].U32 = void
+  t := Mythread.mkref
+  ? t.__type__ == !Mythread
+  t.start U32
+~ t := fun.thread.start
+~ t.captures list
+~ fun.escapes t
+
+fun maystartathread x :U32 = U32
+  y := U32.mk 0
+  z := x + y + 3
+  if z == 3
+    list := {x y z}
+    ? list.__type__ == [].U32
+    bgwork list
+
+-- Maybe then thread objects should be explicit! Then we would not need a
+-- special mechanism for it. The reference tracking would be entirely
+-- explicit.
+
+
+-- I'm not entirely sure what unique is.
+--
+-- The point of unique, I think, is to have a "looser" pointer that can be
+-- converted to a scoped pointer or shared pointer safely. A loose pointer
+-- can only be converted by fiat. Unique in C++ is a cheaper shared pointer.
+-- We would like to avoid management in N. And unique can fail at runtime in
+-- C++, (right?), we certainly don't want that.
+
+-- I'm not sure we need unique in N.
+-- Well, let's look at the case where shared kind of breaks down. A large global
+-- dynamic collection of long-lived pointers, that are unique, shared among threads,
+-- but that will not disappear before the collection object itself.
+--
+-- Why don't we use scoped then? These objects live in the scope of the collection.
+--
+-- Let's assume that we can't use scoped because the objects come from a different
+-- source and escaped back up. Anyway, once stored in the collection, then they could
+-- become scoped pointer (to the scope of the collection). But in the chain leading
+-- there, they need to be either unique or shared. And in that chain, shared would
+-- really not be that expensive...
+--
+-- Still, let's say we cannot do shared in that chain either.
+--
+-- Doing unique means that we need move semantics, right?
+fun amove x:!U32 = r:!U32
+  r <- x
+  return r
+
+fun amove x:!unique U32 = r:!unique U32
+  r <- x
+  return r
+
+-- Do we really want that?
+
+
+-- Escape, capture and scope of methods
+--
+type Object =
+  p :!U32
+  fun __ctor__ = Object
+    this.__memclear__
+
+  fun capture x:!U32 = void
+    this.p = x
+  -- ~ fun.captures x
+  -- This is really captured by the Object instance.
+  ~ this.captures x
+
+fun context = U32
+  o :Object = {}
+  v :U32 = 124
+  o!capture !v
+  return o.capture.
+
+-- More generally, escape is not always via return values.
+fun argcapture o:!Object x:!U32 = void
+  o!p = x
+~ o.captures x
+
+-- .nh Header generation: so we should generate text headers, or generate binary
+-- "headers" that would be faster to read and parse? You could display them
+-- in text form, but why generate them?
+
+
+-- Initializers
+--
+fun alist = [].U32
+  return {(U32 0) (U32 1) (U32 2)} -- type constraining is a bitch
+
+-- Just as numerical literals can be constrained to any numerical types,
+-- compound of literals can be constrained to any numerical compound types.
+-- I mean, it can be attempted...
+fun alist2 = [].U32
+  return {0 1 2}
+
+type U32 = Primitive Integer Unsigned
+  __size__ :const bootstrap.Size = 4
+
+  fun __ctor_literal_integer__ x:.lang.literal.Integer = Err
+    if x.negative
+      return Err.INVAL
+    if x.bitwidth > 32
+      return Err.INVAL
+    x.copybytes_hostorder(!this)
+    
+
+fun alist2 a b c :U32 = [].U32
+  return {a b c}
+
+type A =
+  a b c :U32
+
+fun astruct x y z :U32 = A
+  return {a=x b=z c=y}
+
+type Tree T : any =
+| NODE of ?.Tree
+| LEAF of T
+
+-- We want to be able to choose the type of the tag (in particular for enums).
+-- As well as the numerical value.
+type Tree T :any =
+| NODE = 1 :U32 -> ?.Tree, ?.Tree
+| LEAF T = NODE+1 -> T
+
+(fun T) leavestotal t:(Tree T) = U32
+  n :U32 := 0
+  if t.__tag__ == Tree.NODE
+    left, right := t.__as__.NODE
+    if left != null
+      n += leavestotal .left
+    if right != null
+      n += leavestotal .right
+  elif t.__tag__ == Tree.LEAF
+    return t.__as__.LEAF
+  else:
+    UNREACHED
+
+(fun T) leavestotal t:(Tree T) = U32
+  match t
+  | NODE left, right
+    l := if left != null { leavestotal left } else { 0 }
+    r := if right != null { leavestotal right } else { 0 }
+    return l + r
+  | LEAF val
+    return val
+
+
+-- Typedef
+type Othername = Name

@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+
+import cc
+import sys
+
+if __name__ == '__main__':
+  sys.exit(cc.runcmdline(sys.argv))
