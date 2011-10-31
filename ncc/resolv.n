@@ -1,0 +1,6 @@
+fun find modname:String = fn:String
+  for c in modname
+    match c
+    | '.' -> fn.push '/'
+    | x -> fn.push x
+  return fn

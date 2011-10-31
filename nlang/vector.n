@@ -1,0 +1,110 @@
+from n.literal import *
+
+intf VectorIntf T =
+  method! init_literal_list__ lit:literal.List = Void
+  method size = Size
+  method capacity = Size
+  method! push x:T = Void
+  method! pop = T
+  method first = T
+  method last = T
+  method! clear = Void
+  method! resize newsize:Size = Void
+  method! resizewith newsize:Size x:T = Void
+  method! reserve size:Size = Void
+
+  method checkindex x:Size = Bool
+    ! eval thisfun.retval { IndexRange.validindex this x }
+
+  method get__ n:Size = T
+    ! IndexRange.validindex this n
+
+  method fullrange = IndexRange
+    ~ IndexRange.validrange this thisfun.retval
+  method range from:Size to:Size = IndexRange
+    ~ IndexRange.validrange this thisfun.retval
+  method rangeby from:Size to:Size by:Size = IndexRange
+    ~ IndexRange.validrange this thisfun.retval
+
+type Vector T = VectorIntf
+  __p :[]!T
+  __size :Size
+
+  inline method! init_literal_list__ lit:literal.List = lang.Error
+    this!reserve lit.__size
+    for x in lit
+      let val, except err = x.convert U32
+      this.push val
+    return lang.Error.OK
+
+  inline method size = Size
+    return this.__size
+
+  inline method capacity = Size
+    return this.__p.size
+
+  method! __ensure size:Size = Void
+    if this.__p.__size < size
+      this.__p!realloc size
+
+  inline method! push x:T = Void
+    let oldsize = this.__size
+    let newsize = this.__size + 1
+    this!__ensure newsize
+    this!p[oldsize] = x
+
+  inline method! pop = T
+  ? this.__size == 0
+    let tmp = this.__p[this.__size - 1]
+    this!__size -= 1
+    this!__mayshrink
+    return tmp
+    
+  inline method first = T
+  ? this.__size > 0
+    return this.__p[0]
+
+  inline method last = T
+  ? this.__size > 0
+    return this.__p[this.__size - 1]
+
+  inline method! clear = Void
+    this!__size = 0
+    this!__mayshrink
+
+  inline method! resize newsize:Size = Void
+    if newsize > this.__size
+      this!__ensure newsize
+      this!__size = newsize
+    else
+      this!__size = newsize
+      this!__mayshrink
+
+  inline method! resizewith newsize:Size x:T = Void
+    let oldsize = this.__size
+    this!resize newsize
+    for n in range oldsize this.__size
+      this![n] = x
+
+  inline method! reserve size:Size = Void
+    if size > this.__size
+      this.__p.realloc size
+
+  inline method checkindex x:Size = Bool
+    return x <= this.size
+
+  inline method get__ n:Size = T
+    return this.__p[n]
+
+  inline method fullrange = IndexRange
+    return range 0 this.size
+
+  inline method range from:Size to:Size = IndexRange
+    ? from < this.__size
+    ? to <= this.__size
+    return range from to
+
+  inline method rangeby from:Size to:Size by:Size = IndexRange
+    ? from < this.__size
+    ? to <= this.__size
+    return range from to by

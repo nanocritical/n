@@ -1,0 +1,208 @@
+
+let foo x y:U32 = return x + y
+
+let bar z y = foo (z + 1) (y * z)
+
+fun foo x:U32 y:U32 = U32
+  let x = U32 {0}
+      y = 0
+    return x + y
+
+fun Substr off:Size len:Size = String
+  let s :String |
+    s!Data = (Malloc U8) len; s!Copy this off len
+  let ss | ss = s + s
+  let ss = s + s
+  let a :I32, b:U32 |
+    a = -1
+    b = 13 * a
+    a = b*b
+  var x = "a string"
+  x!push " a"
+  x!append "nd another"
+
+  let obj = foo.make_me_an_object |
+    obj!resize 100
+    for a in x y z |
+      obj!push a
+
+  let x:U32 with
+    x = y - z
+    ensuring x != 3; x % 2 == 1
+    example
+      y=3, z=2 { x == y/2 }
+      z=3, y=1 { x == -2 }
+
+  let x:U32 with
+    x = y - z
+    fun myassert x:U32 y:U32 = Bool
+      return x != y
+    ? x != 3; x % 2 == 1; myassert x y
+    # y=3, z=2 with x == y/2; myassert x y
+    # z=3, y=1 with x == -2 and myassert x y
+
+  let y with y = x + s; y.resize 5
+  let r :Record with
+    r.x = 0
+    r.y = 0
+    r.depth = 14
+  let v = block
+  x!resize 21 ' '
+  return y
+
+-- Maybe we don't need 'var' at all, in fact.
+-- For global variables it could be useful, but we could use a pointer.
+--   let gp = [1].U32
+--     !gp = 0
+-- Users of gp can modify the value it points to.
+-- That would make people use references more often, as a way to get
+-- non-local mutability. But really, that's kinda of good thing, as
+-- we want to encourage that: i.e. don't abuse of local mutability.
+
+fun bar x:U32 = U32
+  return foo (x - 33)
+# 2 == bar 12
+# (bar 32) % 5 == 1
+# block
+    let x = 0; y = 1
+      x = foo y
+    check x > 0
+    check y + x == bar (x - y)
+
+-- We would ideally allow users to redefine their own "test"
+-- environments. Example, writing in Nano, we would want "tests"
+-- that correspond to logic circuit evaluation -- regular tests
+-- being only circuit building, relative to their shape.
+
+fun Genadder width:U32 = (Word Sig)
+
+~ nano.Delay thisfun (log2 width)
+~ nano.IsGated thisfun.output
+~ thisfun.retval.width == width + 1
+! for input in thisfun.inputs
+    nano.IsGated input
+
+# (Genadder 8).gatesize > 100
+# (Genadder 8).regdepth == 2
+#sim 10
+  let circuit = (Genadder 8)
+  circuit (Sig 8 0) (Sig 8 0) == (Sig 8 0)
+#sim 10
+  let circuit = (Genadder 8)
+  let ina, inb with ina = Sig 8 0; inb = ina
+  let result = circuit ina inb
+  let comparator = result == (Sig 8 0)
+  comparator
+
+-- The last two tests, introduced by the special '#sim' mean that the
+-- "free statements" get evaluated in a simulation context that checks
+-- the nano.Bool signal value of 'comparator' after 10 cycles.
+
+
+-- Block introduction
+-- A newline + extra indentation would always introduce a block, whether
+-- it would be valid or not in that location would be a different question.
+-- The only way to extend a statement past the end-of-line would be to use
+-- a backslash.
+-- What about forms like
+--   let x:U8; y:U32 with x = 3; y = x + 12; x -= y
+-- that are in fact made of two blocks, but that we would want to write on a
+-- single line.
+--   let { x:U8; y:U32 } with { x = 3; y = x + 12; x -= y }
+-- would be a pain to type.
+--   let x:U8, y:U32
+--     x = 3
+--     y = x + 12
+--     x -= y
+-- uses the implicit block introduction, with no first block for the
+-- variables introduction.
+--
+-- Maybe we need to go back to the idea of a universal "in-line" block
+-- introduction with '->'.
+--   let x:U8; y:U32 -> x = 3; y = x + 12; x -= y
+-- Or rely on the notation we have so far for blocks.
+--   let x:U8, y:U32 { x = 3; y = x + 12; x -= y }
+--   if cond a -> return null
+--   if cond a { return null }
+
+-- Its semantics are not really universal when used for 'if', 'match',
+-- 'block', 'future' or 'let'. It's only universal in terms of syntax
+-- introduction.
+
+--   let x:U8, y:U32 -> x = 3; y = x + 12; x -= y
+
+-- We should be strict and not allow -> when a newline follows.
+
+
+
+-- Builtin documentation language
+-- As this is a popular feature, even if we don't really like it ourselves,
+-- we should support writing inline documentation. The good thing about
+-- having it built in is that we can rely on the compiler to make writing
+-- the documentation more expressive and rigorous.
+-- In particular, we would use the scoping rules to identify the code
+-- referenced from the text.
+
+--- @thisfun is used to build an important part of the system. Use it!
+--- It's similar to @other.package.foo.
+--- It accepts a large number as @x and @retval is the number wanted.
+fun bar x:U32 = U32
+
+-- Compilation will fail if an invalid code reference is made.
+
+-- Of course, the problem will be that we want people to use annotation to
+-- describe the function as much as possible, so there is always going
+-- to be a fight against people saying "@retval is non-negative".
+-- Oh, well.
+
+
+
+-- Use 'except' to approximate exception behavior
+-- The simple case is when there is a single return value.
+fun foobar y:!U32 x:U32 = Err
+  let except err = validate x
+  !y = x
+  return OK -- For enum, we can convert OK->Err.OK.
+
+fun foobar x:U32 = U32, Err
+  let y, except err = compute x
+  return y, OK
+-- This could, arguably, return '0, err' on error.
+
+fun foobar x:U32 = Err, U32
+  let y, except err = compute x
+  return OK, y
+-- Can we really accept that? That sounds disgusting.
+
+fun foobar x:U32 = Err, U32
+  let except = except_swap U32 Err
+  let y, except err = compute x
+
+-- 'except' is a special syntactic form that may returns. Again,
+-- we should allow arbitrary definition of these.
+
+-- Making it a macro exposes the member thisfun.caller,
+-- and forces inlining.
+(macro E:Any) except_swap err:E = E, T
+  if err
+    thisfun.caller.return {}, err
+  -- else, fallthrough, acts like a goto (and compiles to one)
+
+(macro E:Any) except_swap err:E = E, T
+  except err
+
+(macro E:Any) myexcept err:E = E, T
+  except err
+
+-- Also, it becomes possible to accept blocks as argument.
+(macro C:Bool.concept__ R:Any) 'myif' cond:(Expr C) iftrue:(Block R) 'myelse' iffalse:(Block R) = 
+  nano.Mux cond iftrue.retval iffalse.retval
+  -- Makes it clear we evaluate both iftrue and iffalse
+  -- (for this particular myif).
+
+-- Is the '.concept__' implicit when used as the type of a generic argument?
+-- (i.e. a concept) Would there ever be a confusion?
+
+-- Macros introduce a new lexical scope and cannot interact with the surrounding
+-- context (except via the reserved thisfun.caller), so there is not issue
+-- of hygiene.

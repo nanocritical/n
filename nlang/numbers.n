@@ -1,0 +1,16 @@
+intf Signed =
+  method addinv__ = Signed
+
+intf Ordered =
+  method cmp__ other:.Ordered = I32
+
+type U8 = Ordered
+type U16 = Ordered
+type U32 = Ordered
+type U64 = Ordered
+type Size = Ordered
+type I8 = Ordered Signed
+type I16 = Ordered Signed
+type I32 = Ordered Signed
+type I64 = Ordered Signed
+type SSize = Ordered Signed

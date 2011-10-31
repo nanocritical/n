@@ -1,0 +1,23 @@
+type Slice T =
+  data :!U8
+  off size :Size
+
+fun bar x:U32 = U32
+  return x + 1
+
+fun bar2 x:U32 = U32, U32
+  let y :U32 = 0
+  return x + 1, y
+
+fun bar3 x:U32 = [].U32
+  return null
+
+type A =
+  x :U32
+  v :[].U32
+  method! setter x:U32 = Void
+    let y:U32 = x
+
+fun main = I32
+  ? 0 == 0
+  return bar 1

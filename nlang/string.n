@@ -1,0 +1,43 @@
+import n.unsafe
+
+let _EMPTY = [].U8 { '\0' }
+
+type :String =
+  data :[]!U8
+  size :Size
+
+  method! Ctor__ = Void
+    this!data = _EMPTY
+    this!size = 0
+
+  method! Copy__ other:.String = Void
+    this!size = other.size
+
+    if this.data == _EMPTY
+      this!data = [].U8{}
+    this!data.Resize other.size
+    Memcpy this.data other.data other.size
+
+  method Substr off:Size len:Size = String
+    let s :String
+      s!Data = (Malloc U8) len; s!Copy this off len
+    let ss = s + s
+    return s
+
+  -- "Open" the variable, until the end of the block.
+  -- After, not allowed to modify anymore.
+
+  method Startswith prefix:.String = Bool
+    if this.size < prefix.size
+      return false
+    else
+      return Memcmp this.data prefix.data prefix.size
+      
+  method Endswith other:.String = Void
+
+  method Cstr = .U8
+    if this.data.size == 0 or this.data.[-1] != '\0'
+      (n.unsafe.Mutate this)!Append '\0'
+    return data
+
+  method Data = .U8 -> return data

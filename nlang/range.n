@@ -1,0 +1,26 @@
+intf IndexIterator =
+  method! next__ = Bool
+  method index__ = Size
+
+type IndexRange T = IndexIterator
+  _pos _to _incr :Size
+
+  method! next__ = Bool
+    if this._pos >= this._to - 1
+      return false
+    else
+      this!_pos += this._incr
+      return true
+
+  ~ validindex :Property T Size
+  ~ validrange :Property T This
+
+  method index__ = Size
+    ~ validindex this.validrange.of thisfun.retval
+    return this._pos
+
+fun range from:Size to:Size = IndexRange
+  return IndexRange { _pos=from _to=to _incr=1 }
+
+fun range_by from:Size to:Size incr:Size = IndexRange
+  return IndexRange { _pos=from _to=to _incr=incr }

@@ -1,0 +1,71 @@
+from n import *
+from errors import *
+
+dynintf CWriteable =
+  method cwrite out:I32 = Err
+dynintf NameEq =
+  method equal__ other:.NameEq = Bool
+
+type _NameEq = NameEq
+  _parent :?.NameEq
+  _name :String
+
+  method equal__ other:.NameEq = Bool
+    parenteq := (this.parent == null and other.parent == null) \
+        or (this.parent != null and other.parent != null \
+            and .this.parent == .other.parent)
+    return parenteq and this._name == other._name
+
+type Import = CWriteable NameEq
+  from _NameEq import *
+  renames :Vector (String, String)
+
+type TypeDecl = CWriteable NameEq
+  type Kind =
+    | RECORD
+    | TAGGEDUNION
+    | UNION
+
+  from _NameEq import *
+
+  args :Vector String
+  implements :Vector Type
+  imports :Vector Import
+  typedecls :Vector TypeDecl
+  decls :Vector DeclStatement
+  kind :Kind
+  methods :Vector Method
+  funs :Vector Function
+
+type Union = CWriteable NameEq
+  from _NameEq import *
+
+type DynIntf = CWriteable NameEq
+  from _NameEq import *
+
+type Intf = CWriteable NameEq
+  from _NameEq import *
+
+type Function = CWriteable NameEq
+  from _NameEq import *
+
+type Method = CWriteable NameEq
+  from _NameEq import *
+
+type VarDecl = CWriteable NameEq
+  from _NameEq import *
+
+type Node = CWriteable
+  | IMPORT -> Import
+  | TYPEDECL -> TypeDecl
+  | UNION -> Union
+  | FUNCTION -> Function
+  | METHOD -> Method
+  | VARDECL -> VarDecl
+
+  -- cwrite is defined on Node because it claims
+  -- to implement CWriteable, which is serviced by all
+  -- the individual types in the union.
+
+type Module = CWriteable
+  decls :Vector Module

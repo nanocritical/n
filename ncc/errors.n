@@ -1,0 +1,7 @@
+
+
+type Err =
+| MISSING -> String
+| UNEXPECTED -> String
+| PARSE -> String
+| MISSING_MODULE -> String

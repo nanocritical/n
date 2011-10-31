@@ -1,0 +1,10 @@
+*.o
+*.pyc
+.*.swp
+.*.swo
+*.run
+*.gen.[ch]pp
+*.gen.[ch]
+*_gen.py
+*t/t*.run
+*t/.tmp-*

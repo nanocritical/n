@@ -1,0 +1,16 @@
+import unsafe
+import container
+
+type Slice T:Any = (container.Array T)
+  data :!T
+  size offset :Size
+
+  method get__ n:Size = T
+    ! IndexRange.validindex this n
+    p := unsafe.ptrarith this!data n
+    return .p
+
+  method! set__ n:Size el:T = Void
+    ! IndexRange.validindex this n
+    p := unsafe.mutate (unsafe.ptrarith this!data n)
+    !p = el
