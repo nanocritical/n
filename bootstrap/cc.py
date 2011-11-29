@@ -40,7 +40,7 @@ def compile(opt, fn):
       mod.cwrite(out)
 
     p = subprocess.Popen(['gcc', '-pipe', '-DNLANG_BOOTSTRAP',
-      '-I', opt.nlangdir, '-o', o, '-std=c99', '-pedantic', '-xc', '-c', c],
+      '-I', opt.nlangdir, '-o', o, '-std=c99', '-xc', '-c', c],
         stdin=subprocess.PIPE)
     mod.cwrite(p.stdin)
     p.stdin.close()

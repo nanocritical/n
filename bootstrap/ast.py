@@ -1,8 +1,8 @@
 import re
-
 import errors
 import scope
 import parser
+import typing
 
 def _deepstr(x):
   if isinstance(x, dict):
@@ -60,90 +60,82 @@ class _FieldsEq(object):
   def __ne__(self, other):
     return str(self) != str(other)
 
+class CGlobalName(object):
+  pass
 
-class Type(_NameEq):
+class Type(_NameEq, CGlobalName):
   def __init__(self, name):
     super(Type, self).__init__(Type.normalize(name))
-
   @staticmethod
   def normalize(name):
     return re.sub(r'\s*,\s+', ', ', re.sub(r'\s+', ' ', name))
-
-  @classmethod
-  def parse(cls, args):
-    return cls(args)
+  def deref(self, access):
+    raise TypeError("Cannot dereference type '%s'" % self.name)
+  def typecheck(self):
+    return self
 
 class TypeRef(Type):
   def __init__(self, access, type):
     super(TypeRef, self).__init__(access + type.name)
     self.access = access
     self.type = type
+  def deref(self, access):
+    if self.access != '!' and access == '!':
+      raise TypeError("Cannot mutate the type '%s'" % self)
+    return self.type
 
-  @classmethod
-  def parse(cls, args):
-    return cls(args[0], args[1])
+class TypeRefNullable(TypeRef):
+  pass
 
 class TypeTuple(Type):
   def __init__(self, *types):
     super(TypeTuple, self).__init__(', '.join([t.name for t in types]))
     self.types = types
-    gmodctx.tuples.add(TupleDecl(self))
-
-  @classmethod
-  def parse(cls, args):
-    return cls(*args)
+    global gmodctx
+    global gmodname
+    gmodctx[gmodname].tuples.add(TupleDecl(self))
 
 class TypeApp(Type):
   def __init__(self, type, *args):
     super(TypeApp, self).__init__(' '.join([t.name for t in [type] + list(args)]))
     self.type = type
     self.args = args
-    if self.type.name not in gctx[gmodname].typeapps:
-      gctx[gmodname].typeapps[self.type.name] = set()
-    gctx[gmodname].typeapps[self.type.name].add(TypeAppDecl(self))
 
-  @classmethod
-  def parse(cls, args):
-    return cls(args[0], *args[1:])
+    global gctx
+    global gmodname
+    modtypeapps = gctx[gmodname].typeapps
+    if self.type not in modtypeapps:
+      modtypeapps[self.type] = {}
+    if self not in modtypeapps[self.type]:
+      modtypeapps[self.type][self] = TypeAppDecl(self)
+    self.typeappdecl = modtypeapps[self.type][self]
 
 class TypeGeneric(Type):
   def __init__(self, type, *args):
     super(TypeGeneric, self).__init__(type.name)
     self.type = type
-    self.args = args
+    self.args = list(args)
 
-  @classmethod
-  def parse(cls, args):
-    return cls(args[0], *args[1:])
+class TypeGenericArg(Type):
+  def __init__(self, name):
+    super(TypeGenericArg, self).__init__(name)
+    self.instantiated = None
 
 class TypeSlice(TypeApp):
-  def __init__(self, access, type):
-    super(TypeSlice, self).__init__(Type('Slice'), TypeRef(access, type))
+  def __init__(self, typeref):
+    super(TypeSlice, self).__init__(Type('Slice'), typeref)
 
-  @classmethod
-  def parse(cls, args):
-    return cls(args[1], args[2])
-
-class ChoiceDecl(_NameEq):
+class ChoiceDecl(_NameEq, CGlobalName):
   def __init__(self, choice, typearg=None):
     if isinstance(choice, Assign):
-      self.name = choice.var
+      self.name = choice.value
       self.value = choice.expr
     else:
       self.name = choice
       self.value = None
     self.typearg = typearg
 
-  @classmethod
-  def parse(cls, args):
-    if len(args) == 2:
-      return cls(ChoiceDecl(args[1]))
-    else:
-      return cls(ChoiceDecl(args[1], args[3]))
-    return cls(args)
-
-
-class TypeDecl(_NameEq):
+class TypeDecl(_NameEq, CGlobalName):
   REC, TAGGEDUNION, UNION, FORWARD = range(4)
   def __init__(self, type, isa, imports, typedecls, decls, methods, funs):
     super(TypeDecl, self).__init__(type.name)
@@ -164,10 +156,17 @@ class TypeDecl(_NameEq):
         self.scope.define(a)
     for a in self.isa + self.imports + self.typedecls:
       self.scope.define(a)
-    for a in self.decls + self.methods:
+    for a in self.decls:
       self.scope.define(a, name=a.name)
+
+    for a in self.methods:
+      self.scope.define(a, name=a.name)
+      a.scope.define(VarDecl('this', TypeRef(a.access, self)))
+      a.scope.define(Type(self.name), name='This')
+
     for a in self.funs:
       self.scope.define(a, name=a.name)
+      a.scope.define(Type(self.name), name='This')
 
   @staticmethod
   def whatkind(decls):
@@ -202,43 +201,32 @@ class TypeDecl(_NameEq):
         r.append(a)
     return r
 
-  @classmethod
-  def parse(cls, args):
-    assert args[0] == 'type'
-    assert args[2] == '='
-    type = args[1]
-    isa = []
-    imports = cls.extract(Import, args)
-    typedecls = cls.extract(TypeDecl, args)
-    decls = cls.extract(ChoiceDecl, args) + cls.extract(FieldDecl, args)
-    methods = cls.extract(Method, args)
-    funs = cls.extract(Function, args)
-    return cls(type, isa, imports, typedecls, decls, methods, funs)
-
 class TupleDecl(TypeDecl):
   def __init__(self, type):
     super(TypeDecl, self).__init__(type.name)
     self.type = type
 
 class TypeAppDecl(TypeDecl):
-  def __init__(self, type):
-    super(TypeDecl, self).__init__(type.name)
-    self.type = type
+  def __init__(self, typeapp):
+    super(TypeDecl, self).__init__(typeapp.name)
+    self.typeapp = typeapp
+    self.typedecl = None
 
 class Union(TypeDecl):
   pass
 
-class Function(_NameEq):
+class FunctionDecl(_NameEq, CGlobalName):
   def __init__(self, name, args, returns, body):
     self.name = name
     self.args = args
     self.returns = returns
     self.body = body
     if len(self.returns) > 1:
-      self.rettype = TypeTuple(self.returns)
+      self.rettype = TypeTuple(*self.returns)
     else:
       self.rettype = self.returns[0]
     self._fillscope()
+    self.type = self
 
   def _fillscope(self):
     self.scope = scope.Scope(self)
@@ -268,192 +256,148 @@ class Function(_NameEq):
       body = _listwrap(args[n+1])
     return cls(name, funargs, returns, body)
 
-  @classmethod
-  def parse(cls, args):
-    return cls.doparse(args)
-
-class Method(Function):
-  def __init__(self, name, args, returns, body):
-    super(Method, self).__init__(name, args, returns, body)
-  @classmethod
-  def parse(cls, args):
-    access = '.'
-    if args[1] == '!':
-      access = '!'
-      args = args[0:1] + args[2:]
-    r = cls.doparse(args)
-    r.access = access
-    return r
+class MethodDecl(FunctionDecl):
+  def __init__(self, name, access, args, returns, body):
+    self.access = access
+    super(MethodDecl, self).__init__(name, args, returns, body)
 
 class VarDecl(_NameEq):
   def __init__(self, name, type, expr=None):
     super(VarDecl, self).__init__(name)
     self.type = type
     self.expr = expr
+    self.mutatingblock = None
     self.scope = scope.Scope(self)
-
-  @classmethod
-  def parse(cls, args):
-    if args[0] == 'let':
-      if isinstance(args[2], list):
-        args = args[1:2] + args[2]
-      else:
-        args = args[1:]
-
-    if isinstance(args[0], list):
-      return [cls.parse([a] + args[1:]) for a in args[0]]
-    else:
-      v = None
-      if isinstance(args[0], VarDecl):
-        v = args[0]
-        v.expr = args[2]
-      elif args[1] == ':':
-        v = cls(args[0], args[2])
-      elif args[1] == '=':
-        if isinstance(args[0], basestring):
-          v = cls(args[0], None, args[2])
-        else:
-          v = args[0]
-          v.expr = args[2]
-      else:
-        raise Exception()
-      return v
+  def typecheck(self):
+    return self.type
 
 class FieldDecl(VarDecl):
   pass
 
-class Assign(_FieldsEq):
-  def __init__(self, var, expr):
-    self.var = var
-    self.expr = expr
-
-  @classmethod
-  def parse(cls, args):
-    return cls(args[0], args[2])
-
 class Expr(_FieldsEq):
-  def __init__(self, term):
-    self.term = term
+  def typecheck(self):
+    raise Exception("Not implemented for type '%s'" % type(self))
 
-  @classmethod
-  def parse(cls, args):
-    return cls(args)
-
-class Literal(Expr):
-  pass
-
-class Ident(_NameEq):
+class Value(Expr):
   def __init__(self, name):
-    super(Ident, self).__init__(name)
+    self.name = name
+  def typecheck(self):
+    return scope.current().q(self).type
 
-  @classmethod
-  def parse(cls, args):
-    return cls(args)
+class Ref(Expr):
+  def __init__(self, access, value):
+    if access == '&!':
+      self.access = '!'
+    else:
+      self.access = '.'
+    self.value = value
+  def typecheck(self):
+    return TypeRef(self.access, self.value.typecheck())
 
-class Tuple(_FieldsEq):
+class Deref(Expr):
+  def __init__(self, access, value):
+    self.access = access
+    self.value = value
+  def typecheck(self):
+    return self.value.typecheck().deref(self.access)
+
+class ValueField(Expr):
+  def __init__(self, container, access, field):
+    self.name = container
+    self.access = access
+    self.field = field
+  def typecheck(self):
+    return scope.current().q(self).type
+
+class ExprLiteral(Expr):
+  def __init__(self, lit):
+    self.terms = [lit]
+  def typecheck(self):
+    if isinstance(self.terms[0], basestring):
+      return Type('nlang.literal.String')
+    else:
+      return Type('nlang.literal.Integer')
+
+class ExprNull(ExprLiteral):
+  def __init__(self):
+    pass
+  def typecheck(self):
+    return Type('nlang.literal.Null')
+
+class ExprIdent(Expr):
+  def __init__(self, ident):
+    self.name = ident
+    self.terms = []
+  def typecheck(self):
+    return scope.current().q(self).type
+
+class Tuple(Expr):
   def __init__(self, *args):
     self.terms = list(args)
+  def typecheck(self):
+    return TypeTuple(*[t.typecheck() for t in self.terms])
 
-  @classmethod
-  def parse(cls, args):
-    assert len(args) % 2 == 1
-    r = []
-    for t in args:
-      if isinstance(t, basestring) and t == ',':
-        continue
-      r.append(t)
-    return cls(*r)
-
-class ConstrainedExpr(_FieldsEq):
+class ConstrainedExpr(Expr):
   def __init__(self, expr, type):
-    self.expr = expr
+    self.terms = [expr]
     self.type = type
+  def typecheck(self):
+    return typing.unify([self.typecheck(), self.terms[0].typecheck()])
 
-  @classmethod
-  def parse(cls, args):
-    assert len(args) == 3
-    assert args[1] == ':'
-    return cls(args[0], args[2])
-
-class BinOp(_FieldsEq):
+class BinExpr(Expr):
   def __init__(self, op, left, right):
     self.op = op
-    self.left = left
-    self.right = right
+    self.terms = [left, right]
+  def typecheck(self):
+    return typing.unify([t.typecheck() for t in self.terms])
 
-  @classmethod
-  def parse(cls, args):
-    assert len(args) == 3
-    return cls(args[1], args[0], args[2])
-
-class UnOp(_FieldsEq):
+class UnExpr(Expr):
   def __init__(self, op, expr):
     self.op = op
-    self.expr = expr
+    self.terms = [expr]
+  def typecheck(self):
+    return typing.unify([t.typecheck() for t in self.terms])
 
-  @classmethod
-  def parse(cls, args):
-    assert len(args) == 2
-    return cls(args[0], args[1])
-
-class Call(_FieldsEq):
+class Call(Expr):
   def __init__(self, fun, args):
-    self.fun = fun
-    self.args = args
+    self.terms = [fun] + args
+  def typecheck(self):
+    fun = self.terms[0]
+    fun = scope.current().q(fun)
+    if not isinstance(fun, FunctionDecl):
+      raise TypeError("'%s' is not a function" % funname)
+    return fun.rettype
 
-  @classmethod
-  def parse(cls, args):
-    return cls(args[0], _listwrap(args[1]))
+class Assign(_FieldsEq):
+  def __init__(self, value, expr):
+    self.value = value
+    self.expr = expr
+  def typecheck(self):
+    typing.checkcompat(self.value.typecheck(), self.expr.typecheck())
 
 class Return(_FieldsEq):
   def __init__(self, expr):
     self.expr = expr
-    self.type = None
-
-  @classmethod
-  def parse(cls, args):
-    return cls(args[1])
 
 class Assert(_FieldsEq):
   def __init__(self, expr):
     self.expr = expr
 
-  @classmethod
-  def parse(cls, args):
-    return cls(args[1])
-
 class SemanticAssert(_FieldsEq):
   def __init__(self, expr):
     self.expr = expr
 
-  @classmethod
-  def parse(cls, args):
-    return cls(args[1])
-
 class SemanticClaim(_FieldsEq):
   def __init__(self, expr):
     self.expr = expr
-
-  @classmethod
-  def parse(cls, args):
-    return cls(args[1])
 
 class Import(_NameEq):
   def __init__(self, name, modname):
     super(Import, self).__init__(name)
     self.module = parser.parsemod(modname)
 
-  @classmethod
-  def parse(cls, args):
-    args = args[:-1]  # Remove tailing '\n'
-    if args[0] == 'import':
-      return [cls(a, a) for a in args[1:]]
-    elif args[0] == 'from':
-      mod = args[1]
-      return [cls(a, mod) for a in args[3:]]
-
 gctx = {}
-gmodctx = None
+gmodctx = {}
 gmodname = None
 
 class GlobalContext(object):
@@ -491,7 +435,3 @@ class Module(_NameEq):
           self.scope.alias(x.name, x.module.name, x.name)
     for x in self.toplevels:
       self.scope.define(x)
-
-  @classmethod
-  def parse(cls, args):
-    return cls(args)
