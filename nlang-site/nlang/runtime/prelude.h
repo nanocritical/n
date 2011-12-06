@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <assert.h>
 
@@ -27,6 +28,7 @@ typedef int64_t I64;
 typedef char Char;
 typedef size_t Size;
 typedef ssize_t SSize;
+typedef _Bool Bool;
 
 typedef void* nlangp__Void;
 typedef uint8_t* nlangp__U8;
@@ -40,6 +42,7 @@ typedef int64_t* nlangp__I64;
 typedef char* nlangp__Char;
 typedef size_t* nlangp__Size;
 typedef ssize_t* nlangp__SSize;
+typedef _Bool* nlangp__Bool;
 
 typedef const void* nlangcp__Void;
 typedef const uint8_t* nlangcp__U8;
@@ -53,6 +56,7 @@ typedef const int64_t* nlangcp__I64;
 typedef const char* nlangcp__Char;
 typedef const size_t* nlangcp__Size;
 typedef const ssize_t* nlangcp__SSize;
+typedef const _Bool* nlangcp__Bool;
 
 #define null NULL
 

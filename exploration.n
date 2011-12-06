@@ -206,3 +206,50 @@ fun foobar x:U32 = Err, U32
 -- Macros introduce a new lexical scope and cannot interact with the surrounding
 -- context (except via the reserved thisfun.caller), so there is not issue
 -- of hygiene.
+
+
+
+-- Semantics could be supported in a different way, maybe more elegant, but probably more verbose:
+
+fun foo x:U32 = U32
+ensuring
+  ! properties.NonZero x
+  ~ properties.NonZero foo
+  # foo 3 == 2
+
+-- Or in one single domain:
+fun foo x:U32 = U32
+ensuring
+  properties.NonZero x
+  properties.NonZero foo
+  foo 3 == 2
+
+-- as code run at compile time within a particular context.
+-- But then we cannot disable tests, for instance.
+-- (Which could be quite slow -- unless we reuse the assert mechanism?
+-- But then we cannot have asserts over semantic-domain code?)
+
+
+-- Generic functions are always instantiated implictly, as the type system
+-- is never ambiguous.
+-- 
+-- If the function type needs to be instantiated, we don't use:
+-- (fun foo T U) x:T y:U = U
+-- let myfuntype = (foo U32 U8)
+-- 
+-- Instead, we use:
+-- let myfuntype = foo.type__ U32 U8
+--
+-- Indeed, it's not exactly correct to see a function as a type with call__
+-- defined. Instead, we should see it as a special thing with a (special)
+-- member type__.
+--
+-- type footype T U =
+--   fun call__ x:T y:U = U
+--
+-- (foo.type__ U32 U8).call__ 1 0
+--
+-- But then what is a function pointer? A foo.type__? Can function pointers
+-- only be concrete (instantiated) types?
+--
+-- (fun Map T:Any L:(Iterable T)) f:(fun T = T) list:L = L

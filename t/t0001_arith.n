@@ -1,0 +1,7 @@
+from nlang import Range
+
+fun main = U32
+  let r :U32 = 0
+    for x:U32 in Range 0 10 null
+      r = r + x
+  return r

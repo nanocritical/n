@@ -2,7 +2,8 @@ import ast
 import errors
 
 def _unifyerror(*types):
-  raise errors.TypeError("Cannot unify the types %s" % map(str, types))
+  raise errors.TypeError("Cannot unify the types %s\nFrom locations:\n%s\n" \
+      % (map(str, types), '\n'.join([str(t.codeloc) for t in types])))
 
 def _unify_literals(lits):
   if len(lits) == 0:
@@ -18,6 +19,9 @@ def _unify_lit_conc(lit, conc):
         ['U8', 'U16', 'U32', 'U64',
             'I8', 'I16', 'I32', 'I64',
             'Size', 'SSize']:
+      return conc
+  elif lit.name == 'nlang.literal.Bool':
+    if conc.name == 'Bool':
       return conc
   elif lit.name == 'nlang.literal.String':
     if conc.name == 'String' or conc.name == 'Char':

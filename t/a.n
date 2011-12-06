@@ -12,10 +12,10 @@ fun bar2 x:U32 = U32, U32
 
   return x + 1, y
 
-fun bar3 x:.(Slice .U32) z:!(Slice .U32) = [].U32
+fun bar3 x:[].U32 z:![].U32 = [].U32
   let y :(Slice .U32)
     y!data = x.data
-    z! = x.
+    z! = x
   return y
 
 type A =
