@@ -154,7 +154,7 @@ def w(self, out):
     _p(out, self.args[i])
     if i != len(self.args) - 1:
       _p(out, ", ")
-  if self.body is None:
+  if len(self.body) == 0:
     _p(out, ");\n")
   else:
     _p(out, ") {\n")
@@ -274,11 +274,21 @@ def w(self, out):
     _p(out, 'sizeof(', self.terms[1], ')')
     return
 
+  fun = scope.current().q(self.terms[0]).typecheck()
+
   _p(out, self.terms[0], '(')
-  for i in xrange(1, len(self.terms)):
-    _p(out, self.terms[i])
-    if i < len(self.terms) - 1:
+  for i in xrange(len(fun.args)):
+    if i + 1 < len(self.terms):
+      _p(out, self.terms[i+1])
+    else:
+      if not fun.args[i].optionalarg:
+        raise errors.ParseError("Non-optional argument '%s' is missing in call (%s), at %s" \
+            % (fun.args[i], ' '.join(map(str, self.terms)), self.codeloc))
+      _p(out, ExprNull())
+
+    if i < len(fun.args) - 1:
       _p(out, ',')
+
   _p(out, ')')
 Call.cwrite = w
 
@@ -361,7 +371,10 @@ def w(self, out):
   else:
     mod = gimported[self.modname]
 
+  # This is not correct, strictly speaking. On 'from a import X', only
+  # 'X' should be in the scope, not 'a'.
   scope.current().define(mod)
+
   if self.alias is not None:
     _importalias(out, self.path, self.alias)
   elif self.all:

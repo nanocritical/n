@@ -29,5 +29,17 @@ type IndexRange = IndexIterator
   method Index = Size
     return this.pos
 
-fun Range beg:Size end:Size incr:?.Size = IndexRange
+fun Range beg:Size end:Size ?incr:?.Size = IndexRange
   return IndexRange { pos=beg to=end incr=(Optional incr 1) }
+
+
+fun realloc data:!U8 len:Size = !U8
+
+type Slice T =
+  Data :[]!U8
+  Len Capacity :Size
+  
+  method! Resize len:Size = Void
+    this!Data = realloc this.Data len
+    this!Len = len
+    this!Capacity = len

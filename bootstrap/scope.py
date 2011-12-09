@@ -28,21 +28,14 @@ class Scope(object):
   def __init__(self, container):
     self.container = container
     self.table = {}
-    self.imports = []
     self.parent = None
 
     self.gendecls = []
 
-  def _q_imports(self, name):
-    for i in xrange(len(self.imports)-1, -1, -1):
-      t = self.imports[i].scope.table
-      if name in t:
-        return t[name]
-
-  def define(self, what, name=None):
+  def _define(self, what, name=None):
     if 'name' in what.__dict__:
       name = name or what.name
-      if name in self.table or self._q_imports(name) is not None:
+      if name in self.table:
         raise errors.ScopeError("In scope '%s %s', name '%s' already defined, at %s" \
             % (self, self.container, what, what.codeloc))
       self.table[name] = what
@@ -56,8 +49,39 @@ class Scope(object):
             % (self, self.container, what.scope, what.scope.container, what.codeloc))
       what.scope.parent = self
 
+  def define(self, what, name=None):
+    if isinstance(what, ast.Module):
+      name = name or what.name
+      path = name.split('.')
+      scope = self
+      prev = None
+      for i in xrange(len(path)):
+        p = path[i]
+        if p in scope.table:
+          existing = scope.table[p]
+          if i == len(path) - 1:
+            if isinstance(existing, ast.PlaceholderModule):
+              del scope.table[p]
+              scope._define(what, name=p)
+              what.scope.table.update(existing.scope)
+            else:
+              raise errors.ScopeError("In scope '%s %s', name '%s' already defined, at %s" \
+                  % (scope, scope.container, what, what.codeloc))
+          else:
+            pass
+        else:
+          if i == len(path) - 1:
+            scope._define(what, name=p)
+          else:
+            scope.define(ast.PlaceholderModule(p))
+
+        prev = scope.table[p]
+        scope = scope.table[p].scope
+    else:
+      self._define(what, name=name)
+
   def _q_field(self, node):
-    what = self.table[node.name]
+    what = self.q(node, ignorefield=True)
 
     if isinstance(what, ast.VarDecl):
       what = what.typecheck()
@@ -82,20 +106,20 @@ class Scope(object):
       return node
     return node.instantiated
 
-  def rawq(self, node):
-    if isinstance(node, ast.ValueField):
+  def rawq(self, node, ignorefield=False):
+    if not ignorefield and isinstance(node, ast.ValueField):
       return self._q_field(node)
 
     if node.name in self.table:
       return self.table[node.name]
     elif self.parent is not None:
-      return self.parent.q(node)
+      return self.parent.q(node, ignorefield=ignorefield)
     else:
       raise errors.ScopeError("'%s' not found in scope %s, at %s" \
           % (node.name, self.container.codeloc, node.codeloc))
 
-  def q(self, node):
-    return self._q_genarg(self.rawq(node))
+  def q(self, node, ignorefield=False):
+    return self._q_genarg(self.rawq(node, ignorefield=ignorefield))
 
   def _fullcname_field(self, node):
     what = self.table[node.name]

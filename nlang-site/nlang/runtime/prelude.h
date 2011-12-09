@@ -60,4 +60,9 @@ typedef const _Bool* nlangcp__Bool;
 
 #define null NULL
 
+static inline nlangp__U8 nlang_realloc(nlangp__U8 data, Size len) {
+  return realloc(data, len);
+}
+
+
 #endif // RUNTIME_PRELUDE_H_

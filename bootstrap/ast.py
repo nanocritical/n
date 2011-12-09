@@ -366,6 +366,9 @@ class FunctionDecl(_NameEq, CGlobalName, Decl):
 
     ctx().acquire_pending(self.scope)
 
+  def typecheck(self):
+    return self
+
 class FunctionInstanceDecl(HasDep):
   def __init__(self, call):
     self.call = call
@@ -385,9 +388,13 @@ class VarDecl(_NameEq, Decl):
     self.type = type
     self.expr = expr
     self.mutatingblock = None
+    self.optionalarg = False
     self.scope = scope.Scope(self)
   def typecheck(self):
-    return self.type
+    if self.type is not None:
+      return self.type
+    else:
+      return self.expr.typecheck()
   def setmutatingblock(self, b):
     self.mutatingblock = b
     for d in self.mutatingblock:
@@ -728,6 +735,18 @@ class ModuleContext(object):
       scope.gendecls.extend(v)
       self.funinstances[k] = v
     self.funinstances_pending.clear()
+
+class PlaceholderModule(_NameEq):
+  '''When importing module 'a.b.c', modules 'a' and 'a.b' are not imported.
+  However, we need something to return when looking up 'a', or 'a.b' in the
+  current scope (in which 'a.b.c' has been imported). A PlaceholderModule
+  is returned. If, later, 'a' is imported, then the PlaceholderModule is
+  replaced with the actual Module 'a' and the scope of the PlaceholderModule
+  (that contains a reference to 'a.b') is copied over.
+  '''
+  def __init__(self, name):
+    super(PlaceholderModule, self).__init__(name)
+    self.scope = scope.Scope(self)
 
 class Module(_NameEq):
   def __init__(self, defs):
