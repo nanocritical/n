@@ -72,7 +72,7 @@ Intf.cwrite = w
 DynIntf.cwrite = w
 
 def w(self, out):
-  _p(out, self.decl)
+  pass
 ChoiceDecl.cwrite = w
 
 def w(self, out):
@@ -88,19 +88,22 @@ def w(self, out):
     return
 
   down(self.scope)
-  if self.kind == TypeDecl.TAGGEDUNION:
-    _p(out, 'typedef enum nlangtag__', self.type, '{\n')
+  if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
+    _p(out, 'typedef enum {\n')
     for d in self.decls:
-      _p(out, '  nlangtag__' + scopedname(self) + d.decl.name + ',\n')
-    _p(out, "  };\n")
+      if isinstance(d, ChoiceDecl):
+        _p(out, '  wnlangtag__' + scopedname(self) + '_' + d.name + ',\n')
+    _p(out, '} nlangtag__', self.type, ';\n\n')
 
   for gen in self.scope.gendecls:
     _p(out, gen)
 
+  for td in self.typedecls:
+    _p(out, td)
+
   _p(out, "typedef struct {\n")
   for d in self.decls:
-    _p(out, d)
-    _p(out, ';\n')
+    _p(out, '  ', d, ';\n')
   _p(out, '}', self.type, ';\n')
   _p(out, 'typedef ', self.type, '* nlangp__', self.type, ';\n')
   _p(out, 'typedef const ', self.type, '* nlangcp__', self.type, ';\n\n')
@@ -126,7 +129,16 @@ def w(self, out):
   _p(out, applied)
 TypeAppDecl.cwrite = w
 
-Union.cwrite = None
+def w(self, out):
+  _p(out, 'typedef union {\n')
+  for f in self.fields:
+    if f is not None:
+      if f.type is not None:
+        _p(out, '  ', f.type, ' ', f.name, ';\n')
+  _p(out, '} ', self.type, ';\n\n')
+  _p(out, 'typedef ', self.type, '* nlangp__', self.type, ';\n')
+  _p(out, 'typedef const ', self.type, '* nlangcp__', self.type, ';\n\n')
+Union.cwrite = w
 
 def w(self, out):
   if len(self.genargs) > 0 and self.genargs[0].instantiated is None:
@@ -159,7 +171,7 @@ def w(self, out):
   else:
     _p(out, ") {\n")
     for b in self.body:
-      _p(out, b, ';\n')
+      _p(out, '  ', b, ';\n')
     _p(out, '}\n\n')
   up()
   grettype.pop()
@@ -191,14 +203,14 @@ VarDecl.cwrite = w
 def w(self, out):
   tmp = _gensym()
   _p(out, '({ ', self.type, ' ', tmp, ';\n')
-  _p(out, 'memset(&', tmp, ', 0, sizeof(', tmp, '));\n')
+  _p(out, '    memset(&', tmp, ', 0, sizeof(', tmp, '));\n')
 
   typedecl = scope.current().q(self.type)
   for field, expr in self.pairs:
     found = False
     for f in typedecl.decls:
       if isinstance(f, FieldDecl) and f.name == field:
-        _p(out, tmp, '.', field, ' = ', expr, ';\n')
+        _p(out, '    ', tmp, '.', field, ' = ', expr, ';\n')
         found = True
         break
     if not found:
@@ -309,7 +321,7 @@ Break.cwrite = w
 def w(self, out):
   _p(out, 'while (', self.cond, ') {')
   for b in self.body:
-    _p(out, b, ';\n')
+    _p(out, '  ', b, ';\n')
   _p(out, '}\n')
 While.cwrite = w
 
@@ -320,7 +332,7 @@ def w(self, out):
   _p(out, 'for (; nlang_IndexRange_Next(&', range, ');) {\n')
   _p(out, self.vardecl, ' = nlang_IndexRange_Index(&', range, ');\n')
   for b in self.body:
-    _p(out, b, ';\n')
+    _p(out, '  ', b, ';\n')
   _p(out, '}\n}')
   up()
 For.cwrite = w
@@ -329,18 +341,18 @@ PFor.cwrite = w
 def w(self, out):
   _p(out, 'if (', self.condpairs[0][0], ') {\n')
   for b in self.condpairs[0][1]:
-    _p(out, b, ';\n')
+    _p(out, '  ', b, ';\n')
   _p(out, '}')
   for cp in self.condpairs[1:]:
     _p(out, 'else if (', cp[0], ') {\n')
     for b in cp[1]:
-      _p(out, b, ';\n')
+      _p(out, '  ', b, ';\n')
     _p(out, '}')
 
   if self.elsebody is not None:
     _p(out, 'else {\n',)
     for b in self.elsebody:
-      _p(out, b, ';\n')
+      _p(out, '  ', b, ';\n')
     _p(out, '}')
 If.cwrite = w
 

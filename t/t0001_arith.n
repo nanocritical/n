@@ -1,5 +1,14 @@
 from nlang import Range
 
+type Enum =
+  | FIRST
+  | SECOND
+
+type Test =
+  | Success
+  | Integer -> U32
+  | Long -> U64
+
 fun main = U32
   let r :U32 = 0
     for x:U32 in Range 0 10

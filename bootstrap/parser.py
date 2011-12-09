@@ -612,12 +612,12 @@ def p_statement_semanticclaim(p):
   p[0] = ast.SemanticClaim(p[2])
 
 def p_choicedecl(p):
-  '''choicedecl : '|' IDENT'''
-  p[0] = ast.ChoiceDecl(p[1])
+  '''choicedecl : BWOR IDENT'''
+  p[0] = ast.ChoiceDecl(p[2])
 
 def p_choicedecl_type(p):
-  '''choicedecl : '|' IDENT ARROW type'''
-  p[0] = ast.ChoiceDecl(p[1], p[3])
+  '''choicedecl : BWOR IDENT ARROW type'''
+  p[0] = ast.ChoiceDecl(p[2], p[4])
 
 def p_typedecl_statement(p):
   '''typedecl_statement : fieldchoicedecl

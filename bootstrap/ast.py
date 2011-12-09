@@ -250,24 +250,29 @@ class DynIntf(_NameEq, Decl):
 
 class ChoiceDecl(_NameEq, CGlobalName):
   def __init__(self, choice, typearg=None):
-    if isinstance(choice, Assign):
-      super(ChoiceDecl, self).__init__(choice.value)
-      self.value = choice.expr
-    else:
-      self.name = choice
-      self.value = None
+    super(ChoiceDecl, self).__init__(choice)
+    self.value = None
     self.typearg = typearg
+    self.codeloc = CodeLoc(self)
 
 class TypeDecl(_NameEq, CGlobalName, HasDep, Decl):
-  REC, TAGGEDUNION, UNION, FORWARD = range(4)
+  REC, TAGGEDUNION, ENUM, UNION, FORWARD = range(5)
   def __init__(self, type, isa, imports, typedecls, decls, methods, funs):
     super(TypeDecl, self).__init__(type.name)
     self.type = type
     self.isa = isa
     self.imports = imports
     self.typedecls = typedecls
-    self.decls = decls
+
     self.kind = TypeDecl.whatkind(decls)
+    self.decls = decls
+    if self.kind == TypeDecl.TAGGEDUNION:
+      union = Union(Type('__as'), [UnionField(d.name, d.typearg) for d in decls])
+      self.typedecls.append(union)
+      self.decls.append(FieldDecl('__unsafe_as', Type('__as')))
+    if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
+      self.decls.append(FieldDecl('Which', Type('U32')))
+
     self.methods = methods
     self.funs = funs
     self._fillscope()
@@ -300,14 +305,22 @@ class TypeDecl(_NameEq, CGlobalName, HasDep, Decl):
     k = None
     for d in decls:
       if isinstance(d, ChoiceDecl):
-        kind = TypeDecl.TAGGEDUNION
+        if d.typearg is None:
+          kind = TypeDecl.ENUM
+        else:
+          kind = TypeDecl.TAGGEDUNION
       else:
         kind = TypeDecl.REC
 
       if k is None:
         k = kind
       elif k != kind:
-        raise errors.ParseError("Type declaration must have uniform kind")
+        if k == TypeDecl.ENUM and kind == TypeDecl.TAGGEDUNION:
+          k = kind
+        elif k == TypeDecl.TAGGEDUNION and kind == TypeDecl.ENUM:
+          pass
+        else:
+          raise errors.ParseError("Type declaration must have uniform kind")
 
     return k
 
@@ -333,8 +346,24 @@ class TypeAppDecl(_NameEq, HasDep, Decl):
   def dependson(self):
     return [typeapp.type] + typeapp.args
 
-class Union(TypeDecl):
-  pass
+class UnionField(_NameEq, CGlobalName):
+  def __init__(self, name, type):
+    super(UnionField, self).__init__(name)
+    self.type = type
+
+class Union(_NameEq, CGlobalName, Decl):
+  def __init__(self, type, fields):
+    super(Union, self).__init__(type.name)
+    self.type = type
+    self.fields = fields
+    self._fillscope()
+  def _fillscope(self):
+    self.scope = scope.Scope(self)
+    for f in self.fields:
+      if f is not None:
+        self.scope.define(f)
+  def dependson(self):
+    return [t for _,t in self.pairs]
 
 class FunctionDecl(_NameEq, CGlobalName, Decl):
   def __init__(self, name, genargs, args, returns, body):
