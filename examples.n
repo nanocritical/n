@@ -1504,3 +1504,78 @@ fun foo v Vector T, w Vector T, b U64 = Void
 -- An import doesn't change the naming for a symbol, it only creates an alias.
 -- An alias that is not exported to the object file. It's only internal.
 -- The only emitted symbol is the full path to the definition.
+
+
+
+-- Constructors
+-- Literal or default constructors, Type{} are module-private by default. Can be
+-- exported with:
+-- type Type =
+--   let Ctor = ctor
+--   let Ctorliteral = ctorliteral
+--
+-- Note, Dtor always visible, right?
+--
+-- The rational is that default operations may not make a lot of sense, and
+-- we shouldn't export it in general. Copy constructors are different, we
+-- only define them when they are to make sense in the general sense.
+--
+-- In general, a constructor must be defined, with a name:
+-- type Vector T =
+--   fun Mk len:Size ?init:?.T = This
+--     return This{ ... }
+--
+--   fun Dtor = Void
+--     free this!data
+--
+--   fun Ctor = This
+--     return This{}
+
+-- This is consistent with sum types Sum.NAME: NAME is a fun in Sum
+-- that returns a Sum.
+--
+-- type Sum =
+--   | FIRST
+--   | SECOND -> U32, I32
+--
+-- Is somewhat equivalent to:
+--
+-- type Sum =
+--   union __union =
+--     | SECOND -> U32, I32
+--
+--   Which :U32
+--   __unsafe_as__ :__union
+--
+--   fun FIRST = This
+--     return Sum{Which=0}
+--   fun SECOND x:(U32, I32) = This
+--     let r = Sum{Which=1}
+--       r.__unsafe_as!SECOND = x
+
+-- Default constructor is defineda as this.__memclear__. Or call the non-default
+-- constructors of fields.
+
+-- Copy constructors are defined by default when they are safe. I.e. not when we
+-- have loose pointers. Only scoped, unique or shared. Shallow copy.
+-- Deep copy is a different can of worms. We could have deep copy automatically
+-- defined whenever the definition does not allow any risk of inifinite loop
+-- (only contains references on different types of data, or no references at all).
+
+
+-- Unary calls
+
+fun foo = .U32
+
+fun bar = Void
+  let x = foo.
+  -- Must be valid, as we want the same syntax as:
+  let xx = valueptr.
+
+  let y = (foo).
+  -- Indentical but unnecessary.
+
+  let refreturntmp = &foo -- call then reference.
+  let funref = &~foo -- ?? Need special syntax.
+  let a = (funref.) -- Call: parenthesis needed in that case?
+  -- Funref not supported yet.

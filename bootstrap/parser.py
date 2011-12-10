@@ -205,7 +205,7 @@ precedence = (
     ('right', 'NEG'),
     ('right', 'UBWNOT'),
     ('right', 'REFDOT', 'REFBANG'),
-    ('right', 'DOT', 'BANG'),
+    ('left', 'DOT', 'BANG'),
     )
 
 def p_empty(p):
@@ -223,26 +223,27 @@ def p_idents(p):
 def p_value_ident(p):
   '''value_3 : IDENT'''
   p[0] = ast.Value(p[1])
+  p[0].maybeuncall = True
 
 def p_value_deref(p):
   '''value_3 : IDENT DOT
              | IDENT BANG'''
   p[0] = ast.Deref(p[2], ast.Value(p[1]))
 
-def p_value_fieldacc_bang(p):
-  '''value_fieldacc : IDENT BANG IDENT
-                    | IDENT DOT IDENT'''
+def p_value_fieldaccp_term(p):
+  '''value_fieldacc : IDENT DOT IDENT
+                    | IDENT BANG IDENT'''
   p[0] = p[1:4]
 
-def p_value_fieldacc_bang_deref(p):
-  '''value_fieldacc : IDENT BANG IDENT BANG
-                    | IDENT DOT IDENT DOT
-                    | IDENT DOT IDENT BANG'''
-  p[0] = p[1:5]
-
 def p_value_fieldacc_dot(p):
-  '''value_fieldacc : value_fieldacc DOT IDENT'''
-  p[0] = p[1:3] + p[3]
+  '''value_fieldacc : value_fieldacc DOT IDENT
+                    | value_fieldacc BANG IDENT'''
+  p[0] = p[1] + p[2:4]
+
+def p_value_fieldacc_deref(p):
+  '''value_fieldacc : value_fieldacc DOT IDENT DOT
+                    | value_fieldacc BANG IDENT BANG'''
+  p[0] = p[1] + p[2:5]
 
 def p_value_fieldacc(p):
   '''value_2 : value_fieldacc'''
@@ -252,9 +253,11 @@ def p_value_fieldacc(p):
     p[1] = p[1][:-1]
 
   acclist = p[1]
-  r = acclist[-1]
-  for i in xrange(len(acclist) - 2, -1, -2):
-    r = ast.ValueField(acclist[i-1], acclist[i], r)
+  r = ast.Value(acclist[0])
+  for i in xrange(1, len(acclist), 2):
+    r = ast.ValueField(r, acclist[i], acclist[i+1])
+
+  r.maybeuncall = True
 
   if deref is not None:
     p[0] = ast.Deref(deref, r)
@@ -404,6 +407,7 @@ def p_expr_binop(p):
 def p_expr_call_list(p):
   '''expr_call_list : expr
                     | expr expr_call_list'''
+  p[1].maybeuncall = False
   args = [p[1]]
   if len(p) == 3:
     args += p[2]
@@ -411,6 +415,7 @@ def p_expr_call_list(p):
 
 def p_expr_call_only(p):
   '''expr_call : expr expr_call_list'''
+  p[1].maybeuncall = False
   p[0] = ast.Call(p[1], p[2])
 
 def p_expr_call(p):
@@ -461,8 +466,12 @@ def p_expr_initializer_list(p):
     p[0] = [p[1]] + p[2]
 
 def p_expr_initializer(p):
-  '''expr : IDENT '{' initializer_list '}' '''
-  p[0] = ast.Initializer(ast.Type(p[1]), p[3])
+  '''expr : value '{' '}'
+          | value '{' initializer_list '}' '''
+  if len(p) == 4:
+    p[0] = ast.Initializer(p[1], [])
+  else:
+    p[0] = ast.Initializer(p[1], p[3])
 
 def p_expr_top(p):
   '''expr_top : expr_call
@@ -599,6 +608,14 @@ def p_statement_if(p):
   '''statement : IF expr_top statements_block'''
   p[0] = ast.If([(p[2], p[3])], None)
 
+def p_matchers(p):
+  '''matcher : BWOR expr_top statements_block'''
+  p[0] = ast.Matcher(p[2], p[3])
+
+def p_match(p):
+  '''statement : MATCH expr_top matchers_block'''
+  p[0] = ast.Match(p[2], p[3])
+
 def p_statement_assert(p):
   '''statement : CTX_ASSERT statement'''
   p[0] = ast.Assert(p[2])
@@ -610,6 +627,10 @@ def p_statement_semanticassert(p):
 def p_statement_semanticclaim(p):
   '''statement : CTX_SEMCLAIM statement'''
   p[0] = ast.SemanticClaim(p[2])
+
+def p_statements_block(p):
+  '''statements_block : _statements_block'''
+  p[0] = ast.Block(p[1])
 
 def p_choicedecl(p):
   '''choicedecl : BWOR IDENT'''
@@ -697,13 +718,13 @@ def p_fundecl_forward(p):
              | '(' FUN typedeclname_list ')' IDENT ASSIGN funretvals
              | '(' FUN typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
   if len(p) == 5:
-    p[0] = ast.FunctionDecl(p[2], [], [], p[4], [])
+    p[0] = ast.FunctionDecl(p[2], [], [], p[4], None)
   elif len(p) == 6:
-    p[0] = ast.FunctionDecl(p[2], [], p[3], p[5], [])
+    p[0] = ast.FunctionDecl(p[2], [], p[3], p[5], None)
   elif len(p) == 7:
-    p[0] = ast.FunctionDecl(p[5], p[3], [], p[7], [])
+    p[0] = ast.FunctionDecl(p[5], p[3], [], p[7], None)
   else:
-    p[0] = ast.FunctionDecl(p[5], p[3], p[6], p[8], [])
+    p[0] = ast.FunctionDecl(p[5], p[3], p[6], p[8], None)
 
 def p_fundecl(p):
   '''fundecl : FUN IDENT ASSIGN funretvals statements_block
@@ -725,13 +746,13 @@ def p_methoddecl_forward(p):
                 | '(' METHOD typedeclname_list ')' IDENT ASSIGN funretvals
                 | '(' METHOD typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
   if len(p) == 5:
-    p[0] = ast.MethodDecl(p[2], [], '.', [], p[4], [])
+    p[0] = ast.MethodDecl(p[2], [], '.', [], p[4], None)
   elif len(p) == 6:
-    p[0] = ast.MethodDecl(p[2], [], '.', p[3], p[5], [])
+    p[0] = ast.MethodDecl(p[2], [], '.', p[3], p[5], None)
   elif len(p) == 7:
-    p[0] = ast.MethodDecl(p[5], p[3], '.', [], p[7], [])
+    p[0] = ast.MethodDecl(p[5], p[3], '.', [], p[7], None)
   else:
-    p[0] = ast.MethodDecl(p[5], p[3], '.', p[6], p[8], [])
+    p[0] = ast.MethodDecl(p[5], p[3], '.', p[6], p[8], None)
 
 def p_methoddecl(p):
   '''methoddecl : METHOD IDENT ASSIGN funretvals statements_block
@@ -753,13 +774,13 @@ def p_methoddecl_mutating_forward(p):
                 | '(' METHOD BANG typedeclname_list ')' IDENT ASSIGN funretvals
                 | '(' METHOD BANG typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
   if len(p) == 6:
-    p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], [])
+    p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], None)
   elif len(p) == 7:
-    p[0] = ast.MethodDecl(p[3], [], '!', p[4], p[6], [])
+    p[0] = ast.MethodDecl(p[3], [], '!', p[4], p[6], None)
   elif len(p) == 8:
-    p[0] = ast.MethodDecl(p[6], p[4], '!', [], p[8], [])
+    p[0] = ast.MethodDecl(p[6], p[4], '!', [], p[8], None)
   else:
-    p[0] = ast.MethodDecl(p[6], p[4], '!', p[7], p[9], [])
+    p[0] = ast.MethodDecl(p[6], p[4], '!', p[7], p[9], None)
 
 def p_methoddecl_mutating(p):
   '''methoddecl : METHOD BANG IDENT ASSIGN funretvals statements_block
@@ -849,8 +870,9 @@ def p_module(p):
       p[0] = [p[1]] + p[3]
 
 _define_oneof('fieldchoicedecl', 'choicedecl', 'fielddecl', empty=True)
-_define_block('statements_block', 'statement')
+_define_block('_statements_block', 'statement')
 _define_block('typedecl_block', 'typedecl_statement')
+_define_block('matchers_block', 'matcher')
 
 def p_error(t):
   if t is None:

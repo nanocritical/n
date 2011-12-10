@@ -22,6 +22,7 @@ def current():
 
 def scopedname(node):
   global gscope
+  assert not isinstance(node, ast.ValueField)
   return gscope[-1].fullcname(node)
 
 class Scope(object):
@@ -32,21 +33,31 @@ class Scope(object):
 
     self.gendecls = []
 
+  def __str__(self):
+    if 'name' in self.container.__dict__:
+      cname = self.container.name
+    else:
+      cname = '<' + self.container.__class__.__name__ + '>'
+    if self.parent is not None:
+      return str(self.parent) + '.' + cname
+    else:
+      return cname
+
   def _define(self, what, name=None):
     if 'name' in what.__dict__:
       name = name or what.name
       if name in self.table:
-        raise errors.ScopeError("In scope '%s %s', name '%s' already defined, at %s" \
-            % (self, self.container, what, what.codeloc))
+        raise errors.ScopeError(self, "Name '%s' already defined, at %s" \
+            % (what, what.codeloc))
       self.table[name] = what
 
     if 'scope' in what.__dict__:
       if what.scope is None:
-        raise errors.ScopeError("In scope '%s %s', element named '%s' has a None scope, at %s" \
-            % (self, self.container, what, what.codeloc))
+        raise errors.ScopeError(self, "Element named '%s' has a None scope, at %s" \
+            % (what, what.codeloc))
       elif what.scope.parent is not None:
-        raise errors.ScopeError("In scope '%s %s', subscope '%s %s' already has a parent, at %s" \
-            % (self, self.container, what.scope, what.scope.container, what.codeloc))
+        raise errors.ScopeError(self, "Subscope '%s %s' already has a parent, at %s" \
+            % (what.scope, what.scope.container, what.codeloc))
       what.scope.parent = self
 
   def define(self, what, name=None):
@@ -65,8 +76,8 @@ class Scope(object):
               scope._define(what, name=p)
               what.scope.table.update(existing.scope)
             else:
-              raise errors.ScopeError("In scope '%s %s', name '%s' already defined, at %s" \
-                  % (scope, scope.container, what, what.codeloc))
+              raise errors.ScopeError(self, "name '%s' already defined, at %s" \
+                  % (what, what.codeloc))
           else:
             pass
         else:
@@ -81,7 +92,7 @@ class Scope(object):
       self._define(what, name=name)
 
   def _q_field(self, node):
-    what = self.q(node, ignorefield=True)
+    what = self.q(node.container)
 
     if isinstance(what, ast.VarDecl):
       what = what.typecheck()
@@ -93,36 +104,40 @@ class Scope(object):
         what = what.typeappdecl.typedecl
       elif isinstance(what, ast.TypeRef):
         what = what.deref(node.access)
+      elif isinstance(what, ast.Type):
+        what = self.q(what)
       else:
         break
 
     if isinstance(node.field, basestring):
       return what.scope.table[node.field]
     else:
-      return what.scope._q_field(node.field)
+      return what.scope.q(node.field)
 
   def _q_genarg(self, node):
     if not isinstance(node, ast.GenericArg):
       return node
     return node.instantiated
 
-  def rawq(self, node, ignorefield=False):
+  def rawq(self, node, innerscope=None, ignorefield=False):
+    innerscope = innerscope or self
+
     if not ignorefield and isinstance(node, ast.ValueField):
       return self._q_field(node)
 
     if node.name in self.table:
       return self.table[node.name]
     elif self.parent is not None:
-      return self.parent.q(node, ignorefield=ignorefield)
+      return self.parent.q(node, innerscope=innerscope, ignorefield=ignorefield)
     else:
-      raise errors.ScopeError("'%s' not found in scope %s, at %s" \
-          % (node.name, self.container.codeloc, node.codeloc))
+      raise errors.ScopeError(innerscope, "'%s' not found, at %s" \
+          % (node.name, node.codeloc))
 
-  def q(self, node, ignorefield=False):
-    return self._q_genarg(self.rawq(node, ignorefield=ignorefield))
+  def q(self, node, **kw):
+    return self._q_genarg(self.rawq(node, **kw))
 
   def _fullcname_field(self, node):
-    what = self.table[node.name]
+    what = self.q(node.container)
 
     if isinstance(what, ast.VarDecl):
       what = what.typecheck()
@@ -136,19 +151,27 @@ class Scope(object):
       elif isinstance(what, ast.TypeRef):
         what = what.deref(node.access)
         acc = '->'
+      elif isinstance(what, ast.Type):
+        what = self.q(what)
       else:
         break
 
+    f = what.scope.table[node.field]
+    if isinstance(f, ast.ChoiceDecl):
+      acc = '_'
+
     if isinstance(node.field, basestring):
-      return self.fullcname(node, skipfield=True) \
+      return self.fullcname(node, ignorefield=True) \
           + acc + node.field
     else:
-      return self.fullcname(node, skipfield=True) \
-          + acc + what.scope._fullcname_field(node.field)
+      return self.fullcname(node, ignorefield=True) \
+          + acc + what.scope._fullcname_field(f)
 
   CSEP = '_'
 
-  def fullcname(self, node, skipfield=False):
+  def fullcname(self, node, innerscope=None, ignorefield=False):
+    innerscope = innerscope or self
+
     if (isinstance(node, ast.FunctionDecl) \
         or isinstance(node, ast.MethodDecl)) \
         and node.name == 'main':
@@ -158,28 +181,28 @@ class Scope(object):
     elif isinstance(node, ast.ExprSizeof):
       return 'sizeof'
 
-    if not skipfield and isinstance(node, ast.ValueField):
+    if not ignorefield and isinstance(node, ast.ValueField):
       gen = self._q_field(node)
       if isinstance(gen, ast.GenericArg):
         return gen.instantiated
       else:
         return self._fullcname_field(node)
 
-    gen = self.rawq(node)
-    if isinstance(gen, ast.GenericArg):
-      return gen.instantiated
+    d = self.rawq(node, innerscope=innerscope, ignorefield=ignorefield)
+    if isinstance(d, ast.GenericArg):
+      return d.instantiated
 
     if node.name not in self.table:
       if self.parent is not None:
-        return self.parent.fullcname(node)
+        return self.parent.fullcname(node, innerscope=innerscope, ignorefield=ignorefield)
       else:
-        raise errors.ScopeError("'%s' not found in scope %s, at %s" \
-            % (node.name, self.container.codeloc, node.codeloc))
+        raise errors.ScopeError(innerscope, "'%s' not found, at %s" \
+            % (node.name, node.codeloc))
 
     if isinstance(self.container, ast.Module):
       return re.sub(r'\.', Scope.CSEP, self.container.name) \
           + Scope.CSEP + node.name
     elif isinstance(node, ast.CGlobalName):
-      return self.parent.fullcname(self.container) + Scope.CSEP + node.name
+      return self.parent.fullcname(self.container, innerscope=innerscope) + Scope.CSEP + node.name
     else:
       return node.name

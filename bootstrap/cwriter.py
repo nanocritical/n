@@ -14,6 +14,8 @@ def _p(out, *args):
       out.write(a)
     elif isinstance(a, int) or isinstance(a, long):
       out.write(str(a))
+    elif isinstance(a, Expr) and a.maybeuncall:
+      UnCall(a).cwrite(out)
     else:
       a.cwrite(out)
 
@@ -72,7 +74,7 @@ Intf.cwrite = w
 DynIntf.cwrite = w
 
 def w(self, out):
-  pass
+  _p(out, scopedname(self.typedecl) + '_' + self.name)
 ChoiceDecl.cwrite = w
 
 def w(self, out):
@@ -89,11 +91,12 @@ def w(self, out):
 
   down(self.scope)
   if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
-    _p(out, 'typedef enum {\n')
+    _p(out, indent(+1), 'typedef enum {\n')
     for d in self.decls:
       if isinstance(d, ChoiceDecl):
-        _p(out, '  wnlangtag__' + scopedname(self) + '_' + d.name + ',\n')
-    _p(out, '} nlangtag__', self.type, ';\n\n')
+        _p(out, indent(), d, ',\n')
+    indent(-1)
+    _p(out, indent(), '} nlangtag__', self.type, ';\n\n')
 
   for gen in self.scope.gendecls:
     _p(out, gen)
@@ -101,12 +104,21 @@ def w(self, out):
   for td in self.typedecls:
     _p(out, td)
 
-  _p(out, "typedef struct {\n")
+  _p(out, indent(+1), 'typedef struct {\n')
   for d in self.decls:
-    _p(out, '  ', d, ';\n')
-  _p(out, '}', self.type, ';\n')
-  _p(out, 'typedef ', self.type, '* nlangp__', self.type, ';\n')
-  _p(out, 'typedef const ', self.type, '* nlangcp__', self.type, ';\n\n')
+    if not isinstance(d, ChoiceDecl):
+      _p(out, indent(), d, ';\n')
+  indent(-1)
+  _p(out, indent(), '}', self.type, ';\n')
+  _p(out, indent(), 'typedef ', self.type, '* nlangp__', self.type, ';\n')
+  _p(out, indent(), 'typedef const ', self.type, '* nlangcp__', self.type, ';\n\n')
+
+  for d in self.decls:
+    if isinstance(d, ChoiceDecl):
+      down(d.scope)
+      _p(out, d.ctor)
+      _p(out, FieldConstDecl(d.valuevar), ';\n')
+      up()
 
   for d in self.methods:
     _p(out, d)
@@ -123,6 +135,7 @@ def w(self, out):
 TupleDecl.cwrite = w
 
 def w(self, out):
+  self.typedecl = scope.current().q(self.typeapp)
   applied = copy.deepcopy(self.typedecl)
   for genarg, instancearg in zip(applied.type.args, self.typeapp.args):
     genarg.instantiated = instancearg
@@ -161,63 +174,84 @@ def w(self, out):
     objtype = self.scope.parent.container.type
     _p(out, TypeRef(self.access, objtype), ' this')
     if len(self.args) > 0:
-      _p(out, ", ")
+      _p(out, ', ')
   for i in xrange(len(self.args)):
     _p(out, self.args[i])
     if i != len(self.args) - 1:
-      _p(out, ", ")
-  if len(self.body) == 0:
-    _p(out, ");\n")
+      _p(out, ', ')
+  if self.body is None:
+    _p(out, ');\n')
   else:
-    _p(out, ") {\n")
-    for b in self.body:
-      _p(out, '  ', b, ';\n')
-    _p(out, '}\n\n')
+    _p(out, ') ', self.body, '\n\n')
   up()
   grettype.pop()
 MethodDecl.cwrite = w
 FunctionDecl.cwrite = w
 
 def w(self, out):
-  instance = copy.deepcopy(self.call.funinstancedecl.fundecl)
-  for arg, argexpr in zip(instance.args, self.call.terms[1:]):
-    arg.type.deconstruct(instance.scope, argexpr.typecheck())
-  _p(out, instance)
+  d = self.call.terms[0].typecheck().typedef()
+
+  if isinstance(d, FunctionDecl):
+    if len(d.genargs) == 0:
+      # This call was not, in fact, to a generic.
+      return
+
+    instance = copy.deepcopy(d)
+    for arg, argexpr in zip(instance.args, self.call.terms[1:]):
+      arg.type.deconstruct(instance.scope, argexpr.typecheck())
+    _p(out, instance)
+
+  elif isinstance(d, TypeDecl):
+    if not isinstance(d.type, GenericTypename):
+      # This call was not, in fact, to a generic.
+      return
+
+    applied = copy.deepcopy(d)
+    for genarg, instancearg in zip(applied.type.args, self.call.terms[0]):
+      genarg.instantiated = instancearg
+    _p(out, DefaultCtor(applied))
+
+  else:
+    raise Exception()
 FunctionInstanceDecl.cwrite = w
 
 def w(self, out):
-  assert not (self.type is None and self.expr is None)
-  if self.type is None:
-    self.type = self.expr.typecheck()
-  _p(out, self.type, ' ', scopedname(self))
+  _p(out, self.typecheck(), ' ', scopedname(self))
 
   if self.expr is not None:
-    typing.checkcompat(self.type, self.expr.typecheck())
     _p(out, ' = ', self.expr)
   if self.mutatingblock is not None:
-    _p(out, ';\n')
-    for s in self.mutatingblock:
-      _p(out, s, ';\n')
+    _p(out, ';\n', self.mutatingblock)
 VarDecl.cwrite = w
 
 def w(self, out):
-  tmp = _gensym()
-  _p(out, '({ ', self.type, ' ', tmp, ';\n')
-  _p(out, '    memset(&', tmp, ', 0, sizeof(', tmp, '));\n')
+  _p(out, self.vardecl.typecheck(), ' ', scopedname(self))
 
-  typedecl = scope.current().q(self.type)
+  if self.vardecl.expr is not None:
+    _p(out, ' = ', self.vardecl.expr)
+  if self.vardecl.mutatingblock is not None:
+    raise Exception("Unsupported")
+FieldConstDecl.cwrite = w
+
+def w(self, out):
+  tmp = _gensym()
+  _p(out, '({ ', self.value, ' ', tmp, ';\n')
+  indent(+2)
+  _p(out, indent(), 'memset(&', tmp, ', 0, sizeof(', tmp, '));\n')
+
+  typedecl = scope.current().q(self.value)
   for field, expr in self.pairs:
     found = False
     for f in typedecl.decls:
       if isinstance(f, FieldDecl) and f.name == field:
-        _p(out, '    ', tmp, '.', field, ' = ', expr, ';\n')
+        _p(out, indent(), tmp, '.', field, ' = ', expr, ';\n')
         found = True
         break
     if not found:
       raise errors.ParseError("In initializer for type '%s', invalid field '%s', at %s" \
-          % (self.type, field, self.type.codeloc))
+          % (self.value, field, self.value.codeloc))
 
-  _p(out, tmp, '; })')
+  _p(out, indent(-2), tmp, '; })')
 Initializer.cwrite = w
 
 def w(self, out):
@@ -238,7 +272,23 @@ def w(self, out):
 Deref.cwrite = w
 
 def w(self, out):
-  _p(out, scopedname(self))
+  ctype = self.container.typecheck()
+  if isinstance(ctype, TypeRef):
+    access = '->'
+  else:
+    access = '.'
+
+  c = scope.current().q(self.container)
+  if isinstance(c, ast.ChoiceDecl):
+    sc = c.scope
+    access = '_'
+  else:
+    sc = ctype.typedef().scope
+    f = sc.table[self.field]
+    if isinstance(f, ast.ChoiceDecl):
+      access = '_'
+
+  _p(out, self.container, access, self.field)
 ValueField.cwrite = w
 
 def w(self, out):
@@ -266,14 +316,17 @@ def w(self, out):
 Tuple.cwrite = w
 
 def w(self, out):
+  self.typecheck()
   _p(out, '((', self.type, ')(', self.terms[0], '))')
 ConstrainedExpr.cwrite = w
 
 def w(self, out):
+  self.typecheck()
   _p(out, '(', self.terms[0], ' ', self.op, ' ', self.terms[1], ')')
 BinExpr.cwrite = w
 
 def w(self, out):
+  self.typecheck()
   if self.op == 'neg':
     _p(out, '(- ', self.terms[0], ')')
   else:
@@ -286,9 +339,19 @@ def w(self, out):
     _p(out, 'sizeof(', self.terms[1], ')')
     return
 
-  fun = scope.current().q(self.terms[0]).typecheck()
+  fun = scope.current().q(self.terms[0]).typedef()
 
-  _p(out, self.terms[0], '(')
+  if isinstance(fun, ChoiceDecl):
+    funexpr = ValueField(self.terms[0], '.', fun.ctor.name)
+    fun = fun.ctor
+  else:
+    funexpr = self.terms[0]
+
+  _p(out, funexpr, '(')
+  if len(fun.args) == 0:
+    _p(out, ')')
+    return
+
   for i in xrange(len(fun.args)):
     if i + 1 < len(self.terms):
       _p(out, self.terms[i+1])
@@ -305,6 +368,16 @@ def w(self, out):
 Call.cwrite = w
 
 def w(self, out):
+  self.terms[0].maybeuncall = False
+  fun = scope.current().q(self.terms[0]).typedef()
+
+  if isinstance(fun, FunctionDecl) or isinstance(fun, ChoiceDecl):
+    _p(out, Call(self.terms[0], []))
+  else:
+    _p(out, self.terms[0])
+UnCall.cwrite = w
+
+def w(self, out):
   global grettype
   typing.checkcompat(grettype[-1], self.expr.typecheck())
   _p(out, 'return (', self.expr, ')')
@@ -319,42 +392,69 @@ def w(self, out):
 Break.cwrite = w
 
 def w(self, out):
-  _p(out, 'while (', self.cond, ') {')
-  for b in self.body:
-    _p(out, '  ', b, ';\n')
-  _p(out, '}\n')
+  _p(out, 'while (', self.cond, ')', self.body)
+  _p(out, indent(), '}\n')
 While.cwrite = w
 
 def w(self, out):
   down(self.scope)
   range = _gensym()
-  _p(out, '{\n', 'nlang_IndexRange ', range, ' = ', self.iter, ';\n')
-  _p(out, 'for (; nlang_IndexRange_Next(&', range, ');) {\n')
-  _p(out, self.vardecl, ' = nlang_IndexRange_Index(&', range, ');\n')
-  for b in self.body:
-    _p(out, '  ', b, ';\n')
-  _p(out, '}\n}')
+  indent(+1)
+  _p(out, '{\n', indent(), 'nlang_IndexRange ', range, ' = ', self.iter, ';\n')
+  _p(out, indent(+1), 'for (; nlang_IndexRange_Next(&', range, ');) {\n')
+  _p(out, indent(), self.vardecl, ' = nlang_IndexRange_Index(&', range, ');\n')
+  _p(out, self.body)
+  indent(-1)
+  _p(out, '\n', indent(-1), '}\n', indent(), '}')
   up()
 For.cwrite = w
 PFor.cwrite = w
 
 def w(self, out):
-  _p(out, 'if (', self.condpairs[0][0], ') {\n')
-  for b in self.condpairs[0][1]:
-    _p(out, '  ', b, ';\n')
-  _p(out, '}')
+  _p(out, 'if (', self.condpairs[0][0], ')', self.condpairs[0][1])
   for cp in self.condpairs[1:]:
-    _p(out, 'else if (', cp[0], ') {\n')
-    for b in cp[1]:
-      _p(out, '  ', b, ';\n')
-    _p(out, '}')
+    _p(out, indent(), 'else if (', cp[0], ')', cp[1])
 
   if self.elsebody is not None:
-    _p(out, 'else {\n',)
-    for b in self.elsebody:
-      _p(out, '  ', b, ';\n')
-    _p(out, '}')
+    _p(out, indent(), 'else', self.elsebody)
 If.cwrite = w
+
+gblockdepth = 0
+def indent(delta=0):
+  global gblockdepth
+  r = '  ' * gblockdepth
+  gblockdepth += delta
+  return r
+
+def w(self, out):
+  global gblockdepth
+  down(self.scope)
+  _p(out, indent(+1), '{\n')
+  for b in self.body:
+    _p(out, indent(), b, ';\n')
+  indent(-1)
+  _p(out, indent(), '}')
+  up()
+Block.cwrite = w
+
+def w(self, out):
+  exprtype = self.expr.typedef()
+  if isinstance(exprtype, TypeDecl) \
+      and (exprtype.kind == TypeDecl.TAGGEDUNION \
+      or (exprtype.kind == TypeDecl.ENUM)):
+    test = BinExpr('==', ValueField(self.expr, '.', 'which'),
+        ValueField(ValueField(exprtype.type, '.', self.pattern.name), '.', 'Value'))
+  else:
+    test = BinExpr('==', self.expr, self.pattern)
+
+  _p(out, indent(), 'else if (', test, ')', self.body)
+Matcher.cwrite = w
+
+def w(self, out):
+  _p(out, 'if (0) {}\n')
+  for m in self.matchers:
+    _p(out, m)
+Match.cwrite = w
 
 def w(self, out):
   _p(out, 'assert(', self.expr, ')')
@@ -368,8 +468,10 @@ SemanticAssert.cwrite = w
 gimported = {}
 
 def _importalias(out, path, alias):
+  vpath = copy.copy(path)
+  vpath[0] = Value(vpath[0])
   vardecl = VarDecl(alias, None,
-      reduce((lambda a, b: ValueField(a, '.', b)), path))
+      reduce((lambda a, b: ValueField(a, '.', b)), vpath))
   scope.current().define(vardecl)
   prefix = re.sub(r'\.', '_', scope.current().container.name)
   _p(out, '#define ', prefix, '_', vardecl.name, ' ', '_'.join(path), '\n')

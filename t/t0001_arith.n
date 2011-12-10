@@ -5,12 +5,20 @@ type Enum =
   | SECOND
 
 type Test =
-  | Success
-  | Integer -> U32
-  | Long -> U64
+  | SUCCESS
+  | INTEGER -> U32
+  | LONG -> U64
 
 fun main = U32
   let r :U32 = 0
     for x:U32 in Range 0 10
       r = r + x
+  let e = Enum.FIRST
+  let t = Test.SUCCESS
+  let tt = Test.INTEGER 0
+  match t
+    | SUCCESS
+      return 0
+    | INTEGER
+      return 1
   return r

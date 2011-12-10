@@ -104,9 +104,11 @@ class Type(_NameEq, CGlobalName):
   def normalize(name):
     return re.sub(r'\s*,\s+', ', ', re.sub(r'\s+', ' ', name))
   def deref(self, access):
-    raise TypeError("Cannot dereference type '%s'" % self.name)
+    raise errors.TypeError("Cannot dereference type '%s', at %s" % (self.name, self.codeloc))
   def typecheck(self):
     return self
+  def typedef(self):
+    return scope.current().q(self)
   def deconstruct(self, genscope, t):
     '''t is the concrete type, self is the pattern'''
     # At this level, bottom of the pattern matching tree, t can be a more
@@ -127,7 +129,7 @@ class TypeRef(Type):
     self.type = type
   def deref(self, access):
     if self.access != '!' and access == '!':
-      raise TypeError("Cannot mutate the type '%s'" % self)
+      raise errors.TypeError("Cannot mutate the type '%s', at %s" % (self, self.codeloc))
     return self.type
   def deconstruct(self, genscope, t):
     _checkdeconstructcompat(self, t)
@@ -135,6 +137,8 @@ class TypeRef(Type):
       # We may actually want to be tolerant here: does '.' matche '!' ?
       raise errors.PmStructError(self, t)
     return self.type.deconstruct(genscope, t.type)
+  def typedef(self):
+    return self.type.typedef()
 
 class TypeRefNullable(TypeRef):
   def __init__(self, typeref):
@@ -145,12 +149,8 @@ class TypeTuple(Type):
     super(TypeTuple, self).__init__(', '.join([t.name for t in types]))
     self.types = types
 
-    modtuples = ctx().tuples_pending
-    if self.type not in modtuples:
-      modtuples['nlang.Tuple'] = {}
-    if self not in modtuples['nalng.Tuple']:
-      modtuples['nlang.Tuple'][self] = TupleDecl(self)
-    self.tupledecl = modtuples['nlang.Tuple'][self]
+    self.tupledecl = TupleDecl(self)
+    ctx().tuples_pending.append(self.tupledecl)
 
   def deconstruct(self, genscope, t):
     _checkdeconstructcompat(self, t)
@@ -165,12 +165,8 @@ class TypeApp(Type):
     self.type = type
     self.args = args
 
-    modtypeapps = ctx().typeapps_pending
-    if self.type not in modtypeapps:
-      modtypeapps[self.type] = {}
-    if self not in modtypeapps[self.type]:
-      modtypeapps[self.type][self] = TypeAppDecl(self)
-    self.typeappdecl = modtypeapps[self.type][self]
+    self.typeappdecl = TypeAppDecl(self)
+    ctx().typeapps_pending.append(self.typeappdecl)
 
   def deconstruct(self, genscope, t):
     _checkdeconstructcompat(self, t)
@@ -198,7 +194,11 @@ class TypeSlice(TypeApp):
 class Decl(object):
   pass
 
-class Intf(_NameEq, Decl):
+class TypeDef(object):
+  def typedef(self):
+    return self
+
+class Intf(_NameEq, Decl, TypeDef):
   def __init__(self, type, isa, imports, typedecls, decls, methods, funs):
     super(Intf, self).__init__(type.name)
     self.type = type
@@ -226,7 +226,7 @@ class Intf(_NameEq, Decl):
 
     ctx().acquire_pending(self.scope)
 
-class DynIntf(_NameEq, Decl):
+class DynIntf(_NameEq, Decl, TypeDef):
   def __init__(self, type, isa, imports, typedecls, methods):
     super(DynIntf, self).__init__(type.name)
     self.type = type
@@ -248,14 +248,31 @@ class DynIntf(_NameEq, Decl):
 
     ctx().acquire_pending(self.scope)
 
-class ChoiceDecl(_NameEq, CGlobalName):
+class ChoiceDecl(_NameEq, CGlobalName, TypeDef):
   def __init__(self, choice, typearg=None):
     super(ChoiceDecl, self).__init__(choice)
     self.value = None
     self.typearg = typearg
+    self.typedecl = None
     self.codeloc = CodeLoc(self)
+  def _defbuiltins(self):
+    if self.typearg is not None:
+      args = [VarDecl('arg', self.typearg)]
+    else:
+      args = []
+    init = Initializer(self.typedecl.type,
+        [('which', ExprLiteral(self.value))])
+    self.ctor = FunctionDecl('Ctor', [], args, [self.typedecl.type], Block([Return(init)]))
+    self.valuevar = VarDecl('Value', Type('U32'), ExprLiteral(self.value))
+    self._fillscope()
+  def _fillscope(self):
+    self.scope = scope.Scope(self)
+    self.scope.define(self.ctor)
+    self.scope.define(self.valuevar)
+  def typecheck(self):
+    return self.typedecl.type
 
-class TypeDecl(_NameEq, CGlobalName, HasDep, Decl):
+class TypeDecl(_NameEq, CGlobalName, HasDep, Decl, TypeDef):
   REC, TAGGEDUNION, ENUM, UNION, FORWARD = range(5)
   def __init__(self, type, isa, imports, typedecls, decls, methods, funs):
     super(TypeDecl, self).__init__(type.name)
@@ -264,14 +281,22 @@ class TypeDecl(_NameEq, CGlobalName, HasDep, Decl):
     self.imports = imports
     self.typedecls = typedecls
 
-    self.kind = TypeDecl.whatkind(decls)
+    self.kind = self.whatkind(decls)
     self.decls = decls
+
+    i = 0
+    for d in decls:
+      if isinstance(d, ChoiceDecl):
+        d.typedecl = self
+        d.value = i
+        d._defbuiltins()
+        i += 1
     if self.kind == TypeDecl.TAGGEDUNION:
       union = Union(Type('__as'), [UnionField(d.name, d.typearg) for d in decls])
       self.typedecls.append(union)
       self.decls.append(FieldDecl('__unsafe_as', Type('__as')))
     if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
-      self.decls.append(FieldDecl('Which', Type('U32')))
+      self.decls.append(FieldDecl('which', Type('U32')))
 
     self.methods = methods
     self.funs = funs
@@ -289,14 +314,13 @@ class TypeDecl(_NameEq, CGlobalName, HasDep, Decl):
       self.scope.define(a, name=a.name)
     for a in self.methods:
       self.scope.define(a, name=a.name)
-      a.scope.define(VarDecl('this', TypeRef(a.access, self)))
+      a.scope.define(VarDecl('this', TypeRef(a.access, self.type)))
     for a in self.funs:
       self.scope.define(a, name=a.name)
 
     ctx().acquire_pending(self.scope)
 
-  @staticmethod
-  def whatkind(decls):
+  def whatkind(self, decls):
     if not isinstance(decls, list):
       decls = [decls]
     if len(decls) == 0:
@@ -320,7 +344,8 @@ class TypeDecl(_NameEq, CGlobalName, HasDep, Decl):
         elif k == TypeDecl.TAGGEDUNION and kind == TypeDecl.ENUM:
           pass
         else:
-          raise errors.ParseError("Type declaration must have uniform kind")
+          raise errors.ParseError("Type declaration must have uniform kind, at %s" \
+              % self.codeloc)
 
     return k
 
@@ -329,6 +354,9 @@ class TypeDecl(_NameEq, CGlobalName, HasDep, Decl):
       return [self.type]
     else:
       return []
+
+  def typecheck(self):
+    return self
 
 class TupleDecl(_NameEq, HasDep):
   def __init__(self, type):
@@ -351,7 +379,7 @@ class UnionField(_NameEq, CGlobalName):
     super(UnionField, self).__init__(name)
     self.type = type
 
-class Union(_NameEq, CGlobalName, Decl):
+class Union(_NameEq, CGlobalName, Decl, TypeDef):
   def __init__(self, type, fields):
     super(Union, self).__init__(type.name)
     self.type = type
@@ -365,7 +393,7 @@ class Union(_NameEq, CGlobalName, Decl):
   def dependson(self):
     return [t for _,t in self.pairs]
 
-class FunctionDecl(_NameEq, CGlobalName, Decl):
+class FunctionDecl(_NameEq, CGlobalName, Decl, TypeDef):
   def __init__(self, name, genargs, args, returns, body):
     super(FunctionDecl, self).__init__(name)
     self.genargs = genargs
@@ -387,15 +415,16 @@ class FunctionDecl(_NameEq, CGlobalName, Decl):
     for a in self.returns:
       if isinstance(a, VarDecl):
         self.scope.define(a)
-    for a in self.body:
-      if isinstance(a, Decl):
-        self.scope.define(a)
+    if self.body is not None:
+      self.scope.define(self.body)
     for a in self.genargs:
       self.scope.define(a)
 
     ctx().acquire_pending(self.scope)
 
   def typecheck(self):
+    return self
+  def typedef(self):
     return self
 
 class FunctionInstanceDecl(HasDep):
@@ -421,14 +450,22 @@ class VarDecl(_NameEq, Decl):
     self.scope = scope.Scope(self)
   def typecheck(self):
     if self.type is not None:
+      if self.expr is not None:
+        typing.checkcompat(self.type, self.expr.typecheck())
       return self.type
     else:
       return self.expr.typecheck()
+  def typedef(self):
+    return self.typecheck()
   def setmutatingblock(self, b):
     self.mutatingblock = b
-    for d in self.mutatingblock:
-      if isinstance(d, Decl):
-        self.scope.define(d)
+    if self.mutatingblock is not None:
+      self.scope.define(self.mutatingblock)
+
+class FieldConstDecl(_NameEq, Decl, CGlobalName):
+  def __init__(self, vardecl):
+    super(FieldConstDecl, self).__init__(vardecl.name)
+    self.vardecl = vardecl
 
 class FieldDecl(VarDecl):
   def __init__(self, name, type):
@@ -438,15 +475,18 @@ class FieldDecl(VarDecl):
 class Expr(_FieldsEq):
   def __init__(self):
     super(Expr, self).__init__()
+    self.maybeuncall = False
   def typecheck(self):
     raise Exception("Not implemented for type '%s'" % type(self))
+  def typedef(self):
+    return self.typecheck().typedef()
 
 class Value(Expr):
   def __init__(self, name):
     super(Value, self).__init__()
     self.name = name
   def typecheck(self):
-    return scope.current().q(self).type
+    return scope.current().q(self).typecheck()
 
 class Ref(Expr):
   def __init__(self, access, value):
@@ -470,11 +510,11 @@ class Deref(Expr):
 class ValueField(Expr):
   def __init__(self, container, access, field):
     super(ValueField, self).__init__()
-    self.name = container
+    self.container = container
     self.access = access
     self.field = field
   def typecheck(self):
-    return scope.current().q(self).type
+    return scope.current().q(self).typecheck()
 
 class ExprLiteral(Expr):
   def __init__(self, lit):
@@ -567,11 +607,8 @@ class Call(Expr):
 
     # The function may or may not be instantiating a generic.
     # But we don't know that yet.
-    modfuninstances = ctx().funinstances_pending
-    if fun.name not in modfuninstances:
-      modfuninstances[fun.name] = []  # Do not use a dict, no good way to hash self.
-    modfuninstances[fun.name].append(FunctionInstanceDecl(self))
-    self.funinstancedecl = modfuninstances[fun.name][-1]
+    self.funinstancedecl = FunctionInstanceDecl(self)
+    ctx().funinstances_pending.append(self.funinstancedecl)
 
   def typecheck(self):
     fun = self.terms[0]
@@ -580,21 +617,37 @@ class Call(Expr):
       return Type('Size')
 
     fun = scope.current().q(fun)
-    if not isinstance(fun, FunctionDecl):
-      raise TypeError("'%s' is not a function" % funname)
+    d = fun.typedef()
+    if isinstance(d, FunctionDecl):
+      for i in xrange(1, len(self.terms)):
+        typing.unify([d.args[i-1].type, self.terms[i].typecheck()])
+      return d.rettype
+    elif isinstance(d, ChoiceDecl):
+      return d.typedecl.type
+    else:
+      raise errors.TypeError("'%s' is not a function, at %s" % (fun, self.codeloc))
 
-    for i in xrange(1, len(self.terms)):
-      typing.unify([fun.args[i-1], self.terms[i]])
+class UnCall(Expr):
+  def __init__(self, fun):
+    super(UnCall, self).__init__()
+    self.terms = [fun]
 
-    return fun.rettype
+class DefaultCtor(Call):
+  def __init__(self, type):
+    # FIXME: Should call ctor if in the same module or a submodule.
+    super(DefaultCtor, self).__init__(ValueField(type, '.', 'Ctor'), [])
+
+class Dtor(Call):
+  def __init__(self, type):
+    super(Dtor, self).__init__(ValueField(type, '.', 'Dtor'), [])
 
 class Initializer(Expr):
-  def __init__(self, type, pairs):
+  def __init__(self, value, pairs):
     super(Initializer, self).__init__()
-    self.type = type
+    self.value = value
     self.pairs = pairs
   def typecheck(self):
-    return self.type
+    return self.value.typecheck()
 
 class Assign(_FieldsEq):
   def __init__(self, value, expr):
@@ -603,11 +656,15 @@ class Assign(_FieldsEq):
     self.expr = expr
   def typecheck(self):
     typing.checkcompat(self.value.typecheck(), self.expr.typecheck())
+  def typedef(self):
+    return self.typecheck()
 
 class Return(_FieldsEq):
   def __init__(self, expr):
     super(Return, self).__init__()
     self.expr = expr
+  def typedef(self):
+    return self.typecheck()
 
 class Continue(_FieldsEq):
   pass
@@ -628,11 +685,8 @@ class While(_FieldsEq, Decl):
     self._fillscope()
   def _fillscope(self):
     self.scope = scope.Scope(self)
-    for d in self.body:
-      if isinstance(d, Decl):
-        self.scope.define(d)
-
-    ctx().acquire_pending(self.scope)
+    if self.body is not None:
+      self.scope.define(self.body)
 
 class For(_FieldsEq, Decl):
   def __init__(self, vardecl, iter, body):
@@ -644,11 +698,8 @@ class For(_FieldsEq, Decl):
   def _fillscope(self):
     self.scope = scope.Scope(self)
     self.scope.define(self.vardecl)
-    for d in self.body:
-      if isinstance(d, Decl):
-        self.scope.define(d)
-
-    ctx().acquire_pending(self.scope)
+    if self.body is not None:
+      self.scope.define(self.body)
 
 class PFor(_FieldsEq, Decl):
   def __init__(self, vardecl, iter, body):
@@ -660,11 +711,8 @@ class PFor(_FieldsEq, Decl):
   def _fillscope(self):
     self.scope = scope.Scope(self)
     self.scope.define(self.vardecl)
-    for d in self.body:
-      if isinstance(d, Decl):
-        self.scope.define(d)
-
-    ctx().acquire_pending(self.scope)
+    if self.body is not None:
+      self.scope.define(self.body)
 
 class If(_FieldsEq, Decl):
   def __init__(self, condpairs, elsebody):
@@ -675,41 +723,50 @@ class If(_FieldsEq, Decl):
   def _fillscope(self):
     self.scope = scope.Scope(self)
     for _, b in self.condpairs:
-      for d in b:
-        if isinstance(d, Decl):
-          self.scope.define(d)
+      self.scope.define(b)
     if self.elsebody is not None:
-      for d in self.elsebody:
-        if isinstance(d, Decl):
-          sself.scope.define(d)
-
-    ctx().acquire_pending(self.scope)
+      self.scope.define(self.elsebody)
+  def typecheck(self):
+    bodies = [b for _,b in self.condpairs]
+    if self.elsebody is not None:
+      bodies.append(self.elsebody)
+    return typing.unify(bodies)
+  def typedef(self):
+    return self.typecheck()
 
 class Block(_FieldsEq, Decl):
-  def __init__(self, block):
+  def __init__(self, body):
     super(Block, self).__init__()
-    self.block = block
+    self.body = body
     self._fillscope()
   def _fillscope(self):
     self.scope = scope.Scope(self)
-    for d in self.block:
+    for d in self.body:
       if isinstance(d, Decl):
         self.scope.define(d)
+  def typecheck(self):
+    if len(self.body) == 0:
+      return Type('Void')
+    else:
+      return self.body[-1].typecheck()
+  def typedef(self):
+    return self.typecheck()
 
-    ctx().acquire_pending(self.scope)
+class Future(Block):
+  pass
 
-class Future(_FieldsEq, Decl):
-  def __init__(self, block):
-    super(Future, self).__init__()
-    self.block = block
-    self._fillscope()
-  def _fillscope(self):
-    self.scope = scope.Scope(self)
-    for d in self.block:
-      if isinstance(d, Decl):
-        self.scope.define(d)
+class Matcher(_FieldsEq):
+  def __init__(self, pattern, body):
+    self.pattern = pattern
+    self.body = body
+    self.expr = None
 
-    ctx().acquire_pending(self.scope)
+class Match(_FieldsEq):
+  def __init__(self, expr, matchers):
+    self.expr = expr
+    self.matchers = matchers
+    for m in self.matchers:
+      m.expr = self.expr
 
 class SemanticAssert(_FieldsEq):
   def __init__(self, expr):
@@ -742,28 +799,29 @@ class ModuleContext(object):
     self.modname = modname
     self.fn = fn
     self.line = 1
-    self.typeapps = {}
-    self.typeapps_pending = {}
-    self.funinstances = {}
-    self.funinstances_pending = {}
-    self.tuples = {}
-    self.tuples_pending = {}
-
-    self.gendecls = []
+    self.typeapps = []
+    self.typeapps_pending = []
+    self.funinstances = []
+    self.funinstances_pending = []
+    self.tuples = []
+    self.tuples_pending = []
 
   def acquire_pending(self, scope):
-    for k,v in self.typeapps_pending.iteritems():
-      scope.gendecls.extend(v.itervalues())
-      self.typeapps[k] = v
-    self.typeapps_pending.clear()
-    for k,v in self.tuples_pending.iteritems():
-      scope.gendecls.extend(v.itervalues())
-      self.tuples[k] = v
-    self.tuples_pending.clear()
-    for k,v in self.funinstances_pending.iteritems():
-      scope.gendecls.extend(v)
-      self.funinstances[k] = v
-    self.funinstances_pending.clear()
+    '''scope.container must be toplevel'''
+
+    scope.gendecls.extend(self.typeapps_pending)
+    #for v in self.typeapps_pending:
+    #  self.typeapps.append((scope, v))
+    self.typeapps_pending = []
+
+    scope.gendecls.extend(self.tuples_pending)
+    self.tuples_pending = []
+
+    scope.gendecls.extend(self.funinstances_pending)
+    #for v in self.funinstances_pending:
+    #  self.funinstances.append((scope, v))
+    self.funinstances_pending = []
+
 
 class PlaceholderModule(_NameEq):
   '''When importing module 'a.b.c', modules 'a' and 'a.b' are not imported.
