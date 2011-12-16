@@ -1,3 +1,5 @@
+from nlang.numbers import *
+
 type Property T =
   dummy:U32
 

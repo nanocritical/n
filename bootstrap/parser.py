@@ -673,6 +673,15 @@ def _typedef_block(block):
       semantics.append(x)
   return imports, typedecls, decls, methods, funs, semantics
 
+def p_typedecl_empty(p):
+  '''typedecl : TYPE typedeclname ASSIGN
+              | TYPE typedeclname ASSIGN isalist'''
+  if len(p) == 4:
+    isa = []
+  else:
+    isa = p[4]
+  p[0] = ast.TypeDecl(p[2], isa, [], [], [], [], [])
+
 def p_typedecl(p):
   '''typedecl : TYPE typedeclname ASSIGN typedecl_block
               | TYPE typedeclname ASSIGN isalist typedecl_block'''
@@ -837,7 +846,7 @@ def p_modname(p):
 
 def p_import(p):
   '''import : IMPORT modname
-            | FROM modname IMPORT '*'
+            | FROM modname IMPORT TIMES
             | FROM modname IMPORT idents'''
   path = p[2]
   if len(p) == 3:

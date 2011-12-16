@@ -780,7 +780,10 @@ class SemanticClaim(_FieldsEq):
 
 class Import(_NameEq):
   def __init__(self, path, all=False, alias=None):
-    self.modname = '.'.join(path[:-1])
+    if all:
+      self.modname = '.'.join(path)
+    else:
+      self.modname = '.'.join(path[:-1])
     super(Import, self).__init__('.'.join(path))
     self.path = path
     self.all = all

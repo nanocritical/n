@@ -482,8 +482,8 @@ def w(self, out):
   global gimported
   if self.modname not in gimported:
     mod = parser.parsemod(self.modname)
-    _p(out, mod)
     gimported[self.modname] = mod
+    _p(out, mod)
   else:
     mod = gimported[self.modname]
 

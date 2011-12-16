@@ -1,10 +1,11 @@
 intf Signed =
-  method addinv__ = Signed
+  method Addinv__ = Signed
 
 intf Ordered =
-  method cmp__ other:.Ordered = I32
+  method Cmp__ other:.Ordered = I32
 
 type U8 = Ordered
+
 type U16 = Ordered
 type U32 = Ordered
 type U64 = Ordered

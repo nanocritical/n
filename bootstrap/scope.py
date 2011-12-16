@@ -43,7 +43,7 @@ class Scope(object):
     else:
       return cname
 
-  def _define(self, what, name=None):
+  def _define(self, what, name=None, noparent=False):
     if 'name' in what.__dict__:
       name = name or what.name
       if name in self.table:
@@ -51,7 +51,7 @@ class Scope(object):
             % (what, what.codeloc))
       self.table[name] = what
 
-    if 'scope' in what.__dict__:
+    if not noparent and 'scope' in what.__dict__:
       if what.scope is None:
         raise errors.ScopeError(self, "Element named '%s' has a None scope, at %s" \
             % (what, what.codeloc))
@@ -73,8 +73,8 @@ class Scope(object):
           if i == len(path) - 1:
             if isinstance(existing, ast.PlaceholderModule):
               del scope.table[p]
-              scope._define(what, name=p)
-              what.scope.table.update(existing.scope)
+              scope._define(what, name=p, noparent=True)
+              what.scope.table.update(existing.scope.table)
             else:
               raise errors.ScopeError(self, "name '%s' already defined, at %s" \
                   % (what, what.codeloc))
@@ -82,7 +82,7 @@ class Scope(object):
             pass
         else:
           if i == len(path) - 1:
-            scope._define(what, name=p)
+            scope._define(what, name=p, noparent=True)
           else:
             scope.define(ast.PlaceholderModule(p))
 

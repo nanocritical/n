@@ -1,3 +1,4 @@
+from nlang.numbers import *
 from nlang import Range
 
 type Enum =
@@ -10,7 +11,12 @@ type Test =
   | LONG -> U64
 
 fun t1 = Bool
-  return true
+  let t :U32 = 1
+  match t
+    | 1
+      return true
+    | 0
+      return false
 
 fun main = U32
   let r :U32 = 0
