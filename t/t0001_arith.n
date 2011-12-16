@@ -9,6 +9,9 @@ type Test =
   | INTEGER -> U32
   | LONG -> U64
 
+fun t1 = Bool
+  return true
+
 fun main = U32
   let r :U32 = 0
     for x:U32 in Range 0 10
@@ -21,4 +24,10 @@ fun main = U32
       return 0
     | INTEGER
       return 1
+
+  if not t1
+    return 1
+  else
+    return 0
+
   return r

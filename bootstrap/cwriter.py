@@ -329,6 +329,8 @@ def w(self, out):
   self.typecheck()
   if self.op == 'neg':
     _p(out, '(- ', self.terms[0], ')')
+  elif self.op == 'not':
+    _p(out, '(! ', self.terms[0], ')')
   else:
     _p(out, '(', self.op, ' ', self.terms[0], ')')
 UnExpr.cwrite = w
