@@ -1,0 +1,28 @@
+from nlang import IndexRange ElementIterator ElementRange
+
+intf Container T =
+  method! Ctorliteral_slice s:[].T = Void
+  method Len = Size
+  method Capacity = Size
+  method! Clear = Void
+  method! Reserve len:Size = Void
+
+intf ForwardContainer T = (Container T)
+  method! Push x:T = Void
+  method! Pop = T
+  method First = T
+  method Last = T
+  method! Resize newsize:Size = Void
+  method! Resizewith newsize:Size x:T = Void
+
+intf RandomContainer T = (Container T)
+  method Get n:Size = T
+    #! IndexRange.Validindex this n
+  method Checkindex x:Size = Bool
+    #! eval thisfun.Retval { IndexRange.Validindex this x }
+  method All = ElementRange
+  method Range from:Size to:Size ?by:?.Size = ElementRange
+  method Allidx = IndexRange
+    #~ IndexRange.Validrange this thisfun.Retval
+  method Rangeidx from:Size to:Size ?by:?.Size = IndexRange
+    #~ IndexRange.Validrange this thisfun.Retval

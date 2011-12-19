@@ -1579,3 +1579,40 @@ fun bar = Void
   let funref = &~foo -- ?? Need special syntax.
   let a = (funref.) -- Call: parenthesis needed in that case?
   -- Funref not supported yet.
+
+
+-- Virtual destructors?
+-- If using dynintf, what smart things could we do with destructors? For scoped,
+-- the allocation spot knows about the actual type. So the object itself doesn't
+-- need to contain a reference to the dtor.  When using unique: the unique
+-- container could know about the destructor. That could be one of the things
+-- you return with a unique pointer. Same idea with shared.
+
+type unique T:AnyRef =
+  dtor :.Dtor
+  p :T
+
+-- So the overhead from unique would be there only some of the time.
+
+-- Should we use a similar idea with dynintf? Like in go? I.e. the dynintf is
+-- actually a wrapper around the bare object, which can only be used directly.
+-- The idea is to make the C++ optimization explicit: when the full type is
+-- known statically, and by value, we can call the actual methods directly.
+-- In all the other cases, we have to call the virtual methods.
+--
+-- In N, we could get the optimization all the time, wherever the direct type
+-- is used (reference or not). When wanting to use an interface, we have to
+-- reference the object via its interface. I.e. if B isa A, B implements
+-- DynIntf.
+
+fun usesdyn x:SomeDynIntf = U32
+  return x.barfoo 12 -- barfoo is called dynamically, even by copy.
+
+fun usesdyn2 x:B.Dynintf__ = U32
+  return x.barfoo 12 -- barfoo is called dynamically.
+
+fun usesdyn2 x:.B = U32
+  return x.barfoo 12 -- barfoo is called statically.
+
+-- In other words, calling dynamically is a feature of the type system,
+-- but doesn't depend on how the object is passed (value or ref)...

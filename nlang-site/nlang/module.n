@@ -14,9 +14,7 @@ type Property T =
 
 intf IndexIterator =
   method Index = Size
-    return 0
   method! Next = Bool
-    return 0
 
 type IndexRange = IndexIterator
   pos to incr :Size
@@ -27,21 +25,46 @@ type IndexRange = IndexIterator
     else
       this!pos = this.pos + this.incr
       return true
-
   method Index = Size
     return this.pos
 
 fun Range beg:Size end:Size ?incr:?.Size = IndexRange
   return IndexRange { pos=beg to=end incr=(Optional incr 1) }
 
+intf ElementIterator T =
+  method! Next = Bool
+  method Get = Size
 
-fun realloc data:!U8 len:Size = !U8
+fun Zip a:(ElementRange T) b:(ElementRange T) = (ElementRange T)
+
+intf IndexPairIterator =
+  method Index = Size, Size
+  method! Next = Bool
+
+type IndexPairRange = IndexPairIterator
+  a b :IndexRange
+
+  method Indexpair = Size, Size
+    return this.Index, this.Index
+  method! Next = Bool
+    return this.a!Next and this.b!Next
+
+fun Zipidx a:ForwardContainer b:ForwardContainer = IndexPairRange
+  return IndexPairRange { a=a.All b=b.All }
+
+fun realloc data:!U8 len:Size = void
+fun unsafe_subslice_clear data:!U8 beg:Size endinc:Size = Void
 
 type Slice T =
-  Data :[]!U8
+  Data :!U8
   Len Capacity :Size
-  
+
   method! Resize len:Size = Void
+    let oldlen = this.Len
     this!Data = realloc this.Data len
     this!Len = len
     this!Capacity = len
+    if len > oldlen
+      unsafe_subslice_clear this!Data oldlen len
+    else
+      unsafe_subslice_clear this!Data len oldlen

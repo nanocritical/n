@@ -1,110 +1,78 @@
-from n.literal import *
+from nlang import IndexRange ElementIterator ElementRange
+from nlang.containers import *
 
-intf VectorIntf T =
-  method! init_literal_list__ lit:literal.List = Void
-  method size = Size
-  method capacity = Size
-  method! push x:T = Void
-  method! pop = T
-  method first = T
-  method last = T
-  method! clear = Void
-  method! resize newsize:Size = Void
-  method! resizewith newsize:Size x:T = Void
-  method! reserve size:Size = Void
+type Vector T = (ForwardContainer T) (RandomContainer T)
+  p :[]!T
+  len :Size
 
-  method checkindex x:Size = Bool
-    ! eval thisfun.retval { IndexRange.validindex this x }
-
-  method get__ n:Size = T
-    ! IndexRange.validindex this n
-
-  method fullrange = IndexRange
-    ~ IndexRange.validrange this thisfun.retval
-  method range from:Size to:Size = IndexRange
-    ~ IndexRange.validrange this thisfun.retval
-  method rangeby from:Size to:Size by:Size = IndexRange
-    ~ IndexRange.validrange this thisfun.retval
-
-type Vector T = VectorIntf
-  __p :[]!T
-  __size :Size
-
-  inline method! init_literal_list__ lit:literal.List = lang.Error
-    this!reserve lit.__size
-    for x in lit
-      let val, except err = x.convert U32
-      this.push val
-    return lang.Error.OK
-
-  inline method size = Size
-    return this.__size
-
-  inline method capacity = Size
-    return this.__p.size
-
-  method! __ensure size:Size = Void
-    if this.__p.__size < size
-      this.__p!realloc size
-
-  inline method! push x:T = Void
-    let oldsize = this.__size
-    let newsize = this.__size + 1
-    this!__ensure newsize
-    this!p[oldsize] = x
-
-  inline method! pop = T
-  ? this.__size == 0
-    let tmp = this.__p[this.__size - 1]
-    this!__size -= 1
-    this!__mayshrink
+  method! Ctorliteral_slice s:[].T = lang.Error
+    this!reserve s.Len
+    for n in s.All
+      this.p![n] = s.[n]
+  method Len = Size
+    return this.len
+  method Capacity = Size
+    return this.p.len
+  method! Ensure len:Size = Void
+    if this.p.len < len
+      this.p!realloc len
+  method! Push x:T = Void
+    let oldsize = this.len
+    let newsize = this.len + 1
+    this!ensure newsize
+    this.p![oldsize] = x
+  method! Pop = T
+    #? this.len > 0
+    let tmp = this.p.[this.len - 1]
+    this!len -= 1
+    this!mayshrink
     return tmp
-    
-  inline method first = T
-  ? this.__size > 0
-    return this.__p[0]
-
-  inline method last = T
-  ? this.__size > 0
-    return this.__p[this.__size - 1]
-
-  inline method! clear = Void
-    this!__size = 0
-    this!__mayshrink
-
-  inline method! resize newsize:Size = Void
-    if newsize > this.__size
-      this!__ensure newsize
-      this!__size = newsize
+  method First = T
+    #? this.len > 0
+    return this.p.[0]
+  method Last = T
+    #? this.len > 0
+    return this.p.[this.len - 1]
+  method! Clear = Void
+    this!len = 0
+    this!mayshrink
+  method! Resize newsize:Size = Void
+    if newsize > this.len
+      this!ensure newsize
+      this!len = newsize
     else
-      this!__size = newsize
-      this!__mayshrink
+      this!len = newsize
+      this!mayshrink
+  method! Resizewith newsize:Size x:T = Void
+    let oldsize = this.len
+    this!Resize newsize
+    for n in this.p!Allidx
+      this.p![n] = x
+  method! Reserve len:Size = Void
+    if len > this.len
+      this.p.realloc len
+  method Checkidx x:Size = Bool
+    return x <= this.len
+  method Get n:Size = T
+    return this.p.[n]
+  method Set n:Size x:T = Void
+    this.p![n] = x
+  method Allidx = IndexRange
+    return this.p.Allidx
+  method Rangeidx from:Size to:Size ?by:?.Size = IndexRange
+    return Range from to by
+  method All = ElementRange
+    return this.p.All
+  method Range from:Size to:Size ?by:?.Size = ElementRange
+    return this.p.Range from to by
 
-  inline method! resizewith newsize:Size x:T = Void
-    let oldsize = this.__size
-    this!resize newsize
-    for n in range oldsize this.__size
-      this![n] = x
+type ElementRange T = (ElementIterator T)
+  v :.(Vector T)
+  range :IndexRange
 
-  inline method! reserve size:Size = Void
-    if size > this.__size
-      this.__p.realloc size
-
-  inline method checkindex x:Size = Bool
-    return x <= this.size
-
-  inline method get__ n:Size = T
-    return this.__p[n]
-
-  inline method fullrange = IndexRange
-    return range 0 this.size
-
-  inline method range from:Size to:Size = IndexRange
-    ? from < this.__size
-    ? to <= this.__size
-    return range from to
-
-  inline method rangeby from:Size to:Size by:Size = IndexRange
-    ? from < this.__size
-    ? to <= this.__size
-    return range from to by
+  method! Ctor c:.(ForwardContainer T) = Void
+    this!range = c.Allidx
+  method !Next = Bool
+    return this.range!Next
+  method Get = Size
+    return this.v.[this.range.Index]

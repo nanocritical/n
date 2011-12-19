@@ -577,18 +577,10 @@ class CmpBinExpr(BinExpr):
     return Type('Bool')
 
 class BoolBinExpr(BinExpr):
-  def __init__(self, op, left, right):
-    super(CmpBinExpr, self).__init__()
-    self.op = op
-    self.terms = [left, right]
   def typecheck(self):
     return typing.unify([t.typecheck() for t in self.terms] + [Type('Bool')])
 
 class IsaExpr(BinExpr):
-  def __init__(self, op, left, right):
-    super(CmpBinExpr, self).__init__()
-    self.op = op
-    self.terms = [left, right]
   def typecheck(self):
     return Type('Bool')
 
@@ -727,12 +719,11 @@ class If(_FieldsEq, Decl):
     if self.elsebody is not None:
       self.scope.define(self.elsebody)
   def typecheck(self):
+    typing.unify([c.typecheck() for c,_ in self.condpairs] + [Type('Bool')])
     bodies = [b for _,b in self.condpairs]
     if self.elsebody is not None:
       bodies.append(self.elsebody)
     return typing.unify(bodies)
-  def typedef(self):
-    return self.typecheck()
 
 class Block(_FieldsEq, Decl):
   def __init__(self, body):
@@ -749,8 +740,6 @@ class Block(_FieldsEq, Decl):
       return Type('Void')
     else:
       return self.body[-1].typecheck()
-  def typedef(self):
-    return self.typecheck()
 
 class Future(Block):
   pass

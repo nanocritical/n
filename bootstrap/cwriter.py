@@ -418,6 +418,7 @@ For.cwrite = w
 PFor.cwrite = w
 
 def w(self, out):
+  self.typecheck()
   _p(out, 'if (', self.condpairs[0][0], ')', self.condpairs[0][1])
   for cp in self.condpairs[1:]:
     _p(out, indent(), 'else if (', cp[0], ')', cp[1])

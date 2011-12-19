@@ -60,8 +60,13 @@ typedef const _Bool* nlangcp__Bool;
 
 #define null NULL
 
-static inline nlangp__U8 nlang_realloc(nlangp__U8 data, Size len) {
-  return realloc(data, len);
+static inline void nlang_realloc(nlangp__U8 data, Size len) {
+  realloc(data, len);
+}
+
+static inline void nlang_unsafe_subslice_clear(nlangp__U8 data,
+                                               Size beg, Size endinc) {
+  memset(data + beg, 0, endinc - beg + 1);
 }
 
 #define NLANG_UNREACHED() { abort(); }
