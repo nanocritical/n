@@ -18,9 +18,9 @@ fun t1 = Bool
     | 0
       return false
 
-fun main = U32
-  let r :U32 = 0
-    for x:U32 in Range 0 10
+fun main = I32
+  let r :I32 = 0
+    for x:I32 in Range 0 10
       r = r + x
   let e = Enum.FIRST
   let t = Test.SUCCESS

@@ -216,12 +216,17 @@ def w(self, out):
 FunctionInstanceDecl.cwrite = w
 
 def w(self, out):
-  _p(out, self.typecheck(), ' ', scopedname(self))
-
-  if self.expr is not None:
-    _p(out, ' = ', self.expr)
   if self.mutatingblock is not None:
+    _p(out, 'const ', self.typecheck(), ' ', scopedname(self), ' = ({ ')
+    _p(out, self.typecheck(), ' ', scopedname(self))
+    if self.expr is not None:
+      _p(out, ' = ', self.expr)
     _p(out, ';\n', self.mutatingblock)
+    _p(out, scopedname(self), '; })')
+  else:
+    _p(out, self.typecheck(), ' ', scopedname(self))
+    if self.expr is not None:
+      _p(out, ' = ', self.expr)
 VarDecl.cwrite = w
 
 def w(self, out):
@@ -449,13 +454,19 @@ def w(self, out):
   else:
     test = BinExpr('==', self.expr, self.pattern)
 
-  _p(out, indent(), 'else if (', test, ')', self.body)
+  if self.first:
+    _p(out, 'if (', test, ')', self.body)
+  else:
+    _p(out, indent(), 'else if (', test, ')', self.body)
 Matcher.cwrite = w
 
 def w(self, out):
-  _p(out, 'if (0) {}\n')
+  first = True
   for m in self.matchers:
+    m.first = first
     _p(out, m)
+    first = False
+  _p(out, indent(), 'else { NLANG_UNREACHED(); }')
 Match.cwrite = w
 
 def w(self, out):
