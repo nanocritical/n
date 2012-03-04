@@ -83,7 +83,7 @@ type Vector T = (RandomContainer T)
   method Get__ n:Size = T
     return self.p.[n]
 
-  method Set__ n:Size x:T = Void
+  method! Set__ n:Size x:T = Void
     self.p![n] = x
 
   method Allindex = IndexRange
