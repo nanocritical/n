@@ -1,0 +1,5 @@
+#!/bin/bash
+
+for t in t/t*.n; do
+	bootstrap/ncc $t && ./a.out || (echo "FAILED $t"; break)
+done
