@@ -694,8 +694,13 @@ class PatternDecl(_FieldsEq, Decl):
     self.pattern = pattern
     self.expr = expr
     self.codetmp = ExprValue(gensym())
-    self.vars = [VarDecl(ExprConstrained(self.codetmp, ExprValue('Void')), self.expr)] \
-        + self.pattern.declvars(self.codetmp)
+    self.vars = [VarDecl(ExprConstrained(self.codetmp, ExprValue('Void')), self.expr)]
+    patternvars = self.pattern.declvars(self.codetmp)
+    if len(patternvars) == 1:
+      # Remove the unnecessary intermediate temporary.
+      self.vars[0].name = patternvars[0].name
+    else:
+      self.vars.extend(patternvars)
     self.mutatingblock = None
     self.scope = scope.Scope(self)
     # Do not define the self.vars in self.scope: they need to be defined
