@@ -147,9 +147,6 @@ class _Node(object):
       #  geninst.firstpass()
 
   def typecheck(self, *args, **kw):
-    return self.nocache_typecheck(*args, **kw)
-
-    # FIXME: Reenable caching?
     if self.cachedtype is None or not (scope.current() < self.cachedtype[0]):
       type = self.nocache_typecheck(*args, **kw)
       assert isinstance(type, typing.Typename)
