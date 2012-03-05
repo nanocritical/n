@@ -1,5 +1,8 @@
-from nlang.numbers import *
-from nlang import Range
+import nlang.meta
+import nlang.numbers
+import nlang.literal
+from nlang.prelude import *
+from nlang.vector import *
 
 type Enum =
   | FIRST
@@ -7,8 +10,8 @@ type Enum =
 
 type Test =
   | SUCCESS
-  | INTEGER -> U32
-  | LONG -> U64
+  | INTEGER I32
+  | LONG I64
 
 fun t1 = Bool
   let t :U32 = 1
@@ -18,7 +21,7 @@ fun t1 = Bool
     | 0
       return false
 
-fun main = I32
+fun Main = I32
   let r :I32 = 0
     for x:I32 in Range 0 10
       r = r + x
@@ -28,8 +31,8 @@ fun main = I32
   match t
     | SUCCESS
       return 0
-    | INTEGER
-      return 1
+    | INTEGER x
+      return x
 
   if not t1
     return 1

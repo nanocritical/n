@@ -1,0 +1,41 @@
+from nlang.numbers import *
+from nlang.string import *
+
+intf meta =
+  method Name = String
+  method Path = []String
+  method Fullname = String
+
+type metaImpl =
+  Name :String
+  Path :[]String
+
+  method Fullname = String
+    return ('.'.Join self.Path).Append self.Name
+
+type MetaIntf = meta
+  -- from metaImpl import *
+  Isas :[]MetaIntf
+  Fields :[]MetaField
+  Methods :[]MetaMethod
+  Funs :[]MetaFun
+
+type MetaDynIntf = meta
+  -- from metaImpl import *
+  Isas :[]MetaDynIntf
+  Methods :[]MetaMethod
+
+type MetaType = meta
+  -- from metaImpl import *
+  Isas :[]MetaIntf
+  Fields :[]MetaField
+  Methods :[]MetaMethod
+  Funs :[]MetaFun
+
+type Meta = meta
+  | INTF -> MetaIntf
+  | DYNINTF -> MetaDynIntf
+  | TYPE -> MetaType
+  | UNION -> MetaUnion
+  | FUN -> MetaFun
+  | METHOD -> MetaMethod

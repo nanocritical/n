@@ -1,3 +1,5 @@
+gfn = None
+
 keywords = set('''
   type fun method union intf dynintf let
   if elif else for while continue break
@@ -5,7 +7,8 @@ keywords = set('''
   block future pfor
   import from in
   and or not neg isa
-  false true null sizeof
+  false true null sizeof this
+  pass
 '''.split())
 
 tokens = '''
@@ -16,13 +19,32 @@ tokens = '''
   BWAND BWOR BWXOR RSHIFT LSHIFT
   UBWNOT
   ARROW
-  EOL SOB EOB
+  EOL SOB EOB COLON
   COMMA DOT BANG
+  PREDOT POSTDOT PREBANG POSTBANG
   REFDOT REFBANG
+  SLICEBRAKETS
   CTX_ASSERT CTX_SEMASSERT CTX_SEMCLAIM
   '''.split() + [kw.upper() for kw in keywords]
 
-literals = '''( ) [ ] { } ? ~ : | *'''.split()
+# {PRE,POST}/{DOT,BANG} are used for this particular case:
+#   object \
+#       .method a b. c!
+# Not to be interpreted as: object. method a b.c!
+#
+# The grammar is ambiguous wrt DOT and BANG when used for field access and
+# derefencing, mixed in with function calls, in the presence of spaces.  But we
+# really feel it's worth it in terms of practical syntax, so we rely on the
+# lexer to make the grammar space-sensitive.
+#
+# '\s+[!.]\S' -> PRE{DOT,BANG}
+# '\S[!.]\s+' -> POST{DOT,BANG}
+# '\S[!.]\S' -> {DOT,BANG}
+#
+# Dereferencing can only be DOT or POSTDOT.
+# Field access can only be DOT or PREDOT.
+
+literals = '''( ) [ ] { } ? ~ | *'''.split()
 
 t_ASSIGN = r'='
 t_LEQ = r'=='
@@ -44,9 +66,10 @@ t_CTX_ASSERT = r'\#\?[ ]'
 t_CTX_SEMASSERT = r'\#\![ ]'
 t_CTX_SEMCLAIM = r'\#~[ ]'
 t_COMMA = r','
-t_DOT = r'\.'
+t_COLON = r':'
 t_REFDOT = r'\&'
 t_REFBANG = r'\&\!'
+t_SLICEBRAKETS = r'\[\]'
 
 def t_IDENT(t):
   r'[A-Za-z_]\w*'
@@ -61,13 +84,37 @@ def t_NUMBER(t):
 
 def t_STRING(t):
   r'''(?:"(?:[^"]|\\")*"|'(?:[^']|\\')*')'''
-  t.value = t[1:-1]
+  t.value = t.value[1:-1]
+  return t
+
+def t_DOT(t):
+  r'\s?\.\s?'
+  before, after = t.value[0].isspace(), t.value[-1].isspace()
+  if before and not after:
+    t.type = 'PREDOT'
+  elif not before and after:
+    t.type = 'POSTDOT'
+    t.lexer.lexpos -= 1
+  else:
+    t.type = 'DOT'
+  t.value = '.'  # Normalize
   return t
 
 def t_BANG(t):
-  r'''[!][=]?'''
-  if len(t.value) == 2:
+  r'''\s?[!][=]?\s?'''
+  if '=' in t.value:
     t.type = 'LNE'
+    return t
+
+  before, after = t.value[0].isspace(), t.value[-1].isspace()
+  if before and not after:
+    t.type = 'PREBANG'
+  elif not before and after:
+    t.type = 'POSTBANG'
+    t.lexer.lexpos -= 1
+  else:
+    t.type = 'BANG'
+  t.value = '!'  # Normalize
   return t
 
 def t_COMMENTS(t):
@@ -84,8 +131,8 @@ def countspacesfromend(t):
 
   if i % 2 != 0:
     raise errors.ParseError(
-        "Indentation must be in multiple of 2, not %d, and use spaces only, line %d" \
-            % (i, t.lexer.lineno))
+        "Indentation must be in multiple of 2, not %d, and use spaces only, %s:%d" \
+            % (i, gfn, t.lexer.lineno))
   return i
 
 # Trickery to handle nested blocks: In a block, statements are meant
@@ -137,8 +184,8 @@ def t_EOL(t):
     return t
   else:
     raise errors.ParseError(
-        "Invalid indentation, expected [0..%d+2] spaces, not %d, line %d" \
-            % (gindentation, i, t.lexer.lineno))
+        "Invalid indentation, expected [0..%d+2] spaces, not %d, %s:%d" \
+            % (gindentation, i, gfn, t.lexer.lineno))
 
 def t_SPACES(t):
   r'[ \t]'
@@ -154,6 +201,7 @@ lex.lex()
 
 import sys
 import ast
+import typing
 import errors
 
 
@@ -170,7 +218,7 @@ def _define_oneof(name, *rulenames, **kw):
   oneof.__doc__ = name + " : " + opt + '\n  | '.join(rulenames)
   globals()['p_' + name] = oneof
 
-def _define_block(name, statement):
+def _define_block(name, statement, *statements_witheol):
   def b(p):
     p[0] = p[2]
   b.__doc__ = '''%s : SOB %s_blocklist EOB''' % (name, name)
@@ -185,6 +233,21 @@ def _define_block(name, statement):
                                   | %s EOL %s_blocklist''' \
                                       % (name, statement, statement, name)
   globals()['p_' + name + '_blocklist'] = blist
+
+  # To resolve shift/reduce ambiguities, we sometime had to add the EOL
+  # in the statement rule: these statements are handled specially below.
+  i = 1
+  for s in statements_witheol:
+    def blist(p):
+      if len(p) == 2:
+        p[0] = [p[1]]
+      else:
+        p[0] = [p[1]] + p[2]
+    blist.__doc__ = '''%s_blocklist : %s
+                                    | %s %s_blocklist''' \
+                                        % (name, s, s, name)
+    globals()['p_' + name + ('_blocklist_%d' % i)] = blist
+    i += 1
 
 
 precedence = (
@@ -204,8 +267,12 @@ precedence = (
     ('left', 'TIMES'),
     ('right', 'NEG'),
     ('right', 'UBWNOT'),
+    ('left', 'COLON'),
     ('right', 'REFDOT', 'REFBANG'),
     ('left', 'DOT', 'BANG'),
+    ('right', 'POSTDOT', 'POSTBANG'),
+    ('left', 'PREDOT', 'PREBANG'),
+    ('right', 'IDENT'),
     )
 
 def p_empty(p):
@@ -215,54 +282,15 @@ def p_empty(p):
 def p_idents(p):
   '''idents : IDENT
             | IDENT idents'''
-  r = [p[1]]
+  r = [ast.ExprValue(p[1])]
   if len(p) == 3:
     r += p[2]
   p[0] = r
 
 def p_value_ident(p):
   '''value_3 : IDENT'''
-  p[0] = ast.Value(p[1])
-  p[0].maybeuncall = True
-
-def p_value_deref(p):
-  '''value_3 : IDENT DOT
-             | IDENT BANG'''
-  p[0] = ast.Deref(p[2], ast.Value(p[1]))
-
-def p_value_fieldaccp_term(p):
-  '''value_fieldacc : IDENT DOT IDENT
-                    | IDENT BANG IDENT'''
-  p[0] = p[1:4]
-
-def p_value_fieldacc_dot(p):
-  '''value_fieldacc : value_fieldacc DOT IDENT
-                    | value_fieldacc BANG IDENT'''
-  p[0] = p[1] + p[2:4]
-
-def p_value_fieldacc_deref(p):
-  '''value_fieldacc : value_fieldacc DOT IDENT DOT
-                    | value_fieldacc BANG IDENT BANG'''
-  p[0] = p[1] + p[2:5]
-
-def p_value_fieldacc(p):
-  '''value_2 : value_fieldacc'''
-  deref = None
-  if p[1][-1] == '.' or p[1][-1] == '!':
-    deref = p[1][-1]
-    p[1] = p[1][:-1]
-
-  acclist = p[1]
-  r = ast.Value(acclist[0])
-  for i in xrange(1, len(acclist), 2):
-    r = ast.ValueField(r, acclist[i], acclist[i+1])
-
-  r.maybeuncall = True
-
-  if deref is not None:
-    p[0] = ast.Deref(deref, r)
-  else:
-    p[0] = r
+  p[0] = ast.ExprValue(p[1])
+  p[0].maybeunarycall = True
 
 def p_value_2(p):
   '''value_2 : value_3'''
@@ -273,12 +301,38 @@ def p_value(p):
   p[0] = p[1]
 
 def p_type_name(p):
-  '''type : IDENT'''
-  p[0] = ast.Type(p[1])
+  '''type_postfix : IDENT'''
+  p[0] = ast.ExprValue(p[1])
+
+def p_type_this(p):
+  '''type_postfix : THIS'''
+  p[0] = ast.ExprThis()
+
+def p_type_postfix_top(p):
+  '''type_postfix : '(' type_top ')' '''
+  p[0] = p[2]
+
+def p_type_postfix(p):
+  '''type : type_postfix'''
+  p[0] = p[1]
+
+def p_type_field(p):
+  '''type_postfix : type_postfix DOT type_postfix
+                  | type_postfix BANG type_postfix
+                  | type_postfix PREDOT type_postfix
+                  | type_postfix PREBANG type_postfix '''
+  p[0] = ast.ExprField(p[1], p[2], p[3])
+
+def p_type_deref(p):
+  '''type : type_postfix DOT
+          | type_postfix BANG
+          | type_postfix POSTDOT
+          | type_postfix POSTBANG'''
+  p[0] = ast.ExprDeref(p[2], p[1])
 
 def p_type_slice(p):
-  '''type : '[' ']' type_ref'''
-  p[0] = ast.TypeSlice(p[3])
+  '''type_postfix : SLICEBRAKETS type_postfix'''
+  p[0] = ast.ExprTypeSlice(p[2])
 
 def p_type_tuple_list(p):
   '''type_tuple_list : type
@@ -290,11 +344,7 @@ def p_type_tuple_list(p):
 
 def p_type_tuple_only(p):
   '''type_tuple : type COMMA type_tuple_list '''
-  p[0] = ast.TypeTuple(p[1], *p[3])
-
-def p_type_tuple(p):
-  '''type : '(' type_tuple ')' '''
-  p[0] = p[2]
+  p[0] = ast.ExprTuple(p[1], *p[3])
 
 def p_type_app_list(p):
   '''type_app_list : type
@@ -306,24 +356,23 @@ def p_type_app_list(p):
 
 def p_type_app_only(p):
   '''type_app : type type_app_list'''
-  p[0] = ast.TypeApp(p[1], *p[2])
-
-def p_type_app(p):
-  '''type : '(' type_app ')' '''
-  p[0] = p[2]
+  p[0] = ast.ExprCall(p[1], p[2])
 
 def p_type_ref_only(p):
-  '''type_ref : DOT type %prec REFDOT
-              | BANG type %prec REFBANG'''
-  p[0] = ast.TypeRef(p[1], p[2])
+  '''type_ref : DOT type_postfix %prec REFDOT
+              | BANG type_postfix %prec REFBANG
+              | PREDOT type_postfix %prec REFBANG
+              | PREBANG type_postfix %prec REFBANG'''
+  p[0] = ast.ExprTypeRef(p[1], p[2])
 
 def p_type_ref(p):
   '''type : type_ref'''
   p[0] = p[1]
 
 def p_type_nullable(p):
-  '''type : '?' type'''
-  p[0] = ast.TypeRefNullable(p[2])
+  '''type : '?' type_ref'''
+  p[2].setnullable(True)
+  p[0] = p[2]
 
 def p_type_top(p):
   '''type_top : type_app
@@ -352,29 +401,49 @@ def p_expr_postfix_sizeof(p):
   '''expr_postfix : SIZEOF'''
   p[0] = ast.ExprSizeof()
 
+def p_expr_postfix_this(p):
+  '''expr_postfix : THIS'''
+  p[0] = ast.ExprThis()
+
 def p_expr_postfix_value(p):
   '''expr_postfix : value'''
   p[0] = p[1]
 
 def p_expr_postfix_group(p):
-  '''expr_postfix : '(' expr ')' '''
+  '''expr_postfix : '(' expr_top ')' '''
   p[0] = p[2]
 
 def p_expr_unnop(p):
   '''expr : NEG expr_postfix
           | UBWNOT expr_postfix
           | NOT expr_postfix'''
-  p[0] = ast.UnExpr(p[1], p[2])
-
-def p_expr_deref(p):
-  '''expr : expr_postfix DOT
-          | expr_postfix BANG'''
-  p[0] = ast.Deref(p[2], p[1])
+  p[0] = ast.ExprUnary(p[1], p[2])
 
 def p_expr_ref(p):
   '''expr : REFDOT expr_postfix
           | REFBANG expr_postfix'''
-  p[0] = ast.Ref(p[1], p[2])
+  p[0] = ast.ExprRef(p[1], p[2])
+
+def p_expr_field(p):
+  '''expr_postfix : expr_postfix DOT value
+                  | expr_postfix BANG value
+                  | expr_postfix PREDOT value
+                  | expr_postfix PREBANG value '''
+  p[0] = ast.ExprField(p[1], p[2], p[3])
+  p[3].maybeunarycall = False
+  p[0].maybeunarycall = True
+
+def p_expr_element(p):
+  '''expr_postfix : expr_postfix DOT '[' expr_top ']'
+                  | expr_postfix BANG '[' expr_top ']' '''
+  p[0] = ast.ExprFieldElement(p[1], p[2], p[4])
+
+def p_expr_deref(p):
+  '''expr : expr_postfix DOT
+          | expr_postfix BANG
+          | expr_postfix POSTDOT
+          | expr_postfix POSTBANG'''
+  p[0] = ast.ExprDeref(p[2], p[1])
 
 def p_expr_cmpbinop(p):
   '''expr : expr LLT expr
@@ -383,12 +452,12 @@ def p_expr_cmpbinop(p):
           | expr LGE expr
           | expr LEQ expr
           | expr LNE expr'''
-  p[0] = ast.CmpBinExpr(p[2], p[1], p[3])
+  p[0] = ast.ExprCmpBin(p[2], p[1], p[3])
 
 def p_expr_boolbinop(p):
   '''expr : expr AND expr
           | expr OR expr'''
-  p[0] = ast.BoolBinExpr(p[2], p[1], p[3])
+  p[0] = ast.ExprBoolBin(p[2], p[1], p[3])
 
 def p_expr_binop(p):
   '''expr : expr PLUS expr
@@ -402,12 +471,12 @@ def p_expr_binop(p):
           | expr BWOR expr
           | expr BWXOR expr
           | expr ISA expr'''
-  p[0] = ast.BinExpr(p[2], p[1], p[3])
+  p[0] = ast.ExprBin(p[2], p[1], p[3])
 
 def p_expr_call_list(p):
   '''expr_call_list : expr
                     | expr expr_call_list'''
-  p[1].maybeuncall = False
+  p[1].maybeunarycall = False
   args = [p[1]]
   if len(p) == 3:
     args += p[2]
@@ -415,12 +484,8 @@ def p_expr_call_list(p):
 
 def p_expr_call_only(p):
   '''expr_call : expr expr_call_list'''
-  p[1].maybeuncall = False
-  p[0] = ast.Call(p[1], p[2])
-
-def p_expr_call(p):
-  '''expr : '(' expr_call ')' '''
-  p[0] = p[2]
+  p[1].maybeunarycall = False
+  p[0] = ast.ExprCall(p[1], p[2])
 
 def p_expr_tuple_list(p):
   '''expr_tuple_list : expr
@@ -433,15 +498,11 @@ def p_expr_tuple_list(p):
 def p_expr_tuple_only(p):
   '''expr_tuple : expr COMMA expr_tuple_list'''
   args = [p[1]] + p[3]
-  p[0] = ast.Tuple(*args)
-
-def p_expr_tuple(p):
-  '''expr : '(' expr_tuple ')' '''
-  p[0] = p[2]
+  p[0] = ast.ExprTuple(*args)
 
 def p_expr_constrained(p):
-  '''expr : '(' expr ')' ':' type'''
-  p[0] = ast.ConstrainedExpr(p[2], p[5])
+  '''expr : expr COLON type'''
+  p[0] = ast.ExprConstrained(p[1], p[3])
 
 def p_expr_postfix(p):
   '''expr : expr_postfix '''
@@ -466,12 +527,12 @@ def p_expr_initializer_list(p):
     p[0] = [p[1]] + p[2]
 
 def p_expr_initializer(p):
-  '''expr : value '{' '}'
-          | value '{' initializer_list '}' '''
+  '''expr : expr_postfix '{' '}'
+          | expr_postfix '{' initializer_list '}' '''
   if len(p) == 4:
-    p[0] = ast.Initializer(p[1], [])
+    p[0] = ast.ExprInitializer(p[1], [])
   else:
-    p[0] = ast.Initializer(p[1], p[3])
+    p[0] = ast.ExprInitializer(p[1], p[3])
 
 def p_expr_top(p):
   '''expr_top : expr_call
@@ -481,19 +542,25 @@ def p_expr_top(p):
 
 def p_typedeclname_list(p):
   '''typedeclname_list : IDENT
-                       | IDENT typedeclname_list'''
-  args = [ast.GenericArg(p[1])]
-  if len(p) == 3:
-    args += p[2]
-  p[0] = args
+                       | IDENT typedeclname_list
+                       | IDENT COLON type
+                       | IDENT COLON type typedeclname_list'''
+  if len(p) == 2:
+    p[0] = [ast.GenericArg(p[1])]
+  elif len(p) == 3:
+    p[0] = [ast.GenericArg(p[1])] + p[2]
+  elif len(p) == 4:
+    p[0] = [ast.GenericArg(p[1], p[3])]
+  elif len(p) == 5:
+    p[0] = [ast.GenericArg(p[1], p[3])] + p[4]
 
 def p_typedeclname_generic(p):
   '''typedeclname : IDENT typedeclname_list'''
-  p[0] = ast.GenericTypename(ast.Type(p[1]), *p[2])
+  p[0] = ast.GenericTypename(ast.ExprValue(p[1]), *p[2])
 
 def p_typedeclname(p):
   '''typedeclname : IDENT'''
-  p[0] = ast.Type(p[1])
+  p[0] = ast.ExprValue(p[1])
 
 def p_isalist(p):
   '''isalist : type
@@ -504,53 +571,49 @@ def p_isalist(p):
     p[0] = [p[1]] + p[2]
 
 def p_typedident(p):
-  '''typedident : IDENT ':' type'''
-  p[0] = ast.VarDecl(p[1], p[3])
+  '''typedident : IDENT COLON type'''
+  p[0] = ast.VarDecl(ast.ExprConstrained(ast.ExprValue(p[1]), p[3]))
 
-def p_vardecl(p):
-  '''vardecl : LET typedident'''
-  p[0] = p[2]
+def p_pattern(p):
+  '''pattern : LET expr_top'''
+  p[0] = ast.PatternDecl(p[2])
 
-def p_vardecl_expr(p):
-  '''vardecl : LET typedident ASSIGN expr_top'''
-  p[2].expr = p[4]
-  p[0] = p[2]
+def p_pattern_expr(p):
+  '''pattern : LET expr_top ASSIGN expr_top'''
+  p[0] = ast.PatternDecl(p[2], p[4])
 
-def p_vardecl_mutating(p):
-  '''vardecl : LET typedident statements_block'''
-  p[2].setmutatingblock(p[3])
-  p[0] = p[2]
+def p_pattern_mutating(p):
+  '''pattern : LET expr_top statements_block'''
+  pat = ast.PatternDecl(p[2])
+  pat.setmutatingblock(p[3])
+  p[0] = pat
 
-def p_vardecl_expr_mutating(p):
-  '''vardecl : LET typedident ASSIGN expr_top statements_block'''
-  p[2].expr = p[4]
-  p[2].setmutatingblock(p[5])
-  p[0] = p[2]
-
-def p_vardecl_infer_expr(p):
-  '''vardecl : LET IDENT ASSIGN expr_top'''
-  var = ast.VarDecl(p[2], None)
-  var.expr = p[4]
-  p[0] = var
-
-def p_vardecl_infer_expr_mutating(p):
-  '''vardecl : LET IDENT ASSIGN expr_top statements_block'''
-  var = VadrDecl(p[2], None)
-  var.expr = p[4]
-  var.setmutatingblock(p[5])
-  p[0] = var
+def p_pattern_expr_mutating(p):
+  '''pattern : LET expr_top ASSIGN expr_top statements_block'''
+  pat = ast.PatternDecl(p[2], p[4])
+  pat.setmutatingblock(p[5])
+  p[0] = pat
 
 def p_fielddecl(p):
-  '''fielddecl : idents ':' type_top'''
-  p[0] = [ast.FieldDecl(i, p[3]) for i in p[1]]
+  '''fielddecl : idents COLON type_top'''
+  p[0] = [ast.FieldDecl(None, i, p[3]) for i in p[1]]
 
-def p_statement_vardecl(p):
-  '''statement : vardecl'''
+def p_statement_pass(p):
+  '''statement : PASS'''
+  p[0] = ast.Pass()
+
+def p_statement_pattern(p):
+  '''statement : pattern'''
   p[0] = p[1]
 
 def p_statement_assign(p):
-  '''statement : value ASSIGN expr_top'''
-  p[0] = ast.Assign(p[1], p[3])
+  '''statement : expr_top ASSIGN expr_top'''
+  if isinstance(p[1], ast.ExprFieldElement):
+    p[1].args[0].field = ast.ExprValue('Set__')
+    p[1].args.append(p[3])
+    p[0] = p[1]
+  else:
+    p[0] = ast.ExprAssign(p[1], p[3])
 
 def p_statement_expr(p):
   '''statement : expr_top'''
@@ -560,32 +623,32 @@ def p_statement_return(p):
   '''statement : RETURN
                | RETURN expr_top'''
   if len(p) == 2:
-    p[0] = ast.Return(None)
+    p[0] = ast.ExprReturn(None)
   else:
-    p[0] = ast.Return(p[2])
+    p[0] = ast.ExprReturn(p[2])
 
 def p_statement_while(p):
   '''statement : WHILE expr_top statements_block'''
-  p[0] = ast.While(p[2], p[3])
+  p[0] = ast.ExprWhile(p[2], p[3])
 
 def p_statement_for(p):
   '''statement : FOR typedident IN expr_top statements_block'''
-  p[0] = ast.For(p[2], p[4], p[5])
+  p[0] = ast.ExprFor(p[2], p[4], p[5])
 
 def p_statement_pfor(p):
   '''statement : PFOR typedident IN expr_top statements_block'''
-  p[0] = ast.PFor(p[2], p[4], p[5])
+  p[0] = ast.ExprPFor(p[2], p[4], p[5])
 
 def p_statement_break(p):
   '''statement : BREAK'''
-  p[0] = ast.Break()
+  p[0] = ast.ExprBreak()
 
 def p_statement_continue(p):
   '''statement : CONTINUE'''
-  p[0] = ast.Continue()
+  p[0] = ast.ExprContinue()
 
 def p_statement_elif_list(p):
-  '''elif_list : ELIF expr_top statements_block
+  '''elif_list : ELIF expr_top statements_block EOL
                | ELIF expr_top statements_block EOL elif_list'''
   if len(p) == 4:
     p[0] = [(p[2], p[3])]
@@ -594,27 +657,27 @@ def p_statement_elif_list(p):
 
 def p_statement_if_elif_else(p):
   '''statement : IF expr_top statements_block EOL elif_list ELSE statements_block'''
-  p[0] = ast.If([(p[2], p[3])] + p[5], p[7])
+  p[0] = ast.ExprIf([(p[2], p[3])] + p[5], p[7])
 
 def p_statement_if_elif(p):
-  '''statement : IF expr_top statements_block EOL elif_list'''
-  p[0] = ast.If([(p[2], p[3])] + p[5], None)
+  '''statement_witheol : IF expr_top statements_block EOL elif_list'''
+  p[0] = ast.ExprIf([(p[2], p[3])] + p[5], None)
 
 def p_statement_if_else(p):
   '''statement : IF expr_top statements_block EOL ELSE statements_block'''
-  p[0] = ast.If([(p[2], p[3])], p[6])
+  p[0] = ast.ExprIf([(p[2], p[3])], p[6])
 
 def p_statement_if(p):
-  '''statement : IF expr_top statements_block'''
-  p[0] = ast.If([(p[2], p[3])], None)
+  '''statement_witheol : IF expr_top statements_block EOL'''
+  p[0] = ast.ExprIf([(p[2], p[3])], None)
 
 def p_matchers(p):
   '''matcher : BWOR expr_top statements_block'''
-  p[0] = ast.Matcher(p[2], p[3])
+  p[0] = ast.ExprMatcher(p[2], p[3])
 
 def p_match(p):
   '''statement : MATCH expr_top matchers_block'''
-  p[0] = ast.Match(p[2], p[3])
+  p[0] = ast.ExprMatch(p[2], p[3])
 
 def p_statement_assert(p):
   '''statement : CTX_ASSERT statement'''
@@ -630,15 +693,15 @@ def p_statement_semanticclaim(p):
 
 def p_statements_block(p):
   '''statements_block : _statements_block'''
-  p[0] = ast.Block(p[1])
+  p[0] = ast.ExprBlock(p[1])
 
 def p_choicedecl(p):
   '''choicedecl : BWOR IDENT'''
   p[0] = ast.ChoiceDecl(p[2])
 
 def p_choicedecl_type(p):
-  '''choicedecl : BWOR IDENT ARROW type'''
-  p[0] = ast.ChoiceDecl(p[2], p[4])
+  '''choicedecl : BWOR IDENT type'''
+  p[0] = ast.ChoiceDecl(p[2], p[3])
 
 def p_typedecl_statement(p):
   '''typedecl_statement : fieldchoicedecl
@@ -675,25 +738,55 @@ def _typedef_block(block):
 
 def p_typedecl_empty(p):
   '''typedecl : TYPE typedeclname ASSIGN
-              | TYPE typedeclname ASSIGN isalist'''
+              | TYPE typedeclname ASSIGN isalist
+              | '(' TYPE typedeclname_list ')' typedeclname ASSIGN
+              | '(' TYPE typedeclname_list ')' typedeclname ASSIGN isalist'''
   if len(p) == 4:
+    name = p[2]
     isa = []
-  else:
+    genargs = []
+  elif len(p) == 5:
+    name = p[2]
     isa = p[4]
-  p[0] = ast.TypeDecl(p[2], isa, [], [], [], [], [])
+    genargs = []
+  elif len(p) == 7:
+    name = p[5]
+    isa = []
+    genargs = p[3]
+  elif len(p) == 8:
+    name = p[5]
+    isa = p[7]
+    genargs = p[3]
+  p[0] = ast.TypeDecl(name, genargs, isa, [], [], [], [], [])
 
 def p_typedecl(p):
   '''typedecl : TYPE typedeclname ASSIGN typedecl_block
-              | TYPE typedeclname ASSIGN isalist typedecl_block'''
+              | TYPE typedeclname ASSIGN isalist typedecl_block
+              | '(' TYPE typedeclname_list ')' typedeclname ASSIGN typedecl_block
+              | '(' TYPE typedeclname_list ')' typedeclname ASSIGN isalist typedecl_block'''
   if len(p) == 5:
+    name = p[2]
     isa = []
+    genargs = []
     block = p[4]
-  else:
+  elif len(p) == 6:
+    name = p[2]
     isa = p[4]
+    genargs = []
     block = p[5]
+  elif len(p) == 8:
+    name = p[5]
+    isa = []
+    genargs = p[3]
+    block = p[7]
+  elif len(p) == 9:
+    name = p[5]
+    isa = p[7]
+    genargs = p[3]
+    block = p[8]
 
   imports, typedecls, decls, methods, funs, semantics = _typedef_block(block)
-  p[0] = ast.TypeDecl(p[2], isa, imports, typedecls, decls, methods, funs)
+  p[0] = ast.TypeDecl(name, genargs, isa, imports, typedecls, decls, methods, funs)
 
 def p_funargs(p):
   '''funargs : typedident
@@ -778,10 +871,10 @@ def p_methoddecl(p):
     p[0] = ast.MethodDecl(p[5], p[3], '.', p[6], p[8], p[9])
 
 def p_methoddecl_mutating_forward(p):
-  '''methoddecl : METHOD BANG IDENT ASSIGN funretvals
-                | METHOD BANG IDENT funargs ASSIGN funretvals
-                | '(' METHOD BANG typedeclname_list ')' IDENT ASSIGN funretvals
-                | '(' METHOD BANG typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
+  '''methoddecl : METHOD POSTBANG IDENT ASSIGN funretvals
+                | METHOD POSTBANG IDENT funargs ASSIGN funretvals
+                | '(' METHOD POSTBANG typedeclname_list ')' IDENT ASSIGN funretvals
+                | '(' METHOD POSTBANG typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
   if len(p) == 6:
     p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], None)
   elif len(p) == 7:
@@ -792,10 +885,10 @@ def p_methoddecl_mutating_forward(p):
     p[0] = ast.MethodDecl(p[6], p[4], '!', p[7], p[9], None)
 
 def p_methoddecl_mutating(p):
-  '''methoddecl : METHOD BANG IDENT ASSIGN funretvals statements_block
-                | METHOD BANG IDENT funargs ASSIGN funretvals statements_block
-                | '(' METHOD BANG typedeclname_list ')' IDENT ASSIGN funretvals statements_block
-                | '(' METHOD BANG typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
+  '''methoddecl : METHOD POSTBANG IDENT ASSIGN funretvals statements_block
+                | METHOD POSTBANG IDENT funargs ASSIGN funretvals statements_block
+                | '(' METHOD POSTBANG typedeclname_list ')' IDENT ASSIGN funretvals statements_block
+                | '(' METHOD POSTBANG typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
   if len(p) == 7:
     p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], p[6])
   elif len(p) == 8:
@@ -817,7 +910,7 @@ def p_intfdecl(p):
     block = p[5]
 
   imports, typedecls, decls, methods, funs, semantics = _typedef_block(block)
-  p[0] = ast.Intf(p[2], isa, imports, typedecls, decls, methods, funs)
+  p[0] = ast.Intf(p[2], [], isa, imports, typedecls, decls, methods, funs)
 
 def p_dynintfdecl(p):
   '''dynintfdecl : DYNINTF typedeclname ASSIGN typedecl_block
@@ -834,7 +927,7 @@ def p_dynintfdecl(p):
   if decls is not None or funs is not None:
     raise errors.ParseError("dynintf cannot contain these declarations: '%s'" \
         % map(str, decls + funs))
-  p[0] = ast.DynIntf(p[2], isa, imports, typedecls, methods)
+  p[0] = ast.DynIntf(p[2], [], isa, imports, typedecls, methods)
 
 def p_modname(p):
   '''modname : IDENT
@@ -864,7 +957,7 @@ def p_toplevel(p):
               | methoddecl
               | intfdecl
               | dynintfdecl
-              | vardecl'''
+              | pattern'''
   p[0] = p[1]
 
 def p_module(p):
@@ -879,7 +972,7 @@ def p_module(p):
       p[0] = [p[1]] + p[3]
 
 _define_oneof('fieldchoicedecl', 'choicedecl', 'fielddecl', empty=True)
-_define_block('_statements_block', 'statement')
+_define_block('_statements_block', 'statement', 'statement_witheol')
 _define_block('typedecl_block', 'typedecl_statement')
 _define_block('matchers_block', 'matcher')
 
@@ -900,12 +993,14 @@ import resolv
 def parsefile(modname, fn):
   with open(fn) as f:
     lex.lex()
+    global gfn
+    gfn = fn
     yacc.yacc(outputdir='bootstrap')
     content = f.read()
     ast.gmodname.append(modname)
     ast.gmodctx[modname] = ast.ModuleContext(modname, fn)
     mod = ast.Module(yacc.parse(content, debug=0))
-    mod.name = modname
+    mod.setname(modname)
     mod.ctx = ast.gmodctx[modname]
     ast.gmodname.pop()
     return mod

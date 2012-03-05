@@ -1,0 +1,16 @@
+import nlang.meta
+import nlang.literal
+from nlang.prelude import *
+from nlang.vector import *
+from nlang import Zip
+
+fun t1 = Bool
+  let v = (Vector U32).Mk
+    v!Init 100
+  return v.Len == 100
+
+fun Main = I32
+  if t1
+    return 0
+  else
+    return 1

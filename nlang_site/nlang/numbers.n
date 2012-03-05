@@ -4,8 +4,8 @@ intf Signed =
 intf Ordered =
   method Cmp__ other:.Ordered = I32
 
+type Void =
 type U8 = Ordered
-
 type U16 = Ordered
 type U32 = Ordered
 type U64 = Ordered
@@ -15,3 +15,4 @@ type I16 = Ordered Signed
 type I32 = Ordered Signed
 type I64 = Ordered Signed
 type SSize = Ordered Signed
+type Bool = Ordered

@@ -14,7 +14,7 @@ class Options:
   def __init__(self):
     self.sources = []
     self.output = 'a.out'
-    self.nlangdir = '/home/e/nc/n/nlang-site'
+    self.nlangdir = '/home/e/nc/n/nlang_site'
 
 
 def objectfn(fn):
@@ -40,7 +40,8 @@ def compile(opt, fn):
       mod.cwrite(out)
 
     p = subprocess.Popen(['gcc', '-pipe', '-DNLANG_BOOTSTRAP',
-      '-Wall', '-I', opt.nlangdir, '-o', o, '-std=c99', '-xc', '-c', c])
+      '-Wall', '-Wno-unused-function', '-Wno-unused-variable',
+      '-I', opt.nlangdir, '-o', o, '-std=c99', '-xc', '-c', c])
     p.wait()
     if p.returncode == 0:
       gobjectcache[modname] = o
@@ -73,7 +74,7 @@ def runcmdline(args):
       opt.sources.append(arg)
     else:
       name = arg[1:]
-      if name not in opt.__dict__:
+      if not hasattr(opt, name):
         raise errors.Error("Option '%s' is unknown" % arg)
 
       if val is None:

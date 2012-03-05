@@ -1,0 +1,96 @@
+from nlang import *
+from nlang.containers import *
+from nlang.slice import *
+
+type Vector T = (RandomContainer T)
+  p :[]T
+  len :Size
+
+  fun Mk = this
+    return this{}
+
+  method! Init len:Size ?with:?.T = Void
+    self!Resize len with
+
+  method! Ctor = Void
+    return
+
+  method! Copyslice s:.[]T = Void
+    self!Reserve s.Len
+    for n:Size in s.Allindex
+      self.p![n] = s.[n]
+
+  method Len = Size
+    return self.len
+
+  method Capacity = Size
+    return self.p.Len
+
+  method! ensure len:Size = Void
+    if self.p.Len < len
+      self.p!Resize len
+
+  method! mayshrink = Void
+    if self.p.Len < self.p.Capacity / 2
+      self.p.Resize self.p.Len
+
+  method! Push x:T = Void
+    let oldsize = self.len
+    let newsize = self.len + 1
+    self!ensure newsize
+    self.p![oldsize] = x
+
+  method! Pop = T
+    #? self.len > 0
+    let tmp = self.p.[self.len - 1]
+    self!len = self!len - 1
+    self!mayshrink
+    return tmp
+
+  method First = T
+    #? self.len > 0
+    return self.p.[0]
+
+  method Last = T
+    #? self.len > 0
+    return self.p.[self.len - 1]
+
+  method! Clear = Void
+    self!len = 0
+    self!mayshrink
+
+  method! Resize newsize:Size = Void
+    if newsize > self.len
+      self!ensure newsize
+      self!len = newsize
+    else
+      self!len = newsize
+      self!mayshrink
+
+  method! Resizewith newsize:Size x:T = Void
+    let oldsize = self.len
+    self!Resize newsize
+    for n:Size in self.p!Allindex
+      self.p![n] = x
+
+  method! Reserve len:Size = Void
+    if len > self.len
+      self.p.Resize len
+
+  method Checkindex x:Size = Bool
+    return x <= self.len
+
+  method Get__ n:Size = T
+    return self.p.[n]
+
+  method Set__ n:Size x:T = Void
+    self.p![n] = x
+
+  method Allindex = IndexRange
+    return self.p.Allindex
+
+  method Rangeindex beg:Size end:Size ?by:?.Size = IndexRange
+    return Range beg end by
+
+  method All = (ElementRange this)
+    return (ElementRange this).Mk self

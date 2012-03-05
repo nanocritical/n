@@ -1,0 +1,9 @@
+import nlang.meta
+import nlang.literal
+import nlang.numbers
+from nlang.prelude import *
+from nlang.vector import *
+
+fun Main = I32
+  let x, y = 0:I32, 0:I32
+  return x + y

@@ -1616,3 +1616,278 @@ fun usesdyn2 x:.B = U32
 
 -- In other words, calling dynamically is a feature of the type system,
 -- but doesn't depend on how the object is passed (value or ref)...
+
+-- An dynintf object needs to be created from the concrete object.
+-- Is this implicit? Or is this explicit? I think I want it to be explicit.
+intf B =
+intf C =
+dynintf D =
+  method Get = U32
+type A = B C D
+
+fun foo d:D = U32
+  return d.Get
+
+fun bar a:A = U32
+  return foo a
+fun bar a:A = U32
+  return foo (a.As D)
+fun bar a:A = U32
+  return foo ((dynintf D) a)
+
+-- We may want explicit to make sure the memory relationship is clear.
+-- A dynintf object may contain, in addition to the virtual table,
+-- a copy of the original object, or a reference to it.
+
+fun bar a:A = U32
+  return foo $ D a
+
+fun bar a:A = U32
+  return foo $ D &a -- Error if D contains a method!
+fun bar a:A = U32
+  return foo $ D &!a
+
+-- The above is a special built-in constructor? Not very analog to regular types.
+
+-- OR, dynintf objects always wrap around a reference, and are generally themselves
+-- passed around by copy. They are primitive objects because they contain a special
+-- "polymorph" and opaque reference toward an object of unknown type.
+
+fun bar a:A = U32
+  return foo (D &a) -- Error if D contains a method!
+fun bar a:A = U32
+  return foo (D &!a)
+  return foo (D{ vptr=a.Type__.Isa.D.Virtualtable p=&!a })
+
+
+-- Should it be possible to call methods directly on objects? Like in python?
+-- As regular functions? 'Class.method otherobj'
+
+
+-- Construction syntax:
+-- Automatically defined and exported.
+-- Equivalent to module private forms, which are modprivate because they could break
+-- the semantics of the object if used wildly on their own (Type{} and Type.alloc).
+--
+--   Type.New args  ===  Type.alloc.Ctor args
+--   Type.Mk args  ===  Type{}.Ctor args
+--
+
+-- Ctor has always only one form. May take arguments. If there are several ways
+-- to build an object, then you must use a static fun, with a protected ctor.
+
+
+-- Generic types: free type variables
+(type T) ContainerIterator C:(Container T) = (Iterator C.T)
+
+-- Are equivalent:
+type Vector T =
+type Vector T:Any =
+(type T) Vector S:T =
+(type T:Any) Vector S:T =
+
+-- If a type argument is on the left of ':', then it doesn't get to be in the
+-- generic argument list (type A B ...), as it is "bound" (kind of) by whatever is
+-- on the right.
+
+-- Are equivalent
+(type T C:(Container T)) Foo A:(Container C) = (ContainerSquared T)
+(type T C:(Container T)) Foo A:(Container C) = (ContainerSquared C.T)
+(type T) Foo A:(Container (Container T)) = (ContainerSquared T)
+
+
+-- Semantic labelling
+
+intf Container T =
+  method Len = Size
+  method Capacity = Size
+  method! Clear = Void
+    #~ self.Structchange
+  method! Reserve len:Size = Void
+    #~ self.Structchange
+  method All = (ElementIterator T)
+    #! retval.Prevents self.Structchange
+
+  #~ prop Nonempty
+  #~ prop Structchange
+
+-- What about aliasing?
+(fun C:(Container U32)) foo a:!C b:!(Vector U32) = U32
+  for x in a.All
+    for y in Range 0 x
+      b.[y] = x
+
+fun main = U32
+  let x:U32
+      a = (Vector U32).Mk.Init 0 100
+    let b = &!a
+    if noalias &!a b
+      x = foo &!a b
+    else
+      abort 'Unexpected aliasing'
+  return x
+
+-- In general, we cannot ensure there is no aliasing statically. So we would have to
+-- check for aliasing all the time. But we could say: function calls always
+-- assume no-aliasing, like in C99 (strict). I.e. __restrict__ is assumed, always.
+-- N's strict type systen makes this a lot more predictable. Also, the only case of
+-- aliasing, unless unsafe_ operations are used, is reference equaility. This helps.
+
+-- As in the case of foo above, the check is done on the concrete form of generics.
+
+-- In many practical cases, it's easy to check that two variables are not aliased,
+-- if only because of the surrounding functional context. So we require a proof all
+-- the time, proof that generally come easily. When it doesn't, we ask the user to
+-- check.
+
+-- A major source of aliasing being introduced is with return values of functions.
+-- If we assume that function calls do not alias their arguments of same type, this
+-- is fine, until we call a function that may modify (a) its argument, (b) return
+-- one of its reference arguments and the result is assigned to another reference.
+
+fun select a:!T b:!T which:Bool = !T
+
+fun foo a:!T b:!T = Void
+  -- a and b are not aliased.
+  let c = select a b random.randbool
+  -- c is an alias of either a or b.
+
+-- Do we need to consider that return values are also part of the function arguments
+-- wrt aliasing? I.e. rewrite 'fun select a:!T b:!T which:bool = !T' into
+-- 'fun select retval:!!T a:!T b:!T which:bool = Void'. Not helping.
+
+-- So we cannot have rules that make it easy to prove, transitively, that there is
+-- no aliasing?
+
+-- Wait: we do not support computations on addresses themselves, so aliasing can
+-- only happen when returning a reference unaltered.
+
+type stores_refs =
+  table :[]!T
+  method! add p:!T =
+    self.table!Push p
+  nethod getrand = !T
+    return table.[random.randu32 &self.table.Len]
+
+
+-- Do we really need to always blow function calls open to make sure that semantics
+-- are respected at all call sites? Or can we preserve the function boundary
+-- abstraction?
+
+
+-- As semantics information gets automatically checked, when 'type A = I', we
+-- can just "inherit" the semantic constraints from I, without asking for them
+-- to be repeated in A.
+-- We should require that in A, the semantics cannot be different that in I.
+-- You cannot add more restrictions for instance. 'A isa I' is a strong
+-- statement. It means: everything I has, A has too, in the exact same way.
+
+
+-- Invalidating iterators.
+-- 1. It's possible to write a Vector class that doesn't invalidate its iterators.
+-- 2. There are fundamental differences between making changes on a list and
+-- making structural changes on a vector.
+-- Therefore:
+-- We shouldn't pretend they can all behave in exactly the same way, albeit at
+-- a performance cost. The intf hierarchy should reflect these differences.
+-- The GCD should be kept small, so that we don't make Vector unecessarily complex.
+-- You cannot remove an element in the middle of a Vector -- you just can't,
+-- sorry. It really makes no sense to make it work.
+
+
+-- Constness
+type Slice T =
+  data :!U8
+
+fun uses_ptr p:!U8 = Void
+
+fun main = Void
+  -- Which call is valid?
+  uses_ptr self.data
+  uses_ptr self!data
+  -- I'd like it to be the second one, but I'm not sure how to make sense of it.
+
+-- Any mutable reference in a structure is seen as read-only unless mutating
+-- deref is used.
+-- But:
+
+  self.sub!Alter
+  self!sub!Alter
+
+
+type T =
+  slice :[]U8
+
+  fun alloc ?allocator:Allocator = unique !this
+    -- How do we pass it in recursively?
+
+  method! Ctor ?heap_allocator:Allocator = this
+    -- In that scenario every single Ctor that must support this feature would
+    -- need to have this optional argument. A pain.
+
+  -- Use context and __thread__ local variables?
+  -- Platforms that do not support TLS cannot use custom allocators or
+  -- multithreading. Big deal?
+  let f:!(Slice U8)
+    with nlang.alloc.Custom myalloc
+      f = f.Type__.New
+      f!Init 100 &0
+
+
+-- Weird: if x:!U8: x.Type__ is U8. Do we need (typeof x) that would be !U8?
+-- Do we want the ability to represent that? Probably. Being able to get the
+-- actual type whether there is a reference or not would be a good thing.
+
+
+-- ObjC has this surprisingly nice feature that nil references to not lead to a
+-- crash: nil deref simply behave like noop operations. This is convenient,
+-- from a certain point of view. Of course, in certain situations that's a
+-- nightmare.
+
+
+-- Use proxy objects, kinda like in new Javascript.
+-- Instead of well-known methods, with reserved names, use a separate object.
+(type T C) ArrayProxy C:(RandomContainer T) =
+  fun Get obj:.C idx:Size = T
+  fun Set obj:!C idx:Size x:T = Void
+
+(type T) Vector T = (nlang.containers.RandomContainer T)
+
+(type T) nlang.containers.ArrayProxy C:(Vector T) =
+  fun Get obj:.C idx:Size = T
+  fun Set obj:!C idx:Size x:T = Void
+
+-- In code, the expression v.[0] will use (ArrayProxy v.Type__).Get v 0
+
+-- Variant:
+(type T) nlang.containers.ArrayProxy C:(Vector T) =
+  obj :!C
+
+  method Ctor obj:!C = Void
+    self!obj = obj
+  method Get idx:Size = T
+  method! Set idx:Size x:T = Void
+
+-- v.[0] will use ((ArrayProxy v.Type__) v).Get 0
+-- Not sure what the point would be. We would risk adding state. Not the point.
+
+
+-- We have so far accepted:
+type Vector T = (RandomContainer T)
+-- where T is a free variable. That leads to problems when considering a syntax
+-- for explicit specializations. Maybe we should require this instead:
+(type T) Vector T = (RandomContainer T)
+
+(type T=U32) Vector U32 = (RandomContainer U32)
+-- ??? Shit. We have to write everything by hand. And handle compatiblity rules.
+-- Should we really allow specializations? Hmm. Or are they against the principles
+-- we want? I.e. predictability. Cases like vector<bool> are not actually interesting.
+-- We might as well have BitVector if that's the question.
+-- But for proxies?
+
+(type T C) VectorArrayProxy C:(Vector T) = (ArrayProxy C)
+  fun Get obj:.C idx:Size = T
+  fun Set obj:!C idx:Size x:T = Void
+
+-- The compiler looks for a type that isa (ArrayProxy (Vector U32))? What if there
+-- are several?

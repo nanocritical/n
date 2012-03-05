@@ -6,16 +6,16 @@ import errors
 def _findfile(f):
   if os.path.isfile(f):
     return f
-  elif os.path.isfile(os.path.join('nlang-site/', f)):
-    return os.path.join('nlang-site/', f)
+  elif os.path.isfile(os.path.join('nlang_site/', f)):
+    return os.path.join('nlang_site/', f)
   else:
     return None
 
 def _finddir(d):
   if os.path.isfile(os.path.join(d, 'module.n')):
     return os.path.join(d, 'module.n')
-  elif os.path.isfile(os.path.join('nlang-site/', d, 'module.n')):
-    return os.path.join('nlang-site/', d, 'module.n')
+  elif os.path.isfile(os.path.join('nlang_site/', d, 'module.n')):
+    return os.path.join('nlang_site/', d, 'module.n')
   else:
     return None
 

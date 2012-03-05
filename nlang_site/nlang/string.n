@@ -1,0 +1,4 @@
+from nlang.slice import *
+
+type String =
+  data :[]U8

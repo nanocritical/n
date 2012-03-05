@@ -60,13 +60,35 @@ typedef const _Bool* nlangcp__Bool;
 
 #define null NULL
 
-static inline void nlang_realloc(nlangp__U8 data, Size len) {
-  realloc(data, len);
+static inline nlangp__U8 nlang_unsafe_Realloc(nlangp__U8 data, Size oldlen, Size newlen) {
+  nlangp__U8 p = realloc(data, newlen);
+  if (newlen > oldlen) {
+    memset(p + oldlen, 0, newlen - oldlen);
+  }
+  return p;
 }
 
-static inline void nlang_unsafe_subslice_clear(nlangp__U8 data,
-                                               Size beg, Size endinc) {
-  memset(data + beg, 0, endinc - beg + 1);
+static inline nlangp__U8 nlang_unsafe_Malloc(Size len) {
+  return calloc(len, 1);
+}
+
+static inline void nlang_unsafe_Free(nlangp__U8 p, Size len) {
+  (void) len;
+  return free(p);
+}
+
+static inline void nlang_unsafe_Memcpy(__restrict__ nlangp__U8 dst, __restrict__ nlangcp__U8 src, Size elsize, Size n) {
+  memcpy(dst, src, n * elsize);
+}
+
+static inline void nlang_slice_unsafe_slice_clear(nlangp__U8 data, Size elsize,
+                                                  Size beg, Size endinc) {
+  memset(data + (beg * elsize), 0, elsize * (endinc - beg + 1));
+}
+
+static inline nlangp__U8 nlang_slice_unsafe_slice_addr(nlangp__U8 data, Size elsize,
+                                                       Size n) {
+  return data + elsize * n;
 }
 
 #define NLANG_UNREACHED() { abort(); }

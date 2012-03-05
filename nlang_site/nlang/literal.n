@@ -1,0 +1,5 @@
+type Integer =
+type Bool =
+type String =
+type Null =
+type List =

@@ -1,0 +1,3 @@
+from nlang.prelude import *
+from nlang.numbers import *
+from nlang.slice import *

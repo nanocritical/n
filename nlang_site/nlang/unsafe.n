@@ -1,0 +1,12 @@
+import nlang.meta
+import nlang.literal
+from nlang.prelude import *
+from nlang.numbers import *
+
+fun Malloc len:Size = !U8
+fun Realloc p:?!U8 oldlen:Size len:Size = !U8
+fun Free p:?!U8 len:Size = Void
+
+fun Memcpy dst:!U8 src:.U8 elsize:Size n:Size = Void
+
+(fun D S) Cast src:S = D

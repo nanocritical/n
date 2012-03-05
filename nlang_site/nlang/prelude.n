@@ -1,0 +1,5 @@
+import nlang.meta
+import nlang.literal
+from nlang.numbers import *
+
+(fun T) Sizeof x:T = Size
