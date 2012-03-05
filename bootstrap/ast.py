@@ -147,15 +147,14 @@ class _Node(object):
       #  geninst.firstpass()
 
   def typecheck(self, *args, **kw):
-    if self.cachedtype is None or not (scope.current() < self.cachedtype[0]):
+    if self.cachedtype is None:
       type = self.nocache_typecheck(*args, **kw)
       assert isinstance(type, typing.Typename)
       if not isinstance(type, typing.TypeUnboundGeneric):
-        self.cachedtype = scope.current(), type
+        self.cachedtype = type
       return type
     else:
-      assert isinstance(self.cachedtype[1], typing.Typename)
-      return self.cachedtype[1]
+      return self.cachedtype
 
   def definition(self):
     return scope.current().q(self).definition()
