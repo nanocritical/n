@@ -16,78 +16,51 @@
   } \
 } while (0)
 
-typedef void Void;
-typedef uint8_t U8;
-typedef uint16_t U16;
-typedef uint32_t U32;
-typedef uint64_t U64;
-typedef int8_t I8;
-typedef int16_t I16;
-typedef int32_t I32;
-typedef int64_t I64;
-typedef char Char;
-typedef size_t Size;
-typedef ssize_t SSize;
-typedef _Bool Bool;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+typedef size_t size;
+typedef ssize_t ssize;
+typedef _Bool bool;
 
-typedef void* nlangp__Void;
-typedef uint8_t* nlangp__U8;
-typedef uint16_t* nlangp__U16;
-typedef uint32_t* nlangp__U32;
-typedef uint64_t* nlangp__U64;
-typedef int8_t* nlangp__I8;
-typedef int16_t* nlangp__I16;
-typedef int32_t* nlangp__I32;
-typedef int64_t* nlangp__I64;
-typedef char* nlangp__Char;
-typedef size_t* nlangp__Size;
-typedef ssize_t* nlangp__SSize;
-typedef _Bool* nlangp__Bool;
-
-typedef const void* nlangcp__Void;
-typedef const uint8_t* nlangcp__U8;
-typedef const uint16_t* nlangcp__U16;
-typedef const uint32_t* nlangcp__U32;
-typedef const uint64_t* nlangcp__U64;
-typedef const int8_t* nlangcp__I8;
-typedef const int16_t* nlangcp__I16;
-typedef const int32_t* nlangcp__I32;
-typedef const int64_t* nlangcp__I64;
-typedef const char* nlangcp__Char;
-typedef const size_t* nlangcp__Size;
-typedef const ssize_t* nlangcp__SSize;
-typedef const _Bool* nlangcp__Bool;
+typedef uint8_t* nlangp__u8;
+typedef const uint8_t* nlangcp__u8;
 
 #define null NULL
 
-static inline nlangp__U8 nlang_unsafe_Realloc(nlangp__U8 data, Size oldlen, Size newlen) {
-  nlangp__U8 p = realloc(data, newlen);
+static inline nlangp__u8 nlang_unsafe_realloc(nlangp__u8 data, size oldlen, size newlen) {
+  nlangp__u8 p = realloc(data, newlen);
   if (newlen > oldlen) {
     memset(p + oldlen, 0, newlen - oldlen);
   }
   return p;
 }
 
-static inline nlangp__U8 nlang_unsafe_Malloc(Size len) {
+static inline nlangp__u8 nlang_unsafe_malloc(size len) {
   return calloc(len, 1);
 }
 
-static inline void nlang_unsafe_Free(nlangp__U8 p, Size len) {
+static inline void nlang_unsafe_free(nlangp__u8 p, size len) {
   (void) len;
   return free(p);
 }
 
-static inline void nlang_unsafe_Memcpy(__restrict__ nlangp__U8 dst, __restrict__ nlangcp__U8 src, Size elsize, Size n) {
+static inline void nlang_unsafe_memcpy(__restrict__ nlangp__u8 dst, __restrict__ nlangcp__u8 src, size elsize, size n) {
   memcpy(dst, src, n * elsize);
 }
 
-static inline void nlang_slice_unsafe_slice_clear(nlangp__U8 data, Size elsize,
-                                                  Size beg, Size endinc) {
-  memset(data + (beg * elsize), 0, elsize * (endinc - beg + 1));
+static inline void nlang_slice_unsafe_slice_clear(nlangp__u8 data, size elsize,
+                                                  size beg, size end_inc) {
+  memset(data + (beg * elsize), 0, elsize * (end_inc - beg + 1));
 }
 
-static inline nlangp__U8 nlang_slice_unsafe_slice_addr(nlangp__U8 data, Size elsize,
-                                                       Size n) {
+static inline nlangp__u8 nlang_slice_unsafe_slice_addr(nlangp__u8 data, size elsize,
+                                                       size n) {
   return data + elsize * n;
 }
 

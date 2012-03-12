@@ -4,6 +4,6 @@ import nlang.numbers
 from nlang.prelude import *
 from nlang.vector import *
 
-fun Main = I32
-  let x, y = 0:I32, 0:I32
+fun main = i32
+  let x, y = 0:i32, 0:i32
   return x + y

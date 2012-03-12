@@ -8,9 +8,11 @@ import parser
 import errors
 import cwriter
 import resolv
+import sys
+sys.setrecursionlimit(100*1000)
 
 
-class Options:
+class Options(object):
   def __init__(self):
     self.sources = []
     self.output = 'a.out'
@@ -40,6 +42,7 @@ def compile(opt, fn):
       mod.cwrite(out)
 
     p = subprocess.Popen(['gcc', '-pipe', '-DNLANG_BOOTSTRAP',
+      '-fdata-sections', '-ffunction-sections',
       '-Wall', '-Wno-unused-function', '-Wno-unused-variable',
       '-I', opt.nlangdir, '-o', o, '-std=c99', '-xc', '-c', c])
     p.wait()
@@ -48,7 +51,9 @@ def compile(opt, fn):
     return p.returncode, o
 
 def link(opt, ofns):
-  return subprocess.call(['gcc', '-pipe', '-o', opt.output] + ofns)
+  return subprocess.call(['gcc', '-pipe',
+    '-Wl,--gc-sections',
+    '-o', opt.output] + ofns)
 
 
 def run(opt):

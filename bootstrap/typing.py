@@ -4,9 +4,7 @@ import scope
 import ast
 
 def qbuiltin(name):
-  path = name.split('.')
-  path[0] = ast.ExprField(ast.ExprValue('<root>'), '.', ast.ExprValue(path[0]))
-  x = reduce(lambda a, b: ast.ExprField(a, '.', ast.ExprValue(b)), path)
+  x = ast.path_as_expr(name)
   return scope.current().q(x).typecheck()
 
 class Typename(object):
@@ -25,10 +23,16 @@ class Typename(object):
     return self.name.replace('.', '_')
 
   def __hash__(self):
-    return hash(self.name)
+    if not hasattr(self, 'name'):
+      return hash(None)
+    else:
+      return hash(self.name)
 
   def __eq__(self, other):
-    return self.name == other.name
+    if not hasattr(self, 'name'):
+      return False
+    else:
+      return self.name == other.name
 
   def __ne__(self, other):
     return self.name != other.name
@@ -41,6 +45,9 @@ class Typename(object):
 
   def firstpass(self):
     pass
+
+  def unboundgeneric(self):
+    return False
 
   def mapgeninsts(self, aux):
     pass
@@ -157,7 +164,7 @@ class TypeApp(Typename):
     assert isinstance(typeconstraint, Typename) and not isinstance(typeconstraint, TypeUnboundGeneric)
     if type(self) != type(typeconstraint):
       return False
-    if not self.defn.isa(typeconstraint):
+    if not self.defn.typecheck().isa(typeconstraint):
       if str(self.defn.scope) == str(typeconstraint.defn.scope):
         return True
       for i in self.defn.listisa:
@@ -173,7 +180,18 @@ class TypeApp(Typename):
 
 class TypeFunction(Typename):
   def __init__(self, defn, rettype, *args):
-    super(TypeFunction, self).__init__('(fun' + str(defn.scope) + ' ' + ' '.join([str(t) for t in args]) + ' = ' + str(rettype) + ')')
+    pd = defn.scope.parent_definition.container
+    if pd is not None and isinstance(pd, ast.TypeDecl):
+      name = str(pd.typecheck()) + '.' + defn.name
+    else:
+      name = str(defn.scope)
+
+    if isinstance(defn, ast.MethodDecl):
+      kind = 'method' + defn.access
+    else:
+      kind = 'fun'
+
+    super(TypeFunction, self).__init__('(' + kind + ' ' + name + ' ' + ' '.join([str(t) for t in args]) + ' = ' + str(rettype) + ')')
     self.defn = defn
     self.rettype = rettype
     self.args = list(args)
@@ -203,19 +221,19 @@ def _unifyliterals(lits):
 def _unify_lit_conc(lit, conc):
   nummod = '<root>.nlang.numbers.'
   nump = conc.name.startswith(nummod)
-  if lit.name == '<root>.nlang.literal.Integer':
+  if lit.name == '<root>.nlang.literal.integer':
     if nump and conc.name[len(nummod):] in \
-        ['U8', 'U16', 'U32', 'U64',
-            'I8', 'I16', 'I32', 'I64',
-            'Size', 'SSize']:
+        ['u8', 'u16', 'u32', 'u64',
+            'i8', 'i16', 'i32', 'i64',
+            'size', 'ssize']:
       return conc
-  elif lit.name == '<root>.nlang.literal.Bool':
-    if nump and conc.name[len(nummod):] == 'Bool':
+  elif lit.name == '<root>.nlang.literal.bool':
+    if nump and conc.name[len(nummod):] == 'bool':
       return conc
-  elif lit.name == '<root>.nlang.literal.String':
-    if conc.name == '<root>.nlang.string.String' or conc.name == '<root>.nlang.numbers.Char':
+  elif lit.name == '<root>.nlang.literal.string':
+    if conc.name == '<root>.nlang.string.string' or conc.name == '<root>.nlang.char.char':
       return conc
-  elif lit.name == '<root>.nlang.literal.Null':
+  elif lit.name == '<root>.nlang.literal.nulltype':
     if conc.nullable:
       return conc
 
@@ -225,7 +243,7 @@ def _isliteral(type):
   return type.name.startswith('<root>.nlang.literal.')
 
 def _isconcrete(type):
-  return not type.name.startswith('<root>.nlang.literal.') and type.name != '<root>.nlang.meta.Type'
+  return not type.name.startswith('<root>.nlang.literal.') and type.name != '<root>.nlang.meta.alias'
 
 def _handlethis(type):
   if type.name == 'this':

@@ -1,0 +1,68 @@
+import nlang.meta
+import nlang.literal
+import nlang.unsafe
+from nlang.numbers import *
+from nlang.prelude import *
+import nlang.bwmask
+
+type open_mode = (nlang.bwmask.bwmask u32)
+  inherit nlang.bwmask.bwmask_impl u32
+  let S_IRWXU = this{{ _bits=00700 }}
+  let S_IRUSR = this{{ _bits=00400 }}
+  let S_IWUSR = this{{ _bits=00200 }}
+  let S_IXUSR = this{{ _bits=00100 }}
+  let S_IRWXG = this{{ _bits=00070 }}
+  let S_IRGRP = this{{ _bits=00040 }}
+  let S_IWGRP = this{{ _bits=00020 }}
+  let S_IXGRP = this{{ _bits=00010 }}
+  let S_IRWXO = this{{ _bits=00007 }}
+  let S_IROTH = this{{ _bits=00004 }}
+  let S_IWOTH = this{{ _bits=00002 }}
+  let S_IXOTH = this{{ _bits=00001 }}
+
+let _O_RDONLY:i32
+let _O_WRONLY:i32
+let _O_RDWR:i32
+let _O_APPEND:i32
+let _O_ASYNC:i32
+let _O_CLOEXEC:i32
+let _O_CREAT:i32
+let _O_DIRECT:i32
+let _O_DIRECTORY:i32
+let _O_EXCL:i32
+let _O_NOATIME:i32
+let _O_NOCTTY:i32
+let _O_NOFOLLOW:i32
+let _O_NONBLOCK:i32
+let _O_NDELAY:i32
+let _O_SYNC:i32
+let _O_TRUNC:i32
+
+type open_flags = (nlang.bwmask.bwmask i32)
+  inherit nlang.bwmask.bwmask_impl i32
+  let O_RDONLY = this{{ _bits=_O_RDONLY }}
+  let O_WRONLY = this{{ _bits=_O_WRONLY }}
+  let O_RDWR = this{{ _bits=_O_RDWR }}
+  let O_APPEND = this{{ _bits=_O_APPEND }}
+  let O_ASYNC = this{{ _bits=_O_ASYNC }}
+  let O_CLOEXEC = this{{ _bits=_O_CLOEXEC }}
+  let O_CREAT = this{{ _bits=_O_CREAT }}
+  let O_DIRECT = this{{ _bits=_O_DIRECT }}
+  let O_DIRECTORY = this{{ _bits=_O_DIRECTORY }}
+  let O_EXCL = this{{ _bits=_O_EXCL }}
+  let O_NOATIME = this{{ _bits=_O_NOATIME }}
+  let O_NOCTTY = this{{ _bits=_O_NOCTTY }}
+  let O_NOFOLLOW = this{{ _bits=_O_NOFOLLOW }}
+  let O_NONBLOCK = this{{ _bits=_O_NONBLOCK }}
+  let O_NDELAY = this{{ _bits=_O_NDELAY }}
+  let O_SYNC = this{{ _bits=_O_SYNC }}
+  let O_TRUNC = this{{ _bits=_O_TRUNC }}
+
+fun open pathname:@u8 flags:open_flags ?mode:?@open_mode = i32
+fun close fd:i32 = i32
+fun unlink pathname:@u8 = i32
+
+fun write fd:i32 buf:@u8 count:size = ssize
+fun read fd:i32 buf:@u8 count:size = ssize
+
+fun errno = i32

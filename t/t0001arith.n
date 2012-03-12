@@ -1,33 +1,34 @@
 import nlang.meta
 import nlang.numbers
 import nlang.literal
+import nlang.unsafe
 from nlang.prelude import *
 from nlang.vector import *
 
-type Enum =
+type enum =
   | FIRST
   | SECOND
 
-type Test =
+type test =
   | SUCCESS
-  | INTEGER I32
-  | LONG I64
+  | INTEGER i32
+  | LONG i64
 
-fun t1 = Bool
-  let t :U32 = 1
+fun t1 = bool
+  let t:u32 = 1
   match t
     | 1
       return true
     | 0
       return false
 
-fun Main = I32
-  let r :I32 = 0
-    for x:I32 in Range 0 10
+fun main = i32
+  let r:i32 = 0
+    for x:i32 in range 0 10
       r = r + x
-  let e = Enum.FIRST
-  let t = Test.SUCCESS
-  let tt = Test.INTEGER 0
+  let e = enum.FIRST
+  let t = test.SUCCESS
+  let tt = test.INTEGER 0
   match t
     | SUCCESS
       return 0

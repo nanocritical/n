@@ -1,0 +1,28 @@
+import nlang.meta
+import nlang.literal
+from nlang.numbers import *
+import nlang.unsafe
+import nlang.string
+from nlang.prelude import *
+from nlang.slice import *
+from nlang.char import *
+from posix import *
+
+fun cstr_set_char s:@!u8 off:size c:char = void
+  let p = nlang.slice.unsafe_slice_addr s (sizeof u8) off
+  let x, ok = c.as_ascii
+  nlang.unsafe.memcpy p @x (sizeof u8) 1
+
+fun main = i32
+  let pn = nlang.unsafe.malloc 4
+  cstr_set_char pn 0 'x':char
+  cstr_set_char pn 1 'y':char
+  cstr_set_char pn 2 'z':char
+  cstr_set_char pn 3 '\x00':char
+  let f = ~open_flags.O_WRONLY
+  let fd = open pn open_flags.O_WRONLY | open_flags.O_CREAT
+  if errno != 0
+    return errno
+  let err = unlink pn
+  if err != 0
+    return err

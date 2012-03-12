@@ -1,16 +1,18 @@
 import nlang.meta
 import nlang.literal
+import nlang.unsafe
 from nlang.prelude import *
+from nlang.numbers import *
 from nlang.vector import *
-from nlang import Zip
+from nlang import zip
 
-fun t1 = Bool
-  let v = (Vector U32).Mk
-    v!Init 100
-  return v.Len == 100
+fun t1 = bool
+  let v = (vector u32).mk
+    v!init 100
+  return v.len == 100
 
-fun Main = I32
+fun main = i32
   if t1
     return 0
   else
-    return 1
+    return -1

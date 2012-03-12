@@ -1,150 +1,125 @@
 import nlang.meta
 import nlang.literal
+import nlang.unsafe
 from nlang.prelude import *
 from nlang.numbers import *
 from nlang.containers import *
 import nlang.unsafe
 
-type Property T =
+type property t =
 
-(fun T) Optional ptr:?.T otherwise:T = T
-  if ptr != null
-    return ptr.
-  else
-    return otherwise
+fun range beg:size end:size ?incr:?@size = index_range
+  return index_range{{ _pos=beg _end=end _incr=(optional incr 1) }}
 
-fun Range beg:Size end:Size ?incr:?.Size = IndexRange
-  return IndexRange { pos=beg end=end incr=(Optional incr 1) }
+(fun t1 t2) zip a:(element_iterator t1) b:(element_iterator t2) = (element_pair_iterator t1 t2)
 
-(fun T1 T2) Zip a:(ElementIterator T1) b:(ElementIterator T2) = (ElementPairIterator T1 T2)
+type index_pair_range = index_pair_iterator
+  _a _b :index_range
 
-type IndexPairRange = IndexPairIterator
-  a b :IndexRange
+  method index_pair = size, size
+    return self._a.index, self._b.index
 
-  method Indexpair = Size, Size
-    return self.a.Index, self.b.Index
+  method! next = bool
+    return self._a!next and self._b!next
 
-  method! Next = Bool
-    return self.a!Next and self.b!Next
+(fun t1 t2) zip_index a:(forward_container t1) b:(forward_container t2) = index_pair_range
+  return index_pair_range{{ _a=a.all _b=b.all }}
 
-(fun T1 T2) Zipindex a:(ForwardContainer T1) b:(ForwardContainer T2) = IndexPairRange
-  return IndexPairRange { a=a.All b=b.All }
+(type t) element_range c:(random_container t) = (element_iterator t)
+  _v :@c
+  _range :index_range
 
-(type TER) ElementRange C:(RandomContainer TER) = (ElementIterator TER)
-  v :.C
-  range :IndexRange
+  method! _ctor ?other:@c = void
+    self!_v = other
+    self!_range = other.all_index
 
-  fun Mk c:.C = this
-    let self = this{}
-      self!Ctor c
-    return self
+  method! next = bool
+    return self._range!next
 
-  method! Ctor c:.C = Void
-    self!v = c
-    self!range = c.Allindex
+  method get = t
+    return self._v.[self._range.index]
 
-  method! Next = Bool
-    return self.range!Next
+  method sub beg:size end:size ?by:?@size = this
+    return this{{ _v=self._v _range=(self._range.sub beg end by) }}
 
-  method Get = TER
-    return self.v.[self.range.Index]
+fun unsafe_slice_clear data:@!u8 elsize:size beg:size end_inc:size = void
+fun unsafe_slice_addr data:@!u8 elsize:size n:size = @!u8
 
-  method Sub beg:Size end:Size ?by:?.Size = this
-    return this{ v=self.v range=(self.range.Sub beg end by) }
+type slice t = (random_container t)
+  _data :@!u8
+  _len :size
 
-fun unsafe_slice_clear data:!U8 elsize:Size beg:Size endinc:Size = Void
-fun unsafe_slice_addr data:!U8 elsize:Size n:Size = !U8
+  method! _ctor ?len:?@size = void
+    if len != null
+      self!resize len.
 
-type Slice T = (RandomContainer T)
-  -- Data is null iff Capacity is 0: semantic checks ensure correctness for callers;
-  -- unsafe_ code implements it.
-  data :!U8
-  Len Capacity :Size
+  method! _dtor = void
+    nlang.unsafe.free self!_data self._len
 
-  method! Ctor = Void
-    pass
+  method len = size
+    return self._len
 
-  method! Dtor = Void
-    nlang.unsafe.Free self!data self.Capacity
+  method! clear = void
+    unsafe_slice_clear self!_data (sizeof t) 0 (self._len - 1)
 
-  method! Clear = Void
-    unsafe_slice_clear self!data (sizeof T) 0 (self.Len - 1)
+  method all = (element_range this)
+    return (element_range this).mk self
 
-  method! Reserve len:Size = Void
-    if len > self.Capacity
-      let oldlen = self.Len
-      self!Resize len
-      self!Len = oldlen
-
-  method All = (ElementRange this)
-    return (ElementRange this).Mk self
-
-  method! Push x:T = Void
-    let last = self.Len
-    self!Reserve self.Len + 1
-    self![last] = x
-
-  method! Pop = T
-    #! self.Nonempty
-    #? self.Len > 0
-    let tmp = self.Last
-    self!Resize self.Len - 1
-    return tmp
-
-  method First = T
+  method first = t
     return self.[0]
 
-  method Last = T
-    return self.[self.Len - 1]
+  method last = t
+    return self.[self.len - 1]
 
-  method! Resize newlen:Size = Void
-    let oldlen = self.Len
-    self!data = nlang.unsafe.Realloc self.data oldlen newlen
-    self!Len = newlen
-    self!Capacity = newlen
-    if newlen > oldlen
-      unsafe_slice_clear self!data (sizeof T) oldlen newlen
+  method! resize new_len:size = void
+    let old_len = self.len
+    if new_len == old_len
+      return
+    self!_data = nlang.unsafe.realloc self._data old_len new_len
+    self!_len = new_len
+    if new_len > old_len
+      unsafe_slice_clear self!_data (sizeof t) old_len new_len
     else
-      unsafe_slice_clear self!data (sizeof T) newlen oldlen
+      unsafe_slice_clear self!_data (sizeof t) new_len old_len
 
-  method! Resizewith newlen:Size x:T = Void
-    let oldlen = self.Len
-    self!Resize newlen
-    for n:Size in Range oldlen self.Len
+  method! resize_with new_len:size x:t = void
+    let old_len = self.len
+    self!resize new_len
+    for n:size in range old_len self.len
       self![n] = x
 
-  method Get__ n:Size = T
-    #! self.Validindex n
-    #? self.Checkindex n
-    let r:T
-      let pdst = (nlang.unsafe.Cast &!U8 &!T) &!r
-      let psrc = unsafe_slice_addr self.data (sizeof T) n
-      nlang.unsafe.Memcpy pdst psrc (sizeof T) 1
+  method operator_get__ n:size = t
+    #! self.valid_index n
+    #? self.check_index n
+    let r:t
+      let pdst = (nlang.unsafe.cast @!u8 @!t) @!r
+      let psrc = unsafe_slice_addr self._data (sizeof t) n
+      nlang.unsafe.memcpy pdst psrc (sizeof t) 1
     return r
 
-  method! Set__ n:Size x:T = Void
-    #! self.Validindex n
-    #? self.Checkindex n
-    let p = unsafe_slice_addr self.data (sizeof T) n
-    nlang.unsafe.Memcpy self!data p (sizeof T) 1
+  method! operator_set__ n:size x:t = void
+    #! self.valid_index n
+    #? self.check_index n
+    let p = unsafe_slice_addr self._data (sizeof t) n
+    nlang.unsafe.memcpy self!_data p (sizeof t) 1
 
-  method Checkindex n:Size = Bool
-    #~ eval self.Checkindex self.Validindex n
-    return n < self.Len
+  method check_index n:size = bool
+    #~ eval self.check_index self.valid_index n
+    return n < self._len
 
-  method Range beg:Size end:Size ?by:?.Size = (ElementRange this)
-    let ER:nlang.meta.Type = (ElementRange this)
-    let c = ER.Mk self
-    return c.Sub beg end by
+  method range beg:size end:size ?by:?@size = (element_range this)
+    let er:nlang.meta.alias = (element_range this)
+    let c = er.mk self
+    return c.sub beg end by
 
-  method Allindex = IndexRange
-    return Range 0 self.Len
+  method all_index = index_range
+    return range 0 self.len
 
-  method Rangeindex beg:Size end:Size ?by:?.Size = IndexRange
-    let range = IndexRange.Mk self
-    return range.Sub beg end by
+  method range_index beg:size end:size ?by:?@size = index_range
+    let r = index_range.mk self
+    return r.sub beg end by
 
 
-(fun T) noalias a:?.T b:?.T = Bool
-  #~ eval thisfun a b Noalias a b
+(fun t) no_alias a:?@t b:?@t = bool
+  #~ eval thisfun a b no_alias a b
   return a != b

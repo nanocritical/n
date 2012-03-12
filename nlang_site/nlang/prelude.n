@@ -1,5 +1,13 @@
 import nlang.meta
 import nlang.literal
+import nlang.unsafe
 from nlang.numbers import *
 
-(fun T) Sizeof x:T = Size
+(fun t) _sizeof x:t = size
+
+(fun t) optional ptr:?@t otherwise:t = t
+  if ptr != null
+    return ptr.
+  else
+    return otherwise
+

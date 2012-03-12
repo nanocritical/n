@@ -1,96 +1,84 @@
+import nlang.meta
+import nlang.literal
+import nlang.unsafe
+from nlang.prelude import *
+from nlang.numbers import *
 from nlang import *
 from nlang.containers import *
 from nlang.slice import *
+import nlang.accordion
 
-type Vector T = (RandomContainer T)
-  p :[]T
-  len :Size
+type vector t = (random_container t)
+  _p:nlang.accordion.accordion t
+  _len:size
 
-  fun Mk = this
-    return this{}
-
-  method! Init len:Size ?with:?.T = Void
-    self!Resize len with
-
-  method! Ctor = Void
+  method! _ctor = void
     return
 
-  method! Copyslice s:.[]T = Void
-    self!Reserve s.Len
-    for n:Size in s.Allindex
-      self.p![n] = s.[n]
+  method! init len:size ?with:?@t = void
+    self!resize len with
 
-  method Len = Size
-    return self.len
+  method! copy_slice s:@[]t = void
+    self!reserve s.len
+    for n:size in s.all_index
+      self._p![n] = s.[n]
 
-  method Capacity = Size
-    return self.p.Len
+  method len = size
+    return self._p._len
 
-  method! ensure len:Size = Void
-    if self.p.Len < len
-      self.p!Resize len
+  method capacity = size
+    return self._p.capacity
 
-  method! mayshrink = Void
-    if self.p.Len < self.p.Capacity / 2
-      self.p.Resize self.p.Len
+  method! push x:t = void
+    let old_size = self._p.len
+    let new_size = self._p.len + 1
+    self._p!resize new_size
+    self._p![old_size] = x
 
-  method! Push x:T = Void
-    let oldsize = self.len
-    let newsize = self.len + 1
-    self!ensure newsize
-    self.p![oldsize] = x
-
-  method! Pop = T
-    #? self.len > 0
-    let tmp = self.p.[self.len - 1]
-    self!len = self!len - 1
-    self!mayshrink
+  method! pop = t
+    #? self._p.len > 0
+    let tmp = self._p.[self._p.len - 1]
+    self._p!resize (self._p.len - 1)
     return tmp
 
-  method First = T
-    #? self.len > 0
-    return self.p.[0]
+  method first = t
+    #? self._p.len > 0
+    return self._p.[0]
 
-  method Last = T
-    #? self.len > 0
-    return self.p.[self.len - 1]
+  method last = t
+    #? self._p.len > 0
+    return self._p.[self._p.len - 1]
 
-  method! Clear = Void
-    self!len = 0
-    self!mayshrink
+  method! clear = void
+    self!_p.clear
 
-  method! Resize newsize:Size = Void
-    if newsize > self.len
-      self!ensure newsize
-      self!len = newsize
-    else
-      self!len = newsize
-      self!mayshrink
+  method! resize new_size:size = void
+    self._p!resize new_size
 
-  method! Resizewith newsize:Size x:T = Void
-    let oldsize = self.len
-    self!Resize newsize
-    for n:Size in self.p!Allindex
-      self.p![n] = x
+  method! resize_with new_size:size x:t = void
+    let old_size = self._p.len
+    self!resize new_size
+    for n:size in self._p.all_index
+      self._p![n] = x
 
-  method! Reserve len:Size = Void
-    if len > self.len
-      self.p.Resize len
+  method! reserve len:size = void
+    if len > self._p.len
+      self._p.resize len
 
-  method Checkindex x:Size = Bool
-    return x <= self.len
+  method check_index x:size = bool
+    return x <= self._p.len
 
-  method Get__ n:Size = T
-    return self.p.[n]
+  method operator_get__ n:size = t
+    return self._p.[n]
 
-  method! Set__ n:Size x:T = Void
-    self.p![n] = x
+  method! operator_set__ n:size x:t = void
+    self._p![n] = x
 
-  method Allindex = IndexRange
-    return self.p.Allindex
+  method all_index = index_range
+    return self._p.all_index
 
-  method Rangeindex beg:Size end:Size ?by:?.Size = IndexRange
-    return Range beg end by
+  method range_index beg:size end:size ?by:?@size = index_range
+    return range beg end by
 
-  method All = (ElementRange this)
-    return (ElementRange this).Mk self
+  method all = (element_range this)
+    return (element_range this).mk self

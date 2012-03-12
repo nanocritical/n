@@ -4,7 +4,7 @@ import ast
 import typing
 import copy
 
-builtintypes = set(['<root>.nlang.numbers.' + n for n in '''Void U8 I8 U16 I16 U32 I32 U64 I64 Char Size SSize Bool'''.split()])
+builtintypes = set(['<root>.nlang.numbers.' + n for n in '''void u8 i8 u16 i16 u32 i32 u64 i64 size ssize bool'''.split()])
 
 gscope = []
 
@@ -58,7 +58,7 @@ def globalname(node):
   else:
     d = node
 
-  if isinstance(d, ast.FunctionDecl) and node.name == 'Main':
+  if isinstance(d, ast.FunctionDecl) and node.name == 'main':
     return 'main'
   elif isinstance(node, ast.ExprSizeof):
     return 'sizeof'
@@ -126,7 +126,7 @@ class Scope(object):
       name = name or what.name
       if name in self.table and what is not self.table[name]:
         raise errors.ScopeError(self, "Name '%s' already defined in '%s', at %s" \
-            % (what, self, what.codeloc))
+            % (name, self, what.codeloc))
       self.table[name] = what
 
     elif isinstance(what, ast.PatternDecl):
@@ -140,9 +140,9 @@ class Scope(object):
             % (what, what.codeloc))
       elif what.scope.parent is not None:
         raise errors.ScopeError(self, "Subscope '%s' already has a parent '%s', at %s" \
-            % (what.scope, what.scope.parent, what.codeloc))
+            % (what.scope, what.scope.parent_definition, what.codeloc))
       what.scope.parent = self
-      what.fixscope()
+      what.scope.parent_definition = self
 
   def define(self, what, name=None, noparent=False):
     if isinstance(what, ast.Module):
@@ -192,6 +192,9 @@ class Scope(object):
       # EnumType.FIELD and EnumType.FIELD.Value have the same type and
       # concrete_definition, so we need to special case it here.
       what = what.scope.q(ast._QueryWrapper(node.container.field.name))
+
+    if isinstance(what, ast.FieldStaticConstDecl):
+      what = what.scope.parent.container
 
     if field in what.scope.table:
       return what.scope.table[field]

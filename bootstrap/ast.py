@@ -6,12 +6,23 @@ import parser
 import typing
 
 gnextsym = 0
+g_static_init = []
 
 def gensym():
   global gnextsym
   n = gnextsym
   gnextsym += 1
   return '__nlang_gensym' + str(n) + '__'
+
+def path_as_expr(name):
+  path = name.split('.')
+  path[0] = ExprField(ExprValue('<root>'), '.', ExprValue(path[0]))
+  return reduce(lambda a, b: ExprField(a, '.', ExprValue(b)), path)
+
+def deepset_codeloc(node, codeloc):
+  node.codeloc = codeloc
+  for n in node.itersubnodes(onelevel=True):
+    n.codeloc = codeloc
 
 class _QueryWrapper(object):
   def __init__(self, name):
@@ -81,16 +92,22 @@ def _listwrap(x):
     return [x]
 
 def _itersubnodes(*args, **kw):
+  filter_out = kw.pop('filter_out', (lambda n: False))
+  onelevel = kw.get('onelevel', False)
   for a in args:
     if a is None:
       continue
     for g in a:
       if g is None:
         continue
+      if filter_out(g):
+        continue
       yield g
-      if 'onelevel' in kw and kw['onelevel']:
+      if onelevel:
         continue
       for sub in g.itersubnodes(**kw):
+        if filter_out(sub):
+          continue
         yield sub
 
 class CodeLoc(object):
@@ -111,10 +128,6 @@ class _Node(object):
   def __init__(self):
     self.cachedtype = None
 
-  def fixscope(self):
-    if hasattr(self, 'scope'):
-      self.scope.parent_definition = self.scope.parent
-
   def itersubnodes(self, **kw):
     raise Exception("Not implemented in '%s'" % type(self))
 
@@ -128,7 +141,7 @@ class _Node(object):
       with scope.push(sc):
         if isgeninst:
           aux(n.geninst)
-        if descend:
+        if descend and not n.unboundgeneric():
           n.mapgeninsts(aux)
 
   def geninst_action(self):
@@ -143,8 +156,6 @@ class _Node(object):
     with scope.push(sc):
       for n in self.itersubnodes(onelevel=True):
         n.firstpass()
-      #for geninst in self.itergeninsts(onelevel=True):
-      #  geninst.firstpass()
 
   def typecheck(self, *args, **kw):
     if self.cachedtype is None:
@@ -152,6 +163,7 @@ class _Node(object):
       assert isinstance(type, typing.Typename)
       if not isinstance(type, typing.TypeUnboundGeneric):
         self.cachedtype = type
+      type.codeloc = self.codeloc
       return type
     else:
       return self.cachedtype
@@ -165,9 +177,15 @@ class _Node(object):
   def unboundgeneric(self):
     return False
 
+def _is_non_function_primitive(node):
+  return isinstance(node, ExprCall) \
+      and node.geninst.defn is not None \
+      and (str(node.geninst.defn.scope) == '<root>.nlang.prelude._sizeof' \
+           or str(node.geninst.defn.scope) == '<root>.nlang.unsafe.cast')
+
 class _IsGenericInstance(object):
   def geninst_action(self):
-    return True, True
+    return not _is_non_function_primitive(self), True
 
 class _NameEq(_Node):
   def __init__(self, name, scope=None):
@@ -241,15 +259,15 @@ class GenericArg(_NameEq):
     return _itersubnodes([self.typeconstraint], **kw)
 
   def nocache_typecheck(self):
-    print 'genarg!!!!!!!', self.codeloc
-    return self.instantiated()
+    raise 'Invalid'
 
   def definition(self):
     return None
 
   def __deepcopy__(self, memo):
+    global gdisable_instantiatedcopy
     global ginstantiatedcopy_sub
-    if self.name in ginstantiatedcopy_sub:
+    if not gdisable_instantiatedcopy and self.name in ginstantiatedcopy_sub:
       cpy = ginstantiatedcopy_sub[self.name]
     else:
       cpy = GenericArg(self.name, copy.deepcopy(self.typeconstraint))
@@ -278,6 +296,7 @@ class GenericTypename(_NameEq):
 class Decl(object):
   pass
 
+gdisable_instantiatedcopy = False
 ginstantiatedcopy_sub = {}
 
 class TypeDef(_NameEq):
@@ -298,15 +317,8 @@ class TypeDef(_NameEq):
     if self.unboundgeneric():
       return
     with scope.push(self.scope):
-      if hasattr(self, 'imports'):
-        for im in self.imports:
-          imsrcs = _imported_sources(im)
-          self.imported.append(imsrcs)
       for n in self.itersubnodes(onelevel=True):
         n.firstpass()
-
-      #for geninst in self.itergeninsts(onelevel=True):
-      #  geninst.firstpass()
 
   def definition(self):
     return self
@@ -343,13 +355,11 @@ class TypeDef(_NameEq):
     return cpy
 
 class Intf(TypeDef, Decl):
-  def __init__(self, type, genargs, listisa, imports, typedecls, decls, methods, funs):
+  def __init__(self, type, genargs, listisa, typedecls, decls, methods, funs):
     self.type = type
     self.genargs = genargs
     super(Intf, self).__init__(type.name)
     self.listisa = listisa
-    self.imports = imports
-    self.imported = []
     self.typedecls = typedecls
     self.decls = decls
     self.methods = methods
@@ -372,42 +382,14 @@ class Intf(TypeDef, Decl):
       self.scope.define(a)
 
   def exportables(self):
-    return self.imported + self.typedecls + self.decls + self.funs + self.methods
+    return self.typedecls + self.decls + self.funs + self.methods
   def itersubnodes(self, **kw):
-    return _itersubnodes(self.listisa, self.imports, self.typedecls, self.decls, self.methods, self.funs, **kw)
-
-class DynIntf(TypeDef, Decl):
-  def __init__(self, type, genargs, listisa, imports, typedecls, methods):
-    self.type = type
-    self.genargs = genargs
-    super(DynIntf, self).__init__(type.name)
-    self.listisa = listisa
-    self.imports = imports
-    self.imported = []
-    self.typedecls = typedecls
-    self.methods = methods
-    self._fillscope()
-
-  def _fillscope(self):
-    self.scope = scope.Scope(self)
-    if isinstance(self.type, GenericTypename):
-      for a in self.type.args:
-        self.scope.define(a)
-    self.scope.define(self.type, name='this')
-    for a in self.listisa + self.imports + self.typedecls:
-      self.scope.define(a)
-    for a in self.methods:
-      self.scope.define(a)
-
-  def exportables(self):
-    return self.imported + self.typedecls + self.decls + self.methods
-  def itersubnodes(self, **kw):
-    return _itersubnodes(self.listisa, self.imports, self.typedecls, self.decls, self.methods, **kw)
+    return _itersubnodes(self.listisa, self.typedecls, self.decls, self.methods, self.funs, **kw)
 
 class ChoiceDecl(TypeDef, CGlobalName):
-  def __init__(self, choice, typearg=None):
+  def __init__(self, choice, typearg=None, value=None):
     super(ChoiceDecl, self).__init__(choice)
-    self.value = None
+    self.value = value
     self.typearg = typearg
     self.defn = None
 
@@ -417,10 +399,10 @@ class ChoiceDecl(TypeDef, CGlobalName):
     else:
       args = []
     init = ExprInitializer(self.defn.type,
-        [('which', ExprLiteral(self.value))])
-    self.mk = FunctionDecl('Mk', [], args, [self.defn.type], ExprBlock([ExprReturn(init)]))
-    self.valuevar = FieldConstDecl( \
-        VarDecl(ExprConstrained(ExprValue('Value'), ExprValue('U32')), \
+        [('_which', ExprLiteral(self.value))])
+    self.mk = FunctionDecl('mk', [], args, [self.defn.type], ExprBlock([ExprReturn(init)]))
+    self.valuevar = FieldStaticConstDecl( \
+        PatternDecl(ExprConstrained(ExprValue('value'), ExprValue('u32')), \
             ExprLiteral(self.value)))
     self._fillscope()
 
@@ -435,76 +417,314 @@ class ChoiceDecl(TypeDef, CGlobalName):
   def itersubnodes(self, **kw):
     return _itersubnodes([self.typearg], **kw)
 
+class Inherit(_FieldsEq):
+  def __init__(self, type, interfaces=None):
+    self.type = type
+    self.interfaces = interfaces
+
+  def itersubnodes(self, **kw):
+    return _itersubnodes([self.type, self.interfaces], **kw)
+
+def _duplicate_funargs(args):
+  r = []
+  for a in args:
+    b = VarDecl(ExprConstrained(a, a.type))
+    b.optionalarg = a.optionalarg
+    r.append(b)
+  return r
+
+def _filterout_static_decls(userdecls):
+  f = lambda d: isinstance(d, PatternDecl)
+  decls, statics = filter(lambda d: not f(d), userdecls), filter(f, userdecls)
+  return decls, map(FieldStaticConstDecl, statics)
+
 class TypeDecl(TypeDef, Decl, CGlobalName):
   REC, TAGGEDUNION, ENUM, UNION, FORWARD = range(5)
 
-  def __init__(self, type, genargs, listisa, imports, typedecls, userdecls, methods, funs):
+  def __init__(self, type, genargs, listisa, inherits, typedecls, userdecls, methods, funs):
     self.type = type
     self.genargs = genargs  # Free type vars not in self.type.args
     super(TypeDecl, self).__init__(type.name)
     self.listisa = listisa
-    self.imports = imports
+    self.inherits = inherits
     self.typedecls = typedecls
 
-    self.kind = self.whatkind(userdecls)
-    self.userdecls = userdecls
-    self.decls = copy.copy(userdecls)
+    for m in methods:
+      m.container = self
+
+    self.userdecls, self.static_decls = _filterout_static_decls(userdecls)
+    self.decls = self.userdecls[:]
     self.declnum = None
 
+    self.methods = methods
+    self.funs = funs
+
+    self.scope = scope.Scope(self)
+    self._fillscope_basic()
+
+  def _fillscope_basic(self):
+    self.all_genargs = []
+    if isinstance(self.type, GenericTypename):
+      for a in self.genargs:
+        self.scope.define(a)
+        self.all_genargs.append(a)
+      for a in self.type.args:
+        self.scope.define(a)
+        self.all_genargs.append(a)
+    self.scope.define(self.type, name='this')
+
+  def _fillscope_fun(self, f):
+    self.scope.define(f)
+    f.scope.define(self.type, name='this')
+    for ga in self.all_genargs:
+      f.scope.define(ga, noparent=True)
+
+  def _fillscope_method(self, m):
+    self._fillscope_fun(m)
+    m.scope.define(VarDecl(ExprConstrained( \
+        ExprValue('self'), ExprTypeRef(m.access, self.type))))
+
+  def _fillscope_members(self):
+    for a in self.typedecls:
+      self.scope.define(a)
+    for a in self.decls:
+      self.scope.define(a)
+    for a in self.static_decls:
+      self.scope.define(a)
+    self.scope.define(self.declnum)
+    for a in self.methods:
+      self._fillscope_method(a)
+    for a in self.funs:
+      self._fillscope_fun(a)
+
+  def firstpass(self):
+    if self.unboundgeneric():
+      return
+
+    with scope.push(self.scope):
+      for n in self.inherits:
+        n.firstpass()
+
+    self._do_inherit()
+    self._generate_choice_builtins()
+    self._fillscope_members()
+    self._fixscope()
+
+    with scope.push(self.scope):
+      for n in self.itersubnodes(onelevel=True, filter_out=(lambda n: not isinstance(n, FieldDecl))):
+        n.firstpass()
+
+      if not self.unboundgeneric() and self.kind != TypeDecl.FORWARD:
+        self._generate_builtins()
+
+      for n in self.itersubnodes(onelevel=True, filter_out=(lambda n: isinstance(n, FieldDecl))):
+        n.firstpass()
+
+    ctx().gen_instances_fwd.add(self.typecheck())
+
+  def _copy_inherited(self, inh):
+    inhd = inh.type.definition()
+
+    memo = {}
+    memo[id(inhd)] = self
+    memo[id(inhd.scope.parent)] = self.scope.parent
+    memo[id(inhd.scope.parent_definition)] = self.scope.parent_definition
+
+    protected = set('mk new _ctor _dtor'.split())
+    def aux(memo, dst, src):
+      for d in src:
+        if d.name.startswith('__') or d.name in protected:
+          continue
+
+        global gdisable_instantiatedcopy
+        gdisable_instantiatedcopy = True
+        cpy = copy.deepcopy(d, memo)
+        gdisable_instantiatedcopy = False
+
+        if hasattr(cpy, 'scope'):
+          cpy.scope.parent = None
+          cpy.scope.parent_definition = None
+          cpy.scope.table.pop('this', None)
+          cpy.scope.table.pop('self', None)
+        dst.append(cpy)
+
+    aux(memo, self.userdecls, inhd.userdecls)
+    aux(memo, self.decls, inhd.decls)
+    aux(memo, self.static_decls, inhd.static_decls)
+    aux(memo, self.methods, inhd.methods)
+    aux(memo, self.funs, inhd.funs)
+
+  def _do_inherit(self):
+    for i in self.inherits:
+      i.firstpass()
+      self._copy_inherited(i)
+    self.kind = self.whatkind(self.userdecls, self.typedecls, self.methods + self.funs)
+
+  def _generate_choice_builtins(self):
     i = 0
-    for d in userdecls:
-      if isinstance(d, ChoiceDecl):
-        d.defn = self
-        d.value = i
-        d._defbuiltins()
-        i += 1
-      elif isinstance(d, FieldDecl):
-        d.typedecl = self
+    for choice in self.userdecls:
+      if isinstance(choice, ChoiceDecl):
+        choice.defn = self
+        if choice.value is None:
+          choice.value = i
+          i += 1
+        choice._defbuiltins()
+      elif isinstance(choice, FieldDecl):
+        choice.typedecl = self
     if self.kind == TypeDecl.TAGGEDUNION:
-      union = Union(ExprValue('__as'), [], [UnionField(d.name, d.typearg) for d in userdecls])
+      union = Union(ExprValue('__as'), [], [UnionField(d.name, d.typearg) for d in self.userdecls])
       self.typedecls.append(union)
       self.decls.append(FieldDecl(self, \
           ExprValue('__unsafe_as'), ExprField(ExprValue('this'), '.', ExprValue(union.name))))
     if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
-      self.decls.append(FieldDecl(self, ExprValue('which'), ExprValue('U32')))
-      self.declnum = FieldConstDecl( \
-          VarDecl(ExprConstrained(ExprValue('NUM__'), ExprValue('U32')), ExprLiteral(len(userdecls))))
+      self.decls.append(FieldDecl(self, ExprValue('_which'), ExprValue('u32')))
+      self.declnum = FieldStaticConstDecl( \
+          PatternDecl(ExprConstrained(ExprValue('NUM__'), ExprValue('u32')),
+            ExprLiteral(len(self.userdecls))))
 
-    self.methods = methods
-    self.funs = funs
-    self._fillscope()
+  def _generate_builtins(self):
+    m, f = [], []
+    c = self._generate_ctor()
+    if c is not None:
+      m.append(c)
+    c = self._generate_dtor()
+    if c is not None:
+      m.append(c)
+    f.append(self._generate_alloc())
+    f.append(self._generate_mk())
+    f.append(self._generate_new())
+    c = self._generate_static_init()
+    if c is not None:
+      f.append(c)
+      g_static_init.append(self.typecheck())
 
-  def _fillscope(self):
-    self.scope = scope.Scope(self)
-    genargs = []
-    if isinstance(self.type, GenericTypename):
-      for a in self.genargs:
-        self.scope.define(a)
-        genargs.append(a)
-      for a in self.type.args:
-        self.scope.define(a)
-        genargs.append(a)
-    self.scope.define(self.type, name='this')
-    for a in self.imports + self.typedecls:
-      self.scope.define(a)
-    for a in self.decls:
-      self.scope.define(a)
-    self.scope.define(self.declnum)
-    for a in self.methods:
-      self.scope.define(a)
-      a.scope.define(VarDecl(ExprConstrained( \
-          ExprValue('self'), ExprTypeRef(a.access, self.type))))
-      a.scope.define(self.type, name='this')
-      for ga in genargs:
-        a.scope.define(ga)
-    for a in self.funs:
-      self.scope.define(a)
-      a.scope.define(self.type, name='this')
-      for ga in genargs:
-        a.scope.define(ga)
+    for c in f:
+      deepset_codeloc(c, self.codeloc)
+      self._fillscope_fun(c)
 
-  def fixscope(self):
-    super(TypeDecl, self).fixscope()
+    for c in m:
+      deepset_codeloc(c, self.codeloc)
+      self._fillscope_method(c)
+
+    for c in f + m:
+      c.firstpass()
+
+    self.methods.extend(m)
+    self.funs.extend(f)
+
+  def _generate_ctor(self):
+    xself = ExprValue('self')
+    body = []
+    for d in self.decls:
+      if isinstance(d, FieldDecl):
+        td = d.typecheck()
+        if isinstance(td, typing.TypeRef):
+          continue
+        if '__unsafe_ctor__' in td.defn.scope.table:
+          body.append(ExprCall(ExprField(ExprField(xself, '.', ExprValue(d.name)),
+            '!', ExprValue('__unsafe_ctor__')), []))
+
+    args = []
+    if '_ctor' in self.scope.table:
+      body.append(ExprCall(ExprField(xself, '!', '_ctor'), []))
+      args = _duplicate_funargs(self.scope.table['_ctor'].args)
+
+    if len(body) == 0:
+      return None
+    else:
+      block = ExprBlock(body)
+      return MethodDecl('__unsafe_ctor__', [], '!', args, [typing.qbuiltin('nlang.numbers.void')], block)
+
+  def _generate_dtor(self):
+    xself = ExprValue('self')
+    body = []
+    rdecls = self.decls[:]
+    rdecls.reverse()
+    for d in rdecls:
+      if isinstance(d, FieldDecl):
+        td = d.typecheck()
+        if isinstance(td, typing.TypeRef):
+          continue
+        if '__unsafe_dtor__' in td.defn.scope.table:
+          body.append(ExprCall(ExprField(ExprField(xself, '.', ExprValue(d.name)),
+            '!', ExprValue('__unsafe_dtor__')), []))
+
+    if '_dtor' in self.scope.table:
+      body.append(ExprCall(ExprField(xself, '!', '_dtor'), []))
+
+    if len(body) == 0:
+      return None
+    block = ExprBlock(body)
+    return MethodDecl('__unsafe_dtor__', [], '!', [], [typing.qbuiltin('nlang.numbers.void')], block)
+
+  def _generate_alloc(self):
+    expr = ExprReturn(ExprCall(
+        ExprCall(path_as_expr('nlang.unsafe.cast'),
+          [ExprTypeRef('!', ExprValue('this')),
+            ExprTypeRef('!', path_as_expr('nlang.numbers.u8'))]),
+          [ExprCall(path_as_expr('nlang.unsafe.malloc'),
+            [ExprCall(ExprSizeof(), [ExprValue('this')])])]))
+    return FunctionDecl('__unsafe_alloc__', [], [], [ExprTypeRef('!', ExprValue('this'))], ExprBlock([expr]))
+
+  def _generate_mk(self):
+    tmp = gensym()
+    if '_ctor' in self.scope.table:
+      mk_args = _duplicate_funargs(self.scope.table['_ctor'].args)
+      ctor_args = [ExprValue(a.name) for a in mk_args]
+      ctor_call = [ExprCall(ExprField(ExprValue(tmp), '!', ExprValue('__unsafe_ctor__')),
+          ctor_args)]
+    elif '__unsafe_ctor__' in self.scope.table:
+      mk_args = []
+      ctor_call = [ExprField(ExprValue(tmp), '!', ExprValue('__unsafe_ctor__'))]
+      ctor_call[0].maybeunarycall = True
+    else:
+      mk_args = []
+      ctor_call = []
+
+    v = VarDecl(ExprValue(tmp), ExprInitializer(ExprValue('this'), []))
+    if len(ctor_call) > 0:
+      v.setmutatingblock(ExprBlock(ctor_call))
+
+    return FunctionDecl('mk', [], mk_args, [ExprValue('this')],
+        ExprBlock([v] + [ExprReturn(ExprValue(tmp))]))
+
+  def _generate_new(self):
+    tmp = gensym()
+    if '_ctor' in self.scope.table:
+      new_args = _duplicate_funargs(self.scope.table['_ctor'].args)
+      ctor_args = [ExprValue(a.name) for a in new_args]
+      ctor_call = [ExprCall(ExprField(ExprValue(tmp), '!', ExprValue('__unsafe_ctor__')),
+          ctor_args)]
+    elif '__unsafe_ctor__' in self.scope.table:
+      new_args = []
+      ctor_call = [ExprField(ExprValue(tmp), '!', ExprValue('__unsafe_ctor__'))]
+      ctor_call[0].maybeunarycall = True
+    else:
+      new_args = []
+      ctor_call = []
+
+    alloc_call = ExprField(ExprValue('this'), '.', ExprValue('__unsafe_alloc__'))
+    alloc_call.maybeunarycall = True
+    return FunctionDecl('new', [], new_args, [ExprTypeRef('!', ExprValue('this'))],
+        ExprBlock([VarDecl(ExprValue(tmp), alloc_call)] + ctor_call \
+            + [ExprReturn(ExprValue(tmp))]))
+
+  def _generate_static_init(self):
+    xthis = ExprValue('this')
+    body = []
+    for d in self.static_decls:
+      if d.vardecl.expr is not None:
+        body.append(ExprInitStaticConstField(d.vardecl.name, d.vardecl.expr))
+      if d.vardecl.mutatingblock is not None:
+        body.append(d.vardecl.mutatingblock)
+
+    if len(body) == 0:
+      return None
+    else:
+      block = ExprBlock(body)
+      return FunctionDecl('__static_init__', [], [], [typing.qbuiltin('nlang.numbers.void')], block)
+
+  def _fixscope(self):
     # In the body of a method, current().q() is looking up at the module level.
     # I.e. class members are not in scope, they must be accessed via self, this
     # or an absolute path.
@@ -513,34 +733,42 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     for a in self.funs:
       a.scope.parent = self.scope.parent
 
-  def whatkind(self, decls):
+  def whatkind(self, decls, typedecls, methods_funs):
     if not isinstance(decls, list):
       decls = [decls]
     if len(decls) == 0:
+      for td in typedecls:
+        if td.kind != TypeDecl.FORWARD:
+          return TypeDecl.REC
+
+      for mf in methods_funs:
+        if mf.body is not None:
+          return TypeDecl.REC
+
       return TypeDecl.FORWARD
 
-    k = None
+    kind = None
     for d in decls:
       if isinstance(d, ChoiceDecl):
         if d.typearg is None:
-          kind = TypeDecl.ENUM
+          k = TypeDecl.ENUM
         else:
-          kind = TypeDecl.TAGGEDUNION
+          k = TypeDecl.TAGGEDUNION
       else:
-        kind = TypeDecl.REC
+        k = TypeDecl.REC
 
-      if k is None:
-        k = kind
-      elif k != kind:
-        if k == TypeDecl.ENUM and kind == TypeDecl.TAGGEDUNION:
-          k = kind
-        elif k == TypeDecl.TAGGEDUNION and kind == TypeDecl.ENUM:
+      if kind is None:
+        kind = k
+      elif kind != k:
+        if kind == TypeDecl.ENUM and k == TypeDecl.TAGGEDUNION:
+          kind = k
+        elif kind == TypeDecl.TAGGEDUNION and k == TypeDecl.ENUM:
           pass
         else:
           raise errors.ParseError("Type declaration must have uniform kind, at %s" \
               % self.codeloc)
 
-    return k
+    return kind
 
   def choicedecl(self, choice):
     assert isinstance(choice, ExprValue)
@@ -554,7 +782,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     return self.imported + self.typedecls + self.decls + self.funs + self.methods
 
   def itersubnodes(self, **kw):
-    return _itersubnodes(self.listisa, self.imports, self.typedecls, self.decls, self.funs, self.methods, **kw)
+    return _itersubnodes(self.listisa, self.inherits, self.typedecls, self.static_decls, self.decls, self.funs, self.methods, **kw)
 
 class UnionField(_NameEq, CGlobalName):
   def __init__(self, name, type):
@@ -590,6 +818,8 @@ class FunctionDecl(TypeDef, Decl, CGlobalName):
     self.args = args
     self.returns = returns
     self.body = body
+    if name == 'main':
+      self.body.main = True
     if len(self.returns) > 1:
       self.rettype = ExprTuple(*self.returns)
     else:
@@ -614,13 +844,14 @@ class FunctionDecl(TypeDef, Decl, CGlobalName):
       return typing.TypeUnboundGeneric(self)
     else:
       with scope.push(self.scope):
-        return typing.TypeFunction(self, self.rettype.typecheck(), *[a.typecheck() for a in self.genargs])
+        return typing.TypeFunction(self, self.rettype.typecheck(), *[a.typecheck() for a in self.args])
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.args, self.returns, [self.rettype, self.body], **kw)
 
 class MethodDecl(FunctionDecl):
   def __init__(self, name, genargs, access, args, returns, body):
+    self.container = None
     self.access = access
     super(MethodDecl, self).__init__(name, genargs, args, returns, body)
 
@@ -642,20 +873,20 @@ class VarDecl(_FieldsEq, Decl):
     self.scope = scope.Scope(self)
 
   def is_meta_type(self):
-    return self.type is not None and self.type.typecheck() == typing.qbuiltin('nlang.meta.Type')
+    return self.type is not None and self.type.typecheck() == typing.qbuiltin('nlang.meta.alias')
 
   def nocache_typecheck(self, statement=False):
     t = self.rawtypecheck()
     if statement:
-      return typing.qbuiltin('nlang.numbers.Void')
+      return typing.qbuiltin('nlang.numbers.void')
     else:
       return t
 
   def rawtypecheck(self):
     if self.type is not None:
       if self.expr is not None:
-        if self.type.typecheck() == typing.qbuiltin('nlang.meta.Type'):
-          # To support the expression: 'let typealias:nlang.meta.Type = SomeType'
+        if self.type.typecheck() == typing.qbuiltin('nlang.meta.alias'):
+          # To support the expression: 'let typealias:nlang.meta.alias = SomeType'
           return self.expr.typecheck()
         else:
           typing.checkcompat(self.type.typecheck(), self.expr.typecheck())
@@ -666,7 +897,7 @@ class VarDecl(_FieldsEq, Decl):
   def definition(self):
     if self.type is not None:
       if isinstance(self.type, typing.Typename):
-        return self.expr.concrete_definition()
+        return self.type.concrete_definition()
       else:
         return self.type.definition()
     else:
@@ -693,21 +924,24 @@ class PatternDecl(_FieldsEq, Decl):
     self.pattern = pattern
     self.expr = expr
     self.codetmp = ExprValue(gensym())
-    self.vars = [VarDecl(ExprConstrained(self.codetmp, ExprValue('Void')), self.expr)]
+    self.vars = [VarDecl(ExprConstrained(self.codetmp, ExprValue('void')), self.expr)]
     patternvars = self.pattern.declvars(self.codetmp)
     if len(patternvars) == 1:
       # Remove the unnecessary intermediate temporary.
       self.vars[0].name = patternvars[0].name
+      self.vars[0].type = patternvars[0].type
     else:
       self.vars.extend(patternvars)
     self.mutatingblock = None
+    self.static = False
+    assert not (self.static and self.mutatingblock is not None)
     self.scope = scope.Scope(self)
     # Do not define the self.vars in self.scope: they need to be defined
     # in self.scope.parent.
 
   def is_meta_type(self):
     return isinstance(self.pattern, ExprConstrained) \
-        and self.pattern.type.typecheck() == typing.qbuiltin('nlang.meta.Type')
+        and self.pattern.type.typecheck() == typing.qbuiltin('nlang.meta.alias')
 
   def patterntypecheck(self):
     if self.expr is None:
@@ -717,7 +951,7 @@ class PatternDecl(_FieldsEq, Decl):
       return self.pattern.patterntypedestruct(xtype)
 
   def nocache_typecheck(self):
-    return typing.qbuiltin('nlang.numbers.Void')
+    return typing.qbuiltin('nlang.numbers.void')
 
   def setmutatingblock(self, b):
     self.mutatingblock = b
@@ -735,21 +969,27 @@ class PatternDecl(_FieldsEq, Decl):
     # Do expr before vars.
     return _itersubnodes([self.expr, self.pattern, self.mutatingblock] + self.vars, **kw)
 
-class FieldConstDecl(_NameEq, CGlobalName, Decl):
-  def __init__(self, vardecl):
-    super(FieldConstDecl, self).__init__(vardecl.name)
-    self.vardecl = vardecl
+class FieldStaticConstDecl(_NameEq, CGlobalName, Decl):
+  def __init__(self, patterndecl):
+    super(FieldStaticConstDecl, self).__init__(patterndecl.vars[0].name)
+    assert len(patterndecl.vars) == 1
+    self.vardecl = patterndecl.vars[0]
     self.scope = scope.Scope(self)
-    self.scope.define(vardecl)
 
   def itersubnodes(self, **kw):
-    return _itersubnodes([self.vardecl], **kw)
+    return iter('')
 
   def nocache_typecheck(self, **ignored):
-    return self.vardecl.typecheck()
+    # Scope change because we may need 'this'.
+    with scope.push(self.scope):
+      return self.vardecl.typecheck()
 
   def definition(self):
-    return self.vardecl.definition()
+    with scope.push(self.scope):
+      return self.vardecl.definition()
+
+  def is_meta_type(self):
+    return self.vardecl.is_meta_type()
 
 class FieldDecl(VarDecl):
   def __init__(self, typedecl, name, type):
@@ -768,7 +1008,7 @@ class FieldDecl(VarDecl):
 class GenericArgInstantiated(VarDecl):
   def __init__(self, genarg, type):
     super(GenericArgInstantiated, self).__init__( \
-          ExprConstrained(ExprValue(genarg.name), typing.qbuiltin('nlang.meta.Type')), type)
+          ExprConstrained(ExprValue(genarg.name), typing.qbuiltin('nlang.meta.alias')), type)
 
 class Expr(_FieldsEq):
   def __init__(self):
@@ -808,7 +1048,8 @@ class ExprValue(Expr):
     return isinstance(d, TypeDef) or d.is_meta_type()
 
   def itersubnodes(self, **kw):
-    if self.maybeunarycall:
+    d = self.definition()
+    if self.maybeunarycall and isinstance(d, FunctionDecl):
       return _itersubnodes([UnaryCall(self)], **kw)
     else:
       return iter('')
@@ -838,11 +1079,13 @@ class ExprValue(Expr):
     return self.name
 
   def __deepcopy__(self, memo):
+    global gdisable_instantiatedcopy
     global ginstantiatedcopy_sub
-    if self.name in ginstantiatedcopy_sub:
+    if not gdisable_instantiatedcopy and self.name in ginstantiatedcopy_sub:
       cpy = ginstantiatedcopy_sub[self.name]
     else:
       cpy = ExprValue(self.name)
+      cpy.maybeunarycall = self.maybeunarycall
     cpy.codeloc = self.codeloc
     cpy.codeloc.obj = cpy
     return cpy
@@ -856,7 +1099,7 @@ class ExprValue(Expr):
 class ExprRef(Expr):
   def __init__(self, access, value):
     super(ExprRef, self).__init__()
-    if access == '&!':
+    if access == '@!':
       self.access = '!'
     else:
       self.access = '.'
@@ -914,13 +1157,7 @@ class ExprTypeRef(Expr):
     return self.type.typedestruct(genscope, t.type)
 
   def nocache_typecheck(self):
-    resolved = self.type.typecheck()
-    if self.type != resolved:
-      return typing.TypeRef(self.access, resolved, nullable=self.nullable)
-    else:
-      # We return self in case this type doesn't depend on context
-      # (generic arguments), to avoid creating redundant objects.
-      return self
+    return typing.TypeRef(self.access, self.type.typecheck(), nullable=self.nullable)
 
   def definition(self):
     return self.deref(self.access).definition()
@@ -941,11 +1178,11 @@ class ExprLiteral(Expr):
 
   def nocache_typecheck(self, **ignored):
     if isinstance(self.args[0], basestring):
-      return typing.qbuiltin('nlang.literal.String')
+      return typing.qbuiltin('nlang.literal.string')
     elif isinstance(self.args[0], bool):
-      return typing.qbuiltin('nlang.literal.Bool')
+      return typing.qbuiltin('nlang.literal.bool')
     else:
-      return typing.qbuiltin('nlang.literal.Integer')
+      return typing.qbuiltin('nlang.literal.integer')
 
   def patterntypedestruct(self, xtype):
     return typing.unify([self.typecheck(), xtype])
@@ -961,7 +1198,7 @@ class ExprNull(Expr):
     super(ExprNull, self).__init__()
 
   def nocache_typecheck(self, **ignored):
-    return typing.qbuiltin('nlang.literal.Null')
+    return typing.qbuiltin('nlang.literal.nulltype')
 
   def patterntypedestruct(self, xtype):
     return typing.unify([self.typecheck(), xtype])
@@ -987,7 +1224,6 @@ class TupleInstance(_FieldsEq):
     self.inscope = None
 
   def firstpass(self):
-    super(TupleInstance, self).firstpass()
     ctx().gen_instances_fwd.add(self.tuple.typecheck())
 
   def itersubnodes(self, **kw):
@@ -1021,6 +1257,10 @@ class ExprTuple(_IsGenericInstance, Expr):
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.args, **kw)
+
+  def firstpass(self):
+    super(ExprTuple, self).firstpass()
+    self.geninst.firstpass()
 
   def declvars(self, expr):
     r = []
@@ -1073,7 +1313,7 @@ class ExprConstrained(Expr):
     return r
 
   def is_meta_type(self):
-    return self.type.typecheck() == typing.qbuiltin('nlang.meta.Type')
+    return self.type.typecheck() == typing.qbuiltin('nlang.meta.alias')
 
 class ExprBin(Expr):
   def __init__(self, op, left, right):
@@ -1094,16 +1334,16 @@ class ExprCmpBin(ExprBin):
   def nocache_typecheck(self, **ignored):
     t = self.args[0].typecheck()
     typing.unify([t.typecheck() for t in self.args])
-    return typing.qbuiltin('nlang.numbers.Bool')
+    return typing.qbuiltin('nlang.numbers.bool')
 
 class ExprBoolBin(ExprBin):
   def nocache_typecheck(self, **ignored):
-    return typing.unify([t.typecheck() for t in self.args] + [typing.qbuiltin('nlang.numbers.Bool')])
+    return typing.unify([t.typecheck() for t in self.args] + [typing.qbuiltin('nlang.numbers.bool')])
 
 class ExprIsa(ExprBin):
   def nocache_typecheck(self, **ignored):
     typing.unify([t.typecheck() for t in self.args])
-    return typing.qbuiltin('nlang.numbers.Bool')
+    return typing.qbuiltin('nlang.numbers.bool')
 
 class ExprUnary(Expr):
   def __init__(self, op, expr):
@@ -1162,7 +1402,7 @@ class GenericInstance(_FieldsEq):
 
         # This ExprCall expression instantiate a generic function explicitly
         # eg: (fun T U) foo x:T y:T z:U = U
-        #     in (foo U32 U8) 1 2 3
+        #     in (foo u32 U8) 1 2 3
 
         for arg, term in zip(d.genargs, self.call.args[1:]):
           termtype = term.typecheck()
@@ -1217,7 +1457,7 @@ class ExprCall(_IsGenericInstance, Expr):
           and not isinstance(self.args[0], ExprSizeof) \
           and self.args[1].is_meta_type():
         # This ExprCall expression instantiates a generic function explicitly
-        # eg: (foo U32 U8) 1 2 3
+        # eg: (foo u32 U8) 1 2 3
         return d
       else:
         return d.rettype.definition()
@@ -1231,14 +1471,14 @@ class ExprCall(_IsGenericInstance, Expr):
     d = self.geninst.defn
     if d is None:
       d = self.args[0].definition()
-    assert not d.unbound
+    assert not d.unboundgeneric() and "REALLY? also, make sure (accordion t) is correctly typedestruct?" != ""
 
     if isinstance(d, FunctionDecl):
       if len(self.args) > 1 \
           and not isinstance(self.args[0], ExprSizeof) \
           and self.args[1].is_meta_type():
         # This ExprCall expression instantiates a generic function explicitly
-        # eg: (foo U32 U8) 1 2 3
+        # eg: (foo u32 U8) 1 2 3
         return self.geninst.defn.typecheck()
 
       with scope.push(d.scope):
@@ -1337,7 +1577,7 @@ class ExprTypeApp(ExprCall, _NameEq):
 
 class ExprTypeSlice(ExprTypeApp):
   def __init__(self, type):
-    super(ExprTypeSlice, self).__init__(ExprValue('Slice'), type)
+    super(ExprTypeSlice, self).__init__(ExprValue('slice'), type)
 
 class UnaryCall(ExprCall):
   def __init__(self, fun):
@@ -1349,10 +1589,6 @@ class UnaryCall(ExprCall):
   def firstpass(self):
     self.geninst._instantiategeninst()
 
-class ExprDtor(ExprCall):
-  def __init__(self, type):
-    super(ExprDtor, self).__init__(ExprField(type, '.', ExprValue('Dtor')), [])
-
 class ExprField(Expr):
   def __init__(self, container, access, field):
     super(ExprField, self).__init__()
@@ -1363,9 +1599,7 @@ class ExprField(Expr):
   def nocache_typecheck(self, **ignored):
     d = self.definition()
     if self.maybeunarycall and isinstance(d, FunctionDecl):
-      if hasattr(d.rettype, 'name') and d.rettype.name == 'this':  # FIXME hack
-        return self.container.typecheck()
-      else:
+      with scope.push(d.scope):
         return d.rettype.typecheck()
     else:
       return scope.current().q(self).typecheck()
@@ -1376,9 +1610,7 @@ class ExprField(Expr):
   def itersubnodes(self, **kw):
     d = self.definition()
     if self.maybeunarycall and isinstance(d, FunctionDecl):
-      if hasattr(d.rettype, 'name') and d.rettype.name == 'this':  # FIXME hack
-        pass
-      else:
+      with scope.push(d.scope):
         return _itersubnodes(UnaryCall(self), **kw)
     else:
       return iter('')
@@ -1394,20 +1626,27 @@ class ExprField(Expr):
     if isinstance(d, TypeDef):
       return not isinstance(d, FunctionDecl)
     else:
-      d.is_meta_type()
+      return d.is_meta_type()
 
 class ExprFieldElement(ExprCall):
   def __init__(self, container, access, idxexpr):
-    super(ExprFieldElement, self).__init__(ExprField(container, access, ExprValue('Get__')), [idxexpr])
+    super(ExprFieldElement, self).__init__(ExprField(container, access, ExprValue('operator_get__')), [idxexpr])
 
   def is_meta_type(self):
     return False
 
+class ExprInitStaticConstField(Expr):
+  """Special interal expr for initializing a global static"""
+  def __init__(self, field_name, expr):
+    super(ExprInitStaticConstField, self).__init__()
+    self.field_name = field_name
+    self.expr = expr
+
 class ExprSizeof(ExprField):
   def __init__(self):
     super(ExprSizeof, self).__init__(
-          ExprField(ExprValue('nlang'), '.', ExprValue('prelude')),
-          '.', ExprValue('Sizeof'))
+        ExprField(ExprValue('nlang'), '.', ExprValue('prelude')),
+        '.', ExprValue('_sizeof'))
 
   def is_meta_type(self):
     return False
@@ -1441,7 +1680,7 @@ class ExprAssign(_FieldsEq):
 
   def nocache_typecheck(self, **ignored):
     typing.checkcompat(self.value.typecheck(), self.expr.typecheck())
-    return typing.qbuiltin('nlang.numbers.Void')
+    return typing.qbuiltin('nlang.numbers.void')
 
   def itersubnodes(self, **kw):
     return _itersubnodes([self.value, self.expr], **kw)
@@ -1456,7 +1695,7 @@ class ExprReturn(_FieldsEq):
 
   def nocache_typecheck(self, **ignored):
     if self.expr is None:
-      return typing.qbuiltin('nlang.numbers.Void')
+      return typing.qbuiltin('nlang.numbers.void')
     else:
       return self.expr.typecheck()
 
@@ -1468,7 +1707,7 @@ class ExprReturn(_FieldsEq):
 
 class ExprContinue(_FieldsEq):
   def nocache_typecheck(self, **ignored):
-    return typing.qbuiltin('nlang.numbers.Void')
+    return typing.qbuiltin('nlang.numbers.void')
 
   def itersubnodes(self, **kw):
     return iter('')
@@ -1478,7 +1717,7 @@ class ExprContinue(_FieldsEq):
 
 class ExprBreak(_FieldsEq):
   def nocache_typecheck(self, **ignored):
-    return typing.qbuiltin('nlang.numbers.Void')
+    return typing.qbuiltin('nlang.numbers.void')
 
   def itersubnodes(self, **kw):
     return iter('')
@@ -1488,7 +1727,7 @@ class ExprBreak(_FieldsEq):
 
 class Pass(_FieldsEq):
   def nocache_typecheck(self, **ignored):
-    return typing.qbuiltin('nlang.numbers.Void')
+    return typing.qbuiltin('nlang.numbers.void')
 
   def itersubnodes(self, **kw):
     return iter('')
@@ -1503,7 +1742,7 @@ class Assert(_FieldsEq):
 
   def nocache_typecheck(self, **ignored):
     self.expr.typecheck()
-    return typing.qbuiltin('nlang.numbers.Void')
+    return typing.qbuiltin('nlang.numbers.void')
 
   def itersubnodes(self, **kw):
     return _itersubnodes([self.expr], **kw)
@@ -1524,9 +1763,9 @@ class ExprWhile(_FieldsEq, Decl):
       self.scope.define(self.body)
 
   def nocache_typecheck(self, **ignored):
-    typing.checkcompat(self.cond.typecheck(), typing.qbuiltin('nlang.numbers.Bool'))
+    typing.checkcompat(self.cond.typecheck(), typing.qbuiltin('nlang.numbers.bool'))
     self.body.typecheck()
-    return typing.qbuiltin('nlang.numbers.Void')
+    return typing.qbuiltin('nlang.numbers.void')
 
   def itersubnodes(self, **kw):
     return _itersubnodes([self.cond, self.body], **kw)
@@ -1554,7 +1793,7 @@ class ExprFor(_FieldsEq, Decl):
     self.vardecl.typecheck()
     self.iter.typecheck()
     self.body.typecheck()
-    return typing.qbuiltin('nlang.numbers.Void')
+    return typing.qbuiltin('nlang.numbers.void')
 
   def itersubnodes(self, **kw):
     return _itersubnodes([self.vardecl, self.iter, self.body], **kw)
@@ -1580,12 +1819,12 @@ class ExprIf(_FieldsEq, Decl):
       self.scope.define(self.elsebody)
 
   def nocache_typecheck(self, **ignored):
-    typing.unify([c.typecheck() for c,_ in self.condpairs] + [typing.qbuiltin('nlang.numbers.Bool')])
+    typing.unify([c.typecheck() for c,_ in self.condpairs] + [typing.qbuiltin('nlang.numbers.bool')])
     bodies = [b.typecheck() for _,b in self.condpairs]
     if self.elsebody is not None:
       bodies.append(self.elsebody.typecheck())
     t = typing.unify(bodies)
-    if t != typing.qbuiltin('nlang.numbers.Void'):
+    if t != typing.qbuiltin('nlang.numbers.void'):
       # FIXME: Make sure the conditions are exhaustive, when applicable. In which
       # case we do not need a else.
       if self.elsebody is None:
@@ -1603,6 +1842,7 @@ class ExprBlock(_FieldsEq, Decl):
   def __init__(self, body):
     super(ExprBlock, self).__init__()
     self.body = body
+    self.main = False
     self._fillscope()
 
   def _fillscope(self):
@@ -1613,7 +1853,7 @@ class ExprBlock(_FieldsEq, Decl):
 
   def nocache_typecheck(self, **ignored):
     if len(self.body) == 0:
-      return typing.qbuiltin('nlang.numbers.Void')
+      return typing.qbuiltin('nlang.numbers.void')
     else:
       with scope.push(self.scope):
         for b in self.body:
@@ -1635,7 +1875,7 @@ class ExprMatcher(_FieldsEq, Decl):
     self.body = body
     self.match = None
     self.codetmp = ExprValue(gensym())
-    self.vars = [VarDecl(ExprConstrained(self.codetmp, ExprValue('Void')), None)] \
+    self.vars = [VarDecl(ExprConstrained(self.codetmp, ExprValue('void')), None)] \
         + self.pattern.declvars(self.codetmp)
     self.scope = scope.Scope(self)
     self.scope.define(self.body)
@@ -1691,7 +1931,7 @@ class SemanticAssert(_FieldsEq):
     self.expr = expr
 
   def itersubnodes(self, **kw):
-    return iter('') #_itersubnodes([self.expr], **kw)
+    return iter('')
 
 class SemanticClaim(_FieldsEq):
   def __init__(self, expr):
@@ -1699,7 +1939,7 @@ class SemanticClaim(_FieldsEq):
     self.expr = expr
 
   def itersubnodes(self, **kw):
-    return iter('') #_itersubnodes([self.expr], **kw)
+    return iter('')
 
 class Import(_NameEq):
   def __init__(self, path, all=False, alias=None):
@@ -1783,10 +2023,11 @@ class Module(_NameEq):
     for x in self.toplevels:
       self.scope.define(x)
 
-  def setname(self, name):
+  def setname(self, name, filename=None):
     self.path = name.split('.')
     self.name = self.path[-1]
     self.fullname = name
+    self.filename = filename
 
     root = PlaceholderModule('<root>')
     s = root.scope

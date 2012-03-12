@@ -1,5 +1,5 @@
-type Integer =
-type Bool =
-type String =
-type Null =
-type List =
+type integer =
+type bool =
+type string =
+type nulltype =
+type list =

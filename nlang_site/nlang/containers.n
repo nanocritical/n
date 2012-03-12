@@ -1,126 +1,113 @@
 import nlang.meta
 import nlang.literal
+import nlang.unsafe
 from nlang.prelude import *
 from nlang.numbers import *
 
-intf IndexIterator =
-  method Index = Size
-  method! Next = Bool
+intf index_iterator =
+  method index = size
+  method! next = bool
 
-type IndexRange = IndexIterator
-  pos end incr :Size
+type index_range = index_iterator
+  _pos _end _incr :size
 
-  fun Mk = this
-    return this{}
-
-  method! Next = Bool
-    if self.pos > self.end - 1
+  method! next = bool
+    if self._pos > self._end - 1
       return false
     else
-      self!pos = self.pos + self.incr
+      self!_pos = self._pos + self._incr
       return true
 
-  method Index = Size
-    return self.pos
+  method index = size
+    return self._pos
 
-  method Sub beg:Size end:Size ?by:?.Size = this
-    let sub = self.
-      sub!pos = beg
-      sub!end = end
-      sub!incr = by.
-    return sub
+  method sub beg:size end:size ?by:?@size = this
+    return this{{ _pos=beg _end=end _incr=(optional by 1) }}
 
-intf IndexPairIterator =
-  method Index = Size, Size
-  method! Next = Bool
+intf index_pair_iterator =
+  method index = size, size
+  method! next = bool
 
-intf ElementIterator T =
-  method! Next = Bool
-  method Get = T
+intf element_iterator t =
+  method! next = bool
+  method get = t
 
-intf ElementPairIterator T1 T2 =
-  method! Next = Bool
-  method Get = T1, T2
+intf element_pair_iterator t1 t2 =
+  method! next = bool
+  method get = t1, t2
 
-intf Container T =
-  method Len = Size
-  method Capacity = Size
-  method! Clear = Void
-    #~ self.Structchange
-  method! Reserve len:Size = Void
-    #~ self.Structchange
-  method All = (ElementIterator T)
-    #~ retval.Prevents self.Structchange
+intf container t =
+  method len = size
+  method! clear = void
+    #~ self.struct_change
+  method! reserve len:size = void
+    #~ self.struct_change
+  method all = (element_iterator t)
+    #~ retval.prevents self.struct_change
 
-  #~ prop Nonempty
-  #~ prop Structchange
+  #~ prop non_empty
+  #~ prop struct_change
 
-intf ForwardContainer T = (Container T)
-  -- from Container T import *
+intf forward_container t = (container t)
+  -- from container t import *
 
-  method Len = Size
-  method Capacity = Size
-  method! Clear = Void
-    #~ self.Structchange
-  method! Reserve len:Size = Void
-    #~ self.Structchange
-  method All = (ElementIterator T)
-    #~ retval.Prevents self.Structchange
+  method len = size
+  method! clear = void
+    #~ self.struct_change
+  method all = (element_iterator t)
+    #~ retval.prevents self.struct_change
 
-  method! Push x:T = Void
-    #~ self.Structchange
-  method! Pop = T
-    #~ self.Structchange
-  method First = T
-  method Last = T
-  method! Resize newsize:Size = Void
-    #~ self.Structchange
-  method! Resizewith newsize:Size x:T = Void
-    #~ self.Structchange
+  method! push x:t = void
+    #~ self.struct_change
+  method! pop = t
+    #~ self.struct_change
+  method first = t
+  method last = t
+  method! resize newsize:size = void
+    #~ self.struct_change
+  method! resize_with newsize:size x:t = void
+    #~ self.struct_change
 
-  #~ prop Structchange
+  #~ prop struct_change
 
-intf RandomContainer T = (ForwardContainer T)
-  -- from ForwardContainer T import *
+intf random_container t = (forward_container t)
+  -- from forward_container t import *
 
-  method Len = Size
-  method Capacity = Size
-  method! Clear = Void
-    #~ self.Structchange
-  method! Reserve len:Size = Void
-    #~ self.Structchange
-  method All = (ElementIterator T)
-    #~ retval.Prevents self.Structchange
+  method len = size
+  method! clear = void
+    #~ self.struct_change
+  method all = (element_iterator t)
+    #~ retval.prevents self.struct_change
 
-  method! Push x:T = Void
-    #~ self.Structchange
-  method! Pop = T
-    #~ self.Structchange
-  method First = T
-  method Last = T
-  method! Resize newsize:Size = Void
-    #~ self.Structchange
-  method! Resizewith newsize:Size x:T = Void
-    #~ self.Structchange
+  method! push x:t = void
+    #~ self.struct_change
+  method! pop = t
+    #~ self.struct_change
+  method first = t
+  method last = t
+  method! resize newsize:size = void
+    #~ self.struct_change
+  method! resize_with newsize:size x:t = void
+    #~ self.struct_change
 
-  #~ prop Structchange
+  #~ prop struct_change
 
-  method Get__ n:Size = T
-  method! Set__ n:Size x:T = Void
-  method Checkindex n:Size = Bool
-    #~ eval retval self.Validindex n
-  method Allindex = IndexRange
+  method operator_get__ n:size = t
+  method! operator_set__ n:size x:t = void
+  method check_index n:size = bool
+    #~ eval retval self.valid_index n
+  method all_index = index_range
 
-  #~ prop Validindex -- n:Size
-  #~ prop Validrange 
+  #~ prop valid_index -- n:size
+  #~ prop valid_range 
 
-intf LinkedContainer T = (Container T)
-  intf Node =
-    El :!T
-    method! Next = this
+intf linked_container t = (container t)
+  intf node =
+    el :@!t
+    method! next = this
 
-  method! Removenode n:this.Node = Void
-  method! Insertbefore n:this.Node x:T = Void
-  method! Insertafter n:this.Node x:T = Void
-  method! Replace n:this.Node x:T = Void
-  method Allnodes = (this.NodeRange T)
+  method! remove_node n:this.node = void
+  method! insert_before n:this.node x:t = void
+  method! insert_after n:this.node x:t = void
+  method! replace n:this.node x:t = void
+  method all_nodes = (this.node_range t)

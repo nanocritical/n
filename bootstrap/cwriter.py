@@ -4,6 +4,7 @@ import resolv
 import copy
 import typing
 import ast
+import os.path
 from ast import *
 
 import scope
@@ -75,11 +76,11 @@ typing.TypeApp.cwrite = wtypeapp
 
 def wtypefunction(self, out):
   pd = self.defn.scope.parent_definition.container
-  if len(self.args) > 0:
+  if len(self.defn.genargs) > 0:
     _p(out, 'nlangapp__', globalname(self.defn), '__')
-    for i in xrange(len(self.args)):
-      _p(out, self.args[i])
-      if i < len(self.args) - 1:
+    for i in xrange(len(self.defn.genargs)):
+      _p(out, self.defn.genargs[i].typecheck())
+      if i < len(self.defn.genargs) - 1:
         _p(out, '__')
   elif pd is not None and isinstance(pd, TypeDecl):
     _p(out, pd.typecheck(), '_', self.defn.name)
@@ -106,27 +107,66 @@ def wintf(self, out):
   with scope.push(self.scope):
     self.mapgeninsts(lambda gen: _p(out, gen))
 
-    for im in self.imports:
-      for s in im.allnames():
-        _p(out, s)
-
     for td in self.typedecls:
       _p(out, td)
 
 Intf.cwrite = wintf
-DynIntf.cwrite = wintf
 
 def wchoicedecl(self, out):
   _p(out, globalname(self.defn) + '_' + self.name)
 ChoiceDecl.cwrite = wchoicedecl
 
+def forward_declare(out, gentype):
+  if isinstance(gentype, typing.TypeFunction):
+    return
+  if gentype.name not in scope.builtintypes:
+    kind = 'struct'
+    if isinstance(gentype, typing.Type) and isinstance(gentype.defn, Union):
+      kind = 'union'
+    _p(out, kind, ' ', gentype, ';\n')
+    _p(out, 'typedef ', kind, ' ', gentype, ' ', gentype, ';\n')
+
+  _p(out, 'typedef ', gentype, '* nlangp__', gentype, ';\n')
+  _p(out, 'typedef const ', gentype, '* nlangcp__', gentype, ';\n')
+
+def forward_declare_members(out, gentype):
+  if hasattr(gentype, 'defn') and isinstance(gentype.defn, TypeDecl):
+    for f in gentype.defn.methods + gentype.defn.funs:
+      tf = f.typecheck()
+      if f.name[0] == '_':
+        _p(out, 'static ')
+      _p(out, tf.rettype,' ', tf, '(')
+
+      if isinstance(f, MethodDecl):
+        _p(out, typing.TypeRef(f.access, gentype), ' self')
+        if len(f.args) > 0:
+          _p(out, ', ')
+
+      for i in xrange(len(tf.args)):
+        _p(out, tf.args[i])
+        if i < len(tf.args) - 1:
+          _p(out, ', ')
+      _p(out, ');\n')
+
 def wtypedecl(self, out):
   if self.unboundgeneric():
     return
+  if self.typecheck().name in scope.builtintypes:
+    return
 
   if self.kind == TypeDecl.FORWARD:
-    _p(out, 'struct ', self.type, ';\n')
+    if self.name == 'void':
+      return
+    forward_declare(out, self.typecheck());
+    forward_declare_members(out, self.typecheck());
     return
+
+  ctx().gen_instances_fwd.discard(self.typecheck())
+
+  global ginstantiated
+  if self.typecheck() in ginstantiated:
+    return
+  ginstantiated.add(self.typecheck())
 
   with scope.push(self.scope):
     if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
@@ -138,10 +178,6 @@ def wtypedecl(self, out):
       _p(out, indent(), '} nlangtag__', self.type, ';\n\n')
 
     self.mapgeninsts(lambda gen: _p(out, gen))
-
-    for im in self.imports:
-      for s in _imported_sources(im):
-        _p(out, s)
 
     for td in self.typedecls:
       _p(out, td)
@@ -166,6 +202,9 @@ def wtypedecl(self, out):
     if self.declnum is not None:
       _p(out, self.declnum, ';\n\n')
 
+    for d in self.static_decls:
+      _p(out, d)
+
     for d in self.methods:
       _p(out, d)
     for d in self.funs:
@@ -174,6 +213,8 @@ TypeDecl.cwrite = wtypedecl
 
 def wtupleinst(self, out):
   t = self.tuple.typecheck()
+
+  ctx().gen_instances_fwd.discard(t)
 
   global ginstantiated
   if t in ginstantiated:
@@ -194,6 +235,7 @@ def wtupleinst(self, out):
 TupleInstance.cwrite = wtupleinst
 
 def wunion(self, out):
+  ctx().gen_instances_fwd.discard(self.typecheck())
   _p(out, 'union ', self.type, ' {\n')
   indent(+1);
   for f in self.fields:
@@ -213,13 +255,20 @@ def wfunctiondecl(self, out):
   if self.unboundgeneric():
     return
 
+  ctx().gen_instances_fwd.discard(self.typecheck())
+
+  global ginstantiated
+  if self.typecheck() in ginstantiated:
+    return
+  ginstantiated.add(self.typecheck())
+
   with scope.push(self.scope):
     self.mapgeninsts(lambda gen: _p(out, gen))
 
     global grettype
     grettype.append(self.rettype.typecheck())
 
-    if self.name[0].islower():
+    if self.name[0] == '_':
       _p(out, 'static ')
 
     if isinstance(self, MethodDecl):
@@ -255,11 +304,6 @@ FunctionDecl.cwrite = wfunctiondecl
 def wgenericinstance(self, out):
   d = self.defn
 
-  global ginstantiated
-  if d is None or d.typecheck() in ginstantiated:
-    return
-  ginstantiated.add(d.typecheck())
-
   if isinstance(d, FunctionDecl):
     if len(d.genargs) == 0:
       # This call was not, in fact, to a generic.
@@ -272,7 +316,7 @@ def wgenericinstance(self, out):
       # This call was not, in fact, to a generic.
       return
 
-    if not isinstance(d, Intf) and not isinstance(d, DynIntf):
+    if not isinstance(d, Intf):
       _p(out, d)
 GenericInstance.cwrite = wgenericinstance
 
@@ -287,7 +331,11 @@ def wvardecl(self, out):
   else:
     if self.is_meta_type():
       return
-    _p(out, self.typecheck(), ' ', self.name)
+    const = ''
+    #FIXME: reenable. But wpattern cannot deal with it yet.
+    #if isinstance(self, FieldDecl):
+    #  const = ''
+    _p(out, const, self.typecheck(), ' ', self.name)
     if self.expr is not None:
       _p(out, ' = ', self.expr)
 VarDecl.cwrite = wvardecl
@@ -299,20 +347,28 @@ def wpattern(self, out):
   for v in self.vars:
     if v is None:
       continue
-    _p(out, indent(), v, ';\n')
+    if self.static:
+      _p(out, 'static const ', indent(), v, ';\n')
+    else:
+      _p(out, indent(), v, ';\n')
 
   if self.mutatingblock is not None:
     _p(out, self.mutatingblock)
 PatternDecl.cwrite = wpattern
 
-def wfieldconstdecl(self, out):
-  _p(out, 'static const ', self.vardecl.typecheck(), ' ', globalname(self))
+def wfieldstaticconstdecl(self, out):
+  if self.vardecl.type is not None \
+      and self.vardecl.type.typecheck() == typing.qbuiltin('nlang.meta.alias'):
+    return
 
-  if self.vardecl.expr is not None:
-    _p(out, ' = ', self.vardecl.expr)
-  if self.vardecl.mutatingblock is not None:
-    raise Exception("Unsupported")
-FieldConstDecl.cwrite = wfieldconstdecl
+  _p(out, 'static const ', self.vardecl.typecheck(), ' ', globalname(self), ';\n')
+FieldStaticConstDecl.cwrite = wfieldstaticconstdecl
+
+def wexprinitstaticconstfield(self, out):
+  field = ExprField(ExprValue('this'), '.', ExprValue(self.field_name))
+  _p(out, '*(this*)&', globalname(field),
+      ' = ', self.expr, ';')
+ExprInitStaticConstField.cwrite = wexprinitstaticconstfield
 
 def winitializer(self, out):
   tmp = gensym()
@@ -363,7 +419,7 @@ ExprDeref.cwrite = wderef
 def wexprliteral(self, out):
   expr = self.args[0]
   if isinstance(expr, basestring):
-    _p(out, '"', expr, '"')
+    _p(out, '"', expr.encode('string-escape'), '"')
   elif isinstance(expr, bool):
     if expr:
       _p(out, '1')
@@ -401,29 +457,64 @@ def wexprtupleselect(self, out):
   _p(out, '(', self.expr, ')', access, 't', self.idx)
 ExprTupleSelect.cwrite = wexprtupleselect
 
+class _CharCLiteral(ExprLiteral):
+  def __init__(self, c):
+    super(_CharCLiteral, self).__init__(c)
+
+  def nocache_typecheck(self):
+    return typing.qbuiltin('nlang.numbers.u8')
+
+  def cwrite(self, out):
+    _p(out, "'" + self.args[0].encode('string-escape') + "'")
+
 def wexprconstrained(self, out):
-  self.typecheck()
-  _p(out, '((', self.type, ')(', self.args[0], '))')
+  if self.args[0].typecheck() == typing.qbuiltin('nlang.literal.string') \
+      and self.type.typecheck() == typing.qbuiltin('nlang.char.char') \
+      and len(self.args[0].args[0]) == 1:
+    _p(out, ExprCall(ast.path_as_expr('nlang.char.char.from_ascii'), [_CharCLiteral(self.args[0].args[0])]))
+  elif self.args[0].typecheck() == typing.qbuiltin('nlang.literal.string') \
+      and self.type.typecheck() == typing.qbuiltin('nlang.string.string'):
+    _p(out, ExprCall(ast.path_as_expr('nlang.char.char.from_cstr'), [self.args[0]]))
+  else:
+    _p(out, '((', self.type, ')(', self.args[0], '))')
 ExprConstrained.cwrite = wexprconstrained
 
 _optrans = { 'and': '&&', 'or': '||', 'not': '!', 'neg': '-' }
+_opname = {
+  '+': 'operator_plus__',
+  '-': 'operator_minus__',
+  '*': 'operator_times__',
+  '/': 'operator_div__',
+  '%': 'operator_mod__',
+  '>>': 'operator_rshift__',
+  '<<': 'operator_lshift__',
+  '&': 'operator_bwand__',
+  '|': 'operator_bwor__',
+  '^': 'operator_bwxor__',
+  '~': 'operator_bwnot__',
+  'and': 'operator_and__',
+  'or': 'operator_or__',
+  'not': 'operator_not__',
+}
 
 def wexprbin(self, out):
-  self.typecheck()
-  if self.op in _optrans:
-    op = _optrans[self.op]
+  t = self.typecheck()
+  d = t.concrete_definition()
+  if isinstance(d, TypeDecl) and _opname.get(self.op, None) in d.scope.table:
+    _p(out, ExprCall(ExprField(self.args[0], '.', ExprValue(_opname[self.op])), [self.args[1]]))
   else:
-    op = self.op
-  _p(out, '(', self.args[0], ' ', op, ' ', self.args[1], ')')
+    op = _optrans.get(self.op, self.op)
+    _p(out, '(', self.args[0], ' ', op, ' ', self.args[1], ')')
 ExprBin.cwrite = wexprbin
 
 def wexprunary(self, out):
-  self.typecheck()
-  if self.op in _optrans:
-    op = _optrans[self.op]
+  t = self.typecheck()
+  d = t.concrete_definition()
+  if isinstance(d, TypeDecl) and _opname.get(self.op, None) in d.scope.table:
+    _p(out, UnaryCall(ExprField(self.args[0], '.', ExprValue(_opname[self.op]))))
   else:
-    op = self.op
-  _p(out, '(', op, ' ', self.args[0], ')')
+    op = _optrans.get(self.op, self.op)
+    _p(out, '(', op, ' ', self.args[0], ')')
 ExprUnary.cwrite = wexprunary
 
 def wexprcall(self, out):
@@ -435,7 +526,7 @@ def wexprcall(self, out):
     assert len(self.args) == 2
     _p(out, 'sizeof(', self.args[1].typecheck(),')')
     return
-  elif str(fun.scope) == '<root>.nlang.unsafe.Cast':
+  elif str(fun.scope) == '<root>.nlang.unsafe.cast':
     with scope.push(fun.scope):
       rettype = fun.rettype.typecheck()
     _p(out, '((', rettype, ') ', self.args[1],')')
@@ -518,6 +609,9 @@ def wexprfield(self, out):
   elif isinstance(scope.current().q(self), ChoiceDecl):
     access = '_'
     field = self.field.name
+  elif isinstance(scope.current().q(self), FieldStaticConstDecl):
+    access = '_'
+    field = self.field.name
   else:
     sc = ctype.concrete_definition().scope
     if isinstance(self.field, basestring):
@@ -555,9 +649,9 @@ def wexprfor(self, out):
   with scope.push(self.scope):
     range = gensym()
     indent(+1)
-    _p(out, '{\n', indent(), 'nlang_containers_IndexRange ', range, ' = ', self.iter, ';\n')
-    _p(out, indent(+1), 'for (; nlang_containers_IndexRange_Next(&', range, ');) {\n')
-    _p(out, indent(), self.vardecl, ' = nlang_containers_IndexRange_Index(&', range, ');\n')
+    _p(out, '{\n', indent(), 'nlang_containers_index_range ', range, ' = ', self.iter, ';\n')
+    _p(out, indent(+1), 'for (; nlang_containers_index_range_next(&', range, ');) {\n')
+    _p(out, indent(), self.vardecl, ' = nlang_containers_index_range_index(&', range, ');\n')
     _p(out, self.body)
     indent(-1)
     _p(out, '\n', indent(-1), '}\n', indent(), '}')
@@ -585,6 +679,9 @@ def wexprblock(self, out):
   global gblockdepth
   with scope.push(self.scope):
     _p(out, indent(+1), '{\n')
+    if self.main:
+      for t in ast.g_static_init:
+        _p(out, indent(), UnaryCall(ExprField(t, '.', ExprValue('__static_init__'))), ';\n')
     for b in self.body:
       _p(out, indent(), b, ';\n')
     indent(-1)
@@ -597,13 +694,13 @@ def wexprmatcher(self, out):
       and (defn.kind == TypeDecl.TAGGEDUNION \
       or defn.kind == TypeDecl.ENUM):
     if isinstance(self.pattern, ExprCall):
-      test = ExprBin('==', ExprField(self.match.exprevaltmp, '.', ExprValue('which')),
+      test = ExprBin('==', ExprField(self.match.exprevaltmp, '.', ExprValue('_which')),
           ExprField(ExprField(defn.typecheck(), '.', self.pattern.args[0]),
-            '.', ExprValue('Value')))
+            '.', ExprValue('value')))
     else:
-      test = ExprBin('==', ExprField(self.match.exprevaltmp, '.', ExprValue('which')),
+      test = ExprBin('==', ExprField(self.match.exprevaltmp, '.', ExprValue('_which')),
           ExprField(ExprField(defn.typecheck(), '.', self.pattern),
-            '.', ExprValue('Value')))
+            '.', ExprValue('value')))
   else:
     test = ExprBin('==', self.match.exprevaltmp, self.pattern)
 
@@ -670,7 +767,12 @@ def wimport(self, out):
     _importalias(self, self.path[-1], self.alias, mod)
   elif self.all:
     for d in mod.imported + mod.toplevels:
-      _importalias(self, d.name, d.name, mod)
+      if isinstance(d, PatternDecl):
+        # FIXME: Cannot handle the intermediate tempory with proper static vars init.
+        assert len(d.vars) == 1
+        _importalias(self, d.vars[0].name, d.vars[0].name, mod)
+      else:
+        _importalias(self, d.name, d.name, mod)
 Import.cwrite = wimport
 
 def wmodule(self, out):
@@ -683,37 +785,23 @@ def wmodule(self, out):
 
     self.firstpass()
 
-    def forward_declare(gentype):
-      if isinstance(gentype, typing.TypeFunction):
-        return
-      kind = 'struct'
-      if isinstance(gentype, typing.Type) and isinstance(gentype.defn, Union):
-        kind = 'union'
-      _p(out, kind, ' ', gentype, ';\n')
-      _p(out, 'typedef ', kind, ' ', gentype, ' ', gentype, ';\n')
-      _p(out, 'typedef ', gentype, '* nlangp__', gentype, ';\n')
-      _p(out, 'typedef const ', gentype, '* nlangcp__', gentype, ';\n')
-
-    def forward_declare_members(gentype):
-      if hasattr(gentype, 'defn') and isinstance(gentype.defn, TypeDecl):
-        for f in gentype.defn.methods + gentype.defn.funs:
-          tf = f.typecheck()
-          if self.name[0].islower():
-            _p(out, 'static ')
-          _p(out, tf.rettype,' ', tf, '(')
-          for i in xrange(len(tf.args)):
-            _p(out, tf.args[i])
-            if i < len(tf.args) - 1:
-              _p(out, ', ')
-          _p(out, ');\n')
-
-    map(forward_declare, ast.ctx().gen_instances_fwd)
+    map(lambda gentype: forward_declare(out, gentype), ast.ctx().gen_instances_fwd)
     _p(out, '\n')
-    map(forward_declare_members, ast.ctx().gen_instances_fwd)
+    map(lambda gentype: forward_declare_members(out, gentype), ast.ctx().gen_instances_fwd)
     _p(out, '\n')
 
     for d in self.toplevels:
       _p(out, d, '\n\n')
 
+    # Define what's left.
+    map(lambda gentype: _p(out, gentype.defn), ast.ctx().gen_instances_fwd.copy())
+
     gmodname.pop()
+
+    if self.filename is not None:
+      try:
+        with open(os.path.splitext(self.filename)[0] + '.h') as h:
+          _p(out, h.read())
+      except:
+        pass
 Module.cwrite = wmodule

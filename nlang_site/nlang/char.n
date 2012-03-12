@@ -1,0 +1,26 @@
+import nlang.meta
+import nlang.literal
+import nlang.unsafe
+from nlang.prelude import *
+from nlang.numbers import *
+from nlang.slice import *
+
+type char =
+  _word:u32
+
+  method utf8_byte_count = size
+    return 1
+
+  method utf8_copy_bytes s:@![]u8 ?offset:?@size = void
+    let off = optional offset 0
+    let new_size = max (off + self.utf8_byte_count) s.len
+    s!resize new_size
+    s![off] = self._word.slice_u8
+
+  method as_ascii = u8, bool
+    return self._word.slice_u8, true:bool
+
+  fun from_ascii c:u8 = this
+    let n = this.mk
+      n._word = c.to_u32
+    return n

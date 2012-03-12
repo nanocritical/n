@@ -1,4 +1,27 @@
+import nlang.meta
+import nlang.literal
+import nlang.unsafe
+from nlang.prelude import *
+from nlang.numbers import *
+from nlang.char import *
 from nlang.slice import *
 
-type String =
-  data :[]U8
+type string =
+  data :[]u8
+
+  method! _ctor ?len:?@size = void
+    self.data!resize (optional len 0)
+
+  method len = size
+    return self.data.len
+
+  method byte_len = size
+    return self.data.len
+
+  method! extend x:@!string = void
+
+  method! append_char x:char = void
+
+  method! set__ n:size x:char = void
+
+  fun from_cstr cs:@!u8 = this
