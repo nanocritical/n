@@ -1,5 +1,10 @@
 #!/bin/bash
 
-for t in t/t*.n; do
+list=$*
+if [ -z "$list" ]; then
+	list=t/t*.n
+fi
+
+for t in $list; do
 	bootstrap/ncc $t && ./a.out || (echo "FAILED $t"; break)
 done
