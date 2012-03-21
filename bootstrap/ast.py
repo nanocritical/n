@@ -1589,9 +1589,7 @@ class ExprIf(_FieldsEq, Decl):
       # FIXME: Make sure the conditions are exhaustive, when applicable. In which
       # case we do not need a else.
       if self.elsebody is None:
-        raise errors.TypeError(\
-            "If block evaluates to type '%s' but has no 'else' case, at: %s" \
-            % (t, self.codeloc))
+        return typing.qbuiltin('nlang.numbers.void')
     return t
 
   def itersubnodes(self, **kw):
