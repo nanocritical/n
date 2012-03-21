@@ -79,7 +79,7 @@ def t_IDENT(t):
 
 def t_NUMBER(t):
   r'''-?(?:0x[A-Fa-f0-9]+|0[0-7]+|\d+)'''
-  t.value = long(t.value)
+  t.value = long(t.value, 0)
   return t
 
 def t_STRING(t):
