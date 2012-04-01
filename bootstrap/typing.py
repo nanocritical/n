@@ -35,7 +35,7 @@ class Typename(object):
       return self.name == other.name
 
   def __ne__(self, other):
-    return self.name != other.name
+    return not self.__eq__(other)
 
   def deref(self, access):
     raise errors.TypeError("Cannot dereference type '%s', at %s" % (self.name, self.codeloc))
@@ -72,6 +72,8 @@ class Type(Typename):
   def isa(self, typeconstraint):
     assert not isinstance(typeconstraint, TypeUnboundGeneric)
 
+    if type(self) != type(typeconstraint):
+      return False
     if self == typeconstraint:
       return True
 
@@ -82,9 +84,10 @@ class Type(Typename):
       except:
         pass
 
-    for i in self.defn.listisa:
-      if i.typecheck().isa(typeconstraint):
-        return True
+    with scope.push(self.defn.scope):
+      for i in self.defn.listisa:
+        if i.typecheck().isa(typeconstraint):
+          return True
     return False
 
   def asexpr(self):
@@ -101,7 +104,12 @@ class TypeUnboundGeneric(Typename):
 
 class TypeRef(Typename):
   def __init__(self, access, type, nullable=False):
-    super(TypeRef, self).__init__(access + type.name)
+    prefix = '@'
+    if access == '!':
+      prefix = '@!'
+    if nullable:
+      prefix = '?' + prefix
+    super(TypeRef, self).__init__(prefix + type.name)
     self.access = access
     self.type = type
     self.nullable = nullable
@@ -118,6 +126,8 @@ class TypeRef(Typename):
     assert not isinstance(typeconstraint, TypeUnboundGeneric)
     if type(self) != type(typeconstraint):
       return False
+    if self == typeconstraint:
+      return True
     if typeconstraint.access == '!' and self.access == '.':
       return False
     if not typeconstraint.nullable and self.nullable:
@@ -134,6 +144,8 @@ class TypeTuple(Typename):
     assert not isinstance(typeconstraint, TypeUnboundGeneric)
     if type(self) != type(typeconstraint):
       return False
+    if self == typeconstraint:
+      return True
     for u,v in zip(self.args, typeconstraint.args):
       if not u.isa(v):
         return False
@@ -164,16 +176,26 @@ class TypeApp(Typename):
     assert isinstance(typeconstraint, Typename) and not isinstance(typeconstraint, TypeUnboundGeneric)
     if type(self) != type(typeconstraint):
       return False
-    if not self.defn.typecheck().isa(typeconstraint):
-      if str(self.defn.scope) == str(typeconstraint.defn.scope):
-        return True
-      for i in self.defn.listisa:
-        if i.isa(typeconstraint):
-          return True
+    if self == typeconstraint:
+      return True
+
+    if str(self.defn.scope) != str(typeconstraint.defn.scope):
       return False
+
+    found = False
+    with scope.push(self.defn.scope):
+      for i in self.defn.listisa:
+        if i.typecheck().isa(typeconstraint):
+          found = True
+          break
+
+    if not found:
+      return False
+
     for u,v in zip(self.args, typeconstraint.args):
       if not u.isa(v):
         return False
+    return True
 
   def geninst_action(self):
     return True, True
@@ -246,7 +268,9 @@ def _isconcrete(type):
   return not type.name.startswith('<root>.nlang.literal.') and type.name != '<root>.nlang.meta.alias'
 
 def _handlethis(type):
-  if type.name == 'this':
+  if type is None:
+    return None
+  elif type.name == 'this':
     return scope.current().q(type)
   else:
     return type
@@ -259,14 +283,15 @@ def _unifyconcpair(a, b):
   else:
     return None
 
-def unify(types):
+def unify(constraint, types):
   assert len(types) > 0
   types = map(_handlethis, types)
+  constraint = _handlethis(constraint)
 
   ulit = _unifyliterals(filter(_isliteral, types))
 
-  concretes = filter(_isconcrete, types)
-  if len(set(concretes)) > 1:
+  concretes = set(filter(_isconcrete, types))
+  if len(concretes) > 1:
     common = None
     for c in concretes:
       for i in concretes:
@@ -283,15 +308,36 @@ def unify(types):
     if common is None:
       _unifyerror(*concretes)
     else:
-      concretes = [common]
+      concretes = set([common])
 
-  if ulit is not None and len(concretes) > 0:
-    return _unify_lit_conc(ulit, concretes[0])
-  elif ulit is not None:
-    return ulit
-  elif len(concretes) > 0:
-    return concretes[0]
+  if len(concretes) > 1:
+    _unifyerror(concretes)
 
-def checkcompat(target, type):
-  target = _handlethis(target)
-  return unify([target, type])
+  if len(concretes) == 0:
+    c = None
+  else:
+    c = concretes.pop()
+
+  t = None
+  if ulit is not None and c is not None:
+    t = _unify_lit_conc(ulit, c)
+  elif ulit is not None and c is None:
+    t = ulit
+  elif c is not None:
+    t = c
+
+  if t is None:
+    raise errors.TypeError()
+  elif constraint is None:
+    return t
+  elif constraint == qbuiltin('nlang.meta.alias'):
+    return t
+  elif _isliteral(t):
+    return _unify_lit_conc(t, constraint)
+  elif not t.isa(constraint):
+    raise errors.TypeError()
+  else:
+    return t
+
+def checkcompat(constraint, type):
+  return unify(constraint, [type])

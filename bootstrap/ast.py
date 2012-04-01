@@ -156,6 +156,10 @@ class _Node(object):
     with scope.push(sc):
       for n in self.itersubnodes(onelevel=True):
         n.firstpass()
+    self._validate()
+
+  def _validate(self):
+    pass
 
   def typecheck(self, *args, **kw):
     if self.cachedtype is None:
@@ -293,6 +297,9 @@ class GenericTypename(_NameEq):
   def itersubnodes(self, **kw):
     return _itersubnodes(self.args, **kw)
 
+  def is_meta_type(self):
+    return True
+
 class Decl(object):
   pass
 
@@ -319,6 +326,7 @@ class TypeDef(_NameEq):
     with scope.push(self.scope):
       for n in self.itersubnodes(onelevel=True):
         n.firstpass()
+    self._validate()
 
   def definition(self):
     return self
@@ -383,6 +391,7 @@ class Intf(TypeDef, Decl):
 
   def exportables(self):
     return self.typedecls + self.decls + self.funs + self.methods
+
   def itersubnodes(self, **kw):
     return _itersubnodes(self.listisa, self.typedecls, self.decls, self.methods, self.funs, **kw)
 
@@ -482,7 +491,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
   def _fillscope_method(self, m):
     self._fillscope_fun(m)
     m.scope.define(VarDecl(ExprConstrained( \
-        ExprValue('self'), ExprTypeRef(m.access, self.type))))
+        ExprValue('self'), ExprRef(m.access, self.type))))
 
   def _fillscope_members(self):
     for a in self.typedecls:
@@ -521,6 +530,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
         n.firstpass()
 
     ctx().gen_instances_fwd.add(self.typecheck())
+    self._validate()
 
   def _copy_inherited(self, inh):
     inhd = inh.type.definition()
@@ -660,11 +670,11 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
   def _generate_alloc(self):
     expr = ExprReturn(ExprCall(
         ExprCall(path_as_expr('nlang.unsafe.cast'),
-          [ExprTypeRef('!', ExprValue('this')),
-            ExprTypeRef('!', path_as_expr('nlang.numbers.u8'))]),
+          [ExprRef('!', ExprValue('this')),
+            ExprRef('!', path_as_expr('nlang.numbers.u8'))]),
           [ExprCall(path_as_expr('nlang.unsafe.malloc'),
             [ExprCall(ExprSizeof(), [ExprValue('this')])])]))
-    return FunctionDecl('__unsafe_alloc__', [], [], [ExprTypeRef('!', ExprValue('this'))], ExprBlock([expr]))
+    return FunctionDecl('__unsafe_alloc__', [], [], [ExprRef('!', ExprValue('this'))], ExprBlock([expr]))
 
   def _generate_mk(self):
     tmp = gensym()
@@ -705,7 +715,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
 
     alloc_call = ExprField(ExprValue('this'), '.', ExprValue('__unsafe_alloc__'))
     alloc_call.maybeunarycall = True
-    return FunctionDecl('new', [], new_args, [ExprTypeRef('!', ExprValue('this'))],
+    return FunctionDecl('new', [], new_args, [ExprRef('!', ExprValue('this'))],
         ExprBlock([VarDecl(ExprValue(tmp), alloc_call)] + ctor_call \
             + [ExprReturn(ExprValue(tmp))]))
 
@@ -839,6 +849,15 @@ class FunctionDecl(TypeDef, Decl, CGlobalName):
     if self.body is not None:
       self.scope.define(self.body)
 
+  def _validate(self):
+    for a in self.args:
+      if a.optionalarg:
+        t = a.typecheck()
+        if not isinstance(t, typing.TypeRef) or not t.nullable:
+          raise errors.ParseError(
+              "Optional argument '%s' to '%s' is not a nullable reference, but of type '%s', at %s"
+              % (a, self, t, self.codeloc))
+
   def nocache_typecheck(self):
     if self.unboundgeneric():
       return typing.TypeUnboundGeneric(self)
@@ -964,6 +983,7 @@ class PatternDecl(_FieldsEq, Decl):
     self.vars[0].type = self.patterntypecheck()
     for n in _itersubnodes([self.pattern, self.mutatingblock] + self.vars, onelevel=True):
       n.firstpass()
+    self._validate()
 
   def itersubnodes(self, **kw):
     # Do expr before vars.
@@ -1022,7 +1042,7 @@ class Expr(_FieldsEq):
     return iter('')
 
   def patterntypedestruct(self, xtype):
-    return typing.unify([self.typecheck(), xtype])
+    return typing.checkcompat(self.typecheck(), xtype)
 
   def is_meta_type(self):
     return False
@@ -1065,12 +1085,12 @@ class ExprValue(Expr):
     if genarg.name not in genscope.table:
       genarg.setinstantiated(genscope, t)
     else:
-      genarg.setinstantiated(genscope, typing.unify([genscope.table[genarg.name].typecheck(), t]))
+      genarg.setinstantiated(genscope, typing.checkcompat(genscope.table[genarg.name].typecheck(), t))
 
   def patterntypedestruct(self, xtype):
     try:
       t = self.typecheck()
-      return typing.unify([t, xtype])
+      return typing.checkcompat(t, xtype)
     except:
       # If unbound, this name is being defined.
       return xtype
@@ -1097,22 +1117,50 @@ class ExprValue(Expr):
       return [VarDecl(self, expr)]
 
 class ExprRef(Expr):
-  def __init__(self, access, value):
+  def __init__(self, access, value, nullable=False):
     super(ExprRef, self).__init__()
     if access == '@!':
       self.access = '!'
-    else:
+    elif access == '@':
       self.access = '.'
+    else:
+      self.access = access
     self.value = value
+    self.setnullable(nullable)
+
+  def setnullable(self, nullable):
+    self.nullable = nullable
 
   def nocache_typecheck(self, **ignored):
-    return typing.TypeRef(self.access, self.value.typecheck())
+    return typing.TypeRef(self.access, self.value.typecheck(), nullable=self.nullable)
+
+  def definition(self):
+    return self.deref(self.access).definition()
+
+  def geninst_action(self):
+    return False, False
 
   def itersubnodes(self, **kw):
     return _itersubnodes([self.value], **kw)
 
   def is_meta_type(self):
     return self.value.is_meta_type()
+
+  def deref(self, access):
+    if not self.is_meta_type() and self.nullable:
+      raise errors.TypeError("Cannot dereference a nullable reference '%s', at %s" % (self, self.codeloc))
+    if self.access != '!' and access == '!':
+      raise errors.TypeError("Cannot mutate the type '%s', at %s" % (self, self.codeloc))
+    return self.value
+
+  def typedestruct(self, genscope, t):
+    if not isinstance(t, typing.TypeRef):
+      raise errors.PmStructError(self, t)
+    if self.access != t.access and not (self.access == '.' and t.access == '!'):
+      raise errors.PmStructError(self, t)
+    if self.nullable != t.nullable and not (self.nullable and not t.nullable):
+      raise errors.PmStructError(self, t)
+    return self.value.typedestruct(genscope, t.type)
 
 class ExprDeref(Expr):
   def __init__(self, access, value):
@@ -1132,45 +1180,6 @@ class ExprDeref(Expr):
   def is_meta_type(self):
     return self.value.is_meta_type()
 
-class ExprTypeRef(Expr):
-  def __init__(self, access, type, nullable=False):
-    super(ExprTypeRef, self).__init__()
-    self.access = access
-    self.type = type
-    self.setnullable(nullable)
-
-  def setnullable(self, nullable):
-    self.nullable = nullable
-
-  def deref(self, access):
-    if self.access != '!' and access == '!':
-      raise errors.TypeError("Cannot mutate the type '%s', at %s" % (self, self.codeloc))
-    return self.type
-
-  def typedestruct(self, genscope, t):
-    if not isinstance(t, typing.TypeRef):
-      raise errors.PmStructError(self, t)
-    if self.access != t.access and not (self.access == '.' and t.access == '!'):
-      raise errors.PmStructError(self, t)
-    if self.nullable != t.nullable and not (self.nullable and not t.nullable):
-      raise errors.PmStructError(self, t)
-    return self.type.typedestruct(genscope, t.type)
-
-  def nocache_typecheck(self):
-    return typing.TypeRef(self.access, self.type.typecheck(), nullable=self.nullable)
-
-  def definition(self):
-    return self.deref(self.access).definition()
-
-  def geninst_action(self):
-    return False, False
-
-  def itersubnodes(self, **kw):
-    return _itersubnodes([self.type], **kw)
-
-  def is_meta_type(self):
-    return True
-
 class ExprLiteral(Expr):
   def __init__(self, lit):
     super(ExprLiteral, self).__init__()
@@ -1185,7 +1194,7 @@ class ExprLiteral(Expr):
       return typing.qbuiltin('nlang.literal.integer')
 
   def patterntypedestruct(self, xtype):
-    return typing.unify([self.typecheck(), xtype])
+    return typing.checkcompat(self.typecheck(), xtype)
 
   def declvars(self, expr):
     return [None]
@@ -1201,7 +1210,7 @@ class ExprNull(Expr):
     return typing.qbuiltin('nlang.literal.nulltype')
 
   def patterntypedestruct(self, xtype):
-    return typing.unify([self.typecheck(), xtype])
+    return typing.checkcompat(self.typecheck(), xtype)
 
   def declvars(self, expr):
     return [None]
@@ -1225,6 +1234,7 @@ class TupleInstance(_FieldsEq):
 
   def firstpass(self):
     ctx().gen_instances_fwd.add(self.tuple.typecheck())
+    self._validate()
 
   def itersubnodes(self, **kw):
     return iter('')
@@ -1261,6 +1271,7 @@ class ExprTuple(_IsGenericInstance, Expr):
   def firstpass(self):
     super(ExprTuple, self).firstpass()
     self.geninst.firstpass()
+    self._validate()
 
   def declvars(self, expr):
     r = []
@@ -1295,7 +1306,7 @@ class ExprConstrained(Expr):
     self.type = type
 
   def nocache_typecheck(self, **ignored):
-    return typing.unify([self.type.typecheck(), self.args[0].typecheck()])
+    return typing.checkcompat(self.type.typecheck(), self.args[0].typecheck())
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.args, **kw)
@@ -1304,7 +1315,7 @@ class ExprConstrained(Expr):
     if xtype is None:
       return self.type.typecheck()
     else:
-      return typing.unify([self.type.typecheck(), xtype])
+      return typing.checkcompat(self.type.typecheck(), xtype)
 
   def declvars(self, expr):
     r = self.args[0].declvars(expr)
@@ -1322,7 +1333,7 @@ class ExprBin(Expr):
     self.args = [left, right]
 
   def nocache_typecheck(self, **ignored):
-    return typing.unify([t.typecheck() for t in self.args])
+    return typing.unify(None, [t.typecheck() for t in self.args])
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.args, **kw)
@@ -1333,16 +1344,16 @@ class ExprBin(Expr):
 class ExprCmpBin(ExprBin):
   def nocache_typecheck(self, **ignored):
     t = self.args[0].typecheck()
-    typing.unify([t.typecheck() for t in self.args])
+    typing.unify(None, [t.typecheck() for t in self.args])
     return typing.qbuiltin('nlang.numbers.bool')
 
 class ExprBoolBin(ExprBin):
   def nocache_typecheck(self, **ignored):
-    return typing.unify([t.typecheck() for t in self.args] + [typing.qbuiltin('nlang.numbers.bool')])
+    return typing.unify(typing.qbuiltin('nlang.numbers.bool'), [t.typecheck() for t in self.args])
 
 class ExprIsa(ExprBin):
   def nocache_typecheck(self, **ignored):
-    typing.unify([t.typecheck() for t in self.args])
+    typing.unify(None, [t.typecheck() for t in self.args])
     return typing.qbuiltin('nlang.numbers.bool')
 
 class ExprUnary(Expr):
@@ -1446,6 +1457,7 @@ class ExprCall(_IsGenericInstance, Expr):
       n.firstpass()
 
     self.geninst._instantiategeninst()
+    self._validate()
 
   def definition(self):
     d = self.geninst.defn
@@ -1539,14 +1551,11 @@ class ExprCall(_IsGenericInstance, Expr):
     if isinstance(xd, TypeDecl) and xd.kind != TypeDecl.TAGGEDUNION:
       raise errors.TypeError("Pattern matching a type application '%s' to expression typed '%s', at %s" \
           % (self, xtype, self.codeloc))
-    d = self.concrete_definition()
-    if str(d.scope) != str(xtype.defn.scope):
-      raise errors.TypeError("Pattern matching the type application '%s' to expression typed '%s', at %s" \
-          % (d.scope, xtype, self.codeloc))
 
     choice = xd.choicedecl(self.args[0])
     self.args[1].patterntypedestruct(choice.typearg.typecheck())
-    return typing.unify([self.typecheck(), xtype])
+
+    return typing.checkcompat(self.typecheck(), xtype)
 
   def declvars(self, expr):
     t = self.args[1]
@@ -1588,6 +1597,7 @@ class UnaryCall(ExprCall):
 
   def firstpass(self):
     self.geninst._instantiategeninst()
+    self._validate()
 
 class ExprField(Expr):
   def __init__(self, container, access, field):
@@ -1605,7 +1615,7 @@ class ExprField(Expr):
       return scope.current().q(self).typecheck()
 
   def patterntypedestruct(self, xtype):
-    return typing.unify([self.typecheck(), xtype])
+    return typing.checkcompat(self.typecheck(), xtype)
 
   def itersubnodes(self, **kw):
     d = self.definition()
@@ -1763,7 +1773,7 @@ class ExprWhile(_FieldsEq, Decl):
       self.scope.define(self.body)
 
   def nocache_typecheck(self, **ignored):
-    typing.checkcompat(self.cond.typecheck(), typing.qbuiltin('nlang.numbers.bool'))
+    typing.checkcompat(typing.qbuiltin('nlang.numbers.bool'), self.cond.typecheck())
     self.body.typecheck()
     return typing.qbuiltin('nlang.numbers.void')
 
@@ -1819,11 +1829,11 @@ class ExprIf(_FieldsEq, Decl):
       self.scope.define(self.elsebody)
 
   def nocache_typecheck(self, **ignored):
-    typing.unify([c.typecheck() for c,_ in self.condpairs] + [typing.qbuiltin('nlang.numbers.bool')])
+    typing.unify(typing.qbuiltin('nlang.numbers.bool'), [c.typecheck() for c,_ in self.condpairs])
     bodies = [b.typecheck() for _,b in self.condpairs]
     if self.elsebody is not None:
       bodies.append(self.elsebody.typecheck())
-    t = typing.unify(bodies)
+    t = typing.unify(None, bodies)
     if t != typing.qbuiltin('nlang.numbers.void'):
       # FIXME: Make sure the conditions are exhaustive, when applicable. In which
       # case we do not need a else.
@@ -1891,6 +1901,7 @@ class ExprMatcher(_FieldsEq, Decl):
     self.vars[0].type = self.patterntypecheck()
     for n in self.itersubnodes(onelevel=True):
       n.firstpass()
+    self._validate()
 
   def itersubnodes(self, **kw):
     return _itersubnodes([self.body] + self.vars, **kw)

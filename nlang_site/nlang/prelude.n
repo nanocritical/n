@@ -7,7 +7,7 @@ from nlang.numbers import *
 
 (fun t) optional ptr:?@t otherwise:t = t
   if ptr != null
-    return ptr.
+    let FIXME_cast:u32
+    return ((nlang.unsafe.cast @t ?@t) ptr).
   else
     return otherwise
-

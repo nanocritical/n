@@ -29,9 +29,11 @@ type index_pair_range = index_pair_iterator
   _v :@c
   _range :index_range
 
-  method! _ctor ?other:@c = void
-    self!_v = other
-    self!_range = other.all_index
+  method! _ctor ?v:?@c = void
+    if v != null
+      let FIXME_cast:u32
+      self!_v = (nlang.unsafe.cast @c ?@c) v
+      self!_range = v.all_index
 
   method! next = bool
     return self._range!next
@@ -42,7 +44,7 @@ type index_pair_range = index_pair_iterator
   method sub beg:size end:size ?by:?@size = this
     return this{{ _v=self._v _range=(self._range.sub beg end by) }}
 
-fun unsafe_slice_clear data:@!u8 elsize:size beg:size end_inc:size = void
+fun unsafe_slice_clear data:@!u8 elsize:size first:size last:size = void
 fun unsafe_slice_addr data:@!u8 elsize:size n:size = @!u8
 
 type slice t = (random_container t)
@@ -58,6 +60,9 @@ type slice t = (random_container t)
 
   method len = size
     return self._len
+
+  method raw_data = @u8
+    return self._data
 
   method! clear = void
     unsafe_slice_clear self!_data (sizeof t) 0 (self._len - 1)
@@ -100,8 +105,9 @@ type slice t = (random_container t)
   method! operator_set__ n:size x:t = void
     #! self.valid_index n
     #? self.check_index n
-    let p = unsafe_slice_addr self._data (sizeof t) n
-    nlang.unsafe.memcpy self!_data p (sizeof t) 1
+    let pdst = unsafe_slice_addr self._data (sizeof t) n
+    let psrc = (nlang.unsafe.cast @u8 @t) @x
+    nlang.unsafe.memcpy pdst psrc (sizeof t) 1
 
   method check_index n:size = bool
     #~ eval self.check_index self.valid_index n
@@ -119,6 +125,22 @@ type slice t = (random_container t)
     let r = index_range.mk self
     return r.sub beg end by
 
+  method! extend x:@this ?offset:?@size ?len:?@size = void
+    let xoffset = optional offset 0
+    let xlen = optional len x.len - xoffset
+    let at = self.len
+    self!resize at + xlen
+
+    let pdst = unsafe_slice_addr self._data (sizeof t) at
+    let psrc = unsafe_slice_addr x._data (sizeof t) xoffset
+    nlang.unsafe.memcpy pdst psrc (sizeof t) xlen
+
+  method! unsafe_extend_memcpy src:@t offset:size len:size = void
+    let at = self.len
+    self!resize self.len + len
+    let pdst = unsafe_slice_addr self._data (sizeof t) offset
+    let psrc = (nlang.unsafe.cast @u8 @t) src
+    nlang.unsafe.memcpy pdst psrc (sizeof t) len
 
 (fun t) no_alias a:?@t b:?@t = bool
   #~ eval thisfun a b no_alias a b

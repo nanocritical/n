@@ -55,8 +55,8 @@ static inline void nlang_unsafe_memcpy(__restrict__ nlangp__u8 dst, __restrict__
 }
 
 static inline void nlang_slice_unsafe_slice_clear(nlangp__u8 data, size elsize,
-                                                  size beg, size end_inc) {
-  memset(data + (beg * elsize), 0, elsize * (end_inc - beg + 1));
+                                                  size start, size last) {
+  memset(data + (start * elsize), 0, elsize * (last - start + 1));
 }
 
 static inline nlangp__u8 nlang_slice_unsafe_slice_addr(nlangp__u8 data, size elsize,

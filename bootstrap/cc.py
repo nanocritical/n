@@ -9,8 +9,6 @@ import errors
 import cwriter
 import resolv
 import sys
-sys.setrecursionlimit(100*1000)
-
 
 class Options(object):
   def __init__(self):
@@ -44,6 +42,7 @@ def compile(opt, fn):
     p = subprocess.Popen(['gcc', '-pipe', '-DNLANG_BOOTSTRAP',
       '-fdata-sections', '-ffunction-sections',
       '-Wall', '-Wno-unused-function', '-Wno-unused-variable',
+      '-Wconversion',
       '-I', opt.nlangdir, '-o', o, '-std=c99', '-xc', '-c', c])
     p.wait()
     if p.returncode == 0:

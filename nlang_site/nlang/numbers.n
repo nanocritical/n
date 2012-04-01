@@ -2,6 +2,7 @@ import nlang.meta
 import nlang.literal
 import nlang.unsafe
 from nlang.prelude import *
+import nlang.show
 
 intf ordered =
   method compare other:@this = i32
@@ -17,35 +18,35 @@ intf bitwise_unsigned =
 
 type void =
 
-type u8 = ordered bitwise_unsigned
+type u8 = ordered bitwise_unsigned nlang.show.show_numeric
   let this_signed:nlang.meta.alias = i8
   method reinterpret_signed = this.this_signed
   method to_u16 = u16
   method to_u32 = u32
   method to_u64 = u64
 
-type u16 = ordered bitwise_unsigned
+type u16 = ordered bitwise_unsigned nlang.show.show_numeric
   let this_signed:nlang.meta.alias = i16
   method slice_u8 = u8
   method reinterpret_signed = i16
   method to_u32 = u32
   method to_u64 = u64
 
-type u32 = ordered bitwise_unsigned
+type u32 = ordered bitwise_unsigned nlang.show.show_numeric
   let this_signed:nlang.meta.alias = i32
   method slice_u8 = u8
   method slice_u16 = u16
   method reinterpret_signed = i32
   method to_u64 = u64
 
-type u64 = ordered bitwise_unsigned
+type u64 = ordered bitwise_unsigned nlang.show.show_numeric
   let this_signed:nlang.meta.alias = i64
   method slice_u8 = u8
   method slice_u16 = u16
   method slice_u32 = u32
   method reinterpret_signed = i64
 
-type size = ordered bitwise_unsigned
+type size = ordered bitwise_unsigned nlang.show.show_numeric
   let this_signed:nlang.meta.alias = ssize
   method slice_u8 = u8
   method slice_u16 = u16
@@ -53,42 +54,42 @@ type size = ordered bitwise_unsigned
   method slice_u64 = u64
   method reinterpret_signed = ssize
 
-type i8 = ordered bitwise_signed
+type i8 = ordered bitwise_signed nlang.show.show_numeric
   let this_unsigned:nlang.meta.alias = u8
   method reinterpret_unsigned = u8
   method to_i16 = i16
   method to_i32 = i32
   method to_i64 = i64
 
-type i16 = ordered bitwise_signed
+type i16 = ordered bitwise_signed nlang.show.show_numeric
   let this_unsigned:nlang.meta.alias = u16
   method slice_i8 = i8
   method reinterpret_unsigned = u16
   method to_i32 = i32
   method to_i64 = i64
 
-type i32 = ordered bitwise_signed
+type i32 = ordered bitwise_signed nlang.show.show_numeric
   let this_unsigned:nlang.meta.alias = u32
   method slice_i8 = i8
   method slice_i16 = i16
   method reinterpret_unsigned = u32
   method to_i64 = i64
 
-type i64 = ordered bitwise_signed
+type i64 = ordered bitwise_signed nlang.show.show_numeric
   let this_unsigned:nlang.meta.alias = u64
   method slice_i8 = i8
   method slice_i16 = i16
   method slice_i32 = i32
   method reinterpret_unsigned = u64
 
-type ssize = ordered bitwise_signed
+type ssize = ordered bitwise_signed nlang.show.show_numeric
   method slice_i8 = i8
   method slice_i16 = i16
   method slice_i32 = i32
   method slice_i64 = i64
   method reinterpret_unsigned = size
 
-type bool = ordered
+type bool = ordered nlang.show.show
 
 
 (fun t:ordered) max a:t b:t = t

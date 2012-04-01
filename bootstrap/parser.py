@@ -6,7 +6,7 @@ keywords = set('''
   match except return
   block future pfor
   import from inherit in
-  and or not neg isa
+  and or not isa
   false true null sizeof this
   pass
 '''.split())
@@ -64,7 +64,7 @@ def t_IDENT(t):
   return t
 
 def t_NUMBER(t):
-  r'''-?(?:0x[A-Fa-f0-9]+|0[0-7]+|\d+)'''
+  r'''(?:0x[A-Fa-f0-9]+|0[0-7]+|\d+)'''
   t.value = long(t.value, 0)
   return t
 
@@ -229,7 +229,6 @@ precedence = (
     ('left', 'PLUS', 'MINUS'),
     ('nonassoc', 'DIVIDE', 'MODULO'),
     ('left', 'TIMES'),
-    ('right', 'NEG'),
     ('right', 'UBWNOT'),
     ('left', 'COLON'),
     ('right', 'REFDOT', 'REFBANG'),
@@ -319,11 +318,7 @@ def p_type_app_only(p):
 def p_type_ref_only(p):
   '''type_ref : REFDOT type_postfix
               | REFBANG type_postfix'''
-  if p[1] == '@':
-    access = '.'
-  else:
-    access = '!'
-  p[0] = ast.ExprTypeRef(access, p[2])
+  p[0] = ast.ExprRef(p[1], p[2])
 
 def p_type_ref(p):
   '''type : type_ref'''
@@ -377,8 +372,7 @@ def p_expr_postfix_group(p):
   p[0] = p[2]
 
 def p_expr_unnop(p):
-  '''expr : NEG expr_postfix
-          | UBWNOT expr_postfix
+  '''expr : UBWNOT expr_postfix
           | NOT expr_postfix'''
   p[0] = ast.ExprUnary(p[1], p[2])
 
@@ -386,6 +380,11 @@ def p_expr_ref(p):
   '''expr : REFDOT expr_postfix
           | REFBANG expr_postfix'''
   p[0] = ast.ExprRef(p[1], p[2])
+
+def p_expr_ref_nullable(p):
+  '''expr : '?' REFDOT expr_postfix
+          | '?' REFBANG expr_postfix'''
+  p[0] = ast.ExprRef(p[2], p[3], nullable=True)
 
 def p_expr_field(p):
   '''expr_postfix : expr_postfix DOT value
@@ -437,7 +436,6 @@ def p_expr_call_list(p):
                     | expr expr_call_list'''
   args = [p[1]]
   if len(p) == 3:
-    p[1].maybeunarycall = False
     args += p[2]
   p[0] = args
 
@@ -464,7 +462,7 @@ def p_expr_constrained(p):
   p[0] = ast.ExprConstrained(p[1], p[3])
 
 def p_expr_postfix(p):
-  '''expr : expr_postfix '''
+  '''expr : expr_postfix'''
   p[0] = p[1]
 
 def p_expr_block(p):
@@ -498,6 +496,10 @@ def p_expr_top(p):
               | expr_tuple
               | expr'''
   p[0] = p[1]
+
+def p_expr_top_unary(p):
+  '''expr_top : MINUS expr'''
+  p[0] = ast.ExprUnary(p[1], p[2])
 
 def p_typedeclname_list(p):
   '''typedeclname_list : IDENT
@@ -884,19 +886,57 @@ def p_methoddecl_mutating(p):
   else:
     p[0] = ast.MethodDecl(p[6], p[4], '!', p[7], p[9], p[10])
 
+def p_intfdecl_empty(p):
+  '''intfdecl : INTF typedeclname ASSIGN
+              | INTF typedeclname ASSIGN isalist
+              | '(' INTF typedeclname_list ')' typedeclname ASSIGN
+              | '(' INTF typedeclname_list ')' typedeclname ASSIGN isalist'''
+  if len(p) == 4:
+    name = p[2]
+    isa = []
+    genargs = []
+  elif len(p) == 5:
+    name = p[2]
+    isa = p[4]
+    genargs = []
+  elif len(p) == 7:
+    name = p[5]
+    isa = []
+    genargs = p[3]
+  elif len(p) == 8:
+    name = p[5]
+    isa = p[7]
+    genargs = p[3]
+  p[0] = ast.Intf(name, genargs, isa, [], [], [], [])
+
 def p_intfdecl(p):
   '''intfdecl : INTF typedeclname ASSIGN typedecl_block
-              | INTF typedeclname ASSIGN isalist typedecl_block'''
-
+              | INTF typedeclname ASSIGN isalist typedecl_block
+              | '(' INTF typedeclname_list ')' typedeclname ASSIGN typedecl_block
+              | '(' INTF typedeclname_list ')' typedeclname ASSIGN isalist typedecl_block'''
   if len(p) == 5:
+    name = p[2]
     isa = []
+    genargs = []
     block = p[4]
-  else:
+  elif len(p) == 6:
+    name = p[2]
     isa = p[4]
+    genargs = []
     block = p[5]
+  elif len(p) == 8:
+    name = p[5]
+    isa = []
+    genargs = p[3]
+    block = p[7]
+  elif len(p) == 9:
+    name = p[5]
+    isa = p[7]
+    genargs = p[3]
+    block = p[8]
 
   _, typedecls, decls, methods, funs, semantics = _typedef_block(block)
-  p[0] = ast.Intf(p[2], [], isa, typedecls, decls, methods, funs)
+  p[0] = ast.Intf(name, genargs, isa, typedecls, decls, methods, funs)
 
 def p_modname(p):
   '''modname : IDENT

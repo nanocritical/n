@@ -17,7 +17,7 @@ type char =
     s!resize new_size
     s![off] = self._word.slice_u8
 
-  method as_ascii = u8, bool
+  method to_ascii = u8, bool
     return self._word.slice_u8, true:bool
 
   fun from_ascii c:u8 = this

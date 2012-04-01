@@ -5,23 +5,65 @@ from nlang.prelude import *
 from nlang.numbers import *
 from nlang.char import *
 from nlang.slice import *
+import nlang.show
+import c99
 
-type string =
-  data :[]u8
+type string = nlang.show.show
+  _bytes :[]u8
 
   method! _ctor ?len:?@size = void
-    self.data!resize (optional len 0)
+    self._bytes!resize (optional len 0) + 1
+    self._bytes![0] = 0
 
   method len = size
-    return self.data.len
+    return self._bytes.len - 1
 
   method byte_len = size
-    return self.data.len
+    return self._bytes.len - 1
 
-  method! extend x:@!string = void
+  method! extend x:@string ?offset:?@size ?len:?@size = void
+    let xoffset = optional offset 0
+    let xlen = optional len x.len - xoffset
+    self._bytes!resize self._bytes.len + xlen
 
-  method! append_char x:char = void
+  method! push x:char = void
+    let c, FIXME = x.to_ascii
+    let last = self._bytes.len
+    self._bytes!resize last+1
+    self._bytes![last-1] = c
+    self._bytes![last] = 0
 
-  method! set__ n:size x:char = void
+  fun from_cstr cstr:@u8 = this
+    let r = this.mk
+      let cstr_len = (c99.strlen cstr) + 1
+      r._bytes!resize cstr_len
+      r._bytes!unsafe_extend_memcpy cstr 0 cstr_len
+    return r
 
-  fun from_cstr cs:@!u8 = this
+  method cstr = @u8
+    return self._bytes.raw_data
+
+  method to_s = this
+    return self.
+
+  method format_s ?flags:?@u32 ?width:?@size ?precision:?@size = this
+    let plen = max (optional precision 0) self.len
+    let pwidth = optional width 0
+    let padding = 0:size
+      if plen < pwidth
+        padding = pwidth - plen
+
+    let left = (optional flags 0) & nlang.show.LEFT_ALIGN != 0
+    let r = this.mk
+      if not left
+        for n:size in range 0 padding
+          r!push ' ':char
+
+      let start = 0:size
+      r!extend self @start @plen
+
+      if left
+        for n:size in range 0 padding
+          r!push ' ':char
+
+    return r

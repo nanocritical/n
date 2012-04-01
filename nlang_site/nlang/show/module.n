@@ -1,0 +1,27 @@
+import nlang.meta
+import nlang.literal
+import nlang.unsafe
+from nlang.numbers import *
+from nlang.prelude import *
+
+let ALTERNATE = 0x1:u32
+let LEFT_ALIGN = 0x2:u32
+let ZERO_PADDED = 0x4:u32
+let SPACE_PADDED = 0x8:u32
+let SIGN_ALWAYS = 0x10:u32
+
+intf show =
+  method to_s = nlang.string.string
+  method format_s ?flags:?@u32 ?width:?@size ?precision:?@size = nlang.string.string
+
+intf show_numeric = show
+  method format_d ?flags:?@u32 ?width:?@size ?precision:?@size = nlang.string.string
+  method format_o ?flags:?@u32 ?width:?@size ?precision:?@size = nlang.string.string
+  method format_u ?flags:?@u32 ?width:?@size ?precision:?@size = nlang.string.string
+  method format_x ?flags:?@u32 ?width:?@size ?precision:?@size = nlang.string.string
+  method format_X ?flags:?@u32 ?width:?@size ?precision:?@size = nlang.string.string
+  method format_e ?flags:?@u32 ?width:?@size ?precision:?@size = nlang.string.string
+  method format_f ?flags:?@u32 ?width:?@size ?precision:?@size = nlang.string.string
+  method format_g ?flags:?@u32 ?width:?@size ?precision:?@size = nlang.string.string
+  method format_a ?flags:?@u32 ?width:?@size ?precision:?@size = nlang.string.string
+  method format_A ?flags:?@u32 ?width:?@size ?precision:?@size = nlang.string.string

@@ -23,6 +23,10 @@ fun main = i32
   if 3*c != d
     return 123
 
+  let minus_one = -1:i32
+  if minus_one != 0 - 1
+    return 1
+
   if true
     return bar a + b a -- Shouldn't be parsed as (b a)
   else

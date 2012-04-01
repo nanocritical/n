@@ -24,8 +24,9 @@ fun t1 = bool
 
 fun main = i32
   let r:i32 = 0
-    for x:i32 in range 0 10
-      r = r + x
+    for x:size in range 0 10
+      let sx = x.slice_u32
+      r = r + sx.reinterpret_signed
   let e = enum.FIRST
   let t = test.SUCCESS
   let tt = test.INTEGER 0

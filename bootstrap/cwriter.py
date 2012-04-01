@@ -44,7 +44,6 @@ def wtyperef(self, out):
     _p(out, 'nlangp__')
   _p(out, self.type.typecheck())
 typing.TypeRef.cwrite = wtyperef
-ExprTypeRef.cwrite = wtyperef
 
 def wtypetuple(self, out):
   _p(out, 'nlangtuple__')
@@ -333,6 +332,7 @@ def wvardecl(self, out):
       return
     const = ''
     #FIXME: reenable. But wpattern cannot deal with it yet.
+    #const = 'const '
     #if isinstance(self, FieldDecl):
     #  const = ''
     _p(out, const, self.typecheck(), ' ', self.name)
@@ -348,7 +348,7 @@ def wpattern(self, out):
     if v is None:
       continue
     if self.static:
-      _p(out, 'static const ', indent(), v, ';\n')
+      _p(out, 'static const ', indent(), v.typecheck(), ' ', globalname(v), ';\n')
     else:
       _p(out, indent(), v, ';\n')
 
@@ -399,7 +399,10 @@ ExprAssign.cwrite = wassign
 def wvalue(self, out):
   node = scope.current().q(self)
   if isinstance(node, VarDecl):
-    _p(out, self.name)
+    if isinstance(node.scope.parent.container, Module):
+      _p(out, globalname(node.scope.container))
+    else:
+      _p(out, self.name)
   else:
     _p(out, node.typecheck())
 ExprValue.cwrite = wvalue
@@ -409,7 +412,10 @@ def wsizeof(self, out):
 ExprSizeof.cwrite = wsizeof
 
 def wref(self, out):
-  _p(out, '&', self.value)
+  if self.is_meta_type():
+    self.typecheck().cwrite(out)
+  else:
+    _p(out, '&', self.value)
 ExprRef.cwrite = wref
 
 def wderef(self, out):
@@ -467,6 +473,16 @@ class _CharCLiteral(ExprLiteral):
   def cwrite(self, out):
     _p(out, "'" + self.args[0].encode('string-escape') + "'")
 
+class _StringCLiteral(ExprLiteral):
+  def __init__(self, c):
+    super(_StringCLiteral, self).__init__(c)
+
+  def nocache_typecheck(self):
+    return typing.TypeRef('.', typing.qbuiltin('nlang.numbers.u8'))
+
+  def cwrite(self, out):
+    _p(out, '((const u8 *) "' + self.args[0].encode('string-escape') + '")')
+
 def wexprconstrained(self, out):
   if self.args[0].typecheck() == typing.qbuiltin('nlang.literal.string') \
       and self.type.typecheck() == typing.qbuiltin('nlang.char.char') \
@@ -474,12 +490,12 @@ def wexprconstrained(self, out):
     _p(out, ExprCall(ast.path_as_expr('nlang.char.char.from_ascii'), [_CharCLiteral(self.args[0].args[0])]))
   elif self.args[0].typecheck() == typing.qbuiltin('nlang.literal.string') \
       and self.type.typecheck() == typing.qbuiltin('nlang.string.string'):
-    _p(out, ExprCall(ast.path_as_expr('nlang.char.char.from_cstr'), [self.args[0]]))
+    _p(out, ExprCall(ast.path_as_expr('nlang.string.string.from_cstr'), [_StringCLiteral(self.args[0].args[0])]))
   else:
     _p(out, '((', self.type, ')(', self.args[0], '))')
 ExprConstrained.cwrite = wexprconstrained
 
-_optrans = { 'and': '&&', 'or': '||', 'not': '!', 'neg': '-' }
+_optrans = { 'and': '&&', 'or': '||', 'not': '!' }
 _opname = {
   '+': 'operator_plus__',
   '-': 'operator_minus__',
@@ -603,13 +619,16 @@ def wexprfield(self, out):
   else:
     container = self.container
 
-  if isinstance(scope.current().q(self.container), ChoiceDecl):
+  qcontainer = scope.current().q(self.container)
+  qself = scope.current().q(self)
+
+  if isinstance(qcontainer, (ChoiceDecl, Module)) or isinstance(qself, Module):
     access = '_'
     field = self.field.name
-  elif isinstance(scope.current().q(self), ChoiceDecl):
+  elif isinstance(qself, ChoiceDecl):
     access = '_'
     field = self.field.name
-  elif isinstance(scope.current().q(self), FieldStaticConstDecl):
+  elif isinstance(qself, FieldStaticConstDecl):
     access = '_'
     field = self.field.name
   else:
