@@ -140,6 +140,8 @@ def forward_declare_members(out, gentype):
         _p(out, typing.TypeRef(f.access, gentype), ' self')
         if len(f.args) > 0:
           _p(out, ', ')
+      elif len(f.args) == 0:
+        _p(out, 'void')
 
       for i in xrange(len(tf.args)):
         _p(out, tf.args[i])
@@ -281,6 +283,8 @@ def wfunctiondecl(self, out):
     else:
       with scope.push(self.scope.parent_definition):
         _p(out, grettype[-1], '\n', self.typecheck(), '(')
+      if len(self.args) == 0:
+        _p(out, 'void')
 
     for i in xrange(len(self.args)):
       _p(out, self.args[i])
