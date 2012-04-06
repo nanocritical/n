@@ -27,6 +27,16 @@ fun main = i32
   if minus_one != 0 - 1
     return 1
 
+  let addr = @a
+  let addr2:(nlang.meta.ref i32) = @a
+  if addr != addr2
+    return 1
+
+  let maddr = @!a
+  let maddr2:(nlang.meta.mutable_ref i32) = @!a
+  if maddr != maddr2
+    return 1
+
   if true
     return bar a + b a -- Shouldn't be parsed as (b a)
   else

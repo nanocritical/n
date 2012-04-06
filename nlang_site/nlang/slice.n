@@ -31,9 +31,9 @@ type index_pair_range = index_pair_iterator
 
   method! _ctor ?v:?@c = void
     if v != null
-      let FIXME_cast:u32
-      self!_v = (nlang.unsafe.cast @c ?@c) v
-      self!_range = v.all_index
+      let nv = nlang.unsafe.nonnull_cast v
+      self!_v = nv
+      self!_range = nv.all_index
 
   method! next = bool
     return self._range!next
@@ -52,8 +52,7 @@ type slice t = (random_container t)
   _len :size
 
   method! _ctor ?len:?@size = void
-    if len != null
-      self!resize len.
+    self!resize (optional len 0)
 
   method! _dtor = void
     nlang.unsafe.free self!_data self._len

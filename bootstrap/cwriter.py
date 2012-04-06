@@ -1,4 +1,4 @@
-import parser
+import nparser
 import errors
 import resolv
 import copy
@@ -37,14 +37,6 @@ def wtype(self, out):
     _p(out, '_'.join(path))
 typing.Type.cwrite = wtype
 
-def wtyperef(self, out):
-  if self.access == '.':
-    _p(out, 'nlangcp__')
-  else:
-    _p(out, 'nlangp__')
-  _p(out, self.type.typecheck())
-typing.TypeRef.cwrite = wtyperef
-
 def wtypetuple(self, out):
   _p(out, 'nlangtuple__')
   for i in xrange(len(self.args)):
@@ -66,6 +58,15 @@ def wexprtypeapp(self, out):
 ExprTypeApp.cwrite = wexprtypeapp
 
 def wtypeapp(self, out):
+  if self.ref_type() == typing.Refs.REF \
+      or self.ref_type() == typing.Refs.NULLABLE_REF:
+    _p(out, 'nlangcp__', self.args[0].typecheck())
+    return
+  if self.ref_type() == typing.Refs.MUTABLE_REF \
+      or self.ref_type() == typing.Refs.NULLABLE_MUTABLE_REF:
+    _p(out, 'nlangp__', self.args[0].typecheck())
+    return
+
   _p(out, 'nlangapp__', globalname(self.defn), '__')
   for i in xrange(len(self.args)):
     _p(out, self.args[i])
@@ -118,6 +119,8 @@ ChoiceDecl.cwrite = wchoicedecl
 def forward_declare(out, gentype):
   if isinstance(gentype, typing.TypeFunction):
     return
+  if gentype.is_some_ref():
+    return
   if gentype.name not in scope.builtintypes:
     kind = 'struct'
     if isinstance(gentype, typing.Type) and isinstance(gentype.defn, Union):
@@ -137,7 +140,11 @@ def forward_declare_members(out, gentype):
       _p(out, tf.rettype,' ', tf, '(')
 
       if isinstance(f, MethodDecl):
-        _p(out, typing.TypeRef(f.access, gentype), ' self')
+        if f.access == '.':
+          tself = typing.mk_ref(gentype)
+        else:
+          tself = typing.mk_mutable_ref(gentype)
+        _p(out, tself, ' self')
         if len(f.args) > 0:
           _p(out, ', ')
       elif len(f.args) == 0:
@@ -277,7 +284,11 @@ def wfunctiondecl(self, out):
         _p(out, grettype[-1], '\n', self.typecheck(), '(')
 
       objtype = self.scope.parent_definition.container.typecheck()
-      _p(out, typing.TypeRef(self.access, objtype), ' self')
+      if self.access == '.':
+        tself = typing.mk_ref(objtype)
+      else:
+        tself = typing.mk_mutable_ref(objtype)
+      _p(out, tself, ' self')
       if len(self.args) > 0:
         _p(out, ', ')
     else:
@@ -421,6 +432,9 @@ def wref(self, out):
   else:
     _p(out, '&', self.value)
 ExprRef.cwrite = wref
+ExprMutableRef.cwrite = wref
+ExprNullableRef.cwrite = wref
+ExprNullableMutableRef.cwrite = wref
 
 def wderef(self, out):
   _p(out, '*', self.value)
@@ -460,7 +474,8 @@ ExprTuple.cwrite = wtuple
 
 def wexprtupleselect(self, out):
   type = self.typecheck()
-  if isinstance(type, typing.TypeRef):
+  if type.ref_type() == typing.Refs.REF \
+      or type.ref_type() == typing.Refs.MUTABLE_REF:
     access = '->'
   else:
     access = '.'
@@ -482,7 +497,7 @@ class _StringCLiteral(ExprLiteral):
     super(_StringCLiteral, self).__init__(c)
 
   def nocache_typecheck(self):
-    return typing.TypeRef('.', typing.qbuiltin('nlang.numbers.u8'))
+    return typing.mk_ref(typing.qbuiltin('nlang.numbers.u8'))
 
   def cwrite(self, out):
     _p(out, '((const u8 *) "' + self.args[0].encode('string-escape') + '")')
@@ -566,7 +581,9 @@ def wexprcall(self, out):
     assert isinstance(self.args[0], ExprField)
     xself = self.args[0].container
     deref = ''
-    if not isinstance(xself.typecheck(), typing.TypeRef):
+    txself = xself.typecheck()
+    if txself.ref_type() != typing.Refs.REF \
+        and txself.ref_type() != typing.Refs.MUTABLE_REF:
       deref = '&'
     _p(out, deref, xself)
 
@@ -612,8 +629,12 @@ def wexprfield(self, out):
     _p(out, self.field)
 
   ctype = self.container.typecheck()
-  if isinstance(ctype, typing.TypeRef):
+  if ctype.ref_type() == typing.Refs.REF:
     access = '->'
+    ctype = ctype.deref('.')
+  elif ctype.ref_type() == typing.Refs.MUTABLE_REF:
+    access = '->'
+    ctype = ctype.deref('!')
   else:
     access = '.'
 
@@ -775,7 +796,7 @@ def _importalias(im, name, alias, mod):
 def wimport(self, out):
   global gimported
   if self.modname not in gimported:
-    mod = parser.parsemod(self.modname)
+    mod = nparser.parsemod(self.modname)
     gimported[self.modname] = mod
     _p(out, mod)
   else:
@@ -808,9 +829,9 @@ def wmodule(self, out):
 
     self.firstpass()
 
-    map(lambda gentype: forward_declare(out, gentype), ast.ctx().gen_instances_fwd)
+    map(lambda gentype: forward_declare(out, gentype), ast.ctx().gen_instances_fwd.copy())
     _p(out, '\n')
-    map(lambda gentype: forward_declare_members(out, gentype), ast.ctx().gen_instances_fwd)
+    map(lambda gentype: forward_declare_members(out, gentype), ast.ctx().gen_instances_fwd.copy())
     _p(out, '\n')
 
     for d in self.toplevels:

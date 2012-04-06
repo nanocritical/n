@@ -1,1 +1,13 @@
 type alias =
+
+intf any_ref t =
+intf ref t = (any_ref t)
+intf mutable_ref t = (ref t)
+intf nullable_ref t = (any_ref t)
+  let nonnull:alias = ref t
+intf nullable_mutable_ref t = (nullable_ref t)
+  let nonnull:alias = mutable_ref t
+(intf t r:(any_ref t)) weak r = r
+(intf t r:(any_ref t)) scoped r = r
+(intf t r:(any_ref t)) unique r = r
+(intf t r:(any_ref t)) shared r = r

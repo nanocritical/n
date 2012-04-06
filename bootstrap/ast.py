@@ -2,7 +2,7 @@ import re
 import copy
 import errors
 import scope
-import parser
+import nparser
 import typing
 
 gnextsym = 0
@@ -123,6 +123,35 @@ class CodeLoc(object):
     if hasattr(self.obj, 'name'):
       s += ': ' + self.obj.name
     return s
+
+  def __deepcopy__(self, memo):
+    # When we allow deepcopy to operate on CodeLoc, we hit a infinite loop in
+    # copy.py. Could be a bug in Python's copy.py? We don't really need to copy
+    # CodeLoc anyway, the self.obj field is "wrong" if we don't, but it is
+    # only used by __str__ to get its name attribute.
+    return self
+
+g_builtin_defs = {}
+for n in '''
+    <root>.nlang.meta.any_ref
+    <root>.nlang.meta.ref
+    <root>.nlang.meta.mutable_ref
+    <root>.nlang.meta.nullable_ref
+    <root>.nlang.meta.nullable_mutable_ref
+    <root>.nlang.meta.weak
+    <root>.nlang.meta.scoped
+    <root>.nlang.meta.unique
+    <root>.nlang.meta.shared'''.split():
+  g_builtin_defs[n] = None
+
+def _add_builtin(d):
+  if not isinstance(d, TypeDef):
+    return
+
+  global g_builtin_defs
+  n = str(d.scope)
+  if n in g_builtin_defs and g_builtin_defs[n] is None:
+    g_builtin_defs[n] = d
 
 class _Node(object):
   def __init__(self):
@@ -255,7 +284,7 @@ class GenericArg(_NameEq):
     if self.typeconstraint is None:
       self.setinstantiated(genscope, t)
     else:
-      assert not isinstance(t, typing.TypeRef)
+      assert not t.is_some_ref()
       self.typeconstraint.typedestruct(genscope, t)
       self.setinstantiated(genscope, t)
 
@@ -267,6 +296,9 @@ class GenericArg(_NameEq):
 
   def definition(self):
     return None
+
+  def is_meta_type(self):
+    return True
 
   def __deepcopy__(self, memo):
     global gdisable_instantiatedcopy
@@ -292,7 +324,12 @@ class GenericTypename(_NameEq):
       a.typedestruct(genscope, b)
 
   def nocache_typecheck(self):
-    return typing.TypeApp(self.defn, *[a.typecheck() for a in self.args])
+    if self.defn.unboundgeneric() \
+        and typing.Refs.BY_FULLNAME.get(str(self.defn.scope), None) is not None:
+      assert len(self.args) == 1
+      return typing.mk_some_ref(str(self.defn.scope), self.args[0].typecheck())
+    else:
+      return typing.TypeApp(self.defn, *[a.typecheck() for a in self.args])
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.args, **kw)
@@ -321,6 +358,7 @@ class TypeDef(_NameEq):
     return self.unbound
 
   def firstpass(self):
+    _add_builtin(self)
     if self.unboundgeneric():
       return
     with scope.push(self.scope):
@@ -362,6 +400,16 @@ class TypeDef(_NameEq):
     cpy.unbound = False
     return cpy
 
+def _fixscope(self):
+  # In the body of a method, current().q() is looking up at the module level.
+  # I.e. class members are not in scope, they must be accessed via self, this
+  # or an absolute path.
+  for a in self.methods:
+    a.scope.parent = self.scope.parent
+  for a in self.funs:
+    a.scope.parent = self.scope.parent
+
+
 class Intf(TypeDef, Decl):
   def __init__(self, type, genargs, listisa, typedecls, decls, methods, funs):
     self.type = type
@@ -388,6 +436,10 @@ class Intf(TypeDef, Decl):
       self.scope.define(a)
     for a in self.funs:
       self.scope.define(a)
+
+  def firstpass(self):
+    super(Intf, self).firstpass()
+    _fixscope(self)
 
   def exportables(self):
     return self.typedecls + self.decls + self.funs + self.methods
@@ -490,8 +542,12 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
 
   def _fillscope_method(self, m):
     self._fillscope_fun(m)
+    if m.access == '!':
+      reft = ExprMutableRef
+    else:
+      reft = ExprRef
     m.scope.define(VarDecl(ExprConstrained( \
-        ExprValue('self'), ExprRef(m.access, self.type))))
+        ExprValue('self'), reft(self.type))))
 
   def _fillscope_members(self):
     for a in self.typedecls:
@@ -507,6 +563,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
       self._fillscope_fun(a)
 
   def firstpass(self):
+    _add_builtin(self)
     if self.unboundgeneric():
       return
 
@@ -517,7 +574,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     self._do_inherit()
     self._generate_choice_builtins()
     self._fillscope_members()
-    self._fixscope()
+    _fixscope(self)
 
     with scope.push(self.scope):
       for n in self.itersubnodes(onelevel=True, filter_out=(lambda n: not isinstance(n, FieldDecl))):
@@ -529,7 +586,8 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
       for n in self.itersubnodes(onelevel=True, filter_out=(lambda n: isinstance(n, FieldDecl))):
         n.firstpass()
 
-    ctx().gen_instances_fwd.add(self.typecheck())
+    if self.kind == TypeDecl.FORWARD or not self.unboundgeneric():
+      ctx().gen_instances_fwd.add(self.typecheck())
     self._validate()
 
   def _copy_inherited(self, inh):
@@ -628,7 +686,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     for d in self.decls:
       if isinstance(d, FieldDecl):
         td = d.typecheck()
-        if isinstance(td, typing.TypeRef):
+        if td.is_some_ref():
           continue
         if '__unsafe_ctor__' in td.defn.scope.table:
           body.append(ExprCall(ExprField(ExprField(xself, '.', ExprValue(d.name)),
@@ -653,7 +711,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     for d in rdecls:
       if isinstance(d, FieldDecl):
         td = d.typecheck()
-        if isinstance(td, typing.TypeRef):
+        if td.is_some_ref():
           continue
         if '__unsafe_dtor__' in td.defn.scope.table:
           body.append(ExprCall(ExprField(ExprField(xself, '.', ExprValue(d.name)),
@@ -670,11 +728,11 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
   def _generate_alloc(self):
     expr = ExprReturn(ExprCall(
         ExprCall(path_as_expr('nlang.unsafe.cast'),
-          [ExprRef('!', ExprValue('this')),
-            ExprRef('!', path_as_expr('nlang.numbers.u8'))]),
+          [ExprMutableRef(ExprValue('this')),
+            ExprMutableRef(path_as_expr('nlang.numbers.u8'))]),
           [ExprCall(path_as_expr('nlang.unsafe.malloc'),
             [ExprCall(ExprSizeof(), [ExprValue('this')])])]))
-    return FunctionDecl('__unsafe_alloc__', [], [], [ExprRef('!', ExprValue('this'))], ExprBlock([expr]))
+    return FunctionDecl('__unsafe_alloc__', [], [], [ExprMutableRef(ExprValue('this'))], ExprBlock([expr]))
 
   def _generate_mk(self):
     tmp = gensym()
@@ -715,7 +773,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
 
     alloc_call = ExprField(ExprValue('this'), '.', ExprValue('__unsafe_alloc__'))
     alloc_call.maybeunarycall = True
-    return FunctionDecl('new', [], new_args, [ExprRef('!', ExprValue('this'))],
+    return FunctionDecl('new', [], new_args, [ExprMutableRef(ExprValue('this'))],
         ExprBlock([VarDecl(ExprValue(tmp), alloc_call)] + ctor_call \
             + [ExprReturn(ExprValue(tmp))]))
 
@@ -733,15 +791,6 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     else:
       block = ExprBlock(body)
       return FunctionDecl('__static_init__', [], [], [typing.qbuiltin('nlang.numbers.void')], block)
-
-  def _fixscope(self):
-    # In the body of a method, current().q() is looking up at the module level.
-    # I.e. class members are not in scope, they must be accessed via self, this
-    # or an absolute path.
-    for a in self.methods:
-      a.scope.parent = self.scope.parent
-    for a in self.funs:
-      a.scope.parent = self.scope.parent
 
   def whatkind(self, decls, typedecls, methods_funs):
     if not isinstance(decls, list):
@@ -853,7 +902,8 @@ class FunctionDecl(TypeDef, Decl, CGlobalName):
     for a in self.args:
       if a.optionalarg:
         t = a.typecheck()
-        if not isinstance(t, typing.TypeRef) or not t.nullable:
+        if t.ref_type() != typing.Refs.NULLABLE_REF \
+            and t.ref_type != typing.Refs.NULLABLE_MUTABLE_REF:
           raise errors.ParseError(
               "Optional argument '%s' to '%s' is not a nullable reference, but of type '%s', at %s"
               % (a, self, t, self.codeloc))
@@ -930,10 +980,6 @@ class VarDecl(_FieldsEq, Decl):
   def itersubnodes(self, **kw):
     return _itersubnodes([self.type, self.expr, self.mutatingblock], **kw)
 
-  def revtypedestruct(self, genscope, t):
-    selftype = self.typecheck()
-    t.revtypedestruct(genscope, selftype)
-
   def single(self):
     return isinstance(self.name, ExprValue)
 
@@ -978,10 +1024,10 @@ class PatternDecl(_FieldsEq, Decl):
       self.scope.define(self.mutatingblock)
 
   def firstpass(self):
-    for n in _itersubnodes([self.expr], onelevel=True):
+    for n in _itersubnodes([self.vars[0], self.expr], onelevel=True):
       n.firstpass()
     self.vars[0].type = self.patterntypecheck()
-    for n in _itersubnodes([self.pattern, self.mutatingblock] + self.vars, onelevel=True):
+    for n in _itersubnodes([self.pattern, self.mutatingblock] + self.vars[1:], onelevel=True):
       n.firstpass()
     self._validate()
 
@@ -1087,6 +1133,9 @@ class ExprValue(Expr):
     else:
       genarg.setinstantiated(genscope, typing.checkcompat(genscope.table[genarg.name].typecheck(), t))
 
+    if genarg.typeconstraint is not None:
+      genarg.typeconstraint.typedestruct(genscope, t)
+
   def patterntypedestruct(self, xtype):
     try:
       t = self.typecheck()
@@ -1116,26 +1165,24 @@ class ExprValue(Expr):
     else:
       return [VarDecl(self, expr)]
 
-class ExprRef(Expr):
-  def __init__(self, access, value, nullable=False):
-    super(ExprRef, self).__init__()
-    if access == '@!':
-      self.access = '!'
-    elif access == '@':
-      self.access = '.'
-    else:
-      self.access = access
-    self.value = value
-    self.setnullable(nullable)
+def _typeappexpr_unbound_isa(expr, typeconstraint):
+  if not isinstance(typeconstraint, typing.TypeApp):
+    return False
+  if not expr.is_meta_type():
+    return False
+  return str(expr.definition().scope) == str(typeconstraint.defn.scope)
 
-  def setnullable(self, nullable):
-    self.nullable = nullable
+class ExprRef(Expr):
+  def __init__(self, value):
+    super(ExprRef, self).__init__()
+    self.value = value
 
   def nocache_typecheck(self, **ignored):
-    return typing.TypeRef(self.access, self.value.typecheck(), nullable=self.nullable)
+    return typing.mk_ref(self.value.typecheck())
 
   def definition(self):
-    return self.deref(self.access).definition()
+    global g_builtin_defs
+    return g_builtin_defs['<root>.nlang.meta.ref']
 
   def geninst_action(self):
     return False, False
@@ -1147,20 +1194,75 @@ class ExprRef(Expr):
     return self.value.is_meta_type()
 
   def deref(self, access):
-    if not self.is_meta_type() and self.nullable:
-      raise errors.TypeError("Cannot dereference a nullable reference '%s', at %s" % (self, self.codeloc))
-    if self.access != '!' and access == '!':
+    if access == '!':
       raise errors.TypeError("Cannot mutate the type '%s', at %s" % (self, self.codeloc))
     return self.value
 
   def typedestruct(self, genscope, t):
-    if not isinstance(t, typing.TypeRef):
+    if not isinstance(t, typing.TypeApp):
       raise errors.PmStructError(self, t)
-    if self.access != t.access and not (self.access == '.' and t.access == '!'):
+    if not _typeappexpr_unbound_isa(self, t):
       raise errors.PmStructError(self, t)
-    if self.nullable != t.nullable and not (self.nullable and not t.nullable):
+    return self.value.typedestruct(genscope, t.args[0])
+
+class ExprMutableRef(Expr):
+  def __init__(self, value):
+    super(ExprMutableRef, self).__init__()
+    self.value = value
+
+  def nocache_typecheck(self, **ignored):
+    return typing.mk_mutable_ref(self.value.typecheck())
+
+  def definition(self):
+    global g_builtin_defs
+    return g_builtin_defs['<root>.nlang.meta.mutable_ref']
+
+  def geninst_action(self):
+    return False, False
+
+  def itersubnodes(self, **kw):
+    return _itersubnodes([self.value], **kw)
+
+  def is_meta_type(self):
+    return self.value.is_meta_type()
+
+  def deref(self, access):
+    return self.value
+
+  def typedestruct(self, genscope, t):
+    if not isinstance(t, typing.TypeApp):
+      raise errors.PmStructError(self, t)
+    if not _typeappexpr_unbound_isa(self, t):
       raise errors.PmStructError(self, t)
     return self.value.typedestruct(genscope, t.type)
+
+class ExprNullableRef(ExprRef):
+  def __init__(self, value):
+    super(ExprNullableRef, self).__init__(value)
+
+  def nocache_typecheck(self, **ignored):
+    return typing.mk_nullable_ref(self.value.typecheck())
+
+  def definition(self):
+    global g_builtin_defs
+    return g_builtin_defs['<root>.nlang.meta.nullable_ref']
+
+  def deref(self, access):
+    raise errors.TypeError("Cannot dereference nullable '%s', at %s" % (self, self.codeloc))
+
+class ExprNullableMutableRef(ExprRef):
+  def __init__(self, value):
+    super(ExprNullableMutableRef, self).__init__(value)
+
+  def nocache_typecheck(self, **ignored):
+    return typing.mk_nullable_mutable_ref(self.value.typecheck())
+
+  def definition(self):
+    global g_builtin_defs
+    return g_builtin_defs['<root>.nlang.meta.nullable_mutable_ref']
+
+  def deref(self, access):
+    raise errors.TypeError("Cannot dereference nullable '%s', at %s" % (self, self.codeloc))
 
 class ExprDeref(Expr):
   def __init__(self, access, value):
@@ -1313,6 +1415,8 @@ class ExprConstrained(Expr):
 
   def patterntypedestruct(self, xtype):
     if xtype is None:
+      return self.type.typecheck()
+    elif self.is_meta_type():
       return self.type.typecheck()
     else:
       return typing.checkcompat(self.type.typecheck(), xtype)
@@ -1483,7 +1587,7 @@ class ExprCall(_IsGenericInstance, Expr):
     d = self.geninst.defn
     if d is None:
       d = self.args[0].definition()
-    assert not d.unboundgeneric() and "REALLY? also, make sure (accordion t) is correctly typedestruct?" != ""
+    assert not d.unboundgeneric()
 
     if isinstance(d, FunctionDecl):
       if len(self.args) > 1 \
@@ -1524,7 +1628,8 @@ class ExprCall(_IsGenericInstance, Expr):
       return False
 
   def typedestruct(self, genscope, t):
-    if isinstance(t, typing.TypeRef):
+    if not isinstance(t, typing.Type) and not isinstance(t, typing.TypeApp) \
+        and not t.is_some_ref():
       raise errors.PmStructError(self, t)
 
     td = t.concrete_definition()
@@ -1532,9 +1637,8 @@ class ExprCall(_IsGenericInstance, Expr):
       found = False
       for i in td.listisa:
         try:
-          with scope.push(t.genscope):
-            with scope.push(td.scope):
-              ti = i.typecheck()
+          with scope.push(td.scope):
+            ti = i.typecheck()
           self.typedestruct(genscope, ti)
           found = True
           break
@@ -2012,6 +2116,9 @@ class PlaceholderModule(_NameEq):
   def definition(self):
     return self
 
+  def is_meta_type(self):
+    return False
+
 class Module(_NameEq):
   def __init__(self, defs):
     super(Module, self).__init__('<anonymous>')
@@ -2067,3 +2174,6 @@ class Module(_NameEq):
 
   def definition(self):
     return self
+
+  def is_meta_type(self):
+    return False

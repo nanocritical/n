@@ -10,3 +10,6 @@ fun free p:?@!u8 len:size = void
 fun memcpy dst:@!u8 src:@u8 el_size:size n:size = void
 
 (fun d s) cast src:s = d
+
+(fun t r:(nlang.meta.nullable_ref t)) nonnull_cast x:r = r.nonnull
+  return (cast r.nonnull r) x

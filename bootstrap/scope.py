@@ -178,7 +178,19 @@ class Scope(object):
       self._define(what, name=name, noparent=noparent)
 
   def _qfield(self, node):
-    what = node.container.concrete_definition()
+    nodet = node.container.typecheck()
+    while True:
+      if nodet.is_some_ref():
+        if node.container.is_meta_type():
+          what = nodet.concrete_definition()
+          break
+
+        nodet = nodet.deref(node.access)
+        continue
+      else:
+        what = nodet.concrete_definition()
+        break
+
 
     if isinstance(node.field, basestring):
       field = node.field
@@ -238,7 +250,8 @@ class Scope(object):
 
     if not ignorefield and isinstance(node, ast.ExprField):
       return self._qfield(node)
-    if not ignorefield and isinstance(node, ast.ExprRef):
+    if not ignorefield and (isinstance(node, ast.ExprRef) \
+        or isinstance(node, ast.ExprMutableRef)):
       return self.rawq(node.value, innerscope=innerscope, ignorefield=ignorefield)
     if not ignorefield and isinstance(node, ast.ExprCall):
       return self.q(node.args[0], innerscope=innerscope, ignorefield=ignorefield)

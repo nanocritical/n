@@ -55,6 +55,12 @@ class Typename(object):
   def geninst_action(self):
     return False, False
 
+  def ref_type(self):
+    return None
+
+  def is_some_ref(self):
+    return False
+
 def _asexpr(name):
   path = name.split('.')
   path[0] = ast.ExprValue(path[0])
@@ -102,38 +108,6 @@ class TypeUnboundGeneric(Typename):
   def concrete_definition(self):
     return self.defn
 
-class TypeRef(Typename):
-  def __init__(self, access, type, nullable=False):
-    prefix = '@'
-    if access == '!':
-      prefix = '@!'
-    if nullable:
-      prefix = '?' + prefix
-    super(TypeRef, self).__init__(prefix + type.name)
-    self.access = access
-    self.type = type
-    self.nullable = nullable
-
-  def deref(self, access):
-    if self.access != '!' and access == '!':
-      raise errors.TypeError("Cannot mutate the type '%s', at %s" % (self, self.codeloc))
-    return self.type
-
-  def concrete_definition(self):
-    return self.deref(self.access).concrete_definition()
-
-  def isa(self, typeconstraint):
-    assert not isinstance(typeconstraint, TypeUnboundGeneric)
-    if type(self) != type(typeconstraint):
-      return False
-    if self == typeconstraint:
-      return True
-    if typeconstraint.access == '!' and self.access == '.':
-      return False
-    if not typeconstraint.nullable and self.nullable:
-      return False
-    return self.type.isa(typeconstraint.type)
-
 class TypeTuple(Typename):
   def __init__(self, *args):
     super(TypeTuple, self).__init__('(' + ', '.join([str(t) for t in args]) + ')')
@@ -154,33 +128,40 @@ class TypeTuple(Typename):
   def geninst_action(self):
     return True, True
 
+class Refs(object):
+  ANY_REF, REF, MUTABLE_REF, NULLABLE_REF, NULLABLE_MUTABLE_REF = range(5)
+  PREFIXES = { REF: '@', MUTABLE_REF: '@!', NULLABLE_REF: '?@', NULLABLE_MUTABLE_REF: '?@!' }
+  CAN_DEREF = { REF: '.', MUTABLE_REF: '!' }
+  BY_FULLNAME = {
+    '<root>.nlang.meta.any_ref': ANY_REF,
+    '<root>.nlang.meta.ref': REF,
+    '<root>.nlang.meta.mutable_ref': MUTABLE_REF,
+    '<root>.nlang.meta.nullable_ref': NULLABLE_REF,
+    '<root>.nlang.meta.nullable_mutable_ref': NULLABLE_MUTABLE_REF,
+  }
+
 class TypeApp(Typename):
   def __init__(self, defn, *args):
     super(TypeApp, self).__init__('(' + str(defn.scope) + ' ' + ' '.join([str(t) for t in args]) + ')')
+    assert defn is not None
     self.defn = defn
     for t in args:
       assert isinstance(t, Typename)
     self.args = list(args)
     self.geninst = ast.GenericInstance(ast.ExprCall(_asexpr(str(self.defn.scope)), self.args))
-    self._fillscope()
 
-  def _fillscope(self):
-    self.genscope = scope.Scope(self)
-    for genarg, t in zip(self.defn.instantiable_genargs(), self.args):
-      self.genscope.define(t, name=genarg.name)
+    self._ref = Refs.BY_FULLNAME.get(str(self.defn.scope), None)
+    prefix = Refs.PREFIXES.get(Refs.BY_FULLNAME.get(str(self.defn.scope)), None)
+    if prefix is not None:
+      Typename.__init__(self, prefix + str(self.args[0]))
 
   def concrete_definition(self):
     return self.defn
 
   def isa(self, typeconstraint):
     assert isinstance(typeconstraint, Typename) and not isinstance(typeconstraint, TypeUnboundGeneric)
-    if type(self) != type(typeconstraint):
-      return False
     if self == typeconstraint:
       return True
-
-    if str(self.defn.scope) != str(typeconstraint.defn.scope):
-      return False
 
     found = False
     with scope.push(self.defn.scope):
@@ -200,6 +181,54 @@ class TypeApp(Typename):
   def geninst_action(self):
     return True, True
 
+  def is_some_ref(self):
+    return self._ref is not None
+
+  def ref_type(self):
+    return self._ref
+
+  def deref(self, access):
+    if not self.is_some_ref():
+      raise errors.TypeError("Cannot dereference '%s', at %s" % (self, self.codeloc))
+
+    allowed = Refs.CAN_DEREF.get(Refs.BY_FULLNAME.get(str(self.defn.scope)), None)
+    if allowed is None:
+      raise errors.TypeError("Cannot dereference '%s', at %s" % (self, self.codeloc))
+    elif allowed == '.' and access == '!':
+      raise errors.TypeError("Cannot mutate '%s', at %s" % (self, self.codeloc))
+    else:
+      return self.args[0]
+
+def _instantiate_ref(instance, d, type):
+  genscope = scope.Scope(instance)
+  genarg = d.type.args[0]
+  with scope.push(d.scope):
+    genarg.typedestruct(genscope, type)
+  defn = d.instantiated_copy(genscope)
+  defn.firstpass()
+  ast.ctx().gen_instances_fwd.add(defn.typecheck())
+  return defn
+
+def mk_some_ref(name, type):
+  t = TypeApp(ast.g_builtin_defs[name], type)
+  t.defn = _instantiate_ref(t, t.defn, type)
+  return t
+
+def mk_any_ref(type):
+  return mk_some_ref('<root>.nlang.meta.any_ref', type)
+
+def mk_ref(type):
+  return mk_some_ref('<root>.nlang.meta.ref', type)
+
+def mk_mutable_ref(type):
+  return mk_some_ref('<root>.nlang.meta.mutable_ref', type)
+
+def mk_nullable_ref(type):
+  return mk_some_ref('<root>.nlang.meta.nullable_ref', type)
+
+def mk_nullable_mutable_ref(type):
+  return mk_some_ref('<root>.nlang.meta.nullable_mutable_ref', type)
+
 class TypeFunction(Typename):
   def __init__(self, defn, rettype, *args):
     pd = defn.scope.parent_definition.container
@@ -217,12 +246,6 @@ class TypeFunction(Typename):
     self.defn = defn
     self.rettype = rettype
     self.args = list(args)
-    self._fillscope()
-
-  def _fillscope(self):
-    self.genscope = scope.Scope(self)
-    for genarg, t in zip(self.defn.instantiable_genargs(), self.args):
-      self.genscope.define(t, name=genarg.name)
 
   def concrete_definition(self):
     return self.defn
@@ -256,7 +279,7 @@ def _unify_lit_conc(lit, conc):
     if conc.name == '<root>.nlang.string.string' or conc.name == '<root>.nlang.char.char':
       return conc
   elif lit.name == '<root>.nlang.literal.nulltype':
-    if conc.nullable:
+    if conc.name.startswith('?'):
       return conc
 
   _unifyerror(lit, conc)
@@ -334,8 +357,12 @@ def unify(constraint, types):
     return t
   elif _isliteral(t):
     return _unify_lit_conc(t, constraint)
+  elif (t.ref_type() == Refs.REF and constraint.ref_type() == Refs.NULLABLE_REF) \
+      or (t.ref_type() == Refs.MUTABLE_REF and constraint.ref_type() == Refs.NULLABLE_MUTABLE_REF) \
+      and t.args[0].isa(constraint.args[0]):
+    return constraint
   elif not t.isa(constraint):
-    raise errors.TypeError()
+    _unifyerror(t, constraint)
   else:
     return t
 

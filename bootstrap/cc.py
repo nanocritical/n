@@ -4,7 +4,7 @@ import sys
 import hashlib
 import subprocess
 
-import parser
+import nparser
 import errors
 import cwriter
 import resolv
@@ -35,7 +35,7 @@ def compile(opt, fn):
     c = cfn(fn)
     o = objectfn(fn)
 
-    mod = parser.parsemod(modname)
+    mod = nparser.parsemod(modname)
     with open(c, 'w') as out:
       mod.cwrite(out)
 

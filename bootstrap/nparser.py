@@ -1,3 +1,11 @@
+import ply.yacc as yacc
+import resolv
+import ply.lex as lex
+import sys
+import ast
+import typing
+import errors
+
 gfn = None
 
 keywords = set('''
@@ -159,14 +167,7 @@ def t_error(t):
   print>>sys.stderr, "Illegal character '%s'" % t.value[0]
   t.lexer.skip(1)
 
-import ply.lex as lex
 lex.lex()
-
-
-import sys
-import ast
-import typing
-import errors
 
 
 def _define_oneof(name, *rulenames, **kw):
@@ -318,16 +319,22 @@ def p_type_app_only(p):
 def p_type_ref_only(p):
   '''type_ref : REFDOT type_postfix
               | REFBANG type_postfix'''
-  p[0] = ast.ExprRef(p[1], p[2])
+  if p[1] == '@':
+    p[0] = ast.ExprRef(p[2])
+  else:
+    p[0] = ast.ExprMutableRef(p[2])
+
+def p_type_ref_nullable(p):
+  '''type_ref : '?' REFDOT type_postfix
+              | '?' REFBANG type_postfix'''
+  if p[2] == '@':
+    p[0] = ast.ExprNullableRef(p[3])
+  else:
+    p[0] = ast.ExprNullableMutableRef(p[3])
 
 def p_type_ref(p):
   '''type : type_ref'''
   p[0] = p[1]
-
-def p_type_nullable(p):
-  '''type : '?' type_ref'''
-  p[2].setnullable(True)
-  p[0] = p[2]
 
 def p_type_top(p):
   '''type_top : type_app
@@ -379,12 +386,18 @@ def p_expr_unnop(p):
 def p_expr_ref(p):
   '''expr : REFDOT expr_postfix
           | REFBANG expr_postfix'''
-  p[0] = ast.ExprRef(p[1], p[2])
+  if p[1] == '@':
+    p[0] = ast.ExprRef(p[2])
+  else:
+    p[0] = ast.ExprMutableRef(p[2])
 
 def p_expr_ref_nullable(p):
   '''expr : '?' REFDOT expr_postfix
           | '?' REFBANG expr_postfix'''
-  p[0] = ast.ExprRef(p[2], p[3], nullable=True)
+  if p[2] == '@':
+    p[0] = ast.ExprNullableRef(p[3])
+  else:
+    p[0] = ast.ExprNullableMutableRef(p[3])
 
 def p_expr_field(p):
   '''expr_postfix : expr_postfix DOT value
@@ -993,10 +1006,6 @@ def p_error(t):
         % (ast.gmodctx[ast.gmodname[-1]].fn, t.lineno, t.value))
 
 start = 'module'
-
-import ply.yacc as yacc
-
-import resolv
 
 def parsefile(modname, fn):
   with open(fn) as f:
