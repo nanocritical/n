@@ -1,9 +1,4 @@
-import nlang.meta
-import nlang.numbers
-import nlang.literal
-import nlang.unsafe
 from nlang.prelude import *
-from nlang.vector import *
 
 type enum =
   | FIRST

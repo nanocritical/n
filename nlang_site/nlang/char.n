@@ -1,9 +1,4 @@
-import nlang.meta
-import nlang.literal
-import nlang.unsafe
 from nlang.prelude import *
-from nlang.numbers import *
-from nlang.slice import *
 
 type char =
   _word:u32

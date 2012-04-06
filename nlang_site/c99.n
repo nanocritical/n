@@ -1,7 +1,3 @@
-import nlang.meta
-import nlang.literal
-import nlang.unsafe
-from nlang.numbers import *
 from nlang.prelude import *
 
 fun strlen s:@u8 = size

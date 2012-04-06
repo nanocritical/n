@@ -1,5 +1,4 @@
-import nlang.unsafe
-from nlang.numbers import *
+from nlang.prelude import *
 from nlang.string import *
 
 intf meta =

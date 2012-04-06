@@ -1,10 +1,5 @@
-import nlang.meta
-import nlang.literal
-import nlang.unsafe
 from nlang.prelude import *
-from nlang.numbers import *
 from nlang.char import *
-from nlang.slice import *
 import nlang.show
 import c99
 

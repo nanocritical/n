@@ -1,9 +1,5 @@
-import nlang.meta
-import nlang.unsafe
-import nlang.literal
 from nlang.prelude import *
 from nlang.vector import *
-from nlang.numbers import *
 
 fun foo x:u32 y:u32 = u32
   return x*y

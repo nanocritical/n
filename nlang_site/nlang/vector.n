@@ -1,11 +1,5 @@
-import nlang.meta
-import nlang.literal
-import nlang.unsafe
 from nlang.prelude import *
-from nlang.numbers import *
-from nlang import *
 from nlang.containers import *
-from nlang.slice import *
 import nlang.accordion
 
 type vector t = (random_container t)

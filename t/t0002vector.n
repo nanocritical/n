@@ -1,10 +1,5 @@
-import nlang.meta
-import nlang.literal
-import nlang.unsafe
 from nlang.prelude import *
-from nlang.numbers import *
 from nlang.vector import *
-from nlang import zip
 
 fun t1 = bool
   let v = (vector u32).mk

@@ -782,41 +782,48 @@ def wsemanticassert(self, out):
 SemanticClaim.cwrite = wsemanticassert
 SemanticAssert.cwrite = wsemanticassert
 
-gimported = {}
+g_imported = {}
 ginstantiated = set()
 
-def _importalias(im, name, alias, mod):
-  if alias in ctx().importednames:
+def _importalias(im, mod, target, alias):
+  if alias in im.owner.scope.table:
+    existing = im.owner.scope.table[alias]
+    if existing != target:
+      raise errors.ParseError("Import of '%s' as '%s' hides '%s', at %s" \
+          % (target, alias, existing, im.codeloc))
     return
-  target = mod.scope.q(ast._QueryWrapper(name))
+
   scope.current().define(target, name=alias, noparent=True)
-  im.owner.imported.append(target)
-  ctx().importednames.add(alias)
 
 def wimport(self, out):
-  global gimported
-  if self.modname not in gimported:
+  global g_imported
+  if self.modname not in g_imported:
     mod = nparser.parsemod(self.modname)
-    gimported[self.modname] = mod
+    g_imported[self.modname] = mod
     _p(out, mod)
   else:
-    mod = gimported[self.modname]
+    mod = g_imported[self.modname]
 
   # FIXME: This is not exactly correct: 'from a import x' should not make 'a.x'
   # available to the module. But internally we look up imported resources
   # using the full path so we need to define the module in the scope.
-  scope.current().define(mod, noparent=True)
+  try:
+    existing = scope.current().q(ast.path_as_expr(mod.fullname))
+    if existing.fullname != mod.fullname:
+      raise errors.ParseError("Import of '%s' hides '%s', at %s" \
+          % (mod.fullname, existing.fullname, self.codeloc))
+  except errors.ScopeError:
+    scope.current().define(mod, noparent=True)
+    for imported in mod.imported_modules:
+      scope.current().define(imported, noparent=True)
+
+  self.owner.imported_modules.append(mod)
 
   if self.alias is not None:
-    _importalias(self, self.path[-1], self.alias, mod)
+    _importalias(self, mod, mod.scope.table[self.path[-1]], self.alias)
   elif self.all:
-    for d in mod.imported + mod.toplevels:
-      if isinstance(d, PatternDecl):
-        # FIXME: Cannot handle the intermediate tempory with proper static vars init.
-        assert len(d.vars) == 1
-        _importalias(self, d.vars[0].name, d.vars[0].name, mod)
-      else:
-        _importalias(self, d.name, d.name, mod)
+    for n, d in mod.scope.table.iteritems():
+      _importalias(self, mod, d, n)
 Import.cwrite = wimport
 
 def wmodule(self, out):

@@ -1,6 +1,3 @@
-import nlang.meta
-import nlang.literal
-import nlang.numbers
 from nlang.prelude import *
 from nlang.vector import *
 

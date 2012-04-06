@@ -169,7 +169,7 @@ class Scope(object):
           if i == len(path) - 1:
             scope._define(what, name=p, noparent=noparent)
           else:
-            scope.define(ast.PlaceholderModule(p))
+            scope.define(ast.PlaceholderModule(path[0:i+1]))
 
         if i < len(path) - 1:
           prev = scope.table[p]

@@ -1,10 +1,5 @@
-import nlang.meta
-import nlang.literal
-from nlang.numbers import *
-import nlang.unsafe
-import nlang.string
 from nlang.prelude import *
-from nlang.slice import *
+import nlang.string
 from nlang.char import *
 from nlang.string import *
 from posix import *

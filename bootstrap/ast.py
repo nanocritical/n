@@ -441,9 +441,6 @@ class Intf(TypeDef, Decl):
     super(Intf, self).firstpass()
     _fixscope(self)
 
-  def exportables(self):
-    return self.typedecls + self.decls + self.funs + self.methods
-
   def itersubnodes(self, **kw):
     return _itersubnodes(self.listisa, self.typedecls, self.decls, self.methods, self.funs, **kw)
 
@@ -836,9 +833,6 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
         return c
     raise errors.TypeError("Invalid selector '%s' for '%s', at %s" \
         % (choice, self.scope, choice.codeloc))
-
-  def exportables(self):
-    return self.imported + self.typedecls + self.decls + self.funs + self.methods
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.listisa, self.inherits, self.typedecls, self.static_decls, self.decls, self.funs, self.methods, **kw)
@@ -2094,7 +2088,6 @@ class ModuleContext(object):
     self.line = 1
 
     self.gen_instances_fwd = set()
-    self.importednames = set()
 
 class PlaceholderModule(_NameEq):
   '''When importing module 'a.b.c', modules 'a' and 'a.b' are not imported.
@@ -2105,10 +2098,11 @@ class PlaceholderModule(_NameEq):
   (that contains a reference to 'a.b') is copied over.
   '''
 
-  def __init__(self, name):
+  def __init__(self, path):
     # If name is None, this is the root.
-    super(PlaceholderModule, self).__init__(name)
+    super(PlaceholderModule, self).__init__(path[-1])
     self.scope = scope.Scope(self)
+    self.fullname = '.'.join(path)
 
   def nocache_typecheck(self):
     return typing.Type(self)
@@ -2123,8 +2117,8 @@ class Module(_NameEq):
   def __init__(self, defs):
     super(Module, self).__init__('<anonymous>')
     self.imports = []
-    self.imported = []
     self.toplevels = []
+    self.imported_modules = []
     for d in defs:
       if isinstance(d, basestring) and d == '\n':
         pass
@@ -2147,7 +2141,7 @@ class Module(_NameEq):
     self.fullname = name
     self.filename = filename
 
-    root = PlaceholderModule('<root>')
+    root = PlaceholderModule(['<root>'])
     s = root.scope
     for i in xrange(len(self.path)):
       p = self.path[i]
@@ -2155,16 +2149,13 @@ class Module(_NameEq):
         s = s.table[p].scope
       else:
         if i < len(self.path) - 1:
-          ph = PlaceholderModule(p)
+          ph = PlaceholderModule(self.path[0:i+1])
           s.table[p] = ph
           ph.scope.parent = s
           s = ph.scope
         else:
           s.table[p] = self
           self.scope.parent = s
-
-  def exportables(self):
-    return self.imported + self.toplevels
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.toplevels, **kw)

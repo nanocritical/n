@@ -2,6 +2,7 @@ import nlang.meta
 import nlang.literal
 import nlang.unsafe
 from nlang.numbers import *
+from nlang.slice import *
 
 (fun t) _sizeof x:t = size
 
