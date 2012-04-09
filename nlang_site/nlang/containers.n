@@ -1,109 +1,233 @@
 from nlang.prelude import *
 
-intf index_iterator =
-  method index = size
-  method! next = bool
-
-type index_range = index_iterator
-  _pos _end _incr :size
-
-  method! next = bool
-    if self._pos > self._end - 1
-      return false
-    else
-      self!_pos = self._pos + self._incr
-      return true
-
-  method index = size
-    return self._pos
-
-  method sub beg:size end:size ?by:?@size = this
-    return this{{ _pos=beg _end=end _incr=(optional by 1) }}
-
-intf index_pair_iterator =
-  method index = size, size
-  method! next = bool
-
-intf element_iterator t =
-  method! next = bool
-  method get = t
-
-intf element_pair_iterator t1 t2 =
-  method! next = bool
-  method get = t1, t2
 
 intf container t =
   method len = size
   method! clear = void
     #~ self.struct_change
-  method! reserve len:size = void
-    #~ self.struct_change
-  method all = (element_iterator t)
-    #~ retval.prevents self.struct_change
-
   #~ prop non_empty
   #~ prop struct_change
 
 intf forward_container t = (container t)
-  -- from container t import *
-
-  method len = size
-  method! clear = void
-    #~ self.struct_change
-  method all = (element_iterator t)
-    #~ retval.prevents self.struct_change
-
-  method! push x:t = void
-    #~ self.struct_change
-  method! pop = t
-    #~ self.struct_change
   method first = t
   method last = t
-  method! resize newsize:size = void
-    #~ self.struct_change
-  method! resize_with newsize:size x:t = void
-    #~ self.struct_change
-
   #~ prop struct_change
 
 intf random_container t = (forward_container t)
-  -- from forward_container t import *
-
-  method len = size
-  method! clear = void
-    #~ self.struct_change
-  method all = (element_iterator t)
+  method all = (element_iterator this)
     #~ retval.prevents self.struct_change
-
-  method! push x:t = void
-    #~ self.struct_change
-  method! pop = t
-    #~ self.struct_change
-  method first = t
-  method last = t
-  method! resize newsize:size = void
-    #~ self.struct_change
-  method! resize_with newsize:size x:t = void
-    #~ self.struct_change
-
-  #~ prop struct_change
 
   method operator_get__ n:size = t
   method! operator_set__ n:size x:t = void
+  method get_ref n:size = @t
+  method len = size
   method check_index n:size = bool
     #~ eval retval self.valid_index n
   method all_index = index_range
+  method range_index beg:size end:size ?by:?@size = index_range
+  #~ prop valid_index
+  #~ prop valid_range
 
-  #~ prop valid_index -- n:size
-  #~ prop valid_range 
+intf index_iterator = copyable
+  method all = index_range
+  method get = size
+  method! next = bool
+  method! reset = void
 
-intf linked_container t = (container t)
-  intf node =
-    el :@!t
-    method! next = this
+intf index_pair_iterator = copyable
+  method all = index_pair_range
+  method get = size, size
+  method! next = bool
+  method! reset = void
 
-  method! remove_node n:this.node = void
-  method! insert_before n:this.node x:t = void
-  method! insert_after n:this.node x:t = void
-  method! replace n:this.node x:t = void
-  method all_nodes = (this.node_range t)
+type index_range = copyable
+  _beg _end _by:size
+
+  fun mk beg:size end:size ?by:?@size = this
+    let r = this{{}}
+      r!_beg = beg
+      r!_end = end
+      r!_by = optional by 1
+    return r
+
+  method begin = size
+    return self._beg
+
+  method end = size
+    return self._end
+
+  method by = size
+    return self._by
+
+  method sub beg:size end:size = this
+    #? beg >= self.begin
+    #? end <= self.end
+    return this.mk beg end @self._by
+
+  method offset_by offset:size = this
+    return this.mk self.begin+offset self.end+offset @self._by
+
+  method iter = index_range_iterator
+    return index_range_iterator.mk self.
+
+  method iter_zip_with_offset offset:size = index_range_iterator_with_offset
+    return index_range_iterator_with_offset.mk self. offset
+
+type index_range_iterator = index_iterator
+  _r:index_range
+  _pos:size
+
+  fun mk r:index_range = this
+    return this{{ _r=r _pos=r.begin }}
+
+  method all = index_range
+    return self._r
+
+  method get = size
+    return self._pos
+
+  method! next = bool
+    if self._pos + self._r.by >= self._r.end
+      return false
+    else
+      self!_pos = self._pos + self._r.by
+      return true
+
+  method! reset = void
+    self!_pos = self._r.begin
+
+type index_pair_range = copyable
+  _a _b :index_range
+
+  fun mk a:index_range b:index_range = this
+    return this{{ _a=a _b=b }}
+
+  method begin = size, size
+    return self._a.begin, self._b.begin
+
+  method end = size, size
+    return self._a.end, self._b.end
+
+  method by = size, size
+    return self._a.by, self._b.by
+
+  method fst = index_range
+    return self._a
+
+  method snd = index_range
+    return self._b
+
+  method offset_by offset:size = this
+    return this.mk (self._a.offset_by offset) (self._b.offset_by offset)
+
+  method iter = index_pair_range_iterator
+    return index_pair_range_iterator.mk self.
+
+type index_pair_range_iterator = index_pair_iterator
+  _r:index_pair_range
+  _apos _bpos:size
+
+  fun mk r:index_pair_range = this
+    let a, b = r.begin
+    return this{{ _r=r _apos=a _bpos=b }}
+
+  method all = index_pair_range
+    return self._r
+
+  method get = size, size
+    return self._apos, self._bpos
+
+  method! next = bool
+    let a, b = self._r.by
+    let aend, bend = self._r.end
+    if self._apos + a >= aend or self._bpos + b >= bend
+      return false
+    else
+      self!_apos = self._apos + a
+      self!_bpos = self._bpos + b
+      return true
+
+  method! reset = void
+    self!_apos, self!_bpos = self._r.begin
+
+type index_range_iterator_with_offset = index_pair_iterator
+  _iter:index_range_iterator
+  _pos _offset:size
+
+  fun mk r:index_range offset:size = this
+    return this{{ _iter=r.iter _pos=r.begin _offset=offset }}
+
+  method all = index_pair_range
+    let r = self._iter.all
+    return index_pair_range.mk self._iter.all (r.offset_by self._offset)
+
+  method get = size, size
+    return self._pos, self._pos + self._offset
+
+  method! next = bool
+    return self._iter!next
+
+  method! reset = void
+    self._iter!reset
+
+
+(type t) random_element_range c:(random_container t) =
+  _v:@c
+  _range:index_range
+
+  fun mk v:@c = this
+    return this{{ _v=v _range=v.all_index }}
+
+  method container = @c
+    return self._v
+
+  method all_index = index_range
+    return self._range
+
+  method len = size
+    return self._v.len
+
+  method sub beg:size end:size = this
+    #? beg >= self._range.begin
+    #? end <= self._range.end
+    let by = self._range.by
+    let subr = self._range.sub beg end @by
+    return this{{ _v=self._v _range=subr }}
+
+  method iter = (random_element_iterator c)
+    return (random_element_iterator c).mk self
+
+(intf t) element_iterator c:(random_container t) =
+  method all = (random_element_range c)
+  method! next = bool
+  method get = @t
+  method! reset = void
+
+(type t) random_element_iterator c:(random_container t) = (element_iterator c)
+  _er:@(random_element_range c)
+  _iter:index_range_iterator
+
+  fun mk r:@(random_element_range c) = this
+    let rng = r.all_index
+    return this{{ _er=r _iter=rng.iter }}
+
+  method all = @(random_element_range c)
+    return self._er
+
+  method! next = bool
+    return self._iter.next
+
+  method get = @t
+    let ctnr = self._er.container
+    return ctnr.get_ref self._iter.get
+
+  method! reset = void
+    self._iter!reset
+
+fun range beg:size end:size ?by:?@size = index_range
+  return index_range.mk beg end by
+
+(fun t1 t2) zip a:(element_iterator t1) b:(element_iterator t2) = (element_pair_iterator t1 t2)
+
+(fun t1 t2) zip_index a:(forward_container t1) b:(forward_container t2) = index_pair_range
+  return index_pair_range{{ _a=a.all _b=b.all }}

@@ -1,0 +1,31 @@
+from nlang.prelude import *
+from nlang.slice import *
+import nlang.memory
+
+type allocator = nlang.memory.allocator slice_allocator
+  (method! t) alloc = @!t
+    return (nlang.unsafe.cast @!t @!u8) (nlang.unsafe.malloc (sizeof t))
+
+  (method! t) free x:@!t = void
+    nlang.unsafe.free ((nlang.unsafe.cast @!u8 @!t) x) (sizeof t)
+
+  (method! t) slice_alloc s:@![]t len:size = void
+    self!free s
+    s!unsafe_reinit (nlang.unsafe.malloc len * (sizeof t)) len
+
+  (method! t) slice_free s:@![]t = void
+    if s.len > 0
+      nlang.unsafe.free s!unsafe_mutable_rawdata s.len
+      s!unsafe_clear
+
+  (method! t) slice_resize s:@![]t new_len:size = void
+    let old_len = s.len
+    if new_len == old_len
+      return
+    s!unsafe_reinit (nlang.unsafe.realloc s!unsafe_mutable_rawdata old_len new_len) new_len
+
+  (method! t) slice_copy dst:@![]t src:@[]t = void
+    self!resize dst src.len
+    nlang.unsafe.memcpy dst.unsafe_mutable_rawdata src.unsafe_rawdata (sizeof t) src.len
+
+let the = (nlang.unsafe.cast @!allocator @!u8) nlang.unsafe.malloc (sizeof allocator)

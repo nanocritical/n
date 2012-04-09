@@ -1,7 +1,6 @@
+from nlang import *
 
-
-type Err =
-| MISSING -> String
-| UNEXPECTED -> String
-| PARSE -> String
-| MISSING_MODULE -> String
+type error =
+  | UNEXPECTED string
+  | PARSE string
+  | MISSING_MODULE string

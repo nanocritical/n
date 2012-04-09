@@ -1,0 +1,5 @@
+from nlang.prelude import *
+
+intf allocator =
+  (method! t) alloc = @!t
+  (method! t) free x:@!t = void

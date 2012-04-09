@@ -104,12 +104,16 @@ def wintf(self, out):
   if self.unboundgeneric():
     return
 
+  global ginstantiated
+  if self.typecheck() in ginstantiated:
+    return
+  ginstantiated.add(self.typecheck())
+
   with scope.push(self.scope):
-    self.mapgeninsts(lambda gen: _p(out, gen))
+    self.mapgeninsts(lambda gen: _p(out, gen), set())
 
     for td in self.typedecls:
       _p(out, td)
-
 Intf.cwrite = wintf
 
 def wchoicedecl(self, out):
@@ -135,6 +139,9 @@ def forward_declare_members(out, gentype):
   if hasattr(gentype, 'defn') and isinstance(gentype.defn, TypeDecl):
     for f in gentype.defn.methods + gentype.defn.funs:
       tf = f.typecheck()
+      if isinstance(tf, typing.TypeUnboundGeneric):
+        continue
+
       if f.name[0] == '_':
         _p(out, 'static ')
       _p(out, tf.rettype,' ', tf, '(')
@@ -163,7 +170,7 @@ def wtypedecl(self, out):
     return
 
   if self.kind == TypeDecl.FORWARD:
-    if self.name == 'void':
+    if str(self.scope) == 'nlang.numbers.void':
       return
     forward_declare(out, self.typecheck());
     forward_declare_members(out, self.typecheck());
@@ -177,30 +184,34 @@ def wtypedecl(self, out):
   ginstantiated.add(self.typecheck())
 
   with scope.push(self.scope):
-    if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
-      _p(out, indent(+1), 'typedef enum {\n')
-      for d in self.decls:
-        if isinstance(d, ChoiceDecl):
-          _p(out, indent(), d, ',\n')
-      indent(-1)
-      _p(out, indent(), '} nlangtag__', self.type, ';\n\n')
-
-    self.mapgeninsts(lambda gen: _p(out, gen))
+    self.mapgeninsts(lambda gen: _p(out, gen), set())
 
     for td in self.typedecls:
       _p(out, td)
 
-    _p(out, indent(+1), 'struct ', self.type ,' {\n')
-    for d in self.decls:
-      if not isinstance(d, ChoiceDecl):
-        _p(out, indent(), d, ';\n')
-    indent(-1)
-    _p(out, indent(), '};\n\n')
+    global g_cwrite_types
+    if g_cwrite_types:
+      if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
+        _p(out, indent(+1), 'typedef enum {\n')
+        for d in self.decls:
+          if isinstance(d, ChoiceDecl):
+            _p(out, indent(), d, ',\n')
+        indent(-1)
+        _p(out, indent(), '} nlangtag__', self.type, ';\n\n')
 
-    if self.typecheck() not in ctx().gen_instances_fwd:
-      _p(out, indent(), 'typedef struct ', self.type, ' ', self.type, ';\n')
-      _p(out, indent(), 'typedef ', self.type, '* nlangp__', self.type, ';\n')
-      _p(out, indent(), 'typedef const ', self.type, '* nlangcp__', self.type, ';\n\n')
+      _p(out, indent(+1), 'struct ', self.type ,' {\n')
+      for d in self.decls:
+        if not isinstance(d, ChoiceDecl):
+          _p(out, indent(), d, ';\n')
+      indent(-1)
+      _p(out, indent(), '};\n\n')
+
+      if self.typecheck() not in ctx().gen_instances_fwd:
+        _p(out, indent(), 'typedef struct ', self.type, ' ', self.type, ';\n')
+        _p(out, indent(), 'typedef ', self.type, '* nlangp__', self.type, ';\n')
+        _p(out, indent(), 'typedef const ', self.type, '* nlangcp__', self.type, ';\n\n')
+
+      return
 
     for d in self.decls:
       if isinstance(d, ChoiceDecl):
@@ -213,13 +224,18 @@ def wtypedecl(self, out):
     for d in self.static_decls:
       _p(out, d)
 
-    for d in self.methods:
-      _p(out, d)
-    for d in self.funs:
-      _p(out, d)
+    for m in self.methods:
+      _p(out, m)
+    for f in self.funs:
+      _p(out, f)
+    _p(out, '\n\n')
 TypeDecl.cwrite = wtypedecl
 
 def wtupleinst(self, out):
+  global g_cwrite_types
+  if not g_cwrite_types:
+    return
+
   t = self.tuple.typecheck()
 
   ctx().gen_instances_fwd.discard(t)
@@ -243,6 +259,15 @@ def wtupleinst(self, out):
 TupleInstance.cwrite = wtupleinst
 
 def wunion(self, out):
+  global g_cwrite_types
+  if not g_cwrite_types:
+    return
+
+  global ginstantiated
+  if self.typecheck() in ginstantiated:
+    return
+  ginstantiated.add(self.typecheck())
+
   ctx().gen_instances_fwd.discard(self.typecheck())
   _p(out, 'union ', self.type, ' {\n')
   indent(+1);
@@ -271,7 +296,11 @@ def wfunctiondecl(self, out):
   ginstantiated.add(self.typecheck())
 
   with scope.push(self.scope):
-    self.mapgeninsts(lambda gen: _p(out, gen))
+    self.mapgeninsts(lambda gen: _p(out, gen), set())
+
+    global g_cwrite_types
+    if g_cwrite_types:
+      return
 
     global grettype
     grettype.append(self.rettype.typecheck())
@@ -356,6 +385,10 @@ def wvardecl(self, out):
 VarDecl.cwrite = wvardecl
 
 def wpattern(self, out):
+  global g_cwrite_types
+  if g_cwrite_types:
+    return
+
   if self.is_meta_type():
     return
 
@@ -514,41 +547,23 @@ def wexprconstrained(self, out):
     _p(out, '((', self.type, ')(', self.args[0], '))')
 ExprConstrained.cwrite = wexprconstrained
 
-_optrans = { 'and': '&&', 'or': '||', 'not': '!' }
-_opname = {
-  '+': 'operator_plus__',
-  '-': 'operator_minus__',
-  '*': 'operator_times__',
-  '/': 'operator_div__',
-  '%': 'operator_mod__',
-  '>>': 'operator_rshift__',
-  '<<': 'operator_lshift__',
-  '&': 'operator_bwand__',
-  '|': 'operator_bwor__',
-  '^': 'operator_bwxor__',
-  '~': 'operator_bwnot__',
-  'and': 'operator_and__',
-  'or': 'operator_or__',
-  'not': 'operator_not__',
-}
-
 def wexprbin(self, out):
   t = self.typecheck()
   d = t.concrete_definition()
-  if isinstance(d, TypeDecl) and _opname.get(self.op, None) in d.scope.table:
-    _p(out, ExprCall(ExprField(self.args[0], '.', ExprValue(_opname[self.op])), [self.args[1]]))
+  if self.non_native_expr:
+    _p(out, self.non_native_expr)
   else:
-    op = _optrans.get(self.op, self.op)
+    op = ast.op_trans.get(self.op, self.op)
     _p(out, '(', self.args[0], ' ', op, ' ', self.args[1], ')')
 ExprBin.cwrite = wexprbin
 
 def wexprunary(self, out):
   t = self.typecheck()
   d = t.concrete_definition()
-  if isinstance(d, TypeDecl) and _opname.get(self.op, None) in d.scope.table:
-    _p(out, UnaryCall(ExprField(self.args[0], '.', ExprValue(_opname[self.op]))))
+  if self.non_native_expr:
+    _p(out, self.non_native_expr)
   else:
-    op = _optrans.get(self.op, self.op)
+    op = ast.op_trans.get(self.op, self.op)
     _p(out, '(', op, ' ', self.args[0], ')')
 ExprUnary.cwrite = wexprunary
 
@@ -611,9 +626,13 @@ ExprCall.cwrite = wexprcall
 
 def wunarycall(self, out):
   self.args[0].maybeunarycall = False
+
+  if isinstance(self.args[0], ExprCall):
+    _p(out, self.args[0])
+    return
+
   fundef = scope.current().q(self.args[0]).definition()
   fun = scope.current().q(self.args[0]).concrete_definition()
-
   if isinstance(fun, FunctionDecl):
     self.args[0].maybeunarycall = True
     _p(out, ExprCall(self.args[0], []))
@@ -691,11 +710,10 @@ ExprWhile.cwrite = wexprwhile
 
 def wexprfor(self, out):
   with scope.push(self.scope):
-    range = gensym()
     indent(+1)
-    _p(out, '{\n', indent(), 'nlang_containers_index_range ', range, ' = ', self.iter, ';\n')
-    _p(out, indent(+1), 'for (; nlang_containers_index_range_next(&', range, ');) {\n')
-    _p(out, indent(), self.vardecl, ' = nlang_containers_index_range_index(&', range, ');\n')
+    _p(out, '{\n', indent(), self.var_iter_tmp, ';\n')
+    _p(out, indent(+1), 'for (; ', self.next_expr, ';) {\n')
+    _p(out, indent(), self.pattern, ';\n')
     _p(out, self.body)
     indent(-1)
     _p(out, '\n', indent(-1), '}\n', indent(), '}')
@@ -782,8 +800,14 @@ def wsemanticassert(self, out):
 SemanticClaim.cwrite = wsemanticassert
 SemanticAssert.cwrite = wsemanticassert
 
+def wdeclare(self, out):
+  pass
+Declare.cwrite = wdeclare
+
 g_imported = {}
-ginstantiated = set()
+ginstantiated = None
+g_instantiated_types = set()
+g_instantiated_others = set()
 
 def _importalias(im, mod, target, alias):
   if alias in im.owner.scope.table:
@@ -803,6 +827,9 @@ def wimport(self, out):
     _p(out, mod)
   else:
     mod = g_imported[self.modname]
+
+  if ast.g_root_scope is None:
+    ast.g_root_scope = scope.root(mod.scope)
 
   # FIXME: This is not exactly correct: 'from a import x' should not make 'a.x'
   # available to the module. But internally we look up imported resources
@@ -834,6 +861,7 @@ def wmodule(self, out):
     for d in self.imports:
       _p(out, d, '\n\n')
 
+    self.inherit_pass()
     self.firstpass()
 
     map(lambda gentype: forward_declare(out, gentype), ast.ctx().gen_instances_fwd.copy())
@@ -841,11 +869,20 @@ def wmodule(self, out):
     map(lambda gentype: forward_declare_members(out, gentype), ast.ctx().gen_instances_fwd.copy())
     _p(out, '\n')
 
+    global g_instantiated_types
+    global g_instantiated_others
+    global ginstantiated
+
+    global g_cwrite_types
+    g_cwrite_types = True
+    ginstantiated = g_instantiated_types
     for d in self.toplevels:
       _p(out, d, '\n\n')
 
-    # Define what's left.
-    map(lambda gentype: _p(out, gentype.defn), ast.ctx().gen_instances_fwd.copy())
+    g_cwrite_types = False
+    ginstantiated = g_instantiated_others
+    for d in self.toplevels:
+      _p(out, d, '\n\n')
 
     gmodname.pop()
 

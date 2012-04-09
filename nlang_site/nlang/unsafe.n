@@ -1,13 +1,16 @@
 import nlang.meta
 import nlang.literal
-from nlang.numbers import *
-from nlang.prelude import *
 
-fun malloc len:size = @!u8
-fun realloc p:?@!u8 old_len:size len:size = @!u8
-fun free p:?@!u8 len:size = void
+declare nlang.numbers =
+  type u8 =
+  type size =
+  type void =
 
-fun memcpy dst:@!u8 src:@u8 el_size:size n:size = void
+fun malloc len:nlang.numbers.size = @!nlang.numbers.u8
+fun realloc p:?@!nlang.numbers.u8 old_len:nlang.numbers.size len:nlang.numbers.size = @!nlang.numbers.u8
+fun free p:?@!nlang.numbers.u8 len:nlang.numbers.size = nlang.numbers.void
+
+fun memcpy dst:@!nlang.numbers.u8 src:@nlang.numbers.u8 el_size:nlang.numbers.size n:nlang.numbers.size = nlang.numbers.void
 
 (fun d s) cast src:s = d
 

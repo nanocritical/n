@@ -2,13 +2,33 @@ import nlang.meta
 import nlang.literal
 import nlang.unsafe
 from nlang.numbers import *
-from nlang.slice import *
+
+declare nlang.numbers =
+  type i32 =
+  type void =
+  type size =
 
 (fun t) _sizeof x:t = size
 
+
+intf any =
+intf trivial_ctor =
+intf trivial_dtor =
+
+intf copyable =
+  method! operator_copy__ other:@this = nlang.numbers.void
+
+intf trivial_copy = copyable
+
+intf moveable =
+  method! operator_move__ other:@!this = nlang.numbers.void
+
+intf comparable =
+  method operator_cmp__ other:@this = nlang.numbers.i32
+
+
 (fun t) optional ptr:?@t otherwise:t = t
   if ptr != null
-    let FIXME_cast:u32
-    return ((nlang.unsafe.cast @t ?@t) ptr).
+    return (nlang.unsafe.nonnull_cast ptr).
   else
     return otherwise

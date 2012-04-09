@@ -1,4 +1,6 @@
 from nlang.prelude import *
+from nlang.slice import *
+import nlang.heap
 
 type char =
   _word:u32
@@ -9,7 +11,7 @@ type char =
   method utf8_copy_bytes s:@![]u8 ?offset:?@size = void
     let off = optional offset 0
     let new_size = max (off + self.utf8_byte_count) s.len
-    s!resize new_size
+    nlang.heap.the!slice_resize s new_size
     s![off] = self._word.slice_u8
 
   method to_ascii = u8, bool

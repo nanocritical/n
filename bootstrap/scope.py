@@ -95,6 +95,29 @@ class Scope(object):
       p = self.parent_definition or self.parent
       return str(p) + '.' + cname
 
+  def has_instantiable(self):
+    return True
+
+  def instantiated_copy(self, genenv, memo):
+    cpy = copy.copy(self)
+    memo[id(self)] = cpy
+    new = False
+    cpy.table = {}
+    for k,v in self.table.iteritems():
+      vcpy, vnew = ast._instantiated_copy(v, genenv, memo)
+      cpy.table[k] = vcpy
+      new = new or vnew
+    try:
+      cpy.parent = memo[id(self.parent)]
+    except KeyError:
+      pass
+    try:
+      cpy.parent_definition = memo[id(self.parent_definition)]
+    except KeyError:
+      pass
+    cpy.container = memo[id(self.container)]
+    return cpy, new
+
   def cglobalname(self):
     assert hasattr(self.container, 'name')
     cname = self.container.name
@@ -140,7 +163,7 @@ class Scope(object):
             % (what, what.codeloc))
       elif what.scope.parent is not None:
         raise errors.ScopeError(self, "Subscope '%s' already has a parent '%s', at %s" \
-            % (what.scope, what.scope.parent_definition, what.codeloc))
+            % (what.scope, what.scope.parent_definition or what.scope.parent, what.codeloc))
       what.scope.parent = self
       what.scope.parent_definition = self
 
@@ -157,6 +180,14 @@ class Scope(object):
             if isinstance(existing, ast.PlaceholderModule):
               del scope.table[p]
               scope._define(what, name=p, noparent=True)
+
+              table_copy = existing.scope.table.copy()
+              for n, d in table_copy.iteritems():
+                if not isinstance(d, ast.PlaceholderModule):
+                  # FIXME: before deleteing the old content (put there by 'declare'),
+                  # check that it was consistent with the new.
+                  del existing.scope.table[n]
+
               what.scope.table.update(existing.scope.table)
             elif isinstance(existing, ast.Module):
               scope = existing.scope

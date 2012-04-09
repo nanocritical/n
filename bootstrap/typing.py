@@ -49,7 +49,7 @@ class Typename(object):
   def unboundgeneric(self):
     return False
 
-  def mapgeninsts(self, aux):
+  def mapgeninsts(self, aux, memo):
     pass
 
   def geninst_action(self):
@@ -61,6 +61,13 @@ class Typename(object):
   def is_some_ref(self):
     return False
 
+  def has_instantiable(self):
+    return False
+
+  def __deepcopy__(self, memo):
+    memo[id(self)] = self
+    return self
+
 def _asexpr(name):
   path = name.split('.')
   path[0] = ast.ExprValue(path[0])
@@ -69,6 +76,7 @@ def _asexpr(name):
 class Type(Typename):
   def __init__(self, defn):
     super(Type, self).__init__(str(defn.scope))
+    assert self.name != 'size'
     assert defn is not None
     self.defn = defn
 
@@ -106,13 +114,15 @@ class TypeUnboundGeneric(Typename):
     self.args = list(args)
 
   def concrete_definition(self):
-    return self.defn
+    raise Exception("Unbound generic '%s' does not have a concrete definition, at %s" \
+        % (self, self.codeloc))
 
 class TypeTuple(Typename):
   def __init__(self, *args):
     super(TypeTuple, self).__init__('(' + ', '.join([str(t) for t in args]) + ')')
     self.args = args
     self.geninst = ast.TupleInstance(self)
+    self.defn = self.geninst
 
   def isa(self, typeconstraint):
     assert not isinstance(typeconstraint, TypeUnboundGeneric)
@@ -127,6 +137,9 @@ class TypeTuple(Typename):
 
   def geninst_action(self):
     return True, True
+
+  def itersubnodes(self, **kw):
+    return ast._itersubnodes(self.args + [self.geninst], **kw)
 
 class Refs(object):
   ANY_REF, REF, MUTABLE_REF, NULLABLE_REF, NULLABLE_MUTABLE_REF = range(5)
@@ -181,6 +194,9 @@ class TypeApp(Typename):
   def geninst_action(self):
     return True, True
 
+  def itersubnodes(self, **kw):
+    return ast._itersubnodes([self.defn] + self.args, **kw)
+
   def is_some_ref(self):
     return self._ref is not None
 
@@ -200,13 +216,14 @@ class TypeApp(Typename):
       return self.args[0]
 
 def _instantiate_ref(instance, d, type):
-  genscope = scope.Scope(instance)
+  genenv = ast.GenericEnv()
   genarg = d.type.args[0]
   with scope.push(d.scope):
-    genarg.typedestruct(genscope, type)
-  defn = d.instantiated_copy(genscope)
-  defn.firstpass()
-  ast.ctx().gen_instances_fwd.add(defn.typecheck())
+    genarg.typedestruct(genenv, type)
+  defn, new_instance = d.mk_instantiated_copy(genenv)
+  if new_instance:
+    defn.firstpass()
+    ast.ctx().gen_instances_fwd.add(defn.typecheck())
   return defn
 
 def mk_some_ref(name, type):
@@ -348,10 +365,12 @@ def unify(constraint, types):
     t = ulit
   elif c is not None:
     t = c
+  elif c is None and constraint == qbuiltin('nlang.meta.alias'):
+    return constraint
+  else:
+    raise Exception('Unexpected')
 
-  if t is None:
-    raise errors.TypeError()
-  elif constraint is None:
+  if constraint is None:
     return t
   elif constraint == qbuiltin('nlang.meta.alias'):
     return t

@@ -1,4 +1,4 @@
-from nlang.prelude import *
+from nlang import *
 
 type enum =
   | FIRST
@@ -19,7 +19,8 @@ fun t1 = bool
 
 fun main = i32
   let r:i32 = 0
-    for x:size in range 0 10
+    let rr = range 0 10
+    for x:size in rr.iter
       let sx = x.slice_u32
       r = r + sx.reinterpret_signed
   let e = enum.FIRST

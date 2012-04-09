@@ -1,7 +1,6 @@
 import nlang.meta
 import nlang.literal
 import nlang.unsafe
-from nlang.prelude import *
 import nlang.show
 
 intf ordered =

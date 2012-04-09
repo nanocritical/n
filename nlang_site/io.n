@@ -1,0 +1,13 @@
+from nlang import string copyable
+
+type path = copyable
+  _name:string
+
+  method! ctor name:@[]u8 = void
+    self._name = string.from_cstr name
+
+  method operator_cmp__ other:@this = i32
+    return self._name.operator_cmp__ other._name
+
+  fun from_s name:@string = this
+    return self.mk name.cstr

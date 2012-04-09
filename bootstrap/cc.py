@@ -40,7 +40,7 @@ def compile(opt, fn):
       mod.cwrite(out)
 
     p = subprocess.Popen(['gcc', '-pipe', '-DNLANG_BOOTSTRAP',
-      '-fdata-sections', '-ffunction-sections',
+      '-fdata-sections', '-ffunction-sections', '-g',
       '-Wall', '-Wno-unused-function', '-Wno-unused-variable',
       '-Wconversion',
       '-I', opt.nlangdir, '-o', o, '-std=c99', '-xc', '-c', c])

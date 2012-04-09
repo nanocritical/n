@@ -1,5 +1,6 @@
 from nlang.prelude import *
 from nlang.vector import *
+import nlang.heap
 
 fun foo x:u32 y:u32 = u32
   return x*y
@@ -32,6 +33,9 @@ fun main = i32
   let maddr2:(nlang.meta.mutable_ref i32) = @!a
   if maddr != maddr2
     return 1
+
+  let mem = nlang.heap.the!alloc u32
+  let mem_val = mem.
 
   if true
     return bar a + b a -- Shouldn't be parsed as (b a)

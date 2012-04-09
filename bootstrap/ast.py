@@ -21,7 +21,7 @@ def path_as_expr(name):
 
 def deepset_codeloc(node, codeloc):
   node.codeloc = codeloc
-  for n in node.itersubnodes(onelevel=True):
+  for n in node.itersubnodes():
     n.codeloc = codeloc
 
 class _QueryWrapper(object):
@@ -49,16 +49,25 @@ class _ShallowFence(object):
     if not self.fenced:
       _gshallowfence.remove(self.idx)
 
+_g_pretty_depth = 0
+
+def _pretty_indent():
+  global _g_pretty_depth
+  return ''.join([' ' for n in xrange(_g_pretty_depth)])
+
 def _prettystr(x):
+  global _g_pretty_depth
   with _ShallowFence(x) as fenced:
     if fenced:
       return repr(x)
 
     if isinstance(x, dict):
-      s = '{ '
+      s = '\n' + _pretty_indent() + '{\n'
+      _g_pretty_depth += 2
       for k, v in x.iteritems():
-        s += "'%s': %s, " % (k, v)
-      return s + '}'
+        s += _pretty_indent() + "'%s': %s,\n" % (k, v)
+      _g_pretty_depth -= 2
+      r = s + _pretty_indent() + '}'
     elif isinstance(x, tuple):
       s = '('
       for v in x:
@@ -75,13 +84,17 @@ def _prettystr(x):
       return str(x)
     elif isinstance(x, CodeLoc):
       return str(x)
+    elif isinstance(x, typing.Typename):
+      return x.name
     elif hasattr(x, '__dict__') and hasattr(x, 'name') and hasattr(x, 'codeloc'):
       return x.__class__.__name__ + '(' + str(x.codeloc) + ')'
     elif hasattr(x, '__dict__'):
-      s = x.__class__.__name__ + '{ '
+      s = '\n' + _pretty_indent() + x.__class__.__name__ + '{\n'
+      _g_pretty_depth += 2
       for k, v in x.__dict__.iteritems():
-        s += "'%s': %s, " % (k, _prettystr(v))
-      return s + '}'
+        s += _pretty_indent() + "'%s': %s,\n" % (k, _prettystr(v))
+      _g_pretty_depth -= 2
+      return s + _pretty_indent() + '}'
     else:
       return str(x)
 
@@ -93,7 +106,6 @@ def _listwrap(x):
 
 def _itersubnodes(*args, **kw):
   filter_out = kw.pop('filter_out', (lambda n: False))
-  onelevel = kw.get('onelevel', False)
   for a in args:
     if a is None:
       continue
@@ -103,12 +115,6 @@ def _itersubnodes(*args, **kw):
       if filter_out(g):
         continue
       yield g
-      if onelevel:
-        continue
-      for sub in g.itersubnodes(**kw):
-        if filter_out(sub):
-          continue
-        yield sub
 
 class CodeLoc(object):
   def __init__(self, obj):
@@ -124,12 +130,9 @@ class CodeLoc(object):
       s += ': ' + self.obj.name
     return s
 
-  def __deepcopy__(self, memo):
-    # When we allow deepcopy to operate on CodeLoc, we hit a infinite loop in
-    # copy.py. Could be a bug in Python's copy.py? We don't really need to copy
-    # CodeLoc anyway, the self.obj field is "wrong" if we don't, but it is
-    # only used by __str__ to get its name attribute.
-    return self
+  def instantiated_copy(self, genenv, memo):
+    memo[id(self)] = self
+    return self, False
 
 g_builtin_defs = {}
 for n in '''
@@ -153,28 +156,132 @@ def _add_builtin(d):
   if n in g_builtin_defs and g_builtin_defs[n] is None:
     g_builtin_defs[n] = d
 
+class GenericEnv(object):
+  def __init__(self):
+    self._table = {}
+
+  def get_instantiated(self, genarg):
+    return self._table[id(genarg)]
+
+  def set_instantiated(self, genarg, t):
+    if id(genarg) in self._table:
+      typing.checkcompat(self._table[id(genarg)].typecheck(), t)
+    else:
+      self._table[id(genarg)] = GenericArgInstantiated(genarg, t)
+
+def _instantiated_copy_list(x, genenv, memo):
+  y = []
+  memo[id(x)] = y
+  for a in x:
+    y.append(_instantiated_copy(a, genenv, memo)[0])
+  return y, True
+
+def _instantiated_copy_tuple(x, genenv, memo):
+  y = []
+  for a in x:
+    y.append(_instantiated_copy(a, genenv, memo)[0])
+  d = id(x)
+  try:
+    return memo[d], True
+  except KeyError:
+    pass
+  for i in range(len(x)):
+    if x[i] is not y[i]:
+      y = tuple(y)
+      break
+  else:
+    y = x
+  memo[d] = y
+  return y, True
+
+def _instantiated_copy_dict(x, genenv, memo):
+  y = {}
+  memo[id(x)] = y
+  for key, value in x.iteritems():
+    y[key] = _instantiated_copy(value, genenv, memo)[0]
+  return y, True
+
+_g_instantiated_copiers = {
+    list: _instantiated_copy_list,
+    tuple: _instantiated_copy_tuple,
+    dict: _instantiated_copy_dict,
+}
+
+def _instantiated_copy(x, genenv, memo, initial=False):
+  cpy = memo.get(id(x), None)
+  if not initial and cpy is not None:
+    return cpy, False
+
+  if not isinstance(x, (_Node, scope.Scope)):
+    copier = _g_instantiated_copiers.get(type(x), None)
+    if copier is None:
+      return x, False
+    else:
+      return copier(x, genenv, memo)
+
+  sc = None
+  if hasattr(x, 'scope'):
+    sc = x.scope
+
+  with scope.push(sc):
+    if not x.has_instantiable():
+      return x, False
+
+    if hasattr(x, 'instantiated_copy'):
+      cpy, new_instance = x.instantiated_copy(genenv, memo)
+      return cpy, new_instance
+
+    cpy = copy.copy(x)
+    memo[id(x)] = cpy
+
+    if sc is not None:
+      # Handle scope first, as fields of x may refer to it.
+      cpy.scope = _instantiated_copy(sc, genenv, memo)[0]
+
+    for k,v in x.__dict__.iteritems():
+      if k == 'scope':
+        # Already done.
+        continue
+      elif k == 'cachedtype':
+        cpy.__dict__[k] = None
+        continue
+      else:
+        cpy.__dict__[k], _ = _instantiated_copy(v, genenv, memo)
+    return cpy, True
+
 class _Node(object):
   def __init__(self):
     self.cachedtype = None
+    # Default to True: when instantiating a generic, we haven't done firstpass yet
+    # *inside* it. FIXME The better way would be to compute this on a prior pass.
+    self.cached_has_instantiable = True
 
   def itersubnodes(self, **kw):
     raise Exception("Not implemented in '%s'" % type(self))
 
-  def mapgeninsts(self, aux):
-    for n in self.itersubnodes(onelevel=True):
+  def mapgeninsts(self, aux, memo):
+    for n in self.itersubnodes():
       isgeninst, descend = n.geninst_action()
       sc = None
       if hasattr(n, 'scope') and not isinstance(n, VarDecl):
         sc = n.scope
 
+      if isinstance(n, Intf):
+        continue
+
       with scope.push(sc):
+        if descend and not n.unboundgeneric():
+          if id(n) not in memo:
+            memo.add(id(n))
+            n.mapgeninsts(aux, memo)
         if isgeninst:
           aux(n.geninst)
-        if descend and not n.unboundgeneric():
-          n.mapgeninsts(aux)
 
   def geninst_action(self):
     return False, True
+
+  def inherit_pass(self):
+    pass
 
   def firstpass(self):
     if hasattr(self, 'scope'):
@@ -182,12 +289,15 @@ class _Node(object):
     else:
       sc = None
 
+    self.cached_has_instantiable = False
     with scope.push(sc):
-      for n in self.itersubnodes(onelevel=True):
+      for n in self.itersubnodes():
         n.firstpass()
-    self._validate()
+        self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
 
-  def _validate(self):
+    self.validate()
+
+  def validate(self):
     pass
 
   def typecheck(self, *args, **kw):
@@ -209,6 +319,9 @@ class _Node(object):
 
   def unboundgeneric(self):
     return False
+
+  def has_instantiable(self):
+    return self.cached_has_instantiable
 
 def _is_non_function_primitive(node):
   return isinstance(node, ExprCall) \
@@ -274,19 +387,13 @@ class GenericArg(_NameEq):
     except errors.ScopeError, ignore:
       return None
 
-  def setinstantiated(self, genscope, t):
-    if self.name in genscope.table:
-      typing.checkcompat(genscope.table[self.name].typecheck(), t)
-    else:
-      genscope.define(GenericArgInstantiated(self, t))
-
-  def typedestruct(self, genscope, t):
+  def typedestruct(self, genenv, t):
     if self.typeconstraint is None:
-      self.setinstantiated(genscope, t)
+      genenv.set_instantiated(self, t)
     else:
       assert not t.is_some_ref()
-      self.typeconstraint.typedestruct(genscope, t)
-      self.setinstantiated(genscope, t)
+      self.typeconstraint.typedestruct(genenv, t)
+      genenv.set_instantiated(self, t)
 
   def itersubnodes(self, **kw):
     return _itersubnodes([self.typeconstraint], **kw)
@@ -300,16 +407,17 @@ class GenericArg(_NameEq):
   def is_meta_type(self):
     return True
 
-  def __deepcopy__(self, memo):
-    global gdisable_instantiatedcopy
-    global ginstantiatedcopy_sub
-    if not gdisable_instantiatedcopy and self.name in ginstantiatedcopy_sub:
-      cpy = ginstantiatedcopy_sub[self.name]
-    else:
-      cpy = GenericArg(self.name, copy.deepcopy(self.typeconstraint))
-    cpy.codeloc = self.codeloc
-    cpy.codeloc.obj = cpy
-    return cpy
+  def has_instantiable(self):
+    return True
+
+  def instantiated_copy(self, genenv, memo):
+    assert id(self) not in memo
+    try:
+      cpy = genenv.get_instantiated(self)
+    except KeyError:
+      cpy = self
+    memo[id(self)] = cpy
+    return cpy, False
 
 class GenericTypename(_NameEq):
   def __init__(self, type, *args):
@@ -318,10 +426,10 @@ class GenericTypename(_NameEq):
     self.args = list(args)
     self.defn = None
 
-  def typedestruct(self, genscope, t):
-    self.type.typedestruct(genscope, t)
+  def typedestruct(self, genenv, t):
+    self.type.typedestruct(genenv, t)
     for a, b in zip(self.args, t.args):
-      a.typedestruct(genscope, b)
+      a.typedestruct(genenv, b)
 
   def nocache_typecheck(self):
     if self.defn.unboundgeneric() \
@@ -337,11 +445,13 @@ class GenericTypename(_NameEq):
   def is_meta_type(self):
     return True
 
+  def has_instantiable(self):
+    return True
+
 class Decl(object):
   pass
 
-gdisable_instantiatedcopy = False
-ginstantiatedcopy_sub = {}
+g_instantiated_cache = {}
 
 class TypeDef(_NameEq):
   def __init__(self, name):
@@ -357,14 +467,20 @@ class TypeDef(_NameEq):
   def unboundgeneric(self):
     return self.unbound
 
+  def is_forward(self):
+    return False
+
   def firstpass(self):
     _add_builtin(self)
+    self.cached_has_instantiable = self.unboundgeneric()
     if self.unboundgeneric():
       return
     with scope.push(self.scope):
-      for n in self.itersubnodes(onelevel=True):
+      for n in self.itersubnodes():
         n.firstpass()
-    self._validate()
+        self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
+    assert not self.unboundgeneric() or self.cached_has_instantiable
+    self.validate()
 
   def definition(self):
     return self
@@ -382,23 +498,29 @@ class TypeDef(_NameEq):
     if isinstance(self, FunctionDecl):
       return self.genargs
     elif isinstance(self.type, GenericTypename):
-      return self.genargs + self.type.args
+      return self.type.args
     else:
       return []
 
-  def instantiated_copy(self, genscope):
-    memo = {}
-    memo[id(self.scope.parent)] = self.scope.parent
-    memo[id(self.scope.parent_definition)] = self.scope.parent_definition
+  def __instantiation_cookie(self, genenv):
+    return str(self.scope) \
+        + ' '.join(str(genenv.get_instantiated(a).expr) for a in self.instantiable_genargs())
 
-    global ginstantiatedcopy_sub
-    ginstantiatedcopy_sub = {}
-    for a in self.instantiable_genargs():
-      ginstantiatedcopy_sub[a.name] = genscope.table[a.name]
-    cpy = copy.deepcopy(self, memo)
-    ginstantiatedcopy_sub = {}
+  def mk_instantiated_copy(self, genenv):
+    global g_instantiated_cache
+    cookie = self.__instantiation_cookie(genenv)
+    cached = g_instantiated_cache.get(cookie, None)
+    if cached is not None:
+      return cached, False
+
+    memo = { id(self): self }  # Prevent touching the original unbound instance.
+    cpy, _ = _instantiated_copy(self, genenv, memo, initial=True)
     cpy.unbound = False
-    return cpy
+
+    g_instantiated_cache[cookie] = cpy
+    memo[id(self)] = cpy
+
+    return cpy, True
 
 def _fixscope(self):
   # In the body of a method, current().q() is looking up at the module level.
@@ -424,18 +546,28 @@ class Intf(TypeDef, Decl):
 
   def _fillscope(self):
     self.scope = scope.Scope(self)
+    self.all_genargs = []
     if isinstance(self.type, GenericTypename):
+      for a in self.genargs:
+        self.scope.define(a)
+        self.all_genargs.append(a)
       for a in self.type.args:
         self.scope.define(a)
+        self.all_genargs.append(a)
     self.scope.define(self.type, name='this')
     for a in self.typedecls:
       self.scope.define(a)
     for a in self.decls:
       self.scope.define(a)
-    for a in self.methods:
-      self.scope.define(a)
-    for a in self.funs:
-      self.scope.define(a)
+    for f in self.methods + self.funs:
+      f.scope.define(self.type, name='this')
+      self.scope.define(f)
+      for ga in self.all_genargs:
+        f.scope.define(ga, noparent=True)
+
+  def inherit_pass(self):
+    for t in self.typedecls:
+      t.inherit_pass()
 
   def firstpass(self):
     super(Intf, self).firstpass()
@@ -443,6 +575,9 @@ class Intf(TypeDef, Decl):
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.listisa, self.typedecls, self.decls, self.methods, self.funs, **kw)
+
+  def is_forward(self):
+    return True
 
 class ChoiceDecl(TypeDef, CGlobalName):
   def __init__(self, choice, typearg=None, value=None):
@@ -477,11 +612,16 @@ class ChoiceDecl(TypeDef, CGlobalName):
 
 class Inherit(_FieldsEq):
   def __init__(self, type, interfaces=None):
+    super(Inherit, self).__init__()
     self.type = type
     self.interfaces = interfaces
+    self.cachedtype = False
 
   def itersubnodes(self, **kw):
     return _itersubnodes([self.type, self.interfaces], **kw)
+
+  def has_instantiable(self):
+    return True
 
 def _duplicate_funargs(args):
   r = []
@@ -495,6 +635,10 @@ def _filterout_static_decls(userdecls):
   f = lambda d: isinstance(d, PatternDecl)
   decls, statics = filter(lambda d: not f(d), userdecls), filter(f, userdecls)
   return decls, map(FieldStaticConstDecl, statics)
+
+def _may_append(l, x):
+  if x is not None:
+    l.append(x)
 
 class TypeDecl(TypeDef, Decl, CGlobalName):
   REC, TAGGEDUNION, ENUM, UNION, FORWARD = range(5)
@@ -559,52 +703,27 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     for a in self.funs:
       self._fillscope_fun(a)
 
-  def firstpass(self):
-    _add_builtin(self)
-    if self.unboundgeneric():
-      return
-
-    with scope.push(self.scope):
-      for n in self.inherits:
-        n.firstpass()
-
-    self._do_inherit()
-    self._generate_choice_builtins()
-    self._fillscope_members()
-    _fixscope(self)
-
-    with scope.push(self.scope):
-      for n in self.itersubnodes(onelevel=True, filter_out=(lambda n: not isinstance(n, FieldDecl))):
-        n.firstpass()
-
-      if not self.unboundgeneric() and self.kind != TypeDecl.FORWARD:
-        self._generate_builtins()
-
-      for n in self.itersubnodes(onelevel=True, filter_out=(lambda n: isinstance(n, FieldDecl))):
-        n.firstpass()
-
-    if self.kind == TypeDecl.FORWARD or not self.unboundgeneric():
-      ctx().gen_instances_fwd.add(self.typecheck())
-    self._validate()
-
   def _copy_inherited(self, inh):
     inhd = inh.type.definition()
 
+    for n, d in inhd.scope.table.iteritems():
+      if isinstance(d, GenericArgInstantiated):
+        self.scope.table[n] = d
+
     memo = {}
     memo[id(inhd)] = self
+    memo[id(inhd.scope)] = self.scope
     memo[id(inhd.scope.parent)] = self.scope.parent
     memo[id(inhd.scope.parent_definition)] = self.scope.parent_definition
 
-    protected = set('mk new _ctor _dtor'.split())
+    #FIXME how do we inherit ctor/dtor?
+    protected = set('mk new ctor dtor'.split())
     def aux(memo, dst, src):
       for d in src:
         if d.name.startswith('__') or d.name in protected:
           continue
 
-        global gdisable_instantiatedcopy
-        gdisable_instantiatedcopy = True
         cpy = copy.deepcopy(d, memo)
-        gdisable_instantiatedcopy = False
 
         if hasattr(cpy, 'scope'):
           cpy.scope.parent = None
@@ -619,11 +738,51 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     aux(memo, self.methods, inhd.methods)
     aux(memo, self.funs, inhd.funs)
 
-  def _do_inherit(self):
+    for n in memo.itervalues():
+      if hasattr(n, 'cachedtype'):
+        n.cachedtype = None
+
+  def inherit_pass(self):
+    for t in self.typedecls:
+      t.inherit_pass()
+
     for i in self.inherits:
       i.firstpass()
       self._copy_inherited(i)
-    self.kind = self.whatkind(self.userdecls, self.typedecls, self.methods + self.funs)
+
+    self.kind = self._whatkind(self.userdecls, self.typedecls, self.methods + self.funs)
+
+    self._generate_choice_builtins()
+    self._fillscope_members()
+    _fixscope(self)
+
+  def firstpass(self):
+    _add_builtin(self)
+
+    self.cached_has_instantiable = self.unboundgeneric()
+    if self.unboundgeneric():
+      return
+
+    with scope.push(self.scope):
+      for n in self.inherits:
+        n.firstpass()
+        self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
+
+    with scope.push(self.scope):
+      for n in self.itersubnodes(filter_out=(lambda n: not isinstance(n, FieldDecl))):
+        n.firstpass()
+        self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
+
+      if not self.unboundgeneric() and self.kind != TypeDecl.FORWARD:
+        self._generate_builtins()
+
+      for n in self.itersubnodes(filter_out=(lambda n: isinstance(n, FieldDecl))):
+        n.firstpass()
+        self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
+
+    if self.kind == TypeDecl.FORWARD or not self.unboundgeneric():
+      ctx().gen_instances_fwd.add(self.typecheck())
+    self.validate()
 
   def _generate_choice_builtins(self):
     i = 0
@@ -649,15 +808,11 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
 
   def _generate_builtins(self):
     m, f = [], []
-    c = self._generate_ctor()
-    if c is not None:
-      m.append(c)
-    c = self._generate_dtor()
-    if c is not None:
-      m.append(c)
-    f.append(self._generate_alloc())
-    f.append(self._generate_mk())
-    f.append(self._generate_new())
+    _may_append(m, self._generate_ctor())
+    _may_append(m, self._generate_dtor())
+    _may_append(f, self._generate_alloc())
+    _may_append(f, self._generate_mk())
+    _may_append(f, self._generate_new())
     c = self._generate_static_init()
     if c is not None:
       f.append(c)
@@ -671,13 +826,12 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
       deepset_codeloc(c, self.codeloc)
       self._fillscope_method(c)
 
-    for c in f + m:
-      c.firstpass()
-
     self.methods.extend(m)
     self.funs.extend(f)
 
   def _generate_ctor(self):
+    if '__unsafe_ctor__' in self.scope.table:
+      return None
     xself = ExprValue('self')
     body = []
     for d in self.decls:
@@ -690,9 +844,9 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
             '!', ExprValue('__unsafe_ctor__')), []))
 
     args = []
-    if '_ctor' in self.scope.table:
-      body.append(ExprCall(ExprField(xself, '!', '_ctor'), []))
-      args = _duplicate_funargs(self.scope.table['_ctor'].args)
+    if 'ctor' in self.scope.table:
+      args = _duplicate_funargs(self.scope.table['ctor'].args)
+      body.append(ExprCall(ExprField(xself, '!', 'ctor'), []))
 
     if len(body) == 0:
       return None
@@ -701,6 +855,8 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
       return MethodDecl('__unsafe_ctor__', [], '!', args, [typing.qbuiltin('nlang.numbers.void')], block)
 
   def _generate_dtor(self):
+    if '__unsafe_dtor__' in self.scope.table:
+      return None
     xself = ExprValue('self')
     body = []
     rdecls = self.decls[:]
@@ -714,8 +870,8 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
           body.append(ExprCall(ExprField(ExprField(xself, '.', ExprValue(d.name)),
             '!', ExprValue('__unsafe_dtor__')), []))
 
-    if '_dtor' in self.scope.table:
-      body.append(ExprCall(ExprField(xself, '!', '_dtor'), []))
+    if 'dtor' in self.scope.table:
+      body.append(ExprCall(ExprField(xself, '!', 'dtor'), []))
 
     if len(body) == 0:
       return None
@@ -723,6 +879,8 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     return MethodDecl('__unsafe_dtor__', [], '!', [], [typing.qbuiltin('nlang.numbers.void')], block)
 
   def _generate_alloc(self):
+    if '__unsafe_alloc__' in self.scope.table:
+      return None
     expr = ExprReturn(ExprCall(
         ExprCall(path_as_expr('nlang.unsafe.cast'),
           [ExprMutableRef(ExprValue('this')),
@@ -732,9 +890,11 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     return FunctionDecl('__unsafe_alloc__', [], [], [ExprMutableRef(ExprValue('this'))], ExprBlock([expr]))
 
   def _generate_mk(self):
+    if 'mk' in self.scope.table:
+      return None
     tmp = gensym()
-    if '_ctor' in self.scope.table:
-      mk_args = _duplicate_funargs(self.scope.table['_ctor'].args)
+    if 'ctor' in self.scope.table:
+      mk_args = _duplicate_funargs(self.scope.table['ctor'].args)
       ctor_args = [ExprValue(a.name) for a in mk_args]
       ctor_call = [ExprCall(ExprField(ExprValue(tmp), '!', ExprValue('__unsafe_ctor__')),
           ctor_args)]
@@ -754,9 +914,11 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
         ExprBlock([v] + [ExprReturn(ExprValue(tmp))]))
 
   def _generate_new(self):
+    if 'new' in self.scope.table:
+      return None
     tmp = gensym()
-    if '_ctor' in self.scope.table:
-      new_args = _duplicate_funargs(self.scope.table['_ctor'].args)
+    if 'ctor' in self.scope.table:
+      new_args = _duplicate_funargs(self.scope.table['ctor'].args)
       ctor_args = [ExprValue(a.name) for a in new_args]
       ctor_call = [ExprCall(ExprField(ExprValue(tmp), '!', ExprValue('__unsafe_ctor__')),
           ctor_args)]
@@ -775,6 +937,8 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
             + [ExprReturn(ExprValue(tmp))]))
 
   def _generate_static_init(self):
+    if '__static_init__' in self.scope.table:
+      return None
     xthis = ExprValue('this')
     body = []
     for d in self.static_decls:
@@ -789,7 +953,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
       block = ExprBlock(body)
       return FunctionDecl('__static_init__', [], [], [typing.qbuiltin('nlang.numbers.void')], block)
 
-  def whatkind(self, decls, typedecls, methods_funs):
+  def _whatkind(self, decls, typedecls, methods_funs):
     if not isinstance(decls, list):
       decls = [decls]
     if len(decls) == 0:
@@ -798,7 +962,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
           return TypeDecl.REC
 
       for mf in methods_funs:
-        if mf.body is not None:
+        if not mf.is_forward():
           return TypeDecl.REC
 
       return TypeDecl.FORWARD
@@ -825,6 +989,9 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
               % self.codeloc)
 
     return kind
+
+  def is_forward(self):
+    return self.kind == TypeDecl.FORWARD
 
   def choicedecl(self, choice):
     assert isinstance(choice, ExprValue)
@@ -892,7 +1059,7 @@ class FunctionDecl(TypeDef, Decl, CGlobalName):
     if self.body is not None:
       self.scope.define(self.body)
 
-  def _validate(self):
+  def validate(self):
     for a in self.args:
       if a.optionalarg:
         t = a.typecheck()
@@ -911,6 +1078,9 @@ class FunctionDecl(TypeDef, Decl, CGlobalName):
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.args, self.returns, [self.rettype, self.body], **kw)
+
+  def is_forward(self):
+    return self.body is None
 
 class MethodDecl(FunctionDecl):
   def __init__(self, name, genargs, access, args, returns, body):
@@ -989,6 +1159,7 @@ class PatternDecl(_FieldsEq, Decl):
       # Remove the unnecessary intermediate temporary.
       self.vars[0].name = patternvars[0].name
       self.vars[0].type = patternvars[0].type
+      self.codetmp = None
     else:
       self.vars.extend(patternvars)
     self.mutatingblock = None
@@ -1018,16 +1189,23 @@ class PatternDecl(_FieldsEq, Decl):
       self.scope.define(self.mutatingblock)
 
   def firstpass(self):
-    for n in _itersubnodes([self.vars[0], self.expr], onelevel=True):
-      n.firstpass()
-    self.vars[0].type = self.patterntypecheck()
-    for n in _itersubnodes([self.pattern, self.mutatingblock] + self.vars[1:], onelevel=True):
-      n.firstpass()
-    self._validate()
+    with scope.push(self.scope):
+      self.cached_has_instantiable = False
+      for n in _itersubnodes([self.vars[0], self.expr]):
+        n.firstpass()
+        self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
+
+      self.vars[0].type = self.patterntypecheck()
+
+      for n in _itersubnodes([self.pattern, self.mutatingblock] + self.vars[1:]):
+        n.firstpass()
+        self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
+
+      self.validate()
 
   def itersubnodes(self, **kw):
     # Do expr before vars.
-    return _itersubnodes([self.expr, self.pattern, self.mutatingblock] + self.vars, **kw)
+    return _itersubnodes([self.expr, self.pattern] + self.vars + [self.mutatingblock], **kw)
 
 class FieldStaticConstDecl(_NameEq, CGlobalName, Decl):
   def __init__(self, patterndecl):
@@ -1069,6 +1247,12 @@ class GenericArgInstantiated(VarDecl):
   def __init__(self, genarg, type):
     super(GenericArgInstantiated, self).__init__( \
           ExprConstrained(ExprValue(genarg.name), typing.qbuiltin('nlang.meta.alias')), type)
+
+  def typedestruct(self, genenv, t):
+    return typing.checkcompat(self.typecheck(), t)
+
+  def patterntypedestruct(self, xtype):
+    return typing.checkcompat(self.typecheck(), xtype)
 
 class Expr(_FieldsEq):
   def __init__(self):
@@ -1114,21 +1298,19 @@ class ExprValue(Expr):
     else:
       return iter('')
 
-  def typedestruct(self, genscope, t):
+  def typedestruct(self, genenv, t):
     '''t is the concrete type, self is the pattern'''
     # At this level, bottom of the pattern matching tree, t can be a more
     # complex type, so type(self) may be different from type(t).
+
     genarg = scope.current().rawq(self)
     if not isinstance(genarg, GenericArg):
       return
 
-    if genarg.name not in genscope.table:
-      genarg.setinstantiated(genscope, t)
-    else:
-      genarg.setinstantiated(genscope, typing.checkcompat(genscope.table[genarg.name].typecheck(), t))
+    genenv.set_instantiated(genarg, t)
 
     if genarg.typeconstraint is not None:
-      genarg.typeconstraint.typedestruct(genscope, t)
+      genarg.typeconstraint.typedestruct(genenv, t)
 
   def patterntypedestruct(self, xtype):
     try:
@@ -1141,17 +1323,11 @@ class ExprValue(Expr):
   def __str__(self):
     return self.name
 
-  def __deepcopy__(self, memo):
-    global gdisable_instantiatedcopy
-    global ginstantiatedcopy_sub
-    if not gdisable_instantiatedcopy and self.name in ginstantiatedcopy_sub:
-      cpy = ginstantiatedcopy_sub[self.name]
-    else:
-      cpy = ExprValue(self.name)
-      cpy.maybeunarycall = self.maybeunarycall
-    cpy.codeloc = self.codeloc
-    cpy.codeloc.obj = cpy
-    return cpy
+  def has_instantiable(self):
+    try:
+      return scope.current().q(self).has_instantiable()
+    except errors.ScopeError:
+      return False
 
   def declvars(self, expr):
     if self.name == '_':
@@ -1174,6 +1350,11 @@ class ExprRef(Expr):
   def nocache_typecheck(self, **ignored):
     return typing.mk_ref(self.value.typecheck())
 
+  def firstpass(self):
+    self.value.firstpass()
+    self.cached_has_instantiable = self.value.has_instantiable()
+    self.typecheck()
+
   def definition(self):
     global g_builtin_defs
     return g_builtin_defs['<root>.nlang.meta.ref']
@@ -1192,12 +1373,12 @@ class ExprRef(Expr):
       raise errors.TypeError("Cannot mutate the type '%s', at %s" % (self, self.codeloc))
     return self.value
 
-  def typedestruct(self, genscope, t):
+  def typedestruct(self, genenv, t):
     if not isinstance(t, typing.TypeApp):
       raise errors.PmStructError(self, t)
     if not _typeappexpr_unbound_isa(self, t):
       raise errors.PmStructError(self, t)
-    return self.value.typedestruct(genscope, t.args[0])
+    return self.value.typedestruct(genenv, t.args[0])
 
 class ExprMutableRef(Expr):
   def __init__(self, value):
@@ -1206,6 +1387,11 @@ class ExprMutableRef(Expr):
 
   def nocache_typecheck(self, **ignored):
     return typing.mk_mutable_ref(self.value.typecheck())
+
+  def firstpass(self):
+    self.value.firstpass()
+    self.cached_has_instantiable = self.value.has_instantiable()
+    self.typecheck()
 
   def definition(self):
     global g_builtin_defs
@@ -1223,12 +1409,12 @@ class ExprMutableRef(Expr):
   def deref(self, access):
     return self.value
 
-  def typedestruct(self, genscope, t):
+  def typedestruct(self, genenv, t):
     if not isinstance(t, typing.TypeApp):
       raise errors.PmStructError(self, t)
     if not _typeappexpr_unbound_isa(self, t):
       raise errors.PmStructError(self, t)
-    return self.value.typedestruct(genscope, t.type)
+    return self.value.typedestruct(genenv, t.args[0])
 
 class ExprNullableRef(ExprRef):
   def __init__(self, value):
@@ -1326,11 +1512,10 @@ class TupleInstance(_FieldsEq):
   def __init__(self, tuple):
     super(TupleInstance, self).__init__()
     self.tuple = tuple
-    self.inscope = None
 
   def firstpass(self):
     ctx().gen_instances_fwd.add(self.tuple.typecheck())
-    self._validate()
+    self.validate()
 
   def itersubnodes(self, **kw):
     return iter('')
@@ -1344,13 +1529,13 @@ class ExprTuple(_IsGenericInstance, Expr):
   def nocache_typecheck(self, **ignored):
     return typing.TypeTuple(*[t.typecheck() for t in self.args])
 
-  def typedestruct(self, genscope, t):
+  def typedestruct(self, genenv, t):
     if not isinstance(t, typing.TypeTuple):
       raise errors.PmStructError(self, t)
     if len(self.args) != len(t.args):
       raise errors.PmStructError(self, t)
     for i in xrange(len(self.args)):
-      return self.args[i].typedestruct(genscope, t.args[i])
+      return self.args[i].typedestruct(genenv, t.args[i])
 
   def patterntypedestruct(self, xtype):
     if not isinstance(xtype, typing.TypeTuple):
@@ -1367,7 +1552,7 @@ class ExprTuple(_IsGenericInstance, Expr):
   def firstpass(self):
     super(ExprTuple, self).firstpass()
     self.geninst.firstpass()
-    self._validate()
+    self.validate()
 
   def declvars(self, expr):
     r = []
@@ -1424,11 +1609,38 @@ class ExprConstrained(Expr):
   def is_meta_type(self):
     return self.type.typecheck() == typing.qbuiltin('nlang.meta.alias')
 
+op_trans = { 'and': '&&', 'or': '||', 'not': '!' }
+op_name = {
+  '+': 'operator_plus__',
+  '-': 'operator_minus__',
+  '*': 'operator_times__',
+  '/': 'operator_div__',
+  '%': 'operator_mod__',
+  '>>': 'operator_rshift__',
+  '<<': 'operator_lshift__',
+  '&': 'operator_bwand__',
+  '|': 'operator_bwor__',
+  '^': 'operator_bwxor__',
+  '~': 'operator_bwnot__',
+  'and': 'operator_and__',
+  'or': 'operator_or__',
+  'not': 'operator_not__',
+}
+
 class ExprBin(Expr):
   def __init__(self, op, left, right):
     super(ExprBin, self).__init__()
     self.op = op
     self.args = [left, right]
+    self.non_native_expr = None
+
+  def firstpass(self):
+    for n in self.itersubnodes():
+      n.firstpass()
+    d = self.concrete_definition()
+    if isinstance(d, TypeDecl) and op_name.get(self.op, None) in d.scope.table:
+      self.non_native_expr = \
+          ExprCall(ExprField(self.args[0], '.', ExprValue(op_name[self.op])), [self.args[1]])
 
   def nocache_typecheck(self, **ignored):
     return typing.unify(None, [t.typecheck() for t in self.args])
@@ -1459,6 +1671,14 @@ class ExprUnary(Expr):
     super(ExprUnary, self).__init__()
     self.op = op
     self.args = [expr]
+    self.non_native_expr = None
+
+  def firstpass(self):
+    for n in self.itersubnodes():
+      n.firstpass()
+    d = self.concrete_definition()
+    if isinstance(d, TypeDecl) and op_name.get(self.op, None) in d.scope.table:
+      self.non_native_expr = UnaryCall(ExprField(self.args[0], '.', ExprValue(op_name[self.op])))
 
   def nocache_typecheck(self, **ignored):
     return self.args[0].typecheck()
@@ -1467,13 +1687,12 @@ class ExprUnary(Expr):
     return _itersubnodes(self.args, **kw)
 
   def definition(self):
-    return None
+    return self.typecheck().concrete_definition()
 
 class GenericInstance(_FieldsEq):
   def __init__(self, call):
     super(GenericInstance, self).__init__()
     self.call = call
-    self.inscope = None
     self.ready = False
     self.defn = None
 
@@ -1490,19 +1709,22 @@ class GenericInstance(_FieldsEq):
     if not self.ready:
       return None
     else:
-      return self.call.args[0].definition()
+      return self.defn
 
   def _instantiategeninst(self):
     if self.ready:
       return
 
     self.ready = True
-    d = self._call_definition()
+    d = self.call.args[0].definition()
     if not d.unboundgeneric():
       self.defn = d
+      if not isinstance(self, UnaryCall):
+        self.call.maybeunarycall = False
       return
 
-    genscope = scope.Scope(self)
+    genenv = GenericEnv()
+    confirm_unary = False
 
     if isinstance(d, FunctionDecl):
       if len(self.call.args) > 1 \
@@ -1513,27 +1735,32 @@ class GenericInstance(_FieldsEq):
         # eg: (fun T U) foo x:T y:T z:U = U
         #     in (foo u32 U8) 1 2 3
 
+        if self.call.maybeunarycall and isinstance(d, MethodDecl):
+          confirm_unary = True
+
         for arg, term in zip(d.genargs, self.call.args[1:]):
           termtype = term.typecheck()
           with scope.push(d.scope):
-            arg.typedestruct(genscope, termtype)
+            arg.typedestruct(genenv, termtype)
 
       else:
         for arg, term in zip(d.args, self.call.args[1:]):
           termtype = term.typecheck()
           with scope.push(d.scope):
-            arg.type.typedestruct(genscope, termtype)
+            arg.type.typedestruct(genenv, termtype)
 
     else:
       for genarg, appliedarg in zip(d.type.args, self.call.args[1:]):
         argtype = appliedarg.typecheck()
         with scope.push(d.scope):
-          genarg.typedestruct(genscope, argtype)
+          genarg.typedestruct(genenv, argtype)
 
-    self.defn = d.instantiated_copy(genscope)
-    self.defn.firstpass()
-
-    ctx().gen_instances_fwd.add(self.defn.typecheck())
+    self.call.maybeunarycall = confirm_unary
+    self.defn, new_instance = d.mk_instantiated_copy(genenv)
+    assert not self.defn.unbound
+    if new_instance:
+      self.defn.firstpass()
+      ctx().gen_instances_fwd.add(self.defn.typecheck())
 
 class ExprCall(_IsGenericInstance, Expr):
   def __init__(self, fun, args):
@@ -1547,20 +1774,20 @@ class ExprCall(_IsGenericInstance, Expr):
   def itersubnodes(self, **kw):
     for n in _itersubnodes(self.args, **kw):
       yield n
-    for n in _itersubnodes([self.geninst._call_definition()], **kw):
-      yield n
 
   def firstpass(self):
-    for n in _itersubnodes(self.args, onelevel=True):
+    self.cached_has_instantiable = False
+    for n in _itersubnodes(self.args):
       n.firstpass()
+      self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
 
     self.geninst._instantiategeninst()
-    self._validate()
+    self.validate()
 
   def definition(self):
     d = self.geninst.defn
     if d is None:
-      d = self.args[0].concrete_definition()
+      d = self.args[0].definition()
 
     if isinstance(d, FunctionDecl):
       if len(self.args) > 1 \
@@ -1568,7 +1795,10 @@ class ExprCall(_IsGenericInstance, Expr):
           and self.args[1].is_meta_type():
         # This ExprCall expression instantiates a generic function explicitly
         # eg: (foo u32 U8) 1 2 3
-        return d
+        if isinstance(d, MethodDecl) and self.maybeunarycall:
+          return d.rettype.definition()
+        else:
+          return d
       else:
         return d.rettype.definition()
 
@@ -1589,7 +1819,10 @@ class ExprCall(_IsGenericInstance, Expr):
           and self.args[1].is_meta_type():
         # This ExprCall expression instantiates a generic function explicitly
         # eg: (foo u32 U8) 1 2 3
-        return self.geninst.defn.typecheck()
+        if isinstance(d, MethodDecl) and self.maybeunarycall:
+          return self.geninst.defn.rettype.typecheck()
+        else:
+          return self.geninst.defn.typecheck()
 
       with scope.push(d.scope):
         for a in d.args:
@@ -1621,7 +1854,7 @@ class ExprCall(_IsGenericInstance, Expr):
     else:
       return False
 
-  def typedestruct(self, genscope, t):
+  def typedestruct(self, genenv, t):
     if not isinstance(t, typing.Type) and not isinstance(t, typing.TypeApp) \
         and not t.is_some_ref():
       raise errors.PmStructError(self, t)
@@ -1633,15 +1866,17 @@ class ExprCall(_IsGenericInstance, Expr):
         try:
           with scope.push(td.scope):
             ti = i.typecheck()
-          self.typedestruct(genscope, ti)
+          self.typedestruct(genenv, ti)
           found = True
           break
         except errors.PmStructError, ignore:
           continue
       if not found:
         raise errors.PmStructError(self, t)
-    for u,v in zip(self.args[1:], t.args):
-      u.typedestruct(genscope, v)
+
+    if isinstance(t, typing.TypeApp):
+      for u,v in zip(self.args[1:], t.args):
+        u.typedestruct(genenv, v)
 
   def patterntypedestruct(self, xtype):
     t = self.typecheck()
@@ -1691,11 +1926,12 @@ class UnaryCall(ExprCall):
     super(UnaryCall, self).__init__(fun, [])
 
   def itersubnodes(self, **kw):
-    return _itersubnodes(self.args[1:], **kw)
+    return iter('')
 
   def firstpass(self):
     self.geninst._instantiategeninst()
-    self._validate()
+    self.cached_has_instantiable = self.args[0].has_instantiable()
+    self.validate()
 
 class ExprField(Expr):
   def __init__(self, container, access, field):
@@ -1703,6 +1939,16 @@ class ExprField(Expr):
     self.container = container
     self.access = access
     self.field = field
+
+  def has_instantiable(self):
+    return self.container.has_instantiable()
+
+  def instantiated_copy(self, genenv, memo):
+    ctrcpy, new = _instantiated_copy(self.container, genenv, memo)
+    cpy = copy.copy(self)
+    cpy.container = ctrcpy
+    memo[id(self)] = cpy
+    return cpy, new
 
   def nocache_typecheck(self, **ignored):
     d = self.definition()
@@ -1750,6 +1996,9 @@ class ExprInitStaticConstField(Expr):
     self.field_name = field_name
     self.expr = expr
 
+  def nocache_typecheck(self):
+    return self.expr.typecheck()
+
 class ExprSizeof(ExprField):
   def __init__(self):
     super(ExprSizeof, self).__init__(
@@ -1758,6 +2007,10 @@ class ExprSizeof(ExprField):
 
   def is_meta_type(self):
     return False
+
+  def instantiated_copy(self, genenv, memo):
+    memo[id(self)] = self
+    return self, False
 
 class ExprInitializer(Expr):
   def __init__(self, expr, pairs):
@@ -1768,7 +2021,7 @@ class ExprInitializer(Expr):
   def nocache_typecheck(self, **ignored):
     d = self.expr.concrete_definition()
     for name, expr in self.pairs:
-      typing.checkcompat(d.scope.q(_QueryWrapper(name)).typecheck(), expr.typecheck())
+      typing.checkcompat(d.scope.table[name].typecheck(), expr.typecheck())
     return self.expr.typecheck()
 
   def definition(self):
@@ -1882,29 +2135,31 @@ class ExprWhile(_FieldsEq, Decl):
     return False
 
 class ExprFor(_FieldsEq, Decl):
-  def __init__(self, vardecl, iter, body):
+  def __init__(self, pattern, iter, body):
     super(ExprFor, self).__init__()
-    self.vardecl = vardecl
     self.iter = iter
     self.body = body
+    self.iter_tmp = ExprValue(gensym())
+    self.var_iter_tmp = VarDecl(self.iter_tmp, self.iter)
+    self.pattern = PatternDecl(pattern, ExprCall(ExprField(self.iter_tmp, '!', ExprValue('get')), []))
+    self.next_expr = ExprCall(ExprField(self.iter_tmp, '!', ExprValue('next')), [])
     self._fillscope()
 
   def _fillscope(self):
     self.scope = scope.Scope(self)
-    self.scope.define(self.vardecl)
+    self.scope.define(self.var_iter_tmp)
+    self.scope.define(self.pattern)
     if self.body is not None:
       self.scope.define(self.body)
 
   def nocache_typecheck(self, **ignored):
-    ## FIXME: Validate the compatibility of vardecl and iter.
-    ## FIXME: Infer type of vardecl from iter.
-    self.vardecl.typecheck()
+    self.pattern.typecheck()
     self.iter.typecheck()
     self.body.typecheck()
     return typing.qbuiltin('nlang.numbers.void')
 
   def itersubnodes(self, **kw):
-    return _itersubnodes([self.vardecl, self.iter, self.body], **kw)
+    return _itersubnodes([self.pattern, self.iter, self.body], **kw)
 
   def is_meta_type(self):
     return False
@@ -1979,6 +2234,7 @@ class ExprFuture(ExprBlock):
 
 class ExprMatcher(_FieldsEq, Decl):
   def __init__(self, pattern, body):
+    super(ExprMatcher, self).__init__()
     self.pattern = pattern
     self.body = body
     self.match = None
@@ -1996,16 +2252,20 @@ class ExprMatcher(_FieldsEq, Decl):
       return self.pattern.patterntypedestruct(xtype)
 
   def firstpass(self):
-    self.vars[0].type = self.patterntypecheck()
-    for n in self.itersubnodes(onelevel=True):
-      n.firstpass()
-    self._validate()
+    with scope.push(self.scope):
+      self.vars[0].type = self.patterntypecheck()
+      self.cached_has_instantiable = False
+      for n in self.itersubnodes():
+        n.firstpass()
+        self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
+      self.validate()
 
   def itersubnodes(self, **kw):
     return _itersubnodes([self.body] + self.vars, **kw)
 
 class ExprMatch(_FieldsEq, Decl):
   def __init__(self, expr, matchers):
+    super(ExprMatch, self).__init__()
     self.expr = expr
     self.exprevaltmp = ExprValue(gensym())
     self.varexprevaltmp = VarDecl(self.exprevaltmp, self.expr)
@@ -2042,10 +2302,53 @@ class SemanticAssert(_FieldsEq):
   def itersubnodes(self, **kw):
     return iter('')
 
+  def nocache_typecheck(self):
+    return typing.qbuiltin('nlang.numbers.void')
+
 class SemanticClaim(_FieldsEq):
   def __init__(self, expr):
     super(SemanticClaim, self).__init__()
     self.expr = expr
+
+  def itersubnodes(self, **kw):
+    return iter('')
+
+  def nocache_typecheck(self):
+    return typing.qbuiltin('nlang.numbers.void')
+
+class Declare(_FieldsEq):
+  def __init__(self, path, toplevels):
+    super(Declare, self).__init__()
+    self.toplevels = toplevels
+    self.path = path
+    self.scope = scope.Scope(self)
+
+  def inherit_pass(self):
+    for t in self.toplevels:
+      t.inherit_pass()
+
+  def firstpass(self):
+    prev = scope.root(self.scope)
+    for i in xrange(len(self.path)):
+      modname = '.'.join(self.path[0:i+1])
+      try:
+        mod = prev.q(path_as_expr(modname))
+      except errors.ScopeError:
+        mod = PlaceholderModule(self.path[0:i+1])
+        prev.define(mod)
+      prev = mod.scope
+
+    for t in self.toplevels:
+      # FIXME Check that they are not in conflict if it existed.
+      if t.name not in mod.scope.table:
+        mod.scope.define(t)
+        t.firstpass()
+
+  def validate(self):
+    for t in self.toplevels:
+      if not t.is_forward():
+        raise errors.ParseError("declare directive cannot contain non-forward declaration '%s', at %s" \
+            % (t, self.codeloc))
 
   def itersubnodes(self, **kw):
     return iter('')
@@ -2075,6 +2378,7 @@ class Import(_NameEq):
 
 gmodctx = {}
 gmodname = []
+g_root_scope = None
 
 def ctx():
   global gmodctx
@@ -2096,6 +2400,13 @@ class PlaceholderModule(_NameEq):
   is returned. If, later, 'a' is imported, then the PlaceholderModule is
   replaced with the actual Module 'a' and the scope of the PlaceholderModule
   (that contains a reference to 'a.b') is copied over.
+
+  PlaceholderModules are also used to handle 'declare' directives. When a type,
+  intf or fun is forward-declared, the declared prototype is stored in the
+  placeholder. When the real module is made available, the old declarations are
+  discarded, but first they are checked for consistency with the new ones.
+
+  FIXME: do that consistency check.
   '''
 
   def __init__(self, path):
@@ -2141,12 +2452,22 @@ class Module(_NameEq):
     self.fullname = name
     self.filename = filename
 
-    root = PlaceholderModule(['<root>'])
-    s = root.scope
+    global g_root_scope
+    if g_root_scope is None:
+      g_root_scope = PlaceholderModule(['<root>']).scope
+    s = g_root_scope
+
     for i in xrange(len(self.path)):
       p = self.path[i]
       if p in s.table:
-        s = s.table[p].scope
+        mod = s.table[p]
+        if i == len(self.path) - 1 and isinstance(mod, PlaceholderModule):
+          s.define(self)  # Will replace the PlaceholderModule mod.
+          # When calling scope.Scope.define(mod) with a Module, then it defaults
+          # to noparent. So we need to set it by hand.
+          self.scope.parent = s
+        else:
+          s = mod.scope
       else:
         if i < len(self.path) - 1:
           ph = PlaceholderModule(self.path[0:i+1])
@@ -2159,6 +2480,10 @@ class Module(_NameEq):
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.toplevels, **kw)
+
+  def inherit_pass(self):
+    for n in self.itersubnodes():
+      n.inherit_pass()
 
   def nocache_typecheck(self):
     return typing.Type(self)

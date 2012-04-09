@@ -1,29 +1,18 @@
+from nlang import *
+
 import io
 import ast
 import resolv
 from errors import *
 
-fun parsemod modname:String = shared .ast.Module Err
-  fn, err := resolv.find modname
-  if err
-    return Err.MISSING_MODULE modname
-  p := parsefile fan
-  return p.module.deepcopy__
+type parser =
+  filename :io.path
 
-fun fn2modname fn:String = modname:String
-  for c in fn
-    if c == '/'
-      fn.push '.'
-    else
-      fn.push c
-  return modname
+  method! parse_file mod:@!ast.module name:@string fn:@io.path = error
+    
 
-fun parsefile fn:String = shared .ast.Module Err
-  parser := Parser { modname=(fn2modname fn) fn=fn }
-  return parser.parse
-
-type Parser =
-  modname fn :readonly String
-  modules :readonly Map String Module
-
-  method! parse = Err
+  method! parse_module mod:@!ast.module name:@string = error
+    let fn, err = resolv.find name
+    if err
+      return error.MISSING_MODULE name.
+    return parse_file mod name @fn

@@ -13,7 +13,7 @@ keywords = set('''
   if elif else for while continue break
   match except return
   block future pfor
-  import from inherit in
+  import from inherit in declare
   and or not isa
   false true null sizeof this
   pass
@@ -29,7 +29,7 @@ tokens = '''
   ARROW
   EOL SOB EOB COLON
   COMMA DOT BANG
-  REFDOT REFBANG
+  REFDOT REFBANG POSTDOT POSTBANG
   SLICEBRAKETS
   LINIT RINIT
   CTX_ASSERT CTX_SEMASSERT CTX_SEMCLAIM
@@ -60,7 +60,6 @@ t_COMMA = r','
 t_COLON = r':'
 t_REFDOT = r'@'
 t_REFBANG = r'@\!'
-t_DOT = r'\.'
 t_SLICEBRAKETS = r'\[\]'
 t_LINIT = r'{{'
 t_RINIT = r'}}'
@@ -81,17 +80,49 @@ def t_STRING(t):
   t.value = t.value[1:-1]
   return t
 
-def t_BANG(t):
-  r'''[!][=]?'''
-  if '=' in t.value:
-    t.type = 'LNE'
+# POST{DOT,BANG} are used for this family of cases:
+#   object \
+#      .method a b. c!
+# Not to be parsed as: (object.) method a (b.c)!
+#
+# The grammar is ambiguous wrt DOT and BANG when used for field access and
+# derefencing, mixed in with function calls, in the presence of spaces.  But we
+# really feel it's worth it in terms of practical syntax, so we rely on the
+# lexer to make the grammar (a bit) space-sensitive.
+#
+# '\S[!.]\s+' -> POST{DOT,BANG}
+# '\S[!.]\S' -> {DOT,BANG}
+#
+# Dereferencing can only be DOT or POSTDOT.
+# Field access can only be DOT.
+
+def t_DOT(t):
+  r'\s?\.\s?'
+  before, after = t.value[0].isspace(), t.value[-1].isspace()
+  if not before and after:
+    t.type = 'POSTDOT'
+    t.lexer.lexpos -= 1
   else:
-    t.type = 'BANG'
+    t.type = 'DOT'
+  t.value = '.'  # Normalize.
   return t
 
-def t_COMMENTS(t):
-  r'''--.*'''
-  pass
+def t_BANG(t):
+  r'''\s?[!][\s=]?'''
+  if '=' in t.value:
+    t.type = 'LNE'
+    return t
+
+  before, after = t.value[0].isspace(), t.value[-1].isspace()
+  if not before and after:
+    t.type = 'POSTBANG'
+    t.lexer.lexpos -= 1
+  else:
+    t.type = 'BANG'
+  t.value = '!'  # Normalize.
+  return t
+
+t_ignore_COMMENTS = r'--.*'
 
 gindentation = 0
 
@@ -234,6 +265,7 @@ precedence = (
     ('left', 'COLON'),
     ('right', 'REFDOT', 'REFBANG'),
     ('left', 'DOT', 'BANG'),
+    ('right', 'POSTDOT', 'POSTBANG'),
     ('right', 'IDENT'),
     )
 
@@ -285,7 +317,9 @@ def p_type_field(p):
 
 def p_type_deref(p):
   '''type : type_postfix DOT
-          | type_postfix BANG'''
+          | type_postfix BANG
+          | type_postfix POSTDOT
+          | type_postfix POSTBANG'''
   p[0] = ast.ExprDeref(p[2], p[1])
 
 def p_type_slice(p):
@@ -379,8 +413,7 @@ def p_expr_postfix_group(p):
   p[0] = p[2]
 
 def p_expr_unnop(p):
-  '''expr : UBWNOT expr_postfix
-          | NOT expr_postfix'''
+  '''expr : UBWNOT expr_postfix'''
   p[0] = ast.ExprUnary(p[1], p[2])
 
 def p_expr_ref(p):
@@ -410,10 +443,13 @@ def p_expr_element(p):
   '''expr_postfix : expr_postfix DOT '[' expr_top ']'
                   | expr_postfix BANG '[' expr_top ']' '''
   p[0] = ast.ExprFieldElement(p[1], p[2], p[4])
+  p[0].maybeunarycall = True
 
 def p_expr_deref(p):
   '''expr : expr_postfix DOT
-          | expr_postfix BANG'''
+          | expr_postfix BANG
+          | expr_postfix POSTDOT
+          | expr_postfix POSTBANG'''
   p[0] = ast.ExprDeref(p[2], p[1])
 
 def p_expr_cmpbinop(p):
@@ -456,6 +492,7 @@ def p_expr_call_only(p):
   '''expr_call : expr expr_call_list'''
   p[1].maybeunarycall = False
   p[0] = ast.ExprCall(p[1], p[2])
+  p[0].maybeunarycall = True  # If this is in fact a generic type instantiation.
 
 def p_expr_tuple_list(p):
   '''expr_tuple_list : expr
@@ -511,7 +548,8 @@ def p_expr_top(p):
   p[0] = p[1]
 
 def p_expr_top_unary(p):
-  '''expr_top : MINUS expr'''
+  '''expr_top : MINUS expr_top
+              | NOT expr_top'''
   p[0] = ast.ExprUnary(p[1], p[2])
 
 def p_typedeclname_list(p):
@@ -589,6 +627,7 @@ def p_statement_assign(p):
   '''statement : expr_top ASSIGN expr_top'''
   if isinstance(p[1], ast.ExprFieldElement):
     p[1].args[0].field = ast.ExprValue('operator_set__')
+    p[1].maybeunarycall = False
     p[1].args.append(p[3])
     p[0] = p[1]
   else:
@@ -611,11 +650,11 @@ def p_statement_while(p):
   p[0] = ast.ExprWhile(p[2], p[3])
 
 def p_statement_for(p):
-  '''statement : FOR typedident IN expr_top statements_block'''
+  '''statement : FOR expr_top IN expr_top statements_block'''
   p[0] = ast.ExprFor(p[2], p[4], p[5])
 
 def p_statement_pfor(p):
-  '''statement : PFOR typedident IN expr_top statements_block'''
+  '''statement : PFOR expr_top IN expr_top statements_block'''
   p[0] = ast.ExprPFor(p[2], p[4], p[5])
 
 def p_statement_break(p):
@@ -824,7 +863,7 @@ def p_fundecl_forward(p):
     p[0] = ast.FunctionDecl(p[2], [], [], p[4], None)
   elif len(p) == 6:
     p[0] = ast.FunctionDecl(p[2], [], p[3], p[5], None)
-  elif len(p) == 7:
+  elif len(p) == 8:
     p[0] = ast.FunctionDecl(p[5], p[3], [], p[7], None)
   else:
     p[0] = ast.FunctionDecl(p[5], p[3], p[6], p[8], None)
@@ -838,7 +877,7 @@ def p_fundecl(p):
     p[0] = ast.FunctionDecl(p[2], [], [], p[4], p[5])
   elif len(p) == 7:
     p[0] = ast.FunctionDecl(p[2], [], p[3], p[5], p[6])
-  elif len(p) == 8:
+  elif len(p) == 9:
     p[0] = ast.FunctionDecl(p[5], p[3], [], p[7], p[8])
   else:
     p[0] = ast.FunctionDecl(p[5], p[3], p[6], p[8], p[9])
@@ -852,7 +891,7 @@ def p_methoddecl_forward(p):
     p[0] = ast.MethodDecl(p[2], [], '.', [], p[4], None)
   elif len(p) == 6:
     p[0] = ast.MethodDecl(p[2], [], '.', p[3], p[5], None)
-  elif len(p) == 7:
+  elif len(p) == 8:
     p[0] = ast.MethodDecl(p[5], p[3], '.', [], p[7], None)
   else:
     p[0] = ast.MethodDecl(p[5], p[3], '.', p[6], p[8], None)
@@ -866,35 +905,35 @@ def p_methoddecl(p):
     p[0] = ast.MethodDecl(p[2], [], '.', [], p[4], p[5])
   elif len(p) == 7:
     p[0] = ast.MethodDecl(p[2], [], '.', p[3], p[5], p[6])
-  elif len(p) == 8:
+  elif len(p) == 9:
     p[0] = ast.MethodDecl(p[5], p[3], '.', [], p[7], p[8])
   else:
     p[0] = ast.MethodDecl(p[5], p[3], '.', p[6], p[8], p[9])
 
 def p_methoddecl_mutating_forward(p):
-  '''methoddecl : METHOD BANG IDENT ASSIGN funretvals
-                | METHOD BANG IDENT funargs ASSIGN funretvals
-                | '(' METHOD BANG typedeclname_list ')' IDENT ASSIGN funretvals
-                | '(' METHOD BANG typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
+  '''methoddecl : METHOD POSTBANG IDENT ASSIGN funretvals
+                | METHOD POSTBANG IDENT funargs ASSIGN funretvals
+                | '(' METHOD POSTBANG typedeclname_list ')' IDENT ASSIGN funretvals
+                | '(' METHOD POSTBANG typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
   if len(p) == 6:
     p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], None)
   elif len(p) == 7:
     p[0] = ast.MethodDecl(p[3], [], '!', p[4], p[6], None)
-  elif len(p) == 8:
+  elif len(p) == 9:
     p[0] = ast.MethodDecl(p[6], p[4], '!', [], p[8], None)
   else:
     p[0] = ast.MethodDecl(p[6], p[4], '!', p[7], p[9], None)
 
 def p_methoddecl_mutating(p):
-  '''methoddecl : METHOD BANG IDENT ASSIGN funretvals statements_block
-                | METHOD BANG IDENT funargs ASSIGN funretvals statements_block
-                | '(' METHOD BANG typedeclname_list ')' IDENT ASSIGN funretvals statements_block
-                | '(' METHOD BANG typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
+  '''methoddecl : METHOD POSTBANG IDENT ASSIGN funretvals statements_block
+                | METHOD POSTBANG IDENT funargs ASSIGN funretvals statements_block
+                | '(' METHOD POSTBANG typedeclname_list ')' IDENT ASSIGN funretvals statements_block
+                | '(' METHOD POSTBANG typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
   if len(p) == 7:
     p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], p[6])
   elif len(p) == 8:
     p[0] = ast.MethodDecl(p[3], [], '!', p[4], p[6], p[7])
-  elif len(p) == 9:
+  elif len(p) == 10:
     p[0] = ast.MethodDecl(p[6], p[4], '!', [], p[8], p[9])
   else:
     p[0] = ast.MethodDecl(p[6], p[4], '!', p[7], p[9], p[10])
@@ -970,10 +1009,15 @@ def p_import(p):
     if p[4] == '*':
       p[0] = ast.Import(path, all=True)
     else:
-      p[0] = [ast.Import(path + [id], alias=id) for id in p[4]]
+      p[0] = [ast.Import(path + [id.name], alias=id.name) for id in p[4]]
+
+def p_declare(p):
+  '''declare : DECLARE modname ASSIGN declare_block'''
+  p[0] = ast.Declare(p[2], p[4])
 
 def p_toplevel(p):
   '''toplevel : import
+              | declare
               | typedecl
               | fundecl
               | methoddecl
@@ -996,6 +1040,7 @@ _define_oneof('fieldchoicedecl', 'choicedecl', 'fielddecl', empty=True)
 _define_block('_statements_block', 'statement', 'statement_witheol')
 _define_block('typedecl_block', 'typedecl_statement')
 _define_block('matchers_block', 'matcher')
+_define_block('declare_block', 'toplevel')
 
 def p_error(t):
   if t is None:
