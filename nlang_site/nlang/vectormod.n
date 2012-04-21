@@ -1,6 +1,6 @@
 from nlang.prelude import *
 from nlang.containers import *
-from nlang.slice import *
+from nlang.slicemod import *
 import nlang.heap
 import c99
 
@@ -93,14 +93,14 @@ type vector t = (random_container t)
 
   method! push x:t = void
     let old_size = self.len
-    let new_size = self.len + 1
-    self!resize new_size
+    self!resize self.len+1
     self![old_size] = x
 
   method! pop = t
     #? self.len > 0
-    let tmp = self.[self.len - 1]
-    self!resize (self.len - 1)
+    let new_size = self.len - 1
+    let tmp = self.[new_size]
+    self!resize new_size
     return tmp
 
   (method! c:(random_container t)) extend r:@(random_element_range c) = void

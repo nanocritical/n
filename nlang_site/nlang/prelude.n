@@ -7,6 +7,7 @@ declare nlang.numbers =
   type i32 =
   type void =
   type size =
+  type bool =
 
 (fun t) _sizeof x:t = size
 
@@ -24,7 +25,12 @@ intf moveable =
   method! operator_move__ other:@!this = nlang.numbers.void
 
 intf comparable =
-  method operator_cmp__ other:@this = nlang.numbers.i32
+  method operator_lt__ other:@this = nlang.numbers.bool
+  method operator_gt__ other:@this = nlang.numbers.bool
+  method operator_le__ other:@this = nlang.numbers.bool
+  method operator_ge__ other:@this = nlang.numbers.bool
+  method operator_eq__ other:@this = nlang.numbers.bool
+  method operator_ne__ other:@this = nlang.numbers.bool
 
 
 (fun t) optional ptr:?@t otherwise:t = t

@@ -293,7 +293,7 @@ def _unify_lit_conc(lit, conc):
     if nump and conc.name[len(nummod):] == 'bool':
       return conc
   elif lit.name == '<root>.nlang.literal.string':
-    if conc.name == '<root>.nlang.string.string' or conc.name == '<root>.nlang.char.char':
+    if conc.name == '<root>.nlang.stringmod.string' or conc.name == '<root>.nlang.charmod.char':
       return conc
   elif lit.name == '<root>.nlang.literal.nulltype':
     if conc.name.startswith('?'):

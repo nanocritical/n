@@ -1,0 +1,59 @@
+from nlang import *
+
+intf has_compare =
+  method compare other:@this = i32
+
+
+-- FIXME: obfuscated '_towc' generic argument name to avoid
+-- collision with another generic argument name in the scope
+-- of the type inheriting this. Proper compiler support is still
+-- lacking.
+
+type ordered_with_compare _towc:has_compare = comparable
+  method operator_lt__ other:@this = bool
+    return (_towc.compare self other) < 0
+
+  method operator_gt__ other:@this = bool
+    return (_towc.compare self other) > 0
+
+  method operator_le__ other:@this = bool
+    return (_towc.compare self other) <= 0
+
+  method operator_ge__ other:@this = bool
+    return (_towc.compare self other) >= 0
+
+  method operator_eq__ other:@this = bool
+    return (_towc.compare self other) == 0
+
+  method operator_ne__ other:@this = bool
+    return (_towc.compare self other) != 0
+
+
+intf bitwise_mask t =
+  method operator_bwor__ other:this = this
+  method operator_bwand__ other:this = this
+  method operator_bwxor__ other:this = this
+  method operator_bwnot__ = this
+  method to_bits = t
+  method! from_bits val:t = void
+
+type bitwise_mask_impl _tbwmi = (bitwise_mask _tbwmi)
+  _bits:_tbwmi
+
+  method operator_bwor__ other:@this = this
+    return this{{ _bits=self._bits | other._bits }}
+
+  method operator_bwand__ other:@this = this
+    return this{{ _bits=self._bits & other._bits }}
+
+  method operator_bwxor__ other:@this = this
+    return this{{ _bits=self._bits ^ other._bits }}
+
+  method operator_bwnot__ = this
+    return this{{ _bits=~self._bits }}
+
+  method to_bits = _tbwmi
+    return self._bits
+
+  method! from_bits val:_tbwmi = void
+    self._bits = val

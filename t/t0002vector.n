@@ -1,5 +1,4 @@
-from nlang.prelude import *
-from nlang.vector import *
+from nlang import *
 
 fun t1 = bool
   let v = (vector u32).mk

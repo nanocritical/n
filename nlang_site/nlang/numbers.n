@@ -4,7 +4,7 @@ import nlang.unsafe
 import nlang.show
 
 intf ordered =
-  method compare other:@this = i32
+  method operator_cmp__ other:@this = i32
 
 intf bitwise_signed =
   let this_unsigned:nlang.meta.alias
@@ -102,3 +102,12 @@ type bool = ordered nlang.show.show
     return a
   else
     return b
+
+-- FIXME Specialize.
+(fun t:ordered) compare a:t b:t = i32
+  if a == b
+    return 0
+  elif a > b
+    return 1
+  else
+    return -1

@@ -1,0 +1,16 @@
+from nlang import *
+
+fun main = i32
+  let a = 'a':string
+  let b = 'b':string
+  if a > b
+    return 1
+  if a >= b
+    return 2
+  if a == b
+    return 3
+  elif not (a < b)
+    return 4
+  elif not (a != b)
+    return 5
+  return 0

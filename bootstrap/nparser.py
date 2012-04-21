@@ -111,6 +111,7 @@ def t_BANG(t):
   r'''\s?[!][\s=]?'''
   if '=' in t.value:
     t.type = 'LNE'
+    t.value = '!='
     return t
 
   before, after = t.value[0].isspace(), t.value[-1].isspace()
@@ -121,8 +122,6 @@ def t_BANG(t):
     t.type = 'BANG'
   t.value = '!'  # Normalize.
   return t
-
-t_ignore_COMMENTS = r'--.*'
 
 gindentation = 0
 
@@ -146,7 +145,7 @@ def countspacesfromend(t):
 geobinject = None
 
 def t_EOL(t):
-  r'\s*\n[ ]*'  # Skip first blank lines.
+  r'\s*(\n|--.*\n)+[ ]*'  # Skip first blank lines.
 
   t.lexer.lineno += t.value.count('\n')
   ast.gmodctx[ast.gmodname[-1]].line = t.lexer.lineno
@@ -249,11 +248,10 @@ def _define_block(name, statement, *statements_witheol):
 precedence = (
     ('left', 'ASSIGN'),
     ('left', 'COMMA'),
-    ('nonassoc', 'LEQ', 'LNE'),
     ('left', 'AND', 'OR'),
     ('right', 'NOT'),
     ('nonassoc', 'ISA'),
-    ('nonassoc', 'LLE', 'LLT', 'LGT', 'LGE'),
+    ('nonassoc', 'LLE', 'LLT', 'LGT', 'LGE', 'LEQ', 'LNE'),
     ('left', 'BWOR'),
     ('left', 'BWXOR'),
     ('left', 'BWAND'),
@@ -495,15 +493,15 @@ def p_expr_call_only(p):
   p[0].maybeunarycall = True  # If this is in fact a generic type instantiation.
 
 def p_expr_tuple_list(p):
-  '''expr_tuple_list : expr
-                     | expr COMMA expr_tuple_list'''
+  '''expr_tuple_list : expr_top_notuple
+                     | expr_top_notuple COMMA expr_tuple_list'''
   args = [p[1]]
   if len(p) == 4:
     args += p[3]
   p[0] = args
 
 def p_expr_tuple_only(p):
-  '''expr_tuple : expr COMMA expr_tuple_list'''
+  '''expr_tuple : expr_top_notuple COMMA expr_tuple_list'''
   args = [p[1]] + p[3]
   p[0] = ast.ExprTuple(*args)
 
@@ -541,16 +539,20 @@ def p_expr_initializer(p):
   else:
     p[0] = ast.ExprInitializer(p[1], p[3])
 
-def p_expr_top(p):
-  '''expr_top : expr_call
-              | expr_tuple
-              | expr'''
+def p_expr_top_notuple(p):
+  '''expr_top_notuple : expr
+                      | expr_call'''
   p[0] = p[1]
 
-def p_expr_top_unary(p):
-  '''expr_top : MINUS expr_top
-              | NOT expr_top'''
+def p_expr_top_notuple_unary(p):
+  '''expr_top_notuple : MINUS expr_top_notuple
+                      | NOT expr_top_notuple'''
   p[0] = ast.ExprUnary(p[1], p[2])
+
+def p_expr_top(p):
+  '''expr_top : expr_top_notuple
+              | expr_tuple'''
+  p[0] = p[1]
 
 def p_typedeclname_list(p):
   '''typedeclname_list : IDENT
@@ -668,10 +670,10 @@ def p_statement_continue(p):
 def p_statement_elif_list(p):
   '''elif_list : ELIF expr_top statements_block EOL
                | ELIF expr_top statements_block EOL elif_list'''
-  if len(p) == 4:
+  if len(p) == 5:
     p[0] = [(p[2], p[3])]
   else:
-    p[0] = [(p[2], p[3])] + p[4]
+    p[0] = [(p[2], p[3])] + p[5]
 
 def p_statement_if_elif_else(p):
   '''statement : IF expr_top statements_block EOL elif_list ELSE statements_block'''

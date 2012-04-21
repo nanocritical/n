@@ -1,21 +1,29 @@
 from nlang.prelude import *
-from nlang.char import *
+from nlang.charmod import *
 import nlang.show
-from nlang.slice import *
-import nlang.vector
+from nlang.slicemod import *
+import nlang.vectormod
 import nlang.heap
+import nlang.utils
 import c99
 
 let _EMPTY_CSTR:@u8
 
-type string = nlang.show.show copyable comparable (random_container u8)
-  _bytes:(nlang.vector.vector u8)
+type string = nlang.show.show copyable comparable (random_container u8) nlang.utils.has_compare
+  inherit nlang.utils.ordered_with_compare this
+
+  _bytes:(nlang.vectormod.vector u8)
 
   method! ctor ?len:?@size = void
     self._bytes!resize (optional len 0) + 1
     self._bytes![0] = 0
 
-  method operator_cmp__ other:@this = i32
+  method compare other:@this = i32
+    for a, b in zip self._bytes.all other._bytes.all
+      let c = compare a b
+      if c != 0
+        return c
+    return 0
 
   method len = size
     return self._bytes.len - 1
@@ -23,10 +31,10 @@ type string = nlang.show.show copyable comparable (random_container u8)
   method byte_len = size
     return self._bytes.len - 1
 
-  method bytes = @(nlang.vector.vector u8)
+  method bytes = @(nlang.vectormod.vector u8)
     return @self._bytes
 
-  method! extend x:@string = void
+  method! extend x:@this = void
     let at = self.len
     let elements = x._bytes.all
     self._bytes!pop

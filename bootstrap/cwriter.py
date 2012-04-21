@@ -93,12 +93,20 @@ def wgenerictypename(self, out):
   for i in xrange(len(self.args)):
     _p(out, self.args[i].typecheck())
     if i < len(self.args) - 1:
-      _p(out, '_')
+      _p(out, '__')
 GenericTypename.cwrite = wgenerictypename
 
 def w(self, out):
   raise None
 typing.TypeUnboundGeneric.cwrite = w
+
+def _filter_members(typedecls, fields, choices, functions):
+  def f(n):
+    return (typedecls and isinstance(n, (TypeDecl))) \
+    or (fields and isinstance(n, FieldDecl)) \
+    or (choices and isinstance(n, (ChoiceDecl, FieldStaticConstDecl))) \
+    or (functions and isinstance(n, FunctionDecl))
+  return f
 
 def wintf(self, out):
   if self.unboundgeneric():
@@ -110,7 +118,8 @@ def wintf(self, out):
   ginstantiated.add(self.typecheck())
 
   with scope.push(self.scope):
-    self.mapgeninsts(lambda gen: _p(out, gen), set())
+    self.mapgeninsts(lambda gen: _p(out, gen), set(),
+        filter=_filter_members(True, False, False, False))
 
     for td in self.typedecls:
       _p(out, td)
@@ -184,10 +193,15 @@ def wtypedecl(self, out):
   ginstantiated.add(self.typecheck())
 
   with scope.push(self.scope):
-    self.mapgeninsts(lambda gen: _p(out, gen), set())
+    geninsts = set()
+    self.mapgeninsts(lambda gen: _p(out, gen), geninsts,
+        filter=_filter_members(True, False, False, False))
 
     for td in self.typedecls:
       _p(out, td)
+
+    self.mapgeninsts(lambda gen: _p(out, gen), geninsts,
+        filter=_filter_members(False, True, False, False))
 
     global g_cwrite_types
     if g_cwrite_types:
@@ -211,24 +225,28 @@ def wtypedecl(self, out):
         _p(out, indent(), 'typedef ', self.type, '* nlangp__', self.type, ';\n')
         _p(out, indent(), 'typedef const ', self.type, '* nlangcp__', self.type, ';\n\n')
 
-      return
+    self.mapgeninsts(lambda gen: _p(out, gen), geninsts,
+        filter=_filter_members(False, False, True, False))
 
-    for d in self.decls:
-      if isinstance(d, ChoiceDecl):
-        with scope.push(d.scope):
-          _p(out, d.mk)
-          _p(out, d.valuevar, ';\n\n')
-    if self.declnum is not None:
-      _p(out, self.declnum, ';\n\n')
+    if not g_cwrite_types:
+      for d in self.decls:
+        if isinstance(d, ChoiceDecl):
+          with scope.push(d.scope):
+            _p(out, d.mk)
+            _p(out, d.valuevar, ';\n\n')
+      if self.declnum is not None:
+        _p(out, self.declnum, ';\n\n')
 
-    for d in self.static_decls:
-      _p(out, d)
+      for d in self.static_decls:
+        _p(out, d)
+
+    self.mapgeninsts(lambda gen: _p(out, gen), geninsts,
+        filter=_filter_members(False, False, False, True))
 
     for m in self.methods:
       _p(out, m)
     for f in self.funs:
       _p(out, f)
-    _p(out, '\n\n')
 TypeDecl.cwrite = wtypedecl
 
 def wtupleinst(self, out):
@@ -506,9 +524,8 @@ def wtuple(self, out):
 ExprTuple.cwrite = wtuple
 
 def wexprtupleselect(self, out):
-  type = self.typecheck()
-  if type.ref_type() == typing.Refs.REF \
-      or type.ref_type() == typing.Refs.MUTABLE_REF:
+  type = self.expr.typecheck()
+  if type.is_some_ref():
     access = '->'
   else:
     access = '.'
@@ -537,12 +554,12 @@ class _StringCLiteral(ExprLiteral):
 
 def wexprconstrained(self, out):
   if self.args[0].typecheck() == typing.qbuiltin('nlang.literal.string') \
-      and self.type.typecheck() == typing.qbuiltin('nlang.char.char') \
+      and self.type.typecheck() == typing.qbuiltin('nlang.charmod.char') \
       and len(self.args[0].args[0]) == 1:
-    _p(out, ExprCall(ast.path_as_expr('nlang.char.char.from_ascii'), [_CharCLiteral(self.args[0].args[0])]))
+    _p(out, ExprCall(ast.path_as_expr('nlang.charmod.char.from_ascii'), [_CharCLiteral(self.args[0].args[0])]))
   elif self.args[0].typecheck() == typing.qbuiltin('nlang.literal.string') \
-      and self.type.typecheck() == typing.qbuiltin('nlang.string.string'):
-    _p(out, ExprCall(ast.path_as_expr('nlang.string.string.from_cstr'), [_StringCLiteral(self.args[0].args[0])]))
+      and self.type.typecheck() == typing.qbuiltin('nlang.stringmod.string'):
+    _p(out, ExprCall(ast.path_as_expr('nlang.stringmod.string.from_cstr'), [_StringCLiteral(self.args[0].args[0])]))
   else:
     _p(out, '((', self.type, ')(', self.args[0], '))')
 ExprConstrained.cwrite = wexprconstrained
@@ -591,10 +608,17 @@ def wexprcall(self, out):
   if not isinstance(fun, FunctionDecl):
     return
 
+  first_arg_offset = 1
+
   _p(out, funexpr, '(')
   if isinstance(fun, MethodDecl):
     assert isinstance(self.args[0], ExprField)
-    xself = self.args[0].container
+
+    if self.args[0].container.is_meta_type():
+      xself = self.args[1]
+      first_arg_offset = 2
+    else:
+      xself = self.args[0].container
     deref = ''
     txself = xself.typecheck()
     if txself.ref_type() != typing.Refs.REF \
@@ -610,8 +634,8 @@ def wexprcall(self, out):
     _p(out, ', ')
 
   for i in xrange(len(fun.args)):
-    if i + 1 < len(self.args):
-      _p(out, self.args[i+1])
+    if i + first_arg_offset < len(self.args):
+      _p(out, self.args[i + first_arg_offset])
     else:
       if not fun.args[i].optionalarg:
         raise errors.ParseError("Non-optional argument '%s' is missing in call (%s), at %s" \
@@ -712,11 +736,13 @@ def wexprfor(self, out):
   with scope.push(self.scope):
     indent(+1)
     _p(out, '{\n', indent(), self.var_iter_tmp, ';\n')
-    _p(out, indent(+1), 'for (; ', self.next_expr, ';) {\n')
-    _p(out, indent(), self.pattern, ';\n')
+    _p(out, indent(), self.reset_expr, ';\n')
+    _p(out, indent(), 'do {\n')
+    _p(out, indent(+1), self.pattern, ';\n')
     _p(out, self.body)
     indent(-1)
-    _p(out, '\n', indent(-1), '}\n', indent(), '}')
+    _p(out, '\n', indent(-1), '} while (', self.next_expr, ');\n')
+    _p(out, '\n', indent(), '}\n')
 ExprFor.cwrite = wexprfor
 ExprPFor.cwrite = wexprfor
 
@@ -812,9 +838,9 @@ g_instantiated_others = set()
 def _importalias(im, mod, target, alias):
   if alias in im.owner.scope.table:
     existing = im.owner.scope.table[alias]
-    if existing != target:
-      raise errors.ParseError("Import of '%s' as '%s' hides '%s', at %s" \
-          % (target, alias, existing, im.codeloc))
+    if existing is not target:
+      raise errors.ParseError("Import of '%s %r' in scope '%s' as '%s' hides '%s %r', at %s" \
+          % (target, target, im.owner.scope, alias, existing, existing, im.codeloc))
     return
 
   scope.current().define(target, name=alias, noparent=True)
@@ -840,7 +866,7 @@ def wimport(self, out):
       raise errors.ParseError("Import of '%s' hides '%s', at %s" \
           % (mod.fullname, existing.fullname, self.codeloc))
   except errors.ScopeError:
-    scope.current().define(mod, noparent=True)
+    scope.root(scope.current()).define(mod, noparent=True)
     for imported in mod.imported_modules:
       scope.current().define(imported, noparent=True)
 

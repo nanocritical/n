@@ -259,8 +259,11 @@ class _Node(object):
   def itersubnodes(self, **kw):
     raise Exception("Not implemented in '%s'" % type(self))
 
-  def mapgeninsts(self, aux, memo):
+  def mapgeninsts(self, aux, memo, filter=None):
     for n in self.itersubnodes():
+      if filter is not None and not filter(n):
+        continue
+
       isgeninst, descend = n.geninst_action()
       sc = None
       if hasattr(n, 'scope') and not isinstance(n, VarDecl):
@@ -331,6 +334,7 @@ def _is_non_function_primitive(node):
 
 class _IsGenericInstance(object):
   def geninst_action(self):
+    # No need to descend, cwrite will request its dependencies.
     return not _is_non_function_primitive(self), True
 
 class _NameEq(_Node):
@@ -375,17 +379,6 @@ class GenericArg(_NameEq):
   def __init__(self, name, typeconstraint=None):
     super(GenericArg, self).__init__(name)
     self.typeconstraint = typeconstraint
-
-  def instantiated(self):
-    try:
-      r = scope.current().q(self)
-      if r is None:
-        return None
-      else:
-        assert False
-        return r.typecheck()
-    except errors.ScopeError, ignore:
-      return None
 
   def typedestruct(self, genenv, t):
     if self.typeconstraint is None:
@@ -705,10 +698,10 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
 
   def _copy_inherited(self, inh):
     inhd = inh.type.definition()
-
-    for n, d in inhd.scope.table.iteritems():
-      if isinstance(d, GenericArgInstantiated):
-        self.scope.table[n] = d
+    if inhd.unboundgeneric():
+      inh.type.firstpass(instantiate_only=True)
+      inhd = inh.type.geninst.defn
+      assert not inhd.unboundgeneric()
 
     memo = {}
     memo[id(inhd)] = self
@@ -732,6 +725,15 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
           cpy.scope.table.pop('self', None)
         dst.append(cpy)
 
+    # FIXME: This could cause collisions with stuff in our namespace proper.
+    # For now, we use obfuscated names that are unlikely to collide, see nlang/utils.n.
+    inh_genargs = []
+    aux(memo, inh_genargs,
+        filter(lambda n: isinstance(n, GenericArgInstantiated),
+          inhd.scope.table.itervalues()))
+    for g in inh_genargs:
+      self.scope.table[g.name] = g
+
     aux(memo, self.userdecls, inhd.userdecls)
     aux(memo, self.decls, inhd.decls)
     aux(memo, self.static_decls, inhd.static_decls)
@@ -743,12 +745,12 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
         n.cachedtype = None
 
   def inherit_pass(self):
-    for t in self.typedecls:
-      t.inherit_pass()
+    with scope.push(self.scope):
+      for t in self.typedecls:
+        t.inherit_pass()
 
-    for i in self.inherits:
-      i.firstpass()
-      self._copy_inherited(i)
+      for i in self.inherits:
+        self._copy_inherited(i)
 
     self.kind = self._whatkind(self.userdecls, self.typedecls, self.methods + self.funs)
 
@@ -762,11 +764,6 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     self.cached_has_instantiable = self.unboundgeneric()
     if self.unboundgeneric():
       return
-
-    with scope.push(self.scope):
-      for n in self.inherits:
-        n.firstpass()
-        self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
 
     with scope.push(self.scope):
       for n in self.itersubnodes(filter_out=(lambda n: not isinstance(n, FieldDecl))):
@@ -990,6 +987,10 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
 
     return kind
 
+  def geninst_action(self):
+    # No need to descend, cwrite will request its dependencies.
+    return len(self.instantiable_genargs()) > 0, False
+
   def is_forward(self):
     return self.kind == TypeDecl.FORWARD
 
@@ -1002,7 +1003,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
         % (choice, self.scope, choice.codeloc))
 
   def itersubnodes(self, **kw):
-    return _itersubnodes(self.listisa, self.inherits, self.typedecls, self.static_decls, self.decls, self.funs, self.methods, **kw)
+    return _itersubnodes(self.listisa, self.typedecls, self.static_decls, self.decls, self.funs, self.methods, **kw)
 
 class UnionField(_NameEq, CGlobalName):
   def __init__(self, name, type):
@@ -1323,12 +1324,6 @@ class ExprValue(Expr):
   def __str__(self):
     return self.name
 
-  def has_instantiable(self):
-    try:
-      return scope.current().q(self).has_instantiable()
-    except errors.ScopeError:
-      return False
-
   def declvars(self, expr):
     if self.name == '_':
       return []
@@ -1547,7 +1542,7 @@ class ExprTuple(_IsGenericInstance, Expr):
     return typing.TypeTuple(*r)
 
   def itersubnodes(self, **kw):
-    return _itersubnodes(self.args, **kw)
+    return _itersubnodes(self.args, [self.geninst], **kw)
 
   def firstpass(self):
     super(ExprTuple, self).firstpass()
@@ -1625,6 +1620,12 @@ op_name = {
   'and': 'operator_and__',
   'or': 'operator_or__',
   'not': 'operator_not__',
+  '<': 'operator_lt__',
+  '>': 'operator_gt__',
+  '<=': 'operator_le__',
+  '>=': 'operator_ge__',
+  '==': 'operator_eq__',
+  '!=': 'operator_ne__',
 }
 
 class ExprBin(Expr):
@@ -1637,13 +1638,17 @@ class ExprBin(Expr):
   def firstpass(self):
     for n in self.itersubnodes():
       n.firstpass()
-    d = self.concrete_definition()
+    d = self.args[0].concrete_definition()
     if isinstance(d, TypeDecl) and op_name.get(self.op, None) in d.scope.table:
       self.non_native_expr = \
-          ExprCall(ExprField(self.args[0], '.', ExprValue(op_name[self.op])), [self.args[1]])
+          ExprCall(ExprField(self.args[0], '.', ExprValue(op_name[self.op])), [ExprRef(self.args[1])])
+      self.non_native_expr.firstpass()
 
   def nocache_typecheck(self, **ignored):
-    return typing.unify(None, [t.typecheck() for t in self.args])
+    if self.non_native_expr is not None:
+      return self.non_native_expr.typecheck()
+    else:
+      return typing.unify(None, [t.typecheck() for t in self.args])
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.args, **kw)
@@ -1653,9 +1658,11 @@ class ExprBin(Expr):
 
 class ExprCmpBin(ExprBin):
   def nocache_typecheck(self, **ignored):
-    t = self.args[0].typecheck()
-    typing.unify(None, [t.typecheck() for t in self.args])
-    return typing.qbuiltin('nlang.numbers.bool')
+    t = super(ExprCmpBin, self).nocache_typecheck()
+    if self.non_native_expr is not None:
+      return t
+    else:
+      return typing.qbuiltin('nlang.numbers.bool')
 
 class ExprBoolBin(ExprBin):
   def nocache_typecheck(self, **ignored):
@@ -1679,6 +1686,7 @@ class ExprUnary(Expr):
     d = self.concrete_definition()
     if isinstance(d, TypeDecl) and op_name.get(self.op, None) in d.scope.table:
       self.non_native_expr = UnaryCall(ExprField(self.args[0], '.', ExprValue(op_name[self.op])))
+      self.non_native_expr.firstpass()
 
   def nocache_typecheck(self, **ignored):
     return self.args[0].typecheck()
@@ -1711,7 +1719,7 @@ class GenericInstance(_FieldsEq):
     else:
       return self.defn
 
-  def _instantiategeninst(self):
+  def _instantiategeninst(self, instantiate_only):
     if self.ready:
       return
 
@@ -1757,8 +1765,8 @@ class GenericInstance(_FieldsEq):
 
     self.call.maybeunarycall = confirm_unary
     self.defn, new_instance = d.mk_instantiated_copy(genenv)
-    assert not self.defn.unbound
-    if new_instance:
+    assert not self.defn.unboundgeneric()
+    if new_instance and not instantiate_only:
       self.defn.firstpass()
       ctx().gen_instances_fwd.add(self.defn.typecheck())
 
@@ -1775,14 +1783,22 @@ class ExprCall(_IsGenericInstance, Expr):
     for n in _itersubnodes(self.args, **kw):
       yield n
 
-  def firstpass(self):
+  def firstpass(self, instantiate_only=False):
     self.cached_has_instantiable = False
     for n in _itersubnodes(self.args):
       n.firstpass()
       self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
 
-    self.geninst._instantiategeninst()
+    self.geninst._instantiategeninst(instantiate_only)
     self.validate()
+
+  def validate(self):
+    fun = self.args[0].definition()
+    if isinstance(fun, MethodDecl):
+      assert isinstance(self.args[0], ExprField)
+      if self.args[0].container.is_meta_type():
+        # Form: typename.method self args...
+        assert len(self.args) > 1
 
   def definition(self):
     d = self.geninst.defn
@@ -1929,7 +1945,7 @@ class UnaryCall(ExprCall):
     return iter('')
 
   def firstpass(self):
-    self.geninst._instantiategeninst()
+    self.geninst._instantiategeninst(False)
     self.cached_has_instantiable = self.args[0].has_instantiable()
     self.validate()
 
@@ -1939,16 +1955,6 @@ class ExprField(Expr):
     self.container = container
     self.access = access
     self.field = field
-
-  def has_instantiable(self):
-    return self.container.has_instantiable()
-
-  def instantiated_copy(self, genenv, memo):
-    ctrcpy, new = _instantiated_copy(self.container, genenv, memo)
-    cpy = copy.copy(self)
-    cpy.container = ctrcpy
-    memo[id(self)] = cpy
-    return cpy, new
 
   def nocache_typecheck(self, **ignored):
     d = self.definition()
@@ -2007,10 +2013,6 @@ class ExprSizeof(ExprField):
 
   def is_meta_type(self):
     return False
-
-  def instantiated_copy(self, genenv, memo):
-    memo[id(self)] = self
-    return self, False
 
 class ExprInitializer(Expr):
   def __init__(self, expr, pairs):
@@ -2142,6 +2144,7 @@ class ExprFor(_FieldsEq, Decl):
     self.iter_tmp = ExprValue(gensym())
     self.var_iter_tmp = VarDecl(self.iter_tmp, self.iter)
     self.pattern = PatternDecl(pattern, ExprCall(ExprField(self.iter_tmp, '!', ExprValue('get')), []))
+    self.reset_expr = ExprCall(ExprField(self.iter_tmp, '!', ExprValue('reset')), [])
     self.next_expr = ExprCall(ExprField(self.iter_tmp, '!', ExprValue('next')), [])
     self._fillscope()
 
@@ -2159,7 +2162,7 @@ class ExprFor(_FieldsEq, Decl):
     return typing.qbuiltin('nlang.numbers.void')
 
   def itersubnodes(self, **kw):
-    return _itersubnodes([self.pattern, self.iter, self.body], **kw)
+    return _itersubnodes([self.iter, self.pattern, self.reset_expr, self.next_expr, self.body], **kw)
 
   def is_meta_type(self):
     return False

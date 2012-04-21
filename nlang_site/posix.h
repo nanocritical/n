@@ -40,6 +40,26 @@ i32 posix_open(const u8 *pathname, posix_open_flags flags, const posix_open_mode
   return open((const char *) pathname, posix_open_flags_to_bits(&flags), m);
 }
 
+i32 posix_close(i32 fd) {
+  return close(fd);
+}
+
 i32 posix_unlink(const u8 *pathname) {
   return unlink((const char *) pathname);
+}
+
+ssize posix_read(i32 fd, u8 *buf, size count) {
+  return read(fd, buf, count);
+}
+
+ssize posix_write(i32 fd, const u8 *buf, size count) {
+  return write(fd, buf, count);
+}
+
+i32 posix_rand(void) {
+  return rand();
+}
+
+void posix_srand(u32 seed) {
+  srand(seed);
 }

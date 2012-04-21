@@ -6,7 +6,7 @@ declare nlang.numbers =
   type u32 =
   type size =
 
-declare nlang.string =
+declare nlang.stringmod =
   type string =
 
 let ALTERNATE:nlang.numbers.u32
@@ -16,17 +16,17 @@ let SPACE_PADDED:nlang.numbers.u32
 let SIGN_ALWAYS:nlang.numbers.u32
 
 intf show =
-  method to_s = nlang.string.string
-  method format_s ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.string.string
+  method to_s = nlang.stringmod.string
+  method format_s ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
 
 intf show_numeric = show
-  method format_d ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.string.string
-  method format_o ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.string.string
-  method format_u ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.string.string
-  method format_x ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.string.string
-  method format_X ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.string.string
-  method format_e ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.string.string
-  method format_f ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.string.string
-  method format_g ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.string.string
-  method format_a ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.string.string
-  method format_A ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.string.string
+  method format_d ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  method format_o ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  method format_u ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  method format_x ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  method format_X ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  method format_e ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  method format_f ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  method format_g ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  method format_a ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  method format_A ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string

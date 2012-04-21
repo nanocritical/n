@@ -31,16 +31,19 @@ intf random_container t = (forward_container t)
 intf index_iterator = copyable
   method all = index_range
   method get = size
+  method has_next = bool
   method! next = bool
   method! reset = void
 
 intf index_pair_iterator = copyable
-  method all = index_pair_range
+  method all = index_range, index_range
   method get = size, size
+  method has_next = bool
   method! next = bool
   method! reset = void
 
-type index_range = copyable
+
+type index_range = trivial_copy
   _beg _end _by:size
 
   fun mk beg:size end:size ?by:?@size = this
@@ -64,7 +67,7 @@ type index_range = copyable
     #? end <= self.end
     return this.mk beg end @self._by
 
-  method offset_by offset:size = this
+  method with_offset offset:size = this
     return this.mk self.begin+offset self.end+offset @self._by
 
   method iter = index_range_iterator
@@ -72,6 +75,7 @@ type index_range = copyable
 
   method iter_zip_with_offset offset:size = index_range_iterator_with_offset
     return index_range_iterator_with_offset.mk self. offset
+
 
 type index_range_iterator = index_iterator
   _r:index_range
@@ -86,8 +90,11 @@ type index_range_iterator = index_iterator
   method get = size
     return self._pos
 
+  method has_next = bool
+    return self._pos + self._r.by < self._r.end
+
   method! next = bool
-    if self._pos + self._r.by >= self._r.end
+    if not self.has_next
       return false
     else
       self!_pos = self._pos + self._r.by
@@ -96,59 +103,34 @@ type index_range_iterator = index_iterator
   method! reset = void
     self!_pos = self._r.begin
 
-type index_pair_range = copyable
-  _a _b :index_range
-
-  fun mk a:index_range b:index_range = this
-    return this{{ _a=a _b=b }}
-
-  method begin = size, size
-    return self._a.begin, self._b.begin
-
-  method end = size, size
-    return self._a.end, self._b.end
-
-  method by = size, size
-    return self._a.by, self._b.by
-
-  method fst = index_range
-    return self._a
-
-  method snd = index_range
-    return self._b
-
-  method offset_by offset:size = this
-    return this.mk (self._a.offset_by offset) (self._b.offset_by offset)
-
-  method iter = index_pair_range_iterator
-    return index_pair_range_iterator.mk self.
 
 type index_pair_range_iterator = index_pair_iterator
-  _r:index_pair_range
-  _apos _bpos:size
+  _a _b:index_range_iterator
 
-  fun mk r:index_pair_range = this
-    let a, b = r.begin
-    return this{{ _r=r _apos=a _bpos=b }}
+  fun mk ra:index_range rb:index_range = this
+    return this{{ _a=ra.iter _b=rb.iter }}
 
-  method all = index_pair_range
-    return self._r
+  method all = index_range, index_range
+    return self._a.all, self._b.all
 
   method get = size, size
-    return self._apos, self._bpos
+    return self._a.get, self._b.get
+
+  method has_next = bool
+    return self._a.has_next and self._b.has_next
 
   method! next = bool
-    let a, b = self._r.by
-    let aend, bend = self._r.end
-    if self._apos + a >= aend or self._bpos + b >= bend
+    if not self.has_next
       return false
     else
-      self!_apos = self._apos + a
-      self!_bpos = self._bpos + b
+      self._a!next
+      self._b!next
       return true
 
   method! reset = void
-    self!_apos, self!_bpos = self._r.begin
+    self._a!reset
+    self._b!reset
+
 
 type index_range_iterator_with_offset = index_pair_iterator
   _iter:index_range_iterator
@@ -157,15 +139,22 @@ type index_range_iterator_with_offset = index_pair_iterator
   fun mk r:index_range offset:size = this
     return this{{ _iter=r.iter _pos=r.begin _offset=offset }}
 
-  method all = index_pair_range
+  method all = index_range, index_range
     let r = self._iter.all
-    return index_pair_range.mk self._iter.all (r.offset_by self._offset)
+    return r, r.with_offset self._offset
 
   method get = size, size
     return self._pos, self._pos + self._offset
 
+  method has_next = bool
+    return self._iter.has_next
+
   method! next = bool
-    return self._iter!next
+    if not self.has_next
+      return false
+    else
+      self._iter!next
+      return true
 
   method! reset = void
     self._iter!reset
@@ -197,11 +186,14 @@ type index_range_iterator_with_offset = index_pair_iterator
   method iter = (random_element_iterator c)
     return (random_element_iterator c).mk self
 
+
 (intf t) element_iterator c:(random_container t) =
   method all = (random_element_range c)
+  method has_next = bool
   method! next = bool
   method get = @t
   method! reset = void
+
 
 (type t) random_element_iterator c:(random_container t) = (element_iterator c)
   _er:@(random_element_range c)
@@ -214,8 +206,15 @@ type index_range_iterator_with_offset = index_pair_iterator
   method all = @(random_element_range c)
     return self._er
 
+  method has_next = bool
+    return self._iter.has_next
+
   method! next = bool
-    return self._iter.next
+    if not self.has_next
+      return false
+    else
+      self._iter!next
+      return true
 
   method get = @t
     let ctnr = self._er.container
@@ -224,10 +223,51 @@ type index_range_iterator_with_offset = index_pair_iterator
   method! reset = void
     self._iter!reset
 
+
+(intf t1 t2) element_pair_iterator c1:(random_container t1) c2:(random_container t2) =
+  method all = (random_element_range c1), (random_element_range c2)
+  method has_next = bool
+  method! next = void
+  method get = @t1, @t2
+  method! reset = void
+
+
+(type t1 t2) random_element_pair_iterator c1:(random_container t1) c2:(random_container t2) = (element_pair_iterator c1 c2)
+  _a:(random_element_iterator c1)
+  _b:(random_element_iterator c2)
+
+  fun mk r1:@(random_element_range c1) r2:@(random_element_range c2) = this
+    return this{{ _a=r1.iter _b=r2.iter }}
+
+  method all_index = @(random_element_range c1), @(random_element_range c2)
+    let ra = self._a.all
+    let rb = self._b.all
+    return ra, rb
+
+  method has_next = bool
+    return self._a.has_next and self._b.has_next
+
+  method! next = bool
+    if not self.has_next
+      return false
+    else
+      self._a!next
+      self._b!next
+      return true
+
+  method get = @t1, @t2
+    return self._a.get, self._b.get
+
+  method! reset = void
+    self._a!reset
+    self._b!reset
+
+
 fun range beg:size end:size ?by:?@size = index_range
   return index_range.mk beg end by
 
-(fun t1 t2) zip a:(element_iterator t1) b:(element_iterator t2) = (element_pair_iterator t1 t2)
+(fun t1 t2 c1:(random_container t1) c2:(random_container t2) rr1:(random_element_range c1) rr2:(random_element_range c2)) zip a:rr1 b:rr2 = (random_element_pair_iterator c1 c2)
+  return (random_element_pair_iterator c1 c2).mk @a @b
 
-(fun t1 t2) zip_index a:(forward_container t1) b:(forward_container t2) = index_pair_range
-  return index_pair_range{{ _a=a.all _b=b.all }}
+fun zip_index a:index_range b:index_range = index_pair_range_iterator
+  return index_pair_range_iterator.mk a b

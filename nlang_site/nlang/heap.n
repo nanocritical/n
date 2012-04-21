@@ -1,5 +1,5 @@
 from nlang.prelude import *
-from nlang.slice import *
+from nlang.slicemod import *
 import nlang.memory
 
 type allocator = nlang.memory.allocator slice_allocator

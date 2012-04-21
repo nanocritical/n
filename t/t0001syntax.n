@@ -1,5 +1,4 @@
-from nlang.prelude import *
-from nlang.vector import *
+from nlang import *
 import nlang.heap
 
 fun foo x:u32 y:u32 = u32

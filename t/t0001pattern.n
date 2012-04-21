@@ -1,5 +1,4 @@
-from nlang.prelude import *
-from nlang.vector import *
+from nlang import *
 
 fun main = i32
   let x, y = 0:i32, 0:i32

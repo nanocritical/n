@@ -1,7 +1,4 @@
-from nlang.prelude import *
-import nlang.string
-from nlang.char import *
-from nlang.string import *
+from nlang import *
 from posix import *
 
 fun main = i32
