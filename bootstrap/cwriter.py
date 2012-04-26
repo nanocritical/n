@@ -28,9 +28,17 @@ def wscope(self, out):
   _p(out, '_'.join(str(self).split('.')))
 scope.Scope.cwrite = wscope
 
+def _mangle_literal(lit):
+  if lit < 0:
+    return 'nminus' + str(abs(lit))
+  else:
+    return str(lit)
+
 def wtype(self, out):
   path = self.name.split('.')
-  if self.name in scope.builtintypes:
+  if self.literal_value is not None:
+    _p(out, _mangle_literal(self.literal_value))
+  elif self.name in scope.builtintypes:
     _p(out, path[-1])
   else:
     path = path[1:]
@@ -210,6 +218,11 @@ def wtypedecl(self, out):
         _p(out, indent(), '} nlangtag__', self.type, ';\n\n')
 
       _p(out, indent(+1), 'struct ', self.type ,' {\n')
+
+      if str(self.scope) == '<root>.nlang.slicemod.sized_slice':
+        _p(out, indent(), 'u8 _rawdata[', ExprValue('LEN'),
+            ' * sizeof(', self.type.args[0].typecheck(), ')];\n')
+
       for d in self.decls:
         if not isinstance(d, ChoiceDecl):
           _p(out, indent(), d, ';\n')
@@ -461,7 +474,9 @@ ExprAssign.cwrite = wassign
 
 def wvalue(self, out):
   node = scope.current().q(self)
-  if isinstance(node, VarDecl):
+  if isinstance(node, GenericLiteralArgInstantiated):
+    _p(out, node.typecheck().literal_value)
+  elif isinstance(node, VarDecl):
     if isinstance(node.scope.parent.container, Module):
       _p(out, globalname(node.scope.container))
     else:

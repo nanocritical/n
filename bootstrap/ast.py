@@ -166,6 +166,8 @@ class GenericEnv(object):
   def set_instantiated(self, genarg, t):
     if id(genarg) in self._table:
       typing.checkcompat(self._table[id(genarg)].typecheck(), t)
+    elif t.literal_value is not None:
+      self._table[id(genarg)] = GenericLiteralArgInstantiated(genarg, t)
     else:
       self._table[id(genarg)] = GenericArgInstantiated(genarg, t)
 
@@ -1246,9 +1248,21 @@ class FieldDecl(VarDecl):
       return super(FieldDecl, self).nocache_typecheck()
 
 class GenericArgInstantiated(VarDecl):
-  def __init__(self, genarg, type):
+  def __init__(self, genarg, value):
     super(GenericArgInstantiated, self).__init__( \
-          ExprConstrained(ExprValue(genarg.name), typing.qbuiltin('nlang.meta.alias')), type)
+        ExprConstrained(ExprValue(genarg.name), typing.qbuiltin('nlang.meta.alias')), value)
+
+  def typedestruct(self, genenv, t):
+    return typing.checkcompat(self.typecheck(), t)
+
+  def patterntypedestruct(self, xtype):
+    return typing.checkcompat(self.typecheck(), xtype)
+
+class GenericLiteralArgInstantiated(VarDecl):
+  def __init__(self, genarg, value):
+    super(GenericLiteralArgInstantiated, self).__init__( \
+        ExprConstrained(ExprValue(genarg.name), value), ExprLiteral(value.literal_value))
+    self._is_generic_literal_argument = True
 
   def typedestruct(self, genenv, t):
     return typing.checkcompat(self.typecheck(), t)
@@ -1465,11 +1479,13 @@ class ExprLiteral(Expr):
 
   def nocache_typecheck(self, **ignored):
     if isinstance(self.args[0], basestring):
-      return typing.qbuiltin('nlang.literal.string')
+      t = typing.qbuiltin('nlang.literal.string')
     elif isinstance(self.args[0], bool):
-      return typing.qbuiltin('nlang.literal.bool')
+      t = typing.qbuiltin('nlang.literal.bool')
     else:
-      return typing.qbuiltin('nlang.literal.integer')
+      t = copy.copy(typing.qbuiltin('nlang.literal.integer'))
+      t.set_literal_value(self.args[0])
+    return t
 
   def patterntypedestruct(self, xtype):
     return typing.checkcompat(self.typecheck(), xtype)
@@ -1938,6 +1954,10 @@ class ExprTypeApp(ExprCall, _NameEq):
 class ExprTypeSlice(ExprTypeApp):
   def __init__(self, type):
     super(ExprTypeSlice, self).__init__(ExprValue('slice'), type)
+
+class ExprTypeSliceSized(ExprTypeApp):
+  def __init__(self, type, size):
+    super(ExprTypeSliceSized, self).__init__(ExprValue('sized_slice'), type, size)
 
 class UnaryCall(ExprCall):
   def __init__(self, fun):

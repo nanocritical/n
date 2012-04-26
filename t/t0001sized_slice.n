@@ -1,0 +1,15 @@
+from nlang import *
+
+fun main = i32
+  let s:[100]u32
+  if s.len != 100
+    return 1
+
+  let r = s.all_index
+  for i in r.iter
+    s![i] = i.slice_u32
+
+  if s.[99] != 99
+    return 1
+
+  return 0

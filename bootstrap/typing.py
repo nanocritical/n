@@ -11,6 +11,7 @@ class Typename(object):
   def __init__(self, name):
     self.name = Typename.normalize(name)
     self.codeloc = ast.CodeLoc(self)
+    self.literal_value = None
 
   @staticmethod
   def normalize(name):
@@ -79,6 +80,10 @@ class Type(Typename):
     assert self.name != 'size'
     assert defn is not None
     self.defn = defn
+
+  def set_literal_value(self, lit):
+    if lit is not None:
+      self.literal_value = lit
 
   def concrete_definition(self):
     return self.defn
@@ -155,7 +160,13 @@ class Refs(object):
 
 class TypeApp(Typename):
   def __init__(self, defn, *args):
-    super(TypeApp, self).__init__('(' + str(defn.scope) + ' ' + ' '.join([str(t) for t in args]) + ')')
+    names = []
+    for t in args:
+      if t.literal_value is not None:
+        names.append(str(t.literal_value))
+      else:
+        names.append(str(t))
+    super(TypeApp, self).__init__('(' + str(defn.scope) + ' ' + ' '.join(names) + ')')
     assert defn is not None
     self.defn = defn
     for t in args:
@@ -389,6 +400,9 @@ def unify(constraint, types):
     return t
   elif constraint == qbuiltin('nlang.meta.alias'):
     return t
+  elif constraint == qbuiltin('nlang.literal.integer') and _isliteral(t):
+    if constraint.literal_value != t.literal_value:
+      _unifyerror(constraint, t)
   elif _isliteral(t):
     return _unify_lit_conc(t, constraint)
   elif (t.ref_type() == Refs.REF and constraint.ref_type() == Refs.NULLABLE_REF) \
@@ -396,7 +410,7 @@ def unify(constraint, types):
       and t.args[0].isa(constraint.args[0]):
     return constraint
   elif not t.isa(constraint):
-    _unifyerror(t, constraint)
+    _unifyerror(constraint, t)
   else:
     return t
 

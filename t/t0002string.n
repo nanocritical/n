@@ -9,8 +9,8 @@ fun main = i32
     return 2
   if a == b
     return 3
-  elif not (a < b)
+  elif not a < b
     return 4
-  elif not (a != b)
+  elif not a != b
     return 5
   return 0

@@ -324,6 +324,10 @@ def p_type_slice(p):
   '''type_postfix : SLICEBRAKETS type_postfix'''
   p[0] = ast.ExprTypeSlice(p[2])
 
+def p_type_slice_sized(p):
+  '''type_postfix : '[' expr_top ']' type_postfix'''
+  p[0] = ast.ExprTypeSliceSized(p[4], p[2])
+
 def p_type_tuple_list(p):
   '''type_tuple_list : type
                      | type COMMA type_tuple_list'''
