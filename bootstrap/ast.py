@@ -456,6 +456,7 @@ class TypeDef(_NameEq):
     if not hasattr(self, 'type'):
       self.type = None
     self.unbound = len(self.genargs) > 0 or isinstance(self.type, GenericTypename)
+    self.geninst = None
 
   def unboundgeneric(self):
     return self.unbound
@@ -496,7 +497,7 @@ class TypeDef(_NameEq):
       return []
 
   def __instantiation_cookie(self, genenv):
-    return str(self.scope) \
+    return str(self.scope) + ' ' \
         + ' '.join(str(genenv.get_instantiated(a).expr) for a in self.instantiable_genargs())
 
   def mk_instantiated_copy(self, genenv):
@@ -1765,6 +1766,7 @@ class GenericInstance(_FieldsEq):
 
     self.call.maybeunarycall = confirm_unary
     self.defn, new_instance = d.mk_instantiated_copy(genenv)
+    self.defn.geninst = self
     assert not self.defn.unboundgeneric()
     if new_instance and not instantiate_only:
       self.defn.firstpass()

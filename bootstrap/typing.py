@@ -161,7 +161,7 @@ class TypeApp(Typename):
     for t in args:
       assert isinstance(t, Typename)
     self.args = list(args)
-    self.geninst = ast.GenericInstance(ast.ExprCall(_asexpr(str(self.defn.scope)), self.args))
+    self.geninst = defn.geninst
 
     self._ref = Refs.BY_FULLNAME.get(str(self.defn.scope), None)
     prefix = Refs.PREFIXES.get(Refs.BY_FULLNAME.get(str(self.defn.scope)), None)
@@ -215,20 +215,35 @@ class TypeApp(Typename):
     else:
       return self.args[0]
 
-def _instantiate_ref(instance, d, type):
+class SomeRefInstance(object):
+  def __init__(self, defn):
+    super(SomeRefInstance, self).__init__()
+    self.defn = defn
+
+def _instantiate_ref(d, type):
   genenv = ast.GenericEnv()
   genarg = d.type.args[0]
   with scope.push(d.scope):
     genarg.typedestruct(genenv, type)
   defn, new_instance = d.mk_instantiated_copy(genenv)
+  defn.geninst = SomeRefInstance(defn)
   if new_instance:
     defn.firstpass()
     ast.ctx().gen_instances_fwd.add(defn.typecheck())
   return defn
 
+g_ref_type_cache = {}
+
 def mk_some_ref(name, type):
-  t = TypeApp(ast.g_builtin_defs[name], type)
-  t.defn = _instantiate_ref(t, t.defn, type)
+  global g_ref_type_cache
+  cookie = name + ' ' + str(type)
+  cached = g_ref_type_cache.get(cookie, None)
+  if cached is not None:
+    return cached
+
+  defn = _instantiate_ref(ast.g_builtin_defs[name], type)
+  t = TypeApp(defn, type)
+  g_ref_type_cache[cookie] = t
   return t
 
 def mk_any_ref(type):

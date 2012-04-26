@@ -156,11 +156,7 @@ def forward_declare_members(out, gentype):
       _p(out, tf.rettype,' ', tf, '(')
 
       if isinstance(f, MethodDecl):
-        if f.access == '.':
-          tself = typing.mk_ref(gentype)
-        else:
-          tself = typing.mk_mutable_ref(gentype)
-        _p(out, tself, ' self')
+        _p(out, f.scope.table['self'])
         if len(f.args) > 0:
           _p(out, ', ')
       elif len(f.args) == 0:
@@ -380,6 +376,7 @@ def wgenericinstance(self, out):
     if not isinstance(d, Intf):
       _p(out, d)
 GenericInstance.cwrite = wgenericinstance
+typing.SomeRefInstance.cwrite = wgenericinstance
 
 def wvardecl(self, out):
   if self.mutatingblock is not None:
