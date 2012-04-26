@@ -41,4 +41,4 @@ fun main = i32
   else
     let x = tb{{}}
     let f = x.foo
-    return f.slice_i32 -- Should be tb{}.foo.slice_i32, but the bootstrap code generator cannot yet handle it
+    return f.trim_i32 -- Should be tb{}.foo.trim_i32, but the bootstrap code generator cannot yet handle it

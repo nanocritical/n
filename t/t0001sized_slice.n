@@ -7,7 +7,7 @@ fun main = i32
 
   let r = s.all_index
   for i in r.iter
-    s![i] = i.slice_u32
+    s![i] = i.trim_u32
 
   if s.[99] != 99
     return 1
