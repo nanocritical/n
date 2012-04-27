@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel='stylesheet' type='text/css' href='nlang.css' />
+  </head>
+
+  <body class=''>
+    <h1>The N programming language</h1>
+
+    <center>
+      <p><span class='subtitle'>A modern system language with the performance of C, strong typing, memory safety (no garbage collector), and semantic annotations.</span></p>
+    </center>
+
+    <pre>
+from nlang import *
+
+fun main = i32
+  say 'Hello World!'</pre>
+
+    <p><ul>
+      <li><p>
+      <b>The performance of C.</b>
+      N aims to deliver the exact same time and memory performance as C in a safe manner. N code translates to simple C code with a well-understood and straightforward performance behavior.
+      </p></li>
+
+      <li><p>
+      <b>System language.</b>
+      N has no runtime, it can run in a freestanding environment. N makes no assumptions about memory allocation (indeed, N can run without a heap), allowing the use of various memory allocators and types of hardware memory.
+      </p></li>
+
+      <li><p>
+      <b>Memory safety.</b>
+      N relies on static checks (region and escape analysis) to prevent out-of-bound accesses, dangling pointers, use-after-free, double-free, and null pointer accesses.
+      </p><p>
+      Static techniques are used to avoid the overhead of runtime bound checks. For instance, in a for loop, N validates the range of indices once, before starting the loop, instead of checking every single array access. Semantic annotations guarantee the validity of the index inside the loop.
+        <pre>
+fun foobar v:@!(vector u32) = void
+  -- Checks that [1;99) is a valid range for v.
+  let sub_range = v.range_index 1 99
+
+  for i in sub_range.iter
+    -- i is known to be valid for access in v.
+    -- No bound checks at the actual access point.
+    v![i] += 1</pre>
+
+      </p><p>
+      References are either non-nullable (the default) or nullable. Nullable references must be checked before access, and this is enforced by semantic annotations.
+      <pre>
+fun foo arg:?@u32 = u32
+  if arg != null
+    return arg. - 1
+  else
+    return 0</pre>
+      </p></li>
+
+      <li><p>
+      <b>Clean syntax.</b>
+      The syntax of N is concise and modern. 
+
+      <pre>
+fun foo x:i32 = i32, i32
+  let y = 3 * x
+  return y, x + 1
+
+fun bar = i32
+  match foo 41
+    | 0, 0 -> say 'Hope not.'
+    | 42, _ -> say '42 isn\'t always the answer.'
+    | 3*41, 42 -> say 'Yes.'
+    | _ -> say 'Otherwise...'</pre>
+      </p></li>
+
+      <li><p>
+      <b>Parallelism-aware.</b>
+      N provides the syntax constructs <code>pfor</code> (parallelism) and <code>future</code> (concurrency), along with semantic annotations to assist with multithreaded, vectorized, and distributed programming.
+      </p><p>
+      <pre>
+fun bar x:i32 = i32
+
+fun foo x:i32 = void
+  let y = future -> bar x
+  let z = future
+    barbar x+1
+  return y.result + z.result</pre>
+
+      </p><p>
+      <pre>
+fun map f:(fun e:u32 = u32) v:@(vector u32) = (vector u32)
+  let r:(vector u32)
+    r!reserve v.len
+    pfor e in v.all
+      r!push (f.call e)
+  return r
+      </pre>
+      </p></li>
+
+      <li><p>
+      <b>Correctness.</b>
+      N encourages immutability but not at the expense of flexibility or performance.
+      <pre>
+fun bar x:@u32 = u32
+
+fun foo y:u32 z:u64 = u32
+  let x = 0:u32
+    -- Indented block: the variable x is "open", i.e. mutable.
+    x += y
+    x += z.trim_u32
+    x *= y
+
+  -- The block is closed, x is now immutable.
+  return bar @x</pre>
+      </p></li>
+
+      <li><p>
+      <b></b>
+      </p></li>
+
+      <li><p>
+      <b>Compatible with C.</b>
+      N has the same ABI as C, so calling C code and exchanging data with C is straightforward and does not incur any overhead.
+      <pre>
+-- posix.n
+from nlang import *
+
+fun read fd:i32 buf:@!u8 count:size = ssize
+fun write fd:i32 buf:@u8 count:size = ssize
+
+fun test_write fd:i32 = bool
+  let x = 0xff:u8
+  let written = write fd @x 1
+  return written == 1
+</pre>
+      <pre>
+// posix.h
+#include <unistd.h>
+
+ssize posix_read(i32 fd, u8 *x, size count) {
+  return read(fd, x, count);
+}
+
+ssize posix_write(i32 fd, const u8 *x, size count) {
+  return write(fd, x, count);
+}</pre>
+      </p></li>
+    </ul></p>
+
+  </body>
+</html>
