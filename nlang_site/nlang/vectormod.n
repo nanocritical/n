@@ -81,7 +81,7 @@ type vector t = (random_container t)
     return self._p.get_ref n
 
   method all_index = index_range
-    return self._p.all_index
+    return range 0 self.len
 
   method range_index beg:size end:size ?by:?@size = index_range
     let r = range beg end by
