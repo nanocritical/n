@@ -408,14 +408,15 @@ def unify(constraint, types):
       _unifyerror(constraint, t)
   elif _isliteral(t):
     return _unify_lit_conc(t, constraint)
-  elif (t.ref_type() == Refs.REF and constraint.ref_type() == Refs.NULLABLE_REF) \
-      or (t.ref_type() == Refs.MUTABLE_REF and constraint.ref_type() == Refs.NULLABLE_MUTABLE_REF) \
+
+  if ((t.ref_type() == Refs.REF and constraint.ref_type() == Refs.NULLABLE_REF) \
+      or (t.ref_type() == Refs.MUTABLE_REF and constraint.ref_type() == Refs.NULLABLE_MUTABLE_REF)) \
       and t.args[0].isa(constraint.args[0]):
-    return constraint
+    return t
   elif not t.isa(constraint):
     _unifyerror(constraint, t)
-  else:
-    return t
+
+  return t
 
 def checkcompat(constraint, type):
   return unify(constraint, [type])
