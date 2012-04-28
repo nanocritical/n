@@ -2,6 +2,7 @@ import re
 import errors
 import scope
 import ast
+import copy
 
 def qbuiltin(name):
   x = ast.path_as_expr(name)
@@ -250,7 +251,9 @@ def mk_some_ref(name, type):
   cookie = name + ' ' + str(type)
   cached = g_ref_type_cache.get(cookie, None)
   if cached is not None:
-    return cached
+    cpy = copy.copy(cached)
+    cpy.codeloc = type
+    return cpy
 
   defn = _instantiate_ref(ast.g_builtin_defs[name], type)
   t = TypeApp(defn, type)
