@@ -941,9 +941,15 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
       return None
     xthis = ExprValue('this')
     body = []
-    for d in self.static_decls:
+
+    statics = self.static_decls
+    statics += [d.valuevar for d in filter(lambda d: isinstance(d, ChoiceDecl), self.decls)]
+    if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
+      statics.append(self.declnum)
+
+    for d in statics:
       if d.vardecl.expr is not None:
-        body.append(ExprInitStaticConstField(d.vardecl.name, d.vardecl.expr))
+        body.append(ExprInitStaticConstField(d))
       if d.vardecl.mutatingblock is not None:
         body.append(d.vardecl.mutatingblock)
 
@@ -1158,6 +1164,7 @@ class PatternDecl(_FieldsEq, Decl):
     self.expr = expr
     self.codetmp = ExprValue(gensym())
     self.vars = [VarDecl(ExprConstrained(self.codetmp, ExprValue('void')), self.expr)]
+
     patternvars = self.pattern.declvars(self.codetmp)
     if len(patternvars) == 1:
       # Remove the unnecessary intermediate temporary.
@@ -1166,6 +1173,7 @@ class PatternDecl(_FieldsEq, Decl):
       self.codetmp = None
     else:
       self.vars.extend(patternvars)
+
     self.mutatingblock = None
     self.static = False
     assert not (self.static and self.mutatingblock is not None)
@@ -1217,6 +1225,7 @@ class FieldStaticConstDecl(_NameEq, CGlobalName, Decl):
     assert len(patterndecl.vars) == 1
     self.vardecl = patterndecl.vars[0]
     self.scope = scope.Scope(self)
+    self.scope.define(self.vardecl)
 
   def itersubnodes(self, **kw):
     return iter('')
@@ -2028,13 +2037,12 @@ class ExprFieldElement(ExprCall):
 
 class ExprInitStaticConstField(Expr):
   """Special interal expr for initializing a global static"""
-  def __init__(self, field_name, expr):
+  def __init__(self, staticconst):
     super(ExprInitStaticConstField, self).__init__()
-    self.field_name = field_name
-    self.expr = expr
+    self.staticconst = staticconst
 
   def nocache_typecheck(self):
-    return self.expr.typecheck()
+    return self.staticconst.vardecl.typecheck()
 
 class ExprSizeof(ExprField):
   def __init__(self):

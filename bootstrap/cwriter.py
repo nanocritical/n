@@ -209,14 +209,6 @@ def wtypedecl(self, out):
 
     global g_cwrite_types
     if g_cwrite_types:
-      if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
-        _p(out, indent(+1), 'typedef enum {\n')
-        for d in self.decls:
-          if isinstance(d, ChoiceDecl):
-            _p(out, indent(), d, ',\n')
-        indent(-1)
-        _p(out, indent(), '} nlangtag__', self.type, ';\n\n')
-
       _p(out, indent(+1), 'struct ', self.type ,' {\n')
 
       if str(self.scope) == '<root>.nlang.slicemod.sized_slice':
@@ -441,9 +433,7 @@ def wfieldstaticconstdecl(self, out):
 FieldStaticConstDecl.cwrite = wfieldstaticconstdecl
 
 def wexprinitstaticconstfield(self, out):
-  field = ExprField(ExprValue('this'), '.', ExprValue(self.field_name))
-  _p(out, '*(this*)&', globalname(field),
-      ' = ', self.expr, ';')
+  _p(out, '*(', self.typecheck(), '*)&', globalname(self.staticconst), ' = ', self.staticconst.vardecl.expr, ';')
 ExprInitStaticConstField.cwrite = wexprinitstaticconstfield
 
 def winitializer(self, out):
