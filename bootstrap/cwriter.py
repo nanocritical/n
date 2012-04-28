@@ -506,7 +506,7 @@ ExprDeref.cwrite = wderef
 def wexprliteral(self, out):
   expr = self.args[0]
   if isinstance(expr, basestring):
-    _p(out, '"', expr.encode('string-escape'), '"')
+    _p(out, 'nlang_stringmod_string_from_cstr((nlangcp__u8) "', expr.encode('string-escape'), '")')
   elif isinstance(expr, bool):
     if expr:
       _p(out, '1')
