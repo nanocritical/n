@@ -1,6 +1,10 @@
 type alias =
 
-intf any_ref t =
+declare nlang.numbers =
+  type bool =
+  intf comparable =
+
+intf any_ref t = nlang.numbers.comparable
 intf ref t = (any_ref t)
 intf mutable_ref t = (ref t)
 intf nullable_ref t = (any_ref t)

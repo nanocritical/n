@@ -3,8 +3,15 @@ import nlang.literal
 import nlang.unsafe
 import nlang.show
 
-intf ordered =
-  method operator_cmp__ other:@this = i32
+intf comparable =
+  method operator_eq__ other:@this = bool
+  method operator_ne__ other:@this = bool
+
+intf ordered = comparable
+  method operator_lt__ other:@this = bool
+  method operator_gt__ other:@this = bool
+  method operator_le__ other:@this = bool
+  method operator_ge__ other:@this = bool
 
 intf bitwise_signed =
   let this_unsigned:nlang.meta.alias
