@@ -20,7 +20,7 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
 
   method compare other:@this = i32
     for a, b in zip self._bytes.all other._bytes.all
-      let c = compare a b
+      let c = compare a. b.
       if c != 0
         return c
     return 0

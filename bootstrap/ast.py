@@ -1655,11 +1655,20 @@ class ExprBin(Expr):
   def firstpass(self):
     for n in self.itersubnodes():
       n.firstpass()
-    d = self.args[0].concrete_definition()
+    t = self.args[0].typecheck()
+    d = t.concrete_definition()
     if isinstance(d, TypeDecl) and op_name.get(self.op, None) in d.scope.table:
       self.non_native_expr = \
           ExprCall(ExprField(self.args[0], '.', ExprValue(op_name[self.op])), [ExprRef(self.args[1])])
       self.non_native_expr.firstpass()
+    elif t.is_some_ref() and self.op in ['==', '!=']:
+      pass
+    elif t.name == '<root>.nlang.literal.string' and self.op in ['==', '!=']:
+      pass
+    elif t.name not in scope.builtintypes \
+        and t.name not in ['<root>.nlang.literal.integer', '<root>.nlang.literal.bool']:
+      raise errors.TypeError("Operator '%s' not defined for type '%s', at %s" \
+          % (self.op, t, self))
 
   def nocache_typecheck(self, **ignored):
     if self.non_native_expr is not None:
