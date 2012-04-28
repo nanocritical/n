@@ -266,8 +266,8 @@ type index_range_iterator_with_offset = index_pair_iterator
 fun range beg:size end:size ?by:?@size = index_range
   return index_range.mk beg end by
 
-(fun t1 t2 c1:(random_container t1) c2:(random_container t2) rr1:(random_element_range c1) rr2:(random_element_range c2)) zip a:rr1 b:rr2 = (random_element_pair_iterator c1 c2)
-  return (random_element_pair_iterator c1 c2).mk @a @b
+(fun t1 t2 c1:(random_container t1) c2:(random_container t2) rr1:(random_element_range c1) rr2:(random_element_range c2)) zip a:@rr1 b:@rr2 = (random_element_pair_iterator c1 c2)
+  return (random_element_pair_iterator c1 c2).mk a b
 
 fun zip_index a:index_range b:index_range = index_pair_range_iterator
   return index_pair_range_iterator.mk a b

@@ -19,7 +19,9 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
     self._bytes![0] = 0
 
   method compare other:@this = i32
-    for a, b in zip self._bytes.all other._bytes.all
+    let arange = self._bytes.all
+    let brange = other._bytes.all
+    for a, b in zip @arange @brange
       let c = compare a. b.
       if c != 0
         return c
