@@ -592,7 +592,7 @@ class ChoiceDecl(TypeDef, CGlobalName):
     self.mk = FunctionDecl('mk', [], args, [self.defn.type], ExprBlock([ExprReturn(init)]))
     self.valuevar = FieldStaticConstDecl( \
         PatternDecl(ExprConstrained(ExprValue('value'), ExprValue('u32')), \
-            ExprLiteral(self.value)))
+            self.value))
     self._fillscope()
 
   def _fillscope(self):
@@ -785,14 +785,22 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     self.validate()
 
   def _generate_choice_builtins(self):
-    i = 0
+    first = True
+    prev = None
     for choice in self.userdecls:
       if isinstance(choice, ChoiceDecl):
+        if first:
+          if choice.value is None:
+            choice.value = ExprLiteral(0)
+          first = False
+        else:
+          if choice.value is None:
+            choice.value = ExprBin('+', ExprField(
+                ExprField(ExprValue('this'), '.', ExprValue(prev.name)),
+                '.', ExprValue('value')), ExprLiteral(1))
         choice.defn = self
-        if choice.value is None:
-          choice.value = i
-          i += 1
         choice._defbuiltins()
+        prev = choice
       elif isinstance(choice, FieldDecl):
         choice.typedecl = self
     if self.kind == TypeDecl.TAGGEDUNION:

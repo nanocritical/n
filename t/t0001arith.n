@@ -1,12 +1,12 @@
 from nlang import *
 
 type enum =
-  | FIRST
+  | FIRST = 1
   | SECOND
 
 type test =
-  | SUCCESS
-  | INTEGER i32
+  | SUCCESS = 1
+  | INTEGER i32 = 3
   | LONG i64
 
 fun t1 = bool
