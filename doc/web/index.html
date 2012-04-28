@@ -4,23 +4,23 @@
     <link rel='stylesheet' type='text/css' href='nlang.css' />
   </head>
 
-  <body class=''>
+  <body class='rv'>
     <h1>The N programming language</h1>
 
     <center>
       <p><span class='subtitle'>A modern system language with the performance of C, strong typing, memory safety (no garbage collector), and semantic annotations.</span></p>
     </center>
 
-    <pre>
+    <pre class='code'>
 from nlang import *
 
 fun main = i32
-  say 'Hello World!'</pre>
+  say 'Hello, World!'</pre>
 
     <p><ul>
       <li><p>
       <b>The performance of C.</b>
-      N aims to deliver the exact same time and memory performance as C in a safe manner. N code translates to simple C code with a well-understood and straightforward performance behavior.
+      N aims to deliver the exact same time and memory performance as C in a safe manner. N code translates to simple C code with a well-understood and straightforward performance profile. In general, there is no reason for your N code to be any slower than the equivalent C code.
       </p></li>
 
       <li><p>
@@ -33,7 +33,7 @@ fun main = i32
       N relies on static checks (region and escape analysis) to prevent out-of-bound accesses, dangling pointers, use-after-free, double-free, and null pointer accesses.
       </p><p>
       Static techniques are used to avoid the overhead of runtime bound checks. For instance, in a for loop, N validates the range of indices once, before starting the loop, instead of checking every single array access. Semantic annotations guarantee the validity of the index inside the loop.
-        <pre>
+        <pre class='code'>
 fun foobar v:@!(vector u32) = void
   -- Checks that [1;99) is a valid range for v.
   let sub_range = v.range_index 1 99
@@ -44,8 +44,8 @@ fun foobar v:@!(vector u32) = void
     v![i] += 1</pre>
 
       </p><p>
-      References are either non-nullable (the default) or nullable. Nullable references must be checked before access, and this is enforced by semantic annotations.
-      <pre>
+      References are either non-nullable (the default) or nullable. Nullable references must be checked before access, and this is enforced with semantic annotations.
+      <pre class='code'>
 fun foo arg:?@u32 = u32
   if arg != null
     return arg. - 1
@@ -57,7 +57,7 @@ fun foo arg:?@u32 = u32
       <b>Clean syntax.</b>
       The syntax of N is concise and modern. 
 
-      <pre>
+      <pre class='code'>
 fun foo x:i32 = i32, i32
   let y = 3 * x
   return y, x + 1
@@ -74,30 +74,34 @@ fun bar = i32
       <b>Parallelism-aware.</b>
       N provides the syntax constructs <code>pfor</code> (parallelism) and <code>future</code> (concurrency), along with semantic annotations to assist with multithreaded, vectorized, and distributed programming.
       </p><p>
-      <pre>
-fun bar x:i32 = i32
-
-fun foo x:i32 = void
-  let y = future -> bar x
-  let z = future
-    barbar x+1
-  return y.result + z.result</pre>
-
       </p><p>
-      <pre>
+      <pre class='code'>
 fun map f:(fun e:u32 = u32) v:@(vector u32) = (vector u32)
   let r:(vector u32)
     r!reserve v.len
     pfor e in v.all
       r!push (f.call e)
-  return r
-      </pre>
+  return r</pre>
+
+      </p><p>
+      <code>future</code> is similar to <code>go</code> in the Go programming language.
+      </p><p>
+      <pre class='code'>
+fun bar x:i32 = i32
+fun barbar x:i32 = i32
+
+fun foo x:i32 = i32
+  let y = future -> bar x
+  let z = future
+    barbar x+1
+  return y.result + z.result</pre>
+
       </p></li>
 
       <li><p>
       <b>Correctness.</b>
       N encourages immutability but not at the expense of flexibility or performance.
-      <pre>
+      <pre class='code'>
 fun bar x:@u32 = u32
 
 fun foo y:u32 z:u64 = u32
@@ -118,7 +122,7 @@ fun foo y:u32 z:u64 = u32
       <li><p>
       <b>Compatible with C.</b>
       N has the same ABI as C, so calling C code and exchanging data with C is straightforward and does not incur any overhead.
-      <pre>
+      <pre class='code'>
 -- posix.n
 from nlang import *
 
@@ -128,11 +132,10 @@ fun write fd:i32 buf:@u8 count:size = ssize
 fun test_write fd:i32 = bool
   let x = 0xff:u8
   let written = write fd @x 1
-  return written == 1
-</pre>
-      <pre>
+  return written == 1</pre>
+      <pre class='code'>
 // posix.h
-#include <unistd.h>
+#include &lt;unistd.h&gt;
 
 ssize posix_read(i32 fd, u8 *x, size count) {
   return read(fd, x, count);

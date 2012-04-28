@@ -4,14 +4,14 @@ body { font-size: 90%; }
 body { background-color: #222; }
 body { color: #ddd; }
 
-b { color: #fff; }
-.rv b { color: #000; }
-
 body { font-family: georgia; }
 body { max-width: 120ex; }
 
 body.rv { background-color: #fff; }
 body.rv { color: #111; }
+
+b { color: #fff; }
+.rv b { color: #000; }
 
 h1 { margin: 0 4ex; }
 h1 { text-align: center; }
@@ -29,8 +29,10 @@ ul { margin: 0 1ex; }
 
 pre { white-space: pre-wrap; }
 pre { padding: 1ex 4ex; }
-pre, code { background-color: #444; }
-.rv pre, .rv code { background-color: #ddd; }
+.code, code { background-color: #444; }
+.rv .code, .rv code { background-color: #e0e0e0; }
+.samp, samp { background-color: #454; }
+.rv .samp, .rv samp { background-color: #ded; }
 
 pre { max-width: 100ex; }
 pre { margin: 1ex 2ex; }
