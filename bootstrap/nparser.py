@@ -464,8 +464,8 @@ def p_expr_cmpbinop(p):
   p[0] = ast.ExprCmpBin(p[2], p[1], p[3])
 
 def p_expr_boolbinop(p):
-  '''expr : expr AND expr
-          | expr OR expr'''
+  '''expr_top_boolbinop : expr_top_notuple AND expr_top_notuple
+                        | expr_top_notuple OR expr_top_notuple'''
   p[0] = ast.ExprBoolBin(p[2], p[1], p[3])
 
 def p_expr_binop(p):
@@ -555,6 +555,7 @@ def p_expr_top_notuple_unary(p):
 
 def p_expr_top(p):
   '''expr_top : expr_top_notuple
+              | expr_top_boolbinop
               | expr_tuple'''
   p[0] = p[1]
 
