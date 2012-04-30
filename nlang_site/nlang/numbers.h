@@ -165,3 +165,204 @@ u32 u64_trim_u32(nlangcp__u64 self) {
 i64 u64_reinterpret_signed(nlangcp__u64 self) {
   return (i64) *self;
 }
+
+
+u8 u8_operator_plus__(nlangcp__u8 self, nlangcp__u8 other) { return *self + *other; }
+u8 u8_operator_minus__(nlangcp__u8 self, nlangcp__u8 other) { return *self - *other; }
+u8 u8_operator_times__(nlangcp__u8 self, nlangcp__u8 other) { return *self * *other; }
+u8 u8_operator_divids__(nlangcp__u8 self, nlangcp__u8 other) { return *self / *other; }
+u8 u8_operator_modulo__(nlangcp__u8 self, nlangcp__u8 other) { return *self % *other; }
+u8 u8_operator_neg__(nlangcp__u8 self) { return - *self; }
+u8 u8_operator_rshift__(nlangcp__u8 self, size n) { return *self >> n; }
+u8 u8_operator_lshift__(nlangcp__u8 self, size n) { return *self << n; }
+u8 u8_operator_bwand__(nlangcp__u8 self, nlangcp__u8 other) { return *self & *other; }
+u8 u8_operator_bwor__(nlangcp__u8 self, nlangcp__u8 other) { return *self | *other; }
+u8 u8_operator_bwxor__(nlangcp__u8 self, nlangcp__u8 other) { return *self ^ *other; }
+u8 u8_operator_bwnot__(nlangcp__u8 self) { return ~ *self; }
+bool u8_operator_eq__(nlangcp__u8 self, nlangcp__u8 other) { return *self == *other; }
+bool u8_operator_ne__(nlangcp__u8 self, nlangcp__u8 other) { return *self != *other; }
+bool u8_operator_lt__(nlangcp__u8 self, nlangcp__u8 other) { return *self < *other; }
+bool u8_operator_gt__(nlangcp__u8 self, nlangcp__u8 other) { return *self > *other; }
+bool u8_operator_le__(nlangcp__u8 self, nlangcp__u8 other) { return *self <= *other; }
+bool u8_operator_ge__(nlangcp__u8 self, nlangcp__u8 other) { return *self >= *other; }
+
+u16 u16_operator_plus__(nlangcp__u16 self, nlangcp__u16 other) { return *self + *other; }
+u16 u16_operator_minus__(nlangcp__u16 self, nlangcp__u16 other) { return *self - *other; }
+u16 u16_operator_times__(nlangcp__u16 self, nlangcp__u16 other) { return *self * *other; }
+u16 u16_operator_divids__(nlangcp__u16 self, nlangcp__u16 other) { return *self / *other; }
+u16 u16_operator_modulo__(nlangcp__u16 self, nlangcp__u16 other) { return *self % *other; }
+u16 u16_operator_neg__(nlangcp__u16 self) { return - *self; }
+u16 u16_operator_rshift__(nlangcp__u16 self, size n) { return *self >> n; }
+u16 u16_operator_lshift__(nlangcp__u16 self, size n) { return *self << n; }
+u16 u16_operator_bwand__(nlangcp__u16 self, nlangcp__u16 other) { return *self & *other; }
+u16 u16_operator_bwor__(nlangcp__u16 self, nlangcp__u16 other) { return *self | *other; }
+u16 u16_operator_bwxor__(nlangcp__u16 self, nlangcp__u16 other) { return *self ^ *other; }
+u16 u16_operator_bwnot__(nlangcp__u16 self) { return ~ *self; }
+bool u16_operator_eq__(nlangcp__u16 self, nlangcp__u16 other) { return *self == *other; }
+bool u16_operator_ne__(nlangcp__u16 self, nlangcp__u16 other) { return *self != *other; }
+bool u16_operator_lt__(nlangcp__u16 self, nlangcp__u16 other) { return *self < *other; }
+bool u16_operator_gt__(nlangcp__u16 self, nlangcp__u16 other) { return *self > *other; }
+bool u16_operator_le__(nlangcp__u16 self, nlangcp__u16 other) { return *self <= *other; }
+bool u16_operator_ge__(nlangcp__u16 self, nlangcp__u16 other) { return *self >= *other; }
+
+u32 u32_operator_plus__(nlangcp__u32 self, nlangcp__u32 other) { return *self + *other; }
+u32 u32_operator_minus__(nlangcp__u32 self, nlangcp__u32 other) { return *self - *other; }
+u32 u32_operator_times__(nlangcp__u32 self, nlangcp__u32 other) { return *self * *other; }
+u32 u32_operator_divids__(nlangcp__u32 self, nlangcp__u32 other) { return *self / *other; }
+u32 u32_operator_modulo__(nlangcp__u32 self, nlangcp__u32 other) { return *self % *other; }
+u32 u32_operator_neg__(nlangcp__u32 self) { return - *self; }
+u32 u32_operator_rshift__(nlangcp__u32 self, size n) { return *self >> n; }
+u32 u32_operator_lshift__(nlangcp__u32 self, size n) { return *self << n; }
+u32 u32_operator_bwand__(nlangcp__u32 self, nlangcp__u32 other) { return *self & *other; }
+u32 u32_operator_bwor__(nlangcp__u32 self, nlangcp__u32 other) { return *self | *other; }
+u32 u32_operator_bwxor__(nlangcp__u32 self, nlangcp__u32 other) { return *self ^ *other; }
+u32 u32_operator_bwnot__(nlangcp__u32 self) { return ~ *self; }
+bool u32_operator_eq__(nlangcp__u32 self, nlangcp__u32 other) { return *self == *other; }
+bool u32_operator_ne__(nlangcp__u32 self, nlangcp__u32 other) { return *self != *other; }
+bool u32_operator_lt__(nlangcp__u32 self, nlangcp__u32 other) { return *self < *other; }
+bool u32_operator_gt__(nlangcp__u32 self, nlangcp__u32 other) { return *self > *other; }
+bool u32_operator_le__(nlangcp__u32 self, nlangcp__u32 other) { return *self <= *other; }
+bool u32_operator_ge__(nlangcp__u32 self, nlangcp__u32 other) { return *self >= *other; }
+
+u64 u64_operator_plus__(nlangcp__u64 self, nlangcp__u64 other) { return *self + *other; }
+u64 u64_operator_minus__(nlangcp__u64 self, nlangcp__u64 other) { return *self - *other; }
+u64 u64_operator_times__(nlangcp__u64 self, nlangcp__u64 other) { return *self * *other; }
+u64 u64_operator_divids__(nlangcp__u64 self, nlangcp__u64 other) { return *self / *other; }
+u64 u64_operator_modulo__(nlangcp__u64 self, nlangcp__u64 other) { return *self % *other; }
+u64 u64_operator_neg__(nlangcp__u64 self) { return - *self; }
+u64 u64_operator_rshift__(nlangcp__u64 self, size n) { return *self >> n; }
+u64 u64_operator_lshift__(nlangcp__u64 self, size n) { return *self << n; }
+u64 u64_operator_bwand__(nlangcp__u64 self, nlangcp__u64 other) { return *self & *other; }
+u64 u64_operator_bwor__(nlangcp__u64 self, nlangcp__u64 other) { return *self | *other; }
+u64 u64_operator_bwxor__(nlangcp__u64 self, nlangcp__u64 other) { return *self ^ *other; }
+u64 u64_operator_bwnot__(nlangcp__u64 self) { return ~ *self; }
+bool u64_operator_eq__(nlangcp__u64 self, nlangcp__u64 other) { return *self == *other; }
+bool u64_operator_ne__(nlangcp__u64 self, nlangcp__u64 other) { return *self != *other; }
+bool u64_operator_lt__(nlangcp__u64 self, nlangcp__u64 other) { return *self < *other; }
+bool u64_operator_gt__(nlangcp__u64 self, nlangcp__u64 other) { return *self > *other; }
+bool u64_operator_le__(nlangcp__u64 self, nlangcp__u64 other) { return *self <= *other; }
+bool u64_operator_ge__(nlangcp__u64 self, nlangcp__u64 other) { return *self >= *other; }
+
+i8 i8_operator_plus__(nlangcp__i8 self, nlangcp__i8 other) { return *self + *other; }
+i8 i8_operator_minus__(nlangcp__i8 self, nlangcp__i8 other) { return *self - *other; }
+i8 i8_operator_times__(nlangcp__i8 self, nlangcp__i8 other) { return *self * *other; }
+i8 i8_operator_divids__(nlangcp__i8 self, nlangcp__i8 other) { return *self / *other; }
+i8 i8_operator_modulo__(nlangcp__i8 self, nlangcp__i8 other) { return *self % *other; }
+i8 i8_operator_neg__(nlangcp__i8 self) { return - *self; }
+i8 i8_operator_rshift__(nlangcp__i8 self, size n) { return *self >> n; }
+i8 i8_operator_lshift__(nlangcp__i8 self, size n) { return *self << n; }
+i8 i8_operator_bwand__(nlangcp__i8 self, nlangcp__i8 other) { return *self & *other; }
+i8 i8_operator_bwor__(nlangcp__i8 self, nlangcp__i8 other) { return *self | *other; }
+i8 i8_operator_bwxor__(nlangcp__i8 self, nlangcp__i8 other) { return *self ^ *other; }
+i8 i8_operator_bwnot__(nlangcp__i8 self) { return ~ *self; }
+bool i8_operator_eq__(nlangcp__i8 self, nlangcp__i8 other) { return *self == *other; }
+bool i8_operator_ne__(nlangcp__i8 self, nlangcp__i8 other) { return *self != *other; }
+bool i8_operator_lt__(nlangcp__i8 self, nlangcp__i8 other) { return *self < *other; }
+bool i8_operator_gt__(nlangcp__i8 self, nlangcp__i8 other) { return *self > *other; }
+bool i8_operator_le__(nlangcp__i8 self, nlangcp__i8 other) { return *self <= *other; }
+bool i8_operator_ge__(nlangcp__i8 self, nlangcp__i8 other) { return *self >= *other; }
+
+i16 i16_operator_plus__(nlangcp__i16 self, nlangcp__i16 other) { return *self + *other; }
+i16 i16_operator_minus__(nlangcp__i16 self, nlangcp__i16 other) { return *self - *other; }
+i16 i16_operator_times__(nlangcp__i16 self, nlangcp__i16 other) { return *self * *other; }
+i16 i16_operator_divids__(nlangcp__i16 self, nlangcp__i16 other) { return *self / *other; }
+i16 i16_operator_modulo__(nlangcp__i16 self, nlangcp__i16 other) { return *self % *other; }
+i16 i16_operator_neg__(nlangcp__i16 self) { return - *self; }
+i16 i16_operator_rshift__(nlangcp__i16 self, size n) { return *self >> n; }
+i16 i16_operator_lshift__(nlangcp__i16 self, size n) { return *self << n; }
+i16 i16_operator_bwand__(nlangcp__i16 self, nlangcp__i16 other) { return *self & *other; }
+i16 i16_operator_bwor__(nlangcp__i16 self, nlangcp__i16 other) { return *self | *other; }
+i16 i16_operator_bwxor__(nlangcp__i16 self, nlangcp__i16 other) { return *self ^ *other; }
+i16 i16_operator_bwnot__(nlangcp__i16 self) { return ~ *self; }
+bool i16_operator_eq__(nlangcp__i16 self, nlangcp__i16 other) { return *self == *other; }
+bool i16_operator_ne__(nlangcp__i16 self, nlangcp__i16 other) { return *self != *other; }
+bool i16_operator_lt__(nlangcp__i16 self, nlangcp__i16 other) { return *self < *other; }
+bool i16_operator_gt__(nlangcp__i16 self, nlangcp__i16 other) { return *self > *other; }
+bool i16_operator_le__(nlangcp__i16 self, nlangcp__i16 other) { return *self <= *other; }
+bool i16_operator_ge__(nlangcp__i16 self, nlangcp__i16 other) { return *self >= *other; }
+
+i32 i32_operator_plus__(nlangcp__i32 self, nlangcp__i32 other) { return *self + *other; }
+i32 i32_operator_minus__(nlangcp__i32 self, nlangcp__i32 other) { return *self - *other; }
+i32 i32_operator_times__(nlangcp__i32 self, nlangcp__i32 other) { return *self * *other; }
+i32 i32_operator_divids__(nlangcp__i32 self, nlangcp__i32 other) { return *self / *other; }
+i32 i32_operator_modulo__(nlangcp__i32 self, nlangcp__i32 other) { return *self % *other; }
+i32 i32_operator_neg__(nlangcp__i32 self) { return - *self; }
+i32 i32_operator_rshift__(nlangcp__i32 self, size n) { return *self >> n; }
+i32 i32_operator_lshift__(nlangcp__i32 self, size n) { return *self << n; }
+i32 i32_operator_bwand__(nlangcp__i32 self, nlangcp__i32 other) { return *self & *other; }
+i32 i32_operator_bwor__(nlangcp__i32 self, nlangcp__i32 other) { return *self | *other; }
+i32 i32_operator_bwxor__(nlangcp__i32 self, nlangcp__i32 other) { return *self ^ *other; }
+i32 i32_operator_bwnot__(nlangcp__i32 self) { return ~ *self; }
+bool i32_operator_eq__(nlangcp__i32 self, nlangcp__i32 other) { return *self == *other; }
+bool i32_operator_ne__(nlangcp__i32 self, nlangcp__i32 other) { return *self != *other; }
+bool i32_operator_lt__(nlangcp__i32 self, nlangcp__i32 other) { return *self < *other; }
+bool i32_operator_gt__(nlangcp__i32 self, nlangcp__i32 other) { return *self > *other; }
+bool i32_operator_le__(nlangcp__i32 self, nlangcp__i32 other) { return *self <= *other; }
+bool i32_operator_ge__(nlangcp__i32 self, nlangcp__i32 other) { return *self >= *other; }
+
+i64 i64_operator_plus__(nlangcp__i64 self, nlangcp__i64 other) { return *self + *other; }
+i64 i64_operator_minus__(nlangcp__i64 self, nlangcp__i64 other) { return *self - *other; }
+i64 i64_operator_times__(nlangcp__i64 self, nlangcp__i64 other) { return *self * *other; }
+i64 i64_operator_divids__(nlangcp__i64 self, nlangcp__i64 other) { return *self / *other; }
+i64 i64_operator_modulo__(nlangcp__i64 self, nlangcp__i64 other) { return *self % *other; }
+i64 i64_operator_neg__(nlangcp__i64 self) { return - *self; }
+i64 i64_operator_rshift__(nlangcp__i64 self, size n) { return *self >> n; }
+i64 i64_operator_lshift__(nlangcp__i64 self, size n) { return *self << n; }
+i64 i64_operator_bwand__(nlangcp__i64 self, nlangcp__i64 other) { return *self & *other; }
+i64 i64_operator_bwor__(nlangcp__i64 self, nlangcp__i64 other) { return *self | *other; }
+i64 i64_operator_bwxor__(nlangcp__i64 self, nlangcp__i64 other) { return *self ^ *other; }
+i64 i64_operator_bwnot__(nlangcp__i64 self) { return ~ *self; }
+bool i64_operator_eq__(nlangcp__i64 self, nlangcp__i64 other) { return *self == *other; }
+bool i64_operator_ne__(nlangcp__i64 self, nlangcp__i64 other) { return *self != *other; }
+bool i64_operator_lt__(nlangcp__i64 self, nlangcp__i64 other) { return *self < *other; }
+bool i64_operator_gt__(nlangcp__i64 self, nlangcp__i64 other) { return *self > *other; }
+bool i64_operator_le__(nlangcp__i64 self, nlangcp__i64 other) { return *self <= *other; }
+bool i64_operator_ge__(nlangcp__i64 self, nlangcp__i64 other) { return *self >= *other; }
+
+size size_operator_plus__(nlangcp__size self, nlangcp__size other) { return *self + *other; }
+size size_operator_minus__(nlangcp__size self, nlangcp__size other) { return *self - *other; }
+size size_operator_times__(nlangcp__size self, nlangcp__size other) { return *self * *other; }
+size size_operator_divids__(nlangcp__size self, nlangcp__size other) { return *self / *other; }
+size size_operator_modulo__(nlangcp__size self, nlangcp__size other) { return *self % *other; }
+size size_operator_neg__(nlangcp__size self) { return - *self; }
+size size_operator_rshift__(nlangcp__size self, size n) { return *self >> n; }
+size size_operator_lshift__(nlangcp__size self, size n) { return *self << n; }
+size size_operator_bwand__(nlangcp__size self, nlangcp__size other) { return *self & *other; }
+size size_operator_bwor__(nlangcp__size self, nlangcp__size other) { return *self | *other; }
+size size_operator_bwxor__(nlangcp__size self, nlangcp__size other) { return *self ^ *other; }
+size size_operator_bwnot__(nlangcp__size self) { return ~ *self; }
+bool size_operator_eq__(nlangcp__size self, nlangcp__size other) { return *self == *other; }
+bool size_operator_ne__(nlangcp__size self, nlangcp__size other) { return *self != *other; }
+bool size_operator_lt__(nlangcp__size self, nlangcp__size other) { return *self < *other; }
+bool size_operator_gt__(nlangcp__size self, nlangcp__size other) { return *self > *other; }
+bool size_operator_le__(nlangcp__size self, nlangcp__size other) { return *self <= *other; }
+bool size_operator_ge__(nlangcp__size self, nlangcp__size other) { return *self >= *other; }
+
+ssize ssize_operator_plus__(nlangcp__ssize self, nlangcp__ssize other) { return *self + *other; }
+ssize ssize_operator_minus__(nlangcp__ssize self, nlangcp__ssize other) { return *self - *other; }
+ssize ssize_operator_times__(nlangcp__ssize self, nlangcp__ssize other) { return *self * *other; }
+ssize ssize_operator_divids__(nlangcp__ssize self, nlangcp__ssize other) { return *self / *other; }
+ssize ssize_operator_modulo__(nlangcp__ssize self, nlangcp__ssize other) { return *self % *other; }
+ssize ssize_operator_neg__(nlangcp__ssize self) { return - *self; }
+ssize ssize_operator_rshift__(nlangcp__ssize self, size n) { return *self >> n; }
+ssize ssize_operator_lshift__(nlangcp__ssize self, size n) { return *self << n; }
+ssize ssize_operator_bwand__(nlangcp__ssize self, nlangcp__ssize other) { return *self & *other; }
+ssize ssize_operator_bwor__(nlangcp__ssize self, nlangcp__ssize other) { return *self | *other; }
+ssize ssize_operator_bwxor__(nlangcp__ssize self, nlangcp__ssize other) { return *self ^ *other; }
+ssize ssize_operator_bwnot__(nlangcp__ssize self) { return ~ *self; }
+bool ssize_operator_eq__(nlangcp__ssize self, nlangcp__ssize other) { return *self == *other; }
+bool ssize_operator_ne__(nlangcp__ssize self, nlangcp__ssize other) { return *self != *other; }
+bool ssize_operator_lt__(nlangcp__ssize self, nlangcp__ssize other) { return *self < *other; }
+bool ssize_operator_gt__(nlangcp__ssize self, nlangcp__ssize other) { return *self > *other; }
+bool ssize_operator_le__(nlangcp__ssize self, nlangcp__ssize other) { return *self <= *other; }
+bool ssize_operator_ge__(nlangcp__ssize self, nlangcp__ssize other) { return *self >= *other; }
+
+bool bool_operator_eq__(nlangcp__bool self, nlangcp__bool other) { return *self == *other; }
+bool bool_operator_ne__(nlangcp__bool self, nlangcp__bool other) { return *self != *other; }
+bool bool_operator_lt__(nlangcp__bool self, nlangcp__bool other) { return *self < *other; }
+bool bool_operator_gt__(nlangcp__bool self, nlangcp__bool other) { return *self > *other; }
+bool bool_operator_le__(nlangcp__bool self, nlangcp__bool other) { return *self <= *other; }
+bool bool_operator_ge__(nlangcp__bool self, nlangcp__bool other) { return *self >= *other; }
+bool bool_operator_and__(nlangcp__bool self, nlangcp__bool other) { return *self && *other; }
+bool bool_operator_or__(nlangcp__bool self, nlangcp__bool other) { return *self || *other; }
+bool bool_operator_not__(nlangcp__bool self) { return ! *self; }

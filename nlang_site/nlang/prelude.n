@@ -9,7 +9,7 @@ declare nlang.numbers =
   type size =
   type bool =
 
-(fun t) _sizeof x:t = size
+(fun t) _sizeof x:t = nlang.numbers.size
 
 
 intf any =

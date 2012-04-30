@@ -3,6 +3,11 @@ import nlang.literal
 import nlang.unsafe
 import nlang.show
 
+-- nlang.predicates contains more limited interfaces that capture weaker
+-- orderings. If you're going to define comparison operators, they should
+-- define a complete order. We don't want complex behaviors to hide behind
+-- benign-looking operator syntax.
+
 intf comparable =
   method operator_eq__ other:@this = bool
   method operator_ne__ other:@this = bool
@@ -15,16 +20,44 @@ intf ordered = comparable
 
 intf bitwise_signed =
   let this_unsigned:nlang.meta.alias
-  method additive_inverse = this
   method reinterpret_unsigned = this.this_unsigned
 
 intf bitwise_unsigned =
   let this_signed:nlang.meta.alias
   method reinterpret_signed = this.this_signed
 
+
+type __native_arith = ordered
+  method operator_plus__ other:@this = this
+  method operator_minus__ other:@this = this
+  method operator_times__ other:@this = this
+  method operator_divide__ other:@this = this
+  method operator_modulo__ other:@this = this
+  method operator_neg__ = this
+
+type __native_bitwise = ordered
+  method operator_rshift__ shift:size = this
+  method operator_lshift__ shift:size = this
+  method operator_bwand__ other:@this = this
+  method operator_bwor__ other:@this = this
+  method operator_bwxor__ other:@this = this
+  method operator_bwnot__ = this
+
+type __native_order = ordered
+  method operator_eq__ other:@this = bool
+  method operator_ne__ other:@this = bool
+  method operator_lt__ other:@this = bool
+  method operator_gt__ other:@this = bool
+  method operator_le__ other:@this = bool
+  method operator_ge__ other:@this = bool
+
+
 type void =
 
 type u8 = ordered bitwise_unsigned nlang.show.show_numeric
+  inherit __native_arith
+  inherit __native_bitwise
+  inherit __native_order
   let this_signed:nlang.meta.alias = i8
   method reinterpret_signed = this.this_signed
   method to_u16 = u16
@@ -32,6 +65,9 @@ type u8 = ordered bitwise_unsigned nlang.show.show_numeric
   method to_u64 = u64
 
 type u16 = ordered bitwise_unsigned nlang.show.show_numeric
+  inherit __native_arith
+  inherit __native_bitwise
+  inherit __native_order
   let this_signed:nlang.meta.alias = i16
   method trim_u8 = u8
   method reinterpret_signed = i16
@@ -39,6 +75,9 @@ type u16 = ordered bitwise_unsigned nlang.show.show_numeric
   method to_u64 = u64
 
 type u32 = ordered bitwise_unsigned nlang.show.show_numeric
+  inherit __native_arith
+  inherit __native_bitwise
+  inherit __native_order
   let this_signed:nlang.meta.alias = i32
   method trim_u8 = u8
   method trim_u16 = u16
@@ -46,6 +85,9 @@ type u32 = ordered bitwise_unsigned nlang.show.show_numeric
   method to_u64 = u64
 
 type u64 = ordered bitwise_unsigned nlang.show.show_numeric
+  inherit __native_arith
+  inherit __native_bitwise
+  inherit __native_order
   let this_signed:nlang.meta.alias = i64
   method trim_u8 = u8
   method trim_u16 = u16
@@ -53,6 +95,9 @@ type u64 = ordered bitwise_unsigned nlang.show.show_numeric
   method reinterpret_signed = i64
 
 type size = ordered bitwise_unsigned nlang.show.show_numeric
+  inherit __native_arith
+  inherit __native_bitwise
+  inherit __native_order
   let this_signed:nlang.meta.alias = ssize
   method trim_u8 = u8
   method trim_u16 = u16
@@ -61,6 +106,9 @@ type size = ordered bitwise_unsigned nlang.show.show_numeric
   method reinterpret_signed = ssize
 
 type i8 = ordered bitwise_signed nlang.show.show_numeric
+  inherit __native_arith
+  inherit __native_bitwise
+  inherit __native_order
   let this_unsigned:nlang.meta.alias = u8
   method reinterpret_unsigned = u8
   method to_i16 = i16
@@ -68,6 +116,9 @@ type i8 = ordered bitwise_signed nlang.show.show_numeric
   method to_i64 = i64
 
 type i16 = ordered bitwise_signed nlang.show.show_numeric
+  inherit __native_arith
+  inherit __native_bitwise
+  inherit __native_order
   let this_unsigned:nlang.meta.alias = u16
   method trim_i8 = i8
   method reinterpret_unsigned = u16
@@ -75,6 +126,9 @@ type i16 = ordered bitwise_signed nlang.show.show_numeric
   method to_i64 = i64
 
 type i32 = ordered bitwise_signed nlang.show.show_numeric
+  inherit __native_arith
+  inherit __native_bitwise
+  inherit __native_order
   let this_unsigned:nlang.meta.alias = u32
   method trim_i8 = i8
   method trim_i16 = i16
@@ -82,6 +136,9 @@ type i32 = ordered bitwise_signed nlang.show.show_numeric
   method to_i64 = i64
 
 type i64 = ordered bitwise_signed nlang.show.show_numeric
+  inherit __native_arith
+  inherit __native_bitwise
+  inherit __native_order
   let this_unsigned:nlang.meta.alias = u64
   method trim_i8 = i8
   method trim_i16 = i16
@@ -89,6 +146,9 @@ type i64 = ordered bitwise_signed nlang.show.show_numeric
   method reinterpret_unsigned = u64
 
 type ssize = ordered bitwise_signed nlang.show.show_numeric
+  inherit __native_arith
+  inherit __native_bitwise
+  inherit __native_order
   method trim_i8 = i8
   method trim_i16 = i16
   method trim_i32 = i32
@@ -96,6 +156,10 @@ type ssize = ordered bitwise_signed nlang.show.show_numeric
   method reinterpret_unsigned = size
 
 type bool = ordered nlang.show.show
+  inherit __native_order
+  method operator_and__ other:@this = this
+  method operator_or__ other:@this = this
+  method operator_not__ = this
 
 
 (fun t:ordered) max a:t b:t = t

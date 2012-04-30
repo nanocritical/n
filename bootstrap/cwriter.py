@@ -566,24 +566,22 @@ def wexprconstrained(self, out):
     _p(out, '((', self.type, ')(', self.args[0], '))')
 ExprConstrained.cwrite = wexprconstrained
 
+_op_trans = { 'and': '&&', 'or': '||', 'not': '!' }
+
 def wexprbin(self, out):
-  t = self.typecheck()
-  d = t.concrete_definition()
-  if self.non_native_expr:
-    _p(out, self.non_native_expr)
-  else:
-    op = ast.op_trans.get(self.op, self.op)
+  if self.expr is None:
+    op = _op_trans.get(self.op, self.op)
     _p(out, '(', self.args[0], ' ', op, ' ', self.args[1], ')')
+  else:
+    _p(out, self.expr)
 ExprBin.cwrite = wexprbin
 
 def wexprunary(self, out):
-  t = self.typecheck()
-  d = t.concrete_definition()
-  if self.non_native_expr:
-    _p(out, self.non_native_expr)
-  else:
-    op = ast.op_trans.get(self.op, self.op)
+  if self.expr is None:
+    op = _op_trans.get(self.op, self.op)
     _p(out, '(', op, ' ', self.args[0], ')')
+  else:
+    _p(out, self.expr)
 ExprUnary.cwrite = wexprunary
 
 def wexprcall(self, out):

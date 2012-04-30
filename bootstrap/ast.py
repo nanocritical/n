@@ -1638,22 +1638,19 @@ class ExprConstrained(Expr):
   def is_meta_type(self):
     return self.type.typecheck() == typing.qbuiltin('nlang.meta.alias')
 
-op_trans = { 'and': '&&', 'or': '||', 'not': '!' }
 op_name = {
   '+': 'operator_plus__',
   '-': 'operator_minus__',
   '*': 'operator_times__',
-  '/': 'operator_div__',
-  '%': 'operator_mod__',
+  '/': 'operator_divide__',
+  '%': 'operator_modulo__',
   '>>': 'operator_rshift__',
   '<<': 'operator_lshift__',
   '&': 'operator_bwand__',
   '|': 'operator_bwor__',
   '^': 'operator_bwxor__',
-  '~': 'operator_bwnot__',
   'and': 'operator_and__',
   'or': 'operator_or__',
-  'not': 'operator_not__',
   '<': 'operator_lt__',
   '>': 'operator_gt__',
   '<=': 'operator_le__',
@@ -1667,31 +1664,42 @@ class ExprBin(Expr):
     super(ExprBin, self).__init__()
     self.op = op
     self.args = [left, right]
-    self.non_native_expr = None
+    self.expr = None
 
   def firstpass(self):
     for n in self.itersubnodes():
       n.firstpass()
-    t = self.args[0].typecheck()
-    d = t.concrete_definition()
+
+    t1 = self.args[0].typecheck()
+    t2 = self.args[1].typecheck()
+    u = typing.unify(None, [t1, t2])
+
+    if t1.name in ['<root>.nlang.literal.integer', '<root>.nlang.literal.bool'] \
+        or t1.name in scope.builtintypes \
+        or t2.name in ['<root>.nlang.literal.integer', '<root>.nlang.literal.bool'] \
+        or t2.name in scope.builtintypes:
+      # FIXME For now we will just emit native operators in these case.
+      return
+    if (t1.is_some_ref() and t2.is_some_ref()) \
+        or (t1.is_some_ref() and t2.name == '<root>.nlang.literal.nulltype') \
+        or (t2.is_some_ref() and t1.name == '<root>.nlang.literal.nulltype'):
+      # FIXME For now we will just emit native operators in these case.
+      return
+
+    d = u.concrete_definition()
     if isinstance(d, TypeDecl) and op_name.get(self.op, None) in d.scope.table:
-      self.non_native_expr = \
-          ExprCall(ExprField(self.args[0], '.', ExprValue(op_name[self.op])), [ExprRef(self.args[1])])
-      self.non_native_expr.firstpass()
-    elif t.is_some_ref() and self.op in ['==', '!=']:
-      pass
-    elif t.name == '<root>.nlang.literal.string' and self.op in ['==', '!=']:
-      pass
-    elif t.name not in scope.builtintypes \
-        and t.name not in ['<root>.nlang.literal.integer', '<root>.nlang.literal.bool']:
-      raise errors.TypeError("Operator '%s' not defined for type '%s', at %s" \
-          % (self.op, t, self))
+      self.expr = \
+          ExprCall(ExprField(u.asexpr(), '.', ExprValue(op_name[self.op])), [ExprRef(self.args[0]), ExprRef(self.args[1])])
+      self.expr.firstpass()
+    else:
+      raise errors.TypeError("Operator '%s' not defined on types '%s' and '%s', at %s" \
+          % (self.op, t1, t2, self))
 
   def nocache_typecheck(self, **ignored):
-    if self.non_native_expr is not None:
-      return self.non_native_expr.typecheck()
+    if self.expr is None:
+      return typing.unify(None, [self.args[0].typecheck(), self.args[1].typecheck()])
     else:
-      return typing.unify(None, [t.typecheck() for t in self.args])
+      return self.expr.typecheck()
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.args, **kw)
@@ -1701,11 +1709,10 @@ class ExprBin(Expr):
 
 class ExprCmpBin(ExprBin):
   def nocache_typecheck(self, **ignored):
-    t = super(ExprCmpBin, self).nocache_typecheck()
-    if self.non_native_expr is not None:
-      return t
-    else:
+    if self.expr is None:
       return typing.qbuiltin('nlang.numbers.bool')
+    else:
+      return super(ExprCmpBin, self).nocache_typecheck()
 
 class ExprBoolBin(ExprBin):
   def nocache_typecheck(self, **ignored):
@@ -1716,20 +1723,36 @@ class ExprIsa(ExprBin):
     typing.unify(None, [t.typecheck() for t in self.args])
     return typing.qbuiltin('nlang.numbers.bool')
 
+op_name_unary = {
+  '-': 'operator_neg__',
+  '~': 'operator_bwnot__',
+  'not': 'operator_not__',
+}
+
 class ExprUnary(Expr):
   def __init__(self, op, expr):
     super(ExprUnary, self).__init__()
     self.op = op
     self.args = [expr]
-    self.non_native_expr = None
+    self.expr = None
 
   def firstpass(self):
     for n in self.itersubnodes():
       n.firstpass()
-    d = self.concrete_definition()
-    if isinstance(d, TypeDecl) and op_name.get(self.op, None) in d.scope.table:
-      self.non_native_expr = UnaryCall(ExprField(self.args[0], '.', ExprValue(op_name[self.op])))
-      self.non_native_expr.firstpass()
+
+    t = self.args[0].typecheck()
+    if t.name in ['<root>.nlang.literal.integer', '<root>.nlang.literal.bool'] \
+        or t.name in scope.builtintypes:
+      # FIXME For now we will just emit native operators in these case.
+      return
+
+    d = t.concrete_definition()
+    if isinstance(d, TypeDecl) and op_name_unary.get(self.op, None) in d.scope.table:
+      self.expr = ExprCall(ExprField(self.args[0], '.', ExprValue(op_name[self.op])), [])
+      self.expr.firstpass()
+    else:
+      raise errors.TypeError("Operator '%s' not defined on types '%s', at %s" \
+          % (self.op, t, self))
 
   def nocache_typecheck(self, **ignored):
     return self.args[0].typecheck()
