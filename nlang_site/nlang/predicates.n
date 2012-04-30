@@ -1,0 +1,18 @@
+from nlang import *
+
+intf equality =
+  method equals a:@t b:@t = bool
+
+intf strict_weak_order =
+  method less_than a:@t b:@t = bool
+
+
+-- Adapters
+
+type operator_equality t:comparable = equality
+  method equals a:@t b:@t = bool
+    return t.operator_eq__ a b
+
+type operator_less_than t:ordered = strict_weak_order
+  method less_than a:@t b:@t = bool
+    return t.operator_lt__ a b

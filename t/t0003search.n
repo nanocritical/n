@@ -1,0 +1,42 @@
+from nlang import *
+from nlang.algorithm.search import *
+
+fun fill v:@!(vector u32) = void
+  let r = range 0 100
+  for i in r.iter
+    v!push i.trim_u32
+
+fun t1 = bool
+  let v = (vector u32).mk
+    fill @!v
+  let eq = (operator_equality u32).mk
+
+  let r = range 0 100
+  for i in r.iter
+    let u = i.trim_u32
+    let found, idx = linear_search @v @eq @u
+    if not found or idx != i
+      return false
+
+  return true
+
+fun t2 = bool
+  let v = (vector u32).mk
+    fill @!v
+  let lt = (operator_less_than u32).mk
+
+  let r = range 0 100
+  for i in r.iter
+    let u = i.trim_u32
+    let found, idx = binary_search @v @lt @u
+    if not found or idx != i
+      return false
+
+  return true
+
+fun main = i32
+  if not t1
+    return 1
+  if not t2
+    return 2
+  return 0
