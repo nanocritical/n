@@ -42,7 +42,7 @@ type vector t = (random_container t)
     if new_size > self.capacity
       let old_len = self.len
       nlang.heap.the!slice_resize @!self!_p (max new_size 2*self.capacity)
-    else
+    elif new_size < self.len
       nlang.heap.the!slice_resize @!self!_p (max new_size self.capacity/2)
     self!_len = new_size
 
