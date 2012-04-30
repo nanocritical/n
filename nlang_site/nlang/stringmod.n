@@ -7,7 +7,7 @@ import nlang.heap
 import nlang.utils
 import c99
 
-let _EMPTY_CSTR:@u8
+let __EMPTY_CSTR:@u8
 
 type string = nlang.show.show copyable comparable (random_container u8) nlang.utils.has_compare
   inherit nlang.utils.ordered_with_compare this
@@ -64,7 +64,7 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
 
   method cstr = @u8
     if self.len == 0
-      return _EMPTY_CSTR
+      return __EMPTY_CSTR
     else
       return nlang.unsafe.nonnull_cast self._bytes.storage_slice.unsafe_rawdata
 
