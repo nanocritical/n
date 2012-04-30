@@ -2259,7 +2259,10 @@ class ExprIf(_FieldsEq, Decl):
     bodies = [b.typecheck() for _,b in self.condpairs]
     if self.elsebody is not None:
       bodies.append(self.elsebody.typecheck())
-    t = typing.unify(None, bodies)
+    if len(bodies) == 1:
+      t = bodies[0]
+    else:
+      t = typing.unify(None, bodies)
     if t != typing.qbuiltin('nlang.numbers.void'):
       # FIXME: Make sure the conditions are exhaustive, when applicable. In which
       # case we do not need a else.
