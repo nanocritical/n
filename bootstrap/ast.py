@@ -2185,7 +2185,7 @@ class Assert(_FieldsEq):
 
 class ExprWhile(_FieldsEq, Decl):
   def __init__(self, cond, body):
-    super(While, self).__init__()
+    super(ExprWhile, self).__init__()
     self.cond = cond
     self.body = body
     self._fillscope()

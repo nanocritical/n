@@ -729,7 +729,6 @@ ExprBreak.cwrite = wexprbreak
 
 def wexprwhile(self, out):
   _p(out, 'while (', self.cond, ')', self.body)
-  _p(out, indent(), '}\n')
 ExprWhile.cwrite = wexprwhile
 
 def wexprfor(self, out):
