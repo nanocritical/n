@@ -336,6 +336,9 @@ def _isliteral(type):
 def _isconcrete(type):
   return not type.name.startswith('<root>.nlang.literal.') and type.name != '<root>.nlang.meta.alias'
 
+def _istuple(type):
+  return isinstance(type, TypeTuple)
+
 def _handlethis(type):
   if type is None:
     return None
@@ -352,8 +355,42 @@ def _unifyconcpair(a, b):
   else:
     return None
 
+def _unify_tuples(constraint, types):
+  if constraint is not None:
+    if not _istuple(constraint):
+      _unifyerror([constraint] + types)
+    size = len(constraint.args)
+  else:
+    size = len(types[0].args)
+
+  for t in types:
+    if len(t.args) != size:
+      _unifyerror(list)
+
+  if constraint is None:
+    c = [None for _ in range(size)]
+  else:
+    c = constraint.args
+
+  r = []
+  for i in range(size):
+    each = []
+    for t in types:
+      each.append(t.args[i])
+    r.append(unify(c[i], each))
+
+  return TypeTuple(*r)
+
 def unify(constraint, types):
   assert len(types) > 0
+  assert constraint is not None or len(types) > 1
+
+  tuples = filter(_istuple, types)
+  if len(tuples) > 0:
+    if len(tuples) != len(types):
+      _unifyerror([constraint] + types)
+    return _unify_tuples(constraint, types)
+
   types = map(_handlethis, types)
   constraint = _handlethis(constraint)
 
