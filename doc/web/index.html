@@ -11,7 +11,7 @@
       <p><span class='subtitle'>A modern system language with the performance of C, strong typing, memory safety (no garbage collector), and semantic annotations.</span></p>
     </center>
 
-    <pre class='code'>
+    <pre class='code nlang'>
 from nlang import *
 
 fun main = i32
@@ -33,7 +33,7 @@ fun main = i32
       N relies on static checks (region and escape analysis) to prevent out-of-bound accesses, dangling pointers, use-after-free, double-free, and null pointer accesses.
       </p><p>
       Static techniques are used to avoid the overhead of runtime bound checks. For instance, in a for loop, N validates the range of indices once, before starting the loop, instead of checking every single array access. Semantic annotations guarantee the validity of the index inside the loop.
-        <pre class='code'>
+        <pre class='code nlang'>
 fun foobar v:@!(vector u32) = void
   -- Checks that [1;99) is a valid range for v.
   let sub_range = v.range_index 1 99
@@ -45,7 +45,7 @@ fun foobar v:@!(vector u32) = void
 
       </p><p>
       References are either non-nullable (the default) or nullable. Nullable references must be checked before access, and this is enforced with semantic annotations.
-      <pre class='code'>
+      <pre class='code nlang'>
 fun foo arg:?@u32 = u32
   if arg != null
     return arg. - 1
@@ -57,7 +57,7 @@ fun foo arg:?@u32 = u32
       <b>Clean syntax.</b>
       The syntax of N is concise and modern. 
 
-      <pre class='code'>
+      <pre class='code nlang'>
 fun foo x:i32 = i32, i32
   let y = 3 * x
   return y, x + 1
@@ -75,7 +75,7 @@ fun bar = i32
       N provides the syntax constructs <code>pfor</code> (parallelism) and <code>future</code> (concurrency), along with semantic annotations to assist with multithreaded, vectorized, and distributed programming.
       </p><p>
       </p><p>
-      <pre class='code'>
+      <pre class='code nlang'>
 fun map f:(fun e:u32 = u32) v:@(vector u32) = (vector u32)
   let r:(vector u32)
     r!reserve v.len
@@ -86,7 +86,7 @@ fun map f:(fun e:u32 = u32) v:@(vector u32) = (vector u32)
       </p><p>
       <code>future</code> is similar to <code>go</code> in the Go programming language.
       </p><p>
-      <pre class='code'>
+      <pre class='code nlang'>
 fun bar x:i32 = i32
 fun barbar x:i32 = i32
 
@@ -101,7 +101,7 @@ fun foo x:i32 = i32
       <li><p>
       <b>Correctness.</b>
       N encourages immutability but not at the expense of flexibility or performance.
-      <pre class='code'>
+      <pre class='code nlang'>
 fun bar x:@u32 = u32
 
 fun foo y:u32 z:u64 = u32
@@ -122,7 +122,7 @@ fun foo y:u32 z:u64 = u32
       <li><p>
       <b>Compatible with C.</b>
       N has the same ABI as C, so calling C code and exchanging data with C is straightforward and does not incur any overhead.
-      <pre class='code'>
+      <pre class='code nlang'>
 -- posix.n
 from nlang import *
 
@@ -133,7 +133,7 @@ fun test_write fd:i32 = bool
   let x = 0xff:u8
   let written = write fd @x 1
   return written == 1</pre>
-      <pre class='code'>
+      <pre class='code nlang'>
 // posix.h
 #include &lt;unistd.h&gt;
 

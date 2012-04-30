@@ -1,8 +1,8 @@
 * { margin: 0; padding: 0; }
 body { font-size: 90%; }
 
-body { background-color: #222; }
-body { color: #ddd; }
+body { background-color: #4d4844; }
+body { color: #eee; }
 
 body { font-family: georgia; }
 body { max-width: 120ex; }
@@ -22,14 +22,14 @@ h4 { margin: 0 4ex; }
 h5 { margin: 0 4ex; }
 h6 { margin: 0 4ex; }
 
-p { max-width: 75ex; }
+p { max-width: 80ex; }
 p { margin: 1ex 4ex; }
 
 ul { margin: 0 1ex; }
 
 pre { white-space: pre-wrap; }
 pre { padding: 1ex 4ex; }
-.code, code { background-color: #444; }
+.code, code { background-color: #272727; }
 .rv .code, .rv code { background-color: #e0e0e0; }
 .samp, samp { background-color: #454; }
 .rv .samp, .rv samp { background-color: #ded; }
