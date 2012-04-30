@@ -22,7 +22,7 @@ type allocator = nlang.memory.allocator slice_allocator
     let old_len = s.len
     if new_len == old_len
       return
-    s!unsafe_reinit (nlang.unsafe.realloc s!unsafe_mutable_rawdata old_len new_len) new_len
+    s!unsafe_reinit (nlang.unsafe.realloc s!unsafe_mutable_rawdata (old_len * (sizeof t)) (new_len * (sizeof t))) new_len
 
   (method! t) slice_copy dst:@![]t src:@[]t = void
     self!resize dst src.len
