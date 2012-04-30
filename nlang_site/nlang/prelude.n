@@ -29,3 +29,9 @@ intf moveable =
     return (nlang.unsafe.nonnull_cast ptr).
   else
     return otherwise
+
+(fun t r:(ref t) nr:(nullable_ref t)) optional_ref ptr:nr otherwise:r = r
+  if ptr != null
+    return (nlang.unsafe.nonnull_cast ptr)
+  else
+    return otherwise
