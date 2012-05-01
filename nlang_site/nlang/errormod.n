@@ -1,8 +1,8 @@
 from nlang.prelude import *
 import nlang.show
 import nlang.show.utils
-from nlang.predicates import operator_less_than
-from nlang.algorithm.search import binary_search
+from nlang.predicates import operator_equality
+from nlang.algorithm.search import linear_search
 
 -- POSIX error codes are used as much as possible as a base
 -- for all errors as much as possible.
@@ -309,8 +309,8 @@ type nerror = error_code
   | EUNKNOWN = 0x7fffffff
 
   fun from_errno errno:i32 = nerror
-    let lt = (operator_less_than i32).mk
-    let found, idx = binary_search @this.VALUES__ @lt @errno
+    let eq = (operator_equality i32).mk
+    let found, idx = linear_search @this.VALUES__ @eq @errno
     if not found
       return nerror.EUNKNOWN
     else
