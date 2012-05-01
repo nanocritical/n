@@ -308,7 +308,7 @@ type nerror = error_code
 
   | EUNKNOWN = 0x7fffffff
 
-  fun from_errno errno:i32 = nerror
+  fun from_errno errno:i32 = this
     let eq = (operator_equality i32).mk
     let found, idx = linear_search @this.VALUES__ @eq @errno
     if not found

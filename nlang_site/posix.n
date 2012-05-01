@@ -1,4 +1,4 @@
-from nlang.prelude import *
+from nlang import *
 import nlang.utils
 
 type open_mode = (nlang.utils.bitwise_mask u32)
@@ -54,14 +54,17 @@ type open_flags = (nlang.utils.bitwise_mask i32)
   let O_SYNC = this{{ _bits=_O_SYNC }}
   let O_TRUNC = this{{ _bits=_O_TRUNC }}
 
-fun errno = i32
+fun __errno = i32
+
+fun errno = nerror
+  return nerror.from_errno __errno
 
 fun open pathname:@u8 flags:open_flags ?mode:?@open_mode = i32
 fun close fd:i32 = i32
 fun unlink pathname:@u8 = i32
 
-fun read fd:i32 buf:@!u8 count:size = ssize
-fun write fd:i32 buf:@u8 count:size = ssize
+fun read fd:i32 buf:@![]u8 count:size = ssize
+fun write fd:i32 buf:@[]u8 count:size = ssize
 
 fun rand = i32
 fun srand seed:u32 = void

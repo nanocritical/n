@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-i32 posix_errno(void) {
+i32 posix___errno(void) {
   return errno;
 }
 
@@ -31,6 +31,8 @@ static const i32 posix__O_NDELAY = O_NDELAY;
 static const i32 posix__O_SYNC = O_SYNC;
 static const i32 posix__O_TRUNC = O_TRUNC;
 
+#define SL8(f) nlangapp__nlang_slicemod_slice__u8##f
+
 i32 posix_open(const u8 *pathname, posix_open_flags flags, const posix_open_mode *mode) {
   mode_t m = 0;
   if (mode != null) {
@@ -48,11 +50,19 @@ i32 posix_unlink(const u8 *pathname) {
   return unlink((const char *) pathname);
 }
 
-ssize posix_read(i32 fd, u8 *buf, size count) {
-  return read(fd, buf, count);
+ssize posix_read(i32 fd, SL8() *buf, size count) {
+  size blen = SL8(_len)(buf);
+  if (count > blen) {
+    count = blen;
+  }
+  return read(fd, SL8(_unsafe_mutable_rawdata)(buf), count);
 }
 
-ssize posix_write(i32 fd, const u8 *buf, size count) {
+ssize posix_write(i32 fd, const SL8() *buf, size count) {
+  size blen = SL8(_len)(buf);
+  if (count > blen) {
+    count = blen;
+  }
   return write(fd, buf, count);
 }
 
