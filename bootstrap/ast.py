@@ -466,6 +466,9 @@ class TypeDef(_NameEq):
   def is_forward(self):
     return False
 
+  def is_meta_type(self):
+    return True
+
   def firstpass(self):
     _add_builtin(self)
     self.cached_has_instantiable = self.unboundgeneric()
@@ -1355,7 +1358,11 @@ class ExprValue(Expr):
 
   def is_meta_type(self):
     d = scope.current().q(self)
-    return isinstance(d, TypeDef) or d.is_meta_type()
+    if isinstance(d, FunctionDecl):
+      if self.maybeunarycall:
+        return False
+
+    return d.is_meta_type()
 
   def itersubnodes(self, **kw):
     d = self.definition()
@@ -2084,10 +2091,11 @@ class ExprField(Expr):
 
   def is_meta_type(self):
     d = scope.current().q(self)
-    if isinstance(d, TypeDef):
-      return not isinstance(d, FunctionDecl)
-    else:
-      return d.is_meta_type()
+    if isinstance(d, FunctionDecl):
+      if self.maybeunarycall:
+        return False
+
+    return d.is_meta_type()
 
 class ExprFieldGetElement(ExprCall):
   def __init__(self, container, access, idxexpr):
