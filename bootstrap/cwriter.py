@@ -235,8 +235,6 @@ def wtypedecl(self, out):
           with scope.push(d.scope):
             _p(out, d.mk)
             _p(out, d.valuevar, ';\n\n')
-      if self.declnum is not None:
-        _p(out, self.declnum, ';\n\n')
 
       for d in self.static_decls:
         _p(out, d)
@@ -352,12 +350,7 @@ def wfunctiondecl(self, out):
     if self.body is None:
       _p(out, ');\n')
     else:
-      if isinstance(self.scope.parent_definition.container, TypeDecl):
-        _p(out, ') {\ntypedef ',
-            self.scope.parent_definition.container.typecheck(), ' this;\n',
-            self.body, '}\n\n')
-      else:
-        _p(out, ') ', self.body, '\n\n')
+      _p(out, ') ', self.body, '\n\n')
 
   grettype.pop()
 MethodDecl.cwrite = wfunctiondecl
@@ -433,8 +426,14 @@ def wfieldstaticconstdecl(self, out):
 FieldStaticConstDecl.cwrite = wfieldstaticconstdecl
 
 def wexprinitstaticconstfield(self, out):
-  _p(out, '*(', self.typecheck(), '*)&', globalname(self.staticconst), ' = ', self.staticconst.vardecl.expr, ';')
+  _p(out, '*(', self.typecheck(), '*)&', globalname(self.staticconst), ' = ', self.staticconst.vardecl.expr)
 ExprInitStaticConstField.cwrite = wexprinitstaticconstfield
+
+def wexprinitstaticconstfieldelement(self, out):
+  _p(out, '*(', self.choice.valuevar.typecheck(), '*)&',
+      globalname(self.typedecl), '_VALUES__._rawdata[', self.ith, ']' , ' = ',
+      globalname(self.choice), '_value')
+ExprInitStaticConstFieldElement.cwrite = wexprinitstaticconstfieldelement
 
 def winitializer(self, out):
   tmp = gensym()
@@ -515,7 +514,7 @@ def wpass(self, out):
 Pass.cwrite = wpass
 
 def wexprthis(self, out):
-  _p(out, 'this')
+  _p(out, self.typecheck())
 ExprThis.cwrite = wexprthis
 
 def wtuple(self, out):

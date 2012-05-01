@@ -444,7 +444,7 @@ def p_expr_field(p):
 def p_expr_element(p):
   '''expr_postfix : expr_postfix DOT '[' expr_top ']'
                   | expr_postfix BANG '[' expr_top ']' '''
-  p[0] = ast.ExprFieldElement(p[1], p[2], p[4])
+  p[0] = ast.ExprFieldGetElement(p[1], p[2], p[4])
   p[0].maybeunarycall = True
 
 def p_expr_deref(p):
@@ -632,7 +632,7 @@ def p_statement_pattern(p):
 
 def p_statement_assign(p):
   '''statement : expr_top ASSIGN expr_top'''
-  if isinstance(p[1], ast.ExprFieldElement):
+  if isinstance(p[1], ast.ExprFieldGetElement):
     p[1].args[0].field = ast.ExprValue('operator_set__')
     p[1].maybeunarycall = False
     p[1].args.append(p[3])

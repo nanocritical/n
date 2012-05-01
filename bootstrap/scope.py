@@ -62,8 +62,6 @@ def globalname(node):
     return 'main'
   elif isinstance(node, ast.ExprSizeof):
     return 'sizeof'
-  elif isinstance(node, typing.Typename):
-    return node  # Will be handed to node.cwrite()
   else:
     assert hasattr(d, 'scope')
     if d.scope.parent_definition is None:

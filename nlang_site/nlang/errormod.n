@@ -1,0 +1,593 @@
+from nlang.prelude import *
+import nlang.show
+import nlang.show.utils
+from nlang.predicates import operator_less_than
+from nlang.algorithm.search import binary_search
+
+-- POSIX error codes are used as much as possible as a base
+-- for all errors as much as possible.
+--
+-- If they must, applications and libraries are recommended to define their own error
+-- types by extending nlang.errormod.nerror.
+--
+-- type my_error = nlang.show.show
+--   inherit nerror
+--   | UNKNOWN_USER
+--   | ILLEGAL_QUERY string
+--   | SYNTAX_ERROR code_location
+--
+--   method to_nerror = nerror, bool
+--     match self.
+--       | UNKNOWN_USER
+--       | ILLEGAL_QUERY _
+--       | SYNTAX_ERROR _ -> return EINVAL, false
+--       | _ -> return nerror.from_code self._which, true
+
+-- Values are defined in this module .h, using the system's errno.h
+let _EPERM:i32
+let _ENOENT:i32
+let _ESRCH:i32
+let _EINTR:i32
+let _EIO:i32
+let _ENXIO:i32
+let _E2BIG:i32
+let _ENOEXEC:i32
+let _EBADF:i32
+let _ECHILD:i32
+let _EAGAIN:i32
+let _ENOMEM:i32
+let _EACCES:i32
+let _EFAULT:i32
+let _ENOTBLK:i32
+let _EBUSY:i32
+let _EEXIST:i32
+let _EXDEV:i32
+let _ENODEV:i32
+let _ENOTDIR:i32
+let _EISDIR:i32
+let _EINVAL:i32
+let _ENFILE:i32
+let _EMFILE:i32
+let _ENOTTY:i32
+let _ETXTBSY:i32
+let _EFBIG:i32
+let _ENOSPC:i32
+let _ESPIPE:i32
+let _EROFS:i32
+let _EMLINK:i32
+let _EPIPE:i32
+let _EDOM:i32
+let _ERANGE:i32
+
+let _EDEADLK:i32
+let _ENAMETOOLONG:i32
+let _ENOLCK:i32
+let _ENOSYS:i32
+let _ENOTEMPTY:i32
+let _ELOOP:i32
+let _ENOMSG:i32
+let _EIDRM:i32
+let _ECHRNG:i32
+let _EL2NSYNC:i32
+let _EL3HLT:i32
+let _EL3RST:i32
+let _ELNRNG:i32
+let _EUNATCH:i32
+let _ENOCSI:i32
+let _EL2HLT:i32
+let _EBADE:i32
+let _EBADR:i32
+let _EXFULL:i32
+let _ENOANO:i32
+let _EBADRQC:i32
+let _EBADSLT:i32
+
+let _EBFONT:i32
+let _ENOSTR:i32
+let _ENODATA:i32
+let _ETIME:i32
+let _ENOSR:i32
+let _ENONET:i32
+let _ENOPKG:i32
+let _EREMOTE:i32
+let _ENOLINK:i32
+let _EADV:i32
+let _ESRMNT:i32
+let _ECOMM:i32
+let _EPROTO:i32
+let _EMULTIHOP:i32
+let _EDOTDOT:i32
+let _EBADMSG:i32
+let _EOVERFLOW:i32
+let _ENOTUNIQ:i32
+let _EBADFD:i32
+let _EREMCHG:i32
+let _ELIBACC:i32
+let _ELIBBAD:i32
+let _ELIBSCN:i32
+let _ELIBMAX:i32
+let _ELIBEXEC:i32
+let _EILSEQ:i32
+let _ERESTART:i32
+let _ESTRPIPE:i32
+let _EUSERS:i32
+let _ENOTSOCK:i32
+let _EDESTADDRREQ:i32
+let _EMSGSIZE:i32
+let _EPROTOTYPE:i32
+let _ENOPROTOOPT:i32
+let _EPROTONOSUPPORT:i32
+let _ESOCKTNOSUPPORT:i32
+let _EOPNOTSUPP:i32
+let _EPFNOSUPPORT:i32
+let _EAFNOSUPPORT:i32
+let _EADDRINUSE:i32
+let _EADDRNOTAVAIL:i32
+let _ENETDOWN:i32
+let _ENETUNREACH:i32
+let _ENETRESET:i32
+let _ECONNABORTED:i32
+let _ECONNRESET:i32
+let _ENOBUFS:i32
+let _EISCONN:i32
+let _ENOTCONN:i32
+let _ESHUTDOWN:i32
+let _ETOOMANYREFS:i32
+let _ETIMEDOUT:i32
+let _ECONNREFUSED:i32
+let _EHOSTDOWN:i32
+let _EHOSTUNREACH:i32
+let _EALREADY:i32
+let _EINPROGRESS:i32
+let _ESTALE:i32
+let _EUCLEAN:i32
+let _ENOTNAM:i32
+let _ENAVAIL:i32
+let _EISNAM:i32
+let _EREMOTEIO:i32
+let _EDQUOT:i32
+
+let _ENOMEDIUM:i32
+let _EMEDIUMTYPE:i32
+let _ECANCELED:i32
+let _ENOKEY:i32
+let _EKEYEXPIRED:i32
+let _EKEYREVOKED:i32
+let _EKEYREJECTED:i32
+
+let _EOWNERDEAD:i32
+let _ENOTRECOVERABLE:i32
+let _ERFKILL:i32
+
+let _EHWPOISON:i32
+
+
+intf error_code = nlang.show.show copyable
+
+type nerror = error_code
+  inherit nlang.show.utils.auto_format_s this
+
+  | OK = 0:i32
+
+  | EPERM = _EPERM
+  | ENOENT = _ENOENT
+  | ESRCH = _ESRCH
+  | EINTR = _EINTR
+  | EIO = _EIO
+  | ENXIO = _ENXIO
+  | E2BIG = _E2BIG
+  | ENOEXEC = _ENOEXEC
+  | EBADF = _EBADF
+  | ECHILD = _ECHILD
+  | EAGAIN = _EAGAIN
+  | ENOMEM = _ENOMEM
+  | EACCES = _EACCES
+  | EFAULT = _EFAULT
+  | ENOTBLK = _ENOTBLK
+  | EBUSY = _EBUSY
+  | EEXIST = _EEXIST
+  | EXDEV = _EXDEV
+  | ENODEV = _ENODEV
+  | ENOTDIR = _ENOTDIR
+  | EISDIR = _EISDIR
+  | EINVAL = _EINVAL
+  | ENFILE = _ENFILE
+  | EMFILE = _EMFILE
+  | ENOTTY = _ENOTTY
+  | ETXTBSY = _ETXTBSY
+  | EFBIG = _EFBIG
+  | ENOSPC = _ENOSPC
+  | ESPIPE = _ESPIPE
+  | EROFS = _EROFS
+  | EMLINK = _EMLINK
+  | EPIPE = _EPIPE
+  | EDOM = _EDOM
+  | ERANGE = _ERANGE
+
+  | EDEADLK = _EDEADLK
+  | ENAMETOOLONG = _ENAMETOOLONG
+  | ENOLCK = _ENOLCK
+  | ENOSYS = _ENOSYS
+  | ENOTEMPTY = _ENOTEMPTY
+  | ELOOP = _ELOOP
+  | ENOMSG = _ENOMSG
+  | EIDRM = _EIDRM
+  | ECHRNG = _ECHRNG
+  | EL2NSYNC = _EL2NSYNC
+  | EL3HLT = _EL3HLT
+  | EL3RST = _EL3RST
+  | ELNRNG = _ELNRNG
+  | EUNATCH = _EUNATCH
+  | ENOCSI = _ENOCSI
+  | EL2HLT = _EL2HLT
+  | EBADE = _EBADE
+  | EBADR = _EBADR
+  | EXFULL = _EXFULL
+  | ENOANO = _ENOANO
+  | EBADRQC = _EBADRQC
+  | EBADSLT = _EBADSLT
+
+  | EBFONT = _EBFONT
+  | ENOSTR = _ENOSTR
+  | ENODATA = _ENODATA
+  | ETIME = _ETIME
+  | ENOSR = _ENOSR
+  | ENONET = _ENONET
+  | ENOPKG = _ENOPKG
+  | EREMOTE = _EREMOTE
+  | ENOLINK = _ENOLINK
+  | EADV = _EADV
+  | ESRMNT = _ESRMNT
+  | ECOMM = _ECOMM
+  | EPROTO = _EPROTO
+  | EMULTIHOP = _EMULTIHOP
+  | EDOTDOT = _EDOTDOT
+  | EBADMSG = _EBADMSG
+  | EOVERFLOW = _EOVERFLOW
+  | ENOTUNIQ = _ENOTUNIQ
+  | EBADFD = _EBADFD
+  | EREMCHG = _EREMCHG
+  | ELIBACC = _ELIBACC
+  | ELIBBAD = _ELIBBAD
+  | ELIBSCN = _ELIBSCN
+  | ELIBMAX = _ELIBMAX
+  | ELIBEXEC = _ELIBEXEC
+  | EILSEQ = _EILSEQ
+  | ERESTART = _ERESTART
+  | ESTRPIPE = _ESTRPIPE
+  | EUSERS = _EUSERS
+  | ENOTSOCK = _ENOTSOCK
+  | EDESTADDRREQ = _EDESTADDRREQ
+  | EMSGSIZE = _EMSGSIZE
+  | EPROTOTYPE = _EPROTOTYPE
+  | ENOPROTOOPT = _ENOPROTOOPT
+  | EPROTONOSUPPORT = _EPROTONOSUPPORT
+  | ESOCKTNOSUPPORT = _ESOCKTNOSUPPORT
+  | EOPNOTSUPP = _EOPNOTSUPP
+  | EPFNOSUPPORT = _EPFNOSUPPORT
+  | EAFNOSUPPORT = _EAFNOSUPPORT
+  | EADDRINUSE = _EADDRINUSE
+  | EADDRNOTAVAIL = _EADDRNOTAVAIL
+  | ENETDOWN = _ENETDOWN
+  | ENETUNREACH = _ENETUNREACH
+  | ENETRESET = _ENETRESET
+  | ECONNABORTED = _ECONNABORTED
+  | ECONNRESET = _ECONNRESET
+  | ENOBUFS = _ENOBUFS
+  | EISCONN = _EISCONN
+  | ENOTCONN = _ENOTCONN
+  | ESHUTDOWN = _ESHUTDOWN
+  | ETOOMANYREFS = _ETOOMANYREFS
+  | ETIMEDOUT = _ETIMEDOUT
+  | ECONNREFUSED = _ECONNREFUSED
+  | EHOSTDOWN = _EHOSTDOWN
+  | EHOSTUNREACH = _EHOSTUNREACH
+  | EALREADY = _EALREADY
+  | EINPROGRESS = _EINPROGRESS
+  | ESTALE = _ESTALE
+  | EUCLEAN = _EUCLEAN
+  | ENOTNAM = _ENOTNAM
+  | ENAVAIL = _ENAVAIL
+  | EISNAM = _EISNAM
+  | EREMOTEIO = _EREMOTEIO
+  | EDQUOT = _EDQUOT
+
+  | ENOMEDIUM = _ENOMEDIUM
+  | EMEDIUMTYPE = _EMEDIUMTYPE
+  | ECANCELED = _ECANCELED
+  | ENOKEY = _ENOKEY
+  | EKEYEXPIRED = _EKEYEXPIRED
+  | EKEYREVOKED = _EKEYREVOKED
+  | EKEYREJECTED = _EKEYREJECTED
+
+  | EOWNERDEAD = _EOWNERDEAD
+  | ENOTRECOVERABLE = _ENOTRECOVERABLE
+  | ERFKILL = _ERFKILL
+
+  | EHWPOISON = _EHWPOISON
+
+  | EUNKNOWN = 0x7fffffff
+
+  fun from_errno errno:i32 = nerror
+    let lt = (operator_less_than i32).mk
+    let found, idx = binary_search @this.VALUES__ @lt @errno
+    if not found
+      return nerror.EUNKNOWN
+    else
+      return this{{ _which=this.VALUES__.[idx] }}
+
+  method code = i32
+    return self._which
+
+  method to_s = nlang.stringmod.string
+    match self.
+      | EPERM
+        return 'Operation not permitted (EPERM)'
+      | ENOENT
+        return 'No such file or directory (ENOENT)'
+      | ESRCH
+        return 'No such process (ESRCH)'
+      | EINTR
+        return 'Interrupted system call (EINTR)'
+      | EIO
+        return 'I/O error (EIO)'
+      | ENXIO
+        return 'No such device or address (ENXIO)'
+      | E2BIG
+        return 'Argument list too long (E2BIG)'
+      | ENOEXEC
+        return 'Exec format error (ENOEXEC)'
+      | EBADF
+        return 'Bad file number (EBADF)'
+      | ECHILD
+        return 'No child processes (ECHILD)'
+      | EAGAIN
+        return 'Try again (EAGAIN)'
+      | ENOMEM
+        return 'Out of memory (ENOMEM)'
+      | EACCES
+        return 'Permission denied (EACCES)'
+      | EFAULT
+        return 'Bad address (EFAULT)'
+      | ENOTBLK
+        return 'Block device required (ENOTBLK)'
+      | EBUSY
+        return 'Device or resource busy (EBUSY)'
+      | EEXIST
+        return 'File exists (EEXIST)'
+      | EXDEV
+        return 'Cross-device link (EXDEV)'
+      | ENODEV
+        return 'No such device (ENODEV)'
+      | ENOTDIR
+        return 'Not a directory (ENOTDIR)'
+      | EISDIR
+        return 'Is a directory (EISDIR)'
+      | EINVAL
+        return 'Invalid argument (EINVAL)'
+      | ENFILE
+        return 'File table overflow (ENFILE)'
+      | EMFILE
+        return 'Too many open files (EMFILE)'
+      | ENOTTY
+        return 'Not a typewriter (ENOTTY)'
+      | ETXTBSY
+        return 'Text file busy (ETXTBSY)'
+      | EFBIG
+        return 'File too large (EFBIG)'
+      | ENOSPC
+        return 'No space left on device (ENOSPC)'
+      | ESPIPE
+        return 'Illegal seek (ESPIPE)'
+      | EROFS
+        return 'Read-only file system (EROFS)'
+      | EMLINK
+        return 'Too many links (EMLINK)'
+      | EPIPE
+        return 'Broken pipe (EPIPE)'
+      | EDOM
+        return 'Math argument out of domain of func (EDOM)'
+      | ERANGE
+        return 'Math result not representable (ERANGE)'
+
+      | EDEADLK
+        return 'Resource deadlock would occur (EDEADLK)'
+      | ENAMETOOLONG
+        return 'File name too long (ENAMETOOLONG)'
+      | ENOLCK
+        return 'No record locks available (ENOLCK)'
+      | ENOSYS
+        return 'Function not implemented (ENOSYS)'
+      | ENOTEMPTY
+        return 'Directory not empty (ENOTEMPTY)'
+      | ELOOP
+        return 'Too many symbolic links encountered (ELOOP)'
+      | ENOMSG
+        return 'No message of desired type (ENOMSG)'
+      | EIDRM
+        return 'Identifier removed (EIDRM)'
+      | ECHRNG
+        return 'Channel number out of range (ECHRNG)'
+      | EL2NSYNC
+        return 'Level not synchronized (EL2NSYNC)'
+      | EL3HLT
+        return 'Level halted (EL3HLT)'
+      | EL3RST
+        return 'Level reset (EL3RST)'
+      | ELNRNG
+        return 'Link number out of range (ELNRNG)'
+      | EUNATCH
+        return 'Protocol driver not attached (EUNATCH)'
+      | ENOCSI
+        return 'No CSI structure available (ENOCSI)'
+      | EL2HLT
+        return 'Level halted (EL2HLT)'
+      | EBADE
+        return 'Invalid exchange (EBADE)'
+      | EBADR
+        return 'Invalid request descriptor (EBADR)'
+      | EXFULL
+        return 'Exchange full (EXFULL)'
+      | ENOANO
+        return 'No anode (ENOANO)'
+      | EBADRQC
+        return 'Invalid request code (EBADRQC)'
+      | EBADSLT
+        return 'Invalid slot (EBADSLT)'
+
+      | EBFONT
+        return 'Bad font file format (EBFONT)'
+      | ENOSTR
+        return 'Device not a stream (ENOSTR)'
+      | ENODATA
+        return 'No data available (ENODATA)'
+      | ETIME
+        return 'Timer expired (ETIME)'
+      | ENOSR
+        return 'Out of streams resources (ENOSR)'
+      | ENONET
+        return 'Machine is not on the network (ENONET)'
+      | ENOPKG
+        return 'Package not installed (ENOPKG)'
+      | EREMOTE
+        return 'Object is remote (EREMOTE)'
+      | ENOLINK
+        return 'Link has been severed (ENOLINK)'
+      | EADV
+        return 'Advertise error (EADV)'
+      | ESRMNT
+        return 'Srmount error (ESRMNT)'
+      | ECOMM
+        return 'Communication error on send (ECOMM)'
+      | EPROTO
+        return 'Protocol error (EPROTO)'
+      | EMULTIHOP
+        return 'Multihop attempted (EMULTIHOP)'
+      | EDOTDOT
+        return 'RFS specific error (EDOTDOT)'
+      | EBADMSG
+        return 'Not a data message (EBADMSG)'
+      | EOVERFLOW
+        return 'Value too large for defined data type (EOVERFLOW)'
+      | ENOTUNIQ
+        return 'Name not unique on network (ENOTUNIQ)'
+      | EBADFD
+        return 'File descriptor in bad state (EBADFD)'
+      | EREMCHG
+        return 'Remote address changed (EREMCHG)'
+      | ELIBACC
+        return 'Can not access a needed shared library (ELIBACC)'
+      | ELIBBAD
+        return 'Accessing a corrupted shared library (ELIBBAD)'
+      | ELIBSCN
+        return '.lib section in a.out corrupted (ELIBSCN)'
+      | ELIBMAX
+        return 'Attempting to link in too many shared libraries (ELIBMAX)'
+      | ELIBEXEC
+        return 'Cannot exec a shared library directly (ELIBEXEC)'
+      | EILSEQ
+        return 'Illegal byte sequence (EILSEQ)'
+      | ERESTART
+        return 'Interrupted system call should be restarted (ERESTART)'
+      | ESTRPIPE
+        return 'Streams pipe error (ESTRPIPE)'
+      | EUSERS
+        return 'Too many users (EUSERS)'
+      | ENOTSOCK
+        return 'Socket operation on non-socket (ENOTSOCK)'
+      | EDESTADDRREQ
+        return 'Destination address required (EDESTADDRREQ)'
+      | EMSGSIZE
+        return 'Message too long (EMSGSIZE)'
+      | EPROTOTYPE
+        return 'Protocol wrong type for socket (EPROTOTYPE)'
+      | ENOPROTOOPT
+        return 'Protocol not available (ENOPROTOOPT)'
+      | EPROTONOSUPPORT
+        return 'Protocol not supported (EPROTONOSUPPORT)'
+      | ESOCKTNOSUPPORT
+        return 'Socket type not supported (ESOCKTNOSUPPORT)'
+      | EOPNOTSUPP
+        return 'Operation not supported on transport endpoint (EOPNOTSUPP)'
+      | EPFNOSUPPORT
+        return 'Protocol family not supported (EPFNOSUPPORT)'
+      | EAFNOSUPPORT
+        return 'Address family not supported by protocol (EAFNOSUPPORT)'
+      | EADDRINUSE
+        return 'Address already in use (EADDRINUSE)'
+      | EADDRNOTAVAIL
+        return 'Cannot assign requested address (EADDRNOTAVAIL)'
+      | ENETDOWN
+        return 'Network is down (ENETDOWN)'
+      | ENETUNREACH
+        return 'Network is unreachable (ENETUNREACH)'
+      | ENETRESET
+        return 'Network dropped connection because of reset (ENETRESET)'
+      | ECONNABORTED
+        return 'Software caused connection abort (ECONNABORTED)'
+      | ECONNRESET
+        return 'Connection reset by peer (ECONNRESET)'
+      | ENOBUFS
+        return 'No buffer space available (ENOBUFS)'
+      | EISCONN
+        return 'Transport endpoint is already connected (EISCONN)'
+      | ENOTCONN
+        return 'Transport endpoint is not connected (ENOTCONN)'
+      | ESHUTDOWN
+        return 'Cannot send after transport endpoint shutdown (ESHUTDOWN)'
+      | ETOOMANYREFS
+        return 'Too many references: cannot splice (ETOOMANYREFS)'
+      | ETIMEDOUT
+        return 'Connection timed out (ETIMEDOUT)'
+      | ECONNREFUSED
+        return 'Connection refused (ECONNREFUSED)'
+      | EHOSTDOWN
+        return 'Host is down (EHOSTDOWN)'
+      | EHOSTUNREACH
+        return 'No route to host (EHOSTUNREACH)'
+      | EALREADY
+        return 'Operation already in progress (EALREADY)'
+      | EINPROGRESS
+        return 'Operation now in progress (EINPROGRESS)'
+      | ESTALE
+        return 'Stale NFS file handle (ESTALE)'
+      | EUCLEAN
+        return 'Structure needs cleaning (EUCLEAN)'
+      | ENOTNAM
+        return 'Not a XENIX named type file (ENOTNAM)'
+      | ENAVAIL
+        return 'No XENIX semaphores available (ENAVAIL)'
+      | EISNAM
+        return 'Is a named type file (EISNAM)'
+      | EREMOTEIO
+        return 'Remote I/O error (EREMOTEIO)'
+      | EDQUOT
+        return 'Quota exceeded (EDQUOT)'
+
+      | ENOMEDIUM
+        return 'No medium found (ENOMEDIUM)'
+      | EMEDIUMTYPE
+        return 'Wrong medium type (EMEDIUMTYPE)'
+      | ECANCELED
+        return 'Operation Canceled (ECANCELED)'
+      | ENOKEY
+        return 'Required key not available (ENOKEY)'
+      | EKEYEXPIRED
+        return 'Key has expired (EKEYEXPIRED)'
+      | EKEYREVOKED
+        return 'Key has been revoked (EKEYREVOKED)'
+      | EKEYREJECTED
+        return 'Key was rejected by service (EKEYREJECTED)'
+
+      | EOWNERDEAD
+        return 'Owner died (EOWNERDEAD)'
+      | ENOTRECOVERABLE
+        return 'State not recoverable (ENOTRECOVERABLE)'
+      | ERFKILL
+        return 'Operation not possible due to RF-kill (ERFKILL)'
+
+      | EHWPOISON
+        return 'Memory page has hardware error (EHWPOISON)'
+
+      | EUNKNOWN
+        return 'Unknown error code (EUNKNOWN)'

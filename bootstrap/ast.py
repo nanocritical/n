@@ -582,16 +582,15 @@ class ChoiceDecl(TypeDef, CGlobalName):
     self.typearg = typearg
     self.defn = None
 
-  def _defbuiltins(self):
+  def _defbuiltins(self, choice_value_type):
     if self.typearg is not None:
       args = [VarDecl(ExprConstrained(ExprValue('arg'), self.typearg))]
     else:
       args = []
-    init = ExprInitializer(self.defn.type,
-        [('_which', ExprLiteral(self.value))])
+    init = ExprInitializer(self.defn.type, [('_which', self.value)])
     self.mk = FunctionDecl('mk', [], args, [self.defn.type], ExprBlock([ExprReturn(init)]))
     self.valuevar = FieldStaticConstDecl( \
-        PatternDecl(ExprConstrained(ExprValue('value'), ExprValue('u32')), \
+        PatternDecl(ExprConstrained(ExprValue('value'), choice_value_type), \
             self.value))
     self._fillscope()
 
@@ -652,7 +651,6 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
 
     self.userdecls, self.static_decls = _filterout_static_decls(userdecls)
     self.decls = self.userdecls[:]
-    self.declnum = None
 
     self.methods = methods
     self.funs = funs
@@ -693,7 +691,6 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
       self.scope.define(a)
     for a in self.static_decls:
       self.scope.define(a)
-    self.scope.define(self.declnum)
     for a in self.methods:
       self._fillscope_method(a)
     for a in self.funs:
@@ -755,10 +752,10 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
       for i in self.inherits:
         self._copy_inherited(i)
 
-    self.kind = self._whatkind(self.userdecls, self.typedecls, self.methods + self.funs)
+      self.kind = self._whatkind(self.userdecls, self.typedecls, self.methods + self.funs)
+      self._generate_choice_builtins()
 
-    self._generate_choice_builtins()
-    self._fillscope_members()
+      self._fillscope_members()
     _fixscope(self)
 
   def firstpass(self):
@@ -773,7 +770,7 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
         n.firstpass()
         self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
 
-      if not self.unboundgeneric() and self.kind != TypeDecl.FORWARD:
+      if self.kind != TypeDecl.FORWARD:
         self._generate_builtins()
 
       for n in self.itersubnodes(filter_out=(lambda n: isinstance(n, FieldDecl))):
@@ -787,32 +784,62 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
   def _generate_choice_builtins(self):
     first = True
     prev = None
-    for choice in self.userdecls:
-      if isinstance(choice, ChoiceDecl):
+    choice_value_types = []
+    for m in self.userdecls:
+      if isinstance(m, ChoiceDecl):
+        if m.value is not None:
+          choice_value_types.append(m.value.typecheck())
+
         if first:
-          if choice.value is None:
-            choice.value = ExprLiteral(0)
+          if m.value is None:
+            m.value = ExprLiteral(0)
           first = False
         else:
-          if choice.value is None:
-            choice.value = ExprBin('+', ExprField(
+          if m.value is None:
+            m.value = ExprBin('+', ExprField(
                 ExprField(ExprValue('this'), '.', ExprValue(prev.name)),
                 '.', ExprValue('value')), ExprLiteral(1))
-        choice.defn = self
-        choice._defbuiltins()
-        prev = choice
-      elif isinstance(choice, FieldDecl):
-        choice.typedecl = self
+        m.defn = self
+        prev = m
+
+      elif isinstance(m, FieldDecl):
+        m.typedecl = self
+
     if self.kind == TypeDecl.TAGGEDUNION:
       union = Union(ExprValue('__as'), [], [UnionField(d.name, d.typearg) for d in self.userdecls])
       self.typedecls.append(union)
       self.decls.append(FieldDecl(self, \
           ExprValue('__unsafe_as'), ExprField(ExprValue('this'), '.', ExprValue(union.name))))
+
     if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
-      self.decls.append(FieldDecl(self, ExprValue('_which'), ExprValue('u32')))
-      self.declnum = FieldStaticConstDecl( \
-          PatternDecl(ExprConstrained(ExprValue('NUM__'), ExprValue('u32')),
+      if len(choice_value_types) == 0:
+        choice_value_types.append(typing.qbuiltin('nlang.numbers.u32'))
+
+      try:
+        choice_value_type = typing.unify(
+            typing.qbuiltin('nlang.numbers.natural_arithmetic'),
+            choice_value_types).asexpr()
+      except errors.TypeError:
+        # Failure could be because choice_value_types contain only literal integers.
+        # So try again:
+        choice_value_type = typing.unify(
+            typing.qbuiltin('nlang.numbers.u32'),
+            choice_value_types).asexpr()
+
+      for m in self.userdecls:
+        if isinstance(m, ChoiceDecl):
+          m._defbuiltins(choice_value_type)
+
+      self.decls.append(FieldDecl(self, ExprValue('_which'), choice_value_type))
+      declnum = FieldStaticConstDecl( \
+          PatternDecl(ExprConstrained(ExprValue('NUM__'), path_as_expr('nlang.numbers.size')),
             ExprLiteral(len(self.userdecls))))
+      declvalues = FieldStaticConstDecl( \
+          PatternDecl(ExprConstrained(ExprValue('VALUES__'), ExprTypeSliceSized(choice_value_type,
+            ExprLiteral(len(self.userdecls))))))
+
+      self.static_decls.append(declnum)
+      self.static_decls.append(declvalues)
 
   def _generate_builtins(self):
     m, f = [], []
@@ -953,7 +980,12 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     statics = self.static_decls
     statics += [d.valuevar for d in filter(lambda d: isinstance(d, ChoiceDecl), self.decls)]
     if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
-      statics.append(self.declnum)
+      values = ExprField(ExprValue('this'), '.', ExprValue('VALUES__'))
+      ith = 0
+      for d in self.decls:
+        if isinstance(d, ChoiceDecl):
+          body.append(ExprInitStaticConstFieldElement(self, d, ith))
+          ith += 1
 
     for d in statics:
       if d.vardecl.expr is not None:
@@ -1141,6 +1173,7 @@ class VarDecl(_FieldsEq, Decl):
           return self.expr.typecheck()
         else:
           typing.checkcompat(self.type.typecheck(), self.expr.typecheck())
+
       return self.type.typecheck()
     else:
       return self.expr.typecheck()
@@ -1236,7 +1269,7 @@ class FieldStaticConstDecl(_NameEq, CGlobalName, Decl):
     self.scope.define(self.vardecl)
 
   def itersubnodes(self, **kw):
-    return iter('')
+    return _itersubnodes([self.vardecl])
 
   def nocache_typecheck(self, **ignored):
     # Scope change because we may need 'this'.
@@ -2059,9 +2092,16 @@ class ExprField(Expr):
     else:
       return d.is_meta_type()
 
-class ExprFieldElement(ExprCall):
+class ExprFieldGetElement(ExprCall):
   def __init__(self, container, access, idxexpr):
-    super(ExprFieldElement, self).__init__(ExprField(container, access, ExprValue('operator_get__')), [idxexpr])
+    super(ExprFieldGetElement, self).__init__(ExprField(container, access, ExprValue('operator_get__')), [idxexpr])
+
+  def is_meta_type(self):
+    return False
+
+class ExprFieldSetElement(ExprCall):
+  def __init__(self, container, access, idxexpr, expr):
+    super(ExprFieldSetElement, self).__init__(ExprField(container, access, ExprValue('operator_set__')), [idxexpr, expr])
 
   def is_meta_type(self):
     return False
@@ -2074,6 +2114,17 @@ class ExprInitStaticConstField(Expr):
 
   def nocache_typecheck(self):
     return self.staticconst.vardecl.typecheck()
+
+class ExprInitStaticConstFieldElement(Expr):
+  """Special interal expr for initializing a global static"""
+  def __init__(self, typedecl, choice, ith):
+    super(ExprInitStaticConstFieldElement, self).__init__()
+    self.typedecl = typedecl
+    self.choice = choice
+    self.ith =ith
+
+  def nocache_typecheck(self):
+    return typing.qbuiltin('nlang.numbers.void')
 
 class ExprSizeof(ExprField):
   def __init__(self):

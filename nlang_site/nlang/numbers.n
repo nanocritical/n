@@ -18,6 +18,14 @@ intf ordered = comparable
   method operator_le__ other:@this = bool
   method operator_ge__ other:@this = bool
 
+intf natural_arithmetic = ordered
+  method operator_plus__ other:@this = this
+  method operator_minus__ other:@this = this
+  method operator_times__ other:@this = this
+  method operator_divide__ other:@this = this
+  method operator_modulo__ other:@this = this
+  method operator_neg__ = this
+
 intf bitwise_signed =
   let this_unsigned:nlang.meta.alias
   method reinterpret_unsigned = this.this_unsigned
@@ -27,7 +35,7 @@ intf bitwise_unsigned =
   method reinterpret_signed = this.this_signed
 
 
-type __native_arith = ordered
+type __native_arith =
   method operator_plus__ other:@this = this
   method operator_minus__ other:@this = this
   method operator_times__ other:@this = this
@@ -54,7 +62,7 @@ type __native_order = ordered
 
 type void =
 
-type u8 = ordered bitwise_unsigned nlang.show.show_numeric
+type u8 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
@@ -64,7 +72,7 @@ type u8 = ordered bitwise_unsigned nlang.show.show_numeric
   method to_u32 = u32
   method to_u64 = u64
 
-type u16 = ordered bitwise_unsigned nlang.show.show_numeric
+type u16 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
@@ -74,7 +82,7 @@ type u16 = ordered bitwise_unsigned nlang.show.show_numeric
   method to_u32 = u32
   method to_u64 = u64
 
-type u32 = ordered bitwise_unsigned nlang.show.show_numeric
+type u32 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
@@ -84,7 +92,7 @@ type u32 = ordered bitwise_unsigned nlang.show.show_numeric
   method reinterpret_signed = i32
   method to_u64 = u64
 
-type u64 = ordered bitwise_unsigned nlang.show.show_numeric
+type u64 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
@@ -94,7 +102,7 @@ type u64 = ordered bitwise_unsigned nlang.show.show_numeric
   method trim_u32 = u32
   method reinterpret_signed = i64
 
-type size = ordered bitwise_unsigned nlang.show.show_numeric
+type size = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
@@ -105,7 +113,7 @@ type size = ordered bitwise_unsigned nlang.show.show_numeric
   method trim_u64 = u64
   method reinterpret_signed = ssize
 
-type i8 = ordered bitwise_signed nlang.show.show_numeric
+type i8 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
@@ -115,7 +123,7 @@ type i8 = ordered bitwise_signed nlang.show.show_numeric
   method to_i32 = i32
   method to_i64 = i64
 
-type i16 = ordered bitwise_signed nlang.show.show_numeric
+type i16 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
@@ -125,7 +133,7 @@ type i16 = ordered bitwise_signed nlang.show.show_numeric
   method to_i32 = i32
   method to_i64 = i64
 
-type i32 = ordered bitwise_signed nlang.show.show_numeric
+type i32 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
@@ -135,7 +143,7 @@ type i32 = ordered bitwise_signed nlang.show.show_numeric
   method reinterpret_unsigned = u32
   method to_i64 = i64
 
-type i64 = ordered bitwise_signed nlang.show.show_numeric
+type i64 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
@@ -145,7 +153,7 @@ type i64 = ordered bitwise_signed nlang.show.show_numeric
   method trim_i32 = i32
   method reinterpret_unsigned = u64
 
-type ssize = ordered bitwise_signed nlang.show.show_numeric
+type ssize = natural_arithmetic bitwise_signed nlang.show.show_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order

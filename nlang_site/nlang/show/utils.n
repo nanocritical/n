@@ -1,0 +1,11 @@
+from nlang import *
+from nlang.show import *
+
+intf has_to_s =
+  method to_s = string
+
+type auto_format_s t:has_to_s = show
+  method format_s ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+
+    -- FIXME implement
+    return t.to_s self
