@@ -165,9 +165,6 @@ type ssize = natural_arithmetic bitwise_signed nlang.show.show_numeric
 
 type bool = ordered nlang.show.show
   inherit __native_order
-  method operator_and__ other:@this = this
-  method operator_or__ other:@this = this
-  method operator_not__ = this
 
 
 (fun t:ordered) max a:t b:t = t

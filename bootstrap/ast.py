@@ -1682,8 +1682,6 @@ op_name = {
   '&': 'operator_bwand__',
   '|': 'operator_bwor__',
   '^': 'operator_bwxor__',
-  'and': 'operator_and__',
-  'or': 'operator_or__',
   '<': 'operator_lt__',
   '>': 'operator_gt__',
   '<=': 'operator_le__',
@@ -1759,7 +1757,6 @@ class ExprIsa(ExprBin):
 op_name_unary = {
   '-': 'operator_neg__',
   '~': 'operator_bwnot__',
-  'not': 'operator_not__',
 }
 
 class ExprUnary(Expr):
