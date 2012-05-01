@@ -466,7 +466,9 @@ def wvalue(self, out):
   if isinstance(node, GenericLiteralArgInstantiated):
     _p(out, node.typecheck().literal_value)
   elif isinstance(node, VarDecl):
-    if isinstance(node.scope.parent.container, Module):
+    if isinstance(node, GenericArgInstantiated):
+      _p(out, node.typecheck())
+    elif isinstance(node.scope.parent.container, Module):
       _p(out, globalname(node.scope.container))
     else:
       _p(out, self.name)
@@ -481,6 +483,8 @@ ExprSizeof.cwrite = wsizeof
 def wref(self, out):
   if self.is_meta_type():
     self.typecheck().cwrite(out)
+  elif self.temporary is not None:
+    _p(out, '&', self.temporary.name)
   else:
     _p(out, '&', self.value)
 ExprRef.cwrite = wref
@@ -754,6 +758,10 @@ def wexprif(self, out):
     _p(out, indent(), 'else', self.elsebody)
 ExprIf.cwrite = wexprif
 
+def wtemporary(self, out):
+  _p(out, self.expr.value.typecheck(), ' ', self.name, ' = ', self.expr.value)
+Temporary.cwrite = wtemporary
+
 gblockdepth = 0
 def indent(delta=0):
   global gblockdepth
@@ -768,7 +776,13 @@ def wexprblock(self, out):
     if self.main:
       for t in ast.g_static_init:
         _p(out, indent(), UnaryCall(ExprField(t, '.', ExprValue('__static_init__'))), ';\n')
+
     for b in self.body:
+      tmps = TemporariesList()
+      b.gather_temporaries(tmps)
+      for t in tmps.list:
+        _p(out, indent(), t, ';\n')
+
       _p(out, indent(), b, ';\n')
     indent(-1)
     _p(out, indent(), '}')

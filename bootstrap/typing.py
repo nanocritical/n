@@ -70,6 +70,9 @@ class Typename(object):
     memo[id(self)] = self
     return self
 
+  def gather_temporaries(self, tmps):
+    pass
+
 def _asexpr(name):
   path = name.split('.')
   path[0] = ast.ExprValue(path[0])

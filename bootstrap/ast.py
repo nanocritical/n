@@ -289,10 +289,7 @@ class _Node(object):
     pass
 
   def firstpass(self):
-    if hasattr(self, 'scope'):
-      sc = self.scope
-    else:
-      sc = None
+    sc = getattr(self, 'scope', None)
 
     self.cached_has_instantiable = False
     with scope.push(sc):
@@ -327,6 +324,18 @@ class _Node(object):
 
   def has_instantiable(self):
     return self.cached_has_instantiable
+
+  def is_rvalue(self):
+    return False
+
+  def gather_temporaries(self, tmps):
+    sc = getattr(self, 'scope', None)
+    with scope.push(sc):
+      if hasattr(self, 'temporary') and self.temporary is not None \
+          and not self.is_meta_type():
+        tmps.add(self.temporary)
+      for n in self.itersubnodes():
+        n.gather_temporaries(tmps)
 
 def _is_non_function_primitive(node):
   return isinstance(node, ExprCall) \
@@ -376,6 +385,21 @@ class _FieldsEq(_Node):
 
 class CGlobalName(object):
   pass
+
+class TemporariesList(object):
+  def __init__(self):
+    self.set = set()
+    self.list = []
+  def add(self, t):
+    if t not in self.set:
+      self.set.add(t)
+      self.list.append(t)
+
+class Temporary(_Node):
+  def __init__(self, expr):
+    self.expr = expr
+    self.name = gensym()
+    self.cached_has_instantiable = False
 
 class GenericArg(_NameEq):
   def __init__(self, name, typeconstraint=None):
@@ -1402,6 +1426,9 @@ class ExprValue(Expr):
     else:
       return [VarDecl(self, expr)]
 
+  def is_rvalue(self):
+    return self.maybeunarycall and isinstance(self.definition(), FunctionDecl)
+
 def _typeappexpr_unbound_isa(expr, typeconstraint):
   if not isinstance(typeconstraint, typing.TypeApp):
     return False
@@ -1413,6 +1440,7 @@ class ExprRef(Expr):
   def __init__(self, value):
     super(ExprRef, self).__init__()
     self.value = value
+    self.temporary = None
 
   def nocache_typecheck(self, **ignored):
     return typing.mk_ref(self.value.typecheck())
@@ -1421,6 +1449,8 @@ class ExprRef(Expr):
     self.value.firstpass()
     self.cached_has_instantiable = self.value.has_instantiable()
     self.typecheck()
+    if self.value.is_rvalue():
+      self.temporary = Temporary(self)
 
   def definition(self):
     global g_builtin_defs
@@ -1451,6 +1481,7 @@ class ExprMutableRef(Expr):
   def __init__(self, value):
     super(ExprMutableRef, self).__init__()
     self.value = value
+    self.temporary = None
 
   def nocache_typecheck(self, **ignored):
     return typing.mk_mutable_ref(self.value.typecheck())
@@ -1459,6 +1490,8 @@ class ExprMutableRef(Expr):
     self.value.firstpass()
     self.cached_has_instantiable = self.value.has_instantiable()
     self.typecheck()
+    if self.value.is_rvalue():
+      self.temporary = Temporary(self)
 
   def definition(self):
     global g_builtin_defs
@@ -1546,6 +1579,9 @@ class ExprLiteral(Expr):
 
   def patterntypedestruct(self, xtype):
     return typing.checkcompat(self.typecheck(), xtype)
+
+  def is_rvalue(self):
+    return True
 
   def declvars(self, expr):
     return [None]
@@ -1635,6 +1671,9 @@ class ExprTuple(_IsGenericInstance, Expr):
     for a in self.args:
       if not a.is_meta_type():
         return False
+    return True
+
+  def is_rvalue(self):
     return True
 
 class ExprTupleSelect(Expr):
@@ -1745,6 +1784,9 @@ class ExprBin(Expr):
   def definition(self):
     return None
 
+  def is_rvalue(self):
+    return True
+
 class ExprCmpBin(ExprBin):
   def nocache_typecheck(self, **ignored):
     if self.expr is None:
@@ -1799,6 +1841,9 @@ class ExprUnary(Expr):
 
   def definition(self):
     return self.typecheck().concrete_definition()
+
+  def is_rvalue(self):
+    return True
 
 class GenericInstance(_FieldsEq):
   def __init__(self, call):
@@ -1974,6 +2019,9 @@ class ExprCall(_IsGenericInstance, Expr):
     else:
       return False
 
+  def is_rvalue(self):
+    return True
+
   def typedestruct(self, genenv, t):
     if not isinstance(t, typing.Type) and not isinstance(t, typing.TypeApp) \
         and not t.is_some_ref():
@@ -2097,6 +2145,9 @@ class ExprField(Expr):
 
     return d.is_meta_type()
 
+  def is_rvalue(self):
+    return self.maybeunarycall and isinstance(self.definition(), FunctionDecl)
+
 class ExprFieldGetElement(ExprCall):
   def __init__(self, container, access, idxexpr):
     super(ExprFieldGetElement, self).__init__(ExprField(container, access, ExprValue('operator_get__')), [idxexpr])
@@ -2160,6 +2211,9 @@ class ExprInitializer(Expr):
 
   def is_meta_type(self):
     return False
+
+  def is_rvalue(self):
+    return True
 
 class ExprAssign(_FieldsEq):
   def __init__(self, value, expr):
@@ -2354,6 +2408,10 @@ class ExprBlock(_FieldsEq, Decl):
         for b in self.body:
           b.typecheck()
         return self.body[-1].typecheck(statement=True)
+
+  def gather_temporaries(self, tmps):
+    # Do not recurse into sub blocks.
+    pass
 
   def itersubnodes(self, **kw):
     return _itersubnodes(self.body, **kw)
