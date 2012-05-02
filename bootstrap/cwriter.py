@@ -17,8 +17,8 @@ def _p(out, *args):
       out.write(a)
     elif isinstance(a, int) or isinstance(a, long):
       out.write(str(a))
-    elif isinstance(a, Expr) and a.maybeunarycall:
-      UnaryCall(a).cwrite(out)
+    elif isinstance(a, Expr) and a.unary_call is not None:
+      a.unary_call.cwrite(out)
     else:
       a.cwrite(out)
 
@@ -561,10 +561,14 @@ def wexprconstrained(self, out):
   if self.args[0].typecheck() == typing.qbuiltin('nlang.literal.string') \
       and self.type.typecheck() == typing.qbuiltin('nlang.charmod.char') \
       and len(self.args[0].args[0]) == 1:
-    _p(out, ExprCall(ast.path_as_expr('nlang.charmod.char.from_ascii'), [_CharCLiteral(self.args[0].args[0])]))
+    c = ExprCall(ast.path_as_expr('nlang.charmod.char.from_ascii'), [_CharCLiteral(self.args[0].args[0])])
+    c.firstpass()
+    _p(out, c)
   elif self.args[0].typecheck() == typing.qbuiltin('nlang.literal.string') \
       and self.type.typecheck() == typing.qbuiltin('nlang.stringmod.string'):
-    _p(out, ExprCall(ast.path_as_expr('nlang.stringmod.string.from_cstr'), [_StringCLiteral(self.args[0].args[0])]))
+    c = ExprCall(ast.path_as_expr('nlang.stringmod.string.from_cstr'), [_StringCLiteral(self.args[0].args[0])])
+    c.firstpass()
+    _p(out, c)
   else:
     _p(out, '((', self.type, ')(', self.args[0], '))')
 ExprConstrained.cwrite = wexprconstrained
@@ -618,16 +622,8 @@ def wexprcall(self, out):
     assert isinstance(self.args[0], ExprField)
 
     if self.args[0].container.is_meta_type():
-      xself = self.args[1]
       first_arg_offset = 2
-    else:
-      xself = self.args[0].container
-    deref = ''
-    txself = xself.typecheck()
-    if txself.ref_type() != typing.Refs.REF \
-        and txself.ref_type() != typing.Refs.MUTABLE_REF:
-      deref = '&'
-    _p(out, deref, xself)
+    _p(out, self.xself)
 
   if len(fun.args) == 0:
     _p(out, ')')
@@ -662,13 +658,13 @@ def wunarycall(self, out):
   fun = scope.current().q(self.args[0]).concrete_definition()
   if isinstance(fun, FunctionDecl):
     self.args[0].maybeunarycall = True
-    _p(out, ExprCall(self.args[0], []))
+    ExprCall.cwrite(self, out)
   elif isinstance(fundef, ChoiceDecl):
     self.args[0].maybeunarycall = False  # Handled in ExprCall.cwrite().
-    _p(out, ExprCall(self.args[0], []))
+    ExprCall.cwrite(self, out)
   else:
     _p(out, self.args[0])
-UnaryCall.cwrite = wunarycall
+InferredUnaryCall.cwrite = wunarycall
 
 def wexprfield(self, out):
   if hasattr(self.container, 'name') and self.container.name == '<root>':
@@ -685,8 +681,7 @@ def wexprfield(self, out):
     access = '.'
 
   if isinstance(self.container, ExprCall):
-    container = TypeApp(self.args[0], *self.args[1:])
-    access = '_'
+    assert False
   else:
     container = self.container
 
@@ -698,17 +693,18 @@ def wexprfield(self, out):
     field = self.field.name
   elif isinstance(qself, ChoiceDecl):
     access = '_'
-    field = self.field.name
+    if not self.is_sub_field and self.maybeunarycall:
+      field = self.field.name + '_mk()'
+    else:
+      field = self.field.name
   elif isinstance(qself, FieldStaticConstDecl):
     access = '_'
     field = self.field.name
   else:
-    sc = ctype.concrete_definition().scope
     if isinstance(self.field, basestring):
       field = self.field
     else:
       field = self.field.name
-    f = sc.table[field]
 
   _p(out, container, access, field)
 ExprField.cwrite = wexprfield
@@ -775,7 +771,9 @@ def wexprblock(self, out):
     _p(out, indent(+1), '{\n')
     if self.main:
       for t in ast.g_static_init:
-        _p(out, indent(), UnaryCall(ExprField(t, '.', ExprValue('__static_init__'))), ';\n')
+        c = ExprCall(ExprField(t, '.', ExprValue('__static_init__')), [])
+        c.firstpass()
+        _p(out, indent(), c, ';\n')
 
     for b in self.body:
       tmps = TemporariesList()

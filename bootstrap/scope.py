@@ -207,19 +207,18 @@ class Scope(object):
       self._define(what, name=name, noparent=noparent)
 
   def _qfield(self, node):
-    nodet = node.container.typecheck()
+    cont = node.container.typecheck()
     while True:
-      if nodet.is_some_ref():
+      if cont.is_some_ref():
         if node.container.is_meta_type():
-          what = nodet.concrete_definition()
+          what = cont.concrete_definition()
           break
 
-        nodet = nodet.deref(node.access)
+        cont = cont.deref(node.access)
         continue
       else:
-        what = nodet.concrete_definition()
+        what = cont.concrete_definition()
         break
-
 
     if isinstance(node.field, basestring):
       field = node.field
@@ -229,8 +228,8 @@ class Scope(object):
     if isinstance(node.container, ast.ExprField) \
         and node.container.container is not None \
         and what == node.container.container.concrete_definition():
-      # Hack to handle the EnumType.FIELD.Value case:
-      # EnumType.FIELD and EnumType.FIELD.Value have the same type and
+      # Hack to handle the EnumType.FIELD.value case:
+      # EnumType.FIELD and EnumType.FIELD.value have the same type and
       # concrete_definition, so we need to special case it here.
       what = what.scope.q(ast._QueryWrapper(node.container.field.name))
 

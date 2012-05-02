@@ -331,9 +331,6 @@ class _Node(object):
   def gather_temporaries(self, tmps):
     sc = getattr(self, 'scope', None)
     with scope.push(sc):
-      if hasattr(self, 'temporary') and self.temporary is not None \
-          and not self.is_meta_type():
-        tmps.add(self.temporary)
       for n in self.itersubnodes():
         n.gather_temporaries(tmps)
 
@@ -1207,8 +1204,12 @@ class VarDecl(_FieldsEq, Decl):
 
   def definition(self):
     if self.type is not None:
-      if isinstance(self.type, typing.Typename):
-        return self.type.concrete_definition()
+      if self.type.typecheck() == typing.qbuiltin('nlang.meta.alias'):
+        if self.expr is None:
+          # i.e. a forward declaration, aka an Intf field.
+          return None
+        else:
+          return self.expr.definition()
       else:
         return self.type.definition()
     else:
@@ -1351,6 +1352,7 @@ class Expr(_FieldsEq):
   def __init__(self):
     super(Expr, self).__init__()
     self.maybeunarycall = False
+    self.unary_call = None
 
   def nocache_typecheck(self, **ignored):
     raise Exception("Not implemented for type '%s'" % type(self))
@@ -1368,30 +1370,33 @@ class ExprValue(Expr):
   def __init__(self, name):
     super(ExprValue, self).__init__()
     self.name = name
+    self.unary_call = None
 
   def nocache_typecheck(self, **ignored):
-    type = scope.current().q(self).typecheck()
-    if isinstance(type, typing.TypeFunction):
-      d = type.concrete_definition()
-      if self.maybeunarycall and len(d.args) == 0:
-        return d.rettype.typecheck()
-      else:
-        return type
+    if self.unary_call is not None:
+      return self.unary_call.typecheck()
     else:
-      return type
+      return scope.current().q(self).typecheck()
 
   def is_meta_type(self):
-    d = scope.current().q(self)
-    if isinstance(d, FunctionDecl):
-      if self.maybeunarycall:
-        return False
+    if self.unary_call is not None:
+      return self.unary_call.is_meta_type()
+    else:
+      return scope.current().q(self).is_meta_type()
 
-    return d.is_meta_type()
+  def firstpass(self):
+    for n in self.itersubnodes():
+      n.firstpass()
+
+    if self.unary_call is None:
+      d = self.definition()
+      if self.maybeunarycall and isinstance(d, FunctionDecl):
+        self.unary_call = InferredUnaryCall(self)
+        self.unary_call.firstpass()
 
   def itersubnodes(self, **kw):
-    d = self.definition()
-    if self.maybeunarycall and isinstance(d, FunctionDecl):
-      return _itersubnodes([UnaryCall(self)], **kw)
+    if self.unary_call is not None:
+      return _itersubnodes([self.unary_call], **kw)
     else:
       return iter('')
 
@@ -1427,7 +1432,7 @@ class ExprValue(Expr):
       return [VarDecl(self, expr)]
 
   def is_rvalue(self):
-    return self.maybeunarycall and isinstance(self.definition(), FunctionDecl)
+    return self.unary_call is not None
 
 def _typeappexpr_unbound_isa(expr, typeconstraint):
   if not isinstance(typeconstraint, typing.TypeApp):
@@ -1445,8 +1450,9 @@ class ExprRef(Expr):
   def nocache_typecheck(self, **ignored):
     return typing.mk_ref(self.value.typecheck())
 
-  def firstpass(self):
-    self.value.firstpass()
+  def firstpass(self, descend=True):
+    if descend:
+      self.value.firstpass()
     self.cached_has_instantiable = self.value.has_instantiable()
     self.typecheck()
     if self.value.is_rvalue():
@@ -1477,6 +1483,11 @@ class ExprRef(Expr):
       raise errors.PmStructError(self, t)
     return self.value.typedestruct(genenv, t.args[0])
 
+  def gather_temporaries(self, tmps):
+    if self.temporary is not None:
+      tmps.add(self.temporary)
+    self.value.gather_temporaries(tmps)
+
 class ExprMutableRef(Expr):
   def __init__(self, value):
     super(ExprMutableRef, self).__init__()
@@ -1486,8 +1497,9 @@ class ExprMutableRef(Expr):
   def nocache_typecheck(self, **ignored):
     return typing.mk_mutable_ref(self.value.typecheck())
 
-  def firstpass(self):
-    self.value.firstpass()
+  def firstpass(self, descend=True):
+    if descend:
+      self.value.firstpass()
     self.cached_has_instantiable = self.value.has_instantiable()
     self.typecheck()
     if self.value.is_rvalue():
@@ -1515,6 +1527,11 @@ class ExprMutableRef(Expr):
     if not _typeappexpr_unbound_isa(self, t):
       raise errors.PmStructError(self, t)
     return self.value.typedestruct(genenv, t.args[0])
+
+  def gather_temporaries(self, tmps):
+    if self.temporary is not None:
+      tmps.add(self.temporary)
+    self.value.gather_temporaries(tmps)
 
 class ExprNullableRef(ExprRef):
   def __init__(self, value):
@@ -1872,10 +1889,10 @@ class GenericInstance(_FieldsEq):
       return
 
     self.ready = True
-    d = self.call.args[0].definition()
+    d = self.call._fun_definition()
     if not d.unboundgeneric():
       self.defn = d
-      if not isinstance(self, UnaryCall):
+      if not isinstance(self, InferredUnaryCall):
         self.call.maybeunarycall = False
       return
 
@@ -1923,26 +1940,47 @@ class ExprCall(_IsGenericInstance, Expr):
   def __init__(self, fun, args):
     super(ExprCall, self).__init__()
     self.args = [fun] + args
+    self.xself = None
 
     # This call may or may not be instantiating a generic.
     # But we don't know that yet.
     self.geninst = GenericInstance(self)
 
   def itersubnodes(self, **kw):
-    for n in _itersubnodes(self.args, **kw):
-      yield n
+    return _itersubnodes(self.args + [self.xself], **kw)
+
+  def _fun_definition(self):
+    return self.args[0].definition()
 
   def firstpass(self, instantiate_only=False):
     self.cached_has_instantiable = False
-    for n in _itersubnodes(self.args):
+    for n in self.itersubnodes():
       n.firstpass()
       self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
 
     self.geninst._instantiategeninst(instantiate_only)
     self.validate()
 
+    d = self._fun_definition()
+    if isinstance(d, MethodDecl):
+      if self.args[0].container.is_meta_type():
+        xself = self.args[1]
+      else:
+        xself = self.args[0].container
+
+      if xself.typecheck().is_some_ref():
+        self.xself = xself
+      else:
+        if d.access == '!':
+          self.xself = ExprMutableRef(xself)
+        else:
+          self.xself = ExprRef(xself)
+        self.xself.firstpass(descend=False)
+    else:
+      self.xself = None
+
   def validate(self):
-    fun = self.args[0].definition()
+    fun = self._fun_definition()
     if isinstance(fun, MethodDecl):
       assert isinstance(self.args[0], ExprField)
       if self.args[0].container.is_meta_type():
@@ -1952,7 +1990,7 @@ class ExprCall(_IsGenericInstance, Expr):
   def definition(self):
     d = self.geninst.defn
     if d is None:
-      d = self.args[0].definition()
+      d = self._fun_definition()
 
     if isinstance(d, FunctionDecl):
       if len(self.args) > 1 \
@@ -1973,9 +2011,8 @@ class ExprCall(_IsGenericInstance, Expr):
       return d.definition()
 
   def nocache_typecheck(self, **ignored):
+    assert self.geninst.ready
     d = self.geninst.defn
-    if d is None:
-      d = self.args[0].definition()
     assert not d.unboundgeneric()
 
     if isinstance(d, FunctionDecl):
@@ -2047,7 +2084,6 @@ class ExprCall(_IsGenericInstance, Expr):
         u.typedestruct(genenv, v)
 
   def patterntypedestruct(self, xtype):
-    t = self.typecheck()
     xd = xtype.concrete_definition()
     if isinstance(xd, TypeDecl) and xd.kind != TypeDecl.TAGGEDUNION:
       raise errors.TypeError("Pattern matching a type application '%s' to expression typed '%s', at %s" \
@@ -2093,17 +2129,18 @@ class ExprTypeSliceSized(ExprTypeApp):
   def __init__(self, type, size):
     super(ExprTypeSliceSized, self).__init__(ExprValue('sized_slice'), type, size)
 
-class UnaryCall(ExprCall):
+class InferredUnaryCall(ExprCall):
   def __init__(self, fun):
-    super(UnaryCall, self).__init__(fun, [])
+    super(InferredUnaryCall, self).__init__(fun, [])
 
   def itersubnodes(self, **kw):
-    return iter('')
+    # We do not need to go in self.args: this firstpass() has been called
+    # from ExprField.firstpass() or ExprValue.firstpass() for self.args[0],
+    # so we would go in an infinite loop.
+    return _itersubnodes([self.xself], **kw)
 
-  def firstpass(self):
-    self.geninst._instantiategeninst(False)
-    self.cached_has_instantiable = self.args[0].has_instantiable()
-    self.validate()
+  def _fun_definition(self):
+    return scope.current().q(self.args[0]).definition()
 
 class ExprField(Expr):
   def __init__(self, container, access, field):
@@ -2111,42 +2148,47 @@ class ExprField(Expr):
     self.container = container
     self.access = access
     self.field = field
+    self.unary_call = None
+    self.is_sub_field = False
+    if isinstance(container, ExprField):
+      container.is_sub_field = True
 
   def nocache_typecheck(self, **ignored):
-    d = self.definition()
-    if self.maybeunarycall and isinstance(d, FunctionDecl):
-      with scope.push(d.scope):
-        return d.rettype.typecheck()
+    if self.unary_call is not None:
+      return self.unary_call.typecheck()
     else:
       return scope.current().q(self).typecheck()
 
   def patterntypedestruct(self, xtype):
     return typing.checkcompat(self.typecheck(), xtype)
 
-  def itersubnodes(self, **kw):
-    d = self.definition()
-    if self.maybeunarycall and isinstance(d, FunctionDecl):
-      with scope.push(d.scope):
-        return _itersubnodes(UnaryCall(self), **kw)
-    else:
-      return iter('')
+  def firstpass(self):
+    for n in self.itersubnodes():
+      n.firstpass()
+
+    if self.unary_call is None:
+      d = self.definition()
+      if self.maybeunarycall and isinstance(d, FunctionDecl):
+        self.unary_call = InferredUnaryCall(self)
+        self.unary_call.firstpass()
 
   def itersubnodes(self, **kw):
-    return _itersubnodes([self.container], **kw)
+    if self.unary_call is not None:
+      return _itersubnodes([self.container, self.unary_call], **kw)
+    else:
+      return _itersubnodes([self.container], **kw)
 
   def __str__(self):
     return str(self.container) + self.access + str(self.field)
 
   def is_meta_type(self):
-    d = scope.current().q(self)
-    if isinstance(d, FunctionDecl):
-      if self.maybeunarycall:
-        return False
-
-    return d.is_meta_type()
+    if self.unary_call is not None:
+      return self.unary_call.is_meta_type()
+    else:
+      return scope.current().q(self).is_meta_type()
 
   def is_rvalue(self):
-    return self.maybeunarycall and isinstance(self.definition(), FunctionDecl)
+    return self.unary_call is not None
 
 class ExprFieldGetElement(ExprCall):
   def __init__(self, container, access, idxexpr):
@@ -2443,7 +2485,7 @@ class ExprMatcher(_FieldsEq, Decl):
 
   def firstpass(self):
     with scope.push(self.scope):
-      self.vars[0].type = self.patterntypecheck()
+      self.vars[0].type = self.match.expr.typecheck()
       self.cached_has_instantiable = False
       for n in self.itersubnodes():
         n.firstpass()

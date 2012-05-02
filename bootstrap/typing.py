@@ -66,6 +66,9 @@ class Typename(object):
   def has_instantiable(self):
     return False
 
+  def definition(self):
+    return self.concrete_definition()
+
   def __deepcopy__(self, memo):
     memo[id(self)] = self
     return self
