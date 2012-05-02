@@ -5,12 +5,10 @@ fun main = i32
   let pn = 'xyz':string
   let fd = open pn.cstr open_flags.O_WRONLY | open_flags.O_CREAT
   if fd < 0
-    let eno = errno
-    return eno.code
+    return errno.code
   let ret = unlink pn.cstr
     if ret != 0
-      let eno = errno
-      return eno.code
+      return errno.code
     ret = unlink pn.cstr
     if ret == 0
       return 1

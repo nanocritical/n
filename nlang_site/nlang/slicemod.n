@@ -72,15 +72,13 @@ type slice t = (random_container t)
 
   method range beg:size end:size ?by:?@size = (random_element_range this)
     let er:nlang.meta.alias = (random_element_range this)
-    let c = er.mk self
-    return c.sub beg end by
+    return (er.mk self).sub beg end by
 
   method all_index = index_range
     return range 0 self.len
 
   method range_index beg:size end:size ?by:?@size = index_range
-    let r = self.all_index
-    return r.sub beg end by
+    return self.all_index.sub beg end by
 
 
 type sized_slice t LEN:size = (random_container t)
@@ -138,12 +136,10 @@ type sized_slice t LEN:size = (random_container t)
 
   method range beg:size end:size ?by:?@size = (random_element_range this)
     let er:nlang.meta.alias = (random_element_range this)
-    let c = er.mk self
-    return c.sub beg end by
+    return (er.mk self).sub beg end by
 
   method all_index = index_range
     return range 0 self.len
 
   method range_index beg:size end:size ?by:?@size = index_range
-    let r = self.all_index
-    return r.sub beg end by
+    return self.all_index.sub beg end by

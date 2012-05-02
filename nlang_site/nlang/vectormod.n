@@ -49,8 +49,7 @@ type vector t = (random_container t)
   method! resize_with new_size:size x:t = void
     let old_size = self.len
     self!resize new_size
-    let r = self.range_index old_size new_size
-    pfor n:size in r.iter
+    pfor n:size in (self.range_index old_size new_size).iter
       self![n] = x
 
   method! clear = void
@@ -104,7 +103,6 @@ type vector t = (random_container t)
     return tmp
 
   (method! c:(random_container t)) extend r:@(random_element_range c) = void
-    let offset = self.len
     self!reserve self.len+r.len
     pfor e in r.iter
       self!push e.

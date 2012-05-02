@@ -3,8 +3,7 @@ from nlang.predicates import *
 
 
 (fun t c:(random_container t) eq:(equality t)) linear_search v:@c p:@eq value:@t = bool, size
-  let r = v.all_index
-  for i in r.iter
+  for i in v.all_index.iter
     if p.equals value (v.get_ref i)
       return true:bool, i
   return false:bool, 0:size

@@ -200,8 +200,7 @@ type index_range_iterator_with_offset = index_pair_iterator
   _iter:index_range_iterator
 
   fun mk r:@(random_element_range c) = this
-    let rng = r.all_index
-    return this{{ _er=r _iter=rng.iter }}
+    return this{{ _er=r _iter=r.all_index.iter }}
 
   method all = @(random_element_range c)
     return self._er
@@ -240,9 +239,7 @@ type index_range_iterator_with_offset = index_pair_iterator
     return this{{ _a=r1.iter _b=r2.iter }}
 
   method all_index = @(random_element_range c1), @(random_element_range c2)
-    let ra = self._a.all
-    let rb = self._b.all
-    return ra, rb
+    return self._a.all, self._b.all
 
   method has_next = bool
     return self._a.has_next and self._b.has_next

@@ -39,6 +39,5 @@ fun main = i32
   if true
     return bar a + b a -- Shouldn't be parsed as (b a)
   else
-    let x = tb{{}}
-    let f = x.foo
-    return f.trim_i32 -- Should be tb{}.foo.trim_i32, but the bootstrap code generator cannot yet handle it
+    let f = tb{{}}
+    return f.foo.trim_i32

@@ -37,10 +37,8 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
     return @self._bytes
 
   method! extend x:@this = void
-    let at = self.len
-    let elements = x._bytes.all
     self._bytes!pop
-    self._bytes!extend @elements
+    self._bytes!extend @x._bytes.all
 
   method! push x:char = void
     let c, FIXME = x.to_ascii
@@ -57,9 +55,8 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
       let cstr_len = (c99.strlen cstr) + 1
       let slice_cstr:(slice u8)
         slice_cstr!unsafe_reinit ((nlang.unsafe.cast @!u8 @u8) cstr) cstr_len
-      let all_cstr = slice_cstr.all
       r._bytes!pop
-      r._bytes!extend @all_cstr
+      r._bytes!extend @slice_cstr.all
     return r
 
   method cstr = @u8
@@ -85,10 +82,8 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
         for n:size in padding_range.iter
           r!push ' ':char
 
-      let start = 0:size
-      let all = self._bytes.all
       r._bytes!pop
-      r._bytes!extend @all
+      r._bytes!extend @self._bytes.all
 
       if left
         for n:size in padding_range.iter
