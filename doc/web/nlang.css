@@ -5,7 +5,9 @@ body { background-color: #4d4844; }
 body { color: #eee; }
 
 body { font-family: georgia; }
-body { max-width: 120ex; }
+body { max-width: 110ex; }
+body { margin-left: auto; margin-right: auto; }
+body { margin-bottom: 2ex; }
 
 body.rv { background-color: #fff; }
 body.rv { color: #111; }
@@ -13,26 +15,27 @@ body.rv { color: #111; }
 b { color: #fff; }
 .rv b { color: #000; }
 
-h1 { margin: 0 4ex; }
+h1 { margin: 0 1ex; }
 h1 { text-align: center; }
 .subtitle { font-style: italic; }
-h2 { margin: 0 4ex; }
-h3 { margin: 0 4ex; }
-h4 { margin: 0 4ex; }
-h5 { margin: 0 4ex; }
-h6 { margin: 0 4ex; }
+.subtitle { padding-bottom: 2ex; }
+h2 { margin: 0 1ex; }
+h3 { margin: 0 1ex; }
+h4 { margin: 0 1ex; }
+h5 { margin: 0 1ex; }
+h6 { margin: 0 1ex; }
 
-p { max-width: 80ex; }
-p { margin: 1ex 4ex; }
+p { max-width: 90ex; }
+p { margin: 2ex auto; }
 
 ul { margin: 0 1ex; }
 
 pre { white-space: pre-wrap; }
-pre { padding: 1ex 4ex; }
+pre { padding: 1ex 2ex; }
 .code, code { background-color: #272727; }
 .rv .code, .rv code { background-color: #e0e0e0; }
 .samp, samp { background-color: #454; }
 .rv .samp, .rv samp { background-color: #ded; }
 
-pre { max-width: 100ex; }
-pre { margin: 1ex 2ex; }
+pre { max-width: 90ex; }
+pre { margin: auto; }

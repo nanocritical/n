@@ -17,23 +17,20 @@ from nlang import *
 fun main = i32
   say 'Hello, World!'</pre>
 
-    <p><ul>
-      <li><p>
-      <b>The performance of C.</b>
-      N aims to deliver the exact same time and memory performance as C in a safe manner. N code translates to simple C code with a well-understood and straightforward performance profile. In general, there is no reason for your N code to be any slower than the equivalent C code.
-      </p></li>
+    <p><b>The performance of C.</b>
+    N aims to deliver the exact same time and memory performance as C in a safe manner. N code translates to simple C code with a well-understood and straightforward performance profile. In general, there is no reason for your N code to be any slower than the equivalent C code.
+    </p>
 
-      <li><p>
-      <b>System language.</b>
-      N has no runtime, it can run in a freestanding environment. N makes no assumptions about memory allocation (indeed, N can run without a heap), allowing the use of various memory allocators and types of hardware memory.
-      </p></li>
+    <p><b>System language.</b>
+    N has no runtime, it can run in a freestanding environment. N makes no assumptions about memory allocation (indeed, N can run without a heap), allowing the use of various memory allocators and types of hardware memory.
+    </p>
 
-      <li><p>
-      <b>Memory safety.</b>
-      N relies on static checks (region and escape analysis) to prevent out-of-bound accesses, dangling pointers, use-after-free, double-free, and null pointer accesses.
-      </p><p>
-      Static techniques are used to avoid the overhead of runtime bound checks. For instance, in a for loop, N validates the range of indices once, before starting the loop, instead of checking every single array access. Semantic annotations guarantee the validity of the index inside the loop.
-        <pre class='code nlang'>
+    <p><b>Memory safety.</b>
+    N relies on static checks (region and escape analysis) to prevent out-of-bound accesses, dangling pointers, use-after-free, double-free, and null pointer accesses.
+    </p><p>
+    Static techniques are used to avoid the overhead of runtime bound checks. For instance, in a for loop, N validates the range of indices once, before starting the loop, instead of checking every single array access. Semantic annotations guarantee the validity of the index inside the loop.
+    </p>
+      <pre class='code nlang'>
 fun foobar v:@!(vector u32) = void
   -- Checks that [1;99) is a valid range for v.
   let sub_range = v.range_index 1 99
@@ -43,21 +40,20 @@ fun foobar v:@!(vector u32) = void
     -- No bound checks at the actual access point.
     v![i] += 1</pre>
 
-      </p><p>
-      References are either non-nullable (the default) or nullable. Nullable references must be checked before access, and this is enforced with semantic annotations.
-      <pre class='code nlang'>
+    <p>
+    References are either non-nullable (the default) or nullable. Nullable references must be checked before access, and this is enforced with semantic annotations.
+    </p>
+    <pre class='code nlang'>
 fun foo arg:?@u32 = u32
   if arg != null
     return arg. - 1
   else
     return 0</pre>
-      </p></li>
 
-      <li><p>
-      <b>Clean syntax.</b>
-      The syntax of N is concise and modern. 
-
-      <pre class='code nlang'>
+    <p><b>Clean syntax.</b>
+    The syntax of N is concise and modern. 
+    </p>
+    <pre class='code nlang'>
 fun foo x:i32 = i32, i32
   let y = 3 * x
   return y, x + 1
@@ -68,14 +64,12 @@ fun bar = i32
     | 42, _ -> say '42 isn\'t always the answer.'
     | 3*41, 42 -> say 'Yes.'
     | _ -> say 'Otherwise...'</pre>
-      </p></li>
 
-      <li><p>
-      <b>Parallelism-aware.</b>
-      N provides the syntax constructs <code>pfor</code> (parallelism) and <code>future</code> (concurrency), along with semantic annotations to assist with multithreaded, vectorized, and distributed programming.
-      </p><p>
-      </p><p>
-      <pre class='code nlang'>
+    <p><b>Parallelism-aware.</b>
+    N provides the syntax constructs <code>pfor</code> (parallelism) and <code>future</code> (concurrency), along with semantic annotations to assist with multithreaded, vectorized, and distributed programming.
+    </p><p>
+    </p>
+    <pre class='code nlang'>
 fun map f:(fun e:u32 = u32) v:@(vector u32) = (vector u32)
   let r:(vector u32)
     r!reserve v.len
@@ -83,10 +77,10 @@ fun map f:(fun e:u32 = u32) v:@(vector u32) = (vector u32)
       r!push (f.call e)
   return r</pre>
 
-      </p><p>
-      <code>future</code> is similar to <code>go</code> in the Go programming language.
-      </p><p>
-      <pre class='code nlang'>
+    <p>
+    <code>future</code> is similar to <code>go</code> in the Go programming language.
+    </p>
+    <pre class='code nlang'>
 fun bar x:i32 = i32
 fun barbar x:i32 = i32
 
@@ -96,12 +90,10 @@ fun foo x:i32 = i32
     barbar x+1
   return y.result + z.result</pre>
 
-      </p></li>
-
-      <li><p>
-      <b>Correctness.</b>
-      N encourages immutability but not at the expense of flexibility or performance.
-      <pre class='code nlang'>
+    <p><b>Correctness.</b>
+    N encourages immutability but not at the expense of flexibility or performance.
+    </p>
+    <pre class='code nlang'>
 fun bar x:@u32 = u32
 
 fun foo y:u32 z:u64 = u32
@@ -113,16 +105,14 @@ fun foo y:u32 z:u64 = u32
 
   -- The block is closed, x is now immutable.
   return bar @x</pre>
-      </p></li>
 
-      <li><p>
-      <b></b>
-      </p></li>
+    <p><b>X.</b>
+    </p>
 
-      <li><p>
-      <b>Compatible with C.</b>
-      N has the same ABI as C, so calling C code and exchanging data with C is straightforward and does not incur any overhead.
-      <pre class='code nlang'>
+    <p><b>Compatible with C.</b>
+    N has the same ABI as C, so calling C code and exchanging data with C is straightforward and does not incur any overhead.
+    </p>
+    <pre class='code nlang'>
 -- posix.n
 from nlang import *
 
@@ -144,8 +134,6 @@ ssize posix_read(i32 fd, u8 *x, size count) {
 ssize posix_write(i32 fd, const u8 *x, size count) {
   return write(fd, x, count);
 }</pre>
-      </p></li>
-    </ul></p>
 
   </body>
 </html>
