@@ -519,9 +519,11 @@ def p_expr_postfix(p):
 
 def p_expr_block(p):
   '''expr : BLOCK statements_block'''
+  p[0] = p[2]
 
 def p_expr_future(p):
   '''expr : FUTURE statements_block'''
+  p[0] = p[2]
 
 def p_expr_initializer_pair(p):
   '''initializer_pair : IDENT ASSIGN expr'''

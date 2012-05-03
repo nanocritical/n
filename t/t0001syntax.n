@@ -19,6 +19,10 @@ fun main = i32
   if 3*c != d
     return 123
 
+  block
+    if false
+      return 1
+
   let minus_one = -1:i32
   if minus_one != 0 - 1
     return 1
