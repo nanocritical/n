@@ -1802,7 +1802,7 @@ class ExprBin(Expr):
       return self.expr.typecheck()
 
   def itersubnodes(self, **kw):
-    return _itersubnodes(self.args, **kw)
+    return _itersubnodes(self.args + [self.expr], **kw)
 
   def definition(self):
     return None
@@ -1812,10 +1812,11 @@ class ExprBin(Expr):
 
 class ExprCmpBin(ExprBin):
   def nocache_typecheck(self, **ignored):
+    term_type = super(ExprCmpBin, self).nocache_typecheck()
     if self.expr is None:
       return typing.qbuiltin('nlang.numbers.bool')
     else:
-      return super(ExprCmpBin, self).nocache_typecheck()
+      return term_type
 
 class ExprBoolBin(ExprBin):
   def nocache_typecheck(self, **ignored):
