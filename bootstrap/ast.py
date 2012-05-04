@@ -1369,7 +1369,10 @@ class Expr(_FieldsEq):
 class ExprValue(Expr):
   def __init__(self, name):
     super(ExprValue, self).__init__()
-    self.name = name
+    if name == '_':
+      self.name = gensym()
+    else:
+      self.name = name
     self.unary_call = None
 
   def nocache_typecheck(self, **ignored):
@@ -1427,7 +1430,7 @@ class ExprValue(Expr):
 
   def declvars(self, expr):
     if self.name == '_':
-      return []
+      return [None]
     else:
       return [VarDecl(self, expr)]
 
