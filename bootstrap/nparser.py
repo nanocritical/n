@@ -40,6 +40,8 @@ literals = '''( ) [ ] ? ~ | *'''.split()
 t_ASSIGN = r'='
 t_LEQ = r'=='
 t_LLE = r'<='
+t_LSHIFT = r'<<'
+t_RSHIFT = r'>>'
 t_LLT = r'<'
 t_LGT = r'>'
 t_LGE = r'>='
@@ -260,8 +262,8 @@ precedence = (
     ('nonassoc', 'DIVIDE', 'MODULO'),
     ('left', 'TIMES'),
     ('right', 'UBWNOT'),
-    ('left', 'COLON'),
     ('right', 'REFDOT', 'REFBANG'),
+    ('left', 'COLON'),
     ('left', 'DOT', 'BANG'),
     ('right', 'POSTDOT', 'POSTBANG'),
     ('right', 'IDENT'),
@@ -418,6 +420,10 @@ def p_expr_unnop(p):
   '''expr : UBWNOT expr_postfix'''
   p[0] = ast.ExprUnary(p[1], p[2])
 
+def p_expr_constrained(p):
+  '''expr_postfix : expr_postfix COLON type'''
+  p[0] = ast.ExprConstrained(p[1], p[3])
+
 def p_expr_ref(p):
   '''expr : REFDOT expr_postfix
           | REFBANG expr_postfix'''
@@ -481,10 +487,6 @@ def p_expr_call_only(p):
   p[1].maybeunarycall = False
   p[0] = ast.ExprCall(p[1], p[2])
   p[0].maybeunarycall = True  # If this is in fact a generic type instantiation.
-
-def p_expr_constrained(p):
-  '''expr : expr COLON type'''
-  p[0] = ast.ExprConstrained(p[1], p[3])
 
 def p_expr_postfix(p):
   '''expr : expr_postfix'''
@@ -569,9 +571,7 @@ def p_expr_top__4(p):
   p[0] = ast.ExprTuple(*args)
 
 def p_expr_top(p):
-  '''expr_top : expr_top__1
-              | expr_top__2
-              | expr_top__12
+  '''expr_top : expr_top__12
               | expr_top__3
               | expr_top__4'''
   p[0] = p[1]
