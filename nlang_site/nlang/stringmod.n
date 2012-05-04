@@ -5,6 +5,7 @@ from nlang.slicemod import *
 import nlang.vectormod
 import nlang.heap
 import nlang.utils
+import nlang.predicates
 import c99
 
 let __EMPTY_CSTR:@u8
@@ -79,14 +80,22 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
     let left = (optional flags 0) & nlang.show.LEFT_ALIGN != 0
     let r = this.mk
       if not left
-        for n:size in padding_range.iter
+        for n in padding_range.iter
           r!push ' ':char
 
       r._bytes!pop
       r._bytes!extend @self._bytes.all
 
       if left
-        for n:size in padding_range.iter
+        for n in padding_range.iter
           r!push ' ':char
 
     return r
+
+  method operator_hash__ = size
+    -- From Dan Bernstein, http://www.cse.yorku.ca/~oz/hash.html
+    let h = 5381:size
+      for i in (self._bytes.range_index 0 self._bytes.len-1).iter
+        let c = self._bytes.[i].to_u64.trim_size
+        h = ((h << 5) + h) ^ c
+    return h

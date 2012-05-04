@@ -18,6 +18,9 @@ intf ordered = comparable
   method operator_le__ other:@this = bool
   method operator_ge__ other:@this = bool
 
+intf hashable =
+  method! operator_hash__ = nlang.numbers.size
+
 intf natural_arithmetic = ordered
   method operator_plus__ other:@this = this
   method operator_minus__ other:@this = this
@@ -26,11 +29,11 @@ intf natural_arithmetic = ordered
   method operator_modulo__ other:@this = this
   method operator_neg__ = this
 
-intf bitwise_signed =
+intf bitwise_signed = hashable
   let this_unsigned:nlang.meta.alias
   method reinterpret_unsigned = this.this_unsigned
 
-intf bitwise_unsigned =
+intf bitwise_unsigned = hashable
   let this_signed:nlang.meta.alias
   method reinterpret_signed = this.this_signed
 
@@ -72,6 +75,7 @@ type u8 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   method to_u16 = u16
   method to_u32 = u32
   method to_u64 = u64
+  method operator_hash__ = size
 
 type u16 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   inherit __native_arith
@@ -83,6 +87,7 @@ type u16 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   method reinterpret_signed = i16
   method to_u32 = u32
   method to_u64 = u64
+  method operator_hash__ = size
 
 type u32 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   inherit __native_arith
@@ -94,6 +99,7 @@ type u32 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   method trim_u16 = u16
   method reinterpret_signed = i32
   method to_u64 = u64
+  method operator_hash__ = size
 
 type u64 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   inherit __native_arith
@@ -106,6 +112,7 @@ type u64 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   method trim_u32 = u32
   method trim_size = size
   method reinterpret_signed = i64
+  method operator_hash__ = size
 
 type size = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   inherit __native_arith
@@ -118,6 +125,7 @@ type size = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
   method trim_u32 = u32
   method trim_u64 = u64
   method reinterpret_signed = ssize
+  method operator_hash__ = size
 
 type i8 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   inherit __native_arith
@@ -130,6 +138,7 @@ type i8 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   method to_i16 = i16
   method to_i32 = i32
   method to_i64 = i64
+  method operator_hash__ = size
 
 type i16 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   inherit __native_arith
@@ -142,6 +151,7 @@ type i16 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   method reinterpret_unsigned = u16
   method to_i32 = i32
   method to_i64 = i64
+  method operator_hash__ = size
 
 type i32 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   inherit __native_arith
@@ -154,6 +164,7 @@ type i32 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   method trim_i16 = i16
   method reinterpret_unsigned = u32
   method to_i64 = i64
+  method operator_hash__ = size
 
 type i64 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   inherit __native_arith
@@ -167,6 +178,7 @@ type i64 = natural_arithmetic bitwise_signed nlang.show.show_numeric
   method trim_i32 = i32
   method trim_ssize = ssize
   method reinterpret_unsigned = u64
+  method operator_hash__ = size
 
 type ssize = natural_arithmetic bitwise_signed nlang.show.show_numeric
   inherit __native_arith
@@ -179,6 +191,7 @@ type ssize = natural_arithmetic bitwise_signed nlang.show.show_numeric
   method trim_i32 = i32
   method trim_i64 = i64
   method reinterpret_unsigned = size
+  method operator_hash__ = size
 
 type bool = ordered nlang.show.show
   inherit __native_order

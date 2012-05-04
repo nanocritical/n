@@ -6,6 +6,8 @@ intf equality =
 intf strict_weak_order =
   method less_than a:@t b:@t = bool
 
+intf has_hash =
+  method hash a:@t = size
 
 -- Adapters
 
@@ -16,3 +18,7 @@ type operator_equality t:comparable = equality
 type operator_less_than t:ordered = strict_weak_order
   method less_than a:@t b:@t = bool
     return t.operator_lt__ a b
+
+type operator_hash t:hashable = has_hash
+  method hash a:@t = size
+    return t.operator_hash__ a

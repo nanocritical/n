@@ -192,6 +192,18 @@ i64 u64_reinterpret_signed(nlangcp__u64 self) {
 }
 
 
+size u8_operator_hash__(nlangcp__u8 self) { return *self; }
+size u16_operator_hash__(nlangcp__u16 self) { return *self; }
+size u32_operator_hash__(nlangcp__u32 self) { return *self; }
+size u64_operator_hash__(nlangcp__u64 self) { return *self; }
+size size_operator_hash__(nlangcp__size self) { return *self; }
+
+size i8_operator_hash__(nlangcp__i8 self) { return *self; }
+size i16_operator_hash__(nlangcp__i16 self) { return *self; }
+size i32_operator_hash__(nlangcp__i32 self) { return *self; }
+size i64_operator_hash__(nlangcp__i64 self) { return *self; }
+size ssize_operator_hash__(nlangcp__ssize self) { return *self; }
+
 u8 u8_operator_plus__(nlangcp__u8 self, nlangcp__u8 other) { return *self + *other; }
 u8 u8_operator_minus__(nlangcp__u8 self, nlangcp__u8 other) { return *self - *other; }
 u8 u8_operator_times__(nlangcp__u8 self, nlangcp__u8 other) { return *self * *other; }

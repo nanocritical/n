@@ -2,7 +2,7 @@ from nlang.prelude import *
 from nlang.slicemod import *
 import nlang.heap
 
-type char =
+type char = hashable trivial_copy
   _word:u32
 
   method utf8_byte_count = size
@@ -21,3 +21,6 @@ type char =
     let n = this.mk
       n._word = c.to_u32
     return n
+
+  method operator_hash__ = size
+    return self._word.to_u64.trim_size
