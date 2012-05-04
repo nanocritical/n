@@ -1,3 +1,20 @@
+static const u8 u8_MAX = 0xff;
+static const u16 u16_MAX = 0xffff;
+static const u32 u32_MAX = 0xffffffff;
+static const u64 u64_MAX = 0xffffffffffffffff;
+static const i8 i8_MAX = 0x7f;
+static const i8 i8_MIN = -0x80;
+static const i16 i16_MAX = 0x7fff;
+static const i16 i16_MIN = -0x8000;
+static const i32 i32_MAX = 0x7fffffff;
+static const i32 i32_MIN = -0x80000000;
+static const i64 i64_MAX = 0x7fffffffffffffff;
+static const i64 i64_MIN = -0x8000000000000000;
+static const size size_MAX = SIZE_MAX;
+static const ssize ssize_MAX = SIZE_MAX / 2;
+static const ssize ssize_MIN = - (SIZE_MAX / 2) - 1;
+
+
 i8 i16_trim_i8(nlangcp__i16 self) {
   return (i8) *self;
 }
@@ -44,6 +61,10 @@ i16 i64_trim_i16(nlangcp__i64 self) {
 
 i32 i64_trim_i32(nlangcp__i64 self) {
   return (i32) *self;
+}
+
+ssize i64_trim_ssize(nlangcp__i64 self) {
+  return (ssize) *self;
 }
 
 u64 i64_reinterpret_unsigned(nlangcp__i64 self) {
@@ -160,6 +181,10 @@ u16 u64_trim_u16(nlangcp__u64 self) {
 
 u32 u64_trim_u32(nlangcp__u64 self) {
   return (u32) *self;
+}
+
+size u64_trim_size(nlangcp__u64 self) {
+  return (size) *self;
 }
 
 i64 u64_reinterpret_signed(nlangcp__u64 self) {
