@@ -454,20 +454,6 @@ def p_expr_deref(p):
           | expr_postfix POSTBANG'''
   p[0] = ast.ExprDeref(p[2], p[1])
 
-def p_expr_cmpbinop(p):
-  '''expr : expr LLT expr
-          | expr LLE expr
-          | expr LGT expr
-          | expr LGE expr
-          | expr LEQ expr
-          | expr LNE expr'''
-  p[0] = ast.ExprCmpBin(p[2], p[1], p[3])
-
-def p_expr_boolbinop(p):
-  '''expr_top_boolbinop : expr_top_notuple AND expr_top_notuple
-                        | expr_top_notuple OR expr_top_notuple'''
-  p[0] = ast.ExprBoolBin(p[2], p[1], p[3])
-
 def p_expr_binop(p):
   '''expr : expr PLUS expr
           | expr MINUS expr
@@ -495,19 +481,6 @@ def p_expr_call_only(p):
   p[1].maybeunarycall = False
   p[0] = ast.ExprCall(p[1], p[2])
   p[0].maybeunarycall = True  # If this is in fact a generic type instantiation.
-
-def p_expr_tuple_list(p):
-  '''expr_tuple_list : expr_top_notuple
-                     | expr_top_notuple COMMA expr_tuple_list'''
-  args = [p[1]]
-  if len(p) == 4:
-    args += p[3]
-  p[0] = args
-
-def p_expr_tuple_only(p):
-  '''expr_tuple : expr_top_notuple COMMA expr_tuple_list'''
-  args = [p[1]] + p[3]
-  p[0] = ast.ExprTuple(*args)
 
 def p_expr_constrained(p):
   '''expr : expr COLON type'''
@@ -545,20 +518,62 @@ def p_expr_initializer(p):
   else:
     p[0] = ast.ExprInitializer(p[1], p[3])
 
-def p_expr_top_notuple(p):
-  '''expr_top_notuple : expr
-                      | expr_call'''
+def p_expr_top__1(p):
+  '''expr_top__1 : expr
+                 | expr_call'''
   p[0] = p[1]
 
-def p_expr_top_notuple_unary(p):
-  '''expr_top_notuple : MINUS expr_top_notuple
-                      | NOT expr_top_notuple'''
+def p_expr_top__1_unary(p):
+  '''expr_top__1 : MINUS expr_top__1'''
   p[0] = ast.ExprUnary(p[1], p[2])
 
+def p_expr_top__2(p):
+  '''expr_top__2 : expr_top__1 LLT expr_top__1
+                 | expr_top__1 LLE expr_top__1
+                 | expr_top__1 LGT expr_top__1
+                 | expr_top__1 LGE expr_top__1
+                 | expr_top__1 LEQ expr_top__1
+                 | expr_top__1 LNE expr_top__1'''
+  p[0] = ast.ExprCmpBin(p[2], p[1], p[3])
+
+def p_expr_top__12(p):
+  '''expr_top__12 : expr_top__1
+                  | expr_top__2'''
+  p[0] = p[1]
+
+def p_expr_top__12_unary(p):
+  '''expr_top__12 : NOT expr_top__12'''
+  p[0] = ast.ExprUnary(p[1], p[2])
+
+def p_expr_top__3(p):
+  '''expr_top__3 : expr_top__12 AND expr_top__12
+                 | expr_top__12 OR expr_top__12'''
+  p[0] = ast.ExprBoolBin(p[2], p[1], p[3])
+
+def p_expr_top__123(p):
+  '''expr_top__123 : expr_top__12
+                   | expr_top__3'''
+  p[0] = p[1]
+
+def p_expr_tuple_list(p):
+  '''expr_tuple_list : expr_top__123
+                     | expr_top__123 COMMA expr_tuple_list'''
+  args = [p[1]]
+  if len(p) == 4:
+    args += p[3]
+  p[0] = args
+
+def p_expr_top__4(p):
+  '''expr_top__4 : expr_top__123 COMMA expr_tuple_list'''
+  args = [p[1]] + p[3]
+  p[0] = ast.ExprTuple(*args)
+
 def p_expr_top(p):
-  '''expr_top : expr_top_notuple
-              | expr_top_boolbinop
-              | expr_tuple'''
+  '''expr_top : expr_top__1
+              | expr_top__2
+              | expr_top__12
+              | expr_top__3
+              | expr_top__4'''
   p[0] = p[1]
 
 def p_typedeclname_list(p):
