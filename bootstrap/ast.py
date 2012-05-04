@@ -1734,6 +1734,9 @@ class ExprConstrained(Expr):
   def is_meta_type(self):
     return self.type.typecheck() == typing.qbuiltin('nlang.meta.alias')
 
+  def is_rvalue(self):
+    return self.args[0].is_rvalue()
+
 op_name = {
   '+': 'operator_plus__',
   '-': 'operator_minus__',
