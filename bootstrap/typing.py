@@ -303,7 +303,7 @@ class TypeFunction(Typename):
     return self.defn
 
 
-def _unifyerror(*types):
+def _unifyerror(types):
   raise errors.TypeError("Cannot unify the types %s\nFrom locations:\n%s\n" \
       % (map(str, types), '\n'.join([str(t.codeloc) for t in types])))
 
@@ -312,7 +312,7 @@ def _unifyliterals(lits):
     return None
 
   if len(set(lits)) > 1:
-    _unifyerror(*lits)
+    _unifyerror(lits)
   return lits[0]
 
 def _unify_lit_conc(lit, conc):
@@ -334,7 +334,7 @@ def _unify_lit_conc(lit, conc):
     if conc.name.startswith('?'):
       return conc
 
-  _unifyerror(lit, conc)
+  _unifyerror([lit, conc])
 
 def _isliteral(type):
   return type.name.startswith('<root>.nlang.literal.')
@@ -418,7 +418,7 @@ def unify(constraint, types):
       if common is None:
         break
     if common is None:
-      _unifyerror(*concretes)
+      _unifyerror(concretes)
     else:
       concretes = set([common])
 
@@ -448,7 +448,7 @@ def unify(constraint, types):
     return t
   elif constraint == qbuiltin('nlang.literal.integer') and _isliteral(t):
     if constraint.literal_value != t.literal_value:
-      _unifyerror(constraint, t)
+      _unifyerror([constraint, t])
   elif _isliteral(t):
     return _unify_lit_conc(t, constraint)
 
@@ -457,7 +457,7 @@ def unify(constraint, types):
       and t.args[0].isa(constraint.args[0]):
     return t
   elif not t.isa(constraint):
-    _unifyerror(constraint, t)
+    _unifyerror([constraint, t])
 
   return t
 
