@@ -699,10 +699,7 @@ def wexprfield(self, out):
     field = self.field.name
   elif isinstance(qself, ChoiceDecl):
     access = '_'
-    if not self.is_sub_field and self.maybeunarycall:
-      field = self.field.name + '_mk()'
-    else:
-      field = self.field.name
+    field = self.field.name
   elif isinstance(qself, FieldStaticConstDecl):
     access = '_'
     field = self.field.name

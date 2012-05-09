@@ -630,7 +630,7 @@ class ChoiceDecl(TypeDef, CGlobalName):
     return self.defn.typecheck()
 
   def itersubnodes(self, **kw):
-    return _itersubnodes([self.typearg], **kw)
+    return _itersubnodes([self.typearg, self.mk, self.valuevar], **kw)
 
 class Inherit(_FieldsEq):
   def __init__(self, type, interfaces=None):
@@ -1796,7 +1796,8 @@ class ExprBin(Expr):
     d = u.concrete_definition()
     if isinstance(d, TypeDecl) and op_name.get(self.op, None) in d.scope.table:
       self.expr = \
-          ExprCall(ExprField(u.asexpr(), '.', ExprValue(op_name[self.op])), [ExprRef(self.args[0]), ExprRef(self.args[1])])
+          ExprCall(ExprField(u.asexpr(), '.', ExprValue(op_name[self.op])),
+              [ExprRef(self.args[0]), ExprRef(self.args[1])])
       self.expr.firstpass()
     else:
       raise errors.TypeError("Operator '%s' not defined on types '%s' and '%s', at %s" \
@@ -2164,8 +2165,7 @@ class ExprField(Expr):
     self.field = field
     self.unary_call = None
     self.is_sub_field = False
-    if isinstance(container, ExprField):
-      container.is_sub_field = True
+    container.is_sub_field = isinstance(container, ExprField)
 
   def nocache_typecheck(self, **ignored):
     if self.unary_call is not None:
@@ -2185,6 +2185,13 @@ class ExprField(Expr):
       if self.maybeunarycall and isinstance(d, FunctionDecl):
         self.unary_call = InferredUnaryCall(self)
         self.unary_call.firstpass()
+
+      elif isinstance(d, ChoiceDecl) \
+          and self.maybeunarycall and not self.is_sub_field:
+        c = InferredUnaryCall(ExprField(self, '.', ExprValue('mk')))
+        self.container.unary_call = None
+        c.firstpass()
+        self.unary_call = c
 
   def itersubnodes(self, **kw):
     if self.unary_call is not None:
