@@ -435,12 +435,6 @@ def wexprinitstaticconstfield(self, out):
   _p(out, '*(', self.typecheck(), '*)&', globalname(self.staticconst), ' = ', self.staticconst.vardecl.expr)
 ExprInitStaticConstField.cwrite = wexprinitstaticconstfield
 
-def wexprinitstaticconstfieldelement(self, out):
-  _p(out, '*(', self.choice.valuevar.typecheck(), '*)&',
-      globalname(self.typedecl), '_VALUES__._rawdata[', self.ith, ']' , ' = ',
-      globalname(self.choice), '_value')
-ExprInitStaticConstFieldElement.cwrite = wexprinitstaticconstfieldelement
-
 def winitializer(self, out):
   tmp = gensym()
   _p(out, '({ ', self.expr, ' ', tmp, ';\n')

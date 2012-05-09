@@ -995,19 +995,24 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
 
     statics = self.static_decls
     statics += [d.valuevar for d in filter(lambda d: isinstance(d, ChoiceDecl), self.decls)]
-    if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
-      values = ExprField(ExprValue('this'), '.', ExprValue('VALUES__'))
-      ith = 0
-      for d in self.decls:
-        if isinstance(d, ChoiceDecl):
-          body.append(ExprInitStaticConstFieldElement(self, d, ith))
-          ith += 1
-
     for d in statics:
       if d.vardecl.expr is not None:
         body.append(ExprInitStaticConstField(d))
       if d.vardecl.mutatingblock is not None:
         body.append(d.vardecl.mutatingblock)
+
+    if self.kind == TypeDecl.TAGGEDUNION or self.kind == TypeDecl.ENUM:
+      values = ExprCall(path_as_expr('nlang.unsafe.mutable_cast'),
+          [ExprRef(ExprField(ExprValue('this'), '.', ExprValue('VALUES__')))])
+      ith = 0
+      for d in self.decls:
+        if isinstance(d, ChoiceDecl):
+          body.append(
+              ExprCall(ExprField(values, '!', ExprValue('operator_set__')),
+                [ExprLiteral(ith),
+                  ExprField(ExprField(ExprValue('this'), '.', ExprValue(d.name)),
+                    '.', ExprValue(d.valuevar.name))]))
+          ith += 1
 
     if len(body) == 0:
       return None
@@ -2221,17 +2226,6 @@ class ExprInitStaticConstField(Expr):
 
   def nocache_typecheck(self):
     return self.staticconst.vardecl.typecheck()
-
-class ExprInitStaticConstFieldElement(Expr):
-  """Special interal expr for initializing a global static"""
-  def __init__(self, typedecl, choice, ith):
-    super(ExprInitStaticConstFieldElement, self).__init__()
-    self.typedecl = typedecl
-    self.choice = choice
-    self.ith =ith
-
-  def nocache_typecheck(self):
-    return typing.qbuiltin('nlang.numbers.void')
 
 class ExprSizeof(ExprField):
   def __init__(self):
