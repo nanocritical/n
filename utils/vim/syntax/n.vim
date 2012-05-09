@@ -5,7 +5,7 @@ endif
 syn keyword nDecl type fun method union intf dynintf import inherit
 syn match nDecl "^\s*from"
 
-syn keyword nKeyword let if elif else for while continue break
+syn keyword nKeyword let if elif else for while continue break extern
 syn keyword nKeyword match except return block future pfor
 syn keyword nKeyword in and or not neg isa
 syn keyword nKeyword sizeof pass as attr declare

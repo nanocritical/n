@@ -9,7 +9,7 @@ import errors
 gfn = None
 
 keywords = set('''
-  type fun method union intf dyn let
+  type extern fun method union intf dyn let
   if elif else for while continue break
   match except return
   block future pfor
@@ -780,6 +780,11 @@ def p_inherit(p):
   else:
     raise 'Unsupported: from expr_top inherit intf'
 
+def p_typedecl_keyword(p):
+  '''typedeclkw : TYPE
+                | EXTERN TYPE'''
+  p[0] = len(p) == 3
+
 def _typedef_block(block):
   inherits, typedecls, decls, methods, funs, semantics = [], [], [], [], [], []
   for x in block:
@@ -801,56 +806,64 @@ def _typedef_block(block):
   return inherits, typedecls, decls, methods, funs, semantics
 
 def p_typedecl_empty(p):
-  '''typedecl : TYPE typedeclname ASSIGN
-              | TYPE typedeclname ASSIGN isalist
-              | '(' TYPE typedeclname_list ')' typedeclname ASSIGN
-              | '(' TYPE typedeclname_list ')' typedeclname ASSIGN isalist'''
+  '''typedecl : typedeclkw typedeclname ASSIGN
+              | typedeclkw typedeclname ASSIGN isalist
+              | '(' typedeclkw typedeclname_list ')' typedeclname ASSIGN
+              | '(' typedeclkw typedeclname_list ')' typedeclname ASSIGN isalist'''
   if len(p) == 4:
+    extern = p[1]
     name = p[2]
     isa = []
     genargs = []
   elif len(p) == 5:
+    extern = p[1]
     name = p[2]
     isa = p[4]
     genargs = []
   elif len(p) == 7:
+    extern = p[2]
     name = p[5]
     isa = []
     genargs = p[3]
   elif len(p) == 8:
+    extern = p[2]
     name = p[5]
     isa = p[7]
     genargs = p[3]
-  p[0] = ast.TypeDecl(name, genargs, isa, [], [], [], [], [])
+  p[0] = ast.TypeDecl(name, extern, genargs, isa, [], [], [], [], [])
 
 def p_typedecl(p):
-  '''typedecl : TYPE typedeclname ASSIGN typedecl_block
-              | TYPE typedeclname ASSIGN isalist typedecl_block
-              | '(' TYPE typedeclname_list ')' typedeclname ASSIGN typedecl_block
-              | '(' TYPE typedeclname_list ')' typedeclname ASSIGN isalist typedecl_block'''
+  '''typedecl : typedeclkw typedeclname ASSIGN typedecl_block
+              | typedeclkw typedeclname ASSIGN isalist typedecl_block
+              | '(' typedeclkw typedeclname_list ')' typedeclname ASSIGN typedecl_block
+              | '(' typedeclkw typedeclname_list ')' typedeclname ASSIGN isalist typedecl_block'''
   if len(p) == 5:
+    extern = p[1]
     name = p[2]
     isa = []
     genargs = []
     block = p[4]
   elif len(p) == 6:
+    extern = p[1]
     name = p[2]
     isa = p[4]
     genargs = []
     block = p[5]
   elif len(p) == 8:
+    extern = p[2]
     name = p[5]
     isa = []
     genargs = p[3]
     block = p[7]
   elif len(p) == 9:
+    extern = p[2]
     name = p[5]
     isa = p[7]
     genargs = p[3]
     block = p[8]
 
   inherits, typedecls, decls, methods, funs, semantics = _typedef_block(block)
-  p[0] = ast.TypeDecl(name, genargs, isa, inherits, typedecls, decls, methods, funs)
+  p[0] = ast.TypeDecl(name, extern, genargs, isa, inherits, typedecls, decls, methods, funs)
 
 def p_funargs(p):
   '''funargs : typedident
@@ -878,11 +891,21 @@ def p_funretvals(p):
   else:
     p[0] = [p[1]] + p[3]
 
+def p_fundecl_keyword(p):
+  '''fundeclkw : FUN
+               | EXTERN FUN'''
+  p[0] = len(p) == 3
+
+def p_methoddecl_keyword(p):
+  '''methoddeclkw : METHOD
+                  | EXTERN METHOD'''
+  p[0] = len(p) == 3
+
 def p_fundecl_forward(p):
-  '''fundecl : FUN IDENT ASSIGN funretvals
-             | FUN IDENT funargs ASSIGN funretvals
-             | '(' FUN typedeclname_list ')' IDENT ASSIGN funretvals
-             | '(' FUN typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
+  '''fundecl : fundeclkw IDENT ASSIGN funretvals
+             | fundeclkw IDENT funargs ASSIGN funretvals
+             | '(' fundeclkw typedeclname_list ')' IDENT ASSIGN funretvals
+             | '(' fundeclkw typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
   if len(p) == 5:
     p[0] = ast.FunctionDecl(p[2], [], [], p[4], None)
   elif len(p) == 6:
@@ -893,10 +916,10 @@ def p_fundecl_forward(p):
     p[0] = ast.FunctionDecl(p[5], p[3], p[6], p[8], None)
 
 def p_fundecl(p):
-  '''fundecl : FUN IDENT ASSIGN funretvals statements_block
-             | FUN IDENT funargs ASSIGN funretvals statements_block
-             | '(' FUN typedeclname_list ')' IDENT ASSIGN funretvals statements_block
-             | '(' FUN typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
+  '''fundecl : fundeclkw IDENT ASSIGN funretvals statements_block
+             | fundeclkw IDENT funargs ASSIGN funretvals statements_block
+             | '(' fundeclkw typedeclname_list ')' IDENT ASSIGN funretvals statements_block
+             | '(' fundeclkw typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
   if len(p) == 6:
     p[0] = ast.FunctionDecl(p[2], [], [], p[4], p[5])
   elif len(p) == 7:
@@ -907,10 +930,10 @@ def p_fundecl(p):
     p[0] = ast.FunctionDecl(p[5], p[3], p[6], p[8], p[9])
 
 def p_methoddecl_forward(p):
-  '''methoddecl : METHOD IDENT ASSIGN funretvals
-                | METHOD IDENT funargs ASSIGN funretvals
-                | '(' METHOD typedeclname_list ')' IDENT ASSIGN funretvals
-                | '(' METHOD typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
+  '''methoddecl : methoddeclkw IDENT ASSIGN funretvals
+                | methoddeclkw IDENT funargs ASSIGN funretvals
+                | '(' methoddeclkw typedeclname_list ')' IDENT ASSIGN funretvals
+                | '(' methoddeclkw typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
   if len(p) == 5:
     p[0] = ast.MethodDecl(p[2], [], '.', [], p[4], None)
   elif len(p) == 6:
@@ -921,10 +944,10 @@ def p_methoddecl_forward(p):
     p[0] = ast.MethodDecl(p[5], p[3], '.', p[6], p[8], None)
 
 def p_methoddecl(p):
-  '''methoddecl : METHOD IDENT ASSIGN funretvals statements_block
-                | METHOD IDENT funargs ASSIGN funretvals statements_block
-                | '(' METHOD typedeclname_list ')' IDENT ASSIGN funretvals statements_block
-                | '(' METHOD typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
+  '''methoddecl : methoddeclkw IDENT ASSIGN funretvals statements_block
+                | methoddeclkw IDENT funargs ASSIGN funretvals statements_block
+                | '(' methoddeclkw typedeclname_list ')' IDENT ASSIGN funretvals statements_block
+                | '(' methoddeclkw typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
   if len(p) == 6:
     p[0] = ast.MethodDecl(p[2], [], '.', [], p[4], p[5])
   elif len(p) == 7:
@@ -935,10 +958,10 @@ def p_methoddecl(p):
     p[0] = ast.MethodDecl(p[5], p[3], '.', p[6], p[8], p[9])
 
 def p_methoddecl_mutating_forward(p):
-  '''methoddecl : METHOD POSTBANG IDENT ASSIGN funretvals
-                | METHOD POSTBANG IDENT funargs ASSIGN funretvals
-                | '(' METHOD POSTBANG typedeclname_list ')' IDENT ASSIGN funretvals
-                | '(' METHOD POSTBANG typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
+  '''methoddecl : methoddeclkw POSTBANG IDENT ASSIGN funretvals
+                | methoddeclkw POSTBANG IDENT funargs ASSIGN funretvals
+                | '(' methoddeclkw POSTBANG typedeclname_list ')' IDENT ASSIGN funretvals
+                | '(' methoddeclkw POSTBANG typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
   if len(p) == 6:
     p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], None)
   elif len(p) == 7:
@@ -949,10 +972,10 @@ def p_methoddecl_mutating_forward(p):
     p[0] = ast.MethodDecl(p[6], p[4], '!', p[7], p[9], None)
 
 def p_methoddecl_mutating(p):
-  '''methoddecl : METHOD POSTBANG IDENT ASSIGN funretvals statements_block
-                | METHOD POSTBANG IDENT funargs ASSIGN funretvals statements_block
-                | '(' METHOD POSTBANG typedeclname_list ')' IDENT ASSIGN funretvals statements_block
-                | '(' METHOD POSTBANG typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
+  '''methoddecl : methoddeclkw POSTBANG IDENT ASSIGN funretvals statements_block
+                | methoddeclkw POSTBANG IDENT funargs ASSIGN funretvals statements_block
+                | '(' methoddeclkw POSTBANG typedeclname_list ')' IDENT ASSIGN funretvals statements_block
+                | '(' methoddeclkw POSTBANG typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
   if len(p) == 7:
     p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], p[6])
   elif len(p) == 8:

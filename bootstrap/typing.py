@@ -76,6 +76,9 @@ class Typename(object):
   def gather_temporaries(self, tmps):
     pass
 
+  def has_storage(self):
+    return False
+
 def _asexpr(name):
   path = name.split('.')
   path[0] = ast.ExprValue(path[0])
@@ -119,6 +122,9 @@ class Type(Typename):
   def asexpr(self):
     return _asexpr(self.name)
 
+  def has_storage(self):
+    return self.defn.has_storage()
+
 class TypeUnboundGeneric(Typename):
   def __init__(self, defn, *args):
     super(TypeUnboundGeneric, self).__init__(str(defn.scope))
@@ -128,6 +134,9 @@ class TypeUnboundGeneric(Typename):
   def concrete_definition(self):
     raise Exception("Unbound generic '%s' does not have a concrete definition, at %s" \
         % (self, self.codeloc))
+
+  def has_storage(self):
+    return False
 
 class TypeTuple(Typename):
   def __init__(self, *args):
@@ -152,6 +161,9 @@ class TypeTuple(Typename):
 
   def itersubnodes(self, **kw):
     return ast._itersubnodes(self.args + [self.geninst], **kw)
+
+  def has_storage(self):
+    return True
 
 class Refs(object):
   ANY_REF, REF, MUTABLE_REF, NULLABLE_REF, NULLABLE_MUTABLE_REF = range(5)
@@ -232,6 +244,9 @@ class TypeApp(Typename):
       raise errors.TypeError("Cannot mutate '%s', at %s" % (self, self.codeloc))
     else:
       return self.args[0]
+
+  def has_storage(self):
+    return True
 
 class SomeRefInstance(object):
   def __init__(self, defn):

@@ -140,14 +140,18 @@ ChoiceDecl.cwrite = wchoicedecl
 def forward_declare(out, gentype):
   if isinstance(gentype, typing.TypeFunction):
     return
+
   if gentype.is_some_ref():
     return
-  if gentype.name not in scope.builtintypes:
-    kind = 'struct'
-    if isinstance(gentype, typing.Type) and isinstance(gentype.defn, Union):
-      kind = 'union'
-    _p(out, kind, ' ', gentype, ';\n')
-    _p(out, 'typedef ', kind, ' ', gentype, ' ', gentype, ';\n')
+
+  if not gentype.has_storage():
+    return
+
+  kind = 'struct'
+  if isinstance(gentype, typing.Type) and isinstance(gentype.defn, Union):
+    kind = 'union'
+  _p(out, kind, ' ', gentype, ';\n')
+  _p(out, 'typedef ', kind, ' ', gentype, ' ', gentype, ';\n')
 
   _p(out, 'typedef ', gentype, '* nlangp__', gentype, ';\n')
   _p(out, 'typedef const ', gentype, '* nlangcp__', gentype, ';\n')
@@ -209,22 +213,24 @@ def wtypedecl(self, out):
 
     global g_cwrite_types
     if g_cwrite_types:
-      _p(out, indent(+1), 'struct ', self.type ,' {\n')
+      if self.has_storage():
+        _p(out, indent(+1), 'struct ', self.type ,' {\n')
 
-      if str(self.scope) == '<root>.nlang.slicemod.sized_slice':
-        _p(out, indent(), 'u8 _rawdata[', ExprValue('LEN'),
-            ' * sizeof(', self.type.args[0].typecheck(), ')];\n')
+        if str(self.scope) == '<root>.nlang.slicemod.sized_slice':
+          _p(out, indent(), 'u8 _rawdata[', ExprValue('LEN'),
+              ' * sizeof(', self.type.args[0].typecheck(), ')];\n')
 
-      for d in self.decls:
-        if not isinstance(d, ChoiceDecl):
-          _p(out, indent(), d, ';\n')
-      indent(-1)
-      _p(out, indent(), '};\n\n')
+        for d in self.decls:
+          if not isinstance(d, ChoiceDecl):
+            _p(out, indent(), d, ';\n')
+        indent(-1)
+        _p(out, indent(), '};\n\n')
 
       if self.typecheck() not in ctx().gen_instances_fwd:
-        _p(out, indent(), 'typedef struct ', self.type, ' ', self.type, ';\n')
-        _p(out, indent(), 'typedef ', self.type, '* nlangp__', self.type, ';\n')
-        _p(out, indent(), 'typedef const ', self.type, '* nlangcp__', self.type, ';\n\n')
+        if self.has_storage():
+          _p(out, indent(), 'typedef struct ', self.type, ' ', self.type, ';\n')
+          _p(out, indent(), 'typedef ', self.type, '* nlangp__', self.type, ';\n')
+          _p(out, indent(), 'typedef const ', self.type, '* nlangcp__', self.type, ';\n\n')
 
     self.mapgeninsts(lambda gen: _p(out, gen), geninsts,
         filter=_filter_members(False, False, True, False))
@@ -886,13 +892,25 @@ def wimport(self, out):
     _importalias(self, mod, mod.scope.table[self.path[-1]], self.alias)
   elif self.all:
     for n, d in mod.scope.table.iteritems():
+      if n.startswith('_'):
+        continue
       _importalias(self, mod, d, n)
 Import.cwrite = wimport
+
+def _write_extern_file(out, postfix, mod):
+  if mod.filename is not None:
+    try:
+      with open(os.path.splitext(mod.filename)[0] + postfix) as h:
+        _p(out, h.read())
+    except:
+      pass
 
 def wmodule(self, out):
   with scope.push(self.scope):
     _p(out, "#include <nlang/runtime/prelude.h>\n\n")
     gmodname.append(self.fullname)
+
+    _write_extern_file(out, '.pre.h', self)
 
     for d in self.imports:
       _p(out, d, '\n\n')
@@ -922,10 +940,5 @@ def wmodule(self, out):
 
     gmodname.pop()
 
-    if self.filename is not None:
-      try:
-        with open(os.path.splitext(self.filename)[0] + '.h') as h:
-          _p(out, h.read())
-      except:
-        pass
+    _write_extern_file(out, '.h', self)
 Module.cwrite = wmodule

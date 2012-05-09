@@ -484,6 +484,9 @@ class TypeDef(_NameEq):
   def unboundgeneric(self):
     return self.unbound
 
+  def has_storage(self):
+    False
+
   def is_forward(self):
     return False
 
@@ -662,7 +665,8 @@ def _may_append(l, x):
 class TypeDecl(TypeDef, Decl, CGlobalName):
   REC, TAGGEDUNION, ENUM, UNION, FORWARD = range(5)
 
-  def __init__(self, type, genargs, listisa, inherits, typedecls, userdecls, methods, funs):
+  def __init__(self, type, is_extern, genargs, listisa, inherits, typedecls, userdecls, methods, funs):
+    self.is_extern = is_extern
     self.type = type
     self.genargs = genargs  # Free type vars not in self.type.args
     super(TypeDecl, self).__init__(type.name)
@@ -1063,6 +1067,9 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
   def geninst_action(self):
     # No need to descend, cwrite will request its dependencies.
     return len(self.instantiable_genargs()) > 0, False
+
+  def has_storage(self):
+    return not self.is_extern
 
   def is_forward(self):
     return self.kind == TypeDecl.FORWARD
