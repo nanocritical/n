@@ -9,6 +9,11 @@ type allocator = nlang.memory.allocator slice_allocator
   (method! t) free x:@!t = void
     nlang.unsafe.free ((nlang.unsafe.cast @!u8 @!t) x) (sizeof t)
 
+  (method! t) copy x:@t = @!t
+    let r = self!alloc
+      nlang.unsafe.memcpy r x
+    return r
+
   (method! t) slice_alloc s:@![]t len:size = void
     self!free s
     s!unsafe_reinit (nlang.unsafe.malloc len * (sizeof t)) len

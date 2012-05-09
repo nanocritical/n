@@ -1,0 +1,20 @@
+from nlang import *
+from io import *
+
+
+fun test_path = bool
+  let p1 = path.from_string @'test':string
+  let p2 = path.from_string @'test':string
+  if not p1 == p2
+    return false
+
+  let p12 = path.from_string @'test/test':string
+  if path.join @p1 @p2 != p12
+    return false
+
+  return true
+
+fun main = i32
+  if not test_path
+    return 1
+  return 0

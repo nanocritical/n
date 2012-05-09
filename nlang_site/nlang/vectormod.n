@@ -104,5 +104,5 @@ type vector t = (random_container t)
 
   (method! c:(random_container t)) extend r:@(random_element_range c) = void
     self!reserve self.len+r.len
-    pfor e in r.iter
+    for e in r.iter
       self!push e.

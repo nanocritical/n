@@ -19,6 +19,26 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
     self._bytes!resize (optional len 0) + 1
     self._bytes![0] = 0
 
+  -- Should return a nerror, but we don't yet support the cross-dependencies
+  -- between stringmod and errormod.
+  fun from_bytes bytes:@[]u8 = this, bool
+    let r = this{{}}
+      r._bytes!reserve bytes.len+1
+      r._bytes!extend @bytes.all
+      if r._bytes.last != 0
+        r._bytes!push 0
+    -- FIXME Validate UTF8 encoding.
+    return r, true:bool
+
+  fun from_cstr cstr:@u8 = this
+    let r = this.mk
+      let cstr_len = (c99.strlen cstr) + 1
+      let slice_cstr:(slice u8)
+        slice_cstr!unsafe_reinit ((nlang.unsafe.cast @!u8 @u8) cstr) cstr_len
+      r._bytes!pop
+      r._bytes!extend @slice_cstr.all
+    return r
+
   method compare other:@this = i32
     let arange = self._bytes.all
     let brange = other._bytes.all
@@ -37,7 +57,7 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
   method bytes = @(nlang.vectormod.vector u8)
     return @self._bytes
 
-  method! extend x:@this = void
+  method! append x:@this = void
     self._bytes!pop
     self._bytes!extend @x._bytes.all
 
@@ -49,16 +69,10 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
     self._bytes![last] = 0
 
   method! pop = char
-    return char.from_ascii self._bytes!pop
-
-  fun from_cstr cstr:@u8 = this
-    let r = this.mk
-      let cstr_len = (c99.strlen cstr) + 1
-      let slice_cstr:(slice u8)
-        slice_cstr!unsafe_reinit ((nlang.unsafe.cast @!u8 @u8) cstr) cstr_len
-      r._bytes!pop
-      r._bytes!extend @slice_cstr.all
-    return r
+    let c = self._bytes.[self._bytes.len-2]
+    self._bytes!pop
+    self._bytes![self._bytes.len-1] = 0
+    return char.from_ascii c
 
   method cstr = @u8
     if self.len == 0

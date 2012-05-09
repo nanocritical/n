@@ -1,0 +1,98 @@
+from nlang import *
+import c99
+
+-- 0-terminated byte strings. May contain zeros in the middle. This type is
+-- useful when interacting with C code.
+
+let __EMPTY_CSTR:@u8
+
+type bytestring = nlang.show.show copyable comparable (random_container u8) nlang.utils.has_compare
+  inherit nlang.utils.ordered_with_compare this
+
+  _bytes:(vector u8)
+
+  method! ctor ?len:?@size = void
+    self._bytes!resize (optional len 0) + 1
+    self._bytes![0] = 0
+
+  fun from_bytes bytes:@[]u8 = this
+    let r = this.mk
+      r._bytes!reserve bytes.len+1
+      r._bytes!extend @bytes.all
+      if r._bytes.last != 0
+        r._bytes!push 0
+    return r
+
+  fun from_cstr cstr:@u8 = this
+    let r = this.mk
+      let cstr_len = (c99.strlen cstr) + 1
+      let slice_cstr:(slice u8)
+        slice_cstr!unsafe_reinit ((nlang.unsafe.cast @!u8 @u8) cstr) cstr_len
+      r._bytes!pop
+      r._bytes!extend @slice_cstr.all
+    return r
+
+  method compare other:@this = i32
+    let arange = self._bytes.all
+    let brange = other._bytes.all
+    for a, b in zip @arange @brange
+      let c = compare a. b.
+      if c != 0
+        return c
+    return 0
+
+  method len = size
+    return self._bytes.len - 1
+
+  method bytes = @(vector u8)
+    return @self._bytes
+
+  method first = u8
+    return self._bytes.first
+
+  method last = u8
+    return self._bytes.[self._bytes.len-2]
+
+  (method! c:(random_container t)) extend r:@(random_element_range c) = void
+    self._bytes!pop
+    self._bytes!extend r
+    if self._bytes.last != 0
+      self._bytes!push 0
+
+  method! append other:@this = void
+    self._bytes!pop
+    self._bytes!extend @other._bytes.all
+
+  method! push x:u8 = void
+    let last = self._bytes.len
+    self._bytes!resize last+1
+    self._bytes![last-1] = x
+    self._bytes![last] = 0
+
+  method! pop = u8
+    #? self._bytes.len > 1
+    let c = self._bytes.[self._bytes.len-2]
+    let _ = self._bytes!pop
+    self._bytes![self._bytes.len-1] = 0
+    return c
+
+  method cstr = @u8
+    if self.len == 1
+      return __EMPTY_CSTR
+    else
+      return nlang.unsafe.nonnull_cast self._bytes.storage_slice.unsafe_rawdata
+
+  method to_s = string, nerror
+    let s, ok = string.from_bytes self._bytes.storage_slice
+    if not ok
+      return '':string, nerror.EILSEQ
+    else
+      return s, nerror.OK
+
+  method operator_hash__ = size
+    -- From Dan Bernstein, http://www.cse.yorku.ca/~oz/hash.html
+    let h = 5381:size
+      for i in (self._bytes.range_index 0 self._bytes.len-1).iter
+        let c = self._bytes.[i].to_u64.trim_size
+        h = ((h << 5) + h) ^ c
+    return h

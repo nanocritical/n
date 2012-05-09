@@ -3,8 +3,8 @@ import nlang.literal
 import nlang.unsafe
 
 declare nlang.numbers =
-  type u32 =
-  type size =
+  extern type u32 =
+  extern type size =
 
 declare nlang.stringmod =
   type string =
@@ -17,9 +17,11 @@ let SIGN_ALWAYS:nlang.numbers.u32
 
 intf show =
   method to_s = nlang.stringmod.string
+
+intf format = show
   method format_s ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
 
-intf show_numeric = show
+intf format_numeric = format
   method format_d ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
   method format_o ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
   method format_u ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string

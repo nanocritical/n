@@ -4,10 +4,10 @@ import nlang.unsafe
 from nlang.numbers import *
 
 declare nlang.numbers =
-  type i32 =
-  type void =
-  type size =
-  type bool =
+  extern type i32 =
+  extern type void =
+  extern type size =
+  extern type bool =
 
 (fun t) _sizeof x:t = nlang.numbers.size
 

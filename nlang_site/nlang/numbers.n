@@ -39,161 +39,186 @@ intf bitwise_unsigned = hashable
 
 
 type __native_arith =
-  method operator_plus__ other:@this = this
-  method operator_minus__ other:@this = this
-  method operator_times__ other:@this = this
-  method operator_divide__ other:@this = this
-  method operator_modulo__ other:@this = this
-  method operator_neg__ = this
+  extern method operator_plus__ other:@this = this
+  extern method operator_minus__ other:@this = this
+  extern method operator_times__ other:@this = this
+  extern method operator_divide__ other:@this = this
+  extern method operator_modulo__ other:@this = this
+  extern method operator_neg__ = this
 
 type __native_bitwise = ordered
-  method operator_rshift__ shift:size = this
-  method operator_lshift__ shift:size = this
-  method operator_bwand__ other:@this = this
-  method operator_bwor__ other:@this = this
-  method operator_bwxor__ other:@this = this
-  method operator_bwnot__ = this
+  extern method operator_rshift__ shift:size = this
+  extern method operator_lshift__ shift:size = this
+  extern method operator_bwand__ other:@this = this
+  extern method operator_bwor__ other:@this = this
+  extern method operator_bwxor__ other:@this = this
+  extern method operator_bwnot__ = this
 
 type __native_order = ordered
-  method operator_eq__ other:@this = bool
-  method operator_ne__ other:@this = bool
-  method operator_lt__ other:@this = bool
-  method operator_gt__ other:@this = bool
-  method operator_le__ other:@this = bool
-  method operator_ge__ other:@this = bool
+  extern method operator_eq__ other:@this = bool
+  extern method operator_ne__ other:@this = bool
+  extern method operator_lt__ other:@this = bool
+  extern method operator_gt__ other:@this = bool
+  extern method operator_le__ other:@this = bool
+  extern method operator_ge__ other:@this = bool
 
+declare nlang.stringmod = 
+  type string =
 
-type void =
+type __native_format_numeric = nlang.show.format_numeric
+  extern method format_s ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  extern method format_d ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  extern method format_o ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  extern method format_u ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  extern method format_x ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  extern method format_X ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  extern method format_e ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  extern method format_f ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  extern method format_g ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  extern method format_a ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
+  extern method format_A ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
 
-type u8 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
+extern type void =
+
+extern type u8 = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
+  inherit __native_format_numeric
   let MAX:this
   let this_signed:nlang.meta.alias = i8
-  method reinterpret_signed = this.this_signed
-  method to_u16 = u16
-  method to_u32 = u32
-  method to_u64 = u64
-  method operator_hash__ = size
+  extern method reinterpret_signed = this.this_signed
+  extern method to_u16 = u16
+  extern method to_u32 = u32
+  extern method to_u64 = u64
+  extern method operator_hash__ = size
 
-type u16 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
+extern type u16 = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
+  inherit __native_format_numeric
   let MAX:this
   let this_signed:nlang.meta.alias = i16
-  method trim_u8 = u8
-  method reinterpret_signed = i16
-  method to_u32 = u32
-  method to_u64 = u64
-  method operator_hash__ = size
+  extern method trim_u8 = u8
+  extern method reinterpret_signed = i16
+  extern method to_u32 = u32
+  extern method to_u64 = u64
+  extern method operator_hash__ = size
 
-type u32 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
+extern type u32 = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
+  inherit __native_format_numeric
   let MAX:this
   let this_signed:nlang.meta.alias = i32
-  method trim_u8 = u8
-  method trim_u16 = u16
-  method reinterpret_signed = i32
-  method to_u64 = u64
-  method operator_hash__ = size
+  extern method trim_u8 = u8
+  extern method trim_u16 = u16
+  extern method reinterpret_signed = i32
+  extern method to_u64 = u64
+  extern method operator_hash__ = size
 
-type u64 = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
+extern type u64 = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
+  inherit __native_format_numeric
   let MAX:this
   let this_signed:nlang.meta.alias = i64
-  method trim_u8 = u8
-  method trim_u16 = u16
-  method trim_u32 = u32
-  method trim_size = size
-  method reinterpret_signed = i64
-  method operator_hash__ = size
+  extern method trim_u8 = u8
+  extern method trim_u16 = u16
+  extern method trim_u32 = u32
+  extern method trim_size = size
+  extern method reinterpret_signed = i64
+  extern method operator_hash__ = size
 
-type size = natural_arithmetic bitwise_unsigned nlang.show.show_numeric
+extern type size = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
+  inherit __native_format_numeric
   let MAX:this
   let this_signed:nlang.meta.alias = ssize
-  method trim_u8 = u8
-  method trim_u16 = u16
-  method trim_u32 = u32
-  method trim_u64 = u64
-  method reinterpret_signed = ssize
-  method operator_hash__ = size
+  extern method trim_u8 = u8
+  extern method trim_u16 = u16
+  extern method trim_u32 = u32
+  extern method trim_u64 = u64
+  extern method reinterpret_signed = ssize
+  extern method operator_hash__ = size
 
-type i8 = natural_arithmetic bitwise_signed nlang.show.show_numeric
+extern type i8 = natural_arithmetic bitwise_signed nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
+  inherit __native_format_numeric
   let MAX:this
   let MIN:this
   let this_unsigned:nlang.meta.alias = u8
-  method reinterpret_unsigned = u8
-  method to_i16 = i16
-  method to_i32 = i32
-  method to_i64 = i64
-  method operator_hash__ = size
+  extern method reinterpret_unsigned = u8
+  extern method to_i16 = i16
+  extern method to_i32 = i32
+  extern method to_i64 = i64
+  extern method operator_hash__ = size
 
-type i16 = natural_arithmetic bitwise_signed nlang.show.show_numeric
+extern type i16 = natural_arithmetic bitwise_signed nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
+  inherit __native_format_numeric
   let MAX:this
   let MIN:this
   let this_unsigned:nlang.meta.alias = u16
-  method trim_i8 = i8
-  method reinterpret_unsigned = u16
-  method to_i32 = i32
-  method to_i64 = i64
-  method operator_hash__ = size
+  extern method trim_i8 = i8
+  extern method reinterpret_unsigned = u16
+  extern method to_i32 = i32
+  extern method to_i64 = i64
+  extern method operator_hash__ = size
 
-type i32 = natural_arithmetic bitwise_signed nlang.show.show_numeric
+extern type i32 = natural_arithmetic bitwise_signed nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
+  inherit __native_format_numeric
   let MAX:this
   let MIN:this
   let this_unsigned:nlang.meta.alias = u32
-  method trim_i8 = i8
-  method trim_i16 = i16
-  method reinterpret_unsigned = u32
-  method to_i64 = i64
-  method operator_hash__ = size
+  extern method trim_i8 = i8
+  extern method trim_i16 = i16
+  extern method reinterpret_unsigned = u32
+  extern method to_i64 = i64
+  extern method operator_hash__ = size
 
-type i64 = natural_arithmetic bitwise_signed nlang.show.show_numeric
+extern type i64 = natural_arithmetic bitwise_signed nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
+  inherit __native_format_numeric
   let MAX:this
   let MIN:this
   let this_unsigned:nlang.meta.alias = u64
-  method trim_i8 = i8
-  method trim_i16 = i16
-  method trim_i32 = i32
-  method trim_ssize = ssize
-  method reinterpret_unsigned = u64
-  method operator_hash__ = size
+  extern method trim_i8 = i8
+  extern method trim_i16 = i16
+  extern method trim_i32 = i32
+  extern method trim_ssize = ssize
+  extern method reinterpret_unsigned = u64
+  extern method operator_hash__ = size
 
-type ssize = natural_arithmetic bitwise_signed nlang.show.show_numeric
+extern type ssize = natural_arithmetic bitwise_signed nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
+  inherit __native_format_numeric
   let MAX:this
   let MIN:this
-  method trim_i8 = i8
-  method trim_i16 = i16
-  method trim_i32 = i32
-  method trim_i64 = i64
-  method reinterpret_unsigned = size
-  method operator_hash__ = size
+  extern method trim_i8 = i8
+  extern method trim_i16 = i16
+  extern method trim_i32 = i32
+  extern method trim_i64 = i64
+  extern method reinterpret_unsigned = size
+  extern method operator_hash__ = size
 
-type bool = ordered nlang.show.show
+extern type bool = ordered nlang.show.show
   inherit __native_order
 
 

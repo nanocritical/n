@@ -165,8 +165,6 @@ let _EHWPOISON:i32
 intf error_code = nlang.show.show copyable
 
 type nerror = error_code
-  inherit nlang.show.utils.auto_format_s this
-
   | OK = 0:i32
 
   | EPERM = _EPERM

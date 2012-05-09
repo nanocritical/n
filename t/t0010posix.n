@@ -3,13 +3,13 @@ from posix import *
 
 fun main = i32
   let pn = 'xyz':string
-  let fd = open pn.cstr open_flags.O_WRONLY | open_flags.O_CREAT
-  if fd < 0
-    return errno.code
-  let ret = unlink pn.cstr
-    if ret != 0
-      return errno.code
-    ret = unlink pn.cstr
-    if ret == 0
+  let fd, err = open pn.cstr O_WRONLY | O_CREAT 0
+    if err != nerror.OK
       return 1
+    err = unlink pn.cstr
+    if err != nerror.OK
+      return 2
+    err = unlink pn.cstr
+    if err != nerror.ENOENT
+      return 3
   return 0

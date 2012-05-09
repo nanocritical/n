@@ -1,7 +1,7 @@
 type alias =
 
 declare nlang.numbers =
-  type bool =
+  extern type bool =
 
 intf any_ref t =
 intf ref t = (any_ref t)
