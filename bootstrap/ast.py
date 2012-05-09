@@ -865,6 +865,17 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
       self.static_decls.append(declnum)
       self.static_decls.append(declvalues)
 
+    # FIXME: Implement comparison for TAGGEDUNION as well.
+    if self.kind == TypeDecl.ENUM:
+      ops = ['!=', '==', '<', '>', '<=', '>=']
+      a = ExprField(ExprValue('self'), '.', ExprValue('_which'))
+      b = ExprField(ExprValue('other'), '.', ExprValue('_which'))
+      for o in ops:
+        args = [VarDecl(ExprConstrained(ExprValue('other'), ExprRef(self.type)))]
+        body = ExprBlock([ExprReturn(ExprCmpBin(o, a, b))])
+        self.methods.append(
+            MethodDecl(op_name[o], [], '.', args, [typing.qbuiltin('nlang.numbers.bool')], body))
+
   def _generate_builtins(self):
     def _define(is_method, x):
       if x is None:
