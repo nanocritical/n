@@ -658,10 +658,6 @@ def _filterout_static_decls(userdecls):
   decls, statics = filter(lambda d: not f(d), userdecls), filter(f, userdecls)
   return decls, map(FieldStaticConstDecl, statics)
 
-def _may_append(l, x):
-  if x is not None:
-    l.append(x)
-
 class TypeDecl(TypeDef, Decl, CGlobalName):
   REC, TAGGEDUNION, ENUM, UNION, FORWARD = range(5)
 
@@ -870,27 +866,27 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
       self.static_decls.append(declvalues)
 
   def _generate_builtins(self):
-    m, f = [], []
-    _may_append(m, self._generate_ctor())
-    _may_append(m, self._generate_dtor())
-    _may_append(f, self._generate_alloc())
-    _may_append(f, self._generate_mk())
-    _may_append(f, self._generate_new())
-    c = self._generate_static_init()
+    def _define(is_method, x):
+      if x is None:
+        return x
+
+      deepset_codeloc(x, self.codeloc)
+      if is_method:
+        self._fillscope_method(x)
+        self.methods.append(x)
+      else:
+        self._fillscope_fun(x)
+        self.funs.append(x)
+      return x
+
+    _define(True, self._generate_ctor())
+    _define(True, self._generate_dtor())
+    _define(False, self._generate_alloc())
+    _define(False, self._generate_mk())
+    _define(False, self._generate_new())
+    c = _define(False, self._generate_static_init())
     if c is not None:
-      f.append(c)
       g_static_init.append(self.typecheck())
-
-    for c in f:
-      deepset_codeloc(c, self.codeloc)
-      self._fillscope_fun(c)
-
-    for c in m:
-      deepset_codeloc(c, self.codeloc)
-      self._fillscope_method(c)
-
-    self.methods.extend(m)
-    self.funs.extend(f)
 
   def _generate_ctor(self):
     if '__unsafe_ctor__' in self.scope.table:
@@ -953,18 +949,14 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     return FunctionDecl('__unsafe_alloc__', [], [], [ExprMutableRef(ExprValue('this'))], ExprBlock([expr]))
 
   def _generate_mk(self):
-    if 'mk' in self.scope.table:
+    if 'mk' in self.scope.table or self.kind in [TypeDecl.TAGGEDUNION, TypeDecl.ENUM]:
       return None
     tmp = gensym()
-    if 'ctor' in self.scope.table:
-      mk_args = _duplicate_funargs(self.scope.table['ctor'].args)
+    if '__unsafe_ctor__' in self.scope.table:
+      mk_args = _duplicate_funargs(self.scope.table['__unsafe_ctor__'].args)
       ctor_args = [ExprValue(a.name) for a in mk_args]
       ctor_call = [ExprCall(ExprField(ExprValue(tmp), '!', ExprValue('__unsafe_ctor__')),
           ctor_args)]
-    elif '__unsafe_ctor__' in self.scope.table:
-      mk_args = []
-      ctor_call = [ExprField(ExprValue(tmp), '!', ExprValue('__unsafe_ctor__'))]
-      ctor_call[0].maybeunarycall = True
     else:
       mk_args = []
       ctor_call = []
@@ -980,15 +972,11 @@ class TypeDecl(TypeDef, Decl, CGlobalName):
     if 'new' in self.scope.table:
       return None
     tmp = gensym()
-    if 'ctor' in self.scope.table:
-      new_args = _duplicate_funargs(self.scope.table['ctor'].args)
+    if '__unsafe_ctor__' in self.scope.table:
+      new_args = _duplicate_funargs(self.scope.table['__unsafe_ctor__'].args)
       ctor_args = [ExprValue(a.name) for a in new_args]
       ctor_call = [ExprCall(ExprField(ExprValue(tmp), '!', ExprValue('__unsafe_ctor__')),
           ctor_args)]
-    elif '__unsafe_ctor__' in self.scope.table:
-      new_args = []
-      ctor_call = [ExprField(ExprValue(tmp), '!', ExprValue('__unsafe_ctor__'))]
-      ctor_call[0].maybeunarycall = True
     else:
       new_args = []
       ctor_call = []
