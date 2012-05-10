@@ -419,6 +419,10 @@ def wpattern(self, out):
     else:
       _p(out, indent(), v, ';\n')
 
+  for e in self.excepts:
+    _p(out, 'if (', e.except_test, ') { ',
+        ExprAssign(e.except_context_var, e), '; goto ', e.catch_goto, '; }')
+
   if self.mutatingblock is not None:
     _p(out, self.mutatingblock)
 PatternDecl.cwrite = wpattern
@@ -823,6 +827,15 @@ def wexprmatch(self, out):
       first = False
     _p(out, indent(), 'else { NLANG_UNREACHED(); }')
 ExprMatch.cwrite = wexprmatch
+
+def wexprtrycatch(self, out):
+  with scope.push(self.scope):
+    _p(out, indent(), self.except_var, ';\n')
+    _p(out, indent(), self.block, ';\n')
+    _p(out, self.catch_goto, ':;\n')
+    _p(out, indent(), self.catch_pattern, ';\n')
+    _p(out, indent(), self.catch_block)
+ExprTryCatch.cwrite = wexprtrycatch
 
 def wassert(self, out):
   _p(out, 'assert(', self.expr, ')')

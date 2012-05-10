@@ -8,7 +8,7 @@ syn match nDecl "^\s*from"
 syn keyword nKeyword let if elif else for while continue break extern
 syn keyword nKeyword match except return block future pfor
 syn keyword nKeyword in and or not neg isa
-syn keyword nKeyword sizeof pass as attr declare
+syn keyword nKeyword sizeof pass as attr declare except try catch
 syn match nKeyword "[@:]"
 
 syn keyword Constant null false true

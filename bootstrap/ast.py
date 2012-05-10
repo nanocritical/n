@@ -1245,7 +1245,7 @@ class PatternDecl(_FieldsEq, Decl):
     self.codetmp = ExprValue(gensym())
     self.vars = [VarDecl(ExprConstrained(self.codetmp, ExprValue('void')), self.expr)]
 
-    patternvars = self.pattern.declvars(self.codetmp)
+    patternvars, self.excepts = self.pattern.declvars(self.codetmp)
     if len(patternvars) == 1:
       # Remove the unnecessary intermediate temporary.
       self.vars[0].name = patternvars[0].name
@@ -1441,9 +1441,9 @@ class ExprValue(Expr):
 
   def declvars(self, expr):
     if self.name == '_':
-      return [None]
+      return [None], []
     else:
-      return [VarDecl(self, expr)]
+      return [VarDecl(self, expr)], []
 
   def is_rvalue(self):
     return self.unary_call is not None
@@ -1615,7 +1615,7 @@ class ExprLiteral(Expr):
     return True
 
   def declvars(self, expr):
-    return [None]
+    return [None], []
 
   def definition(self):
     return self
@@ -1631,7 +1631,7 @@ class ExprNull(Expr):
     return typing.checkcompat(self.typecheck(), xtype)
 
   def declvars(self, expr):
-    return [None]
+    return [None], []
 
 class ExprThis(Expr):
   def __init__(self):
@@ -1691,12 +1691,15 @@ class ExprTuple(_IsGenericInstance, Expr):
     self.validate()
 
   def declvars(self, expr):
-    r = []
+    rv, re = [], []
     for i in xrange(len(self.args)):
       t = self.args[i]
       x = ExprTupleSelect(expr, i)
-      r.extend(t.declvars(x))
-    return r
+      v, e = t.declvars(x)
+      rv.extend(v)
+      re.extend(e)
+
+    return rv, re
 
   def is_meta_type(self):
     for a in self.args:
@@ -1740,10 +1743,10 @@ class ExprConstrained(Expr):
       return typing.checkcompat(self.type.typecheck(), xtype)
 
   def declvars(self, expr):
-    r = self.args[0].declvars(expr)
-    if len(r) == 1 and isinstance(r[0], VarDecl):
-      r[0].type = self.type
-    return r
+    rv, re = self.args[0].declvars(expr)
+    if len(rv) == 1 and isinstance(rv[0], VarDecl):
+      rv[0].type = self.type
+    return rv, re
 
   def is_meta_type(self):
     return self.type.typecheck() == typing.qbuiltin('nlang.meta.alias')
@@ -2485,8 +2488,10 @@ class ExprMatcher(_FieldsEq, Decl):
     self.body = body
     self.match = None
     self.codetmp = ExprValue(gensym())
+    declvars, excepts = self.pattern.declvars(self.codetmp)
+    assert len(excepts) == 0
     self.vars = [VarDecl(ExprConstrained(self.codetmp, ExprValue('void')), None)] \
-        + self.pattern.declvars(self.codetmp)
+        + declvars
     self.scope = scope.Scope(self)
     self.scope.define(self.body)
     for v in self.vars:
@@ -2536,6 +2541,87 @@ class ExprMatch(_FieldsEq, Decl):
       return xd.scope
     else:
       return None
+
+  def is_meta_type(self):
+    return False
+
+class ExprExcept(ExprValue):
+  def __init__(self):
+    super(ExprExcept, self).__init__(gensym())
+    self.except_test = None
+    self.except_context_var = None
+    self.catch_goto = None
+    self.except_test = ExprCall(
+        ExprField(ExprValue(self.name), '.', ExprValue('operator_test__')), [])
+
+  def set_context(self, var, goto):
+    self.except_context_var = var
+    self.catch_goto = goto
+
+  def itersubnodes(self, **kw):
+    return _itersubnodes([self.except_test], **kw)
+
+  def declvars(self, expr):
+    v, e = super(ExprExcept, self).declvars(expr)
+    return v, e + [self]
+
+def _gather_excepts(n, except_var, catch_goto, first=False):
+  if not first and isinstance(n, ExprTryCatch):
+    return None
+
+  if isinstance(n, ExprExcept):
+    n.set_context(except_var, catch_goto)
+    return [n]
+
+  r = []
+  if isinstance(n, _Node):
+    for m in n.itersubnodes():
+      r.extend(_gather_excepts(m, except_var, catch_goto))
+  return r
+
+class ExprTryCatch(Expr, Decl):
+  def __init__(self, block, catch_pattern, catch_block):
+    super(ExprTryCatch, self).__init__()
+    self.except_var_name = ExprValue(gensym())
+    self.except_var = None
+    self.block = block
+    self.catch_goto = gensym()
+    self.catch_pattern_expr = catch_pattern
+    self.catch_pattern = None
+    self.catch_block = catch_block
+    self._fillscope()
+
+  def _fillscope(self):
+    self.scope = scope.Scope(self)
+    self.scope.define(self.except_var)
+    self.scope.define(self.block)
+    self.scope.define(self.catch_block)
+
+  def itersubnodes(self, **kw):
+    return _itersubnodes([self.block, self.except_var,
+      self.catch_pattern, self.catch_block], **kw)
+
+  def firstpass(self):
+    with scope.push(self.scope):
+      self.block.firstpass()
+
+      excepts = _gather_excepts(self, self.except_var_name, self.catch_goto, first=True)
+      if len(excepts) == 0:
+        raise errors.ParseError("Unreachable catch block, at %s" % self.codeloc)
+      t = typing.unify(None, [e.typecheck() for e in excepts])
+      self.except_var = VarDecl(
+          ExprConstrained(self.except_var_name, t.asexpr()))
+      self.scope.define(self.except_var)
+      self.except_var.firstpass()
+
+      self.catch_pattern = PatternDecl(self.catch_pattern_expr, ExprValue(self.except_var.name))
+      self.scope.define(self.catch_pattern)
+      self.catch_pattern.firstpass()
+
+      self.catch_block.firstpass()
+
+  def nocache_typecheck(self, **ignored):
+    return typing.qbuiltin('nlang.numbers.void')
 
   def is_meta_type(self):
     return False

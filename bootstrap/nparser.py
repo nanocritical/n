@@ -11,7 +11,7 @@ gfn = None
 keywords = set('''
   type extern fun method union intf dyn let
   if elif else for while continue break
-  match except return
+  match except return try catch except
   block future pfor
   import from inherit in declare
   and or not isa
@@ -408,6 +408,10 @@ def p_expr_postfix_this(p):
   '''expr_postfix : THIS'''
   p[0] = ast.ExprThis()
 
+def p_expr_postfix_except(p):
+  '''expr_postfix : EXCEPT'''
+  p[0] = ast.ExprExcept()
+
 def p_expr_postfix_value(p):
   '''expr_postfix : value'''
   p[0] = p[1]
@@ -720,6 +724,10 @@ def p_matchers(p):
 def p_match(p):
   '''statement : MATCH expr_top matchers_block'''
   p[0] = ast.ExprMatch(p[2], p[3])
+
+def p_expr_try_catch(p):
+  '''statement : TRY statements_block EOL CATCH expr statements_block'''
+  p[0] = ast.ExprTryCatch(p[2], p[5], p[6])
 
 def p_statement_assert(p):
   '''statement : CTX_ASSERT statement'''

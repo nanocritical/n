@@ -162,7 +162,7 @@ let _ERFKILL:i32
 let _EHWPOISON:i32
 
 
-intf error_code = nlang.show.show copyable
+intf error_code = nlang.show.show copyable generalized_boolean
 
 type nerror = error_code
   | OK = 0:i32
@@ -313,6 +313,9 @@ type nerror = error_code
       return nerror.EUNKNOWN
     else
       return this{{ _which=this.VALUES__.[idx] }}
+
+  method operator_test__ = bool
+    return self. != nerror.OK
 
   method code = i32
     return self._which

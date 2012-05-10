@@ -21,6 +21,9 @@ intf ordered = comparable
 intf hashable =
   method! operator_hash__ = nlang.numbers.size
 
+intf generalized_boolean =
+  method operator_test__ = bool
+
 intf natural_arithmetic = ordered
   method operator_plus__ other:@this = this
   method operator_minus__ other:@this = this
@@ -62,7 +65,7 @@ type __native_order = ordered
   extern method operator_le__ other:@this = bool
   extern method operator_ge__ other:@this = bool
 
-declare nlang.stringmod = 
+declare nlang.stringmod =
   type string =
 
 type __native_format_numeric = nlang.show.format_numeric
@@ -218,8 +221,10 @@ extern type ssize = natural_arithmetic bitwise_signed nlang.show.format_numeric
   extern method reinterpret_unsigned = size
   extern method operator_hash__ = size
 
-extern type bool = ordered nlang.show.show
+extern type bool = ordered nlang.show.show generalized_boolean
   inherit __native_order
+  method operator_test__ = bool
+    return self.
 
 
 (fun t:ordered) max a:t b:t = t
