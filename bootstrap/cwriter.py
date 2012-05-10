@@ -828,6 +828,12 @@ def wexprmatch(self, out):
     _p(out, indent(), 'else { NLANG_UNREACHED(); }')
 ExprMatch.cwrite = wexprmatch
 
+def wexprthrow(self, out):
+  if self.expr is not None:
+    _p(out, ExprAssign(self.except_context_var, self.expr), ';')
+  _p(out, 'goto ', self.catch_goto, ';')
+ExprThrow.cwrite = wexprthrow
+
 def wexprtrycatch(self, out):
   with scope.push(self.scope):
     _p(out, indent(), self.except_var, ';\n')

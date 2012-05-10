@@ -24,6 +24,13 @@ fun error_prone = i32
         return 1
       if x != 1
         return 2
+
+    try
+      throw 1:u32
+    catch n
+      if n != 1
+        return 3
+
   return 0
 
 fun main = i32

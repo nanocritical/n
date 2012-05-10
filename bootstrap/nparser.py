@@ -11,7 +11,7 @@ gfn = None
 keywords = set('''
   type extern fun method union intf dyn let
   if elif else for while continue break
-  match except return try catch except
+  match except return try catch except throw
   block future pfor
   import from inherit in declare
   and or not isa
@@ -574,10 +574,23 @@ def p_expr_top__4(p):
   args = [p[1]] + p[3]
   p[0] = ast.ExprTuple(*args)
 
+def p_expr_top__1234(p):
+  '''expr_top__1234 : expr_top__12
+                    | expr_top__3
+                    | expr_top__4'''
+  p[0] = p[1]
+
+def p_expr_top___5(p):
+  '''expr_top__5 : THROW
+                 | THROW expr_top__1234'''
+  expr = None
+  if len(p) == 3:
+    expr = p[2]
+  p[0] = ast.ExprThrow(expr)
+
 def p_expr_top(p):
-  '''expr_top : expr_top__12
-              | expr_top__3
-              | expr_top__4'''
+  '''expr_top : expr_top__1234
+              | expr_top__5'''
   p[0] = p[1]
 
 def p_typedeclname_list(p):
