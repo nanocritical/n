@@ -4,4 +4,7 @@ from nlang.charmod import *
 from nlang.stringmod import *
 from nlang.errormod import *
 
-from nlang.postlude import *
+extern fun abort = void
+
+extern fun print s:string = void
+extern fun say s:string = void
