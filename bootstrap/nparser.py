@@ -914,21 +914,30 @@ def p_typedecl(p):
   inherits, typedecls, decls, methods, funs, semantics = _typedef_block(block)
   p[0] = ast.TypeDecl(name, extern, genargs, isa, inherits, typedecls, decls, methods, funs)
 
-def p_funargs(p):
-  '''funargs : typedident
-             | typedident funargs
-             | '?' typedident
-             | '?' typedident funargs'''
-  if isinstance(p[1], ast.VarDecl):
-    r = [p[1]]
-    if len(p) == 3:
-      r += p[2]
+def p_funargs_optional(p):
+  '''funargs_optional : '?' typedident
+                      | '?' typedident funargs_optional'''
+  p[2].optionalarg = True
+  if len(p) == 3:
+    p[0] = [p[2]]
   else:
-    r = [p[2]]
-    if len(p) == 4:
-      r += p[3]
-    p[2].optionalarg = True
-  p[0] = r
+    p[0] = [p[2]] + p[3]
+
+def p_funargs_positional(p):
+  '''funargs_positional : typedident
+                        | typedident funargs_positional'''
+  p[0] = [p[1]]
+  if len(p) == 3:
+    p[0] += p[2]
+
+def p_funargs(p):
+  '''funargs : funargs_positional
+             | funargs_positional funargs_optional
+             | funargs_optional'''
+  if len(p) == 2:
+    p[0] = p[1]
+  else:
+    p[0] = p[1] + p[2]
 
 def p_funretvals(p):
   '''funretvals : typedident
