@@ -25,6 +25,8 @@ tokens = '''
   LEQ LNE LLE LLT LGT LGE
   PLUS MINUS TIMES DIVIDE MODULO
   BWAND BWOR BWXOR RSHIFT LSHIFT
+  PLUS_ASSIGN MINUS_ASSIGN TIMES_ASSIGN DIVIDE_ASSIGN MODULO_ASSIGN
+  BWAND_ASSIGN BWOR_ASSIGN BWXOR_ASSIGN RSHIFT_ASSIGN LSHIFT_ASSIGN
   UBWNOT
   ARROW
   EOL SOB EOB COLON
@@ -54,6 +56,14 @@ t_BWOR = r'\|'
 t_BWXOR = r'\^'
 t_BWAND = r'&'
 t_UBWNOT = r'~'
+t_PLUS_ASSIGN = r'\+='
+t_MINUS_ASSIGN = r'-='
+t_TIMES_ASSIGN = r'\*='
+t_DIVIDE_ASSIGN = r'/='
+t_MODULO_ASSIGN = r'%='
+t_BWOR_ASSIGN = r'\|='
+t_BWXOR_ASSIGN = r'\^='
+t_BWAND_ASSIGN = r'&='
 t_ARROW = r'->'
 t_CTX_ASSERT = r'\#\?[ ]'
 t_CTX_SEMASSERT = r'\#\![ ]'
@@ -667,12 +677,30 @@ def p_statement_pattern(p):
 def p_statement_assign(p):
   '''statement : expr_top ASSIGN expr_top'''
   if isinstance(p[1], ast.ExprFieldGetElement):
-    p[1].args[0].field = ast.ExprValue('operator_set__')
-    p[1].maybeunarycall = False
-    p[1].args.append(p[3])
-    p[0] = p[1]
+    get = p[1]
+    p[0] = ast.ExprFieldSetElement(get.args[0].container,
+        get.args[0].access, get.args[1], p[3])
   else:
     p[0] = ast.ExprAssign(p[1], p[3])
+
+def p_statement_operator_assign(p):
+  '''statement : expr_top PLUS_ASSIGN expr_top
+               | expr_top MINUS_ASSIGN expr_top
+               | expr_top TIMES_ASSIGN expr_top
+               | expr_top DIVIDE_ASSIGN expr_top
+               | expr_top MODULO_ASSIGN expr_top
+               | expr_top RSHIFT_ASSIGN expr_top
+               | expr_top LSHIFT_ASSIGN expr_top
+               | expr_top BWAND_ASSIGN expr_top
+               | expr_top BWOR_ASSIGN expr_top
+               | expr_top BWXOR_ASSIGN expr_top'''
+  if isinstance(p[1], ast.ExprFieldGetElement):
+    get = p[1]
+    p[0] = ast.ExprFieldSetElement(get.args[0].container,
+        get.args[0].access, get.args[1],
+        ast.ExprBin(p[2][:-1], get, p[3]))
+  else:
+    p[0] = ast.ExprAssign(p[1], ast.ExprBin(p[2][:-1], p[1], p[3]))
 
 def p_statement_expr(p):
   '''statement : expr_top'''

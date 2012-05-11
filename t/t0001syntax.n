@@ -41,6 +41,14 @@ fun main = i32
   if 3*c != d
     return 123
 
+  let e = 0:i32
+    e += 1
+    e *= 1
+    e /= 1
+    e %= 1
+  if e != 0
+    return 1
+
   block
     if false
       return 1
