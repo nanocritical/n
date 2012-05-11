@@ -1922,9 +1922,7 @@ class GenericInstance(_FieldsEq):
     confirm_unary = False
 
     if isinstance(d, FunctionDecl):
-      if len(self.call.args) > 1 \
-          and not isinstance(self.call.args[0], ExprSizeof) \
-          and self.call.args[1].is_meta_type():
+      if self.call.is_meta_type():
 
         # This ExprCall expression instantiate a generic function explicitly
         # eg: (fun T U) foo x:T y:T z:U = U
@@ -2015,9 +2013,7 @@ class ExprCall(_IsGenericInstance, Expr):
       d = self._fun_definition()
 
     if isinstance(d, FunctionDecl):
-      if len(self.args) > 1 \
-          and not isinstance(self.args[0], ExprSizeof) \
-          and self.args[1].is_meta_type():
+      if self.is_meta_type():
         # This ExprCall expression instantiates a generic function explicitly
         # eg: (foo u32 U8) 1 2 3
         if isinstance(d, MethodDecl) and self.maybeunarycall:
@@ -2038,9 +2034,7 @@ class ExprCall(_IsGenericInstance, Expr):
     assert not d.unboundgeneric()
 
     if isinstance(d, FunctionDecl):
-      if len(self.args) > 1 \
-          and not isinstance(self.args[0], ExprSizeof) \
-          and self.args[1].is_meta_type():
+      if self.is_meta_type():
         # This ExprCall expression instantiates a generic function explicitly
         # eg: (foo u32 U8) 1 2 3
         if isinstance(d, MethodDecl) and self.maybeunarycall:
@@ -2070,11 +2064,12 @@ class ExprCall(_IsGenericInstance, Expr):
       return d.typecheck()
 
   def is_meta_type(self):
+    # FIXME: doesn't work with (type foo N:size)
     if len(self.args) > 1 and not isinstance(self.args[0], ExprSizeof):
       for a in self.args[1:]:
-        if not a.is_meta_type():
-          return False
-      return True
+        if a.is_meta_type():
+          return True
+      return False
     else:
       return False
 
