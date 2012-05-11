@@ -6,5 +6,5 @@ from nlang.errormod import *
 
 extern fun abort = void
 
-extern fun print s:string = void
-extern fun say s:string = void
+extern fun print s:@string = void
+extern fun say s:@string = void
