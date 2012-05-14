@@ -15,8 +15,8 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
 
   _bytes:(nlang.vectormod.vector u8)
 
-  method! ctor ?len:?@size = void
-    self._bytes!resize (optional len 0) + 1
+  method! ctor = void
+    self._bytes!resize 1
     self._bytes![0] = 0
 
   -- Should return a nerror, but we don't yet support the cross-dependencies

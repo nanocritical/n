@@ -1167,6 +1167,23 @@ class FunctionDecl(TypeDef, Decl, CGlobalName):
   def is_forward(self):
     return self.body is None
 
+  def positional_arity(self):
+    cnt = 0
+    for a in self.args:
+      if a.optionalarg:
+        break
+      cnt += 1
+    return cnt
+
+  def position_of_optional(self, name, call):
+    pos = 0
+    for a in self.args:
+      if a.name == name:
+        return pos
+      pos += 1
+    raise errors.ParseError("Function '%s' has no optional argument named '%s', at %s" \
+        % (self, name, call.codeloc))
+
 class MethodDecl(FunctionDecl):
   def __init__(self, name, genargs, access, args, returns, body):
     self.container = None
@@ -1956,10 +1973,24 @@ class GenericInstance(_FieldsEq):
       self.defn.firstpass()
       ctx().gen_instances_fwd.add(self.defn.typecheck())
 
+class ExprNamedArgument(Expr):
+  def __init__(self, name, expr):
+    super(ExprNamedArgument, self).__init__()
+    if not isinstance(name, ExprValue):
+      raise errors.ParseError(
+          "Named function argument name must be an single identifier, not '%s', at %s'" \
+              % (name, self.codeloc))
+    self.name = name.name
+    self.expr = expr
+
+  def itersubnodes(self, **kw):
+    return _itersubnodes([self.expr], **kw)
+
 class ExprCall(_IsGenericInstance, Expr):
   def __init__(self, fun, args):
     super(ExprCall, self).__init__()
     self.args = [fun] + args
+    self.args_are_reordered = False
     self.xself = None
 
     # This call may or may not be instantiating a generic.
@@ -1967,16 +1998,59 @@ class ExprCall(_IsGenericInstance, Expr):
     self.geninst = GenericInstance(self)
 
   def itersubnodes(self, **kw):
-    return _itersubnodes(self.args + [self.xself], **kw)
+    return _itersubnodes([self.xself] + self.args, **kw)
 
   def _fun_definition(self):
     return self.args[0].definition()
 
+  def _reorder_args(self):
+    if self.args_are_reordered:
+      return
+    self.args_are_reordered = True
+
+    d = self._fun_definition()
+    if not isinstance(d, FunctionDecl):
+      return
+    if self.is_meta_type():
+      return
+
+    first_arg_offset = 1
+    if isinstance(d, MethodDecl) and self.args[0].container.is_meta_type():
+      # Called in this form (type.method self a b).
+      first_arg_offset = 2
+    effective_args_count = len(self.args) - first_arg_offset
+
+    if effective_args_count < d.positional_arity():
+      raise errors.ParseError(
+          "Function '%s' has %d positional arguments, only %d given, at %s" \
+              % (d, d.positional_arity(), effective_args_count, self.codeloc))
+
+    if effective_args_count > len(d.args):
+      raise errors.ParseError(
+          "Function '%s' has %d arguments, but %d given, at %s" \
+              % (d, len(d.args), effective_args_count, self.codeloc))
+
+    args = [ExprNull() for _ in range(len(d.args))]
+    for i in xrange(first_arg_offset, first_arg_offset + d.positional_arity()):
+      args[i - first_arg_offset] = self.args[i]
+
+    for i in xrange(first_arg_offset + d.positional_arity(), len(self.args)):
+      a = self.args[i]
+      if not isinstance(a, ExprNamedArgument):
+        raise errors.ParseError(
+            "Function '%s' expects a named argument in position %d, not '%s', at %s" \
+                % (d, i, a, self.codeloc))
+      pos = d.position_of_optional(a.name, self)
+      args[pos] = a.expr
+
+    self.args = self.args[0:first_arg_offset] + args
+
   def firstpass(self, instantiate_only=False):
-    self.cached_has_instantiable = False
     for n in self.itersubnodes():
       n.firstpass()
       self.cached_has_instantiable = self.cached_has_instantiable or n.has_instantiable()
+
+    self._reorder_args()
 
     self.geninst._instantiategeninst(instantiate_only)
     self.validate()

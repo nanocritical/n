@@ -6,4 +6,4 @@ fun opts ?a:?@i32 = i32
 fun main = i32
   if opts != 1
     return 1
-  return opts @0:i32
+  return opts a=@0:i32

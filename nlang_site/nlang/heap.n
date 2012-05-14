@@ -33,4 +33,4 @@ type allocator = nlang.memory.allocator slice_allocator
     self!resize dst src.len
     nlang.unsafe.memcpy dst.unsafe_mutable_rawdata src.unsafe_rawdata (sizeof t) src.len
 
-let the = (nlang.unsafe.cast @!allocator @!u8) nlang.unsafe.malloc (sizeof allocator)
+let the = (nlang.unsafe.cast @!allocator @!u8) (nlang.unsafe.malloc (sizeof allocator))

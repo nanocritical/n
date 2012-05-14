@@ -12,7 +12,7 @@ type vector t = (random_container t)
     return
 
   method! init len:size ?with:?@t = void
-    self!resize len with
+    self!resize_with len (optional with 0)
 
   method len = size
     return self._len
@@ -83,7 +83,7 @@ type vector t = (random_container t)
     return range 0 self.len
 
   method range_index beg:size end:size ?by:?@size = index_range
-    let r = range beg end by
+    let r = range beg end by=by
     self.check_range @r
     return r
 

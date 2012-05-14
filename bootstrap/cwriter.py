@@ -637,13 +637,7 @@ def wexprcall(self, out):
     _p(out, ', ')
 
   for i in xrange(len(fun.args)):
-    if i + first_arg_offset < len(self.args):
-      _p(out, self.args[i + first_arg_offset])
-    else:
-      if not fun.args[i].optionalarg:
-        raise errors.ParseError("Non-optional argument '%s' is missing in call (%s), at %s" \
-            % (fun.args[i], ' '.join(map(str, self.args)), self.codeloc))
-      _p(out, ExprNull())
+    _p(out, self.args[i + first_arg_offset])
 
     if i < len(fun.args) - 1:
       _p(out, ', ')

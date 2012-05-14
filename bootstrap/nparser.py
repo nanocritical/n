@@ -277,6 +277,7 @@ precedence = (
     ('left', 'DOT', 'BANG'),
     ('right', 'POSTDOT', 'POSTBANG'),
     ('right', 'IDENT'),
+    ('right', 'NAMED_ASSIGN'),
     )
 
 def p_empty(p):
@@ -290,19 +291,6 @@ def p_idents(p):
   if len(p) == 3:
     r += p[2]
   p[0] = r
-
-def p_value_ident(p):
-  '''value_3 : IDENT'''
-  p[0] = ast.ExprValue(p[1])
-  p[0].maybeunarycall = True
-
-def p_value_2(p):
-  '''value_2 : value_3'''
-  p[0] = p[1]
-
-def p_value(p):
-  '''value : value_2'''
-  p[0] = p[1]
 
 def p_type_name(p):
   '''type_postfix : IDENT'''
@@ -423,8 +411,9 @@ def p_expr_postfix_except(p):
   p[0] = ast.ExprExcept()
 
 def p_expr_postfix_value(p):
-  '''expr_postfix : value'''
-  p[0] = p[1]
+  '''expr_postfix : IDENT'''
+  p[0] = ast.ExprValue(p[1])
+  p[0].maybeunarycall = True
 
 def p_expr_postfix_group(p):
   '''expr_postfix : '(' expr_top ')' '''
@@ -455,10 +444,9 @@ def p_expr_ref_nullable(p):
     p[0] = ast.ExprNullableMutableRef(p[3])
 
 def p_expr_field(p):
-  '''expr_postfix : expr_postfix DOT value
-                  | expr_postfix BANG value'''
-  p[0] = ast.ExprField(p[1], p[2], p[3])
-  p[3].maybeunarycall = False
+  '''expr_postfix : expr_postfix DOT IDENT
+                  | expr_postfix BANG IDENT'''
+  p[0] = ast.ExprField(p[1], p[2], ast.ExprValue(p[3]))
   p[0].maybeunarycall = True
 
 def p_expr_element(p):
@@ -488,13 +476,21 @@ def p_expr_binop(p):
           | expr ISA expr'''
   p[0] = ast.ExprBin(p[2], p[1], p[3])
 
-def p_expr_call_list(p):
+def p_expr_call_list_optional(p):
   '''expr_call_list : expr
-                    | expr expr_call_list'''
-  args = [p[1]]
-  if len(p) == 3:
-    args += p[2]
-  p[0] = args
+                    | expr expr_call_list
+                    | IDENT ASSIGN expr %prec NAMED_ASSIGN
+                    | IDENT ASSIGN expr expr_call_list  %prec NAMED_ASSIGN'''
+  if len(p) <= 3:
+    args = [p[1]]
+    if len(p) == 3:
+      args += p[2]
+    p[0] = args
+  else:
+    args = [ast.ExprNamedArgument(ast.ExprValue(p[1]), p[3])]
+    if len(p) == 5:
+      args += p[4]
+    p[0] = args
 
 def p_expr_call_only(p):
   '''expr_call : expr expr_call_list'''
@@ -515,7 +511,7 @@ def p_expr_future(p):
   p[0] = p[2]
 
 def p_expr_initializer_pair(p):
-  '''initializer_pair : IDENT ASSIGN expr'''
+  '''initializer_pair : IDENT ASSIGN expr %prec NAMED_ASSIGN'''
   p[0] = (p[1], p[3])
 
 def p_expr_initializer_list(p):

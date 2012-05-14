@@ -70,15 +70,15 @@ type slice t = (random_container t)
     #~ eval self.check_index self.valid_index n
     return n < self._len
 
-  method range beg:size end:size ?by:?@size = (random_element_range this)
+  method range beg:size end:size = (random_element_range this)
     let er:nlang.meta.alias = (random_element_range this)
-    return (er.mk self).sub beg end by
+    return (er.mk self).sub beg end
 
   method all_index = index_range
     return range 0 self.len
 
   method range_index beg:size end:size ?by:?@size = index_range
-    return self.all_index.sub beg end by
+    return range beg end by=by
 
 
 type sized_slice t LEN:size = (random_container t)
@@ -130,16 +130,20 @@ type sized_slice t LEN:size = (random_container t)
     let addr = (_unsafe_slice_addr self.unsafe_rawdata (sizeof t) n)
     return (nlang.unsafe.cast @t @u8) addr
 
+  method get_mref n:size = @!t
+    let addr = (_unsafe_slice_addr self.unsafe_rawdata (sizeof t) n)
+    return (nlang.unsafe.cast @!t @u8) addr
+
   method check_index n:size = bool
     #~ eval self.check_index self.valid_index n
     return n < self.len
 
-  method range beg:size end:size ?by:?@size = (random_element_range this)
+  method range beg:size end:size = (random_element_range this)
     let er:nlang.meta.alias = (random_element_range this)
-    return (er.mk self).sub beg end by
+    return (er.mk self).sub beg end
 
   method all_index = index_range
     return range 0 self.len
 
   method range_index beg:size end:size ?by:?@size = index_range
-    return self.all_index.sub beg end by
+    return range beg end by=by
