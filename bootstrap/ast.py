@@ -1944,7 +1944,7 @@ class GenericInstance(_FieldsEq):
         # eg: (fun T U) foo x:T y:T z:U = U
         #     in (foo u32 U8) 1 2 3
 
-        if self.call.maybeunarycall and isinstance(d, MethodDecl):
+        if self.call.maybeunarycall:
           confirm_unary = True
 
         for arg, term in zip(d.genargs, self.call.args[1:]):
@@ -2110,7 +2110,8 @@ class ExprCall(_IsGenericInstance, Expr):
       if self.is_meta_type():
         # This ExprCall expression instantiates a generic function explicitly
         # eg: (foo u32 U8) 1 2 3
-        if isinstance(d, MethodDecl) and self.maybeunarycall:
+        if self.maybeunarycall:
+          # (bar u32) with (fun/method t) bar = t
           return self.geninst.defn.rettype.typecheck()
         else:
           return self.geninst.defn.typecheck()
