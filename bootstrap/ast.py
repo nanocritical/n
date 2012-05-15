@@ -407,7 +407,6 @@ class GenericArg(_NameEq):
     if self.typeconstraint is None:
       genenv.set_instantiated(self, t)
     else:
-      assert not t.is_some_ref()
       self.typeconstraint.typedestruct(genenv, t)
       genenv.set_instantiated(self, t)
 
