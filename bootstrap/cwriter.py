@@ -153,8 +153,7 @@ def forward_declare(out, gentype):
   _p(out, kind, ' ', gentype, ';\n')
   _p(out, 'typedef ', kind, ' ', gentype, ' ', gentype, ';\n')
 
-  _p(out, 'typedef ', gentype, '* nlangp__', gentype, ';\n')
-  _p(out, 'typedef const ', gentype, '* nlangcp__', gentype, ';\n')
+  _p(out, 'NLANG_POINTER_ALIASES(', gentype, ');\n')
 
 def forward_declare_members(out, gentype):
   if hasattr(gentype, 'defn') and isinstance(gentype.defn, TypeDecl):
@@ -229,8 +228,7 @@ def wtypedecl(self, out):
       if self.typecheck() not in ctx().gen_instances_fwd:
         if self.has_storage():
           _p(out, indent(), 'typedef struct ', self.type, ' ', self.type, ';\n')
-          _p(out, indent(), 'typedef ', self.type, '* nlangp__', self.type, ';\n')
-          _p(out, indent(), 'typedef const ', self.type, '* nlangcp__', self.type, ';\n\n')
+          _p(out, 'NLANG_POINTER_ALIASES(', self.type, ');\n')
 
     self.mapgeninsts(lambda gen: _p(out, gen), geninsts,
         filter=_filter_members(False, False, True, False))

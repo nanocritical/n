@@ -31,7 +31,11 @@
 
 #define NLANG_POINTER_ALIASES(t) \
   typedef t* nlangp__##t; \
-  typedef const t* nlangcp__##t
+  typedef const t* nlangcp__##t; \
+  typedef t** nlangp__nlangp__##t; \
+  typedef t const* const* nlangcp__nlangcp__##t; \
+  typedef t const** nlangp__nlangcp__##t; \
+  typedef t * const* nlangcp__nlangp__##t
 
 typedef uint8_t u8;
 typedef uint16_t u16;
