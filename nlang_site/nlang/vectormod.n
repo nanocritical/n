@@ -5,6 +5,8 @@ import nlang.heap
 import c99
 
 type vector t = (random_container t)
+  let position:nlang.meta.alias = size
+
   _p:[]t
   _len:size
 

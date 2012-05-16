@@ -52,6 +52,9 @@ extern fun write fd:i32 buf:@[]u8 count:size = size, nerror
 extern fun fsync fd:i32 = nerror
 extern fun fdatasync fd:i32 = nerror
 
+extern fun mmap map:@![]u8 addr:@!u8 length:size prot:i32 flags:i32 fd:i32 offset:ssize = nerror
+extern fun munmap map:@![]u8 = nerror
+
 extern fun rand = i32
 extern fun srand seed:u32 = void
 

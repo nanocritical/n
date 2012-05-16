@@ -24,13 +24,17 @@ intf hashable =
 intf generalized_boolean =
   method operator_test__ = bool
 
-intf natural_arithmetic = ordered
+intf additive_arithmetic = ordered
   method operator_plus__ other:@this = this
   method operator_minus__ other:@this = this
+  method operator_neg__ = this
+
+intf multiplicative_arithmetic = ordered
   method operator_times__ other:@this = this
   method operator_divide__ other:@this = this
   method operator_modulo__ other:@this = this
-  method operator_neg__ = this
+
+intf natural_arithmetic = additive_arithmetic multiplicative_arithmetic
 
 intf bitwise_signed = hashable
   let this_unsigned:nlang.meta.alias

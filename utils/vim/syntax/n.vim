@@ -18,6 +18,7 @@ syn keyword nTodo contained TODO FIXME XXX
 
 syn region nSemantic start="^\s*#[!~?]" end="$" keepend
 syn match nMutate "[!][^=]"me=e-1
+syn match nMercurial "#"
 syn match nNullable "?"
 
 syn match nSpaceError display excludenl "\s\+$"
@@ -62,6 +63,7 @@ hi def link nNumbers Number
 hi def link nString String
 hi def link nSemantic Semantic
 hi def link nMutate Constant
+hi def link nMercurial Constant
 hi def link nNullable Constant
 
 let b:current_syntax = "n"

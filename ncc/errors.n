@@ -1,6 +1,39 @@
 from nlang import *
 
-type error =
-  | UNEXPECTED string
+type parse_error = error_code
+  cloc:codeloc
+  message:string
+
+type error = error_code
+  inherit nerror
   | PARSE string
+  | TYPING string
+  | SCOPE string
   | MISSING_MODULE string
+
+  method to_nerror = nerror, bool
+    match self.
+      | PARSE _
+        return nerror.EUNKNOWN, false
+      | TYPING _
+        return nerror.EUNKNOWN, false
+      | SCOPE _
+        return nerror.EUNKNOWN, false
+      | MISSING_MODULE _
+        return nerror.EUNKNOWN, false
+      | _
+        return nerror.from_code self._which, true
+
+  method to_s = string
+    match self.
+      | PARSE s
+        return string.concat @'Parse error: ' @s
+      | TYPING s
+        return string.concat @'Typing error: ' @s
+      | SCOPE s
+        return string.concat @'Scope error: ' @s
+      | MISSING_MODULE s
+        return string.concat @'Missing module error: ' @s
+      | _
+        let err, _ = self.to_nerror
+        return err.to_s

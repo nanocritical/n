@@ -16,9 +16,13 @@ intf any =
 intf trivial_ctor =
 intf trivial_dtor =
 
+intf copyable_but_owned =
+  method! operator_copy__ other:@this = nlang.numbers.void
+
 intf copyable =
   method! operator_copy__ other:@this = nlang.numbers.void
 
+intf trivial_owned_copy = copyable_but_owned
 intf trivial_copy = copyable
 
 intf moveable =

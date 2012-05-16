@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/mman.h>
 #ifndef __USE_XOPEN2K8
 # define __USE_XOPEN2K8
 #endif
@@ -107,7 +108,7 @@ TUP2(size, nlang_errormod_nerror) posix_read(i32 fd, SL8() *buf, size count) {
     count = blen;
   }
 
-  ssize rd = read(fd, SL8(_unsafe_mutable_rawdata)(buf), count);
+  ssize rd = read(fd, SL8(_mutable_data)(buf), count);
   if (rd < 0) {
     return TUP2VAL(size, nlang_errormod_nerror, 0, NERROR(errno));
   } else {
@@ -121,7 +122,7 @@ TUP2(size, nlang_errormod_nerror) posix_write(i32 fd, const SL8() *buf, size cou
     count = blen;
   }
 
-  ssize wr = write(fd, buf, count);
+  ssize wr = write(fd, SL8(_data)(buf), count);
   if (wr < 0) {
     return TUP2VAL(size, nlang_errormod_nerror, 0, NERROR(errno));
   } else {
@@ -139,6 +140,31 @@ nlang_errormod_nerror posix_fsync(i32 fd) {
 
 nlang_errormod_nerror posix_fdatasync(i32 fd) {
   if (fdatasync(fd) < 0) {
+    return NERROR(errno);
+  } else {
+    return NERROR_OK;
+  }
+}
+
+
+nlang_errormod_nerror posix_mmap(
+  SL8() *map,
+  u8 *addr, size length,
+  i32 prot, i32 flags,
+  i32 fd, ssize offset) {
+
+  void *m = mmap(addr, length, prot, flags, fd, offset);
+  if ((void *) -1 == m) {
+    return NERROR(errno);
+  }
+
+  SL8(_unsafe_reinit)(map, m, length);
+
+  return NERROR_OK;
+}
+
+nlang_errormod_nerror posix_munmap(SL8() *map) {
+  if (munmap(SL8(_mutable_data)(map), SL8(_len)(map)) < 0) {
     return NERROR(errno);
   } else {
     return NERROR_OK;
