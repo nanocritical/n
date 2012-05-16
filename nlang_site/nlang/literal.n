@@ -1,5 +1,3 @@
 type integer =
-type bool =
-type string =
 type nulltype =
 type list =

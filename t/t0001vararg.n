@@ -13,7 +13,7 @@ fun varopt a:i32 ?b:?@i32 ...v:(vararg @i32) = i32
   return r
 
 fun main = i32
-  if var @'a':string @'b':string @'c':string @'d':string != 4
+  if var @'a' @'b' @'c' @'d' != 4
     return 1
   if varopt 1 b=@2:i32 @3:i32 @4:i32 @5:i32 != 15
     return 2

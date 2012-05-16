@@ -15,7 +15,7 @@ type char = hashable trivial_copy
     s![off] = self._word.trim_u8
 
   method to_ascii = u8, bool
-    return self._word.trim_u8, true:bool
+    return self._word.trim_u8, true
 
   fun from_ascii c:u8 = this
     let n = this.mk

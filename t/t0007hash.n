@@ -11,7 +11,7 @@ fun main = i32
     return 2
 
   let ch = (operator_hash string).mk
-  if ch.hash @'test':string != 6382923571
+  if ch.hash @'test' != 6382923571
     return 3
 
   return 0

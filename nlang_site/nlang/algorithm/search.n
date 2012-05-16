@@ -5,8 +5,8 @@ from nlang.predicates import *
 (fun t c:(random_container t) eq:(equality t)) linear_search v:@c p:@eq value:@t = bool, size
   for i in v.all_index.iter
     if p.equals value (v.get_ref i)
-      return true:bool, i
-  return false:bool, 0:size
+      return true, i
+  return false, 0:size
 
 
 (fun t c:(random_container t) lt:(strict_weak_order t)) binary_search v:@c p:@lt value:@t = bool, size
@@ -22,6 +22,6 @@ from nlang.predicates import *
   if min == max
     let y = v.[min]
     if not p.less_than @y value and not p.less_than value @y -- Equivalence.
-      return true:bool, min
+      return true, min
 
-  return false:bool, 0:size
+  return false, 0:size

@@ -1637,9 +1637,9 @@ class ExprLiteral(Expr):
 
   def nocache_typecheck(self, **ignored):
     if isinstance(self.args[0], basestring):
-      t = typing.qbuiltin('nlang.literal.string')
+      t = typing.qbuiltin('nlang.stringmod.string')
     elif isinstance(self.args[0], bool):
-      t = typing.qbuiltin('nlang.literal.bool')
+      t = typing.qbuiltin('nlang.numbers.bool')
     else:
       t = copy.copy(typing.qbuiltin('nlang.literal.integer'))
       t.set_literal_value(self.args[0])
@@ -1825,9 +1825,9 @@ class ExprBin(Expr):
     t2 = self.args[1].typecheck()
     u = typing.unify(None, [t1, t2])
 
-    if t1.name in ['<root>.nlang.literal.integer', '<root>.nlang.literal.bool'] \
+    if t1.name in ['<root>.nlang.literal.integer', '<root>.nlang.numbers.bool'] \
         or t1.name in scope.builtintypes \
-        or t2.name in ['<root>.nlang.literal.integer', '<root>.nlang.literal.bool'] \
+        or t2.name in ['<root>.nlang.literal.integer', '<root>.nlang.numbers.bool'] \
         or t2.name in scope.builtintypes:
       # FIXME For now we will just emit native operators in these case.
       return
@@ -1896,7 +1896,7 @@ class ExprUnary(Expr):
       n.firstpass()
 
     t = self.args[0].typecheck()
-    if t.name in ['<root>.nlang.literal.integer', '<root>.nlang.literal.bool'] \
+    if t.name in ['<root>.nlang.literal.integer', '<root>.nlang.numbers.bool'] \
         or t.name in scope.builtintypes:
       # FIXME For now we will just emit native operators in these case.
       return

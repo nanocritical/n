@@ -85,7 +85,7 @@ type bytestring = nlang.show.show copyable comparable (random_container u8) nlan
   method to_s = string, nerror
     let s, ok = string.from_bytes self._bytes.storage_slice
     if not ok
-      return '':string, nerror.EILSEQ
+      return '', nerror.EILSEQ
     else
       return s, nerror.OK
 

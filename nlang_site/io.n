@@ -26,7 +26,7 @@ type path = copyable hashable nlang.show.show nlang.utils.has_compare
   method to_s = string, nerror
     let s, ok = string.from_bytes self._bstr.bytes.storage_slice
     if not ok
-      return '':string, nerror.EILSEQ
+      return '', nerror.EILSEQ
     else
       return s, nerror.OK
 

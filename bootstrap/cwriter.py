@@ -583,13 +583,13 @@ class _StringCLiteral(ExprLiteral):
     _p(out, '((const u8 *) "' + self.args[0].encode('string-escape') + '")')
 
 def wexprconstrained(self, out):
-  if self.args[0].typecheck() == typing.qbuiltin('nlang.literal.string') \
+  if self.args[0].typecheck() == typing.qbuiltin('nlang.stringmod.string') \
       and self.type.typecheck() == typing.qbuiltin('nlang.charmod.char') \
       and len(self.args[0].args[0]) == 1:
     c = ExprCall(ast.path_as_expr('nlang.charmod.char.from_ascii'), [_CharCLiteral(self.args[0].args[0])])
     c.firstpass()
     _p(out, c)
-  elif self.args[0].typecheck() == typing.qbuiltin('nlang.literal.string') \
+  elif self.args[0].typecheck() == typing.qbuiltin('nlang.stringmod.string') \
       and self.type.typecheck() == typing.qbuiltin('nlang.stringmod.string'):
     c = ExprCall(ast.path_as_expr('nlang.stringmod.string.from_cstr'), [_StringCLiteral(self.args[0].args[0])])
     c.firstpass()

@@ -341,12 +341,6 @@ def _unify_lit_conc(lit, conc):
             'i8', 'i16', 'i32', 'i64',
             'size', 'ssize']:
       return conc
-  elif lit.name == '<root>.nlang.literal.bool':
-    if nump and conc.name[len(nummod):] == 'bool':
-      return conc
-  elif lit.name == '<root>.nlang.literal.string':
-    if conc.name == '<root>.nlang.stringmod.string' or conc.name == '<root>.nlang.charmod.char':
-      return conc
   elif lit.name == '<root>.nlang.literal.nulltype':
     if conc.name.startswith('?'):
       return conc
@@ -357,7 +351,8 @@ def _isliteral(type):
   return type.name.startswith('<root>.nlang.literal.')
 
 def _isconcrete(type):
-  return not type.name.startswith('<root>.nlang.literal.') and type.name != '<root>.nlang.meta.alias'
+  return not type.name.startswith('<root>.nlang.literal.') \
+      and type.name != '<root>.nlang.meta.alias'
 
 def _istuple(type):
   return isinstance(type, TypeTuple)
@@ -374,6 +369,10 @@ def _unifyconcpair(a, b):
   if a.isa(b):
     return b
   elif b.isa(a):
+    return a
+  elif str(a) == '<root>.nlang.stringmod.string' and str(b) == '<root>.nlang.charmod.char':
+    return b
+  elif str(b) == '<root>.nlang.stringmod.string' and str(a) == '<root>.nlang.charmod.char':
     return a
   else:
     return None
@@ -473,7 +472,12 @@ def unify(constraint, types):
       or (t.ref_type() == Refs.MUTABLE_REF and constraint.ref_type() == Refs.NULLABLE_MUTABLE_REF)) \
       and t.args[0].isa(constraint.args[0]):
     return t
-  elif not t.isa(constraint):
+
+  if str(constraint) == '<root>.nlang.charmod.char' \
+      and str(t) == '<root>.nlang.stringmod.string':
+    return constraint
+
+  if not t.isa(constraint):
     _unifyerror([constraint, t])
 
   return t

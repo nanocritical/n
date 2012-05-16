@@ -2,7 +2,7 @@ from nlang import *
 from posix import *
 
 fun main = i32
-  let pn = 'xyz':string
+  let pn = 'xyz'
   let fd, err = open pn.cstr O_WRONLY | O_CREAT 0
     if err != nerror.OK
       return 1

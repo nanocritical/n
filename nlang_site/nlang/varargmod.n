@@ -45,7 +45,7 @@ extern type __va_list =
   method! reset = void
     self!_reset_count += 1
     if self._reset_count > 1
-      say @'Cannot iterate more than once in a vararg':string
+      say @'Cannot iterate more than once in a vararg'
       abort
 
     self!next

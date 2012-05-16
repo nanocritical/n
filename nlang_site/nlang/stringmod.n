@@ -28,7 +28,7 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
       if r._bytes.last != 0
         r._bytes!push 0
     -- FIXME Validate UTF8 encoding.
-    return r, true:bool
+    return r, true
 
   fun from_cstr cstr:@u8 = this
     let r = this.mk
