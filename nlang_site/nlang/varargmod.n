@@ -21,6 +21,8 @@ from nlang.meta import *
 
 extern type __va_list =
 
+extern fun __error_reset = void
+
 -- Not copyable even though it is "passed" by-value in the prototype of a vararg
 -- function. This is allowed by special case in the compiler.
 --
@@ -45,8 +47,7 @@ extern type __va_list =
   method! reset = void
     self!_reset_count += 1
     if self._reset_count > 1
-      say @'Cannot iterate more than once in a vararg'
-      abort
+      __error_reset
 
     self!next
 
