@@ -12,7 +12,10 @@ type vector t = (random_container t)
     return
 
   method! init len:size ?with:?@t = void
-    self!resize_with len (optional with 0)
+    if with != null
+      self!resize_with len (nlang.unsafe.nonnull_cast with).
+    else
+      self!resize len
 
   method len = size
     return self._len
