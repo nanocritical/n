@@ -106,9 +106,9 @@ class Type(Typename):
     if self == typeconstraint:
       return True
 
-    if _isliteral(typeconstraint):
+    if _isliteral(self):
       try:
-        _unify_lit_conc(typeconstraint, self)
+        _unify_lit_conc(self, typeconstraint)
         return True
       except:
         pass
@@ -206,12 +206,14 @@ class TypeApp(Typename):
     if self == typeconstraint:
       return True
 
-    found = False
-    with scope.push(self.defn.scope):
-      for i in self.defn.listisa:
-        if i.typecheck().isa(typeconstraint):
-          found = True
-          break
+    found = str(self.defn.scope) == str(typeconstraint.defn.scope)
+
+    if not found:
+      with scope.push(self.defn.scope):
+        for i in self.defn.listisa:
+          if i.typecheck().isa(typeconstraint):
+            found = True
+            break
 
     if not found:
       return False
