@@ -2500,7 +2500,7 @@ class ExprFor(_FieldsEq, Decl):
     self.iter = iter
     self.body = body
     self.iter_tmp = ExprValue(gensym())
-    self.var_iter_tmp = VarDecl(self.iter_tmp, self.iter)
+    self.var_iter_tmp = None
     self.pattern = PatternDecl(pattern, ExprCall(ExprField(self.iter_tmp, '!', ExprValue('get')), []))
     self.reset_expr = ExprCall(ExprField(self.iter_tmp, '!', ExprValue('reset')), [])
     self.next_expr = ExprCall(ExprField(self.iter_tmp, '!', ExprValue('next')), [])
@@ -2508,7 +2508,6 @@ class ExprFor(_FieldsEq, Decl):
 
   def _fillscope(self):
     self.scope = scope.Scope(self)
-    self.scope.define(self.var_iter_tmp)
     self.scope.define(self.pattern)
     if self.body is not None:
       self.scope.define(self.body)
@@ -2520,7 +2519,21 @@ class ExprFor(_FieldsEq, Decl):
     return typing.qbuiltin('nlang.numbers.void')
 
   def itersubnodes(self, **kw):
-    return _itersubnodes([self.iter, self.pattern, self.reset_expr, self.next_expr, self.body], **kw)
+    return _itersubnodes([self.iter, self.var_iter_tmp, self.pattern,
+      self.reset_expr, self.next_expr, self.body], **kw)
+
+  def firstpass(self):
+    with scope.push(self.scope):
+      self.iter.firstpass()
+
+      if self.iter.typecheck().is_some_ref:
+        self.var_iter_tmp = VarDecl(self.iter_tmp, self.iter)
+      else:
+        self.var_iter_tmp = VarDecl(self.iter_tmp, ExprMutableRef(self.iter))
+      self.scope.define(self.var_iter_tmp)
+
+      for n in self.itersubnodes(filter_out=(lambda n: n is self.iter)):
+        n.firstpass()
 
   def is_meta_type(self):
     return False
