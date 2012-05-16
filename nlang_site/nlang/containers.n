@@ -17,6 +17,7 @@ intf forward_iterator t =
   method get = @t
   method has_next = bool
   method! next = bool
+  -- FIXME: Should not have reset, but bootstrap cannot handle that yet.
   method! reset = void
 
 intf random_container t = (forward_container t)

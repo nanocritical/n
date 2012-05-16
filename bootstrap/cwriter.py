@@ -305,6 +305,19 @@ def wunion(self, out):
     _p(out, 'typedef const ', self.type, '* nlangcp__', self.type, ';\n\n')
 Union.cwrite = wunion
 
+def _wvararg_start(self, out):
+  v = self.args[-1]
+  super(VarargDecl, v).cwrite(out)
+  _p(out, ';\n')
+  _p(out, indent(), 'memset(&', v.name, ', 0, sizeof(', v.name, '));\n')
+  _p(out, indent(), 'va_start(', ExprField(ExprValue(v.name), '.', '_ap'),
+      ', __vararg_count__);\n')
+  _p(out, indent(), v.name, '._left = __vararg_count__;\n')
+
+def _wvararg_end(self, out):
+  v = self.args[-1]
+  _p(out, indent(), 'va_end(', ExprField(ExprValue(v.name), '.', '_ap'), ');\n')
+
 def wfunctiondecl(self, out):
   if self.unboundgeneric():
     return
@@ -353,6 +366,12 @@ def wfunctiondecl(self, out):
         _p(out, ', ')
     if self.body is None:
       _p(out, ');\n')
+    elif self.has_vararg:
+      _p(out, ') {\n', indent())
+      _wvararg_start(self, out)
+      _p(out, self.body)
+      _wvararg_end(self, out)
+      _p(out, '}\n\n')
     else:
       _p(out, ') ', self.body, '\n\n')
 
@@ -400,6 +419,10 @@ def wvardecl(self, out):
     if self.expr is not None:
       _p(out, ' = ', self.expr)
 VarDecl.cwrite = wvardecl
+
+def wvarargdecl(self, out):
+  _p(out, typing.qbuiltin('nlang.numbers.u32'), ' __vararg_count__', ', ...')
+VarargDecl.cwrite = wvarargdecl
 
 def wpattern(self, out):
   global g_cwrite_types
@@ -602,6 +625,11 @@ def wexprcall(self, out):
     assert len(self.args) == 2
     _p(out, 'sizeof(', self.args[1].typecheck(),')')
     return
+  elif str(fun.scope) == '<root>.nlang.varargmod.vararg.next':
+    assert len(self.args) == 1
+    r = self.xself.typecheck().args[0].args[0]
+    _p(out, 'NLANG_VARARGMOD_VARARG_NEXT(', self.xself, ', ', r, ')')
+    return
   elif str(fun.scope) == '<root>.nlang.unsafe.cast':
     with scope.push(fun.scope):
       rettype = fun.rettype.typecheck()
@@ -610,6 +638,8 @@ def wexprcall(self, out):
 
   if isinstance(fundef, ChoiceDecl):
     funexpr = ExprField(self.args[0], '.', ExprValue(fundef.mk.name))
+    # FIXME: we do not firstpass this rewritten call (different effective
+    # self.args[0]).
     fun = fundef.mk
   else:
     funexpr = fun.typecheck()
@@ -617,14 +647,9 @@ def wexprcall(self, out):
   if not isinstance(fun, FunctionDecl):
     return
 
-  first_arg_offset = 1
-
   _p(out, funexpr, '(')
   if isinstance(fun, MethodDecl):
     assert isinstance(self.args[0], ExprField)
-
-    if self.args[0].container.is_meta_type():
-      first_arg_offset = 2
     _p(out, self.xself)
 
   if len(fun.args) == 0:
@@ -634,11 +659,18 @@ def wexprcall(self, out):
   if isinstance(fun, MethodDecl):
     _p(out, ', ')
 
-  for i in xrange(len(fun.args)):
-    _p(out, self.args[i + first_arg_offset])
-
-    if i < len(fun.args) - 1:
+  for i in xrange(self.first_arg_offset, self.first_vararg_offset):
+    _p(out, self.args[i])
+    if i < self.first_vararg_offset - 1:
       _p(out, ', ')
+
+  if fun.has_vararg:
+    if self.first_vararg_offset > self.first_arg_offset:
+      _p(out, ',')
+    _p(out, len(self.args) - self.first_vararg_offset)
+
+    for i in xrange(self.first_vararg_offset, len(self.args)):
+      _p(out, ', ', self.args[i])
 
   _p(out, ')')
 ExprCall.cwrite = wexprcall

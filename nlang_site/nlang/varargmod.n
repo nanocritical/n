@@ -1,0 +1,55 @@
+from nlang.prelude import *
+from nlang.containers import *
+from nlang.vectormod import *
+from nlang.meta import *
+
+-- vararg is an iterator type, not a container.
+--
+-- It can only be used in the function that created it, as it is only a
+-- thin wrapper around C99's stdarg.h va_{start,arg,end,copy} family of
+-- macros.
+--
+-- va_start is called by the compiler as first statement in the function.
+-- As a result, the (vararg t) can only be iterated over a single time.
+-- There is no easy way for us to reset the va_list with a call to va_copy and
+-- va_start.
+-- For that, we would have to rewrite calls to (vararg r).reset in the compiler.
+-- We could add support for that at a later stage.
+--
+-- At this point, to iterate over the arguments several time, use append_to
+-- with an auxiliary vector.
+
+extern type __va_list =
+
+-- Not copyable even though it is "passed" by-value in the prototype of a vararg
+-- function. This is allowed by special case in the compiler.
+--
+(type t) vararg r:(any_ref t) = (forward_iterator r)
+  _ap:__va_list
+  _left:u32
+  _current:r
+  _reset_count:u32
+
+  method get = r
+    return self._current
+
+  method has_next = bool
+    return self._left > 0
+
+  -- Requires compiler support, using the macro NLANG_VARARGMOD_VARARG_NEXT().
+  extern method! next = bool
+
+  -- Not fool-proof, as you can iterate through once, then call reset,
+  -- then try to iterate. But at least it will catch some cases (e.g.
+  -- two 'for' loops).
+  method! reset = void
+    self!_reset_count += 1
+    if self._reset_count > 1
+      say @'Cannot iterate more than once in a vararg':string
+      abort
+
+    self!next
+
+  method! append_to v:@!(vector r) = void
+    for a in self
+      v!push a

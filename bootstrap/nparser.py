@@ -32,6 +32,7 @@ tokens = '''
   EOL SOB EOB COLON
   COMMA DOT BANG
   REFDOT REFBANG POSTDOT POSTBANG
+  DOTDOTDOT
   SLICEBRAKETS
   LINIT RINIT
   CTX_ASSERT CTX_SEMASSERT CTX_SEMCLAIM
@@ -109,7 +110,11 @@ def t_STRING(t):
 # Field access can only be DOT.
 
 def t_DOT(t):
-  r'\s?\.\s?'
+  r'\s?\.+\s?'
+  if '...' in t.value:
+    t.type = 'DOTDOTDOT'
+    t.value = '...'
+    return t
   before, after = t.value[0].isspace(), t.value[-1].isspace()
   if not before and after:
     t.type = 'POSTDOT'
@@ -321,11 +326,11 @@ def p_type_deref(p):
   p[0] = ast.ExprDeref(p[2], p[1])
 
 def p_type_slice(p):
-  '''type_postfix : SLICEBRAKETS type_postfix'''
+  '''type_postfix : SLICEBRAKETS type'''
   p[0] = ast.ExprTypeSlice(p[2])
 
 def p_type_slice_sized(p):
-  '''type_postfix : '[' expr_top ']' type_postfix'''
+  '''type_postfix : '[' expr_top ']' type'''
   p[0] = ast.ExprTypeSliceSized(p[4], p[2])
 
 def p_type_tuple_list(p):
@@ -353,16 +358,16 @@ def p_type_app_only(p):
   p[0] = ast.ExprCall(p[1], p[2])
 
 def p_type_ref_only(p):
-  '''type_ref : REFDOT type_postfix
-              | REFBANG type_postfix'''
+  '''type_ref : REFDOT type
+              | REFBANG type'''
   if p[1] == '@':
     p[0] = ast.ExprRef(p[2])
   else:
     p[0] = ast.ExprMutableRef(p[2])
 
 def p_type_ref_nullable(p):
-  '''type_ref : '?' REFDOT type_postfix
-              | '?' REFBANG type_postfix'''
+  '''type_ref : '?' REFDOT type
+              | '?' REFBANG type'''
   if p[2] == '@':
     p[0] = ast.ExprNullableRef(p[3])
   else:
@@ -632,6 +637,10 @@ def p_isalist(p):
 def p_typedident(p):
   '''typedident : IDENT COLON type'''
   p[0] = ast.VarDecl(ast.ExprConstrained(ast.ExprValue(p[1]), p[3]))
+
+def p_vararg(p):
+  '''vararg : DOTDOTDOT IDENT COLON type'''
+  p[0] = ast.VarargDecl(ast.ExprConstrained(ast.ExprValue(p[2]), p[4]))
 
 def p_pattern(p):
   '''pattern : LET expr_top'''
@@ -934,6 +943,18 @@ def p_funargs(p):
     p[0] = p[1]
   else:
     p[0] = p[1] + p[2]
+
+def p_funargs_vararg(p):
+  '''funargs : vararg
+             | funargs_positional vararg
+             | funargs_positional funargs_optional vararg
+             | funargs_optional vararg'''
+  if len(p) == 2:
+    p[0] = [p[1]]
+  elif len(p) == 3:
+    p[0] = p[1] + [p[2]]
+  else:
+    p[0] = p[1] + p[2] + [p[3]]
 
 def p_funretvals(p):
   '''funretvals : typedident

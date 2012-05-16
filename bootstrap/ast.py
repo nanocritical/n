@@ -1128,7 +1128,17 @@ class FunctionDecl(TypeDef, Decl, CGlobalName):
       self.rettype = ExprTuple(*self.returns)
     else:
       self.rettype = self.returns[0]
+    self.has_vararg = self._find_vararg()
     self._fillscope()
+
+  def _find_vararg(self):
+    for a in self.args[:-1]:
+      if isinstance(a, VarargDecl):
+        raise errors.ParseError(
+            "In function '%s' vararg '%s' can only be defined in last position, at %s" \
+            % (self, a, self.codeloc))
+
+    return len(self.args) > 0 and isinstance(self.args[-1], VarargDecl)
 
   def _fillscope(self):
     self.scope = scope.Scope(self)
@@ -1169,9 +1179,16 @@ class FunctionDecl(TypeDef, Decl, CGlobalName):
   def positional_arity(self):
     cnt = 0
     for a in self.args:
-      if a.optionalarg:
+      if a.optionalarg or isinstance(a, VarargDecl):
         break
       cnt += 1
+    return cnt
+
+  def optional_arity(self):
+    cnt = 0
+    for a in self.args:
+      if a.optionalarg:
+        cnt += 1
     return cnt
 
   def position_of_optional(self, name, call):
@@ -1252,6 +1269,10 @@ class VarDecl(_FieldsEq, Decl):
 
   def single(self):
     return isinstance(self.name, ExprValue)
+
+class VarargDecl(VarDecl):
+  def __init__(self, name):
+    super(VarargDecl, self).__init__(name)
 
 class PatternDecl(_FieldsEq, Decl):
   def __init__(self, pattern, expr=None):
@@ -1953,10 +1974,17 @@ class GenericInstance(_FieldsEq):
             arg.typedestruct(genenv, termtype)
 
       else:
-        for arg, term in zip(d.args, self.call.args[1:]):
+        for arg, term in zip(d.args, self.call.args[self.call.first_arg_offset:self.call.first_vararg_offset + 1]):
           termtype = term.typecheck()
           with scope.push(d.scope):
             arg.type.typedestruct(genenv, termtype)
+
+        if d.has_vararg and self.first_vararg_offset + 1 < len(self.args):
+          # Only typedestruct on the first one: consistency is the job of
+          # Exprcall.typecheck().
+          term = self.args[self.first_vararg_offset + 1]
+          termtype = term.typecheck()
+          d.args[-1].type.typedestruct(genenv, termtype)
 
     else:
       for genarg, appliedarg in zip(d.type.args, self.call.args[1:]):
@@ -1990,6 +2018,8 @@ class ExprCall(_IsGenericInstance, Expr):
     super(ExprCall, self).__init__()
     self.args = [fun] + args
     self.args_are_reordered = False
+    self.first_arg_offset = 1
+    self.first_vararg_offset = len(self.args)
     self.xself = None
 
     # This call may or may not be instantiating a generic.
@@ -2013,36 +2043,51 @@ class ExprCall(_IsGenericInstance, Expr):
     if self.is_meta_type():
       return
 
-    first_arg_offset = 1
     if isinstance(d, MethodDecl) and self.args[0].container.is_meta_type():
       # Called in this form (type.method self a b).
-      first_arg_offset = 2
-    effective_args_count = len(self.args) - first_arg_offset
+      self.first_arg_offset = 2
+    effective_args_count = len(self.args) - self.first_arg_offset
 
     if effective_args_count < d.positional_arity():
       raise errors.ParseError(
           "Function '%s' has %d positional arguments, only %d given, at %s" \
               % (d, d.positional_arity(), effective_args_count, self.codeloc))
 
-    if effective_args_count > len(d.args):
+    if not d.has_vararg and effective_args_count > len(d.args):
       raise errors.ParseError(
           "Function '%s' has %d arguments, but %d given, at %s" \
               % (d, len(d.args), effective_args_count, self.codeloc))
 
     args = [ExprNull() for _ in range(len(d.args))]
-    for i in xrange(first_arg_offset, first_arg_offset + d.positional_arity()):
-      args[i - first_arg_offset] = self.args[i]
+    for i in xrange(self.first_arg_offset, self.first_arg_offset + d.positional_arity()):
+      args[i - self.first_arg_offset] = self.args[i]
 
-    for i in xrange(first_arg_offset + d.positional_arity(), len(self.args)):
+    named = set()
+    for i in xrange(self.first_arg_offset + d.positional_arity(), len(self.args)):
       a = self.args[i]
       if not isinstance(a, ExprNamedArgument):
-        raise errors.ParseError(
-            "Function '%s' expects a named argument in position %d, not '%s', at %s" \
-                % (d, i, a, self.codeloc))
+        break
+
+      if a.name in named:
+        raise errors.ParseErrr(
+            "Repeated named argument '%s' in call to '%s', at %s" \
+                % (a.name, d, self.codeloc))
       pos = d.position_of_optional(a.name, self)
+      named.add(a.name)
       args[pos] = a.expr
 
-    self.args = self.args[0:first_arg_offset] + args
+    # This is the offset in the *reordered* array (with null for missing
+    # optional args).
+    self.first_vararg_offset = \
+        self.first_arg_offset + d.positional_arity() + d.optional_arity()
+
+    if d.has_vararg and self.first_vararg_offset < len(self.args):
+      ommitted_named = d.optional_arity() - len(named)
+      args.pop()  # Remove the vararg "dummy" argument.
+      for i in xrange(self.first_vararg_offset - ommitted_named, len(self.args)):
+        args.append(self.args[i])
+
+    self.args = self.args[0:self.first_arg_offset] + args
 
   def firstpass(self, instantiate_only=False):
     for n in self.itersubnodes():
@@ -2122,8 +2167,13 @@ class ExprCall(_IsGenericInstance, Expr):
         argtypes = [a.typecheck() for a in d.args]
         rettype = d.rettype.typecheck()
 
-      for a,b in zip(argtypes, self.args[1:]):
+      for a,b in zip(argtypes, self.args[self.first_arg_offset:self.first_vararg_offset]):
         typing.checkcompat(a, b.typecheck())
+
+      if d.has_vararg:
+        vararg_t = argtypes[-1].args[0]
+        for b in self.args[self.first_vararg_offset:]:
+          typing.checkcompat(vararg_t, b.typecheck())
 
       return rettype
 

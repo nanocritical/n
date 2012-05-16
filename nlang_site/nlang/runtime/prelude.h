@@ -20,6 +20,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
+#include <stdarg.h>
 
 #define NLANG_RUNTIME_ERROR() abort()
 
