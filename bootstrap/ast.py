@@ -2287,6 +2287,8 @@ class ExprField(Expr):
   def __init__(self, container, access, field):
     super(ExprField, self).__init__()
     self.container = container
+    if access == '#':
+      access = '!'
     self.access = access
     self.field = field
     self.unary_call = None

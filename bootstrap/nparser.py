@@ -31,7 +31,7 @@ tokens = '''
   ARROW
   EOL SOB EOB COLON
   COMMA DOT BANG
-  REFDOT REFBANG POSTDOT POSTBANG
+  REFDOT REFBANG POSTDOT POSTBANG REFSHARP SHARP
   DOTDOTDOT
   SLICEBRAKETS
   LINIT RINIT
@@ -73,6 +73,8 @@ t_COMMA = r','
 t_COLON = r':'
 t_REFDOT = r'@'
 t_REFBANG = r'@\!'
+t_REFSHARP = r'@\#'
+t_SHARP = r'\#'
 t_SLICEBRAKETS = r'\[\]'
 t_LINIT = r'{{'
 t_RINIT = r'}}'
@@ -315,7 +317,8 @@ def p_type_postfix(p):
 
 def p_type_field(p):
   '''type_postfix : type_postfix DOT type_postfix
-                  | type_postfix BANG type_postfix'''
+                  | type_postfix BANG type_postfix
+                  | type_postfix SHARP type_postfix'''
   p[0] = ast.ExprField(p[1], p[2], p[3])
 
 def p_type_deref(p):
@@ -359,7 +362,8 @@ def p_type_app_only(p):
 
 def p_type_ref_only(p):
   '''type_ref : REFDOT type
-              | REFBANG type'''
+              | REFBANG type
+              | REFSHARP type'''
   if p[1] == '@':
     p[0] = ast.ExprRef(p[2])
   else:
@@ -367,7 +371,8 @@ def p_type_ref_only(p):
 
 def p_type_ref_nullable(p):
   '''type_ref : '?' REFDOT type
-              | '?' REFBANG type'''
+              | '?' REFBANG type
+              | '?' REFSHARP type'''
   if p[2] == '@':
     p[0] = ast.ExprNullableRef(p[3])
   else:
@@ -434,7 +439,8 @@ def p_expr_constrained(p):
 
 def p_expr_ref(p):
   '''expr : REFDOT expr_postfix
-          | REFBANG expr_postfix'''
+          | REFBANG expr_postfix
+          | REFSHARP expr_postfix'''
   if p[1] == '@':
     p[0] = ast.ExprRef(p[2])
   else:
@@ -442,7 +448,8 @@ def p_expr_ref(p):
 
 def p_expr_ref_nullable(p):
   '''expr : '?' REFDOT expr_postfix
-          | '?' REFBANG expr_postfix'''
+          | '?' REFBANG expr_postfix
+          | '?' REFSHARP expr_postfix'''
   if p[2] == '@':
     p[0] = ast.ExprNullableRef(p[3])
   else:
@@ -1004,6 +1011,13 @@ def p_fundecl(p):
   else:
     p[0] = ast.FunctionDecl(p[5], p[3], p[6], p[8], p[9])
 
+def p_methodaccess(p):
+  '''methodaccess : POSTBANG
+                  | SHARP'''
+  p[1].type = 'POSTBANG'
+  p[1].value = '!'
+  p[0] = p[1]
+
 def p_methoddecl_forward(p):
   '''methoddecl : methoddeclkw IDENT ASSIGN funretvals
                 | methoddeclkw IDENT funargs ASSIGN funretvals
@@ -1033,10 +1047,10 @@ def p_methoddecl(p):
     p[0] = ast.MethodDecl(p[5], p[3], '.', p[6], p[8], p[9])
 
 def p_methoddecl_mutating_forward(p):
-  '''methoddecl : methoddeclkw POSTBANG IDENT ASSIGN funretvals
-                | methoddeclkw POSTBANG IDENT funargs ASSIGN funretvals
-                | '(' methoddeclkw POSTBANG typedeclname_list ')' IDENT ASSIGN funretvals
-                | '(' methoddeclkw POSTBANG typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
+  '''methoddecl : methoddeclkw methodaccess IDENT ASSIGN funretvals
+                | methoddeclkw methodaccess IDENT funargs ASSIGN funretvals
+                | '(' methoddeclkw methodaccess typedeclname_list ')' IDENT ASSIGN funretvals
+                | '(' methoddeclkw methodaccess typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
   if len(p) == 6:
     p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], None)
   elif len(p) == 7:
@@ -1047,10 +1061,10 @@ def p_methoddecl_mutating_forward(p):
     p[0] = ast.MethodDecl(p[6], p[4], '!', p[7], p[9], None)
 
 def p_methoddecl_mutating(p):
-  '''methoddecl : methoddeclkw POSTBANG IDENT ASSIGN funretvals statements_block
-                | methoddeclkw POSTBANG IDENT funargs ASSIGN funretvals statements_block
-                | '(' methoddeclkw POSTBANG typedeclname_list ')' IDENT ASSIGN funretvals statements_block
-                | '(' methoddeclkw POSTBANG typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
+  '''methoddecl : methoddeclkw methodaccess IDENT ASSIGN funretvals statements_block
+                | methoddeclkw methodaccess IDENT funargs ASSIGN funretvals statements_block
+                | '(' methoddeclkw methodaccess typedeclname_list ')' IDENT ASSIGN funretvals statements_block
+                | '(' methoddeclkw methodaccess typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
   if len(p) == 7:
     p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], p[6])
   elif len(p) == 8:
