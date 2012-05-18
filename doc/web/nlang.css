@@ -1,41 +1,73 @@
 * { margin: 0; padding: 0; }
 body { font-size: 90%; }
-
-body { background-color: #4d4844; }
-body { color: #eee; }
-
-body { font-family: georgia; }
-body { max-width: 110ex; }
+body { background-image: url('bg_pattern_grid_dark.png'); }
+body.rv { background-image: url('bg_pattern_grid_grey.png'); }
+body { font-family: 'georgia'; }
+body { max-width: 100ex; }
 body { margin-left: auto; margin-right: auto; }
-body { margin-bottom: 2ex; }
 
-body.rv { background-color: #fff; }
-body.rv { color: #111; }
+#content { background-color: #4d4844; }
+#content { color: #e7e7e7; }
+
+#content { margin-top: 1em; }
+#content { margin-bottom: 1em; }
+#content { padding-top: 1em; }
+#content { padding-bottom: 1em; }
+#content { border: 1px solid #444; }
+.rv #content { border: 1px solid #ddd; }
+#content { border-radius: 12px; }
+.rv #content { background-color: #fff; }
+.rv #content { color: #111; }
+#content { max-width: 105ex; }
 
 b { color: #fff; }
-.rv b { color: #000; }
+.rv b { color: #666; }
 
-h1 { margin: 0 1ex; }
+h1 { margin: .5ex 0; }
+h1 { color: #fff; }
+.rv h1 { color: #000; }
 h1 { text-align: center; }
 .subtitle { font-style: italic; }
+.subtitle { margin-top: 0; }
+.subtitle { padding-top: 0; }
 .subtitle { padding-bottom: 2ex; }
-h2 { margin: 0 1ex; }
+.subtitle { text-align: center; }
+.subtitle { max-width: 70ex; }
+
+h2 { margin: 0; }
+h2 { padding: 0ex 3ex; }
+h2 { color: #fff; }
+.rv h2 { color: #666; }
 h3 { margin: 0 1ex; }
+h2 { padding: 0ex 3ex; }
+h3 { color: #fff; }
+.rv h3 { color: #666; }
 h4 { margin: 0 1ex; }
 h5 { margin: 0 1ex; }
 h6 { margin: 0 1ex; }
 
-p { max-width: 90ex; }
+p { max-width: 85ex; }
 p { margin: 2ex auto; }
+p { text-align: justify; }
+p {
+  hyphens:auto;
+  -webkit-hyphens:auto;
+  -moz-hyphens:auto;
+}
 
 ul { margin: 0 1ex; }
 
 pre { white-space: pre-wrap; }
 pre { padding: 1ex 2ex; }
-.code, code { background-color: #272727; }
-.rv .code, .rv code { background-color: #e0e0e0; }
+code { color: #fff; }
+.rv code { color: #000; }
+code { font-weight: bold; }
+.code { background-color: #333; }
+.rv .code { background-color: #e5e5e5; }
 .samp, samp { background-color: #454; }
 .rv .samp, .rv samp { background-color: #ded; }
 
-pre { max-width: 90ex; }
+pre { max-width: 85ex; }
 pre { margin: auto; }
+pre { border: 1px solid #444; }
+.rv pre { border: 1px solid #ccc; }

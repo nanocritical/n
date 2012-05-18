@@ -6,16 +6,15 @@
 
   <body class='rv'>
     <h1>The N programming language</h1>
+    <div id='content'>
 
-    <center>
-      <p><span class='subtitle'>A modern system language with the performance of C, strong typing, memory safety (no garbage collector), and semantic annotations.</span></p>
-    </center>
+      <p class='subtitle'>A modern systems language with the performance of C, strong typing, memory safety (no garbage collector), and semantic annotations.</p>
 
     <pre class='code nlang'>
 from nlang import *
 
 fun main = i32
-  say 'Hello, World!'</pre>
+  say @'Hello, World!'</pre>
 
     <p><b>The performance of C.</b>
     N aims to deliver the exact same time and memory performance as C in a safe manner. N code translates to simple C code with a well-understood and straightforward performance profile. In general, there is no reason for your N code to be any slower than the equivalent C code.
@@ -135,5 +134,5 @@ ssize posix_write(i32 fd, const u8 *x, size count) {
   return write(fd, x, count);
 }</pre>
 
-  </body>
+  </div></body>
 </html>
