@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+cd $(dirname $0)
+
+for all in $(find -name \*.ndoc); do
+  ../../ndoc/ndoc --html5 $all $(dirname $all)/$(basename $all .ndoc).html
+done
