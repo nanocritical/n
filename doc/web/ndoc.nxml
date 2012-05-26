@@ -5,6 +5,79 @@
   <body class='rv'
     <h1|The N programming language
     <div id='content'
-      <h2|Ndoc: Out of band documentation
+      <h2|ndoc: Out-of-band documentation
 
-      <p|
+      <p
+        Doxygen and Javadoc have popularized the idea of structured
+        documentation, written in parallel to the code, and even right
+        next to the code it documents, in special comment blocks. Thanks to its
+        structure, the documentation can be processed automatically and linked
+        to the declarations and definitions in the code.
+
+      <p
+        For N, we wanted a slightly different approach. We have always found
+        that extensive API documentation ended taking over the implementation
+        file (or the header file), hiding the actual code under a large amount
+        of comments. In addition, these comments, usually intended for the
+        end-users of the API, are often somewhat irrelevant to implementers, or
+        to the developer savvy enough to actually look at the source. By that
+        point she probably is familiar enough with the API that the doxygen-like
+        documentation just gets in the way.
+
+      <p
+        For N, we chose to have the API documentation in a separate file. The
+        documentation is, however, still structured identically to the code, and
+        can be processed automatically, just like with Doxygen or Javadoc.
+
+      <p
+        The documentation for <samp|cards.n> is in <samp|cards.ndoc>. For
+        instance:
+
+      <<<pre class='code nlang' path='cards.n'
+        type card_rank =
+          | NUMBER u32
+          | JACK
+          | QUEEN
+          | KING>>>
+
+      <p
+        Is documented with:
+
+      <<<pre class='code nxml' path='cards.ndoc'
+        <type card
+          <choice NUMBER
+            <arg|The number identifying the card.
+          <choice JACK
+            The court card Jack.
+          <choice QUEEN
+            The court card Queen.
+          <choice KING
+            The court card King.
+
+          <p
+            The Ace is represented by <c|NUMBER 0>.>>>
+
+      <p
+        Ndoc uses a shorthand XML syntax called <a href='nxml.html'|nxml>. The above
+        corresponds to the following XML (that would be very painful to write):
+
+      <<<pre class='code xml'
+        <type card=''>
+          <choice NUMBER=''>
+            <arg>The number identifying the card.
+            </arg>
+          </choice>
+          <choice JACK=''>
+            The court card Jack.
+          </choice>
+          <choice QUEEN=''>
+            The court card Queen.
+          </choice>
+          <choice KING=''>
+            The court card King.
+          </choice>
+
+          <p>
+            The Ace is represented by <c|NUMBER 0>.
+          </p>
+        </type> >>>
