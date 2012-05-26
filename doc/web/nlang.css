@@ -20,6 +20,15 @@ body { margin-left: auto; margin-right: auto; }
 .rv #content { color: #111; }
 #content { max-width: 105ex; }
 
+a:link { color: #aaf; text-decoration: none; }
+a:visited { color: #aab; text-decoration: none; }
+a:active { color: #caa; text-decoration: none; }
+a:hover { color: #aaf; text-decoration: underline; }
+.rv a:link { color: #55f; text-decoration: none; }
+.rv a:visited { color: #55c; text-decoration: none; }
+.rv a:active { color: #a55; text-decoration: none; }
+.rv a:hover { color: #55f; text-decoration: underline; }
+
 b { color: #fff; }
 .rv b { color: #666; }
 
