@@ -1,0 +1,18 @@
+from nlang import *
+
+-- A weak container places no global state requirement on the implementation.
+-- There is no need to maintain 'len' information or to implement a clear
+-- operation. For instance, a container shared between several threads would
+-- likely have to use locking to maintain len or to implement clear. Another
+-- example where a weak_container is easier to implement is a large structure
+-- backed by slow or distributed storage.
+--
+type weak_container t =
+
+  let locus:typealias = any
+
+  method at p:this.locus = @t
+  method! hg_at p:this.locus = @#t
+
+  method begin = this.locus
+  method end = this.locus

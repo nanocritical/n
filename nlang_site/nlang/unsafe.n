@@ -1,4 +1,4 @@
-import nlang.meta
+from nlang.meta import *
 import nlang.literal
 
 declare nlang.numbers =
@@ -19,3 +19,6 @@ fun memcpy dst:@!nlang.numbers.u8 src:@nlang.numbers.u8 el_size:nlang.numbers.si
 
 (fun t) mutable_cast x:@t = @!t
   return (cast @!t @t) x
+
+(fun t) hg_cast x:@t = @#t
+  return (cast @#t @t) x

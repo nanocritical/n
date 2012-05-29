@@ -1,4 +1,4 @@
-import nlang.meta
+from nlang.meta import *
 import nlang.literal
 import nlang.unsafe
 from nlang.numbers import *
@@ -16,14 +16,17 @@ intf any =
 intf trivial_ctor =
 intf trivial_dtor =
 
-intf copyable_but_owned =
+intf copyable =
   method! operator_copy__ other:@this = nlang.numbers.void
 
-intf copyable =
+intf copyable_but_owned = copyable
   method! operator_copy__ other:@this = nlang.numbers.void
 
 intf trivial_owned_copy = copyable_but_owned
 intf trivial_copy = copyable
+intf return_by_copy = trivial_copy
+
+intf plain_old_data = trivial_ctor trivial_dtor trivial_copy
 
 intf moveable =
   method! operator_move__ other:@!this = nlang.numbers.void
@@ -39,3 +42,18 @@ intf moveable =
     return (nlang.unsafe.nonnull_cast ptr)
   else
     return otherwise
+
+
+type maybe t err =
+  _error:err
+  _value:t
+
+  method valid = bool
+    return not self._error
+
+  method get = t
+    #! eval self.valid
+    return self._value
+
+  method error = err
+    return self._error

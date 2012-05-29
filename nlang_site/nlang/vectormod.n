@@ -4,22 +4,17 @@ from nlang.slicemod import *
 import nlang.heap
 import c99
 
-type vector t = (random_container t)
-  let position:nlang.meta.alias = size
-
+type vector t:copyable = (random_container t)
   _p:[]t
   _len:size
 
-  method! ctor = void
-    return
-
-  method! init len:size ?with:?@t = void
+  method# init len:size ?with:?@t = void
     if with != null
       self!resize_with len (nlang.unsafe.nonnull_cast with).
     else
       self!resize len
 
-  method len = size
+  method random_container.len = size
     return self._len
 
   method capacity = size
@@ -31,19 +26,19 @@ type vector t = (random_container t)
   method! mutable_storage_slice = @![]t
     return @!self._p
 
-  method first = t
+  method random_container.first = t
     #? self.len > 0
     return self.[0]
 
-  method last = t
+  method random_container.last = t
     #? self.len > 0
     return self.[self.len - 1]
 
-  method! reserve capacity:size = void
+  method# reserve capacity:size = void
     if capacity > self.capacity
       nlang.heap.the!slice_resize @!self!_p capacity
 
-  method! resize new_size:size = void
+  method# resize new_size:size = void
     if new_size > self.capacity
       let old_len = self.len
       nlang.heap.the!slice_resize @!self!_p (max new_size 2*self.capacity)
@@ -51,63 +46,62 @@ type vector t = (random_container t)
       nlang.heap.the!slice_resize @!self!_p (max new_size self.capacity/2)
     self!_len = new_size
 
-  method! resize_with new_size:size x:t = void
+  method# resize_with new_size:size x:t = void
     let old_size = self.len
     self!resize new_size
-    pfor n:size in (self.range_index old_size new_size).iter
+    pfor n in (self.all.sub old_size new_size).iter
       self![n] = x
 
-  method! clear = void
+  method# random_container.clear = void
     nlang.heap.the!slice_free @!self!_p
     self!_len = 0
 
-  method valid_index x:size = bool
+  method random_container.valid_locus x:size = bool
     return x <= self.len
 
-  method check_index x:size = void
-    if not self.valid_index x
+  method random_container.check_locus x:size = void
+    if not self.valid_locus x
       c99.abort
 
-  method valid_range r:@index_range = bool
+  method random_container.valid_range r:@index_range = bool
     return r.end <= self.len
 
-  method check_range r:@index_range = void
+  method random_container.check_range r:@index_range = void
     if not self.valid_range r
       c99.abort
 
-  method operator_get__ n:size = t
+  method random_container.operator_get__ n:size = t
     return self._p.[n]
 
-  method! operator_set__ n:size x:t = void
+  method! random_container.operator_set__ n:size x:t = void
     self._p![n] = x
 
-  method get_ref n:size = @t
-    return self._p.get_ref n
+  method random_container.at n:size = @t
+    return self._p.at n
 
-  method all_index = index_range
+  method! random_container.hg_at n:size = @#t
+    return self._p.hg_at n
+
+  method random_container.all = index_range
     return range 0 self.len
 
-  method range_index beg:size end:size ?by:?@size = index_range
-    let r = range beg end by=by
-    self.check_range @r
-    return r
-
-  method all = (random_element_range this)
-    return (random_element_range this).mk self
-
-  method! push x:t = void
+  method# push x:t = void
     let old_size = self.len
     self!resize self.len+1
     self![old_size] = x
 
-  method! pop = t
+  method# pop = t
     #? self.len > 0
     let new_size = self.len - 1
     let tmp = self.[new_size]
     self!resize new_size
     return tmp
 
-  (method! c:(random_container t)) extend r:@(random_element_range c) = void
-    self!reserve self.len+r.len
-    for e in r.iter
-      self!push e.
+  (method# u c:(random_container u)) extend v:@c ?range:?@index_range = void
+    let r = (optional range v.all)
+    let first = self.len
+    self!resize first+r.len
+    let to = (self.all.sub first self.len).iter
+    let fr = r.iter
+    for i, j in zip @#to @#fr
+      self![i] = v.[j]

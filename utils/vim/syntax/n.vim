@@ -2,12 +2,12 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword nDecl type fun method union intf dynintf import inherit
-syn match nDecl "^\s*from"
+syn keyword nDecl type fun method union intf dynintf import inherit from
 
-syn keyword nKeyword let if elif else for while continue break extern
-syn keyword nKeyword match except return block future pfor
-syn keyword nKeyword in and or not neg isa
+syn keyword nKeyword let if elif else while continue break extern
+syn keyword nKeyword for pfor foreach pforeach
+syn keyword nKeyword match except return block future
+syn keyword nKeyword in and or not neg isa typealias
 syn keyword nKeyword sizeof pass as attr declare except try catch throw
 syn match nKeyword "[@:]"
 

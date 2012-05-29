@@ -21,36 +21,39 @@ from nlang.meta import *
 
 extern type __va_list =
 
-extern fun __error_reset = void
+(type t) vararg_iterator r:(any_ref t) = (iterator r)
+  _v:@!(vararg r)
+
+  method iterator.get = @#r
+    return @#self._v!_current
+
+  method iterator.has_next = bool
+    return self._v._left > 0
+
+  -- Requires compiler support, using the macro NLANG_VARARGMOD_VARARG_ITERATOR_NEXT().
+  extern method! iterator.next = bool
 
 -- Not copyable even though it is "passed" by-value in the prototype of a vararg
 -- function. This is allowed by special case in the compiler.
 --
-(type t) vararg r:(any_ref t) = (forward_iterator r)
+(type t) vararg r:(any_ref t) = (iterable r)
   _ap:__va_list
   _left:u32
   _current:r
   _reset_count:u32
 
-  method get = r
-    return self._current
+  let locus:typealias = r
+  let iterator:typealias = vararg_iterator r
 
-  method has_next = bool
-    return self._left > 0
+  method iterable.at p:@r = @r
+    return p
 
-  -- Requires compiler support, using the macro NLANG_VARARGMOD_VARARG_NEXT().
-  extern method! next = bool
+  method! iterable.hg_at p:@#r = @#r
+    return p
 
-  -- Not fool-proof, as you can iterate through once, then call reset,
-  -- then try to iterate. But at least it will catch some cases (e.g.
-  -- two 'for' loops).
-  method! reset = void
-    self!_reset_count += 1
-    if self._reset_count > 1
-      __error_reset
-
-    self!next
+  method iterable.iter = this.iterator
+    return this.iterator{{ _v=(nlang.unsafe.mutable_cast self) }}
 
   method! append_to v:@!(vector r) = void
-    for a in self
-      v!push a
+    for a in self.iter
+      v!push (self.at a).

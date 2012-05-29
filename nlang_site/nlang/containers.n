@@ -1,329 +1,257 @@
 from nlang.prelude import *
+import c99
 
 intf locus = comparable copyable_but_owned
+intf fwd_locus = locus partially_ordered
+intf bidir_locus = fwd_locus ordered
 
-intf forward_locus = locus
-  method has_next = bool
-  method# next = bool
-
-intf bidir_locus = forward_locus
-  method# prev = void
-
--- A weak container places no global state requirement on the implementation.
--- There is no need to maintain 'len' information or to implement a clear
--- operation. For instance, a container shared between several threads would
--- likely have to use locking to maintain len or to implement clear. Another
--- example where a weak_container is easier to implement is a large structure
--- backed by slow or distributed storage.
---
-intf weak_container t =
-  let locus:nlang.meta.alias
-
-  method get_ref p:this.locus = @t
-  method! get_hgref p:this.locus = @#t
-
-  method begin = this.locus
-  method end = this.locus
-
-intf container t = (weak_container t)
-  method len = size
-  method# clear = void
-
-
-intf consumer t = (weak_container t)
-  method# push x:t = void
-
-intf producer t = (weak_container t)
-  method# pop = t
-
-intf inout_container t = (consumer t) (producer t)
-
-intf forward_container t = (container t)
-
-intf random_container t = (forward_container t)
-  method operator_get__ p:size = t
-  method operator_set__ p:size x:t = void
-
-type locus_range loc = (weak_container loc)
-  let locus:nlang.meta.alias = loc
-
-  method get_ref 
-
--- ?? intf forward_range locus =
-(intf t) forward_range c:(forward_container t) =
-  method begin = locus
-
-  method sub beg:size end:size = this
-    #? beg >= self.begin
-    #? end <= self.end
-    return this.mk beg end by=@self._by
-
-  method with_offset offset:size = this
-    return this.mk self.begin+offset self.end+offset by=@self._by
-
-  method iter = index_range_iterator
-    return index_range_iterator.mk self
-
-  method iter_zip_with_offset offset:size = index_range_iterator_with_offset
-
-intf forward_iterator t =
-  method get = @t
-  method has_next = bool
-  method! next = bool
-  -- FIXME: Should not have reset, but bootstrap cannot handle that yet.
-  method! reset = void
-
-intf random_container t = (forward_container t)
-  method all = (element_iterator this)
-    #~ retval.prevents self.struct_change
-
-  method operator_get__ n:size = t
-  method! operator_set__ n:size x:t = void
-  method get_ref n:size = @t
-  method len = size
-  method check_index n:size = bool
-    #~ eval retval self.valid_index n
-  method all_index = index_range
-  method range_index beg:size end:size ?by:?@size = index_range
-  #~ prop valid_index
-  #~ prop valid_range
-
-intf index_iterator = copyable
-  method all = index_range
-  method get = size
-  method has_next = bool
-  method! next = bool
-  method! reset = void
-
-intf index_pair_iterator = copyable
-  method all = index_range, index_range
-  method get = size, size
-  method has_next = bool
-  method! next = bool
-  method! reset = void
-
+let _locus:typealias = locus
 
 type index_range = trivial_copy
-  _beg _end _by:size
+  _begin _end:size
 
-  fun mk beg:size end:size ?by:?@size = this
-    let r = this{{}}
-      r!_beg = beg
-      r!_end = end
-      r!_by = optional by 1
-    return r
+  method! init beg:size end:size = void
+    self!_begin = beg
+    self!_end = end
 
   method begin = size
-    return self._beg
+    return self._begin
 
   method end = size
     return self._end
 
-  method by = size
-    return self._by
+  method len = size
+    return self.end - self.begin
 
   method sub beg:size end:size = this
-    #? beg >= self.begin
-    #? end <= self.end
-    return this.mk beg end by=@self._by
+    let r:this
+      if beg < self._begin or end > self._end
+        c99.abort
+      r!init beg end
+    return r
 
   method with_offset offset:size = this
-    return this.mk self.begin+offset self.end+offset by=@self._by
+    let r:this
+      r!init self.begin+offset self.end+offset
+    return r
 
-  method iter = index_range_iterator
-    return index_range_iterator.mk self
+  method iter = index_iterator
+    let r:index_iterator
+      r!init self.
+    return r
 
-  method iter_zip_with_offset offset:size = index_range_iterator_with_offset
-    return index_range_iterator_with_offset.mk self offset
+intf iterable t =
+  let locus:typealias
+  let iterator:typealias
 
+  method at p:this.locus = @t
+  method! hg_at p:this.locus = @#t
+  method iter = this.iterator
 
-type index_range_iterator = index_iterator
-  _r:index_range
-  _pos:size
+intf container t = (iterable t)
+  let locus:typealias
+  let iterator:typealias
 
-  fun mk r:@index_range = this
-    return this{{ _r=r. _pos=r.begin }}
+  method len = size
+  method# clear = void
+  method# remove p:this.locus = void
 
+intf consumer t:copyable =
+  method# push x:t = void
+
+intf producer t:copyable =
+  method empty = bool
+  method# pop = t
+
+intf consumer_producer t:copyable = (consumer t) (producer t)
+
+intf fwd_container t = (container t)
+  method first = this.locus
+
+intf bidir_container t = (fwd_container t)
+  method last = this.locus
+
+intf assoc_container k:copyable t = (container t)
+  method locus_of key:k = this.locus
+  method get key:k = ?@t
+  method! hg_get key:k = ?@#t
+
+  method all_keys = (iterator this.locus)
+  method get_key p:this.locus = ?@t
+
+intf map_key = copyable ordered
+intf map_container k:map_key t = (assoc_container k t) (fwd_container t)
+
+intf hashmap_key = copyable hashable
+intf hashmap_container k:hashmap_key t = (assoc_container t)
+
+intf random_container t = (bidir_container t) (map_container size t)
+  let locus:typealias = size
   method all = index_range
-    return self._r
+  method valid_index p:size = bool
+  method check_index p:size = void
+  method valid_range r:@index_range = bool
+  method check_range r:@index_range = void
+  method operator_get__ p:size = t
+  method operator_set__ p:size x:t = void
 
-  method get = size
+intf iterator locus:_locus =
+  method get = locus
+  method has_next = bool
+  method! next = bool
+
+intf fwd_iterator locus:fwd_locus = (iterator locus)
+intf bidir_iterator locus:bidir_locus = (fwd_iterator locus)
+  method has_prev = bool
+  method! prev = bool
+
+type index_iterator = (bidir_iterator size)
+  _pos:size
+  _r:index_range
+
+  method# init r:index_range = void
+    self#_r = r
+
+  method bidir_iterator.get = size
     return self._pos
 
-  method has_next = bool
-    return self._pos + self._r.by < self._r.end
+  method bidir_iterator.has_next = bool
+    return self._pos < self._r.end
 
-  method! next = bool
+  method! bidir_iterator.next = bool
     if not self.has_next
       return false
     else
-      self!_pos = self._pos + self._r.by
+      self._pos += 1
+      return true
+
+  method bidir_iterator.has_prev = bool
+    return self._pos > 0
+
+  method! bidir_iterator.prev = bool
+    if not self.has_prev
+      return false
+    else
+      self._pos -= 1
+      return true
+
+  method len = size
+    return self._r.len
+
+  method! incr n:size = bool
+    if self._pos + n >= self._r.end
+      return false
+    else
+      self._pos += n
+      return true
+
+  method! decr n:size = bool
+    if n > self._pos or self._pos - n < self._r.begin
+      return false
+    else
+      self._pos -= n
       return true
 
   method! reset = void
     self!_pos = self._r.begin
 
+(type loc1:locus loc2:locus) pair_iterator it1:(iterator loc1) it2:(iterator loc2) =
+  _a:@#it1
+  _b:@#it2
 
-type index_pair_range_iterator = index_pair_iterator
-  _a _b:index_range_iterator
+  method# init a:@#it1 b:@#it2 = void
+    self#_a = a
+    self#_b = b
 
-  fun mk ra:@index_range rb:@index_range = this
-    return this{{ _a=ra.iter _b=rb.iter }}
-
-  method all = index_range, index_range
-    return self._a.all, self._b.all
-
-  method get = size, size
+  method get = (loc1, loc2)
     return self._a.get, self._b.get
 
   method has_next = bool
     return self._a.has_next and self._b.has_next
 
   method! next = bool
-    if not self.has_next
-      return false
-    else
-      self._a!next
-      self._b!next
-      return true
+    return self._a!next and self._b!next
 
-  method! reset = void
-    self._a!reset
-    self._b!reset
+type index_pair_iterator it1:index_iterator it2:index_iterator =
+  _a:@!index_iterator
+  _b:@!index_iterator
 
+  method! init a:@!index_iterator b:@!index_iterator = void
+    self!_a = a
+    self!_b = b
 
-type index_range_iterator_with_offset = index_pair_iterator
-  _iter:index_range_iterator
-  _pos _offset:size
-
-  fun mk r:@index_range offset:size = this
-    return this{{ _iter=r.iter _pos=r.begin _offset=offset }}
-
-  method all = index_range, index_range
-    let r = self._iter.all
-    return r, r.with_offset self._offset
-
-  method get = size, size
-    return self._pos, self._pos + self._offset
-
-  method has_next = bool
-    return self._iter.has_next
-
-  method! next = bool
-    if not self.has_next
-      return false
-    else
-      self._iter!next
-      return true
-
-  method! reset = void
-    self._iter!reset
-
-
-(type t) random_element_range c:(random_container t) =
-  _v:@c
-  _range:index_range
-
-  fun mk v:@c = this
-    return this{{ _v=v _range=v.all_index }}
-
-  method container = @c
-    return self._v
-
-  method all_index = index_range
-    return self._range
-
-  method len = size
-    return self._v.len
-
-  method sub beg:size end:size = this
-    #? beg >= self._range.begin
-    #? end <= self._range.end
-    let subr = self._range.sub beg end
-    return this{{ _v=self._v _range=subr }}
-
-  method iter = (random_element_iterator c)
-    return (random_element_iterator c).mk self
-
-
-(intf t) element_iterator c:(random_container t) =
-  method all = (random_element_range c)
-  method has_next = bool
-  method! next = bool
-  method get = @t
-  method! reset = void
-
-
-(type t) random_element_iterator c:(random_container t) = (element_iterator c)
-  _er:@(random_element_range c)
-  _iter:index_range_iterator
-
-  fun mk r:@(random_element_range c) = this
-    return this{{ _er=r _iter=r.all_index.iter }}
-
-  method all = @(random_element_range c)
-    return self._er
-
-  method has_next = bool
-    return self._iter.has_next
-
-  method! next = bool
-    if not self.has_next
-      return false
-    else
-      self._iter!next
-      return true
-
-  method get = @t
-    let ctnr = self._er.container
-    return ctnr.get_ref self._iter.get
-
-  method! reset = void
-    self._iter!reset
-
-
-(intf t1 t2) element_pair_iterator c1:(random_container t1) c2:(random_container t2) =
-  method all = (random_element_range c1), (random_element_range c2)
-  method has_next = bool
-  method! next = void
-  method get = @t1, @t2
-  method! reset = void
-
-
-(type t1 t2) random_element_pair_iterator c1:(random_container t1) c2:(random_container t2) = (element_pair_iterator c1 c2)
-  _a:(random_element_iterator c1)
-  _b:(random_element_iterator c2)
-
-  fun mk r1:@(random_element_range c1) r2:@(random_element_range c2) = this
-    return this{{ _a=r1.iter _b=r2.iter }}
-
-  method all_index = @(random_element_range c1), @(random_element_range c2)
-    return self._a.all, self._b.all
+  method get = (loc1, loc2)
+    return self._a.get, self._b.get
 
   method has_next = bool
     return self._a.has_next and self._b.has_next
 
   method! next = bool
-    if not self.has_next
-      return false
-    else
-      self._a!next
-      self._b!next
-      return true
-
-  method get = @t1, @t2
-    return self._a.get, self._b.get
+    return self._a!next and self._b!next
 
   method! reset = void
     self._a!reset
     self._b!reset
 
+fun range beg:size end:size = index_range
+  let r:index_range
+    r!init beg end
+  return r
 
-fun range beg:size end:size ?by:?@size = index_range
-  return index_range.mk beg end by=by
+(fun loc1:locus loc2:locus it1:(iterator loc1) it2:(iterator loc2)) zip a:@#it1 b:@#it2 = (pair_iterator it1 it2)
+  let r:(pair_iterator it1 it2)
+    r#init a b
+  return r
 
-(fun t1 t2 c1:(random_container t1) c2:(random_container t2) rr1:(random_element_range c1) rr2:(random_element_range c2)) zip a:@rr1 b:@rr2 = (random_element_pair_iterator c1 c2)
-  return (random_element_pair_iterator c1 c2).mk a b
+-- The following are used by foreach et al.
 
-fun zip_index a:@index_range b:@index_range = index_pair_range_iterator
-  return index_pair_range_iterator.mk a b
+(type t:copyable) value_iterator_adapter c:(container t) = (iterator t)
+  _c:@c
+  _it:c.iterator
+
+  method# init v:@c = void
+    self!_c = v
+    self!_it = v.iter
+
+  method get = t
+    return (self._c.at self._it.get).
+
+  method has_next = bool
+    return self._it.has_next
+
+  method! next = bool
+    return self._it!next
+
+(type t:copyable) ref_iterator_adapter c:(container t) = (iterator @t)
+  _c:@c
+  _it:c.iterator
+
+  method# init v:@c = void
+    self!_c = v
+    self!_it = v.iter
+
+  method get = @t
+    return self._c.at self._it.get
+
+  method has_next = bool
+    return self._it.has_next
+
+  method! next = bool
+    return self._it!next
+
+(type t:copyable) hg_iterator_adapter c:(container t) = (iterator @#t)
+  _c:@!c
+  _it:c.iterator
+
+  method# init v:@!c = void
+    self!_c = v
+    self!_it = v.iter
+
+  method get = @#t
+    return self._c.hg_at self._it.get
+
+  method has_next = bool
+    return self._it.has_next
+
+  method! next = bool
+    return self._it!next

@@ -220,14 +220,13 @@ class Scope(object):
         what = cont.concrete_definition()
         break
 
-    if isinstance(node.field, basestring):
-      field = node.field
-    else:
-      field = node.field.name
+    field = node.field.name
 
     if isinstance(node.container, ast.ExprField) \
         and node.container.container is not None \
-        and what == node.container.container.concrete_definition():
+        and what == node.container.container.concrete_definition() \
+        and isinstance(what, ast.TypeDecl) \
+        and (what.kind == ast.TypeDecl.ENUM or what.kind == ast.TypeDecl.TAGGEDUNION):
       # Hack to handle the EnumType.FIELD.value case:
       # EnumType.FIELD and EnumType.FIELD.value have the same type and
       # concrete_definition, so we need to special case it here.

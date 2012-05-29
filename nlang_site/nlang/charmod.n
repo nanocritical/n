@@ -2,7 +2,7 @@ from nlang.prelude import *
 from nlang.slicemod import *
 import nlang.heap
 
-type char = hashable trivial_copy
+type char = return_by_copy hashable
   _word:u32
 
   method utf8_byte_count = size

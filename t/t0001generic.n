@@ -1,0 +1,13 @@
+from nlang.prelude import *
+import nlang.unsafe
+
+type bar t:partially_ordered =
+  method foo x:@t = t
+    if t.operator_lt__ @0:t x
+      return 1
+    else
+      return 0
+
+fun main = i32
+  let b:(bar i32)
+  return b.foo @0:i32

@@ -310,13 +310,13 @@ def _wvararg_start(self, out):
   super(VarargDecl, v).cwrite(out)
   _p(out, ';\n')
   _p(out, indent(), 'memset(&', v.name, ', 0, sizeof(', v.name, '));\n')
-  _p(out, indent(), 'va_start(', ExprField(ExprValue(v.name), '.', '_ap'),
+  _p(out, indent(), 'va_start(', ExprField(ExprValue(v.name), '.', ExprValue('_ap')),
       ', __vararg_count__);\n')
   _p(out, indent(), v.name, '._left = __vararg_count__;\n')
 
 def _wvararg_end(self, out):
   v = self.args[-1]
-  _p(out, indent(), 'va_end(', ExprField(ExprValue(v.name), '.', '_ap'), ');\n')
+  _p(out, indent(), 'va_end(', ExprField(ExprValue(v.name), '.', ExprValue('_ap')), ');\n')
 
 def wfunctiondecl(self, out):
   if self.unboundgeneric():
@@ -449,20 +449,22 @@ def wpattern(self, out):
 PatternDecl.cwrite = wpattern
 
 def wfieldstaticconstdecl(self, out):
-  if self.vardecl.type is not None \
-      and self.vardecl.type.typecheck() == typing.qbuiltin('nlang.meta.alias'):
+  if self.is_meta_type():
     return
 
   _p(out, 'static const ', self.vardecl.typecheck(), ' ', globalname(self), ';\n')
 FieldStaticConstDecl.cwrite = wfieldstaticconstdecl
 
 def wexprinitstaticconstfield(self, out):
+  if self.staticconst.is_meta_type():
+    return
+
   _p(out, '*(', self.typecheck(), '*)&', globalname(self.staticconst), ' = ', self.staticconst.vardecl.expr)
 ExprInitStaticConstField.cwrite = wexprinitstaticconstfield
 
 def winitializer(self, out):
   tmp = gensym()
-  _p(out, '({ ', self.expr, ' ', tmp, ';\n')
+  _p(out, '({ ', self.expr.typecheck(), ' ', tmp, ';\n')
   indent(+2)
   _p(out, indent(), 'memset(&', tmp, ', 0, sizeof(', tmp, '));\n')
 
@@ -625,10 +627,10 @@ def wexprcall(self, out):
     assert len(self.args) == 2
     _p(out, 'sizeof(', self.args[1].typecheck(),')')
     return
-  elif str(fun.scope) == '<root>.nlang.varargmod.vararg.next':
+  elif str(fun.scope) == '<root>.nlang.varargmod.vararg_iterator.next':
     assert len(self.args) == 1
     r = self.xself.typecheck().args[0].args[0]
-    _p(out, 'NLANG_VARARGMOD_VARARG_NEXT(', self.xself, ', ', r, ')')
+    _p(out, 'NLANG_VARARGMOD_VARARG_ITERATOR_NEXT(', self.xself, ', ', r, ')')
     return
   elif str(fun.scope) == '<root>.nlang.unsafe.cast':
     with scope.push(fun.scope):
@@ -759,7 +761,6 @@ def wexprfor(self, out):
   with scope.push(self.scope):
     indent(+1)
     _p(out, '{\n', indent(), self.var_iter_tmp, ';\n')
-    _p(out, indent(), self.reset_expr, ';\n')
     _p(out, indent(), 'do {\n')
     _p(out, indent(+1), self.pattern, ';\n')
     _p(out, self.body)

@@ -10,17 +10,17 @@ intf slice_allocator =
 
 (fun r:(nlang.meta.any_ref u8)) _unsafe_slice_addr data:r elsize:size n:size = r
 
-type slice t = (random_container t)
+type slice t:plain_old_data = (random_container t)
   _rawdata:?@!u8
   _len:size
 
-  method! unsafe_clear = void
-    self!_len = 0
-    self!_rawdata = null
+  method# random_container.clear = void
+    self#_len = 0
+    self#_rawdata = null
 
-  method! unsafe_reinit data:@!u8 len:size = void
-    self!_rawdata = data
-    self!_len = len
+  method# init_rawdata data:@!u8 len:size = void
+    self#_rawdata = data
+    self#_len = len
 
   method unsafe_rawdata = ?@u8
     return self._rawdata
@@ -28,7 +28,7 @@ type slice t = (random_container t)
   method! unsafe_mutable_rawdata = ?@!u8
     return self!_rawdata
 
-  method len = size
+  method random_container.len = size
     return self._len
 
   method data = ?@t
@@ -37,51 +37,48 @@ type slice t = (random_container t)
   method! mutable_data = ?@!t
     return (nlang.unsafe.cast ?@!t ?@!u8) self!_rawdata
 
-  method all = (random_element_range this)
-    return (random_element_range this).mk self
+  method random_container.check_locus n:size = bool
+    #~ eval self.check_locus self.valid_locus n
+    return n < self._len
 
-  method first = t
-    return self.[0]
 
-  method last = t
-    return self.[self.len - 1]
+  method random_container.all = index_range
+    let r:index_range
+      r#init 0 self.len
+    return r
 
-  method operator_get__ n:size = t
-    #! self.valid_index n
-    #? self.check_index n
+  method random_container.first = size
+    return 0
+
+  method random_container.last = size
+    return self.len - 1
+
+  method random_container.at n:size = @t
+    let psrc = _unsafe_slice_addr (nlang.unsafe.nonnull_cast self.unsafe_rawdata) (sizeof t) n
+    return (nlang.unsafe.cast @t @u8) psrc
+
+  method! random_container.hg_at n:size = @#t
+    let psrc = _unsafe_slice_addr (nlang.unsafe.nonnull_cast self.unsafe_rawdata) (sizeof t) n
+    return (nlang.unsafe.cast @#t @u8) psrc
+
+  method random_container.operator_get__ n:size = t
+    #! self.valid_locus n
+    #? self.check_locus n
     let r:t
       let pdst = (nlang.unsafe.cast @!u8 @!t) @!r
       let psrc = _unsafe_slice_addr (nlang.unsafe.nonnull_cast self.unsafe_rawdata) (sizeof t) n
       nlang.unsafe.memcpy pdst psrc (sizeof t) 1
     return r
 
-  method! operator_set__ n:size x:t = void
-    #! self.valid_index n
-    #? self.check_index n
+  method! random_container.operator_set__ n:size x:t = void
+    #! self.valid_locus n
+    #? self.check_locus n
     let pdst = _unsafe_slice_addr (nlang.unsafe.nonnull_cast self.unsafe_mutable_rawdata) (sizeof t) n
     let psrc = (nlang.unsafe.cast @u8 @t) @x
     nlang.unsafe.memcpy pdst psrc (sizeof t) 1
 
-  method get_ref n:size = @t
-    let addr = (_unsafe_slice_addr (nlang.unsafe.nonnull_cast self.unsafe_rawdata) (sizeof t) n)
-    return (nlang.unsafe.cast @t @u8) addr
 
-  method check_index n:size = bool
-    #~ eval self.check_index self.valid_index n
-    return n < self._len
-
-  method range beg:size end:size = (random_element_range this)
-    let er:nlang.meta.alias = (random_element_range this)
-    return (er.mk self).sub beg end
-
-  method all_index = index_range
-    return range 0 self.len
-
-  method range_index beg:size end:size ?by:?@size = index_range
-    return range beg end by=by
-
-
-type sized_slice t LEN:size = (random_container t)
+type sized_slice t:plain_old_data LEN:size = (random_container t)
   -- The data is allocated by the compiler (e.g. in generated C code) and
   -- it must be first in the type's memory layout so that its address
   -- coincides with self.
@@ -92,7 +89,7 @@ type sized_slice t LEN:size = (random_container t)
   method! unsafe_mutable_rawdata = @!u8
     return (nlang.unsafe.cast @!u8 @!this) self
 
-  method len = size
+  method random_container.len = size
     return LEN
 
   method data = @t
@@ -101,49 +98,41 @@ type sized_slice t LEN:size = (random_container t)
   method! mutable_data = @!t
     return (nlang.unsafe.cast @!t @!u8) self.unsafe_mutable_rawdata
 
-  method all = (random_element_range this)
-    return (random_element_range this).mk self
+  method random_container.all = index_range
+    let r:index_range
+      r#init 0 self.len
+    return r
 
-  method first = t
-    return self.[0]
+  method random_container.first = size
+    return 0
 
-  method last = t
-    return self.[self.len - 1]
+  method random_container.last = size
+    return self.len - 1
 
-  method operator_get__ n:size = t
-    #! self.valid_index n
-    #? self.check_index n
+  method random_container.at n:size = @t
+    let psrc = _unsafe_slice_addr self.unsafe_rawdata (sizeof t) n
+    return (nlang.unsafe.cast @t @u8) psrc
+
+  method! random_container.hg_at n:size = @#t
+    let psrc = _unsafe_slice_addr self.unsafe_rawdata (sizeof t) n
+    return (nlang.unsafe.cast @#t @u8) psrc
+
+  method random_container.operator_get__ n:size = t
+    #! self.valid_locus n
+    #? self.check_locus n
     let r:t
       let pdst = (nlang.unsafe.cast @!u8 @!t) @!r
       let psrc = _unsafe_slice_addr self.unsafe_rawdata (sizeof t) n
       nlang.unsafe.memcpy pdst psrc (sizeof t) 1
     return r
 
-  method! operator_set__ n:size x:t = void
-    #! self.valid_index n
-    #? self.check_index n
+  method! random_container.operator_set__ n:size x:t = void
+    #! self.valid_locus n
+    #? self.check_locus n
     let pdst = _unsafe_slice_addr self.unsafe_mutable_rawdata (sizeof t) n
     let psrc = (nlang.unsafe.cast @u8 @t) @x
     nlang.unsafe.memcpy pdst psrc (sizeof t) 1
 
-  method get_ref n:size = @t
-    let addr = (_unsafe_slice_addr self.unsafe_rawdata (sizeof t) n)
-    return (nlang.unsafe.cast @t @u8) addr
-
-  method get_mref n:size = @!t
-    let addr = (_unsafe_slice_addr self.unsafe_rawdata (sizeof t) n)
-    return (nlang.unsafe.cast @!t @u8) addr
-
-  method check_index n:size = bool
-    #~ eval self.check_index self.valid_index n
+  method random_container.check_locus n:size = bool
+    #~ eval self.check_locus self.valid_locus n
     return n < self.len
-
-  method range beg:size end:size = (random_element_range this)
-    let er:nlang.meta.alias = (random_element_range this)
-    return (er.mk self).sub beg end
-
-  method all_index = index_range
-    return range 0 self.len
-
-  method range_index beg:size end:size ?by:?@size = index_range
-    return range beg end by=by

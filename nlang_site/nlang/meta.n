@@ -1,15 +1,18 @@
-type alias =
+type typealias =
 
 declare nlang.numbers =
   extern type bool =
 
-intf any_ref t =
+declare nlang.prelude =
+  intf copyable_but_owned =
+
+intf any_ref t = nlang.prelude.copyable_but_owned
 intf ref t = (any_ref t)
 intf mutable_ref t = (ref t)
 intf nullable_ref t = (any_ref t)
-  let nonnull:alias = ref t
+  let nonnull:typealias = ref t
 intf nullable_mutable_ref t = (nullable_ref t)
-  let nonnull:alias = mutable_ref t
+  let nonnull:typealias = mutable_ref t
 (intf t) weak r:(any_ref t) = r
 (intf t) scoped r:(any_ref t) = r
 (intf t) unique r:(any_ref t) = r

@@ -457,7 +457,10 @@ def p_expr_ref_nullable(p):
 
 def p_expr_field(p):
   '''expr_postfix : expr_postfix DOT IDENT
-                  | expr_postfix BANG IDENT'''
+                  | expr_postfix BANG IDENT
+                  | expr_postfix SHARP IDENT'''
+  if p[2] == '#':
+    p[2] = '!'
   p[0] = ast.ExprField(p[1], p[2], ast.ExprValue(p[3]))
   p[0].maybeunarycall = True
 
@@ -983,11 +986,20 @@ def p_methoddecl_keyword(p):
                   | EXTERN METHOD'''
   p[0] = len(p) == 3
 
+def p_funmethname(p):
+  '''funmethname : IDENT
+                 | funmethname DOT IDENT'''
+  #FIXME Ignore the "from" portion of the name.
+  if len(p) == 2:
+    p[0] = p[1]
+  else:
+    p[0] = p[3]
+
 def p_fundecl_forward(p):
-  '''fundecl : fundeclkw IDENT ASSIGN funretvals
-             | fundeclkw IDENT funargs ASSIGN funretvals
-             | '(' fundeclkw typedeclname_list ')' IDENT ASSIGN funretvals
-             | '(' fundeclkw typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
+  '''fundecl : fundeclkw funmethname ASSIGN funretvals
+             | fundeclkw funmethname funargs ASSIGN funretvals
+             | '(' fundeclkw typedeclname_list ')' funmethname ASSIGN funretvals
+             | '(' fundeclkw typedeclname_list ')' funmethname funargs ASSIGN funretvals'''
   if len(p) == 5:
     p[0] = ast.FunctionDecl(p[2], [], [], p[4], None)
   elif len(p) == 6:
@@ -998,10 +1010,10 @@ def p_fundecl_forward(p):
     p[0] = ast.FunctionDecl(p[5], p[3], p[6], p[8], None)
 
 def p_fundecl(p):
-  '''fundecl : fundeclkw IDENT ASSIGN funretvals statements_block
-             | fundeclkw IDENT funargs ASSIGN funretvals statements_block
-             | '(' fundeclkw typedeclname_list ')' IDENT ASSIGN funretvals statements_block
-             | '(' fundeclkw typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
+  '''fundecl : fundeclkw funmethname ASSIGN funretvals statements_block
+             | fundeclkw funmethname funargs ASSIGN funretvals statements_block
+             | '(' fundeclkw typedeclname_list ')' funmethname ASSIGN funretvals statements_block
+             | '(' fundeclkw typedeclname_list ')' funmethname funargs ASSIGN funretvals statements_block'''
   if len(p) == 6:
     p[0] = ast.FunctionDecl(p[2], [], [], p[4], p[5])
   elif len(p) == 7:
@@ -1014,15 +1026,13 @@ def p_fundecl(p):
 def p_methodaccess(p):
   '''methodaccess : POSTBANG
                   | SHARP'''
-  p[1].type = 'POSTBANG'
-  p[1].value = '!'
-  p[0] = p[1]
+  p[0] = 'POSTBANG'
 
 def p_methoddecl_forward(p):
-  '''methoddecl : methoddeclkw IDENT ASSIGN funretvals
-                | methoddeclkw IDENT funargs ASSIGN funretvals
-                | '(' methoddeclkw typedeclname_list ')' IDENT ASSIGN funretvals
-                | '(' methoddeclkw typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
+  '''methoddecl : methoddeclkw funmethname ASSIGN funretvals
+                | methoddeclkw funmethname funargs ASSIGN funretvals
+                | '(' methoddeclkw typedeclname_list ')' funmethname ASSIGN funretvals
+                | '(' methoddeclkw typedeclname_list ')' funmethname funargs ASSIGN funretvals'''
   if len(p) == 5:
     p[0] = ast.MethodDecl(p[2], [], '.', [], p[4], None)
   elif len(p) == 6:
@@ -1033,10 +1043,10 @@ def p_methoddecl_forward(p):
     p[0] = ast.MethodDecl(p[5], p[3], '.', p[6], p[8], None)
 
 def p_methoddecl(p):
-  '''methoddecl : methoddeclkw IDENT ASSIGN funretvals statements_block
-                | methoddeclkw IDENT funargs ASSIGN funretvals statements_block
-                | '(' methoddeclkw typedeclname_list ')' IDENT ASSIGN funretvals statements_block
-                | '(' methoddeclkw typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
+  '''methoddecl : methoddeclkw funmethname ASSIGN funretvals statements_block
+                | methoddeclkw funmethname funargs ASSIGN funretvals statements_block
+                | '(' methoddeclkw typedeclname_list ')' funmethname ASSIGN funretvals statements_block
+                | '(' methoddeclkw typedeclname_list ')' funmethname funargs ASSIGN funretvals statements_block'''
   if len(p) == 6:
     p[0] = ast.MethodDecl(p[2], [], '.', [], p[4], p[5])
   elif len(p) == 7:
@@ -1047,10 +1057,10 @@ def p_methoddecl(p):
     p[0] = ast.MethodDecl(p[5], p[3], '.', p[6], p[8], p[9])
 
 def p_methoddecl_mutating_forward(p):
-  '''methoddecl : methoddeclkw methodaccess IDENT ASSIGN funretvals
-                | methoddeclkw methodaccess IDENT funargs ASSIGN funretvals
-                | '(' methoddeclkw methodaccess typedeclname_list ')' IDENT ASSIGN funretvals
-                | '(' methoddeclkw methodaccess typedeclname_list ')' IDENT funargs ASSIGN funretvals'''
+  '''methoddecl : methoddeclkw methodaccess funmethname ASSIGN funretvals
+                | methoddeclkw methodaccess funmethname funargs ASSIGN funretvals
+                | '(' methoddeclkw methodaccess typedeclname_list ')' funmethname ASSIGN funretvals
+                | '(' methoddeclkw methodaccess typedeclname_list ')' funmethname funargs ASSIGN funretvals'''
   if len(p) == 6:
     p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], None)
   elif len(p) == 7:
@@ -1061,10 +1071,10 @@ def p_methoddecl_mutating_forward(p):
     p[0] = ast.MethodDecl(p[6], p[4], '!', p[7], p[9], None)
 
 def p_methoddecl_mutating(p):
-  '''methoddecl : methoddeclkw methodaccess IDENT ASSIGN funretvals statements_block
-                | methoddeclkw methodaccess IDENT funargs ASSIGN funretvals statements_block
-                | '(' methoddeclkw methodaccess typedeclname_list ')' IDENT ASSIGN funretvals statements_block
-                | '(' methoddeclkw methodaccess typedeclname_list ')' IDENT funargs ASSIGN funretvals statements_block'''
+  '''methoddecl : methoddeclkw methodaccess funmethname ASSIGN funretvals statements_block
+                | methoddeclkw methodaccess funmethname funargs ASSIGN funretvals statements_block
+                | '(' methoddeclkw methodaccess typedeclname_list ')' funmethname ASSIGN funretvals statements_block
+                | '(' methoddeclkw methodaccess typedeclname_list ')' funmethname funargs ASSIGN funretvals statements_block'''
   if len(p) == 7:
     p[0] = ast.MethodDecl(p[3], [], '!', [], p[5], p[6])
   elif len(p) == 8:

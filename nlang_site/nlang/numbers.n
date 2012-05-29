@@ -1,4 +1,4 @@
-import nlang.meta
+from nlang.meta import *
 import nlang.literal
 import nlang.unsafe
 import nlang.show
@@ -12,7 +12,11 @@ intf comparable =
   method operator_eq__ other:@this = bool
   method operator_ne__ other:@this = bool
 
-intf ordered = comparable
+intf partially_ordered = comparable
+  method operator_lt__ other:@this = bool
+  method operator_le__ other:@this = bool
+
+intf ordered = partially_ordered
   method operator_lt__ other:@this = bool
   method operator_gt__ other:@this = bool
   method operator_le__ other:@this = bool
@@ -37,11 +41,11 @@ intf multiplicative_arithmetic = ordered
 intf natural_arithmetic = additive_arithmetic multiplicative_arithmetic
 
 intf bitwise_signed = hashable
-  let this_unsigned:nlang.meta.alias
+  let this_unsigned:typealias
   method reinterpret_unsigned = this.this_unsigned
 
 intf bitwise_unsigned = hashable
-  let this_signed:nlang.meta.alias
+  let this_signed:typealias
   method reinterpret_signed = this.this_signed
 
 
@@ -85,54 +89,60 @@ type __native_format_numeric = nlang.show.format_numeric
   extern method format_a ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
   extern method format_A ?flags:?@nlang.numbers.u32 ?width:?@nlang.numbers.size ?precision:?@nlang.numbers.size = nlang.stringmod.string
 
-extern type void =
+declare nlang.prelude =
+  intf return_by_copy =
 
-extern type u8 = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
+let __retcopy:typealias = nlang.prelude.return_by_copy
+
+extern type void = __retcopy
+
+extern type u8 = __retcopy natural_arithmetic bitwise_unsigned nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
   inherit __native_format_numeric
   let MAX:this
-  let this_signed:nlang.meta.alias = i8
+  let this_signed:typealias = i8
+
   extern method reinterpret_signed = this.this_signed
   extern method to_u16 = u16
   extern method to_u32 = u32
   extern method to_u64 = u64
   extern method operator_hash__ = size
 
-extern type u16 = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
+extern type u16 = __retcopy natural_arithmetic bitwise_unsigned nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
   inherit __native_format_numeric
   let MAX:this
-  let this_signed:nlang.meta.alias = i16
+  let this_signed:typealias = i16
   extern method trim_u8 = u8
   extern method reinterpret_signed = i16
   extern method to_u32 = u32
   extern method to_u64 = u64
   extern method operator_hash__ = size
 
-extern type u32 = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
+extern type u32 = __retcopy natural_arithmetic bitwise_unsigned nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
   inherit __native_format_numeric
   let MAX:this
-  let this_signed:nlang.meta.alias = i32
+  let this_signed:typealias = i32
   extern method trim_u8 = u8
   extern method trim_u16 = u16
   extern method reinterpret_signed = i32
   extern method to_u64 = u64
   extern method operator_hash__ = size
 
-extern type u64 = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
+extern type u64 = __retcopy natural_arithmetic bitwise_unsigned nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
   inherit __native_format_numeric
   let MAX:this
-  let this_signed:nlang.meta.alias = i64
+  let this_signed:typealias = i64
   extern method trim_u8 = u8
   extern method trim_u16 = u16
   extern method trim_u32 = u32
@@ -140,13 +150,16 @@ extern type u64 = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
   extern method reinterpret_signed = i64
   extern method operator_hash__ = size
 
-extern type size = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
+declare nlang.containers =
+  intf locus =
+
+extern type size = __retcopy natural_arithmetic bitwise_unsigned nlang.show.format_numeric nlang.containers.locus
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
   inherit __native_format_numeric
   let MAX:this
-  let this_signed:nlang.meta.alias = ssize
+  let this_signed:typealias = ssize
   extern method trim_u8 = u8
   extern method trim_u16 = u16
   extern method trim_u32 = u32
@@ -154,56 +167,56 @@ extern type size = natural_arithmetic bitwise_unsigned nlang.show.format_numeric
   extern method reinterpret_signed = ssize
   extern method operator_hash__ = size
 
-extern type i8 = natural_arithmetic bitwise_signed nlang.show.format_numeric
+extern type i8 = __retcopy natural_arithmetic bitwise_signed nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
   inherit __native_format_numeric
   let MAX:this
   let MIN:this
-  let this_unsigned:nlang.meta.alias = u8
+  let this_unsigned:typealias = u8
   extern method reinterpret_unsigned = u8
   extern method to_i16 = i16
   extern method to_i32 = i32
   extern method to_i64 = i64
   extern method operator_hash__ = size
 
-extern type i16 = natural_arithmetic bitwise_signed nlang.show.format_numeric
+extern type i16 = __retcopy natural_arithmetic bitwise_signed nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
   inherit __native_format_numeric
   let MAX:this
   let MIN:this
-  let this_unsigned:nlang.meta.alias = u16
+  let this_unsigned:typealias = u16
   extern method trim_i8 = i8
   extern method reinterpret_unsigned = u16
   extern method to_i32 = i32
   extern method to_i64 = i64
   extern method operator_hash__ = size
 
-extern type i32 = natural_arithmetic bitwise_signed nlang.show.format_numeric
+extern type i32 = __retcopy natural_arithmetic bitwise_signed nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
   inherit __native_format_numeric
   let MAX:this
   let MIN:this
-  let this_unsigned:nlang.meta.alias = u32
+  let this_unsigned:typealias = u32
   extern method trim_i8 = i8
   extern method trim_i16 = i16
   extern method reinterpret_unsigned = u32
   extern method to_i64 = i64
   extern method operator_hash__ = size
 
-extern type i64 = natural_arithmetic bitwise_signed nlang.show.format_numeric
+extern type i64 = __retcopy natural_arithmetic bitwise_signed nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
   inherit __native_format_numeric
   let MAX:this
   let MIN:this
-  let this_unsigned:nlang.meta.alias = u64
+  let this_unsigned:typealias = u64
   extern method trim_i8 = i8
   extern method trim_i16 = i16
   extern method trim_i32 = i32
@@ -211,7 +224,7 @@ extern type i64 = natural_arithmetic bitwise_signed nlang.show.format_numeric
   extern method reinterpret_unsigned = u64
   extern method operator_hash__ = size
 
-extern type ssize = natural_arithmetic bitwise_signed nlang.show.format_numeric
+extern type ssize = __retcopy natural_arithmetic bitwise_signed nlang.show.format_numeric
   inherit __native_arith
   inherit __native_bitwise
   inherit __native_order
@@ -225,10 +238,14 @@ extern type ssize = natural_arithmetic bitwise_signed nlang.show.format_numeric
   extern method reinterpret_unsigned = size
   extern method operator_hash__ = size
 
-extern type bool = ordered nlang.show.show generalized_boolean
+extern type bool = __retcopy ordered nlang.show.show generalized_boolean
   inherit __native_order
   method operator_test__ = bool
     return self.
+  extern method to_u8 = u8
+  extern method to_u16 = u16
+  extern method to_u32 = u32
+  extern method to_u64 = u64
 
 
 (fun t:ordered) max a:t b:t = t

@@ -24,7 +24,7 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
   fun from_bytes bytes:@[]u8 = this, bool
     let r = this{{}}
       r._bytes!reserve bytes.len+1
-      r._bytes!extend @bytes.all
+      r._bytes!extend bytes
       if r._bytes.last != 0
         r._bytes!push 0
     -- FIXME Validate UTF8 encoding.
@@ -34,16 +34,16 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
     let r = this.mk
       let cstr_len = (c99.strlen cstr) + 1
       let slice_cstr:(slice u8)
-        slice_cstr!unsafe_reinit ((nlang.unsafe.cast @!u8 @u8) cstr) cstr_len
+        slice_cstr#init_rawdata ((nlang.unsafe.cast @!u8 @u8) cstr) cstr_len
       r._bytes!pop
-      r._bytes!extend @slice_cstr.all
+      r._bytes!extend @slice_cstr
     return r
 
   method compare other:@this = i32
-    let arange = self._bytes.all
-    let brange = other._bytes.all
-    for a, b in zip @arange @brange
-      let c = compare a. b.
+    let a_iter = self._bytes.all.iter
+    let b_iter = other._bytes.all.iter
+    for a, b in zip @#a_iter @#b_iter
+      let c = compare self._bytes.[a] other._bytes.[b]
       if c != 0
         return c
     return 0
@@ -59,7 +59,7 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
 
   method! append x:@this = void
     self._bytes!pop
-    self._bytes!extend @x._bytes.all
+    self._bytes!extend @x._bytes
 
   method! push x:char = void
     let c, FIXME = x.to_ascii
@@ -98,7 +98,7 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
           r!push ' ':char
 
       r._bytes!pop
-      r._bytes!extend @self._bytes.all
+      r._bytes!extend @self._bytes
 
       if left
         for n in padding_range.iter
@@ -109,7 +109,7 @@ type string = nlang.show.show copyable comparable (random_container u8) nlang.ut
   method operator_hash__ = size
     -- From Dan Bernstein, http://www.cse.yorku.ca/~oz/hash.html
     let h = 5381:size
-      for i in (self._bytes.range_index 0 self._bytes.len-1).iter
+      for i in (self._bytes.all.sub 0 self._bytes.len-1).iter
         let c = self._bytes.[i].to_u64.trim_size
         h = ((h << 5) + h) ^ c
     return h

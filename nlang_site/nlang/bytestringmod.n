@@ -27,16 +27,16 @@ type bytestring = nlang.show.show copyable comparable (random_container u8) nlan
     let r = this.mk
       let cstr_len = (c99.strlen cstr) + 1
       let slice_cstr:(slice u8)
-        slice_cstr!unsafe_reinit ((nlang.unsafe.cast @!u8 @u8) cstr) cstr_len
+        slice_cstr#init_rawdata ((nlang.unsafe.cast @!u8 @u8) cstr) cstr_len
       r._bytes!pop
       r._bytes!extend @slice_cstr.all
     return r
 
   method compare other:@this = i32
-    let arange = self._bytes.all
-    let brange = other._bytes.all
-    for a, b in zip @arange @brange
-      let c = compare a. b.
+    let a_iter = self._bytes.all.iter
+    let b_iter = other._bytes.all.iter
+    for a, b in zip @#a_iter @#b_iter
+      let c = compare self._bytes.[a] other._bytes.[b]
       if c != 0
         return c
     return 0

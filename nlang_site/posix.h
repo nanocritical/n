@@ -158,7 +158,7 @@ nlang_errormod_nerror posix_mmap(
     return NERROR(errno);
   }
 
-  SL8(_unsafe_reinit)(map, m, length);
+  SL8(_init_rawdata)(map, m, length);
 
   return NERROR_OK;
 }

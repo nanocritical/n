@@ -10,12 +10,12 @@ extern fun abort = void
 extern fun __print s:@string = void
 
 fun print ...args:(vararg @string) = void
-  for a in args
-    __print a
+  for a in args.iter
+    __print (args.at a).
     __print @' '
 
 fun say ...args:(vararg @string) = void
-  for a in args
-    __print a
+  for a in args.iter
+    __print (args.at a).
     __print @' '
   __print @'\n'

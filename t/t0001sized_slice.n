@@ -5,7 +5,7 @@ fun main = i32
   if s.len != 100
     return 1
 
-  for i in s.all_index.iter
+  for i in s.all.iter
     s![i] = i.trim_u32
 
   if s.[99] != 99

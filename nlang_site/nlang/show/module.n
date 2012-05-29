@@ -1,4 +1,4 @@
-import nlang.meta
+from nlang.meta import *
 import nlang.literal
 import nlang.unsafe
 

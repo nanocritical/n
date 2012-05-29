@@ -27,7 +27,7 @@
       <p
         For N, we chose to have the API documentation in a separate file. The
         documentation is, however, still structured identically to the code, and
-        can be processed automatically, just like with Doxygen or Javadoc.
+        can be processed automatically.
 
       <p
         The documentation for <samp|cards.n> is in <samp|cards.ndoc>. For
@@ -78,6 +78,6 @@
           </choice>
 
           <p>
-            The Ace is represented by <c|NUMBER 0>.
+            The Ace is represented by <c>NUMBER 0</c>.
           </p>
         </type> >>>

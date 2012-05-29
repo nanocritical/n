@@ -11,7 +11,7 @@ intf has_compare =
 
 type ordered_with_compare _towc:has_compare = comparable
   method operator_lt__ other:@this = bool
-    return (_towc.compare self other) < 0
+    return (this._towc.compare self other) < 0
 
   method operator_gt__ other:@this = bool
     return (_towc.compare self other) > 0

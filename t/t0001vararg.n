@@ -2,13 +2,16 @@ from nlang import *
 
 fun var ...args:(vararg @string) = size
   let len = 0:size
-    for a in args
-      len += a.len
+    -- FIXME Should be foreach.
+    for i in args.iter
+      len += ((args.at i).).len
   return len
 
 fun varopt a:i32 ?b:?@i32 ...v:(vararg @i32) = i32
   let r = a + (optional b 0)
-    for x in v
+    -- FIXME Should be foreach.
+    for i in v.iter
+      let x = (v.at i).
       r += x.
   return r
 

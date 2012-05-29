@@ -352,7 +352,7 @@ def _isliteral(type):
 
 def _isconcrete(type):
   return not type.name.startswith('<root>.nlang.literal.') \
-      and type.name != '<root>.nlang.meta.alias'
+      and type.name != '<root>.nlang.meta.typealias'
 
 def _istuple(type):
   return isinstance(type, TypeTuple)
@@ -453,14 +453,14 @@ def unify(constraint, types):
     t = ulit
   elif c is not None:
     t = c
-  elif c is None and constraint == qbuiltin('nlang.meta.alias'):
+  elif c is None and constraint == qbuiltin('nlang.meta.typealias'):
     return constraint
   else:
     raise Exception('Unexpected')
 
   if constraint is None:
     return t
-  elif constraint == qbuiltin('nlang.meta.alias'):
+  elif constraint == qbuiltin('nlang.meta.typealias'):
     return t
   elif constraint == qbuiltin('nlang.literal.integer') and _isliteral(t):
     if constraint.literal_value != t.literal_value:

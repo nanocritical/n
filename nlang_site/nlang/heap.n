@@ -6,31 +6,31 @@ type allocator = nlang.memory.allocator slice_allocator
   (method! t) alloc = @!t
     return (nlang.unsafe.cast @!t @!u8) (nlang.unsafe.malloc (sizeof t))
 
-  (method! t) free x:@!t = void
-    nlang.unsafe.free ((nlang.unsafe.cast @!u8 @!t) x) (sizeof t)
+  (method! t) free x:@#t = void
+    nlang.unsafe.free ((nlang.unsafe.cast @!u8 @#t) x) (sizeof t)
 
   (method! t) copy x:@t = @!t
     let r = self!alloc
       nlang.unsafe.memcpy r x
     return r
 
-  (method! t) slice_alloc s:@![]t len:size = void
+  (method! t) slice_alloc s:@#[]t len:size = void
     self!free s
-    s!unsafe_reinit (nlang.unsafe.malloc len * (sizeof t)) len
+    s#init_rawdata (nlang.unsafe.malloc len * (sizeof t)) len
 
-  (method! t) slice_free s:@![]t = void
+  (method! t) slice_free s:@#[]t = void
     if s.len > 0
       nlang.unsafe.free s!unsafe_mutable_rawdata s.len
-      s!unsafe_clear
+      s#clear
 
-  (method! t) slice_resize s:@![]t new_len:size = void
+  (method! t) slice_resize s:@#[]t new_len:size = void
     let old_len = s.len
     if new_len == old_len
       return
-    s!unsafe_reinit (nlang.unsafe.realloc s!unsafe_mutable_rawdata (old_len * (sizeof t)) (new_len * (sizeof t))) new_len
+    s#init_rawdata (nlang.unsafe.realloc s!unsafe_mutable_rawdata (old_len * (sizeof t)) (new_len * (sizeof t))) new_len
 
-  (method! t) slice_copy dst:@![]t src:@[]t = void
-    self!resize dst src.len
+  (method! t) slice_copy dst:@#[]t src:@[]t = void
+    self#slice_resize dst src.len
     nlang.unsafe.memcpy dst.unsafe_mutable_rawdata src.unsafe_rawdata (sizeof t) src.len
 
 let the = (nlang.unsafe.cast @!allocator @!u8) (nlang.unsafe.malloc (sizeof allocator))
