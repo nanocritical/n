@@ -8,8 +8,9 @@ fun bar x:i32 y:i32 = i32
   return x*y
 
 type tb =
-  method foo = i64
-    return 0
+
+tb method foo = i64
+  return 0
 
 fun error_prone = i32
   let x = 0:u32

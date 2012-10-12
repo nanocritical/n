@@ -55,6 +55,24 @@ type time64 = natural_arithmetic trivial_copy nlang.show.format_numeric
     return self.usec
 
 
+-- A better implementation, ideally:
+
+inline type time64 = i64
+  inherit i64
+
+time64 inline fun from_usec us:i64 = this
+  nlang.unsafe.copy self @us
+  return self.
+
+time64 inline method usec = i64
+  return ((nlang.unsafe.cast @i64 @this) self).
+
+-- A better SAFE implementation:
+inline type time64 = i64
+  field _v:i64
+  delegate _v i64
+
+
 fun clock_time = time64
 
 

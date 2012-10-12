@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -e
+
+re2c -o lexer.c lexer.re
+
+gcc -g -Wall -std=c99 -o ncc0 ncc0.c lexer.c
+
+for all in t[0-9]*.n; do
+  t=$(basename $all .n)
+  ./ncc0 $all
+done
