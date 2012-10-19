@@ -3,8 +3,10 @@ fun main = i32
   let y2 = 0:i32
   for x in y
     pass
-  let z = - 0 + (1 + 2) * 3 / 2 * (2 + 2) * 2
-  let z2 = - 0 + (1 + 2) * 3 / 2 * 2 + 2 * 2
+  let z = - 0 + (1 + 2) \
+      * 3 / 2 * (2 + 2) * 2
+  let z2 = - 0 + (1 + 2) * 3 / 2 * 2 \
+      + 2 * 2
   return - 0 + (1 + 2) * 3 / 2 + 2
 
 fun other x:i32 = (bool)
@@ -12,7 +14,8 @@ fun other x:i32 = (bool)
     return false
   return not true and false or true
 
-fun other2 x:i32 y:i32 = i32, (i32, i32)
+fun other2 x:i32 y:i32 = i32, \
+    (i32, i32)
   try
     return sizeof 0:u32
   catch e

@@ -198,6 +198,18 @@ normal:
     }
   }
 
+  "\\" {
+    if (YYCURSOR >= YYLIMIT) {
+      ERROR(EINVAL, "non-terminated string");
+    }
+    if (*YYCURSOR == '\n') {
+      YYCURSOR += 1;
+      goto normal;
+    } else {
+      ERROR(EINVAL, "invalid character following '\\'");
+    }
+  }
+
   [a-zA-Z_][a-zA-Z_0-9]* { R(TIDENT); }
 
   ANY { ERROR(EINVAL, "lexer: illegal char '\\0%hho'", *(YYCURSOR - 1)); }
@@ -225,7 +237,7 @@ eol:
     } else if (spaces < parser->indent) {
       if (spaces % 2 != 0) {
         ERROR(EINVAL, "lexer: indentation must be a multiple of 2 spaces"
-                " (one tab counts for 8 spaces), not %zu", spaces);
+                " (one tab is 8 spaces), not %zu", spaces);
       }
 
       parser->indent -= 2;
