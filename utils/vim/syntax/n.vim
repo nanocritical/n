@@ -2,7 +2,10 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword nDecl type fun method union intf dynintf import inherit from inline field
+syn keyword nDecl type fun method union intf dynintf import export delegate from inline field generic
+
+syn keyword nKeyword pre _pre post _post invariant _invariant example _example assert
+syn keyword nKeyword contract honors _honors
 
 syn keyword nKeyword let if elif else while continue break extern
 syn keyword nKeyword for pfor foreach pforeach
