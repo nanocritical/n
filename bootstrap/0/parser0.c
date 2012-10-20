@@ -443,6 +443,17 @@ static error p_let(struct node *node, struct module *mod) {
   e = p_expr(new_subnode(node), mod, T__NONE);
   EXCEPT(e);
 
+  struct token tok;
+  e = scan(&tok, mod);
+  EXCEPT(e);
+  if (tok.t != TSOB) {
+    back(mod, &tok);
+    return 0;
+  }
+
+  e = p_block(new_subnode(node), mod);
+  EXCEPT(e);
+
   return 0;
 }
 
