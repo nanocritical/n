@@ -129,12 +129,17 @@ normal:
   "isa" { R(Tisa); }
   "null" { R(Tnull); }
   "pass" { R(Tpass); }
+  "pre" { R(Tpre); }
+  "post" { R(Tpost); }
+  "invariant" { R(Tinvariant); }
+  "example" { R(Texample); }
   "->" {
     error e = block_down(parser, TRUE);
     if (e) {
       ERROR(e, "lexer: too many block levels");
     }
 
+    parser->indent += 2;
     R(TSOB);
   }
   ">>=" { R(TRSHIFT_ASSIGN); }
@@ -188,14 +193,8 @@ normal:
   ")" { R(TRPAR); }
 
   "\n" { 
-    if (block_style(parser)) {
-      parser->inject_eol_after_eob = TRUE;
-      block_up(parser, TRUE);
-      R(TEOB);
-    } else {
-      spaces = 0;
-      goto eol;
-    }
+    spaces = 0;
+    goto eol;
   }
 
   "\\" {
@@ -224,7 +223,13 @@ eol:
   ANY {
     YYCURSOR -= 1;
     if (spaces == parser->indent) {
-      R(TEOL);
+      if (block_style(parser)) {
+        parser->inject_eol_after_eob = TRUE;
+        block_up(parser, TRUE);
+        R(TEOB);
+      } else {
+        R(TEOL);
+      }
     } else if (spaces == parser->indent + 2) {
       parser->indent = spaces;
 
@@ -237,7 +242,7 @@ eol:
     } else if (spaces < parser->indent) {
       if (spaces % 2 != 0) {
         ERROR(EINVAL, "lexer: indentation must be a multiple of 2 spaces"
-                " (one tab is 8 spaces), not %zu", spaces);
+                " (one tab counts for 8 spaces), not %zu", spaces);
       }
 
       parser->indent -= 2;
@@ -251,7 +256,7 @@ eol:
       // EOB must be followed by an EOL.
       parser->inject_eol_after_eob = TRUE;
 
-      block_up(parser, FALSE);
+      block_up(parser, block_style(parser));
       R(TEOB);
     } else {
       ERROR(EINVAL, "indentation must be a multiple of 2 spaces"
@@ -287,7 +292,7 @@ string:
 
 comment:
 /*!re2c
-  "\n" { goto normal; }
+  "\n" { YYCURSOR -= 1; goto normal; }
   ANY { goto comment; }
  */
 }
@@ -296,15 +301,11 @@ void lexer_back(struct parser *parser, const struct token *tok) {
   parser->inject_eol_after_eob = FALSE;
 
   if (tok->t == TSOB) {
-    if (!block_style(parser)) {
-      parser->indent -= 2;
-    }
+    parser->indent -= 2;
     parser->block_depth -= 1;
   } else if (tok->t == TEOB) {
     parser->block_depth += 1;
-    if (!block_style(parser)) {
-      parser->indent += 2;
-    }
+    parser->indent += 2;
   }
 
   if (parser->tok_was_injected) {

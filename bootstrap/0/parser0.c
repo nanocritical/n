@@ -264,6 +264,7 @@ static error p_typeconstraint(struct node *node, struct module *mod) {
 
 static error p_expr(struct node *node, struct module *mod, uint32_t parent_op);
 static error p_block(struct node *node, struct module *mod);
+static error p_deflet(struct node *node, struct module *mod, const struct toplevel *toplevel);
 
 static error p_unary_expr(struct node *node, struct module *mod) {
   struct token tok;
@@ -302,7 +303,7 @@ static error p_expr_call(struct node *node, const struct node *first,
     EXCEPT(e);
     back(mod, &tok);
 
-    if (tok.t == TEOL || tok.t == TEOB) {
+    if (tok.t == TEOL || tok.t == TEOB || tok.t == TSOB) {
       return 0;
     }
 
@@ -610,6 +611,50 @@ again:
   goto again;
 }
 
+static error p_pre(struct node *node, struct module *mod) {
+  node->which = PRE;
+
+  error e = scan_expected(mod, TSOB);
+  EXCEPT(e);
+  e = p_block(new_subnode(node), mod);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static error p_post(struct node *node, struct module *mod) {
+  node->which = POST;
+
+  error e = scan_expected(mod, TSOB);
+  EXCEPT(e);
+  e = p_block(new_subnode(node), mod);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static error p_invariant(struct node *node, struct module *mod) {
+  node->which = INVARIANT;
+
+  error e = scan_expected(mod, TSOB);
+  EXCEPT(e);
+  e = p_block(new_subnode(node), mod);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static error p_example(struct node *node, struct module *mod) {
+  node->which = EXAMPLE;
+
+  error e = scan_expected(mod, TSOB);
+  EXCEPT(e);
+  e = p_block(new_subnode(node), mod);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error p_statement(struct node *node, struct module *mod) {
   error e;
   struct token tok;
@@ -647,6 +692,18 @@ static error p_statement(struct node *node, struct module *mod) {
     break;
   case Tmatch:
     e = p_match(node, mod);
+    break;
+  case Tpre:
+    e = p_pre(node, mod);
+    break;
+  case Tpost:
+    e = p_post(node, mod);
+    break;
+  case Tinvariant:
+    e = p_invariant(node, mod);
+    break;
+  case Texample:
+    e = p_example(node, mod);
     break;
   case TLPAR:
   case TIDENT:
@@ -696,54 +753,6 @@ again:
   goto again;
 }
 
-static error p_deffun_retval(struct node *node, struct module *mod) {
-  error e;
-  struct token tok;
-  struct node current;
-  bool is_first = TRUE;
-
-again:
-  memset(&current, 0, sizeof(current));
-
-  e = scan_oneof(&tok, mod, TLPAR, TIDENT, 0);
-  EXCEPT(e);
-
-  if (tok.t == TLPAR) {
-    e = p_deffun_retval(&current, mod);
-    EXCEPT(e);
-    e = scan_expected(mod, TRPAR);
-    EXCEPT(e);
-  } else if (tok.t == TIDENT) {
-    back(mod, &tok);
-    e = p_ident(&current, mod);
-    EXCEPT(e);
-  }
-
-  e = scan(&tok, mod);
-  EXCEPT(e);
-
-  if (tok.t != TCOMMA) {
-    back(mod, &tok);
-
-    if (is_first) {
-      *node = current;
-    } else {
-      struct node *next = new_subnode(node);
-      *next = current;
-    }
-    return 0;
-  } else {
-    node->which = TUPLE;
-
-    struct node *next = new_subnode(node);
-    *next = current;
-    is_first = FALSE;
-    goto again;
-  }
-
-  return 0;
-}
-
 static error p_deffun(struct node *node, struct module *mod, const struct toplevel *toplevel,
                       enum type_node fun_or_method) {
   node->which = fun_or_method;
@@ -781,7 +790,7 @@ again:
   }
 
 retval:
-  e = p_deffun_retval(new_subnode(node), mod);
+  e = p_expr(new_subnode(node), mod, T__NONE);
   EXCEPT(e);
 
   e = scan_oneof(&tok, mod, TEOL, TSOB, TEOB, 0);
@@ -813,25 +822,57 @@ again:
   case TEOL:
   case TSOB:
     return 0;
-  case TIDENT:
-    e = p_ident(new_subnode(node), mod);
+  default:
+    e = p_expr(new_subnode(node), mod, T__CALL);
     EXCEPT(e);
     goto again;
-  default:
-    UNEXPECTED(mod, &tok);
   }
+}
+
+static error p_delegate(struct node *node, struct module *mod) {
+  node->which = DELEGATE;
+
+  error e = p_expr(new_subnode(node), mod, T__NONE);
+  EXCEPT(e);
+
+  struct token tok;
+
+again:
+  e = scan(&tok, mod);
+  EXCEPT(e);
+  back(mod, &tok);
+
+  if (tok.t == TEOL) {
+    return 0;
+  }
+
+  e = p_expr(new_subnode(node), mod, T__NONE);
+  EXCEPT(e);
+
+  goto again;
 }
 
 static error p_deftype_statement(struct node *node, struct module *mod) {
   error e;
   struct token tok;
+  struct toplevel toplevel;
 
   e = scan(&tok, mod);
   EXCEPT(e);
 
   switch (tok.t) {
   case Tlet:
-    e = p_let(node, mod);
+    memset(&toplevel, 0, sizeof(toplevel));
+    e = p_deflet(node, mod, &toplevel);
+    break;
+  case Tdelegate:
+    e = p_delegate(node, mod);
+    break;
+  case Tinvariant:
+    e = p_invariant(node, mod);
+    break;
+  case Texample:
+    e = p_example(node, mod);
     break;
   case TIDENT:
     back(mod, &tok);
@@ -917,6 +958,9 @@ static error p_defintf(struct node *node, struct module *mod, const struct tople
 }
 
 static error p_deflet(struct node *node, struct module *mod, const struct toplevel *toplevel) {
+  error e = p_let(node, mod);
+  EXCEPT(e);
+  node->as.DEFLET.toplevel = *toplevel;
   return 0;
 }
 

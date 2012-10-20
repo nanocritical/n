@@ -1,5 +1,7 @@
 fun main = i32
   let y = 'test'
+    say 'test'
+    y = 'test'.append 'test'
   let y2 = 0:i32
   for x in y
     pass
@@ -50,13 +52,50 @@ fun other3 x:i32 y:i32 = ((i32, i32), i32)
 inline fun other4 x:i32 = i32
 extern fun other5 x:i32 = i32
 
-type test =
+type test = show
   x:i32
   y:i64
   z:i32
+  delegate (self.x, self.y, self.z) show
+  invariant -> z > 0
+  invariant
+    x + y > 0
 
-test method foo x:i32 = i32
+test method foo x:i32 = r:i32
   return 0
+
+  pre
+    x > 0
+  post -> r == 0
+  example
+    let t = test.mk
+    t.foo == 0
+
 test method foo2 = i32
   return self.foo 1
 test method foo3 = void
+
+type test2 =
+  t:test
+
+type test3 = interfaces \
+    compiler.return_by_copy
+  t:test
+
+fun foo x:i32 = r:i32
+  pre -> x != 0
+  post -> r != 0
+
+  let z = 0
+    invariant -> z > 0 -- applies to the mutating block for z
+    post -> z > 0
+    let y = 0
+      for i in range 0 10
+        invariant -> r > z
+        invariant -> r + z > y
+        post -> z > 0
+        y = i
+        z = y
+        r = z + 1
+
+  return r

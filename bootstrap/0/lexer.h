@@ -42,6 +42,10 @@ enum token_type {
   Tisa,
   Tnull,
   Tpass,
+  Tpre,
+  Tpost,
+  Tinvariant,
+  Texample,
 
   TNUMBER,
   TSTRING,
@@ -153,6 +157,7 @@ static const uint32_t operators[TOKEN__NUM] = {
   [TNULREFBANG] = OP(TRUE, ASSOC_RIGHT, 0x40),
   [TNULREFSHARP] = OP(TRUE, ASSOC_RIGHT, 0x40),
   [TCOLON] = OP(FALSE, ASSOC_LEFT, 0x30),
+  [Tdyn] = OP(TRUE, ASSOC_RIGHT, 0x21),
   [TDOT] = OP(FALSE, ASSOC_LEFT, 0x20),
   [TBANG] = OP(FALSE, ASSOC_LEFT, 0x20),
   [TSHARP] = OP(FALSE, ASSOC_LEFT, 0x20),
