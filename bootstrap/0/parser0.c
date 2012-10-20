@@ -449,12 +449,19 @@ static error p_let(struct node *node, struct module *mod) {
 static error p_if(struct node *node, struct module *mod) {
   node->which = IF;
 
+  struct token eol;
+
   error e = p_expr(new_subnode(node), mod, T__NONE);
   EXCEPT(e);
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
   e = p_block(new_subnode(node), mod);
   EXCEPT(e);
+  e = scan(&eol, mod);
+  EXCEPT(e);
+  if (eol.t != TEOL) {
+    UNEXPECTED(mod, &eol);
+  }
 
   struct token tok;
 
@@ -463,8 +470,6 @@ again:
   EXCEPT(e);
 
   switch (tok.t) {
-  case TEOB:
-    break;
   case Telif:
     e = p_expr(new_subnode(node), mod, T__NONE);
     EXCEPT(e);
@@ -472,18 +477,30 @@ again:
     EXCEPT(e);
     e = p_block(new_subnode(node), mod);
     EXCEPT(e);
+    e = scan(&eol, mod);
+    EXCEPT(e);
+    if (eol.t != TEOL) {
+      UNEXPECTED(mod, &eol);
+    }
     goto again;
   case Telse:
     e = scan_expected(mod, TSOB);
     EXCEPT(e);
     e = p_block(new_subnode(node), mod);
     EXCEPT(e);
-    e = scan_expected(mod, TEOB);
+    e = scan(&tok, mod);
     EXCEPT(e);
+    if (eol.t != TEOL) {
+      UNEXPECTED(mod, &eol);
+    }
     break;
   default:
-    UNEXPECTED(mod, &tok);
+    back(mod, &tok);
+    break;
   }
+
+  // Need to reinject the eol after the last block.
+  mod->parser.inject_eol_after_eob = TRUE;
 
   return 0;
 }
@@ -559,19 +576,16 @@ static error p_match(struct node *node, struct module *mod) {
 
   error e = p_expr(new_subnode(node), mod, T__NONE);
   EXCEPT(e);
-  e = scan_expected(mod, TSOB);
+  e = scan_expected(mod, TEOL);
   EXCEPT(e);
 
   struct token tok;
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
-  if (tok.t == TEOB) {
-    return 0;
-  }
-
   if (tok.t != TBWOR) {
-    UNEXPECTED(mod, &tok);
+    mod->parser.inject_eol_after_eob = TRUE;
+    return 0;
   }
 
   e = p_expr(new_subnode(node), mod, T__NONE);
