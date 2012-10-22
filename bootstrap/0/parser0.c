@@ -8,7 +8,7 @@
 
 #include "parser.h"
 
-static error idents_value(const char **value, struct module *mod, ident id) {
+error idents_value(const char **value, const struct module *mod, ident id) {
   if (id > mod->idents.count) {
     EXCEPTF(EINVAL, "Unknown identifier id %d", id);
   }
@@ -16,13 +16,14 @@ static error idents_value(const char **value, struct module *mod, ident id) {
   return 0;
 }
 
-static ident idents_add(struct module *mod, const struct token *tok) {
+ident idents_add(struct module *mod, const struct token *tok) {
   assert(tok->t == TIDENT);
 
   struct idents *idents = &mod->idents;
 
   for (size_t n = 0; n < idents->count; ++n) {
-    if (strncmp(idents->values[n], tok->value, tok->len) == 0) {
+    if (strncmp(idents->values[n], tok->value, tok->len) == 0
+        && tok->value[tok->len] == '\0') {
       return n;
     }
   }
@@ -49,7 +50,7 @@ static ident idents_add(struct module *mod, const struct token *tok) {
 static error parse_modpath(struct module *mod, const char *fn) {
   for (size_t n = 0, last = 0, p = 0; fn[p] != '\0'; ++p) {
     if (fn[p] == '_') {
-      EXCEPTF(EINVAL, "module path element cannot contain '_' in '%s'", fn);
+      EXCEPTF(EINVAL, "Module path element cannot contain '_' in '%s'", fn);
     }
 
     if (fn[p] == '/') {
@@ -62,7 +63,7 @@ static error parse_modpath(struct module *mod, const char *fn) {
       last = p;
       n += 1;
       if (n >= ARRAY_SIZE(mod->path)) {
-        EXCEPTF(EINVAL, "module path '%s' has too many elements", fn);
+        EXCEPTF(EINVAL, "Module path '%s' has too many elements", fn);
       }
     }
   }
@@ -76,22 +77,22 @@ static error module_read(struct module *mod, const char *fn) {
 
   int fd = open(fn, O_RDONLY);
   if (fd < 0) {
-    EXCEPTF(errno, "open: %s", fn);
+    EXCEPTF(errno, "Cannot open module '%s'", fn);
   }
 
   struct stat st;
   memset(&st, 0, sizeof(st));
   e = fstat(fd, &st);
   if (e < 0) {
-    EXCEPTF(errno, "fstat: %s", fn);
+    EXCEPTF(errno, "Cannot stat module '%s'", fn);
   }
 
   char *data = malloc(st.st_size + 1);
   ssize_t count = read(fd, data, st.st_size);
   if (count < 0) {
-    EXCEPTF(errno, "read: %s", fn);
+    EXCEPTF(errno, "Error reading module '%s'", fn);
   } else if (count != (ssize_t) st.st_size) {
-    EXCEPTF(errno, "read: %s: Partial read not supported by parser", fn);
+    EXCEPTF(errno, "Reading module '%s': Partial read not supported by parser", fn);
   }
   data[st.st_size] = '\0';
 
@@ -221,8 +222,8 @@ static error p_number(struct node *node, struct module *mod) {
   memcpy(cpy, tok.value, tok.len);
   cpy[tok.len] = '\0';
 
-  node->which = STRING;
-  node->as.STRING.value = cpy;
+  node->which = NUMBER;
+  node->as.NUMBER.value = cpy;
 
   return 0;
 }
@@ -266,30 +267,86 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op);
 static error p_block(struct node *node, struct module *mod);
 static error p_deflet(struct node *node, struct module *mod, const struct toplevel *toplevel);
 
-static error p_unary_expr(struct node *node, struct module *mod) {
+static error p_expr_unary(struct node *node, struct module *mod) {
   struct token tok;
   error e = scan(&tok, mod);
   EXCEPT(e);
 
-  node->which = UN;
-  node->as.UN.operator = tok.t;
-
-  uint32_t prec = OP_PREC(tok.t);
+  uint32_t op;
   switch (tok.t) {
   case TMINUS:
-    prec = OP_PREC(TUMINUS);
+    op = TUMINUS;
     break;
   case TPLUS:
-    prec = OP_PREC(TUPLUS);
+    op = TUPLUS;
     break;
   default:
+    op = tok.t;
     break;
   }
 
-  e = p_expr(new_subnode(node), mod, prec);
+  node->which = UN;
+  node->as.UN.operator = op;
+
+  e = p_expr(new_subnode(node), mod, op);
   EXCEPT(e);
 
   return 0;
+}
+
+static error p_expr_init(struct node *node, const struct node *first,
+                         struct module *mod) {
+  node->which = INIT;
+
+  error e = scan_expected(mod, TLINIT);
+  EXCEPT(e);
+
+  struct token tok;
+
+  struct node *fst = new_subnode(node);
+  *fst = *first;
+
+  while (TRUE) {
+    e = scan(&tok, mod);
+    EXCEPT(e);
+
+    if (tok.t == TRINIT) {
+      return 0;
+    }
+    back(mod, &tok);
+
+    e = p_ident(new_subnode(node), mod);
+    EXCEPT(e);
+
+    e = scan_expected(mod, TASSIGN);
+    EXCEPT(e);
+
+    e = p_expr(new_subnode(node), mod, T__CALL);
+    EXCEPT(e);
+  }
+}
+
+static error p_expr_tuple(struct node *node, const struct node *first,
+                          struct module *mod) {
+  node->which = TUPLE;
+  error e;
+  struct token tok;
+
+  struct node *fst = new_subnode(node);
+  *fst = *first;
+
+  while (TRUE) {
+    e = scan(&tok, mod);
+    EXCEPT(e);
+
+    if (tok.t != TCOMMA) {
+      back(mod, &tok);
+      return 0;
+    }
+
+    e = p_expr(new_subnode(node), mod, TCOMMA);
+    EXCEPT(e);
+  }
 }
 
 static error p_expr_call(struct node *node, const struct node *first,
@@ -298,16 +355,19 @@ static error p_expr_call(struct node *node, const struct node *first,
   error e;
   struct token tok;
 
+  struct node *function = new_subnode(node);
+  *function = *first;
+
   while (TRUE) {
     e = scan(&tok, mod);
     EXCEPT(e);
     back(mod, &tok);
 
-    if (tok.t == TEOL || tok.t == TEOB || tok.t == TSOB) {
+    if (expr_terminators[tok.t]) {
       return 0;
     }
 
-    e = p_expr(new_subnode(node), mod, T__NONE);
+    e = p_expr(new_subnode(node), mod, T__CALL);
     EXCEPT(e);
   }
 }
@@ -318,18 +378,26 @@ static error p_expr_binary(struct node *node, const struct node *first,
   error e = scan(&tok, mod);
   EXCEPT(e);
 
+  assert(tok.t != TCOMMA);
   node->which = BIN;
   node->as.BIN.operator = tok.t;
 
-  e = p_expr(new_subnode(node), mod, OP_PREC(tok.t));
+  struct node *left = new_subnode(node);
+  *left = *first;
+
+  e = p_expr(new_subnode(node), mod, tok.t);
   EXCEPT(e);
 
   return 0;
 }
 
 static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
+  assert(parent_op < TOKEN__NUM && IS_OP(parent_op));
+
   error e;
   struct token tok;
+  bool first_iteration = TRUE;
+  bool topmost = parent_op == T__NONE;
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -349,8 +417,7 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
     if (tok.t == Tnull) {
       e = scan(&tok, mod);
       EXCEPT(e);
-      node->which = NUL;
-      return 0;
+      first.which = NUL;
     } else if (tok.t == TIDENT) {
       e = p_ident(&first, mod);
     } else if (tok.t == TNUMBER) {
@@ -359,13 +426,14 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
       e = p_string(&first, mod);
     } else if ((IS_OP(tok.t) && OP_UNARY(tok.t))
                || tok.t == TMINUS || tok.t == TPLUS) { // Unary versions.
-      e = p_unary_expr(&first, mod);
+      e = p_expr_unary(&first, mod);
     } else {
       UNEXPECTED(mod, &tok);
     }
     EXCEPT(e);
   }
 
+even_more:
   e = scan(&tok, mod);
   EXCEPT(e);
   back(mod, &tok);
@@ -376,47 +444,66 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
     EXCEPT_SYNTAX(mod, &tok, "Operator '%.*s' is non-associative", (int)tok.len, tok.value);
   }
 
-  if (IS_OP(tok.t) && OP_BINARY(tok.t)) {
-    if (OP_PREC(tok.t) < OP_PREC(parent_op)
-        || (OP_PREC(tok.t) == OP_PREC(parent_op)
-            && OP_ASSOC(tok.t) == ASSOC_RIGHT)) {
-      e = p_expr_binary(&second, &first, mod);
-      EXCEPT(e);
-      goto even_more;
-    }
-  } else if (!expr_terminators[tok.t]) {
-    if (OP_PREC(T__CALL) < OP_PREC(parent_op)) {
-      e = p_expr_call(&second, &first, mod);
-      EXCEPT(e);
-      goto even_more;
-    }
+  if (first_iteration) {
+    first_iteration = FALSE;
   } else {
-    *node = first;
-    return 0;
+    first = second;
+    memset(&second, 0, sizeof(second));
   }
 
-  EXCEPT(e);
+  if (expr_terminators[tok.t]) {
+    goto done;
+  } else if (IS_OP(tok.t) && OP_BINARY(tok.t)) {
+    if (tok.t == TCOMMA) {
+      if (OP_PREC(tok.t) < OP_PREC(parent_op)
+          || topmost) {
+        e = p_expr_tuple(&second, &first, mod);
+        EXCEPT(e);
 
-even_more:
-  first = second;
-  memset(&second, 0, sizeof(second));
+        goto even_more;
+      } else {
+        goto done;
+      }
+    } else if (tok.t == TLINIT) {
+      if (OP_PREC(tok.t) < OP_PREC(parent_op)
+          || topmost) {
+        e = p_expr_init(&second, &first, mod);
+        EXCEPT(e);
 
-  e = scan(&tok, mod);
-  EXCEPT(e);
-  back(mod, &tok);
+        goto even_more;
+      } else {
+        goto done;
+      }
+    } else if (OP_PREC(tok.t) < OP_PREC(parent_op)
+        || (OP_PREC(tok.t) == OP_PREC(parent_op)
+            && OP_ASSOC(tok.t) == ASSOC_RIGHT)
+        || topmost) {
+      e = p_expr_binary(&second, &first, mod);
+      EXCEPT(e);
 
-  if (IS_OP(tok.t) && OP_BINARY(tok.t)
-      && (OP_PREC(tok.t) < OP_PREC(parent_op)
-          || (OP_PREC(tok.t) == OP_PREC(parent_op)
-              && OP_ASSOC(tok.t) == ASSOC_RIGHT))) {
-    e = p_expr_binary(&first, &second, mod);
+      if (topmost) {
+        parent_op = tok.t;
+      }
+
+      goto even_more;
+    } else {
+      goto done;
+    }
+  } else if (OP_PREC(T__CALL) < OP_PREC(parent_op) || topmost) {
+    e = p_expr_call(&second, &first, mod);
+    if (topmost) {
+      parent_op = T__CALL;
+    }
     EXCEPT(e);
 
     goto even_more;
   } else {
-    *node = first;
-    return 0;
+    goto done;
   }
+
+done:
+  *node = first;
+  return 0;
 }
 
 static error p_return(struct node *node, struct module *mod) {
@@ -596,6 +683,7 @@ again:
   e = scan(&tok, mod);
   EXCEPT(e);
   if (tok.t != TBWOR) {
+    back(mod, &tok);
     mod->parser.inject_eol_after_eob = TRUE;
     return 0;
   }
@@ -755,13 +843,16 @@ again:
 
 static error p_deffun(struct node *node, struct module *mod, const struct toplevel *toplevel,
                       enum type_node fun_or_method) {
+  struct toplevel *node_toplevel;
   node->which = fun_or_method;
   switch (fun_or_method) {
   case DEFFUN:
     node->as.DEFFUN.toplevel = *toplevel;
+    node_toplevel = &node->as.DEFFUN.toplevel;
     break;
   case DEFMETHOD:
     node->as.DEFMETHOD.toplevel = *toplevel;
+    node_toplevel = &node->as.DEFMETHOD.toplevel;
     break;
   default:
     assert(FALSE);
@@ -798,6 +889,7 @@ retval:
 
   if (tok.t == TEOL || tok.t == TEOB) {
     back(mod, &tok);
+    node_toplevel->is_prototype = TRUE;
     return 0;
   }
 
@@ -832,7 +924,7 @@ again:
 static error p_delegate(struct node *node, struct module *mod) {
   node->which = DELEGATE;
 
-  error e = p_expr(new_subnode(node), mod, T__NONE);
+  error e = p_expr(new_subnode(node), mod, T__CALL);
   EXCEPT(e);
 
   struct token tok;
@@ -846,7 +938,7 @@ again:
     return 0;
   }
 
-  e = p_expr(new_subnode(node), mod, T__NONE);
+  e = p_expr(new_subnode(node), mod, T__CALL);
   EXCEPT(e);
 
   goto again;
@@ -940,6 +1032,7 @@ static error p_deftype(struct node *node, struct module *mod, const struct tople
 
   if (tok.t == TEOL) {
     back(mod, &tok);
+    node->as.DEFTYPE.toplevel.is_prototype = TRUE;
     return 0;
   }
 
@@ -962,6 +1055,65 @@ static error p_deflet(struct node *node, struct module *mod, const struct toplev
   EXCEPT(e);
   node->as.DEFLET.toplevel = *toplevel;
   return 0;
+}
+
+static error p_import_path(struct node *node, struct module *mod) {
+  node->which = IMPORT_PATH;
+
+  error e;
+  struct token tok;
+
+  e = p_ident(new_subnode(node), mod);
+  EXCEPT(e);
+
+again:
+  e = scan(&tok, mod);
+  EXCEPT(e);
+
+  if (tok.t != TDOT) {
+    back(mod, &tok);
+    return 0;
+  }
+
+  p_ident(new_subnode(node), mod);
+
+  goto again;
+}
+
+static error p_import(struct node *node, struct module *mod, const struct toplevel *toplevel,
+                      bool is_export) {
+  node->which = IMPORT;
+  node->as.IMPORT.toplevel = *toplevel;
+  node->as.IMPORT.is_export = is_export;
+
+  error e = p_import_path(new_subnode(node), mod);
+  EXCEPT(e);
+
+  struct token tok;
+  e = scan(&tok, mod);
+  EXCEPT(e);
+
+  if (tok.t != Timport && tok.t != Texport) {
+    back(mod, &tok);
+    return 0;
+  }
+
+again:
+  e = scan(&tok, mod);
+  EXCEPT(e);
+
+  if (tok.t == TTIMES) {
+    node->as.IMPORT.is_all = TRUE;
+    goto again;
+  } else if (tok.t == TIDENT) {
+    e = p_ident(new_subnode(node), mod);
+    EXCEPT(e);
+
+    goto again;
+  } else {
+    back(mod, &tok);
+    return 0;
+  }
 }
 
 static error p_toplevel(struct module *mod) {
@@ -1013,6 +1165,11 @@ again:
     toplevel.scope = idents_add(mod, &tok);
     is_method = TRUE;
     goto again;
+  case Tfrom:
+  case Timport:
+  case Texport:
+    e = p_import(node, mod, &toplevel, tok.t == Texport);
+    break;
   default:
     EXCEPT_SYNTAX(mod, &tok, "malformed top-level statement at '%.*s'", (int)tok.len, tok.value);
     break;

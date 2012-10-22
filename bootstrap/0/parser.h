@@ -7,21 +7,16 @@
 typedef uint32_t ident;
 
 enum type_node {
-  NUL,
-  SIZEOF,
+  NUL = 1,
   IDENT,
   NUMBER,
   STRING,
-  ASSIGN,
-  ASSIGNOP,
   BIN,
   UN,
   TUPLE,
   REF,
   DEREF,
-  MEMBER,
   CALL,
-  BLOCK,
   INIT,
   RETURN,
   FOR,
@@ -43,21 +38,20 @@ enum type_node {
   PRE,
   POST,
   INVARIANT,
-  ISALIST,
   EXAMPLE,
-  FIELD,
+  ISALIST,
   IMPORT,
-  EXPORT,
+  IMPORT_PATH,
 };
 
 struct toplevel {
   bool is_inline;
   bool is_extern;
   ident scope;
+  bool is_prototype;
 };
 
 struct node_nul {};
-struct node_sizeof {};
 struct node_ident {
   ident value;
 };
@@ -66,10 +60,6 @@ struct node_number {
 };
 struct node_string {
   const char *value;
-};
-struct node_assign {};
-struct node_assignop {
-  enum token_type operator;
 };
 struct node_bin {
   enum token_type operator;
@@ -120,28 +110,28 @@ struct node_deflet {
 };
 struct node_isalist {};
 struct node_delegate {};
-struct node_field {};
+struct node_pre {};
+struct node_post {};
+struct node_invariant {};
+struct node_example {};
 struct node_import {
+  struct toplevel toplevel;
+  bool is_export;
+  bool is_all;
 };
-struct node_export {
-};
+struct node_import_path {};
 
 union choice_node {
   struct node_nul NUL;
-  struct node_sizeof SIZEOF;
   struct node_ident IDENT;
   struct node_number NUMBER;
   struct node_string STRING;
-  struct node_assign ASSIGN;
-  struct node_assignop ASSIGNOP;
   struct node_bin BIN;
   struct node_un UN;
   struct node_tuple TUPLE;
   struct node_ref REF;
   struct node_deref DEREF;
-  struct node_member MEMBER;
   struct node_call CALL;
-  struct node_block BLOCK;
   struct node_init INIT;
   struct node_return RETURN;
   struct node_break BREAK;
@@ -157,9 +147,12 @@ union choice_node {
   struct node_defintf DEFINTF;
   struct node_deflet DEFLET;
   struct node_delegate DELEGATE;
-  struct node_field FIELD;
+  struct node_pre PRE;
+  struct node_post POST;
+  struct node_invariant INVARIANT;
+  struct node_example EXAMPLE;
   struct node_import IMPORT;
-  struct node_export EXPORT;
+  struct node_import_path IMPORT_PATH;
 };
 
 struct node {
@@ -187,5 +180,7 @@ struct module {
 };
 
 error module_open(struct module *mod, const char *fn);
+error idents_value(const char **value, const struct module *mod, ident id);
+ident idents_add(struct module *mod, const struct token *tok);
 
 #endif
