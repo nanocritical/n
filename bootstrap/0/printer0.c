@@ -5,6 +5,98 @@
 
 #include "printer.h"
 
+const char *tokens_string[TOKEN__NUM] = {
+  [Timport] = "import",
+  [Texport] = "export",
+  [Tfrom] = "from",
+  [Ttype] = "type",
+  [Textern] = "extern",
+  [Tfun] = "fun",
+  [Tmethod] = "method",
+  [Tunion] = "union",
+  [Tintf] = "intf",
+  [Tinline] = "inline",
+  [Tlet] = "let",
+  [Tdyn] = "dyn",
+  [Tif] = "if",
+  [Telif] = "elif",
+  [Telse] = "else",
+  [Tfor] = "for",
+  [Tin] = "in",
+  [Twhile] = "while",
+  [Tcontinue] = "continue",
+  [Tbreak] = "break",
+  [Tmatch] = "match",
+  [Treturn] = "return",
+  [Ttry] = "try",
+  [Tcatch] = "catch",
+  [Texcept] = "except",
+  [Tthrow] = "throw",
+  [Tblock] = "block",
+  [Tdelegate] = "delegate",
+  [Tdeclare] = "declare",
+  [Tand] = " and ",
+  [Tor] = " or ",
+  [Tnot] = "not",
+  [Tisa] = " isa ",
+  [Tnull] = "null",
+  [Tpass] = "pass",
+  [Tpre] = "pre",
+  [Tpost] = "post",
+  [Tinvariant] = "invariant",
+  [Texample] = "example",
+
+  [TASSIGN] = " = ",
+  [TEQ] = " == ",
+  [TNE] = " != ",
+  [TLE] = " <= ",
+  [TLT] = " < ",
+  [TGT] = " > ",
+  [TGE] = " >= ",
+  [TPLUS] = " + ",
+  [TMINUS] = " - ",
+  [TUPLUS] = "+",
+  [TUMINUS] = "-",
+  [TTIMES] = " * ",
+  [TDIVIDE] = " / ",
+  [TMODULO] = " % ",
+  [TBWAND] = " & ",
+  [TBWOR] = " | ",
+  [TBWXOR] = " ^ ",
+  [TRSHIFT] = " >> ",
+  [TLSHIFT] = " << ",
+  [TPLUS_ASSIGN] = " += ",
+  [TMINUS_ASSIGN] = " -= ",
+  [TTIMES_ASSIGN] = " *= ",
+  [TDIVIDE_ASSIGN] = " /= ",
+  [TMODULO_ASSIGN] = " %= ",
+  [TBWAND_ASSIGN] = " &= ",
+  [TBWOR_ASSIGN] = " |= ",
+  [TBWXOR_ASSIGN] = " ^= ",
+  [TRSHIFT_ASSIGN] = " >>= ",
+  [TLSHIFT_ASSIGN] = " <<= ",
+  [TUBWNOT] = " ~",
+  [TARROW] = " -> ",
+  [TCOLON] = ":",
+  [TCOMMA] = ", ",
+  [TSEMICOLON] = "; ",
+  [TDOT] = ".",
+  [TBANG] = "!",
+  [TSHARP] = "#",
+  [TREFDOT] = "@",
+  [TREFBANG] = "@!",
+  [TREFSHARP] = "@#",
+  [TNULREFDOT] = "?@",
+  [TNULREFBANG] = "?@!",
+  [TNULREFSHARP] = "?@#",
+  [TDOTDOTDOT] = "...",
+  [TSLICEBRAKETS] = "[]",
+  [TLINIT] = "{{",
+  [TRINIT] = "}}",
+  [TLPAR] = "(",
+  [TRPAR] = ")",
+};
+
 static void print_token(FILE *out, enum token_type t) {
   fprintf(out, "%s", tokens_string[t]);
 }
@@ -114,7 +206,6 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
 
 static void print_expr(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const char *val = NULL;
-  error e;
 
   switch (node->which) {
   case NUL:
@@ -122,8 +213,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     fprintf(out, "null");
     break;
   case IDENT:
-    e = idents_value(&val, mod, node->as.IDENT.value);
-    assert(e == 0);
+    val = idents_value(mod, node->as.IDENT.name);
     fprintf(out, "%s", val);
     break;
   case NUMBER:
@@ -307,6 +397,7 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
 }
 
 static void print_block(FILE *out, const struct module *mod, int indent, const struct node *node) {
+  assert(node->which == BLOCK);
   fprintf(out, "\n");
   for (size_t n = 0; n < node->subs_count; ++n) {
     const struct node *statement = &node->subs[n];
@@ -432,9 +523,7 @@ static void print_defmethod(FILE *out, const struct module *mod, int indent, con
   const struct node *name = &node->subs[0];
   const struct node *retval = &node->subs[1 + arg_count];
 
-  const char *scope = NULL;
-  error e = idents_value(&scope, mod, node->as.DEFMETHOD.toplevel.scope);
-  assert(e == 0);
+  const char *scope = idents_value(mod, node->as.DEFMETHOD.toplevel.scope);
 
   fprintf(out, "%s method ", scope);
   print_expr(out, mod, name, T__NONE);

@@ -111,7 +111,6 @@ normal:
   "continue" { R(Tcontinue); }
   "break" { R(Tbreak); }
   "match" { R(Tmatch); }
-  "except" { R(Texcept); }
   "return" { R(Treturn); }
   "try" { R(Ttry); }
   "catch" { R(Tcatch); }

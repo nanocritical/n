@@ -90,7 +90,7 @@ type test3 = interfaces \
     compiler.return_by_copy
   t:test
 
-fun foo x:i32 = r:i32
+fun foobar x:i32 = r:i32
   pre -> x != 0
   post -> r != 0
 

@@ -4,7 +4,9 @@ set -e
 
 re2c -o lexer.c lexer.re
 
-gcc -g -Wall -std=c99 -o ncc0 ncc0.c lexer.c parser0.c printer0.c
+gcc -g -Wall -std=c99 -o ncc0 ncc0.c lexer.c parser0.c printer0.c \
+	firstpass0.c \
+	hash.c bitops.c
 
 for all in t[0-9]*.n; do
   t=$(basename $all .n)
