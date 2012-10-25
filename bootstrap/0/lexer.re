@@ -97,7 +97,6 @@ normal:
   "extern" { R(Textern); }
   "fun" { R(Tfun); }
   "method" { R(Tmethod); }
-  "union" { R(Tunion); }
   "intf" { R(Tintf); }
   "inline" { R(Tinline); }
   "dyn" { R(Tdyn); }

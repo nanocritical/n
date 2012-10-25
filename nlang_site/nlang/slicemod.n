@@ -2,10 +2,10 @@ from nlang.prelude import *
 from nlang.containers import *
 
 intf slice_allocator =
-  (method! t) slice_alloc s:@![]t len:size = void
-  (method! t) slice_free s:@![]t = void
-  (method! t) slice_resize s:@![]t len:size = void
-  (method! t) slice_copy dst:@![]t src:@[]t = void
+  (method! t) slice_alloc s:@#[]t len:size = void
+  (method! t) slice_free s:@#[]t = void
+  (method! t) slice_resize s:@#[]t len:size = void
+  (method! t) slice_copy dst:@#[]t src:@[]t = void
 
 
 (fun r:(nlang.meta.any_ref u8)) _unsafe_slice_addr data:r elsize:size n:size = r

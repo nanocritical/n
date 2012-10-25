@@ -207,7 +207,7 @@ size ssize_operator_hash__(nlangcp__ssize self) { return *self; }
 u8 u8_operator_plus__(nlangcp__u8 self, nlangcp__u8 other) { return *self + *other; }
 u8 u8_operator_minus__(nlangcp__u8 self, nlangcp__u8 other) { return *self - *other; }
 u8 u8_operator_times__(nlangcp__u8 self, nlangcp__u8 other) { return *self * *other; }
-u8 u8_operator_divids__(nlangcp__u8 self, nlangcp__u8 other) { return *self / *other; }
+u8 u8_operator_divide__(nlangcp__u8 self, nlangcp__u8 other) { return *self / *other; }
 u8 u8_operator_modulo__(nlangcp__u8 self, nlangcp__u8 other) { return *self % *other; }
 u8 u8_operator_neg__(nlangcp__u8 self) { return - *self; }
 u8 u8_operator_rshift__(nlangcp__u8 self, size n) { return *self >> n; }
@@ -226,7 +226,7 @@ bool u8_operator_ge__(nlangcp__u8 self, nlangcp__u8 other) { return *self >= *ot
 u16 u16_operator_plus__(nlangcp__u16 self, nlangcp__u16 other) { return *self + *other; }
 u16 u16_operator_minus__(nlangcp__u16 self, nlangcp__u16 other) { return *self - *other; }
 u16 u16_operator_times__(nlangcp__u16 self, nlangcp__u16 other) { return *self * *other; }
-u16 u16_operator_divids__(nlangcp__u16 self, nlangcp__u16 other) { return *self / *other; }
+u16 u16_operator_divide__(nlangcp__u16 self, nlangcp__u16 other) { return *self / *other; }
 u16 u16_operator_modulo__(nlangcp__u16 self, nlangcp__u16 other) { return *self % *other; }
 u16 u16_operator_neg__(nlangcp__u16 self) { return - *self; }
 u16 u16_operator_rshift__(nlangcp__u16 self, size n) { return *self >> n; }
@@ -245,7 +245,7 @@ bool u16_operator_ge__(nlangcp__u16 self, nlangcp__u16 other) { return *self >= 
 u32 u32_operator_plus__(nlangcp__u32 self, nlangcp__u32 other) { return *self + *other; }
 u32 u32_operator_minus__(nlangcp__u32 self, nlangcp__u32 other) { return *self - *other; }
 u32 u32_operator_times__(nlangcp__u32 self, nlangcp__u32 other) { return *self * *other; }
-u32 u32_operator_divids__(nlangcp__u32 self, nlangcp__u32 other) { return *self / *other; }
+u32 u32_operator_divide__(nlangcp__u32 self, nlangcp__u32 other) { return *self / *other; }
 u32 u32_operator_modulo__(nlangcp__u32 self, nlangcp__u32 other) { return *self % *other; }
 u32 u32_operator_neg__(nlangcp__u32 self) { return - *self; }
 u32 u32_operator_rshift__(nlangcp__u32 self, size n) { return *self >> n; }
@@ -264,7 +264,7 @@ bool u32_operator_ge__(nlangcp__u32 self, nlangcp__u32 other) { return *self >= 
 u64 u64_operator_plus__(nlangcp__u64 self, nlangcp__u64 other) { return *self + *other; }
 u64 u64_operator_minus__(nlangcp__u64 self, nlangcp__u64 other) { return *self - *other; }
 u64 u64_operator_times__(nlangcp__u64 self, nlangcp__u64 other) { return *self * *other; }
-u64 u64_operator_divids__(nlangcp__u64 self, nlangcp__u64 other) { return *self / *other; }
+u64 u64_operator_divide__(nlangcp__u64 self, nlangcp__u64 other) { return *self / *other; }
 u64 u64_operator_modulo__(nlangcp__u64 self, nlangcp__u64 other) { return *self % *other; }
 u64 u64_operator_neg__(nlangcp__u64 self) { return - *self; }
 u64 u64_operator_rshift__(nlangcp__u64 self, size n) { return *self >> n; }
@@ -283,7 +283,7 @@ bool u64_operator_ge__(nlangcp__u64 self, nlangcp__u64 other) { return *self >= 
 i8 i8_operator_plus__(nlangcp__i8 self, nlangcp__i8 other) { return *self + *other; }
 i8 i8_operator_minus__(nlangcp__i8 self, nlangcp__i8 other) { return *self - *other; }
 i8 i8_operator_times__(nlangcp__i8 self, nlangcp__i8 other) { return *self * *other; }
-i8 i8_operator_divids__(nlangcp__i8 self, nlangcp__i8 other) { return *self / *other; }
+i8 i8_operator_divide__(nlangcp__i8 self, nlangcp__i8 other) { return *self / *other; }
 i8 i8_operator_modulo__(nlangcp__i8 self, nlangcp__i8 other) { return *self % *other; }
 i8 i8_operator_neg__(nlangcp__i8 self) { return - *self; }
 i8 i8_operator_rshift__(nlangcp__i8 self, size n) { return *self >> n; }
@@ -302,7 +302,7 @@ bool i8_operator_ge__(nlangcp__i8 self, nlangcp__i8 other) { return *self >= *ot
 i16 i16_operator_plus__(nlangcp__i16 self, nlangcp__i16 other) { return *self + *other; }
 i16 i16_operator_minus__(nlangcp__i16 self, nlangcp__i16 other) { return *self - *other; }
 i16 i16_operator_times__(nlangcp__i16 self, nlangcp__i16 other) { return *self * *other; }
-i16 i16_operator_divids__(nlangcp__i16 self, nlangcp__i16 other) { return *self / *other; }
+i16 i16_operator_divide__(nlangcp__i16 self, nlangcp__i16 other) { return *self / *other; }
 i16 i16_operator_modulo__(nlangcp__i16 self, nlangcp__i16 other) { return *self % *other; }
 i16 i16_operator_neg__(nlangcp__i16 self) { return - *self; }
 i16 i16_operator_rshift__(nlangcp__i16 self, size n) { return *self >> n; }
@@ -321,7 +321,7 @@ bool i16_operator_ge__(nlangcp__i16 self, nlangcp__i16 other) { return *self >= 
 i32 i32_operator_plus__(nlangcp__i32 self, nlangcp__i32 other) { return *self + *other; }
 i32 i32_operator_minus__(nlangcp__i32 self, nlangcp__i32 other) { return *self - *other; }
 i32 i32_operator_times__(nlangcp__i32 self, nlangcp__i32 other) { return *self * *other; }
-i32 i32_operator_divids__(nlangcp__i32 self, nlangcp__i32 other) { return *self / *other; }
+i32 i32_operator_divide__(nlangcp__i32 self, nlangcp__i32 other) { return *self / *other; }
 i32 i32_operator_modulo__(nlangcp__i32 self, nlangcp__i32 other) { return *self % *other; }
 i32 i32_operator_neg__(nlangcp__i32 self) { return - *self; }
 i32 i32_operator_rshift__(nlangcp__i32 self, size n) { return *self >> n; }
@@ -340,7 +340,7 @@ bool i32_operator_ge__(nlangcp__i32 self, nlangcp__i32 other) { return *self >= 
 i64 i64_operator_plus__(nlangcp__i64 self, nlangcp__i64 other) { return *self + *other; }
 i64 i64_operator_minus__(nlangcp__i64 self, nlangcp__i64 other) { return *self - *other; }
 i64 i64_operator_times__(nlangcp__i64 self, nlangcp__i64 other) { return *self * *other; }
-i64 i64_operator_divids__(nlangcp__i64 self, nlangcp__i64 other) { return *self / *other; }
+i64 i64_operator_divide__(nlangcp__i64 self, nlangcp__i64 other) { return *self / *other; }
 i64 i64_operator_modulo__(nlangcp__i64 self, nlangcp__i64 other) { return *self % *other; }
 i64 i64_operator_neg__(nlangcp__i64 self) { return - *self; }
 i64 i64_operator_rshift__(nlangcp__i64 self, size n) { return *self >> n; }
@@ -359,7 +359,7 @@ bool i64_operator_ge__(nlangcp__i64 self, nlangcp__i64 other) { return *self >= 
 size size_operator_plus__(nlangcp__size self, nlangcp__size other) { return *self + *other; }
 size size_operator_minus__(nlangcp__size self, nlangcp__size other) { return *self - *other; }
 size size_operator_times__(nlangcp__size self, nlangcp__size other) { return *self * *other; }
-size size_operator_divids__(nlangcp__size self, nlangcp__size other) { return *self / *other; }
+size size_operator_divide__(nlangcp__size self, nlangcp__size other) { return *self / *other; }
 size size_operator_modulo__(nlangcp__size self, nlangcp__size other) { return *self % *other; }
 size size_operator_neg__(nlangcp__size self) { return - *self; }
 size size_operator_rshift__(nlangcp__size self, size n) { return *self >> n; }
@@ -378,7 +378,7 @@ bool size_operator_ge__(nlangcp__size self, nlangcp__size other) { return *self 
 ssize ssize_operator_plus__(nlangcp__ssize self, nlangcp__ssize other) { return *self + *other; }
 ssize ssize_operator_minus__(nlangcp__ssize self, nlangcp__ssize other) { return *self - *other; }
 ssize ssize_operator_times__(nlangcp__ssize self, nlangcp__ssize other) { return *self * *other; }
-ssize ssize_operator_divids__(nlangcp__ssize self, nlangcp__ssize other) { return *self / *other; }
+ssize ssize_operator_divide__(nlangcp__ssize self, nlangcp__ssize other) { return *self / *other; }
 ssize ssize_operator_modulo__(nlangcp__ssize self, nlangcp__ssize other) { return *self % *other; }
 ssize ssize_operator_neg__(nlangcp__ssize self) { return - *self; }
 ssize ssize_operator_rshift__(nlangcp__ssize self, size n) { return *self >> n; }

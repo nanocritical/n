@@ -3,13 +3,13 @@ from nlang.slicemod import *
 import nlang.memory
 
 type allocator = nlang.memory.allocator slice_allocator
-  (method! t) alloc = @!t
-    return (nlang.unsafe.cast @!t @!u8) (nlang.unsafe.malloc (sizeof t))
+  (method! t) alloc = @#t
+    return (nlang.unsafe.cast @#t @!u8) (nlang.unsafe.malloc (sizeof t))
 
   (method! t) free x:@#t = void
     nlang.unsafe.free ((nlang.unsafe.cast @!u8 @#t) x) (sizeof t)
 
-  (method! t) copy x:@t = @!t
+  (method! t) copy x:@t = @#t
     let r = self!alloc
       nlang.unsafe.memcpy r x
     return r

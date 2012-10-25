@@ -1,0 +1,27 @@
+fun main = i32
+  let x = 1:i32
+  let y = 2 + x
+  return 0 + y
+
+fun main2 = i32
+  return 0
+
+fun foo = string
+  return 'test'
+
+inline fun other4 x:i32 = i32
+extern fun other5 x:i32 = i32
+
+intf ia =
+  method foo x:i32 = i32
+
+type test = ia
+  t:test
+
+test method foo x:i32 = i32
+  let x = 0
+  return x
+
+fun foobar x:i32 = i32
+  pre -> x != 0
+  post -> x != 0

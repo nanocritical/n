@@ -27,7 +27,7 @@ typedef int error;
 
 #define EXCEPT(e) do { \
   if (e) { \
-    fprintf(stderr, "\tE: %s:%d:%s()\n", __FILE__, __LINE__, __func__); \
+    fprintf(stderr, "\tE: %s:%d: %s()\n", __FILE__, __LINE__, __func__); \
     return e; \
   } \
 } while (0)
@@ -35,7 +35,7 @@ typedef int error;
 #define EXCEPTF(e, fmt, ...) do { \
   if (e) { \
     fprintf(stderr, fmt "\n", ##__VA_ARGS__); \
-    fprintf(stderr, "\tE: %s:%d:%s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
+    fprintf(stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
     return e; \
   } \
 } while (0)

@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 int main(int argc, char **argv) {
   for (int i = 1; i < argc; ++i) {
@@ -13,6 +14,11 @@ int main(int argc, char **argv) {
     EXCEPT(e);
 
     step zeropass_down[] = {
+      step_add_builtin_members,
+      step_add_builtin_functions,
+      step_add_builtin_methods,
+      step_add_builtin_self,
+      step_add_codegen_variables,
       NULL,
     };
     step zeropass_up[] = {
@@ -22,12 +28,13 @@ int main(int argc, char **argv) {
 
     step firstpass_down[] = {
       step_lexical_scoping,
-      step_add_builtins,
-      step_add_implicit_variables,
+      step_type_definitions,
+      step_type_destruct_mark,
+      step_type_gather_returns,
+      step_type_gather_excepts,
       NULL,
     };
     step firstpass_up[] = {
-      step_type_destructuring,
       step_type_inference,
       step_operator_call_inference,
       step_unary_call_inference,
@@ -45,7 +52,7 @@ int main(int argc, char **argv) {
     EXCEPT(e);
 
     char *out_fn = malloc(strlen(argv[i]) + 4 + 1);
-    sprintf(out_fn, "%s.out", argv[i]);
+    sprintf(out_fn, "%s.tree", argv[i]);
 
     int fd = creat(out_fn, 00600);
     if (fd < 0) {
@@ -53,6 +60,23 @@ int main(int argc, char **argv) {
     }
     free(out_fn);
 
-    printer_pretty(fd, &mod);
+    e = printer_tree(fd, &mod, NULL);
+    EXCEPT(e);
+    close(fd);
+
+    out_fn = malloc(strlen(argv[i]) + 6 + 1);
+    sprintf(out_fn, "%s.pretty", argv[i]);
+
+    fd = creat(out_fn, 00600);
+    if (fd < 0) {
+      EXCEPTF(errno, "Cannot open output file '%s'", out_fn);
+    }
+    free(out_fn);
+
+    e = printer_pretty(fd, &mod);
+    EXCEPT(e);
+    close(fd);
   }
+
+  return 0;
 }

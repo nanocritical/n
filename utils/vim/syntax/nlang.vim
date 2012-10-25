@@ -2,7 +2,7 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword nDecl type fun method union intf dynintf import export delegate from inline field
+syn keyword nDecl type fun method union intf dynintf import export delegate from inline lambda
 
 syn keyword nKeyword pre _pre post _post invariant _invariant example _example assert
 syn keyword nKeyword contract honors _honors pretag posttag tag
