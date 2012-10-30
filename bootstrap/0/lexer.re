@@ -219,6 +219,7 @@ eol:
   "\t" { spaces += 8; goto eol; }
   "\r" { goto eol; }
   "\n" { spaces = 0; goto eol; }
+  "--" { goto comment_while_eol; }
   ANY {
     YYCURSOR -= 1;
     if (spaces == parser->indent) {
@@ -292,6 +293,12 @@ string:
 comment:
 /*!re2c
   "\n" { YYCURSOR -= 1; goto normal; }
+  ANY { goto comment; }
+ */
+
+comment_while_eol:
+/*!re2c
+  "\n" { YYCURSOR -= 1; goto eol; }
   ANY { goto comment; }
  */
 }
