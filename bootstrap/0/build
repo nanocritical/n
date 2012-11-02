@@ -2,19 +2,10 @@
 
 set -e
 
+cd $(dirname $0)
+
 re2c -o lexer.c lexer.re
 
 gcc -g -Wall -std=c99 -o ncc0 ncc0.c lexer.c parser0.c printer0.c \
 	firstpass0.c \
 	hash.c bitops.c
-
-if (( $# > 0)); then
-	tests=$*
-else
-	tests=$(ls t[0-9]*.n)
-fi
-
-for all in $tests; do
-  t=$(basename $all .n)
-  ( ./ncc0 $all && cmp $t.n.out $t.n.result ) || echo FAILED $t
-done

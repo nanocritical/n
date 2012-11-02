@@ -419,7 +419,7 @@ static error parse_modpath(struct module *mod, const char *fn) {
       mod->path[n] = idents_add(mod, &tok);
       mod->path_len += 1;
 
-      last = p;
+      last = p + 1;
       n += 1;
       if (n >= ARRAY_SIZE(mod->path)) {
         EXCEPTF(EINVAL, "Module path '%s' has too many elements", fn);

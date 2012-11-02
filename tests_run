@@ -1,0 +1,47 @@
+#!/bin/bash
+
+WD="$(dirname $0)/"
+if [ "$WD" == "./" ]; then
+	WD=""
+fi
+
+list=$*
+if [ -z "$list" ]; then
+	list=${WD}t/[0-9][0-9]/*.n
+fi
+
+for t in $list; do
+	if [ -f $t.stderr ]; then
+		${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out
+		err=$?
+		if (( $err == 0 )); then
+		        echo $t
+			echo "FAILED $t"
+		fi
+		cmp $t.stderr $t.stderr.out
+		err=$?
+		if (( $err != 0 )); then
+			echo "FAILED $t.stderr"
+			cat $t.stderr.out
+		fi
+	else
+		${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out
+		err=$?
+		if (( $err != 0 )); then
+			echo "FAILED $t"
+			cat $t.stderr.out
+		fi
+		if ! [ -s $t.stderr.out ]; then
+			# Remove empty.
+			rm $t.stderr.out
+		fi
+	fi
+	if [ -n "$err" ]; then
+		continue
+	fi
+	for all in stderr tree pretty; do
+		if [ -f $t.$all ] || [ -f $t.$all.out ]; then
+			cmp $t.$all $t.$all.out || echo "FAILED $t.$all"
+		fi
+	done
+done

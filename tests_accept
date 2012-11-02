@@ -1,0 +1,14 @@
+#!/bin/bash
+
+list=$*
+if [ -z "$list" ]; then
+	list=t/[0-9][0-9]/*.n
+fi
+
+for t in $list; do
+	for all in stderr tree pretty; do
+		if [ -f $t.$all.out ]; then
+			cp -p $t.$all.out $t.$all
+		fi
+	done
+done

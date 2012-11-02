@@ -1,0 +1,46 @@
+extern inline type void =
+
+extern inline type literal_null =
+
+extern inline type literal_number =
+
+extern inline type pseudo_tuple =
+
+extern inline type bool =
+
+extern inline type i8 =
+
+extern inline type i16 =
+
+extern inline type i32 =
+
+extern inline type i64 =
+
+extern inline type u8 =
+
+extern inline type u16 =
+
+extern inline type u32 =
+
+extern inline type u64 =
+
+extern inline type string =
+
+extern inline type size =
+
+extern inline type ssize =
+
+extern inline type ref =
+
+extern inline type mref =
+
+extern inline type mmref =
+
+extern inline type nref =
+
+extern inline type nmref =
+
+extern inline type nmmref =
+
+fun main = i32
+  return 0
