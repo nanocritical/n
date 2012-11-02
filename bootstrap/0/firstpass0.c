@@ -271,7 +271,6 @@ error step_type_destruct_mark(struct module *mod, struct node *node) {
 
   switch (node->which) {
   case TYPECONSTRAINT:
-  case DEFNAME:
     end = 1;
     goto mark_subs;
   case TRY:
@@ -308,6 +307,7 @@ error step_type_destruct_mark(struct module *mod, struct node *node) {
   case DEFTYPE:
   case DEFINTF:
   case DEFFIELD:
+  case DEFNAME:
     node->subs[0]->typ = typ_lookup_builtin(mod, TBI__NOT_TYPEABLE);
     return 0;
   default:
@@ -451,9 +451,6 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     EXCEPT(e);
   } else if (typ_is_concrete(mod, node->subs[1]->typ)) {
     e = type_destruct(mod, node->subs[0], node->subs[1]->typ);
-    EXCEPT(e);
-  } else {
-    e = mk_except_type(mod, node, "no operand has a concrete type");
     EXCEPT(e);
   }
 
@@ -647,7 +644,11 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
   error e;
   struct node *def = NULL;
 
-  if (node->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)) {
+  assert(node->typ != typ_lookup_builtin(mod, TBI__NOT_TYPEABLE));
+
+  if (node->typ != NULL
+      && node->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
+      && typ_is_concrete(mod, node->typ)) {
     e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
     return 0;
@@ -655,19 +656,16 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
 
   switch (node->which) {
   case NUL:
-    e = typ_check(mod, node, typ_lookup_builtin(mod, TBI_LITERAL_NULL), constraint);
+    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERAL_NULL), constraint);
     EXCEPT(e);
-    node->typ = constraint;
     break;
   case NUMBER:
-    e = typ_check(mod, node, typ_lookup_builtin(mod, TBI_LITERAL_NUMBER), constraint);
+    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERAL_NUMBER), constraint);
     EXCEPT(e);
-    node->typ = constraint;
     break;
   case STRING:
-    e = typ_check(mod, node, typ_lookup_builtin(mod, TBI_STRING), constraint);
+    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_STRING), constraint);
     EXCEPT(e);
-    node->typ = constraint;
     break;
   case IDENT:
     // FIXME make sure ident not used before definition.
@@ -677,21 +675,28 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
     // type_destruct.
     e = scope_lookup(&def, mod, node->scope, node);
     EXCEPT(e);
-    if (def == node->scope->parent->node) {
-      // This is the definition itself.
-      node->typ = constraint;
-    } else {
-      e = typ_check(mod, node, def->typ, constraint);
+
+    //FIXME: remove, DEFNAME above does that now.
+    assert(def != node->scope->parent->node);
+
+    if (def->which == DEFNAME) {
+      e = type_destruct(mod, def, constraint);
       EXCEPT(e);
-      node->typ = def->typ;
     }
+    node->typ = def->typ;
+    break;
+  case DEFNAME:
+    e = typ_unify(&node->typ, mod, node, node->typ, constraint);
+    EXCEPT(e);
+    e = type_destruct(mod, node->subs[1], node->typ);
+    EXCEPT(e);
     break;
   case BIN:
     switch (OP_KIND(node->as.BIN.operator)) {
     case OP_BIN_ACC:
       e = type_inference_bin_accessor(mod, node);
       EXCEPT(e);
-      e = typ_check(mod, node, node->typ, constraint);
+      e = typ_unify(&node->typ, mod, node, node->typ, constraint);
       EXCEPT(e);
       break;
     case OP_BIN_SYM:
@@ -701,15 +706,16 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
       EXCEPT(e);
       e = type_destruct(mod, node->subs[1], constraint);
       EXCEPT(e);
-      node->typ = constraint;
+      e = typ_unify(&node->typ, mod, node, node->subs[0]->typ, node->subs[1]->typ);
+      EXCEPT(e);
 
       switch (OP_KIND(node->as.BIN.operator)) {
       case OP_BIN_SYM_BOOL:
-        e = typ_check(mod, node, constraint, typ_lookup_builtin(mod, TBI_BOOL));
+        e = typ_check(mod, node, node->typ, typ_lookup_builtin(mod, TBI_BOOL));
         EXCEPT(e);
         break;
       case OP_BIN_SYM_NUM:
-        e = typ_check_numeric(mod, node, constraint);
+        e = typ_check_numeric(mod, node, node->typ);
         EXCEPT(e);
         break;
       default:
@@ -727,9 +733,9 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
         e = mk_except_type(mod, node->subs[1], "right-hand side of type constraint is not a type");
         EXCEPT(e);
       }
-      e = typ_check(mod, node->subs[1], node->subs[1]->typ, constraint);
+      e = typ_unify(&node->typ, mod, node->subs[1], node->subs[1]->typ, constraint);
       EXCEPT(e);
-      e = type_destruct(mod, node->subs[0], constraint);
+      e = type_destruct(mod, node->subs[0], node->typ);
       EXCEPT(e);
       break;
     default:
@@ -747,17 +753,23 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
   case TUPLE:
     e = type_inference_tuple(mod, node);
     EXCEPT(e);
-    e = typ_check(mod, node, node->typ, constraint);
+    e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
+    for (size_t n = 0; n < node->subs_count; ++n) {
+      e = type_destruct(mod, node->subs[n], node->typ->gen_args[n]);
+      EXCEPT(e);
+    }
+    break;
   case INIT:
     e = type_inference_init(mod, node);
     EXCEPT(e);
-    e = typ_check(mod, node, node->typ, constraint);
+    e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
+    break;
   case CALL:
     e = type_inference_call(mod, node);
     EXCEPT(e);
-    e = typ_check(mod, node, node->typ, constraint);
+    e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
     break;
   default:
@@ -792,6 +804,8 @@ error step_type_inference(struct module *mod, struct node *node) {
       node->typ = def->typ;
       node->is_type = def->which == DEFTYPE;
     }
+    assert(def->typ->which != TYPE__MARKER);
+    assert(node->typ->which != TYPE__MARKER);
     goto ok;
   case NUMBER:
     node->typ = typ_lookup_builtin(mod, TBI_LITERAL_NUMBER);
@@ -873,10 +887,9 @@ error step_type_inference(struct module *mod, struct node *node) {
   case DEFTYPE:
     goto ok;
   case DEFNAME:
-    e = type_destruct(mod, node->subs[0], node->subs[1]->typ);
-    node->typ = node->subs[0]->typ;
+    // FIXME handle case where there is a constraint on the DEFNAME;
+    node->typ = node->subs[1]->typ;
     node->is_type = node->subs[1]->is_type;
-    EXCEPT(e);
     goto ok;
   case LET:
   case DEFFIELD:
@@ -916,9 +929,5 @@ error step_call_arguments_prepare(struct module *mod, struct node *node) {
 }
 
 error step_temporary_inference(struct module *mod, struct node *node) {
-  return 0;
-}
-
-error step_validation(struct module *mod, struct node *node) {
   return 0;
 }

@@ -41,7 +41,6 @@ int main(int argc, char **argv) {
       step_ctor_call_inference,
       step_call_arguments_prepare,
       step_temporary_inference,
-      step_validation,
       NULL,
     };
 
@@ -52,7 +51,7 @@ int main(int argc, char **argv) {
     EXCEPT(e);
 
     char *out_fn = malloc(strlen(argv[i]) + 4 + 1);
-    sprintf(out_fn, "%s.tree", argv[i]);
+    sprintf(out_fn, "%s.tree.out", argv[i]);
 
     int fd = creat(out_fn, 00600);
     if (fd < 0) {
@@ -65,7 +64,7 @@ int main(int argc, char **argv) {
     close(fd);
 
     out_fn = malloc(strlen(argv[i]) + 6 + 1);
-    sprintf(out_fn, "%s.pretty", argv[i]);
+    sprintf(out_fn, "%s.pretty.out", argv[i]);
 
     fd = creat(out_fn, 00600);
     if (fd < 0) {

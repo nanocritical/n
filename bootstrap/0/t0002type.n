@@ -1,6 +1,9 @@
 fun main = i32
-  let x = 1:i32
+  let x = 1
   let y = 2 + x
+  let z = 0
+  let zz = z + x
+  zz:i32
   return 0 + y
 
 fun main2 = i32

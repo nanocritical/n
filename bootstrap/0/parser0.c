@@ -1859,9 +1859,7 @@ struct typ *typ_new(struct module *mod, struct node *definition,
 
 // Return value must be freed by caller.
 char *typ_name(const struct module *mod, const struct typ *t) {
-  if (t->which == TYPE__MARKER) {
-    return "";
-  }
+  assert(t->which != TYPE__MARKER);
   return scope_name(mod, t->definition->scope);
 }
 
@@ -1938,19 +1936,9 @@ error typ_check_reference(const struct module *mod, const struct node *for_error
 }
 
 bool typ_is_concrete(const struct module *mod, const struct typ *a) {
-  if (a == typ_lookup_builtin(mod, TBI_U8)
-      || a == typ_lookup_builtin(mod, TBI_U16)
-      || a == typ_lookup_builtin(mod, TBI_U32)
-      || a == typ_lookup_builtin(mod, TBI_U64)
-      || a == typ_lookup_builtin(mod, TBI_I8)
-      || a == typ_lookup_builtin(mod, TBI_I16)
-      || a == typ_lookup_builtin(mod, TBI_I32)
-      || a == typ_lookup_builtin(mod, TBI_I64)
-      || a == typ_lookup_builtin(mod, TBI_SIZE)
-      || a == typ_lookup_builtin(mod, TBI_SSIZE)
-      || a == typ_lookup_builtin(mod, TBI_BOOL)
-      || a == typ_lookup_builtin(mod, TBI_STRING)) {
-    return TRUE;
+  if (a == typ_lookup_builtin(mod, TBI_LITERAL_NULL)
+      || a == typ_lookup_builtin(mod, TBI_LITERAL_NUMBER)) {
+    return FALSE;
   }
 
   if (a->which == TYPE_TUPLE) {
@@ -1959,10 +1947,9 @@ bool typ_is_concrete(const struct module *mod, const struct typ *a) {
         return FALSE;
       }
     }
-    return TRUE;
   }
 
-  return FALSE;
+  return TRUE;
 }
 
 error typ_unify(struct typ **u, const struct module *mod, const struct node *for_error,
@@ -1971,10 +1958,20 @@ error typ_unify(struct typ **u, const struct module *mod, const struct node *for
   EXCEPT(e);
 
   // Choose the concrete typ if there is one.
-  if (typ_is_concrete(mod, a)) {
-    *u = a;
+  if (a->which == TYPE_TUPLE) {
+    for (size_t n = 0; n < a->gen_arity; ++n) {
+      if (typ_is_concrete(mod, a->gen_args[n])) {
+        (*u)->gen_args[n] = a->gen_args[n];
+      } else {
+        (*u)->gen_args[n] = b->gen_args[n];
+      }
+    }
   } else {
-    *u = b;
+    if (typ_is_concrete(mod, a)) {
+      *u = a;
+    } else {
+      *u = b;
+    }
   }
 
   return 0;

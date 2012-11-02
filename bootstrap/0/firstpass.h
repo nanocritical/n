@@ -23,7 +23,6 @@ error step_unary_call_inference(struct module *mod, struct node *node);
 error step_ctor_call_inference(struct module *mod, struct node *node);
 error step_call_arguments_prepare(struct module *mod, struct node *node);
 error step_temporary_inference(struct module *mod, struct node *node);
-error step_validation(struct module *mod, struct node *node);
 
 error pass(struct module *mod, struct node *root, step *steps, step *up_steps);
 
