@@ -664,7 +664,7 @@ static void print_tree_node(FILE *out, const struct module *mod,
     fprintf(out, " ");
   }
 
-  fprintf(out, "%p %s", node, node_which_strings[node->which]);
+  fprintf(out, "%s", node_which_strings[node->which]);
   switch (node->which) {
   case IDENT:
     fprintf(out, "(%s)", idents_value(mod, node->as.IDENT.name));
