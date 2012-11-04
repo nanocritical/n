@@ -27,3 +27,8 @@ fun foobar x:i32 = i32
 
 fun foobar2 = void
   return
+
+type enu =
+  | V1
+  | V2
+  | V3

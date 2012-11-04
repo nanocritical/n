@@ -1,6 +1,6 @@
 t/00/bad02.n:1:20: parse: in scope bad02.foobar: identifier 'x' already defined at t/00/bad02.n:1:14
-	E: parser0.c:328: scope_define_ident(): Invalid argument
-	E: firstpass0.c:232: step_lexical_scoping()
+	E: parser0.c:329: scope_define_ident(): Invalid argument
+	E: firstpass0.c:274: step_lexical_scoping()
 	E: firstpass0.c:11: pass()
 	E: firstpass0.c:17: pass()
-	E: ncc0.c:51: main()
+	E: ncc0.c:52: main()

@@ -37,6 +37,7 @@ enum node_which {
   DEFNAME,
   LET,
   DEFFIELD,
+  DEFCHOICE,
   DELEGATE,
   PRE,
   POST,
@@ -92,11 +93,17 @@ struct node_typeconstraint {};
 struct node_deffun {
   struct toplevel toplevel;
 };
+
+enum deftype_kind {
+  DEFTYPE_STRUCT = 1,
+  DEFTYPE_ENUM,
+  DEFTYPE_SUM,
+};
+
 struct node_deftype {
   struct toplevel toplevel;
-  size_t isa_count;
 
-  struct generic *generic;
+  enum deftype_kind kind;
 };
 struct node_defmethod {
   struct toplevel toplevel;
@@ -104,13 +111,15 @@ struct node_defmethod {
 };
 struct node_defintf {
   struct toplevel toplevel;
-  size_t isa_count;
 };
 struct node_defname {};
 struct node_let {
   struct toplevel toplevel;
 };
 struct node_deffield {};
+struct node_defchoice {
+  bool has_value;
+};
 struct node_isalist {};
 struct node_delegate {};
 struct node_pre {};
@@ -152,6 +161,7 @@ union node_as {
   struct node_defname DEFNAME;
   struct node_let LET;
   struct node_deffield DEFFIELD;
+  struct node_defchoice DEFCHOICE;
   struct node_delegate DELEGATE;
   struct node_pre PRE;
   struct node_post POST;

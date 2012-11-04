@@ -8,6 +8,7 @@ typedef error (*step)(struct module *mod, struct node *node);
 error step_add_scopes(struct module *mod, struct node *node);
 
 error step_lexical_scoping(struct module *mod, struct node *node);
+error step_detect_deftype_kind(struct module *mod, struct node *node);
 error step_add_builtin_members(struct module *mod, struct node *node);
 error step_add_builtin_functions(struct module *mod, struct node *node);
 error step_add_builtin_methods(struct module *mod, struct node *node);

@@ -465,6 +465,30 @@ static void print_deffield(FILE *out, const struct module *mod, const struct nod
   print_typeexpr(out, mod, node->subs[1]);
 }
 
+static void print_defchoice(FILE *out, const struct module *mod, const struct node *node) {
+  fprintf(out, "| ");
+  print_expr(out, mod, node->subs[0], T__NONE);
+  switch (node->subs_count) {
+  case 1:
+    return;
+  case 2:
+    if (node->as.DEFCHOICE.has_value) {
+      fprintf(out, " = ");
+      print_expr(out, mod, node->subs[1], T__NONE);
+    } else {
+      fprintf(out, " -> ");
+      print_expr(out, mod, node->subs[1], T__NONE);
+    }
+    return;
+  case 3:
+    fprintf(out, " = ");
+    print_expr(out, mod, node->subs[1], T__NONE);
+    fprintf(out, " -> ");
+    print_expr(out, mod, node->subs[2], T__NONE);
+    return;
+  }
+}
+
 static void print_delegate(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "delegate ");
   print_expr(out, mod, node->subs[0], T__CALL);
@@ -491,6 +515,9 @@ static void print_deftype_statement(FILE *out, const struct module *mod, int ind
     break;
   case DEFFIELD:
     print_deffield(out, mod, node);
+    break;
+  case DEFCHOICE:
+    print_defchoice(out, mod, node);
     break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);

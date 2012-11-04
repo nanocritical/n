@@ -42,6 +42,47 @@ static struct node *mk_node(struct module *mod, struct node *parent, enum node_w
   return n;
 }
 
+// Must be run before builtins are added.
+error step_detect_deftype_kind(struct module *mod, struct node *node) {
+  if (node->which != DEFTYPE) {
+    return 0;
+  }
+
+  error e;
+  struct node *f = NULL;
+  enum deftype_kind k = DEFTYPE_ENUM;
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    f = node->subs[n];
+
+    switch (f->which) {
+    case DEFFIELD:
+      if (k == DEFTYPE_SUM) {
+        goto field_and_sum;
+      }
+      k = DEFTYPE_STRUCT;
+      break;
+    case DEFCHOICE:
+      if (k == DEFTYPE_STRUCT) {
+        goto field_and_sum;
+      }
+      if (f->subs_count > 2 || !f->as.DEFCHOICE.has_value) {
+        k = DEFTYPE_SUM;
+      }
+      break;
+    default:
+      break;
+    }
+  }
+
+  node->as.DEFTYPE.kind = k;
+  return 0;
+
+field_and_sum:
+  e = mk_except_type(mod, f, "type contains both fields and choices");
+  EXCEPT(e);
+  return 0;
+}
+
 error step_add_builtin_members(struct module *mod, struct node *node) {
   switch (node->which) {
   case DEFTYPE:
@@ -203,6 +244,7 @@ error step_lexical_scoping(struct module *mod, struct node *node) {
   case DEFTYPE:
   case DEFINTF:
   case DEFFIELD:
+  case DEFCHOICE:
     id = node->subs[0];
     sc = node->scope->parent;
     break;
@@ -309,6 +351,7 @@ error step_type_destruct_mark(struct module *mod, struct node *node) {
   case DEFTYPE:
   case DEFINTF:
   case DEFFIELD:
+  case DEFCHOICE:
   case DEFNAME:
     node->subs[0]->typ = typ_lookup_builtin(mod, TBI__NOT_TYPEABLE);
     return 0;
@@ -890,15 +933,50 @@ error step_type_inference(struct module *mod, struct node *node) {
     module_return_set(mod, NULL);
     goto ok;
   case DEFINTF:
+    goto ok;
   case DEFTYPE:
+    switch (node->as.DEFTYPE.kind) {
+    case DEFTYPE_ENUM:
+    case DEFTYPE_SUM:
+      {
+        struct typ *u = typ_lookup_builtin(mod, TBI_LITERAL_NUMBER);
+        for (size_t n = 0; n < node->subs_count; ++n) {
+          if (node->subs[n]->which != DEFCHOICE) {
+            continue;
+          }
+          e = typ_unify(&u, mod, node->subs[n],
+                        u, node->subs[n]->typ);
+          EXCEPT(e);
+        }
+        for (size_t n = 0; n < node->subs_count; ++n) {
+          if (node->subs[n]->which != DEFCHOICE) {
+            continue;
+          }
+          node->subs[n]->typ = u;
+        }
+      }
+      break;
+    case DEFTYPE_STRUCT:
+      break;
+    }
     goto ok;
   case DEFNAME:
     // FIXME handle case where there is a constraint on the DEFNAME;
     node->typ = node->subs[1]->typ;
     node->is_type = node->subs[1]->is_type;
     goto ok;
-  case LET:
   case DEFFIELD:
+    node->typ = node->subs[1]->typ;
+    goto ok;
+  case DEFCHOICE:
+    if (node->subs_count == 1
+        || !node->as.DEFCHOICE.has_value) {
+      node->typ = typ_lookup_builtin(mod, TBI_U32);
+    } else {
+      node->typ = node->subs[1]->typ;
+    }
+    goto ok;
+  case LET:
   case DELEGATE:
   case PRE:
   case POST:

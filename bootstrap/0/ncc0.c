@@ -14,6 +14,7 @@ int main(int argc, char **argv) {
     EXCEPT(e);
 
     step zeropass_down[] = {
+      step_detect_deftype_kind,
       step_add_builtin_members,
       step_add_builtin_functions,
       step_add_builtin_methods,

@@ -40,6 +40,7 @@ const char *node_which_strings[] = {
   [DEFNAME] = "DEFNAME",
   [LET] = "LET",
   [DEFFIELD] = "DEFFIELD",
+  [DEFCHOICE] = "DEFCHOICE",
   [DELEGATE] = "DELEGATE",
   [PRE] = "PRE",
   [POST] = "POST",
@@ -545,6 +546,9 @@ struct node *node_new_subnode(const struct module *mod, struct node *node) {
   return *r;
 }
 
+static error p_expr(struct node *node, struct module *mod, uint32_t parent_op);
+static error p_block(struct node *node, struct module *mod);
+
 static error p_ident(struct node *node, struct module *mod) {
   struct token tok;
   error e = scan_oneof(&tok, mod, TIDENT, 0);
@@ -618,8 +622,35 @@ static error p_deffield(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_expr(struct node *node, struct module *mod, uint32_t parent_op);
-static error p_block(struct node *node, struct module *mod);
+static error p_defchoice(struct node *node, struct module *mod) {
+  node->which = DEFCHOICE;
+  error e = p_ident(node_new_subnode(mod, node), mod);
+  EXCEPT(e);
+
+  struct token tok;
+  e = scan(&tok, mod);
+  EXCEPT(e);
+
+  if (tok.t == TASSIGN) {
+    node->as.DEFCHOICE.has_value = TRUE;
+
+    e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+    EXCEPT(e);
+
+    e = scan(&tok, mod);
+    EXCEPT(e);
+  }
+
+  if (tok.t == TSOB) {
+    e = p_typeexpr(node_new_subnode(mod, node), mod);
+    EXCEPT(e);
+    e = scan_expected(mod, TEOB);
+    EXCEPT(e);
+  } else {
+    back(mod, &tok);
+  }
+  return 0;
+}
 
 static error p_expr_unary(struct node *node, struct module *mod) {
   struct token tok;
@@ -1377,6 +1408,9 @@ static error p_deftype_statement(struct node *node, struct module *mod) {
   case TIDENT:
     back(mod, &tok);
     e = p_deffield(node, mod);
+    break;
+  case TBWOR:
+    e = p_defchoice(node, mod);
     break;
   default:
     UNEXPECTED(mod, &tok);

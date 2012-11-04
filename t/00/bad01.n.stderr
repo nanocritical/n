@@ -1,9 +1,9 @@
 t/00/bad01.n:1:1: parse: in scope bad01.main.<anonymous>.<anonymous>.x: unknown identifier 'x'
-	E: parser0.c:354: do_scope_lookup_ident(): Invalid argument
-	E: firstpass0.c:801: step_type_inference()
+	E: parser0.c:355: do_scope_lookup_ident(): Invalid argument
+	E: firstpass0.c:844: step_type_inference()
 	E: firstpass0.c:22: pass()
 	E: firstpass0.c:17: pass()
 	E: firstpass0.c:17: pass()
 	E: firstpass0.c:17: pass()
 	E: firstpass0.c:17: pass()
-	E: ncc0.c:51: main()
+	E: ncc0.c:52: main()

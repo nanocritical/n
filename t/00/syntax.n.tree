@@ -212,7 +212,7 @@ MODULE :syntax.void
    DEFNAME :syntax.test
     IDENT(this)
     IDENT(test) :syntax.test
-  DEFFIELD :syntax.void
+  DEFFIELD :syntax.test
    IDENT(t)
    IDENT(test) :syntax.test
  DEFMETHOD :syntax.foo
@@ -254,3 +254,16 @@ MODULE :syntax.void
   IDENT(void) :syntax.void
   BLOCK :syntax.void
    RETURN :syntax.void
+ DEFTYPE :syntax.enu
+  IDENT(enu)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.enu
+    IDENT(this)
+    IDENT(enu) :syntax.enu
+  DEFCHOICE :syntax.u32
+   IDENT(V1)
+  DEFCHOICE :syntax.u32
+   IDENT(V2)
+  DEFCHOICE :syntax.u32
+   IDENT(V3)
