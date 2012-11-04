@@ -218,7 +218,8 @@ error step_lexical_scoping(struct module *mod, struct node *node) {
     return 0;
   }
 
-  scope_define(mod, sc, id, node);
+  e = scope_define(mod, sc, id, node);
+  EXCEPT(e);
 
   switch (node->which) {
   case DEFFUN:
@@ -254,7 +255,8 @@ error step_lexical_scoping(struct module *mod, struct node *node) {
     struct node *name = member->subs[0];
 
     if (member->which == DEFFIELD) {
-      scope_define(mod, node->scope, name, member);
+      e = scope_define(mod, node->scope, name, member);
+      EXCEPT(e);
     }
   }
 
@@ -834,9 +836,13 @@ error step_type_inference(struct module *mod, struct node *node) {
     EXCEPT(e);
     goto ok;
   case RETURN:
-    e = type_destruct(mod, node->subs[0], module_return_get(mod)->typ);
-    EXCEPT(e);
-    node->typ = node->subs[0]->typ;
+    if (node->subs_count > 0) {
+      e = type_destruct(mod, node->subs[0], module_return_get(mod)->typ);
+      EXCEPT(e);
+      node->typ = node->subs[0]->typ;
+    } else {
+      node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    }
     goto ok;
   case EXCEP:
   case BLOCK:
