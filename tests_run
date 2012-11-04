@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 WD="$(dirname $0)/"
 if [ "$WD" == "./" ]; then
@@ -19,12 +19,14 @@ for t in $list; do
 	else
 		if ! ${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out; then
 			echo "FAILED $t: did not succeed"
-			cat $t.stderr.out
 		fi
 		if ! [ -s $t.stderr.out ]; then
 			# Remove empty.
 			rm $t.stderr.out
 		fi
+	fi
+	if [ -s $t.stderr.out ]; then
+		perl -i -ne 'if (!m/^\tE: /) { print; }' $t.stderr.out
 	fi
 	for all in stderr tree pretty; do
 		if [ -f $t.$all ] || [ -f $t.$all.out ]; then

@@ -1,6 +1,1 @@
 t/00/bad07.n:5:3: type: type contains both fields and choices
-	E: parser0.c:2036: mk_except_type(): Invalid argument
-	E: firstpass0.c:82: step_detect_deftype_kind()
-	E: firstpass0.c:11: pass()
-	E: firstpass0.c:17: pass()
-	E: ncc0.c:49: main()
