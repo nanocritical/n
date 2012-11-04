@@ -11,9 +11,9 @@ if [ -z "$list" ]; then
 fi
 
 for t in $list; do
+	rm -f $t.*.out
 	if [ -f $t.stderr ]; then
 		if ${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out; then
-		        echo $t
 			echo "FAILED $t: did not fail"
 		fi
 	else
