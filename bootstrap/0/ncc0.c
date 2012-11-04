@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     e = pass(&mod, NULL, firstpass_down, firstpass_up);
     EXCEPT(e);
 
-    char *out_fn = malloc(strlen(argv[i]) + 4 + 1);
+    char *out_fn = malloc(strlen(argv[i]) + sizeof(".tree.out"));
     sprintf(out_fn, "%s.tree.out", argv[i]);
 
     int fd = creat(out_fn, 00600);
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     EXCEPT(e);
     close(fd);
 
-    out_fn = malloc(strlen(argv[i]) + 6 + 1);
+    out_fn = malloc(strlen(argv[i]) + sizeof(".pretty.out"));
     sprintf(out_fn, "%s.pretty.out", argv[i]);
 
     fd = creat(out_fn, 00600);
