@@ -1,0 +1,77 @@
+extern inline type void =
+
+extern inline type literal_null =
+
+extern inline type literal_number =
+
+extern inline type pseudo_tuple =
+
+extern inline type bool =
+
+extern inline type i8 =
+
+extern inline type i16 =
+
+extern inline type i32 =
+
+extern inline type i64 =
+
+extern inline type u8 =
+
+extern inline type u16 =
+
+extern inline type u32 =
+
+extern inline type u64 =
+
+extern inline type string =
+
+extern inline type size =
+
+extern inline type ssize =
+
+extern inline type ref =
+
+extern inline type mref =
+
+extern inline type mmref =
+
+extern inline type nref =
+
+extern inline type nmref =
+
+extern inline type nmmref =
+
+fun main = i32
+  let x = 1:i32
+  let y = 2 + x
+  return 0 + y
+
+fun main2 = i32
+  return 0
+
+fun foo = string
+  return 'test'
+
+inline fun other4 x:i32 = i32
+
+extern fun other5 x:i32 = i32
+
+
+type test = ia
+  let this = test
+  t:test
+
+test method foo x:i32 = i32
+  let self = null
+  let x = 0
+  return x
+
+fun foobar x:i32 = i32
+  pre
+    x != 0
+  post
+    x != 0
+
+fun foobar2 = void
+  return

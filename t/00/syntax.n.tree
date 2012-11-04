@@ -1,0 +1,256 @@
+MODULE :syntax.void
+ DEFTYPE :syntax.void
+  IDENT(void)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.void
+    IDENT(this)
+    IDENT(void) :syntax.void
+ DEFTYPE :syntax.literal_null
+  IDENT(literal_null)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.literal_null
+    IDENT(this)
+    IDENT(literal_null) :syntax.literal_null
+ DEFTYPE :syntax.literal_number
+  IDENT(literal_number)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.literal_number
+    IDENT(this)
+    IDENT(literal_number) :syntax.literal_number
+ DEFTYPE :syntax.pseudo_tuple
+  IDENT(pseudo_tuple)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.pseudo_tuple
+    IDENT(this)
+    IDENT(pseudo_tuple) :syntax.pseudo_tuple
+ DEFTYPE :syntax.bool
+  IDENT(bool)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.bool
+    IDENT(this)
+    IDENT(bool) :syntax.bool
+ DEFTYPE :syntax.i8
+  IDENT(i8)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.i8
+    IDENT(this)
+    IDENT(i8) :syntax.i8
+ DEFTYPE :syntax.i16
+  IDENT(i16)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.i16
+    IDENT(this)
+    IDENT(i16) :syntax.i16
+ DEFTYPE :syntax.i32
+  IDENT(i32)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.i32
+    IDENT(this)
+    IDENT(i32) :syntax.i32
+ DEFTYPE :syntax.i64
+  IDENT(i64)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.i64
+    IDENT(this)
+    IDENT(i64) :syntax.i64
+ DEFTYPE :syntax.u8
+  IDENT(u8)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.u8
+    IDENT(this)
+    IDENT(u8) :syntax.u8
+ DEFTYPE :syntax.u16
+  IDENT(u16)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.u16
+    IDENT(this)
+    IDENT(u16) :syntax.u16
+ DEFTYPE :syntax.u32
+  IDENT(u32)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.u32
+    IDENT(this)
+    IDENT(u32) :syntax.u32
+ DEFTYPE :syntax.u64
+  IDENT(u64)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.u64
+    IDENT(this)
+    IDENT(u64) :syntax.u64
+ DEFTYPE :syntax.string
+  IDENT(string)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.string
+    IDENT(this)
+    IDENT(string) :syntax.string
+ DEFTYPE :syntax.size
+  IDENT(size)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.size
+    IDENT(this)
+    IDENT(size) :syntax.size
+ DEFTYPE :syntax.ssize
+  IDENT(ssize)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.ssize
+    IDENT(this)
+    IDENT(ssize) :syntax.ssize
+ DEFTYPE :syntax.ref
+  IDENT(ref)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.ref
+    IDENT(this)
+    IDENT(ref) :syntax.ref
+ DEFTYPE :syntax.mref
+  IDENT(mref)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.mref
+    IDENT(this)
+    IDENT(mref) :syntax.mref
+ DEFTYPE :syntax.mmref
+  IDENT(mmref)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.mmref
+    IDENT(this)
+    IDENT(mmref) :syntax.mmref
+ DEFTYPE :syntax.nref
+  IDENT(nref)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.nref
+    IDENT(this)
+    IDENT(nref) :syntax.nref
+ DEFTYPE :syntax.nmref
+  IDENT(nmref)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.nmref
+    IDENT(this)
+    IDENT(nmref) :syntax.nmref
+ DEFTYPE :syntax.nmmref
+  IDENT(nmmref)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.nmmref
+    IDENT(this)
+    IDENT(nmmref) :syntax.nmmref
+ DEFFUN :syntax.main
+  IDENT(main)
+  IDENT(i32) :syntax.i32
+  BLOCK :syntax.void
+   LET :syntax.void
+    DEFNAME :syntax.i32
+     IDENT(x)
+     BIN(:) :syntax.i32
+      NUMBER(1) :syntax.i32
+      IDENT(i32) :syntax.i32
+   LET :syntax.void
+    DEFNAME :syntax.i32
+     IDENT(y)
+     BIN( + ) :syntax.i32
+      NUMBER(2) :syntax.i32
+      IDENT(x) :syntax.i32
+   RETURN :syntax.i32
+    BIN( + ) :syntax.i32
+     NUMBER(0) :syntax.i32
+     IDENT(y) :syntax.i32
+ DEFFUN :syntax.main2
+  IDENT(main2)
+  IDENT(i32) :syntax.i32
+  BLOCK :syntax.void
+   RETURN :syntax.i32
+    NUMBER(0) :syntax.i32
+ DEFFUN :syntax.foo
+  IDENT(foo)
+  IDENT(string) :syntax.string
+  BLOCK :syntax.void
+   RETURN :syntax.string
+    STRING('test') :syntax.string
+ DEFFUN :syntax.other4
+  IDENT(other4)
+  TYPECONSTRAINT :syntax.i32
+   IDENT(x) :syntax.i32
+   IDENT(i32) :syntax.i32
+  IDENT(i32) :syntax.i32
+ DEFFUN :syntax.other5
+  IDENT(other5)
+  TYPECONSTRAINT :syntax.i32
+   IDENT(x) :syntax.i32
+   IDENT(i32) :syntax.i32
+  IDENT(i32) :syntax.i32
+ DEFINTF :syntax.ia
+  IDENT(ia)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.ia
+    IDENT(this)
+    IDENT(ia) :syntax.ia
+ DEFTYPE :syntax.test
+  IDENT(test)
+  ISALIST :syntax.void
+   IDENT(ia) :syntax.ia
+  LET :syntax.void
+   DEFNAME :syntax.test
+    IDENT(this)
+    IDENT(test) :syntax.test
+  DEFFIELD :syntax.void
+   IDENT(t)
+   IDENT(test) :syntax.test
+ DEFMETHOD :syntax.foo
+  IDENT(foo)
+  TYPECONSTRAINT :syntax.i32
+   IDENT(x) :syntax.i32
+   IDENT(i32) :syntax.i32
+  IDENT(i32) :syntax.i32
+  BLOCK :syntax.void
+   LET :syntax.void
+    DEFNAME :syntax.literal_null
+     IDENT(self)
+     NUL :syntax.literal_null
+   LET :syntax.void
+    DEFNAME :syntax.i32
+     IDENT(x)
+     NUMBER(0) :syntax.i32
+   RETURN :syntax.i32
+    IDENT(x) :syntax.i32
+ DEFFUN :syntax.foobar
+  IDENT(foobar)
+  TYPECONSTRAINT :syntax.i32
+   IDENT(x) :syntax.i32
+   IDENT(i32) :syntax.i32
+  IDENT(i32) :syntax.i32
+  BLOCK :syntax.void
+   PRE :syntax.void
+    BLOCK :syntax.void
+     BIN( != ) :syntax.i32
+      IDENT(x) :syntax.i32
+      NUMBER(0) :syntax.i32
+   POST :syntax.void
+    BLOCK :syntax.void
+     BIN( != ) :syntax.i32
+      IDENT(x) :syntax.i32
+      NUMBER(0) :syntax.i32
+ DEFFUN :syntax.foobar2
+  IDENT(foobar2)
+  IDENT(void) :syntax.void
+  BLOCK :syntax.void
+   RETURN :syntax.void

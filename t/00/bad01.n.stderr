@@ -1,4 +1,4 @@
-t/00/hello.n:1:1: parse: in scope hello.main.<anonymous>.<anonymous>.say: unknown identifier 'say'
+t/00/bad01.n:1:1: parse: in scope bad01.main.<anonymous>.<anonymous>.x: unknown identifier 'x'
 	E: parser0.c:354: do_scope_lookup_ident(): Invalid argument
 	E: firstpass0.c:801: step_type_inference()
 	E: firstpass0.c:22: pass()

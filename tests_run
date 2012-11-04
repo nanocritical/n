@@ -12,23 +12,13 @@ fi
 
 for t in $list; do
 	if [ -f $t.stderr ]; then
-		${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out
-		err=$?
-		if (( $err == 0 )); then
+		if ${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out; then
 		        echo $t
-			echo "FAILED $t"
-		fi
-		cmp $t.stderr $t.stderr.out
-		err=$?
-		if (( $err != 0 )); then
-			echo "FAILED $t.stderr"
-			cat $t.stderr.out
+			echo "FAILED $t: did not fail"
 		fi
 	else
-		${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out
-		err=$?
-		if (( $err != 0 )); then
-			echo "FAILED $t"
+		if ! ${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out; then
+			echo "FAILED $t: did not succeed"
 			cat $t.stderr.out
 		fi
 		if ! [ -s $t.stderr.out ]; then
@@ -36,12 +26,12 @@ for t in $list; do
 			rm $t.stderr.out
 		fi
 	fi
-	if [ -n "$err" ]; then
-		continue
-	fi
 	for all in stderr tree pretty; do
 		if [ -f $t.$all ] || [ -f $t.$all.out ]; then
-			cmp $t.$all $t.$all.out || echo "FAILED $t.$all"
+			if ! cmp -s $t.$all $t.$all.out; then
+				echo "FAILED $t: different output '$all'"
+				diff -u $t.$all $t.$all.out
+			fi
 		fi
 	done
 done

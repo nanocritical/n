@@ -1,0 +1,8 @@
+t/00/bad03.n:1:14: syntax: unexpected token '='
+	E: parser0.c:499: scan_expected(): Invalid argument
+	E: parser0.c:601: p_typeconstraint()
+	E: parser0.c:1285: p_deffun()
+	E: parser0.c:1669: p_toplevel()
+	E: parser0.c:1696: module_parse()
+	E: parser0.c:1800: module_open()
+	E: ncc0.c:14: main()

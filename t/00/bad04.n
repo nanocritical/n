@@ -1,0 +1,4 @@
+fun foobar = void
+  return
+fun foobar = void
+  return

@@ -1,161 +1,161 @@
-0x7fff74707f30 MODULE :main.void
- 0x11b88a0 DEFTYPE :main.void
-  0x11b8090 IDENT(void)
-  0x11b80f0 ISALIST :main.void
-  0x11bc1f0 LET :main.void
-   0x11bc270 DEFNAME :main.void
-    0x11bc2f0 IDENT(this)
-    0x11bc350 IDENT(void) :main.void
- 0x11b8440 DEFTYPE :main.literal_null
-  0x11b84c0 IDENT(literal_null)
-  0x11b8520 ISALIST :main.void
-  0x11bc770 LET :main.void
-   0x11bc7f0 DEFNAME :main.literal_null
-    0x11bc870 IDENT(this)
-    0x11bc8d0 IDENT(literal_null) :main.literal_null
- 0x11b8710 DEFTYPE :main.literal_number
-  0x11b8790 IDENT(literal_number)
-  0x11b87f0 ISALIST :main.void
-  0x11bccf0 LET :main.void
-   0x11bcd70 DEFNAME :main.literal_number
-    0x11bcdf0 IDENT(this)
-    0x11bce50 IDENT(literal_number) :main.literal_number
- 0x11b91b0 DEFTYPE :main.pseudo_tuple
-  0x11b9210 IDENT(pseudo_tuple)
-  0x11b9270 ISALIST :main.void
-  0x11bd270 LET :main.void
-   0x11bd2f0 DEFNAME :main.pseudo_tuple
-    0x11bd370 IDENT(this)
-    0x11bd3d0 IDENT(pseudo_tuple) :main.pseudo_tuple
- 0x11b93c0 DEFTYPE :main.bool
-  0x11b9420 IDENT(bool)
-  0x11b9480 ISALIST :main.void
-  0x11bd7f0 LET :main.void
-   0x11bd870 DEFNAME :main.bool
-    0x11bd8f0 IDENT(this)
-    0x11bd950 IDENT(bool) :main.bool
- 0x11b9640 DEFTYPE :main.i8
-  0x11b96c0 IDENT(i8)
-  0x11b9720 ISALIST :main.void
-  0x11bdd70 LET :main.void
-   0x11bddf0 DEFNAME :main.i8
-    0x11bde70 IDENT(this)
-    0x11bded0 IDENT(i8) :main.i8
- 0x11b9820 DEFTYPE :main.i16
-  0x11b98a0 IDENT(i16)
-  0x11b9900 ISALIST :main.void
-  0x11be2f0 LET :main.void
-   0x11be370 DEFNAME :main.i16
-    0x11be3f0 IDENT(this)
-    0x11be450 IDENT(i16) :main.i16
- 0x11b9a80 DEFTYPE :main.i32
-  0x11b9b00 IDENT(i32)
-  0x11b9b60 ISALIST :main.void
-  0x11be870 LET :main.void
-   0x11be8f0 DEFNAME :main.i32
-    0x11be970 IDENT(this)
-    0x11be9d0 IDENT(i32) :main.i32
- 0x11b9c70 DEFTYPE :main.i64
-  0x11b9cf0 IDENT(i64)
-  0x11b9d50 ISALIST :main.void
-  0x11bedf0 LET :main.void
-   0x11bee70 DEFNAME :main.i64
-    0x11beef0 IDENT(this)
-    0x11bef50 IDENT(i64) :main.i64
- 0x11b9f50 DEFTYPE :main.u8
-  0x11b9fd0 IDENT(u8)
-  0x11ba030 ISALIST :main.void
-  0x11bf370 LET :main.void
-   0x11bf3f0 DEFNAME :main.u8
-    0x11bf470 IDENT(this)
-    0x11bf4d0 IDENT(u8) :main.u8
- 0x11ba1d0 DEFTYPE :main.u16
-  0x11ba250 IDENT(u16)
-  0x11ba2b0 ISALIST :main.void
-  0x11bf8f0 LET :main.void
-   0x11bf970 DEFNAME :main.u16
-    0x11bf9f0 IDENT(this)
-    0x11bfa50 IDENT(u16) :main.u16
- 0x11b9ef0 DEFTYPE :main.u32
-  0x11b9e50 IDENT(u32)
-  0x11ba480 ISALIST :main.void
-  0x11bfe70 LET :main.void
-   0x11bfef0 DEFNAME :main.u32
-    0x11bff70 IDENT(this)
-    0x11bffd0 IDENT(u32) :main.u32
- 0x11ba130 DEFTYPE :main.u64
-  0x11ba650 IDENT(u64)
-  0x11ba6b0 ISALIST :main.void
-  0x11c03f0 LET :main.void
-   0x11c0470 DEFNAME :main.u64
-    0x11c04f0 IDENT(this)
-    0x11c0550 IDENT(u64) :main.u64
- 0x11ba8f0 DEFTYPE :main.string
-  0x11ba970 IDENT(string)
-  0x11ba9d0 ISALIST :main.void
-  0x11c0970 LET :main.void
-   0x11c09f0 DEFNAME :main.string
-    0x11c0a70 IDENT(this)
-    0x11c0ad0 IDENT(string) :main.string
- 0x11baba0 DEFTYPE :main.size
-  0x11bac20 IDENT(size)
-  0x11bac80 ISALIST :main.void
-  0x11c0ef0 LET :main.void
-   0x11c0f70 DEFNAME :main.size
-    0x11c0ff0 IDENT(this)
-    0x11c1050 IDENT(size) :main.size
- 0x11bae50 DEFTYPE :main.ssize
-  0x11baed0 IDENT(ssize)
-  0x11baf30 ISALIST :main.void
-  0x11c1470 LET :main.void
-   0x11c14f0 DEFNAME :main.ssize
-    0x11c1570 IDENT(this)
-    0x11c15d0 IDENT(ssize) :main.ssize
- 0x11bb0d0 DEFTYPE :main.ref
-  0x11bb130 IDENT(ref)
-  0x11bb190 ISALIST :main.void
-  0x11c19f0 LET :main.void
-   0x11c1a70 DEFNAME :main.ref
-    0x11c1af0 IDENT(this)
-    0x11c1b50 IDENT(ref) :main.ref
- 0x11badc0 DEFTYPE :main.mref
-  0x11bb3e0 IDENT(mref)
-  0x11bb440 ISALIST :main.void
-  0x11c1f70 LET :main.void
-   0x11c1ff0 DEFNAME :main.mref
-    0x11c2070 IDENT(this)
-    0x11c20d0 IDENT(mref) :main.mref
- 0x11bb070 DEFTYPE :main.mmref
-  0x11bb610 IDENT(mmref)
-  0x11bb670 ISALIST :main.void
-  0x11c24f0 LET :main.void
-   0x11c2570 DEFNAME :main.mmref
-    0x11c25f0 IDENT(this)
-    0x11c2650 IDENT(mmref) :main.mmref
- 0x11bb580 DEFTYPE :main.nref
-  0x11bb360 IDENT(nref)
-  0x11bb8e0 ISALIST :main.void
-  0x11c2a70 LET :main.void
-   0x11c2af0 DEFNAME :main.nref
-    0x11c2b70 IDENT(this)
-    0x11c2bd0 IDENT(nref) :main.nref
- 0x11bba60 DEFTYPE :main.nmref
-  0x11bbac0 IDENT(nmref)
-  0x11bbb20 ISALIST :main.void
-  0x11c2ff0 LET :main.void
-   0x11c3070 DEFNAME :main.nmref
-    0x11c30f0 IDENT(this)
-    0x11c3150 IDENT(nmref) :main.nmref
- 0x11bb7b0 DEFTYPE :main.nmmref
-  0x11bb830 IDENT(nmmref)
-  0x11bbd90 ISALIST :main.void
-  0x11c3570 LET :main.void
-   0x11c35f0 DEFNAME :main.nmmref
-    0x11c3670 IDENT(this)
-    0x11c36d0 IDENT(nmmref) :main.nmmref
- 0x11bbf30 DEFFUN :main.main
-  0x11bbfb0 IDENT(main)
-  0x11bc010 IDENT(i32) :main.i32
-  0x11bc070 BLOCK :main.void
-   0x11bc0f0 RETURN :main.i32
-    0x11bc170 NUMBER(0) :main.i32
+MODULE :main.void
+ DEFTYPE :main.void
+  IDENT(void)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.void
+    IDENT(this)
+    IDENT(void) :main.void
+ DEFTYPE :main.literal_null
+  IDENT(literal_null)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.literal_null
+    IDENT(this)
+    IDENT(literal_null) :main.literal_null
+ DEFTYPE :main.literal_number
+  IDENT(literal_number)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.literal_number
+    IDENT(this)
+    IDENT(literal_number) :main.literal_number
+ DEFTYPE :main.pseudo_tuple
+  IDENT(pseudo_tuple)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.pseudo_tuple
+    IDENT(this)
+    IDENT(pseudo_tuple) :main.pseudo_tuple
+ DEFTYPE :main.bool
+  IDENT(bool)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.bool
+    IDENT(this)
+    IDENT(bool) :main.bool
+ DEFTYPE :main.i8
+  IDENT(i8)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.i8
+    IDENT(this)
+    IDENT(i8) :main.i8
+ DEFTYPE :main.i16
+  IDENT(i16)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.i16
+    IDENT(this)
+    IDENT(i16) :main.i16
+ DEFTYPE :main.i32
+  IDENT(i32)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.i32
+    IDENT(this)
+    IDENT(i32) :main.i32
+ DEFTYPE :main.i64
+  IDENT(i64)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.i64
+    IDENT(this)
+    IDENT(i64) :main.i64
+ DEFTYPE :main.u8
+  IDENT(u8)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.u8
+    IDENT(this)
+    IDENT(u8) :main.u8
+ DEFTYPE :main.u16
+  IDENT(u16)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.u16
+    IDENT(this)
+    IDENT(u16) :main.u16
+ DEFTYPE :main.u32
+  IDENT(u32)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.u32
+    IDENT(this)
+    IDENT(u32) :main.u32
+ DEFTYPE :main.u64
+  IDENT(u64)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.u64
+    IDENT(this)
+    IDENT(u64) :main.u64
+ DEFTYPE :main.string
+  IDENT(string)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.string
+    IDENT(this)
+    IDENT(string) :main.string
+ DEFTYPE :main.size
+  IDENT(size)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.size
+    IDENT(this)
+    IDENT(size) :main.size
+ DEFTYPE :main.ssize
+  IDENT(ssize)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.ssize
+    IDENT(this)
+    IDENT(ssize) :main.ssize
+ DEFTYPE :main.ref
+  IDENT(ref)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.ref
+    IDENT(this)
+    IDENT(ref) :main.ref
+ DEFTYPE :main.mref
+  IDENT(mref)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.mref
+    IDENT(this)
+    IDENT(mref) :main.mref
+ DEFTYPE :main.mmref
+  IDENT(mmref)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.mmref
+    IDENT(this)
+    IDENT(mmref) :main.mmref
+ DEFTYPE :main.nref
+  IDENT(nref)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.nref
+    IDENT(this)
+    IDENT(nref) :main.nref
+ DEFTYPE :main.nmref
+  IDENT(nmref)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.nmref
+    IDENT(this)
+    IDENT(nmref) :main.nmref
+ DEFTYPE :main.nmmref
+  IDENT(nmmref)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.nmmref
+    IDENT(this)
+    IDENT(nmmref) :main.nmmref
+ DEFFUN :main.main
+  IDENT(main)
+  IDENT(i32) :main.i32
+  BLOCK :main.void
+   RETURN :main.i32
+    NUMBER(0) :main.i32
