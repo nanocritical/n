@@ -865,17 +865,28 @@ done:
 
 static error p_return(struct node *node, struct module *mod) {
   node->which = RETURN;
-  error e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+
+  struct token tok;
+  error e = scan(&tok, mod);
   EXCEPT(e);
+  back(mod, &tok);
+
+  if (!expr_terminators[tok.t]) {
+    e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+    EXCEPT(e);
+  }
   return 0;
 }
 
 static error p_except(struct node *node, struct module *mod) {
   node->which = EXCEP;
   struct token tok;
-  scan(&tok, mod);
+  error e = scan(&tok, mod);
+  EXCEPT(e);
+  back(mod, &tok);
+
   if (!expr_terminators[tok.t]) {
-    error e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+    e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
     EXCEPT(e);
   }
   return 0;
@@ -1735,7 +1746,8 @@ static void module_add_builtins(struct module *mod) {
   \
   deft->scope = scope_new(deft); \
   deft->scope->parent = mod->root.scope; \
-  scope_define(mod, deft->scope->parent, deft->subs[0], deft); \
+  error e = scope_define(mod, deft->scope->parent, deft->subs[0], deft); \
+  assert(!e); \
   \
   deft->typ = typ_new(mod, deft, TYPE_DEF, 0, 0); \
   mod->builtin_typs[TBI] = deft->typ; \
