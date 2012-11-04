@@ -4,7 +4,6 @@
 #include <stdio.h>
 
 #include "printer.h"
-#include "firstpass.h"
 
 const char *token_strings[TOKEN__NUM] = {
   [Timport] = "import",
