@@ -1,0 +1,1 @@
+t/00/bad09.n:5:9: type: 'bad09.literal_number' not compatible with constraint 'bad09.sum'

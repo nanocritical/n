@@ -88,6 +88,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NREF] = "nref",
   [ID_TBI_NMREF] = "nmref",
   [ID_TBI_NMMREF] = "nmmref",
+  [ID_TBI_DYN] = "dyn",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable",
 };
@@ -544,6 +545,15 @@ struct node *node_new_subnode(const struct module *mod, struct node *node) {
   }
 
   return *r;
+}
+
+size_t node_fun_args_count(const struct node *def) {
+  assert(def->which == DEFFUN || def->which == DEFMETHOD);
+  if (def->subs[def->subs_count-1]->which == BLOCK) {
+    return def->subs_count-3;
+  } else {
+    return def->subs_count-2;
+  }
 }
 
 static error p_expr(struct node *node, struct module *mod, uint32_t parent_op);
@@ -1809,6 +1819,7 @@ static void module_add_builtins(struct module *mod) {
   ADD_BI(TBI_NREF);
   ADD_BI(TBI_NMREF);
   ADD_BI(TBI_NMMREF);
+  ADD_BI(TBI_DYN);
 
   mod->builtin_typs[TBI__PENDING_DESTRUCT] = typ_new(mod, NULL, TYPE__MARKER, 0, 0);
   mod->builtin_typs[TBI__NOT_TYPEABLE] = typ_new(mod, NULL, TYPE__MARKER, 0, 0);
@@ -1937,7 +1948,8 @@ error typ_check(const struct module *mod, const struct node *for_error,
   if (a == typ_lookup_builtin(mod, TBI_LITERAL_NULL)) {
     if (constraint == typ_lookup_builtin(mod, TBI_NREF)
         || constraint == typ_lookup_builtin(mod, TBI_NMREF)
-        || constraint == typ_lookup_builtin(mod, TBI_NMMREF)) {
+        || constraint == typ_lookup_builtin(mod, TBI_NMMREF)
+        || constraint == typ_lookup_builtin(mod, TBI_DYN)) {
       return 0;
     }
   }
@@ -2034,5 +2046,12 @@ error mk_except(const struct module *mod, const struct node *node, const char *f
 
 error mk_except_type(const struct module *mod, const struct node *node, const char *fmt) {
   EXCEPT_TYPE(mod, node, "%s", fmt);
+  return 0;
+}
+
+error mk_except_call_arg_count(const struct module *mod, const struct node *node,
+                               const struct node *definition, size_t given) {
+  EXCEPT_TYPE(mod, node, "invalid number of arguments: %zd expected, but %zd given",
+              node_fun_args_count(definition), given);
   return 0;
 }

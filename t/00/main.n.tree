@@ -153,6 +153,13 @@ MODULE :main.void
    DEFNAME :main.nmmref
     IDENT(this)
     IDENT(nmmref) :main.nmmref
+ DEFTYPE :main.dyn
+  IDENT(dyn)
+  ISALIST :main.void
+  LET :main.void
+   DEFNAME :main.dyn
+    IDENT(this)
+    IDENT(dyn) :main.dyn
  DEFFUN :main.main
   IDENT(main)
   IDENT(i32) :main.i32

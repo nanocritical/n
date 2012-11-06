@@ -236,6 +236,7 @@ enum predefined_idents {
   ID_TBI_NREF,
   ID_TBI_NMREF,
   ID_TBI_NMMREF,
+  ID_TBI_DYN,
   ID_TBI__PENDING_DESTRUCT,
   ID_TBI__NOT_TYPEABLE,
 
@@ -274,6 +275,7 @@ enum typ_builtin {
   TBI_NREF, // ?@
   TBI_NMREF, // ?@!
   TBI_NMMREF, // ?@#
+  TBI_DYN,
   TBI__PENDING_DESTRUCT,
   TBI__NOT_TYPEABLE,
   TBI__NUM,
@@ -343,6 +345,7 @@ error scope_lookup(struct node **result, const struct module *mod,
 ident node_ident(const struct node *node);
 bool node_is_prototype(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
+size_t node_fun_args_count(const struct node *def);
 
 struct typ *typ_new(struct module *mod, struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
@@ -356,6 +359,8 @@ error typ_unify(struct typ **u, const struct module *mod, const struct node *for
                 struct typ *a, struct typ *b);
 error mk_except(const struct module *mod, const struct node *node, const char *fmt);
 error mk_except_type(const struct module *mod, const struct node *node, const char *fmt);
+error mk_except_call_arg_count(const struct module *mod, const struct node *node,
+                               const struct node *definition, size_t given);
 char *typ_name(const struct module *mod, const struct typ *t);
 
 #endif

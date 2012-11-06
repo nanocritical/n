@@ -153,6 +153,13 @@ MODULE :syntax.void
    DEFNAME :syntax.nmmref
     IDENT(this)
     IDENT(nmmref) :syntax.nmmref
+ DEFTYPE :syntax.dyn
+  IDENT(dyn)
+  ISALIST :syntax.void
+  LET :syntax.void
+   DEFNAME :syntax.dyn
+    IDENT(this)
+    IDENT(dyn) :syntax.dyn
  DEFFUN :syntax.main
   IDENT(main)
   IDENT(i32) :syntax.i32

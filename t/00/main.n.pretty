@@ -42,5 +42,7 @@ extern inline type nmref =
 
 extern inline type nmmref =
 
+extern inline type dyn =
+
 fun main = i32
   return 0

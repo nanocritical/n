@@ -198,15 +198,6 @@ error step_add_scopes(struct module *mod, struct node *node) {
   return 0;
 }
 
-static size_t node_fun_args_count(struct node *def) {
-  assert(def->which == DEFFUN || def->which == DEFMETHOD);
-  if (def->subs[def->subs_count-1]->which == BLOCK) {
-    return def->subs_count-3;
-  } else {
-    return def->subs_count-2;
-  }
-}
-
 error step_lexical_scoping(struct module *mod, struct node *node) {
   struct node *id = NULL;
   struct scope *sc = NULL;
@@ -334,7 +325,7 @@ error step_type_destruct_mark(struct module *mod, struct node *node) {
     case OP_BIN_SYM:
     case OP_BIN_SYM_BOOL:
     case OP_BIN_SYM_NUM:
-    case OP_BIN_RHS_U16:
+    case OP_BIN_NUM_RHS_U16:
       goto inherit;
     default:
       assert(FALSE);
@@ -344,7 +335,6 @@ error step_type_destruct_mark(struct module *mod, struct node *node) {
     begin = 1;
     goto mark_subs;
   case CALL:
-    begin = 1;
     goto mark_subs;
   case DEFFUN:
   case DEFMETHOD:
@@ -435,6 +425,11 @@ error step_type_gather_excepts(struct module *mod, struct node *node) {
 static error type_destruct(struct module *mod, struct node *node, struct typ *constraint);
 
 static error type_inference_unary_call(struct module *mod, struct node *node, struct node *def) {
+  if (node_fun_args_count(def) != 0) {
+    error e = mk_except_call_arg_count(mod, node, def, 0);
+    EXCEPT(e);
+  }
+
   switch (def->which) {
   case DEFFUN:
   case DEFMETHOD:
@@ -451,7 +446,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
   error e;
 
   switch (OP_KIND(node->as.UN.operator)) {
-  case OP_UN:
+  case OP_UN_REFOF:
     node->typ = node->subs[0]->typ;
     node->is_type = node->subs[0]->is_type;
     break;
@@ -470,7 +465,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
     EXCEPT(e);
     node->typ = node->subs[0]->typ;
     break;
-  case OP_UN_REF:
+  case OP_UN_DYN:
     e = typ_check_reference(mod, node, node->subs[0]->typ);
     EXCEPT(e);
     node->typ = node->subs[0]->typ;
@@ -531,6 +526,8 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   switch (field->which) {
   case DEFFUN:
   case DEFMETHOD:
+    //unsupported yet
+    assert(FALSE);
     return type_inference_unary_call(mod, node, field);
   default:
     node->typ = field->typ;
@@ -569,7 +566,7 @@ static error type_inference_bin(struct module *mod, struct node *node) {
   case OP_BIN_SYM_BOOL:
   case OP_BIN_SYM_NUM:
     return type_inference_bin_sym(mod, node);
-  case OP_BIN_RHS_U16:
+  case OP_BIN_NUM_RHS_U16:
     return type_inference_bin_rhs_u16(mod, node);
   case OP_BIN_ACC:
     return type_inference_bin_accessor(mod, node);
@@ -615,10 +612,25 @@ static error type_inference_init(struct module *mod, struct node *node) {
 
 static error type_inference_call(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
-  error e;
+  struct node *def = NULL;
+
+  error e = scope_lookup(&def, mod, fun->scope, fun);
+  EXCEPT(e);
+
+  if (def->typ->which != TYPE_FUNCTION) {
+    e = mk_except_type(mod, fun, "not a function");
+    EXCEPT(e);
+  }
+
+  fun->typ = def->typ;
 
   if (node->subs_count == 1) {
     return type_inference_unary_call(mod, node, fun->typ->definition);
+  }
+
+  if (node_fun_args_count(fun->typ->definition) != node->subs_count - 1) {
+    error e = mk_except_call_arg_count(mod, node, def, node->subs_count - 1);
+    EXCEPT(e);
   }
 
   for (size_t n = 1; n < node->subs_count; ++n) {
@@ -729,64 +741,128 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
       EXCEPT(e);
     }
     node->typ = def->typ;
+    node->is_type = def->is_type;
     break;
   case DEFNAME:
     e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
     e = type_destruct(mod, node->subs[1], node->typ);
     EXCEPT(e);
+    node->is_type = node->subs[1]->is_type;
+    break;
+  case UN:
+    switch (OP_KIND(node->as.UN.operator)) {
+    case OP_UN_BOOL:
+      e = typ_check(mod, node, constraint, typ_lookup_builtin(mod, TBI_BOOL));
+      break;
+    case OP_UN_NUM:
+      e = typ_check_numeric(mod, node, constraint);
+      break;
+    case OP_UN_REFOF:
+      e = typ_check_reference(mod, node, constraint);
+      break;
+    case OP_UN_DYN:
+      e = typ_check(mod, node, constraint, typ_lookup_builtin(mod, TBI_DYN));
+      break;
+    default:
+      assert(FALSE);
+    }
+    EXCEPT(e);
+
+    struct node *sub_node = node->subs[0];
+    struct typ *sub_constraint = NULL;
+
+    switch (OP_KIND(node->as.UN.operator)) {
+    case OP_UN_REFOF:
+      sub_constraint = constraint->gen_args[0];
+      break;
+    default:
+      sub_constraint = constraint;
+      node->is_type = node->subs[0]->is_type;
+      break;
+    }
+
+    e = type_destruct(mod, sub_node, sub_constraint);
+    EXCEPT(e);
+
+    switch (OP_KIND(node->as.UN.operator)) {
+    case OP_UN_REFOF:
+      node->typ = typ_new(mod, constraint->definition, TYPE_DEF, 1, 0);
+      node->typ->gen_args[0] = node->subs[0]->typ;
+      break;
+    default:
+      node->typ = node->subs[0]->typ;
+      break;
+    }
     break;
   case BIN:
-    switch (OP_KIND(node->as.BIN.operator)) {
-    case OP_BIN_ACC:
+    if (OP_KIND(node->as.BIN.operator) == OP_BIN_ACC) {
       e = type_inference_bin_accessor(mod, node);
       EXCEPT(e);
       e = typ_unify(&node->typ, mod, node, node->typ, constraint);
       EXCEPT(e);
-      break;
-    case OP_BIN_SYM:
-    case OP_BIN_SYM_BOOL:
-    case OP_BIN_SYM_NUM:
-      e = type_destruct(mod, node->subs[0], constraint);
-      EXCEPT(e);
-      e = type_destruct(mod, node->subs[1], constraint);
-      EXCEPT(e);
-      e = typ_unify(&node->typ, mod, node, node->subs[0]->typ, node->subs[1]->typ);
-      EXCEPT(e);
+      return 0;
+    }
 
-      switch (OP_KIND(node->as.BIN.operator)) {
-      case OP_BIN_SYM_BOOL:
-        e = typ_check(mod, node, node->typ, typ_lookup_builtin(mod, TBI_BOOL));
-        EXCEPT(e);
-        break;
-      case OP_BIN_SYM_NUM:
-        e = typ_check_numeric(mod, node, node->typ);
-        EXCEPT(e);
-        break;
-      default:
-        break;
-      }
+    struct typ *left_constraint = constraint;
+    struct typ *right_constraint = constraint;
+
+    switch (OP_KIND(node->as.BIN.operator)) {
+    case OP_BIN_SYM_BOOL:
+      e = typ_check(mod, node, constraint, typ_lookup_builtin(mod, TBI_BOOL));
+      EXCEPT(e);
       break;
-    case OP_BIN_RHS_U16:
-      e = type_destruct(mod, node->subs[0], constraint);
+    case OP_BIN_SYM_NUM:
+      e = typ_check_numeric(mod, node, constraint);
       EXCEPT(e);
-      e = type_destruct(mod, node->subs[1], typ_lookup_builtin(mod, TBI_U16));
+      break;
+    case OP_BIN_NUM_RHS_U16:
+      e = typ_check_numeric(mod, node, left_constraint);
       EXCEPT(e);
+      right_constraint = typ_lookup_builtin(mod, TBI_U16);
       break;
     case OP_BIN_RHS_TYPE:
       if (!node->subs[1]->is_type) {
         e = mk_except_type(mod, node->subs[1], "right-hand side of type constraint is not a type");
         EXCEPT(e);
       }
-      e = typ_unify(&node->typ, mod, node->subs[1], node->subs[1]->typ, constraint);
+      if (node->as.BIN.operator == TCOLON) {
+        right_constraint = NULL;
+      }
+      break;
+    default:
+      break;
+    }
+
+    e = type_destruct(mod, node->subs[0], left_constraint);
+    EXCEPT(e);
+    if (right_constraint != NULL) {
+      e = type_destruct(mod, node->subs[1], right_constraint);
       EXCEPT(e);
-      e = type_destruct(mod, node->subs[0], node->typ);
+    }
+
+    switch (OP_KIND(node->as.BIN.operator)) {
+    case OP_BIN_SYM:
+    case OP_BIN_SYM_BOOL:
+    case OP_BIN_SYM_NUM:
+      e = typ_unify(&node->typ, mod, node, node->subs[0]->typ, node->subs[1]->typ);
       EXCEPT(e);
+      break;
+    case OP_BIN_NUM_RHS_U16:
+      node->typ = node->subs[0]->typ;
+      break;
+    case OP_BIN_RHS_TYPE:
+      if (node->as.BIN.operator == Tisa) {
+        node->typ = typ_lookup_builtin(mod, TBI_BOOL);
+      } else if (node->as.BIN.operator == TCOLON) {
+        node->typ = node->subs[0]->typ;
+      } else {
+        assert(FALSE);
+      }
       break;
     default:
       assert(FALSE);
     }
-    node->typ = constraint;
     break;
   case TYPECONSTRAINT:
     e = type_destruct(mod, node->subs[1], constraint);
@@ -842,13 +918,8 @@ error step_type_inference(struct module *mod, struct node *node) {
   case IDENT:
     e = scope_lookup(&def, mod, node->scope, node);
     EXCEPT(e);
-    if (def->which == DEFFUN || def->which == DEFMETHOD) {
-      e = type_inference_unary_call(mod, node, def);
-      EXCEPT(e);
-    } else {
-      node->typ = def->typ;
-      node->is_type = def->which == DEFTYPE;
-    }
+    node->typ = def->typ;
+    node->is_type = def->which == DEFTYPE;
     assert(def->typ->which != TYPE__MARKER);
     assert(node->typ->which != TYPE__MARKER);
     goto ok;
