@@ -610,15 +610,15 @@ static void print_import_path(FILE *out, const struct module *mod, const struct 
 static void print_import(FILE *out, const struct module *mod, int indent, const struct node *node) {
   const char *kind;
   if (node->as.IMPORT.is_export) {
-    kind = "export";
+    //fprintf(out, "#include <%s>", mod->filename);
   } else {
-    kind = "import";
+    //fprintf(out, "#include <%s>", mod->filename);
   }
 
   if (node->as.IMPORT.is_all || node->subs_count > 1) {
-    fprintf(out, "from ");
+    //fprintf(out, "#import <%s>", mod->filename);
   } else {
-    fprintf(out, "%s ", kind);
+    // Print definitions from the imported module directly.
   }
 
   print_import_path(out, mod, node->subs[0]);
@@ -677,6 +677,241 @@ error printer_c(int fd, const struct module *mod) {
   }
 
   print_module(out, mod);
+  fflush(out);
+
+  return 0;
+}
+
+
+static void print_fun_prototype(FILE *out, const struct module *mod,
+                                const struct node *node) {
+  const size_t arg_count = node->subs_count - (node->as.DEFFUN.toplevel.is_prototype ? 2 : 3);
+  const struct node *name = node->subs[0];
+  const struct node *retval = node->subs[1 + arg_count];
+
+  h_toplevel(out, &node->as.DEFFUN.toplevel);
+
+  h_expr(out, mod, name, T__NONE);
+  fprintf(out, "(");
+
+  
+
+  for (size_t n = 0; n < arg_count; ++n) {
+    if (n > 0) {
+      fprintf(out, ", ");
+    }
+    const struct node *arg = node->subs[1 + n];
+    print_typeconstraint(out, mod, arg);
+  }
+  fprintf(out, ")\n");
+}
+
+static void h_deffun(FILE *out, const struct module *mod, const struct node *node) {
+  const size_t arg_count = node->subs_count - (node->as.DEFFUN.toplevel.is_prototype ? 2 : 3);
+  const struct node *name = node->subs[0];
+  const struct node *retval = node->subs[1 + arg_count];
+
+  h_toplevel(out, &node->as.DEFFUN.toplevel);
+
+  h_expr(out, mod, name, T__NONE);
+  fprintf(out, "(");
+  for (size_t n = 0; n < arg_count; ++n) {
+    if (n > 0) {
+      fprintf(out, ", ");
+    }
+    const struct node *arg = node->subs[1 + n];
+    print_typeconstraint(out, mod, arg);
+  }
+  fprintf(out, ");\n");
+
+
+
+  fprintf(out, " = ");
+  h_expr(out, mod, retval, T__NONE);
+
+  if (!node->as.DEFFUN.toplevel.is_prototype) {
+    const struct node *block = node->subs[1 + arg_count + 1];
+    h_block(out, mod, 0, block);
+  }
+
+  fprintf(out, "\n");
+}
+
+static void h_deffield(FILE *out, const struct module *mod, const struct node *node) {
+  h_expr(out, mod, node->subs[0], T__NONE);
+  fprintf(out, ":");
+  h_typeexpr(out, mod, node->subs[1]);
+}
+
+static void h_defchoice(FILE *out, const struct module *mod, const struct node *node) {
+  fprintf(out, "| ");
+  h_expr(out, mod, node->subs[0], T__NONE);
+  switch (node->subs_count) {
+  case 1:
+    return;
+  case 2:
+    if (node->as.DEFCHOICE.has_value) {
+      fprintf(out, " = ");
+      h_expr(out, mod, node->subs[1], T__NONE);
+    } else {
+      fprintf(out, " -> ");
+      h_expr(out, mod, node->subs[1], T__NONE);
+    }
+    return;
+  case 3:
+    fprintf(out, " = ");
+    h_expr(out, mod, node->subs[1], T__NONE);
+    fprintf(out, " -> ");
+    h_expr(out, mod, node->subs[2], T__NONE);
+    return;
+  }
+}
+
+static void h_deftype_statement(FILE *out, const struct module *mod, int indent, const struct node *node) {
+  switch (node->which) {
+  case LET:
+    h_let(out, mod, indent, node);
+    break;
+  case DELEGATE:
+    h_delegate(out, mod, node);
+    break;
+  case INVARIANT:
+    h_invariant(out, mod, indent, node);
+    break;
+  case EXAMPLE:
+    h_example(out, mod, indent, node);
+    break;
+  case DEFFIELD:
+    h_deffield(out, mod, node);
+    break;
+  case DEFCHOICE:
+    h_defchoice(out, mod, node);
+    break;
+  default:
+    fprintf(stderr, "Unsupported node: %d\n", node->which);
+    assert(FALSE);
+  }
+}
+
+static void h_deftype(FILE *out, const struct module *mod, int indent, const struct node *node) {
+  const struct node *name = node->subs[0];
+  fprintf(out, "struct ");
+  h_expr(out, mod, name, T__NONE);
+  fprintf(out, ";\n");
+}
+
+static void h_defmethod(FILE *out, const struct module *mod, int indent, const struct node *node) {
+  const size_t arg_count = node->subs_count - (node_is_prototype(node) ? 2 : 3);
+  const struct node *name = node->subs[0];
+  const struct node *retval = node->subs[1 + arg_count];
+
+  h_toplevel(out, &node->as.DEFMETHOD.toplevel);
+
+  const char *scope = idents_value(mod, node->as.DEFMETHOD.toplevel.scope_name);
+  fprintf(out, "%s method ", scope);
+  h_expr(out, mod, name, T__NONE);
+
+  for (size_t n = 0; n < arg_count; ++n) {
+    fprintf(out, " ");
+    const struct node *arg = node->subs[1 + n];
+    h_typeconstraint(out, mod, arg);
+  }
+
+  fprintf(out, " = ");
+  h_expr(out, mod, retval, T__NONE);
+
+  if (!node_is_prototype(node)) {
+    const struct node *block = node->subs[1 + arg_count + 1];
+    h_block(out, mod, 0, block);
+  }
+
+  fprintf(out, "\n");
+}
+
+static void h_defintf(FILE *out, const struct module *mod, int indent, const struct node *node) {
+  h_toplevel(out, &node->as.DEFINTF.toplevel);
+}
+
+static void h_import_path(FILE *out, const struct module *mod, const struct node *node) {
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    if (n > 0) {
+      fprintf(out, ".");
+    }
+
+    h_expr(out, mod, node->subs[n], T__CALL);
+  }
+}
+
+static void h_import(FILE *out, const struct module *mod, int indent, const struct node *node) {
+  const char *kind;
+  if (node->as.IMPORT.is_export) {
+    //fprintf(out, "#include <%s>", mod->filename);
+  } else {
+    //fprintf(out, "#include <%s>", mod->filename);
+  }
+
+  if (node->as.IMPORT.is_all || node->subs_count > 1) {
+    //fprintf(out, "#import <%s>", mod->filename);
+  } else {
+    // Print definitions from the imported module directly.
+  }
+
+  h_import_path(out, mod, node->subs[0]);
+
+  if (node->as.IMPORT.is_all) {
+    fprintf(out, " %s *", kind);
+  } else if (node->subs_count > 1) {
+    fprintf(out, " %s ", kind);
+
+    for (size_t n = 1; n < node->subs_count; ++n) {
+      h_expr(out, mod, node->subs[n], T__CALL);
+    }
+  }
+}
+
+static void h_module(FILE *out, const struct module *mod) {
+  const struct node *top = &mod->root;
+
+  for (size_t n = 0; n < top->subs_count; ++n) {
+    const struct node *node = top->subs[n];
+
+    switch (node->which) {
+    case DEFFUN:
+      h_deffun(out, mod, 0, node);
+      break;
+    case DEFTYPE:
+      h_deftype(out, mod, 0, node);
+      break;
+    case DEFMETHOD:
+      h_defmethod(out, mod, 0, node);
+      break;
+    case DEFINTF:
+      h_defintf(out, mod, 0, node);
+      break;
+    case LET:
+      h_let(out, mod, 0, node);
+      break;
+    case IMPORT:
+      h_import(out, mod, 0, node);
+      break;
+    default:
+      fprintf(stderr, "Unsupported node: %d\n", node->which);
+      assert(FALSE);
+    }
+
+    if (n < top->subs_count - 1) {
+      fprintf(out, "\n");
+    }
+  }
+}
+
+error printer_h(int fd, const struct module *mod) {
+  FILE *out = fdopen(fd, "w");
+  if (out == NULL) {
+    EXCEPTF(errno, "Invalid output file descriptor '%d'", fd);
+  }
+
+  h_module(out, mod);
   fflush(out);
 
   return 0;
