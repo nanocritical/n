@@ -97,15 +97,8 @@ static void print_token(FILE *out, enum token_type t) {
   fprintf(out, "%s", c_token_strings[t]);
 }
 
-static void spaces(FILE *out, int indent) {
-  assert(indent % 2 == 0);
-  for (int i = 0; i < indent; i += 2) {
-    fprintf(out, "  ");
-  }
-}
-
 static void print_expr(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op);
-static void print_block(FILE *out, const struct module *mod, int indent, const struct node *node);
+static void print_block(FILE *out, const struct module *mod, const struct node *node);
 
 static void print_pattern(FILE *out, const struct module *mod, const struct node *node) {
   print_expr(out, mod, node, T__NONE);
@@ -239,86 +232,82 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   }
 }
 
-static void print_for(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_for(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "for ");
   print_pattern(out, mod, node->subs[0]);
   fprintf(out, " in ");
   print_expr(out, mod, node->subs[1], T__NONE);
-  print_block(out, mod, indent, node->subs[2]);
+  print_block(out, mod, node->subs[2]);
 }
 
-static void print_while(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_while(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "while ");
   print_expr(out, mod, node->subs[0], T__NONE);
-  print_block(out, mod, indent, node->subs[1]);
+  print_block(out, mod, node->subs[1]);
 }
 
-static void print_if(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_if(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "if ");
   print_expr(out, mod, node->subs[0], T__NONE);
-  print_block(out, mod, indent, node->subs[1]);
+  print_block(out, mod, node->subs[1]);
 
   size_t p = 2;
   size_t br_count = node->subs_count - 2;
   while (br_count >= 2) {
     fprintf(out, "\n");
-    spaces(out, indent);
     fprintf(out, "elif ");
     print_expr(out, mod, node->subs[p], T__NONE);
-    print_block(out, mod, indent, node->subs[p+1]);
+    print_block(out, mod, node->subs[p+1]);
     p += 2;
     br_count -= 2;
   }
 
   if (br_count == 1) {
     fprintf(out, "\n");
-    spaces(out, indent);
     fprintf(out, "else");
-    print_block(out, mod, indent, node->subs[p]);
+    print_block(out, mod, node->subs[p]);
   }
 }
 
-static void print_match(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_match(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "match ");
   print_expr(out, mod, node->subs[0], T__NONE);
 
   for (size_t n = 1; n < node->subs_count; n += 2) {
     fprintf(out, "\n");
-    spaces(out, indent);
     fprintf(out, "| ");
     print_expr(out, mod, node->subs[n], T__NONE);
-    print_block(out, mod, indent, node->subs[n + 1]);
+    print_block(out, mod, node->subs[n + 1]);
   }
 }
 
-static void print_try(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_try(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "try");
-  print_block(out, mod, indent, node->subs[0]);
+  print_block(out, mod, node->subs[0]);
   fprintf(out, "\n");
-  spaces(out, indent);
   fprintf(out, "catch ");
   print_expr(out, mod, node->subs[1], T__NONE);
-  print_block(out, mod, indent, node->subs[2]);
+  print_block(out, mod, node->subs[2]);
 }
 
-static void print_pre(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_pre(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "pre");
-  print_block(out, mod, indent, node->subs[0]);
+  print_block(out, mod, node->subs[0]);
 }
 
-static void print_post(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_post(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "post");
-  print_block(out, mod, indent, node->subs[0]);
+  print_block(out, mod, node->subs[0]);
 }
 
-static void print_invariant(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_invariant(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "invariant");
-  print_block(out, mod, indent, node->subs[0]);
+  print_block(out, mod, node->subs[0]);
 }
 
-static void print_example(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_example(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "example");
-  print_block(out, mod, indent, node->subs[0]);
+  print_block(out, mod, node->subs[0]);
 }
 
 static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
@@ -330,23 +319,23 @@ static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
   }
 }
 
-static void print_defname(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_defname(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "let ");
   print_pattern(out, mod, node->subs[0]);
   fprintf(out, " = ");
   print_expr(out, mod, node->subs[1], T__NONE);
 
   if (node->subs_count > 2) {
-    print_block(out, mod, indent, node->subs[2]);
+    print_block(out, mod, node->subs[2]);
   }
 }
 
-static void print_let(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_let(FILE *out, const struct module *mod, const struct node *node) {
   print_toplevel(out, &node->as.LET.toplevel);
-  print_defname(out, mod, indent, node->subs[0]);
+  print_defname(out, mod, node->subs[0]);
 }
 
-static void print_statement(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_statement(FILE *out, const struct module *mod, const struct node *node) {
   switch (node->which) {
   case RETURN:
     fprintf(out, "return");
@@ -356,10 +345,10 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
     }
     break;
   case FOR:
-    print_for(out, mod, indent, node);
+    print_for(out, mod, node);
     break;
   case WHILE:
-    print_while(out, mod, indent, node);
+    print_while(out, mod, node);
     break;
   case BREAK:
     fprintf(out, "break");
@@ -371,28 +360,28 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
     fprintf(out, "pass");
     break;
   case IF:
-    print_if(out, mod, indent, node);
+    print_if(out, mod, node);
     break;
   case MATCH:
-    print_match(out, mod, indent, node);
+    print_match(out, mod, node);
     break;
   case TRY:
-    print_try(out, mod, indent, node);
+    print_try(out, mod, node);
     break;
   case PRE:
-    print_pre(out, mod, indent, node);
+    print_pre(out, mod, node);
     break;
   case POST:
-    print_post(out, mod, indent, node);
+    print_post(out, mod, node);
     break;
   case INVARIANT:
-    print_invariant(out, mod, indent, node);
+    print_invariant(out, mod, node);
     break;
   case EXAMPLE:
-    print_example(out, mod, indent, node);
+    print_example(out, mod, node);
     break;
   case LET:
-    print_let(out, mod, indent, node);
+    print_let(out, mod, node);
     break;
   case IDENT:
   case BIN:
@@ -406,13 +395,12 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
   }
 }
 
-static void print_block(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_block(FILE *out, const struct module *mod, const struct node *node) {
   assert(node->which == BLOCK);
   fprintf(out, "\n");
   for (size_t n = 0; n < node->subs_count; ++n) {
     const struct node *statement = node->subs[n];
-    spaces(out, indent + 2);
-    print_statement(out, mod, indent + 2, statement);
+    print_statement(out, mod, statement);
     if (n < node->subs_count - 1) {
       fprintf(out, "\n");
     }
@@ -429,7 +417,30 @@ static void print_typeconstraint(FILE *out, const struct module *mod, const stru
   print_typeexpr(out, mod, node->subs[1]);
 }
 
-static void print_deffun(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_fun_prototype(FILE *out, const struct module *mod,
+                                const struct node *node) {
+  const size_t arg_count = node->subs_count - (node->as.DEFFUN.toplevel.is_prototype ? 2 : 3);
+  const struct node *name = node->subs[0];
+  const struct node *retval = node->subs[1 + arg_count];
+
+  print_toplevel(out, &node->as.DEFFUN.toplevel);
+
+  print_expr(out, mod, retval, T__NONE);
+  fprintf(out, " ");
+  print_expr(out, mod, name, T__NONE);
+  fprintf(out, "(");
+
+  for (size_t n = 0; n < arg_count; ++n) {
+    if (n > 0) {
+      fprintf(out, ", ");
+    }
+    const struct node *arg = node->subs[1 + n];
+    print_typeconstraint(out, mod, arg);
+  }
+  fprintf(out, ")");
+}
+
+static void print_deffun(FILE *out, const struct module *mod, const struct node *node) {
   const size_t arg_count = node->subs_count - (node->as.DEFFUN.toplevel.is_prototype ? 2 : 3);
   const struct node *name = node->subs[0];
   const struct node *retval = node->subs[1 + arg_count];
@@ -450,7 +461,7 @@ static void print_deffun(FILE *out, const struct module *mod, int indent, const 
 
   if (!node->as.DEFFUN.toplevel.is_prototype) {
     const struct node *block = node->subs[1 + arg_count + 1];
-    print_block(out, mod, 0, block);
+    print_block(out, mod, block);
   }
 
   fprintf(out, "\n");
@@ -496,19 +507,19 @@ static void print_delegate(FILE *out, const struct module *mod, const struct nod
   }
 }
 
-static void print_deftype_statement(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_deftype_statement(FILE *out, const struct module *mod, const struct node *node) {
   switch (node->which) {
   case LET:
-    print_let(out, mod, indent, node);
+    print_let(out, mod, node);
     break;
   case DELEGATE:
     print_delegate(out, mod, node);
     break;
   case INVARIANT:
-    print_invariant(out, mod, indent, node);
+    print_invariant(out, mod, node);
     break;
   case EXAMPLE:
-    print_example(out, mod, indent, node);
+    print_example(out, mod, node);
     break;
   case DEFFIELD:
     print_deffield(out, mod, node);
@@ -522,13 +533,12 @@ static void print_deftype_statement(FILE *out, const struct module *mod, int ind
   }
 }
 
-static void print_deftype_block(FILE *out, const struct module *mod, int indent,
+static void print_deftype_block(FILE *out, const struct module *mod,
                                 const struct node *node, size_t first) {
   fprintf(out, "\n");
   for (size_t n = first; n < node->subs_count; ++n) {
     const struct node *statement = node->subs[n];
-    spaces(out, indent + 2);
-    print_deftype_statement(out, mod, indent + 2, statement);
+    print_deftype_statement(out, mod, statement);
     if (n < node->subs_count - 1) {
       fprintf(out, "\n");
     }
@@ -542,7 +552,7 @@ static void print_isalist(FILE *out, const struct module *mod, const struct node
   }
 }
 
-static void print_deftype(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_deftype(FILE *out, const struct module *mod, const struct node *node) {
   const struct node *name = node->subs[0];
   const bool has_isalist = node_is_prototype(node)
     ? node->subs_count > 1 : node->subs_count > 2;
@@ -559,13 +569,13 @@ static void print_deftype(FILE *out, const struct module *mod, int indent, const
   }
 
   if (!node_is_prototype(node)) {
-    print_deftype_block(out, mod, 0, node, has_isalist ? 2 : 1);
+    print_deftype_block(out, mod, node, has_isalist ? 2 : 1);
   }
 
   fprintf(out, "\n");
 }
 
-static void print_defmethod(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_defmethod(FILE *out, const struct module *mod, const struct node *node) {
   const size_t arg_count = node->subs_count - (node_is_prototype(node) ? 2 : 3);
   const struct node *name = node->subs[0];
   const struct node *retval = node->subs[1 + arg_count];
@@ -587,13 +597,13 @@ static void print_defmethod(FILE *out, const struct module *mod, int indent, con
 
   if (!node_is_prototype(node)) {
     const struct node *block = node->subs[1 + arg_count + 1];
-    print_block(out, mod, 0, block);
+    print_block(out, mod, block);
   }
 
   fprintf(out, "\n");
 }
 
-static void print_defintf(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_defintf(FILE *out, const struct module *mod, const struct node *node) {
   print_toplevel(out, &node->as.DEFINTF.toplevel);
 }
 
@@ -607,7 +617,7 @@ static void print_import_path(FILE *out, const struct module *mod, const struct 
   }
 }
 
-static void print_import(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_import(FILE *out, const struct module *mod, const struct node *node) {
   const char *kind;
   if (node->as.IMPORT.is_export) {
     //fprintf(out, "#include <%s>", mod->filename);
@@ -642,22 +652,22 @@ static void print_module(FILE *out, const struct module *mod) {
 
     switch (node->which) {
     case DEFFUN:
-      print_deffun(out, mod, 0, node);
+      print_deffun(out, mod, node);
       break;
     case DEFTYPE:
-      print_deftype(out, mod, 0, node);
+      print_deftype(out, mod, node);
       break;
     case DEFMETHOD:
-      print_defmethod(out, mod, 0, node);
+      print_defmethod(out, mod, node);
       break;
     case DEFINTF:
-      print_defintf(out, mod, 0, node);
+      print_defintf(out, mod, node);
       break;
     case LET:
-      print_let(out, mod, 0, node);
+      print_let(out, mod, node);
       break;
     case IMPORT:
-      print_import(out, mod, 0, node);
+      print_import(out, mod, node);
       break;
     default:
       fprintf(stderr, "Unsupported node: %d\n", node->which);
@@ -682,104 +692,48 @@ error printer_c(int fd, const struct module *mod) {
   return 0;
 }
 
-
-static void print_fun_prototype(FILE *out, const struct module *mod,
-                                const struct node *node) {
-  const size_t arg_count = node->subs_count - (node->as.DEFFUN.toplevel.is_prototype ? 2 : 3);
-  const struct node *name = node->subs[0];
-  const struct node *retval = node->subs[1 + arg_count];
-
-  h_toplevel(out, &node->as.DEFFUN.toplevel);
-
-  h_expr(out, mod, name, T__NONE);
-  fprintf(out, "(");
-
-  
-
-  for (size_t n = 0; n < arg_count; ++n) {
-    if (n > 0) {
-      fprintf(out, ", ");
-    }
-    const struct node *arg = node->subs[1 + n];
-    print_typeconstraint(out, mod, arg);
-  }
-  fprintf(out, ")\n");
-}
-
 static void h_deffun(FILE *out, const struct module *mod, const struct node *node) {
-  const size_t arg_count = node->subs_count - (node->as.DEFFUN.toplevel.is_prototype ? 2 : 3);
-  const struct node *name = node->subs[0];
-  const struct node *retval = node->subs[1 + arg_count];
-
-  h_toplevel(out, &node->as.DEFFUN.toplevel);
-
-  h_expr(out, mod, name, T__NONE);
-  fprintf(out, "(");
-  for (size_t n = 0; n < arg_count; ++n) {
-    if (n > 0) {
-      fprintf(out, ", ");
-    }
-    const struct node *arg = node->subs[1 + n];
-    print_typeconstraint(out, mod, arg);
-  }
-  fprintf(out, ");\n");
-
-
-
-  fprintf(out, " = ");
-  h_expr(out, mod, retval, T__NONE);
-
-  if (!node->as.DEFFUN.toplevel.is_prototype) {
-    const struct node *block = node->subs[1 + arg_count + 1];
-    h_block(out, mod, 0, block);
-  }
-
-  fprintf(out, "\n");
+  print_fun_prototype(out, mod, node);
+  fprintf(out, ";\n");
 }
 
 static void h_deffield(FILE *out, const struct module *mod, const struct node *node) {
-  h_expr(out, mod, node->subs[0], T__NONE);
+  print_expr(out, mod, node->subs[0], T__NONE);
   fprintf(out, ":");
-  h_typeexpr(out, mod, node->subs[1]);
+  print_typeexpr(out, mod, node->subs[1]);
 }
 
 static void h_defchoice(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "| ");
-  h_expr(out, mod, node->subs[0], T__NONE);
+  print_expr(out, mod, node->subs[0], T__NONE);
   switch (node->subs_count) {
   case 1:
     return;
   case 2:
     if (node->as.DEFCHOICE.has_value) {
       fprintf(out, " = ");
-      h_expr(out, mod, node->subs[1], T__NONE);
+      print_expr(out, mod, node->subs[1], T__NONE);
     } else {
       fprintf(out, " -> ");
-      h_expr(out, mod, node->subs[1], T__NONE);
+      print_expr(out, mod, node->subs[1], T__NONE);
     }
     return;
   case 3:
     fprintf(out, " = ");
-    h_expr(out, mod, node->subs[1], T__NONE);
+    print_expr(out, mod, node->subs[1], T__NONE);
     fprintf(out, " -> ");
-    h_expr(out, mod, node->subs[2], T__NONE);
+    print_expr(out, mod, node->subs[2], T__NONE);
     return;
   }
 }
 
-static void h_deftype_statement(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void h_let(FILE *out, const struct module *mod, const struct node *node) {
+}
+
+static void h_deftype_statement(FILE *out, const struct module *mod, const struct node *node) {
   switch (node->which) {
   case LET:
-    h_let(out, mod, indent, node);
-    break;
-  case DELEGATE:
-    h_delegate(out, mod, node);
-    break;
-  case INVARIANT:
-    h_invariant(out, mod, indent, node);
-    break;
-  case EXAMPLE:
-    h_example(out, mod, indent, node);
+    h_let(out, mod, node);
     break;
   case DEFFIELD:
     h_deffield(out, mod, node);
@@ -793,43 +747,48 @@ static void h_deftype_statement(FILE *out, const struct module *mod, int indent,
   }
 }
 
-static void h_deftype(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void h_deftype(FILE *out, const struct module *mod, const struct node *node) {
   const struct node *name = node->subs[0];
   fprintf(out, "struct ");
-  h_expr(out, mod, name, T__NONE);
+  print_expr(out, mod, name, T__NONE);
+  fprintf(out, ";\n");
+  fprintf(out, "typedef struct ");
+  print_expr(out, mod, name, T__NONE);
+  fprintf(out, " ");
+  print_expr(out, mod, name, T__NONE);
   fprintf(out, ";\n");
 }
 
-static void h_defmethod(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void h_defmethod(FILE *out, const struct module *mod, const struct node *node) {
   const size_t arg_count = node->subs_count - (node_is_prototype(node) ? 2 : 3);
   const struct node *name = node->subs[0];
   const struct node *retval = node->subs[1 + arg_count];
 
-  h_toplevel(out, &node->as.DEFMETHOD.toplevel);
+  print_toplevel(out, &node->as.DEFMETHOD.toplevel);
 
   const char *scope = idents_value(mod, node->as.DEFMETHOD.toplevel.scope_name);
   fprintf(out, "%s method ", scope);
-  h_expr(out, mod, name, T__NONE);
+  print_expr(out, mod, name, T__NONE);
 
   for (size_t n = 0; n < arg_count; ++n) {
     fprintf(out, " ");
     const struct node *arg = node->subs[1 + n];
-    h_typeconstraint(out, mod, arg);
+    print_typeconstraint(out, mod, arg);
   }
 
   fprintf(out, " = ");
-  h_expr(out, mod, retval, T__NONE);
+  print_expr(out, mod, retval, T__NONE);
 
   if (!node_is_prototype(node)) {
     const struct node *block = node->subs[1 + arg_count + 1];
-    h_block(out, mod, 0, block);
+    print_block(out, mod, block);
   }
 
   fprintf(out, "\n");
 }
 
-static void h_defintf(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  h_toplevel(out, &node->as.DEFINTF.toplevel);
+static void h_defintf(FILE *out, const struct module *mod, const struct node *node) {
+  print_toplevel(out, &node->as.DEFINTF.toplevel);
 }
 
 static void h_import_path(FILE *out, const struct module *mod, const struct node *node) {
@@ -838,11 +797,11 @@ static void h_import_path(FILE *out, const struct module *mod, const struct node
       fprintf(out, ".");
     }
 
-    h_expr(out, mod, node->subs[n], T__CALL);
+    print_expr(out, mod, node->subs[n], T__CALL);
   }
 }
 
-static void h_import(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void h_import(FILE *out, const struct module *mod, const struct node *node) {
   const char *kind;
   if (node->as.IMPORT.is_export) {
     //fprintf(out, "#include <%s>", mod->filename);
@@ -864,7 +823,7 @@ static void h_import(FILE *out, const struct module *mod, int indent, const stru
     fprintf(out, " %s ", kind);
 
     for (size_t n = 1; n < node->subs_count; ++n) {
-      h_expr(out, mod, node->subs[n], T__CALL);
+      print_expr(out, mod, node->subs[n], T__CALL);
     }
   }
 }
@@ -877,22 +836,22 @@ static void h_module(FILE *out, const struct module *mod) {
 
     switch (node->which) {
     case DEFFUN:
-      h_deffun(out, mod, 0, node);
+      h_deffun(out, mod, node);
       break;
     case DEFTYPE:
-      h_deftype(out, mod, 0, node);
+      h_deftype(out, mod, node);
       break;
     case DEFMETHOD:
-      h_defmethod(out, mod, 0, node);
+      h_defmethod(out, mod, node);
       break;
     case DEFINTF:
-      h_defintf(out, mod, 0, node);
+      h_defintf(out, mod, node);
       break;
     case LET:
-      h_let(out, mod, 0, node);
+      h_let(out, mod, node);
       break;
     case IMPORT:
-      h_import(out, mod, 0, node);
+      h_import(out, mod, node);
       break;
     default:
       fprintf(stderr, "Unsupported node: %d\n", node->which);

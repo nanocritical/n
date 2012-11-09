@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
     out_fn = malloc(strlen(argv[i]) + sizeof(".h.out"));
     sprintf(out_fn, "%s.c.out", argv[i]);
 
-    int fd = creat(out_fn, 00600);
+    fd = creat(out_fn, 00600);
     if (fd < 0) {
       EXCEPTF(errno, "Cannot open output file '%s'", out_fn);
     }
