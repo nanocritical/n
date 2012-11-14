@@ -430,6 +430,10 @@ static void print_fun_prototype(FILE *out, const struct module *mod,
   print_expr(out, mod, name, T__NONE);
   fprintf(out, "(");
 
+  if (arg_count == 0) {
+    fprintf(out, "void");
+  }
+
   for (size_t n = 0; n < arg_count; ++n) {
     if (n > 0) {
       fprintf(out, ", ");
@@ -767,7 +771,7 @@ static void h_defmethod(FILE *out, const struct module *mod, const struct node *
   print_toplevel(out, &node->as.DEFMETHOD.toplevel);
 
   const char *scope = idents_value(mod, node->as.DEFMETHOD.toplevel.scope_name);
-  fprintf(out, "%s method ", scope);
+  fprintf(out, "%s_", scope);
   print_expr(out, mod, name, T__NONE);
 
   for (size_t n = 0; n < arg_count; ++n) {
