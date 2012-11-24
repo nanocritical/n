@@ -218,51 +218,60 @@ eol:
   "\t" { spaces += 8; goto eol; }
   "\r" { goto eol; }
   "\n" { spaces = 0; goto eol; }
-  "--" { goto comment_while_eol; }
-  ANY {
-    YYCURSOR -= 1;
-    if (spaces == parser->indent) {
-      if (block_style(parser)) {
-        parser->inject_eol_after_eob = TRUE;
-        block_up(parser, TRUE);
-        R(TEOB);
-      } else {
-        R(TEOL);
-      }
-    } else if (spaces == parser->indent + 2) {
-      parser->indent = spaces;
-
-      error e = block_down(parser, FALSE);
-      if (e) {
-        ERROR(e, "lexer: too many block levels");
-      }
-
-      R(TSOB);
-    } else if (spaces < parser->indent) {
-      if (spaces % 2 != 0) {
-        ERROR(EINVAL, "lexer: indentation must be a multiple of 2 spaces"
-                " (one tab counts for 8 spaces), not %zu", spaces);
-      }
-
-      parser->indent -= 2;
-
-      if (spaces != parser->indent) {
-        // Closing several blocks at once, return token for the others.
-        YYCURSOR = start;
-        parser->tok_was_injected = TRUE;
-      }
-
-      // EOB must be followed by an EOL.
-      parser->inject_eol_after_eob = TRUE;
-
-      block_up(parser, block_style(parser));
-      R(TEOB);
+  "-" {
+    YYFILL(1);
+    if (YYCURSOR[1] == '-') {
+      YYCURSOR += 1;
+      goto comment_while_eol;
     } else {
-      ERROR(EINVAL, "indentation must be a multiple of 2 spaces"
-              " (one tab counts for 8 spaces), not %zu", spaces);
+      goto eol_any;
     }
   }
+  ANY { goto eol_any; }
  */
+
+eol_any:
+  YYCURSOR -= 1;
+  if (spaces == parser->indent) {
+    if (block_style(parser)) {
+      parser->inject_eol_after_eob = TRUE;
+      block_up(parser, TRUE);
+      R(TEOB);
+    } else {
+      R(TEOL);
+    }
+  } else if (spaces == parser->indent + 2) {
+    parser->indent = spaces;
+
+    error e = block_down(parser, FALSE);
+    if (e) {
+      ERROR(e, "lexer: too many block levels");
+    }
+
+    R(TSOB);
+  } else if (spaces < parser->indent) {
+    if (spaces % 2 != 0) {
+      ERROR(EINVAL, "lexer: indentation must be a multiple of 2 spaces"
+              " (one tab counts for 8 spaces), not %zu", spaces);
+    }
+
+    parser->indent -= 2;
+
+    if (spaces != parser->indent) {
+      // Closing several blocks at once, return token for the others.
+      YYCURSOR = start;
+      parser->tok_was_injected = TRUE;
+    }
+
+    // EOB must be followed by an EOL.
+    parser->inject_eol_after_eob = TRUE;
+
+    block_up(parser, block_style(parser));
+    R(TEOB);
+  } else {
+    ERROR(EINVAL, "indentation must be a multiple of 2 spaces"
+            " (one tab counts for 8 spaces), not %zu", spaces);
+  }
 
 string:
 /*!re2c
