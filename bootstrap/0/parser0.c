@@ -252,7 +252,7 @@ ident node_ident(const struct node *node) {
   }
 }
 
-bool node_is_prototype(const struct node *node) {
+static const struct toplevel *node_toplevel(const struct node *node) {
   const struct toplevel *toplevel = NULL;
 
   switch (node->which) {
@@ -275,10 +275,28 @@ bool node_is_prototype(const struct node *node) {
     toplevel = &node->as.IMPORT.toplevel;
     break;
   default:
-    return FALSE;
+    break;
   }
 
-  return toplevel->is_prototype;
+  return toplevel;
+}
+
+bool node_is_prototype(const struct node *node) {
+  const struct toplevel *toplevel = node_toplevel(node);
+  if (toplevel == NULL) {
+    return FALSE;
+  } else {
+    return toplevel->is_prototype;
+  }
+}
+
+bool node_is_inline(const struct node *node) {
+  const struct toplevel *toplevel = node_toplevel(node);
+  if (toplevel == NULL) {
+    return FALSE;
+  } else {
+    return toplevel->is_inline;
+  }
 }
 
 // Return value must be freed by caller.
@@ -2008,6 +2026,15 @@ bool typ_is_concrete(const struct module *mod, const struct typ *a) {
   }
 
   return TRUE;
+}
+
+bool typ_is_builtin(const struct module *mod, const struct typ *t) {
+  for (size_t n = 0; n < TBI__NUM; ++n) {
+    if (t == mod->builtin_typs[n]) {
+      return TRUE;
+    }
+  }
+  return FALSE;
 }
 
 error typ_unify(struct typ **u, const struct module *mod, const struct node *for_error,

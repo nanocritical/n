@@ -217,9 +217,9 @@ error step_lexical_scoping(struct module *mod, struct node *node) {
     } else {
       e = scope_lookup_ident(&container, mod, node->scope->parent,
                              node->as.DEFFUN.toplevel.scope_name);
+      EXCEPT(e);
       sc = container->scope;
     }
-    EXCEPT(e);
     break;
   case DEFMETHOD:
     id = node->subs[0];

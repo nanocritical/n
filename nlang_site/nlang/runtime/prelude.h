@@ -1,5 +1,5 @@
-#ifndef RUNTIME_PRELUDE_H_
-#define RUNTIME_PRELUDE_H_
+#ifndef NLANG_RUNTIME_PRELUDE_H_
+#define NLANG_RUNTIME_PRELUDE_H_
 
 #ifndef __USE_XOPEN2K8
 # define __USE_XOPEN2K8
@@ -66,4 +66,4 @@ NLANG_POINTER_ALIASES(bool);
 
 #define NLANG_UNREACHED() { abort(); }
 
-#endif // RUNTIME_PRELUDE_H_
+#endif // NLANG_RUNTIME_PRELUDE_H_
