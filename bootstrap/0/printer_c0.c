@@ -319,8 +319,36 @@ static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
   }
 }
 
+static char *replace_dots(char *n) {
+  char *p = n;
+  while (p[0] != '\0') {
+    if (p[0] == '.') {
+      p[0] = '_';
+    }
+    p += 1;
+  }
+  return n;
+}
+
+static void print_typ(FILE *out, const struct module *mod, struct typ *typ) {
+  switch (typ->which) {
+  case TYPE_DEF:
+    fprintf(out, "%s", replace_dots(typ_name(mod, typ)));
+    break;
+  case TYPE_TUPLE:
+    fprintf(out, "_ntup_%s", replace_dots(typ_name(mod, typ)));
+    break;
+  case TYPE_FUNCTION:
+    fprintf(out, "_nfun_%s", replace_dots(typ_name(mod, typ)));
+    break;
+  default:
+    break;
+  }
+}
+
 static void print_defname(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  fprintf(out, "let ");
+  print_typ(out, mod, node->typ);
+  fprintf(out, " ");
   print_pattern(out, header, mod, node->subs[0]);
   fprintf(out, " = ");
   print_expr(out, header, mod, node->subs[1], T__NONE);
