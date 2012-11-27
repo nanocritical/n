@@ -458,6 +458,13 @@ static error parse_modpath(struct module *mod, const char *fn) {
   return 0;
 }
 
+void globalctx_init(struct globalctx *gctx) {
+  memset(gctx, 0, sizeof(*gctx));
+  gctx->root.
+  gctx->root.scope = scope_new(&mod->root);
+  gctx->root.which = MODULE;
+}
+
 static error module_read(struct module *mod, const char *fn) {
   mod->filename = fn;
   error e = parse_modpath(mod, fn);
@@ -1763,8 +1770,10 @@ static error module_parse(struct module *mod) {
   return 0;
 }
 
-static void module_init(struct module *mod) {
+static void module_init(struct globalctx *gctx, struct module *mod) {
   memset(mod, 0, sizeof(*mod));
+
+  mod->gctx = gctx;
 
   mod->idents.map = calloc(1, sizeof(struct idents_map));
   idents_map_init(mod->idents.map, 0);
@@ -1785,7 +1794,7 @@ static void module_init(struct module *mod) {
     idents_map_set(mod->idents.map, tok, i);
   }
 
-  mod->root.scope = scope_new(&mod->root); // For builtin types.
+  mod->root.scope = scope_new(&mod->root);
   mod->root.which = MODULE;
 }
 
@@ -1845,8 +1854,8 @@ static void module_add_builtins(struct module *mod) {
 #undef ADD_BI
 }
 
-error module_open(struct module *mod, const char *fn) {
-  module_init(mod);
+error module_open(struct globalctx *gctx, struct module *mod, const char *fn) {
+  module_init(gctx, mod);
 
   error e = module_read(mod, fn);
   EXCEPT(e);

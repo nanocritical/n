@@ -134,6 +134,7 @@ struct node_import {
 struct node_import_path {};
 struct node_module {
   ident name;
+  bool is_placeholder;
 };
 
 union node_as {
@@ -303,7 +304,13 @@ struct try_excepts {
   size_t count;
 };
 
+struct globalctx {
+  struct node root;
+};
+
 struct module {
+  struct globalctx *gctx;
+
   const char *filename;
 
   struct parser parser;
@@ -321,7 +328,9 @@ struct module {
   size_t path_len;
 };
 
-error module_open(struct module *mod, const char *fn);
+void globalctx_init(struct globalctx *gctx);
+
+error module_open(struct globalctx *gctx, struct module *mod, const char *fn);
 void module_needs_instance(struct module *mod, struct typ *typ);
 void module_return_set(struct module *mod, struct node *return_node);
 struct node *module_return_get(struct module *mod);

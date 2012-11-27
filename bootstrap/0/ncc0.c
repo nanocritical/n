@@ -29,9 +29,14 @@ static error cc(const struct module *mod, const char *c_fn, const char *h_fn) {
 }
 
 int main(int argc, char **argv) {
+  struct globalctx gctx;
+  globalctx_init(&gctx);
+
+  struct module *modules = calloc(argc, sizeof(struct module));
+
   for (int i = 1; i < argc; ++i) {
-    struct module mod;
-    error e = module_open(&mod, argv[i]);
+    struct module *mod = modules[i];
+    error e = module_open(&gctx, mod, argv[i]);
     EXCEPT(e);
 
     step zeropass_down[] = {
@@ -47,6 +52,53 @@ int main(int argc, char **argv) {
       step_add_scopes,
       NULL,
     };
+
+    e = pass(mod, NULL, zeropass_down, zeropass_up);
+    EXCEPT(e);
+
+    const size_t last = ARRAY_SIZE(mod->path) - 1;
+    struct node *root = &mod->gctx->root;
+    for (size_t p = 0; p <= last; ++p) {
+      ident i = mod->path[p];
+      struct node *m = NULL;
+      e = scope_lookup_ident(&m, mod, root->scope, i);
+      if (e == EINVAL) {
+        m = node_new_subnode(mod, root);
+        m->which = MODULE;
+        m->as.MODULE.name = i;
+        m->as.MODULE.is_placeholder = TRUE;
+        m->scope = scope_new(m);
+
+        e = scope_define_ident(mod, root->scope, i, m);
+        EXCEPT(e);
+      } else if (e) {
+        EXCEPT(e);
+      } else {
+        if (p == last) {
+          assert(m->which == MODULE);
+          if (!m->as.MODULE.is_placeholder) {
+            EXCEPTF(EINVAL, "Cannot load module '%s' more than once",
+                    mod->filename);
+          } else {
+            for (size_t s = 0; s < m->subs_count; ++s) {
+              struct node *to_save = m->subs[s];
+              assert(to_save->which == MODULE);
+              e = scope_define_ident(mod, mod->root.scope, to_save->as.MODULE.name, to_save);
+              EXCEPT(e);
+            }
+
+            e = scope_define_ident(mod, root->scope, i, &mod->root);
+            EXCEPT(e);
+          }
+        }
+      }
+
+      root = m;
+    }
+  }
+
+  for (int i = 1; i < argc; ++i) {
+    struct module *mod = modules[i];
 
     step firstpass_down[] = {
       step_lexical_scoping,
@@ -66,10 +118,7 @@ int main(int argc, char **argv) {
       NULL,
     };
 
-    e = pass(&mod, NULL, zeropass_down, zeropass_up);
-    EXCEPT(e);
-
-    e = pass(&mod, NULL, firstpass_down, firstpass_up);
+    e = pass(mod, NULL, firstpass_down, firstpass_up);
     EXCEPT(e);
 
     char *out_fn = malloc(strlen(argv[i]) + sizeof(".tree.out"));
@@ -81,7 +130,7 @@ int main(int argc, char **argv) {
     }
     free(out_fn);
 
-    e = printer_tree(fd, &mod, NULL);
+    e = printer_tree(fd, mod, NULL);
     EXCEPT(e);
     close(fd);
 
@@ -94,7 +143,7 @@ int main(int argc, char **argv) {
     }
     free(out_fn);
 
-    e = printer_pretty(fd, &mod);
+    e = printer_pretty(fd, mod);
     EXCEPT(e);
     close(fd);
 
@@ -106,7 +155,7 @@ int main(int argc, char **argv) {
       EXCEPTF(errno, "Cannot open output file '%s'", c_fn);
     }
 
-    e = printer_c(fd, &mod);
+    e = printer_c(fd, mod);
     EXCEPT(e);
     close(fd);
 
@@ -118,11 +167,11 @@ int main(int argc, char **argv) {
       EXCEPTF(errno, "Cannot open output file '%s'", h_fn);
     }
 
-    e = printer_h(fd, &mod);
+    e = printer_h(fd, mod);
     EXCEPT(e);
     close(fd);
 
-    e = cc(&mod, c_fn, h_fn);
+    e = cc(mod, c_fn, h_fn);
     EXCEPT(e);
 
     free(c_fn);
