@@ -50,11 +50,13 @@ const char *node_which_strings[] = {
   [IMPORT] = "IMPORT",
   [IMPORT_PATH] = "IMPORT_PATH",
   [MODULE] = "MODULE",
+  [ROOT_OF_ALL] = "ROOT_OF_ALL",
 };
 
 static const char *predefined_idents_strings[ID__NUM] = {
   [ID__NONE] = "<NONE>",
   [ID_ANONYMOUS] = "<anonymous>",
+  [ID_ROOT_OF_ALL] = "<root>",
   [ID_FOR] = "<for>",
   [ID_WHILE] = "<while>",
   [ID_MATCH] = "<match>",
@@ -247,6 +249,8 @@ ident node_ident(const struct node *node) {
     return ID_LET;
   case MODULE:
     return node->as.MODULE.name;
+  case ROOT_OF_ALL:
+    return ID_ROOT_OF_ALL;
   default:
     return ID_ANONYMOUS;
   }
@@ -360,7 +364,7 @@ error scope_define(const struct module *mod, struct scope *scope, struct node *i
 
 static error do_scope_lookup_ident(struct node **result, const struct module *mod,
                                    const struct scope *scope, ident id,
-                                   const struct scope *within) {
+                                   const struct scope *within, bool failure_ok) {
   assert(id != ID__NONE);
   struct node **r = scope_map_get(scope->map, id);
   if (r != NULL) {
@@ -369,18 +373,22 @@ static error do_scope_lookup_ident(struct node **result, const struct module *mo
   }
 
   if (scope->parent == NULL) {
-    const char *scname = scope_name(mod, within);
-    EXCEPT_PARSE(mod, scope->node->codeloc, "in scope %s: unknown identifier '%s'",
-                 scname, idents_value(mod, id));
-    // FIXME: leaking scname.
+    if (failure_ok) {
+      return EINVAL;
+    } else {
+      const char *scname = scope_name(mod, within);
+      EXCEPT_PARSE(mod, scope->node->codeloc, "in scope %s: unknown identifier '%s'",
+                   scname, idents_value(mod, id));
+      // FIXME: leaking scname.
+    }
   }
 
-  return do_scope_lookup_ident(result, mod, scope->parent, id, within);
+  return do_scope_lookup_ident(result, mod, scope->parent, id, within, failure_ok);
 }
 
 error scope_lookup_ident(struct node **result, const struct module *mod,
-                         const struct scope *scope, ident id) {
-  return do_scope_lookup_ident(result, mod, scope, id, scope);
+                         const struct scope *scope, ident id, bool failure_ok) {
+  return do_scope_lookup_ident(result, mod, scope, id, scope, failure_ok);
 }
 
 static error do_scope_lookup(struct node **result, const struct module *mod,
@@ -391,7 +399,7 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
 
   switch (id->which) {
   case IDENT:
-    return do_scope_lookup_ident(result, mod, scope, id->as.IDENT.name, within);
+    return do_scope_lookup_ident(result, mod, scope, id->as.IDENT.name, within, FALSE);
     break;
   case UN:
     if (id->as.UN.operator != TREFDOT
@@ -460,9 +468,8 @@ static error parse_modpath(struct module *mod, const char *fn) {
 
 void globalctx_init(struct globalctx *gctx) {
   memset(gctx, 0, sizeof(*gctx));
-  gctx->root.
-  gctx->root.scope = scope_new(&mod->root);
-  gctx->root.which = MODULE;
+  gctx->root.scope = scope_new(&gctx->root);
+  gctx->root.which = ROOT_OF_ALL;
 }
 
 static error module_read(struct module *mod, const char *fn) {

@@ -216,7 +216,8 @@ error step_lexical_scoping(struct module *mod, struct node *node) {
       sc = node->scope->parent;
     } else {
       e = scope_lookup_ident(&container, mod, node->scope->parent,
-                             node->as.DEFFUN.toplevel.scope_name);
+                             node->as.DEFFUN.toplevel.scope_name,
+                             FALSE);
       EXCEPT(e);
       sc = container->scope;
     }
@@ -227,7 +228,8 @@ error step_lexical_scoping(struct module *mod, struct node *node) {
       sc = node->scope->parent;
     } else {
       e = scope_lookup_ident(&container, mod, node->scope->parent,
-                             node->as.DEFMETHOD.toplevel.scope_name);
+                             node->as.DEFMETHOD.toplevel.scope_name,
+                             FALSE);
       sc = container->scope;
     }
     EXCEPT(e);

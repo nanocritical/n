@@ -47,6 +47,7 @@ enum node_which {
   IMPORT,
   IMPORT_PATH,
   MODULE,
+  ROOT_OF_ALL,
   NODE__NUM,
 };
 
@@ -203,6 +204,7 @@ struct idents {
 enum predefined_idents {
   ID__NONE = 0,
   ID_ANONYMOUS,
+  ID_ROOT_OF_ALL,
   ID_FOR,
   ID_WHILE,
   ID_MATCH,
@@ -347,7 +349,7 @@ struct scope *scope_new(struct node *node);
 error scope_define_ident(const struct module *mod, struct scope *scope, ident id, struct node *node);
 error scope_define(const struct module *mod, struct scope *scope, struct node *id, struct node *node);
 error scope_lookup_ident(struct node **result, const struct module *mod,
-                         const struct scope *scope, ident id);
+                         const struct scope *scope, ident id, bool failure_ok);
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, struct node *id);
 

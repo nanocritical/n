@@ -28,15 +28,63 @@ static error cc(const struct module *mod, const char *c_fn, const char *h_fn) {
   return 0;
 }
 
+static error register_module(struct module *mod) {
+  const size_t last = mod->path_len - 1;
+  struct node *root = &mod->gctx->root;
+  for (size_t p = 0; p <= last; ++p) {
+    ident i = mod->path[p];
+    struct node *m = NULL;
+    error e = scope_lookup_ident(&m, mod, root->scope, i, TRUE);
+    if (e == EINVAL) {
+      m = node_new_subnode(mod, root);
+      m->which = MODULE;
+      m->as.MODULE.name = i;
+      m->as.MODULE.is_placeholder = TRUE;
+      m->scope = scope_new(m);
+
+      e = scope_define_ident(mod, root->scope, i, m);
+      EXCEPT(e);
+    } else if (e) {
+      // Repeat bound-to-fail lookup to get the error message right.
+      e = scope_lookup_ident(&m, mod, root->scope, i, FALSE);
+      EXCEPT(e);
+    } else {
+      if (p == last) {
+        assert(m->which == MODULE);
+        if (!m->as.MODULE.is_placeholder) {
+          EXCEPTF(EINVAL, "Cannot load module '%s' more than once",
+                  mod->filename);
+        } else {
+          for (size_t s = 0; s < m->subs_count; ++s) {
+            struct node *to_save = m->subs[s];
+            assert(to_save->which == MODULE);
+            e = scope_define_ident(mod, mod->root.scope,
+                                   to_save->as.MODULE.name, to_save);
+            EXCEPT(e);
+          }
+
+          e = scope_define_ident(mod, root->scope, i, &mod->root);
+          EXCEPT(e);
+        }
+      }
+    }
+
+    root = m;
+  }
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
+  error e;
   struct globalctx gctx;
   globalctx_init(&gctx);
 
   struct module *modules = calloc(argc, sizeof(struct module));
 
   for (int i = 1; i < argc; ++i) {
-    struct module *mod = modules[i];
-    error e = module_open(&gctx, mod, argv[i]);
+    struct module *mod = &modules[i];
+    e = module_open(&gctx, mod, argv[i]);
     EXCEPT(e);
 
     step zeropass_down[] = {
@@ -56,49 +104,15 @@ int main(int argc, char **argv) {
     e = pass(mod, NULL, zeropass_down, zeropass_up);
     EXCEPT(e);
 
-    const size_t last = ARRAY_SIZE(mod->path) - 1;
-    struct node *root = &mod->gctx->root;
-    for (size_t p = 0; p <= last; ++p) {
-      ident i = mod->path[p];
-      struct node *m = NULL;
-      e = scope_lookup_ident(&m, mod, root->scope, i);
-      if (e == EINVAL) {
-        m = node_new_subnode(mod, root);
-        m->which = MODULE;
-        m->as.MODULE.name = i;
-        m->as.MODULE.is_placeholder = TRUE;
-        m->scope = scope_new(m);
+    e = register_module(mod);
+    EXCEPT(e);
 
-        e = scope_define_ident(mod, root->scope, i, m);
-        EXCEPT(e);
-      } else if (e) {
-        EXCEPT(e);
-      } else {
-        if (p == last) {
-          assert(m->which == MODULE);
-          if (!m->as.MODULE.is_placeholder) {
-            EXCEPTF(EINVAL, "Cannot load module '%s' more than once",
-                    mod->filename);
-          } else {
-            for (size_t s = 0; s < m->subs_count; ++s) {
-              struct node *to_save = m->subs[s];
-              assert(to_save->which == MODULE);
-              e = scope_define_ident(mod, mod->root.scope, to_save->as.MODULE.name, to_save);
-              EXCEPT(e);
-            }
-
-            e = scope_define_ident(mod, root->scope, i, &mod->root);
-            EXCEPT(e);
-          }
-        }
-      }
-
-      root = m;
-    }
+    e = prepare_further_imports(mod);
+    EXCEPT(e);
   }
 
   for (int i = 1; i < argc; ++i) {
-    struct module *mod = modules[i];
+    struct module *mod = &modules[i];
 
     step firstpass_down[] = {
       step_lexical_scoping,

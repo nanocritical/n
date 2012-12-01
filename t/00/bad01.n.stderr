@@ -1,1 +1,0 @@
-t/00/bad01.n:1:1: parse: in scope bad01.main.<anonymous>.<anonymous>.x: unknown identifier 'x'
