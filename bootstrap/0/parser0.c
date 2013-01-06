@@ -468,8 +468,8 @@ static error parse_modpath(struct module *mod, const char *fn) {
 
 void globalctx_init(struct globalctx *gctx) {
   memset(gctx, 0, sizeof(*gctx));
-  gctx->root.scope = scope_new(&gctx->root);
-  gctx->root.which = ROOT_OF_ALL;
+  gctx->absolute_root.scope = scope_new(&gctx->absolute_root);
+  gctx->absolute_root.which = ROOT_OF_ALL;
 }
 
 static error module_read(struct module *mod, const char *fn) {

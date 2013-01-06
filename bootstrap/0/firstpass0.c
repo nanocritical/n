@@ -1,25 +1,36 @@
 #include "firstpass.h"
 
-error pass(struct module *mod, struct node *root, step *down_steps, step *up_steps) {
+error pass(struct module *mod, struct node *root, step *down_steps, step *up_steps,
+           void *user) {
   error e;
   if (root == NULL) {
     root = &mod->root;
   }
 
+  bool stop_down_steps_and_descent = FALSE;
   for (size_t s = 0; down_steps[s] != NULL; ++s) {
-    e = down_steps[s](mod, root);
+    e = down_steps[s](mod, root, user, &stop_down_steps_and_descent);
     EXCEPT(e);
+
+    if (stop_down_steps_and_descent) {
+      return 0;
+    }
   }
 
   for (size_t n = 0; n < root->subs_count; ++n) {
     struct node *node = root->subs[n];
-    e = pass(mod, node, down_steps, up_steps);
+    e = pass(mod, node, down_steps, up_steps, user);
     EXCEPT(e);
   }
 
+  bool stop_up_steps = FALSE;
   for (size_t s = 0; up_steps[s] != NULL; ++s) {
-    e = up_steps[s](mod, root);
+    e = up_steps[s](mod, root, user, &stop_up_steps);
     EXCEPT(e);
+
+    if (stop_up_steps) {
+      return 0;
+    }
   }
 
   return 0;
@@ -43,7 +54,7 @@ static struct node *mk_node(struct module *mod, struct node *parent, enum node_w
 }
 
 // Must be run before builtins are added.
-error step_detect_deftype_kind(struct module *mod, struct node *node) {
+error step_detect_deftype_kind(struct module *mod, struct node *node, void *user, bool *stop) {
   if (node->which != DEFTYPE) {
     return 0;
   }
@@ -83,7 +94,7 @@ field_and_sum:
   return 0;
 }
 
-error step_add_builtin_members(struct module *mod, struct node *node) {
+error step_add_builtin_members(struct module *mod, struct node *node, void *user, bool *stop) {
   switch (node->which) {
   case DEFTYPE:
   case DEFINTF:
@@ -104,7 +115,7 @@ error step_add_builtin_members(struct module *mod, struct node *node) {
   return 0;
 }
 
-error step_add_builtin_functions(struct module *mod, struct node *node) {
+error step_add_builtin_functions(struct module *mod, struct node *node, void *user, bool *stop) {
   switch (node->which) {
   case DEFTYPE:
     break;
@@ -115,7 +126,7 @@ error step_add_builtin_functions(struct module *mod, struct node *node) {
   return 0;
 }
 
-error step_add_builtin_methods(struct module *mod, struct node *node) {
+error step_add_builtin_methods(struct module *mod, struct node *node, void *user, bool *stop) {
   switch (node->which) {
   case DEFTYPE:
     break;
@@ -126,7 +137,7 @@ error step_add_builtin_methods(struct module *mod, struct node *node) {
   return 0;
 }
 
-error step_add_builtin_self(struct module *mod, struct node *node) {
+error step_add_builtin_self(struct module *mod, struct node *node, void *user, bool *stop) {
   switch (node->which) {
   case DEFMETHOD:
     break;
@@ -157,7 +168,7 @@ error step_add_builtin_self(struct module *mod, struct node *node) {
   return 0;
 }
 
-error step_add_codegen_variables(struct module *mod, struct node *node) {
+error step_add_codegen_variables(struct module *mod, struct node *node, void *user, bool *stop) {
   switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
@@ -182,7 +193,7 @@ error step_add_codegen_variables(struct module *mod, struct node *node) {
   return 0;
 }
 
-error step_add_scopes(struct module *mod, struct node *node) {
+error step_add_scopes(struct module *mod, struct node *node, void *user, bool *stop) {
   // Builtin types already have a scope.
   if (node->scope == NULL) {
     node->scope = scope_new(node);
@@ -198,7 +209,7 @@ error step_add_scopes(struct module *mod, struct node *node) {
   return 0;
 }
 
-error step_lexical_scoping(struct module *mod, struct node *node) {
+error step_lexical_scoping(struct module *mod, struct node *node, void *user, bool *stop) {
   struct node *id = NULL;
   struct scope *sc = NULL;
   error e;
@@ -298,7 +309,7 @@ error step_lexical_scoping(struct module *mod, struct node *node) {
   return 0;
 }
 
-error step_type_destruct_mark(struct module *mod, struct node *node) {
+error step_type_destruct_mark(struct module *mod, struct node *node, void *user, bool *stop) {
   if (node->which == MODULE) {
     return 0;
   }
@@ -364,7 +375,7 @@ mark_subs:
   return 0;
 }
 
-error step_type_definitions(struct module *mod, struct node *node) {
+error step_type_definitions(struct module *mod, struct node *node, void *user, bool *stop) {
   switch (node->which) {
   case DEFTYPE:
   case DEFINTF:
@@ -390,7 +401,7 @@ static struct node *node_fun_retval(struct node *def) {
   }
 }
 
-error step_type_gather_returns(struct module *mod, struct node *node) {
+error step_type_gather_returns(struct module *mod, struct node *node, void *user, bool *stop) {
   if (node->which == MODULE) {
     return 0;
   }
@@ -406,7 +417,7 @@ error step_type_gather_returns(struct module *mod, struct node *node) {
   return 0;
 }
 
-error step_type_gather_excepts(struct module *mod, struct node *node) {
+error step_type_gather_excepts(struct module *mod, struct node *node, void *user, bool *stop) {
   if (node->which == MODULE) {
     return 0;
   }
@@ -904,7 +915,7 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
   return 0;
 }
 
-error step_type_inference(struct module *mod, struct node *node) {
+error step_type_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   error e;
   struct node *def = NULL;
 
@@ -1069,22 +1080,22 @@ ok:
   return 0;
 }
 
-error step_operator_call_inference(struct module *mod, struct node *node) {
+error step_operator_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   return 0;
 }
 
-error step_unary_call_inference(struct module *mod, struct node *node) {
+error step_unary_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   return 0;
 }
 
-error step_ctor_call_inference(struct module *mod, struct node *node) {
+error step_ctor_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   return 0;
 }
 
-error step_call_arguments_prepare(struct module *mod, struct node *node) {
+error step_call_arguments_prepare(struct module *mod, struct node *node, void *user, bool *stop) {
   return 0;
 }
 
-error step_temporary_inference(struct module *mod, struct node *node) {
+error step_temporary_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   return 0;
 }

@@ -133,9 +133,13 @@ struct node_import {
   bool is_all;
 };
 struct node_import_path {};
+
+struct module;
 struct node_module {
   ident name;
   bool is_placeholder;
+
+  struct module *mod;
 };
 
 union node_as {
@@ -307,7 +311,9 @@ struct try_excepts {
 };
 
 struct globalctx {
-  struct node root;
+  // This node hierarchy is used to park loaded modules using their
+  // absolute name. It is not used for lexical lookup.
+  struct node absolute_root;
 };
 
 struct module {
