@@ -48,7 +48,6 @@ const char *node_which_strings[] = {
   [EXAMPLE] = "EXAMPLE",
   [ISALIST] = "ISALIST",
   [IMPORT] = "IMPORT",
-  [IMPORT_PATH] = "IMPORT_PATH",
   [MODULE] = "MODULE",
   [ROOT_OF_ALL] = "ROOT_OF_ALL",
 };
@@ -111,14 +110,14 @@ int token_cmp(const struct token *a, const struct token *b) {
 }
 
 const char *idents_value(const struct module *mod, ident id) {
-  assert(id <= mod->idents.count);
-  return mod->idents.values[id];
+  assert(id <= mod->gctx->idents.count);
+  return mod->gctx->idents.values[id];
 }
 
 ident idents_add(struct module *mod, const struct token *tok) {
   assert(tok->t == TIDENT);
 
-  struct idents *idents = &mod->idents;
+  struct idents *idents = &mod->gctx->idents;
 
   ident *existing_id = idents_map_get(idents->map, *tok);
   if (existing_id != NULL) {
@@ -208,6 +207,8 @@ int ident_cmp(const ident *a, const ident *b) {
 }
 
 struct scope *scope_new(struct node *node) {
+  assert(node != NULL);
+
   struct scope *s = calloc(1, sizeof(struct scope));
   s->map = calloc(1, sizeof(struct scope_map));
   scope_map_init(s->map, 0);
@@ -217,6 +218,14 @@ struct scope *scope_new(struct node *node) {
 
   s->node = node;
   return s;
+}
+
+struct node *node_module_owner(struct node *node) {
+  if (node->which == MODULE) {
+    return node;
+  } else {
+    return node_module_owner(node->scope->parent->node);
+  }
 }
 
 ident node_ident(const struct node *node) {
@@ -331,16 +340,55 @@ char *scope_name(const struct module *mod, const struct scope *scope) {
   return r;
 }
 
+struct scope_definitions_name_list_data {
+  const struct module *mod;
+  char *s;
+  size_t len;
+};
+
+static int scope_definitions_name_list_iter(const ident *key,
+                                            struct node **val,
+                                            void *user) {
+  struct scope_definitions_name_list_data *d = user;
+  const char *n = idents_value(d->mod, *key);
+  const size_t nlen = strlen(n);
+
+  const bool first = d->s == NULL;
+
+  d->s = realloc(d->s, d->len + nlen + (first ? 1 : 3));
+  char *p = d->s + d->len;
+
+  if (!first) {
+    strcpy(p, ", ");
+    p += 2;
+    d->len += 2;
+  }
+
+  strcpy(p, n);
+  d->len += nlen;
+
+  return 0;
+}
+
+char *scope_definitions_name_list(const struct module *mod, const struct scope *scope) {
+  struct scope_definitions_name_list_data d = {
+    .mod = mod,
+    .s = NULL,
+    .len = 0,
+  };
+
+  scope_map_foreach(scope->map, scope_definitions_name_list_iter, &d);
+
+  return d.s;
+}
+
 error scope_define_ident(const struct module *mod, struct scope *scope, ident id, struct node *node) {
   assert(id != ID__NONE);
   struct node **existing = scope_map_get(scope->map, id);
 
-  // If existing is prototype, we replace with full definition.
+  // If existing is prototype, we just replace it with full definition.
+  // If not, it's an error:
   if (existing != NULL && !node_is_prototype(*existing)) {
-    if (*existing == node) {
-      return 0;
-    }
-
     struct token existing_tok;
     existing_tok.t = TIDENT;
     existing_tok.value = mod->parser.data + (*existing)->codeloc;
@@ -395,11 +443,12 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
                              const struct scope *scope, struct node *id,
                              const struct scope *within) {
   error e;
-  struct node *parent;
+  struct node *parent, *r;
 
   switch (id->which) {
   case IDENT:
-    return do_scope_lookup_ident(result, mod, scope, id->as.IDENT.name, within, FALSE);
+    e = do_scope_lookup_ident(&r, mod, scope, id->as.IDENT.name, within, FALSE);
+    EXCEPT(e);
     break;
   case UN:
     if (id->as.UN.operator != TREFDOT
@@ -409,22 +458,57 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
     }
     e = do_scope_lookup(&parent, mod, scope, id->subs[0], within);
     EXCEPT(e);
-    return do_scope_lookup(result, mod, parent->scope, id->subs[1], within);
+    e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within);
+    EXCEPT(e);
     break;
   case BIN:
-    if (id->as.BIN.operator == TDOT
-           && id->as.BIN.operator == TBANG
-           && id->as.BIN.operator == TSHARP) {
+    if (id->as.BIN.operator != TDOT
+           && id->as.BIN.operator != TBANG
+           && id->as.BIN.operator != TSHARP) {
       EXCEPT_TYPE(mod, id, "malformed type name");
     }
     e = do_scope_lookup(&parent, mod, scope, id->subs[0], within);
     EXCEPT(e);
-    return do_scope_lookup(result, mod, parent->scope, id->subs[1], within);
+
+    if (parent->which == IMPORT) {
+      // This is a case like
+      //   import os
+      //   import os.path
+      // and 'os' resolves to the 'import os' (that's parent). So we first
+      // search for 'path' id->subs[1] in parent->scope (note: it would
+      // shadow a 'path' declaration in the module os, but that's OK). If
+      // that fails, we will resolve parent to find the module it's
+      // importing, and use the usual lookup path.
+      e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within);
+      if (!e) {
+        break;
+      }
+
+      e = do_scope_lookup(&parent, mod, mod->gctx->modules_root.scope,
+                          parent->subs[0], within);
+      EXCEPT(e);
+    } else {
+      e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within);
+      EXCEPT(e);
+    }
+
+    if (r->which == IMPORT
+        && node_module_owner(r) != node_module_owner(id)
+        && !r->as.IMPORT.is_export) {
+      const char *scname = scope_name(mod, within);
+      EXCEPT_PARSE(mod, scope->node->codeloc, "imported from scope %s: not exported",
+                   scname);
+      // FIXME: leaking scname.
+    }
     break;
   default:
     assert(FALSE);
     return 0;
   }
+
+  *result = r;
+
+  return 0;
 }
 
 error scope_lookup(struct node **result, const struct module *mod,
@@ -468,33 +552,64 @@ static error parse_modpath(struct module *mod, const char *fn) {
 
 void globalctx_init(struct globalctx *gctx) {
   memset(gctx, 0, sizeof(*gctx));
-  gctx->absolute_root.scope = scope_new(&gctx->absolute_root);
-  gctx->absolute_root.which = ROOT_OF_ALL;
+
+  gctx->idents.map = calloc(1, sizeof(struct idents_map));
+  idents_map_init(gctx->idents.map, 0);
+  idents_map_set_delete_val(gctx->idents.map, -1);
+  idents_map_set_custom_hashf(gctx->idents.map, token_hash);
+  idents_map_set_custom_cmpf(gctx->idents.map, token_cmp);
+
+  gctx->idents.count = ID__NUM;
+  gctx->idents.capacity = ID__NUM;
+  gctx->idents.values = calloc(ID__NUM, sizeof(char *));
+  for (int i = 0; i < ID__NUM; ++i) {
+    gctx->idents.values[i] = predefined_idents_strings[i];
+
+    struct token tok;
+    tok.t = TIDENT;
+    tok.value = predefined_idents_strings[i];
+    tok.len = strlen(predefined_idents_strings[i]);
+    idents_map_set(gctx->idents.map, tok, i);
+  }
+
+  gctx->modules_root.scope = scope_new(&gctx->modules_root);
+  gctx->modules_root.which = ROOT_OF_ALL;
 }
 
-static error module_read(struct module *mod, const char *fn) {
-  mod->filename = fn;
+static error module_read(struct module *mod, const char *prefix, const char *fn) {
   error e = parse_modpath(mod, fn);
   EXCEPT(e);
 
-  int fd = open(fn, O_RDONLY);
+  char *fullpath = NULL;
+  if (prefix != NULL) {
+    fullpath = calloc(strlen(prefix) + 1 + strlen(fn) + 1, sizeof(char));
+    strcpy(fullpath, prefix);
+    fullpath[strlen(prefix)] = '/';
+    strcpy(fullpath + strlen(prefix) + 1, fn);
+  } else {
+    fullpath = calloc(strlen(fn) + 1, sizeof(char));
+    strcpy(fullpath, fn);
+  }
+  mod->filename = fullpath;
+
+  int fd = open(fullpath, O_RDONLY);
   if (fd < 0) {
-    EXCEPTF(errno, "Cannot open module '%s'", fn);
+    EXCEPTF(errno, "Cannot open module '%s'", fullpath);
   }
 
   struct stat st;
   memset(&st, 0, sizeof(st));
   e = fstat(fd, &st);
   if (e < 0) {
-    EXCEPTF(errno, "Cannot stat module '%s'", fn);
+    EXCEPTF(errno, "Cannot stat module '%s'", fullpath);
   }
 
   char *data = malloc(st.st_size + 1);
   ssize_t count = read(fd, data, st.st_size);
   if (count < 0) {
-    EXCEPTF(errno, "Error reading module '%s'", fn);
+    EXCEPTF(errno, "Error reading module '%s'", fullpath);
   } else if (count != (ssize_t) st.st_size) {
-    EXCEPTF(errno, "Reading module '%s': Partial read not supported by parser", fn);
+    EXCEPTF(errno, "Reading module '%s': Partial read not supported by parser", fullpath);
   }
   data[st.st_size] = '\0';
 
@@ -1627,27 +1742,29 @@ static error p_defintf(struct node *node, struct module *mod, const struct tople
   return 0;
 }
 
-static error p_import_path(struct node *node, struct module *mod) {
-  node->which = IMPORT_PATH;
+static void node_deepcopy(struct module *mod, struct node *dst,
+                          const struct node *src) {
+  dst->which = src->which;
+  memcpy(&dst->as, &src->as, sizeof(&dst->as));
 
-  error e;
-  struct token tok;
-
-  e = p_ident(node_new_subnode(mod, node), mod);
-  EXCEPT(e);
-
-again:
-  e = scan(&tok, mod);
-  EXCEPT(e);
-
-  if (tok.t != TDOT) {
-    back(mod, &tok);
-    return 0;
+  for (size_t s = 0; s < src->subs_count; ++s) {
+    struct node *cpy = node_new_subnode(mod, dst);
+    node_deepcopy(mod, cpy, src->subs[s]);
   }
+}
 
-  p_ident(node_new_subnode(mod, node), mod);
+static void copy_and_extend_import_path(struct module *mod, struct node *imported,
+                                        const struct node *import, const struct token *tok) {
+  struct node *n = node_new_subnode(mod, imported);
+  n->which = BIN;
+  n->as.BIN.operator = TDOT;
 
-  goto again;
+  const struct node *path = import->subs[0];
+  node_deepcopy(mod, node_new_subnode(mod, n), path);
+
+  struct node *i = node_new_subnode(mod, n);
+  i->which = IDENT;
+  i->as.IDENT.name = idents_add(mod, tok);
 }
 
 static error p_import(struct node *node, struct module *mod, const struct toplevel *toplevel,
@@ -1656,7 +1773,7 @@ static error p_import(struct node *node, struct module *mod, const struct toplev
   node->as.IMPORT.toplevel = *toplevel;
   node->as.IMPORT.is_export = is_export;
 
-  error e = p_import_path(node_new_subnode(mod, node), mod);
+  error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
   EXCEPT(e);
 
   struct token tok;
@@ -1676,8 +1793,10 @@ again:
     node->as.IMPORT.is_all = TRUE;
     goto again;
   } else if (tok.t == TIDENT) {
-    e = p_ident(node_new_subnode(mod, node), mod);
-    EXCEPT(e);
+    struct node *imported = node_new_subnode(mod, node);
+    imported->which = IMPORT;
+
+    copy_and_extend_import_path(mod, imported, node, &tok);
 
     goto again;
   } else {
@@ -1782,27 +1901,9 @@ static void module_init(struct globalctx *gctx, struct module *mod) {
 
   mod->gctx = gctx;
 
-  mod->idents.map = calloc(1, sizeof(struct idents_map));
-  idents_map_init(mod->idents.map, 0);
-  idents_map_set_delete_val(mod->idents.map, -1);
-  idents_map_set_custom_hashf(mod->idents.map, token_hash);
-  idents_map_set_custom_cmpf(mod->idents.map, token_cmp);
-
-  mod->idents.count = ID__NUM;
-  mod->idents.capacity = ID__NUM;
-  mod->idents.values = calloc(ID__NUM, sizeof(char *));
-  for (int i = 0; i < ID__NUM; ++i) {
-    mod->idents.values[i] = predefined_idents_strings[i];
-
-    struct token tok;
-    tok.t = TIDENT;
-    tok.value = predefined_idents_strings[i];
-    tok.len = strlen(predefined_idents_strings[i]);
-    idents_map_set(mod->idents.map, tok, i);
-  }
-
   mod->root.scope = scope_new(&mod->root);
   mod->root.which = MODULE;
+  mod->root.as.MODULE.mod = mod;
 }
 
 static void module_add_builtins(struct module *mod) {
@@ -1855,16 +1956,17 @@ static void module_add_builtins(struct module *mod) {
   ADD_BI(TBI_NMMREF);
   ADD_BI(TBI_DYN);
 
+#undef ADD_BI
+
   mod->builtin_typs[TBI__PENDING_DESTRUCT] = typ_new(mod, NULL, TYPE__MARKER, 0, 0);
   mod->builtin_typs[TBI__NOT_TYPEABLE] = typ_new(mod, NULL, TYPE__MARKER, 0, 0);
-
-#undef ADD_BI
 }
 
-error module_open(struct globalctx *gctx, struct module *mod, const char *fn) {
+error module_open(struct globalctx *gctx, struct module *mod,
+                  const char *prefix, const char *fn) {
   module_init(gctx, mod);
 
-  error e = module_read(mod, fn);
+  error e = module_read(mod, prefix, fn);
   EXCEPT(e);
 
   if (mod->path_len >= 1) {

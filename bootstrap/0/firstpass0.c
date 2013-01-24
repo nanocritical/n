@@ -7,20 +7,20 @@ error pass(struct module *mod, struct node *root, step *down_steps, step *up_ste
     root = &mod->root;
   }
 
-  bool stop_down_steps_and_descent = FALSE;
+  bool stop_descent = FALSE;
   for (size_t s = 0; down_steps[s] != NULL; ++s) {
-    e = down_steps[s](mod, root, user, &stop_down_steps_and_descent);
+    bool stop = FALSE;
+    e = down_steps[s](mod, root, user, &stop);
     EXCEPT(e);
-
-    if (stop_down_steps_and_descent) {
-      return 0;
-    }
+    stop_descent = stop_descent || stop;
   }
 
-  for (size_t n = 0; n < root->subs_count; ++n) {
-    struct node *node = root->subs[n];
-    e = pass(mod, node, down_steps, up_steps, user);
-    EXCEPT(e);
+  if (!stop_descent) {
+    for (size_t n = 0; n < root->subs_count; ++n) {
+      struct node *node = root->subs[n];
+      e = pass(mod, node, down_steps, up_steps, user);
+      EXCEPT(e);
+    }
   }
 
   bool stop_up_steps = FALSE;
@@ -209,6 +209,84 @@ error step_add_scopes(struct module *mod, struct node *node, void *user, bool *s
   return 0;
 }
 
+// Depth first; Will modify scope on the way back up.
+static error lexical_import_path(struct module *mod, struct scope **scope,
+                                 struct node *import_path, struct node *import) {
+  error e;
+  struct node *i = NULL;
+
+  switch (import_path->which) {
+  case IDENT:
+    i = import_path;
+    break;
+  case BIN:
+    assert(import_path->as.BIN.operator == TDOT);
+    e = lexical_import_path(mod, scope, import_path->subs[0], NULL);
+    EXCEPT(e);
+    i = import_path->subs[1];
+    break;
+  default:
+    assert(FALSE);
+  }
+
+  if (import != NULL) {
+    e = scope_define_ident(mod, *scope, i->as.IDENT.name, import);
+    EXCEPT(e);
+    return 0;
+  }
+
+  struct node *n = NULL;
+  e = scope_lookup_ident(&n, mod, *scope, i->as.IDENT.name, TRUE);
+  if (e == EINVAL) {
+    n = import_path;
+    e = scope_define_ident(mod, *scope, i->as.IDENT.name, n);
+    EXCEPT(e);
+  } else if (e) {
+    // Repeat bound-to-fail lookup to get the error message right.
+    e = scope_lookup_ident(&n, mod, *scope, i->as.IDENT.name, FALSE);
+    EXCEPT(e);
+  }
+
+  *scope = n->scope;
+
+  return 0;
+}
+
+static error lexical_import(struct module *mod, struct node *import) {
+  assert(import->which == IMPORT);
+  error e;
+
+  if (import->as.IMPORT.is_all || import->subs_count > 1) {
+    e = mk_except(mod, import, "export and from <...> import <*|...> not supported");
+    EXCEPT(e);
+  }
+
+  struct node *import_path = import->subs[0];
+  struct node *targetn = NULL;
+  e = scope_lookup(&targetn, mod, mod->gctx->modules_root.scope, import_path);
+  EXCEPT(e);
+
+  assert(targetn->which == MODULE);
+  assert(!targetn->as.MODULE.is_placeholder);
+
+  struct module *target = targetn->as.MODULE.mod;
+  assert(target != NULL);
+
+  if (import->as.IMPORT.is_all) {
+    // from <path> (import|export) *
+    assert(FALSE);
+    return 0;
+  } else if (import->subs_count == 1) {
+    // (import|export) <path>
+    struct scope *scope = import->scope->parent;
+    return lexical_import_path(mod, &scope, import_path, import);
+  } else {
+    // from <path> (import|export) <a> <b> <c> ...
+    assert(FALSE);
+    return 0;
+  }
+}
+
 error step_lexical_scoping(struct module *mod, struct node *node, void *user, bool *stop) {
   struct node *id = NULL;
   struct scope *sc = NULL;
@@ -217,6 +295,10 @@ error step_lexical_scoping(struct module *mod, struct node *node, void *user, bo
   struct node *container = NULL;
 
   switch (node->which) {
+  case IMPORT:
+    e = lexical_import(mod, node);
+    EXCEPT(e);
+    return 0;
   case FOR:
     id = node->subs[0];
     sc = node->scope;
@@ -309,46 +391,65 @@ error step_lexical_scoping(struct module *mod, struct node *node, void *user, bo
   return 0;
 }
 
+static void mark_subs(struct module *mod, struct node *node, struct typ *mark,
+                      size_t begin, size_t end, size_t incr) {
+  for (size_t n = begin; n < end; n += incr){
+    node->subs[n]->typ = mark;
+  }
+}
+
+static void inherit(struct module *mod, struct node *node) {
+  struct typ *pending = typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT);
+  struct typ *not_typeable = typ_lookup_builtin(mod, TBI__NOT_TYPEABLE);
+  if (node->typ == pending || node->typ == not_typeable) {
+    mark_subs(mod, node, node->typ, 0, node->subs_count, 1);
+  }
+}
+
 error step_type_destruct_mark(struct module *mod, struct node *node, void *user, bool *stop) {
   if (node->which == MODULE) {
     return 0;
   }
 
+  inherit(mod, node);
+
   struct typ *pending = typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT);
-  size_t begin = 0, end = node->subs_count, incr = 1;
+  struct typ *not_typeable = typ_lookup_builtin(mod, TBI__NOT_TYPEABLE);
 
   switch (node->which) {
   case TYPECONSTRAINT:
-    end = 1;
-    goto mark_subs;
+    mark_subs(mod, node, pending, 0, 1, 1);
+    break;
   case TRY:
-    begin = 1;
-    end = 2;
-    goto mark_subs;
+    mark_subs(mod, node, pending, 1, 2, 1);
+    break;
   case MATCH:
-    begin = 1;
-    incr = 2;
-    goto mark_subs;
+    mark_subs(mod, node, pending, 1, node->subs_count, 2);
+    break;
   case BIN:
     switch (OP_KIND(node->as.BIN.operator)) {
     case OP_BIN_RHS_TYPE:
-      end = 1;
-      goto mark_subs;
+      mark_subs(mod, node, pending, 0, 1, 1);
+      break;
     case OP_BIN_ACC:
+      mark_subs(mod, node, not_typeable, 1, node->subs_count, 1);
+      break;
     case OP_BIN_SYM:
     case OP_BIN_SYM_BOOL:
     case OP_BIN_SYM_NUM:
     case OP_BIN_NUM_RHS_U16:
-      goto inherit;
+      break;
     default:
       assert(FALSE);
       break;
     }
+    break;
   case INIT:
-    begin = 1;
-    goto mark_subs;
+    mark_subs(mod, node, pending, 1, node->subs_count, 1);
+    break;
   case CALL:
-    goto mark_subs;
+    mark_subs(mod, node, pending, 0, node->subs_count, 1);
+    break;
   case DEFFUN:
   case DEFMETHOD:
   case DEFTYPE:
@@ -356,22 +457,15 @@ error step_type_destruct_mark(struct module *mod, struct node *node, void *user,
   case DEFFIELD:
   case DEFCHOICE:
   case DEFNAME:
-    node->subs[0]->typ = typ_lookup_builtin(mod, TBI__NOT_TYPEABLE);
-    return 0;
+    node->subs[0]->typ = not_typeable;
+    break;
+  case IMPORT:
+    mark_subs(mod, node, pending, 0, node->subs_count, 1);
+    break;
   default:
-    goto inherit;
+    break;
   }
 
-inherit:
-  if (node->typ == pending) {
-    goto mark_subs;
-  }
-  return 0;
-
-mark_subs:
-  for (size_t n = begin; n < end; n += incr){
-    node->subs[n]->typ = pending;
-  }
   return 0;
 }
 
@@ -710,6 +804,25 @@ static error type_inference_try(struct module *mod, struct node *node) {
   return 0;
 }
 
+static error type_destruct_import_path(struct module *mod, struct node *node) {
+  struct node *def = NULL;
+  error e = scope_lookup(&def, mod, mod->gctx->modules_root.scope, node);
+  EXCEPT(e);
+
+  node->typ = def->typ;
+  node->is_type = def->is_type;
+
+  if (node->which == BIN) {
+    assert(node->as.BIN.operator == TDOT);
+    e = type_destruct_import_path(mod, node->subs[0]);
+    EXCEPT(e);
+  }
+
+  assert(node->typ != NULL);
+
+  return 0;
+}
+
 static error type_destruct(struct module *mod, struct node *node, struct typ *constraint) {
   error e;
   struct node *def = NULL;
@@ -719,6 +832,12 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
   if (node->typ != NULL
       && node->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
       && typ_is_concrete(mod, node->typ)) {
+
+    for (size_t n = 0; n < node->subs_count; ++n) {
+      assert(node->subs[n]->typ != NULL
+             && node->subs[n]->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT));
+    }
+
     e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
     return 0;
@@ -933,7 +1052,18 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
     EXCEPT(e);
     node->typ = def->typ;
     node->is_type = def->which == DEFTYPE;
-    assert(def->typ->which != TYPE__MARKER);
+    assert(node->typ->which != TYPE__MARKER);
+    goto ok;
+  case IMPORT:
+    e = scope_lookup(&def, mod, mod->gctx->modules_root.scope, node->subs[0]);
+    EXCEPT(e);
+    node->typ = def->typ;
+    node->is_type = def->is_type;
+    for (size_t n = 0; n < node->subs_count; ++n) {
+      struct node *s = node->subs[n];
+      e = type_destruct_import_path(mod, s);
+      EXCEPT(e);
+    }
     assert(node->typ->which != TYPE__MARKER);
     goto ok;
   case NUMBER:

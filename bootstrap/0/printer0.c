@@ -107,6 +107,33 @@ static void spaces(FILE *out, int indent) {
   }
 }
 
+static void do_printer_scopes(FILE *out, const struct module *mod, const struct node *root, int indent) {
+  if (root->scope != NULL) {
+    spaces(out, indent);
+    char *n = scope_name(mod, root->scope);
+    char *l = scope_definitions_name_list(mod, root->scope);
+    fprintf(out, "%s:%s %s\n", n, node_which_strings[root->which], l);
+    free(l);
+    free(n);
+  }
+
+  for (size_t n = 0; n < root->subs_count; ++n) {
+    do_printer_scopes(out, mod, root->subs[n], indent+2);
+  }
+}
+
+error printer_scopes(int fd, const struct module *mod, const struct node *root) {
+  FILE *out = fdopen(fd, "w");
+  if (out == NULL) {
+    EXCEPTF(errno, "Invalid output file descriptor '%d'", fd);
+  }
+
+  do_printer_scopes(out, mod, root, 0);
+  fflush(out);
+
+  return 0;
+}
+
 static void print_expr(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op);
 static void print_block(FILE *out, const struct module *mod, int indent, const struct node *node);
 

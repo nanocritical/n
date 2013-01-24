@@ -4,6 +4,8 @@
 #include "common.h"
 #include "parser.h"
 
+error printer_scopes(int fd, const struct module *mod, const struct node *root);
+
 error printer_pretty(int fd, const struct module *mod);
 error printer_tree(int fd, const struct module *mod, const struct node *root);
 error printer_c(int fd, const struct module *mod);

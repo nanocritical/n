@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "printer.h"
 #include "firstpass.h"
+#include "table.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -30,18 +31,30 @@ static error cc(const struct module *mod, const char *c_fn, const char *h_fn) {
 
 static error register_module(struct globalctx *gctx, struct module *mod) {
   const size_t last = mod->path_len - 1;
-  struct node *root = &gctx->absolute_root;
+  struct node *root = &gctx->modules_root;
+
   for (size_t p = 0; p <= last; ++p) {
     ident i = mod->path[p];
     struct node *m = NULL;
     error e = scope_lookup_ident(&m, mod, root->scope, i, TRUE);
     if (e == EINVAL) {
-      m = node_new_subnode(mod, root);
-      m->which = MODULE;
-      m->as.MODULE.name = i;
-      m->as.MODULE.is_placeholder = TRUE;
-      m->as.MODULE.mod = mod;
-      m->scope = scope_new(m);
+      if (p == last) {
+        mod->root.scope = scope_new(&mod->root);
+        mod->root.scope->parent = root->scope;
+        m = &mod->root;
+        root->subs_count += 1;
+        root->subs = realloc(root->subs, root->subs_count * sizeof(*root->subs));
+        root->subs[root->subs_count - 1] = m;
+      } else {
+        m = node_new_subnode(mod, root);
+        m->which = MODULE;
+        m->as.MODULE.name = i;
+        m->as.MODULE.is_placeholder = TRUE;
+        m->as.MODULE.mod = NULL;
+        m->scope = scope_new(m);
+        m->scope->parent = root->scope;
+        m->typ = typ_lookup_builtin(mod, TBI_VOID);
+      }
 
       e = scope_define_ident(mod, root->scope, i, m);
       EXCEPT(e);
@@ -76,8 +89,9 @@ static error register_module(struct globalctx *gctx, struct module *mod) {
   return 0;
 }
 
-static error zero(struct globalctx *gctx, struct module *mod, const char *fn) {
-  error e = module_open(gctx, mod, fn);
+static error zero(struct globalctx *gctx, struct module *mod,
+                  const char *prefix, const char *fn) {
+  error e = module_open(gctx, mod, prefix, fn);
   EXCEPT(e);
 
   step zeropass_down[] = {
@@ -100,7 +114,7 @@ static error zero(struct globalctx *gctx, struct module *mod, const char *fn) {
   return 0;
 }
 
-static error first(struct node *node, void *ignore, bool *ignore2) {
+static error first(struct node *node) {
   assert(node->which == MODULE);
   struct module *mod = node->as.MODULE.mod;
 
@@ -128,7 +142,7 @@ static error first(struct node *node, void *ignore, bool *ignore2) {
   return 0;
 }
 
-error generate(struct node *node, void *ignore, bool *ignore2) {
+error generate(struct node *node) {
   assert(node->which == MODULE);
   struct module *mod = node->as.MODULE.mod;
 
@@ -204,7 +218,7 @@ static error step_for_all_nodes(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   struct node_op *op = user;
 
-  if (node->which == op->filter) {
+  if (op->filter == 0 || node->which == op->filter) {
     error e = op->fun(node, op->user, stop);
     EXCEPT(e);
   }
@@ -213,8 +227,8 @@ static error step_for_all_nodes(struct module *mod, struct node *node,
 }
 
 static error for_all_nodes(struct node *root,
-                           enum node_which filter,
-                           error (*node_fun)(struct node *node, void *user, bool *stop),
+                           enum node_which filter, // 0 to get all nodes
+                           error (*node_fun)(struct node *node, void *user, bool *stop_descent),
                            void *user) {
   step downsteps[] = {
     step_for_all_nodes,
@@ -236,10 +250,13 @@ static error for_all_nodes(struct node *root,
   return 0;
 }
 
-static error load_module(struct globalctx *gctx, const char *fn) {
+static error load_module(struct globalctx *gctx, const char *prefix, const char *fn) {
+
+  //FIXME check if already loaded.
+
   struct module *mod = calloc(1, sizeof(struct module));
 
-  error e = zero(gctx, mod, fn);
+  error e = zero(gctx, mod, prefix, fn);
   EXCEPT(e);
 
   e = register_module(gctx, mod);
@@ -248,34 +265,63 @@ static error load_module(struct globalctx *gctx, const char *fn) {
   return 0;
 }
 
-static error lookup_import(char **fn, struct module *mod, struct node *node) {
-  assert(node->which == IMPORT);
+static void import_filename(char **fn, size_t *len,
+                            struct module *mod, struct node *import) {
+  struct node *to_append = NULL;
 
-  *fn = calloc(1, sizeof(char));
-
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *s = node->subs[n];
-    assert(s->which == IDENT);
-    const char *ident = idents_value(mod, s->as.IDENT.name);
-
-    const size_t len = 1 + strlen(ident);
-    *fn = realloc(*fn, strlen(*fn) + len + 1);
-    strcpy(*fn, ".");
-    strcpy(*fn + 1, ident);
-    *fn += len;
+  switch (import->which) {
+  case BIN:
+    import_filename(fn, len, mod, import->subs[0]);
+    to_append = import->subs[1];
+    break;
+  case IDENT:
+    to_append = import;
+    break;
+  default:
+    assert(FALSE);
   }
+
+  assert(to_append->which == IDENT);
+  const char *app = idents_value(mod, to_append->as.IDENT.name);
+  const size_t applen = strlen(app);
+
+  if (*len == 0) {
+    *fn = realloc(*fn, applen + 1);
+    strcpy(*fn, app);
+    *len += applen;
+  } else {
+    *fn = realloc(*fn, *len + 1 + applen + 1);
+    (*fn)[*len] = '/';
+    strcpy(*fn + *len + 1, app);
+    *len += applen + 1;
+  }
+}
+
+static error lookup_import(char **fn, struct module *mod, struct node *import,
+                           const char *prefix) {
+  assert(import->which == IMPORT);
+  struct node *import_path = import->subs[0];
+
+  *fn = NULL;
+  size_t len = 0;
+
+  import_filename(fn, &len, mod, import_path);
+
+  *fn = realloc(*fn, len + 2 + 1);
+  strcpy(*fn + len, ".n");
 
   return 0;
 }
 
 static error load_import(struct node *node, void *user, bool *stop) {
+  assert(node->which == IMPORT);
   struct module *mod = user;
 
   char *fn = NULL;
-  error e = lookup_import(&fn, mod, node);
+  error e = lookup_import(&fn, mod, node, "lib");
   EXCEPT(e);
 
-  e = load_module(mod->gctx, fn);
+  e = load_module(mod->gctx, "lib", fn);
   free(fn);
   EXCEPT(e);
 
@@ -286,11 +332,97 @@ static error load_import(struct node *node, void *user, bool *stop) {
 
 static error load_imports(struct node *node, void *user, bool *stop) {
   assert(node->which == MODULE);
-  struct globalctx *gctx = user;
 
-  error e = for_all_nodes(&gctx->absolute_root, IMPORT, load_import,
+  if (node->as.MODULE.is_placeholder) {
+    return 0;
+  }
+
+  assert(node->as.MODULE.mod != NULL);
+  error e = for_all_nodes(&node->as.MODULE.mod->root, IMPORT, load_import,
                           node->as.MODULE.mod);
   EXCEPT(e);
+
+  return 0;
+}
+
+struct dependencies {
+  struct module **tmp;
+  size_t tmp_count;
+  struct module **modules;
+  size_t modules_count;
+  struct globalctx *gctx;
+};
+
+static error gather_dependencies_in_module(struct node *node, void *user, bool *stop) {
+  assert(node->which == IMPORT);
+  struct dependencies *deps = user;
+
+  struct node *nmod = NULL;
+  error e = scope_lookup(&nmod, node_module_owner(node)->as.MODULE.mod,
+                         deps->gctx->modules_root.scope, node->subs[0]);
+  EXCEPT(e);
+
+  deps->tmp_count += 1;
+  deps->tmp = realloc(deps->tmp, deps->tmp_count * sizeof(*deps->tmp));
+  deps->tmp[deps->tmp_count - 1] = nmod->as.MODULE.mod;
+
+  return 0;
+}
+
+static error gather_dependencies(struct node *node, void *user, bool *stop) {
+  assert(node->which == MODULE);
+  struct dependencies *deps = user;
+
+  if (node->as.MODULE.is_placeholder) {
+    return 0;
+  }
+
+  error e = for_all_nodes(node, IMPORT, gather_dependencies_in_module, deps);
+  EXCEPT(e);
+
+  deps->tmp_count += 1;
+  deps->tmp = realloc(deps->tmp, deps->tmp_count * sizeof(*deps->tmp));
+  deps->tmp[deps->tmp_count - 1] = node_module_owner(node)->as.MODULE.mod;
+
+  return 0;
+}
+
+HTABLE_SPARSE(dependencies_map, int, struct module *);
+implement_htable_sparse(__attribute__((unused)) static, dependencies_map, int, struct module *);
+
+uint32_t module_pointer_hash(const struct module **mod) {
+  return hash32_hsieh(mod, sizeof(*mod));
+}
+
+int module_pointer_cmp(const struct module **a, const struct module **b) {
+  return memcmp(a, b, sizeof(*a));
+}
+
+static error calculate_dependencies(struct dependencies *deps) {
+  struct dependencies_map map;
+  dependencies_map_init(&map, 0);
+  dependencies_map_set_delete_val(&map, 0);
+  dependencies_map_set_custom_hashf(&map, module_pointer_hash);
+  dependencies_map_set_custom_cmpf(&map, module_pointer_cmp);
+
+  for (ssize_t n = deps->tmp_count - 1; n >= 0; --n) {
+    struct module *m = deps->tmp[n];
+    const int yes = 1;
+    int already = dependencies_map_set(&map, m, yes);
+    if (already) {
+      continue;
+    }
+
+    deps->modules_count += 1;
+    deps->modules = realloc(deps->modules, deps->modules_count * sizeof(*deps->modules));
+    deps->modules[deps->modules_count - 1] = m;
+  }
+
+  dependencies_map_destroy(&map);
+
+  free(deps->tmp);
+  deps->tmp = NULL;
+  deps->tmp_count = 0;
 
   return 0;
 }
@@ -299,20 +431,35 @@ int main(int argc, char **argv) {
   struct globalctx gctx;
   globalctx_init(&gctx);
 
-  error e;
-  for (int i = 1; i < argc; ++i) {
-    e = load_module(&gctx, argv[i]);
+  if (argc != 2) {
+    fprintf(stderr, "Usage: %s <input.n>\n", argv[0]);
+    exit(1);
+  }
+
+  error e = load_module(&gctx, NULL, argv[1]);
+  EXCEPT(e);
+
+  e = for_all_nodes(&gctx.modules_root, MODULE, load_imports, NULL);
+  EXCEPT(e);
+
+  struct dependencies deps;
+  memset(&deps, 0, sizeof(deps));
+  deps.gctx = &gctx;
+
+  e = for_all_nodes(&gctx.modules_root, MODULE, gather_dependencies, &deps);
+  EXCEPT(e);
+  e = calculate_dependencies(&deps);
+  EXCEPT(e);
+
+  for (size_t n = 0; n < deps.modules_count; ++n) {
+    e = first(&deps.modules[n]->root);
     EXCEPT(e);
   }
 
-  e = for_all_nodes(&gctx.absolute_root, MODULE, load_imports, &gctx);
-  EXCEPT(e);
-
-  e = for_all_nodes(&gctx.absolute_root, MODULE, first, NULL);
-  EXCEPT(e);
-
-  e = for_all_nodes(&gctx.absolute_root, MODULE, generate, NULL);
-  EXCEPT(e);
+  for (size_t n = 0; n < deps.modules_count; ++n) {
+    e = generate(&deps.modules[n]->root);
+    EXCEPT(e);
+  }
 
   return 0;
 }

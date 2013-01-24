@@ -4,6 +4,8 @@
 #include "common.h"
 #include "lexer.h"
 
+#define MODULE_PATH_MAXLEN 16
+
 typedef uint32_t ident;
 
 enum node_which {
@@ -45,7 +47,6 @@ enum node_which {
   EXAMPLE,
   ISALIST,
   IMPORT,
-  IMPORT_PATH,
   MODULE,
   ROOT_OF_ALL,
   NODE__NUM,
@@ -132,7 +133,6 @@ struct node_import {
   bool is_export;
   bool is_all;
 };
-struct node_import_path {};
 
 struct module;
 struct node_module {
@@ -174,7 +174,6 @@ union node_as {
   struct node_invariant INVARIANT;
   struct node_example EXAMPLE;
   struct node_import IMPORT;
-  struct node_import_path IMPORT_PATH;
   struct node_module MODULE;
 };
 
@@ -311,9 +310,10 @@ struct try_excepts {
 };
 
 struct globalctx {
+  struct idents idents;
   // This node hierarchy is used to park loaded modules using their
   // absolute name. It is not used for lexical lookup.
-  struct node absolute_root;
+  struct node modules_root;
 };
 
 struct module {
@@ -322,7 +322,6 @@ struct module {
   const char *filename;
 
   struct parser parser;
-  struct idents idents;
   struct node root;
   size_t next_gensym;
 
@@ -332,13 +331,14 @@ struct module {
   struct try_excepts *trys;
   size_t trys_count;
 
-  ident path[128];
+  ident path[MODULE_PATH_MAXLEN];
   size_t path_len;
 };
 
 void globalctx_init(struct globalctx *gctx);
 
-error module_open(struct globalctx *gctx, struct module *mod, const char *fn);
+error module_open(struct globalctx *gctx, struct module *mod,
+                  const char *prefix, const char *fn);
 void module_needs_instance(struct module *mod, struct typ *typ);
 void module_return_set(struct module *mod, struct node *return_node);
 struct node *module_return_get(struct module *mod);
@@ -358,7 +358,10 @@ error scope_lookup_ident(struct node **result, const struct module *mod,
                          const struct scope *scope, ident id, bool failure_ok);
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, struct node *id);
+char *scope_name(const struct module *mod, const struct scope *scope);
+char *scope_definitions_name_list(const struct module *mod, const struct scope *scope);
 
+struct node *node_module_owner(struct node *node);
 ident node_ident(const struct node *node);
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);
