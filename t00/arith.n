@@ -1,5 +1,5 @@
-import nlang.integers
+from nlang.integers import i32 i8
 
-fun main = nlang.integers.i32
+fun main = i32
   let x = 2
   return x - 1

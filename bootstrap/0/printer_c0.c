@@ -105,11 +105,6 @@ static void print_pattern(FILE *out, bool header, const struct module *mod, cons
 }
 
 static void print_bin(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
-  if (node->is_type) {
-    print_typ(out, mod, node->typ);
-    return;
-  }
-
   const uint32_t op = node->as.BIN.operator;
   const uint32_t prec = OP_PREC(op);
   const uint32_t parent_prec = OP_PREC(parent_op);
@@ -199,6 +194,11 @@ static void print_init(FILE *out, bool header, const struct module *mod, const s
 }
 
 static void print_expr(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
+  if (node->is_type) {
+    print_typ(out, mod, node->typ);
+    return;
+  }
+
   switch (node->which) {
   case NUL:
     fprintf(out, "NULL");

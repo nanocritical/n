@@ -658,7 +658,7 @@ static void print_import(FILE *out, const struct module *mod, int indent, const 
     fprintf(out, " %s ", kind);
 
     for (size_t n = 1; n < node->subs_count; ++n) {
-      print_expr(out, mod, node->subs[n], T__CALL);
+      print_expr(out, mod, node->subs[n]->subs[0]->subs[1], T__CALL);
     }
   }
 }

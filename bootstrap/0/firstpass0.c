@@ -209,8 +209,8 @@ error step_add_scopes(struct module *mod, struct node *node, void *user, bool *s
   return 0;
 }
 
-// Depth first; Will modify scope on the way back up.
-static error lexical_import_path(struct module *mod, struct scope **scope,
+// Recursive, depth first; Will modify scope on the way back up.
+static error lexical_import_path(struct scope **scope, struct module *mod,
                                  struct node *import_path, struct node *import) {
   error e;
   struct node *i = NULL;
@@ -221,7 +221,7 @@ static error lexical_import_path(struct module *mod, struct scope **scope,
     break;
   case BIN:
     assert(import_path->as.BIN.operator == TDOT);
-    e = lexical_import_path(mod, scope, import_path->subs[0], NULL);
+    e = lexical_import_path(scope, mod, import_path->subs[0], NULL);
     EXCEPT(e);
     i = import_path->subs[1];
     break;
@@ -252,25 +252,29 @@ static error lexical_import_path(struct module *mod, struct scope **scope,
   return 0;
 }
 
+static error lexical_import_from_path(struct module *mod, struct scope *scope,
+                                      struct node *import) {
+  error e;
+  for (size_t n = 1; n < import->subs_count; ++n) {
+    struct node *full_import_path = import->subs[n]->subs[0];
+    struct node *target = NULL;
+    e = scope_lookup(&target, mod, mod->gctx->modules_root.scope, full_import_path);
+    EXCEPT(e);
+
+    assert(full_import_path->which == BIN);
+    assert(full_import_path->subs[1]->which == IDENT);
+    e = scope_define_ident(mod, scope, full_import_path->subs[1]->as.IDENT.name, import->subs[n]);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
 static error lexical_import(struct module *mod, struct node *import) {
   assert(import->which == IMPORT);
   error e;
 
-  if (import->as.IMPORT.is_all || import->subs_count > 1) {
-    e = mk_except(mod, import, "export and from <...> import <*|...> not supported");
-    EXCEPT(e);
-  }
-
   struct node *import_path = import->subs[0];
-  struct node *targetn = NULL;
-  e = scope_lookup(&targetn, mod, mod->gctx->modules_root.scope, import_path);
-  EXCEPT(e);
-
-  assert(targetn->which == MODULE);
-  assert(!targetn->as.MODULE.is_placeholder);
-
-  struct module *target = targetn->as.MODULE.mod;
-  assert(target != NULL);
 
   if (import->as.IMPORT.is_all) {
     // from <path> (import|export) *
@@ -279,12 +283,15 @@ static error lexical_import(struct module *mod, struct node *import) {
   } else if (import->subs_count == 1) {
     // (import|export) <path>
     struct scope *scope = import->scope->parent;
-    return lexical_import_path(mod, &scope, import_path, import);
+    e = lexical_import_path(&scope, mod, import_path, import);
+    EXCEPT(e);
   } else {
     // from <path> (import|export) <a> <b> <c> ...
-    assert(FALSE);
-    return 0;
+    e = lexical_import_from_path(mod, import->scope->parent, import);
+    EXCEPT(e);
   }
+
+  return 0;
 }
 
 error step_lexical_scoping(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -495,6 +502,7 @@ error step_type_definitions(struct module *mod, struct node *node, void *user, b
 }
 
 static struct node *node_fun_retval(struct node *def) {
+  assert(def->which == DEFFUN || def->which == DEFMETHOD);
   if (def->subs[def->subs_count-1]->which == BLOCK) {
     return def->subs[def->subs_count-2];
   } else {
@@ -1064,10 +1072,14 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
     EXCEPT(e);
     node->typ = def->typ;
     node->is_type = def->is_type;
-    for (size_t n = 0; n < node->subs_count; ++n) {
-      struct node *s = node->subs[n];
+    for (size_t n = 1; n < node->subs_count; ++n) {
+      struct node *s = node->subs[n]->subs[0];
       e = type_destruct_import_path(mod, s);
       EXCEPT(e);
+
+      assert(s->typ->which != TYPE__MARKER);
+      node->subs[n]->typ = s->typ;
+      node->subs[n]->is_type = s->is_type;
     }
     assert(node->typ->which != TYPE__MARKER);
     goto ok;
@@ -1202,8 +1214,11 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
   case INVARIANT:
   case EXAMPLE:
   case ISALIST:
+    node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    goto ok;
   case MODULE:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    node->is_type = TRUE;
     goto ok;
   default:
     goto ok;

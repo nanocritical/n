@@ -358,10 +358,13 @@ ident idents_add(struct globalctx *gctx, const struct token *tok);
 struct scope *scope_new(struct node *node);
 error scope_define_ident(const struct module *mod, struct scope *scope, ident id, struct node *node);
 error scope_define(const struct module *mod, struct scope *scope, struct node *id, struct node *node);
+// Does not follow imports; use scope_lookup().
 error scope_lookup_ident(struct node **result, const struct module *mod,
                          const struct scope *scope, ident id, bool failure_ok);
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, struct node *id);
+error scope_lookup_module(struct node **result, const struct module *mod,
+                          struct node *id);
 char *scope_name(const struct module *mod, const struct scope *scope);
 char *scope_definitions_name_list(const struct module *mod, const struct scope *scope);
 

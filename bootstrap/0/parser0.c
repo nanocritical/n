@@ -68,9 +68,9 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_THIS] = "this",
   [ID_SELF] = "self",
   [ID_TBI_VOID] = "void",
-  [ID_TBI_LITERALS_NULL] = "literal_null",
-  [ID_TBI_LITERALS_NUMBER] = "literal_number",
-  [ID_TBI_PSEUDO_TUPLE] = "pseudo_tuple",
+  [ID_TBI_LITERALS_NULL] = "__null__",
+  [ID_TBI_LITERALS_NUMBER] = "number",
+  [ID_TBI_PSEUDO_TUPLE] = "__pseudo_tuple__",
   [ID_TBI_BOOL] = "bool",
   [ID_TBI_I8] = "i8",
   [ID_TBI_U8] = "u8",
@@ -89,9 +89,9 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NREF] = "nref",
   [ID_TBI_NMREF] = "nmref",
   [ID_TBI_NMMREF] = "nmmref",
-  [ID_TBI_DYN] = "__internal_dyn",
-  [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct",
-  [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable",
+  [ID_TBI_DYN] = "__internal_dyn__",
+  [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
+  [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
@@ -314,6 +314,13 @@ bool node_is_inline(const struct node *node) {
 
 // Return value must be freed by caller.
 char *scope_name(const struct module *mod, const struct scope *scope) {
+  if (scope->node == &mod->gctx->modules_root) {
+    const char *name = idents_value(mod->gctx, node_ident(scope->node));
+    char *r = calloc(strlen(name) + 1, sizeof(char));
+    strcpy(r, name);
+    return r;
+  }
+
   size_t len = 0;
   const struct scope *root = scope;
   while (root->parent != NULL) {
@@ -443,10 +450,12 @@ error scope_lookup_ident(struct node **result, const struct module *mod,
 }
 
 #define EXCEPT_UNLESS(e, failure_ok) do { \
-  if (failure_ok) { \
-    return e; \
-  } else if (e) { \
-    EXCEPT(e); \
+  if (e) {\
+    if (failure_ok) { \
+      return e; \
+    } else { \
+      EXCEPT(e); \
+    } \
   } \
 } while (0)
 
@@ -454,24 +463,32 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
                              const struct scope *scope, struct node *id,
                              const struct scope *within, bool failure_ok) {
   error e;
-  struct node *parent, *r;
+  struct node *parent = NULL, *r = NULL;
 
   switch (id->which) {
   case IDENT:
     e = do_scope_lookup_ident(&r, mod, scope, id->as.IDENT.name, within, failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
-    break;
-  case UN:
-    if (id->as.UN.operator != TREFDOT
-           && id->as.UN.operator != TREFBANG
-           && id->as.UN.operator != TREFSHARP) {
-      EXCEPT_TYPE(mod, id, "malformed type name");
+
+    if (r->which == IMPORT) {
+      e = do_scope_lookup(&r, mod, mod->gctx->modules_root.scope,
+                          r->subs[0], within, failure_ok);
+      EXCEPT_UNLESS(e, failure_ok);
     }
-    e = do_scope_lookup(&parent, mod, scope, id->subs[0], within, failure_ok);
-    EXCEPT_UNLESS(e, failure_ok);
-    e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within, failure_ok);
-    EXCEPT_UNLESS(e, failure_ok);
+
     break;
+  // FIXME: why the hell we have this?
+  //case UN:
+  //  if (id->as.UN.operator != TREFDOT
+  //         && id->as.UN.operator != TREFBANG
+  //         && id->as.UN.operator != TREFSHARP) {
+  //    EXCEPT_TYPE(mod, id, "malformed type name");
+  //  }
+  //  e = do_scope_lookup(&parent, mod, scope, id->subs[0], within, failure_ok);
+  //  EXCEPT_UNLESS(e, failure_ok);
+  //  e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within, failure_ok);
+  //  EXCEPT_UNLESS(e, failure_ok);
+  //  break;
   case BIN:
     if (id->as.BIN.operator != TDOT
            && id->as.BIN.operator != TBANG
@@ -527,6 +544,44 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, struct node *id) {
   return do_scope_lookup(result, mod, scope, id, scope, FALSE);
+}
+
+error scope_lookup_module(struct node **result, const struct module *mod,
+                          struct node *id) {
+  error e;
+  struct node *parent = NULL, *r = NULL;
+  struct scope *scope = mod->gctx->modules_root.scope;
+  struct scope *within = scope;
+
+  switch (id->which) {
+  case IDENT:
+    e = do_scope_lookup_ident(&r, mod, scope, id->as.IDENT.name, within, TRUE);
+    break;
+  case BIN:
+    if (id->as.BIN.operator != TDOT) {
+      EXCEPT_TYPE(mod, id, "malformed module path name");
+    }
+    e = do_scope_lookup(&parent, mod, scope, id->subs[0], within, TRUE);
+    if (e) {
+      break;
+    }
+    e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within, TRUE);
+    if (e) {
+      break;
+    }
+    break;
+  default:
+    assert(FALSE);
+    return 0;
+  }
+
+  if (e || r->which != MODULE) {
+    return EINVAL;
+  }
+
+  *result = r;
+
+  return 0;
 }
 
 static error parse_modpath(struct module *mod, const char *fn) {
@@ -2064,7 +2119,6 @@ void module_excepts_close_try(struct module *mod) {
 static struct typ *typ_new_builtin(struct node *definition,
                                    enum typ_which which, size_t gen_arity,
                                    size_t fun_arity) {
-
   struct typ *r = calloc(1, sizeof(struct typ));
   r->definition = definition;
   r->which = which;

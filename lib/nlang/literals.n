@@ -1,5 +1,6 @@
-type null =
+type void =
+type __null__ =
 type number =
 
-type __pending_destruct =
-type __not_typeable =
+type __pending_destruct__ =
+type __not_typeable__ =

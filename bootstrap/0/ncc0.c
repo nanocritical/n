@@ -75,7 +75,7 @@ static char *o_filename(const char *filename) {
 static error cc(const struct module *mod, const char *o_fn,
                 const char *c_fn, const char *h_fn) {
   static const char *fmt = "gcc " CFLAGS " -xc %s -c -o %s";
-  char *cmd = calloc(strlen(fmt) + strlen(c_fn) + 1, sizeof(char));
+  char *cmd = calloc(strlen(fmt) + strlen(c_fn) + strlen(o_fn) + 1, sizeof(char));
   sprintf(cmd, fmt, c_fn, o_fn);
 
   int status = system(cmd);
@@ -306,9 +306,12 @@ static error gather_dependencies_in_module(struct node *node, void *user, bool *
   struct dependencies *deps = user;
 
   struct node *nmod = NULL;
-  error e = scope_lookup(&nmod, node_module_owner(node)->as.MODULE.mod,
-                         deps->gctx->modules_root.scope, node->subs[0]);
-  EXCEPT(e);
+  error e = scope_lookup_module(&nmod, node_module_owner(node)->as.MODULE.mod,
+                                node->subs[0]);
+  if (e == EINVAL) {
+    // Not importing a module, ignore.
+    return 0;
+  }
 
   deps->tmp_count += 1;
   deps->tmp = realloc(deps->tmp, deps->tmp_count * sizeof(*deps->tmp));

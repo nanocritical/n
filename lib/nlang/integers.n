@@ -1,13 +1,15 @@
-type pseudo_tuple =
+import nlang.literals
+import nlang.strings
+
+type __pseudo_tuple__ =
 type ref =
 type mref =
 type mmref =
 type nref =
 type nmref =
 type nmmref =
-type __internal_dyn =
+type __internal_dyn__ =
 
-type void =
 type bool =
 type i8 =
 type i16 =
