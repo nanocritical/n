@@ -1,5 +1,5 @@
 import nlang.integers
 
 fun main = nlang.integers.i32
-  let x = 1
-  return x
+  let x = 2
+  return x - 1

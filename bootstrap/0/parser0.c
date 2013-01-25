@@ -68,8 +68,8 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_THIS] = "this",
   [ID_SELF] = "self",
   [ID_TBI_VOID] = "void",
-  [ID_TBI_LITERAL_NULL] = "literal_null",
-  [ID_TBI_LITERAL_NUMBER] = "literal_number",
+  [ID_TBI_LITERALS_NULL] = "literal_null",
+  [ID_TBI_LITERALS_NUMBER] = "literal_number",
   [ID_TBI_PSEUDO_TUPLE] = "pseudo_tuple",
   [ID_TBI_BOOL] = "bool",
   [ID_TBI_I8] = "i8",
@@ -89,7 +89,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NREF] = "nref",
   [ID_TBI_NMREF] = "nmref",
   [ID_TBI_NMMREF] = "nmmref",
-  [ID_TBI_DYN] = "dyn",
+  [ID_TBI_DYN] = "__internal_dyn",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable",
 };
@@ -109,15 +109,15 @@ int token_cmp(const struct token *a, const struct token *b) {
   }
 }
 
-const char *idents_value(const struct module *mod, ident id) {
-  assert(id <= mod->gctx->idents.count);
-  return mod->gctx->idents.values[id];
+const char *idents_value(const struct globalctx *gctx, ident id) {
+  assert(id <= gctx->idents.count);
+  return gctx->idents.values[id];
 }
 
-ident idents_add(struct module *mod, const struct token *tok) {
+ident idents_add(struct globalctx *gctx, const struct token *tok) {
   assert(tok->t == TIDENT);
 
-  struct idents *idents = &mod->gctx->idents;
+  struct idents *idents = &gctx->idents;
 
   ident *existing_id = idents_map_get(idents->map, *tok);
   if (existing_id != NULL) {
@@ -316,18 +316,18 @@ bool node_is_inline(const struct node *node) {
 char *scope_name(const struct module *mod, const struct scope *scope) {
   size_t len = 0;
   const struct scope *root = scope;
-  while (root != NULL) {
-    len += strlen(idents_value(mod, node_ident(root->node))) + 1;
+  while (root->parent != NULL) {
+    len += strlen(idents_value(mod->gctx, node_ident(root->node))) + 1;
     root = root->parent;
   }
   len -= 1;
 
   char *r = calloc(len + 1, sizeof(char));
   root = scope;
-  while (root != NULL) {
-    const char *name = idents_value(mod, node_ident(root->node));
+  while (root->parent != NULL) {
+    const char *name = idents_value(mod->gctx, node_ident(root->node));
     size_t name_len = strlen(name);
-    if (root->parent == NULL) {
+    if (root->parent->parent == NULL) {
       memcpy(r, name, name_len);
     } else {
       len -= name_len + 1;
@@ -350,7 +350,7 @@ static int scope_definitions_name_list_iter(const ident *key,
                                             struct node **val,
                                             void *user) {
   struct scope_definitions_name_list_data *d = user;
-  const char *n = idents_value(d->mod, *key);
+  const char *n = idents_value(d->mod->gctx, *key);
   const size_t nlen = strlen(n);
 
   const bool first = d->s == NULL;
@@ -396,7 +396,7 @@ error scope_define_ident(const struct module *mod, struct scope *scope, ident id
     const char *scname = scope_name(mod, scope);
     EXCEPT_PARSE(mod, node->codeloc,
                  "in scope %s: identifier '%s' already defined at %s:%d:%d",
-                 scname, idents_value(mod, id), mod->filename,
+                 scname, idents_value(mod->gctx, id), mod->filename,
                  line(&mod->parser, &existing_tok), column(&mod->parser, &existing_tok));
     // FIXME: leaking scname.
   }
@@ -420,13 +420,16 @@ static error do_scope_lookup_ident(struct node **result, const struct module *mo
     return 0;
   }
 
-  if (scope->parent == NULL) {
+  // Will not go up in modules_root past a MODULE node as there is no
+  // permission to access these scopes unless descending from
+  // gctx->modules_root.
+  if (scope->parent == NULL || scope->node->which == MODULE) {
     if (failure_ok) {
       return EINVAL;
     } else {
       const char *scname = scope_name(mod, within);
       EXCEPT_PARSE(mod, scope->node->codeloc, "in scope %s: unknown identifier '%s'",
-                   scname, idents_value(mod, id));
+                   scname, idents_value(mod->gctx, id));
       // FIXME: leaking scname.
     }
   }
@@ -439,16 +442,24 @@ error scope_lookup_ident(struct node **result, const struct module *mod,
   return do_scope_lookup_ident(result, mod, scope, id, scope, failure_ok);
 }
 
+#define EXCEPT_UNLESS(e, failure_ok) do { \
+  if (failure_ok) { \
+    return e; \
+  } else if (e) { \
+    EXCEPT(e); \
+  } \
+} while (0)
+
 static error do_scope_lookup(struct node **result, const struct module *mod,
                              const struct scope *scope, struct node *id,
-                             const struct scope *within) {
+                             const struct scope *within, bool failure_ok) {
   error e;
   struct node *parent, *r;
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident(&r, mod, scope, id->as.IDENT.name, within, FALSE);
-    EXCEPT(e);
+    e = do_scope_lookup_ident(&r, mod, scope, id->as.IDENT.name, within, failure_ok);
+    EXCEPT_UNLESS(e, failure_ok);
     break;
   case UN:
     if (id->as.UN.operator != TREFDOT
@@ -456,10 +467,10 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
            && id->as.UN.operator != TREFSHARP) {
       EXCEPT_TYPE(mod, id, "malformed type name");
     }
-    e = do_scope_lookup(&parent, mod, scope, id->subs[0], within);
-    EXCEPT(e);
-    e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within);
-    EXCEPT(e);
+    e = do_scope_lookup(&parent, mod, scope, id->subs[0], within, failure_ok);
+    EXCEPT_UNLESS(e, failure_ok);
+    e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within, failure_ok);
+    EXCEPT_UNLESS(e, failure_ok);
     break;
   case BIN:
     if (id->as.BIN.operator != TDOT
@@ -467,30 +478,32 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
            && id->as.BIN.operator != TSHARP) {
       EXCEPT_TYPE(mod, id, "malformed type name");
     }
-    e = do_scope_lookup(&parent, mod, scope, id->subs[0], within);
-    EXCEPT(e);
+    e = do_scope_lookup(&parent, mod, scope, id->subs[0], within, failure_ok);
+    EXCEPT_UNLESS(e, failure_ok);
 
     if (parent->which == IMPORT) {
-      // This is a case like
-      //   import os
-      //   import os.path
-      // and 'os' resolves to the 'import os' (that's parent). So we first
-      // search for 'path' id->subs[1] in parent->scope (note: it would
-      // shadow a 'path' declaration in the module os, but that's OK). If
-      // that fails, we will resolve parent to find the module it's
-      // importing, and use the usual lookup path.
-      e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within);
-      if (!e) {
-        break;
-      }
+      while (parent->which == IMPORT) {
+        // This may be a case like
+        //   import os
+        //   import os.path
+        // and 'os' resolves to the 'import os' (that's parent). So we first
+        // search for 'path' id->subs[1] in parent->scope (note: it would
+        // shadow a 'path' declaration in the module os, but that's OK). If
+        // that fails, we will resolve parent to find the module it's
+        // importing, and use the usual lookup path.
+        e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within, TRUE);
+        if (!e) {
+          break;
+        }
 
-      e = do_scope_lookup(&parent, mod, mod->gctx->modules_root.scope,
-                          parent->subs[0], within);
-      EXCEPT(e);
-    } else {
-      e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within);
-      EXCEPT(e);
+        e = do_scope_lookup(&parent, mod, mod->gctx->modules_root.scope,
+                            parent->subs[0], within, failure_ok);
+        EXCEPT_UNLESS(e, failure_ok);
+      }
     }
+
+    e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within, failure_ok);
+    EXCEPT_UNLESS(e, failure_ok);
 
     if (r->which == IMPORT
         && node_module_owner(r) != node_module_owner(id)
@@ -513,7 +526,7 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
 
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, struct node *id) {
-  return do_scope_lookup(result, mod, scope, id, scope);
+  return do_scope_lookup(result, mod, scope, id, scope, FALSE);
 }
 
 static error parse_modpath(struct module *mod, const char *fn) {
@@ -528,7 +541,7 @@ static error parse_modpath(struct module *mod, const char *fn) {
       tok.t = TIDENT;
       tok.value = fn + last;
       tok.len = p - last;
-      mod->path[n] = idents_add(mod, &tok);
+      mod->path[n] = idents_add(mod->gctx, &tok);
       mod->path_len += 1;
 
       last = p + 1;
@@ -550,6 +563,10 @@ static error parse_modpath(struct module *mod, const char *fn) {
   return 0;
 }
 
+static struct typ *typ_new_builtin(struct node *definition,
+                                   enum typ_which which, size_t gen_arity,
+                                   size_t fun_arity);
+
 void globalctx_init(struct globalctx *gctx) {
   memset(gctx, 0, sizeof(*gctx));
 
@@ -558,6 +575,8 @@ void globalctx_init(struct globalctx *gctx) {
   idents_map_set_delete_val(gctx->idents.map, -1);
   idents_map_set_custom_hashf(gctx->idents.map, token_hash);
   idents_map_set_custom_cmpf(gctx->idents.map, token_cmp);
+
+  assert(ID_TBI__LAST - ID_TBI__FIRST + 2 == TBI__NUM);
 
   gctx->idents.count = ID__NUM;
   gctx->idents.capacity = ID__NUM;
@@ -570,6 +589,19 @@ void globalctx_init(struct globalctx *gctx) {
     tok.value = predefined_idents_strings[i];
     tok.len = strlen(predefined_idents_strings[i]);
     idents_map_set(gctx->idents.map, tok, i);
+
+    if (i >= ID_TBI__FIRST && i <= ID_TBI__LAST) {
+      struct typ *t = calloc(1, sizeof(struct typ));
+      if (i < ID_TBI__FIRST_MARKER) {
+        t = typ_new_builtin(NULL, TYPE_DEF, 0, 0);
+      } else {
+        t = typ_new_builtin(NULL, TYPE__MARKER, 0, 0);
+      }
+
+      gctx->builtin_typs[i - ID_TBI__FIRST + 1] = t;
+
+      gctx->builtin_typs_by_name[i] = t;
+    }
   }
 
   gctx->modules_root.scope = scope_new(&gctx->modules_root);
@@ -577,9 +609,6 @@ void globalctx_init(struct globalctx *gctx) {
 }
 
 static error module_read(struct module *mod, const char *prefix, const char *fn) {
-  error e = parse_modpath(mod, fn);
-  EXCEPT(e);
-
   char *fullpath = NULL;
   if (prefix != NULL) {
     fullpath = calloc(strlen(prefix) + 1 + strlen(fn) + 1, sizeof(char));
@@ -599,7 +628,7 @@ static error module_read(struct module *mod, const char *prefix, const char *fn)
 
   struct stat st;
   memset(&st, 0, sizeof(st));
-  e = fstat(fd, &st);
+  error e = fstat(fd, &st);
   if (e < 0) {
     EXCEPTF(errno, "Cannot stat module '%s'", fullpath);
   }
@@ -712,7 +741,7 @@ static error p_ident(struct node *node, struct module *mod) {
   EXCEPT(e);
 
   node->which = IDENT;
-  node->as.IDENT.name = idents_add(mod, &tok);
+  node->as.IDENT.name = idents_add(mod->gctx, &tok);
 
   return 0;
 }
@@ -1616,7 +1645,6 @@ static error p_deftype(struct node *node, struct module *mod, const struct tople
   node->which = DEFTYPE;
   node->as.DEFTYPE.toplevel = *toplevel;
 
-  struct token tok;
   error e = p_ident(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
@@ -1626,6 +1654,7 @@ static error p_deftype(struct node *node, struct module *mod, const struct tople
   e = p_isalist(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
+  struct token tok;
   e = scan_oneof(&tok, mod, TEOL, TSOB, 0);
   EXCEPT(e);
 
@@ -1764,7 +1793,7 @@ static void copy_and_extend_import_path(struct module *mod, struct node *importe
 
   struct node *i = node_new_subnode(mod, n);
   i->which = IDENT;
-  i->as.IDENT.name = idents_add(mod, tok);
+  i->as.IDENT.name = idents_add(mod->gctx, tok);
 }
 
 static error p_import(struct node *node, struct module *mod, const struct toplevel *toplevel,
@@ -1806,7 +1835,7 @@ again:
 }
 
 static error p_toplevel(struct module *mod) {
-  struct node *node = node_new_subnode(mod, &mod->root);
+  struct node *node = node_new_subnode(mod, mod->root);
 
   struct toplevel toplevel;
   memset(&toplevel, 0, sizeof(toplevel));
@@ -1848,7 +1877,7 @@ again:
     e = p_let(node, mod, &toplevel);
     break;
   case TIDENT:
-    toplevel.scope_name = idents_add(mod, &tok);
+    toplevel.scope_name = idents_add(mod->gctx, &tok);
     is_scoped = TRUE;
     goto again;
   case Tfrom:
@@ -1879,7 +1908,7 @@ static void rec_subnode_counts(struct node *node,
 __attribute__((unused))
 static float subnode_count_avg(struct module *mod) {
   size_t sub_count = 0, node_count = 0;
-  rec_subnode_counts(&mod->root, &node_count, &sub_count);
+  rec_subnode_counts(mod->root, &node_count, &sub_count);
   return (float) sub_count / node_count;
 }
 
@@ -1900,82 +1929,84 @@ static void module_init(struct globalctx *gctx, struct module *mod) {
   memset(mod, 0, sizeof(*mod));
 
   mod->gctx = gctx;
-
-  mod->root.scope = scope_new(&mod->root);
-  mod->root.which = MODULE;
-  mod->root.as.MODULE.mod = mod;
 }
 
-static void module_add_builtins(struct module *mod) {
-  struct node *root = &mod->root;
-  struct toplevel toplevel;
-  toplevel.is_inline = TRUE;
-  toplevel.is_extern = TRUE;
-  toplevel.is_prototype = TRUE;
+static error register_module(struct node **parent,
+                             struct globalctx *gctx, struct module *mod) {
+  const size_t last = mod->path_len - 1;
+  struct node *root = &gctx->modules_root;
 
-#define ADD_BI(TBI) do { \
-  struct node *deft = node_new_subnode(mod, root); \
-  deft->which = DEFTYPE; \
-  deft->as.DEFTYPE.toplevel = toplevel; \
-  struct node *name = node_new_subnode(mod, deft); \
-  name->which = IDENT; \
-  name->as.IDENT.name = ID_##TBI; \
-  struct node *isalist = node_new_subnode(mod, deft); \
-  isalist->which = ISALIST; \
-  \
-  deft->scope = scope_new(deft); \
-  deft->scope->parent = mod->root.scope; \
-  error e = scope_define(mod, deft->scope->parent, deft->subs[0], deft); \
-  assert(!e); \
-  \
-  deft->typ = typ_new(mod, deft, TYPE_DEF, 0, 0); \
-  mod->builtin_typs[TBI] = deft->typ; \
-} while (0)
+  for (size_t p = 0; p <= last; ++p) {
+    ident i = mod->path[p];
+    struct node *m = NULL;
+    error e = scope_lookup_ident(&m, mod, root->scope, i, TRUE);
+    if (e == EINVAL) {
+      m = node_new_subnode(mod, root);
+      m->which = MODULE;
+      m->as.MODULE.name = i;
+      m->as.MODULE.is_placeholder = p != last;
+      m->as.MODULE.mod = p == last ? mod : NULL;
+      m->scope = scope_new(m);
+      m->scope->parent = root->scope;
+      m->typ = typ_lookup_builtin(mod, TBI_VOID);
 
-  ADD_BI(TBI_VOID);
-  ADD_BI(TBI_LITERAL_NULL);
-  ADD_BI(TBI_LITERAL_NUMBER);
-  ADD_BI(TBI_PSEUDO_TUPLE);
-  ADD_BI(TBI_BOOL);
-  ADD_BI(TBI_I8);
-  ADD_BI(TBI_I16);
-  ADD_BI(TBI_I32);
-  ADD_BI(TBI_I64);
-  ADD_BI(TBI_U8);
-  ADD_BI(TBI_U16);
-  ADD_BI(TBI_U32);
-  ADD_BI(TBI_U64);
-  ADD_BI(TBI_STRING);
-  ADD_BI(TBI_SIZE);
-  ADD_BI(TBI_SSIZE);
-  ADD_BI(TBI_REF);
-  ADD_BI(TBI_MREF);
-  ADD_BI(TBI_MMREF);
-  ADD_BI(TBI_NREF);
-  ADD_BI(TBI_NMREF);
-  ADD_BI(TBI_NMMREF);
-  ADD_BI(TBI_DYN);
+      e = scope_define_ident(mod, root->scope, i, m);
+      EXCEPT(e);
+    } else if (e) {
+      // Repeat bound-to-fail lookup to get the error message right.
+      e = scope_lookup_ident(&m, mod, root->scope, i, FALSE);
+      EXCEPT(e);
+    } else {
+      if (p == last) {
+        assert(m->which == MODULE);
+        if (!m->as.MODULE.is_placeholder) {
+          EXCEPTF(EINVAL, "Cannot load_module module '%s' more than once",
+                  mod->filename);
+        } else {
+          for (size_t s = 0; s < m->subs_count; ++s) {
+            struct node *to_save = m->subs[s];
+            assert(to_save->which == MODULE);
+            e = scope_define_ident(mod, mod->root->scope,
+                                   to_save->as.MODULE.name, to_save);
+            EXCEPT(e);
+          }
 
-#undef ADD_BI
+          e = scope_define_ident(mod, root->scope, i, mod->root);
+          EXCEPT(e);
+        }
+      }
+    }
 
-  mod->builtin_typs[TBI__PENDING_DESTRUCT] = typ_new(mod, NULL, TYPE__MARKER, 0, 0);
-  mod->builtin_typs[TBI__NOT_TYPEABLE] = typ_new(mod, NULL, TYPE__MARKER, 0, 0);
+    *parent = root;
+    root = m;
+  }
+
+  mod->root = root;
+  assert(mod->root->which == MODULE);
+  mod->root->as.MODULE.mod = mod;
+
+  return 0;
 }
 
 error module_open(struct globalctx *gctx, struct module *mod,
                   const char *prefix, const char *fn) {
   module_init(gctx, mod);
 
-  error e = module_read(mod, prefix, fn);
+  error e = parse_modpath(mod, fn);
+  EXCEPT(e);
+
+  struct node *parent = NULL;
+  e = register_module(&parent, gctx, mod);
+  EXCEPT(e);
+
+  e = module_read(mod, prefix, fn);
   EXCEPT(e);
 
   if (mod->path_len >= 1) {
-    mod->root.as.MODULE.name = mod->path[mod->path_len - 1];
+    mod->root->as.MODULE.name = mod->path[mod->path_len - 1];
   } else {
-    mod->root.as.MODULE.name = ID_ANONYMOUS;
+    mod->root->as.MODULE.name = ID_ANONYMOUS;
   }
-
-  module_add_builtins(mod);
 
   e = module_parse(mod);
   EXCEPT(e);
@@ -1996,7 +2027,7 @@ ident gensym(struct module *mod) {
   tok.value = name;
   tok.len = cnt;
 
-  return idents_add(mod, &tok);
+  return idents_add(mod->gctx, &tok);
 }
 
 void module_needs_instance(struct module *mod, struct typ *typ) {
@@ -2030,10 +2061,9 @@ void module_excepts_close_try(struct module *mod) {
   mod->trys_count -= 1;
 }
 
-struct typ *typ_new(struct module *mod, struct node *definition,
-                    enum typ_which which, size_t gen_arity,
-                    size_t fun_arity) {
-  assert(which == TYPE__MARKER || definition != NULL);
+static struct typ *typ_new_builtin(struct node *definition,
+                                   enum typ_which which, size_t gen_arity,
+                                   size_t fun_arity) {
 
   struct typ *r = calloc(1, sizeof(struct typ));
   r->definition = definition;
@@ -2050,6 +2080,13 @@ struct typ *typ_new(struct module *mod, struct node *definition,
   return r;
 }
 
+struct typ *typ_new(struct node *definition,
+                    enum typ_which which, size_t gen_arity,
+                    size_t fun_arity) {
+  assert(which == TYPE__MARKER || definition != NULL);
+  return typ_new_builtin(definition, which, gen_arity, fun_arity);
+}
+
 // Return value must be freed by caller.
 char *typ_name(const struct module *mod, const struct typ *t) {
   assert(t->which != TYPE__MARKER);
@@ -2057,7 +2094,7 @@ char *typ_name(const struct module *mod, const struct typ *t) {
 }
 
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
-  return mod->builtin_typs[id];
+  return mod->gctx->builtin_typs[id];
 }
 
 error typ_check(const struct module *mod, const struct node *for_error,
@@ -2066,7 +2103,7 @@ error typ_check(const struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  if (a == typ_lookup_builtin(mod, TBI_LITERAL_NUMBER)) {
+  if (a == typ_lookup_builtin(mod, TBI_LITERALS_NUMBER)) {
     if (constraint == typ_lookup_builtin(mod, TBI_U8)
         || constraint == typ_lookup_builtin(mod, TBI_U16)
         || constraint == typ_lookup_builtin(mod, TBI_U32)
@@ -2081,7 +2118,7 @@ error typ_check(const struct module *mod, const struct node *for_error,
     }
   }
 
-  if (a == typ_lookup_builtin(mod, TBI_LITERAL_NULL)) {
+  if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
     if (constraint == typ_lookup_builtin(mod, TBI_NREF)
         || constraint == typ_lookup_builtin(mod, TBI_NMREF)
         || constraint == typ_lookup_builtin(mod, TBI_NMMREF)
@@ -2107,7 +2144,7 @@ error typ_check_numeric(const struct module *mod, const struct node *for_error,
       || a == typ_lookup_builtin(mod, TBI_I64)
       || a == typ_lookup_builtin(mod, TBI_SIZE)
       || a == typ_lookup_builtin(mod, TBI_SSIZE)
-      || a == typ_lookup_builtin(mod, TBI_LITERAL_NUMBER)) {
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_NUMBER)) {
     return 0;
   }
 
@@ -2130,8 +2167,8 @@ error typ_check_reference(const struct module *mod, const struct node *for_error
 }
 
 bool typ_is_concrete(const struct module *mod, const struct typ *a) {
-  if (a == typ_lookup_builtin(mod, TBI_LITERAL_NULL)
-      || a == typ_lookup_builtin(mod, TBI_LITERAL_NUMBER)) {
+  if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_NUMBER)) {
     return FALSE;
   }
 
@@ -2148,7 +2185,7 @@ bool typ_is_concrete(const struct module *mod, const struct typ *a) {
 
 bool typ_is_builtin(const struct module *mod, const struct typ *t) {
   for (size_t n = 0; n < TBI__NUM; ++n) {
-    if (t == mod->builtin_typs[n]) {
+    if (t == mod->gctx->builtin_typs[n]) {
       return TRUE;
     }
   }

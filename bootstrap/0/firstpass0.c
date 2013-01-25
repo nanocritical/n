@@ -4,7 +4,7 @@ error pass(struct module *mod, struct node *root, step *down_steps, step *up_ste
            void *user) {
   error e;
   if (root == NULL) {
-    root = &mod->root;
+    root = mod->root;
   }
 
   bool stop_descent = FALSE;
@@ -478,11 +478,18 @@ error step_type_definitions(struct module *mod, struct node *node, void *user, b
     return 0;
   }
 
-  // Builtins are already typed.
-  if (node->typ == NULL) {
-    node->typ = typ_new(mod, node, TYPE_DEF, 0, 0);
-    node->is_type = TRUE;
+  assert(node->subs[0]->which == IDENT);
+  ident id = node->subs[0]->as.IDENT.name;
+  if (id >= ID_TBI__FIRST && id <= ID_TBI__LAST) {
+    // FIXME Effectively reserving these idents for builtin types, but
+    // that's a temporary trick to avoid having to look up the current
+    // module path.
+    node->typ = mod->gctx->builtin_typs_by_name[id];
+    node->typ->definition = node;
+  } else {
+    node->typ = typ_new(node, TYPE_DEF, 0, 0);
   }
+  node->is_type = TRUE;
 
   return 0;
 }
@@ -623,11 +630,8 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
 
 static error type_inference_bin_accessor(struct module *mod, struct node *node) {
   error e;
-  struct node *def = NULL;
-  e = scope_lookup(&def, mod, node->scope, node->subs[0]);
-  EXCEPT(e);
   struct node *field = NULL;
-  e = scope_lookup(&field, mod, def->scope, node->subs[1]);
+  e = scope_lookup(&field, mod, node->scope, node);
   EXCEPT(e);
 
   switch (field->which) {
@@ -638,6 +642,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
     return type_inference_unary_call(mod, node, field);
   default:
     node->typ = field->typ;
+    node->is_type = field->is_type;
     return 0;
   }
 }
@@ -686,7 +691,7 @@ static error type_inference_bin(struct module *mod, struct node *node) {
 }
 
 static error type_inference_tuple(struct module *mod, struct node *node) {
-  node->typ = typ_new(mod, typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE)->definition,
+  node->typ = typ_new(typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE)->definition,
                       TYPE_TUPLE, node->subs_count, 0);
   for (size_t n = 0; n < node->typ->gen_arity; ++n) {
     node->typ->gen_args[n] = node->subs[n]->typ;
@@ -845,11 +850,11 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
 
   switch (node->which) {
   case NUL:
-    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERAL_NULL), constraint);
+    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERALS_NULL), constraint);
     EXCEPT(e);
     break;
   case NUMBER:
-    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERAL_NUMBER), constraint);
+    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERALS_NUMBER), constraint);
     EXCEPT(e);
     break;
   case STRING:
@@ -919,7 +924,7 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
 
     switch (OP_KIND(node->as.UN.operator)) {
     case OP_UN_REFOF:
-      node->typ = typ_new(mod, constraint->definition, TYPE_DEF, 1, 0);
+      node->typ = typ_new(constraint->definition, TYPE_DEF, 1, 0);
       node->typ->gen_args[0] = node->subs[0]->typ;
       break;
     default:
@@ -1045,7 +1050,7 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
 
   switch (node->which) {
   case NUL:
-    node->typ = typ_lookup_builtin(mod, TBI_LITERAL_NULL);
+    node->typ = typ_lookup_builtin(mod, TBI_LITERALS_NULL);
     goto ok;
   case IDENT:
     e = scope_lookup(&def, mod, node->scope, node);
@@ -1067,7 +1072,7 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
     assert(node->typ->which != TYPE__MARKER);
     goto ok;
   case NUMBER:
-    node->typ = typ_lookup_builtin(mod, TBI_LITERAL_NUMBER);
+    node->typ = typ_lookup_builtin(mod, TBI_LITERALS_NUMBER);
     goto ok;
   case STRING:
     node->typ = typ_lookup_builtin(mod, TBI_STRING);
@@ -1139,7 +1144,7 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
     goto ok;
   case DEFFUN:
   case DEFMETHOD:
-    node->typ = typ_new(mod, node, TYPE_FUNCTION, 0, node_fun_args_count(node));
+    node->typ = typ_new(node, TYPE_FUNCTION, 0, node_fun_args_count(node));
     for (size_t n = 0; n < node->typ->fun_arity; ++n) {
       node->typ->fun_args[n] = node->subs[n+1]->typ;
     }
@@ -1153,7 +1158,7 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
     case DEFTYPE_ENUM:
     case DEFTYPE_SUM:
       {
-        struct typ *u = typ_lookup_builtin(mod, TBI_LITERAL_NUMBER);
+        struct typ *u = typ_lookup_builtin(mod, TBI_LITERALS_NUMBER);
         for (size_t n = 0; n < node->subs_count; ++n) {
           if (node->subs[n]->which != DEFCHOICE) {
             continue;

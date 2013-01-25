@@ -11,83 +11,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-static error cc(const struct module *mod, const char *c_fn, const char *h_fn) {
-  static const char *fmt = "gcc -Wall -std=c99 -pedantic -Inlang_site -xc %s";
-  char *cmd = calloc(strlen(fmt) + strlen(c_fn) + 1, sizeof(char));
-  sprintf(cmd, fmt, c_fn);
-
-  int status = system(cmd);
-  if (status == -1) {
-    EXCEPTF(errno, "system(3) failed");
-  }
-  if (WIFSIGNALED(status)) {
-    EXCEPTF(ECHILD, "command terminated by signal %d: %s", WTERMSIG(status), cmd);
-  } else if (WEXITSTATUS(status) != 0) {
-    EXCEPTF(ECHILD, "command exited with %d: %s", WEXITSTATUS(status), cmd);
-  }
-
-  return 0;
-}
-
-static error register_module(struct globalctx *gctx, struct module *mod) {
-  const size_t last = mod->path_len - 1;
-  struct node *root = &gctx->modules_root;
-
-  for (size_t p = 0; p <= last; ++p) {
-    ident i = mod->path[p];
-    struct node *m = NULL;
-    error e = scope_lookup_ident(&m, mod, root->scope, i, TRUE);
-    if (e == EINVAL) {
-      if (p == last) {
-        mod->root.scope = scope_new(&mod->root);
-        mod->root.scope->parent = root->scope;
-        m = &mod->root;
-        root->subs_count += 1;
-        root->subs = realloc(root->subs, root->subs_count * sizeof(*root->subs));
-        root->subs[root->subs_count - 1] = m;
-      } else {
-        m = node_new_subnode(mod, root);
-        m->which = MODULE;
-        m->as.MODULE.name = i;
-        m->as.MODULE.is_placeholder = TRUE;
-        m->as.MODULE.mod = NULL;
-        m->scope = scope_new(m);
-        m->scope->parent = root->scope;
-        m->typ = typ_lookup_builtin(mod, TBI_VOID);
-      }
-
-      e = scope_define_ident(mod, root->scope, i, m);
-      EXCEPT(e);
-    } else if (e) {
-      // Repeat bound-to-fail lookup to get the error message right.
-      e = scope_lookup_ident(&m, mod, root->scope, i, FALSE);
-      EXCEPT(e);
-    } else {
-      if (p == last) {
-        assert(m->which == MODULE);
-        if (!m->as.MODULE.is_placeholder) {
-          EXCEPTF(EINVAL, "Cannot load_module module '%s' more than once",
-                  mod->filename);
-        } else {
-          for (size_t s = 0; s < m->subs_count; ++s) {
-            struct node *to_save = m->subs[s];
-            assert(to_save->which == MODULE);
-            e = scope_define_ident(mod, mod->root.scope,
-                                   to_save->as.MODULE.name, to_save);
-            EXCEPT(e);
-          }
-
-          e = scope_define_ident(mod, root->scope, i, &mod->root);
-          EXCEPT(e);
-        }
-      }
-    }
-
-    root = m;
-  }
-
-  return 0;
-}
+#define CFLAGS "-Wall -std=c99 -pedantic -Ilib"
 
 static error zero(struct globalctx *gctx, struct module *mod,
                   const char *prefix, const char *fn) {
@@ -138,6 +62,31 @@ static error first(struct node *node) {
 
   error e = pass(mod, NULL, firstpass_down, firstpass_up, NULL);
   EXCEPT(e);
+
+  return 0;
+}
+
+static char *o_filename(const char *filename) {
+  char *o_fn = malloc(strlen(filename) + sizeof(".o"));
+  sprintf(o_fn, "%s.o", filename);
+  return o_fn;
+}
+
+static error cc(const struct module *mod, const char *o_fn,
+                const char *c_fn, const char *h_fn) {
+  static const char *fmt = "gcc " CFLAGS " -xc %s -c -o %s";
+  char *cmd = calloc(strlen(fmt) + strlen(c_fn) + 1, sizeof(char));
+  sprintf(cmd, fmt, c_fn, o_fn);
+
+  int status = system(cmd);
+  if (status == -1) {
+    EXCEPTF(errno, "system(3) failed");
+  }
+  if (WIFSIGNALED(status)) {
+    EXCEPTF(ECHILD, "command terminated by signal %d: %s", WTERMSIG(status), cmd);
+  } else if (WEXITSTATUS(status) != 0) {
+    EXCEPTF(ECHILD, "command exited with %d: %s", WEXITSTATUS(status), cmd);
+  }
 
   return 0;
 }
@@ -199,9 +148,11 @@ error generate(struct node *node) {
   EXCEPT(e);
   close(fd);
 
-  e = cc(mod, c_fn, h_fn);
+  char *o_fn = o_filename(mod->filename);
+  e = cc(mod, o_fn, c_fn, h_fn);
   EXCEPT(e);
 
+  free(o_fn);
   free(c_fn);
   free(h_fn);
 
@@ -259,9 +210,6 @@ static error load_module(struct globalctx *gctx, const char *prefix, const char 
   error e = zero(gctx, mod, prefix, fn);
   EXCEPT(e);
 
-  e = register_module(gctx, mod);
-  EXCEPT(e);
-
   return 0;
 }
 
@@ -282,7 +230,7 @@ static void import_filename(char **fn, size_t *len,
   }
 
   assert(to_append->which == IDENT);
-  const char *app = idents_value(mod, to_append->as.IDENT.name);
+  const char *app = idents_value(mod->gctx, to_append->as.IDENT.name);
   const size_t applen = strlen(app);
 
   if (*len == 0) {
@@ -338,7 +286,7 @@ static error load_imports(struct node *node, void *user, bool *stop) {
   }
 
   assert(node->as.MODULE.mod != NULL);
-  error e = for_all_nodes(&node->as.MODULE.mod->root, IMPORT, load_import,
+  error e = for_all_nodes(node->as.MODULE.mod->root, IMPORT, load_import,
                           node->as.MODULE.mod);
   EXCEPT(e);
 
@@ -427,6 +375,36 @@ static error calculate_dependencies(struct dependencies *deps) {
   return 0;
 }
 
+static error clink(const struct dependencies *deps) {
+  static const char *fmt = "gcc " CFLAGS;
+  size_t len = strlen(fmt);
+  char *cmd = calloc(len + 1, sizeof(char));
+  strcpy(cmd, fmt);
+
+  for (size_t n = 0; n < deps->modules_count; ++n) {
+    struct module *mod = deps->modules[n];
+    const size_t old_len = len;
+    char *o_fn = o_filename(mod->filename);
+    len += 1 + strlen(o_fn);
+    cmd = realloc(cmd, (len + 1) * sizeof(char));
+    strcpy(cmd + old_len, " ");
+    strcpy(cmd + old_len + 1, o_fn);
+    free(o_fn);
+  }
+
+  int status = system(cmd);
+  if (status == -1) {
+    EXCEPTF(errno, "system(3) failed");
+  }
+  if (WIFSIGNALED(status)) {
+    EXCEPTF(ECHILD, "command terminated by signal %d: %s", WTERMSIG(status), cmd);
+  } else if (WEXITSTATUS(status) != 0) {
+    EXCEPTF(ECHILD, "command exited with %d: %s", WEXITSTATUS(status), cmd);
+  }
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
   struct globalctx gctx;
   globalctx_init(&gctx);
@@ -452,14 +430,17 @@ int main(int argc, char **argv) {
   EXCEPT(e);
 
   for (size_t n = 0; n < deps.modules_count; ++n) {
-    e = first(&deps.modules[n]->root);
+    e = first(deps.modules[n]->root);
     EXCEPT(e);
   }
 
   for (size_t n = 0; n < deps.modules_count; ++n) {
-    e = generate(&deps.modules[n]->root);
+    e = generate(deps.modules[n]->root);
     EXCEPT(e);
   }
+
+  e = clink(&deps);
+  EXCEPT(e);
 
   return 0;
 }

@@ -221,8 +221,9 @@ enum predefined_idents {
   ID_SELF,
 
   ID_TBI_VOID,
-  ID_TBI_LITERAL_NULL,
-  ID_TBI_LITERAL_NUMBER,
+  ID_TBI__FIRST = ID_TBI_VOID,
+  ID_TBI_LITERALS_NULL,
+  ID_TBI_LITERALS_NUMBER,
   ID_TBI_PSEUDO_TUPLE,
   ID_TBI_BOOL,
   ID_TBI_I8,
@@ -244,7 +245,9 @@ enum predefined_idents {
   ID_TBI_NMMREF,
   ID_TBI_DYN,
   ID_TBI__PENDING_DESTRUCT,
+  ID_TBI__FIRST_MARKER = ID_TBI__PENDING_DESTRUCT,
   ID_TBI__NOT_TYPEABLE,
+  ID_TBI__LAST = ID_TBI__NOT_TYPEABLE,
 
   ID__NUM,
 };
@@ -260,8 +263,8 @@ struct scope {
 enum typ_builtin {
   TBI__NONE = 0,
   TBI_VOID,
-  TBI_LITERAL_NULL,
-  TBI_LITERAL_NUMBER,
+  TBI_LITERALS_NULL,
+  TBI_LITERALS_NUMBER,
   TBI_PSEUDO_TUPLE,
   TBI_BOOL,
   TBI_I8,
@@ -314,6 +317,9 @@ struct globalctx {
   // This node hierarchy is used to park loaded modules using their
   // absolute name. It is not used for lexical lookup.
   struct node modules_root;
+
+  struct typ *builtin_typs[TBI__NUM];
+  struct typ *builtin_typs_by_name[ID__NUM];
 };
 
 struct module {
@@ -322,10 +328,8 @@ struct module {
   const char *filename;
 
   struct parser parser;
-  struct node root;
+  struct node *root;
   size_t next_gensym;
-
-  struct typ *builtin_typs[TBI__NUM];
 
   struct node *return_node;
   struct try_excepts *trys;
@@ -348,8 +352,8 @@ void module_excepts_close_try(struct module *mod);
 
 ident gensym(struct module *mod);
 
-const char *idents_value(const struct module *mod, ident id);
-ident idents_add(struct module *mod, const struct token *tok);
+const char *idents_value(const struct globalctx *gctx, ident id);
+ident idents_add(struct globalctx *gctx, const struct token *tok);
 
 struct scope *scope_new(struct node *node);
 error scope_define_ident(const struct module *mod, struct scope *scope, ident id, struct node *node);
@@ -368,7 +372,7 @@ bool node_is_inline(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
 size_t node_fun_args_count(const struct node *def);
 
-struct typ *typ_new(struct module *mod, struct node *definition,
+struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id);
 error typ_check(const struct module *mod, const struct node *for_error,

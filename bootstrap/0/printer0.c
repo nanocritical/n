@@ -238,7 +238,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     fprintf(out, "null");
     break;
   case IDENT:
-    val = idents_value(mod, node->as.IDENT.name);
+    val = idents_value(mod->gctx, node->as.IDENT.name);
     fprintf(out, "%s", val);
     break;
   case NUMBER:
@@ -601,7 +601,7 @@ static void print_defmethod(FILE *out, const struct module *mod, int indent, con
 
   print_toplevel(out, &node->as.DEFMETHOD.toplevel);
 
-  const char *scope = idents_value(mod, node->as.DEFMETHOD.toplevel.scope_name);
+  const char *scope = idents_value(mod->gctx, node->as.DEFMETHOD.toplevel.scope_name);
   fprintf(out, "%s method ", scope);
   print_expr(out, mod, name, T__NONE);
 
@@ -664,7 +664,7 @@ static void print_import(FILE *out, const struct module *mod, int indent, const 
 }
 
 static void print_module(FILE *out, const struct module *mod) {
-  const struct node *top = &mod->root;
+  const struct node *top = mod->root;
 
   for (size_t n = 0; n < top->subs_count; ++n) {
     const struct node *node = top->subs[n];
@@ -720,7 +720,7 @@ static void print_tree_node(FILE *out, const struct module *mod,
   fprintf(out, "%s", node_which_strings[node->which]);
   switch (node->which) {
   case IDENT:
-    fprintf(out, "(%s)", idents_value(mod, node->as.IDENT.name));
+    fprintf(out, "(%s)", idents_value(mod->gctx, node->as.IDENT.name));
     break;
   case NUMBER:
     fprintf(out, "(%s)", node->as.NUMBER.value);
@@ -757,7 +757,7 @@ error printer_tree(int fd, const struct module *mod, const struct node *root) {
     EXCEPTF(errno, "Invalid output file descriptor '%d'", fd);
   }
 
-  print_tree_node(out, mod, root != NULL ? root : &mod->root, 0);
+  print_tree_node(out, mod, root != NULL ? root : mod->root, 0);
   fflush(out);
 
   return 0;

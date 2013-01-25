@@ -98,12 +98,18 @@ static void print_token(FILE *out, enum token_type t) {
 
 static void print_expr(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op);
 static void print_block(FILE *out, bool header, const struct module *mod, const struct node *node);
+static void print_typ(FILE *out, const struct module *mod, struct typ *typ);
 
 static void print_pattern(FILE *out, bool header, const struct module *mod, const struct node *node) {
   print_expr(out, header, mod, node, T__NONE);
 }
 
 static void print_bin(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
+  if (node->is_type) {
+    print_typ(out, mod, node->typ);
+    return;
+  }
+
   const uint32_t op = node->as.BIN.operator;
   const uint32_t prec = OP_PREC(op);
   const uint32_t parent_prec = OP_PREC(parent_op);
@@ -198,7 +204,7 @@ static void print_expr(FILE *out, bool header, const struct module *mod, const s
     fprintf(out, "NULL");
     break;
   case IDENT:
-    fprintf(out, "%s", idents_value(mod, node->as.IDENT.name));
+    fprintf(out, "%s", idents_value(mod->gctx, node->as.IDENT.name));
     break;
   case NUMBER:
     fprintf(out, "%s", node->as.NUMBER.value);
@@ -606,7 +612,7 @@ static void print_defmethod(FILE *out, bool header, const struct module *mod, co
 
   print_toplevel(out, &node->as.DEFMETHOD.toplevel);
 
-  const char *scope = idents_value(mod, node->as.DEFMETHOD.toplevel.scope_name);
+  const char *scope = idents_value(mod->gctx, node->as.DEFMETHOD.toplevel.scope_name);
   fprintf(out, "%s method ", scope);
   print_expr(out, header, mod, name, T__NONE);
 
@@ -645,9 +651,9 @@ static void print_import(FILE *out, bool header, const struct module *mod, const
 }
 
 static void print_module(FILE *out, bool header, const struct module *mod) {
-  fprintf(out, "#include <nlang/runtime/prelude.h>\n");
+  fprintf(out, "#include <nlang/runtime.h>\n");
 
-  const struct node *top = &mod->root;
+  const struct node *top = mod->root;
 
   for (size_t n = 0; n < top->subs_count; ++n) {
     const struct node *node = top->subs[n];

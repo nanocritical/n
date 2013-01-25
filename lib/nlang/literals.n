@@ -1,0 +1,5 @@
+type null =
+type number =
+
+type __pending_destruct =
+type __not_typeable =

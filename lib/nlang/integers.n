@@ -1,3 +1,12 @@
+type pseudo_tuple =
+type ref =
+type mref =
+type mmref =
+type nref =
+type nmref =
+type nmmref =
+type __internal_dyn =
+
 type void =
 type bool =
 type i8 =
