@@ -1,34 +1,33 @@
 #include "firstpass.h"
 
-error pass(struct module *mod, struct node *root, step *down_steps, step *up_steps,
+error pass(struct module *mod, struct node *root, const step *down_steps, const step *up_steps,
            void *user) {
   error e;
   if (root == NULL) {
     root = mod->root;
   }
 
-  bool stop_descent = FALSE;
+  bool stop = FALSE;
   for (size_t s = 0; down_steps[s] != NULL; ++s) {
     bool stop = FALSE;
     e = down_steps[s](mod, root, user, &stop);
     EXCEPT(e);
-    stop_descent = stop_descent || stop;
-  }
-
-  if (!stop_descent) {
-    for (size_t n = 0; n < root->subs_count; ++n) {
-      struct node *node = root->subs[n];
-      e = pass(mod, node, down_steps, up_steps, user);
-      EXCEPT(e);
+    if (stop) {
+      return 0;
     }
   }
 
-  bool stop_up_steps = FALSE;
+  for (size_t n = 0; n < root->subs_count; ++n) {
+    struct node *node = root->subs[n];
+    e = pass(mod, node, down_steps, up_steps, user);
+    EXCEPT(e);
+  }
+
   for (size_t s = 0; up_steps[s] != NULL; ++s) {
-    e = up_steps[s](mod, root, user, &stop_up_steps);
+    e = up_steps[s](mod, root, user, &stop);
     EXCEPT(e);
 
-    if (stop_up_steps) {
+    if (stop) {
       return 0;
     }
   }
@@ -209,6 +208,20 @@ error step_add_scopes(struct module *mod, struct node *node, void *user, bool *s
   return 0;
 }
 
+error step_stop_submodules(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != MODULE) {
+    return 0;
+  }
+
+  int *module_depth = user;
+  *module_depth += 1;
+
+  if (*module_depth > 1) {
+    *stop = TRUE;
+  }
+  return 0;
+}
+
 // Recursive, depth first; Will modify scope on the way back up.
 static error lexical_import_path(struct scope **scope, struct module *mod,
                                  struct node *import_path, struct node *import) {
@@ -252,7 +265,7 @@ static error lexical_import_path(struct scope **scope, struct module *mod,
   return 0;
 }
 
-static error lexical_import_from_path(struct module *mod, struct scope *scope,
+static error lexical_import_from_path(struct scope *scope, struct module *mod,
                                       struct node *import) {
   error e;
   for (size_t n = 1; n < import->subs_count; ++n) {
@@ -270,7 +283,67 @@ static error lexical_import_from_path(struct module *mod, struct scope *scope,
   return 0;
 }
 
-static error lexical_import(struct module *mod, struct node *import) {
+static error lexical_import(struct scope *scope, struct module *mod, struct node *import);
+
+static error lexical_import_all_from_path(struct scope *scope, struct module *mod,
+                                          struct node *import) {
+  error e;
+  struct node *target = NULL;
+  e = scope_lookup(&target, mod, mod->gctx->modules_root.scope, import->subs[0]);
+  EXCEPT(e);
+
+  if (target->which != MODULE) {
+    e = mk_except_type(mod, import, "cannot import * from a non-module");
+    EXCEPT(e);
+  }
+
+  static const step down[] = {
+    NULL,
+  };
+  static const step up[] = {
+    step_add_scopes,
+    NULL,
+  };
+
+  struct module *target_mod = target->as.MODULE.mod;
+  for (size_t n = 0; n < target->subs_count; ++n) {
+    struct node *ex = target->subs[n];
+    const struct toplevel *toplevel = node_toplevel(ex);
+    if (toplevel == NULL || !toplevel->is_export) {
+      continue;
+    }
+
+    if (ex->which == IMPORT) {
+      e = lexical_import(scope, target_mod, ex);
+      EXCEPT(e);
+
+      continue;
+    }
+
+    struct node *imported = node_new_subnode(mod, import);
+    imported->which = IMPORT;
+    imported->as.IMPORT.toplevel.is_export = import->as.IMPORT.toplevel.is_export;
+
+    const ident id = node_ident(ex);
+    struct token tok;
+    tok.t = TIDENT;
+    tok.value = idents_value(mod->gctx, id);
+    tok.len = strlen(tok.value);
+
+    copy_and_extend_import_path(mod, imported, import, &tok);
+
+    e = scope_define_ident(mod, scope, id, imported);
+    EXCEPT(e);
+
+    e = pass(mod, imported, down, up, NULL);
+    EXCEPT(e);
+    imported->scope->parent = import->scope;
+  }
+
+  return 0;
+}
+
+static error lexical_import(struct scope *scope, struct module *mod, struct node *import) {
   assert(import->which == IMPORT);
   error e;
 
@@ -278,16 +351,16 @@ static error lexical_import(struct module *mod, struct node *import) {
 
   if (import->as.IMPORT.is_all) {
     // from <path> (import|export) *
-    assert(FALSE);
-    return 0;
+    e = lexical_import_all_from_path(scope, mod, import);
+    EXCEPT(e);
   } else if (import->subs_count == 1) {
     // (import|export) <path>
-    struct scope *scope = import->scope->parent;
-    e = lexical_import_path(&scope, mod, import_path, import);
+    struct scope *tmp = scope;
+    e = lexical_import_path(&tmp, mod, import_path, import);
     EXCEPT(e);
   } else {
     // from <path> (import|export) <a> <b> <c> ...
-    e = lexical_import_from_path(mod, import->scope->parent, import);
+    e = lexical_import_from_path(scope, mod, import);
     EXCEPT(e);
   }
 
@@ -303,7 +376,7 @@ error step_lexical_scoping(struct module *mod, struct node *node, void *user, bo
 
   switch (node->which) {
   case IMPORT:
-    e = lexical_import(mod, node);
+    e = lexical_import(node->scope->parent, mod, node);
     EXCEPT(e);
     return 0;
   case FOR:

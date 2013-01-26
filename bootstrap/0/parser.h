@@ -55,6 +55,7 @@ enum node_which {
 const char *node_which_strings[NODE__NUM];
 
 struct toplevel {
+  bool is_export;
   bool is_extern;
   bool is_inline;
   ident scope_name;
@@ -130,7 +131,6 @@ struct node_invariant {};
 struct node_example {};
 struct node_import {
   struct toplevel toplevel;
-  bool is_export;
   bool is_all;
 };
 
@@ -368,12 +368,16 @@ error scope_lookup_module(struct node **result, const struct module *mod,
 char *scope_name(const struct module *mod, const struct scope *scope);
 char *scope_definitions_name_list(const struct module *mod, const struct scope *scope);
 
+void copy_and_extend_import_path(struct module *mod, struct node *imported,
+                                 const struct node *import, const struct token *tok);
+
 struct node *node_module_owner(struct node *node);
 ident node_ident(const struct node *node);
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
 size_t node_fun_args_count(const struct node *def);
+const struct toplevel *node_toplevel(const struct node *node);
 
 struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);

@@ -351,6 +351,9 @@ static void print_example(FILE *out, const struct module *mod, int indent, const
 }
 
 static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
+  if (toplevel->is_export) {
+    fprintf(out, "export ");
+  }
   if (toplevel->is_extern) {
     fprintf(out, "extern ");
   }
@@ -627,19 +630,25 @@ static void print_defintf(FILE *out, const struct module *mod, int indent, const
 }
 
 static void print_import_path(FILE *out, const struct module *mod, const struct node *node) {
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    if (n > 0) {
-      fprintf(out, ".");
-    }
-
-    print_expr(out, mod, node->subs[n], T__CALL);
+  switch (node->which) {
+  case IDENT:
+    print_expr(out, mod, node, T__CALL);
+    break;
+  case BIN:
+    print_import_path(out, mod, node->subs[0]);
+    fprintf(out, ".");
+    print_expr(out, mod, node->subs[1], T__CALL);
+    break;
+  default:
+    assert(FALSE);
+    break;
   }
 }
 
 static void print_import(FILE *out, const struct module *mod, int indent, const struct node *node) {
   const char *kind;
-  if (node->as.IMPORT.is_export) {
-    kind = "export";
+  if (node->as.IMPORT.toplevel.is_export) {
+    kind = "export"; // export already printed by print_toplevel
   } else {
     kind = "import";
   }
@@ -687,6 +696,8 @@ static void print_module(FILE *out, const struct module *mod) {
       break;
     case IMPORT:
       print_import(out, mod, 0, node);
+      break;
+    case MODULE:
       break;
     default:
       fprintf(stderr, "Unsupported node: %d\n", node->which);

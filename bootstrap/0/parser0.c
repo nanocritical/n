@@ -265,7 +265,7 @@ ident node_ident(const struct node *node) {
   }
 }
 
-static const struct toplevel *node_toplevel(const struct node *node) {
+const struct toplevel *node_toplevel(const struct node *node) {
   const struct toplevel *toplevel = NULL;
 
   switch (node->which) {
@@ -414,7 +414,9 @@ error scope_define_ident(const struct module *mod, struct scope *scope, ident id
 
 error scope_define(const struct module *mod, struct scope *scope, struct node *id, struct node *node) {
   assert(id->which == IDENT);
-  return scope_define_ident(mod, scope, id->as.IDENT.name, node);
+  error e = scope_define_ident(mod, scope, id->as.IDENT.name, node);
+  EXCEPT(e);
+  return 0;
 }
 
 static error do_scope_lookup_ident(struct node **result, const struct module *mod,
@@ -524,7 +526,7 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
 
     if (r->which == IMPORT
         && node_module_owner(r) != node_module_owner(id)
-        && !r->as.IMPORT.is_export) {
+        && !r->as.IMPORT.toplevel.is_export) {
       const char *scname = scope_name(mod, within);
       EXCEPT_PARSE(mod, scope->node->codeloc, "imported from scope %s: not exported",
                    scname);
@@ -584,11 +586,17 @@ error scope_lookup_module(struct node **result, const struct module *mod,
   return 0;
 }
 
-static error parse_modpath(struct module *mod, const char *fn) {
+static error parse_modpath(struct module *mod, const char *raw_fn) {
+  const char *fn = raw_fn;
+  while (fn[0] == '/' || fn[0] == '.') {
+    fn += 1;
+  }
+
   mod->path_len = 0;
+  bool must_be_last = FALSE;
   for (size_t n = 0, last = 0, p = 0; fn[p] != '\0'; ++p) {
     if (fn[p] == '_') {
-      EXCEPTF(EINVAL, "Module path element cannot contain '_' in '%s'", fn);
+      EXCEPTF(EINVAL, "module path element cannot contain '_' in '%s'", fn);
     }
 
     if (fn[p] == '/' || fn[p] == '.' || fn[p + 1] == '\0') {
@@ -596,13 +604,18 @@ static error parse_modpath(struct module *mod, const char *fn) {
       tok.t = TIDENT;
       tok.value = fn + last;
       tok.len = p - last;
-      mod->path[n] = idents_add(mod->gctx, &tok);
-      mod->path_len += 1;
 
-      last = p + 1;
-      n += 1;
-      if (n >= ARRAY_SIZE(mod->path)) {
-        EXCEPTF(EINVAL, "Module path '%s' has too many elements", fn);
+      if (strncmp(tok.value, "module", tok.len) == 0) {
+        must_be_last = TRUE;
+      } else {
+        mod->path[n] = idents_add(mod->gctx, &tok);
+        mod->path_len += 1;
+
+        last = p + 1;
+        n += 1;
+        if (n >= ARRAY_SIZE(mod->path)) {
+          EXCEPTF(EINVAL, "module path '%s' has too many elements", fn);
+        }
       }
 
       if (fn[p] == '.') {
@@ -612,6 +625,11 @@ static error parse_modpath(struct module *mod, const char *fn) {
         while (fn[p] != '/' && fn[p+1] != '\0') {
           p += 1;
         }
+      }
+
+      if (must_be_last && fn[p+1] != '\0') {
+        EXCEPTF(EINVAL, "module path '%s' contains the"
+                " element 'module' in an illegal position", fn);
       }
     }
   }
@@ -1837,8 +1855,8 @@ static void node_deepcopy(struct module *mod, struct node *dst,
   }
 }
 
-static void copy_and_extend_import_path(struct module *mod, struct node *imported,
-                                        const struct node *import, const struct token *tok) {
+void copy_and_extend_import_path(struct module *mod, struct node *imported,
+                                 const struct node *import, const struct token *tok) {
   struct node *n = node_new_subnode(mod, imported);
   n->which = BIN;
   n->as.BIN.operator = TDOT;
@@ -1852,33 +1870,31 @@ static void copy_and_extend_import_path(struct module *mod, struct node *importe
 }
 
 static error p_import(struct node *node, struct module *mod, const struct toplevel *toplevel,
-                      bool is_export) {
+                      bool from) {
   node->which = IMPORT;
   node->as.IMPORT.toplevel = *toplevel;
-  node->as.IMPORT.is_export = is_export;
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
   EXCEPT(e);
 
   struct token tok;
-  e = scan(&tok, mod);
-  EXCEPT(e);
-
-  if (tok.t != Timport && tok.t != Texport) {
-    back(mod, &tok);
-    return 0;
-  }
-
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
 
-  if (tok.t == TTIMES) {
+  if (tok.t == Timport || tok.t == Texport) {
+    if (!from) {
+      UNEXPECTED(mod, &tok);
+    }
+    node->as.IMPORT.toplevel.is_export = tok.t == Texport;
+    goto again;
+  } else if (tok.t == TTIMES) {
     node->as.IMPORT.is_all = TRUE;
     goto again;
   } else if (tok.t == TIDENT) {
     struct node *imported = node_new_subnode(mod, node);
     imported->which = IMPORT;
+    imported->as.IMPORT.toplevel.is_export = toplevel->is_export;
 
     copy_and_extend_import_path(mod, imported, node, &tok);
 
@@ -1910,6 +1926,9 @@ again:
   case Ttype:
     e = p_deftype(node, mod, &toplevel);
     break;
+  case Texport:
+    toplevel.is_export = TRUE;
+    goto again;
   case Textern:
     toplevel.is_extern = TRUE;
     goto again;
@@ -1937,8 +1956,7 @@ again:
     goto again;
   case Tfrom:
   case Timport:
-  case Texport:
-    e = p_import(node, mod, &toplevel, tok.t == Texport);
+    e = p_import(node, mod, &toplevel, tok.t == Tfrom);
     break;
   default:
     EXCEPT_SYNTAX(mod, &tok, "malformed top-level statement at '%.*s'", (int)tok.len, tok.value);
@@ -1987,9 +2005,11 @@ static void module_init(struct globalctx *gctx, struct module *mod) {
 }
 
 static error register_module(struct node **parent,
-                             struct globalctx *gctx, struct module *mod) {
+                             struct globalctx *gctx, struct module *mod,
+                             const char *filename) {
   const size_t last = mod->path_len - 1;
   struct node *root = &gctx->modules_root;
+  fprintf(stderr, "Registering %s\n", filename);
 
   for (size_t p = 0; p <= last; ++p) {
     ident i = mod->path[p];
@@ -2016,8 +2036,11 @@ static error register_module(struct node **parent,
         assert(m->which == MODULE);
         if (!m->as.MODULE.is_placeholder) {
           EXCEPTF(EINVAL, "Cannot load_module module '%s' more than once",
-                  mod->filename);
+                  filename);
         } else {
+          assert(mod->root->which == MODULE);
+          mod->root->as.MODULE.mod = mod;
+
           for (size_t s = 0; s < m->subs_count; ++s) {
             struct node *to_save = m->subs[s];
             assert(to_save->which == MODULE);
@@ -2026,6 +2049,8 @@ static error register_module(struct node **parent,
             EXCEPT(e);
           }
 
+          fprintf(stderr, "HERE!\n");
+          // Accepts to overwrite because it is a placeholder.
           e = scope_define_ident(mod, root->scope, i, mod->root);
           EXCEPT(e);
         }
@@ -2051,7 +2076,7 @@ error module_open(struct globalctx *gctx, struct module *mod,
   EXCEPT(e);
 
   struct node *parent = NULL;
-  e = register_module(&parent, gctx, mod);
+  e = register_module(&parent, gctx, mod, fn);
   EXCEPT(e);
 
   e = module_read(mod, prefix, fn);
@@ -2144,7 +2169,17 @@ struct typ *typ_new(struct node *definition,
 // Return value must be freed by caller.
 char *typ_name(const struct module *mod, const struct typ *t) {
   assert(t->which != TYPE__MARKER);
-  return scope_name(mod, t->definition->scope);
+  if (t->definition != NULL) {
+    return scope_name(mod, t->definition->scope);
+  } else {
+    for (size_t n = ID_TBI__FIRST; n < ID_TBI__LAST; ++n) {
+      if (mod->gctx->builtin_typs_by_name[n] == t) {
+        return strdup(predefined_idents_strings[n]);
+      }
+    }
+  }
+  assert(FALSE);
+  return NULL;
 }
 
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {

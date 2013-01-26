@@ -2,6 +2,7 @@
 #define COMMON_H__
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -150,5 +151,11 @@ static inline uint32_t bitreverse32(uint32_t x) {
   typeof(x) rem = x % mult; \
   rem ? x + mult - rem : x \
 })
+
+static inline char *strdup(const char *s) {
+  char *r = calloc(strlen(s) + 1, sizeof(char));
+  strcpy(r, s);
+  return r;
+}
 
 #endif

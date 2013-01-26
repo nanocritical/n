@@ -7,6 +7,7 @@ typedef error (*step)(struct module *mod, struct node *node, void *user, bool *s
 
 error step_add_scopes(struct module *mod, struct node *node, void *, bool *);
 
+error step_stop_submodules(struct module *mod, struct node *node, void *, bool *);
 error step_lexical_scoping(struct module *mod, struct node *node, void *, bool *);
 error step_detect_deftype_kind(struct module *mod, struct node *node, void *, bool *);
 error step_add_builtin_members(struct module *mod, struct node *node, void *, bool *);
@@ -25,7 +26,7 @@ error step_ctor_call_inference(struct module *mod, struct node *node, void *, bo
 error step_call_arguments_prepare(struct module *mod, struct node *node, void *, bool *);
 error step_temporary_inference(struct module *mod, struct node *node, void *, bool *);
 
-error pass(struct module *mod, struct node *root, step *steps, step *up_steps,
+error pass(struct module *mod, struct node *root, const step *steps, const step *up_steps,
            void *user);
 
 #endif

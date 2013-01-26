@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#define DIR_MODULE_NAME "module.n"
 #define CFLAGS "-Wall -std=c99 -pedantic -Ilib"
 
 static error zero(struct globalctx *gctx, struct module *mod,
@@ -18,7 +19,7 @@ static error zero(struct globalctx *gctx, struct module *mod,
   error e = module_open(gctx, mod, prefix, fn);
   EXCEPT(e);
 
-  step zeropass_down[] = {
+  static const step zeropass_down[] = {
     step_detect_deftype_kind,
     step_add_builtin_members,
     step_add_builtin_functions,
@@ -27,7 +28,7 @@ static error zero(struct globalctx *gctx, struct module *mod,
     step_add_codegen_variables,
     NULL,
   };
-  step zeropass_up[] = {
+  static const step zeropass_up[] = {
     step_add_scopes,
     NULL,
   };
@@ -42,7 +43,8 @@ static error first(struct node *node) {
   assert(node->which == MODULE);
   struct module *mod = node->as.MODULE.mod;
 
-  step firstpass_down[] = {
+  static const step firstpass_down[] = {
+    step_stop_submodules,
     step_lexical_scoping,
     step_type_definitions,
     step_type_destruct_mark,
@@ -50,7 +52,7 @@ static error first(struct node *node) {
     step_type_gather_excepts,
     NULL,
   };
-  step firstpass_up[] = {
+  static const step firstpass_up[] = {
     step_type_inference,
     step_operator_call_inference,
     step_unary_call_inference,
@@ -60,7 +62,8 @@ static error first(struct node *node) {
     NULL,
   };
 
-  error e = pass(mod, NULL, firstpass_down, firstpass_up, NULL);
+  int module_depth = 0;
+  error e = pass(mod, NULL, firstpass_down, firstpass_up, &module_depth);
   EXCEPT(e);
 
   return 0;
@@ -181,11 +184,11 @@ static error for_all_nodes(struct node *root,
                            enum node_which filter, // 0 to get all nodes
                            error (*node_fun)(struct node *node, void *user, bool *stop_descent),
                            void *user) {
-  step downsteps[] = {
+  static const step downsteps[] = {
     step_for_all_nodes,
     NULL,
   };
-  step upsteps[] = {
+  static const step upsteps[] = {
     NULL,
   };
 
@@ -251,13 +254,53 @@ static error lookup_import(char **fn, struct module *mod, struct node *import,
   struct node *import_path = import->subs[0];
 
   *fn = NULL;
+
   size_t len = 0;
+  size_t prefix_len = 0;
+  char *base = NULL;
+  if (prefix != NULL) {
+    prefix_len = strlen(prefix);
+    len = prefix_len;
+    base = calloc(len + 1, sizeof(char));
+    strcpy(base, prefix);
+  }
 
-  import_filename(fn, &len, mod, import_path);
+  import_filename(&base, &len, mod, import_path);
 
-  *fn = realloc(*fn, len + 2 + 1);
-  strcpy(*fn + len, ".n");
+  struct stat st;
+  memset(&st, 0, sizeof(st));
 
+  char *file = calloc(len + 2 + 1, sizeof(char));
+  strcpy(file, base);
+  strcpy(file + len, ".n");
+  int ret = stat(file, &st);
+  if (ret == 0 && S_ISREG(st.st_mode)) {
+    prefix_len += prefix_len > 0 ? 1 : 0;
+    *fn = strdup(file + prefix_len);
+    free(file);
+    free(base);
+    return 0;
+  }
+  free(file);
+
+  char *dir = calloc(len + 1 + strlen(DIR_MODULE_NAME) + 1, sizeof(char));
+  strcpy(dir, base);
+  strcpy(dir + len, "/");
+  strcpy(dir + len + 1, DIR_MODULE_NAME);
+  memset(&st, 0, sizeof(st));
+  ret = stat(dir, &st);
+  if (ret == 0 && S_ISREG(st.st_mode)) {
+    prefix_len += prefix_len > 0 ? 1 : 0;
+    *fn = strdup(dir + prefix_len);
+    free(dir);
+    free(base);
+    return 0;
+  }
+  free(dir);
+  free(base);
+
+  error e = mk_except(mod, import, "module not found");
+  EXCEPT(e);
   return 0;
 }
 
@@ -413,7 +456,7 @@ int main(int argc, char **argv) {
   globalctx_init(&gctx);
 
   if (argc != 2) {
-    fprintf(stderr, "Usage: %s <input.n>\n", argv[0]);
+    fprintf(stderr, "Usage: %s <main.n>\n", argv[0]);
     exit(1);
   }
 

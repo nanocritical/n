@@ -1,6 +1,6 @@
-type void =
-type __null__ =
-type number =
+export type void =
+export type __null__ =
+export type number =
 
-type __pending_destruct__ =
-type __not_typeable__ =
+export type __pending_destruct__ =
+export type __not_typeable__ =

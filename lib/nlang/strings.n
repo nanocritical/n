@@ -1,1 +1,1 @@
-type string =
+export type string =

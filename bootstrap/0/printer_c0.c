@@ -353,6 +353,7 @@ static void print_typ(FILE *out, const struct module *mod, struct typ *typ) {
 }
 
 static void print_defname(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  assert(node->which == DEFNAME);
   print_typ(out, mod, node->typ);
   fprintf(out, " ");
   print_pattern(out, header, mod, node->subs[0]);
@@ -676,6 +677,8 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       break;
     case IMPORT:
       print_import(out, header, mod, node);
+      break;
+    case MODULE:
       break;
     default:
       fprintf(stderr, "Unsupported node: %d\n", node->which);
