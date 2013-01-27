@@ -436,36 +436,13 @@ error step_lexical_scoping(struct module *mod, struct node *node, void *user, bo
       for (size_t n = 0; n < node_fun_args_count(node); ++n) {
         assert(node->subs[n+1]->which == TYPECONSTRAINT);
         e = scope_define(mod, node->scope, node->subs[n+1]->subs[0],
-                         node->subs[n+1]->subs[1]);
+                         node->subs[n+1]);
         EXCEPT(e);
       }
     }
     break;
   default:
     break;
-  }
-
-  switch (node->which) {
-  case DEFTYPE:
-  case DEFINTF:
-    break;
-  default:
-    return 0;
-  }
-
-  if (node_is_prototype(node)) {
-    return 0;
-  }
-
-  const size_t first = node->subs[1]->which == ISALIST ? 2 : 1;
-  for (size_t s = first; s < node->subs_count; ++s) {
-    struct node *member = node->subs[s];
-    struct node *name = member->subs[0];
-
-    if (member->which == DEFFIELD) {
-      e = scope_define(mod, node->scope, name, member);
-      EXCEPT(e);
-    }
   }
 
   return 0;
@@ -951,9 +928,6 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
     e = scope_lookup(&def, mod, node->scope, node);
     EXCEPT(e);
 
-    //FIXME: remove, DEFNAME above does that now.
-    assert(def != node->scope->parent->node);
-
     if (def->which == DEFNAME) {
       e = type_destruct(mod, def, constraint);
       EXCEPT(e);
@@ -1226,6 +1200,7 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
     node->typ = node->subs[1]->typ;
     e = type_destruct(mod, node->subs[0], node->typ);
     EXCEPT(e);
+    assert(!node->subs[0]->is_type);
     goto ok;
   case DEFFUN:
   case DEFMETHOD:

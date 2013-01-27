@@ -67,6 +67,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_EXAMPLE] = "<example>",
   [ID_THIS] = "this",
   [ID_SELF] = "self",
+  [ID_MAIN] = "main",
   [ID_TBI_VOID] = "void",
   [ID_TBI_LITERALS_NULL] = "__null__",
   [ID_TBI_LITERALS_NUMBER] = "number",
@@ -251,6 +252,7 @@ ident node_ident(const struct node *node) {
   case DEFFUN:
   case DEFTYPE:
   case DEFMETHOD:
+  case DEFFIELD:
   case DEFINTF:
     assert(node->subs[0]->which == IDENT);
     return node->subs[0]->as.IDENT.name;
@@ -1571,8 +1573,13 @@ again:
   case TIDENT:
     back(mod, &tok);
 
-    e = p_typeconstraint(node_new_subnode(mod, node), mod);
+    struct node *arg = node_new_subnode(mod, node);
+    e = p_typeconstraint(arg, mod);
     EXCEPT(e);
+
+    assert(arg->which == TYPECONSTRAINT);
+    arg->as.TYPECONSTRAINT.is_arg = TRUE;
+
     goto again;
   default:
     assert(FALSE);
@@ -2009,7 +2016,6 @@ static error register_module(struct node **parent,
                              const char *filename) {
   const size_t last = mod->path_len - 1;
   struct node *root = &gctx->modules_root;
-  fprintf(stderr, "Registering %s\n", filename);
 
   for (size_t p = 0; p <= last; ++p) {
     ident i = mod->path[p];
@@ -2242,11 +2248,15 @@ error typ_check_numeric(const struct module *mod, const struct node *for_error,
   // FIXME: leaking typ_names.
 }
 
+error typ_is_reference(const struct module *mod, const struct typ *a) {
+  return a == typ_lookup_builtin(mod, TBI_REF)
+    || a == typ_lookup_builtin(mod, TBI_MREF)
+    || a == typ_lookup_builtin(mod, TBI_MMREF);
+}
+
 error typ_check_reference(const struct module *mod, const struct node *for_error,
                           const struct typ *a) {
-  if (a == typ_lookup_builtin(mod, TBI_REF)
-      || a == typ_lookup_builtin(mod, TBI_MREF)
-      || a == typ_lookup_builtin(mod, TBI_MMREF)) {
+  if (typ_is_reference(mod, a)) {
     return 0;
   }
 

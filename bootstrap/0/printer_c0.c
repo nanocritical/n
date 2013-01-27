@@ -99,9 +99,32 @@ static void print_token(FILE *out, enum token_type t) {
 static void print_expr(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op);
 static void print_block(FILE *out, bool header, const struct module *mod, const struct node *node);
 static void print_typ(FILE *out, const struct module *mod, struct typ *typ);
+static void print_typeconstraint(FILE *out, bool header, const struct module *mod, const struct node *node);
 
 static void print_pattern(FILE *out, bool header, const struct module *mod, const struct node *node) {
   print_expr(out, header, mod, node, T__NONE);
+}
+
+static void print_bin_sym(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
+  const uint32_t op = node->as.BIN.operator;
+
+  print_expr(out, header, mod, node->subs[0], op);
+  print_token(out, op);
+  print_expr(out, header, mod, node->subs[1], op);
+}
+
+static void print_bin_acc(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
+  const uint32_t op = node->as.BIN.operator;
+
+  const char *deref = ".";
+  const struct typ *left = node->subs[0]->typ;
+  if (typ_is_reference(mod, left)) {
+    deref = "->";
+  }
+
+  print_expr(out, header, mod, node->subs[0], op);
+  fprintf(out, "%s", deref);
+  print_expr(out, header, mod, node->subs[1], op);
 }
 
 static void print_bin(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
@@ -113,9 +136,21 @@ static void print_bin(FILE *out, bool header, const struct module *mod, const st
     fprintf(out, "(");
   }
 
-  print_expr(out, header, mod, node->subs[0], op);
-  print_token(out, op);
-  print_expr(out, header, mod, node->subs[1], op);
+  switch (OP_KIND(op)) {
+  case OP_BIN:
+  case OP_BIN_SYM:
+  case OP_BIN_SYM_BOOL:
+  case OP_BIN_SYM_NUM:
+  case OP_BIN_NUM_RHS_U16:
+    print_bin_sym(out, header, mod, node, parent_op);
+    break;
+  case OP_BIN_ACC:
+    print_bin_acc(out, header, mod, node, parent_op);
+    break;
+  case OP_BIN_RHS_TYPE:
+    print_typeconstraint(out, header, mod, node);
+    break;
+  }
 
   if (prec > parent_prec) {
     fprintf(out, ")");
@@ -193,6 +228,26 @@ static void print_init(FILE *out, bool header, const struct module *mod, const s
   fprintf(out, "}}");
 }
 
+static char *replace_dots(char *n) {
+  char *p = n;
+  while (p[0] != '\0') {
+    if (p[0] == '.') {
+      p[0] = '_';
+    }
+    p += 1;
+  }
+  return n;
+}
+
+static void print_scoped_name(FILE *out, const struct module *mod, const struct node *node) {
+  const ident id = node_ident(node);
+  if (id == ID_MAIN) {
+    fprintf(out, "main");
+  } else {
+    fprintf(out, "%s", replace_dots(scope_name(mod, node->scope)));
+  }
+}
+
 static void print_expr(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
   if (node->is_type) {
     print_typ(out, mod, node->typ);
@@ -207,6 +262,9 @@ static void print_expr(FILE *out, bool header, const struct module *mod, const s
     fprintf(out, "%s", idents_value(mod->gctx, node->as.IDENT.name));
     break;
   case NUMBER:
+    fprintf(out, "(");
+    print_typ(out, mod, node->typ);
+    fprintf(out, ")");
     fprintf(out, "%s", node->as.NUMBER.value);
     break;
   case STRING:
@@ -325,17 +383,6 @@ static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
   }
 }
 
-static char *replace_dots(char *n) {
-  char *p = n;
-  while (p[0] != '\0') {
-    if (p[0] == '.') {
-      p[0] = '_';
-    }
-    p += 1;
-  }
-  return n;
-}
-
 static void print_typ(FILE *out, const struct module *mod, struct typ *typ) {
   switch (typ->which) {
   case TYPE_DEF:
@@ -392,7 +439,7 @@ static void print_statement(FILE *out, bool header, const struct module *mod, co
     fprintf(out, "continue");
     break;
   case PASS:
-    fprintf(out, "pass");
+    fprintf(out, ";");
     break;
   case IF:
     print_if(out, header, mod, node);
@@ -454,15 +501,16 @@ static void print_typeconstraint(FILE *out, bool header, const struct module *mo
 
 static void print_fun_prototype(FILE *out, bool header, const struct module *mod,
                                 const struct node *node) {
-  const size_t arg_count = node->subs_count - (node->as.DEFFUN.toplevel.is_prototype ? 2 : 3);
-  const struct node *name = node->subs[0];
+  const struct toplevel *toplevel = node_toplevel(node);
+
+  const size_t arg_count = node_fun_args_count(node);
   const struct node *retval = node->subs[1 + arg_count];
 
-  print_toplevel(out, &node->as.DEFFUN.toplevel);
+  print_toplevel(out, toplevel);
 
   print_expr(out, header, mod, retval, T__NONE);
   fprintf(out, " ");
-  print_expr(out, header, mod, name, T__NONE);
+  print_scoped_name(out, mod, node);
   fprintf(out, "(");
 
   if (arg_count == 0) {
@@ -474,7 +522,9 @@ static void print_fun_prototype(FILE *out, bool header, const struct module *mod
       fprintf(out, ", ");
     }
     const struct node *arg = node->subs[1 + n];
-    print_typeconstraint(out, header, mod, arg);
+    print_typeexpr(out, header, mod, arg->subs[1]);
+    fprintf(out, " ");
+    print_expr(out, header, mod, arg->subs[0], T__NONE);
   }
   fprintf(out, ")");
 }
@@ -484,12 +534,14 @@ static bool prototype_only(bool header, const struct node *node) {
 }
 
 static void print_deffun(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  const struct toplevel *toplevel = node_toplevel(node);
+
   if (prototype_only(header, node)) {
     print_fun_prototype(out, header, mod, node);
     fprintf(out, ";\n");
   } else {
-    const size_t arg_count = node->subs_count - (node->as.DEFFUN.toplevel.is_prototype ? 2 : 3);
-    print_toplevel(out, &node->as.DEFFUN.toplevel);
+    const size_t arg_count = node_fun_args_count(node);
+    print_toplevel(out, toplevel);
     print_fun_prototype(out, header, mod, node);
 
     const struct node *block = node->subs[1 + arg_count + 1];
@@ -499,9 +551,9 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
 }
 
 static void print_deffield(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  print_expr(out, header, mod, node->subs[0], T__NONE);
-  fprintf(out, ":");
   print_typeexpr(out, header, mod, node->subs[1]);
+  fprintf(out, " ");
+  print_expr(out, header, mod, node->subs[0], T__NONE);
 }
 
 static void print_defchoice(FILE *out, bool header, const struct module *mod, const struct node *node) {
@@ -580,9 +632,8 @@ static void print_deftype(FILE *out, bool header, const struct module *mod, cons
     return;
   }
 
-  const struct node *name = node->subs[0];
   fprintf(out, "struct ");
-  print_expr(out, header, mod, name, T__NONE);
+  print_scoped_name(out, mod, node);
 
   if (prototype_only(header, node)) {
     fprintf(out, ";\n");
@@ -596,42 +647,14 @@ static void print_deftype(FILE *out, bool header, const struct module *mod, cons
       print_deftype_block(out, header, mod, node, has_isalist ? 2 : 1);
     }
 
-    fprintf(out, "\n");
+    fprintf(out, ";\n");
   }
 
   fprintf(out, "typedef struct ");
-  print_expr(out, header, mod, name, T__NONE);
+  print_scoped_name(out, mod, node);
   fprintf(out, " ");
-  print_expr(out, header, mod, name, T__NONE);
+  print_scoped_name(out, mod, node);
   fprintf(out, ";\n");
-}
-
-static void print_defmethod(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  const size_t arg_count = node->subs_count - (node_is_prototype(node) ? 2 : 3);
-  const struct node *name = node->subs[0];
-  const struct node *retval = node->subs[1 + arg_count];
-
-  print_toplevel(out, &node->as.DEFMETHOD.toplevel);
-
-  const char *scope = idents_value(mod->gctx, node->as.DEFMETHOD.toplevel.scope_name);
-  fprintf(out, "%s method ", scope);
-  print_expr(out, header, mod, name, T__NONE);
-
-  for (size_t n = 0; n < arg_count; ++n) {
-    fprintf(out, " ");
-    const struct node *arg = node->subs[1 + n];
-    print_typeconstraint(out, header, mod, arg);
-  }
-
-  fprintf(out, " = ");
-  print_expr(out, header, mod, retval, T__NONE);
-
-  if (!node_is_prototype(node)) {
-    const struct node *block = node->subs[1 + arg_count + 1];
-    print_block(out, header, mod, block);
-  }
-
-  fprintf(out, "\n");
 }
 
 static void print_defintf(FILE *out, bool header, const struct module *mod, const struct node *node) {
@@ -667,7 +690,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       print_deftype(out, header, mod, node);
       break;
     case DEFMETHOD:
-      print_defmethod(out, header, mod, node);
+      print_deffun(out, header, mod, node);
       break;
     case DEFINTF:
       print_defintf(out, header, mod, node);

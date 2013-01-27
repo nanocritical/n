@@ -92,7 +92,9 @@ struct node_pass {};
 struct node_if {};
 struct node_match {};
 struct node_try {};
-struct node_typeconstraint {};
+struct node_typeconstraint {
+  bool is_arg;
+};
 struct node_deffun {
   struct toplevel toplevel;
 };
@@ -219,6 +221,8 @@ enum predefined_idents {
   ID_EXAMPLE,
   ID_THIS,
   ID_SELF,
+
+  ID_MAIN,
 
   ID_TBI_VOID,
   ID_TBI__FIRST = ID_TBI_VOID,
@@ -386,6 +390,7 @@ error typ_check(const struct module *mod, const struct node *for_error,
                 const struct typ *a, const struct typ *constraint);
 error typ_check_numeric(const struct module *mod, const struct node *for_error, const struct typ *a);
 error typ_check_reference(const struct module *mod, const struct node *for_error, const struct typ *a);
+error typ_is_reference(const struct module *mod, const struct typ *a);
 bool typ_is_concrete(const struct module *mod, const struct typ *a);
 error typ_unify(struct typ **u, const struct module *mod, const struct node *for_error,
                 struct typ *a, struct typ *b);
