@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-typedef void nlang_integers_void;
+typedef void nlang_literals_void;
 typedef _Bool nlang_integers_bool;
 typedef int8_t nlang_integers_i8;
 typedef int16_t nlang_integers_i16;

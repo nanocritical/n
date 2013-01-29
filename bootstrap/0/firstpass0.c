@@ -1247,7 +1247,11 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
           if (node->subs[n]->which != DEFCHOICE) {
             continue;
           }
-          node->subs[n]->typ = u;
+          e = typ_unify(&node->subs[n]->typ, mod, node->subs[n],
+                        node->subs[n]->typ, u);
+          EXCEPT(e);
+          e = type_destruct(mod, node->subs[n]->subs[1], node->subs[n]->typ);
+          EXCEPT(e);
         }
       }
       break;

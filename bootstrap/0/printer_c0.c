@@ -58,7 +58,7 @@ const char *c_token_strings[TOKEN__NUM] = {
 };
 
 static char *escape_string(const char *s) {
-  char *r = malloc(2 * strlen(s) + 1);
+  char *r = calloc(2 * strlen(s) + 1, sizeof(char));
   char delim = s[0];
   if (s[1] == delim) {
     r[0] = '\0';
@@ -67,25 +67,27 @@ static char *escape_string(const char *s) {
 
   char *v = r;
   for (const char *p = s + 1; p[1] != '\0'; ++p, ++v) {
-    switch (p[0]) {
-    case '"':
+    if (p[0] == delim) {
+      v[0] = '\0';
+    } else if (p[0] == '"') {
       v[0] = '\\';
       v[1] = '"';
       v += 1;
-      break;
-    case '\\':
+    } else if (p[0] == '\\') {
       if (p[1] == delim) {
         if (delim == '"') {
           v[0] = '\\';
           v[1] = '"';
           v += 1;
         } else {
-          v[0] = '\'';
+          v[0] = delim;
         }
         p += 1;
       } else {
         v[0] = p[0];
       }
+    } else {
+      v[0] = p[0];
     }
   }
 
@@ -327,7 +329,7 @@ static void print_expr(FILE *out, bool header, const struct module *mod, const s
   case STRING:
     {
       char *s = escape_string(node->as.STRING.value);
-      fprintf(out, "\"%s\"", escape_string(s));
+      fprintf(out, "\"%s\"", s);
       free(s);
       break;
     }
@@ -701,13 +703,15 @@ static void print_deftype_block(FILE *out, bool header, const struct module *mod
 
   if (!do_static && (node->as.DEFTYPE.kind == DEFTYPE_ENUM
                      || node->as.DEFTYPE.kind == DEFTYPE_SUM)) {
-    fprintf(out, "%s %s;\n",
+    print_deftype_name(out, mod, node);
+    fprintf(out, "_%s %s;\n",
             idents_value(mod->gctx, ID_WHICH_TYPE),
             idents_value(mod->gctx, ID_WHICH));
   }
 
   if (!do_static && node->as.DEFTYPE.kind == DEFTYPE_SUM) {
-    fprintf(out, "%s %s;\n",
+    print_deftype_name(out, mod, node);
+    fprintf(out, "_%s %s;\n",
             idents_value(mod->gctx, ID_AS_TYPE),
             idents_value(mod->gctx, ID_AS));
   }
@@ -755,6 +759,53 @@ static void print_deftype_choices(FILE *out, bool header, const struct module *m
     print_expr(out, header, mod, s->subs[1], T__NONE);
     fprintf(out, ";\n");
   }
+
+  if (node->as.DEFTYPE.kind != DEFTYPE_SUM) {
+    return;
+  }
+
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    struct node *s = node->subs[n];
+    if (s->which != DEFCHOICE) {
+      continue;
+    }
+
+    fprintf(out, "typedef ");
+    if (s->subs_count > 2) {
+      print_typ(out, mod, s->subs[2]->typ);
+    } else {
+      print_typ(out, mod, typ_lookup_builtin(mod, TBI_U8));
+    }
+    fprintf(out, " ");
+    print_deftype_name(out, mod, node);
+    fprintf(out, "_");
+    print_deffield_name(out, mod, s);
+    fprintf(out, ";\n");
+  }
+
+  fprintf(out, "union ");
+  print_deftype_name(out, mod, node);
+  fprintf(out, "_%s {\n", idents_value(mod->gctx, ID_AS_TYPE));
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    struct node *s = node->subs[n];
+    if (s->which != DEFCHOICE) {
+      continue;
+    }
+
+    print_deftype_name(out, mod, node);
+    fprintf(out, "_");
+    print_deffield_name(out, mod, s);
+    fprintf(out, " ");
+    print_deffield_name(out, mod, s);
+    fprintf(out, ";\n");
+  }
+  fprintf(out, "};\n");
+
+  fprintf(out, "typedef union ");
+  print_deftype_name(out, mod, node);
+  fprintf(out, "_%s ", idents_value(mod->gctx, ID_AS_TYPE));
+  print_deftype_name(out, mod, node);
+  fprintf(out, "_%s;\n", idents_value(mod->gctx, ID_AS_TYPE));
 }
 
 static void print_deftype(FILE *out, bool header, const struct module *mod, const struct node *node) {

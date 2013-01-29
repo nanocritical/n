@@ -17,15 +17,16 @@ extern fun other5 x:i32 = i32
 intf ia =
 
 type test = ia
-  t:test
+  t:i32
 
 test method foo x:i32 = i32
-  let x = 0
-  return x
+  let y = x
+  return y
 
 fun foobar x:i32 = i32
   pre -> x != 0
   post -> x != 0
+  return 0
 
 fun foobar2 = void
   return
