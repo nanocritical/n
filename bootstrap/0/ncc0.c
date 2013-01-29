@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 #define DIR_MODULE_NAME "module.n"
-#define CFLAGS "-Wall -std=c99 -pedantic -Ilib"
+#define CFLAGS "-Wall -std=c99 -pedantic -I."
 
 static error zero(struct globalctx *gctx, struct module *mod,
                   const char *prefix, const char *fn) {
@@ -21,10 +21,10 @@ static error zero(struct globalctx *gctx, struct module *mod,
 
   static const step zeropass_down[] = {
     step_detect_deftype_kind,
+    step_assign_deftype_which_values,
     step_add_builtin_members,
     step_add_builtin_functions,
     step_add_builtin_methods,
-    step_add_builtin_self,
     step_add_codegen_variables,
     NULL,
   };
@@ -57,6 +57,7 @@ static error first(struct node *node) {
     step_operator_call_inference,
     step_unary_call_inference,
     step_ctor_call_inference,
+    step_gather_generics,
     step_call_arguments_prepare,
     step_temporary_inference,
     NULL,

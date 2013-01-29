@@ -166,8 +166,23 @@ static void print_un(FILE *out, bool header, const struct module *mod, const str
     fprintf(out, "(");
   }
 
-  print_token(out, op);
-  print_expr(out, header, mod, node->subs[0], op);
+  switch (OP_KIND(op)) {
+  case OP_UN_REFOF:
+    if (node->is_type) {
+      print_typ(out, mod, node->typ);
+    } else {
+      fprintf(out, "&");
+      print_expr(out, header, mod, node->subs[0], op);
+    }
+    break;
+  case OP_UN_BOOL:
+  case OP_UN_NUM:
+    print_token(out, op);
+    print_expr(out, header, mod, node->subs[0], op);
+    break;
+  case OP_UN_DYN:
+    break;
+  }
 
   if (prec > parent_prec) {
     fprintf(out, ")");
@@ -239,12 +254,54 @@ static char *replace_dots(char *n) {
   return n;
 }
 
-static void print_scoped_name(FILE *out, const struct module *mod, const struct node *node) {
+static error is_local_name(bool *is_local, const struct module *mod, const struct node *node) {
+  if (node->which == DEFNAME) {
+    *is_local = TRUE;
+    return 0;
+  }
+
+  struct node *def = NULL;
+  error e = scope_lookup(&def, mod, node->scope, node);
+  EXCEPT(e);
+  enum node_which parent_which = def->scope->parent->node->which;
+  *is_local = parent_which != MODULE && parent_which != DEFTYPE && parent_which != DEFINTF;
+  return 0;
+}
+
+static void print_deftype_name(FILE *out, const struct module *mod, const struct node *node) {
+  char *n = replace_dots(scope_name(mod, node->scope));
+  fprintf(out, "%s", n);
+  free(n);
+}
+
+static void print_deffun_name(FILE *out, const struct module *mod, const struct node *node) {
   const ident id = node_ident(node);
   if (id == ID_MAIN) {
     fprintf(out, "main");
   } else {
-    fprintf(out, "%s", replace_dots(scope_name(mod, node->scope)));
+    char *n = replace_dots(scope_name(mod, node->scope));
+    fprintf(out, "%s", n);
+    free(n);
+  }
+}
+
+static void print_deffield_name(FILE *out, const struct module *mod, const struct node *node) {
+  const ident id = node_ident(node);
+  fprintf(out, "%s", idents_value(mod->gctx, id));
+}
+
+static void print_ident(FILE *out, const struct module *mod, const struct node *node) {
+  bool is_local = FALSE;
+  error e = is_local_name(&is_local, mod, node);
+  assert(!e);
+
+  const ident id = node_ident(node);
+  if (id == ID_MAIN) {
+    fprintf(out, "main");
+  } else if (is_local) {
+    fprintf(out, "%s", idents_value(mod->gctx, id));
+  } else {
+    fprintf(out, "%s", scope_name(mod, node->scope));
   }
 }
 
@@ -259,7 +316,7 @@ static void print_expr(FILE *out, bool header, const struct module *mod, const s
     fprintf(out, "NULL");
     break;
   case IDENT:
-    fprintf(out, "%s", idents_value(mod->gctx, node->as.IDENT.name));
+    print_ident(out, mod, node);
     break;
   case NUMBER:
     fprintf(out, "(");
@@ -374,7 +431,12 @@ static void print_example(FILE *out, bool header, const struct module *mod, cons
   print_block(out, header, mod, node->subs[0]);
 }
 
-static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
+static void print_toplevel(FILE *out, bool header, const struct node *node) {
+  if (header && !node_is_export(node)) {
+    return;
+  }
+
+  const struct toplevel *toplevel = node_toplevel(node);
   if (toplevel->is_extern) {
     fprintf(out, "extern ");
   }
@@ -386,7 +448,14 @@ static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
 static void print_typ(FILE *out, const struct module *mod, struct typ *typ) {
   switch (typ->which) {
   case TYPE_DEF:
-    fprintf(out, "%s", replace_dots(typ_name(mod, typ)));
+    if (typ->gen_arity == 0) {
+      fprintf(out, "%s", replace_dots(typ_name(mod, typ)));
+    } else {
+      fprintf(out, "_ngen_%s", replace_dots(typ_name(mod, typ)));
+      for (size_t n = 0; n < typ->gen_arity; ++n) {
+        fprintf(out, "__%s", replace_dots(typ_name(mod, typ->gen_args[n])));
+      }
+    }
     break;
   case TYPE_TUPLE:
     fprintf(out, "_ntup_%s", replace_dots(typ_name(mod, typ)));
@@ -400,20 +469,38 @@ static void print_typ(FILE *out, const struct module *mod, struct typ *typ) {
 }
 
 static void print_defname(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  assert(node->which == DEFNAME);
-  print_typ(out, mod, node->typ);
-  fprintf(out, " ");
-  print_pattern(out, header, mod, node->subs[0]);
-  fprintf(out, " = ");
-  print_expr(out, header, mod, node->subs[1], T__NONE);
+  if (header && !node_is_export(node)) {
+    return;
+  }
 
-  if (node->subs_count > 2) {
-    print_block(out, header, mod, node->subs[2]);
+  assert(node->which == DEFNAME);
+  if (node->is_type) {
+    const ident id = node_ident(node->subs[0]);
+    if (id != ID_THIS) {
+      fprintf(out, "typedef ");
+      print_typ(out, mod, node->typ);
+      fprintf(out, " ");
+      print_pattern(out, header, mod, node->subs[0]);
+    }
+  } else {
+    print_typ(out, mod, node->typ);
+    fprintf(out, " ");
+    print_pattern(out, header, mod, node->subs[0]);
+
+    if (!header || node_is_inline(node)) {
+      fprintf(out, " = ");
+      print_expr(out, header, mod, node->subs[1], T__NONE);
+
+      if (node->subs_count > 2) {
+        assert(!node_is_inline(node));
+        print_block(out, header, mod, node->subs[2]);
+      }
+    }
   }
 }
 
 static void print_let(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  print_toplevel(out, &node->as.LET.toplevel);
+  print_toplevel(out, header, node);
   print_defname(out, header, mod, node->subs[0]);
 }
 
@@ -501,16 +588,14 @@ static void print_typeconstraint(FILE *out, bool header, const struct module *mo
 
 static void print_fun_prototype(FILE *out, bool header, const struct module *mod,
                                 const struct node *node) {
-  const struct toplevel *toplevel = node_toplevel(node);
-
   const size_t arg_count = node_fun_args_count(node);
   const struct node *retval = node->subs[1 + arg_count];
 
-  print_toplevel(out, toplevel);
+  print_toplevel(out, header, node);
 
   print_expr(out, header, mod, retval, T__NONE);
   fprintf(out, " ");
-  print_scoped_name(out, mod, node);
+  print_deffun_name(out, mod, node);
   fprintf(out, "(");
 
   if (arg_count == 0) {
@@ -530,18 +615,19 @@ static void print_fun_prototype(FILE *out, bool header, const struct module *mod
 }
 
 static bool prototype_only(bool header, const struct node *node) {
-  return (header && !node_is_inline(node)) || node_is_prototype(node);
+  return (header && !(node_is_export(node) && node_is_inline(node))) || node_is_prototype(node);
 }
 
 static void print_deffun(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  const struct toplevel *toplevel = node_toplevel(node);
+  if (header && !node_is_export(node)) {
+    return;
+  }
 
   if (prototype_only(header, node)) {
     print_fun_prototype(out, header, mod, node);
     fprintf(out, ";\n");
   } else {
     const size_t arg_count = node_fun_args_count(node);
-    print_toplevel(out, toplevel);
     print_fun_prototype(out, header, mod, node);
 
     const struct node *block = node->subs[1 + arg_count + 1];
@@ -553,31 +639,7 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
 static void print_deffield(FILE *out, bool header, const struct module *mod, const struct node *node) {
   print_typeexpr(out, header, mod, node->subs[1]);
   fprintf(out, " ");
-  print_expr(out, header, mod, node->subs[0], T__NONE);
-}
-
-static void print_defchoice(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  fprintf(out, "| ");
-  print_expr(out, header, mod, node->subs[0], T__NONE);
-  switch (node->subs_count) {
-  case 1:
-    return;
-  case 2:
-    if (node->as.DEFCHOICE.has_value) {
-      fprintf(out, " = ");
-      print_expr(out, header, mod, node->subs[1], T__NONE);
-    } else {
-      fprintf(out, " -> ");
-      print_expr(out, header, mod, node->subs[1], T__NONE);
-    }
-    return;
-  case 3:
-    fprintf(out, " = ");
-    print_expr(out, header, mod, node->subs[1], T__NONE);
-    fprintf(out, " -> ");
-    print_expr(out, header, mod, node->subs[2], T__NONE);
-    return;
-  }
+  print_deffield_name(out, mod, node);
 }
 
 static void print_delegate(FILE *out, bool header, const struct module *mod, const struct node *node) {
@@ -590,98 +652,209 @@ static void print_delegate(FILE *out, bool header, const struct module *mod, con
   }
 }
 
-static void print_deftype_statement(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  switch (node->which) {
-  case LET:
-    print_let(out, header, mod, node);
-    break;
-  case DELEGATE:
-    print_delegate(out, header, mod, node);
-    break;
-  case INVARIANT:
-    print_invariant(out, header, mod, node);
-    break;
-  case EXAMPLE:
-    print_example(out, header, mod, node);
-    break;
-  case DEFFIELD:
-    print_deffield(out, header, mod, node);
-    break;
-  case DEFCHOICE:
-    print_defchoice(out, header, mod, node);
-    break;
-  default:
-    fprintf(stderr, "Unsupported node: %d\n", node->which);
-    assert(FALSE);
+static void print_deftype_statement(FILE *out, bool header, const struct module *mod, const struct node *node,
+                                    bool do_static) {
+  if (do_static) {
+    switch (node->which) {
+    case LET:
+      print_let(out, header, mod, node);
+      break;
+    case DELEGATE:
+      print_delegate(out, header, mod, node);
+      break;
+    case INVARIANT:
+      print_invariant(out, header, mod, node);
+      break;
+    case EXAMPLE:
+      print_example(out, header, mod, node);
+      break;
+    default:
+      break;
+    }
+  } else {
+    switch (node->which) {
+    case DEFFIELD:
+      print_deffield(out, header, mod, node);
+      break;
+    default:
+      break;
+    }
   }
 }
 
 static void print_deftype_block(FILE *out, bool header, const struct module *mod,
-                                const struct node *node, size_t first) {
-  fprintf(out, " {\n");
+                                const struct node *node, size_t first, bool do_static) {
+  if (!do_static) {
+    fprintf(out, " {\n");
+  }
   for (size_t n = first; n < node->subs_count; ++n) {
+    ssize_t prev_pos = ftell(out);
+
     const struct node *statement = node->subs[n];
-    print_deftype_statement(out, header, mod, statement);
+    print_deftype_statement(out, header, mod, statement, do_static);
+
+    // Hack to prevent isolated ';' when statement does not print anything.
+    if (ftell(out) != prev_pos) {
+      fprintf(out, ";\n");
+    }
+  }
+
+  if (!do_static && (node->as.DEFTYPE.kind == DEFTYPE_ENUM
+                     || node->as.DEFTYPE.kind == DEFTYPE_SUM)) {
+    fprintf(out, "%s %s;\n",
+            idents_value(mod->gctx, ID_WHICH_TYPE),
+            idents_value(mod->gctx, ID_WHICH));
+  }
+
+  if (!do_static && node->as.DEFTYPE.kind == DEFTYPE_SUM) {
+    fprintf(out, "%s %s;\n",
+            idents_value(mod->gctx, ID_AS_TYPE),
+            idents_value(mod->gctx, ID_AS));
+  }
+
+  if (!do_static) {
+    fprintf(out, "}\n");
+  }
+}
+
+static void print_deftype_choices(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  if (header && !(node_is_export(node) && node_is_inline(node))) {
+    return;
+  }
+
+  struct typ *choice_typ = NULL;
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    struct node *s = node->subs[n];
+    if (s->which == DEFCHOICE) {
+      choice_typ = s->typ;
+      break;
+    }
+  }
+  assert(choice_typ != NULL);
+
+  fprintf(out, "typedef ");
+  print_typ(out, mod, choice_typ);
+  fprintf(out, " ");
+  print_deftype_name(out, mod, node);
+  fprintf(out, "_%s;\n", idents_value(mod->gctx, ID_WHICH_TYPE));
+
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    struct node *s = node->subs[n];
+    if (s->which != DEFCHOICE) {
+      continue;
+    }
+
+    fprintf(out, "static const ");
+    print_deftype_name(out, mod, node);
+    fprintf(out, "_%s", idents_value(mod->gctx, ID_WHICH_TYPE));
+    fprintf(out, " ");
+    print_deftype_name(out, mod, node);
+    fprintf(out, "_");
+    print_deffield_name(out, mod, s);
+    fprintf(out, "_%s = ", idents_value(mod->gctx, ID_WHICH));
+    print_expr(out, header, mod, s->subs[1], T__NONE);
     fprintf(out, ";\n");
   }
-  fprintf(out, "}\n");
 }
 
 static void print_deftype(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  if (header && !node_is_export(node)) {
+    return;
+  }
+
   if (typ_is_builtin(mod, node->typ)) {
     return;
   }
 
   fprintf(out, "struct ");
-  print_scoped_name(out, mod, node);
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+  fprintf(out, "typedef struct ");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " ");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
 
-  if (prototype_only(header, node)) {
-    fprintf(out, ";\n");
-  } else {
-    const bool has_isalist = node_is_prototype(node)
-      ? node->subs_count > 1 : node->subs_count > 2;
+  switch (node->as.DEFTYPE.kind) {
+  case DEFTYPE_ENUM:
+  case DEFTYPE_SUM:
+    print_deftype_choices(out, header, mod, node);
+    break;
+  default:
+    break;
+  }
 
-    print_toplevel(out, &node->as.DEFTYPE.toplevel);
+  const bool has_isalist = node_is_prototype(node)
+    ? node->subs_count > 1 : node->subs_count > 2;
+  print_deftype_block(out, header, mod, node, has_isalist ? 2 : 1, TRUE);
+
+  if (!prototype_only(header, node)) {
+    fprintf(out, "struct ");
+    print_deftype_name(out, mod, node);
 
     if (!node_is_prototype(node)) {
-      print_deftype_block(out, header, mod, node, has_isalist ? 2 : 1);
+      print_deftype_block(out, header, mod, node, has_isalist ? 2 : 1, FALSE);
     }
 
     fprintf(out, ";\n");
   }
 
-  fprintf(out, "typedef struct ");
-  print_scoped_name(out, mod, node);
-  fprintf(out, " ");
-  print_scoped_name(out, mod, node);
+  fprintf(out, "typedef const ");
+  print_deftype_name(out, mod, node);
+  fprintf(out, "* _ngen_nlang_integers_ref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef _ngen_nlang_integers_ref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " _ngen_nlang_integers_nref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef ");
+  print_deftype_name(out, mod, node);
+  fprintf(out, "* _ngen_nlang_integers_mref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef _ngen_nlang_integers_mref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " _ngen_nlang_integers_mmref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef _ngen_nlang_integers_mref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " _ngen_nlang_integers_nmref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef _ngen_nlang_integers_mref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " _ngen_nlang_integers_nmmref__");
+  print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 }
 
 static void print_defintf(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  print_toplevel(out, &node->as.DEFINTF.toplevel);
-}
-
-unused__ static void print_import_path(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    if (n > 0) {
-      fprintf(out, "/");
-    }
-
-    print_expr(out, header, mod, node->subs[n], T__CALL);
-  }
 }
 
 static void print_import(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  struct node *target = NULL;
+  error e = scope_lookup(&target, mod, mod->gctx->modules_root.scope, node->subs[0]);
+  assert(!e);
+  if (target->which == MODULE) {
+    fprintf(out, "#include \"%s.h.out\"", target->as.MODULE.mod->filename);
+  }
 }
 
 static void print_module(FILE *out, bool header, const struct module *mod) {
-  fprintf(out, "#include <nlang/runtime.h>\n");
+  fprintf(out, "#include <lib/nlang/runtime.h>\n");
 
   const struct node *top = mod->root;
 
   for (size_t n = 0; n < top->subs_count; ++n) {
     const struct node *node = top->subs[n];
-
     switch (node->which) {
     case DEFFUN:
       print_deffun(out, header, mod, node);

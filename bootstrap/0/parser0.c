@@ -68,9 +68,13 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_THIS] = "this",
   [ID_SELF] = "self",
   [ID_MAIN] = "main",
+  [ID_WHICH] = "which__",
+  [ID_AS] = "as__",
+  [ID_WHICH_TYPE] = "which_type__",
+  [ID_AS_TYPE] = "as_type__",
   [ID_TBI_VOID] = "void",
   [ID_TBI_LITERALS_NULL] = "__null__",
-  [ID_TBI_LITERALS_NUMBER] = "number",
+  [ID_TBI_LITERALS_INTEGER] = "integer",
   [ID_TBI_PSEUDO_TUPLE] = "__pseudo_tuple__",
   [ID_TBI_BOOL] = "bool",
   [ID_TBI_I8] = "i8",
@@ -221,7 +225,7 @@ struct scope *scope_new(struct node *node) {
   return s;
 }
 
-struct node *node_module_owner(struct node *node) {
+const struct node *node_module_owner(const struct node *node) {
   if (node->which == MODULE) {
     return node;
   } else {
@@ -253,6 +257,7 @@ ident node_ident(const struct node *node) {
   case DEFTYPE:
   case DEFMETHOD:
   case DEFFIELD:
+  case DEFCHOICE:
   case DEFINTF:
     assert(node->subs[0]->which == IDENT);
     return node->subs[0]->as.IDENT.name;
@@ -311,6 +316,15 @@ bool node_is_inline(const struct node *node) {
     return FALSE;
   } else {
     return toplevel->is_inline;
+  }
+}
+
+bool node_is_export(const struct node *node) {
+  const struct toplevel *toplevel = node_toplevel(node);
+  if (toplevel == NULL) {
+    return FALSE;
+  } else {
+    return toplevel->is_export;
   }
 }
 
@@ -464,7 +478,7 @@ error scope_lookup_ident(struct node **result, const struct module *mod,
 } while (0)
 
 static error do_scope_lookup(struct node **result, const struct module *mod,
-                             const struct scope *scope, struct node *id,
+                             const struct scope *scope, const struct node *id,
                              const struct scope *within, bool failure_ok) {
   error e;
   struct node *parent = NULL, *r = NULL;
@@ -546,12 +560,12 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
 }
 
 error scope_lookup(struct node **result, const struct module *mod,
-                   const struct scope *scope, struct node *id) {
+                   const struct scope *scope, const struct node *id) {
   return do_scope_lookup(result, mod, scope, id, scope, FALSE);
 }
 
 error scope_lookup_module(struct node **result, const struct module *mod,
-                          struct node *id) {
+                          const struct node *id) {
   error e;
   struct node *parent = NULL, *r = NULL;
   struct scope *scope = mod->gctx->modules_root.scope;
@@ -805,6 +819,12 @@ size_t node_fun_args_count(const struct node *def) {
   } else {
     return def->subs_count-2;
   }
+}
+
+struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind) {
+  struct node *n = node_new_subnode(mod, parent);
+  n->which = kind;
+  return n;
 }
 
 static error p_expr(struct node *node, struct module *mod, uint32_t parent_op);
@@ -1541,15 +1561,17 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     break;
   case DEFMETHOD:
     node->as.DEFMETHOD.toplevel = *toplevel;
-    node->as.DEFMETHOD.access = TDOT;
+    node->as.DEFMETHOD.access = TREFDOT;
     node_toplevel = &node->as.DEFMETHOD.toplevel;
 
     e = scan(&tok, mod);
     EXCEPT(e);
     switch (tok.t) {
     case TBANG:
+      node->as.DEFMETHOD.access = TREFBANG;
+      break;
     case TSHARP:
-      node->as.DEFMETHOD.access = tok.t;
+      node->as.DEFMETHOD.access = TREFSHARP;
       break;
     default:
       back(mod, &tok);
@@ -1562,6 +1584,18 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
 
   e = p_ident(node_new_subnode(mod, node), mod);
   EXCEPT(e);
+
+  if (fun_or_method == DEFMETHOD) {
+    struct node *arg = mk_node(mod, node, TYPECONSTRAINT);
+    arg->as.TYPECONSTRAINT.is_arg = TRUE;
+    struct node *name = mk_node(mod, arg, IDENT);
+    name->as.IDENT.name = ID_SELF;
+
+    struct node *ref = mk_node(mod, arg, UN);
+    ref->as.UN.operator = node->as.DEFMETHOD.access;
+    struct node *typename = mk_node(mod, ref, IDENT);
+    typename->as.IDENT.name = ID_THIS;
+  }
 
 again:
   e = scan_oneof(&tok, mod, TASSIGN, TIDENT, 0);
@@ -1851,8 +1885,8 @@ static error p_defintf(struct node *node, struct module *mod, const struct tople
   return 0;
 }
 
-static void node_deepcopy(struct module *mod, struct node *dst,
-                          const struct node *src) {
+void node_deepcopy(struct module *mod, struct node *dst,
+                   const struct node *src) {
   dst->which = src->which;
   memcpy(&dst->as, &src->as, sizeof(&dst->as));
 
@@ -1884,21 +1918,36 @@ static error p_import(struct node *node, struct module *mod, const struct toplev
   error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
   EXCEPT(e);
 
+  int import_export_count = 0;
+  int inline_count = 0;
+  int ident_count = 0;
   struct token tok;
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
 
-  if (tok.t == Timport || tok.t == Texport) {
-    if (!from) {
+  if (tok.t == Tinline) {
+    if (inline_count > 0 || import_export_count > 0 || ident_count > 0) {
       UNEXPECTED(mod, &tok);
     }
+    inline_count += 1;
+    node->as.IMPORT.toplevel.is_inline = TRUE;
+    goto again;
+  } else if (tok.t == Timport || tok.t == Texport) {
+    if (!from || import_export_count > 0 || ident_count > 0) {
+      UNEXPECTED(mod, &tok);
+    }
+    import_export_count += 1;
     node->as.IMPORT.toplevel.is_export = tok.t == Texport;
     goto again;
   } else if (tok.t == TTIMES) {
+    if (ident_count > 0) {
+      UNEXPECTED(mod, &tok);
+    }
     node->as.IMPORT.is_all = TRUE;
-    goto again;
+    return 0;
   } else if (tok.t == TIDENT) {
+    ident_count += 1;
     struct node *imported = node_new_subnode(mod, node);
     imported->which = IMPORT;
     imported->as.IMPORT.toplevel.is_export = toplevel->is_export;
@@ -2198,7 +2247,7 @@ error typ_check(const struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  if (a == typ_lookup_builtin(mod, TBI_LITERALS_NUMBER)) {
+  if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
     if (constraint == typ_lookup_builtin(mod, TBI_U8)
         || constraint == typ_lookup_builtin(mod, TBI_U16)
         || constraint == typ_lookup_builtin(mod, TBI_U32)
@@ -2239,7 +2288,7 @@ error typ_check_numeric(const struct module *mod, const struct node *for_error,
       || a == typ_lookup_builtin(mod, TBI_I64)
       || a == typ_lookup_builtin(mod, TBI_SIZE)
       || a == typ_lookup_builtin(mod, TBI_SSIZE)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_NUMBER)) {
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
     return 0;
   }
 
@@ -2267,7 +2316,7 @@ error typ_check_reference(const struct module *mod, const struct node *for_error
 
 bool typ_is_concrete(const struct module *mod, const struct typ *a) {
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_NUMBER)) {
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
     return FALSE;
   }
 

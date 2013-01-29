@@ -100,7 +100,8 @@ struct node_deffun {
 };
 
 enum deftype_kind {
-  DEFTYPE_STRUCT = 1,
+  DEFTYPE_PROTOTYPE = 0,
+  DEFTYPE_STRUCT,
   DEFTYPE_ENUM,
   DEFTYPE_SUM,
 };
@@ -223,11 +224,15 @@ enum predefined_idents {
   ID_SELF,
 
   ID_MAIN,
+  ID_WHICH,
+  ID_AS,
+  ID_WHICH_TYPE,
+  ID_AS_TYPE,
 
   ID_TBI_VOID,
   ID_TBI__FIRST = ID_TBI_VOID,
   ID_TBI_LITERALS_NULL,
-  ID_TBI_LITERALS_NUMBER,
+  ID_TBI_LITERALS_INTEGER,
   ID_TBI_PSEUDO_TUPLE,
   ID_TBI_BOOL,
   ID_TBI_I8,
@@ -268,7 +273,7 @@ enum typ_builtin {
   TBI__NONE = 0,
   TBI_VOID,
   TBI_LITERALS_NULL,
-  TBI_LITERALS_NUMBER,
+  TBI_LITERALS_INTEGER,
   TBI_PSEUDO_TUPLE,
   TBI_BOOL,
   TBI_I8,
@@ -366,22 +371,26 @@ error scope_define(const struct module *mod, struct scope *scope, struct node *i
 error scope_lookup_ident(struct node **result, const struct module *mod,
                          const struct scope *scope, ident id, bool failure_ok);
 error scope_lookup(struct node **result, const struct module *mod,
-                   const struct scope *scope, struct node *id);
+                   const struct scope *scope, const struct node *id);
 error scope_lookup_module(struct node **result, const struct module *mod,
-                          struct node *id);
+                          const struct node *id);
 char *scope_name(const struct module *mod, const struct scope *scope);
 char *scope_definitions_name_list(const struct module *mod, const struct scope *scope);
 
 void copy_and_extend_import_path(struct module *mod, struct node *imported,
                                  const struct node *import, const struct token *tok);
 
-struct node *node_module_owner(struct node *node);
+const struct node *node_module_owner(const struct node *node);
 ident node_ident(const struct node *node);
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);
+bool node_is_export(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
 size_t node_fun_args_count(const struct node *def);
 const struct toplevel *node_toplevel(const struct node *node);
+struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);
+void node_deepcopy(struct module *mod, struct node *dst,
+                   const struct node *src);
 
 struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);

@@ -5,10 +5,10 @@ export fun main = i32
   let y = 2 + x
   return 0 + y
 
-fun main2 = i32
+export fun main2 = i32
   return 0
 
-fun foo = string
+export inline fun foo = string
   return 'test'
 
 inline fun other4 x:i32 = i32

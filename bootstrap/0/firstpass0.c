@@ -46,12 +46,6 @@ static void insert_last_at(struct node *node, size_t pos) {
   node->subs[node->subs_count - 1] = tmp;
 }
 
-static struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind) {
-  struct node *n = node_new_subnode(mod, parent);
-  n->which = kind;
-  return n;
-}
-
 // Must be run before builtins are added.
 error step_detect_deftype_kind(struct module *mod, struct node *node, void *user, bool *stop) {
   if (node->which != DEFTYPE) {
@@ -60,13 +54,13 @@ error step_detect_deftype_kind(struct module *mod, struct node *node, void *user
 
   error e;
   struct node *f = NULL;
-  enum deftype_kind k = DEFTYPE_ENUM;
+  enum deftype_kind k = DEFTYPE_PROTOTYPE;
   for (size_t n = 0; n < node->subs_count; ++n) {
     f = node->subs[n];
 
     switch (f->which) {
     case DEFFIELD:
-      if (k == DEFTYPE_SUM) {
+      if (k == DEFTYPE_ENUM || k == DEFTYPE_SUM) {
         goto field_and_sum;
       }
       k = DEFTYPE_STRUCT;
@@ -74,6 +68,9 @@ error step_detect_deftype_kind(struct module *mod, struct node *node, void *user
     case DEFCHOICE:
       if (k == DEFTYPE_STRUCT) {
         goto field_and_sum;
+      }
+      if (k != DEFTYPE_SUM) {
+        k = DEFTYPE_ENUM;
       }
       if (f->subs_count > 2 || !f->as.DEFCHOICE.has_value) {
         k = DEFTYPE_SUM;
@@ -90,6 +87,46 @@ error step_detect_deftype_kind(struct module *mod, struct node *node, void *user
 field_and_sum:
   e = mk_except_type(mod, f, "type contains both fields and choices");
   EXCEPT(e);
+  return 0;
+}
+
+error step_assign_deftype_which_values(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFTYPE
+      || (node->as.DEFTYPE.kind != DEFTYPE_ENUM
+          && node->as.DEFTYPE.kind != DEFTYPE_SUM)) {
+    return 0;
+  }
+
+  struct node *prev = NULL;
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    struct node *d = node->subs[n];
+    if (d->which != DEFCHOICE) {
+      continue;
+    }
+
+    if (d->as.DEFCHOICE.has_value) {
+      prev = d;
+      continue;
+    }
+
+    d->as.DEFCHOICE.has_value = TRUE;
+    if (prev == NULL) {
+      struct node *val = mk_node(mod, d, NUMBER);
+      val->as.NUMBER.value = "0";
+    } else {
+      struct node *val = mk_node(mod, d, BIN);
+      val->as.BIN.operator = TPLUS;
+      struct node *left = node_new_subnode(mod, val);
+      node_deepcopy(mod, left, prev->subs[1]);
+      struct node *right = mk_node(mod, val, NUMBER);
+      right->as.NUMBER.value = "1";
+    }
+
+    insert_last_at(d, 1);
+
+    prev = d;
+  }
+
   return 0;
 }
 
@@ -132,37 +169,6 @@ error step_add_builtin_methods(struct module *mod, struct node *node, void *user
   default:
     return 0;
   }
-
-  return 0;
-}
-
-error step_add_builtin_self(struct module *mod, struct node *node, void *user, bool *stop) {
-  switch (node->which) {
-  case DEFMETHOD:
-    break;
-  default:
-    return 0;
-  }
-
-  if (node->as.DEFMETHOD.toplevel.is_prototype) {
-    return 0;
-  }
-
-  struct node *block = node->subs[node->subs_count - 1];
-
-  struct node *let = mk_node(mod, block, LET);
-  struct node *defn = mk_node(mod, let, DEFNAME);
-  struct node *name = mk_node(mod, defn, IDENT);
-  name->as.IDENT.name = ID_SELF;
-  mk_node(mod, defn, NUL);
-
-// FIXME
-//  struct node *ref = mk_node(mod, constraint, UN);
-//  ref->as.UN.operator = node->as.DEFMETHOD.access;
-//  struct node *typename = mk_node(mod, ref, IDENT);
-//  typename->as.IDENT.name = ID_THIS;
-
-  insert_last_at(block, 0);
 
   return 0;
 }
@@ -373,6 +379,7 @@ error step_lexical_scoping(struct module *mod, struct node *node, void *user, bo
   error e;
 
   struct node *container = NULL;
+  const struct toplevel *toplevel = NULL;
 
   switch (node->which) {
   case IMPORT:
@@ -384,28 +391,19 @@ error step_lexical_scoping(struct module *mod, struct node *node, void *user, bo
     sc = node->scope;
     break;
   case DEFFUN:
+  case DEFMETHOD:
     id = node->subs[0];
-    if (node->as.DEFFUN.toplevel.scope_name == 0) {
+    toplevel = node_toplevel(node);
+    if (toplevel->scope_name == 0) {
       sc = node->scope->parent;
     } else {
       e = scope_lookup_ident(&container, mod, node->scope->parent,
-                             node->as.DEFFUN.toplevel.scope_name,
+                             toplevel->scope_name,
                              FALSE);
       EXCEPT(e);
       sc = container->scope;
+      node->scope->parent = sc;
     }
-    break;
-  case DEFMETHOD:
-    id = node->subs[0];
-    if (node->as.DEFMETHOD.toplevel.scope_name == 0) {
-      sc = node->scope->parent;
-    } else {
-      e = scope_lookup_ident(&container, mod, node->scope->parent,
-                             node->as.DEFMETHOD.toplevel.scope_name,
-                             FALSE);
-      sc = container->scope;
-    }
-    EXCEPT(e);
     break;
   case DEFTYPE:
   case DEFINTF:
@@ -512,8 +510,10 @@ error step_type_destruct_mark(struct module *mod, struct node *node, void *user,
   case DEFTYPE:
   case DEFINTF:
   case DEFFIELD:
-  case DEFCHOICE:
   case DEFNAME:
+    node->subs[0]->typ = not_typeable;
+    break;
+  case DEFCHOICE:
     node->subs[0]->typ = not_typeable;
     break;
   case IMPORT:
@@ -613,13 +613,24 @@ static error type_inference_unary_call(struct module *mod, struct node *node, st
   return 0;
 }
 
+static const uint32_t tbi_for_ref[TOKEN__NUM] = {
+  [TREFDOT] = TBI_REF,
+  [TREFBANG] = TBI_MREF,
+  [TREFSHARP] = TBI_MMREF,
+  [TNULREFDOT] = TBI_NREF,
+  [TNULREFBANG] = TBI_NMREF,
+  [TNULREFSHARP] = TBI_NMMREF,
+};
+
 static error type_inference_un(struct module *mod, struct node *node) {
   assert(node->which == UN);
   error e;
 
-  switch (OP_KIND(node->as.UN.operator)) {
+  const enum token_type op = node->as.UN.operator;
+  switch (OP_KIND(op)) {
   case OP_UN_REFOF:
-    node->typ = node->subs[0]->typ;
+    node->typ = typ_new(typ_lookup_builtin(mod, tbi_for_ref[op])->definition, TYPE_DEF, 1, 0);
+    node->typ->gen_args[0] = node->subs[0]->typ;
     node->is_type = node->subs[0]->is_type;
     break;
   case OP_UN_BOOL:
@@ -912,7 +923,7 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
     EXCEPT(e);
     break;
   case NUMBER:
-    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERALS_NUMBER), constraint);
+    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER), constraint);
     EXCEPT(e);
     break;
   case STRING:
@@ -1111,7 +1122,7 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
     e = scope_lookup(&def, mod, node->scope, node);
     EXCEPT(e);
     node->typ = def->typ;
-    node->is_type = def->which == DEFTYPE;
+    node->is_type = def->is_type;
     assert(node->typ->which != TYPE__MARKER);
     goto ok;
   case IMPORT:
@@ -1131,7 +1142,7 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
     assert(node->typ->which != TYPE__MARKER);
     goto ok;
   case NUMBER:
-    node->typ = typ_lookup_builtin(mod, TBI_LITERALS_NUMBER);
+    node->typ = typ_lookup_builtin(mod, TBI_LITERALS_INTEGER);
     goto ok;
   case STRING:
     node->typ = typ_lookup_builtin(mod, TBI_STRING);
@@ -1218,7 +1229,7 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
     case DEFTYPE_ENUM:
     case DEFTYPE_SUM:
       {
-        struct typ *u = typ_lookup_builtin(mod, TBI_LITERALS_NUMBER);
+        struct typ *u = typ_lookup_builtin(mod, TBI_LITERALS_INTEGER);
         for (size_t n = 0; n < node->subs_count; ++n) {
           if (node->subs[n]->which != DEFCHOICE) {
             continue;
@@ -1227,6 +1238,11 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
                         u, node->subs[n]->typ);
           EXCEPT(e);
         }
+
+        if (u == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
+          u = typ_lookup_builtin(mod, TBI_U32);
+        }
+
         for (size_t n = 0; n < node->subs_count; ++n) {
           if (node->subs[n]->which != DEFCHOICE) {
             continue;
@@ -1235,7 +1251,7 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
         }
       }
       break;
-    case DEFTYPE_STRUCT:
+    default:
       break;
     }
     goto ok;
@@ -1248,12 +1264,8 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
     node->typ = node->subs[1]->typ;
     goto ok;
   case DEFCHOICE:
-    if (node->subs_count == 1
-        || !node->as.DEFCHOICE.has_value) {
-      node->typ = typ_lookup_builtin(mod, TBI_U32);
-    } else {
-      node->typ = node->subs[1]->typ;
-    }
+    assert(node->subs_count >= 2);
+    node->typ = node->subs[1]->typ;
     goto ok;
   case LET:
   case DELEGATE:
@@ -1287,6 +1299,10 @@ error step_unary_call_inference(struct module *mod, struct node *node, void *use
 }
 
 error step_ctor_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+  return 0;
+}
+
+error step_gather_generics(struct module *mod, struct node *node, void *user, bool *stop) {
   return 0;
 }
 
