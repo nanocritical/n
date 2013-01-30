@@ -102,6 +102,9 @@ static void print_expr(FILE *out, bool header, const struct module *mod, const s
 static void print_block(FILE *out, bool header, const struct module *mod, const struct node *node);
 static void print_typ(FILE *out, const struct module *mod, struct typ *typ);
 static void print_typeconstraint(FILE *out, bool header, const struct module *mod, const struct node *node);
+static void print_deftype_name(FILE *out, const struct module *mod, const struct node *node);
+static void print_deffun_name(FILE *out, const struct module *mod, const struct node *node);
+static void print_deffield_name(FILE *out, const struct module *mod, const struct node *node);
 
 static void print_pattern(FILE *out, bool header, const struct module *mod, const struct node *node) {
   print_expr(out, header, mod, node, T__NONE);
@@ -116,17 +119,38 @@ static void print_bin_sym(FILE *out, bool header, const struct module *mod, cons
 }
 
 static void print_bin_acc(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
+  assert(node->subs[1]->which == IDENT);
   const uint32_t op = node->as.BIN.operator;
+  const struct node *left = node->subs[0];
+  const struct node *right = node->subs[1];
 
-  const char *deref = ".";
-  const struct typ *left = node->subs[0]->typ;
-  if (typ_is_reference(mod, left)) {
-    deref = "->";
-  }
+  struct node *n = NULL;
+  error e = scope_lookup(&n, mod, node->subs[0]->typ->definition->scope, node->subs[1]);
+  assert(!e);
 
-  print_expr(out, header, mod, node->subs[0], op);
-  fprintf(out, "%s", deref);
-  print_expr(out, header, mod, node->subs[1], op);
+  switch (n->which) {
+  case DEFCHOICE:
+    print_deftype_name(out, mod, node->subs[0]->typ->definition);
+    fprintf(out, "_");
+    print_deffield_name(out, mod, n);
+    fprintf(out, "_%s", idents_value(mod->gctx, ID_WHICH));
+    break;
+  case DEFFUN:
+  case DEFMETHOD:
+    print_deffun_name(out, mod, n);
+    break;
+  case DEFTYPE:
+    print_deftype_name(out, mod, n);
+    break;
+  default: {
+    const char *deref = ".";
+    if (typ_is_reference(mod, left->typ)) {
+      deref = "->";
+    }
+    print_expr(out, header, mod, left, op);
+    fprintf(out, "%s%s", deref, idents_value(mod->gctx, right->as.IDENT.name));
+    break;
+  }}
 }
 
 static void print_bin(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
@@ -212,23 +236,15 @@ static void print_tuple(FILE *out, bool header, const struct module *mod, const 
 }
 
 static void print_call(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
-  const uint32_t prec = OP_PREC(T__CALL);
-  const uint32_t parent_prec = OP_PREC(parent_op);
-
-  if (prec >= parent_prec) {
-    fprintf(out, "(");
-  }
-
-  for (size_t n = 0; n < node->subs_count; ++n) {
+  print_expr(out, header, mod, node->subs[0], T__CALL);
+  fprintf(out, "(");
+  for (size_t n = 1; n < node->subs_count; ++n) {
     if (n > 0) {
-      fprintf(out, " ");
+      fprintf(out, ", ");
     }
     print_expr(out, header, mod, node->subs[n], T__CALL);
   }
-
-  if (prec >= parent_prec) {
-    fprintf(out, ")");
-  }
+  fprintf(out, ")");
 }
 
 static void print_init(FILE *out, bool header, const struct module *mod, const struct node *node) {
@@ -370,16 +386,18 @@ static void print_while(FILE *out, bool header, const struct module *mod, const 
 }
 
 static void print_if(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  fprintf(out, "if ");
+  fprintf(out, "if (");
   print_expr(out, header, mod, node->subs[0], T__NONE);
+  fprintf(out, ")");
   print_block(out, header, mod, node->subs[1]);
 
   size_t p = 2;
   size_t br_count = node->subs_count - 2;
   while (br_count >= 2) {
     fprintf(out, "\n");
-    fprintf(out, "elif ");
+    fprintf(out, "else if (");
     print_expr(out, header, mod, node->subs[p], T__NONE);
+    fprintf(out, ") ");
     print_block(out, header, mod, node->subs[p+1]);
     p += 2;
     br_count -= 2;
@@ -387,19 +405,20 @@ static void print_if(FILE *out, bool header, const struct module *mod, const str
 
   if (br_count == 1) {
     fprintf(out, "\n");
-    fprintf(out, "else");
+    fprintf(out, "else ");
     print_block(out, header, mod, node->subs[p]);
   }
 }
 
 static void print_match(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  fprintf(out, "match ");
+  fprintf(out, "switch (");
   print_expr(out, header, mod, node->subs[0], T__NONE);
+  fprintf(out, ") {");
 
   for (size_t n = 1; n < node->subs_count; n += 2) {
-    fprintf(out, "\n");
-    fprintf(out, "| ");
+    fprintf(out, "case ");
     print_expr(out, header, mod, node->subs[n], T__NONE);
+    fprintf(out, ":");
     print_block(out, header, mod, node->subs[n + 1]);
   }
 }
@@ -730,7 +749,7 @@ static void print_deftype_choices(FILE *out, bool header, const struct module *m
   for (size_t n = 0; n < node->subs_count; ++n) {
     struct node *s = node->subs[n];
     if (s->which == DEFCHOICE) {
-      choice_typ = s->typ;
+      choice_typ = s->subs[1]->typ;
       break;
     }
   }

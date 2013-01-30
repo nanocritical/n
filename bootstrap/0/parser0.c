@@ -50,6 +50,7 @@ const char *node_which_strings[] = {
   [IMPORT] = "IMPORT",
   [MODULE] = "MODULE",
   [ROOT_OF_ALL] = "ROOT_OF_ALL",
+  [DIRECTDEF] = "DIRECTDEF",
 };
 
 static const char *predefined_idents_strings[ID__NUM] = {
@@ -95,8 +96,30 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NMREF] = "nmref",
   [ID_TBI_NMMREF] = "nmmref",
   [ID_TBI_DYN] = "__internal_dyn__",
+  [ID_TBI_BUILTIN_INTEGER] = "BuiltinInteger",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
+  [ID_OPERATOR_OR] = "operator_or",
+  [ID_OPERATOR_AND] = "operator_and",
+  [ID_OPERATOR_NOT] = "operator_not",
+  [ID_OPERATOR_LE] = "operator_le",
+  [ID_OPERATOR_LT] = "operator_lt",
+  [ID_OPERATOR_GT] = "operator_gt",
+  [ID_OPERATOR_GE] = "operator_ge",
+  [ID_OPERATOR_EQ] = "operator_eq",
+  [ID_OPERATOR_NE] = "operator_ne",
+  [ID_OPERATOR_BWOR] = "operator_bwor",
+  [ID_OPERATOR_BWXOR] = "operator_bwxor",
+  [ID_OPERATOR_BWAND] = "operator_bwand",
+  [ID_OPERATOR_LSHIFT] = "operator_lshift",
+  [ID_OPERATOR_RSHIFT] = "operator_rshift",
+  [ID_OPERATOR_PLUS] = "operator_plus",
+  [ID_OPERATOR_MINUS] = "operator_minus",
+  [ID_OPERATOR_DIVIDE] = "operator_divide",
+  [ID_OPERATOR_MODULO] = "operator_modulo",
+  [ID_OPERATOR_TIMES] = "operator_times",
+  [ID_OPERATOR_UMINUS] = "operator_uminus",
+  [ID_OPERATOR_UBWNOT] = "operator_ubwnot",
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
@@ -548,6 +571,9 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
                    scname);
       // FIXME: leaking scname.
     }
+    break;
+  case DIRECTDEF:
+    r = id->as.DIRECTDEF.definition;
     break;
   default:
     assert(FALSE);
@@ -2363,6 +2389,22 @@ error typ_unify(struct typ **u, const struct module *mod, const struct node *for
   }
 
   return 0;
+}
+
+bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf) {
+  for (size_t n = 0; n < a->isalist_count; ++n) {
+    if (a->isalist[n] == intf) {
+      return TRUE;
+    }
+  }
+
+  for (size_t n = 0; n < a->isalist_count; ++n) {
+    if (typ_isa(mod, a->isalist[n], intf)) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }
 
 error mk_except(const struct module *mod, const struct node *node, const char *fmt) {

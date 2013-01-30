@@ -20,6 +20,7 @@ error step_type_definitions(struct module *mod, struct node *node, void *, bool 
 error step_type_gather_returns(struct module *mod, struct node *node, void *, bool *);
 error step_type_gather_excepts(struct module *mod, struct node *node, void *, bool *);
 error step_type_inference(struct module *mod, struct node *node, void *, bool *);
+error step_type_inference_isalist(struct module *mod, struct node *node, void *, bool *);
 error step_operator_call_inference(struct module *mod, struct node *node, void *, bool *);
 error step_unary_call_inference(struct module *mod, struct node *node, void *, bool *);
 error step_ctor_call_inference(struct module *mod, struct node *node, void *, bool *);

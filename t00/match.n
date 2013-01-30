@@ -1,0 +1,12 @@
+from nlang import *
+
+type enu =
+  | A
+  | B
+
+export fun main = i32
+  let n = enu.A
+  if n == enu.B
+    return 0
+  else
+    return 1

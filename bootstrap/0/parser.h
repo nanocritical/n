@@ -49,6 +49,7 @@ enum node_which {
   IMPORT,
   MODULE,
   ROOT_OF_ALL,
+  DIRECTDEF,
   NODE__NUM,
 };
 
@@ -145,6 +146,10 @@ struct node_module {
   struct module *mod;
 };
 
+struct node_directdef {
+  struct node *definition;
+};
+
 union node_as {
   struct node_nul NUL;
   struct node_ident IDENT;
@@ -178,6 +183,7 @@ union node_as {
   struct node_example EXAMPLE;
   struct node_import IMPORT;
   struct node_module MODULE;
+  struct node_directdef DIRECTDEF;
 };
 
 struct scope;
@@ -253,10 +259,33 @@ enum predefined_idents {
   ID_TBI_NMREF,
   ID_TBI_NMMREF,
   ID_TBI_DYN,
+  ID_TBI_BUILTIN_INTEGER,
   ID_TBI__PENDING_DESTRUCT,
   ID_TBI__FIRST_MARKER = ID_TBI__PENDING_DESTRUCT,
   ID_TBI__NOT_TYPEABLE,
   ID_TBI__LAST = ID_TBI__NOT_TYPEABLE,
+
+  ID_OPERATOR_OR,
+  ID_OPERATOR_AND,
+  ID_OPERATOR_NOT,
+  ID_OPERATOR_LE,
+  ID_OPERATOR_LT,
+  ID_OPERATOR_GT,
+  ID_OPERATOR_GE,
+  ID_OPERATOR_EQ,
+  ID_OPERATOR_NE,
+  ID_OPERATOR_BWOR,
+  ID_OPERATOR_BWXOR,
+  ID_OPERATOR_BWAND,
+  ID_OPERATOR_LSHIFT,
+  ID_OPERATOR_RSHIFT,
+  ID_OPERATOR_PLUS,
+  ID_OPERATOR_MINUS,
+  ID_OPERATOR_DIVIDE,
+  ID_OPERATOR_MODULO,
+  ID_OPERATOR_TIMES,
+  ID_OPERATOR_UMINUS,
+  ID_OPERATOR_UBWNOT,
 
   ID__NUM,
 };
@@ -294,6 +323,7 @@ enum typ_builtin {
   TBI_NMREF, // ?@!
   TBI_NMMREF, // ?@#
   TBI_DYN,
+  TBI_BUILTIN_INTEGER,
   TBI__PENDING_DESTRUCT,
   TBI__NOT_TYPEABLE,
   TBI__NUM,
@@ -314,6 +344,9 @@ struct typ {
 
   size_t fun_arity;
   struct typ **fun_args; // length fun_arity + 1
+
+  size_t isalist_count;
+  struct typ **isalist;
 };
 
 struct try_excepts {
@@ -389,6 +422,7 @@ struct node *node_new_subnode(const struct module *mod, struct node *node);
 size_t node_fun_args_count(const struct node *def);
 const struct toplevel *node_toplevel(const struct node *node);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);
+struct node *node_typ_member(struct typ *typ, const char *member);
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src);
 
@@ -403,6 +437,7 @@ error typ_is_reference(const struct module *mod, const struct typ *a);
 bool typ_is_concrete(const struct module *mod, const struct typ *a);
 error typ_unify(struct typ **u, const struct module *mod, const struct node *for_error,
                 struct typ *a, struct typ *b);
+bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf);
 error mk_except(const struct module *mod, const struct node *node, const char *fmt);
 error mk_except_type(const struct module *mod, const struct node *node, const char *fmt);
 error mk_except_call_arg_count(const struct module *mod, const struct node *node,

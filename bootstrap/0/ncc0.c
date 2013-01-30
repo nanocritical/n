@@ -54,6 +54,7 @@ static error first(struct node *node) {
   };
   static const step firstpass_up[] = {
     step_type_inference,
+    step_type_inference_isalist,
     step_operator_call_inference,
     step_unary_call_inference,
     step_ctor_call_inference,
