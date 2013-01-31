@@ -259,7 +259,8 @@ enum predefined_idents {
   ID_TBI_NMREF,
   ID_TBI_NMMREF,
   ID_TBI_DYN,
-  ID_TBI_BUILTIN_INTEGER,
+  ID_TBI_NATIVE_INTEGER,
+  ID_TBI_BUILTIN_ENUM,
   ID_TBI__PENDING_DESTRUCT,
   ID_TBI__FIRST_MARKER = ID_TBI__PENDING_DESTRUCT,
   ID_TBI__NOT_TYPEABLE,
@@ -323,7 +324,8 @@ enum typ_builtin {
   TBI_NMREF, // ?@!
   TBI_NMMREF, // ?@#
   TBI_DYN,
-  TBI_BUILTIN_INTEGER,
+  TBI_NATIVE_INTEGER,
+  TBI_BUILTIN_ENUM,
   TBI__PENDING_DESTRUCT,
   TBI__NOT_TYPEABLE,
   TBI__NUM,
@@ -413,7 +415,9 @@ char *scope_definitions_name_list(const struct module *mod, const struct scope *
 void copy_and_extend_import_path(struct module *mod, struct node *imported,
                                  const struct node *import, const struct token *tok);
 
-const struct node *node_module_owner(const struct node *node);
+const struct module *node_module_owner_const(const struct node *node);
+struct module *node_module_owner(struct node *node);
+
 ident node_ident(const struct node *node);
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);

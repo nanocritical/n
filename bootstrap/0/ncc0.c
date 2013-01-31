@@ -14,63 +14,6 @@
 #define DIR_MODULE_NAME "module.n"
 #define CFLAGS "-Wall -std=c99 -pedantic -I."
 
-static error zero(struct globalctx *gctx, struct module *mod,
-                  const char *prefix, const char *fn) {
-  error e = module_open(gctx, mod, prefix, fn);
-  EXCEPT(e);
-
-  static const step zeropass_down[] = {
-    step_detect_deftype_kind,
-    step_assign_deftype_which_values,
-    step_add_builtin_members,
-    step_add_builtin_functions,
-    step_add_builtin_methods,
-    step_add_codegen_variables,
-    NULL,
-  };
-  static const step zeropass_up[] = {
-    step_add_scopes,
-    NULL,
-  };
-
-  e = pass(mod, NULL, zeropass_down, zeropass_up, NULL);
-  EXCEPT(e);
-
-  return 0;
-}
-
-static error first(struct node *node) {
-  assert(node->which == MODULE);
-  struct module *mod = node->as.MODULE.mod;
-
-  static const step firstpass_down[] = {
-    step_stop_submodules,
-    step_lexical_scoping,
-    step_type_definitions,
-    step_type_destruct_mark,
-    step_type_gather_returns,
-    step_type_gather_excepts,
-    NULL,
-  };
-  static const step firstpass_up[] = {
-    step_type_inference,
-    step_type_inference_isalist,
-    step_operator_call_inference,
-    step_unary_call_inference,
-    step_ctor_call_inference,
-    step_gather_generics,
-    step_call_arguments_prepare,
-    step_temporary_inference,
-    NULL,
-  };
-
-  int module_depth = 0;
-  error e = pass(mod, NULL, firstpass_down, firstpass_up, &module_depth);
-  EXCEPT(e);
-
-  return 0;
-}
-
 static char *o_filename(const char *filename) {
   char *o_fn = malloc(strlen(filename) + sizeof(".o"));
   sprintf(o_fn, "%s.o", filename);
@@ -212,7 +155,10 @@ static error load_module(struct globalctx *gctx, const char *prefix, const char 
 
   struct module *mod = calloc(1, sizeof(struct module));
 
-  error e = zero(gctx, mod, prefix, fn);
+  error e = module_open(gctx, mod, prefix, fn);
+  EXCEPT(e);
+
+  e = zeropass(mod, NULL);
   EXCEPT(e);
 
   return 0;
@@ -351,7 +297,7 @@ static error gather_dependencies_in_module(struct node *node, void *user, bool *
   struct dependencies *deps = user;
 
   struct node *nmod = NULL;
-  error e = scope_lookup_module(&nmod, node_module_owner(node)->as.MODULE.mod,
+  error e = scope_lookup_module(&nmod, node_module_owner(node),
                                 node->subs[0]);
   if (e == EINVAL) {
     // Not importing a module, ignore.
@@ -378,7 +324,7 @@ static error gather_dependencies(struct node *node, void *user, bool *stop) {
 
   deps->tmp_count += 1;
   deps->tmp = realloc(deps->tmp, deps->tmp_count * sizeof(*deps->tmp));
-  deps->tmp[deps->tmp_count - 1] = node_module_owner(node)->as.MODULE.mod;
+  deps->tmp[deps->tmp_count - 1] = node_module_owner(node);
 
   return 0;
 }
@@ -478,7 +424,9 @@ int main(int argc, char **argv) {
   EXCEPT(e);
 
   for (size_t n = 0; n < deps.modules_count; ++n) {
-    e = first(deps.modules[n]->root);
+    e = firstpass(deps.modules[n], NULL);
+    EXCEPT(e);
+    e = secondpass(deps.modules[n], NULL);
     EXCEPT(e);
   }
 

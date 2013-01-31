@@ -719,6 +719,8 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
   return 0;
 }
 
+static error type_inference_call(struct module *mod, struct node *node);
+
 static error type_inference_bin_accessor(struct module *mod, struct node *node) {
   error e;
   struct node *field = NULL;
@@ -728,9 +730,9 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   switch (field->which) {
   case DEFFUN:
   case DEFMETHOD:
-    //unsupported yet
     assert(FALSE);
-    return type_inference_unary_call(mod, node, field);
+    // Handled by marking pending, then via destruct from the CALL node.
+    return EINVAL;
   default:
     node->typ = field->typ;
     node->is_type = field->is_type;
@@ -1301,6 +1303,9 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
     node->is_type = TRUE;
     goto ok;
+  case DIRECTDEF:
+    node->typ = node->as.DIRECTDEF.definition->typ;
+    node->is_type = node->as.DIRECTDEF.definition->is_type;
   default:
     goto ok;
   }
@@ -1341,6 +1346,30 @@ error step_type_inference_isalist(struct module *mod, struct node *node, void *u
 
     isalist->subs[n]->typ = def->typ;
     node->typ->isalist[n] = def->typ;
+  }
+
+  return 0;
+}
+
+error step_extend_deftype_builtin_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFTYPE) {
+    return 0;
+  }
+
+  struct typ *t = node->typ;
+
+  switch (node->as.DEFTYPE.kind) {
+  case DEFTYPE_PROTOTYPE:
+    break;
+  case DEFTYPE_STRUCT:
+    break;
+  case DEFTYPE_SUM:
+    // Fallthrough.
+  case DEFTYPE_ENUM:
+    t->isalist_count += 1;
+    t->isalist = realloc(t->isalist, t->isalist_count * sizeof(*t->isalist));
+
+    t->isalist[t->isalist_count - 1] = typ_lookup_builtin(mod, TBI_BUILTIN_ENUM);
   }
 
   return 0;
@@ -1396,7 +1425,7 @@ error step_operator_call_inference(struct module *mod, struct node *node, void *
     return 0;
   }
 
-  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_BUILTIN_INTEGER))) {
+  if (typ_isa(mod, node->subs[0]->typ, typ_lookup_builtin(mod, TBI_NATIVE_INTEGER))) {
     return 0;
   }
 
@@ -1408,14 +1437,16 @@ error step_operator_call_inference(struct module *mod, struct node *node, void *
   struct node *fun = mk_node(mod, node, BIN);
   fun->as.BIN.operator = TDOT;
   struct node *base = mk_node(mod, fun, DIRECTDEF);
-  base->as.DIRECTDEF.definition = node->typ->definition;
+  base->as.DIRECTDEF.definition = node->subs[0]->typ->definition;
   struct node *member = mk_node(mod, fun, IDENT);
   member->as.IDENT.name = operator_ident[op];
 
   insert_last_at(node, 0);
 
-  ... do zero and first ...
-    will need that for below as well, might as well do something about it for this to be nice...
+  error e = zeropass(mod, node);
+  EXCEPT(e);
+  e = firstpass(mod, node);
+  EXCEPT(e);
 
   return 0;
 }
@@ -1437,5 +1468,72 @@ error step_call_arguments_prepare(struct module *mod, struct node *node, void *u
 }
 
 error step_temporary_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+  return 0;
+}
+
+
+error zeropass(struct module *mod, struct node *node) {
+  static const step zeropass_down[] = {
+    step_detect_deftype_kind,
+    step_assign_deftype_which_values,
+    step_add_builtin_members,
+    step_add_builtin_functions,
+    step_add_builtin_methods,
+    step_add_codegen_variables,
+    NULL,
+  };
+  static const step zeropass_up[] = {
+    step_add_scopes,
+    NULL,
+  };
+
+  error e = pass(mod, node, zeropass_down, zeropass_up, NULL);
+  EXCEPT(e);
+
+  return 0;
+}
+
+error firstpass(struct module *mod, struct node *node) {
+  static const step firstpass_down[] = {
+    step_stop_submodules,
+    step_lexical_scoping,
+    step_type_definitions,
+    step_type_destruct_mark,
+    step_type_gather_returns,
+    step_type_gather_excepts,
+    NULL,
+  };
+  static const step firstpass_up[] = {
+    step_type_inference,
+    step_type_inference_isalist,
+    step_extend_deftype_builtin_isalist,
+    NULL,
+  };
+
+  int module_depth = 0;
+  error e = pass(mod, node, firstpass_down, firstpass_up, &module_depth);
+  EXCEPT(e);
+
+  return 0;
+}
+
+error secondpass(struct module *mod, struct node *node) {
+  static const step secondpass_down[] = {
+    step_operator_call_inference,
+    step_unary_call_inference,
+    step_ctor_call_inference,
+    step_gather_generics,
+    step_call_arguments_prepare,
+    step_temporary_inference,
+    NULL,
+  };
+  static const step secondpass_up[] = {
+    NULL,
+  };
+
+  int module_depth = 0;
+  error e = pass(mod, node, secondpass_down, secondpass_up, &module_depth);
+  EXCEPT(e);
+
   return 0;
 }

@@ -1,5 +1,3 @@
-intf NativeInteger =
-
 export type __pseudo_tuple__ =
 export type ref =
 export type mref =
@@ -8,6 +6,8 @@ export type nref =
 export type nmref =
 export type nmmref =
 export type __internal_dyn__ =
+
+intf NativeInteger =
 
 export type bool = NativeInteger
 export type i8 = NativeInteger
@@ -20,3 +20,9 @@ export type u32 = NativeInteger
 export type u64 = NativeInteger
 export type size = NativeInteger
 export type ssize = NativeInteger
+
+intf Comparable =
+  method operator_eq x:@this = bool
+  method operator_ne x:@this = bool
+
+intf BuiltinEnum = Comparable

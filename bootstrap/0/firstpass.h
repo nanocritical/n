@@ -21,6 +21,7 @@ error step_type_gather_returns(struct module *mod, struct node *node, void *, bo
 error step_type_gather_excepts(struct module *mod, struct node *node, void *, bool *);
 error step_type_inference(struct module *mod, struct node *node, void *, bool *);
 error step_type_inference_isalist(struct module *mod, struct node *node, void *, bool *);
+error step_extend_deftype_builtin_isalist(struct module *mod, struct node *node, void *, bool *);
 error step_operator_call_inference(struct module *mod, struct node *node, void *, bool *);
 error step_unary_call_inference(struct module *mod, struct node *node, void *, bool *);
 error step_ctor_call_inference(struct module *mod, struct node *node, void *, bool *);
@@ -30,5 +31,9 @@ error step_temporary_inference(struct module *mod, struct node *node, void *, bo
 
 error pass(struct module *mod, struct node *root, const step *steps, const step *up_steps,
            void *user);
+
+error zeropass(struct module *mod, struct node *node);
+error firstpass(struct module *mod, struct node *node);
+error secondpass(struct module *mod, struct node *node);
 
 #endif
