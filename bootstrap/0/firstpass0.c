@@ -1368,8 +1368,8 @@ error step_extend_deftype_builtin_isalist(struct module *mod, struct node *node,
   case DEFTYPE_ENUM:
     t->isalist_count += 1;
     t->isalist = realloc(t->isalist, t->isalist_count * sizeof(*t->isalist));
-
     t->isalist[t->isalist_count - 1] = typ_lookup_builtin(mod, TBI_BUILTIN_ENUM);
+    break;
   }
 
   return 0;
@@ -1470,7 +1470,6 @@ error step_call_arguments_prepare(struct module *mod, struct node *node, void *u
 error step_temporary_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   return 0;
 }
-
 
 error zeropass(struct module *mod, struct node *node) {
   static const step zeropass_down[] = {
