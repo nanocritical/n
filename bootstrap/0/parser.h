@@ -46,6 +46,7 @@ enum node_which {
   INVARIANT,
   EXAMPLE,
   ISALIST,
+  ISA,
   IMPORT,
   MODULE,
   ROOT_OF_ALL,
@@ -129,6 +130,9 @@ struct node_defchoice {
   bool has_value;
 };
 struct node_isalist {};
+struct node_isa {
+  struct toplevel toplevel;
+};
 struct node_delegate {};
 struct node_pre {};
 struct node_post {};
@@ -152,10 +156,10 @@ struct node_directdef {
 };
 
 enum builtingen {
-  BG_BUILTINENUM_EQ,
-  BG_BUILTINENUM_NE,
-  BG_BUILTINSUM_EQ,
-  BG_BUILTINSUM_NE,
+  BG_ENUM_EQ,
+  BG_ENUM_NE,
+  BG_SUM_EQ,
+  BG_SUM_NE,
 };
 
 struct node_builtingen {
@@ -193,6 +197,8 @@ union node_as {
   struct node_post POST;
   struct node_invariant INVARIANT;
   struct node_example EXAMPLE;
+  struct node_isalist ISALIST;
+  struct node_isa ISA;
   struct node_import IMPORT;
   struct node_module MODULE;
   struct node_directdef DIRECTDEF;
@@ -362,6 +368,7 @@ struct typ {
 
   size_t isalist_count;
   struct typ **isalist;
+  bool *isalist_exported;
 };
 
 struct try_excepts {

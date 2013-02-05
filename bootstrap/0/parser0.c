@@ -329,6 +329,9 @@ const struct toplevel *node_toplevel(const struct node *node) {
   case IMPORT:
     toplevel = &node->as.IMPORT.toplevel;
     break;
+  case ISA:
+    toplevel = &node->as.ISA.toplevel;
+    break;
   default:
     break;
   }
@@ -613,7 +616,7 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
     if (!fully_resolved) {
       e = do_scope_lookup_ident_immediate(&r, mod, parent->scope,
                                           id->subs[1]->as.IDENT.name, within, failure_ok,
-                                          TRUE);
+                                          FALSE);
       EXCEPT_UNLESS(e, failure_ok);
     }
 
@@ -777,6 +780,7 @@ void globalctx_init(struct globalctx *gctx) {
 
   gctx->modules_root.scope = scope_new(&gctx->modules_root);
   gctx->modules_root.which = ROOT_OF_ALL;
+  gctx->modules_root.typ = gctx->builtin_typs[TBI_VOID];
 }
 
 static error module_read(struct module *mod, const char *prefix, const char *fn) {
@@ -1720,24 +1724,38 @@ retval:
   return 0;
 }
 
+static error p_isa(struct node *node, struct module *mod, bool is_export) {
+  node->which = ISA;
+  node->as.ISA.toplevel.is_export = is_export;
+
+  error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
+  EXCEPT(e);
+  return 0;
+}
 static error p_isalist(struct node *node, struct module *mod) {
   node->which = ISALIST;
 
   error e;
   struct token tok;
+  bool is_export = FALSE;
 
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
-  back(mod, &tok);
 
   switch (tok.t) {
   case TEOL:
   case TSOB:
+    back(mod, &tok);
     return 0;
+  case Texport:
+    is_export = TRUE;
+    goto again;
   default:
-    e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
+    back(mod, &tok);
+    e = p_isa(node_new_subnode(mod, node), mod, is_export);
     EXCEPT(e);
+    is_export = FALSE;
     goto again;
   }
 }

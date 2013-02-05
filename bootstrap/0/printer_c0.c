@@ -657,6 +657,24 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
   }
 }
 
+static void print_builtingen(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  if (header && !node_is_export(node)) {
+    return;
+  }
+
+  if (prototype_only(header, node)) {
+    print_fun_prototype(out, header, mod, node);
+    fprintf(out, ";\n");
+  } else {
+    const size_t arg_count = node_fun_args_count(node);
+    print_fun_prototype(out, header, mod, node);
+
+    const struct node *block = node->subs[1 + arg_count + 1];
+    print_block(out, header, mod, block);
+    fprintf(out, "\n");
+  }
+}
+
 static void print_deffield(FILE *out, bool header, const struct module *mod, const struct node *node) {
   print_typeexpr(out, header, mod, node->subs[1]);
   fprintf(out, " ");
@@ -871,37 +889,37 @@ static void print_deftype(FILE *out, bool header, const struct module *mod, cons
 
   fprintf(out, "typedef const ");
   print_deftype_name(out, mod, node);
-  fprintf(out, "* _ngen_nlang_integers_ref__");
+  fprintf(out, "* _ngen_nlang_builtins_ref__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
-  fprintf(out, "typedef _ngen_nlang_integers_ref__");
+  fprintf(out, "typedef _ngen_nlang_builtins_ref__");
   print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_integers_nref__");
+  fprintf(out, " _ngen_nlang_builtins_nref__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
   fprintf(out, "typedef ");
   print_deftype_name(out, mod, node);
-  fprintf(out, "* _ngen_nlang_integers_mref__");
+  fprintf(out, "* _ngen_nlang_builtins_mref__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
-  fprintf(out, "typedef _ngen_nlang_integers_mref__");
+  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
   print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_integers_mmref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, ";\n");
-
-  fprintf(out, "typedef _ngen_nlang_integers_mref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_integers_nmref__");
+  fprintf(out, " _ngen_nlang_builtins_mmref__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
-  fprintf(out, "typedef _ngen_nlang_integers_mref__");
+  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
   print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_integers_nmmref__");
+  fprintf(out, " _ngen_nlang_builtins_nmref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " _ngen_nlang_builtins_nmmref__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 }
@@ -945,6 +963,9 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       print_import(out, header, mod, node);
       break;
     case MODULE:
+      break;
+    case BUILTINGEN:
+      print_builtingen(out, header, mod, node);
       break;
     default:
       fprintf(stderr, "Unsupported node: %d\n", node->which);

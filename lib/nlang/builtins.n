@@ -1,0 +1,40 @@
+export type __pseudo_tuple__ =
+export type ref =
+export type mref =
+export type mmref =
+export type nref =
+export type nmref =
+export type nmmref =
+export type __internal_dyn__ =
+
+intf Copyable =
+
+intf TrivialCopy = export Copyable
+
+intf Comparable =
+
+export intf NativeInteger = \
+    export Comparable \
+    export TrivialCopy
+
+export extern type bool = export NativeInteger
+export extern type i8 = export NativeInteger
+export extern type i16 = export NativeInteger
+export extern type i32 = export NativeInteger
+export extern type i64 = export NativeInteger
+export extern type u8 = export NativeInteger
+export extern type u16 = export NativeInteger
+export extern type u32 = export NativeInteger
+export extern type u64 = export NativeInteger
+export extern type size = export NativeInteger
+export extern type ssize = export NativeInteger
+
+intf Copyable =
+  method# copy other:@this = bool
+
+intf Comparable =
+  method operator_eq other:@this = bool
+  method operator_ne other:@this = bool
+
+intf BuiltinEnum = export Comparable
+intf BuiltinSum = export Comparable

@@ -131,12 +131,56 @@ error step_assign_deftype_which_values(struct module *mod, struct node *node, vo
   return 0;
 }
 
+void do_mk_expr_abspath(struct module *mod, struct node *node, const char *path, ssize_t len) {
+  assert(node->which == BIN);
+  node->as.BIN.operator = TDOT;
+
+  for (ssize_t i = len-1; i >= 0; --i) {
+    if (i == 0) {
+      assert(len > 1);
+      struct token tok;
+      tok.t = TIDENT;
+      tok.value = path;
+      tok.len = len - i;
+      ident id = idents_add(mod->gctx, &tok);
+
+      struct node *root = mk_node(mod, node, DIRECTDEF);
+      root->as.DIRECTDEF.definition = &mod->gctx->modules_root;
+      struct node *name = mk_node(mod, node, IDENT);
+      name->as.IDENT.name = id;
+
+      break;
+    } else if (path[i] == '.') {
+      assert(len - i > 1);
+      struct token tok;
+      tok.t = TIDENT;
+      tok.value = path + i + 1;
+      tok.len = len - i - 1;
+      ident id = idents_add(mod->gctx, &tok);
+
+      struct node *down = mk_node(mod, node, BIN);
+      struct node *name = mk_node(mod, node, IDENT);
+      name->as.IDENT.name = id;
+
+      do_mk_expr_abspath(mod, down, path, i);
+      break;
+    }
+  }
+}
+
+struct node *mk_expr_abspath(struct module *mod, struct node *node, const char *path) {
+  struct node *n = mk_node(mod, node, BIN);
+  do_mk_expr_abspath(mod, n, path, strlen(path));
+  return n;
+}
+
 error step_extend_deftype_builtin_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
   if (node->which != DEFTYPE) {
     return 0;
   }
 
-  struct typ *t = node->typ;
+  struct node *isalist = NULL;
+  struct node *isa = NULL;
 
   switch (node->as.DEFTYPE.kind) {
   case DEFTYPE_PROTOTYPE:
@@ -144,11 +188,16 @@ error step_extend_deftype_builtin_isalist(struct module *mod, struct node *node,
   case DEFTYPE_STRUCT:
     break;
   case DEFTYPE_SUM:
-    // Fallthrough.
+    isalist = node->subs[2];
+    isa = mk_node(mod, isalist, ISA);
+    isa->as.ISA.toplevel.is_export = TRUE;
+    mk_expr_abspath(mod, isa, "nlang.builtins.BuiltinSum");
+    break;
   case DEFTYPE_ENUM:
-    t->isalist_count += 1;
-    t->isalist = realloc(t->isalist, t->isalist_count * sizeof(*t->isalist));
-    t->isalist[t->isalist_count - 1] = typ_lookup_builtin(mod, TBI_BUILTIN_ENUM);
+    isalist = node->subs[2];
+    isa = mk_node(mod, isalist, ISA);
+    isa->as.ISA.toplevel.is_export = TRUE;
+    mk_expr_abspath(mod, isa, "nlang.builtins.BuiltinEnum");
     break;
   }
 
@@ -171,7 +220,7 @@ error step_add_builtin_members(struct module *mod, struct node *node, void *user
   struct node *expr = mk_node(mod, defn, IDENT);
   expr->as.IDENT.name = node_ident(node);
 
-  insert_last_at(node, node->subs[1]->which == ISALIST ? 2 : 1);
+  insert_last_at(node, 2);
 
   return 0;
 }
@@ -1333,6 +1382,9 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
   case ISALIST:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
     goto ok;
+  case ISA:
+    node->typ = node->subs[0]->typ;
+    goto ok;
   case MODULE:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
     node->is_type = TRUE;
@@ -1340,6 +1392,7 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
   case DIRECTDEF:
     node->typ = node->as.DIRECTDEF.definition->typ;
     node->is_type = node->as.DIRECTDEF.definition->is_type;
+    goto ok;
   default:
     goto ok;
   }
@@ -1367,19 +1420,22 @@ error step_type_inference_isalist(struct module *mod, struct node *node, void *u
   }
 
   struct node *isalist = node->subs[1];
-  if (isalist->which != ISALIST) {
-    return 0;
-  }
+  assert(isalist->which == ISALIST);
 
   node->typ->isalist_count = isalist->subs_count;
   node->typ->isalist = calloc(isalist->subs_count, sizeof(*node->typ->isalist));
+  node->typ->isalist_exported = calloc(isalist->subs_count, sizeof(bool));
   for (size_t n = 0; n < isalist->subs_count; ++n) {
+    struct node *isa = isalist->subs[n];
+    assert(isa->which == ISA);
+
     struct node *def = NULL;
-    e = scope_lookup(&def, mod, node->scope->parent, isalist->subs[n]);
+    e = scope_lookup(&def, mod, node->scope->parent, isa->subs[0]);
     EXCEPT(e);
 
-    isalist->subs[n]->typ = def->typ;
+    isa->typ = def->typ;
     node->typ->isalist[n] = def->typ;
+    node->typ->isalist_exported[n] = isa->as.ISA.toplevel.is_export;
   }
 
   return 0;
@@ -1534,7 +1590,6 @@ error firstpass(struct module *mod, struct node *node) {
   static const step firstpass_up[] = {
     step_type_inference,
     step_type_inference_isalist,
-    step_add_builtin_method,
     NULL,
   };
 
