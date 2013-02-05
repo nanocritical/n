@@ -256,8 +256,14 @@ static error load_import(struct node *node, void *user, bool *stop) {
   assert(node->which == IMPORT);
   struct module *mod = user;
 
+  struct node *existing = NULL;
+  error e = scope_lookup_module(&existing, mod, node->subs[0]);
+  if (!e) {
+    return 0;
+  }
+
   char *fn = NULL;
-  error e = lookup_import(&fn, mod, node, "lib");
+  e = lookup_import(&fn, mod, node, "lib");
   EXCEPT(e);
 
   e = load_module(mod->gctx, "lib", fn);
@@ -319,12 +325,12 @@ static error gather_dependencies(struct node *node, void *user, bool *stop) {
     return 0;
   }
 
-  error e = for_all_nodes(node, IMPORT, gather_dependencies_in_module, deps);
-  EXCEPT(e);
-
   deps->tmp_count += 1;
   deps->tmp = realloc(deps->tmp, deps->tmp_count * sizeof(*deps->tmp));
   deps->tmp[deps->tmp_count - 1] = node_module_owner(node);
+
+  error e = for_all_nodes(node, IMPORT, gather_dependencies_in_module, deps);
+  EXCEPT(e);
 
   return 0;
 }
@@ -349,8 +355,7 @@ static error calculate_dependencies(struct dependencies *deps) {
 
   for (ssize_t n = deps->tmp_count - 1; n >= 0; --n) {
     struct module *m = deps->tmp[n];
-    const int yes = 1;
-    int already = dependencies_map_set(&map, m, yes);
+    int already = dependencies_map_set(&map, m, 1);
     if (already) {
       continue;
     }

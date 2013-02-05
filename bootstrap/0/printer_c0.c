@@ -144,7 +144,7 @@ static void print_bin_acc(FILE *out, bool header, const struct module *mod, cons
     break;
   default: {
     const char *deref = ".";
-    if (typ_is_reference(mod, left->typ)) {
+    if (typ_is_reference_instance(mod, left->typ)) {
       deref = "->";
     }
     print_expr(out, header, mod, left, op);

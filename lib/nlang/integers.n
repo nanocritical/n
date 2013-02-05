@@ -26,3 +26,4 @@ intf Comparable =
   method operator_ne x:@this = bool
 
 intf BuiltinEnum = Comparable
+intf BuiltinSum = Comparable

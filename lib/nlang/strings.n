@@ -1,1 +1,4 @@
+from nlang.literals import *
+from nlang.integers import *
+
 export type string =

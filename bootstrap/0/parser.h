@@ -50,6 +50,7 @@ enum node_which {
   MODULE,
   ROOT_OF_ALL,
   DIRECTDEF,
+  BUILTINGEN,
   NODE__NUM,
 };
 
@@ -150,6 +151,17 @@ struct node_directdef {
   struct node *definition;
 };
 
+enum builtingen {
+  BG_BUILTINENUM_EQ,
+  BG_BUILTINENUM_NE,
+  BG_BUILTINSUM_EQ,
+  BG_BUILTINSUM_NE,
+};
+
+struct node_builtingen {
+  enum builtingen gen;
+};
+
 union node_as {
   struct node_nul NUL;
   struct node_ident IDENT;
@@ -184,6 +196,7 @@ union node_as {
   struct node_import IMPORT;
   struct node_module MODULE;
   struct node_directdef DIRECTDEF;
+  struct node_builtingen BUILTINGEN;
 };
 
 struct scope;
@@ -342,7 +355,7 @@ struct typ {
   struct node *definition;
   enum typ_which which;
   size_t gen_arity;
-  struct typ **gen_args;
+  struct typ **gen_args; // length gen_arity + 1
 
   size_t fun_arity;
   struct typ **fun_args; // length fun_arity + 1
@@ -433,11 +446,11 @@ void node_deepcopy(struct module *mod, struct node *dst,
 struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id);
-error typ_check(const struct module *mod, const struct node *for_error,
+error typ_compatible(const struct module *mod, const struct node *for_error,
                 const struct typ *a, const struct typ *constraint);
-error typ_check_numeric(const struct module *mod, const struct node *for_error, const struct typ *a);
-error typ_check_reference(const struct module *mod, const struct node *for_error, const struct typ *a);
-error typ_is_reference(const struct module *mod, const struct typ *a);
+error typ_compatible_numeric(const struct module *mod, const struct node *for_error, const struct typ *a);
+error typ_compatible_reference(const struct module *mod, const struct node *for_error, const struct typ *a);
+bool typ_is_reference_instance(const struct module *mod, const struct typ *a);
 bool typ_is_concrete(const struct module *mod, const struct typ *a);
 error typ_unify(struct typ **u, const struct module *mod, const struct node *for_error,
                 struct typ *a, struct typ *b);

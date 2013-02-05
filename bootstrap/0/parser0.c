@@ -482,6 +482,7 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
   }
 
   if (use_isalist) {
+    fprintf(stderr, "WARNING: Using use_isalist in do_scope_lookup_ident_immediate()\n");
     // Depth-first.
     // FIXME: We should statically detect when this search would return
     // different results depending on order. And we should force the caller
@@ -2284,7 +2285,8 @@ static struct typ *typ_new_builtin(struct node *definition,
   r->which = which;
   r->gen_arity = gen_arity;
   if (gen_arity > 0) {
-    r->gen_args = calloc(gen_arity, sizeof(struct typ *));
+    r->gen_args = calloc(gen_arity + 1, sizeof(struct typ *));
+    r->gen_args[0] = definition->typ;
   }
   r->fun_arity = fun_arity;
   if (fun_arity > 0) {
@@ -2321,8 +2323,13 @@ struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
   return mod->gctx->builtin_typs[id];
 }
 
-error typ_check(const struct module *mod, const struct node *for_error,
-                const struct typ *a, const struct typ *constraint) {
+bool typ_gen_match(const struct typ *a, const struct typ *b) {
+  assert(a->gen_arity > 0 && b->gen_arity > 0);
+  return a->gen_arity == b->gen_arity && a->gen_args[0] == b->gen_args[0];
+}
+
+error typ_compatible(const struct module *mod, const struct node *for_error,
+                     const struct typ *a, const struct typ *constraint) {
   if (constraint == a) {
     return 0;
   }
@@ -2345,9 +2352,15 @@ error typ_check(const struct module *mod, const struct node *for_error,
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
     if (constraint == typ_lookup_builtin(mod, TBI_NREF)
         || constraint == typ_lookup_builtin(mod, TBI_NMREF)
-        || constraint == typ_lookup_builtin(mod, TBI_NMMREF)
-        || constraint == typ_lookup_builtin(mod, TBI_DYN)) {
+        || constraint == typ_lookup_builtin(mod, TBI_NMMREF)) {
       return 0;
+    }
+  }
+
+  if (a->gen_arity > 0
+      && typ_gen_match(a, constraint)) {
+    for (size_t n = 0; n < a->gen_arity; ++a) {
+      typ_compatible(mod, for_error, a->gen_args[1+n], constraint->gen_args[1+n]);
     }
   }
 
@@ -2357,8 +2370,8 @@ error typ_check(const struct module *mod, const struct node *for_error,
   // FIXME: leaking typ_names.
 }
 
-error typ_check_numeric(const struct module *mod, const struct node *for_error,
-                        const struct typ *a) {
+error typ_compatible_numeric(const struct module *mod, const struct node *for_error,
+                             const struct typ *a) {
   if (a == typ_lookup_builtin(mod, TBI_U8)
       || a == typ_lookup_builtin(mod, TBI_U16)
       || a == typ_lookup_builtin(mod, TBI_U32)
@@ -2378,19 +2391,27 @@ error typ_check_numeric(const struct module *mod, const struct node *for_error,
   // FIXME: leaking typ_names.
 }
 
-error typ_is_reference(const struct module *mod, const struct typ *a) {
-  return a == typ_lookup_builtin(mod, TBI_REF)
-    || a == typ_lookup_builtin(mod, TBI_MREF)
-    || a == typ_lookup_builtin(mod, TBI_MMREF);
+bool typ_is_reference_instance(const struct module *mod, const struct typ *a) {
+  if (a->gen_arity == 0) {
+    return FALSE;
+  }
+
+  const struct typ *g = a->gen_args[0];
+  return g == typ_lookup_builtin(mod, TBI_REF)
+    || g == typ_lookup_builtin(mod, TBI_MREF)
+    || g == typ_lookup_builtin(mod, TBI_MMREF)
+    || g == typ_lookup_builtin(mod, TBI_NREF)
+    || g == typ_lookup_builtin(mod, TBI_NMREF)
+    || g == typ_lookup_builtin(mod, TBI_NMMREF);
 }
 
-error typ_check_reference(const struct module *mod, const struct node *for_error,
-                          const struct typ *a) {
-  if (typ_is_reference(mod, a)) {
+error typ_compatible_reference(const struct module *mod, const struct node *for_error,
+                               const struct typ *a) {
+  if (typ_is_reference_instance(mod, a)) {
     return 0;
   }
 
-  EXCEPT_TYPE(node_module_owner_const(for_error), for_error, "'%s' type is not numeric",
+  EXCEPT_TYPE(node_module_owner_const(for_error), for_error, "'%s' type is not a reference",
               typ_name(mod, a));
   // FIXME: leaking typ_names.
 }
@@ -2401,11 +2422,9 @@ bool typ_is_concrete(const struct module *mod, const struct typ *a) {
     return FALSE;
   }
 
-  if (a->which == TYPE_TUPLE) {
-    for (size_t n = 0; n < a->gen_arity; ++n) {
-      if (!typ_is_concrete(mod, a->gen_args[n])) {
-        return FALSE;
-      }
+  for (size_t n = 0; n < a->gen_arity; ++n) {
+    if (!typ_is_concrete(mod, a->gen_args[1+n])) {
+      return FALSE;
     }
   }
 
@@ -2423,16 +2442,16 @@ bool typ_is_builtin(const struct module *mod, const struct typ *t) {
 
 error typ_unify(struct typ **u, const struct module *mod, const struct node *for_error,
                 struct typ *a, struct typ *b) {
-  error e = typ_check(mod, for_error, a, b);
+  error e = typ_compatible(mod, for_error, a, b);
   EXCEPT(e);
 
-  // Choose the concrete typ if there is one.
-  if (a->which == TYPE_TUPLE) {
+  if (a->gen_arity > 0) {
+    // Choose the concrete typ if there is one.
     for (size_t n = 0; n < a->gen_arity; ++n) {
-      if (typ_is_concrete(mod, a->gen_args[n])) {
-        (*u)->gen_args[n] = a->gen_args[n];
+      if (typ_is_concrete(mod, a->gen_args[1+n])) {
+        (*u)->gen_args[1+n] = a->gen_args[1+n];
       } else {
-        (*u)->gen_args[n] = b->gen_args[n];
+        (*u)->gen_args[1+n] = b->gen_args[1+n];
       }
     }
   } else {

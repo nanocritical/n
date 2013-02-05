@@ -131,6 +131,30 @@ error step_assign_deftype_which_values(struct module *mod, struct node *node, vo
   return 0;
 }
 
+error step_extend_deftype_builtin_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFTYPE) {
+    return 0;
+  }
+
+  struct typ *t = node->typ;
+
+  switch (node->as.DEFTYPE.kind) {
+  case DEFTYPE_PROTOTYPE:
+    break;
+  case DEFTYPE_STRUCT:
+    break;
+  case DEFTYPE_SUM:
+    // Fallthrough.
+  case DEFTYPE_ENUM:
+    t->isalist_count += 1;
+    t->isalist = realloc(t->isalist, t->isalist_count * sizeof(*t->isalist));
+    t->isalist[t->isalist_count - 1] = typ_lookup_builtin(mod, TBI_BUILTIN_ENUM);
+    break;
+  }
+
+  return 0;
+}
+
 error step_add_builtin_members(struct module *mod, struct node *node, void *user, bool *stop) {
   switch (node->which) {
   case DEFTYPE:
@@ -200,9 +224,15 @@ error step_add_codegen_variables(struct module *mod, struct node *node, void *us
 }
 
 error step_add_scopes(struct module *mod, struct node *node, void *user, bool *stop) {
-  // Builtin types already have a scope.
-  if (node->scope == NULL) {
-    node->scope = scope_new(node);
+  node->scope = scope_new(node);
+
+  if (node->which != MODULE) {
+    // In later passes, we may rewrite nodes that have been marked, we must
+    // erase the marking. But not for module nodes that are:
+    //   (i) never rewritten,
+    //   (ii) are typed void when created, to allow global module lookup to
+    //   use the 'typ' field when typing import nodes.
+    node->typ = NULL;
   }
 
   for (size_t n = 0; n < node->subs_count; ++n) {
@@ -539,11 +569,14 @@ error step_type_definitions(struct module *mod, struct node *node, void *user, b
 
   assert(node->subs[0]->which == IDENT);
   ident id = node->subs[0]->as.IDENT.name;
+  fprintf(stderr, "%d %s \n", id, idents_value(mod->gctx,id));
   if (id >= ID_TBI__FIRST && id <= ID_TBI__LAST) {
     // FIXME Effectively reserving these idents for builtin types, but
     // that's a temporary trick to avoid having to look up the current
     // module path.
+  fprintf(stderr, "%d %s \n", id, idents_value(mod->gctx,id));
     node->typ = mod->gctx->builtin_typs_by_name[id];
+  fprintf(stderr, "%d %p %p\n", id, mod->gctx->builtin_typs_by_name[id], typ_lookup_builtin(mod, TBI_REF));
     node->typ->definition = node;
   } else {
     node->typ = typ_new(node, TYPE_DEF, 0, 0);
@@ -632,12 +665,12 @@ static error type_inference_un(struct module *mod, struct node *node) {
   switch (OP_KIND(op)) {
   case OP_UN_REFOF:
     node->typ = typ_new(typ_lookup_builtin(mod, tbi_for_ref[op])->definition, TYPE_DEF, 1, 0);
-    node->typ->gen_args[0] = node->subs[0]->typ;
+    node->typ->gen_args[1] = node->subs[0]->typ;
     node->is_type = node->subs[0]->is_type;
     break;
   case OP_UN_BOOL:
     if (typ_is_concrete(mod, node->subs[0]->typ)) {
-      e = typ_check(mod, node, node->subs[0]->typ, typ_lookup_builtin(mod, TBI_BOOL));
+      e = typ_compatible(mod, node, node->subs[0]->typ, typ_lookup_builtin(mod, TBI_BOOL));
       EXCEPT(e);
       node->typ = node->subs[0]->typ;
     } else {
@@ -646,12 +679,12 @@ static error type_inference_un(struct module *mod, struct node *node) {
     }
     break;
   case OP_UN_NUM:
-    e = typ_check_numeric(mod, node, node->subs[0]->typ);
+    e = typ_compatible_numeric(mod, node, node->subs[0]->typ);
     EXCEPT(e);
     node->typ = node->subs[0]->typ;
     break;
   case OP_UN_DYN:
-    e = typ_check_reference(mod, node, node->subs[0]->typ);
+    e = typ_compatible_reference(mod, node, node->subs[0]->typ);
     EXCEPT(e);
     node->typ = node->subs[0]->typ;
     node->is_type = node->subs[0]->is_type;
@@ -669,7 +702,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
   error e;
   if (typ_is_concrete(mod, node->subs[0]->typ)
       && typ_is_concrete(mod, node->subs[1]->typ)) {
-    e = typ_check(mod, node, node->subs[0]->typ, node->subs[1]->typ);
+    e = typ_compatible(mod, node, node->subs[0]->typ, node->subs[1]->typ);
     EXCEPT(e);
   } else if (typ_is_concrete(mod, node->subs[0]->typ)) {
     e = type_destruct(mod, node->subs[1], node->subs[0]->typ);
@@ -685,12 +718,12 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
 
   switch (OP_KIND(node->as.BIN.operator)) {
   case OP_BIN_SYM_BOOL:
-    e = typ_check(mod, node, node->typ, typ_lookup_builtin(mod, TBI_BOOL));
+    e = typ_compatible(mod, node, node->typ, typ_lookup_builtin(mod, TBI_BOOL));
     EXCEPT(e);
     node->typ = typ_lookup_builtin(mod, TBI_BOOL);
     break;
   case OP_BIN_SYM_NUM:
-    e = typ_check_numeric(mod, node, node->typ);
+    e = typ_compatible_numeric(mod, node, node->typ);
     EXCEPT(e);
     switch (node->as.BIN.operator) {
     case TLE:
@@ -742,7 +775,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
 
 static error type_inference_bin_rhs_u16(struct module *mod, struct node *node) {
   error e;
-  e = typ_check_numeric(mod, node->subs[0], node->subs[0]->typ);
+  e = typ_compatible_numeric(mod, node->subs[0], node->subs[0]->typ);
   EXCEPT(e);
   // FIXME handle the generic number case.
   e = type_destruct(mod, node->subs[1], typ_lookup_builtin(mod, TBI_U16));
@@ -787,7 +820,7 @@ static error type_inference_tuple(struct module *mod, struct node *node) {
   node->typ = typ_new(typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE)->definition,
                       TYPE_TUPLE, node->subs_count, 0);
   for (size_t n = 0; n < node->typ->gen_arity; ++n) {
-    node->typ->gen_args[n] = node->subs[n]->typ;
+    node->typ->gen_args[1+n] = node->subs[n]->typ;
 
     if (n > 0 && node->is_type != node->subs[n]->is_type) {
       error e = mk_except_type(mod, node->subs[n], "tuple combines values and types");
@@ -980,20 +1013,21 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
   case UN:
     switch (OP_KIND(node->as.UN.operator)) {
     case OP_UN_BOOL:
-      e = typ_check(mod, node, constraint, typ_lookup_builtin(mod, TBI_BOOL));
+      e = typ_compatible(mod, node, constraint, typ_lookup_builtin(mod, TBI_BOOL));
       break;
     case OP_UN_NUM:
-      e = typ_check_numeric(mod, node, constraint);
+      e = typ_compatible_numeric(mod, node, constraint);
       break;
     case OP_UN_REFOF:
-      e = typ_check_reference(mod, node, constraint);
+      e = typ_compatible_reference(mod, node, constraint);
       break;
     case OP_UN_DYN:
-      e = typ_check(mod, node, constraint, typ_lookup_builtin(mod, TBI_DYN));
+      e = typ_compatible(mod, node, constraint, typ_lookup_builtin(mod, TBI_DYN));
       break;
     default:
       assert(FALSE);
     }
+    assert(!e);
     EXCEPT(e);
 
     struct node *sub_node = node->subs[0];
@@ -1001,7 +1035,7 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
 
     switch (OP_KIND(node->as.UN.operator)) {
     case OP_UN_REFOF:
-      sub_constraint = constraint->gen_args[0];
+      sub_constraint = constraint->gen_args[1];
       break;
     default:
       sub_constraint = constraint;
@@ -1015,7 +1049,7 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
     switch (OP_KIND(node->as.UN.operator)) {
     case OP_UN_REFOF:
       node->typ = typ_new(constraint->definition, TYPE_DEF, 1, 0);
-      node->typ->gen_args[0] = node->subs[0]->typ;
+      node->typ->gen_args[1] = node->subs[0]->typ;
       break;
     default:
       node->typ = node->subs[0]->typ;
@@ -1036,15 +1070,15 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
 
     switch (OP_KIND(node->as.BIN.operator)) {
     case OP_BIN_SYM_BOOL:
-      e = typ_check(mod, node, constraint, typ_lookup_builtin(mod, TBI_BOOL));
+      e = typ_compatible(mod, node, constraint, typ_lookup_builtin(mod, TBI_BOOL));
       EXCEPT(e);
       break;
     case OP_BIN_SYM_NUM:
-      e = typ_check_numeric(mod, node, constraint);
+      e = typ_compatible_numeric(mod, node, constraint);
       EXCEPT(e);
       break;
     case OP_BIN_NUM_RHS_U16:
-      e = typ_check_numeric(mod, node, left_constraint);
+      e = typ_compatible_numeric(mod, node, left_constraint);
       EXCEPT(e);
       right_constraint = typ_lookup_builtin(mod, TBI_U16);
       break;
@@ -1104,7 +1138,7 @@ static error type_destruct(struct module *mod, struct node *node, struct typ *co
     e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
     for (size_t n = 0; n < node->subs_count; ++n) {
-      e = type_destruct(mod, node->subs[n], node->typ->gen_args[n]);
+      e = type_destruct(mod, node->subs[n], node->typ->gen_args[1+n]);
       EXCEPT(e);
     }
     break;
@@ -1216,7 +1250,7 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
   case IF:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
     for (size_t n = 0; n < node->subs_count-1; n += 2) {
-      e = typ_check(mod, node->subs[n], node->subs[n]->typ, typ_lookup_builtin(mod, TBI_BOOL));
+      e = typ_compatible(mod, node->subs[n], node->subs[n]->typ, typ_lookup_builtin(mod, TBI_BOOL));
       EXCEPT(e);
     }
     goto ok;
@@ -1351,30 +1385,6 @@ error step_type_inference_isalist(struct module *mod, struct node *node, void *u
   return 0;
 }
 
-error step_extend_deftype_builtin_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
-  if (node->which != DEFTYPE) {
-    return 0;
-  }
-
-  struct typ *t = node->typ;
-
-  switch (node->as.DEFTYPE.kind) {
-  case DEFTYPE_PROTOTYPE:
-    break;
-  case DEFTYPE_STRUCT:
-    break;
-  case DEFTYPE_SUM:
-    // Fallthrough.
-  case DEFTYPE_ENUM:
-    t->isalist_count += 1;
-    t->isalist = realloc(t->isalist, t->isalist_count * sizeof(*t->isalist));
-    t->isalist[t->isalist_count - 1] = typ_lookup_builtin(mod, TBI_BUILTIN_ENUM);
-    break;
-  }
-
-  return 0;
-}
-
 static const ident operator_ident[TOKEN__NUM] = {
   [Tor] = ID_OPERATOR_OR,
   [Tand] = ID_OPERATOR_AND,
@@ -1398,6 +1408,16 @@ static const ident operator_ident[TOKEN__NUM] = {
   [TUMINUS] = ID_OPERATOR_UMINUS,
   [TUBWNOT] = ID_OPERATOR_UBWNOT,
 };
+
+static struct node *expr_ref(enum token_type ref_op, struct node *node) {
+  struct node *n = calloc(1, sizeof(struct node));
+  n->which = UN;
+  n->as.UN.operator = ref_op;
+  n->subs_count = 1;
+  n->subs = calloc(n->subs_count, sizeof(struct node *));
+  n->subs[0] = node;
+  return n;
+}
 
 error step_operator_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   enum token_type op;
@@ -1433,6 +1453,8 @@ error step_operator_call_inference(struct module *mod, struct node *node, void *
     return 0;
   }
 
+  struct scope *saved_parent = node->scope->parent;
+
   node->which = CALL;
   struct node *fun = mk_node(mod, node, BIN);
   fun->as.BIN.operator = TDOT;
@@ -1442,9 +1464,15 @@ error step_operator_call_inference(struct module *mod, struct node *node, void *
   member->as.IDENT.name = operator_ident[op];
 
   insert_last_at(node, 0);
+  node->subs[1] = expr_ref(TREFDOT, node->subs[1]);
+  node->subs[2] = expr_ref(TREFDOT, node->subs[2]);
 
   error e = zeropass(mod, node);
   EXCEPT(e);
+  node->scope->parent = saved_parent;
+
+  printer_tree(2, mod, node->scope->parent->node);
+
   e = firstpass(mod, node);
   EXCEPT(e);
 
@@ -1475,6 +1503,7 @@ error zeropass(struct module *mod, struct node *node) {
   static const step zeropass_down[] = {
     step_detect_deftype_kind,
     step_assign_deftype_which_values,
+    step_extend_deftype_builtin_isalist,
     step_add_builtin_members,
     step_add_builtin_functions,
     step_add_builtin_methods,
@@ -1505,7 +1534,7 @@ error firstpass(struct module *mod, struct node *node) {
   static const step firstpass_up[] = {
     step_type_inference,
     step_type_inference_isalist,
-    step_extend_deftype_builtin_isalist,
+    step_add_builtin_method,
     NULL,
   };
 
