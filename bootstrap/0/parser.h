@@ -62,7 +62,7 @@ enum builtingen {
   BG_STRUCT_DEFAULT_MK,
   BG_STRUCT_DEFAULT_NEW,
   BG_ENUM_MK,
-  BG_ENUM_NEw,
+  BG_ENUM_NEW,
   BG_ENUM_EQ,
   BG_ENUM_NE,
   BG_SUM_EQ,
@@ -283,6 +283,7 @@ enum predefined_idents {
   ID_TBI_NMMREF,
   ID_TBI_DYN,
   ID_TBI_NATIVE_INTEGER,
+  ID_TBI_COMPARABLE,
   ID_TBI__PENDING_DESTRUCT,
   ID_TBI__FIRST_MARKER = ID_TBI__PENDING_DESTRUCT,
   ID_TBI__NOT_TYPEABLE,
@@ -348,6 +349,7 @@ enum typ_builtin {
   TBI_NMMREF, // ?@#
   TBI_DYN,
   TBI_NATIVE_INTEGER,
+  TBI_COMPARABLE,
   TBI__PENDING_DESTRUCT,
   TBI__NOT_TYPEABLE,
   TBI__NUM,
@@ -446,7 +448,8 @@ bool node_is_inline(const struct node *node);
 bool node_is_export(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
 size_t node_fun_args_count(const struct node *def);
-const struct toplevel *node_toplevel(const struct node *node);
+struct toplevel *node_toplevel(struct node *node);
+const struct toplevel *node_toplevel_const(const struct node *node);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);
 struct node *node_typ_member(struct typ *typ, const char *member);
 void node_deepcopy(struct module *mod, struct node *dst,

@@ -457,7 +457,7 @@ static void print_toplevel(FILE *out, bool header, const struct node *node) {
     return;
   }
 
-  const struct toplevel *toplevel = node_toplevel(node);
+  const struct toplevel *toplevel = node_toplevel_const(node);
   if (toplevel->is_extern) {
     fprintf(out, "extern ");
   }

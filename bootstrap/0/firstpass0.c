@@ -383,7 +383,7 @@ static error lexical_import_all_from_path(struct scope *scope, struct module *mo
   struct module *target_mod = target->as.MODULE.mod;
   for (size_t n = 0; n < target->subs_count; ++n) {
     struct node *ex = target->subs[n];
-    const struct toplevel *toplevel = node_toplevel(ex);
+    const struct toplevel *toplevel = node_toplevel_const(ex);
     if (toplevel == NULL || !toplevel->is_export) {
       continue;
     }
@@ -466,7 +466,7 @@ error step_lexical_scoping(struct module *mod, struct node *node, void *user, bo
     } else {
       id = node->subs[0]->subs[1];
     }
-    toplevel = node_toplevel(node);
+    toplevel = node_toplevel_const(node);
     if (toplevel->scope_name == 0) {
       sc = node->scope->parent;
     } else {
@@ -1480,7 +1480,7 @@ error step_add_builtin_operators(struct module *mod, struct node *node, void *us
   case DEFTYPE_STRUCT:
     break;
   case DEFTYPE_SUM:
-    if (typ_isa(mod, node, typ_lookup_builtin(TBI_COMPARABLE))) {
+    if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_COMPARABLE))) {
       define_builtin(mod, node, DEFMETHOD, BG_SUM_EQ);
       define_builtin(mod, node, DEFMETHOD, BG_SUM_NE);
     }

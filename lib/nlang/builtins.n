@@ -72,10 +72,10 @@ export intf Bitwise =
   method operator_bwor other:@this = this
   method operator_bwxor other:@this = this
   method operator_bwand other:@this = this
-  method operator_lshift by:u16 = this
-  method operator_rshift by:u16 = this
+  method operator_lshift by:u32 = this
+  method operator_rshift by:u32 = this
   method operator_ubwnot = this
 
-export intf BuiltinStruct = export Constructible
+export intf BuiltinStruct =
 export intf BuiltinEnum = export Comparable
 export intf BuiltinSum = export Comparable

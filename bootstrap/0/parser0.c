@@ -97,6 +97,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NMMREF] = "nmmref",
   [ID_TBI_DYN] = "__internal_dyn__",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
+  [ID_TBI_COMPARABLE] = "Comparable",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_OPERATOR_OR] = "operator_or",
@@ -344,7 +345,8 @@ error node_from_intf_definition(struct node **result,
 
   return 0;
 }
-const struct toplevel *node_toplevel(const struct node *node) {
+
+const struct toplevel *node_toplevel_const(const struct node *node) {
   const struct toplevel *toplevel = NULL;
 
   switch (node->which) {
@@ -376,8 +378,12 @@ const struct toplevel *node_toplevel(const struct node *node) {
   return toplevel;
 }
 
+struct toplevel *node_toplevel(struct node *node) {
+  return (struct toplevel *) node_toplevel(node);
+}
+
 bool node_is_prototype(const struct node *node) {
-  const struct toplevel *toplevel = node_toplevel(node);
+  const struct toplevel *toplevel = node_toplevel_const(node);
   if (toplevel == NULL) {
     return FALSE;
   } else {
@@ -386,7 +392,7 @@ bool node_is_prototype(const struct node *node) {
 }
 
 bool node_is_inline(const struct node *node) {
-  const struct toplevel *toplevel = node_toplevel(node);
+  const struct toplevel *toplevel = node_toplevel_const(node);
   if (toplevel == NULL) {
     return FALSE;
   } else {
@@ -395,7 +401,7 @@ bool node_is_inline(const struct node *node) {
 }
 
 bool node_is_export(const struct node *node) {
-  const struct toplevel *toplevel = node_toplevel(node);
+  const struct toplevel *toplevel = node_toplevel_const(node);
   if (toplevel == NULL) {
     return FALSE;
   } else {
@@ -1674,18 +1680,18 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
                       enum node_which fun_or_method) {
   error e;
   struct token tok;
-  struct toplevel *node_toplevel;
+  struct toplevel *node_toplevel_const;
 
   node->which = fun_or_method;
   switch (fun_or_method) {
   case DEFFUN:
     node->as.DEFFUN.toplevel = *toplevel;
-    node_toplevel = &node->as.DEFFUN.toplevel;
+    node_toplevel_const = &node->as.DEFFUN.toplevel;
     break;
   case DEFMETHOD:
     node->as.DEFMETHOD.toplevel = *toplevel;
     node->as.DEFMETHOD.access = TREFDOT;
-    node_toplevel = &node->as.DEFMETHOD.toplevel;
+    node_toplevel_const = &node->as.DEFMETHOD.toplevel;
 
     e = scan(&tok, mod);
     EXCEPT(e);
@@ -1751,7 +1757,7 @@ retval:
 
   if (tok.t == TEOL || tok.t == TEOB) {
     back(mod, &tok);
-    node_toplevel->is_prototype = TRUE;
+    node_toplevel_const->is_prototype = TRUE;
     return 0;
   }
 

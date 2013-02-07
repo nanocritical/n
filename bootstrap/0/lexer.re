@@ -197,7 +197,7 @@ normal:
 
   "\\" {
     if (YYCURSOR >= YYLIMIT) {
-      ERROR(EINVAL, "non-terminated string");
+      ERROR(EINVAL, "escape character at the EOF");
     }
     if (*YYCURSOR == '\n') {
       YYCURSOR += 1;
