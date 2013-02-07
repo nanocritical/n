@@ -673,7 +673,7 @@ static void print_import(FILE *out, const struct module *mod, int indent, const 
 }
 
 static void print_module(FILE *out, const struct module *mod) {
-  const struct node *top = mod->root;
+  const struct node *top = mod->body;
 
   for (size_t n = 0; n < top->subs_count; ++n) {
     const struct node *node = top->subs[n];
@@ -696,8 +696,6 @@ static void print_module(FILE *out, const struct module *mod) {
       break;
     case IMPORT:
       print_import(out, mod, 0, node);
-      break;
-    case MODULE:
       break;
     default:
       fprintf(stderr, "Unsupported node: %d\n", node->which);
@@ -768,7 +766,7 @@ error printer_tree(int fd, const struct module *mod, const struct node *root) {
     EXCEPTF(errno, "Invalid output file descriptor '%d'", fd);
   }
 
-  print_tree_node(out, mod, root != NULL ? root : mod->root, 0);
+  print_tree_node(out, mod, root != NULL ? root : mod->body, 0);
   fflush(out);
 
   return 0;

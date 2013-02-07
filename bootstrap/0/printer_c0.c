@@ -939,7 +939,7 @@ static void print_import(FILE *out, bool header, const struct module *mod, const
 static void print_module(FILE *out, bool header, const struct module *mod) {
   fprintf(out, "#include <lib/nlang/runtime.h>\n");
 
-  const struct node *top = mod->root;
+  const struct node *top = mod->body;
 
   for (size_t n = 0; n < top->subs_count; ++n) {
     const struct node *node = top->subs[n];
@@ -961,8 +961,6 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       break;
     case IMPORT:
       print_import(out, header, mod, node);
-      break;
-    case MODULE:
       break;
     case BUILTINGEN:
       print_builtingen(out, header, mod, node);

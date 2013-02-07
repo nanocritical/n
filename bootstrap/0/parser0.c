@@ -49,6 +49,7 @@ const char *node_which_strings[] = {
   [ISALIST] = "ISALIST",
   [IMPORT] = "IMPORT",
   [MODULE] = "MODULE",
+  [MODULE_BODY] = "MODULE_BODY",
   [ROOT_OF_ALL] = "ROOT_OF_ALL",
   [DIRECTDEF] = "DIRECTDEF",
 };
@@ -379,7 +380,7 @@ const struct toplevel *node_toplevel_const(const struct node *node) {
 }
 
 struct toplevel *node_toplevel(struct node *node) {
-  return (struct toplevel *) node_toplevel(node);
+  return (struct toplevel *) node_toplevel_const(node);
 }
 
 bool node_is_prototype(const struct node *node) {
@@ -493,15 +494,16 @@ error scope_define_ident(const struct module *mod, struct scope *scope, ident id
   // If existing is prototype, we just replace it with full definition.
   // If not, it's an error:
   if (existing != NULL && !node_is_prototype(*existing)) {
+    const struct module *existing_mod = node_module_owner_const(*existing);
     struct token existing_tok;
     existing_tok.t = TIDENT;
-    existing_tok.value = mod->parser.data + (*existing)->codeloc;
+    existing_tok.value = existing_mod->parser.data + (*existing)->codeloc;
     existing_tok.len = 0;
     const char *scname = scope_name(mod, scope);
     EXCEPT_PARSE(node_module_owner_const(node), node->codeloc,
                  "in scope %s: identifier '%s' already defined at %s:%d:%d",
-                 scname, idents_value(mod->gctx, id), mod->filename,
-                 line(&mod->parser, &existing_tok), column(&mod->parser, &existing_tok));
+                 scname, idents_value(mod->gctx, id), existing_mod->filename,
+                 line(&existing_mod->parser, &existing_tok), column(&existing_mod->parser, &existing_tok));
     // FIXME: leaking scname.
   }
 
@@ -525,6 +527,19 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
   if (r != NULL) {
     *result = *r;
     return 0;
+  }
+
+  if (scope->node->which == MODULE && scope->node->subs_count >= 1) {
+    struct node *body = scope->node->subs[0];
+    error e = do_scope_lookup_ident_immediate(result, mod, body->scope, id,
+                                              within, failure_ok, use_isalist);
+    if (!e) {
+      return 0;
+    } else if (failure_ok) {
+      return e;
+    } else {
+      EXCEPT(e);
+    }
   }
 
   if (use_isalist) {
@@ -566,10 +581,10 @@ static error do_scope_lookup_ident_noimport(struct node **result, const struct m
     return 0;
   }
 
-  // Will not go up in modules_root past a MODULE node as there is no
+  // Will not go up in modules_root past a MODULE_BODY node as there is no
   // permission to access these scopes unless descending from
   // gctx->modules_root.
-  if (scope->parent == NULL || scope->node->which == MODULE) {
+  if (scope->parent == NULL || scope->node->which == MODULE_BODY) {
     if (failure_ok) {
       return e;
     } else {
@@ -728,6 +743,53 @@ error scope_lookup_module(struct node **result, const struct module *mod,
   *result = r;
 
   return 0;
+}
+
+static error do_scope_lookup_abspath(struct node **result, const struct module *mod,
+                                     const char *path, ssize_t len, struct scope *within) {
+  ssize_t i;
+  ident id = ID__NONE;
+  for (i = len-1; i >= 0; --i) {
+    if (i == 0) {
+      assert(len > 1);
+      struct token tok;
+      tok.t = TIDENT;
+      tok.value = path;
+      tok.len = len - i;
+      id = idents_add(mod->gctx, &tok);
+      break;
+    } else if (path[i] == '.') {
+      assert(len - i > 1);
+      struct token tok;
+      tok.t = TIDENT;
+      tok.value = path + i + 1;
+      tok.len = len - i - 1;
+      id = idents_add(mod->gctx, &tok);
+      break;
+    }
+  }
+  assert(id != ID__NONE);
+
+  if (i == 0) {
+    error e = do_scope_lookup_ident_immediate(result, mod, mod->gctx->modules_root.scope, id,
+                                              within, FALSE, FALSE);
+    EXCEPT(e);
+    return 0;
+  } else {
+    struct node *parent = NULL;
+    error e = do_scope_lookup_abspath(&parent, mod, path, i, within);
+    EXCEPT(e);
+    e = do_scope_lookup_ident_immediate(result, mod, parent->scope, id,
+                                        within, FALSE, FALSE);
+    EXCEPT(e);
+    return 0;
+  }
+}
+
+error scope_lookup_abspath(struct node **result, const struct module *mod,
+                           const char *path) {
+  return do_scope_lookup_abspath(result, mod, path, strlen(path),
+                                 mod->gctx->modules_root.scope);
 }
 
 static error parse_modpath(struct module *mod, const char *raw_fn) {
@@ -1927,11 +1989,12 @@ static error p_deftype(struct node *node, struct module *mod, const struct tople
   return 0;
 }
 
-static error p_defintf_statement(struct node *node, struct module *mod) {
+static error p_defintf_statement(struct node *node, struct module *mod, ident intf_name) {
   error e;
   struct token tok;
   struct toplevel toplevel;
   memset(&toplevel, 0, sizeof(toplevel));
+  toplevel.scope_name = intf_name;
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -1964,7 +2027,7 @@ static error p_defintf_statement(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_defintf_block(struct node *node, struct module *mod) {
+static error p_defintf_block(struct node *node, struct module *mod, ident intf_name) {
   error e;
   struct token tok;
   bool first = TRUE;
@@ -1981,7 +2044,7 @@ again:
     }
   } else {
     back(mod, &tok);
-    e = p_defintf_statement(node_new_subnode(mod, node), mod);
+    e = p_defintf_statement(node_new_subnode(mod, node), mod, intf_name);
     EXCEPT(e);
 
     e = scan_oneof(&tok, mod, TEOL, TEOB, 0);
@@ -2022,7 +2085,7 @@ static error p_defintf(struct node *node, struct module *mod, const struct tople
     return 0;
   }
 
-  e = p_defintf_block(node, mod);
+  e = p_defintf_block(node, mod, node_ident(node));
   EXCEPT(e);
 
   return 0;
@@ -2032,6 +2095,7 @@ void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src) {
   dst->which = src->which;
   memcpy(&dst->as, &src->as, sizeof(&dst->as));
+  dst->scope = NULL;
 
   for (size_t s = 0; s < src->subs_count; ++s) {
     struct node *cpy = node_new_subnode(mod, dst);
@@ -2105,7 +2169,7 @@ again:
 }
 
 static error p_toplevel(struct module *mod) {
-  struct node *node = node_new_subnode(mod, mod->root);
+  struct node *node = node_new_subnode(mod, mod->body);
 
   struct toplevel toplevel;
   memset(&toplevel, 0, sizeof(toplevel));
@@ -2186,6 +2250,7 @@ static float subnode_count_avg(struct module *mod) {
 
 static error module_parse(struct module *mod) {
   error e;
+  mod->body = mk_node(mod, mod->root, MODULE_BODY);
 
   do {
     e = p_toplevel(mod);

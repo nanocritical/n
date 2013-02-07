@@ -46,6 +46,14 @@ static void insert_last_at(struct node *node, size_t pos) {
   node->subs[node->subs_count - 1] = tmp;
 }
 
+static void move_last_over(struct node *node, size_t pos) {
+  struct node *would_leak = node->subs[pos];
+  assert(would_leak->which == IDENT);
+  node->subs[pos] = node->subs[node->subs_count - 1];
+  node->subs_count -= 1;
+  node->subs = realloc(node->subs, node->subs_count * sizeof(node->subs[0]));
+}
+
 // Must be run before builtins are added.
 error step_detect_deftype_kind(struct module *mod, struct node *node, void *user, bool *stop) {
   if (node->which != DEFTYPE) {
@@ -262,7 +270,11 @@ error step_add_codegen_variables(struct module *mod, struct node *node, void *us
 }
 
 error step_add_scopes(struct module *mod, struct node *node, void *user, bool *stop) {
-  node->scope = scope_new(node);
+  if (node->scope == NULL) {
+    node->scope = scope_new(node);
+  } else {
+    assert(node->which == MODULE);
+  }
 
   if (node->which != MODULE) {
     // In later passes, we may rewrite nodes that have been marked, we must
@@ -317,6 +329,7 @@ static error lexical_import_path(struct scope **scope, struct module *mod,
     assert(FALSE);
   }
 
+  assert((*scope)->parent != NULL);
   if (import != NULL) {
     e = scope_define_ident(mod, *scope, i->as.IDENT.name, import);
     EXCEPT(e);
@@ -381,10 +394,11 @@ static error lexical_import_all_from_path(struct scope *scope, struct module *mo
   };
 
   struct module *target_mod = target->as.MODULE.mod;
-  for (size_t n = 0; n < target->subs_count; ++n) {
-    struct node *ex = target->subs[n];
+  struct node *target_body = target_mod->body;
+  for (size_t n = 0; n < target_body->subs_count; ++n) {
+    struct node *ex = target_body->subs[n];
     const struct toplevel *toplevel = node_toplevel_const(ex);
-    if (toplevel == NULL || !toplevel->is_export) {
+    if (toplevel == NULL || !toplevel->is_export || toplevel->scope_name != ID__NONE) {
       continue;
     }
 
@@ -592,6 +606,9 @@ error step_type_destruct_mark(struct module *mod, struct node *node, void *user,
   case DEFNAME:
     node->subs[0]->typ = not_typeable;
     break;
+  case MODULE_BODY:
+    node->typ = not_typeable;
+    break;
   case DEFCHOICE:
     node->typ = pending;
     node->subs[0]->typ = not_typeable;
@@ -617,14 +634,11 @@ error step_type_definitions(struct module *mod, struct node *node, void *user, b
 
   assert(node->subs[0]->which == IDENT);
   ident id = node->subs[0]->as.IDENT.name;
-  fprintf(stderr, "%d %s \n", id, idents_value(mod->gctx,id));
   if (id >= ID_TBI__FIRST && id <= ID_TBI__LAST) {
     // FIXME Effectively reserving these idents for builtin types, but
     // that's a temporary trick to avoid having to look up the current
     // module path.
-  fprintf(stderr, "%d %s \n", id, idents_value(mod->gctx,id));
     node->typ = mod->gctx->builtin_typs_by_name[id];
-  fprintf(stderr, "%d %p %p\n", id, mod->gctx->builtin_typs_by_name[id], typ_lookup_builtin(mod, TBI_REF));
     node->typ->definition = node;
   } else {
     node->typ = typ_new(node, TYPE_DEF, 0, 0);
@@ -808,17 +822,10 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   e = scope_lookup(&field, mod, node->scope, node);
   EXCEPT(e);
 
-  switch (field->which) {
-  case DEFFUN:
-  case DEFMETHOD:
-    assert(FALSE);
-    // Handled by marking pending, then via destruct from the CALL node.
-    return EINVAL;
-  default:
-    node->typ = field->typ;
-    node->is_type = field->is_type;
-    return 0;
-  }
+  node->typ = field->typ;
+  node->is_type = field->is_type;
+
+  return 0;
 }
 
 static error type_inference_bin_rhs_u16(struct module *mod, struct node *node) {
@@ -1384,10 +1391,6 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
   case ISA:
     node->typ = node->subs[0]->typ;
     goto ok;
-  case MODULE:
-    node->typ = typ_lookup_builtin(mod, TBI_VOID);
-    node->is_type = TRUE;
-    goto ok;
   case DIRECTDEF:
     node->typ = node->as.DIRECTDEF.definition->typ;
     node->is_type = node->as.DIRECTDEF.definition->is_type;
@@ -1451,19 +1454,49 @@ static size_t find_subnode_in_parent(struct node *parent, struct node *node) {
   return 0;
 }
 
-static void define_builtin(struct module *mod, struct node *tdef,
-                           enum node_which bg_which, enum builtingen bg) {
-  struct node *parent = tdef->scope->parent->node;
-  size_t insert_pos = find_subnode_in_parent(parent, tdef) + 1;
+static error zero_for_generated(struct module *mod, struct node *node,
+                                struct scope *parent_scope) {
+  error e = zeropass(mod, node);
+  EXCEPT(e);
+  node->scope->parent = parent_scope;
 
-  struct node *d = mk_node(mod, parent, bg_which);
+  return 0;
+}
+
+static error zero_and_first_for_generated(struct module *mod, struct node *node,
+                                          struct scope *parent_scope) {
+  error e = zero_for_generated(mod, node, parent_scope);
+  EXCEPT(e);
+
+  e = firstpass(mod, node);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static void define_builtin(struct module *mod, struct node *tdef,
+                           enum builtingen bg) {
+  struct node *modbody = tdef->scope->parent->node;
+  size_t insert_pos = find_subnode_in_parent(modbody, tdef) + 1;
+
+  struct node *proto = NULL;
+  error e = scope_lookup_abspath(&proto, mod, builtingen_abspath[bg]);
+  assert(!e);
+
+  struct node *d = node_new_subnode(mod, modbody);
+  node_deepcopy(mod, d, proto);
+
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->scope_name = node_ident(tdef);
   toplevel->builtingen = bg;
+  toplevel->is_export = TRUE;
 
   mk_expr_abspath(mod, d, builtingen_abspath[bg]);
+  move_last_over(d, 0);
 
-  insert_last_at(parent, insert_pos);
+  insert_last_at(modbody, insert_pos);
+  e = zero_for_generated(mod, d, modbody->scope);
+  assert(!e);
 }
 
 error step_add_builtin_operators(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -1481,13 +1514,14 @@ error step_add_builtin_operators(struct module *mod, struct node *node, void *us
     break;
   case DEFTYPE_SUM:
     if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_COMPARABLE))) {
-      define_builtin(mod, node, DEFMETHOD, BG_SUM_EQ);
-      define_builtin(mod, node, DEFMETHOD, BG_SUM_NE);
+      define_builtin(mod, node, BG_SUM_EQ);
+      define_builtin(mod, node, BG_SUM_NE);
     }
     break;
   case DEFTYPE_ENUM:
-    define_builtin(mod, node, DEFMETHOD, BG_ENUM_EQ);
-    define_builtin(mod, node, DEFMETHOD, BG_ENUM_NE);
+    fprintf(stderr, "bi op %s\n", idents_value(mod->gctx, node_ident(node)));
+    define_builtin(mod, node, BG_ENUM_EQ);
+    define_builtin(mod, node, BG_ENUM_NE);
     break;
   }
 
@@ -1576,13 +1610,7 @@ error step_operator_call_inference(struct module *mod, struct node *node, void *
   node->subs[1] = expr_ref(TREFDOT, node->subs[1]);
   node->subs[2] = expr_ref(TREFDOT, node->subs[2]);
 
-  error e = zeropass(mod, node);
-  EXCEPT(e);
-  node->scope->parent = saved_parent;
-
-  printer_tree(2, mod, node->scope->parent->node);
-
-  e = firstpass(mod, node);
+  error e = zero_and_first_for_generated(mod, node, saved_parent);
   EXCEPT(e);
 
   return 0;

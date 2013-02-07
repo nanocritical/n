@@ -49,6 +49,7 @@ enum node_which {
   ISA,
   IMPORT,
   MODULE,
+  MODULE_BODY,
   ROOT_OF_ALL,
   DIRECTDEF,
   BUILTINGEN,
@@ -166,6 +167,8 @@ struct node_module {
 
   struct module *mod;
 };
+struct node_module_body {
+};
 
 struct node_directdef {
   struct node *definition;
@@ -206,6 +209,7 @@ union node_as {
   struct node_isa ISA;
   struct node_import IMPORT;
   struct node_module MODULE;
+  struct node_module_body MODULE_BODY;
   struct node_directdef DIRECTDEF;
 };
 
@@ -398,6 +402,7 @@ struct module {
 
   struct parser parser;
   struct node *root;
+  struct node *body;
   size_t next_gensym;
 
   struct node *return_node;
@@ -433,6 +438,8 @@ error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, const struct node *id);
 error scope_lookup_module(struct node **result, const struct module *mod,
                           const struct node *id);
+error scope_lookup_abspath(struct node **result, const struct module *mod,
+                           const char *path);
 char *scope_name(const struct module *mod, const struct scope *scope);
 char *scope_definitions_name_list(const struct module *mod, const struct scope *scope);
 
