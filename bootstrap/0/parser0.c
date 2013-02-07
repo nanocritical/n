@@ -97,12 +97,12 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NMMREF] = "nmmref",
   [ID_TBI_DYN] = "__internal_dyn__",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
-  [ID_TBI_BUILTIN_ENUM] = "BuiltinEnum",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_OPERATOR_OR] = "operator_or",
   [ID_OPERATOR_AND] = "operator_and",
   [ID_OPERATOR_NOT] = "operator_not",
+  [ID_OPERATOR_TEST] = "operator_test",
   [ID_OPERATOR_LE] = "operator_le",
   [ID_OPERATOR_LT] = "operator_lt",
   [ID_OPERATOR_GT] = "operator_gt",
@@ -121,6 +121,17 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_OPERATOR_TIMES] = "operator_times",
   [ID_OPERATOR_UMINUS] = "operator_uminus",
   [ID_OPERATOR_UBWNOT] = "operator_ubwnot",
+};
+
+const char *builtingen_abspath[BG__NUM] = {
+  [BG_STRUCT_DEFAULT_MK] = "nlang.builtins.Constructible.mk",
+  [BG_STRUCT_DEFAULT_NEW] = "nlang.builtins.Constructible.new",
+  [BG_ENUM_MK] = "nlang.builtins.DefaultConstructible.mk",
+  [BG_ENUM_NEW] = "nlang.builtins.DefaultConstructible.new",
+  [BG_ENUM_EQ] = "nlang.builtins.Comparable.operator_eq",
+  [BG_ENUM_NE] = "nlang.builtins.Comparable.operator_ne",
+  [BG_SUM_EQ] = "nlang.builtins.Comparable.operator_eq",
+  [BG_SUM_NE] = "nlang.builtins.Comparable.operator_ne",
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
@@ -289,8 +300,16 @@ ident node_ident(const struct node *node) {
   case EXAMPLE:
     return ID_EXAMPLE;
   case DEFFUN:
-  case DEFTYPE:
   case DEFMETHOD:
+    if (node->subs[0]->which == IDENT) {
+      return node->subs[0]->as.IDENT.name;
+    } else {
+      assert(node->subs[0]->which == BIN);
+      assert(node->subs[0]->subs[1]->which == IDENT);
+      return node->subs[0]->subs[1]->as.IDENT.name;
+    }
+    break;
+  case DEFTYPE:
   case DEFFIELD:
   case DEFCHOICE:
   case DEFINTF:
@@ -307,6 +326,24 @@ ident node_ident(const struct node *node) {
   }
 }
 
+error node_from_intf_definition(struct node **result,
+                                struct module *mod, const struct node *node) {
+  *result = NULL;
+
+  switch (node->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+    if (node->subs[0]->which == BIN) {
+      error e = scope_lookup(result, mod, node->scope, node->subs[0]->subs[0]);
+      EXCEPT(e);
+    }
+    break;
+  default:
+    break;
+  }
+
+  return 0;
+}
 const struct toplevel *node_toplevel(const struct node *node) {
   const struct toplevel *toplevel = NULL;
 
@@ -494,7 +531,7 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
     for (size_t n = 0; n < parent->typ->isalist_count; ++n) {
       const struct typ *t = parent->typ->isalist[n];
       error e = do_scope_lookup_ident_immediate(result, mod, t->definition->scope, id,
-                                          within, TRUE, TRUE);
+                                                within, TRUE, TRUE);
       if (!e) {
         return 0;
       }
@@ -515,9 +552,9 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
   return 0;
 }
 
-static error do_scope_lookup_ident(struct node **result, const struct module *mod,
-                                   const struct scope *scope, ident id,
-                                   const struct scope *within, bool failure_ok) {
+static error do_scope_lookup_ident_noimport(struct node **result, const struct module *mod,
+                                            const struct scope *scope, ident id,
+                                            const struct scope *within, bool failure_ok) {
   error e = do_scope_lookup_ident_immediate(result, mod, scope, id, within, TRUE, FALSE);
   if (!e) {
     return 0;
@@ -539,12 +576,12 @@ static error do_scope_lookup_ident(struct node **result, const struct module *mo
     }
   }
 
-  return do_scope_lookup_ident(result, mod, scope->parent, id, within, failure_ok);
+  return do_scope_lookup_ident_noimport(result, mod, scope->parent, id, within, failure_ok);
 }
 
-error scope_lookup_ident(struct node **result, const struct module *mod,
-                         const struct scope *scope, ident id, bool failure_ok) {
-  return do_scope_lookup_ident(result, mod, scope, id, scope, failure_ok);
+error scope_lookup_ident_noimport(struct node **result, const struct module *mod,
+                                  const struct scope *scope, ident id, bool failure_ok) {
+  return do_scope_lookup_ident_noimport(result, mod, scope, id, scope, failure_ok);
 }
 
 #define EXCEPT_UNLESS(e, failure_ok) do { \
@@ -565,7 +602,7 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident(&r, mod, scope, id->as.IDENT.name, within, failure_ok);
+    e = do_scope_lookup_ident_noimport(&r, mod, scope, id->as.IDENT.name, within, failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
 
     if (r->which == IMPORT) {
@@ -658,7 +695,7 @@ error scope_lookup_module(struct node **result, const struct module *mod,
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident(&r, mod, scope, id->as.IDENT.name, within, TRUE);
+    e = do_scope_lookup_ident_noimport(&r, mod, scope, id->as.IDENT.name, within, TRUE);
     break;
   case BIN:
     if (id->as.BIN.operator != TDOT) {
@@ -1668,7 +1705,7 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     assert(FALSE);
   }
 
-  e = p_ident(node_new_subnode(mod, node), mod);
+  e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
   EXCEPT(e);
 
   if (fun_or_method == DEFMETHOD) {
@@ -2169,7 +2206,7 @@ static error register_module(struct node **parent,
   for (size_t p = 0; p <= last; ++p) {
     ident i = mod->path[p];
     struct node *m = NULL;
-    error e = scope_lookup_ident(&m, mod, root->scope, i, TRUE);
+    error e = scope_lookup_ident_noimport(&m, mod, root->scope, i, TRUE);
     if (e == EINVAL) {
       m = node_new_subnode(mod, root);
       m->which = MODULE;
@@ -2184,7 +2221,7 @@ static error register_module(struct node **parent,
       EXCEPT(e);
     } else if (e) {
       // Repeat bound-to-fail lookup to get the error message right.
-      e = scope_lookup_ident(&m, mod, root->scope, i, FALSE);
+      e = scope_lookup_ident_noimport(&m, mod, root->scope, i, FALSE);
       EXCEPT(e);
     } else {
       if (p == last) {

@@ -225,18 +225,7 @@ error step_add_builtin_members(struct module *mod, struct node *node, void *user
   return 0;
 }
 
-error step_add_builtin_functions(struct module *mod, struct node *node, void *user, bool *stop) {
-  switch (node->which) {
-  case DEFTYPE:
-    break;
-  default:
-    return 0;
-  }
-
-  return 0;
-}
-
-error step_add_builtin_methods(struct module *mod, struct node *node, void *user, bool *stop) {
+error step_add_builtin_constructors(struct module *mod, struct node *node, void *user, bool *stop) {
   switch (node->which) {
   case DEFTYPE:
     break;
@@ -335,14 +324,14 @@ static error lexical_import_path(struct scope **scope, struct module *mod,
   }
 
   struct node *n = NULL;
-  e = scope_lookup_ident(&n, mod, *scope, i->as.IDENT.name, TRUE);
+  e = scope_lookup_ident_noimport(&n, mod, *scope, i->as.IDENT.name, TRUE);
   if (e == EINVAL) {
     n = import_path;
     e = scope_define_ident(mod, *scope, i->as.IDENT.name, n);
     EXCEPT(e);
   } else if (e) {
     // Repeat bound-to-fail lookup to get the error message right.
-    e = scope_lookup_ident(&n, mod, *scope, i->as.IDENT.name, FALSE);
+    e = scope_lookup_ident_noimport(&n, mod, *scope, i->as.IDENT.name, FALSE);
     EXCEPT(e);
   }
 
@@ -472,14 +461,18 @@ error step_lexical_scoping(struct module *mod, struct node *node, void *user, bo
     break;
   case DEFFUN:
   case DEFMETHOD:
-    id = node->subs[0];
+    if (node->subs[0]->which == IDENT) {
+      id = node->subs[0];
+    } else {
+      id = node->subs[0]->subs[1];
+    }
     toplevel = node_toplevel(node);
     if (toplevel->scope_name == 0) {
       sc = node->scope->parent;
     } else {
-      e = scope_lookup_ident(&container, mod, node->scope->parent,
-                             toplevel->scope_name,
-                             FALSE);
+      e = scope_lookup_ident_noimport(&container, mod, node->scope->parent,
+                                      toplevel->scope_name,
+                                      FALSE);
       EXCEPT(e);
       sc = container->scope;
       node->scope->parent = sc;
@@ -587,6 +580,12 @@ error step_type_destruct_mark(struct module *mod, struct node *node, void *user,
     break;
   case DEFFUN:
   case DEFMETHOD:
+    // The BIN case implies that's this method comes from an intf
+    // and we will type the full path.
+    if (node->subs[0]->which == IDENT) {
+      node->subs[0]->typ = not_typeable;
+    }
+    break;
   case DEFTYPE:
   case DEFINTF:
   case DEFFIELD:
@@ -1441,6 +1440,60 @@ error step_type_inference_isalist(struct module *mod, struct node *node, void *u
   return 0;
 }
 
+static size_t find_subnode_in_parent(struct node *parent, struct node *node) {
+  for (size_t n = 0; n < parent->subs_count; ++n) {
+    if (parent->subs[n] == node) {
+      return n;
+    }
+  }
+
+  assert(FALSE);
+  return 0;
+}
+
+static void define_builtin(struct module *mod, struct node *tdef,
+                           enum node_which bg_which, enum builtingen bg) {
+  struct node *parent = tdef->scope->parent->node;
+  size_t insert_pos = find_subnode_in_parent(parent, tdef) + 1;
+
+  struct node *d = mk_node(mod, parent, bg_which);
+  struct toplevel *toplevel = node_toplevel(d);
+  toplevel->scope_name = node_ident(tdef);
+  toplevel->builtingen = bg;
+
+  mk_expr_abspath(mod, d, builtingen_abspath[bg]);
+
+  insert_last_at(parent, insert_pos);
+}
+
+error step_add_builtin_operators(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case DEFTYPE:
+    break;
+  default:
+    return 0;
+  }
+
+  switch (node->as.DEFTYPE.kind) {
+  case DEFTYPE_PROTOTYPE:
+    break;
+  case DEFTYPE_STRUCT:
+    break;
+  case DEFTYPE_SUM:
+    if (typ_isa(mod, node, typ_lookup_builtin(TBI_COMPARABLE))) {
+      define_builtin(mod, node, DEFMETHOD, BG_SUM_EQ);
+      define_builtin(mod, node, DEFMETHOD, BG_SUM_NE);
+    }
+    break;
+  case DEFTYPE_ENUM:
+    define_builtin(mod, node, DEFMETHOD, BG_ENUM_EQ);
+    define_builtin(mod, node, DEFMETHOD, BG_ENUM_NE);
+    break;
+  }
+
+  return 0;
+}
+
 static const ident operator_ident[TOKEN__NUM] = {
   [Tor] = ID_OPERATOR_OR,
   [Tand] = ID_OPERATOR_AND,
@@ -1561,8 +1614,6 @@ error zeropass(struct module *mod, struct node *node) {
     step_assign_deftype_which_values,
     step_extend_deftype_builtin_isalist,
     step_add_builtin_members,
-    step_add_builtin_functions,
-    step_add_builtin_methods,
     step_add_codegen_variables,
     NULL,
   };
@@ -1590,6 +1641,8 @@ error firstpass(struct module *mod, struct node *node) {
   static const step firstpass_up[] = {
     step_type_inference,
     step_type_inference_isalist,
+    step_add_builtin_constructors,
+    step_add_builtin_operators,
     NULL,
   };
 

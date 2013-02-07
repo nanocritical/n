@@ -18,22 +18,4 @@ typedef uint64_t nlang_builtins_u64;
 typedef size_t nlang_builtins_size;
 typedef ssize_t nlang_builtins_ssize;
 
-#define BuiltinEnum_Comparable_operator_eq(type) \
-  void type ##_BuiltinEnum_Comparable_operator_eq(type *self, type *x) { \
-    return self->which__ == x->which__; \
-  }
-#define BuiltinEnum_Comparable_operator_ne(type) \
-  void type ##_BuiltinEnum_Comparable_operator_ne(type *self, type *x) { \
-    return self->which__ != x->which__; \
-  }
-
-#define BuiltinSum_Comparable_operator_eq(type) \
-  void type ##_BuiltinSum_Comparable_operator_eq(type *self, type *x) { \
-    return self->which__ == x->which__; \
-  }
-#define BuiltinSum_Comparable_operator_ne(type) \
-  void type ##_BuiltinSum_Comparable_operator_ne(type *self, type *x) { \
-    return self->which__ != x->which__; \
-  }
-
 #endif

@@ -7,15 +7,27 @@ export type nmref =
 export type nmmref =
 export type __internal_dyn__ =
 
-intf Copyable =
+export intf DefaultConstructible =
+  fun mk = this
+  fun new = @#this
 
-intf TrivialCopy = export Copyable
+export intf Copyable =
 
-intf Comparable =
+export intf TrivialCopy = export Copyable
+
+export intf Comparable =
+export intf Ordered = export Comparable
+export intf Arithmetic =
+export intf Bitwise =
+
+export intf Integer = \
+    export Arithmetic \
+    export Ordered \
+    export Bitwise
 
 export intf NativeInteger = \
-    export Comparable \
-    export TrivialCopy
+    export TrivialCopy \
+    export Integer
 
 export extern type bool = export NativeInteger
 export extern type i8 = export NativeInteger
@@ -29,12 +41,41 @@ export extern type u64 = export NativeInteger
 export extern type size = export NativeInteger
 export extern type ssize = export NativeInteger
 
-intf Copyable =
-  method# copy other:@this = bool
+export intf Copyable =
+  method# operator_copy other:@this = bool
 
-intf Comparable =
+export intf Comparable =
   method operator_eq other:@this = bool
   method operator_ne other:@this = bool
 
-intf BuiltinEnum = export Comparable
-intf BuiltinSum = export Comparable
+export intf Boolean =
+  method operator_or other:@this = this
+  method operator_and other:@this = this
+  method operator_not = this
+  method operator_test = bool
+
+export intf Ordered = export Comparable
+  method operator_le other:@this = bool
+  method operator_lt other:@this = bool
+  method operator_gt other:@this = bool
+  method operator_ge other:@this = bool
+
+export intf Arithmetic = export Ordered
+  method operator_plus other:@this = this
+  method operator_minus other:@this = this
+  method operator_divide other:@this = this
+  method operator_modulo other:@this = this
+  method operator_times other:@this = this
+  method operator_uminus = this
+
+export intf Bitwise =
+  method operator_bwor other:@this = this
+  method operator_bwxor other:@this = this
+  method operator_bwand other:@this = this
+  method operator_lshift by:u16 = this
+  method operator_rshift by:u16 = this
+  method operator_ubwnot = this
+
+export intf BuiltinStruct = export Constructible
+export intf BuiltinEnum = export Comparable
+export intf BuiltinSum = export Comparable

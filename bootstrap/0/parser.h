@@ -57,12 +57,28 @@ enum node_which {
 
 const char *node_which_strings[NODE__NUM];
 
+enum builtingen {
+  BG__NOT,
+  BG_STRUCT_DEFAULT_MK,
+  BG_STRUCT_DEFAULT_NEW,
+  BG_ENUM_MK,
+  BG_ENUM_NEw,
+  BG_ENUM_EQ,
+  BG_ENUM_NE,
+  BG_SUM_EQ,
+  BG_SUM_NE,
+  BG__NUM,
+};
+
+const char *builtingen_abspath[BG__NUM];
+
 struct toplevel {
   bool is_export;
   bool is_extern;
   bool is_inline;
   ident scope_name;
   bool is_prototype;
+  enum builtingen builtingen;
 };
 
 struct node_nul {};
@@ -155,17 +171,6 @@ struct node_directdef {
   struct node *definition;
 };
 
-enum builtingen {
-  BG_ENUM_EQ,
-  BG_ENUM_NE,
-  BG_SUM_EQ,
-  BG_SUM_NE,
-};
-
-struct node_builtingen {
-  enum builtingen gen;
-};
-
 union node_as {
   struct node_nul NUL;
   struct node_ident IDENT;
@@ -202,7 +207,6 @@ union node_as {
   struct node_import IMPORT;
   struct node_module MODULE;
   struct node_directdef DIRECTDEF;
-  struct node_builtingen BUILTINGEN;
 };
 
 struct scope;
@@ -279,7 +283,6 @@ enum predefined_idents {
   ID_TBI_NMMREF,
   ID_TBI_DYN,
   ID_TBI_NATIVE_INTEGER,
-  ID_TBI_BUILTIN_ENUM,
   ID_TBI__PENDING_DESTRUCT,
   ID_TBI__FIRST_MARKER = ID_TBI__PENDING_DESTRUCT,
   ID_TBI__NOT_TYPEABLE,
@@ -288,6 +291,7 @@ enum predefined_idents {
   ID_OPERATOR_OR,
   ID_OPERATOR_AND,
   ID_OPERATOR_NOT,
+  ID_OPERATOR_TEST,
   ID_OPERATOR_LE,
   ID_OPERATOR_LT,
   ID_OPERATOR_GT,
@@ -344,7 +348,6 @@ enum typ_builtin {
   TBI_NMMREF, // ?@#
   TBI_DYN,
   TBI_NATIVE_INTEGER,
-  TBI_BUILTIN_ENUM,
   TBI__PENDING_DESTRUCT,
   TBI__NOT_TYPEABLE,
   TBI__NUM,
@@ -422,9 +425,8 @@ ident idents_add(struct globalctx *gctx, const struct token *tok);
 struct scope *scope_new(struct node *node);
 error scope_define_ident(const struct module *mod, struct scope *scope, ident id, struct node *node);
 error scope_define(const struct module *mod, struct scope *scope, struct node *id, struct node *node);
-// Does not follow imports; use scope_lookup().
-error scope_lookup_ident(struct node **result, const struct module *mod,
-                         const struct scope *scope, ident id, bool failure_ok);
+error scope_lookup_ident_noimport(struct node **result, const struct module *mod,
+                                  const struct scope *scope, ident id, bool failure_ok);
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, const struct node *id);
 error scope_lookup_module(struct node **result, const struct module *mod,
