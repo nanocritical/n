@@ -1,5 +1,4 @@
-export \
-    type __pseudo_tuple__ =
+export type __pseudo_tuple__ =
 export type ref =
 export type mref =
 export type mmref =
@@ -12,14 +11,12 @@ export intf DefaultConstructible =
   fun mk = this
   fun new = @#this
 
-export intf Copyable =
-
-export intf TrivialCopy = export Copyable
-
-export intf Comparable =
-export intf Ordered = export Comparable
-export intf Arithmetic =
-export intf Bitwise =
+intf Copyable =
+intf TrivialCopy =
+intf Comparable =
+intf Ordered =
+intf Arithmetic =
+intf Bitwise =
 
 export intf Integer = \
     export Arithmetic \
@@ -44,6 +41,8 @@ export extern type ssize = export NativeInteger
 
 export intf Copyable =
   method# operator_copy other:@this = bool
+
+export intf TrivialCopy = export Copyable
 
 export intf Comparable =
   method operator_eq other:@this = bool
