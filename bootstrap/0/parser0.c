@@ -47,6 +47,7 @@ const char *node_which_strings[] = {
   [INVARIANT] = "INVARIANT",
   [EXAMPLE] = "EXAMPLE",
   [ISALIST] = "ISALIST",
+  [ISA] = "ISA",
   [IMPORT] = "IMPORT",
   [MODULE] = "MODULE",
   [MODULE_BODY] = "MODULE_BODY",

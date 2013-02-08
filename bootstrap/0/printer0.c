@@ -262,6 +262,10 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case INIT:
     print_init(out, mod, node);
     break;
+  case ISA:
+    fprintf(out, "%s", node->as.ISA.toplevel.is_export ? "export " : "");
+    print_expr(out, mod, node->subs[0], parent_op);
+    break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
     assert(FALSE);

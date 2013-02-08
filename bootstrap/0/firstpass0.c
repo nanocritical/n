@@ -35,6 +35,41 @@ error pass(struct module *mod, struct node *root, const step *down_steps, const 
   return 0;
 }
 
+error one_level_pass(struct module *mod, struct node *root, const step *down_steps, const step *up_steps,
+                     void *user) {
+  error e;
+
+  bool stop = FALSE;
+  for (size_t s = 0; down_steps[s] != NULL; ++s) {
+    bool stop = FALSE;
+    e = down_steps[s](mod, root, user, &stop);
+    EXCEPT(e);
+    if (stop) {
+      return 0;
+    }
+  }
+
+  for (size_t s = 0; up_steps[s] != NULL; ++s) {
+    e = up_steps[s](mod, root, user, &stop);
+    EXCEPT(e);
+
+    if (stop) {
+      return 0;
+    }
+  }
+
+  return 0;
+}
+
+static error zero_for_generated(struct module *mod, struct node *node,
+                                struct scope *parent_scope);
+static error zero_and_first_for_generated(struct module *mod, struct node *node,
+                                          struct scope *parent_scope);
+static error one_level_zero_for_generated(struct module *mod, struct node *node,
+                                          struct scope *parent_scope);
+static error one_level_zero_and_first_for_generated(struct module *mod, struct node *node,
+                                                    struct scope *parent_scope);
+
 static void insert_last_at(struct node *node, size_t pos) {
   struct node *tmp = node->subs[pos];
   node->subs[pos] = node->subs[node->subs_count - 1];
@@ -270,19 +305,16 @@ error step_add_codegen_variables(struct module *mod, struct node *node, void *us
 }
 
 error step_add_scopes(struct module *mod, struct node *node, void *user, bool *stop) {
-  if (node->scope == NULL) {
-    node->scope = scope_new(node);
-  } else {
-    assert(node->which == MODULE);
-  }
-
   if (node->which != MODULE) {
+    node->scope = scope_new(node);
+
     // In later passes, we may rewrite nodes that have been marked, we must
     // erase the marking. But not for module nodes that are:
     //   (i) never rewritten,
     //   (ii) are typed void when created, to allow global module lookup to
     //   use the 'typ' field when typing import nodes.
     node->typ = NULL;
+    node->is_type = FALSE;
   }
 
   for (size_t n = 0; n < node->subs_count; ++n) {
@@ -1454,26 +1486,6 @@ static size_t find_subnode_in_parent(struct node *parent, struct node *node) {
   return 0;
 }
 
-static error zero_for_generated(struct module *mod, struct node *node,
-                                struct scope *parent_scope) {
-  error e = zeropass(mod, node);
-  EXCEPT(e);
-  node->scope->parent = parent_scope;
-
-  return 0;
-}
-
-static error zero_and_first_for_generated(struct module *mod, struct node *node,
-                                          struct scope *parent_scope) {
-  error e = zero_for_generated(mod, node, parent_scope);
-  EXCEPT(e);
-
-  e = firstpass(mod, node);
-  EXCEPT(e);
-
-  return 0;
-}
-
 static void define_builtin(struct module *mod, struct node *tdef,
                            enum builtingen bg) {
   struct node *modbody = tdef->scope->parent->node;
@@ -1610,7 +1622,7 @@ error step_operator_call_inference(struct module *mod, struct node *node, void *
   node->subs[1] = expr_ref(TREFDOT, node->subs[1]);
   node->subs[2] = expr_ref(TREFDOT, node->subs[2]);
 
-  error e = zero_and_first_for_generated(mod, node, saved_parent);
+  error e = one_level_zero_and_first_for_generated(mod, node, saved_parent);
   EXCEPT(e);
 
   return 0;
@@ -1636,44 +1648,46 @@ error step_temporary_inference(struct module *mod, struct node *node, void *user
   return 0;
 }
 
-error zeropass(struct module *mod, struct node *node) {
-  static const step zeropass_down[] = {
-    step_detect_deftype_kind,
-    step_assign_deftype_which_values,
-    step_extend_deftype_builtin_isalist,
-    step_add_builtin_members,
-    step_add_codegen_variables,
-    NULL,
-  };
-  static const step zeropass_up[] = {
-    step_add_scopes,
-    NULL,
-  };
+static const step zeropass_down[] = {
+  step_detect_deftype_kind,
+  step_assign_deftype_which_values,
+  step_extend_deftype_builtin_isalist,
+  step_add_builtin_members,
+  step_add_codegen_variables,
+  NULL,
+};
 
+static const step zeropass_up[] = {
+  step_add_scopes,
+  NULL,
+};
+
+error zeropass(struct module *mod, struct node *node) {
   error e = pass(mod, node, zeropass_down, zeropass_up, NULL);
   EXCEPT(e);
 
   return 0;
 }
 
-error firstpass(struct module *mod, struct node *node) {
-  static const step firstpass_down[] = {
-    step_stop_submodules,
-    step_lexical_scoping,
-    step_type_definitions,
-    step_type_destruct_mark,
-    step_type_gather_returns,
-    step_type_gather_excepts,
-    NULL,
-  };
-  static const step firstpass_up[] = {
-    step_type_inference,
-    step_type_inference_isalist,
-    step_add_builtin_constructors,
-    step_add_builtin_operators,
-    NULL,
-  };
+static const step firstpass_down[] = {
+  step_stop_submodules,
+  step_lexical_scoping,
+  step_type_definitions,
+  step_type_destruct_mark,
+  step_type_gather_returns,
+  step_type_gather_excepts,
+  NULL,
+};
 
+static const step firstpass_up[] = {
+  step_type_inference,
+  step_type_inference_isalist,
+  step_add_builtin_constructors,
+  step_add_builtin_operators,
+  NULL,
+};
+
+error firstpass(struct module *mod, struct node *node) {
   int module_depth = 0;
   error e = pass(mod, node, firstpass_down, firstpass_up, &module_depth);
   EXCEPT(e);
@@ -1681,22 +1695,65 @@ error firstpass(struct module *mod, struct node *node) {
   return 0;
 }
 
-error secondpass(struct module *mod, struct node *node) {
-  static const step secondpass_down[] = {
-    step_operator_call_inference,
-    step_unary_call_inference,
-    step_ctor_call_inference,
-    step_gather_generics,
-    step_call_arguments_prepare,
-    step_temporary_inference,
-    NULL,
-  };
-  static const step secondpass_up[] = {
-    NULL,
-  };
+static const step secondpass_down[] = {
+  step_operator_call_inference,
+  step_unary_call_inference,
+  step_ctor_call_inference,
+  step_gather_generics,
+  step_call_arguments_prepare,
+  step_temporary_inference,
+  NULL,
+};
 
+static const step secondpass_up[] = {
+  NULL,
+};
+
+error secondpass(struct module *mod, struct node *node) {
   int module_depth = 0;
   error e = pass(mod, node, secondpass_down, secondpass_up, &module_depth);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static error zero_for_generated(struct module *mod, struct node *node,
+                                struct scope *parent_scope) {
+  error e = zeropass(mod, node);
+  EXCEPT(e);
+  node->scope->parent = parent_scope;
+
+  return 0;
+}
+
+static error zero_and_first_for_generated(struct module *mod, struct node *node,
+                                          struct scope *parent_scope) {
+  error e = zero_for_generated(mod, node, parent_scope);
+  EXCEPT(e);
+
+  e = firstpass(mod, node);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static error one_level_zero_for_generated(struct module *mod, struct node *node,
+                                          struct scope *parent_scope) {
+  error e = one_level_pass(mod, node, zeropass_down, zeropass_up, NULL);
+  EXCEPT(e);
+
+  node->scope->parent = parent_scope;
+
+  return 0;
+}
+
+static error one_level_zero_and_first_for_generated(struct module *mod, struct node *node,
+                                                    struct scope *parent_scope) {
+  error e = one_level_zero_for_generated(mod, node, parent_scope);
+  EXCEPT(e);
+
+  int module_depth = 0;
+  e = one_level_pass(mod, node, firstpass_down, firstpass_up, &module_depth);
   EXCEPT(e);
 
   return 0;
