@@ -266,6 +266,9 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     fprintf(out, "%s", node->as.ISA.toplevel.is_export ? "export " : "");
     print_expr(out, mod, node->subs[0], parent_op);
     break;
+  case DIRECTDEF:
+    fprintf(out, "%s", scope_name(mod, node->as.DIRECTDEF.definition->scope));
+    break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
     assert(FALSE);
@@ -602,9 +605,9 @@ static void print_deftype(FILE *out, const struct module *mod, int indent, const
 }
 
 static void print_defmethod(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  const size_t arg_count = node->subs_count - (node_is_prototype(node) ? 2 : 3);
+  const size_t arg_count = node_fun_explicit_args_count(node);
   const struct node *name = node->subs[0];
-  const struct node *retval = node->subs[1 + arg_count];
+  const struct node *retval = node_fun_retval(node);
 
   print_toplevel(out, &node->as.DEFMETHOD.toplevel);
 

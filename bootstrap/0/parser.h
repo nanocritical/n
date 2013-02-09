@@ -52,7 +52,6 @@ enum node_which {
   MODULE_BODY,
   ROOT_OF_ALL,
   DIRECTDEF,
-  BUILTINGEN,
   NODE__NUM,
 };
 
@@ -226,7 +225,7 @@ struct node {
   struct node **subs;
 
   struct scope *scope;
-  struct typ *typ;
+  const struct typ *typ;
   bool is_type;
 };
 
@@ -370,13 +369,13 @@ struct typ {
   struct node *definition;
   enum typ_which which;
   size_t gen_arity;
-  struct typ **gen_args; // length gen_arity + 1
+  const struct typ **gen_args; // length gen_arity + 1
 
   size_t fun_arity;
-  struct typ **fun_args; // length fun_arity + 1
+  const struct typ **fun_args; // length fun_arity + 1
 
   size_t isalist_count;
-  struct typ **isalist;
+  const struct typ **isalist;
   bool *isalist_exported;
 };
 
@@ -405,7 +404,7 @@ struct module {
   struct node *body;
   size_t next_gensym;
 
-  struct node *return_node;
+  const struct node *return_node;
   struct try_excepts *trys;
   size_t trys_count;
 
@@ -417,9 +416,9 @@ void globalctx_init(struct globalctx *gctx);
 
 error module_open(struct globalctx *gctx, struct module *mod,
                   const char *prefix, const char *fn);
-void module_needs_instance(struct module *mod, struct typ *typ);
-void module_return_set(struct module *mod, struct node *return_node);
-struct node *module_return_get(struct module *mod);
+void module_needs_instance(struct module *mod, const struct typ *typ);
+void module_return_set(struct module *mod, const struct node *return_node);
+const struct node *module_return_get(struct module *mod);
 void module_excepts_open_try(struct module *mod);
 void module_excepts_push(struct module *mod, struct node *return_node);
 void module_excepts_close_try(struct module *mod);
@@ -432,7 +431,7 @@ ident idents_add(struct globalctx *gctx, const struct token *tok);
 struct scope *scope_new(struct node *node);
 error scope_define_ident(const struct module *mod, struct scope *scope, ident id, struct node *node);
 error scope_define(const struct module *mod, struct scope *scope, struct node *id, struct node *node);
-error scope_lookup_ident_noimport(struct node **result, const struct module *mod,
+error scope_lookup_ident_wontimport(struct node **result, const struct module *mod,
                                   const struct scope *scope, ident id, bool failure_ok);
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, const struct node *id);
@@ -454,11 +453,12 @@ bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);
 bool node_is_export(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
-size_t node_fun_args_count(const struct node *def);
+size_t node_fun_explicit_args_count(const struct node *def);
+const struct node *node_fun_retval(const struct node *def);
 struct toplevel *node_toplevel(struct node *node);
 const struct toplevel *node_toplevel_const(const struct node *node);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);
-struct node *node_typ_member(struct typ *typ, const char *member);
+struct node *node_typ_member(const struct typ *typ, const char *member);
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src);
 
@@ -466,13 +466,13 @@ struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id);
 error typ_compatible(const struct module *mod, const struct node *for_error,
-                const struct typ *a, const struct typ *constraint);
+                     const struct typ *a, const struct typ *constraint);
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error, const struct typ *a);
 error typ_compatible_reference(const struct module *mod, const struct node *for_error, const struct typ *a);
 bool typ_is_reference_instance(const struct module *mod, const struct typ *a);
 bool typ_is_concrete(const struct module *mod, const struct typ *a);
-error typ_unify(struct typ **u, const struct module *mod, const struct node *for_error,
-                struct typ *a, struct typ *b);
+error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,
+                const struct typ *a, const struct typ *b);
 bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf);
 error mk_except(const struct module *mod, const struct node *node, const char *fmt);
 error mk_except_type(const struct module *mod, const struct node *node, const char *fmt);

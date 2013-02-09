@@ -100,7 +100,7 @@ static void print_token(FILE *out, enum token_type t) {
 
 static void print_expr(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op);
 static void print_block(FILE *out, bool header, const struct module *mod, const struct node *node);
-static void print_typ(FILE *out, const struct module *mod, struct typ *typ);
+static void print_typ(FILE *out, const struct module *mod, const struct typ *typ);
 static void print_typeconstraint(FILE *out, bool header, const struct module *mod, const struct node *node);
 static void print_deftype_name(FILE *out, const struct module *mod, const struct node *node);
 static void print_deffun_name(FILE *out, const struct module *mod, const struct node *node);
@@ -235,14 +235,34 @@ static void print_tuple(FILE *out, bool header, const struct module *mod, const 
   }
 }
 
+static char *replace_dots(char *n) {
+  char *p = n;
+  while (p[0] != '\0') {
+    if (p[0] == '.') {
+      p[0] = '_';
+    }
+    p += 1;
+  }
+  return n;
+}
+
 static void print_call(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
-  print_expr(out, header, mod, node->subs[0], T__CALL);
-  fprintf(out, "(");
-  for (size_t n = 1; n < node->subs_count; ++n) {
+  const struct typ *ftyp = node->subs[0]->typ;
+
+  fprintf(out, "%s(", replace_dots(scope_name(mod, ftyp->definition->scope)));
+
+  const bool is_c ...
+  size_t shift = 1;
+  for (size_t n = 0; n < ftyp->fun_arity; ++n) {
     if (n > 0) {
       fprintf(out, ", ");
     }
-    print_expr(out, header, mod, node->subs[n], T__CALL);
+    if (n == 0 && node->subs[0]->subs) {
+      shift = 0;
+      print_expr(out, header, mod, node->sub[0]->subs[0]
+    } else {
+      print_expr(out, header, mod, node->subs[shift + n]->subs[1], T__CALL);
+    }
   }
   fprintf(out, ")");
 }
@@ -259,17 +279,6 @@ static void print_init(FILE *out, bool header, const struct module *mod, const s
   }
 
   fprintf(out, "}}");
-}
-
-static char *replace_dots(char *n) {
-  char *p = n;
-  while (p[0] != '\0') {
-    if (p[0] == '.') {
-      p[0] = '_';
-    }
-    p += 1;
-  }
-  return n;
 }
 
 static error is_local_name(bool *is_local, const struct module *mod, const struct node *node) {
@@ -466,7 +475,7 @@ static void print_toplevel(FILE *out, bool header, const struct node *node) {
   }
 }
 
-static void print_typ(FILE *out, const struct module *mod, struct typ *typ) {
+static void print_typ(FILE *out, const struct module *mod, const struct typ *typ) {
   switch (typ->which) {
   case TYPE_DEF:
     if (typ->gen_arity == 0) {
@@ -609,7 +618,7 @@ static void print_typeconstraint(FILE *out, bool header, const struct module *mo
 
 static void print_fun_prototype(FILE *out, bool header, const struct module *mod,
                                 const struct node *node) {
-  const size_t arg_count = node_fun_args_count(node);
+  const size_t arg_count = node_fun_explicit_args_count(node);
   const struct node *retval = node->subs[1 + arg_count];
 
   print_toplevel(out, header, node);
@@ -648,25 +657,7 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
     print_fun_prototype(out, header, mod, node);
     fprintf(out, ";\n");
   } else {
-    const size_t arg_count = node_fun_args_count(node);
-    print_fun_prototype(out, header, mod, node);
-
-    const struct node *block = node->subs[1 + arg_count + 1];
-    print_block(out, header, mod, block);
-    fprintf(out, "\n");
-  }
-}
-
-static void print_builtingen(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  if (header && !node_is_export(node)) {
-    return;
-  }
-
-  if (prototype_only(header, node)) {
-    print_fun_prototype(out, header, mod, node);
-    fprintf(out, ";\n");
-  } else {
-    const size_t arg_count = node_fun_args_count(node);
+    const size_t arg_count = node_fun_explicit_args_count(node);
     print_fun_prototype(out, header, mod, node);
 
     const struct node *block = node->subs[1 + arg_count + 1];
@@ -763,7 +754,7 @@ static void print_deftype_choices(FILE *out, bool header, const struct module *m
     return;
   }
 
-  struct typ *choice_typ = NULL;
+  const struct typ *choice_typ = NULL;
   for (size_t n = 0; n < node->subs_count; ++n) {
     struct node *s = node->subs[n];
     if (s->which == DEFCHOICE) {
@@ -937,6 +928,11 @@ static void print_import(FILE *out, bool header, const struct module *mod, const
 }
 
 static void print_module(FILE *out, bool header, const struct module *mod) {
+  if (header) {
+    const char *guard = replace_dots(scope_name(mod, mod->root->scope));
+    fprintf(out, "#ifndef %s\n#define %s\n\n", guard, guard);
+  }
+
   fprintf(out, "#include <lib/nlang/runtime.h>\n");
 
   const struct node *top = mod->body;
@@ -962,9 +958,6 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
     case IMPORT:
       print_import(out, header, mod, node);
       break;
-    case BUILTINGEN:
-      print_builtingen(out, header, mod, node);
-      break;
     default:
       fprintf(stderr, "Unsupported node: %d\n", node->which);
       assert(FALSE);
@@ -973,6 +966,10 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
     if (n < top->subs_count - 1) {
       fprintf(out, "\n");
     }
+  }
+
+  if (header) {
+    fprintf(out, "\n#endif\n");
   }
 }
 

@@ -423,7 +423,10 @@ char *scope_name(const struct module *mod, const struct scope *scope) {
   size_t len = 0;
   const struct scope *root = scope;
   while (root->parent != NULL) {
-    len += strlen(idents_value(mod->gctx, node_ident(root->node))) + 1;
+    ident id = node_ident(root->node);
+    if (id != ID_ANONYMOUS) {
+      len += strlen(idents_value(mod->gctx, id)) + 1;
+    }
     root = root->parent;
   }
   len -= 1;
@@ -431,14 +434,17 @@ char *scope_name(const struct module *mod, const struct scope *scope) {
   char *r = calloc(len + 1, sizeof(char));
   root = scope;
   while (root->parent != NULL) {
-    const char *name = idents_value(mod->gctx, node_ident(root->node));
-    size_t name_len = strlen(name);
-    if (root->parent->parent == NULL) {
-      memcpy(r, name, name_len);
-    } else {
-      len -= name_len + 1;
-      r[len] = '.';
-      memcpy(r + len + 1, name, name_len);
+    ident id = node_ident(root->node);
+    if (id != ID_ANONYMOUS) {
+      const char *name = idents_value(mod->gctx, id);
+      size_t name_len = strlen(name);
+      if (root->parent->parent == NULL) {
+        memcpy(r, name, name_len);
+      } else {
+        len -= name_len + 1;
+        r[len] = '.';
+        memcpy(r + len + 1, name, name_len);
+      }
     }
     root = root->parent;
   }
@@ -574,9 +580,9 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
   return 0;
 }
 
-static error do_scope_lookup_ident_noimport(struct node **result, const struct module *mod,
-                                            const struct scope *scope, ident id,
-                                            const struct scope *within, bool failure_ok) {
+static error do_scope_lookup_ident_wontimport(struct node **result, const struct module *mod,
+                                              const struct scope *scope, ident id,
+                                              const struct scope *within, bool failure_ok) {
   error e = do_scope_lookup_ident_immediate(result, mod, scope, id, within, TRUE, FALSE);
   if (!e) {
     return 0;
@@ -598,12 +604,12 @@ static error do_scope_lookup_ident_noimport(struct node **result, const struct m
     }
   }
 
-  return do_scope_lookup_ident_noimport(result, mod, scope->parent, id, within, failure_ok);
+  return do_scope_lookup_ident_wontimport(result, mod, scope->parent, id, within, failure_ok);
 }
 
-error scope_lookup_ident_noimport(struct node **result, const struct module *mod,
-                                  const struct scope *scope, ident id, bool failure_ok) {
-  return do_scope_lookup_ident_noimport(result, mod, scope, id, scope, failure_ok);
+error scope_lookup_ident_wontimport(struct node **result, const struct module *mod,
+                                    const struct scope *scope, ident id, bool failure_ok) {
+  return do_scope_lookup_ident_wontimport(result, mod, scope, id, scope, failure_ok);
 }
 
 #define EXCEPT_UNLESS(e, failure_ok) do { \
@@ -624,7 +630,7 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident_noimport(&r, mod, scope, id->as.IDENT.name, within, failure_ok);
+    e = do_scope_lookup_ident_wontimport(&r, mod, scope, id->as.IDENT.name, within, failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
 
     if (r->which == IMPORT) {
@@ -717,7 +723,7 @@ error scope_lookup_module(struct node **result, const struct module *mod,
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident_noimport(&r, mod, scope, id->as.IDENT.name, within, TRUE);
+    e = do_scope_lookup_ident_wontimport(&r, mod, scope, id->as.IDENT.name, within, TRUE);
     break;
   case BIN:
     if (id->as.BIN.operator != TDOT) {
@@ -1004,12 +1010,21 @@ struct node *node_new_subnode(const struct module *mod, struct node *node) {
   return *r;
 }
 
-size_t node_fun_args_count(const struct node *def) {
+size_t node_fun_explicit_args_count(const struct node *def) {
   assert(def->which == DEFFUN || def->which == DEFMETHOD);
   if (def->subs[def->subs_count-1]->which == BLOCK) {
     return def->subs_count-3;
   } else {
     return def->subs_count-2;
+  }
+}
+
+const struct node *node_fun_retval(const struct node *def) {
+  assert(def->which == DEFFUN || def->which == DEFMETHOD);
+  if (def->subs[def->subs_count-1]->which == BLOCK) {
+    return def->subs[def->subs_count-2];
+  } else {
+    return def->subs[def->subs_count-1];
   }
 }
 
@@ -1743,18 +1758,15 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
                       enum node_which fun_or_method) {
   error e;
   struct token tok;
-  struct toplevel *node_toplevel_const;
 
   node->which = fun_or_method;
   switch (fun_or_method) {
   case DEFFUN:
     node->as.DEFFUN.toplevel = *toplevel;
-    node_toplevel_const = &node->as.DEFFUN.toplevel;
     break;
   case DEFMETHOD:
     node->as.DEFMETHOD.toplevel = *toplevel;
     node->as.DEFMETHOD.access = TREFDOT;
-    node_toplevel_const = &node->as.DEFMETHOD.toplevel;
 
     e = scan(&tok, mod);
     EXCEPT(e);
@@ -1820,7 +1832,6 @@ retval:
 
   if (tok.t == TEOL || tok.t == TEOB) {
     back(mod, &tok);
-    node_toplevel_const->is_prototype = TRUE;
     return 0;
   }
 
@@ -2278,7 +2289,7 @@ static error register_module(struct node **parent,
   for (size_t p = 0; p <= last; ++p) {
     ident i = mod->path[p];
     struct node *m = NULL;
-    error e = scope_lookup_ident_noimport(&m, mod, root->scope, i, TRUE);
+    error e = scope_lookup_ident_wontimport(&m, mod, root->scope, i, TRUE);
     if (e == EINVAL) {
       m = node_new_subnode(mod, root);
       m->which = MODULE;
@@ -2293,7 +2304,7 @@ static error register_module(struct node **parent,
       EXCEPT(e);
     } else if (e) {
       // Repeat bound-to-fail lookup to get the error message right.
-      e = scope_lookup_ident_noimport(&m, mod, root->scope, i, FALSE);
+      e = scope_lookup_ident_wontimport(&m, mod, root->scope, i, FALSE);
       EXCEPT(e);
     } else {
       if (p == last) {
@@ -2373,14 +2384,14 @@ ident gensym(struct module *mod) {
   return idents_add(mod->gctx, &tok);
 }
 
-void module_needs_instance(struct module *mod, struct typ *typ) {
+void module_needs_instance(struct module *mod, const struct typ *typ) {
 }
 
-void module_return_set(struct module *mod, struct node *return_node) {
+void module_return_set(struct module *mod, const struct node *return_node) {
   mod->return_node = return_node;
 }
 
-struct node *module_return_get(struct module *mod) {
+const struct node *module_return_get(struct module *mod) {
   return mod->return_node;
 }
 
@@ -2413,6 +2424,7 @@ static struct typ *typ_new_builtin(struct node *definition,
   r->gen_arity = gen_arity;
   if (gen_arity > 0) {
     r->gen_args = calloc(gen_arity + 1, sizeof(struct typ *));
+    assert(definition->typ != NULL);
     r->gen_args[0] = definition->typ;
   }
   r->fun_arity = fun_arity;
@@ -2567,8 +2579,8 @@ bool typ_is_builtin(const struct module *mod, const struct typ *t) {
   return FALSE;
 }
 
-error typ_unify(struct typ **u, const struct module *mod, const struct node *for_error,
-                struct typ *a, struct typ *b) {
+error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,
+                const struct typ *a, const struct typ *b) {
   error e = typ_compatible(mod, for_error, a, b);
   EXCEPT(e);
 
@@ -2625,6 +2637,6 @@ error mk_except_type(const struct module *mod, const struct node *node, const ch
 error mk_except_call_arg_count(const struct module *mod, const struct node *node,
                                const struct node *definition, size_t given) {
   EXCEPT_TYPE(node_module_owner_const(node), node, "invalid number of arguments: %zd expected, but %zd given",
-              node_fun_args_count(definition), given);
+              node_fun_explicit_args_count(definition), given);
   return 0;
 }

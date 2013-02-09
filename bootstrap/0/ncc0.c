@@ -143,7 +143,7 @@ static error for_all_nodes(struct node *root,
     .user = user,
   };
 
-  error e = pass(NULL, root, downsteps, upsteps, &op);
+  error e = pass(NULL, root, downsteps, upsteps, NULL, &op);
   EXCEPT(e);
 
   return 0;
@@ -158,7 +158,7 @@ static error load_module(struct globalctx *gctx, const char *prefix, const char 
   error e = module_open(gctx, mod, prefix, fn);
   EXCEPT(e);
 
-  e = zeropass(mod, NULL);
+  e = zeropass(mod, NULL, NULL);
   EXCEPT(e);
 
   return 0;
@@ -429,9 +429,9 @@ int main(int argc, char **argv) {
   EXCEPT(e);
 
   for (size_t n = 0; n < deps.modules_count; ++n) {
-    e = firstpass(deps.modules[n], NULL);
+    e = firstpass(deps.modules[n], NULL, NULL);
     EXCEPT(e);
-    e = secondpass(deps.modules[n], NULL);
+    e = secondpass(deps.modules[n], NULL, NULL);
     EXCEPT(e);
   }
 

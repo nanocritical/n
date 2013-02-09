@@ -1,3 +1,5 @@
+export type void =
+
 export type __pseudo_tuple__ =
 export type ref =
 export type mref =
