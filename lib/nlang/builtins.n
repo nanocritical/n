@@ -9,16 +9,18 @@ export type nmref =
 export type nmmref =
 export type __internal_dyn__ =
 
-export intf DefaultConstructible =
+export intf Default =
+  method# ctor = void
   fun mk = this
   fun new = @#this
 
-intf Copyable =
-intf TrivialCopy =
-intf Comparable =
-intf Ordered =
-intf Arithmetic =
-intf Bitwise =
+export intf Copyable =
+export intf TrivialCopy = export Copyable
+export intf Matchable =
+export intf Comparable = export Matchable
+export intf Ordered = export Comparable
+export intf Arithmetic = export Ordered
+export intf Bitwise =
 
 export intf Integer = \
     export Arithmetic \
@@ -46,7 +48,10 @@ export intf Copyable =
 
 export intf TrivialCopy = export Copyable
 
-export intf Comparable =
+export intf Matchable =
+  method operator_match other:@this = bool
+
+export intf Comparable = export Matchable
   method operator_eq other:@this = bool
   method operator_ne other:@this = bool
 
@@ -77,7 +82,3 @@ export intf Bitwise =
   method operator_lshift by:u32 = this
   method operator_rshift by:u32 = this
   method operator_ubwnot = this
-
-export intf BuiltinStruct =
-export intf BuiltinEnum = export Comparable
-export intf BuiltinSum = export Comparable

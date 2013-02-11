@@ -87,10 +87,19 @@ static void insert_last_at(struct node *node, size_t pos) {
 
 static void move_last_over(struct node *node, size_t pos) {
   struct node *would_leak = node->subs[pos];
-  assert(would_leak->which == IDENT);
+  // Ensures there is nothing to leak.
+  assert(would_leak->which == IDENT
+         || would_leak->which == DIRECTDEF
+         || would_leak->which == BIN);
   node->subs[pos] = node->subs[node->subs_count - 1];
   node->subs_count -= 1;
   node->subs = realloc(node->subs, node->subs_count * sizeof(node->subs[0]));
+}
+
+static void append(struct node *node, struct node *sub) {
+  node->subs_count += 1;
+  node->subs = realloc(node->subs, node->subs_count * sizeof(node->subs[0]));
+  node->subs[node->subs_count - 1] = sub;
 }
 
 static error step_detect_prototypes(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -98,9 +107,11 @@ static error step_detect_prototypes(struct module *mod, struct node *node, void 
   switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
+    toplevel->is_prototype = node->subs[node->subs_count - 1]->which != BLOCK;
+    break;
   case DEFTYPE:
   case DEFINTF:
-    toplevel->is_prototype = node->subs[node->subs_count - 1]->which != BLOCK;
+    toplevel->is_prototype = node->subs_count <= 2;
     break;
   default:
     break;
@@ -236,36 +247,6 @@ struct node *mk_expr_abspath(struct module *mod, struct node *node, const char *
   return n;
 }
 
-static error step_extend_deftype_builtin_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
-  if (node->which != DEFTYPE) {
-    return 0;
-  }
-
-  struct node *isalist = NULL;
-  struct node *isa = NULL;
-
-  switch (node->as.DEFTYPE.kind) {
-  case DEFTYPE_PROTOTYPE:
-    break;
-  case DEFTYPE_STRUCT:
-    break;
-  case DEFTYPE_SUM:
-    isalist = node->subs[2];
-    isa = mk_node(mod, isalist, ISA);
-    isa->as.ISA.toplevel.is_export = TRUE;
-    mk_expr_abspath(mod, isa, "nlang.builtins.BuiltinSum");
-    break;
-  case DEFTYPE_ENUM:
-    isalist = node->subs[2];
-    isa = mk_node(mod, isalist, ISA);
-    isa->as.ISA.toplevel.is_export = TRUE;
-    mk_expr_abspath(mod, isa, "nlang.builtins.BuiltinEnum");
-    break;
-  }
-
-  return 0;
-}
-
 static error step_add_builtin_members(struct module *mod, struct node *node, void *user, bool *stop) {
   switch (node->which) {
   case DEFTYPE:
@@ -283,17 +264,6 @@ static error step_add_builtin_members(struct module *mod, struct node *node, voi
   expr->as.IDENT.name = node_ident(node);
 
   insert_last_at(node, 2);
-
-  return 0;
-}
-
-static error step_add_builtin_constructors(struct module *mod, struct node *node, void *user, bool *stop) {
-  switch (node->which) {
-  case DEFTYPE:
-    break;
-  default:
-    return 0;
-  }
 
   return 0;
 }
@@ -424,6 +394,14 @@ static error lexical_import_from_path(struct scope *scope, struct module *mod,
 
 static error lexical_import(struct scope *scope, struct module *mod, struct node *import);
 
+static bool is_forward_declaration(struct module *mod, struct node *node) {
+  struct node *d = NULL;
+  error e = scope_lookup_ident_wontimport(&d, mod, mod->body->scope, node_ident(node), FALSE);
+  assert(!e);
+
+  return d != node;
+}
+
 static error lexical_import_all_from_path(struct scope *scope, struct module *mod,
                                           struct node *import) {
   error e;
@@ -457,6 +435,10 @@ static error lexical_import_all_from_path(struct scope *scope, struct module *mo
       e = lexical_import(scope, target_mod, ex);
       EXCEPT(e);
 
+      continue;
+    }
+
+    if (is_forward_declaration(target_mod, ex)) {
       continue;
     }
 
@@ -733,6 +715,38 @@ static error step_type_gather_excepts(struct module *mod, struct node *node, voi
   return 0;
 }
 
+static error step_rewrite_sum_constructors(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != CALL) {
+    return 0;
+  }
+
+  struct node *fun = node->subs[0];
+  if (fun->typ->which != TYPE_DEF
+      || fun->typ->definition->as.DEFTYPE.kind != DEFTYPE_SUM) {
+    return 0;
+  }
+
+  struct node *member = NULL;
+  error e = scope_lookup(&member, mod, fun->scope, fun);
+  EXCEPT(e);
+  if (member->which != DEFCHOICE) {
+    return 0;
+  }
+
+  struct node *mk_fun = mk_node(mod, node, BIN);
+  mk_fun->as.BIN.operator = TDOT;
+  move_last_over(node, 0);
+  append(mk_fun, fun);
+  struct node *mk = mk_node(mod, mk_fun, IDENT);
+  mk->as.IDENT.name = ID_MK;
+
+  struct node *except[] = { fun, NULL };
+  e = zero_and_first_for_generated(mod, mk_fun, except, node->scope);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error type_destruct(struct module *mod, struct node *node, const struct typ *constraint);
 
 static error type_inference_unary_call(struct module *mod, struct node *node, struct node *def) {
@@ -931,7 +945,8 @@ static error type_inference_tuple(struct module *mod, struct node *node) {
     }
     node->is_type |= node->subs[n]->is_type;
   }
-  module_needs_instance(mod, node->typ);
+  error e = need_instance(mod, node, node->typ);
+  EXCEPT(e);
   return 0;
 }
 
@@ -954,31 +969,30 @@ static error type_inference_init(struct module *mod, struct node *node) {
 static error prepare_call_arguments(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
 
-  size_t explicit_args_needed = node_fun_explicit_args_count(fun->typ->definition);
-  if (node->typ->definition->which == DEFMETHOD) {
-    if (fun->subs[0]->is_type) {
-      // Of the form (type.method self ...)
-      explicit_args_needed += 1;
-    }
-  }
-
-  if (explicit_args_needed != node->subs_count - 1) {
+  if (node_fun_explicit_args_count(fun->typ->definition) != node->subs_count - 1) {
     error e = mk_except_call_arg_count(mod, node, fun->typ->definition,
                                        node->subs_count - 1);
     EXCEPT(e);
   }
 
-  switch (node->typ->definition->which) {
+  switch (fun->typ->definition->which) {
   case DEFFUN:
-    assert(FALSE && "Unsupported");
     break;
   case DEFMETHOD:
     if (!fun->subs[0]->is_type) {
-      // Form self.method
-      ... rewrite
+      // Form (self.method ...)
+      struct node *m = mk_node(mod, node, DIRECTDEF);
+      m->as.DIRECTDEF.definition = fun->typ->definition;
+      append(node, m);
+      struct node *self = fun->subs[0];
+      move_last_over(node, 0);
+      append(node, self);
+      insert_last_at(node, 1);
+
+      error e = zero_and_first_for_generated(mod, m, NULL, node->scope);
+      EXCEPT(e);
+      self->scope->parent = node->scope;
     }
-    break;
-  case DEFTYPE:
     break;
   default:
     assert(FALSE);
@@ -991,7 +1005,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
 
   if (fun->typ->which != TYPE_FUNCTION) {
-    error e = mk_except_type(mod, fun, "not a function");
+    error e = mk_except_type(mod, fun, "not a function or sum type constructor");
     EXCEPT(e);
   }
 
@@ -1386,21 +1400,11 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     assert(!node->subs[0]->is_type);
     goto ok;
   case DEFFUN:
+  case DEFMETHOD:
     node->typ = typ_new(node, TYPE_FUNCTION, 0,
                         node_fun_explicit_args_count(node));
     for (size_t n = 0; n < node->typ->fun_arity; ++n) {
-      node->typ->fun_args[n] = node->subs[n+1]->typ;
-    }
-    node->is_type = TRUE;
-    module_return_set(mod, NULL);
-    goto ok;
-  case DEFMETHOD:
-    node->typ = typ_new(node, TYPE_FUNCTION, 0,
-                        node_fun_explicit_args_count(node) + 1);
-    node->typ->fun_args[0] = typ_ref(mod, node->as.DEFMETHOD.access,
-                                     node->scope->parent->node->typ);
-    for (size_t n = 1; n < node->typ->fun_arity; ++n) {
-      node->typ->fun_args[n] = node->subs[n]->typ;
+      node->typ->fun_args[n] = node->subs[n + 1]->typ;
     }
     node->is_type = TRUE;
     module_return_set(mod, NULL);
@@ -1425,6 +1429,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
         if (u == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
           u = typ_lookup_builtin(mod, TBI_U32);
         }
+        node->as.DEFTYPE.choice_typ = u;
 
         for (size_t n = 0; n < node->subs_count; ++n) {
           if (node->subs[n]->which != DEFCHOICE) {
@@ -1541,7 +1546,8 @@ static void define_builtin(struct module *mod, struct node *tdef,
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->scope_name = node_ident(tdef);
   toplevel->builtingen = bg;
-  toplevel->is_export = TRUE;
+  toplevel->is_export = node_toplevel(tdef)->is_export;
+  toplevel->is_inline = node_toplevel(tdef)->is_inline;
 
   mk_expr_abspath(mod, d, builtingen_abspath[bg]);
   move_last_over(d, 0);
@@ -1549,6 +1555,44 @@ static void define_builtin(struct module *mod, struct node *tdef,
   insert_last_at(modbody, insert_pos);
   e = zero_for_generated(mod, d, modbody->scope);
   assert(!e);
+
+  node_toplevel(d)->is_prototype = FALSE;
+}
+
+static error step_add_builtin_constructors(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case DEFTYPE:
+    break;
+  default:
+    return 0;
+  }
+
+  if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
+    for (size_t c = 0; c < node->subs_count; ++c) {
+      struct node *ch = node->subs[c];
+      if (ch->which != DEFCHOICE) {
+        continue;
+      }
+
+      ... if Copyable, then define ctor_with
+        ... if Default, then define ctor
+
+      struct node *d = define_custom(mod, ch, BG_SUM_CTOR, DEFMETHOD);
+      struct node *id = mk_node(mod, d, IDENT);
+      id->as.IDENT.name = ID_CTOR;
+      struct node *arg = mk_node(mod, d, TYPECONSTRAINT);
+      arg->as.TYPECONSTRAINT.is_arg = TRUE;
+      struct node *name = mk_node(mod, arg, IDENT);
+      name->as.IDENT.name = ID_C;
+
+      struct node *ref = mk_node(mod, arg, UN);
+      ref->as.UN.operator = node->as.DEFMETHOD.access;
+      struct node *typename = mk_node(mod, ref, IDENT);
+      typename->as.IDENT.name = ID_THIS;
+    }
+  }
+
+  return 0;
 }
 
 static error step_add_builtin_operators(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -1565,16 +1609,54 @@ static error step_add_builtin_operators(struct module *mod, struct node *node, v
   case DEFTYPE_STRUCT:
     break;
   case DEFTYPE_SUM:
-    if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_COMPARABLE))) {
-      define_builtin(mod, node, BG_SUM_EQ);
-      define_builtin(mod, node, BG_SUM_NE);
-    }
     break;
   case DEFTYPE_ENUM:
-    fprintf(stderr, "bi op %s\n", idents_value(mod->gctx, node_ident(node)));
     define_builtin(mod, node, BG_ENUM_EQ);
     define_builtin(mod, node, BG_ENUM_NE);
     break;
+  }
+
+  return 0;
+}
+
+static error step_add_sum_dispatch(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case DEFTYPE:
+    break;
+  default:
+    return 0;
+  }
+
+  switch (node->as.DEFTYPE.kind) {
+  case DEFTYPE_PROTOTYPE:
+  case DEFTYPE_ENUM:
+  case DEFTYPE_STRUCT:
+    return 0;
+  case DEFTYPE_SUM:
+    break;
+  }
+
+  for (size_t n = 0; n < node->typ->isalist_count; ++n) {
+    const struct typ *intf = node->typ->isalist[n];
+
+    for (size_t c = 0; c < node->subs_count; ++c) {
+      struct node *ch = node->subs[c];
+      if (ch->which != DEFCHOICE) {
+        continue;
+      }
+
+      const struct typ *tch = NULL;
+      if (ch->subs_count == 2) {
+        tch = node->as.DEFTYPE.choice_typ;
+      } else if (ch->subs_count == 3) {
+        tch = ch->subs[2]->typ;
+      } else {
+        assert(FALSE);
+      }
+
+      error e = typ_check_isa(mod, ch, tch, intf);
+      EXCEPT(e);
+    }
   }
 
   return 0;
@@ -1640,7 +1722,16 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
     return 0;
   }
 
-  if (typ_isa(mod, node->subs[0]->typ, typ_lookup_builtin(mod, TBI_NATIVE_INTEGER))) {
+  struct node *left = node->subs[0];
+  if (typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_NATIVE_INTEGER))) {
+    return 0;
+  }
+
+  struct node *dleft = left->typ->definition;
+  if (dleft->which == DEFTYPE
+      && dleft->as.DEFTYPE.kind == DEFTYPE_ENUM
+      && typ_isa(mod, dleft->as.DEFTYPE.choice_typ,
+                 typ_lookup_builtin(mod, TBI_NATIVE_INTEGER))) {
     return 0;
   }
 
@@ -1690,7 +1781,6 @@ static const step zeropass_down[] = {
   step_detect_prototypes,
   step_detect_deftype_kind,
   step_assign_deftype_which_values,
-  step_extend_deftype_builtin_isalist,
   step_add_builtin_members,
   step_add_codegen_variables,
   NULL,
@@ -1719,10 +1809,12 @@ static const step firstpass_down[] = {
 };
 
 static const step firstpass_up[] = {
+  step_rewrite_sum_constructors,
   step_type_inference,
   step_type_inference_isalist,
   step_add_builtin_constructors,
   step_add_builtin_operators,
+  step_add_sum_dispatch,
   NULL,
 };
 

@@ -487,7 +487,8 @@ static void print_deffun(FILE *out, const struct module *mod, int indent, const 
   fprintf(out, " = ");
   print_expr(out, mod, retval, T__NONE);
 
-  if (!node->as.DEFFUN.toplevel.is_prototype) {
+  if (!node_toplevel_const(node)->is_prototype
+      && node_toplevel_const(node)->builtingen != BG__NOT) {
     const struct node *block = node->subs[1 + arg_count + 1];
     print_block(out, mod, 0, block);
   }
@@ -624,7 +625,7 @@ static void print_defmethod(FILE *out, const struct module *mod, int indent, con
   fprintf(out, " = ");
   print_expr(out, mod, retval, T__NONE);
 
-  if (!node_is_prototype(node)) {
+  if (!node_is_prototype(node) && node_toplevel_const(node)->builtingen == BG__NOT) {
     const struct node *block = node->subs[1 + arg_count + 1];
     print_block(out, mod, 0, block);
   }

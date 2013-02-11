@@ -124,16 +124,25 @@ static void print_bin_acc(FILE *out, bool header, const struct module *mod, cons
   const struct node *left = node->subs[0];
   const struct node *right = node->subs[1];
 
+  const struct typ *tleft = left->typ;
+
   struct node *n = NULL;
-  error e = scope_lookup(&n, mod, node->subs[0]->typ->definition->scope, node->subs[1]);
+  error e = scope_lookup(&n, mod, tleft->definition->scope, right);
   assert(!e);
 
   switch (n->which) {
   case DEFCHOICE:
-    print_deftype_name(out, mod, node->subs[0]->typ->definition);
-    fprintf(out, "_");
-    print_deffield_name(out, mod, n);
-    fprintf(out, "_%s", idents_value(mod->gctx, ID_WHICH));
+    if (tleft->definition->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+      print_typ(out, mod, tleft);
+      fprintf(out, "_");
+      print_deffield_name(out, mod, n);
+    } else {
+      assert(FALSE && "FIXME Unsupported");
+      print_deftype_name(out, mod, tleft->definition);
+      fprintf(out, "_");
+      print_deffield_name(out, mod, n);
+      fprintf(out, "_%s", idents_value(mod->gctx, ID_WHICH));
+    }
     break;
   case DEFFUN:
   case DEFMETHOD:
@@ -144,7 +153,7 @@ static void print_bin_acc(FILE *out, bool header, const struct module *mod, cons
     break;
   default: {
     const char *deref = ".";
-    if (typ_is_reference_instance(mod, left->typ)) {
+    if (typ_is_reference_instance(mod, tleft)) {
       deref = "->";
     }
     print_expr(out, header, mod, left, op);
@@ -249,20 +258,13 @@ static char *replace_dots(char *n) {
 static void print_call(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const struct typ *ftyp = node->subs[0]->typ;
 
-  fprintf(out, "%s(", replace_dots(scope_name(mod, ftyp->definition->scope)));
+  fprintf(out, "%s(", replace_dots(typ_name(mod, ftyp)));
 
-  const bool is_c ...
-  size_t shift = 1;
   for (size_t n = 0; n < ftyp->fun_arity; ++n) {
     if (n > 0) {
       fprintf(out, ", ");
     }
-    if (n == 0 && node->subs[0]->subs) {
-      shift = 0;
-      print_expr(out, header, mod, node->sub[0]->subs[0]
-    } else {
-      print_expr(out, header, mod, node->subs[shift + n]->subs[1], T__CALL);
-    }
+    print_expr(out, header, mod, node->subs[1 + n], T__CALL);
   }
   fprintf(out, ")");
 }
@@ -482,7 +484,7 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
       fprintf(out, "%s", replace_dots(typ_name(mod, typ)));
     } else {
       fprintf(out, "_ngen_%s", replace_dots(typ_name(mod, typ)));
-      for (size_t n = 0; n < typ->gen_arity; ++n) {
+      for (size_t n = 1; n < typ->gen_arity + 1; ++n) {
         fprintf(out, "__%s", replace_dots(typ_name(mod, typ->gen_args[n])));
       }
     }
@@ -648,6 +650,25 @@ static bool prototype_only(bool header, const struct node *node) {
   return (header && !(node_is_export(node) && node_is_inline(node))) || node_is_prototype(node);
 }
 
+static void print_deffun_builtingen(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  fprintf(out, " {\n");
+  switch (node_toplevel_const(node)->builtingen) {
+  case BG_ENUM_EQ:
+    fprintf(out, "return *self == *other;\n");
+    break;
+  case BG_ENUM_NE:
+    fprintf(out, "return *self != *other;\n");
+    break;
+  case BG_ENUM_MATCH:
+    fprintf(out, "return *self == *other;\n");
+    break;
+  default:
+    assert(FALSE);
+    break;
+  }
+  fprintf(out, "}\n");
+}
+
 static void print_deffun(FILE *out, bool header, const struct module *mod, const struct node *node) {
   if (header && !node_is_export(node)) {
     return;
@@ -656,10 +677,13 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
   if (prototype_only(header, node)) {
     print_fun_prototype(out, header, mod, node);
     fprintf(out, ";\n");
+  } else if (node_toplevel_const(node)->builtingen != BG__NOT) {
+    print_fun_prototype(out, header, mod, node);
+    print_deffun_builtingen(out, header, mod, node);
   } else {
-    const size_t arg_count = node_fun_explicit_args_count(node);
     print_fun_prototype(out, header, mod, node);
 
+    const size_t arg_count = node_fun_explicit_args_count(node);
     const struct node *block = node->subs[1 + arg_count + 1];
     print_block(out, header, mod, block);
     fprintf(out, "\n");
@@ -729,15 +753,12 @@ static void print_deftype_block(FILE *out, bool header, const struct module *mod
     }
   }
 
-  if (!do_static && (node->as.DEFTYPE.kind == DEFTYPE_ENUM
-                     || node->as.DEFTYPE.kind == DEFTYPE_SUM)) {
+  if (!do_static && (node->as.DEFTYPE.kind == DEFTYPE_SUM)) {
     print_deftype_name(out, mod, node);
     fprintf(out, "_%s %s;\n",
             idents_value(mod->gctx, ID_WHICH_TYPE),
             idents_value(mod->gctx, ID_WHICH));
-  }
 
-  if (!do_static && node->as.DEFTYPE.kind == DEFTYPE_SUM) {
     print_deftype_name(out, mod, node);
     fprintf(out, "_%s %s;\n",
             idents_value(mod->gctx, ID_AS_TYPE),
@@ -747,6 +768,44 @@ static void print_deftype_block(FILE *out, bool header, const struct module *mod
   if (!do_static) {
     fprintf(out, "}\n");
   }
+}
+
+static void print_deftype_typedefs(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  fprintf(out, "typedef const ");
+  print_deftype_name(out, mod, node);
+  fprintf(out, "* _ngen_nlang_builtins_ref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef _ngen_nlang_builtins_ref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " _ngen_nlang_builtins_nref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef ");
+  print_deftype_name(out, mod, node);
+  fprintf(out, "* _ngen_nlang_builtins_mref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " _ngen_nlang_builtins_mmref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " _ngen_nlang_builtins_nmref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " _ngen_nlang_builtins_nmmref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
 }
 
 static void print_deftype_choices(FILE *out, bool header, const struct module *mod, const struct node *node) {
@@ -834,14 +893,50 @@ static void print_deftype_choices(FILE *out, bool header, const struct module *m
   fprintf(out, "_%s ", idents_value(mod->gctx, ID_AS_TYPE));
   print_deftype_name(out, mod, node);
   fprintf(out, "_%s;\n", idents_value(mod->gctx, ID_AS_TYPE));
+
+  print_deftype_typedefs(out, header, mod, node);
 }
 
+static void print_deftype_enum(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  fprintf(out, "typedef ");
+  print_typ(out, mod, node->as.DEFTYPE.choice_typ);
+  fprintf(out, " ");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  print_deftype_block(out, header, mod, node, 2, TRUE);
+
+  if (!prototype_only(header, node)) {
+    for (size_t n = 0; n < node->subs_count; ++n) {
+      struct node *s = node->subs[n];
+      if (s->which != DEFCHOICE) {
+        continue;
+      }
+
+      print_deftype_name(out, mod, node);
+      fprintf(out, " ");
+      print_deftype_name(out, mod, node);
+      fprintf(out, "_");
+      print_deffield_name(out, mod, s);
+      fprintf(out, " = ");
+      print_expr(out, header, mod, s->subs[1], T__CALL);
+      fprintf(out, ";\n");
+    }
+  }
+
+  print_deftype_typedefs(out, header, mod, node);
+}
 static void print_deftype(FILE *out, bool header, const struct module *mod, const struct node *node) {
   if (header && !node_is_export(node)) {
     return;
   }
 
   if (typ_is_builtin(mod, node->typ)) {
+    return;
+  }
+
+  if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+    print_deftype_enum(out, header, mod, node);
     return;
   }
 
@@ -854,65 +949,22 @@ static void print_deftype(FILE *out, bool header, const struct module *mod, cons
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
-  switch (node->as.DEFTYPE.kind) {
-  case DEFTYPE_ENUM:
-  case DEFTYPE_SUM:
+  if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
     print_deftype_choices(out, header, mod, node);
-    break;
-  default:
-    break;
   }
 
-  const bool has_isalist = node_is_prototype(node)
-    ? node->subs_count > 1 : node->subs_count > 2;
-  print_deftype_block(out, header, mod, node, has_isalist ? 2 : 1, TRUE);
+  print_deftype_block(out, header, mod, node, 2, TRUE);
 
   if (!prototype_only(header, node)) {
     fprintf(out, "struct ");
     print_deftype_name(out, mod, node);
 
-    if (!node_is_prototype(node)) {
-      print_deftype_block(out, header, mod, node, has_isalist ? 2 : 1, FALSE);
-    }
+    print_deftype_block(out, header, mod, node, 2, FALSE);
 
     fprintf(out, ";\n");
   }
 
-  fprintf(out, "typedef const ");
-  print_deftype_name(out, mod, node);
-  fprintf(out, "* _ngen_nlang_builtins_ref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, ";\n");
-
-  fprintf(out, "typedef _ngen_nlang_builtins_ref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_nref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, ";\n");
-
-  fprintf(out, "typedef ");
-  print_deftype_name(out, mod, node);
-  fprintf(out, "* _ngen_nlang_builtins_mref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, ";\n");
-
-  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_mmref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, ";\n");
-
-  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_nmref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, ";\n");
-
-  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_nmmref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, ";\n");
+  print_deftype_typedefs(out, header, mod, node);
 }
 
 static void print_defintf(FILE *out, bool header, const struct module *mod, const struct node *node) {

@@ -102,6 +102,10 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_COMPARABLE] = "Comparable",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
+  [ID_MK] = "mk",
+  [ID_NEW] = "new",
+  [ID_CTOR] = "ctor",
+  [ID_C] = "c",
   [ID_OPERATOR_OR] = "operator_or",
   [ID_OPERATOR_AND] = "operator_and",
   [ID_OPERATOR_NOT] = "operator_not",
@@ -112,6 +116,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_OPERATOR_GE] = "operator_ge",
   [ID_OPERATOR_EQ] = "operator_eq",
   [ID_OPERATOR_NE] = "operator_ne",
+  [ID_OPERATOR_MATCH] = "operator_match",
   [ID_OPERATOR_BWOR] = "operator_bwor",
   [ID_OPERATOR_BWXOR] = "operator_bwxor",
   [ID_OPERATOR_BWAND] = "operator_bwand",
@@ -127,24 +132,24 @@ static const char *predefined_idents_strings[ID__NUM] = {
 };
 
 const char *builtingen_abspath[BG__NUM] = {
-  [BG_STRUCT_DEFAULT_MK] = "nlang.builtins.Constructible.mk",
-  [BG_STRUCT_DEFAULT_NEW] = "nlang.builtins.Constructible.new",
-  [BG_ENUM_MK] = "nlang.builtins.DefaultConstructible.mk",
-  [BG_ENUM_NEW] = "nlang.builtins.DefaultConstructible.new",
+  [BG_STRUCT_DEFAULT_CTOR] = "nlang.builtins.Default.ctor",
+  [BG_STRUCT_DEFAULT_MK] = "nlang.builtins.Default.mk",
+  [BG_STRUCT_DEFAULT_NEW] = "nlang.builtins.Default.new",
   [BG_ENUM_EQ] = "nlang.builtins.Comparable.operator_eq",
   [BG_ENUM_NE] = "nlang.builtins.Comparable.operator_ne",
-  [BG_SUM_EQ] = "nlang.builtins.Comparable.operator_eq",
-  [BG_SUM_NE] = "nlang.builtins.Comparable.operator_ne",
+  [BG_ENUM_MATCH] = "nlang.builtins.Matchable.operator_match",
+  [BG_SUM_MATCH] = "nlang.builtins.Matchable.operator_match",
+  [BG_SUM_CTOR_WITH] = "ctor_with",
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
 implement_htable_sparse(__attribute__((unused)) static, idents_map, ident, struct token);
 
-uint32_t token_hash(const struct token *tok) {
+static uint32_t token_hash(const struct token *tok) {
   return hash32_hsieh(tok->value, tok->len);
 }
 
-int token_cmp(const struct token *a, const struct token *b) {
+static int token_cmp(const struct token *a, const struct token *b) {
   if (a->len != b->len) {
     return a->len - b->len;
   } else {
@@ -241,11 +246,11 @@ static int column(const struct parser *parser, const struct token *tok) {
 HTABLE_SPARSE(scope_map, struct node *, ident);
 implement_htable_sparse(__attribute__((unused)) static, scope_map, struct node *, ident);
 
-uint32_t ident_hash(const ident *a) {
+static uint32_t ident_hash(const ident *a) {
   return hash32_hsieh(a, sizeof(*a));
 }
 
-int ident_cmp(const ident *a, const ident *b) {
+static int ident_cmp(const ident *a, const ident *b) {
   return memcmp(a, b, sizeof(*a));
 }
 
@@ -280,6 +285,22 @@ struct module *node_module_owner(struct node *node) {
 
 const struct module *node_module_owner_const(const struct node *node) {
   return node_module_owner((struct node *) node);
+}
+
+struct node *node_toplevel_owner(struct node *node) {
+  if (node_toplevel(node) != NULL) {
+    return node;
+  } else {
+    return node_toplevel_owner(node->scope->parent->node);
+  }
+}
+
+struct node *node_statement_owner(struct node *node) {
+  if (node_is_statement(node)) {
+    return node;
+  } else {
+    return node_statement_owner(node->scope->parent->node);
+  }
 }
 
 ident node_ident(const struct node *node) {
@@ -409,6 +430,11 @@ bool node_is_export(const struct node *node) {
   } else {
     return toplevel->is_export;
   }
+}
+
+bool node_is_statement(const struct node *node) {
+  return node->scope->parent != NULL
+    && node->scope->parent->node->which == BLOCK;
 }
 
 // Return value must be freed by caller.
@@ -1760,7 +1786,7 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
   struct token tok;
 
   node->which = fun_or_method;
-  switch (fun_or_method) {
+  switch (node->which) {
   case DEFFUN:
     node->as.DEFFUN.toplevel = *toplevel;
     break;
@@ -2106,7 +2132,7 @@ static error p_defintf(struct node *node, struct module *mod, const struct tople
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src) {
   dst->which = src->which;
-  memcpy(&dst->as, &src->as, sizeof(&dst->as));
+  memcpy(&dst->as, &src->as, sizeof(dst->as));
   dst->scope = NULL;
 
   for (size_t s = 0; s < src->subs_count; ++s) {
@@ -2384,7 +2410,10 @@ ident gensym(struct module *mod) {
   return idents_add(mod->gctx, &tok);
 }
 
-void module_needs_instance(struct module *mod, const struct typ *typ) {
+error need_instance(struct module *mod, struct node *needer, const struct typ *typ) {
+  if (node_module_owner(needer) == node_module_owner(typ->definition)) {
+  }
+  return 0;
 }
 
 void module_return_set(struct module *mod, const struct node *return_node) {
@@ -2618,6 +2647,18 @@ bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *in
   }
 
   return FALSE;
+}
+
+error typ_check_isa(const struct module *mod, const struct node *for_error,
+                    const struct typ *a, const struct typ *intf) {
+  if (typ_isa(mod, a, intf)) {
+    return 0;
+  }
+
+  EXCEPT_TYPE(node_module_owner_const(for_error), for_error,
+              "'%s' not isa intf '%s'",
+              typ_name(mod, a), typ_name(mod, intf));
+  // FIXME: leaking typ_names.
 }
 
 error mk_except(const struct module *mod, const struct node *node, const char *fmt) {

@@ -61,12 +61,11 @@ enum builtingen {
   BG__NOT,
   BG_STRUCT_DEFAULT_MK,
   BG_STRUCT_DEFAULT_NEW,
-  BG_ENUM_MK,
-  BG_ENUM_NEW,
   BG_ENUM_EQ,
   BG_ENUM_NE,
-  BG_SUM_EQ,
-  BG_SUM_NE,
+  BG_ENUM_MATCH,
+  BG_SUM_MATCH,
+  BG_SUM_CTOR,
   BG__NUM,
 };
 
@@ -79,6 +78,8 @@ struct toplevel {
   ident scope_name;
   bool is_prototype;
   enum builtingen builtingen;
+
+  const struct typ **instances;
 };
 
 struct node_nul {};
@@ -125,10 +126,13 @@ enum deftype_kind {
   DEFTYPE_SUM,
 };
 
+struct typ;
+
 struct node_deftype {
   struct toplevel toplevel;
 
   enum deftype_kind kind;
+  const struct typ *choice_typ;
 };
 struct node_defmethod {
   struct toplevel toplevel;
@@ -213,7 +217,6 @@ union node_as {
 };
 
 struct scope;
-struct typ;
 
 struct node {
   enum node_which which;
@@ -292,6 +295,10 @@ enum predefined_idents {
   ID_TBI__NOT_TYPEABLE,
   ID_TBI__LAST = ID_TBI__NOT_TYPEABLE,
 
+  ID_MK,
+  ID_NEW,
+  ID_CTOR,
+  ID_C,
   ID_OPERATOR_OR,
   ID_OPERATOR_AND,
   ID_OPERATOR_NOT,
@@ -302,6 +309,7 @@ enum predefined_idents {
   ID_OPERATOR_GE,
   ID_OPERATOR_EQ,
   ID_OPERATOR_NE,
+  ID_OPERATOR_MATCH,
   ID_OPERATOR_BWOR,
   ID_OPERATOR_BWXOR,
   ID_OPERATOR_BWAND,
@@ -416,7 +424,7 @@ void globalctx_init(struct globalctx *gctx);
 
 error module_open(struct globalctx *gctx, struct module *mod,
                   const char *prefix, const char *fn);
-void module_needs_instance(struct module *mod, const struct typ *typ);
+error need_instance(struct module *mod, struct node *needer, const struct typ *typ);
 void module_return_set(struct module *mod, const struct node *return_node);
 const struct node *module_return_get(struct module *mod);
 void module_excepts_open_try(struct module *mod);
@@ -432,7 +440,7 @@ struct scope *scope_new(struct node *node);
 error scope_define_ident(const struct module *mod, struct scope *scope, ident id, struct node *node);
 error scope_define(const struct module *mod, struct scope *scope, struct node *id, struct node *node);
 error scope_lookup_ident_wontimport(struct node **result, const struct module *mod,
-                                  const struct scope *scope, ident id, bool failure_ok);
+                                    const struct scope *scope, ident id, bool failure_ok);
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, const struct node *id);
 error scope_lookup_module(struct node **result, const struct module *mod,
@@ -447,11 +455,14 @@ void copy_and_extend_import_path(struct module *mod, struct node *imported,
 
 const struct module *node_module_owner_const(const struct node *node);
 struct module *node_module_owner(struct node *node);
+struct node *node_toplevel_owner(struct node *node);
+struct node *node_statement_owner(struct node *node);
 
 ident node_ident(const struct node *node);
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);
 bool node_is_export(const struct node *node);
+bool node_is_statement(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
 size_t node_fun_explicit_args_count(const struct node *def);
 const struct node *node_fun_retval(const struct node *def);
@@ -474,6 +485,8 @@ bool typ_is_concrete(const struct module *mod, const struct typ *a);
 error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,
                 const struct typ *a, const struct typ *b);
 bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf);
+error typ_check_isa(const struct module *mod, const struct node *for_error,
+                    const struct typ *a, const struct typ *intf);
 error mk_except(const struct module *mod, const struct node *node, const char *fmt);
 error mk_except_type(const struct module *mod, const struct node *node, const char *fmt);
 error mk_except_call_arg_count(const struct module *mod, const struct node *node,
