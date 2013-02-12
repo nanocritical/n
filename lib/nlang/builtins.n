@@ -94,6 +94,9 @@ export intf DefaultCtor =
 export intf ZeroCtor = DefaultCtor
 
 export intf CtorWith =
+  method# ctor_with = void
+  fun mk_with = this
+  fun new_with = @#this
 
 --export intf CtorWith t:Copyable =
 --  method# ctor_with c:t = void
