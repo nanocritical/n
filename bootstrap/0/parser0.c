@@ -146,9 +146,9 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_ENUM_MATCH] = "nlang.builtins.Matchable.operator_match",
   [BG_SUM_MATCH] = "nlang.builtins.Matchable.operator_match",
   // These 3 should be templates of CtorWith.
-  [BG_CTOR_WITH_CTOR_WITH] = "ctor_with",
-  [BG_CTOR_WITH_MK_WITH] = "mk_with",
-  [BG_CTOR_WITH_NEW_WITH] = "new_with",
+  [BG_CTOR_WITH_CTOR_WITH] = "nlang.builtins.CtorWith.ctor_with",
+  [BG_CTOR_WITH_MK_WITH] = "nlang.builtins.CtorWith.mk_with",
+  [BG_CTOR_WITH_NEW_WITH] = "nlang.builtins.CtorWith.new_with",
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
