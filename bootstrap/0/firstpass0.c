@@ -145,8 +145,8 @@ static error step_detect_deftype_kind(struct module *mod, struct node *node, voi
       if (k != DEFTYPE_SUM) {
         k = DEFTYPE_ENUM;
       }
-      if ((!f->as.DEFCHOICE.has_value && f->subs_count == 2)
-          || (f->as.DEFCHOICE.has_value && f->subs_count == 3)) {
+      if ((!f->as.DEFCHOICE.has_value && node_ident(f->subs[1]) != ID_TBI_VOID)
+          || node_ident(f->subs[2]) != ID_TBI_VOID) {
         k = DEFTYPE_SUM;
       }
       break;
@@ -211,11 +211,7 @@ void do_mk_expr_abspath(struct module *mod, struct node *node, const char *path,
   for (ssize_t i = len-1; i >= 0; --i) {
     if (i == 0) {
       assert(len > 1);
-      struct token tok;
-      tok.t = TIDENT;
-      tok.value = path;
-      tok.len = len - i;
-      ident id = idents_add(mod->gctx, &tok);
+      ident id = idents_add_string(mod->gctx, path, len - i);
 
       struct node *root = mk_node(mod, node, DIRECTDEF);
       root->as.DIRECTDEF.definition = &mod->gctx->modules_root;
@@ -225,11 +221,7 @@ void do_mk_expr_abspath(struct module *mod, struct node *node, const char *path,
       break;
     } else if (path[i] == '.') {
       assert(len - i > 1);
-      struct token tok;
-      tok.t = TIDENT;
-      tok.value = path + i + 1;
-      tok.len = len - i - 1;
-      ident id = idents_add(mod->gctx, &tok);
+      ident id = idents_add_string(mod->gctx, path + i + 1, len - i - 1);
 
       struct node *down = mk_node(mod, node, BIN);
       struct node *name = mk_node(mod, node, IDENT);
@@ -242,6 +234,12 @@ void do_mk_expr_abspath(struct module *mod, struct node *node, const char *path,
 }
 
 struct node *mk_expr_abspath(struct module *mod, struct node *node, const char *path) {
+  if (strstr(path, ".") == NULL) {
+    struct node *n = mk_node(mod, node, IDENT);
+    n->as.IDENT.name = idents_add_string(mod->gctx, path, strlen(path));
+    return n;
+  }
+
   struct node *n = mk_node(mod, node, BIN);
   do_mk_expr_abspath(mod, n, path, strlen(path));
   return n;
@@ -738,10 +736,15 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
   move_last_over(node, 0);
   append(mk_fun, fun);
   struct node *mk = mk_node(mod, mk_fun, IDENT);
-  mk->as.IDENT.name = ID_MK;
+  if (node->subs_count == 1) {
+    mk->as.IDENT.name = ID_MK;
+  } else {
+    mk->as.IDENT.name = ID_MK_WITH;
+  }
 
   struct node *except[] = { fun, NULL };
   e = zero_and_first_for_generated(mod, mk_fun, except, node->scope);
+  assert(!e);
   EXCEPT(e);
 
   return 0;
@@ -956,7 +959,8 @@ static error type_inference_init(struct module *mod, struct node *node) {
   for (size_t n = 1; n < node->subs_count; n += 2) {
     struct node *field_name = node->subs[n];
     struct node *field = NULL;
-    error e = scope_lookup(&field, mod, def->scope, field_name);
+    error e = scope_lookup_ident_immediate(&field, mod, def->scope,
+                                           node_ident(field_name), FALSE);
     EXCEPT(e);
     e = type_destruct(mod, node->subs[n+1], field->typ);
     EXCEPT(e);
@@ -1501,6 +1505,8 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
 
   struct typ *mutable_typ = (struct typ *) node->typ;
 
+  // FIXME: Check for duplicates?
+
   mutable_typ->isalist_count = isalist->subs_count;
   mutable_typ->isalist = calloc(isalist->subs_count, sizeof(*node->typ->isalist));
   mutable_typ->isalist_exported = calloc(isalist->subs_count, sizeof(bool));
@@ -1510,6 +1516,7 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
 
     struct node *def = NULL;
     e = scope_lookup(&def, mod, node->scope->parent, isa->subs[0]);
+    assert(!e);
     EXCEPT(e);
 
     isa->typ = def->typ;
@@ -1559,37 +1566,128 @@ static void define_builtin(struct module *mod, struct node *tdef,
   node_toplevel(d)->is_prototype = FALSE;
 }
 
-static error step_add_builtin_constructors(struct module *mod, struct node *node, void *user, bool *stop) {
-  switch (node->which) {
-  case DEFTYPE:
-    break;
-  default:
+static void define_builtin_choice_ctor(struct module *mod, struct node *ch,
+                                       enum builtingen bg, enum node_which which) {
+  struct node *tdef = ch->scope->parent->node;
+  struct node *d = mk_node(mod, ch, which);
+  struct toplevel *toplevel = node_toplevel(d);
+  toplevel->scope_name = node_ident(ch);
+  toplevel->builtingen = bg;
+  toplevel->is_export = node_toplevel(tdef)->is_export;
+  toplevel->is_inline = node_toplevel(tdef)->is_inline;
+  mk_expr_abspath(mod, d, builtingen_abspath[bg]);
+
+  if (bg == BG_CTOR_WITH_CTOR_WITH) {
+    struct node *arg = mk_node(mod, d, TYPECONSTRAINT);
+    arg->as.TYPECONSTRAINT.is_arg = TRUE;
+    struct node *name = mk_node(mod, arg, IDENT);
+    name->as.IDENT.name = ID_C;
+    struct node *typename = mk_node(mod, arg, DIRECTDEF);
+    typename->as.DIRECTDEF.definition = ch->subs[2]->typ->definition;
+  }
+
+  struct node *ret = mk_node(mod, d, IDENT);
+  ret->as.IDENT.name = ID_TBI_VOID;
+
+  error e = zero_and_first_for_generated(mod, d, NULL, ch->scope);
+  assert(!e);
+  node_toplevel(d)->is_prototype = FALSE;
+}
+
+static error step_add_builtin_defchoice_constructors(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFCHOICE) {
     return 0;
   }
 
-  if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
-    for (size_t c = 0; c < node->subs_count; ++c) {
-      struct node *ch = node->subs[c];
-      if (ch->which != DEFCHOICE) {
-        continue;
-      }
+  const struct typ *targ = node->subs[2]->typ;
+  bool has_ctor = FALSE;
+  if (typ_isa(mod, targ, typ_lookup_builtin(mod, TBI_COPYABLE))) {
+    has_ctor |= TRUE;
 
-      ... if Copyable, then define ctor_with
-        ... if Default, then define ctor
+    define_builtin_choice_ctor(
+      mod, node, BG_CTOR_WITH_CTOR_WITH, DEFMETHOD);
+  }
 
-      struct node *d = define_custom(mod, ch, BG_SUM_CTOR, DEFMETHOD);
-      struct node *id = mk_node(mod, d, IDENT);
-      id->as.IDENT.name = ID_CTOR;
-      struct node *arg = mk_node(mod, d, TYPECONSTRAINT);
-      arg->as.TYPECONSTRAINT.is_arg = TRUE;
-      struct node *name = mk_node(mod, arg, IDENT);
-      name->as.IDENT.name = ID_C;
+  if (typ_isa(mod, targ, typ_lookup_builtin(mod, TBI_DEFAULT_CTOR))) {
+    has_ctor |= TRUE;
 
-      struct node *ref = mk_node(mod, arg, UN);
-      ref->as.UN.operator = node->as.DEFMETHOD.access;
-      struct node *typename = mk_node(mod, ref, IDENT);
-      typename->as.IDENT.name = ID_THIS;
-    }
+    define_builtin_choice_ctor(
+      mod, node, BG_DEFAULT_CTOR_CTOR, DEFMETHOD);
+  }
+
+  if (!has_ctor) {
+    error e = mk_except(mod, node, "cannot use type in sum type, neither Copyable nor DefaultCtor");
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
+static struct node *get_member(struct module *mod, struct node *node, ident id) {
+  assert(node->which == DEFTYPE || node->which == DEFCHOICE);
+  struct node *m = NULL;
+  (void)scope_lookup_ident_immediate(&m, mod, node->scope, id, TRUE);
+  return m;
+}
+
+static void add_isa(struct module *mod, struct node *tdef, const char *path) {
+  struct node *isalist = tdef->subs[1];
+  struct node *isa = mk_node(mod, isalist, ISA);
+  node_toplevel(isa)->is_export = node_toplevel(tdef)->is_export;
+  mk_expr_abspath(mod, isa, path);
+}
+
+static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFTYPE && node->which != DEFCHOICE) {
+    return 0;
+  }
+
+  struct node *tdef = node;
+  if (node->which == DEFCHOICE) {
+    tdef = node->scope->parent->node;
+  }
+
+  struct node *ctor = get_member(mod, node, ID_CTOR);
+  if (ctor != NULL && node_fun_explicit_args_count(ctor) == 0) {
+    add_isa(mod, tdef, "nlang.builtins.DefaultCtor");
+  }
+
+  struct node *ctor_with = get_member(mod, node, ID_CTOR_WITH);
+  if (ctor_with != NULL && node_fun_explicit_args_count(ctor_with) == 1) {
+    // FIXME is a generic.
+    add_isa(mod, tdef, "nlang.builtins.CtorWith");
+  }
+
+  return 0;
+}
+
+static error step_add_builtin_ctor(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFTYPE) {
+    return 0;
+  }
+  return 0;
+}
+
+static error step_add_builtin_dtor(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFTYPE) {
+    return 0;
+  }
+  return 0;
+}
+
+static error step_add_builtin_mk_new(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFTYPE) {
+    return 0;
+  }
+
+  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_DEFAULT_CTOR))) {
+    define_builtin(mod, node, BG_DEFAULT_CTOR_MK);
+    define_builtin(mod, node, BG_DEFAULT_CTOR_NEW);
+  }
+
+  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_CTOR_WITH))) {
+    define_builtin(mod, node, BG_CTOR_WITH_MK_WITH);
+    define_builtin(mod, node, BG_CTOR_WITH_NEW_WITH);
   }
 
   return 0;
@@ -1646,12 +1744,10 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
       }
 
       const struct typ *tch = NULL;
-      if (ch->subs_count == 2) {
+      if (ch->subs[2]->typ == typ_lookup_builtin(mod, TBI_VOID)) {
         tch = node->as.DEFTYPE.choice_typ;
-      } else if (ch->subs_count == 3) {
-        tch = ch->subs[2]->typ;
       } else {
-        assert(FALSE);
+        tch = ch->subs[2]->typ;
       }
 
       error e = typ_check_isa(mod, ch, tch, intf);
@@ -1812,7 +1908,11 @@ static const step firstpass_up[] = {
   step_rewrite_sum_constructors,
   step_type_inference,
   step_type_inference_isalist,
-  step_add_builtin_constructors,
+  step_add_builtin_defchoice_constructors,
+  step_add_builtin_detect_ctor_intf,
+  step_add_builtin_ctor,
+  step_add_builtin_dtor,
+  step_add_builtin_mk_new,
   step_add_builtin_operators,
   step_add_sum_dispatch,
   NULL,

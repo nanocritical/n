@@ -100,12 +100,18 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_DYN] = "__internal_dyn__",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
   [ID_TBI_COMPARABLE] = "Comparable",
+  [ID_TBI_COPYABLE] = "Copyable",
+  [ID_TBI_DEFAULT_CTOR] = "DefaultCtor",
+  [ID_TBI_CTOR_WITH] = "CtorWith",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_MK] = "mk",
   [ID_NEW] = "new",
   [ID_CTOR] = "ctor",
   [ID_C] = "c",
+  [ID_MK_WITH] = "mk_with",
+  [ID_NEW_WITH] = "new_with",
+  [ID_CTOR_WITH] = "ctor_with",
   [ID_OPERATOR_OR] = "operator_or",
   [ID_OPERATOR_AND] = "operator_and",
   [ID_OPERATOR_NOT] = "operator_not",
@@ -132,14 +138,17 @@ static const char *predefined_idents_strings[ID__NUM] = {
 };
 
 const char *builtingen_abspath[BG__NUM] = {
-  [BG_STRUCT_DEFAULT_CTOR] = "nlang.builtins.Default.ctor",
-  [BG_STRUCT_DEFAULT_MK] = "nlang.builtins.Default.mk",
-  [BG_STRUCT_DEFAULT_NEW] = "nlang.builtins.Default.new",
+  [BG_DEFAULT_CTOR_CTOR] = "nlang.builtins.DefaultCtor.ctor",
+  [BG_DEFAULT_CTOR_MK] = "nlang.builtins.DefaultCtor.mk",
+  [BG_DEFAULT_CTOR_NEW] = "nlang.builtins.DefaultCtor.new",
   [BG_ENUM_EQ] = "nlang.builtins.Comparable.operator_eq",
   [BG_ENUM_NE] = "nlang.builtins.Comparable.operator_ne",
   [BG_ENUM_MATCH] = "nlang.builtins.Matchable.operator_match",
   [BG_SUM_MATCH] = "nlang.builtins.Matchable.operator_match",
-  [BG_SUM_CTOR_WITH] = "ctor_with",
+  // These 3 should be templates of CtorWith.
+  [BG_CTOR_WITH_CTOR_WITH] = "ctor_with",
+  [BG_CTOR_WITH_MK_WITH] = "mk_with",
+  [BG_CTOR_WITH_NEW_WITH] = "new_with",
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
@@ -194,6 +203,14 @@ ident idents_add(struct globalctx *gctx, const struct token *tok) {
   idents_map_set(idents->map, *tok, id);
 
   return id;
+}
+
+ident idents_add_string(struct globalctx *gctx, const char *name, size_t len) {
+  struct token tok;
+  tok.t = TIDENT;
+  tok.value = name;
+  tok.len = len;
+  return idents_add(gctx, &tok);
 }
 
 static int line(const struct parser *parser, const struct token *tok) {
@@ -606,6 +623,12 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
   return 0;
 }
 
+error scope_lookup_ident_immediate(struct node **result, const struct module *mod,
+                                   const struct scope *scope, ident id,
+                                   bool failure_ok) {
+  return do_scope_lookup_ident_immediate(result, mod, scope, id, scope, failure_ok, FALSE);
+}
+
 static error do_scope_lookup_ident_wontimport(struct node **result, const struct module *mod,
                                               const struct scope *scope, ident id,
                                               const struct scope *within, bool failure_ok) {
@@ -785,19 +808,11 @@ static error do_scope_lookup_abspath(struct node **result, const struct module *
   for (i = len-1; i >= 0; --i) {
     if (i == 0) {
       assert(len > 1);
-      struct token tok;
-      tok.t = TIDENT;
-      tok.value = path;
-      tok.len = len - i;
-      id = idents_add(mod->gctx, &tok);
+      id = idents_add_string(mod->gctx, path, len - i);
       break;
     } else if (path[i] == '.') {
       assert(len - i > 1);
-      struct token tok;
-      tok.t = TIDENT;
-      tok.value = path + i + 1;
-      tok.len = len - i - 1;
-      id = idents_add(mod->gctx, &tok);
+      id = idents_add_string(mod->gctx, path + i + 1, len - i - 1);
       break;
     }
   }
@@ -1162,6 +1177,8 @@ static error p_defchoice(struct node *node, struct module *mod) {
     EXCEPT(e);
   } else {
     back(mod, &tok);
+    struct node *v = mk_node(mod, node, IDENT);
+    v->as.IDENT.name = ID_TBI_VOID;
   }
   return 0;
 }
@@ -2207,8 +2224,6 @@ again:
 }
 
 static error p_toplevel(struct module *mod) {
-  struct node *node = node_new_subnode(mod, mod->body);
-
   struct toplevel toplevel;
   memset(&toplevel, 0, sizeof(toplevel));
 
@@ -2225,7 +2240,7 @@ again:
 
   switch (tok.t) {
   case Ttype:
-    e = p_deftype(node, mod, &toplevel);
+    e = p_deftype(node_new_subnode(mod, mod->body), mod, &toplevel);
     break;
   case Texport:
     toplevel.is_export = TRUE;
@@ -2237,19 +2252,19 @@ again:
     toplevel.is_inline = TRUE;
     goto again;
   case Tfun:
-    e = p_deffun(node, mod, &toplevel, DEFFUN);
+    e = p_deffun(node_new_subnode(mod, mod->body), mod, &toplevel, DEFFUN);
     break;
   case Tmethod:
     if (!is_scoped) {
       UNEXPECTED(mod, &tok);
     }
-    e = p_deffun(node, mod, &toplevel, DEFMETHOD);
+    e = p_deffun(node_new_subnode(mod, mod->body), mod, &toplevel, DEFMETHOD);
     break;
   case Tintf:
-    e = p_defintf(node, mod, &toplevel);
+    e = p_defintf(node_new_subnode(mod, mod->body), mod, &toplevel);
     break;
   case Tlet:
-    e = p_let(node, mod, &toplevel);
+    e = p_let(node_new_subnode(mod, mod->body), mod, &toplevel);
     break;
   case TIDENT:
     toplevel.scope_name = idents_add(mod->gctx, &tok);
@@ -2257,7 +2272,9 @@ again:
     goto again;
   case Tfrom:
   case Timport:
-    e = p_import(node, mod, &toplevel, tok.t == Tfrom);
+    e = p_import(node_new_subnode(mod, mod->body), mod, &toplevel, tok.t == Tfrom);
+    break;
+  case TEOL:
     break;
   default:
     EXCEPT_SYNTAX(mod, &tok, "malformed top-level statement at '%.*s'", (int)tok.len, tok.value);
@@ -2402,12 +2419,7 @@ ident gensym(struct module *mod) {
   int cnt = snprintf(name, ARRAY_SIZE(name), "__gensym%zx", g);
   assert(cnt < ARRAY_SIZE(name));
 
-  struct token tok;
-  tok.t = TIDENT;
-  tok.value = name;
-  tok.len = cnt;
-
-  return idents_add(mod->gctx, &tok);
+  return idents_add_string(mod->gctx, name, cnt);
 }
 
 error need_instance(struct module *mod, struct node *needer, const struct typ *typ) {

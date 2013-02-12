@@ -1,19 +1,5 @@
 export type void =
 
-export type __pseudo_tuple__ =
-export type ref =
-export type mref =
-export type mmref =
-export type nref =
-export type nmref =
-export type nmmref =
-export type __internal_dyn__ =
-
-export intf Default =
-  method# ctor = void
-  fun mk = this
-  fun new = @#this
-
 export intf Copyable =
 export intf TrivialCopy = export Copyable
 export intf Matchable =
@@ -21,6 +7,23 @@ export intf Comparable = export Matchable
 export intf Ordered = export Comparable
 export intf Arithmetic = export Ordered
 export intf Bitwise =
+
+export intf AnyRef = export Copyable
+export intf Ref = export AnyRef
+export intf MutableRef = export Ref
+export intf MercurialRef = export MutableRef
+export intf NullableRef = export AnyRef
+export intf NullableMutableRef = export NullableRef
+export intf NullableMercurialRef = export NullableMutableRef
+
+export type __pseudo_tuple__ = export Copyable
+export type ref = export Ref
+export type mref = export MutableRef
+export type mmref = export MercurialRef
+export type nref = export NullableRef
+export type nmref = export NullableMutableRef
+export type nmmref = export NullableMercurialRef
+export type __internal_dyn__ =
 
 export intf Integer = \
     export Arithmetic \
@@ -82,3 +85,17 @@ export intf Bitwise =
   method operator_lshift by:u32 = this
   method operator_rshift by:u32 = this
   method operator_ubwnot = this
+
+export intf DefaultCtor =
+  method# ctor = void
+  fun mk = this
+  fun new = @#this
+
+export intf ZeroCtor = DefaultCtor
+
+export intf CtorWith =
+
+--export intf CtorWith t:Copyable =
+--  method# ctor_with c:t = void
+--  fun mk_with c:t = this
+--  fun new_with c:t = @#this

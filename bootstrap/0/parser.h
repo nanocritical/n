@@ -59,13 +59,19 @@ const char *node_which_strings[NODE__NUM];
 
 enum builtingen {
   BG__NOT,
-  BG_STRUCT_DEFAULT_MK,
-  BG_STRUCT_DEFAULT_NEW,
+  BG_ZERO_CTOR_CTOR,
+  BG_DEFAULT_CTOR_CTOR,
+  BG_DEFAULT_CTOR_MK,
+  BG_DEFAULT_CTOR_NEW,
+  BG_CTOR_WITH_CTOR_WITH,
+  BG_CTOR_WITH_MK_WITH,
+  BG_CTOR_WITH_NEW_WITH,
+  BG_AUTO_MK,
+  BG_AUTO_NEW,
   BG_ENUM_EQ,
   BG_ENUM_NE,
   BG_ENUM_MATCH,
   BG_SUM_MATCH,
-  BG_SUM_CTOR,
   BG__NUM,
 };
 
@@ -290,6 +296,9 @@ enum predefined_idents {
   ID_TBI_DYN,
   ID_TBI_NATIVE_INTEGER,
   ID_TBI_COMPARABLE,
+  ID_TBI_COPYABLE,
+  ID_TBI_DEFAULT_CTOR,
+  ID_TBI_CTOR_WITH,
   ID_TBI__PENDING_DESTRUCT,
   ID_TBI__FIRST_MARKER = ID_TBI__PENDING_DESTRUCT,
   ID_TBI__NOT_TYPEABLE,
@@ -299,6 +308,9 @@ enum predefined_idents {
   ID_NEW,
   ID_CTOR,
   ID_C,
+  ID_MK_WITH,
+  ID_NEW_WITH,
+  ID_CTOR_WITH,
   ID_OPERATOR_OR,
   ID_OPERATOR_AND,
   ID_OPERATOR_NOT,
@@ -361,6 +373,9 @@ enum typ_builtin {
   TBI_DYN,
   TBI_NATIVE_INTEGER,
   TBI_COMPARABLE,
+  TBI_COPYABLE,
+  TBI_DEFAULT_CTOR,
+  TBI_CTOR_WITH,
   TBI__PENDING_DESTRUCT,
   TBI__NOT_TYPEABLE,
   TBI__NUM,
@@ -435,12 +450,16 @@ ident gensym(struct module *mod);
 
 const char *idents_value(const struct globalctx *gctx, ident id);
 ident idents_add(struct globalctx *gctx, const struct token *tok);
+ident idents_add_string(struct globalctx *gctx, const char *name, size_t len);
 
 struct scope *scope_new(struct node *node);
 error scope_define_ident(const struct module *mod, struct scope *scope, ident id, struct node *node);
 error scope_define(const struct module *mod, struct scope *scope, struct node *id, struct node *node);
 error scope_lookup_ident_wontimport(struct node **result, const struct module *mod,
                                     const struct scope *scope, ident id, bool failure_ok);
+error scope_lookup_ident_immediate(struct node **result, const struct module *mod,
+                                   const struct scope *scope, ident id,
+                                   bool failure_ok);
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, const struct node *id);
 error scope_lookup_module(struct node **result, const struct module *mod,
