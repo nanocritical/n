@@ -618,10 +618,31 @@ static void print_typeconstraint(FILE *out, bool header, const struct module *mo
   print_expr(out, header, mod, node->subs[0], T__NONE);
 }
 
+static void print_retval_type(FILE *out, const struct module *mod, const struct node *fun) {
+  const struct node *retval = node_fun_retval(fun);
+  const struct typ *tret = retval->typ;
+
+  if (typ_isa(mod, tret, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+    print_typ(out, mod, tret);
+  } else {
+    //....
+    //  can we really do that transparently? Yes, if using named return variables.
+    //  Should that be a requirement? YES. Otherwise, this implies a copy.
+    //  So ReturnByCopy is necessary if not a named return value.
+    //  fun(tret *retval, ...) {
+    //    retval->ctor();
+    //    {
+    //      ... ???
+    //    }
+    //    ???
+    //  }
+  }
+}
+
 static void print_fun_prototype(FILE *out, bool header, const struct module *mod,
                                 const struct node *node) {
   const size_t arg_count = node_fun_explicit_args_count(node);
-  const struct node *retval = node->subs[1 + arg_count];
+  const struct node *retval = node_fun_retval(node);
 
   print_toplevel(out, header, node);
 
@@ -656,35 +677,35 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
   case BG_ZERO_CTOR_CTOR:
     fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
-  case BG_DEFAULT_CTOR_CTOR,
+  case BG_DEFAULT_CTOR_CTOR:
     fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
-  case BG_DEFAULT_CTOR_MK,
-       ... must handle return through ref
-         ... this is a C gen question, must be handled here, N doesn't care
-         ... we should have facilities to handle this nicely,
-       ... generating prototypes for us,
-       ... generating return types, initializing return values, setting them?
-         ... can we do this transparently so that the generating code can be agnostic
-         ... to this stuff?
-    fprintf(out, "%s_ctor(&r);");
+  case BG_DEFAULT_CTOR_MK:
+  //     ... must handle return through ref
+  //       ... this is a C gen question, must be handled here, N doesn't care
+  //       ... we should have facilities to handle this nicely,
+  //     ... generating prototypes for us,
+  //     ... generating return types, initializing return values, setting them?
+  //       ... can we do this transparently so that the generating code can be agnostic
+  //       ... to this stuff?
+    fprintf(out, "_ctor(&r);");
     break;
-  case BG_DEFAULT_CTOR_NEW,
+  case BG_DEFAULT_CTOR_NEW:
     fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
-  case BG_CTOR_WITH_CTOR_WITH,
+  case BG_CTOR_WITH_CTOR_WITH:
     fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
-  case BG_CTOR_WITH_MK_WITH,
+  case BG_CTOR_WITH_MK_WITH:
     fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
-  case BG_CTOR_WITH_NEW_WITH,
+  case BG_CTOR_WITH_NEW_WITH:
     fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
-  case BG_AUTO_MK,
+  case BG_AUTO_MK:
     fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
-  case BG_AUTO_NEW,
+  case BG_AUTO_NEW:
     fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
   case BG_ENUM_EQ:
@@ -696,10 +717,10 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
   case BG_ENUM_MATCH:
     fprintf(out, "return *self == *other;\n");
     break;
-  case BG_SUM_MATCH,
+  case BG_SUM_MATCH:
     fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
-  case BG_SUM_DISPATCH,
+  case BG_SUM_DISPATCH:
     fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
   default:

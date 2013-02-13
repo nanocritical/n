@@ -103,6 +103,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_COPYABLE] = "Copyable",
   [ID_TBI_DEFAULT_CTOR] = "DefaultCtor",
   [ID_TBI_CTOR_WITH] = "CtorWith",
+  [ID_TBI_RETURN_BY_COPY] = "ReturnByCopy",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_MK] = "mk",
@@ -1798,6 +1799,11 @@ again:
   goto again;
 }
 
+static error check_retval_form(struct module *mod, struct node *retval) {
+  // FIXME
+  return 0;
+}
+
 static error p_deffun(struct node *node, struct module *mod, const struct toplevel *toplevel,
                       enum node_which fun_or_method) {
   error e;
@@ -1832,8 +1838,13 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
 
   e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
   EXCEPT(e);
+  struct node *name = node->subs[node->subs_count - 1];
 
   if (fun_or_method == DEFMETHOD) {
+    if (name->which != IDENT && name->which != BIN) {
+      EXCEPT_SYNTAX(mod, &tok, "malformed method name");
+    }
+
     struct node *arg = mk_node(mod, node, TYPECONSTRAINT);
     arg->as.TYPECONSTRAINT.is_arg = TRUE;
     struct node *name = mk_node(mod, arg, IDENT);
@@ -1843,6 +1854,10 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     ref->as.UN.operator = node->as.DEFMETHOD.access;
     struct node *typename = mk_node(mod, ref, IDENT);
     typename->as.IDENT.name = ID_THIS;
+  } else {
+    if (name->which != IDENT) {
+      EXCEPT_SYNTAX(mod, &tok, "malformed fun name");
+    }
   }
 
 again:

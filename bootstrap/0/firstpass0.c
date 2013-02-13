@@ -487,6 +487,28 @@ static error lexical_import(struct scope *scope, struct module *mod, struct node
   return 0;
 }
 
+static error lexical_retval(struct module *mod, struct node *fun, struct node *retval) {
+  error e;
+
+  switch (retval->which) {
+  case UN:
+  case IDENT:
+    break;
+  case BIN:
+    if (retval->as.BIN.operator == TCOLON) {
+      e = scope_define(mod, fun->scope, retval->subs[0], retval);
+      EXCEPT(e);
+    }
+    break;
+  default:
+    e = mk_except(mod, retval, "return value type structure not supported");
+    EXCEPT(e);
+    break;
+  }
+
+  return 0;
+}
+
 static error step_lexical_scoping(struct module *mod, struct node *node, void *user, bool *stop) {
   struct node *id = NULL;
   struct scope *sc = NULL;
@@ -549,12 +571,16 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
   case DEFFUN:
   case DEFMETHOD:
     {
-      for (size_t n = 0; n < node_fun_explicit_args_count(node); ++n) {
-        assert(node->subs[n+1]->which == TYPECONSTRAINT);
-        e = scope_define(mod, node->scope, node->subs[n+1]->subs[0],
-                         node->subs[n+1]);
+      size_t arg_count = node_fun_explicit_args_count(node);
+      for (size_t n = 0; n < arg_count; ++n) {
+        assert(node->subs[1+n]->which == TYPECONSTRAINT);
+        e = scope_define(mod, node->scope, node->subs[1+n]->subs[0],
+                         node->subs[1+n]);
         EXCEPT(e);
       }
+
+      e = lexical_retval(mod, node, node->subs[1+arg_count]);
+      EXCEPT(e);
     }
     break;
   default:
