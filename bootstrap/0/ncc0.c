@@ -431,8 +431,6 @@ int main(int argc, char **argv) {
   for (size_t n = 0; n < deps.modules_count; ++n) {
     e = firstpass(deps.modules[n], NULL, NULL);
     EXCEPT(e);
-    e = secondpass(deps.modules[n], NULL, NULL);
-    EXCEPT(e);
   }
 
   for (size_t n = 0; n < deps.modules_count; ++n) {

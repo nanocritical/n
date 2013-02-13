@@ -72,6 +72,7 @@ enum builtingen {
   BG_ENUM_NE,
   BG_ENUM_MATCH,
   BG_SUM_MATCH,
+  BG_SUM_DISPATCH,
   BG__NUM,
 };
 
@@ -158,6 +159,7 @@ struct node_defchoice {
 struct node_isalist {};
 struct node_isa {
   struct toplevel toplevel;
+  bool is_explicit;
 };
 struct node_delegate {};
 struct node_pre {};

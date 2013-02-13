@@ -2,6 +2,7 @@ export type void =
 
 export intf Copyable =
 export intf TrivialCopy = export Copyable
+export intf ReturnByCopy =
 export intf Matchable =
 export intf Comparable = export Matchable
 export intf Ordered = export Comparable
@@ -32,6 +33,7 @@ export intf Integer = \
 
 export intf NativeInteger = \
     export TrivialCopy \
+    export ReturnByCopy \
     export Integer
 
 export extern type bool = export NativeInteger

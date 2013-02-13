@@ -145,6 +145,7 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_ENUM_NE] = "nlang.builtins.Comparable.operator_ne",
   [BG_ENUM_MATCH] = "nlang.builtins.Matchable.operator_match",
   [BG_SUM_MATCH] = "nlang.builtins.Matchable.operator_match",
+  [BG_SUM_DISPATCH] = NULL,
   // These 3 should be templates of CtorWith.
   [BG_CTOR_WITH_CTOR_WITH] = "nlang.builtins.CtorWith.ctor_with",
   [BG_CTOR_WITH_MK_WITH] = "nlang.builtins.CtorWith.mk_with",
@@ -1887,6 +1888,7 @@ retval:
 static error p_isa(struct node *node, struct module *mod, bool is_export) {
   node->which = ISA;
   node->as.ISA.toplevel.is_export = is_export;
+  node->as.ISA.is_explicit = TRUE;
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
   EXCEPT(e);

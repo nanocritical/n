@@ -653,6 +653,40 @@ static bool prototype_only(bool header, const struct node *node) {
 static void print_deffun_builtingen(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, " {\n");
   switch (node_toplevel_const(node)->builtingen) {
+  case BG_ZERO_CTOR_CTOR:
+    fprintf(out, "memset(self, 0, sizeof(*self));");
+    break;
+  case BG_DEFAULT_CTOR_CTOR,
+    fprintf(out, "memset(self, 0, sizeof(*self));");
+    break;
+  case BG_DEFAULT_CTOR_MK,
+       ... must handle return through ref
+         ... this is a C gen question, must be handled here, N doesn't care
+         ... we should have facilities to handle this nicely,
+       ... generating prototypes for us,
+       ... generating return types, initializing return values, setting them?
+         ... can we do this transparently so that the generating code can be agnostic
+         ... to this stuff?
+    fprintf(out, "%s_ctor(&r);");
+    break;
+  case BG_DEFAULT_CTOR_NEW,
+    fprintf(out, "memset(self, 0, sizeof(*self));");
+    break;
+  case BG_CTOR_WITH_CTOR_WITH,
+    fprintf(out, "memset(self, 0, sizeof(*self));");
+    break;
+  case BG_CTOR_WITH_MK_WITH,
+    fprintf(out, "memset(self, 0, sizeof(*self));");
+    break;
+  case BG_CTOR_WITH_NEW_WITH,
+    fprintf(out, "memset(self, 0, sizeof(*self));");
+    break;
+  case BG_AUTO_MK,
+    fprintf(out, "memset(self, 0, sizeof(*self));");
+    break;
+  case BG_AUTO_NEW,
+    fprintf(out, "memset(self, 0, sizeof(*self));");
+    break;
   case BG_ENUM_EQ:
     fprintf(out, "return *self == *other;\n");
     break;
@@ -661,6 +695,12 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
     break;
   case BG_ENUM_MATCH:
     fprintf(out, "return *self == *other;\n");
+    break;
+  case BG_SUM_MATCH,
+    fprintf(out, "memset(self, 0, sizeof(*self));");
+    break;
+  case BG_SUM_DISPATCH,
+    fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
   default:
     assert(FALSE);

@@ -1,0 +1,22 @@
+from nlang import *
+
+type sum = Comparable
+  | A -> u32
+  | B -> i32
+
+type ta = DefaultCtor
+  x:u32
+
+type tb = DefaultCtor
+  y:i32
+
+type sum_nocopy =
+  | A -> ta
+  | B -> tb
+
+export fun main = i32
+  let n = sum.A 0
+  if n == (sum.A 0)
+    return 0
+  else
+    return 1

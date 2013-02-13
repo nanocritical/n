@@ -469,7 +469,7 @@ static void print_typeconstraint(FILE *out, const struct module *mod, const stru
 }
 
 static void print_deffun(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  const size_t arg_count = node->subs_count - (node->as.DEFFUN.toplevel.is_prototype ? 2 : 3);
+  const size_t arg_count = node_fun_explicit_args_count(node);
   const struct node *name = node->subs[0];
   const struct node *retval = node->subs[1 + arg_count];
 
@@ -488,7 +488,7 @@ static void print_deffun(FILE *out, const struct module *mod, int indent, const 
   print_expr(out, mod, retval, T__NONE);
 
   if (!node_toplevel_const(node)->is_prototype
-      && node_toplevel_const(node)->builtingen != BG__NOT) {
+      && node_toplevel_const(node)->builtingen == BG__NOT) {
     const struct node *block = node->subs[1 + arg_count + 1];
     print_block(out, mod, 0, block);
   }
