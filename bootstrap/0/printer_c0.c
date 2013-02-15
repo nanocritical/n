@@ -522,11 +522,6 @@ static void print_defname(FILE *out, bool header, const struct module *mod, cons
     if (!header || node_is_inline(node)) {
       fprintf(out, " = ");
       print_expr(out, header, mod, node->subs[1], T__NONE);
-
-      if (node->subs_count > 2) {
-        assert(!node_is_inline(node));
-        print_block(out, header, mod, node->subs[2]);
-      }
     }
   }
 }
@@ -534,6 +529,11 @@ static void print_defname(FILE *out, bool header, const struct module *mod, cons
 static void print_let(FILE *out, bool header, const struct module *mod, const struct node *node) {
   print_toplevel(out, header, node);
   print_defname(out, header, mod, node->subs[0]);
+
+  if (node->subs_count > 1) {
+    assert(!node_is_inline(node));
+    print_block(out, header, mod, node->subs[1]);
+  }
 }
 
 static void print_statement(FILE *out, bool header, const struct module *mod, const struct node *node) {
@@ -639,6 +639,21 @@ static void print_retval_type(FILE *out, const struct module *mod, const struct 
   }
 }
 
+static void print_defarg(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  fprintf(out, "(");
+  print_typeexpr(out, header, mod, node->subs[1]);
+  fprintf(out, ")");
+  print_expr(out, header, mod, node->subs[0], T__NONE);
+}
+
+static void print_retval(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  if (node->which == DEFARG) {
+    print_defarg(out, header, mod, node);
+  } else {
+    print_expr(out, header, mod, node, T__NONE);
+  }
+}
+
 static void print_fun_prototype(FILE *out, bool header, const struct module *mod,
                                 const struct node *node) {
   const size_t arg_count = node_fun_explicit_args_count(node);
@@ -646,7 +661,7 @@ static void print_fun_prototype(FILE *out, bool header, const struct module *mod
 
   print_toplevel(out, header, node);
 
-  print_expr(out, header, mod, retval, T__NONE);
+  print_retval(out, header, mod, retval);
   fprintf(out, " ");
   print_deffun_name(out, mod, node);
   fprintf(out, "(");

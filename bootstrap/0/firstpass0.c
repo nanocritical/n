@@ -493,12 +493,11 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
   switch (retval->which) {
   case UN:
   case IDENT:
+  case CALL:
     break;
-  case BIN:
-    if (retval->as.BIN.operator == TCOLON) {
-      e = scope_define(mod, fun->scope, retval->subs[0], retval);
-      EXCEPT(e);
-    }
+  case DEFARG:
+    e = scope_define(mod, fun->scope, retval->subs[0], retval);
+    EXCEPT(e);
     break;
   default:
     e = mk_except(mod, retval, "return value type structure not supported");
@@ -538,8 +537,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
       sc = node->scope->parent;
     } else {
       e = scope_lookup_ident_wontimport(&container, mod, node->scope->parent,
-                                        toplevel->scope_name,
-                                        FALSE);
+                                        toplevel->scope_name, FALSE);
       EXCEPT(e);
       sc = container->scope;
       node->scope->parent = sc;
@@ -573,7 +571,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
     {
       size_t arg_count = node_fun_explicit_args_count(node);
       for (size_t n = 0; n < arg_count; ++n) {
-        assert(node->subs[1+n]->which == TYPECONSTRAINT);
+        assert(node->subs[1+n]->which == DEFARG);
         e = scope_define(mod, node->scope, node->subs[1+n]->subs[0],
                          node->subs[1+n]);
         EXCEPT(e);
@@ -616,6 +614,7 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   const struct typ *not_typeable = typ_lookup_builtin(mod, TBI__NOT_TYPEABLE);
 
   switch (node->which) {
+  case DEFARG:
   case TYPECONSTRAINT:
     mark_subs(mod, node, pending, 0, 1, 1);
     break;
@@ -911,7 +910,8 @@ static error type_inference_call(struct module *mod, struct node *node);
 static error type_inference_bin_accessor(struct module *mod, struct node *node) {
   error e;
   struct node *field = NULL;
-  e = scope_lookup(&field, mod, node->scope, node);
+  e = scope_lookup(&field, mod, node->subs[0]->typ->definition->scope, node->subs[1]);
+  assert(!e);
   EXCEPT(e);
 
   node->typ = field->typ;
@@ -1152,9 +1152,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     // In this case, y (for instance), will not have is_type set properly.
     // is_type needs to be set recursively when descending via
     // type_destruct.
-    e = scope_lookup(&def, mod, node->scope, node);
-    EXCEPT(e);
-
+    e = scope_lookup_ident_wontimport(&def, mod, node->scope, node_ident(node), FALSE);
     if (def->which == DEFNAME) {
       e = type_destruct(mod, def, constraint);
       EXCEPT(e);
@@ -1424,6 +1422,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     e = type_inference_try(mod, node);
     EXCEPT(e);
     goto ok;
+  case DEFARG:
   case TYPECONSTRAINT:
     node->typ = node->subs[1]->typ;
     e = type_destruct(mod, node->subs[0], node->typ);
@@ -1614,8 +1613,7 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   if (bg == BG_CTOR_WITH_CTOR_WITH
       || bg == BG_CTOR_WITH_MK_WITH
       || bg == BG_CTOR_WITH_NEW_WITH) {
-    struct node *arg = mk_node(mod, d, TYPECONSTRAINT);
-    arg->as.TYPECONSTRAINT.is_arg = TRUE;
+    struct node *arg = mk_node(mod, d, DEFARG);
     struct node *name = mk_node(mod, arg, IDENT);
     name->as.IDENT.name = ID_C;
     struct node *typename = mk_node(mod, arg, DIRECTDEF);

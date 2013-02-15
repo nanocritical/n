@@ -37,6 +37,7 @@ enum node_which {
   DEFMETHOD,
   DEFINTF,
   DEFNAME,
+  DEFARG,
   LET,
   DEFFIELD,
   DEFCHOICE,
@@ -119,9 +120,7 @@ struct node_pass {};
 struct node_if {};
 struct node_match {};
 struct node_try {};
-struct node_typeconstraint {
-  bool is_arg;
-};
+struct node_typeconstraint {};
 struct node_deffun {
   struct toplevel toplevel;
 };
@@ -149,6 +148,7 @@ struct node_defintf {
   struct toplevel toplevel;
 };
 struct node_defname {};
+struct node_defarg {};
 struct node_let {
   struct toplevel toplevel;
 };
@@ -208,6 +208,7 @@ union node_as {
   struct node_defmethod DEFMETHOD;
   struct node_defintf DEFINTF;
   struct node_defname DEFNAME;
+  struct node_defarg DEFARG;
   struct node_let LET;
   struct node_deffield DEFFIELD;
   struct node_defchoice DEFCHOICE;
@@ -485,6 +486,7 @@ ident node_ident(const struct node *node);
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);
 bool node_is_export(const struct node *node);
+bool node_is_def(const struct node *node);
 bool node_is_statement(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
 size_t node_fun_explicit_args_count(const struct node *def);

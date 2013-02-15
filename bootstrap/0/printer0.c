@@ -468,6 +468,12 @@ static void print_typeconstraint(FILE *out, const struct module *mod, const stru
   print_typeexpr(out, mod, node->subs[1]);
 }
 
+static void print_defarg(FILE *out, const struct module *mod, const struct node *node) {
+  print_expr(out, mod, node->subs[0], T__NONE);
+  fprintf(out, ":");
+  print_typeexpr(out, mod, node->subs[1]);
+}
+
 static void print_deffun(FILE *out, const struct module *mod, int indent, const struct node *node) {
   const size_t arg_count = node_fun_explicit_args_count(node);
   const struct node *name = node->subs[0];
@@ -485,7 +491,11 @@ static void print_deffun(FILE *out, const struct module *mod, int indent, const 
   }
 
   fprintf(out, " = ");
-  print_expr(out, mod, retval, T__NONE);
+  if (retval->which == DEFARG) {
+    print_defarg(out, mod, retval);
+  } else {
+    print_expr(out, mod, retval, T__NONE);
+  }
 
   if (!node_toplevel_const(node)->is_prototype
       && node_toplevel_const(node)->builtingen == BG__NOT) {

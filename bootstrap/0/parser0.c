@@ -38,6 +38,7 @@ const char *node_which_strings[] = {
   [DEFMETHOD] = "DEFMETHOD",
   [DEFINTF] = "DEFINTF",
   [DEFNAME] = "DEFNAME",
+  [DEFARG] = "DEFARG",
   [LET] = "LET",
   [DEFFIELD] = "DEFFIELD",
   [DEFCHOICE] = "DEFCHOICE",
@@ -448,6 +449,23 @@ bool node_is_export(const struct node *node) {
     return FALSE;
   } else {
     return toplevel->is_export;
+  }
+}
+
+bool node_is_def(const struct node *node) {
+  switch (node->which) {
+  case MODULE:
+  case DEFNAME:
+  case DEFARG:
+  case DEFFUN:
+  case DEFMETHOD:
+  case DEFTYPE:
+  case DEFFIELD:
+  case DEFINTF:
+  case DEFCHOICE:
+    return TRUE;
+  default:
+    return FALSE;
   }
 }
 
@@ -1127,6 +1145,7 @@ static error p_typeexpr(struct node *node, struct module *mod) {
   return 0;
 }
 
+__attribute((unused))
 static error p_typeconstraint(struct node *node, struct module *mod) {
   node->which = TYPECONSTRAINT;
   error e = p_ident(node_new_subnode(mod, node), mod);
@@ -1297,14 +1316,19 @@ static error p_expr_binary(struct node *node, const struct node *first,
   EXCEPT(e);
 
   assert(tok.t != TCOMMA);
-  node->which = BIN;
+  node->which = tok.t == TCOLON ? TYPECONSTRAINT : BIN;
   node->as.BIN.operator = tok.t;
 
   struct node *left = node_new_subnode(mod, node);
   *left = *first;
 
-  e = p_expr(node_new_subnode(mod, node), mod, tok.t);
-  EXCEPT(e);
+  if (tok.t == TCOLON) {
+    e = p_typeexpr(node_new_subnode(mod, node), mod);
+    EXCEPT(e);
+  } else {
+    e = p_expr(node_new_subnode(mod, node), mod, tok.t);
+    EXCEPT(e);
+  }
 
   return 0;
 }
@@ -1468,11 +1492,27 @@ static error p_defname(struct node *node, struct module *mod) {
   error e = p_pattern(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
-  e = scan_expected(mod, TASSIGN);
+  struct token tok;
+  e = scan(&tok, mod);
   EXCEPT(e);
+  if (tok.t != TASSIGN) {
+    back(mod, &tok);
+    return 0;
+  }
 
   e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
   EXCEPT(e);
+
+  return 0;
+}
+
+static error p_let(struct node *node, struct module *mod, const struct toplevel *toplevel) {
+  node->which = LET;
+  if (toplevel != NULL) {
+    node->as.LET.toplevel = *toplevel;
+  }
+
+  error e = p_defname(node_new_subnode(mod, node), mod);
 
   struct token tok;
   e = scan(&tok, mod);
@@ -1486,15 +1526,6 @@ static error p_defname(struct node *node, struct module *mod) {
   EXCEPT(e);
 
   return 0;
-}
-
-static error p_let(struct node *node, struct module *mod, const struct toplevel *toplevel) {
-  node->which = LET;
-  if (toplevel != NULL) {
-    node->as.LET.toplevel = *toplevel;
-  }
-
-  return p_defname(node_new_subnode(mod, node), mod);
 }
 
 static error p_if(struct node *node, struct module *mod) {
@@ -1799,8 +1830,26 @@ again:
   goto again;
 }
 
-static error check_retval_form(struct module *mod, struct node *retval) {
-  // FIXME
+static error p_defarg(struct node *node, struct module *mod) {
+  node->which = DEFARG;
+  error e = p_expr(node_new_subnode(mod, node), mod, TCOLON);
+  EXCEPT(e);
+
+  struct token tok;
+  e = scan(&tok, mod);
+  EXCEPT(e);
+  if (tok.t != TCOLON) {
+    struct node **to_free = node->subs;
+    struct node *first = node->subs[0];
+    memcpy(node, first, sizeof(*node));
+    free(to_free);
+
+    back(mod, &tok);
+    return 0;
+  }
+
+  e = p_typeexpr(node_new_subnode(mod, node), mod);
+  EXCEPT(e);
   return 0;
 }
 
@@ -1845,8 +1894,7 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
       EXCEPT_SYNTAX(mod, &tok, "malformed method name");
     }
 
-    struct node *arg = mk_node(mod, node, TYPECONSTRAINT);
-    arg->as.TYPECONSTRAINT.is_arg = TRUE;
+    struct node *arg = mk_node(mod, node, DEFARG);
     struct node *name = mk_node(mod, arg, IDENT);
     name->as.IDENT.name = ID_SELF;
 
@@ -1871,11 +1919,8 @@ again:
     back(mod, &tok);
 
     struct node *arg = node_new_subnode(mod, node);
-    e = p_typeconstraint(arg, mod);
+    e = p_defarg(arg, mod);
     EXCEPT(e);
-
-    assert(arg->which == TYPECONSTRAINT);
-    arg->as.TYPECONSTRAINT.is_arg = TRUE;
 
     goto again;
   default:
@@ -1883,7 +1928,7 @@ again:
   }
 
 retval:
-  e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+  e = p_defarg(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
   e = scan_oneof(&tok, mod, TEOL, TSOB, TEOB, 0);
