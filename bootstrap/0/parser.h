@@ -85,6 +85,8 @@ struct toplevel {
   bool is_inline;
   ident scope_name;
   bool is_prototype;
+  struct node *forward_declaration;
+  struct node *full_definition;
   enum builtingen builtingen;
 
   const struct typ **instances;
@@ -158,7 +160,7 @@ struct node_defchoice {
 };
 struct node_isalist {};
 struct node_isa {
-  struct toplevel toplevel;
+  bool is_export;
   bool is_explicit;
 };
 struct node_delegate {};

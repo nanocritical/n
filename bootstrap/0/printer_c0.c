@@ -648,7 +648,7 @@ static void print_defarg(FILE *out, bool header, const struct module *mod, const
 
 static void print_retval(FILE *out, bool header, const struct module *mod, const struct node *node) {
   if (node->which == DEFARG) {
-    print_defarg(out, header, mod, node);
+    print_expr(out, header, mod, node->subs[1], T__NONE);
   } else {
     print_expr(out, header, mod, node, T__NONE);
   }

@@ -411,9 +411,6 @@ const struct toplevel *node_toplevel_const(const struct node *node) {
   case IMPORT:
     toplevel = &node->as.IMPORT.toplevel;
     break;
-  case ISA:
-    toplevel = &node->as.ISA.toplevel;
-    break;
   default:
     break;
   }
@@ -1947,7 +1944,7 @@ retval:
 
 static error p_isa(struct node *node, struct module *mod, bool is_export) {
   node->which = ISA;
-  node->as.ISA.toplevel.is_export = is_export;
+  node->as.ISA.is_export = is_export;
   node->as.ISA.is_explicit = TRUE;
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
@@ -2529,6 +2526,9 @@ static struct typ *typ_new_builtin(struct node *definition,
     r->gen_args = calloc(gen_arity + 1, sizeof(struct typ *));
     assert(definition->typ != NULL);
     r->gen_args[0] = definition->typ;
+
+    r->isalist_count = definition->typ->isalist_count;
+    r->isalist = definition->typ->isalist;
   }
   r->fun_arity = fun_arity;
   if (fun_arity > 0) {

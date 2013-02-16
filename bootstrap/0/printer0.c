@@ -263,7 +263,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     print_init(out, mod, node);
     break;
   case ISA:
-    fprintf(out, "%s", node->as.ISA.toplevel.is_export ? "export " : "");
+    fprintf(out, "%s", node->as.ISA.is_export ? "export " : "");
     print_expr(out, mod, node->subs[0], parent_op);
     break;
   case DIRECTDEF:

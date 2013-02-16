@@ -1,6 +1,6 @@
 from nlang import *
 
-type nocopy =
+type nocopy = ReturnByCopy
   x:i32
 
 fun foo x:i32 = n:nocopy

@@ -1521,6 +1521,7 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
     return 0;
   }
 
+  fprintf(stderr, "inf isalist %s\n", typ_name(mod, node->typ));
   if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
       || node->typ == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)) {
     return 0;
@@ -1547,8 +1548,20 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
 
     isa->typ = def->typ;
     mutable_typ->isalist[n] = def->typ;
-    mutable_typ->isalist_exported[n] = isa->as.ISA.toplevel.is_export;
+    mutable_typ->isalist_exported[n] = isa->as.ISA.is_export;
   }
+
+  return 0;
+}
+
+static error step_toplevel_secondpass(struct module *mod, struct node *node, void *user, bool *stop) {
+  const struct node *parent = node->scope->parent->node;
+  if (parent->which != MODULE_BODY) {
+    return 0;
+  }
+
+  error e = secondpass(mod, node, NULL);
+  EXCEPT(e);
 
   return 0;
 }
@@ -1671,7 +1684,7 @@ static struct node *get_member(struct module *mod, struct node *node, ident id) 
 static void add_isa(struct module *mod, struct node *tdef, const char *path) {
   struct node *isalist = tdef->subs[1];
   struct node *isa = mk_node(mod, isalist, ISA);
-  node_toplevel(isa)->is_export = node_toplevel(tdef)->is_export;
+  isa->as.ISA.is_export = node_toplevel(tdef)->is_export;
   mk_expr_abspath(mod, isa, path);
 }
 
@@ -1874,13 +1887,26 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
   return 0;
 }
 
-static error step_toplevel_secondpass(struct module *mod, struct node *node, void *user, bool *stop) {
-  if (node_toplevel(node) == NULL) {
+static error step_rewrite_def_return_by_copy(struct module *mod, struct node *node, void *user, bool *stop) {
+  ... wrap function block with declaration of return variable, if one.
+  return 0;
+}
+
+static error step_rewrite_def_return_through_ref(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFFUN && node->which != DEFMETHOD) {
     return 0;
   }
 
-  error e = secondpass(mod, node, NULL);
-  EXCEPT(e);
+  const struct node *retval = node_fun_retval(node);
+  if (retval->typ == typ_lookup_builtin(mod, TBI_VOID)) {
+    return 0;
+  }
+  if (typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+    return 0;
+  }
+
+  fprintf(stderr, "%s\n", typ_name(mod, node_fun_retval(node)->typ));
+  assert(FALSE && "Return through value unsupported");;
 
   return 0;
 }
@@ -2056,6 +2082,8 @@ static const step secondpass_down[] = {
   step_add_builtin_mk_new,
   step_add_builtin_operators,
   step_add_sum_dispatch,
+  step_rewrite_def_return_by_copy,
+  step_rewrite_def_return_through_ref,
 
   step_operator_call_inference,
   step_unary_call_inference,

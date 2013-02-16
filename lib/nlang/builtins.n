@@ -3,13 +3,14 @@ export type void =
 export intf Copyable =
 export intf TrivialCopy = export Copyable
 export intf ReturnByCopy =
+export intf WorkaroundRBC = export ReturnByCopy
 export intf Matchable =
 export intf Comparable = export Matchable
 export intf Ordered = export Comparable
-export intf Arithmetic = export Ordered
-export intf Bitwise =
+export intf Arithmetic = export Ordered export WorkaroundRBC
+export intf Bitwise = export WorkaroundRBC
 
-export intf AnyRef = export Copyable
+export intf AnyRef = export Copyable export ReturnByCopy
 export intf Ref = export AnyRef
 export intf MutableRef = export Ref
 export intf MercurialRef = export MutableRef
@@ -60,7 +61,7 @@ export intf Comparable = export Matchable
   method operator_eq other:@this = bool
   method operator_ne other:@this = bool
 
-export intf Boolean =
+export intf Boolean = export WorkaroundRBC
   method operator_or other:@this = this
   method operator_and other:@this = this
   method operator_not = this
@@ -72,7 +73,7 @@ export intf Ordered = export Comparable
   method operator_gt other:@this = bool
   method operator_ge other:@this = bool
 
-export intf Arithmetic = export Ordered
+export intf Arithmetic = export Ordered export WorkaroundRBC
   method operator_plus other:@this = this
   method operator_minus other:@this = this
   method operator_divide other:@this = this
@@ -80,7 +81,7 @@ export intf Arithmetic = export Ordered
   method operator_times other:@this = this
   method operator_uminus = this
 
-export intf Bitwise =
+export intf Bitwise = export WorkaroundRBC
   method operator_bwor other:@this = this
   method operator_bwxor other:@this = this
   method operator_bwand other:@this = this
@@ -88,14 +89,14 @@ export intf Bitwise =
   method operator_rshift by:u32 = this
   method operator_ubwnot = this
 
-export intf DefaultCtor =
+export intf DefaultCtor = export WorkaroundRBC
   method# ctor = void
   fun mk = this
   fun new = @#this
 
 export intf ZeroCtor = DefaultCtor
 
-export intf CtorWith =
+export intf CtorWith = WorkaroundRBC
   method# ctor_with = void
   fun mk_with = this
   fun new_with = @#this
