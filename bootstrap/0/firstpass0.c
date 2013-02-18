@@ -255,10 +255,10 @@ static error step_add_builtin_members(struct module *mod, struct node *node, voi
   }
 
   struct node *let = mk_node(mod, node, LET);
-  struct node *defn = mk_node(mod, let, DEFNAME);
-  struct node *name = mk_node(mod, defn, IDENT);
+  struct node *defp = mk_node(mod, let, DEFPATTERN);
+  struct node *name = mk_node(mod, defp, IDENT);
   name->as.IDENT.name = ID_THIS;
-  struct node *expr = mk_node(mod, defn, IDENT);
+  struct node *expr = mk_node(mod, defp, IDENT);
   expr->as.IDENT.name = node_ident(node);
 
   insert_last_at(node, 2);
@@ -287,6 +287,66 @@ static error step_add_codegen_variables(struct module *mod, struct node *node, v
   default:
     break;
   }
+
+  return 0;
+}
+
+static error extract_defnames_in_pattern(struct module *mod, struct node *defpattern,
+                                         struct node *pattern, struct node *expr) {
+  struct node *defn;
+  error e;
+
+  if (pattern->which != expr->which) {
+    // FIXME
+    e = mk_except(mod, pattern, "value destruct not yet supported");
+    EXCEPT(e);
+  }
+
+  switch (pattern->which) {
+  case IDENT:
+    defn = mk_node(mod, defpattern, DEFNAME);
+    defn->as.DEFNAME.pattern = pattern;
+    defn->as.DEFNAME.expr = expr;
+    return 0;
+  case UN:
+    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0], expr->subs[0]);
+    EXCEPT(e);
+    break;
+  case TUPLE:
+    for (size_t n = 0; n < pattern->subs_count; ++n) {
+      e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[n], expr->subs[n]);
+      EXCEPT(e);
+    }
+    break;
+  case EXCEP:
+    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0], expr->subs[0]);
+    EXCEPT(e);
+    break;
+  case TYPECONSTRAINT:
+    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0], expr->subs[0]);
+    EXCEPT(e);
+    break;
+  default:
+    e = mk_except(mod, pattern, "invalid construct in pattern");
+    EXCEPT(e);
+    break;
+  }
+
+  return 0;
+}
+
+static error step_defpattern_extract_defname(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFPATTERN) {
+    return 0;
+  }
+
+  struct node *expr = NULL;
+  if (node->subs_count >= 2) {
+    expr = node->subs[1];
+  }
+
+  error e = extract_defnames_in_pattern(mod, node, node->subs[0], expr);
+  EXCEPT(e);
 
   return 0;
 }
@@ -551,8 +611,8 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
     sc = node->scope->parent;
     break;
   case DEFNAME:
-    id = node->subs[0];
-    sc = node->scope->parent->parent;
+    id = node->as.DEFNAME.pattern;
+    sc = node->scope->parent->parent->parent;
     break;
   case TRY:
     id = node->subs[1];
@@ -659,8 +719,17 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   case DEFTYPE:
   case DEFINTF:
   case DEFFIELD:
-  case DEFNAME:
     node->subs[0]->typ = not_typeable;
+    break;
+  case DEFPATTERN:
+    if (node->subs_count >= 2 && node->subs[1]->which != DEFNAME) {
+      node->subs[0]->typ = pending;
+    }
+    size_t first_defname = min(size_t, node->subs_count, 2);
+    if (node->subs[1]->which == DEFNAME) {
+      first_defname = 1;
+    }
+    mark_subs(mod, node, pending, first_defname, node->subs_count, 1);
     break;
   case MODULE_BODY:
     node->typ = not_typeable;
@@ -735,6 +804,14 @@ static error step_type_gather_excepts(struct module *mod, struct node *node, voi
   default:
     break;
   }
+  return 0;
+}
+
+static error step_rewrite_defname_no_expr(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFNAME) {
+    return 0;
+  }
+
   return 0;
 }
 
@@ -1163,9 +1240,10 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
   case DEFNAME:
     e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
-    e = type_destruct(mod, node->subs[1], node->typ);
+    e = type_destruct(mod, node->as.DEFNAME.pattern, node->typ);
     EXCEPT(e);
-    node->is_type = node->subs[1]->is_type;
+    e = type_destruct(mod, node->as.DEFNAME.expr, node->typ);
+    EXCEPT(e);
     break;
   case UN:
     switch (OP_KIND(node->as.UN.operator)) {
@@ -1476,11 +1554,18 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
       break;
     }
     goto ok;
-  case DEFNAME:
-    // FIXME handle case where there is a constraint on the DEFNAME;
-    node->typ = node->subs[1]->typ;
-    node->is_type = node->subs[1]->is_type;
+  case DEFPATTERN: {
+    bool has_expr = node->subs_count >= 2 && node->subs[1]->which != DEFNAME;
+    if (has_expr) {
+      e = type_destruct(mod, node->subs[0], node->subs[1]->typ);
+      EXCEPT(e);
+    }
+    node->typ = node->subs[0]->typ;
+    if (has_expr) {
+      node->is_type = node->subs[1]->is_type;
+    }
     goto ok;
+  }
   case DEFFIELD:
     node->typ = node->subs[1]->typ;
     goto ok;
@@ -1888,7 +1973,36 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
 }
 
 static error step_rewrite_def_return_by_copy(struct module *mod, struct node *node, void *user, bool *stop) {
-  ... wrap function block with declaration of return variable, if one.
+  switch (node->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+    break;
+  default:
+    return 0;
+  }
+
+  const struct node *retval = node_fun_retval(node);
+  if (retval->typ == typ_lookup_builtin(mod, TBI_VOID)) {
+    return 0;
+  }
+  if (!typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+    return 0;
+  }
+  if (retval->which != DEFARG) {
+    return 0;
+  }
+
+  struct node *inner = node->subs[0];
+  struct node *outer = mk_node(mod, node, BLOCK);
+  move_last_over(node, 0);
+
+  assert(retval->typ->which != TYPE_TUPLE && "Unsupported");
+  struct node *let = mk_node(mod, outer, LET);
+  struct node *defp = mk_node(mod, let, DEFPATTERN);
+  struct node *name = mk_node(mod, defp, IDENT);
+  name->as.IDENT.name = node_ident(retval);
+  append(let, inner);
+
   return 0;
 }
 
@@ -2032,6 +2146,7 @@ static const step zeropass_down[] = {
   step_assign_deftype_which_values,
   step_add_builtin_members,
   step_add_codegen_variables,
+  step_defpattern_extract_defname,
   NULL,
 };
 
@@ -2060,6 +2175,7 @@ static const step firstpass_down[] = {
 static const step firstpass_up[] = {
   step_add_builtin_defchoice_constructors,
   step_add_builtin_detect_ctor_intf,
+  step_rewrite_defname_no_expr,
   step_rewrite_sum_constructors,
   step_type_inference,
   step_type_inference_isalist,

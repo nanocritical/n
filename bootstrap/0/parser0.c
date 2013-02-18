@@ -38,6 +38,7 @@ const char *node_which_strings[] = {
   [DEFMETHOD] = "DEFMETHOD",
   [DEFINTF] = "DEFINTF",
   [DEFNAME] = "DEFNAME",
+  [DEFPATTERN] = "DEFPATTERN",
   [DEFARG] = "DEFARG",
   [LET] = "LET",
   [DEFFIELD] = "DEFFIELD",
@@ -327,6 +328,9 @@ ident node_ident(const struct node *node) {
   switch (node->which) {
   case IDENT:
     return node->as.IDENT.name;
+  case DEFARG:
+  case DEFNAME:
+    return node_ident(node->subs[0]);
   case FOR:
     return ID_FOR;
   case WHILE:
@@ -1477,16 +1481,10 @@ static error p_except(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_pattern(struct node *node, struct module *mod) {
-  error e = p_ident(node, mod);
-  EXCEPT(e);
-  return 0;
-}
+static error p_defpattern(struct node *node, struct module *mod) {
+  node->which = DEFPATTERN;
 
-static error p_defname(struct node *node, struct module *mod) {
-  node->which = DEFNAME;
-
-  error e = p_pattern(node_new_subnode(mod, node), mod);
+  error e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
   EXCEPT(e);
 
   struct token tok;
@@ -1509,7 +1507,7 @@ static error p_let(struct node *node, struct module *mod, const struct toplevel 
     node->as.LET.toplevel = *toplevel;
   }
 
-  error e = p_defname(node_new_subnode(mod, node), mod);
+  error e = p_defpattern(node_new_subnode(mod, node), mod);
 
   struct token tok;
   e = scan(&tok, mod);
@@ -1587,11 +1585,12 @@ again:
 static error p_for(struct node *node, struct module *mod) {
   node->which = FOR;
 
-  error e = p_pattern(node_new_subnode(mod, node), mod);
+  struct node *pat = mk_node(mod, node, DEFPATTERN);
+  error e = p_expr(pat, mod, T__NONE);
   EXCEPT(e);
   e = scan_expected(mod, Tin);
   EXCEPT(e);
-  e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+  e = p_expr(node_new_subnode(mod, pat), mod, T__NONE);
   EXCEPT(e);
   e = scan_expected(mod, TSOB);
   EXCEPT(e);

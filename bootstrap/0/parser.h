@@ -37,6 +37,7 @@ enum node_which {
   DEFMETHOD,
   DEFINTF,
   DEFNAME,
+  DEFPATTERN,
   DEFARG,
   LET,
   DEFFIELD,
@@ -149,7 +150,11 @@ struct node_defmethod {
 struct node_defintf {
   struct toplevel toplevel;
 };
-struct node_defname {};
+struct node_defname {
+  struct node *pattern;
+  struct node *expr;
+};
+struct node_defpattern {};
 struct node_defarg {};
 struct node_let {
   struct toplevel toplevel;
@@ -210,6 +215,7 @@ union node_as {
   struct node_defmethod DEFMETHOD;
   struct node_defintf DEFINTF;
   struct node_defname DEFNAME;
+  struct node_defpattern DEFPATTERN;
   struct node_defarg DEFARG;
   struct node_let LET;
   struct node_deffield DEFFIELD;
