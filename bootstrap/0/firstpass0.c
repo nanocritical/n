@@ -1238,10 +1238,12 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     node->is_type = def->is_type;
     break;
   case DEFNAME:
-    e = typ_unify(&node->typ, mod, node, node->typ, constraint);
-    EXCEPT(e);
-    e = type_destruct(mod, node->as.DEFNAME.pattern, node->typ);
-    EXCEPT(e);
+    if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)) {
+      node->typ = constraint;
+    } else {
+      e = typ_unify(&node->typ, mod, node, node->typ, constraint);
+      EXCEPT(e);
+    }
     e = type_destruct(mod, node->as.DEFNAME.expr, node->typ);
     EXCEPT(e);
     break;
