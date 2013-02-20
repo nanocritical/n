@@ -366,6 +366,9 @@ static void print_expr(FILE *out, bool header, const struct module *mod, const s
   case UN:
     print_un(out, header, mod, node, parent_op);
     break;
+  case TYPECONSTRAINT:
+    print_typeconstraint(out, header, mod, node);
+    break;
   case CALL:
     print_call(out, header, mod, node, parent_op);
     break;
@@ -500,35 +503,51 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
   }
 }
 
-static void print_defname(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  if (header && !node_is_export(node)) {
-    return;
-  }
-
+static void print_defname(FILE *out, bool header, const struct module *mod, const struct node *node,
+                          const struct node *pattern) {
   assert(node->which == DEFNAME);
   if (node->is_type) {
-    const ident id = node_ident(node->subs[0]);
+    const ident id = node_ident(node->as.DEFNAME.pattern);
     if (id != ID_THIS) {
       fprintf(out, "typedef ");
       print_typ(out, mod, node->typ);
       fprintf(out, " ");
-      print_pattern(out, header, mod, node->subs[0]);
+      print_pattern(out, header, mod, node->as.DEFNAME.expr);
     }
   } else {
+    fprintf(stderr, "%s\n", typ_name(mod, node->typ));
     print_typ(out, mod, node->typ);
     fprintf(out, " ");
-    print_pattern(out, header, mod, node->subs[0]);
+    print_pattern(out, header, mod, node->as.DEFNAME.pattern);
 
-    if (!header || node_is_inline(node)) {
-      fprintf(out, " = ");
-      print_expr(out, header, mod, node->subs[1], T__NONE);
+    if (!header || node_is_inline(pattern)) {
+      if (node->as.DEFNAME.expr != NULL) {
+        fprintf(out, " = ");
+        print_expr(out, header, mod, node->as.DEFNAME.expr, T__NONE);
+      }
     }
+  }
+}
+
+static void print_defpattern(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  assert(node->which == DEFPATTERN);
+  if (header && !node_is_export(node)) {
+    return;
+  }
+
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    if (node->subs[n]->which != DEFNAME) {
+      continue;
+    }
+
+    print_defname(out, header, mod, node->subs[n], node);
+    fprintf(out, ";\n");
   }
 }
 
 static void print_let(FILE *out, bool header, const struct module *mod, const struct node *node) {
   print_toplevel(out, header, node);
-  print_defname(out, header, mod, node->subs[0]);
+  print_defpattern(out, header, mod, node->subs[0]);
 
   if (node->subs_count > 1) {
     assert(!node_is_inline(node));

@@ -2546,7 +2546,6 @@ struct typ *typ_new(struct node *definition,
 
 // Return value must be freed by caller.
 char *typ_name(const struct module *mod, const struct typ *t) {
-  assert(t->which != TYPE__MARKER);
   if (t->definition != NULL) {
     return scope_name(mod, t->definition->scope);
   } else {

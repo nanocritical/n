@@ -250,6 +250,11 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case BIN:
     print_bin(out, mod, node, parent_op);
     break;
+  case TYPECONSTRAINT:
+    print_expr(out, mod, node->subs[0], parent_op);
+    fprintf(out, ":");
+    print_expr(out, mod, node->subs[1], parent_op);
+    break;
   case UN:
     print_un(out, mod, node, parent_op);
     break;
@@ -369,20 +374,22 @@ static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
   }
 }
 
-static void print_defname(FILE *out, const struct module *mod, int indent, const struct node *node) {
+static void print_defpattern(FILE *out, const struct module *mod, int indent, const struct node *node) {
   fprintf(out, "let ");
   print_pattern(out, mod, node->subs[0]);
-  fprintf(out, " = ");
-  print_expr(out, mod, node->subs[1], T__NONE);
-
-  if (node->subs_count > 2) {
-    print_block(out, mod, indent, node->subs[2]);
+  if (node->subs_count > 1 && node->subs[1]->which != DEFNAME) {
+    fprintf(out, " = ");
+    print_expr(out, mod, node->subs[1], T__NONE);
   }
 }
 
 static void print_let(FILE *out, const struct module *mod, int indent, const struct node *node) {
   print_toplevel(out, &node->as.LET.toplevel);
-  print_defname(out, mod, indent, node->subs[0]);
+  print_defpattern(out, mod, indent, node->subs[0]);
+
+  if (node->subs_count > 1) {
+    print_block(out, mod, indent, node->subs[1]);
+  }
 }
 
 static void print_statement(FILE *out, const struct module *mod, int indent, const struct node *node) {

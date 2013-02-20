@@ -90,7 +90,8 @@ static void move_last_over(struct node *node, size_t pos) {
   // Ensures there is nothing to leak.
   assert(would_leak->which == IDENT
          || would_leak->which == DIRECTDEF
-         || would_leak->which == BIN);
+         || would_leak->which == BIN
+         || would_leak->which == BLOCK);
   node->subs[pos] = node->subs[node->subs_count - 1];
   node->subs_count -= 1;
   node->subs = realloc(node->subs, node->subs_count * sizeof(node->subs[0]));
@@ -296,11 +297,13 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
   struct node *defn;
   error e;
 
-  if (pattern->which != expr->which) {
+  if (expr != NULL && pattern->which != expr->which) {
     // FIXME
     e = mk_except(mod, pattern, "value destruct not yet supported");
     EXCEPT(e);
   }
+
+#define UNLESS_NULL(n, sub) ( (n) != NULL ? (sub) : NULL )
 
   switch (pattern->which) {
   case IDENT:
@@ -309,21 +312,25 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
     defn->as.DEFNAME.expr = expr;
     return 0;
   case UN:
-    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0], expr->subs[0]);
+    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0],
+                                    UNLESS_NULL(expr, expr->subs[0]));
     EXCEPT(e);
     break;
   case TUPLE:
     for (size_t n = 0; n < pattern->subs_count; ++n) {
-      e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[n], expr->subs[n]);
+      e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[n],
+                                      UNLESS_NULL(expr, expr->subs[n]));
       EXCEPT(e);
     }
     break;
   case EXCEP:
-    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0], expr->subs[0]);
+    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0],
+                                    UNLESS_NULL(expr, expr->subs[0]));
     EXCEPT(e);
     break;
   case TYPECONSTRAINT:
-    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0], expr->subs[0]);
+    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0],
+                                    UNLESS_NULL(expr, expr->subs[0]));
     EXCEPT(e);
     break;
   default:
@@ -331,6 +338,7 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
     EXCEPT(e);
     break;
   }
+#undef UNLESS_NULL
 
   return 0;
 }
@@ -722,14 +730,12 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
     node->subs[0]->typ = not_typeable;
     break;
   case DEFPATTERN:
-    if (node->subs_count >= 2 && node->subs[1]->which != DEFNAME) {
+    if (node->subs_count > 1 && node->subs[1]->which != DEFNAME) {
       node->subs[0]->typ = pending;
+      mark_subs(mod, node, pending, 2, node->subs_count, 1);
+    } else {
+      mark_subs(mod, node, pending, 1, node->subs_count, 1);
     }
-    size_t first_defname = min(size_t, node->subs_count, 2);
-    if (node->subs[1]->which == DEFNAME) {
-      first_defname = 1;
-    }
-    mark_subs(mod, node, pending, first_defname, node->subs_count, 1);
     break;
   case MODULE_BODY:
     node->typ = not_typeable;
@@ -847,7 +853,6 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
 
   struct node *except[] = { fun, NULL };
   e = zero_and_first_for_generated(mod, mk_fun, except, node->scope);
-  assert(!e);
   EXCEPT(e);
 
   return 0;
@@ -1229,7 +1234,9 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     // In this case, y (for instance), will not have is_type set properly.
     // is_type needs to be set recursively when descending via
     // type_destruct.
+    printer_tree(2, mod, node);
     e = scope_lookup_ident_wontimport(&def, mod, node->scope, node_ident(node), FALSE);
+    fprintf(stderr, "%d %d\n", def->which, TYPECONSTRAINT);
     if (def->which == DEFNAME) {
       e = type_destruct(mod, def, constraint);
       EXCEPT(e);
@@ -1557,7 +1564,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     }
     goto ok;
   case DEFPATTERN: {
-    bool has_expr = node->subs_count >= 2 && node->subs[1]->which != DEFNAME;
+    bool has_expr = node->subs_count > 1 && node->subs[1]->which != DEFNAME;
     if (has_expr) {
       e = type_destruct(mod, node->subs[0], node->subs[1]->typ);
       EXCEPT(e);
@@ -1565,6 +1572,11 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     node->typ = node->subs[0]->typ;
     if (has_expr) {
       node->is_type = node->subs[1]->is_type;
+      for (size_t n = 0; n < node->subs_count; ++n) {
+        if (node->subs[n]->which == DEFNAME) {
+          node->subs[n]->is_type = node->is_type;
+        }
+      }
     }
     goto ok;
   }
@@ -1994,16 +2006,23 @@ static error step_rewrite_def_return_by_copy(struct module *mod, struct node *no
     return 0;
   }
 
-  struct node *inner = node->subs[0];
+  struct node *inner = node->subs[node->subs_count - 1];
   struct node *outer = mk_node(mod, node, BLOCK);
-  move_last_over(node, 0);
+  move_last_over(node, node->subs_count - 2);
 
   assert(retval->typ->which != TYPE_TUPLE && "Unsupported");
   struct node *let = mk_node(mod, outer, LET);
   struct node *defp = mk_node(mod, let, DEFPATTERN);
-  struct node *name = mk_node(mod, defp, IDENT);
+  struct node *typec = mk_node(mod, defp, TYPECONSTRAINT);
+  struct node *name = mk_node(mod, typec, IDENT);
   name->as.IDENT.name = node_ident(retval);
+  struct node *type = node_new_subnode(mod, typec);
+  node_deepcopy(mod, type, retval->subs[1]);
   append(let, inner);
+
+  struct node *except[] = { inner, NULL };
+  error e = zero_and_first_for_generated(mod, outer, except, node->scope);
+  EXCEPT(e);
 
   return 0;
 }
