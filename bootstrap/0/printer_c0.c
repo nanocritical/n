@@ -107,7 +107,7 @@ static void print_deffun_name(FILE *out, const struct module *mod, const struct 
 static void print_deffield_name(FILE *out, const struct module *mod, const struct node *node);
 
 static void print_pattern(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  print_expr(out, header, mod, node, T__NONE);
+  print_expr(out, header, mod, node, T__STATEMENT);
 }
 
 static void print_bin_sym(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
@@ -270,11 +270,11 @@ static void print_call(FILE *out, bool header, const struct module *mod, const s
 }
 
 static void print_init(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  print_expr(out, header, mod, node->subs[0], T__NONE);
+  print_expr(out, header, mod, node->subs[0], T__STATEMENT);
   fprintf(out, "{{ ");
 
   for (size_t n = 1; n < node->subs_count; n += 2) {
-    print_expr(out, header, mod, node->subs[n], T__NONE);
+    print_expr(out, header, mod, node->subs[n], T__STATEMENT);
     fprintf(out, "=");
     print_expr(out, header, mod, node->subs[n + 1], T__CALL);
     fprintf(out, " ");
@@ -388,20 +388,20 @@ static void print_for(FILE *out, bool header, const struct module *mod, const st
   fprintf(out, "for ");
   print_pattern(out, header, mod, node->subs[0]);
   fprintf(out, " in ");
-  print_expr(out, header, mod, node->subs[1], T__NONE);
+  print_expr(out, header, mod, node->subs[1], T__STATEMENT);
   print_block(out, header, mod, node->subs[2]);
 }
 
 static void print_while(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, "while (");
-  print_expr(out, header, mod, node->subs[0], T__NONE);
+  print_expr(out, header, mod, node->subs[0], T__STATEMENT);
   fprintf(out, ")");
   print_block(out, header, mod, node->subs[1]);
 }
 
 static void print_if(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, "if (");
-  print_expr(out, header, mod, node->subs[0], T__NONE);
+  print_expr(out, header, mod, node->subs[0], T__STATEMENT);
   fprintf(out, ")");
   print_block(out, header, mod, node->subs[1]);
 
@@ -410,7 +410,7 @@ static void print_if(FILE *out, bool header, const struct module *mod, const str
   while (br_count >= 2) {
     fprintf(out, "\n");
     fprintf(out, "else if (");
-    print_expr(out, header, mod, node->subs[p], T__NONE);
+    print_expr(out, header, mod, node->subs[p], T__STATEMENT);
     fprintf(out, ") ");
     print_block(out, header, mod, node->subs[p+1]);
     p += 2;
@@ -426,12 +426,12 @@ static void print_if(FILE *out, bool header, const struct module *mod, const str
 
 static void print_match(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, "switch (");
-  print_expr(out, header, mod, node->subs[0], T__NONE);
+  print_expr(out, header, mod, node->subs[0], T__STATEMENT);
   fprintf(out, ") {");
 
   for (size_t n = 1; n < node->subs_count; n += 2) {
     fprintf(out, "case ");
-    print_expr(out, header, mod, node->subs[n], T__NONE);
+    print_expr(out, header, mod, node->subs[n], T__STATEMENT);
     fprintf(out, ":");
     print_block(out, header, mod, node->subs[n + 1]);
   }
@@ -442,7 +442,7 @@ static void print_try(FILE *out, bool header, const struct module *mod, const st
   print_block(out, header, mod, node->subs[0]);
   fprintf(out, "\n");
   fprintf(out, "catch ");
-  print_expr(out, header, mod, node->subs[1], T__NONE);
+  print_expr(out, header, mod, node->subs[1], T__STATEMENT);
   print_block(out, header, mod, node->subs[2]);
 }
 
@@ -523,7 +523,7 @@ static void print_defname(FILE *out, bool header, const struct module *mod, cons
     if (!header || node_is_inline(pattern)) {
       if (node->as.DEFNAME.expr != NULL) {
         fprintf(out, " = ");
-        print_expr(out, header, mod, node->as.DEFNAME.expr, T__NONE);
+        print_expr(out, header, mod, node->as.DEFNAME.expr, T__STATEMENT);
       }
     }
   }
@@ -560,7 +560,7 @@ static void print_statement(FILE *out, bool header, const struct module *mod, co
     fprintf(out, "return");
     if (node->subs_count > 0) {
       fprintf(out, " ");
-      print_expr(out, header, mod, node->subs[0], T__NONE);
+      print_expr(out, header, mod, node->subs[0], T__STATEMENT);
     }
     break;
   case FOR:
@@ -606,7 +606,7 @@ static void print_statement(FILE *out, bool header, const struct module *mod, co
   case BIN:
   case UN:
   case CALL:
-    print_expr(out, header, mod, node, T__NONE);
+    print_expr(out, header, mod, node, T__STATEMENT);
     break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
@@ -626,27 +626,27 @@ static void print_block(FILE *out, bool header, const struct module *mod, const 
 }
 
 static void print_typeexpr(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  print_expr(out, header, mod, node, T__NONE);
+  print_expr(out, header, mod, node, T__STATEMENT);
 }
 
 static void print_typeconstraint(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, "(");
   print_typeexpr(out, header, mod, node->subs[1]);
   fprintf(out, ")");
-  print_expr(out, header, mod, node->subs[0], T__NONE);
+  print_expr(out, header, mod, node->subs[0], T__STATEMENT);
 }
 
 static void print_defarg(FILE *out, bool header, const struct module *mod, const struct node *node) {
   print_typeexpr(out, header, mod, node->subs[1]);
   fprintf(out, " ");
-  print_expr(out, header, mod, node->subs[0], T__NONE);
+  print_expr(out, header, mod, node->subs[0], T__STATEMENT);
 }
 
 static void print_retval(FILE *out, bool header, const struct module *mod, const struct node *node) {
   if (node->which == DEFARG) {
-    print_expr(out, header, mod, node->subs[1], T__NONE);
+    print_expr(out, header, mod, node->subs[1], T__STATEMENT);
   } else {
-    print_expr(out, header, mod, node, T__NONE);
+    print_expr(out, header, mod, node, T__STATEMENT);
   }
 }
 
@@ -928,7 +928,7 @@ static void print_deftype_choices(FILE *out, bool header, const struct module *m
     fprintf(out, "_");
     print_deffield_name(out, mod, s);
     fprintf(out, "_%s = ", idents_value(mod->gctx, ID_WHICH));
-    print_expr(out, header, mod, s->subs[1], T__NONE);
+    print_expr(out, header, mod, s->subs[1], T__STATEMENT);
     fprintf(out, ";\n");
   }
 

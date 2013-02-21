@@ -103,7 +103,8 @@ enum token_type {
   TRPAR,
 
   T__CALL,
-  T__NONE,
+  T__NOT_STATEMENT,
+  T__STATEMENT,
 
   TOKEN__NUM,
 };
@@ -140,7 +141,7 @@ enum operator_kind {
 #define OP_KIND(t) ((operators[t] >> 18) & OP_KIND__MASK)
 
 static const uint32_t operators[TOKEN__NUM] = {
-  [T__NONE] = OP(0, 0, 0xffff),
+  [T__STATEMENT] = OP(0, 0, 0xffff),
   [TASSIGN] = OP(OP_BIN_SYM, ASSOC_NON, 0x140),
   [TPLUS_ASSIGN] = OP(OP_BIN_SYM_NUM, ASSOC_NON, 0x140),
   [TMINUS_ASSIGN] = OP(OP_BIN_SYM_NUM, ASSOC_NON, 0x140),
@@ -152,6 +153,7 @@ static const uint32_t operators[TOKEN__NUM] = {
   [TBWXOR_ASSIGN] = OP(OP_BIN_SYM_NUM, ASSOC_NON, 0x140),
   [TRSHIFT_ASSIGN] = OP(OP_BIN_NUM_RHS_U16, ASSOC_NON, 0x140),
   [TLSHIFT_ASSIGN] = OP(OP_BIN_NUM_RHS_U16, ASSOC_NON, 0x140),
+  [T__NOT_STATEMENT] = OP(OP_BIN, ASSOC_NON, 0x139),
   [TCOMMA] = OP(OP_BIN, ASSOC_LEFT, 0x130),
   [Tor] = OP(OP_BIN_SYM_BOOL, ASSOC_LEFT, 0x120),
   [Tand] = OP(OP_BIN_SYM_BOOL, ASSOC_LEFT, 0x110),

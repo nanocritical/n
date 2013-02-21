@@ -329,7 +329,6 @@ ident node_ident(const struct node *node) {
   case IDENT:
     return node->as.IDENT.name;
   case DEFARG:
-  case DEFNAME:
     return node_ident(node->subs[0]);
   case FOR:
     return ID_FOR;
@@ -954,7 +953,7 @@ void globalctx_init(struct globalctx *gctx) {
 
   gctx->modules_root.scope = scope_new(&gctx->modules_root);
   gctx->modules_root.which = ROOT_OF_ALL;
-  gctx->modules_root.typ = gctx->builtin_typs[TBI_VOID];
+  gctx->modules_root.typ = typ_new(&gctx->modules_root, TYPE_DEF, 0, 0);
 }
 
 static error module_read(struct module *mod, const char *prefix, const char *fn) {
@@ -1185,7 +1184,7 @@ static error p_defchoice(struct node *node, struct module *mod) {
   if (tok.t == TASSIGN) {
     node->as.DEFCHOICE.has_value = TRUE;
 
-    e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+    e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
     EXCEPT(e);
 
     e = scan(&tok, mod);
@@ -1340,7 +1339,7 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
   error e;
   struct token tok;
   bool first_iteration = TRUE;
-  bool topmost = parent_op == T__NONE;
+  bool topmost = parent_op == T__STATEMENT;
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -1352,7 +1351,7 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
   second.codeloc = mod->parser.pos;
 
   if (tok.t == TLPAR) {
-    e = p_expr(&first, mod, T__NONE);
+    e = p_expr(&first, mod, T__NOT_STATEMENT);
     EXCEPT(e);
     e = scan_expected(mod, TRPAR);
     EXCEPT(e);
@@ -1461,7 +1460,7 @@ static error p_return(struct node *node, struct module *mod) {
   back(mod, &tok);
 
   if (!expr_terminators[tok.t]) {
-    e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+    e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
     EXCEPT(e);
   }
   return 0;
@@ -1475,7 +1474,7 @@ static error p_except(struct node *node, struct module *mod) {
   back(mod, &tok);
 
   if (!expr_terminators[tok.t]) {
-    e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+    e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
     EXCEPT(e);
   }
   return 0;
@@ -1484,7 +1483,7 @@ static error p_except(struct node *node, struct module *mod) {
 static error p_defpattern(struct node *node, struct module *mod) {
   node->which = DEFPATTERN;
 
-  error e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
 
   struct token tok;
@@ -1495,7 +1494,7 @@ static error p_defpattern(struct node *node, struct module *mod) {
     return 0;
   }
 
-  e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+  e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
 
   return 0;
@@ -1528,7 +1527,7 @@ static error p_if(struct node *node, struct module *mod) {
 
   struct token eol;
 
-  error e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
@@ -1548,7 +1547,7 @@ again:
 
   switch (tok.t) {
   case Telif:
-    e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+    e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
     EXCEPT(e);
     e = scan_expected(mod, TSOB);
     EXCEPT(e);
@@ -1586,11 +1585,11 @@ static error p_for(struct node *node, struct module *mod) {
   node->which = FOR;
 
   struct node *pat = mk_node(mod, node, DEFPATTERN);
-  error e = p_expr(pat, mod, T__NONE);
+  error e = p_expr(pat, mod, T__NOT_STATEMENT);
   EXCEPT(e);
   e = scan_expected(mod, Tin);
   EXCEPT(e);
-  e = p_expr(node_new_subnode(mod, pat), mod, T__NONE);
+  e = p_expr(node_new_subnode(mod, pat), mod, T__NOT_STATEMENT);
   EXCEPT(e);
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
@@ -1603,7 +1602,7 @@ static error p_for(struct node *node, struct module *mod) {
 static error p_while(struct node *node, struct module *mod) {
   node->which = WHILE;
 
-  error e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
@@ -1625,7 +1624,7 @@ static error p_try(struct node *node, struct module *mod) {
   e = scan_expected(mod, Tcatch);
   EXCEPT(e);
 
-  e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+  e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
@@ -1654,7 +1653,7 @@ static error p_pass(struct node *node, struct module *mod) {
 static error p_match(struct node *node, struct module *mod) {
   node->which = MATCH;
 
-  error e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
   e = scan_expected(mod, TEOL);
   EXCEPT(e);
@@ -1669,7 +1668,7 @@ again:
     return 0;
   }
 
-  e = p_expr(node_new_subnode(mod, node), mod, T__NONE);
+  e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
@@ -1780,7 +1779,7 @@ static error p_statement(struct node *node, struct module *mod) {
   case TLPAR:
   case TIDENT:
     back(mod, &tok);
-    e = p_expr(node, mod, T__NONE);
+    e = p_expr(node, mod, T__STATEMENT);
     break;
   default:
     UNEXPECTED(mod, &tok);
@@ -2399,7 +2398,7 @@ static error register_module(struct node **parent,
       m->as.MODULE.mod = p == last ? mod : NULL;
       m->scope = scope_new(m);
       m->scope->parent = root->scope;
-      m->typ = typ_lookup_builtin(mod, TBI_VOID);
+      m->typ = typ_new(m, TYPE_DEF, 0, 0);
 
       e = scope_define_ident(mod, root->scope, i, m);
       EXCEPT(e);
