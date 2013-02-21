@@ -720,11 +720,7 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
     break;
   case DEFFUN:
   case DEFMETHOD:
-    // The BIN case implies that's this method comes from an intf
-    // and we will type the full path.
-    if (node->subs[0]->which == IDENT) {
-      node->subs[0]->typ = not_typeable;
-    }
+    node->subs[0]->typ = not_typeable;
     break;
   case DEFTYPE:
   case DEFINTF:
@@ -991,17 +987,54 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
 
 static error type_inference_call(struct module *mod, struct node *node);
 
+static error bin_accessor_maybe_in_defchoice(struct scope **parent_scope,
+                                             struct module *mod, struct node *node) {
+  struct node *parent = node->subs[0];
+  struct node *parent_parent = NULL;
+  if (parent->which != BIN) {
+    return 0;
+  }
+
+  parent_parent = parent->subs[0];
+  // These conditions are necessary but not sufficient and testing them is
+  // an optimization.
+  if (parent_parent->typ != parent->typ
+      || !parent_parent->is_type
+      || !parent->is_type) {
+    return 0;
+  }
+
+  struct node *defchoice = NULL;
+  error e = scope_lookup_ident_immediate(&defchoice, mod, parent_parent->typ->definition->scope,
+                                         node_ident(parent->subs[1]), FALSE);
+  EXCEPT(e);
+
+  if (defchoice->which != DEFCHOICE) {
+    return 0;
+  }
+
+  *parent_scope = defchoice->scope;
+  return 0;
+}
+
 static error type_inference_bin_accessor(struct module *mod, struct node *node) {
   error e;
   struct node *parent = node->subs[0];
   struct scope *parent_scope = parent->typ->definition->scope;
-  struct node *field = NULL;
-  e = scope_lookup_ident_immediate(&field, mod, parent_scope, node_ident(node->subs[1]), FALSE);
-  assert(!e);
+  e = bin_accessor_maybe_in_defchoice(&parent_scope, mod, node);
   EXCEPT(e);
 
-  node->typ = field->typ;
-  node->is_type = field->is_type;
+  struct node *field = NULL;
+  e = scope_lookup_ident_immediate(&field, mod, parent_scope, node_ident(node->subs[1]), FALSE);
+  EXCEPT(e);
+
+  if (field->typ->which == TYPE_FUNCTION && node_fun_explicit_args_count(field) == 0) {
+    // Unary call.
+    node->typ = node_fun_retval(field)->typ;
+  } else {
+    node->typ = field->typ;
+    node->is_type = field->is_type;
+  }
 
   return 0;
 }
@@ -1537,12 +1570,14 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
       {
         const struct typ *u = typ_lookup_builtin(mod, TBI_LITERALS_INTEGER);
         for (size_t n = 0; n < node->subs_count; ++n) {
-          if (node->subs[n]->which != DEFCHOICE) {
+          struct node *ch = node->subs[n];
+          if (ch->which != DEFCHOICE) {
             continue;
           }
-          e = typ_unify(&u, mod, node->subs[n],
-                        u, node->subs[n]->subs[1]->typ);
+          e = typ_unify(&u, mod, ch,
+                        u, ch->subs[1]->typ);
           EXCEPT(e);
+          ch->is_type = TRUE;
         }
 
         if (u == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
@@ -1551,13 +1586,14 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
         node->as.DEFTYPE.choice_typ = u;
 
         for (size_t n = 0; n < node->subs_count; ++n) {
-          if (node->subs[n]->which != DEFCHOICE) {
+          struct node *ch = node->subs[n];
+          if (ch->which != DEFCHOICE) {
             continue;
           }
-          e = type_destruct(mod, node->subs[n]->subs[1], u);
+          e = type_destruct(mod, ch->subs[1], u);
           EXCEPT(e);
 
-          node->subs[n]->typ = node->typ;
+          ch->typ = node->typ;
         }
       }
       break;
