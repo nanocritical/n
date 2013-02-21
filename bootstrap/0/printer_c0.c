@@ -541,7 +541,6 @@ static void print_defpattern(FILE *out, bool header, const struct module *mod, c
     }
 
     print_defname(out, header, mod, node->subs[n], node);
-    fprintf(out, ";\n");
   }
 }
 
@@ -637,31 +636,9 @@ static void print_typeconstraint(FILE *out, bool header, const struct module *mo
   print_expr(out, header, mod, node->subs[0], T__NONE);
 }
 
-static void print_retval_type(FILE *out, const struct module *mod, const struct node *fun) {
-  const struct node *retval = node_fun_retval(fun);
-  const struct typ *tret = retval->typ;
-
-  if (typ_isa(mod, tret, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
-    print_typ(out, mod, tret);
-  } else {
-    //....
-    //  can we really do that transparently? Yes, if using named return variables.
-    //  Should that be a requirement? YES. Otherwise, this implies a copy.
-    //  So ReturnByCopy is necessary if not a named return value.
-    //  fun(tret *retval, ...) {
-    //    retval->ctor();
-    //    {
-    //      ... ???
-    //    }
-    //    ???
-    //  }
-  }
-}
-
 static void print_defarg(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  fprintf(out, "(");
   print_typeexpr(out, header, mod, node->subs[1]);
-  fprintf(out, ")");
+  fprintf(out, " ");
   print_expr(out, header, mod, node->subs[0], T__NONE);
 }
 
@@ -694,9 +671,7 @@ static void print_fun_prototype(FILE *out, bool header, const struct module *mod
       fprintf(out, ", ");
     }
     const struct node *arg = node->subs[1 + n];
-    print_typeexpr(out, header, mod, arg->subs[1]);
-    fprintf(out, " ");
-    print_expr(out, header, mod, arg->subs[0], T__NONE);
+    print_defarg(out, header, mod, arg);
   }
   fprintf(out, ")");
 }
@@ -778,10 +753,25 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
   } else {
     print_fun_prototype(out, header, mod, node);
 
+    const struct node *retval = node_fun_retval(node);
+    const bool named_retval = retval->which == DEFARG;
+    const bool retval_bycopy = typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
+
+    if (named_retval && retval_bycopy) {
+      fprintf(out, "{\n__attribute__((__unused__))");
+      print_defarg(out, header, mod, retval);
+      fprintf(out, ";\n");
+    }
+
     const size_t arg_count = node_fun_explicit_args_count(node);
     const struct node *block = node->subs[1 + arg_count + 1];
     print_block(out, header, mod, block);
+
     fprintf(out, "\n");
+
+    if (named_retval) {
+      fprintf(out, "}\n");
+    }
   }
 }
 

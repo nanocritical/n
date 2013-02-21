@@ -1234,9 +1234,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     // In this case, y (for instance), will not have is_type set properly.
     // is_type needs to be set recursively when descending via
     // type_destruct.
-    printer_tree(2, mod, node);
     e = scope_lookup_ident_wontimport(&def, mod, node->scope, node_ident(node), FALSE);
-    fprintf(stderr, "%d %d\n", def->which, TYPECONSTRAINT);
     if (def->which == DEFNAME) {
       e = type_destruct(mod, def, constraint);
       EXCEPT(e);
@@ -1620,7 +1618,6 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
     return 0;
   }
 
-  fprintf(stderr, "inf isalist %s\n", typ_name(mod, node->typ));
   if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
       || node->typ == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)) {
     return 0;
@@ -1986,47 +1983,6 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
   return 0;
 }
 
-static error step_rewrite_def_return_by_copy(struct module *mod, struct node *node, void *user, bool *stop) {
-  switch (node->which) {
-  case DEFFUN:
-  case DEFMETHOD:
-    break;
-  default:
-    return 0;
-  }
-
-  const struct node *retval = node_fun_retval(node);
-  if (retval->typ == typ_lookup_builtin(mod, TBI_VOID)) {
-    return 0;
-  }
-  if (!typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
-    return 0;
-  }
-  if (retval->which != DEFARG) {
-    return 0;
-  }
-
-  struct node *inner = node->subs[node->subs_count - 1];
-  struct node *outer = mk_node(mod, node, BLOCK);
-  move_last_over(node, node->subs_count - 2);
-
-  assert(retval->typ->which != TYPE_TUPLE && "Unsupported");
-  struct node *let = mk_node(mod, outer, LET);
-  struct node *defp = mk_node(mod, let, DEFPATTERN);
-  struct node *typec = mk_node(mod, defp, TYPECONSTRAINT);
-  struct node *name = mk_node(mod, typec, IDENT);
-  name->as.IDENT.name = node_ident(retval);
-  struct node *type = node_new_subnode(mod, typec);
-  node_deepcopy(mod, type, retval->subs[1]);
-  append(let, inner);
-
-  struct node *except[] = { inner, NULL };
-  error e = zero_and_first_for_generated(mod, outer, except, node->scope);
-  EXCEPT(e);
-
-  return 0;
-}
-
 static error step_rewrite_def_return_through_ref(struct module *mod, struct node *node, void *user, bool *stop) {
   if (node->which != DEFFUN && node->which != DEFMETHOD) {
     return 0;
@@ -2219,7 +2175,6 @@ static const step secondpass_down[] = {
   step_add_builtin_mk_new,
   step_add_builtin_operators,
   step_add_sum_dispatch,
-  step_rewrite_def_return_by_copy,
   step_rewrite_def_return_through_ref,
 
   step_operator_call_inference,
