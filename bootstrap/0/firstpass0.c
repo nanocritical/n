@@ -297,7 +297,9 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
   struct node *defn;
   error e;
 
-  if (expr != NULL && pattern->which != expr->which) {
+  if (expr != NULL
+      && pattern->which != expr->which
+      && pattern->which != IDENT) {
     // FIXME
     e = mk_except(mod, pattern, "value destruct not yet supported");
     EXCEPT(e);
@@ -991,8 +993,10 @@ static error type_inference_call(struct module *mod, struct node *node);
 
 static error type_inference_bin_accessor(struct module *mod, struct node *node) {
   error e;
+  struct node *parent = node->subs[0];
+  struct scope *parent_scope = parent->typ->definition->scope;
   struct node *field = NULL;
-  e = scope_lookup(&field, mod, node->subs[0]->typ->definition->scope, node->subs[1]);
+  e = scope_lookup_ident_immediate(&field, mod, parent_scope, node_ident(node->subs[1]), FALSE);
   assert(!e);
   EXCEPT(e);
 
