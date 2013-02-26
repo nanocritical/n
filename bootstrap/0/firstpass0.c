@@ -371,7 +371,7 @@ static error step_add_scopes(struct module *mod, struct node *node, void *user, 
     //   (ii) are typed void when created, to allow global module lookup to
     //   use the 'typ' field when typing import nodes.
     node->typ = NULL;
-    node->is_type = FALSE;
+    node->flags = 0;
   }
 
   for (size_t n = 0; n < node->subs_count; ++n) {
@@ -772,7 +772,7 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
   } else {
     node->typ = typ_new(node, TYPE_DEF, 0, 0);
   }
-  node->is_type = TRUE;
+  node->flags = NODE_IS_TYPE;
 
   return 0;
 }
@@ -899,7 +899,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
   switch (OP_KIND(op)) {
   case OP_UN_REFOF:
     node->typ = typ_ref(mod, op, node->subs[0]->typ);
-    node->is_type = node->subs[0]->is_type;
+    node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
     break;
   case OP_UN_BOOL:
     if (typ_is_concrete(mod, node->subs[0]->typ)) {
@@ -915,12 +915,6 @@ static error type_inference_un(struct module *mod, struct node *node) {
     e = typ_compatible_numeric(mod, node, node->subs[0]->typ);
     EXCEPT(e);
     node->typ = node->subs[0]->typ;
-    break;
-  case OP_UN_DYN:
-    e = typ_compatible_reference(mod, node, node->subs[0]->typ);
-    EXCEPT(e);
-    node->typ = node->subs[0]->typ;
-    node->is_type = node->subs[0]->is_type;
     break;
   default:
     assert(FALSE);
@@ -999,8 +993,8 @@ static error bin_accessor_maybe_in_defchoice(struct scope **parent_scope,
   // These conditions are necessary but not sufficient and testing them is
   // an optimization.
   if (parent_parent->typ != parent->typ
-      || !parent_parent->is_type
-      || !parent->is_type) {
+      || !(parent_parent->flags & NODE_IS_TYPE)
+      || !(parent->flags & NODE_IS_TYPE)) {
     return 0;
   }
 
@@ -1026,6 +1020,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
 
   struct node *field = NULL;
   e = scope_lookup_ident_immediate(&field, mod, parent_scope, node_ident(node->subs[1]), FALSE);
+  assert(!e);
   EXCEPT(e);
 
   if (field->typ->which == TYPE_FUNCTION && node_fun_explicit_args_count(field) == 0) {
@@ -1033,8 +1028,8 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
     node->typ = node_fun_retval(field)->typ;
   } else {
     node->typ = field->typ;
-    node->is_type = field->is_type;
   }
+  node->flags = field->flags;
 
   return 0;
 }
@@ -1052,7 +1047,7 @@ static error type_inference_bin_rhs_u16(struct module *mod, struct node *node) {
 
 static error type_inference_bin_rhs_type(struct module *mod, struct node *node) {
   error e;
-  if (!node->subs[1]->is_type) {
+  if (!(node->subs[1]->flags & NODE_IS_TYPE)) {
     e = mk_except_type(mod, node->subs[1], "right-hand side not a type");
     EXCEPT(e);
   }
@@ -1088,11 +1083,11 @@ static error type_inference_tuple(struct module *mod, struct node *node) {
   for (size_t n = 0; n < node->typ->gen_arity; ++n) {
     node->typ->gen_args[1+n] = node->subs[n]->typ;
 
-    if (n > 0 && node->is_type != node->subs[n]->is_type) {
+    if (n > 0 && (node->flags & NODE_IS_TYPE) != (node->subs[n]->flags & NODE_IS_TYPE)) {
       error e = mk_except_type(mod, node->subs[n], "tuple combines values and types");
       EXCEPT(e);
     }
-    node->is_type |= node->subs[n]->is_type;
+    node->flags |= (node->subs[n]->flags & NODE__TRANSITIVE);
   }
   error e = need_instance(mod, node, node->typ);
   EXCEPT(e);
@@ -1129,7 +1124,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
   case DEFFUN:
     break;
   case DEFMETHOD:
-    if (!fun->subs[0]->is_type) {
+    if (!(fun->subs[0]->flags & NODE_IS_TYPE)) {
       // Form (self.method ...)
       struct node *m = mk_node(mod, node, DIRECTDEF);
       m->as.DIRECTDEF.definition = fun->typ->definition;
@@ -1167,14 +1162,14 @@ static error type_inference_call(struct module *mod, struct node *node) {
   EXCEPT(e);
 
   for (size_t n = 1; n < node->subs_count; ++n) {
-    if (n > 0 && node->is_type != node->subs[n]->is_type) {
+    if (n > 0 && (node->flags & NODE_IS_TYPE) != (node->subs[n]->flags & NODE_IS_TYPE)) {
       e = mk_except_type(mod, node->subs[n], "call combines value and type arguments");
       EXCEPT(e);
     }
-    node->is_type |= node->subs[n]->is_type;
+    node->flags |= (node->subs[n]->flags & NODE__TRANSITIVE);
   }
 
-  if (node->is_type) {
+  if (node->flags & NODE_IS_TYPE) {
     assert(FALSE && "generics not supported");
     EXCEPT(EINVAL);
   } else {
@@ -1219,7 +1214,7 @@ static error type_destruct_import_path(struct module *mod, struct node *node) {
   EXCEPT(e);
 
   node->typ = def->typ;
-  node->is_type = def->is_type;
+  node->flags = def->flags;
 
   if (node->which == BIN) {
     assert(node->as.BIN.operator == TDOT);
@@ -1268,8 +1263,8 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
   case IDENT:
     // FIXME make sure ident not used before definition.
     // FIXME let x, (y, z) = i32, (i32, i32)
-    // In this case, y (for instance), will not have is_type set properly.
-    // is_type needs to be set recursively when descending via
+    // In this case, y (for instance), will not have NODE_IS_TYPE set properly.
+    // NODE_IS_TYPE needs to be set recursively when descending via
     // type_destruct.
     e = scope_lookup_ident_wontimport(&def, mod, node->scope, node_ident(node), FALSE);
     if (def->which == DEFNAME) {
@@ -1277,7 +1272,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       EXCEPT(e);
     }
     node->typ = def->typ;
-    node->is_type = def->is_type;
+    node->flags |= (def->flags & NODE__TRANSITIVE);
     break;
   case DEFNAME:
     if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)) {
@@ -1318,7 +1313,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       break;
     default:
       sub_constraint = constraint;
-      node->is_type = node->subs[0]->is_type;
+      node->flags = (node->subs[0]->flags & NODE__TRANSITIVE);
       break;
     }
 
@@ -1362,7 +1357,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       right_constraint = typ_lookup_builtin(mod, TBI_U16);
       break;
     case OP_BIN_RHS_TYPE:
-      if (!node->subs[1]->is_type) {
+      if (!(node->subs[1]->flags & NODE_IS_TYPE)) {
         e = mk_except_type(mod, node->subs[1], "right-hand side of type constraint is not a type");
         EXCEPT(e);
       }
@@ -1459,14 +1454,14 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     e = scope_lookup(&def, mod, node->scope, node);
     EXCEPT(e);
     node->typ = def->typ;
-    node->is_type = def->is_type;
+    node->flags = def->flags;
     assert(node->typ->which != TYPE__MARKER);
     goto ok;
   case IMPORT:
     e = scope_lookup(&def, mod, mod->gctx->modules_root.scope, node->subs[0]);
     EXCEPT(e);
     node->typ = def->typ;
-    node->is_type = def->is_type;
+    node->flags = def->flags;
     for (size_t n = 1; n < node->subs_count; ++n) {
       struct node *s = node->subs[n]->subs[0];
       e = type_destruct_import_path(mod, s);
@@ -1474,7 +1469,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
 
       assert(s->typ->which != TYPE__MARKER);
       node->subs[n]->typ = s->typ;
-      node->subs[n]->is_type = s->is_type;
+      node->subs[n]->flags = s->flags;
     }
     assert(node->typ->which != TYPE__MARKER);
     goto ok;
@@ -1549,7 +1544,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     node->typ = node->subs[1]->typ;
     e = type_destruct(mod, node->subs[0], node->typ);
     EXCEPT(e);
-    assert(!node->subs[0]->is_type);
+    assert(!(node->subs[0]->flags & NODE_IS_TYPE));
     goto ok;
   case DEFFUN:
   case DEFMETHOD:
@@ -1558,7 +1553,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     for (size_t n = 0; n < node->typ->fun_arity; ++n) {
       node->typ->fun_args[n] = node->subs[n + 1]->typ;
     }
-    node->is_type = TRUE;
+    node->flags |= NODE_IS_TYPE;
     module_return_set(mod, NULL);
     goto ok;
   case DEFINTF:
@@ -1577,7 +1572,9 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
           e = typ_unify(&u, mod, ch,
                         u, ch->subs[1]->typ);
           EXCEPT(e);
-          ch->is_type = TRUE;
+          if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+            ch->flags |= NODE_IS_DEFCHOICE_ENUM;
+          }
         }
 
         if (u == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
@@ -1609,10 +1606,10 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     }
     node->typ = node->subs[0]->typ;
     if (has_expr) {
-      node->is_type = node->subs[1]->is_type;
+      node->flags = node->subs[1]->flags;
       for (size_t n = 0; n < node->subs_count; ++n) {
         if (node->subs[n]->which == DEFNAME) {
-          node->subs[n]->is_type = node->is_type;
+          node->subs[n]->flags |= (node->subs[n]->as.DEFNAME.expr->flags & NODE__TRANSITIVE);
         }
       }
     }
@@ -1635,7 +1632,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case DIRECTDEF:
     node->typ = node->as.DIRECTDEF.definition->typ;
-    node->is_type = node->as.DIRECTDEF.definition->is_type;
+    node->flags = node->as.DIRECTDEF.definition->flags;
     goto ok;
   default:
     goto ok;
@@ -1934,8 +1931,11 @@ static error step_add_builtin_operators(struct module *mod, struct node *node, v
   case DEFTYPE_SUM:
     break;
   case DEFTYPE_ENUM:
-    define_builtin(mod, node, BG_ENUM_EQ);
-    define_builtin(mod, node, BG_ENUM_NE);
+    if (!typ_isa(mod, node->as.DEFTYPE.choice_typ,
+                 typ_lookup_builtin(mod, TBI_NATIVE_INTEGER))) {
+      define_builtin(mod, node, BG_ENUM_EQ);
+      define_builtin(mod, node, BG_ENUM_NE);
+    }
     break;
   }
 

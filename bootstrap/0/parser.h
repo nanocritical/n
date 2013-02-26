@@ -235,6 +235,12 @@ union node_as {
 
 struct scope;
 
+enum node_flags {
+  NODE_IS_TYPE = 0x1,
+  NODE_IS_DEFCHOICE_ENUM = 0x2,
+  NODE__TRANSITIVE = NODE_IS_TYPE,
+};
+
 struct node {
   enum node_which which;
   union node_as as;
@@ -246,7 +252,7 @@ struct node {
 
   struct scope *scope;
   const struct typ *typ;
-  bool is_type;
+  uint32_t flags;
 };
 
 struct idents_map;
