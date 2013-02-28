@@ -112,9 +112,6 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_NEW] = "new",
   [ID_CTOR] = "ctor",
   [ID_C] = "c",
-  [ID_MK_WITH] = "mk_with",
-  [ID_NEW_WITH] = "new_with",
-  [ID_CTOR_WITH] = "ctor_with",
   [ID_OPERATOR_OR] = "operator_or",
   [ID_OPERATOR_AND] = "operator_and",
   [ID_OPERATOR_NOT] = "operator_not",
@@ -150,9 +147,9 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_SUM_MATCH] = "nlang.builtins.Matchable.operator_match",
   [BG_SUM_DISPATCH] = NULL,
   // These 3 should be templates of CtorWith.
-  [BG_CTOR_WITH_CTOR_WITH] = "nlang.builtins.CtorWith.ctor_with",
-  [BG_CTOR_WITH_MK_WITH] = "nlang.builtins.CtorWith.mk_with",
-  [BG_CTOR_WITH_NEW_WITH] = "nlang.builtins.CtorWith.new_with",
+  [BG_CTOR_WITH_CTOR] = "nlang.builtins.CtorWith.ctor",
+  [BG_CTOR_WITH_MK] = "nlang.builtins.CtorWith.mk",
+  [BG_CTOR_WITH_NEW] = "nlang.builtins.CtorWith.new",
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
@@ -290,6 +287,7 @@ struct scope *scope_new(struct node *node) {
 }
 
 static struct node *do_node_module_owner(struct node *node) {
+  assert(node->which != ROOT_OF_ALL);
   if (node->which == MODULE) {
     return node;
   } else {

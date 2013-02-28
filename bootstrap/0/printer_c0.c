@@ -122,7 +122,7 @@ static void print_bin_acc(FILE *out, bool header, const struct module *mod, cons
   const struct node *left = node->subs[0];
   const struct node *right = node->subs[1];
 
-  if (node->flags & NODE_IS_DEFCHOICE_ENUM) {
+  if (node->flags & NODE_IS_DEFCHOICE) {
     print_typ(out, mod, left->typ);
     fprintf(out, "_%s", idents_value(mod->gctx, node_ident(right)));
   } else if (node->flags & NODE_IS_TYPE) {
@@ -640,40 +640,36 @@ static bool prototype_only(bool header, const struct node *node) {
 
 static void print_deffun_builtingen(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, " {\n");
+  if (node->scope->parent->node->which == DEFTYPE) {
+    fprintf(out, "#define THIS(x) ");
+    print_typ(out, mod, node->scope->parent->node->typ);
+    fprintf(out, "##x\n");
+  }
   switch (node_toplevel_const(node)->builtingen) {
   case BG_ZERO_CTOR_CTOR:
-    fprintf(out, "memset(self, 0, sizeof(*self));");
-    break;
-  case BG_DEFAULT_CTOR_CTOR:
-    fprintf(out, "memset(self, 0, sizeof(*self));");
     break;
   case BG_DEFAULT_CTOR_MK:
-  //     ... must handle return through ref
-  //       ... this is a C gen question, must be handled here, N doesn't care
-  //       ... we should have facilities to handle this nicely,
-  //     ... generating prototypes for us,
-  //     ... generating return types, initializing return values, setting them?
-  //       ... can we do this transparently so that the generating code can be agnostic
-  //       ... to this stuff?
-    fprintf(out, "_ctor(&r);");
+    fprintf(out, "THIS() r;\n");
+    fprintf(out, "THIS(_ctor)(&r);\n");
+    fprintf(out, "return r;\n");
+    break;
+  case BG_ZERO_CTOR_NEW:
+    fprintf(out, "return calloc(1, sizeof(*self));\n");
     break;
   case BG_DEFAULT_CTOR_NEW:
-    fprintf(out, "memset(self, 0, sizeof(*self));");
+    fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
+    fprintf(out, "THIS(_ctor)(self);\n");
+    fprintf(out, "return self;\n");
     break;
-  case BG_CTOR_WITH_CTOR_WITH:
-    fprintf(out, "memset(self, 0, sizeof(*self));");
+  case BG_CTOR_WITH_MK:
+    fprintf(out, "THIS *self = calloc(1, sizeof(sizeof(THIS())));\n");
+    print_typ(out, mod, node->scope->parent->node->typ);
+    fprintf(out, "THIS(_ctor)(self, c);\n");
+    fprintf(out, "return self;\n");
     break;
-  case BG_CTOR_WITH_MK_WITH:
-    fprintf(out, "memset(self, 0, sizeof(*self));");
-    break;
-  case BG_CTOR_WITH_NEW_WITH:
-    fprintf(out, "memset(self, 0, sizeof(*self));");
-    break;
-  case BG_AUTO_MK:
-    fprintf(out, "memset(self, 0, sizeof(*self));");
-    break;
-  case BG_AUTO_NEW:
-    fprintf(out, "memset(self, 0, sizeof(*self));");
+  case BG_CTOR_WITH_NEW:
+    print_typ(out, mod, node->scope->parent->node->typ);
+    fprintf(out, "_ctor(self, c);\n");
     break;
   case BG_ENUM_EQ:
     fprintf(out, "return *self == *other;\n");
@@ -685,14 +681,17 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
     fprintf(out, "return *self == *other;\n");
     break;
   case BG_SUM_MATCH:
-    fprintf(out, "memset(self, 0, sizeof(*self));");
+    fprintf(out, "\n");
     break;
   case BG_SUM_DISPATCH:
-    fprintf(out, "memset(self, 0, sizeof(*self));");
+    fprintf(out, "\n");
     break;
   default:
     assert(FALSE);
     break;
+  }
+  if (node->scope->parent->node->which == DEFTYPE) {
+    fprintf(out, "#undef THIS\n");
   }
   fprintf(out, "}\n");
 }
@@ -711,6 +710,13 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
   } else {
     print_fun_prototype(out, header, mod, node);
 
+    fprintf(out, "{");
+    if (node->scope->parent->node->which == DEFTYPE) {
+      fprintf(out, "#define THIS(x) ");
+      print_typ(out, mod, node->scope->parent->node->typ);
+      fprintf(out, "##x\n");
+    }
+
     const struct node *retval = node_fun_retval(node);
     const bool named_retval = retval->which == DEFARG;
     const bool retval_bycopy = typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
@@ -727,9 +733,10 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
 
     fprintf(out, "\n");
 
-    if (named_retval) {
-      fprintf(out, "}\n");
+    if (node->scope->parent->node->which == DEFTYPE) {
+      fprintf(out, "#undef THIS\n");
     }
+    fprintf(out, "}\n");
   }
 }
 
@@ -936,8 +943,6 @@ static void print_deftype_choices(FILE *out, bool header, const struct module *m
   fprintf(out, "_%s ", idents_value(mod->gctx, ID_AS_TYPE));
   print_deftype_name(out, mod, node);
   fprintf(out, "_%s;\n", idents_value(mod->gctx, ID_AS_TYPE));
-
-  print_deftype_typedefs(out, header, mod, node);
 }
 
 static void print_deftype_enum(FILE *out, bool header, const struct module *mod, const struct node *node) {

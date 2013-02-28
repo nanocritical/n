@@ -841,11 +841,7 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
   mk_fun->as.BIN.operator = TDOT;
   append(mk_fun, fun);
   struct node *mk = mk_node(mod, mk_fun, IDENT);
-  if (node->subs_count == 1) {
-    mk->as.IDENT.name = ID_MK;
-  } else {
-    mk->as.IDENT.name = ID_MK_WITH;
-  }
+  mk->as.IDENT.name = ID_MK;
 
   move_last_over(node, 0);
 
@@ -981,33 +977,19 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
 
 static error type_inference_call(struct module *mod, struct node *node);
 
-static error bin_accessor_maybe_in_defchoice(struct scope **parent_scope,
-                                             struct module *mod, struct node *node) {
-  struct node *parent = node->subs[0];
-  struct node *parent_parent = NULL;
-  if (parent->which != BIN) {
-    return 0;
+static error bin_accessor_maybe_defchoice(struct scope **parent_scope,
+                                          struct module *mod, struct node *parent) {
+  if (parent->flags & NODE_IS_DEFCHOICE) {
+    assert(parent->which == BIN);
+
+    struct node *defchoice = NULL;
+    error e = scope_lookup_ident_immediate(&defchoice, mod, parent->typ->definition->scope,
+                                           node_ident(parent->subs[1]), FALSE);
+    EXCEPT(e);
+    assert(defchoice->which == DEFCHOICE);
+
+    *parent_scope = defchoice->scope;
   }
-
-  parent_parent = parent->subs[0];
-  // These conditions are necessary but not sufficient and testing them is
-  // an optimization.
-  if (parent_parent->typ != parent->typ
-      || !(parent_parent->flags & NODE_IS_TYPE)
-      || !(parent->flags & NODE_IS_TYPE)) {
-    return 0;
-  }
-
-  struct node *defchoice = NULL;
-  error e = scope_lookup_ident_immediate(&defchoice, mod, parent_parent->typ->definition->scope,
-                                         node_ident(parent->subs[1]), FALSE);
-  EXCEPT(e);
-
-  if (defchoice->which != DEFCHOICE) {
-    return 0;
-  }
-
-  *parent_scope = defchoice->scope;
   return 0;
 }
 
@@ -1015,7 +997,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   error e;
   struct node *parent = node->subs[0];
   struct scope *parent_scope = parent->typ->definition->scope;
-  e = bin_accessor_maybe_in_defchoice(&parent_scope, mod, node);
+  e = bin_accessor_maybe_defchoice(&parent_scope, mod, parent);
   EXCEPT(e);
 
   struct node *field = NULL;
@@ -1029,6 +1011,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   } else {
     node->typ = field->typ;
   }
+  assert(field->which != BIN || field->flags != 0);
   node->flags = field->flags;
 
   return 0;
@@ -1572,9 +1555,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
           e = typ_unify(&u, mod, ch,
                         u, ch->subs[1]->typ);
           EXCEPT(e);
-          if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-            ch->flags |= NODE_IS_DEFCHOICE_ENUM;
-          }
+          ch->flags |= NODE_IS_DEFCHOICE;
         }
 
         if (u == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
@@ -1756,9 +1737,9 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   toplevel->is_export = node_toplevel(tdef)->is_export;
   toplevel->is_inline = node_toplevel(tdef)->is_inline;
 
-  if (bg == BG_CTOR_WITH_CTOR_WITH
-      || bg == BG_CTOR_WITH_MK_WITH
-      || bg == BG_CTOR_WITH_NEW_WITH) {
+  if (bg == BG_CTOR_WITH_CTOR
+      || bg == BG_CTOR_WITH_MK
+      || bg == BG_CTOR_WITH_NEW) {
     struct node *arg = mk_node(mod, d, DEFARG);
     struct node *name = mk_node(mod, arg, IDENT);
     name->as.IDENT.name = ID_C;
@@ -1789,7 +1770,7 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
     has_ctor |= TRUE;
 
     define_defchoice_builtin(
-      mod, node, BG_CTOR_WITH_CTOR_WITH, DEFMETHOD);
+      mod, node, BG_CTOR_WITH_CTOR, DEFMETHOD);
   }
 
   if (typ_isa(mod, targ, typ_lookup_builtin(mod, TBI_DEFAULT_CTOR))) {
@@ -1844,14 +1825,12 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
   }
 
   struct node *ctor = get_member(mod, proxy, ID_CTOR);
-  if (ctor != NULL && node_fun_explicit_args_count(ctor) == 1) {
-    add_isa(mod, node, "nlang.builtins.DefaultCtor");
-  }
-
-  struct node *ctor_with = get_member(mod, proxy, ID_CTOR_WITH);
-  if (ctor_with != NULL && node_fun_explicit_args_count(ctor_with) == 2) {
-    // FIXME is a generic.
-    add_isa(mod, node, "nlang.builtins.CtorWith");
+  if (ctor != NULL) {
+    if (node_fun_explicit_args_count(ctor) == 1) {
+      add_isa(mod, node, "nlang.builtins.DefaultCtor");
+    } else if (node_fun_explicit_args_count(ctor) == 2) {
+      add_isa(mod, node, "nlang.builtins.CtorWith");
+    }
   }
 
   return 0;
@@ -1886,8 +1865,8 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node, void
   }
 
   if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_CTOR_WITH))) {
-    define_builtin(mod, node, BG_CTOR_WITH_MK_WITH);
-    define_builtin(mod, node, BG_CTOR_WITH_NEW_WITH);
+    define_builtin(mod, node, BG_CTOR_WITH_MK);
+    define_builtin(mod, node, BG_CTOR_WITH_NEW);
   }
 
   return 0;
@@ -1907,9 +1886,9 @@ static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *
 
   if (typ_isa(mod, tdef->typ, typ_lookup_builtin(mod, TBI_CTOR_WITH))) {
     define_defchoice_builtin(
-      mod, node, BG_CTOR_WITH_MK_WITH, DEFFUN);
+      mod, node, BG_CTOR_WITH_MK, DEFFUN);
     define_defchoice_builtin(
-      mod, node, BG_CTOR_WITH_NEW_WITH, DEFFUN);
+      mod, node, BG_CTOR_WITH_NEW, DEFFUN);
   }
 
   return 0;
@@ -2037,7 +2016,7 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
   }
 
   fprintf(stderr, "%s\n", typ_name(mod, node_fun_retval(node)->typ));
-  assert(FALSE && "Return through value unsupported");;
+  assert(FALSE && "Return through ref unsupported");;
 
   return 0;
 }

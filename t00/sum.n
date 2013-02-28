@@ -15,8 +15,8 @@ type sum_nocopy =
   | B -> tb
 
 export fun main = i32
-  let n = sum.A 0
-  if n == (sum.A 0)
+  let n = sum.A.mk 0
+  if n == (sum.A.mk 0)
     return 0
   else
     return 1

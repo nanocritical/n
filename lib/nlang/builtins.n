@@ -6,7 +6,9 @@ export intf ReturnByCopy =
 export intf WorkaroundRBC = export ReturnByCopy
 export intf Matchable =
 export intf Comparable = export Matchable
+export intf TrivialComparison = export Comparable
 export intf Ordered = export Comparable
+export intf TrivialOrder = export Ordered
 export intf Arithmetic = export Ordered export WorkaroundRBC
 export intf Bitwise = export WorkaroundRBC
 
@@ -97,11 +99,13 @@ export intf DefaultCtor = export WorkaroundRBC
 export intf ZeroCtor = DefaultCtor
 
 export intf CtorWith = WorkaroundRBC
-  method# ctor_with = void
-  fun mk_with = this
-  fun new_with = @#this
+  method# ctor = void
+  fun mk = this
+  fun new = @#this
 
+-- FIXME: actual definition below
 --export intf CtorWith t:Copyable =
---  method# ctor_with c:t = void
---  fun mk_with c:t = this
---  fun new_with c:t = @#this
+--  method# ctor c:t = void
+--  fun mk c:t = this
+--  fun new c:t = @#this
+--
