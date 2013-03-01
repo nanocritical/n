@@ -4,10 +4,10 @@ type sum = Comparable
   | A -> u32
   | B -> i32
 
-type ta = DefaultCtor
+type ta =
   x:u32
 
-type tb = DefaultCtor
+type tb =
   y:i32
 
 type sum_nocopy =

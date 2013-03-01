@@ -1,5 +1,5 @@
-export type __null__ =
-export type integer =
+export extern type __null__ =
+export extern type integer =
 
-export type __pending_destruct__ =
-export type __not_typeable__ =
+export extern type __pending_destruct__ =
+export extern type __not_typeable__ =

@@ -603,7 +603,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
       id = node->subs[0]->subs[1];
     }
     toplevel = node_toplevel_const(node);
-    if (toplevel->scope_name == 0) {
+    if (node->scope->parent->node->which == DEFINTF) {
       sc = node->scope->parent;
     } else {
       e = scope_lookup_ident_wontimport(&container, mod, node->scope->parent,
@@ -1278,9 +1278,6 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     case OP_UN_REFOF:
       e = typ_compatible_reference(mod, node, constraint);
       break;
-    case OP_UN_DYN:
-      e = typ_compatible(mod, node, constraint, typ_lookup_builtin(mod, TBI_DYN));
-      break;
     default:
       assert(FALSE);
     }
@@ -1806,7 +1803,9 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
   if (node->which != DEFTYPE) {
     return 0;
   }
-
+  if (node_toplevel_const(node)->is_extern) {
+    return 0;
+  }
   if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     return 0;
   }
@@ -1831,6 +1830,19 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
     } else if (node_fun_explicit_args_count(ctor) == 2) {
       add_isa(mod, node, "nlang.builtins.CtorWith");
     }
+  } else {
+    bool zero = TRUE;
+    for (size_t n = 0; n < node->subs_count; ++n) {
+      struct node *f = node->subs[n];
+      if (f->which == DEFFIELD
+          && !typ_isa(mod, f->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_CTOR))) {
+        zero = FALSE;
+      }
+    }
+
+    if (zero) {
+      add_isa(mod, node, "nlang.builtins.TrivialCtor");
+    }
   }
 
   return 0;
@@ -1840,6 +1852,10 @@ static error step_add_builtin_ctor(struct module *mod, struct node *node, void *
   if (node->which != DEFTYPE) {
     return 0;
   }
+  if (node_toplevel_const(node)->is_extern) {
+    return 0;
+  }
+
   return 0;
 }
 
@@ -1847,6 +1863,10 @@ static error step_add_builtin_dtor(struct module *mod, struct node *node, void *
   if (node->which != DEFTYPE) {
     return 0;
   }
+  if (node_toplevel_const(node)->is_extern) {
+    return 0;
+  }
+
   return 0;
 }
 
@@ -1854,17 +1874,21 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node, void
   if (node->which != DEFTYPE) {
     return 0;
   }
-
+  if (node_toplevel_const(node)->is_extern) {
+    return 0;
+  }
   if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
     return 0;
   }
 
-  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_DEFAULT_CTOR))) {
+  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_CTOR))) {
+    define_builtin(mod, node, BG_TRIVIAL_CTOR_CTOR);
+    define_builtin(mod, node, BG_TRIVIAL_CTOR_MK);
+    define_builtin(mod, node, BG_TRIVIAL_CTOR_NEW);
+  } else if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_DEFAULT_CTOR))) {
     define_builtin(mod, node, BG_DEFAULT_CTOR_MK);
     define_builtin(mod, node, BG_DEFAULT_CTOR_NEW);
-  }
-
-  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_CTOR_WITH))) {
+  } else if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_CTOR_WITH))) {
     define_builtin(mod, node, BG_CTOR_WITH_MK);
     define_builtin(mod, node, BG_CTOR_WITH_NEW);
   }
@@ -1895,10 +1919,10 @@ static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *
 }
 
 static error step_add_builtin_operators(struct module *mod, struct node *node, void *user, bool *stop) {
-  switch (node->which) {
-  case DEFTYPE:
-    break;
-  default:
+  if (node->which != DEFTYPE) {
+    return 0;
+  }
+  if (node_toplevel_const(node)->is_extern) {
     return 0;
   }
 
@@ -2158,9 +2182,18 @@ error zeropass(struct module *mod, struct node *node, struct node **except) {
   return 0;
 }
 
-static const step firstpass_down[] = {
+static const step lexicalpass_down[] = {
   step_stop_submodules,
   step_lexical_scoping,
+  NULL,
+};
+
+static const step lexicalpass_up[] = {
+  NULL,
+};
+
+static const step firstpass_down[] = {
+  step_stop_submodules,
   step_type_definitions,
   step_type_destruct_mark,
   step_type_gather_returns,
@@ -2181,7 +2214,11 @@ static const step firstpass_up[] = {
 
 error firstpass(struct module *mod, struct node *node, struct node **except) {
   int module_depth = 0;
-  error e = pass(mod, node, firstpass_down, firstpass_up, except, &module_depth);
+  error e = pass(mod, node, lexicalpass_down, lexicalpass_up, except, &module_depth);
+  EXCEPT(e);
+
+  module_depth = 0;
+  e = pass(mod, node, firstpass_down, firstpass_up, except, &module_depth);
   EXCEPT(e);
 
   return 0;

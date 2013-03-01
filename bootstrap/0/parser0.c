@@ -80,7 +80,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_VOID] = "void",
   [ID_TBI_LITERALS_NULL] = "__null__",
   [ID_TBI_LITERALS_INTEGER] = "integer",
-  [ID_TBI_PSEUDO_TUPLE] = "__pseudo_tuple__",
+  [ID_TBI_PSEUDO_TUPLE] = "pseudo_tuple",
   [ID_TBI_BOOL] = "bool",
   [ID_TBI_I8] = "i8",
   [ID_TBI_U8] = "u8",
@@ -99,11 +99,11 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NREF] = "nref",
   [ID_TBI_NMREF] = "nmref",
   [ID_TBI_NMMREF] = "nmmref",
-  [ID_TBI_DYN] = "__internal_dyn__",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
   [ID_TBI_COMPARABLE] = "Comparable",
   [ID_TBI_COPYABLE] = "Copyable",
   [ID_TBI_DEFAULT_CTOR] = "DefaultCtor",
+  [ID_TBI_TRIVIAL_CTOR] = "TrivialCtor",
   [ID_TBI_CTOR_WITH] = "CtorWith",
   [ID_TBI_RETURN_BY_COPY] = "ReturnByCopy",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
@@ -141,6 +141,9 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_DEFAULT_CTOR_CTOR] = "nlang.builtins.DefaultCtor.ctor",
   [BG_DEFAULT_CTOR_MK] = "nlang.builtins.DefaultCtor.mk",
   [BG_DEFAULT_CTOR_NEW] = "nlang.builtins.DefaultCtor.new",
+  [BG_TRIVIAL_CTOR_CTOR] = "nlang.builtins.TrivialCtor.ctor",
+  [BG_TRIVIAL_CTOR_MK] = "nlang.builtins.TrivialCtor.mk",
+  [BG_TRIVIAL_CTOR_NEW] = "nlang.builtins.TrivialCtor.new",
   [BG_ENUM_EQ] = "nlang.builtins.Comparable.operator_eq",
   [BG_ENUM_NE] = "nlang.builtins.Comparable.operator_ne",
   [BG_ENUM_MATCH] = "nlang.builtins.Matchable.operator_match",
@@ -588,8 +591,9 @@ error scope_define(const struct module *mod, struct scope *scope, struct node *i
 
 static error do_scope_lookup_ident_immediate(struct node **result, const struct module *mod,
                                              const struct scope *scope, ident id,
-                                             const struct scope *within, bool failure_ok,
-                                             bool use_isalist) {
+                                             const struct scope *within, bool failure_ok) {
+  const bool use_isalist = scope->node->which == DEFINTF && scope->node->typ != NULL;
+
   assert(id != ID__NONE);
   struct node **r = scope_map_get(scope->map, id);
   if (r != NULL) {
@@ -600,7 +604,7 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
   if (scope->node->which == MODULE && scope->node->subs_count >= 1) {
     struct node *body = scope->node->subs[0];
     error e = do_scope_lookup_ident_immediate(result, mod, body->scope, id,
-                                              within, failure_ok, use_isalist);
+                                              within, failure_ok);
     if (!e) {
       return 0;
     } else if (failure_ok) {
@@ -611,16 +615,15 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
   }
 
   if (use_isalist) {
-    fprintf(stderr, "WARNING: Using use_isalist in do_scope_lookup_ident_immediate()\n");
     // Depth-first.
     // FIXME: We should statically detect when this search would return
     // different results depending on order. And we should force the caller
-    // to specificy which intf is being called.
+    // to specificy which intf is being called if it's ambiguous.
     const struct node *parent = scope->node;
     for (size_t n = 0; n < parent->typ->isalist_count; ++n) {
       const struct typ *t = parent->typ->isalist[n];
       error e = do_scope_lookup_ident_immediate(result, mod, t->definition->scope, id,
-                                                within, TRUE, TRUE);
+                                                within, TRUE);
       if (!e) {
         return 0;
       }
@@ -644,13 +647,13 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
 error scope_lookup_ident_immediate(struct node **result, const struct module *mod,
                                    const struct scope *scope, ident id,
                                    bool failure_ok) {
-  return do_scope_lookup_ident_immediate(result, mod, scope, id, scope, failure_ok, FALSE);
+  return do_scope_lookup_ident_immediate(result, mod, scope, id, scope, failure_ok);
 }
 
 static error do_scope_lookup_ident_wontimport(struct node **result, const struct module *mod,
                                               const struct scope *scope, ident id,
                                               const struct scope *within, bool failure_ok) {
-  error e = do_scope_lookup_ident_immediate(result, mod, scope, id, within, TRUE, FALSE);
+  error e = do_scope_lookup_ident_immediate(result, mod, scope, id, within, TRUE);
   if (!e) {
     return 0;
   }
@@ -732,7 +735,7 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
         // OK). If that fails, we will resolve parent to find the module
         // it's importing, and use the usual lookup path.
         e = do_scope_lookup_ident_immediate(&parent, mod, parent->scope,
-                                            id->subs[1]->as.IDENT.name, within, TRUE, FALSE);
+                                            id->subs[1]->as.IDENT.name, within, TRUE);
         if (!e) {
           fully_resolved = TRUE;
         }
@@ -747,8 +750,7 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
 
     if (!fully_resolved) {
       e = do_scope_lookup_ident_immediate(&r, mod, parent->scope,
-                                          id->subs[1]->as.IDENT.name, within, failure_ok,
-                                          FALSE);
+                                          id->subs[1]->as.IDENT.name, within, failure_ok);
       EXCEPT_UNLESS(e, failure_ok);
     }
 
@@ -838,7 +840,7 @@ static error do_scope_lookup_abspath(struct node **result, const struct module *
 
   if (i == 0) {
     error e = do_scope_lookup_ident_immediate(result, mod, mod->gctx->modules_root.scope, id,
-                                              within, FALSE, FALSE);
+                                              within, FALSE);
     EXCEPT(e);
     return 0;
   } else {
@@ -846,7 +848,7 @@ static error do_scope_lookup_abspath(struct node **result, const struct module *
     error e = do_scope_lookup_abspath(&parent, mod, path, i, within);
     EXCEPT(e);
     e = do_scope_lookup_ident_immediate(result, mod, parent->scope, id,
-                                        within, FALSE, FALSE);
+                                        within, FALSE);
     EXCEPT(e);
     return 0;
   }
@@ -2703,6 +2705,10 @@ error typ_unify(const struct typ **u, const struct module *mod, const struct nod
 }
 
 bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf) {
+  if (a == intf) {
+    return TRUE;
+  }
+
   for (size_t n = 0; n < a->isalist_count; ++n) {
     if (a->isalist[n] == intf) {
       return TRUE;

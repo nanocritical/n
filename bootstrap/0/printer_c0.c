@@ -190,8 +190,6 @@ static void print_un(FILE *out, bool header, const struct module *mod, const str
     print_token(out, op);
     print_expr(out, header, mod, node->subs[0], op);
     break;
-  case OP_UN_DYN:
-    break;
   }
 
   if (prec > parent_prec) {
@@ -646,15 +644,21 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
     fprintf(out, "##x\n");
   }
   switch (node_toplevel_const(node)->builtingen) {
-  case BG_ZERO_CTOR_CTOR:
+  case BG_TRIVIAL_CTOR_CTOR:
+    break;
+  case BG_TRIVIAL_CTOR_MK:
+    fprintf(out, "THIS() r;\n");
+    fprintf(out, "memset(&r, 0, sizeof(THIS()));\n");
+    fprintf(out, "return r;\n");
+    break;
+  case BG_TRIVIAL_CTOR_NEW:
+    fprintf(out, "return calloc(1, sizeof(*self));\n");
     break;
   case BG_DEFAULT_CTOR_MK:
     fprintf(out, "THIS() r;\n");
+    fprintf(out, "memset(&r, 0, sizeof(THIS()));\n");
     fprintf(out, "THIS(_ctor)(&r);\n");
     fprintf(out, "return r;\n");
-    break;
-  case BG_ZERO_CTOR_NEW:
-    fprintf(out, "return calloc(1, sizeof(*self));\n");
     break;
   case BG_DEFAULT_CTOR_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
@@ -662,14 +666,15 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
     fprintf(out, "return self;\n");
     break;
   case BG_CTOR_WITH_MK:
-    fprintf(out, "THIS *self = calloc(1, sizeof(sizeof(THIS())));\n");
-    print_typ(out, mod, node->scope->parent->node->typ);
-    fprintf(out, "THIS(_ctor)(self, c);\n");
-    fprintf(out, "return self;\n");
+    fprintf(out, "THIS() r;\n");
+    fprintf(out, "memset(&r, 0, sizeof(THIS()));\n");
+    fprintf(out, "THIS(_ctor)(&r, c);\n");
+    fprintf(out, "return r;\n");
     break;
   case BG_CTOR_WITH_NEW:
-    print_typ(out, mod, node->scope->parent->node->typ);
-    fprintf(out, "_ctor(self, c);\n");
+    fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
+    fprintf(out, "THIS(_ctor)(self, c);\n");
+    fprintf(out, "return self;\n");
     break;
   case BG_ENUM_EQ:
     fprintf(out, "return *self == *other;\n");

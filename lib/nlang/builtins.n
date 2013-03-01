@@ -1,9 +1,9 @@
-export type void =
-
 export intf Copyable =
 export intf TrivialCopy = export Copyable
 export intf ReturnByCopy =
 export intf WorkaroundRBC = export ReturnByCopy
+export intf DefaultCtor = export WorkaroundRBC
+export intf TrivialCtor = export DefaultCtor
 export intf Matchable =
 export intf Comparable = export Matchable
 export intf TrivialComparison = export Comparable
@@ -11,6 +11,8 @@ export intf Ordered = export Comparable
 export intf TrivialOrder = export Ordered
 export intf Arithmetic = export Ordered export WorkaroundRBC
 export intf Bitwise = export WorkaroundRBC
+
+export extern type void =
 
 export intf AnyRef = export Copyable export ReturnByCopy
 export intf Ref = export AnyRef
@@ -20,14 +22,13 @@ export intf NullableRef = export AnyRef
 export intf NullableMutableRef = export NullableRef
 export intf NullableMercurialRef = export NullableMutableRef
 
-export type __pseudo_tuple__ = export Copyable
-export type ref = export Ref
-export type mref = export MutableRef
-export type mmref = export MercurialRef
-export type nref = export NullableRef
-export type nmref = export NullableMutableRef
-export type nmmref = export NullableMercurialRef
-export type __internal_dyn__ =
+export extern type pseudo_tuple = export Copyable
+export extern type ref = export Ref
+export extern type mref = export MutableRef
+export extern type mmref = export MercurialRef
+export extern type nref = export NullableRef
+export extern type nmref = export NullableMutableRef
+export extern type nmmref = export NullableMercurialRef
 
 export intf Integer = \
     export Arithmetic \
@@ -95,8 +96,6 @@ export intf DefaultCtor = export WorkaroundRBC
   method# ctor = void
   fun mk = this
   fun new = @#this
-
-export intf ZeroCtor = DefaultCtor
 
 export intf CtorWith = WorkaroundRBC
   method# ctor = void
