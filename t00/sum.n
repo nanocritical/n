@@ -1,22 +1,22 @@
 from nlang import *
 
-type sum = Comparable
+type sum = Comparable WorkaroundRBC
   | A -> u32
   | B -> i32
 
-type ta =
+type ta = TrivialCopy WorkaroundRBC
   x:u32
 
-type tb =
+type tb = TrivialCopy WorkaroundRBC
   y:i32
 
-type sum_nocopy =
+type sum_nocopy = WorkaroundRBC
   | A -> ta
   | B -> tb
 
 export fun main = i32
   let n = sum.A.mk 0
-  if n == (sum.A.mk 0)
+  if n == sum.A.mk 0
     return 0
   else
     return 1

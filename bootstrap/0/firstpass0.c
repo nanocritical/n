@@ -69,10 +69,10 @@ error one_level_pass(struct module *mod, struct node *root, const step *down_ste
   return 0;
 }
 
-static error zero_for_generated(struct module *mod, struct node *node,
-                                struct scope *parent_scope);
-static error zero_and_first_for_generated(struct module *mod, struct node *node,
-                                          struct node **except, struct scope *parent_scope);
+static error zero_to_forward_for_generated(struct module *mod, struct node *node,
+                                           struct scope *parent_scope);
+static error zero_to_first_for_generated(struct module *mod, struct node *node,
+                                         struct node **except, struct scope *parent_scope);
 
 static void insert_last_at(struct node *node, size_t pos) {
   struct node *tmp = node->subs[pos];
@@ -603,7 +603,8 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
       id = node->subs[0]->subs[1];
     }
     toplevel = node_toplevel_const(node);
-    if (node->scope->parent->node->which == DEFINTF) {
+    if (toplevel->scope_name == 0
+        || node->scope->parent->node->which == DEFINTF) {
       sc = node->scope->parent;
     } else {
       e = scope_lookup_ident_wontimport(&container, mod, node->scope->parent,
@@ -846,7 +847,7 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
   move_last_over(node, 0);
 
   struct node *except[] = { fun, NULL };
-  e = zero_and_first_for_generated(mod, mk_fun, except, node->scope);
+  e = zero_to_first_for_generated(mod, mk_fun, except, node->scope);
   EXCEPT(e);
 
   return 0;
@@ -1117,7 +1118,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
       append(node, self);
       insert_last_at(node, 1);
 
-      error e = zero_and_first_for_generated(mod, m, NULL, node->scope);
+      error e = zero_to_first_for_generated(mod, m, NULL, node->scope);
       EXCEPT(e);
       self->scope->parent = node->scope;
     }
@@ -1250,6 +1251,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     // NODE_IS_TYPE needs to be set recursively when descending via
     // type_destruct.
     e = scope_lookup_ident_wontimport(&def, mod, node->scope, node_ident(node), FALSE);
+    EXCEPT(e);
     if (def->which == DEFNAME) {
       e = type_destruct(mod, def, constraint);
       EXCEPT(e);
@@ -1709,7 +1711,7 @@ static void define_builtin(struct module *mod, struct node *tdef,
   toplevel->is_inline = node_toplevel(tdef)->is_inline;
 
   insert_last_at(modbody, insert_pos);
-  e = zero_for_generated(mod, d, tdef->scope);
+  e = zero_to_forward_for_generated(mod, d, tdef->scope);
   assert(!e);
 
   node_toplevel(d)->is_prototype = FALSE;
@@ -1746,7 +1748,7 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
     insert_last_at(d, 1);
   }
 
-  e = zero_and_first_for_generated(mod, d, NULL, ch->scope);
+  e = zero_to_first_for_generated(mod, d, NULL, ch->scope);
   assert(!e);
   node_toplevel(d)->is_prototype = FALSE;
 }
@@ -1902,17 +1904,13 @@ static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *
   }
 
   struct node *tdef = node->scope->parent->node;
-
-  if (typ_isa(mod, tdef->typ, typ_lookup_builtin(mod, TBI_DEFAULT_CTOR))) {
+  assert(tdef->which == DEFTYPE);
+  if (tdef->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_MK, DEFFUN);
     define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_NEW, DEFFUN);
-  }
-
-  if (typ_isa(mod, tdef->typ, typ_lookup_builtin(mod, TBI_CTOR_WITH))) {
-    define_defchoice_builtin(
-      mod, node, BG_CTOR_WITH_MK, DEFFUN);
-    define_defchoice_builtin(
-      mod, node, BG_CTOR_WITH_NEW, DEFFUN);
+  } else if (tdef->as.DEFTYPE.kind == DEFTYPE_SUM) {
+    define_defchoice_builtin(mod, node, BG_CTOR_WITH_MK, DEFFUN);
+    define_defchoice_builtin(mod, node, BG_CTOR_WITH_NEW, DEFFUN);
   }
 
   return 0;
@@ -1971,7 +1969,7 @@ static void define_dispatch(struct module *mod, struct node *tdef, const struct 
 
     insert_last_at(modbody, insert_pos);
 
-    error e = zero_for_generated(mod, d, tdef->scope);
+    error e = zero_to_forward_for_generated(mod, d, tdef->scope);
     assert(!e);
     node_toplevel(d)->is_prototype = FALSE;
   }
@@ -2138,7 +2136,7 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   node->subs[1] = expr_ref(TREFDOT, node->subs[1]);
   node->subs[2] = expr_ref(TREFDOT, node->subs[2]);
 
-  error e = zero_and_first_for_generated(mod, node, except, saved_parent);
+  error e = zero_to_first_for_generated(mod, node, except, saved_parent);
   EXCEPT(e);
 
   return 0;
@@ -2182,19 +2180,39 @@ error zeropass(struct module *mod, struct node *node, struct node **except) {
   return 0;
 }
 
-static const step lexicalpass_down[] = {
+// The "forward" pass is necessary to handle forward declarations.
+// By running step_lexical_scoping over the whole module first, we ensure
+// (full) definitions take over forward declarations.
+//
+// The two "up" passes happen to make sure that the (full) definitions are
+// given (i) a typ, (ii) their isalist is typ'd, so that code that in
+// principle can only see the forward declaration, can use the typ and the
+// isalist typs (which is what a forward declaration is for).
+//
+// FIXME: We're not checking if the forward declaration isalist is a subset
+// of the definition isalist.
+static const step forwardpass_down[] = {
   step_stop_submodules,
   step_lexical_scoping,
   NULL,
 };
 
-static const step lexicalpass_up[] = {
+static const step forwardpass_up[] = {
+  step_type_definitions,
+  step_type_inference_isalist,
   NULL,
 };
 
+error forwardpass(struct module *mod, struct node *node, struct node **except) {
+  int module_depth = 0;
+  error e = pass(mod, node, forwardpass_down, forwardpass_up, except, &module_depth);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static const step firstpass_down[] = {
   step_stop_submodules,
-  step_type_definitions,
   step_type_destruct_mark,
   step_type_gather_returns,
   step_type_gather_excepts,
@@ -2207,18 +2225,13 @@ static const step firstpass_up[] = {
   step_rewrite_defname_no_expr,
   step_rewrite_sum_constructors,
   step_type_inference,
-  step_type_inference_isalist,
   step_toplevel_secondpass,
   NULL,
 };
 
 error firstpass(struct module *mod, struct node *node, struct node **except) {
   int module_depth = 0;
-  error e = pass(mod, node, lexicalpass_down, lexicalpass_up, except, &module_depth);
-  EXCEPT(e);
-
-  module_depth = 0;
-  e = pass(mod, node, firstpass_down, firstpass_up, except, &module_depth);
+  error e = pass(mod, node, firstpass_down, firstpass_up, except, &module_depth);
   EXCEPT(e);
 
   return 0;
@@ -2246,28 +2259,33 @@ static const step secondpass_up[] = {
 };
 
 error secondpass(struct module *mod, struct node *node, struct node **except) {
-  int module_depth = 0;
-  error e = pass(mod, node, secondpass_down, secondpass_up, except, &module_depth);
+  error e = pass(mod, node, secondpass_down, secondpass_up, except, NULL);
   EXCEPT(e);
 
   return 0;
 }
 
-static error zero_for_generated(struct module *mod, struct node *node,
-                                struct scope *parent_scope) {
+static error zero_to_forward_for_generated(struct module *mod, struct node *node,
+                                           struct scope *parent_scope) {
   error e = zeropass(mod, node, NULL);
   EXCEPT(e);
   node->scope->parent = parent_scope;
 
+  e = forwardpass(mod, node, NULL);
+  EXCEPT(e);
+
   return 0;
 }
 
-static error zero_and_first_for_generated(struct module *mod, struct node *node,
-                                          struct node **except,
-                                          struct scope *parent_scope) {
+static error zero_to_first_for_generated(struct module *mod, struct node *node,
+                                         struct node **except,
+                                         struct scope *parent_scope) {
   error e = zeropass(mod, node, except);
   EXCEPT(e);
   node->scope->parent = parent_scope;
+
+  e = forwardpass(mod, node, except);
+  EXCEPT(e);
 
   e = firstpass(mod, node, except);
   EXCEPT(e);

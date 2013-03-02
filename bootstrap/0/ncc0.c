@@ -429,6 +429,9 @@ int main(int argc, char **argv) {
   EXCEPT(e);
 
   for (size_t n = 0; n < deps.modules_count; ++n) {
+    e = forwardpass(deps.modules[n], NULL, NULL);
+    EXCEPT(e);
+
     e = firstpass(deps.modules[n], NULL, NULL);
     EXCEPT(e);
   }
