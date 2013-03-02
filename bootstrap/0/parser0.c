@@ -149,10 +149,12 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_ENUM_MATCH] = "nlang.builtins.Matchable.operator_match",
   [BG_SUM_MATCH] = "nlang.builtins.Matchable.operator_match",
   [BG_SUM_DISPATCH] = NULL,
-  // These 3 should be templates of CtorWith.
-  [BG_CTOR_WITH_CTOR] = "nlang.builtins.CtorWith.ctor",
+  // These should be templates of CtorWith.
   [BG_CTOR_WITH_MK] = "nlang.builtins.CtorWith.mk",
   [BG_CTOR_WITH_NEW] = "nlang.builtins.CtorWith.new",
+  [BG_SUM_CTOR_WITH_CTOR] = "nlang.builtins.CtorWith.ctor",
+  [BG_SUM_CTOR_WITH_MK] = "nlang.builtins.CtorWith.mk",
+  [BG_SUM_CTOR_WITH_NEW] = "nlang.builtins.CtorWith.new",
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
@@ -1889,6 +1891,7 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
       EXCEPT_SYNTAX(mod, &tok, "malformed method name");
     }
 
+    assert(node->subs_count == 1);
     struct node *arg = mk_node(mod, node, DEFARG);
     struct node *name = mk_node(mod, arg, IDENT);
     name->as.IDENT.name = ID_SELF;

@@ -1736,16 +1736,16 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   toplevel->is_export = node_toplevel(tdef)->is_export;
   toplevel->is_inline = node_toplevel(tdef)->is_inline;
 
-  if (bg == BG_CTOR_WITH_CTOR
-      || bg == BG_CTOR_WITH_MK
-      || bg == BG_CTOR_WITH_NEW) {
+  if (bg == BG_SUM_CTOR_WITH_CTOR
+      || bg == BG_SUM_CTOR_WITH_MK
+      || bg == BG_SUM_CTOR_WITH_NEW) {
     struct node *arg = mk_node(mod, d, DEFARG);
     struct node *name = mk_node(mod, arg, IDENT);
     name->as.IDENT.name = ID_C;
     struct node *typename = mk_node(mod, arg, DIRECTDEF);
     typename->as.DIRECTDEF.definition = ch->subs[2]->typ->definition;
 
-    insert_last_at(d, 1);
+    insert_last_at(d, d->which == DEFMETHOD ? 2 : 1);
   }
 
   e = zero_to_first_for_generated(mod, d, NULL, ch->scope);
@@ -1769,7 +1769,7 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
     has_ctor |= TRUE;
 
     define_defchoice_builtin(
-      mod, node, BG_CTOR_WITH_CTOR, DEFMETHOD);
+      mod, node, BG_SUM_CTOR_WITH_CTOR, DEFMETHOD);
   }
 
   if (typ_isa(mod, targ, typ_lookup_builtin(mod, TBI_DEFAULT_CTOR))) {
@@ -1909,8 +1909,8 @@ static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *
     define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_MK, DEFFUN);
     define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_NEW, DEFFUN);
   } else if (tdef->as.DEFTYPE.kind == DEFTYPE_SUM) {
-    define_defchoice_builtin(mod, node, BG_CTOR_WITH_MK, DEFFUN);
-    define_defchoice_builtin(mod, node, BG_CTOR_WITH_NEW, DEFFUN);
+    define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_MK, DEFFUN);
+    define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_NEW, DEFFUN);
   }
 
   return 0;
@@ -1992,7 +1992,6 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
     break;
   }
 
-  fprintf(stderr, "%s not recursive over all intf\n", __func__);
   for (size_t n = 0; n < node->typ->isalist_count; ++n) {
     assert(node->subs[1]->which == ISALIST);
     assert(node->subs[1]->subs[n]->which == ISA);

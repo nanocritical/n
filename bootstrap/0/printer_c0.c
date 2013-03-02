@@ -638,7 +638,8 @@ static bool prototype_only(bool header, const struct node *node) {
 
 static void print_deffun_builtingen(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, " {\n");
-  if (node->scope->parent->node->which == DEFTYPE) {
+  if (node->scope->parent->node->which == DEFTYPE
+      || node->scope->parent->node->which == DEFCHOICE) {
     fprintf(out, "#define THIS(x) ");
     print_typ(out, mod, node->scope->parent->node->typ);
     fprintf(out, "##x\n");
@@ -676,6 +677,21 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
     fprintf(out, "THIS(_ctor)(self, c);\n");
     fprintf(out, "return self;\n");
     break;
+  case BG_SUM_CTOR_WITH_CTOR:
+    fprintf(out, "self->which__ = %s_which__;\n", replace_dots(scope_name(mod, node->scope->parent)));
+    fprintf(out, "self->as__.%s = c;\n", idents_value(mod->gctx, node_ident(node->scope->parent->node)));
+    break;
+  case BG_SUM_CTOR_WITH_MK:
+    fprintf(out, "THIS() r;\n");
+    fprintf(out, "memset(&r, 0, sizeof(THIS()));\n");
+    fprintf(out, "THIS(_%s_ctor)(&r, c);\n", idents_value(mod->gctx, node_ident(node->scope->parent->node)));
+    fprintf(out, "return r;\n");
+    break;
+  case BG_SUM_CTOR_WITH_NEW:
+    fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
+    fprintf(out, "THIS(_%s_ctor)(self, c);\n", idents_value(mod->gctx, node_ident(node->scope->parent->node)));
+    fprintf(out, "return self;\n");
+    break;
   case BG_ENUM_EQ:
     fprintf(out, "return *self == *other;\n");
     break;
@@ -695,7 +711,8 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
     assert(FALSE);
     break;
   }
-  if (node->scope->parent->node->which == DEFTYPE) {
+  if (node->scope->parent->node->which == DEFTYPE
+      || node->scope->parent->node->which == DEFCHOICE) {
     fprintf(out, "#undef THIS\n");
   }
   fprintf(out, "}\n");
@@ -863,7 +880,7 @@ static void print_deftype_typedefs(FILE *out, bool header, const struct module *
   fprintf(out, ";\n");
 }
 
-static void print_deftype_choices(FILE *out, bool header, const struct module *mod, const struct node *node) {
+static void print_deftype_sum_choices(FILE *out, bool header, const struct module *mod, const struct node *node) {
   if (header && !(node_is_export(node) && node_is_inline(node))) {
     return;
   }
@@ -950,6 +967,26 @@ static void print_deftype_choices(FILE *out, bool header, const struct module *m
   fprintf(out, "_%s;\n", idents_value(mod->gctx, ID_AS_TYPE));
 }
 
+static void print_deftype_sum_members(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  if (header && !(node_is_export(node) && node_is_inline(node))) {
+    return;
+  }
+
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    struct node *s = node->subs[n];
+    if (s->which != DEFCHOICE) {
+      continue;
+    }
+
+    for (size_t m = 0; m < s->subs_count; ++m) {
+      struct node *cm = s->subs[m];
+      if (cm->which == DEFFUN || cm->which == DEFMETHOD) {
+        print_deffun(out, header, mod, cm);
+      }
+    }
+  }
+}
+
 static void print_deftype_enum(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, "typedef ");
   print_typ(out, mod, node->as.DEFTYPE.choice_typ);
@@ -1004,7 +1041,7 @@ static void print_deftype(FILE *out, bool header, const struct module *mod, cons
   fprintf(out, ";\n");
 
   if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
-    print_deftype_choices(out, header, mod, node);
+    print_deftype_sum_choices(out, header, mod, node);
   }
 
   print_deftype_block(out, header, mod, node, 2, TRUE);
@@ -1019,6 +1056,10 @@ static void print_deftype(FILE *out, bool header, const struct module *mod, cons
   }
 
   print_deftype_typedefs(out, header, mod, node);
+
+  if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
+    print_deftype_sum_members(out, header, mod, node);
+  }
 }
 
 static void print_defintf(FILE *out, bool header, const struct module *mod, const struct node *node) {

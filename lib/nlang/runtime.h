@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <string.h>
 
-typedef void nlang_literals_void;
+typedef void nlang_builtins_void;
 typedef _Bool nlang_builtins_bool;
 typedef int8_t nlang_builtins_i8;
 typedef int16_t nlang_builtins_i16;
