@@ -6,10 +6,12 @@ export intf DefaultCtor = export WorkaroundRBC
 export intf TrivialCtor = export DefaultCtor
 export intf TrivialDtor =
 export intf Matchable =
-export intf Comparable = export Matchable
-export intf TrivialComparison = export Comparable
-export intf Ordered = export Comparable
-export intf TrivialOrder = export Ordered
+export intf HasEquality = export Matchable
+export intf TrivialEquality = export HasEquality
+export intf HasCompare =
+export intf Ordered = export HasEquality
+export intf OrderedByCompare = export HasCompare export Ordered export HasEquality
+export intf TrivialOrder = export TrivialEquality export OrderedByCompare
 export intf Arithmetic = export Ordered export WorkaroundRBC
 export intf Bitwise = export WorkaroundRBC
 
@@ -34,50 +36,277 @@ export extern type nmmref = export NullableMercurialRef
 export intf Integer = \
     export Arithmetic \
     export Ordered \
-    export Bitwise
+    export Bitwise \
+    export HasCompare
 
 export intf NativeInteger = \
     export TrivialCopy \
     export ReturnByCopy \
     export Integer
 
-export extern type bool = export NativeInteger
+export intf Boolean = \
+    export Ordered \
+    export Bitwise
+
+export intf NativeBoolean = \
+    export TrivialCopy \
+    export ReturnByCopy \
+    export Boolean
+
+export extern type bool = export NativeBoolean
+extern void method# Copyable.operator_copy other:@this = bool
+extern bool method HasEquality.operator_eq other:@this = bool
+extern bool method HasEquality.operator_ne other:@this = bool
+extern bool method HasCompare.operator_compare other:@this = i32
+extern bool method Ordered.operator_le other:@this = bool
+extern bool method Ordered.operator_lt other:@this = bool
+extern bool method Ordered.operator_gt other:@this = bool
+extern bool method Ordered.operator_ge other:@this = bool
+extern bool method Boolean.operator_or other:@this = this
+extern bool method Boolean.operator_and other:@this = this
+extern bool method Boolean.operator_not = this
+extern bool method Boolean.operator_test = bool
+
 export extern type i8 = export NativeInteger
+extern void method# Copyable.operator_copy other:@this = bool
+extern i8 method HasEquality.operator_eq other:@this = bool
+extern i8 method HasEquality.operator_ne other:@this = bool
+extern i8 method HasCompare.operator_compare other:@this = i32
+extern i8 method Ordered.operator_le other:@this = bool
+extern i8 method Ordered.operator_lt other:@this = bool
+extern i8 method Ordered.operator_gt other:@this = bool
+extern i8 method Ordered.operator_ge other:@this = bool
+extern i8 method Arithmetic.operator_plus other:@this = this
+extern i8 method Arithmetic.operator_minus other:@this = this
+extern i8 method Arithmetic.operator_divide other:@this = this
+extern i8 method Arithmetic.operator_modulo other:@this = this
+extern i8 method Arithmetic.operator_times other:@this = this
+extern i8 method Arithmetic.operator_uminus = this
+extern i8 method Bitwise.operator_bwor other:@this = this
+extern i8 method Bitwise.operator_bwxor other:@this = this
+extern i8 method Bitwise.operator_bwand other:@this = this
+extern i8 method Bitwise.operator_lshift by:u32 = this
+extern i8 method Bitwise.operator_rshift by:u32 = this
+extern i8 method Bitwise.operator_bwnot = this
+
 export extern type i16 = export NativeInteger
+extern void method# Copyable.operator_copy other:@this = bool
+extern i16 method HasEquality.operator_eq other:@this = bool
+extern i16 method HasEquality.operator_ne other:@this = bool
+extern i16 method HasCompare.operator_compare other:@this = i32
+extern i16 method Ordered.operator_le other:@this = bool
+extern i16 method Ordered.operator_lt other:@this = bool
+extern i16 method Ordered.operator_gt other:@this = bool
+extern i16 method Ordered.operator_ge other:@this = bool
+extern i16 method Arithmetic.operator_plus other:@this = this
+extern i16 method Arithmetic.operator_minus other:@this = this
+extern i16 method Arithmetic.operator_divide other:@this = this
+extern i16 method Arithmetic.operator_modulo other:@this = this
+extern i16 method Arithmetic.operator_times other:@this = this
+extern i16 method Arithmetic.operator_uminus = this
+extern i16 method Bitwise.operator_bwor other:@this = this
+extern i16 method Bitwise.operator_bwxor other:@this = this
+extern i16 method Bitwise.operator_bwand other:@this = this
+extern i16 method Bitwise.operator_lshift by:u32 = this
+extern i16 method Bitwise.operator_rshift by:u32 = this
+extern i16 method Bitwise.operator_bwnot = this
+
 export extern type i32 = export NativeInteger
+extern void method# Copyable.operator_copy other:@this = bool
+extern i32 method HasEquality.operator_eq other:@this = bool
+extern i32 method HasEquality.operator_ne other:@this = bool
+extern i32 method HasCompare.operator_compare other:@this = i32
+extern i32 method Ordered.operator_le other:@this = bool
+extern i32 method Ordered.operator_lt other:@this = bool
+extern i32 method Ordered.operator_gt other:@this = bool
+extern i32 method Ordered.operator_ge other:@this = bool
+extern i32 method Arithmetic.operator_plus other:@this = this
+extern i32 method Arithmetic.operator_minus other:@this = this
+extern i32 method Arithmetic.operator_divide other:@this = this
+extern i32 method Arithmetic.operator_modulo other:@this = this
+extern i32 method Arithmetic.operator_times other:@this = this
+extern i32 method Arithmetic.operator_uminus = this
+extern i32 method Bitwise.operator_bwor other:@this = this
+extern i32 method Bitwise.operator_bwxor other:@this = this
+extern i32 method Bitwise.operator_bwand other:@this = this
+extern i32 method Bitwise.operator_lshift by:u32 = this
+extern i32 method Bitwise.operator_rshift by:u32 = this
+extern i32 method Bitwise.operator_bwnot = this
+
 export extern type i64 = export NativeInteger
+extern void method# Copyable.operator_copy other:@this = bool
+extern i64 method HasEquality.operator_eq other:@this = bool
+extern i64 method HasEquality.operator_ne other:@this = bool
+extern i64 method HasCompare.operator_compare other:@this = i32
+extern i64 method Ordered.operator_le other:@this = bool
+extern i64 method Ordered.operator_lt other:@this = bool
+extern i64 method Ordered.operator_gt other:@this = bool
+extern i64 method Ordered.operator_ge other:@this = bool
+extern i64 method Arithmetic.operator_plus other:@this = this
+extern i64 method Arithmetic.operator_minus other:@this = this
+extern i64 method Arithmetic.operator_divide other:@this = this
+extern i64 method Arithmetic.operator_modulo other:@this = this
+extern i64 method Arithmetic.operator_times other:@this = this
+extern i64 method Arithmetic.operator_uminus = this
+extern i64 method Bitwise.operator_bwor other:@this = this
+extern i64 method Bitwise.operator_bwxor other:@this = this
+extern i64 method Bitwise.operator_bwand other:@this = this
+extern i64 method Bitwise.operator_lshift by:u32 = this
+extern i64 method Bitwise.operator_rshift by:u32 = this
+extern i64 method Bitwise.operator_bwnot = this
+
 export extern type u8 = export NativeInteger
+extern void method# Copyable.operator_copy other:@this = bool
+extern u8 method HasEquality.operator_eq other:@this = bool
+extern u8 method HasEquality.operator_ne other:@this = bool
+extern u8 method HasCompare.operator_compare other:@this = i32
+extern u8 method Ordered.operator_le other:@this = bool
+extern u8 method Ordered.operator_lt other:@this = bool
+extern u8 method Ordered.operator_gt other:@this = bool
+extern u8 method Ordered.operator_ge other:@this = bool
+extern u8 method Arithmetic.operator_plus other:@this = this
+extern u8 method Arithmetic.operator_minus other:@this = this
+extern u8 method Arithmetic.operator_divide other:@this = this
+extern u8 method Arithmetic.operator_modulo other:@this = this
+extern u8 method Arithmetic.operator_times other:@this = this
+extern u8 method Arithmetic.operator_uminus = this
+extern u8 method Bitwise.operator_bwor other:@this = this
+extern u8 method Bitwise.operator_bwxor other:@this = this
+extern u8 method Bitwise.operator_bwand other:@this = this
+extern u8 method Bitwise.operator_lshift by:u32 = this
+extern u8 method Bitwise.operator_rshift by:u32 = this
+extern u8 method Bitwise.operator_bwnot = this
+
 export extern type u16 = export NativeInteger
+extern void method# Copyable.operator_copy other:@this = bool
+extern u16 method HasEquality.operator_eq other:@this = bool
+extern u16 method HasEquality.operator_ne other:@this = bool
+extern u16 method HasCompare.operator_compare other:@this = i32
+extern u16 method Ordered.operator_le other:@this = bool
+extern u16 method Ordered.operator_lt other:@this = bool
+extern u16 method Ordered.operator_gt other:@this = bool
+extern u16 method Ordered.operator_ge other:@this = bool
+extern u16 method Arithmetic.operator_plus other:@this = this
+extern u16 method Arithmetic.operator_minus other:@this = this
+extern u16 method Arithmetic.operator_divide other:@this = this
+extern u16 method Arithmetic.operator_modulo other:@this = this
+extern u16 method Arithmetic.operator_times other:@this = this
+extern u16 method Arithmetic.operator_uminus = this
+extern u16 method Bitwise.operator_bwor other:@this = this
+extern u16 method Bitwise.operator_bwxor other:@this = this
+extern u16 method Bitwise.operator_bwand other:@this = this
+extern u16 method Bitwise.operator_lshift by:u32 = this
+extern u16 method Bitwise.operator_rshift by:u32 = this
+extern u16 method Bitwise.operator_bwnot = this
+
 export extern type u32 = export NativeInteger
+extern void method# Copyable.operator_copy other:@this = bool
+extern u32 method HasEquality.operator_eq other:@this = bool
+extern u32 method HasEquality.operator_ne other:@this = bool
+extern u32 method HasCompare.operator_compare other:@this = i32
+extern u32 method Ordered.operator_le other:@this = bool
+extern u32 method Ordered.operator_lt other:@this = bool
+extern u32 method Ordered.operator_gt other:@this = bool
+extern u32 method Ordered.operator_ge other:@this = bool
+extern u32 method Arithmetic.operator_plus other:@this = this
+extern u32 method Arithmetic.operator_minus other:@this = this
+extern u32 method Arithmetic.operator_divide other:@this = this
+extern u32 method Arithmetic.operator_modulo other:@this = this
+extern u32 method Arithmetic.operator_times other:@this = this
+extern u32 method Arithmetic.operator_uminus = this
+extern u32 method Bitwise.operator_bwor other:@this = this
+extern u32 method Bitwise.operator_bwxor other:@this = this
+extern u32 method Bitwise.operator_bwand other:@this = this
+extern u32 method Bitwise.operator_lshift by:u32 = this
+extern u32 method Bitwise.operator_rshift by:u32 = this
+extern u32 method Bitwise.operator_bwnot = this
+
 export extern type u64 = export NativeInteger
+extern void method# Copyable.operator_copy other:@this = bool
+extern u64 method HasEquality.operator_eq other:@this = bool
+extern u64 method HasEquality.operator_ne other:@this = bool
+extern u64 method HasCompare.operator_compare other:@this = i32
+extern u64 method Ordered.operator_le other:@this = bool
+extern u64 method Ordered.operator_lt other:@this = bool
+extern u64 method Ordered.operator_gt other:@this = bool
+extern u64 method Ordered.operator_ge other:@this = bool
+extern u64 method Arithmetic.operator_plus other:@this = this
+extern u64 method Arithmetic.operator_minus other:@this = this
+extern u64 method Arithmetic.operator_divide other:@this = this
+extern u64 method Arithmetic.operator_modulo other:@this = this
+extern u64 method Arithmetic.operator_times other:@this = this
+extern u64 method Arithmetic.operator_uminus = this
+extern u64 method Bitwise.operator_bwor other:@this = this
+extern u64 method Bitwise.operator_bwxor other:@this = this
+extern u64 method Bitwise.operator_bwand other:@this = this
+extern u64 method Bitwise.operator_lshift by:u32 = this
+extern u64 method Bitwise.operator_rshift by:u32 = this
+extern u64 method Bitwise.operator_bwnot = this
+
 export extern type size = export NativeInteger
+extern void method# Copyable.operator_copy other:@this = bool
+extern size method HasEquality.operator_eq other:@this = bool
+extern size method HasEquality.operator_ne other:@this = bool
+extern size method HasCompare.operator_compare other:@this = i32
+extern size method Ordered.operator_le other:@this = bool
+extern size method Ordered.operator_lt other:@this = bool
+extern size method Ordered.operator_gt other:@this = bool
+extern size method Ordered.operator_ge other:@this = bool
+extern size method Arithmetic.operator_plus other:@this = this
+extern size method Arithmetic.operator_minus other:@this = this
+extern size method Arithmetic.operator_divide other:@this = this
+extern size method Arithmetic.operator_modulo other:@this = this
+extern size method Arithmetic.operator_times other:@this = this
+extern size method Arithmetic.operator_uminus = this
+extern size method Bitwise.operator_bwor other:@this = this
+extern size method Bitwise.operator_bwxor other:@this = this
+extern size method Bitwise.operator_bwand other:@this = this
+extern size method Bitwise.operator_lshift by:u32 = this
+extern size method Bitwise.operator_rshift by:u32 = this
+extern size method Bitwise.operator_bwnot = this
+
 export extern type ssize = export NativeInteger
+extern void method# Copyable.operator_copy other:@this = bool
+extern ssize method HasEquality.operator_eq other:@this = bool
+extern ssize method HasEquality.operator_ne other:@this = bool
+extern ssize method HasCompare.operator_compare other:@this = i32
+extern ssize method Ordered.operator_le other:@this = bool
+extern ssize method Ordered.operator_lt other:@this = bool
+extern ssize method Ordered.operator_gt other:@this = bool
+extern ssize method Ordered.operator_ge other:@this = bool
+extern ssize method Arithmetic.operator_plus other:@this = this
+extern ssize method Arithmetic.operator_minus other:@this = this
+extern ssize method Arithmetic.operator_divide other:@this = this
+extern ssize method Arithmetic.operator_modulo other:@this = this
+extern ssize method Arithmetic.operator_times other:@this = this
+extern ssize method Arithmetic.operator_uminus = this
+extern ssize method Bitwise.operator_bwor other:@this = this
+extern ssize method Bitwise.operator_bwxor other:@this = this
+extern ssize method Bitwise.operator_bwand other:@this = this
+extern ssize method Bitwise.operator_lshift by:u32 = this
+extern ssize method Bitwise.operator_rshift by:u32 = this
+extern ssize method Bitwise.operator_bwnot = this
 
 export intf Copyable =
   method# operator_copy other:@this = bool
 
-export intf TrivialCopy = export Copyable
-
 export intf Matchable =
   method operator_match other:@this = bool
 
-export intf Comparable = export Matchable
+export intf HasEquality = export Matchable
   method operator_eq other:@this = bool
   method operator_ne other:@this = bool
 
-export intf Boolean = export WorkaroundRBC
-  method operator_or other:@this = this
-  method operator_and other:@this = this
-  method operator_not = this
-  method operator_test = bool
+export intf HasCompare =
+  method operator_compare other:@this = i32
 
-export intf Ordered = export Comparable
+export intf Ordered = export HasEquality
   method operator_le other:@this = bool
   method operator_lt other:@this = bool
   method operator_gt other:@this = bool
   method operator_ge other:@this = bool
 
-export intf Arithmetic = export Ordered export WorkaroundRBC
+export intf Arithmetic = export WorkaroundRBC
   method operator_plus other:@this = this
   method operator_minus other:@this = this
   method operator_divide other:@this = this
@@ -91,7 +320,15 @@ export intf Bitwise = export WorkaroundRBC
   method operator_bwand other:@this = this
   method operator_lshift by:u32 = this
   method operator_rshift by:u32 = this
-  method operator_ubwnot = this
+  method operator_bwnot = this
+
+export intf Boolean = export WorkaroundRBC \
+    export Ordered \
+    export Bitwise
+  method operator_or other:@this = this
+  method operator_and other:@this = this
+  method operator_not = this
+  method operator_test = bool
 
 export intf DefaultCtor = export WorkaroundRBC
   method# ctor = void

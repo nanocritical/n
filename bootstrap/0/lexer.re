@@ -167,7 +167,7 @@ normal:
   "&" { R(TBWAND); }
   "|" { R(TBWOR); }
   "^" { R(TBWXOR); }
-  "~" { R(TUBWNOT); }
+  "~" { R(TBWNOT); }
   ":" { R(TCOLON); }
   "," { R(TCOMMA); }
   ";" {

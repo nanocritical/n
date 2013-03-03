@@ -35,7 +35,7 @@ const char *c_token_strings[TOKEN__NUM] = {
   [TBWXOR_ASSIGN] = " ^= ",
   [TRSHIFT_ASSIGN] = " >>= ",
   [TLSHIFT_ASSIGN] = " <<= ",
-  [TUBWNOT] = " ~",
+  [TBWNOT] = " ~",
   [TARROW] = " -> ",
   [TCOLON] = ":",
   [TCOMMA] = ", ",
@@ -400,7 +400,7 @@ static void print_match(FILE *out, bool header, const struct module *mod, const 
   for (size_t n = 1; n < node->subs_count; n += 2) {
     fprintf(out, "case ");
     print_expr(out, header, mod, node->subs[n], T__STATEMENT);
-    fprintf(out, ":");
+    fprintf(out, "_label__:");
     print_block(out, header, mod, node->subs[n + 1]);
   }
 }
@@ -704,7 +704,34 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
     fprintf(out, "\n");
     break;
   case BG_SUM_DISPATCH:
-    fprintf(out, "\n");
+    fprintf(out, "switch (self->which__) {\n");
+    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
+      struct node *ch = node->scope->parent->node->subs[n];
+      if (ch->which == DEFCHOICE) {
+        const char *nch = idents_value(mod->gctx, node_ident(ch));
+
+        struct node *m = NULL;
+        error e = scope_lookup_ident_immediate(
+          &m, mod, ch->subs[2]->typ->definition->scope,
+          node_ident(node), FALSE);
+        assert(!e);
+
+        char *nm = replace_dots(scope_name(mod, m->scope));
+        fprintf(out, "case THIS(_%s_which___label__): return %s(", nch, nm);
+        free(nm);
+
+        for (size_t a = 0; a < node_fun_explicit_args_count(node); ++a) {
+          struct node *arg = node->subs[a + 1];
+          if (a > 0) {
+            fprintf(out, ", ");
+          }
+          fprintf(out, "%s", idents_value(mod->gctx, node_ident(arg)));
+        }
+
+        fprintf(out, ");\n");
+      }
+    }
+    fprintf(out, "}\n");
     break;
   default:
     assert(FALSE);
@@ -906,6 +933,14 @@ static void print_deftype_sum_choices(FILE *out, bool header, const struct modul
       continue;
     }
 
+    fprintf(out, "#define ");
+    print_deftype_name(out, mod, node);
+    fprintf(out, "_");
+    print_deffield_name(out, mod, s);
+    fprintf(out, "_%s_label__ (", idents_value(mod->gctx, ID_WHICH));
+    print_expr(out, header, mod, s->subs[1], T__NOT_STATEMENT);
+    fprintf(out, ")\n");
+
     fprintf(out, "static const ");
     print_deftype_name(out, mod, node);
     fprintf(out, "_%s", idents_value(mod->gctx, ID_WHICH_TYPE));
@@ -1016,12 +1051,30 @@ static void print_deftype_enum(FILE *out, bool header, const struct module *mod,
 
   print_deftype_typedefs(out, header, mod, node);
 }
+
+static bool is_pseudo_tbi(const struct module *mod, const struct typ *t) {
+  return t == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
+    || t == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)
+    || t == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
+    || t == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)
+    || t == typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE)
+    || t == typ_lookup_builtin(mod, TBI_REF)
+    || t == typ_lookup_builtin(mod, TBI_MREF)
+    || t == typ_lookup_builtin(mod, TBI_MMREF)
+    || t == typ_lookup_builtin(mod, TBI_NREF)
+    || t == typ_lookup_builtin(mod, TBI_NMREF)
+    || t == typ_lookup_builtin(mod, TBI_NMMREF);
+}
+
 static void print_deftype(FILE *out, bool header, const struct module *mod, const struct node *node) {
   if (header && !node_is_export(node)) {
     return;
   }
 
   if (typ_is_builtin(mod, node->typ)) {
+    if (!is_pseudo_tbi(mod, node->typ)) {
+      print_deftype_typedefs(out, header, mod, node);
+    }
     return;
   }
 
@@ -1073,6 +1126,19 @@ static void print_import(FILE *out, bool header, const struct module *mod, const
   }
 }
 
+static bool file_exists(const char *base, const char *postfix) {
+  char *fn = calloc(strlen(base) + strlen(postfix) + 1, sizeof(char));
+  strcpy(fn, base);
+  strcpy(fn + strlen(base), postfix);
+  FILE *f = fopen(fn, "r");
+  const bool r = f != NULL;
+  if (f != NULL) {
+    fclose(f);
+  }
+  free(fn);
+  return r;
+}
+
 static void print_module(FILE *out, bool header, const struct module *mod) {
   if (header) {
     const char *guard = replace_dots(scope_name(mod, mod->root->scope));
@@ -1080,6 +1146,16 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
   }
 
   fprintf(out, "#include <lib/nlang/runtime.h>\n");
+
+  if (file_exists(mod->filename, ".h")) {
+    fprintf(out, "#include \"%s.h\"\n", mod->filename);
+  }
+
+  if (!header) {
+    if (file_exists(mod->filename, ".c")) {
+      fprintf(out, "#include \"%s.c\"\n", mod->filename);
+    }
+  }
 
   const struct node *top = mod->body;
 

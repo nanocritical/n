@@ -1,6 +1,6 @@
 from nlang import *
 
-type sum = Comparable WorkaroundRBC
+type sum = HasEquality WorkaroundRBC
   | A -> u32
   | B -> i32
 

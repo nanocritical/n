@@ -100,11 +100,17 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NMREF] = "nmref",
   [ID_TBI_NMMREF] = "nmmref",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
-  [ID_TBI_COMPARABLE] = "Comparable",
+  [ID_TBI_HAS_EQUALITY] = "HasEquality",
+  [ID_TBI_ORDERED] = "Ordered",
+  [ID_TBI_ORDERED_BY_COMPARE] = "OrderedByCompare",
   [ID_TBI_COPYABLE] = "Copyable",
   [ID_TBI_DEFAULT_CTOR] = "DefaultCtor",
-  [ID_TBI_TRIVIAL_CTOR] = "TrivialCtor",
   [ID_TBI_CTOR_WITH] = "CtorWith",
+  [ID_TBI_TRIVIAL_COPY] = "TrivialCopy",
+  [ID_TBI_TRIVIAL_CTOR] = "TrivialCtor",
+  [ID_TBI_TRIVIAL_DTOR] = "TrivialDtor",
+  [ID_TBI_TRIVIAL_EQUALITY] = "TrivialEquality",
+  [ID_TBI_TRIVIAL_ORDER] = "TrivialOrder",
   [ID_TBI_RETURN_BY_COPY] = "ReturnByCopy",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
@@ -134,7 +140,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_OPERATOR_MODULO] = "operator_modulo",
   [ID_OPERATOR_TIMES] = "operator_times",
   [ID_OPERATOR_UMINUS] = "operator_uminus",
-  [ID_OPERATOR_UBWNOT] = "operator_ubwnot",
+  [ID_OPERATOR_BWNOT] = "operator_bwnot",
 };
 
 const char *builtingen_abspath[BG__NUM] = {
@@ -144,8 +150,8 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_TRIVIAL_CTOR_CTOR] = "nlang.builtins.TrivialCtor.ctor",
   [BG_TRIVIAL_CTOR_MK] = "nlang.builtins.TrivialCtor.mk",
   [BG_TRIVIAL_CTOR_NEW] = "nlang.builtins.TrivialCtor.new",
-  [BG_ENUM_EQ] = "nlang.builtins.Comparable.operator_eq",
-  [BG_ENUM_NE] = "nlang.builtins.Comparable.operator_ne",
+  [BG_ENUM_EQ] = "nlang.builtins.HasEquality.operator_eq",
+  [BG_ENUM_NE] = "nlang.builtins.HasEquality.operator_ne",
   [BG_ENUM_MATCH] = "nlang.builtins.Matchable.operator_match",
   [BG_SUM_MATCH] = "nlang.builtins.Matchable.operator_match",
   [BG_SUM_DISPATCH] = NULL,
@@ -2034,6 +2040,9 @@ static error p_deftype_statement(struct node *node, struct module *mod) {
   EXCEPT(e);
 
   switch (tok.t) {
+  case Tpass:
+    e = p_pass(node, mod);
+    break;
   case Tlet:
     e = p_let(node, mod, &toplevel);
     break;

@@ -2066,7 +2066,7 @@ static const ident operator_ident[TOKEN__NUM] = {
   [TMODULO] = ID_OPERATOR_MODULO,
   [TTIMES] = ID_OPERATOR_TIMES,
   [TUMINUS] = ID_OPERATOR_UMINUS,
-  [TUBWNOT] = ID_OPERATOR_UBWNOT,
+  [TBWNOT] = ID_OPERATOR_BWNOT,
 };
 
 static struct node *expr_ref(enum token_type ref_op, struct node *node) {

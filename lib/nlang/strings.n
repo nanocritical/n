@@ -1,4 +1,4 @@
 from nlang.literals import *
 from nlang.builtins import *
 
-export type string =
+extern export type string =

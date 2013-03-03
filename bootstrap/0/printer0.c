@@ -74,7 +74,7 @@ const char *token_strings[TOKEN__NUM] = {
   [TBWXOR_ASSIGN] = " ^= ",
   [TRSHIFT_ASSIGN] = " >>= ",
   [TLSHIFT_ASSIGN] = " <<= ",
-  [TUBWNOT] = " ~",
+  [TBWNOT] = " ~",
   [TARROW] = " -> ",
   [TCOLON] = ":",
   [TCOMMA] = ", ",
@@ -572,6 +572,10 @@ static void print_deftype_statement(FILE *out, const struct module *mod, int ind
     break;
   case DEFCHOICE:
     print_defchoice(out, mod, node);
+    break;
+  case PASS:
+    spaces(out, indent + 2);
+    fprintf(out, "pass");
     break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
