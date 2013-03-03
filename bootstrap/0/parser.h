@@ -503,6 +503,7 @@ bool node_is_inline(const struct node *node);
 bool node_is_export(const struct node *node);
 bool node_is_def(const struct node *node);
 bool node_is_statement(const struct node *node);
+bool node_is_rvalue(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
 size_t node_fun_explicit_args_count(const struct node *def);
 const struct node *node_fun_retval(const struct node *def);

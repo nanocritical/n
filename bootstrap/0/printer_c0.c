@@ -483,7 +483,6 @@ static void print_defname(FILE *out, bool header, const struct module *mod, cons
       print_pattern(out, header, mod, node->as.DEFNAME.expr);
     }
   } else {
-    fprintf(stderr, "%s\n", typ_name(mod, node->typ));
     print_typ(out, mod, node->typ);
     fprintf(out, " ");
     print_pattern(out, header, mod, node->as.DEFNAME.pattern);

@@ -477,6 +477,27 @@ bool node_is_statement(const struct node *node) {
     && node->scope->parent->node->which == BLOCK;
 }
 
+bool node_is_rvalue(const struct node *node) {
+  switch (node->which) {
+  case BIN:
+    if (OP_KIND(node->as.BIN.operator) == OP_BIN_ACC) {
+      return FALSE;
+    }
+    // Fallthrough
+  case UN:
+  case STRING:
+  case NUMBER:
+  case NUL:
+  case TUPLE:
+  case CALL:
+    return TRUE;
+  case TYPECONSTRAINT:
+    return node_is_rvalue(node->subs[0]);
+  default:
+    return FALSE;
+  }
+}
+
 // Return value must be freed by caller.
 char *scope_name(const struct module *mod, const struct scope *scope) {
   if (scope->node == &mod->gctx->modules_root) {

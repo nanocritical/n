@@ -4,6 +4,7 @@ export intf ReturnByCopy =
 export intf WorkaroundRBC = export ReturnByCopy
 export intf DefaultCtor = export WorkaroundRBC
 export intf TrivialCtor = export DefaultCtor
+export intf TrivialDtor =
 export intf Matchable =
 export intf Comparable = export Matchable
 export intf TrivialComparison = export Comparable
