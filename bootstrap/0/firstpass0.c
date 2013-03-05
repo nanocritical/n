@@ -1736,6 +1736,13 @@ static size_t find_subnode_in_parent(struct node *parent, struct node *node) {
   return 0;
 }
 
+static struct node *get_member(struct module *mod, struct node *node, ident id) {
+  assert(node->which == DEFTYPE || node->which == DEFCHOICE);
+  struct node *m = NULL;
+  (void)scope_lookup_ident_immediate(&m, mod, node->scope, id, TRUE);
+  return m;
+}
+
 static void define_builtin(struct module *mod, struct node *tdef,
                            enum builtingen bg) {
   struct node *modbody = tdef->scope->parent->node;
@@ -1744,6 +1751,11 @@ static void define_builtin(struct module *mod, struct node *tdef,
   struct node *proto = NULL;
   error e = scope_lookup_abspath(&proto, mod, builtingen_abspath[bg]);
   assert(!e);
+
+  struct node *existing = get_member(mod, tdef, node_ident(proto));
+  if (existing != NULL) {
+    return;
+  }
 
   struct node *d = node_new_subnode(mod, modbody);
   node_deepcopy(mod, d, proto);
@@ -1831,13 +1843,6 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
   }
 
   return 0;
-}
-
-static struct node *get_member(struct module *mod, struct node *node, ident id) {
-  assert(node->which == DEFTYPE || node->which == DEFCHOICE);
-  struct node *m = NULL;
-  (void)scope_lookup_ident_immediate(&m, mod, node->scope, id, TRUE);
-  return m;
 }
 
 static void add_isa(struct module *mod, struct node *tdef, const char *path) {
@@ -1996,20 +2001,15 @@ static error step_implement_trivials(struct module *mod, struct node *node, void
     return 0;
   }
 
-  for (size_t n = 0; n < node->typ->isalist_count; ++n) {
-    assert(node->subs[1]->which == ISALIST);
-    assert(node->subs[1]->subs[n]->which == ISA);
-    if (!node->subs[1]->subs[n]->as.ISA.is_explicit) {
-      continue;
-    }
+  // FIXME: We should check that the fields/defchoice do indeed support
+  // these trivial interfaces. It must be safe to declare them.
+  // Same thing for trivial ctor, dtor.
 
-    const struct typ *i = node->typ->isalist[n];
-    if (i == typ_lookup_builtin(mod, TBI_TRIVIAL_COPY)) {
-      define_builtin(mod, node, BG_TRIVIAL_COPY_OPERATOR_COPY);
-    } else if (i == typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY)) {
-      define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_EQ);
-      define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_NE);
-    }
+  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))) {
+    define_builtin(mod, node, BG_TRIVIAL_COPY_OPERATOR_COPY);
+  } else if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY))) {
+    define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_EQ);
+    define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_NE);
   }
 
   return 0;
@@ -2025,6 +2025,11 @@ static void define_dispatch(struct module *mod, struct node *tdef, const struct 
     struct node *proto = intf->subs[n];
     if (proto->which != DEFMETHOD) {
       continue;
+    }
+
+    struct node *existing = get_member(mod, tdef, node_ident(proto));
+    if (existing != NULL) {
+      return;
     }
 
     struct node *d = mk_node(mod, modbody, DEFMETHOD);
@@ -2106,10 +2111,14 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
     }
 
     if (intf == typ_lookup_builtin(mod, TBI_SUM_COPY)) {
-      define_builtin(mod, node, BG_SUM_COPY);
+      if (!typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))) {
+        define_builtin(mod, node, BG_SUM_COPY);
+      }
     } else if (intf == typ_lookup_builtin(mod, TBI_SUM_EQUALITY)) {
-      define_builtin(mod, node, BG_SUM_EQUALITY_EQ);
-      define_builtin(mod, node, BG_SUM_EQUALITY_NE);
+      if (!typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY))) {
+        define_builtin(mod, node, BG_SUM_EQUALITY_EQ);
+        define_builtin(mod, node, BG_SUM_EQUALITY_NE);
+      }
     } else if (intf == typ_lookup_builtin(mod, TBI_SUM_ORDER)) {
       define_builtin(mod, node, BG_SUM_ORDER_LE);
       define_builtin(mod, node, BG_SUM_ORDER_LT);
@@ -2424,8 +2433,8 @@ static const step secondpass_down[] = {
   step_add_builtin_defchoice_mk_new,
   step_add_builtin_mk_new,
   step_add_builtin_operators,
-  step_implement_trivials,
   step_add_sum_dispatch,
+  step_implement_trivials,
   step_rewrite_def_return_through_ref,
   NULL,
 };
