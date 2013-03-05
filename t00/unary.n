@@ -1,0 +1,11 @@
+from nlang import *
+
+type t = WorkaroundRBC
+  x:u32
+
+t method get = u32
+  return self.x
+
+export fun main = i32
+  let t = t{{ x=0 }}
+  return t.get

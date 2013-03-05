@@ -121,6 +121,33 @@ static error step_detect_prototypes(struct module *mod, struct node *node, void 
   return 0;
 }
 
+static error step_detect_generic_interfaces_down(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case DEFINTF:
+    mod->intf_uses_this = FALSE;
+    break;
+  case IDENT:
+    if (node->as.IDENT.name == ID_THIS) {
+      mod->intf_uses_this = TRUE;
+    }
+    break;
+  default:
+    break;
+  }
+  return 0;
+}
+
+static error step_detect_generic_interfaces_up(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case DEFINTF:
+    node->as.DEFINTF.is_implied_generic = mod->intf_uses_this;
+    break;
+  default:
+    break;
+  }
+  return 0;
+}
+
 // Must be run before builtins are added.
 static error step_detect_deftype_kind(struct module *mod, struct node *node, void *user, bool *stop) {
   if (node->which != DEFTYPE) {
@@ -496,9 +523,13 @@ static error lexical_import_all_from_path(struct scope *scope, struct module *mo
   for (size_t n = 0; n < target_body->subs_count; ++n) {
     struct node *ex = target_body->subs[n];
     const struct toplevel *toplevel = node_toplevel_const(ex);
-    if (toplevel == NULL || !toplevel->is_export || toplevel->scope_name != ID__NONE) {
+    if (toplevel == NULL
+        || !toplevel->is_export
+        || toplevel->scope_name != ID__NONE
+        || toplevel->is_shadowed) {
       continue;
     }
+    fprintf(stderr, "import %s %p\n", scope_name(mod, ex->scope), ex);
 
     if (ex->which == IMPORT) {
       e = lexical_import(scope, target_mod, ex);
@@ -621,6 +652,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
   case DEFCHOICE:
     id = node->subs[0];
     sc = node->scope->parent;
+    fprintf(stderr, "def in %s, %s %p\n", scope_name(mod, sc), idents_value(mod->gctx, node_ident(id)), node);
     break;
   case DEFNAME:
     id = node->as.DEFNAME.pattern;
@@ -1651,6 +1683,8 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
   mutable_typ->isalist_count = isalist->subs_count;
   mutable_typ->isalist = calloc(isalist->subs_count, sizeof(*node->typ->isalist));
   mutable_typ->isalist_exported = calloc(isalist->subs_count, sizeof(bool));
+
+  bool uses_implied_generic = FALSE;
   for (size_t n = 0; n < isalist->subs_count; ++n) {
     struct node *isa = isalist->subs[n];
     assert(isa->which == ISA);
@@ -1660,9 +1694,20 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
     assert(!e);
     EXCEPT(e);
 
+    if (def->which != DEFINTF) {
+      e = mk_except_type(mod, isa, "not an intf");
+      EXCEPT(e);
+    }
+
     isa->typ = def->typ;
     mutable_typ->isalist[n] = def->typ;
     mutable_typ->isalist_exported[n] = isa->as.ISA.is_export;
+
+    uses_implied_generic |= def->as.DEFINTF.is_implied_generic;
+  }
+
+  if (node->which == DEFINTF) {
+    node->as.DEFINTF.is_implied_generic = uses_implied_generic;
   }
 
   return 0;
@@ -1946,6 +1991,30 @@ static error step_add_builtin_operators(struct module *mod, struct node *node, v
   return 0;
 }
 
+static error step_implement_trivials(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFTYPE) {
+    return 0;
+  }
+
+  for (size_t n = 0; n < node->typ->isalist_count; ++n) {
+    assert(node->subs[1]->which == ISALIST);
+    assert(node->subs[1]->subs[n]->which == ISA);
+    if (!node->subs[1]->subs[n]->as.ISA.is_explicit) {
+      continue;
+    }
+
+    const struct typ *i = node->typ->isalist[n];
+    if (i == typ_lookup_builtin(mod, TBI_TRIVIAL_COPY)) {
+      define_builtin(mod, node, BG_TRIVIAL_COPY_OPERATOR_COPY);
+    } else if (i == typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY)) {
+      define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_EQ);
+      define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_NE);
+    }
+  }
+
+  return 0;
+}
+
 static void define_dispatch(struct module *mod, struct node *tdef, const struct typ *tintf) {
   struct node *intf = tintf->definition;
 
@@ -2003,6 +2072,22 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
     }
 
     const struct typ *intf = node->typ->isalist[n];
+    const struct typ *check_intf = intf;
+    if (intf == typ_lookup_builtin(mod, TBI_SUM_COPY)) {
+      check_intf = typ_lookup_builtin(mod, TBI_COPYABLE);
+    } else if (intf == typ_lookup_builtin(mod, TBI_SUM_EQUALITY)) {
+      check_intf = typ_lookup_builtin(mod, TBI_HAS_EQUALITY);
+    } else if (intf == typ_lookup_builtin(mod, TBI_SUM_ORDER)) {
+      check_intf = typ_lookup_builtin(mod, TBI_ORDERED);
+    } else {
+      assert(intf->definition->which == DEFINTF);
+      if (intf->definition->as.DEFINTF.is_implied_generic) {
+        error e = mk_except_type(mod, node->subs[1]->subs[n],
+                                 "intf is an implied generic (uses 'this') and cannot be dispatched over");
+        EXCEPT(e);
+      }
+    }
+
     for (size_t c = 0; c < node->subs_count; ++c) {
       struct node *ch = node->subs[c];
       if (ch->which != DEFCHOICE) {
@@ -2016,11 +2101,23 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
         tch = ch->subs[2]->typ;
       }
 
-      error e = typ_check_isa(mod, ch, tch, intf);
+      error e = typ_check_isa(mod, ch, tch, check_intf);
       EXCEPT(e);
     }
 
-    define_dispatch(mod, node, intf);
+    if (intf == typ_lookup_builtin(mod, TBI_SUM_COPY)) {
+      define_builtin(mod, node, BG_SUM_COPY);
+    } else if (intf == typ_lookup_builtin(mod, TBI_SUM_EQUALITY)) {
+      define_builtin(mod, node, BG_SUM_EQUALITY_EQ);
+      define_builtin(mod, node, BG_SUM_EQUALITY_NE);
+    } else if (intf == typ_lookup_builtin(mod, TBI_SUM_ORDER)) {
+      define_builtin(mod, node, BG_SUM_ORDER_LE);
+      define_builtin(mod, node, BG_SUM_ORDER_LT);
+      define_builtin(mod, node, BG_SUM_ORDER_GT);
+      define_builtin(mod, node, BG_SUM_ORDER_GE);
+    } else {
+      define_dispatch(mod, node, intf);
+    }
   }
 
   return 0;
@@ -2144,15 +2241,15 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   return 0;
 }
 
-static error step_unary_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
-  return 0;
-}
-
 static error step_ctor_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   return 0;
 }
 
 static error step_dtor_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+  return 0;
+}
+
+static error step_copy_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   return 0;
 }
 
@@ -2242,6 +2339,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
 
 static const step zeropass_down[] = {
   step_detect_prototypes,
+  step_detect_generic_interfaces_down,
   step_detect_deftype_kind,
   step_assign_deftype_which_values,
   step_add_builtin_members,
@@ -2252,6 +2350,7 @@ static const step zeropass_down[] = {
 
 static const step zeropass_up[] = {
   step_add_scopes,
+  step_detect_generic_interfaces_up,
   NULL,
 };
 
@@ -2325,6 +2424,7 @@ static const step secondpass_down[] = {
   step_add_builtin_defchoice_mk_new,
   step_add_builtin_mk_new,
   step_add_builtin_operators,
+  step_implement_trivials,
   step_add_sum_dispatch,
   step_rewrite_def_return_through_ref,
   NULL,
@@ -2332,9 +2432,9 @@ static const step secondpass_down[] = {
 
 static const step secondpass_up[] = {
   step_operator_call_inference,
-  step_unary_call_inference,
   step_ctor_call_inference,
   step_dtor_call_inference,
+  step_copy_call_inference,
   step_gather_generics,
   step_define_temporary_rvalues,
   NULL,

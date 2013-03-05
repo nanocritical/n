@@ -635,6 +635,21 @@ static bool prototype_only(bool header, const struct node *node) {
   return (header && !(node_is_export(node) && node_is_inline(node))) || node_is_prototype(node);
 }
 
+static const struct node *get_defchoice_member(const struct module *mod,
+                                               const struct node *ch,
+                                               ident member_id) {
+  assert(ch->which == DEFCHOICE);
+  struct node *m = NULL;
+  error e = scope_lookup_ident_immediate(
+    &m, mod, ch->subs[2]->typ->definition->scope, member_id, FALSE);
+  assert(!e);
+  return m;
+}
+
+static const char *returns_something(const struct module *mod, const struct node *m) {
+  return node_fun_retval(m)->typ == typ_lookup_builtin(mod, TBI_VOID) ? "" : "return";
+}
+
 static void print_deffun_builtingen(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, " {\n");
   if (node->scope->parent->node->which == DEFTYPE
@@ -709,15 +724,9 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
       struct node *ch = node->scope->parent->node->subs[n];
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
-
-        struct node *m = NULL;
-        error e = scope_lookup_ident_immediate(
-          &m, mod, ch->subs[2]->typ->definition->scope,
-          node_ident(node), FALSE);
-        assert(!e);
-
+        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
         char *nm = replace_dots(scope_name(mod, m->scope));
-        fprintf(out, "case THIS(_%s_which___label__): return %s(", nch, nm);
+        fprintf(out, "case THIS(_%s_which___label__): %s %s(", nch, returns_something(mod, m), nm);
         free(nm);
 
         for (size_t a = 0; a < node_fun_explicit_args_count(node); ++a) {
@@ -727,11 +736,132 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
           }
           fprintf(out, "%s", idents_value(mod->gctx, node_ident(arg)));
         }
-
         fprintf(out, ");\n");
       }
     }
     fprintf(out, "}\n");
+    break;
+  case BG_SUM_COPY:
+    fprintf(out, "self->which__ = other->which__;\n");
+    fprintf(out, "switch (self->which__) {\n");
+    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
+      struct node *ch = node->scope->parent->node->subs[n];
+      if (ch->which == DEFCHOICE) {
+        const char *nch = idents_value(mod->gctx, node_ident(ch));
+        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
+        char *nm = replace_dots(scope_name(mod, m->scope));
+        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
+                nch, returns_something(mod, m), nm, nch, nch);
+        free(nm);
+      }
+    }
+    fprintf(out, "}\n");
+    break;
+  case BG_SUM_EQUALITY_EQ:
+    fprintf(out, "if (self->which__ != other->which__) { return 0; }\n");
+    fprintf(out, "switch (self->which__) {\n");
+    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
+      struct node *ch = node->scope->parent->node->subs[n];
+      if (ch->which == DEFCHOICE) {
+        const char *nch = idents_value(mod->gctx, node_ident(ch));
+        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
+        char *nm = replace_dots(scope_name(mod, m->scope));
+        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
+                nch, returns_something(mod, m), nm, nch, nch);
+        free(nm);
+      }
+    }
+    fprintf(out, "}\nreturn 0;\n");
+    break;
+  case BG_SUM_EQUALITY_NE:
+    fprintf(out, "if (self->which__ != other->which__) { return 1; }\n");
+    fprintf(out, "switch (self->which__) {\n");
+    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
+      struct node *ch = node->scope->parent->node->subs[n];
+      if (ch->which == DEFCHOICE) {
+        const char *nch = idents_value(mod->gctx, node_ident(ch));
+        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
+        char *nm = replace_dots(scope_name(mod, m->scope));
+        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
+                nch, returns_something(mod, m), nm, nch, nch);
+        free(nm);
+      }
+    }
+    fprintf(out, "}\nreturn 0;\n");
+    break;
+  case BG_SUM_ORDER_LE:
+    fprintf(out, "if (self->which__ > other->which__) { return 0; }\n");
+    fprintf(out, "switch (self->which__) {\n");
+    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
+      struct node *ch = node->scope->parent->node->subs[n];
+      if (ch->which == DEFCHOICE) {
+        const char *nch = idents_value(mod->gctx, node_ident(ch));
+        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
+        char *nm = replace_dots(scope_name(mod, m->scope));
+        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
+                nch, returns_something(mod, m), nm, nch, nch);
+        free(nm);
+      }
+    }
+    fprintf(out, "}\nreturn 0;\n");
+    break;
+  case BG_SUM_ORDER_LT:
+    fprintf(out, "if (self->which__ >= other->which__) { return 0; }\n");
+    fprintf(out, "switch (self->which__) {\n");
+    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
+      struct node *ch = node->scope->parent->node->subs[n];
+      if (ch->which == DEFCHOICE) {
+        const char *nch = idents_value(mod->gctx, node_ident(ch));
+        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
+        char *nm = replace_dots(scope_name(mod, m->scope));
+        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
+                nch, returns_something(mod, m), nm, nch, nch);
+        free(nm);
+      }
+    }
+    fprintf(out, "}\n");
+    fprintf(out, "}\nreturn 0;\n");
+    break;
+  case BG_SUM_ORDER_GT:
+    fprintf(out, "if (self->which__ <= other->which__) { return 0; }\n");
+    fprintf(out, "switch (self->which__) {\n");
+    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
+      struct node *ch = node->scope->parent->node->subs[n];
+      if (ch->which == DEFCHOICE) {
+        const char *nch = idents_value(mod->gctx, node_ident(ch));
+        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
+        char *nm = replace_dots(scope_name(mod, m->scope));
+        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
+                nch, returns_something(mod, m), nm, nch, nch);
+        free(nm);
+      }
+    }
+    fprintf(out, "}\nreturn 0;\n");
+    break;
+  case BG_SUM_ORDER_GE:
+    fprintf(out, "if (self->which__ < other->which__) { return 0; }\n");
+    fprintf(out, "switch (self->which__) {\n");
+    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
+      struct node *ch = node->scope->parent->node->subs[n];
+      if (ch->which == DEFCHOICE) {
+        const char *nch = idents_value(mod->gctx, node_ident(ch));
+        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
+        char *nm = replace_dots(scope_name(mod, m->scope));
+        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
+                nch, returns_something(mod, m), nm, nch, nch);
+        free(nm);
+      }
+    }
+    fprintf(out, "}\nreturn 0;\n");
+    break;
+  case BG_TRIVIAL_COPY_OPERATOR_COPY:
+    fprintf(out, "memcpy(self, other, sizeof(*self));\n");
+    break;
+  case BG_TRIVIAL_EQUALITY_OPERATOR_EQ:
+    fprintf(out, "memcmp(self, other, sizeof(*self)) == 0;\n");
+    break;
+  case BG_TRIVIAL_EQUALITY_OPERATOR_NE:
+    fprintf(out, "memcmp(self, other, sizeof(*self)) != 0;\n");
     break;
   default:
     assert(FALSE);

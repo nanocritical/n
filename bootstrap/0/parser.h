@@ -79,10 +79,16 @@ enum builtingen {
   BG_ENUM_MATCH,
   BG_SUM_MATCH,
   BG_SUM_DISPATCH,
+  BG_SUM_COPY,
+  BG_SUM_EQUALITY_EQ,
+  BG_SUM_EQUALITY_NE,
+  BG_SUM_ORDER_LE,
+  BG_SUM_ORDER_LT,
+  BG_SUM_ORDER_GT,
+  BG_SUM_ORDER_GE,
   BG_TRIVIAL_COPY_OPERATOR_COPY,
   BG_TRIVIAL_EQUALITY_OPERATOR_EQ,
   BG_TRIVIAL_EQUALITY_OPERATOR_NE,
-  BG_TRIVIAL_ORDER,
   BG__NUM,
 };
 
@@ -94,6 +100,7 @@ struct toplevel {
   bool is_inline;
   ident scope_name;
   bool is_prototype;
+  bool is_shadowed;
   struct node *forward_declaration;
   struct node *full_definition;
   enum builtingen builtingen;
@@ -157,6 +164,7 @@ struct node_defmethod {
 };
 struct node_defintf {
   struct toplevel toplevel;
+  bool is_implied_generic;
 };
 struct node_defname {
   struct node *pattern;
@@ -329,8 +337,10 @@ enum predefined_idents {
   ID_TBI_TRIVIAL_CTOR,
   ID_TBI_TRIVIAL_DTOR,
   ID_TBI_TRIVIAL_EQUALITY,
-  ID_TBI_TRIVIAL_ORDER,
   ID_TBI_RETURN_BY_COPY,
+  ID_TBI_SUM_COPY,
+  ID_TBI_SUM_EQUALITY,
+  ID_TBI_SUM_ORDER,
   ID_TBI__PENDING_DESTRUCT,
   ID_TBI__FIRST_MARKER = ID_TBI__PENDING_DESTRUCT,
   ID_TBI__NOT_TYPEABLE,
@@ -410,8 +420,10 @@ enum typ_builtin {
   TBI_TRIVIAL_CTOR,
   TBI_TRIVIAL_DTOR,
   TBI_TRIVIAL_EQUALITY,
-  TBI_TRIVIAL_ORDER,
   TBI_RETURN_BY_COPY,
+  TBI_SUM_COPY,
+  TBI_SUM_EQUALITY,
+  TBI_SUM_ORDER,
   TBI__PENDING_DESTRUCT,
   TBI__NOT_TYPEABLE,
   TBI__NUM,
@@ -463,6 +475,7 @@ struct module {
   struct node *body;
   size_t next_gensym;
 
+  bool intf_uses_this;
   const struct node *return_node;
   struct try_excepts *trys;
   size_t trys_count;

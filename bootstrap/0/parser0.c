@@ -110,8 +110,10 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_TRIVIAL_CTOR] = "TrivialCtor",
   [ID_TBI_TRIVIAL_DTOR] = "TrivialDtor",
   [ID_TBI_TRIVIAL_EQUALITY] = "TrivialEquality",
-  [ID_TBI_TRIVIAL_ORDER] = "TrivialOrder",
   [ID_TBI_RETURN_BY_COPY] = "ReturnByCopy",
+  [ID_TBI_SUM_COPY] = "SumCopy",
+  [ID_TBI_SUM_EQUALITY] = "SumEquality",
+  [ID_TBI_SUM_ORDER] = "SumOrder",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_MK] = "mk",
@@ -150,17 +152,28 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_TRIVIAL_CTOR_CTOR] = "nlang.builtins.TrivialCtor.ctor",
   [BG_TRIVIAL_CTOR_MK] = "nlang.builtins.TrivialCtor.mk",
   [BG_TRIVIAL_CTOR_NEW] = "nlang.builtins.TrivialCtor.new",
-  [BG_ENUM_EQ] = "nlang.builtins.HasEquality.operator_eq",
-  [BG_ENUM_NE] = "nlang.builtins.HasEquality.operator_ne",
-  [BG_ENUM_MATCH] = "nlang.builtins.Matchable.operator_match",
-  [BG_SUM_MATCH] = "nlang.builtins.Matchable.operator_match",
-  [BG_SUM_DISPATCH] = NULL,
   // These should be templates of CtorWith.
   [BG_CTOR_WITH_MK] = "nlang.builtins.CtorWith.mk",
   [BG_CTOR_WITH_NEW] = "nlang.builtins.CtorWith.new",
   [BG_SUM_CTOR_WITH_CTOR] = "nlang.builtins.CtorWith.ctor",
   [BG_SUM_CTOR_WITH_MK] = "nlang.builtins.CtorWith.mk",
   [BG_SUM_CTOR_WITH_NEW] = "nlang.builtins.CtorWith.new",
+
+  [BG_ENUM_EQ] = "nlang.builtins.HasEquality.operator_eq",
+  [BG_ENUM_NE] = "nlang.builtins.HasEquality.operator_ne",
+  [BG_ENUM_MATCH] = "nlang.builtins.Matchable.operator_match",
+  [BG_SUM_MATCH] = "nlang.builtins.Matchable.operator_match",
+  [BG_SUM_DISPATCH] = NULL,
+  [BG_SUM_COPY] = "nlang.builtins.Copyable.operator_copy",
+  [BG_SUM_EQUALITY_EQ] = "nlang.builtins.HasEquality.operator_eq",
+  [BG_SUM_EQUALITY_NE] = "nlang.builtins.HasEquality.operator_ne",
+  [BG_SUM_ORDER_LE] = "nlang.builtins.Ordered.operator_le",
+  [BG_SUM_ORDER_LT] = "nlang.builtins.Ordered.operator_lt",
+  [BG_SUM_ORDER_GT] = "nlang.builtins.Ordered.operator_gt",
+  [BG_SUM_ORDER_GE] = "nlang.builtins.Ordered.operator_ge",
+  [BG_TRIVIAL_COPY_OPERATOR_COPY] = "nlang.builtins.Copyable.operator_copy",
+  [BG_TRIVIAL_EQUALITY_OPERATOR_EQ] = "nlang.builtins.HasEquality.operator_eq",
+  [BG_TRIVIAL_EQUALITY_OPERATOR_NE] = "nlang.builtins.HasEquality.operator_ne",
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
@@ -593,7 +606,9 @@ error scope_define_ident(const struct module *mod, struct scope *scope, ident id
 
   // If existing is prototype, we just replace it with full definition.
   // If not, it's an error:
-  if (existing != NULL && !node_is_prototype(*existing)) {
+  if (existing != NULL
+      && (!node_is_prototype(*existing)
+          || node->which != (*existing)->which)) {
     const struct module *existing_mod = node_module_owner_const(*existing);
     struct token existing_tok;
     existing_tok.t = TIDENT;
@@ -607,7 +622,16 @@ error scope_define_ident(const struct module *mod, struct scope *scope, ident id
     // FIXME: leaking scname.
   }
 
-  scope_map_set(scope->map, id, node);
+  if (existing != NULL) {
+    struct toplevel *toplevel = node_toplevel(*existing);
+    if (toplevel != NULL) {
+      toplevel->is_shadowed = TRUE;
+      fprintf(stderr, "shadow %s\n", scope_name(mod, node->scope));
+    }
+    *existing = node;
+  } else {
+    scope_map_set(scope->map, id, node);
+  }
   return 0;
 }
 
