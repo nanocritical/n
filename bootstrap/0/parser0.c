@@ -2596,8 +2596,8 @@ static struct typ *typ_new_builtin(struct node *definition,
     r->isalist_count = definition->typ->isalist_count;
     r->isalist = definition->typ->isalist;
   }
-  r->fun_arity = fun_arity;
-  if (fun_arity > 0) {
+  if (which == TYPE_FUNCTION) {
+    r->fun_arity = fun_arity;
     r->fun_args = calloc(fun_arity + 1, sizeof(struct typ *));
   }
 
@@ -2630,7 +2630,7 @@ struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
   return mod->gctx->builtin_typs[id];
 }
 
-bool typ_gen_match(const struct typ *a, const struct typ *b) {
+static bool typ_gen_match(const struct typ *a, const struct typ *b) {
   assert(a->gen_arity > 0 && b->gen_arity > 0);
   return a->gen_arity == b->gen_arity && a->gen_args[0] == b->gen_args[0];
 }
@@ -2664,11 +2664,12 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     }
   }
 
-  if (a->gen_arity > 0
-      && typ_gen_match(a, constraint)) {
-    for (size_t n = 0; n < a->gen_arity; ++a) {
-      typ_compatible(mod, for_error, a->gen_args[1+n], constraint->gen_args[1+n]);
+  if (a->gen_arity > 0 && typ_gen_match(a, constraint)) {
+    for (size_t n = 0; n < a->gen_arity; ++n) {
+      error e = typ_compatible(mod, for_error, a->gen_args[1+n], constraint->gen_args[1+n]);
+      EXCEPT(e);
     }
+    return 0;
   }
 
   EXCEPT_TYPE(node_module_owner_const(for_error), for_error,

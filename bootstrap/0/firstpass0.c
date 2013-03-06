@@ -906,7 +906,7 @@ static error type_inference_unary_call(struct module *mod, struct node *node, st
   switch (def->which) {
   case DEFFUN:
   case DEFMETHOD:
-    node->typ = node_fun_retval(def)->typ;
+    node->typ = def->typ->fun_args[def->typ->fun_arity];
     break;
   default:
     assert(FALSE);
@@ -1201,10 +1201,10 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
       // Form (self.method ...) rewritten as (method self ...).
       struct node *m = mk_node(mod, node, DIRECTDEF);
       m->as.DIRECTDEF.definition = fun->typ->definition;
-      append(node, m);
+      move_last_over(node, 0, TRUE);
+
       struct node *self = self_ref_if_value(
         mod, fun->typ->definition->as.DEFMETHOD.access, fun->subs[0]);
-      move_last_over(node, 0, TRUE);
       append(node, self);
       insert_last_at(node, 1);
 
@@ -1213,7 +1213,6 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
       EXCEPT(e);
       e = zero_to_first_for_generated(mod, m, NULL, node->scope);
       EXCEPT(e);
-      self->scope->parent = node->scope;
     }
     break;
   default:
@@ -1254,7 +1253,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
       e = type_destruct(mod, node->subs[n], fun->typ->fun_args[n-1]);
       EXCEPT(e);
     }
-    node->typ = node_fun_retval(fun->typ->definition)->typ;
+    node->typ = fun->typ->fun_args[fun->typ->fun_arity];
   }
 
   return 0;
@@ -1326,6 +1325,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     break;
   case NUMBER:
     e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER), constraint);
+      if(e) {assert(0);}
     EXCEPT(e);
     break;
   case STRING:
@@ -1619,12 +1619,22 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     assert(!(node->subs[0]->flags & NODE_IS_TYPE));
     goto ok;
   case DEFFUN:
-  case DEFMETHOD:
     node->typ = typ_new(node, TYPE_FUNCTION, 0,
                         node_fun_explicit_args_count(node));
     for (size_t n = 0; n < node->typ->fun_arity; ++n) {
       node->typ->fun_args[n] = node->subs[n + 1]->typ;
     }
+    node->typ->fun_args[node->typ->fun_arity] = node_fun_retval(node)->typ;
+    node->flags |= NODE_IS_TYPE;
+    module_return_set(mod, NULL);
+    goto ok;
+  case DEFMETHOD:
+    node->typ = typ_new(node, TYPE_FUNCTION, 0,
+                        1 + node_fun_explicit_args_count(node));
+    for (size_t n = 0; n < node->typ->fun_arity; ++n) {
+      node->typ->fun_args[n] = node->subs[n + 1]->typ;
+    }
+    node->typ->fun_args[node->typ->fun_arity] = node_fun_retval(node)->typ;
     node->flags |= NODE_IS_TYPE;
     module_return_set(mod, NULL);
     goto ok;
