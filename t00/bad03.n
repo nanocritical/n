@@ -1,2 +1,4 @@
+from nlang import *
+
 fun foobar x = void
   return

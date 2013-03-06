@@ -899,7 +899,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
 
 static error type_inference_unary_call(struct module *mod, struct node *node, struct node *def) {
   if (node_fun_explicit_args_count(def) != 0) {
-    error e = mk_except_call_arg_count(mod, node, def, 0);
+    error e = mk_except_call_arg_count(mod, node, def, 0, 0);
     EXCEPT(e);
   }
 
@@ -1187,18 +1187,31 @@ static struct node *self_ref_if_value(struct module *mod,
 static error prepare_call_arguments(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
 
-  if (node_fun_explicit_args_count(fun->typ->definition) != node->subs_count - 1) {
-    error e = mk_except_call_arg_count(mod, node, fun->typ->definition,
-                                       node->subs_count - 1);
-    EXCEPT(e);
-  }
 
   switch (fun->typ->definition->which) {
   case DEFFUN:
+    if (node_fun_explicit_args_count(fun->typ->definition) != node->subs_count - 1) {
+      error e = mk_except_call_arg_count(mod, node, fun->typ->definition, 0,
+                                         node->subs_count - 1);
+      EXCEPT(e);
+    }
     break;
   case DEFMETHOD:
-    if (!(fun->subs[0]->flags & NODE_IS_TYPE)) {
-      // Form (self.method ...) rewritten as (method self ...).
+    if ((fun->subs[0]->flags & NODE_IS_TYPE)) {
+      // Form (type.method self ...).
+      if (1 + node_fun_explicit_args_count(fun->typ->definition) != node->subs_count - 1) {
+        error e = mk_except_call_arg_count(mod, node, fun->typ->definition, 1,
+                                           node->subs_count - 1);
+        EXCEPT(e);
+      }
+    } else {
+      // Form (self.method ...) rewritten as (type.method self ...).
+      if (node_fun_explicit_args_count(fun->typ->definition) != node->subs_count - 1) {
+        error e = mk_except_call_arg_count(mod, node, fun->typ->definition, 0,
+                                           node->subs_count - 1);
+        EXCEPT(e);
+      }
+
       struct node *m = mk_node(mod, node, DIRECTDEF);
       m->as.DIRECTDEF.definition = fun->typ->definition;
       move_last_over(node, 0, TRUE);
@@ -1325,7 +1338,6 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     break;
   case NUMBER:
     e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER), constraint);
-      if(e) {assert(0);}
     EXCEPT(e);
     break;
   case STRING:

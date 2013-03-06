@@ -1,0 +1,21 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+struct t00_init_t;
+typedef struct t00_init_t t00_init_t;
+struct t00_init_t {
+nlang_builtins_i32 x;
+}
+;
+typedef const t00_init_t* _ngen_nlang_builtins_ref__t00_init_t;
+typedef _ngen_nlang_builtins_ref__t00_init_t _ngen_nlang_builtins_nref__t00_init_t;
+typedef t00_init_t* _ngen_nlang_builtins_mref__t00_init_t;
+typedef _ngen_nlang_builtins_mref__t00_init_t _ngen_nlang_builtins_mmref__t00_init_t;
+typedef _ngen_nlang_builtins_mref__t00_init_t _ngen_nlang_builtins_nmref__t00_init_t;
+typedef _ngen_nlang_builtins_mref__t00_init_t _ngen_nlang_builtins_nmmref__t00_init_t;
+
+nlang_builtins_i32 main(void){
+ {
+t00_init_t tt = (t00_init_t){ .x = (nlang_builtins_i32)1,};
+return tt.x - (nlang_builtins_i32)1;
+}
+}

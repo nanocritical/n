@@ -1,0 +1,38 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+struct t00_method_t;
+typedef struct t00_method_t t00_method_t;
+struct t00_method_t {
+nlang_builtins_i32 x;
+}
+;
+typedef const t00_method_t* _ngen_nlang_builtins_ref__t00_method_t;
+typedef _ngen_nlang_builtins_ref__t00_method_t _ngen_nlang_builtins_nref__t00_method_t;
+typedef t00_method_t* _ngen_nlang_builtins_mref__t00_method_t;
+typedef _ngen_nlang_builtins_mref__t00_method_t _ngen_nlang_builtins_mmref__t00_method_t;
+typedef _ngen_nlang_builtins_mref__t00_method_t _ngen_nlang_builtins_nmref__t00_method_t;
+typedef _ngen_nlang_builtins_mref__t00_method_t _ngen_nlang_builtins_nmmref__t00_method_t;
+
+nlang_builtins_i32 t00_method_t_get(_ngen_nlang_builtins_ref__t00_method_t self){
+#define THIS(x) t00_method_t##x
+ {
+return self->x;
+}
+#undef THIS
+}
+
+nlang_builtins_void t00_method_t_set(_ngen_nlang_builtins_mref__t00_method_t self, nlang_builtins_i32 x){
+#define THIS(x) t00_method_t##x
+ {
+self->x = x;
+}
+#undef THIS
+}
+
+nlang_builtins_i32 main(void){
+ {
+t00_method_t tt = (t00_method_t){ .x = (nlang_builtins_i32)0,};
+t00_method_t_set(&tt, (nlang_builtins_i32)1);
+return t00_method_t_get(&tt) - (nlang_builtins_i32)1;
+}
+}

@@ -1,0 +1,9 @@
+t00/return.n.c.out: In function ‘t00_return_foo’:
+t00/return.n.c.out:25:1: warning: ISO C forbids nested functions [-pedantic]
+t00/return.n.c.out: In function ‘t00_return_chained’:
+t00/return.n.c.out:33:1: warning: ISO C forbids nested functions [-pedantic]
+t00/return.n.c.out:33:20: warning: ‘main’ is normally a non-static function [-Wmain]
+t00/return.n.c.out:37:1: error: expected declaration or statement at end of input
+t00/return.n.c.out: In function ‘t00_return_foo’:
+t00/return.n.c.out:37:1: error: expected declaration or statement at end of input
+command exited with 1: gcc -Wall -std=c99 -pedantic -I. -xc t00/return.n.c.out -c -o t00/return.n.o

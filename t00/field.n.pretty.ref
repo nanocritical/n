@@ -1,0 +1,8 @@
+from nlang import *
+type t = WorkaroundRBC
+  let this = t
+  x:i32
+
+export fun main = i32
+  let tt:t
+  return tt.x

@@ -1,0 +1,2 @@
+t00.match.enu
+ncc0: firstpass0.c:2217: step_rewrite_def_return_through_ref: Assertion `0 && "Return through ref unsupported"' failed.

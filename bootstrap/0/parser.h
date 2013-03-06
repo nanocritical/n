@@ -521,7 +521,6 @@ char *scope_definitions_name_list(const struct module *mod, const struct scope *
 void copy_and_extend_import_path(struct module *mod, struct node *imported,
                                  const struct node *import, const struct token *tok);
 
-const struct module *node_module_owner_const(const struct node *node);
 struct module *node_module_owner(struct node *node);
 struct node *node_toplevel_owner(struct node *node);
 struct node *node_statement_owner(struct node *node);
@@ -560,7 +559,7 @@ error typ_check_isa(const struct module *mod, const struct node *for_error,
 error mk_except(const struct module *mod, const struct node *node, const char *fmt);
 error mk_except_type(const struct module *mod, const struct node *node, const char *fmt);
 error mk_except_call_arg_count(const struct module *mod, const struct node *node,
-                               const struct node *definition, size_t given);
+                               const struct node *definition, size_t extra, size_t given);
 char *typ_name(const struct module *mod, const struct typ *t);
 bool typ_is_builtin(const struct module *mod, const struct typ *t);
 

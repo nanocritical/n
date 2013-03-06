@@ -1,0 +1,417 @@
+MODULE_BODY
+ IMPORT :nlang
+  IDENT(nlang)
+ DEFTYPE :t00.sum.sum
+  IDENT(sum)
+  ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.SumCopy
+    IDENT(SumCopy) :nlang.builtins.SumCopy
+   ISA :nlang.builtins.SumEquality
+    IDENT(SumEquality) :nlang.builtins.SumEquality
+   ISA :nlang.builtins.WorkaroundRBC
+    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
+   ISA :nlang.builtins.DefaultCtor
+    BIN(.) :nlang.builtins.DefaultCtor
+     BIN(.) :nlang.builtins
+      BIN(.) :nlang
+       DIRECTDEF :<root>
+       IDENT(nlang)
+      IDENT(builtins)
+     IDENT(DefaultCtor)
+  LET :nlang.builtins.void
+   DEFPATTERN :t00.sum.sum
+    IDENT(this) :t00.sum.sum
+    IDENT(sum) :t00.sum.sum
+    DEFNAME(this) :t00.sum.sum
+  DEFCHOICE :t00.sum.sum
+   IDENT(A)
+   NUMBER(0) :nlang.builtins.u32
+   IDENT(u32) :nlang.builtins.u32
+   DEFMETHOD :t00.sum.sum.A.ctor
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(ctor)
+    DEFARG :nlang.builtins.mmref
+     IDENT(self) :nlang.builtins.mmref
+     UN(@#) :nlang.builtins.mmref
+      IDENT(this) :t00.sum.sum
+    DEFARG :nlang.builtins.u32
+     IDENT(c) :nlang.builtins.u32
+     DIRECTDEF :nlang.builtins.u32
+    IDENT(void) :nlang.builtins.void
+   DEFFUN :t00.sum.sum.A.mk
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(mk)
+    DEFARG :nlang.builtins.u32
+     IDENT(c) :nlang.builtins.u32
+     DIRECTDEF :nlang.builtins.u32
+    IDENT(this) :t00.sum.sum
+   DEFFUN :t00.sum.sum.A.new
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(new)
+    DEFARG :nlang.builtins.u32
+     IDENT(c) :nlang.builtins.u32
+     DIRECTDEF :nlang.builtins.u32
+    UN(@#) :nlang.builtins.mmref
+     IDENT(this) :t00.sum.sum
+  DEFCHOICE :t00.sum.sum
+   IDENT(B)
+   BIN( + ) :nlang.builtins.u32
+    NUMBER(0) :nlang.builtins.u32
+    NUMBER(1) :nlang.builtins.u32
+   IDENT(i32) :nlang.builtins.i32
+   DEFMETHOD :t00.sum.sum.B.ctor
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(ctor)
+    DEFARG :nlang.builtins.mmref
+     IDENT(self) :nlang.builtins.mmref
+     UN(@#) :nlang.builtins.mmref
+      IDENT(this) :t00.sum.sum
+    DEFARG :nlang.builtins.i32
+     IDENT(c) :nlang.builtins.i32
+     DIRECTDEF :nlang.builtins.i32
+    IDENT(void) :nlang.builtins.void
+   DEFFUN :t00.sum.sum.B.mk
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(mk)
+    DEFARG :nlang.builtins.i32
+     IDENT(c) :nlang.builtins.i32
+     DIRECTDEF :nlang.builtins.i32
+    IDENT(this) :t00.sum.sum
+   DEFFUN :t00.sum.sum.B.new
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(new)
+    DEFARG :nlang.builtins.i32
+     IDENT(c) :nlang.builtins.i32
+     DIRECTDEF :nlang.builtins.i32
+    UN(@#) :nlang.builtins.mmref
+     IDENT(this) :t00.sum.sum
+ DEFMETHOD :t00.sum.sum.operator_ne
+  BIN(.)
+   BIN(.)
+    BIN(.)
+     BIN(.)
+      DIRECTDEF
+      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(HasEquality)
+   IDENT(operator_ne)
+  DEFARG :nlang.builtins.ref
+   IDENT(self) :nlang.builtins.ref
+   UN(@) :nlang.builtins.ref
+    IDENT(this) :t00.sum.sum
+  DEFARG :nlang.builtins.ref
+   IDENT(other) :nlang.builtins.ref
+   UN(@) :nlang.builtins.ref
+    IDENT(this) :t00.sum.sum
+  IDENT(bool) :nlang.builtins.bool
+ DEFMETHOD :t00.sum.sum.operator_eq
+  BIN(.)
+   BIN(.)
+    BIN(.)
+     BIN(.)
+      DIRECTDEF
+      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(HasEquality)
+   IDENT(operator_eq)
+  DEFARG :nlang.builtins.ref
+   IDENT(self) :nlang.builtins.ref
+   UN(@) :nlang.builtins.ref
+    IDENT(this) :t00.sum.sum
+  DEFARG :nlang.builtins.ref
+   IDENT(other) :nlang.builtins.ref
+   UN(@) :nlang.builtins.ref
+    IDENT(this) :t00.sum.sum
+  IDENT(bool) :nlang.builtins.bool
+ DEFMETHOD :t00.sum.sum.operator_copy
+  BIN(.)
+   BIN(.)
+    BIN(.)
+     BIN(.)
+      DIRECTDEF
+      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(Copyable)
+   IDENT(operator_copy)
+  DEFARG :nlang.builtins.mmref
+   IDENT(self) :nlang.builtins.mmref
+   UN(@#) :nlang.builtins.mmref
+    IDENT(this) :t00.sum.sum
+  DEFARG :nlang.builtins.ref
+   IDENT(other) :nlang.builtins.ref
+   UN(@) :nlang.builtins.ref
+    IDENT(this) :t00.sum.sum
+  IDENT(void) :nlang.builtins.void
+ DEFTYPE :t00.sum.ta
+  IDENT(ta)
+  ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.TrivialCopy
+    IDENT(TrivialCopy) :nlang.builtins.TrivialCopy
+   ISA :nlang.builtins.WorkaroundRBC
+    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
+  LET :nlang.builtins.void
+   DEFPATTERN :t00.sum.ta
+    IDENT(this) :t00.sum.ta
+    IDENT(ta) :t00.sum.ta
+    DEFNAME(this) :t00.sum.ta
+  DEFFIELD :nlang.builtins.u32
+   IDENT(x)
+   IDENT(u32) :nlang.builtins.u32
+ DEFMETHOD :t00.sum.ta.operator_copy
+  BIN(.)
+   BIN(.)
+    BIN(.)
+     BIN(.)
+      DIRECTDEF
+      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(Copyable)
+   IDENT(operator_copy)
+  DEFARG :nlang.builtins.mmref
+   IDENT(self) :nlang.builtins.mmref
+   UN(@#) :nlang.builtins.mmref
+    IDENT(this) :t00.sum.ta
+  DEFARG :nlang.builtins.ref
+   IDENT(other) :nlang.builtins.ref
+   UN(@) :nlang.builtins.ref
+    IDENT(this) :t00.sum.ta
+  IDENT(void) :nlang.builtins.void
+ DEFTYPE :t00.sum.tb
+  IDENT(tb)
+  ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.TrivialCopy
+    IDENT(TrivialCopy) :nlang.builtins.TrivialCopy
+   ISA :nlang.builtins.WorkaroundRBC
+    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
+  LET :nlang.builtins.void
+   DEFPATTERN :t00.sum.tb
+    IDENT(this) :t00.sum.tb
+    IDENT(tb) :t00.sum.tb
+    DEFNAME(this) :t00.sum.tb
+  DEFFIELD :nlang.builtins.i32
+   IDENT(y)
+   IDENT(i32) :nlang.builtins.i32
+ DEFMETHOD :t00.sum.tb.operator_copy
+  BIN(.)
+   BIN(.)
+    BIN(.)
+     BIN(.)
+      DIRECTDEF
+      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(Copyable)
+   IDENT(operator_copy)
+  DEFARG :nlang.builtins.mmref
+   IDENT(self) :nlang.builtins.mmref
+   UN(@#) :nlang.builtins.mmref
+    IDENT(this) :t00.sum.tb
+  DEFARG :nlang.builtins.ref
+   IDENT(other) :nlang.builtins.ref
+   UN(@) :nlang.builtins.ref
+    IDENT(this) :t00.sum.tb
+  IDENT(void) :nlang.builtins.void
+ DEFTYPE :t00.sum.sum_nocopy
+  IDENT(sum_nocopy)
+  ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.WorkaroundRBC
+    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
+   ISA :nlang.builtins.DefaultCtor
+    BIN(.) :nlang.builtins.DefaultCtor
+     BIN(.) :nlang.builtins
+      BIN(.) :nlang
+       DIRECTDEF :<root>
+       IDENT(nlang)
+      IDENT(builtins)
+     IDENT(DefaultCtor)
+  LET :nlang.builtins.void
+   DEFPATTERN :t00.sum.sum_nocopy
+    IDENT(this) :t00.sum.sum_nocopy
+    IDENT(sum_nocopy) :t00.sum.sum_nocopy
+    DEFNAME(this) :t00.sum.sum_nocopy
+  DEFCHOICE :t00.sum.sum_nocopy
+   IDENT(A)
+   NUMBER(0) :nlang.builtins.u32
+   IDENT(ta) :t00.sum.ta
+   DEFMETHOD :t00.sum.sum_nocopy.A.ctor
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(ctor)
+    DEFARG :nlang.builtins.mmref
+     IDENT(self) :nlang.builtins.mmref
+     UN(@#) :nlang.builtins.mmref
+      IDENT(this) :t00.sum.sum_nocopy
+    DEFARG :t00.sum.ta
+     IDENT(c) :t00.sum.ta
+     DIRECTDEF :t00.sum.ta
+    IDENT(void) :nlang.builtins.void
+   DEFFUN :t00.sum.sum_nocopy.A.mk
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(mk)
+    DEFARG :t00.sum.ta
+     IDENT(c) :t00.sum.ta
+     DIRECTDEF :t00.sum.ta
+    IDENT(this) :t00.sum.sum_nocopy
+   DEFFUN :t00.sum.sum_nocopy.A.new
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(new)
+    DEFARG :t00.sum.ta
+     IDENT(c) :t00.sum.ta
+     DIRECTDEF :t00.sum.ta
+    UN(@#) :nlang.builtins.mmref
+     IDENT(this) :t00.sum.sum_nocopy
+  DEFCHOICE :t00.sum.sum_nocopy
+   IDENT(B)
+   BIN( + ) :nlang.builtins.u32
+    NUMBER(0) :nlang.builtins.u32
+    NUMBER(1) :nlang.builtins.u32
+   IDENT(tb) :t00.sum.tb
+   DEFMETHOD :t00.sum.sum_nocopy.B.ctor
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(ctor)
+    DEFARG :nlang.builtins.mmref
+     IDENT(self) :nlang.builtins.mmref
+     UN(@#) :nlang.builtins.mmref
+      IDENT(this) :t00.sum.sum_nocopy
+    DEFARG :t00.sum.tb
+     IDENT(c) :t00.sum.tb
+     DIRECTDEF :t00.sum.tb
+    IDENT(void) :nlang.builtins.void
+   DEFFUN :t00.sum.sum_nocopy.B.mk
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(mk)
+    DEFARG :t00.sum.tb
+     IDENT(c) :t00.sum.tb
+     DIRECTDEF :t00.sum.tb
+    IDENT(this) :t00.sum.sum_nocopy
+   DEFFUN :t00.sum.sum_nocopy.B.new
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(CtorWith)
+     IDENT(new)
+    DEFARG :t00.sum.tb
+     IDENT(c) :t00.sum.tb
+     DIRECTDEF :t00.sum.tb
+    UN(@#) :nlang.builtins.mmref
+     IDENT(this) :t00.sum.sum_nocopy
+ DEFFUN :t00.sum.main
+  IDENT(main)
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :t00.sum.sum
+     IDENT(n) :t00.sum.sum
+     CALL :t00.sum.sum
+      BIN(.) :t00.sum.sum.A.mk
+       BIN(.) :t00.sum.sum
+        IDENT(sum) :t00.sum.sum
+        IDENT(A)
+       IDENT(mk)
+      NUMBER(0) :nlang.builtins.u32
+     DEFNAME(n) :t00.sum.sum
+   LET :nlang.builtins.void
+    DEFPATTERN :t00.sum.sum
+     IDENT(__gensym0) :t00.sum.sum
+     CALL :t00.sum.sum
+      BIN(.) :t00.sum.sum.A.mk
+       BIN(.) :t00.sum.sum
+        IDENT(sum) :t00.sum.sum
+        IDENT(A)
+       IDENT(mk)
+      NUMBER(0) :nlang.builtins.u32
+     DEFNAME(__gensym0) :t00.sum.sum
+   IF :nlang.builtins.void
+    CALL :nlang.builtins.bool
+     BIN(.) :t00.sum.sum.operator_eq
+      DIRECTDEF :t00.sum.sum
+      IDENT(operator_eq)
+     UN(@) :nlang.builtins.ref
+      IDENT(n) :t00.sum.sum
+     UN(@) :nlang.builtins.ref
+      IDENT(__gensym0) :t00.sum.sum
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(0) :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(1) :nlang.builtins.i32

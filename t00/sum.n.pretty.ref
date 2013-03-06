@@ -1,0 +1,36 @@
+from nlang import *
+type sum = SumCopy SumEquality WorkaroundRBC <root>.nlang.builtins.DefaultCtor
+  let this = sum
+  | A
+  | B
+
+sum method <root>.nlang.builtins.HasEquality.operator_ne self:@this = bool
+
+sum method <root>.nlang.builtins.HasEquality.operator_eq self:@this = bool
+
+sum method <root>.nlang.builtins.Copyable.operator_copy self:@#this = void
+
+type ta = TrivialCopy WorkaroundRBC
+  let this = ta
+  x:u32
+
+ta method <root>.nlang.builtins.Copyable.operator_copy self:@#this = void
+
+type tb = TrivialCopy WorkaroundRBC
+  let this = tb
+  y:i32
+
+tb method <root>.nlang.builtins.Copyable.operator_copy self:@#this = void
+
+type sum_nocopy = WorkaroundRBC <root>.nlang.builtins.DefaultCtor
+  let this = sum_nocopy
+  | A
+  | B
+
+export fun main = i32
+  let n = sum.A.mk 0
+  let __gensym0 = sum.A.mk 0
+  if t00.sum.sum.operator_eq @n @__gensym0
+    return 0
+  else
+    return 1

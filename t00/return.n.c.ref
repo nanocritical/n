@@ -1,0 +1,37 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+struct t00_return_nocopy;
+typedef struct t00_return_nocopy t00_return_nocopy;
+struct t00_return_nocopy {
+nlang_builtins_i32 x;
+}
+;
+typedef const t00_return_nocopy* _ngen_nlang_builtins_ref__t00_return_nocopy;
+typedef _ngen_nlang_builtins_ref__t00_return_nocopy _ngen_nlang_builtins_nref__t00_return_nocopy;
+typedef t00_return_nocopy* _ngen_nlang_builtins_mref__t00_return_nocopy;
+typedef _ngen_nlang_builtins_mref__t00_return_nocopy _ngen_nlang_builtins_mmref__t00_return_nocopy;
+typedef _ngen_nlang_builtins_mref__t00_return_nocopy _ngen_nlang_builtins_nmref__t00_return_nocopy;
+typedef _ngen_nlang_builtins_mref__t00_return_nocopy _ngen_nlang_builtins_nmmref__t00_return_nocopy;
+
+t00_return_nocopy t00_return_foo(nlang_builtins_i32 x){
+{
+__attribute__((__unused__))t00_return_nocopy n;
+ {
+n.x = x;
+return n;
+}
+}
+
+t00_return_nocopy t00_return_chained(nlang_builtins_i32 x){
+{
+__attribute__((__unused__))t00_return_nocopy n;
+ {
+return t00_return_foo(x);
+}
+}
+
+nlang_builtins_i32 main(void){
+ {
+return t00_return_chained((nlang_builtins_i32)1).x - (nlang_builtins_i32)1;
+}
+}

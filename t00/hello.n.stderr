@@ -1,1 +1,0 @@
-t00/hello.n:1:1: parse: in scope hello.main.<anonymous>.<anonymous>.say: unknown identifier 'say'

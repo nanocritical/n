@@ -1,0 +1,15 @@
+from nlang import *
+type t = WorkaroundRBC
+  let this = t
+  x:i32
+
+t method get = i32
+  return self.x
+
+t method set self:@!this = void
+  self!x = x
+
+export fun main = i32
+  let tt = t{{ x=0 }}
+  t00.method.t.set @!tt 1
+  return (t00.method.t.get @tt) - 1

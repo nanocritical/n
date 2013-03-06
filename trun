@@ -28,11 +28,11 @@ for t in $list; do
 	if [ -s $t.stderr.out ]; then
 		perl -i -ne 'if (!m/^\tE: /) { print; }' $t.stderr.out
 	fi
-	for all in stderr tree pretty; do
+	for all in stderr tree pretty c; do
 		if [ -f $t.$all ] || [ -f $t.$all.out ]; then
-			if ! cmp -s $t.$all $t.$all.out; then
+			if ! cmp -s $t.$all.ref $t.$all.out; then
 				echo "FAILED $t: different output '$all'"
-				diff -Nu $t.$all $t.$all.out
+				diff -Nu $t.$all.ref $t.$all.out
 			fi
 		fi
 	done

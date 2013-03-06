@@ -1,3 +1,5 @@
+from nlang import *
+
 fun foobar = void
   return
 fun foobar = void

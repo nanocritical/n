@@ -1,0 +1,57 @@
+MODULE_BODY
+ IMPORT :nlang
+  IDENT(nlang)
+ DEFTYPE :t00.return.nocopy
+  IDENT(nocopy)
+  ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.ReturnByCopy
+    IDENT(ReturnByCopy) :nlang.builtins.ReturnByCopy
+  LET :nlang.builtins.void
+   DEFPATTERN :t00.return.nocopy
+    IDENT(this) :t00.return.nocopy
+    IDENT(nocopy) :t00.return.nocopy
+    DEFNAME(this) :t00.return.nocopy
+  DEFFIELD :nlang.builtins.i32
+   IDENT(x)
+   IDENT(i32) :nlang.builtins.i32
+ DEFFUN :t00.return.foo
+  IDENT(foo)
+  DEFARG :nlang.builtins.i32
+   IDENT(x) :nlang.builtins.i32
+   IDENT(i32) :nlang.builtins.i32
+  DEFARG :t00.return.nocopy
+   IDENT(n) :t00.return.nocopy
+   IDENT(nocopy) :t00.return.nocopy
+  BLOCK :nlang.builtins.void
+   BIN( = ) :nlang.builtins.i32
+    BIN(!) :nlang.builtins.i32
+     IDENT(n) :t00.return.nocopy
+     IDENT(x)
+    IDENT(x) :nlang.builtins.i32
+   RETURN :t00.return.nocopy
+    IDENT(n) :t00.return.nocopy
+ DEFFUN :t00.return.chained
+  IDENT(chained)
+  DEFARG :nlang.builtins.i32
+   IDENT(x) :nlang.builtins.i32
+   IDENT(i32) :nlang.builtins.i32
+  DEFARG :t00.return.nocopy
+   IDENT(n) :t00.return.nocopy
+   IDENT(nocopy) :t00.return.nocopy
+  BLOCK :nlang.builtins.void
+   RETURN :t00.return.nocopy
+    CALL :t00.return.nocopy
+     IDENT(foo) :t00.return.foo
+     IDENT(x) :nlang.builtins.i32
+ DEFFUN :t00.return.main
+  IDENT(main)
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   RETURN :nlang.builtins.i32
+    BIN( - ) :nlang.builtins.i32
+     BIN(.) :nlang.builtins.i32
+      CALL :t00.return.nocopy
+       IDENT(chained) :t00.return.chained
+       NUMBER(1) :nlang.builtins.i32
+      IDENT(x)
+     NUMBER(1) :nlang.builtins.i32

@@ -1,0 +1,45 @@
+MODULE_BODY
+ IMPORT :nlang
+  IDENT(nlang)
+ DEFTYPE :t00.unary.t
+  IDENT(t)
+  ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.WorkaroundRBC
+    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
+  LET :nlang.builtins.void
+   DEFPATTERN :t00.unary.t
+    IDENT(this) :t00.unary.t
+    IDENT(t) :t00.unary.t
+    DEFNAME(this) :t00.unary.t
+  DEFFIELD :nlang.builtins.i32
+   IDENT(x)
+   IDENT(i32) :nlang.builtins.i32
+ DEFMETHOD :t00.unary.t.get
+  IDENT(get)
+  DEFARG :nlang.builtins.ref
+   IDENT(self) :nlang.builtins.ref
+   UN(@) :nlang.builtins.ref
+    IDENT(this) :t00.unary.t
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   RETURN :nlang.builtins.i32
+    BIN(.) :nlang.builtins.i32
+     IDENT(self) :nlang.builtins.ref
+     IDENT(x)
+ DEFFUN :t00.unary.main
+  IDENT(main)
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :t00.unary.t
+     IDENT(tt) :t00.unary.t
+     INIT :t00.unary.t
+      IDENT(t) :t00.unary.t
+      IDENT(x)
+      NUMBER(0) :nlang.builtins.i32
+     DEFNAME(tt) :t00.unary.t
+   RETURN :nlang.builtins.i32
+    CALL :nlang.builtins.i32
+     DIRECTDEF :t00.unary.t.get
+     UN(@) :nlang.builtins.ref
+      IDENT(tt) :t00.unary.t

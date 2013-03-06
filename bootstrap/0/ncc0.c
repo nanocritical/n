@@ -303,8 +303,7 @@ static error gather_dependencies_in_module(struct node *node, void *user, bool *
   struct dependencies *deps = user;
 
   struct node *nmod = NULL;
-  error e = scope_lookup_module(&nmod, node_module_owner(node),
-                                node->subs[0]);
+  error e = scope_lookup_module(&nmod, node_module_owner(node), node->subs[0]);
   if (e == EINVAL) {
     // Not importing a module, ignore.
     return 0;

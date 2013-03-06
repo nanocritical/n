@@ -1,0 +1,30 @@
+MODULE_BODY
+ IMPORT :nlang
+  IDENT(nlang)
+ DEFTYPE :t00.field.t
+  IDENT(t)
+  ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.WorkaroundRBC
+    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
+  LET :nlang.builtins.void
+   DEFPATTERN :t00.field.t
+    IDENT(this) :t00.field.t
+    IDENT(t) :t00.field.t
+    DEFNAME(this) :t00.field.t
+  DEFFIELD :nlang.builtins.i32
+   IDENT(x)
+   IDENT(i32) :nlang.builtins.i32
+ DEFFUN :t00.field.main
+  IDENT(main)
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :t00.field.t
+     TYPECONSTRAINT :t00.field.t
+      IDENT(tt) :t00.field.t
+      IDENT(t) :t00.field.t
+     DEFNAME(tt) :t00.field.t
+   RETURN :nlang.builtins.i32
+    BIN(.) :nlang.builtins.i32
+     IDENT(tt) :t00.field.t
+     IDENT(x)

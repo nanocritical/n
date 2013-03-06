@@ -1,3 +1,5 @@
+from nlang import *
+
 type t =
   | B = 2 -> i32
   | A -> string

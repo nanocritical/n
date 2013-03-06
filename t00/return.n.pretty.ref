@@ -1,0 +1,14 @@
+from nlang import *
+type nocopy = ReturnByCopy
+  let this = nocopy
+  x:i32
+
+fun foo x:i32 = n:nocopy
+  n!x = x
+  return n
+
+fun chained x:i32 = n:nocopy
+  return foo x
+
+export fun main = i32
+  return (chained 1).x - 1

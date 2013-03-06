@@ -1,0 +1,9 @@
+MODULE_BODY
+ IMPORT :nlang
+  IDENT(nlang)
+ DEFFUN :t00.main.main
+  IDENT(main)
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   RETURN :nlang.builtins.i32
+    NUMBER(0) :nlang.builtins.i32

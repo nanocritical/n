@@ -1,2 +1,4 @@
+from nlang import *
+
 fun foobar x:i32 x:u32 = u64
   return 0
