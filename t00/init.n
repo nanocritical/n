@@ -1,0 +1,8 @@
+from nlang import *
+
+type t = WorkaroundRBC
+  x:i32
+
+export fun main = i32
+  let tt = t{{ x=1 }}
+  return tt.x - 1

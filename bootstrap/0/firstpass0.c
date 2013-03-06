@@ -1011,6 +1011,14 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
 
 static error type_inference_call(struct module *mod, struct node *node);
 
+static error bin_accessor_maybe_ref(struct scope **parent_scope,
+                                    struct module *mod, struct node *parent) {
+  if (typ_is_reference_instance(mod, parent->typ)) {
+    *parent_scope = parent->typ->gen_args[1]->definition->scope;
+  }
+  return 0;
+}
+
 static error bin_accessor_maybe_defchoice(struct scope **parent_scope,
                                           struct module *mod, struct node *parent) {
   if (parent->flags & NODE_IS_DEFCHOICE) {
@@ -1031,12 +1039,13 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   error e;
   struct node *parent = node->subs[0];
   struct scope *parent_scope = parent->typ->definition->scope;
+  e = bin_accessor_maybe_ref(&parent_scope, mod, parent);
+  EXCEPT(e);
   e = bin_accessor_maybe_defchoice(&parent_scope, mod, parent);
   EXCEPT(e);
 
   struct node *field = NULL;
   e = scope_lookup_ident_immediate(&field, mod, parent_scope, node_ident(node->subs[1]), FALSE);
-  assert(!e);
   EXCEPT(e);
 
   if (field->typ->which == TYPE_FUNCTION && node_fun_explicit_args_count(field) == 0) {
@@ -1254,11 +1263,6 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       && node->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
       && typ_is_concrete(mod, node->typ)) {
 
-    for (size_t n = 0; n < node->subs_count; ++n) {
-      assert(node->subs[n]->typ != NULL
-             && node->subs[n]->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT));
-    }
-
     e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
     return 0;
@@ -1299,8 +1303,10 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       e = typ_unify(&node->typ, mod, node, node->typ, constraint);
       EXCEPT(e);
     }
-    e = type_destruct(mod, node->as.DEFNAME.expr, node->typ);
-    EXCEPT(e);
+    if (node->as.DEFNAME.expr != NULL) {
+      e = type_destruct(mod, node->as.DEFNAME.expr, node->typ);
+      EXCEPT(e);
+    }
     break;
   case UN:
     switch (OP_KIND(node->as.UN.operator)) {

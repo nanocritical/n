@@ -1560,6 +1560,7 @@ static error p_let(struct node *node, struct module *mod, const struct toplevel 
   }
 
   error e = p_defpattern(node_new_subnode(mod, node), mod);
+  EXCEPT(e);
 
   struct token tok;
   e = scan(&tok, mod);

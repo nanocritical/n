@@ -243,17 +243,17 @@ static void print_call(FILE *out, bool header, const struct module *mod, const s
 }
 
 static void print_init(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  print_expr(out, header, mod, node->subs[0], T__STATEMENT);
-  fprintf(out, "{{ ");
+  fprintf(out, "(");
+  print_typ(out, mod, node->typ);
+  fprintf(out, "){ ");
 
   for (size_t n = 1; n < node->subs_count; n += 2) {
-    print_expr(out, header, mod, node->subs[n], T__STATEMENT);
-    fprintf(out, "=");
-    print_expr(out, header, mod, node->subs[n + 1], T__CALL);
-    fprintf(out, " ");
+    fprintf(out, ".%s = ", idents_value(mod->gctx, node_ident(node->subs[n])));
+    print_expr(out, header, mod, node->subs[n + 1], T__NOT_STATEMENT);
+    fprintf(out, ",");
   }
 
-  fprintf(out, "}}");
+  fprintf(out, "}");
 }
 
 static error is_local_name(bool *is_local, const struct module *mod, const struct node *node) {
