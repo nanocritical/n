@@ -626,7 +626,6 @@ error scope_define_ident(const struct module *mod, struct scope *scope, ident id
     struct toplevel *toplevel = node_toplevel(*existing);
     if (toplevel != NULL) {
       toplevel->is_shadowed = TRUE;
-      fprintf(stderr, "shadow %s\n", scope_name(mod, node->scope));
     }
     *existing = node;
   } else {
@@ -1125,11 +1124,22 @@ struct node *node_new_subnode(const struct module *mod, struct node *node) {
 }
 
 size_t node_fun_explicit_args_count(const struct node *def) {
-  assert(def->which == DEFFUN || def->which == DEFMETHOD);
+  size_t minus = 0;
+  switch(def->which) {
+  case DEFFUN:
+    break;
+  case DEFMETHOD:
+    minus = 1;
+    break;
+  default:
+    assert(FALSE);
+    return -1;
+  }
+
   if (def->subs[def->subs_count-1]->which == BLOCK) {
-    return def->subs_count-3;
+    return def->subs_count - 3 - minus;
   } else {
-    return def->subs_count-2;
+    return def->subs_count - 2 - minus;
   }
 }
 

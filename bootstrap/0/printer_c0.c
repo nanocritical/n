@@ -94,6 +94,15 @@ static char *escape_string(const char *s) {
   return r;
 }
 
+static size_t c_fun_args_count(const struct node *node) {
+  size_t ex = node_fun_explicit_args_count(node);
+  if (node->which == DEFMETHOD) {
+    return ex + 1;
+  } else {
+    return ex;
+  }
+}
+
 static void print_token(FILE *out, enum token_type t) {
   fprintf(out, "%s", c_token_strings[t]);
 }
@@ -233,7 +242,7 @@ static void print_call(FILE *out, bool header, const struct module *mod, const s
 
   fprintf(out, "%s(", replace_dots(typ_name(mod, ftyp)));
 
-  for (size_t n = 0; n < ftyp->fun_arity; ++n) {
+  for (size_t n = 0; n < c_fun_args_count(ftyp->definition); ++n) {
     if (n > 0) {
       fprintf(out, ", ");
     }
@@ -607,7 +616,7 @@ static void print_defarg(FILE *out, bool header, const struct module *mod, const
 
 static void print_fun_prototype(FILE *out, bool header, const struct module *mod,
                                 const struct node *node) {
-  const size_t arg_count = node_fun_explicit_args_count(node);
+  const size_t arg_count = c_fun_args_count(node);
   const struct node *retval = node_fun_retval(node);
 
   print_toplevel(out, header, node);
@@ -729,7 +738,7 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
         fprintf(out, "case THIS(_%s_which___label__): %s %s(", nch, returns_something(mod, m), nm);
         free(nm);
 
-        for (size_t a = 0; a < node_fun_explicit_args_count(node); ++a) {
+        for (size_t a = 0; a < c_fun_args_count(node); ++a) {
           struct node *arg = node->subs[a + 1];
           if (a > 0) {
             fprintf(out, ", ");
@@ -888,7 +897,7 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
   } else {
     print_fun_prototype(out, header, mod, node);
 
-    fprintf(out, "{");
+    fprintf(out, "{\n");
     if (node->scope->parent->node->which == DEFTYPE) {
       fprintf(out, "#define THIS(x) ");
       print_typ(out, mod, node->scope->parent->node->typ);
@@ -905,7 +914,7 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
       fprintf(out, ";\n");
     }
 
-    const size_t arg_count = node_fun_explicit_args_count(node);
+    const size_t arg_count = c_fun_args_count(node);
     const struct node *block = node->subs[1 + arg_count + 1];
     print_block(out, header, mod, block);
 

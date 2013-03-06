@@ -104,6 +104,17 @@ static void append(struct node *node, struct node *sub) {
   node->subs[node->subs_count - 1] = sub;
 }
 
+static size_t find_subnode_in_parent(struct node *parent, struct node *node) {
+  for (size_t n = 0; n < parent->subs_count; ++n) {
+    if (parent->subs[n] == node) {
+      return n;
+    }
+  }
+
+  assert(FALSE);
+  return 0;
+}
+
 static error step_detect_prototypes(struct module *mod, struct node *node, void *user, bool *stop) {
   struct toplevel *toplevel = node_toplevel(node);
   switch (node->which) {
@@ -529,7 +540,6 @@ static error lexical_import_all_from_path(struct scope *scope, struct module *mo
         || toplevel->is_shadowed) {
       continue;
     }
-    fprintf(stderr, "import %s %p\n", scope_name(mod, ex->scope), ex);
 
     if (ex->which == IMPORT) {
       e = lexical_import(scope, target_mod, ex);
@@ -652,7 +662,6 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
   case DEFCHOICE:
     id = node->subs[0];
     sc = node->scope->parent;
-    fprintf(stderr, "def in %s, %s %p\n", scope_name(mod, sc), idents_value(mod->gctx, node_ident(id)), node);
     break;
   case DEFNAME:
     id = node->as.DEFNAME.pattern;
@@ -1035,6 +1044,25 @@ static error bin_accessor_maybe_defchoice(struct scope **parent_scope,
   return 0;
 }
 
+static error rewrite_unary_call(struct module *mod, struct node *node, const struct typ *tfun) {
+  struct scope *parent_scope = node->scope->parent;
+
+  // It would generally be a bad idea to create a detached node, but there
+  // is no natural place to attach it.
+  struct node *fun = calloc(1, sizeof(struct node));
+  memcpy(fun, node, sizeof(*fun));
+  fun->typ = tfun;
+
+  memset(node, 0, sizeof(*node));
+  node->which = CALL;
+  append(node, fun);
+
+  struct node *except[] = { fun, NULL };
+  error e = zero_to_first_for_generated(mod, node, except, parent_scope);
+  EXCEPT(e);
+  return 0;
+}
+
 static error type_inference_bin_accessor(struct module *mod, struct node *node) {
   error e;
   struct node *parent = node->subs[0];
@@ -1049,8 +1077,8 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   EXCEPT(e);
 
   if (field->typ->which == TYPE_FUNCTION && node_fun_explicit_args_count(field) == 0) {
-    // Unary call.
-    node->typ = node_fun_retval(field)->typ;
+    e = rewrite_unary_call(mod, node, field->typ);
+    EXCEPT(e);
   } else {
     node->typ = field->typ;
   }
@@ -1137,6 +1165,25 @@ static error type_inference_init(struct module *mod, struct node *node) {
   return 0;
 }
 
+static struct node *expr_ref(enum token_type ref_op, struct node *node) {
+  struct node *n = calloc(1, sizeof(struct node));
+  n->which = UN;
+  n->as.UN.operator = ref_op;
+  n->subs_count = 1;
+  n->subs = calloc(n->subs_count, sizeof(struct node *));
+  n->subs[0] = node;
+  return n;
+}
+
+static struct node *self_ref_if_value(struct module *mod,
+                                      enum token_type access, struct node *node) {
+  if (typ_is_reference_instance(mod, node->typ)) {
+    return node;
+  } else {
+    return expr_ref(access, node);
+  }
+}
+
 static error prepare_call_arguments(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
 
@@ -1151,16 +1198,20 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
     break;
   case DEFMETHOD:
     if (!(fun->subs[0]->flags & NODE_IS_TYPE)) {
-      // Form (self.method ...)
+      // Form (self.method ...) rewritten as (method self ...).
       struct node *m = mk_node(mod, node, DIRECTDEF);
       m->as.DIRECTDEF.definition = fun->typ->definition;
       append(node, m);
-      struct node *self = fun->subs[0];
+      struct node *self = self_ref_if_value(
+        mod, fun->typ->definition->as.DEFMETHOD.access, fun->subs[0]);
       move_last_over(node, 0, TRUE);
       append(node, self);
       insert_last_at(node, 1);
 
-      error e = zero_to_first_for_generated(mod, m, NULL, node->scope);
+      struct node *except[] = { fun->subs[0], NULL };
+      error e = zero_to_first_for_generated(mod, self, except, node->scope);
+      EXCEPT(e);
+      e = zero_to_first_for_generated(mod, m, NULL, node->scope);
       EXCEPT(e);
       self->scope->parent = node->scope;
     }
@@ -1180,12 +1231,12 @@ static error type_inference_call(struct module *mod, struct node *node) {
     EXCEPT(e);
   }
 
-  if (node->subs_count == 1) {
-    return type_inference_unary_call(mod, node, fun->typ->definition);
-  }
-
   error e = prepare_call_arguments(mod, node);
   EXCEPT(e);
+
+  if (node_fun_explicit_args_count(fun->typ->definition) == 0) {
+    return type_inference_unary_call(mod, node, fun->typ->definition);
+  }
 
   for (size_t n = 1; n < node->subs_count; ++n) {
     if (n > 0 && (node->flags & NODE_IS_TYPE) != (node->subs[n]->flags & NODE_IS_TYPE)) {
@@ -1731,17 +1782,6 @@ static error step_toplevel_secondpass(struct module *mod, struct node *node, voi
   return 0;
 }
 
-static size_t find_subnode_in_parent(struct node *parent, struct node *node) {
-  for (size_t n = 0; n < parent->subs_count; ++n) {
-    if (parent->subs[n] == node) {
-      return n;
-    }
-  }
-
-  assert(FALSE);
-  return 0;
-}
-
 static struct node *get_member(struct module *mod, struct node *node, ident id) {
   assert(node->which == DEFTYPE || node->which == DEFCHOICE);
   struct node *m = NULL;
@@ -2180,16 +2220,6 @@ static const ident operator_ident[TOKEN__NUM] = {
   [TUMINUS] = ID_OPERATOR_UMINUS,
   [TBWNOT] = ID_OPERATOR_BWNOT,
 };
-
-static struct node *expr_ref(enum token_type ref_op, struct node *node) {
-  struct node *n = calloc(1, sizeof(struct node));
-  n->which = UN;
-  n->as.UN.operator = ref_op;
-  n->subs_count = 1;
-  n->subs = calloc(n->subs_count, sizeof(struct node *));
-  n->subs[0] = node;
-  return n;
-}
 
 static error step_operator_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   enum token_type op;
