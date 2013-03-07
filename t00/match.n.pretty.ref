@@ -1,6 +1,6 @@
 from nlang import *
-
 type enu = WorkaroundRBC
+  let this = enu
   | A
   | B
 

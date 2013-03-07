@@ -1,0 +1,92 @@
+MODULE_BODY
+ IMPORT :nlang
+  IDENT(nlang)
+ DEFTYPE :t00.match.enu
+  IDENT(enu)
+  ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.WorkaroundRBC
+    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
+  LET :nlang.builtins.void
+   DEFPATTERN :t00.match.enu
+    IDENT(this) :t00.match.enu
+    IDENT(enu) :t00.match.enu
+    DEFNAME(this) :t00.match.enu
+  DEFCHOICE :t00.match.enu
+   IDENT(A)
+   NUMBER(0) :nlang.builtins.u32
+   IDENT(void) :nlang.builtins.void
+   DEFFUN :t00.match.enu.A.mk
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(DefaultCtor)
+     IDENT(mk)
+    IDENT(this) :t00.match.enu
+   DEFFUN :t00.match.enu.A.new
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(DefaultCtor)
+     IDENT(new)
+    UN(@#) :nlang.builtins.mmref
+     IDENT(this) :t00.match.enu
+  DEFCHOICE :t00.match.enu
+   IDENT(B)
+   BIN( + ) :nlang.builtins.u32
+    NUMBER(0) :nlang.builtins.u32
+    NUMBER(1) :nlang.builtins.u32
+   IDENT(void) :nlang.builtins.void
+   DEFFUN :t00.match.enu.B.mk
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(DefaultCtor)
+     IDENT(mk)
+    IDENT(this) :t00.match.enu
+   DEFFUN :t00.match.enu.B.new
+    BIN(.)
+     BIN(.)
+      BIN(.)
+       BIN(.)
+        DIRECTDEF
+        IDENT(nlang)
+       IDENT(builtins)
+      IDENT(DefaultCtor)
+     IDENT(new)
+    UN(@#) :nlang.builtins.mmref
+     IDENT(this) :t00.match.enu
+ DEFFUN :t00.match.main
+  IDENT(main)
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :t00.match.enu
+     IDENT(n) :t00.match.enu
+     BIN(.) :t00.match.enu
+      IDENT(enu) :t00.match.enu
+      IDENT(A)
+     DEFNAME(n) :t00.match.enu
+   IF :nlang.builtins.void
+    BIN( == ) :nlang.builtins.bool
+     IDENT(n) :t00.match.enu
+     BIN(.) :t00.match.enu
+      IDENT(enu) :t00.match.enu
+      IDENT(B)
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(0) :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(1) :nlang.builtins.i32

@@ -1,2 +1,2 @@
-nlang.strings.string
-ncc0: firstpass0.c:2217: step_rewrite_def_return_through_ref: Assertion `0 && "Return through ref unsupported"' failed.
+t00/syntax.n:11:31: type: Return through ref not yet supported
+

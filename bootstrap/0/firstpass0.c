@@ -2213,8 +2213,8 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
     return 0;
   }
 
-  fprintf(stderr, "%s\n", typ_name(mod, node_fun_retval(node)->typ));
-  assert(FALSE && "Return through ref unsupported");;
+  error e = mk_except(mod, retval, "Return through ref not yet supported\n");
+  EXCEPT(e);
 
   return 0;
 }
