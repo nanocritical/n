@@ -3,7 +3,7 @@ MODULE_BODY
   IDENT(nlang)
  DEFTYPE :t00.return.nocopy
   IDENT(nocopy)
-  GENARGS
+  GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.ReturnByCopy
     IDENT(ReturnByCopy) :nlang.builtins.ReturnByCopy

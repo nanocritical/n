@@ -3,7 +3,7 @@ MODULE_BODY
   IDENT(nlang)
  DEFTYPE :t00.sum.sum
   IDENT(sum)
-  GENARGS
+  GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.SumCopy
     IDENT(SumCopy) :nlang.builtins.SumCopy
@@ -187,7 +187,7 @@ MODULE_BODY
   IDENT(void) :nlang.builtins.void
  DEFTYPE :t00.sum.ta
   IDENT(ta)
-  GENARGS
+  GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.TrivialCopy
     IDENT(TrivialCopy) :nlang.builtins.TrivialCopy
@@ -222,7 +222,7 @@ MODULE_BODY
   IDENT(void) :nlang.builtins.void
  DEFTYPE :t00.sum.tb
   IDENT(tb)
-  GENARGS
+  GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.TrivialCopy
     IDENT(TrivialCopy) :nlang.builtins.TrivialCopy
@@ -257,7 +257,7 @@ MODULE_BODY
   IDENT(void) :nlang.builtins.void
  DEFTYPE :t00.sum.sum_nocopy
   IDENT(sum_nocopy)
-  GENARGS
+  GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.WorkaroundRBC
     IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC

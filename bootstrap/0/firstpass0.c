@@ -710,25 +710,28 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
   switch (node->which) {
   case DEFTYPE:
   case DEFINTF:
-    if (node->subs[IDX_GENARGS]->subs_count > 0) {
-      break;
+    for (size_t n = 0; n < node->subs[IDX_GENARGS]->subs_count; ++n) {
+      struct node *ga = node->subs[IDX_GENARGS]->subs[n];
+      assert(ga->which == DEFGENARG);
+      e = scope_define(mod, node->scope, ga->subs[0], ga);
+      EXCEPT(e);
     }
-    return 0;
+    break;
   case DEFFUN:
   case DEFMETHOD:
     {
       size_t arg_count = node_fun_explicit_args_count(node);
       for (size_t n = 0; n < arg_count; ++n) {
-        assert(node->subs[1+n]->which == DEFARG);
-        e = scope_define(mod, node->scope, node->subs[1+n]->subs[0],
-                         node->subs[1+n]);
+        struct node *arg = node->subs[1+n];
+        assert(arg->which == DEFARG);
+        e = scope_define(mod, node->scope, arg->subs[0], arg);
         EXCEPT(e);
       }
 
       e = lexical_retval(mod, node, node->subs[1+arg_count]);
       EXCEPT(e);
     }
-    return 0;
+    break;
   default:
     break;
   }
@@ -763,6 +766,7 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
 
   switch (node->which) {
   case DEFARG:
+  case DEFGENARG:
   case TYPECONSTRAINT:
     mark_subs(mod, node, pending, 0, 1, 1);
     break;
@@ -803,7 +807,6 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   case DEFTYPE:
   case DEFINTF:
     node->subs[0]->typ = not_typeable;
-    node->subs[IDX_GENARGS]->typ = not_typeable;
     break;
   case DEFFIELD:
     node->subs[0]->typ = not_typeable;
@@ -1662,6 +1665,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     EXCEPT(e);
     goto ok;
   case DEFARG:
+  case DEFGENARG:
   case TYPECONSTRAINT:
     node->typ = node->subs[1]->typ;
     e = type_destruct(mod, node->subs[0], node->typ);
@@ -1755,6 +1759,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case INVARIANT:
   case EXAMPLE:
   case ISALIST:
+  case GENARGS:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
     goto ok;
   case ISA:

@@ -33,7 +33,6 @@ const char *node_which_strings[] = {
   [MATCH] = "MATCH",
   [TRY] = "TRY",
   [TYPECONSTRAINT] = "TYPECONSTRAINT",
-  [GENARGS] = "GENARGS",
   [DEFFUN] = "DEFFUN",
   [DEFTYPE] = "DEFTYPE",
   [DEFMETHOD] = "DEFMETHOD",
@@ -41,6 +40,8 @@ const char *node_which_strings[] = {
   [DEFNAME] = "DEFNAME",
   [DEFPATTERN] = "DEFPATTERN",
   [DEFARG] = "DEFARG",
+  [GENARGS] = "GENARGS",
+  [DEFGENARG] = "DEFGENARG",
   [LET] = "LET",
   [DEFFIELD] = "DEFFIELD",
   [DEFCHOICE] = "DEFCHOICE",
@@ -2170,6 +2171,19 @@ again:
   goto again;
 }
 
+static error p_defgenarg(struct node *node, struct module *mod) {
+  node->which = DEFGENARG;
+  error e = p_expr(node_new_subnode(mod, node), mod, TCOLON);
+  EXCEPT(e);
+
+  e = scan_expected(mod, TCOLON);
+  EXCEPT(e);
+
+  e = p_typeexpr(node_new_subnode(mod, node), mod);
+  EXCEPT(e);
+  return 0;
+}
+
 static error p_genargs(struct node *node, struct module *mod) {
   node->which = GENARGS;
 
@@ -2183,7 +2197,7 @@ again:
   }
   back(mod, &tok);
 
-  e = p_defarg(node_new_subnode(mod, node), mod);
+  e = p_defgenarg(node_new_subnode(mod, node), mod);
   EXCEPT(e);
   goto again;
 

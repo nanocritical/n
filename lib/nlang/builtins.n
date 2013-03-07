@@ -1,3 +1,5 @@
+export intf Any =
+
 export intf Copyable =
 export intf TrivialCopy = export Copyable
 export intf ReturnByCopy =
