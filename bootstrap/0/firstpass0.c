@@ -115,6 +115,35 @@ static size_t find_subnode_in_parent(struct node *parent, struct node *node) {
   return 0;
 }
 
+static void make_instance_deepcopy_from_pristine(struct module *mod,
+                                                 struct node *node,
+                                                 struct node *pristine) {
+  struct toplevel *toplevel = node_toplevel(node);
+  const size_t idx = toplevel->instances_count;
+  toplevel->instances_count += 1;
+  toplevel->instances = realloc(toplevel->instances,
+                                toplevel->instances_count * sizeof(*toplevel->instances));
+  toplevel->instances[idx] = calloc(1, sizeof(*toplevel->instances[idx]));
+
+  node_deepcopy(mod, toplevel->instances[idx], pristine);
+}
+
+static error step_generics_pristine_copy(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case DEFTYPE:
+  case DEFINTF:
+    if (node->subs[1]->subs_count > 0) {
+      break;
+    }
+    return 0;
+  default:
+    return 0;
+  }
+
+  make_instance_deepcopy_from_pristine(mod, node, node);
+  return 0;
+}
+
 static error step_detect_prototypes(struct module *mod, struct node *node, void *user, bool *stop) {
   struct toplevel *toplevel = node_toplevel(node);
   switch (node->which) {
@@ -2409,6 +2438,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
 }
 
 static const step zeropass_down[] = {
+  step_generics_pristine_copy,
   step_detect_prototypes,
   step_detect_generic_interfaces_down,
   step_detect_deftype_kind,

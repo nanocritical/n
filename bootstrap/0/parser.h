@@ -106,7 +106,8 @@ struct toplevel {
   struct node *full_definition;
   enum builtingen builtingen;
 
-  const struct typ **instances;
+  struct node **instances;
+  size_t instances_count;
 };
 
 struct node_nul {};
@@ -142,8 +143,6 @@ struct node_try {};
 struct node_typeconstraint {};
 struct node_deffun {
   struct toplevel toplevel;
-  struct node **instances;
-  size_t instances_count;
 };
 
 enum deftype_kind {
@@ -160,21 +159,14 @@ struct node_deftype {
 
   enum deftype_kind kind;
   const struct typ *choice_typ;
-
-  struct node **instances;
-  size_t instances_count;
 };
 struct node_defmethod {
   struct toplevel toplevel;
   enum token_type access;
-  struct node **instances;
-  size_t instances_count;
 };
 struct node_defintf {
   struct toplevel toplevel;
   bool is_implied_generic;
-  struct node **instances;
-  size_t instances_count;
 };
 struct node_defname {
   struct node *pattern;
