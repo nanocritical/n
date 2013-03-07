@@ -336,6 +336,7 @@ enum predefined_idents {
   ID_TBI_NREF,
   ID_TBI_NMREF,
   ID_TBI_NMMREF,
+  ID_TBI_NUMERIC,
   ID_TBI_NATIVE_INTEGER,
   ID_TBI_HAS_EQUALITY,
   ID_TBI_ORDERED,
@@ -419,6 +420,7 @@ enum typ_builtin {
   TBI_NREF, // ?@
   TBI_NMREF, // ?@!
   TBI_NMMREF, // ?@#
+  TBI_NUMERIC,
   TBI_NATIVE_INTEGER,
   TBI_HAS_EQUALITY,
   TBI_ORDERED,

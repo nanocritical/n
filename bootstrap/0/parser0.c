@@ -101,6 +101,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NREF] = "nref",
   [ID_TBI_NMREF] = "nmref",
   [ID_TBI_NMMREF] = "nmmref",
+  [ID_TBI_NUMERIC] = "Numeric",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
   [ID_TBI_HAS_EQUALITY] = "HasEquality",
   [ID_TBI_ORDERED] = "Ordered",
@@ -2706,16 +2707,7 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
   }
 
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
-    if (constraint == typ_lookup_builtin(mod, TBI_U8)
-        || constraint == typ_lookup_builtin(mod, TBI_U16)
-        || constraint == typ_lookup_builtin(mod, TBI_U32)
-        || constraint == typ_lookup_builtin(mod, TBI_U64)
-        || constraint == typ_lookup_builtin(mod, TBI_I8)
-        || constraint == typ_lookup_builtin(mod, TBI_I16)
-        || constraint == typ_lookup_builtin(mod, TBI_I32)
-        || constraint == typ_lookup_builtin(mod, TBI_I64)
-        || constraint == typ_lookup_builtin(mod, TBI_SIZE)
-        || constraint == typ_lookup_builtin(mod, TBI_SSIZE)) {
+    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_NUMERIC))) {
       return 0;
     }
   }
@@ -2744,17 +2736,10 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
 
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error,
                              const struct typ *a) {
-  if (a == typ_lookup_builtin(mod, TBI_U8)
-      || a == typ_lookup_builtin(mod, TBI_U16)
-      || a == typ_lookup_builtin(mod, TBI_U32)
-      || a == typ_lookup_builtin(mod, TBI_U64)
-      || a == typ_lookup_builtin(mod, TBI_I8)
-      || a == typ_lookup_builtin(mod, TBI_I16)
-      || a == typ_lookup_builtin(mod, TBI_I32)
-      || a == typ_lookup_builtin(mod, TBI_I64)
-      || a == typ_lookup_builtin(mod, TBI_SIZE)
-      || a == typ_lookup_builtin(mod, TBI_SSIZE)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
+  if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
+    return 0;
+  }
+  if (typ_isa(mod, a, typ_lookup_builtin(mod, TBI_NUMERIC))) {
     return 0;
   }
 

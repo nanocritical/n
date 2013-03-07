@@ -38,9 +38,12 @@ export extern type nref = export NullableRef
 export extern type nmref = export NullableMutableRef
 export extern type nmmref = export NullableMercurialRef
 
-export intf Integer = \
+export intf Numeric = \
     export Arithmetic \
-    export Ordered \
+    export Ordered
+
+export intf Integer = \
+    export Numeric \
     export Bitwise \
     export HasCompare
 
