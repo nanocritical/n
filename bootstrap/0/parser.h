@@ -273,6 +273,13 @@ struct node {
   uint32_t flags;
 };
 
+enum subnode_idx {
+  IDX_GENARGS = 1,
+  IDX_ISALIST = 2,
+  IDX_CH_VALUE = 1,
+  IDX_CH_PAYLOAD = 2,
+};
+
 struct idents_map;
 
 struct idents {

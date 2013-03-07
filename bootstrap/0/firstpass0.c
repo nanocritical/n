@@ -132,7 +132,7 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node, 
   switch (node->which) {
   case DEFTYPE:
   case DEFINTF:
-    if (node->subs[1]->subs_count > 0) {
+    if (node->subs[IDX_GENARGS]->subs_count > 0) {
       break;
     }
     return 0;
@@ -214,8 +214,8 @@ static error step_detect_deftype_kind(struct module *mod, struct node *node, voi
       if (k != DEFTYPE_SUM) {
         k = DEFTYPE_ENUM;
       }
-      if ((!f->as.DEFCHOICE.has_value && node_ident(f->subs[1]) != ID_TBI_VOID)
-          || (f->as.DEFCHOICE.has_value && node_ident(f->subs[2]) != ID_TBI_VOID)) {
+      if ((!f->as.DEFCHOICE.has_value && node_ident(f->subs[IDX_CH_PAYLOAD-1]) != ID_TBI_VOID)
+          || (f->as.DEFCHOICE.has_value && node_ident(f->subs[IDX_CH_PAYLOAD]) != ID_TBI_VOID)) {
         k = DEFTYPE_SUM;
       }
       break;
@@ -260,12 +260,12 @@ static error step_assign_deftype_which_values(struct module *mod, struct node *n
       struct node *val = mk_node(mod, d, BIN);
       val->as.BIN.operator = TPLUS;
       struct node *left = node_new_subnode(mod, val);
-      node_deepcopy(mod, left, prev->subs[1]);
+      node_deepcopy(mod, left, prev->subs[IDX_CH_VALUE]);
       struct node *right = mk_node(mod, val, NUMBER);
       right->as.NUMBER.value = "1";
     }
 
-    insert_last_at(d, 1);
+    insert_last_at(d, IDX_CH_VALUE);
 
     prev = d;
   }
@@ -708,6 +708,12 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
   EXCEPT(e);
 
   switch (node->which) {
+  case DEFTYPE:
+  case DEFINTF:
+    if (node->subs[IDX_GENARGS]->subs_count > 0) {
+      break;
+    }
+    return 0;
   case DEFFUN:
   case DEFMETHOD:
     {
@@ -722,7 +728,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
       e = lexical_retval(mod, node, node->subs[1+arg_count]);
       EXCEPT(e);
     }
-    break;
+    return 0;
   default:
     break;
   }
@@ -797,7 +803,7 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   case DEFTYPE:
   case DEFINTF:
     node->subs[0]->typ = not_typeable;
-    node->subs[1]->typ = not_typeable;
+    node->subs[IDX_GENARGS]->typ = not_typeable;
     break;
   case DEFFIELD:
     node->subs[0]->typ = not_typeable;
@@ -1696,7 +1702,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
             continue;
           }
           e = typ_unify(&u, mod, ch,
-                        u, ch->subs[1]->typ);
+                        u, ch->subs[IDX_CH_VALUE]->typ);
           EXCEPT(e);
           ch->flags |= NODE_IS_DEFCHOICE;
         }
@@ -1711,7 +1717,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
           if (ch->which != DEFCHOICE) {
             continue;
           }
-          e = type_destruct(mod, ch->subs[1], u);
+          e = type_destruct(mod, ch->subs[IDX_CH_VALUE], u);
           EXCEPT(e);
 
           ch->typ = node->typ;
@@ -1784,7 +1790,7 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
     return 0;
   }
 
-  struct node *isalist = node->subs[2];
+  struct node *isalist = node->subs[IDX_ISALIST];
   assert(isalist->which == ISALIST);
 
   struct typ *mutable_typ = (struct typ *) node->typ;
@@ -1901,7 +1907,7 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
     struct node *name = mk_node(mod, arg, IDENT);
     name->as.IDENT.name = ID_C;
     struct node *typename = mk_node(mod, arg, DIRECTDEF);
-    typename->as.DIRECTDEF.definition = ch->subs[2]->typ->definition;
+    typename->as.DIRECTDEF.definition = ch->subs[IDX_CH_PAYLOAD]->typ->definition;
 
     insert_last_at(d, d->which == DEFMETHOD ? 2 : 1);
   }
@@ -1921,7 +1927,7 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
     return 0;
   }
 
-  const struct typ *targ = node->subs[2]->typ;
+  const struct typ *targ = node->subs[IDX_CH_PAYLOAD]->typ;
   bool has_ctor = FALSE;
   if (typ_isa(mod, targ, typ_lookup_builtin(mod, TBI_COPYABLE))) {
     has_ctor |= TRUE;
@@ -1946,7 +1952,7 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
 }
 
 static void add_isa(struct module *mod, struct node *tdef, const char *path) {
-  struct node *isalist = tdef->subs[2];
+  struct node *isalist = tdef->subs[IDX_ISALIST];
   assert(isalist->which == ISALIST);
   struct node *isa = mk_node(mod, isalist, ISA);
   isa->as.ISA.is_export = node_toplevel(tdef)->is_export;
@@ -1972,7 +1978,7 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
     for (size_t n = 0; n < node->subs_count; ++n) {
       struct node *ch = node->subs[n];
       if (ch->which == DEFCHOICE
-          && ch->subs[2]->typ != typ_lookup_builtin(mod, TBI_VOID)) {
+          && ch->subs[IDX_CH_PAYLOAD]->typ != typ_lookup_builtin(mod, TBI_VOID)) {
         proxy = ch;
         break;
       }
@@ -2171,9 +2177,9 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
   }
 
   for (size_t n = 0; n < node->typ->isalist_count; ++n) {
-    assert(node->subs[2]->which == ISALIST);
-    assert(node->subs[2]->subs[n]->which == ISA);
-    if (!node->subs[2]->subs[n]->as.ISA.is_explicit) {
+    assert(node->subs[IDX_ISALIST]->which == ISALIST);
+    assert(node->subs[IDX_ISALIST]->subs[n]->which == ISA);
+    if (!node->subs[IDX_ISALIST]->subs[n]->as.ISA.is_explicit) {
       continue;
     }
 
@@ -2188,7 +2194,7 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
     } else {
       assert(intf->definition->which == DEFINTF);
       if (intf->definition->as.DEFINTF.is_implied_generic) {
-        error e = mk_except_type(mod, node->subs[2]->subs[n],
+        error e = mk_except_type(mod, node->subs[IDX_ISALIST]->subs[n],
                                  "intf is an implied generic (uses 'this') and cannot be dispatched over");
         EXCEPT(e);
       }
@@ -2201,10 +2207,10 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
       }
 
       const struct typ *tch = NULL;
-      if (ch->subs[2]->typ == typ_lookup_builtin(mod, TBI_VOID)) {
+      if (ch->subs[IDX_CH_PAYLOAD]->typ == typ_lookup_builtin(mod, TBI_VOID)) {
         tch = node->as.DEFTYPE.choice_typ;
       } else {
-        tch = ch->subs[2]->typ;
+        tch = ch->subs[IDX_CH_PAYLOAD]->typ;
       }
 
       error e = typ_check_isa(mod, ch, tch, check_intf);

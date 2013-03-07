@@ -650,7 +650,7 @@ static const struct node *get_defchoice_member(const struct module *mod,
   assert(ch->which == DEFCHOICE);
   struct node *m = NULL;
   error e = scope_lookup_ident_immediate(
-    &m, mod, ch->subs[2]->typ->definition->scope, member_id, FALSE);
+    &m, mod, ch->subs[IDX_CH_PAYLOAD]->typ->definition->scope, member_id, FALSE);
   assert(!e);
   return m;
 }
@@ -1052,9 +1052,9 @@ static void print_deftype_sum_choices(FILE *out, bool header, const struct modul
 
   const struct typ *choice_typ = NULL;
   for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *s = node->subs[n];
-    if (s->which == DEFCHOICE) {
-      choice_typ = s->subs[1]->typ;
+    struct node *ch = node->subs[n];
+    if (ch->which == DEFCHOICE) {
+      choice_typ = ch->subs[IDX_CH_VALUE]->typ;
       break;
     }
   }
@@ -1067,17 +1067,17 @@ static void print_deftype_sum_choices(FILE *out, bool header, const struct modul
   fprintf(out, "_%s;\n", idents_value(mod->gctx, ID_WHICH_TYPE));
 
   for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *s = node->subs[n];
-    if (s->which != DEFCHOICE) {
+    struct node *ch = node->subs[n];
+    if (ch->which != DEFCHOICE) {
       continue;
     }
 
     fprintf(out, "#define ");
     print_deftype_name(out, mod, node);
     fprintf(out, "_");
-    print_deffield_name(out, mod, s);
+    print_deffield_name(out, mod, ch);
     fprintf(out, "_%s_label__ (", idents_value(mod->gctx, ID_WHICH));
-    print_expr(out, header, mod, s->subs[1], T__NOT_STATEMENT);
+    print_expr(out, header, mod, ch->subs[IDX_CH_VALUE], T__NOT_STATEMENT);
     fprintf(out, ")\n");
 
     fprintf(out, "static const ");
@@ -1086,9 +1086,9 @@ static void print_deftype_sum_choices(FILE *out, bool header, const struct modul
     fprintf(out, " ");
     print_deftype_name(out, mod, node);
     fprintf(out, "_");
-    print_deffield_name(out, mod, s);
+    print_deffield_name(out, mod, ch);
     fprintf(out, "_%s = ", idents_value(mod->gctx, ID_WHICH));
-    print_expr(out, header, mod, s->subs[1], T__NOT_STATEMENT);
+    print_expr(out, header, mod, ch->subs[IDX_CH_VALUE], T__NOT_STATEMENT);
     fprintf(out, ";\n");
   }
 
@@ -1097,21 +1097,17 @@ static void print_deftype_sum_choices(FILE *out, bool header, const struct modul
   }
 
   for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *s = node->subs[n];
-    if (s->which != DEFCHOICE) {
+    struct node *ch = node->subs[n];
+    if (ch->which != DEFCHOICE) {
       continue;
     }
 
     fprintf(out, "typedef ");
-    if (s->subs_count > 2) {
-      print_typ(out, mod, s->subs[2]->typ);
-    } else {
-      print_typ(out, mod, typ_lookup_builtin(mod, TBI_U8));
-    }
+    print_typ(out, mod, ch->subs[IDX_CH_PAYLOAD]->typ);
     fprintf(out, " ");
     print_deftype_name(out, mod, node);
     fprintf(out, "_");
-    print_deffield_name(out, mod, s);
+    print_deffield_name(out, mod, ch);
     fprintf(out, ";\n");
   }
 
@@ -1119,16 +1115,16 @@ static void print_deftype_sum_choices(FILE *out, bool header, const struct modul
   print_deftype_name(out, mod, node);
   fprintf(out, "_%s {\n", idents_value(mod->gctx, ID_AS_TYPE));
   for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *s = node->subs[n];
-    if (s->which != DEFCHOICE) {
+    struct node *ch = node->subs[n];
+    if (ch->which != DEFCHOICE) {
       continue;
     }
 
     print_deftype_name(out, mod, node);
     fprintf(out, "_");
-    print_deffield_name(out, mod, s);
+    print_deffield_name(out, mod, ch);
     fprintf(out, " ");
-    print_deffield_name(out, mod, s);
+    print_deffield_name(out, mod, ch);
     fprintf(out, ";\n");
   }
   fprintf(out, "};\n");
@@ -1183,7 +1179,7 @@ static void print_deftype_enum(FILE *out, bool header, const struct module *mod,
       fprintf(out, "_");
       print_deffield_name(out, mod, s);
       fprintf(out, " = ");
-      print_expr(out, header, mod, s->subs[1], T__NOT_STATEMENT);
+      print_expr(out, header, mod, s->subs[IDX_CH_VALUE], T__NOT_STATEMENT);
       fprintf(out, ";\n");
     }
   }

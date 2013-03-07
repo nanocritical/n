@@ -522,25 +522,13 @@ static void print_deffield(FILE *out, const struct module *mod, const struct nod
 static void print_defchoice(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "| ");
   print_expr(out, mod, node->subs[0], T__STATEMENT);
-  switch (node->subs_count) {
-  case 1:
-    return;
-  case 2:
-    if (node->as.DEFCHOICE.has_value) {
-      fprintf(out, " = ");
-      print_expr(out, mod, node->subs[1], T__STATEMENT);
-    } else {
-      fprintf(out, " -> ");
-      print_expr(out, mod, node->subs[1], T__STATEMENT);
-    }
-    return;
-  case 3:
-    fprintf(out, " = ");
-    print_expr(out, mod, node->subs[1], T__STATEMENT);
+  fprintf(out, " = ");
+  print_expr(out, mod, node->subs[IDX_CH_VALUE], T__STATEMENT);
+  if (node->subs[IDX_CH_PAYLOAD]->typ != typ_lookup_builtin(mod, TBI_VOID)) {
     fprintf(out, " -> ");
-    print_expr(out, mod, node->subs[2], T__STATEMENT);
-    return;
+    print_expr(out, mod, node->subs[IDX_CH_PAYLOAD], T__STATEMENT);
   }
+  return;
 }
 
 static void print_delegate(FILE *out, const struct module *mod, const struct node *node) {
@@ -612,11 +600,11 @@ static void print_deftype(FILE *out, const struct module *mod, int indent, const
   print_expr(out, mod, name, T__STATEMENT);
   fprintf(out, " =");
 
-  const struct node *isalist = node->subs[2];
+  const struct node *isalist = node->subs[IDX_ISALIST];
   print_isalist(out, mod, isalist);
 
   if (!node_is_prototype(node)) {
-    print_deftype_block(out, mod, 0, node, 3);
+    print_deftype_block(out, mod, 0, node, IDX_ISALIST+1);
   }
 
   fprintf(out, "\n");
