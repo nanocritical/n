@@ -124,7 +124,7 @@ static error step_detect_prototypes(struct module *mod, struct node *node, void 
     break;
   case DEFTYPE:
   case DEFINTF:
-    toplevel->is_prototype = node->subs_count <= 2;
+    toplevel->is_prototype = node->subs_count <= 3;
     break;
   default:
     break;
@@ -301,7 +301,7 @@ static error step_add_builtin_members(struct module *mod, struct node *node, voi
   struct node *expr = mk_node(mod, defp, IDENT);
   expr->as.IDENT.name = node_ident(node);
 
-  insert_last_at(node, 2);
+  insert_last_at(node, 3);
 
   return 0;
 }
@@ -767,6 +767,9 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
     break;
   case DEFTYPE:
   case DEFINTF:
+    node->subs[0]->typ = not_typeable;
+    node->subs[1]->typ = not_typeable;
+    break;
   case DEFFIELD:
     node->subs[0]->typ = not_typeable;
     break;
@@ -1752,7 +1755,7 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
     return 0;
   }
 
-  struct node *isalist = node->subs[1];
+  struct node *isalist = node->subs[2];
   assert(isalist->which == ISALIST);
 
   struct typ *mutable_typ = (struct typ *) node->typ;
@@ -1914,7 +1917,8 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
 }
 
 static void add_isa(struct module *mod, struct node *tdef, const char *path) {
-  struct node *isalist = tdef->subs[1];
+  struct node *isalist = tdef->subs[2];
+  assert(isalist->which == ISALIST);
   struct node *isa = mk_node(mod, isalist, ISA);
   isa->as.ISA.is_export = node_toplevel(tdef)->is_export;
   mk_expr_abspath(mod, isa, path);
@@ -2138,9 +2142,9 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
   }
 
   for (size_t n = 0; n < node->typ->isalist_count; ++n) {
-    assert(node->subs[1]->which == ISALIST);
-    assert(node->subs[1]->subs[n]->which == ISA);
-    if (!node->subs[1]->subs[n]->as.ISA.is_explicit) {
+    assert(node->subs[2]->which == ISALIST);
+    assert(node->subs[2]->subs[n]->which == ISA);
+    if (!node->subs[2]->subs[n]->as.ISA.is_explicit) {
       continue;
     }
 
@@ -2155,7 +2159,7 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
     } else {
       assert(intf->definition->which == DEFINTF);
       if (intf->definition->as.DEFINTF.is_implied_generic) {
-        error e = mk_except_type(mod, node->subs[1]->subs[n],
+        error e = mk_except_type(mod, node->subs[2]->subs[n],
                                  "intf is an implied generic (uses 'this') and cannot be dispatched over");
         EXCEPT(e);
       }

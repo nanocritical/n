@@ -33,6 +33,7 @@ const char *node_which_strings[] = {
   [MATCH] = "MATCH",
   [TRY] = "TRY",
   [TYPECONSTRAINT] = "TYPECONSTRAINT",
+  [GENARGS] = "GENARGS",
   [DEFFUN] = "DEFFUN",
   [DEFTYPE] = "DEFTYPE",
   [DEFMETHOD] = "DEFMETHOD",
@@ -2169,6 +2170,26 @@ again:
   goto again;
 }
 
+static error p_genargs(struct node *node, struct module *mod) {
+  node->which = GENARGS;
+
+  error e;
+  struct token tok;
+again:
+  e = scan(&tok, mod);
+  EXCEPT(e);
+  if (tok.t == TASSIGN) {
+    return 0;
+  }
+  back(mod, &tok);
+
+  e = p_defarg(node_new_subnode(mod, node), mod);
+  EXCEPT(e);
+  goto again;
+
+  return 0;
+}
+
 static error p_deftype(struct node *node, struct module *mod, const struct toplevel *toplevel) {
   node->which = DEFTYPE;
   node->as.DEFTYPE.toplevel = *toplevel;
@@ -2176,7 +2197,7 @@ static error p_deftype(struct node *node, struct module *mod, const struct tople
   error e = p_ident(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
-  e = scan_expected(mod, TASSIGN);
+  e = p_genargs(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
   e = p_isalist(node_new_subnode(mod, node), mod);
@@ -2279,7 +2300,7 @@ static error p_defintf(struct node *node, struct module *mod, const struct tople
   error e = p_ident(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
-  e = scan_expected(mod, TASSIGN);
+  e = p_genargs(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
   e = p_isalist(node_new_subnode(mod, node), mod);
@@ -2659,7 +2680,7 @@ struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
   return mod->gctx->builtin_typs[id];
 }
 
-static bool typ_gen_match(const struct typ *a, const struct typ *b) {
+static bool typ_same_generic(const struct typ *a, const struct typ *b) {
   assert(a->gen_arity > 0 && b->gen_arity > 0);
   return a->gen_arity == b->gen_arity && a->gen_args[0] == b->gen_args[0];
 }
@@ -2693,7 +2714,7 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     }
   }
 
-  if (a->gen_arity > 0 && typ_gen_match(a, constraint)) {
+  if (a->gen_arity > 0 && typ_same_generic(a, constraint)) {
     for (size_t n = 0; n < a->gen_arity; ++n) {
       error e = typ_compatible(mod, for_error, a->gen_args[1+n], constraint->gen_args[1+n]);
       EXCEPT(e);

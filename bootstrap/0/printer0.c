@@ -605,8 +605,6 @@ static void print_isalist(FILE *out, const struct module *mod, const struct node
 
 static void print_deftype(FILE *out, const struct module *mod, int indent, const struct node *node) {
   const struct node *name = node->subs[0];
-  const bool has_isalist = node_is_prototype(node)
-    ? node->subs_count > 1 : node->subs_count > 2;
 
   print_toplevel(out, &node->as.DEFTYPE.toplevel);
 
@@ -614,13 +612,11 @@ static void print_deftype(FILE *out, const struct module *mod, int indent, const
   print_expr(out, mod, name, T__STATEMENT);
   fprintf(out, " =");
 
-  if (has_isalist) {
-    const struct node *isalist = node->subs[1];
-    print_isalist(out, mod, isalist);
-  }
+  const struct node *isalist = node->subs[2];
+  print_isalist(out, mod, isalist);
 
   if (!node_is_prototype(node)) {
-    print_deftype_block(out, mod, 0, node, has_isalist ? 2 : 1);
+    print_deftype_block(out, mod, 0, node, 3);
   }
 
   fprintf(out, "\n");
