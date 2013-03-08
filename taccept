@@ -10,6 +10,10 @@ for t in $list; do
 		if [ -f $t.$all.out ]; then
 			cp -p $t.$all.out $t.$all.ref
 			git add $t.$all.ref
+		else
+			if rm $t.$all.ref 2> /dev/null; then
+				git rm $t.$all.ref
+			fi
 		fi
 	done
 done
