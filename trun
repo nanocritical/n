@@ -12,9 +12,14 @@ fi
 
 for t in $list; do
 	rm -f $t.*.out
+	# Assume that having a .stderr.ref file means the test should fail.
 	if [ -f $t.stderr.ref ]; then
 		if ${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out; then
 			echo "FAILED $t: did not fail"
+			if ! [ -s $t.stderr.out ]; then
+				# Remove empty.
+				rm $t.stderr.out
+			fi
 		fi
 	else
 		if ! ${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out; then

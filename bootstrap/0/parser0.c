@@ -40,6 +40,9 @@ const char *node_which_strings[] = {
   [DEFNAME] = "DEFNAME",
   [DEFPATTERN] = "DEFPATTERN",
   [DEFARG] = "DEFARG",
+  [GENARGS] = "GENARGS",
+  [DEFGENARG] = "DEFGENARG",
+  [SETGENARG] = "SETGENARG",
   [LET] = "LET",
   [DEFFIELD] = "DEFFIELD",
   [DEFCHOICE] = "DEFCHOICE",
@@ -99,6 +102,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NREF] = "nref",
   [ID_TBI_NMREF] = "nmref",
   [ID_TBI_NMMREF] = "nmmref",
+  [ID_TBI_NUMERIC] = "Numeric",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
   [ID_TBI_HAS_EQUALITY] = "HasEquality",
   [ID_TBI_ORDERED] = "Ordered",
@@ -2169,6 +2173,39 @@ again:
   goto again;
 }
 
+static error p_defgenarg(struct node *node, struct module *mod) {
+  node->which = DEFGENARG;
+  error e = p_expr(node_new_subnode(mod, node), mod, TCOLON);
+  EXCEPT(e);
+
+  e = scan_expected(mod, TCOLON);
+  EXCEPT(e);
+
+  e = p_typeexpr(node_new_subnode(mod, node), mod);
+  EXCEPT(e);
+  return 0;
+}
+
+static error p_genargs(struct node *node, struct module *mod) {
+  node->which = GENARGS;
+
+  error e;
+  struct token tok;
+again:
+  e = scan(&tok, mod);
+  EXCEPT(e);
+  if (tok.t == TASSIGN) {
+    return 0;
+  }
+  back(mod, &tok);
+
+  e = p_defgenarg(node_new_subnode(mod, node), mod);
+  EXCEPT(e);
+  goto again;
+
+  return 0;
+}
+
 static error p_deftype(struct node *node, struct module *mod, const struct toplevel *toplevel) {
   node->which = DEFTYPE;
   node->as.DEFTYPE.toplevel = *toplevel;
@@ -2176,7 +2213,7 @@ static error p_deftype(struct node *node, struct module *mod, const struct tople
   error e = p_ident(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
-  e = scan_expected(mod, TASSIGN);
+  e = p_genargs(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
   e = p_isalist(node_new_subnode(mod, node), mod);
@@ -2279,7 +2316,7 @@ static error p_defintf(struct node *node, struct module *mod, const struct tople
   error e = p_ident(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
-  e = scan_expected(mod, TASSIGN);
+  e = p_genargs(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
   e = p_isalist(node_new_subnode(mod, node), mod);
@@ -2582,12 +2619,23 @@ error need_instance(struct module *mod, struct node *needer, const struct typ *t
   return 0;
 }
 
-void module_return_set(struct module *mod, const struct node *return_node) {
-  mod->return_node = return_node;
+void module_return_push(struct module *mod, const struct node *return_node) {
+  mod->return_nodes_count += 1;
+  mod->return_nodes = realloc(mod->return_nodes,
+                              mod->return_nodes_count * sizeof(*mod->return_nodes));
+  mod->return_nodes[mod->return_nodes_count - 1] = return_node;
 }
 
 const struct node *module_return_get(struct module *mod) {
-  return mod->return_node;
+  assert(mod->return_nodes_count > 0);
+  return mod->return_nodes[mod->return_nodes_count - 1];
+}
+
+void module_return_pop(struct module *mod) {
+  assert(mod->return_nodes_count > 0);
+  mod->return_nodes_count -= 1;
+  mod->return_nodes = realloc(mod->return_nodes,
+                              mod->return_nodes_count * sizeof(*mod->return_nodes));
 }
 
 void module_excepts_open_try(struct module *mod) {
@@ -2659,9 +2707,26 @@ struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
   return mod->gctx->builtin_typs[id];
 }
 
-static bool typ_gen_match(const struct typ *a, const struct typ *b) {
+static bool typ_same_generic(const struct typ *a, const struct typ *b) {
   assert(a->gen_arity > 0 && b->gen_arity > 0);
   return a->gen_arity == b->gen_arity && a->gen_args[0] == b->gen_args[0];
+}
+
+bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b) {
+  if (a == b) {
+    return TRUE;
+  }
+
+  if (a->gen_arity > 0 && typ_same_generic(a, b)) {
+    for (size_t n = 0; n < a->gen_arity; ++n) {
+      if (!typ_equal(mod, a->gen_args[1+n], b->gen_args[1+n])) {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 error typ_compatible(const struct module *mod, const struct node *for_error,
@@ -2671,16 +2736,7 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
   }
 
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
-    if (constraint == typ_lookup_builtin(mod, TBI_U8)
-        || constraint == typ_lookup_builtin(mod, TBI_U16)
-        || constraint == typ_lookup_builtin(mod, TBI_U32)
-        || constraint == typ_lookup_builtin(mod, TBI_U64)
-        || constraint == typ_lookup_builtin(mod, TBI_I8)
-        || constraint == typ_lookup_builtin(mod, TBI_I16)
-        || constraint == typ_lookup_builtin(mod, TBI_I32)
-        || constraint == typ_lookup_builtin(mod, TBI_I64)
-        || constraint == typ_lookup_builtin(mod, TBI_SIZE)
-        || constraint == typ_lookup_builtin(mod, TBI_SSIZE)) {
+    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_NUMERIC))) {
       return 0;
     }
   }
@@ -2693,7 +2749,7 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     }
   }
 
-  if (a->gen_arity > 0 && typ_gen_match(a, constraint)) {
+  if (a->gen_arity > 0 && typ_same_generic(a, constraint)) {
     for (size_t n = 0; n < a->gen_arity; ++n) {
       error e = typ_compatible(mod, for_error, a->gen_args[1+n], constraint->gen_args[1+n]);
       EXCEPT(e);
@@ -2709,17 +2765,10 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
 
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error,
                              const struct typ *a) {
-  if (a == typ_lookup_builtin(mod, TBI_U8)
-      || a == typ_lookup_builtin(mod, TBI_U16)
-      || a == typ_lookup_builtin(mod, TBI_U32)
-      || a == typ_lookup_builtin(mod, TBI_U64)
-      || a == typ_lookup_builtin(mod, TBI_I8)
-      || a == typ_lookup_builtin(mod, TBI_I16)
-      || a == typ_lookup_builtin(mod, TBI_I32)
-      || a == typ_lookup_builtin(mod, TBI_I64)
-      || a == typ_lookup_builtin(mod, TBI_SIZE)
-      || a == typ_lookup_builtin(mod, TBI_SSIZE)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
+  if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
+    return 0;
+  }
+  if (typ_isa(mod, a, typ_lookup_builtin(mod, TBI_NUMERIC))) {
     return 0;
   }
 

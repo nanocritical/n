@@ -1,0 +1,31 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+struct _ngen_t01_genericsum_container__nlang_builtins_i32;
+typedef struct _ngen_t01_genericsum_container__nlang_builtins_i32 _ngen_t01_genericsum_container__nlang_builtins_i32;
+struct _ngen_t01_genericsum_container__nlang_builtins_i32 {
+nlang_builtins_i32 x;
+}
+;
+typedef const _ngen_t01_genericsum_container__nlang_builtins_i32* _ngen_nlang_builtins_ref___ngen_t01_genericsum_container__nlang_builtins_i32;
+typedef _ngen_nlang_builtins_ref___ngen_t01_genericsum_container__nlang_builtins_i32 _ngen_nlang_builtins_nref___ngen_t01_genericsum_container__nlang_builtins_i32;
+typedef _ngen_t01_genericsum_container__nlang_builtins_i32* _ngen_nlang_builtins_mref___ngen_t01_genericsum_container__nlang_builtins_i32;
+typedef _ngen_nlang_builtins_mref___ngen_t01_genericsum_container__nlang_builtins_i32 _ngen_nlang_builtins_mmref___ngen_t01_genericsum_container__nlang_builtins_i32;
+typedef _ngen_nlang_builtins_mref___ngen_t01_genericsum_container__nlang_builtins_i32 _ngen_nlang_builtins_nmref___ngen_t01_genericsum_container__nlang_builtins_i32;
+typedef _ngen_nlang_builtins_mref___ngen_t01_genericsum_container__nlang_builtins_i32 _ngen_nlang_builtins_nmmref___ngen_t01_genericsum_container__nlang_builtins_i32;
+nlang_builtins_void t01_genericsum_container_add(_ngen_nlang_builtins_mref___ngen_t01_genericsum_container__nlang_builtins_i32 self, nlang_builtins_i32 x){
+#define THIS(x) _ngen_t01_genericsum_container__nlang_builtins_i32##x
+ {
+self->x += x;
+}
+#undef THIS
+}
+
+
+nlang_builtins_i32 main(void){
+ {
+_ngen_t01_genericsum_container__nlang_builtins_i32 v = (_ngen_t01_genericsum_container__nlang_builtins_i32){ .x = (nlang_builtins_i32)0,}; {
+t01_genericsum_container_add(&v, (nlang_builtins_i32)1);
+};
+return v.x - (nlang_builtins_i32)1;
+}
+}

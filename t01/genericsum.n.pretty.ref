@@ -1,0 +1,12 @@
+from nlang import *
+type container =
+  let this = container
+  x:t
+
+container method add self:@!this = void
+  self!x += x
+
+export fun main = i32
+  let v = container i32{{ x=0 }}
+    t01.genericsum.container.add @!v 1
+  return v.x - 1

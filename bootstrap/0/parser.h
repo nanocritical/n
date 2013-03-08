@@ -39,6 +39,9 @@ enum node_which {
   DEFNAME,
   DEFPATTERN,
   DEFARG,
+  GENARGS,
+  DEFGENARG,
+  SETGENARG,
   LET,
   DEFFIELD,
   DEFCHOICE,
@@ -105,7 +108,9 @@ struct toplevel {
   struct node *full_definition;
   enum builtingen builtingen;
 
-  const struct typ **instances;
+  struct node **instances;
+  size_t instances_count;
+  struct node *generic_definition;
 };
 
 struct node_nul {};
@@ -157,6 +162,9 @@ struct node_deftype {
 
   enum deftype_kind kind;
   const struct typ *choice_typ;
+
+  struct node **members;
+  size_t members_count;
 };
 struct node_defmethod {
   struct toplevel toplevel;
@@ -271,6 +279,14 @@ struct node {
   uint32_t flags;
 };
 
+enum subnode_idx {
+  IDX_GENARGS = 1,
+  IDX_ISALIST = 2,
+  IDX_BLOCK = 3,
+  IDX_CH_VALUE = 1,
+  IDX_CH_PAYLOAD = 2,
+};
+
 struct idents_map;
 
 struct idents {
@@ -326,6 +342,7 @@ enum predefined_idents {
   ID_TBI_NREF,
   ID_TBI_NMREF,
   ID_TBI_NMMREF,
+  ID_TBI_NUMERIC,
   ID_TBI_NATIVE_INTEGER,
   ID_TBI_HAS_EQUALITY,
   ID_TBI_ORDERED,
@@ -409,6 +426,7 @@ enum typ_builtin {
   TBI_NREF, // ?@
   TBI_NMREF, // ?@!
   TBI_NMMREF, // ?@#
+  TBI_NUMERIC,
   TBI_NATIVE_INTEGER,
   TBI_HAS_EQUALITY,
   TBI_ORDERED,
@@ -476,7 +494,8 @@ struct module {
   size_t next_gensym;
 
   bool intf_uses_this;
-  const struct node *return_node;
+  const struct node **return_nodes;
+  size_t return_nodes_count;
   struct try_excepts *trys;
   size_t trys_count;
 
@@ -489,8 +508,9 @@ void globalctx_init(struct globalctx *gctx);
 error module_open(struct globalctx *gctx, struct module *mod,
                   const char *prefix, const char *fn);
 error need_instance(struct module *mod, struct node *needer, const struct typ *typ);
-void module_return_set(struct module *mod, const struct node *return_node);
+void module_return_push(struct module *mod, const struct node *return_node);
 const struct node *module_return_get(struct module *mod);
+void module_return_pop(struct module *mod);
 void module_excepts_open_try(struct module *mod);
 void module_excepts_push(struct module *mod, struct node *return_node);
 void module_excepts_close_try(struct module *mod);
@@ -545,6 +565,7 @@ void node_deepcopy(struct module *mod, struct node *dst,
 struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id);
+bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b);
 error typ_compatible(const struct module *mod, const struct node *for_error,
                      const struct typ *a, const struct typ *constraint);
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error, const struct typ *a);

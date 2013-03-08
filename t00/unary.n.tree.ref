@@ -3,6 +3,7 @@ MODULE_BODY
   IDENT(nlang)
  DEFTYPE :t00.unary.t
   IDENT(t)
+  GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.WorkaroundRBC
     IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
