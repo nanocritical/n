@@ -280,9 +280,7 @@ static error is_local_name(bool *is_local, const struct module *mod, const struc
 }
 
 static void print_deftype_name(FILE *out, const struct module *mod, const struct node *node) {
-  char *n = replace_dots(scope_name(mod, node->scope));
-  fprintf(out, "%s", n);
-  free(n);
+  print_typ(out, mod, node->typ);
 }
 
 static void print_deffun_name(FILE *out, const struct module *mod, const struct node *node) {
@@ -1209,6 +1207,14 @@ static void print_deftype(FILE *out, bool header, const struct module *mod, cons
   if (typ_is_builtin(mod, node->typ)) {
     if (!is_pseudo_tbi(mod, node->typ)) {
       print_deftype_typedefs(out, header, mod, node);
+    }
+    return;
+  }
+
+  if (node_toplevel_const(node)->instances_count > 1) {
+    const struct toplevel *toplevel = node_toplevel_const(node);
+    for (size_t n = 1; n < toplevel->instances_count; ++n) {
+      print_deftype(out, header, mod, toplevel->instances[n]);
     }
     return;
   }

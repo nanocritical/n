@@ -1,0 +1,8 @@
+from nlang import *
+
+type container t:Copyable =
+  x:t
+
+export fun main = i32
+  let v = (container i32){{ x=1 }}
+  return v.x - 1

@@ -115,17 +115,22 @@ static size_t find_subnode_in_parent(struct node *parent, struct node *node) {
   return 0;
 }
 
-static void make_instance_deepcopy_from_pristine(struct module *mod,
-                                                 struct node *node,
-                                                 struct node *pristine) {
+static struct node *add_instance_deepcopy_from_pristine(struct module *mod,
+                                                        struct node *node,
+                                                        struct node *pristine) {
   struct toplevel *toplevel = node_toplevel(node);
   const size_t idx = toplevel->instances_count;
   toplevel->instances_count += 1;
   toplevel->instances = realloc(toplevel->instances,
                                 toplevel->instances_count * sizeof(*toplevel->instances));
-  toplevel->instances[idx] = calloc(1, sizeof(*toplevel->instances[idx]));
+  struct node *instance = calloc(1, sizeof(**toplevel->instances));
+  toplevel->instances[idx] = instance;
 
-  node_deepcopy(mod, toplevel->instances[idx], pristine);
+  node_deepcopy(mod, instance, pristine);
+  node_toplevel(instance)->instances = NULL;
+  node_toplevel(instance)->instances_count = 0;
+
+  return instance;
 }
 
 static error step_generics_pristine_copy(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -140,7 +145,7 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node, 
     return 0;
   }
 
-  make_instance_deepcopy_from_pristine(mod, node, node);
+  (void) add_instance_deepcopy_from_pristine(mod, node, node);
   return 0;
 }
 
@@ -438,8 +443,10 @@ static error step_add_scopes(struct module *mod, struct node *node, void *user, 
     //   (i) never rewritten,
     //   (ii) are typed void when created, to allow global module lookup to
     //   use the 'typ' field when typing import nodes.
-    node->typ = NULL;
-    node->flags = 0;
+    if (node->which != SETGENARG) {
+      node->typ = NULL;
+      node->flags = 0;
+    }
   }
 
   for (size_t n = 0; n < node->subs_count; ++n) {
@@ -687,6 +694,13 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
     break;
   case DEFTYPE:
   case DEFINTF:
+    if (node_toplevel_const(node)->generic_definition != NULL) {
+      sc = NULL;
+    } else {
+      id = node->subs[0];
+      sc = node->scope->parent;
+    }
+    break;
   case DEFFIELD:
   case DEFCHOICE:
     id = node->subs[0];
@@ -704,15 +718,17 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
     return 0;
   }
 
-  e = scope_define(mod, sc, id, node);
-  EXCEPT(e);
+  if (sc != NULL) {
+    e = scope_define(mod, sc, id, node);
+    EXCEPT(e);
+  }
 
   switch (node->which) {
   case DEFTYPE:
   case DEFINTF:
     for (size_t n = 0; n < node->subs[IDX_GENARGS]->subs_count; ++n) {
       struct node *ga = node->subs[IDX_GENARGS]->subs[n];
-      assert(ga->which == DEFGENARG);
+      assert(ga->which == DEFGENARG || ga->which == SETGENARG);
       e = scope_define(mod, node->scope, ga->subs[0], ga);
       EXCEPT(e);
     }
@@ -767,6 +783,7 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   switch (node->which) {
   case DEFARG:
   case DEFGENARG:
+  case SETGENARG:
   case TYPECONSTRAINT:
     mark_subs(mod, node, pending, 0, 1, 1);
     break;
@@ -853,6 +870,18 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
     // module path.
     mod->gctx->builtin_typs_by_name[id]->definition = node;
     node->typ = mod->gctx->builtin_typs_by_name[id];
+  } else if (node->subs[IDX_GENARGS]->subs_count > 0
+             && node->subs[IDX_GENARGS]->subs[0]->which == SETGENARG) {
+    struct typ *mutable_typ = typ_new(node_toplevel(node)->generic_definition,
+                                      TYPE_DEF, node->subs[IDX_GENARGS]->subs_count, 0);
+    mutable_typ->gen_args[0] = node_toplevel(node)->generic_definition->typ;
+    mutable_typ->definition = node;
+    node->typ = mutable_typ;
+
+    for (size_t n = 0; n < node->typ->gen_arity; ++n) {
+      assert(node->subs[IDX_GENARGS]->subs[n]->typ != NULL);
+      node->typ->gen_args[1 + n] = node->subs[IDX_GENARGS]->subs[n]->typ;
+    }
   } else {
     node->typ = typ_new(node, TYPE_DEF, 0, 0);
   }
@@ -1276,11 +1305,121 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
   return 0;
 }
 
+static bool is_instance_for(struct module *mod, struct node *i, struct node *node) {
+  if (node->subs_count - 1 != i->typ->gen_arity) {
+    return FALSE;
+  }
+
+  for (size_t n = 1; n < node->subs_count; ++n) {
+    if (!typ_equal(mod, i->typ->gen_args[n], node->subs[n]->typ)) {
+      return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
+static error rewrite_instance_genargs(struct module *mod,
+                                      struct node *instance, struct node *expr) {
+  struct node *genargs = instance->subs[IDX_GENARGS];
+  for (size_t n = 0; n < genargs->subs_count; ++n) {
+    if (!(expr->subs[1+n]->flags & NODE_IS_TYPE)) {
+      error e = mk_except_type(mod, expr->subs[1+n],
+                               "generic type argument is not a type expression");
+      EXCEPT(e);
+    }
+
+    struct node *ga = genargs->subs[n];
+    ga->which = SETGENARG;
+    // FIXME leaking ga->subs[1]
+    ga->subs[1]->which = DIRECTDEF;
+    assert(expr->subs[1+n]->typ->definition != NULL);
+    ga->subs[1]->as.DIRECTDEF.definition = expr->subs[1+n]->typ->definition;
+
+    // For the benefit of step_type_definitions
+    ga->typ = expr->subs[1+n]->typ;
+    ga->flags = NODE_IS_TYPE;
+  }
+
+  return 0;
+}
+
+static error step_reset_typs(struct module *mod, struct node *node, void *user, bool *stop) {
+  node->typ = NULL;
+  return 0;
+}
+
+static error reset_typs(struct module *mod, struct node *node) {
+  static const step down[] = {
+    step_reset_typs,
+    NULL,
+  };
+
+  static const step up[] = {
+    NULL,
+  };
+
+  error e = pass(mod, node, down, up, NULL, NULL);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static error type_inference_generic_instantiation(struct module *mod, struct node *node) {
+  struct node *fun = node->subs[0];
+  struct node *gendef = fun->typ->definition;
+
+  struct node *genargs = gendef->subs[IDX_GENARGS];
+  if (genargs->subs_count != node->subs_count - 1) {
+    error e = mk_except_type(mod, node, "wrong number of generic type arguments\n");
+    EXCEPT(e);
+  }
+
+  for (size_t n = 0; n < genargs->subs_count; ++n) {
+    struct node *arg = node->subs[1+n];
+    error e = reset_typs(mod, arg);
+    assert(!e);
+    e = firstpass(mod, arg, NULL);
+    EXCEPT(e);
+    e = typ_check_isa(mod, arg, arg->typ, genargs->subs[n]->typ);
+    EXCEPT(e);
+  }
+
+  for (size_t n = 0; n < gendef->subs[IDX_GENARGS]->subs_count; ++n) {
+    struct node *i = gendef->subs[IDX_GENARGS]->subs[n];
+    if (is_instance_for(mod, i, node)) {
+      node->typ = i->typ;
+      return 0;
+    }
+  }
+
+  struct node *pristine = node_toplevel(gendef)->instances[0];
+  struct node *instance = add_instance_deepcopy_from_pristine(mod, gendef, pristine);
+  node_toplevel(instance)->generic_definition = gendef;
+
+  error e = rewrite_instance_genargs(mod, instance, node);
+  EXCEPT(e);
+
+  e = zero_to_second_for_generated(mod, instance, NULL, gendef->scope->parent);
+  EXCEPT(e);
+
+  node->typ = instance->typ;
+
+  return 0;
+}
+
 static error type_inference_call(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
 
+  if (fun->typ->which == TYPE_DEF
+      && fun->typ->definition->subs[IDX_GENARGS]->subs_count > 0) {
+    error e = type_inference_generic_instantiation(mod, node);
+    EXCEPT(e);
+    return 0;
+  }
+
   if (fun->typ->which != TYPE_FUNCTION) {
-    error e = mk_except_type(mod, fun, "not a function or sum type constructor");
+    error e = mk_except_type(mod, fun, "not a generic type, function or sum type constructor");
     EXCEPT(e);
   }
 
@@ -1622,6 +1761,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case INIT:
     e = type_inference_init(mod, node);
+    assert(!e);
     EXCEPT(e);
     goto ok;
   case RETURN:
@@ -1662,6 +1802,11 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case TRY:
     e = type_inference_try(mod, node);
+    EXCEPT(e);
+    goto ok;
+  case SETGENARG:
+    node->typ = node->subs[1]->typ;
+    e = type_destruct(mod, node->subs[0], node->typ);
     EXCEPT(e);
     goto ok;
   case DEFARG:
@@ -2364,10 +2509,6 @@ static error step_copy_call_inference(struct module *mod, struct node *node, voi
   return 0;
 }
 
-static error step_gather_generics(struct module *mod, struct node *node, void *user, bool *stop) {
-  return 0;
-}
-
 struct temporaries {
   struct node **rvalues;
   size_t count;
@@ -2547,7 +2688,6 @@ static const step secondpass_up[] = {
   step_ctor_call_inference,
   step_dtor_call_inference,
   step_copy_call_inference,
-  step_gather_generics,
   step_define_temporary_rvalues,
   NULL,
 };

@@ -41,6 +41,7 @@ enum node_which {
   DEFARG,
   GENARGS,
   DEFGENARG,
+  SETGENARG,
   LET,
   DEFFIELD,
   DEFCHOICE,
@@ -109,6 +110,7 @@ struct toplevel {
 
   struct node **instances;
   size_t instances_count;
+  struct node *generic_definition;
 };
 
 struct node_nul {};
@@ -557,6 +559,7 @@ void node_deepcopy(struct module *mod, struct node *dst,
 struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id);
+bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b);
 error typ_compatible(const struct module *mod, const struct node *for_error,
                      const struct typ *a, const struct typ *constraint);
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error, const struct typ *a);

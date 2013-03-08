@@ -42,6 +42,7 @@ const char *node_which_strings[] = {
   [DEFARG] = "DEFARG",
   [GENARGS] = "GENARGS",
   [DEFGENARG] = "DEFGENARG",
+  [SETGENARG] = "SETGENARG",
   [LET] = "LET",
   [DEFFIELD] = "DEFFIELD",
   [DEFCHOICE] = "DEFCHOICE",
@@ -2698,6 +2699,23 @@ struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
 static bool typ_same_generic(const struct typ *a, const struct typ *b) {
   assert(a->gen_arity > 0 && b->gen_arity > 0);
   return a->gen_arity == b->gen_arity && a->gen_args[0] == b->gen_args[0];
+}
+
+bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b) {
+  if (a == b) {
+    return TRUE;
+  }
+
+  if (a->gen_arity > 0 && typ_same_generic(a, b)) {
+    for (size_t n = 0; n < a->gen_arity; ++n) {
+      if (!typ_equal(mod, a->gen_args[1+n], b->gen_args[1+n])) {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 error typ_compatible(const struct module *mod, const struct node *for_error,
