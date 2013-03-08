@@ -463,7 +463,8 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
     } else {
       fprintf(out, "_ngen_%s", replace_dots(typ_name(mod, typ)));
       for (size_t n = 1; n < typ->gen_arity + 1; ++n) {
-        fprintf(out, "__%s", replace_dots(typ_name(mod, typ->gen_args[n])));
+        fprintf(out, "__");
+        print_typ(out, mod, typ->gen_args[n]);
       }
     }
     break;
@@ -524,6 +525,7 @@ static void print_let(FILE *out, bool header, const struct module *mod, const st
 
   if (node->subs_count > 1) {
     assert(!node_is_inline(node));
+    fprintf(out, ";");
     print_block(out, header, mod, node->subs[1]);
   }
 }
@@ -1214,7 +1216,12 @@ static void print_deftype(FILE *out, bool header, const struct module *mod, cons
   if (node_toplevel_const(node)->instances_count > 1) {
     const struct toplevel *toplevel = node_toplevel_const(node);
     for (size_t n = 1; n < toplevel->instances_count; ++n) {
-      print_deftype(out, header, mod, toplevel->instances[n]);
+      const struct node *instance = toplevel->instances[n];
+      print_deftype(out, header, mod, instance);
+
+      for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
+        print_deffun(out, header, mod, instance->as.DEFTYPE.members[n]);
+      }
     }
     return;
   }
@@ -1304,13 +1311,16 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
     const struct node *node = top->subs[n];
     switch (node->which) {
     case DEFFUN:
-      print_deffun(out, header, mod, node);
+    case DEFMETHOD:
+      if (node_toplevel_const(node)->scope_name != 0
+          && node_toplevel_const(node->scope->parent->node)->instances_count > 1) {
+        // noop
+      } else {
+        print_deffun(out, header, mod, node);
+      }
       break;
     case DEFTYPE:
       print_deftype(out, header, mod, node);
-      break;
-    case DEFMETHOD:
-      print_deffun(out, header, mod, node);
       break;
     case DEFINTF:
       print_defintf(out, header, mod, node);

@@ -162,6 +162,9 @@ struct node_deftype {
 
   enum deftype_kind kind;
   const struct typ *choice_typ;
+
+  struct node **members;
+  size_t members_count;
 };
 struct node_defmethod {
   struct toplevel toplevel;
@@ -279,6 +282,7 @@ struct node {
 enum subnode_idx {
   IDX_GENARGS = 1,
   IDX_ISALIST = 2,
+  IDX_BLOCK = 3,
   IDX_CH_VALUE = 1,
   IDX_CH_PAYLOAD = 2,
 };
@@ -490,7 +494,8 @@ struct module {
   size_t next_gensym;
 
   bool intf_uses_this;
-  const struct node *return_node;
+  const struct node **return_nodes;
+  size_t return_nodes_count;
   struct try_excepts *trys;
   size_t trys_count;
 
@@ -503,8 +508,9 @@ void globalctx_init(struct globalctx *gctx);
 error module_open(struct globalctx *gctx, struct module *mod,
                   const char *prefix, const char *fn);
 error need_instance(struct module *mod, struct node *needer, const struct typ *typ);
-void module_return_set(struct module *mod, const struct node *return_node);
+void module_return_push(struct module *mod, const struct node *return_node);
 const struct node *module_return_get(struct module *mod);
+void module_return_pop(struct module *mod);
 void module_excepts_open_try(struct module *mod);
 void module_excepts_push(struct module *mod, struct node *return_node);
 void module_excepts_close_try(struct module *mod);

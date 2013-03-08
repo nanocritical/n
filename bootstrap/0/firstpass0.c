@@ -130,7 +130,28 @@ static struct node *add_instance_deepcopy_from_pristine(struct module *mod,
   node_toplevel(instance)->instances = NULL;
   node_toplevel(instance)->instances_count = 0;
 
+  instance->as.DEFTYPE.members_count = pristine->as.DEFTYPE.members_count,
+  instance->as.DEFTYPE.members = calloc(instance->as.DEFTYPE.members_count,
+                                        sizeof(*instance->as.DEFTYPE.members));
+  for (size_t n = 0; n < pristine->as.DEFTYPE.members_count; ++n) {
+    instance->as.DEFTYPE.members[n] = calloc(1, sizeof(**instance->as.DEFTYPE.members));
+    node_deepcopy(mod, instance->as.DEFTYPE.members[n], pristine->as.DEFTYPE.members[n]);
+  }
+
   return instance;
+}
+
+static void add_deftype_pristine_external_member(struct module *mod, struct node *deft,
+                                                 struct node *member) {
+  assert(deft->which == DEFTYPE);
+  struct node *pristine = node_toplevel(deft)->instances[0];
+
+  pristine->as.DEFTYPE.members_count += 1;
+  pristine->as.DEFTYPE.members = realloc(
+    pristine->as.DEFTYPE.members,
+    pristine->as.DEFTYPE.members_count * sizeof(*pristine->as.DEFTYPE.members));
+
+  pristine->as.DEFTYPE.members[pristine->as.DEFTYPE.members_count - 1] = member;
 }
 
 static error step_generics_pristine_copy(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -138,15 +159,12 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node, 
   case DEFTYPE:
   case DEFINTF:
     if (node->subs[IDX_GENARGS]->subs_count > 0) {
-      break;
+      (void) add_instance_deepcopy_from_pristine(mod, node, node);
     }
     return 0;
   default:
     return 0;
   }
-
-  (void) add_instance_deepcopy_from_pristine(mod, node, node);
-  return 0;
 }
 
 static error step_detect_prototypes(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -685,17 +703,36 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
         || node->scope->parent->node->which == DEFINTF) {
       sc = node->scope->parent;
     } else {
-      e = scope_lookup_ident_wontimport(&container, mod, node->scope->parent,
-                                        toplevel->scope_name, FALSE);
-      EXCEPT(e);
-      sc = container->scope;
-      node->scope->parent = sc;
+      if (node->scope->parent->node->which == DEFTYPE) {
+        // Generic instance members already have the 'right' parent.
+        container = node->scope->parent->node;
+        sc = container->scope;
+      } else {
+        e = scope_lookup_ident_wontimport(&container, mod, node->scope->parent,
+                                          toplevel->scope_name, FALSE);
+        EXCEPT(e);
+        sc = container->scope;
+        node->scope->parent = sc;
+      }
+
+      const struct toplevel *toplevel = node_toplevel_const(container);
+      if (toplevel != NULL
+          && toplevel->instances != NULL
+          && toplevel->generic_definition == NULL) {
+        add_deftype_pristine_external_member(mod, container, node);
+      }
     }
     break;
   case DEFTYPE:
   case DEFINTF:
     if (node_toplevel_const(node)->generic_definition != NULL) {
       sc = NULL;
+
+      // For generic instances, define the name in its own scope, to make
+      // sure lookups inside the instance resolve to the instance itself
+      // (i.e. the definition of this).
+      e = scope_define(mod, node->scope, node->subs[0], node);
+      EXCEPT(e);
     } else {
       id = node->subs[0];
       sc = node->scope->parent;
@@ -898,7 +935,7 @@ static error step_type_gather_returns(struct module *mod, struct node *node, voi
   switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
-    module_return_set(mod, node_fun_retval(node));
+    module_return_push(mod, node_fun_retval(node));
     break;
   default:
     break;
@@ -1039,6 +1076,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
   if (typ_is_concrete(mod, node->subs[0]->typ)
       && typ_is_concrete(mod, node->subs[1]->typ)) {
     e = typ_compatible(mod, node, node->subs[0]->typ, node->subs[1]->typ);
+    assert(!e);
     EXCEPT(e);
   } else if (typ_is_concrete(mod, node->subs[0]->typ)) {
     e = type_destruct(mod, node->subs[1], node->subs[0]->typ);
@@ -1402,6 +1440,12 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
 
   e = zero_to_second_for_generated(mod, instance, NULL, gendef->scope->parent);
   EXCEPT(e);
+
+  for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
+    e = zero_to_second_for_generated(mod, instance->as.DEFTYPE.members[n],
+                                     NULL, instance->scope);
+    EXCEPT(e);
+  }
 
   node->typ = instance->typ;
 
@@ -1825,7 +1869,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     }
     node->typ->fun_args[node->typ->fun_arity] = node_fun_retval(node)->typ;
     node->flags |= NODE_IS_TYPE;
-    module_return_set(mod, NULL);
+    module_return_pop(mod);
     goto ok;
   case DEFMETHOD:
     node->typ = typ_new(node, TYPE_FUNCTION, 0,
@@ -1835,7 +1879,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     }
     node->typ->fun_args[node->typ->fun_arity] = node_fun_retval(node)->typ;
     node->flags |= NODE_IS_TYPE;
-    module_return_set(mod, NULL);
+    module_return_pop(mod);
     goto ok;
   case DEFINTF:
     goto ok;

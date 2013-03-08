@@ -2619,12 +2619,23 @@ error need_instance(struct module *mod, struct node *needer, const struct typ *t
   return 0;
 }
 
-void module_return_set(struct module *mod, const struct node *return_node) {
-  mod->return_node = return_node;
+void module_return_push(struct module *mod, const struct node *return_node) {
+  mod->return_nodes_count += 1;
+  mod->return_nodes = realloc(mod->return_nodes,
+                              mod->return_nodes_count * sizeof(*mod->return_nodes));
+  mod->return_nodes[mod->return_nodes_count - 1] = return_node;
 }
 
 const struct node *module_return_get(struct module *mod) {
-  return mod->return_node;
+  assert(mod->return_nodes_count > 0);
+  return mod->return_nodes[mod->return_nodes_count - 1];
+}
+
+void module_return_pop(struct module *mod) {
+  assert(mod->return_nodes_count > 0);
+  mod->return_nodes_count -= 1;
+  mod->return_nodes = realloc(mod->return_nodes,
+                              mod->return_nodes_count * sizeof(*mod->return_nodes));
 }
 
 void module_excepts_open_try(struct module *mod) {
