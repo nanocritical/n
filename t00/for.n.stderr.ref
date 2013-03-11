@@ -1,0 +1,2 @@
+t00/for.n.c.out: In function ‘main’:
+t00/for.n.c.out:8:21: warning: unused variable ‘i’ [-Wunused-variable]

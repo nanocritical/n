@@ -139,7 +139,10 @@ struct node_future {};
 struct node_lambda {};
 struct node_init {};
 struct node_return {};
-struct node_for {};
+struct node_for {
+  struct node *pattern;
+  struct node *block;
+};
 struct node_while {};
 struct node_break {};
 struct node_continue {};
@@ -233,6 +236,7 @@ union node_as {
   struct node_future FUTURE;
   struct node_init INIT;
   struct node_return RETURN;
+  struct node_for FOR;
   struct node_break BREAK;
   struct node_continue CONTINUE;
   struct node_if IF;
@@ -290,6 +294,9 @@ enum subnode_idx {
   IDX_BLOCK = 3,
   IDX_CH_VALUE = 1,
   IDX_CH_PAYLOAD = 2,
+  IDX_FOR_IT = 0,
+  IDX_FOR_IT_DEFP = 0,
+  IDX_FOR_IT_DEFP_EXPR = 1,
 };
 
 struct idents_map;
@@ -323,6 +330,9 @@ enum predefined_idents {
   ID_AS,
   ID_WHICH_TYPE,
   ID_AS_TYPE,
+  ID_NEXT,
+  ID_GET,
+  ID_IS_VALID,
 
   ID_TBI_VOID,
   ID_TBI__FIRST = ID_TBI_VOID,
@@ -366,6 +376,7 @@ enum predefined_idents {
   ID_TBI_SUM_COPY,
   ID_TBI_SUM_EQUALITY,
   ID_TBI_SUM_ORDER,
+  ID_TBI_ITERATOR,
   ID_TBI__PENDING_DESTRUCT,
   ID_TBI__FIRST_MARKER = ID_TBI__PENDING_DESTRUCT,
   ID_TBI__NOT_TYPEABLE,
@@ -454,6 +465,7 @@ enum typ_builtin {
   TBI_SUM_COPY,
   TBI_SUM_EQUALITY,
   TBI_SUM_ORDER,
+  TBI_ITERATOR,
   TBI__PENDING_DESTRUCT,
   TBI__NOT_TYPEABLE,
   TBI__CALL_FUNCTION_SLOT,

@@ -81,6 +81,9 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_AS] = "as__",
   [ID_WHICH_TYPE] = "which_type__",
   [ID_AS_TYPE] = "as_type__",
+  [ID_NEXT] = "next",
+  [ID_GET] = "get",
+  [ID_IS_VALID] = "is_valid",
   [ID_TBI_VOID] = "void",
   [ID_TBI_LITERALS_NULL] = "__null__",
   [ID_TBI_LITERALS_INTEGER] = "integer",
@@ -122,6 +125,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_SUM_COPY] = "SumCopy",
   [ID_TBI_SUM_EQUALITY] = "SumEquality",
   [ID_TBI_SUM_ORDER] = "SumOrder",
+  [ID_TBI_ITERATOR] = "Iterator",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_TBI__CALL_FUNCTION_SLOT] = "__call_function_slot__",
@@ -1710,17 +1714,56 @@ again:
 static error p_for(struct node *node, struct module *mod) {
   node->which = FOR;
 
-  struct node *pat = mk_node(mod, node, DEFPATTERN);
-  error e = p_expr(pat, mod, T__NOT_STATEMENT);
+  node->as.FOR.pattern = calloc(1, sizeof(*node->as.FOR.pattern));
+  error e = p_expr(node->as.FOR.pattern, mod, T__NOT_STATEMENT);
   EXCEPT(e);
+
   e = scan_expected(mod, Tin);
   EXCEPT(e);
-  e = p_expr(node_new_subnode(mod, pat), mod, T__NOT_STATEMENT);
+
+  struct node *let_it = mk_node(mod, node, LET);
+  struct node *it = mk_node(mod, let_it, DEFPATTERN);
+  struct node *it_var = mk_node(mod, it, IDENT);
+  it_var->as.IDENT.name = gensym(mod);
+
+  e = p_expr(node_new_subnode(mod, it), mod, T__NOT_STATEMENT);
   EXCEPT(e);
+
+  struct node *let_it_block = mk_node(mod, let_it, BLOCK);
+  struct node *loop = mk_node(mod, let_it_block, WHILE);
+  struct node *v = mk_node(mod, loop, CALL);
+  struct node *vm = mk_node(mod, v, BIN);
+  vm->as.BIN.operator = TDOT;
+  struct node *vmi = mk_node(mod, vm, IDENT);
+  vmi->as.IDENT.name = node_ident(it_var);
+  struct node *vmm = mk_node(mod, vm, IDENT);
+  vmm->as.IDENT.name = ID_IS_VALID;
+
+  struct node *loop_block = mk_node(mod, loop, BLOCK);
+  struct node *let_var = mk_node(mod, loop_block, LET);
+  struct node *var = mk_node(mod, let_var, DEFPATTERN);
+  rew_append(var, node->as.FOR.pattern);
+  struct node *g = mk_node(mod, var, CALL);
+  struct node *gm = mk_node(mod, g, BIN);
+  gm->as.BIN.operator = TDOT;
+  struct node *gmi = mk_node(mod, gm, IDENT);
+  gmi->as.IDENT.name = node_ident(it_var);
+  struct node *gmm = mk_node(mod, gm, IDENT);
+  gmm->as.IDENT.name = ID_GET;
+
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
-  e = p_block(node_new_subnode(mod, node), mod);
+  node->as.FOR.block = mk_node(mod, let_var, BLOCK);
+  e = p_block(node->as.FOR.block, mod);
   EXCEPT(e);
+
+  struct node *n = mk_node(mod, loop_block, CALL);
+  struct node *nm = mk_node(mod, n, BIN);
+  nm->as.BIN.operator = TBANG;
+  struct node *nmi = mk_node(mod, nm, IDENT);
+  nmi->as.IDENT.name = node_ident(it_var);
+  struct node *nmm = mk_node(mod, nm, IDENT);
+  nmm->as.IDENT.name = ID_NEXT;
 
   return 0;
 }

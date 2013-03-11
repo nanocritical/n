@@ -117,6 +117,7 @@ static void print_block(FILE *out, bool header, const struct module *mod, const 
 static void print_typ(FILE *out, const struct module *mod, const struct typ *typ);
 static void print_typeconstraint(FILE *out, bool header, const struct module *mod, const struct node *node);
 static void print_ident(FILE *out, const struct module *mod, const struct node *node);
+static void print_statement(FILE *out, bool header, const struct module *mod, const struct node *node);
 
 static void print_pattern(FILE *out, bool header, const struct module *mod, const struct node *node) {
   print_expr(out, header, mod, node, T__STATEMENT);
@@ -380,11 +381,7 @@ static void print_expr(FILE *out, bool header, const struct module *mod, const s
 }
 
 static void print_for(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  fprintf(out, "for ");
-  print_pattern(out, header, mod, node->subs[0]);
-  fprintf(out, " in ");
-  print_expr(out, header, mod, node->subs[1], T__STATEMENT);
-  print_block(out, header, mod, node->subs[2]);
+  print_statement(out, header, mod, node->subs[0]);
 }
 
 static void print_while(FILE *out, bool header, const struct module *mod, const struct node *node) {

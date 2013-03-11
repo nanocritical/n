@@ -66,3 +66,7 @@ define_native_integer(nlang_builtins_ssize)
 #undef define_native_boolean
 #undef define_native_integer
 #undef NB
+
+void nlang_builtins_abort(void) {
+  abort();
+}

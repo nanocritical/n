@@ -290,16 +290,17 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
 
 static void print_for(FILE *out, const struct module *mod, int indent, const struct node *node) {
   fprintf(out, "for ");
-  print_pattern(out, mod, node->subs[0]);
+  print_pattern(out, mod, node->as.FOR.pattern);
   fprintf(out, " in ");
-  print_expr(out, mod, node->subs[1], T__STATEMENT);
-  print_block(out, mod, indent, node->subs[2]);
+  struct node *expr = node->subs[IDX_FOR_IT]->subs[IDX_FOR_IT_DEFP]->subs[IDX_FOR_IT_DEFP_EXPR];
+  print_expr(out, mod, expr, T__STATEMENT);
+  print_block(out, mod, indent, node->as.FOR.block);
 }
 
 static void print_while(FILE *out, const struct module *mod, int indent, const struct node *node) {
   fprintf(out, "while ");
   print_expr(out, mod, node->subs[0], T__STATEMENT);
-  print_block(out, mod, indent, node->subs[1]);
+  print_block(out, mod, indent, node->subs[node->subs_count - 1]);
 }
 
 static void print_if(FILE *out, const struct module *mod, int indent, const struct node *node) {

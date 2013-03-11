@@ -1,0 +1,51 @@
+MODULE_BODY
+ IMPORT :nlang
+  IDENT(nlang)
+ DEFFUN :t00.for.main
+  IDENT(main)
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.i32
+     IDENT(j) :nlang.builtins.i32
+     TYPECONSTRAINT :nlang.builtins.i32
+      NUMBER(0) :nlang.builtins.i32
+      IDENT(i32) :nlang.builtins.i32
+     DEFNAME(j) :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
+     FOR :nlang.builtins.void
+      LET :nlang.builtins.void
+       DEFPATTERN :nlang.containers.index_iterator
+        IDENT(__gensym0) :nlang.containers.index_iterator
+        CALL :nlang.containers.index_iterator
+         IDENT(range) :nlang.containers.range
+         NUMBER(0) :nlang.builtins.size
+         NUMBER(10) :nlang.builtins.size
+        DEFNAME(__gensym0) :nlang.containers.index_iterator
+       BLOCK :nlang.builtins.void
+        WHILE :nlang.builtins.void
+         CALL :nlang.builtins.bool
+          DIRECTDEF :nlang.containers.index_iterator.is_valid
+          UN(@) :nlang.builtins.ref
+           IDENT(__gensym0) :nlang.containers.index_iterator
+         BLOCK :nlang.builtins.void
+          LET :nlang.builtins.void
+           DEFPATTERN :nlang.builtins.size
+            IDENT(i) :nlang.builtins.size
+            CALL :nlang.builtins.size
+             DIRECTDEF :nlang.containers.index_iterator.get
+             UN(@) :nlang.builtins.ref
+              IDENT(__gensym0) :nlang.containers.index_iterator
+            DEFNAME(i) :nlang.builtins.size
+           BLOCK :nlang.builtins.void
+            BIN( += ) :nlang.builtins.i32
+             IDENT(j) :nlang.builtins.i32
+             NUMBER(1) :nlang.builtins.i32
+          CALL :nlang.builtins.void
+           DIRECTDEF :nlang.containers.index_iterator.next
+           UN(@!) :nlang.builtins.mref
+            IDENT(__gensym0) :nlang.containers.index_iterator
+   RETURN :nlang.builtins.i32
+    BIN( - ) :nlang.builtins.i32
+     IDENT(j) :nlang.builtins.i32
+     NUMBER(10) :nlang.builtins.i32

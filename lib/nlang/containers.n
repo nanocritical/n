@@ -1,0 +1,66 @@
+from nlang.literals import *
+from nlang.builtins import *
+
+export intf Locus = HasEquality CopyableButOwned
+export intf FwdLocus = Locus Ordered
+export intf BidirLocus = Locus Ordered
+
+export intf Iterator =
+  method get = size
+  method is_valid = bool
+  method has_next = bool
+  method! next = void
+
+export inline type index_range = TrivialCopy
+  b:size
+  e:size
+
+export inline type index_iterator = Iterator WorkaroundRBC
+  r:index_range
+  p:size
+
+
+export index_range method! init beg:size end:size = void
+  self!b = beg
+  self!e = end
+
+export index_range method begin = size
+  return self.b
+
+export index_range method end = size
+  return self.e
+
+export index_range method len = size
+  return self.e - self.b
+
+export index_range method sub begin:size end:size = this
+  let r:this
+    if begin < self.begin or end > self.end
+      abort
+    r!init begin end
+  return r
+
+export index_range method with_offset offset:size = this
+  let r:this
+    r!init self.begin+offset self.end+offset
+  return r
+
+export index_range method iter = index_iterator
+  return index_iterator{{ r=self. }}
+
+
+export index_iterator method get = size
+  return self.p
+
+export index_iterator method is_valid = bool
+  return self.p < self.r.end
+
+export index_iterator method has_next = bool
+  return self.p + 1 < self.r.end
+
+export index_iterator method! next = void
+  self!p += 1
+
+export fun range beg:size end:size = index_iterator
+  let r = index_range{{ b=beg e=end }}
+  return index_iterator{{ r=r }}

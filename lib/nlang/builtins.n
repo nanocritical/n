@@ -1,6 +1,7 @@
 export intf Any =
 
 export intf Copyable =
+export intf CopyableButOwned = export Copyable -- FIXME
 export intf TrivialCopy = export Copyable
 export intf ReturnByCopy =
 export intf WorkaroundRBC = export ReturnByCopy
@@ -354,3 +355,6 @@ export intf CtorWith = WorkaroundRBC
 --  fun mk c:t = this
 --  fun new c:t = @#this
 --
+
+
+export extern fun abort = void

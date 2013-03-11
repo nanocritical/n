@@ -648,10 +648,6 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
     e = lexical_import(node->scope->parent, mod, node);
     EXCEPT(e);
     return 0;
-  case FOR:
-    id = node->subs[0];
-    sc = node->scope;
-    break;
   case DEFFUN:
   case DEFMETHOD:
     if (node->subs[0]->which == IDENT) {
@@ -1843,7 +1839,9 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case FOR:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
-    e = type_destruct(mod, node->subs[0], node->subs[1]->typ);
+    struct node *it = node->subs[IDX_FOR_IT]->subs[IDX_FOR_IT_DEFP];
+    e = typ_check_isa(mod, it, it->typ,
+                      typ_lookup_builtin(mod, TBI_ITERATOR));
     EXCEPT(e);
     goto ok;
   case WHILE:
