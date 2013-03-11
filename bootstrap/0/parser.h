@@ -600,4 +600,9 @@ error mk_except_call_arg_count(const struct module *mod, const struct node *node
 char *typ_name(const struct module *mod, const struct typ *t);
 bool typ_is_builtin(const struct module *mod, const struct typ *t);
 
+void rew_insert_last_at(struct node *node, size_t pos);
+void rew_move_last_over(struct node *node, size_t pos, bool saved_it);
+void rew_append(struct node *node, struct node *sub);
+size_t rew_find_subnode_in_parent(struct node *parent, struct node *node);
+
 #endif

@@ -3029,3 +3029,42 @@ error mk_except_call_arg_count(const struct module *mod, const struct node *node
               node_fun_explicit_args_count(definition) + extra, given);
   return 0;
 }
+
+void rew_insert_last_at(struct node *node, size_t pos) {
+  struct node *tmp = node->subs[pos];
+  node->subs[pos] = node->subs[node->subs_count - 1];
+  for (size_t n = pos + 1; n < node->subs_count - 1; ++n) {
+    struct node *tmptmp = node->subs[n];
+    node->subs[n] = tmp;
+    tmp = tmptmp;
+  }
+  node->subs[node->subs_count - 1] = tmp;
+}
+
+void rew_move_last_over(struct node *node, size_t pos, bool saved_it) {
+  struct node *would_leak = node->subs[pos];
+  // Ensures there is nothing to leak.
+  assert(saved_it || (would_leak->which == IDENT
+                      || would_leak->which == DIRECTDEF
+                      || would_leak->which == BLOCK));
+  node->subs[pos] = node->subs[node->subs_count - 1];
+  node->subs_count -= 1;
+  node->subs = realloc(node->subs, node->subs_count * sizeof(node->subs[0]));
+}
+
+void rew_append(struct node *node, struct node *sub) {
+  node->subs_count += 1;
+  node->subs = realloc(node->subs, node->subs_count * sizeof(node->subs[0]));
+  node->subs[node->subs_count - 1] = sub;
+}
+
+size_t rew_find_subnode_in_parent(struct node *parent, struct node *node) {
+  for (size_t n = 0; n < parent->subs_count; ++n) {
+    if (parent->subs[n] == node) {
+      return n;
+    }
+  }
+
+  assert(FALSE);
+  return 0;
+}

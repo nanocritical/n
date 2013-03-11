@@ -76,45 +76,6 @@ static error zero_to_first_for_generated(struct module *mod, struct node *node,
 static error zero_to_second_for_generated(struct module *mod, struct node *node,
                                           struct node **except, struct scope *parent_scope);
 
-static void insert_last_at(struct node *node, size_t pos) {
-  struct node *tmp = node->subs[pos];
-  node->subs[pos] = node->subs[node->subs_count - 1];
-  for (size_t n = pos + 1; n < node->subs_count - 1; ++n) {
-    struct node *tmptmp = node->subs[n];
-    node->subs[n] = tmp;
-    tmp = tmptmp;
-  }
-  node->subs[node->subs_count - 1] = tmp;
-}
-
-static void move_last_over(struct node *node, size_t pos, bool saved_it) {
-  struct node *would_leak = node->subs[pos];
-  // Ensures there is nothing to leak.
-  assert(saved_it || (would_leak->which == IDENT
-                      || would_leak->which == DIRECTDEF
-                      || would_leak->which == BLOCK));
-  node->subs[pos] = node->subs[node->subs_count - 1];
-  node->subs_count -= 1;
-  node->subs = realloc(node->subs, node->subs_count * sizeof(node->subs[0]));
-}
-
-static void append(struct node *node, struct node *sub) {
-  node->subs_count += 1;
-  node->subs = realloc(node->subs, node->subs_count * sizeof(node->subs[0]));
-  node->subs[node->subs_count - 1] = sub;
-}
-
-static size_t find_subnode_in_parent(struct node *parent, struct node *node) {
-  for (size_t n = 0; n < parent->subs_count; ++n) {
-    if (parent->subs[n] == node) {
-      return n;
-    }
-  }
-
-  assert(FALSE);
-  return 0;
-}
-
 static struct node *add_instance_deepcopy_from_pristine(struct module *mod,
                                                         struct node *node,
                                                         struct node *pristine) {
@@ -288,7 +249,7 @@ static error step_assign_deftype_which_values(struct module *mod, struct node *n
       right->as.NUMBER.value = "1";
     }
 
-    insert_last_at(d, IDX_CH_VALUE);
+    rew_insert_last_at(d, IDX_CH_VALUE);
 
     prev = d;
   }
@@ -353,7 +314,7 @@ static error step_add_builtin_members(struct module *mod, struct node *node, voi
   struct node *expr = mk_node(mod, defp, IDENT);
   expr->as.IDENT.name = node_ident(node);
 
-  insert_last_at(node, 3);
+  rew_insert_last_at(node, 3);
 
   return 0;
 }
@@ -989,11 +950,11 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
 
   struct node *mk_fun = mk_node(mod, node, BIN);
   mk_fun->as.BIN.operator = TDOT;
-  append(mk_fun, fun);
+  rew_append(mk_fun, fun);
   struct node *mk = mk_node(mod, mk_fun, IDENT);
   mk->as.IDENT.name = ID_MK;
 
-  move_last_over(node, 0, TRUE);
+  rew_move_last_over(node, 0, TRUE);
 
   struct node *except[] = { fun, NULL };
   e = zero_to_first_for_generated(mod, mk_fun, except, node->scope);
@@ -1172,7 +1133,7 @@ static error rewrite_unary_call(struct module *mod, struct node *node, const str
 
   memset(node, 0, sizeof(*node));
   node->which = CALL;
-  append(node, fun);
+  rew_append(node, fun);
 
   struct node *except[] = { fun, NULL };
   error e = zero_to_first_for_generated(mod, node, except, parent_scope);
@@ -1331,12 +1292,12 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
 
       struct node *m = mk_node(mod, node, DIRECTDEF);
       m->as.DIRECTDEF.definition = fun->typ->definition;
-      move_last_over(node, 0, TRUE);
+      rew_move_last_over(node, 0, TRUE);
 
       struct node *self = self_ref_if_value(
         mod, fun->typ->definition->as.DEFMETHOD.access, fun->subs[0]);
-      append(node, self);
-      insert_last_at(node, 1);
+      rew_append(node, self);
+      rew_insert_last_at(node, 1);
 
       struct node *except[] = { fun->subs[0], NULL };
       error e = zero_to_first_for_generated(mod, self, except, node->scope);
@@ -2067,7 +2028,7 @@ static struct node *get_member(struct module *mod, struct node *node, ident id) 
 static void define_builtin(struct module *mod, struct node *tdef,
                            enum builtingen bg) {
   struct node *modbody = tdef->scope->parent->node;
-  size_t insert_pos = find_subnode_in_parent(modbody, tdef) + 1;
+  size_t insert_pos = rew_find_subnode_in_parent(modbody, tdef) + 1;
 
   struct node *proto = NULL;
   error e = scope_lookup_abspath(&proto, mod, builtingen_abspath[bg]);
@@ -2081,7 +2042,7 @@ static void define_builtin(struct module *mod, struct node *tdef,
   struct node *d = node_new_subnode(mod, modbody);
   node_deepcopy(mod, d, proto);
   mk_expr_abspath(mod, d, builtingen_abspath[bg]);
-  move_last_over(d, 0, FALSE);
+  rew_move_last_over(d, 0, FALSE);
 
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->scope_name = node_ident(tdef);
@@ -2089,7 +2050,7 @@ static void define_builtin(struct module *mod, struct node *tdef,
   toplevel->is_export = node_toplevel(tdef)->is_export;
   toplevel->is_inline = node_toplevel(tdef)->is_inline;
 
-  insert_last_at(modbody, insert_pos);
+  rew_insert_last_at(modbody, insert_pos);
   e = zero_to_forward_for_generated(mod, d, tdef->scope);
   assert(!e);
 
@@ -2107,7 +2068,7 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   struct node *d = mk_node(mod, ch, which);
   node_deepcopy(mod, d, proto);
   mk_expr_abspath(mod, d, builtingen_abspath[bg]);
-  move_last_over(d, 0, FALSE);
+  rew_move_last_over(d, 0, FALSE);
 
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->scope_name = node_ident(ch);
@@ -2124,7 +2085,7 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
     struct node *typename = mk_node(mod, arg, DIRECTDEF);
     typename->as.DIRECTDEF.definition = ch->subs[IDX_CH_PAYLOAD]->typ->definition;
 
-    insert_last_at(d, d->which == DEFMETHOD ? 2 : 1);
+    rew_insert_last_at(d, d->which == DEFMETHOD ? 2 : 1);
   }
 
   e = zero_to_first_for_generated(mod, d, NULL, ch->scope);
@@ -2341,7 +2302,7 @@ static void define_dispatch(struct module *mod, struct node *tdef, const struct 
   struct node *intf = tintf->definition;
 
   struct node *modbody = tdef->scope->parent->node;
-  size_t insert_pos = find_subnode_in_parent(modbody, tdef) + 1;
+  size_t insert_pos = rew_find_subnode_in_parent(modbody, tdef) + 1;
 
   for (size_t n = 0; n < intf->subs_count; ++n) {
     struct node *proto = intf->subs[n];
@@ -2358,7 +2319,7 @@ static void define_dispatch(struct module *mod, struct node *tdef, const struct 
     node_deepcopy(mod, d, proto);
     char *abspath = scope_name(mod, proto->scope);
     mk_expr_abspath(mod, d, abspath);
-    move_last_over(d, 0, FALSE);
+    rew_move_last_over(d, 0, FALSE);
 
     struct toplevel *toplevel = node_toplevel(d);
     toplevel->scope_name = node_ident(tdef);
@@ -2366,7 +2327,7 @@ static void define_dispatch(struct module *mod, struct node *tdef, const struct 
     toplevel->is_export = node_toplevel(tdef)->is_export;
     toplevel->is_inline = node_toplevel(tdef)->is_inline;
 
-    insert_last_at(modbody, insert_pos);
+    rew_insert_last_at(modbody, insert_pos);
 
     error e = zero_to_forward_for_generated(mod, d, tdef->scope);
     assert(!e);
@@ -2553,7 +2514,7 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
 
   struct node *except[] = { node->subs[0], node->subs[1], NULL };
 
-  insert_last_at(node, 0);
+  rew_insert_last_at(node, 0);
   node->subs[1] = expr_ref(TREFDOT, node->subs[1]);
   node->subs[2] = expr_ref(TREFDOT, node->subs[2]);
 
@@ -2623,17 +2584,17 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
   EXCEPT(e);
 
   struct node *parent = node->scope->parent->node;
-  size_t where = find_subnode_in_parent(parent, node);
+  size_t where = rew_find_subnode_in_parent(parent, node);
   for (size_t n = 0; n < temps.count; ++n) {
     struct node *rval = temps.rvalues[n];
     struct node *rval_parent = rval->scope->parent->node;
-    const size_t rval_where = find_subnode_in_parent(rval_parent, rval);
+    const size_t rval_where = rew_find_subnode_in_parent(rval_parent, rval);
 
     struct node *let = mk_node(mod, parent, LET);
     struct node *defp = mk_node(mod, let, DEFPATTERN);
     struct node *tmpvar = mk_node(mod, defp, IDENT);
     tmpvar->as.IDENT.name = gensym(mod);
-    append(defp, rval);
+    rew_append(defp, rval);
 
     struct node *except[] = { rval, NULL };
     e = zero_to_first_for_generated(mod, let, except, node->scope);
@@ -2641,12 +2602,12 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
 
     struct node *rval_replacement = mk_node(mod, rval_parent, IDENT);
     node_deepcopy(mod, rval_replacement, tmpvar);
-    move_last_over(rval_parent, rval_where, TRUE);
+    rew_move_last_over(rval_parent, rval_where, TRUE);
 
     e = zero_to_first_for_generated(mod, rval_replacement, NULL, node->scope);
     EXCEPT(e);
 
-    insert_last_at(parent, where);
+    rew_insert_last_at(parent, where);
     where += 1;
   }
 
