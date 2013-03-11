@@ -124,6 +124,8 @@ normal:
   "and" { R(Tand); }
   "or" { R(Tor); }
   "not" { R(Tnot); }
+  "false" { R(Tfalse); }
+  "true" { R(Ttrue); }
   "isa" { R(Tisa); }
   "null" { R(Tnull); }
   "pass" { R(Tpass); }

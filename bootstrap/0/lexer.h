@@ -38,6 +38,8 @@ enum token_type {
   Tand,
   Tor,
   Tnot,
+  Tfalse,
+  Ttrue,
   Tisa,
   Tnull,
   Tpass,

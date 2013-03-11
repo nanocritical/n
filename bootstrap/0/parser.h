@@ -12,6 +12,7 @@ enum node_which {
   NUL = 1,
   IDENT,
   NUMBER,
+  BOOL,
   STRING,
   BIN,
   UN,
@@ -120,6 +121,9 @@ struct node_ident {
 struct node_number {
   const char *value;
 };
+struct node_bool {
+  bool value;
+};
 struct node_string {
   const char *value;
 };
@@ -220,6 +224,7 @@ union node_as {
   struct node_nul NUL;
   struct node_ident IDENT;
   struct node_number NUMBER;
+  struct node_bool BOOL;
   struct node_string STRING;
   struct node_bin BIN;
   struct node_un UN;
@@ -323,6 +328,7 @@ enum predefined_idents {
   ID_TBI__FIRST = ID_TBI_VOID,
   ID_TBI_LITERALS_NULL,
   ID_TBI_LITERALS_INTEGER,
+  ID_TBI_LITERALS_BOOLEAN,
   ID_TBI_PSEUDO_TUPLE,
   ID_TBI_BOOL,
   ID_TBI_I8,
@@ -344,6 +350,8 @@ enum predefined_idents {
   ID_TBI_NMMREF,
   ID_TBI_NUMERIC,
   ID_TBI_NATIVE_INTEGER,
+  ID_TBI_GENERALIZED_BOOLEAN,
+  ID_TBI_NATIVE_BOOLEAN,
   ID_TBI_HAS_EQUALITY,
   ID_TBI_ORDERED,
   ID_TBI_ORDERED_BY_COMPARE,
@@ -407,6 +415,7 @@ enum typ_builtin {
   TBI_VOID,
   TBI_LITERALS_NULL,
   TBI_LITERALS_INTEGER,
+  TBI_LITERALS_BOOLEAN,
   TBI_PSEUDO_TUPLE,
   TBI_BOOL,
   TBI_I8,
@@ -428,6 +437,8 @@ enum typ_builtin {
   TBI_NMMREF, // ?@#
   TBI_NUMERIC,
   TBI_NATIVE_INTEGER,
+  TBI_GENERALIZED_BOOLEAN,
+  TBI_NATIVE_BOOLEAN,
   TBI_HAS_EQUALITY,
   TBI_ORDERED,
   TBI_ORDERED_BY_COMPARE,

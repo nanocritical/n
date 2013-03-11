@@ -37,6 +37,8 @@ const char *token_strings[TOKEN__NUM] = {
   [Tand] = " and ",
   [Tor] = " or ",
   [Tnot] = "not ",
+  [Tfalse] = "false",
+  [Ttrue] = "true",
   [Tisa] = " isa ",
   [Tnull] = "null",
   [Tpass] = "pass",
@@ -243,6 +245,9 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     break;
   case NUMBER:
     fprintf(out, "%s", node->as.NUMBER.value);
+    break;
+  case BOOL:
+    fprintf(out, "%s", node->as.BOOL.value ? "true" : "false");
     break;
   case STRING:
     fprintf(out, "%s", node->as.STRING.value);

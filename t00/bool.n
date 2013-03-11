@@ -1,0 +1,8 @@
+from nlang import *
+
+export fun main = i32
+  let x = false:bool
+  if x and true
+    return 0
+  else
+    return 1

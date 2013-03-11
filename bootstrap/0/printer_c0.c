@@ -25,6 +25,11 @@ const char *c_token_strings[TOKEN__NUM] = {
   [TBWXOR] = " ^ ",
   [TRSHIFT] = " >> ",
   [TLSHIFT] = " << ",
+  [Tor] = " || ",
+  [Tand] = " && ",
+  [Tnot] = "!",
+  [Tfalse] = "false",
+  [Ttrue] = "true",
   [TPLUS_ASSIGN] = " += ",
   [TMINUS_ASSIGN] = " -= ",
   [TTIMES_ASSIGN] = " *= ",
@@ -327,6 +332,12 @@ static void print_expr(FILE *out, bool header, const struct module *mod, const s
     print_typ(out, mod, node->typ);
     fprintf(out, ")");
     fprintf(out, "%s", node->as.NUMBER.value);
+    break;
+  case BOOL:
+    fprintf(out, "(");
+    print_typ(out, mod, node->typ);
+    fprintf(out, ")");
+    fprintf(out, "%s", node->as.BOOL.value ? "1" : "0");
     break;
   case STRING:
     {
@@ -1190,6 +1201,7 @@ static void print_deftype_enum(FILE *out, bool header, const struct module *mod,
 static bool is_pseudo_tbi(const struct module *mod, const struct typ *t) {
   return t == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
     || t == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)
+    || t == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)
     || t == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
     || t == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)
     || t == typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE)

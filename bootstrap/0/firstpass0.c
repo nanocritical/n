@@ -1564,6 +1564,10 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER), constraint);
     EXCEPT(e);
     break;
+  case BOOL:
+    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN), constraint);
+    EXCEPT(e);
+    break;
   case STRING:
     e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_STRING), constraint);
     EXCEPT(e);
@@ -1783,6 +1787,9 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case NUMBER:
     node->typ = typ_lookup_builtin(mod, TBI_LITERALS_INTEGER);
+    goto ok;
+  case BOOL:
+    node->typ = typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN);
     goto ok;
   case STRING:
     node->typ = typ_lookup_builtin(mod, TBI_STRING);
@@ -2503,7 +2510,8 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   }
 
   struct node *left = node->subs[0];
-  if (typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_NATIVE_INTEGER))) {
+  if (typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_NATIVE_INTEGER))
+      || typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_NATIVE_BOOLEAN))) {
     return 0;
   }
 

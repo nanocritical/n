@@ -13,6 +13,7 @@ const char *node_which_strings[] = {
   [NUL] = "NUL",
   [IDENT] = "IDENT",
   [NUMBER] = "NUMBER",
+  [BOOL] = "BOOL",
   [STRING] = "STRING",
   [BIN] = "BIN",
   [UN] = "UN",
@@ -83,6 +84,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_VOID] = "void",
   [ID_TBI_LITERALS_NULL] = "__null__",
   [ID_TBI_LITERALS_INTEGER] = "integer",
+  [ID_TBI_LITERALS_BOOLEAN] = "boolean",
   [ID_TBI_PSEUDO_TUPLE] = "pseudo_tuple",
   [ID_TBI_BOOL] = "bool",
   [ID_TBI_I8] = "i8",
@@ -104,6 +106,8 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NMMREF] = "nmmref",
   [ID_TBI_NUMERIC] = "Numeric",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
+  [ID_TBI_GENERALIZED_BOOLEAN] = "GeneralizedBoolean",
+  [ID_TBI_NATIVE_BOOLEAN] = "NativeBoolean",
   [ID_TBI_HAS_EQUALITY] = "HasEquality",
   [ID_TBI_ORDERED] = "Ordered",
   [ID_TBI_ORDERED_BY_COMPARE] = "OrderedByCompare",
@@ -1207,6 +1211,16 @@ static error p_number(struct node *node, struct module *mod) {
   return 0;
 }
 
+static error p_bool(struct node *node, struct module *mod) {
+  struct token tok;
+  error e = scan_oneof(&tok, mod, Tfalse, Ttrue, 0);
+  EXCEPT(e);
+
+  node->which = BOOL;
+  node->as.BOOL.value = tok.t == Ttrue;
+  return 0;
+}
+
 static error p_string(struct node *node, struct module *mod) {
   struct token tok;
   error e = scan_oneof(&tok, mod, TSTRING, 0);
@@ -1449,6 +1463,8 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
       e = p_ident(&first, mod);
     } else if (tok.t == TNUMBER) {
       e = p_number(&first, mod);
+    } else if (tok.t == Tfalse || tok.t == Ttrue) {
+      e = p_bool(&first, mod);
     } else if (tok.t == TSTRING) {
       e = p_string(&first, mod);
     } else if ((IS_OP(tok.t) && OP_UNARY(tok.t))
@@ -2741,6 +2757,12 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     }
   }
 
+  if (a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)) {
+    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN))) {
+      return 0;
+    }
+  }
+
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
     if (constraint == typ_lookup_builtin(mod, TBI_NREF)
         || constraint == typ_lookup_builtin(mod, TBI_NMREF)
@@ -2804,7 +2826,8 @@ error typ_compatible_reference(const struct module *mod, const struct node *for_
 
 bool typ_is_concrete(const struct module *mod, const struct typ *a) {
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)) {
     return FALSE;
   }
 

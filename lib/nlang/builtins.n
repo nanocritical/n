@@ -52,14 +52,14 @@ export intf NativeInteger = \
     export ReturnByCopy \
     export Integer
 
-export intf Boolean = \
+export intf GeneralizedBoolean = \
     export Ordered \
     export Bitwise
 
 export intf NativeBoolean = \
     export TrivialCopy \
     export ReturnByCopy \
-    export Boolean
+    export GeneralizedBoolean
 
 export extern type bool = export NativeBoolean
 export extern bool method# Copyable.operator_copy other:@this = void
@@ -70,10 +70,10 @@ export extern bool method Ordered.operator_le other:@this = bool
 export extern bool method Ordered.operator_lt other:@this = bool
 export extern bool method Ordered.operator_gt other:@this = bool
 export extern bool method Ordered.operator_ge other:@this = bool
-export extern bool method Boolean.operator_or other:@this = this
-export extern bool method Boolean.operator_and other:@this = this
-export extern bool method Boolean.operator_not = this
-export extern bool method Boolean.operator_test = bool
+export extern bool method GeneralizedBoolean.operator_or other:@this = this
+export extern bool method GeneralizedBoolean.operator_and other:@this = this
+export extern bool method GeneralizedBoolean.operator_not = this
+export extern bool method GeneralizedBoolean.operator_test = bool
 
 export export extern type i8 = export NativeInteger
 export extern i8 method# Copyable.operator_copy other:@this = void
@@ -330,7 +330,7 @@ export intf Bitwise = export WorkaroundRBC
   method operator_rshift by:u32 = this
   method operator_bwnot = this
 
-export intf Boolean = export WorkaroundRBC \
+export intf GeneralizedBoolean = export WorkaroundRBC \
     export Ordered \
     export Bitwise
   method operator_or other:@this = this

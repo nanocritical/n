@@ -1,0 +1,24 @@
+MODULE_BODY
+ IMPORT :nlang
+  IDENT(nlang)
+ DEFFUN :t00.bool.main
+  IDENT(main)
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.bool
+     IDENT(x) :nlang.builtins.bool
+     TYPECONSTRAINT :nlang.builtins.bool
+      BOOL :nlang.builtins.bool
+      IDENT(bool) :nlang.builtins.bool
+     DEFNAME(x) :nlang.builtins.bool
+   IF :nlang.builtins.void
+    BIN( and ) :nlang.builtins.bool
+     IDENT(x) :nlang.builtins.bool
+     BOOL :nlang.builtins.bool
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(0) :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(1) :nlang.builtins.i32
