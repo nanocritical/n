@@ -179,12 +179,15 @@ normal:
       ERROR(EINVAL, "lexer: unexpected semicolon in multi-line block");
     }
   }
+  "."[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFDOT); }
+  "!"[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFBANG); }
+  "#"[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFSHARP); }
   "." { R(TDOT); }
   "!" { R(TBANG); }
+  "#" { R(TSHARP); }
   "@!" { R(TREFBANG); }
   "@#" { R(TREFSHARP); }
   "@" { R(TREFDOT); }
-  "#" { R(TSHARP); }
   "..." { R(TDOTDOTDOT); }
   "[]" { R(TSLICEBRAKETS); }
   "{{" { R(TLINIT); }

@@ -577,10 +577,15 @@ struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id);
 bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b);
+error typ_check_equal(const struct module *mod, const struct node *for_error,
+                      const struct typ *a, const struct typ *b);
 error typ_compatible(const struct module *mod, const struct node *for_error,
                      const struct typ *a, const struct typ *constraint);
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error, const struct typ *a);
-error typ_compatible_reference(const struct module *mod, const struct node *for_error, const struct typ *a);
+error typ_compatible_reference(const struct module *mod, const struct node *for_error,
+                               enum token_type operator, const struct typ *a);
+error typ_can_deref(const struct module *mod, const struct node *for_error,
+                    const struct typ *a, enum token_type operator);
 bool typ_is_reference_instance(const struct module *mod, const struct typ *a);
 bool typ_is_concrete(const struct module *mod, const struct typ *a);
 error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,

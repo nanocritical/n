@@ -199,6 +199,15 @@ static void print_un(FILE *out, bool header, const struct module *mod, const str
       print_expr(out, header, mod, node->subs[0], op);
     }
     break;
+  case OP_UN_DEREF:
+    if (node->flags & NODE_IS_TYPE) {
+      print_typ(out, mod, node->subs[0]->typ);
+    } else {
+      fprintf(out, "(*");
+      print_expr(out, header, mod, node->subs[0], op);
+      fprintf(out, ")");
+    }
+    break;
   case OP_UN_BOOL:
   case OP_UN_NUM:
     print_token(out, op);

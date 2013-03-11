@@ -91,6 +91,9 @@ enum token_type {
   TDOT,
   TBANG,
   TSHARP,
+  TDEREFDOT,
+  TDEREFBANG,
+  TDEREFSHARP,
   TREFDOT,
   TREFBANG,
   TREFSHARP,
@@ -119,9 +122,10 @@ enum operator_associativity {
 
 enum operator_kind {
   OP_UN_REFOF = 0x1,
-  OP_UN_BOOL = 0x2,
-  OP_UN_NUM = 0x3,
-  OP_UN_DYN = 0x4,
+  OP_UN_DEREF = 0x2,
+  OP_UN_BOOL = 0x3,
+  OP_UN_NUM = 0x4,
+  OP_UN_DYN = 0x5,
   OP_BIN = 0x10,
   OP_BIN_SYM = 0x20,
   OP_BIN_SYM_BOOL = 0x30,
@@ -193,6 +197,9 @@ static const uint32_t operators[TOKEN__NUM] = {
   [TDOT] = OP(OP_BIN_ACC, ASSOC_LEFT, 0x20),
   [TBANG] = OP(OP_BIN_ACC, ASSOC_LEFT, 0x20),
   [TSHARP] = OP(OP_BIN_ACC, ASSOC_LEFT, 0x20),
+  [TDEREFDOT] = OP(OP_UN_DEREF, ASSOC_LEFT, 0x1f),
+  [TDEREFBANG] = OP(OP_UN_DEREF, ASSOC_LEFT, 0x1f),
+  [TDEREFSHARP] = OP(OP_UN_DEREF, ASSOC_LEFT, 0x1f),
 };
 
 static const bool expr_terminators[TOKEN__NUM] = {

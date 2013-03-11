@@ -1025,6 +1025,9 @@ static const uint32_t tbi_for_ref[TOKEN__NUM] = {
   [TREFDOT] = TBI_REF,
   [TREFBANG] = TBI_MREF,
   [TREFSHARP] = TBI_MMREF,
+  [TDEREFDOT] = TBI_REF,
+  [TDEREFBANG] = TBI_MREF,
+  [TDEREFSHARP] = TBI_MMREF,
   [TNULREFDOT] = TBI_NREF,
   [TNULREFBANG] = TBI_NMREF,
   [TNULREFSHARP] = TBI_NMMREF,
@@ -1045,6 +1048,12 @@ static error type_inference_un(struct module *mod, struct node *node) {
   switch (OP_KIND(op)) {
   case OP_UN_REFOF:
     node->typ = typ_ref(mod, op, node->subs[0]->typ);
+    node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
+    break;
+  case OP_UN_DEREF:
+    e = typ_can_deref(mod, node->subs[0],node->subs[0]->typ, node->as.UN.operator);
+    EXCEPT(e);
+    node->typ = node->subs[0]->typ;
     node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
     break;
   case OP_UN_BOOL:
@@ -1608,12 +1617,14 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       e = typ_compatible_numeric(mod, node, constraint);
       break;
     case OP_UN_REFOF:
-      e = typ_compatible_reference(mod, node, constraint);
+      e = typ_compatible_reference(mod, node, node->as.UN.operator, constraint);
+      break;
+    case OP_UN_DEREF:
+      e = 0;
       break;
     default:
       assert(FALSE);
     }
-    assert(!e);
     EXCEPT(e);
 
     struct node *sub_node = node->subs[0];
@@ -1622,6 +1633,9 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     switch (OP_KIND(node->as.UN.operator)) {
     case OP_UN_REFOF:
       sub_constraint = constraint->gen_args[1];
+      break;
+    case OP_UN_DEREF:
+      sub_constraint = typ_ref(mod, node->as.UN.operator, constraint);
       break;
     default:
       sub_constraint = constraint;

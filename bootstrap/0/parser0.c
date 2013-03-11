@@ -1430,6 +1430,22 @@ static error p_expr_binary(struct node *node, const struct node *first,
   return 0;
 }
 
+static error p_expr_post_unary(struct node *node, const struct node *first,
+                               struct module *mod) {
+  struct token tok;
+  error e = scan(&tok, mod);
+  EXCEPT(e);
+
+  assert(OP_KIND(tok.t) == OP_UN_DEREF);
+  node->which = UN;
+  node->as.UN.operator = tok.t;
+
+  struct node *left = node_new_subnode(mod, node);
+  *left = *first;
+
+  return 0;
+}
+
 static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
   assert(parent_op < TOKEN__NUM && IS_OP(parent_op));
 
@@ -1533,6 +1549,15 @@ shift:
     } else {
       goto done;
     }
+  } else if (IS_OP(tok.t) && OP_UNARY(tok.t) && OP_KIND(tok.t) == OP_UN_DEREF) {
+    e = p_expr_post_unary(&second, &first, mod);
+    EXCEPT(e);
+
+    if (topmost) {
+      parent_op = tok.t;
+    }
+
+    goto shift;
   } else if (OP_PREC(T__CALL) < OP_PREC(parent_op) || topmost) {
     e = p_expr_call(&second, &first, mod);
     if (topmost) {
@@ -1978,10 +2003,10 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     e = scan(&tok, mod);
     EXCEPT(e);
     switch (tok.t) {
-    case TBANG:
+    case TDEREFBANG:
       node->as.DEFMETHOD.access = TREFBANG;
       break;
-    case TSHARP:
+    case TDEREFSHARP:
       node->as.DEFMETHOD.access = TREFSHARP;
       break;
     default:
@@ -2745,6 +2770,18 @@ bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *
   return FALSE;
 }
 
+error typ_check_equal(const struct module *mod, const struct node *for_error,
+                      const struct typ *a, const struct typ *b) {
+  if (typ_equal(mod, a, b)) {
+    return 0;
+  }
+
+  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+              "'%s' not equal to type '%s'",
+              typ_name(mod, a), typ_name(mod, b));
+  // FIXME: leaking typ_names.
+}
+
 error typ_compatible(const struct module *mod, const struct node *for_error,
                      const struct typ *a, const struct typ *constraint) {
   if (constraint == a) {
@@ -2813,15 +2850,81 @@ bool typ_is_reference_instance(const struct module *mod, const struct typ *a) {
     || g == typ_lookup_builtin(mod, TBI_NMMREF);
 }
 
+static const uint32_t tbi_for_ref[TOKEN__NUM] = {
+  [TREFDOT] = TBI_REF,
+  [TREFBANG] = TBI_MREF,
+  [TREFSHARP] = TBI_MMREF,
+  [TDEREFDOT] = TBI_REF,
+  [TDEREFBANG] = TBI_MREF,
+  [TDEREFSHARP] = TBI_MMREF,
+  [TNULREFDOT] = TBI_NREF,
+  [TNULREFBANG] = TBI_NMREF,
+  [TNULREFSHARP] = TBI_NMMREF,
+};
+
+static const char *string_for_ref[TOKEN__NUM] = {
+  [TREFDOT] = "@",
+  [TREFBANG] = "@!",
+  [TREFSHARP] = "@#",
+  [TDEREFDOT] = ".",
+  [TDEREFBANG] = "!",
+  [TDEREFSHARP] = "#",
+  [TNULREFDOT] = "?@",
+  [TNULREFBANG] = "?@!",
+  [TNULREFSHARP] = "?@#",
+};
+
 error typ_compatible_reference(const struct module *mod, const struct node *for_error,
-                               const struct typ *a) {
-  if (typ_is_reference_instance(mod, a)) {
+                               enum token_type operator, const struct typ *a) {
+  if (!typ_is_reference_instance(mod, a)) {
+    EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                "'%s' type is not a reference", typ_name(mod, a));
+    // FIXME: leaking typ_names.
+  }
+
+  assert(tbi_for_ref[operator] != 0);
+  if (typ_same_generic(a, typ_lookup_builtin(mod, tbi_for_ref[operator]))) {
     return 0;
   }
 
-  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error, "'%s' type is not a reference",
-              typ_name(mod, a));
+  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+              "constraint '%s' not compatible with reference operator '%s'",
+              typ_name(mod, a), string_for_ref[operator]);
   // FIXME: leaking typ_names.
+}
+
+error typ_can_deref(const struct module *mod, const struct node *for_error,
+                    const struct typ *a, enum token_type operator) {
+  if (!typ_is_reference_instance(mod, a)) {
+    EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                "'%s' type is not a reference", typ_name(mod, a));
+    // FIXME: leaking typ_names.
+  }
+
+  bool ok = FALSE;
+  switch (operator) {
+  case TDEREFDOT:
+    ok = TRUE;
+    break;
+  case TDEREFBANG:
+    ok = typ_same_generic(a, typ_lookup_builtin(mod, TBI_MREF))
+      || typ_same_generic(a, typ_lookup_builtin(mod, TBI_MMREF));
+    break;
+  case TDEREFSHARP:
+    ok = typ_same_generic(a, typ_lookup_builtin(mod, TBI_MMREF));
+    break;
+  default:
+    assert(FALSE);
+  }
+  if (ok) {
+    return 0;
+  }
+
+  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+              "'%s' type cannot be dereferenced with '%s'",
+              typ_name(mod, a), string_for_ref[operator]);
+  // FIXME: leaking typ_names.
+  return 0;
 }
 
 bool typ_is_concrete(const struct module *mod, const struct typ *a) {
