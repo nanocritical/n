@@ -4,3 +4,4 @@ export extern type boolean =
 
 export extern type __pending_destruct__ =
 export extern type __not_typeable__ =
+export extern type __call_function_slot__ =

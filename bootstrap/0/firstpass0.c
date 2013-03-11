@@ -768,6 +768,18 @@ static void inherit(struct module *mod, struct node *node) {
   }
 }
 
+static error step_stop_marker_tbi(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node_ident(node)) {
+  case ID_TBI__PENDING_DESTRUCT:
+  case ID_TBI__NOT_TYPEABLE:
+  case ID_TBI__CALL_FUNCTION_SLOT:
+    *stop = TRUE;
+    return 0;
+  default:
+    return 0;
+  }
+}
+
 static error step_type_destruct_mark(struct module *mod, struct node *node, void *user, bool *stop) {
   if (node->which == MODULE) {
     return 0;
@@ -813,7 +825,11 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
     mark_subs(mod, node, pending, 1, node->subs_count, 1);
     break;
   case CALL:
-    mark_subs(mod, node, pending, 1, node->subs_count, 1);
+    if (node->subs[0]->typ == NULL) {
+      // Otherwise, we are rewriting this expression and we should not touch
+      // subs[0].
+      mark_subs(mod, node, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT), 0, 1, 1);
+    }
     break;
   case DEFFUN:
   case DEFMETHOD:
@@ -965,9 +981,12 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
 
 static error type_destruct(struct module *mod, struct node *node, const struct typ *constraint);
 
-static error type_inference_unary_call(struct module *mod, struct node *node, struct node *def) {
-  if (node_fun_explicit_args_count(def) != 0) {
-    error e = mk_except_call_arg_count(mod, node, def, 0, 0);
+static error type_inference_explicit_unary_call(struct module *mod, struct node *node, struct node *def) {
+  if (def->which == DEFFUN && node->subs_count != 1) {
+    error e = mk_except_call_arg_count(mod, node, def, 0, node->subs_count - 1);
+    EXCEPT(e);
+  } else if (def->which == DEFMETHOD && node->subs_count != 2) {
+    error e = mk_except_call_arg_count(mod, node, def, 1, node->subs_count - 1);
     EXCEPT(e);
   }
 
@@ -1046,7 +1065,6 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
   if (typ_is_concrete(mod, node->subs[0]->typ)
       && typ_is_concrete(mod, node->subs[1]->typ)) {
     e = typ_compatible(mod, node, node->subs[0]->typ, node->subs[1]->typ);
-    assert(!e);
     EXCEPT(e);
   } else if (typ_is_concrete(mod, node->subs[0]->typ)) {
     e = type_destruct(mod, node->subs[1], node->subs[0]->typ);
@@ -1154,7 +1172,13 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   e = scope_lookup_ident_immediate(&field, mod, parent_scope, node_ident(node->subs[1]), FALSE);
   EXCEPT(e);
 
-  if (field->typ->which == TYPE_FUNCTION && node_fun_explicit_args_count(field) == 0) {
+  if (field->typ->which == TYPE_FUNCTION
+      && node->typ != typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT)) {
+    if (node_fun_explicit_args_count(field) != 0) {
+      e = mk_except_call_arg_count(mod, node, field, 0, 0);
+      EXCEPT(e);
+    }
+
     e = rewrite_unary_call(mod, node, field->typ);
     EXCEPT(e);
   } else {
@@ -1265,7 +1289,6 @@ static struct node *self_ref_if_value(struct module *mod,
 static error prepare_call_arguments(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
 
-
   switch (fun->typ->definition->which) {
   case DEFFUN:
     if (node_fun_explicit_args_count(fun->typ->definition) != node->subs_count - 1) {
@@ -1283,7 +1306,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
         EXCEPT(e);
       }
     } else {
-      // Form (self.method ...) rewritten as (type.method self ...).
+      // Form (self.method ...); rewrite as (type.method self ...).
       if (node_fun_explicit_args_count(fun->typ->definition) != node->subs_count - 1) {
         error e = mk_except_call_arg_count(mod, node, fun->typ->definition, 0,
                                            node->subs_count - 1);
@@ -1425,15 +1448,19 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
 static error type_inference_call(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
 
-  if (fun->typ->which == TYPE_DEF
-      && fun->typ->definition->subs[IDX_GENARGS]->subs_count > 0) {
+  if (fun->typ->which == TYPE_DEF) {
+    if (fun->typ->definition->subs[IDX_GENARGS]->subs_count == 0) {
+      error e = mk_except_type(mod, fun, "not a generic type");
+      EXCEPT(e);
+    }
+
     error e = type_inference_generic_instantiation(mod, node);
     EXCEPT(e);
     return 0;
   }
 
   if (fun->typ->which != TYPE_FUNCTION) {
-    error e = mk_except_type(mod, fun, "not a generic type, function or sum type constructor");
+    error e = mk_except_type(mod, fun, "not a function or sum type constructor");
     EXCEPT(e);
   }
 
@@ -1441,7 +1468,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
   EXCEPT(e);
 
   if (node_fun_explicit_args_count(fun->typ->definition) == 0) {
-    return type_inference_unary_call(mod, node, fun->typ->definition);
+    return type_inference_explicit_unary_call(mod, node, fun->typ->definition);
   }
 
   for (size_t n = 1; n < node->subs_count; ++n) {
@@ -1740,8 +1767,18 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case IDENT:
     e = scope_lookup(&def, mod, node->scope, node);
     EXCEPT(e);
-    node->typ = def->typ;
-    node->flags = def->flags;
+    if (def->typ->which == TYPE_FUNCTION
+        && node->typ != typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT)) {
+      if (node_fun_explicit_args_count(def) != 0) {
+        e = mk_except_call_arg_count(mod, node, def, 0, 0);
+        EXCEPT(e);
+      }
+      e = rewrite_unary_call(mod, node, def->typ);
+      EXCEPT(e);
+    } else {
+      node->typ = def->typ;
+      node->flags = def->flags;
+    }
     assert(node->typ->which != TYPE__MARKER);
     goto ok;
   case IMPORT:
@@ -1754,7 +1791,6 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
       e = type_destruct_import_path(mod, s);
       EXCEPT(e);
 
-      assert(s->typ->which != TYPE__MARKER);
       node->subs[n]->typ = s->typ;
       node->subs[n]->flags = s->flags;
     }
@@ -1787,7 +1823,6 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case INIT:
     e = type_inference_init(mod, node);
-    assert(!e);
     EXCEPT(e);
     goto ok;
   case RETURN:
@@ -1984,7 +2019,6 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
 
     struct node *def = NULL;
     e = scope_lookup(&def, mod, node->scope->parent, isa->subs[0]);
-    assert(!e);
     EXCEPT(e);
 
     if (def->which != DEFINTF) {
@@ -2674,6 +2708,7 @@ error forwardpass(struct module *mod, struct node *node, struct node **except) {
 
 static const step firstpass_down[] = {
   step_stop_submodules,
+  step_stop_marker_tbi,
   step_type_destruct_mark,
   step_type_gather_returns,
   step_type_gather_excepts,

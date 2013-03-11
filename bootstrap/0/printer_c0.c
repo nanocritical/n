@@ -1213,6 +1213,7 @@ static bool is_pseudo_tbi(const struct module *mod, const struct typ *t) {
     || t == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)
     || t == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
     || t == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)
+    || t == typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT)
     || t == typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE)
     || t == typ_lookup_builtin(mod, TBI_REF)
     || t == typ_lookup_builtin(mod, TBI_MREF)

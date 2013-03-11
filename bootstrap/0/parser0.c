@@ -124,6 +124,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_SUM_ORDER] = "SumOrder",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
+  [ID_TBI__CALL_FUNCTION_SLOT] = "__call_function_slot__",
   [ID_MK] = "mk",
   [ID_NEW] = "new",
   [ID_CTOR] = "ctor",
