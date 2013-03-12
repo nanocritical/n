@@ -187,6 +187,11 @@ struct node_defname {
 };
 struct node_defpattern {};
 struct node_defarg {};
+struct node_defgenarg {
+  bool is_explicit;
+};
+struct node_setgenarg {
+};
 struct node_let {
   struct toplevel toplevel;
 };
@@ -250,6 +255,8 @@ union node_as {
   struct node_defname DEFNAME;
   struct node_defpattern DEFPATTERN;
   struct node_defarg DEFARG;
+  struct node_defgenarg DEFGENARG;
+  struct node_setgenarg SETGENARG;
   struct node_let LET;
   struct node_deffield DEFFIELD;
   struct node_defchoice DEFCHOICE;
@@ -297,6 +304,7 @@ enum subnode_idx {
   IDX_FOR_IT = 0,
   IDX_FOR_IT_DEFP = 0,
   IDX_FOR_IT_DEFP_EXPR = 1,
+  IDX_FUN_FIRSTARG = 2,
 };
 
 struct idents_map;
@@ -578,8 +586,10 @@ bool node_is_def(const struct node *node);
 bool node_is_statement(const struct node *node);
 bool node_is_rvalue(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
+size_t node_fun_all_args_count(const struct node *def);
 size_t node_fun_explicit_args_count(const struct node *def);
-const struct node *node_fun_retval(const struct node *def);
+struct node *node_fun_retval(struct node *def);
+const struct node *node_fun_retval_const(const struct node *def);
 struct toplevel *node_toplevel(struct node *node);
 const struct toplevel *node_toplevel_const(const struct node *node);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);
@@ -609,8 +619,8 @@ error typ_check_isa(const struct module *mod, const struct node *for_error,
                     const struct typ *a, const struct typ *intf);
 error mk_except(const struct module *mod, const struct node *node, const char *fmt);
 error mk_except_type(const struct module *mod, const struct node *node, const char *fmt);
-error mk_except_call_arg_count(const struct module *mod, const struct node *node,
-                               const struct node *definition, size_t extra, size_t given);
+error mk_except_call_args_count(const struct module *mod, const struct node *node,
+                                const struct node *definition, size_t extra, size_t given);
 char *typ_name(const struct module *mod, const struct typ *t);
 bool typ_is_builtin(const struct module *mod, const struct typ *t);
 

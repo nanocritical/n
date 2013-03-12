@@ -100,12 +100,7 @@ static char *escape_string(const char *s) {
 }
 
 static size_t c_fun_args_count(const struct node *node) {
-  size_t ex = node_fun_explicit_args_count(node);
-  if (node->which == DEFMETHOD) {
-    return ex + 1;
-  } else {
-    return ex;
-  }
+  return node_fun_all_args_count(node);
 }
 
 static void print_token(FILE *out, enum token_type t) {
@@ -626,6 +621,7 @@ static void print_typeconstraint(FILE *out, bool header, const struct module *mo
 }
 
 static void print_defarg(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  assert(node->which == DEFARG);
   print_typ(out, mod, node->typ);
   fprintf(out, " ");
   print_expr(out, header, mod, node->subs[0], T__STATEMENT);
@@ -633,8 +629,8 @@ static void print_defarg(FILE *out, bool header, const struct module *mod, const
 
 static void print_fun_prototype(FILE *out, bool header, const struct module *mod,
                                 const struct node *node) {
-  const size_t arg_count = c_fun_args_count(node);
-  const struct node *retval = node_fun_retval(node);
+  const size_t args_count = c_fun_args_count(node);
+  const struct node *retval = node_fun_retval_const(node);
 
   print_toplevel(out, header, node);
 
@@ -643,15 +639,15 @@ static void print_fun_prototype(FILE *out, bool header, const struct module *mod
   print_deffun_name(out, mod, node);
   fprintf(out, "(");
 
-  if (arg_count == 0) {
+  if (args_count == 0) {
     fprintf(out, "void");
   }
 
-  for (size_t n = 0; n < arg_count; ++n) {
+  for (size_t n = 0; n < args_count; ++n) {
     if (n > 0) {
       fprintf(out, ", ");
     }
-    const struct node *arg = node->subs[1 + n];
+    const struct node *arg = node->subs[IDX_FUN_FIRSTARG + n];
     print_defarg(out, header, mod, arg);
   }
   fprintf(out, ")");
@@ -673,7 +669,7 @@ static const struct node *get_defchoice_member(const struct module *mod,
 }
 
 static const char *returns_something(const struct module *mod, const struct node *m) {
-  return node_fun_retval(m)->typ == typ_lookup_builtin(mod, TBI_VOID) ? "" : "return";
+  return node_fun_retval_const(m)->typ == typ_lookup_builtin(mod, TBI_VOID) ? "" : "return";
 }
 
 static void print_deffun_builtingen(FILE *out, bool header, const struct module *mod, const struct node *node) {
@@ -756,7 +752,7 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
         free(nm);
 
         for (size_t a = 0; a < c_fun_args_count(node); ++a) {
-          struct node *arg = node->subs[a + 1];
+          struct node *arg = node->subs[a + IDX_FUN_FIRSTARG];
           if (a > 0) {
             fprintf(out, ", ");
           }
@@ -921,7 +917,7 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
       fprintf(out, "##x\n");
     }
 
-    const struct node *retval = node_fun_retval(node);
+    const struct node *retval = node_fun_retval_const(node);
     const bool named_retval = retval->which == DEFARG;
     const bool retval_bycopy = typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
 
@@ -931,8 +927,7 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
       fprintf(out, ";\n");
     }
 
-    const size_t arg_count = c_fun_args_count(node);
-    const struct node *block = node->subs[1 + arg_count + 1];
+    const struct node *block = node->subs[node->subs_count - 1];
     print_block(out, header, mod, block);
 
     fprintf(out, "\n");

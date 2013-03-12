@@ -3,6 +3,7 @@ MODULE_BODY
   IDENT(nlang)
  DEFFUN :t00.main.main
   IDENT(main)
+  GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32

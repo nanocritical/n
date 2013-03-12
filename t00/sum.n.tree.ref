@@ -11,14 +11,14 @@ MODULE_BODY
     IDENT(SumEquality) :nlang.builtins.SumEquality
    ISA :nlang.builtins.WorkaroundRBC
     IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
-   ISA :nlang.builtins.DefaultCtor
-    BIN(.) :nlang.builtins.DefaultCtor
+   ISA :nlang.builtins.CtorWith
+    BIN(.) :nlang.builtins.CtorWith
      BIN(.) :nlang.builtins
       BIN(.) :nlang
        DIRECTDEF :<root>
        IDENT(nlang)
       IDENT(builtins)
-     IDENT(DefaultCtor)
+     IDENT(CtorWith)
   LET :nlang.builtins.void
    DEFPATTERN :t00.sum.sum
     IDENT(this) :t00.sum.sum
@@ -38,6 +38,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(ctor)
+    GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.mmref
      IDENT(self) :nlang.builtins.mmref
      UN(@#) :nlang.builtins.mmref
@@ -56,6 +57,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(mk)
+    GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.u32
      IDENT(c) :nlang.builtins.u32
      DIRECTDEF :nlang.builtins.u32
@@ -70,6 +72,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(new)
+    GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.u32
      IDENT(c) :nlang.builtins.u32
      DIRECTDEF :nlang.builtins.u32
@@ -91,6 +94,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(ctor)
+    GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.mmref
      IDENT(self) :nlang.builtins.mmref
      UN(@#) :nlang.builtins.mmref
@@ -109,6 +113,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(mk)
+    GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.i32
      IDENT(c) :nlang.builtins.i32
      DIRECTDEF :nlang.builtins.i32
@@ -123,6 +128,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(new)
+    GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.i32
      IDENT(c) :nlang.builtins.i32
      DIRECTDEF :nlang.builtins.i32
@@ -138,6 +144,7 @@ MODULE_BODY
      IDENT(builtins)
     IDENT(HasEquality)
    IDENT(operator_ne)
+  GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.ref
    IDENT(self) :nlang.builtins.ref
    UN(@) :nlang.builtins.ref
@@ -157,6 +164,7 @@ MODULE_BODY
      IDENT(builtins)
     IDENT(HasEquality)
    IDENT(operator_eq)
+  GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.ref
    IDENT(self) :nlang.builtins.ref
    UN(@) :nlang.builtins.ref
@@ -176,6 +184,7 @@ MODULE_BODY
      IDENT(builtins)
     IDENT(Copyable)
    IDENT(operator_copy)
+  GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.mmref
    IDENT(self) :nlang.builtins.mmref
    UN(@#) :nlang.builtins.mmref
@@ -211,6 +220,7 @@ MODULE_BODY
      IDENT(builtins)
     IDENT(Copyable)
    IDENT(operator_copy)
+  GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.mmref
    IDENT(self) :nlang.builtins.mmref
    UN(@#) :nlang.builtins.mmref
@@ -246,6 +256,7 @@ MODULE_BODY
      IDENT(builtins)
     IDENT(Copyable)
    IDENT(operator_copy)
+  GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.mmref
    IDENT(self) :nlang.builtins.mmref
    UN(@#) :nlang.builtins.mmref
@@ -261,14 +272,14 @@ MODULE_BODY
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.WorkaroundRBC
     IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
-   ISA :nlang.builtins.DefaultCtor
-    BIN(.) :nlang.builtins.DefaultCtor
+   ISA :nlang.builtins.CtorWith
+    BIN(.) :nlang.builtins.CtorWith
      BIN(.) :nlang.builtins
       BIN(.) :nlang
        DIRECTDEF :<root>
        IDENT(nlang)
       IDENT(builtins)
-     IDENT(DefaultCtor)
+     IDENT(CtorWith)
   LET :nlang.builtins.void
    DEFPATTERN :t00.sum.sum_nocopy
     IDENT(this) :t00.sum.sum_nocopy
@@ -288,6 +299,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(ctor)
+    GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.mmref
      IDENT(self) :nlang.builtins.mmref
      UN(@#) :nlang.builtins.mmref
@@ -306,6 +318,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(mk)
+    GENARGS :nlang.builtins.void
     DEFARG :t00.sum.ta
      IDENT(c) :t00.sum.ta
      DIRECTDEF :t00.sum.ta
@@ -320,6 +333,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(new)
+    GENARGS :nlang.builtins.void
     DEFARG :t00.sum.ta
      IDENT(c) :t00.sum.ta
      DIRECTDEF :t00.sum.ta
@@ -341,6 +355,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(ctor)
+    GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.mmref
      IDENT(self) :nlang.builtins.mmref
      UN(@#) :nlang.builtins.mmref
@@ -359,6 +374,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(mk)
+    GENARGS :nlang.builtins.void
     DEFARG :t00.sum.tb
      IDENT(c) :t00.sum.tb
      DIRECTDEF :t00.sum.tb
@@ -373,6 +389,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(CtorWith)
      IDENT(new)
+    GENARGS :nlang.builtins.void
     DEFARG :t00.sum.tb
      IDENT(c) :t00.sum.tb
      DIRECTDEF :t00.sum.tb
@@ -380,6 +397,7 @@ MODULE_BODY
      IDENT(this) :t00.sum.sum_nocopy
  DEFFUN :t00.sum.main
   IDENT(main)
+  GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void

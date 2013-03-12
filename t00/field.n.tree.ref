@@ -17,6 +17,7 @@ MODULE_BODY
    IDENT(i32) :nlang.builtins.i32
  DEFFUN :t00.field.main
   IDENT(main)
+  GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void

@@ -1152,6 +1152,14 @@ struct node *node_new_subnode(const struct module *mod, struct node *node) {
   return *r;
 }
 
+size_t node_fun_all_args_count(const struct node *def) {
+  if (def->subs[def->subs_count-1]->which == BLOCK) {
+    return def->subs_count - 4;
+  } else {
+    return def->subs_count - 3;
+  }
+}
+
 size_t node_fun_explicit_args_count(const struct node *def) {
   size_t minus = 0;
   switch(def->which) {
@@ -1165,20 +1173,20 @@ size_t node_fun_explicit_args_count(const struct node *def) {
     return -1;
   }
 
-  if (def->subs[def->subs_count-1]->which == BLOCK) {
-    return def->subs_count - 3 - minus;
-  } else {
-    return def->subs_count - 2 - minus;
-  }
+  return node_fun_all_args_count(def) - minus;
 }
 
-const struct node *node_fun_retval(const struct node *def) {
+const struct node *node_fun_retval_const(const struct node *def) {
   assert(def->which == DEFFUN || def->which == DEFMETHOD);
   if (def->subs[def->subs_count-1]->which == BLOCK) {
     return def->subs[def->subs_count-2];
   } else {
     return def->subs[def->subs_count-1];
   }
+}
+
+struct node *node_fun_retval(struct node *def) {
+  return (struct node *) node_fun_retval_const(def);
 }
 
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind) {
@@ -2062,16 +2070,15 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     assert(FALSE);
   }
 
-  e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
+  e = p_expr(node->subs[0], mod, T__CALL);
   EXCEPT(e);
-  struct node *name = node->subs[node->subs_count - 1];
+  struct node *name = node->subs[0];
 
   if (fun_or_method == DEFMETHOD) {
     if (name->which != IDENT && name->which != BIN) {
       EXCEPT_SYNTAX(mod, &tok, "malformed method name");
     }
 
-    assert(node->subs_count == 1);
     struct node *arg = mk_node(mod, node, DEFARG);
     struct node *name = mk_node(mod, arg, IDENT);
     name->as.IDENT.name = ID_SELF;
@@ -2258,8 +2265,9 @@ again:
   goto again;
 }
 
-static error p_defgenarg(struct node *node, struct module *mod) {
+static error p_defgenarg(struct node *node, struct module *mod, bool explicit) {
   node->which = DEFGENARG;
+  node->as.DEFGENARG.is_explicit = explicit;
   error e = p_expr(node_new_subnode(mod, node), mod, TCOLON);
   EXCEPT(e);
 
@@ -2271,7 +2279,8 @@ static error p_defgenarg(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_genargs(struct node *node, struct module *mod) {
+static error p_genargs(struct node *node, struct module *mod,
+                       enum token_type terminator, bool explicit) {
   node->which = GENARGS;
 
   error e;
@@ -2279,26 +2288,30 @@ static error p_genargs(struct node *node, struct module *mod) {
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
-  if (tok.t == TASSIGN) {
+  if (tok.t == terminator) {
+    if (!explicit && node->subs_count == 0) {
+      UNEXPECTED(mod, &tok);
+    }
     return 0;
   }
   back(mod, &tok);
 
-  e = p_defgenarg(node_new_subnode(mod, node), mod);
+  e = p_defgenarg(node_new_subnode(mod, node), mod, explicit);
   EXCEPT(e);
   goto again;
 
   return 0;
 }
 
-static error p_deftype(struct node *node, struct module *mod, const struct toplevel *toplevel) {
+static error p_deftype(struct node *node, struct module *mod,
+                       struct node *some_genargs, const struct toplevel *toplevel) {
   node->which = DEFTYPE;
   node->as.DEFTYPE.toplevel = *toplevel;
 
-  error e = p_ident(node_new_subnode(mod, node), mod);
+  error e = p_ident(node->subs[0], mod);
   EXCEPT(e);
 
-  e = p_genargs(node_new_subnode(mod, node), mod);
+  e = p_genargs(node->subs[IDX_GENARGS], mod, TASSIGN, TRUE);
   EXCEPT(e);
 
   e = p_isalist(node_new_subnode(mod, node), mod);
@@ -2320,21 +2333,47 @@ static error p_deftype(struct node *node, struct module *mod, const struct tople
   return 0;
 }
 
+static error p_implicit_genargs(struct node *genargs, struct module *mod) {
+  error e = p_genargs(genargs, mod, TRPAR, FALSE);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error p_defintf_statement(struct node *node, struct module *mod, ident intf_name) {
   error e;
-  struct token tok;
+  struct token tok, tok2;
   struct toplevel toplevel;
   memset(&toplevel, 0, sizeof(toplevel));
   toplevel.scope_name = intf_name;
+  struct node *genargs = NULL;
 
   e = scan(&tok, mod);
   EXCEPT(e);
 
+again:
   switch (tok.t) {
+  case TLPAR:
+    e = scan_oneof(&tok2, mod, Tfun, Tmethod, 0);
+    EXCEPT(e);
+    (void)node_new_subnode(mod, node);
+    genargs = mk_node(mod, node, GENARGS);
+    e = p_implicit_genargs(genargs, mod);
+    EXCEPT(e);
+    tok = tok2;
+    goto again;
   case Tfun:
+    if (node->subs_count == 0) {
+      (void)node_new_subnode(mod, node);
+      (void)mk_node(mod, node, GENARGS);
+    }
     e = p_deffun(node, mod, &toplevel, DEFFUN);
     break;
   case Tmethod:
+    if (node->subs_count == 0) {
+      (void)node_new_subnode(mod, node);
+      (void)mk_node(mod, node, GENARGS);
+    }
     e = p_deffun(node, mod, &toplevel, DEFMETHOD);
     break;
   case Tlet:
@@ -2393,15 +2432,16 @@ again:
   goto again;
 }
 
-static error p_defintf(struct node *node, struct module *mod, const struct toplevel *toplevel) {
+static error p_defintf(struct node *node, struct module *mod,
+                       struct node *some_genargs, const struct toplevel *toplevel) {
   node->which = DEFINTF;
   node->as.DEFINTF.toplevel = *toplevel;
 
   struct token tok;
-  error e = p_ident(node_new_subnode(mod, node), mod);
+  error e = p_ident(node->subs[0], mod);
   EXCEPT(e);
 
-  e = p_genargs(node_new_subnode(mod, node), mod);
+  e = p_genargs(node->subs[IDX_GENARGS], mod, TASSIGN, TRUE);
   EXCEPT(e);
 
   e = p_isalist(node_new_subnode(mod, node), mod);
@@ -2502,21 +2542,51 @@ again:
 static error p_toplevel(struct module *mod) {
   struct toplevel toplevel;
   memset(&toplevel, 0, sizeof(toplevel));
+  struct node *genargs = NULL;
 
   bool is_scoped = FALSE;
   error e;
-  struct token tok;
+  struct token tok, tok2;
+  struct node *node = NULL;
+
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
 
-  if (is_scoped && tok.t != Tmethod && tok.t != Tfun) {
+bypass:
+  if (is_scoped && tok.t != Tmethod && tok.t != Tfun && tok.t != TLPAR) {
     UNEXPECTED(mod, &tok);
   }
 
+#define NEW(mod, node) ( (node != NULL) ? node : node_new_subnode(mod, mod->body) )
+
   switch (tok.t) {
+  case TLPAR:
+    e = scan_oneof(&tok2, mod, Ttype, Tintf, Tfun, Tmethod, 0);
+    EXCEPT(e);
+
+    node = NEW(mod, node);
+    (void)node_new_subnode(mod, node);
+    genargs = node_new_subnode(mod, node);
+    e = p_implicit_genargs(genargs, mod);
+    EXCEPT(e);
+    tok = tok2;
+    goto bypass;
   case Ttype:
-    e = p_deftype(node_new_subnode(mod, mod->body), mod, &toplevel);
+    node = NEW(mod, node);
+    if (node->subs_count == 0) {
+      (void)node_new_subnode(mod, node);
+      (void)mk_node(mod, node, GENARGS);
+    }
+    e = p_deftype(node, mod, genargs, &toplevel);
+    break;
+  case Tintf:
+    node = NEW(mod, node);
+    if (node->subs_count == 0) {
+      (void)node_new_subnode(mod, node);
+      (void)mk_node(mod, node, GENARGS);
+    }
+    e = p_defintf(node, mod, genargs, &toplevel);
     break;
   case Texport:
     toplevel.is_export = TRUE;
@@ -2528,19 +2598,26 @@ again:
     toplevel.is_inline = TRUE;
     goto again;
   case Tfun:
-    e = p_deffun(node_new_subnode(mod, mod->body), mod, &toplevel, DEFFUN);
+    node = NEW(mod, node);
+    if (node->subs_count == 0) {
+      (void)node_new_subnode(mod, node);
+      (void)mk_node(mod, node, GENARGS);
+    }
+    e = p_deffun(node, mod, &toplevel, DEFFUN);
     break;
   case Tmethod:
     if (!is_scoped) {
       UNEXPECTED(mod, &tok);
     }
-    e = p_deffun(node_new_subnode(mod, mod->body), mod, &toplevel, DEFMETHOD);
-    break;
-  case Tintf:
-    e = p_defintf(node_new_subnode(mod, mod->body), mod, &toplevel);
+    node = NEW(mod, node);
+    if (node->subs_count == 0) {
+      (void)node_new_subnode(mod, node);
+      (void)mk_node(mod, node, GENARGS);
+    }
+    e = p_deffun(node, mod, &toplevel, DEFMETHOD);
     break;
   case Tlet:
-    e = p_let(node_new_subnode(mod, mod->body), mod, &toplevel);
+    e = p_let(NEW(mod, node), mod, &toplevel);
     break;
   case TIDENT:
     toplevel.scope_name = idents_add(mod->gctx, &tok);
@@ -2548,7 +2625,7 @@ again:
     goto again;
   case Tfrom:
   case Timport:
-    e = p_import(node_new_subnode(mod, mod->body), mod, &toplevel, tok.t == Tfrom);
+    e = p_import(NEW(mod, node), mod, &toplevel, tok.t == Tfrom);
     break;
   case TEOL:
     break;
@@ -2556,6 +2633,8 @@ again:
     EXCEPT_SYNTAX(mod, &tok, "malformed top-level statement at '%.*s'", (int)tok.len, tok.value);
     break;
   }
+
+#undef NEW
 
   EXCEPT(e);
   return 0;
@@ -3067,8 +3146,8 @@ error mk_except_type(const struct module *mod, const struct node *node, const ch
   return 0;
 }
 
-error mk_except_call_arg_count(const struct module *mod, const struct node *node,
-                               const struct node *definition, size_t extra, size_t given) {
+error mk_except_call_args_count(const struct module *mod, const struct node *node,
+                                const struct node *definition, size_t extra, size_t given) {
   EXCEPT_TYPE(try_node_module_owner_const(mod, node), node, "invalid number of arguments: %zd expected, but %zd given",
               node_fun_explicit_args_count(definition) + extra, given);
   return 0;

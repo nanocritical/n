@@ -17,6 +17,7 @@ MODULE_BODY
    IDENT(i32) :nlang.builtins.i32
  DEFMETHOD :t00.unary.t.get
   IDENT(get)
+  GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.ref
    IDENT(self) :nlang.builtins.ref
    UN(@) :nlang.builtins.ref
@@ -29,6 +30,7 @@ MODULE_BODY
      IDENT(x)
  DEFFUN :t00.unary.main
   IDENT(main)
+  GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void

@@ -17,6 +17,7 @@ MODULE_BODY
    IDENT(i32) :nlang.builtins.i32
  DEFFUN :t00.return.foo
   IDENT(foo)
+  GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.i32
    IDENT(x) :nlang.builtins.i32
    IDENT(i32) :nlang.builtins.i32
@@ -33,6 +34,7 @@ MODULE_BODY
     IDENT(n) :t00.return.nocopy
  DEFFUN :t00.return.chained
   IDENT(chained)
+  GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.i32
    IDENT(x) :nlang.builtins.i32
    IDENT(i32) :nlang.builtins.i32
@@ -46,6 +48,7 @@ MODULE_BODY
      IDENT(x) :nlang.builtins.i32
  DEFFUN :t00.return.main
   IDENT(main)
+  GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32

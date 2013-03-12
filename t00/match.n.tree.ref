@@ -26,6 +26,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(DefaultCtor)
      IDENT(mk)
+    GENARGS :nlang.builtins.void
     IDENT(this) :t00.match.enu
    DEFFUN :t00.match.enu.A.new
     BIN(.)
@@ -37,6 +38,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(DefaultCtor)
      IDENT(new)
+    GENARGS :nlang.builtins.void
     UN(@#) :nlang.builtins.mmref
      IDENT(this) :t00.match.enu
   DEFCHOICE :t00.match.enu
@@ -55,6 +57,7 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(DefaultCtor)
      IDENT(mk)
+    GENARGS :nlang.builtins.void
     IDENT(this) :t00.match.enu
    DEFFUN :t00.match.enu.B.new
     BIN(.)
@@ -66,10 +69,12 @@ MODULE_BODY
        IDENT(builtins)
       IDENT(DefaultCtor)
      IDENT(new)
+    GENARGS :nlang.builtins.void
     UN(@#) :nlang.builtins.mmref
      IDENT(this) :t00.match.enu
  DEFFUN :t00.match.main
   IDENT(main)
+  GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void

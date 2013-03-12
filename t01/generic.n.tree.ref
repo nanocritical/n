@@ -18,6 +18,7 @@ MODULE_BODY
    IDENT(t) :nlang.builtins.Copyable
  DEFFUN :t01.generic.main
   IDENT(main)
+  GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void

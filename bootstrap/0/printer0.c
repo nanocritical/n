@@ -485,24 +485,25 @@ static void print_typeconstraint(FILE *out, const struct module *mod, const stru
 }
 
 static void print_defarg(FILE *out, const struct module *mod, const struct node *node) {
+  assert(node->which == DEFARG);
   print_expr(out, mod, node->subs[0], T__STATEMENT);
   fprintf(out, ":");
   print_typeexpr(out, mod, node->subs[1]);
 }
 
 static void print_deffun(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  const size_t arg_count = node_fun_explicit_args_count(node);
+  const size_t args_count = node_fun_explicit_args_count(node);
   const struct node *name = node->subs[0];
-  const struct node *retval = node->subs[1 + arg_count];
+  const struct node *retval = node_fun_retval_const(node);
 
   print_toplevel(out, &node->as.DEFFUN.toplevel);
 
   fprintf(out, "fun ");
   print_expr(out, mod, name, T__STATEMENT);
 
-  for (size_t n = 0; n < arg_count; ++n) {
+  for (size_t n = 0; n < args_count; ++n) {
     fprintf(out, " ");
-    const struct node *arg = node->subs[1 + n];
+    const struct node *arg = node->subs[IDX_FUN_FIRSTARG + n];
     print_typeconstraint(out, mod, arg);
   }
 
@@ -515,7 +516,7 @@ static void print_deffun(FILE *out, const struct module *mod, int indent, const 
 
   if (!node_toplevel_const(node)->is_prototype
       && node_toplevel_const(node)->builtingen == BG__NOT) {
-    const struct node *block = node->subs[1 + arg_count + 1];
+    const struct node *block = node->subs[node->subs_count-1];
     print_block(out, mod, 0, block);
   }
 
@@ -620,9 +621,9 @@ static void print_deftype(FILE *out, const struct module *mod, int indent, const
 }
 
 static void print_defmethod(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  const size_t arg_count = node_fun_explicit_args_count(node);
+  const size_t args_count = node_fun_explicit_args_count(node);
   const struct node *name = node->subs[0];
-  const struct node *retval = node_fun_retval(node);
+  const struct node *retval = node_fun_retval_const(node);
 
   print_toplevel(out, &node->as.DEFMETHOD.toplevel);
 
@@ -630,9 +631,9 @@ static void print_defmethod(FILE *out, const struct module *mod, int indent, con
   fprintf(out, "%s method ", scope);
   print_expr(out, mod, name, T__STATEMENT);
 
-  for (size_t n = 0; n < arg_count; ++n) {
+  for (size_t n = 0; n < args_count; ++n) {
     fprintf(out, " ");
-    const struct node *arg = node->subs[1 + n];
+    const struct node *arg = node->subs[IDX_FUN_FIRSTARG + n];
     print_typeconstraint(out, mod, arg);
   }
 

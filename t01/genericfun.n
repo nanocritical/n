@@ -1,0 +1,4 @@
+from nlang import *
+
+(fun t:Numeric) incr x:t = t
+  return x + 1

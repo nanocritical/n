@@ -730,15 +730,15 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
   case DEFFUN:
   case DEFMETHOD:
     {
-      size_t arg_count = node_fun_explicit_args_count(node);
-      for (size_t n = 0; n < arg_count; ++n) {
-        struct node *arg = node->subs[1+n];
+      size_t args_count = node_fun_all_args_count(node);
+      for (size_t n = 0; n < args_count; ++n) {
+        struct node *arg = node->subs[IDX_FUN_FIRSTARG+n];
         assert(arg->which == DEFARG);
         e = scope_define(mod, node->scope, arg->subs[0], arg);
         EXCEPT(e);
       }
 
-      e = lexical_retval(mod, node, node->subs[1+arg_count]);
+      e = lexical_retval(mod, node, node_fun_retval(node));
       EXCEPT(e);
     }
     break;
@@ -979,10 +979,10 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
 
 static error type_inference_explicit_unary_call(struct module *mod, struct node *node, struct node *def) {
   if (def->which == DEFFUN && node->subs_count != 1) {
-    error e = mk_except_call_arg_count(mod, node, def, 0, node->subs_count - 1);
+    error e = mk_except_call_args_count(mod, node, def, 0, node->subs_count - 1);
     EXCEPT(e);
   } else if (def->which == DEFMETHOD && node->subs_count != 2) {
-    error e = mk_except_call_arg_count(mod, node, def, 1, node->subs_count - 1);
+    error e = mk_except_call_args_count(mod, node, def, 1, node->subs_count - 1);
     EXCEPT(e);
   }
 
@@ -1171,7 +1171,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   if (field->typ->which == TYPE_FUNCTION
       && node->typ != typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT)) {
     if (node_fun_explicit_args_count(field) != 0) {
-      e = mk_except_call_arg_count(mod, node, field, 0, 0);
+      e = mk_except_call_args_count(mod, node, field, 0, 0);
       EXCEPT(e);
     }
 
@@ -1288,8 +1288,8 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
   switch (fun->typ->definition->which) {
   case DEFFUN:
     if (node_fun_explicit_args_count(fun->typ->definition) != node->subs_count - 1) {
-      error e = mk_except_call_arg_count(mod, node, fun->typ->definition, 0,
-                                         node->subs_count - 1);
+      error e = mk_except_call_args_count(mod, node, fun->typ->definition, 0,
+                                          node->subs_count - 1);
       EXCEPT(e);
     }
     break;
@@ -1297,15 +1297,15 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
     if ((fun->subs[0]->flags & NODE_IS_TYPE)) {
       // Form (type.method self ...).
       if (1 + node_fun_explicit_args_count(fun->typ->definition) != node->subs_count - 1) {
-        error e = mk_except_call_arg_count(mod, node, fun->typ->definition, 1,
-                                           node->subs_count - 1);
+        error e = mk_except_call_args_count(mod, node, fun->typ->definition, 1,
+                                            node->subs_count - 1);
         EXCEPT(e);
       }
     } else {
       // Form (self.method ...); rewrite as (type.method self ...).
       if (node_fun_explicit_args_count(fun->typ->definition) != node->subs_count - 1) {
-        error e = mk_except_call_arg_count(mod, node, fun->typ->definition, 0,
-                                           node->subs_count - 1);
+        error e = mk_except_call_args_count(mod, node, fun->typ->definition, 0,
+                                            node->subs_count - 1);
         EXCEPT(e);
       }
 
@@ -1766,7 +1766,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     if (def->typ->which == TYPE_FUNCTION
         && node->typ != typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT)) {
       if (node_fun_explicit_args_count(def) != 0) {
-        e = mk_except_call_arg_count(mod, node, def, 0, 0);
+        e = mk_except_call_args_count(mod, node, def, 0, 0);
         EXCEPT(e);
       }
       e = rewrite_unary_call(mod, node, def->typ);
@@ -1878,9 +1878,9 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case DEFFUN:
     node->typ = typ_new(node, TYPE_FUNCTION, 0,
-                        node_fun_explicit_args_count(node));
+                        node_fun_all_args_count(node));
     for (size_t n = 0; n < node->typ->fun_arity; ++n) {
-      node->typ->fun_args[n] = node->subs[n + 1]->typ;
+      node->typ->fun_args[n] = node->subs[n + IDX_FUN_FIRSTARG]->typ;
     }
     node->typ->fun_args[node->typ->fun_arity] = node_fun_retval(node)->typ;
     node->flags |= NODE_IS_TYPE;
@@ -1888,9 +1888,9 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case DEFMETHOD:
     node->typ = typ_new(node, TYPE_FUNCTION, 0,
-                        1 + node_fun_explicit_args_count(node));
+                        node_fun_all_args_count(node));
     for (size_t n = 0; n < node->typ->fun_arity; ++n) {
-      node->typ->fun_args[n] = node->subs[n + 1]->typ;
+      node->typ->fun_args[n] = node->subs[n + IDX_FUN_FIRSTARG]->typ;
     }
     node->typ->fun_args[node->typ->fun_arity] = node_fun_retval(node)->typ;
     node->flags |= NODE_IS_TYPE;
@@ -2117,7 +2117,7 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
     struct node *typename = mk_node(mod, arg, DIRECTDEF);
     typename->as.DIRECTDEF.definition = ch->subs[IDX_CH_PAYLOAD]->typ->definition;
 
-    rew_insert_last_at(d, d->which == DEFMETHOD ? 2 : 1);
+    rew_insert_last_at(d, IDX_FUN_FIRSTARG + ((d->which == DEFMETHOD) ? 1 : 0));
   }
 
   e = zero_to_first_for_generated(mod, d, NULL, ch->scope);
@@ -2195,9 +2195,9 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
 
   struct node *ctor = get_member(mod, proxy, ID_CTOR);
   if (ctor != NULL) {
-    if (node_fun_explicit_args_count(ctor) == 1) {
+    if (node_fun_explicit_args_count(ctor) == 0) {
       add_isa(mod, node, "nlang.builtins.DefaultCtor");
-    } else if (node_fun_explicit_args_count(ctor) == 2) {
+    } else if (node_fun_explicit_args_count(ctor) == 1) {
       add_isa(mod, node, "nlang.builtins.CtorWith");
     }
   } else {

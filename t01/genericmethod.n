@@ -1,0 +1,17 @@
+from nlang import *
+
+intf Blah =
+  (method t:Numeric) decr x:t = t
+
+type blah = Blah
+
+blah (method t:Numeric) Blah.decr x:t = t
+  return x - 1
+
+blah (method t:Numeric) decrf x:t = t
+  return x - 1
+
+fun main = i32
+  let b = blah{{ }}
+  b.decr 1:u32
+  return (b.decrf i32) 1
