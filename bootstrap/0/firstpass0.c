@@ -1371,27 +1371,6 @@ static error rewrite_instance_genargs(struct module *mod,
   return 0;
 }
 
-static error step_reset_typs(struct module *mod, struct node *node, void *user, bool *stop) {
-  node->typ = NULL;
-  return 0;
-}
-
-static error reset_typs(struct module *mod, struct node *node) {
-  static const step down[] = {
-    step_reset_typs,
-    NULL,
-  };
-
-  static const step up[] = {
-    NULL,
-  };
-
-  error e = pass(mod, node, down, up, NULL, NULL);
-  EXCEPT(e);
-
-  return 0;
-}
-
 static error type_inference_generic_instantiation(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
   struct node *gendef = fun->typ->definition;
@@ -1404,11 +1383,7 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
 
   for (size_t n = 0; n < genargs->subs_count; ++n) {
     struct node *arg = node->subs[1+n];
-    error e = reset_typs(mod, arg);
-    assert(!e);
-    e = firstpass(mod, arg, NULL);
-    EXCEPT(e);
-    e = typ_check_isa(mod, arg, arg->typ, genargs->subs[n]->typ);
+    error e = typ_check_isa(mod, arg, arg->typ, genargs->subs[n]->typ);
     EXCEPT(e);
   }
 
