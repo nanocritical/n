@@ -88,6 +88,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_LITERALS_NULL] = "__null__",
   [ID_TBI_LITERALS_INTEGER] = "integer",
   [ID_TBI_LITERALS_BOOLEAN] = "boolean",
+  [ID_TBI_ANY] = "Any",
   [ID_TBI_PSEUDO_TUPLE] = "pseudo_tuple",
   [ID_TBI_BOOL] = "bool",
   [ID_TBI_I8] = "i8",
@@ -3102,6 +3103,10 @@ error typ_unify(const struct typ **u, const struct module *mod, const struct nod
 
 bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf) {
   if (a == intf) {
+    return TRUE;
+  }
+
+  if (intf == typ_lookup_builtin(mod, TBI_ANY)) {
     return TRUE;
   }
 
