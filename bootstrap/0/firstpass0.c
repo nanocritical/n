@@ -864,8 +864,33 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   return 0;
 }
 
+static error step_type_inference(struct module *mod, struct node *node, void *user, bool *stop);
+
+error earlytypepass(struct module *mod, struct node *node) {
+  static const step down[] = {
+    step_stop_marker_tbi,
+    step_type_destruct_mark,
+    NULL,
+  };
+
+  static const step up[] = {
+    step_type_inference,
+    NULL,
+  };
+
+  error e = pass(mod, node, down, up, NULL, NULL);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error step_type_definitions(struct module *mod, struct node *node, void *user, bool *stop) {
+  error e;
   switch (node->which) {
+  case IMPORT:
+    e = earlytypepass(mod, node);
+    EXCEPT(e);
+    return 0;
   case DEFTYPE:
   case DEFINTF:
     break;
@@ -897,6 +922,59 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
     node->typ = typ_new(node, TYPE_DEF, 0, 0);
   }
   node->flags = NODE_IS_TYPE;
+
+  return 0;
+}
+
+static error step_type_inference_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
+  error e;
+
+  switch (node->which) {
+  case GENARGS:
+  case ISA:
+    e = earlytypepass(mod, node);
+    EXCEPT(e);
+    return 0;
+  case DEFTYPE:
+  case DEFINTF:
+    break;
+  default:
+    return 0;
+  }
+
+  if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
+      || node->typ == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)) {
+    return 0;
+  }
+
+  struct node *isalist = node->subs[IDX_ISALIST];
+  struct typ *mutable_typ = (struct typ *) node->typ;
+
+  // FIXME: Check for duplicates?
+
+  mutable_typ->isalist_count = isalist->subs_count;
+  mutable_typ->isalist = calloc(isalist->subs_count, sizeof(*node->typ->isalist));
+  mutable_typ->isalist_exported = calloc(isalist->subs_count, sizeof(bool));
+
+  bool uses_implied_generic = FALSE;
+  for (size_t n = 0; n < isalist->subs_count; ++n) {
+    struct node *isa = isalist->subs[n];
+    assert(isa->which == ISA);
+
+    if (isa->typ->definition->which != DEFINTF) {
+      e = mk_except_type(mod, isa, "not an intf");
+      EXCEPT(e);
+    }
+
+    mutable_typ->isalist[n] = isa->typ;
+    mutable_typ->isalist_exported[n] = isa->as.ISA.is_export;
+
+    uses_implied_generic |= isa->typ->definition->as.DEFINTF.is_implied_generic;
+  }
+
+  if (node->which == DEFINTF) {
+    node->as.DEFINTF.is_implied_generic = uses_implied_generic;
+  }
 
   return 0;
 }
@@ -1751,7 +1829,6 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
       node->typ = def->typ;
       node->flags = def->flags;
     }
-    assert(node->typ->which != TYPE__MARKER);
     goto ok;
   case IMPORT:
     e = scope_lookup(&def, mod, mod->gctx->modules_root.scope, node->subs[0]);
@@ -1768,7 +1845,6 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
       node->subs[n]->typ = s->typ;
       node->subs[n]->flags = s->flags;
     }
-    assert(node->typ->which != TYPE__MARKER);
     goto ok;
   case NUMBER:
     node->typ = typ_lookup_builtin(mod, TBI_LITERALS_INTEGER);
@@ -1946,6 +2022,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case ISA:
     node->typ = node->subs[0]->typ;
+    node->flags = node->subs[0]->flags & NODE__TRANSITIVE;
     goto ok;
   case DIRECTDEF:
     node->typ = node->as.DIRECTDEF.definition->typ;
@@ -1958,61 +2035,6 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
 ok:
   assert(node->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT));
   assert(node->typ != NULL);
-  return 0;
-}
-
-static error step_type_inference_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
-  error e;
-
-  switch (node->which) {
-  case DEFTYPE:
-  case DEFINTF:
-    break;
-  default:
-    return 0;
-  }
-
-  if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
-      || node->typ == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)) {
-    return 0;
-  }
-
-  struct node *isalist = node->subs[IDX_ISALIST];
-  assert(isalist->which == ISALIST);
-
-  struct typ *mutable_typ = (struct typ *) node->typ;
-
-  // FIXME: Check for duplicates?
-
-  mutable_typ->isalist_count = isalist->subs_count;
-  mutable_typ->isalist = calloc(isalist->subs_count, sizeof(*node->typ->isalist));
-  mutable_typ->isalist_exported = calloc(isalist->subs_count, sizeof(bool));
-
-  bool uses_implied_generic = FALSE;
-  for (size_t n = 0; n < isalist->subs_count; ++n) {
-    struct node *isa = isalist->subs[n];
-    assert(isa->which == ISA);
-
-    struct node *def = NULL;
-    e = scope_lookup(&def, mod, node->scope->parent, isa->subs[0]);
-    EXCEPT(e);
-
-    if (def->which != DEFINTF) {
-      e = mk_except_type(mod, isa, "not an intf");
-      EXCEPT(e);
-    }
-
-    isa->typ = def->typ;
-    mutable_typ->isalist[n] = def->typ;
-    mutable_typ->isalist_exported[n] = isa->as.ISA.is_export;
-
-    uses_implied_generic |= def->as.DEFINTF.is_implied_generic;
-  }
-
-  if (node->which == DEFINTF) {
-    node->as.DEFINTF.is_implied_generic = uses_implied_generic;
-  }
-
   return 0;
 }
 
