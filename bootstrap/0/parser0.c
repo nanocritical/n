@@ -2578,6 +2578,8 @@ bypass:
     if (node->subs_count == 0) {
       (void)node_new_subnode(mod, node);
       (void)mk_node(mod, node, GENARGS);
+    } else {
+      assert(FALSE && "implicit genargs unsupported");
     }
     e = p_deftype(node, mod, genargs, &toplevel);
     break;
@@ -2586,6 +2588,8 @@ bypass:
     if (node->subs_count == 0) {
       (void)node_new_subnode(mod, node);
       (void)mk_node(mod, node, GENARGS);
+    } else {
+      assert(FALSE && "implicit genargs unsupported");
     }
     e = p_defintf(node, mod, genargs, &toplevel);
     break;
