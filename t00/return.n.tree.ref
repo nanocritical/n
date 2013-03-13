@@ -1,8 +1,8 @@
-MODULE_BODY
+MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
-  IDENT(nlang)
+  IDENT(nlang) :__internal_pending_destruct__
  DEFTYPE :t00.return.nocopy
-  IDENT(nocopy)
+  IDENT(nocopy) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.ReturnByCopy
@@ -13,10 +13,10 @@ MODULE_BODY
     IDENT(nocopy) :t00.return.nocopy
     DEFNAME(this) :t00.return.nocopy
   DEFFIELD :nlang.builtins.i32
-   IDENT(x)
+   IDENT(x) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
  DEFFUN :t00.return.foo
-  IDENT(foo)
+  IDENT(foo) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.i32
    IDENT(x) :nlang.builtins.i32
@@ -28,12 +28,12 @@ MODULE_BODY
    BIN( = ) :nlang.builtins.i32
     BIN(!) :nlang.builtins.i32
      IDENT(n) :t00.return.nocopy
-     IDENT(x)
+     IDENT(x) :__internal_not_typeable__
     IDENT(x) :nlang.builtins.i32
    RETURN :t00.return.nocopy
     IDENT(n) :t00.return.nocopy
  DEFFUN :t00.return.chained
-  IDENT(chained)
+  IDENT(chained) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.i32
    IDENT(x) :nlang.builtins.i32
@@ -47,7 +47,7 @@ MODULE_BODY
      IDENT(foo) :t00.return.foo
      IDENT(x) :nlang.builtins.i32
  DEFFUN :t00.return.main
-  IDENT(main)
+  IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
@@ -57,5 +57,5 @@ MODULE_BODY
       CALL :t00.return.nocopy
        IDENT(chained) :t00.return.chained
        NUMBER(1) :nlang.builtins.i32
-      IDENT(x)
+      IDENT(x) :__internal_not_typeable__
      NUMBER(1) :nlang.builtins.i32

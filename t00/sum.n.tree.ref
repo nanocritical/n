@@ -1,8 +1,8 @@
-MODULE_BODY
+MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
-  IDENT(nlang)
+  IDENT(nlang) :__internal_pending_destruct__
  DEFTYPE :t00.sum.sum
-  IDENT(sum)
+  IDENT(sum) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.SumCopy
@@ -16,28 +16,28 @@ MODULE_BODY
      BIN(.) :nlang.builtins
       BIN(.) :nlang
        DIRECTDEF :<root>
-       IDENT(nlang)
-      IDENT(builtins)
-     IDENT(CtorWith)
+       IDENT(nlang) :__internal_not_typeable__
+      IDENT(builtins) :__internal_not_typeable__
+     IDENT(CtorWith) :__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :t00.sum.sum
     IDENT(this) :t00.sum.sum
     IDENT(sum) :t00.sum.sum
     DEFNAME(this) :t00.sum.sum
   DEFCHOICE :t00.sum.sum
-   IDENT(A)
+   IDENT(A) :__internal_not_typeable__
    NUMBER(0) :nlang.builtins.u32
    IDENT(u32) :nlang.builtins.u32
    DEFMETHOD :t00.sum.sum.A.ctor
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(ctor)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(ctor) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.mmref
      IDENT(self) :nlang.builtins.mmref
@@ -48,30 +48,30 @@ MODULE_BODY
      DIRECTDEF :nlang.builtins.u32
     IDENT(void) :nlang.builtins.void
    DEFFUN :t00.sum.sum.A.mk
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(mk)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(mk) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.u32
      IDENT(c) :nlang.builtins.u32
      DIRECTDEF :nlang.builtins.u32
     IDENT(this) :t00.sum.sum
    DEFFUN :t00.sum.sum.A.new
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(new)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(new) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.u32
      IDENT(c) :nlang.builtins.u32
@@ -79,21 +79,21 @@ MODULE_BODY
     UN(@#) :nlang.builtins.mmref
      IDENT(this) :t00.sum.sum
   DEFCHOICE :t00.sum.sum
-   IDENT(B)
+   IDENT(B) :__internal_not_typeable__
    BIN( + ) :nlang.builtins.u32
     NUMBER(0) :nlang.builtins.u32
     NUMBER(1) :nlang.builtins.u32
    IDENT(i32) :nlang.builtins.i32
    DEFMETHOD :t00.sum.sum.B.ctor
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(ctor)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(ctor) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.mmref
      IDENT(self) :nlang.builtins.mmref
@@ -104,30 +104,30 @@ MODULE_BODY
      DIRECTDEF :nlang.builtins.i32
     IDENT(void) :nlang.builtins.void
    DEFFUN :t00.sum.sum.B.mk
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(mk)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(mk) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.i32
      IDENT(c) :nlang.builtins.i32
      DIRECTDEF :nlang.builtins.i32
     IDENT(this) :t00.sum.sum
    DEFFUN :t00.sum.sum.B.new
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(new)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(new) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.i32
      IDENT(c) :nlang.builtins.i32
@@ -135,15 +135,15 @@ MODULE_BODY
     UN(@#) :nlang.builtins.mmref
      IDENT(this) :t00.sum.sum
  DEFMETHOD :t00.sum.sum.operator_ne
-  BIN(.)
-   BIN(.)
-    BIN(.)
-     BIN(.)
-      DIRECTDEF
-      IDENT(nlang)
-     IDENT(builtins)
-    IDENT(HasEquality)
-   IDENT(operator_ne)
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(HasEquality) :__internal_not_typeable__
+   IDENT(operator_ne) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.ref
    IDENT(self) :nlang.builtins.ref
@@ -155,15 +155,15 @@ MODULE_BODY
     IDENT(this) :t00.sum.sum
   IDENT(bool) :nlang.builtins.bool
  DEFMETHOD :t00.sum.sum.operator_eq
-  BIN(.)
-   BIN(.)
-    BIN(.)
-     BIN(.)
-      DIRECTDEF
-      IDENT(nlang)
-     IDENT(builtins)
-    IDENT(HasEquality)
-   IDENT(operator_eq)
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(HasEquality) :__internal_not_typeable__
+   IDENT(operator_eq) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.ref
    IDENT(self) :nlang.builtins.ref
@@ -175,15 +175,15 @@ MODULE_BODY
     IDENT(this) :t00.sum.sum
   IDENT(bool) :nlang.builtins.bool
  DEFMETHOD :t00.sum.sum.operator_copy
-  BIN(.)
-   BIN(.)
-    BIN(.)
-     BIN(.)
-      DIRECTDEF
-      IDENT(nlang)
-     IDENT(builtins)
-    IDENT(Copyable)
-   IDENT(operator_copy)
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(Copyable) :__internal_not_typeable__
+   IDENT(operator_copy) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.mmref
    IDENT(self) :nlang.builtins.mmref
@@ -195,7 +195,7 @@ MODULE_BODY
     IDENT(this) :t00.sum.sum
   IDENT(void) :nlang.builtins.void
  DEFTYPE :t00.sum.ta
-  IDENT(ta)
+  IDENT(ta) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.TrivialCopy
@@ -208,18 +208,18 @@ MODULE_BODY
     IDENT(ta) :t00.sum.ta
     DEFNAME(this) :t00.sum.ta
   DEFFIELD :nlang.builtins.u32
-   IDENT(x)
+   IDENT(x) :__internal_not_typeable__
    IDENT(u32) :nlang.builtins.u32
  DEFMETHOD :t00.sum.ta.operator_copy
-  BIN(.)
-   BIN(.)
-    BIN(.)
-     BIN(.)
-      DIRECTDEF
-      IDENT(nlang)
-     IDENT(builtins)
-    IDENT(Copyable)
-   IDENT(operator_copy)
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(Copyable) :__internal_not_typeable__
+   IDENT(operator_copy) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.mmref
    IDENT(self) :nlang.builtins.mmref
@@ -231,7 +231,7 @@ MODULE_BODY
     IDENT(this) :t00.sum.ta
   IDENT(void) :nlang.builtins.void
  DEFTYPE :t00.sum.tb
-  IDENT(tb)
+  IDENT(tb) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.TrivialCopy
@@ -244,18 +244,18 @@ MODULE_BODY
     IDENT(tb) :t00.sum.tb
     DEFNAME(this) :t00.sum.tb
   DEFFIELD :nlang.builtins.i32
-   IDENT(y)
+   IDENT(y) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
  DEFMETHOD :t00.sum.tb.operator_copy
-  BIN(.)
-   BIN(.)
-    BIN(.)
-     BIN(.)
-      DIRECTDEF
-      IDENT(nlang)
-     IDENT(builtins)
-    IDENT(Copyable)
-   IDENT(operator_copy)
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(Copyable) :__internal_not_typeable__
+   IDENT(operator_copy) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.mmref
    IDENT(self) :nlang.builtins.mmref
@@ -267,7 +267,7 @@ MODULE_BODY
     IDENT(this) :t00.sum.tb
   IDENT(void) :nlang.builtins.void
  DEFTYPE :t00.sum.sum_nocopy
-  IDENT(sum_nocopy)
+  IDENT(sum_nocopy) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.WorkaroundRBC
@@ -277,28 +277,28 @@ MODULE_BODY
      BIN(.) :nlang.builtins
       BIN(.) :nlang
        DIRECTDEF :<root>
-       IDENT(nlang)
-      IDENT(builtins)
-     IDENT(CtorWith)
+       IDENT(nlang) :__internal_not_typeable__
+      IDENT(builtins) :__internal_not_typeable__
+     IDENT(CtorWith) :__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :t00.sum.sum_nocopy
     IDENT(this) :t00.sum.sum_nocopy
     IDENT(sum_nocopy) :t00.sum.sum_nocopy
     DEFNAME(this) :t00.sum.sum_nocopy
   DEFCHOICE :t00.sum.sum_nocopy
-   IDENT(A)
+   IDENT(A) :__internal_not_typeable__
    NUMBER(0) :nlang.builtins.u32
    IDENT(ta) :t00.sum.ta
    DEFMETHOD :t00.sum.sum_nocopy.A.ctor
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(ctor)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(ctor) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.mmref
      IDENT(self) :nlang.builtins.mmref
@@ -309,30 +309,30 @@ MODULE_BODY
      DIRECTDEF :t00.sum.ta
     IDENT(void) :nlang.builtins.void
    DEFFUN :t00.sum.sum_nocopy.A.mk
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(mk)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(mk) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :t00.sum.ta
      IDENT(c) :t00.sum.ta
      DIRECTDEF :t00.sum.ta
     IDENT(this) :t00.sum.sum_nocopy
    DEFFUN :t00.sum.sum_nocopy.A.new
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(new)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(new) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :t00.sum.ta
      IDENT(c) :t00.sum.ta
@@ -340,21 +340,21 @@ MODULE_BODY
     UN(@#) :nlang.builtins.mmref
      IDENT(this) :t00.sum.sum_nocopy
   DEFCHOICE :t00.sum.sum_nocopy
-   IDENT(B)
+   IDENT(B) :__internal_not_typeable__
    BIN( + ) :nlang.builtins.u32
     NUMBER(0) :nlang.builtins.u32
     NUMBER(1) :nlang.builtins.u32
    IDENT(tb) :t00.sum.tb
    DEFMETHOD :t00.sum.sum_nocopy.B.ctor
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(ctor)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(ctor) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :nlang.builtins.mmref
      IDENT(self) :nlang.builtins.mmref
@@ -365,30 +365,30 @@ MODULE_BODY
      DIRECTDEF :t00.sum.tb
     IDENT(void) :nlang.builtins.void
    DEFFUN :t00.sum.sum_nocopy.B.mk
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(mk)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(mk) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :t00.sum.tb
      IDENT(c) :t00.sum.tb
      DIRECTDEF :t00.sum.tb
     IDENT(this) :t00.sum.sum_nocopy
    DEFFUN :t00.sum.sum_nocopy.B.new
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(CtorWith)
-     IDENT(new)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(CtorWith) :__internal_not_typeable__
+     IDENT(new) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :t00.sum.tb
      IDENT(c) :t00.sum.tb
@@ -396,7 +396,7 @@ MODULE_BODY
     UN(@#) :nlang.builtins.mmref
      IDENT(this) :t00.sum.sum_nocopy
  DEFFUN :t00.sum.main
-  IDENT(main)
+  IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
@@ -407,8 +407,8 @@ MODULE_BODY
       BIN(.) :t00.sum.sum.A.mk
        BIN(.) :t00.sum.sum
         IDENT(sum) :t00.sum.sum
-        IDENT(A)
-       IDENT(mk)
+        IDENT(A) :__internal_not_typeable__
+       IDENT(mk) :__internal_not_typeable__
       NUMBER(0) :nlang.builtins.u32
      DEFNAME(n) :t00.sum.sum
    LET :nlang.builtins.void
@@ -418,15 +418,15 @@ MODULE_BODY
       BIN(.) :t00.sum.sum.A.mk
        BIN(.) :t00.sum.sum
         IDENT(sum) :t00.sum.sum
-        IDENT(A)
-       IDENT(mk)
+        IDENT(A) :__internal_not_typeable__
+       IDENT(mk) :__internal_not_typeable__
       NUMBER(0) :nlang.builtins.u32
      DEFNAME(__gensym0) :t00.sum.sum
    IF :nlang.builtins.void
     CALL :nlang.builtins.bool
      BIN(.) :t00.sum.sum.operator_eq
       DIRECTDEF :t00.sum.sum
-      IDENT(operator_eq)
+      IDENT(operator_eq) :__internal_not_typeable__
      UN(@) :nlang.builtins.ref
       IDENT(n) :t00.sum.sum
      UN(@) :nlang.builtins.ref

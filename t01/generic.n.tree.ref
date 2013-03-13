@@ -1,8 +1,8 @@
-MODULE_BODY
+MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
-  IDENT(nlang)
+  IDENT(nlang) :__internal_pending_destruct__
  DEFTYPE :t01.generic.container
-  IDENT(container)
+  IDENT(container) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
    DEFGENARG :nlang.builtins.Copyable
     IDENT(t) :nlang.builtins.Copyable
@@ -14,10 +14,10 @@ MODULE_BODY
     IDENT(container) :t01.generic.container
     DEFNAME(this) :t01.generic.container
   DEFFIELD :nlang.builtins.Copyable
-   IDENT(x)
+   IDENT(x) :__internal_not_typeable__
    IDENT(t) :nlang.builtins.Copyable
  DEFFUN :t01.generic.main
-  IDENT(main)
+  IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
@@ -28,12 +28,12 @@ MODULE_BODY
       CALL :t01.generic.container
        IDENT(container) :t01.generic.container
        IDENT(i32) :nlang.builtins.i32
-      IDENT(x)
+      IDENT(x) :__internal_pending_destruct__
       NUMBER(1) :nlang.builtins.i32
      DEFNAME(v) :t01.generic.container
    RETURN :nlang.builtins.i32
     BIN( - ) :nlang.builtins.i32
      BIN(.) :nlang.builtins.i32
       IDENT(v) :t01.generic.container
-      IDENT(x)
+      IDENT(x) :__internal_not_typeable__
      NUMBER(1) :nlang.builtins.i32

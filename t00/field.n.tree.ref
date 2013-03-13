@@ -1,8 +1,8 @@
-MODULE_BODY
+MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
-  IDENT(nlang)
+  IDENT(nlang) :__internal_pending_destruct__
  DEFTYPE :t00.field.t
-  IDENT(t)
+  IDENT(t) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.WorkaroundRBC
@@ -13,10 +13,10 @@ MODULE_BODY
     IDENT(t) :t00.field.t
     DEFNAME(this) :t00.field.t
   DEFFIELD :nlang.builtins.i32
-   IDENT(x)
+   IDENT(x) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
  DEFFUN :t00.field.main
-  IDENT(main)
+  IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
@@ -29,4 +29,4 @@ MODULE_BODY
    RETURN :nlang.builtins.i32
     BIN(.) :nlang.builtins.i32
      IDENT(tt) :t00.field.t
-     IDENT(x)
+     IDENT(x) :__internal_not_typeable__

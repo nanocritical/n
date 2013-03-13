@@ -1,8 +1,8 @@
-MODULE_BODY
+MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
-  IDENT(nlang)
+  IDENT(nlang) :__internal_pending_destruct__
  DEFTYPE :t00.match.enu
-  IDENT(enu)
+  IDENT(enu) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.WorkaroundRBC
@@ -13,67 +13,67 @@ MODULE_BODY
     IDENT(enu) :t00.match.enu
     DEFNAME(this) :t00.match.enu
   DEFCHOICE :t00.match.enu
-   IDENT(A)
+   IDENT(A) :__internal_not_typeable__
    NUMBER(0) :nlang.builtins.u32
    IDENT(void) :nlang.builtins.void
    DEFFUN :t00.match.enu.A.mk
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(DefaultCtor)
-     IDENT(mk)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(DefaultCtor) :__internal_not_typeable__
+     IDENT(mk) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     IDENT(this) :t00.match.enu
    DEFFUN :t00.match.enu.A.new
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(DefaultCtor)
-     IDENT(new)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(DefaultCtor) :__internal_not_typeable__
+     IDENT(new) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     UN(@#) :nlang.builtins.mmref
      IDENT(this) :t00.match.enu
   DEFCHOICE :t00.match.enu
-   IDENT(B)
+   IDENT(B) :__internal_not_typeable__
    BIN( + ) :nlang.builtins.u32
     NUMBER(0) :nlang.builtins.u32
     NUMBER(1) :nlang.builtins.u32
    IDENT(void) :nlang.builtins.void
    DEFFUN :t00.match.enu.B.mk
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(DefaultCtor)
-     IDENT(mk)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(DefaultCtor) :__internal_not_typeable__
+     IDENT(mk) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     IDENT(this) :t00.match.enu
    DEFFUN :t00.match.enu.B.new
-    BIN(.)
-     BIN(.)
-      BIN(.)
-       BIN(.)
-        DIRECTDEF
-        IDENT(nlang)
-       IDENT(builtins)
-      IDENT(DefaultCtor)
-     IDENT(new)
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(DefaultCtor) :__internal_not_typeable__
+     IDENT(new) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     UN(@#) :nlang.builtins.mmref
      IDENT(this) :t00.match.enu
  DEFFUN :t00.match.main
-  IDENT(main)
+  IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
@@ -82,14 +82,14 @@ MODULE_BODY
      IDENT(n) :t00.match.enu
      BIN(.) :t00.match.enu
       IDENT(enu) :t00.match.enu
-      IDENT(A)
+      IDENT(A) :__internal_not_typeable__
      DEFNAME(n) :t00.match.enu
    IF :nlang.builtins.void
     BIN( == ) :nlang.builtins.bool
      IDENT(n) :t00.match.enu
      BIN(.) :t00.match.enu
       IDENT(enu) :t00.match.enu
-      IDENT(B)
+      IDENT(B) :__internal_not_typeable__
     BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.i32
       NUMBER(0) :nlang.builtins.i32
