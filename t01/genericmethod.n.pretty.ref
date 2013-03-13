@@ -1,15 +1,13 @@
 from nlang import *
 
-intf Blah =
-  (method t:Numeric) decr x:t = t
-
 type blah = Blah
+  let this = blah
   dummy:u8
 
-blah (method t:Numeric) Blah.decr x:t = t
+blah method Blah.decr self:@this = t
   return x - 1
 
-blah (method t:Numeric) decrf x:t = t
+blah method decrf self:@this = t
   return x - 1
 
 fun main = i32

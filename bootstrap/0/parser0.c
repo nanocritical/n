@@ -2877,8 +2877,8 @@ struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
 }
 
 static bool typ_same_generic(const struct typ *a, const struct typ *b) {
-  assert(a->gen_arity > 0 && b->gen_arity > 0);
-  return a->gen_arity == b->gen_arity && a->gen_args[0] == b->gen_args[0];
+  return a->gen_arity > 0
+    && a->gen_arity == b->gen_arity && a->gen_args[0] == b->gen_args[0];
 }
 
 bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b) {
@@ -2893,6 +2893,23 @@ bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *
       }
     }
     return TRUE;
+  }
+
+  if (a->is_uninstantiated_genarg || b->is_uninstantiated_genarg) {
+    if (a->definition == b->definition) { // Necessary condition.
+      // Try again, masking out these flags.
+      struct typ *ma = calloc(1, sizeof(*a));
+      memcpy(ma, a, sizeof(*ma));
+      ma->is_uninstantiated_genarg = FALSE;
+      struct typ *mb = calloc(1, sizeof(*b));
+      memcpy(mb, b, sizeof(*mb));
+      mb->is_uninstantiated_genarg = FALSE;
+
+      const bool r = memcmp(ma, mb, sizeof(*ma)) == 0;
+      free(mb);
+      free(ma);
+      return r;
+    }
   }
 
   return FALSE;
@@ -2912,7 +2929,13 @@ error typ_check_equal(const struct module *mod, const struct node *for_error,
 
 error typ_compatible(const struct module *mod, const struct node *for_error,
                      const struct typ *a, const struct typ *constraint) {
-  if (constraint == a) {
+  if (a->is_uninstantiated_genarg || constraint->is_uninstantiated_genarg) {
+    error e = typ_check_isa(mod, for_error, a, constraint);
+    EXCEPT(e);
+    return 0;
+  }
+
+  if (typ_equal(mod, constraint, a)) {
     return 0;
   }
 
@@ -2970,12 +2993,12 @@ bool typ_is_reference_instance(const struct module *mod, const struct typ *a) {
   }
 
   const struct typ *g = a->gen_args[0];
-  return g == typ_lookup_builtin(mod, TBI_REF)
-    || g == typ_lookup_builtin(mod, TBI_MREF)
-    || g == typ_lookup_builtin(mod, TBI_MMREF)
-    || g == typ_lookup_builtin(mod, TBI_NREF)
-    || g == typ_lookup_builtin(mod, TBI_NMREF)
-    || g == typ_lookup_builtin(mod, TBI_NMMREF);
+  return typ_equal(mod, g, typ_lookup_builtin(mod, TBI_REF))
+    || typ_equal(mod, g, typ_lookup_builtin(mod, TBI_MREF))
+    || typ_equal(mod, g, typ_lookup_builtin(mod, TBI_MMREF))
+    || typ_equal(mod, g, typ_lookup_builtin(mod, TBI_NREF))
+    || typ_equal(mod, g, typ_lookup_builtin(mod, TBI_NMREF))
+    || typ_equal(mod, g, typ_lookup_builtin(mod, TBI_NMMREF));
 }
 
 static const uint32_t tbi_for_ref[TOKEN__NUM] = {
@@ -3072,8 +3095,8 @@ bool typ_is_concrete(const struct module *mod, const struct typ *a) {
 }
 
 bool typ_is_builtin(const struct module *mod, const struct typ *t) {
-  for (size_t n = 0; n < TBI__NUM; ++n) {
-    if (t == mod->gctx->builtin_typs[n]) {
+  for (size_t n = TBI__NONE+1; n < TBI__NUM; ++n) {
+    if (typ_equal(mod, t, mod->gctx->builtin_typs[n])) {
       return TRUE;
     }
   }
@@ -3106,16 +3129,25 @@ error typ_unify(const struct typ **u, const struct module *mod, const struct nod
 }
 
 bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf) {
-  if (a == intf) {
+  if (typ_equal(mod, a, intf)) {
     return TRUE;
   }
 
-  if (intf == typ_lookup_builtin(mod, TBI_ANY)) {
+  if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_ANY))) {
     return TRUE;
+  }
+
+  // Literals types do not have a isalist.
+  if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
+    return typ_isa(mod, typ_lookup_builtin(mod, TBI_NUMERIC), intf);
+  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
+    return typ_isa(mod, typ_lookup_builtin(mod, TBI_NREF), intf);
+  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)) {
+    return typ_isa(mod, typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN), intf);
   }
 
   for (size_t n = 0; n < a->isalist_count; ++n) {
-    if (a->isalist[n] == intf) {
+    if (typ_equal(mod, a->isalist[n], intf)) {
       return TRUE;
     }
   }

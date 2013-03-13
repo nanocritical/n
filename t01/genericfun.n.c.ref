@@ -1,0 +1,13 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+nlang_builtins_i32 _ngen_t01_genericfun_decr__nlang_builtins_i32(nlang_builtins_i32 x){
+ {
+return x - (nlang_builtins_i32)1;
+}
+}
+
+nlang_builtins_i32 main(void){
+ {
+return _ngen_t01_genericfun_decr__nlang_builtins_i32((nlang_builtins_i32)1);
+}
+}

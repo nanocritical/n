@@ -1,0 +1,7 @@
+from nlang import *
+fun decr x:t = t
+  let __gensym0 = 1
+  return nlang.builtins.Numeric.operator_minus @x @__gensym0
+
+fun main = i32
+  return (decr i32) 1

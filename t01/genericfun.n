@@ -1,4 +1,7 @@
 from nlang import *
 
-(fun t:Numeric) incr x:t = t
-  return x + 1
+(fun t:Numeric) decr x:t = t
+  return x - 1
+
+fun main = i32
+  return (decr i32) 1

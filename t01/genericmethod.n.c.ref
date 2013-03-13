@@ -1,0 +1,39 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+
+struct t01_genericmethod_blah;
+typedef struct t01_genericmethod_blah t01_genericmethod_blah;
+struct t01_genericmethod_blah {
+nlang_builtins_u8 dummy;
+}
+;
+typedef const t01_genericmethod_blah* _ngen_nlang_builtins_ref__t01_genericmethod_blah;
+typedef _ngen_nlang_builtins_ref__t01_genericmethod_blah _ngen_nlang_builtins_nref__t01_genericmethod_blah;
+typedef t01_genericmethod_blah* _ngen_nlang_builtins_mref__t01_genericmethod_blah;
+typedef _ngen_nlang_builtins_mref__t01_genericmethod_blah _ngen_nlang_builtins_mmref__t01_genericmethod_blah;
+typedef _ngen_nlang_builtins_mref__t01_genericmethod_blah _ngen_nlang_builtins_nmref__t01_genericmethod_blah;
+typedef _ngen_nlang_builtins_mref__t01_genericmethod_blah _ngen_nlang_builtins_nmmref__t01_genericmethod_blah;
+
+nlang_builtins_u32 _ngen_t01_genericmethod_blah_decr__nlang_builtins_u32(_ngen_nlang_builtins_ref__t01_genericmethod_blah self, nlang_builtins_u32 x){
+#define THIS(x) t01_genericmethod_blah##x
+ {
+return x - (nlang_builtins_u32)1;
+}
+#undef THIS
+}
+
+nlang_builtins_i32 _ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32(_ngen_nlang_builtins_ref__t01_genericmethod_blah self, nlang_builtins_i32 x){
+#define THIS(x) t01_genericmethod_blah##x
+ {
+return x - (nlang_builtins_i32)1;
+}
+#undef THIS
+}
+
+nlang_builtins_i32 main(void){
+ {
+t01_genericmethod_blah b = (t01_genericmethod_blah){ .dummy = (nlang_builtins_u8)0,};
+_ngen_t01_genericmethod_blah_decr__nlang_builtins_u32(&b, (nlang_builtins_u32)1);
+return _ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32(&b, (nlang_builtins_i32)1);
+}
+}

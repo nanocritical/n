@@ -501,6 +501,8 @@ struct typ {
   size_t isalist_count;
   const struct typ **isalist;
   bool *isalist_exported;
+
+  bool is_uninstantiated_genarg;
 };
 
 struct try_excepts {
@@ -523,19 +525,20 @@ struct module {
 
   const char *filename;
 
+  ident path[MODULE_PATH_MAXLEN];
+  size_t path_len;
+
   struct parser parser;
   struct node *root;
   struct node *body;
-  size_t next_gensym;
 
+  // State
+  size_t next_gensym;
   bool intf_uses_this;
   const struct node **return_nodes;
   size_t return_nodes_count;
   struct try_excepts *trys;
   size_t trys_count;
-
-  ident path[MODULE_PATH_MAXLEN];
-  size_t path_len;
 };
 
 void globalctx_init(struct globalctx *gctx);

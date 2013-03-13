@@ -119,6 +119,8 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node, 
   switch (node->which) {
   case DEFTYPE:
   case DEFINTF:
+  case DEFFUN:
+  case DEFMETHOD:
     if (node->subs[IDX_GENARGS]->subs_count > 0) {
       (void) add_instance_deepcopy_from_pristine(mod, node, node);
     }
@@ -656,13 +658,22 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
     } else {
       id = node->subs[0]->subs[1];
     }
+
     toplevel = node_toplevel_const(node);
-    if (toplevel->scope_name == 0
+    if (toplevel->generic_definition != NULL) {
+      sc = NULL;
+
+      // For generic instances, define the name in its own scope, to make
+      // sure lookups inside the instance resolve to the instance itself
+      // (e.g. the definition of this).
+      e = scope_define(mod, node->scope, id, node);
+      EXCEPT(e);
+    } else if (toplevel->scope_name == 0
         || node->scope->parent->node->which == DEFINTF) {
       sc = node->scope->parent;
     } else {
       if (node->scope->parent->node->which == DEFTYPE) {
-        // Generic instance members already have the 'right' parent.
+        // Generic instance *members* already have the 'right' parent.
         container = node->scope->parent->node;
         sc = container->scope;
       } else {
@@ -688,7 +699,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
 
       // For generic instances, define the name in its own scope, to make
       // sure lookups inside the instance resolve to the instance itself
-      // (i.e. the definition of this).
+      // (e.g. the definition of this).
       e = scope_define(mod, node->scope, node->subs[0], node);
       EXCEPT(e);
     } else {
@@ -730,18 +741,23 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
     break;
   case DEFFUN:
   case DEFMETHOD:
-    {
-      size_t args_count = node_fun_all_args_count(node);
-      for (size_t n = 0; n < args_count; ++n) {
-        struct node *arg = node->subs[IDX_FUN_FIRSTARG+n];
-        assert(arg->which == DEFARG);
-        e = scope_define(mod, node->scope, arg->subs[0], arg);
-        EXCEPT(e);
-      }
-
-      e = lexical_retval(mod, node, node_fun_retval(node));
+    for (size_t n = 0; n < node->subs[IDX_GENARGS]->subs_count; ++n) {
+      struct node *ga = node->subs[IDX_GENARGS]->subs[n];
+      assert(ga->which == DEFGENARG || ga->which == SETGENARG);
+      e = scope_define(mod, node->scope, ga->subs[0], ga);
       EXCEPT(e);
     }
+
+    size_t args_count = node_fun_all_args_count(node);
+    for (size_t n = 0; n < args_count; ++n) {
+      struct node *arg = node->subs[IDX_FUN_FIRSTARG+n];
+      assert(arg->which == DEFARG);
+      e = scope_define(mod, node->scope, arg->subs[0], arg);
+      EXCEPT(e);
+    }
+
+    e = lexical_retval(mod, node, node_fun_retval(node));
+    EXCEPT(e);
     break;
   default:
     break;
@@ -907,7 +923,7 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
     mod->gctx->builtin_typs_by_name[id]->definition = node;
     node->typ = mod->gctx->builtin_typs_by_name[id];
   } else if (node->subs[IDX_GENARGS]->subs_count > 0
-             && node->subs[IDX_GENARGS]->subs[0]->which == SETGENARG) {
+             && node_toplevel(node)->generic_definition != NULL) {
     struct typ *mutable_typ = typ_new(node_toplevel(node)->generic_definition,
                                       TYPE_DEF, node->subs[IDX_GENARGS]->subs_count, 0);
     mutable_typ->gen_args[0] = node_toplevel(node)->generic_definition->typ;
@@ -930,11 +946,6 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
   error e;
 
   switch (node->which) {
-  case GENARGS:
-  case ISA:
-    e = earlytypepass(mod, node);
-    EXCEPT(e);
-    return 0;
   case DEFTYPE:
   case DEFINTF:
     break;
@@ -948,6 +959,12 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
   }
 
   struct node *isalist = node->subs[IDX_ISALIST];
+  e = earlytypepass(mod, isalist);
+  EXCEPT(e);
+  struct node *genargs = node->subs[IDX_GENARGS];
+  e = earlytypepass(mod, genargs);
+  EXCEPT(e);
+
   struct typ *mutable_typ = (struct typ *) node->typ;
 
   // FIXME: Check for duplicates?
@@ -1484,10 +1501,12 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
   e = zero_to_second_for_generated(mod, instance, NULL, gendef->scope->parent);
   EXCEPT(e);
 
-  for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
-    e = zero_to_second_for_generated(mod, instance->as.DEFTYPE.members[n],
-                                     NULL, instance->scope);
-    EXCEPT(e);
+  if (instance->which == DEFTYPE) {
+    for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
+      e = zero_to_second_for_generated(mod, instance->as.DEFTYPE.members[n],
+                                       NULL, instance->scope);
+      EXCEPT(e);
+    }
   }
 
   node->typ = instance->typ;
@@ -1507,6 +1526,13 @@ static error type_inference_call(struct module *mod, struct node *node) {
     error e = type_inference_generic_instantiation(mod, node);
     EXCEPT(e);
     return 0;
+  } else if (fun->typ->which == TYPE_FUNCTION
+             && fun->typ->definition->subs[IDX_GENARGS]->subs_count > 0
+             && node_toplevel_const(fun->typ->definition)->generic_definition == NULL) {
+    // FIXME force explicit instantiation for now.
+    error e = type_inference_generic_instantiation(mod, node);
+    EXCEPT(e);
+    return 0;
   }
 
   if (fun->typ->which != TYPE_FUNCTION) {
@@ -1521,24 +1547,23 @@ static error type_inference_call(struct module *mod, struct node *node) {
     return type_inference_explicit_unary_call(mod, node, fun->typ->definition);
   }
 
-  for (size_t n = 1; n < node->subs_count; ++n) {
-    if (n > 0 && (node->flags & NODE_IS_TYPE) != (node->subs[n]->flags & NODE_IS_TYPE)) {
-      e = mk_except_type(mod, node->subs[n], "call combines value and type arguments");
-      EXCEPT(e);
+  if (node->subs_count >= 2) {
+    node->flags = (node->subs[1]->flags & NODE__TRANSITIVE);
+    for (size_t n = 2; n < node->subs_count; ++n) {
+      if (n > 0 && (node->flags & NODE_IS_TYPE) != (node->subs[n]->flags & NODE_IS_TYPE)) {
+        e = mk_except_type(mod, node->subs[n], "call combines value and type arguments");
+        EXCEPT(e);
+      }
+      node->flags |= (node->subs[n]->flags & NODE__TRANSITIVE);
     }
-    node->flags |= (node->subs[n]->flags & NODE__TRANSITIVE);
   }
+  assert(!(node->flags & NODE_IS_TYPE));
 
-  if (node->flags & NODE_IS_TYPE) {
-    assert(FALSE && "generics not supported");
-    EXCEPT(EINVAL);
-  } else {
-    for (size_t n = 1; n < node->subs_count; ++n) {
-      e = type_destruct(mod, node->subs[n], fun->typ->fun_args[n-1]);
-      EXCEPT(e);
-    }
-    node->typ = fun->typ->fun_args[fun->typ->fun_arity];
+  for (size_t n = 1; n < node->subs_count; ++n) {
+    e = type_destruct(mod, node->subs[n], fun->typ->fun_args[n-1]);
+    EXCEPT(e);
   }
+  node->typ = fun->typ->fun_args[fun->typ->fun_arity];
 
   return 0;
 }
@@ -1801,6 +1826,14 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
   return 0;
 }
 
+static struct typ *genarg_mark_as_uninstantiated(const struct typ *t) {
+  assert(t->definition->which == DEFINTF);
+  struct typ *r = calloc(1, sizeof(struct typ));
+  memcpy(r, t, sizeof(*r));
+  r->is_uninstantiated_genarg = TRUE;
+  return r;
+}
+
 static error step_type_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   error e;
   struct node *def = NULL;
@@ -1923,32 +1956,43 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     EXCEPT(e);
     goto ok;
   case DEFARG:
-  case DEFGENARG:
   case TYPECONSTRAINT:
     node->typ = node->subs[1]->typ;
     e = type_destruct(mod, node->subs[0], node->typ);
     EXCEPT(e);
-    assert(!(node->subs[0]->flags & NODE_IS_TYPE));
+    goto ok;
+  case DEFGENARG:
+    node->typ = genarg_mark_as_uninstantiated(node->subs[1]->typ);
+    e = type_destruct(mod, node->subs[0], node->typ);
+    EXCEPT(e);
     goto ok;
   case DEFFUN:
-    node->typ = typ_new(node, TYPE_FUNCTION, 0,
-                        node_fun_all_args_count(node));
-    for (size_t n = 0; n < node->typ->fun_arity; ++n) {
-      node->typ->fun_args[n] = node->subs[n + IDX_FUN_FIRSTARG]->typ;
-    }
-    node->typ->fun_args[node->typ->fun_arity] = node_fun_retval(node)->typ;
-    node->flags |= NODE_IS_TYPE;
-    module_return_pop(mod);
-    goto ok;
   case DEFMETHOD:
-    node->typ = typ_new(node, TYPE_FUNCTION, 0,
-                        node_fun_all_args_count(node));
+    if (node->subs[IDX_GENARGS]->subs_count > 0
+        && node_toplevel(node)->generic_definition != NULL) {
+      struct typ *mutable_typ = typ_new(node_toplevel(node)->generic_definition,
+                                        TYPE_FUNCTION, node->subs[IDX_GENARGS]->subs_count,
+                                        node_fun_all_args_count(node));
+      mutable_typ->gen_args[0] = node_toplevel(node)->generic_definition->typ;
+      mutable_typ->definition = node;
+      node->typ = mutable_typ;
+
+      for (size_t n = 0; n < node->typ->gen_arity; ++n) {
+        assert(node->subs[IDX_GENARGS]->subs[n]->typ != NULL);
+        node->typ->gen_args[1 + n] = node->subs[IDX_GENARGS]->subs[n]->typ;
+      }
+    } else {
+      node->typ = typ_new(node, TYPE_FUNCTION, 0,
+                          node_fun_all_args_count(node));
+    }
+
     for (size_t n = 0; n < node->typ->fun_arity; ++n) {
       node->typ->fun_args[n] = node->subs[n + IDX_FUN_FIRSTARG]->typ;
     }
     node->typ->fun_args[node->typ->fun_arity] = node_fun_retval(node)->typ;
     node->flags |= NODE_IS_TYPE;
     module_return_pop(mod);
+
     goto ok;
   case DEFINTF:
     goto ok;
@@ -1969,7 +2013,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
           ch->flags |= NODE_IS_DEFCHOICE;
         }
 
-        if (u == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
+        if (typ_equal(mod, u, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))) {
           u = typ_lookup_builtin(mod, TBI_U32);
         }
         node->as.DEFTYPE.choice_typ = u;
@@ -2393,11 +2437,11 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
 
     const struct typ *intf = node->typ->isalist[n];
     const struct typ *check_intf = intf;
-    if (intf == typ_lookup_builtin(mod, TBI_SUM_COPY)) {
+    if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_COPY))) {
       check_intf = typ_lookup_builtin(mod, TBI_COPYABLE);
-    } else if (intf == typ_lookup_builtin(mod, TBI_SUM_EQUALITY)) {
+    } else if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_EQUALITY))) {
       check_intf = typ_lookup_builtin(mod, TBI_HAS_EQUALITY);
-    } else if (intf == typ_lookup_builtin(mod, TBI_SUM_ORDER)) {
+    } else if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_ORDER))) {
       check_intf = typ_lookup_builtin(mod, TBI_ORDERED);
     } else {
       assert(intf->definition->which == DEFINTF);
@@ -2415,7 +2459,7 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
       }
 
       const struct typ *tch = NULL;
-      if (ch->subs[IDX_CH_PAYLOAD]->typ == typ_lookup_builtin(mod, TBI_VOID)) {
+      if (typ_equal(mod, ch->subs[IDX_CH_PAYLOAD]->typ, typ_lookup_builtin(mod, TBI_VOID))) {
         tch = node->as.DEFTYPE.choice_typ;
       } else {
         tch = ch->subs[IDX_CH_PAYLOAD]->typ;
@@ -2425,16 +2469,16 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
       EXCEPT(e);
     }
 
-    if (intf == typ_lookup_builtin(mod, TBI_SUM_COPY)) {
+    if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_COPY))) {
       if (!typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))) {
         define_builtin(mod, node, BG_SUM_COPY);
       }
-    } else if (intf == typ_lookup_builtin(mod, TBI_SUM_EQUALITY)) {
+    } else if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_EQUALITY))) {
       if (!typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY))) {
         define_builtin(mod, node, BG_SUM_EQUALITY_EQ);
         define_builtin(mod, node, BG_SUM_EQUALITY_NE);
       }
-    } else if (intf == typ_lookup_builtin(mod, TBI_SUM_ORDER)) {
+    } else if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_ORDER))) {
       define_builtin(mod, node, BG_SUM_ORDER_LE);
       define_builtin(mod, node, BG_SUM_ORDER_LT);
       define_builtin(mod, node, BG_SUM_ORDER_GT);
@@ -2453,7 +2497,7 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
   }
 
   const struct node *retval = node_fun_retval(node);
-  if (retval->typ == typ_lookup_builtin(mod, TBI_VOID)) {
+  if (typ_equal(mod, retval->typ, typ_lookup_builtin(mod, TBI_VOID))) {
     return 0;
   }
   if (typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
@@ -2692,7 +2736,6 @@ static const step forwardpass_down[] = {
 
 static const step forwardpass_up[] = {
   step_type_definitions,
-  step_type_inference_isalist,
   NULL,
 };
 
@@ -2707,6 +2750,7 @@ error forwardpass(struct module *mod, struct node *node, struct node **except) {
 static const step firstpass_down[] = {
   step_stop_submodules,
   step_stop_marker_tbi,
+  step_type_inference_isalist,
   step_type_destruct_mark,
   step_type_gather_returns,
   step_type_gather_excepts,
