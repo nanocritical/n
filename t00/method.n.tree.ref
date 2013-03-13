@@ -1,6 +1,6 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
-  IDENT(nlang) :__internal_pending_destruct__
+  IDENT(nlang) :nlang
  DEFTYPE :t00.method.t
   IDENT(t) :__internal_not_typeable__
   GENARGS :nlang.builtins.void

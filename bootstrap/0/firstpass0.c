@@ -455,6 +455,7 @@ static error step_stop_submodules(struct module *mod, struct node *node, void *u
 // Recursive, depth first; Will modify scope on the way back up.
 static error lexical_import_path(struct scope **scope, struct module *mod,
                                  struct node *import_path, struct node *import) {
+  assert(import == NULL || import->which == IMPORT);
   error e;
   struct node *i = NULL;
 
@@ -1757,6 +1758,8 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     EXCEPT(e);
     node->typ = def->typ;
     node->flags = def->flags;
+    e = type_destruct_import_path(mod, node->subs[0]);
+    EXCEPT(e);
     for (size_t n = 1; n < node->subs_count; ++n) {
       struct node *s = node->subs[n]->subs[0];
       e = type_destruct_import_path(mod, s);
