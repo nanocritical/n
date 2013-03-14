@@ -707,7 +707,9 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
       error e = do_scope_lookup_ident_immediate(result, mod, t->definition->scope, id,
                                                 within, TRUE);
       if (!e) {
-        return 0;
+        if ((*result)->which == DEFFUN || (*result)->which == DEFMETHOD) {
+          return 0;
+        }
       }
     }
   }
