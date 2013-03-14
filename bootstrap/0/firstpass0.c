@@ -69,7 +69,7 @@ error one_level_pass(struct module *mod, struct node *root, const step *down_ste
   return 0;
 }
 
-static error zero_to_forward_for_generated(struct module *mod, struct node *node,
+static error zero_to_early_for_generated(struct module *mod, struct node *node,
                                            struct scope *parent_scope);
 static error zero_to_first_for_generated(struct module *mod, struct node *node,
                                          struct node **except, struct scope *parent_scope);
@@ -880,6 +880,18 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   return 0;
 }
 
+static error step_stop_already_earlytypepass(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case ISA:
+  case DEFGENARG:
+  case SETGENARG:
+    *stop = TRUE;
+    return 0;
+  default:
+    return 0;
+  }
+}
+
 static error step_type_inference(struct module *mod, struct node *node, void *user, bool *stop);
 
 error earlytypepass(struct module *mod, struct node *node) {
@@ -942,10 +954,39 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
   return 0;
 }
 
+static error step_type_inference_genargs(struct module *mod, struct node *node, void *user, bool *stop) {
+  error e;
+
+  switch (node->which) {
+  case DEFTYPE:
+  case DEFINTF:
+  case DEFFUN:
+  case DEFMETHOD:
+    break;
+  default:
+    return 0;
+  }
+
+  if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
+      || node->typ == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)) {
+    return 0;
+  }
+
+  struct node *genargs = node->subs[IDX_GENARGS];
+  e = earlytypepass(mod, genargs);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error step_type_inference_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
   error e;
 
   switch (node->which) {
+  case ISA:
+    e = earlytypepass(mod, node);
+    EXCEPT(e);
+    return 0;
   case DEFTYPE:
   case DEFINTF:
     break;
@@ -959,12 +1000,6 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
   }
 
   struct node *isalist = node->subs[IDX_ISALIST];
-  e = earlytypepass(mod, isalist);
-  EXCEPT(e);
-  struct node *genargs = node->subs[IDX_GENARGS];
-  e = earlytypepass(mod, genargs);
-  EXCEPT(e);
-
   struct typ *mutable_typ = (struct typ *) node->typ;
 
   // FIXME: Check for duplicates?
@@ -2127,7 +2162,7 @@ static void define_builtin(struct module *mod, struct node *tdef,
   toplevel->is_inline = node_toplevel(tdef)->is_inline;
 
   rew_insert_last_at(modbody, insert_pos);
-  e = zero_to_forward_for_generated(mod, d, tdef->scope);
+  e = zero_to_early_for_generated(mod, d, tdef->scope);
   assert(!e);
 
   node_toplevel(d)->is_prototype = FALSE;
@@ -2405,7 +2440,7 @@ static void define_dispatch(struct module *mod, struct node *tdef, const struct 
 
     rew_insert_last_at(modbody, insert_pos);
 
-    error e = zero_to_forward_for_generated(mod, d, tdef->scope);
+    error e = zero_to_early_for_generated(mod, d, tdef->scope);
     assert(!e);
     node_toplevel(d)->is_prototype = FALSE;
   }
@@ -2747,10 +2782,27 @@ error forwardpass(struct module *mod, struct node *node, struct node **except) {
   return 0;
 }
 
+static const step earlypass_down[] = {
+  NULL,
+};
+
+static const step earlypass_up[] = {
+  step_type_inference_genargs,
+  step_type_inference_isalist,
+  NULL,
+};
+
+error earlypass(struct module *mod, struct node *node, struct node **except) {
+  error e = pass(mod, node, earlypass_down, earlypass_up, except, NULL);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static const step firstpass_down[] = {
   step_stop_submodules,
   step_stop_marker_tbi,
-  step_type_inference_isalist,
+  step_stop_already_earlytypepass,
   step_type_destruct_mark,
   step_type_gather_returns,
   step_type_gather_excepts,
@@ -2803,13 +2855,16 @@ error secondpass(struct module *mod, struct node *node, struct node **except) {
   return 0;
 }
 
-static error zero_to_forward_for_generated(struct module *mod, struct node *node,
+static error zero_to_early_for_generated(struct module *mod, struct node *node,
                                            struct scope *parent_scope) {
   error e = zeropass(mod, node, NULL);
   EXCEPT(e);
   node->scope->parent = parent_scope;
 
   e = forwardpass(mod, node, NULL);
+  EXCEPT(e);
+
+  e = earlypass(mod, node, NULL);
   EXCEPT(e);
 
   return 0;
@@ -2823,6 +2878,9 @@ static error zero_to_first_for_generated(struct module *mod, struct node *node,
   node->scope->parent = parent_scope;
 
   e = forwardpass(mod, node, except);
+  EXCEPT(e);
+
+  e = earlypass(mod, node, except);
   EXCEPT(e);
 
   e = firstpass(mod, node, except);
@@ -2839,6 +2897,9 @@ static error zero_to_second_for_generated(struct module *mod, struct node *node,
   node->scope->parent = parent_scope;
 
   e = forwardpass(mod, node, except);
+  EXCEPT(e);
+
+  e = earlypass(mod, node, except);
   EXCEPT(e);
 
   e = firstpass(mod, node, except);
