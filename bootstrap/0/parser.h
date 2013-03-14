@@ -627,6 +627,7 @@ error mk_except_type(const struct module *mod, const struct node *node, const ch
 error mk_except_call_args_count(const struct module *mod, const struct node *node,
                                 const struct node *definition, size_t extra, size_t given);
 char *typ_name(const struct module *mod, const struct typ *t);
+char *typ_pretty_name(const struct module *mod, const struct typ *t);
 bool typ_is_builtin(const struct module *mod, const struct typ *t);
 
 void rew_insert_last_at(struct node *node, size_t pos);

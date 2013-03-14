@@ -775,7 +775,7 @@ static void print_tree_node(FILE *out, const struct module *mod,
   }
 
   if (node->typ != NULL) {
-    char *typn = typ_name(mod, node->typ);
+    char *typn = typ_pretty_name(mod, node->typ);
     fprintf(out, " :%s", typn);
     free(typn);
   }

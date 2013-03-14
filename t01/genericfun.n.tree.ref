@@ -22,9 +22,9 @@ MODULE_BODY :__internal_not_typeable__
      BIN(.) :nlang.builtins.Arithmetic.operator_minus
       DIRECTDEF :nlang.builtins.Numeric
       IDENT(operator_minus) :__internal_not_typeable__
-     UN(@) :nlang.builtins.ref
+     UN(@) :(nlang.builtins.ref nlang.builtins.Numeric)
       IDENT(x) :nlang.builtins.Numeric
-     UN(@) :nlang.builtins.ref
+     UN(@) :(nlang.builtins.ref nlang.builtins.Numeric)
       IDENT(__gensym0) :nlang.builtins.Numeric
  DEFFUN :t01.genericfun.main
   IDENT(main) :__internal_not_typeable__
@@ -33,7 +33,7 @@ MODULE_BODY :__internal_not_typeable__
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32
     CALL :nlang.builtins.i32
-     CALL :t01.genericfun.decr
+     CALL :(t01.genericfun.decr nlang.builtins.i32)
       IDENT(decr) :t01.genericfun.decr
       IDENT(i32) :nlang.builtins.i32
      NUMBER(1) :nlang.builtins.i32

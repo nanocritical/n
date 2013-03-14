@@ -2874,6 +2874,44 @@ char *typ_name(const struct module *mod, const struct typ *t) {
   return NULL;
 }
 
+char *typ_pretty_name(const struct module *mod, const struct typ *t) {
+  if (t->which == TYPE__MARKER) {
+    return typ_name(mod, t);
+  }
+
+  char *r = calloc(2048, sizeof(char));
+  char *s = r;
+
+  switch (t->which) {
+  case TYPE_FUNCTION:
+  case TYPE_DEF:
+    if (t->gen_arity == 0) {
+      s += sprintf(s, "%s", typ_name(mod, t));
+    } else {
+      s += sprintf(s, "(%s", typ_name(mod, t));
+      for (size_t n = 1; n < t->gen_arity + 1; ++n) {
+        char *s2 = typ_pretty_name(mod, t->gen_args[n]);
+        s += sprintf(s, " %s", s2);
+        free(s2);
+      }
+      s += sprintf(s, ")");
+    }
+    break;
+  case TYPE_TUPLE:
+    for (size_t n = 1; n < t->gen_arity + 1; ++n) {
+      if (n > 1) {
+        s += sprintf(s, ", ");
+      }
+      s += sprintf(s, "%s", typ_pretty_name(mod, t->gen_args[1+n]));
+    }
+    break;
+  default:
+    break;
+  }
+
+  return r;
+}
+
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
   return mod->gctx->builtin_typs[id];
 }
@@ -2925,7 +2963,7 @@ error typ_check_equal(const struct module *mod, const struct node *for_error,
 
   EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
               "'%s' not equal to type '%s'",
-              typ_name(mod, a), typ_name(mod, b));
+              typ_pretty_name(mod, a), typ_pretty_name(mod, b));
   // FIXME: leaking typ_names.
 }
 
@@ -2971,7 +3009,7 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
 
   EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
               "'%s' not compatible with constraint '%s'",
-              typ_name(mod, a), typ_name(mod, constraint));
+              typ_pretty_name(mod, a), typ_pretty_name(mod, constraint));
   // FIXME: leaking typ_names.
 }
 
@@ -2985,7 +3023,7 @@ error typ_compatible_numeric(const struct module *mod, const struct node *for_er
   }
 
   EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error, "'%s' type is not numeric",
-              typ_name(mod, a));
+              typ_pretty_name(mod, a));
   // FIXME: leaking typ_names.
 }
 
@@ -3031,7 +3069,7 @@ error typ_compatible_reference(const struct module *mod, const struct node *for_
                                enum token_type operator, const struct typ *a) {
   if (!typ_is_reference_instance(mod, a)) {
     EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-                "'%s' type is not a reference", typ_name(mod, a));
+                "'%s' type is not a reference", typ_pretty_name(mod, a));
     // FIXME: leaking typ_names.
   }
 
@@ -3042,7 +3080,7 @@ error typ_compatible_reference(const struct module *mod, const struct node *for_
 
   EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
               "constraint '%s' not compatible with reference operator '%s'",
-              typ_name(mod, a), string_for_ref[operator]);
+              typ_pretty_name(mod, a), string_for_ref[operator]);
   // FIXME: leaking typ_names.
 }
 
@@ -3050,7 +3088,7 @@ error typ_can_deref(const struct module *mod, const struct node *for_error,
                     const struct typ *a, enum token_type operator) {
   if (!typ_is_reference_instance(mod, a)) {
     EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-                "'%s' type is not a reference", typ_name(mod, a));
+                "'%s' type is not a reference", typ_pretty_name(mod, a));
     // FIXME: leaking typ_names.
   }
 
@@ -3075,7 +3113,7 @@ error typ_can_deref(const struct module *mod, const struct node *for_error,
 
   EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
               "'%s' type cannot be dereferenced with '%s'",
-              typ_name(mod, a), string_for_ref[operator]);
+              typ_pretty_name(mod, a), string_for_ref[operator]);
   // FIXME: leaking typ_names.
   return 0;
 }
@@ -3171,7 +3209,7 @@ error typ_check_isa(const struct module *mod, const struct node *for_error,
 
   EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
               "'%s' not isa intf '%s'",
-              typ_name(mod, a), typ_name(mod, intf));
+              typ_pretty_name(mod, a), typ_pretty_name(mod, intf));
   // FIXME: leaking typ_names.
 }
 

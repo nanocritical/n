@@ -27,7 +27,7 @@ MODULE_BODY :__internal_not_typeable__
         WHILE :nlang.builtins.void
          CALL :nlang.builtins.bool
           DIRECTDEF :nlang.containers.index_iterator.is_valid
-          UN(@) :nlang.builtins.ref
+          UN(@) :(nlang.builtins.ref nlang.containers.index_iterator)
            IDENT(__gensym0) :nlang.containers.index_iterator
          BLOCK :nlang.builtins.void
           LET :nlang.builtins.void
@@ -35,7 +35,7 @@ MODULE_BODY :__internal_not_typeable__
             IDENT(i) :nlang.builtins.size
             CALL :nlang.builtins.size
              DIRECTDEF :nlang.containers.index_iterator.get
-             UN(@) :nlang.builtins.ref
+             UN(@) :(nlang.builtins.ref nlang.containers.index_iterator)
               IDENT(__gensym0) :nlang.containers.index_iterator
             DEFNAME(i) :nlang.builtins.size
            BLOCK :nlang.builtins.void
@@ -44,7 +44,7 @@ MODULE_BODY :__internal_not_typeable__
              NUMBER(1) :nlang.builtins.i32
           CALL :nlang.builtins.void
            DIRECTDEF :nlang.containers.index_iterator.next
-           UN(@!) :nlang.builtins.mref
+           UN(@!) :(nlang.builtins.mref nlang.containers.index_iterator)
             IDENT(__gensym0) :nlang.containers.index_iterator
    RETURN :nlang.builtins.i32
     BIN( - ) :nlang.builtins.i32
