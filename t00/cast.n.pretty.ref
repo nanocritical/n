@@ -1,0 +1,8 @@
+from nlang import *
+import nlang.unsafe
+fun foo x:@u32 = @i32
+  return (nlang.unsafe.cast @u32 @i32) x
+
+fun main = i32
+  let __gensym0 = 1
+  return .(foo @__gensym0) - 1

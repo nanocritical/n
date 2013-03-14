@@ -341,6 +341,7 @@ enum predefined_idents {
   ID_NEXT,
   ID_GET,
   ID_IS_VALID,
+  ID_CAST,
 
   ID_TBI_VOID,
   ID_TBI__FIRST = ID_TBI_VOID,
@@ -361,6 +362,8 @@ enum predefined_idents {
   ID_TBI_SIZE,
   ID_TBI_SSIZE,
   ID_TBI_STRING,
+  ID_TBI_ANY_REF,
+  ID_TBI_ANY_ANY_REF,
   ID_TBI_REF,
   ID_TBI_MREF,
   ID_TBI_MMREF,
@@ -451,6 +454,8 @@ enum typ_builtin {
   TBI_SIZE,
   TBI_SSIZE,
   TBI_STRING,
+  TBI_ANY_REF,
+  TBI_ANY_ANY_REF,
   TBI_REF, // @
   TBI_MREF, // @!
   TBI_MMREF, // @#
@@ -604,6 +609,7 @@ void node_deepcopy(struct module *mod, struct node *dst,
 
 struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
+struct typ *typ_genarg_mark_as_uninstantiated(const struct typ *t);
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id);
 bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b);
 error typ_check_equal(const struct module *mod, const struct node *for_error,

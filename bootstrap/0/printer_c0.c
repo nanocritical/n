@@ -248,6 +248,15 @@ static char *replace_dots(char *n) {
 }
 
 static void print_call(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
+  if (node_ident(node->subs[0]->typ->definition) == ID_CAST) {
+    fprintf(out, "(");
+    print_typ(out, mod, node->typ);
+    fprintf(out, ")(");
+    print_expr(out, header, mod, node->subs[1], T__CALL);
+    fprintf(out, ")");
+    return;
+  }
+
   const struct typ *ftyp = node->subs[0]->typ;
   print_typ(out, mod, ftyp);
   fprintf(out, "(");
@@ -480,7 +489,13 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
     }
     break;
   case TYPE_TUPLE:
-    fprintf(out, "_ntup_%s", replace_dots(typ_name(mod, typ)));
+    fprintf(out, "_ntup_");
+    for (size_t n = 1; n < typ->gen_arity + 1; ++n) {
+      if (n > 1) {
+        fprintf(out, "__");
+      }
+      print_typ(out, mod, typ->gen_args[n]);
+    }
     break;
   default:
     break;
@@ -1196,19 +1211,19 @@ static void print_deftype_enum(FILE *out, bool header, const struct module *mod,
 }
 
 static bool is_pseudo_tbi(const struct module *mod, const struct typ *t) {
-  return typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_NULL))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__NOT_TYPEABLE))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_REF))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_MREF))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_MMREF))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_NREF))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_NMREF))
-    || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_NMMREF));
+  if (typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_NULL))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__NOT_TYPEABLE))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE))) {
+    return TRUE;
+  }
+  if (typ_is_reference_instance(mod, t)) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 static void print_deftype(FILE *out, bool header, const struct module *mod, const struct node *node) {
@@ -1216,7 +1231,7 @@ static void print_deftype(FILE *out, bool header, const struct module *mod, cons
     return;
   }
 
-  if (typ_is_builtin(mod, node->typ)) {
+  if (typ_is_builtin(mod, node->typ) || is_pseudo_tbi(mod, node->typ)) {
     if (!is_pseudo_tbi(mod, node->typ)) {
       print_deftype_typedefs(out, header, mod, node);
     }
@@ -1286,7 +1301,9 @@ static bool file_exists(const char *base, const char *postfix) {
 
 static void print_top(FILE *out, bool header, const struct module *mod, const struct node *node) {
   const struct toplevel *toplevel = node_toplevel_const(node);
-  if (toplevel->instances_count > 1) {
+  if (toplevel->instances_count == 1) {
+    return;
+  } else if (toplevel->instances_count > 1 && !typ_is_reference_instance(mod, node->typ)) {
     for (size_t n = 1; n < toplevel->instances_count; ++n) {
       const struct node *instance = toplevel->instances[n];
       print_top(out, header, mod, instance);

@@ -84,6 +84,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_NEXT] = "next",
   [ID_GET] = "get",
   [ID_IS_VALID] = "is_valid",
+  [ID_CAST] = "cast",
   [ID_TBI_VOID] = "void",
   [ID_TBI_LITERALS_NULL] = "__null__",
   [ID_TBI_LITERALS_INTEGER] = "integer",
@@ -102,6 +103,8 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_SIZE] = "size",
   [ID_TBI_SSIZE] = "ssize",
   [ID_TBI_STRING] = "string",
+  [ID_TBI_ANY_REF] = "AnyRef",
+  [ID_TBI_ANY_ANY_REF] = "AnyAnyRef",
   [ID_TBI_REF] = "ref",
   [ID_TBI_MREF] = "mref",
   [ID_TBI_MMREF] = "mmref",
@@ -997,6 +1000,13 @@ static error parse_modpath(struct module *mod, const char *raw_fn) {
 static struct typ *typ_new_builtin(struct node *definition,
                                    enum typ_which which, size_t gen_arity,
                                    size_t fun_arity);
+
+struct typ *typ_genarg_mark_as_uninstantiated(const struct typ *t) {
+  struct typ *r = calloc(1, sizeof(struct typ));
+  memcpy(r, t, sizeof(*r));
+  r->is_uninstantiated_genarg = TRUE;
+  return r;
+}
 
 void globalctx_init(struct globalctx *gctx) {
   memset(gctx, 0, sizeof(*gctx));
@@ -2838,11 +2848,12 @@ static struct typ *typ_new_builtin(struct node *definition,
   r->gen_arity = gen_arity;
   if (gen_arity > 0) {
     r->gen_args = calloc(gen_arity + 1, sizeof(struct typ *));
-    assert(definition->typ != NULL);
-    r->gen_args[0] = definition->typ;
+    if (definition != NULL && definition->typ != NULL) {
+      r->gen_args[0] = definition->typ;
 
-    r->isalist_count = definition->typ->isalist_count;
-    r->isalist = definition->typ->isalist;
+      r->isalist_count = definition->typ->isalist_count;
+      r->isalist = definition->typ->isalist;
+    }
   }
   if (which == TYPE_FUNCTION) {
     r->fun_arity = fun_arity;
@@ -2856,6 +2867,9 @@ struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity,
                     size_t fun_arity) {
   assert(which == TYPE__MARKER || definition != NULL);
+  if (gen_arity > 0) {
+    assert(definition->typ != NULL);
+  }
   return typ_new_builtin(definition, which, gen_arity, fun_arity);
 }
 
@@ -2870,7 +2884,6 @@ char *typ_name(const struct module *mod, const struct typ *t) {
       }
     }
   }
-  assert(FALSE);
   return NULL;
 }
 
@@ -2916,17 +2929,24 @@ struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
   return mod->gctx->builtin_typs[id];
 }
 
-static bool typ_same_generic(const struct typ *a, const struct typ *b) {
-  return a->gen_arity > 0
-    && a->gen_arity == b->gen_arity && a->gen_args[0] == b->gen_args[0];
+static bool typ_same_generic(const struct module *mod,
+                             const struct typ *a, const struct typ *b) {
+  if (a->gen_arity > 0 && b->gen_arity > 0) {
+    return a->gen_arity == b->gen_arity && typ_equal(mod, a->gen_args[0], b->gen_args[0]);
+  } else {
+    return FALSE;
+  }
 }
 
 bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b) {
+  // FIXME Typ equality will have to be named-based in the future, when we
+  // have forward-declarations across modules.
+
   if (a == b) {
     return TRUE;
   }
 
-  if (a->gen_arity > 0 && typ_same_generic(a, b)) {
+  if (a->gen_arity > 0 && typ_same_generic(mod, a, b)) {
     for (size_t n = 0; n < a->gen_arity; ++n) {
       if (!typ_equal(mod, a->gen_args[1+n], b->gen_args[1+n])) {
         return FALSE;
@@ -2999,7 +3019,7 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     }
   }
 
-  if (a->gen_arity > 0 && typ_same_generic(a, constraint)) {
+  if (a->gen_arity > 0 && typ_same_generic(mod, a, constraint)) {
     for (size_t n = 0; n < a->gen_arity; ++n) {
       error e = typ_compatible(mod, for_error, a->gen_args[1+n], constraint->gen_args[1+n]);
       EXCEPT(e);
@@ -3032,13 +3052,7 @@ bool typ_is_reference_instance(const struct module *mod, const struct typ *a) {
     return FALSE;
   }
 
-  const struct typ *g = a->gen_args[0];
-  return typ_equal(mod, g, typ_lookup_builtin(mod, TBI_REF))
-    || typ_equal(mod, g, typ_lookup_builtin(mod, TBI_MREF))
-    || typ_equal(mod, g, typ_lookup_builtin(mod, TBI_MMREF))
-    || typ_equal(mod, g, typ_lookup_builtin(mod, TBI_NREF))
-    || typ_equal(mod, g, typ_lookup_builtin(mod, TBI_NMREF))
-    || typ_equal(mod, g, typ_lookup_builtin(mod, TBI_NMMREF));
+  return typ_isa(mod, a, typ_lookup_builtin(mod, TBI_ANY_ANY_REF));
 }
 
 static const uint32_t tbi_for_ref[TOKEN__NUM] = {
@@ -3074,7 +3088,7 @@ error typ_compatible_reference(const struct module *mod, const struct node *for_
   }
 
   assert(tbi_for_ref[operator] != 0);
-  if (typ_same_generic(a, typ_lookup_builtin(mod, tbi_for_ref[operator]))) {
+  if (a->gen_args[0] == typ_lookup_builtin(mod, tbi_for_ref[operator])) {
     return 0;
   }
 
@@ -3098,11 +3112,11 @@ error typ_can_deref(const struct module *mod, const struct node *for_error,
     ok = TRUE;
     break;
   case TDEREFBANG:
-    ok = typ_same_generic(a, typ_lookup_builtin(mod, TBI_MREF))
-      || typ_same_generic(a, typ_lookup_builtin(mod, TBI_MMREF));
+    ok = typ_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MREF))
+      || typ_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MMREF));
     break;
   case TDEREFSHARP:
-    ok = typ_same_generic(a, typ_lookup_builtin(mod, TBI_MMREF));
+    ok = typ_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MMREF));
     break;
   default:
     assert(FALSE);
@@ -3169,12 +3183,24 @@ error typ_unify(const struct typ **u, const struct module *mod, const struct nod
 }
 
 bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf) {
+  if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_ANY))) {
+    return TRUE;
+  }
+
   if (typ_equal(mod, a, intf)) {
     return TRUE;
   }
 
-  if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_ANY))) {
-    return TRUE;
+  if (a->gen_arity > 0 && a->gen_arity == intf->gen_arity) {
+    size_t n;
+    for (n = 0; n < a->gen_arity; ++n) {
+      if (!typ_isa(mod, a->gen_args[n], intf->gen_args[n])) {
+        break;
+      }
+    }
+    if (n == a->gen_arity) {
+      return TRUE;
+    }
   }
 
   // Literals types do not have a isalist.
