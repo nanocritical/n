@@ -3197,6 +3197,15 @@ bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *in
     return TRUE;
   }
 
+  if (a->gen_arity > 0
+      && intf->gen_arity == 0
+      && intf->definition->subs[IDX_GENARGS]->subs_count > 0) {
+    // intf is a "2nd order" generic, i.e. the generic functor itself.
+    if (typ_isa(mod, a->gen_args[0], intf)) {
+      return TRUE;
+    }
+  }
+
   if (a->gen_arity > 0 && a->gen_arity == intf->gen_arity) {
     size_t n;
     for (n = 0; n < a->gen_arity; ++n) {

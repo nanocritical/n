@@ -1,0 +1,11 @@
+from nlang import *
+type c =
+  let this = c
+  x:i32
+
+fun get m:r c = r i32
+  return @$m$x
+
+fun main = i32
+  let x = c{{ x=0 }}
+  return .((get Ref) @x)
