@@ -1548,8 +1548,8 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
   for (size_t n = 1; n < toplevel->instances_count; ++n) {
     struct node *i = toplevel->instances[n];
     if (is_instance_for(mod, i, node)) {
-      if (fun->typ->is_uninstantiated_genarg) {
-        node->typ = typ_genarg_mark_as_uninstantiated(i->typ);
+      if (fun->typ->is_abstract_genarg) {
+        node->typ = typ_genarg_mark_as_abstract(i->typ);
       } else {
         node->typ = i->typ;
       }
@@ -1576,8 +1576,8 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
     }
   }
 
-  if (fun->typ->is_uninstantiated_genarg) {
-    node->typ = typ_genarg_mark_as_uninstantiated(instance->typ);
+  if (fun->typ->is_abstract_genarg) {
+    node->typ = typ_genarg_mark_as_abstract(instance->typ);
   } else {
     node->typ = instance->typ;
   }
@@ -2020,7 +2020,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     EXCEPT(e);
     goto ok;
   case DEFGENARG:
-    node->typ = typ_genarg_mark_as_uninstantiated(node->subs[1]->typ);
+    node->typ = typ_genarg_mark_as_abstract(node->subs[1]->typ);
     e = type_destruct(mod, node->subs[0], node->typ);
     EXCEPT(e);
     node->flags |= NODE_IS_TYPE;
