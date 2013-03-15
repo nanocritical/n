@@ -1033,37 +1033,37 @@ static void print_deftype_block(FILE *out, bool header, const struct module *mod
 static void print_deftype_typedefs(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, "typedef const ");
   print_deftype_name(out, mod, node);
-  fprintf(out, "* _ngen_nlang_builtins_ref__");
+  fprintf(out, "* _ngen_nlang_builtins_Ref__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
-  fprintf(out, "typedef _ngen_nlang_builtins_ref__");
+  fprintf(out, "typedef _ngen_nlang_builtins_Ref__");
   print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_nref__");
+  fprintf(out, " _ngen_nlang_builtins_NullableRef__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
   fprintf(out, "typedef ");
   print_deftype_name(out, mod, node);
-  fprintf(out, "* _ngen_nlang_builtins_mref__");
+  fprintf(out, "* _ngen_nlang_builtins_MutableRef__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
-  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
+  fprintf(out, "typedef _ngen_nlang_builtins_MutableRef__");
   print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_mmref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, ";\n");
-
-  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_nmref__");
+  fprintf(out, " _ngen_nlang_builtins_MercurialRef__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
-  fprintf(out, "typedef _ngen_nlang_builtins_mref__");
+  fprintf(out, "typedef _ngen_nlang_builtins_MutableRef__");
   print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_nmmref__");
+  fprintf(out, " _ngen_nlang_builtins_NullableMutableRef__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef _ngen_nlang_builtins_MercurialRef__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " _ngen_nlang_builtins_NullableMercurialRef__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 }
@@ -1220,9 +1220,6 @@ static bool is_pseudo_tbi(const struct module *mod, const struct typ *t) {
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE))) {
     return TRUE;
   }
-  if (typ_is_reference_instance(mod, t)) {
-    return TRUE;
-  }
   return FALSE;
 }
 
@@ -1303,7 +1300,7 @@ static void print_top(FILE *out, bool header, const struct module *mod, const st
   const struct toplevel *toplevel = node_toplevel_const(node);
   if (toplevel->instances_count == 1) {
     return;
-  } else if (toplevel->instances_count > 1 && !typ_is_reference_instance(mod, node->typ)) {
+  } else if (toplevel->instances_count > 1) {
     for (size_t n = 1; n < toplevel->instances_count; ++n) {
       const struct node *instance = toplevel->instances[n];
       print_top(out, header, mod, instance);

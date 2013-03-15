@@ -19,13 +19,13 @@ t00_sum_sum_which_type__ which__;
 t00_sum_sum_as_type__ as__;
 }
 ;
-typedef const t00_sum_sum* _ngen_nlang_builtins_ref__t00_sum_sum;
-typedef _ngen_nlang_builtins_ref__t00_sum_sum _ngen_nlang_builtins_nref__t00_sum_sum;
-typedef t00_sum_sum* _ngen_nlang_builtins_mref__t00_sum_sum;
-typedef _ngen_nlang_builtins_mref__t00_sum_sum _ngen_nlang_builtins_mmref__t00_sum_sum;
-typedef _ngen_nlang_builtins_mref__t00_sum_sum _ngen_nlang_builtins_nmref__t00_sum_sum;
-typedef _ngen_nlang_builtins_mref__t00_sum_sum _ngen_nlang_builtins_nmmref__t00_sum_sum;
-nlang_builtins_void t00_sum_sum_A_ctor(_ngen_nlang_builtins_mmref__t00_sum_sum self, nlang_builtins_u32 c) {
+typedef const t00_sum_sum* _ngen_nlang_builtins_Ref__t00_sum_sum;
+typedef _ngen_nlang_builtins_Ref__t00_sum_sum _ngen_nlang_builtins_NullableRef__t00_sum_sum;
+typedef t00_sum_sum* _ngen_nlang_builtins_MutableRef__t00_sum_sum;
+typedef _ngen_nlang_builtins_MutableRef__t00_sum_sum _ngen_nlang_builtins_MercurialRef__t00_sum_sum;
+typedef _ngen_nlang_builtins_MutableRef__t00_sum_sum _ngen_nlang_builtins_NullableMutableRef__t00_sum_sum;
+typedef _ngen_nlang_builtins_MercurialRef__t00_sum_sum _ngen_nlang_builtins_NullableMercurialRef__t00_sum_sum;
+nlang_builtins_void t00_sum_sum_A_ctor(_ngen_nlang_builtins_MercurialRef__t00_sum_sum self, nlang_builtins_u32 c) {
 #define THIS(x) t00_sum_sum##x
 self->which__ = t00_sum_sum_A_which__;
 self->as__.A = c;
@@ -39,14 +39,14 @@ THIS(_A_ctor)(&r, c);
 return r;
 #undef THIS
 }
-_ngen_nlang_builtins_mmref__t00_sum_sum t00_sum_sum_A_new(nlang_builtins_u32 c) {
+_ngen_nlang_builtins_MercurialRef__t00_sum_sum t00_sum_sum_A_new(nlang_builtins_u32 c) {
 #define THIS(x) t00_sum_sum##x
 THIS() *self = calloc(1, sizeof(sizeof(THIS())));
 THIS(_A_ctor)(self, c);
 return self;
 #undef THIS
 }
-nlang_builtins_void t00_sum_sum_B_ctor(_ngen_nlang_builtins_mmref__t00_sum_sum self, nlang_builtins_i32 c) {
+nlang_builtins_void t00_sum_sum_B_ctor(_ngen_nlang_builtins_MercurialRef__t00_sum_sum self, nlang_builtins_i32 c) {
 #define THIS(x) t00_sum_sum##x
 self->which__ = t00_sum_sum_B_which__;
 self->as__.B = c;
@@ -60,7 +60,7 @@ THIS(_B_ctor)(&r, c);
 return r;
 #undef THIS
 }
-_ngen_nlang_builtins_mmref__t00_sum_sum t00_sum_sum_B_new(nlang_builtins_i32 c) {
+_ngen_nlang_builtins_MercurialRef__t00_sum_sum t00_sum_sum_B_new(nlang_builtins_i32 c) {
 #define THIS(x) t00_sum_sum##x
 THIS() *self = calloc(1, sizeof(sizeof(THIS())));
 THIS(_B_ctor)(self, c);
@@ -68,7 +68,7 @@ return self;
 #undef THIS
 }
 
-nlang_builtins_bool t00_sum_sum_operator_ne(_ngen_nlang_builtins_ref__t00_sum_sum self, _ngen_nlang_builtins_ref__t00_sum_sum other) {
+nlang_builtins_bool t00_sum_sum_operator_ne(_ngen_nlang_builtins_Ref__t00_sum_sum self, _ngen_nlang_builtins_Ref__t00_sum_sum other) {
 #define THIS(x) t00_sum_sum##x
 if (self->which__ != other->which__) { return 1; }
 switch (self->which__) {
@@ -79,7 +79,7 @@ return 0;
 #undef THIS
 }
 
-nlang_builtins_bool t00_sum_sum_operator_eq(_ngen_nlang_builtins_ref__t00_sum_sum self, _ngen_nlang_builtins_ref__t00_sum_sum other) {
+nlang_builtins_bool t00_sum_sum_operator_eq(_ngen_nlang_builtins_Ref__t00_sum_sum self, _ngen_nlang_builtins_Ref__t00_sum_sum other) {
 #define THIS(x) t00_sum_sum##x
 if (self->which__ != other->which__) { return 0; }
 switch (self->which__) {
@@ -90,7 +90,7 @@ return 0;
 #undef THIS
 }
 
-nlang_builtins_void t00_sum_sum_operator_copy(_ngen_nlang_builtins_mmref__t00_sum_sum self, _ngen_nlang_builtins_ref__t00_sum_sum other) {
+nlang_builtins_void t00_sum_sum_operator_copy(_ngen_nlang_builtins_MercurialRef__t00_sum_sum self, _ngen_nlang_builtins_Ref__t00_sum_sum other) {
 #define THIS(x) t00_sum_sum##x
 self->which__ = other->which__;
 switch (self->which__) {
@@ -106,14 +106,14 @@ struct t00_sum_ta {
 nlang_builtins_u32 x;
 }
 ;
-typedef const t00_sum_ta* _ngen_nlang_builtins_ref__t00_sum_ta;
-typedef _ngen_nlang_builtins_ref__t00_sum_ta _ngen_nlang_builtins_nref__t00_sum_ta;
-typedef t00_sum_ta* _ngen_nlang_builtins_mref__t00_sum_ta;
-typedef _ngen_nlang_builtins_mref__t00_sum_ta _ngen_nlang_builtins_mmref__t00_sum_ta;
-typedef _ngen_nlang_builtins_mref__t00_sum_ta _ngen_nlang_builtins_nmref__t00_sum_ta;
-typedef _ngen_nlang_builtins_mref__t00_sum_ta _ngen_nlang_builtins_nmmref__t00_sum_ta;
+typedef const t00_sum_ta* _ngen_nlang_builtins_Ref__t00_sum_ta;
+typedef _ngen_nlang_builtins_Ref__t00_sum_ta _ngen_nlang_builtins_NullableRef__t00_sum_ta;
+typedef t00_sum_ta* _ngen_nlang_builtins_MutableRef__t00_sum_ta;
+typedef _ngen_nlang_builtins_MutableRef__t00_sum_ta _ngen_nlang_builtins_MercurialRef__t00_sum_ta;
+typedef _ngen_nlang_builtins_MutableRef__t00_sum_ta _ngen_nlang_builtins_NullableMutableRef__t00_sum_ta;
+typedef _ngen_nlang_builtins_MercurialRef__t00_sum_ta _ngen_nlang_builtins_NullableMercurialRef__t00_sum_ta;
 
-nlang_builtins_void t00_sum_ta_operator_copy(_ngen_nlang_builtins_mmref__t00_sum_ta self, _ngen_nlang_builtins_ref__t00_sum_ta other) {
+nlang_builtins_void t00_sum_ta_operator_copy(_ngen_nlang_builtins_MercurialRef__t00_sum_ta self, _ngen_nlang_builtins_Ref__t00_sum_ta other) {
 #define THIS(x) t00_sum_ta##x
 memcpy(self, other, sizeof(*self));
 #undef THIS
@@ -125,14 +125,14 @@ struct t00_sum_tb {
 nlang_builtins_i32 y;
 }
 ;
-typedef const t00_sum_tb* _ngen_nlang_builtins_ref__t00_sum_tb;
-typedef _ngen_nlang_builtins_ref__t00_sum_tb _ngen_nlang_builtins_nref__t00_sum_tb;
-typedef t00_sum_tb* _ngen_nlang_builtins_mref__t00_sum_tb;
-typedef _ngen_nlang_builtins_mref__t00_sum_tb _ngen_nlang_builtins_mmref__t00_sum_tb;
-typedef _ngen_nlang_builtins_mref__t00_sum_tb _ngen_nlang_builtins_nmref__t00_sum_tb;
-typedef _ngen_nlang_builtins_mref__t00_sum_tb _ngen_nlang_builtins_nmmref__t00_sum_tb;
+typedef const t00_sum_tb* _ngen_nlang_builtins_Ref__t00_sum_tb;
+typedef _ngen_nlang_builtins_Ref__t00_sum_tb _ngen_nlang_builtins_NullableRef__t00_sum_tb;
+typedef t00_sum_tb* _ngen_nlang_builtins_MutableRef__t00_sum_tb;
+typedef _ngen_nlang_builtins_MutableRef__t00_sum_tb _ngen_nlang_builtins_MercurialRef__t00_sum_tb;
+typedef _ngen_nlang_builtins_MutableRef__t00_sum_tb _ngen_nlang_builtins_NullableMutableRef__t00_sum_tb;
+typedef _ngen_nlang_builtins_MercurialRef__t00_sum_tb _ngen_nlang_builtins_NullableMercurialRef__t00_sum_tb;
 
-nlang_builtins_void t00_sum_tb_operator_copy(_ngen_nlang_builtins_mmref__t00_sum_tb self, _ngen_nlang_builtins_ref__t00_sum_tb other) {
+nlang_builtins_void t00_sum_tb_operator_copy(_ngen_nlang_builtins_MercurialRef__t00_sum_tb self, _ngen_nlang_builtins_Ref__t00_sum_tb other) {
 #define THIS(x) t00_sum_tb##x
 memcpy(self, other, sizeof(*self));
 #undef THIS
@@ -157,13 +157,13 @@ t00_sum_sum_nocopy_which_type__ which__;
 t00_sum_sum_nocopy_as_type__ as__;
 }
 ;
-typedef const t00_sum_sum_nocopy* _ngen_nlang_builtins_ref__t00_sum_sum_nocopy;
-typedef _ngen_nlang_builtins_ref__t00_sum_sum_nocopy _ngen_nlang_builtins_nref__t00_sum_sum_nocopy;
-typedef t00_sum_sum_nocopy* _ngen_nlang_builtins_mref__t00_sum_sum_nocopy;
-typedef _ngen_nlang_builtins_mref__t00_sum_sum_nocopy _ngen_nlang_builtins_mmref__t00_sum_sum_nocopy;
-typedef _ngen_nlang_builtins_mref__t00_sum_sum_nocopy _ngen_nlang_builtins_nmref__t00_sum_sum_nocopy;
-typedef _ngen_nlang_builtins_mref__t00_sum_sum_nocopy _ngen_nlang_builtins_nmmref__t00_sum_sum_nocopy;
-nlang_builtins_void t00_sum_sum_nocopy_A_ctor(_ngen_nlang_builtins_mmref__t00_sum_sum_nocopy self, t00_sum_ta c) {
+typedef const t00_sum_sum_nocopy* _ngen_nlang_builtins_Ref__t00_sum_sum_nocopy;
+typedef _ngen_nlang_builtins_Ref__t00_sum_sum_nocopy _ngen_nlang_builtins_NullableRef__t00_sum_sum_nocopy;
+typedef t00_sum_sum_nocopy* _ngen_nlang_builtins_MutableRef__t00_sum_sum_nocopy;
+typedef _ngen_nlang_builtins_MutableRef__t00_sum_sum_nocopy _ngen_nlang_builtins_MercurialRef__t00_sum_sum_nocopy;
+typedef _ngen_nlang_builtins_MutableRef__t00_sum_sum_nocopy _ngen_nlang_builtins_NullableMutableRef__t00_sum_sum_nocopy;
+typedef _ngen_nlang_builtins_MercurialRef__t00_sum_sum_nocopy _ngen_nlang_builtins_NullableMercurialRef__t00_sum_sum_nocopy;
+nlang_builtins_void t00_sum_sum_nocopy_A_ctor(_ngen_nlang_builtins_MercurialRef__t00_sum_sum_nocopy self, t00_sum_ta c) {
 #define THIS(x) t00_sum_sum_nocopy##x
 self->which__ = t00_sum_sum_nocopy_A_which__;
 self->as__.A = c;
@@ -177,14 +177,14 @@ THIS(_A_ctor)(&r, c);
 return r;
 #undef THIS
 }
-_ngen_nlang_builtins_mmref__t00_sum_sum_nocopy t00_sum_sum_nocopy_A_new(t00_sum_ta c) {
+_ngen_nlang_builtins_MercurialRef__t00_sum_sum_nocopy t00_sum_sum_nocopy_A_new(t00_sum_ta c) {
 #define THIS(x) t00_sum_sum_nocopy##x
 THIS() *self = calloc(1, sizeof(sizeof(THIS())));
 THIS(_A_ctor)(self, c);
 return self;
 #undef THIS
 }
-nlang_builtins_void t00_sum_sum_nocopy_B_ctor(_ngen_nlang_builtins_mmref__t00_sum_sum_nocopy self, t00_sum_tb c) {
+nlang_builtins_void t00_sum_sum_nocopy_B_ctor(_ngen_nlang_builtins_MercurialRef__t00_sum_sum_nocopy self, t00_sum_tb c) {
 #define THIS(x) t00_sum_sum_nocopy##x
 self->which__ = t00_sum_sum_nocopy_B_which__;
 self->as__.B = c;
@@ -198,7 +198,7 @@ THIS(_B_ctor)(&r, c);
 return r;
 #undef THIS
 }
-_ngen_nlang_builtins_mmref__t00_sum_sum_nocopy t00_sum_sum_nocopy_B_new(t00_sum_tb c) {
+_ngen_nlang_builtins_MercurialRef__t00_sum_sum_nocopy t00_sum_sum_nocopy_B_new(t00_sum_tb c) {
 #define THIS(x) t00_sum_sum_nocopy##x
 THIS() *self = calloc(1, sizeof(sizeof(THIS())));
 THIS(_B_ctor)(self, c);

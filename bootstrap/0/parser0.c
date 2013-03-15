@@ -105,12 +105,12 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_STRING] = "string",
   [ID_TBI_ANY_REF] = "AnyRef",
   [ID_TBI_ANY_ANY_REF] = "AnyAnyRef",
-  [ID_TBI_REF] = "ref",
-  [ID_TBI_MREF] = "mref",
-  [ID_TBI_MMREF] = "mmref",
-  [ID_TBI_NREF] = "nref",
-  [ID_TBI_NMREF] = "nmref",
-  [ID_TBI_NMMREF] = "nmmref",
+  [ID_TBI_REF] = "Ref",
+  [ID_TBI_MREF] = "MutableRef",
+  [ID_TBI_MMREF] = "MercurialRef",
+  [ID_TBI_NREF] = "NullableRef",
+  [ID_TBI_NMREF] = "NullableMutableRef",
+  [ID_TBI_NMMREF] = "NullableMercurialRef",
   [ID_TBI_NUMERIC] = "Numeric",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
   [ID_TBI_GENERALIZED_BOOLEAN] = "GeneralizedBoolean",
@@ -2990,6 +2990,12 @@ error typ_check_equal(const struct module *mod, const struct node *for_error,
 error typ_compatible(const struct module *mod, const struct node *for_error,
                      const struct typ *a, const struct typ *constraint) {
   if (a->is_abstract_genarg || constraint->is_abstract_genarg) {
+    error e = typ_check_isa(mod, for_error, a, constraint);
+    EXCEPT(e);
+    return 0;
+  }
+
+  if (typ_is_reference_instance(mod, a)) {
     error e = typ_check_isa(mod, for_error, a, constraint);
     EXCEPT(e);
     return 0;
