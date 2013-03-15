@@ -1548,7 +1548,11 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
   for (size_t n = 1; n < toplevel->instances_count; ++n) {
     struct node *i = toplevel->instances[n];
     if (is_instance_for(mod, i, node)) {
-      node->typ = i->typ;
+      if (fun->typ->is_uninstantiated_genarg) {
+        node->typ = typ_genarg_mark_as_uninstantiated(i->typ);
+      } else {
+        node->typ = i->typ;
+      }
       return 0;
     }
   }
@@ -1572,7 +1576,11 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
     }
   }
 
-  node->typ = instance->typ;
+  if (fun->typ->is_uninstantiated_genarg) {
+    node->typ = typ_genarg_mark_as_uninstantiated(instance->typ);
+  } else {
+    node->typ = instance->typ;
+  }
 
   return 0;
 }
