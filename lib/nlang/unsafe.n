@@ -1,0 +1,3 @@
+from nlang import *
+
+export extern (fun u:AnyAnyRef v:AnyAnyRef) cast a:u = v

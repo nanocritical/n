@@ -1,0 +1,48 @@
+MODULE_BODY :__internal_not_typeable__
+ IMPORT :nlang
+  IDENT(nlang) :nlang
+ IMPORT :nlang.unsafe
+  BIN(.) :nlang.unsafe
+   IDENT(nlang) :nlang
+   IDENT(unsafe) :__internal_not_typeable__
+ DEFFUN :t00.cast.foo
+  IDENT(foo) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :(nlang.builtins.ref nlang.builtins.u32)
+   IDENT(x) :(nlang.builtins.ref nlang.builtins.u32)
+   UN(@) :(nlang.builtins.ref nlang.builtins.u32)
+    IDENT(u32) :nlang.builtins.u32
+  UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+   IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   RETURN :(nlang.builtins.ref nlang.builtins.i32)
+    CALL :(nlang.builtins.ref nlang.builtins.i32)
+     CALL :(nlang.unsafe.cast (nlang.builtins.ref nlang.builtins.u32) (nlang.builtins.ref nlang.builtins.i32))
+      BIN(.) :nlang.unsafe.cast
+       BIN(.) :nlang.unsafe
+        IDENT(nlang) :nlang
+        IDENT(unsafe) :__internal_not_typeable__
+       IDENT(cast) :__internal_not_typeable__
+      UN(@) :(nlang.builtins.ref nlang.builtins.u32)
+       IDENT(u32) :nlang.builtins.u32
+      UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+       IDENT(i32) :nlang.builtins.i32
+     IDENT(x) :(nlang.builtins.ref nlang.builtins.u32)
+ DEFFUN :t00.cast.main
+  IDENT(main) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.u32
+     IDENT(__gensym0) :nlang.builtins.u32
+     NUMBER(1) :nlang.builtins.u32
+     DEFNAME(__gensym0) :nlang.builtins.u32
+   RETURN :nlang.builtins.i32
+    BIN( - ) :nlang.builtins.i32
+     UN(.) :nlang.builtins.i32
+      CALL :(nlang.builtins.ref nlang.builtins.i32)
+       IDENT(foo) :t00.cast.foo
+       UN(@) :(nlang.builtins.ref nlang.builtins.u32)
+        IDENT(__gensym0) :nlang.builtins.u32
+     NUMBER(1) :nlang.builtins.i32

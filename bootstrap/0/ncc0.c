@@ -431,6 +431,9 @@ int main(int argc, char **argv) {
     e = forwardpass(deps.modules[n], NULL, NULL);
     EXCEPT(e);
 
+    e = earlypass(deps.modules[n], NULL, NULL);
+    EXCEPT(e);
+
     e = firstpass(deps.modules[n], NULL, NULL);
     EXCEPT(e);
   }

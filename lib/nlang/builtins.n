@@ -23,21 +23,22 @@ export intf SumOrder = export Ordered
 
 export extern type void =
 
-export intf AnyRef = export Copyable export ReturnByCopy
-export intf Ref = export AnyRef
-export intf MutableRef = export Ref
-export intf MercurialRef = export MutableRef
-export intf NullableRef = export AnyRef
-export intf NullableMutableRef = export NullableRef
-export intf NullableMercurialRef = export NullableMutableRef
+export intf AnyAnyRef = export ReturnByCopy
+export intf AnyRef t:Any = export AnyAnyRef export Copyable
+export intf Ref t:Any = export (AnyRef t)
+export intf MutableRef t:Any = export (Ref t)
+export intf MercurialRef t:Any = export (MutableRef t)
+export intf NullableRef t:Any = export (AnyRef t)
+export intf NullableMutableRef t:Any = export (NullableRef t)
+export intf NullableMercurialRef t:Any = export (NullableMutableRef t)
 
 export extern type pseudo_tuple = export Copyable
-export extern type ref = export Ref
-export extern type mref = export MutableRef
-export extern type mmref = export MercurialRef
-export extern type nref = export NullableRef
-export extern type nmref = export NullableMutableRef
-export extern type nmmref = export NullableMercurialRef
+export extern type ref t:Any = export (Ref t)
+export extern type mref t:Any = export (MutableRef t)
+export extern type mmref t:Any = export (MercurialRef t)
+export extern type nref t:Any = export (NullableRef t)
+export extern type nmref t:Any = export (NullableMutableRef t)
+export extern type nmmref t:Any = export (NullableMercurialRef t)
 
 export intf Numeric = \
     export Arithmetic \

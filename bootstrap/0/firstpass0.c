@@ -69,7 +69,7 @@ error one_level_pass(struct module *mod, struct node *root, const step *down_ste
   return 0;
 }
 
-static error zero_to_forward_for_generated(struct module *mod, struct node *node,
+static error zero_to_early_for_generated(struct module *mod, struct node *node,
                                            struct scope *parent_scope);
 static error zero_to_first_for_generated(struct module *mod, struct node *node,
                                          struct node **except, struct scope *parent_scope);
@@ -121,7 +121,8 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node, 
   case DEFINTF:
   case DEFFUN:
   case DEFMETHOD:
-    if (node->subs[IDX_GENARGS]->subs_count > 0) {
+    if (node->subs[IDX_GENARGS]->subs_count > 0
+        && node->subs[IDX_GENARGS]->subs[0]->which == DEFGENARG) {
       (void) add_instance_deepcopy_from_pristine(mod, node, node);
     }
     return 0;
@@ -880,6 +881,18 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   return 0;
 }
 
+static error step_stop_already_earlytypepass(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case ISA:
+  case DEFGENARG:
+  case SETGENARG:
+    *stop = TRUE;
+    return 0;
+  default:
+    return 0;
+  }
+}
+
 static error step_type_inference(struct module *mod, struct node *node, void *user, bool *stop);
 
 error earlytypepass(struct module *mod, struct node *node) {
@@ -916,14 +929,9 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
 
   assert(node->subs[0]->which == IDENT);
   ident id = node->subs[0]->as.IDENT.name;
-  if (id >= ID_TBI__FIRST && id <= ID_TBI__LAST) {
-    // FIXME Effectively reserving these idents for builtin types, but
-    // that's a temporary trick to avoid having to look up the current
-    // module path.
-    mod->gctx->builtin_typs_by_name[id]->definition = node;
-    node->typ = mod->gctx->builtin_typs_by_name[id];
-  } else if (node->subs[IDX_GENARGS]->subs_count > 0
-             && node_toplevel(node)->generic_definition != NULL) {
+
+  if (node->subs[IDX_GENARGS]->subs_count > 0
+      && node_toplevel(node)->generic_definition != NULL) {
     struct typ *mutable_typ = typ_new(node_toplevel(node)->generic_definition,
                                       TYPE_DEF, node->subs[IDX_GENARGS]->subs_count, 0);
     mutable_typ->gen_args[0] = node_toplevel(node)->generic_definition->typ;
@@ -934,6 +942,13 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
       assert(node->subs[IDX_GENARGS]->subs[n]->typ != NULL);
       node->typ->gen_args[1 + n] = node->subs[IDX_GENARGS]->subs[n]->typ;
     }
+  } else if (id >= ID_TBI__FIRST && id <= ID_TBI__LAST) {
+    // FIXME Effectively reserving these idents for builtin types, but
+    // that's a temporary trick to avoid having to look up the current
+    // module path.
+    struct typ *t = mod->gctx->builtin_typs_by_name[id];
+    t->definition = node;
+    node->typ = t;
   } else {
     node->typ = typ_new(node, TYPE_DEF, 0, 0);
   }
@@ -942,10 +957,39 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
   return 0;
 }
 
+static error step_type_inference_genargs(struct module *mod, struct node *node, void *user, bool *stop) {
+  error e;
+
+  switch (node->which) {
+  case DEFTYPE:
+  case DEFINTF:
+  case DEFFUN:
+  case DEFMETHOD:
+    break;
+  default:
+    return 0;
+  }
+
+  if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
+      || node->typ == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)) {
+    return 0;
+  }
+
+  struct node *genargs = node->subs[IDX_GENARGS];
+  e = earlytypepass(mod, genargs);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error step_type_inference_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
   error e;
 
   switch (node->which) {
+  case ISA:
+    e = earlytypepass(mod, node);
+    EXCEPT(e);
+    return 0;
   case DEFTYPE:
   case DEFINTF:
     break;
@@ -959,12 +1003,6 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
   }
 
   struct node *isalist = node->subs[IDX_ISALIST];
-  e = earlytypepass(mod, isalist);
-  EXCEPT(e);
-  struct node *genargs = node->subs[IDX_GENARGS];
-  e = earlytypepass(mod, genargs);
-  EXCEPT(e);
-
   struct typ *mutable_typ = (struct typ *) node->typ;
 
   // FIXME: Check for duplicates?
@@ -1106,10 +1144,33 @@ static const uint32_t tbi_for_ref[TOKEN__NUM] = {
 };
 
 static const struct typ *typ_ref(struct module *mod, enum token_type op, const struct typ *typ) {
-  struct typ *t;
-  t = typ_new(typ_lookup_builtin(mod, tbi_for_ref[op])->definition, TYPE_DEF, 1, 0);
-  t->gen_args[1] = typ;
-  return t;
+  struct node *gendef = typ_lookup_builtin(mod, tbi_for_ref[op])->definition;
+
+  struct toplevel *toplevel = node_toplevel(gendef);
+  for (size_t n = 1; n < toplevel->instances_count; ++n) {
+    struct node *i = toplevel->instances[n];
+    if (typ_equal(mod, i->typ->gen_args[1], typ)) {
+      return i->typ;
+    }
+  }
+
+  struct node *pristine = toplevel->instances[0];
+  struct node *instance = add_instance_deepcopy_from_pristine(mod, gendef, pristine);
+  node_toplevel(instance)->generic_definition = gendef;
+
+  struct node *ga = instance->subs[IDX_GENARGS]->subs[0];
+  ga->which = SETGENARG;
+  // FIXME leaking ga->subs[1]
+  ga->subs[1]->which = DIRECTDEF;
+  ga->subs[1]->as.DIRECTDEF.definition = typ->definition;
+  ga->typ = typ;
+  ga->flags = NODE_IS_TYPE;
+
+  error e = zero_to_second_for_generated(mod, instance, NULL,
+                                         gendef->scope->parent);
+  assert(!e);
+
+  return instance->typ;
 }
 
 static error type_inference_un(struct module *mod, struct node *node) {
@@ -1123,9 +1184,9 @@ static error type_inference_un(struct module *mod, struct node *node) {
     node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
     break;
   case OP_UN_DEREF:
-    e = typ_can_deref(mod, node->subs[0],node->subs[0]->typ, node->as.UN.operator);
+    e = typ_can_deref(mod, node->subs[0], node->subs[0]->typ, node->as.UN.operator);
     EXCEPT(e);
-    node->typ = node->subs[0]->typ;
+    node->typ = node->subs[0]->typ->gen_args[1];
     node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
     break;
   case OP_UN_BOOL:
@@ -1483,22 +1544,24 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
     EXCEPT(e);
   }
 
-  for (size_t n = 0; n < gendef->subs[IDX_GENARGS]->subs_count; ++n) {
-    struct node *i = gendef->subs[IDX_GENARGS]->subs[n];
+  struct toplevel *toplevel = node_toplevel(gendef);
+  for (size_t n = 1; n < toplevel->instances_count; ++n) {
+    struct node *i = toplevel->instances[n];
     if (is_instance_for(mod, i, node)) {
       node->typ = i->typ;
       return 0;
     }
   }
 
-  struct node *pristine = node_toplevel(gendef)->instances[0];
+  struct node *pristine = toplevel->instances[0];
   struct node *instance = add_instance_deepcopy_from_pristine(mod, gendef, pristine);
   node_toplevel(instance)->generic_definition = gendef;
 
   error e = rewrite_instance_genargs(mod, instance, node);
   EXCEPT(e);
 
-  e = zero_to_second_for_generated(mod, instance, NULL, gendef->scope->parent);
+  e = zero_to_second_for_generated(mod, instance, NULL,
+                                   gendef->scope->parent);
   EXCEPT(e);
 
   if (instance->which == DEFTYPE) {
@@ -1826,14 +1889,6 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
   return 0;
 }
 
-static struct typ *genarg_mark_as_uninstantiated(const struct typ *t) {
-  assert(t->definition->which == DEFINTF);
-  struct typ *r = calloc(1, sizeof(struct typ));
-  memcpy(r, t, sizeof(*r));
-  r->is_uninstantiated_genarg = TRUE;
-  return r;
-}
-
 static error step_type_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   error e;
   struct node *def = NULL;
@@ -1950,11 +2005,6 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     e = type_inference_try(mod, node);
     EXCEPT(e);
     goto ok;
-  case SETGENARG:
-    node->typ = node->subs[1]->typ;
-    e = type_destruct(mod, node->subs[0], node->typ);
-    EXCEPT(e);
-    goto ok;
   case DEFARG:
   case TYPECONSTRAINT:
     node->typ = node->subs[1]->typ;
@@ -1962,9 +2012,16 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     EXCEPT(e);
     goto ok;
   case DEFGENARG:
-    node->typ = genarg_mark_as_uninstantiated(node->subs[1]->typ);
+    node->typ = typ_genarg_mark_as_uninstantiated(node->subs[1]->typ);
     e = type_destruct(mod, node->subs[0], node->typ);
     EXCEPT(e);
+    node->flags |= NODE_IS_TYPE;
+    goto ok;
+  case SETGENARG:
+    node->typ = node->subs[1]->typ;
+    e = type_destruct(mod, node->subs[0], node->typ);
+    EXCEPT(e);
+    node->flags |= NODE_IS_TYPE;
     goto ok;
   case DEFFUN:
   case DEFMETHOD:
@@ -2127,7 +2184,7 @@ static void define_builtin(struct module *mod, struct node *tdef,
   toplevel->is_inline = node_toplevel(tdef)->is_inline;
 
   rew_insert_last_at(modbody, insert_pos);
-  e = zero_to_forward_for_generated(mod, d, tdef->scope);
+  e = zero_to_early_for_generated(mod, d, tdef->scope);
   assert(!e);
 
   node_toplevel(d)->is_prototype = FALSE;
@@ -2405,7 +2462,7 @@ static void define_dispatch(struct module *mod, struct node *tdef, const struct 
 
     rew_insert_last_at(modbody, insert_pos);
 
-    error e = zero_to_forward_for_generated(mod, d, tdef->scope);
+    error e = zero_to_early_for_generated(mod, d, tdef->scope);
     assert(!e);
     node_toplevel(d)->is_prototype = FALSE;
   }
@@ -2747,10 +2804,29 @@ error forwardpass(struct module *mod, struct node *node, struct node **except) {
   return 0;
 }
 
+static const step earlypass_down[] = {
+  step_stop_submodules,
+  step_type_inference_genargs,
+  NULL,
+};
+
+static const step earlypass_up[] = {
+  step_type_inference_isalist,
+  NULL,
+};
+
+error earlypass(struct module *mod, struct node *node, struct node **except) {
+  int module_depth = 0;
+  error e = pass(mod, node, earlypass_down, earlypass_up, except, &module_depth);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static const step firstpass_down[] = {
   step_stop_submodules,
   step_stop_marker_tbi,
-  step_type_inference_isalist,
+  step_stop_already_earlytypepass,
   step_type_destruct_mark,
   step_type_gather_returns,
   step_type_gather_excepts,
@@ -2803,13 +2879,16 @@ error secondpass(struct module *mod, struct node *node, struct node **except) {
   return 0;
 }
 
-static error zero_to_forward_for_generated(struct module *mod, struct node *node,
+static error zero_to_early_for_generated(struct module *mod, struct node *node,
                                            struct scope *parent_scope) {
   error e = zeropass(mod, node, NULL);
   EXCEPT(e);
   node->scope->parent = parent_scope;
 
   e = forwardpass(mod, node, NULL);
+  EXCEPT(e);
+
+  e = earlypass(mod, node, NULL);
   EXCEPT(e);
 
   return 0;
@@ -2823,6 +2902,9 @@ static error zero_to_first_for_generated(struct module *mod, struct node *node,
   node->scope->parent = parent_scope;
 
   e = forwardpass(mod, node, except);
+  EXCEPT(e);
+
+  e = earlypass(mod, node, except);
   EXCEPT(e);
 
   e = firstpass(mod, node, except);
@@ -2839,6 +2921,9 @@ static error zero_to_second_for_generated(struct module *mod, struct node *node,
   node->scope->parent = parent_scope;
 
   e = forwardpass(mod, node, except);
+  EXCEPT(e);
+
+  e = earlypass(mod, node, except);
   EXCEPT(e);
 
   e = firstpass(mod, node, except);
