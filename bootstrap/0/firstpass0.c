@@ -1135,12 +1135,15 @@ static const uint32_t tbi_for_ref[TOKEN__NUM] = {
   [TREFDOT] = TBI_REF,
   [TREFBANG] = TBI_MREF,
   [TREFSHARP] = TBI_MMREF,
+  [TREFWILDCARD] = TBI_MMREF,
   [TDEREFDOT] = TBI_REF,
   [TDEREFBANG] = TBI_MREF,
   [TDEREFSHARP] = TBI_MMREF,
+  [TDEREFWILDCARD] = TBI_MMREF,
   [TNULREFDOT] = TBI_NREF,
   [TNULREFBANG] = TBI_NMREF,
   [TNULREFSHARP] = TBI_NMMREF,
+  [TNULREFWILDCARD] = TBI_NMMREF,
 };
 
 static const struct typ *typ_ref(struct module *mod, enum token_type op, const struct typ *typ) {
