@@ -1,0 +1,56 @@
+MODULE_BODY :__internal_not_typeable__
+ IMPORT :nlang
+  IDENT(nlang) :nlang
+ DEFTYPE :t01.anymutability.c
+  IDENT(c) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  ISALIST :nlang.builtins.void
+  LET :nlang.builtins.void
+   DEFPATTERN :t01.anymutability.c
+    IDENT(this) :t01.anymutability.c
+    IDENT(c) :t01.anymutability.c
+    DEFNAME(this) :t01.anymutability.c
+  DEFFIELD :nlang.builtins.i32
+   IDENT(x) :__internal_not_typeable__
+   IDENT(i32) :nlang.builtins.i32
+ DEFFUN :t01.anymutability.get
+  IDENT(get) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+   DEFGENARG :nlang.builtins.AnyRef
+    IDENT(r) :nlang.builtins.AnyRef
+    IDENT(AnyRef) :nlang.builtins.AnyRef
+  DEFARG :(nlang.builtins.AnyRef t01.anymutability.c)
+   IDENT(m) :(nlang.builtins.AnyRef t01.anymutability.c)
+   CALL :(nlang.builtins.AnyRef t01.anymutability.c)
+    IDENT(r) :nlang.builtins.AnyRef
+    IDENT(c) :t01.anymutability.c
+  CALL :(nlang.builtins.AnyRef nlang.builtins.i32)
+   IDENT(r) :nlang.builtins.AnyRef
+   IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   RETURN :(nlang.builtins.MercurialRef nlang.builtins.i32)
+    UN(@$) :(nlang.builtins.MercurialRef nlang.builtins.i32)
+     BIN($) :nlang.builtins.i32
+      IDENT(m) :(nlang.builtins.AnyRef t01.anymutability.c)
+      IDENT(x) :__internal_not_typeable__
+ DEFFUN :t01.anymutability.main
+  IDENT(main) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :t01.anymutability.c
+     IDENT(x) :t01.anymutability.c
+     INIT :t01.anymutability.c
+      IDENT(c) :t01.anymutability.c
+      IDENT(x) :__internal_pending_destruct__
+      NUMBER(0) :nlang.builtins.i32
+     DEFNAME(x) :t01.anymutability.c
+   RETURN :nlang.builtins.i32
+    UN(.) :nlang.builtins.i32
+     CALL :(nlang.builtins.Ref nlang.builtins.i32)
+      CALL :(t01.anymutability.get nlang.builtins.Ref)
+       IDENT(get) :t01.anymutability.get
+       IDENT(Ref) :nlang.builtins.Ref
+      UN(@) :(nlang.builtins.Ref t01.anymutability.c)
+       IDENT(x) :t01.anymutability.c

@@ -18,15 +18,15 @@ MODULE_BODY :__internal_not_typeable__
  DEFMETHOD :t00.unary.t.get
   IDENT(get) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-  DEFARG :(nlang.builtins.ref t00.unary.t)
-   IDENT(self) :(nlang.builtins.ref t00.unary.t)
-   UN(@) :(nlang.builtins.ref t00.unary.t)
+  DEFARG :(nlang.builtins.Ref t00.unary.t)
+   IDENT(self) :(nlang.builtins.Ref t00.unary.t)
+   UN(@) :(nlang.builtins.Ref t00.unary.t)
     IDENT(this) :t00.unary.t
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32
     BIN(.) :nlang.builtins.i32
-     IDENT(self) :(nlang.builtins.ref t00.unary.t)
+     IDENT(self) :(nlang.builtins.Ref t00.unary.t)
      IDENT(x) :__internal_not_typeable__
  DEFFUN :t00.unary.main
   IDENT(main) :__internal_not_typeable__
@@ -44,5 +44,5 @@ MODULE_BODY :__internal_not_typeable__
    RETURN :nlang.builtins.i32
     CALL :nlang.builtins.i32
      DIRECTDEF :t00.unary.t.get
-     UN(@) :(nlang.builtins.ref t00.unary.t)
+     UN(@) :(nlang.builtins.Ref t00.unary.t)
       IDENT(tt) :t00.unary.t

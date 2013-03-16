@@ -182,12 +182,19 @@ normal:
   "."[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFDOT); }
   "!"[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFBANG); }
   "#"[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFSHARP); }
+  "$"[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFWILDCARD); }
   "." { R(TDOT); }
   "!" { R(TBANG); }
   "#" { R(TSHARP); }
+  "$" { R(TWILDCARD); }
   "@!" { R(TREFBANG); }
   "@#" { R(TREFSHARP); }
+  "@$" { R(TREFWILDCARD); }
   "@" { R(TREFDOT); }
+  "?@!" { R(TNULREFBANG); }
+  "?@#" { R(TNULREFSHARP); }
+  "?@$" { R(TNULREFWILDCARD); }
+  "?@" { R(TNULREFDOT); }
   "..." { R(TDOTDOTDOT); }
   "[]" { R(TSLICEBRAKETS); }
   "{{" { R(TLINIT); }

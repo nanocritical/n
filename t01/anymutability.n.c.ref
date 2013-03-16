@@ -1,0 +1,27 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+struct t01_anymutability_c;
+typedef struct t01_anymutability_c t01_anymutability_c;
+struct t01_anymutability_c {
+nlang_builtins_i32 x;
+}
+;
+typedef const t01_anymutability_c* _ngen_nlang_builtins_Ref__t01_anymutability_c;
+typedef _ngen_nlang_builtins_Ref__t01_anymutability_c _ngen_nlang_builtins_NullableRef__t01_anymutability_c;
+typedef t01_anymutability_c* _ngen_nlang_builtins_MutableRef__t01_anymutability_c;
+typedef _ngen_nlang_builtins_MutableRef__t01_anymutability_c _ngen_nlang_builtins_MercurialRef__t01_anymutability_c;
+typedef _ngen_nlang_builtins_MutableRef__t01_anymutability_c _ngen_nlang_builtins_NullableMutableRef__t01_anymutability_c;
+typedef _ngen_nlang_builtins_MercurialRef__t01_anymutability_c _ngen_nlang_builtins_NullableMercurialRef__t01_anymutability_c;
+
+_ngen_nlang_builtins_Ref__nlang_builtins_i32 _ngen_t01_anymutability_get__nlang_builtins_Ref(_ngen_nlang_builtins_Ref__t01_anymutability_c m){
+ {
+return &m->x;
+}
+}
+
+nlang_builtins_i32 main(void){
+ {
+t01_anymutability_c x = (t01_anymutability_c){ .x = (nlang_builtins_i32)0,};
+return (*_ngen_t01_anymutability_get__nlang_builtins_Ref(&x));
+}
+}

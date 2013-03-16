@@ -105,12 +105,12 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_STRING] = "string",
   [ID_TBI_ANY_REF] = "AnyRef",
   [ID_TBI_ANY_ANY_REF] = "AnyAnyRef",
-  [ID_TBI_REF] = "ref",
-  [ID_TBI_MREF] = "mref",
-  [ID_TBI_MMREF] = "mmref",
-  [ID_TBI_NREF] = "nref",
-  [ID_TBI_NMREF] = "nmref",
-  [ID_TBI_NMMREF] = "nmmref",
+  [ID_TBI_REF] = "Ref",
+  [ID_TBI_MREF] = "MutableRef",
+  [ID_TBI_MMREF] = "MercurialRef",
+  [ID_TBI_NREF] = "NullableRef",
+  [ID_TBI_NMREF] = "NullableMutableRef",
+  [ID_TBI_NMMREF] = "NullableMercurialRef",
   [ID_TBI_NUMERIC] = "Numeric",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
   [ID_TBI_GENERALIZED_BOOLEAN] = "GeneralizedBoolean",
@@ -1001,10 +1001,10 @@ static struct typ *typ_new_builtin(struct node *definition,
                                    enum typ_which which, size_t gen_arity,
                                    size_t fun_arity);
 
-struct typ *typ_genarg_mark_as_uninstantiated(const struct typ *t) {
+struct typ *typ_genarg_mark_as_abstract(const struct typ *t) {
   struct typ *r = calloc(1, sizeof(struct typ));
   memcpy(r, t, sizeof(*r));
-  r->is_uninstantiated_genarg = TRUE;
+  r->is_abstract_genarg = TRUE;
   return r;
 }
 
@@ -2955,15 +2955,15 @@ bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *
     return TRUE;
   }
 
-  if (a->is_uninstantiated_genarg || b->is_uninstantiated_genarg) {
+  if (a->is_abstract_genarg || b->is_abstract_genarg) {
     if (a->definition == b->definition) { // Necessary condition.
       // Try again, masking out these flags.
       struct typ *ma = calloc(1, sizeof(*a));
       memcpy(ma, a, sizeof(*ma));
-      ma->is_uninstantiated_genarg = FALSE;
+      ma->is_abstract_genarg = FALSE;
       struct typ *mb = calloc(1, sizeof(*b));
       memcpy(mb, b, sizeof(*mb));
-      mb->is_uninstantiated_genarg = FALSE;
+      mb->is_abstract_genarg = FALSE;
 
       const bool r = memcmp(ma, mb, sizeof(*ma)) == 0;
       free(mb);
@@ -2989,7 +2989,13 @@ error typ_check_equal(const struct module *mod, const struct node *for_error,
 
 error typ_compatible(const struct module *mod, const struct node *for_error,
                      const struct typ *a, const struct typ *constraint) {
-  if (a->is_uninstantiated_genarg || constraint->is_uninstantiated_genarg) {
+  if (a->is_abstract_genarg || constraint->is_abstract_genarg) {
+    error e = typ_check_isa(mod, for_error, a, constraint);
+    EXCEPT(e);
+    return 0;
+  }
+
+  if (typ_is_reference_instance(mod, a)) {
     error e = typ_check_isa(mod, for_error, a, constraint);
     EXCEPT(e);
     return 0;
@@ -3189,6 +3195,15 @@ bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *in
 
   if (typ_equal(mod, a, intf)) {
     return TRUE;
+  }
+
+  if (a->gen_arity > 0
+      && intf->gen_arity == 0
+      && intf->definition->subs[IDX_GENARGS]->subs_count > 0) {
+    // intf is a "2nd order" generic, i.e. the generic functor itself.
+    if (typ_isa(mod, a->gen_args[0], intf)) {
+      return TRUE;
+    }
   }
 
   if (a->gen_arity > 0 && a->gen_arity == intf->gen_arity) {

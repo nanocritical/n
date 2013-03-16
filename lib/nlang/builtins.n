@@ -33,12 +33,6 @@ export intf NullableMutableRef t:Any = export (NullableRef t)
 export intf NullableMercurialRef t:Any = export (NullableMutableRef t)
 
 export extern type pseudo_tuple = export Copyable
-export extern type ref t:Any = export (Ref t)
-export extern type mref t:Any = export (MutableRef t)
-export extern type mmref t:Any = export (MercurialRef t)
-export extern type nref t:Any = export (NullableRef t)
-export extern type nmref t:Any = export (NullableMutableRef t)
-export extern type nmmref t:Any = export (NullableMercurialRef t)
 
 export intf Numeric = \
     export Arithmetic \

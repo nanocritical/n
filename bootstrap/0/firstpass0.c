@@ -1135,12 +1135,15 @@ static const uint32_t tbi_for_ref[TOKEN__NUM] = {
   [TREFDOT] = TBI_REF,
   [TREFBANG] = TBI_MREF,
   [TREFSHARP] = TBI_MMREF,
+  [TREFWILDCARD] = TBI_MMREF,
   [TDEREFDOT] = TBI_REF,
   [TDEREFBANG] = TBI_MREF,
   [TDEREFSHARP] = TBI_MMREF,
+  [TDEREFWILDCARD] = TBI_MMREF,
   [TNULREFDOT] = TBI_NREF,
   [TNULREFBANG] = TBI_NMREF,
   [TNULREFSHARP] = TBI_NMMREF,
+  [TNULREFWILDCARD] = TBI_NMMREF,
 };
 
 static const struct typ *typ_ref(struct module *mod, enum token_type op, const struct typ *typ) {
@@ -1548,7 +1551,11 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
   for (size_t n = 1; n < toplevel->instances_count; ++n) {
     struct node *i = toplevel->instances[n];
     if (is_instance_for(mod, i, node)) {
-      node->typ = i->typ;
+      if (fun->typ->is_abstract_genarg) {
+        node->typ = typ_genarg_mark_as_abstract(i->typ);
+      } else {
+        node->typ = i->typ;
+      }
       return 0;
     }
   }
@@ -1572,7 +1579,11 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
     }
   }
 
-  node->typ = instance->typ;
+  if (fun->typ->is_abstract_genarg) {
+    node->typ = typ_genarg_mark_as_abstract(instance->typ);
+  } else {
+    node->typ = instance->typ;
+  }
 
   return 0;
 }
@@ -2012,7 +2023,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     EXCEPT(e);
     goto ok;
   case DEFGENARG:
-    node->typ = typ_genarg_mark_as_uninstantiated(node->subs[1]->typ);
+    node->typ = typ_genarg_mark_as_abstract(node->subs[1]->typ);
     e = type_destruct(mod, node->subs[0], node->typ);
     EXCEPT(e);
     node->flags |= NODE_IS_TYPE;

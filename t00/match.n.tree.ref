@@ -39,7 +39,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(DefaultCtor) :__internal_not_typeable__
      IDENT(new) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
-    UN(@#) :(nlang.builtins.mmref t00.match.enu)
+    UN(@#) :(nlang.builtins.MercurialRef t00.match.enu)
      IDENT(this) :t00.match.enu
   DEFCHOICE :t00.match.enu
    IDENT(B) :__internal_not_typeable__
@@ -70,7 +70,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(DefaultCtor) :__internal_not_typeable__
      IDENT(new) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
-    UN(@#) :(nlang.builtins.mmref t00.match.enu)
+    UN(@#) :(nlang.builtins.MercurialRef t00.match.enu)
      IDENT(this) :t00.match.enu
  DEFFUN :t00.match.main
   IDENT(main) :__internal_not_typeable__

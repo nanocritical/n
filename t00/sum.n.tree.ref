@@ -39,9 +39,9 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(CtorWith) :__internal_not_typeable__
      IDENT(ctor) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
-    DEFARG :(nlang.builtins.mmref t00.sum.sum)
-     IDENT(self) :(nlang.builtins.mmref t00.sum.sum)
-     UN(@#) :(nlang.builtins.mmref t00.sum.sum)
+    DEFARG :(nlang.builtins.MercurialRef t00.sum.sum)
+     IDENT(self) :(nlang.builtins.MercurialRef t00.sum.sum)
+     UN(@#) :(nlang.builtins.MercurialRef t00.sum.sum)
       IDENT(this) :t00.sum.sum
     DEFARG :nlang.builtins.u32
      IDENT(c) :nlang.builtins.u32
@@ -76,7 +76,7 @@ MODULE_BODY :__internal_not_typeable__
     DEFARG :nlang.builtins.u32
      IDENT(c) :nlang.builtins.u32
      DIRECTDEF :nlang.builtins.u32
-    UN(@#) :(nlang.builtins.mmref t00.sum.sum)
+    UN(@#) :(nlang.builtins.MercurialRef t00.sum.sum)
      IDENT(this) :t00.sum.sum
   DEFCHOICE :t00.sum.sum
    IDENT(B) :__internal_not_typeable__
@@ -95,9 +95,9 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(CtorWith) :__internal_not_typeable__
      IDENT(ctor) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
-    DEFARG :(nlang.builtins.mmref t00.sum.sum)
-     IDENT(self) :(nlang.builtins.mmref t00.sum.sum)
-     UN(@#) :(nlang.builtins.mmref t00.sum.sum)
+    DEFARG :(nlang.builtins.MercurialRef t00.sum.sum)
+     IDENT(self) :(nlang.builtins.MercurialRef t00.sum.sum)
+     UN(@#) :(nlang.builtins.MercurialRef t00.sum.sum)
       IDENT(this) :t00.sum.sum
     DEFARG :nlang.builtins.i32
      IDENT(c) :nlang.builtins.i32
@@ -132,7 +132,7 @@ MODULE_BODY :__internal_not_typeable__
     DEFARG :nlang.builtins.i32
      IDENT(c) :nlang.builtins.i32
      DIRECTDEF :nlang.builtins.i32
-    UN(@#) :(nlang.builtins.mmref t00.sum.sum)
+    UN(@#) :(nlang.builtins.MercurialRef t00.sum.sum)
      IDENT(this) :t00.sum.sum
  DEFMETHOD :t00.sum.sum.operator_ne
   BIN(.) :__internal_not_typeable__
@@ -145,13 +145,13 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(HasEquality) :__internal_not_typeable__
    IDENT(operator_ne) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-  DEFARG :(nlang.builtins.ref t00.sum.sum)
-   IDENT(self) :(nlang.builtins.ref t00.sum.sum)
-   UN(@) :(nlang.builtins.ref t00.sum.sum)
+  DEFARG :(nlang.builtins.Ref t00.sum.sum)
+   IDENT(self) :(nlang.builtins.Ref t00.sum.sum)
+   UN(@) :(nlang.builtins.Ref t00.sum.sum)
     IDENT(this) :t00.sum.sum
-  DEFARG :(nlang.builtins.ref t00.sum.sum)
-   IDENT(other) :(nlang.builtins.ref t00.sum.sum)
-   UN(@) :(nlang.builtins.ref t00.sum.sum)
+  DEFARG :(nlang.builtins.Ref t00.sum.sum)
+   IDENT(other) :(nlang.builtins.Ref t00.sum.sum)
+   UN(@) :(nlang.builtins.Ref t00.sum.sum)
     IDENT(this) :t00.sum.sum
   IDENT(bool) :nlang.builtins.bool
  DEFMETHOD :t00.sum.sum.operator_eq
@@ -165,13 +165,13 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(HasEquality) :__internal_not_typeable__
    IDENT(operator_eq) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-  DEFARG :(nlang.builtins.ref t00.sum.sum)
-   IDENT(self) :(nlang.builtins.ref t00.sum.sum)
-   UN(@) :(nlang.builtins.ref t00.sum.sum)
+  DEFARG :(nlang.builtins.Ref t00.sum.sum)
+   IDENT(self) :(nlang.builtins.Ref t00.sum.sum)
+   UN(@) :(nlang.builtins.Ref t00.sum.sum)
     IDENT(this) :t00.sum.sum
-  DEFARG :(nlang.builtins.ref t00.sum.sum)
-   IDENT(other) :(nlang.builtins.ref t00.sum.sum)
-   UN(@) :(nlang.builtins.ref t00.sum.sum)
+  DEFARG :(nlang.builtins.Ref t00.sum.sum)
+   IDENT(other) :(nlang.builtins.Ref t00.sum.sum)
+   UN(@) :(nlang.builtins.Ref t00.sum.sum)
     IDENT(this) :t00.sum.sum
   IDENT(bool) :nlang.builtins.bool
  DEFMETHOD :t00.sum.sum.operator_copy
@@ -185,13 +185,13 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(Copyable) :__internal_not_typeable__
    IDENT(operator_copy) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-  DEFARG :(nlang.builtins.mmref t00.sum.sum)
-   IDENT(self) :(nlang.builtins.mmref t00.sum.sum)
-   UN(@#) :(nlang.builtins.mmref t00.sum.sum)
+  DEFARG :(nlang.builtins.MercurialRef t00.sum.sum)
+   IDENT(self) :(nlang.builtins.MercurialRef t00.sum.sum)
+   UN(@#) :(nlang.builtins.MercurialRef t00.sum.sum)
     IDENT(this) :t00.sum.sum
-  DEFARG :(nlang.builtins.ref t00.sum.sum)
-   IDENT(other) :(nlang.builtins.ref t00.sum.sum)
-   UN(@) :(nlang.builtins.ref t00.sum.sum)
+  DEFARG :(nlang.builtins.Ref t00.sum.sum)
+   IDENT(other) :(nlang.builtins.Ref t00.sum.sum)
+   UN(@) :(nlang.builtins.Ref t00.sum.sum)
     IDENT(this) :t00.sum.sum
   IDENT(void) :nlang.builtins.void
  DEFTYPE :t00.sum.ta
@@ -221,13 +221,13 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(Copyable) :__internal_not_typeable__
    IDENT(operator_copy) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-  DEFARG :(nlang.builtins.mmref t00.sum.ta)
-   IDENT(self) :(nlang.builtins.mmref t00.sum.ta)
-   UN(@#) :(nlang.builtins.mmref t00.sum.ta)
+  DEFARG :(nlang.builtins.MercurialRef t00.sum.ta)
+   IDENT(self) :(nlang.builtins.MercurialRef t00.sum.ta)
+   UN(@#) :(nlang.builtins.MercurialRef t00.sum.ta)
     IDENT(this) :t00.sum.ta
-  DEFARG :(nlang.builtins.ref t00.sum.ta)
-   IDENT(other) :(nlang.builtins.ref t00.sum.ta)
-   UN(@) :(nlang.builtins.ref t00.sum.ta)
+  DEFARG :(nlang.builtins.Ref t00.sum.ta)
+   IDENT(other) :(nlang.builtins.Ref t00.sum.ta)
+   UN(@) :(nlang.builtins.Ref t00.sum.ta)
     IDENT(this) :t00.sum.ta
   IDENT(void) :nlang.builtins.void
  DEFTYPE :t00.sum.tb
@@ -257,13 +257,13 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(Copyable) :__internal_not_typeable__
    IDENT(operator_copy) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-  DEFARG :(nlang.builtins.mmref t00.sum.tb)
-   IDENT(self) :(nlang.builtins.mmref t00.sum.tb)
-   UN(@#) :(nlang.builtins.mmref t00.sum.tb)
+  DEFARG :(nlang.builtins.MercurialRef t00.sum.tb)
+   IDENT(self) :(nlang.builtins.MercurialRef t00.sum.tb)
+   UN(@#) :(nlang.builtins.MercurialRef t00.sum.tb)
     IDENT(this) :t00.sum.tb
-  DEFARG :(nlang.builtins.ref t00.sum.tb)
-   IDENT(other) :(nlang.builtins.ref t00.sum.tb)
-   UN(@) :(nlang.builtins.ref t00.sum.tb)
+  DEFARG :(nlang.builtins.Ref t00.sum.tb)
+   IDENT(other) :(nlang.builtins.Ref t00.sum.tb)
+   UN(@) :(nlang.builtins.Ref t00.sum.tb)
     IDENT(this) :t00.sum.tb
   IDENT(void) :nlang.builtins.void
  DEFTYPE :t00.sum.sum_nocopy
@@ -300,9 +300,9 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(CtorWith) :__internal_not_typeable__
      IDENT(ctor) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
-    DEFARG :(nlang.builtins.mmref t00.sum.sum_nocopy)
-     IDENT(self) :(nlang.builtins.mmref t00.sum.sum_nocopy)
-     UN(@#) :(nlang.builtins.mmref t00.sum.sum_nocopy)
+    DEFARG :(nlang.builtins.MercurialRef t00.sum.sum_nocopy)
+     IDENT(self) :(nlang.builtins.MercurialRef t00.sum.sum_nocopy)
+     UN(@#) :(nlang.builtins.MercurialRef t00.sum.sum_nocopy)
       IDENT(this) :t00.sum.sum_nocopy
     DEFARG :t00.sum.ta
      IDENT(c) :t00.sum.ta
@@ -337,7 +337,7 @@ MODULE_BODY :__internal_not_typeable__
     DEFARG :t00.sum.ta
      IDENT(c) :t00.sum.ta
      DIRECTDEF :t00.sum.ta
-    UN(@#) :(nlang.builtins.mmref t00.sum.sum_nocopy)
+    UN(@#) :(nlang.builtins.MercurialRef t00.sum.sum_nocopy)
      IDENT(this) :t00.sum.sum_nocopy
   DEFCHOICE :t00.sum.sum_nocopy
    IDENT(B) :__internal_not_typeable__
@@ -356,9 +356,9 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(CtorWith) :__internal_not_typeable__
      IDENT(ctor) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
-    DEFARG :(nlang.builtins.mmref t00.sum.sum_nocopy)
-     IDENT(self) :(nlang.builtins.mmref t00.sum.sum_nocopy)
-     UN(@#) :(nlang.builtins.mmref t00.sum.sum_nocopy)
+    DEFARG :(nlang.builtins.MercurialRef t00.sum.sum_nocopy)
+     IDENT(self) :(nlang.builtins.MercurialRef t00.sum.sum_nocopy)
+     UN(@#) :(nlang.builtins.MercurialRef t00.sum.sum_nocopy)
       IDENT(this) :t00.sum.sum_nocopy
     DEFARG :t00.sum.tb
      IDENT(c) :t00.sum.tb
@@ -393,7 +393,7 @@ MODULE_BODY :__internal_not_typeable__
     DEFARG :t00.sum.tb
      IDENT(c) :t00.sum.tb
      DIRECTDEF :t00.sum.tb
-    UN(@#) :(nlang.builtins.mmref t00.sum.sum_nocopy)
+    UN(@#) :(nlang.builtins.MercurialRef t00.sum.sum_nocopy)
      IDENT(this) :t00.sum.sum_nocopy
  DEFFUN :t00.sum.main
   IDENT(main) :__internal_not_typeable__
@@ -427,9 +427,9 @@ MODULE_BODY :__internal_not_typeable__
      BIN(.) :t00.sum.sum.operator_eq
       DIRECTDEF :t00.sum.sum
       IDENT(operator_eq) :__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref t00.sum.sum)
+     UN(@) :(nlang.builtins.Ref t00.sum.sum)
       IDENT(n) :t00.sum.sum
-     UN(@) :(nlang.builtins.ref t00.sum.sum)
+     UN(@) :(nlang.builtins.Ref t00.sum.sum)
       IDENT(__gensym0) :t00.sum.sum
     BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.i32

@@ -507,7 +507,7 @@ struct typ {
   const struct typ **isalist;
   bool *isalist_exported;
 
-  bool is_uninstantiated_genarg;
+  bool is_abstract_genarg;
 };
 
 struct try_excepts {
@@ -609,7 +609,7 @@ void node_deepcopy(struct module *mod, struct node *dst,
 
 struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
-struct typ *typ_genarg_mark_as_uninstantiated(const struct typ *t);
+struct typ *typ_genarg_mark_as_abstract(const struct typ *t);
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id);
 bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b);
 error typ_check_equal(const struct module *mod, const struct node *for_error,
