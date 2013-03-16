@@ -118,6 +118,8 @@ enum token_type {
   TOKEN__NUM,
 };
 
+const char *token_strings[TOKEN__NUM];
+
 enum operator_associativity {
   ASSOC_NON = 0x10000,
   ASSOC_LEFT = 0x20000,

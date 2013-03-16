@@ -133,6 +133,8 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_TBI__CALL_FUNCTION_SLOT] = "__call_function_slot__",
+  [ID_TBI__MUTABLE] = "__mutable__",
+  [ID_TBI__MERCURIAL] = "__mercurial__",
   [ID_MK] = "mk",
   [ID_NEW] = "new",
   [ID_CTOR] = "ctor",
@@ -3104,8 +3106,8 @@ error typ_compatible_reference(const struct module *mod, const struct node *for_
   // FIXME: leaking typ_names.
 }
 
-error typ_can_deref(const struct module *mod, const struct node *for_error,
-                    const struct typ *a, enum token_type operator) {
+error typ_check_can_deref(const struct module *mod, const struct node *for_error,
+                          const struct typ *a, enum token_type operator) {
   if (!typ_is_reference_instance(mod, a)) {
     EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                 "'%s' type is not a reference", typ_pretty_name(mod, a));
@@ -3134,6 +3136,32 @@ error typ_can_deref(const struct module *mod, const struct node *for_error,
   EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
               "'%s' type cannot be dereferenced with '%s'",
               typ_pretty_name(mod, a), string_for_ref[operator]);
+  // FIXME: leaking typ_names.
+  return 0;
+}
+
+error typ_check_deref_against_mark(const struct module *mod, const struct node *for_error,
+                                   const struct node *node, enum token_type operator) {
+  const char *kind = NULL;
+  if (node->typ == NULL) {
+    return 0;
+  } else if (node->typ == typ_lookup_builtin(mod, TBI__MUTABLE)) {
+    if (operator != TDOT && operator != TDEREFDOT) {
+      return 0;
+    }
+    kind = "mutable";
+  } else if (node->typ == typ_lookup_builtin(mod, TBI__MERCURIAL)) {
+    if (operator != TSHARP && operator != TDEREFSHARP) {
+      return 0;
+    }
+    kind = "mercurial";
+  } else {
+    return 0;
+  }
+
+  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+              "'%s' type cannot be dereferenced with '%s' in a %s context",
+              typ_pretty_name(mod, node->typ), token_strings[operator], kind);
   // FIXME: leaking typ_names.
   return 0;
 }

@@ -5,7 +5,7 @@
 
 #include "printer.h"
 
-const char *c_token_strings[TOKEN__NUM] = {
+static const char *c_token_strings[TOKEN__NUM] = {
   [TASSIGN] = " = ",
   [TEQ] = " == ",
   [TNE] = " != ",
@@ -1217,6 +1217,8 @@ static bool is_pseudo_tbi(const struct module *mod, const struct typ *t) {
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__NOT_TYPEABLE))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MUTABLE))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MERCURIAL))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE))) {
     return TRUE;
   }

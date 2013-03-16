@@ -393,7 +393,9 @@ enum predefined_idents {
   ID_TBI__FIRST_MARKER = ID_TBI__PENDING_DESTRUCT,
   ID_TBI__NOT_TYPEABLE,
   ID_TBI__CALL_FUNCTION_SLOT,
-  ID_TBI__LAST = ID_TBI__CALL_FUNCTION_SLOT,
+  ID_TBI__MUTABLE,
+  ID_TBI__MERCURIAL,
+  ID_TBI__LAST = ID_TBI__MERCURIAL,
 
   ID_MK,
   ID_NEW,
@@ -484,6 +486,8 @@ enum typ_builtin {
   TBI__PENDING_DESTRUCT,
   TBI__NOT_TYPEABLE,
   TBI__CALL_FUNCTION_SLOT,
+  TBI__MUTABLE,
+  TBI__MERCURIAL,
   TBI__NUM,
 };
 
@@ -619,8 +623,10 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error, const struct typ *a);
 error typ_compatible_reference(const struct module *mod, const struct node *for_error,
                                enum token_type operator, const struct typ *a);
-error typ_can_deref(const struct module *mod, const struct node *for_error,
-                    const struct typ *a, enum token_type operator);
+error typ_check_can_deref(const struct module *mod, const struct node *for_error,
+                          const struct typ *a, enum token_type operator);
+error typ_check_deref_against_mark(const struct module *mod, const struct node *for_error,
+                                   const struct node *node, enum token_type operator);
 bool typ_is_reference_instance(const struct module *mod, const struct typ *a);
 bool typ_is_concrete(const struct module *mod, const struct typ *a);
 error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,

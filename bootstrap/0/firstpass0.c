@@ -881,6 +881,59 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   return 0;
 }
 
+static error step_type_mutability_mark(struct module *mod, struct node *node, void *user, bool *stop) {
+  const struct typ *mutable = typ_lookup_builtin(mod, TBI__MUTABLE);
+  const struct typ *mercurial = typ_lookup_builtin(mod, TBI__MERCURIAL);
+
+  switch (node->which) {
+  case BIN:
+    switch (node->as.BIN.operator) {
+    case TASSIGN:
+    case TPLUS_ASSIGN:
+    case TMINUS_ASSIGN:
+    case TTIMES_ASSIGN:
+    case TDIVIDE_ASSIGN:
+    case TMODULO_ASSIGN:
+    case TBWAND_ASSIGN:
+    case TBWOR_ASSIGN:
+    case TBWXOR_ASSIGN:
+    case TRSHIFT_ASSIGN:
+    case TLSHIFT_ASSIGN:
+      mark_subs(mod, node, mutable, 0, 1, 1);
+      break;
+    default:
+      break;
+    }
+    break;
+  case UN:
+    if (OP_KIND(node->as.UN.operator) != OP_UN_REFOF) {
+      return 0;
+    }
+    if (node->subs[0]->typ != NULL) {
+      return 0;
+    }
+    switch (node->as.UN.operator) {
+    case TREFDOT:
+    case TREFWILDCARD:
+      // no-op
+      break;
+    case TREFBANG:
+      mark_subs(mod, node, mutable, 0, 1, 1);
+      break;
+    case TREFSHARP:
+      mark_subs(mod, node, mercurial, 0, 1, 1);
+      break;
+    default:
+      break;
+    }
+    break;
+  default:
+    return 0;
+  }
+
+  return 0;
+}
+
 static error step_stop_already_earlytypepass(struct module *mod, struct node *node, void *user, bool *stop) {
   switch (node->which) {
   case ISA:
@@ -1187,7 +1240,9 @@ static error type_inference_un(struct module *mod, struct node *node) {
     node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
     break;
   case OP_UN_DEREF:
-    e = typ_can_deref(mod, node->subs[0], node->subs[0]->typ, node->as.UN.operator);
+    e = typ_check_can_deref(mod, node->subs[0], node->subs[0]->typ, node->as.UN.operator);
+    EXCEPT(e);
+    e = typ_check_deref_against_mark(mod, node, node, node->as.UN.operator);
     EXCEPT(e);
     node->typ = node->subs[0]->typ->gen_args[1];
     node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
@@ -1317,6 +1372,10 @@ static error rewrite_unary_call(struct module *mod, struct node *node, const str
 
 static error type_inference_bin_accessor(struct module *mod, struct node *node) {
   error e;
+
+  e = typ_check_deref_against_mark(mod, node, node, node->as.BIN.operator);
+  EXCEPT(e);
+
   struct node *parent = node->subs[0];
   struct scope *parent_scope = parent->typ->definition->scope;
   e = bin_accessor_maybe_ref(&parent_scope, mod, parent);
@@ -1694,8 +1753,9 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
 
   if (node->typ != NULL
       && node->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
+      && node->typ != typ_lookup_builtin(mod, TBI__MUTABLE)
+      && node->typ != typ_lookup_builtin(mod, TBI__MERCURIAL)
       && typ_is_concrete(mod, node->typ)) {
-
     e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
     return 0;
@@ -2839,6 +2899,7 @@ static const step firstpass_down[] = {
   step_stop_marker_tbi,
   step_stop_already_earlytypepass,
   step_type_destruct_mark,
+  step_type_mutability_mark,
   step_type_gather_returns,
   step_type_gather_excepts,
   NULL,

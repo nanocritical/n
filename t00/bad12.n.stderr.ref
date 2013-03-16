@@ -1,0 +1,1 @@
+t00/bad12.n:8:6: type: 'nlang.literals.__mutable__' type cannot be dereferenced with '.' in a mutable context
