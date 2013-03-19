@@ -85,6 +85,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_GET] = "get",
   [ID_IS_VALID] = "is_valid",
   [ID_CAST] = "cast",
+  [ID_WILDCARD_REF_ARG] = "__wildcard_ref_arg__",
   [ID_TBI_VOID] = "void",
   [ID_TBI_LITERALS_NULL] = "__null__",
   [ID_TBI_LITERALS_INTEGER] = "integer",
@@ -2053,6 +2054,32 @@ static error p_defret(struct node *node, struct module *mod) {
   return 0;
 }
 
+static void add_self_arg(struct module *mod, struct node *node) {
+  struct node *arg = mk_node(mod, node, DEFARG);
+  struct node *name = mk_node(mod, arg, IDENT);
+  name->as.IDENT.name = ID_SELF;
+
+  if (node->as.DEFMETHOD.access == TREFWILDCARD) {
+    struct node *genargs = node->subs[IDX_GENARGS];
+    struct node *ga = mk_node(mod, genargs, DEFGENARG);
+    struct node *gan = mk_node(mod, ga, IDENT);
+    gan->as.IDENT.name = ID_WILDCARD_REF_ARG;
+    struct node *gat = mk_node(mod, ga, IDENT);
+    gat->as.IDENT.name = ID_TBI_REF;
+
+    struct node *argt = mk_node(mod, arg, CALL);
+    struct node *ref = mk_node(mod, argt, IDENT);
+    ref->as.IDENT.name = ID_WILDCARD_REF_ARG;
+    struct node *reft = mk_node(mod, argt, IDENT);
+    reft->as.IDENT.name = ID_THIS;
+  } else {
+    struct node *ref = mk_node(mod, arg, UN);
+    ref->as.UN.operator = node->as.DEFMETHOD.access;
+    struct node *typename = mk_node(mod, ref, IDENT);
+    typename->as.IDENT.name = ID_THIS;
+  }
+}
+
 static error p_deffun(struct node *node, struct module *mod, const struct toplevel *toplevel,
                       enum node_which fun_or_method) {
   error e;
@@ -2076,6 +2103,9 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     case TDEREFSHARP:
       node->as.DEFMETHOD.access = TREFSHARP;
       break;
+    case TDEREFWILDCARD:
+      node->as.DEFMETHOD.access = TREFWILDCARD;
+      break;
     default:
       back(mod, &tok);
       break;
@@ -2094,14 +2124,7 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
       EXCEPT_SYNTAX(mod, &tok, "malformed method name");
     }
 
-    struct node *arg = mk_node(mod, node, DEFARG);
-    struct node *name = mk_node(mod, arg, IDENT);
-    name->as.IDENT.name = ID_SELF;
-
-    struct node *ref = mk_node(mod, arg, UN);
-    ref->as.UN.operator = node->as.DEFMETHOD.access;
-    struct node *typename = mk_node(mod, ref, IDENT);
-    typename->as.IDENT.name = ID_THIS;
+    add_self_arg(mod, node);
   } else {
     if (name->which != IDENT) {
       EXCEPT_SYNTAX(mod, &tok, "malformed fun name");

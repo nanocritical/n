@@ -70,11 +70,65 @@ error one_level_pass(struct module *mod, struct node *root, const step *down_ste
 }
 
 static error zero_to_early_for_generated(struct module *mod, struct node *node,
-                                           struct scope *parent_scope);
+                                         struct scope *parent_scope);
 static error zero_to_first_for_generated(struct module *mod, struct node *node,
                                          struct node **except, struct scope *parent_scope);
 static error zero_to_second_for_generated(struct module *mod, struct node *node,
                                           struct node **except, struct scope *parent_scope);
+
+static error step_rewrite_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case UN:
+    if (node->as.UN.operator == TREFWILDCARD
+        || node->as.UN.operator == TNULREFWILDCARD) {
+      // FIXME The proper solution is to use
+      //   (intf t:Any) Nullable r:(Ref t) = (AnyRef t)
+      // instead of NullableRef, NullableMutableRef, and NullableMercurialRef.
+      // and use (Nullable __wildcard_ref_arg__) here.
+      assert(node->as.UN.operator != TNULREFWILDCARD && "Unsupported yet");
+
+      node->which = CALL;
+      struct node *d = mk_node(mod, node, IDENT);
+      d->as.IDENT.name = ID_WILDCARD_REF_ARG;
+      rew_insert_last_at(node, 0);
+    }
+    break;
+  default:
+    break;
+  }
+  return 0;
+}
+
+static error step_rewrite_prototype_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
+  error e;
+
+  static const step down[] = {
+    NULL,
+  };
+
+  static const step up[] = {
+    step_rewrite_wildcards,
+    NULL,
+  };
+
+  switch (node->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+    for (size_t n = IDX_FUN_FIRSTARG; n < node->subs_count; ++n) {
+      struct node *arg = node->subs[n];
+      if (arg->which == BLOCK) {
+        break;
+      }
+      e = pass(mod, arg, down, up, NULL, NULL);
+      EXCEPT(e);
+    }
+    break;
+  default:
+    break;
+  }
+
+  return 0;
+}
 
 static struct node *add_instance_deepcopy_from_pristine(struct module *mod,
                                                         struct node *node,
@@ -1354,8 +1408,6 @@ static error bin_accessor_maybe_defchoice(struct scope **parent_scope,
 static error rewrite_unary_call(struct module *mod, struct node *node, const struct typ *tfun) {
   struct scope *parent_scope = node->scope->parent;
 
-  // It would generally be a bad idea to create a detached node, but there
-  // is no natural place to attach it.
   struct node *fun = calloc(1, sizeof(struct node));
   memcpy(fun, node, sizeof(*fun));
   fun->typ = tfun;
@@ -2977,6 +3029,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
 }
 
 static const step zeropass_down[] = {
+  step_rewrite_prototype_wildcards,
   step_generics_pristine_copy,
   step_detect_prototypes,
   step_detect_generic_interfaces_down,
@@ -3108,7 +3161,7 @@ error secondpass(struct module *mod, struct node *node, struct node **except) {
 }
 
 static error zero_to_early_for_generated(struct module *mod, struct node *node,
-                                           struct scope *parent_scope) {
+                                         struct scope *parent_scope) {
   error e = zeropass(mod, node, NULL);
   EXCEPT(e);
   node->scope->parent = parent_scope;
