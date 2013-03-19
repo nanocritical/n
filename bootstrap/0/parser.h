@@ -342,6 +342,7 @@ enum predefined_idents {
   ID_GET,
   ID_IS_VALID,
   ID_CAST,
+  ID_WILDCARD_REF_ARG,
 
   ID_TBI_VOID,
   ID_TBI__FIRST = ID_TBI_VOID,
@@ -634,6 +635,9 @@ error typ_unify(const struct typ **u, const struct module *mod, const struct nod
 bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf);
 error typ_check_isa(const struct module *mod, const struct node *for_error,
                     const struct typ *a, const struct typ *intf);
+error typ_find_matching_concrete_isa(const struct typ **concrete,
+                                     const struct module *mod, const struct node *for_error,
+                                     const struct typ *a, const struct typ *intf);
 error mk_except(const struct module *mod, const struct node *node, const char *fmt);
 error mk_except_type(const struct module *mod, const struct node *node, const char *fmt);
 error mk_except_call_args_count(const struct module *mod, const struct node *node,

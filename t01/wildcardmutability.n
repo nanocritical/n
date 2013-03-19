@@ -1,0 +1,11 @@
+from nlang import *
+
+type c =
+  x:i32
+
+export c method$ get = @$i32
+  return @$ self$x
+
+fun main = i32
+  let x = c{{ x=0 }}
+  return (x.get).

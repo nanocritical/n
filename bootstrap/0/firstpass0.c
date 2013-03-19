@@ -70,11 +70,65 @@ error one_level_pass(struct module *mod, struct node *root, const step *down_ste
 }
 
 static error zero_to_early_for_generated(struct module *mod, struct node *node,
-                                           struct scope *parent_scope);
+                                         struct scope *parent_scope);
 static error zero_to_first_for_generated(struct module *mod, struct node *node,
                                          struct node **except, struct scope *parent_scope);
 static error zero_to_second_for_generated(struct module *mod, struct node *node,
                                           struct node **except, struct scope *parent_scope);
+
+static error step_rewrite_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case UN:
+    if (node->as.UN.operator == TREFWILDCARD
+        || node->as.UN.operator == TNULREFWILDCARD) {
+      // FIXME The proper solution is to use
+      //   (intf t:Any) Nullable r:(Ref t) = (AnyRef t)
+      // instead of NullableRef, NullableMutableRef, and NullableMercurialRef.
+      // and use (Nullable __wildcard_ref_arg__) here.
+      assert(node->as.UN.operator != TNULREFWILDCARD && "Unsupported yet");
+
+      node->which = CALL;
+      struct node *d = mk_node(mod, node, IDENT);
+      d->as.IDENT.name = ID_WILDCARD_REF_ARG;
+      rew_insert_last_at(node, 0);
+    }
+    break;
+  default:
+    break;
+  }
+  return 0;
+}
+
+static error step_rewrite_prototype_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
+  error e;
+
+  static const step down[] = {
+    NULL,
+  };
+
+  static const step up[] = {
+    step_rewrite_wildcards,
+    NULL,
+  };
+
+  switch (node->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+    for (size_t n = IDX_FUN_FIRSTARG; n < node->subs_count; ++n) {
+      struct node *arg = node->subs[n];
+      if (arg->which == BLOCK) {
+        break;
+      }
+      e = pass(mod, arg, down, up, NULL, NULL);
+      EXCEPT(e);
+    }
+    break;
+  default:
+    break;
+  }
+
+  return 0;
+}
 
 static struct node *add_instance_deepcopy_from_pristine(struct module *mod,
                                                         struct node *node,
@@ -1354,8 +1408,6 @@ static error bin_accessor_maybe_defchoice(struct scope **parent_scope,
 static error rewrite_unary_call(struct module *mod, struct node *node, const struct typ *tfun) {
   struct scope *parent_scope = node->scope->parent;
 
-  // It would generally be a bad idea to create a detached node, but there
-  // is no natural place to attach it.
   struct node *fun = calloc(1, sizeof(struct node));
   memcpy(fun, node, sizeof(*fun));
   fun->typ = tfun;
@@ -1398,9 +1450,9 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
     EXCEPT(e);
   } else {
     node->typ = field->typ;
+    assert(field->which != BIN || field->flags != 0);
+    node->flags = field->flags;
   }
-  assert(field->which != BIN || field->flags != 0);
-  node->flags = field->flags;
 
   return 0;
 }
@@ -1501,8 +1553,20 @@ static struct node *self_ref_if_value(struct module *mod,
   }
 }
 
+static enum token_type ref_op_for_acc_op[] = {
+  [TDOT] = TREFDOT,
+  [TBANG] = TREFBANG,
+  [TSHARP] = TREFSHARP,
+  [TWILDCARD] = TREFWILDCARD,
+};
+
 static error prepare_call_arguments(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
+
+  if (node->subs_count > 1 && (node->subs[1]->flags & NODE_IS_TYPE)) {
+    // Explicit generic function instantiation.
+    return 0;
+  }
 
   switch (fun->typ->definition->which) {
   case DEFFUN:
@@ -1532,8 +1596,9 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
       m->as.DIRECTDEF.definition = fun->typ->definition;
       rew_move_last_over(node, 0, TRUE);
 
+      assert(fun->which == BIN);
       struct node *self = self_ref_if_value(
-        mod, fun->typ->definition->as.DEFMETHOD.access, fun->subs[0]);
+        mod, ref_op_for_acc_op[fun->as.BIN.operator], fun->subs[0]);
       rew_append(node, self);
       rew_insert_last_at(node, 1);
 
@@ -1565,12 +1630,93 @@ static bool is_instance_for(struct module *mod, struct node *i, struct node *nod
   return TRUE;
 }
 
-static error rewrite_instance_genargs(struct module *mod,
-                                      struct node *instance, struct node *expr) {
+static error genarg_destruct(struct module *mod, const struct node *gendef,
+                             struct node *genargs, struct node *node, bool destructing_genarg,
+                             const struct typ *constraint) {
+  error e;
+  struct node *def = NULL;
+
+  switch (node->which) {
+  case DEFARG:
+    e = genarg_destruct(mod, gendef, genargs, node->subs[1], FALSE, constraint);
+    EXCEPT(e);
+    break;
+  case DEFGENARG:
+    node->typ = constraint;
+    node->subs[0]->typ = constraint;
+    node->flags = NODE_IS_TYPE;
+    e = genarg_destruct(mod, gendef, genargs, node->subs[1], TRUE, constraint);
+    EXCEPT(e);
+    break;
+  case CALL:
+    if (destructing_genarg) {
+      const struct typ *concrete = NULL;
+      e = typ_find_matching_concrete_isa(&concrete, mod, node, node->typ, constraint);
+      EXCEPT(e);
+      assert(concrete->gen_arity == node->subs_count - 1);
+      for (size_t n = 1; n < node->subs_count; ++n) {
+        e = genarg_destruct(mod, gendef, genargs, node->subs[n], TRUE,
+                            concrete->gen_args[n]);
+        EXCEPT(e);
+      }
+    } else {
+      e = typ_check_isa(mod, node, constraint, node->typ);
+      EXCEPT(e);
+      node->typ = constraint;
+      node->flags = NODE_IS_TYPE;
+      assert(node->typ->gen_arity == node->subs_count - 1);
+      for (size_t n = 0; n < node->subs_count; ++n) {
+        e = genarg_destruct(mod, gendef, genargs, node->subs[n], FALSE,
+                            node->typ->gen_args[n]);
+        EXCEPT(e);
+      }
+    }
+    break;
+  case IDENT:
+    e = scope_lookup(&def, mod, gendef->scope, node);
+    EXCEPT(e);
+    if (def->which == DEFGENARG) {
+      // Look up again to get it from the instantiating genargs this time.
+      e = scope_lookup_ident_immediate(&def, mod, genargs->scope, node_ident(node), FALSE);
+      EXCEPT(e);
+      assert(def->which == DEFGENARG || def->which == SETGENARG);
+      e = genarg_destruct(mod, gendef, genargs, def, TRUE, constraint);
+      EXCEPT(e);
+    } else if (def->which == DEFNAME) {
+      e = typ_check_equal(mod, node, def->typ, constraint);
+      EXCEPT(e);
+    } else {
+      e = typ_check_isa(mod, node, constraint, def->typ);
+      EXCEPT(e);
+    }
+    break;
+  default:
+    break;
+  }
+
+  return 0;
+}
+
+static error rewrite_deftype_instance_genargs(struct module *mod,
+                                              struct node *instance, struct node *expr) {
   struct node *genargs = instance->subs[IDX_GENARGS];
+  size_t offset;
+  switch (expr->which) {
+  case GENARGS:
+    offset = 0;
+    break;
+  case CALL:
+    offset = 1;
+    break;
+  default:
+    assert(0);
+    break;
+  }
+
   for (size_t n = 0; n < genargs->subs_count; ++n) {
-    if (!(expr->subs[1+n]->flags & NODE_IS_TYPE)) {
-      error e = mk_except_type(mod, expr->subs[1+n],
+    struct node *ex = expr->subs[offset + n];
+    if (!(ex->flags & NODE_IS_TYPE)) {
+      error e = mk_except_type(mod, ex,
                                "generic type argument is not a type expression");
       EXCEPT(e);
     }
@@ -1579,11 +1725,11 @@ static error rewrite_instance_genargs(struct module *mod,
     ga->which = SETGENARG;
     // FIXME leaking ga->subs[1]
     ga->subs[1]->which = DIRECTDEF;
-    assert(expr->subs[1+n]->typ->definition != NULL);
-    ga->subs[1]->as.DIRECTDEF.definition = expr->subs[1+n]->typ->definition;
+    assert(ex->typ->definition != NULL);
+    ga->subs[1]->as.DIRECTDEF.definition = ex->typ->definition;
 
     // For the benefit of step_type_definitions
-    ga->typ = expr->subs[1+n]->typ;
+    ga->typ = ex->typ;
     ga->flags = NODE_IS_TYPE;
   }
 
@@ -1593,37 +1739,90 @@ static error rewrite_instance_genargs(struct module *mod,
 static error type_inference_generic_instantiation(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
   struct node *gendef = fun->typ->definition;
-
   struct node *genargs = gendef->subs[IDX_GENARGS];
-  if (genargs->subs_count != node->subs_count - 1) {
-    error e = mk_except_type(mod, node, "wrong number of generic type arguments\n");
-    EXCEPT(e);
-  }
-
-  for (size_t n = 0; n < genargs->subs_count; ++n) {
-    struct node *arg = node->subs[1+n];
-    error e = typ_check_isa(mod, arg, arg->typ, genargs->subs[n]->typ);
-    EXCEPT(e);
-  }
-
   struct toplevel *toplevel = node_toplevel(gendef);
-  for (size_t n = 1; n < toplevel->instances_count; ++n) {
-    struct node *i = toplevel->instances[n];
-    if (is_instance_for(mod, i, node)) {
-      if (fun->typ->is_abstract_genarg) {
-        node->typ = typ_genarg_mark_as_abstract(i->typ);
-      } else {
-        node->typ = i->typ;
-      }
-      return 0;
+
+  struct node *pristine = NULL;
+  struct node *instance = NULL;
+  struct node *expr = NULL;
+  bool is_explicit;
+
+  assert(node->subs_count != 0);
+  if ((node->subs[1]->flags & NODE_IS_TYPE)) {
+    is_explicit = TRUE;
+    if (genargs->subs_count != node->subs_count - 1) {
+      error e = mk_except_type(mod, node, "wrong number of generic type arguments\n");
+      EXCEPT(e);
     }
+
+    for (size_t n = 0; n < genargs->subs_count; ++n) {
+      struct node *arg = node->subs[1+n];
+      error e = typ_check_isa(mod, arg, arg->typ, genargs->subs[n]->typ);
+      EXCEPT(e);
+    }
+
+    for (size_t n = 1; n < toplevel->instances_count; ++n) {
+      struct node *i = toplevel->instances[n];
+      if (is_instance_for(mod, i, node)) {
+        if (fun->typ->is_abstract_genarg) {
+          node->typ = typ_genarg_mark_as_abstract(i->typ);
+        } else {
+          node->typ = i->typ;
+        }
+        node->flags = NODE_IS_TYPE;
+        return 0;
+      }
+    }
+
+    expr = node;
+
+  } else {
+    is_explicit = FALSE;
+    assert(gendef->typ->which == TYPE_FUNCTION);
+
+    struct node *instantiation = calloc(1, sizeof(struct node));
+    instantiation->which = GENARGS;
+    for (size_t n = 0; n < genargs->subs_count; ++n) {
+      struct node *ga = node_new_subnode(mod, instantiation);
+      node_deepcopy(mod, ga, genargs->subs[n]);
+    }
+
+    error e = zeropass(mod, instantiation, NULL);
+    EXCEPT(e);
+    for (size_t n = 0; n < instantiation->subs_count; ++n) {
+      struct node *ga = instantiation->subs[n];
+      e = scope_define_ident(mod, instantiation->scope, node_ident(ga->subs[0]), ga);
+      EXCEPT(e);
+    }
+
+    for (size_t n = 0; n < node->subs_count-1; ++n) {
+      error e = genarg_destruct(mod, gendef, instantiation,
+                                gendef->subs[IDX_FUN_FIRSTARG+n], FALSE,
+                                node->subs[1+n]->typ);
+      EXCEPT(e);
+    }
+
+    for (size_t n = 1; n < toplevel->instances_count; ++n) {
+      struct node *i = toplevel->instances[n];
+      if (is_instance_for(mod, i, instance->subs[IDX_GENARGS])) {
+        if (fun->typ->is_abstract_genarg) {
+          fun->typ = typ_genarg_mark_as_abstract(i->typ);
+        } else {
+          fun->typ = i->typ;
+        }
+        node->typ = instance->typ->fun_args[instance->typ->fun_arity];
+        return 0;
+      }
+    }
+
+    expr = instantiation;
   }
 
-  struct node *pristine = toplevel->instances[0];
-  struct node *instance = add_instance_deepcopy_from_pristine(mod, gendef, pristine);
+  pristine = toplevel->instances[0];
+  instance = add_instance_deepcopy_from_pristine(mod, gendef, pristine);
   node_toplevel(instance)->generic_definition = gendef;
 
-  error e = rewrite_instance_genargs(mod, instance, node);
+  error e = rewrite_deftype_instance_genargs(mod, instance, expr);
   EXCEPT(e);
 
   e = zero_to_second_for_generated(mod, instance, NULL,
@@ -1638,10 +1837,18 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
     }
   }
 
-  if (fun->typ->is_abstract_genarg) {
-    node->typ = typ_genarg_mark_as_abstract(instance->typ);
+  if (is_explicit) {
+    if (fun->typ->is_abstract_genarg) {
+      node->typ = typ_genarg_mark_as_abstract(instance->typ);
+    } else {
+      node->typ = instance->typ;
+    }
+    node->flags = NODE_IS_TYPE;
   } else {
-    node->typ = instance->typ;
+    assert(gendef->typ->which == TYPE_FUNCTION && "only for functions, for now");
+    fun->typ = instance->typ;
+    node->typ = instance->typ->fun_args[instance->typ->fun_arity];
+    free(expr);
   }
 
   return 0;
@@ -1659,13 +1866,6 @@ static error type_inference_call(struct module *mod, struct node *node) {
     error e = type_inference_generic_instantiation(mod, node);
     EXCEPT(e);
     return 0;
-  } else if (fun->typ->which == TYPE_FUNCTION
-             && fun->typ->definition->subs[IDX_GENARGS]->subs_count > 0
-             && node_toplevel_const(fun->typ->definition)->generic_definition == NULL) {
-    // FIXME force explicit instantiation for now.
-    error e = type_inference_generic_instantiation(mod, node);
-    EXCEPT(e);
-    return 0;
   }
 
   if (fun->typ->which != TYPE_FUNCTION) {
@@ -1675,6 +1875,14 @@ static error type_inference_call(struct module *mod, struct node *node) {
 
   error e = prepare_call_arguments(mod, node);
   EXCEPT(e);
+
+  if (fun->typ->which == TYPE_FUNCTION
+      && fun->typ->definition->subs[IDX_GENARGS]->subs_count > 0
+      && node_toplevel_const(fun->typ->definition)->generic_definition == NULL) {
+    error e = type_inference_generic_instantiation(mod, node);
+    EXCEPT(e);
+    return 0;
+  }
 
   if (node_fun_explicit_args_count(fun->typ->definition) == 0) {
     return type_inference_explicit_unary_call(mod, node, fun->typ->definition);
@@ -2821,6 +3029,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
 }
 
 static const step zeropass_down[] = {
+  step_rewrite_prototype_wildcards,
   step_generics_pristine_copy,
   step_detect_prototypes,
   step_detect_generic_interfaces_down,
@@ -2952,7 +3161,7 @@ error secondpass(struct module *mod, struct node *node, struct node **except) {
 }
 
 static error zero_to_early_for_generated(struct module *mod, struct node *node,
-                                           struct scope *parent_scope) {
+                                         struct scope *parent_scope) {
   error e = zeropass(mod, node, NULL);
   EXCEPT(e);
   node->scope->parent = parent_scope;
