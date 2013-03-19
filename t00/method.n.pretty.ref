@@ -11,5 +11,5 @@ t method set self:@!this = void
 
 export fun main = i32
   let tt = t{{ x=0 }}
-  t00.method.t.set @!tt 1
+    t00.method.t.set @!tt 1
   return (t00.method.t.get @tt) - 1
