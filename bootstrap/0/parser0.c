@@ -3282,6 +3282,69 @@ error typ_check_isa(const struct module *mod, const struct node *for_error,
   // FIXME: leaking typ_names.
 }
 
+error typ_find_matching_concrete_isa(const struct typ **concrete,
+                                     const struct module *mod, const struct node *for_error,
+                                     const struct typ *a, const struct typ *intf) {
+  error e;
+  if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_ANY))) {
+    *concrete = intf;
+    return 0;
+  }
+
+  if (typ_equal(mod, a, intf)) {
+    *concrete = a;
+    return 0;
+  }
+
+  if (a->gen_arity > 0
+      && intf->gen_arity == 0
+      && intf->definition->subs[IDX_GENARGS]->subs_count > 0) {
+    // intf is a "2nd order" generic, i.e. the generic functor itself.
+    EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                "'%s' is a second order generic",
+                typ_pretty_name(mod, intf));
+    // FIXME: leaking typ_names.
+  }
+
+  // Literals types do not have a isalist.
+  if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
+    e = typ_find_matching_concrete_isa(concrete, mod, for_error,
+                                       typ_lookup_builtin(mod, TBI_NUMERIC), intf);
+    EXCEPT(e);
+    return 0;
+  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
+    e = typ_find_matching_concrete_isa(concrete, mod, for_error,
+                                       typ_lookup_builtin(mod, TBI_NREF), intf);
+    EXCEPT(e);
+    return 0;
+  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)) {
+    e = typ_find_matching_concrete_isa(concrete, mod, for_error,
+                                       typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN), intf);
+    EXCEPT(e);
+    return 0;
+  }
+
+  for (size_t n = 0; n < a->isalist_count; ++n) {
+    if (typ_equal(mod, a->isalist[n], intf)) {
+      *concrete = a->isalist[n];
+      return 0;
+    }
+  }
+
+  for (size_t n = 0; n < a->isalist_count; ++n) {
+    e = typ_find_matching_concrete_isa(concrete, mod, for_error,
+                                       a->isalist[n], intf);
+    if (!e) {
+      return 0;
+    }
+  }
+
+  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+              "'%s' not isa concrete intf '%s'",
+              typ_pretty_name(mod, a), typ_pretty_name(mod, intf));
+  // FIXME: leaking typ_names.
+}
+
 error mk_except(const struct module *mod, const struct node *node, const char *fmt) {
   struct token tok;
   tok.value = mod->parser.data + node->codeloc;
