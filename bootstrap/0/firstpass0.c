@@ -2429,12 +2429,13 @@ ok:
 
 static error step_toplevel_secondpass(struct module *mod, struct node *node, void *user, bool *stop) {
   const struct node *parent = node->scope->parent->node;
-  if (parent->which != MODULE_BODY) {
-    return 0;
-  }
+  if (parent->which == MODULE_BODY
+      || ((parent->which == DEFTYPE || parent->which == DEFINTF)
+          && (node->which == DEFFUN || node->which == DEFMETHOD))) {
 
-  error e = secondpass(mod, node, NULL);
-  EXCEPT(e);
+    error e = secondpass(mod, node, NULL);
+    EXCEPT(e);
+  }
 
   return 0;
 }
