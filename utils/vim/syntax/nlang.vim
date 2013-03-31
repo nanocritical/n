@@ -25,7 +25,7 @@ syn match nMercurial "#"
 syn match nNullable "?"
 
 syn match nSpaceError display excludenl "\s\+$"
-syn match nSpaceError display " \+\t"me=e-1
+syn match nSpaceError display "^\ *\t"me=e-1
 
 "integer number, or floating point number without a dot and with "f".
 syn case ignore
@@ -54,6 +54,13 @@ syn match	nFloat		display contained "0x\x\+\.\=p[-+]\=\d\+[fl]\=\>"
 syn match	nOctalError	display contained "0\o*[89]\d*"
 syn case match
 
+syn match	nSpecial	display contained "\\\(x\x\+\|\o\{1,3}\|.\|$\)"
+syn match	nSpecial	display contained "\\\(u\x\{4}\|U\x\{8}\)"
+syn match	nFormat		display "%\(\d\+\$\)\=[-+' #0*]*\(\d*\|\*\|\*\d\+\$\)\(\.\(\d*\|\*\|\*\d\+\$\)\)\=\([hlLjzt]\|ll\|hh\)\=\([aAbdiuoxXDOUfFeEgGcCsSpn]\|\[\^\=.[^]]*\]\)" contained
+syn match	nFormat		display "%%" contained
+syn region	nString		start=+L\="+ skip=+\\\\\|\\"+ end=+"+ contains=cSpecial,cFormat,@Spell
+syn region	nString		start=+L\='+ skip=+\\\\\|\\'+ end=+'+ contains=cSpecial,cFormat,@Spell
+
 hi def link nDecl Structure
 hi def link nKeyword Conditional
 hi def link nComment Comment
@@ -64,6 +71,7 @@ hi def link nFloat Number
 hi def link nOctal Number
 hi def link nNumbers Number
 hi def link nString String
+hi def link nSpecial SpecialChar
 hi def link nSemantic Semantic
 hi def link nMutate Constant
 hi def link nMercurial Constant
