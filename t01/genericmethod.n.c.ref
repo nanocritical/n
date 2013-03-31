@@ -32,8 +32,7 @@ return x - (nlang_builtins_i32)1;
 
 nlang_builtins_i32 main(void){
  {
-t01_genericmethod_blah b;
-memset(&b, 0, sizeof(b)); {
+t01_genericmethod_blah b; memset(&b, 0, sizeof(b));{
 b.dummy = (nlang_builtins_u8)0;
  }
 ;

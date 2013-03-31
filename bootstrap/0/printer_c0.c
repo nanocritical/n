@@ -274,9 +274,7 @@ static void print_init(FILE *out, bool header, const struct module *mod, const s
   const struct node *parent = node->scope->parent->node;
   assert(parent->which == DEFPATTERN);
 
-  fprintf(out, "memset(&%s, 0, sizeof(%s)); {\n",
-          idents_value(mod->gctx, node_ident(parent->subs[0])),
-          idents_value(mod->gctx, node_ident(parent->subs[0])));
+  fprintf(out, "{\n");
   for (size_t n = 1; n < node->subs_count; n += 2) {
     fprintf(out, "%s.%s = ",
             idents_value(mod->gctx, node_ident(parent->subs[0])),
@@ -519,13 +517,17 @@ static void print_defname(FILE *out, bool header, const struct module *mod, cons
     fprintf(out, " ");
     print_pattern(out, header, mod, node->as.DEFNAME.pattern);
 
+    const ident id = node_ident(node->as.DEFNAME.pattern);
+    fprintf(out, "; memset(&%s, 0, sizeof(%s));",
+            idents_value(mod->gctx, id),
+            idents_value(mod->gctx, id));
+
     if (!header || node_is_inline(pattern)) {
       if (node->as.DEFNAME.expr != NULL) {
         if (node->as.DEFNAME.expr->which != INIT) {
-          fprintf(out, " = ");
+          fprintf(out, "%s = ", idents_value(mod->gctx, id));
           print_expr(out, header, mod, node->as.DEFNAME.expr, T__STATEMENT);
         } else {
-          fprintf(out, ";\n");
           print_init(out, header, mod, node->as.DEFNAME.expr);
         }
       }

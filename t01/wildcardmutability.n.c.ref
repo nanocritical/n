@@ -23,8 +23,7 @@ return &self->x;
 
 nlang_builtins_i32 main(void){
  {
-t01_wildcardmutability_c x;
-memset(&x, 0, sizeof(x)); {
+t01_wildcardmutability_c x; memset(&x, 0, sizeof(x));{
 x.x = (nlang_builtins_i32)0;
  }
 ;

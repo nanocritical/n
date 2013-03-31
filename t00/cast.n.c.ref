@@ -9,7 +9,7 @@ return (_ngen_nlang_builtins_Ref__nlang_builtins_i32)(x);
 
 nlang_builtins_i32 main(void){
  {
-nlang_builtins_u32 __gensym0 = (nlang_builtins_u32)1;
+nlang_builtins_u32 __gensym0; memset(&__gensym0, 0, sizeof(__gensym0));__gensym0 = (nlang_builtins_u32)1;
 return (*t00_cast_foo(&__gensym0)) - (nlang_builtins_i32)1;
 }
 }

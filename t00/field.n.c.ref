@@ -15,7 +15,7 @@ typedef _ngen_nlang_builtins_MercurialRef__t00_field_t _ngen_nlang_builtins_Null
 
 nlang_builtins_i32 main(void){
  {
-t00_field_t tt;
+t00_field_t tt; memset(&tt, 0, sizeof(tt));;
 return tt.x;
 }
 }
