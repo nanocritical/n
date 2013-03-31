@@ -57,6 +57,15 @@ export intf NativeBoolean = \
     export ReturnByCopy \
     export GeneralizedBoolean
 
+export intf Floating = \
+    export Numeric \
+    export HasCompare
+
+export intf NativeFloating = \
+    export TrivialCopy \
+    export ReturnByCopy \
+    export Floating
+
 export extern type bool = export NativeBoolean
 export extern bool method# Copyable.operator_copy other:@this = void
 export extern bool method HasEquality.operator_eq other:@this = bool
@@ -290,6 +299,38 @@ export extern ssize method Bitwise.operator_bwand other:@this = this
 export extern ssize method Bitwise.operator_lshift by:u32 = this
 export extern ssize method Bitwise.operator_rshift by:u32 = this
 export extern ssize method Bitwise.operator_bwnot = this
+
+export export extern type float = export NativeFloating
+export extern float method# Copyable.operator_copy other:@this = void
+export extern float method HasEquality.operator_eq other:@this = bool
+export extern float method HasEquality.operator_ne other:@this = bool
+export extern float method HasCompare.operator_compare other:@this = i32
+export extern float method Ordered.operator_le other:@this = bool
+export extern float method Ordered.operator_lt other:@this = bool
+export extern float method Ordered.operator_gt other:@this = bool
+export extern float method Ordered.operator_ge other:@this = bool
+export extern float method Arithmetic.operator_plus other:@this = this
+export extern float method Arithmetic.operator_minus other:@this = this
+export extern float method Arithmetic.operator_divide other:@this = this
+export extern float method Arithmetic.operator_modulo other:@this = this
+export extern float method Arithmetic.operator_times other:@this = this
+export extern float method Arithmetic.operator_uminus = this
+
+export export extern type double = export NativeFloating
+export extern double method# Copyable.operator_copy other:@this = void
+export extern double method HasEquality.operator_eq other:@this = bool
+export extern double method HasEquality.operator_ne other:@this = bool
+export extern double method HasCompare.operator_compare other:@this = i32
+export extern double method Ordered.operator_le other:@this = bool
+export extern double method Ordered.operator_lt other:@this = bool
+export extern double method Ordered.operator_gt other:@this = bool
+export extern double method Ordered.operator_ge other:@this = bool
+export extern double method Arithmetic.operator_plus other:@this = this
+export extern double method Arithmetic.operator_minus other:@this = this
+export extern double method Arithmetic.operator_divide other:@this = this
+export extern double method Arithmetic.operator_modulo other:@this = this
+export extern double method Arithmetic.operator_times other:@this = this
+export extern double method Arithmetic.operator_uminus = this
 
 export intf Copyable =
   method# operator_copy other:@this = void

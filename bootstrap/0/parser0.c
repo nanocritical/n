@@ -90,6 +90,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_LITERALS_NULL] = "__null__",
   [ID_TBI_LITERALS_INTEGER] = "integer",
   [ID_TBI_LITERALS_BOOLEAN] = "boolean",
+  [ID_TBI_LITERALS_FLOATING] = "floating",
   [ID_TBI_ANY] = "Any",
   [ID_TBI_PSEUDO_TUPLE] = "pseudo_tuple",
   [ID_TBI_BOOL] = "bool",
@@ -103,6 +104,8 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_U64] = "u64",
   [ID_TBI_SIZE] = "size",
   [ID_TBI_SSIZE] = "ssize",
+  [ID_TBI_FLOAT] = "float",
+  [ID_TBI_DOUBLE] = "double",
   [ID_TBI_STRING] = "string",
   [ID_TBI_ANY_REF] = "AnyRef",
   [ID_TBI_ANY_ANY_REF] = "AnyAnyRef",
@@ -113,9 +116,12 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NMREF] = "NullableMutableRef",
   [ID_TBI_NMMREF] = "NullableMercurialRef",
   [ID_TBI_NUMERIC] = "Numeric",
+  [ID_TBI_INTEGER] = "Integer",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
   [ID_TBI_GENERALIZED_BOOLEAN] = "GeneralizedBoolean",
   [ID_TBI_NATIVE_BOOLEAN] = "NativeBoolean",
+  [ID_TBI_FLOATING] = "Floating",
+  [ID_TBI_NATIVE_FLOATING] = "NativeFloating",
   [ID_TBI_HAS_EQUALITY] = "HasEquality",
   [ID_TBI_ORDERED] = "Ordered",
   [ID_TBI_ORDERED_BY_COMPARE] = "OrderedByCompare",
@@ -3031,7 +3037,14 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
   }
 
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
-    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_NUMERIC))) {
+    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_INTEGER))) {
+      return 0;
+    }
+  }
+
+  if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)) {
+    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_FLOATING))) {
       return 0;
     }
   }
@@ -3066,9 +3079,6 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
 
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error,
                              const struct typ *a) {
-  if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
-    return 0;
-  }
   if (typ_isa(mod, a, typ_lookup_builtin(mod, TBI_NUMERIC))) {
     return 0;
   }
@@ -3192,7 +3202,8 @@ error typ_check_deref_against_mark(const struct module *mod, const struct node *
 bool typ_is_concrete(const struct module *mod, const struct typ *a) {
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
       || a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)) {
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)) {
     return FALSE;
   }
 
@@ -3271,11 +3282,13 @@ bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *in
 
   // Literals types do not have a isalist.
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
-    return typ_isa(mod, typ_lookup_builtin(mod, TBI_NUMERIC), intf);
+    return typ_isa(mod, typ_lookup_builtin(mod, TBI_INTEGER), intf);
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
     return typ_isa(mod, typ_lookup_builtin(mod, TBI_NREF), intf);
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)) {
     return typ_isa(mod, typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN), intf);
+  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)) {
+    return typ_isa(mod, typ_lookup_builtin(mod, TBI_FLOATING), intf);
   }
 
   for (size_t n = 0; n < a->isalist_count; ++n) {
@@ -3332,7 +3345,12 @@ error typ_find_matching_concrete_isa(const struct typ **concrete,
   // Literals types do not have a isalist.
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
     e = typ_find_matching_concrete_isa(concrete, mod, for_error,
-                                       typ_lookup_builtin(mod, TBI_NUMERIC), intf);
+                                       typ_lookup_builtin(mod, TBI_INTEGER), intf);
+    EXCEPT(e);
+    return 0;
+  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)) {
+    e = typ_find_matching_concrete_isa(concrete, mod, for_error,
+                                       typ_lookup_builtin(mod, TBI_FLOATING), intf);
     EXCEPT(e);
     return 0;
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {

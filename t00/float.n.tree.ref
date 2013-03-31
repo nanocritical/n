@@ -1,0 +1,34 @@
+MODULE_BODY :__internal_not_typeable__
+ IMPORT :nlang
+  IDENT(nlang) :nlang
+ DEFFUN :t00.float.main
+  IDENT(main) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.literals.floating
+     IDENT(f) :nlang.literals.floating
+     NUMBER(0.0213) :nlang.builtins.float
+     DEFNAME(f) :nlang.builtins.float
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.literals.floating
+     IDENT(g) :nlang.literals.floating
+     BIN( + ) :nlang.builtins.float
+      IDENT(f) :nlang.builtins.float
+      BIN( * ) :nlang.builtins.float
+       NUMBER(10.2) :nlang.builtins.float
+       NUMBER(.2) :nlang.builtins.float
+     DEFNAME(g) :nlang.builtins.float
+   IF :nlang.builtins.void
+    BIN( < ) :nlang.builtins.bool
+     IDENT(g) :nlang.builtins.float
+     TYPECONSTRAINT :nlang.builtins.float
+      NUMBER(0.1) :nlang.builtins.float
+      IDENT(float) :nlang.builtins.float
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(1) :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(0) :nlang.builtins.i32

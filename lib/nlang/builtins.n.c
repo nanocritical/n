@@ -51,6 +51,25 @@
   \
   void t##_operator_copy(t *self, const t *other) { *self = * other; }
 
+#define define_native_floating(t) \
+  NB(bool) t##_operator_eq(const t *self, const t *other) { return *self == *other; } \
+  NB(bool) t##_operator_ne(const t *self, const t *other) { return *self != *other; } \
+  \
+  NB(i32) t##_operator_compare(const t *self, const t *other) { return memcmp(self, other, sizeof(*self)); } \
+  \
+  NB(bool) t##_operator_le(const t *self, const t *other) { return *self <= * other; } \
+  NB(bool) t##_operator_lt(const t *self, const t *other) { return *self < * other; } \
+  NB(bool) t##_operator_gt(const t *self, const t *other) { return *self > * other; } \
+  NB(bool) t##_operator_ge(const t *self, const t *other) { return *self >= * other; } \
+  \
+  t t##_operator_plus(const t *self, const t *other) { return *self + *other; } \
+  t t##_operator_minus(const t *self, const t *other) { return *self - *other; } \
+  t t##_operator_divide(const t *self, const t *other) { return *self / *other; } \
+  t t##_operator_times(const t *self, const t *other) { return *self * *other; } \
+  t t##_operator_uminus(const t *self) { return - *self; } \
+  \
+  void t##_operator_copy(t *self, const t *other) { *self = * other; }
+
 define_native_boolean(nlang_builtins_bool)
 define_native_integer(nlang_builtins_i8)
 define_native_integer(nlang_builtins_i16)
@@ -62,7 +81,10 @@ define_native_integer(nlang_builtins_u32)
 define_native_integer(nlang_builtins_u64)
 define_native_integer(nlang_builtins_size)
 define_native_integer(nlang_builtins_ssize)
+define_native_floating(nlang_builtins_float)
+define_native_floating(nlang_builtins_double)
 
+#undef define_native_floating
 #undef define_native_boolean
 #undef define_native_integer
 #undef NB

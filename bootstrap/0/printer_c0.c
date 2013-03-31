@@ -1214,6 +1214,7 @@ static bool is_pseudo_tbi(const struct module *mod, const struct typ *t) {
   if (typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_NULL))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_FLOATING))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__NOT_TYPEABLE))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT))

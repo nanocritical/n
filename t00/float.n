@@ -1,0 +1,9 @@
+from nlang import *
+
+fun main = i32
+  let f = 0.0213
+  let g = f + 10.2 * .2
+  if g < 0.1:float
+    return 1
+  else
+    return 0

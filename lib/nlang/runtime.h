@@ -18,5 +18,7 @@ typedef uint32_t nlang_builtins_u32;
 typedef uint64_t nlang_builtins_u64;
 typedef size_t nlang_builtins_size;
 typedef ssize_t nlang_builtins_ssize;
+typedef float nlang_builtins_float;
+typedef double nlang_builtins_double;
 
 #endif

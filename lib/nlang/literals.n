@@ -1,6 +1,7 @@
 export extern type __null__ =
 export extern type integer =
 export extern type boolean =
+export extern type floating =
 
 export extern type __pending_destruct__ =
 export extern type __not_typeable__ =

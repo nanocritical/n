@@ -1953,6 +1953,15 @@ static error type_destruct_import_path(struct module *mod, struct node *node) {
   return 0;
 }
 
+static struct typ* number_literal_typ(struct module *mod, struct node *node) {
+  assert(node->which == NUMBER);
+  if (strchr(node->as.NUMBER.value, '.') != NULL) {
+    return typ_lookup_builtin(mod, TBI_LITERALS_FLOATING);
+  } else {
+    return typ_lookup_builtin(mod, TBI_LITERALS_INTEGER);
+  }
+}
+
 static error type_destruct(struct module *mod, struct node *node, const struct typ *constraint) {
   error e;
   struct node *def = NULL;
@@ -1975,7 +1984,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     EXCEPT(e);
     break;
   case NUMBER:
-    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER), constraint);
+    e = typ_unify(&node->typ, mod, node, number_literal_typ(mod, node), constraint);
     EXCEPT(e);
     break;
   case BOOL:
@@ -2214,7 +2223,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     }
     goto ok;
   case NUMBER:
-    node->typ = typ_lookup_builtin(mod, TBI_LITERALS_INTEGER);
+    node->typ = number_literal_typ(mod, node);
     goto ok;
   case BOOL:
     node->typ = typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN);
@@ -2898,7 +2907,8 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
 
   struct node *left = node->subs[0];
   if (typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_NATIVE_INTEGER))
-      || typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_NATIVE_BOOLEAN))) {
+      || typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_NATIVE_BOOLEAN))
+      || typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_NATIVE_FLOATING))) {
     return 0;
   }
 

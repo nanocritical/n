@@ -86,10 +86,13 @@ normal:
   "--" { goto comment; }
   [ \t\r] { goto normal; }
 
-  "0" { R(TNUMBER); }
+  "0."[0-9]+ { R(TNUMBER); }
+  "."[0-9]+ { R(TNUMBER); }
+  [1-9][0-9]*"."[0-9]+ { R(TNUMBER); }
   [1-9][0-9]* { R(TNUMBER); }
   "0x" [0-9a-fA-F][0-9a-fA-F]* { R(TNUMBER); }
   "0" [0-7]+ { R(TNUMBER); }
+  "0" { R(TNUMBER); }
 
   ["'] { opening = *(YYCURSOR-1); goto string; }
 
