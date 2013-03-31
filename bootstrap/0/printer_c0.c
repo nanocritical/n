@@ -271,17 +271,21 @@ static void print_call(FILE *out, bool header, const struct module *mod, const s
 }
 
 static void print_init(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  fprintf(out, "(");
-  print_typ(out, mod, node->typ);
-  fprintf(out, "){ ");
+  const struct node *parent = node->scope->parent->node;
+  assert(parent->which == DEFPATTERN);
 
+  fprintf(out, "memset(&%s, 0, sizeof(%s)); {\n",
+          idents_value(mod->gctx, node_ident(parent->subs[0])),
+          idents_value(mod->gctx, node_ident(parent->subs[0])));
   for (size_t n = 1; n < node->subs_count; n += 2) {
-    fprintf(out, ".%s = ", idents_value(mod->gctx, node_ident(node->subs[n])));
+    fprintf(out, "%s.%s = ",
+            idents_value(mod->gctx, node_ident(parent->subs[0])),
+            idents_value(mod->gctx, node_ident(node->subs[n])));
     print_expr(out, header, mod, node->subs[n + 1], T__NOT_STATEMENT);
-    fprintf(out, ",");
+    fprintf(out, ";\n");
   }
 
-  fprintf(out, "}");
+  fprintf(out, " }\n");
 }
 
 static error is_local_name(bool *is_local, const struct module *mod, const struct node *node) {
@@ -372,9 +376,6 @@ static void print_expr(FILE *out, bool header, const struct module *mod, const s
     break;
   case TUPLE:
     print_tuple(out, header, mod, node, parent_op);
-    break;
-  case INIT:
-    print_init(out, header, mod, node);
     break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
@@ -520,8 +521,13 @@ static void print_defname(FILE *out, bool header, const struct module *mod, cons
 
     if (!header || node_is_inline(pattern)) {
       if (node->as.DEFNAME.expr != NULL) {
-        fprintf(out, " = ");
-        print_expr(out, header, mod, node->as.DEFNAME.expr, T__STATEMENT);
+        if (node->as.DEFNAME.expr->which != INIT) {
+          fprintf(out, " = ");
+          print_expr(out, header, mod, node->as.DEFNAME.expr, T__STATEMENT);
+        } else {
+          fprintf(out, ";\n");
+          print_init(out, header, mod, node->as.DEFNAME.expr);
+        }
       }
     }
   }

@@ -23,7 +23,11 @@ return self->x;
 
 nlang_builtins_i32 main(void){
  {
-t00_unary_t tt = (t00_unary_t){ .x = (nlang_builtins_i32)0,};
+t00_unary_t tt;
+memset(&tt, 0, sizeof(tt)); {
+tt.x = (nlang_builtins_i32)0;
+ }
+;
 return t00_unary_t_get(&tt);
 }
 }

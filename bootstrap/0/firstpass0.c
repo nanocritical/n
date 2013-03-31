@@ -2976,6 +2976,13 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
       temps->rvalues[temps->count - 1] = node->subs[0];
     }
     break;
+  case INIT:
+    if (node->scope->parent->node->which != DEFPATTERN) {
+      temps->count += 1;
+      temps->rvalues = realloc(temps->rvalues, temps->count * sizeof(*temps->rvalues));
+      temps->rvalues[temps->count - 1] = node;
+    }
+    break;
   case BLOCK:
     *stop = TRUE;
     break;
@@ -3020,14 +3027,14 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
     rew_append(defp, rval);
 
     struct node *except[] = { rval, NULL };
-    e = zero_to_first_for_generated(mod, let, except, node->scope);
+    e = zero_to_first_for_generated(mod, let, except, parent->scope);
     EXCEPT(e);
 
     struct node *rval_replacement = mk_node(mod, rval_parent, IDENT);
     node_deepcopy(mod, rval_replacement, tmpvar);
     rew_move_last_over(rval_parent, rval_where, TRUE);
 
-    e = zero_to_first_for_generated(mod, rval_replacement, NULL, node->scope);
+    e = zero_to_first_for_generated(mod, rval_replacement, NULL, rval_parent->scope);
     EXCEPT(e);
 
     rew_insert_last_at(parent, where);
@@ -3160,6 +3167,8 @@ static const step secondpass_up[] = {
   step_ctor_call_inference,
   step_dtor_call_inference,
   step_copy_call_inference,
+
+  // Must be last! It rewrites the current node.
   step_define_temporary_rvalues,
   NULL,
 };

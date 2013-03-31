@@ -23,7 +23,11 @@ self->x += x;
 
 nlang_builtins_i32 main(void){
  {
-_ngen_t01_genericsum_container__nlang_builtins_i32 v = (_ngen_t01_genericsum_container__nlang_builtins_i32){ .x = (nlang_builtins_i32)0,}; {
+_ngen_t01_genericsum_container__nlang_builtins_i32 v;
+memset(&v, 0, sizeof(v)); {
+v.x = (nlang_builtins_i32)0;
+ }
+; {
 t01_genericsum_container_add(&v, (nlang_builtins_i32)1);
 };
 return v.x - (nlang_builtins_i32)1;
