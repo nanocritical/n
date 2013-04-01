@@ -1376,6 +1376,18 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     break;
   }
 
+  if (OP_ASSIGN(node->as.BIN.operator)) {
+    if ((node->subs[0]->flags & NODE_IS_TYPE)) {
+      e = mk_except_type(mod, node->subs[0], "cannot assign to a type variable");
+      EXCEPT(e);
+    }
+    if ((node->subs[1]->flags & NODE_IS_TYPE)) {
+      e = mk_except_type(mod, node->subs[1], "cannot assign a type");
+      EXCEPT(e);
+    }
+  }
+  node->flags |= node->subs[0]->flags;
+
   return 0;
 }
 
@@ -2138,6 +2150,19 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     default:
       assert(FALSE);
     }
+
+    if (OP_ASSIGN(node->as.BIN.operator)) {
+      if ((node->subs[0]->flags & NODE_IS_TYPE)) {
+        e = mk_except_type(mod, node->subs[0], "cannot assign to a type variable");
+        EXCEPT(e);
+      }
+      if ((node->subs[1]->flags & NODE_IS_TYPE)) {
+        e = mk_except_type(mod, node->subs[1], "cannot assign a type");
+        EXCEPT(e);
+      }
+    }
+    node->flags |= node->subs[0]->flags;
+
     break;
   case TYPECONSTRAINT:
     e = type_destruct(mod, node->subs[1], constraint);

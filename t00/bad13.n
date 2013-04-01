@@ -1,0 +1,7 @@
+from nlang import *
+
+fun main = i32
+  let t = i32
+    t = i32
+  let x = 0:t
+  return x
