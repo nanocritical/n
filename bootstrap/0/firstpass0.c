@@ -1141,15 +1141,11 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
   return 0;
 }
 
-static error step_type_gather_returns(struct module *mod, struct node *node, void *user, bool *stop) {
-  if (node->which == MODULE) {
-    return 0;
-  }
-
+static error step_type_gather_retval(struct module *mod, struct node *node, void *user, bool *stop) {
   switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
-    module_return_push(mod, node_fun_retval(node));
+    module_retval_push(mod, node_fun_retval(node));
     break;
   default:
     break;
@@ -1158,10 +1154,6 @@ static error step_type_gather_returns(struct module *mod, struct node *node, voi
 }
 
 static error step_type_gather_excepts(struct module *mod, struct node *node, void *user, bool *stop) {
-  if (node->which == MODULE) {
-    return 0;
-  }
-
   switch (node->which) {
   case TRY:
     module_excepts_open_try(mod);
@@ -1235,6 +1227,7 @@ static error type_inference_explicit_unary_call(struct module *mod, struct node 
   default:
     assert(FALSE);
   }
+
   return 0;
 }
 
@@ -1385,8 +1378,10 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
       e = mk_except_type(mod, node->subs[1], "cannot assign a type");
       EXCEPT(e);
     }
+
+    node->subs[0]->flags |= (node->subs[1]->flags & NODE__TRANSITIVE);
   }
-  node->flags |= node->subs[0]->flags;
+  node->flags |= (node->subs[0]->flags & NODE__TRANSITIVE);
 
   return 0;
 }
@@ -1942,7 +1937,6 @@ static error type_inference_try(struct module *mod, struct node *node) {
   e = type_destruct(mod, node->subs[1], u);
   EXCEPT(e);
 
-  module_excepts_close_try(mod);
   return 0;
 }
 
@@ -2160,6 +2154,8 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
         e = mk_except_type(mod, node->subs[1], "cannot assign a type");
         EXCEPT(e);
       }
+
+      node->subs[0]->flags |= node->subs[1]->flags & NODE__TRANSITIVE;
     }
     node->flags |= node->subs[0]->flags;
 
@@ -2220,8 +2216,8 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     EXCEPT(e);
     if (def->typ->which == TYPE_FUNCTION
         && node->typ != typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT)) {
-      if (node_fun_explicit_args_count(def) != 0) {
-        e = mk_except_call_args_count(mod, node, def, 0, 0);
+      if (node_fun_explicit_args_count(def->typ->definition) != 0) {
+        e = mk_except_call_args_count(mod, node, def->typ->definition, 0, 0);
         EXCEPT(e);
       }
       e = rewrite_unary_call(mod, node, def->typ);
@@ -2278,9 +2274,10 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case RETURN:
     if (node->subs_count > 0) {
-      e = type_destruct(mod, node->subs[0], module_return_get(mod)->typ);
+      e = type_destruct(mod, node->subs[0], module_retval_get(mod)->typ);
       EXCEPT(e);
       node->typ = node->subs[0]->typ;
+      node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
     } else {
       node->typ = typ_lookup_builtin(mod, TBI_VOID);
     }
@@ -2361,7 +2358,6 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     }
     node->typ->fun_args[node->typ->fun_arity] = node_fun_retval(node)->typ;
     node->flags |= NODE_IS_TYPE;
-    module_return_pop(mod);
 
     goto ok;
   case DEFINTF:
@@ -2415,7 +2411,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
       node->flags = node->subs[1]->flags;
       for (size_t n = 0; n < node->subs_count; ++n) {
         if (node->subs[n]->which == DEFNAME) {
-          node->subs[n]->flags |= (node->subs[n]->as.DEFNAME.expr->flags & NODE__TRANSITIVE);
+          node->subs[n]->flags |= node->subs[n]->as.DEFNAME.expr->flags & NODE__TRANSITIVE;
         }
       }
     }
@@ -2450,6 +2446,27 @@ ok:
   assert(node->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT));
   assert(node->typ != NULL);
   return 0;
+}
+
+static error step_type_drop_retval(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+    module_retval_pop(mod);
+    return 0;
+  default:
+    return 0;
+  }
+}
+
+static error step_type_drop_excepts(struct module *mod, struct node *node, void *user, bool *stop) {
+  switch (node->which) {
+  case TRY:
+    module_excepts_close_try(mod);
+    return 0;
+  default:
+    return 0;
+  }
 }
 
 static error step_toplevel_secondpass(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -2867,16 +2884,30 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
     return 0;
   }
 
-  const struct node *retval = node_fun_retval(node);
-  if (typ_equal(mod, retval->typ, typ_lookup_builtin(mod, TBI_VOID))) {
-    return 0;
-  }
+  struct node *retval = node_fun_retval(node);
   if (typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
     return 0;
   }
 
-  error e = mk_except(mod, retval, "Return through ref not yet supported\n");
-  EXCEPT(e);
+  struct node *named = NULL;
+  if (retval->which == DEFARG) {
+    named = retval;
+  } else {
+    const size_t where = rew_find_subnode_in_parent(node, retval);
+    named = mk_node(mod, node, DEFARG);
+    named->as.DEFARG.is_retval = TRUE;
+    struct node *name = mk_node(mod, named, IDENT);
+    name->as.IDENT.name = gensym(mod);
+    rew_append(named, retval);
+    rew_move_last_over(node, where, TRUE);
+
+    error e = lexical_retval(mod, node, named);
+    EXCEPT(e);
+
+    struct node *except[] = { retval, NULL };
+    e = zero_to_second_for_generated(mod, named, except, node->scope);
+    EXCEPT(e);
+  }
 
   return 0;
 }
@@ -2984,6 +3015,66 @@ static error step_copy_call_inference(struct module *mod, struct node *node, voi
   return 0;
 }
 
+static error step_store_return_through_ref_expr(struct module *mod, struct node *node, void *user, bool *stop) {
+  struct node *expr = NULL;
+  switch (node->which) {
+  case RETURN:
+    if (node->subs_count == 0) {
+      return 0;
+    }
+    expr = node->subs[0];
+    if (expr->which != CALL && expr->which != INIT) {
+      return 0;
+    }
+    if (typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+      return 0;
+    }
+
+    if (expr->which == CALL) {
+      expr->as.CALL.return_through_ref_expr = module_retval_get(mod)->subs[0];
+    } else if (expr->which == INIT) {
+      expr->as.INIT.target_expr = module_retval_get(mod)->subs[0];
+    }
+    return 0;
+  case DEFPATTERN:
+    for (size_t n = 0; n < node->subs_count; ++n) {
+      struct node *d = node->subs[n];
+      if (d->which != DEFNAME) {
+        continue;
+      }
+      struct node *expr = d->as.DEFNAME.expr;
+      if (expr == NULL || (expr->which != CALL && expr->which != INIT)) {
+        continue;
+      } else if (expr->which == INIT) {
+        expr->as.INIT.target_expr = d->as.DEFNAME.pattern;
+      } else if (expr->which == CALL
+                 && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+        expr->as.CALL.return_through_ref_expr = d->as.DEFNAME.pattern;
+      } else {
+        // noop
+      }
+    }
+    return 0;
+  case BIN:
+    if (!OP_ASSIGN(node->as.BIN.operator)) {
+      return 0;
+    }
+    struct node *left = node->subs[0];
+    struct node *right = node->subs[1];
+    if (right->which != CALL && right->which != INIT) {
+      return 0;
+    } else if (right->which == INIT) {
+      right->as.INIT.target_expr = left;
+    } else if (right->which == CALL
+               && !typ_isa(mod, right->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+      right->as.CALL.return_through_ref_expr = left;
+    }
+    return 0;
+  default:
+    return 0;
+  }
+}
+
 struct temporaries {
   struct node **rvalues;
   size_t count;
@@ -2991,18 +3082,49 @@ struct temporaries {
 
 static error step_gather_temporary_rvalues(struct module *mod, struct node *node, void *user, bool *stop) {
   struct temporaries *temps = user;
+  struct node *parent = node->scope->parent->node;
 
   switch (node->which) {
   case UN:
     if (OP_KIND(node->as.UN.operator) == OP_UN_REFOF
         && node_is_rvalue(node->subs[0])) {
+      if (node->subs[0]->which == CALL
+          && !typ_isa(mod, node->subs[0]->typ,
+                      typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+        // We already created a temporary in case CALL below.
+        break;
+      }
+
       temps->count += 1;
       temps->rvalues = realloc(temps->rvalues, temps->count * sizeof(*temps->rvalues));
       temps->rvalues[temps->count - 1] = node->subs[0];
     }
     break;
   case INIT:
-    if (node->scope->parent->node->which != DEFPATTERN) {
+    if (parent->which == RETURN
+        && !typ_isa(mod, node->typ,
+                    typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+      break;
+    }
+    if (parent->which == DEFPATTERN
+        || (parent->which == BIN && OP_ASSIGN(parent->as.BIN.operator))) {
+      break;
+    }
+    temps->count += 1;
+    temps->rvalues = realloc(temps->rvalues, temps->count * sizeof(*temps->rvalues));
+    temps->rvalues[temps->count - 1] = node;
+    break;
+  case CALL:
+    if ((node->flags & NODE_IS_TYPE)) {
+      break;
+    }
+    if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+      break;
+    }
+    if (parent->which == RETURN
+        || (parent->which == BIN && OP_ASSIGN(parent->as.BIN.operator))) {
+      // noop
+    } else if (parent->which != DEFPATTERN) {
       temps->count += 1;
       temps->rvalues = realloc(temps->rvalues, temps->count * sizeof(*temps->rvalues));
       temps->rvalues[temps->count - 1] = node;
@@ -3016,6 +3138,23 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
   }
 
   return 0;
+}
+
+static struct node *mk_temporary(struct module *mod, struct node *parent, size_t *where, struct node *original) {
+  struct node *let = mk_node(mod, parent, LET);
+  struct node *defp = mk_node(mod, let, DEFPATTERN);
+  struct node *tmp_name = mk_node(mod, defp, IDENT);
+  tmp_name->as.IDENT.name = gensym(mod);
+  rew_append(defp, original);
+
+  rew_insert_last_at(parent, *where);
+  *where += 1;
+
+  struct node *except[] = { original, NULL };
+  error e = zero_to_second_for_generated(mod, let, except, parent->scope);
+  assert(!e);
+
+  return tmp_name;
 }
 
 static error step_define_temporary_rvalues(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -3041,29 +3180,18 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
   struct node *parent = node->scope->parent->node;
   size_t where = rew_find_subnode_in_parent(parent, node);
   for (size_t n = 0; n < temps.count; ++n) {
-    struct node *rval = temps.rvalues[n];
-    struct node *rval_parent = rval->scope->parent->node;
-    const size_t rval_where = rew_find_subnode_in_parent(rval_parent, rval);
+    struct node *original = temps.rvalues[n];
+    struct node *original_parent = original->scope->parent->node;
+    const size_t original_where = rew_find_subnode_in_parent(original_parent, original);
 
-    struct node *let = mk_node(mod, parent, LET);
-    struct node *defp = mk_node(mod, let, DEFPATTERN);
-    struct node *tmpvar = mk_node(mod, defp, IDENT);
-    tmpvar->as.IDENT.name = gensym(mod);
-    rew_append(defp, rval);
+    struct node *tmp_name = mk_temporary(mod, parent, &where, original);
 
-    struct node *except[] = { rval, NULL };
-    e = zero_to_first_for_generated(mod, let, except, parent->scope);
+    struct node *original_replacement = mk_node(mod, original_parent, IDENT);
+    node_deepcopy(mod, original_replacement, tmp_name);
+    rew_move_last_over(original_parent, original_where, TRUE);
+
+    e = zero_to_first_for_generated(mod, original_replacement, NULL, original_parent->scope);
     EXCEPT(e);
-
-    struct node *rval_replacement = mk_node(mod, rval_parent, IDENT);
-    node_deepcopy(mod, rval_replacement, tmpvar);
-    rew_move_last_over(rval_parent, rval_where, TRUE);
-
-    e = zero_to_first_for_generated(mod, rval_replacement, NULL, rval_parent->scope);
-    EXCEPT(e);
-
-    rew_insert_last_at(parent, where);
-    where += 1;
   }
 
   free(temps.rvalues);
@@ -3152,7 +3280,7 @@ static const step firstpass_down[] = {
   step_stop_already_earlytypepass,
   step_type_destruct_mark,
   step_type_mutability_mark,
-  step_type_gather_returns,
+  step_type_gather_retval,
   step_type_gather_excepts,
   NULL,
 };
@@ -3163,6 +3291,8 @@ static const step firstpass_up[] = {
   step_rewrite_defname_no_expr,
   step_rewrite_sum_constructors,
   step_type_inference,
+  step_type_drop_retval,
+  step_type_drop_excepts,
   step_toplevel_secondpass,
   NULL,
 };
@@ -3184,6 +3314,7 @@ static const step secondpass_down[] = {
   step_add_sum_dispatch,
   step_implement_trivials,
   step_rewrite_def_return_through_ref,
+  step_type_gather_retval,
   NULL,
 };
 
@@ -3193,8 +3324,11 @@ static const step secondpass_up[] = {
   step_dtor_call_inference,
   step_copy_call_inference,
 
-  // Must be last! It rewrites the current node.
+  step_store_return_through_ref_expr,
+  // Must be last to use node arg! It rewrites the current node.
   step_define_temporary_rvalues,
+
+  step_type_drop_retval,
   NULL,
 };
 

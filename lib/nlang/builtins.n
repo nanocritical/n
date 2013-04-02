@@ -21,7 +21,7 @@ export intf SumCopy = export Copyable
 export intf SumEquality = export HasEquality
 export intf SumOrder = export Ordered
 
-export extern type void =
+export extern type void = ReturnByCopy
 
 export intf AnyAnyRef = export ReturnByCopy
 export intf AnyRef t:Any = export AnyAnyRef export Copyable

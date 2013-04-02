@@ -2,8 +2,12 @@
 #include "lib/nlang/module.n.h.out"
 nlang_builtins_i32 main(void){
  {
-nlang_builtins_float f; memset(&f, 0, sizeof(f));f = (nlang_builtins_float)0.0213;
-nlang_builtins_float g; memset(&g, 0, sizeof(g));g = f + (nlang_builtins_float)10.2 * (nlang_builtins_float).2;
+nlang_builtins_float f; memset(&f, 0, sizeof(f));
+f = (nlang_builtins_float)0.0213;
+;
+nlang_builtins_float g; memset(&g, 0, sizeof(g));
+g = f + (nlang_builtins_float)10.2 * (nlang_builtins_float).2;
+;
 if (g < (nlang_builtins_float)(nlang_builtins_float)0.1) {
 return (nlang_builtins_i32)1;
 }

@@ -1,0 +1,21 @@
+from nlang import *
+
+type t =
+  x:i32
+  xx:i32
+
+fun foo = t
+  return t{{ x=3 }}
+
+fun bar = t
+  return foo
+
+fun bar2 = r:t
+  r = bar
+  return r
+
+fun main = i32
+  let y = bar
+  if y.x != bar2.x
+    return 1
+  return y.xx

@@ -15,9 +15,12 @@ typedef _ngen_nlang_builtins_MercurialRef___ngen_t01_generic_container__nlang_bu
 
 nlang_builtins_i32 main(void){
  {
-_ngen_t01_generic_container__nlang_builtins_i32 v; memset(&v, 0, sizeof(v));{
+_ngen_t01_generic_container__nlang_builtins_i32 v; memset(&v, 0, sizeof(v));
+{
+memset(&(v), 0, sizeof(_ngen_t01_generic_container__nlang_builtins_i32));
 v.x = (nlang_builtins_i32)1;
  }
+;
 ;
 return v.x - (nlang_builtins_i32)1;
 }

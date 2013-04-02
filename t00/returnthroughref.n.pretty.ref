@@ -1,0 +1,22 @@
+from nlang import *
+type t =
+  let this = t
+  x:i32
+  xx:i32
+
+fun foo = __gensym0:t
+  return t{{ x=3 }}
+
+fun bar = __gensym1:t
+  return foo
+
+fun bar2 = r:t
+  r = bar
+  return r
+
+fun main = i32
+  let y = bar
+  let __gensym2 = bar2
+  if y.x != __gensym2.x
+    return 1
+  return y.xx

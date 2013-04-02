@@ -120,10 +120,16 @@ static void print_pattern(FILE *out, bool header, const struct module *mod, cons
 
 static void print_bin_sym(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.BIN.operator;
-
-  print_expr(out, header, mod, node->subs[0], op);
-  print_token(out, op);
-  print_expr(out, header, mod, node->subs[1], op);
+  const struct node *expr = node->subs[1];
+  if (OP_ASSIGN(op)
+      && expr->which == CALL
+      && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+    print_expr(out, header, mod, expr, T__STATEMENT);
+  } else {
+    print_expr(out, header, mod, node->subs[0], op);
+    print_token(out, op);
+    print_expr(out, header, mod, node->subs[1], op);
+  }
 }
 
 static void print_bin_acc(FILE *out, bool header, const struct module *mod, const struct node *node, uint32_t parent_op) {
@@ -191,8 +197,9 @@ static void print_un(FILE *out, bool header, const struct module *mod, const str
     if (node->flags & NODE_IS_TYPE) {
       print_typ(out, mod, node->typ);
     } else {
-      fprintf(out, "&");
+      fprintf(out, "(&");
       print_expr(out, header, mod, node->subs[0], op);
+      fprintf(out, ")");
     }
     break;
   case OP_UN_DEREF:
@@ -261,23 +268,42 @@ static void print_call(FILE *out, bool header, const struct module *mod, const s
   print_typ(out, mod, ftyp);
   fprintf(out, "(");
 
-  for (size_t n = 0; n < c_fun_args_count(ftyp->definition); ++n) {
+  size_t n;
+  for (n = 0; n < c_fun_args_count(ftyp->definition); ++n) {
     if (n > 0) {
       fprintf(out, ", ");
     }
     print_expr(out, header, mod, node->subs[1 + n], T__CALL);
   }
+
+  const bool retval_throughref = !typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
+  if (retval_throughref) {
+    if (n > 0) {
+      fprintf(out, ", ");
+    }
+
+    fprintf(out, "&(");
+    print_expr(out, header, mod, node->as.CALL.return_through_ref_expr, T__CALL);
+    fprintf(out, ")");
+  }
+
   fprintf(out, ")");
 }
 
 static void print_init(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  const struct node *parent = node->scope->parent->node;
-  assert(parent->which == DEFPATTERN);
+  const struct node *target = node->as.INIT.target_expr;
 
   fprintf(out, "{\n");
+
+  fprintf(out, "memset(&(");
+  print_expr(out, header, mod, target, T__STATEMENT);
+  fprintf(out, "), 0, sizeof(");
+  print_typ(out, mod, node->typ);
+  fprintf(out, "));\n");
+
   for (size_t n = 1; n < node->subs_count; n += 2) {
-    fprintf(out, "%s.%s = ",
-            idents_value(mod->gctx, node_ident(parent->subs[0])),
+    print_expr(out, header, mod, target, TDOT);
+    fprintf(out, ".%s = ",
             idents_value(mod->gctx, node_ident(node->subs[n])));
     print_expr(out, header, mod, node->subs[n + 1], T__NOT_STATEMENT);
     fprintf(out, ";\n");
@@ -374,6 +400,9 @@ static void print_expr(FILE *out, bool header, const struct module *mod, const s
     break;
   case TUPLE:
     print_tuple(out, header, mod, node, parent_op);
+    break;
+  case INIT:
+    print_init(out, header, mod, node);
     break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
@@ -518,18 +547,22 @@ static void print_defname(FILE *out, bool header, const struct module *mod, cons
     print_pattern(out, header, mod, node->as.DEFNAME.pattern);
 
     const ident id = node_ident(node->as.DEFNAME.pattern);
-    fprintf(out, "; memset(&%s, 0, sizeof(%s));",
+    fprintf(out, "; memset(&%s, 0, sizeof(%s));\n",
             idents_value(mod->gctx, id),
             idents_value(mod->gctx, id));
 
     if (!header || node_is_inline(pattern)) {
-      if (node->as.DEFNAME.expr != NULL) {
-        if (node->as.DEFNAME.expr->which != INIT) {
-          fprintf(out, "%s = ", idents_value(mod->gctx, id));
-          print_expr(out, header, mod, node->as.DEFNAME.expr, T__STATEMENT);
+      const struct node *expr = node->as.DEFNAME.expr;
+      if (expr != NULL) {
+        if (expr->which == INIT) {
+          print_init(out, header, mod, expr);
+        } else if (expr->which == CALL && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+          print_expr(out, header, mod, expr, T__STATEMENT);
         } else {
-          print_init(out, header, mod, node->as.DEFNAME.expr);
+          fprintf(out, "%s = ", idents_value(mod->gctx, id));
+          print_expr(out, header, mod, expr, T__STATEMENT);
         }
+        fprintf(out, ";\n");
       }
     }
   }
@@ -556,19 +589,31 @@ static void print_let(FILE *out, bool header, const struct module *mod, const st
 
   if (node->subs_count > 1) {
     assert(!node_is_inline(node));
-    fprintf(out, ";");
     print_block(out, header, mod, node->subs[1]);
+  }
+}
+
+static void print_return(FILE *out, bool header, const struct module *mod, const struct node *node) {
+  if (node->subs_count > 0) {
+    const struct node *expr = node->subs[0];
+    if (!typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+      if (expr->which != IDENT) {
+        print_expr(out, header, mod, expr, T__STATEMENT);
+      }
+      fprintf(out, ";\nreturn");
+    } else if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+      fprintf(out, "return ");
+      print_expr(out, header, mod, node->subs[0], T__STATEMENT);
+    }
+  } else {
+    fprintf(out, "return");
   }
 }
 
 static void print_statement(FILE *out, bool header, const struct module *mod, const struct node *node) {
   switch (node->which) {
   case RETURN:
-    fprintf(out, "return");
-    if (node->subs_count > 0) {
-      fprintf(out, " ");
-      print_expr(out, header, mod, node->subs[0], T__STATEMENT);
-    }
+    print_return(out, header, mod, node);
     break;
   case FOR:
     print_for(out, header, mod, node);
@@ -639,10 +684,14 @@ static void print_typeconstraint(FILE *out, bool header, const struct module *mo
   print_expr(out, header, mod, node->subs[0], T__STATEMENT);
 }
 
-static void print_defarg(FILE *out, bool header, const struct module *mod, const struct node *node) {
+static void print_defarg(FILE *out, bool header, const struct module *mod, const struct node *node,
+                         bool return_through_ref) {
   assert(node->which == DEFARG);
   print_typ(out, mod, node->typ);
   fprintf(out, " ");
+  if (return_through_ref) {
+    fprintf(out, "*_nrtr_");
+  }
   print_expr(out, header, mod, node->subs[0], T__STATEMENT);
 }
 
@@ -650,25 +699,41 @@ static void print_fun_prototype(FILE *out, bool header, const struct module *mod
                                 const struct node *node) {
   const size_t args_count = c_fun_args_count(node);
   const struct node *retval = node_fun_retval_const(node);
+  const bool retval_throughref = !typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
 
   print_toplevel(out, header, node);
 
-  print_typ(out, mod, retval->typ);
+  if (retval_throughref) {
+    fprintf(out, "void");
+  } else {
+    print_typ(out, mod, retval->typ);
+  }
+
   fprintf(out, " ");
   print_deffun_name(out, mod, node);
   fprintf(out, "(");
 
-  if (args_count == 0) {
+  if (!retval_throughref && args_count == 0) {
     fprintf(out, "void");
   }
 
-  for (size_t n = 0; n < args_count; ++n) {
+  size_t n;
+  for (n = 0; n < args_count; ++n) {
     if (n > 0) {
       fprintf(out, ", ");
     }
     const struct node *arg = node->subs[IDX_FUN_FIRSTARG + n];
-    print_defarg(out, header, mod, arg);
+    print_defarg(out, header, mod, arg, FALSE);
   }
+
+  if (retval_throughref) {
+    if (n > 0) {
+      fprintf(out, ", ");
+    }
+
+    print_defarg(out, header, mod, retval, TRUE);
+  }
+
   fprintf(out, ")");
 }
 
@@ -941,9 +1006,17 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
     const bool retval_bycopy = typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
 
     if (named_retval && retval_bycopy) {
-      fprintf(out, "{\n__attribute__((__unused__))");
-      print_defarg(out, header, mod, retval);
+      fprintf(out, "__attribute__((__unused__)) ");
+      print_defarg(out, header, mod, retval, FALSE);
       fprintf(out, ";\n");
+    }
+
+    if (!retval_bycopy) {
+      fprintf(out, "#define ");
+      print_expr(out, header, mod, retval->subs[0], T__STATEMENT);
+      fprintf(out, " (*_nrtr_");
+      print_expr(out, header, mod, retval->subs[0], T__STATEMENT);
+      fprintf(out, ")\n");
     }
 
     const struct node *block = node->subs[node->subs_count - 1];
@@ -951,6 +1024,11 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
 
     fprintf(out, "\n");
 
+    if (!retval_bycopy) {
+      fprintf(out, "#undef ");
+      print_expr(out, header, mod, retval->subs[0], T__STATEMENT);
+      fprintf(out, "\n");
+    }
     if (node->scope->parent->node->which == DEFTYPE) {
       fprintf(out, "#undef THIS\n");
     }

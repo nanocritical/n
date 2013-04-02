@@ -208,9 +208,13 @@ return self;
 
 nlang_builtins_i32 main(void){
  {
-t00_sum_sum n; memset(&n, 0, sizeof(n));n = t00_sum_sum_A_mk((nlang_builtins_u32)0);
-t00_sum_sum __gensym0; memset(&__gensym0, 0, sizeof(__gensym0));__gensym0 = t00_sum_sum_A_mk((nlang_builtins_u32)0);
-if (t00_sum_sum_operator_eq(&n, &__gensym0)) {
+t00_sum_sum n; memset(&n, 0, sizeof(n));
+n = t00_sum_sum_A_mk((nlang_builtins_u32)0);
+;
+t00_sum_sum __gensym0; memset(&__gensym0, 0, sizeof(__gensym0));
+__gensym0 = t00_sum_sum_A_mk((nlang_builtins_u32)0);
+;
+if (t00_sum_sum_operator_eq((&n), (&__gensym0))) {
 return (nlang_builtins_i32)0;
 }
 else  {

@@ -2039,6 +2039,7 @@ static error p_defarg(struct node *node, struct module *mod) {
 
 static error p_defret(struct node *node, struct module *mod) {
   node->which = DEFARG;
+  node->as.DEFARG.is_retval = TRUE;
   error e = p_expr(node_new_subnode(mod, node), mod, TCOLON);
   EXCEPT(e);
 
@@ -2831,19 +2832,19 @@ error need_instance(struct module *mod, struct node *needer, const struct typ *t
   return 0;
 }
 
-void module_return_push(struct module *mod, const struct node *return_node) {
+void module_retval_push(struct module *mod, const struct node *return_node) {
   mod->return_nodes_count += 1;
   mod->return_nodes = realloc(mod->return_nodes,
                               mod->return_nodes_count * sizeof(*mod->return_nodes));
   mod->return_nodes[mod->return_nodes_count - 1] = return_node;
 }
 
-const struct node *module_return_get(struct module *mod) {
+const struct node *module_retval_get(struct module *mod) {
   assert(mod->return_nodes_count > 0);
   return mod->return_nodes[mod->return_nodes_count - 1];
 }
 
-void module_return_pop(struct module *mod) {
+void module_retval_pop(struct module *mod) {
   assert(mod->return_nodes_count > 0);
   mod->return_nodes_count -= 1;
   mod->return_nodes = realloc(mod->return_nodes,
@@ -2963,7 +2964,11 @@ struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
 static bool typ_same_generic(const struct module *mod,
                              const struct typ *a, const struct typ *b) {
   if (a->gen_arity > 0 && b->gen_arity > 0) {
-    return a->gen_arity == b->gen_arity && typ_equal(mod, a->gen_args[0], b->gen_args[0]);
+    return typ_equal(mod, a->gen_args[0], b->gen_args[0]);
+  } else if (a->gen_arity == 0 && b->gen_arity > 0) {
+    return typ_equal(mod, a, b->gen_args[0]);
+  } else if (a->gen_arity > 0 && b->gen_arity == 0) {
+    return typ_equal(mod, a->gen_args[0], b);
   } else {
     return FALSE;
   }
@@ -2977,7 +2982,9 @@ bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *
     return TRUE;
   }
 
-  if (a->gen_arity > 0 && typ_same_generic(mod, a, b)) {
+  if (a->gen_arity > 0
+      && a->gen_arity == b->gen_arity
+      && typ_same_generic(mod, a, b)) {
     for (size_t n = 0; n < a->gen_arity; ++n) {
       if (!typ_equal(mod, a->gen_args[1+n], b->gen_args[1+n])) {
         return FALSE;
@@ -3063,7 +3070,9 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     }
   }
 
-  if (a->gen_arity > 0 && typ_same_generic(mod, a, constraint)) {
+  if (a->gen_arity > 0
+      && a->gen_arity == constraint->gen_arity
+      && typ_same_generic(mod, a, constraint)) {
     for (size_t n = 0; n < a->gen_arity; ++n) {
       error e = typ_compatible(mod, for_error, a->gen_args[1+n], constraint->gen_args[1+n]);
       EXCEPT(e);
@@ -3232,6 +3241,12 @@ error typ_unify(const struct typ **u, const struct module *mod, const struct nod
 
   if (a->gen_arity > 0) {
     // Choose the concrete typ if there is one.
+    if (typ_is_concrete(mod, a)) {
+      *u = typ_new(a->definition, a->which, a->gen_arity, 0);
+    } else {
+      *u = typ_new(b->definition, b->which, b->gen_arity, 0);
+    }
+
     for (size_t n = 0; n < a->gen_arity; ++n) {
       if (typ_is_concrete(mod, a->gen_args[1+n])) {
         (*u)->gen_args[1+n] = a->gen_args[1+n];

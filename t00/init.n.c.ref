@@ -15,9 +15,12 @@ typedef _ngen_nlang_builtins_MercurialRef__t00_init_t _ngen_nlang_builtins_Nulla
 
 nlang_builtins_i32 main(void){
  {
-t00_init_t tt; memset(&tt, 0, sizeof(tt));{
+t00_init_t tt; memset(&tt, 0, sizeof(tt));
+{
+memset(&(tt), 0, sizeof(t00_init_t));
 tt.x = (nlang_builtins_i32)1;
  }
+;
 ;
 return tt.x - (nlang_builtins_i32)1;
 }

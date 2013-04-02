@@ -1,17 +1,17 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
- DEFTYPE :t00.return.nocopy
-  IDENT(nocopy) :__internal_not_typeable__
+ DEFTYPE :t00.return.copy
+  IDENT(copy) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.ReturnByCopy
     IDENT(ReturnByCopy) :nlang.builtins.ReturnByCopy
   LET :nlang.builtins.void
-   DEFPATTERN :t00.return.nocopy
-    IDENT(this) :t00.return.nocopy
-    IDENT(nocopy) :t00.return.nocopy
-    DEFNAME(this) :t00.return.nocopy
+   DEFPATTERN :t00.return.copy
+    IDENT(this) :t00.return.copy
+    IDENT(copy) :t00.return.copy
+    DEFNAME(this) :t00.return.copy
   DEFFIELD :nlang.builtins.i32
    IDENT(x) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
@@ -21,29 +21,29 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :nlang.builtins.i32
    IDENT(x) :nlang.builtins.i32
    IDENT(i32) :nlang.builtins.i32
-  DEFARG :t00.return.nocopy
-   IDENT(n) :t00.return.nocopy
-   IDENT(nocopy) :t00.return.nocopy
+  DEFARG :t00.return.copy
+   IDENT(n) :t00.return.copy
+   IDENT(copy) :t00.return.copy
   BLOCK :nlang.builtins.void
    BIN( = ) :nlang.builtins.i32
     BIN(!) :nlang.builtins.i32
-     IDENT(n) :t00.return.nocopy
+     IDENT(n) :t00.return.copy
      IDENT(x) :__internal_not_typeable__
     IDENT(x) :nlang.builtins.i32
-   RETURN :t00.return.nocopy
-    IDENT(n) :t00.return.nocopy
+   RETURN :t00.return.copy
+    IDENT(n) :t00.return.copy
  DEFFUN :t00.return.chained
   IDENT(chained) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :nlang.builtins.i32
    IDENT(x) :nlang.builtins.i32
    IDENT(i32) :nlang.builtins.i32
-  DEFARG :t00.return.nocopy
-   IDENT(n) :t00.return.nocopy
-   IDENT(nocopy) :t00.return.nocopy
+  DEFARG :t00.return.copy
+   IDENT(n) :t00.return.copy
+   IDENT(copy) :t00.return.copy
   BLOCK :nlang.builtins.void
-   RETURN :t00.return.nocopy
-    CALL :t00.return.nocopy
+   RETURN :t00.return.copy
+    CALL :t00.return.copy
      IDENT(foo) :t00.return.foo
      IDENT(x) :nlang.builtins.i32
  DEFFUN :t00.return.main
@@ -54,7 +54,7 @@ MODULE_BODY :__internal_not_typeable__
    RETURN :nlang.builtins.i32
     BIN( - ) :nlang.builtins.i32
      BIN(.) :nlang.builtins.i32
-      CALL :t00.return.nocopy
+      CALL :t00.return.copy
        IDENT(chained) :t00.return.chained
        NUMBER(1) :nlang.builtins.i32
       IDENT(x) :__internal_not_typeable__

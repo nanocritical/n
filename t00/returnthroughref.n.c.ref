@@ -1,0 +1,62 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+struct t00_returnthroughref_t;
+typedef struct t00_returnthroughref_t t00_returnthroughref_t;
+struct t00_returnthroughref_t {
+nlang_builtins_i32 x;
+nlang_builtins_i32 xx;
+}
+;
+typedef const t00_returnthroughref_t* _ngen_nlang_builtins_Ref__t00_returnthroughref_t;
+typedef _ngen_nlang_builtins_Ref__t00_returnthroughref_t _ngen_nlang_builtins_NullableRef__t00_returnthroughref_t;
+typedef t00_returnthroughref_t* _ngen_nlang_builtins_MutableRef__t00_returnthroughref_t;
+typedef _ngen_nlang_builtins_MutableRef__t00_returnthroughref_t _ngen_nlang_builtins_MercurialRef__t00_returnthroughref_t;
+typedef _ngen_nlang_builtins_MutableRef__t00_returnthroughref_t _ngen_nlang_builtins_NullableMutableRef__t00_returnthroughref_t;
+typedef _ngen_nlang_builtins_MercurialRef__t00_returnthroughref_t _ngen_nlang_builtins_NullableMercurialRef__t00_returnthroughref_t;
+
+void t00_returnthroughref_foo(t00_returnthroughref_t *_nrtr___gensym0){
+#define __gensym0 (*_nrtr___gensym0)
+ {
+{
+memset(&(__gensym0), 0, sizeof(t00_returnthroughref_t));
+__gensym0.x = (nlang_builtins_i32)3;
+ }
+;
+return;
+}
+#undef __gensym0
+}
+
+void t00_returnthroughref_bar(t00_returnthroughref_t *_nrtr___gensym1){
+#define __gensym1 (*_nrtr___gensym1)
+ {
+t00_returnthroughref_foo(&(__gensym1));
+return;
+}
+#undef __gensym1
+}
+
+void t00_returnthroughref_bar2(t00_returnthroughref_t *_nrtr_r){
+#define r (*_nrtr_r)
+ {
+t00_returnthroughref_bar(&(r));
+;
+return;
+}
+#undef r
+}
+
+nlang_builtins_i32 main(void){
+ {
+t00_returnthroughref_t y; memset(&y, 0, sizeof(y));
+t00_returnthroughref_bar(&(y));
+;
+t00_returnthroughref_t __gensym2; memset(&__gensym2, 0, sizeof(__gensym2));
+t00_returnthroughref_bar2(&(__gensym2));
+;
+if (y.x != __gensym2.x) {
+return (nlang_builtins_i32)1;
+};
+return y.xx;
+}
+}

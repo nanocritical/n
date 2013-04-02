@@ -23,10 +23,13 @@ return self->x;
 
 nlang_builtins_i32 main(void){
  {
-t00_unary_t tt; memset(&tt, 0, sizeof(tt));{
+t00_unary_t tt; memset(&tt, 0, sizeof(tt));
+{
+memset(&(tt), 0, sizeof(t00_unary_t));
 tt.x = (nlang_builtins_i32)0;
  }
 ;
-return t00_unary_t_get(&tt);
+;
+return t00_unary_t_get((&tt));
 }
 }

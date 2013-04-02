@@ -32,11 +32,14 @@ return x - (nlang_builtins_i32)1;
 
 nlang_builtins_i32 main(void){
  {
-t01_genericmethod_blah b; memset(&b, 0, sizeof(b));{
+t01_genericmethod_blah b; memset(&b, 0, sizeof(b));
+{
+memset(&(b), 0, sizeof(t01_genericmethod_blah));
 b.dummy = (nlang_builtins_u8)0;
  }
 ;
-_ngen_t01_genericmethod_blah_decr__nlang_builtins_u32(&b, (nlang_builtins_u32)1);
-return _ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32(&b, (nlang_builtins_i32)1);
+;
+_ngen_t01_genericmethod_blah_decr__nlang_builtins_u32((&b), (nlang_builtins_u32)1);
+return _ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32((&b), (nlang_builtins_i32)1);
 }
 }

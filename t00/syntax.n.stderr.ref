@@ -1,2 +1,12 @@
-t00/syntax.n:11:31: type: Return through ref not yet supported
-
+t00/syntax.n.c.out: In function ‘t00_syntax_foo’:
+t00/syntax.n.c.out:24:1: warning: statement with no effect [-Wunused-value]
+t00/syntax.n.c.out: In function ‘t00_syntax_foobar’:
+t00/syntax.n.c.out:61:1: error: ‘pre’ undeclared (first use in this function)
+t00/syntax.n.c.out:61:1: note: each undeclared identifier is reported only once for each function it appears in
+t00/syntax.n.c.out:61:5: error: expected ‘;’ before ‘{’ token
+t00/syntax.n.c.out:64:1: error: ‘post’ undeclared (first use in this function)
+t00/syntax.n.c.out:64:6: error: expected ‘;’ before ‘{’ token
+t00/syntax.n.c.out: At top level:
+t00/syntax.n.c.out:30:27: warning: inline function ‘t00_syntax_other4’ declared but never defined [enabled by default]
+t00/syntax.n.c.out:30:27: warning: inline function ‘t00_syntax_other4’ declared but never defined [enabled by default]
+command exited with 1: gcc -Wall -std=c99 -pedantic -I. -xc t00/syntax.n.c.out -c -o t00/syntax.n.o

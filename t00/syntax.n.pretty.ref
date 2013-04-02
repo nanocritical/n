@@ -1,0 +1,40 @@
+from nlang import *
+export fun main = i32
+  let x = 1:i32
+  let y = 2 + x
+  return 0 + y
+
+export fun main2 = i32
+  return 0
+
+export inline fun foo = __gensym0:string
+  return 'test'
+
+inline fun other4 x:i32 = i32
+
+extern fun other5 x:i32 = i32
+
+
+type test = ia
+  let this = test
+  t:i32
+
+test method foo self:@this = i32
+  let y = x
+  return y
+
+fun foobar x:i32 = i32
+  pre
+    x != 0
+  post
+    x != 0
+  return 0
+
+fun foobar2 = void
+  return
+
+type enu =
+  let this = enu
+  | V1 = 0
+  | V2 = 0 + 1
+  | V3 = 0 + 1 + 1

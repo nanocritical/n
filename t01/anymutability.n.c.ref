@@ -15,16 +15,19 @@ typedef _ngen_nlang_builtins_MercurialRef__t01_anymutability_c _ngen_nlang_built
 
 _ngen_nlang_builtins_Ref__nlang_builtins_i32 _ngen_t01_anymutability_get__nlang_builtins_Ref(_ngen_nlang_builtins_Ref__t01_anymutability_c m){
  {
-return &m->x;
+return (&m->x);
 }
 }
 
 nlang_builtins_i32 main(void){
  {
-t01_anymutability_c x; memset(&x, 0, sizeof(x));{
+t01_anymutability_c x; memset(&x, 0, sizeof(x));
+{
+memset(&(x), 0, sizeof(t01_anymutability_c));
 x.x = (nlang_builtins_i32)0;
  }
 ;
-return (*_ngen_t01_anymutability_get__nlang_builtins_Ref(&x));
+;
+return (*_ngen_t01_anymutability_get__nlang_builtins_Ref((&x)));
 }
 }

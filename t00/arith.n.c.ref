@@ -2,7 +2,9 @@
 #include "lib/nlang/module.n.h.out"
 nlang_builtins_i32 main(void){
  {
-nlang_builtins_i32 x; memset(&x, 0, sizeof(x));x = (nlang_builtins_i32)2;
+nlang_builtins_i32 x; memset(&x, 0, sizeof(x));
+x = (nlang_builtins_i32)2;
+;
 return x - (nlang_builtins_i32)2;
 }
 }

@@ -1,13 +1,13 @@
 from nlang import *
 
-type nocopy = ReturnByCopy
+type copy = ReturnByCopy
   x:i32
 
-fun foo x:i32 = n:nocopy
+fun foo x:i32 = n:copy
   n!x = x
   return n
 
-fun chained x:i32 = n:nocopy
+fun chained x:i32 = n:copy
   return foo x
 
 export fun main = i32

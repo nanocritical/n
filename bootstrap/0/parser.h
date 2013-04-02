@@ -134,10 +134,14 @@ struct node_un {
   enum token_type operator;
 };
 struct node_tuple {};
-struct node_call {};
+struct node_call {
+  const struct node *return_through_ref_expr;
+};
 struct node_future {};
 struct node_lambda {};
-struct node_init {};
+struct node_init {
+  const struct node *target_expr;
+};
 struct node_return {};
 struct node_for {
   struct node *pattern;
@@ -186,7 +190,9 @@ struct node_defname {
   struct node *expr;
 };
 struct node_defpattern {};
-struct node_defarg {};
+struct node_defarg {
+  bool is_retval;
+};
 struct node_defgenarg {
   bool is_explicit;
 };
@@ -568,9 +574,9 @@ void globalctx_init(struct globalctx *gctx);
 error module_open(struct globalctx *gctx, struct module *mod,
                   const char *prefix, const char *fn);
 error need_instance(struct module *mod, struct node *needer, const struct typ *typ);
-void module_return_push(struct module *mod, const struct node *return_node);
-const struct node *module_return_get(struct module *mod);
-void module_return_pop(struct module *mod);
+void module_retval_push(struct module *mod, const struct node *return_node);
+const struct node *module_retval_get(struct module *mod);
+void module_retval_pop(struct module *mod);
 void module_excepts_open_try(struct module *mod);
 void module_excepts_push(struct module *mod, struct node *return_node);
 void module_excepts_close_try(struct module *mod);
