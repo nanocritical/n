@@ -235,7 +235,7 @@ eol:
   "\n" { spaces = 0; goto eol; }
   "-" {
     YYFILL(1);
-    if (YYCURSOR[1] == '-') {
+    if (*YYCURSOR == '-') {
       YYCURSOR += 1;
       goto comment_while_eol;
     } else {
