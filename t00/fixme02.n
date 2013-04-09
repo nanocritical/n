@@ -1,0 +1,7 @@
+from nlang import *
+
+fun returns_tmp = @i32
+  return @0:i32
+
+fun main = i32
+  return (returns_tmp).

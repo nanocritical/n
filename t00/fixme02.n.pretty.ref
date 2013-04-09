@@ -1,0 +1,7 @@
+from nlang import *
+fun returns_tmp = @i32
+  let __gensym0 = 0:i32
+  return @__gensym0
+
+fun main = i32
+  return .(returns_tmp)
