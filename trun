@@ -37,7 +37,9 @@ for t in $list; do
 		if [ -f $t.$all.ref ] || [ -f $t.$all.out ]; then
 			if ! cmp -s $t.$all.ref $t.$all.out; then
 				echo "FAILED $t: different output '$all'"
-				diff -Nu $t.$all.ref $t.$all.out
+				if [ "$all" = "stderr" ]; then
+					diff -Nu $t.$all.ref $t.$all.out
+				fi
 			fi
 		fi
 	done
