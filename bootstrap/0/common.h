@@ -176,4 +176,28 @@ static inline char *strdup(const char *s) {
   return r;
 }
 
+// Must free return value
+static inline char *xdirname(const char *s) {
+  if (s == NULL) {
+    return strdup(".");
+  } else if (strcmp(s, "/") == 0) {
+    return strdup("/");
+  } else {
+    const size_t len = strlen(s);
+    ssize_t n;
+    for (n = len - 1; n >= 0; --n) {
+      if (s[n] == '/') {
+        break;
+      }
+    }
+    if (n < 0) {
+      return strdup(s);
+    } else {
+      char *r = calloc(n, sizeof(char));
+      memcpy(r, s, n);
+      return r;
+    }
+  }
+}
+
 #endif
