@@ -1076,7 +1076,7 @@ void globalctx_init(struct globalctx *gctx) {
 
 static error module_read(struct module *mod, const char *prefix, const char *fn) {
   char *fullpath = NULL;
-  if (prefix != NULL) {
+  if (prefix != NULL && strlen(prefix) > 0) {
     fullpath = calloc(strlen(prefix) + 1 + strlen(fn) + 1, sizeof(char));
     strcpy(fullpath, prefix);
     fullpath[strlen(prefix)] = '/';

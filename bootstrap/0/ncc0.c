@@ -196,22 +196,29 @@ static void import_filename(char **fn, size_t *len,
   }
 }
 
-static error lookup_import(char **fn, struct module *mod, struct node *import,
-                           const char *prefix) {
+static void import_module_path(char **module_path, size_t *mplen,
+                               struct module *mod, struct node *import) {
+  import_filename(module_path, mplen, mod, import);
+  char *mp = *module_path;
+  for (size_t n = 0; mp[n] != '\0'; ++n) {
+    if (mp[n] == '/') {
+      mp[n] = '.';
+    }
+  }
+}
+
+
+static error try_import(char **fn, struct module *mod, struct node *import,
+                        const char *prefix) {
   assert(import->which == IMPORT);
   struct node *import_path = import->subs[0];
 
   *fn = NULL;
 
-  size_t len = 0;
-  size_t prefix_len = 0;
-  char *base = NULL;
-  if (prefix != NULL) {
-    prefix_len = strlen(prefix);
-    len = prefix_len;
-    base = calloc(len + 1, sizeof(char));
-    strcpy(base, prefix);
-  }
+  size_t prefix_len = strlen(prefix);
+  size_t len = prefix_len;
+  char *base = calloc(len + 1, sizeof(char));
+  strcpy(base, prefix);
 
   import_filename(&base, &len, mod, import_path);
 
@@ -247,14 +254,40 @@ static error lookup_import(char **fn, struct module *mod, struct node *import,
   free(dir);
   free(base);
 
-  error e = mk_except(mod, import, "module not found");
+  return EINVAL;
+}
+
+static error lookup_import(const char **prefix, char **fn,
+                           struct module *mod, struct node *import,
+                           const char **prefixes) {
+  for (size_t n = 0; prefixes[n] != NULL; ++n) {
+    error e = try_import(fn, mod, import, prefixes[n]);
+    if (!e) {
+      *prefix = prefixes[n];
+      return 0;
+    }
+  }
+
+  char *module_path = NULL;
+  size_t module_path_len = 0;
+  struct node *import_path = import->subs[0];
+  import_module_path(&module_path, &module_path_len, mod, import_path);
+
+  fprintf(stderr, "After looking up in directories:\n");
+  for (size_t n = 0; prefixes[n] != NULL; ++n) {
+    fprintf(stderr, "\t%s\n", prefixes[n]);
+  }
+
+  error e = mk_except(mod, import, "module '%s' not found", module_path);
+  free(module_path);
   EXCEPT(e);
   return 0;
 }
 
 static error load_import(struct node *node, void *user, bool *stop) {
   assert(node->which == IMPORT);
-  struct module *mod = user;
+  const char **prefixes = user;
+  struct module *mod = node_module_owner(node);
 
   struct node *existing = NULL;
   error e = scope_lookup_module(&existing, mod, node->subs[0]);
@@ -262,11 +295,12 @@ static error load_import(struct node *node, void *user, bool *stop) {
     return 0;
   }
 
+  const char *prefix = NULL;
   char *fn = NULL;
-  e = lookup_import(&fn, mod, node, "lib");
+  e = lookup_import(&prefix, &fn, mod, node, prefixes);
   EXCEPT(e);
 
-  e = load_module(mod->gctx, "lib", fn);
+  e = load_module(mod->gctx, prefix, fn);
   free(fn);
   EXCEPT(e);
 
@@ -277,6 +311,7 @@ static error load_import(struct node *node, void *user, bool *stop) {
 
 static error load_imports(struct node *node, void *user, bool *stop) {
   assert(node->which == MODULE);
+  const char **prefixes = user;
 
   if (node->as.MODULE.is_placeholder) {
     return 0;
@@ -284,7 +319,7 @@ static error load_imports(struct node *node, void *user, bool *stop) {
 
   assert(node->as.MODULE.mod != NULL);
   error e = for_all_nodes(node->as.MODULE.mod->root, IMPORT, load_import,
-                          node->as.MODULE.mod);
+                          prefixes);
   EXCEPT(e);
 
   return 0;
@@ -415,7 +450,8 @@ int main(int argc, char **argv) {
   error e = load_module(&gctx, NULL, argv[1]);
   EXCEPT(e);
 
-  e = for_all_nodes(&gctx.modules_root, MODULE, load_imports, NULL);
+  const char *prefixes[] = { "", "lib", NULL };
+  e = for_all_nodes(&gctx.modules_root, MODULE, load_imports, prefixes);
   EXCEPT(e);
 
   struct dependencies deps;
