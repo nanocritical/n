@@ -656,8 +656,8 @@ error typ_check_isa(const struct module *mod, const struct node *for_error,
 error typ_find_matching_concrete_isa(const struct typ **concrete,
                                      const struct module *mod, const struct node *for_error,
                                      const struct typ *a, const struct typ *intf);
-error mk_except(const struct module *mod, const struct node *node, const char *fmt);
-error mk_except_type(const struct module *mod, const struct node *node, const char *fmt);
+error mk_except(const struct module *mod, const struct node *node, const char *fmt, ...);
+error mk_except_type(const struct module *mod, const struct node *node, const char *fmt, ...);
 error mk_except_call_args_count(const struct module *mod, const struct node *node,
                                 const struct node *definition, size_t extra, size_t given);
 char *typ_name(const struct module *mod, const struct typ *t);

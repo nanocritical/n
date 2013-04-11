@@ -34,11 +34,28 @@ typedef int error;
   } \
 } while (0)
 
+#define GOTO_EXCEPT(_e) do { \
+  if (_e) { \
+    e = _e; \
+    fprintf(stderr, "\tE: %s:%d: %s()\n", __FILE__, __LINE__, __func__); \
+    goto except; \
+  } \
+} while (0)
+
 #define EXCEPTF(e, fmt, ...) do { \
   if (e) { \
     fprintf(stderr, fmt "\n", ##__VA_ARGS__); \
     fprintf(stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
     return e; \
+  } \
+} while (0)
+
+#define GOTO_EXCEPTF(_e, fmt, ...) do { \
+  if (_e) { \
+    e = _e; \
+    fprintf(stderr, fmt "\n", ##__VA_ARGS__); \
+    fprintf(stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
+    goto except; \
   } \
 } while (0)
 

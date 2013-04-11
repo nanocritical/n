@@ -297,18 +297,16 @@ static int column(const struct parser *parser, const struct token *tok) {
   EXCEPT_SYNTAX(mod, tok, "unexpected token '%.*s'", (int)(tok)->len, (tok)->value); \
 } while (0)
 
-#define EXCEPT_PARSE(mod, codeloc, fmt, ...) do { \
+#define GOTO_EXCEPT_PARSE(mod, codeloc, fmt, ...) do { \
   struct token tok; \
   tok.value = mod->parser.data + codeloc; \
-  EXCEPTF(EINVAL, "%s:%d:%d: parse: " fmt, \
-          mod->filename, line(&mod->parser, &tok), column(&mod->parser, &tok), ##__VA_ARGS__); \
+  GOTO_EXCEPTF(EINVAL, "%s:%d:%d: parse: " fmt, \
+               mod->filename, line(&mod->parser, &tok), column(&mod->parser, &tok), ##__VA_ARGS__); \
 } while (0)
 
-#define EXCEPT_TYPE(mod, node, fmt, ...) do { \
-  struct token tok; \
-  tok.value = mod->parser.data + node->codeloc; \
-  EXCEPTF(EINVAL, "%s:%d:%d: type: " fmt, \
-          mod->filename, line(&mod->parser, &tok), column(&mod->parser, &tok), ##__VA_ARGS__); \
+#define GOTO_EXCEPT_TYPE(mod, node, fmt, ...) do { \
+  e = mk_except_type(mod, node, fmt, ##__VA_ARGS__); \
+  GOTO_EXCEPT(e); \
 } while (0)
 
 HTABLE_SPARSE(scope_map, struct node *, ident);
@@ -656,12 +654,15 @@ error scope_define_ident(const struct module *mod, struct scope *scope, ident id
     existing_tok.t = TIDENT;
     existing_tok.value = existing_mod->parser.data + (*existing)->codeloc;
     existing_tok.len = 0;
-    const char *scname = scope_name(mod, scope);
-    EXCEPT_PARSE(try_node_module_owner_const(mod, node), node->codeloc,
-                 "in scope %s: identifier '%s' already defined at %s:%d:%d",
-                 scname, idents_value(mod->gctx, id), existing_mod->filename,
-                 line(&existing_mod->parser, &existing_tok), column(&existing_mod->parser, &existing_tok));
-    // FIXME: leaking scname.
+    char *scname = scope_name(mod, scope);
+    error e = 0;
+    GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, node), node->codeloc,
+                      "in scope %s: identifier '%s' already defined at %s:%d:%d",
+                      scname, idents_value(mod->gctx, id), existing_mod->filename,
+                      line(&existing_mod->parser, &existing_tok), column(&existing_mod->parser, &existing_tok));
+except:
+    free(scname);
+    return e;
   }
 
   if (existing != NULL) {
@@ -729,12 +730,16 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
   if (failure_ok) {
     return EINVAL;
   } else {
-    const char *scname = scope_name(mod, scope);
-    const char *wscname = scope_name(mod, within);
-    EXCEPT_PARSE(try_node_module_owner_const(mod, within->node), scope->node->codeloc,
-                 "in scope %s: from scope %s: unknown identifier '%s'",
-                 scname, wscname, idents_value(mod->gctx, id));
-    // FIXME: leaking scname.
+    error e = 0;
+    char *scname = scope_name(mod, scope);
+    char *wscname = scope_name(mod, within);
+    GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, within->node), scope->node->codeloc,
+                      "in scope %s: from scope %s: unknown identifier '%s'",
+                      scname, wscname, idents_value(mod->gctx, id));
+except:
+    free(wscname);
+    free(scname);
+    return e;
   }
 
   return 0;
@@ -761,12 +766,15 @@ static error do_scope_lookup_ident_wontimport(struct node **result, const struct
     if (failure_ok) {
       return e;
     } else {
-      const char *scname = scope_name(mod, scope);
-      const char *wscname = scope_name(mod, within);
-      EXCEPT_PARSE(try_node_module_owner_const(mod, within->node), scope->node->codeloc,
-                   "in scope %s: from scope %s: unknown identifier '%s'",
-                   scname, wscname, idents_value(mod->gctx, id));
-      // FIXME: leaking scname.
+      char *scname = scope_name(mod, scope);
+      char *wscname = scope_name(mod, within);
+      GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, within->node), scope->node->codeloc,
+                        "in scope %s: from scope %s: unknown identifier '%s'",
+                        scname, wscname, idents_value(mod->gctx, id));
+except:
+      free(wscname);
+      free(scname);
+      return e;
     }
   }
 
@@ -792,6 +800,8 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
                              const struct scope *scope, const struct node *id,
                              const struct scope *within, bool failure_ok) {
   error e;
+  char *scname = NULL;
+  char *wscname = NULL;
   struct node *parent = NULL, *r = NULL;
 
   switch (id->which) {
@@ -810,10 +820,10 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
     if (id->as.BIN.operator != TDOT
            && id->as.BIN.operator != TBANG
            && id->as.BIN.operator != TSHARP) {
-      EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
+      GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
     }
     if (id->subs[1]->which != IDENT) {
-      EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
+      GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
     }
 
     e = do_scope_lookup(&parent, mod, scope, id->subs[0], within, failure_ok);
@@ -853,12 +863,11 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
     if (r->which == IMPORT
         && node_module_owner_const(r) != node_module_owner_const(id)
         && !r->as.IMPORT.toplevel.is_export) {
-      const char *scname = scope_name(mod, scope);
-      const char *wscname = scope_name(mod, within);
-      EXCEPT_PARSE(try_node_module_owner_const(mod, scope->node), scope->node->codeloc,
-                   "in scope %s: imported from scope %s: not exported",
-                   scname, wscname);
-      // FIXME: leaking scname.
+      scname = scope_name(mod, scope);
+      wscname = scope_name(mod, within);
+      GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, scope->node), scope->node->codeloc,
+                        "in scope %s: imported from scope %s: not exported",
+                        scname, wscname);
     }
     break;
   case DIRECTDEF:
@@ -870,8 +879,12 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
   }
 
   *result = r;
-
   return 0;
+
+except:
+  free(wscname);
+  free(scname);
+  return e;
 }
 
 error scope_lookup(struct node **result, const struct module *mod,
@@ -892,7 +905,9 @@ error scope_lookup_module(struct node **result, const struct module *mod,
     break;
   case BIN:
     if (id->as.BIN.operator != TDOT) {
-      EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed module path name");
+      GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed module path name");
+except:
+      return e;
     }
     e = do_scope_lookup(&parent, mod, scope, id->subs[0], within, TRUE);
     if (e) {
@@ -3019,10 +3034,15 @@ error typ_check_equal(const struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-              "'%s' not equal to type '%s'",
-              typ_pretty_name(mod, a), typ_pretty_name(mod, b));
-  // FIXME: leaking typ_names.
+  error e = 0;
+  char *na = typ_pretty_name(mod, a);
+  char *nb = typ_pretty_name(mod, b);
+  GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                   "'%s' not equal to type '%s'", na, nb);
+except:
+  free(nb);
+  free(na);
+  return e;
 }
 
 error typ_compatible(const struct module *mod, const struct node *for_error,
@@ -3080,10 +3100,15 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-              "'%s' not compatible with constraint '%s'",
-              typ_pretty_name(mod, a), typ_pretty_name(mod, constraint));
-  // FIXME: leaking typ_names.
+  error e = 0;
+  char *na = typ_pretty_name(mod, a);
+  char *nconstraint = typ_pretty_name(mod, constraint);
+  GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                   "'%s' not compatible with constraint '%s'", na, nconstraint);
+except:
+  free(nconstraint);
+  free(na);
+  return e;
 }
 
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error,
@@ -3092,9 +3117,13 @@ error typ_compatible_numeric(const struct module *mod, const struct node *for_er
     return 0;
   }
 
-  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error, "'%s' type is not numeric",
-              typ_pretty_name(mod, a));
-  // FIXME: leaking typ_names.
+  error e = 0;
+  char *na = typ_pretty_name(mod, a);
+  GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                   "'%s' type is not numeric", na);
+except:
+  free(na);
+  return e;
 }
 
 bool typ_is_reference_instance(const struct module *mod, const struct typ *a) {
@@ -3131,10 +3160,12 @@ static const char *string_for_ref[TOKEN__NUM] = {
 
 error typ_compatible_reference(const struct module *mod, const struct node *for_error,
                                enum token_type operator, const struct typ *a) {
+  error e = 0;
+  char *na = NULL;
   if (!typ_is_reference_instance(mod, a)) {
-    EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-                "'%s' type is not a reference", typ_pretty_name(mod, a));
-    // FIXME: leaking typ_names.
+    na = typ_pretty_name(mod, a);
+    GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                     "'%s' type is not a reference", na);
   }
 
   assert(tbi_for_ref[operator] != 0);
@@ -3142,18 +3173,23 @@ error typ_compatible_reference(const struct module *mod, const struct node *for_
     return 0;
   }
 
-  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-              "constraint '%s' not compatible with reference operator '%s'",
-              typ_pretty_name(mod, a), string_for_ref[operator]);
-  // FIXME: leaking typ_names.
+  GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                   "constraint '%s' not compatible with reference operator '%s'",
+                   typ_pretty_name(mod, a), string_for_ref[operator]);
+
+except:
+    free(na);
+    return e;
 }
 
 error typ_check_can_deref(const struct module *mod, const struct node *for_error,
                           const struct typ *a, enum token_type operator) {
+  error e = 0;
+  char *na = NULL;
   if (!typ_is_reference_instance(mod, a)) {
-    EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-                "'%s' type is not a reference", typ_pretty_name(mod, a));
-    // FIXME: leaking typ_names.
+    na = typ_pretty_name(mod, a);
+    GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                     "'%s' type is not a reference", na);
   }
 
   bool ok = FALSE;
@@ -3175,11 +3211,13 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
     return 0;
   }
 
-  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-              "'%s' type cannot be dereferenced with '%s'",
-              typ_pretty_name(mod, a), string_for_ref[operator]);
-  // FIXME: leaking typ_names.
-  return 0;
+  na = typ_pretty_name(mod, a);
+  GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                   "'%s' type cannot be dereferenced with '%s'",
+                   na, string_for_ref[operator]);
+except:
+  free(na);
+  return e;
 }
 
 error typ_check_deref_against_mark(const struct module *mod, const struct node *for_error,
@@ -3201,11 +3239,14 @@ error typ_check_deref_against_mark(const struct module *mod, const struct node *
     return 0;
   }
 
-  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-              "'%s' type cannot be dereferenced with '%s' in a %s context",
-              typ_pretty_name(mod, node->typ), token_strings[operator], kind);
-  // FIXME: leaking typ_names.
-  return 0;
+  error e = 0;
+  char *nt = typ_pretty_name(mod, node->typ);
+  GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                   "'%s' type cannot be dereferenced with '%s' in a %s context",
+                   nt, token_strings[operator], kind);
+except:
+  free(nt);
+  return e;
 }
 
 bool typ_is_concrete(const struct module *mod, const struct typ *a) {
@@ -3327,16 +3368,20 @@ error typ_check_isa(const struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-              "'%s' not isa intf '%s'",
-              typ_pretty_name(mod, a), typ_pretty_name(mod, intf));
-  // FIXME: leaking typ_names.
+  error e = 0;
+  char *na = typ_pretty_name(mod, a);
+  char *nintf = typ_pretty_name(mod, intf);
+  GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                   "'%s' not isa intf '%s'", na, nintf);
+except:
+  free(nintf);
+  free(na);
+  return e;
 }
 
 error typ_find_matching_concrete_isa(const struct typ **concrete,
                                      const struct module *mod, const struct node *for_error,
                                      const struct typ *a, const struct typ *intf) {
-  error e;
   if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_ANY))) {
     *concrete = intf;
     return 0;
@@ -3347,14 +3392,17 @@ error typ_find_matching_concrete_isa(const struct typ **concrete,
     return 0;
   }
 
+  error e = 0;
+  char *na = NULL;
+  char *nintf = NULL;
+
   if (a->gen_arity > 0
       && intf->gen_arity == 0
       && intf->definition->subs[IDX_GENARGS]->subs_count > 0) {
     // intf is a "2nd order" generic, i.e. the generic functor itself.
-    EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-                "'%s' is a second order generic",
-                typ_pretty_name(mod, intf));
-    // FIXME: leaking typ_names.
+    nintf = typ_pretty_name(mod, intf);
+    GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                     "'%s' is a second order generic", nintf);
   }
 
   // Literals types do not have a isalist.
@@ -3395,30 +3443,68 @@ error typ_find_matching_concrete_isa(const struct typ **concrete,
     }
   }
 
-  EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
-              "'%s' not isa concrete intf '%s'",
-              typ_pretty_name(mod, a), typ_pretty_name(mod, intf));
-  // FIXME: leaking typ_names.
+  na = typ_pretty_name(mod, a);
+  nintf = typ_pretty_name(mod, intf);
+  GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                   "'%s' not isa concrete intf '%s'",
+                   typ_pretty_name(mod, a), typ_pretty_name(mod, intf));
+
+except:
+  free(nintf);
+  free(na);
+  return e;
 }
 
-error mk_except(const struct module *mod, const struct node *node, const char *fmt) {
+error mk_except(const struct module *mod, const struct node *node,
+                const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  char s[2048];
+  vsnprintf(s, ARRAY_SIZE(s), fmt, ap);
+
+  const struct module *actual_mod = try_node_module_owner_const(mod, node);
+
   struct token tok;
   tok.value = mod->parser.data + node->codeloc;
-  EXCEPTF(EINVAL, "%s:%d:%d: type: %s",
-          mod->filename, line(&mod->parser, &tok),
-          column(&mod->parser, &tok), fmt);
-  return 0;
+
+  error e = 0;
+  GOTO_EXCEPTF(EINVAL, "%s:%d:%d: %s",
+               actual_mod->filename, line(&actual_mod->parser, &tok),
+               column(&actual_mod->parser, &tok), s);
+
+except:
+  va_end(ap);
+  return e;
 }
 
-error mk_except_type(const struct module *mod, const struct node *node, const char *fmt) {
-  EXCEPT_TYPE(try_node_module_owner_const(mod, node), node, "%s", fmt);
-  return 0;
+error mk_except_type(const struct module *mod, const struct node *node,
+                     const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  char s[2048];
+  vsnprintf(s, ARRAY_SIZE(s), fmt, ap);
+
+  const struct module *actual_mod = try_node_module_owner_const(mod, node);
+
+  struct token tok;
+  tok.value = mod->parser.data + node->codeloc;
+
+  error e = 0;
+  GOTO_EXCEPTF(EINVAL, "%s:%d:%d: type: %s",
+               actual_mod->filename, line(&actual_mod->parser, &tok),
+               column(&actual_mod->parser, &tok), s);
+
+except:
+  va_end(ap);
+  return e;
 }
 
 error mk_except_call_args_count(const struct module *mod, const struct node *node,
                                 const struct node *definition, size_t extra, size_t given) {
-  EXCEPT_TYPE(try_node_module_owner_const(mod, node), node, "invalid number of arguments: %zd expected, but %zd given",
-              node_fun_explicit_args_count(definition) + extra, given);
+  error e = mk_except_type(mod, node,
+                           "invalid number of arguments: %zd expected, but %zd given",
+                           node_fun_explicit_args_count(definition) + extra, given);
+  EXCEPT(e);
   return 0;
 }
 
