@@ -2987,11 +2987,11 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   struct node *fun = mk_node(mod, node, BIN);
   fun->as.BIN.operator = TDOT;
   struct node *base = mk_node(mod, fun, DIRECTDEF);
-  base->as.DIRECTDEF.definition = node->subs[0]->typ->definition;
+  base->as.DIRECTDEF.definition = left->typ->definition;
   struct node *member = mk_node(mod, fun, IDENT);
   member->as.IDENT.name = operator_ident[op];
 
-  struct node *except[] = { node->subs[0], node->subs[1], NULL };
+  struct node *except[] = { left, node->subs[1], NULL };
 
   rew_insert_last_at(node, 0);
   node->subs[1] = expr_ref(TREFDOT, node->subs[1]);
@@ -3011,6 +3011,11 @@ static error step_dtor_call_inference(struct module *mod, struct node *node, voi
   return 0;
 }
 
+static bool expr_is_return_through_ref(struct module *mod, struct node *expr) {
+  return (expr->which == INIT || expr->which == CALL)
+    && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
+}
+
 static error step_copy_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   return 0;
 }
@@ -3023,10 +3028,8 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
       return 0;
     }
     expr = node->subs[0];
-    if (expr->which != CALL && expr->which != INIT) {
-      return 0;
-    }
-    if (typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+
+    if (!expr_is_return_through_ref(mod, expr)) {
       return 0;
     }
 
@@ -3043,15 +3046,12 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
         continue;
       }
       struct node *expr = d->as.DEFNAME.expr;
-      if (expr == NULL || (expr->which != CALL && expr->which != INIT)) {
-        continue;
+      if (expr == NULL) {
+        // noop
       } else if (expr->which == INIT) {
         expr->as.INIT.target_expr = d->as.DEFNAME.pattern;
-      } else if (expr->which == CALL
-                 && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+      } else if (expr->which == CALL && expr_is_return_through_ref(mod, expr)) {
         expr->as.CALL.return_through_ref_expr = d->as.DEFNAME.pattern;
-      } else {
-        // noop
       }
     }
     return 0;
@@ -3061,12 +3061,9 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
     }
     struct node *left = node->subs[0];
     struct node *right = node->subs[1];
-    if (right->which != CALL && right->which != INIT) {
-      return 0;
-    } else if (right->which == INIT) {
+    if (right->which == INIT) {
       right->as.INIT.target_expr = left;
-    } else if (right->which == CALL
-               && !typ_isa(mod, right->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+    } else if (right->which == CALL && expr_is_return_through_ref(mod, right)) {
       right->as.CALL.return_through_ref_expr = left;
     }
     return 0;
