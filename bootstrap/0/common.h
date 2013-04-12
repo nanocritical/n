@@ -193,7 +193,7 @@ static inline char *xdirname(const char *s) {
     if (n < 0) {
       return strdup(s);
     } else {
-      char *r = calloc(n, sizeof(char));
+      char *r = calloc(n + 1, sizeof(char));
       memcpy(r, s, n);
       return r;
     }
