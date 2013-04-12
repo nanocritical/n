@@ -890,7 +890,7 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
     }
     break;
   case INIT:
-    mark_subs(mod, node, pending, 1, node->subs_count, 1);
+    mark_subs(mod, node, pending, 1, node->subs_count, 2);
     break;
   case CALL:
     if (node->subs[0]->typ == NULL) {
