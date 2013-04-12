@@ -149,7 +149,8 @@ static error for_all_nodes(struct node *root,
   return 0;
 }
 
-static error load_module(struct globalctx *gctx, const char *prefix, const char *fn) {
+static error load_module(struct module **main_mod,
+                         struct globalctx *gctx, const char *prefix, const char *fn) {
 
   //FIXME check if already loaded.
 
@@ -160,6 +161,10 @@ static error load_module(struct globalctx *gctx, const char *prefix, const char 
 
   e = zeropass(mod, NULL, NULL);
   EXCEPT(e);
+
+  if (main_mod != NULL) {
+    *main_mod = mod;
+  }
 
   return 0;
 }
@@ -307,9 +312,13 @@ static error load_import(struct node *node, void *user, bool *stop) {
   e = lookup_import(&prefix, &fn, mod, node, prefixes);
   EXCEPT(e);
 
-  e = load_module(mod->gctx, prefix, fn);
+  e = load_module(NULL, mod->gctx, prefix, fn);
   free(fn);
   EXCEPT(e);
+
+  // Once the imported module is loaded, it shows up in gctx->modules_root
+  // and will be processed by the current for_all_nodes() in load_imports()
+  // below.
 
   *stop = TRUE;
 
@@ -340,9 +349,17 @@ struct dependencies {
   struct globalctx *gctx;
 };
 
-static error gather_dependencies_in_module(struct node *node, void *user, bool *stop) {
-  assert(node->which == IMPORT);
+static error gather_dependencies(struct node *node, struct dependencies *deps);
+
+static error step_gather_dependencies_in_module(struct module *mod, struct node *node, void *user, bool *stop) {
   struct dependencies *deps = user;
+
+  if (node->which == MODULE) {
+    *stop = TRUE;
+    return 0;
+  } else if (node->which != IMPORT) {
+    return 0;
+  }
 
   struct node *nmod = NULL;
   error e = scope_lookup_module(&nmod, node_module_owner(node), node->subs[0]);
@@ -353,14 +370,16 @@ static error gather_dependencies_in_module(struct node *node, void *user, bool *
 
   deps->tmp_count += 1;
   deps->tmp = realloc(deps->tmp, deps->tmp_count * sizeof(*deps->tmp));
-  deps->tmp[deps->tmp_count - 1] = nmod->as.MODULE.mod;
+  deps->tmp[deps->tmp_count - 1] = node_module_owner(nmod);
+
+  e = gather_dependencies(nmod, deps);
+  EXCEPT(e);
 
   return 0;
 }
 
-static error gather_dependencies(struct node *node, void *user, bool *stop) {
+static error gather_dependencies(struct node *node, struct dependencies *deps) {
   assert(node->which == MODULE);
-  struct dependencies *deps = user;
 
   if (node->as.MODULE.is_placeholder) {
     return 0;
@@ -370,8 +389,21 @@ static error gather_dependencies(struct node *node, void *user, bool *stop) {
   deps->tmp = realloc(deps->tmp, deps->tmp_count * sizeof(*deps->tmp));
   deps->tmp[deps->tmp_count - 1] = node_module_owner(node);
 
-  error e = for_all_nodes(node, IMPORT, gather_dependencies_in_module, deps);
-  EXCEPT(e);
+  static const step down[] = {
+    step_gather_dependencies_in_module,
+    NULL,
+  };
+
+  static const step up[] = {
+    NULL,
+  };
+
+  // In this pass, we stop at MODULE, but we start from one, therefore we go
+  // through the subs explicitly.
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    error e = pass(node_module_owner(node), node->subs[n], down, up, NULL, deps);
+    EXCEPT(e);
+  }
 
   return 0;
 }
@@ -454,7 +486,8 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  error e = load_module(&gctx, NULL, argv[1]);
+  struct module *main_mod = NULL;
+  error e = load_module(&main_mod, &gctx, NULL, argv[1]);
   EXCEPT(e);
 
   const char *prefixes[] = { "", "lib", NULL };
@@ -465,8 +498,9 @@ int main(int argc, char **argv) {
   memset(&deps, 0, sizeof(deps));
   deps.gctx = &gctx;
 
-  e = for_all_nodes(&gctx.modules_root, MODULE, gather_dependencies, &deps);
+  e = gather_dependencies(main_mod->root, &deps);
   EXCEPT(e);
+
   e = calculate_dependencies(&deps);
   EXCEPT(e);
 
