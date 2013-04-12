@@ -1,6 +1,6 @@
 from nlang import *
 
-type t = WorkaroundRBC
+type t =
   x:i32
 
 export fun main = i32

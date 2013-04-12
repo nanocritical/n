@@ -285,6 +285,7 @@ enum node_flags {
   NODE_IS_TYPE = 0x1,
   NODE_IS_DEFCHOICE = 0x2,
   NODE__TRANSITIVE = NODE_IS_TYPE,
+  NODE_IS_TEMPORARY = 0x4,
 };
 
 struct node {
@@ -414,6 +415,7 @@ enum predefined_idents {
   ID_NEW,
   ID_CTOR,
   ID_C,
+  ID_NRETVAL,
   ID_OPERATOR_OR,
   ID_OPERATOR_AND,
   ID_OPERATOR_NOT,
@@ -437,6 +439,7 @@ enum predefined_idents {
   ID_OPERATOR_TIMES,
   ID_OPERATOR_UMINUS,
   ID_OPERATOR_BWNOT,
+  ID_OPERATOR_COPY,
 
   ID__NUM,
 };

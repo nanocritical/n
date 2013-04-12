@@ -13,6 +13,12 @@ typedef _ngen_nlang_builtins_MutableRef__t00_unary_t _ngen_nlang_builtins_Mercur
 typedef _ngen_nlang_builtins_MutableRef__t00_unary_t _ngen_nlang_builtins_NullableMutableRef__t00_unary_t;
 typedef _ngen_nlang_builtins_MercurialRef__t00_unary_t _ngen_nlang_builtins_NullableMercurialRef__t00_unary_t;
 
+nlang_builtins_void t00_unary_t_operator_copy(_ngen_nlang_builtins_MercurialRef__t00_unary_t self, _ngen_nlang_builtins_Ref__t00_unary_t other) {
+#define THIS(x) t00_unary_t##x
+memcpy(self, other, sizeof(*self));
+#undef THIS
+}
+
 nlang_builtins_i32 t00_unary_t_get(_ngen_nlang_builtins_Ref__t00_unary_t self){
 #define THIS(x) t00_unary_t##x
  {

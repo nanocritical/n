@@ -5,8 +5,6 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(t) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
-   ISA :nlang.builtins.WorkaroundRBC
-    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
   LET :nlang.builtins.void
    DEFPATTERN :t00.field.t
     IDENT(this) :t00.field.t

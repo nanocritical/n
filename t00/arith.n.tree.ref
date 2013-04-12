@@ -8,7 +8,7 @@ MODULE_BODY :__internal_not_typeable__
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.literals.integer
-     IDENT(x) :nlang.literals.integer
+     IDENT(x) :nlang.builtins.i32
      NUMBER(2) :nlang.builtins.i32
      DEFNAME(x) :nlang.builtins.i32
    RETURN :nlang.builtins.i32

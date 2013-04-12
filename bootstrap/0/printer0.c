@@ -642,7 +642,11 @@ static void print_defmethod(FILE *out, const struct module *mod, int indent, con
   }
 
   fprintf(out, " = ");
-  print_expr(out, mod, retval, T__STATEMENT);
+  if (retval->which == DEFARG) {
+    print_defarg(out, mod, retval);
+  } else {
+    print_expr(out, mod, retval, T__STATEMENT);
+  }
 
   if (!node_is_prototype(node) && node_toplevel_const(node)->builtingen == BG__NOT) {
     const struct node *block = node->subs[node->subs_count - 1];

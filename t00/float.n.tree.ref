@@ -8,12 +8,12 @@ MODULE_BODY :__internal_not_typeable__
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.literals.floating
-     IDENT(f) :nlang.literals.floating
+     IDENT(f) :nlang.builtins.float
      NUMBER(0.0213) :nlang.builtins.float
      DEFNAME(f) :nlang.builtins.float
    LET :nlang.builtins.void
     DEFPATTERN :nlang.literals.floating
-     IDENT(g) :nlang.literals.floating
+     IDENT(g) :nlang.builtins.float
      BIN( + ) :nlang.builtins.float
       IDENT(f) :nlang.builtins.float
       BIN( * ) :nlang.builtins.float

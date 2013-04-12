@@ -11,11 +11,11 @@ export intf Iterator =
   method has_next = bool
   method! next = void
 
-export inline type index_range = TrivialCopy WorkaroundRBC
+export inline type index_range = export TrivialCopy
   b:size
   e:size
 
-export inline type index_iterator = Iterator WorkaroundRBC
+export inline type index_iterator = export Iterator
   r:index_range
   p:size
 

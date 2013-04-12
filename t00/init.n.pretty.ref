@@ -1,7 +1,9 @@
 from nlang import *
-type t = WorkaroundRBC
+type t = TrivialCopy
   let this = t
   x:i32
+
+t method <root>.nlang.builtins.Copyable.operator_copy self:@#this = void
 
 export fun main = i32
   let tt = t{{ x=1 }}

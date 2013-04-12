@@ -1,0 +1,86 @@
+MODULE_BODY :__internal_not_typeable__
+ IMPORT :nlang
+  IDENT(nlang) :nlang
+ DEFTYPE :t00.copy.copy
+  IDENT(copy) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.Copyable
+    IDENT(Copyable) :nlang.builtins.Copyable
+  LET :nlang.builtins.void
+   DEFPATTERN :t00.copy.copy
+    IDENT(this) :t00.copy.copy
+    IDENT(copy) :t00.copy.copy
+    DEFNAME(this) :t00.copy.copy
+  DEFFIELD :nlang.builtins.i32
+   IDENT(x) :__internal_not_typeable__
+   IDENT(i32) :nlang.builtins.i32
+ DEFMETHOD :t00.copy.copy.operator_copy
+  IDENT(operator_copy) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :(nlang.builtins.MercurialRef t00.copy.copy)
+   IDENT(self) :(nlang.builtins.MercurialRef t00.copy.copy)
+   UN(@#) :(nlang.builtins.MercurialRef t00.copy.copy)
+    IDENT(this) :t00.copy.copy
+  DEFARG :(nlang.builtins.Ref t00.copy.copy)
+   IDENT(other) :(nlang.builtins.Ref t00.copy.copy)
+   UN(@) :(nlang.builtins.Ref t00.copy.copy)
+    IDENT(this) :t00.copy.copy
+  IDENT(void) :nlang.builtins.void
+  BLOCK :nlang.builtins.void
+   BIN( = ) :nlang.builtins.i32
+    BIN(!) :nlang.builtins.i32
+     IDENT(self) :(nlang.builtins.MercurialRef t00.copy.copy)
+     IDENT(x) :__internal_not_typeable__
+    BIN(.) :nlang.builtins.i32
+     IDENT(other) :(nlang.builtins.Ref t00.copy.copy)
+     IDENT(x) :__internal_not_typeable__
+ DEFFUN :t00.copy.main
+  IDENT(main) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :t00.copy.copy
+     IDENT(y) :t00.copy.copy
+     INIT :t00.copy.copy
+      IDENT(copy) :t00.copy.copy
+      IDENT(x) :__internal_pending_destruct__
+      UN(-) :nlang.builtins.i32
+       NUMBER(1) :nlang.builtins.i32
+     DEFNAME(y) :t00.copy.copy
+   LET :nlang.builtins.void
+    DEFPATTERN :t00.copy.copy
+     TYPECONSTRAINT :t00.copy.copy
+      IDENT(z) :t00.copy.copy
+      IDENT(copy) :t00.copy.copy
+     DEFNAME(z) :t00.copy.copy
+    BLOCK :nlang.builtins.void
+     CALL :nlang.builtins.void
+      BIN(.) :t00.copy.copy.operator_copy
+       DIRECTDEF :t00.copy.copy
+       IDENT(operator_copy) :__internal_not_typeable__
+      UN(@#) :(nlang.builtins.MercurialRef t00.copy.copy)
+       IDENT(z) :t00.copy.copy
+      UN(@) :(nlang.builtins.Ref t00.copy.copy)
+       IDENT(y) :t00.copy.copy
+   LET :nlang.builtins.void
+    DEFPATTERN :t00.copy.copy
+     IDENT(zz) :t00.copy.copy
+     IDENT(z) :t00.copy.copy
+     DEFNAME(zz) :t00.copy.copy
+    BLOCK :nlang.builtins.void
+     CALL :nlang.builtins.void
+      BIN(.) :t00.copy.copy.operator_copy
+       DIRECTDEF :t00.copy.copy
+       IDENT(operator_copy) :__internal_not_typeable__
+      UN(@#) :(nlang.builtins.MercurialRef t00.copy.copy)
+       IDENT(zz) :t00.copy.copy
+      UN(@) :(nlang.builtins.Ref t00.copy.copy)
+       IDENT(z) :t00.copy.copy
+   RETURN :nlang.builtins.i32
+    BIN( + ) :nlang.builtins.i32
+     BIN(.) :nlang.builtins.i32
+      IDENT(z) :t00.copy.copy
+      IDENT(x) :__internal_not_typeable__
+     NUMBER(1) :nlang.builtins.i32

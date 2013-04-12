@@ -756,6 +756,27 @@ static const char *returns_something(const struct module *mod, const struct node
   return node_fun_retval_const(m)->typ == typ_lookup_builtin(mod, TBI_VOID) ? "" : "return";
 }
 
+static void rtr_helpers(FILE *out, bool header, const struct module *mod,
+                        const struct node *node, bool start) {
+  const struct node *retval = node_fun_retval_const(node);
+  const bool retval_bycopy = typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
+  if (retval_bycopy) {
+    return;
+  }
+
+  if (start) {
+    fprintf(out, "#define ");
+    print_expr(out, header, mod, retval->subs[0], T__STATEMENT);
+    fprintf(out, " (*_nrtr_");
+    print_expr(out, header, mod, retval->subs[0], T__STATEMENT);
+    fprintf(out, ")\n");
+  } else {
+    fprintf(out, "#undef ");
+    print_expr(out, header, mod, retval->subs[0], T__STATEMENT);
+    fprintf(out, "\n");
+  }
+}
+
 static void print_deffun_builtingen(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, " {\n");
   if (node->scope->parent->node->which == DEFTYPE
@@ -768,18 +789,18 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
   case BG_TRIVIAL_CTOR_CTOR:
     break;
   case BG_TRIVIAL_CTOR_MK:
-    fprintf(out, "THIS() r;\n");
+    rtr_helpers(out, header, mod, node, TRUE);
     fprintf(out, "memset(&r, 0, sizeof(THIS()));\n");
-    fprintf(out, "return r;\n");
+    rtr_helpers(out, header, mod, node, FALSE);
     break;
   case BG_TRIVIAL_CTOR_NEW:
     fprintf(out, "return calloc(1, sizeof(*self));\n");
     break;
   case BG_DEFAULT_CTOR_MK:
-    fprintf(out, "THIS() r;\n");
+    rtr_helpers(out, header, mod, node, TRUE);
     fprintf(out, "memset(&r, 0, sizeof(THIS()));\n");
     fprintf(out, "THIS(_ctor)(&r);\n");
-    fprintf(out, "return r;\n");
+    rtr_helpers(out, header, mod, node, FALSE);
     break;
   case BG_DEFAULT_CTOR_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
@@ -787,10 +808,10 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
     fprintf(out, "return self;\n");
     break;
   case BG_CTOR_WITH_MK:
-    fprintf(out, "THIS() r;\n");
+    rtr_helpers(out, header, mod, node, TRUE);
     fprintf(out, "memset(&r, 0, sizeof(THIS()));\n");
     fprintf(out, "THIS(_ctor)(&r, c);\n");
-    fprintf(out, "return r;\n");
+    rtr_helpers(out, header, mod, node, FALSE);
     break;
   case BG_CTOR_WITH_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
@@ -802,10 +823,10 @@ static void print_deffun_builtingen(FILE *out, bool header, const struct module 
     fprintf(out, "self->as__.%s = c;\n", idents_value(mod->gctx, node_ident(node->scope->parent->node)));
     break;
   case BG_SUM_CTOR_WITH_MK:
-    fprintf(out, "THIS() r;\n");
+    rtr_helpers(out, header, mod, node, TRUE);
     fprintf(out, "memset(&r, 0, sizeof(THIS()));\n");
     fprintf(out, "THIS(_%s_ctor)(&r, c);\n", idents_value(mod->gctx, node_ident(node->scope->parent->node)));
-    fprintf(out, "return r;\n");
+    rtr_helpers(out, header, mod, node, FALSE);
     break;
   case BG_SUM_CTOR_WITH_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
@@ -1011,24 +1032,15 @@ static void print_deffun(FILE *out, bool header, const struct module *mod, const
       fprintf(out, ";\n");
     }
 
-    if (!retval_bycopy) {
-      fprintf(out, "#define ");
-      print_expr(out, header, mod, retval->subs[0], T__STATEMENT);
-      fprintf(out, " (*_nrtr_");
-      print_expr(out, header, mod, retval->subs[0], T__STATEMENT);
-      fprintf(out, ")\n");
-    }
+    rtr_helpers(out, header, mod, node, TRUE);
 
     const struct node *block = node->subs[node->subs_count - 1];
     print_block(out, header, mod, block);
 
     fprintf(out, "\n");
 
-    if (!retval_bycopy) {
-      fprintf(out, "#undef ");
-      print_expr(out, header, mod, retval->subs[0], T__STATEMENT);
-      fprintf(out, "\n");
-    }
+    rtr_helpers(out, header, mod, node, FALSE);
+
     if (node->scope->parent->node->which == DEFTYPE) {
       fprintf(out, "#undef THIS\n");
     }

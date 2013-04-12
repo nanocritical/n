@@ -1,6 +1,6 @@
 from nlang import *
 
-type enu = WorkaroundRBC
+type enu =
   | A
   | B
 

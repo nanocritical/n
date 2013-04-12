@@ -23,7 +23,9 @@ MODULE_BODY :__internal_not_typeable__
    DEFARG :nlang.builtins.Numeric
     IDENT(x) :nlang.builtins.Numeric
     IDENT(t) :nlang.builtins.Numeric
-   IDENT(t) :nlang.builtins.Numeric
+   DEFARG :nlang.builtins.Numeric
+    IDENT(_nretval) :nlang.builtins.Numeric
+    IDENT(t) :nlang.builtins.Numeric
  DEFTYPE :t01.genericmethod.blah
   IDENT(blah) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
@@ -53,7 +55,9 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :nlang.builtins.Numeric
    IDENT(x) :nlang.builtins.Numeric
    IDENT(t) :nlang.builtins.Numeric
-  IDENT(t) :nlang.builtins.Numeric
+  DEFARG :nlang.builtins.Numeric
+   IDENT(_nretval) :nlang.builtins.Numeric
+   IDENT(t) :nlang.builtins.Numeric
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.Numeric
@@ -82,7 +86,9 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :nlang.builtins.Numeric
    IDENT(x) :nlang.builtins.Numeric
    IDENT(t) :nlang.builtins.Numeric
-  IDENT(t) :nlang.builtins.Numeric
+  DEFARG :nlang.builtins.Numeric
+   IDENT(_nretval) :nlang.builtins.Numeric
+   IDENT(t) :nlang.builtins.Numeric
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.Numeric

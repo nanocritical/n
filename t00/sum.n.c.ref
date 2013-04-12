@@ -31,12 +31,12 @@ self->which__ = t00_sum_sum_A_which__;
 self->as__.A = c;
 #undef THIS
 }
-t00_sum_sum t00_sum_sum_A_mk(nlang_builtins_u32 c) {
+void t00_sum_sum_A_mk(nlang_builtins_u32 c, t00_sum_sum *_nrtr_r) {
 #define THIS(x) t00_sum_sum##x
-THIS() r;
+#define r (*_nrtr_r)
 memset(&r, 0, sizeof(THIS()));
 THIS(_A_ctor)(&r, c);
-return r;
+#undef r
 #undef THIS
 }
 _ngen_nlang_builtins_MercurialRef__t00_sum_sum t00_sum_sum_A_new(nlang_builtins_u32 c) {
@@ -52,12 +52,12 @@ self->which__ = t00_sum_sum_B_which__;
 self->as__.B = c;
 #undef THIS
 }
-t00_sum_sum t00_sum_sum_B_mk(nlang_builtins_i32 c) {
+void t00_sum_sum_B_mk(nlang_builtins_i32 c, t00_sum_sum *_nrtr_r) {
 #define THIS(x) t00_sum_sum##x
-THIS() r;
+#define r (*_nrtr_r)
 memset(&r, 0, sizeof(THIS()));
 THIS(_B_ctor)(&r, c);
-return r;
+#undef r
 #undef THIS
 }
 _ngen_nlang_builtins_MercurialRef__t00_sum_sum t00_sum_sum_B_new(nlang_builtins_i32 c) {
@@ -169,12 +169,12 @@ self->which__ = t00_sum_sum_nocopy_A_which__;
 self->as__.A = c;
 #undef THIS
 }
-t00_sum_sum_nocopy t00_sum_sum_nocopy_A_mk(t00_sum_ta c) {
+void t00_sum_sum_nocopy_A_mk(t00_sum_ta c, t00_sum_sum_nocopy *_nrtr_r) {
 #define THIS(x) t00_sum_sum_nocopy##x
-THIS() r;
+#define r (*_nrtr_r)
 memset(&r, 0, sizeof(THIS()));
 THIS(_A_ctor)(&r, c);
-return r;
+#undef r
 #undef THIS
 }
 _ngen_nlang_builtins_MercurialRef__t00_sum_sum_nocopy t00_sum_sum_nocopy_A_new(t00_sum_ta c) {
@@ -190,12 +190,12 @@ self->which__ = t00_sum_sum_nocopy_B_which__;
 self->as__.B = c;
 #undef THIS
 }
-t00_sum_sum_nocopy t00_sum_sum_nocopy_B_mk(t00_sum_tb c) {
+void t00_sum_sum_nocopy_B_mk(t00_sum_tb c, t00_sum_sum_nocopy *_nrtr_r) {
 #define THIS(x) t00_sum_sum_nocopy##x
-THIS() r;
+#define r (*_nrtr_r)
 memset(&r, 0, sizeof(THIS()));
 THIS(_B_ctor)(&r, c);
-return r;
+#undef r
 #undef THIS
 }
 _ngen_nlang_builtins_MercurialRef__t00_sum_sum_nocopy t00_sum_sum_nocopy_B_new(t00_sum_tb c) {
@@ -208,13 +208,23 @@ return self;
 
 nlang_builtins_i32 main(void){
  {
+t00_sum_ta __gensym0; memset(&__gensym0, 0, sizeof(__gensym0));
+{
+memset(&(__gensym0), 0, sizeof(t00_sum_ta));
+__gensym0.x = (nlang_builtins_u32)0;
+ }
+;
+;
+t00_sum_sum_nocopy m; memset(&m, 0, sizeof(m));
+t00_sum_sum_nocopy_A_mk(__gensym0, &(m));
+;
 t00_sum_sum n; memset(&n, 0, sizeof(n));
-n = t00_sum_sum_A_mk((nlang_builtins_u32)0);
+t00_sum_sum_A_mk((nlang_builtins_u32)0, &(n));
 ;
-t00_sum_sum __gensym0; memset(&__gensym0, 0, sizeof(__gensym0));
-__gensym0 = t00_sum_sum_A_mk((nlang_builtins_u32)0);
+t00_sum_sum __gensym1; memset(&__gensym1, 0, sizeof(__gensym1));
+t00_sum_sum_A_mk((nlang_builtins_u32)0, &(__gensym1));
 ;
-if (t00_sum_sum_operator_eq((&n), (&__gensym0))) {
+if (t00_sum_sum_operator_eq((&n), (&__gensym1))) {
 return (nlang_builtins_i32)0;
 }
 else  {

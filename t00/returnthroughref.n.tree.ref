@@ -20,7 +20,7 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(foo) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :t00.returnthroughref.t
-   IDENT(__gensym0) :t00.returnthroughref.t
+   IDENT(_nretval) :t00.returnthroughref.t
    IDENT(t) :t00.returnthroughref.t
   BLOCK :nlang.builtins.void
    RETURN :t00.returnthroughref.t
@@ -32,7 +32,7 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(bar) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :t00.returnthroughref.t
-   IDENT(__gensym1) :t00.returnthroughref.t
+   IDENT(_nretval) :t00.returnthroughref.t
    IDENT(t) :t00.returnthroughref.t
   BLOCK :nlang.builtins.void
    RETURN :t00.returnthroughref.t
@@ -64,17 +64,17 @@ MODULE_BODY :__internal_not_typeable__
      DEFNAME(y) :t00.returnthroughref.t
    LET :nlang.builtins.void
     DEFPATTERN :t00.returnthroughref.t
-     IDENT(__gensym2) :t00.returnthroughref.t
+     IDENT(__gensym0) :t00.returnthroughref.t
      CALL :t00.returnthroughref.t
       IDENT(bar2) :t00.returnthroughref.bar2
-     DEFNAME(__gensym2) :t00.returnthroughref.t
+     DEFNAME(__gensym0) :t00.returnthroughref.t
    IF :nlang.builtins.void
     BIN( != ) :nlang.builtins.bool
      BIN(.) :nlang.builtins.i32
       IDENT(y) :t00.returnthroughref.t
       IDENT(x) :__internal_not_typeable__
      BIN(.) :nlang.builtins.i32
-      IDENT(__gensym2) :t00.returnthroughref.t
+      IDENT(__gensym0) :t00.returnthroughref.t
       IDENT(x) :__internal_not_typeable__
     BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.i32

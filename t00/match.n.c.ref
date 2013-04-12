@@ -10,6 +10,12 @@ typedef _ngen_nlang_builtins_MutableRef__t00_match_enu _ngen_nlang_builtins_Merc
 typedef _ngen_nlang_builtins_MutableRef__t00_match_enu _ngen_nlang_builtins_NullableMutableRef__t00_match_enu;
 typedef _ngen_nlang_builtins_MercurialRef__t00_match_enu _ngen_nlang_builtins_NullableMercurialRef__t00_match_enu;
 
+nlang_builtins_void t00_match_enu_operator_copy(_ngen_nlang_builtins_MercurialRef__t00_match_enu self, _ngen_nlang_builtins_Ref__t00_match_enu other) {
+#define THIS(x) t00_match_enu##x
+memcpy(self, other, sizeof(*self));
+#undef THIS
+}
+
 nlang_builtins_i32 main(void){
  {
 t00_match_enu n; memset(&n, 0, sizeof(n));

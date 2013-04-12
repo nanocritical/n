@@ -9,8 +9,6 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(SumCopy) :nlang.builtins.SumCopy
    ISA :nlang.builtins.SumEquality
     IDENT(SumEquality) :nlang.builtins.SumEquality
-   ISA :nlang.builtins.WorkaroundRBC
-    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
    ISA :nlang.builtins.CtorWith
     BIN(.) :nlang.builtins.CtorWith
      BIN(.) :nlang.builtins
@@ -61,7 +59,9 @@ MODULE_BODY :__internal_not_typeable__
     DEFARG :nlang.builtins.u32
      IDENT(c) :nlang.builtins.u32
      DIRECTDEF :nlang.builtins.u32
-    IDENT(this) :t00.sum.sum
+    DEFARG :t00.sum.sum
+     IDENT(r) :t00.sum.sum
+     IDENT(this) :t00.sum.sum
    DEFFUN :t00.sum.sum.A.new
     BIN(.) :__internal_not_typeable__
      BIN(.) :__internal_not_typeable__
@@ -117,7 +117,9 @@ MODULE_BODY :__internal_not_typeable__
     DEFARG :nlang.builtins.i32
      IDENT(c) :nlang.builtins.i32
      DIRECTDEF :nlang.builtins.i32
-    IDENT(this) :t00.sum.sum
+    DEFARG :t00.sum.sum
+     IDENT(r) :t00.sum.sum
+     IDENT(this) :t00.sum.sum
    DEFFUN :t00.sum.sum.B.new
     BIN(.) :__internal_not_typeable__
      BIN(.) :__internal_not_typeable__
@@ -200,8 +202,6 @@ MODULE_BODY :__internal_not_typeable__
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.TrivialCopy
     IDENT(TrivialCopy) :nlang.builtins.TrivialCopy
-   ISA :nlang.builtins.WorkaroundRBC
-    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
   LET :nlang.builtins.void
    DEFPATTERN :t00.sum.ta
     IDENT(this) :t00.sum.ta
@@ -236,8 +236,6 @@ MODULE_BODY :__internal_not_typeable__
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.TrivialCopy
     IDENT(TrivialCopy) :nlang.builtins.TrivialCopy
-   ISA :nlang.builtins.WorkaroundRBC
-    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
   LET :nlang.builtins.void
    DEFPATTERN :t00.sum.tb
     IDENT(this) :t00.sum.tb
@@ -270,8 +268,6 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(sum_nocopy) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
-   ISA :nlang.builtins.WorkaroundRBC
-    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
    ISA :nlang.builtins.CtorWith
     BIN(.) :nlang.builtins.CtorWith
      BIN(.) :nlang.builtins
@@ -322,7 +318,9 @@ MODULE_BODY :__internal_not_typeable__
     DEFARG :t00.sum.ta
      IDENT(c) :t00.sum.ta
      DIRECTDEF :t00.sum.ta
-    IDENT(this) :t00.sum.sum_nocopy
+    DEFARG :t00.sum.sum_nocopy
+     IDENT(r) :t00.sum.sum_nocopy
+     IDENT(this) :t00.sum.sum_nocopy
    DEFFUN :t00.sum.sum_nocopy.A.new
     BIN(.) :__internal_not_typeable__
      BIN(.) :__internal_not_typeable__
@@ -378,7 +376,9 @@ MODULE_BODY :__internal_not_typeable__
     DEFARG :t00.sum.tb
      IDENT(c) :t00.sum.tb
      DIRECTDEF :t00.sum.tb
-    IDENT(this) :t00.sum.sum_nocopy
+    DEFARG :t00.sum.sum_nocopy
+     IDENT(r) :t00.sum.sum_nocopy
+     IDENT(this) :t00.sum.sum_nocopy
    DEFFUN :t00.sum.sum_nocopy.B.new
     BIN(.) :__internal_not_typeable__
      BIN(.) :__internal_not_typeable__
@@ -401,6 +401,25 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
+    DEFPATTERN :t00.sum.ta
+     IDENT(__gensym0) :t00.sum.ta
+     INIT :t00.sum.ta
+      IDENT(ta) :t00.sum.ta
+      IDENT(x) :__internal_pending_destruct__
+      NUMBER(0) :nlang.builtins.u32
+     DEFNAME(__gensym0) :t00.sum.ta
+   LET :nlang.builtins.void
+    DEFPATTERN :t00.sum.sum_nocopy
+     IDENT(m) :t00.sum.sum_nocopy
+     CALL :t00.sum.sum_nocopy
+      BIN(.) :t00.sum.sum_nocopy.A.mk
+       BIN(.) :t00.sum.sum_nocopy
+        IDENT(sum_nocopy) :t00.sum.sum_nocopy
+        IDENT(A) :__internal_not_typeable__
+       IDENT(mk) :__internal_not_typeable__
+      IDENT(__gensym0) :t00.sum.ta
+     DEFNAME(m) :t00.sum.sum_nocopy
+   LET :nlang.builtins.void
     DEFPATTERN :t00.sum.sum
      IDENT(n) :t00.sum.sum
      CALL :t00.sum.sum
@@ -413,7 +432,7 @@ MODULE_BODY :__internal_not_typeable__
      DEFNAME(n) :t00.sum.sum
    LET :nlang.builtins.void
     DEFPATTERN :t00.sum.sum
-     IDENT(__gensym0) :t00.sum.sum
+     IDENT(__gensym1) :t00.sum.sum
      CALL :t00.sum.sum
       BIN(.) :t00.sum.sum.A.mk
        BIN(.) :t00.sum.sum
@@ -421,7 +440,7 @@ MODULE_BODY :__internal_not_typeable__
         IDENT(A) :__internal_not_typeable__
        IDENT(mk) :__internal_not_typeable__
       NUMBER(0) :nlang.builtins.u32
-     DEFNAME(__gensym0) :t00.sum.sum
+     DEFNAME(__gensym1) :t00.sum.sum
    IF :nlang.builtins.void
     CALL :nlang.builtins.bool
      BIN(.) :t00.sum.sum.operator_eq
@@ -430,7 +449,7 @@ MODULE_BODY :__internal_not_typeable__
      UN(@) :(nlang.builtins.Ref t00.sum.sum)
       IDENT(n) :t00.sum.sum
      UN(@) :(nlang.builtins.Ref t00.sum.sum)
-      IDENT(__gensym0) :t00.sum.sum
+      IDENT(__gensym1) :t00.sum.sum
     BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.i32
       NUMBER(0) :nlang.builtins.i32

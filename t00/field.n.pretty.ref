@@ -1,5 +1,5 @@
 from nlang import *
-type t = WorkaroundRBC
+type t =
   let this = t
   x:i32
 

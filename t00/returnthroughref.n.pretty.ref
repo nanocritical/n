@@ -4,10 +4,10 @@ type t =
   x:i32
   xx:i32
 
-fun foo = __gensym0:t
+fun foo = _nretval:t
   return t{{ x=3 }}
 
-fun bar = __gensym1:t
+fun bar = _nretval:t
   return foo
 
 fun bar2 = r:t
@@ -16,7 +16,7 @@ fun bar2 = r:t
 
 fun main = i32
   let y = bar
-  let __gensym2 = bar2
-  if y.x != __gensym2.x
+  let __gensym0 = bar2
+  if y.x != __gensym0.x
     return 1
   return y.xx

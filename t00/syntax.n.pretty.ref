@@ -7,7 +7,7 @@ export fun main = i32
 export fun main2 = i32
   return 0
 
-export inline fun foo = __gensym0:string
+export inline fun foo = _nretval:string
   return 'test'
 
 inline fun other4 x:i32 = i32
@@ -33,8 +33,10 @@ fun foobar x:i32 = i32
 fun foobar2 = void
   return
 
-type enu =
+type enu = <root>.nlang.builtins.TrivialCopy <root>.nlang.builtins.TrivialDtor
   let this = enu
   | V1 = 0
   | V2 = 0 + 1
   | V3 = 0 + 1 + 1
+
+enu method <root>.nlang.builtins.Copyable.operator_copy self:@#this = void

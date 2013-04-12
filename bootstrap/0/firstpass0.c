@@ -1115,8 +1115,8 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
   // FIXME: Check for duplicates?
 
   mutable_typ->isalist_count = isalist->subs_count;
-  mutable_typ->isalist = calloc(isalist->subs_count, sizeof(*node->typ->isalist));
-  mutable_typ->isalist_exported = calloc(isalist->subs_count, sizeof(bool));
+  mutable_typ->isalist = calloc(isalist->subs_count, sizeof(*mutable_typ->isalist));
+  mutable_typ->isalist_exported = calloc(isalist->subs_count, sizeof(*mutable_typ->isalist_exported));
 
   bool uses_implied_generic = FALSE;
   for (size_t n = 0; n < isalist->subs_count; ++n) {
@@ -2022,6 +2022,8 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     } else {
       e = typ_unify(&node->typ, mod, node, node->typ, constraint);
       EXCEPT(e);
+      e = typ_unify(&node->as.DEFNAME.pattern->typ, mod, node, node->as.DEFNAME.pattern->typ, node->typ);
+      EXCEPT(e);
     }
     if (node->as.DEFNAME.expr != NULL) {
       e = type_destruct(mod, node->as.DEFNAME.expr, node->typ);
@@ -2489,6 +2491,44 @@ static struct node *get_member(struct module *mod, struct node *node, ident id) 
   return m;
 }
 
+static void add_isa(struct module *mod, struct node *tdef, const char *path) {
+  struct node *isalist = tdef->subs[IDX_ISALIST];
+  assert(isalist->which == ISALIST);
+  struct node *isa = mk_node(mod, isalist, ISA);
+  isa->as.ISA.is_export = node_toplevel(tdef)->is_export;
+  mk_expr_abspath(mod, isa, path);
+  error e = zero_to_first_for_generated(mod, isa, NULL, isalist->scope);
+  assert(!e);
+
+  // isalist are typed in earlypass, but add_isa() is called later. We
+  // forcibly add the new typ to it if it's not already there.
+  if (typ_isa(mod, tdef->typ, isa->typ)) {
+    return;
+  }
+  struct typ *mutable_typ = (struct typ *) tdef->typ;
+  const size_t last = mutable_typ->isalist_count;
+  mutable_typ->isalist_count += 1;
+  mutable_typ->isalist = realloc(mutable_typ->isalist,
+                                 mutable_typ->isalist_count * sizeof(*mutable_typ->isalist));
+  mutable_typ->isalist_exported = realloc(mutable_typ->isalist_exported,
+                                          mutable_typ->isalist_count * sizeof(*mutable_typ->isalist_exported));
+
+  mutable_typ->isalist[last] = isa->typ;
+  mutable_typ->isalist_exported[last] = isa->as.ISA.is_export;
+}
+
+static error step_add_builtin_enum_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != DEFTYPE
+      || node->as.DEFTYPE.kind != DEFTYPE_ENUM) {
+    return 0;
+  }
+
+  add_isa(mod, node, "nlang.builtins.TrivialCopy");
+  add_isa(mod, node, "nlang.builtins.TrivialDtor");
+
+  return 0;
+}
+
 static void define_builtin(struct module *mod, struct node *tdef,
                            enum builtingen bg) {
   struct node *modbody = tdef->scope->parent->node;
@@ -2568,37 +2608,14 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
   }
 
   const struct typ *targ = node->subs[IDX_CH_PAYLOAD]->typ;
-  bool has_ctor = FALSE;
-  if (typ_isa(mod, targ, typ_lookup_builtin(mod, TBI_COPYABLE))) {
-    has_ctor |= TRUE;
+  error e = typ_check_isa(mod, node->subs[IDX_CH_PAYLOAD],
+                          targ, typ_lookup_builtin(mod, TBI_COPYABLE));
+  EXCEPT(e);
 
-    define_defchoice_builtin(
-      mod, node, BG_SUM_CTOR_WITH_CTOR, DEFMETHOD);
-  }
-
-  if (typ_isa(mod, targ, typ_lookup_builtin(mod, TBI_DEFAULT_CTOR))) {
-    has_ctor |= TRUE;
-
-    define_defchoice_builtin(
-      mod, node, BG_DEFAULT_CTOR_CTOR, DEFMETHOD);
-  }
-
-  if (!has_ctor) {
-    error e = mk_except(mod, node, "cannot use type in sum type, neither Copyable nor DefaultCtor");
-    EXCEPT(e);
-  }
+  define_defchoice_builtin(
+    mod, node, BG_SUM_CTOR_WITH_CTOR, DEFMETHOD);
 
   return 0;
-}
-
-static void add_isa(struct module *mod, struct node *tdef, const char *path) {
-  struct node *isalist = tdef->subs[IDX_ISALIST];
-  assert(isalist->which == ISALIST);
-  struct node *isa = mk_node(mod, isalist, ISA);
-  isa->as.ISA.is_export = node_toplevel(tdef)->is_export;
-  mk_expr_abspath(mod, isa, path);
-  error e = zero_to_first_for_generated(mod, isa, NULL, isalist->scope);
-  assert(!e);
 }
 
 static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -2897,7 +2914,7 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
     named = mk_node(mod, node, DEFARG);
     named->as.DEFARG.is_retval = TRUE;
     struct node *name = mk_node(mod, named, IDENT);
-    name->as.IDENT.name = gensym(mod);
+    name->as.IDENT.name = ID_NRETVAL;
     rew_append(named, retval);
     rew_move_last_over(node, where, TRUE);
 
@@ -3016,7 +3033,121 @@ static bool expr_is_return_through_ref(struct module *mod, struct node *expr) {
     && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
 }
 
+static error assign_copy_call_inference(struct module *mod, struct node *node) {
+  struct node *left = node->subs[0];
+  struct node *right = node->subs[1];
+  struct scope *saved_parent = node->scope->parent;
+
+  node->which = CALL;
+  struct node *fun = mk_node(mod, node, BIN);
+  fun->as.BIN.operator = TDOT;
+  struct node *base = mk_node(mod, fun, DIRECTDEF);
+  base->as.DIRECTDEF.definition = left->typ->definition;
+  struct node *member = mk_node(mod, fun, IDENT);
+  member->as.IDENT.name = ID_OPERATOR_COPY;
+
+  struct node *except[] = { left, right, NULL };
+
+  rew_insert_last_at(node, 0);
+  node->subs[1] = expr_ref(TREFSHARP, left);
+  node->subs[2] = expr_ref(TREFDOT, right);
+
+  error e = zero_to_second_for_generated(mod, node, except, saved_parent);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static error defname_copy_call_inference(struct module *mod, struct node *node) {
+  struct node *let = node->scope->parent->parent->node;
+  assert(let->which == LET);
+
+  struct node *within;
+  if (let->subs_count == 1) {
+    within = mk_node(mod, let, BLOCK);
+    error e = zero_to_second_for_generated(mod, within, NULL, let->scope);
+    EXCEPT(e);
+  } else {
+    within = let->subs[1];
+  }
+
+  struct node *left = node->as.DEFNAME.pattern;
+  struct node *right = node->as.DEFNAME.expr;
+  struct scope *saved_parent = within->scope->parent;
+
+  struct node *copycall = mk_node(mod, within, CALL);
+  struct node *fun = mk_node(mod, copycall, BIN);
+  fun->as.BIN.operator = TDOT;
+  struct node *base = mk_node(mod, fun, DIRECTDEF);
+  base->as.DIRECTDEF.definition = left->typ->definition;
+  struct node *member = mk_node(mod, fun, IDENT);
+  member->as.IDENT.name = ID_OPERATOR_COPY;
+
+  struct node *copyleft = calloc(1, sizeof(struct node));
+  node_deepcopy(mod, copyleft, left);
+
+  rew_append(copycall, expr_ref(TREFSHARP, copyleft));
+  // Steal right:
+  node->as.DEFNAME.expr = NULL;
+  rew_append(copycall, expr_ref(TREFDOT, right));
+
+  error e = zero_to_second_for_generated(mod, copycall, NULL, saved_parent);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error step_copy_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+  struct node *left;
+  struct node *right;
+  switch (node->which) {
+  case BIN:
+    if (node->as.BIN.operator == TASSIGN) {
+      left = node->subs[0];
+      right = node->subs[1];
+      break;
+    }
+    return 0;
+  case DEFNAME:
+    if (!(node->flags & NODE_IS_TYPE)) {
+      left = node->as.DEFNAME.pattern;
+      right = node->as.DEFNAME.expr;
+      if (right != NULL) {
+        break;
+      }
+    }
+    return 0;
+  default:
+    return 0;
+  }
+
+  if ((right->flags & NODE_IS_TEMPORARY)) {
+    // It's OK to trivial copy temporaries: it's a move.
+    return 0;
+  }
+
+  if (typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))) {
+    return 0;
+  }
+
+  if (expr_is_return_through_ref(mod, right)) {
+    return 0;
+  }
+
+  error e = typ_check_isa(mod, left, left->typ, typ_lookup_builtin(mod, TBI_COPYABLE));
+  EXCEPT(e);
+
+  switch (node->which) {
+  case BIN:
+    e = assign_copy_call_inference(mod, node);
+    break;
+  case DEFNAME:
+    e = defname_copy_call_inference(mod, node);
+    break;
+  default:
+    assert(FALSE);
+  }
+  EXCEPT(e);
   return 0;
 }
 
@@ -3138,6 +3269,8 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
 }
 
 static struct node *mk_temporary(struct module *mod, struct node *parent, size_t *where, struct node *original) {
+  original->flags |= NODE_IS_TEMPORARY;
+
   struct node *let = mk_node(mod, parent, LET);
   struct node *defp = mk_node(mod, let, DEFPATTERN);
   struct node *tmp_name = mk_node(mod, defp, IDENT);
@@ -3283,6 +3416,7 @@ static const step firstpass_down[] = {
 };
 
 static const step firstpass_up[] = {
+  step_add_builtin_enum_isalist,
   step_add_builtin_defchoice_constructors,
   step_add_builtin_detect_ctor_intf,
   step_rewrite_defname_no_expr,

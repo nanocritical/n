@@ -35,7 +35,7 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(foo) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :nlang.strings.string
-   IDENT(__gensym0) :nlang.strings.string
+   IDENT(_nretval) :nlang.strings.string
    IDENT(string) :nlang.strings.string
   BLOCK :nlang.builtins.void
    RETURN :nlang.strings.string
@@ -126,6 +126,22 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(enu) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.TrivialCopy
+    BIN(.) :nlang.builtins.TrivialCopy
+     BIN(.) :nlang.builtins
+      BIN(.) :nlang
+       DIRECTDEF :<root>
+       IDENT(nlang) :__internal_not_typeable__
+      IDENT(builtins) :__internal_not_typeable__
+     IDENT(TrivialCopy) :__internal_not_typeable__
+   ISA :nlang.builtins.TrivialDtor
+    BIN(.) :nlang.builtins.TrivialDtor
+     BIN(.) :nlang.builtins
+      BIN(.) :nlang
+       DIRECTDEF :<root>
+       IDENT(nlang) :__internal_not_typeable__
+      IDENT(builtins) :__internal_not_typeable__
+     IDENT(TrivialDtor) :__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :t00.syntax.enu
     IDENT(this) :t00.syntax.enu
@@ -147,7 +163,7 @@ MODULE_BODY :__internal_not_typeable__
      IDENT(mk) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :t00.syntax.enu
-     IDENT(__gensym1) :t00.syntax.enu
+     IDENT(r) :t00.syntax.enu
      IDENT(this) :t00.syntax.enu
    DEFFUN :t00.syntax.enu.V1.new
     BIN(.) :__internal_not_typeable__
@@ -180,7 +196,7 @@ MODULE_BODY :__internal_not_typeable__
      IDENT(mk) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :t00.syntax.enu
-     IDENT(__gensym2) :t00.syntax.enu
+     IDENT(r) :t00.syntax.enu
      IDENT(this) :t00.syntax.enu
    DEFFUN :t00.syntax.enu.V2.new
     BIN(.) :__internal_not_typeable__
@@ -215,7 +231,7 @@ MODULE_BODY :__internal_not_typeable__
      IDENT(mk) :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     DEFARG :t00.syntax.enu
-     IDENT(__gensym3) :t00.syntax.enu
+     IDENT(r) :t00.syntax.enu
      IDENT(this) :t00.syntax.enu
    DEFFUN :t00.syntax.enu.V3.new
     BIN(.) :__internal_not_typeable__
@@ -230,3 +246,23 @@ MODULE_BODY :__internal_not_typeable__
     GENARGS :nlang.builtins.void
     UN(@#) :(nlang.builtins.MercurialRef t00.syntax.enu)
      IDENT(this) :t00.syntax.enu
+ DEFMETHOD :t00.syntax.enu.operator_copy
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(Copyable) :__internal_not_typeable__
+   IDENT(operator_copy) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :(nlang.builtins.MercurialRef t00.syntax.enu)
+   IDENT(self) :(nlang.builtins.MercurialRef t00.syntax.enu)
+   UN(@#) :(nlang.builtins.MercurialRef t00.syntax.enu)
+    IDENT(this) :t00.syntax.enu
+  DEFARG :(nlang.builtins.Ref t00.syntax.enu)
+   IDENT(other) :(nlang.builtins.Ref t00.syntax.enu)
+   UN(@) :(nlang.builtins.Ref t00.syntax.enu)
+    IDENT(this) :t00.syntax.enu
+  IDENT(void) :nlang.builtins.void

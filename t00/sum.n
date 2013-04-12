@@ -1,20 +1,21 @@
 from nlang import *
 
-type sum = SumCopy SumEquality WorkaroundRBC
+type sum = SumCopy SumEquality
   | A -> u32
   | B -> i32
 
-type ta = TrivialCopy WorkaroundRBC
+type ta = TrivialCopy
   x:u32
 
-type tb = TrivialCopy WorkaroundRBC
+type tb = TrivialCopy
   y:i32
 
-type sum_nocopy = WorkaroundRBC
+type sum_nocopy =
   | A -> ta
   | B -> tb
 
 export fun main = i32
+  let m = sum_nocopy.A.mk ta{{ x=0 }}
   let n = sum.A.mk 0
   if n == sum.A.mk 0
     return 0

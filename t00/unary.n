@@ -1,6 +1,6 @@
 from nlang import *
 
-type t = WorkaroundRBC
+type t = TrivialCopy
   x:i32
 
 t method get = i32

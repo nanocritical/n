@@ -5,8 +5,8 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(t) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
-   ISA :nlang.builtins.WorkaroundRBC
-    IDENT(WorkaroundRBC) :nlang.builtins.WorkaroundRBC
+   ISA :nlang.builtins.TrivialCopy
+    IDENT(TrivialCopy) :nlang.builtins.TrivialCopy
   LET :nlang.builtins.void
    DEFPATTERN :t00.unary.t
     IDENT(this) :t00.unary.t
@@ -15,6 +15,26 @@ MODULE_BODY :__internal_not_typeable__
   DEFFIELD :nlang.builtins.i32
    IDENT(x) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+ DEFMETHOD :t00.unary.t.operator_copy
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(Copyable) :__internal_not_typeable__
+   IDENT(operator_copy) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :(nlang.builtins.MercurialRef t00.unary.t)
+   IDENT(self) :(nlang.builtins.MercurialRef t00.unary.t)
+   UN(@#) :(nlang.builtins.MercurialRef t00.unary.t)
+    IDENT(this) :t00.unary.t
+  DEFARG :(nlang.builtins.Ref t00.unary.t)
+   IDENT(other) :(nlang.builtins.Ref t00.unary.t)
+   UN(@) :(nlang.builtins.Ref t00.unary.t)
+    IDENT(this) :t00.unary.t
+  IDENT(void) :nlang.builtins.void
  DEFMETHOD :t00.unary.t.get
   IDENT(get) :__internal_not_typeable__
   GENARGS :nlang.builtins.void

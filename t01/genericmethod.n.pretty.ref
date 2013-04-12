@@ -4,11 +4,11 @@ type blah = Blah
   let this = blah
   dummy:u8
 
-blah method Blah.decr self:@this = t
+blah method Blah.decr self:@this = _nretval:t
   let __gensym0 = 1
   return nlang.builtins.Numeric.operator_minus @x @__gensym0
 
-blah method decrf self:@this = t
+blah method decrf self:@this = _nretval:t
   let __gensym1 = 1
   return nlang.builtins.Numeric.operator_minus @x @__gensym1
 

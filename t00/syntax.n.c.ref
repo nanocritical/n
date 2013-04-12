@@ -18,13 +18,13 @@ return (nlang_builtins_i32)0;
 }
 }
 
-inline void t00_syntax_foo(nlang_strings_string *_nrtr___gensym0){
-#define __gensym0 (*_nrtr___gensym0)
+inline void t00_syntax_foo(nlang_strings_string *_nrtr__nretval){
+#define _nretval (*_nrtr__nretval)
  {
 "test";
 return;
 }
-#undef __gensym0
+#undef _nretval
 }
 
 inline nlang_builtins_i32 t00_syntax_other4(nlang_builtins_i32 x);
@@ -84,3 +84,9 @@ typedef t00_syntax_enu* _ngen_nlang_builtins_MutableRef__t00_syntax_enu;
 typedef _ngen_nlang_builtins_MutableRef__t00_syntax_enu _ngen_nlang_builtins_MercurialRef__t00_syntax_enu;
 typedef _ngen_nlang_builtins_MutableRef__t00_syntax_enu _ngen_nlang_builtins_NullableMutableRef__t00_syntax_enu;
 typedef _ngen_nlang_builtins_MercurialRef__t00_syntax_enu _ngen_nlang_builtins_NullableMercurialRef__t00_syntax_enu;
+
+nlang_builtins_void t00_syntax_enu_operator_copy(_ngen_nlang_builtins_MercurialRef__t00_syntax_enu self, _ngen_nlang_builtins_Ref__t00_syntax_enu other) {
+#define THIS(x) t00_syntax_enu##x
+memcpy(self, other, sizeof(*self));
+#undef THIS
+}

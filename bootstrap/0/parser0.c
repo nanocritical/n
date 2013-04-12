@@ -146,6 +146,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_NEW] = "new",
   [ID_CTOR] = "ctor",
   [ID_C] = "c",
+  [ID_NRETVAL] = "_nretval",
   [ID_OPERATOR_OR] = "operator_or",
   [ID_OPERATOR_AND] = "operator_and",
   [ID_OPERATOR_NOT] = "operator_not",
@@ -169,6 +170,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_OPERATOR_TIMES] = "operator_times",
   [ID_OPERATOR_UMINUS] = "operator_uminus",
   [ID_OPERATOR_BWNOT] = "operator_bwnot",
+  [ID_OPERATOR_COPY] = "operator_copy",
 };
 
 const char *builtingen_abspath[BG__NUM] = {

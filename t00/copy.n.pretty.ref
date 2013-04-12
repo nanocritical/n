@@ -1,0 +1,15 @@
+from nlang import *
+type copy = Copyable
+  let this = copy
+  x:i32
+
+copy method operator_copy self:@#this = void
+  self!x = other.x
+
+fun main = i32
+  let y = copy{{ x=-1 }}
+  let z:copy
+    t00.copy.copy.operator_copy @#z @y
+  let zz = z
+    t00.copy.copy.operator_copy @#zz @z
+  return z.x + 1

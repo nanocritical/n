@@ -1,5 +1,5 @@
 from nlang import *
-fun decr x:t = t
+fun decr x:t = _nretval:t
   let __gensym0 = 1
   return nlang.builtins.Numeric.operator_minus @x @__gensym0
 
