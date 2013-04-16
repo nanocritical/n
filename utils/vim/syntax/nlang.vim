@@ -2,17 +2,25 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword nDecl type fun method union intf dynintf import export delegate from inline lambda
+syn keyword nInclude import from
+syn keyword nDecl type union fun method intf delegate
+syn keyword nStorageClass inline extern
+syn keyword nExport export
 
-syn keyword nKeyword pre _pre post _post invariant _invariant example _example assert
+syn keyword nDecl pre _pre post _post invariant _invariant example _example assert
 syn keyword nKeyword contract honors _honors pretag posttag tag
 
-syn keyword nKeyword let if elif else while continue break extern
-syn keyword nKeyword for pfor foreach pforeach
-syn keyword nKeyword match except return block future
-syn keyword nKeyword in and or not neg isa typealias
-syn keyword nKeyword sizeof pass as attr declare except try catch throw
-syn match nKeyword "[@:]"
+syn keyword nConditional if elif else match
+syn keyword nRepeat while continue break
+syn keyword nRepeat for pfor foreach pforeach
+syn keyword nStatement let return block future lambda
+syn keyword nOperator in and or not
+syn keyword nOperator sizeof
+syn keyword nKeyword pass as attr declare
+syn keyword nException try catch throw except
+syn match nOperator "[@:]"
+
+syn keyword nKeyword self this
 
 syn keyword Constant null false true
 
@@ -23,6 +31,8 @@ syn region nSemantic start="^\s*#[!~?]" end="$" keepend
 syn match nMutate "[!][^=]"me=e-1
 syn match nMercurial "#"
 syn match nNullable "?"
+
+syn match nIntf "i_\w\+"
 
 syn match nSpaceError display excludenl "\s\+$"
 syn match nSpaceError display "^\ *\t"me=e-1
@@ -62,7 +72,14 @@ syn region	nString		start=+L\="+ skip=+\\\\\|\\"+ end=+"+ contains=cSpecial,cFor
 syn region	nString		start=+L\='+ skip=+\\\\\|\\'+ end=+'+ contains=cSpecial,cFormat,@Spell
 
 hi def link nDecl Structure
-hi def link nKeyword Conditional
+hi def link nInclude Include
+hi def link nStorageClass StorageClass
+hi def link nConditional Conditional
+hi def link nRepeat Repeat
+hi def link nStatement Statement
+hi def link nOperator Operator
+hi def link nException Exception
+hi def link nKeyword Keyword
 hi def link nComment Comment
 hi def link nTodo Todo
 hi def link nSpaceError Error
@@ -76,5 +93,8 @@ hi def link nSemantic Semantic
 hi def link nMutate Constant
 hi def link nMercurial Constant
 hi def link nNullable Constant
+hi def link nIntf Type
+hi def link nFunction Function
+hi def link nExport Special
 
 let b:current_syntax = "n"

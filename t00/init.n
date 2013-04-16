@@ -1,6 +1,6 @@
 from nlang import *
 
-type t = TrivialCopy
+type t = i_trivial_copy
   x:i32
 
 export fun main = i32

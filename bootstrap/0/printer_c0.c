@@ -1131,37 +1131,37 @@ static void print_deftype_block(FILE *out, bool header, const struct module *mod
 static void print_deftype_typedefs(FILE *out, bool header, const struct module *mod, const struct node *node) {
   fprintf(out, "typedef const ");
   print_deftype_name(out, mod, node);
-  fprintf(out, "* _ngen_nlang_builtins_Ref__");
+  fprintf(out, "* _ngen_nlang_builtins_i_ref__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
-  fprintf(out, "typedef _ngen_nlang_builtins_Ref__");
+  fprintf(out, "typedef _ngen_nlang_builtins_i_ref__");
   print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_NullableRef__");
+  fprintf(out, " _ngen_nlang_builtins_i_nullable_ref__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
   fprintf(out, "typedef ");
   print_deftype_name(out, mod, node);
-  fprintf(out, "* _ngen_nlang_builtins_MutableRef__");
+  fprintf(out, "* _ngen_nlang_builtins_i_mutable_ref__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
-  fprintf(out, "typedef _ngen_nlang_builtins_MutableRef__");
+  fprintf(out, "typedef _ngen_nlang_builtins_i_mutable_ref__");
   print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_MercurialRef__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, ";\n");
-
-  fprintf(out, "typedef _ngen_nlang_builtins_MutableRef__");
-  print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_NullableMutableRef__");
+  fprintf(out, " _ngen_nlang_builtins_i_mercurial_ref__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 
-  fprintf(out, "typedef _ngen_nlang_builtins_MercurialRef__");
+  fprintf(out, "typedef _ngen_nlang_builtins_i_mutable_ref__");
   print_deftype_name(out, mod, node);
-  fprintf(out, " _ngen_nlang_builtins_NullableMercurialRef__");
+  fprintf(out, " _ngen_nlang_builtins_i_nullable_mutable_ref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, ";\n");
+
+  fprintf(out, "typedef _ngen_nlang_builtins_i_mercurial_ref__");
+  print_deftype_name(out, mod, node);
+  fprintf(out, " _ngen_nlang_builtins_i_nullable_mercurial_ref__");
   print_deftype_name(out, mod, node);
   fprintf(out, ";\n");
 }

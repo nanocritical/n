@@ -1,6 +1,6 @@
 from nlang import *
 
-type container t:Numeric =
+type container t:i_numeric =
   x:t
 
 container method! add x:t = void

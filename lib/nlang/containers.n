@@ -1,21 +1,21 @@
 from nlang.literals import *
 from nlang.builtins import *
 
-export intf Locus = HasEquality CopyableButOwned
-export intf FwdLocus = Locus Ordered
-export intf BidirLocus = Locus Ordered
+export intf i_locus = i_has_equality i_copyable_but_owned
+export intf i_fwd_locus = i_locus i_ordered
+export intf i_bidir_locus = i_locus i_ordered
 
-export intf Iterator =
+export intf i_iterator =
   method get = size
   method is_valid = bool
   method has_next = bool
   method! next = void
 
-export inline type index_range = export TrivialCopy
+export inline type index_range = export i_trivial_copy
   b:size
   e:size
 
-export inline type index_iterator = export Iterator
+export inline type index_iterator = export i_iterator
   r:index_range
   p:size
 

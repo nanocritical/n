@@ -82,8 +82,8 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node, void 
     if (node->as.UN.operator == TREFWILDCARD
         || node->as.UN.operator == TNULREFWILDCARD) {
       // FIXME The proper solution is to use
-      //   (intf t:Any) Nullable r:(Ref t) = (AnyRef t)
-      // instead of NullableRef, NullableMutableRef, and NullableMercurialRef.
+      //   (intf t:Any) Nullable r:(Ref t) = (i_any_ref t)
+      // instead of i_nullable_ref, i_nullable_mutableRef, and i_nullable_mercurialRef.
       // and use (Nullable __wildcard_ref_arg__) here.
       assert(node->as.UN.operator != TNULREFWILDCARD && "Unsupported yet");
 
@@ -2523,8 +2523,8 @@ static error step_add_builtin_enum_isalist(struct module *mod, struct node *node
     return 0;
   }
 
-  add_isa(mod, node, "nlang.builtins.TrivialCopy");
-  add_isa(mod, node, "nlang.builtins.TrivialDtor");
+  add_isa(mod, node, "nlang.builtins.i_trivial_copy");
+  add_isa(mod, node, "nlang.builtins.i_trivial_dtor");
 
   return 0;
 }
@@ -2645,9 +2645,9 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
   struct node *ctor = get_member(mod, proxy, ID_CTOR);
   if (ctor != NULL) {
     if (node_fun_explicit_args_count(ctor) == 0) {
-      add_isa(mod, node, "nlang.builtins.DefaultCtor");
+      add_isa(mod, node, "nlang.builtins.i_default_ctor");
     } else if (node_fun_explicit_args_count(ctor) == 1) {
-      add_isa(mod, node, "nlang.builtins.CtorWith");
+      add_isa(mod, node, "nlang.builtins.i_ctor_with");
     }
   } else {
     bool zero = TRUE;
@@ -2660,7 +2660,7 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
     }
 
     if (zero) {
-      add_isa(mod, node, "nlang.builtins.TrivialCtor");
+      add_isa(mod, node, "nlang.builtins.i_trivial_ctor");
     }
   }
 

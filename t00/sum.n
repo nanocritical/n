@@ -1,13 +1,13 @@
 from nlang import *
 
-type sum = SumCopy SumEquality
+type sum = i_sum_copy i_sum_equality
   | A -> u32
   | B -> i32
 
-type ta = TrivialCopy
+type ta = i_trivial_copy
   x:u32
 
-type tb = TrivialCopy
+type tb = i_trivial_copy
   y:i32
 
 type sum_nocopy =

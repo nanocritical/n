@@ -1,6 +1,6 @@
 from nlang import *
 
-(fun t:Numeric) decr x:t = t
+(fun t:i_numeric) decr x:t = t
   return x - 1
 
 fun main = i32
