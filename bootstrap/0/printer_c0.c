@@ -1446,7 +1446,7 @@ static void print_top(FILE *out, bool header, const struct module *mod, const st
 static void print_module(FILE *out, bool header, const struct module *mod) {
   if (header) {
     const char *guard = replace_dots(scope_name(mod, mod->root->scope));
-    fprintf(out, "#ifndef %s\n#define %s\n\n", guard, guard);
+    fprintf(out, "#ifndef __%s\n#define __%s\n\n", guard, guard);
   }
 
   fprintf(out, "#include <lib/nlang/runtime.h>\n");
