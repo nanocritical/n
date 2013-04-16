@@ -115,7 +115,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NREF] = "NullableRef",
   [ID_TBI_NMREF] = "NullableMutableRef",
   [ID_TBI_NMMREF] = "NullableMercurialRef",
-  [ID_TBI_NUMERIC] = "Numeric",
+  [ID_TBI_ARITHMETIC] = "Arithmetic",
   [ID_TBI_INTEGER] = "Integer",
   [ID_TBI_NATIVE_INTEGER] = "NativeInteger",
   [ID_TBI_GENERALIZED_BOOLEAN] = "GeneralizedBoolean",
@@ -3115,7 +3115,7 @@ except:
 
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error,
                              const struct typ *a) {
-  if (typ_isa(mod, a, typ_lookup_builtin(mod, TBI_NUMERIC))) {
+  if (typ_isa(mod, a, typ_lookup_builtin(mod, TBI_ARITHMETIC))) {
     return 0;
   }
 
