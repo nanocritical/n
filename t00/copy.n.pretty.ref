@@ -1,10 +1,12 @@
 from nlang import *
-type copy = Copyable
+type copy = i_copyable
   let this = copy
   x:i32
 
-copy method operator_copy self:@#this = void
+copy method i_copyable.operator_copy self:@#this = void
   self!x = other.x
+
+fun foo = _nretval:copy
 
 fun main = i32
   let y = copy{{ x=-1 }}

@@ -1,6 +1,6 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
-_ngen_nlang_builtins_Ref__nlang_builtins_i32 t00_fixme02_returns_tmp(void){
+_ngen_nlang_builtins_i_ref__nlang_builtins_i32 t00_fixme02_returns_tmp(void){
  {
 nlang_builtins_i32 __gensym0; memset(&__gensym0, 0, sizeof(__gensym0));
 __gensym0 = (nlang_builtins_i32)(nlang_builtins_i32)0;

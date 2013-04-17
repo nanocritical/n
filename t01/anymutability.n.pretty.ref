@@ -8,4 +8,4 @@ fun get m:r c = r i32
 
 fun main = i32
   let x = c{{ x=0 }}
-  return .((get Ref) @x)
+  return .((get i_ref) @x)

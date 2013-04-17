@@ -1,5 +1,5 @@
 from nlang import *
-type copy = ReturnByCopy
+type copy = i_return_by_copy
   let this = copy
   x:i32
 

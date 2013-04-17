@@ -16,22 +16,22 @@ MODULE_BODY :__internal_not_typeable__
  DEFMETHOD :t01.wildcardmutability.c.get
   IDENT(get) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-   DEFGENARG :nlang.builtins.Ref
-    IDENT(__wildcard_ref_arg__) :nlang.builtins.Ref
-    IDENT(Ref) :nlang.builtins.Ref
-  DEFARG :(nlang.builtins.Ref t01.wildcardmutability.c)
-   IDENT(self) :(nlang.builtins.Ref t01.wildcardmutability.c)
-   CALL :(nlang.builtins.Ref t01.wildcardmutability.c)
-    IDENT(__wildcard_ref_arg__) :nlang.builtins.Ref
+   DEFGENARG :nlang.builtins.i_ref
+    IDENT(__wildcard_ref_arg__) :nlang.builtins.i_ref
+    IDENT(i_ref) :nlang.builtins.i_ref
+  DEFARG :(nlang.builtins.i_ref t01.wildcardmutability.c)
+   IDENT(self) :(nlang.builtins.i_ref t01.wildcardmutability.c)
+   CALL :(nlang.builtins.i_ref t01.wildcardmutability.c)
+    IDENT(__wildcard_ref_arg__) :nlang.builtins.i_ref
     IDENT(this) :t01.wildcardmutability.c
-  CALL :(nlang.builtins.Ref nlang.builtins.i32)
-   IDENT(__wildcard_ref_arg__) :nlang.builtins.Ref
+  CALL :(nlang.builtins.i_ref nlang.builtins.i32)
+   IDENT(__wildcard_ref_arg__) :nlang.builtins.i_ref
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
-   RETURN :(nlang.builtins.MercurialRef nlang.builtins.i32)
-    UN(@$) :(nlang.builtins.MercurialRef nlang.builtins.i32)
+   RETURN :(nlang.builtins.i_mercurial_ref nlang.builtins.i32)
+    UN(@$) :(nlang.builtins.i_mercurial_ref nlang.builtins.i32)
      BIN($) :nlang.builtins.i32
-      IDENT(self) :(nlang.builtins.Ref t01.wildcardmutability.c)
+      IDENT(self) :(nlang.builtins.i_ref t01.wildcardmutability.c)
       IDENT(x) :__internal_not_typeable__
  DEFFUN :t01.wildcardmutability.main
   IDENT(main) :__internal_not_typeable__
@@ -48,7 +48,7 @@ MODULE_BODY :__internal_not_typeable__
      DEFNAME(x) :t01.wildcardmutability.c
    RETURN :nlang.builtins.i32
     UN(.) :nlang.builtins.i32
-     CALL :(nlang.builtins.Ref nlang.builtins.i32)
-      DIRECTDEF :(t01.wildcardmutability.c.get nlang.builtins.Ref)
-      UN(@) :(nlang.builtins.Ref t01.wildcardmutability.c)
+     CALL :(nlang.builtins.i_ref nlang.builtins.i32)
+      DIRECTDEF :(t01.wildcardmutability.c.get nlang.builtins.i_ref)
+      UN(@) :(nlang.builtins.i_ref t01.wildcardmutability.c)
        IDENT(x) :t01.wildcardmutability.c

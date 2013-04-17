@@ -1,10 +1,10 @@
 from nlang import *
-type enu = <root>.nlang.builtins.TrivialCopy <root>.nlang.builtins.TrivialDtor
+type enu = <root>.nlang.builtins.i_trivial_copy <root>.nlang.builtins.i_trivial_dtor
   let this = enu
   | A = 0
   | B = 0 + 1
 
-enu method <root>.nlang.builtins.Copyable.operator_copy self:@#this = void
+enu method <root>.nlang.builtins.i_copyable.operator_copy self:@#this = void
 
 export fun main = i32
   let n = enu.A

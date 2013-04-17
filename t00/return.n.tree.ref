@@ -5,8 +5,8 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(copy) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
-   ISA :nlang.builtins.ReturnByCopy
-    IDENT(ReturnByCopy) :nlang.builtins.ReturnByCopy
+   ISA :nlang.builtins.i_return_by_copy
+    IDENT(i_return_by_copy) :nlang.builtins.i_return_by_copy
   LET :nlang.builtins.void
    DEFPATTERN :t00.return.copy
     IDENT(this) :t00.return.copy

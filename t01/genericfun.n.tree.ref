@@ -4,30 +4,30 @@ MODULE_BODY :__internal_not_typeable__
  DEFFUN :t01.genericfun.decr
   IDENT(decr) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-   DEFGENARG :nlang.builtins.Numeric
-    IDENT(t) :nlang.builtins.Numeric
-    IDENT(Numeric) :nlang.builtins.Numeric
-  DEFARG :nlang.builtins.Numeric
-   IDENT(x) :nlang.builtins.Numeric
-   IDENT(t) :nlang.builtins.Numeric
-  DEFARG :nlang.builtins.Numeric
-   IDENT(_nretval) :nlang.builtins.Numeric
-   IDENT(t) :nlang.builtins.Numeric
+   DEFGENARG :nlang.builtins.i_numeric
+    IDENT(t) :nlang.builtins.i_numeric
+    IDENT(i_numeric) :nlang.builtins.i_numeric
+  DEFARG :nlang.builtins.i_numeric
+   IDENT(x) :nlang.builtins.i_numeric
+   IDENT(t) :nlang.builtins.i_numeric
+  DEFARG :nlang.builtins.i_numeric
+   IDENT(_nretval) :nlang.builtins.i_numeric
+   IDENT(t) :nlang.builtins.i_numeric
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.Numeric
-     IDENT(__gensym0) :nlang.builtins.Numeric
-     NUMBER(1) :nlang.builtins.Numeric
-     DEFNAME(__gensym0) :nlang.builtins.Numeric
-   RETURN :nlang.builtins.Numeric
-    CALL :nlang.builtins.Arithmetic
-     BIN(.) :nlang.builtins.Arithmetic.operator_minus
-      DIRECTDEF :nlang.builtins.Numeric
+    DEFPATTERN :nlang.builtins.i_numeric
+     IDENT(__gensym0) :nlang.builtins.i_numeric
+     NUMBER(1) :nlang.builtins.i_numeric
+     DEFNAME(__gensym0) :nlang.builtins.i_numeric
+   RETURN :nlang.builtins.i_numeric
+    CALL :nlang.builtins.i_arithmetic
+     BIN(.) :nlang.builtins.i_arithmetic.operator_minus
+      DIRECTDEF :nlang.builtins.i_numeric
       IDENT(operator_minus) :__internal_not_typeable__
-     UN(@) :(nlang.builtins.Ref nlang.builtins.Numeric)
-      IDENT(x) :nlang.builtins.Numeric
-     UN(@) :(nlang.builtins.Ref nlang.builtins.Numeric)
-      IDENT(__gensym0) :nlang.builtins.Numeric
+     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+      IDENT(x) :nlang.builtins.i_numeric
+     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+      IDENT(__gensym0) :nlang.builtins.i_numeric
  DEFFUN :t01.genericfun.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void

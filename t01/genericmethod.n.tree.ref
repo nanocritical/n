@@ -1,37 +1,37 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
- DEFINTF :t01.genericmethod.Blah
-  IDENT(Blah) :__internal_not_typeable__
+ DEFINTF :t01.genericmethod.i_blah
+  IDENT(i_blah) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
   LET :nlang.builtins.void
-   DEFPATTERN :t01.genericmethod.Blah
-    IDENT(this) :t01.genericmethod.Blah
-    IDENT(Blah) :t01.genericmethod.Blah
-    DEFNAME(this) :t01.genericmethod.Blah
-  DEFMETHOD :t01.genericmethod.Blah.decr
+   DEFPATTERN :t01.genericmethod.i_blah
+    IDENT(this) :t01.genericmethod.i_blah
+    IDENT(i_blah) :t01.genericmethod.i_blah
+    DEFNAME(this) :t01.genericmethod.i_blah
+  DEFMETHOD :t01.genericmethod.i_blah.decr
    IDENT(decr) :__internal_not_typeable__
    GENARGS :nlang.builtins.void
-    DEFGENARG :nlang.builtins.Numeric
-     IDENT(t) :nlang.builtins.Numeric
-     IDENT(Numeric) :nlang.builtins.Numeric
-   DEFARG :(nlang.builtins.Ref t01.genericmethod.Blah)
-    IDENT(self) :(nlang.builtins.Ref t01.genericmethod.Blah)
-    UN(@) :(nlang.builtins.Ref t01.genericmethod.Blah)
-     IDENT(this) :t01.genericmethod.Blah
-   DEFARG :nlang.builtins.Numeric
-    IDENT(x) :nlang.builtins.Numeric
-    IDENT(t) :nlang.builtins.Numeric
-   DEFARG :nlang.builtins.Numeric
-    IDENT(_nretval) :nlang.builtins.Numeric
-    IDENT(t) :nlang.builtins.Numeric
+    DEFGENARG :nlang.builtins.i_numeric
+     IDENT(t) :nlang.builtins.i_numeric
+     IDENT(i_numeric) :nlang.builtins.i_numeric
+   DEFARG :(nlang.builtins.i_ref t01.genericmethod.i_blah)
+    IDENT(self) :(nlang.builtins.i_ref t01.genericmethod.i_blah)
+    UN(@) :(nlang.builtins.i_ref t01.genericmethod.i_blah)
+     IDENT(this) :t01.genericmethod.i_blah
+   DEFARG :nlang.builtins.i_numeric
+    IDENT(x) :nlang.builtins.i_numeric
+    IDENT(t) :nlang.builtins.i_numeric
+   DEFARG :nlang.builtins.i_numeric
+    IDENT(_nretval) :nlang.builtins.i_numeric
+    IDENT(t) :nlang.builtins.i_numeric
  DEFTYPE :t01.genericmethod.blah
   IDENT(blah) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
-   ISA :t01.genericmethod.Blah
-    IDENT(Blah) :t01.genericmethod.Blah
+   ISA :t01.genericmethod.i_blah
+    IDENT(i_blah) :t01.genericmethod.i_blah
   LET :nlang.builtins.void
    DEFPATTERN :t01.genericmethod.blah
     IDENT(this) :t01.genericmethod.blah
@@ -42,68 +42,68 @@ MODULE_BODY :__internal_not_typeable__
    IDENT(u8) :nlang.builtins.u8
  DEFMETHOD :t01.genericmethod.blah.decr
   BIN(.) :__internal_not_typeable__
-   IDENT(Blah) :__internal_not_typeable__
+   IDENT(i_blah) :__internal_not_typeable__
    IDENT(decr) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-   DEFGENARG :nlang.builtins.Numeric
-    IDENT(t) :nlang.builtins.Numeric
-    IDENT(Numeric) :nlang.builtins.Numeric
-  DEFARG :(nlang.builtins.Ref t01.genericmethod.blah)
-   IDENT(self) :(nlang.builtins.Ref t01.genericmethod.blah)
-   UN(@) :(nlang.builtins.Ref t01.genericmethod.blah)
+   DEFGENARG :nlang.builtins.i_numeric
+    IDENT(t) :nlang.builtins.i_numeric
+    IDENT(i_numeric) :nlang.builtins.i_numeric
+  DEFARG :(nlang.builtins.i_ref t01.genericmethod.blah)
+   IDENT(self) :(nlang.builtins.i_ref t01.genericmethod.blah)
+   UN(@) :(nlang.builtins.i_ref t01.genericmethod.blah)
     IDENT(this) :t01.genericmethod.blah
-  DEFARG :nlang.builtins.Numeric
-   IDENT(x) :nlang.builtins.Numeric
-   IDENT(t) :nlang.builtins.Numeric
-  DEFARG :nlang.builtins.Numeric
-   IDENT(_nretval) :nlang.builtins.Numeric
-   IDENT(t) :nlang.builtins.Numeric
+  DEFARG :nlang.builtins.i_numeric
+   IDENT(x) :nlang.builtins.i_numeric
+   IDENT(t) :nlang.builtins.i_numeric
+  DEFARG :nlang.builtins.i_numeric
+   IDENT(_nretval) :nlang.builtins.i_numeric
+   IDENT(t) :nlang.builtins.i_numeric
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.Numeric
-     IDENT(__gensym0) :nlang.builtins.Numeric
-     NUMBER(1) :nlang.builtins.Numeric
-     DEFNAME(__gensym0) :nlang.builtins.Numeric
-   RETURN :nlang.builtins.Numeric
-    CALL :nlang.builtins.Arithmetic
-     BIN(.) :nlang.builtins.Arithmetic.operator_minus
-      DIRECTDEF :nlang.builtins.Numeric
+    DEFPATTERN :nlang.builtins.i_numeric
+     IDENT(__gensym0) :nlang.builtins.i_numeric
+     NUMBER(1) :nlang.builtins.i_numeric
+     DEFNAME(__gensym0) :nlang.builtins.i_numeric
+   RETURN :nlang.builtins.i_numeric
+    CALL :nlang.builtins.i_arithmetic
+     BIN(.) :nlang.builtins.i_arithmetic.operator_minus
+      DIRECTDEF :nlang.builtins.i_numeric
       IDENT(operator_minus) :__internal_not_typeable__
-     UN(@) :(nlang.builtins.Ref nlang.builtins.Numeric)
-      IDENT(x) :nlang.builtins.Numeric
-     UN(@) :(nlang.builtins.Ref nlang.builtins.Numeric)
-      IDENT(__gensym0) :nlang.builtins.Numeric
+     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+      IDENT(x) :nlang.builtins.i_numeric
+     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+      IDENT(__gensym0) :nlang.builtins.i_numeric
  DEFMETHOD :t01.genericmethod.blah.decrf
   IDENT(decrf) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-   DEFGENARG :nlang.builtins.Numeric
-    IDENT(t) :nlang.builtins.Numeric
-    IDENT(Numeric) :nlang.builtins.Numeric
-  DEFARG :(nlang.builtins.Ref t01.genericmethod.blah)
-   IDENT(self) :(nlang.builtins.Ref t01.genericmethod.blah)
-   UN(@) :(nlang.builtins.Ref t01.genericmethod.blah)
+   DEFGENARG :nlang.builtins.i_numeric
+    IDENT(t) :nlang.builtins.i_numeric
+    IDENT(i_numeric) :nlang.builtins.i_numeric
+  DEFARG :(nlang.builtins.i_ref t01.genericmethod.blah)
+   IDENT(self) :(nlang.builtins.i_ref t01.genericmethod.blah)
+   UN(@) :(nlang.builtins.i_ref t01.genericmethod.blah)
     IDENT(this) :t01.genericmethod.blah
-  DEFARG :nlang.builtins.Numeric
-   IDENT(x) :nlang.builtins.Numeric
-   IDENT(t) :nlang.builtins.Numeric
-  DEFARG :nlang.builtins.Numeric
-   IDENT(_nretval) :nlang.builtins.Numeric
-   IDENT(t) :nlang.builtins.Numeric
+  DEFARG :nlang.builtins.i_numeric
+   IDENT(x) :nlang.builtins.i_numeric
+   IDENT(t) :nlang.builtins.i_numeric
+  DEFARG :nlang.builtins.i_numeric
+   IDENT(_nretval) :nlang.builtins.i_numeric
+   IDENT(t) :nlang.builtins.i_numeric
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.Numeric
-     IDENT(__gensym1) :nlang.builtins.Numeric
-     NUMBER(1) :nlang.builtins.Numeric
-     DEFNAME(__gensym1) :nlang.builtins.Numeric
-   RETURN :nlang.builtins.Numeric
-    CALL :nlang.builtins.Arithmetic
-     BIN(.) :nlang.builtins.Arithmetic.operator_minus
-      DIRECTDEF :nlang.builtins.Numeric
+    DEFPATTERN :nlang.builtins.i_numeric
+     IDENT(__gensym1) :nlang.builtins.i_numeric
+     NUMBER(1) :nlang.builtins.i_numeric
+     DEFNAME(__gensym1) :nlang.builtins.i_numeric
+   RETURN :nlang.builtins.i_numeric
+    CALL :nlang.builtins.i_arithmetic
+     BIN(.) :nlang.builtins.i_arithmetic.operator_minus
+      DIRECTDEF :nlang.builtins.i_numeric
       IDENT(operator_minus) :__internal_not_typeable__
-     UN(@) :(nlang.builtins.Ref nlang.builtins.Numeric)
-      IDENT(x) :nlang.builtins.Numeric
-     UN(@) :(nlang.builtins.Ref nlang.builtins.Numeric)
-      IDENT(__gensym1) :nlang.builtins.Numeric
+     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+      IDENT(x) :nlang.builtins.i_numeric
+     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+      IDENT(__gensym1) :nlang.builtins.i_numeric
  DEFFUN :t01.genericmethod.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
@@ -123,7 +123,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(blah) :t01.genericmethod.blah
       IDENT(decr) :__internal_not_typeable__
      IDENT(u32) :nlang.builtins.u32
-    UN(@) :(nlang.builtins.Ref t01.genericmethod.blah)
+    UN(@) :(nlang.builtins.i_ref t01.genericmethod.blah)
      IDENT(b) :t01.genericmethod.blah
     NUMBER(1) :nlang.builtins.u32
    RETURN :nlang.builtins.i32
@@ -133,6 +133,6 @@ MODULE_BODY :__internal_not_typeable__
        IDENT(blah) :t01.genericmethod.blah
        IDENT(decrf) :__internal_not_typeable__
       IDENT(i32) :nlang.builtins.i32
-     UN(@) :(nlang.builtins.Ref t01.genericmethod.blah)
+     UN(@) :(nlang.builtins.i_ref t01.genericmethod.blah)
       IDENT(b) :t01.genericmethod.blah
      NUMBER(1) :nlang.builtins.i32

@@ -4,18 +4,18 @@ MODULE_BODY :__internal_not_typeable__
  DEFTYPE :t01.generic.container
   IDENT(container) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-   DEFGENARG :nlang.builtins.Copyable
-    IDENT(t) :nlang.builtins.Copyable
-    IDENT(Copyable) :nlang.builtins.Copyable
+   DEFGENARG :nlang.builtins.i_copyable
+    IDENT(t) :nlang.builtins.i_copyable
+    IDENT(i_copyable) :nlang.builtins.i_copyable
   ISALIST :nlang.builtins.void
   LET :nlang.builtins.void
    DEFPATTERN :t01.generic.container
     IDENT(this) :t01.generic.container
     IDENT(container) :t01.generic.container
     DEFNAME(this) :t01.generic.container
-  DEFFIELD :nlang.builtins.Copyable
+  DEFFIELD :nlang.builtins.i_copyable
    IDENT(x) :__internal_not_typeable__
-   IDENT(t) :nlang.builtins.Copyable
+   IDENT(t) :nlang.builtins.i_copyable
  DEFFUN :t01.generic.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void

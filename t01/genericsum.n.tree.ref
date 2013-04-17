@@ -4,35 +4,35 @@ MODULE_BODY :__internal_not_typeable__
  DEFTYPE :t01.genericsum.container
   IDENT(container) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-   DEFGENARG :nlang.builtins.Numeric
-    IDENT(t) :nlang.builtins.Numeric
-    IDENT(Numeric) :nlang.builtins.Numeric
+   DEFGENARG :nlang.builtins.i_numeric
+    IDENT(t) :nlang.builtins.i_numeric
+    IDENT(i_numeric) :nlang.builtins.i_numeric
   ISALIST :nlang.builtins.void
   LET :nlang.builtins.void
    DEFPATTERN :t01.genericsum.container
     IDENT(this) :t01.genericsum.container
     IDENT(container) :t01.genericsum.container
     DEFNAME(this) :t01.genericsum.container
-  DEFFIELD :nlang.builtins.Numeric
+  DEFFIELD :nlang.builtins.i_numeric
    IDENT(x) :__internal_not_typeable__
-   IDENT(t) :nlang.builtins.Numeric
+   IDENT(t) :nlang.builtins.i_numeric
  DEFMETHOD :t01.genericsum.container.add
   IDENT(add) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
-  DEFARG :(nlang.builtins.MutableRef t01.genericsum.container)
-   IDENT(self) :(nlang.builtins.MutableRef t01.genericsum.container)
-   UN(@!) :(nlang.builtins.MutableRef t01.genericsum.container)
+  DEFARG :(nlang.builtins.i_mutable_ref t01.genericsum.container)
+   IDENT(self) :(nlang.builtins.i_mutable_ref t01.genericsum.container)
+   UN(@!) :(nlang.builtins.i_mutable_ref t01.genericsum.container)
     IDENT(this) :t01.genericsum.container
-  DEFARG :nlang.builtins.Numeric
-   IDENT(x) :nlang.builtins.Numeric
-   IDENT(t) :nlang.builtins.Numeric
+  DEFARG :nlang.builtins.i_numeric
+   IDENT(x) :nlang.builtins.i_numeric
+   IDENT(t) :nlang.builtins.i_numeric
   IDENT(void) :nlang.builtins.void
   BLOCK :nlang.builtins.void
-   BIN( += ) :nlang.builtins.Numeric
-    BIN(!) :nlang.builtins.Numeric
-     IDENT(self) :(nlang.builtins.MutableRef t01.genericsum.container)
+   BIN( += ) :nlang.builtins.i_numeric
+    BIN(!) :nlang.builtins.i_numeric
+     IDENT(self) :(nlang.builtins.i_mutable_ref t01.genericsum.container)
      IDENT(x) :__internal_not_typeable__
-    IDENT(x) :nlang.builtins.Numeric
+    IDENT(x) :nlang.builtins.i_numeric
  DEFFUN :t01.genericsum.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
@@ -51,7 +51,7 @@ MODULE_BODY :__internal_not_typeable__
     BLOCK :nlang.builtins.void
      CALL :nlang.builtins.void
       DIRECTDEF :t01.genericsum.container.add
-      UN(@!) :(nlang.builtins.MutableRef (t01.genericsum.container nlang.builtins.i32))
+      UN(@!) :(nlang.builtins.i_mutable_ref (t01.genericsum.container nlang.builtins.i32))
        IDENT(v) :(t01.genericsum.container nlang.builtins.i32)
       NUMBER(1) :nlang.builtins.i32
    RETURN :nlang.builtins.i32

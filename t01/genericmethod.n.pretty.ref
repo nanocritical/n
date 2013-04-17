@@ -1,16 +1,16 @@
 from nlang import *
 
-type blah = Blah
+type blah = i_blah
   let this = blah
   dummy:u8
 
-blah method Blah.decr self:@this = _nretval:t
+blah method i_blah.decr self:@this = _nretval:t
   let __gensym0 = 1
-  return nlang.builtins.Numeric.operator_minus @x @__gensym0
+  return nlang.builtins.i_numeric.operator_minus @x @__gensym0
 
 blah method decrf self:@this = _nretval:t
   let __gensym1 = 1
-  return nlang.builtins.Numeric.operator_minus @x @__gensym1
+  return nlang.builtins.i_numeric.operator_minus @x @__gensym1
 
 fun main = i32
   let b = blah{{ dummy=0 }}
