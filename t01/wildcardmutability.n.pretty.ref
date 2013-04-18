@@ -6,6 +6,6 @@ type c =
 export c method get = __wildcard_ref_arg__ i32
   return @$self$x
 
-fun main = i32
+export fun main = i32
   let x = c{{ x=0 }}
   return .(t01.wildcardmutability.c.get @x)

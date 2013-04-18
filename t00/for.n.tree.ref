@@ -39,6 +39,9 @@ MODULE_BODY :__internal_not_typeable__
               IDENT(__gensym0) :nlang.containers.index_iterator
             DEFNAME(i) :nlang.builtins.size
            BLOCK :nlang.builtins.void
+            CALL :nlang.builtins.void
+             IDENT(unused) :(nlang.builtins.unused nlang.builtins.size)
+             IDENT(i) :nlang.builtins.size
             BIN( += ) :nlang.builtins.i32
              IDENT(j) :nlang.builtins.i32
              NUMBER(1) :nlang.builtins.i32

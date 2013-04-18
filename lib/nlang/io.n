@@ -1,0 +1,11 @@
+from nlang import *
+
+export type path = export Copyable export Showable
+  pathname:string
+--  delegate pathname Showable
+
+export path method# copy other:@this = void
+  self.pathname = other.pathname
+
+export path method! set s:@string = void
+  self.pathname = s.

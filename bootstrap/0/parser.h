@@ -14,6 +14,7 @@ enum node_which {
   NUMBER,
   BOOL,
   STRING,
+  SIZEOF,
   BIN,
   UN,
   TUPLE,
@@ -142,7 +143,9 @@ struct node_lambda {};
 struct node_init {
   const struct node *target_expr;
 };
-struct node_return {};
+struct node_return {
+  const struct node *return_through_ref_expr;
+};
 struct node_for {
   struct node *pattern;
   struct node *block;
@@ -621,6 +624,8 @@ bool node_is_export(const struct node *node);
 bool node_is_def(const struct node *node);
 bool node_is_statement(const struct node *node);
 bool node_is_rvalue(const struct node *node);
+bool node_is_at_top(const struct node *node);
+bool node_can_have_genargs(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
 size_t node_fun_all_args_count(const struct node *def);
 size_t node_fun_explicit_args_count(const struct node *def);
@@ -650,7 +655,10 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
 error typ_check_deref_against_mark(const struct module *mod, const struct node *for_error,
                                    const struct node *node, enum token_type operator);
 bool typ_is_reference_instance(const struct module *mod, const struct typ *a);
+error typ_check_is_reference_instance(const struct module *mod, const struct node *for_error,
+                                      const struct typ *a);
 bool typ_is_concrete(const struct module *mod, const struct typ *a);
+bool typ_is_abstract_instance(const struct module *mod, const struct typ *a);
 error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,
                 const struct typ *a, const struct typ *b);
 bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf);

@@ -1,0 +1,72 @@
+from nlang import *
+from nlang import unsafe
+
+extern fun realloc p:?@#u8 oldbsz:size bsz:size = @#u8
+extern fun free p:?@#u8 sz:size = void
+
+export inline type heap =
+  dummy:i32
+
+export heap (method! t:i_any) alloc = @#t
+  let raw = realloc null 0 (sizeof t)
+  return (unsafe.cast @#u8 @#t) raw
+
+export heap (method! t:i_any) free p:?@#t = void
+  let raw = (unsafe.cast ?@#t ?@#u8) p
+  return free raw (sizeof t)
+
+export heap (method! t:i_copyable) slice_realloc s:?@#(slice t) len:size = @#(slice t)
+  let bsz = len*(sizeof t) + (sizeof size)
+  if s !== null
+    let oldbsz = s.bytelen
+    let dp = (unsafe.cast ?@#(slice t) ?@#u8) s
+    let ap = slice_allocptr dp
+    let rap = realloc ap oldbsz bsz
+    slice_set_elcount rap len
+    let rdp = slice_dataptr rap
+    return (unsafe.cast @#u8 @#(slice t)) rdp
+  else
+    let rap = realloc null 0 bsz
+    slice_set_elcount rap len
+    let rdp = slice_dataptr rap
+    return (unsafe.cast @#u8 @#(slice t)) rdp
+
+export heap (method! t:i_copyable) slice_free s:?@#(slice t) = void
+  let dp = (unsafe.cast ?@#(slice t) ?@#u8) s
+  let ap = slice_allocptr dp
+  let bsz = s.bytelen
+  return free ap bsz
+
+export let sysheap = heap{{ }}
+
+extern inline fun slice_dataptr ap:@#u8 = @#u8
+extern inline fun slice_allocptr dp:?@#u8 = ?@#u8
+extern inline fun slice_elcount dp:@u8 = size
+extern inline fun slice_set_elcount ap:@!u8 elcount:size = void
+extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
+
+export extern type slice t:i_copyable =
+
+export inline slice method len = size
+  let dp = (unsafe.cast @this @u8) self
+  return slice_elcount dp
+
+export inline slice method bytelen = size
+  let dp = (unsafe.cast @this @u8) self
+  return (slice_elcount dp) * (sizeof t) + (sizeof size)
+
+export inline slice method$ unsafe_rawdata = @$u8
+  let dp = (unsafe.cast @$this @$u8) self
+  return dp
+
+export inline slice method$ unsafe_data = @$t
+  let typed_dp = (unsafe.cast @$this @$t) self
+  return typed_dp
+
+export inline slice method$ at n:size = @$t
+  let dp = (unsafe.cast @$this @#u8) self
+  let bsz = (slice_elcount dp) * (sizeof t)
+  let off = n * (sizeof t)
+  assert (off+(sizeof t) <= bsz)
+  let p = slice_at_byte dp off
+  return (unsafe.cast @#u8 @$t) p

@@ -3,14 +3,20 @@
 typedef nlang_builtins_u32 t00_match_enu;
 static const t00_match_enu t00_match_enu_A = (nlang_builtins_u32)0;
 static const t00_match_enu t00_match_enu_B = (nlang_builtins_u32)0 + (nlang_builtins_u32)1;
-typedef const t00_match_enu* _ngen_nlang_builtins_i_ref__t00_match_enu;
-typedef _ngen_nlang_builtins_i_ref__t00_match_enu _ngen_nlang_builtins_i_nullable_ref__t00_match_enu;
-typedef t00_match_enu* _ngen_nlang_builtins_i_mutable_ref__t00_match_enu;
-typedef _ngen_nlang_builtins_i_mutable_ref__t00_match_enu _ngen_nlang_builtins_i_mercurial_ref__t00_match_enu;
-typedef _ngen_nlang_builtins_i_mutable_ref__t00_match_enu _ngen_nlang_builtins_i_nullable_mutable_ref__t00_match_enu;
-typedef _ngen_nlang_builtins_i_mercurial_ref__t00_match_enu _ngen_nlang_builtins_i_nullable_mercurial_ref__t00_match_enu;
+typedef const t00_match_enu* _Ngen_nlang_builtins_i_ref__t00_match_enu_genN_;
+typedef _Ngen_nlang_builtins_i_ref__t00_match_enu_genN_ _Ngen_nlang_builtins_i_nullable_ref__t00_match_enu_genN_;
+typedef t00_match_enu* _Ngen_nlang_builtins_i_mutable_ref__t00_match_enu_genN_;
+typedef _Ngen_nlang_builtins_i_mutable_ref__t00_match_enu_genN_ _Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_;
+typedef _Ngen_nlang_builtins_i_mutable_ref__t00_match_enu_genN_ _Ngen_nlang_builtins_i_nullable_mutable_ref__t00_match_enu_genN_;
+typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t00_match_enu_genN_;
 
-nlang_builtins_void t00_match_enu_operator_copy(_ngen_nlang_builtins_i_mercurial_ref__t00_match_enu self, _ngen_nlang_builtins_i_ref__t00_match_enu other) {
+
+
+nlang_builtins_void t00_match_enu_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_ self, _Ngen_nlang_builtins_i_ref__t00_match_enu_genN_ other);
+
+nlang_builtins_i32 main(void);
+
+nlang_builtins_void t00_match_enu_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_ self, _Ngen_nlang_builtins_i_ref__t00_match_enu_genN_ other) {
 #define THIS(x) t00_match_enu##x
 memcpy(self, other, sizeof(*self));
 #undef THIS
@@ -18,8 +24,7 @@ memcpy(self, other, sizeof(*self));
 
 nlang_builtins_i32 main(void){
  {
-t00_match_enu n; memset(&n, 0, sizeof(n));
-n = t00_match_enu_A;
+t00_match_enu n = t00_match_enu_A;
 ;
 if (n == t00_match_enu_B) {
 return (nlang_builtins_i32)0;

@@ -1,16 +1,19 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
 #include "lib/nlang/unsafe.n.h.out"
-_ngen_nlang_builtins_i_ref__nlang_builtins_i32 t00_cast_foo(_ngen_nlang_builtins_i_ref__nlang_builtins_u32 x){
+
+static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_cast_foo(_Ngen_nlang_builtins_i_ref__nlang_builtins_u32_genN_ x);
+
+nlang_builtins_i32 main(void);
+static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_cast_foo(_Ngen_nlang_builtins_i_ref__nlang_builtins_u32_genN_ x){
  {
-return (_ngen_nlang_builtins_i_ref__nlang_builtins_i32)(x);
+return (_Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_)(x);
 }
 }
 
 nlang_builtins_i32 main(void){
  {
-nlang_builtins_u32 __gensym0; memset(&__gensym0, 0, sizeof(__gensym0));
-__gensym0 = (nlang_builtins_u32)1;
+nlang_builtins_u32 __gensym0 = (nlang_builtins_u32)1;
 ;
 return (*t00_cast_foo((&__gensym0))) - (nlang_builtins_i32)1;
 }

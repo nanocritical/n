@@ -87,8 +87,9 @@ define_native_floating(nlang_builtins_double)
 #undef define_native_floating
 #undef define_native_boolean
 #undef define_native_integer
-#undef NB
 
-void nlang_builtins_abort(void) {
+void NB(abort)(void) {
   abort();
 }
+
+#undef NB

@@ -7,8 +7,10 @@ copy method i_copyable.operator_copy self:@#this = void
   self!x = other.x
 
 fun foo = _nretval:copy
+  return copy{{ x=0 }}
 
-fun main = i32
+export fun main = i32
+  let w = foo
   let y = copy{{ x=-1 }}
   let z:copy
     t00.copy.copy.operator_copy @#z @y

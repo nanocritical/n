@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 #define DIR_MODULE_NAME "module.n"
-#define CFLAGS "-Wall -std=c99 -pedantic -I."
+#define CFLAGS "-Wall -Wno-missing-braces -std=c99 -pedantic -I."
 
 static char *o_filename(const char *filename) {
   char *o_fn = malloc(strlen(filename) + sizeof(".o"));

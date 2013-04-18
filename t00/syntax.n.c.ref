@@ -1,12 +1,59 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
+
+
+
+
+
+
+struct t00_syntax_test;
+typedef struct t00_syntax_test t00_syntax_test;
+typedef const t00_syntax_test* _Ngen_nlang_builtins_i_ref__t00_syntax_test_genN_;
+typedef _Ngen_nlang_builtins_i_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_i_nullable_ref__t00_syntax_test_genN_;
+typedef t00_syntax_test* _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_test_genN_;
+typedef _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test_genN_;
+typedef _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_i_nullable_mutable_ref__t00_syntax_test_genN_;
+typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t00_syntax_test_genN_;
+
+
+
+
+typedef nlang_builtins_u32 t00_syntax_enu;
+static const t00_syntax_enu t00_syntax_enu_V1 = (nlang_builtins_u32)0;
+static const t00_syntax_enu t00_syntax_enu_V2 = (nlang_builtins_u32)0 + (nlang_builtins_u32)1;
+static const t00_syntax_enu t00_syntax_enu_V3 = (nlang_builtins_u32)0 + (nlang_builtins_u32)1 + (nlang_builtins_u32)1;
+typedef const t00_syntax_enu* _Ngen_nlang_builtins_i_ref__t00_syntax_enu_genN_;
+typedef _Ngen_nlang_builtins_i_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_i_nullable_ref__t00_syntax_enu_genN_;
+typedef t00_syntax_enu* _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_enu_genN_;
+typedef _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_enu_genN_;
+typedef _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_i_nullable_mutable_ref__t00_syntax_enu_genN_;
+typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t00_syntax_enu_genN_;
+
+nlang_builtins_i32 main(void);
+
+nlang_builtins_i32 t00_syntax_main2(void);
+
+static inline void t00_syntax_foo(nlang_strings_string *_nrtr__nretval);
+
+static inline nlang_builtins_i32 t00_syntax_other4(nlang_builtins_i32 x);
+
+extern nlang_builtins_i32 t00_syntax_other5(nlang_builtins_i32 x);
+
+
+
+nlang_builtins_i32 t00_syntax_test_foo(_Ngen_nlang_builtins_i_ref__t00_syntax_test_genN_ self, nlang_builtins_i32 x);
+
+static nlang_builtins_i32 t00_syntax_foobar(nlang_builtins_i32 x);
+
+static nlang_builtins_void t00_syntax_foobar2(void);
+
+
+nlang_builtins_void t00_syntax_enu_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_enu_genN_ self, _Ngen_nlang_builtins_i_ref__t00_syntax_enu_genN_ other);
 nlang_builtins_i32 main(void){
  {
-nlang_builtins_i32 x; memset(&x, 0, sizeof(x));
-x = (nlang_builtins_i32)(nlang_builtins_i32)1;
+nlang_builtins_i32 x = (nlang_builtins_i32)(nlang_builtins_i32)1;
 ;
-nlang_builtins_i32 y; memset(&y, 0, sizeof(y));
-y = (nlang_builtins_i32)2 + x;
+nlang_builtins_i32 y = (nlang_builtins_i32)2 + x;
 ;
 return (nlang_builtins_i32)0 + y;
 }
@@ -18,7 +65,7 @@ return (nlang_builtins_i32)0;
 }
 }
 
-inline void t00_syntax_foo(nlang_strings_string *_nrtr__nretval){
+static inline void t00_syntax_foo(nlang_strings_string *_nrtr__nretval){
 #define _nretval (*_nrtr__nretval)
  {
 "test";
@@ -27,36 +74,25 @@ return;
 #undef _nretval
 }
 
-inline nlang_builtins_i32 t00_syntax_other4(nlang_builtins_i32 x);
-
-extern nlang_builtins_i32 t00_syntax_other5(nlang_builtins_i32 x);
 
 
-struct t00_syntax_test;
-typedef struct t00_syntax_test t00_syntax_test;
+
 struct t00_syntax_test {
 nlang_builtins_i32 t;
 }
 ;
-typedef const t00_syntax_test* _ngen_nlang_builtins_i_ref__t00_syntax_test;
-typedef _ngen_nlang_builtins_i_ref__t00_syntax_test _ngen_nlang_builtins_i_nullable_ref__t00_syntax_test;
-typedef t00_syntax_test* _ngen_nlang_builtins_i_mutable_ref__t00_syntax_test;
-typedef _ngen_nlang_builtins_i_mutable_ref__t00_syntax_test _ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test;
-typedef _ngen_nlang_builtins_i_mutable_ref__t00_syntax_test _ngen_nlang_builtins_i_nullable_mutable_ref__t00_syntax_test;
-typedef _ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test _ngen_nlang_builtins_i_nullable_mercurial_ref__t00_syntax_test;
 
-nlang_builtins_i32 t00_syntax_test_foo(_ngen_nlang_builtins_i_ref__t00_syntax_test self, nlang_builtins_i32 x){
+nlang_builtins_i32 t00_syntax_test_foo(_Ngen_nlang_builtins_i_ref__t00_syntax_test_genN_ self, nlang_builtins_i32 x){
 #define THIS(x) t00_syntax_test##x
  {
-nlang_builtins_i32 y; memset(&y, 0, sizeof(y));
-y = x;
+nlang_builtins_i32 y = x;
 ;
 return y;
 }
 #undef THIS
 }
 
-nlang_builtins_i32 t00_syntax_foobar(nlang_builtins_i32 x){
+static nlang_builtins_i32 t00_syntax_foobar(nlang_builtins_i32 x){
  {
 pre {
 x != (nlang_builtins_i32)0;
@@ -68,24 +104,14 @@ return (nlang_builtins_i32)0;
 }
 }
 
-nlang_builtins_void t00_syntax_foobar2(void){
+static nlang_builtins_void t00_syntax_foobar2(void){
  {
 return;
 }
 }
 
-typedef nlang_builtins_u32 t00_syntax_enu;
-static const t00_syntax_enu t00_syntax_enu_V1 = (nlang_builtins_u32)0;
-static const t00_syntax_enu t00_syntax_enu_V2 = (nlang_builtins_u32)0 + (nlang_builtins_u32)1;
-static const t00_syntax_enu t00_syntax_enu_V3 = (nlang_builtins_u32)0 + (nlang_builtins_u32)1 + (nlang_builtins_u32)1;
-typedef const t00_syntax_enu* _ngen_nlang_builtins_i_ref__t00_syntax_enu;
-typedef _ngen_nlang_builtins_i_ref__t00_syntax_enu _ngen_nlang_builtins_i_nullable_ref__t00_syntax_enu;
-typedef t00_syntax_enu* _ngen_nlang_builtins_i_mutable_ref__t00_syntax_enu;
-typedef _ngen_nlang_builtins_i_mutable_ref__t00_syntax_enu _ngen_nlang_builtins_i_mercurial_ref__t00_syntax_enu;
-typedef _ngen_nlang_builtins_i_mutable_ref__t00_syntax_enu _ngen_nlang_builtins_i_nullable_mutable_ref__t00_syntax_enu;
-typedef _ngen_nlang_builtins_i_mercurial_ref__t00_syntax_enu _ngen_nlang_builtins_i_nullable_mercurial_ref__t00_syntax_enu;
 
-nlang_builtins_void t00_syntax_enu_operator_copy(_ngen_nlang_builtins_i_mercurial_ref__t00_syntax_enu self, _ngen_nlang_builtins_i_ref__t00_syntax_enu other) {
+nlang_builtins_void t00_syntax_enu_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_enu_genN_ self, _Ngen_nlang_builtins_i_ref__t00_syntax_enu_genN_ other) {
 #define THIS(x) t00_syntax_enu##x
 memcpy(self, other, sizeof(*self));
 #undef THIS

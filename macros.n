@@ -1,0 +1,5 @@
+macro myloop c:i_expr b:i_block = i_block
+
+macro debug x:i_expr = i_expr
+
+macro stringify x:i_ident = i_expr

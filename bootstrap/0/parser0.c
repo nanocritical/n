@@ -15,6 +15,7 @@ const char *node_which_strings[] = {
   [NUMBER] = "NUMBER",
   [BOOL] = "BOOL",
   [STRING] = "STRING",
+  [SIZEOF] = "SIZEOF",
   [BIN] = "BIN",
   [UN] = "UN",
   [TUPLE] = "TUPLE",
@@ -538,6 +539,14 @@ bool node_is_statement(const struct node *node) {
     && node->scope->parent->node->which == BLOCK;
 }
 
+bool node_is_at_top(const struct node *node) {
+  if (node->scope->parent == NULL) {
+    return FALSE;
+  } else {
+    return node->scope->parent->node->which == MODULE_BODY;
+  }
+}
+
 bool node_is_rvalue(const struct node *node) {
   switch (node->which) {
   case BIN:
@@ -554,6 +563,18 @@ bool node_is_rvalue(const struct node *node) {
     return TRUE;
   case TYPECONSTRAINT:
     return node_is_rvalue(node->subs[0]);
+  default:
+    return FALSE;
+  }
+}
+
+bool node_can_have_genargs(const struct node *node) {
+  switch (node->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+  case DEFTYPE:
+  case DEFINTF:
+    return TRUE;
   default:
     return FALSE;
   }
@@ -756,8 +777,20 @@ error scope_lookup_ident_immediate(struct node **result, const struct module *mo
 static error do_scope_lookup_ident_wontimport(struct node **result, const struct module *mod,
                                               const struct scope *scope, ident id,
                                               const struct scope *within, bool failure_ok) {
-  error e = do_scope_lookup_ident_immediate(result, mod, scope, id, within, TRUE);
+  char *scname = NULL;
+  char *wscname = NULL;
+  error e;
+
+skip:
+  e = do_scope_lookup_ident_immediate(result, mod, scope, id, within, TRUE);
   if (!e) {
+    if (scope->node->which == DEFTYPE
+        && ((*result)->which == DEFFUN || (*result)->which == DEFMETHOD)) {
+      // Skip scope: id is a bare identifier, cannot reference functions or
+      // methods in the scope of a DEFTYPE. Must use the form 'this.name'.
+      scope = scope->parent;
+      goto skip;
+    }
     return 0;
   }
 
@@ -768,19 +801,20 @@ static error do_scope_lookup_ident_wontimport(struct node **result, const struct
     if (failure_ok) {
       return e;
     } else {
-      char *scname = scope_name(mod, scope);
-      char *wscname = scope_name(mod, within);
+      scname = scope_name(mod, scope);
+      wscname = scope_name(mod, within);
       GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, within->node), scope->node->codeloc,
                         "in scope %s: from scope %s: unknown identifier '%s'",
                         scname, wscname, idents_value(mod->gctx, id));
-except:
-      free(wscname);
-      free(scname);
-      return e;
     }
   }
 
   return do_scope_lookup_ident_wontimport(result, mod, scope->parent, id, within, failure_ok);
+
+except:
+  free(wscname);
+  free(scname);
+  return e;
 }
 
 error scope_lookup_ident_wontimport(struct node **result, const struct module *mod,
@@ -1527,6 +1561,11 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
       e = scan(&tok, mod);
       EXCEPT(e);
       first.which = NUL;
+    } else if (tok.t == Tsizeof) {
+      e = scan(&tok, mod);
+      EXCEPT(e);
+      first.which = SIZEOF;
+      e = p_expr(node_new_subnode(mod, &first), mod, T__CALL);
     } else if (tok.t == TIDENT) {
       e = p_ident(&first, mod);
     } else if (tok.t == TNUMBER) {
@@ -2104,6 +2143,30 @@ static void add_self_arg(struct module *mod, struct node *node) {
   }
 }
 
+static error p_defmethod_access(struct node *node, struct module *mod) {
+  node->as.DEFMETHOD.access = TREFDOT;
+
+  struct token tok;
+  error e = scan(&tok, mod);
+  EXCEPT(e);
+  switch (tok.t) {
+  case TDEREFBANG:
+    node->as.DEFMETHOD.access = TREFBANG;
+    break;
+  case TDEREFSHARP:
+    node->as.DEFMETHOD.access = TREFSHARP;
+    break;
+  case TDEREFWILDCARD:
+    node->as.DEFMETHOD.access = TREFWILDCARD;
+    break;
+  default:
+    back(mod, &tok);
+    break;
+  }
+
+  return 0;
+}
+
 static error p_deffun(struct node *node, struct module *mod, const struct toplevel *toplevel,
                       enum node_which fun_or_method) {
   error e;
@@ -2116,24 +2179,8 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     break;
   case DEFMETHOD:
     node->as.DEFMETHOD.toplevel = *toplevel;
-    node->as.DEFMETHOD.access = TREFDOT;
-
-    e = scan(&tok, mod);
+    e = p_defmethod_access(node, mod);
     EXCEPT(e);
-    switch (tok.t) {
-    case TDEREFBANG:
-      node->as.DEFMETHOD.access = TREFBANG;
-      break;
-    case TDEREFSHARP:
-      node->as.DEFMETHOD.access = TREFSHARP;
-      break;
-    case TDEREFWILDCARD:
-      node->as.DEFMETHOD.access = TREFWILDCARD;
-      break;
-    default:
-      back(mod, &tok);
-      break;
-    }
     break;
   default:
     assert(FALSE);
@@ -2626,8 +2673,11 @@ bypass:
   case TLPAR:
     e = scan_oneof(&tok2, mod, Ttype, Tintf, Tfun, Tmethod, 0);
     EXCEPT(e);
-
     node = NEW(mod, node);
+    if (tok2.t == Tmethod) {
+      e = p_defmethod_access(node, mod);
+      EXCEPT(e);
+    }
     (void)node_new_subnode(mod, node);
     genargs = node_new_subnode(mod, node);
     e = p_implicit_genargs(genargs, mod);
@@ -3049,8 +3099,12 @@ except:
 
 error typ_compatible(const struct module *mod, const struct node *for_error,
                      const struct typ *a, const struct typ *constraint) {
-  if (a->is_abstract_genarg || constraint->is_abstract_genarg) {
+  if (constraint->is_abstract_genarg) {
     error e = typ_check_isa(mod, for_error, a, constraint);
+    EXCEPT(e);
+    return 0;
+  } else if (a->is_abstract_genarg) {
+    error e = typ_check_isa(mod, for_error, constraint, a);
     EXCEPT(e);
     return 0;
   }
@@ -3084,10 +3138,11 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     }
   }
 
-  if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
-    if (constraint == typ_lookup_builtin(mod, TBI_NREF)
-        || constraint == typ_lookup_builtin(mod, TBI_NMREF)
-        || constraint == typ_lookup_builtin(mod, TBI_NMMREF)) {
+  if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
+      && typ_is_reference_instance(mod, constraint)) {
+    if (typ_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NREF))
+        || typ_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NMREF))
+        || typ_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NMMREF))) {
       return 0;
     }
   }
@@ -3134,6 +3189,21 @@ bool typ_is_reference_instance(const struct module *mod, const struct typ *a) {
   }
 
   return typ_isa(mod, a, typ_lookup_builtin(mod, TBI_ANY_ANY_REF));
+}
+
+error typ_check_is_reference_instance(const struct module *mod, const struct node *for_error,
+                                      const struct typ *a) {
+  if (typ_is_reference_instance(mod, a)) {
+    return 0;
+  }
+
+  error e = 0;
+  char *na = typ_pretty_name(mod, a);
+  GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                   "'%s' type is not a reference", na);
+except:
+  free(na);
+  return e;
 }
 
 static const uint32_t tbi_for_ref[TOKEN__NUM] = {
@@ -3268,6 +3338,21 @@ bool typ_is_concrete(const struct module *mod, const struct typ *a) {
   return TRUE;
 }
 
+bool typ_is_abstract_instance(const struct module *mod, const struct typ *a) {
+  if (a->gen_arity == 0) {
+    return a->definition->which == DEFINTF
+      && !typ_isa(mod, a, typ_lookup_builtin(mod, TBI_ANY_ANY_REF));
+  }
+
+  for (size_t n = 0; n < a->gen_arity + 1; ++n) {
+    if (typ_is_abstract_instance(mod, a->gen_args[n])) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
 bool typ_is_builtin(const struct module *mod, const struct typ *t) {
   for (size_t n = TBI__NONE+1; n < TBI__NUM; ++n) {
     if (typ_equal(mod, t, mod->gctx->builtin_typs[n])) {
@@ -3279,7 +3364,15 @@ bool typ_is_builtin(const struct module *mod, const struct typ *t) {
 
 error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,
                 const struct typ *a, const struct typ *b) {
-  error e = typ_compatible(mod, for_error, a, b);
+  error e;
+
+  if (!typ_is_concrete(mod, b) && typ_is_concrete(mod, a)) {
+    e = typ_unify(u, mod, for_error, b, a);
+    EXCEPT(e);
+    return 0;
+  }
+
+  e = typ_compatible(mod, for_error, a, b);
   EXCEPT(e);
 
   if (a->gen_arity > 0) {
@@ -3329,7 +3422,7 @@ bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *in
   if (a->gen_arity > 0 && a->gen_arity == intf->gen_arity) {
     size_t n;
     for (n = 0; n < a->gen_arity; ++n) {
-      if (!typ_isa(mod, a->gen_args[n], intf->gen_args[n])) {
+      if (!typ_isa(mod, a->gen_args[1+n], intf->gen_args[1+n])) {
         break;
       }
     }

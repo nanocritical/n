@@ -4,5 +4,5 @@ import nlang.unsafe
 fun foo x:@u32 = @i32
   return (nlang.unsafe.cast @u32 @i32) x
 
-fun main = i32
+export fun main = i32
   return (foo @1). - 1

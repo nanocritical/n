@@ -1,12 +1,13 @@
 t00/syntax.n.c.out: In function ‘t00_syntax_foo’:
-t00/syntax.n.c.out:24:1: warning: statement with no effect [-Wunused-value]
+t00/syntax.n.c.out:71:1: warning: statement with no effect [-Wunused-value]
 t00/syntax.n.c.out: In function ‘t00_syntax_foobar’:
-t00/syntax.n.c.out:61:1: error: ‘pre’ undeclared (first use in this function)
-t00/syntax.n.c.out:61:1: note: each undeclared identifier is reported only once for each function it appears in
-t00/syntax.n.c.out:61:5: error: expected ‘;’ before ‘{’ token
-t00/syntax.n.c.out:64:1: error: ‘post’ undeclared (first use in this function)
-t00/syntax.n.c.out:64:6: error: expected ‘;’ before ‘{’ token
+t00/syntax.n.c.out:97:1: error: ‘pre’ undeclared (first use in this function)
+t00/syntax.n.c.out:97:1: note: each undeclared identifier is reported only once for each function it appears in
+t00/syntax.n.c.out:97:5: error: expected ‘;’ before ‘{’ token
+t00/syntax.n.c.out:100:1: error: ‘post’ undeclared (first use in this function)
+t00/syntax.n.c.out:100:6: error: expected ‘;’ before ‘{’ token
 t00/syntax.n.c.out: At top level:
-t00/syntax.n.c.out:30:27: warning: inline function ‘t00_syntax_other4’ declared but never defined [enabled by default]
-t00/syntax.n.c.out:30:27: warning: inline function ‘t00_syntax_other4’ declared but never defined [enabled by default]
-command exited with 1: gcc -Wall -std=c99 -pedantic -I. -xc t00/syntax.n.c.out -c -o t00/syntax.n.o
+t00/syntax.n.c.out:38:34: warning: ‘t00_syntax_other4’ declared ‘static’ but never defined [-Wunused-function]
+t00/syntax.n.c.out:95:27: warning: ‘t00_syntax_foobar’ defined but not used [-Wunused-function]
+t00/syntax.n.c.out:107:28: warning: ‘t00_syntax_foobar2’ defined but not used [-Wunused-function]
+command exited with 1: gcc -Wall -Wno-missing-braces -std=c99 -pedantic -I. -xc t00/syntax.n.c.out -c -o t00/syntax.n.o

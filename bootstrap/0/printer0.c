@@ -50,6 +50,8 @@ const char *token_strings[TOKEN__NUM] = {
   [TASSIGN] = " = ",
   [TEQ] = " == ",
   [TNE] = " != ",
+  [TEQPTR] = " === ",
+  [TNEPTR] = " !== ",
   [TLE] = " <= ",
   [TLT] = " < ",
   [TGT] = " > ",
@@ -258,6 +260,11 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     break;
   case STRING:
     fprintf(out, "%s", node->as.STRING.value);
+    break;
+  case SIZEOF:
+    fprintf(out, "(sizeof ");
+    print_expr(out, mod, node->subs[0], T__CALL);
+    fprintf(out, ")");
     break;
   case BIN:
     print_bin(out, mod, node, parent_op);

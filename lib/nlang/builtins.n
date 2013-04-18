@@ -22,8 +22,8 @@ export intf i_sum_order = export i_ordered
 
 export extern type void = i_return_by_copy
 
-export intf i_any_any_ref = export i_return_by_copy
-export intf i_any_ref t:i_any = export i_any_any_ref export i_copyable
+export intf i_any_any_ref = export i_return_by_copy export i_trivial_copy export i_trivial_equality
+export intf i_any_ref t:i_any = export i_any_any_ref
 export intf i_ref t:i_any = export (i_any_ref t)
 export intf i_mutable_ref t:i_any = export (i_ref t)
 export intf i_mercurial_ref t:i_any = export (i_mutable_ref t)
@@ -476,3 +476,10 @@ export intf i_ctor_with =
 
 
 export extern fun abort = void
+
+export fun assert cond:bool = void
+  if not cond
+    abort
+
+export inline (fun t:i_any) unused x:t = void
+  pass

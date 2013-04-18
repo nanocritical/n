@@ -136,6 +136,7 @@ normal:
   "post" { R(Tpost); }
   "invariant" { R(Tinvariant); }
   "example" { R(Texample); }
+  "sizeof" { R(Tsizeof); }
   "->" {
     error e = block_down(parser, TRUE);
     if (e) {
@@ -159,6 +160,8 @@ normal:
   "^=" { R(TBWXOR_ASSIGN); }
   "==" { R(TEQ); }
   "!=" { R(TNE); }
+  "===" { R(TEQPTR); }
+  "!==" { R(TNEPTR); }
   "<=" { R(TLE); }
   "<" { R(TLT); }
   ">=" { R(TGE); }

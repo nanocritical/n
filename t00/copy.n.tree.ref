@@ -43,11 +43,23 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :t00.copy.copy
    IDENT(_nretval) :t00.copy.copy
    IDENT(copy) :t00.copy.copy
+  BLOCK :nlang.builtins.void
+   RETURN :t00.copy.copy
+    INIT :t00.copy.copy
+     IDENT(copy) :t00.copy.copy
+     IDENT(x) :__internal_pending_destruct__
+     NUMBER(0) :nlang.builtins.i32
  DEFFUN :t00.copy.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :t00.copy.copy
+     IDENT(w) :t00.copy.copy
+     CALL :t00.copy.copy
+      IDENT(foo) :t00.copy.foo
+     DEFNAME(w) :t00.copy.copy
    LET :nlang.builtins.void
     DEFPATTERN :t00.copy.copy
      IDENT(y) :t00.copy.copy

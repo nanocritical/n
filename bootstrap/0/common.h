@@ -27,8 +27,11 @@ typedef _Bool bool;
 
 typedef int error;
 
+void __break(void);
+
 #define EXCEPT(e) do { \
   if (e) { \
+    __break(); \
     fprintf(stderr, "\tE: %s:%d: %s()\n", __FILE__, __LINE__, __func__); \
     return e; \
   } \
@@ -36,6 +39,7 @@ typedef int error;
 
 #define GOTO_EXCEPT(_e) do { \
   if (_e) { \
+    __break(); \
     e = _e; \
     fprintf(stderr, "\tE: %s:%d: %s()\n", __FILE__, __LINE__, __func__); \
     goto except; \
@@ -44,6 +48,7 @@ typedef int error;
 
 #define EXCEPTF(e, fmt, ...) do { \
   if (e) { \
+    __break(); \
     fprintf(stderr, fmt "\n", ##__VA_ARGS__); \
     fprintf(stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
     return e; \
@@ -52,6 +57,7 @@ typedef int error;
 
 #define GOTO_EXCEPTF(_e, fmt, ...) do { \
   if (_e) { \
+    __break(); \
     e = _e; \
     fprintf(stderr, fmt "\n", ##__VA_ARGS__); \
     fprintf(stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \

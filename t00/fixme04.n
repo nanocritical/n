@@ -3,7 +3,7 @@ from nlang import *
 type c =
   x:@i32
 
-fun main = i32
+export fun main = i32
   let x = 0
   let y = c{{ x=@x }}
   return y.x.

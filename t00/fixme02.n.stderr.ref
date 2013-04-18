@@ -1,2 +1,2 @@
 t00/fixme02.n.c.out: In function ‘t00_fixme02_returns_tmp’:
-t00/fixme02.n.c.out:8:1: warning: function returns address of local variable [enabled by default]
+t00/fixme02.n.c.out:11:1: warning: function returns address of local variable [enabled by default]

@@ -1,17 +1,17 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
+nlang_builtins_i32 main(void);
 nlang_builtins_i32 main(void){
  {
-nlang_builtins_i32 j; memset(&j, 0, sizeof(j));
-j = (nlang_builtins_i32)(nlang_builtins_i32)0;
+nlang_builtins_i32 j = (nlang_builtins_i32)(nlang_builtins_i32)0;
  {
-nlang_containers_index_iterator __gensym0; memset(&__gensym0, 0, sizeof(__gensym0));
+nlang_containers_index_iterator __gensym0 = { 0 };
 nlang_containers_range((nlang_builtins_size)0, (nlang_builtins_size)10, &(__gensym0));
  {
 while (nlang_containers_index_iterator_is_valid((&__gensym0))) {
-nlang_builtins_size i; memset(&i, 0, sizeof(i));
-i = nlang_containers_index_iterator_get((&__gensym0));
+nlang_builtins_size i = nlang_containers_index_iterator_get((&__gensym0));
  {
+_Ngen_nlang_builtins_unused__nlang_builtins_size_genN_(i);
 j += (nlang_builtins_i32)1;
 };
 nlang_containers_index_iterator_next((&__gensym0));

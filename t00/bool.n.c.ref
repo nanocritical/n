@@ -1,9 +1,9 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
+nlang_builtins_i32 main(void);
 nlang_builtins_i32 main(void){
  {
-nlang_builtins_bool x; memset(&x, 0, sizeof(x));
-x = (nlang_builtins_bool)(nlang_builtins_bool)0;
+nlang_builtins_bool x = (nlang_builtins_bool)(nlang_builtins_bool)0;
 ;
 if (x && (nlang_builtins_bool)1) {
 return (nlang_builtins_i32)0;

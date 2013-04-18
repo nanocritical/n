@@ -12,7 +12,7 @@ blah (method t:i_numeric) i_blah.decr x:t = t
 blah (method t:i_numeric) decrf x:t = t
   return x - 1
 
-fun main = i32
+export fun main = i32
   let b = blah{{ dummy=0 }}
   (blah.decr u32) @b 1
   return (blah.decrf i32) @b 1

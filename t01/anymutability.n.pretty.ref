@@ -6,6 +6,6 @@ type c =
 fun get m:r c = r i32
   return @$m$x
 
-fun main = i32
+export fun main = i32
   let x = c{{ x=0 }}
   return .((get i_ref) @x)

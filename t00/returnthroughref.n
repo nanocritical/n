@@ -14,7 +14,7 @@ fun bar2 = r:t
   r = bar
   return r
 
-fun main = i32
+export fun main = i32
   let y = bar
   if y.x != bar2.x
     return 1

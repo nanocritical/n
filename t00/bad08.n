@@ -6,6 +6,6 @@ fun id x:i32 = i32
 fun sum x:i32 y:i32 = i32
   return x + y
 
-fun main = i32
+export fun main = i32
   id 1 +2
   sum 1 +2

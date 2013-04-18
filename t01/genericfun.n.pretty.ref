@@ -3,5 +3,5 @@ fun decr x:t = _nretval:t
   let __gensym0 = 1
   return nlang.builtins.i_numeric.operator_minus @x @__gensym0
 
-fun main = i32
+export fun main = i32
   return (decr i32) 1

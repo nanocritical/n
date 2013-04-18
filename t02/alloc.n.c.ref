@@ -1,0 +1,12 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+#include "lib/nlang/memory.n.h.out"
+nlang_builtins_i32 main(void);
+nlang_builtins_i32 main(void){
+ {
+_Ngen_nlang_builtins_i_mercurial_ref__nlang_builtins_i32_genN_ p = _Ngen_nlang_memory_heap_alloc__nlang_builtins_i32_genN_((&sysheap));
+;
+(*p) = (nlang_builtins_i32)1;
+return (*p) - (nlang_builtins_i32)1;
+}
+}

@@ -2,18 +2,24 @@
 #include "lib/nlang/module.n.h.out"
 struct t01_anymutability_c;
 typedef struct t01_anymutability_c t01_anymutability_c;
+typedef const t01_anymutability_c* _Ngen_nlang_builtins_i_ref__t01_anymutability_c_genN_;
+typedef _Ngen_nlang_builtins_i_ref__t01_anymutability_c_genN_ _Ngen_nlang_builtins_i_nullable_ref__t01_anymutability_c_genN_;
+typedef t01_anymutability_c* _Ngen_nlang_builtins_i_mutable_ref__t01_anymutability_c_genN_;
+typedef _Ngen_nlang_builtins_i_mutable_ref__t01_anymutability_c_genN_ _Ngen_nlang_builtins_i_mercurial_ref__t01_anymutability_c_genN_;
+typedef _Ngen_nlang_builtins_i_mutable_ref__t01_anymutability_c_genN_ _Ngen_nlang_builtins_i_nullable_mutable_ref__t01_anymutability_c_genN_;
+typedef _Ngen_nlang_builtins_i_mercurial_ref__t01_anymutability_c_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t01_anymutability_c_genN_;
+
+
+
+static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ _Ngen_t01_anymutability_get__nlang_builtins_i_ref_genN_(_Ngen_nlang_builtins_i_ref__t01_anymutability_c_genN_ m);
+
+nlang_builtins_i32 main(void);
 struct t01_anymutability_c {
 nlang_builtins_i32 x;
 }
 ;
-typedef const t01_anymutability_c* _ngen_nlang_builtins_i_ref__t01_anymutability_c;
-typedef _ngen_nlang_builtins_i_ref__t01_anymutability_c _ngen_nlang_builtins_i_nullable_ref__t01_anymutability_c;
-typedef t01_anymutability_c* _ngen_nlang_builtins_i_mutable_ref__t01_anymutability_c;
-typedef _ngen_nlang_builtins_i_mutable_ref__t01_anymutability_c _ngen_nlang_builtins_i_mercurial_ref__t01_anymutability_c;
-typedef _ngen_nlang_builtins_i_mutable_ref__t01_anymutability_c _ngen_nlang_builtins_i_nullable_mutable_ref__t01_anymutability_c;
-typedef _ngen_nlang_builtins_i_mercurial_ref__t01_anymutability_c _ngen_nlang_builtins_i_nullable_mercurial_ref__t01_anymutability_c;
 
-_ngen_nlang_builtins_i_ref__nlang_builtins_i32 _ngen_t01_anymutability_get__nlang_builtins_i_ref(_ngen_nlang_builtins_i_ref__t01_anymutability_c m){
+static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ _Ngen_t01_anymutability_get__nlang_builtins_i_ref_genN_(_Ngen_nlang_builtins_i_ref__t01_anymutability_c_genN_ m){
  {
 return (&m->x);
 }
@@ -21,13 +27,10 @@ return (&m->x);
 
 nlang_builtins_i32 main(void){
  {
-t01_anymutability_c x; memset(&x, 0, sizeof(x));
-{
-memset(&(x), 0, sizeof(t01_anymutability_c));
+t01_anymutability_c x; memset(&(x), 0, sizeof(t01_anymutability_c));
 x.x = (nlang_builtins_i32)0;
- }
 ;
 ;
-return (*_ngen_t01_anymutability_get__nlang_builtins_i_ref((&x)));
+return (*_Ngen_t01_anymutability_get__nlang_builtins_i_ref_genN_((&x)));
 }
 }
