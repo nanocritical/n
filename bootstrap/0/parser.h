@@ -91,7 +91,7 @@ enum builtingen {
   BG_SUM_ORDER_LT,
   BG_SUM_ORDER_GT,
   BG_SUM_ORDER_GE,
-  BG_TRIVIAL_COPY_OPERATOR_COPY,
+  BG_TRIVIAL_COPY_COPY_CTOR,
   BG_TRIVIAL_EQUALITY_OPERATOR_EQ,
   BG_TRIVIAL_EQUALITY_OPERATOR_NE,
   BG__NUM,
@@ -442,7 +442,7 @@ enum predefined_idents {
   ID_OPERATOR_TIMES,
   ID_OPERATOR_UMINUS,
   ID_OPERATOR_BWNOT,
-  ID_OPERATOR_COPY,
+  ID_COPY_CTOR,
 
   ID__NUM,
 };
@@ -573,6 +573,10 @@ struct module {
   size_t return_nodes_count;
   struct try_excepts *trys;
   size_t trys_count;
+  enum token_type ref_wildcard;
+  enum token_type nulref_wildcard;
+  enum token_type deref_wildcard;
+  enum token_type wildcard;
 };
 
 void globalctx_init(struct globalctx *gctx);
@@ -606,7 +610,7 @@ error scope_lookup(struct node **result, const struct module *mod,
 error scope_lookup_module(struct node **result, const struct module *mod,
                           const struct node *id);
 error scope_lookup_abspath(struct node **result, const struct module *mod,
-                           const char *path);
+                           const struct node *for_error, const char *path);
 char *scope_name(const struct module *mod, const struct scope *scope);
 char *scope_definitions_name_list(const struct module *mod, const struct scope *scope);
 

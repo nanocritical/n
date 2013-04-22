@@ -61,6 +61,5 @@ export index_iterator method has_next = bool
 export index_iterator method! next = void
   self!p += 1
 
-export fun range beg:size end:size = index_iterator
-  let r = index_range{{ b=beg e=end }}
-  return index_iterator{{ r=r }}
+export fun range beg:size end:size = index_range
+  return index_range{{ b=beg e=end }}

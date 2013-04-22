@@ -1,0 +1,14 @@
+from nlang import *
+from nlang.vectors import vector
+
+let v32 = vector i32
+
+export fun main = i32
+  let v = v32.mk
+    v#push 0
+    v#push 1
+    assert (v#pop == 1)
+    v#push 1
+    for i in v.all.iter
+      assert ((v.at i). == i.trim_u32.reinterpret_signed)
+  return (v.at 1). - 1

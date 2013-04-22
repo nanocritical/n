@@ -31,6 +31,7 @@ syn region nSemantic start="^\s*#[!~?]" end="$" keepend
 syn match nMutate "[!][^=]"me=e-1
 syn match nMercurial "#"
 syn match nNullable "?"
+syn match nWildcard "\$"
 
 syn match nIntf "i_\w\+"
 
@@ -93,6 +94,7 @@ hi def link nSemantic Semantic
 hi def link nMutate Constant
 hi def link nMercurial Constant
 hi def link nNullable Constant
+hi def link nWildcard Special
 hi def link nIntf Type
 hi def link nFunction Function
 hi def link nExport Special

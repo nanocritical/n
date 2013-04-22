@@ -93,7 +93,7 @@ static error zero_to_first_for_generated(struct module *mod, struct node *node,
 static error zero_to_second_for_generated(struct module *mod, struct node *node,
                                           struct node **except, struct scope *parent_scope);
 
-static error step_rewrite_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case UN:
@@ -126,7 +126,7 @@ static error step_rewrite_prototype_wildcards(struct module *mod, struct node *n
   };
 
   static const step up[] = {
-    step_rewrite_wildcards,
+    step_do_rewrite_prototype_wildcards,
     NULL,
   };
 
@@ -175,18 +175,22 @@ static struct node *add_instance_deepcopy_from_pristine(struct module *mod,
   return instance;
 }
 
+static void append_member(struct node *deft, struct node *m) {
+  deft->as.DEFTYPE.members_count += 1;
+  deft->as.DEFTYPE.members = realloc(
+    deft->as.DEFTYPE.members,
+    deft->as.DEFTYPE.members_count * sizeof(*deft->as.DEFTYPE.members));
+
+  deft->as.DEFTYPE.members[deft->as.DEFTYPE.members_count - 1] = m;
+}
+
 static void add_deftype_pristine_external_member(struct module *mod, struct node *deft,
                                                  struct node *member) {
   assert(deft->which == DEFTYPE);
   struct node *deft_pristine = node_toplevel(deft)->instances[0];
-
-  deft_pristine->as.DEFTYPE.members_count += 1;
-  deft_pristine->as.DEFTYPE.members = realloc(
-    deft_pristine->as.DEFTYPE.members,
-    deft_pristine->as.DEFTYPE.members_count * sizeof(*deft_pristine->as.DEFTYPE.members));
-
   struct node *member_pristine = node_toplevel(member)->instances[0];
-  deft_pristine->as.DEFTYPE.members[deft_pristine->as.DEFTYPE.members_count - 1] = member_pristine;
+
+  append_member(deft_pristine, member_pristine);
 }
 
 static error step_generics_pristine_copy(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -218,11 +222,13 @@ static error step_detect_prototypes(struct module *mod, struct node *node, void 
   switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
-    toplevel->is_prototype = node->subs[node->subs_count - 1]->which != BLOCK;
+    toplevel->is_prototype = toplevel->builtingen == BG__NOT
+      && node->subs[node->subs_count - 1]->which != BLOCK;
     break;
   case DEFTYPE:
   case DEFINTF:
-    toplevel->is_prototype = node->subs_count <= 3;
+    toplevel->is_prototype = toplevel->builtingen == BG__NOT
+      && node->subs_count <= 3;
     break;
   default:
     break;
@@ -753,10 +759,11 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
         node->scope->parent = sc;
       }
 
-      const struct toplevel *toplevel = node_toplevel_const(container);
-      if (toplevel != NULL
-          && toplevel->instances != NULL
-          && toplevel->generic_definition == NULL
+      const struct toplevel *ctoplevel = node_toplevel_const(container);
+      if (toplevel->builtingen == BG__NOT // otherwise, will be re-generated
+          && ctoplevel != NULL
+          && ctoplevel->instances != NULL
+          && ctoplevel->generic_definition == NULL
           && container->subs[IDX_GENARGS]->subs_count > 0
           && container->subs[IDX_GENARGS]->subs[0]->which == DEFGENARG) {
         add_deftype_pristine_external_member(mod, container, node);
@@ -874,6 +881,68 @@ static error step_stop_block(struct module *mod, struct node *node, void *user, 
   default:
     return 0;
   }
+}
+
+static error step_rewrite_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+  switch (node->which) {
+  case DEFMETHOD:
+    if (node->subs[IDX_GENARGS]->subs_count == 0) {
+      break;
+    }
+    struct node *def = NULL;
+    error e = scope_lookup_ident_immediate(&def, mod, node->scope,
+                                           ID_WILDCARD_REF_ARG, TRUE);
+    if (e) {
+      break;
+    }
+    if (typ_equal(mod, def->typ, typ_lookup_builtin(mod, TBI_REF))) {
+      mod->ref_wildcard = TREFDOT;
+      mod->nulref_wildcard = TNULREFDOT;
+      mod->deref_wildcard = TDEREFDOT;
+      mod->wildcard = TDOT;
+    } else if (typ_equal(mod, def->typ, typ_lookup_builtin(mod, TBI_MREF))) {
+      mod->ref_wildcard = TREFBANG;
+      mod->nulref_wildcard = TNULREFBANG;
+      mod->deref_wildcard = TDEREFBANG;
+      mod->wildcard = TBANG;
+    } else if (typ_equal(mod, def->typ, typ_lookup_builtin(mod, TBI_MMREF))) {
+      mod->ref_wildcard = TREFSHARP;
+      mod->nulref_wildcard = TNULREFSHARP;
+      mod->deref_wildcard = TDEREFSHARP;
+      mod->wildcard = TSHARP;
+    } else {
+      assert(FALSE);
+    }
+    break;
+  case UN:
+    switch (node->as.UN.operator) {
+    case TREFWILDCARD:
+      node->as.UN.operator = mod->ref_wildcard;
+      break;
+    case TNULREFWILDCARD:
+      node->as.UN.operator = mod->nulref_wildcard;
+      break;
+    case TDEREFWILDCARD:
+      node->as.UN.operator = mod->deref_wildcard;
+      break;
+    default:
+      break;
+    }
+    break;
+  case BIN:
+    switch (node->as.BIN.operator) {
+    case TWILDCARD:
+      node->as.UN.operator = mod->wildcard;
+      break;
+    default:
+      break;
+    }
+    break;
+  default:
+    break;
+  }
+  return 0;
 }
 
 static error step_type_destruct_mark(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -1699,13 +1768,19 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
   return 0;
 }
 
-static bool is_instance_for(struct module *mod, struct node *i, struct node *node) {
-  if (node->subs_count - 1 != i->typ->gen_arity) {
-    return FALSE;
-  }
-
+static bool is_instance_for_explicit(struct module *mod, struct node *i, struct node *node) {
   for (size_t n = 1; n < node->subs_count; ++n) {
     if (!typ_equal(mod, i->typ->gen_args[n], node->subs[n]->typ)) {
+      return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
+static bool is_instance_for_implicit(struct module *mod, struct node *i, struct node *node) {
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    if (!typ_equal(mod, i->typ->gen_args[1+n], node->subs[n]->typ)) {
       return FALSE;
     }
   }
@@ -1829,6 +1904,31 @@ static error rewrite_deftype_instance_genargs(struct module *mod,
   return 0;
 }
 
+static void found_existing_instance_explicit(struct module *mod, struct node *node,
+                                             struct node *fun, struct node *i) {
+  if (fun->typ->is_abstract_genarg) {
+    node->typ = typ_genarg_mark_as_abstract(i->typ);
+  } else {
+    node->typ = i->typ;
+  }
+  node->flags = NODE_IS_TYPE;
+}
+
+static error found_existing_instance_implicit_deffun(struct module *mod, struct node *node,
+                                                     struct node *fun, struct node *i) {
+  if (fun->typ->is_abstract_genarg) {
+    fun->typ = typ_genarg_mark_as_abstract(i->typ);
+  } else {
+    fun->typ = i->typ;
+  }
+  for (size_t n = 1; n < node->subs_count; ++n) {
+    error e = type_destruct(mod, node->subs[n], fun->typ->fun_args[n-1]);
+    EXCEPT(e);
+  }
+  node->typ = i->typ->fun_args[i->typ->fun_arity];
+  return 0;
+}
+
 static error type_inference_generic_instantiation(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
   struct node *gendef = fun->typ->definition;
@@ -1856,13 +1956,8 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
 
     for (size_t n = 1; n < toplevel->instances_count; ++n) {
       struct node *i = toplevel->instances[n];
-      if (is_instance_for(mod, i, node)) {
-        if (fun->typ->is_abstract_genarg) {
-          node->typ = typ_genarg_mark_as_abstract(i->typ);
-        } else {
-          node->typ = i->typ;
-        }
-        node->flags = NODE_IS_TYPE;
+      if (is_instance_for_explicit(mod, i, node)) {
+        found_existing_instance_explicit(mod, node, fun, i);
         return 0;
       }
     }
@@ -1897,13 +1992,9 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
 
     for (size_t n = 1; n < toplevel->instances_count; ++n) {
       struct node *i = toplevel->instances[n];
-      if (is_instance_for(mod, i, instance->subs[IDX_GENARGS])) {
-        if (fun->typ->is_abstract_genarg) {
-          fun->typ = typ_genarg_mark_as_abstract(i->typ);
-        } else {
-          fun->typ = i->typ;
-        }
-        node->typ = instance->typ->fun_args[instance->typ->fun_arity];
+      if (is_instance_for_implicit(mod, i, instantiation)) {
+        error e = found_existing_instance_implicit_deffun(mod, node, fun, i);
+        EXCEPT(e);
         return 0;
       }
     }
@@ -1924,8 +2015,11 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
 
   if (instance->which == DEFTYPE) {
     for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
-      e = zero_to_second_for_generated(mod, instance->as.DEFTYPE.members[n],
-                                       NULL, instance->scope);
+      struct node *m = instance->as.DEFTYPE.members[n];
+      if (node_toplevel_const(m)->builtingen != BG__NOT) {
+        continue;
+      }
+      e = zero_to_second_for_generated(mod, m, NULL, instance->scope);
       EXCEPT(e);
     }
   }
@@ -2593,21 +2687,21 @@ static struct node *get_member(struct module *mod, struct node *node, ident id) 
   return m;
 }
 
-static void add_isa(struct module *mod, struct node *tdef, const char *path) {
-  struct node *isalist = tdef->subs[IDX_ISALIST];
+static void add_isa(struct module *mod, struct node *deft, const char *path) {
+  struct node *isalist = deft->subs[IDX_ISALIST];
   assert(isalist->which == ISALIST);
   struct node *isa = mk_node(mod, isalist, ISA);
-  isa->as.ISA.is_export = node_toplevel(tdef)->is_export;
+  isa->as.ISA.is_export = node_toplevel(deft)->is_export;
   mk_expr_abspath(mod, isa, path);
   error e = zero_to_first_for_generated(mod, isa, NULL, isalist->scope);
   assert(!e);
 
   // isalist are typed in earlypass, but add_isa() is called later. We
   // forcibly add the new typ to it if it's not already there.
-  if (typ_isa(mod, tdef->typ, isa->typ)) {
+  if (typ_isa(mod, deft->typ, isa->typ)) {
     return;
   }
-  struct typ *mutable_typ = (struct typ *) tdef->typ;
+  struct typ *mutable_typ = (struct typ *) deft->typ;
   const size_t last = mutable_typ->isalist_count;
   mutable_typ->isalist_count += 1;
   mutable_typ->isalist = realloc(mutable_typ->isalist,
@@ -2632,44 +2726,60 @@ static error step_add_builtin_enum_isalist(struct module *mod, struct node *node
   return 0;
 }
 
-static void define_builtin(struct module *mod, struct node *tdef,
+static void define_builtin(struct module *mod, struct node *deft,
                            enum builtingen bg) {
-  struct node *modbody = tdef->scope->parent->node;
-  size_t insert_pos = rew_find_subnode_in_parent(modbody, tdef) + 1;
+  struct node *modbody;
+  ssize_t insert_pos;
+  if (deft->subs[IDX_GENARGS]->subs_count > 0) {
+    modbody = NULL;
+    insert_pos = -1;
+  } else {
+    modbody = deft->scope->parent->node;
+    insert_pos = rew_find_subnode_in_parent(modbody, deft) + 1;
+  }
 
   struct node *proto = NULL;
-  error e = scope_lookup_abspath(&proto, mod, builtingen_abspath[bg]);
+  error e = scope_lookup_abspath(&proto, mod, deft, builtingen_abspath[bg]);
   assert(!e);
 
-  struct node *existing = get_member(mod, tdef, node_ident(proto));
+  struct node *existing = get_member(mod, deft, node_ident(proto));
   if (existing != NULL) {
     return;
   }
 
-  struct node *d = node_new_subnode(mod, modbody);
+  struct node *d;
+  if (insert_pos >= 0) {
+    d = node_new_subnode(mod, modbody);
+  } else {
+    d = calloc(1, sizeof(*d));
+  }
   node_deepcopy(mod, d, proto);
   mk_expr_abspath(mod, d, builtingen_abspath[bg]);
   rew_move_last_over(d, 0, FALSE);
 
   struct toplevel *toplevel = node_toplevel(d);
-  toplevel->scope_name = node_ident(tdef);
+  toplevel->scope_name = node_ident(deft);
+  toplevel->is_prototype = FALSE;
   toplevel->builtingen = bg;
-  toplevel->is_export = node_toplevel(tdef)->is_export;
-  toplevel->is_inline = node_toplevel(tdef)->is_inline;
+  toplevel->is_export = node_toplevel(deft)->is_export;
+  toplevel->is_inline = node_toplevel(deft)->is_inline;
 
-  rew_insert_last_at(modbody, insert_pos);
-  e = zero_to_early_for_generated(mod, d, tdef->scope);
+  if (insert_pos >= 0) {
+    rew_insert_last_at(modbody, insert_pos);
+  } else {
+    append_member(deft, d);
+  }
+
+  e = zero_to_first_for_generated(mod, d, NULL, deft->scope);
   assert(!e);
-
-  node_toplevel(d)->is_prototype = FALSE;
 }
 
 static void define_defchoice_builtin(struct module *mod, struct node *ch,
                                      enum builtingen bg, enum node_which which) {
-  struct node *tdef = ch->scope->parent->node;
+  struct node *deft = ch->scope->parent->node;
 
   struct node *proto = NULL;
-  error e = scope_lookup_abspath(&proto, mod, builtingen_abspath[bg]);
+  error e = scope_lookup_abspath(&proto, mod, ch, builtingen_abspath[bg]);
   assert(!e);
 
   struct node *d = mk_node(mod, ch, which);
@@ -2679,9 +2789,10 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
 
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->scope_name = node_ident(ch);
+  toplevel->is_prototype = FALSE;
   toplevel->builtingen = bg;
-  toplevel->is_export = node_toplevel(tdef)->is_export;
-  toplevel->is_inline = node_toplevel(tdef)->is_inline;
+  toplevel->is_export = node_toplevel(deft)->is_export;
+  toplevel->is_inline = node_toplevel(deft)->is_inline;
 
   if (bg == BG_SUM_CTOR_WITH_CTOR
       || bg == BG_SUM_CTOR_WITH_MK
@@ -2697,7 +2808,6 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
 
   e = zero_to_first_for_generated(mod, d, NULL, ch->scope);
   assert(!e);
-  node_toplevel(d)->is_prototype = FALSE;
 }
 
 static error step_add_builtin_defchoice_constructors(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -2706,8 +2816,8 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
     return 0;
   }
 
-  const struct node *tdef = node->scope->parent->node;
-  if (tdef->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+  const struct node *deft = node->scope->parent->node;
+  if (deft->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     return 0;
   }
 
@@ -2829,12 +2939,12 @@ static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *
     return 0;
   }
 
-  struct node *tdef = node->scope->parent->node;
-  assert(tdef->which == DEFTYPE);
-  if (tdef->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+  struct node *deft = node->scope->parent->node;
+  assert(deft->which == DEFTYPE);
+  if (deft->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_MK, DEFFUN);
     define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_NEW, DEFFUN);
-  } else if (tdef->as.DEFTYPE.kind == DEFTYPE_SUM) {
+  } else if (deft->as.DEFTYPE.kind == DEFTYPE_SUM) {
     define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_MK, DEFFUN);
     define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_NEW, DEFFUN);
   }
@@ -2886,7 +2996,7 @@ static error step_implement_trivials(struct module *mod, struct node *node, void
   }
 
   if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))) {
-    define_builtin(mod, node, BG_TRIVIAL_COPY_OPERATOR_COPY);
+    define_builtin(mod, node, BG_TRIVIAL_COPY_COPY_CTOR);
   } else if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY))) {
     define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_EQ);
     define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_NE);
@@ -2895,11 +3005,11 @@ static error step_implement_trivials(struct module *mod, struct node *node, void
   return 0;
 }
 
-static void define_dispatch(struct module *mod, struct node *tdef, const struct typ *tintf) {
+static void define_dispatch(struct module *mod, struct node *deft, const struct typ *tintf) {
   struct node *intf = tintf->definition;
 
-  struct node *modbody = tdef->scope->parent->node;
-  size_t insert_pos = rew_find_subnode_in_parent(modbody, tdef) + 1;
+  struct node *modbody = deft->scope->parent->node;
+  size_t insert_pos = rew_find_subnode_in_parent(modbody, deft) + 1;
 
   for (size_t n = 0; n < intf->subs_count; ++n) {
     struct node *proto = intf->subs[n];
@@ -2907,7 +3017,7 @@ static void define_dispatch(struct module *mod, struct node *tdef, const struct 
       continue;
     }
 
-    struct node *existing = get_member(mod, tdef, node_ident(proto));
+    struct node *existing = get_member(mod, deft, node_ident(proto));
     if (existing != NULL) {
       return;
     }
@@ -2919,16 +3029,16 @@ static void define_dispatch(struct module *mod, struct node *tdef, const struct 
     rew_move_last_over(d, 0, FALSE);
 
     struct toplevel *toplevel = node_toplevel(d);
-    toplevel->scope_name = node_ident(tdef);
+    toplevel->scope_name = node_ident(deft);
     toplevel->builtingen = BG_SUM_DISPATCH;
-    toplevel->is_export = node_toplevel(tdef)->is_export;
-    toplevel->is_inline = node_toplevel(tdef)->is_inline;
+    toplevel->is_prototype = FALSE;
+    toplevel->is_export = node_toplevel(deft)->is_export;
+    toplevel->is_inline = node_toplevel(deft)->is_inline;
 
     rew_insert_last_at(modbody, insert_pos);
 
-    error e = zero_to_early_for_generated(mod, d, tdef->scope);
+    error e = zero_to_early_for_generated(mod, d, deft->scope);
     assert(!e);
-    node_toplevel(d)->is_prototype = FALSE;
   }
 }
 
@@ -3167,7 +3277,7 @@ static error assign_copy_call_inference(struct module *mod, struct node *node) {
   struct node *base = mk_node(mod, fun, DIRECTDEF);
   base->as.DIRECTDEF.definition = left->typ->definition;
   struct node *member = mk_node(mod, fun, IDENT);
-  member->as.IDENT.name = ID_OPERATOR_COPY;
+  member->as.IDENT.name = ID_COPY_CTOR;
 
   struct node *except[] = { left, right, NULL };
 
@@ -3204,7 +3314,7 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
   struct node *base = mk_node(mod, fun, DIRECTDEF);
   base->as.DIRECTDEF.definition = left->typ->definition;
   struct node *member = mk_node(mod, fun, IDENT);
-  member->as.IDENT.name = ID_OPERATOR_COPY;
+  member->as.IDENT.name = ID_COPY_CTOR;
 
   struct node *copyleft = calloc(1, sizeof(struct node));
   node_deepcopy(mod, copyleft, left);
@@ -3535,6 +3645,7 @@ static const step firstpass_down[] = {
   step_stop_submodules,
   step_stop_marker_tbi,
   step_stop_already_earlytypepass,
+  step_rewrite_wildcards,
   step_type_destruct_mark,
   step_type_mutability_mark,
   step_type_gather_retval,

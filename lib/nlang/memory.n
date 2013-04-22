@@ -1,5 +1,5 @@
 from nlang import *
-from nlang import unsafe
+import nlang.unsafe
 
 extern fun realloc p:?@#u8 oldbsz:size bsz:size = @#u8
 extern fun free p:?@#u8 sz:size = void
@@ -9,64 +9,55 @@ export inline type heap =
 
 export heap (method! t:i_any) alloc = @#t
   let raw = realloc null 0 (sizeof t)
-  return (unsafe.cast @#u8 @#t) raw
+  return (nlang.unsafe.cast @#u8 @#t) raw
 
 export heap (method! t:i_any) free p:?@#t = void
-  let raw = (unsafe.cast ?@#t ?@#u8) p
+  let raw = (nlang.unsafe.cast ?@#t ?@#u8) p
   return free raw (sizeof t)
 
-export heap (method! t:i_copyable) slice_realloc s:?@#(slice t) len:size = @#(slice t)
-  let bsz = len*(sizeof t) + (sizeof size)
-  if s !== null
-    let oldbsz = s.bytelen
-    let dp = (unsafe.cast ?@#(slice t) ?@#u8) s
-    let ap = slice_allocptr dp
-    let rap = realloc ap oldbsz bsz
-    slice_set_elcount rap len
-    let rdp = slice_dataptr rap
-    return (unsafe.cast @#u8 @#(slice t)) rdp
+export heap (method! t:i_trivial_ctor) slice_realloc s:@#(slice t) len:size = void
+  let bsz = len * (sizeof t)
+  if s.len == 0
+    s#_rawdata = realloc null 0 bsz
+    s#_count = len
   else
-    let rap = realloc null 0 bsz
-    slice_set_elcount rap len
-    let rdp = slice_dataptr rap
-    return (unsafe.cast @#u8 @#(slice t)) rdp
+    let old_bsz = s.bytelen
+    let raw = s#unsafe_rawdata
+    s#_rawdata = realloc raw old_bsz bsz
+    s#_count = len
 
-export heap (method! t:i_copyable) slice_free s:?@#(slice t) = void
-  let dp = (unsafe.cast ?@#(slice t) ?@#u8) s
-  let ap = slice_allocptr dp
+export heap (method! t:i_trivial_ctor) slice_free s:@#(slice t) = void
   let bsz = s.bytelen
-  return free ap bsz
+  let raw = s#unsafe_rawdata
+  free raw bsz
+  s#_count = 0
+  s#_rawdata = null
 
 export let sysheap = heap{{ }}
 
-extern inline fun slice_dataptr ap:@#u8 = @#u8
-extern inline fun slice_allocptr dp:?@#u8 = ?@#u8
-extern inline fun slice_elcount dp:@u8 = size
-extern inline fun slice_set_elcount ap:@!u8 elcount:size = void
+
 extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
 
-export extern type slice t:i_copyable =
+export inline type slice t:i_trivial_ctor = export i_trivial_ctor
+  _count:size
+  _rawdata:?@#u8
 
 export inline slice method len = size
-  let dp = (unsafe.cast @this @u8) self
-  return slice_elcount dp
+  return self._count
 
 export inline slice method bytelen = size
-  let dp = (unsafe.cast @this @u8) self
-  return (slice_elcount dp) * (sizeof t) + (sizeof size)
+  return self._count * (sizeof t)
 
 export inline slice method$ unsafe_rawdata = @$u8
-  let dp = (unsafe.cast @$this @$u8) self
-  return dp
+  assert (self._count != 0)
+  return (nlang.unsafe.cast ?@#u8 @$u8) self$_rawdata
 
 export inline slice method$ unsafe_data = @$t
-  let typed_dp = (unsafe.cast @$this @$t) self
-  return typed_dp
+  assert (self._count != 0)
+  return (nlang.unsafe.cast ?@#u8 @$t) self._rawdata
 
 export inline slice method$ at n:size = @$t
-  let dp = (unsafe.cast @$this @#u8) self
-  let bsz = (slice_elcount dp) * (sizeof t)
+  assert (n < self._count)
   let off = n * (sizeof t)
-  assert (off+(sizeof t) <= bsz)
-  let p = slice_at_byte dp off
-  return (unsafe.cast @#u8 @$t) p
+  let p = slice_at_byte ((nlang.unsafe.cast @$this @#this)self)#unsafe_rawdata off
+  return (nlang.unsafe.cast @#u8 @$t) p

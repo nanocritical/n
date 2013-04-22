@@ -44,6 +44,7 @@ export intf i_integer = \
     export i_has_compare
 
 export intf i_native_integer = \
+    export i_trivial_ctor \
     export i_trivial_copy \
     export i_return_by_copy \
     export i_integer
@@ -53,6 +54,7 @@ export intf i_generalized_boolean = \
     export i_bitwise
 
 export intf i_native_boolean = \
+    export i_trivial_ctor \
     export i_trivial_copy \
     export i_return_by_copy \
     export i_generalized_boolean
@@ -62,12 +64,13 @@ export intf i_floating = \
     export i_has_compare
 
 export intf i_native_floating = \
+    export i_trivial_ctor \
     export i_trivial_copy \
     export i_return_by_copy \
     export i_floating
 
 export extern type bool = export i_native_boolean
-export extern bool method# i_copyable.operator_copy other:@this = void
+export extern bool method# i_copyable.copy_ctor other:@this = void
 export extern bool method i_has_equality.operator_eq other:@this = bool
 export extern bool method i_has_equality.operator_ne other:@this = bool
 export extern bool method i_has_compare.operator_compare other:@this = i32
@@ -85,7 +88,7 @@ export extern bool method to_u32 = u32
 export extern bool method to_u64 = u64
 
 export extern type i8 = export i_native_integer
-export extern i8 method# i_copyable.operator_copy other:@this = void
+export extern i8 method# i_copyable.copy_ctor other:@this = void
 export extern i8 method i_has_equality.operator_eq other:@this = bool
 export extern i8 method i_has_equality.operator_ne other:@this = bool
 export extern i8 method i_has_compare.operator_compare other:@this = i32
@@ -112,7 +115,7 @@ export extern i8 method to_i64 = i64
 export extern i8 method to_ssize = ssize
 
 export extern type i16 = export i_native_integer
-export extern i16 method# i_copyable.operator_copy other:@this = void
+export extern i16 method# i_copyable.copy_ctor other:@this = void
 export extern i16 method i_has_equality.operator_eq other:@this = bool
 export extern i16 method i_has_equality.operator_ne other:@this = bool
 export extern i16 method i_has_compare.operator_compare other:@this = i32
@@ -139,7 +142,7 @@ export extern i16 method to_i64 = i64
 export extern i16 method to_ssize = ssize
 
 export extern type i32 = export i_native_integer
-export extern i32 method# i_copyable.operator_copy other:@this = void
+export extern i32 method# i_copyable.copy_ctor other:@this = void
 export extern i32 method i_has_equality.operator_eq other:@this = bool
 export extern i32 method i_has_equality.operator_ne other:@this = bool
 export extern i32 method i_has_compare.operator_compare other:@this = i32
@@ -168,7 +171,7 @@ export extern i32 method to_float = float
 export extern i32 method to_double = double
 
 export extern type i64 = export i_native_integer
-export extern i64 method# i_copyable.operator_copy other:@this = void
+export extern i64 method# i_copyable.copy_ctor other:@this = void
 export extern i64 method i_has_equality.operator_eq other:@this = bool
 export extern i64 method i_has_equality.operator_ne other:@this = bool
 export extern i64 method i_has_compare.operator_compare other:@this = i32
@@ -197,7 +200,7 @@ export extern i64 method to_float = float
 export extern i64 method to_double = double
 
 export extern type u8 = export i_native_integer
-export extern u8 method# i_copyable.operator_copy other:@this = void
+export extern u8 method# i_copyable.copy_ctor other:@this = void
 export extern u8 method i_has_equality.operator_eq other:@this = bool
 export extern u8 method i_has_equality.operator_ne other:@this = bool
 export extern u8 method i_has_compare.operator_compare other:@this = i32
@@ -226,7 +229,7 @@ export extern u8 method to_float = float
 export extern u8 method to_double = double
 
 export extern type u16 = export i_native_integer
-export extern u16 method# i_copyable.operator_copy other:@this = void
+export extern u16 method# i_copyable.copy_ctor other:@this = void
 export extern u16 method i_has_equality.operator_eq other:@this = bool
 export extern u16 method i_has_equality.operator_ne other:@this = bool
 export extern u16 method i_has_compare.operator_compare other:@this = i32
@@ -255,7 +258,7 @@ export extern u16 method to_float = float
 export extern u16 method to_double = double
 
 export extern type u32 = export i_native_integer
-export extern u32 method# i_copyable.operator_copy other:@this = void
+export extern u32 method# i_copyable.copy_ctor other:@this = void
 export extern u32 method i_has_equality.operator_eq other:@this = bool
 export extern u32 method i_has_equality.operator_ne other:@this = bool
 export extern u32 method i_has_compare.operator_compare other:@this = i32
@@ -284,7 +287,7 @@ export extern u32 method trim_float = float
 export extern u32 method to_double = double
 
 export extern type u64 = export i_native_integer
-export extern u64 method# i_copyable.operator_copy other:@this = void
+export extern u64 method# i_copyable.copy_ctor other:@this = void
 export extern u64 method i_has_equality.operator_eq other:@this = bool
 export extern u64 method i_has_equality.operator_ne other:@this = bool
 export extern u64 method i_has_compare.operator_compare other:@this = i32
@@ -313,7 +316,7 @@ export extern u64 method trim_float = float
 export extern u64 method trim_double = double
 
 export extern type ssize = export i_native_integer
-export extern ssize method# i_copyable.operator_copy other:@this = void
+export extern ssize method# i_copyable.copy_ctor other:@this = void
 export extern ssize method i_has_equality.operator_eq other:@this = bool
 export extern ssize method i_has_equality.operator_ne other:@this = bool
 export extern ssize method i_has_compare.operator_compare other:@this = i32
@@ -342,7 +345,7 @@ export extern ssize method trim_float = float
 export extern ssize method trim_double = double
 
 export extern type size = export i_native_integer
-export extern size method# i_copyable.operator_copy other:@this = void
+export extern size method# i_copyable.copy_ctor other:@this = void
 export extern size method i_has_equality.operator_eq other:@this = bool
 export extern size method i_has_equality.operator_ne other:@this = bool
 export extern size method i_has_compare.operator_compare other:@this = i32
@@ -371,7 +374,7 @@ export extern size method trim_float = float
 export extern size method trim_double = double
 
 export extern type float = export i_native_floating
-export extern float method# i_copyable.operator_copy other:@this = void
+export extern float method# i_copyable.copy_ctor other:@this = void
 export extern float method i_has_equality.operator_eq other:@this = bool
 export extern float method i_has_equality.operator_ne other:@this = bool
 export extern float method i_has_compare.operator_compare other:@this = i32
@@ -393,7 +396,7 @@ export extern float method to_ssize = ssize
 export extern float method to_double = double
 
 export extern type double = export i_native_floating
-export extern double method# i_copyable.operator_copy other:@this = void
+export extern double method# i_copyable.copy_ctor other:@this = void
 export extern double method i_has_equality.operator_eq other:@this = bool
 export extern double method i_has_equality.operator_ne other:@this = bool
 export extern double method i_has_compare.operator_compare other:@this = i32
@@ -415,7 +418,7 @@ export extern double method to_ssize = ssize
 export extern double method trim_float = float
 
 export intf i_copyable =
-  method# operator_copy other:@this = void
+  method# copy_ctor other:@this = void
 
 export intf i_matchable =
   method operator_match other:@this = bool

@@ -6,9 +6,10 @@
 #include "printer.h"
 
 enum forward {
-  FWDNO = 0,
   FWDTYPES,
+  DEFTYPES,
   FWDFUNS,
+  DEFFUNS,
 };
 
 static const char *c_token_strings[TOKEN__NUM] = {
@@ -606,15 +607,18 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
         fprintf(out, "typedef ");
         print_typ(out, mod, node->typ);
         fprintf(out, " ");
-        print_pattern(out, mod, node->as.DEFNAME.expr);
+        print_expr(out, mod, node->as.DEFNAME.pattern, T__STATEMENT);
+        fprintf(out, ";\n");
       }
     }
   } else if (!(node->flags & NODE_IS_TYPE)) {
+    print_toplevel(out, header, node->scope->parent->parent->node);
+
     print_typ(out, mod, node->typ);
     fprintf(out, " ");
     print_pattern(out, mod, node->as.DEFNAME.pattern);
 
-    if (fwd == FWDNO && (!header || node_is_inline(pattern))) {
+    if (fwd == DEFFUNS && (!header || node_is_inline(pattern))) {
       const struct node *expr = node->as.DEFNAME.expr;
       if (expr != NULL) {
         if (expr->which == INIT) {
@@ -653,10 +657,9 @@ static void print_defpattern(FILE *out, bool header, enum forward fwd, const str
 }
 
 static void print_let(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
-  print_toplevel(out, header, node);
   print_defpattern(out, header, fwd, mod, node->subs[0]);
 
-  if (fwd == FWDNO && node->subs_count > 1) {
+  if (fwd == DEFFUNS && node->subs_count > 1) {
     assert(!node_is_inline(node));
     print_block(out, mod, node->subs[1]);
   }
@@ -726,7 +729,7 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
     print_example(out, FALSE, mod, node);
     break;
   case LET:
-    print_let(out, FALSE, FWDNO, mod, node);
+    print_let(out, FALSE, DEFFUNS, mod, node);
     break;
   case IDENT:
   case BIN:
@@ -1051,7 +1054,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     }
     fprintf(out, "}\nreturn 0;\n");
     break;
-  case BG_TRIVIAL_COPY_OPERATOR_COPY:
+  case BG_TRIVIAL_COPY_COPY_CTOR:
     fprintf(out, "memcpy(self, other, sizeof(*self));\n");
     break;
   case BG_TRIVIAL_EQUALITY_OPERATOR_EQ:
@@ -1072,11 +1075,18 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 }
 
 static void print_deffun(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
-  if (fwd == FWDTYPES) {
+  if (fwd == FWDTYPES || fwd == DEFTYPES) {
     return;
   }
   if (header && !node_is_export(node)) {
     return;
+  }
+  if (!header) {
+    if (node_is_export(node) && fwd == FWDFUNS) {
+      return;
+    } else if (node_is_export(node) && node_is_inline(node) && fwd == DEFFUNS) {
+      return;
+    }
   }
   if (node_ident(node) == ID_CAST) {
     return;
@@ -1147,7 +1157,7 @@ static void print_deftype_statement(FILE *out, bool header, const struct module 
   if (do_static) {
     switch (node->which) {
     case LET:
-      print_let(out, header, FWDNO, mod, node);
+      print_let(out, header, DEFTYPES, mod, node);
       break;
     case DELEGATE:
       print_delegate(out, mod, node);
@@ -1311,7 +1321,7 @@ static void print_deftype_sum_choices_fwdtypes(FILE *out, bool header, const str
   }
 }
 
-static void print_deftype_sum_choices_fwdno(FILE *out, bool header, const struct module *mod, const struct node *node) {
+static void print_deftype_sum_choices_deftypes(FILE *out, bool header, const struct module *mod, const struct node *node) {
   if (header && !(node_is_export(node) && node_is_inline(node))) {
     return;
   }
@@ -1412,6 +1422,13 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
   if (header && !node_is_export(node)) {
     return;
   }
+  if (!header) {
+    if (node_is_export(node) && fwd == FWDTYPES) {
+      return;
+    } else if (node_is_export(node) && node_is_inline(node) && fwd == DEFTYPES) {
+      return;
+    }
+  }
 
   if (typ_is_builtin(mod, node->typ) || is_pseudo_tbi(mod, node->typ)) {
     if (!is_pseudo_tbi(mod, node->typ)) {
@@ -1446,14 +1463,14 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
       print_deftype_sum_choices_fwdtypes(out, header, mod, node);
     }
 
-  } else if (fwd == FWDFUNS) {
+  } else if (fwd == FWDFUNS || fwd == DEFFUNS) {
     if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
       print_deftype_sum_members(out, header, fwd, mod, node);
     }
 
-  } else {
+  } else if (fwd == DEFTYPES) {
     if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
-      print_deftype_sum_choices_fwdno(out, header, mod, node);
+      print_deftype_sum_choices_deftypes(out, header, mod, node);
     }
 
     print_deftype_block(out, header, mod, node, 2, TRUE);
@@ -1465,10 +1482,6 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
       print_deftype_block(out, header, mod, node, 2, FALSE);
 
       fprintf(out, ";\n");
-    }
-
-    if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
-      print_deftype_sum_members(out, header, fwd, mod, node);
     }
   }
 }
@@ -1524,7 +1537,7 @@ static void print_top(FILE *out, bool header, enum forward fwd, const struct mod
   case DEFFUN:
   case DEFMETHOD:
     if (toplevel->scope_name != 0
-        && node_toplevel_const(node->scope->parent->node)->instances_count > 1) {
+        && node_toplevel_const(node->scope->parent->node)->instances_count >= 1) {
       // noop
     } else {
       print_deffun(out, header, fwd, mod, node);
@@ -1540,10 +1553,9 @@ static void print_top(FILE *out, bool header, enum forward fwd, const struct mod
     print_let(out, header, fwd, mod, node);
     break;
   case IMPORT:
-    if (fwd != FWDTYPES) {
-      break;
+    if (fwd == FWDTYPES) {
+      print_import(out, header, mod, node);
     }
-    print_import(out, header, mod, node);
     break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
@@ -1572,17 +1584,18 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
   }
   const size_t first_non_import = n;
 
-  if (file_exists(mod->filename, ".h")) {
-    fprintf(out, "#include \"%s.h\"\n", mod->filename);
-  }
-
-  if (!header) {
+  if (header) {
+    if (file_exists(mod->filename, ".h")) {
+      fprintf(out, "#include \"%s.h\"\n", mod->filename);
+    }
+  } else {
     if (file_exists(mod->filename, ".c")) {
       fprintf(out, "#include \"%s.c\"\n", mod->filename);
     }
+    fprintf(out, "#include \"%s.h.out\"\n", mod->filename);
   }
 
-  enum forward fwd_passes[] = { FWDTYPES, FWDFUNS, FWDNO };
+  enum forward fwd_passes[] = { FWDTYPES, DEFTYPES, FWDFUNS, DEFFUNS };
   for (int i = 0; i < ARRAY_SIZE(fwd_passes); ++i) {
     enum forward fwd = fwd_passes[i];
     for (size_t n = first_non_import; n < top->subs_count; ++n) {

@@ -1,0 +1,50 @@
+from nlang import *
+import nlang.unsafe
+from nlang.memory import heap sysheap slice
+
+export inline type vector t:i_copyable = export i_trivial_ctor
+  let ut = (nlang.unsafe.unconstructed t)
+  _p:(slice ut)
+  _count:size
+
+export vector method len = size
+  return self._count
+
+export vector method$ at n:size = @$t
+  assert (n <= self._count)
+  return @$(self._p$at n)$value
+
+export vector method$ first = @$t
+  return self$at 0
+
+export vector method$ last = @$t
+  return self$at self._count-1
+
+export vector method is_empty = bool
+  return self._count == 0
+
+export vector method capacity = size
+  return self._p.len
+
+export vector method# reserve n:size = void
+  if n > self.capacity
+    (heap.slice_realloc ut) @!sysheap @#self#_p n
+
+export vector method# push x:t = void
+  self#reserve self._count+1
+  let n = self._count
+  self!_count += 1
+  let d = self!at n
+  d! = x
+
+export vector method# pop = t
+  assert (self._count != 0)
+  let d = self.last
+  self!_count -= 1
+  return d.
+
+export vector method# clear = void
+  (heap.slice_free ut) @!sysheap @#self#_p
+
+export vector method all = index_range
+  return range 0 self.len-1

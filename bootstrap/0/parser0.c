@@ -171,7 +171,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_OPERATOR_TIMES] = "operator_times",
   [ID_OPERATOR_UMINUS] = "operator_uminus",
   [ID_OPERATOR_BWNOT] = "operator_bwnot",
-  [ID_OPERATOR_COPY] = "operator_copy",
+  [ID_COPY_CTOR] = "copy_ctor",
 };
 
 const char *builtingen_abspath[BG__NUM] = {
@@ -193,14 +193,14 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_ENUM_MATCH] = "nlang.builtins.i_matchable.operator_match",
   [BG_SUM_MATCH] = "nlang.builtins.i_matchable.operator_match",
   [BG_SUM_DISPATCH] = NULL,
-  [BG_SUM_COPY] = "nlang.builtins.i_copyable.operator_copy",
+  [BG_SUM_COPY] = "nlang.builtins.i_copyable.copy_ctor",
   [BG_SUM_EQUALITY_EQ] = "nlang.builtins.i_has_equality.operator_eq",
   [BG_SUM_EQUALITY_NE] = "nlang.builtins.i_has_equality.operator_ne",
   [BG_SUM_ORDER_LE] = "nlang.builtins.i_ordered.operator_le",
   [BG_SUM_ORDER_LT] = "nlang.builtins.i_ordered.operator_lt",
   [BG_SUM_ORDER_GT] = "nlang.builtins.i_ordered.operator_gt",
   [BG_SUM_ORDER_GE] = "nlang.builtins.i_ordered.operator_ge",
-  [BG_TRIVIAL_COPY_OPERATOR_COPY] = "nlang.builtins.i_copyable.operator_copy",
+  [BG_TRIVIAL_COPY_COPY_CTOR] = "nlang.builtins.i_copyable.copy_ctor",
   [BG_TRIVIAL_EQUALITY_OPERATOR_EQ] = "nlang.builtins.i_has_equality.operator_eq",
   [BG_TRIVIAL_EQUALITY_OPERATOR_NE] = "nlang.builtins.i_has_equality.operator_ne",
 };
@@ -969,6 +969,7 @@ except:
 }
 
 static error do_scope_lookup_abspath(struct node **result, const struct module *mod,
+                                     const struct node *for_error,
                                      const char *path, ssize_t len, struct scope *within) {
   ssize_t i;
   ident id = ID__NONE;
@@ -985,25 +986,34 @@ static error do_scope_lookup_abspath(struct node **result, const struct module *
   }
   assert(id != ID__NONE);
 
+  error e;
   if (i == 0) {
-    error e = do_scope_lookup_ident_immediate(result, mod, mod->gctx->modules_root.scope, id,
-                                              within, FALSE);
-    EXCEPT(e);
-    return 0;
+    e = do_scope_lookup_ident_immediate(result, mod, mod->gctx->modules_root.scope, id,
+                                        within, TRUE);
   } else {
     struct node *parent = NULL;
-    error e = do_scope_lookup_abspath(&parent, mod, path, i, within);
+    e = do_scope_lookup_abspath(&parent, mod, for_error, path, i, within);
     EXCEPT(e);
     e = do_scope_lookup_ident_immediate(result, mod, parent->scope, id,
-                                        within, FALSE);
-    EXCEPT(e);
-    return 0;
+                                        within, TRUE);
   }
+
+  if (e) {
+    char *wscname = scope_name(mod, within);
+    GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, for_error), within->node->codeloc,
+                      "in global scope, from scope %s: unknown identifier '%s'",
+                      wscname, path);
+except:
+    free(wscname);
+    return e;
+  }
+
+  return 0;
 }
 
 error scope_lookup_abspath(struct node **result, const struct module *mod,
-                           const char *path) {
-  return do_scope_lookup_abspath(result, mod, path, strlen(path),
+                           const struct node *for_error, const char *path) {
+  return do_scope_lookup_abspath(result, mod, for_error, path, strlen(path),
                                  mod->gctx->modules_root.scope);
 }
 
@@ -2577,6 +2587,15 @@ void node_deepcopy(struct module *mod, struct node *dst,
   memcpy(&dst->as, &src->as, sizeof(dst->as));
   dst->scope = NULL;
 
+  if (node_toplevel_const(dst) != NULL) {
+    node_toplevel(dst)->instances = NULL;
+    node_toplevel(dst)->instances_count = 0;
+  }
+  if (dst->which == DEFTYPE) {
+    dst->as.DEFTYPE.members = NULL;
+    dst->as.DEFTYPE.members_count = 0;
+  }
+
   for (size_t s = 0; s < src->subs_count; ++s) {
     struct node *cpy = node_new_subnode(mod, dst);
     node_deepcopy(mod, cpy, src->subs[s]);
@@ -3051,7 +3070,7 @@ bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *
 
   if (a->gen_arity > 0
       && a->gen_arity == b->gen_arity
-      && typ_same_generic(mod, a, b)) {
+      && typ_equal(mod, a->gen_args[0], b->gen_args[0])) {
     for (size_t n = 0; n < a->gen_arity; ++n) {
       if (!typ_equal(mod, a->gen_args[1+n], b->gen_args[1+n])) {
         return FALSE;
@@ -3074,6 +3093,22 @@ bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *
       free(mb);
       free(ma);
       return r;
+    }
+  }
+
+  if (a->which == TYPE_FUNCTION && b->which == TYPE_FUNCTION) {
+    const struct typ *pa = a->definition->scope->parent->node->typ;
+    const struct typ *pb = b->definition->scope->parent->node->typ;
+    if (typ_equal(mod, pa, pb)) {
+      size_t n;
+      for (n = 0; n < a->gen_arity; ++n) {
+        if (!typ_equal(mod, a->gen_args[1+n], b->gen_args[1+n])) {
+          break;
+        }
+      }
+      if (n == a->gen_arity) {
+        return TRUE;
+      }
     }
   }
 
@@ -3303,7 +3338,7 @@ error typ_check_deref_against_mark(const struct module *mod, const struct node *
     }
     kind = "mutable";
   } else if (node->typ == typ_lookup_builtin(mod, TBI__MERCURIAL)) {
-    if (operator != TSHARP && operator != TDEREFSHARP) {
+    if (operator == TSHARP || operator == TDEREFSHARP) {
       return 0;
     }
     kind = "mercurial";

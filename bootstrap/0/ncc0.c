@@ -297,6 +297,11 @@ static error lookup_import(const char **prefix, char **fn,
 }
 
 static error load_import(struct node *node, void *user, bool *stop) {
+  // Once the imported module is loaded, it shows up in gctx->modules_root
+  // and will be processed by the current for_all_nodes() in load_imports()
+  // below.
+  *stop = TRUE;
+
   assert(node->which == IMPORT);
   const char **prefixes = user;
   struct module *mod = node_module_owner(node);
@@ -315,12 +320,6 @@ static error load_import(struct node *node, void *user, bool *stop) {
   e = load_module(NULL, mod->gctx, prefix, fn);
   free(fn);
   EXCEPT(e);
-
-  // Once the imported module is loaded, it shows up in gctx->modules_root
-  // and will be processed by the current for_all_nodes() in load_imports()
-  // below.
-
-  *stop = TRUE;
 
   return 0;
 }
