@@ -1,5 +1,6 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
+#include "t00/sum.n.h.out"
 struct t00_sum_sum;
 typedef struct t00_sum_sum t00_sum_sum;
 typedef const t00_sum_sum* _Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_;
@@ -29,6 +30,9 @@ typedef _Ngen_nlang_builtins_i_mutable_ref__t00_sum_ta_genN_ _Ngen_nlang_builtin
 typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t00_sum_ta_genN_;
 
 
+
+
+
 struct t00_sum_tb;
 typedef struct t00_sum_tb t00_sum_tb;
 typedef const t00_sum_tb* _Ngen_nlang_builtins_i_ref__t00_sum_tb_genN_;
@@ -37,6 +41,9 @@ typedef t00_sum_tb* _Ngen_nlang_builtins_i_mutable_ref__t00_sum_tb_genN_;
 typedef _Ngen_nlang_builtins_i_mutable_ref__t00_sum_tb_genN_ _Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_;
 typedef _Ngen_nlang_builtins_i_mutable_ref__t00_sum_tb_genN_ _Ngen_nlang_builtins_i_nullable_mutable_ref__t00_sum_tb_genN_;
 typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t00_sum_tb_genN_;
+
+
+
 
 
 struct t00_sum_sum_nocopy;
@@ -55,6 +62,49 @@ static const t00_sum_sum_nocopy_which_type__ t00_sum_sum_nocopy_B_which__ = (nla
 typedef t00_sum_ta t00_sum_sum_nocopy_A;
 typedef t00_sum_tb t00_sum_sum_nocopy_B;
 
+union t00_sum_sum_as_type__ {
+t00_sum_sum_A A;
+t00_sum_sum_B B;
+};
+typedef union t00_sum_sum_as_type__ t00_sum_sum_as_type__;
+struct t00_sum_sum {
+t00_sum_sum_which_type__ which__;
+t00_sum_sum_as_type__ as__;
+}
+;
+
+
+
+
+struct t00_sum_ta {
+nlang_builtins_u32 x;
+}
+;
+
+
+
+
+
+struct t00_sum_tb {
+nlang_builtins_i32 y;
+}
+;
+
+
+
+
+
+union t00_sum_sum_nocopy_as_type__ {
+t00_sum_sum_nocopy_A A;
+t00_sum_sum_nocopy_B B;
+};
+typedef union t00_sum_sum_nocopy_as_type__ t00_sum_sum_nocopy_as_type__;
+struct t00_sum_sum_nocopy {
+t00_sum_sum_nocopy_which_type__ which__;
+t00_sum_sum_nocopy_as_type__ as__;
+}
+;
+
 nlang_builtins_void t00_sum_sum_A_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_genN_ self, nlang_builtins_u32 c);
 void t00_sum_sum_A_mk(nlang_builtins_u32 c, t00_sum_sum *_nrtr_r);
 _Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_genN_ t00_sum_sum_A_new(nlang_builtins_u32 c);
@@ -66,13 +116,25 @@ nlang_builtins_bool t00_sum_sum_operator_ne(_Ngen_nlang_builtins_i_ref__t00_sum_
 
 nlang_builtins_bool t00_sum_sum_operator_eq(_Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_ other);
 
-nlang_builtins_void t00_sum_sum_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_ other);
+nlang_builtins_void t00_sum_sum_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_ other);
 
 
-nlang_builtins_void t00_sum_ta_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_ta_genN_ other);
+nlang_builtins_void t00_sum_ta_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_ta_genN_ other);
+
+_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ t00_sum_ta_new(void);
+
+void t00_sum_ta_mk(t00_sum_ta *_nrtr_r);
+
+nlang_builtins_void t00_sum_ta_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ self);
 
 
-nlang_builtins_void t00_sum_tb_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_tb_genN_ other);
+nlang_builtins_void t00_sum_tb_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_tb_genN_ other);
+
+_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_ t00_sum_tb_new(void);
+
+void t00_sum_tb_mk(t00_sum_tb *_nrtr_r);
+
+nlang_builtins_void t00_sum_tb_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_ self);
 
 nlang_builtins_void t00_sum_sum_nocopy_A_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_nocopy_genN_ self, t00_sum_ta c);
 void t00_sum_sum_nocopy_A_mk(t00_sum_ta c, t00_sum_sum_nocopy *_nrtr_r);
@@ -81,17 +143,6 @@ nlang_builtins_void t00_sum_sum_nocopy_B_ctor(_Ngen_nlang_builtins_i_mercurial_r
 void t00_sum_sum_nocopy_B_mk(t00_sum_tb c, t00_sum_sum_nocopy *_nrtr_r);
 _Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_nocopy_genN_ t00_sum_sum_nocopy_B_new(t00_sum_tb c);
 
-nlang_builtins_i32 main(void);
-union t00_sum_sum_as_type__ {
-t00_sum_sum_A A;
-t00_sum_sum_B B;
-};
-typedef union t00_sum_sum_as_type__ t00_sum_sum_as_type__;
-struct t00_sum_sum {
-t00_sum_sum_which_type__ which__;
-t00_sum_sum_as_type__ as__;
-}
-;
 nlang_builtins_void t00_sum_sum_A_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_genN_ self, nlang_builtins_u32 c) {
 #define THIS(x) t00_sum_sum##x
 self->which__ = t00_sum_sum_A_which__;
@@ -155,48 +206,66 @@ return 0;
 #undef THIS
 }
 
-nlang_builtins_void t00_sum_sum_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_ other) {
+nlang_builtins_void t00_sum_sum_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_ other) {
 #define THIS(x) t00_sum_sum##x
 self->which__ = other->which__;
 switch (self->which__) {
-case THIS(_A_which___label__):  nlang_builtins_u32_operator_copy(&self->as__.A, &other->as__.A);
-case THIS(_B_which___label__):  nlang_builtins_i32_operator_copy(&self->as__.B, &other->as__.B);
+case THIS(_A_which___label__):  nlang_builtins_u32_copy_ctor(&self->as__.A, &other->as__.A);
+case THIS(_B_which___label__):  nlang_builtins_i32_copy_ctor(&self->as__.B, &other->as__.B);
 }
 #undef THIS
 }
 
-struct t00_sum_ta {
-nlang_builtins_u32 x;
-}
-;
 
-nlang_builtins_void t00_sum_ta_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_ta_genN_ other) {
+nlang_builtins_void t00_sum_ta_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_ta_genN_ other) {
 #define THIS(x) t00_sum_ta##x
 memcpy(self, other, sizeof(*self));
 #undef THIS
 }
 
-struct t00_sum_tb {
-nlang_builtins_i32 y;
+_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ t00_sum_ta_new(void) {
+#define THIS(x) t00_sum_ta##x
+return calloc(1, sizeof(THIS()));
+#undef THIS
 }
-;
 
-nlang_builtins_void t00_sum_tb_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_tb_genN_ other) {
+void t00_sum_ta_mk(t00_sum_ta *_nrtr_r) {
+#define THIS(x) t00_sum_ta##x
+#define r (*_nrtr_r)
+#undef r
+#undef THIS
+}
+
+nlang_builtins_void t00_sum_ta_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ self) {
+#define THIS(x) t00_sum_ta##x
+#undef THIS
+}
+
+
+nlang_builtins_void t00_sum_tb_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_tb_genN_ other) {
 #define THIS(x) t00_sum_tb##x
 memcpy(self, other, sizeof(*self));
 #undef THIS
 }
 
-union t00_sum_sum_nocopy_as_type__ {
-t00_sum_sum_nocopy_A A;
-t00_sum_sum_nocopy_B B;
-};
-typedef union t00_sum_sum_nocopy_as_type__ t00_sum_sum_nocopy_as_type__;
-struct t00_sum_sum_nocopy {
-t00_sum_sum_nocopy_which_type__ which__;
-t00_sum_sum_nocopy_as_type__ as__;
+_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_ t00_sum_tb_new(void) {
+#define THIS(x) t00_sum_tb##x
+return calloc(1, sizeof(THIS()));
+#undef THIS
 }
-;
+
+void t00_sum_tb_mk(t00_sum_tb *_nrtr_r) {
+#define THIS(x) t00_sum_tb##x
+#define r (*_nrtr_r)
+#undef r
+#undef THIS
+}
+
+nlang_builtins_void t00_sum_tb_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_ self) {
+#define THIS(x) t00_sum_tb##x
+#undef THIS
+}
+
 nlang_builtins_void t00_sum_sum_nocopy_A_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_nocopy_genN_ self, t00_sum_ta c) {
 #define THIS(x) t00_sum_sum_nocopy##x
 self->which__ = t00_sum_sum_nocopy_A_which__;

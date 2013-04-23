@@ -30,6 +30,10 @@ export vector method# reserve n:size = void
   if n > self.capacity
     (heap.slice_realloc ut) @!sysheap @#self#_p n
 
+export vector method# resize n:size = void
+  (heap.slice_realloc ut) @!sysheap @#self#_p n
+  self!_count = n
+
 export vector method# push x:t = void
   self#reserve self._count+1
   let n = self._count

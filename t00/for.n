@@ -2,7 +2,7 @@ from nlang import *
 
 export fun main = i32
   let j = 0:i32
-    for i in range 0 10
+    for i in (range 0 10).iter
       unused i
       j += 1
   return j - 10

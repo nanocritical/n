@@ -1,7 +1,13 @@
 from nlang import *
-type t =
+type t = <root>.nlang.builtins.i_trivial_ctor
   let this = t
   x:i32
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#this
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:this
+
+t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 export fun main = i32
   let tt:t

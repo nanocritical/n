@@ -1,9 +1,15 @@
 from nlang import *
-type copy = i_copyable
+type copy = i_copyable <root>.nlang.builtins.i_trivial_ctor
   let this = copy
   x:i32
 
-copy method i_copyable.operator_copy self:@#this = void
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#this
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:this
+
+copy method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+copy method i_copyable.copy_ctor self:@#this = void
   self!x = other.x
 
 fun foo = _nretval:copy
@@ -13,7 +19,7 @@ export fun main = i32
   let w = foo
   let y = copy{{ x=-1 }}
   let z:copy
-    t00.copy.copy.operator_copy @#z @y
+    t00.copy.copy.copy_ctor @#z @y
   let zz = z
-    t00.copy.copy.operator_copy @#zz @z
+    t00.copy.copy.copy_ctor @#zz @z
   return z.x + 1

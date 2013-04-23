@@ -1,7 +1,13 @@
 from nlang import *
-type copy = i_return_by_copy
+type copy = i_return_by_copy <root>.nlang.builtins.i_trivial_ctor
   let this = copy
   x:i32
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#this
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:this
+
+copy method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 fun foo x:i32 = n:copy
   n!x = x

@@ -1,5 +1,6 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
+#include "t00/init.n.h.out"
 struct t00_init_t;
 typedef struct t00_init_t t00_init_t;
 typedef const t00_init_t* _Ngen_nlang_builtins_i_ref__t00_init_t_genN_;
@@ -11,17 +12,48 @@ typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_init_t_genN_ _Ngen_nlang_built
 
 
 
-nlang_builtins_void t00_init_t_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_init_t_genN_ self, _Ngen_nlang_builtins_i_ref__t00_init_t_genN_ other);
 
-nlang_builtins_i32 main(void);
+
 struct t00_init_t {
 nlang_builtins_i32 x;
 }
 ;
 
-nlang_builtins_void t00_init_t_operator_copy(_Ngen_nlang_builtins_i_mercurial_ref__t00_init_t_genN_ self, _Ngen_nlang_builtins_i_ref__t00_init_t_genN_ other) {
+
+
+
+
+
+nlang_builtins_void t00_init_t_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_init_t_genN_ self, _Ngen_nlang_builtins_i_ref__t00_init_t_genN_ other);
+
+_Ngen_nlang_builtins_i_mercurial_ref__t00_init_t_genN_ t00_init_t_new(void);
+
+void t00_init_t_mk(t00_init_t *_nrtr_r);
+
+nlang_builtins_void t00_init_t_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_init_t_genN_ self);
+
+
+nlang_builtins_void t00_init_t_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_init_t_genN_ self, _Ngen_nlang_builtins_i_ref__t00_init_t_genN_ other) {
 #define THIS(x) t00_init_t##x
 memcpy(self, other, sizeof(*self));
+#undef THIS
+}
+
+_Ngen_nlang_builtins_i_mercurial_ref__t00_init_t_genN_ t00_init_t_new(void) {
+#define THIS(x) t00_init_t##x
+return calloc(1, sizeof(THIS()));
+#undef THIS
+}
+
+void t00_init_t_mk(t00_init_t *_nrtr_r) {
+#define THIS(x) t00_init_t##x
+#define r (*_nrtr_r)
+#undef r
+#undef THIS
+}
+
+nlang_builtins_void t00_init_t_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_init_t_genN_ self) {
+#define THIS(x) t00_init_t##x
 #undef THIS
 }
 

@@ -15,9 +15,15 @@ inline fun other4 x:i32 = i32
 extern fun other5 x:i32 = i32
 
 
-type test = ia
+type test = ia <root>.nlang.builtins.i_trivial_ctor
   let this = test
   t:i32
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#this
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:this
+
+test method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 test method foo self:@this = i32
   let y = x
@@ -39,4 +45,4 @@ type enu = <root>.nlang.builtins.i_trivial_copy <root>.nlang.builtins.i_trivial_
   | V2 = 0 + 1
   | V3 = 0 + 1 + 1
 
-enu method <root>.nlang.builtins.i_copyable.operator_copy self:@#this = void
+enu method <root>.nlang.builtins.i_copyable.copy_ctor self:@#this = void

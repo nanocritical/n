@@ -7,6 +7,14 @@ MODULE_BODY :__internal_not_typeable__
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.i_copyable
     IDENT(i_copyable) :nlang.builtins.i_copyable
+   ISA :nlang.builtins.i_trivial_ctor
+    BIN(.) :nlang.builtins.i_trivial_ctor
+     BIN(.) :nlang.builtins
+      BIN(.) :nlang
+       DIRECTDEF :<root>
+       IDENT(nlang) :__internal_not_typeable__
+      IDENT(builtins) :__internal_not_typeable__
+     IDENT(i_trivial_ctor) :__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :t00.copy.copy
     IDENT(this) :t00.copy.copy
@@ -15,10 +23,53 @@ MODULE_BODY :__internal_not_typeable__
   DEFFIELD :nlang.builtins.i32
    IDENT(x) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
- DEFMETHOD :t00.copy.copy.operator_copy
+ DEFFUN :t00.copy.copy.new
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(i_trivial_ctor) :__internal_not_typeable__
+   IDENT(new) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  UN(@#) :(nlang.builtins.i_mercurial_ref t00.copy.copy)
+   IDENT(this) :t00.copy.copy
+ DEFFUN :t00.copy.copy.mk
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(i_trivial_ctor) :__internal_not_typeable__
+   IDENT(mk) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :t00.copy.copy
+   IDENT(r) :t00.copy.copy
+   IDENT(this) :t00.copy.copy
+ DEFMETHOD :t00.copy.copy.ctor
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(i_trivial_ctor) :__internal_not_typeable__
+   IDENT(ctor) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :(nlang.builtins.i_mercurial_ref t00.copy.copy)
+   IDENT(self) :(nlang.builtins.i_mercurial_ref t00.copy.copy)
+   UN(@#) :(nlang.builtins.i_mercurial_ref t00.copy.copy)
+    IDENT(this) :t00.copy.copy
+  IDENT(void) :nlang.builtins.void
+ DEFMETHOD :t00.copy.copy.copy_ctor
   BIN(.) :__internal_not_typeable__
    IDENT(i_copyable) :__internal_not_typeable__
-   IDENT(operator_copy) :__internal_not_typeable__
+   IDENT(copy_ctor) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :(nlang.builtins.i_mercurial_ref t00.copy.copy)
    IDENT(self) :(nlang.builtins.i_mercurial_ref t00.copy.copy)
@@ -77,9 +128,9 @@ MODULE_BODY :__internal_not_typeable__
      DEFNAME(z) :t00.copy.copy
     BLOCK :nlang.builtins.void
      CALL :nlang.builtins.void
-      BIN(.) :t00.copy.copy.operator_copy
+      BIN(.) :t00.copy.copy.copy_ctor
        DIRECTDEF :t00.copy.copy
-       IDENT(operator_copy) :__internal_not_typeable__
+       IDENT(copy_ctor) :__internal_not_typeable__
       UN(@#) :(nlang.builtins.i_mercurial_ref t00.copy.copy)
        IDENT(z) :t00.copy.copy
       UN(@) :(nlang.builtins.i_ref t00.copy.copy)
@@ -91,9 +142,9 @@ MODULE_BODY :__internal_not_typeable__
      DEFNAME(zz) :t00.copy.copy
     BLOCK :nlang.builtins.void
      CALL :nlang.builtins.void
-      BIN(.) :t00.copy.copy.operator_copy
+      BIN(.) :t00.copy.copy.copy_ctor
        DIRECTDEF :t00.copy.copy
-       IDENT(operator_copy) :__internal_not_typeable__
+       IDENT(copy_ctor) :__internal_not_typeable__
       UN(@#) :(nlang.builtins.i_mercurial_ref t00.copy.copy)
        IDENT(zz) :t00.copy.copy
       UN(@) :(nlang.builtins.i_ref t00.copy.copy)

@@ -1,9 +1,10 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
+#include "t00/fixme02.n.h.out"
+
 
 static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_tmp(void);
 
-nlang_builtins_i32 main(void);
 static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_tmp(void){
  {
 nlang_builtins_i32 __gensym0 = (nlang_builtins_i32)(nlang_builtins_i32)0;

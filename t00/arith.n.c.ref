@@ -1,6 +1,6 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
-nlang_builtins_i32 main(void);
+#include "t00/arith.n.h.out"
 nlang_builtins_i32 main(void){
  {
 nlang_builtins_i32 x = (nlang_builtins_i32)2;

@@ -1,0 +1,14 @@
+from nlang import *
+from nlang.vectors import vector
+let v32 = vector i32
+export fun main = i32
+  let v = v32.mk
+    nlang.vectors.vector.push @#v 0
+    nlang.vectors.vector.push @#v 1
+    assert (nlang.vectors.vector.pop @#v == 1)
+    nlang.vectors.vector.push @#v 1
+    let __gensym2 = nlang.vectors.vector.all @v
+    for i in nlang.containers.index_range.iter @__gensym2
+      let __gensym1 = nlang.builtins.size.trim_u32 @i
+      assert (.(nlang.vectors.vector.at @v i) == nlang.builtins.u32.reinterpret_signed @__gensym1)
+  return .(nlang.vectors.vector.at @v 1) - 1

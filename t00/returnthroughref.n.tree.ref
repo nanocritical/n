@@ -5,6 +5,14 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(t) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.i_trivial_ctor
+    BIN(.) :nlang.builtins.i_trivial_ctor
+     BIN(.) :nlang.builtins
+      BIN(.) :nlang
+       DIRECTDEF :<root>
+       IDENT(nlang) :__internal_not_typeable__
+      IDENT(builtins) :__internal_not_typeable__
+     IDENT(i_trivial_ctor) :__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :t00.returnthroughref.t
     IDENT(this) :t00.returnthroughref.t
@@ -16,6 +24,49 @@ MODULE_BODY :__internal_not_typeable__
   DEFFIELD :nlang.builtins.i32
    IDENT(xx) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+ DEFFUN :t00.returnthroughref.t.new
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(i_trivial_ctor) :__internal_not_typeable__
+   IDENT(new) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  UN(@#) :(nlang.builtins.i_mercurial_ref t00.returnthroughref.t)
+   IDENT(this) :t00.returnthroughref.t
+ DEFFUN :t00.returnthroughref.t.mk
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(i_trivial_ctor) :__internal_not_typeable__
+   IDENT(mk) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :t00.returnthroughref.t
+   IDENT(r) :t00.returnthroughref.t
+   IDENT(this) :t00.returnthroughref.t
+ DEFMETHOD :t00.returnthroughref.t.ctor
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(i_trivial_ctor) :__internal_not_typeable__
+   IDENT(ctor) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :(nlang.builtins.i_mercurial_ref t00.returnthroughref.t)
+   IDENT(self) :(nlang.builtins.i_mercurial_ref t00.returnthroughref.t)
+   UN(@#) :(nlang.builtins.i_mercurial_ref t00.returnthroughref.t)
+    IDENT(this) :t00.returnthroughref.t
+  IDENT(void) :nlang.builtins.void
  DEFFUN :t00.returnthroughref.foo
   IDENT(foo) :__internal_not_typeable__
   GENARGS :nlang.builtins.void

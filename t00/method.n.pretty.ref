@@ -1,9 +1,15 @@
 from nlang import *
-type t = i_trivial_copy
+type t = i_trivial_copy <root>.nlang.builtins.i_trivial_ctor
   let this = t
   x:i32
 
-t method <root>.nlang.builtins.i_copyable.operator_copy self:@#this = void
+t method <root>.nlang.builtins.i_copyable.copy_ctor self:@#this = void
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#this
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:this
+
+t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 t method get = i32
   return self.x

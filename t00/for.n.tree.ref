@@ -14,14 +14,22 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(i32) :nlang.builtins.i32
      DEFNAME(j) :nlang.builtins.i32
     BLOCK :nlang.builtins.void
+     LET :nlang.builtins.void
+      DEFPATTERN :nlang.containers.index_range
+       IDENT(__gensym1) :nlang.containers.index_range
+       CALL :nlang.containers.index_range
+        IDENT(range) :nlang.containers.range
+        NUMBER(0) :nlang.builtins.size
+        NUMBER(10) :nlang.builtins.size
+       DEFNAME(__gensym1) :nlang.containers.index_range
      FOR :nlang.builtins.void
       LET :nlang.builtins.void
        DEFPATTERN :nlang.containers.index_iterator
         IDENT(__gensym0) :nlang.containers.index_iterator
         CALL :nlang.containers.index_iterator
-         IDENT(range) :nlang.containers.range
-         NUMBER(0) :nlang.builtins.size
-         NUMBER(10) :nlang.builtins.size
+         DIRECTDEF :nlang.containers.index_range.iter
+         UN(@) :(nlang.builtins.i_ref nlang.containers.index_range)
+          IDENT(__gensym1) :nlang.containers.index_range
         DEFNAME(__gensym0) :nlang.containers.index_iterator
        BLOCK :nlang.builtins.void
         WHILE :nlang.builtins.void

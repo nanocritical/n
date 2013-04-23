@@ -1,5 +1,6 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
+#include "t00/return.n.h.out"
 struct t00_return_copy;
 typedef struct t00_return_copy t00_return_copy;
 typedef const t00_return_copy* _Ngen_nlang_builtins_i_ref__t00_return_copy_genN_;
@@ -12,15 +13,46 @@ typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_return_copy_genN_ _Ngen_nlang_
 
 
 
-static t00_return_copy t00_return_foo(nlang_builtins_i32 x);
 
-static t00_return_copy t00_return_chained(nlang_builtins_i32 x);
 
-nlang_builtins_i32 main(void);
 struct t00_return_copy {
 nlang_builtins_i32 x;
 }
 ;
+
+
+
+
+
+
+
+_Ngen_nlang_builtins_i_mercurial_ref__t00_return_copy_genN_ t00_return_copy_new(void);
+
+t00_return_copy t00_return_copy_mk(void);
+
+nlang_builtins_void t00_return_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_return_copy_genN_ self);
+
+static t00_return_copy t00_return_foo(nlang_builtins_i32 x);
+
+static t00_return_copy t00_return_chained(nlang_builtins_i32 x);
+
+
+_Ngen_nlang_builtins_i_mercurial_ref__t00_return_copy_genN_ t00_return_copy_new(void) {
+#define THIS(x) t00_return_copy##x
+return calloc(1, sizeof(THIS()));
+#undef THIS
+}
+
+t00_return_copy t00_return_copy_mk(void) {
+#define THIS(x) t00_return_copy##x
+return (THIS()){ 0 };
+#undef THIS
+}
+
+nlang_builtins_void t00_return_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_return_copy_genN_ self) {
+#define THIS(x) t00_return_copy##x
+#undef THIS
+}
 
 static t00_return_copy t00_return_foo(nlang_builtins_i32 x){
 __attribute__((__unused__)) t00_return_copy n = { 0 };

@@ -8,19 +8,31 @@ sum method <root>.nlang.builtins.i_has_equality.operator_ne self:@this = bool
 
 sum method <root>.nlang.builtins.i_has_equality.operator_eq self:@this = bool
 
-sum method <root>.nlang.builtins.i_copyable.operator_copy self:@#this = void
+sum method <root>.nlang.builtins.i_copyable.copy_ctor self:@#this = void
 
-type ta = i_trivial_copy
+type ta = i_trivial_copy <root>.nlang.builtins.i_trivial_ctor
   let this = ta
   x:u32
 
-ta method <root>.nlang.builtins.i_copyable.operator_copy self:@#this = void
+ta method <root>.nlang.builtins.i_copyable.copy_ctor self:@#this = void
 
-type tb = i_trivial_copy
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#this
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:this
+
+ta method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+type tb = i_trivial_copy <root>.nlang.builtins.i_trivial_ctor
   let this = tb
   y:i32
 
-tb method <root>.nlang.builtins.i_copyable.operator_copy self:@#this = void
+tb method <root>.nlang.builtins.i_copyable.copy_ctor self:@#this = void
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#this
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:this
+
+tb method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 type sum_nocopy = <root>.nlang.builtins.i_ctor_with
   let this = sum_nocopy

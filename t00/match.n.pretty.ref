@@ -4,7 +4,7 @@ type enu = <root>.nlang.builtins.i_trivial_copy <root>.nlang.builtins.i_trivial_
   | A = 0
   | B = 0 + 1
 
-enu method <root>.nlang.builtins.i_copyable.operator_copy self:@#this = void
+enu method <root>.nlang.builtins.i_copyable.copy_ctor self:@#this = void
 
 export fun main = i32
   let n = enu.A

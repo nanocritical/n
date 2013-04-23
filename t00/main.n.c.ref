@@ -1,6 +1,6 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
-nlang_builtins_i32 main(void);
+#include "t00/main.n.h.out"
 nlang_builtins_i32 main(void){
  {
 return (nlang_builtins_i32)0;

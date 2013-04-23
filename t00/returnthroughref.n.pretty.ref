@@ -1,8 +1,14 @@
 from nlang import *
-type t =
+type t = <root>.nlang.builtins.i_trivial_ctor
   let this = t
   x:i32
   xx:i32
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#this
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:this
+
+t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 fun foo = _nretval:t
   return t{{ x=3 }}

@@ -11,18 +11,11 @@
   NB(bool) t##_operator_gt(const t *self, const t *other) { return *self > * other; } \
   NB(bool) t##_operator_ge(const t *self, const t *other) { return *self >= * other; } \
   \
-  t t##_operator_bwor(const t *self, const t *other) { return *self | *other; } \
-  t t##_operator_bwxor(const t *self, const t *other) { return *self ^ *other; } \
-  t t##_operator_bwand(const t *self, const t *other) { return *self & *other; } \
-  t t##_operator_lshift(const t *self, const NB(u32) by) { return *self << by; } \
-  t t##_operator_rshift(const t *self, const NB(u32) by) { return *self >> by; } \
-  t t##_operator_bwnot(const t *self) { return ~ *self; } \
-  \
   t t##_operator_or(const t *self, const t *other) { return *self || *other; } \
   t t##_operator_and(const t *self, const t *other) { return *self && *other; } \
   t t##_operator_not(const t *self) { return ! *self; } \
   \
-  void t##_operator_copy(t *self, const t *other) { *self = *other; }
+  void t##_copy_ctor(t *self, const t *other) { *self = *other; }
 
 #define define_native_integer(t) \
   NB(bool) t##_operator_eq(const t *self, const t *other) { return *self == *other; } \
@@ -41,6 +34,11 @@
   t t##_operator_modulo(const t *self, const t *other) { return *self % *other; } \
   t t##_operator_times(const t *self, const t *other) { return *self * *other; } \
   t t##_operator_uminus(const t *self) { return - *self; } \
+  NB(void) t##_operator_assign_plus(t *self, const t *other) { *self += *other; } \
+  NB(void) t##_operator_assign_minus(t *self, const t *other) { *self -= *other; } \
+  NB(void) t##_operator_assign_divide(t *self, const t *other) { *self /= *other; } \
+  NB(void) t##_operator_assign_modulo(t *self, const t *other) { *self %= *other; } \
+  NB(void) t##_operator_assign_times(t *self, const t *other) { *self *= *other; } \
   \
   t t##_operator_bwor(const t *self, const t *other) { return *self | *other; } \
   t t##_operator_bwxor(const t *self, const t *other) { return *self ^ *other; } \
@@ -48,8 +46,13 @@
   t t##_operator_lshift(const t *self, const NB(u32) by) { return *self << by; } \
   t t##_operator_rshift(const t *self, const NB(u32) by) { return *self >> by; } \
   t t##_operator_bwnot(const t *self) { return ~ *self; } \
+  NB(void) t##_operator_assign_bwor(t *self, const t *other) { *self |= *other; } \
+  NB(void) t##_operator_assign_bwxor(t *self, const t *other) { *self ^= *other; } \
+  NB(void) t##_operator_assign_bwand(t *self, const t *other) { *self &= *other; } \
+  NB(void) t##_operator_assign_lshift(t *self, const NB(u32) by) { *self <<= by; } \
+  NB(void) t##_operator_assign_rshift(t *self, const NB(u32) by) { *self >>= by; } \
   \
-  void t##_operator_copy(t *self, const t *other) { *self = * other; }
+  void t##_copy_ctor(t *self, const t *other) { *self = * other; }
 
 #define define_native_floating(t) \
   NB(bool) t##_operator_eq(const t *self, const t *other) { return *self == *other; } \
@@ -68,7 +71,7 @@
   t t##_operator_times(const t *self, const t *other) { return *self * *other; } \
   t t##_operator_uminus(const t *self) { return - *self; } \
   \
-  void t##_operator_copy(t *self, const t *other) { *self = * other; }
+  void t##_copy_ctor(t *self, const t *other) { *self = * other; }
 
 define_native_boolean(nlang_builtins_bool)
 define_native_integer(nlang_builtins_i8)

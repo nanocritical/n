@@ -854,6 +854,17 @@ static void rtr_helpers(FILE *out, const struct module *mod,
   }
 }
 
+static void bg_return_if_by_copy(FILE *out, const struct module *mod, const struct node *node,
+                                 const char *what) {
+  const struct node *retval = node_fun_retval_const(node);
+  const bool retval_bycopy = typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
+  if (!retval_bycopy) {
+    return;
+  }
+
+  fprintf(out, "return %s;\n", what);
+}
+
 static void print_deffun_builtingen(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, " {\n");
   if (node->scope->parent->node->which == DEFTYPE
@@ -867,6 +878,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     break;
   case BG_TRIVIAL_CTOR_MK:
     rtr_helpers(out, mod, node, TRUE);
+    bg_return_if_by_copy(out, mod, node, "(THIS()){ 0 }");
     rtr_helpers(out, mod, node, FALSE);
     break;
   case BG_TRIVIAL_CTOR_NEW:
@@ -875,6 +887,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_DEFAULT_CTOR_MK:
     rtr_helpers(out, mod, node, TRUE);
     fprintf(out, "THIS(_ctor)(&r);\n");
+    bg_return_if_by_copy(out, mod, node, "r");
     rtr_helpers(out, mod, node, FALSE);
     break;
   case BG_DEFAULT_CTOR_NEW:
@@ -885,6 +898,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_CTOR_WITH_MK:
     rtr_helpers(out, mod, node, TRUE);
     fprintf(out, "THIS(_ctor)(&r, c);\n");
+    bg_return_if_by_copy(out, mod, node, "r");
     rtr_helpers(out, mod, node, FALSE);
     break;
   case BG_CTOR_WITH_NEW:
@@ -899,6 +913,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_CTOR_WITH_MK:
     rtr_helpers(out, mod, node, TRUE);
     fprintf(out, "THIS(_%s_ctor)(&r, c);\n", idents_value(mod->gctx, node_ident(node->scope->parent->node)));
+    bg_return_if_by_copy(out, mod, node, "r");
     rtr_helpers(out, mod, node, FALSE);
     break;
   case BG_SUM_CTOR_WITH_NEW:

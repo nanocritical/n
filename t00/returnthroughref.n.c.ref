@@ -1,5 +1,6 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
+#include "t00/returnthroughref.n.h.out"
 struct t00_returnthroughref_t;
 typedef struct t00_returnthroughref_t t00_returnthroughref_t;
 typedef const t00_returnthroughref_t* _Ngen_nlang_builtins_i_ref__t00_returnthroughref_t_genN_;
@@ -13,18 +14,51 @@ typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_returnthroughref_t_genN_ _Ngen
 
 
 
+
+
+struct t00_returnthroughref_t {
+nlang_builtins_i32 x;
+nlang_builtins_i32 xx;
+}
+;
+
+
+
+
+
+
+
+
+_Ngen_nlang_builtins_i_mercurial_ref__t00_returnthroughref_t_genN_ t00_returnthroughref_t_new(void);
+
+void t00_returnthroughref_t_mk(t00_returnthroughref_t *_nrtr_r);
+
+nlang_builtins_void t00_returnthroughref_t_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_returnthroughref_t_genN_ self);
+
 static void t00_returnthroughref_foo(t00_returnthroughref_t *_nrtr__nretval);
 
 static void t00_returnthroughref_bar(t00_returnthroughref_t *_nrtr__nretval);
 
 static void t00_returnthroughref_bar2(t00_returnthroughref_t *_nrtr_r);
 
-nlang_builtins_i32 main(void);
-struct t00_returnthroughref_t {
-nlang_builtins_i32 x;
-nlang_builtins_i32 xx;
+
+_Ngen_nlang_builtins_i_mercurial_ref__t00_returnthroughref_t_genN_ t00_returnthroughref_t_new(void) {
+#define THIS(x) t00_returnthroughref_t##x
+return calloc(1, sizeof(THIS()));
+#undef THIS
 }
-;
+
+void t00_returnthroughref_t_mk(t00_returnthroughref_t *_nrtr_r) {
+#define THIS(x) t00_returnthroughref_t##x
+#define r (*_nrtr_r)
+#undef r
+#undef THIS
+}
+
+nlang_builtins_void t00_returnthroughref_t_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_returnthroughref_t_genN_ self) {
+#define THIS(x) t00_returnthroughref_t##x
+#undef THIS
+}
 
 static void t00_returnthroughref_foo(t00_returnthroughref_t *_nrtr__nretval){
 #define _nretval (*_nrtr__nretval)
