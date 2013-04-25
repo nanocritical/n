@@ -35,11 +35,13 @@
       unsigned size; \
       type **groups; \
       uint32_t *bitmap; \
+      unsigned count; \
     }
 
 #define declare_sptable(storage, name, type) \
     storage declare_sptable_init(name, type); \
 storage declare_sptable_destroy(name, type); \
+storage declare_sptable_count(name, type); \
 storage declare_sptable_get(name, type); \
 storage declare_sptable_set(name, type); \
 storage declare_sptable_unset(name, type); \
@@ -48,6 +50,7 @@ storage declare_sptable_foreach(name, type)
 #define implement_sptable(storage, name, type) \
     storage implement_sptable_init(name, type) \
 storage implement_sptable_destroy(name, type) \
+storage implement_sptable_count(name, type) \
 storage implement_sptable_get(name, type) \
 storage implement_sptable_set(name, type) \
 storage implement_sptable_unset(name, type) \
@@ -59,6 +62,9 @@ storage implement_sptable_foreach(name, type)
 
 #define declare_sptable_destroy(name, type) \
     void name ## _destroy(struct name *tbl)
+
+#define declare_sptable_count(name, type) \
+    unsigned name ## _count(struct name *tbl)
 
 #define declare_sptable_get(name, type) \
     type *name ## _get(struct name *tbl, unsigned i)
@@ -83,6 +89,7 @@ storage implement_sptable_foreach(name, type)
   tbl->groups = (type **)calloc(SPTABLE_NUM_GROUPS(tbl), \
                                 sizeof(type *)); \
   tbl->bitmap = (uint32_t *)calloc(BITMAP_SIZE(tbl->size), 1); \
+  tbl->count = 0; \
 }
 
 #define implement_sptable_destroy(name, type) \
@@ -106,6 +113,12 @@ storage implement_sptable_foreach(name, type)
      + bit_popcount(SPTABLE_GROUP_BITMAP(tbl, gr) \
                     & BITMAP_MASK_LAST(i+1)) \
      - 1 )
+
+#define implement_sptable_count(name, type) \
+    unsigned name ## _count(struct name *tbl) \
+{ \
+  return tbl->count; \
+}
 
 #define implement_sptable_get(name, type) \
     type *name ## _get(struct name *tbl, unsigned i) \
@@ -143,6 +156,7 @@ storage implement_sptable_foreach(name, type)
             (sz - szb) * sizeof(type)); \
     memcpy(tbl->groups[gr] + szb, &el, sizeof(el)); \
     bitmap_set(tbl->bitmap, i); \
+    tbl->count += 1; \
   } \
 }
 
@@ -162,6 +176,7 @@ storage implement_sptable_foreach(name, type)
           (sz - szb - 1) * sizeof(type)); \
   tbl->groups[gr] = (type *)SPTABLE_GROUP_SHRINK__(type, tbl, gr, sz); \
   bitmap_clear(tbl->bitmap, i); \
+  tbl->count -= 1; \
 }
 
 #define implement_sptable_foreach(name, type) \
@@ -195,6 +210,7 @@ storage implement_sptable_foreach(name, type)
       unsigned size; \
       type *array; \
       uint32_t *bitmap; \
+      unsigned count; \
     }
 
 #define DNTABLE_MIN_SIZE SPTABLE_MIN_SIZE
@@ -202,6 +218,7 @@ storage implement_sptable_foreach(name, type)
 #define declare_dntable(storage, name, type) \
     storage declare_dntable_init(name, type); \
 storage declare_dntable_destroy(name, type); \
+storage declare_dntable_count(name, type); \
 storage declare_dntable_get(name, type); \
 storage declare_dntable_set(name, type); \
 storage declare_dntable_foreach(name, type)
@@ -209,6 +226,7 @@ storage declare_dntable_foreach(name, type)
 #define implement_dntable(storage, name, type) \
     storage implement_dntable_init(name, type) \
 storage implement_dntable_destroy(name, type) \
+storage implement_dntable_count(name, type) \
 storage implement_dntable_get(name, type) \
 storage implement_dntable_set(name, type) \
 storage implement_dntable_foreach(name, type)
@@ -219,6 +237,9 @@ storage implement_dntable_foreach(name, type)
 
 #define declare_dntable_destroy(name, type) \
     void name ## _destroy(struct name *tbl)
+
+#define declare_dntable_count(name, type) \
+    unsigned name ## _count(struct name *tbl)
 
 #define declare_dntable_get(name, type) \
     type *name ## _get(struct name *tbl, unsigned i)
@@ -238,6 +259,7 @@ storage implement_dntable_foreach(name, type)
   tbl->size = max(unsigned, size, DNTABLE_MIN_SIZE); \
   tbl->array = (type *)calloc(tbl->size, sizeof(type)); \
   tbl->bitmap = (uint32_t *)calloc(BITMAP_SIZE(tbl->size), 1); \
+  tbl->count = 0; \
 }
 
 #define implement_dntable_destroy(name, type) \
@@ -248,6 +270,12 @@ storage implement_dntable_foreach(name, type)
   free(tbl->bitmap); \
   tbl->bitmap = NULL; \
   tbl->size = 0; \
+}
+
+#define implement_dntable_count(name, type) \
+    unsigned name ## _count(struct name *tbl) \
+{ \
+  return tbl->count; \
 }
 
 #define implement_dntable_get(name, type) \
@@ -263,6 +291,9 @@ storage implement_dntable_foreach(name, type)
     void name ## _set(struct name *tbl, unsigned i, type el) \
 { \
   memcpy(tbl->array + i, &el, sizeof(el)); \
+  if (!bitmap_test(tbl->bitmap, i)) { \
+    tbl->count += 1; \
+  } \
   bitmap_set(tbl->bitmap, i); \
 }
 
@@ -319,6 +350,7 @@ storage declare_htable_destroy(name, type, key_type); \
 storage declare_htable_set_delete_val(name, type, key_type); \
 storage declare_htable_set_custom_hashf(name, type, key_type); \
 storage declare_htable_set_custom_cmpf(name, type, key_type); \
+storage declare_htable_count(name, type, key_type); \
 storage declare_htable_get(name, type, key_type); \
 storage declare_htable_set(name, type, key_type); \
 storage declare_htable_foreach(name, type, key_type); \
@@ -331,6 +363,7 @@ storage implement_htable_destroy(name, type, key_type); \
 storage implement_htable_set_delete_val(name, type, key_type); \
 storage implement_htable_set_custom_hashf(name, type, key_type);\
 storage implement_htable_set_custom_cmpf(name, type, key_type); \
+storage implement_htable_count(name, type, key_type); \
 storage implement_htable_get(name, type, key_type); \
 storage implement_htable_set(name, type, key_type); \
 implement_htable_foreach(storage, name, type, key_type); \
@@ -366,6 +399,7 @@ storage declare_htable_destroy(name, type, key_type); \
 storage declare_htable_set_delete_val(name, type, key_type); \
 storage declare_htable_set_custom_hashf(name, type, key_type); \
 storage declare_htable_set_custom_cmpf(name, type, key_type); \
+storage declare_htable_count(name, type, key_type); \
 storage declare_htable_get(name, type, key_type); \
 storage declare_htable_set(name, type, key_type); \
 storage declare_htable_foreach(name, type, key_type); \
@@ -378,6 +412,7 @@ storage implement_htable_destroy(name, type, key_type); \
 storage implement_htable_set_delete_val(name, type, key_type); \
 storage implement_htable_set_custom_hashf(name, type, key_type);\
 storage implement_htable_set_custom_cmpf(name, type, key_type); \
+storage implement_htable_count(name, type, key_type); \
 storage implement_htable_get(name, type, key_type); \
 storage implement_htable_set(name, type, key_type); \
 implement_htable_foreach(storage, name, type, key_type); \
@@ -402,6 +437,9 @@ implement_htable_rehash(storage, name, type, key_type)
     void name ## _set_custom_cmpf(struct name *ht, \
                                   int (*cmpf)(const key_type *, \
                                               const key_type *))
+
+#define declare_htable_count(name, type, key_type) \
+    unsigned name ## _count(struct name *ht)
 
 #define declare_htable_get(name, type, key_type) \
     type *name ## _get(struct name *ht, const key_type k)
@@ -467,6 +505,12 @@ implement_htable_rehash(storage, name, type, key_type)
                                               const key_type *)) \
 { \
   ht->cmpf = cmpf; \
+}
+
+#define implement_htable_count(name, type, key_type) \
+    unsigned name ## _count(struct name *ht) \
+{ \
+  return name ## _table___count(&((ht)->table)); \
 }
 
 /* Quadratic open addressing (see Knuth TAOCP 6.4 exercise 20) */
