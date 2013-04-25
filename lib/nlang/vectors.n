@@ -7,7 +7,7 @@ export inline type vector t:i_copyable = export i_trivial_ctor
   _p:(slice ut)
   _count:size
 
-export vector method len = size
+export vector method count = size
   return self._count
 
 export vector method$ at n:size = @$t
@@ -24,7 +24,7 @@ export vector method is_empty = bool
   return self._count == 0
 
 export vector method capacity = size
-  return self._p.len
+  return self._p.count
 
 export vector method# reserve n:size = void
   if n > self.capacity
@@ -51,4 +51,4 @@ export vector method# clear = void
   (heap.slice_free ut) @!sysheap @#self#_p
 
 export vector method all = index_range
-  return range 0 self.len-1
+  return range 0 self.count-1

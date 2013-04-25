@@ -4,9 +4,20 @@ type enu =
   | A
   | B
 
+fun foo n:enu = i32
+  match n
+  | A -> return 0
+  | B -> return 1
+
+fun bar n:enu = i32
+  match n
+  | A -> return 0
+  | _ -> return 1
+
 export fun main = i32
   let n = enu.A
-  if n == enu.B
-    return 0
-  else
-    return 1
+  foo n
+  bar n
+  match n
+  | enu.A -> return 0
+  | enu.B -> return 1

@@ -1,4 +1,5 @@
 #include "firstpass.h"
+#include "table.h"
 
 //#define DEBUG_PASS
 
@@ -1571,6 +1572,14 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   EXCEPT(e);
 
   struct node *parent = node->subs[0];
+  if (typ_equal(mod, parent->typ, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))) {
+    node->typ = NULL;
+    parent->typ = NULL;
+    e = firstpass(mod, node, NULL);
+    EXCEPT(e);
+    return 0;
+  }
+
   struct scope *parent_scope = parent->typ->definition->scope;
   e = bin_accessor_maybe_ref(&parent_scope, mod, parent);
   EXCEPT(e);
@@ -2153,6 +2162,49 @@ static struct typ* number_literal_typ(struct module *mod, struct node *node) {
   }
 }
 
+static error type_destruct_match_pattern(struct module *mod, struct node *match, size_t n) {
+  assert(n % 2 == 1);
+
+  struct node *expr = match->subs[0];
+  struct node *p = match->subs[n];
+
+  assert(expr->typ->definition->which == DEFTYPE);
+  const bool enum_or_sum = expr->typ->definition->as.DEFTYPE.kind == DEFTYPE_ENUM
+    || expr->typ->definition->as.DEFTYPE.kind == DEFTYPE_SUM;
+
+  error e;
+  if (!enum_or_sum) {
+    e = mk_except_type(mod, expr, "must match over an enum or sum type");
+    EXCEPT(e);
+  }
+
+  if (node_ident(p) == ID_OTHERWISE) {
+    p->typ = expr->typ;
+    return 0;
+  }
+
+  if (expr->typ->definition->which == DEFTYPE
+      && enum_or_sum
+      && p->which == IDENT) {
+    struct node *field = NULL;
+    e = scope_lookup_ident_immediate(&field, mod,
+                                     expr->typ->definition->scope,
+                                     node_ident(p),
+                                     TRUE);
+    if (!e) {
+      e = typ_check_equal(mod, p, expr->typ, field->typ);
+      EXCEPT(e);
+      p->typ = field->typ;
+      p->flags = field->flags;
+      return 0;
+    }
+  }
+
+  e = type_destruct(mod, p, expr->typ);
+  EXCEPT(e);
+  return 0;
+}
+
 static error type_destruct(struct module *mod, struct node *node, const struct typ *constraint) {
   error e;
   struct node *def = NULL;
@@ -2502,7 +2554,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case MATCH:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
     for (size_t n = 1; n < node->subs_count; n += 2) {
-      e = type_destruct(mod, node->subs[n], node->subs[0]->typ);
+      e = type_destruct_match_pattern(mod, node, n);
       EXCEPT(e);
     }
     goto ok;
@@ -2664,6 +2716,93 @@ static error step_type_drop_excepts(struct module *mod, struct node *node, void 
   default:
     return 0;
   }
+}
+
+HTABLE_SPARSE(idents_set, bool, ident);
+implement_htable_sparse(__attribute__((unused)) static, idents_set, bool, ident);
+
+static uint32_t ident_hash(const ident *id) {
+  return *id;
+}
+
+static int ident_cmp(const ident *a, const ident *b) {
+  return memcmp(a, b, sizeof(*a));
+}
+
+static size_t defchoice_count(struct node *deft) {
+  assert(deft->which == DEFTYPE);
+
+  size_t r = 0;
+  for (size_t n = 0; n < deft->subs_count; ++n) {
+    struct node *d = deft->subs[n];
+    if (d->which == DEFCHOICE) {
+      r += 1;
+    }
+  }
+  return r;
+}
+
+static error step_check_exhaustive_match(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->which != MATCH) {
+    return 0;
+  }
+
+  struct node *expr = node->subs[0];
+  assert(expr->typ->definition->which == DEFTYPE);
+  const bool enum_or_sum = expr->typ->definition->as.DEFTYPE.kind == DEFTYPE_ENUM
+    || expr->typ->definition->as.DEFTYPE.kind == DEFTYPE_SUM;
+
+  if (!enum_or_sum) {
+    return 0;
+  }
+
+  struct idents_set set;
+  idents_set_init(&set, 0);
+  idents_set_set_delete_val(&set, FALSE);
+  idents_set_set_custom_hashf(&set, ident_hash);
+  idents_set_set_custom_cmpf(&set, ident_cmp);
+
+  error e = 0;
+  for (size_t n = 1; n < node->subs_count; n += 2) {
+    struct node *p = node->subs[n];
+    ident id;
+    switch (p->which) {
+    case IDENT:
+      id = node_ident(p);
+      if (id == ID_OTHERWISE) {
+        if (n != node->subs_count - 2) {
+          e = mk_except(mod, p, "default pattern '_' must be last");
+          GOTO_EXCEPT(e);
+        }
+        // No need to check further.
+        goto ok;
+      }
+      break;
+    case BIN:
+      assert(OP_KIND(p->as.BIN.operator) == OP_BIN_ACC);
+      id = node_ident(p->subs[1]);
+      break;
+    default:
+      assert(FALSE);
+    }
+
+    if (idents_set_get(&set, id) != NULL) {
+      e = mk_except(mod, p, "duplicated match case");
+      GOTO_EXCEPT(e);
+    }
+
+    idents_set_set(&set, id, TRUE);
+  }
+
+  if (idents_set_count(&set) != defchoice_count(expr->typ->definition)) {
+    e = mk_except_type(mod, node, "non-exhaustive match");
+    GOTO_EXCEPT(e);
+  }
+
+ok:
+except:
+  idents_set_destroy(&set);
+  return e;
 }
 
 static error step_toplevel_secondpass(struct module *mod, struct node *node, void *user, bool *stop) {
@@ -3672,6 +3811,7 @@ static const step firstpass_up[] = {
   step_type_inference,
   step_type_drop_retval,
   step_type_drop_excepts,
+  step_check_exhaustive_match,
   step_toplevel_secondpass,
   NULL,
 };

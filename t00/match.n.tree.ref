@@ -110,6 +110,42 @@ MODULE_BODY :__internal_not_typeable__
    UN(@) :(nlang.builtins.i_ref t00.match.enu)
     IDENT(this) :t00.match.enu
   IDENT(void) :nlang.builtins.void
+ DEFFUN :t00.match.foo
+  IDENT(foo) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :t00.match.enu
+   IDENT(n) :t00.match.enu
+   IDENT(enu) :t00.match.enu
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   MATCH :nlang.builtins.void
+    IDENT(n) :t00.match.enu
+    IDENT(A) :t00.match.enu
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(0) :nlang.builtins.i32
+    IDENT(B) :t00.match.enu
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(1) :nlang.builtins.i32
+ DEFFUN :t00.match.bar
+  IDENT(bar) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :t00.match.enu
+   IDENT(n) :t00.match.enu
+   IDENT(enu) :t00.match.enu
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   MATCH :nlang.builtins.void
+    IDENT(n) :t00.match.enu
+    IDENT(A) :t00.match.enu
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(0) :nlang.builtins.i32
+    IDENT(_) :t00.match.enu
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      NUMBER(1) :nlang.builtins.i32
  DEFFUN :t00.match.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
@@ -122,15 +158,23 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(enu) :t00.match.enu
       IDENT(A) :__internal_not_typeable__
      DEFNAME(n) :t00.match.enu
-   IF :nlang.builtins.void
-    BIN( == ) :nlang.builtins.bool
-     IDENT(n) :t00.match.enu
-     BIN(.) :t00.match.enu
-      IDENT(enu) :t00.match.enu
-      IDENT(B) :__internal_not_typeable__
+   CALL :nlang.builtins.i32
+    IDENT(foo) :t00.match.foo
+    IDENT(n) :t00.match.enu
+   CALL :nlang.builtins.i32
+    IDENT(bar) :t00.match.bar
+    IDENT(n) :t00.match.enu
+   MATCH :nlang.builtins.void
+    IDENT(n) :t00.match.enu
+    BIN(.) :t00.match.enu
+     IDENT(enu) :t00.match.enu
+     IDENT(A) :__internal_not_typeable__
     BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.i32
       NUMBER(0) :nlang.builtins.i32
+    BIN(.) :t00.match.enu
+     IDENT(enu) :t00.match.enu
+     IDENT(B) :__internal_not_typeable__
     BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.i32
       NUMBER(1) :nlang.builtins.i32

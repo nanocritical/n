@@ -15,16 +15,16 @@ export heap (method! t:i_any) free p:?@#t = void
   let raw = (nlang.unsafe.cast ?@#t ?@#u8) p
   return free raw (sizeof t)
 
-export heap (method! t:i_trivial_ctor) slice_realloc s:@#(slice t) len:size = void
-  let bsz = len * (sizeof t)
-  if s.len == 0
+export heap (method! t:i_trivial_ctor) slice_realloc s:@#(slice t) count:size = void
+  let bsz = count * (sizeof t)
+  if s.count == 0
     s#_rawdata = realloc null 0 bsz
-    s#_count = len
+    s#_count = count
   else
     let old_bsz = s.bytelen
     let raw = s#unsafe_rawdata
     s#_rawdata = realloc raw old_bsz bsz
-    s#_count = len
+    s#_count = count
 
 export heap (method! t:i_trivial_ctor) slice_free s:@#(slice t) = void
   let bsz = s.bytelen
@@ -42,7 +42,7 @@ export inline type slice t:i_trivial_ctor = export i_trivial_ctor
   _count:size
   _rawdata:?@#u8
 
-export inline slice method len = size
+export inline slice method count = size
   return self._count
 
 export inline slice method bytelen = size

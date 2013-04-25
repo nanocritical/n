@@ -77,6 +77,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_EXAMPLE] = "<example>",
   [ID_THIS] = "this",
   [ID_SELF] = "self",
+  [ID_OTHERWISE] = "_",
   [ID_MAIN] = "main",
   [ID_WHICH] = "which__",
   [ID_AS] = "as__",

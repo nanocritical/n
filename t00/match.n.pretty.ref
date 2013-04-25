@@ -6,9 +6,26 @@ type enu = <root>.nlang.builtins.i_trivial_copy <root>.nlang.builtins.i_trivial_
 
 enu method <root>.nlang.builtins.i_copyable.copy_ctor self:@#this = void
 
+fun foo n:enu = i32
+  match n
+  | A
+    return 0
+  | B
+    return 1
+
+fun bar n:enu = i32
+  match n
+  | A
+    return 0
+  | _
+    return 1
+
 export fun main = i32
   let n = enu.A
-  if n == enu.B
+  foo n
+  bar n
+  match n
+  | enu.A
     return 0
-  else
+  | enu.B
     return 1

@@ -342,6 +342,7 @@ enum predefined_idents {
   ID_EXAMPLE,
   ID_THIS,
   ID_SELF,
+  ID_OTHERWISE,
 
   ID_MAIN,
   ID_WHICH,

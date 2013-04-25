@@ -488,10 +488,22 @@ static void print_match(FILE *out, const struct module *mod, const struct node *
   fprintf(out, ") {\n");
 
   for (size_t n = 1; n < node->subs_count; n += 2) {
-    fprintf(out, "case ");
-    print_typ(out, mod, node->subs[n]->typ);
-    fprintf(out, "_%s_label__", idents_value(mod->gctx, node_ident(node->subs[n])));
-    fprintf(out, ":\n");
+    const struct node *p = node->subs[n];
+    if (node_ident(p) != ID_OTHERWISE) {
+      fprintf(out, "case ");
+      print_typ(out, mod, p->typ);
+      const struct node *id = p;
+      if (p->which == BIN) {
+        id = node->subs[n]->subs[1];
+      }
+      fprintf(out, "_%s_label__", idents_value(mod->gctx, node_ident(id)));
+      fprintf(out, ":\n");
+    }
+
+    if (n == node->subs_count - 2) {
+      fprintf(out, "default:\n");
+    }
+
     print_block(out, mod, node->subs[n + 1]);
     fprintf(out, "\n");
   }
@@ -605,13 +617,18 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
   assert(node->which == DEFNAME);
   if (fwd == FWDTYPES) {
     if ((node->flags & NODE_IS_TYPE)) {
-      const ident id = node_ident(node->as.DEFNAME.pattern);
-      if (id != ID_THIS) {
-        fprintf(out, "typedef ");
-        print_typ(out, mod, node->typ);
-        fprintf(out, " ");
-        print_expr(out, mod, node->as.DEFNAME.pattern, T__STATEMENT);
-        fprintf(out, ";\n");
+      struct node *pp = node->scope->parent->parent->node;
+      if (pp->which == DEFTYPE) {
+        const ident id = node_ident(node->as.DEFNAME.pattern);
+        if (id != ID_THIS) {
+          fprintf(out, "typedef ");
+          print_typ(out, mod, node->typ);
+          fprintf(out, " ");
+          print_typ(out, mod, pp->typ);
+          fprintf(out, "_");
+          print_expr(out, mod, node->as.DEFNAME.pattern, T__STATEMENT);
+          fprintf(out, ";\n");
+        }
       }
     }
   } else if (!(node->flags & NODE_IS_TYPE)) {
