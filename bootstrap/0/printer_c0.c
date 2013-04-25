@@ -485,14 +485,17 @@ static void print_if(FILE *out, const struct module *mod, const struct node *nod
 static void print_match(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "switch (");
   print_expr(out, mod, node->subs[0], T__STATEMENT);
-  fprintf(out, ") {");
+  fprintf(out, ") {\n");
 
   for (size_t n = 1; n < node->subs_count; n += 2) {
     fprintf(out, "case ");
-    print_expr(out, mod, node->subs[n], T__STATEMENT);
-    fprintf(out, "_label__:");
+    print_typ(out, mod, node->subs[n]->typ);
+    fprintf(out, "_%s_label__", idents_value(mod->gctx, node_ident(node->subs[n])));
+    fprintf(out, ":\n");
     print_block(out, mod, node->subs[n + 1]);
+    fprintf(out, "\n");
   }
+  fprintf(out, "}");
 }
 
 static void print_try(FILE *out, const struct module *mod, const struct node *node) {
@@ -1167,21 +1170,28 @@ static void print_delegate(FILE *out, const struct module *mod, const struct nod
   }
 }
 
-static void print_deftype_statement(FILE *out, bool header, const struct module *mod, const struct node *node,
+static void print_deftype_statement(FILE *out, bool header, enum forward fwd,
+                                    const struct module *mod, const struct node *node,
                                     bool do_static) {
   if (do_static) {
     switch (node->which) {
     case LET:
-      print_let(out, header, DEFTYPES, mod, node);
+      print_let(out, header, fwd, mod, node);
       break;
     case DELEGATE:
-      print_delegate(out, mod, node);
+      if (fwd == DEFTYPES) {
+        print_delegate(out, mod, node);
+      }
       break;
     case INVARIANT:
-      print_invariant(out, mod, node);
+      if (fwd == DEFTYPES) {
+        print_invariant(out, mod, node);
+      }
       break;
     case EXAMPLE:
-      print_example(out, header, mod, node);
+      if (fwd == DEFTYPES) {
+        print_example(out, header, mod, node);
+      }
       break;
     default:
       break;
@@ -1189,7 +1199,9 @@ static void print_deftype_statement(FILE *out, bool header, const struct module 
   } else {
     switch (node->which) {
     case DEFFIELD:
-      print_deffield(out, mod, node);
+      if (fwd == DEFTYPES) {
+        print_deffield(out, mod, node);
+      }
       break;
     default:
       break;
@@ -1197,7 +1209,7 @@ static void print_deftype_statement(FILE *out, bool header, const struct module 
   }
 }
 
-static void print_deftype_block(FILE *out, bool header, const struct module *mod,
+static void print_deftype_block(FILE *out, bool header, enum forward fwd, const struct module *mod,
                                 const struct node *node, size_t first, bool do_static) {
   if (!do_static) {
     fprintf(out, " {\n");
@@ -1206,7 +1218,7 @@ static void print_deftype_block(FILE *out, bool header, const struct module *mod
     ssize_t prev_pos = ftell(out);
 
     const struct node *statement = node->subs[n];
-    print_deftype_statement(out, header, mod, statement, do_static);
+    print_deftype_statement(out, header, fwd, mod, statement, do_static);
 
     // Hack to prevent isolated ';' when statement does not print anything.
     if (ftell(out) != prev_pos) {
@@ -1386,35 +1398,48 @@ static void print_deftype_sum_members(FILE *out, bool header, enum forward fwd, 
   }
 }
 
-static void print_deftype_enum(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  fprintf(out, "typedef ");
-  print_typ(out, mod, node->as.DEFTYPE.choice_typ);
-  fprintf(out, " ");
-  print_deftype_name(out, mod, node);
-  fprintf(out, ";\n");
+static void print_deftype_enum(FILE *out, bool header, enum forward fwd,
+                               const struct module *mod, const struct node *node) {
+  if (fwd == FWDTYPES) {
+    fprintf(out, "typedef ");
+    print_typ(out, mod, node->as.DEFTYPE.choice_typ);
+    fprintf(out, " ");
+    print_deftype_name(out, mod, node);
+    fprintf(out, ";\n");
 
-  print_deftype_block(out, header, mod, node, 2, TRUE);
-
-  if (!prototype_only(header, node)) {
-    for (size_t n = 0; n < node->subs_count; ++n) {
-      struct node *s = node->subs[n];
-      if (s->which != DEFCHOICE) {
-        continue;
-      }
-
-      fprintf(out, "static const ");
-      print_deftype_name(out, mod, node);
-      fprintf(out, " ");
-      print_deftype_name(out, mod, node);
-      fprintf(out, "_");
-      print_deffield_name(out, mod, s);
-      fprintf(out, " = ");
-      print_expr(out, mod, s->subs[IDX_CH_VALUE], T__NOT_STATEMENT);
-      fprintf(out, ";\n");
-    }
+    print_deftype_typedefs(out, mod, node);
   }
 
-  print_deftype_typedefs(out, mod, node);
+  print_deftype_block(out, header, fwd, mod, node, 2, TRUE);
+
+  if (fwd == DEFTYPES) {
+    if (!prototype_only(header, node)) {
+      for (size_t n = 0; n < node->subs_count; ++n) {
+        struct node *s = node->subs[n];
+        if (s->which != DEFCHOICE) {
+          continue;
+        }
+
+        fprintf(out, "#define ");
+        print_deftype_name(out, mod, node);
+        fprintf(out, "_");
+        print_deffield_name(out, mod, s);
+        fprintf(out, "_label__ (");
+        print_expr(out, mod, s->subs[IDX_CH_VALUE], T__NOT_STATEMENT);
+        fprintf(out, ")\n");
+
+        fprintf(out, "static const ");
+        print_deftype_name(out, mod, node);
+        fprintf(out, " ");
+        print_deftype_name(out, mod, node);
+        fprintf(out, "_");
+        print_deffield_name(out, mod, s);
+        fprintf(out, " = ");
+        print_expr(out, mod, s->subs[IDX_CH_VALUE], T__NOT_STATEMENT);
+        fprintf(out, ";\n");
+      }
+    }
+  }
 }
 
 static bool is_pseudo_tbi(const struct module *mod, const struct typ *t) {
@@ -1455,9 +1480,7 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
   }
 
   if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-    if (fwd == FWDTYPES) {
-      print_deftype_enum(out, header, mod, node);
-    }
+    print_deftype_enum(out, header, fwd, mod, node);
     return;
   }
 
@@ -1478,6 +1501,8 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
       print_deftype_sum_choices_fwdtypes(out, header, mod, node);
     }
 
+    print_deftype_block(out, header, fwd, mod, node, 2, TRUE);
+
   } else if (fwd == FWDFUNS || fwd == DEFFUNS) {
     if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
       print_deftype_sum_members(out, header, fwd, mod, node);
@@ -1488,13 +1513,13 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
       print_deftype_sum_choices_deftypes(out, header, mod, node);
     }
 
-    print_deftype_block(out, header, mod, node, 2, TRUE);
+    print_deftype_block(out, header, fwd, mod, node, 2, TRUE);
 
     if (!prototype_only(header, node)) {
       fprintf(out, "struct ");
       print_deftype_name(out, mod, node);
 
-      print_deftype_block(out, header, mod, node, 2, FALSE);
+      print_deftype_block(out, header, fwd, mod, node, 2, FALSE);
 
       fprintf(out, ";\n");
     }

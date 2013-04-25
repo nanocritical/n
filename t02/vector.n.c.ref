@@ -2,7 +2,6 @@
 #include "lib/nlang/module.n.h.out"
 #include "lib/nlang/vectors.n.h.out"
 #include "t02/vector.n.h.out"
-typedef _Ngen_nlang_vectors_vector__nlang_builtins_i32_genN_ v32;
 
 
 
