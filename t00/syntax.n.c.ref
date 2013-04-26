@@ -23,9 +23,6 @@ typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test_genN_ _Ngen_nlang_
 
 
 typedef nlang_builtins_u32 t00_syntax_enu;
-static const t00_syntax_enu t00_syntax_enu_V1 = (nlang_builtins_u32)0;
-static const t00_syntax_enu t00_syntax_enu_V2 = (nlang_builtins_u32)0 + (nlang_builtins_u32)1;
-static const t00_syntax_enu t00_syntax_enu_V3 = (nlang_builtins_u32)0 + (nlang_builtins_u32)1 + (nlang_builtins_u32)1;
 typedef const t00_syntax_enu* _Ngen_nlang_builtins_i_ref__t00_syntax_enu_genN_;
 typedef _Ngen_nlang_builtins_i_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_i_nullable_ref__t00_syntax_enu_genN_;
 typedef t00_syntax_enu* _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_enu_genN_;
@@ -50,6 +47,12 @@ nlang_builtins_i32 t;
 
 
 
+#define t00_syntax_enu_V1_label__ ((nlang_builtins_u32)0)
+static const t00_syntax_enu t00_syntax_enu_V1 = (nlang_builtins_u32)0;
+#define t00_syntax_enu_V2_label__ ((nlang_builtins_u32)0 + (nlang_builtins_u32)1)
+static const t00_syntax_enu t00_syntax_enu_V2 = (nlang_builtins_u32)0 + (nlang_builtins_u32)1;
+#define t00_syntax_enu_V3_label__ ((nlang_builtins_u32)0 + (nlang_builtins_u32)1 + (nlang_builtins_u32)1)
+static const t00_syntax_enu t00_syntax_enu_V3 = (nlang_builtins_u32)0 + (nlang_builtins_u32)1 + (nlang_builtins_u32)1;
 
 
 

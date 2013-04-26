@@ -1,1 +1,1 @@
-ncc0: firstpass0.c:987: step_type_destruct_mark: Assertion `0' failed.
+ncc0: firstpass0.c:994: step_type_destruct_mark: Assertion `0' failed.

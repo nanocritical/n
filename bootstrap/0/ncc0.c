@@ -307,7 +307,7 @@ static error load_import(struct node *node, void *user, bool *stop) {
   struct module *mod = node_module_owner(node);
 
   struct node *existing = NULL;
-  error e = scope_lookup_module(&existing, mod, node->subs[0]);
+  error e = scope_lookup_module(&existing, mod, node->subs[0], TRUE);
   if (!e) {
     return 0;
   }
@@ -361,7 +361,7 @@ static error step_gather_dependencies_in_module(struct module *mod, struct node 
   }
 
   struct node *nmod = NULL;
-  error e = scope_lookup_module(&nmod, node_module_owner(node), node->subs[0]);
+  error e = scope_lookup_module(&nmod, node_module_owner(node), node->subs[0], TRUE);
   if (e == EINVAL) {
     // Not importing a module, ignore.
     return 0;

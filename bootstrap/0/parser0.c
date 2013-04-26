@@ -940,8 +940,8 @@ error scope_lookup(struct node **result, const struct module *mod,
 }
 
 error scope_lookup_module(struct node **result, const struct module *mod,
-                          const struct node *id) {
-  error e;
+                          const struct node *id, bool failure_ok) {
+  error e = 0;
   struct node *parent = NULL, *r = NULL;
   struct scope *scope = mod->gctx->modules_root.scope;
   struct scope *within = scope;
@@ -953,8 +953,6 @@ error scope_lookup_module(struct node **result, const struct module *mod,
   case BIN:
     if (id->as.BIN.operator != TDOT) {
       GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed module path name");
-except:
-      return e;
     }
     e = do_scope_lookup(&parent, mod, scope, id->subs[0], within, TRUE);
     if (e) {
@@ -971,12 +969,27 @@ except:
   }
 
   if (e || r->which != MODULE) {
-    return EINVAL;
+    goto err;
   }
 
   *result = r;
-
   return 0;
+
+err:
+  if (failure_ok) {
+    return EINVAL;
+  } else {
+    if (r != NULL && r->which != MODULE) {
+      GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, id), id->codeloc,
+                        "not the name of a module");
+    } else {
+      GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, id), id->codeloc,
+                        "module not found");
+    }
+  }
+
+except:
+  return EINVAL;
 }
 
 static error do_scope_lookup_abspath(struct node **result, const struct module *mod,

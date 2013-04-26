@@ -579,13 +579,19 @@ static error lexical_import_from_path(struct scope *scope, struct module *mod,
   error e;
   for (size_t n = 1; n < import->subs_count; ++n) {
     struct node *full_import_path = import->subs[n]->subs[0];
-    struct node *target = NULL;
-    e = scope_lookup(&target, mod, mod->gctx->modules_root.scope, full_import_path);
-    EXCEPT(e);
-
     assert(full_import_path->which == BIN);
     assert(full_import_path->subs[1]->which == IDENT);
-    e = scope_define_ident(mod, scope, full_import_path->subs[1]->as.IDENT.name, import->subs[n]);
+    ident id = node_ident(full_import_path->subs[1]);
+
+    // We don't use target, but we check it exists.
+    struct node *def = NULL;
+    struct node *target = NULL;
+    e = scope_lookup_module(&def, mod, full_import_path->subs[0], FALSE);
+    EXCEPT(e);
+    e = scope_lookup_ident_immediate(&target, mod, def->scope, id, FALSE);
+    EXCEPT(e);
+
+    e = scope_define_ident(mod, scope, id, import->subs[n]);
     EXCEPT(e);
   }
 
@@ -606,7 +612,7 @@ static error lexical_import_all_from_path(struct scope *scope, struct module *mo
                                           struct node *import) {
   error e;
   struct node *target = NULL;
-  e = scope_lookup(&target, mod, mod->gctx->modules_root.scope, import->subs[0]);
+  e = scope_lookup_module(&target, mod, import->subs[0], FALSE);
   EXCEPT(e);
 
   if (target->which != MODULE) {
@@ -1143,7 +1149,7 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
   }
 
   assert(node->subs[0]->which == IDENT);
-  ident id = node->subs[0]->as.IDENT.name;
+  ident id = node_ident(node->subs[0]);
 
   if (node->subs[IDX_GENARGS]->subs_count > 0
       && node_toplevel(node)->generic_definition != NULL) {
@@ -2135,9 +2141,26 @@ static error type_inference_try(struct module *mod, struct node *node) {
 }
 
 static error type_destruct_import_path(struct module *mod, struct node *node) {
+  struct node *target_mod = NULL;
   struct node *def = NULL;
-  error e = scope_lookup(&def, mod, mod->gctx->modules_root.scope, node);
-  EXCEPT(e);
+  error e = 0;
+
+  if (node->which == BIN) {
+    struct node *parent = node->scope->parent->node;
+    struct node *pparent = parent->scope->parent->node;
+
+    if (pparent->which == IMPORT) {
+      e = scope_lookup_module(&target_mod, mod, node->subs[0], FALSE);
+      EXCEPT(e);
+      e = scope_lookup_ident_immediate(&def, mod, target_mod->scope, node_ident(node->subs[1]), FALSE);
+      EXCEPT(e);
+    }
+  }
+
+  if (def == NULL) {
+    e = scope_lookup_module(&def, mod, node, FALSE);
+    EXCEPT(e);
+  }
 
   node->typ = def->typ;
   node->flags = def->flags;
@@ -2472,7 +2495,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     }
     goto ok;
   case IMPORT:
-    e = scope_lookup(&def, mod, mod->gctx->modules_root.scope, node->subs[0]);
+    e = scope_lookup_module(&def, mod, node->subs[0], FALSE);
     EXCEPT(e);
     node->typ = def->typ;
     node->flags = def->flags;

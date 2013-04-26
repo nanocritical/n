@@ -619,7 +619,7 @@ error scope_lookup_ident_immediate(struct node **result, const struct module *mo
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, const struct node *id);
 error scope_lookup_module(struct node **result, const struct module *mod,
-                          const struct node *id);
+                          const struct node *id, bool failure_ok);
 error scope_lookup_abspath(struct node **result, const struct module *mod,
                            const struct node *for_error, const char *path);
 char *scope_name(const struct module *mod, const struct scope *scope);
