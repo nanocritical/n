@@ -718,9 +718,10 @@ error scope_define(const struct module *mod, struct scope *scope, struct node *i
   return 0;
 }
 
-static error do_scope_lookup_ident_immediate(struct node **result, const struct module *mod,
+static error do_scope_lookup_ident_immediate(struct node **result, const struct node *for_error,
+                                             const struct module *mod,
                                              const struct scope *scope, ident id,
-                                             const struct scope *within, bool failure_ok) {
+                                             bool failure_ok) {
   const bool use_isalist = scope->node->which == DEFINTF && scope->node->typ != NULL;
 
   assert(id != ID__NONE);
@@ -732,8 +733,8 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
 
   if (scope->node->which == MODULE && scope->node->subs_count >= 1) {
     struct node *body = scope->node->subs[0];
-    error e = do_scope_lookup_ident_immediate(result, mod, body->scope, id,
-                                              within, failure_ok);
+    error e = do_scope_lookup_ident_immediate(result, for_error, mod, body->scope,
+                                              id, failure_ok);
     if (!e) {
       return 0;
     } else if (failure_ok) {
@@ -751,8 +752,8 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
     const struct node *parent = scope->node;
     for (size_t n = 0; n < parent->typ->isalist_count; ++n) {
       const struct typ *t = parent->typ->isalist[n];
-      error e = do_scope_lookup_ident_immediate(result, mod, t->definition->scope, id,
-                                                within, TRUE);
+      error e = do_scope_lookup_ident_immediate(result, for_error, mod,
+                                                t->definition->scope, id, TRUE);
       if (!e) {
         if ((*result)->which == DEFFUN || (*result)->which == DEFMETHOD) {
           return 0;
@@ -766,12 +767,12 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
   } else {
     error e = 0;
     char *scname = scope_name(mod, scope);
-    char *wscname = scope_name(mod, within);
-    GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, within->node), scope->node->codeloc,
-                      "in scope %s: from scope %s: unknown identifier '%s'",
-                      scname, wscname, idents_value(mod->gctx, id));
+    char *escname = scope_name(mod, for_error->scope);
+    GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, for_error), for_error->codeloc,
+                      "from scope %s: in scope %s: unknown identifier '%s'",
+                      escname, scname, idents_value(mod->gctx, id));
 except:
-    free(wscname);
+    free(escname);
     free(scname);
     return e;
   }
@@ -779,21 +780,23 @@ except:
   return 0;
 }
 
-error scope_lookup_ident_immediate(struct node **result, const struct module *mod,
+error scope_lookup_ident_immediate(struct node **result, const struct node *for_error,
+                                   const struct module *mod,
                                    const struct scope *scope, ident id,
                                    bool failure_ok) {
-  return do_scope_lookup_ident_immediate(result, mod, scope, id, scope, failure_ok);
+  return do_scope_lookup_ident_immediate(result, for_error, mod, scope, id, failure_ok);
 }
 
-static error do_scope_lookup_ident_wontimport(struct node **result, const struct module *mod,
+static error do_scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,
+                                              const struct module *mod,
                                               const struct scope *scope, ident id,
-                                              const struct scope *within, bool failure_ok) {
+                                              bool failure_ok) {
   char *scname = NULL;
-  char *wscname = NULL;
+  char *escname = NULL;
   error e;
 
 skip:
-  e = do_scope_lookup_ident_immediate(result, mod, scope, id, within, TRUE);
+  e = do_scope_lookup_ident_immediate(result, for_error, mod, scope, id, TRUE);
   if (!e) {
     if (scope->node->which == DEFTYPE
         && ((*result)->which == DEFFUN || (*result)->which == DEFMETHOD)) {
@@ -813,24 +816,26 @@ skip:
       return e;
     } else {
       scname = scope_name(mod, scope);
-      wscname = scope_name(mod, within);
-      GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, within->node), scope->node->codeloc,
-                        "in scope %s: from scope %s: unknown identifier '%s'",
-                        scname, wscname, idents_value(mod->gctx, id));
+      escname = scope_name(mod, for_error->scope);
+      GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, for_error), for_error->codeloc,
+                        "from scope %s: in scope %s: unknown identifier '%s'",
+                        escname, scname, idents_value(mod->gctx, id));
     }
   }
 
-  return do_scope_lookup_ident_wontimport(result, mod, scope->parent, id, within, failure_ok);
+  return do_scope_lookup_ident_wontimport(result, for_error, mod, scope->parent,
+                                          id, failure_ok);
 
 except:
-  free(wscname);
+  free(escname);
   free(scname);
   return e;
 }
 
-error scope_lookup_ident_wontimport(struct node **result, const struct module *mod,
+error scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,
+                                    const struct module *mod,
                                     const struct scope *scope, ident id, bool failure_ok) {
-  return do_scope_lookup_ident_wontimport(result, mod, scope, id, scope, failure_ok);
+  return do_scope_lookup_ident_wontimport(result, for_error, mod, scope, id, failure_ok);
 }
 
 #define EXCEPT_UNLESS(e, failure_ok) do { \
@@ -843,37 +848,38 @@ error scope_lookup_ident_wontimport(struct node **result, const struct module *m
   } \
 } while (0)
 
-static error do_scope_lookup(struct node **result, const struct module *mod,
+static error do_scope_lookup(struct node **result, const struct node *for_error,
+                             const struct module *mod,
                              const struct scope *scope, const struct node *id,
-                             const struct scope *within, bool failure_ok) {
+                             bool failure_ok) {
   error e;
   char *scname = NULL;
-  char *wscname = NULL;
+  char *escname = NULL;
   struct node *parent = NULL, *r = NULL;
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident_wontimport(&r, mod, scope, id->as.IDENT.name, within, failure_ok);
+    e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scope, id->as.IDENT.name, failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
 
     if (r->which == IMPORT) {
-      e = do_scope_lookup(&r, mod, mod->gctx->modules_root.scope,
-                          r->subs[0], within, failure_ok);
+      e = do_scope_lookup(&r, for_error, mod, mod->gctx->modules_root.scope,
+                          r->subs[0], failure_ok);
       EXCEPT_UNLESS(e, failure_ok);
     }
 
     break;
   case BIN:
     if (id->as.BIN.operator != TDOT
-           && id->as.BIN.operator != TBANG
-           && id->as.BIN.operator != TSHARP) {
+        && id->as.BIN.operator != TBANG
+        && id->as.BIN.operator != TSHARP) {
       GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
     }
     if (id->subs[1]->which != IDENT) {
       GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
     }
 
-    e = do_scope_lookup(&parent, mod, scope, id->subs[0], within, failure_ok);
+    e = do_scope_lookup(&parent, for_error, mod, scope, id->subs[0], failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
 
     bool fully_resolved = FALSE;
@@ -887,23 +893,23 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
         // would shadow a 'path' declaration in the module os, but that's
         // OK). If that fails, we will resolve parent to find the module
         // it's importing, and use the usual lookup path.
-        e = do_scope_lookup_ident_immediate(&parent, mod, parent->scope,
-                                            id->subs[1]->as.IDENT.name, within, TRUE);
+        e = do_scope_lookup_ident_immediate(&parent, for_error, mod, parent->scope,
+                                            id->subs[1]->as.IDENT.name, TRUE);
         if (!e) {
           fully_resolved = TRUE;
         }
 
         assert(parent->which == IMPORT);
         const struct node *path = parent->subs[0];
-        e = do_scope_lookup(&parent, mod, mod->gctx->modules_root.scope,
-                            path, within, failure_ok);
+        e = do_scope_lookup(&parent, for_error, mod, mod->gctx->modules_root.scope,
+                            path, failure_ok);
         EXCEPT_UNLESS(e, failure_ok);
       }
     }
 
     if (!fully_resolved) {
-      e = do_scope_lookup_ident_immediate(&r, mod, parent->scope,
-                                          id->subs[1]->as.IDENT.name, within, failure_ok);
+      e = do_scope_lookup_ident_immediate(&r, for_error, mod, parent->scope,
+                                          id->subs[1]->as.IDENT.name, failure_ok);
       EXCEPT_UNLESS(e, failure_ok);
     }
 
@@ -911,10 +917,10 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
         && node_module_owner_const(r) != node_module_owner_const(id)
         && !r->as.IMPORT.toplevel.is_export) {
       scname = scope_name(mod, scope);
-      wscname = scope_name(mod, within);
-      GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, scope->node), scope->node->codeloc,
-                        "in scope %s: imported from scope %s: not exported",
-                        scname, wscname);
+      escname = scope_name(mod, for_error->scope);
+      GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, for_error), for_error->codeloc,
+                        "from scope %s: cannot import '%s' because it is not exported",
+                        escname, scname);
     }
     break;
   case DIRECTDEF:
@@ -929,14 +935,14 @@ static error do_scope_lookup(struct node **result, const struct module *mod,
   return 0;
 
 except:
-  free(wscname);
+  free(escname);
   free(scname);
   return e;
 }
 
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, const struct node *id) {
-  return do_scope_lookup(result, mod, scope, id, scope, FALSE);
+  return do_scope_lookup(result, id, mod, scope, id, FALSE);
 }
 
 error scope_lookup_module(struct node **result, const struct module *mod,
@@ -944,21 +950,21 @@ error scope_lookup_module(struct node **result, const struct module *mod,
   error e = 0;
   struct node *parent = NULL, *r = NULL;
   struct scope *scope = mod->gctx->modules_root.scope;
-  struct scope *within = scope;
+  const struct node *for_error = id;
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident_wontimport(&r, mod, scope, id->as.IDENT.name, within, TRUE);
+    e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scope, id->as.IDENT.name, TRUE);
     break;
   case BIN:
     if (id->as.BIN.operator != TDOT) {
       GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed module path name");
     }
-    e = do_scope_lookup(&parent, mod, scope, id->subs[0], within, TRUE);
+    e = do_scope_lookup(&parent, for_error, mod, scope, id->subs[0], TRUE);
     if (e) {
       break;
     }
-    e = do_scope_lookup(&r, mod, parent->scope, id->subs[1], within, TRUE);
+    e = do_scope_lookup(&r, for_error, mod, parent->scope, id->subs[1], TRUE);
     if (e) {
       break;
     }
@@ -992,9 +998,9 @@ except:
   return EINVAL;
 }
 
-static error do_scope_lookup_abspath(struct node **result, const struct module *mod,
-                                     const struct node *for_error,
-                                     const char *path, ssize_t len, struct scope *within) {
+static error do_scope_lookup_abspath(struct node **result, const struct node *for_error,
+                                     const struct module *mod,
+                                     const char *path, ssize_t len) {
   ssize_t i;
   ident id = ID__NONE;
   for (i = len-1; i >= 0; --i) {
@@ -1012,33 +1018,31 @@ static error do_scope_lookup_abspath(struct node **result, const struct module *
 
   error e;
   if (i == 0) {
-    e = do_scope_lookup_ident_immediate(result, mod, mod->gctx->modules_root.scope, id,
-                                        within, TRUE);
+    e = do_scope_lookup_ident_immediate(result, for_error, mod,
+                                        mod->gctx->modules_root.scope, id, TRUE);
   } else {
     struct node *parent = NULL;
-    e = do_scope_lookup_abspath(&parent, mod, for_error, path, i, within);
+    e = do_scope_lookup_abspath(&parent, for_error, mod, path, i);
     EXCEPT(e);
-    e = do_scope_lookup_ident_immediate(result, mod, parent->scope, id,
-                                        within, TRUE);
+    e = do_scope_lookup_ident_immediate(result, for_error, mod, parent->scope, id, TRUE);
   }
 
   if (e) {
-    char *wscname = scope_name(mod, within);
-    GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, for_error), within->node->codeloc,
-                      "in global scope, from scope %s: unknown identifier '%s'",
-                      wscname, path);
+    char *escname = scope_name(mod, for_error->scope);
+    GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, for_error), for_error->codeloc,
+                      "from scope %s: in global scope, unknown identifier '%s'",
+                      escname, path);
 except:
-    free(wscname);
+    free(escname);
     return e;
   }
 
   return 0;
 }
 
-error scope_lookup_abspath(struct node **result, const struct module *mod,
-                           const struct node *for_error, const char *path) {
-  return do_scope_lookup_abspath(result, mod, for_error, path, strlen(path),
-                                 mod->gctx->modules_root.scope);
+error scope_lookup_abspath(struct node **result, const struct node *for_error,
+                           const struct module *mod, const char *path) {
+  return do_scope_lookup_abspath(result, for_error, mod, path, strlen(path));
 }
 
 static error parse_modpath(struct module *mod, const char *raw_fn) {
@@ -2849,7 +2853,7 @@ static error register_module(struct node **parent,
   for (size_t p = 0; p <= last; ++p) {
     ident i = mod->path[p];
     struct node *m = NULL;
-    error e = scope_lookup_ident_wontimport(&m, mod, root->scope, i, TRUE);
+    error e = scope_lookup_ident_wontimport(&m, root, mod, root->scope, i, TRUE);
     if (e == EINVAL) {
       m = node_new_subnode(mod, root);
       m->which = MODULE;
@@ -2864,7 +2868,7 @@ static error register_module(struct node **parent,
       EXCEPT(e);
     } else if (e) {
       // Repeat bound-to-fail lookup to get the error message right.
-      e = scope_lookup_ident_wontimport(&m, mod, root->scope, i, FALSE);
+      e = scope_lookup_ident_wontimport(&m, root, mod, root->scope, i, FALSE);
       EXCEPT(e);
     } else {
       if (p == last) {

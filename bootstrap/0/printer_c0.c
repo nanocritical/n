@@ -844,7 +844,8 @@ static const struct node *get_defchoice_member(const struct module *mod,
   assert(ch->which == DEFCHOICE);
   struct node *m = NULL;
   error e = scope_lookup_ident_immediate(
-    &m, mod, ch->subs[IDX_CH_PAYLOAD]->typ->definition->scope, member_id, FALSE);
+    &m, ch, mod,
+    ch->subs[IDX_CH_PAYLOAD]->typ->definition->scope, member_id, FALSE);
   assert(!e);
   return m;
 }

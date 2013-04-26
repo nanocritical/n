@@ -1,1 +1,1 @@
-t00/hello.n:1:1: parse: in scope t00.hello: from scope t00.hello.main.i32: unknown identifier 'i32'
+t00/hello.n:4:6: parse: from scope t00.hello.main.say: in scope t00.hello: unknown identifier 'say'

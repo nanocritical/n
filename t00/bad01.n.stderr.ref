@@ -1,1 +1,1 @@
-t00/bad01.n:1:1: parse: in scope t00.bad01: from scope t00.bad01.main.x: unknown identifier 'x'
+t00/bad01.n:4:7: parse: from scope t00.bad01.main.x: in scope t00.bad01: unknown identifier 'x'

@@ -1,3 +1,5 @@
+from nlang import *
+
 export fun main = i32
   say @'Hello, World!'
   return 0

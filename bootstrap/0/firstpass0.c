@@ -568,14 +568,14 @@ static error lexical_import_path(struct scope **scope, struct module *mod,
   }
 
   struct node *n = NULL;
-  e = scope_lookup_ident_wontimport(&n, mod, *scope, i->as.IDENT.name, TRUE);
+  e = scope_lookup_ident_wontimport(&n, i, mod, *scope, i->as.IDENT.name, TRUE);
   if (e == EINVAL) {
     n = import_path;
     e = scope_define_ident(mod, *scope, i->as.IDENT.name, n);
     EXCEPT(e);
   } else if (e) {
     // Repeat bound-to-fail lookup to get the error message right.
-    e = scope_lookup_ident_wontimport(&n, mod, *scope, i->as.IDENT.name, FALSE);
+    e = scope_lookup_ident_wontimport(&n, i, mod, *scope, i->as.IDENT.name, FALSE);
     EXCEPT(e);
   }
 
@@ -598,7 +598,8 @@ static error lexical_import_from_path(struct scope *scope, struct module *mod,
     struct node *target = NULL;
     e = scope_lookup_module(&def, mod, full_import_path->subs[0], FALSE);
     EXCEPT(e);
-    e = scope_lookup_ident_immediate(&target, mod, def->scope, id, FALSE);
+    e = scope_lookup_ident_immediate(&target, full_import_path->subs[1],
+                                     mod, def->scope, id, FALSE);
     EXCEPT(e);
 
     e = scope_define_ident(mod, scope, id, import->subs[n]);
@@ -612,7 +613,8 @@ static error lexical_import(struct scope *scope, struct module *mod, struct node
 
 static bool is_forward_declaration(struct module *mod, struct node *node) {
   struct node *d = NULL;
-  error e = scope_lookup_ident_wontimport(&d, mod, mod->body->scope, node_ident(node), FALSE);
+  error e = scope_lookup_ident_wontimport(&d, node, mod, mod->body->scope,
+                                          node_ident(node), FALSE);
   assert(!e);
 
   return d != node;
@@ -769,7 +771,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
         container = node->scope->parent->node;
         sc = container->scope;
       } else {
-        e = scope_lookup_ident_wontimport(&container, mod, node->scope->parent,
+        e = scope_lookup_ident_wontimport(&container, node, mod, node->scope->parent,
                                           toplevel->scope_name, FALSE);
         EXCEPT(e);
         sc = container->scope;
@@ -908,7 +910,7 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node, void 
       break;
     }
     struct node *def = NULL;
-    error e = scope_lookup_ident_immediate(&def, mod, node->scope,
+    error e = scope_lookup_ident_immediate(&def, node, mod, node->scope,
                                            ID_WILDCARD_REF_ARG, TRUE);
     if (e) {
       break;
@@ -1567,13 +1569,14 @@ static error bin_accessor_maybe_ref(struct scope **parent_scope,
   return 0;
 }
 
-static error bin_accessor_maybe_defchoice(struct scope **parent_scope,
+static error bin_accessor_maybe_defchoice(struct scope **parent_scope, struct node *for_error,
                                           struct module *mod, struct node *parent) {
   if (parent->flags & NODE_IS_DEFCHOICE) {
     assert(parent->which == BIN);
 
     struct node *defchoice = NULL;
-    error e = scope_lookup_ident_immediate(&defchoice, mod, parent->typ->definition->scope,
+    error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
+                                           parent->typ->definition->scope,
                                            node_ident(parent->subs[1]), FALSE);
     EXCEPT(e);
     assert(defchoice->which == DEFCHOICE);
@@ -1618,11 +1621,12 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   struct scope *parent_scope = parent->typ->definition->scope;
   e = bin_accessor_maybe_ref(&parent_scope, mod, parent);
   EXCEPT(e);
-  e = bin_accessor_maybe_defchoice(&parent_scope, mod, parent);
+  e = bin_accessor_maybe_defchoice(&parent_scope, node, mod, parent);
   EXCEPT(e);
 
   struct node *field = NULL;
-  e = scope_lookup_ident_immediate(&field, mod, parent_scope, node_ident(node->subs[1]), FALSE);
+  e = scope_lookup_ident_immediate(&field, node->subs[1], mod, parent_scope,
+                                   node_ident(node->subs[1]), FALSE);
   EXCEPT(e);
 
   if (field->typ->which == TYPE_FUNCTION
@@ -1710,7 +1714,7 @@ static error type_inference_init(struct module *mod, struct node *node) {
   for (size_t n = 1; n < node->subs_count; n += 2) {
     struct node *field_name = node->subs[n];
     struct node *field = NULL;
-    error e = scope_lookup_ident_immediate(&field, mod, def->scope,
+    error e = scope_lookup_ident_immediate(&field, field_name, mod, def->scope,
                                            node_ident(field_name), FALSE);
     EXCEPT(e);
     e = type_destruct(mod, node->subs[n+1], field->typ);
@@ -1906,7 +1910,8 @@ static error genarg_destruct(struct module *mod, const struct node *gendef,
     EXCEPT(e);
     if (def->which == DEFGENARG) {
       // Look up again to get it from the instantiating genargs this time.
-      e = scope_lookup_ident_immediate(&def, mod, genargs->scope, node_ident(ga), FALSE);
+      e = scope_lookup_ident_immediate(&def, ga, mod, genargs->scope,
+                                       node_ident(ga), FALSE);
       EXCEPT(e);
       assert(def->which == DEFGENARG || def->which == SETGENARG);
       e = genarg_destruct(mod, gendef, genargs, def, TRUE, for_error, constraint);
@@ -2200,7 +2205,8 @@ static error type_destruct_import_path(struct module *mod, struct node *node) {
     if (pparent->which == IMPORT) {
       e = scope_lookup_module(&target_mod, mod, node->subs[0], FALSE);
       EXCEPT(e);
-      e = scope_lookup_ident_immediate(&def, mod, target_mod->scope, node_ident(node->subs[1]), FALSE);
+      e = scope_lookup_ident_immediate(&def, node->subs[1], mod,
+                                       target_mod->scope, node_ident(node->subs[1]), FALSE);
       EXCEPT(e);
     }
   }
@@ -2258,7 +2264,7 @@ static error type_destruct_match_pattern(struct module *mod, struct node *match,
       && enum_or_sum
       && p->which == IDENT) {
     struct node *field = NULL;
-    e = scope_lookup_ident_immediate(&field, mod,
+    e = scope_lookup_ident_immediate(&field, p, mod,
                                      expr->typ->definition->scope,
                                      node_ident(p),
                                      TRUE);
@@ -2319,7 +2325,8 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     // In this case, y (for instance), will not have NODE_IS_TYPE set properly.
     // NODE_IS_TYPE needs to be set recursively when descending via
     // type_destruct.
-    e = scope_lookup_ident_wontimport(&def, mod, node->scope, node_ident(node), FALSE);
+    e = scope_lookup_ident_wontimport(&def, node, mod, node->scope,
+                                      node_ident(node), FALSE);
     EXCEPT(e);
     if (def->which == DEFNAME) {
       e = type_destruct(mod, def, constraint);
@@ -2893,7 +2900,7 @@ static error step_toplevel_secondpass(struct module *mod, struct node *node, voi
 static struct node *get_member(struct module *mod, struct node *node, ident id) {
   assert(node->which == DEFTYPE || node->which == DEFCHOICE);
   struct node *m = NULL;
-  (void)scope_lookup_ident_immediate(&m, mod, node->scope, id, TRUE);
+  (void)scope_lookup_ident_immediate(&m, node, mod, node->scope, id, TRUE);
   return m;
 }
 
@@ -2949,7 +2956,7 @@ static void define_builtin(struct module *mod, struct node *deft,
   }
 
   struct node *proto = NULL;
-  error e = scope_lookup_abspath(&proto, mod, deft, builtingen_abspath[bg]);
+  error e = scope_lookup_abspath(&proto, deft, mod, builtingen_abspath[bg]);
   assert(!e);
 
   struct node *existing = get_member(mod, deft, node_ident(proto));
@@ -2989,7 +2996,7 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   struct node *deft = ch->scope->parent->node;
 
   struct node *proto = NULL;
-  error e = scope_lookup_abspath(&proto, mod, ch, builtingen_abspath[bg]);
+  error e = scope_lookup_abspath(&proto, ch, mod, builtingen_abspath[bg]);
   assert(!e);
 
   struct node *d = mk_node(mod, ch, which);
