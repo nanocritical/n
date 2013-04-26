@@ -529,6 +529,16 @@ static error step_stop_submodules(struct module *mod, struct node *node, void *u
   return 0;
 }
 
+static error step_codeloc_for_generated(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->codeloc == 0
+      && node->scope != NULL
+      && node->scope->parent != NULL) {
+    node->codeloc = node->scope->parent->node->codeloc;
+  }
+
+  return 0;
+}
+
 // Recursive, depth first; Will modify scope on the way back up.
 static error lexical_import_path(struct scope **scope, struct module *mod,
                                  struct node *import_path, struct node *import) {
@@ -3776,6 +3786,7 @@ error zeropass(struct module *mod, struct node *node, struct node **except) {
 // of the definition isalist.
 static const step forwardpass_down[] = {
   step_stop_submodules,
+  step_codeloc_for_generated,
   step_defpattern_extract_defname,
   step_lexical_scoping,
   NULL,

@@ -2608,8 +2608,11 @@ static error p_defintf(struct node *node, struct module *mod,
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src) {
   dst->which = src->which;
-  memcpy(&dst->as, &src->as, sizeof(dst->as));
+  memcpy(dst, src, sizeof(*dst));
   dst->scope = NULL;
+  dst->subs = NULL;
+  dst->subs_count = 0;
+  dst->typ = NULL;
 
   if (node_toplevel_const(dst) != NULL) {
     node_toplevel(dst)->instances = NULL;
