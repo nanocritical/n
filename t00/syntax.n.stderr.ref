@@ -1,6 +1,6 @@
 In file included from t00/syntax.n.c.out:3:0:
 ./t00/syntax.n.h.out: In function ‘t00_syntax_foo’:
-./t00/syntax.n.h.out:56:1: warning: statement with no effect [-Wunused-value]
+./t00/syntax.n.h.out:56:10: error: incompatible types when assigning to type ‘nlang_strings_string’ from type ‘char *’
 t00/syntax.n.c.out: In function ‘t00_syntax_foobar’:
 t00/syntax.n.c.out:131:1: error: ‘pre’ undeclared (first use in this function)
 t00/syntax.n.c.out:131:1: note: each undeclared identifier is reported only once for each function it appears in

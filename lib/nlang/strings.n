@@ -1,4 +1,4 @@
 from nlang.literals import *
 from nlang.builtins import *
 
-extern export type string =
+export type string = export i_copyable

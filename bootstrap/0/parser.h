@@ -561,6 +561,9 @@ struct globalctx {
   // absolute name. It is not used for lexical lookup.
   struct node modules_root;
 
+  struct node **loaded;
+  size_t loaded_count;
+
   struct typ *builtin_typs[TBI__NUM];
   struct typ *builtin_typs_by_name[ID__NUM];
 };
