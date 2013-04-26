@@ -1,4 +1,5 @@
 from nlang import *
+from nlang.strings import string
 
 export type path = export i_copyable -- export i_showable
   pathname:string

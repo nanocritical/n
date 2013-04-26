@@ -1080,26 +1080,45 @@ static error step_type_mutability_mark(struct module *mod, struct node *node, vo
     if (OP_KIND(node->as.UN.operator) != OP_UN_REFOF) {
       return 0;
     }
-    if (node->subs[0]->typ != NULL) {
-      return 0;
-    }
+    struct node *arg= node->subs[0];
     switch (node->as.UN.operator) {
     case TREFDOT:
-    case TREFWILDCARD:
       // no-op
       break;
     case TREFBANG:
-      mark_subs(mod, node, mutable, 0, 1, 1);
+      if (arg->typ != NULL) {
+        if (arg->which == BIN) {
+          error e = typ_check_deref_against_mark(mod, arg,
+                                                 typ_lookup_builtin(mod, TBI__MUTABLE),
+                                                 arg->as.BIN.operator);
+          EXCEPT(e);
+        }
+      } else {
+        mark_subs(mod, node, mutable, 0, 1, 1);
+      }
       break;
     case TREFSHARP:
-      mark_subs(mod, node, mercurial, 0, 1, 1);
+      if (arg->typ != NULL) {
+        if (arg->which == BIN) {
+          error e = typ_check_deref_against_mark(mod, arg,
+                                                 typ_lookup_builtin(mod, TBI__MERCURIAL),
+                                                 arg->as.BIN.operator);
+          EXCEPT(e);
+        }
+        return 0;
+      } else {
+        mark_subs(mod, node, mercurial, 0, 1, 1);
+      }
+      break;
+    case TREFWILDCARD:
+      assert(FALSE);
       break;
     default:
       break;
     }
     break;
   default:
-    return 0;
+    break;
   }
 
   return 0;
@@ -1432,7 +1451,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
   case OP_UN_DEREF:
     e = typ_check_can_deref(mod, node->subs[0], node->subs[0]->typ, node->as.UN.operator);
     EXCEPT(e);
-    e = typ_check_deref_against_mark(mod, node, node, node->as.UN.operator);
+    e = typ_check_deref_against_mark(mod, node, node->typ, node->as.UN.operator);
     EXCEPT(e);
     node->typ = node->subs[0]->typ->gen_args[1];
     node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
@@ -1584,7 +1603,7 @@ static error rewrite_unary_call(struct module *mod, struct node *node, const str
 static error type_inference_bin_accessor(struct module *mod, struct node *node) {
   error e;
 
-  e = typ_check_deref_against_mark(mod, node, node, node->as.BIN.operator);
+  e = typ_check_deref_against_mark(mod, node, node->typ, node->as.BIN.operator);
   EXCEPT(e);
 
   struct node *parent = node->subs[0];
@@ -1702,7 +1721,33 @@ static error type_inference_init(struct module *mod, struct node *node) {
   return 0;
 }
 
-static struct node *expr_ref(enum token_type ref_op, struct node *node) {
+static enum token_type ref_op_for_acc_op[] = {
+  [TDOT] = TREFDOT,
+  [TBANG] = TREFBANG,
+  [TSHARP] = TREFSHARP,
+  [TWILDCARD] = TREFWILDCARD,
+};
+
+static enum token_type acc_op_for_ref_op[] = {
+  [TREFDOT] = TDOT,
+  [TREFBANG] = TBANG,
+  [TREFSHARP] = TSHARP,
+  [TREFWILDCARD] = TWILDCARD,
+};
+
+static struct node *generated_expr_ref(enum token_type ref_op, struct node *node) {
+  if (node->which == BIN && OP_KIND(node->as.BIN.operator) == OP_BIN_ACC) {
+    // Of the form
+    //   self.x.y!method args
+    // which was transformed to
+    //   type.method @!self.x.y args
+    // We actually need
+    //   type.method @!self.x!y args
+    // This is assuming that typing has checked the transformation below is
+    // legal.
+    node->as.BIN.operator = acc_op_for_ref_op[ref_op];
+  }
+
   struct node *n = calloc(1, sizeof(struct node));
   n->which = UN;
   n->as.UN.operator = ref_op;
@@ -1717,16 +1762,9 @@ static struct node *self_ref_if_value(struct module *mod,
   if (typ_is_reference_instance(mod, node->typ)) {
     return node;
   } else {
-    return expr_ref(access, node);
+    return generated_expr_ref(access, node);
   }
 }
-
-static enum token_type ref_op_for_acc_op[] = {
-  [TDOT] = TREFDOT,
-  [TBANG] = TREFBANG,
-  [TSHARP] = TREFSHARP,
-  [TWILDCARD] = TREFWILDCARD,
-};
 
 static error prepare_call_arguments(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
@@ -2313,7 +2351,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       e = typ_compatible_numeric(mod, node, constraint);
       break;
     case OP_UN_REFOF:
-      e = typ_compatible_reference(mod, node, node->as.UN.operator, constraint);
+      e = typ_check_reference_compatible(mod, node, node->as.UN.operator, constraint);
       break;
     case OP_UN_DEREF:
       e = 0;
@@ -3424,8 +3462,8 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   struct node *except[] = { left, node->subs[1], NULL };
 
   rew_insert_last_at(node, 0);
-  node->subs[1] = expr_ref(TREFDOT, node->subs[1]);
-  node->subs[2] = expr_ref(TREFDOT, node->subs[2]);
+  node->subs[1] = generated_expr_ref(TREFDOT, node->subs[1]);
+  node->subs[2] = generated_expr_ref(TREFDOT, node->subs[2]);
 
   error e = zero_to_second_for_generated(mod, node, except, saved_parent);
   EXCEPT(e);
@@ -3464,8 +3502,8 @@ static error assign_copy_call_inference(struct module *mod, struct node *node) {
   struct node *except[] = { left, right, NULL };
 
   rew_insert_last_at(node, 0);
-  node->subs[1] = expr_ref(TREFSHARP, left);
-  node->subs[2] = expr_ref(TREFDOT, right);
+  node->subs[1] = generated_expr_ref(TREFSHARP, left);
+  node->subs[2] = generated_expr_ref(TREFDOT, right);
 
   error e = zero_to_second_for_generated(mod, node, except, saved_parent);
   EXCEPT(e);
@@ -3501,10 +3539,10 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
   struct node *copyleft = calloc(1, sizeof(struct node));
   node_deepcopy(mod, copyleft, left);
 
-  rew_append(copycall, expr_ref(TREFSHARP, copyleft));
+  rew_append(copycall, generated_expr_ref(TREFSHARP, copyleft));
   // Steal right:
   node->as.DEFNAME.expr = NULL;
-  rew_append(copycall, expr_ref(TREFDOT, right));
+  rew_append(copycall, generated_expr_ref(TREFDOT, right));
 
   error e = zero_to_second_for_generated(mod, copycall, NULL, saved_parent);
   EXCEPT(e);

@@ -33,7 +33,7 @@ MODULE_BODY :__internal_not_typeable__
      DIRECTDEF :nlang.builtins.i_numeric
      IDENT(operator_assign_plus) :__internal_not_typeable__
     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
-     BIN(!) :nlang.builtins.i_numeric
+     BIN(.) :nlang.builtins.i_numeric
       IDENT(self) :(nlang.builtins.i_mutable_ref t01.genericsum.container)
       IDENT(x) :__internal_not_typeable__
     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)

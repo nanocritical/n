@@ -1,4 +1,5 @@
 from nlang import *
+from nlang.strings import *
 
 export fun main = i32
   let x = 1:i32

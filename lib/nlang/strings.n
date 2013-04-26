@@ -1,4 +1,12 @@
-from nlang.literals import *
-from nlang.builtins import *
+from nlang import *
+from nlang.vectors import vector
 
-export type string = export i_copyable
+export inline type string = export i_copyable
+  bytes:(vector u8)
+  -- delegate bytes i_random_container
+
+export string method count = size
+  return self.bytes.count
+
+export string method# copy_ctor other:@this = void
+  self!bytes = other.bytes

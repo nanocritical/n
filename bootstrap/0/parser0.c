@@ -3292,8 +3292,8 @@ static const char *string_for_ref[TOKEN__NUM] = {
   [TNULREFSHARP] = "?@#",
 };
 
-error typ_compatible_reference(const struct module *mod, const struct node *for_error,
-                               enum token_type operator, const struct typ *a) {
+error typ_check_reference_compatible(const struct module *mod, const struct node *for_error,
+                                     enum token_type operator, const struct typ *a) {
   error e = 0;
   char *na = NULL;
   if (!typ_is_reference_instance(mod, a)) {
@@ -3355,16 +3355,16 @@ except:
 }
 
 error typ_check_deref_against_mark(const struct module *mod, const struct node *for_error,
-                                   const struct node *node, enum token_type operator) {
+                                   const struct typ *t, enum token_type operator) {
   const char *kind = NULL;
-  if (node->typ == NULL) {
+  if (t == NULL) {
     return 0;
-  } else if (node->typ == typ_lookup_builtin(mod, TBI__MUTABLE)) {
+  } else if (t == typ_lookup_builtin(mod, TBI__MUTABLE)) {
     if (operator != TDOT && operator != TDEREFDOT) {
       return 0;
     }
     kind = "mutable";
-  } else if (node->typ == typ_lookup_builtin(mod, TBI__MERCURIAL)) {
+  } else if (t == typ_lookup_builtin(mod, TBI__MERCURIAL)) {
     if (operator == TSHARP || operator == TDEREFSHARP) {
       return 0;
     }
@@ -3374,7 +3374,7 @@ error typ_check_deref_against_mark(const struct module *mod, const struct node *
   }
 
   error e = 0;
-  char *nt = typ_pretty_name(mod, node->typ);
+  char *nt = typ_pretty_name(mod, t);
   GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                    "'%s' type cannot be dereferenced with '%s' in a %s context",
                    nt, token_strings[operator], kind);

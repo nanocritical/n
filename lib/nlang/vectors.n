@@ -2,7 +2,9 @@ from nlang import *
 import nlang.unsafe
 from nlang.memory import heap sysheap slice
 
-export inline type vector t:i_copyable = export i_trivial_ctor
+export inline type vector t:i_copyable = \
+    export i_trivial_ctor \
+    export i_copyable
   let ut = (nlang.unsafe.unconstructed t)
   _p:(slice ut)
   _count:size
@@ -52,3 +54,7 @@ export vector method# clear = void
 
 export vector method all = index_range
   return range 0 self.count-1
+
+export vector method# copy_ctor other:@this = void
+  (heap.slice_realloc ut) @!sysheap @#self#_p other._p.count
+  self._p!copy 0 @other._p 0 other._p.count

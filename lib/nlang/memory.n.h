@@ -25,4 +25,9 @@ static inline NB(u8) *nlang_memory_slice_at_byte(NB(u8) *p, NB(size) off) {
   return p + off;
 }
 
+static inline NB(void) nlang_memory_slice_memcpy(NB(u8) *dst, NB(size) at,
+                                                 const NB(u8) *src, NB(size) off, NB(size) count) {
+  memcpy(dst + at, src + off, count);
+}
+
 #undef NB

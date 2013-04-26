@@ -37,6 +37,8 @@ export let sysheap = heap{{ }}
 
 
 extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
+extern inline fun slice_memcpy dst:@#u8 at:size src:@u8 off:size count:size = void
+
 
 export inline type slice t:i_trivial_ctor = export i_trivial_ctor
   _count:size
@@ -59,5 +61,13 @@ export inline slice method$ unsafe_data = @$t
 export inline slice method$ at n:size = @$t
   assert (n < self._count)
   let off = n * (sizeof t)
-  let p = slice_at_byte ((nlang.unsafe.cast @$this @#this)self)#unsafe_rawdata off
+  let p = slice_at_byte ((nlang.unsafe.cast @$this @#this) self)#unsafe_rawdata off
   return (nlang.unsafe.cast @#u8 @$t) p
+
+export inline slice method! copy at:size other:@this off:size count:size = void
+  assert (off + count <= other.count)
+  assert (at + count <= self.count)
+  let bat = at * (sizeof t)
+  let boff = off * (sizeof t)
+  let bsz = count * (sizeof t)
+  slice_memcpy self#unsafe_rawdata bat other.unsafe_rawdata boff bsz

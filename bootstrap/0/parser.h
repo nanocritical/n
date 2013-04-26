@@ -666,12 +666,12 @@ error typ_check_equal(const struct module *mod, const struct node *for_error,
 error typ_compatible(const struct module *mod, const struct node *for_error,
                      const struct typ *a, const struct typ *constraint);
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error, const struct typ *a);
-error typ_compatible_reference(const struct module *mod, const struct node *for_error,
-                               enum token_type operator, const struct typ *a);
+error typ_check_reference_compatible(const struct module *mod, const struct node *for_error,
+                                     enum token_type operator, const struct typ *a);
 error typ_check_can_deref(const struct module *mod, const struct node *for_error,
                           const struct typ *a, enum token_type operator);
 error typ_check_deref_against_mark(const struct module *mod, const struct node *for_error,
-                                   const struct node *node, enum token_type operator);
+                                   const struct typ *t, enum token_type operator);
 bool typ_is_reference_instance(const struct module *mod, const struct typ *a);
 error typ_check_is_reference_instance(const struct module *mod, const struct node *for_error,
                                       const struct typ *a);
