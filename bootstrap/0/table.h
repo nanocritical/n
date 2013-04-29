@@ -578,9 +578,9 @@ implement_htable_rehash(storage, name, type, key_type)
  * The unit is allocated by the underlying sptable. Below, bnew is just a
  * temporary.
  */
-#define implement_htable_set(name, type, key_type) \
+#define implement_htable_set(storage, name, type, key_type) \
     void name ## _rehash(struct name *hta, struct name *htb); \
-int name ## _set(struct name *ht, const key_type k, type v) \
+storage int name ## _set(struct name *ht, const key_type k, type v) \
 { \
   const key_type *pk = &k; \
   struct name ## _unit__ *b; \
