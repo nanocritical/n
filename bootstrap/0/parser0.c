@@ -1503,6 +1503,8 @@ static error p_expr_call(struct node *node, const struct node *first,
 
     if (expr_terminators[tok.t]) {
       return 0;
+    } else if (OP_PREC(tok.t) > T__CALL) {
+      return 0;
     }
 
     e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
