@@ -81,10 +81,10 @@ storage implement_sptable_foreach(name, type)
                                      void *user), \
                          void *user);
 
-
 #define implement_sptable_init(name, type) \
     void name ## _init(struct name *tbl, unsigned size) \
 { \
+  memset(tbl, 0, sizeof(*tbl)); \
   tbl->size = max(unsigned, size, SPTABLE_MIN_SIZE); \
   tbl->groups = (type **)calloc(SPTABLE_NUM_GROUPS(tbl), \
                                 sizeof(type *)); \
@@ -256,6 +256,7 @@ storage implement_dntable_foreach(name, type)
 #define implement_dntable_init(name, type) \
     void name ## _init(struct name *tbl, unsigned size) \
 { \
+  memset(tbl, 0, sizeof(*tbl)); \
   tbl->size = max(unsigned, size, DNTABLE_MIN_SIZE); \
   tbl->array = (type *)calloc(tbl->size, sizeof(type)); \
   tbl->bitmap = (uint32_t *)calloc(BITMAP_SIZE(tbl->size), 1); \
@@ -471,6 +472,7 @@ implement_htable_rehash(storage, name, type, key_type)
     void name ## _init(struct name *ht, unsigned size) \
 { \
   assert(size <= UINT_MAX/2); \
+  memset(ht, 0, sizeof(*ht)); \
   name ## _table___init(&(ht->table), \
                         roundup_pow2(size)); \
   ht->hweight = 0; \
@@ -551,16 +553,16 @@ implement_htable_rehash(storage, name, type, key_type)
 #define HTABLE_GROW__(name, ht) do { \
   struct name htmp; \
   name ## _init(&htmp, 2 * (ht)->table.size - 1); \
-  htmp.cmpf = ht->cmpf; \
-  htmp.hashf = ht->hashf; \
-  htmp.delete_val = ht->delete_val; \
-  htmp.flag = ht->flag; \
+  htmp.cmpf = (ht)->cmpf; \
+  htmp.hashf = (ht)->hashf; \
+  htmp.delete_val = (ht)->delete_val; \
+  htmp.flag = (ht)->flag; \
   int oldflag = htmp.flag; \
   htmp.flag |= HTABLE_DONT_SHRINK; \
   name ## _rehash(&htmp, ht); \
   name ## _destroy(ht); \
   htmp.flag = oldflag; \
-  *ht = htmp; \
+  *(ht) = htmp; \
 } while (0)
 
 #define HTABLE_SHRINK__(name, ht) /* TODO not implemented */
@@ -583,8 +585,8 @@ implement_htable_rehash(storage, name, type, key_type)
 storage int name ## _set(struct name *ht, const key_type k, type v) \
 { \
   const key_type *pk = &k; \
-  struct name ## _unit__ *b; \
-  uint32_t hash; \
+  struct name ## _unit__ *b = NULL; \
+  uint32_t hash = 0; \
   unsigned n = 0; \
   int cmph = 1, cmp = 0; \
   \

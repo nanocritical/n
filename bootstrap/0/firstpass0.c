@@ -671,7 +671,7 @@ static error lexical_import_all_from_path(struct scope *scope, struct module *mo
     imported->as.IMPORT.toplevel.is_export = import->as.IMPORT.toplevel.is_export;
 
     const ident id = node_ident(ex);
-    struct token tok;
+    struct token tok = { 0 };
     tok.t = TIDENT;
     tok.value = idents_value(mod->gctx, id);
     tok.len = strlen(tok.value);
@@ -3842,8 +3842,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
     NULL,
   };
 
-  struct temporaries temps;
-  memset(&temps, 0, sizeof(temps));
+  struct temporaries temps = { 0 };
 
   error e = pass(mod, node, temprvalue_down, temprvalue_up, NULL, &temps);
   EXCEPT(e);

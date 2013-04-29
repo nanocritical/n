@@ -231,8 +231,7 @@ static error try_import(char **fn, struct module *mod, struct node *import,
 
   import_filename(&base, &len, mod, import_path);
 
-  struct stat st;
-  memset(&st, 0, sizeof(st));
+  struct stat st = { 0 };
 
   char *file = calloc(len + 2 + 1, sizeof(char));
   strcpy(file, base);
@@ -492,8 +491,7 @@ int main(int argc, char **argv) {
     processed += 1;
   }
 
-  struct dependencies deps;
-  memset(&deps, 0, sizeof(deps));
+  struct dependencies deps = { 0 };
   deps.gctx = &gctx;
 
   e = gather_dependencies(main_mod->root, &deps);

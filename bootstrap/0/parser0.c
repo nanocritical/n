@@ -271,7 +271,7 @@ ident idents_add(struct globalctx *gctx, const struct token *tok) {
 }
 
 ident idents_add_string(struct globalctx *gctx, const char *name, size_t len) {
-  struct token tok;
+  struct token tok = { 0 };
   tok.t = TIDENT;
   tok.value = name;
   tok.len = len;
@@ -312,7 +312,7 @@ static int column(const struct parser *parser, const struct token *tok) {
 } while (0)
 
 #define GOTO_EXCEPT_PARSE(mod, codeloc, fmt, ...) do { \
-  struct token tok; \
+  struct token tok = { 0 }; \
   tok.value = mod->parser.data + codeloc; \
   GOTO_EXCEPTF(EINVAL, "%s:%d:%d: parse: " fmt, \
                mod->filename, line(&mod->parser, &tok), column(&mod->parser, &tok), ##__VA_ARGS__); \
@@ -665,7 +665,7 @@ error scope_define_ident(const struct module *mod, struct scope *scope, ident id
       && (!node_is_prototype(*existing)
           || node->which != (*existing)->which)) {
     const struct module *existing_mod = try_node_module_owner_const(mod, *existing);
-    struct token existing_tok;
+    struct token existing_tok = { 0 };
     existing_tok.t = TIDENT;
     existing_tok.value = existing_mod->parser.data + (*existing)->codeloc;
     existing_tok.len = 0;
@@ -1040,7 +1040,7 @@ static error parse_modpath(struct module *mod, const char *raw_fn) {
     }
 
     if (fn[p] == '/' || fn[p] == '.' || fn[p + 1] == '\0') {
-      struct token tok;
+      struct token tok = { 0 };
       tok.t = TIDENT;
       tok.value = fn + last;
       tok.len = p - last;
@@ -1104,7 +1104,7 @@ void globalctx_init(struct globalctx *gctx) {
   for (int i = 0; i < ID__NUM; ++i) {
     gctx->idents.values[i] = predefined_idents_strings[i];
 
-    struct token tok;
+    struct token tok = { 0 };
     tok.t = TIDENT;
     tok.value = predefined_idents_strings[i];
     tok.len = strlen(predefined_idents_strings[i]);
@@ -1147,8 +1147,7 @@ static error module_read(struct module *mod, const char *prefix, const char *fn)
     EXCEPTF(errno, "Cannot open module '%s'", fullpath);
   }
 
-  struct stat st;
-  memset(&st, 0, sizeof(st));
+  struct stat st = { 0 };
   error e = fstat(fd, &st);
   if (e < 0) {
     EXCEPTF(errno, "Cannot stat module '%s'", fullpath);
@@ -1190,7 +1189,7 @@ static void back(struct module *mod, const struct token *tok) {
 }
 
 static error scan_expected(struct module *mod, enum token_type t) {
-  struct token tok;
+  struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
 
@@ -1291,7 +1290,7 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op);
 static error p_block(struct node *node, struct module *mod);
 
 static error p_ident(struct node *node, struct module *mod) {
-  struct token tok;
+  struct token tok = { 0 };
   error e = scan_oneof(&tok, mod, TIDENT, 0);
   EXCEPT(e);
 
@@ -1302,7 +1301,7 @@ static error p_ident(struct node *node, struct module *mod) {
 }
 
 static error p_number(struct node *node, struct module *mod) {
-  struct token tok;
+  struct token tok = { 0 };
   error e = scan_oneof(&tok, mod, TNUMBER, 0);
   EXCEPT(e);
 
@@ -1317,7 +1316,7 @@ static error p_number(struct node *node, struct module *mod) {
 }
 
 static error p_bool(struct node *node, struct module *mod) {
-  struct token tok;
+  struct token tok = { 0 };
   error e = scan_oneof(&tok, mod, Tfalse, Ttrue, 0);
   EXCEPT(e);
 
@@ -1327,7 +1326,7 @@ static error p_bool(struct node *node, struct module *mod) {
 }
 
 static error p_string(struct node *node, struct module *mod) {
-  struct token tok;
+  struct token tok = { 0 };
   error e = scan_oneof(&tok, mod, TSTRING, 0);
   EXCEPT(e);
 
@@ -1379,7 +1378,7 @@ static error p_defchoice(struct node *node, struct module *mod) {
   error e = p_ident(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
-  struct token tok;
+  struct token tok = { 0 };
   e = scan(&tok, mod);
   EXCEPT(e);
 
@@ -1407,7 +1406,7 @@ static error p_defchoice(struct node *node, struct module *mod) {
 }
 
 static error p_expr_unary(struct node *node, struct module *mod) {
-  struct token tok;
+  struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
 
@@ -1440,7 +1439,7 @@ static error p_expr_init(struct node *node, const struct node *first,
   error e = scan_expected(mod, TLINIT);
   EXCEPT(e);
 
-  struct token tok;
+  struct token tok = { 0 };
 
   struct node *fst = node_new_subnode(mod, node);
   *fst = *first;
@@ -1469,7 +1468,7 @@ static error p_expr_tuple(struct node *node, const struct node *first,
                           struct module *mod) {
   node->which = TUPLE;
   error e;
-  struct token tok;
+  struct token tok = { 0 };
 
   struct node *fst = node_new_subnode(mod, node);
   *fst = *first;
@@ -1492,7 +1491,7 @@ static error p_expr_call(struct node *node, const struct node *first,
                          struct module *mod) {
   node->which = CALL;
   error e;
-  struct token tok;
+  struct token tok = { 0 };
 
   struct node *function = node_new_subnode(mod, node);
   *function = *first;
@@ -1513,7 +1512,7 @@ static error p_expr_call(struct node *node, const struct node *first,
 
 static error p_expr_binary(struct node *node, const struct node *first,
                            struct module *mod) {
-  struct token tok;
+  struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
 
@@ -1537,7 +1536,7 @@ static error p_expr_binary(struct node *node, const struct node *first,
 
 static error p_expr_post_unary(struct node *node, const struct node *first,
                                struct module *mod) {
-  struct token tok;
+  struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
 
@@ -1555,16 +1554,14 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
   assert(parent_op < TOKEN__NUM && IS_OP(parent_op));
 
   error e;
-  struct token tok;
+  struct token tok = { 0 };
   bool first_iteration = TRUE;
   bool topmost = parent_op == T__STATEMENT;
 
   e = scan(&tok, mod);
   EXCEPT(e);
 
-  struct node first, second;
-  memset(&first, 0, sizeof(first));
-  memset(&second, 0, sizeof(second));
+  struct node first = { 0 }, second = { 0 };
   first.codeloc = mod->parser.pos;
   second.codeloc = mod->parser.pos;
 
@@ -1688,7 +1685,7 @@ done:
 static error p_return(struct node *node, struct module *mod) {
   node->which = RETURN;
 
-  struct token tok;
+  struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
   back(mod, &tok);
@@ -1702,7 +1699,7 @@ static error p_return(struct node *node, struct module *mod) {
 
 static error p_except(struct node *node, struct module *mod) {
   node->which = EXCEP;
-  struct token tok;
+  struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
   back(mod, &tok);
@@ -1720,7 +1717,7 @@ static error p_defpattern(struct node *node, struct module *mod) {
   error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
 
-  struct token tok;
+  struct token tok = { 0 };
   e = scan(&tok, mod);
   EXCEPT(e);
   if (tok.t != TASSIGN) {
@@ -1743,7 +1740,7 @@ static error p_let(struct node *node, struct module *mod, const struct toplevel 
   error e = p_defpattern(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
-  struct token tok;
+  struct token tok = { 0 };
   e = scan(&tok, mod);
   EXCEPT(e);
   if (tok.t != TSOB) {
@@ -1760,7 +1757,7 @@ static error p_let(struct node *node, struct module *mod, const struct toplevel 
 static error p_if(struct node *node, struct module *mod) {
   node->which = IF;
 
-  struct token eol;
+  struct token eol = { 0 };
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
@@ -1774,7 +1771,7 @@ static error p_if(struct node *node, struct module *mod) {
     UNEXPECTED(mod, &eol);
   }
 
-  struct token tok;
+  struct token tok = { 0 };
 
 again:
   e = scan(&tok, mod);
@@ -1932,7 +1929,7 @@ static error p_match(struct node *node, struct module *mod) {
   e = scan_expected(mod, TEOL);
   EXCEPT(e);
 
-  struct token tok;
+  struct token tok = { 0 };
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -1999,7 +1996,7 @@ static error p_example(struct node *node, struct module *mod) {
 
 static error p_statement(struct node *node, struct module *mod) {
   error e;
-  struct token tok;
+  struct token tok = { 0 };
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -2066,7 +2063,7 @@ static error p_statement(struct node *node, struct module *mod) {
 static error p_block(struct node *node, struct module *mod) {
   node->which = BLOCK;
   error e;
-  struct token tok;
+  struct token tok = { 0 };
   bool first = TRUE;
 
   e = scan(&tok, mod);
@@ -2118,7 +2115,7 @@ static error p_defret(struct node *node, struct module *mod) {
   error e = p_expr(node_new_subnode(mod, node), mod, TCOLON);
   EXCEPT(e);
 
-  struct token tok;
+  struct token tok = { 0 };
   e = scan(&tok, mod);
   EXCEPT(e);
   if (tok.t != TCOLON) {
@@ -2165,7 +2162,7 @@ static void add_self_arg(struct module *mod, struct node *node) {
 static error p_defmethod_access(struct node *node, struct module *mod) {
   node->as.DEFMETHOD.access = TREFDOT;
 
-  struct token tok;
+  struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
   switch (tok.t) {
@@ -2189,7 +2186,7 @@ static error p_defmethod_access(struct node *node, struct module *mod) {
 static error p_deffun(struct node *node, struct module *mod, const struct toplevel *toplevel,
                       enum node_which fun_or_method) {
   error e;
-  struct token tok;
+  struct token tok = { 0 };
 
   node->which = fun_or_method;
   switch (node->which) {
@@ -2271,7 +2268,7 @@ static error p_isalist(struct node *node, struct module *mod) {
   node->which = ISALIST;
 
   error e;
-  struct token tok;
+  struct token tok = { 0 };
   bool is_export = FALSE;
 
 again:
@@ -2301,7 +2298,7 @@ static error p_delegate(struct node *node, struct module *mod) {
   error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
   EXCEPT(e);
 
-  struct token tok;
+  struct token tok = { 0 };
 
 again:
   e = scan(&tok, mod);
@@ -2319,10 +2316,9 @@ again:
 }
 
 static error p_deftype_statement(struct node *node, struct module *mod) {
-  error e;
-  struct token tok;
-  struct toplevel toplevel;
-  memset(&toplevel, 0, sizeof(toplevel));
+  error e = 0;
+  struct token tok = { 0 };
+  struct toplevel toplevel = { 0 };
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -2360,7 +2356,7 @@ static error p_deftype_statement(struct node *node, struct module *mod) {
 
 static error p_deftype_block(struct node *node, struct module *mod) {
   error e;
-  struct token tok;
+  struct token tok = { 0 };
   bool first = TRUE;
 
   e = scan(&tok, mod);
@@ -2412,7 +2408,7 @@ static error p_genargs(struct node *node, struct module *mod,
   node->which = GENARGS;
 
   error e;
-  struct token tok;
+  struct token tok = { 0 };
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -2445,7 +2441,7 @@ static error p_deftype(struct node *node, struct module *mod,
   e = p_isalist(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
-  struct token tok;
+  struct token tok = { 0 };
   e = scan_oneof(&tok, mod, TEOL, TSOB, 0);
   EXCEPT(e);
 
@@ -2470,9 +2466,8 @@ static error p_implicit_genargs(struct node *genargs, struct module *mod) {
 
 static error p_defintf_statement(struct node *node, struct module *mod, ident intf_name) {
   error e;
-  struct token tok, tok2;
-  struct toplevel toplevel;
-  memset(&toplevel, 0, sizeof(toplevel));
+  struct token tok = { 0 }, tok2 = { 0 };
+  struct toplevel toplevel = { 0 };
   toplevel.scope_name = intf_name;
   struct node *genargs = NULL;
 
@@ -2527,7 +2522,7 @@ again:
 
 static error p_defintf_block(struct node *node, struct module *mod, ident intf_name) {
   error e;
-  struct token tok;
+  struct token tok = { 0 };
   bool first = TRUE;
 
   e = scan(&tok, mod);
@@ -2565,7 +2560,7 @@ static error p_defintf(struct node *node, struct module *mod,
   node->which = DEFINTF;
   node->as.DEFINTF.toplevel = *toplevel;
 
-  struct token tok;
+  struct token tok = { 0 };
   error e = p_ident(node->subs[0], mod);
   EXCEPT(e);
 
@@ -2639,7 +2634,7 @@ static error p_import(struct node *node, struct module *mod, const struct toplev
   int import_export_count = 0;
   int inline_count = 0;
   int ident_count = 0;
-  struct token tok;
+  struct token tok = { 0 };
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -2680,13 +2675,12 @@ again:
 }
 
 static error p_toplevel(struct module *mod) {
-  struct toplevel toplevel;
-  memset(&toplevel, 0, sizeof(toplevel));
+  struct toplevel toplevel = { 0 };
   struct node *genargs = NULL;
 
   bool is_scoped = FALSE;
   error e;
-  struct token tok, tok2;
+  struct token tok = { 0 }, tok2 = { 0 };
   struct node *node = NULL;
 
 again:
@@ -3606,7 +3600,7 @@ error mk_except(const struct module *mod, const struct node *node,
 
   const struct module *actual_mod = try_node_module_owner_const(mod, node);
 
-  struct token tok;
+  struct token tok = { 0 };
   tok.value = mod->parser.data + node->codeloc;
 
   error e = 0;
@@ -3628,7 +3622,7 @@ error mk_except_type(const struct module *mod, const struct node *node,
 
   const struct module *actual_mod = try_node_module_owner_const(mod, node);
 
-  struct token tok;
+  struct token tok = { 0 };
   tok.value = mod->parser.data + node->codeloc;
 
   error e = 0;
