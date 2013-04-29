@@ -364,7 +364,7 @@ static void print_deftype_name(FILE *out, const struct module *mod, const struct
 static void print_deffun_name(FILE *out, const struct module *mod, const struct node *node) {
   const ident id = node_ident(node);
   if (id == ID_MAIN) {
-    fprintf(out, "main");
+    fprintf(out, "__Nmain");
   } else {
     print_typ(out, mod, node->typ);
   }
@@ -534,9 +534,20 @@ static void print_invariant(FILE *out, const struct module *mod, const struct no
   print_block(out, mod, node->subs[0]);
 }
 
-static void print_example(FILE *out, bool header, const struct module *mod, const struct node *node) {
-  fprintf(out, "example");
-  print_block(out, mod, node->subs[0]);
+#define ATTR_SECTION_EXAMPLES "__attribute__((section(\".text.nlang.examples\")))"
+
+static void print_example(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
+  if (header) {
+    return;
+  }
+  if (fwd == FWDFUNS) {
+    fprintf(out, "void %s__Nexample%zu(void) " ATTR_SECTION_EXAMPLES ";",
+            replace_dots(scope_name(mod, mod->root->scope)), node->as.EXAMPLE.name);
+  } else if (fwd == DEFFUNS) {
+    fprintf(out, "void %s__Nexample%zu(void)",
+            replace_dots(scope_name(mod, mod->root->scope)), node->as.EXAMPLE.name);
+    print_block(out, mod, node->subs[0]);
+  }
 }
 
 static void print_toplevel(FILE *out, bool header, const struct node *node) {
@@ -744,9 +755,6 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
     break;
   case INVARIANT:
     print_invariant(out, mod, node);
-    break;
-  case EXAMPLE:
-    print_example(out, FALSE, mod, node);
     break;
   case LET:
     print_let(out, FALSE, DEFFUNS, mod, node);
@@ -1202,13 +1210,8 @@ static void print_deftype_statement(FILE *out, bool header, enum forward fwd,
       }
       break;
     case INVARIANT:
-      if (fwd == DEFTYPES) {
+      if (fwd == DEFFUNS) {
         print_invariant(out, mod, node);
-      }
-      break;
-    case EXAMPLE:
-      if (fwd == DEFTYPES) {
-        print_example(out, header, mod, node);
       }
       break;
     default:
@@ -1610,6 +1613,9 @@ static void print_top(FILE *out, bool header, enum forward fwd, const struct mod
   case LET:
     print_let(out, header, fwd, mod, node);
     break;
+  case EXAMPLE:
+    print_example(out, header, fwd, mod, node);
+    break;
   case IMPORT:
     if (fwd == FWDTYPES) {
       print_import(out, header, mod, node);
@@ -1671,6 +1677,17 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
   }
 }
 
+static error print_runexamples(FILE *out, const struct module *mod) {
+  fprintf(out, "void %s(void) " ATTR_SECTION_EXAMPLES ";\n", printer_c_runexamples_name(mod));
+  fprintf(out, "void %s(void) {\n", printer_c_runexamples_name(mod));
+  for (size_t n = 0; n < mod->next_example; ++n) {
+    fprintf(out, "%s__Nexample%zu();\n",
+            replace_dots(scope_name(mod, mod->root->scope)), n);
+  }
+  fprintf(out, "}\n");
+  return 0;
+}
+
 error printer_c(int fd, const struct module *mod) {
   FILE *out = fdopen(fd, "w");
   if (out == NULL) {
@@ -1678,6 +1695,7 @@ error printer_c(int fd, const struct module *mod) {
   }
 
   print_module(out, FALSE, mod);
+  print_runexamples(out, mod);
   fflush(out);
 
   return 0;
@@ -1693,4 +1711,13 @@ error printer_h(int fd, const struct module *mod) {
   fflush(out);
 
   return 0;
+}
+
+char *printer_c_runexamples_name(const struct module *mod) {
+  static const char runexamples[] = "_Nrunexamples";
+  char *sc = replace_dots(scope_name(mod, mod->root->scope));
+  char *r = calloc(strlen(sc) + sizeof(runexamples), sizeof(char));
+  sprintf(r, "%s%s", sc, runexamples);
+  free(sc);
+  return r;
 }

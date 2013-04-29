@@ -1,0 +1,50 @@
+MODULE_BODY :__internal_not_typeable__
+ IMPORT :nlang
+  IDENT(nlang) :nlang
+ DEFFUN :t00.example.foo
+  IDENT(foo) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :nlang.builtins.i32
+   IDENT(x) :nlang.builtins.i32
+   IDENT(i32) :nlang.builtins.i32
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   RETURN :nlang.builtins.i32
+    NUMBER(0) :nlang.builtins.i32
+ EXAMPLE :nlang.builtins.void
+  BLOCK :nlang.builtins.void
+   CALL :nlang.builtins.void
+    IDENT(assert) :nlang.builtins.assert
+    BIN( == ) :nlang.builtins.bool
+     CALL :nlang.builtins.i32
+      IDENT(foo) :t00.example.foo
+      NUMBER(0) :nlang.builtins.i32
+     NUMBER(0) :nlang.builtins.i32
+ EXAMPLE :nlang.builtins.void
+  BLOCK :nlang.builtins.void
+   CALL :nlang.builtins.void
+    IDENT(assert) :nlang.builtins.assert
+    BIN( == ) :nlang.builtins.bool
+     CALL :nlang.builtins.i32
+      IDENT(foo) :t00.example.foo
+      NUMBER(1) :nlang.builtins.i32
+     NUMBER(0) :nlang.builtins.i32
+ EXAMPLE :nlang.builtins.void
+  BLOCK :nlang.builtins.void
+   CALL :nlang.builtins.void
+    IDENT(assert) :nlang.builtins.assert
+    BIN( == ) :nlang.builtins.bool
+     CALL :nlang.builtins.i32
+      IDENT(foo) :t00.example.foo
+      UN(-) :nlang.builtins.i32
+       NUMBER(1) :nlang.builtins.i32
+     NUMBER(0) :nlang.builtins.i32
+ DEFFUN :t00.example.main
+  IDENT(main) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   RETURN :nlang.builtins.i32
+    CALL :nlang.builtins.i32
+     IDENT(foo) :t00.example.foo
+     NUMBER(1) :nlang.builtins.i32

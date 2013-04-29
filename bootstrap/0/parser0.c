@@ -1987,6 +1987,8 @@ static error p_invariant(struct node *node, struct module *mod) {
 
 static error p_example(struct node *node, struct module *mod) {
   node->which = EXAMPLE;
+  node->as.EXAMPLE.name = mod->next_example;
+  mod->next_example += 1;
 
   error e = scan_expected(mod, TSOB);
   EXCEPT(e);
@@ -2045,9 +2047,6 @@ static error p_statement(struct node *node, struct module *mod) {
     break;
   case Tinvariant:
     e = p_invariant(node, mod);
-    break;
-  case Texample:
-    e = p_example(node, mod);
     break;
   case TLPAR:
   case TIDENT:
@@ -2338,9 +2337,6 @@ static error p_deftype_statement(struct node *node, struct module *mod) {
   case Tinvariant:
     e = p_invariant(node, mod);
     break;
-  case Texample:
-    e = p_example(node, mod);
-    break;
   case TIDENT:
     back(mod, &tok);
     e = p_deffield(node, mod);
@@ -2506,9 +2502,6 @@ again:
     break;
   case Tinvariant:
     e = p_invariant(node, mod);
-    break;
-  case Texample:
-    e = p_example(node, mod);
     break;
   case TIDENT:
     back(mod, &tok);
@@ -2769,6 +2762,9 @@ bypass:
   case Tfrom:
   case Timport:
     e = p_import(NEW(mod, node), mod, &toplevel, tok.t == Tfrom);
+    break;
+  case Texample:
+    e = p_example(NEW(mod, node), mod);
     break;
   case TEOL:
     break;

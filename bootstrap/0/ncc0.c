@@ -13,19 +13,9 @@
 
 #define DIR_MODULE_NAME "module.n"
 #define CFLAGS "-Wall -Wno-missing-braces -std=c99 -pedantic -I."
+#define LDFLAGS CFLAGS " -Wl,--gc-sections"
 
-static char *o_filename(const char *filename) {
-  char *o_fn = malloc(strlen(filename) + sizeof(".o"));
-  sprintf(o_fn, "%s.o", filename);
-  return o_fn;
-}
-
-static error cc(const struct module *mod, const char *o_fn,
-                const char *c_fn, const char *h_fn) {
-  static const char *fmt = "gcc " CFLAGS " -xc %s -c -o %s";
-  char *cmd = calloc(strlen(fmt) + strlen(c_fn) + strlen(o_fn) + 1, sizeof(char));
-  sprintf(cmd, fmt, c_fn, o_fn);
-
+static error sh(const char *cmd) {
   int status = system(cmd);
   if (status == -1) {
     EXCEPTF(errno, "system(3) failed");
@@ -39,6 +29,55 @@ static error cc(const struct module *mod, const char *o_fn,
   return 0;
 }
 
+static char *o_filename(const char *filename) {
+  char *o_fn = calloc(strlen(filename) + sizeof(".o"), sizeof(char));
+  sprintf(o_fn, "%s.o", filename);
+  return o_fn;
+}
+
+static error cc(const struct module *mod, const char *o_fn,
+                const char *c_fn, const char *h_fn) {
+  static const char *fmt = "gcc " CFLAGS " -xc %s -c -o %s";
+  char *cmd = calloc(strlen(fmt) + strlen(c_fn) + strlen(o_fn) - 4 + 1, sizeof(char));
+  sprintf(cmd, fmt, c_fn, o_fn);
+
+  error e = sh(cmd);
+  free(cmd);
+  EXCEPT(e);
+  return 0;
+}
+
+static char *file_list(const struct module **modules, size_t count,
+                       char *(*process)(const char *)) {
+  size_t len = 0;
+  char *list = NULL;
+
+  for (size_t n = 0; n < count; ++n) {
+    const struct module *mod = modules[n];
+    const size_t old_len = len;
+    char *o_fn = process(mod->filename);
+    len += strlen(o_fn) + 1;
+    list = realloc(list, (len + 1) * sizeof(char));
+    strcpy(list + old_len, " ");
+    strcpy(list + old_len + 1, o_fn);
+    free(o_fn);
+  }
+
+  return list;
+}
+
+static error clink(const char *out_fn, const char *inputs, const char *extra) {
+  static const char fmt[] = "gcc " LDFLAGS " %s %s -o %s";
+  size_t len = strlen(fmt) + strlen(inputs) + strlen(extra) + strlen(out_fn) - 6;
+  char *cmd = calloc(len + 1, sizeof(char));
+  sprintf(cmd, fmt, inputs, extra, out_fn);
+
+  error e = sh(cmd);
+  free(cmd);
+  EXCEPT(e);
+  return 0;
+}
+
 static error generate(struct node *node) {
   assert(node->which == MODULE);
   struct module *mod = node->as.MODULE.mod;
@@ -46,7 +85,7 @@ static error generate(struct node *node) {
   const char *fn = mod->filename;
   error e;
 
-  char *out_fn = malloc(strlen(fn) + sizeof(".tree.out"));
+  char *out_fn = calloc(strlen(fn) + sizeof(".tree.out"), sizeof(char));
   sprintf(out_fn, "%s.tree.out", fn);
 
   int fd = creat(out_fn, 00600);
@@ -59,7 +98,7 @@ static error generate(struct node *node) {
   EXCEPT(e);
   close(fd);
 
-  out_fn = malloc(strlen(fn) + sizeof(".pretty.out"));
+  out_fn = calloc(strlen(fn) + sizeof(".pretty.out"), sizeof(char));
   sprintf(out_fn, "%s.pretty.out", fn);
 
   fd = creat(out_fn, 00600);
@@ -72,7 +111,7 @@ static error generate(struct node *node) {
   EXCEPT(e);
   close(fd);
 
-  char *c_fn = malloc(strlen(fn) + sizeof(".c.out"));
+  char *c_fn = calloc(strlen(fn) + sizeof(".c.out"), sizeof(char));
   sprintf(c_fn, "%s.c.out", fn);
 
   fd = creat(c_fn, 00600);
@@ -84,7 +123,7 @@ static error generate(struct node *node) {
   EXCEPT(e);
   close(fd);
 
-  char *h_fn = malloc(strlen(fn) + sizeof(".h.out"));
+  char *h_fn = calloc(strlen(fn) + sizeof(".h.out"), sizeof(char));
   sprintf(h_fn, "%s.h.out", fn);
 
   fd = creat(h_fn, 00600);
@@ -151,9 +190,6 @@ static error for_all_nodes(struct node *root,
 
 static error load_module(struct module **main_mod,
                          struct globalctx *gctx, const char *prefix, const char *fn) {
-
-  //FIXME check if already loaded.
-
   struct module *mod = calloc(1, sizeof(struct module));
 
   error e = module_open(gctx, mod, prefix, fn);
@@ -439,32 +475,61 @@ static error calculate_dependencies(struct dependencies *deps) {
   return 0;
 }
 
-static error clink(const struct dependencies *deps) {
-  static const char *fmt = "gcc " CFLAGS;
-  size_t len = strlen(fmt);
-  char *cmd = calloc(len + 1, sizeof(char));
-  strcpy(cmd, fmt);
+static error run_examples(const struct dependencies *deps) {
+  static const char *out_fn = "a.out.examples";
+  static const char *main_fn = "a.out.examples.c";
+
+  FILE *run = fopen(main_fn, "w");
+  if (run == NULL) {
+    EXCEPTF(errno, "Cannot open output file '%s'", main_fn);
+  }
 
   for (size_t n = 0; n < deps->modules_count; ++n) {
-    struct module *mod = deps->modules[n];
-    const size_t old_len = len;
-    char *o_fn = o_filename(mod->filename);
-    len += 1 + strlen(o_fn);
-    cmd = realloc(cmd, (len + 1) * sizeof(char));
-    strcpy(cmd + old_len, " ");
-    strcpy(cmd + old_len + 1, o_fn);
-    free(o_fn);
+    const struct module *mod = deps->modules[n];
+    fprintf(run, "void %s(void);\n", printer_c_runexamples_name(mod));
   }
 
-  int status = system(cmd);
-  if (status == -1) {
-    EXCEPTF(errno, "system(3) failed");
+  fprintf(run, "int main(void) {\n");
+  for (size_t n = 0; n < deps->modules_count; ++n) {
+    const struct module *mod = deps->modules[n];
+    fprintf(run, "%s();\n", printer_c_runexamples_name(mod));
   }
-  if (WIFSIGNALED(status)) {
-    EXCEPTF(ECHILD, "command terminated by signal %d: %s", WTERMSIG(status), cmd);
-  } else if (WEXITSTATUS(status) != 0) {
-    EXCEPTF(ECHILD, "command exited with %d: %s", WEXITSTATUS(status), cmd);
+    fprintf(run, "}\n");
+  fclose(run);
+
+  char *inputs = file_list((const struct module **)deps->modules,
+                           deps->modules_count, o_filename);
+  error e = clink(out_fn, inputs, main_fn);
+  free(inputs);
+  EXCEPT(e);
+
+  static const char *fmt = "./%s";
+  char *cmd = calloc(strlen(fmt) + strlen(main_fn) - 2 + 1, sizeof(char));
+  sprintf(cmd, fmt, out_fn);
+  e = sh(cmd);
+  free(cmd);
+  EXCEPTF(e, "examples failed");
+
+  return 0;
+}
+
+static error program_link(const struct dependencies *deps) {
+  const char *out_fn = "a.out";
+  const char *main_fn = "a.out.c";
+
+  FILE *run = fopen(main_fn, "w");
+  if (run == NULL) {
+    EXCEPTF(errno, "Cannot open output file '%s'", main_fn);
   }
+  fprintf(run, "void __Nmain();\n");
+  fprintf(run, "int main(int argc, char **argv, char **env) {\n__Nmain(argc, argv, env);\n}\n");
+  fclose(run);
+
+  char *inputs = file_list((const struct module **)deps->modules,
+                           deps->modules_count, o_filename);
+  error e = clink(out_fn, inputs, main_fn);
+  free(inputs);
+  EXCEPT(e);
 
   return 0;
 }
@@ -526,7 +591,10 @@ int main(int argc, char **argv) {
     EXCEPT(e);
   }
 
-  e = clink(&deps);
+  e = run_examples(&deps);
+  EXCEPT(e);
+
+  e = program_link(&deps);
   EXCEPT(e);
 
   return 0;

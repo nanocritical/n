@@ -1,0 +1,12 @@
+from nlang import *
+
+fun foo x:i32 = i32
+  return 0
+
+example -> assert (foo 0 == 0)
+example
+  assert (foo 1 == 0)
+  assert (foo (-1) == 0)
+
+export fun main = i32
+  return foo 1

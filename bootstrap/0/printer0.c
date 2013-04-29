@@ -573,9 +573,6 @@ static void print_deftype_statement(FILE *out, const struct module *mod, int ind
   case INVARIANT:
     print_invariant(out, mod, indent, node);
     break;
-  case EXAMPLE:
-    print_example(out, mod, indent, node);
-    break;
   case DEFFIELD:
     print_deffield(out, mod, node);
     break;
@@ -734,6 +731,9 @@ static void print_module(FILE *out, const struct module *mod) {
       break;
     case IMPORT:
       print_import(out, mod, 0, node);
+      break;
+    case EXAMPLE:
+      print_example(out, mod, 0, node);
       break;
     default:
       fprintf(stderr, "Unsupported node: %d\n", node->which);

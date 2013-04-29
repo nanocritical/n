@@ -217,7 +217,9 @@ struct node_delegate {};
 struct node_pre {};
 struct node_post {};
 struct node_invariant {};
-struct node_example {};
+struct node_example {
+  size_t name;
+};
 struct node_import {
   struct toplevel toplevel;
   bool is_all;
@@ -592,6 +594,10 @@ struct module {
   enum token_type nulref_wildcard;
   enum token_type deref_wildcard;
   enum token_type wildcard;
+  size_t next_example;
+  size_t next_pre;
+  size_t next_post;
+  size_t next_invariant;
 };
 
 void globalctx_init(struct globalctx *gctx);
