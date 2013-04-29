@@ -605,3 +605,9 @@ export fun assert cond:bool = void
 
 export inline (fun t:i_any) unused x:t = void
   pass
+
+export inline (fun t:i_any) optional opt:?@t default:t = t
+  if opt !== null
+    return opt.
+  else
+    return default
