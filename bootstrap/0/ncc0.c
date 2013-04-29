@@ -39,7 +39,7 @@ static error cc(const struct module *mod, const char *o_fn,
   return 0;
 }
 
-error generate(struct node *node) {
+static error generate(struct node *node) {
   assert(node->which == MODULE);
   struct module *mod = node->as.MODULE.mod;
 
@@ -404,11 +404,11 @@ static error gather_dependencies(struct node *node, struct dependencies *deps) {
 HTABLE_SPARSE(dependencies_map, int, struct module *);
 implement_htable_sparse(__attribute__((unused)) static, dependencies_map, int, struct module *);
 
-uint32_t module_pointer_hash(const struct module **mod) {
+static uint32_t module_pointer_hash(const struct module **mod) {
   return hash32_hsieh(mod, sizeof(*mod));
 }
 
-int module_pointer_cmp(const struct module **a, const struct module **b) {
+static int module_pointer_cmp(const struct module **a, const struct module **b) {
   return memcmp(a, b, sizeof(*a));
 }
 

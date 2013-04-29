@@ -356,7 +356,7 @@ static error step_assign_deftype_which_values(struct module *mod, struct node *n
   return 0;
 }
 
-void do_mk_expr_abspath(struct module *mod, struct node *node, const char *path, ssize_t len) {
+static void do_mk_expr_abspath(struct module *mod, struct node *node, const char *path, ssize_t len) {
   assert(node->which == BIN);
   node->as.BIN.operator = TDOT;
 
@@ -385,7 +385,7 @@ void do_mk_expr_abspath(struct module *mod, struct node *node, const char *path,
   }
 }
 
-struct node *mk_expr_abspath(struct module *mod, struct node *node, const char *path) {
+static struct node *mk_expr_abspath(struct module *mod, struct node *node, const char *path) {
   if (strstr(path, ".") == NULL) {
     struct node *n = mk_node(mod, node, IDENT);
     n->as.IDENT.name = idents_add_string(mod->gctx, path, strlen(path));
@@ -1165,7 +1165,7 @@ static error step_stop_already_earlytypepass(struct module *mod, struct node *no
 
 static error step_type_inference(struct module *mod, struct node *node, void *user, bool *stop);
 
-error earlytypepass(struct module *mod, struct node *node) {
+static error earlytypepass(struct module *mod, struct node *node) {
   static const step down[] = {
     step_stop_marker_tbi,
     step_stop_block,

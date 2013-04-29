@@ -367,15 +367,15 @@ struct module *node_module_owner(struct node *node) {
   return n->as.MODULE.mod;
 }
 
-struct module *node_module_owner_const(const struct node *node) {
+static struct module *node_module_owner_const(const struct node *node) {
   struct node *n = do_node_module_owner((struct node *)node);
   assert(n != NULL);
   assert(n->which == MODULE);
   return n->as.MODULE.mod;
 }
 
-const struct module *try_node_module_owner_const(const struct module *mod,
-                                                 const struct node *node) {
+static const struct module *try_node_module_owner_const(const struct module *mod,
+                                                        const struct node *node) {
   struct node *n = do_node_module_owner((struct node *)node);
   if (n == NULL) {
     return mod;
@@ -447,25 +447,6 @@ ident node_ident(const struct node *node) {
   default:
     return ID_ANONYMOUS;
   }
-}
-
-error node_from_intf_definition(struct node **result,
-                                struct module *mod, const struct node *node) {
-  *result = NULL;
-
-  switch (node->which) {
-  case DEFFUN:
-  case DEFMETHOD:
-    if (node->subs[0]->which == BIN) {
-      error e = scope_lookup(result, mod, node->scope, node->subs[0]->subs[0]);
-      EXCEPT(e);
-    }
-    break;
-  default:
-    break;
-  }
-
-  return 0;
 }
 
 const struct toplevel *node_toplevel_const(const struct node *node) {

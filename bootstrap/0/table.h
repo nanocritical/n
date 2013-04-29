@@ -365,7 +365,7 @@ storage implement_htable_set_custom_hashf(name, type, key_type);\
 storage implement_htable_set_custom_cmpf(name, type, key_type); \
 storage implement_htable_count(name, type, key_type); \
 storage implement_htable_get(name, type, key_type); \
-storage implement_htable_set(name, type, key_type); \
+storage implement_htable_set(storage, name, type, key_type); \
 implement_htable_foreach(storage, name, type, key_type); \
 implement_htable_rehash(storage, name, type, key_type)
 
@@ -414,7 +414,7 @@ storage implement_htable_set_custom_hashf(name, type, key_type);\
 storage implement_htable_set_custom_cmpf(name, type, key_type); \
 storage implement_htable_count(name, type, key_type); \
 storage implement_htable_get(name, type, key_type); \
-storage implement_htable_set(name, type, key_type); \
+storage implement_htable_set(storage, name, type, key_type); \
 implement_htable_foreach(storage, name, type, key_type); \
 implement_htable_rehash(storage, name, type, key_type)
 
