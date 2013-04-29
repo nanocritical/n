@@ -87,12 +87,15 @@ error one_level_pass(struct module *mod, struct node *root, const step *down_ste
 
 static error zero_for_generated(struct module *mod, struct node *node,
                                 struct scope *parent_scope);
-static error zero_to_early_for_generated(struct module *mod, struct node *node,
-                                         struct scope *parent_scope);
+static error zero_to_lunch_for_generated(struct module *mod, struct node *node,
+                                          struct scope *parent_scope);
 static error zero_to_first_for_generated(struct module *mod, struct node *node,
                                          struct node **except, struct scope *parent_scope);
 static error zero_to_second_for_generated(struct module *mod, struct node *node,
                                           struct node **except, struct scope *parent_scope);
+static error passes_for_instantiation(struct module *instantiating_mod,
+                                      struct module *mod, struct node *instance,
+                                      struct scope *parent_scope);
 
 static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
@@ -902,6 +905,27 @@ static error step_stop_block(struct module *mod, struct node *node, void *user, 
   }
 }
 
+static error step_stop_funblock(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+  switch (node->which) {
+  case BLOCK:
+    break;
+  default:
+    return 0;
+  }
+
+  switch (node->scope->parent->node->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+    *stop = TRUE;
+    break;
+  default:
+    break;
+  }
+
+  return 0;
+}
+
 static error step_rewrite_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
@@ -1160,13 +1184,12 @@ error earlytypepass(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error step_type_definitions(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_deftypes_defintfs(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
 
   error e;
   switch (node->which) {
   case IMPORT:
-  case DEFFUN:
     if (node_is_at_top(node)) {
       e = earlytypepass(mod, node);
       EXCEPT(e);
@@ -1205,19 +1228,6 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
     node->typ = typ_new(node, TYPE_DEF, 0, 0);
   }
   node->flags = NODE_IS_TYPE;
-
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    switch (node->which) {
-    case LET:
-    case DEFFUN:
-    case DEFMETHOD:
-      e = earlytypepass(mod, node);
-      EXCEPT(e);
-      break;
-    default:
-      break;
-    }
-  }
 
   return 0;
 }
@@ -1296,6 +1306,71 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
 
   if (node->which == DEFINTF) {
     node->as.DEFINTF.is_implied_generic = uses_implied_generic;
+  }
+
+  return 0;
+}
+
+static error step_type_lets(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  struct node *parent = node->scope->parent->node;
+  error e;
+  switch (node->which) {
+  case LET:
+    if (node_is_at_top(node) || node_is_at_top(parent)) {
+      e = earlytypepass(mod, node);
+      EXCEPT(e);
+    }
+    return 0;
+  default:
+    return 0;
+  }
+
+  return 0;
+}
+
+static error step_type_deffields(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  error e;
+  switch (node->which) {
+  case DEFFIELD:
+    e = earlytypepass(mod, node);
+    EXCEPT(e);
+    return 0;
+  default:
+    return 0;
+  }
+
+  return 0;
+}
+
+static error step_type_deffuns(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  error e;
+  switch (node->which) {
+  case DEFMETHOD:
+  case DEFFUN:
+    e = earlytypepass(mod, node);
+    EXCEPT(e);
+    return 0;
+  case DEFTYPE:
+  case DEFINTF:
+    break;
+  default:
+    return 0;
+  }
+
+  return 0;
+}
+
+static error step_set_afternoon(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node == mod->root) {
+    mod->afternoon = TRUE;
   }
 
   return 0;
@@ -1433,8 +1508,8 @@ static const struct typ *typ_ref(struct module *mod, enum token_type op, const s
   ga->typ = typ;
   ga->flags = NODE_IS_TYPE;
 
-  error e = zero_to_second_for_generated(mod, instance, NULL,
-                                         gendef->scope->parent);
+  error e = passes_for_instantiation(node_module_owner(gendef), mod,
+                                     instance, gendef->scope->parent);
   assert(!e);
 
   return instance->typ;
@@ -1964,7 +2039,7 @@ static error rewrite_deftype_instance_genargs(struct module *mod,
     assert(ex->typ->definition != NULL);
     ga->subs[1]->as.DIRECTDEF.definition = ex->typ->definition;
 
-    // For the benefit of step_type_definitions
+    // For the benefit of step_type_deftypes_defintfs
     ga->typ = ex->typ;
     ga->flags = NODE_IS_TYPE;
   }
@@ -2077,8 +2152,8 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
   error e = rewrite_deftype_instance_genargs(mod, instance, expr);
   EXCEPT(e);
 
-  e = zero_to_second_for_generated(mod, instance, NULL,
-                                   gendef->scope->parent);
+  e = passes_for_instantiation(mod, node_module_owner(gendef),
+                               instance, gendef->scope->parent);
   EXCEPT(e);
 
   if (instance->which == DEFTYPE) {
@@ -2087,7 +2162,8 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
       if (node_toplevel_const(m)->builtingen != BG__NOT) {
         continue;
       }
-      e = zero_to_second_for_generated(mod, m, NULL, instance->scope);
+      e = passes_for_instantiation(mod, node_module_owner(gendef),
+                                   m, instance->scope);
       EXCEPT(e);
     }
   }
@@ -2913,7 +2989,7 @@ static void add_isa(struct module *mod, struct node *deft, const char *path) {
   error e = zero_to_first_for_generated(mod, isa, NULL, isalist->scope);
   assert(!e);
 
-  // isalist are typed in earlypass, but add_isa() is called later. We
+  // isalist are typed in snackpass, but add_isa() is called later. We
   // forcibly add the new typ to it if it's not already there.
   if (typ_isa(mod, deft->typ, isa->typ)) {
     return;
@@ -3254,7 +3330,7 @@ static void define_dispatch(struct module *mod, struct node *deft, const struct 
 
     rew_insert_last_at(modbody, insert_pos);
 
-    error e = zero_to_early_for_generated(mod, d, deft->scope);
+    error e = zero_to_lunch_for_generated(mod, d, deft->scope);
     assert(!e);
   }
 }
@@ -3794,6 +3870,29 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
   return 0;
 }
 
+static error step_complete_instantiation(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (!node_can_have_genargs(node)
+      || node->subs[IDX_GENARGS]->subs_count == 0) {
+    return 0;
+  }
+
+  error e = 0;
+  struct toplevel *toplevel = node_toplevel(node);
+  for (size_t n = 1; n < toplevel->instances_count; ++n) {
+    struct node *i = toplevel->instances[n];
+
+    e = firstpass(mod, i, NULL);
+    EXCEPT(e);
+
+    e = secondpass(mod, i, NULL);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
 static const step zeropass_down[] = {
   step_rewrite_prototype_wildcards,
   step_generics_pristine_copy,
@@ -3838,7 +3937,7 @@ static const step forwardpass_down[] = {
 };
 
 static const step forwardpass_up[] = {
-  step_type_definitions,
+  step_type_deftypes_defintfs,
   NULL,
 };
 
@@ -3850,20 +3949,79 @@ error forwardpass(struct module *mod, struct node *node, struct node **except) {
   return 0;
 }
 
-static const step earlypass_down[] = {
+static const step snackpass_down[] = {
   step_stop_submodules,
+  step_stop_marker_tbi,
+  step_stop_funblock,
   step_type_inference_genargs,
   NULL,
 };
 
-static const step earlypass_up[] = {
+static const step snackpass_up[] = {
   step_type_inference_isalist,
   NULL,
 };
 
-error earlypass(struct module *mod, struct node *node, struct node **except) {
+error snackpass(struct module *mod, struct node *node, struct node **except) {
   int module_depth = 0;
-  error e = pass(mod, node, earlypass_down, earlypass_up, except, &module_depth);
+  error e = pass(mod, node, snackpass_down, snackpass_up, except, &module_depth);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static const step brunch1pass_down[] = {
+  step_stop_submodules,
+  step_stop_marker_tbi,
+  step_stop_funblock,
+  NULL,
+};
+
+static const step brunch1pass_up[] = {
+  step_type_lets,
+  NULL,
+};
+
+static const step brunch2pass_down[] = {
+  step_stop_submodules,
+  step_stop_marker_tbi,
+  step_stop_funblock,
+  NULL,
+};
+
+static const step brunch2pass_up[] = {
+  step_type_deffields,
+  NULL,
+};
+
+error brunchpass(struct module *mod, struct node *node, struct node **except) {
+  int module_depth = 0;
+  error e = pass(mod, node, brunch1pass_down, brunch1pass_up, except, &module_depth);
+  EXCEPT(e);
+
+  module_depth = 0;
+  e = pass(mod, node, brunch2pass_down, brunch2pass_up, except, &module_depth);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static const step lunchpass_down[] = {
+  step_stop_submodules,
+  step_stop_marker_tbi,
+  step_stop_funblock,
+  NULL,
+};
+
+static const step lunchpass_up[] = {
+  step_type_deffuns,
+  step_set_afternoon,
+  NULL,
+};
+
+error lunchpass(struct module *mod, struct node *node, struct node **except) {
+  int module_depth = 0;
+  error e = pass(mod, node, lunchpass_down, lunchpass_up, except, &module_depth);
   EXCEPT(e);
 
   return 0;
@@ -3927,6 +4085,7 @@ static const step secondpass_up[] = {
   step_define_temporary_rvalues,
 
   step_type_drop_retval,
+  step_complete_instantiation,
   NULL,
 };
 
@@ -3946,7 +4105,7 @@ static error zero_for_generated(struct module *mod, struct node *node,
   return 0;
 }
 
-static error zero_to_early_for_generated(struct module *mod, struct node *node,
+static error zero_to_lunch_for_generated(struct module *mod, struct node *node,
                                          struct scope *parent_scope) {
   error e = zeropass(mod, node, NULL);
   EXCEPT(e);
@@ -3955,7 +4114,13 @@ static error zero_to_early_for_generated(struct module *mod, struct node *node,
   e = forwardpass(mod, node, NULL);
   EXCEPT(e);
 
-  e = earlypass(mod, node, NULL);
+  e = snackpass(mod, node, NULL);
+  EXCEPT(e);
+
+  e = brunchpass(mod, node, NULL);
+  EXCEPT(e);
+
+  e = lunchpass(mod, node, NULL);
   EXCEPT(e);
 
   return 0;
@@ -3971,7 +4136,13 @@ static error zero_to_first_for_generated(struct module *mod, struct node *node,
   e = forwardpass(mod, node, except);
   EXCEPT(e);
 
-  e = earlypass(mod, node, except);
+  e = snackpass(mod, node, except);
+  EXCEPT(e);
+
+  e = brunchpass(mod, node, except);
+  EXCEPT(e);
+
+  e = lunchpass(mod, node, except);
   EXCEPT(e);
 
   e = firstpass(mod, node, except);
@@ -3990,7 +4161,13 @@ static error zero_to_second_for_generated(struct module *mod, struct node *node,
   e = forwardpass(mod, node, except);
   EXCEPT(e);
 
-  e = earlypass(mod, node, except);
+  e = snackpass(mod, node, except);
+  EXCEPT(e);
+
+  e = brunchpass(mod, node, except);
+  EXCEPT(e);
+
+  e = lunchpass(mod, node, except);
   EXCEPT(e);
 
   e = firstpass(mod, node, except);
@@ -3998,6 +4175,20 @@ static error zero_to_second_for_generated(struct module *mod, struct node *node,
 
   e = secondpass(mod, node, except);
   EXCEPT(e);
+
+  return 0;
+}
+
+static error passes_for_instantiation(struct module *instantiating_mod,
+                                      struct module *mod, struct node *instance,
+                                      struct scope *parent_scope) {
+  if (instantiating_mod == mod && !mod->afternoon) {
+    error e = zero_to_lunch_for_generated(mod, instance, parent_scope);
+    EXCEPT(e);
+  } else {
+    error e = zero_to_second_for_generated(mod, instance, NULL, parent_scope);
+    EXCEPT(e);
+  }
 
   return 0;
 }

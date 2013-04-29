@@ -503,18 +503,28 @@ int main(int argc, char **argv) {
   EXCEPT(e);
 
   for (size_t n = 0; n < deps.modules_count; ++n) {
-    e = forwardpass(deps.modules[n], NULL, NULL);
+    struct module *mod = deps.modules[n];
+
+    e = forwardpass(mod, NULL, NULL);
     EXCEPT(e);
 
-    e = earlypass(deps.modules[n], NULL, NULL);
+    e = snackpass(mod, NULL, NULL);
     EXCEPT(e);
 
-    e = firstpass(deps.modules[n], NULL, NULL);
+    e = brunchpass(mod, NULL, NULL);
+    EXCEPT(e);
+
+    e = lunchpass(mod, NULL, NULL);
+    EXCEPT(e);
+
+    e = firstpass(mod, NULL, NULL);
     EXCEPT(e);
   }
 
   for (size_t n = 0; n < deps.modules_count; ++n) {
-    e = generate(deps.modules[n]->root);
+    struct module *mod = deps.modules[n];
+
+    e = generate(mod->root);
     EXCEPT(e);
   }
 

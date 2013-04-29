@@ -582,6 +582,7 @@ struct module {
 
   // State
   size_t next_gensym;
+  bool afternoon;
   bool intf_uses_this;
   const struct node **return_nodes;
   size_t return_nodes_count;

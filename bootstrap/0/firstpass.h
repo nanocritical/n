@@ -12,7 +12,9 @@ error one_level_pass(struct module *mod, struct node *root, const step *down_ste
 
 error zeropass(struct module *mod, struct node *node, struct node **except);
 error forwardpass(struct module *mod, struct node *node, struct node **except);
-error earlypass(struct module *mod, struct node *node, struct node **except);
+error snackpass(struct module *mod, struct node *node, struct node **except);
+error brunchpass(struct module *mod, struct node *node, struct node **except);
+error lunchpass(struct module *mod, struct node *node, struct node **except);
 error firstpass(struct module *mod, struct node *node, struct node **except);
 error secondpass(struct module *mod, struct node *node, struct node **except);
 
