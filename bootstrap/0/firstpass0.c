@@ -2193,7 +2193,8 @@ static error type_inference_call(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
 
   if (fun->typ->which == TYPE_DEF) {
-    if (fun->typ->definition->subs[IDX_GENARGS]->subs_count == 0) {
+    if (!node_can_have_genargs(fun->typ->definition)
+        || fun->typ->definition->subs[IDX_GENARGS]->subs_count == 0) {
       error e = mk_except_type(mod, fun, "not a generic type");
       EXCEPT(e);
     }
