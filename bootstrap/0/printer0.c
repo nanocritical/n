@@ -16,7 +16,6 @@ const char *token_strings[TOKEN__NUM] = {
   [Tintf] = "intf",
   [Tinline] = "inline",
   [Tlet] = "let",
-  [Tdyn] = "dyn",
   [Tif] = "if",
   [Telif] = "elif",
   [Telse] = "else",

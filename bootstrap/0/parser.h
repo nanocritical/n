@@ -192,7 +192,9 @@ struct node_defname {
   struct node *pattern;
   struct node *expr;
 };
-struct node_defpattern {};
+struct node_defpattern {
+  bool is_alias;
+};
 struct node_defarg {
   bool is_retval;
 };

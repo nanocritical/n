@@ -1713,8 +1713,10 @@ static error p_except(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_defpattern(struct node *node, struct module *mod) {
+static error p_defpattern(struct node *node, struct module *mod,
+                          enum token_type let_alias) {
   node->which = DEFPATTERN;
+  node->as.DEFPATTERN.is_alias = let_alias == Talias;
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
@@ -1733,13 +1735,14 @@ static error p_defpattern(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_let(struct node *node, struct module *mod, const struct toplevel *toplevel) {
+static error p_let(struct node *node, struct module *mod, const struct toplevel *toplevel,
+                   enum token_type let_alias) {
   node->which = LET;
   if (toplevel != NULL) {
     node->as.LET.toplevel = *toplevel;
   }
 
-  error e = p_defpattern(node_new_subnode(mod, node), mod);
+  error e = p_defpattern(node_new_subnode(mod, node), mod, let_alias);
   EXCEPT(e);
 
   struct token tok = { 0 };
@@ -2013,7 +2016,8 @@ static error p_statement(struct node *node, struct module *mod) {
     e = p_except(node, mod);
     break;
   case Tlet:
-    e = p_let(node, mod, NULL);
+  case Talias:
+    e = p_let(node, mod, NULL, tok.t);
     break;
   case Tif:
     e = p_if(node, mod);
@@ -2329,7 +2333,8 @@ static error p_deftype_statement(struct node *node, struct module *mod) {
     e = p_pass(node, mod);
     break;
   case Tlet:
-    e = p_let(node, mod, &toplevel);
+  case Talias:
+    e = p_let(node, mod, &toplevel, tok.t);
     break;
   case Tdelegate:
     e = p_delegate(node, mod);
@@ -2498,7 +2503,8 @@ again:
     e = p_deffun(node, mod, &toplevel, DEFMETHOD);
     break;
   case Tlet:
-    e = p_let(node, mod, &toplevel);
+  case Talias:
+    e = p_let(node, mod, &toplevel, tok.t);
     break;
   case Tinvariant:
     e = p_invariant(node, mod);
@@ -2753,7 +2759,8 @@ bypass:
     e = p_deffun(node, mod, &toplevel, DEFMETHOD);
     break;
   case Tlet:
-    e = p_let(NEW(mod, node), mod, &toplevel);
+  case Talias:
+    e = p_let(NEW(mod, node), mod, &toplevel, tok.t);
     break;
   case TIDENT:
     toplevel.scope_name = idents_add(mod->gctx, &tok);

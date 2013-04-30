@@ -409,6 +409,7 @@ static error step_add_builtin_members(struct module *mod, struct node *node, voi
 
   struct node *let = mk_node(mod, node, LET);
   struct node *defp = mk_node(mod, let, DEFPATTERN);
+  defp->as.DEFPATTERN.is_alias = TRUE;
   struct node *name = mk_node(mod, defp, IDENT);
   name->as.IDENT.name = ID_THIS;
   struct node *expr = mk_node(mod, defp, IDENT);
@@ -1150,7 +1151,7 @@ static error step_type_mutability_mark(struct module *mod, struct node *node, vo
   return 0;
 }
 
-static error step_stop_already_earlytypepass(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_stop_already_morningtypepass(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case ISA:
@@ -1165,7 +1166,7 @@ static error step_stop_already_earlytypepass(struct module *mod, struct node *no
 
 static error step_type_inference(struct module *mod, struct node *node, void *user, bool *stop);
 
-static error earlytypepass(struct module *mod, struct node *node) {
+static error morningtypepass(struct module *mod, struct node *node) {
   static const step down[] = {
     step_stop_marker_tbi,
     step_stop_block,
@@ -1191,7 +1192,7 @@ static error step_type_deftypes_defintfs(struct module *mod, struct node *node, 
   switch (node->which) {
   case IMPORT:
     if (node_is_at_top(node)) {
-      e = earlytypepass(mod, node);
+      e = morningtypepass(mod, node);
       EXCEPT(e);
     }
     return 0;
@@ -1252,7 +1253,7 @@ static error step_type_inference_genargs(struct module *mod, struct node *node, 
   }
 
   struct node *genargs = node->subs[IDX_GENARGS];
-  e = earlytypepass(mod, genargs);
+  e = morningtypepass(mod, genargs);
   EXCEPT(e);
 
   return 0;
@@ -1264,7 +1265,7 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
 
   switch (node->which) {
   case ISA:
-    e = earlytypepass(mod, node);
+    e = morningtypepass(mod, node);
     EXCEPT(e);
     return 0;
   case DEFTYPE:
@@ -1311,15 +1312,16 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
   return 0;
 }
 
-static error step_type_lets(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_aliases(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
 
   struct node *parent = node->scope->parent->node;
   error e;
   switch (node->which) {
   case LET:
-    if (node_is_at_top(node) || node_is_at_top(parent)) {
-      e = earlytypepass(mod, node);
+    if (node->subs[0]->as.DEFPATTERN.is_alias
+        && (node_is_at_top(node) || node_is_at_top(parent))) {
+      e = morningtypepass(mod, node);
       EXCEPT(e);
     }
     return 0;
@@ -1336,7 +1338,7 @@ static error step_type_deffields(struct module *mod, struct node *node, void *us
   error e;
   switch (node->which) {
   case DEFFIELD:
-    e = earlytypepass(mod, node);
+    e = morningtypepass(mod, node);
     EXCEPT(e);
     return 0;
   default:
@@ -1353,7 +1355,7 @@ static error step_type_deffuns(struct module *mod, struct node *node, void *user
   switch (node->which) {
   case DEFMETHOD:
   case DEFFUN:
-    e = earlytypepass(mod, node);
+    e = morningtypepass(mod, node);
     EXCEPT(e);
     return 0;
   case DEFTYPE:
@@ -3982,7 +3984,7 @@ static const step brunch1pass_down[] = {
 };
 
 static const step brunch1pass_up[] = {
-  step_type_lets,
+  step_type_aliases,
   NULL,
 };
 
@@ -4034,7 +4036,7 @@ error lunchpass(struct module *mod, struct node *node, struct node **except) {
 static const step firstpass_down[] = {
   step_stop_submodules,
   step_stop_marker_tbi,
-  step_stop_already_earlytypepass,
+  step_stop_already_morningtypepass,
   step_rewrite_wildcards,
   step_type_destruct_mark,
   step_type_mutability_mark,

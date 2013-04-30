@@ -5,9 +5,9 @@ from nlang.memory import heap sysheap slice
 export inline type vector t:i_copyable = \
     export i_trivial_ctor \
     export i_copyable
-  let ut = (nlang.unsafe.unconstructed t)
   _p:(slice ut)
   _count:size
+  alias ut = (nlang.unsafe.unconstructed t)
 
 export vector method count = size
   return self._count

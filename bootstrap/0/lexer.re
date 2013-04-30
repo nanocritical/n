@@ -102,8 +102,8 @@ normal:
   "method" { R(Tmethod); }
   "intf" { R(Tintf); }
   "inline" { R(Tinline); }
-  "dyn" { R(Tdyn); }
   "let" { R(Tlet); }
+  "alias" { R(Talias); }
   "if" { R(Tif); }
   "elif" { R(Telif); }
   "else" { R(Telse); }
