@@ -1113,7 +1113,7 @@ static error step_type_mutability_mark(struct module *mod, struct node *node, vo
       break;
     case TREFBANG:
       if (arg->typ != NULL) {
-        if (arg->which == BIN) {
+        if (arg->which == BIN && !(arg->flags & NODE_IS_TYPE)) {
           error e = typ_check_deref_against_mark(mod, arg,
                                                  typ_lookup_builtin(mod, TBI__MUTABLE),
                                                  arg->as.BIN.operator);
@@ -1125,7 +1125,7 @@ static error step_type_mutability_mark(struct module *mod, struct node *node, vo
       break;
     case TREFSHARP:
       if (arg->typ != NULL) {
-        if (arg->which == BIN) {
+        if (arg->which == BIN && !(arg->flags & NODE_IS_TYPE)) {
           error e = typ_check_deref_against_mark(mod, arg,
                                                  typ_lookup_builtin(mod, TBI__MERCURIAL),
                                                  arg->as.BIN.operator);
@@ -1681,8 +1681,7 @@ static error rewrite_unary_call(struct module *mod, struct node *node, const str
 static error type_inference_bin_accessor(struct module *mod, struct node *node) {
   error e;
 
-  e = typ_check_deref_against_mark(mod, node, node->typ, node->as.BIN.operator);
-  EXCEPT(e);
+  const struct typ *mark = node->typ;
 
   struct node *parent = node->subs[0];
   if (typ_equal(mod, parent->typ, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))) {
@@ -1717,6 +1716,11 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
     node->typ = field->typ;
     assert(field->which != BIN || field->flags != 0);
     node->flags = field->flags;
+  }
+
+  if (!(node->flags & NODE_IS_TYPE)) {
+    e = typ_check_deref_against_mark(mod, node, mark, node->as.BIN.operator);
+    EXCEPT(e);
   }
 
   return 0;
