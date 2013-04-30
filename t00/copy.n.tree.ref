@@ -16,7 +16,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(builtins) :__internal_not_typeable__
      IDENT(i_trivial_ctor) :__internal_not_typeable__
   LET :nlang.builtins.void
-   DEFPATTERN :t00.copy.copy
+   DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.copy.copy
     IDENT(copy) :t00.copy.copy
     DEFNAME(this) :t00.copy.copy
@@ -81,7 +81,7 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(this) :t00.copy.copy
   IDENT(void) :nlang.builtins.void
   BLOCK :nlang.builtins.void
-   BIN( = ) :nlang.builtins.i32
+   BIN( = ) :nlang.builtins.void
     BIN(!) :nlang.builtins.i32
      IDENT(self) :(nlang.builtins.i_mercurial_ref t00.copy.copy)
      IDENT(x) :__internal_not_typeable__
@@ -94,7 +94,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :t00.copy.copy
    IDENT(_nretval) :t00.copy.copy
    IDENT(copy) :t00.copy.copy
-  BLOCK :nlang.builtins.void
+  BLOCK :t00.copy.copy
    RETURN :t00.copy.copy
     INIT :t00.copy.copy
      IDENT(copy) :t00.copy.copy
@@ -104,15 +104,15 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    LET :nlang.builtins.void
-    DEFPATTERN :t00.copy.copy
+    DEFPATTERN :nlang.builtins.void
      IDENT(w) :t00.copy.copy
      CALL :t00.copy.copy
       IDENT(foo) :t00.copy.foo
      DEFNAME(w) :t00.copy.copy
    LET :nlang.builtins.void
-    DEFPATTERN :t00.copy.copy
+    DEFPATTERN :nlang.builtins.void
      IDENT(y) :t00.copy.copy
      INIT :t00.copy.copy
       IDENT(copy) :t00.copy.copy
@@ -121,7 +121,7 @@ MODULE_BODY :__internal_not_typeable__
        NUMBER(1) :nlang.builtins.i32
      DEFNAME(y) :t00.copy.copy
    LET :nlang.builtins.void
-    DEFPATTERN :t00.copy.copy
+    DEFPATTERN :nlang.builtins.void
      TYPECONSTRAINT :t00.copy.copy
       IDENT(z) :t00.copy.copy
       IDENT(copy) :t00.copy.copy
@@ -136,7 +136,7 @@ MODULE_BODY :__internal_not_typeable__
       UN(@) :(nlang.builtins.i_ref t00.copy.copy)
        IDENT(y) :t00.copy.copy
    LET :nlang.builtins.void
-    DEFPATTERN :t00.copy.copy
+    DEFPATTERN :nlang.builtins.void
      IDENT(zz) :t00.copy.copy
      IDENT(z) :t00.copy.copy
      DEFNAME(zz) :t00.copy.copy

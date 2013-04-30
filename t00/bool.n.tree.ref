@@ -7,7 +7,7 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.bool
+    DEFPATTERN :nlang.builtins.void
      IDENT(x) :nlang.builtins.bool
      TYPECONSTRAINT :nlang.builtins.bool
       BOOL :nlang.builtins.bool
@@ -17,9 +17,9 @@ MODULE_BODY :__internal_not_typeable__
     BIN( and ) :nlang.builtins.bool
      IDENT(x) :nlang.builtins.bool
      BOOL :nlang.builtins.bool
-    BLOCK :nlang.builtins.void
+    BLOCK :nlang.builtins.i32
      RETURN :nlang.builtins.i32
       NUMBER(0) :nlang.builtins.i32
-    BLOCK :nlang.builtins.void
+    BLOCK :nlang.builtins.i32
      RETURN :nlang.builtins.i32
       NUMBER(1) :nlang.builtins.i32

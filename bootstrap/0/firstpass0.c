@@ -437,6 +437,9 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
 
   switch (pattern->which) {
   case IDENT:
+    if (node_ident(pattern) == ID_OTHERWISE) {
+      return 0;
+    }
     defn = mk_node(mod, defpattern, DEFNAME);
     defn->as.DEFNAME.pattern = pattern;
     defn->as.DEFNAME.expr = expr;
@@ -478,6 +481,10 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
 static error step_defpattern_extract_defname(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFPATTERN) {
+    return 0;
+  }
+
+  if (node_ident(node) == ID_OTHERWISE) {
     return 0;
   }
 
@@ -1629,6 +1636,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
       EXCEPT(e);
     }
 
+    node->typ = typ_lookup_builtin(mod, TBI_VOID);
     node->subs[0]->flags |= (node->subs[1]->flags & NODE__TRANSITIVE);
   }
   node->flags |= (node->subs[0]->flags & NODE__TRANSITIVE);
@@ -2690,8 +2698,29 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
       node->typ = typ_lookup_builtin(mod, TBI_VOID);
     }
     goto ok;
-  case EXCEP:
   case BLOCK:
+    for (size_t n = 0; n < node->subs_count; ++n) {
+      struct node *s = node->subs[n];
+      if ((s->flags & NODE_IS_TYPE)) {
+        e = mk_except_type(mod, s, "block statements cannot be type names");
+        EXCEPT(e);
+      }
+    }
+    if (node->subs_count > 0) {
+      for (size_t n = 0; n < node->subs_count - 1; ++n) {
+        struct node *s = node->subs[n];
+        if (!typ_equal(mod, s->typ, typ_lookup_builtin(mod, TBI_VOID))) {
+          e = mk_except_type(mod, s, "block statements (except the last one) must be of type void, not '%s'",
+                             typ_pretty_name(mod, s->typ));
+          EXCEPT(e);
+        }
+      }
+      node->typ = node->subs[node->subs_count - 1]->typ;
+    } else {
+      node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    }
+    goto ok;
+  case EXCEP:
   case BREAK:
   case CONTINUE:
   case PASS:
@@ -2699,7 +2728,9 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case FOR:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
-    struct node *it = node->subs[IDX_FOR_IT]->subs[IDX_FOR_IT_DEFP];
+    struct node *it = node->subs[IDX_FOR_IT]
+      ->subs[IDX_FOR_IT_DEFP]
+      ->subs[IDX_FOR_IT_DEFP_DEFN];
     e = typ_check_isa(mod, it, it->typ,
                       typ_lookup_builtin(mod, TBI_ITERATOR));
     EXCEPT(e);
@@ -2708,7 +2739,8 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case IF:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
     for (size_t n = 0; n < node->subs_count-1; n += 2) {
-      e = typ_compatible(mod, node->subs[n], node->subs[n]->typ, typ_lookup_builtin(mod, TBI_BOOL));
+      e = typ_compatible(mod, node->subs[n], node->subs[n]->typ,
+                         typ_lookup_builtin(mod, TBI_BOOL));
       EXCEPT(e);
     }
     goto ok;
@@ -2809,14 +2841,16 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     }
     goto ok;
   case DEFPATTERN: {
+    node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    if (node_ident(node->subs[0]) == ID_OTHERWISE) {
+      goto ok;
+    }
     bool has_expr = node->subs_count > 1 && node->subs[1]->which != DEFNAME;
     if (has_expr) {
       e = type_destruct(mod, node->subs[0], node->subs[1]->typ);
       EXCEPT(e);
     }
-    node->typ = node->subs[0]->typ;
     if (has_expr) {
-      node->flags = node->subs[1]->flags;
       for (size_t n = 0; n < node->subs_count; ++n) {
         if (node->subs[n]->which == DEFNAME) {
           node->subs[n]->flags |= node->subs[n]->as.DEFNAME.expr->flags & NODE__TRANSITIVE;
@@ -2828,12 +2862,17 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case DEFFIELD:
     node->typ = node->subs[1]->typ;
     goto ok;
+  case EXAMPLE:
+    e = type_destruct(mod, node->subs[0],
+                      typ_lookup_builtin(mod, TBI_BOOL));
+    EXCEPT(e);
+    node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    goto ok;
   case LET:
   case DELEGATE:
   case PRE:
   case POST:
   case INVARIANT:
-  case EXAMPLE:
   case ISALIST:
   case GENARGS:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);

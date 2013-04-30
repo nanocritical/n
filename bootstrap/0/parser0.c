@@ -2052,13 +2052,10 @@ static error p_statement(struct node *node, struct module *mod) {
   case Tinvariant:
     e = p_invariant(node, mod);
     break;
-  case TLPAR:
-  case TIDENT:
+  default:
     back(mod, &tok);
     e = p_expr(node, mod, T__STATEMENT);
     break;
-  default:
-    UNEXPECTED(mod, &tok);
   }
   EXCEPT(e);
 

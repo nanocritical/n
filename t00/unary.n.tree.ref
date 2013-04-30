@@ -16,7 +16,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(builtins) :__internal_not_typeable__
      IDENT(i_trivial_ctor) :__internal_not_typeable__
   LET :nlang.builtins.void
-   DEFPATTERN :t00.unary.t
+   DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.unary.t
     IDENT(t) :t00.unary.t
     DEFNAME(this) :t00.unary.t
@@ -94,7 +94,7 @@ MODULE_BODY :__internal_not_typeable__
    UN(@) :(nlang.builtins.i_ref t00.unary.t)
     IDENT(this) :t00.unary.t
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    RETURN :nlang.builtins.i32
     BIN(.) :nlang.builtins.i32
      IDENT(self) :(nlang.builtins.i_ref t00.unary.t)
@@ -103,9 +103,9 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    LET :nlang.builtins.void
-    DEFPATTERN :t00.unary.t
+    DEFPATTERN :nlang.builtins.void
      IDENT(tt) :t00.unary.t
      INIT :t00.unary.t
       IDENT(t) :t00.unary.t

@@ -9,7 +9,7 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(i_copyable) :nlang.builtins.i_copyable
   ISALIST :nlang.builtins.void
   LET :nlang.builtins.void
-   DEFPATTERN :t01.generic.container
+   DEFPATTERN :nlang.builtins.void
     IDENT(this) :t01.generic.container
     IDENT(container) :t01.generic.container
     DEFNAME(this) :t01.generic.container
@@ -20,9 +20,9 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    LET :nlang.builtins.void
-    DEFPATTERN :(t01.generic.container nlang.builtins.i32)
+    DEFPATTERN :nlang.builtins.void
      IDENT(v) :(t01.generic.container nlang.builtins.i32)
      INIT :(t01.generic.container nlang.builtins.i32)
       CALL :(t01.generic.container nlang.builtins.i32)

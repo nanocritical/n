@@ -8,40 +8,36 @@ MODULE_BODY :__internal_not_typeable__
    IDENT(x) :nlang.builtins.i32
    IDENT(i32) :nlang.builtins.i32
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    RETURN :nlang.builtins.i32
     NUMBER(0) :nlang.builtins.i32
  EXAMPLE :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   CALL :nlang.builtins.void
-    IDENT(assert) :nlang.builtins.assert
-    BIN( == ) :nlang.builtins.bool
-     CALL :nlang.builtins.i32
-      IDENT(foo) :t00.example.foo
-      NUMBER(0) :nlang.builtins.i32
+  BLOCK :nlang.builtins.bool
+   BIN( == ) :nlang.builtins.bool
+    NUMBER(0) :nlang.builtins.i32
+    CALL :nlang.builtins.i32
+     IDENT(foo) :t00.example.foo
      NUMBER(0) :nlang.builtins.i32
  EXAMPLE :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   CALL :nlang.builtins.void
-    IDENT(assert) :nlang.builtins.assert
-    BIN( == ) :nlang.builtins.bool
-     CALL :nlang.builtins.i32
-      IDENT(foo) :t00.example.foo
+  BLOCK :nlang.builtins.bool
+   BIN( == ) :nlang.builtins.bool
+    CALL :nlang.builtins.i32
+     IDENT(foo) :t00.example.foo
+     NUMBER(1) :nlang.builtins.i32
+    NUMBER(0) :nlang.builtins.i32
+ EXAMPLE :nlang.builtins.void
+  BLOCK :nlang.builtins.bool
+   BIN( == ) :nlang.builtins.bool
+    CALL :nlang.builtins.i32
+     IDENT(foo) :t00.example.foo
+     UN(-) :nlang.builtins.i32
       NUMBER(1) :nlang.builtins.i32
-     NUMBER(0) :nlang.builtins.i32
-   CALL :nlang.builtins.void
-    IDENT(assert) :nlang.builtins.assert
-    BIN( == ) :nlang.builtins.bool
-     CALL :nlang.builtins.i32
-      IDENT(foo) :t00.example.foo
-      UN(-) :nlang.builtins.i32
-       NUMBER(1) :nlang.builtins.i32
-     NUMBER(0) :nlang.builtins.i32
+    NUMBER(0) :nlang.builtins.i32
  DEFFUN :t00.example.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    RETURN :nlang.builtins.i32
     CALL :nlang.builtins.i32
      IDENT(foo) :t00.example.foo

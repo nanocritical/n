@@ -21,9 +21,9 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    LET :nlang.builtins.void
-    DEFPATTERN :(nlang.builtins.i_mercurial_ref nlang.builtins.i32)
+    DEFPATTERN :nlang.builtins.void
      IDENT(p) :(nlang.builtins.i_mercurial_ref nlang.builtins.i32)
      CALL :(nlang.builtins.i_mercurial_ref nlang.builtins.i32)
       CALL :(nlang.memory.heap.alloc nlang.builtins.i32)
@@ -34,7 +34,7 @@ MODULE_BODY :__internal_not_typeable__
       UN(@!) :(nlang.builtins.i_mutable_ref nlang.memory.heap)
        IDENT(sysheap) :nlang.memory.heap
      DEFNAME(p) :(nlang.builtins.i_mercurial_ref nlang.builtins.i32)
-   BIN( = ) :nlang.builtins.i32
+   BIN( = ) :nlang.builtins.void
     UN(!) :nlang.builtins.i32
      IDENT(p) :(nlang.builtins.i_mercurial_ref nlang.builtins.i32)
     NUMBER(1) :nlang.builtins.i32

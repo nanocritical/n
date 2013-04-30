@@ -13,9 +13,9 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :nlang.builtins.i_numeric
    IDENT(_nretval) :nlang.builtins.i_numeric
    IDENT(t) :nlang.builtins.i_numeric
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i_numeric
    LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.i_numeric
+    DEFPATTERN :nlang.builtins.void
      IDENT(__gensym0) :nlang.builtins.i_numeric
      NUMBER(1) :nlang.builtins.i_numeric
      DEFNAME(__gensym0) :nlang.builtins.i_numeric
@@ -32,7 +32,7 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    RETURN :nlang.builtins.i32
     CALL :nlang.builtins.i32
      CALL :(t01.genericfun.decr nlang.builtins.i32)

@@ -7,22 +7,24 @@
 
 
 
+
+
 static nlang_builtins_i32 t00_example_foo(nlang_builtins_i32 x);
 
 void t00_example__Nexample0(void) __attribute__((section(".text.nlang.examples")));
 void t00_example__Nexample1(void) __attribute__((section(".text.nlang.examples")));
+void t00_example__Nexample2(void) __attribute__((section(".text.nlang.examples")));
 static nlang_builtins_i32 t00_example_foo(nlang_builtins_i32 x){
  {
 return (nlang_builtins_i32)0;
 }
 }
 
-void t00_example__Nexample0(void) {
-nlang_builtins_assert((t00_example_foo((nlang_builtins_i32)0) == (nlang_builtins_i32)0));
+void t00_example__Nexample0(void) {nlang_builtins_assert((nlang_builtins_i32)0 == t00_example_foo((nlang_builtins_i32)0));
 }
-void t00_example__Nexample1(void) {
-nlang_builtins_assert((t00_example_foo((nlang_builtins_i32)1) == (nlang_builtins_i32)0));
-nlang_builtins_assert((t00_example_foo(-(nlang_builtins_i32)1) == (nlang_builtins_i32)0));
+void t00_example__Nexample1(void) {nlang_builtins_assert(t00_example_foo((nlang_builtins_i32)1) == (nlang_builtins_i32)0);
+}
+void t00_example__Nexample2(void) {nlang_builtins_assert(t00_example_foo(-(nlang_builtins_i32)1) == (nlang_builtins_i32)0);
 }
 nlang_builtins_i32 __Nmain(void){
  {
@@ -33,4 +35,5 @@ void t00_example_Nrunexamples(void) __attribute__((section(".text.nlang.examples
 void t00_example_Nrunexamples(void) {
 t00_example__Nexample0();
 t00_example__Nexample1();
+t00_example__Nexample2();
 }

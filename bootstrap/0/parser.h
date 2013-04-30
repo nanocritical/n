@@ -317,6 +317,7 @@ enum subnode_idx {
   IDX_CH_PAYLOAD = 2,
   IDX_FOR_IT = 0,
   IDX_FOR_IT_DEFP = 0,
+  IDX_FOR_IT_DEFP_DEFN = 0,
   IDX_FOR_IT_DEFP_EXPR = 1,
   IDX_FUN_FIRSTARG = 2,
 };

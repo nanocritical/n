@@ -7,12 +7,12 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
-    DEFPATTERN :nlang.literals.floating
+    DEFPATTERN :nlang.builtins.void
      IDENT(f) :nlang.builtins.float
      NUMBER(0.0213) :nlang.builtins.float
      DEFNAME(f) :nlang.builtins.float
    LET :nlang.builtins.void
-    DEFPATTERN :nlang.literals.floating
+    DEFPATTERN :nlang.builtins.void
      IDENT(g) :nlang.builtins.float
      BIN( + ) :nlang.builtins.float
       IDENT(f) :nlang.builtins.float
@@ -26,9 +26,9 @@ MODULE_BODY :__internal_not_typeable__
      TYPECONSTRAINT :nlang.builtins.float
       NUMBER(0.1) :nlang.builtins.float
       IDENT(float) :nlang.builtins.float
-    BLOCK :nlang.builtins.void
+    BLOCK :nlang.builtins.i32
      RETURN :nlang.builtins.i32
       NUMBER(1) :nlang.builtins.i32
-    BLOCK :nlang.builtins.void
+    BLOCK :nlang.builtins.i32
      RETURN :nlang.builtins.i32
       NUMBER(0) :nlang.builtins.i32

@@ -5,9 +5,9 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    LET :nlang.builtins.void
-    DEFPATTERN :nlang.literals.integer
+    DEFPATTERN :nlang.builtins.void
      IDENT(x) :nlang.builtins.i32
      NUMBER(2) :nlang.builtins.i32
      DEFNAME(x) :nlang.builtins.i32

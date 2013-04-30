@@ -14,7 +14,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(builtins) :__internal_not_typeable__
      IDENT(i_trivial_ctor) :__internal_not_typeable__
   LET :nlang.builtins.void
-   DEFPATTERN :t00.field.t
+   DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.field.t
     IDENT(t) :t00.field.t
     DEFNAME(this) :t00.field.t
@@ -68,9 +68,9 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    LET :nlang.builtins.void
-    DEFPATTERN :t00.field.t
+    DEFPATTERN :nlang.builtins.void
      TYPECONSTRAINT :t00.field.t
       IDENT(tt) :t00.field.t
       IDENT(t) :t00.field.t

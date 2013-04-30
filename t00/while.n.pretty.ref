@@ -1,8 +1,0 @@
-from nlang import *
-export fun main = i32
-  let j = 0:i32
-    let i = 0:i32
-      while i < 10
-        i += 1
-        j += 1
-  return j - 10

@@ -117,7 +117,7 @@ static void print_token(FILE *out, enum token_type t) {
 }
 
 static void print_expr(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op);
-static void print_block(FILE *out, const struct module *mod, const struct node *node);
+static void print_block(FILE *out, const struct module *mod, const struct node *node, bool but_last);
 static void print_typ(FILE *out, const struct module *mod, const struct typ *typ);
 static void print_typeconstraint(FILE *out, const struct module *mod, const struct node *node);
 static void print_ident(FILE *out, const struct module *mod, const struct node *node);
@@ -454,14 +454,14 @@ static void print_while(FILE *out, const struct module *mod, const struct node *
   fprintf(out, "while (");
   print_expr(out, mod, node->subs[0], T__STATEMENT);
   fprintf(out, ")");
-  print_block(out, mod, node->subs[1]);
+  print_block(out, mod, node->subs[1], FALSE);
 }
 
 static void print_if(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "if (");
   print_expr(out, mod, node->subs[0], T__STATEMENT);
   fprintf(out, ")");
-  print_block(out, mod, node->subs[1]);
+  print_block(out, mod, node->subs[1], FALSE);
 
   size_t p = 2;
   size_t br_count = node->subs_count - 2;
@@ -470,7 +470,7 @@ static void print_if(FILE *out, const struct module *mod, const struct node *nod
     fprintf(out, "else if (");
     print_expr(out, mod, node->subs[p], T__STATEMENT);
     fprintf(out, ") ");
-    print_block(out, mod, node->subs[p+1]);
+    print_block(out, mod, node->subs[p+1], FALSE);
     p += 2;
     br_count -= 2;
   }
@@ -478,7 +478,7 @@ static void print_if(FILE *out, const struct module *mod, const struct node *nod
   if (br_count == 1) {
     fprintf(out, "\n");
     fprintf(out, "else ");
-    print_block(out, mod, node->subs[p]);
+    print_block(out, mod, node->subs[p], FALSE);
   }
 }
 
@@ -504,7 +504,7 @@ static void print_match(FILE *out, const struct module *mod, const struct node *
       fprintf(out, "default:\n");
     }
 
-    print_block(out, mod, node->subs[n + 1]);
+    print_block(out, mod, node->subs[n + 1], FALSE);
     fprintf(out, "\n");
   }
   fprintf(out, "}");
@@ -512,26 +512,26 @@ static void print_match(FILE *out, const struct module *mod, const struct node *
 
 static void print_try(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "try");
-  print_block(out, mod, node->subs[0]);
+  print_block(out, mod, node->subs[0], FALSE);
   fprintf(out, "\n");
   fprintf(out, "catch ");
   print_expr(out, mod, node->subs[1], T__STATEMENT);
-  print_block(out, mod, node->subs[2]);
+  print_block(out, mod, node->subs[2], FALSE);
 }
 
 static void print_pre(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "pre");
-  print_block(out, mod, node->subs[0]);
+  print_block(out, mod, node->subs[0], TRUE);
 }
 
 static void print_post(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "post");
-  print_block(out, mod, node->subs[0]);
+  print_block(out, mod, node->subs[0], TRUE);
 }
 
 static void print_invariant(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "invariant");
-  print_block(out, mod, node->subs[0]);
+  print_block(out, mod, node->subs[0], TRUE);
 }
 
 #define ATTR_SECTION_EXAMPLES "__attribute__((section(\".text.nlang.examples\")))"
@@ -544,9 +544,13 @@ static void print_example(FILE *out, bool header, enum forward fwd, const struct
     fprintf(out, "void %s__Nexample%zu(void) " ATTR_SECTION_EXAMPLES ";",
             replace_dots(scope_name(mod, mod->root->scope)), node->as.EXAMPLE.name);
   } else if (fwd == DEFFUNS) {
-    fprintf(out, "void %s__Nexample%zu(void)",
+    fprintf(out, "void %s__Nexample%zu(void) {",
             replace_dots(scope_name(mod, mod->root->scope)), node->as.EXAMPLE.name);
-    print_block(out, mod, node->subs[0]);
+    const struct node *block = node->subs[0];
+    print_block(out, mod, block, TRUE);
+    fprintf(out, "nlang_builtins_assert(");
+    print_expr(out, mod, block->subs[block->subs_count-1], T__STATEMENT);
+    fprintf(out, ");\n}");
   }
 }
 
@@ -678,6 +682,11 @@ static void print_defpattern(FILE *out, bool header, enum forward fwd, const str
     return;
   }
 
+  if (node_ident(node->subs[0]) == ID_OTHERWISE) {
+    fprintf(out, "(void)");
+    print_expr(out, mod, node->subs[1], T__STATEMENT);
+  }
+
   for (size_t n = 0; n < node->subs_count; ++n) {
     if (node->subs[n]->which != DEFNAME) {
       continue;
@@ -692,7 +701,7 @@ static void print_let(FILE *out, bool header, enum forward fwd, const struct mod
 
   if (fwd == DEFFUNS && node->subs_count > 1) {
     assert(!node_is_inline(node));
-    print_block(out, mod, node->subs[1]);
+    print_block(out, mod, node->subs[1], FALSE);
   }
 }
 
@@ -771,15 +780,19 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
   }
 }
 
-static void print_block(FILE *out, const struct module *mod, const struct node *node) {
+static void print_block(FILE *out, const struct module *mod, const struct node *node, bool but_last) {
   assert(node->which == BLOCK);
-  fprintf(out, " {\n");
-  for (size_t n = 0; n < node->subs_count; ++n) {
+  if (!but_last) {
+    fprintf(out, " {\n");
+  }
+  for (size_t n = 0; n < node->subs_count - (but_last ? 1 : 0); ++n) {
     const struct node *statement = node->subs[n];
     print_statement(out, mod, statement);
     fprintf(out, ";\n");
   }
-  fprintf(out, "}");
+  if (!but_last) {
+    fprintf(out, "}");
+  }
 }
 
 static void print_typeconstraint(FILE *out, const struct module *mod, const struct node *node) {
@@ -1167,7 +1180,7 @@ static void print_deffun(FILE *out, bool header, enum forward fwd, const struct 
     rtr_helpers(out, mod, node, TRUE);
 
     const struct node *block = node->subs[node->subs_count - 1];
-    print_block(out, mod, block);
+    print_block(out, mod, block, FALSE);
 
     fprintf(out, "\n");
 

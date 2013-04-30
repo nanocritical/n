@@ -1,0 +1,1 @@
+t00/match.n:19:6: type: block statements (except the last one) must be of type void, not 'nlang.builtins.i32'

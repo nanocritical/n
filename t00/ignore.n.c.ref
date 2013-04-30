@@ -1,0 +1,12 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+#include "t00/ignore.n.h.out"
+nlang_builtins_i32 __Nmain(void){
+ {
+(void)(nlang_builtins_u32)(nlang_builtins_u32)0;
+return (nlang_builtins_i32)0;
+}
+}
+void t00_ignore_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_ignore_Nrunexamples(void) {
+}

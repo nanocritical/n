@@ -14,7 +14,7 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(u32) :nlang.builtins.u32
   UN(@) :(nlang.builtins.i_ref nlang.builtins.i32)
    IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :(nlang.builtins.i_ref nlang.builtins.i32)
    RETURN :(nlang.builtins.i_ref nlang.builtins.i32)
     CALL :(nlang.builtins.i_ref nlang.builtins.i32)
      CALL :(nlang.unsafe.cast (nlang.builtins.i_ref nlang.builtins.u32) (nlang.builtins.i_ref nlang.builtins.i32))
@@ -32,9 +32,9 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.u32
+    DEFPATTERN :nlang.builtins.void
      IDENT(__gensym0) :nlang.builtins.u32
      NUMBER(1) :nlang.builtins.u32
      DEFNAME(__gensym0) :nlang.builtins.u32

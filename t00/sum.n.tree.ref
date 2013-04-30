@@ -18,7 +18,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(builtins) :__internal_not_typeable__
      IDENT(i_ctor_with) :__internal_not_typeable__
   LET :nlang.builtins.void
-   DEFPATTERN :t00.sum.sum
+   DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.sum.sum
     IDENT(sum) :t00.sum.sum
     DEFNAME(this) :t00.sum.sum
@@ -211,7 +211,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(builtins) :__internal_not_typeable__
      IDENT(i_trivial_ctor) :__internal_not_typeable__
   LET :nlang.builtins.void
-   DEFPATTERN :t00.sum.ta
+   DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.sum.ta
     IDENT(ta) :t00.sum.ta
     DEFNAME(this) :t00.sum.ta
@@ -296,7 +296,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(builtins) :__internal_not_typeable__
      IDENT(i_trivial_ctor) :__internal_not_typeable__
   LET :nlang.builtins.void
-   DEFPATTERN :t00.sum.tb
+   DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.sum.tb
     IDENT(tb) :t00.sum.tb
     DEFNAME(this) :t00.sum.tb
@@ -379,7 +379,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(builtins) :__internal_not_typeable__
      IDENT(i_ctor_with) :__internal_not_typeable__
   LET :nlang.builtins.void
-   DEFPATTERN :t00.sum.sum_nocopy
+   DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.sum.sum_nocopy
     IDENT(sum_nocopy) :t00.sum.sum_nocopy
     DEFNAME(this) :t00.sum.sum_nocopy
@@ -503,7 +503,7 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
-    DEFPATTERN :t00.sum.ta
+    DEFPATTERN :nlang.builtins.void
      IDENT(__gensym0) :t00.sum.ta
      INIT :t00.sum.ta
       IDENT(ta) :t00.sum.ta
@@ -511,7 +511,7 @@ MODULE_BODY :__internal_not_typeable__
       NUMBER(0) :nlang.builtins.u32
      DEFNAME(__gensym0) :t00.sum.ta
    LET :nlang.builtins.void
-    DEFPATTERN :t00.sum.sum_nocopy
+    DEFPATTERN :nlang.builtins.void
      IDENT(m) :t00.sum.sum_nocopy
      CALL :t00.sum.sum_nocopy
       BIN(.) :t00.sum.sum_nocopy.A.mk
@@ -522,7 +522,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(__gensym0) :t00.sum.ta
      DEFNAME(m) :t00.sum.sum_nocopy
    LET :nlang.builtins.void
-    DEFPATTERN :t00.sum.sum
+    DEFPATTERN :nlang.builtins.void
      IDENT(n) :t00.sum.sum
      CALL :t00.sum.sum
       BIN(.) :t00.sum.sum.A.mk
@@ -533,7 +533,7 @@ MODULE_BODY :__internal_not_typeable__
       NUMBER(0) :nlang.builtins.u32
      DEFNAME(n) :t00.sum.sum
    LET :nlang.builtins.void
-    DEFPATTERN :t00.sum.sum
+    DEFPATTERN :nlang.builtins.void
      IDENT(__gensym1) :t00.sum.sum
      CALL :t00.sum.sum
       BIN(.) :t00.sum.sum.A.mk
@@ -552,9 +552,9 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(n) :t00.sum.sum
      UN(@) :(nlang.builtins.i_ref t00.sum.sum)
       IDENT(__gensym1) :t00.sum.sum
-    BLOCK :nlang.builtins.void
+    BLOCK :nlang.builtins.i32
      RETURN :nlang.builtins.i32
       NUMBER(0) :nlang.builtins.i32
-    BLOCK :nlang.builtins.void
+    BLOCK :nlang.builtins.i32
      RETURN :nlang.builtins.i32
       NUMBER(1) :nlang.builtins.i32

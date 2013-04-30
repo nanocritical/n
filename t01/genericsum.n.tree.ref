@@ -9,7 +9,7 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(i_numeric) :nlang.builtins.i_numeric
   ISALIST :nlang.builtins.void
   LET :nlang.builtins.void
-   DEFPATTERN :t01.genericsum.container
+   DEFPATTERN :nlang.builtins.void
     IDENT(this) :t01.genericsum.container
     IDENT(container) :t01.genericsum.container
     DEFNAME(this) :t01.genericsum.container
@@ -27,7 +27,7 @@ MODULE_BODY :__internal_not_typeable__
    IDENT(x) :nlang.builtins.i_numeric
    IDENT(t) :nlang.builtins.i_numeric
   IDENT(void) :nlang.builtins.void
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i_numeric
    CALL :nlang.builtins.void
     BIN(.) :nlang.builtins.i_arithmetic.operator_assign_plus
      DIRECTDEF :nlang.builtins.i_numeric
@@ -42,9 +42,9 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    LET :nlang.builtins.void
-    DEFPATTERN :(t01.genericsum.container nlang.builtins.i32)
+    DEFPATTERN :nlang.builtins.void
      IDENT(v) :(t01.genericsum.container nlang.builtins.i32)
      INIT :(t01.genericsum.container nlang.builtins.i32)
       CALL :(t01.genericsum.container nlang.builtins.i32)

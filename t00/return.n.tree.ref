@@ -16,7 +16,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(builtins) :__internal_not_typeable__
      IDENT(i_trivial_ctor) :__internal_not_typeable__
   LET :nlang.builtins.void
-   DEFPATTERN :t00.return.copy
+   DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.return.copy
     IDENT(copy) :t00.return.copy
     DEFNAME(this) :t00.return.copy
@@ -75,8 +75,8 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :t00.return.copy
    IDENT(n) :t00.return.copy
    IDENT(copy) :t00.return.copy
-  BLOCK :nlang.builtins.void
-   BIN( = ) :nlang.builtins.i32
+  BLOCK :t00.return.copy
+   BIN( = ) :nlang.builtins.void
     BIN(!) :nlang.builtins.i32
      IDENT(n) :t00.return.copy
      IDENT(x) :__internal_not_typeable__
@@ -92,7 +92,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :t00.return.copy
    IDENT(n) :t00.return.copy
    IDENT(copy) :t00.return.copy
-  BLOCK :nlang.builtins.void
+  BLOCK :t00.return.copy
    RETURN :t00.return.copy
     CALL :t00.return.copy
      IDENT(foo) :t00.return.foo
@@ -101,7 +101,7 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    RETURN :nlang.builtins.i32
     BIN( - ) :nlang.builtins.i32
      BIN(.) :nlang.builtins.i32

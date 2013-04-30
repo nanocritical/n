@@ -14,7 +14,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(builtins) :__internal_not_typeable__
      IDENT(i_trivial_ctor) :__internal_not_typeable__
   LET :nlang.builtins.void
-   DEFPATTERN :t01.wildcardmutability.c
+   DEFPATTERN :nlang.builtins.void
     IDENT(this) :t01.wildcardmutability.c
     IDENT(c) :t01.wildcardmutability.c
     DEFNAME(this) :t01.wildcardmutability.c
@@ -78,7 +78,7 @@ MODULE_BODY :__internal_not_typeable__
   CALL :(nlang.builtins.i_ref nlang.builtins.i32)
    IDENT(__wildcard_ref_arg__) :nlang.builtins.i_ref
    IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :(nlang.builtins.i_ref nlang.builtins.i32)
    RETURN :(nlang.builtins.i_ref nlang.builtins.i32)
     UN(@) :(nlang.builtins.i_ref nlang.builtins.i32)
      BIN(.) :nlang.builtins.i32
@@ -88,9 +88,9 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    LET :nlang.builtins.void
-    DEFPATTERN :t01.wildcardmutability.c
+    DEFPATTERN :nlang.builtins.void
      IDENT(x) :t01.wildcardmutability.c
      INIT :t01.wildcardmutability.c
       IDENT(c) :t01.wildcardmutability.c

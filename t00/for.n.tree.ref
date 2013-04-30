@@ -5,9 +5,9 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
+  BLOCK :nlang.builtins.i32
    LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
      IDENT(j) :nlang.builtins.i32
      TYPECONSTRAINT :nlang.builtins.i32
       NUMBER(0) :nlang.builtins.i32
@@ -15,7 +15,7 @@ MODULE_BODY :__internal_not_typeable__
      DEFNAME(j) :nlang.builtins.i32
     BLOCK :nlang.builtins.void
      LET :nlang.builtins.void
-      DEFPATTERN :nlang.containers.index_range
+      DEFPATTERN :nlang.builtins.void
        IDENT(__gensym1) :nlang.containers.index_range
        CALL :nlang.containers.index_range
         IDENT(range) :nlang.containers.range
@@ -24,7 +24,7 @@ MODULE_BODY :__internal_not_typeable__
        DEFNAME(__gensym1) :nlang.containers.index_range
      FOR :nlang.builtins.void
       LET :nlang.builtins.void
-       DEFPATTERN :nlang.containers.index_iterator
+       DEFPATTERN :nlang.builtins.void
         IDENT(__gensym0) :nlang.containers.index_iterator
         CALL :nlang.containers.index_iterator
          DIRECTDEF :nlang.containers.index_range.iter
@@ -39,14 +39,14 @@ MODULE_BODY :__internal_not_typeable__
            IDENT(__gensym0) :nlang.containers.index_iterator
          BLOCK :nlang.builtins.void
           LET :nlang.builtins.void
-           DEFPATTERN :nlang.builtins.size
+           DEFPATTERN :nlang.builtins.void
             IDENT(i) :nlang.builtins.size
             CALL :nlang.builtins.size
              DIRECTDEF :nlang.containers.index_iterator.get
              UN(@) :(nlang.builtins.i_ref nlang.containers.index_iterator)
               IDENT(__gensym0) :nlang.containers.index_iterator
             DEFNAME(i) :nlang.builtins.size
-           BLOCK :nlang.builtins.void
+           BLOCK :nlang.builtins.i32
             CALL :nlang.builtins.void
              IDENT(unused) :(nlang.builtins.unused nlang.builtins.size)
              IDENT(i) :nlang.builtins.size
