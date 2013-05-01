@@ -177,7 +177,7 @@ static void print_bin(FILE *out, const struct module *mod, const struct node *no
   case OP_BIN_SYM_BOOL:
   case OP_BIN_SYM_NUM:
   case OP_BIN_SYM_PTR:
-  case OP_BIN_NUM_RHS_U16:
+  case OP_BIN_NUM_RHS_UNSIGNED:
     print_bin_sym(out, mod, node, parent_op);
     break;
   case OP_BIN_ACC:

@@ -1,0 +1,40 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+#include "lib/nlang/vectors.n.h.out"
+#include "t02/vector.n.h.out"
+
+
+
+
+nlang_builtins_i32 __Nmain(void){
+ {
+_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN_ v = { 0 };
+_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__mk(&(v));
+ {
+_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__push((&v), (nlang_builtins_i32)0);
+_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__push((&v), (nlang_builtins_i32)1);
+nlang_builtins_assert((_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__pop((&v)) == (nlang_builtins_i32)1));
+_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__push((&v), (nlang_builtins_i32)1);
+nlang_containers_index_range __gensym2 = { 0 };
+_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__all((&v), &(__gensym2));
+;
+nlang_containers_index_iterator __gensym0 = { 0 };
+nlang_containers_index_range_iter((&__gensym2), &(__gensym0));
+ {
+while (nlang_containers_index_iterator_is_valid((&__gensym0))) {
+nlang_builtins_size i = nlang_containers_index_iterator_get((&__gensym0));
+ {
+nlang_builtins_u32 __gensym1 = nlang_builtins_size_trim_u32((&i));
+;
+nlang_builtins_assert(((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_i_ref_genN_((&v), i)) == nlang_builtins_u32_reinterpret_signed((&__gensym1))));
+};
+nlang_containers_index_iterator_next((&__gensym0));
+};
+};
+};
+return (*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_i_ref_genN_((&v), (nlang_builtins_size)1)) - (nlang_builtins_i32)1;
+}
+}
+void t02_vector_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t02_vector_Nrunexamples(void) {
+}

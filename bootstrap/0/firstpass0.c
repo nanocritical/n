@@ -1033,7 +1033,7 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
     case OP_BIN_SYM_BOOL:
     case OP_BIN_SYM_NUM:
     case OP_BIN_SYM_PTR:
-    case OP_BIN_NUM_RHS_U16:
+    case OP_BIN_NUM_RHS_UNSIGNED:
       break;
     default:
       assert(FALSE);
@@ -1601,6 +1601,18 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     case TGE:
       node->typ = typ_lookup_builtin(mod, TBI_BOOL);
       break;
+    case TPLUS_ASSIGN:
+    case TMINUS_ASSIGN:
+    case TTIMES_ASSIGN:
+    case TDIVIDE_ASSIGN:
+    case TMODULO_ASSIGN:
+    case TBWAND_ASSIGN:
+    case TBWOR_ASSIGN:
+    case TBWXOR_ASSIGN:
+    case TRSHIFT_ASSIGN:
+    case TLSHIFT_ASSIGN:
+      node->typ = typ_lookup_builtin(mod, TBI_VOID);
+      break;
     default:
       break;
     }
@@ -1737,13 +1749,19 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   return 0;
 }
 
-static error type_inference_bin_rhs_u16(struct module *mod, struct node *node) {
+static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *node) {
   error e;
   e = typ_compatible_numeric(mod, node->subs[0], node->subs[0]->typ);
   EXCEPT(e);
-  // FIXME handle the generic number case.
-  e = type_destruct(mod, node->subs[1], typ_lookup_builtin(mod, TBI_U16));
+  e = typ_check_isa(mod, node->subs[1], node->subs[1]->typ,
+                    typ_lookup_builtin(mod, TBI_UNSIGNED_INTEGER));
   EXCEPT(e);
+  if (node->subs[1]->typ->definition->which == DEFINTF) {
+    node->subs[1]->typ = typ_lookup_builtin(mod, TBI_UNSIGNED_INTEGER);
+  } else {
+    e = type_destruct(mod, node->subs[1], typ_lookup_builtin(mod, TBI_UNSIGNED_INTEGER));
+    EXCEPT(e);
+  }
   node->typ = node->subs[0]->typ;
   return 0;
 }
@@ -1769,8 +1787,8 @@ static error type_inference_bin(struct module *mod, struct node *node) {
   case OP_BIN_SYM_NUM:
   case OP_BIN_SYM_PTR:
     return type_inference_bin_sym(mod, node);
-  case OP_BIN_NUM_RHS_U16:
-    return type_inference_bin_rhs_u16(mod, node);
+  case OP_BIN_NUM_RHS_UNSIGNED:
+    return type_inference_bin_rhs_unsigned(mod, node);
   case OP_BIN_ACC:
     return type_inference_bin_accessor(mod, node);
   case OP_BIN_RHS_TYPE:
@@ -2510,10 +2528,10 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       e = typ_compatible_numeric(mod, node, constraint);
       EXCEPT(e);
       break;
-    case OP_BIN_NUM_RHS_U16:
+    case OP_BIN_NUM_RHS_UNSIGNED:
       e = typ_compatible_numeric(mod, node, left_constraint);
       EXCEPT(e);
-      right_constraint = typ_lookup_builtin(mod, TBI_U16);
+      right_constraint = typ_lookup_builtin(mod, TBI_UNSIGNED_INTEGER);
       break;
     case OP_BIN_RHS_TYPE:
       if (!(node->subs[1]->flags & NODE_IS_TYPE)) {
@@ -2542,7 +2560,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       e = typ_unify(&node->typ, mod, node, node->subs[0]->typ, node->subs[1]->typ);
       EXCEPT(e);
       break;
-    case OP_BIN_NUM_RHS_U16:
+    case OP_BIN_NUM_RHS_UNSIGNED:
       node->typ = node->subs[0]->typ;
       break;
     case OP_BIN_RHS_TYPE:
@@ -3330,7 +3348,7 @@ static error step_implement_trivials(struct module *mod, struct node *node, void
   // these trivial interfaces. It must be safe to declare them.
   // Same thing for trivial ctor, dtor.
 
-  if (node->typ == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
+  if (!typ_is_concrete(mod, node->typ)
       || typ_is_reference_instance(mod, node->typ)) {
     return 0;
   }
@@ -3554,7 +3572,7 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   case OP_BIN_SYM:
   case OP_BIN_SYM_BOOL:
   case OP_BIN_SYM_NUM:
-  case OP_BIN_NUM_RHS_U16:
+  case OP_BIN_NUM_RHS_UNSIGNED:
     break;
   default:
     return 0;

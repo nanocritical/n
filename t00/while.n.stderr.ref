@@ -1,1 +1,0 @@
-t00/while.n:7:10: type: block statements (except the last one) must be of type void, not 'nlang.builtins.i32'

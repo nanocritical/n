@@ -27,7 +27,7 @@ MODULE_BODY :__internal_not_typeable__
    IDENT(x) :nlang.builtins.i_numeric
    IDENT(t) :nlang.builtins.i_numeric
   IDENT(void) :nlang.builtins.void
-  BLOCK :nlang.builtins.i_numeric
+  BLOCK :nlang.builtins.void
    CALL :nlang.builtins.void
     BIN(.) :nlang.builtins.i_arithmetic.operator_assign_plus
      DIRECTDEF :nlang.builtins.i_numeric

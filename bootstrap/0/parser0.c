@@ -119,7 +119,9 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NMMREF] = "i_nullable_mercurial_ref",
   [ID_TBI_ARITHMETIC] = "i_arithmetic",
   [ID_TBI_INTEGER] = "i_integer",
+  [ID_TBI_UNSIGNED_INTEGER] = "i_unsigned_integer",
   [ID_TBI_NATIVE_INTEGER] = "i_native_integer",
+  [ID_TBI_NATIVE_ANYSIGN_INTEGER] = "i_native_anysign_integer",
   [ID_TBI_GENERALIZED_BOOLEAN] = "i_generalized_boolean",
   [ID_TBI_NATIVE_BOOLEAN] = "i_native_boolean",
   [ID_TBI_FLOATING] = "i_floating",
@@ -3476,13 +3478,13 @@ bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *in
 
   // Literals types do not have a isalist.
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
-    return typ_isa(mod, typ_lookup_builtin(mod, TBI_INTEGER), intf);
+    return typ_isa(mod, typ_lookup_builtin(mod, TBI_NATIVE_ANYSIGN_INTEGER), intf);
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
     return typ_isa(mod, typ_lookup_builtin(mod, TBI_NREF), intf);
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)) {
-    return typ_isa(mod, typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN), intf);
+    return typ_isa(mod, typ_lookup_builtin(mod, TBI_NATIVE_BOOLEAN), intf);
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)) {
-    return typ_isa(mod, typ_lookup_builtin(mod, TBI_FLOATING), intf);
+    return typ_isa(mod, typ_lookup_builtin(mod, TBI_NATIVE_FLOATING), intf);
   }
 
   for (size_t n = 0; n < a->isalist_count; ++n) {
@@ -3546,12 +3548,12 @@ error typ_find_matching_concrete_isa(const struct typ **concrete,
   // Literals types do not have a isalist.
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
     e = typ_find_matching_concrete_isa(concrete, mod, for_error,
-                                       typ_lookup_builtin(mod, TBI_INTEGER), intf);
+                                       typ_lookup_builtin(mod, TBI_NATIVE_ANYSIGN_INTEGER), intf);
     EXCEPT(e);
     return 0;
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)) {
     e = typ_find_matching_concrete_isa(concrete, mod, for_error,
-                                       typ_lookup_builtin(mod, TBI_FLOATING), intf);
+                                       typ_lookup_builtin(mod, TBI_NATIVE_FLOATING), intf);
     EXCEPT(e);
     return 0;
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
@@ -3561,7 +3563,7 @@ error typ_find_matching_concrete_isa(const struct typ **concrete,
     return 0;
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)) {
     e = typ_find_matching_concrete_isa(concrete, mod, for_error,
-                                       typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN), intf);
+                                       typ_lookup_builtin(mod, TBI_NATIVE_BOOLEAN), intf);
     EXCEPT(e);
     return 0;
   }

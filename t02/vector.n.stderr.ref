@@ -1,1 +1,0 @@
-lib/nlang/vectors.n:42:15: type: block statements (except the last one) must be of type void, not 'nlang.builtins.size'

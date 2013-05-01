@@ -19,7 +19,7 @@ static inline NB(i64) NB(i8_to_i64)(const NB(i8) *self) {
   return (NB(i64)) *self;
 }
 
-static inline NB(ssize) NB(i8_to_ssize)(const NB(i8) *self) {
+static inline NB(ssize) NB(i8_as_ssize)(const NB(i8) *self) {
   return (NB(ssize)) *self;
 }
 
@@ -48,7 +48,7 @@ static inline NB(i64) NB(i16_to_i64)(const NB(i16) *self) {
   return (NB(i64)) *self;
 }
 
-static inline NB(ssize) NB(i16_to_ssize)(const NB(i16) *self) {
+static inline NB(ssize) NB(i16_as_ssize)(const NB(i16) *self) {
   return (NB(ssize)) *self;
 }
 
@@ -77,7 +77,7 @@ static inline NB(i64) NB(i32_to_i64)(const NB(i32) *self) {
   return (NB(i64)) *self;
 }
 
-static inline NB(ssize) NB(i32_to_ssize)(const NB(i32) *self) {
+static inline NB(ssize) NB(i32_as_ssize)(const NB(i32) *self) {
   return (NB(ssize)) *self;
 }
 
@@ -106,7 +106,7 @@ static inline NB(i32) NB(i64_trim_i32)(const NB(i64) *self) {
   return (NB(i32)) *self;
 }
 
-static inline NB(ssize) NB(i64_trim_ssize)(const NB(i64) *self) {
+static inline NB(ssize) NB(i64_as_ssize)(const NB(i64) *self) {
   return (NB(ssize)) *self;
 }
 
@@ -135,7 +135,7 @@ static inline NB(u64) NB(u8_to_u64)(const NB(u8) *self) {
   return (NB(u64)) *self;
 }
 
-static inline NB(size) NB(u8_to_size)(const NB(u8) *self) {
+static inline NB(size) NB(u8_as_size)(const NB(u8) *self) {
   return (NB(size)) *self;
 }
 
@@ -164,7 +164,7 @@ static inline NB(u64) NB(u16_to_u64)(const NB(u16) *self) {
   return (NB(u64)) *self;
 }
 
-static inline NB(size) NB(u16_to_size)(const NB(u16) *self) {
+static inline NB(size) NB(u16_as_size)(const NB(u16) *self) {
   return (NB(size)) *self;
 }
 
@@ -193,7 +193,7 @@ static inline NB(u64) NB(u32_to_u64)(const NB(u32) *self) {
   return (NB(u64)) *self;
 }
 
-static inline NB(size) NB(u32_to_size)(const NB(u32) *self) {
+static inline NB(size) NB(u32_as_size)(const NB(u32) *self) {
   return (NB(size)) *self;
 }
 
@@ -222,7 +222,7 @@ static inline NB(u32) NB(u64_trim_u32)(const NB(u64) *self) {
   return (NB(u32)) *self;
 }
 
-static inline NB(size) NB(u64_trim_size)(const NB(u64) *self) {
+static inline NB(size) NB(u64_as_size)(const NB(u64) *self) {
   return (NB(size)) *self;
 }
 
@@ -309,12 +309,12 @@ static inline NB(i64) NB(float_to_i64)(const NB(float) *self) {
   return (NB(i64)) *self;
 }
 
-static inline NB(ssize) NB(float_to_ssize)(const NB(float) *self) {
-  return (NB(ssize)) *self;
-}
-
 static inline NB(double) NB(float_to_double)(const NB(float) *self) {
   return (NB(double)) *self;
+}
+
+static inline NB(ssize) NB(float_as_ssize)(const NB(float) *self) {
+  return (NB(ssize)) *self;
 }
 
 
@@ -334,12 +334,12 @@ static inline NB(i64) NB(double_to_i64)(const NB(double) *self) {
   return (NB(i64)) *self;
 }
 
-static inline NB(ssize) NB(double_to_ssize)(const NB(double) *self) {
-  return (NB(ssize)) *self;
-}
-
 static inline NB(float) NB(double_trim_float)(const NB(double) *self) {
   return (NB(float)) *self;
+}
+
+static inline NB(ssize) NB(double_as_ssize)(const NB(double) *self) {
+  return (NB(ssize)) *self;
 }
 
 #undef NB
