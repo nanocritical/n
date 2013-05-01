@@ -725,6 +725,7 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
   error e;
 
   switch (retval->which) {
+  case BIN:
   case UN:
   case IDENT:
   case CALL:
@@ -734,7 +735,7 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
     EXCEPT(e);
     break;
   default:
-    e = mk_except(mod, retval, "return value type structure not supported");
+    e = mk_except(mod, retval, "return value type expression not supported");
     EXCEPT(e);
     break;
   }
