@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 #define DIR_MODULE_NAME "module.n"
-#define CFLAGS "-Wall -Wno-missing-braces -std=c99 -pedantic -I."
+#define CFLAGS "-Wall -Wno-missing-braces -std=c99 -pedantic -I. -g"
 #define LDFLAGS CFLAGS " -Wl,--gc-sections"
 
 static error sh(const char *cmd) {
