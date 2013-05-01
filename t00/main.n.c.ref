@@ -1,8 +1,11 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
 #include "t00/main.n.h.out"
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 return (nlang_builtins_i32)0;
 }
+}
+void t00_main_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_main_Nrunexamples(void) {
 }

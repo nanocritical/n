@@ -1,7 +1,7 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
 #include "t00/bool.n.h.out"
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 nlang_builtins_bool x = (nlang_builtins_bool)(nlang_builtins_bool)0;
 ;
@@ -12,4 +12,7 @@ else  {
 return (nlang_builtins_i32)1;
 };
 }
+}
+void t00_bool_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_bool_Nrunexamples(void) {
 }

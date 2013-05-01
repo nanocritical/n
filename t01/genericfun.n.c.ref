@@ -11,8 +11,11 @@ return x - (nlang_builtins_i32)1;
 }
 }
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 return _Ngen_t01_genericfun_decr__nlang_builtins_i32_genN_((nlang_builtins_i32)1);
 }
+}
+void t01_genericfun_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t01_genericfun_Nrunexamples(void) {
 }

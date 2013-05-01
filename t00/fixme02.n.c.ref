@@ -13,8 +13,11 @@ return (&__gensym0);
 }
 }
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 return (*t00_fixme02_returns_tmp());
 }
+}
+void t00_fixme02_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_fixme02_Nrunexamples(void) {
 }

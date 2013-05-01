@@ -29,8 +29,6 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(foo) :t00.example.foo
       NUMBER(1) :nlang.builtins.i32
      NUMBER(0) :nlang.builtins.i32
- EXAMPLE :nlang.builtins.void
-  BLOCK :nlang.builtins.void
    CALL :nlang.builtins.void
     IDENT(assert) :nlang.builtins.assert
     BIN( == ) :nlang.builtins.bool

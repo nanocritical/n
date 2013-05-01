@@ -65,7 +65,7 @@ return (nlang_builtins_i32)1;
 }
 }
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 t00_match_enu n = t00_match_enu_A;
 ;
@@ -83,4 +83,7 @@ return (nlang_builtins_i32)1;
 }
 };
 }
+}
+void t00_match_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_match_Nrunexamples(void) {
 }

@@ -90,7 +90,7 @@ return;
 #undef r
 }
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 t00_returnthroughref_t y = { 0 };
 t00_returnthroughref_bar(&(y));
@@ -103,4 +103,7 @@ return (nlang_builtins_i32)1;
 };
 return y.xx;
 }
+}
+void t00_returnthroughref_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_returnthroughref_Nrunexamples(void) {
 }

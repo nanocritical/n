@@ -6,7 +6,6 @@ example
   assert (foo 0 == 0)
 example
   assert (foo 1 == 0)
-example
   assert (foo -1 == 0)
 export fun main = i32
   return foo 1

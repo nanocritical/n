@@ -57,7 +57,7 @@ nlang_builtins_void t00_init_t_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_in
 #undef THIS
 }
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 t00_init_t tt; memset(&(tt), 0, sizeof(t00_init_t));
 tt.x = (nlang_builtins_i32)1;
@@ -65,4 +65,7 @@ tt.x = (nlang_builtins_i32)1;
 ;
 return tt.x - (nlang_builtins_i32)1;
 }
+}
+void t00_init_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_init_Nrunexamples(void) {
 }

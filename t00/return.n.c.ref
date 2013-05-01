@@ -69,8 +69,11 @@ return t00_return_foo(x);
 }
 }
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 return t00_return_chained((nlang_builtins_i32)1).x - (nlang_builtins_i32)1;
 }
+}
+void t00_return_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_return_Nrunexamples(void) {
 }

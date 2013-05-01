@@ -1,7 +1,7 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
 #include "t00/for.n.h.out"
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 nlang_builtins_i32 j = (nlang_builtins_i32)(nlang_builtins_i32)0;
  {
@@ -23,4 +23,7 @@ nlang_containers_index_iterator_next((&__gensym0));
 };
 return j - (nlang_builtins_i32)10;
 }
+}
+void t00_for_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_for_Nrunexamples(void) {
 }

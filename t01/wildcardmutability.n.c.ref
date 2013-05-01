@@ -59,7 +59,7 @@ return (&self->x);
 #undef THIS
 }
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 t01_wildcardmutability_c x; memset(&(x), 0, sizeof(t01_wildcardmutability_c));
 x.x = (nlang_builtins_i32)0;
@@ -67,4 +67,7 @@ x.x = (nlang_builtins_i32)0;
 ;
 return (*_Ngen_t01_wildcardmutability_c_get__nlang_builtins_i_ref_genN_((&x)));
 }
+}
+void t01_wildcardmutability_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t01_wildcardmutability_Nrunexamples(void) {
 }

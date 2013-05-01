@@ -47,7 +47,7 @@ return calloc(1, sizeof(THIS()));
 }
 
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_ v; memset(&(v), 0, sizeof(_Ngen_t01_genericsum_container__nlang_builtins_i32_genN_));
 v.x = (nlang_builtins_i32)0;
@@ -57,4 +57,7 @@ _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__add((&v), (nlang_builti
 };
 return v.x - (nlang_builtins_i32)1;
 }
+}
+void t01_genericsum_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t01_genericsum_Nrunexamples(void) {
 }

@@ -47,10 +47,13 @@ nlang_builtins_void t00_field_t_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_f
 #undef THIS
 }
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 t00_field_t tt = { 0 };
 ;
 return tt.x;
 }
+}
+void t00_field_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_field_Nrunexamples(void) {
 }

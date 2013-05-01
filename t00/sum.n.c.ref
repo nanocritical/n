@@ -307,7 +307,7 @@ return self;
 #undef THIS
 }
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 t00_sum_ta __gensym0; memset(&(__gensym0), 0, sizeof(t00_sum_ta));
 __gensym0.x = (nlang_builtins_u32)0;
@@ -329,4 +329,7 @@ else  {
 return (nlang_builtins_i32)1;
 };
 }
+}
+void t00_sum_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_sum_Nrunexamples(void) {
 }

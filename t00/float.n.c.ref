@@ -1,7 +1,7 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
 #include "t00/float.n.h.out"
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 nlang_builtins_float f = (nlang_builtins_float)0.0213;
 ;
@@ -14,4 +14,7 @@ else  {
 return (nlang_builtins_i32)0;
 };
 }
+}
+void t00_float_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_float_Nrunexamples(void) {
 }

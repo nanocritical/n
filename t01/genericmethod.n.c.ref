@@ -75,7 +75,7 @@ return x - (nlang_builtins_i32)1;
 #undef THIS
 }
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 t01_genericmethod_blah b; memset(&(b), 0, sizeof(t01_genericmethod_blah));
 b.dummy = (nlang_builtins_u8)0;
@@ -84,4 +84,7 @@ b.dummy = (nlang_builtins_u8)0;
 _Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_((&b), (nlang_builtins_u32)1);
 return _Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_((&b), (nlang_builtins_i32)1);
 }
+}
+void t01_genericmethod_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t01_genericmethod_Nrunexamples(void) {
 }

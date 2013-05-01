@@ -1,11 +1,14 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
 #include "t00/fixme01.n.h.out"
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 nlang_builtins_i32 x = (nlang_builtins_i32)(nlang_builtins_i32)1;
 ;
 x = (nlang_builtins_i32)0;
 return x;
 }
+}
+void t00_fixme01_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_fixme01_Nrunexamples(void) {
 }

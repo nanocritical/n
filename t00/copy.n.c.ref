@@ -74,7 +74,7 @@ return;
 #undef _nretval
 }
 
-nlang_builtins_i32 main(void){
+nlang_builtins_i32 __Nmain(void){
  {
 t00_copy_copy w = { 0 };
 t00_copy_foo(&(w));
@@ -93,4 +93,7 @@ t00_copy_copy_copy_ctor((&zz), (&z));
 };
 return z.x + (nlang_builtins_i32)1;
 }
+}
+void t00_copy_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_copy_Nrunexamples(void) {
 }
