@@ -1,0 +1,12 @@
+from nlang import *
+
+type nocopy =
+  x:i32
+
+fun foo = nocopy
+  let r:nocopy
+    r!x = 0
+  return r
+
+export fun main = i32
+  return foo.x
