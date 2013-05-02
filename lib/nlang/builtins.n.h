@@ -342,6 +342,9 @@ static inline NB(ssize) NB(double_as_ssize)(const NB(double) *self) {
   return (NB(ssize)) *self;
 }
 
+#define nlang_builtins_likely(x) __builtin_expect(!!(x), 1)
+#define nlang_builtins_unlikely(x) __builtin_expect(!!(x), 0)
+
 #undef NB
 
 #endif

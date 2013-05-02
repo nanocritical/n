@@ -359,6 +359,8 @@ enum predefined_idents {
   ID_IS_VALID,
   ID_CAST,
   ID_WILDCARD_REF_ARG,
+  ID_LIKELY,
+  ID_UNLIKELY,
 
   ID_TBI_VOID,
   ID_TBI__FIRST = ID_TBI_VOID,

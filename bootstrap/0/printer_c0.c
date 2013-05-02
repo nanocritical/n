@@ -1145,7 +1145,10 @@ static void print_deffun(FILE *out, bool header, enum forward fwd, const struct 
       return;
     }
   }
-  if (node_ident(node) == ID_CAST) {
+  const ident id = node_ident(node);
+  if (id == ID_CAST
+      || id == ID_LIKELY
+      || id == ID_UNLIKELY) {
     return;
   }
 
