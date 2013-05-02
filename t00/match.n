@@ -16,8 +16,8 @@ fun bar n:enu = i32
 
 export fun main = i32
   let n = enu.A
-  foo n
-  bar n
+  let _ = foo n
+  let _ = bar n
   match n
   | enu.A -> return 0
   | enu.B -> return 1
