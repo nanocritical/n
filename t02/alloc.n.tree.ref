@@ -1,21 +1,21 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
- IMPORT :nlang.memory
-  BIN(.) :nlang.memory
+ IMPORT :nlang.sysheap
+  BIN(.) :nlang.sysheap
    IDENT(nlang) :nlang
-   IDENT(memory) :__internal_not_typeable__
-  IMPORT :nlang.memory.heap
-   BIN(.) :nlang.memory.heap
-    BIN(.) :nlang.memory
+   IDENT(sysheap) :__internal_not_typeable__
+  IMPORT :nlang.sysheap.heap
+   BIN(.) :nlang.sysheap.heap
+    BIN(.) :nlang.sysheap
      IDENT(nlang) :nlang
-     IDENT(memory) :__internal_not_typeable__
+     IDENT(sysheap) :__internal_not_typeable__
     IDENT(heap) :__internal_not_typeable__
-  IMPORT :nlang.memory.heap
-   BIN(.) :nlang.memory.heap
-    BIN(.) :nlang.memory
+  IMPORT :nlang.sysheap.heap
+   BIN(.) :nlang.sysheap.heap
+    BIN(.) :nlang.sysheap
      IDENT(nlang) :nlang
-     IDENT(memory) :__internal_not_typeable__
+     IDENT(sysheap) :__internal_not_typeable__
     IDENT(sysheap) :__internal_not_typeable__
  DEFFUN :t02.alloc.main
   IDENT(main) :__internal_not_typeable__
@@ -26,13 +26,13 @@ MODULE_BODY :__internal_not_typeable__
     DEFPATTERN :nlang.builtins.void
      IDENT(p) :(nlang.builtins.i_mercurial_ref nlang.builtins.i32)
      CALL :(nlang.builtins.i_mercurial_ref nlang.builtins.i32)
-      CALL :(nlang.memory.heap.alloc nlang.builtins.i32)
-       BIN(.) :nlang.memory.heap.alloc
-        IDENT(heap) :nlang.memory.heap
+      CALL :(nlang.sysheap.heap.alloc nlang.builtins.i32)
+       BIN(.) :nlang.sysheap.heap.alloc
+        IDENT(heap) :nlang.sysheap.heap
         IDENT(alloc) :__internal_not_typeable__
        IDENT(i32) :nlang.builtins.i32
-      UN(@!) :(nlang.builtins.i_mutable_ref nlang.memory.heap)
-       IDENT(sysheap) :nlang.memory.heap
+      UN(@!) :(nlang.builtins.i_mutable_ref nlang.sysheap.heap)
+       IDENT(sysheap) :nlang.sysheap.heap
      DEFNAME(p) :(nlang.builtins.i_mercurial_ref nlang.builtins.i32)
    BIN( = ) :nlang.builtins.void
     UN(!) :nlang.builtins.i32

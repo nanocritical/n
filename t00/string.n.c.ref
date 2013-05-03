@@ -1,0 +1,17 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+#include "t00/string.n.h.out"
+nlang_builtins_i32 __Nmain(void){
+ {
+nlang_chars_static_string __gensym0 = nlang_chars_static_string_mk((const nlang_builtins_u8 *)"123", sizeof("123")-1);
+;
+nlang_builtins_size __gensym1 = nlang_chars_static_string_count((&__gensym0));
+;
+nlang_builtins_u32 __gensym2 = nlang_builtins_size_trim_u32((&__gensym1));
+;
+return nlang_builtins_u32_reinterpret_signed((&__gensym2));
+}
+}
+void t00_string_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_string_Nrunexamples(void) {
+}

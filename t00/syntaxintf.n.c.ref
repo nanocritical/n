@@ -1,0 +1,15 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+#include "t00/syntaxintf.n.h.out"
+
+
+
+
+nlang_builtins_i32 __Nmain(void){
+ {
+return (nlang_builtins_i32)0;
+}
+}
+void t00_syntaxintf_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_syntaxintf_Nrunexamples(void) {
+}

@@ -12,6 +12,7 @@ export intf i_has_equality = export i_matchable
 export intf i_trivial_equality = export i_has_equality
 export intf i_has_compare =
 export intf i_ordered = export i_has_equality
+export intf i_trivial_order = export i_ordered
 export intf i_ordered_by_compare = export i_has_compare export i_ordered export i_has_equality
 export intf i_arithmetic =
 export intf i_bitwise =
@@ -631,6 +632,10 @@ export intf i_generalized_boolean = \
 
 export intf i_default_ctor =
   method# ctor = void
+  fun mk = r:this
+  fun new = @#this
+
+export intf i_auto_ctor =
   fun mk = r:this
   fun new = @#this
 

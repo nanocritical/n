@@ -1,13 +1,13 @@
 #include <lib/nlang/runtime.h>
 #include "lib/nlang/module.n.h.out"
-#include "lib/nlang/memory.n.h.out"
+#include "lib/nlang/sysheap.n.h.out"
 #include "t02/slice.n.h.out"
 nlang_builtins_i32 __Nmain(void){
  {
 _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_ s = { 0 };
 _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__mk(&(s));
  {
-_Ngen_nlang_memory_heap_slice_realloc__nlang_builtins_i32_genN_((&sysheap), (&s), (nlang_builtins_size)1);
+_Ngen_nlang_sysheap_heap_slice_realloc__nlang_builtins_i32_genN_((&sysheap), (&s), (nlang_builtins_size)1);
 };
 _Ngen_nlang_builtins_i_mutable_ref__nlang_builtins_i32_genN_ p = _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__at__nlang_builtins_i_mutable_ref_genN_((&s), (nlang_builtins_size)0);
 ;

@@ -1,6 +1,6 @@
 from nlang import *
 import nlang.unsafe
-from nlang.memory import heap sysheap slice
+from nlang.sysheap import heap sysheap
 
 export inline type vector t:i_copyable = \
     export i_trivial_ctor \
@@ -58,3 +58,8 @@ export vector method all = index_range
 export vector method# i_copyable.copy_ctor other:@this = void
   (heap.slice_realloc ut) @!sysheap @#self#_p other._p.count
   self._p!copy 0 @other._p 0 other._p.count
+
+export vector method# copy_slice other:@(slice ut) = void
+  (heap.slice_realloc ut) @!sysheap @#self#_p other.count
+  self._p!copy 0 other 0 other.count
+  self!_count = other.count

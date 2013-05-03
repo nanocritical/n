@@ -1,12 +1,20 @@
 from nlang import *
+from nlang.memory import slice
 from nlang.vectors import vector
+import nlang.unsafe
 
-export inline type string = export i_copyable
+export inline type string = \
+    export i_copyable \
+    export i_string
   bytes:(vector u8)
-  -- delegate bytes i_random_container
 
 export string method count = size
   return self.bytes.count
 
 export string method# copy_ctor other:@this = void
   self!bytes = other.bytes
+
+export string fun copy_carray bytes:@u8 count:size = r:string
+  let raw = (nlang.unsafe.cast @u8 @#(vector u8).ut) bytes
+  r.bytes#copy_slice @((slice (vector u8).ut).unsafe_wrap raw count)
+  return r

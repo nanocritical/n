@@ -1,0 +1,4 @@
+from nlang import *
+export 
+export fun main = i32
+  return 0

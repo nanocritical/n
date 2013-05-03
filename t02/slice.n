@@ -1,5 +1,5 @@
 from nlang import *
-from nlang.memory import heap sysheap slice
+from nlang.sysheap import heap sysheap
 
 export fun main = i32
   let s = (slice i32).mk

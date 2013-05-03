@@ -1,5 +1,5 @@
 from nlang import *
-from nlang.memory import heapsysheap
+from nlang.sysheap import heapsysheap
 export fun main = i32
   let p = (heap.alloc i32) @!sysheap
   !p = 1

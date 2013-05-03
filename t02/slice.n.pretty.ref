@@ -1,5 +1,5 @@
 from nlang import *
-from nlang.memory import heapsysheapslice
+from nlang.sysheap import heapsysheap
 export fun main = i32
   let s = (slice i32).mk
     (heap.slice_realloc i32) @!sysheap @#s 1

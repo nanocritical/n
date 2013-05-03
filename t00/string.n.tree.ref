@@ -1,0 +1,34 @@
+MODULE_BODY :__internal_not_typeable__
+ IMPORT :nlang
+  IDENT(nlang) :nlang
+ DEFFUN :t00.string.main
+  IDENT(main) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.i32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(__gensym0) :nlang.chars.static_string
+     STRING('123') :nlang.chars.static_string
+     DEFNAME(__gensym0) :nlang.chars.static_string
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(__gensym1) :nlang.builtins.size
+     CALL :nlang.builtins.size
+      DIRECTDEF :nlang.chars.static_string.count
+      UN(@) :(nlang.builtins.i_ref nlang.chars.static_string)
+       IDENT(__gensym0) :nlang.chars.static_string
+     DEFNAME(__gensym1) :nlang.builtins.size
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(__gensym2) :nlang.builtins.u32
+     CALL :nlang.builtins.u32
+      DIRECTDEF :nlang.builtins.size.trim_u32
+      UN(@) :(nlang.builtins.i_ref nlang.builtins.size)
+       IDENT(__gensym1) :nlang.builtins.size
+     DEFNAME(__gensym2) :nlang.builtins.u32
+   RETURN :nlang.builtins.i32
+    CALL :nlang.builtins.i32
+     DIRECTDEF :nlang.builtins.u32.reinterpret_signed
+     UN(@) :(nlang.builtins.i_ref nlang.builtins.u32)
+      IDENT(__gensym2) :nlang.builtins.u32

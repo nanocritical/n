@@ -1,0 +1,26 @@
+from nlang import *
+
+export intf i_heap_element = \
+    export i_copyable \
+    export i_ordered
+
+export inline type heap t:i_heap_element = \
+    export i_trivial_ctor \
+    export i_copyable
+  _h:(vector t)
+  _count:size
+
+export inline heap method# reserve count:size = void
+  self._h#reserve count
+
+export inline heap method count = size
+  return self._count
+
+export inline heap method# push x:t = void
+  self!_count += 1
+
+export inline heap method# pop = t
+  self!_count -= 1
+
+export inline heap method first = t
+export inline heap method last = t

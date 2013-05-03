@@ -110,7 +110,10 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_SSIZE] = "ssize",
   [ID_TBI_FLOAT] = "float",
   [ID_TBI_DOUBLE] = "double",
+  [ID_TBI_CHAR] = "char",
   [ID_TBI_STRING] = "string",
+  [ID_TBI_STATIC_STRING] = "static_string",
+  [ID_TBI_CONST_STRING] = "i_const_string",
   [ID_TBI_ANY_REF] = "i_any_ref",
   [ID_TBI_ANY_ANY_REF] = "i_any_any_ref",
   [ID_TBI_REF] = "i_ref",
@@ -196,6 +199,8 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_TRIVIAL_CTOR_CTOR] = "nlang.builtins.i_trivial_ctor.ctor",
   [BG_TRIVIAL_CTOR_MK] = "nlang.builtins.i_trivial_ctor.mk",
   [BG_TRIVIAL_CTOR_NEW] = "nlang.builtins.i_trivial_ctor.new",
+  [BG_AUTO_MK] = "nlang.builtins.i_auto_ctor.mk",
+  [BG_AUTO_NEW] = "nlang.builtins.i_auto_ctor.new",
   // These should be templates of i_ctor_with.
   [BG_CTOR_WITH_MK] = "nlang.builtins.i_ctor_with.mk",
   [BG_CTOR_WITH_NEW] = "nlang.builtins.i_ctor_with.new",
@@ -1095,7 +1100,7 @@ void globalctx_init(struct globalctx *gctx) {
   memset(gctx, 0, sizeof(*gctx));
 
   gctx->idents.map = calloc(1, sizeof(struct idents_map));
-  idents_map_init(gctx->idents.map, 0);
+  idents_map_init(gctx->idents.map, 100*1000);
   idents_map_set_delete_val(gctx->idents.map, -1);
   idents_map_set_custom_hashf(gctx->idents.map, token_hash);
   idents_map_set_custom_cmpf(gctx->idents.map, token_cmp);
@@ -2483,8 +2488,12 @@ again:
   case TLPAR:
     e = scan_oneof(&tok2, mod, Tfun, Tmethod, 0);
     EXCEPT(e);
+    if (tok2.t == Tmethod) {
+      e = p_defmethod_access(node, mod);
+      EXCEPT(e);
+    }
     (void)node_new_subnode(mod, node);
-    genargs = mk_node(mod, node, GENARGS);
+    genargs = node_new_subnode(mod, node);
     e = p_implicit_genargs(genargs, mod);
     EXCEPT(e);
     tok = tok2;
@@ -3190,6 +3199,12 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     if (typ_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NREF))
         || typ_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NMREF))
         || typ_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NMMREF))) {
+      return 0;
+    }
+  }
+
+  if (typ_equal(mod, constraint, typ_lookup_builtin(mod, TBI_STATIC_STRING))) {
+    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_CONST_STRING))) {
       return 0;
     }
   }

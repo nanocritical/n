@@ -1,54 +1,35 @@
-from nlang import *
+from nlang.literals import *
+from nlang.builtins import *
+from nlang.containers import *
 import nlang.unsafe
 
-extern fun realloc p:?@#u8 oldbsz:size bsz:size = @#u8
-extern fun free p:?@#u8 sz:size = void
-
-export inline type heap =
-  dummy:i32
-
-export heap (method! t:i_any) alloc = @#t
-  let raw = realloc null 0 (sizeof t)
-  return (nlang.unsafe.cast @#u8 @#t) raw
-
-export heap (method! t:i_any) free p:?@#t = void
-  let raw = (nlang.unsafe.cast ?@#t ?@#u8) p
-  return free raw (sizeof t)
-
-export heap (method! t:i_trivial_ctor) slice_realloc s:@#(slice t) count:size = void
-  let bsz = count * (sizeof t)
-  if s.count == 0
-    s#_rawdata = realloc null 0 bsz
-    s#_count = count
-  else
-    let old_bsz = s.bytelen
-    let raw = s#unsafe_rawdata
-    s#_rawdata = realloc raw old_bsz bsz
-    s#_count = count
-
-export heap (method! t:i_trivial_ctor) slice_free s:@#(slice t) = void
-  let bsz = s.bytelen
-  let raw = s#unsafe_rawdata
-  free raw bsz
-  s#_count = 0
-  s#_rawdata = null
-
-export let sysheap = heap{{ }}
+export intf i_allocator =
+  (method! t:i_any) alloc = @#t
+  (method! t:i_any) free p:?@#t = void
+  (method! t:i_trivial_ctor) slice_realloc s:@#(slice t) count:size = void
+  (method! t:i_trivial_ctor) slice_free s:@#(slice t) = void
 
 
 extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
 extern inline fun slice_memcpy dst:@#u8 at:size src:@u8 off:size count:size = void
 
-
 export inline type slice t:i_trivial_ctor = export i_trivial_ctor
-  _count:size
   _rawdata:?@#u8
+  _count:size
+
+export inline slice fun unsafe_wrap data:@#t count:size = r:this
+  r!_rawdata = (nlang.unsafe.cast @#t ?@#u8) data
+  r!_count = count
+  return r
 
 export inline slice method count = size
   return self._count
 
 export inline slice method bytelen = size
   return self._count * (sizeof t)
+
+export inline slice method all = index_range
+  return range 0 self._count
 
 export inline slice method$ unsafe_rawdata = @$u8
   assert (self._count != 0)

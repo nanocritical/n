@@ -11,7 +11,10 @@ export intf i_iterator =
   method has_next = bool
   method! next = void
 
-export inline type index_range = export i_trivial_copy
+export inline type index_range = \
+    export i_trivial_copy \
+    export i_trivial_equality \
+    export i_return_by_copy
   b:size
   e:size
 

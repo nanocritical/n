@@ -45,7 +45,9 @@ return calloc(1, sizeof(THIS()));
 
 t00_return_copy t00_return_copy_mk(void) {
 #define THIS(x) t00_return_copy##x
+__attribute__((__unused__)) t00_return_copy r = { 0 };
 return (THIS()){ 0 };
+return r;
 #undef THIS
 }
 
@@ -60,6 +62,7 @@ __attribute__((__unused__)) t00_return_copy n = { 0 };
 n.x = x;
 return n;
 }
+return n;
 }
 
 static t00_return_copy t00_return_chained(nlang_builtins_i32 x){
@@ -67,6 +70,7 @@ __attribute__((__unused__)) t00_return_copy n = { 0 };
  {
 return t00_return_foo(x);
 }
+return n;
 }
 
 nlang_builtins_i32 __Nmain(void){

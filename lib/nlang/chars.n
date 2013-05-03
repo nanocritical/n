@@ -1,0 +1,69 @@
+from nlang.literals import *
+from nlang.builtins import *
+from nlang.containers import *
+from nlang.memory import *
+import nlang.unsafe
+
+export inline type char = \
+    export i_trivial_copy \
+    export i_return_by_copy \
+    export i_trivial_equality \
+    export i_trivial_order
+  code:u32
+
+export inline char fun from_ascii c:u8 = char
+  return this{{ code=c.to_u32 }}
+
+example -> char.from_ascii 49 == '1':char
+
+
+export intf i_const_string = -- export i_random_container
+  method count = size
+  method all = index_range
+  method get_char n:size = char
+  method substring start:size count:size = @i_const_string
+  method bytes_utf8 = @(slice u8)
+
+export intf i_string = export i_const_string
+  method! set_char n:size c:char = void
+  method! fill c:char r:index_range = void
+
+export intf i_string_buffer = export i_string
+  method# reserve count:size = void
+  method# clear = void
+  method# push c:char = void
+  method# pop = char
+  method# append other:@i_const_string = void
+  method# copy at:size other:@i_const_string off:size count:size = void
+
+export inline type static_string = \
+    export i_trivial_copy \
+    export i_trivial_equality \
+    export i_trivial_order \
+    export i_return_by_copy \
+    export i_const_string
+  _bytes:(slice u8)
+
+export inline static_string method# ctor bytes:@u8 count:size = void
+  let raw = (nlang.unsafe.cast @u8 @#u8) bytes
+  self!_bytes = (slice u8).unsafe_wrap raw count
+
+export inline static_string method i_random_container.count = size
+  return self._bytes.count
+
+export inline static_string method i_random_container.all = index_range
+  return self._bytes.all
+
+export inline static_string method i_const_string.get_char n:size = char
+  return char.from_ascii (self._bytes.at n).
+
+export inline static_string method bytes_utf8 = @(slice u8)
+  return @self._bytes
+
+example -> '1234'.count == 4
+example -> '1234'.all == range 0 4
+example -> '1234'.get_char 3 == '4'.get_char 0
+example -> '1234'.get_char 1 == '2':char
+example -> '1234' == '1234'
+example -> '1234'.bytes_utf8.count == 4
+example -> ('1234'.bytes_utf8.at 0). == 49

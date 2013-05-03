@@ -8,6 +8,8 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(t) :nlang.builtins.i_copyable
     IDENT(i_copyable) :nlang.builtins.i_copyable
   ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.i_trivial_ctor
+    IDENT(i_trivial_ctor) :nlang.builtins.i_trivial_ctor
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
     IDENT(this) :t01.generic.container

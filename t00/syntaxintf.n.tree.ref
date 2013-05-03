@@ -1,0 +1,83 @@
+MODULE_BODY :__internal_not_typeable__
+ IMPORT :nlang
+  IDENT(nlang) :nlang
+ DEFINTF :t00.syntaxintf.i_example
+  IDENT(i_example) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  ISALIST :nlang.builtins.void
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.syntaxintf.i_example
+    IDENT(i_example) :t00.syntaxintf.i_example
+    DEFNAME(this) :t00.syntaxintf.i_example
+  DEFMETHOD :t00.syntaxintf.i_example.alloc
+   IDENT(alloc) :__internal_not_typeable__
+   GENARGS :nlang.builtins.void
+    DEFGENARG :nlang.builtins.i_any
+     IDENT(t) :nlang.builtins.i_any
+     IDENT(i_any) :nlang.builtins.i_any
+   DEFARG :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+    IDENT(self) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+    UN(@) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+     IDENT(this) :t00.syntaxintf.i_example
+   UN(@#) :(nlang.builtins.i_mercurial_ref nlang.builtins.i_any)
+    IDENT(t) :nlang.builtins.i_any
+  DEFMETHOD :t00.syntaxintf.i_example.free
+   IDENT(free) :__internal_not_typeable__
+   GENARGS :nlang.builtins.void
+    DEFGENARG :nlang.builtins.i_any
+     IDENT(t) :nlang.builtins.i_any
+     IDENT(i_any) :nlang.builtins.i_any
+   DEFARG :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+    IDENT(self) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+    UN(@) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+     IDENT(this) :t00.syntaxintf.i_example
+   DEFARG :(nlang.builtins.i_nullable_mercurial_ref nlang.builtins.i_any)
+    IDENT(p) :(nlang.builtins.i_nullable_mercurial_ref nlang.builtins.i_any)
+    UN(?@#) :(nlang.builtins.i_nullable_mercurial_ref nlang.builtins.i_any)
+     IDENT(t) :nlang.builtins.i_any
+   IDENT(void) :nlang.builtins.void
+  DEFMETHOD :t00.syntaxintf.i_example.slice_realloc
+   IDENT(slice_realloc) :__internal_not_typeable__
+   GENARGS :nlang.builtins.void
+    DEFGENARG :nlang.builtins.i_trivial_ctor
+     IDENT(t) :nlang.builtins.i_trivial_ctor
+     IDENT(i_trivial_ctor) :nlang.builtins.i_trivial_ctor
+   DEFARG :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+    IDENT(self) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+    UN(@) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+     IDENT(this) :t00.syntaxintf.i_example
+   DEFARG :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
+    IDENT(s) :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
+    UN(@#) :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
+     CALL :(nlang.memory.slice nlang.builtins.i_trivial_ctor)
+      IDENT(slice) :nlang.memory.slice
+      IDENT(t) :nlang.builtins.i_trivial_ctor
+   DEFARG :nlang.builtins.size
+    IDENT(count) :nlang.builtins.size
+    IDENT(size) :nlang.builtins.size
+   IDENT(void) :nlang.builtins.void
+  DEFMETHOD :t00.syntaxintf.i_example.slice_free
+   IDENT(slice_free) :__internal_not_typeable__
+   GENARGS :nlang.builtins.void
+    DEFGENARG :nlang.builtins.i_trivial_ctor
+     IDENT(t) :nlang.builtins.i_trivial_ctor
+     IDENT(i_trivial_ctor) :nlang.builtins.i_trivial_ctor
+   DEFARG :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+    IDENT(self) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+    UN(@) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
+     IDENT(this) :t00.syntaxintf.i_example
+   DEFARG :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
+    IDENT(s) :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
+    UN(@#) :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
+     CALL :(nlang.memory.slice nlang.builtins.i_trivial_ctor)
+      IDENT(slice) :nlang.memory.slice
+      IDENT(t) :nlang.builtins.i_trivial_ctor
+   IDENT(void) :nlang.builtins.void
+ DEFFUN :t00.syntaxintf.main
+  IDENT(main) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.i32
+   RETURN :nlang.builtins.i32
+    NUMBER(0) :nlang.builtins.i32

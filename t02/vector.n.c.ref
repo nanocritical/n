@@ -15,8 +15,7 @@ _Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__push((&v), (nlang_builtins_
 _Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__push((&v), (nlang_builtins_i32)1);
 nlang_builtins_assert((_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__pop((&v)) == (nlang_builtins_i32)1));
 _Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__push((&v), (nlang_builtins_i32)1);
-nlang_containers_index_range __gensym2 = { 0 };
-_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__all((&v), &(__gensym2));
+nlang_containers_index_range __gensym2 = _Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__all((&v));
 ;
 nlang_containers_index_iterator __gensym0 = { 0 };
 nlang_containers_index_range_iter((&__gensym2), &(__gensym0));

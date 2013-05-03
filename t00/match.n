@@ -1,6 +1,6 @@
 from nlang import *
 
-type enu =
+type enu = i_trivial_ctor
   | A
   | B
 

@@ -2392,6 +2392,19 @@ static error type_destruct_match_pattern(struct module *mod, struct node *match,
   return 0;
 }
 
+static bool string_literal_has_length_one(const char *s) {
+  const size_t len = strlen(s);
+  if (s == NULL) {
+    return FALSE;
+  } else if (len <= 2) {
+    return FALSE;
+  } else if (s[1] == '\\') {
+    return len == 4;
+  } else {
+    return len == 3;
+  }
+}
+
 static error type_destruct(struct module *mod, struct node *node, const struct typ *constraint) {
   error e;
   struct node *def = NULL;
@@ -2422,8 +2435,18 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     EXCEPT(e);
     break;
   case STRING:
-    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_STRING), constraint);
-    EXCEPT(e);
+    if (typ_equal(mod, constraint, typ_lookup_builtin(mod, TBI_CHAR))) {
+      if (!string_literal_has_length_one(node->as.STRING.value)) {
+        e = mk_except_type(mod, node, "string literal '%s' does not have length 1, cannot coherce to char",
+                           node->as.STRING.value);
+        EXCEPT(e);
+      }
+      node->typ = typ_lookup_builtin(mod, TBI_CHAR);
+      break;
+    } else {
+      e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_STATIC_STRING), constraint);
+      EXCEPT(e);
+    }
     break;
   case SIZEOF:
     e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_SIZE), constraint);
@@ -2682,7 +2705,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     node->typ = typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN);
     goto ok;
   case STRING:
-    node->typ = typ_lookup_builtin(mod, TBI_STRING);
+    node->typ = typ_lookup_builtin(mod, TBI_STATIC_STRING);
     goto ok;
   case SIZEOF:
     node->typ = typ_lookup_builtin(mod, TBI_SIZE);
@@ -3264,6 +3287,73 @@ static error step_add_builtin_dtor(struct module *mod, struct node *node, void *
   return 0;
 }
 
+static error define_auto(struct module *mod, struct node *deft,
+                         enum builtingen bg) {
+  struct node *proto = NULL;
+  error e = scope_lookup_abspath(&proto, deft, mod, builtingen_abspath[bg]);
+  assert(!e);
+
+  struct node *existing = get_member(mod, deft, node_ident(proto));
+  if (existing != NULL) {
+    return 0;
+  }
+
+  struct node *ctor = NULL;
+  e = scope_lookup_ident_immediate(&ctor, deft, mod, deft->scope,
+                                   ID_CTOR, TRUE);
+  if (e) {
+    // FIXME This should be narrower and only in the case the type cannot be
+    // given an automatically generated ctor.
+    e = mk_except_type(mod, deft, "type '%s' is not i_trivial_ctor and has no 'ctor'",
+                       typ_pretty_name(mod, deft->typ));
+    EXCEPT(e);
+  }
+
+  struct node *modbody;
+  ssize_t insert_pos;
+  if (deft->subs[IDX_GENARGS]->subs_count > 0) {
+    modbody = NULL;
+    insert_pos = -1;
+  } else {
+    modbody = deft->scope->parent->node;
+    insert_pos = rew_find_subnode_in_parent(modbody, deft) + 1;
+  }
+
+  struct node *d;
+  if (insert_pos >= 0) {
+    d = node_new_subnode(mod, modbody);
+  } else {
+    d = calloc(1, sizeof(*d));
+  }
+  node_deepcopy(mod, d, proto);
+
+  struct toplevel *toplevel = node_toplevel(d);
+  toplevel->scope_name = node_ident(deft);
+  toplevel->is_prototype = FALSE;
+  toplevel->builtingen = bg;
+  toplevel->is_export = node_toplevel(ctor)->is_export;
+  toplevel->is_inline = node_toplevel(ctor)->is_inline;
+
+  for (size_t n = IDX_FUN_FIRSTARG + 1; n < IDX_FUN_FIRSTARG + node_fun_all_args_count(ctor); ++n) {
+    struct node *arg = ctor->subs[n];
+    assert(arg->which == DEFARG);
+    struct node *cpy = node_new_subnode(mod, d);
+    node_deepcopy(mod, cpy, arg);
+    rew_insert_last_at(d, n - 1);
+  }
+
+  if (insert_pos >= 0) {
+    rew_insert_last_at(modbody, insert_pos);
+  } else {
+    append_member(deft, d);
+  }
+
+  e = zero_to_first_for_generated(mod, d, NULL, deft->scope);
+  assert(!e);
+
+  return 0;
+}
+
 static error step_add_builtin_mk_new(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE) {
@@ -3286,6 +3376,11 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node, void
   } else if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_CTOR_WITH))) {
     define_builtin(mod, node, BG_CTOR_WITH_MK);
     define_builtin(mod, node, BG_CTOR_WITH_NEW);
+  } else {
+    error e = define_auto(mod, node, BG_AUTO_MK);
+    EXCEPT(e);
+    e = define_auto(mod, node, BG_AUTO_NEW);
+    EXCEPT(e);
   }
 
   return 0;
@@ -3355,7 +3450,8 @@ static error step_implement_trivials(struct module *mod, struct node *node, void
 
   if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))) {
     define_builtin(mod, node, BG_TRIVIAL_COPY_COPY_CTOR);
-  } else if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY))) {
+  }
+  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY))) {
     define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_EQ);
     define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_NE);
   }

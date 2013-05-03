@@ -3,7 +3,7 @@
 #include "t00/fixme01.n.h.out"
 nlang_builtins_i32 __Nmain(void){
  {
-nlang_builtins_i32 x = (nlang_builtins_i32)(nlang_builtins_i32)1;
+nlang_builtins_i32 x = (nlang_builtins_i32)1;
 ;
 x = (nlang_builtins_i32)0;
 return x;

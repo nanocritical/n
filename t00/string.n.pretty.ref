@@ -1,0 +1,6 @@
+from nlang import *
+export fun main = i32
+  let __gensym0 = '123'
+  let __gensym1 = nlang.chars.static_string.count @__gensym0
+  let __gensym2 = nlang.builtins.size.trim_u32 @__gensym1
+  return nlang.builtins.u32.reinterpret_signed @__gensym2

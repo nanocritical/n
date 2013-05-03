@@ -413,10 +413,16 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case STRING:
     {
       char *s = escape_string(node->as.STRING.value);
-      fprintf(out, "\"%s\"", s);
+      if (typ_equal(mod, node->typ, typ_lookup_builtin(mod, TBI_STATIC_STRING))) {
+        fprintf(out, "nlang_chars_static_string_mk((const nlang_builtins_u8 *)\"%s\", sizeof(\"%s\")-1)", s, s);
+      } else if (typ_equal(mod, node->typ, typ_lookup_builtin(mod, TBI_CHAR))) {
+        fprintf(out, "nlang_chars_char_from_ascii('%s')", s);
+      } else {
+        assert(FALSE);
+      }
       free(s);
-      break;
     }
+    break;
   case SIZEOF:
     fprintf(out, "sizeof(");
     print_typ(out, mod, node->subs[0]->typ);
@@ -544,7 +550,7 @@ static void print_example(FILE *out, bool header, enum forward fwd, const struct
     fprintf(out, "void %s__Nexample%zu(void) " ATTR_SECTION_EXAMPLES ";",
             replace_dots(scope_name(mod, mod->root->scope)), node->as.EXAMPLE.name);
   } else if (fwd == DEFFUNS) {
-    fprintf(out, "void %s__Nexample%zu(void) {",
+    fprintf(out, "void %s__Nexample%zu(void) {\n",
             replace_dots(scope_name(mod, mod->root->scope)), node->as.EXAMPLE.name);
     const struct node *block = node->subs[0];
     print_block(out, mod, block, TRUE);
@@ -796,9 +802,6 @@ static void print_block(FILE *out, const struct module *mod, const struct node *
 }
 
 static void print_typeconstraint(FILE *out, const struct module *mod, const struct node *node) {
-  fprintf(out, "(");
-  print_typ(out, mod, node->typ);
-  fprintf(out, ")");
   print_expr(out, mod, node->subs[0], T__STATEMENT);
 }
 
@@ -878,21 +881,31 @@ static const char *returns_something(const struct module *mod, const struct node
 static void rtr_helpers(FILE *out, const struct module *mod,
                         const struct node *node, bool start) {
   const struct node *retval = node_fun_retval_const(node);
+  const bool named_retval = retval->which == DEFARG;
   const bool retval_bycopy = typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
-  if (retval_bycopy) {
-    return;
-  }
 
   if (start) {
-    fprintf(out, "#define ");
-    print_expr(out, mod, retval->subs[0], T__STATEMENT);
-    fprintf(out, " (*_nrtr_");
-    print_expr(out, mod, retval->subs[0], T__STATEMENT);
-    fprintf(out, ")\n");
+    if (!retval_bycopy) {
+      fprintf(out, "#define ");
+      print_expr(out, mod, retval->subs[0], T__STATEMENT);
+      fprintf(out, " (*_nrtr_");
+      print_expr(out, mod, retval->subs[0], T__STATEMENT);
+      fprintf(out, ")\n");
+    } else if (named_retval && retval_bycopy) {
+      fprintf(out, "__attribute__((__unused__)) ");
+      print_defarg(out, mod, retval, FALSE);
+      fprintf(out, " = { 0 };\n");
+    }
   } else {
-    fprintf(out, "#undef ");
-    print_expr(out, mod, retval->subs[0], T__STATEMENT);
-    fprintf(out, "\n");
+    if (!retval_bycopy) {
+      fprintf(out, "#undef ");
+      print_expr(out, mod, retval->subs[0], T__STATEMENT);
+      fprintf(out, "\n");
+    } else if (named_retval && retval_bycopy) {
+      fprintf(out, "return ");
+      print_expr(out, mod, retval->subs[0], T__STATEMENT);
+      fprintf(out, ";\n");
+    }
   }
 }
 
@@ -915,33 +928,54 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     print_typ(out, mod, node->scope->parent->node->typ);
     fprintf(out, "##x\n");
   }
+
+  rtr_helpers(out, mod, node, TRUE);
+
   switch (node_toplevel_const(node)->builtingen) {
   case BG_TRIVIAL_CTOR_CTOR:
     break;
   case BG_TRIVIAL_CTOR_MK:
-    rtr_helpers(out, mod, node, TRUE);
     bg_return_if_by_copy(out, mod, node, "(THIS()){ 0 }");
-    rtr_helpers(out, mod, node, FALSE);
     break;
   case BG_TRIVIAL_CTOR_NEW:
     fprintf(out, "return calloc(1, sizeof(THIS()));\n");
     break;
   case BG_DEFAULT_CTOR_MK:
-    rtr_helpers(out, mod, node, TRUE);
     fprintf(out, "THIS(_ctor)(&r);\n");
     bg_return_if_by_copy(out, mod, node, "r");
-    rtr_helpers(out, mod, node, FALSE);
     break;
   case BG_DEFAULT_CTOR_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
     fprintf(out, "THIS(_ctor)(self);\n");
     fprintf(out, "return self;\n");
     break;
+  case BG_AUTO_MK:
+    fprintf(out, "THIS(_ctor)(&r, ");
+    for (size_t a = 0; a < c_fun_args_count(node); ++a) {
+      struct node *arg = node->subs[a + IDX_FUN_FIRSTARG];
+      if (a > 0) {
+        fprintf(out, ", ");
+      }
+      fprintf(out, "%s", idents_value(mod->gctx, node_ident(arg)));
+    }
+    fprintf(out, ");\n");
+    break;
+  case BG_AUTO_NEW:
+    fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
+    fprintf(out, "THIS(_ctor)(self, ");
+    for (size_t a = 0; a < c_fun_args_count(node); ++a) {
+      struct node *arg = node->subs[a + IDX_FUN_FIRSTARG];
+      if (a > 0) {
+        fprintf(out, ", ");
+      }
+      fprintf(out, "%s", idents_value(mod->gctx, node_ident(arg)));
+    }
+    fprintf(out, ");\n");
+    fprintf(out, "return self;\n");
+    break;
   case BG_CTOR_WITH_MK:
-    rtr_helpers(out, mod, node, TRUE);
     fprintf(out, "THIS(_ctor)(&r, c);\n");
     bg_return_if_by_copy(out, mod, node, "r");
-    rtr_helpers(out, mod, node, FALSE);
     break;
   case BG_CTOR_WITH_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
@@ -953,10 +987,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     fprintf(out, "self->as__.%s = c;\n", idents_value(mod->gctx, node_ident(node->scope->parent->node)));
     break;
   case BG_SUM_CTOR_WITH_MK:
-    rtr_helpers(out, mod, node, TRUE);
     fprintf(out, "THIS(_%s_ctor)(&r, c);\n", idents_value(mod->gctx, node_ident(node->scope->parent->node)));
     bg_return_if_by_copy(out, mod, node, "r");
-    rtr_helpers(out, mod, node, FALSE);
     break;
   case BG_SUM_CTOR_WITH_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
@@ -1115,15 +1147,18 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     fprintf(out, "memcpy(self, other, sizeof(*self));\n");
     break;
   case BG_TRIVIAL_EQUALITY_OPERATOR_EQ:
-    fprintf(out, "memcmp(self, other, sizeof(*self)) == 0;\n");
+    fprintf(out, "return memcmp(self, other, sizeof(*self)) == 0;\n");
     break;
   case BG_TRIVIAL_EQUALITY_OPERATOR_NE:
-    fprintf(out, "memcmp(self, other, sizeof(*self)) != 0;\n");
+    fprintf(out, "return memcmp(self, other, sizeof(*self)) != 0;\n");
     break;
   default:
     assert(FALSE);
     break;
   }
+
+  rtr_helpers(out, mod, node, FALSE);
+
   if (node->scope->parent->node->which == DEFTYPE
       || node->scope->parent->node->which == DEFCHOICE) {
     fprintf(out, "#undef THIS\n");
@@ -1168,16 +1203,6 @@ static void print_deffun(FILE *out, bool header, enum forward fwd, const struct 
       fprintf(out, "#define THIS(x) ");
       print_typ(out, mod, node->scope->parent->node->typ);
       fprintf(out, "##x\n");
-    }
-
-    const struct node *retval = node_fun_retval_const(node);
-    const bool named_retval = retval->which == DEFARG;
-    const bool retval_bycopy = typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
-
-    if (named_retval && retval_bycopy) {
-      fprintf(out, "__attribute__((__unused__)) ");
-      print_defarg(out, mod, retval, FALSE);
-      fprintf(out, " = { 0 };\n");
     }
 
     rtr_helpers(out, mod, node, TRUE);
@@ -1507,11 +1532,12 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
     }
   }
 
-  if (typ_is_builtin(mod, node->typ) || is_pseudo_tbi(mod, node->typ)) {
-    if (!is_pseudo_tbi(mod, node->typ)) {
-      if (fwd == FWDTYPES) {
-        print_deftype_typedefs(out, mod, node);
-      }
+  if (is_pseudo_tbi(mod, node->typ)) {
+    return;
+  }
+  if (typ_is_builtin(mod, node->typ) && node_toplevel_const(node)->is_extern) {
+    if (fwd == FWDTYPES) {
+      print_deftype_typedefs(out, mod, node);
     }
     return;
   }

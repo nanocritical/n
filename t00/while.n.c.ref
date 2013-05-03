@@ -3,9 +3,9 @@
 #include "t00/while.n.h.out"
 nlang_builtins_i32 __Nmain(void){
  {
-nlang_builtins_i32 j = (nlang_builtins_i32)(nlang_builtins_i32)0;
+nlang_builtins_i32 j = (nlang_builtins_i32)0;
  {
-nlang_builtins_i32 i = (nlang_builtins_i32)(nlang_builtins_i32)0;
+nlang_builtins_i32 i = (nlang_builtins_i32)0;
  {
 while (i < (nlang_builtins_i32)10) {
 i += (nlang_builtins_i32)1;

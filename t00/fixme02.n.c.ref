@@ -7,7 +7,7 @@ static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_
 
 static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_tmp(void){
  {
-nlang_builtins_i32 __gensym0 = (nlang_builtins_i32)(nlang_builtins_i32)0;
+nlang_builtins_i32 __gensym0 = (nlang_builtins_i32)0;
 ;
 return (&__gensym0);
 }

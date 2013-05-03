@@ -1,0 +1,4 @@
+from nlang import *
+
+export fun main = i32
+  return '123'.count.trim_u32.reinterpret_signed
