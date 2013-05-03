@@ -1759,8 +1759,7 @@ static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   if (node->subs[1]->typ->definition->which == DEFINTF) {
     node->subs[1]->typ = typ_lookup_builtin(mod, TBI_UNSIGNED_INTEGER);
   } else {
-    e = type_destruct(mod, node->subs[1], typ_lookup_builtin(mod, TBI_UNSIGNED_INTEGER));
-    EXCEPT(e);
+    // noop
   }
   node->typ = node->subs[0]->typ;
   return 0;
@@ -2554,7 +2553,9 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     case OP_BIN_NUM_RHS_UNSIGNED:
       e = typ_compatible_numeric(mod, node, left_constraint);
       EXCEPT(e);
-      right_constraint = typ_lookup_builtin(mod, TBI_UNSIGNED_INTEGER);
+      e = type_inference_bin_rhs_unsigned(mod, node);
+      EXCEPT(e);
+      right_constraint = NULL;
       break;
     case OP_BIN_RHS_TYPE:
       if (!(node->subs[1]->flags & NODE_IS_TYPE)) {
