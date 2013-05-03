@@ -164,12 +164,8 @@ static void print_bin_acc(FILE *out, const struct module *mod, const struct node
 
 static void print_bin(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.BIN.operator;
-  const uint32_t prec = OP_PREC(op);
-  const uint32_t parent_prec = OP_PREC(parent_op);
 
-  if (prec > parent_prec) {
-    fprintf(out, "(");
-  }
+  fprintf(out, "(");
 
   switch (OP_KIND(op)) {
   case OP_BIN:
@@ -188,19 +184,13 @@ static void print_bin(FILE *out, const struct module *mod, const struct node *no
     break;
   }
 
-  if (prec > parent_prec) {
-    fprintf(out, ")");
-  }
+  fprintf(out, ")");
 }
 
 static void print_un(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.UN.operator;
-  const uint32_t prec = OP_PREC(op);
-  const uint32_t parent_prec = OP_PREC(parent_op);
 
-  if (prec > parent_prec) {
-    fprintf(out, "(");
-  }
+  fprintf(out, "(");
 
   switch (OP_KIND(op)) {
   case OP_UN_REFOF:
@@ -228,9 +218,7 @@ static void print_un(FILE *out, const struct module *mod, const struct node *nod
     break;
   }
 
-  if (prec > parent_prec) {
-    fprintf(out, ")");
-  }
+  fprintf(out, ")");
 }
 
 static void print_tuple(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
