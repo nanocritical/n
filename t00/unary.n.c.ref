@@ -64,7 +64,7 @@ nlang_builtins_void t00_unary_t_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_u
 nlang_builtins_i32 t00_unary_t_get(_Ngen_nlang_builtins_i_ref__t00_unary_t_genN_ self){
 #define THIS(x) t00_unary_t##x
  {
-return self->x;
+return (self->x);
 }
 #undef THIS
 }

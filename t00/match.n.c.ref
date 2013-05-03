@@ -17,8 +17,8 @@ typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_ _Ngen_nlang_bu
 
 #define t00_match_enu_A_label__ ((nlang_builtins_u32)0)
 static const t00_match_enu t00_match_enu_A = (nlang_builtins_u32)0;
-#define t00_match_enu_B_label__ ((nlang_builtins_u32)0 + (nlang_builtins_u32)1)
-static const t00_match_enu t00_match_enu_B = (nlang_builtins_u32)0 + (nlang_builtins_u32)1;
+#define t00_match_enu_B_label__ (((nlang_builtins_u32)0 + (nlang_builtins_u32)1))
+static const t00_match_enu t00_match_enu_B = ((nlang_builtins_u32)0 + (nlang_builtins_u32)1);
 
 
 
@@ -97,7 +97,7 @@ return (nlang_builtins_i32)1;
 
 nlang_builtins_i32 __Nmain(void){
  {
-t00_match_enu n = t00_match_enu_A;
+t00_match_enu n = (t00_match_enu_A);
 ;
 (void)t00_match_foo(n);
 (void)t00_match_bar(n);

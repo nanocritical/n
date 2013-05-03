@@ -26,7 +26,7 @@ _Ngen_nlang_builtins_i_mercurial_ref___Ngen_t01_genericsum_container__nlang_buil
 nlang_builtins_void _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__add(_Ngen_nlang_builtins_i_mutable_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_ self, nlang_builtins_i32 x){
 #define THIS(x) _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_##x
  {
-self->x += x;
+((self->x) += x);
 }
 #undef THIS
 }
@@ -55,7 +55,7 @@ v.x = (nlang_builtins_i32)0;
  {
 _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__add((&v), (nlang_builtins_i32)1);
 };
-return v.x - (nlang_builtins_i32)1;
+return ((v.x) - (nlang_builtins_i32)1);
 }
 }
 void t01_genericsum_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

@@ -5,7 +5,7 @@ nlang_builtins_i32 __Nmain(void){
  {
 nlang_builtins_i32 x = (nlang_builtins_i32)1;
 ;
-x = (nlang_builtins_i32)0;
+(x = (nlang_builtins_i32)0);
 return x;
 }
 }

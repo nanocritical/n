@@ -5,7 +5,7 @@ nlang_builtins_i32 __Nmain(void){
  {
 nlang_builtins_i32 x = (nlang_builtins_i32)2;
 ;
-return x - (nlang_builtins_i32)2;
+return (x - (nlang_builtins_i32)2);
 }
 }
 void t00_arith_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

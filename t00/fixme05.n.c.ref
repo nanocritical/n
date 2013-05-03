@@ -56,7 +56,7 @@ static void t00_fixme05_foo(t00_fixme05_nocopy *_nrtr__nretval){
  {
 t00_fixme05_nocopy r = { 0 };
  {
-r.x = (nlang_builtins_i32)0;
+((r.x) = (nlang_builtins_i32)0);
 };
 ;
 return;
@@ -69,7 +69,7 @@ nlang_builtins_i32 __Nmain(void){
 t00_fixme05_nocopy __gensym0 = { 0 };
 t00_fixme05_foo(&(__gensym0));
 ;
-return __gensym0.x;
+return (__gensym0.x);
 }
 }
 void t00_fixme05_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

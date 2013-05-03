@@ -41,7 +41,7 @@ _Ngen_t01_generic_container__nlang_builtins_i32_genN_ v; memset(&(v), 0, sizeof(
 v.x = (nlang_builtins_i32)1;
 ;
 ;
-return v.x - (nlang_builtins_i32)1;
+return ((v.x) - (nlang_builtins_i32)1);
 }
 }
 void t01_generic_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

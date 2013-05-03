@@ -5,7 +5,7 @@ nlang_builtins_i32 __Nmain(void){
  {
 nlang_builtins_bool x = (nlang_builtins_bool)0;
 ;
-if (x && (nlang_builtins_bool)1) {
+if ((x && (nlang_builtins_bool)1)) {
 return (nlang_builtins_i32)0;
 }
 else  {

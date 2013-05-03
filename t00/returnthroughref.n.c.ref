@@ -83,7 +83,7 @@ return;
 static void t00_returnthroughref_bar2(t00_returnthroughref_t *_nrtr_r){
 #define r (*_nrtr_r)
  {
-t00_returnthroughref_bar(&(r));
+(t00_returnthroughref_bar(&(r)));
 ;
 return;
 }
@@ -98,10 +98,10 @@ t00_returnthroughref_bar(&(y));
 t00_returnthroughref_t __gensym0 = { 0 };
 t00_returnthroughref_bar2(&(__gensym0));
 ;
-if (y.x != __gensym0.x) {
+if (((y.x) != (__gensym0.x))) {
 return (nlang_builtins_i32)1;
 };
-return y.xx;
+return (y.xx);
 }
 }
 void t00_returnthroughref_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

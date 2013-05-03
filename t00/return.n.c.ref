@@ -59,7 +59,7 @@ nlang_builtins_void t00_return_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t
 static t00_return_copy t00_return_foo(nlang_builtins_i32 x){
 __attribute__((__unused__)) t00_return_copy n = { 0 };
  {
-n.x = x;
+((n.x) = x);
 return n;
 }
 return n;
@@ -75,7 +75,7 @@ return n;
 
 nlang_builtins_i32 __Nmain(void){
  {
-return t00_return_chained((nlang_builtins_i32)1).x - (nlang_builtins_i32)1;
+return ((t00_return_chained((nlang_builtins_i32)1).x) - (nlang_builtins_i32)1);
 }
 }
 void t00_return_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

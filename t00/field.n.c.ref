@@ -51,7 +51,7 @@ nlang_builtins_i32 __Nmain(void){
  {
 t00_field_t tt = { 0 };
 ;
-return tt.x;
+return (tt.x);
 }
 }
 void t00_field_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

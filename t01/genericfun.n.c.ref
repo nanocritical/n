@@ -7,7 +7,7 @@ static nlang_builtins_i32 _Ngen_t01_genericfun_decr__nlang_builtins_i32_genN_(nl
 
 static nlang_builtins_i32 _Ngen_t01_genericfun_decr__nlang_builtins_i32_genN_(nlang_builtins_i32 x){
  {
-return x - (nlang_builtins_i32)1;
+return (x - (nlang_builtins_i32)1);
 }
 }
 

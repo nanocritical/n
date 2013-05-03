@@ -63,7 +63,7 @@ t00_init_t tt; memset(&(tt), 0, sizeof(t00_init_t));
 tt.x = (nlang_builtins_i32)1;
 ;
 ;
-return tt.x - (nlang_builtins_i32)1;
+return ((tt.x) - (nlang_builtins_i32)1);
 }
 }
 void t00_init_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
