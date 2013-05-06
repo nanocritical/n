@@ -3426,6 +3426,22 @@ bool typ_is_builtin(const struct module *mod, const struct typ *t) {
   return FALSE;
 }
 
+bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t) {
+  if (typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_NULL))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_FLOATING))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__NOT_TYPEABLE))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MUTABLE))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MERCURIAL))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE))) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
 error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,
                 const struct typ *a, const struct typ *b) {
   error e;

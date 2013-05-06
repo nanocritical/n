@@ -1492,22 +1492,6 @@ static void print_deftype_enum(FILE *out, bool header, enum forward fwd,
   }
 }
 
-static bool is_pseudo_tbi(const struct module *mod, const struct typ *t) {
-  if (typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_NULL))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_FLOATING))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__NOT_TYPEABLE))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MUTABLE))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MERCURIAL))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE))) {
-    return TRUE;
-  }
-  return FALSE;
-}
-
 static void print_deftype(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
   if (header && !node_is_export(node)) {
     return;
@@ -1520,7 +1504,7 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
     }
   }
 
-  if (is_pseudo_tbi(mod, node->typ)) {
+  if (typ_is_pseudo_builtin(mod, node->typ)) {
     return;
   }
   if (typ_is_builtin(mod, node->typ) && node_toplevel_const(node)->is_extern) {

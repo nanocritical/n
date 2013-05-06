@@ -40,8 +40,8 @@ export inline type static_string = \
     export i_trivial_copy \
     export i_trivial_equality \
     export i_trivial_order \
-    export i_return_by_copy \
-    export i_const_string
+    export i_return_by_copy
+--    export i_const_string
   _bytes:(slice u8)
 
 export inline static_string method# ctor bytes:@u8 count:size = void

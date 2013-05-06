@@ -4242,6 +4242,7 @@ static const step secondpass_up[] = {
   step_ctor_call_inference,
   step_dtor_call_inference,
   step_copy_call_inference,
+  step_check_exhaustive_intf_impl,
 
   step_store_return_through_ref_expr,
   // Must be last to use the node argument! It rewrites the current node.

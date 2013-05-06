@@ -732,6 +732,7 @@ error mk_except_call_args_count(const struct module *mod, const struct node *nod
 char *typ_name(const struct module *mod, const struct typ *t);
 char *typ_pretty_name(const struct module *mod, const struct typ *t);
 bool typ_is_builtin(const struct module *mod, const struct typ *t);
+bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t);
 
 void rew_insert_last_at(struct node *node, size_t pos);
 void rew_move_last_over(struct node *node, size_t pos, bool saved_it);
