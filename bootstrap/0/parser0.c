@@ -2939,43 +2939,45 @@ error need_instance(struct module *mod, struct node *needer, const struct typ *t
   return 0;
 }
 
-void module_retval_push(struct module *mod, const struct node *return_node) {
-  mod->return_nodes_count += 1;
-  mod->return_nodes = realloc(mod->return_nodes,
-                              mod->return_nodes_count * sizeof(*mod->return_nodes));
-  mod->return_nodes[mod->return_nodes_count - 1] = return_node;
+void module_retval_set(struct module *mod, const struct node *retval) {
+  mod->firstpass_state->retval = retval;
 }
 
 const struct node *module_retval_get(struct module *mod) {
-  assert(mod->return_nodes_count > 0);
-  return mod->return_nodes[mod->return_nodes_count - 1];
+  return mod->firstpass_state->retval;
 }
 
-void module_retval_pop(struct module *mod) {
-  assert(mod->return_nodes_count > 0);
-  mod->return_nodes_count -= 1;
-  mod->return_nodes = realloc(mod->return_nodes,
-                              mod->return_nodes_count * sizeof(*mod->return_nodes));
+void module_retval_clear(struct module *mod) {
+  mod->firstpass_state->retval = NULL;
 }
 
 void module_excepts_open_try(struct module *mod) {
-  mod->trys_count += 1;
-  mod->trys = realloc(mod->trys, mod->trys_count * sizeof(*mod->trys));
-  memset(mod->trys + mod->trys_count - 1, 0, sizeof(*mod->trys));
+  struct firstpass_state *st = mod->firstpass_state;
+  st->trys_count += 1;
+  st->trys = realloc(st->trys, st->trys_count * sizeof(*st->trys));
+  memset(st->trys + st->trys_count - 1, 0, sizeof(*st->trys));
 }
 
-void module_excepts_push(struct module *mod, struct node *return_node) {
-  struct try_excepts *t = &mod->trys[mod->trys_count - 1];
+void module_excepts_push(struct module *mod, struct node *excep_node) {
+  struct firstpass_state *st = mod->firstpass_state;
+  struct try_excepts *t = &st->trys[st->trys_count - 1];
   t->count += 1;
   t->excepts = realloc(t->excepts, t->count * sizeof(*t->excepts));
   memset(t->excepts + t->count - 1, 0, sizeof(*t->excepts));
-  t->excepts[t->count - 1] = return_node;
+  t->excepts[t->count - 1] = excep_node;
+}
+
+struct try_excepts *module_excepts_get(struct module *mod) {
+  struct firstpass_state *st = mod->firstpass_state;
+  assert(st->trys_count > 0);
+  return &st->trys[st->trys_count - 1];
 }
 
 void module_excepts_close_try(struct module *mod) {
-  assert(mod->trys_count > 0);
-  free(mod->trys[mod->trys_count - 1].excepts);
-  mod->trys_count -= 1;
+  struct firstpass_state *st = mod->firstpass_state;
+  assert(st->trys_count > 0);
+  free(st->trys[st->trys_count - 1].excepts);
+  st->trys_count -= 1;
 }
 
 static struct typ *typ_new_builtin(struct node *definition,

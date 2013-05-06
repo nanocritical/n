@@ -244,11 +244,11 @@ static error step_detect_generic_interfaces_down(struct module *mod, struct node
   DSTEP(mod, node);
   switch (node->which) {
   case DEFINTF:
-    mod->intf_uses_this = FALSE;
+    mod->zeropass_state->intf_uses_this = FALSE;
     break;
   case IDENT:
-    if (node->as.IDENT.name == ID_THIS) {
-      mod->intf_uses_this = TRUE;
+    if (node_ident(node) == ID_THIS) {
+      mod->zeropass_state->intf_uses_this = TRUE;
     }
     break;
   default:
@@ -261,7 +261,7 @@ static error step_detect_generic_interfaces_up(struct module *mod, struct node *
   DSTEP(mod, node);
   switch (node->which) {
   case DEFINTF:
-    node->as.DEFINTF.is_implied_generic = mod->intf_uses_this;
+    node->as.DEFINTF.not_dyn |= mod->zeropass_state->intf_uses_this;
     break;
   default:
     break;
@@ -949,20 +949,20 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node, void 
       break;
     }
     if (typ_equal(mod, def->typ, typ_lookup_builtin(mod, TBI_REF))) {
-      mod->ref_wildcard = TREFDOT;
-      mod->nulref_wildcard = TNULREFDOT;
-      mod->deref_wildcard = TDEREFDOT;
-      mod->wildcard = TDOT;
+      mod->firstpass_state->ref_wildcard = TREFDOT;
+      mod->firstpass_state->nulref_wildcard = TNULREFDOT;
+      mod->firstpass_state->deref_wildcard = TDEREFDOT;
+      mod->firstpass_state->wildcard = TDOT;
     } else if (typ_equal(mod, def->typ, typ_lookup_builtin(mod, TBI_MREF))) {
-      mod->ref_wildcard = TREFBANG;
-      mod->nulref_wildcard = TNULREFBANG;
-      mod->deref_wildcard = TDEREFBANG;
-      mod->wildcard = TBANG;
+      mod->firstpass_state->ref_wildcard = TREFBANG;
+      mod->firstpass_state->nulref_wildcard = TNULREFBANG;
+      mod->firstpass_state->deref_wildcard = TDEREFBANG;
+      mod->firstpass_state->wildcard = TBANG;
     } else if (typ_equal(mod, def->typ, typ_lookup_builtin(mod, TBI_MMREF))) {
-      mod->ref_wildcard = TREFSHARP;
-      mod->nulref_wildcard = TNULREFSHARP;
-      mod->deref_wildcard = TDEREFSHARP;
-      mod->wildcard = TSHARP;
+      mod->firstpass_state->ref_wildcard = TREFSHARP;
+      mod->firstpass_state->nulref_wildcard = TNULREFSHARP;
+      mod->firstpass_state->deref_wildcard = TDEREFSHARP;
+      mod->firstpass_state->wildcard = TSHARP;
     } else {
       assert(FALSE);
     }
@@ -970,13 +970,13 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node, void 
   case UN:
     switch (node->as.UN.operator) {
     case TREFWILDCARD:
-      node->as.UN.operator = mod->ref_wildcard;
+      node->as.UN.operator = mod->firstpass_state->ref_wildcard;
       break;
     case TNULREFWILDCARD:
-      node->as.UN.operator = mod->nulref_wildcard;
+      node->as.UN.operator = mod->firstpass_state->nulref_wildcard;
       break;
     case TDEREFWILDCARD:
-      node->as.UN.operator = mod->deref_wildcard;
+      node->as.UN.operator = mod->firstpass_state->deref_wildcard;
       break;
     default:
       break;
@@ -985,7 +985,7 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node, void 
   case BIN:
     switch (node->as.BIN.operator) {
     case TWILDCARD:
-      node->as.UN.operator = mod->wildcard;
+      node->as.UN.operator = mod->firstpass_state->wildcard;
       break;
     default:
       break;
@@ -1297,7 +1297,7 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
   mutable_typ->isalist = calloc(isalist->subs_count, sizeof(*mutable_typ->isalist));
   mutable_typ->isalist_exported = calloc(isalist->subs_count, sizeof(*mutable_typ->isalist_exported));
 
-  bool uses_implied_generic = FALSE;
+  bool isa_not_dyn = FALSE;
   for (size_t n = 0; n < isalist->subs_count; ++n) {
     struct node *isa = isalist->subs[n];
     assert(isa->which == ISA);
@@ -1310,11 +1310,11 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
     mutable_typ->isalist[n] = isa->typ;
     mutable_typ->isalist_exported[n] = isa->as.ISA.is_export;
 
-    uses_implied_generic |= isa->typ->definition->as.DEFINTF.is_implied_generic;
+    isa_not_dyn |= isa->typ->definition->as.DEFINTF.not_dyn;
   }
 
   if (node->which == DEFINTF) {
-    node->as.DEFINTF.is_implied_generic = uses_implied_generic;
+    node->as.DEFINTF.not_dyn = isa_not_dyn;
   }
 
   return 0;
@@ -1391,7 +1391,7 @@ static error step_type_gather_retval(struct module *mod, struct node *node, void
   switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
-    module_retval_push(mod, node_fun_retval(node));
+    module_retval_set(mod, node_fun_retval(node));
     break;
   default:
     break;
@@ -2282,7 +2282,7 @@ static error type_inference_try(struct module *mod, struct node *node) {
   node->typ = NULL;
 
   error e;
-  struct try_excepts *t = &mod->trys[mod->trys_count - 1];
+  struct try_excepts *t = module_excepts_get(mod);
 
   if (t->count == 0) {
     e = mk_except(mod, node, "try block has no except statement, catch is unreachable");
@@ -2535,7 +2535,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       EXCEPT(e);
       e = typ_unify(&node->typ, mod, node, node->typ, constraint);
       EXCEPT(e);
-      return 0;
+      break;
     }
 
     const struct typ *left_constraint = constraint;
@@ -2943,7 +2943,7 @@ static error step_type_drop_retval(struct module *mod, struct node *node, void *
   switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
-    module_retval_pop(mod);
+    module_retval_clear(mod);
     return 0;
   default:
     return 0;
@@ -3046,20 +3046,6 @@ ok:
 except:
   idents_set_destroy(&set);
   return e;
-}
-
-static error step_toplevel_secondpass(struct module *mod, struct node *node, void *user, bool *stop) {
-  DSTEP(mod, node);
-  const struct node *parent = node->scope->parent->node;
-  if (node_is_at_top(node)
-      || ((parent->which == DEFTYPE || parent->which == DEFINTF)
-          && (node->which == DEFFUN || node->which == DEFMETHOD))) {
-
-    error e = secondpass(mod, node, NULL);
-    EXCEPT(e);
-  }
-
-  return 0;
 }
 
 static struct node *get_member(struct module *mod, struct node *node, ident id) {
@@ -3532,7 +3518,7 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
       check_intf = typ_lookup_builtin(mod, TBI_ORDERED);
     } else {
       assert(intf->definition->which == DEFINTF);
-      if (intf->definition->as.DEFINTF.is_implied_generic) {
+      if (intf->definition->as.DEFINTF.not_dyn) {
         error e = mk_except_type(mod, node->subs[IDX_ISALIST]->subs[n],
                                  "intf is an implied generic (uses 'this') and cannot be dispatched over");
         EXCEPT(e);
@@ -3607,6 +3593,9 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
     struct node *except[] = { retval, NULL };
     e = zero_to_second_for_generated(mod, named, except, node->scope);
     EXCEPT(e);
+
+    module_retval_clear(mod);
+    module_retval_set(mod, named);
   }
 
   return 0;
@@ -4034,15 +4023,23 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
 static error step_complete_instantiation(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
 
+  struct toplevel *toplevel = node_toplevel(node);
+  if (toplevel != NULL) {
+    toplevel->is_second_passed = TRUE;
+  }
+
   if (!node_can_have_genargs(node)
       || node->subs[IDX_GENARGS]->subs_count == 0) {
     return 0;
   }
 
   error e = 0;
-  struct toplevel *toplevel = node_toplevel(node);
   for (size_t n = 1; n < toplevel->instances_count; ++n) {
     struct node *i = toplevel->instances[n];
+
+    if (node_toplevel_const(i)->is_second_passed) {
+      continue;
+    }
 
     e = firstpass(mod, i, NULL);
     EXCEPT(e);
@@ -4053,6 +4050,18 @@ static error step_complete_instantiation(struct module *mod, struct node *node, 
 
   return 0;
 }
+
+#define PUSH_STATE(st) do { \
+  __typeof__(st) nst = calloc(1, sizeof(*st)); \
+  nst->prev = st; \
+  st = nst; \
+} while (0)
+
+#define POP_STATE(st) do { \
+  __typeof__(st) ost = st; \
+  st = ost->prev; \
+  free(ost); \
+} while (0)
 
 static const step zeropass_down[] = {
   step_rewrite_prototype_wildcards,
@@ -4072,8 +4081,10 @@ static const step zeropass_up[] = {
 };
 
 error zeropass(struct module *mod, struct node *node, struct node **except) {
+  PUSH_STATE(mod->zeropass_state);
   error e = pass(mod, node, zeropass_down, zeropass_up, except, NULL);
   EXCEPT(e);
+  POP_STATE(mod->zeropass_state);
 
   return 0;
 }
@@ -4210,19 +4221,22 @@ static const step firstpass_up[] = {
   step_type_drop_retval,
   step_type_drop_excepts,
   step_check_exhaustive_match,
-  step_toplevel_secondpass,
   NULL,
 };
 
 error firstpass(struct module *mod, struct node *node, struct node **except) {
   int module_depth = 0;
+  PUSH_STATE(mod->firstpass_state);
   error e = pass(mod, node, firstpass_down, firstpass_up, except, &module_depth);
   EXCEPT(e);
+  POP_STATE(mod->firstpass_state);
 
   return 0;
 }
 
 static const step secondpass_down[] = {
+  step_stop_submodules,
+  step_stop_marker_tbi,
   step_add_builtin_ctor,
   step_add_builtin_dtor,
   step_add_builtin_defchoice_mk_new,
@@ -4230,8 +4244,8 @@ static const step secondpass_down[] = {
   step_add_builtin_operators,
   step_add_sum_dispatch,
   step_implement_trivials,
-  step_rewrite_def_return_through_ref,
   step_type_gather_retval,
+  step_rewrite_def_return_through_ref,
   NULL,
 };
 
@@ -4242,7 +4256,7 @@ static const step secondpass_up[] = {
   step_copy_call_inference,
 
   step_store_return_through_ref_expr,
-  // Must be last to use node arg! It rewrites the current node.
+  // Must be last to use the node argument! It rewrites the current node.
   step_define_temporary_rvalues,
 
   step_type_drop_retval,
@@ -4251,8 +4265,11 @@ static const step secondpass_up[] = {
 };
 
 error secondpass(struct module *mod, struct node *node, struct node **except) {
-  error e = pass(mod, node, secondpass_down, secondpass_up, except, NULL);
+  PUSH_STATE(mod->firstpass_state);
+  int module_depth = 0;
+  error e = pass(mod, node, secondpass_down, secondpass_up, except, &module_depth);
   EXCEPT(e);
+  POP_STATE(mod->firstpass_state);
 
   return 0;
 }

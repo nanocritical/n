@@ -582,6 +582,9 @@ int main(int argc, char **argv) {
 
     e = firstpass(mod, NULL, NULL);
     EXCEPT(e);
+
+    e = secondpass(mod, NULL, NULL);
+    EXCEPT(e);
   }
 
   for (size_t n = 0; n < deps.modules_count; ++n) {

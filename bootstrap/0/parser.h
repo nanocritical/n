@@ -113,6 +113,8 @@ struct toplevel {
   struct node **instances;
   size_t instances_count;
   struct node *generic_definition;
+
+  bool is_second_passed;
 };
 
 struct node_nul {};
@@ -186,7 +188,7 @@ struct node_defmethod {
 };
 struct node_defintf {
   struct toplevel toplevel;
-  bool is_implied_generic;
+  bool not_dyn;
 };
 struct node_defname {
   struct node *pattern;
@@ -567,11 +569,6 @@ struct typ {
   bool is_abstract_genarg;
 };
 
-struct try_excepts {
-  struct node **excepts;
-  size_t count;
-};
-
 struct globalctx {
   struct idents idents;
   // This node hierarchy is used to park loaded modules using their
@@ -583,6 +580,29 @@ struct globalctx {
 
   struct typ *builtin_typs[TBI__NUM];
   struct typ *builtin_typs_by_name[ID__NUM];
+};
+
+struct zeropass_state {
+  struct zeropass_state *prev;
+
+  bool intf_uses_this;
+};
+
+struct try_excepts {
+  struct node **excepts;
+  size_t count;
+};
+
+struct firstpass_state {
+  struct firstpass_state *prev;
+
+  const struct node *retval;
+  struct try_excepts *trys;
+  size_t trys_count;
+  enum token_type ref_wildcard;
+  enum token_type nulref_wildcard;
+  enum token_type deref_wildcard;
+  enum token_type wildcard;
 };
 
 struct module {
@@ -599,20 +619,15 @@ struct module {
 
   // State
   size_t next_gensym;
-  bool afternoon;
-  bool intf_uses_this;
-  const struct node **return_nodes;
-  size_t return_nodes_count;
-  struct try_excepts *trys;
-  size_t trys_count;
-  enum token_type ref_wildcard;
-  enum token_type nulref_wildcard;
-  enum token_type deref_wildcard;
-  enum token_type wildcard;
   size_t next_example;
   size_t next_pre;
   size_t next_post;
   size_t next_invariant;
+
+  bool afternoon;
+
+  struct zeropass_state *zeropass_state;
+  struct firstpass_state *firstpass_state;
 };
 
 void globalctx_init(struct globalctx *gctx);
@@ -620,11 +635,12 @@ void globalctx_init(struct globalctx *gctx);
 error module_open(struct globalctx *gctx, struct module *mod,
                   const char *prefix, const char *fn);
 error need_instance(struct module *mod, struct node *needer, const struct typ *typ);
-void module_retval_push(struct module *mod, const struct node *return_node);
+void module_retval_set(struct module *mod, const struct node *retval);
 const struct node *module_retval_get(struct module *mod);
-void module_retval_pop(struct module *mod);
+void module_retval_clear(struct module *mod);
 void module_excepts_open_try(struct module *mod);
-void module_excepts_push(struct module *mod, struct node *return_node);
+void module_excepts_push(struct module *mod, struct node *excep_node);
+struct try_excepts *module_excepts_get(struct module *mod);
 void module_excepts_close_try(struct module *mod);
 
 ident gensym(struct module *mod);
