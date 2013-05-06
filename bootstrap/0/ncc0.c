@@ -521,8 +521,8 @@ static error program_link(const struct dependencies *deps) {
   if (run == NULL) {
     EXCEPTF(errno, "Cannot open output file '%s'", main_fn);
   }
-  fprintf(run, "void __Nmain();\n");
-  fprintf(run, "int main(int argc, char **argv, char **env) {\n__Nmain(argc, argv, env);\n}\n");
+  fprintf(run, "int __Nmain();\n");
+  fprintf(run, "int main(int argc, char **argv, char **env) {\nreturn __Nmain(argc, argv, env);\n}\n");
   fclose(run);
 
   char *inputs = file_list((const struct module **)deps->modules,

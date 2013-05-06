@@ -1,0 +1,46 @@
+from nlang import *
+
+intf i_d =
+  fun answer = i32
+  method get = i32
+
+type d = i_d
+  x:i32
+
+d fun answer = i32
+  return 42
+
+d method get = i32
+  return self.x
+
+type dc = i_d
+  dummy:i32
+
+dc fun answer = i32
+  return 42
+
+dc method get = i32
+  return 42
+
+fun foo v:@i_d = i32
+  return v.get
+
+example
+  let x = d{{ x=42 }}
+  42 == foo @x
+
+fun rfoo pv:@i_d = i32
+  return pv.answer
+
+fun bar pv:@d = i32
+  return foo pv
+
+export fun main = i32
+  let xd = d{{ x=42 }}
+  let xdc = dc{{ }}
+  if foo @xd != foo @xdc
+    return 1
+  let pxd = @xd
+  if bar pxd != rfoo pxd
+    return 1
+  return 0

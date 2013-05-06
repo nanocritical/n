@@ -35,6 +35,7 @@ const char *node_which_strings[] = {
   [MATCH] = "MATCH",
   [TRY] = "TRY",
   [TYPECONSTRAINT] = "TYPECONSTRAINT",
+  [DYN] = "DYN",
   [DEFFUN] = "DEFFUN",
   [DEFTYPE] = "DEFTYPE",
   [DEFMETHOD] = "DEFMETHOD",
@@ -76,6 +77,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_INVARIANT] = "<invariant>",
   [ID_EXAMPLE] = "<example>",
   [ID_THIS] = "this",
+  [ID_FINAL] = "final",
   [ID_SELF] = "self",
   [ID_OTHERWISE] = "_",
   [ID_MAIN] = "main",
@@ -1289,6 +1291,72 @@ struct node *node_fun_retval(struct node *def) {
   return (struct node *) node_fun_retval_const(def);
 }
 
+struct node *node_get_member(struct module *mod, struct node *node, ident id) {
+  assert(node->which == DEFTYPE || node->which == DEFCHOICE || node->which == DEFINTF);
+  struct node *m = NULL;
+  (void)scope_lookup_ident_immediate(&m, node, mod, node->scope, id, TRUE);
+  return m;
+}
+
+const struct node *node_get_member_const(const struct module *mod, const struct node *node, ident id) {
+  return node_get_member((struct module *)mod, (struct node *)node, id);
+}
+
+HTABLE_SPARSE(typs_set, bool, struct typ *);
+implement_htable_sparse(__attribute__((unused)) static, typs_set, bool, struct typ *);
+
+static uint32_t typ_hash(const struct typ **a) {
+  return node_ident((*a)->definition);;
+}
+
+static int typ_cmp(const struct typ **a, const struct typ **b) {
+  return !typ_equal(node_module_owner_const((*a)->definition), *a, *b);
+}
+
+static error do_node_isalist_foreach(struct module *mod, struct node *tdef, const bool *export_filter,
+                                     isalist_each iter, void *user, struct typs_set *set) {
+  for (size_t n = 0; n < tdef->typ->isalist_count; ++n) {
+    const struct typ *intf = tdef->typ->isalist[n];
+    if (typs_set_get(set, intf) != NULL) {
+      continue;
+    }
+
+    if (export_filter != NULL) {
+      if (*export_filter && !tdef->typ->isalist_exported[n]) {
+        continue;
+      } else if (!*export_filter && tdef->typ->isalist_exported[n]) {
+        continue;
+      }
+    }
+
+    typs_set_set(set, intf, TRUE);
+
+    error e = do_node_isalist_foreach(mod, tdef, export_filter, iter, user, set);
+    EXCEPT(e);
+
+    e = iter(mod, tdef, intf, user);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
+error node_isalist_foreach(struct module *mod, struct node *tdef, const bool *export_filter,
+                           isalist_each iter, void *user) {
+  struct typs_set set;
+  typs_set_init(&set, 0);
+  typs_set_set_delete_val(&set, NULL);
+  typs_set_set_custom_hashf(&set, typ_hash);
+  typs_set_set_custom_cmpf(&set, typ_cmp);
+
+  error e = do_node_isalist_foreach(mod, tdef, export_filter, iter, user, &set);
+  typs_set_destroy(&set);
+  EXCEPT(e);
+
+  return 0;
+}
+
+
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind) {
   struct node *n = node_new_subnode(mod, parent);
   n->which = kind;
@@ -2161,12 +2229,12 @@ static void add_self_arg(struct module *mod, struct node *node) {
     struct node *ref = mk_node(mod, argt, IDENT);
     ref->as.IDENT.name = ID_WILDCARD_REF_ARG;
     struct node *reft = mk_node(mod, argt, IDENT);
-    reft->as.IDENT.name = ID_THIS;
+    reft->as.IDENT.name = ID_FINAL;
   } else {
     struct node *ref = mk_node(mod, arg, UN);
     ref->as.UN.operator = node->as.DEFMETHOD.access;
     struct node *typename = mk_node(mod, ref, IDENT);
-    typename->as.IDENT.name = ID_THIS;
+    typename->as.IDENT.name = ID_FINAL;
   }
 }
 
@@ -2257,6 +2325,7 @@ retval:
 
   if (tok.t == TEOL || tok.t == TEOB) {
     back(mod, &tok);
+    node_toplevel(node)->is_prototype = TRUE;
     return 0;
   }
 
@@ -2456,7 +2525,6 @@ static error p_deftype(struct node *node, struct module *mod,
 
   if (tok.t == TEOL) {
     back(mod, &tok);
-    node->as.DEFTYPE.toplevel.is_prototype = TRUE;
     return 0;
   }
 
@@ -2586,7 +2654,6 @@ static error p_defintf(struct node *node, struct module *mod,
 
   if (tok.t == TEOL) {
     back(mod, &tok);
-    node->as.DEFINTF.toplevel.is_prototype = TRUE;
     return 0;
   }
 
@@ -3415,6 +3482,17 @@ bool typ_is_abstract_instance(const struct module *mod, const struct typ *a) {
   }
 
   return FALSE;
+}
+
+bool typ_isa_return_by_copy(const struct module *mod, const struct typ *t) {
+  const struct node *def = t->definition;
+  if (def->which == DEFINTF) {
+    return TRUE;
+  } else if (typ_equal(mod, t, typ_lookup_builtin(mod, TBI_VOID))) {
+    return TRUE;
+  } else {
+    return typ_isa(mod, t, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
+  }
 }
 
 bool typ_is_builtin(const struct module *mod, const struct typ *t) {

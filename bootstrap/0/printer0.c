@@ -292,6 +292,9 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case DIRECTDEF:
     fprintf(out, "%s", scope_name(mod, node->as.DIRECTDEF.definition->scope));
     break;
+  case DYN:
+    print_expr(out, mod, node->subs[0], parent_op);
+    break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
     assert(FALSE);

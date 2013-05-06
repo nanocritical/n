@@ -1,55 +1,55 @@
 export intf i_any =
 
 export intf i_copyable =
-  method# copy_ctor other:@this = void
+  method# copy_ctor other:@final = void
 
 export intf i_copyable_but_owned = export i_copyable -- FIXME
 export intf i_trivial_copy = export i_copyable
 export intf i_return_by_copy =
 export intf i_default_ctor =
   method# ctor = void
-  fun mk = r:this
-  fun new = @#this
+  fun mk = r:final
+  fun new = @#final
 
 export intf i_trivial_ctor = export i_default_ctor
 export intf i_trivial_dtor =
 export intf i_matchable =
-  method operator_match other:@this = bool
+  method operator_match other:@final = bool
 export intf i_has_equality = export i_matchable
-  method operator_eq other:@this = bool
-  method operator_ne other:@this = bool
+  method operator_eq other:@final = bool
+  method operator_ne other:@final = bool
 export intf i_trivial_equality = export i_has_equality
 export intf i_has_compare =
-  method operator_compare other:@this = i32
+  method operator_compare other:@final = i32
 export intf i_ordered = export i_has_equality
-  method operator_le other:@this = bool
-  method operator_lt other:@this = bool
-  method operator_gt other:@this = bool
-  method operator_ge other:@this = bool
+  method operator_le other:@final = bool
+  method operator_lt other:@final = bool
+  method operator_gt other:@final = bool
+  method operator_ge other:@final = bool
 export intf i_trivial_order = export i_ordered
 export intf i_ordered_by_compare = export i_has_compare export i_ordered export i_has_equality
 export intf i_arithmetic =
-  method operator_plus other:@this = this
-  method operator_minus other:@this = this
-  method operator_divide other:@this = this
-  method operator_modulo other:@this = this
-  method operator_times other:@this = this
-  method operator_uminus = this
-  method! operator_assign_plus other:@this = void
-  method! operator_assign_minus other:@this = void
-  method! operator_assign_divide other:@this = void
-  method! operator_assign_modulo other:@this = void
-  method! operator_assign_times other:@this = void
+  method operator_plus other:@final = final
+  method operator_minus other:@final = final
+  method operator_divide other:@final = final
+  method operator_modulo other:@final = final
+  method operator_times other:@final = final
+  method operator_uminus = final
+  method! operator_assign_plus other:@final = void
+  method! operator_assign_minus other:@final = void
+  method! operator_assign_divide other:@final = void
+  method! operator_assign_modulo other:@final = void
+  method! operator_assign_times other:@final = void
 export intf i_bitwise =
-  method operator_bwor other:@this = this
-  method operator_bwxor other:@this = this
-  method operator_bwand other:@this = this
-  method operator_lshift by:u32 = this
-  method operator_rshift by:u32 = this
-  method operator_bwnot = this
-  method! operator_assign_bwor other:@this = void
-  method! operator_assign_bwxor other:@this = void
-  method! operator_assign_bwand other:@this = void
+  method operator_bwor other:@final = final
+  method operator_bwxor other:@final = final
+  method operator_bwand other:@final = final
+  method operator_lshift by:u32 = final
+  method operator_rshift by:u32 = final
+  method operator_bwnot = final
+  method! operator_assign_bwor other:@final = void
+  method! operator_assign_bwxor other:@final = void
+  method! operator_assign_bwand other:@final = void
   method! operator_assign_lshift by:u32 = void
   method! operator_assign_rshift by:u32 = void
 
@@ -110,9 +110,9 @@ export intf i_native_anysign_integer = \
 export intf i_generalized_boolean = \
     export i_ordered \
     export i_bitwise
-  method operator_or other:@this = this
-  method operator_and other:@this = this
-  method operator_not = this
+  method operator_or other:@final = final
+  method operator_and other:@final = final
+  method operator_not = final
   method operator_test = bool
 
 export intf i_native_boolean = \
@@ -620,19 +620,19 @@ export extern double method trim_float = float
 export extern double method as_ssize = ssize
 
 export intf i_auto_ctor =
-  fun mk = r:this
-  fun new = @#this
+  fun mk = r:final
+  fun new = @#final
 
 export intf i_ctor_with =
   method# ctor = void
-  fun mk = r:this
-  fun new = @#this
+  fun mk = r:final
+  fun new = @#final
 
 -- FIXME: actual definition below
 --export intf i_ctor_with t:i_copyable =
 --  method# ctor c:t = void
---  fun mk c:t = this
---  fun new c:t = @#this
+--  fun mk c:t = final
+--  fun new c:t = @#final
 --
 
 export extern fun abort = void

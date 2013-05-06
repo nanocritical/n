@@ -20,7 +20,7 @@ syn keyword nKeyword pass as attr declare
 syn keyword nException try catch throw except
 syn match nOperator "[@:]"
 
-syn keyword nKeyword self this
+syn keyword nKeyword self this final
 
 syn keyword Constant null false true
 

@@ -34,6 +34,7 @@ enum node_which {
   MATCH,
   TRY,
   TYPECONSTRAINT,
+  DYN,
   DEFFUN,
   DEFTYPE,
   DEFMETHOD,
@@ -106,6 +107,7 @@ struct toplevel {
   ident scope_name;
   bool is_prototype;
   bool is_shadowed;
+  bool is_not_dyn;
   struct node *forward_declaration;
   struct node *full_definition;
   enum builtingen builtingen;
@@ -160,6 +162,9 @@ struct node_if {};
 struct node_match {};
 struct node_try {};
 struct node_typeconstraint {};
+struct node_dyn {
+  const struct typ *intf;
+};
 struct node_deffun {
   struct toplevel toplevel;
 };
@@ -188,7 +193,6 @@ struct node_defmethod {
 };
 struct node_defintf {
   struct toplevel toplevel;
-  bool not_dyn;
 };
 struct node_defname {
   struct node *pattern;
@@ -263,6 +267,7 @@ union node_as {
   struct node_match MATCH;
   struct node_try TRY;
   struct node_typeconstraint TYPECONSTRAINT;
+  struct node_dyn DYN;
   struct node_deffun DEFFUN;
   struct node_deftype DEFTYPE;
   struct node_defmethod DEFMETHOD;
@@ -348,6 +353,7 @@ enum predefined_idents {
   ID_INVARIANT,
   ID_EXAMPLE,
   ID_THIS,
+  ID_FINAL,
   ID_SELF,
   ID_OTHERWISE,
 
@@ -584,8 +590,6 @@ struct globalctx {
 
 struct zeropass_state {
   struct zeropass_state *prev;
-
-  bool intf_uses_this;
 };
 
 struct try_excepts {
@@ -596,6 +600,7 @@ struct try_excepts {
 struct firstpass_state {
   struct firstpass_state *prev;
 
+  bool fun_uses_final;
   const struct node *retval;
   struct try_excepts *trys;
   size_t trys_count;
@@ -691,6 +696,11 @@ struct node *node_fun_retval(struct node *def);
 const struct node *node_fun_retval_const(const struct node *def);
 struct toplevel *node_toplevel(struct node *node);
 const struct toplevel *node_toplevel_const(const struct node *node);
+struct node *node_get_member(struct module *mod, struct node *node, ident id);
+const struct node *node_get_member_const(const struct module *mod, const struct node *node, ident id);
+typedef error (*isalist_each)(struct module *mod, struct node *tdef, const struct typ *intf, void *user);
+error node_isalist_foreach(struct module *mod, struct node *tdef, const bool *export_filter,
+                           isalist_each iter, void *user);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);
 struct node *node_typ_member(const struct typ *typ, const char *member);
 void node_deepcopy(struct module *mod, struct node *dst,
@@ -717,6 +727,7 @@ error typ_check_is_reference_instance(const struct module *mod, const struct nod
                                       const struct typ *a);
 bool typ_is_concrete(const struct module *mod, const struct typ *a);
 bool typ_is_abstract_instance(const struct module *mod, const struct typ *a);
+bool typ_isa_return_by_copy(const struct module *mod, const struct typ *t);
 error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,
                 const struct typ *a, const struct typ *b);
 bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf);
