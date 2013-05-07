@@ -1,0 +1,38 @@
+from nlang import *
+type enu = i_trivial_ctor <root>.nlang.builtins.i_trivial_copy <root>.nlang.builtins.i_trivial_dtor
+  let this = enu
+  let final = enu
+  | A = 0
+  | B = 0 + 1
+
+enu method <root>.nlang.builtins.i_copyable.copy_ctor self:@#final = void
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+
+enu method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+fun foo n:enu = i32
+  match n
+  | A
+    return 0
+  | B
+    return 1
+
+fun bar n:enu = i32
+  match n
+  | A
+    return 0
+  | _
+    return 1
+
+export fun main = i32
+  let n = enu.A
+  let _ = foo n
+  let _ = bar n
+  match n
+  | enu.A
+    return 0
+  | enu.B
+    return 1

@@ -1,0 +1,28 @@
+#include <lib/nlang/runtime.h>
+#include "lib/nlang/module.n.h.out"
+#include "t00/optional.n.h.out"
+
+
+static nlang_builtins_i32 t00_optional_opts(_Ngen_nlang_builtins_i_nullable_ref__nlang_builtins_i32_genN_ a);
+
+static nlang_builtins_i32 t00_optional_opts(_Ngen_nlang_builtins_i_nullable_ref__nlang_builtins_i32_genN_ a){
+ {
+return _Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_(a, (nlang_builtins_i32)1);
+}
+}
+
+nlang_builtins_i32 __Nmain(void){
+ {
+nlang_builtins_i32 __gensym0 = (nlang_builtins_i32)1;
+;
+if ((t00_optional_opts(((&__gensym0))) != (nlang_builtins_i32)1)) {
+return (nlang_builtins_i32)1;
+};
+nlang_builtins_i32 __gensym1 = (nlang_builtins_i32)0;
+;
+return t00_optional_opts(((&__gensym1)));
+}
+}
+void t00_optional_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_optional_Nrunexamples(void) {
+}

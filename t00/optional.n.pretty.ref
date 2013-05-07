@@ -1,0 +1,10 @@
+from nlang import *
+fun opts a:?@i32 = i32
+  return optional a 1
+
+export fun main = i32
+  let __gensym0 = 1
+  if opts @__gensym0 != 1
+    return 1
+  let __gensym1 = 0
+  return opts @__gensym1
