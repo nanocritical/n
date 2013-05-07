@@ -16,7 +16,7 @@ for t in $list; do
 	rm -f $t.*.out
 	# Assume that having a .stderr.ref file means the test should fail.
 	if [ -f $t.stderr.ref ]; then
-		if ${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out; then
+		if $(dirname $0)/ncc0 $t 2> $t.stderr.out; then
 			echo "FAILED $t: did not fail"
 			ret=1
 			if ! [ -s $t.stderr.out ]; then
@@ -25,7 +25,7 @@ for t in $list; do
 			fi
 		fi
 	else
-		if ! ${WD}bootstrap/0/ncc0 $t 2> $t.stderr.out; then
+		if ! $(dirname $0)/ncc0 $t 2> $t.stderr.out; then
 			echo "FAILED $t: did not succeed"
 			ret=1
 		fi
