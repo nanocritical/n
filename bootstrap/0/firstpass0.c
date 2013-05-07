@@ -3241,15 +3241,7 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
 
   struct node *proxy = node;
   if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
-    // Find first DEFCHOICE with an non-void argument type.
-    for (size_t n = 0; n < node->subs_count; ++n) {
-      struct node *ch = node->subs[n];
-      if (ch->which == DEFCHOICE
-          && ch->subs[IDX_CH_PAYLOAD]->typ != typ_lookup_builtin(mod, TBI_VOID)) {
-        proxy = ch;
-        break;
-      }
-    }
+    return 0;
   }
 
   struct node *ctor = node_get_member(mod, proxy, ID_CTOR);
@@ -3508,7 +3500,7 @@ static void define_dispatch(struct module *mod, struct node *deft, const struct 
 
     rew_insert_last_at(modbody, insert_pos);
 
-    error e = zero_to_lunch_for_generated(mod, d, deft->scope);
+    error e = zero_to_first_for_generated(mod, d, NULL, deft->scope);
     assert(!e);
   }
 }
@@ -3915,6 +3907,8 @@ static error check_exhaustive_intf_impl_eachisalist(struct module *mod, struct n
                                idents_value(mod->gctx, node_ident(f)));
       EXCEPT(e);
     }
+
+    // FIXME check that the prototype is an exact match.
   }
 
   return 0;
@@ -4360,11 +4354,18 @@ static const step firstpass_down[] = {
 static const step firstpass_up[] = {
   step_add_builtin_enum_isalist,
   step_add_builtin_defchoice_constructors,
+  step_add_builtin_defchoice_mk_new,
   step_add_builtin_detect_ctor_intf,
   step_rewrite_defname_no_expr,
   step_rewrite_sum_constructors,
   step_detect_generic_interfaces_up,
   step_type_inference,
+  step_add_builtin_ctor,
+  step_add_builtin_dtor,
+  step_add_builtin_mk_new,
+  step_add_builtin_operators,
+  step_add_sum_dispatch,
+  step_implement_trivials,
   step_type_drop_retval,
   step_type_drop_excepts,
   step_check_exhaustive_match,
@@ -4384,13 +4385,6 @@ error firstpass(struct module *mod, struct node *node, struct node **except) {
 static const step secondpass_down[] = {
   step_stop_submodules,
   step_stop_marker_tbi,
-  step_add_builtin_ctor,
-  step_add_builtin_dtor,
-  step_add_builtin_defchoice_mk_new,
-  step_add_builtin_mk_new,
-  step_add_builtin_operators,
-  step_add_sum_dispatch,
-  step_implement_trivials,
   step_type_gather_retval,
   step_rewrite_def_return_through_ref,
   NULL,

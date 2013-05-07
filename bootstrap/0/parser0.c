@@ -206,9 +206,9 @@ const char *builtingen_abspath[BG__NUM] = {
   // These should be templates of i_ctor_with.
   [BG_CTOR_WITH_MK] = "nlang.builtins.i_ctor_with.mk",
   [BG_CTOR_WITH_NEW] = "nlang.builtins.i_ctor_with.new",
-  [BG_SUM_CTOR_WITH_CTOR] = "nlang.builtins.i_ctor_with.ctor",
-  [BG_SUM_CTOR_WITH_MK] = "nlang.builtins.i_ctor_with.mk",
-  [BG_SUM_CTOR_WITH_NEW] = "nlang.builtins.i_ctor_with.new",
+  [BG_SUM_CTOR_WITH_CTOR] = "nlang.builtins.i_sum_ctor_with.ctor",
+  [BG_SUM_CTOR_WITH_MK] = "nlang.builtins.i_sum_ctor_with.mk",
+  [BG_SUM_CTOR_WITH_NEW] = "nlang.builtins.i_sum_ctor_with.new",
 
   [BG_ENUM_EQ] = "nlang.builtins.i_has_equality.operator_eq",
   [BG_ENUM_NE] = "nlang.builtins.i_has_equality.operator_ne",

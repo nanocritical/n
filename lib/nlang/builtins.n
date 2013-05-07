@@ -635,6 +635,11 @@ export intf i_ctor_with =
 --  fun new c:t = @#final
 --
 
+export intf i_sum_ctor_with =
+  method# ctor = void
+  fun mk = r:final
+  fun new = @#final
+
 export extern fun abort = void
 
 export fun assert cond:bool = void
