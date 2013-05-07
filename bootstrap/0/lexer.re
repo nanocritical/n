@@ -201,6 +201,7 @@ normal:
   "?@#" { R(TNULREFSHARP); }
   "?@$" { R(TNULREFWILDCARD); }
   "?@" { R(TNULREFDOT); }
+  "?" { R(TQMARK); }
   "..." { R(TDOTDOTDOT); }
   "[]" { R(TSLICEBRAKETS); }
   "{{" { R(TLINIT); }

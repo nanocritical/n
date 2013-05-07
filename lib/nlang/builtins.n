@@ -652,8 +652,8 @@ export extern inline fun unlikely x:bool = bool
 export inline (fun t:i_any) unused x:t = void
   pass
 
-export inline (fun t:i_any) optional opt:?@t default:t = t
+export inline (fun t:i_any) optional opt:?@t fallback:t = t
   if opt !== null
     return opt.
   else
-    return default
+    return fallback

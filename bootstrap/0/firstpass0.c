@@ -1531,7 +1531,7 @@ static const struct typ *typ_ref(struct module *mod, enum token_type op, const s
   ga->typ = typ;
   ga->flags = NODE_IS_TYPE;
 
-  error e = passes_for_instantiation(node_module_owner(gendef), mod,
+  error e = passes_for_instantiation(mod, node_module_owner(gendef),
                                      instance, gendef->scope->parent);
   assert(!e);
 
@@ -2058,7 +2058,7 @@ static error genarg_destruct(struct module *mod, const struct node *gendef,
   return 0;
 }
 
-static error rewrite_deftype_instance_genargs(struct module *mod,
+static error rewrite_deftype_instance_genargs(struct module *mod, const struct node *for_error,
                                               struct node *instance, struct node *expr) {
   struct node *genargs = instance->subs[IDX_GENARGS];
   size_t offset;
@@ -2074,11 +2074,28 @@ static error rewrite_deftype_instance_genargs(struct module *mod,
     break;
   }
 
+  const struct typ *gendeft = node_toplevel(instance)->generic_definition->typ;
+  const bool gendef_is_ref = typ_isa(mod, gendeft, typ_lookup_builtin(mod, TBI_ANY_ANY_REF));;
+
   for (size_t n = 0; n < genargs->subs_count; ++n) {
     struct node *ex = expr->subs[offset + n];
     if (!(ex->flags & NODE_IS_TYPE)) {
-      error e = mk_except_type(mod, ex,
-                               "generic type argument is not a type expression");
+      char *ngendeft = typ_pretty_name(mod, gendeft);
+      error e = mk_except_type(mod, for_error,
+                               "generic argument %d of generic '%s' is not a type expression",
+                               n + 1, ngendeft);
+      free(ngendeft);
+      EXCEPT(e);
+    }
+
+    if (!gendef_is_ref && !typ_is_concrete(mod, ex->typ)) {
+      char *ngendeft = typ_pretty_name(mod, gendeft);
+      char *nex = typ_pretty_name(mod, ex->typ);
+      error e = mk_except_type(mod, for_error,
+                               "generic argument %d '%s' of generic '%s' is not concrete (it is a literal)",
+                               n + 1, nex, ngendeft);
+      free(nex);
+      free(ngendeft);
       EXCEPT(e);
     }
 
@@ -2199,7 +2216,7 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
   instance = add_instance_deepcopy_from_pristine(mod, gendef, pristine);
   node_toplevel(instance)->generic_definition = gendef;
 
-  error e = rewrite_deftype_instance_genargs(mod, instance, expr);
+  error e = rewrite_deftype_instance_genargs(mod, node, instance, expr);
   EXCEPT(e);
 
   e = passes_for_instantiation(mod, node_module_owner(gendef),

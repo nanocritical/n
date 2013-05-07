@@ -2175,8 +2175,10 @@ again:
   goto again;
 }
 
-static error p_defarg(struct node *node, struct module *mod) {
+static error p_defarg(struct node *node, struct module *mod, bool is_optional) {
   node->which = DEFARG;
+  node->as.DEFARG.is_optional = is_optional;
+
   error e = p_expr(node_new_subnode(mod, node), mod, TCOLON);
   EXCEPT(e);
 
@@ -2298,7 +2300,7 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
   }
 
 again:
-  e = scan_oneof(&tok, mod, TASSIGN, TIDENT, 0);
+  e = scan_oneof(&tok, mod, TASSIGN, TIDENT, TQMARK, 0);
   EXCEPT(e);
 
   switch (tok.t) {
@@ -2306,11 +2308,13 @@ again:
     goto retval;
   case TIDENT:
     back(mod, &tok);
-
-    struct node *arg = node_new_subnode(mod, node);
-    e = p_defarg(arg, mod);
-    EXCEPT(e);
-
+    // Fallthrough
+  case TQMARK:
+    {
+      struct node *arg = node_new_subnode(mod, node);
+      e = p_defarg(arg, mod, tok.t == TQMARK);
+      EXCEPT(e);
+    }
     goto again;
   default:
     assert(FALSE);

@@ -202,6 +202,7 @@ struct node_defpattern {
   bool is_alias;
 };
 struct node_defarg {
+  bool is_optional;
   bool is_retval;
 };
 struct node_defgenarg {
