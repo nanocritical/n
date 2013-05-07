@@ -20,6 +20,11 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(this) :t00.unary.t
     IDENT(t) :t00.unary.t
     DEFNAME(this) :t00.unary.t
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(final) :t00.unary.t
+    IDENT(t) :t00.unary.t
+    DEFNAME(final) :t00.unary.t
   DEFFIELD :nlang.builtins.i32
    IDENT(x) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
@@ -37,11 +42,11 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_mercurial_ref t00.unary.t)
    IDENT(self) :(nlang.builtins.i_mercurial_ref t00.unary.t)
    UN(@#) :(nlang.builtins.i_mercurial_ref t00.unary.t)
-    IDENT(this) :t00.unary.t
+    IDENT(final) :t00.unary.t
   DEFARG :(nlang.builtins.i_ref t00.unary.t)
    IDENT(other) :(nlang.builtins.i_ref t00.unary.t)
    UN(@) :(nlang.builtins.i_ref t00.unary.t)
-    IDENT(this) :t00.unary.t
+    IDENT(final) :t00.unary.t
   IDENT(void) :nlang.builtins.void
  DEFFUN :t00.unary.t.new
   BIN(.) :__internal_not_typeable__
@@ -55,7 +60,7 @@ MODULE_BODY :__internal_not_typeable__
    IDENT(new) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   UN(@#) :(nlang.builtins.i_mercurial_ref t00.unary.t)
-   IDENT(this) :t00.unary.t
+   IDENT(final) :t00.unary.t
  DEFFUN :t00.unary.t.mk
   BIN(.) :__internal_not_typeable__
    BIN(.) :__internal_not_typeable__
@@ -69,7 +74,7 @@ MODULE_BODY :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :t00.unary.t
    IDENT(r) :t00.unary.t
-   IDENT(this) :t00.unary.t
+   IDENT(final) :t00.unary.t
  DEFMETHOD :t00.unary.t.ctor
   BIN(.) :__internal_not_typeable__
    BIN(.) :__internal_not_typeable__
@@ -84,7 +89,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_mercurial_ref t00.unary.t)
    IDENT(self) :(nlang.builtins.i_mercurial_ref t00.unary.t)
    UN(@#) :(nlang.builtins.i_mercurial_ref t00.unary.t)
-    IDENT(this) :t00.unary.t
+    IDENT(final) :t00.unary.t
   IDENT(void) :nlang.builtins.void
  DEFMETHOD :t00.unary.t.get
   IDENT(get) :__internal_not_typeable__
@@ -92,7 +97,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_ref t00.unary.t)
    IDENT(self) :(nlang.builtins.i_ref t00.unary.t)
    UN(@) :(nlang.builtins.i_ref t00.unary.t)
-    IDENT(this) :t00.unary.t
+    IDENT(final) :t00.unary.t
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.i32
    RETURN :nlang.builtins.i32

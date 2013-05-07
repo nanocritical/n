@@ -15,6 +15,11 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(this) :t01.generic.container
     IDENT(container) :t01.generic.container
     DEFNAME(this) :t01.generic.container
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(final) :t01.generic.container
+    IDENT(container) :t01.generic.container
+    DEFNAME(final) :t01.generic.container
   DEFFIELD :nlang.builtins.i_copyable
    IDENT(x) :__internal_not_typeable__
    IDENT(t) :nlang.builtins.i_copyable

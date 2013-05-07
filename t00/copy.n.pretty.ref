@@ -1,15 +1,16 @@
 from nlang import *
 type copy = i_copyable <root>.nlang.builtins.i_trivial_ctor
   let this = copy
+  let final = copy
   x:i32
 
-fun <root>.nlang.builtins.i_trivial_ctor.new = @#this
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
 
-fun <root>.nlang.builtins.i_trivial_ctor.mk = r:this
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 
 copy method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
-copy method i_copyable.copy_ctor self:@#this = void
+copy method i_copyable.copy_ctor self:@#final = void
   self!x = other.x
 
 fun foo = _nretval:copy

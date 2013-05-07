@@ -10,6 +10,11 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(this) :t00.syntaxintf.i_example
     IDENT(i_example) :t00.syntaxintf.i_example
     DEFNAME(this) :t00.syntaxintf.i_example
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(final) :t00.syntaxintf.i_example
+    IDENT(i_example) :t00.syntaxintf.i_example
+    DEFNAME(final) :t00.syntaxintf.i_example
   DEFMETHOD :t00.syntaxintf.i_example.alloc
    IDENT(alloc) :__internal_not_typeable__
    GENARGS :nlang.builtins.void
@@ -19,7 +24,7 @@ MODULE_BODY :__internal_not_typeable__
    DEFARG :(nlang.builtins.i_ref t00.syntaxintf.i_example)
     IDENT(self) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
     UN(@) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
-     IDENT(this) :t00.syntaxintf.i_example
+     IDENT(final) :t00.syntaxintf.i_example
    UN(@#) :(nlang.builtins.i_mercurial_ref nlang.builtins.i_any)
     IDENT(t) :nlang.builtins.i_any
   DEFMETHOD :t00.syntaxintf.i_example.free
@@ -31,7 +36,7 @@ MODULE_BODY :__internal_not_typeable__
    DEFARG :(nlang.builtins.i_ref t00.syntaxintf.i_example)
     IDENT(self) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
     UN(@) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
-     IDENT(this) :t00.syntaxintf.i_example
+     IDENT(final) :t00.syntaxintf.i_example
    DEFARG :(nlang.builtins.i_nullable_mercurial_ref nlang.builtins.i_any)
     IDENT(p) :(nlang.builtins.i_nullable_mercurial_ref nlang.builtins.i_any)
     UN(?@#) :(nlang.builtins.i_nullable_mercurial_ref nlang.builtins.i_any)
@@ -46,7 +51,7 @@ MODULE_BODY :__internal_not_typeable__
    DEFARG :(nlang.builtins.i_ref t00.syntaxintf.i_example)
     IDENT(self) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
     UN(@) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
-     IDENT(this) :t00.syntaxintf.i_example
+     IDENT(final) :t00.syntaxintf.i_example
    DEFARG :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
     IDENT(s) :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
     UN(@#) :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
@@ -66,7 +71,7 @@ MODULE_BODY :__internal_not_typeable__
    DEFARG :(nlang.builtins.i_ref t00.syntaxintf.i_example)
     IDENT(self) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
     UN(@) :(nlang.builtins.i_ref t00.syntaxintf.i_example)
-     IDENT(this) :t00.syntaxintf.i_example
+     IDENT(final) :t00.syntaxintf.i_example
    DEFARG :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
     IDENT(s) :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
     UN(@#) :(nlang.builtins.i_mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))

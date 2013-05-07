@@ -9,13 +9,13 @@ static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_
  {
 nlang_builtins_i32 __gensym0 = (nlang_builtins_i32)0;
 ;
-return (&__gensym0);
+return ((&__gensym0));
 }
 }
 
 nlang_builtins_i32 __Nmain(void){
  {
-return (*t00_fixme02_returns_tmp());
+return ((*t00_fixme02_returns_tmp()));
 }
 }
 void t00_fixme02_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

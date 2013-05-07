@@ -111,6 +111,8 @@ _Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_genN_ t00_sum_sum_A_new(nlang_
 nlang_builtins_void t00_sum_sum_B_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_genN_ self, nlang_builtins_i32 c);
 void t00_sum_sum_B_mk(nlang_builtins_i32 c, t00_sum_sum *_nrtr_r);
 _Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_genN_ t00_sum_sum_B_new(nlang_builtins_i32 c);
+static inline nlang_builtins_i_sum_equality t00_sum_sum_mkdyn__nlang_builtins_i_sum_equality(t00_sum_sum *obj);
+static inline nlang_builtins_i_sum_copy t00_sum_sum_mkdyn__nlang_builtins_i_sum_copy(t00_sum_sum *obj);
 
 nlang_builtins_bool t00_sum_sum_operator_ne(_Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_ other);
 
@@ -118,6 +120,8 @@ nlang_builtins_bool t00_sum_sum_operator_eq(_Ngen_nlang_builtins_i_ref__t00_sum_
 
 nlang_builtins_void t00_sum_sum_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_sum_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_ other);
 
+static inline nlang_builtins_i_trivial_ctor t00_sum_ta_mkdyn__nlang_builtins_i_trivial_ctor(t00_sum_ta *obj);
+static inline nlang_builtins_i_trivial_copy t00_sum_ta_mkdyn__nlang_builtins_i_trivial_copy(t00_sum_ta *obj);
 
 nlang_builtins_void t00_sum_ta_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_ta_genN_ other);
 
@@ -127,6 +131,8 @@ void t00_sum_ta_mk(t00_sum_ta *_nrtr_r);
 
 nlang_builtins_void t00_sum_ta_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ self);
 
+static inline nlang_builtins_i_trivial_ctor t00_sum_tb_mkdyn__nlang_builtins_i_trivial_ctor(t00_sum_tb *obj);
+static inline nlang_builtins_i_trivial_copy t00_sum_tb_mkdyn__nlang_builtins_i_trivial_copy(t00_sum_tb *obj);
 
 nlang_builtins_void t00_sum_tb_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_tb_genN_ other);
 
@@ -183,6 +189,18 @@ THIS(_B_ctor)(self, c);
 return self;
 #undef THIS
 }
+static inline nlang_builtins_i_sum_equality t00_sum_sum_mkdyn__nlang_builtins_i_sum_equality(t00_sum_sum *obj) {
+static const struct _Ndyn_nlang_builtins_i_sum_equality vtable = {
+0,
+};
+return (nlang_builtins_i_sum_equality){ .vptr = &vtable, .obj = obj };
+}
+static inline nlang_builtins_i_sum_copy t00_sum_sum_mkdyn__nlang_builtins_i_sum_copy(t00_sum_sum *obj) {
+static const struct _Ndyn_nlang_builtins_i_sum_copy vtable = {
+0,
+};
+return (nlang_builtins_i_sum_copy){ .vptr = &vtable, .obj = obj };
+}
 
 nlang_builtins_bool t00_sum_sum_operator_ne(_Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_sum_genN_ other) {
 #define THIS(x) t00_sum_sum##x
@@ -216,6 +234,18 @@ case THIS(_B_which___label__):  nlang_builtins_i32_copy_ctor(&self->as__.B, &oth
 #undef THIS
 }
 
+static inline nlang_builtins_i_trivial_ctor t00_sum_ta_mkdyn__nlang_builtins_i_trivial_ctor(t00_sum_ta *obj) {
+static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
+0,
+};
+return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
+}
+static inline nlang_builtins_i_trivial_copy t00_sum_ta_mkdyn__nlang_builtins_i_trivial_copy(t00_sum_ta *obj) {
+static const struct _Ndyn_nlang_builtins_i_trivial_copy vtable = {
+0,
+};
+return (nlang_builtins_i_trivial_copy){ .vptr = &vtable, .obj = obj };
+}
 
 nlang_builtins_void t00_sum_ta_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_ta_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_ta_genN_ other) {
 #define THIS(x) t00_sum_ta##x
@@ -241,6 +271,18 @@ nlang_builtins_void t00_sum_ta_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_su
 #undef THIS
 }
 
+static inline nlang_builtins_i_trivial_ctor t00_sum_tb_mkdyn__nlang_builtins_i_trivial_ctor(t00_sum_tb *obj) {
+static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
+0,
+};
+return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
+}
+static inline nlang_builtins_i_trivial_copy t00_sum_tb_mkdyn__nlang_builtins_i_trivial_copy(t00_sum_tb *obj) {
+static const struct _Ndyn_nlang_builtins_i_trivial_copy vtable = {
+0,
+};
+return (nlang_builtins_i_trivial_copy){ .vptr = &vtable, .obj = obj };
+}
 
 nlang_builtins_void t00_sum_tb_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_sum_tb_genN_ self, _Ngen_nlang_builtins_i_ref__t00_sum_tb_genN_ other) {
 #define THIS(x) t00_sum_tb##x
@@ -322,7 +364,7 @@ t00_sum_sum_A_mk((nlang_builtins_u32)0, &(n));
 t00_sum_sum __gensym1 = { 0 };
 t00_sum_sum_A_mk((nlang_builtins_u32)0, &(__gensym1));
 ;
-if (t00_sum_sum_operator_eq((&n), (&__gensym1))) {
+if (t00_sum_sum_operator_eq(((&n)), ((&__gensym1)))) {
 return (nlang_builtins_i32)0;
 }
 else  {

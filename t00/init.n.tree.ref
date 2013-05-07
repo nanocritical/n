@@ -20,6 +20,11 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(this) :t00.init.t
     IDENT(t) :t00.init.t
     DEFNAME(this) :t00.init.t
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(final) :t00.init.t
+    IDENT(t) :t00.init.t
+    DEFNAME(final) :t00.init.t
   DEFFIELD :nlang.builtins.i32
    IDENT(x) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
@@ -37,11 +42,11 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_mercurial_ref t00.init.t)
    IDENT(self) :(nlang.builtins.i_mercurial_ref t00.init.t)
    UN(@#) :(nlang.builtins.i_mercurial_ref t00.init.t)
-    IDENT(this) :t00.init.t
+    IDENT(final) :t00.init.t
   DEFARG :(nlang.builtins.i_ref t00.init.t)
    IDENT(other) :(nlang.builtins.i_ref t00.init.t)
    UN(@) :(nlang.builtins.i_ref t00.init.t)
-    IDENT(this) :t00.init.t
+    IDENT(final) :t00.init.t
   IDENT(void) :nlang.builtins.void
  DEFFUN :t00.init.t.new
   BIN(.) :__internal_not_typeable__
@@ -55,7 +60,7 @@ MODULE_BODY :__internal_not_typeable__
    IDENT(new) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   UN(@#) :(nlang.builtins.i_mercurial_ref t00.init.t)
-   IDENT(this) :t00.init.t
+   IDENT(final) :t00.init.t
  DEFFUN :t00.init.t.mk
   BIN(.) :__internal_not_typeable__
    BIN(.) :__internal_not_typeable__
@@ -69,7 +74,7 @@ MODULE_BODY :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :t00.init.t
    IDENT(r) :t00.init.t
-   IDENT(this) :t00.init.t
+   IDENT(final) :t00.init.t
  DEFMETHOD :t00.init.t.ctor
   BIN(.) :__internal_not_typeable__
    BIN(.) :__internal_not_typeable__
@@ -84,7 +89,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_mercurial_ref t00.init.t)
    IDENT(self) :(nlang.builtins.i_mercurial_ref t00.init.t)
    UN(@#) :(nlang.builtins.i_mercurial_ref t00.init.t)
-    IDENT(this) :t00.init.t
+    IDENT(final) :t00.init.t
   IDENT(void) :nlang.builtins.void
  DEFFUN :t00.init.main
   IDENT(main) :__internal_not_typeable__

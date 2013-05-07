@@ -20,6 +20,11 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(this) :t00.method.t
     IDENT(t) :t00.method.t
     DEFNAME(this) :t00.method.t
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(final) :t00.method.t
+    IDENT(t) :t00.method.t
+    DEFNAME(final) :t00.method.t
   DEFFIELD :nlang.builtins.i32
    IDENT(x) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
@@ -37,11 +42,11 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_mercurial_ref t00.method.t)
    IDENT(self) :(nlang.builtins.i_mercurial_ref t00.method.t)
    UN(@#) :(nlang.builtins.i_mercurial_ref t00.method.t)
-    IDENT(this) :t00.method.t
+    IDENT(final) :t00.method.t
   DEFARG :(nlang.builtins.i_ref t00.method.t)
    IDENT(other) :(nlang.builtins.i_ref t00.method.t)
    UN(@) :(nlang.builtins.i_ref t00.method.t)
-    IDENT(this) :t00.method.t
+    IDENT(final) :t00.method.t
   IDENT(void) :nlang.builtins.void
  DEFFUN :t00.method.t.new
   BIN(.) :__internal_not_typeable__
@@ -55,7 +60,7 @@ MODULE_BODY :__internal_not_typeable__
    IDENT(new) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   UN(@#) :(nlang.builtins.i_mercurial_ref t00.method.t)
-   IDENT(this) :t00.method.t
+   IDENT(final) :t00.method.t
  DEFFUN :t00.method.t.mk
   BIN(.) :__internal_not_typeable__
    BIN(.) :__internal_not_typeable__
@@ -69,7 +74,7 @@ MODULE_BODY :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :t00.method.t
    IDENT(r) :t00.method.t
-   IDENT(this) :t00.method.t
+   IDENT(final) :t00.method.t
  DEFMETHOD :t00.method.t.ctor
   BIN(.) :__internal_not_typeable__
    BIN(.) :__internal_not_typeable__
@@ -84,7 +89,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_mercurial_ref t00.method.t)
    IDENT(self) :(nlang.builtins.i_mercurial_ref t00.method.t)
    UN(@#) :(nlang.builtins.i_mercurial_ref t00.method.t)
-    IDENT(this) :t00.method.t
+    IDENT(final) :t00.method.t
   IDENT(void) :nlang.builtins.void
  DEFMETHOD :t00.method.t.get
   IDENT(get) :__internal_not_typeable__
@@ -92,7 +97,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_ref t00.method.t)
    IDENT(self) :(nlang.builtins.i_ref t00.method.t)
    UN(@) :(nlang.builtins.i_ref t00.method.t)
-    IDENT(this) :t00.method.t
+    IDENT(final) :t00.method.t
   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.i32
    RETURN :nlang.builtins.i32
@@ -105,7 +110,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_mutable_ref t00.method.t)
    IDENT(self) :(nlang.builtins.i_mutable_ref t00.method.t)
    UN(@!) :(nlang.builtins.i_mutable_ref t00.method.t)
-    IDENT(this) :t00.method.t
+    IDENT(final) :t00.method.t
   DEFARG :nlang.builtins.i32
    IDENT(x) :nlang.builtins.i32
    IDENT(i32) :nlang.builtins.i32

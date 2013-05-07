@@ -25,6 +25,8 @@ nlang_builtins_i32 x;
 
 
 
+static inline nlang_builtins_i_trivial_ctor t00_return_copy_mkdyn__nlang_builtins_i_trivial_ctor(t00_return_copy *obj);
+static inline nlang_builtins_i_return_by_copy t00_return_copy_mkdyn__nlang_builtins_i_return_by_copy(t00_return_copy *obj);
 
 _Ngen_nlang_builtins_i_mercurial_ref__t00_return_copy_genN_ t00_return_copy_new(void);
 
@@ -36,6 +38,18 @@ static t00_return_copy t00_return_foo(nlang_builtins_i32 x);
 
 static t00_return_copy t00_return_chained(nlang_builtins_i32 x);
 
+static inline nlang_builtins_i_trivial_ctor t00_return_copy_mkdyn__nlang_builtins_i_trivial_ctor(t00_return_copy *obj) {
+static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
+0,
+};
+return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
+}
+static inline nlang_builtins_i_return_by_copy t00_return_copy_mkdyn__nlang_builtins_i_return_by_copy(t00_return_copy *obj) {
+static const struct _Ndyn_nlang_builtins_i_return_by_copy vtable = {
+0,
+};
+return (nlang_builtins_i_return_by_copy){ .vptr = &vtable, .obj = obj };
+}
 
 _Ngen_nlang_builtins_i_mercurial_ref__t00_return_copy_genN_ t00_return_copy_new(void) {
 #define THIS(x) t00_return_copy##x

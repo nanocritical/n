@@ -21,6 +21,7 @@ nlang_builtins_i32 x;
 
 
 
+static inline nlang_builtins_i_trivial_ctor t00_field_t_mkdyn__nlang_builtins_i_trivial_ctor(t00_field_t *obj);
 
 _Ngen_nlang_builtins_i_mercurial_ref__t00_field_t_genN_ t00_field_t_new(void);
 
@@ -28,6 +29,12 @@ void t00_field_t_mk(t00_field_t *_nrtr_r);
 
 nlang_builtins_void t00_field_t_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_field_t_genN_ self);
 
+static inline nlang_builtins_i_trivial_ctor t00_field_t_mkdyn__nlang_builtins_i_trivial_ctor(t00_field_t *obj) {
+static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
+0,
+};
+return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
+}
 
 _Ngen_nlang_builtins_i_mercurial_ref__t00_field_t_genN_ t00_field_t_new(void) {
 #define THIS(x) t00_field_t##x

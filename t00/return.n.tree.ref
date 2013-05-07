@@ -20,6 +20,11 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(this) :t00.return.copy
     IDENT(copy) :t00.return.copy
     DEFNAME(this) :t00.return.copy
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(final) :t00.return.copy
+    IDENT(copy) :t00.return.copy
+    DEFNAME(final) :t00.return.copy
   DEFFIELD :nlang.builtins.i32
    IDENT(x) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
@@ -35,7 +40,7 @@ MODULE_BODY :__internal_not_typeable__
    IDENT(new) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   UN(@#) :(nlang.builtins.i_mercurial_ref t00.return.copy)
-   IDENT(this) :t00.return.copy
+   IDENT(final) :t00.return.copy
  DEFFUN :t00.return.copy.mk
   BIN(.) :__internal_not_typeable__
    BIN(.) :__internal_not_typeable__
@@ -49,7 +54,7 @@ MODULE_BODY :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :t00.return.copy
    IDENT(r) :t00.return.copy
-   IDENT(this) :t00.return.copy
+   IDENT(final) :t00.return.copy
  DEFMETHOD :t00.return.copy.ctor
   BIN(.) :__internal_not_typeable__
    BIN(.) :__internal_not_typeable__
@@ -64,7 +69,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_mercurial_ref t00.return.copy)
    IDENT(self) :(nlang.builtins.i_mercurial_ref t00.return.copy)
    UN(@#) :(nlang.builtins.i_mercurial_ref t00.return.copy)
-    IDENT(this) :t00.return.copy
+    IDENT(final) :t00.return.copy
   IDENT(void) :nlang.builtins.void
  DEFFUN :t00.return.foo
   IDENT(foo) :__internal_not_typeable__

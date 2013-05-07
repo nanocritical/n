@@ -1,0 +1,57 @@
+from nlang import *
+
+type d = i_d <root>.nlang.builtins.i_trivial_ctor
+  let this = d
+  let final = d
+  x:i32
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+
+d method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+fun answer = i32
+  return 42
+
+d method get = i32
+  return self.x
+
+type dc = i_d <root>.nlang.builtins.i_trivial_ctor
+  let this = dc
+  let final = dc
+  dummy:i32
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+
+dc method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+fun answer = i32
+  return 42
+
+dc method get = i32
+  return 42
+
+fun foo v:@i_d = i32
+  return t00.dynintf.i_d.get v
+
+example
+  let x = d{{ x=42 }}
+  42 == foo @x
+fun rfoo pv:@i_d = i32
+  return pv.answer
+
+fun bar pv:@d = i32
+  return foo pv
+
+export fun main = i32
+  let xd = d{{ x=42 }}
+  let xdc = dc{{ }}
+  if foo @xd != foo @xdc
+    return 1
+  let pxd = @xd
+  if bar pxd != rfoo pxd
+    return 1
+  return 0

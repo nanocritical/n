@@ -1,41 +1,45 @@
 from nlang import *
-type sum = i_sum_copy i_sum_equality <root>.nlang.builtins.i_ctor_with
+type sum = i_sum_copy i_sum_equality
   let this = sum
+  let final = sum
   | A = 0 -> u32
   | B = 0 + 1 -> i32
 
-sum method <root>.nlang.builtins.i_has_equality.operator_ne self:@this = bool
+sum method <root>.nlang.builtins.i_has_equality.operator_ne self:@final = bool
 
-sum method <root>.nlang.builtins.i_has_equality.operator_eq self:@this = bool
+sum method <root>.nlang.builtins.i_has_equality.operator_eq self:@final = bool
 
-sum method <root>.nlang.builtins.i_copyable.copy_ctor self:@#this = void
+sum method <root>.nlang.builtins.i_copyable.copy_ctor self:@#final = void
 
 type ta = i_trivial_copy <root>.nlang.builtins.i_trivial_ctor
   let this = ta
+  let final = ta
   x:u32
 
-ta method <root>.nlang.builtins.i_copyable.copy_ctor self:@#this = void
+ta method <root>.nlang.builtins.i_copyable.copy_ctor self:@#final = void
 
-fun <root>.nlang.builtins.i_trivial_ctor.new = @#this
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
 
-fun <root>.nlang.builtins.i_trivial_ctor.mk = r:this
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 
 ta method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 type tb = i_trivial_copy <root>.nlang.builtins.i_trivial_ctor
   let this = tb
+  let final = tb
   y:i32
 
-tb method <root>.nlang.builtins.i_copyable.copy_ctor self:@#this = void
+tb method <root>.nlang.builtins.i_copyable.copy_ctor self:@#final = void
 
-fun <root>.nlang.builtins.i_trivial_ctor.new = @#this
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
 
-fun <root>.nlang.builtins.i_trivial_ctor.mk = r:this
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 
 tb method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
-type sum_nocopy = <root>.nlang.builtins.i_ctor_with
+type sum_nocopy =
   let this = sum_nocopy
+  let final = sum_nocopy
   | A = 0 -> ta
   | B = 0 + 1 -> tb
 

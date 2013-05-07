@@ -15,6 +15,11 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(this) :t01.genericsum.container
     IDENT(container) :t01.genericsum.container
     DEFNAME(this) :t01.genericsum.container
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(final) :t01.genericsum.container
+    IDENT(container) :t01.genericsum.container
+    DEFNAME(final) :t01.genericsum.container
   DEFFIELD :nlang.builtins.i_numeric
    IDENT(x) :__internal_not_typeable__
    IDENT(t) :nlang.builtins.i_numeric
@@ -24,7 +29,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_mutable_ref t01.genericsum.container)
    IDENT(self) :(nlang.builtins.i_mutable_ref t01.genericsum.container)
    UN(@!) :(nlang.builtins.i_mutable_ref t01.genericsum.container)
-    IDENT(this) :t01.genericsum.container
+    IDENT(final) :t01.genericsum.container
   DEFARG :nlang.builtins.i_numeric
    IDENT(x) :nlang.builtins.i_numeric
    IDENT(t) :nlang.builtins.i_numeric

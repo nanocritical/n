@@ -23,6 +23,7 @@ nlang_builtins_i32 x;
 
 
 
+static inline nlang_builtins_i_trivial_ctor t01_wildcardmutability_c_mkdyn__nlang_builtins_i_trivial_ctor(t01_wildcardmutability_c *obj);
 
 _Ngen_nlang_builtins_i_mercurial_ref__t01_wildcardmutability_c_genN_ t01_wildcardmutability_c_new(void);
 
@@ -32,6 +33,12 @@ nlang_builtins_void t01_wildcardmutability_c_ctor(_Ngen_nlang_builtins_i_mercuri
 
 _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ _Ngen_t01_wildcardmutability_c_get__nlang_builtins_i_ref_genN_(_Ngen_nlang_builtins_i_ref__t01_wildcardmutability_c_genN_ self);
 
+static inline nlang_builtins_i_trivial_ctor t01_wildcardmutability_c_mkdyn__nlang_builtins_i_trivial_ctor(t01_wildcardmutability_c *obj) {
+static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
+0,
+};
+return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
+}
 
 _Ngen_nlang_builtins_i_mercurial_ref__t01_wildcardmutability_c_genN_ t01_wildcardmutability_c_new(void) {
 #define THIS(x) t01_wildcardmutability_c##x
@@ -54,7 +61,7 @@ nlang_builtins_void t01_wildcardmutability_c_ctor(_Ngen_nlang_builtins_i_mercuri
 _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ _Ngen_t01_wildcardmutability_c_get__nlang_builtins_i_ref_genN_(_Ngen_nlang_builtins_i_ref__t01_wildcardmutability_c_genN_ self){
 #define THIS(x) t01_wildcardmutability_c##x
  {
-return (&(self->x));
+return ((&(self->x)));
 }
 #undef THIS
 }
@@ -65,7 +72,7 @@ t01_wildcardmutability_c x; memset(&(x), 0, sizeof(t01_wildcardmutability_c));
 x.x = (nlang_builtins_i32)0;
 ;
 ;
-return (*_Ngen_t01_wildcardmutability_c_get__nlang_builtins_i_ref_genN_((&x)));
+return ((*_Ngen_t01_wildcardmutability_c_get__nlang_builtins_i_ref_genN_(((&x)))));
 }
 }
 void t01_wildcardmutability_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

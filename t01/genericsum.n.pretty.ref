@@ -1,9 +1,10 @@
 from nlang import *
 type container = i_trivial_ctor
   let this = container
+  let final = container
   x:t
 
-container method add self:@!this = void
+container method add self:@!final = void
   nlang.builtins.i_numeric.operator_assign_plus @self.x @x
 
 export fun main = i32

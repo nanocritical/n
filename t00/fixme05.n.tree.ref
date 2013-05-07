@@ -18,6 +18,11 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(this) :t00.fixme05.nocopy
     IDENT(nocopy) :t00.fixme05.nocopy
     DEFNAME(this) :t00.fixme05.nocopy
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(final) :t00.fixme05.nocopy
+    IDENT(nocopy) :t00.fixme05.nocopy
+    DEFNAME(final) :t00.fixme05.nocopy
   DEFFIELD :nlang.builtins.i32
    IDENT(x) :__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
@@ -33,7 +38,7 @@ MODULE_BODY :__internal_not_typeable__
    IDENT(new) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   UN(@#) :(nlang.builtins.i_mercurial_ref t00.fixme05.nocopy)
-   IDENT(this) :t00.fixme05.nocopy
+   IDENT(final) :t00.fixme05.nocopy
  DEFFUN :t00.fixme05.nocopy.mk
   BIN(.) :__internal_not_typeable__
    BIN(.) :__internal_not_typeable__
@@ -47,7 +52,7 @@ MODULE_BODY :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   DEFARG :t00.fixme05.nocopy
    IDENT(r) :t00.fixme05.nocopy
-   IDENT(this) :t00.fixme05.nocopy
+   IDENT(final) :t00.fixme05.nocopy
  DEFMETHOD :t00.fixme05.nocopy.ctor
   BIN(.) :__internal_not_typeable__
    BIN(.) :__internal_not_typeable__
@@ -62,7 +67,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :(nlang.builtins.i_mercurial_ref t00.fixme05.nocopy)
    IDENT(self) :(nlang.builtins.i_mercurial_ref t00.fixme05.nocopy)
    UN(@#) :(nlang.builtins.i_mercurial_ref t00.fixme05.nocopy)
-    IDENT(this) :t00.fixme05.nocopy
+    IDENT(final) :t00.fixme05.nocopy
   IDENT(void) :nlang.builtins.void
  DEFFUN :t00.fixme05.foo
   IDENT(foo) :__internal_not_typeable__

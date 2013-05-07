@@ -28,6 +28,7 @@ nlang_builtins_i32 xx;
 
 
 
+static inline nlang_builtins_i_trivial_ctor t00_returnthroughref_t_mkdyn__nlang_builtins_i_trivial_ctor(t00_returnthroughref_t *obj);
 
 _Ngen_nlang_builtins_i_mercurial_ref__t00_returnthroughref_t_genN_ t00_returnthroughref_t_new(void);
 
@@ -41,6 +42,12 @@ static void t00_returnthroughref_bar(t00_returnthroughref_t *_nrtr__nretval);
 
 static void t00_returnthroughref_bar2(t00_returnthroughref_t *_nrtr_r);
 
+static inline nlang_builtins_i_trivial_ctor t00_returnthroughref_t_mkdyn__nlang_builtins_i_trivial_ctor(t00_returnthroughref_t *obj) {
+static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
+0,
+};
+return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
+}
 
 _Ngen_nlang_builtins_i_mercurial_ref__t00_returnthroughref_t_genN_ t00_returnthroughref_t_new(void) {
 #define THIS(x) t00_returnthroughref_t##x

@@ -1,6 +1,7 @@
 from nlang import *
 type container = i_trivial_ctor
   let this = container
+  let final = container
   x:t
 
 export fun main = i32

@@ -27,6 +27,8 @@ nlang_builtins_i32 x;
 
 
 
+static inline nlang_builtins_i_trivial_ctor t00_method_t_mkdyn__nlang_builtins_i_trivial_ctor(t00_method_t *obj);
+static inline nlang_builtins_i_trivial_copy t00_method_t_mkdyn__nlang_builtins_i_trivial_copy(t00_method_t *obj);
 
 nlang_builtins_void t00_method_t_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_method_t_genN_ self, _Ngen_nlang_builtins_i_ref__t00_method_t_genN_ other);
 
@@ -40,6 +42,18 @@ nlang_builtins_i32 t00_method_t_get(_Ngen_nlang_builtins_i_ref__t00_method_t_gen
 
 nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_i_mutable_ref__t00_method_t_genN_ self, nlang_builtins_i32 x);
 
+static inline nlang_builtins_i_trivial_ctor t00_method_t_mkdyn__nlang_builtins_i_trivial_ctor(t00_method_t *obj) {
+static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
+0,
+};
+return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
+}
+static inline nlang_builtins_i_trivial_copy t00_method_t_mkdyn__nlang_builtins_i_trivial_copy(t00_method_t *obj) {
+static const struct _Ndyn_nlang_builtins_i_trivial_copy vtable = {
+0,
+};
+return (nlang_builtins_i_trivial_copy){ .vptr = &vtable, .obj = obj };
+}
 
 nlang_builtins_void t00_method_t_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_method_t_genN_ self, _Ngen_nlang_builtins_i_ref__t00_method_t_genN_ other) {
 #define THIS(x) t00_method_t##x
@@ -87,9 +101,9 @@ t00_method_t tt; memset(&(tt), 0, sizeof(t00_method_t));
 tt.x = (nlang_builtins_i32)0;
 ;
  {
-t00_method_t_set((&tt), (nlang_builtins_i32)1);
+t00_method_t_set(((&tt)), (nlang_builtins_i32)1);
 };
-return (t00_method_t_get((&tt)) - (nlang_builtins_i32)1);
+return (t00_method_t_get(((&tt))) - (nlang_builtins_i32)1);
 }
 }
 void t00_method_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
