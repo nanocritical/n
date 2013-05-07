@@ -2188,18 +2188,6 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
                                instance, gendef->scope->parent);
   EXCEPT(e);
 
-  if (instance->which == DEFTYPE) {
-    for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
-      struct node *m = instance->as.DEFTYPE.members[n];
-      if (node_toplevel_const(m)->builtingen != BG__NOT) {
-        continue;
-      }
-      e = passes_for_instantiation(mod, node_module_owner(gendef),
-                                   m, instance->scope);
-      EXCEPT(e);
-    }
-  }
-
   if (is_explicit) {
     if (fun->typ->is_abstract_genarg) {
       node->typ = typ_genarg_mark_as_abstract(instance->typ);
@@ -4357,14 +4345,46 @@ static error zero_to_second_for_generated(struct module *mod, struct node *node,
   return 0;
 }
 
+static error first_to_second_for_generated(struct module *mod, struct node *node,
+                                           struct node **except) {
+  error e = firstpass(mod, node, except);
+  EXCEPT(e);
+
+  e = secondpass(mod, node, except);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error passes_for_instantiation(struct module *instantiating_mod,
                                       struct module *mod, struct node *instance,
                                       struct scope *parent_scope) {
+  error e = zero_to_lunch_for_generated(mod, instance, parent_scope);
+  EXCEPT(e);
+
+  if (instance->which == DEFTYPE) {
+    for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
+      struct node *m = instance->as.DEFTYPE.members[n];
+      if (node_toplevel_const(m)->builtingen != BG__NOT) {
+        continue;
+      }
+      e = zero_to_lunch_for_generated(mod, m, instance->scope);
+      EXCEPT(e);
+    }
+  }
+
   if (instantiating_mod == mod && !mod->afternoon) {
-    error e = zero_to_lunch_for_generated(mod, instance, parent_scope);
-    EXCEPT(e);
-  } else {
-    error e = zero_to_second_for_generated(mod, instance, NULL, parent_scope);
+    return 0;
+  }
+
+  e = first_to_second_for_generated(mod, instance, NULL);
+  EXCEPT(e);
+  for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
+    struct node *m = instance->as.DEFTYPE.members[n];
+    if (node_toplevel_const(m)->builtingen != BG__NOT) {
+      continue;
+    }
+    e = first_to_second_for_generated(mod, m, NULL);
     EXCEPT(e);
   }
 
