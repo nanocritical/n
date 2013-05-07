@@ -2496,10 +2496,10 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       e = typ_compatible_numeric(mod, node, constraint);
       break;
     case OP_UN_REFOF:
-      e = typ_check_reference_compatible(mod, node, node->as.UN.operator, constraint);
+      e = 0;
       break;
     case OP_UN_DEREF:
-      e = 0;
+      e = typ_check_reference_compatible(mod, node, node->as.UN.operator, constraint);
       break;
     default:
       assert(FALSE);
