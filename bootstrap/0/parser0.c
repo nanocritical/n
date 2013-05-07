@@ -3235,6 +3235,8 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
   }
 
   if (typ_is_reference_instance(mod, a)) {
+    // 'a' can be a reference to a (dyn) interface, which is why we have an
+    // isa check here.
     error e = typ_check_isa(mod, for_error, a, constraint);
     EXCEPT(e);
     return 0;

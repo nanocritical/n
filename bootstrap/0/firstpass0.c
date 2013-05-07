@@ -1981,46 +1981,49 @@ static error genarg_destruct(struct module *mod, const struct node *gendef,
   error e;
   struct node *def = NULL;
 
+  size_t offset;
   switch (ga->which) {
   case DEFARG:
     e = genarg_destruct(mod, gendef, genargs, ga->subs[1], FALSE, for_error, constraint);
     EXCEPT(e);
     break;
   case DEFGENARG:
-    if (!typ_is_concrete(mod, constraint)) {
-      char *nconstraint = typ_pretty_name(mod, constraint);
-      e = mk_except_type(mod, for_error, "generic instantiation constraint '%s' is not a concrete type",
-                         nconstraint);
-      free(nconstraint);
+    if (ga->typ != NULL) {
+      e = typ_unify(&ga->typ, mod, for_error, ga->typ, constraint);
       EXCEPT(e);
+    } else {
+      ga->typ = constraint;
+      ga->flags = NODE_IS_TYPE;
+      ga->subs[0]->typ = ga->typ;
+      ga->subs[0]->flags = ga->flags;
     }
-
-    ga->typ = constraint;
-    ga->subs[0]->typ = constraint;
-    ga->flags = NODE_IS_TYPE;
     e = genarg_destruct(mod, gendef, genargs, ga->subs[1], TRUE, for_error, constraint);
     EXCEPT(e);
     break;
+  case UN:
   case CALL:
+    offset = ga->which == CALL ? 0 : 1;
     if (destructing_genarg) {
       const struct typ *concrete = NULL;
       e = typ_find_matching_concrete_isa(&concrete, mod, ga, ga->typ, constraint);
       EXCEPT(e);
-      assert(concrete->gen_arity == ga->subs_count - 1);
-      for (size_t n = 1; n < ga->subs_count; ++n) {
+      ga->typ = concrete;
+      ga->flags = NODE_IS_TYPE;
+      assert(concrete->gen_arity == ga->subs_count + offset - 1);
+      for (size_t n = 0; n < ga->subs_count; ++n) {
         e = genarg_destruct(mod, gendef, genargs, ga->subs[n], TRUE,
-                            for_error, concrete->gen_args[n]);
+                            for_error, concrete->gen_args[n + offset]);
         EXCEPT(e);
       }
     } else {
       e = typ_check_isa(mod, ga, constraint, ga->typ);
       EXCEPT(e);
+      assert(constraint->gen_arity == ga->subs_count + offset - 1);
       ga->typ = constraint;
       ga->flags = NODE_IS_TYPE;
-      assert(ga->typ->gen_arity == ga->subs_count - 1);
       for (size_t n = 0; n < ga->subs_count; ++n) {
         e = genarg_destruct(mod, gendef, genargs, ga->subs[n], FALSE,
-                            for_error, ga->typ->gen_args[n]);
+                            for_error, constraint->gen_args[n + offset]);
         EXCEPT(e);
       }
     }
@@ -2029,11 +2032,12 @@ static error genarg_destruct(struct module *mod, const struct node *gendef,
     e = scope_lookup(&def, mod, gendef->scope, ga);
     EXCEPT(e);
     if (def->which == DEFGENARG) {
+      // This is the DEFGENARG from the generic definition itself.
       // Look up again to get it from the instantiating genargs this time.
       e = scope_lookup_ident_immediate(&def, ga, mod, genargs->scope,
                                        node_ident(ga), FALSE);
       EXCEPT(e);
-      assert(def->which == DEFGENARG || def->which == SETGENARG);
+      assert(def->which == DEFGENARG);
       e = genarg_destruct(mod, gendef, genargs, def, TRUE, for_error, constraint);
       EXCEPT(e);
     } else {
@@ -2047,6 +2051,7 @@ static error genarg_destruct(struct module *mod, const struct node *gendef,
     }
     break;
   default:
+    assert(FALSE);
     break;
   }
 
