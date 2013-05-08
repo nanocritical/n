@@ -568,23 +568,15 @@ int main(int argc, char **argv) {
   for (size_t n = 0; n < deps.modules_count; ++n) {
     struct module *mod = deps.modules[n];
 
-    e = forwardpass(mod, NULL, NULL);
-    EXCEPT(e);
+    for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
+      e = fwd_passes[s](mod, NULL, NULL);
+      EXCEPT(e);
+    }
 
-    e = snackpass(mod, NULL, NULL);
-    EXCEPT(e);
-
-    e = brunchpass(mod, NULL, NULL);
-    EXCEPT(e);
-
-    e = lunchpass(mod, NULL, NULL);
-    EXCEPT(e);
-
-    e = firstpass(mod, NULL, NULL);
-    EXCEPT(e);
-
-    e = secondpass(mod, NULL, NULL);
-    EXCEPT(e);
+    for (size_t s = 0; body_passes[s] != NULL; ++s) {
+      e = body_passes[s](mod, NULL, NULL);
+      EXCEPT(e);
+    }
   }
 
   for (size_t n = 0; n < deps.modules_count; ++n) {

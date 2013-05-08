@@ -85,6 +85,7 @@ error one_level_pass(struct module *mod, struct node *root, const step *down_ste
   return 0;
 }
 
+static error firstpass(struct module *mod, struct node *node, struct node **except);
 static error zero_for_generated(struct module *mod, struct node *node,
                                 struct scope *parent_scope);
 static error zero_to_lunch_for_generated(struct module *mod, struct node *node,
@@ -93,6 +94,8 @@ static error zero_to_first_for_generated(struct module *mod, struct node *node,
                                          struct node **except, struct scope *parent_scope);
 static error zero_to_second_for_generated(struct module *mod, struct node *node,
                                           struct node **except, struct scope *parent_scope);
+static error first_to_second_for_generated(struct module *mod, struct node *node,
+                                           struct node **except);
 static error passes_for_instantiation(struct module *instantiating_mod,
                                       struct module *mod, struct node *instance,
                                       struct scope *parent_scope);
@@ -4204,10 +4207,7 @@ static error step_complete_instantiation(struct module *mod, struct node *node, 
       continue;
     }
 
-    e = firstpass(mod, i, NULL);
-    EXCEPT(e);
-
-    e = secondpass(mod, i, NULL);
+    e = first_to_second_for_generated(mod, i, NULL);
     EXCEPT(e);
   }
 
@@ -4274,7 +4274,7 @@ static const step forwardpass_up[] = {
   NULL,
 };
 
-error forwardpass(struct module *mod, struct node *node, struct node **except) {
+static error forwardpass(struct module *mod, struct node *node, struct node **except) {
   int module_depth = 0;
   error e = pass(mod, node, forwardpass_down, forwardpass_up, except, &module_depth);
   EXCEPT(e);
@@ -4295,7 +4295,7 @@ static const step snackpass_up[] = {
   NULL,
 };
 
-error snackpass(struct module *mod, struct node *node, struct node **except) {
+static error snackpass(struct module *mod, struct node *node, struct node **except) {
   int module_depth = 0;
   error e = pass(mod, node, snackpass_down, snackpass_up, except, &module_depth);
   EXCEPT(e);
@@ -4327,13 +4327,17 @@ static const step brunch2pass_up[] = {
   NULL,
 };
 
-error brunchpass(struct module *mod, struct node *node, struct node **except) {
+static error brunch1pass(struct module *mod, struct node *node, struct node **except) {
   int module_depth = 0;
   error e = pass(mod, node, brunch1pass_down, brunch1pass_up, except, &module_depth);
   EXCEPT(e);
 
-  module_depth = 0;
-  e = pass(mod, node, brunch2pass_down, brunch2pass_up, except, &module_depth);
+  return 0;
+}
+
+static error brunch2pass(struct module *mod, struct node *node, struct node **except) {
+  int module_depth = 0;
+  error e = pass(mod, node, brunch2pass_down, brunch2pass_up, except, &module_depth);
   EXCEPT(e);
 
   return 0;
@@ -4352,7 +4356,7 @@ static const step lunchpass_up[] = {
   NULL,
 };
 
-error lunchpass(struct module *mod, struct node *node, struct node **except) {
+static error lunchpass(struct module *mod, struct node *node, struct node **except) {
   int module_depth = 0;
   error e = pass(mod, node, lunchpass_down, lunchpass_up, except, &module_depth);
   EXCEPT(e);
@@ -4394,7 +4398,7 @@ static const step firstpass_up[] = {
   NULL,
 };
 
-error firstpass(struct module *mod, struct node *node, struct node **except) {
+static error firstpass(struct module *mod, struct node *node, struct node **except) {
   int module_depth = 0;
   PUSH_STATE(mod->firstpass_state);
   error e = pass(mod, node, firstpass_down, firstpass_up, except, &module_depth);
@@ -4429,7 +4433,7 @@ static const step secondpass_up[] = {
   NULL,
 };
 
-error secondpass(struct module *mod, struct node *node, struct node **except) {
+static error secondpass(struct module *mod, struct node *node, struct node **except) {
   PUSH_STATE(mod->firstpass_state);
   int module_depth = 0;
   error e = pass(mod, node, secondpass_down, secondpass_up, except, &module_depth);
@@ -4454,17 +4458,10 @@ static error zero_to_lunch_for_generated(struct module *mod, struct node *node,
   EXCEPT(e);
   node->scope->parent = parent_scope;
 
-  e = forwardpass(mod, node, NULL);
-  EXCEPT(e);
-
-  e = snackpass(mod, node, NULL);
-  EXCEPT(e);
-
-  e = brunchpass(mod, node, NULL);
-  EXCEPT(e);
-
-  e = lunchpass(mod, node, NULL);
-  EXCEPT(e);
+  for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
+    e = fwd_passes[s](mod, node, NULL);
+    EXCEPT(e);
+  }
 
   return 0;
 }
@@ -4476,19 +4473,12 @@ static error zero_to_first_for_generated(struct module *mod, struct node *node,
   EXCEPT(e);
   node->scope->parent = parent_scope;
 
-  e = forwardpass(mod, node, except);
-  EXCEPT(e);
+  for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
+    e = fwd_passes[s](mod, node, except);
+    EXCEPT(e);
+  }
 
-  e = snackpass(mod, node, except);
-  EXCEPT(e);
-
-  e = brunchpass(mod, node, except);
-  EXCEPT(e);
-
-  e = lunchpass(mod, node, except);
-  EXCEPT(e);
-
-  e = firstpass(mod, node, except);
+  e = body_passes[0](mod, node, except);
   EXCEPT(e);
 
   return 0;
@@ -4501,26 +4491,35 @@ static error zero_to_second_for_generated(struct module *mod, struct node *node,
   EXCEPT(e);
   node->scope->parent = parent_scope;
 
-  e = forwardpass(mod, node, except);
-  EXCEPT(e);
-
-  e = snackpass(mod, node, except);
-  EXCEPT(e);
-
-  e = brunchpass(mod, node, except);
-  EXCEPT(e);
-
-  e = lunchpass(mod, node, except);
-  EXCEPT(e);
-
-  e = firstpass(mod, node, except);
-  EXCEPT(e);
-
-  e = secondpass(mod, node, except);
-  EXCEPT(e);
+  for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
+    e = fwd_passes[s](mod, node, except);
+    EXCEPT(e);
+  }
+  for (size_t s = 0; body_passes[s] != NULL; ++s) {
+    e = body_passes[s](mod, node, except);
+    EXCEPT(e);
+  }
 
   return 0;
 }
+
+static const passfun _fwd_passes[] = {
+  forwardpass,
+  snackpass,
+  brunch1pass,
+  brunch2pass,
+  lunchpass,
+  NULL,
+};
+
+static const passfun _body_passes[] = {
+  firstpass,
+  secondpass,
+  NULL,
+};
+
+const passfun *fwd_passes = _fwd_passes;
+const passfun *body_passes = _body_passes;
 
 static error first_to_second_for_generated(struct module *mod, struct node *node,
                                            struct node **except) {
