@@ -565,13 +565,16 @@ int main(int argc, char **argv) {
   e = calculate_dependencies(&deps);
   EXCEPT(e);
 
-  for (size_t n = 0; n < deps.modules_count; ++n) {
-    struct module *mod = deps.modules[n];
-
-    for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
+  for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
+    for (size_t n = 0; n < deps.modules_count; ++n) {
+      struct module *mod = deps.modules[n];
       e = fwd_passes[s](mod, NULL, NULL);
       EXCEPT(e);
     }
+  }
+
+  for (size_t n = 0; n < deps.modules_count; ++n) {
+    struct module *mod = deps.modules[n];
 
     for (size_t s = 0; body_passes[s] != NULL; ++s) {
       e = body_passes[s](mod, NULL, NULL);

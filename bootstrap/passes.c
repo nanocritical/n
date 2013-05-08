@@ -1342,6 +1342,12 @@ static error step_type_aliases(struct module *mod, struct node *node, void *user
   struct node *parent = node->scope->parent->node;
   error e;
   switch (node->which) {
+  case IMPORT:
+    if (node_is_at_top(node)) {
+      e = morningtypepass(mod, node);
+      EXCEPT(e);
+    }
+    return 0;
   case LET:
     if (node->subs[0]->as.DEFPATTERN.is_alias
         && (node_is_at_top(node) || node_is_at_top(parent))) {
@@ -1377,6 +1383,12 @@ static error step_type_deffuns(struct module *mod, struct node *node, void *user
 
   error e;
   switch (node->which) {
+  case IMPORT:
+    if (node_is_at_top(node)) {
+      e = morningtypepass(mod, node);
+      EXCEPT(e);
+    }
+    return 0;
   case DEFMETHOD:
   case DEFFUN:
     e = morningtypepass(mod, node);
@@ -2343,6 +2355,10 @@ static error type_destruct_import_path(struct module *mod, struct node *node) {
       e = scope_lookup_ident_immediate(&def, node->subs[1], mod,
                                        target_mod->scope, node_ident(node->subs[1]), FALSE);
       EXCEPT(e);
+      if (def->typ == NULL) {
+        // Not yet "passed" in the other module, skip.
+        return 0;
+      }
     }
   }
 
@@ -4209,6 +4225,14 @@ static error step_complete_instantiation(struct module *mod, struct node *node, 
 
     e = first_to_second_for_generated(mod, i, NULL);
     EXCEPT(e);
+    for (size_t n = 0; n < i->as.DEFTYPE.members_count; ++n) {
+      struct node *m = i->as.DEFTYPE.members[n];
+      if (node_toplevel_const(m)->builtingen != BG__NOT) {
+        continue;
+      }
+      e = first_to_second_for_generated(mod, m, NULL);
+      EXCEPT(e);
+    }
   }
 
   return 0;
@@ -4550,7 +4574,7 @@ static error passes_for_instantiation(struct module *instantiating_mod,
     }
   }
 
-  if (instantiating_mod == mod && !mod->afternoon) {
+  if (!mod->afternoon) {
     return 0;
   }
 
