@@ -1,8 +1,0 @@
-from nlang.prelude import *
-from nlang.vectormod import *
-from nlang.varargmod import *
-from nlang.charmod import *
-from nlang.stringmod import *
-from nlang.errormod import *
-
-from nlang.postlude import *

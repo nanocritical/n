@@ -9,15 +9,15 @@ CFLAGS += -std=c99 -Wall -O0 -g \
 	  -Wcast-align -Wwrite-strings
 
 sources := \
-	bootstrap/0/ncc0.c \
-	bootstrap/0/common.c \
-	bootstrap/0/lexer.c \
-	bootstrap/0/parser0.c \
-	bootstrap/0/firstpass0.c \
-	bootstrap/0/printer0.c \
-	bootstrap/0/printer_c0.c \
-	bootstrap/0/hash.c \
-	bootstrap/0/bitops.c
+	bootstrap/ncc0.c \
+	bootstrap/common.c \
+	bootstrap/lexer.c \
+	bootstrap/parser.c \
+	bootstrap/passes.c \
+	bootstrap/printer.c \
+	bootstrap/cprinter.c \
+	bootstrap/hash.c \
+	bootstrap/bitops.c
 
 objects := $(patsubst %.c,%.o,$(sources))
 

@@ -1,4 +1,4 @@
-#include "firstpass.h"
+#include "passes.h"
 #include "table.h"
 
 //#define DEBUG_PASS

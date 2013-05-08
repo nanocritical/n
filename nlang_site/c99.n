@@ -1,4 +1,0 @@
-from nlang.prelude import *
-
-fun strlen s:@u8 = size
-fun abort = void

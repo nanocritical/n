@@ -1,6 +1,6 @@
 #include "parser.h"
 #include "printer.h"
-#include "firstpass.h"
+#include "passes.h"
 #include "table.h"
 
 #include <sys/types.h>
