@@ -699,9 +699,6 @@ struct toplevel *node_toplevel(struct node *node);
 const struct toplevel *node_toplevel_const(const struct node *node);
 struct node *node_get_member(struct module *mod, struct node *node, ident id);
 const struct node *node_get_member_const(const struct module *mod, const struct node *node, ident id);
-typedef error (*isalist_each)(struct module *mod, struct node *tdef, const struct typ *intf, void *user);
-error node_isalist_foreach(struct module *mod, struct node *tdef, const bool *export_filter,
-                           isalist_each iter, void *user);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);
 struct node *node_typ_member(const struct typ *typ, const char *member);
 void node_deepcopy(struct module *mod, struct node *dst,
@@ -745,6 +742,13 @@ char *typ_name(const struct module *mod, const struct typ *t);
 char *typ_pretty_name(const struct module *mod, const struct typ *t);
 bool typ_is_builtin(const struct module *mod, const struct typ *t);
 bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t);
+
+size_t typ_isalist_count(const struct typ *t);
+const struct typ **typ_isalist(const struct typ *t);
+const bool *typ_isalist_exported(const struct typ *t);
+typedef error (*isalist_each)(struct module *mod, const struct typ *t, const struct typ *intf, void *user);
+error typ_isalist_foreach(struct module *mod, const struct typ *t, const bool *export_filter,
+                          isalist_each iter, void *user);
 
 void rew_insert_last_at(struct node *node, size_t pos);
 void rew_move_last_over(struct node *node, size_t pos, bool saved_it);

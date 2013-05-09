@@ -742,8 +742,8 @@ static error do_scope_lookup_ident_immediate(struct node **result, const struct 
     // different results depending on order. And we should force the caller
     // to specificy which intf is being called if it's ambiguous.
     const struct node *parent = scope->node;
-    for (size_t n = 0; n < parent->typ->isalist_count; ++n) {
-      const struct typ *t = parent->typ->isalist[n];
+    for (size_t n = 0; n < typ_isalist_count(parent->typ); ++n) {
+      const struct typ *t = typ_isalist(parent->typ)[n];
       error e = do_scope_lookup_ident_immediate(result, for_error, mod,
                                                 t->definition->scope, id, TRUE);
       if (!e) {
@@ -1301,61 +1301,6 @@ struct node *node_get_member(struct module *mod, struct node *node, ident id) {
 const struct node *node_get_member_const(const struct module *mod, const struct node *node, ident id) {
   return node_get_member((struct module *)mod, (struct node *)node, id);
 }
-
-HTABLE_SPARSE(typs_set, bool, struct typ *);
-implement_htable_sparse(__attribute__((unused)) static, typs_set, bool, struct typ *);
-
-static uint32_t typ_hash(const struct typ **a) {
-  return node_ident((*a)->definition);;
-}
-
-static int typ_cmp(const struct typ **a, const struct typ **b) {
-  return !typ_equal(node_module_owner_const((*a)->definition), *a, *b);
-}
-
-static error do_node_isalist_foreach(struct module *mod, struct node *tdef, const bool *export_filter,
-                                     isalist_each iter, void *user, struct typs_set *set) {
-  for (size_t n = 0; n < tdef->typ->isalist_count; ++n) {
-    const struct typ *intf = tdef->typ->isalist[n];
-    if (typs_set_get(set, intf) != NULL) {
-      continue;
-    }
-
-    if (export_filter != NULL) {
-      if (*export_filter && !tdef->typ->isalist_exported[n]) {
-        continue;
-      } else if (!*export_filter && tdef->typ->isalist_exported[n]) {
-        continue;
-      }
-    }
-
-    typs_set_set(set, intf, TRUE);
-
-    error e = do_node_isalist_foreach(mod, tdef, export_filter, iter, user, set);
-    EXCEPT(e);
-
-    e = iter(mod, tdef, intf, user);
-    EXCEPT(e);
-  }
-
-  return 0;
-}
-
-error node_isalist_foreach(struct module *mod, struct node *tdef, const bool *export_filter,
-                           isalist_each iter, void *user) {
-  struct typs_set set;
-  typs_set_init(&set, 0);
-  typs_set_set_delete_val(&set, NULL);
-  typs_set_set_custom_hashf(&set, typ_hash);
-  typs_set_set_custom_cmpf(&set, typ_cmp);
-
-  error e = do_node_isalist_foreach(mod, tdef, export_filter, iter, user, &set);
-  typs_set_destroy(&set);
-  EXCEPT(e);
-
-  return 0;
-}
-
 
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind) {
   struct node *n = node_new_subnode(mod, parent);
@@ -3764,6 +3709,72 @@ error mk_except_call_args_count(const struct module *mod, const struct node *nod
                            "invalid number of arguments: %zd expected, but %zd given",
                            node_fun_explicit_args_count(definition) + extra, given);
   EXCEPT(e);
+  return 0;
+}
+
+size_t typ_isalist_count(const struct typ *t) {
+  return t->isalist_count;
+}
+
+const struct typ **typ_isalist(const struct typ *t) {
+  return t->isalist;
+}
+
+const bool *typ_isalist_exported(const struct typ *t) {
+  return t->isalist_exported;
+}
+
+HTABLE_SPARSE(typs_set, bool, struct typ *);
+implement_htable_sparse(__attribute__((unused)) static, typs_set, bool, struct typ *);
+
+static uint32_t typ_hash(const struct typ **a) {
+  return node_ident((*a)->definition);;
+}
+
+static int typ_cmp(const struct typ **a, const struct typ **b) {
+  return !typ_equal(node_module_owner_const((*a)->definition), *a, *b);
+}
+
+static error do_typ_isalist_foreach(struct module *mod, const struct typ *t, const bool *export_filter,
+                                    isalist_each iter, void *user, struct typs_set *set) {
+  for (size_t n = 0; n < typ_isalist_count(t); ++n) {
+    const struct typ *intf = typ_isalist(t)[n];
+    if (typs_set_get(set, intf) != NULL) {
+      continue;
+    }
+
+    if (export_filter != NULL) {
+      if (*export_filter && !typ_isalist_exported(t)[n]) {
+        continue;
+      } else if (!*export_filter && typ_isalist_exported(t)[n]) {
+        continue;
+      }
+    }
+
+    typs_set_set(set, intf, TRUE);
+
+    error e = do_typ_isalist_foreach(mod, t, export_filter, iter, user, set);
+    EXCEPT(e);
+
+    e = iter(mod, t, intf, user);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
+error typ_isalist_foreach(struct module *mod, const struct typ *t, const bool *export_filter,
+                           isalist_each iter, void *user) {
+  struct typs_set set;
+  typs_set_init(&set, 0);
+  typs_set_set_delete_val(&set, NULL);
+  typs_set_set_custom_hashf(&set, typ_hash);
+  typs_set_set_custom_cmpf(&set, typ_cmp);
+
+  error e = do_typ_isalist_foreach(mod, t, export_filter, iter, user, &set);
+  typs_set_destroy(&set);
+  EXCEPT(e);
+
   return 0;
 }
 

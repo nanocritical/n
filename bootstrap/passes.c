@@ -3564,14 +3564,14 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
     break;
   }
 
-  for (size_t n = 0; n < node->typ->isalist_count; ++n) {
+  for (size_t n = 0; n < typ_isalist_count(node->typ); ++n) {
     assert(node->subs[IDX_ISALIST]->which == ISALIST);
     assert(node->subs[IDX_ISALIST]->subs[n]->which == ISA);
     if (!node->subs[IDX_ISALIST]->subs[n]->as.ISA.is_explicit) {
       continue;
     }
 
-    const struct typ *intf = node->typ->isalist[n];
+    const struct typ *intf = typ_isalist(node->typ)[n];
     const struct typ *check_intf = intf;
     if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_COPY))) {
       check_intf = typ_lookup_builtin(mod, TBI_COPYABLE);
@@ -3931,9 +3931,11 @@ static error try_insert_dyn(struct module *mod, struct node *node,
   return 0;
 }
 
-static error check_exhaustive_intf_impl_eachisalist(struct module *mod, struct node *tdef, const struct typ *intf,
+static error check_exhaustive_intf_impl_eachisalist(struct module *mod, const struct typ *t,
+                                                    const struct typ *intf,
                                                     void *user) {
   (void) user;
+  struct node *deft = t->definition;
   const struct node *dintf = intf->definition;
 
   for (size_t m = 0; m < dintf->subs_count; ++m) {
@@ -3942,9 +3944,9 @@ static error check_exhaustive_intf_impl_eachisalist(struct module *mod, struct n
       continue;
     }
 
-    if (node_get_member(mod, tdef, node_ident(f)) == NULL) {
-      error e = mk_except_type(mod, tdef, "type '%s' isa '%s' but does not implement '%s'",
-                               typ_pretty_name(mod, tdef->typ), typ_pretty_name(mod, intf),
+    if (node_get_member(mod, deft, node_ident(f)) == NULL) {
+      error e = mk_except_type(mod, deft, "type '%s' isa '%s' but does not implement '%s'",
+                               typ_pretty_name(mod, deft->typ), typ_pretty_name(mod, intf),
                                idents_value(mod->gctx, node_ident(f)));
       EXCEPT(e);
     }
@@ -3964,7 +3966,7 @@ static error step_check_exhaustive_intf_impl(struct module *mod, struct node *no
     return 0;
   }
 
-  error e = node_isalist_foreach(mod, node, NULL, check_exhaustive_intf_impl_eachisalist, NULL);
+  error e = typ_isalist_foreach(mod, node->typ, NULL, check_exhaustive_intf_impl_eachisalist, NULL);
   EXCEPT(e);
 
   return 0;

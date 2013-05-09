@@ -1579,18 +1579,18 @@ static void print_deftype_mkdyn_proto(FILE *out, const struct module *mod,
   fprintf(out, ")");
 }
 
-static error print_deftype_mkdyn_proto_eachisalist(struct module *mod, struct node *deft, const struct typ *intf, void *user) {
+static error print_deftype_mkdyn_proto_eachisalist(struct module *mod, const struct typ *t, const struct typ *intf, void *user) {
   struct printer_state *st = user;
 
-  print_deftype_mkdyn_proto(st->out, mod, deft, intf);
+  print_deftype_mkdyn_proto(st->out, mod, t->definition, intf);
   fprintf(st->out, ";\n");
   return 0;
 }
 
-static error print_deftype_mkdyn_eachisalist(struct module *mod, struct node *deft, const struct typ *intf, void *user) {
+static error print_deftype_mkdyn_eachisalist(struct module *mod, const struct typ *t, const struct typ *intf, void *user) {
   struct printer_state *st = user;
 
-  print_deftype_mkdyn_proto(st->out, mod, deft, intf);
+  print_deftype_mkdyn_proto(st->out, mod, t->definition, intf);
   fprintf(st->out, " {\n");
   fprintf(st->out, "static const struct _Ndyn_");
   print_typ(st->out, mod, intf);
@@ -1608,7 +1608,7 @@ static error print_deftype_mkdyn_eachisalist(struct module *mod, struct node *de
     }
 
     printed += 1;
-    const struct node *thisf = node_get_member_const(mod, deft, node_ident(f));
+    const struct node *thisf = node_get_member_const(mod, t->definition, node_ident(f));
     fprintf(st->out, ".%s = (", idents_value(mod->gctx, node_ident(thisf)));
     print_fun_prototype(st->out, st->header, mod, thisf, TRUE, FALSE, TRUE, NULL);
     fprintf(st->out, ")");
@@ -1699,24 +1699,20 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
 
   if (fwd == FWDFUNS) {
     struct printer_state st = { .out = out, .header = header, .fwd = fwd };
-    error e = node_isalist_foreach((struct module *)mod,
-                                   (struct node *)node,
-                                   &header,
-                                   print_deftype_mkdyn_proto_eachisalist,
-                                   &st);
+    error e = typ_isalist_foreach((struct module *)mod, node->typ, &header,
+                                  print_deftype_mkdyn_proto_eachisalist,
+                                  &st);
     assert(!e);
   } else if (fwd == DEFFUNS) {
     struct printer_state st = { .out = out, .header = header, .fwd = fwd };
-    error e = node_isalist_foreach((struct module *)mod,
-                                   (struct node *)node,
-                                   &header,
-                                   print_deftype_mkdyn_eachisalist,
-                                   &st);
+    error e = typ_isalist_foreach((struct module *)mod, node->typ, &header,
+                                  print_deftype_mkdyn_eachisalist,
+                                  &st);
     assert(!e);
   }
 }
 
-static error print_defintf_member_proto_eachisalist(struct module *mod, struct node *deft, const struct typ *intf, void *user) {
+static error print_defintf_member_proto_eachisalist(struct module *mod, const struct typ *t, const struct typ *intf, void *user) {
   struct printer_state *st = user;
 
   for (size_t n = 0; n < intf->definition->subs_count; ++n) {
@@ -1730,14 +1726,13 @@ static error print_defintf_member_proto_eachisalist(struct module *mod, struct n
     if (d->typ->definition->subs[IDX_GENARGS]->subs_count != 0) {
       continue;
     }
-    print_fun_prototype(st->out, st->header, mod, d, FALSE, FALSE, FALSE,
-                        deft->typ);
+    print_fun_prototype(st->out, st->header, mod, d, FALSE, FALSE, FALSE, t);
     fprintf(st->out, ";\n");
   }
   return 0;
 }
 
-static error print_defintf_member_eachisalist(struct module *mod, struct node *deft, const struct typ *intf, void *user) {
+static error print_defintf_member_eachisalist(struct module *mod, const struct typ *t, const struct typ *intf, void *user) {
   struct printer_state *st = user;
 
   for (size_t n = 0; n < intf->definition->subs_count; ++n) {
@@ -1752,8 +1747,7 @@ static error print_defintf_member_eachisalist(struct module *mod, struct node *d
       continue;
     }
 
-    print_fun_prototype(st->out, st->header, mod, d, FALSE, FALSE, FALSE,
-                        deft->typ);
+    print_fun_prototype(st->out, st->header, mod, d, FALSE, FALSE, FALSE, t);
     fprintf(st->out, " {\n");
     if (!typ_equal(mod, node_fun_retval_const(d)->typ,
                    typ_lookup_builtin(mod, TBI_VOID))) {
@@ -1848,25 +1842,20 @@ static void print_defintf(FILE *out, bool header, enum forward fwd, const struct
     }
   } else if (fwd == FWDFUNS) {
     struct printer_state st = { .out = out, .header = header, .fwd = fwd };
-    error e = node_isalist_foreach((struct module *)mod,
-                                   (struct node *)node,
-                                   &header,
-                                   print_defintf_member_proto_eachisalist,
-                                   &st);
+    error e = typ_isalist_foreach((struct module *)mod, node->typ, &header,
+                                  print_defintf_member_proto_eachisalist,
+                                  &st);
     assert(!e);
-    e = print_defintf_member_proto_eachisalist((struct module *)mod,
-                                               (struct node *)node,
+    e = print_defintf_member_proto_eachisalist((struct module *)mod, node->typ,
                                                node->typ, &st);
     assert(!e);
   } else if (fwd == DEFFUNS && !header) {
     struct printer_state st = { .out = out, .header = header, .fwd = fwd };
-    error e = node_isalist_foreach((struct module *)mod,
-                                   (struct node *)node,
-                                   NULL,
-                                   print_defintf_member_eachisalist,
-                                   &st);
+    error e = typ_isalist_foreach((struct module *)mod, node->typ, NULL,
+                                  print_defintf_member_eachisalist,
+                                  &st);
     assert(!e);
-    e = print_defintf_member_eachisalist((struct module *)mod, (struct node *)node,
+    e = print_defintf_member_eachisalist((struct module *)mod, node->typ,
                                          node->typ, &st);
     assert(!e);
   }
