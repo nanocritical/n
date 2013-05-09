@@ -3007,9 +3007,6 @@ static struct typ *typ_new_builtin(struct node *definition,
     r->gen_args = calloc(gen_arity + 1, sizeof(struct typ *));
     if (definition != NULL && definition->typ != NULL) {
       r->gen_args[0] = definition->typ;
-
-      r->isalist_count = definition->typ->isalist_count;
-      r->isalist = definition->typ->isalist;
     }
   }
   if (which == TYPE_FUNCTION) {
@@ -3551,14 +3548,14 @@ bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *in
     return typ_isa(mod, typ_lookup_builtin(mod, TBI_NATIVE_FLOATING), intf);
   }
 
-  for (size_t n = 0; n < a->isalist_count; ++n) {
-    if (typ_equal(mod, a->isalist[n], intf)) {
+  for (size_t n = 0; n < typ_isalist_count(a); ++n) {
+    if (typ_equal(mod, typ_isalist(a)[n], intf)) {
       return TRUE;
     }
   }
 
-  for (size_t n = 0; n < a->isalist_count; ++n) {
-    if (typ_isa(mod, a->isalist[n], intf)) {
+  for (size_t n = 0; n < typ_isalist_count(a); ++n) {
+    if (typ_isa(mod, typ_isalist(a)[n], intf)) {
       return TRUE;
     }
   }
@@ -3632,16 +3629,16 @@ error typ_find_matching_concrete_isa(const struct typ **concrete,
     return 0;
   }
 
-  for (size_t n = 0; n < a->isalist_count; ++n) {
-    if (typ_equal(mod, a->isalist[n], intf)) {
-      *concrete = a->isalist[n];
+  for (size_t n = 0; n < typ_isalist_count(a); ++n) {
+    if (typ_equal(mod, typ_isalist(a)[n], intf)) {
+      *concrete = typ_isalist(a)[n];
       return 0;
     }
   }
 
-  for (size_t n = 0; n < a->isalist_count; ++n) {
+  for (size_t n = 0; n < typ_isalist_count(a); ++n) {
     e = typ_find_matching_concrete_isa(concrete, mod, for_error,
-                                       a->isalist[n], intf);
+                                       typ_isalist(a)[n], intf);
     if (!e) {
       return 0;
     }
@@ -3713,15 +3710,36 @@ error mk_except_call_args_count(const struct module *mod, const struct node *nod
 }
 
 size_t typ_isalist_count(const struct typ *t) {
-  return t->isalist_count;
+  struct node *def = t->definition;
+  if (def->which == DEFTYPE) {
+    return def->as.DEFTYPE.isalist.count;
+  } else if (def->which == DEFINTF) {
+    return def->as.DEFINTF.isalist.count;
+  } else {
+    return 0;
+  }
 }
 
 const struct typ **typ_isalist(const struct typ *t) {
-  return t->isalist;
+  struct node *def = t->definition;
+  if (def->which == DEFTYPE) {
+    return def->as.DEFTYPE.isalist.list;
+  } else if (def->which == DEFINTF) {
+    return def->as.DEFINTF.isalist.list;
+  } else {
+    return NULL;
+  }
 }
 
 const bool *typ_isalist_exported(const struct typ *t) {
-  return t->isalist_exported;
+  struct node *def = t->definition;
+  if (def->which == DEFTYPE) {
+    return def->as.DEFTYPE.isalist.exported;
+  } else if (def->which == DEFINTF) {
+    return def->as.DEFINTF.isalist.exported;
+  } else {
+    return NULL;
+  }
 }
 
 HTABLE_SPARSE(typs_set, bool, struct typ *);

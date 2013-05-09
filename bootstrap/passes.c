@@ -1293,6 +1293,7 @@ static error step_type_inference_genargs(struct module *mod, struct node *node, 
 static error step_type_inference_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
+  struct isalist *tisalist = NULL;
 
   switch (node->which) {
   case ISA:
@@ -1300,7 +1301,10 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
     EXCEPT(e);
     return 0;
   case DEFTYPE:
+    tisalist = &node->as.DEFTYPE.isalist;
+    break;
   case DEFINTF:
+    tisalist = &node->as.DEFINTF.isalist;
     break;
   default:
     return 0;
@@ -1312,13 +1316,12 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
   }
 
   struct node *isalist = node->subs[IDX_ISALIST];
-  struct typ *mutable_typ = (struct typ *) node->typ;
 
   // FIXME: Check for duplicates?
 
-  mutable_typ->isalist_count = isalist->subs_count;
-  mutable_typ->isalist = calloc(isalist->subs_count, sizeof(*mutable_typ->isalist));
-  mutable_typ->isalist_exported = calloc(isalist->subs_count, sizeof(*mutable_typ->isalist_exported));
+  tisalist->count = isalist->subs_count;
+  tisalist->list = calloc(isalist->subs_count, sizeof(*tisalist->list));
+  tisalist->exported = calloc(isalist->subs_count, sizeof(*tisalist->exported));
 
   for (size_t n = 0; n < isalist->subs_count; ++n) {
     struct node *isa = isalist->subs[n];
@@ -1329,8 +1332,8 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
       EXCEPT(e);
     }
 
-    mutable_typ->isalist[n] = isa->typ;
-    mutable_typ->isalist_exported[n] = isa->as.ISA.is_export;
+    tisalist->list[n] = isa->typ;
+    tisalist->exported[n] = isa->as.ISA.is_export;
   }
 
   return 0;
@@ -3108,16 +3111,28 @@ static void add_isa(struct module *mod, struct node *deft, const char *path) {
   if (typ_isa(mod, deft->typ, isa->typ)) {
     return;
   }
-  struct typ *mutable_typ = (struct typ *) deft->typ;
-  const size_t last = mutable_typ->isalist_count;
-  mutable_typ->isalist_count += 1;
-  mutable_typ->isalist = realloc(mutable_typ->isalist,
-                                 mutable_typ->isalist_count * sizeof(*mutable_typ->isalist));
-  mutable_typ->isalist_exported = realloc(mutable_typ->isalist_exported,
-                                          mutable_typ->isalist_count * sizeof(*mutable_typ->isalist_exported));
 
-  mutable_typ->isalist[last] = isa->typ;
-  mutable_typ->isalist_exported[last] = isa->as.ISA.is_export;
+  struct isalist *tisalist = NULL;
+  switch (deft->which) {
+  case DEFTYPE:
+    tisalist = &deft->as.DEFTYPE.isalist;
+    break;
+  case DEFINTF:
+    tisalist = &deft->as.DEFINTF.isalist;
+    break;
+  default:
+    assert(FALSE);
+  }
+
+  const size_t last = tisalist->count;
+  tisalist->count += 1;
+  tisalist->list = realloc(tisalist->list,
+                           tisalist->count * sizeof(*tisalist->list));
+  tisalist->exported = realloc(tisalist->exported,
+                               tisalist->count * sizeof(*tisalist->exported));
+
+  tisalist->list[last] = isa->typ;
+  tisalist->exported[last] = isa->as.ISA.is_export;
 }
 
 static error step_add_builtin_enum_isalist(struct module *mod, struct node *node, void *user, bool *stop) {

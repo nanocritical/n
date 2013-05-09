@@ -178,6 +178,12 @@ enum deftype_kind {
 
 struct typ;
 
+struct isalist {
+  size_t count;
+  const struct typ **list;
+  bool *exported;
+};
+
 struct node_deftype {
   struct toplevel toplevel;
 
@@ -186,6 +192,8 @@ struct node_deftype {
 
   struct node **members;
   size_t members_count;
+
+  struct isalist isalist;
 };
 struct node_defmethod {
   struct toplevel toplevel;
@@ -193,6 +201,7 @@ struct node_defmethod {
 };
 struct node_defintf {
   struct toplevel toplevel;
+  struct isalist isalist;
 };
 struct node_defname {
   struct node *pattern;
@@ -568,10 +577,6 @@ struct typ {
 
   size_t fun_arity;
   const struct typ **fun_args; // length fun_arity + 1
-
-  size_t isalist_count;
-  const struct typ **isalist;
-  bool *isalist_exported;
 
   bool is_abstract_genarg;
 };
