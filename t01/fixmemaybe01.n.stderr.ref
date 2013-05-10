@@ -1,1 +1,1 @@
-ncc0: bootstrap/passes.c:1062: step_type_destruct_mark: Assertion `0' failed.
+ncc0: bootstrap/passes.c:1074: step_type_destruct_mark: Assertion `0' failed.

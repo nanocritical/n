@@ -36,7 +36,7 @@ static char *o_filename(const char *filename) {
 }
 
 static error cc(const struct module *mod, const char *o_fn,
-                const char *c_fn, const char *h_fn) {
+                const char *c_fn) {
   static const char *fmt = "gcc " CFLAGS " -xc %s -c -o %s";
   char *cmd = calloc(strlen(fmt) + strlen(c_fn) + strlen(o_fn) - 4 + 1, sizeof(char));
   sprintf(cmd, fmt, c_fn, o_fn);
@@ -135,13 +135,28 @@ static error generate(struct node *node) {
   EXCEPT(e);
   close(fd);
 
+  free(c_fn);
+  free(h_fn);
+
+  return 0;
+}
+
+static error compile(struct node *node) {
+  assert(node->which == MODULE);
+  struct module *mod = node->as.MODULE.mod;
+
+  const char *fn = mod->filename;
+  error e;
+
+  char *c_fn = calloc(strlen(fn) + sizeof(".c.out"), sizeof(char));
+  sprintf(c_fn, "%s.c.out", fn);
+
   char *o_fn = o_filename(mod->filename);
-  e = cc(mod, o_fn, c_fn, h_fn);
+  e = cc(mod, o_fn, c_fn);
   EXCEPT(e);
 
   free(o_fn);
   free(c_fn);
-  free(h_fn);
 
   return 0;
 }
@@ -375,7 +390,19 @@ static error load_imports(struct node *node, const char **prefixes) {
   return 0;
 }
 
+HTABLE_SPARSE(modules_set, bool, struct module *);
+implement_htable_sparse(__attribute__((unused)) static, modules_set, bool, struct module *);
+
+static uint32_t module_pointer_hash(const struct module **mod) {
+  return hash32_hsieh(mod, sizeof(*mod));
+}
+
+static int module_pointer_cmp(const struct module **a, const struct module **b) {
+  return memcmp(a, b, sizeof(*a));
+}
+
 struct dependencies {
+  struct modules_set added;
   struct module **tmp;
   size_t tmp_count;
   struct module **modules;
@@ -398,6 +425,12 @@ static error step_gather_dependencies_in_module(struct module *mod, struct node 
   struct node *nmod = NULL;
   error e = scope_lookup_module(&nmod, node_module_owner(node), node->subs[0], FALSE);
   EXCEPT(e);
+
+  assert(nmod->which == MODULE);
+  const bool already = modules_set_set(&deps->added, nmod->as.MODULE.mod, TRUE);
+  if (already && !node_toplevel_const(node)->is_inline) {
+    return 0;
+  }
 
   deps->tmp_count += 1;
   deps->tmp = realloc(deps->tmp, deps->tmp_count * sizeof(*deps->tmp));
@@ -436,27 +469,16 @@ static error gather_dependencies(struct node *node, struct dependencies *deps) {
   return 0;
 }
 
-HTABLE_SPARSE(dependencies_map, int, struct module *);
-implement_htable_sparse(__attribute__((unused)) static, dependencies_map, int, struct module *);
-
-static uint32_t module_pointer_hash(const struct module **mod) {
-  return hash32_hsieh(mod, sizeof(*mod));
-}
-
-static int module_pointer_cmp(const struct module **a, const struct module **b) {
-  return memcmp(a, b, sizeof(*a));
-}
-
 static error calculate_dependencies(struct dependencies *deps) {
-  struct dependencies_map map;
-  dependencies_map_init(&map, 0);
-  dependencies_map_set_delete_val(&map, 0);
-  dependencies_map_set_custom_hashf(&map, module_pointer_hash);
-  dependencies_map_set_custom_cmpf(&map, module_pointer_cmp);
+  struct modules_set pushed;
+  modules_set_init(&pushed, 0);
+  modules_set_set_delete_val(&pushed, 0);
+  modules_set_set_custom_hashf(&pushed, module_pointer_hash);
+  modules_set_set_custom_cmpf(&pushed, module_pointer_cmp);
 
   for (ssize_t n = deps->tmp_count - 1; n >= 0; --n) {
     struct module *m = deps->tmp[n];
-    int already = dependencies_map_set(&map, m, 1);
+    int already = modules_set_set(&pushed, m, 1);
     if (already) {
       continue;
     }
@@ -466,7 +488,7 @@ static error calculate_dependencies(struct dependencies *deps) {
     deps->modules[deps->modules_count - 1] = m;
   }
 
-  dependencies_map_destroy(&map);
+  modules_set_destroy(&pushed);
 
   free(deps->tmp);
   deps->tmp = NULL;
@@ -558,6 +580,10 @@ int main(int argc, char **argv) {
 
   struct dependencies deps = { 0 };
   deps.gctx = &gctx;
+  modules_set_init(&deps.added, 0);
+  modules_set_set_delete_val(&deps.added, FALSE);
+  modules_set_set_custom_hashf(&deps.added, module_pointer_hash);
+  modules_set_set_custom_cmpf(&deps.added, module_pointer_cmp);
 
   e = gather_dependencies(main_mod->root, &deps);
   EXCEPT(e);
@@ -586,6 +612,13 @@ int main(int argc, char **argv) {
     struct module *mod = deps.modules[n];
 
     e = generate(mod->root);
+    EXCEPT(e);
+  }
+
+  for (size_t n = 0; n < deps.modules_count; ++n) {
+    struct module *mod = deps.modules[n];
+
+    e = compile(mod->root);
     EXCEPT(e);
   }
 

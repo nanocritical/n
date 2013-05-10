@@ -88,7 +88,7 @@ error one_level_pass(struct module *mod, struct node *root, const step *down_ste
 static error bodypass_first(struct module *mod, struct node *node, struct node **except);
 static error zero_for_generated(struct module *mod, struct node *node,
                                 struct scope *parent_scope);
-static error zero_to_fwd_for_generated(struct module *mod, struct node *node,
+static error zero_to_fwd_for_generated(struct module *mod, struct node *node, struct node **except,
                                        struct scope *parent_scope);
 static error zero_to_body_first_for_generated(struct module *mod, struct node *node,
                                               struct node **except, struct scope *parent_scope);
@@ -736,10 +736,6 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
   const struct toplevel *toplevel = NULL;
 
   switch (node->which) {
-  case IMPORT:
-    e = lexical_import(node->scope->parent, mod, node);
-    EXCEPT(e);
-    return 0;
   case DEFFUN:
   case DEFMETHOD:
     if (node->subs[0]->which == IDENT) {
@@ -858,6 +854,22 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
   return 0;
 }
 
+static error step_lexical_import(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+  error e;
+
+  switch (node->which) {
+  case IMPORT:
+    if (node_is_at_top(node)) {
+      e = lexical_import(node->scope->parent, mod, node);
+      EXCEPT(e);
+    }
+    return 0;
+  default:
+    return 0;
+  }
+}
+
 static void mark_subs(struct module *mod, struct node *node, const struct typ *mark,
                       size_t begin, size_t end, size_t incr) {
   for (size_t n = begin; n < end; n += incr){
@@ -918,7 +930,7 @@ static error step_stop_funblock(struct module *mod, struct node *node, void *use
   return 0;
 }
 
-static error step_detect_generic_interfaces_down(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_detect_not_dyn_intf_down(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case DEFFUN:
@@ -931,7 +943,7 @@ static error step_detect_generic_interfaces_down(struct module *mod, struct node
   return 0;
 }
 
-static error step_detect_generic_interfaces_up(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case DEFFUN:
@@ -1096,7 +1108,6 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
     node->typ = not_typeable;
     break;
   case DEFCHOICE:
-    node->typ = pending;
     node->subs[0]->typ = not_typeable;
     break;
   case IMPORT:
@@ -1188,6 +1199,8 @@ static error step_stop_already_morningtypepass(struct module *mod, struct node *
   case ISA:
   case DEFGENARG:
   case SETGENARG:
+  case DEFFIELD:
+  case DEFCHOICE:
     *stop = TRUE;
     return 0;
   default:
@@ -1219,14 +1232,7 @@ static error morningtypepass(struct module *mod, struct node *node) {
 static error step_type_deftypes_defintfs(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
 
-  error e;
   switch (node->which) {
-  case IMPORT:
-    if (node_is_at_top(node)) {
-      e = morningtypepass(mod, node);
-      EXCEPT(e);
-    }
-    return 0;
   case DEFTYPE:
   case DEFINTF:
     break;
@@ -1370,6 +1376,7 @@ static error step_type_deffields(struct module *mod, struct node *node, void *us
 
   error e;
   switch (node->which) {
+  case DEFCHOICE:
   case DEFFIELD:
     e = morningtypepass(mod, node);
     EXCEPT(e);
@@ -1378,6 +1385,55 @@ static error step_type_deffields(struct module *mod, struct node *node, void *us
     return 0;
   }
 
+  return 0;
+}
+
+static error type_destruct(struct module *mod, struct node *node, const struct typ *constraint);
+
+static error step_type_defchoices(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  error e;
+  switch (node->which) {
+  case DEFTYPE:
+    switch (node->as.DEFTYPE.kind) {
+    case DEFTYPE_ENUM:
+    case DEFTYPE_SUM:
+      {
+        const struct typ *u = typ_lookup_builtin(mod, TBI_LITERALS_INTEGER);
+        for (size_t n = 0; n < node->subs_count; ++n) {
+          struct node *ch = node->subs[n];
+          if (ch->which != DEFCHOICE) {
+            continue;
+          }
+          e = typ_unify(&u, mod, ch,
+                        u, ch->subs[IDX_CH_VALUE]->typ);
+          EXCEPT(e);
+          ch->flags |= NODE_IS_DEFCHOICE;
+        }
+
+        if (typ_equal(mod, u, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))) {
+          u = typ_lookup_builtin(mod, TBI_U32);
+        }
+        node->as.DEFTYPE.choice_typ = u;
+
+        for (size_t n = 0; n < node->subs_count; ++n) {
+          struct node *ch = node->subs[n];
+          if (ch->which != DEFCHOICE) {
+            continue;
+          }
+          e = type_destruct(mod, ch->subs[IDX_CH_VALUE], u);
+          EXCEPT(e);
+        }
+      }
+      break;
+    default:
+      break;
+    }
+    break;
+  default:
+    break;
+  }
   return 0;
 }
 
@@ -1487,8 +1543,6 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
 
   return 0;
 }
-
-static error type_destruct(struct module *mod, struct node *node, const struct typ *constraint);
 
 static error type_inference_explicit_unary_call(struct module *mod, struct node *node, struct node *def) {
   if (def->which == DEFFUN && node->subs_count != 1) {
@@ -2895,42 +2949,6 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case DEFINTF:
     goto ok;
   case DEFTYPE:
-    switch (node->as.DEFTYPE.kind) {
-    case DEFTYPE_ENUM:
-    case DEFTYPE_SUM:
-      {
-        const struct typ *u = typ_lookup_builtin(mod, TBI_LITERALS_INTEGER);
-        for (size_t n = 0; n < node->subs_count; ++n) {
-          struct node *ch = node->subs[n];
-          if (ch->which != DEFCHOICE) {
-            continue;
-          }
-          e = typ_unify(&u, mod, ch,
-                        u, ch->subs[IDX_CH_VALUE]->typ);
-          EXCEPT(e);
-          ch->flags |= NODE_IS_DEFCHOICE;
-        }
-
-        if (typ_equal(mod, u, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))) {
-          u = typ_lookup_builtin(mod, TBI_U32);
-        }
-        node->as.DEFTYPE.choice_typ = u;
-
-        for (size_t n = 0; n < node->subs_count; ++n) {
-          struct node *ch = node->subs[n];
-          if (ch->which != DEFCHOICE) {
-            continue;
-          }
-          e = type_destruct(mod, ch->subs[IDX_CH_VALUE], u);
-          EXCEPT(e);
-
-          ch->typ = node->typ;
-        }
-      }
-      break;
-    default:
-      break;
-    }
     goto ok;
   case DEFPATTERN: {
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
@@ -2976,6 +2994,9 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case DIRECTDEF:
     node->typ = node->as.DIRECTDEF.definition->typ;
     node->flags = node->as.DIRECTDEF.definition->flags;
+    goto ok;
+  case DEFCHOICE:
+    node->typ = node->scope->parent->node->typ;
     goto ok;
   default:
     goto ok;
@@ -3097,16 +3118,16 @@ except:
   return e;
 }
 
-static void add_isa(struct module *mod, struct node *deft, const char *path) {
+static void add_inferred_isa(struct module *mod, struct node *deft, const char *path) {
   struct node *isalist = deft->subs[IDX_ISALIST];
   assert(isalist->which == ISALIST);
   struct node *isa = mk_node(mod, isalist, ISA);
-  isa->as.ISA.is_export = node_toplevel(deft)->is_export;
+  isa->as.ISA.is_export = node_toplevel(deft)->is_inline;
   mk_expr_abspath(mod, isa, path);
-  error e = zero_to_body_first_for_generated(mod, isa, NULL, isalist->scope);
+  error e = zero_to_fwd_for_generated(mod, isa, NULL, isalist->scope);
   assert(!e);
 
-  // isalist are typed in snackpass, but add_isa() is called later. We
+  // isalist are typed in snackpass, but add_inferred_isa() is called later. We
   // forcibly add the new typ to it if it's not already there.
   if (typ_isa(mod, deft->typ, isa->typ)) {
     return;
@@ -3142,8 +3163,36 @@ static error step_add_builtin_enum_isalist(struct module *mod, struct node *node
     return 0;
   }
 
-  add_isa(mod, node, "nlang.builtins.i_trivial_copy");
-  add_isa(mod, node, "nlang.builtins.i_trivial_dtor");
+  add_inferred_isa(mod, node, "nlang.builtins.i_trivial_copy");
+  add_inferred_isa(mod, node, "nlang.builtins.i_trivial_dtor");
+
+  return 0;
+}
+
+static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+  if (node->which != DEFTYPE) {
+    return 0;
+  }
+  if (node_toplevel_const(node)->is_extern) {
+    return 0;
+  }
+  if (node->as.DEFTYPE.kind == DEFTYPE_ENUM
+      || node->as.DEFTYPE.kind == DEFTYPE_SUM) {
+    return 0;
+  }
+
+  struct node *proxy = node;
+  struct node *ctor = node_get_member(mod, proxy, ID_CTOR);
+  if (ctor != NULL) {
+    if (node_fun_explicit_args_count(ctor) == 0) {
+      add_inferred_isa(mod, node, "nlang.builtins.i_default_ctor");
+    } else if (node_fun_explicit_args_count(ctor) == 1) {
+      add_inferred_isa(mod, node, "nlang.builtins.i_ctor_with");
+    }
+  } else {
+    add_inferred_isa(mod, node, "nlang.builtins.i_trivial_ctor");
+  }
 
   return 0;
 }
@@ -3221,7 +3270,7 @@ static void define_builtin(struct module *mod, struct node *deft,
     append_member(deft, d);
   }
 
-  e = zero_to_body_first_for_generated(mod, d, NULL, deft->scope);
+  e = zero_to_fwd_for_generated(mod, d, NULL, deft->scope);
   assert(!e);
 }
 
@@ -3257,7 +3306,7 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
     rew_insert_last_at(d, IDX_FUN_FIRSTARG + ((d->which == DEFMETHOD) ? 1 : 0));
   }
 
-  e = zero_to_body_first_for_generated(mod, d, NULL, ch->scope);
+  e = zero_to_fwd_for_generated(mod, d, NULL, ch->scope);
   assert(!e);
 }
 
@@ -3279,48 +3328,6 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
 
   define_defchoice_builtin(
     mod, node, BG_SUM_CTOR_WITH_CTOR, DEFMETHOD);
-
-  return 0;
-}
-
-static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *node, void *user, bool *stop) {
-  DSTEP(mod, node);
-  if (node->which != DEFTYPE) {
-    return 0;
-  }
-  if (node_toplevel_const(node)->is_extern) {
-    return 0;
-  }
-  if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-    return 0;
-  }
-
-  struct node *proxy = node;
-  if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
-    return 0;
-  }
-
-  struct node *ctor = node_get_member(mod, proxy, ID_CTOR);
-  if (ctor != NULL) {
-    if (node_fun_explicit_args_count(ctor) == 0) {
-      add_isa(mod, node, "nlang.builtins.i_default_ctor");
-    } else if (node_fun_explicit_args_count(ctor) == 1) {
-      add_isa(mod, node, "nlang.builtins.i_ctor_with");
-    }
-  } else {
-    bool zero = TRUE;
-    for (size_t n = 0; n < node->subs_count; ++n) {
-      struct node *f = node->subs[n];
-      if (f->which == DEFFIELD
-          && !typ_isa(mod, f->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_CTOR))) {
-        zero = FALSE;
-      }
-    }
-
-    if (zero) {
-      add_isa(mod, node, "nlang.builtins.i_trivial_ctor");
-    }
-  }
 
   return 0;
 }
@@ -3410,7 +3417,7 @@ static error define_auto(struct module *mod, struct node *deft,
     append_member(deft, d);
   }
 
-  e = zero_to_body_first_for_generated(mod, d, NULL, deft->scope);
+  e = zero_to_fwd_for_generated(mod, d, NULL, deft->scope);
   assert(!e);
 
   return 0;
@@ -3495,7 +3502,7 @@ static error step_add_builtin_operators(struct module *mod, struct node *node, v
   return 0;
 }
 
-static error step_implement_trivials(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_trivials(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE) {
     return 0;
@@ -3556,7 +3563,7 @@ static void define_dispatch(struct module *mod, struct node *deft, const struct 
 
     rew_insert_last_at(modbody, insert_pos);
 
-    error e = zero_to_body_first_for_generated(mod, d, NULL, deft->scope);
+    error e = zero_to_fwd_for_generated(mod, d, NULL, deft->scope);
     assert(!e);
   }
 }
@@ -3662,11 +3669,8 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
     EXCEPT(e);
 
     struct node *except[] = { retval, NULL };
-    e = zero_to_body_for_generated(mod, named, except, node->scope);
+    e = zero_to_fwd_for_generated(mod, named, except, node->scope);
     EXCEPT(e);
-
-    module_retval_clear(mod);
-    module_retval_set(mod, named);
   }
 
   return 0;
@@ -4291,18 +4295,6 @@ error zeropass(struct module *mod, struct node *node, struct node **except) {
   return 0;
 }
 
-// The "forward" pass is necessary to handle forward declarations.
-// By running step_lexical_scoping over the whole module first, we ensure
-// (full) definitions take over forward declarations.
-//
-// The two "up" passes happen to make sure that the (full) definitions are
-// given (i) a typ, (ii) their isalist is typ'd, so that code that in
-// principle can only see the forward declaration, can use the typ and the
-// isalist typs (which is what a forward declaration is for).
-//
-// FIXME: We're not checking if the forward declaration isalist is a subset
-// of the definition isalist.
-
 static error fwdpass_scoping_deftypes(struct module *mod, struct node *node, struct node **except) {
   static const step down[] = {
     step_stop_submodules,
@@ -4324,6 +4316,24 @@ static error fwdpass_scoping_deftypes(struct module *mod, struct node *node, str
   return 0;
 }
 
+static error fwdpass_imports(struct module *mod, struct node *node, struct node **except) {
+  static const step down[] = {
+    step_stop_submodules,
+    step_lexical_import,
+    NULL,
+  };
+
+  static const step up[] = {
+    NULL,
+  };
+
+  int module_depth = 0;
+  error e = pass(mod, node, down, up, except, &module_depth);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error fwdpass_genargs_isalist(struct module *mod, struct node *node, struct node **except) {
   static const step down[] = {
     step_stop_submodules,
@@ -4334,6 +4344,8 @@ static error fwdpass_genargs_isalist(struct module *mod, struct node *node, stru
   };
 
   static const step up[] = {
+    step_add_builtin_enum_isalist,
+    step_add_builtin_detect_ctor_intf,
     step_type_inference_isalist,
     NULL,
   };
@@ -4375,6 +4387,7 @@ static error fwdpass_deffields(struct module *mod, struct node *node, struct nod
 
   static const step up[] = {
     step_type_deffields,
+    step_type_defchoices,
     NULL,
   };
 
@@ -4395,6 +4408,15 @@ static error fwdpass_deffuns(struct module *mod, struct node *node, struct node 
 
   static const step up[] = {
     step_type_deffuns,
+    step_add_builtin_defchoice_mk_new,
+    step_add_builtin_defchoice_constructors,
+    step_add_builtin_ctor,
+    step_add_builtin_dtor,
+    step_add_builtin_mk_new,
+    step_add_builtin_operators,
+    step_add_trivials,
+    step_add_sum_dispatch,
+    step_rewrite_def_return_through_ref,
     step_set_afternoon,
     NULL,
   };
@@ -4411,7 +4433,7 @@ static error bodypass_first(struct module *mod, struct node *node, struct node *
     step_stop_submodules,
     step_stop_marker_tbi,
     step_stop_already_morningtypepass,
-    step_detect_generic_interfaces_down,
+    step_detect_not_dyn_intf_down,
     step_rewrite_wildcards,
     step_type_destruct_mark,
     step_type_mutability_mark,
@@ -4421,20 +4443,10 @@ static error bodypass_first(struct module *mod, struct node *node, struct node *
   };
 
   static const step up[] = {
-    step_add_builtin_enum_isalist,
-    step_add_builtin_defchoice_constructors,
-    step_add_builtin_defchoice_mk_new,
-    step_add_builtin_detect_ctor_intf,
     step_rewrite_defname_no_expr,
     step_rewrite_sum_constructors,
-    step_detect_generic_interfaces_up,
+    step_detect_not_dyn_intf_up,
     step_type_inference,
-    step_add_builtin_ctor,
-    step_add_builtin_dtor,
-    step_add_builtin_mk_new,
-    step_add_builtin_operators,
-    step_add_sum_dispatch,
-    step_implement_trivials,
     step_type_drop_retval,
     step_type_drop_excepts,
     step_check_exhaustive_match,
@@ -4455,7 +4467,6 @@ static error bodypass_second(struct module *mod, struct node *node, struct node 
     step_stop_submodules,
     step_stop_marker_tbi,
     step_type_gather_retval,
-    step_rewrite_def_return_through_ref,
     NULL,
   };
 
@@ -4495,13 +4506,14 @@ static error zero_for_generated(struct module *mod, struct node *node,
 }
 
 static error zero_to_fwd_for_generated(struct module *mod, struct node *node,
+                                       struct node **except,
                                        struct scope *parent_scope) {
-  error e = zeropass(mod, node, NULL);
+  error e = zeropass(mod, node, except);
   EXCEPT(e);
   node->scope->parent = parent_scope;
 
   for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
-    e = fwd_passes[s](mod, node, NULL);
+    e = fwd_passes[s](mod, node, except);
     EXCEPT(e);
   }
 
@@ -4547,6 +4559,7 @@ static error zero_to_body_for_generated(struct module *mod, struct node *node,
 
 static const passfun _fwd_passes[] = {
   fwdpass_scoping_deftypes,
+  fwdpass_imports,
   fwdpass_genargs_isalist,
   fwdpass_aliases,
   fwdpass_deffields,
@@ -4577,7 +4590,7 @@ static error first_to_second_for_generated(struct module *mod, struct node *node
 static error passes_for_instantiation(struct module *instantiating_mod,
                                       struct module *mod, struct node *instance,
                                       struct scope *parent_scope) {
-  error e = zero_to_fwd_for_generated(mod, instance, parent_scope);
+  error e = zero_to_fwd_for_generated(mod, instance, NULL, parent_scope);
   EXCEPT(e);
 
   if (instance->which == DEFTYPE) {
@@ -4586,7 +4599,7 @@ static error passes_for_instantiation(struct module *instantiating_mod,
       if (node_toplevel_const(m)->builtingen != BG__NOT) {
         continue;
       }
-      e = zero_to_fwd_for_generated(mod, m, instance->scope);
+      e = zero_to_fwd_for_generated(mod, m, NULL, instance->scope);
       EXCEPT(e);
     }
   }

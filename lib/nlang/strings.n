@@ -1,5 +1,4 @@
 from nlang import *
-from nlang.memory import slice
 from nlang.vectors import vector
 import nlang.unsafe
 

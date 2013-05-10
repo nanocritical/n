@@ -2690,7 +2690,7 @@ again:
     ident_count += 1;
     struct node *imported = node_new_subnode(mod, node);
     imported->which = IMPORT;
-    imported->as.IMPORT.toplevel.is_export = toplevel->is_export;
+    *node_toplevel(imported) = *toplevel;
 
     copy_and_extend_import_path(mod, imported, node, &tok);
 

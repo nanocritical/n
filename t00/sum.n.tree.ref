@@ -23,25 +23,6 @@ MODULE_BODY :__internal_not_typeable__
    IDENT(A) :__internal_not_typeable__
    NUMBER(0) :nlang.builtins.u32
    IDENT(u32) :nlang.builtins.u32
-   DEFMETHOD :t00.sum.sum.A.ctor
-    BIN(.) :__internal_not_typeable__
-     BIN(.) :__internal_not_typeable__
-      BIN(.) :__internal_not_typeable__
-       BIN(.) :__internal_not_typeable__
-        DIRECTDEF :__internal_not_typeable__
-        IDENT(nlang) :__internal_not_typeable__
-       IDENT(builtins) :__internal_not_typeable__
-      IDENT(i_sum_ctor_with) :__internal_not_typeable__
-     IDENT(ctor) :__internal_not_typeable__
-    GENARGS :nlang.builtins.void
-    DEFARG :(nlang.builtins.i_mercurial_ref t00.sum.sum)
-     IDENT(self) :(nlang.builtins.i_mercurial_ref t00.sum.sum)
-     UN(@#) :(nlang.builtins.i_mercurial_ref t00.sum.sum)
-      IDENT(final) :t00.sum.sum
-    DEFARG :nlang.builtins.u32
-     IDENT(c) :nlang.builtins.u32
-     DIRECTDEF :nlang.builtins.u32
-    IDENT(void) :nlang.builtins.void
    DEFFUN :t00.sum.sum.A.mk
     BIN(.) :__internal_not_typeable__
      BIN(.) :__internal_not_typeable__
@@ -75,13 +56,7 @@ MODULE_BODY :__internal_not_typeable__
      DIRECTDEF :nlang.builtins.u32
     UN(@#) :(nlang.builtins.i_mercurial_ref t00.sum.sum)
      IDENT(final) :t00.sum.sum
-  DEFCHOICE :t00.sum.sum
-   IDENT(B) :__internal_not_typeable__
-   BIN( + ) :nlang.builtins.u32
-    NUMBER(0) :nlang.builtins.u32
-    NUMBER(1) :nlang.builtins.u32
-   IDENT(i32) :nlang.builtins.i32
-   DEFMETHOD :t00.sum.sum.B.ctor
+   DEFMETHOD :t00.sum.sum.A.ctor
     BIN(.) :__internal_not_typeable__
      BIN(.) :__internal_not_typeable__
       BIN(.) :__internal_not_typeable__
@@ -96,10 +71,16 @@ MODULE_BODY :__internal_not_typeable__
      IDENT(self) :(nlang.builtins.i_mercurial_ref t00.sum.sum)
      UN(@#) :(nlang.builtins.i_mercurial_ref t00.sum.sum)
       IDENT(final) :t00.sum.sum
-    DEFARG :nlang.builtins.i32
-     IDENT(c) :nlang.builtins.i32
-     DIRECTDEF :nlang.builtins.i32
+    DEFARG :nlang.builtins.u32
+     IDENT(c) :nlang.builtins.u32
+     DIRECTDEF :nlang.builtins.u32
     IDENT(void) :nlang.builtins.void
+  DEFCHOICE :t00.sum.sum
+   IDENT(B) :__internal_not_typeable__
+   BIN( + ) :nlang.builtins.u32
+    NUMBER(0) :nlang.builtins.u32
+    NUMBER(1) :nlang.builtins.u32
+   IDENT(i32) :nlang.builtins.i32
    DEFFUN :t00.sum.sum.B.mk
     BIN(.) :__internal_not_typeable__
      BIN(.) :__internal_not_typeable__
@@ -133,6 +114,25 @@ MODULE_BODY :__internal_not_typeable__
      DIRECTDEF :nlang.builtins.i32
     UN(@#) :(nlang.builtins.i_mercurial_ref t00.sum.sum)
      IDENT(final) :t00.sum.sum
+   DEFMETHOD :t00.sum.sum.B.ctor
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(i_sum_ctor_with) :__internal_not_typeable__
+     IDENT(ctor) :__internal_not_typeable__
+    GENARGS :nlang.builtins.void
+    DEFARG :(nlang.builtins.i_mercurial_ref t00.sum.sum)
+     IDENT(self) :(nlang.builtins.i_mercurial_ref t00.sum.sum)
+     UN(@#) :(nlang.builtins.i_mercurial_ref t00.sum.sum)
+      IDENT(final) :t00.sum.sum
+    DEFARG :nlang.builtins.i32
+     IDENT(c) :nlang.builtins.i32
+     DIRECTDEF :nlang.builtins.i32
+    IDENT(void) :nlang.builtins.void
  DEFMETHOD :t00.sum.sum.operator_ne
   BIN(.) :__internal_not_typeable__
    BIN(.) :__internal_not_typeable__
@@ -391,25 +391,6 @@ MODULE_BODY :__internal_not_typeable__
    IDENT(A) :__internal_not_typeable__
    NUMBER(0) :nlang.builtins.u32
    IDENT(ta) :t00.sum.ta
-   DEFMETHOD :t00.sum.sum_nocopy.A.ctor
-    BIN(.) :__internal_not_typeable__
-     BIN(.) :__internal_not_typeable__
-      BIN(.) :__internal_not_typeable__
-       BIN(.) :__internal_not_typeable__
-        DIRECTDEF :__internal_not_typeable__
-        IDENT(nlang) :__internal_not_typeable__
-       IDENT(builtins) :__internal_not_typeable__
-      IDENT(i_sum_ctor_with) :__internal_not_typeable__
-     IDENT(ctor) :__internal_not_typeable__
-    GENARGS :nlang.builtins.void
-    DEFARG :(nlang.builtins.i_mercurial_ref t00.sum.sum_nocopy)
-     IDENT(self) :(nlang.builtins.i_mercurial_ref t00.sum.sum_nocopy)
-     UN(@#) :(nlang.builtins.i_mercurial_ref t00.sum.sum_nocopy)
-      IDENT(final) :t00.sum.sum_nocopy
-    DEFARG :t00.sum.ta
-     IDENT(c) :t00.sum.ta
-     DIRECTDEF :t00.sum.ta
-    IDENT(void) :nlang.builtins.void
    DEFFUN :t00.sum.sum_nocopy.A.mk
     BIN(.) :__internal_not_typeable__
      BIN(.) :__internal_not_typeable__
@@ -443,13 +424,7 @@ MODULE_BODY :__internal_not_typeable__
      DIRECTDEF :t00.sum.ta
     UN(@#) :(nlang.builtins.i_mercurial_ref t00.sum.sum_nocopy)
      IDENT(final) :t00.sum.sum_nocopy
-  DEFCHOICE :t00.sum.sum_nocopy
-   IDENT(B) :__internal_not_typeable__
-   BIN( + ) :nlang.builtins.u32
-    NUMBER(0) :nlang.builtins.u32
-    NUMBER(1) :nlang.builtins.u32
-   IDENT(tb) :t00.sum.tb
-   DEFMETHOD :t00.sum.sum_nocopy.B.ctor
+   DEFMETHOD :t00.sum.sum_nocopy.A.ctor
     BIN(.) :__internal_not_typeable__
      BIN(.) :__internal_not_typeable__
       BIN(.) :__internal_not_typeable__
@@ -464,10 +439,16 @@ MODULE_BODY :__internal_not_typeable__
      IDENT(self) :(nlang.builtins.i_mercurial_ref t00.sum.sum_nocopy)
      UN(@#) :(nlang.builtins.i_mercurial_ref t00.sum.sum_nocopy)
       IDENT(final) :t00.sum.sum_nocopy
-    DEFARG :t00.sum.tb
-     IDENT(c) :t00.sum.tb
-     DIRECTDEF :t00.sum.tb
+    DEFARG :t00.sum.ta
+     IDENT(c) :t00.sum.ta
+     DIRECTDEF :t00.sum.ta
     IDENT(void) :nlang.builtins.void
+  DEFCHOICE :t00.sum.sum_nocopy
+   IDENT(B) :__internal_not_typeable__
+   BIN( + ) :nlang.builtins.u32
+    NUMBER(0) :nlang.builtins.u32
+    NUMBER(1) :nlang.builtins.u32
+   IDENT(tb) :t00.sum.tb
    DEFFUN :t00.sum.sum_nocopy.B.mk
     BIN(.) :__internal_not_typeable__
      BIN(.) :__internal_not_typeable__
@@ -501,6 +482,25 @@ MODULE_BODY :__internal_not_typeable__
      DIRECTDEF :t00.sum.tb
     UN(@#) :(nlang.builtins.i_mercurial_ref t00.sum.sum_nocopy)
      IDENT(final) :t00.sum.sum_nocopy
+   DEFMETHOD :t00.sum.sum_nocopy.B.ctor
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      BIN(.) :__internal_not_typeable__
+       BIN(.) :__internal_not_typeable__
+        DIRECTDEF :__internal_not_typeable__
+        IDENT(nlang) :__internal_not_typeable__
+       IDENT(builtins) :__internal_not_typeable__
+      IDENT(i_sum_ctor_with) :__internal_not_typeable__
+     IDENT(ctor) :__internal_not_typeable__
+    GENARGS :nlang.builtins.void
+    DEFARG :(nlang.builtins.i_mercurial_ref t00.sum.sum_nocopy)
+     IDENT(self) :(nlang.builtins.i_mercurial_ref t00.sum.sum_nocopy)
+     UN(@#) :(nlang.builtins.i_mercurial_ref t00.sum.sum_nocopy)
+      IDENT(final) :t00.sum.sum_nocopy
+    DEFARG :t00.sum.tb
+     IDENT(c) :t00.sum.tb
+     DIRECTDEF :t00.sum.tb
+    IDENT(void) :nlang.builtins.void
  DEFFUN :t00.sum.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void

@@ -1441,8 +1441,10 @@ static void print_deftype_sum_choices_fwdtypes(FILE *out, bool header, const str
     fprintf(out, "_");
     print_deffield_name(out, mod, ch);
     fprintf(out, "_%s = ", idents_value(mod->gctx, ID_WHICH));
-    print_expr(out, mod, ch->subs[IDX_CH_VALUE], T__NOT_STATEMENT);
-    fprintf(out, ";\n");
+    print_deftype_name(out, mod, node);
+    fprintf(out, "_");
+    print_deffield_name(out, mod, ch);
+    fprintf(out, "_%s_label__;\n", idents_value(mod->gctx, ID_WHICH));
   }
 
   if (node->as.DEFTYPE.kind != DEFTYPE_SUM) {
@@ -1552,8 +1554,10 @@ static void print_deftype_enum(FILE *out, bool header, enum forward fwd,
         fprintf(out, "_");
         print_deffield_name(out, mod, s);
         fprintf(out, " = ");
-        print_expr(out, mod, s->subs[IDX_CH_VALUE], T__NOT_STATEMENT);
-        fprintf(out, ";\n");
+        print_deftype_name(out, mod, node);
+        fprintf(out, "_");
+        print_deffield_name(out, mod, s);
+        fprintf(out, "_label__;\n");
       }
     }
   }

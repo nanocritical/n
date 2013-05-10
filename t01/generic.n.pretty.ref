@@ -1,5 +1,5 @@
 from nlang import *
-type container = i_trivial_ctor
+type container = i_trivial_ctor <root>.nlang.builtins.i_trivial_ctor
   let this = container
   let final = container
   x:t

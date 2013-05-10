@@ -1,1 +1,1 @@
-lib/nlang/strings.n:2:31: parse: in scope nlang.strings: identifier 'slice' already defined at lib/nlang/module.n:4:5
+t00/syntax.n:35:5: type: type 't00.syntax.enu' is not i_trivial_ctor and has no 'ctor'

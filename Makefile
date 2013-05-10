@@ -6,7 +6,7 @@ default:: ncc0
 CFLAGS += -std=c99 -Wall -O0 -g \
 	  -Wmissing-prototypes -Wpointer-arith -Wstrict-prototypes \
 	  -Wmissing-declarations -Wno-format-zero-length -Wbad-function-cast \
-	  -Wcast-align -Wwrite-strings
+	  -Wcast-align -Wwrite-strings -Wno-missing-braces
 
 sources := \
 	bootstrap/ncc0.c \

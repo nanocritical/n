@@ -10,6 +10,14 @@ MODULE_BODY :__internal_not_typeable__
   ISALIST :nlang.builtins.void
    ISA :nlang.builtins.i_trivial_ctor
     IDENT(i_trivial_ctor) :nlang.builtins.i_trivial_ctor
+   ISA :nlang.builtins.i_trivial_ctor
+    BIN(.) :nlang.builtins.i_trivial_ctor
+     BIN(.) :nlang.builtins
+      BIN(.) :nlang
+       DIRECTDEF :<root>
+       IDENT(nlang) :__internal_not_typeable__
+      IDENT(builtins) :__internal_not_typeable__
+     IDENT(i_trivial_ctor) :__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
     IDENT(this) :t01.generic.container
