@@ -1,10 +1,51 @@
 #include <lib/nlang/runtime.h>
-#include "lib/nlang/module.n.h.out"
-#include "lib/nlang/vectors.n.h.out"
-#include "t02/vector.n.h.out"
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_TYPES
 
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/vectors.n.h.out"
+#undef NLANG_DECLARE_TYPES
 
+#define NLANG_DECLARE_TYPES
+# include "t02/vector.n.h.out"
+#undef NLANG_DECLARE_TYPES
 
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/vectors.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "t02/vector.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/vectors.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "t02/vector.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/vectors.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "t02/vector.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
 
 nlang_builtins_i32 __Nmain(void){
  {

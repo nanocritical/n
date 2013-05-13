@@ -1,6 +1,11 @@
 #include <lib/nlang/runtime.h>
-#include "lib/nlang/module.n.h.out"
-#include "t00/unary.n.h.out"
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_TYPES
+
+#define NLANG_DECLARE_TYPES
+# include "t00/unary.n.h.out"
+#undef NLANG_DECLARE_TYPES
 struct t00_unary_t;
 typedef struct t00_unary_t t00_unary_t;
 typedef const t00_unary_t* _Ngen_nlang_builtins_i_ref__t00_unary_t_genN_;
@@ -15,6 +20,13 @@ typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_unary_t_genN_ _Ngen_nlang_buil
 
 
 
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "t00/unary.n.h.out"
+#undef NLANG_DEFINE_TYPES
 struct t00_unary_t {
 nlang_builtins_i32 x;
 }
@@ -25,8 +37,13 @@ nlang_builtins_i32 x;
 
 
 
-static inline nlang_builtins_i_trivial_ctor t00_unary_t_mkdyn__nlang_builtins_i_trivial_ctor(t00_unary_t *obj);
-static inline nlang_builtins_i_trivial_copy t00_unary_t_mkdyn__nlang_builtins_i_trivial_copy(t00_unary_t *obj);
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "t00/unary.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
 
 nlang_builtins_void t00_unary_t_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_unary_t_genN_ self, _Ngen_nlang_builtins_i_ref__t00_unary_t_genN_ other);
 
@@ -38,18 +55,13 @@ nlang_builtins_void t00_unary_t_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_u
 
 nlang_builtins_i32 t00_unary_t_get(_Ngen_nlang_builtins_i_ref__t00_unary_t_genN_ self);
 
-static inline nlang_builtins_i_trivial_ctor t00_unary_t_mkdyn__nlang_builtins_i_trivial_ctor(t00_unary_t *obj) {
-static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
-0,
-};
-return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
-}
-static inline nlang_builtins_i_trivial_copy t00_unary_t_mkdyn__nlang_builtins_i_trivial_copy(t00_unary_t *obj) {
-static const struct _Ndyn_nlang_builtins_i_trivial_copy vtable = {
-0,
-};
-return (nlang_builtins_i_trivial_copy){ .vptr = &vtable, .obj = obj };
-}
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "t00/unary.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
 
 nlang_builtins_void t00_unary_t_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_unary_t_genN_ self, _Ngen_nlang_builtins_i_ref__t00_unary_t_genN_ other) {
 #define THIS(x) t00_unary_t##x

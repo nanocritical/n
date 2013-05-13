@@ -1,1 +1,1 @@
-t00/hello.n:4:6: parse: from scope t00.hello.main.say: in scope t00.hello: unknown identifier 'say'
+t00/hello.n:5:12: type: 'nlang.literals.boolean' not compatible with constraint 'nlang.chars.i_show'

@@ -143,6 +143,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_TRIVIAL_CTOR] = "i_trivial_ctor",
   [ID_TBI_TRIVIAL_DTOR] = "i_trivial_dtor",
   [ID_TBI_TRIVIAL_EQUALITY] = "i_trivial_equality",
+  [ID_TBI_TRIVIAL_ORDER] = "i_trivial_order",
   [ID_TBI_RETURN_BY_COPY] = "i_return_by_copy",
   [ID_TBI_SUM_COPY] = "i_sum_copy",
   [ID_TBI_SUM_EQUALITY] = "i_sum_equality",
@@ -558,6 +559,7 @@ bool node_is_rvalue(const struct node *node) {
     }
     // Fallthrough
   case UN:
+  case BOOL:
   case STRING:
   case NUMBER:
   case NUL:
@@ -3453,7 +3455,7 @@ bool typ_is_builtin(const struct module *mod, const struct typ *t) {
 }
 
 bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t) {
-  if (typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_NULL))
+  return typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_NULL))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_FLOATING))
@@ -3462,10 +3464,15 @@ bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t) {
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MUTABLE))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MERCURIAL))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE))) {
-    return TRUE;
-  }
-  return FALSE;
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE));
+}
+
+bool typ_is_trivial(const struct module *mod, const struct typ *t) {
+  return typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_CTOR))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_ORDER))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_DTOR));
 }
 
 error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,
@@ -3753,25 +3760,32 @@ static int typ_cmp(const struct typ **a, const struct typ **b) {
   return !typ_equal(node_module_owner_const((*a)->definition), *a, *b);
 }
 
-static error do_typ_isalist_foreach(struct module *mod, const struct typ *t, const bool *export_filter,
-                                    isalist_each iter, void *user, struct typs_set *set) {
-  for (size_t n = 0; n < typ_isalist_count(t); ++n) {
-    const struct typ *intf = typ_isalist(t)[n];
+static error do_typ_isalist_foreach(struct module *mod, const struct typ *t, const struct typ *base,
+                                    uint32_t filter, isalist_each iter, void *user,
+                                    struct typs_set *set) {
+  for (size_t n = 0; n < typ_isalist_count(base); ++n) {
+    const struct typ *intf = typ_isalist(base)[n];
     if (typs_set_get(set, intf) != NULL) {
       continue;
     }
 
-    if (export_filter != NULL) {
-      if (*export_filter && !typ_isalist_exported(t)[n]) {
-        continue;
-      } else if (!*export_filter && typ_isalist_exported(t)[n]) {
-        continue;
-      }
+    const bool filter_not_exported = filter & ISALIST_FILTER_NOT_EXPORTED;
+    const bool filter_exported = filter & ISALIST_FILTER_EXPORTED;
+    const bool filter_trivial_isalist = filter & ISALIST_FILTER_TRIVIAL_ISALIST;
+    const bool exported = typ_isalist_exported(base)[n];
+    if (filter_not_exported && !exported) {
+      continue;
+    }
+    if (filter_exported && exported) {
+      continue;
+    }
+    if (filter_trivial_isalist && typ_is_trivial(mod, intf)) {
+      continue;
     }
 
     typs_set_set(set, intf, TRUE);
 
-    error e = do_typ_isalist_foreach(mod, t, export_filter, iter, user, set);
+    error e = do_typ_isalist_foreach(mod, t, intf, filter, iter, user, set);
     EXCEPT(e);
 
     e = iter(mod, t, intf, user);
@@ -3781,15 +3795,15 @@ static error do_typ_isalist_foreach(struct module *mod, const struct typ *t, con
   return 0;
 }
 
-error typ_isalist_foreach(struct module *mod, const struct typ *t, const bool *export_filter,
-                           isalist_each iter, void *user) {
+error typ_isalist_foreach(struct module *mod, const struct typ *t, uint32_t filter,
+                          isalist_each iter, void *user) {
   struct typs_set set;
   typs_set_init(&set, 0);
   typs_set_set_delete_val(&set, NULL);
   typs_set_set_custom_hashf(&set, typ_hash);
   typs_set_set_custom_cmpf(&set, typ_cmp);
 
-  error e = do_typ_isalist_foreach(mod, t, export_filter, iter, user, &set);
+  error e = do_typ_isalist_foreach(mod, t, t, filter, iter, user, &set);
   typs_set_destroy(&set);
   EXCEPT(e);
 

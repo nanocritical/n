@@ -1,10 +1,13 @@
-#ifndef nlang_builtins_h
-#define nlang_builtins_h
+#ifdef NLANG_DEFINE_FUNCTIONS
 
 #define NB(n) nlang_builtins_##n
 
 static inline NB(u8) NB(i8_reinterpret_unsigned)(const NB(i8) *self) {
   return (NB(u8)) *self;
+}
+
+static inline NB(i8) NB(i8_reinterpret_signed)(const NB(i8) *self) {
+  return *self;
 }
 
 static inline NB(i16) NB(i8_to_i16)(const NB(i8) *self) {
@@ -36,6 +39,10 @@ static inline NB(u16) NB(i16_reinterpret_unsigned)(const NB(i16) *self) {
   return (NB(u16)) *self;
 }
 
+static inline NB(i16) NB(i16_reinterpret_signed)(const NB(i16) *self) {
+  return *self;
+}
+
 static inline NB(i8) NB(i16_trim_i8)(const NB(i16) *self) {
   return (NB(i8)) *self;
 }
@@ -63,6 +70,10 @@ static inline NB(double) NB(i16_to_double)(const NB(i16) *self) {
 
 static inline NB(u32) NB(i32_reinterpret_unsigned)(const NB(i32) *self) {
   return (NB(u32)) *self;
+}
+
+static inline NB(i32) NB(i32_reinterpret_signed)(const NB(i32) *self) {
+  return *self;
 }
 
 static inline NB(i8) NB(i32_trim_i8)(const NB(i32) *self) {
@@ -94,6 +105,10 @@ static inline NB(u64) NB(i64_reinterpret_unsigned)(const NB(i64) *self) {
   return (NB(u64)) *self;
 }
 
+static inline NB(i64) NB(i64_reinterpret_signed)(const NB(i64) *self) {
+  return *self;
+}
+
 static inline NB(i8) NB(i64_trim_i8)(const NB(i64) *self) {
   return (NB(i8)) *self;
 }
@@ -118,6 +133,10 @@ static inline NB(double) NB(i64_trim_double)(const NB(i64) *self) {
   return (NB(double)) *self;
 }
 
+
+static inline NB(u8) NB(u8_reinterpret_unsigned)(const NB(u8) *self) {
+  return *self;
+}
 
 static inline NB(i8) NB(u8_reinterpret_signed)(const NB(u8) *self) {
   return (NB(i8)) *self;
@@ -148,6 +167,10 @@ static inline NB(double) NB(u8_to_double)(const NB(u8) *self) {
 }
 
 
+static inline NB(u16) NB(u16_reinterpret_unsigned)(const NB(u16) *self) {
+  return *self;
+}
+
 static inline NB(i16) NB(u16_reinterpret_signed)(const NB(u16) *self) {
   return (NB(i16)) *self;
 }
@@ -176,6 +199,10 @@ static inline NB(double) NB(u16_to_double)(const NB(u16) *self) {
   return (NB(double)) *self;
 }
 
+
+static inline NB(u32) NB(u32_reinterpret_unsigned)(const NB(u32) *self) {
+  return *self;
+}
 
 static inline NB(i32) NB(u32_reinterpret_signed)(const NB(u32) *self) {
   return (NB(i32)) *self;
@@ -206,6 +233,10 @@ static inline NB(double) NB(u32_to_double)(const NB(u32) *self) {
 }
 
 
+static inline NB(u64) NB(u64_reinterpret_unsigned)(const NB(u64) *self) {
+  return *self;
+}
+
 static inline NB(i64) NB(u64_reinterpret_signed)(const NB(u64) *self) {
   return (NB(i64)) *self;
 }
@@ -235,6 +266,10 @@ static inline NB(double) NB(u64_trim_double)(const NB(u64) *self) {
 }
 
 
+static inline NB(ssize) NB(ssize_reinterpret_signed)(const NB(ssize) *self) {
+  return *self;
+}
+
 static inline NB(size) NB(ssize_reinterpret_unsigned)(const NB(ssize) *self) {
   return (NB(size)) *self;
 }
@@ -263,6 +298,9 @@ static inline NB(double) NB(ssize_trim_double)(const NB(ssize) *self) {
   return (NB(double)) *self;
 }
 
+static inline NB(size) NB(size_reinterpret_unsigned)(const NB(size) *self) {
+  return *self;
+}
 
 static inline NB(ssize) NB(size_reinterpret_signed)(const NB(size) *self) {
   return (NB(ssize)) *self;

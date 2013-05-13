@@ -2,4 +2,7 @@ from nlang import *
 
 export fun main = i32
   say @'Hello, World!'
+  say @true:bool
+  say @1:u32
+  say @1.0:float
   return 0

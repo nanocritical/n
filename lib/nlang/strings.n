@@ -4,16 +4,70 @@ import nlang.unsafe
 
 export inline type string = \
     export i_copyable \
-    export i_string
+    export i_show \
+    export i_string_buffer
   bytes:(vector u8)
 
-export string method count = size
+export string method i_const_string.count = size
   return self.bytes.count
 
-export string method# copy_ctor other:@this = void
+export string method i_const_string.all = index_range
+  return self.bytes.all
+
+export string method i_const_string.get_char n:size = char
+  return char.from_ascii (self.bytes.at n).
+
+export string method i_const_string.substring r:index_range = @i_const_string
+  let sub = string.new
+    let mem = self.bytes.storage.subslice r
+    sub.bytes#append_slice @mem
+  return sub
+
+export string method i_const_string.bytes_utf8 = @(slice u8)
+  return (nlang.unsafe.cast @(slice self.bytes.ut) @(slice u8)) self.bytes.storage
+
+export string method! i_string.set_char n:size c:char = void
+  (self.bytes!at n)! = c.code.trim_u8
+
+export string method! i_string.fill c:char r:index_range = void
+  let with = c.code.trim_u8
+  let sb = self.bytes.storage!subslice r
+    for i in sb.all.iter
+      let p = (nlang.unsafe.cast @!self.bytes.ut @!u8) (sb!at i)
+      p! = with
+
+export string method# i_string_buffer.reserve count:size = void
+  self.bytes#reserve count
+
+export string method# i_string_buffer.clear = void
+  self.bytes#clear
+
+export string method# i_string_buffer.push c:char = void
+  self.bytes#push c.code.trim_u8
+
+export string method# i_string_buffer.pop = char
+  return char.from_ascii self.bytes#pop
+
+export string method# i_string_buffer.append other:@i_const_string = void
+  self#reserve self.count+other.count
+  for i in other.all.iter
+    self#push (other.get_char i)
+
+export string method# i_string_buffer.copy at:size other:@i_const_string off:size count:size = void
+  self#reserve at+count
+  for i in (range 0 count).iter
+    let left = at + i
+    let right = off + i
+    let c = other.get_char right
+    if left < self.count
+      self!set_char left c
+    else
+      self#push c
+
+export string method# i_copyable.copy_ctor other:@this = void
   self!bytes = other.bytes
 
-export string fun copy_carray bytes:@u8 count:size = r:string
-  let raw = (nlang.unsafe.cast @u8 @#(vector u8).ut) bytes
-  r.bytes#copy_slice @((slice (vector u8).ut).unsafe_wrap raw count)
-  return r
+export string method i_show.show buf:@#i_string_buffer = void
+  buf#reserve buf.count + self.count
+  for i in self.all.iter
+    buf#push (self.get_char i)

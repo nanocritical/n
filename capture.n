@@ -1,0 +1,88 @@
+export inline slice method$ subslice r:index_range = owned (slice t)
+
+export inline slice fun unsafe_wrap data:@#t count:size = r:this \
+    attr data capturedby r
+
+t method foo b:bool p:@u32 = void \
+    attr! p capturedby self
+  if b != 0
+    self.p = p
+
+t method! foo b:bool p:@u32 = void \
+    attr p capturedby self
+
+t method foo b:bool p:(loose @u32) = void
+
+t method! foo b:bool p:[capturedby self]@u32 = void
+  if b != 0
+    self.p = p
+
+-- A unique reference can be passed as a scoped reference as long as the
+-- function does not capture it.
+t method bar p:@u32 = void
+
+fun main = i32
+  let a = t.mk
+  let p = u32.new
+  a.bar p
+  return p.
+
+t method! capture p:@u32 = void \
+    attr p capturedby self
+
+fun main = i32
+  let a = t.mk
+  let p = u32.new
+  a.capture p
+  return p.
+  -- error: unique reference p still in use after capture by a
+
+fun main = i32
+  let a = t.mk
+  let p = u32.new
+  a.capture p
+  return 0
+  -- ok
+
+fun main = i32
+  let p = u32.new
+  block
+    let a = t.mk
+    a.capture p
+  return p.
+  -- ok: a is dead and "releases" its capture of p before p is used again.
+  -- the capture of p is not of a unique reference, so it will not free it (???)
+
+t method! capture_unique p:(unique @u32) = void \
+    attr p capturedby self
+
+fun main = i32
+  let p = u32.new
+  block
+    let a = t.mk
+    a.capture_unique p
+  return p.
+
+(fun t:i_any) free p:@#t = void
+(fun t:i_any) free p:(unique @#t) = void
+
+
+type tree =
+  _left:@#tree
+  _right:@#tree
+
+tree method$ left = (owned @$tree)
+  return self$_left
+
+tree method$ right = (owned @$tree)
+  return self$_right
+
+tree method# dtor = void
+  sysheap!free self#_left
+  sysheap!free self#_right
+
+-- Invalidates all the ownership links.
+
+
+t method! foo v:@(vector @#tree) n:size = void
+  self.

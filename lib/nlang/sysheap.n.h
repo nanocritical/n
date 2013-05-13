@@ -1,3 +1,5 @@
+#ifdef NLANG_DEFINE_FUNCTIONS
+
 #define NB(x) nlang_builtins_##x
 
 static inline NB(u8) *nlang_sysheap_realloc(NB(u8) *ap, NB(size) oldbsz, NB(size) bsz) {
@@ -22,3 +24,5 @@ static inline void nlang_sysheap_free(NB(u8) *ap, NB(size) bsz) {
 }
 
 #undef NB
+
+#endif

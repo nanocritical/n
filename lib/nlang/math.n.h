@@ -1,5 +1,4 @@
-#ifndef nlang_math_h
-#define nlang_math_h
+#ifdef NLANG_DEFINE_FUNCTIONS
 
 #define NB(n) nlang_builtins_##n
 #define GEN1(t, f) _Ngen_lib_nlang_math_##f##__##t##_genN_

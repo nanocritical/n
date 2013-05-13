@@ -1,11 +1,52 @@
 #include <lib/nlang/runtime.h>
-#include "lib/nlang/module.n.h.out"
-#include "lib/nlang/unsafe.n.h.out"
-#include "t00/cast.n.h.out"
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_TYPES
 
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/unsafe.n.h.out"
+#undef NLANG_DECLARE_TYPES
 
+#define NLANG_DECLARE_TYPES
+# include "t00/cast.n.h.out"
+#undef NLANG_DECLARE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/unsafe.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "t00/cast.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/unsafe.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "t00/cast.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
 static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_cast_foo(_Ngen_nlang_builtins_i_ref__nlang_builtins_u32_genN_ x);
 
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/unsafe.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "t00/cast.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
 static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_cast_foo(_Ngen_nlang_builtins_i_ref__nlang_builtins_u32_genN_ x){
  {
 return (_Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_)(x);

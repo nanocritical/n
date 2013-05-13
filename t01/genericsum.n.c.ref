@@ -1,6 +1,11 @@
 #include <lib/nlang/runtime.h>
-#include "lib/nlang/module.n.h.out"
-#include "t01/genericsum.n.h.out"
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_TYPES
+
+#define NLANG_DECLARE_TYPES
+# include "t01/genericsum.n.h.out"
+#undef NLANG_DECLARE_TYPES
 struct _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_;
 typedef struct _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_ _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_;
 typedef const _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_* _Ngen_nlang_builtins_i_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_;
@@ -11,25 +16,39 @@ typedef _Ngen_nlang_builtins_i_mutable_ref___Ngen_t01_genericsum_container__nlan
 typedef _Ngen_nlang_builtins_i_mercurial_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_;
 
 
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "t01/genericsum.n.h.out"
+#undef NLANG_DEFINE_TYPES
 struct _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_ {
 nlang_builtins_i32 x;
 }
 ;
 
 
-static inline nlang_builtins_i_trivial_ctor _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__mkdyn__nlang_builtins_i_trivial_ctor(_Ngen_t01_genericsum_container__nlang_builtins_i32_genN_ *obj);
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "t01/genericsum.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
 nlang_builtins_void _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__add(_Ngen_nlang_builtins_i_mutable_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_ self, nlang_builtins_i32 x);
 nlang_builtins_void _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__ctor(_Ngen_nlang_builtins_i_mercurial_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_ self);
 void _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__mk(_Ngen_t01_genericsum_container__nlang_builtins_i32_genN_ *_nrtr_r);
 _Ngen_nlang_builtins_i_mercurial_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_ _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__new(void);
 
 
-static inline nlang_builtins_i_trivial_ctor _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__mkdyn__nlang_builtins_i_trivial_ctor(_Ngen_t01_genericsum_container__nlang_builtins_i32_genN_ *obj) {
-static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
-0,
-};
-return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
-}
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "t01/genericsum.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
 nlang_builtins_void _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__add(_Ngen_nlang_builtins_i_mutable_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_ self, nlang_builtins_i32 x){
 #define THIS(x) _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_##x
  {

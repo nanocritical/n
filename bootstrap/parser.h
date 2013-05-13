@@ -432,6 +432,7 @@ enum predefined_idents {
   ID_TBI_TRIVIAL_CTOR,
   ID_TBI_TRIVIAL_DTOR,
   ID_TBI_TRIVIAL_EQUALITY,
+  ID_TBI_TRIVIAL_ORDER,
   ID_TBI_RETURN_BY_COPY,
   ID_TBI_SUM_COPY,
   ID_TBI_SUM_EQUALITY,
@@ -549,6 +550,7 @@ enum typ_builtin {
   TBI_TRIVIAL_CTOR,
   TBI_TRIVIAL_DTOR,
   TBI_TRIVIAL_EQUALITY,
+  TBI_TRIVIAL_ORDER,
   TBI_RETURN_BY_COPY,
   TBI_SUM_COPY,
   TBI_SUM_EQUALITY,
@@ -747,12 +749,18 @@ char *typ_name(const struct module *mod, const struct typ *t);
 char *typ_pretty_name(const struct module *mod, const struct typ *t);
 bool typ_is_builtin(const struct module *mod, const struct typ *t);
 bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t);
+bool typ_is_trivial(const struct module *mod, const struct typ *t);
 
 size_t typ_isalist_count(const struct typ *t);
 const struct typ **typ_isalist(const struct typ *t);
 const bool *typ_isalist_exported(const struct typ *t);
+enum isalist_filter {
+  ISALIST_FILTER_NOT_EXPORTED = 0x1,
+  ISALIST_FILTER_EXPORTED = 0x2,
+  ISALIST_FILTER_TRIVIAL_ISALIST = 0x4,
+};
 typedef error (*isalist_each)(struct module *mod, const struct typ *t, const struct typ *intf, void *user);
-error typ_isalist_foreach(struct module *mod, const struct typ *t, const bool *export_filter,
+error typ_isalist_foreach(struct module *mod, const struct typ *t, uint32_t filter,
                           isalist_each iter, void *user);
 
 void rew_insert_last_at(struct node *node, size_t pos);

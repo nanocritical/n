@@ -1,3 +1,5 @@
+#ifdef NLANG_DEFINE_FUNCTIONS
+
 #define NB(x) nlang_builtins_##x
 
 static inline NB(u8) *nlang_memory_realloc(NB(u8) *ap, NB(size) oldbsz, NB(size) bsz) {
@@ -31,3 +33,5 @@ static inline NB(void) nlang_memory_slice_memcpy(NB(u8) *dst, NB(size) at,
 }
 
 #undef NB
+
+#endif

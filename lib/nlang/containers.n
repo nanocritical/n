@@ -15,8 +15,8 @@ export inline type index_range = \
     export i_trivial_copy \
     export i_trivial_equality \
     export i_return_by_copy
-  b:size
-  e:size
+  _b:size
+  _e:size
 
 export inline type index_iterator = export i_iterator
   r:index_range
@@ -24,17 +24,20 @@ export inline type index_iterator = export i_iterator
 
 
 export index_range method! init beg:size end:size = void
-  self!b = beg
-  self!e = end
+  let e = end
+    if end < beg
+      e = beg
+  self!_b = beg
+  self!_e = e
 
 export index_range method begin = size
-  return self.b
+  return self._b
 
 export index_range method end = size
-  return self.e
+  return self._e
 
-export index_range method len = size
-  return self.e - self.b
+export index_range method count = size
+  return self._e - self._b
 
 export index_range method sub begin:size end:size = this
   let r:this
@@ -64,5 +67,5 @@ export index_iterator method has_next = bool
 export index_iterator method! next = void
   self!p += 1
 
-export fun range beg:size end:size = index_range
-  return index_range{{ b=beg e=end }}
+export fun range beg:size end:size = r:index_range
+  r!init beg end

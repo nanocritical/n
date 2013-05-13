@@ -59,7 +59,10 @@ export vector method# i_copyable.copy_ctor other:@this = void
   (heap.slice_realloc ut) @!sysheap @#self#_p other._p.count
   self._p!copy 0 @other._p 0 other._p.count
 
-export vector method# copy_slice other:@(slice ut) = void
+export vector method# append_slice other:@(slice ut) = void
   (heap.slice_realloc ut) @!sysheap @#self#_p other.count
   self._p!copy 0 other 0 other.count
   self!_count = other.count
+
+export vector method$ storage = @$(slice ut)
+  return @$self$_p

@@ -1,10 +1,36 @@
 #include <lib/nlang/runtime.h>
-#include "lib/nlang/module.n.h.out"
-#include "t00/fixme02.n.h.out"
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_TYPES
 
+#define NLANG_DECLARE_TYPES
+# include "t00/fixme02.n.h.out"
+#undef NLANG_DECLARE_TYPES
 
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "t00/fixme02.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "t00/fixme02.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
 static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_tmp(void);
 
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "t00/fixme02.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
 static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_tmp(void){
  {
 nlang_builtins_i32 __gensym0 = (nlang_builtins_i32)0;

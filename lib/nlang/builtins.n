@@ -1,3 +1,5 @@
+from nlang.chars import i_string_buffer i_show
+
 export intf i_any =
 
 export intf i_copyable =
@@ -14,7 +16,6 @@ export intf i_default_ctor =
 export intf i_trivial_ctor = export i_default_ctor
 export intf i_trivial_dtor =
 export intf i_matchable =
-  method operator_match other:@final = bool
 export intf i_has_equality = export i_matchable
   method operator_eq other:@final = bool
   method operator_ne other:@final = bool
@@ -82,8 +83,8 @@ export intf i_integer = \
     export i_has_compare
   alias this_signed = i_signed_integer
   alias this_unsigned = i_unsigned_integer
-  method reinterpret_signed = this_signed
-  method reinterpret_unsigned = this_unsigned
+  method reinterpret_signed = final.this_signed
+  method reinterpret_unsigned = final.this_unsigned
 
 export intf i_signed_integer = export i_integer
 
@@ -93,7 +94,8 @@ export intf i_native_integer = \
     export i_trivial_ctor \
     export i_trivial_copy \
     export i_return_by_copy \
-    export i_integer
+    export i_integer \
+    export i_show
 
 export intf i_native_signed_integer = \
     export i_signed_integer \
@@ -108,8 +110,7 @@ export intf i_native_anysign_integer = \
     export i_native_unsigned_integer
 
 export intf i_generalized_boolean = \
-    export i_ordered \
-    export i_bitwise
+    export i_ordered
   method operator_or other:@final = final
   method operator_and other:@final = final
   method operator_not = final
@@ -119,7 +120,8 @@ export intf i_native_boolean = \
     export i_trivial_ctor \
     export i_trivial_copy \
     export i_return_by_copy \
-    export i_generalized_boolean
+    export i_generalized_boolean \
+    export i_show
 
 export intf i_floating = \
     export i_numeric \
@@ -129,7 +131,8 @@ export intf i_native_floating = \
     export i_trivial_ctor \
     export i_trivial_copy \
     export i_return_by_copy \
-    export i_floating
+    export i_floating \
+    export i_show
 
 export extern type bool = export i_native_boolean
 export extern bool method# i_copyable.copy_ctor other:@this = void
@@ -148,6 +151,7 @@ export extern bool method to_u8 = u8
 export extern bool method to_u16 = u16
 export extern bool method to_u32 = u32
 export extern bool method to_u64 = u64
+export extern bool method i_show.show buf:@#i_string_buffer = void
 
 export extern type i8 = export i_native_unsigned_integer
   alias this_signed = this
@@ -182,12 +186,13 @@ export extern i8 method! i_bitwise.operator_assign_bwxor other:@this = void
 export extern i8 method! i_bitwise.operator_assign_bwand other:@this = void
 export extern i8 method! i_bitwise.operator_assign_lshift by:u32 = void
 export extern i8 method! i_bitwise.operator_assign_rshift by:u32 = void
-export extern i8 method reinterpret_unsigned = u8
-export extern i8 method reinterpret_signed = this
-export extern i8 method to_i16 = i16
-export extern i8 method to_i32 = i32
-export extern i8 method to_i64 = i64
-export extern i8 method i_integer.as_ssize = ssize
+export extern inline i8 method reinterpret_unsigned = u8
+export extern inline i8 method reinterpret_signed = this
+export extern inline i8 method to_i16 = i16
+export extern inline i8 method to_i32 = i32
+export extern inline i8 method to_i64 = i64
+export extern inline i8 method i_integer.as_ssize = ssize
+export extern i8 method i_show.show buf:@#i_string_buffer = void
 
 export extern type i16 = export i_native_unsigned_integer
   alias this_signed = this
@@ -222,12 +227,13 @@ export extern i16 method! i_bitwise.operator_assign_bwxor other:@this = void
 export extern i16 method! i_bitwise.operator_assign_bwand other:@this = void
 export extern i16 method! i_bitwise.operator_assign_lshift by:u32 = void
 export extern i16 method! i_bitwise.operator_assign_rshift by:u32 = void
-export extern i16 method reinterpret_unsigned = u16
-export extern i16 method reinterpret_signed = this
-export extern i16 method trim_i8 = i8
-export extern i16 method to_i32 = i32
-export extern i16 method to_i64 = i64
-export extern i16 method i_integer.as_ssize = ssize
+export extern inline i16 method reinterpret_unsigned = u16
+export extern inline i16 method reinterpret_signed = this
+export extern inline i16 method trim_i8 = i8
+export extern inline i16 method to_i32 = i32
+export extern inline i16 method to_i64 = i64
+export extern inline i16 method i_integer.as_ssize = ssize
+export extern i16 method i_show.show buf:@#i_string_buffer = void
 
 export extern type i32 = export i_native_unsigned_integer
   alias this_signed = this
@@ -262,14 +268,15 @@ export extern i32 method! i_bitwise.operator_assign_bwxor other:@this = void
 export extern i32 method! i_bitwise.operator_assign_bwand other:@this = void
 export extern i32 method! i_bitwise.operator_assign_lshift by:u32 = void
 export extern i32 method! i_bitwise.operator_assign_rshift by:u32 = void
-export extern i32 method reinterpret_unsigned = u32
-export extern i32 method reinterpret_signed = this
-export extern i32 method trim_i8 = i8
-export extern i32 method trim_i16 = i16
-export extern i32 method to_i64 = i64
-export extern i32 method i_integer.as_ssize = ssize
-export extern i32 method to_float = float
-export extern i32 method to_double = double
+export extern inline i32 method reinterpret_unsigned = u32
+export extern inline i32 method reinterpret_signed = this
+export extern inline i32 method trim_i8 = i8
+export extern inline i32 method trim_i16 = i16
+export extern inline i32 method to_i64 = i64
+export extern inline i32 method i_integer.as_ssize = ssize
+export extern inline i32 method trim_float = float
+export extern inline i32 method to_double = double
+export extern i32 method i_show.show buf:@#i_string_buffer = void
 
 export extern type i64 = export i_native_unsigned_integer
   alias this_signed = this
@@ -304,14 +311,15 @@ export extern i64 method! i_bitwise.operator_assign_bwxor other:@this = void
 export extern i64 method! i_bitwise.operator_assign_bwand other:@this = void
 export extern i64 method! i_bitwise.operator_assign_lshift by:u32 = void
 export extern i64 method! i_bitwise.operator_assign_rshift by:u32 = void
-export extern i64 method reinterpret_unsigned = u64
-export extern i64 method reinterpret_signed = this
-export extern i64 method trim_i8 = i8
-export extern i64 method trim_i16 = i16
-export extern i64 method trim_i64 = i32
-export extern i64 method i_integer.as_ssize = ssize
-export extern i64 method to_float = float
-export extern i64 method to_double = double
+export extern inline i64 method reinterpret_unsigned = u64
+export extern inline i64 method reinterpret_signed = this
+export extern inline i64 method trim_i8 = i8
+export extern inline i64 method trim_i16 = i16
+export extern inline i64 method trim_i32 = i32
+export extern inline i64 method i_integer.as_ssize = ssize
+export extern inline i64 method trim_float = float
+export extern inline i64 method trim_double = double
+export extern i64 method i_show.show buf:@#i_string_buffer = void
 
 export extern type u8 = export i_native_unsigned_integer
   alias this_unsigned = this
@@ -346,14 +354,15 @@ export extern u8 method! i_bitwise.operator_assign_bwxor other:@this = void
 export extern u8 method! i_bitwise.operator_assign_bwand other:@this = void
 export extern u8 method! i_bitwise.operator_assign_lshift by:u32 = void
 export extern u8 method! i_bitwise.operator_assign_rshift by:u32 = void
-export extern u8 method reinterpret_unsigned = this
-export extern u8 method reinterpret_signed = i8
-export extern u8 method to_u16 = u16
-export extern u8 method to_u32 = u32
-export extern u8 method to_u64 = u64
-export extern u8 method i_integer.as_size = size
-export extern u8 method to_float = float
-export extern u8 method to_double = double
+export extern inline u8 method reinterpret_unsigned = this
+export extern inline u8 method reinterpret_signed = i8
+export extern inline u8 method to_u16 = u16
+export extern inline u8 method to_u32 = u32
+export extern inline u8 method to_u64 = u64
+export extern inline u8 method i_integer.as_size = size
+export extern inline u8 method to_float = float
+export extern inline u8 method to_double = double
+export extern u8 method i_show.show buf:@#i_string_buffer = void
 
 export extern type u16 = export i_native_unsigned_integer
   alias this_unsigned = this
@@ -388,14 +397,15 @@ export extern u16 method! i_bitwise.operator_assign_bwxor other:@this = void
 export extern u16 method! i_bitwise.operator_assign_bwand other:@this = void
 export extern u16 method! i_bitwise.operator_assign_lshift by:u32 = void
 export extern u16 method! i_bitwise.operator_assign_rshift by:u32 = void
-export extern u16 method reinterpret_unsigned = this
-export extern u16 method reinterpret_signed = i16
-export extern u16 method trim_u8 = u8
-export extern u16 method to_u32 = u32
-export extern u16 method to_u64 = u64
-export extern u16 method i_integer.as_size = size
-export extern u16 method to_float = float
-export extern u16 method to_double = double
+export extern inline u16 method reinterpret_unsigned = this
+export extern inline u16 method reinterpret_signed = i16
+export extern inline u16 method trim_u8 = u8
+export extern inline u16 method to_u32 = u32
+export extern inline u16 method to_u64 = u64
+export extern inline u16 method i_integer.as_size = size
+export extern inline u16 method to_float = float
+export extern inline u16 method to_double = double
+export extern u16 method i_show.show buf:@#i_string_buffer = void
 
 export extern type u32 = export i_native_unsigned_integer
   alias this_unsigned = this
@@ -430,14 +440,15 @@ export extern u32 method! i_bitwise.operator_assign_bwxor other:@this = void
 export extern u32 method! i_bitwise.operator_assign_bwand other:@this = void
 export extern u32 method! i_bitwise.operator_assign_lshift by:u32 = void
 export extern u32 method! i_bitwise.operator_assign_rshift by:u32 = void
-export extern u32 method reinterpret_unsigned = i32
-export extern u32 method reinterpret_signed = i32
-export extern u32 method trim_u8 = u8
-export extern u32 method trim_u16 = u16
-export extern u32 method to_u64 = u64
-export extern u32 method i_integer.as_size = size
-export extern u32 method trim_float = float
-export extern u32 method to_double = double
+export extern inline u32 method reinterpret_unsigned = this
+export extern inline u32 method reinterpret_signed = i32
+export extern inline u32 method trim_u8 = u8
+export extern inline u32 method trim_u16 = u16
+export extern inline u32 method to_u64 = u64
+export extern inline u32 method i_integer.as_size = size
+export extern inline u32 method trim_float = float
+export extern inline u32 method to_double = double
+export extern u32 method i_show.show buf:@#i_string_buffer = void
 
 export extern type u64 = export i_native_unsigned_integer
   alias this_unsigned = this
@@ -472,14 +483,15 @@ export extern u64 method! i_bitwise.operator_assign_bwxor other:@this = void
 export extern u64 method! i_bitwise.operator_assign_bwand other:@this = void
 export extern u64 method! i_bitwise.operator_assign_lshift by:u32 = void
 export extern u64 method! i_bitwise.operator_assign_rshift by:u32 = void
-export extern u64 method reinterpret_unsigned = this
-export extern u64 method reinterpret_signed = i64
-export extern u64 method trim_u8 = u8
-export extern u64 method trim_u16 = u16
-export extern u64 method trim_u32 = u32
-export extern u64 method i_integer.as_size = size
-export extern u64 method trim_float = float
-export extern u64 method trim_double = double
+export extern inline u64 method reinterpret_unsigned = this
+export extern inline u64 method reinterpret_signed = i64
+export extern inline u64 method trim_u8 = u8
+export extern inline u64 method trim_u16 = u16
+export extern inline u64 method trim_u32 = u32
+export extern inline u64 method i_integer.as_size = size
+export extern inline u64 method trim_float = float
+export extern inline u64 method trim_double = double
+export extern u64 method i_show.show buf:@#i_string_buffer = void
 
 export extern type ssize = export i_native_integer
   alias this_signed = this
@@ -514,14 +526,15 @@ export extern ssize method! i_bitwise.operator_assign_bwxor other:@this = void
 export extern ssize method! i_bitwise.operator_assign_bwand other:@this = void
 export extern ssize method! i_bitwise.operator_assign_lshift by:u32 = void
 export extern ssize method! i_bitwise.operator_assign_rshift by:u32 = void
-export extern ssize method reinterpret_unsigned = size
-export extern ssize method reinterpret_signed = this
-export extern ssize method trim_i8 = i8
-export extern ssize method trim_i16 = i16
-export extern ssize method trim_i32 = i32
-export extern ssize method trim_i64 = i64
-export extern ssize method trim_float = float
-export extern ssize method trim_double = double
+export extern inline ssize method reinterpret_unsigned = size
+export extern inline ssize method reinterpret_signed = this
+export extern inline ssize method trim_i8 = i8
+export extern inline ssize method trim_i16 = i16
+export extern inline ssize method trim_i32 = i32
+export extern inline ssize method trim_i64 = i64
+export extern inline ssize method trim_float = float
+export extern inline ssize method trim_double = double
+export extern ssize method i_show.show buf:@#i_string_buffer = void
 
 export extern type size = export i_native_unsigned_integer
   alias this_unsigned = this
@@ -556,14 +569,15 @@ export extern size method! i_bitwise.operator_assign_bwxor other:@this = void
 export extern size method! i_bitwise.operator_assign_bwand other:@this = void
 export extern size method! i_bitwise.operator_assign_lshift by:u32 = void
 export extern size method! i_bitwise.operator_assign_rshift by:u32 = void
-export extern size method reinterpret_unsigned = this
-export extern size method reinterpret_signed = ssize
-export extern size method trim_u8 = u8
-export extern size method trim_u16 = u16
-export extern size method trim_u32 = u32
-export extern size method trim_u64 = u64
-export extern size method trim_float = float
-export extern size method trim_double = double
+export extern inline size method reinterpret_unsigned = this
+export extern inline size method reinterpret_signed = ssize
+export extern inline size method trim_u8 = u8
+export extern inline size method trim_u16 = u16
+export extern inline size method trim_u32 = u32
+export extern inline size method trim_u64 = u64
+export extern inline size method trim_float = float
+export extern inline size method trim_double = double
+export extern size method i_show.show buf:@#i_string_buffer = void
 
 export extern type float = export i_native_floating
 export extern float method# i_copyable.copy_ctor other:@this = void
@@ -585,12 +599,13 @@ export extern float method! i_arithmetic.operator_assign_minus other:@this = voi
 export extern float method! i_arithmetic.operator_assign_divide other:@this = void
 export extern float method! i_arithmetic.operator_assign_modulo other:@this = void
 export extern float method! i_arithmetic.operator_assign_times other:@this = void
-export extern float method trim_i8 = i8
-export extern float method trim_i16 = i16
-export extern float method to_i32 = i32
-export extern float method to_i64 = i64
-export extern float method to_double = double
-export extern float method as_ssize = ssize
+export extern inline float method trim_i8 = i8
+export extern inline float method trim_i16 = i16
+export extern inline float method to_i32 = i32
+export extern inline float method to_i64 = i64
+export extern inline float method to_double = double
+export extern inline float method as_ssize = ssize
+export extern float method i_show.show buf:@#i_string_buffer = void
 
 export extern type double = export i_native_floating
 export extern double method# i_copyable.copy_ctor other:@this = void
@@ -612,12 +627,13 @@ export extern double method! i_arithmetic.operator_assign_minus other:@this = vo
 export extern double method! i_arithmetic.operator_assign_divide other:@this = void
 export extern double method! i_arithmetic.operator_assign_modulo other:@this = void
 export extern double method! i_arithmetic.operator_assign_times other:@this = void
-export extern double method trim_i8 = i8
-export extern double method trim_i16 = i16
-export extern double method trim_i32 = i32
-export extern double method to_i64 = i64
-export extern double method trim_float = float
-export extern double method as_ssize = ssize
+export extern inline double method trim_i8 = i8
+export extern inline double method trim_i16 = i16
+export extern inline double method trim_i32 = i32
+export extern inline double method to_i64 = i64
+export extern inline double method trim_float = float
+export extern inline double method as_ssize = ssize
+export extern double method i_show.show buf:@#i_string_buffer = void
 
 export intf i_auto_ctor =
   fun mk = r:final

@@ -1,8 +1,8 @@
 from nlang import *
 import nlang.unsafe
 
-extern fun realloc p:?@#u8 oldbsz:size bsz:size = @#u8
-extern fun free p:?@#u8 sz:size = void
+extern inline fun realloc p:?@#u8 oldbsz:size bsz:size = @#u8
+extern inline fun free p:?@#u8 sz:size = void
 
 export inline type heap = export i_allocator
   dummy:i32
@@ -21,13 +21,13 @@ export heap (method! t:i_trivial_ctor) slice_realloc s:@#(slice t) count:size = 
     s#_rawdata = realloc null 0 bsz
     s#_count = count
   else
-    let old_bsz = s.bytelen
+    let old_bsz = s.bytecount
     let raw = s#unsafe_rawdata
     s#_rawdata = realloc raw old_bsz bsz
     s#_count = count
 
 export heap (method! t:i_trivial_ctor) slice_free s:@#(slice t) = void
-  let bsz = s.bytelen
+  let bsz = s.bytecount
   let raw = s#unsafe_rawdata
   free raw bsz
   s#_count = 0

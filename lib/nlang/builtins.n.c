@@ -1,4 +1,15 @@
+#include <inttypes.h>
+#include <stdio.h>
+
+#ifdef NLANG_DEFINE_FUNCTIONS
+
 #define NB(n) nlang_builtins_##n
+
+static void native_write_buffer(nlang_chars_i_string_buffer buf, const char *s) {
+  for (int i = 0; s[i] != '\0'; ++i) {
+    nlang_chars_i_string_buffer_push(buf, nlang_chars_char_from_ascii((NB(u8)) s[i]));
+  }
+}
 
 #define define_native_boolean(t) \
   NB(bool) t##_operator_eq(const t *self, const t *other) { return *self == *other; } \
@@ -15,7 +26,18 @@
   t t##_operator_and(const t *self, const t *other) { return *self && *other; } \
   t t##_operator_not(const t *self) { return ! *self; } \
   \
-  void t##_copy_ctor(t *self, const t *other) { *self = *other; }
+  void t##_copy_ctor(t *self, const t *other) { *self = *other; } \
+  void t##_show(const t *self, nlang_chars_i_string_buffer buf) { \
+    native_write_buffer(buf, *self ? "true" : "false"); \
+  }
+
+// ln(2^64)/ln(10) = 19.27
+#define define_show_number(t, fmt) \
+  void t##_show(const t *self, nlang_chars_i_string_buffer buf) { \
+    char s[32]; \
+    snprintf(s, 32, fmt, *self); \
+    native_write_buffer(buf, s); \
+  }
 
 #define define_native_integer(t) \
   NB(bool) t##_operator_eq(const t *self, const t *other) { return *self == *other; } \
@@ -87,6 +109,20 @@ define_native_integer(nlang_builtins_ssize)
 define_native_floating(nlang_builtins_float)
 define_native_floating(nlang_builtins_double)
 
+define_show_number(nlang_builtins_i8, "%"PRId8)
+define_show_number(nlang_builtins_i16, "%"PRId16)
+define_show_number(nlang_builtins_i32, "%"PRId32)
+define_show_number(nlang_builtins_i64, "%"PRId64)
+define_show_number(nlang_builtins_u8, "%"PRIu8)
+define_show_number(nlang_builtins_u16, "%"PRIu16)
+define_show_number(nlang_builtins_u32, "%"PRIu32)
+define_show_number(nlang_builtins_u64, "%"PRIu64)
+define_show_number(nlang_builtins_size, "%zu")
+define_show_number(nlang_builtins_ssize, "%zd")
+define_show_number(nlang_builtins_float, "%f")
+define_show_number(nlang_builtins_double, "%f")
+
+#undef define_show_number
 #undef define_native_floating
 #undef define_native_boolean
 #undef define_native_integer
@@ -96,3 +132,5 @@ void NB(abort)(void) {
 }
 
 #undef NB
+
+#endif

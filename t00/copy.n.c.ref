@@ -1,6 +1,11 @@
 #include <lib/nlang/runtime.h>
-#include "lib/nlang/module.n.h.out"
-#include "t00/copy.n.h.out"
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_TYPES
+
+#define NLANG_DECLARE_TYPES
+# include "t00/copy.n.h.out"
+#undef NLANG_DECLARE_TYPES
 struct t00_copy_copy;
 typedef struct t00_copy_copy t00_copy_copy;
 typedef const t00_copy_copy* _Ngen_nlang_builtins_i_ref__t00_copy_copy_genN_;
@@ -15,6 +20,13 @@ typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_copy_copy_genN_ _Ngen_nlang_bu
 
 
 
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "t00/copy.n.h.out"
+#undef NLANG_DEFINE_TYPES
 struct t00_copy_copy {
 nlang_builtins_i32 x;
 }
@@ -25,7 +37,13 @@ nlang_builtins_i32 x;
 
 
 
-static inline nlang_builtins_i_trivial_ctor t00_copy_copy_mkdyn__nlang_builtins_i_trivial_ctor(t00_copy_copy *obj);
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "t00/copy.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
 static inline nlang_builtins_i_copyable t00_copy_copy_mkdyn__nlang_builtins_i_copyable(t00_copy_copy *obj);
 
 _Ngen_nlang_builtins_i_mercurial_ref__t00_copy_copy_genN_ t00_copy_copy_new(void);
@@ -38,12 +56,13 @@ nlang_builtins_void t00_copy_copy_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref
 
 static void t00_copy_foo(t00_copy_copy *_nrtr__nretval);
 
-static inline nlang_builtins_i_trivial_ctor t00_copy_copy_mkdyn__nlang_builtins_i_trivial_ctor(t00_copy_copy *obj) {
-static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
-0,
-};
-return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
-}
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "t00/copy.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
 static inline nlang_builtins_i_copyable t00_copy_copy_mkdyn__nlang_builtins_i_copyable(t00_copy_copy *obj) {
 static const struct _Ndyn_nlang_builtins_i_copyable vtable = {
 0,

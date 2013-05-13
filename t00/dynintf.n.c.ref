@@ -1,6 +1,11 @@
 #include <lib/nlang/runtime.h>
-#include "lib/nlang/module.n.h.out"
-#include "t00/dynintf.n.h.out"
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_TYPES
+
+#define NLANG_DECLARE_TYPES
+# include "t00/dynintf.n.h.out"
+#undef NLANG_DECLARE_TYPES
 struct _Ndyn_t00_dynintf_i_d;
 struct t00_dynintf_i_d;
 typedef struct t00_dynintf_i_d t00_dynintf_i_d;
@@ -37,6 +42,13 @@ typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_dc_genN_ _Ngen_nlang_b
 
 
 
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "t00/dynintf.n.h.out"
+#undef NLANG_DEFINE_TYPES
 struct _Ndyn_t00_dynintf_i_d {
 nlang_builtins_i32 (*answer)(void);
 nlang_builtins_i32 (*get)(void *self);
@@ -70,10 +82,16 @@ nlang_builtins_i32 dummy;
 
 
 
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "t00/dynintf.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
 nlang_builtins_i32 t00_dynintf_i_d_answer(t00_dynintf_i_d self);
 nlang_builtins_i32 t00_dynintf_i_d_get(t00_dynintf_i_d self);
 
-static inline nlang_builtins_i_trivial_ctor t00_dynintf_d_mkdyn__nlang_builtins_i_trivial_ctor(t00_dynintf_d *obj);
 static inline t00_dynintf_i_d t00_dynintf_d_mkdyn__t00_dynintf_i_d(t00_dynintf_d *obj);
 
 _Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_d_genN_ t00_dynintf_d_new(void);
@@ -86,7 +104,6 @@ nlang_builtins_i32 t00_dynintf_d_answer(void);
 
 nlang_builtins_i32 t00_dynintf_d_get(_Ngen_nlang_builtins_i_ref__t00_dynintf_d_genN_ self);
 
-static inline nlang_builtins_i_trivial_ctor t00_dynintf_dc_mkdyn__nlang_builtins_i_trivial_ctor(t00_dynintf_dc *obj);
 static inline t00_dynintf_i_d t00_dynintf_dc_mkdyn__t00_dynintf_i_d(t00_dynintf_dc *obj);
 
 _Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_dc_genN_ t00_dynintf_dc_new(void);
@@ -106,6 +123,13 @@ static nlang_builtins_i32 t00_dynintf_rfoo(t00_dynintf_i_d pv);
 
 static nlang_builtins_i32 t00_dynintf_bar(_Ngen_nlang_builtins_i_ref__t00_dynintf_d_genN_ pv);
 
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "t00/dynintf.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
 nlang_builtins_i32 t00_dynintf_i_d_answer(t00_dynintf_i_d self) {
 return self.vptr->answer();
 }
@@ -113,12 +137,6 @@ nlang_builtins_i32 t00_dynintf_i_d_get(t00_dynintf_i_d self) {
 return self.vptr->get(self.obj);
 }
 
-static inline nlang_builtins_i_trivial_ctor t00_dynintf_d_mkdyn__nlang_builtins_i_trivial_ctor(t00_dynintf_d *obj) {
-static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
-0,
-};
-return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
-}
 static inline t00_dynintf_i_d t00_dynintf_d_mkdyn__t00_dynintf_i_d(t00_dynintf_d *obj) {
 static const struct _Ndyn_t00_dynintf_i_d vtable = {
 .answer = (nlang_builtins_i32 (*)(void))t00_dynintf_d_answer,
@@ -161,12 +179,6 @@ return (self->x);
 #undef THIS
 }
 
-static inline nlang_builtins_i_trivial_ctor t00_dynintf_dc_mkdyn__nlang_builtins_i_trivial_ctor(t00_dynintf_dc *obj) {
-static const struct _Ndyn_nlang_builtins_i_trivial_ctor vtable = {
-0,
-};
-return (nlang_builtins_i_trivial_ctor){ .vptr = &vtable, .obj = obj };
-}
 static inline t00_dynintf_i_d t00_dynintf_dc_mkdyn__t00_dynintf_i_d(t00_dynintf_dc *obj) {
 static const struct _Ndyn_t00_dynintf_i_d vtable = {
 .answer = (nlang_builtins_i32 (*)(void))t00_dynintf_dc_answer,
@@ -224,7 +236,7 @@ nlang_builtins_assert(((nlang_builtins_i32)42 == t00_dynintf_foo(t00_dynintf_d_m
 }
 static nlang_builtins_i32 t00_dynintf_rfoo(t00_dynintf_i_d pv){
  {
-return t00_dynintf_i_d_answer(pv);
+return t00_dynintf_i_d_answer(*(t00_dynintf_i_d *)&pv);
 }
 }
 

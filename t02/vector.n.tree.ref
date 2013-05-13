@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.say
+   BIN(.) :nlang.say
+    IDENT(nlang) :nlang
+    IDENT(say) :__internal_not_typeable__
  IMPORT :nlang.vectors
   BIN(.) :nlang.vectors
    IDENT(nlang) :nlang

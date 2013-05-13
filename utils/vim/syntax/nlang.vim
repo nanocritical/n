@@ -6,6 +6,7 @@ syn keyword nInclude import from
 syn keyword nDecl type union fun method intf delegate
 syn keyword nStorageClass inline extern
 syn keyword nExport export
+syn keyword nSemantic owned captured unique loose shared capturedby ownedby
 
 syn keyword nDecl pre _pre post _post invariant _invariant example _example assert alias
 syn keyword nDecl contract honors _honors pretag posttag tag
