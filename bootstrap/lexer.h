@@ -236,6 +236,7 @@ struct parser {
 
   size_t indent;
   size_t block_depth;
+  size_t no_block_depth;
   bool block_style[1024];
 
   size_t backs_count;

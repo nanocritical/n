@@ -204,10 +204,10 @@ normal:
   "?" { R(TQMARK); }
   "..." { R(TDOTDOTDOT); }
   "[]" { R(TSLICEBRAKETS); }
-  "{" { R(TLINIT); }
-  "}" { R(TRINIT); }
-  "(" { R(TLPAR); }
-  ")" { R(TRPAR); }
+  "{" { parser->no_block_depth += 1; R(TLINIT); }
+  "}" { parser->no_block_depth -= 1; R(TRINIT); }
+  "(" { parser->no_block_depth += 1; R(TLPAR); }
+  ")" { parser->no_block_depth -= 1; R(TRPAR); }
 
   "\n" { 
     spaces = 0;
@@ -251,6 +251,10 @@ eol:
 
 eol_any:
   YYCURSOR -= 1;
+  if (parser->no_block_depth > 0) {
+    goto normal;
+  }
+
   if (spaces == parser->indent) {
     if (block_style(parser)) {
       parser->inject_eol_after_eob = TRUE;
@@ -333,7 +337,15 @@ comment_while_eol:
 void lexer_back(struct parser *parser, const struct token *tok) {
   parser->inject_eol_after_eob = FALSE;
 
-  if (tok->t == TSOB) {
+  if (tok->t == TLINIT) {
+    parser->no_block_depth -= 1;
+  } else if (tok->t == TRINIT) {
+    parser->no_block_depth += 1;
+  } else if (tok->t == TLPAR) {
+    parser->no_block_depth -= 1;
+  } else if (tok->t == TRPAR) {
+    parser->no_block_depth += 1;
+  } else if (tok->t == TSOB) {
     parser->indent -= 2;
     parser->block_depth -= 1;
   } else if (tok->t == TEOB) {
