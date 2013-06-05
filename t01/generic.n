@@ -4,5 +4,5 @@ type container t:i_copyable = i_trivial_ctor
   x:t
 
 export fun main = i32
-  let v = (container i32){{ x=1 }}
+  let v = (container i32){ x=1 }
   return v.x - 1

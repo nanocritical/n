@@ -33,4 +33,4 @@ export heap (method! t:i_trivial_ctor) slice_free s:@#(slice t) = void
   s#_count = 0
   s#_rawdata = null
 
-export let sysheap = heap{{ }}
+export let sysheap = heap{ }

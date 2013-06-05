@@ -204,8 +204,8 @@ normal:
   "?" { R(TQMARK); }
   "..." { R(TDOTDOTDOT); }
   "[]" { R(TSLICEBRAKETS); }
-  "{{" { R(TLINIT); }
-  "}}" { R(TRINIT); }
+  "{" { R(TLINIT); }
+  "}" { R(TRINIT); }
   "(" { R(TLPAR); }
   ")" { R(TRPAR); }
 

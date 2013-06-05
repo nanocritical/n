@@ -7,5 +7,5 @@ t method get = i32
   return self.x
 
 export fun main = i32
-  let tt = t{{ x=0 }}
+  let tt = t{ x=0 }
   return tt.get

@@ -7,5 +7,5 @@ type c =
   return @$ m$x
 
 export fun main = i32
-  let x = c{{ x=0 }}
+  let x = c{ x=0 }
   return ((get i_ref) @x).

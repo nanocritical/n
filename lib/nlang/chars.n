@@ -13,7 +13,7 @@ export inline type char = \
   code:u32
 
 export inline char fun from_ascii c:u8 = char
-  return this{{ code=c.to_u32 }}
+  return this{ code=c.to_u32 }
 
 example -> char.from_ascii 49 == '1':char
 

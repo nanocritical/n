@@ -4,6 +4,6 @@ type c =
   x:i32
 
 export fun main = i32
-  let y = c{{ x=1 }}
+  let y = c{ x=1 }
     y.x = 0
   return y.x

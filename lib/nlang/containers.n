@@ -52,7 +52,7 @@ export index_range method with_offset offset:size = this
   return r
 
 export index_range method iter = index_iterator
-  return index_iterator{{ r=self. }}
+  return index_iterator{ r=self. }
 
 
 export index_iterator method get = size

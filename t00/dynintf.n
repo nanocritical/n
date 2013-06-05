@@ -26,7 +26,7 @@ fun foo v:@i_d = i32
   return v.get
 
 example
-  let x = d{{ x=42 }}
+  let x = d{ x=42 }
   42 == foo @x
 
 fun rfoo pv:@i_d = i32
@@ -36,8 +36,8 @@ fun bar pv:@d = i32
   return foo pv
 
 export fun main = i32
-  let xd = d{{ x=42 }}
-  let xdc = dc{{ }}
+  let xd = d{ x=42 }
+  let xdc = dc{ }
   if foo @xd != foo @xdc
     return 1
   let pxd = @xd
