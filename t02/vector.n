@@ -1,7 +1,10 @@
 from nlang import *
 from nlang.vectors import vector
 
-let v32 = vector i32
+alias v32 = vector i32
+
+fun foo = v32
+  return v32[ 1 0 2 ]
 
 export fun main = i32
   let v = v32.mk
@@ -11,4 +14,8 @@ export fun main = i32
     v#push 1
     for i in v.all.iter
       assert ((v.at i). == i.trim_u32.reinterpret_signed)
+  let w = foo
+  assert ((w.at 0). == 1)
+  assert ((w.at 1). == 0)
+  assert ((w.at 2). == 2)
   return (v.at 1). - 1

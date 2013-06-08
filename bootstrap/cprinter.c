@@ -73,8 +73,10 @@ static const char *c_token_strings[TOKEN__NUM] = {
   [TNULREFSHARP] = "?@#",
   [TDOTDOTDOT] = "...",
   [TSLICEBRAKETS] = "[]",
-  [TLINIT] = "{{",
-  [TRINIT] = "}}",
+  [TLSBRA] = "[",
+  [TRSBRA] = "]",
+  [TLCBRA] = "{",
+  [TRCBRA] = "}",
   [TLPAR] = "(",
   [TRPAR] = ")",
 };
@@ -318,6 +320,29 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
   fprintf(out, ")");
 }
 
+static void print_init_array(FILE *out, const struct module *mod, const struct node *node) {
+  if (node->subs_count == 1) {
+    fprintf(out, " = { 0 }");
+    return;
+  }
+
+  assert(typ_isa(mod, node->subs[1]->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY)) && "not yet supported");
+
+  fprintf(out, " = ");
+
+  fprintf(out, "(const ");
+  print_typ(out, mod, node->typ);
+  fprintf(out, "){ (");
+  print_typ(out, mod, node->subs[1]->typ);
+  fprintf(out, "[]){ ");
+
+  for (size_t n = 1; n < node->subs_count; n += 1) {
+    print_expr(out, mod, node->subs[n], T__NOT_STATEMENT);
+    fprintf(out, ", ");
+  }
+  fprintf(out, " }, %zu }\n", node->subs_count - 1);
+}
+
 static void print_init_toplevel(FILE *out, const struct module *mod, const struct node *node) {
   if (node->subs_count == 1) {
     fprintf(out, " = { 0 }");
@@ -335,6 +360,11 @@ static void print_init_toplevel(FILE *out, const struct module *mod, const struc
 }
 
 static void print_init(FILE *out, const struct module *mod, const struct node *node) {
+  if (!node->as.INIT.named) {
+    print_init_array(out, mod, node);
+    return;
+  }
+
   switch (node->scope->parent->parent->parent->node->which) {
   case MODULE_BODY:
   case DEFTYPE:
@@ -1063,6 +1093,15 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_CTOR_WITH_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
     fprintf(out, "THIS(_ctor)(self, c);\n");
+    fprintf(out, "return self;\n");
+    break;
+  case BG_AUTO_MKV:
+    fprintf(out, "THIS(_ctorv)(&r, c);\n");
+    bg_return_if_by_copy(out, mod, node, "r");
+    break;
+  case BG_AUTO_NEWV:
+    fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
+    fprintf(out, "THIS(_ctorv)(self, c);\n");
     fprintf(out, "return self;\n");
     break;
   case BG_SUM_CTOR_WITH_CTOR:

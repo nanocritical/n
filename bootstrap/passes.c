@@ -1076,7 +1076,7 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
     }
     break;
   case INIT:
-    mark_subs(mod, node, pending, 1, node->subs_count, 2);
+    mark_subs(mod, node, pending, 1, node->subs_count, node->as.INIT.named ? 2 : 1);
     break;
   case CALL:
     if (node->subs[0]->typ == NULL) {
@@ -1458,16 +1458,6 @@ static error step_type_deffuns(struct module *mod, struct node *node, void *user
     break;
   default:
     return 0;
-  }
-
-  return 0;
-}
-
-static error step_set_afternoon(struct module *mod, struct node *node, void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (node == mod->root) {
-    mod->afternoon = TRUE;
   }
 
   return 0;
@@ -1900,7 +1890,7 @@ static error type_inference_tuple(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error type_inference_init(struct module *mod, struct node *node) {
+static error type_inference_init_named(struct module *mod, struct node *node) {
   struct node *def = node->subs[0]->typ->definition;
 
   for (size_t n = 1; n < node->subs_count; n += 2) {
@@ -1915,6 +1905,54 @@ static error type_inference_init(struct module *mod, struct node *node) {
 
   node->typ = node->subs[0]->typ;
   return 0;
+}
+
+static error find_array_ctor_isalisteach(struct module *mod,
+                                         const struct typ *t,
+                                         const struct typ *intf, void *user) {
+  const struct typ **result = user;
+
+  if (intf->gen_arity > 0
+      && typ_equal(mod, intf->gen_args[0],
+                   typ_lookup_builtin(mod, TBI_ARRAY_CTOR))) {
+    *result = intf;
+  }
+
+  return 0;
+}
+
+static error type_inference_init_array(struct module *mod, struct node *node) {
+  const struct typ *t = node->subs[0]->typ;
+
+  const struct typ *array_ctor_intf = NULL;
+  error e = typ_isalist_foreach(mod, t, 0,
+                                find_array_ctor_isalisteach, &array_ctor_intf);
+  EXCEPT(e);
+
+  if (array_ctor_intf == NULL) {
+    e = mk_except_type(mod, node,
+                       "type '%s' not isa i_array_ctor, cannot use array initializer",
+                       typ_pretty_name(mod, t));
+    EXCEPT(e);
+  }
+
+  const struct typ *t_el = array_ctor_intf->gen_args[1];
+  for (size_t n = 1; n < node->subs_count; n += 1) {
+    e = type_destruct(mod, node->subs[n], t_el);
+    EXCEPT(e);
+  }
+
+  node->typ = node->subs[0]->typ;
+  return 0;
+}
+
+static error type_inference_init(struct module *mod, struct node *node) {
+  assert(node->which == INIT);
+  if (node->as.INIT.named) {
+    return type_inference_init_named(mod, node);
+  } else {
+    return type_inference_init_array(mod, node);
+  }
 }
 
 static enum token_type ref_op_for_acc_op[] = {
@@ -2312,6 +2350,8 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
     node->typ = instance->typ->fun_args[instance->typ->fun_arity];
     free(expr);
   }
+
+  assert(node->typ != NULL);
 
   return 0;
 }
@@ -3462,6 +3502,27 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node, void
   return 0;
 }
 
+static error step_add_builtin_mkv_newv(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+  if (node->which != DEFTYPE) {
+    return 0;
+  }
+  if (node_toplevel_const(node)->is_extern) {
+    return 0;
+  }
+
+  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_ARRAY_CTOR))) {
+    return 0;
+  }
+
+  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_ARRAY_CTOR))) {
+    define_builtin(mod, node, BG_AUTO_MKV);
+    define_builtin(mod, node, BG_AUTO_NEWV);
+  }
+
+  return 0;
+}
+
 static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFCHOICE) {
@@ -3789,6 +3850,51 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
 
 static error step_ctor_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
+  return 0;
+}
+
+static error step_array_ctor_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node->which != INIT || node->as.INIT.named) {
+    return 0;
+  }
+
+  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_ARRAY_CTOR))) {
+    return 0;
+  }
+
+  const size_t elements_count = node->subs_count - 1;
+  struct node **elements = calloc(elements_count + 1, sizeof(struct node *));
+  memcpy(elements, node->subs + 1, (node->subs_count - 1) * sizeof(struct node *));
+  free(node->subs);
+  node->subs = NULL;
+  node->subs_count = 0;
+
+  node->which = CALL;
+  struct node *fun = mk_node(mod, node, DIRECTDEF);
+  fun->as.DIRECTDEF.definition = node_get_member(mod, node->typ->definition, ID_MKV);
+
+  struct node *ref_init = mk_node(mod, node, UN);
+  ref_init->as.UN.operator = TREFDOT;
+  struct node *init = mk_node(mod, ref_init, INIT);
+  struct node *initd = mk_node(mod, init, CALL);
+  struct node *static_array = mk_node(mod, initd, DIRECTDEF);
+  static_array->as.DIRECTDEF.definition = typ_lookup_builtin(mod, TBI_STATIC_ARRAY)->definition;
+  struct node *t = mk_node(mod, initd, DIRECTDEF);
+  t->as.DIRECTDEF.definition = node->typ->gen_args[1]->definition;
+  rew_insert_last_at(node, 1);
+
+  for (size_t n = 0; n < elements_count; ++n) {
+    rew_append(init, elements[n]);
+  }
+
+  error e = zero_to_body_for_generated(mod, node, (const struct node **)elements,
+                                       node->scope->parent);
+  EXCEPT(e);
+
+  free(elements);
+
   return 0;
 }
 
@@ -4241,53 +4347,91 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
   return 0;
 }
 
-static error step_complete_instantiation(struct module *mod, struct node *node, void *user, bool *stop) {
-  DSTEP(mod, node);
-
+static error step_mark_second_passed(struct module *mod, struct node *node, void *user, bool *stop) {
   struct toplevel *toplevel = node_toplevel(node);
   if (toplevel != NULL) {
-    toplevel->is_second_passed = TRUE;
+    node_toplevel(node)->is_second_passed = TRUE;
   }
+  return 0;
+}
 
-  if (!node_can_have_genargs(node)
-      || node->subs[IDX_GENARGS]->subs_count == 0) {
+static error do_complete_instantiation(struct module *mod, struct node *node, bool do_top) {
+  struct toplevel *toplevel = node_toplevel(node);
+  if (toplevel == NULL) {
     return 0;
   }
 
-  error e = 0;
+  if (do_top) {
+    const size_t goal = mod->fwdpass_state->passing;
+
+    for (ssize_t s = toplevel->yet_to_pass; s <= goal; ++s) {
+      // Recursive instantiations must progress no faster than us.
+      PUSH_STATE(mod->fwdpass_state);
+      mod->fwdpass_state->passing = s;
+
+      error e = fwd_passes[s](mod, node, NULL);
+      EXCEPT(e);
+      toplevel->yet_to_pass = s + 1;
+
+      for (size_t n = 0; n < node->as.DEFTYPE.members_count; ++n) {
+        struct node *m = node->as.DEFTYPE.members[n];
+        if (node_toplevel_const(m)->builtingen != BG__NOT) {
+          continue;
+        }
+
+        e = do_complete_instantiation(mod, m, TRUE);
+        EXCEPT(e);
+      }
+
+      POP_STATE(mod->fwdpass_state);
+    }
+  }
+
+  toplevel->yet_to_pass = mod->fwdpass_state->passing + 1;
+
   for (size_t n = 1; n < toplevel->instances_count; ++n) {
     struct node *i = toplevel->instances[n];
-
-    if (node_toplevel_const(i)->is_second_passed) {
-      continue;
-    }
-
-    e = first_to_second_for_generated(mod, i, NULL);
+    error e = do_complete_instantiation(mod, i, TRUE);
     EXCEPT(e);
-    for (size_t n = 0; n < i->as.DEFTYPE.members_count; ++n) {
-      struct node *m = i->as.DEFTYPE.members[n];
+  }
+
+  if (!mod->fwdpass_state->afternoon) {
+    return 0;
+  }
+
+  if (do_top && !toplevel->is_second_passed) {
+    error e = first_to_second_for_generated(mod, node, NULL);
+    EXCEPT(e);
+
+    for (size_t n = 0; n < node->as.DEFTYPE.members_count; ++n) {
+      struct node *m = node->as.DEFTYPE.members[n];
       if (node_toplevel_const(m)->builtingen != BG__NOT) {
         continue;
       }
-      e = first_to_second_for_generated(mod, m, NULL);
+
+      e = do_complete_instantiation(mod, m, TRUE);
       EXCEPT(e);
     }
+  }
+
+  for (size_t n = 1; n < toplevel->instances_count; ++n) {
+    struct node *i = toplevel->instances[n];
+    error e = do_complete_instantiation(mod, i, TRUE);
+    EXCEPT(e);
+    assert(node_toplevel_const(i)->is_second_passed);
   }
 
   return 0;
 }
 
-#define PUSH_STATE(st) do { \
-  __typeof__(st) nst = calloc(1, sizeof(*st)); \
-  nst->prev = st; \
-  st = nst; \
-} while (0)
+static error step_complete_instantiation(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
 
-#define POP_STATE(st) do { \
-  __typeof__(st) ost = st; \
-  st = ost->prev; \
-  free(ost); \
-} while (0)
+  error e = do_complete_instantiation(mod, node, FALSE);
+  EXCEPT(e);
+
+  return 0;
+}
 
 static const step zeropass_down[] = {
   step_rewrite_prototype_wildcards,
@@ -4324,6 +4468,7 @@ static error fwdpass_scoping_deftypes(struct module *mod, struct node *node, con
 
   static const step up[] = {
     step_type_deftypes_defintfs,
+    step_complete_instantiation,
     NULL,
   };
 
@@ -4342,6 +4487,7 @@ static error fwdpass_imports(struct module *mod, struct node *node, const struct
   };
 
   static const step up[] = {
+    step_complete_instantiation,
     NULL,
   };
 
@@ -4352,7 +4498,7 @@ static error fwdpass_imports(struct module *mod, struct node *node, const struct
   return 0;
 }
 
-static error fwdpass_genargs_isalist(struct module *mod, struct node *node, const struct node **except) {
+static error fwdpass_genargs(struct module *mod, struct node *node, const struct node **except) {
   static const step down[] = {
     step_stop_submodules,
     step_stop_marker_tbi,
@@ -4362,9 +4508,7 @@ static error fwdpass_genargs_isalist(struct module *mod, struct node *node, cons
   };
 
   static const step up[] = {
-    step_add_builtin_enum_isalist,
-    step_add_builtin_detect_ctor_intf,
-    step_type_inference_isalist,
+    step_complete_instantiation,
     NULL,
   };
 
@@ -4374,6 +4518,30 @@ static error fwdpass_genargs_isalist(struct module *mod, struct node *node, cons
 
   return 0;
 }
+
+static error fwdpass_isalist(struct module *mod, struct node *node, const struct node **except) {
+  static const step down[] = {
+    step_stop_submodules,
+    step_stop_marker_tbi,
+    step_stop_funblock,
+    NULL,
+  };
+
+  static const step up[] = {
+    step_add_builtin_enum_isalist,
+    step_add_builtin_detect_ctor_intf,
+    step_type_inference_isalist,
+    step_complete_instantiation,
+    NULL,
+  };
+
+  int module_depth = 0;
+  error e = pass(mod, node, down, up, except, &module_depth);
+  EXCEPT(e);
+
+  return 0;
+}
+
 
 static error fwdpass_aliases(struct module *mod, struct node *node, const struct node **except) {
   static const step down[] = {
@@ -4385,6 +4553,7 @@ static error fwdpass_aliases(struct module *mod, struct node *node, const struct
 
   static const step up[] = {
     step_type_aliases,
+    step_complete_instantiation,
     NULL,
   };
 
@@ -4406,6 +4575,7 @@ static error fwdpass_deffields(struct module *mod, struct node *node, const stru
   static const step up[] = {
     step_type_deffields,
     step_type_defchoices,
+    step_complete_instantiation,
     NULL,
   };
 
@@ -4431,11 +4601,12 @@ static error fwdpass_deffuns(struct module *mod, struct node *node, const struct
     step_add_builtin_ctor,
     step_add_builtin_dtor,
     step_add_builtin_mk_new,
+    step_add_builtin_mkv_newv,
     step_add_builtin_operators,
     step_add_trivials,
     step_add_sum_dispatch,
     step_rewrite_def_return_through_ref,
-    step_set_afternoon,
+    step_complete_instantiation,
     NULL,
   };
 
@@ -4491,6 +4662,7 @@ static error bodypass_second(struct module *mod, struct node *node, const struct
   static const step up[] = {
     step_operator_call_inference,
     step_ctor_call_inference,
+    step_array_ctor_call_inference,
     step_dtor_call_inference,
     step_copy_call_inference,
     step_check_exhaustive_intf_impl,
@@ -4501,6 +4673,7 @@ static error bodypass_second(struct module *mod, struct node *node, const struct
     step_define_temporary_rvalues,
 
     step_type_drop_retval,
+    step_mark_second_passed,
     step_complete_instantiation,
     NULL,
   };
@@ -4578,7 +4751,8 @@ static error zero_to_body_for_generated(struct module *mod, struct node *node,
 static const passfun _fwd_passes[] = {
   fwdpass_scoping_deftypes,
   fwdpass_imports,
-  fwdpass_genargs_isalist,
+  fwdpass_genargs,
+  fwdpass_isalist,
   fwdpass_aliases,
   fwdpass_deffields,
   fwdpass_deffuns,
@@ -4608,7 +4782,7 @@ static error first_to_second_for_generated(struct module *mod, struct node *node
 static error passes_for_instantiation(struct module *instantiating_mod,
                                       struct module *mod, struct node *instance,
                                       struct scope *parent_scope) {
-  error e = zero_to_fwd_for_generated(mod, instance, NULL, parent_scope);
+  error e = zero_for_generated(mod, instance, parent_scope);
   EXCEPT(e);
 
   if (instance->which == DEFTYPE) {
@@ -4617,25 +4791,13 @@ static error passes_for_instantiation(struct module *instantiating_mod,
       if (node_toplevel_const(m)->builtingen != BG__NOT) {
         continue;
       }
-      e = zero_to_fwd_for_generated(mod, m, NULL, instance->scope);
+      error e = zero_for_generated(mod, m, instance->scope);
       EXCEPT(e);
     }
   }
 
-  if (!mod->afternoon) {
-    return 0;
-  }
-
-  e = first_to_second_for_generated(mod, instance, NULL);
+  e = do_complete_instantiation(mod, instance, TRUE);
   EXCEPT(e);
-  for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
-    struct node *m = instance->as.DEFTYPE.members[n];
-    if (node_toplevel_const(m)->builtingen != BG__NOT) {
-      continue;
-    }
-    e = first_to_second_for_generated(mod, m, NULL);
-    EXCEPT(e);
-  }
 
   return 0;
 }

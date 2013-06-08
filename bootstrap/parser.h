@@ -77,6 +77,8 @@ enum builtingen {
   BG_AUTO_NEW,
   BG_CTOR_WITH_MK,
   BG_CTOR_WITH_NEW,
+  BG_AUTO_MKV,
+  BG_AUTO_NEWV,
   BG_SUM_CTOR_WITH_CTOR,
   BG_SUM_CTOR_WITH_MK,
   BG_SUM_CTOR_WITH_NEW,
@@ -116,6 +118,7 @@ struct toplevel {
   size_t instances_count;
   struct node *generic_definition;
 
+  ssize_t yet_to_pass;
   bool is_second_passed;
 };
 
@@ -146,6 +149,7 @@ struct node_future {};
 struct node_lambda {};
 struct node_init {
   const struct node *target_expr;
+  bool named;
 };
 struct node_return {
   const struct node *return_through_ref_expr;
@@ -405,6 +409,7 @@ enum predefined_idents {
   ID_TBI_STRING,
   ID_TBI_STATIC_STRING,
   ID_TBI_CONST_STRING,
+  ID_TBI_STATIC_ARRAY,
   ID_TBI_ANY_REF,
   ID_TBI_ANY_ANY_REF,
   ID_TBI_REF,
@@ -428,8 +433,10 @@ enum predefined_idents {
   ID_TBI_COPYABLE,
   ID_TBI_DEFAULT_CTOR,
   ID_TBI_CTOR_WITH,
+  ID_TBI_ARRAY_CTOR,
   ID_TBI_TRIVIAL_COPY,
   ID_TBI_TRIVIAL_CTOR,
+  ID_TBI_TRIVIAL_ARRAY_CTOR,
   ID_TBI_TRIVIAL_DTOR,
   ID_TBI_TRIVIAL_EQUALITY,
   ID_TBI_TRIVIAL_ORDER,
@@ -449,6 +456,9 @@ enum predefined_idents {
   ID_MK,
   ID_NEW,
   ID_CTOR,
+  ID_COPY_CTOR,
+  ID_MKV,
+  ID_NEWV,
   ID_C,
   ID_NRETVAL,
   ID_OPERATOR_OR,
@@ -484,7 +494,6 @@ enum predefined_idents {
   ID_OPERATOR_ASSIGN_TIMES,
   ID_OPERATOR_UMINUS,
   ID_OPERATOR_BWNOT,
-  ID_COPY_CTOR,
 
   ID__NUM,
 };
@@ -523,6 +532,7 @@ enum typ_builtin {
   TBI_STRING,
   TBI_STATIC_STRING,
   TBI_CONST_STRING,
+  TBI_STATIC_ARRAY,
   TBI_ANY_REF,
   TBI_ANY_ANY_REF,
   TBI_REF, // @
@@ -546,8 +556,10 @@ enum typ_builtin {
   TBI_COPYABLE,
   TBI_DEFAULT_CTOR,
   TBI_CTOR_WITH,
+  TBI_ARRAY_CTOR,
   TBI_TRIVIAL_COPY,
   TBI_TRIVIAL_CTOR,
+  TBI_TRIVIAL_ARRAY_CTOR,
   TBI_TRIVIAL_DTOR,
   TBI_TRIVIAL_EQUALITY,
   TBI_TRIVIAL_ORDER,
@@ -605,6 +617,13 @@ struct try_excepts {
   size_t count;
 };
 
+struct fwdpass_state {
+  struct fwdpass_state *prev;
+
+  bool afternoon;
+  ssize_t passing;
+};
+
 struct firstpass_state {
   struct firstpass_state *prev;
 
@@ -617,6 +636,18 @@ struct firstpass_state {
   enum token_type deref_wildcard;
   enum token_type wildcard;
 };
+
+#define PUSH_STATE(st) do { \
+  __typeof__(st) nst = calloc(1, sizeof(*st)); \
+  nst->prev = st; \
+  st = nst; \
+} while (0)
+
+#define POP_STATE(st) do { \
+  __typeof__(st) ost = st; \
+  st = ost->prev; \
+  free(ost); \
+} while (0)
 
 struct module {
   struct globalctx *gctx;
@@ -637,9 +668,8 @@ struct module {
   size_t next_post;
   size_t next_invariant;
 
-  bool afternoon;
-
   struct zeropass_state *zeropass_state;
+  struct fwdpass_state *fwdpass_state;
   struct firstpass_state *firstpass_state;
 };
 
@@ -730,6 +760,8 @@ error typ_check_deref_against_mark(const struct module *mod, const struct node *
 bool typ_is_reference_instance(const struct module *mod, const struct typ *a);
 error typ_check_is_reference_instance(const struct module *mod, const struct node *for_error,
                                       const struct typ *a);
+bool typ_is_same_generic(const struct module *mod,
+                         const struct typ *a, const struct typ *b);
 bool typ_is_concrete(const struct module *mod, const struct typ *a);
 bool typ_is_abstract_instance(const struct module *mod, const struct typ *a);
 bool typ_isa_return_by_copy(const struct module *mod, const struct typ *t);

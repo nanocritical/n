@@ -116,6 +116,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_STRING] = "string",
   [ID_TBI_STATIC_STRING] = "static_string",
   [ID_TBI_CONST_STRING] = "i_const_string",
+  [ID_TBI_STATIC_ARRAY] = "static_array",
   [ID_TBI_ANY_REF] = "i_any_ref",
   [ID_TBI_ANY_ANY_REF] = "i_any_any_ref",
   [ID_TBI_REF] = "i_ref",
@@ -139,8 +140,10 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_COPYABLE] = "i_copyable",
   [ID_TBI_DEFAULT_CTOR] = "i_default_ctor",
   [ID_TBI_CTOR_WITH] = "i_ctor_with",
+  [ID_TBI_ARRAY_CTOR] = "i_array_ctor",
   [ID_TBI_TRIVIAL_COPY] = "i_trivial_copy",
   [ID_TBI_TRIVIAL_CTOR] = "i_trivial_ctor",
+  [ID_TBI_TRIVIAL_ARRAY_CTOR] = "i_trivial_array_ctor",
   [ID_TBI_TRIVIAL_DTOR] = "i_trivial_dtor",
   [ID_TBI_TRIVIAL_EQUALITY] = "i_trivial_equality",
   [ID_TBI_TRIVIAL_ORDER] = "i_trivial_order",
@@ -157,6 +160,9 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_MK] = "mk",
   [ID_NEW] = "new",
   [ID_CTOR] = "ctor",
+  [ID_COPY_CTOR] = "copy_ctor",
+  [ID_MKV] = "mkv",
+  [ID_NEWV] = "newv",
   [ID_C] = "c",
   [ID_NRETVAL] = "_nretval",
   [ID_OPERATOR_OR] = "operator_or",
@@ -192,7 +198,6 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_OPERATOR_ASSIGN_TIMES] = "operator_assign_times",
   [ID_OPERATOR_UMINUS] = "operator_uminus",
   [ID_OPERATOR_BWNOT] = "operator_bwnot",
-  [ID_COPY_CTOR] = "copy_ctor",
 };
 
 const char *builtingen_abspath[BG__NUM] = {
@@ -207,6 +212,8 @@ const char *builtingen_abspath[BG__NUM] = {
   // These should be templates of i_ctor_with.
   [BG_CTOR_WITH_MK] = "nlang.builtins.i_ctor_with.mk",
   [BG_CTOR_WITH_NEW] = "nlang.builtins.i_ctor_with.new",
+  [BG_AUTO_MKV] = "nlang.builtins.i_array_ctor.mkv",
+  [BG_AUTO_NEWV] = "nlang.builtins.i_array_ctor.newv",
   [BG_SUM_CTOR_WITH_CTOR] = "nlang.builtins.i_sum_ctor_with.ctor",
   [BG_SUM_CTOR_WITH_MK] = "nlang.builtins.i_sum_ctor_with.mk",
   [BG_SUM_CTOR_WITH_NEW] = "nlang.builtins.i_sum_ctor_with.new",
@@ -1456,11 +1463,11 @@ static error p_expr_unary(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_expr_init(struct node *node, const struct node *first,
-                         struct module *mod) {
+static error p_expr_init_array(struct node *node, const struct node *first,
+                               struct module *mod) {
   node->which = INIT;
 
-  error e = scan_expected(mod, TLINIT);
+  error e = scan_expected(mod, TLSBRA);
   EXCEPT(e);
 
   struct token tok = { 0 };
@@ -1472,16 +1479,49 @@ static error p_expr_init(struct node *node, const struct node *first,
     e = scan(&tok, mod);
     EXCEPT(e);
 
-    if (tok.t == TRINIT) {
+    if (tok.t == TRSBRA) {
       return 0;
     }
     back(mod, &tok);
 
-    e = p_ident(node_new_subnode(mod, node), mod);
+    e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
+    EXCEPT(e);
+  }
+}
+
+static error p_expr_init(struct node *node, const struct node *first,
+                         struct module *mod) {
+  node->which = INIT;
+
+  error e = scan_expected(mod, TLCBRA);
+  EXCEPT(e);
+
+  node->as.INIT.named = TRUE;
+
+  struct token tok = { 0 };
+
+  struct node *fst = node_new_subnode(mod, node);
+  *fst = *first;
+
+  while (TRUE) {
+    e = scan(&tok, mod);
     EXCEPT(e);
 
-    e = scan_expected(mod, TASSIGN);
+    if (tok.t == TRCBRA) {
+      return 0;
+    }
+    back(mod, &tok);
+
+    e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
     EXCEPT(e);
+
+    struct token assign = { 0 };
+    e = scan(&assign, mod);
+    EXCEPT(e);
+
+    if (assign.t != TASSIGN) {
+      EXCEPT_SYNTAX(mod, &assign, "dictionary initializer should contain only named expressions");
+    }
 
     e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
     EXCEPT(e);
@@ -1657,7 +1697,17 @@ shift:
       } else {
         goto done;
       }
-    } else if (tok.t == TLINIT) {
+    } else if (tok.t == TLSBRA) {
+      if (OP_PREC(tok.t) < OP_PREC(parent_op)
+          || topmost) {
+        e = p_expr_init_array(&second, &first, mod);
+        EXCEPT(e);
+
+        goto shift;
+      } else {
+        goto done;
+      }
+    } else if (tok.t == TLCBRA) {
       if (OP_PREC(tok.t) < OP_PREC(parent_op)
           || topmost) {
         e = p_expr_init(&second, &first, mod);
@@ -3085,8 +3135,8 @@ struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
   return mod->gctx->builtin_typs[id];
 }
 
-static bool typ_same_generic(const struct module *mod,
-                             const struct typ *a, const struct typ *b) {
+bool typ_is_same_generic(const struct module *mod,
+                         const struct typ *a, const struct typ *b) {
   if (a->gen_arity > 0 && b->gen_arity > 0) {
     return typ_equal(mod, a->gen_args[0], b->gen_args[0]);
   } else if (a->gen_arity == 0 && b->gen_arity > 0) {
@@ -3215,9 +3265,9 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
 
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
       && typ_is_reference_instance(mod, constraint)) {
-    if (typ_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NREF))
-        || typ_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NMREF))
-        || typ_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NMMREF))) {
+    if (typ_is_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NREF))
+        || typ_is_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NMREF))
+        || typ_is_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NMMREF))) {
       return 0;
     }
   }
@@ -3230,7 +3280,7 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
 
   if (a->gen_arity > 0
       && a->gen_arity == constraint->gen_arity
-      && typ_same_generic(mod, a, constraint)) {
+      && typ_is_same_generic(mod, a, constraint)) {
     for (size_t n = 0; n < a->gen_arity; ++n) {
       error e = typ_compatible(mod, for_error, a->gen_args[1+n], constraint->gen_args[1+n]);
       EXCEPT(e);
@@ -3351,11 +3401,11 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
     ok = TRUE;
     break;
   case TDEREFBANG:
-    ok = typ_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MREF))
-      || typ_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MMREF));
+    ok = typ_is_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MREF))
+      || typ_is_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MMREF));
     break;
   case TDEREFSHARP:
-    ok = typ_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MMREF));
+    ok = typ_is_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MMREF));
     break;
   default:
     assert(FALSE);
@@ -3425,7 +3475,7 @@ bool typ_is_abstract_instance(const struct module *mod, const struct typ *a) {
       && !typ_isa(mod, a, typ_lookup_builtin(mod, TBI_ANY_ANY_REF));
   }
 
-  for (size_t n = 0; n < a->gen_arity + 1; ++n) {
+  for (size_t n = 1; n < a->gen_arity + 1; ++n) {
     if (typ_is_abstract_instance(mod, a->gen_args[n])) {
       return TRUE;
     }
@@ -3469,6 +3519,7 @@ bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t) {
 
 bool typ_is_trivial(const struct module *mod, const struct typ *t) {
   return typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_CTOR))
+      || typ_is_same_generic(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_ARRAY_CTOR))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_ORDER))

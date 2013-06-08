@@ -1,4 +1,7 @@
 from nlang.chars import i_string_buffer i_show
+from nlang.memory import slice
+from nlang.containers import index_range range
+from nlang.unsafe import cast
 
 export intf i_any =
 
@@ -650,6 +653,43 @@ export intf i_ctor_with =
 --  fun mk c:t = final
 --  fun new c:t = @#final
 --
+
+export intf i_trivial_array_ctor t:i_copyable = export (i_array_ctor t)
+
+export intf i_array_ctor t:i_copyable =
+  method# ctorv c:@(static_array t) = void
+  fun mkv c:@(static_array t) = r:final
+  fun newv c:@(static_array t) = @#final
+
+extern inline fun static_array_at_byte dp:@!u8 off:size = @!u8
+
+export inline type static_array t:i_copyable = export (i_trivial_array_ctor t)
+  _data:?@!t
+  _count:size
+
+export inline static_array method count = size
+  return self._count
+
+export inline static_array method bytecount = size
+  return self._count * (sizeof t)
+
+export inline static_array method all = index_range
+  return range 0 self._count
+
+export inline static_array method$ unsafe_rawdata = @$u8
+  assert (self._count != 0)
+  return (cast ?@!t @$u8) self$_data
+
+export inline static_array method$ unsafe_data = @$t
+  assert (self._count != 0)
+  return self$_data
+
+export inline static_array method$ at n:size = @$t
+  assert (n < self._count)
+  let off = n * (sizeof t)
+  let p = static_array_at_byte ((cast @$this @!this) self)!unsafe_rawdata off
+  return (cast @!u8 @$t) p
+
 
 export intf i_sum_ctor_with =
   method# ctor = void

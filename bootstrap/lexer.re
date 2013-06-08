@@ -204,8 +204,10 @@ normal:
   "?" { R(TQMARK); }
   "..." { R(TDOTDOTDOT); }
   "[]" { R(TSLICEBRAKETS); }
-  "{" { parser->no_block_depth += 1; R(TLINIT); }
-  "}" { parser->no_block_depth -= 1; R(TRINIT); }
+  "[" { parser->no_block_depth += 1; R(TLSBRA); }
+  "]" { parser->no_block_depth -= 1; R(TRSBRA); }
+  "{" { parser->no_block_depth += 1; R(TLCBRA); }
+  "}" { parser->no_block_depth -= 1; R(TRCBRA); }
   "(" { parser->no_block_depth += 1; R(TLPAR); }
   ")" { parser->no_block_depth -= 1; R(TRPAR); }
 
@@ -337,9 +339,13 @@ comment_while_eol:
 void lexer_back(struct parser *parser, const struct token *tok) {
   parser->inject_eol_after_eob = FALSE;
 
-  if (tok->t == TLINIT) {
+  if (tok->t == TLSBRA) {
     parser->no_block_depth -= 1;
-  } else if (tok->t == TRINIT) {
+  } else if (tok->t == TRSBRA) {
+    parser->no_block_depth += 1;
+  } else if (tok->t == TLCBRA) {
+    parser->no_block_depth -= 1;
+  } else if (tok->t == TRCBRA) {
     parser->no_block_depth += 1;
   } else if (tok->t == TLPAR) {
     parser->no_block_depth -= 1;

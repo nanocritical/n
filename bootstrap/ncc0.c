@@ -594,6 +594,11 @@ int main(int argc, char **argv) {
   for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
     for (size_t n = 0; n < deps.modules_count; ++n) {
       struct module *mod = deps.modules[n];
+      if (s == 0) {
+        PUSH_STATE(mod->fwdpass_state);
+      }
+
+      mod->fwdpass_state->passing = s;
       e = fwd_passes[s](mod, NULL, NULL);
       EXCEPT(e);
     }
@@ -602,6 +607,7 @@ int main(int argc, char **argv) {
   for (size_t n = 0; n < deps.modules_count; ++n) {
     struct module *mod = deps.modules[n];
 
+    mod->fwdpass_state->afternoon = TRUE;
     for (size_t s = 0; body_passes[s] != NULL; ++s) {
       e = body_passes[s](mod, NULL, NULL);
       EXCEPT(e);

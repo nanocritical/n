@@ -18,12 +18,12 @@ export heap (method! t:i_any) free p:?@#t = void
 export heap (method! t:i_trivial_ctor) slice_realloc s:@#(slice t) count:size = void
   let bsz = count * (sizeof t)
   if s.count == 0
-    s#_rawdata = realloc null 0 bsz
+    s#_data = (nlang.unsafe.cast @#u8 ?@#t) (realloc null 0 bsz)
     s#_count = count
   else
     let old_bsz = s.bytecount
     let raw = s#unsafe_rawdata
-    s#_rawdata = realloc raw old_bsz bsz
+    s#_data = (nlang.unsafe.cast @#u8 ?@#t) (realloc raw old_bsz bsz)
     s#_count = count
 
 export heap (method! t:i_trivial_ctor) slice_free s:@#(slice t) = void
@@ -31,6 +31,6 @@ export heap (method! t:i_trivial_ctor) slice_free s:@#(slice t) = void
   let raw = s#unsafe_rawdata
   free raw bsz
   s#_count = 0
-  s#_rawdata = null
+  s#_data = null
 
-export let sysheap = heap{ }
+export let sysheap = heap{}

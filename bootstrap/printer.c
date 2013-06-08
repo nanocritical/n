@@ -100,8 +100,10 @@ const char *token_strings[TOKEN__NUM] = {
   [TNULREFWILDCARD] = "?@$",
   [TDOTDOTDOT] = "...",
   [TSLICEBRAKETS] = "[]",
-  [TLINIT] = "{{",
-  [TRINIT] = "}}",
+  [TLSBRA] = "[",
+  [TRSBRA] = "]",
+  [TLCBRA] = "{",
+  [TRCBRA] = "}",
   [TLPAR] = "(",
   [TRPAR] = ")",
 };
@@ -227,17 +229,29 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
 }
 
 static void print_init(FILE *out, const struct module *mod, const struct node *node) {
-  print_expr(out, mod, node->subs[0], T__STATEMENT);
-  fprintf(out, "{{ ");
+  if (node->as.INIT.named) {
+    print_expr(out, mod, node->subs[0], T__CALL);
+    fprintf(out, "{ ");
 
-  for (size_t n = 1; n < node->subs_count; n += 2) {
-    print_expr(out, mod, node->subs[n], T__STATEMENT);
-    fprintf(out, "=");
-    print_expr(out, mod, node->subs[n + 1], T__CALL);
-    fprintf(out, " ");
+    for (size_t n = 1; n < node->subs_count; n += 2) {
+      print_expr(out, mod, node->subs[n], T__STATEMENT);
+      fprintf(out, "=");
+      print_expr(out, mod, node->subs[n + 1], T__CALL);
+      fprintf(out, " ");
+    }
+
+    fprintf(out, "}");
+  } else {
+    print_expr(out, mod, node->subs[0], T__CALL);
+    fprintf(out, "[ ");
+
+    for (size_t n = 1; n < node->subs_count; n += 1) {
+      print_expr(out, mod, node->subs[n], T__CALL);
+      fprintf(out, " ");
+    }
+
+    fprintf(out, "]");
   }
-
-  fprintf(out, "}}");
 }
 
 static void print_expr(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {

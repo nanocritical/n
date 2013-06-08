@@ -110,8 +110,10 @@ enum token_type {
   TQMARK,
   TDOTDOTDOT,
   TSLICEBRAKETS,
-  TLINIT,
-  TRINIT,
+  TLSBRA,
+  TRSBRA,
+  TLCBRA,
+  TRCBRA,
   TLPAR,
   TRPAR,
 
@@ -211,7 +213,8 @@ static const uint32_t operators[TOKEN__NUM] = {
   [TNULREFSHARP] = OP(0, OP_UN_REFOF, ASSOC_RIGHT, 0x40),
   [TNULREFWILDCARD] = OP(0, OP_UN_REFOF, ASSOC_RIGHT, 0x40),
   [TCOLON] = OP(0, OP_BIN_RHS_TYPE, ASSOC_LEFT, 0x30),
-  [TLINIT] = OP(0, OP_BIN, ASSOC_RIGHT, 0x21),
+  [TLSBRA] = OP(0, OP_BIN, ASSOC_RIGHT, 0x21),
+  [TLCBRA] = OP(0, OP_BIN, ASSOC_RIGHT, 0x21),
   [TDOT] = OP(0, OP_BIN_ACC, ASSOC_LEFT, 0x20),
   [TBANG] = OP(0, OP_BIN_ACC, ASSOC_LEFT, 0x20),
   [TSHARP] = OP(0, OP_BIN_ACC, ASSOC_LEFT, 0x20),
@@ -227,6 +230,8 @@ static const bool expr_terminators[TOKEN__NUM] = {
   [TSOB] = TRUE,
   [TEOB] = TRUE,
   [TRPAR] = TRUE,
+  [TRSBRA] = TRUE,
+  [TRCBRA] = TRUE,
 };
 
 struct parser {

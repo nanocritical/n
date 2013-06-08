@@ -13,12 +13,13 @@ export intf i_allocator =
 extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
 extern inline fun slice_memcpy dst:@#u8 at:size src:@u8 off:size count:size = void
 
-export inline type slice t:i_trivial_ctor = export i_trivial_ctor
-  _rawdata:?@#u8
+export inline type slice t:i_trivial_ctor = \
+    export i_trivial_ctor
+  _data:?@#t
   _count:size
 
 export inline slice fun unsafe_wrap data:@#t count:size = r:this
-  r!_rawdata = (nlang.unsafe.cast @#t ?@#u8) data
+  r!_data = data
   r!_count = count
   return r
 
@@ -33,11 +34,11 @@ export inline slice method all = index_range
 
 export inline slice method$ unsafe_rawdata = @$u8
   assert (self._count != 0)
-  return (nlang.unsafe.cast ?@#u8 @$u8) self$_rawdata
+  return (nlang.unsafe.cast ?@#t @$u8) self$_data
 
 export inline slice method$ unsafe_data = @$t
   assert (self._count != 0)
-  return (nlang.unsafe.cast ?@#u8 @$t) self._rawdata
+  return (nlang.unsafe.cast ?@#t @$t) self._data
 
 export inline slice method$ at n:size = @$t
   assert (n < self._count)

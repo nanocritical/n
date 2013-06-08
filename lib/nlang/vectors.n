@@ -4,10 +4,16 @@ from nlang.sysheap import heap sysheap
 
 export inline type vector t:i_copyable = \
     export i_trivial_ctor \
+    export (i_array_ctor t) \
     export i_copyable
   _p:(slice ut)
   _count:size
   alias ut = (nlang.unsafe.unconstructed t)
+
+export vector method# i_array_ctor.ctorv c:@(static_array t) = void
+  self#reserve c.count
+  for i in c.all.iter
+    self#push (c.at i).
 
 export vector method count = size
   return self._count
