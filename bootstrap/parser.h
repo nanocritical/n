@@ -383,6 +383,7 @@ enum predefined_idents {
   ID_WILDCARD_REF_ARG,
   ID_LIKELY,
   ID_UNLIKELY,
+  ID_NLANG,
 
   ID_TBI_VOID,
   ID_TBI__FIRST = ID_TBI_VOID,

@@ -1255,7 +1255,8 @@ static error step_type_deftypes_defintfs(struct module *mod, struct node *node, 
       assert(node->subs[IDX_GENARGS]->subs[n]->typ != NULL);
       node->typ->gen_args[1 + n] = node->subs[IDX_GENARGS]->subs[n]->typ;
     }
-  } else if (id >= ID_TBI__FIRST && id <= ID_TBI__LAST) {
+  } else if (mod->path[0] == ID_NLANG
+             && (id >= ID_TBI__FIRST && id <= ID_TBI__LAST)) {
     // FIXME Effectively reserving these idents for builtin types, but
     // that's a temporary trick to avoid having to look up the current
     // module path.

@@ -92,6 +92,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_WILDCARD_REF_ARG] = "__wildcard_ref_arg__",
   [ID_LIKELY] = "likely",
   [ID_UNLIKELY] = "unlikely",
+  [ID_NLANG] = "nlang",
   [ID_TBI_VOID] = "void",
   [ID_TBI_LITERALS_NULL] = "__null__",
   [ID_TBI_LITERALS_INTEGER] = "integer",
