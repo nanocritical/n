@@ -98,6 +98,8 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_LITERALS_INTEGER] = "integer",
   [ID_TBI_LITERALS_BOOLEAN] = "boolean",
   [ID_TBI_LITERALS_FLOATING] = "floating",
+  [ID_TBI_LITERALS_INIT] = "init",
+  [ID_TBI_LITERALS_INIT_ARRAY] = "init_array",
   [ID_TBI_ANY] = "i_any",
   [ID_TBI_PSEUDO_TUPLE] = "pseudo_tuple",
   [ID_TBI_BOOL] = "bool",
@@ -1464,45 +1466,13 @@ static error p_expr_unary(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_expr_init_array(struct node *node, const struct node *first,
-                               struct module *mod) {
-  node->which = INIT;
-
-  error e = scan_expected(mod, TLSBRA);
-  EXCEPT(e);
-
-  struct token tok = { 0 };
-
-  struct node *fst = node_new_subnode(mod, node);
-  *fst = *first;
-
-  while (TRUE) {
-    e = scan(&tok, mod);
-    EXCEPT(e);
-
-    if (tok.t == TRSBRA) {
-      return 0;
-    }
-    back(mod, &tok);
-
-    e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
-    EXCEPT(e);
-  }
-}
-
-static error p_expr_init(struct node *node, const struct node *first,
-                         struct module *mod) {
+static error p_expr_init(struct node *node, struct module *mod) {
   node->which = INIT;
 
   error e = scan_expected(mod, TLCBRA);
   EXCEPT(e);
 
-  node->as.INIT.named = TRUE;
-
   struct token tok = { 0 };
-
-  struct node *fst = node_new_subnode(mod, node);
-  *fst = *first;
 
   while (TRUE) {
     e = scan(&tok, mod);
@@ -1521,11 +1491,16 @@ static error p_expr_init(struct node *node, const struct node *first,
     EXCEPT(e);
 
     if (assign.t != TASSIGN) {
-      EXCEPT_SYNTAX(mod, &assign, "dictionary initializer should contain only named expressions");
-    }
+      node->as.INIT.is_array = TRUE;
+      back(mod, &assign);
+    } else {
+      if (node->as.INIT.is_array) {
+        EXCEPT_SYNTAX(mod, &assign, "array initializer should not contain named pairs");
+      }
 
-    e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
-    EXCEPT(e);
+      e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
+      EXCEPT(e);
+    }
   }
 }
 
@@ -1657,6 +1632,8 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
       e = p_bool(&first, mod);
     } else if (tok.t == TSTRING) {
       e = p_string(&first, mod);
+    } else if (tok.t == TLCBRA) {
+      e = p_expr_init(&first, mod);
     } else if ((IS_OP(tok.t) && OP_UNARY(tok.t))
                || tok.t == TMINUS || tok.t == TPLUS) { // Unary versions.
       e = p_expr_unary(&first, mod);
@@ -1692,26 +1669,6 @@ shift:
       if (OP_PREC(tok.t) < OP_PREC(parent_op)
           || topmost) {
         e = p_expr_tuple(&second, &first, mod);
-        EXCEPT(e);
-
-        goto shift;
-      } else {
-        goto done;
-      }
-    } else if (tok.t == TLSBRA) {
-      if (OP_PREC(tok.t) < OP_PREC(parent_op)
-          || topmost) {
-        e = p_expr_init_array(&second, &first, mod);
-        EXCEPT(e);
-
-        goto shift;
-      } else {
-        goto done;
-      }
-    } else if (tok.t == TLCBRA) {
-      if (OP_PREC(tok.t) < OP_PREC(parent_op)
-          || topmost) {
-        e = p_expr_init(&second, &first, mod);
         EXCEPT(e);
 
         goto shift;
@@ -3245,6 +3202,16 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     return 0;
   }
 
+  if (constraint == typ_lookup_builtin(mod, TBI_LITERALS_INIT)) {
+    return 0;
+  }
+
+  if (constraint == typ_lookup_builtin(mod, TBI_LITERALS_INIT_ARRAY)) {
+    error e = typ_check_isa(mod, for_error, a, typ_lookup_builtin(mod, TBI_ARRAY_CTOR));
+    EXCEPT(e);
+    return 0;
+  }
+
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
     if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_INTEGER))) {
       return 0;
@@ -3457,7 +3424,9 @@ bool typ_is_concrete(const struct module *mod, const struct typ *a) {
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
       || a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)
       || a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)) {
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_INIT)
+      || a == typ_lookup_builtin(mod, TBI_LITERALS_INIT_ARRAY)) {
     return FALSE;
   }
 
@@ -3510,6 +3479,8 @@ bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t) {
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_FLOATING))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INIT))
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INIT_ARRAY))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__NOT_TYPEABLE))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT))

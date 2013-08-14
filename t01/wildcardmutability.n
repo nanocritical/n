@@ -7,5 +7,5 @@ c method$ get = @$i32
   return @$ self$x
 
 export fun main = i32
-  let x = c{ x=0 }
+  let x = { x=0 }:c
   return (x.get).

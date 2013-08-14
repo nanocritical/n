@@ -3,6 +3,9 @@ export extern type integer =
 export extern type boolean =
 export extern type floating =
 
+export extern type init =
+export extern type init_array =
+
 export extern type __call_function_slot__ =
 
 export extern type __mutable__ =

@@ -1076,7 +1076,9 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
     }
     break;
   case INIT:
-    mark_subs(mod, node, pending, 1, node->subs_count, node->as.INIT.named ? 2 : 1);
+    if (!node->as.INIT.is_array) {
+      mark_subs(mod, node, pending, 0, node->subs_count, 2);
+    }
     break;
   case CALL:
     if (node->subs[0]->typ == NULL) {
@@ -1891,10 +1893,11 @@ static error type_inference_tuple(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error type_inference_init_named(struct module *mod, struct node *node) {
-  struct node *def = node->subs[0]->typ->definition;
+static error type_destruct_init_named(struct module *mod, struct node *node,
+                                      const struct typ *constraint) {
+  struct node *def = constraint->definition;
 
-  for (size_t n = 1; n < node->subs_count; n += 2) {
+  for (size_t n = 0; n < node->subs_count; n += 2) {
     struct node *field_name = node->subs[n];
     struct node *field = NULL;
     error e = scope_lookup_ident_immediate(&field, field_name, mod, def->scope,
@@ -1904,7 +1907,7 @@ static error type_inference_init_named(struct module *mod, struct node *node) {
     EXCEPT(e);
   }
 
-  node->typ = node->subs[0]->typ;
+  node->typ = constraint;
   return 0;
 }
 
@@ -1922,37 +1925,37 @@ static error find_array_ctor_isalisteach(struct module *mod,
   return 0;
 }
 
-static error type_inference_init_array(struct module *mod, struct node *node) {
-  const struct typ *t = node->subs[0]->typ;
-
+static error type_destruct_init_array(struct module *mod, struct node *node,
+                                      const struct typ *constraint) {
   const struct typ *array_ctor_intf = NULL;
-  error e = typ_isalist_foreach(mod, t, 0,
+  error e = typ_isalist_foreach(mod, constraint, 0,
                                 find_array_ctor_isalisteach, &array_ctor_intf);
   EXCEPT(e);
 
   if (array_ctor_intf == NULL) {
     e = mk_except_type(mod, node,
                        "type '%s' not isa i_array_ctor, cannot use array initializer",
-                       typ_pretty_name(mod, t));
+                       typ_pretty_name(mod, constraint));
     EXCEPT(e);
   }
 
   const struct typ *t_el = array_ctor_intf->gen_args[1];
-  for (size_t n = 1; n < node->subs_count; n += 1) {
+  for (size_t n = 0; n < node->subs_count; n += 1) {
     e = type_destruct(mod, node->subs[n], t_el);
     EXCEPT(e);
   }
 
-  node->typ = node->subs[0]->typ;
+  node->typ = constraint;
   return 0;
 }
 
-static error type_inference_init(struct module *mod, struct node *node) {
+static error type_destruct_init(struct module *mod, struct node *node,
+                                const struct typ *constraint) {
   assert(node->which == INIT);
-  if (node->as.INIT.named) {
-    return type_inference_init_named(mod, node);
+  if (node->as.INIT.is_array) {
+    return type_destruct_init_array(mod, node, constraint);
   } else {
-    return type_inference_init_array(mod, node);
+    return type_destruct_init_named(mod, node, constraint);
   }
 }
 
@@ -2773,9 +2776,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     }
     break;
   case INIT:
-    e = type_inference_init(mod, node);
-    EXCEPT(e);
-    e = typ_unify(&node->typ, mod, node, node->typ, constraint);
+    e = type_destruct_init(mod, node, constraint);
     EXCEPT(e);
     break;
   case CALL:
@@ -2875,8 +2876,11 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     EXCEPT(e);
     goto ok;
   case INIT:
-    e = type_inference_init(mod, node);
-    EXCEPT(e);
+    if (node->as.INIT.is_array) {
+      node->typ = typ_lookup_builtin(mod, TBI_LITERALS_INIT_ARRAY);
+    } else {
+      node->typ = typ_lookup_builtin(mod, TBI_LITERALS_INIT);
+    }
     goto ok;
   case RETURN:
     if (node->subs_count > 0) {
@@ -3857,7 +3861,7 @@ static error step_ctor_call_inference(struct module *mod, struct node *node, voi
 static error step_array_ctor_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node->which != INIT || node->as.INIT.named) {
+  if (node->which != INIT || !node->as.INIT.is_array) {
     return 0;
   }
 
@@ -3865,9 +3869,10 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
     return 0;
   }
 
-  const size_t elements_count = node->subs_count - 1;
-  struct node **elements = calloc(elements_count + 1, sizeof(struct node *));
-  memcpy(elements, node->subs + 1, (node->subs_count - 1) * sizeof(struct node *));
+  const size_t elements_count = node->subs_count;
+  struct node **elements = calloc(elements_count, sizeof(struct node *));
+  memcpy(elements, node->subs, node->subs_count * sizeof(struct node *));
+  const struct node_init init = node->as.INIT;
   free(node->subs);
   node->subs = NULL;
   node->subs_count = 0;
@@ -3876,18 +3881,13 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
   struct node *fun = mk_node(mod, node, DIRECTDEF);
   fun->as.DIRECTDEF.definition = node_get_member(mod, node->typ->definition, ID_MKV);
 
-  struct node *ref_init = mk_node(mod, node, UN);
-  ref_init->as.UN.operator = TREFDOT;
-  struct node *init = mk_node(mod, ref_init, INIT);
-  struct node *initd = mk_node(mod, init, CALL);
-  struct node *static_array = mk_node(mod, initd, DIRECTDEF);
-  static_array->as.DIRECTDEF.definition = typ_lookup_builtin(mod, TBI_STATIC_ARRAY)->definition;
-  struct node *t = mk_node(mod, initd, DIRECTDEF);
-  t->as.DIRECTDEF.definition = node->typ->gen_args[1]->definition;
-  rew_insert_last_at(node, 1);
+  struct node *ref_array = mk_node(mod, node, UN);
+  ref_array->as.UN.operator = TREFDOT;
+  struct node *array = mk_node(mod, ref_array, INIT);
+  array->as.INIT = init;
 
   for (size_t n = 0; n < elements_count; ++n) {
-    rew_append(init, elements[n]);
+    rew_append(array, elements[n]);
   }
 
   error e = zero_to_body_for_generated(mod, node, (const struct node **)elements,
@@ -3904,8 +3904,20 @@ static error step_dtor_call_inference(struct module *mod, struct node *node, voi
   return 0;
 }
 
-static bool expr_is_return_through_ref(struct module *mod, struct node *expr) {
-  return (expr->which == INIT || expr->which == CALL)
+static bool expr_is_literal_initializer(struct node **init, struct module *mod, struct node *expr) {
+  if (expr->which == INIT) {
+    if (init != NULL) {
+      *init = expr;
+    }
+    return TRUE;
+  } else {
+    return expr->which == TYPECONSTRAINT
+      && expr_is_literal_initializer(init, mod, expr->subs[0]);
+  }
+}
+
+static bool expr_is_return_through_ref(struct node **init, struct module *mod, struct node *expr) {
+  return (expr_is_literal_initializer(init, mod, expr) || expr->which == CALL)
     && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
 }
 
@@ -4007,7 +4019,7 @@ static error step_copy_call_inference(struct module *mod, struct node *node, voi
     return 0;
   }
 
-  if (expr_is_return_through_ref(mod, right)) {
+  if (expr_is_return_through_ref(NULL, mod, right)) {
     return 0;
   }
 
@@ -4169,6 +4181,7 @@ static error step_dyn_inference(struct module *mod, struct node *node, void *use
 static error step_store_return_through_ref_expr(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   struct node *expr = NULL;
+  struct node *init_expr = NULL;
   switch (node->which) {
   case RETURN:
     if (node->subs_count == 0) {
@@ -4176,11 +4189,13 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
     }
     expr = node->subs[0];
 
-    if (expr_is_return_through_ref(mod, expr)) {
+    if (expr_is_return_through_ref(&init_expr, mod, expr)) {
+      // Keep node->as.RETURN.return_through_ref_expr null as the
+      // subexpression CALL or INIT will directly write to it.
       if (expr->which == CALL) {
         expr->as.CALL.return_through_ref_expr = module_retval_get(mod)->subs[0];
-      } else if (expr->which == INIT) {
-        expr->as.INIT.target_expr = module_retval_get(mod)->subs[0];
+      } else {
+        init_expr->as.INIT.target_expr = module_retval_get(mod)->subs[0];
       }
     } else if (!typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))
                && typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_COPYABLE))) {
@@ -4195,11 +4210,12 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
         continue;
       }
       struct node *expr = d->as.DEFNAME.expr;
+      struct node *init_expr = NULL;
       if (expr == NULL) {
         // noop
-      } else if (expr->which == INIT) {
-        expr->as.INIT.target_expr = d->as.DEFNAME.pattern;
-      } else if (expr->which == CALL && expr_is_return_through_ref(mod, expr)) {
+      } else if (expr_is_literal_initializer(&init_expr, mod, expr)) {
+        init_expr->as.INIT.target_expr = d->as.DEFNAME.pattern;
+      } else if (expr->which == CALL && expr_is_return_through_ref(NULL, mod, expr)) {
         expr->as.CALL.return_through_ref_expr = d->as.DEFNAME.pattern;
       }
     }
@@ -4210,15 +4226,27 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
     }
     struct node *left = node->subs[0];
     struct node *right = node->subs[1];
-    if (right->which == INIT) {
-      right->as.INIT.target_expr = left;
-    } else if (right->which == CALL && expr_is_return_through_ref(mod, right)) {
+    if (expr_is_literal_initializer(&init_expr, mod, right)) {
+      init_expr->as.INIT.target_expr = left;
+    } else if (right->which == CALL && expr_is_return_through_ref(NULL, mod, right)) {
       right->as.CALL.return_through_ref_expr = left;
     }
     return 0;
   default:
     return 0;
   }
+}
+
+static bool is_significant(const struct node *node) {
+  return node->which != TYPECONSTRAINT;
+}
+
+static void closest_significant_parent_kind(const struct node **parent, const struct node *node) {
+  const struct node *n = node->scope->parent->node;
+  while (!is_significant(n)) {
+    n = n->scope->parent->node;
+  }
+  *parent = n;
 }
 
 struct temporaries {
@@ -4229,7 +4257,13 @@ struct temporaries {
 static error step_gather_temporary_rvalues(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   struct temporaries *temps = user;
-  struct node *parent = node->scope->parent->node;
+
+  if (!is_significant(node)) {
+    return 0;
+  }
+
+  const struct node *significant_parent = NULL;
+  closest_significant_parent_kind(&significant_parent, node);
 
   switch (node->which) {
   case UN:
@@ -4248,13 +4282,14 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
     }
     break;
   case INIT:
-    if (parent->which == RETURN
+    if (significant_parent->which == RETURN
         && !typ_isa(mod, node->typ,
                     typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
       break;
     }
-    if (parent->which == DEFPATTERN
-        || (parent->which == BIN && OP_ASSIGN(parent->as.BIN.operator))) {
+    if (significant_parent->which == DEFPATTERN
+        || (significant_parent->which == BIN
+            && OP_ASSIGN(significant_parent->as.BIN.operator))) {
       break;
     }
     temps->count += 1;
@@ -4268,10 +4303,11 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
     if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
       break;
     }
-    if (parent->which == RETURN
-        || (parent->which == BIN && OP_ASSIGN(parent->as.BIN.operator))) {
+    if (significant_parent->which == RETURN
+        || (significant_parent->which == BIN
+            && OP_ASSIGN(significant_parent->as.BIN.operator))) {
       // noop
-    } else if (parent->which != DEFPATTERN) {
+    } else if (significant_parent->which != DEFPATTERN) {
       temps->count += 1;
       temps->rvalues = realloc(temps->rvalues, temps->count * sizeof(*temps->rvalues));
       temps->rvalues[temps->count - 1] = node;

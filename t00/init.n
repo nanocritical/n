@@ -12,13 +12,13 @@ fun foo x:i32 y:i32 = i32
   return x
 
 export fun main = i32
-  let a = t{
+  let a = {
     x = 1
-    y = tt{
+    y = {
       x = 1
       y = 0
     }
-  }
+  }:t
   let b = (foo
              (foo 0
                 1)

@@ -336,21 +336,21 @@ static void print_init_array(FILE *out, const struct module *mod, const struct n
   print_typ(out, mod, node->subs[1]->typ);
   fprintf(out, "[]){ ");
 
-  for (size_t n = 1; n < node->subs_count; n += 1) {
+  for (size_t n = 0; n < node->subs_count; n += 1) {
     print_expr(out, mod, node->subs[n], T__NOT_STATEMENT);
     fprintf(out, ", ");
   }
-  fprintf(out, " }, %zu }\n", node->subs_count - 1);
+  fprintf(out, " }, %zu }\n", node->subs_count);
 }
 
 static void print_init_toplevel(FILE *out, const struct module *mod, const struct node *node) {
-  if (node->subs_count == 1) {
+  if (node->subs_count == 0) {
     fprintf(out, " = { 0 }");
     return;
   }
 
   fprintf(out, " = {\n");
-  for (size_t n = 1; n < node->subs_count; n += 2) {
+  for (size_t n = 0; n < node->subs_count; n += 2) {
     fprintf(out, ".%s = ",
             idents_value(mod->gctx, node_ident(node->subs[n])));
     print_expr(out, mod, node->subs[n + 1], T__NOT_STATEMENT);
@@ -360,18 +360,20 @@ static void print_init_toplevel(FILE *out, const struct module *mod, const struc
 }
 
 static void print_init(FILE *out, const struct module *mod, const struct node *node) {
-  if (!node->as.INIT.named) {
+  if (node->as.INIT.is_array) {
     print_init_array(out, mod, node);
     return;
   }
 
-  switch (node->scope->parent->parent->parent->node->which) {
-  case MODULE_BODY:
-  case DEFTYPE:
-    print_init_toplevel(out, mod, node);
-    return;
-  default:
-    break;
+  if (node->scope->parent->parent->parent->node->which == LET) {
+    switch (node->scope->parent->parent->parent->parent->node->which) {
+    case MODULE_BODY:
+    case DEFTYPE:
+      print_init_toplevel(out, mod, node);
+      return;
+    default:
+      break;
+    }
   }
 
   const struct node *target = node->as.INIT.target_expr;
@@ -382,7 +384,7 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
   print_typ(out, mod, node->typ);
   fprintf(out, "));\n");
 
-  for (size_t n = 1; n < node->subs_count; n += 2) {
+  for (size_t n = 0; n < node->subs_count; n += 2) {
     print_expr(out, mod, target, TDOT);
     fprintf(out, ".%s = ",
             idents_value(mod->gctx, node_ident(node->subs[n])));
@@ -707,6 +709,17 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
   }
 }
 
+static const struct node *significant_expr_or_null(const struct node *node) {
+  if (node == NULL) {
+    return NULL;
+  }
+
+  while (node->which == TYPECONSTRAINT) {
+    node = node->subs[0];
+  }
+  return node;
+}
+
 static void print_defname(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node,
                           const struct node *pattern) {
@@ -735,7 +748,7 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
     print_pattern(out, mod, node->as.DEFNAME.pattern);
 
     if (fwd == FWD_DEFINE_FUNCTIONS && (!header || node_is_inline(pattern))) {
-      const struct node *expr = node->as.DEFNAME.expr;
+      const struct node *expr = significant_expr_or_null(node->as.DEFNAME.expr);
       if (expr != NULL) {
         if (expr->which == INIT) {
           print_init(out, mod, expr);

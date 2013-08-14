@@ -7,11 +7,11 @@ copy method# i_copyable.copy_ctor other:@this = void
   self!x = other.x
 
 fun foo = copy
-  return copy{ x=0 }
+  return { x=0 }
 
 export fun main = i32
   let w = foo
-  let y = copy{ x=-1 }
+  let y = { x=-1 }:copy
   let z:copy
     z = y
   let zz = z

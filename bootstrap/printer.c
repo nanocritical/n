@@ -229,11 +229,19 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
 }
 
 static void print_init(FILE *out, const struct module *mod, const struct node *node) {
-  if (node->as.INIT.named) {
-    print_expr(out, mod, node->subs[0], T__CALL);
+  if (node->as.INIT.is_array) {
     fprintf(out, "{ ");
 
-    for (size_t n = 1; n < node->subs_count; n += 2) {
+    for (size_t n = 0; n < node->subs_count; n += 1) {
+      print_expr(out, mod, node->subs[n], T__CALL);
+      fprintf(out, " ");
+    }
+
+    fprintf(out, "}");
+  } else {
+    fprintf(out, "{ ");
+
+    for (size_t n = 0; n < node->subs_count; n += 2) {
       print_expr(out, mod, node->subs[n], T__STATEMENT);
       fprintf(out, "=");
       print_expr(out, mod, node->subs[n + 1], T__CALL);
@@ -241,16 +249,6 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
     }
 
     fprintf(out, "}");
-  } else {
-    print_expr(out, mod, node->subs[0], T__CALL);
-    fprintf(out, "[ ");
-
-    for (size_t n = 1; n < node->subs_count; n += 1) {
-      print_expr(out, mod, node->subs[n], T__CALL);
-      fprintf(out, " ");
-    }
-
-    fprintf(out, "]");
   }
 }
 

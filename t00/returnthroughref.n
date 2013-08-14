@@ -5,7 +5,7 @@ type t =
   xx:i32
 
 fun foo = t
-  return t{ x=3 }
+  return { x=3 }
 
 fun bar = t
   return foo

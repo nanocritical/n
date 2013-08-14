@@ -6,12 +6,12 @@ from nlang.chars export *
 
 from nlang.strings import *
 
-extern fun write_buf s:@u8 count:size  = void
+fun write_buf fd:i32 s:@u8 count:size = void
 
 export fun say a:@i_show = void
   let s = string.mk
     a.show @#s
   let b = s.bytes_utf8
-  write_buf b.unsafe_data b.bytecount
+  write_buf 1 b.unsafe_data b.bytecount
   let eol = '\n':char
-  write_buf @eol.code.trim_u8 1
+  write_buf 1 @eol.code.trim_u8 1

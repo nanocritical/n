@@ -5,5 +5,5 @@ type c = i_trivial_ctor
 
 export fun main = i32
   let x = 0
-  let y = c{ x=@x }
+  let y = { x=@x }:c
   return y.x.

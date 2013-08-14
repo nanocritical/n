@@ -78,5 +78,5 @@ fun main = i32
   if true
     return bar a + b a -- Shouldn't be parsed as (b a)
   else
-    let f = tb{}
+    let f = {}:tb
     return f.foo.trim_i32

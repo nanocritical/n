@@ -149,7 +149,7 @@ struct node_future {};
 struct node_lambda {};
 struct node_init {
   const struct node *target_expr;
-  bool named;
+  bool is_array;
 };
 struct node_return {
   const struct node *return_through_ref_expr;
@@ -391,6 +391,8 @@ enum predefined_idents {
   ID_TBI_LITERALS_INTEGER,
   ID_TBI_LITERALS_BOOLEAN,
   ID_TBI_LITERALS_FLOATING,
+  ID_TBI_LITERALS_INIT,
+  ID_TBI_LITERALS_INIT_ARRAY,
   ID_TBI_PSEUDO_TUPLE,
   ID_TBI_ANY,
   ID_TBI_BOOL,
@@ -514,6 +516,8 @@ enum typ_builtin {
   TBI_LITERALS_INTEGER,
   TBI_LITERALS_BOOLEAN,
   TBI_LITERALS_FLOATING,
+  TBI_LITERALS_INIT,
+  TBI_LITERALS_INIT_ARRAY,
   TBI_PSEUDO_TUPLE,
   TBI_ANY,
   TBI_BOOL,

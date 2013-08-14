@@ -10,6 +10,6 @@ t method! set x:i32 = void
   self!x = x
 
 export fun main = i32
-  let tt = t{ x=0 }
+  let tt = { x=0 }:t
     tt!set 1
   return tt.get - 1
