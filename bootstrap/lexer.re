@@ -157,7 +157,7 @@ normal:
   "%=" { R(TMODULO_ASSIGN); }
   "&=" { R(TBWAND_ASSIGN); }
   "|=" { R(TBWOR_ASSIGN); }
-  "^=" { R(TBWXOR_ASSIGN); }
+  "bwxor=" { R(TBWXOR_ASSIGN); }
   "==" { R(TEQ); }
   "!=" { R(TNE); }
   "===" { R(TEQPTR); }
@@ -174,7 +174,7 @@ normal:
   "%" { R(TMODULO); }
   "&" { R(TBWAND); }
   "|" { R(TBWOR); }
-  "^" { R(TBWXOR); }
+  "bwxor" { R(TBWXOR); }
   "~" { R(TBWNOT); }
   ":" { R(TCOLON); }
   "," { R(TCOMMA); }

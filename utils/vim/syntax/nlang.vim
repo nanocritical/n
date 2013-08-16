@@ -15,7 +15,7 @@ syn keyword nConditional if elif else match
 syn keyword nRepeat while continue break
 syn keyword nRepeat for pfor foreach pforeach
 syn keyword nStatement let return block future lambda
-syn keyword nOperator in and or not
+syn keyword nOperator in and or not bwxor isa
 syn keyword nOperator sizeof
 syn keyword nKeyword pass as attr declare
 syn keyword nException try catch throw except
