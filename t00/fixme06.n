@@ -1,0 +1,5 @@
+from nlang import *
+
+export fun main = i32
+  let x = 1
+  return 1
