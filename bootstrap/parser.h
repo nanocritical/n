@@ -333,7 +333,6 @@ struct node {
 enum subnode_idx {
   IDX_GENARGS = 1,
   IDX_ISALIST = 2,
-  IDX_BLOCK = 3,
   IDX_CH_VALUE = 1,
   IDX_CH_PAYLOAD = 2,
   IDX_FOR_IT = 0,
@@ -733,6 +732,7 @@ bool node_is_rvalue(const struct node *node);
 bool node_is_at_top(const struct node *node);
 bool node_can_have_genargs(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
+bool node_has_tail_block(const struct node *node);
 size_t node_fun_all_args_count(const struct node *def);
 size_t node_fun_explicit_args_count(const struct node *def);
 struct node *node_fun_retval(struct node *def);

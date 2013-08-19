@@ -408,8 +408,9 @@ static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
   }
 }
 
-static void print_defpattern(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  fprintf(out, "let ");
+static void print_defpattern(FILE *out, const struct module *mod, int indent, const struct node *node,
+                             bool first_def) {
+  fprintf(out, first_def ? "let " : "and ");
   print_pattern(out, mod, node->subs[0]);
   if (node->subs_count > 1 && node->subs[1]->which != DEFNAME) {
     fprintf(out, " = ");
@@ -419,10 +420,18 @@ static void print_defpattern(FILE *out, const struct module *mod, int indent, co
 
 static void print_let(FILE *out, const struct module *mod, int indent, const struct node *node) {
   print_toplevel(out, &node->as.LET.toplevel);
-  print_defpattern(out, mod, indent, node->subs[0]);
+  const size_t last_def = node_has_tail_block(node) ? node->subs_count-2 : node->subs_count-1;
 
-  if (node->subs_count > 1) {
-    print_block(out, mod, indent, node->subs[1]);
+  for (size_t i = 0; i <= last_def; ++i) {
+    if (i > 0) {
+      fprintf(out, "\n");
+      spaces(out, indent);
+    }
+    print_defpattern(out, mod, indent, node->subs[i], i == 0);
+  }
+
+  if (node_has_tail_block(node)) {
+    print_block(out, mod, indent, node->subs[node->subs_count-1]);
   }
 }
 

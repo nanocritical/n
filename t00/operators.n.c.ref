@@ -30,9 +30,11 @@
 nlang_builtins_i32 __Nmain(void){
  {
 nlang_builtins_i32 x = (nlang_builtins_i32)0;
-;
-(x ^= (nlang_builtins_i32)1);
-return ((nlang_builtins_i32)1 ^ (nlang_builtins_i32)1);
+nlang_builtins_i32 y = (nlang_builtins_i32)1;
+ {
+(x ^= y);
+};
+return (x ^ (nlang_builtins_i32)1);
 }
 }
 void t00_operators_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

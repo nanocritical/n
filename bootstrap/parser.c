@@ -1266,8 +1266,12 @@ struct node *node_new_subnode(const struct module *mod, struct node *node) {
   return *r;
 }
 
+bool node_has_tail_block(const struct node *node) {
+  return node->subs_count > 0 && node->subs[node->subs_count - 1]->which == BLOCK;
+}
+
 size_t node_fun_all_args_count(const struct node *def) {
-  if (def->subs[def->subs_count-1]->which == BLOCK) {
+  if (node_has_tail_block(def)) {
     return def->subs_count - 4;
   } else {
     return def->subs_count - 3;
@@ -1292,7 +1296,7 @@ size_t node_fun_explicit_args_count(const struct node *def) {
 
 const struct node *node_fun_retval_const(const struct node *def) {
   assert(def->which == DEFFUN || def->which == DEFMETHOD);
-  if (def->subs[def->subs_count-1]->which == BLOCK) {
+  if (node_has_tail_block(def)) {
     return def->subs[def->subs_count-2];
   } else {
     return def->subs[def->subs_count-1];
@@ -1767,14 +1771,21 @@ static error p_defpattern(struct node *node, struct module *mod,
   return 0;
 }
 
+// When let_and_alias == Tand, node is previous LET we are appending
+// ourselves to.
 static error p_let(struct node *node, struct module *mod, const struct toplevel *toplevel,
-                   enum token_type let_alias) {
-  node->which = LET;
-  if (toplevel != NULL) {
-    node->as.LET.toplevel = *toplevel;
+                   enum token_type let_and_alias) {
+  if (let_and_alias == Tand) {
+    assert(node->which == LET);
+    assert(toplevel == NULL);
+  } else {
+    node->which = LET;
+    if (toplevel != NULL) {
+      node->as.LET.toplevel = *toplevel;
+    }
   }
 
-  error e = p_defpattern(node_new_subnode(mod, node), mod, let_alias);
+  error e = p_defpattern(node_new_subnode(mod, node), mod, let_and_alias);
   EXCEPT(e);
 
   struct token tok = { 0 };
@@ -2033,63 +2044,69 @@ static error p_example(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_statement(struct node *node, struct module *mod) {
+static error p_statement(struct node *parent, struct module *mod) {
   error e;
   struct token tok = { 0 };
+
+#define NEW node_new_subnode(mod, parent)
 
   e = scan(&tok, mod);
   EXCEPT(e);
 
   switch (tok.t) {
   case Treturn:
-    e = p_return(node, mod);
+    e = p_return(NEW, mod);
     break;
   case Texcept:
-    e = p_except(node, mod);
+    e = p_except(NEW, mod);
     break;
   case Tlet:
+  case Tand:
   case Talias:
-    e = p_let(node, mod, NULL, tok.t);
+    e = p_let(tok.t == Tand ? parent->subs[parent->subs_count-1] : NEW,
+              mod, NULL, tok.t);
     break;
   case Tif:
-    e = p_if(node, mod);
+    e = p_if(NEW, mod);
     break;
   case Tfor:
-    e = p_for(node, mod);
+    e = p_for(NEW, mod);
     break;
   case Twhile:
-    e = p_while(node, mod);
+    e = p_while(NEW, mod);
     break;
   case Ttry:
-    e = p_try(node, mod);
+    e = p_try(NEW, mod);
     break;
   case Tbreak:
-    e = p_break(node, mod);
+    e = p_break(NEW, mod);
     break;
   case Tcontinue:
-    e = p_continue(node, mod);
+    e = p_continue(NEW, mod);
     break;
   case Tpass:
-    e = p_pass(node, mod);
+    e = p_pass(NEW, mod);
     break;
   case Tmatch:
-    e = p_match(node, mod);
+    e = p_match(NEW, mod);
     break;
   case Tpre:
-    e = p_pre(node, mod);
+    e = p_pre(NEW, mod);
     break;
   case Tpost:
-    e = p_post(node, mod);
+    e = p_post(NEW, mod);
     break;
   case Tinvariant:
-    e = p_invariant(node, mod);
+    e = p_invariant(NEW, mod);
     break;
   default:
     back(mod, &tok);
-    e = p_expr(node, mod, T__STATEMENT);
+    e = p_expr(NEW, mod, T__STATEMENT);
     break;
   }
   EXCEPT(e);
+
+#undef NEW
 
   return 0;
 }
@@ -2112,7 +2129,7 @@ again:
     }
   } else {
     back(mod, &tok);
-    e = p_statement(node_new_subnode(mod, node), mod);
+    e = p_statement(node, mod);
     EXCEPT(e);
 
     e = scan_oneof(&tok, mod, TEOL, TEOB, 0);

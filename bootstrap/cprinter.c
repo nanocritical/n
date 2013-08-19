@@ -791,11 +791,17 @@ static void print_defpattern(FILE *out, bool header, enum forward fwd, const str
 }
 
 static void print_let(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
-  print_defpattern(out, header, fwd, mod, node->subs[0]);
+  const size_t last_def = node_has_tail_block(node) ? node->subs_count-2 : node->subs_count-1;
 
-  if (fwd == FWD_DEFINE_FUNCTIONS && node->subs_count > 1) {
+  for (size_t i = 0; i <= last_def; ++i) {
+    // FIXME: not handling multiple definitions chained with 'and' that
+    // refer to each others in their expressions.
+    print_defpattern(out, header, fwd, mod, node->subs[i]);
+  }
+
+  if (fwd == FWD_DEFINE_FUNCTIONS && last_def != node->subs_count-1) {
     assert(!node_is_inline(node));
-    print_block(out, mod, node->subs[1], FALSE);
+    print_block(out, mod, node->subs[node->subs_count-1], FALSE);
   }
 }
 

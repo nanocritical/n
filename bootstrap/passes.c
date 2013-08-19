@@ -230,7 +230,7 @@ static error step_detect_prototypes(struct module *mod, struct node *node, void 
   case DEFFUN:
   case DEFMETHOD:
     toplevel->is_prototype = toplevel->builtingen == BG__NOT
-      && node->subs[node->subs_count - 1]->which != BLOCK;
+      && !node_has_tail_block(node);
     break;
   default:
     break;
@@ -3951,12 +3951,12 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
   assert(let->which == LET);
 
   struct node *within;
-  if (let->subs_count == 1) {
+  if (node_has_tail_block(let)) {
+    within = let->subs[let->subs_count-1];
+  } else {
     within = mk_node(mod, let, BLOCK);
     error e = zero_to_body_for_generated(mod, within, NULL, let->scope);
     EXCEPT(e);
-  } else {
-    within = let->subs[1];
   }
 
   struct node *left = node->as.DEFNAME.pattern;
