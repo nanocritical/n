@@ -2904,7 +2904,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
       for (size_t n = 0; n < node->subs_count - 1; ++n) {
         struct node *s = node->subs[n];
         if (!typ_equal(mod, s->typ, typ_lookup_builtin(mod, TBI_VOID))) {
-          e = mk_except_type(mod, s, "block statements (except the last one) must be of type void, not '%s'",
+          e = mk_except_type(mod, s, "statements in a block must be of type void (except the last one), not '%s'",
                              typ_pretty_name(mod, s->typ));
           EXCEPT(e);
         }

@@ -1,0 +1,25 @@
+from nlang import *
+
+type blah = i_blah <root>.nlang.builtins.i_trivial_ctor
+  let this = blah
+  let final = blah
+  dummy:u8
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+
+blah method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+blah method i_blah.decr self:@final = _nretval:t
+  let __gensym0 = 1
+  return nlang.builtins.i_numeric.operator_minus @x @__gensym0
+
+blah method decrf self:@final = _nretval:t
+  let __gensym1 = 1
+  return nlang.builtins.i_numeric.operator_minus @x @__gensym1
+
+export fun main = i32
+  let b = { dummy=0 }:blah
+  let _ = (blah.decr u32) @b 1
+  return (blah.decrf i32) @b 1

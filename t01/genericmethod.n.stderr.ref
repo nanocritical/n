@@ -1,1 +1,0 @@
-t01/genericmethod.n:17:4: type: block statements (except the last one) must be of type void, not 'nlang.builtins.u32'
