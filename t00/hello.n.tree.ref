@@ -1,0 +1,60 @@
+MODULE_BODY :__internal_not_typeable__
+ IMPORT :nlang
+  IDENT(nlang) :nlang
+  IMPORT :nlang.say
+   BIN(.) :nlang.say
+    IDENT(nlang) :nlang
+    IDENT(say) :__internal_not_typeable__
+ DEFFUN :t00.hello.main
+  IDENT(main) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.i32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(__gensym0) :nlang.chars.static_string
+     STRING('Hello, World!') :nlang.chars.static_string
+     DEFNAME(__gensym0) :nlang.chars.static_string
+   CALL :nlang.builtins.void
+    IDENT(say) :nlang.say
+    DYN :(nlang.builtins.i_ref nlang.chars.i_show)
+     UN(@) :(nlang.builtins.i_ref nlang.chars.static_string)
+      IDENT(__gensym0) :nlang.chars.static_string
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(__gensym1) :nlang.builtins.bool
+     TYPECONSTRAINT :nlang.builtins.bool
+      BOOL :nlang.builtins.bool
+      IDENT(bool) :nlang.builtins.bool
+     DEFNAME(__gensym1) :nlang.builtins.bool
+   CALL :nlang.builtins.void
+    IDENT(say) :nlang.say
+    DYN :(nlang.builtins.i_ref nlang.chars.i_show)
+     UN(@) :(nlang.builtins.i_ref nlang.builtins.bool)
+      IDENT(__gensym1) :nlang.builtins.bool
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(__gensym2) :nlang.builtins.u32
+     TYPECONSTRAINT :nlang.builtins.u32
+      NUMBER(1) :nlang.builtins.u32
+      IDENT(u32) :nlang.builtins.u32
+     DEFNAME(__gensym2) :nlang.builtins.u32
+   CALL :nlang.builtins.void
+    IDENT(say) :nlang.say
+    DYN :(nlang.builtins.i_ref nlang.chars.i_show)
+     UN(@) :(nlang.builtins.i_ref nlang.builtins.u32)
+      IDENT(__gensym2) :nlang.builtins.u32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(__gensym3) :nlang.builtins.float
+     TYPECONSTRAINT :nlang.builtins.float
+      NUMBER(1.0) :nlang.builtins.float
+      IDENT(float) :nlang.builtins.float
+     DEFNAME(__gensym3) :nlang.builtins.float
+   CALL :nlang.builtins.void
+    IDENT(say) :nlang.say
+    DYN :(nlang.builtins.i_ref nlang.chars.i_show)
+     UN(@) :(nlang.builtins.i_ref nlang.builtins.float)
+      IDENT(__gensym3) :nlang.builtins.float
+   RETURN :nlang.builtins.i32
+    NUMBER(0) :nlang.builtins.i32

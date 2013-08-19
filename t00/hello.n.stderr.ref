@@ -1,1 +1,0 @@
-t00/hello.n:5:12: type: 'nlang.literals.boolean' not compatible with constraint 'nlang.chars.i_show'

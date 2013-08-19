@@ -1,0 +1,11 @@
+from nlang import *
+export fun main = i32
+  let __gensym0 = 'Hello, World!'
+  say @__gensym0
+  let __gensym1 = true:bool
+  say @__gensym1
+  let __gensym2 = 1:u32
+  say @__gensym2
+  let __gensym3 = 1.0:float
+  say @__gensym3
+  return 0

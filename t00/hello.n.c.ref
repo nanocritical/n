@@ -1,0 +1,49 @@
+#include <lib/nlang/runtime.h>
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_TYPES
+
+#define NLANG_DECLARE_TYPES
+# include "t00/hello.n.h.out"
+#undef NLANG_DECLARE_TYPES
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "t00/hello.n.h.out"
+#undef NLANG_DEFINE_TYPES
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "t00/hello.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "t00/hello.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+nlang_builtins_i32 __Nmain(void){
+ {
+nlang_chars_static_string __gensym0 = nlang_chars_static_string_mk((const nlang_builtins_u8 *)"Hello, World!", sizeof("Hello, World!")-1);
+;
+nlang_say(nlang_chars_static_string_mkdyn__nlang_chars_i_show((void *)((&__gensym0))));
+nlang_builtins_bool __gensym1 = (nlang_builtins_bool)1;
+;
+nlang_say(nlang_builtins_bool_mkdyn__nlang_chars_i_show((void *)((&__gensym1))));
+nlang_builtins_u32 __gensym2 = (nlang_builtins_u32)1;
+;
+nlang_say(nlang_builtins_u32_mkdyn__nlang_chars_i_show((void *)((&__gensym2))));
+nlang_builtins_float __gensym3 = (nlang_builtins_float)1.0;
+;
+nlang_say(nlang_builtins_float_mkdyn__nlang_chars_i_show((void *)((&__gensym3))));
+return (nlang_builtins_i32)0;
+}
+}
+void t00_hello_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_hello_Nrunexamples(void) {
+}
