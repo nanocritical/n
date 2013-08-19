@@ -3483,7 +3483,8 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node, void
   if (node_toplevel_const(node)->is_extern) {
     return 0;
   }
-  if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
+  if (node->as.DEFTYPE.kind == DEFTYPE_SUM
+      || node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     return 0;
   }
 
