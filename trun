@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-WD="$(dirname $0)/"
+wd=$(dirname $0)
+WD="$wd/"
 if [ "$WD" == "./" ]; then
 	WD=""
 fi
@@ -12,11 +13,16 @@ fi
 
 ret=0
 
+function build_and_run() {
+  $wd/ncc0 $1 2> $1.stderr.out \
+	  && ./a.out > $1.stdout.out 2>> $1.stderr.out
+}
+
 for t in $list; do
 	rm -f $t.*.out
 	# Assume that having a .stderr.ref file means the test should fail.
 	if [ -f $t.stderr.ref ]; then
-		if $(dirname $0)/ncc0 $t 2> $t.stderr.out; then
+		if build_and_run $t; then
 			echo "FAILED $t: did not fail"
 			ret=1
 			if ! [ -s $t.stderr.out ]; then
@@ -25,7 +31,7 @@ for t in $list; do
 			fi
 		fi
 	else
-		if ! $(dirname $0)/ncc0 $t 2> $t.stderr.out; then
+		if ! build_and_run $t; then
 			echo "FAILED $t: did not succeed"
 			ret=1
 		fi
@@ -34,15 +40,22 @@ for t in $list; do
 			rm $t.stderr.out
 		fi
 	fi
+
+	if ! [ -s $t.stdout.out ]; then
+		# Remove empty.
+		rm -f $t.stdout.out
+	fi
+
 	if [ -s $t.stderr.out ]; then
 		perl -i -ne 'if (!m/^\tE: /) { print; }' $t.stderr.out
 	fi
-	for all in stderr tree pretty c; do
+
+	for all in stderr stdout tree pretty c; do
 		if [ -f $t.$all.ref ] || [ -f $t.$all.out ]; then
 			if ! cmp -s $t.$all.ref $t.$all.out; then
 				ret=1
 				echo "FAILED $t: different output '$all'"
-				if [ "$all" = "stderr" ]; then
+				if [[ "$all" = "stderr" || "$all" = "stdout" ]]; then
 					diff -Nu $t.$all.ref $t.$all.out
 				fi
 			fi
