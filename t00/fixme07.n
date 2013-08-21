@@ -1,0 +1,10 @@
+from nlang import *
+
+intf i =
+  fun foo = void
+
+type a = i
+  x:i32
+
+a fun i.foo = void
+  return
