@@ -116,6 +116,7 @@ export intf i_native_anysign_integer = \
 
 export intf i_generalized_boolean = \
     export i_ordered
+  fun from_literal_bool literal:bool = final
   method operator_or other:@final = final
   method operator_and other:@final = final
   method operator_not = final
@@ -148,6 +149,8 @@ export extern bool method i_ordered.operator_le other:@this = bool
 export extern bool method i_ordered.operator_lt other:@this = bool
 export extern bool method i_ordered.operator_gt other:@this = bool
 export extern bool method i_ordered.operator_ge other:@this = bool
+export bool fun from_literal_bool literal:bool = this
+  return literal
 export extern bool method i_generalized_boolean.operator_or other:@this = this
 export extern bool method i_generalized_boolean.operator_and other:@this = this
 export extern bool method i_generalized_boolean.operator_not = this

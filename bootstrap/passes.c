@@ -2573,7 +2573,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     EXCEPT(e);
     break;
   case BOOL:
-    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN), constraint);
+    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_BOOL), constraint);
     EXCEPT(e);
     break;
   case STRING:
@@ -2850,7 +2850,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     node->typ = number_literal_typ(mod, node);
     goto ok;
   case BOOL:
-    node->typ = typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN);
+    node->typ = typ_lookup_builtin(mod, TBI_BOOL);
     goto ok;
   case STRING:
     node->typ = typ_lookup_builtin(mod, TBI_STATIC_STRING);
@@ -3812,6 +3812,35 @@ static error step_string_literal_conversion(struct module *mod, struct node *nod
   return 0;
 }
 
+static error step_bool_literal_conversion(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    struct node *s = node->subs[n];
+    if (s->which != BOOL
+        || typ_equal(mod, s->typ, typ_lookup_builtin(mod, TBI_BOOL))) {
+      continue;
+    }
+
+    struct node *call = mk_node(mod, node, CALL);
+    rew_move_last_over(node, n, TRUE);
+
+    struct node *fun = mk_node(mod, call, DIRECTDEF);
+    struct node *fund = node_get_member(mod, s->typ->definition, ID_FROM_LITERAL_BOOL);
+    assert(fund != NULL);
+    fun->as.DIRECTDEF.definition = fund;
+
+    s->typ = typ_lookup_builtin(mod, TBI_BOOL);
+    rew_append(call, s);
+
+    const struct node *except[] = { s, NULL };
+    error e = zero_to_body_for_generated(mod, call, except, node->scope);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
 static error step_operator_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   enum token_type op;
@@ -4734,6 +4763,7 @@ static error bodypass_second(struct module *mod, struct node *node, const struct
 
   static const step up[] = {
     step_string_literal_conversion,
+    step_bool_literal_conversion,
     step_operator_call_inference,
     step_ctor_call_inference,
     step_array_ctor_call_inference,

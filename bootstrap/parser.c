@@ -96,7 +96,6 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_VOID] = "void",
   [ID_TBI_LITERALS_NULL] = "__null__",
   [ID_TBI_LITERALS_INTEGER] = "integer",
-  [ID_TBI_LITERALS_BOOLEAN] = "boolean",
   [ID_TBI_LITERALS_FLOATING] = "floating",
   [ID_TBI_LITERALS_INIT] = "init",
   [ID_TBI_LITERALS_INIT_ARRAY] = "init_array",
@@ -168,6 +167,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_NEWV] = "newv",
   [ID_C] = "c",
   [ID_FROM_LITERAL_STRING] = "from_literal_string",
+  [ID_FROM_LITERAL_BOOL] = "from_literal_bool",
   [ID_NRETVAL] = "_nretval",
   [ID_OPERATOR_OR] = "operator_or",
   [ID_OPERATOR_AND] = "operator_and",
@@ -3243,7 +3243,7 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     }
   }
 
-  if (a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)) {
+  if (a == typ_lookup_builtin(mod, TBI_BOOL)) {
     if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN))) {
       return 0;
     }
@@ -3441,7 +3441,6 @@ except:
 bool typ_is_concrete(const struct module *mod, const struct typ *a) {
   if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
       || a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)
       || a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)
       || a == typ_lookup_builtin(mod, TBI_LITERALS_INIT)
       || a == typ_lookup_builtin(mod, TBI_LITERALS_INIT_ARRAY)) {
@@ -3458,7 +3457,8 @@ bool typ_is_concrete(const struct module *mod, const struct typ *a) {
 }
 
 static bool typ_is_weak_concrete(const struct module *mod, const struct typ *a) {
-  if (a == typ_lookup_builtin(mod, TBI_STATIC_STRING)) {
+  if (a == typ_lookup_builtin(mod, TBI_STATIC_STRING)
+      || a == typ_lookup_builtin(mod, TBI_BOOL)) {
     return TRUE;
   }
 
@@ -3503,7 +3503,6 @@ bool typ_is_builtin(const struct module *mod, const struct typ *t) {
 bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t) {
   return typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_NULL))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_FLOATING))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INIT))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INIT_ARRAY))
@@ -3602,8 +3601,6 @@ bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *in
     return typ_isa(mod, typ_lookup_builtin(mod, TBI_NATIVE_ANYSIGN_INTEGER), intf);
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
     return typ_isa(mod, typ_lookup_builtin(mod, TBI_NREF), intf);
-  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)) {
-    return typ_isa(mod, typ_lookup_builtin(mod, TBI_NATIVE_BOOLEAN), intf);
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)) {
     return typ_isa(mod, typ_lookup_builtin(mod, TBI_NATIVE_FLOATING), intf);
   }
@@ -3680,11 +3677,6 @@ error typ_find_matching_concrete_isa(const struct typ **concrete,
   } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
     e = typ_find_matching_concrete_isa(concrete, mod, for_error,
                                        typ_lookup_builtin(mod, TBI_NREF), intf);
-    EXCEPT(e);
-    return 0;
-  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_BOOLEAN)) {
-    e = typ_find_matching_concrete_isa(concrete, mod, for_error,
-                                       typ_lookup_builtin(mod, TBI_NATIVE_BOOLEAN), intf);
     EXCEPT(e);
     return 0;
   }
