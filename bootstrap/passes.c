@@ -2579,16 +2579,15 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
   case STRING:
     if (typ_equal(mod, constraint, typ_lookup_builtin(mod, TBI_CHAR))) {
       if (!string_literal_has_length_one(node->as.STRING.value)) {
-        e = mk_except_type(mod, node, "string literal '%s' does not have length 1, cannot coherce to char",
+        e = mk_except_type(mod, node,
+                           "string literal '%s' does not have length 1, cannot coerce to char",
                            node->as.STRING.value);
         EXCEPT(e);
       }
-      node->typ = typ_lookup_builtin(mod, TBI_CHAR);
-      break;
-    } else {
-      e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_STATIC_STRING), constraint);
-      EXCEPT(e);
     }
+
+    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_STATIC_STRING), constraint);
+    EXCEPT(e);
     break;
   case SIZEOF:
     e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_SIZE), constraint);
@@ -3784,6 +3783,35 @@ static const ident operator_ident[TOKEN__NUM] = {
   [TBWNOT] = ID_OPERATOR_BWNOT,
 };
 
+static error step_string_literal_conversion(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    struct node *s = node->subs[n];
+    if (s->which != STRING
+        || typ_equal(mod, s->typ, typ_lookup_builtin(mod, TBI_STATIC_STRING))) {
+      continue;
+    }
+
+    struct node *call = mk_node(mod, node, CALL);
+    rew_move_last_over(node, n, TRUE);
+
+    struct node *fun = mk_node(mod, call, DIRECTDEF);
+    struct node *fund = node_get_member(mod, s->typ->definition, ID_FROM_LITERAL_STRING);
+    assert(fund != NULL);
+    fun->as.DIRECTDEF.definition = fund;
+
+    s->typ = typ_lookup_builtin(mod, TBI_STATIC_STRING);
+    rew_append(call, s);
+
+    const struct node *except[] = { s, NULL };
+    error e = zero_to_body_for_generated(mod, call, except, node->scope);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
 static error step_operator_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   enum token_type op;
@@ -4201,7 +4229,14 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
     } else if (!typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))
                && typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_COPYABLE))) {
       // FIXME need to insert copy_ctor
-      node->as.RETURN.return_through_ref_expr = module_retval_get(mod)->subs[0];
+      const struct node *retval = module_retval_get(mod)->subs[0];
+
+      if (node->subs[0]->which == IDENT
+          && node_ident(retval) == node_ident(node->subs[0])) {
+        // noop
+      } else {
+        node->as.RETURN.return_through_ref_expr = retval;
+      }
     }
     return 0;
   case DEFPATTERN:
@@ -4698,6 +4733,7 @@ static error bodypass_second(struct module *mod, struct node *node, const struct
   };
 
   static const step up[] = {
+    step_string_literal_conversion,
     step_operator_call_inference,
     step_ctor_call_inference,
     step_array_ctor_call_inference,

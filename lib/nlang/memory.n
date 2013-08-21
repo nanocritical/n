@@ -6,15 +6,16 @@ import nlang.unsafe
 export intf i_allocator =
   (method! t:i_any) alloc = @#t
   (method! t:i_any) free p:?@#t = void
-  (method! t:i_trivial_ctor) slice_realloc s:@#(slice t) count:size = void
-  (method! t:i_trivial_ctor) slice_free s:@#(slice t) = void
+  (method! t:i_any) slice_realloc s:@#(slice t) count:size = void
+  (method! t:i_any) slice_free s:@#(slice t) = void
 
 
 extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
 extern inline fun slice_memcpy dst:@#u8 at:size src:@u8 off:size count:size = void
 
-export inline type slice t:i_trivial_ctor = \
-    export i_trivial_ctor
+export inline type slice t:i_any = \
+    export i_trivial_ctor \
+    export i_trivial_copy_but_owned
   _data:?@#t
   _count:size
 
@@ -54,8 +55,8 @@ export inline slice method! copy at:size other:@this off:size count:size = void
   let bsz = count * (sizeof t)
   slice_memcpy self#unsafe_rawdata bat other.unsafe_rawdata boff bsz
 
---export inline slice method$ subslice r:index_range = owned (slice t)
-export inline slice method$ subslice r:index_range = this
+--export inline slice method$ sub r:index_range = (owned this)
+export inline slice method$ sub r:index_range = this
   assert (r.end <= self.count)
   let p = (nlang.unsafe.cast @$t @#t) (self$at r.begin)
   return this.unsafe_wrap p r.count

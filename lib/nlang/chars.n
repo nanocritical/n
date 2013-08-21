@@ -9,8 +9,13 @@ export inline type char = \
     export i_return_by_copy \
     export i_trivial_equality \
     export i_trivial_order \
+    export i_from_literal_string \
     export i_show
   code:u32
+
+export inline char fun from_literal_string literal:static_string = this
+  assert (literal.count == 1)
+  return { code=(literal.get_char 0).code }
 
 export inline char fun from_ascii c:u8 = char
   return { code=c.to_u32 }
@@ -20,12 +25,15 @@ example -> char.from_ascii 49 == '1':char
 export inline char method i_show.show buf:@#i_string_buffer = void
   buf#push self.
 
-export intf i_const_string = -- export i_random_container
+export intf i_from_literal_string =
+  fun from_literal_string literal:static_string = final
+
+export intf i_const_string = export i_from_literal_string
+-- export i_random_container
   method count = size
   method all = index_range
   method get_char n:size = char
-  method substring r:index_range = @i_const_string
-  method bytes_utf8 = @(slice u8)
+  method bytes_utf8 = (slice u8)
 
 export intf i_string = export i_const_string
   method! set_char n:size c:char = void
@@ -41,33 +49,62 @@ export intf i_string_buffer = export i_string
 
 export inline type static_string = \
     export i_trivial_copy \
-    export i_trivial_equality \
+    export i_ordered_by_compare \
     export i_trivial_order \
     export i_return_by_copy \
-    export i_show
---    export i_const_string
+    export i_show \
+    export i_const_string
   _bytes:(slice u8)
 
 export inline static_string method# ctor bytes:@u8 count:size = void
   let raw = (nlang.unsafe.cast @u8 @#u8) bytes
   self!_bytes = (slice u8).unsafe_wrap raw count
 
-export inline static_string method i_random_container.count = size
+export inline static_string fun from_literal_string literal:static_string = this
+  return { _bytes=literal._bytes }
+
+export inline static_string method i_const_string.count = size
   return self._bytes.count
 
-export inline static_string method i_random_container.all = index_range
+export inline static_string method i_const_string.all = index_range
   return self._bytes.all
 
 export inline static_string method i_const_string.get_char n:size = char
   return char.from_ascii (self._bytes.at n).
 
-export inline static_string method bytes_utf8 = @(slice u8)
-  return @self._bytes
+export inline static_string method i_const_string.bytes_utf8 = (slice u8)
+  return self._bytes
 
 export static_string method i_show.show buf:@#i_string_buffer = void
   buf#reserve buf.count + self.count
   for i in self.all.iter
     buf#push (self.get_char i)
+
+extern inline fun memcmp a:@u8 b:@u8 count:size = i32
+
+export inline static_string method i_has_equality.operator_eq other:@final = bool
+  return (self.operator_compare other) == 0
+
+export inline static_string method i_has_equality.operator_ne other:@final = bool
+  return (self.operator_compare other) != 0
+
+export inline static_string method i_has_equality.operator_le other:@final = bool
+  return (self.operator_compare other) <= 0
+
+export inline static_string method i_has_equality.operator_lt other:@final = bool
+  return (self.operator_compare other) < 0
+
+export inline static_string method i_has_equality.operator_ge other:@final = bool
+  return (self.operator_compare other) >= 0
+
+export inline static_string method i_has_equality.operator_gt other:@final = bool
+  return (self.operator_compare other) > 0
+
+export inline static_string method i_ordered_by_compare.operator_compare other:@final = i32
+  let a = self.bytes_utf8
+  and b = self.bytes_utf8
+  let cnt = min a.bytecount b.bytecount
+  return memcmp a.unsafe_rawdata b.unsafe_rawdata cnt
 
 example -> '1234'.count == 4
 example -> '1234'.all == range 0 4

@@ -1,0 +1,56 @@
+MODULE_BODY :__internal_not_typeable__
+ IMPORT :nlang
+  IDENT(nlang) :nlang
+  IMPORT :nlang.say
+   BIN(.) :nlang.say
+    IDENT(nlang) :nlang
+    IDENT(say) :__internal_not_typeable__
+ IMPORT :nlang.strings
+  BIN(.) :nlang.strings
+   IDENT(nlang) :nlang
+   IDENT(strings) :__internal_not_typeable__
+  IMPORT :nlang.strings.string
+   BIN(.) :nlang.strings.string
+    BIN(.) :nlang.strings
+     IDENT(nlang) :nlang
+     IDENT(strings) :__internal_not_typeable__
+    IDENT(string) :__internal_not_typeable__
+ DEFFUN :t02.string.foo
+  IDENT(foo) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :nlang.strings.string
+   IDENT(_nretval) :nlang.strings.string
+   IDENT(string) :nlang.strings.string
+  BLOCK :nlang.strings.string
+   RETURN :nlang.strings.string
+    CALL :nlang.strings.string
+     DIRECTDEF :nlang.strings.string.from_literal_string
+     STRING('test') :nlang.chars.static_string
+ DEFFUN :t02.string.main
+  IDENT(main) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.i32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(__gensym0) :nlang.chars.static_string
+     STRING('test') :nlang.chars.static_string
+     DEFNAME(__gensym0) :nlang.chars.static_string
+   CALL :nlang.builtins.void
+    IDENT(say) :nlang.say
+    DYN :(nlang.builtins.i_ref nlang.chars.i_show)
+     UN(@) :(nlang.builtins.i_ref nlang.chars.static_string)
+      IDENT(__gensym0) :nlang.chars.static_string
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(__gensym1) :nlang.strings.string
+     CALL :nlang.strings.string
+      IDENT(foo) :t02.string.foo
+     DEFNAME(__gensym1) :nlang.strings.string
+   CALL :nlang.builtins.void
+    IDENT(say) :nlang.say
+    DYN :(nlang.builtins.i_ref nlang.chars.i_show)
+     UN(@) :(nlang.builtins.i_ref nlang.strings.string)
+      IDENT(__gensym1) :nlang.strings.string
+   RETURN :nlang.builtins.i32
+    NUMBER(0) :nlang.builtins.i32

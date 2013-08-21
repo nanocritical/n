@@ -8,6 +8,11 @@ export inline type string = \
     export i_string_buffer
   bytes:(vector u8)
 
+export string fun from_literal_string literal:static_string = this
+  let s = this.mk
+    s.bytes#append_slice @literal.bytes_utf8
+  return s
+
 export string method i_const_string.count = size
   return self.bytes.count
 
@@ -19,21 +24,21 @@ export string method i_const_string.get_char n:size = char
 
 export string method i_const_string.substring r:index_range = @i_const_string
   let sub = string.new
-    let mem = self.bytes.storage.subslice r
+    let mem = self.bytes.storage.sub r
     sub.bytes#append_slice @mem
   return sub
 
-export string method i_const_string.bytes_utf8 = @(slice u8)
-  return (nlang.unsafe.cast @(slice self.bytes.ut) @(slice u8)) self.bytes.storage
+export string method i_const_string.bytes_utf8 = (slice u8)
+  return self.bytes.storage.sub self.bytes.all
 
 export string method! i_string.set_char n:size c:char = void
   (self.bytes!at n)! = c.code.trim_u8
 
 export string method! i_string.fill c:char r:index_range = void
   let with = c.code.trim_u8
-  let sb = self.bytes.storage!subslice r
+  let sb = self.bytes.storage!sub r
     for i in sb.all.iter
-      let p = (nlang.unsafe.cast @!self.bytes.ut @!u8) (sb!at i)
+      let p = sb!at i
       p! = with
 
 export string method# i_string_buffer.reserve count:size = void

@@ -6,9 +6,8 @@ export inline type vector t:i_copyable = \
     export i_trivial_ctor \
     export (i_array_ctor t) \
     export i_copyable
-  _p:(slice ut)
+  _p:(slice t)
   _count:size
-  alias ut = (nlang.unsafe.unconstructed t)
 
 export vector method# i_array_ctor.ctorv c:@(static_array t) = void
   self#reserve c.count
@@ -20,7 +19,7 @@ export vector method count = size
 
 export vector method$ at n:size = @$t
   assert (n <= self._count)
-  return @$(self._p$at n)$value
+  return self._p$at n
 
 export vector method$ first = @$t
   return self$at 0
@@ -36,10 +35,10 @@ export vector method capacity = size
 
 export vector method# reserve n:size = void
   if n > self.capacity
-    (heap.slice_realloc ut) @!sysheap @#self#_p n
+    (heap.slice_realloc t) @!sysheap @#self#_p n
 
 export vector method# resize n:size = void
-  (heap.slice_realloc ut) @!sysheap @#self#_p n
+  (heap.slice_realloc t) @!sysheap @#self#_p n
   self!_count = n
 
 export vector method# push x:t = void
@@ -56,19 +55,19 @@ export vector method# pop = t
   return d.
 
 export vector method# clear = void
-  (heap.slice_free ut) @!sysheap @#self#_p
+  (heap.slice_free t) @!sysheap @#self#_p
 
 export vector method all = index_range
-  return range 0 self.count-1
+  return range 0 self.count
 
 export vector method# i_copyable.copy_ctor other:@this = void
-  (heap.slice_realloc ut) @!sysheap @#self#_p other._p.count
+  (heap.slice_realloc t) @!sysheap @#self#_p other._p.count
   self._p!copy 0 @other._p 0 other._p.count
 
-export vector method# append_slice other:@(slice ut) = void
-  (heap.slice_realloc ut) @!sysheap @#self#_p other.count
+export vector method# append_slice other:@(slice t) = void
+  (heap.slice_realloc t) @!sysheap @#self#_p other.count
   self._p!copy 0 other 0 other.count
   self!_count = other.count
 
-export vector method$ storage = @$(slice ut)
-  return @$self$_p
+export vector method$ storage = (slice t)
+  return self._p$sub self.all

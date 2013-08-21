@@ -1,0 +1,73 @@
+#include <lib/nlang/runtime.h>
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_TYPES
+
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/strings.n.h.out"
+#undef NLANG_DECLARE_TYPES
+
+#define NLANG_DECLARE_TYPES
+# include "t02/string.n.h.out"
+#undef NLANG_DECLARE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/strings.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "t02/string.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/strings.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "t02/string.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+static void t02_string_foo(nlang_strings_string *_nrtr__nretval);
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/strings.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "t02/string.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+static void t02_string_foo(nlang_strings_string *_nrtr__nretval){
+#define _nretval (*_nrtr__nretval)
+ {
+nlang_strings_string_from_literal_string(nlang_chars_static_string_mk((const nlang_builtins_u8 *)"test", sizeof("test")-1), &(_nretval));
+return;
+}
+#undef _nretval
+}
+
+nlang_builtins_i32 __Nmain(void){
+ {
+nlang_chars_static_string __gensym0 = nlang_chars_static_string_mk((const nlang_builtins_u8 *)"test", sizeof("test")-1);
+;
+nlang_say(nlang_chars_static_string_mkdyn__nlang_chars_i_show((void *)((&__gensym0))));
+nlang_strings_string __gensym1 = { 0 };
+t02_string_foo(&(__gensym1));
+;
+nlang_say(nlang_strings_string_mkdyn__nlang_chars_i_show((void *)((&__gensym1))));
+return (nlang_builtins_i32)0;
+}
+}
+void t02_string_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t02_string_Nrunexamples(void) {
+}

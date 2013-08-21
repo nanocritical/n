@@ -2,9 +2,3 @@ from nlang.literals import *
 from nlang.builtins import *
 
 export extern (fun u:i_any_any_ref v:i_any_any_ref) cast a:u = v
-
-export inline type unconstructed t:i_any = export i_trivial_ctor
-  value:t
-
-export inline unconstructed fun mk_with value:t = this
-  return { value=value }

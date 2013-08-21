@@ -10,6 +10,8 @@ export intf i_copyable =
 
 export intf i_copyable_but_owned = export i_copyable -- FIXME
 export intf i_trivial_copy = export i_copyable
+export intf i_trivial_copy_but_owned = export i_trivial_copy \
+                                       export i_copyable_but_owned
 export intf i_return_by_copy =
 export intf i_default_ctor =
   method# ctor = void
@@ -713,3 +715,15 @@ export inline (fun t:i_any) optional opt:?@t fallback:t = t
     return opt.
   else
     return fallback
+
+export inline (fun t:i_numeric) min a:t b:t = t
+  if a <= b
+    return a
+  else
+    return b
+
+export inline (fun t:i_numeric) max a:t b:t = t
+  if a >= b
+    return a
+  else
+    return b

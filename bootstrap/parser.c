@@ -118,7 +118,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_CHAR] = "char",
   [ID_TBI_STRING] = "string",
   [ID_TBI_STATIC_STRING] = "static_string",
-  [ID_TBI_CONST_STRING] = "i_const_string",
+  [ID_TBI_FROM_LITERAL_STRING] = "i_from_literal_string",
   [ID_TBI_STATIC_ARRAY] = "static_array",
   [ID_TBI_ANY_REF] = "i_any_ref",
   [ID_TBI_ANY_ANY_REF] = "i_any_any_ref",
@@ -167,6 +167,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_MKV] = "mkv",
   [ID_NEWV] = "newv",
   [ID_C] = "c",
+  [ID_FROM_LITERAL_STRING] = "from_literal_string",
   [ID_NRETVAL] = "_nretval",
   [ID_OPERATOR_OR] = "operator_or",
   [ID_OPERATOR_AND] = "operator_and",
@@ -3257,8 +3258,8 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     }
   }
 
-  if (typ_equal(mod, constraint, typ_lookup_builtin(mod, TBI_STATIC_STRING))) {
-    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_CONST_STRING))) {
+  if (typ_equal(mod, a, typ_lookup_builtin(mod, TBI_STATIC_STRING))) {
+    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_FROM_LITERAL_STRING))) {
       return 0;
     }
   }
@@ -3456,6 +3457,14 @@ bool typ_is_concrete(const struct module *mod, const struct typ *a) {
   return TRUE;
 }
 
+static bool typ_is_weak_concrete(const struct module *mod, const struct typ *a) {
+  if (a == typ_lookup_builtin(mod, TBI_STATIC_STRING)) {
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 bool typ_is_abstract_instance(const struct module *mod, const struct typ *a) {
   if (a->gen_arity == 0) {
     return a->definition->which == DEFINTF
@@ -3544,7 +3553,11 @@ error typ_unify(const struct typ **u, const struct module *mod, const struct nod
       }
     }
   } else {
-    if (typ_is_concrete(mod, a)) {
+    if (typ_is_weak_concrete(mod, a)) {
+      *u = b;
+    } else if (typ_is_weak_concrete(mod, b)) {
+      *u = a;
+    } else if (typ_is_concrete(mod, a)) {
       *u = a;
     } else {
       *u = b;

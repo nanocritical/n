@@ -1899,8 +1899,11 @@ static error print_defintf_member_eachisalist(struct module *mod, const struct t
 
     print_fun_prototype(st->out, st->header, mod, d, FALSE, FALSE, FALSE, t);
     fprintf(st->out, " {\n");
-    if (!typ_equal(mod, node_fun_retval_const(d)->typ,
-                   typ_lookup_builtin(mod, TBI_VOID))) {
+
+    const bool retval_throughref = !typ_isa_return_by_copy(mod, node_fun_retval_const(d)->typ);
+    if (!retval_throughref
+        && !typ_equal(mod, node_fun_retval_const(d)->typ,
+                      typ_lookup_builtin(mod, TBI_VOID))) {
       fprintf(st->out, "return ");
     }
     fprintf(st->out, "self.vptr->%s(", idents_value(mod->gctx, node_ident(d)));
@@ -1920,6 +1923,16 @@ static error print_defintf_member_eachisalist(struct module *mod, const struct t
       fprintf(st->out, "%s",
               idents_value(mod->gctx, node_ident(d->subs[a])));
     }
+
+    if (retval_throughref) {
+      if (n > 0) {
+        fprintf(st->out, ", ");
+      }
+
+      fprintf(st->out, "_nrtr_");
+      print_expr(st->out, mod, node_fun_retval_const(d)->subs[0], T__STATEMENT);
+    }
+
     fprintf(st->out, ");\n}\n");
   }
   return 0;

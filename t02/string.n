@@ -1,0 +1,10 @@
+from nlang import *
+from nlang.strings import *
+
+fun foo = string
+  return 'test'
+
+export fun main = i32
+  say @'test'
+  say @foo
+  return 0

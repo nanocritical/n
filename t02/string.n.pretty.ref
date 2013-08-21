@@ -1,0 +1,11 @@
+from nlang import *
+from nlang.strings import *
+fun foo = _nretval:string
+  return nlang.strings.string.from_literal_string 'test'
+
+export fun main = i32
+  let __gensym0 = 'test'
+  say @__gensym0
+  let __gensym1 = foo
+  say @__gensym1
+  return 0
