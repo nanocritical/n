@@ -178,6 +178,15 @@ normal:
   "~" { R(TBWNOT); }
   ":" { R(TCOLON); }
   "," { R(TCOMMA); }
+  ";;" {
+    if (block_style(parser)) {
+      parser->indent -= 2;
+      block_up(parser, TRUE);
+      R(TEOB);
+    } else {
+      ERROR(EINVAL, "lexer: unexpected double-semicolon in multi-line block");
+    }
+  }
   ";" {
     if (block_style(parser)) {
       R(TEOL);
@@ -337,8 +346,6 @@ comment_while_eol:
 }
 
 void lexer_back(struct parser *parser, const struct token *tok) {
-  parser->inject_eol_after_eob = FALSE;
-
   if (tok->t == TLSBRA) {
     parser->no_block_depth -= 1;
   } else if (tok->t == TRSBRA) {
@@ -360,8 +367,12 @@ void lexer_back(struct parser *parser, const struct token *tok) {
   }
 
   if (parser->tok_was_injected) {
+    parser->inject_eol_after_eob = tok->t == TEOL;
+
     return;
   }
+
+  parser->inject_eol_after_eob = FALSE;
 
   assert(tok->len < parser->pos);
   parser->pos -= tok->len;

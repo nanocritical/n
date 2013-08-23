@@ -377,18 +377,18 @@ static void print_try(FILE *out, const struct module *mod, int indent, const str
 }
 
 static void print_pre(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  fprintf(out, "pre");
-  print_block(out, mod, indent, node->subs[0]);
+  fprintf(out, "pre -> ");
+  print_expr(out, mod, node->subs[0], T__STATEMENT);
 }
 
 static void print_post(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  fprintf(out, "post");
-  print_block(out, mod, indent, node->subs[0]);
+  fprintf(out, "post -> ");
+  print_expr(out, mod, node->subs[0], T__STATEMENT);
 }
 
 static void print_invariant(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  fprintf(out, "invariant");
-  print_block(out, mod, indent, node->subs[0]);
+  fprintf(out, "invariant -> ");
+  print_expr(out, mod, node->subs[0], T__STATEMENT);
 }
 
 static void print_example(FILE *out, const struct module *mod, int indent, const struct node *node) {
@@ -409,12 +409,18 @@ static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
 }
 
 static void print_defpattern(FILE *out, const struct module *mod, int indent, const struct node *node,
-                             bool first_def) {
-  fprintf(out, first_def ? "let " : "and ");
-  print_pattern(out, mod, node->subs[0]);
-  if (node->subs_count > 1 && node->subs[1]->which != DEFNAME) {
-    fprintf(out, " = ");
-    print_expr(out, mod, node->subs[1], T__STATEMENT);
+                             bool first_defp) {
+  bool first_defn = TRUE;
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    const struct node *d = node->subs[n];
+    if (d->which != DEFNAME) {
+      continue;
+    }
+
+    fprintf(out, (first_defp && first_defn) ? "let " : "and ");
+    print_pattern(out, mod, node->subs[0]);
+
+    first_defn = FALSE;
   }
 }
 
@@ -458,6 +464,10 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
     break;
   case PASS:
     fprintf(out, "pass");
+    break;
+  case BLOCK:
+    fprintf(out, "block");
+    print_block(out, mod, indent, node);
     break;
   case IF:
     print_if(out, mod, indent, node);

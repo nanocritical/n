@@ -1,0 +1,279 @@
+from nlang import *
+
+export fun main = i32
+  say @'Hello, World!'
+  say @true:bool
+  say @1:u32
+  say @1.0:float
+  return 0
+
+-- Captured for the duration of its execution.
+-- Depending on context, both forms below are possible.
+export parallel fun push_async s:@string = future void
+export parallel fun push_async s:@string = void
+
+export fun push_async s:@string:(capturedby r) = r:(future void)
+export fun push_async s:@string:capturedbyret = future void
+
+-- The first form is equivalent to (and that would be for all arguments, including self)
+export fun push_async s:@string:(capturedby r) = r:(future void)
+-- The second form is merely stating that stronger capture rules are in effect
+-- at this API boundary. It requests from the caller that the argument have an
+-- appropriate lifetime. But there is an inherent contradiction to that. The lifetime
+-- of a function's argument is always the function execution time, no matter if
+-- its longer than one statement. I.e. it's the responsibility of the calling context
+-- to inform the programmer about any extension in lifetime.
+
+-- Returning a future does not implicitly capture the arguments of the function.
+-- Calling a "normal function" with 'asyncs' does.
+-- So we don't need the 'parallel' qualifier. The explicit capture on the
+-- returned future is enough.
+
+-- Should we make unique, shared, refcnt, etc type attributes, rather than additional types
+-- as in C++? Because of the additional dimension on references, this may be necessary.
+-- It makes it harder for the user to implement their own, but is that really a problem?
+-- Sometimes probably.
+
+shared @foobar&
+shared @foobar&!
+:@foobar&!:shared
+
+fun do = :@foobar&:protected
+  return protect @x&
+
+type lock =
+
+lock method! i_with.enter = lock_with:(protecting self)
+  self!acquire
+  return { it=self }
+
+type lock_with =
+  it:@!lock
+
+lock_with method# dtor = void
+  self.it!release
+
+svector method! lock = lock_with:(protect self)
+  return protect self
+    self._lock!acquire
+
+svector protected method# push x:t = void
+  with self!lock -- protect self
+    self#push x
+
+fun foobar = void
+  let x = u32.new
+  let v = { false }:svector
+  with v!lock protecting v x
+    x = v![0]
+
+data method write_async s:@string = future void
+
+  let d = { ... }:data
+  let f = async -> fd!write ...
+  return f
+
+data method read_async fd:descriptor = future size
+  let d = {}:data
+  return async -> fd!read @!d -- E: future captured local variable
+
+data method! read_async fd:descriptor = (future size):(capture self)
+  let d = {}:data
+  return async -> fd!read self
+-- This is interesting.
+-- The idiom is typically "method returns owned ref".
+-- Here it is method returns value owning self.
+-- Should future be a "reference" type? A builtin attribute (what?)?
+-- A future is in many ways like a closure. It captures a lot about
+-- its execution context.
+
+Difference between capture and "depends on". A return value can depend on its
+calling context. Like a owned returned reference from a method. But it's not
+really appropriate to say that it captures self. Really it is owned by self.
+
+A future is owned by the arguments of the function that created it. Or does it capture them?
+Are capture and owned simply dual of each other?
+
+	B captured by A	=>	A life <= B life
+	B owned by A	=>	B life <= A life
+
+The difference is that "owned" is influenced by mercurial effect '#'.
+Owned references are invalidated afer mercurial effect on their owner.
+
+The dual, however, when an a captured reference has mercurial effect, does not
+invalidate the capturing reference.
+
+	B owned by A => B captures A
+
+capture is more primitive than owned.
+
+We should keep track of the kind of capture, probably. E.g.
+
+	fun foo1 x:@!t:retcaptured = @!struct
+	fun foo2 x:@!t:!retcaptured = @!struct
+
+as it is relevant to the context if it is a mutating capture or not. We could
+assume the capture gets the maximum mutability of the variable. But that could
+be a huge pain at times. Possible syntax?
+
+	captured
+	.captured
+	!captured
+	#captured
+
+What about bi-references? Should we have different kinds of capture?
+
+	.captured!
+	!captured.
+
+Can @t be .captured.? Does this make sense at all? No, we need to pass in a
+@t&.
+
+	method foo x:@t//:captured = void
+	method foo x:@t&:captured = void
+	method foo x:(@!,&)t:(!,.)captured = void
+	method foo x:@!t&:captured = void
+	method foo x:@!t!&:captured = void -- Did not create any foreign writers (which may otherwise exist)
+        method foo x:@!t!&:captured! = void -- Did create foreign writers
+
+        method foo x:@!t!&:captured = void
+        method foo x:@!t:captured = void
+
+Which of these are valid, and what do they mean?
+
+        method! foo1 x:@!t&:captured = void
+        method! foo2 x:@!t&:captured& = void
+        method! foo3 x:@!t:captured& = void
+
+- foo1 has to make sure it handles the fact that x has foreign readers.
+- foo2 has to make sure it handles the fact that x has foreign readers, and foo2
+  creates foreign readers.
+- foo3 creates foreign readers, but does not have to deal with any foreign
+  readers besides the ones that it created.
+In other words, it is interesting to differentiate between these different cases.
+
+
+Notation:
+        method! foo1 x:@!&t:captured = void
+        method! foo2 x:@@!&&t:captured = void
+        method! foo2 x:@@!t&&!:captured = void -- hardest to read without coloring
+        method! foo3 x:@@!t&&:captured = void
+
+@@!&&t
+@!@t&!&
+@@t&&
+@t&
+@t&!
+@@t&&!
+@@t&!&!
+@t&# or @&#t
+
+        method! foo4 x:@@!t&&:@captured& = void
+        method! foo5 x:@@!t&&:captured = void
+        method! foo5 x:@@!t&&:@@!captured&& = void
+
+Do not make it "concentric" or symmetric. We could use special coloring.
+Best:
+
+        method! foo4 x:@@!&&t:@@&&captured = void
+        method! foo5 x:@@!&&t:captured = void -- means captured as-is, fully-captured, i.e. equivalent to:
+        method! foo5 x:@@!&&t:@@!&&captured = void
+
+
+What would it mean to say x:@@!&t ????? Foreign readers access what exactly?
+x. but not x..? x:@@!&&t -> they access x..
+
+
+BTW: What about multiple depths of references? This is really an issue for
+attributes in general.
+
+The two-sided references forces, at least the far side, to denote deep
+immutability.  Or that would mean little. Unless we somehow differentiate
+between data element access and method access. We've never liked how they are
+made to be the same when they are different in this one important way.
+
+Would be a disaster to have deep immutability?
+
+An object that is observably immutable could modify its content but then it
+would need to be referenced @object!& and would require protection. We could
+have an analysis that would allow using an @object reference if all
+(exported???) methods are correctly protecting self. Or we could have an
+interface that would declare that guarantee.
+
+If we have deep immutability all the time, it's for references. Through a const
+reference, there is no way to modify anything. But that means that we can never
+access to a value of a field via a reference.
+
+	const struct top *t;
+	t->sub.x = 0;
+
+t->sub.x is really a strange beast. Through a reference, you accessing a value,
+without ever doing a copy. So you're not accessing it by-value, as one would
+for a function. Really it's an implicit reference, and is why C++ has
+transparent references (&), often returned by accessors. We cannot have that.
+We should have explicit references.
+
+	let t:@top = ...
+	t.sub.x = 0
+	-- Error: Here, t.sub has type @sub, and t.sub.x the type @u32
+
+Since it has referential semantics, it is important to make sure that it's how
+it is typed. Then we don't have the shallow immutability problem, in a natural
+way.
+
+This tends to lead us to force
+
+	let t:@!top = ...
+	t!sub!x! = 0
+
+not allowing
+
+	t.sub!x! = 0
+
+that would be convenient but really is confusing. It's not unsafe, the compiler
+can sort it out, but it looks very different than what it really does. Maybe it
+could be a nice idiom though.
+
+OK, all that is nice as a lvalue. But for rvalues?
+
+	let t:@top = ...
+	let s:sub = t.sub -- Error: type
+	let s:@sub = t.sub -- Somewhat unexpected, no?
+	let s:sub = t.sub.
+
+	let t:@top = ...
+	let x:@u32 = t.sub.x -- Now, that's just NASTY.
+
+We're departing from C here.
+
+	let y = 0:u32
+	  y += 1 + t.sub.x -- Error: type
+
+	let y = 0:u32
+	  y += 1 + t.sub.x.
+
+	for i in range 0 u64.MAX.
+	  pass
+	-- Where will the madness end?
+
+	-- module a.b.c
+	let sysheap = {}:heap
+	-- Elsewhere:
+	a.b.c.sysheap:@heap
+
+We could have a notation to "access the value" directly, STRICTLY for rvalues.
+Of course I'm out of operators.
+
+Should we allow implicit conversion from @foo -> foo in rvalues? Like in C++?
+DAMMIT!
+
+export fun push_async s:@string = void
+-- If called this way:
+  let f = async -> push_async @'test'
+  f.wait
+-- The capture is also for the duration of its execution, as made clear by the
+-- calling context.
+
+export fun store t:@#htable x:@string:(capturedby t) = void
+export htable method store x:@string:captured = void
+

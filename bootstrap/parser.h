@@ -339,6 +339,9 @@ enum subnode_idx {
   IDX_FOR_IT_DEFP = 0,
   IDX_FOR_IT_DEFP_DEFN = 0,
   IDX_FOR_IT_DEFP_EXPR = 1,
+  IDX_FOR_IT_BLOCK = 1,
+  IDX_FOR_IT_BLOCK_WHILE = 0,
+  IDX_FOR_IT_BLOCK_WHILE_BLOCK = 1,
   IDX_FUN_FIRSTARG = 2,
 };
 
@@ -737,6 +740,7 @@ size_t node_fun_all_args_count(const struct node *def);
 size_t node_fun_explicit_args_count(const struct node *def);
 struct node *node_fun_retval(struct node *def);
 const struct node *node_fun_retval_const(const struct node *def);
+struct node *node_for_block(struct node *node);
 struct toplevel *node_toplevel(struct node *node);
 const struct toplevel *node_toplevel_const(const struct node *node);
 struct node *node_get_member(struct module *mod, struct node *node, ident id);
@@ -801,7 +805,9 @@ error typ_isalist_foreach(struct module *mod, const struct typ *t, uint32_t filt
                           isalist_each iter, void *user);
 
 void rew_insert_last_at(struct node *node, size_t pos);
+void rew_pop(struct node *node, bool saved_it);
 void rew_move_last_over(struct node *node, size_t pos, bool saved_it);
+void rew_prepend(struct node *node, struct node *sub);
 void rew_append(struct node *node, struct node *sub);
 size_t rew_find_subnode_in_parent(struct node *parent, struct node *node);
 

@@ -595,18 +595,21 @@ static void print_try(FILE *out, const struct module *mod, const struct node *no
 }
 
 static void print_pre(FILE *out, const struct module *mod, const struct node *node) {
-  fprintf(out, "pre");
-  print_block(out, mod, node->subs[0], TRUE);
+  fprintf(out, "nlang_builtins_assert(");
+  print_expr(out, mod, node->subs[0], T__CALL);
+  fprintf(out, ")");
 }
 
 static void print_post(FILE *out, const struct module *mod, const struct node *node) {
-  fprintf(out, "post");
-  print_block(out, mod, node->subs[0], TRUE);
+  fprintf(out, "nlang_builtins_assert(");
+  print_expr(out, mod, node->subs[0], T__CALL);
+  fprintf(out, ")");
 }
 
 static void print_invariant(FILE *out, const struct module *mod, const struct node *node) {
-  fprintf(out, "invariant");
-  print_block(out, mod, node->subs[0], TRUE);
+  fprintf(out, "nlang_builtins_assert(");
+  print_expr(out, mod, node->subs[0], T__CALL);
+  fprintf(out, ")");
 }
 
 #define ATTR_SECTION_EXAMPLES "__attribute__((section(\".text.nlang.examples\")))"
@@ -873,6 +876,9 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
   case UN:
   case CALL:
     print_expr(out, mod, node, T__STATEMENT);
+    break;
+  case BLOCK:
+    print_block(out, mod, node, FALSE);
     break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);

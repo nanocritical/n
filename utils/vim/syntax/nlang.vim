@@ -6,7 +6,7 @@ syn keyword nInclude import from
 syn keyword nDecl type union fun method intf delegate
 syn keyword nStorageClass inline extern
 syn keyword nExport export
-syn keyword nSemantic owned captured unique loose shared capturedby ownedby
+syn keyword nSemantic unique shared captured capturedby capturedbyret owned ownedby protected protect protecting
 
 syn keyword nDecl pre _pre post _post invariant _invariant example _example assert alias
 syn keyword nDecl contract honors _honors pretag posttag tag
@@ -14,12 +14,13 @@ syn keyword nDecl contract honors _honors pretag posttag tag
 syn keyword nConditional if elif else match
 syn keyword nRepeat while continue break
 syn keyword nRepeat for pfor foreach pforeach
-syn keyword nStatement let return block future lambda
+syn keyword nStatement let return block lambda async
 syn keyword nOperator in and or not bwxor isa
 syn keyword nOperator sizeof
 syn keyword nKeyword pass as attr declare
 syn keyword nException try catch throw except
 syn match nOperator "[@:]"
+syn match nSemanticOperator "[&]"
 
 syn keyword nKeyword self this final
 
@@ -29,6 +30,7 @@ syn region nComment start="--" skip="\\$" end="$" keepend contains=@Spell,nTodo
 syn keyword nTodo contained TODO FIXME XXX
 
 syn region nSemantic start="^\s*#[!~?]" end="$" keepend
+syn match nMutate "[!]$"
 syn match nMutate "[!][^=]"me=e-1
 syn match nMercurial "#"
 syn match nNullable "?"
@@ -92,6 +94,7 @@ hi def link nNumbers Number
 hi def link nString String
 hi def link nSpecial SpecialChar
 hi def link nSemantic Semantic
+hi def link nSemanticOperator SemanticOperator
 hi def link nMutate Constant
 hi def link nMercurial Constant
 hi def link nNullable Constant
