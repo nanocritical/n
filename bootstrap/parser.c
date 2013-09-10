@@ -379,7 +379,7 @@ static struct node *do_node_module_owner(struct node *node) {
     if (node->scope == NULL || node->scope->parent == NULL) {
       return NULL;
     }
-    return do_node_module_owner(node->scope->parent->node);
+    return do_node_module_owner(node_parent(node));
   }
 }
 
@@ -411,7 +411,7 @@ struct node *node_toplevel_owner(struct node *node) {
   if (node_toplevel(node) != NULL) {
     return node;
   } else {
-    return node_toplevel_owner(node->scope->parent->node);
+    return node_toplevel_owner(node_parent(node));
   }
 }
 
@@ -419,7 +419,7 @@ struct node *node_statement_owner(struct node *node) {
   if (node_is_statement(node)) {
     return node;
   } else {
-    return node_statement_owner(node->scope->parent->node);
+    return node_statement_owner(node_parent(node));
   }
 }
 
@@ -470,6 +470,18 @@ ident node_ident(const struct node *node) {
   default:
     return ID_ANONYMOUS;
   }
+}
+
+struct node *node_parent(struct node *node) {
+  if (node->scope == NULL) {
+    return NULL;
+  } else {
+    return node-> scope->parent->node;
+  }
+}
+
+const struct node *node_parent_const(const struct node *node) {
+  return node_parent((struct node *) node);
 }
 
 const struct toplevel *node_toplevel_const(const struct node *node) {
@@ -551,14 +563,14 @@ bool node_is_def(const struct node *node) {
 
 bool node_is_statement(const struct node *node) {
   return node->scope->parent != NULL
-    && node->scope->parent->node->which == BLOCK;
+    && node_parent_const(node)->which == BLOCK;
 }
 
 bool node_is_at_top(const struct node *node) {
   if (node->scope->parent == NULL) {
     return FALSE;
   } else {
-    return node->scope->parent->node->which == MODULE_BODY;
+    return node_parent_const(node)->which == MODULE_BODY;
   }
 }
 
@@ -3187,8 +3199,8 @@ bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *
   }
 
   if (a->which == TYPE_FUNCTION && b->which == TYPE_FUNCTION) {
-    const struct typ *pa = a->definition->scope->parent->node->typ;
-    const struct typ *pb = b->definition->scope->parent->node->typ;
+    const struct typ *pa = node_parent(a->definition)->typ;
+    const struct typ *pb = node_parent(b->definition)->typ;
     if (typ_equal(mod, pa, pb)) {
       size_t n;
       for (n = 0; n < a->gen_arity; ++n) {

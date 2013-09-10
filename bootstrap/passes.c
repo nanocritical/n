@@ -527,7 +527,7 @@ static error step_codeloc_for_generated(struct module *mod, struct node *node, v
   if (node->codeloc == 0
       && node->scope != NULL
       && node->scope->parent != NULL) {
-    node->codeloc = node->scope->parent->node->codeloc;
+    node->codeloc = node_parent(node)->codeloc;
   }
 
   return 0;
@@ -754,12 +754,12 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
       e = scope_define(mod, node->scope, id, node);
       EXCEPT(e);
     } else if (toplevel->scope_name == 0
-        || node->scope->parent->node->which == DEFINTF) {
+        || node_parent(node)->which == DEFINTF) {
       sc = node->scope->parent;
     } else {
-      if (node->scope->parent->node->which == DEFTYPE) {
+      if (node_parent(node)->which == DEFTYPE) {
         // Generic instance *members* already have the 'right' parent.
-        container = node->scope->parent->node;
+        container = node_parent(node);
         sc = container->scope;
       } else {
         e = scope_lookup_ident_wontimport(&container, node, mod, node->scope->parent,
@@ -918,7 +918,7 @@ static error step_stop_funblock(struct module *mod, struct node *node, void *use
     return 0;
   }
 
-  switch (node->scope->parent->node->which) {
+  switch (node_parent(node)->which) {
   case DEFFUN:
   case DEFMETHOD:
     *stop = TRUE;
@@ -957,8 +957,8 @@ static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node, 
     }
     break;
   case DEFARG:
-    if (rew_find_subnode_in_parent(node->scope->parent->node, node) == IDX_FUN_FIRSTARG
-        && node->scope->parent->node->which == DEFMETHOD) {
+    if (rew_find_subnode_in_parent(node_parent(node), node) == IDX_FUN_FIRSTARG
+        && node_parent(node)->which == DEFMETHOD) {
       // We just found self as a method argument on the way up, doesn't count.
       assert(mod->firstpass_state->fun_uses_final);
       mod->firstpass_state->fun_uses_final = FALSE;
@@ -1351,7 +1351,7 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
 static error step_type_aliases(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct node *parent = node->scope->parent->node;
+  struct node *parent = node_parent(node);
   error e;
   switch (node->which) {
   case IMPORT:
@@ -2572,8 +2572,8 @@ static error type_destruct_import_path(struct module *mod, struct node *node) {
   error e = 0;
 
   if (node->which == BIN) {
-    struct node *parent = node->scope->parent->node;
-    struct node *pparent = parent->scope->parent->node;
+    struct node *parent = node_parent(node);
+    struct node *pparent = node_parent(parent);
 
     if (pparent->which == IMPORT) {
       e = scope_lookup_module(&target_mod, mod, node->subs[0], FALSE);
@@ -3154,7 +3154,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     node->flags = node->as.DIRECTDEF.definition->flags;
     goto ok;
   case DEFCHOICE:
-    node->typ = node->scope->parent->node->typ;
+    node->typ = node_parent(node)->typ;
     goto ok;
   default:
     goto ok;
@@ -3392,7 +3392,7 @@ static void define_builtin(struct module *mod, struct node *deft,
     modbody = NULL;
     insert_pos = -1;
   } else {
-    modbody = deft->scope->parent->node;
+    modbody = node_parent(deft);
     insert_pos = rew_find_subnode_in_parent(modbody, deft) + 1;
   }
 
@@ -3411,7 +3411,7 @@ static void define_builtin(struct module *mod, struct node *deft,
   } else {
     d = calloc(1, sizeof(*d));
   }
-  intf_proto_deepcopy(mod, proto->scope->parent->node, d, proto);
+  intf_proto_deepcopy(mod, node_parent(proto), d, proto);
   mk_expr_abspath(mod, d, builtingen_abspath[bg]);
   rew_move_last_over(d, 0, FALSE);
 
@@ -3434,14 +3434,14 @@ static void define_builtin(struct module *mod, struct node *deft,
 
 static void define_defchoice_builtin(struct module *mod, struct node *ch,
                                      enum builtingen bg, enum node_which which) {
-  struct node *deft = ch->scope->parent->node;
+  struct node *deft = node_parent(ch);
 
   struct node *proto = NULL;
   error e = scope_lookup_abspath(&proto, ch, mod, builtingen_abspath[bg]);
   assert(!e);
 
   struct node *d = mk_node(mod, ch, which);
-  intf_proto_deepcopy(mod, proto->scope->parent->node, d, proto);
+  intf_proto_deepcopy(mod, node_parent(proto), d, proto);
   mk_expr_abspath(mod, d, builtingen_abspath[bg]);
   rew_move_last_over(d, 0, FALSE);
 
@@ -3474,7 +3474,7 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
     return 0;
   }
 
-  const struct node *deft = node->scope->parent->node;
+  const struct node *deft = node_parent(node);
   if (deft->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     return 0;
   }
@@ -3542,7 +3542,7 @@ static error define_auto(struct module *mod, struct node *deft,
     modbody = NULL;
     insert_pos = -1;
   } else {
-    modbody = deft->scope->parent->node;
+    modbody = node_parent(deft);
     insert_pos = rew_find_subnode_in_parent(modbody, deft) + 1;
   }
 
@@ -3552,7 +3552,7 @@ static error define_auto(struct module *mod, struct node *deft,
   } else {
     d = calloc(1, sizeof(*d));
   }
-  intf_proto_deepcopy(mod, proto->scope->parent->node, d, proto);
+  intf_proto_deepcopy(mod, node_parent(proto), d, proto);
 
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->scope_name = node_ident(deft);
@@ -3565,7 +3565,7 @@ static error define_auto(struct module *mod, struct node *deft,
     struct node *arg = ctor->subs[n];
     assert(arg->which == DEFARG);
     struct node *cpy = node_new_subnode(mod, d);
-    intf_proto_deepcopy(mod, proto->scope->parent->node, cpy, arg);
+    intf_proto_deepcopy(mod, node_parent(proto), cpy, arg);
     rew_insert_last_at(d, n - 1);
   }
 
@@ -3641,7 +3641,7 @@ static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *
     return 0;
   }
 
-  struct node *deft = node->scope->parent->node;
+  struct node *deft = node_parent(node);
   assert(deft->which == DEFTYPE);
   if (deft->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_MK, DEFFUN);
@@ -3711,7 +3711,7 @@ static error step_add_trivials(struct module *mod, struct node *node, void *user
 static void define_dispatch(struct module *mod, struct node *deft, const struct typ *tintf) {
   struct node *intf = tintf->definition;
 
-  struct node *modbody = deft->scope->parent->node;
+  struct node *modbody = node_parent(deft);
   size_t insert_pos = rew_find_subnode_in_parent(modbody, deft) + 1;
 
   for (size_t n = 0; n < intf->subs_count; ++n) {
@@ -3729,7 +3729,7 @@ static void define_dispatch(struct module *mod, struct node *deft, const struct 
     }
 
     struct node *d = mk_node(mod, modbody, proto->which);
-    intf_proto_deepcopy(mod, proto->scope->parent->node, d, proto);
+    intf_proto_deepcopy(mod, node_parent(proto), d, proto);
     char *abspath = scope_name(mod, proto->scope);
     mk_expr_abspath(mod, d, abspath);
     rew_move_last_over(d, 0, FALSE);
@@ -4434,7 +4434,7 @@ static error step_put_defname_expr_in_let_block(struct module *mod, struct node 
       may_insert_last_value_assign(mod, expr, d->as.DEFNAME.pattern, 0);
 
       if (defp_block == NULL) {
-        struct node *let = node->scope->parent->node;
+        struct node *let = node_parent(node);
         struct node *target_let_block = NULL;
 
         if (node_has_tail_block(let)) {
@@ -4561,9 +4561,9 @@ static bool is_significant(const struct node *node) {
 }
 
 static void closest_significant_parent(struct node **parent, struct node *node) {
-  struct node *n = node->scope->parent->node;
+  struct node *n = node_parent(node);
   while (!is_significant(n)) {
-    n = n->scope->parent->node;
+    n = node_parent(n);
   }
   *parent = n;
 }
@@ -4730,7 +4730,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
   error e = pass(mod, node, temprvalue_down, temprvalue_up, NULL, &temps);
   EXCEPT(e);
 
-  struct node *parent = node->scope->parent->node;
+  struct node *parent = node_parent(node);
   size_t where = rew_find_subnode_in_parent(parent, node);
   for (size_t n = 0; n < temps.count; ++n) {
     struct node *original = temps.rvalues[n];

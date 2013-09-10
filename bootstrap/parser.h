@@ -726,6 +726,8 @@ struct node *node_toplevel_owner(struct node *node);
 struct node *node_statement_owner(struct node *node);
 
 ident node_ident(const struct node *node);
+struct node *node_parent(struct node *node);
+const struct node *node_parent_const(const struct node *node);
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);
 bool node_is_export(const struct node *node);

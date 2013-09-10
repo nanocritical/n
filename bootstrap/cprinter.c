@@ -273,7 +273,7 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
   }
 
   const struct typ *ftyp = node->subs[0]->typ;
-  const struct node *parentd = ftyp->definition->scope->parent->node;
+  const struct node *parentd = node_parent_const(ftyp->definition);
   print_typ(out, mod, ftyp);
   fprintf(out, "(");
 
@@ -402,7 +402,7 @@ static error is_local_name(bool *is_local, const struct module *mod, const struc
   struct node *def = NULL;
   error e = scope_lookup(&def, mod, node->scope, node);
   EXCEPT(e);
-  enum node_which parent_which = def->scope->parent->node->which;
+  enum node_which parent_which = node_parent_const(def)->which;
   *is_local = parent_which != MODULE && parent_which != DEFTYPE && parent_which != DEFINTF;
   return 0;
 }
@@ -680,7 +680,7 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
     if (node_is_at_top(typ->definition)) {
       fprintf(out, "%s", replace_dots(typ_name(mod, typ)));
     } else {
-      const struct node *parent = typ->definition->scope->parent->node;
+      const struct node *parent = node_parent_const(typ->definition);
       const struct typ *tparent = parent->typ;
       print_typ(out, mod, tparent);
       if (parent->which == DEFCHOICE) {
@@ -774,7 +774,7 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
 
 static void print_defpattern(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
   assert(node->which == DEFPATTERN);
-  struct node *let = node->scope->parent->node;
+  const struct node *let = node_parent_const(node);
   if (node_is_at_top(let) && header && !node_is_export(let)) {
     return;
   }
@@ -1060,10 +1060,10 @@ static void bg_return_if_by_copy(FILE *out, const struct module *mod, const stru
 
 static void print_deffun_builtingen(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, " {\n");
-  if (node->scope->parent->node->which == DEFTYPE
-      || node->scope->parent->node->which == DEFCHOICE) {
+  if (node_parent_const(node)->which == DEFTYPE
+      || node_parent_const(node)->which == DEFCHOICE) {
     fprintf(out, "#define THIS(x) ");
-    print_typ(out, mod, node->scope->parent->node->typ);
+    print_typ(out, mod, node_parent_const(node)->typ);
     fprintf(out, "##x\n");
   }
 
@@ -1131,15 +1131,15 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     break;
   case BG_SUM_CTOR_WITH_CTOR:
     fprintf(out, "self->which__ = %s_which__;\n", replace_dots(scope_name(mod, node->scope->parent)));
-    fprintf(out, "self->as__.%s = c;\n", idents_value(mod->gctx, node_ident(node->scope->parent->node)));
+    fprintf(out, "self->as__.%s = c;\n", idents_value(mod->gctx, node_ident(node_parent_const(node))));
     break;
   case BG_SUM_CTOR_WITH_MK:
-    fprintf(out, "THIS(_%s_ctor)(&r, c);\n", idents_value(mod->gctx, node_ident(node->scope->parent->node)));
+    fprintf(out, "THIS(_%s_ctor)(&r, c);\n", idents_value(mod->gctx, node_ident(node_parent_const(node))));
     bg_return_if_by_copy(out, mod, node, "r");
     break;
   case BG_SUM_CTOR_WITH_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
-    fprintf(out, "THIS(_%s_ctor)(self, c);\n", idents_value(mod->gctx, node_ident(node->scope->parent->node)));
+    fprintf(out, "THIS(_%s_ctor)(self, c);\n", idents_value(mod->gctx, node_ident(node_parent_const(node))));
     fprintf(out, "return self;\n");
     break;
   case BG_ENUM_EQ:
@@ -1156,8 +1156,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     break;
   case BG_SUM_DISPATCH:
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
-      struct node *ch = node->scope->parent->node->subs[n];
+    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
+      struct node *ch = node_parent_const(node)->subs[n];
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1180,8 +1180,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_COPY:
     fprintf(out, "self->which__ = other->which__;\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
-      struct node *ch = node->scope->parent->node->subs[n];
+    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
+      struct node *ch = node_parent_const(node)->subs[n];
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1196,8 +1196,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_EQUALITY_EQ:
     fprintf(out, "if (self->which__ != other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
-      struct node *ch = node->scope->parent->node->subs[n];
+    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
+      struct node *ch = node_parent_const(node)->subs[n];
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1212,8 +1212,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_EQUALITY_NE:
     fprintf(out, "if (self->which__ != other->which__) { return 1; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
-      struct node *ch = node->scope->parent->node->subs[n];
+    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
+      struct node *ch = node_parent_const(node)->subs[n];
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1228,8 +1228,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_ORDER_LE:
     fprintf(out, "if (self->which__ > other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
-      struct node *ch = node->scope->parent->node->subs[n];
+    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
+      struct node *ch = node_parent_const(node)->subs[n];
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1244,8 +1244,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_ORDER_LT:
     fprintf(out, "if (self->which__ >= other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
-      struct node *ch = node->scope->parent->node->subs[n];
+    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
+      struct node *ch = node_parent_const(node)->subs[n];
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1261,8 +1261,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_ORDER_GT:
     fprintf(out, "if (self->which__ <= other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
-      struct node *ch = node->scope->parent->node->subs[n];
+    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
+      struct node *ch = node_parent_const(node)->subs[n];
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1277,8 +1277,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_ORDER_GE:
     fprintf(out, "if (self->which__ < other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node->scope->parent->node->subs_count; ++n) {
-      struct node *ch = node->scope->parent->node->subs[n];
+    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
+      struct node *ch = node_parent_const(node)->subs[n];
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1306,8 +1306,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
   rtr_helpers(out, mod, node, FALSE);
 
-  if (node->scope->parent->node->which == DEFTYPE
-      || node->scope->parent->node->which == DEFCHOICE) {
+  if (node_parent_const(node)->which == DEFTYPE
+      || node_parent_const(node)->which == DEFCHOICE) {
     fprintf(out, "#undef THIS\n");
   }
   fprintf(out, "}\n");
@@ -1346,9 +1346,9 @@ static void print_deffun(FILE *out, bool header, enum forward fwd, const struct 
     print_fun_prototype(out, header, mod, node, FALSE, FALSE, FALSE, NULL);
 
     fprintf(out, "{\n");
-    if (node->scope->parent->node->which == DEFTYPE) {
+    if (node_parent_const(node)->which == DEFTYPE) {
       fprintf(out, "#define THIS(x) ");
-      print_typ(out, mod, node->scope->parent->node->typ);
+      print_typ(out, mod, node_parent_const(node)->typ);
       fprintf(out, "##x\n");
     }
 
@@ -1361,7 +1361,7 @@ static void print_deffun(FILE *out, bool header, enum forward fwd, const struct 
 
     rtr_helpers(out, mod, node, FALSE);
 
-    if (node->scope->parent->node->which == DEFTYPE) {
+    if (node_parent_const(node)->which == DEFTYPE) {
       fprintf(out, "#undef THIS\n");
     }
     fprintf(out, "}\n");
@@ -2082,7 +2082,7 @@ static void print_top(FILE *out, bool header, enum forward fwd, const struct mod
   case DEFFUN:
   case DEFMETHOD:
     if (toplevel->scope_name != 0
-        && node_toplevel_const(node->scope->parent->node)->instances_count >= 1) {
+        && node_toplevel_const(node_parent_const(node))->instances_count >= 1) {
       // noop
     } else {
       print_deffun(out, header, fwd, mod, node);
