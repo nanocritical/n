@@ -40,7 +40,7 @@ const char *token_strings[TOKEN__NUM] = {
   [Ttrue] = "true",
   [Tisa] = " isa ",
   [Tnull] = "null",
-  [Tpass] = "pass",
+  [Tnoop] = "noop",
   [Tpre] = "pre",
   [Tpost] = "post",
   [Tinvariant] = "invariant",
@@ -462,8 +462,8 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
   case CONTINUE:
     fprintf(out, "continue");
     break;
-  case PASS:
-    fprintf(out, "pass");
+  case NOOP:
+    fprintf(out, "noop");
     break;
   case BLOCK:
     fprintf(out, "block");
@@ -612,9 +612,9 @@ static void print_deftype_statement(FILE *out, const struct module *mod, int ind
   case DEFCHOICE:
     print_defchoice(out, mod, node);
     break;
-  case PASS:
+  case NOOP:
     spaces(out, indent + 2);
-    fprintf(out, "pass");
+    fprintf(out, "noop");
     break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);

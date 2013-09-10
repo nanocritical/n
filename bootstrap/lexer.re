@@ -131,7 +131,7 @@ normal:
   "true" { R(Ttrue); }
   "isa" { R(Tisa); }
   "null" { R(Tnull); }
-  "pass" { R(Tpass); }
+  "noop" { R(Tnoop); }
   "pre" { R(Tpre); }
   "post" { R(Tpost); }
   "invariant" { R(Tinvariant); }

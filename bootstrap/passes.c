@@ -3018,7 +3018,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case EXCEP:
   case BREAK:
   case CONTINUE:
-  case PASS:
+  case NOOP:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
     goto ok;
   case IF:

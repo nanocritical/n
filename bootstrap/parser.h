@@ -29,7 +29,7 @@ enum node_which {
   WHILE,
   BREAK,
   CONTINUE,
-  PASS,
+  NOOP,
   IF,
   MATCH,
   TRY,

@@ -30,7 +30,7 @@ const char *node_which_strings[] = {
   [WHILE] = "WHILE",
   [BREAK] = "BREAK",
   [CONTINUE] = "CONTINUE",
-  [PASS] = "PASS",
+  [NOOP] = "NOOP",
   [IF] = "IF",
   [MATCH] = "MATCH",
   [TRY] = "TRY",
@@ -2029,8 +2029,8 @@ static error p_continue(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_pass(struct node *node, struct module *mod) {
-  node->which = PASS;
+static error p_noop(struct node *node, struct module *mod) {
+  node->which = NOOP;
   return 0;
 }
 
@@ -2114,8 +2114,8 @@ static error p_statement(struct node *parent, struct module *mod) {
   case Tcontinue:
     e = p_continue(NEW, mod);
     break;
-  case Tpass:
-    e = p_pass(NEW, mod);
+  case Tnoop:
+    e = p_noop(NEW, mod);
     break;
   case Tpre:
     e = p_pre(NEW, mod);
@@ -2150,7 +2150,7 @@ static error p_block(struct node *node, struct module *mod) {
 again:
   if (tok.t == TEOB) {
     if (first) {
-      EXCEPT_SYNTAX(mod, &tok, "block cannot be empty (use 'pass' instead)");;
+      EXCEPT_SYNTAX(mod, &tok, "block cannot be empty (use 'noop' instead)");;
     } else {
       return 0;
     }
@@ -2407,8 +2407,8 @@ static error p_deftype_statement(struct node *node, struct module *mod) {
   EXCEPT(e);
 
   switch (tok.t) {
-  case Tpass:
-    e = p_pass(node, mod);
+  case Tnoop:
+    e = p_noop(node, mod);
     break;
   case Tlet:
   case Talias:
@@ -2446,7 +2446,7 @@ static error p_deftype_block(struct node *node, struct module *mod) {
 again:
   if (tok.t == TEOB) {
     if (first) {
-      EXCEPT_SYNTAX(mod, &tok, "block cannot be empty (use 'pass' instead)");;
+      EXCEPT_SYNTAX(mod, &tok, "block cannot be empty (use 'noop' instead)");;
     } else {
       return 0;
     }
@@ -2613,7 +2613,7 @@ static error p_defintf_block(struct node *node, struct module *mod, ident intf_n
 again:
   if (tok.t == TEOB) {
     if (first) {
-      EXCEPT_SYNTAX(mod, &tok, "block cannot be empty (use 'pass' instead)");;
+      EXCEPT_SYNTAX(mod, &tok, "block cannot be empty (use 'noop' instead)");;
     } else {
       return 0;
     }

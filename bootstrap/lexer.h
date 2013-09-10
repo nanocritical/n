@@ -42,7 +42,7 @@ enum token_type {
   Ttrue,
   Tisa,
   Tnull,
-  Tpass,
+  Tnoop,
   Tpre,
   Tpost,
   Tinvariant,

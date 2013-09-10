@@ -847,7 +847,7 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
   case CONTINUE:
     fprintf(out, "continue");
     break;
-  case PASS:
+  case NOOP:
     fprintf(out, ";");
     break;
   case IF:

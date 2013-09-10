@@ -8,9 +8,9 @@ fun bar p:@u32 = u32
 
 export fun main = i32
   if true
-    pass
+    noop
   else
-    pass
+    noop
   block
     assert true
   let x = block

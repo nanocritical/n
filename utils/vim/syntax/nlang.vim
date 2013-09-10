@@ -17,7 +17,7 @@ syn keyword nRepeat for pfor foreach pforeach
 syn keyword nStatement let return block lambda async
 syn keyword nOperator in and or not bwxor isa
 syn keyword nOperator sizeof
-syn keyword nKeyword pass as attr declare
+syn keyword nKeyword noop as attr declare
 syn keyword nException try catch throw except
 syn match nOperator "[@:]"
 syn match nSemanticOperator "[&]"

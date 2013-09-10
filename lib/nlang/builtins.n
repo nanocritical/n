@@ -711,7 +711,7 @@ export extern inline fun likely x:bool = bool
 export extern inline fun unlikely x:bool = bool
 
 export inline (fun t:i_any) unused x:t = void
-  pass
+  noop
 
 export inline (fun t:i_any) optional opt:?@t fallback:t = t
   if opt !== null
