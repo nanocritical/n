@@ -14,26 +14,38 @@ fi
 ret=0
 
 function build_and_run() {
-  $wd/ncc0 $1 2> $1.stderr.out \
-	  && ./a.out > $1.stdout.out 2>> $1.stderr.out
+	$wd/ncc0 $1 2> $1.stderr.out || return
+	./a.out > $1.stdout.out 2>> $1.stderr.out || return
+}
+
+function pretty_status() {
+	if (( $ret == 0 )); then
+		echo exit 0
+	elif (( $ret <= 128 )); then
+		echo exit $ret
+	else
+		echo signal $(($ret - 128))
+	fi
 }
 
 for t in $list; do
 	rm -f $t.*.out
 	# Assume that having a .stderr.ref file means the test should fail.
 	if [ -f $t.stderr.ref ]; then
-		if build_and_run $t; then
-			echo "FAILED $t: did not fail"
-			ret=1
+		build_and_run $t
+		ret=$?
+		if (( $ret == 0 )); then
+			echo "FAILED $t: did not fail ($(pretty_status $ret))"
 			if ! [ -s $t.stderr.out ]; then
 				# Remove empty.
 				rm $t.stderr.out
 			fi
 		fi
 	else
-		if ! build_and_run $t; then
-			echo "FAILED $t: did not succeed"
-			ret=1
+		build_and_run $t
+		ret=$?
+		if (( $ret != 0 )); then
+			echo "FAILED $t: did not succeed ($(pretty_status $ret))"
 		fi
 		if ! [ -s $t.stderr.out ]; then
 			# Remove empty.
