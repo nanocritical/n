@@ -1,3 +1,0 @@
-from nlang import *
-
-fun find name:string = fn:string
