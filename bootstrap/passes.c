@@ -2468,6 +2468,12 @@ static error type_inference_if(struct module *mod, struct node *node) {
     struct node *els = node->subs[node->subs_count-1];
     e = typ_unify(&u, mod, els, u, els->typ);
     EXCEPT(e);
+  } else {
+    if (!typ_equal(mod, u, typ_lookup_builtin(mod, TBI_VOID))) {
+      e = mk_except_type(mod, node,
+                         "if statement is not of type void but is missing an else branch");
+      EXCEPT(e);
+    }
   }
 
   node->typ = u;
