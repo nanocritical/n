@@ -1696,7 +1696,9 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     }
     break;
   case OP_BIN_SYM_PTR:
-    e = typ_check_is_reference_instance(mod, node, node->typ);
+    e = typ_check_is_reference_instance(mod, node, node->subs[0]->typ);
+    EXCEPT(e);
+    e = typ_check_is_reference_instance(mod, node, node->subs[1]->typ);
     EXCEPT(e);
     node->typ = typ_lookup_builtin(mod, TBI_BOOL);
     break;
