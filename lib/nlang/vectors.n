@@ -63,11 +63,12 @@ export vector method all = index_range
 export vector method# i_copyable.copy_ctor other:@this = void
   (heap.slice_realloc t) @!sysheap @#self#_p other._p.count
   self._p!copy 0 @other._p 0 other._p.count
+  self!_count = other._count
 
 export vector method# append_slice other:@(slice t) = void
   (heap.slice_realloc t) @!sysheap @#self#_p other.count
   self._p!copy 0 other 0 other.count
   self!_count = other.count
 
-export vector method$ storage = (slice t)
+export vector method$ storage = @$(slice t) -- ::unique
   return self._p$sub self.all

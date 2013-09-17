@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 #define DIR_MODULE_NAME "module.n"
-#define CFLAGS "-Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -pedantic -I. -g"
+#define CFLAGS "-Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g"
 #define LDFLAGS CFLAGS " -Wl,--gc-sections"
 
 static error sh(const char *cmd) {
@@ -197,24 +197,27 @@ static error for_all_nodes(struct node *root,
     .user = user,
   };
 
-  error e = pass(NULL, root, downsteps, upsteps, &op);
+  error e = pass(NULL, root, downsteps, upsteps, -1, &op);
   EXCEPT(e);
 
   return 0;
 }
 
 static error load_module(struct module **main_mod,
-                         struct globalctx *gctx, const char *prefix, const char *fn) {
+                         struct globalctx *gctx,
+                         struct stage *stage,
+                         const char *prefix, const char *fn) {
   struct module *mod = calloc(1, sizeof(struct module));
 
-  error e = module_open(gctx, mod, prefix, fn);
+  error e = module_open(gctx, stage, mod, prefix, fn);
   EXCEPT(e);
 
-  gctx->loaded = realloc(gctx->loaded, (gctx->loaded_count + 1) * sizeof(struct node *));
-  gctx->loaded[gctx->loaded_count] = mod->root;
-  gctx->loaded_count += 1;
+  stage->loaded = realloc(stage->loaded,
+                         (stage->loaded_count + 1) * sizeof(*stage->loaded));
+  stage->loaded[stage->loaded_count] = mod->root;
+  stage->loaded_count += 1;
 
-  e = zeropass(mod, NULL);
+  e = advance(mod, 0);
   EXCEPT(e);
 
   if (main_mod != NULL) {
@@ -368,14 +371,14 @@ static error load_import(struct node *node, void *user, bool *stop) {
   e = lookup_import(&prefix, &fn, mod, node, prefixes);
   EXCEPT(e);
 
-  e = load_module(NULL, mod->gctx, prefix, fn);
+  e = load_module(NULL, mod->gctx, mod->stage, prefix, fn);
   free(fn);
   EXCEPT(e);
 
   return 0;
 }
 
-static error load_imports(struct node *node, const char **prefixes) {
+static error load_imports(struct stage *stage, struct node *node) {
   assert(node->which == MODULE);
 
   if (node->as.MODULE.is_placeholder) {
@@ -384,7 +387,7 @@ static error load_imports(struct node *node, const char **prefixes) {
 
   assert(node->as.MODULE.mod != NULL);
   error e = for_all_nodes(node->as.MODULE.mod->root, IMPORT, load_import,
-                          prefixes);
+                          stage->prefixes);
   EXCEPT(e);
 
   return 0;
@@ -405,8 +408,6 @@ struct dependencies {
   struct modules_set added;
   struct module **tmp;
   size_t tmp_count;
-  struct module **modules;
-  size_t modules_count;
   struct globalctx *gctx;
 };
 
@@ -462,9 +463,12 @@ static error gather_dependencies(struct node *node, struct dependencies *deps) {
     NULL,
   };
 
-  error e = pass(node_module_owner(node), node_module_owner(node)->body,
-                 down, up, deps);
+  struct module *mod = node_module_owner(node);
+  PUSH_STATE(mod->state);
+  error e = pass(mod, mod->body,
+                 down, up, -1, deps);
   EXCEPT(e);
+  POP_STATE(mod->state);
 
   return 0;
 }
@@ -483,9 +487,10 @@ static error calculate_dependencies(struct dependencies *deps) {
       continue;
     }
 
-    deps->modules_count += 1;
-    deps->modules = realloc(deps->modules, deps->modules_count * sizeof(*deps->modules));
-    deps->modules[deps->modules_count - 1] = m;
+    struct stage *stage = m->stage;
+    stage->sorted_count += 1;
+    stage->sorted = realloc(stage->sorted, stage->sorted_count * sizeof(*stage->sorted));
+    stage->sorted[stage->sorted_count - 1] = m;
   }
 
   modules_set_destroy(&pushed);
@@ -497,7 +502,7 @@ static error calculate_dependencies(struct dependencies *deps) {
   return 0;
 }
 
-static error run_examples(const struct dependencies *deps) {
+static error run_examples(const struct stage *stage) {
   static const char *out_fn = "a.out.examples";
   static const char *main_fn = "a.out.examples.c";
 
@@ -506,21 +511,21 @@ static error run_examples(const struct dependencies *deps) {
     EXCEPTF(errno, "Cannot open output file '%s'", main_fn);
   }
 
-  for (size_t n = 0; n < deps->modules_count; ++n) {
-    const struct module *mod = deps->modules[n];
+  for (size_t n = 0; n < stage->sorted_count; ++n) {
+    const struct module *mod = stage->sorted[n];
     fprintf(run, "void %s(void);\n", printer_c_runexamples_name(mod));
   }
 
   fprintf(run, "int main(void) {\n");
-  for (size_t n = 0; n < deps->modules_count; ++n) {
-    const struct module *mod = deps->modules[n];
+  for (size_t n = 0; n < stage->sorted_count; ++n) {
+    const struct module *mod = stage->sorted[n];
     fprintf(run, "%s();\n", printer_c_runexamples_name(mod));
   }
     fprintf(run, "}\n");
   fclose(run);
 
-  char *inputs = file_list((const struct module **)deps->modules,
-                           deps->modules_count, o_filename);
+  char *inputs = file_list((const struct module **)stage->sorted,
+                           stage->sorted_count, o_filename);
   error e = clink(out_fn, inputs, main_fn);
   free(inputs);
   EXCEPT(e);
@@ -535,7 +540,7 @@ static error run_examples(const struct dependencies *deps) {
   return 0;
 }
 
-static error program_link(const struct dependencies *deps) {
+static error program_link(const struct stage *stage) {
   const char *out_fn = "a.out";
   const char *main_fn = "a.out.c";
 
@@ -547,8 +552,8 @@ static error program_link(const struct dependencies *deps) {
   fprintf(run, "int main(int argc, char **argv, char **env) {\nreturn __Nmain(argc, argv, env);\n}\n");
   fclose(run);
 
-  char *inputs = file_list((const struct module **)deps->modules,
-                           deps->modules_count, o_filename);
+  char *inputs = file_list((const struct module **)stage->sorted,
+                           stage->sorted_count, o_filename);
   error e = clink(out_fn, inputs, main_fn);
   free(inputs);
   EXCEPT(e);
@@ -565,15 +570,18 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  struct module *main_mod = NULL;
-  error e = load_module(&main_mod, &gctx, NULL, argv[1]);
+  struct stage stage = { 0 };
+  PUSH_STATE(stage.state);
+
+  error e = load_module(&stage.entry_point, &gctx, &stage, NULL, argv[1]);
   EXCEPT(e);
 
   const char *prefixes[] = { "", "lib", NULL };
+  stage.prefixes = prefixes;
 
   size_t processed = 0;
-  while (processed < gctx.loaded_count) {
-    e = load_imports(gctx.loaded[processed], prefixes);
+  while (processed < stage.loaded_count) {
+    e = load_imports(&stage, stage.loaded[processed]);
     EXCEPT(e);
     processed += 1;
   }
@@ -585,53 +593,61 @@ int main(int argc, char **argv) {
   modules_set_set_custom_hashf(&deps.added, module_pointer_hash);
   modules_set_set_custom_cmpf(&deps.added, module_pointer_cmp);
 
-  e = gather_dependencies(main_mod->root, &deps);
+  e = gather_dependencies(stage.entry_point->root, &deps);
   EXCEPT(e);
 
   e = calculate_dependencies(&deps);
   EXCEPT(e);
 
-  for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
-    for (size_t n = 0; n < deps.modules_count; ++n) {
-      struct module *mod = deps.modules[n];
-      if (s == 0) {
-        PUSH_STATE(mod->fwdpass_state);
-      }
+  size_t p;
+  for (p = 1; passes[p].kind == PASS_FORWARD; ++p) {
+    stage.state->passing = p;
 
-      mod->fwdpass_state->passing = s;
-      e = fwd_passes[s](mod, NULL);
+    for (size_t n = 0; n < stage.sorted_count; ++n) {
+      struct module *mod = stage.sorted[n];
+
+      PUSH_STATE(mod->state);
+
+      e = advance(mod, p);
       EXCEPT(e);
+
+      POP_STATE(mod->state);
     }
   }
 
-  for (size_t n = 0; n < deps.modules_count; ++n) {
-    struct module *mod = deps.modules[n];
+  for (size_t n = 0; n < stage.sorted_count; ++n) {
+    struct module *mod = stage.sorted[n];
 
-    mod->fwdpass_state->afternoon = TRUE;
-    for (size_t s = 0; body_passes[s] != NULL; ++s) {
-      e = body_passes[s](mod, NULL);
+    PUSH_STATE(mod->state);
+
+    for (size_t pp = p; passes[pp].kind == PASS_BODY; ++pp) {
+      stage.state->passing = pp;
+
+      e = advance(mod, pp);
       EXCEPT(e);
     }
+
+    POP_STATE(mod->state);
   }
 
-  for (size_t n = 0; n < deps.modules_count; ++n) {
-    struct module *mod = deps.modules[n];
+  for (size_t n = 0; n < stage.sorted_count; ++n) {
+    const struct module *mod = stage.sorted[n];
 
     e = generate(mod->root);
     EXCEPT(e);
   }
 
-  for (size_t n = 0; n < deps.modules_count; ++n) {
-    struct module *mod = deps.modules[n];
+  for (size_t n = 0; n < stage.sorted_count; ++n) {
+    const struct module *mod = stage.sorted[n];
 
     e = compile(mod->root);
     EXCEPT(e);
   }
 
-  e = run_examples(&deps);
+  e = run_examples(&stage);
   EXCEPT(e);
 
-  e = program_link(&deps);
+  e = program_link(&stage);
   EXCEPT(e);
 
   return 0;

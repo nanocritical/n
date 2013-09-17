@@ -119,7 +119,6 @@ struct toplevel {
   struct node *generic_definition;
 
   ssize_t yet_to_pass;
-  bool is_second_passed;
 };
 
 struct node_nul {};
@@ -165,7 +164,9 @@ struct node_pass {};
 struct node_if {};
 struct node_match {};
 struct node_try {};
-struct node_typeconstraint {};
+struct node_typeconstraint {
+  bool in_pattern;
+};
 struct node_dyn {
   const struct typ *intf;
 };
@@ -602,46 +603,28 @@ struct typ {
   bool is_abstract_genarg;
 };
 
-struct globalctx {
-  struct idents idents;
-  // This node hierarchy is used to park loaded modules using their
-  // absolute name. It is not used for lexical lookup.
-  struct node modules_root;
-
-  struct node **loaded;
-  size_t loaded_count;
-
-  struct typ *builtin_typs[TBI__NUM];
-  struct typ *builtin_typs_by_name[ID__NUM];
-};
-
-struct zeropass_state {
-  struct zeropass_state *prev;
-};
-
-struct try_excepts {
-  struct node **excepts;
-  size_t count;
-};
-
-struct fwdpass_state {
-  struct fwdpass_state *prev;
-
-  bool afternoon;
-  ssize_t passing;
-};
-
-struct firstpass_state {
-  struct firstpass_state *prev;
+struct fun_state {
+  struct fun_state *prev;
 
   bool fun_uses_final;
   const struct node *retval;
-  struct try_excepts *trys;
-  size_t trys_count;
   enum token_type ref_wildcard;
   enum token_type nulref_wildcard;
   enum token_type deref_wildcard;
   enum token_type wildcard;
+};
+
+struct try_state {
+  struct try_state *prev;
+
+  struct node **excepts;
+  size_t count;
+};
+
+struct module_state {
+  struct module_state *prev;
+  bool upward;
+  size_t stepping;
 };
 
 struct except_list {
@@ -662,8 +645,44 @@ struct except_list {
   free(ost); \
 } while (0)
 
+struct globalctx {
+  struct idents idents;
+  // This node hierarchy is used to park loaded modules using their
+  // absolute name. It is not used for lexical lookup.
+  struct node modules_root;
+
+  struct typ *builtin_typs[TBI__NUM];
+  struct typ *builtin_typs_by_name[ID__NUM];
+};
+
+struct stage_state {
+  struct stage_state *prev;
+
+  ssize_t passing;
+};
+
+// A compilation stage is a group of modules that are loaded and compiled
+// together and can be mutually interdependent. Typically, it would be a
+// whole program or a library. Compilation stages can be compiled separately
+// and between compilation stages, however, (inline) dependencies must be
+// cycle-free.
+struct stage {
+  const char **prefixes;
+
+  struct node **loaded;
+  size_t loaded_count;
+
+  struct module **sorted;
+  size_t sorted_count;
+
+  struct module *entry_point;
+
+  struct stage_state *state;
+};
+
 struct module {
   struct globalctx *gctx;
+  struct stage *stage;
 
   const char *filename;
 
@@ -681,16 +700,16 @@ struct module {
   size_t next_post;
   size_t next_invariant;
 
-  struct zeropass_state *zeropass_state;
-  struct fwdpass_state *fwdpass_state;
-  struct firstpass_state *firstpass_state;
+  struct module_state *state;
+  struct fun_state *fun_state;
+  struct try_state *try_state;
 
   struct except_list *excepts;
 };
 
 void globalctx_init(struct globalctx *gctx);
 
-error module_open(struct globalctx *gctx, struct module *mod,
+error module_open(struct globalctx *gctx, struct stage *stage, struct module *mod,
                   const char *prefix, const char *fn);
 error need_instance(struct module *mod, struct node *needer, const struct typ *typ);
 void module_retval_set(struct module *mod, const struct node *retval);
@@ -698,7 +717,7 @@ const struct node *module_retval_get(struct module *mod);
 void module_retval_clear(struct module *mod);
 void module_excepts_open_try(struct module *mod);
 void module_excepts_push(struct module *mod, struct node *excep_node);
-struct try_excepts *module_excepts_get(struct module *mod);
+struct try_state *module_excepts_get(struct module *mod);
 void module_excepts_close_try(struct module *mod);
 
 ident gensym(struct module *mod);
@@ -819,6 +838,6 @@ void rew_pop(struct node *node, bool saved_it);
 void rew_move_last_over(struct node *node, size_t pos, bool saved_it);
 void rew_prepend(struct node *node, struct node *sub);
 void rew_append(struct node *node, struct node *sub);
-size_t rew_find_subnode_in_parent(struct node *parent, struct node *node);
+size_t rew_find_subnode_in_parent(const struct node *parent, struct node *node);
 
 #endif

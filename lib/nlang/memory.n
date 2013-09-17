@@ -19,10 +19,9 @@ export inline type slice t:i_any = \
   _data:?@#t
   _count:size
 
-export inline slice fun unsafe_wrap data:@#t count:size = r:this
-  r!_data = data
-  r!_count = count
-  return r
+export inline slice method# unsafe_wrap data:@#t count:size = void
+  self!_data = data
+  self!_count = count
 
 export inline slice method count = size
   return self._count
@@ -55,8 +54,9 @@ export inline slice method! copy at:size other:@this off:size count:size = void
   let bsz = count * (sizeof t)
   slice_memcpy self#unsafe_rawdata bat other.unsafe_rawdata boff bsz
 
---export inline slice method$ sub r:index_range = (owned this)
-export inline slice method$ sub r:index_range = this
+export inline slice method$ sub r:index_range = @$this -- ::unique
   assert (r.end <= self.count)
   let p = (nlang.unsafe.cast @$t @#t) (self$at r.begin)
-  return this.unsafe_wrap p r.count
+  let ret = this.new
+    ret#unsafe_wrap p r.count
+  return ret

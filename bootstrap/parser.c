@@ -580,17 +580,36 @@ bool node_is_rvalue(const struct node *node) {
     if (OP_KIND(node->as.BIN.operator) == OP_BIN_ACC) {
       return FALSE;
     }
-    // Fallthrough
+    return TRUE;
   case UN:
+    if (OP_KIND(node->as.UN.operator) == OP_UN_DEREF) {
+      return FALSE;
+    }
+    return TRUE;
   case BOOL:
   case STRING:
   case NUMBER:
   case NUL:
   case TUPLE:
+  case INIT:
   case CALL:
     return TRUE;
   case TYPECONSTRAINT:
     return node_is_rvalue(node->subs[0]);
+  case BLOCK:
+    return node->subs_count > 0 && node_is_rvalue(node->subs[node->subs_count - 1]);
+  case IF:
+  case TRY:
+  case MATCH:
+    // Actually not considered to be rvalues, as we always insert a
+    // temporary such that
+    //   let tmp
+    //     tmp = block-like
+    // and we then move the 'tmp =' within the block-like, and then we
+    // consider issues of rvalues/temporaries on these assignments within
+    // the block-like.
+
+    // Fallthrough.
   default:
     return FALSE;
   }
@@ -2687,9 +2706,10 @@ void node_deepcopy(struct module *mod, struct node *dst,
   dst->subs_count = 0;
   dst->typ = NULL;
 
-  if (node_toplevel_const(dst) != NULL) {
-    node_toplevel(dst)->instances = NULL;
-    node_toplevel(dst)->instances_count = 0;
+  struct toplevel *dtoplevel = node_toplevel(dst);
+  if (dtoplevel != NULL) {
+    dtoplevel->instances = NULL;
+    dtoplevel->instances_count = 0;
   }
   if (dst->which == DEFTYPE) {
     dst->as.DEFTYPE.members = NULL;
@@ -2910,10 +2930,14 @@ static error module_parse(struct module *mod) {
   return 0;
 }
 
-static void module_init(struct globalctx *gctx, struct module *mod) {
+static void module_init(struct globalctx *gctx, struct stage *stage,
+                        struct module *mod) {
   memset(mod, 0, sizeof(*mod));
 
   mod->gctx = gctx;
+  mod->stage = stage;
+
+  PUSH_STATE(mod->state);
 }
 
 static error register_module(struct node **parent,
@@ -2978,9 +3002,9 @@ static error register_module(struct node **parent,
   return 0;
 }
 
-error module_open(struct globalctx *gctx, struct module *mod,
+error module_open(struct globalctx *gctx, struct stage *stage, struct module *mod,
                   const char *prefix, const char *fn) {
-  module_init(gctx, mod);
+  module_init(gctx, stage, mod);
 
   error e = parse_modpath(mod, fn);
   EXCEPT(e);
@@ -3022,44 +3046,35 @@ error need_instance(struct module *mod, struct node *needer, const struct typ *t
 }
 
 void module_retval_set(struct module *mod, const struct node *retval) {
-  mod->firstpass_state->retval = retval;
+  mod->fun_state->retval = retval;
 }
 
 const struct node *module_retval_get(struct module *mod) {
-  return mod->firstpass_state->retval;
+  return mod->fun_state->retval;
 }
 
 void module_retval_clear(struct module *mod) {
-  mod->firstpass_state->retval = NULL;
+  mod->fun_state->retval = NULL;
 }
 
 void module_excepts_open_try(struct module *mod) {
-  struct firstpass_state *st = mod->firstpass_state;
-  st->trys_count += 1;
-  st->trys = realloc(st->trys, st->trys_count * sizeof(*st->trys));
-  memset(st->trys + st->trys_count - 1, 0, sizeof(*st->trys));
+  PUSH_STATE(mod->try_state);
 }
 
 void module_excepts_push(struct module *mod, struct node *excep_node) {
-  struct firstpass_state *st = mod->firstpass_state;
-  struct try_excepts *t = &st->trys[st->trys_count - 1];
-  t->count += 1;
-  t->excepts = realloc(t->excepts, t->count * sizeof(*t->excepts));
-  memset(t->excepts + t->count - 1, 0, sizeof(*t->excepts));
-  t->excepts[t->count - 1] = excep_node;
+  struct try_state *st = mod->try_state;
+  st->count += 1;
+  st->excepts = realloc(st->excepts, st->count * sizeof(*st->excepts));
+  st->excepts[st->count - 1] = excep_node;
 }
 
-struct try_excepts *module_excepts_get(struct module *mod) {
-  struct firstpass_state *st = mod->firstpass_state;
-  assert(st->trys_count > 0);
-  return &st->trys[st->trys_count - 1];
+struct try_state *module_excepts_get(struct module *mod) {
+  return mod->try_state;
 }
 
 void module_excepts_close_try(struct module *mod) {
-  struct firstpass_state *st = mod->firstpass_state;
-  assert(st->trys_count > 0);
-  free(st->trys[st->trys_count - 1].excepts);
-  st->trys_count -= 1;
+  free(mod->try_state->excepts);
+  POP_STATE(mod->try_state);
 }
 
 static struct typ *typ_new_builtin(struct node *definition,
@@ -3940,7 +3955,7 @@ void rew_append(struct node *node, struct node *sub) {
   node->subs[node->subs_count - 1] = sub;
 }
 
-size_t rew_find_subnode_in_parent(struct node *parent, struct node *node) {
+size_t rew_find_subnode_in_parent(const struct node *parent, struct node *node) {
   for (size_t n = 0; n < parent->subs_count; ++n) {
     if (parent->subs[n] == node) {
       return n;

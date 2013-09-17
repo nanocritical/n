@@ -326,14 +326,19 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
 }
 
 static void print_init_array(FILE *out, const struct module *mod, const struct node *node) {
+  const struct node *parent = node_parent_const(node);
+  if (parent->which == BIN && OP_ASSIGN(parent->as.BIN.operator)) {
+    const struct node *target = node->as.INIT.target_expr;
+    print_expr(out, mod, target, T__STATEMENT);
+  }
+  fprintf(out, "= ");
+
   if (node->subs_count == 1) {
-    fprintf(out, " = { 0 }");
+    fprintf(out, "{ 0 }");
     return;
   }
 
   assert(typ_isa(mod, node->subs[1]->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY)) && "not yet supported");
-
-  fprintf(out, " = ");
 
   fprintf(out, "(const ");
   print_typ(out, mod, node->typ);
@@ -381,13 +386,11 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
     }
   }
 
-  const struct node *target = node->as.INIT.target_expr;
+  if (node_parent_const(node)->which == DEFPATTERN) {
+    fprintf(out, "= { 0 };\n");
+  }
 
-  fprintf(out, "memset(&(");
-  print_expr(out, mod, target, T__STATEMENT);
-  fprintf(out, "), 0, sizeof(");
-  print_typ(out, mod, node->typ);
-  fprintf(out, "));\n");
+  const struct node *target = node->as.INIT.target_expr;
 
   for (size_t n = 0; n < node->subs_count; n += 2) {
     print_expr(out, mod, target, TDOT);
@@ -764,7 +767,8 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
       if (expr != NULL) {
         if (expr->which == INIT) {
           print_init(out, mod, expr);
-        } else if (expr->which == CALL && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+        } else if (expr->which == CALL
+                   && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
           fprintf(out, " = { 0 };\n");
           print_expr(out, mod, expr, T__STATEMENT);
         } else {
@@ -813,7 +817,8 @@ static void print_let(FILE *out, bool header, enum forward fwd, const struct mod
 
   if (fwd == FWD_DEFINE_FUNCTIONS && last_def != node->subs_count-1) {
     assert(!node_is_inline(node));
-    print_block(out, mod, node->subs[node->subs_count-1], FALSE);
+    struct node *block = node->subs[node->subs_count-1];
+    print_block(out, mod, block, TRUE);
   }
 }
 

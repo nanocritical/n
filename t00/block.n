@@ -3,7 +3,7 @@ from nlang import *
 fun foo = i32
   return block -> 0
 
-fun bar p:@u32 = u32
+fun deref p:@u32 = u32
   return p.
 
 export fun main = i32
@@ -34,6 +34,6 @@ export fun main = i32
   assert (y2 == 'test')
   assert (z2 == 50*99)
 
-  assert ((bar @block -> 1:u32;;) == 1)
+  assert ((deref @block -> 1:u32;;) == 1)
 
   return 0

@@ -33,7 +33,7 @@ export intf i_const_string = export i_from_literal_string
   method count = size
   method all = index_range
   method get_char n:size = char
-  method bytes_utf8 = (slice u8)
+  method bytes_utf8 = @(slice u8)
 
 export intf i_string = export i_const_string
   method! set_char n:size c:char = void
@@ -50,7 +50,6 @@ export intf i_string_buffer = export i_string
 export inline type static_string = \
     export i_trivial_copy \
     export i_ordered_by_compare \
-    export i_trivial_order \
     export i_return_by_copy \
     export i_show \
     export i_const_string
@@ -58,7 +57,7 @@ export inline type static_string = \
 
 export inline static_string method# ctor bytes:@u8 count:size = void
   let raw = (nlang.unsafe.cast @u8 @#u8) bytes
-  self!_bytes = (slice u8).unsafe_wrap raw count
+  self._bytes#unsafe_wrap raw count
 
 export inline static_string fun from_literal_string literal:static_string = this
   return { _bytes=literal._bytes }
@@ -72,8 +71,8 @@ export inline static_string method i_const_string.all = index_range
 export inline static_string method i_const_string.get_char n:size = char
   return char.from_ascii (self._bytes.at n).
 
-export inline static_string method i_const_string.bytes_utf8 = (slice u8)
-  return self._bytes
+export inline static_string method i_const_string.bytes_utf8 = @(slice u8)
+  return @self._bytes
 
 export static_string method i_show.show buf:@#i_string_buffer = void
   buf#reserve buf.count + self.count

@@ -825,7 +825,7 @@ static void print_tree_node(FILE *out, const struct module *mod,
     break;
   case DEFNAME:
     assert(node->as.DEFNAME.pattern->which == IDENT);
-    fprintf(out, "(%s)", idents_value(mod->gctx, node->as.DEFNAME.pattern->as.IDENT.name));
+    fprintf(out, "(%s)", idents_value(mod->gctx, node_ident(node->as.DEFNAME.pattern)));
     break;
   default:
     break;
