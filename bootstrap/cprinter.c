@@ -127,7 +127,7 @@ static void print_token(FILE *out, enum token_type t) {
 }
 
 static void print_expr(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op);
-static void print_block(FILE *out, const struct module *mod, const struct node *node, bool but_last);
+static void print_block(FILE *out, const struct module *mod, const struct node *node, bool no_braces);
 static void print_typ(FILE *out, const struct module *mod, const struct typ *typ);
 static void print_typeconstraint(FILE *out, const struct module *mod, const struct node *node);
 static void print_ident(FILE *out, const struct module *mod, const struct node *node);
@@ -139,11 +139,12 @@ static void print_pattern(FILE *out, const struct module *mod, const struct node
 
 static void print_bin_sym(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.BIN.operator;
-  const struct node *expr = node->subs[1];
+  const struct node *right = node->subs[1];
   if (OP_ASSIGN(op)
-      && expr->which == CALL
-      && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
-    print_expr(out, mod, expr, T__STATEMENT);
+      && (right->which == INIT
+          || (right->which == CALL
+              && !typ_isa(mod, right->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))))) {
+    print_expr(out, mod, right, T__STATEMENT);
   } else {
     print_expr(out, mod, node->subs[0], op);
     print_token(out, op);
@@ -175,7 +176,9 @@ static void print_bin_acc(FILE *out, const struct module *mod, const struct node
 static void print_bin(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.BIN.operator;
 
-  fprintf(out, "(");
+  if (!OP_ASSIGN(op)) {
+    fprintf(out, "(");
+  }
 
   switch (OP_KIND(op)) {
   case OP_BIN:
@@ -194,7 +197,9 @@ static void print_bin(FILE *out, const struct module *mod, const struct node *no
     break;
   }
 
-  fprintf(out, ")");
+  if (!OP_ASSIGN(op)) {
+    fprintf(out, ")");
+  }
 }
 
 static void print_un(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
@@ -378,7 +383,7 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
 
   const struct node *target = node->as.INIT.target_expr;
 
-  fprintf(out, "; memset(&(");
+  fprintf(out, "memset(&(");
   print_expr(out, mod, target, T__STATEMENT);
   fprintf(out, "), 0, sizeof(");
   print_typ(out, mod, node->typ);
@@ -515,6 +520,11 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case DYN:
     print_dyn(out, mod, node);
     break;
+  case BLOCK:
+    fprintf(out, "({ ");
+    print_block(out, mod, node, TRUE);
+    fprintf(out, "; })");
+    break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
     assert(FALSE);
@@ -625,9 +635,8 @@ static void print_example(FILE *out, bool header, enum forward fwd, const struct
     fprintf(out, "void %s__Nexample%zu(void) {\n",
             replace_dots(scope_name(mod, mod->root->scope)), node->as.EXAMPLE.name);
     const struct node *block = node->subs[0];
-    print_block(out, mod, block, TRUE);
     fprintf(out, "nlang_builtins_assert(");
-    print_expr(out, mod, block->subs[block->subs_count-1], T__STATEMENT);
+    print_expr(out, mod, block, T__STATEMENT);
     fprintf(out, ");\n}");
   }
 }
@@ -872,9 +881,13 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
     print_let(out, FALSE, FWD_DEFINE_FUNCTIONS, mod, node);
     break;
   case IDENT:
+  case NUMBER:
+  case BOOL:
+  case NUL:
   case BIN:
   case UN:
   case CALL:
+  case TYPECONSTRAINT:
     print_expr(out, mod, node, T__STATEMENT);
     break;
   case BLOCK:
@@ -886,17 +899,17 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
   }
 }
 
-static void print_block(FILE *out, const struct module *mod, const struct node *node, bool but_last) {
+static void print_block(FILE *out, const struct module *mod, const struct node *node, bool no_braces) {
   assert(node->which == BLOCK);
-  if (!but_last) {
+  if (!no_braces) {
     fprintf(out, " {\n");
   }
-  for (size_t n = 0; n < node->subs_count - (but_last ? 1 : 0); ++n) {
+  for (size_t n = 0; n < node->subs_count; ++n) {
     const struct node *statement = node->subs[n];
     print_statement(out, mod, statement);
     fprintf(out, ";\n");
   }
-  if (!but_last) {
+  if (!no_braces) {
     fprintf(out, "}");
   }
 }

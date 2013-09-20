@@ -16,19 +16,30 @@
 #define DSTEP(mod, node)
 #endif
 
+static bool is_excepted(const struct module *mod, struct node *node) {
+  if (mod == NULL) {
+    return FALSE;
+  }
+
+  for (struct except_list *ex = mod->excepts; ex != NULL; ex = ex->prev) {
+    for (size_t n = 0; ex->list[n] != NULL; ++n) {
+      if (ex->list[n] == node) {
+        return TRUE;
+      }
+    }
+  }
+  return FALSE;
+}
+
 error pass(struct module *mod, struct node *root, const step *down_steps, const step *up_steps,
-           const struct node **except, void *user) {
+           void *user) {
   error e;
   if (root == NULL) {
     root = mod->root;
   }
 
-  if (except != NULL) {
-    for (size_t n = 0; except[n] != NULL; ++n) {
-      if (except[n] == root) {
-        return 0;
-      }
-    }
+  if (is_excepted(mod, root)) {
+    return 0;
   }
 
   bool stop = FALSE;
@@ -43,7 +54,7 @@ error pass(struct module *mod, struct node *root, const step *down_steps, const 
 
   for (size_t n = 0; n < root->subs_count; ++n) {
     struct node *node = root->subs[n];
-    e = pass(mod, node, down_steps, up_steps, except, user);
+    e = pass(mod, node, down_steps, up_steps, user);
     EXCEPT(e);
   }
 
@@ -85,7 +96,7 @@ error one_level_pass(struct module *mod, struct node *root, const step *down_ste
   return 0;
 }
 
-static error bodypass_first(struct module *mod, struct node *node, const struct node **except);
+static error bodypass_first(struct module *mod, struct node *node);
 static error zero_for_generated(struct module *mod, struct node *node, const struct node **except,
                                 struct scope *parent_scope);
 static error zero_to_fwd_for_generated(struct module *mod, struct node *node, const struct node **except,
@@ -145,7 +156,7 @@ static error step_rewrite_prototype_wildcards(struct module *mod, struct node *n
       if (arg->which == BLOCK) {
         break;
       }
-      e = pass(mod, arg, down, up, NULL, NULL);
+      e = pass(mod, arg, down, up, NULL);
       EXCEPT(e);
     }
     break;
@@ -672,7 +683,7 @@ static error lexical_import_all_from_path(struct scope *scope, struct module *mo
     e = scope_define_ident(mod, scope, id, imported);
     EXCEPT(e);
 
-    e = pass(mod, imported, down, up, NULL, NULL);
+    e = pass(mod, imported, down, up, NULL);
     EXCEPT(e);
     imported->scope->parent = import->scope;
   }
@@ -1225,7 +1236,7 @@ static error morningtypepass(struct module *mod, struct node *node) {
     NULL,
   };
 
-  error e = pass(mod, node, down, up, NULL, NULL);
+  error e = pass(mod, node, down, up, NULL);
   EXCEPT(e);
 
   return 0;
@@ -1790,7 +1801,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   if (typ_equal(mod, parent->typ, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))) {
     node->typ = NULL;
     parent->typ = NULL;
-    e = bodypass_first(mod, node, NULL);
+    e = bodypass_first(mod, node);
     EXCEPT(e);
     return 0;
   }
@@ -2301,7 +2312,7 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
       node_deepcopy(mod, ga, genargs->subs[n]);
     }
 
-    error e = zeropass(mod, instantiation, NULL);
+    error e = zeropass(mod, instantiation);
     EXCEPT(e);
     for (size_t n = 0; n < instantiation->subs_count; ++n) {
       struct node *ga = instantiation->subs[n];
@@ -3388,7 +3399,7 @@ static void intf_proto_deepcopy(struct module *mod, struct node *defi,
     NULL,
   };
 
-  error e = pass(mod, dst, down, up, NULL, defi);
+  error e = pass(mod, dst, down, up, defi);
   assert(!e);
 }
 
@@ -3841,12 +3852,9 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
     return 0;
   }
 
-  struct node *named = NULL;
-  if (retval->which == DEFARG) {
-    named = retval;
-  } else {
+  if (retval->which != DEFARG) {
     const size_t where = rew_find_subnode_in_parent(node, retval);
-    named = mk_node(mod, node, DEFARG);
+    struct node *named = mk_node(mod, node, DEFARG);
     named->as.DEFARG.is_retval = TRUE;
     struct node *name = mk_node(mod, named, IDENT);
     name->as.IDENT.name = ID_NRETVAL;
@@ -4735,7 +4743,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
 
   struct temporaries temps = { 0 };
 
-  error e = pass(mod, node, temprvalue_down, temprvalue_up, NULL, &temps);
+  error e = pass(mod, node, temprvalue_down, temprvalue_up, &temps);
   EXCEPT(e);
 
   struct node *parent = node_parent(node);
@@ -4783,7 +4791,7 @@ static error do_complete_instantiation(struct module *mod, struct node *node, bo
       PUSH_STATE(mod->fwdpass_state);
       mod->fwdpass_state->passing = s;
 
-      error e = fwd_passes[s](mod, node, NULL);
+      error e = fwd_passes[s](mod, node);
       EXCEPT(e);
       toplevel->yet_to_pass = s + 1;
 
@@ -4862,16 +4870,16 @@ static const step zeropass_up[] = {
   NULL,
 };
 
-error zeropass(struct module *mod, struct node *node, const struct node **except) {
+error zeropass(struct module *mod, struct node *node) {
   PUSH_STATE(mod->zeropass_state);
-  error e = pass(mod, node, zeropass_down, zeropass_up, except, NULL);
+  error e = pass(mod, node, zeropass_down, zeropass_up, NULL);
   EXCEPT(e);
   POP_STATE(mod->zeropass_state);
 
   return 0;
 }
 
-static error fwdpass_scoping_deftypes(struct module *mod, struct node *node, const struct node **except) {
+static error fwdpass_scoping_deftypes(struct module *mod, struct node *node) {
   static const step down[] = {
     step_stop_submodules,
     step_codeloc_for_generated,
@@ -4887,13 +4895,13 @@ static error fwdpass_scoping_deftypes(struct module *mod, struct node *node, con
   };
 
   int module_depth = 0;
-  error e = pass(mod, node, down, up, except, &module_depth);
+  error e = pass(mod, node, down, up, &module_depth);
   EXCEPT(e);
 
   return 0;
 }
 
-static error fwdpass_imports(struct module *mod, struct node *node, const struct node **except) {
+static error fwdpass_imports(struct module *mod, struct node *node) {
   static const step down[] = {
     step_stop_submodules,
     step_lexical_import,
@@ -4906,13 +4914,13 @@ static error fwdpass_imports(struct module *mod, struct node *node, const struct
   };
 
   int module_depth = 0;
-  error e = pass(mod, node, down, up, except, &module_depth);
+  error e = pass(mod, node, down, up, &module_depth);
   EXCEPT(e);
 
   return 0;
 }
 
-static error fwdpass_genargs(struct module *mod, struct node *node, const struct node **except) {
+static error fwdpass_genargs(struct module *mod, struct node *node) {
   static const step down[] = {
     step_stop_submodules,
     step_stop_marker_tbi,
@@ -4927,13 +4935,13 @@ static error fwdpass_genargs(struct module *mod, struct node *node, const struct
   };
 
   int module_depth = 0;
-  error e = pass(mod, node, down, up, except, &module_depth);
+  error e = pass(mod, node, down, up, &module_depth);
   EXCEPT(e);
 
   return 0;
 }
 
-static error fwdpass_isalist(struct module *mod, struct node *node, const struct node **except) {
+static error fwdpass_isalist(struct module *mod, struct node *node) {
   static const step down[] = {
     step_stop_submodules,
     step_stop_marker_tbi,
@@ -4950,14 +4958,14 @@ static error fwdpass_isalist(struct module *mod, struct node *node, const struct
   };
 
   int module_depth = 0;
-  error e = pass(mod, node, down, up, except, &module_depth);
+  error e = pass(mod, node, down, up, &module_depth);
   EXCEPT(e);
 
   return 0;
 }
 
 
-static error fwdpass_aliases(struct module *mod, struct node *node, const struct node **except) {
+static error fwdpass_aliases(struct module *mod, struct node *node) {
   static const step down[] = {
     step_stop_submodules,
     step_stop_marker_tbi,
@@ -4972,13 +4980,13 @@ static error fwdpass_aliases(struct module *mod, struct node *node, const struct
   };
 
   int module_depth = 0;
-  error e = pass(mod, node, down, up, except, &module_depth);
+  error e = pass(mod, node, down, up, &module_depth);
   EXCEPT(e);
 
   return 0;
 }
 
-static error fwdpass_deffields(struct module *mod, struct node *node, const struct node **except) {
+static error fwdpass_deffields(struct module *mod, struct node *node) {
   static const step down[] = {
     step_stop_submodules,
     step_stop_marker_tbi,
@@ -4994,13 +5002,13 @@ static error fwdpass_deffields(struct module *mod, struct node *node, const stru
   };
 
   int module_depth = 0;
-  error e = pass(mod, node, down, up, except, &module_depth);
+  error e = pass(mod, node, down, up, &module_depth);
   EXCEPT(e);
 
   return 0;
 }
 
-static error fwdpass_deffuns(struct module *mod, struct node *node, const struct node **except) {
+static error fwdpass_deffuns(struct module *mod, struct node *node) {
   static const step down[] = {
     step_stop_submodules,
     step_stop_marker_tbi,
@@ -5025,13 +5033,13 @@ static error fwdpass_deffuns(struct module *mod, struct node *node, const struct
   };
 
   int module_depth = 0;
-  error e = pass(mod, node, down, up, except, &module_depth);
+  error e = pass(mod, node, down, up, &module_depth);
   EXCEPT(e);
 
   return 0;
 }
 
-static error bodypass_first(struct module *mod, struct node *node, const struct node **except) {
+static error bodypass_first(struct module *mod, struct node *node) {
   static const step down[] = {
     step_stop_submodules,
     step_stop_marker_tbi,
@@ -5058,14 +5066,14 @@ static error bodypass_first(struct module *mod, struct node *node, const struct 
 
   int module_depth = 0;
   PUSH_STATE(mod->firstpass_state);
-  error e = pass(mod, node, down, up, except, &module_depth);
+  error e = pass(mod, node, down, up, &module_depth);
   EXCEPT(e);
   POP_STATE(mod->firstpass_state);
 
   return 0;
 }
 
-static error bodypass_second(struct module *mod, struct node *node, const struct node **except) {
+static error bodypass_second(struct module *mod, struct node *node) {
   static const step down[] = {
     step_stop_submodules,
     step_stop_marker_tbi,
@@ -5097,7 +5105,7 @@ static error bodypass_second(struct module *mod, struct node *node, const struct
 
   PUSH_STATE(mod->firstpass_state);
   int module_depth = 0;
-  error e = pass(mod, node, down, up, except, &module_depth);
+  error e = pass(mod, node, down, up, &module_depth);
   EXCEPT(e);
   POP_STATE(mod->firstpass_state);
 
@@ -5107,9 +5115,18 @@ static error bodypass_second(struct module *mod, struct node *node, const struct
 static error zero_for_generated(struct module *mod, struct node *node,
                                 const struct node **except,
                                 struct scope *parent_scope) {
-  error e = zeropass(mod, node, except);
+  if (except != NULL) {
+    PUSH_STATE(mod->excepts);
+    mod->excepts->list = except;
+  }
+
+  error e = zeropass(mod, node);
   EXCEPT(e);
   node->scope->parent = parent_scope;
+
+  if (except != NULL) {
+    POP_STATE(mod->excepts);
+  }
 
   return 0;
 }
@@ -5117,13 +5134,22 @@ static error zero_for_generated(struct module *mod, struct node *node,
 static error zero_to_fwd_for_generated(struct module *mod, struct node *node,
                                        const struct node **except,
                                        struct scope *parent_scope) {
-  error e = zeropass(mod, node, except);
+  if (except != NULL) {
+    PUSH_STATE(mod->excepts);
+    mod->excepts->list = except;
+  }
+
+  error e = zeropass(mod, node);
   EXCEPT(e);
   node->scope->parent = parent_scope;
 
   for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
-    e = fwd_passes[s](mod, node, except);
+    e = fwd_passes[s](mod, node);
     EXCEPT(e);
+  }
+
+  if (except != NULL) {
+    POP_STATE(mod->excepts);
   }
 
   return 0;
@@ -5132,17 +5158,26 @@ static error zero_to_fwd_for_generated(struct module *mod, struct node *node,
 static error zero_to_body_first_for_generated(struct module *mod, struct node *node,
                                               const struct node **except,
                                               struct scope *parent_scope) {
-  error e = zeropass(mod, node, except);
+  if (except != NULL) {
+    PUSH_STATE(mod->excepts);
+    mod->excepts->list = except;
+  }
+
+  error e = zeropass(mod, node);
   EXCEPT(e);
   node->scope->parent = parent_scope;
 
   for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
-    e = fwd_passes[s](mod, node, except);
+    e = fwd_passes[s](mod, node);
     EXCEPT(e);
   }
 
-  e = body_passes[0](mod, node, except);
+  e = body_passes[0](mod, node);
   EXCEPT(e);
+
+  if (except != NULL) {
+    POP_STATE(mod->excepts);
+  }
 
   return 0;
 }
@@ -5150,17 +5185,26 @@ static error zero_to_body_first_for_generated(struct module *mod, struct node *n
 static error zero_to_body_for_generated(struct module *mod, struct node *node,
                                         const struct node **except,
                                         struct scope *parent_scope) {
-  error e = zeropass(mod, node, except);
+  if (except != NULL) {
+    PUSH_STATE(mod->excepts);
+    mod->excepts->list = except;
+  }
+
+  error e = zeropass(mod, node);
   EXCEPT(e);
   node->scope->parent = parent_scope;
 
   for (size_t s = 0; fwd_passes[s] != NULL; ++s) {
-    e = fwd_passes[s](mod, node, except);
+    e = fwd_passes[s](mod, node);
     EXCEPT(e);
   }
   for (size_t s = 0; body_passes[s] != NULL; ++s) {
-    e = body_passes[s](mod, node, except);
+    e = body_passes[s](mod, node);
     EXCEPT(e);
+  }
+
+  if (except != NULL) {
+    POP_STATE(mod->excepts);
   }
 
   return 0;
@@ -5188,11 +5232,20 @@ const passfun *body_passes = _body_passes;
 
 static error first_to_second_for_generated(struct module *mod, struct node *node,
                                            const struct node **except) {
-  error e = bodypass_first(mod, node, except);
+  if (except != NULL) {
+    PUSH_STATE(mod->excepts);
+    mod->excepts->list = except;
+  }
+
+  error e = bodypass_first(mod, node);
   EXCEPT(e);
 
-  e = bodypass_second(mod, node, except);
+  e = bodypass_second(mod, node);
   EXCEPT(e);
+
+  if (except != NULL) {
+    POP_STATE(mod->excepts);
+  }
 
   return 0;
 }

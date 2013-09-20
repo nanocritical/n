@@ -307,6 +307,11 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case DYN:
     print_expr(out, mod, node->subs[0], parent_op);
     break;
+  case BLOCK:
+    fprintf(out, "block ");
+    print_block(out, mod, 0, node);
+    fprintf(out, ";;");
+    break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
     assert(FALSE);
@@ -494,9 +499,13 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
     print_let(out, mod, indent, node);
     break;
   case IDENT:
+  case NUMBER:
+  case BOOL:
+  case NUL:
   case BIN:
   case UN:
   case CALL:
+  case TYPECONSTRAINT:
     print_expr(out, mod, node, T__STATEMENT);
     break;
   default:

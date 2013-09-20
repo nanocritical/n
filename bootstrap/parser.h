@@ -644,6 +644,12 @@ struct firstpass_state {
   enum token_type wildcard;
 };
 
+struct except_list {
+  struct except_list *prev;
+
+  const struct node **list;
+};
+
 #define PUSH_STATE(st) do { \
   __typeof__(st) nst = calloc(1, sizeof(*st)); \
   nst->prev = st; \
@@ -678,6 +684,8 @@ struct module {
   struct zeropass_state *zeropass_state;
   struct fwdpass_state *fwdpass_state;
   struct firstpass_state *firstpass_state;
+
+  struct except_list *excepts;
 };
 
 void globalctx_init(struct globalctx *gctx);

@@ -197,7 +197,7 @@ static error for_all_nodes(struct node *root,
     .user = user,
   };
 
-  error e = pass(NULL, root, downsteps, upsteps, NULL, &op);
+  error e = pass(NULL, root, downsteps, upsteps, &op);
   EXCEPT(e);
 
   return 0;
@@ -214,7 +214,7 @@ static error load_module(struct module **main_mod,
   gctx->loaded[gctx->loaded_count] = mod->root;
   gctx->loaded_count += 1;
 
-  e = zeropass(mod, NULL, NULL);
+  e = zeropass(mod, NULL);
   EXCEPT(e);
 
   if (main_mod != NULL) {
@@ -463,7 +463,7 @@ static error gather_dependencies(struct node *node, struct dependencies *deps) {
   };
 
   error e = pass(node_module_owner(node), node_module_owner(node)->body,
-                 down, up, NULL, deps);
+                 down, up, deps);
   EXCEPT(e);
 
   return 0;
@@ -599,7 +599,7 @@ int main(int argc, char **argv) {
       }
 
       mod->fwdpass_state->passing = s;
-      e = fwd_passes[s](mod, NULL, NULL);
+      e = fwd_passes[s](mod, NULL);
       EXCEPT(e);
     }
   }
@@ -609,7 +609,7 @@ int main(int argc, char **argv) {
 
     mod->fwdpass_state->afternoon = TRUE;
     for (size_t s = 0; body_passes[s] != NULL; ++s) {
-      e = body_passes[s](mod, NULL, NULL);
+      e = body_passes[s](mod, NULL);
       EXCEPT(e);
     }
   }
