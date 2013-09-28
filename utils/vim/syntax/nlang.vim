@@ -1,6 +1,5 @@
-if exists("b:current_syntax")
-  finish
-endif
+if exists("b:current_syntax") | finish | endif
+let b:current_syntax = "nlang"
 
 syn keyword nInclude import from
 syn keyword nDecl type union fun method intf delegate
@@ -102,5 +101,3 @@ hi def link nWildcard Special
 hi def link nIntf Type
 hi def link nFunction Function
 hi def link nExport Special
-
-let b:current_syntax = "n"

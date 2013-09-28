@@ -1,11 +1,9 @@
-if exists("b:did_indent")
-  finish
-endif
+if exists("b:did_indent") | finish | endif
 let b:did_indent = 1
 
 setlocal sw=2
 setlocal sts=2
-setlocal expandtab
+setlocal noexpandtab
 
 setlocal nolisp
 setlocal autoindent
@@ -13,9 +11,23 @@ setlocal autoindent
 setlocal indentexpr=GetNlangIndent(v:lnum)
 setlocal indentkeys=o,O,0{,0},!^F,<\\>,0=elif\ ,0=else,0=catch,0=type\ ,0=intf\ ,0=fun\ ,0=delegate\ ,=method\ ,0\|,*<Return>
 
+if !exists("no_plugin_maps") && !exists("no_nlang_maps")
+  imap <buffer> <expr> <tab> NlangTabComplete()
+endif
+
 if exists("*GetNlangIndent")
   finish
 endif
+
+function NlangTabComplete()
+  let line = getline('.')
+  let pre = strpart(line, -1, col('.'))
+  if match(pre, '^\s*$') != -1
+    return "  "
+  else
+    return "\<C-V>\<Tab>"
+  endif
+endfunction
 
 function NlangPrevnonblank(lnum)
   let p = prevnonblank(a:lnum)
@@ -35,9 +47,16 @@ function GetNlangIndent(lnum)
   if getline(prevl) =~ '\\$'
     if prevl > 1 && getline(pprevl) =~ '\\$'
       return indent(prevl)
+    else
+      return indent(prevl) + 2 * &sw
     endif
-    return indent(prevl) + 2 * &sw
   endif
+
+  let TOP = '^\(export\s\+\)\?\(extern\s\+\)\?\(inline\s\+\)\?'
+  let FUN = TOP . '(\?fun'
+  let TYPE_INTF = TOP . '\(type\|intf\)'
+  let INTF_FUNMETH = '^\s\+\(fun\|method\)'
+  let TYPE_FUNMETH = TOP . '\w\+\s\+(\?\(fun\|method\)'
 
   let in_intf = 0
   let in_type = 0
@@ -50,38 +69,31 @@ function GetNlangIndent(lnum)
       let pone = l
     endif
     if l =~ '^\S'
-      if l =~ '^intf'
-        let in_intf = 1
-      elseif l =~ '^type'
-        let in_type = 1
-      elseif l =~ '^fun'
-        let in_fun = 1
-      elseif l =~ '^\s*\w\+\s\+\<method\>'
-        let in_method = 1
-      endif
       break
     endif
     let pzero = pzero - 1
   endwhile
 
-  if in_intf
-    return &sw
+  let pzeroline = getline(pzero)
+  if pzeroline =~ '\<intf\>'
+    let in_intf = 1
+  elseif pzeroline =~ '\<type\>'
+    let in_type = 1
+  elseif pzeroline =~ '\<\(fun\|method\)\>'
+    let in_fun = 1
   endif
 
   let line = getline(a:lnum)
-  if in_intf && line =~ '^\s*\<\(fun\|method\)\>'
+  if in_intf && line =~ INTF_FUN_METH
     return &sw
-  elseif line =~ '^\s*\<\(type\|fun\|intf\|contract\)\>'
+  elseif line =~ TYPE_INTF
     return 0
-  elseif line =~ '^\s*\w\+\s\+\<\(fun\|method\)\>'
+  elseif line =~ TYPE_FUNMETH
     return 0
-  elseif line =~ '^\s*\<\(delegate\)\>'
-    return &sw
   endif
 
-
   " It's generally dangerous to try to automatically indent this kind of block,
-  " as we cannot be sure what was intented (as the intentation *is* the intent).
+  " as we cannot be sure what was intended (as the intentation *is* the intent).
   " However, when only one series of if/elif/else is present, or a single
   " try/catch, we assume it is safe to do the obvious. Similarly, when an
   " elif/else or catch is further to the right than any if or catch, even in the
@@ -150,9 +162,11 @@ function GetNlangIndent(lnum)
   endif
 
   let pline = getline(prevl)
-  if pline =~ '^\s*\<fun\>' || pline =~ '^\s*\w\+\s\+\<\(fun\|method\)\>'
+  if pline =~ FUN  || pline =~ TYPE_INTF || pline =~ TYPE_FUNMETH
     return indent(prevl) + &sw
-  elseif pline =~ '^\s*\<\(if\|elif\|else\|for\|while\|try\|catch\|intf\|type\)\>'
+  elseif pline =~ '^\s*\<\(if\|elif\|else\|for\|while\|try\|catch\)\>'
+    return indent(prevl) + &sw
+  elseif pline =~ '^\s*\<\(assert\|pre\|post\|invariant\)\>$'
     return indent(prevl) + &sw
   elseif pline =~ '^\s*|'
     return indent(prevl) + &sw
