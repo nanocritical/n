@@ -3,6 +3,7 @@ let b:did_indent = 1
 
 setlocal sw=2
 setlocal sts=2
+setlocal ts=8
 setlocal noexpandtab
 
 setlocal nolisp
