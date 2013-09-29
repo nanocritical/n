@@ -22,6 +22,7 @@ export string method i_const_string.get_char n:size = char
 
 export string method i_const_string.substring r:index_range = @i_const_string
   let sub = string.new
+  such
     let mem = self.bytes.storage.sub r
     sub.bytes#append_slice mem
     -- FIXME leaking mem
@@ -36,6 +37,7 @@ export string method! i_string.set_char n:size c:char = void
 export string method! i_string.fill c:char r:index_range = void
   let with = c.code.trim_u8
   let sb = self.bytes!storage!sub r
+  such
     for i in sb.all.iter
       let p = sb!at i
       p! = with

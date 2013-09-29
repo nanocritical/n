@@ -8,5 +8,6 @@ container method! add x:t = void
 
 export fun main = i32
   let v = { x=0 }:(container i32)
+  such
     v!add 1
   return v.x - 1

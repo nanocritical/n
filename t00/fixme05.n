@@ -5,6 +5,7 @@ type nocopy =
 
 fun foo = nocopy
   let r:nocopy
+  such
     r!x = 0
   return r
 

@@ -25,6 +25,7 @@ export inline type index_iterator = export i_iterator
 
 export index_range method! init beg:size end:size = void
   let e = end
+  such
     if end < beg
       e = beg
   self!_b = beg
@@ -41,6 +42,7 @@ export index_range method count = size
 
 export index_range method sub begin:size end:size = this
   let r:this
+  such
     if begin < self.begin or end > self.end
       abort
     r!init begin end
@@ -48,6 +50,7 @@ export index_range method sub begin:size end:size = this
 
 export index_range method with_offset offset:size = this
   let r:this
+  such
     r!init self.begin+offset self.end+offset
   return r
 

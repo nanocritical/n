@@ -29,6 +29,7 @@ export fun main = i32
   let y2 = if x > 0 -> 'test';; else -> 'error'
   and z2 = block
     let tmp = 0:i32
+    such
       for i in (range 0 100).iter -> tmp += i.trim_u32.reinterpret_signed
     tmp
   assert (y2 == 'test')

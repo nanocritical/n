@@ -13,6 +13,7 @@ export fun main = i32
   let w = foo
   let y = { x=-1 }:copy
   let z:copy
+  such
     z = y
   let zz = z
   return z.x + 1

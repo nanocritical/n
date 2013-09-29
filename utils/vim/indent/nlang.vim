@@ -166,7 +166,7 @@ function GetNlangIndent(lnum)
     return indent(prevl) + &sw
   elseif pline =~ '^\s*\<\(if\|elif\|else\|for\|while\|try\|catch\)\>'
     return indent(prevl) + &sw
-  elseif pline =~ '^\s*\<\(assert\|pre\|post\|invariant\)\>$'
+  elseif pline =~ '^\s*\<\(assert\|pre\|post\|invariant\|block\|such\)\>$'
     return indent(prevl) + &sw
   elseif pline =~ '^\s*|'
     return indent(prevl) + &sw

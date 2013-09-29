@@ -11,5 +11,6 @@ t method! set x:i32 = void
 
 export fun main = i32
   let tt = { x=0 }:t
+  such
     tt!set 1
   return tt.get - 1

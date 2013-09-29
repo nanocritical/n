@@ -2019,11 +2019,28 @@ static error p_defpattern(struct node *node, struct module *mod,
   return 0;
 }
 
-// When let_and_alias == Tand, node is previous LET we are appending
-// ourselves to.
+// When let_and_alias_such == Tand, node is previous LET we are appending
+// ourselves to. Same idea with Tsuch.
 static error p_let(struct node *node, struct module *mod, const struct toplevel *toplevel,
-                   enum token_type let_and_alias) {
-  if (let_and_alias == Tand) {
+                   enum token_type let_and_alias_such) {
+  if (let_and_alias_such == Tsuch) {
+    assert(node->which == LET);
+    assert(toplevel == NULL);
+
+    struct token tok = { 0 };
+    error e = scan(&tok, mod);
+    EXCEPT(e);
+
+    if (tok.t != TSOB) {
+      UNEXPECTED(mod, &tok);
+    }
+
+    e = p_block(node_new_subnode(mod, node), mod);
+    EXCEPT(e);
+
+    return 0;
+
+  } else if (let_and_alias_such == Tand) {
     assert(node->which == LET);
     assert(toplevel == NULL);
   } else {
@@ -2033,18 +2050,7 @@ static error p_let(struct node *node, struct module *mod, const struct toplevel 
     }
   }
 
-  error e = p_defpattern(node_new_subnode(mod, node), mod, let_and_alias);
-  EXCEPT(e);
-
-  struct token tok = { 0 };
-  e = scan(&tok, mod);
-  EXCEPT(e);
-  if (tok.t != TSOB) {
-    back(mod, &tok);
-    return 0;
-  }
-
-  e = p_block(node_new_subnode(mod, node), mod);
+  error e = p_defpattern(node_new_subnode(mod, node), mod, let_and_alias_such);
   EXCEPT(e);
 
   return 0;
@@ -2129,8 +2135,11 @@ static error p_statement(struct node *parent, struct module *mod) {
     break;
   case Tlet:
   case Tand:
+  case Tsuch:
   case Talias:
-    e = p_let(tok.t == Tand ? parent->subs[parent->subs_count-1] : NEW,
+    e = p_let((tok.t == Tlet || tok.t == Talias)
+              ? NEW
+              : parent->subs[parent->subs_count-1],
               mod, NULL, tok.t);
     break;
   case Tfor:

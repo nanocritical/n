@@ -13,7 +13,7 @@ syn keyword nDecl contract honors _honors pretag posttag tag
 syn keyword nConditional if elif else match
 syn keyword nRepeat while continue break
 syn keyword nRepeat for pfor foreach pforeach
-syn keyword nStatement let return block lambda async
+syn keyword nStatement let return block lambda async such
 syn keyword nOperator in and or not bwxor isa
 syn keyword nOperator sizeof
 syn keyword nKeyword noop as attr declare

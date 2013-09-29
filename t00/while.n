@@ -2,7 +2,9 @@ from nlang import *
 
 export fun main = i32
   let j = 0:i32
+  such
     let i = 0:i32
+    such
       while i < 10
         i += 1
         j += 1

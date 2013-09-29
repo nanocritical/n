@@ -10,6 +10,7 @@ fun write_buf fd:i32 s:@u8 count:size = void
 
 export fun print a:@i_show = void
   let s = string.mk
+  such
     a.show @#s
   let b = s.bytes_utf8
   write_buf 1 b.unsafe_data b.bytecount

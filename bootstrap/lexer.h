@@ -17,6 +17,7 @@ enum token_type {
   Tintf,
   Tinline,
   Tlet,
+  Tsuch,
   Talias,
   Tif,
   Telif,

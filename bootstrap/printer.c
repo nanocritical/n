@@ -16,6 +16,7 @@ const char *token_strings[TOKEN__NUM] = {
   [Tintf] = "intf",
   [Tinline] = "inline",
   [Tlet] = "let",
+  [Tsuch] = "such",
   [Tif] = "if",
   [Telif] = "elif",
   [Telse] = "else",
@@ -442,6 +443,8 @@ static void print_let(FILE *out, const struct module *mod, int indent, const str
   }
 
   if (node_has_tail_block(node)) {
+    spaces(out, indent);
+    fprintf(out, "such");
     print_block(out, mod, indent, node->subs[node->subs_count-1]);
   }
 }

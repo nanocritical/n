@@ -58,5 +58,6 @@ export inline slice method$ sub r:index_range = @$this -- ::unique
   assert (r.end <= self.count)
   let p = (nlang.unsafe.cast @$t @#t) (self$at r.begin)
   let ret = this.new
+  such
     ret#unsafe_wrap p r.count
   return ret

@@ -8,6 +8,7 @@ fun foo = v32
 
 export fun main = i32
   let v = v32.mk
+  such
     v#push 0
     v#push 1
     assert (v#pop == 1)
