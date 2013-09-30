@@ -1,9 +1,10 @@
 if exists("b:did_indent") | finish | endif
 let b:did_indent = 1
 
-setlocal sw=2
-setlocal sts=2
 setlocal ts=8
+setlocal sw=2
+setlocal sts=0
+setlocal sta
 setlocal noexpandtab
 
 setlocal nolisp
@@ -12,23 +13,9 @@ setlocal autoindent
 setlocal indentexpr=GetNlangIndent(v:lnum)
 setlocal indentkeys=o,O,0{,0},!^F,<\\>,0=elif\ ,0=else,0=catch,0=type\ ,0=intf\ ,0=fun\ ,0=delegate\ ,=method\ ,0\|,*<Return>
 
-if !exists("no_plugin_maps") && !exists("no_nlang_maps")
-  imap <buffer> <expr> <tab> NlangTabComplete()
-endif
-
 if exists("*GetNlangIndent")
   finish
 endif
-
-function NlangTabComplete()
-  let line = getline('.')
-  let pre = strpart(line, -1, col('.'))
-  if match(pre, '^\s*$') != -1
-    return "  "
-  else
-    return "\<C-V>\<Tab>"
-  endif
-endfunction
 
 function NlangPrevnonblank(lnum)
   let p = prevnonblank(a:lnum)
