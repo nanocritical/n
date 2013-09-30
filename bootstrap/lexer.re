@@ -138,6 +138,7 @@ normal:
   "invariant" { R(Tinvariant); }
   "example" { R(Texample); }
   "sizeof" { R(Tsizeof); }
+  "<-" { R(TBARROW); }
   "->" {
     error e = block_down(parser, TRUE);
     if (e) {

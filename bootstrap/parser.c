@@ -1579,7 +1579,7 @@ static error p_expr_call(struct node *node, const struct node *first,
 
     if (expr_terminators[tok.t]) {
       return 0;
-    } else if (OP_PREC(tok.t) > T__CALL) {
+    } else if (OP_PREC(tok.t) > OP_PREC(T__CALL)) {
       return 0;
     }
 
@@ -1832,7 +1832,10 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
   first.codeloc = mod->parser.pos;
   second.codeloc = mod->parser.pos;
 
-  if (tok.t == TLPAR) {
+  if (tok.t == TBARROW) {
+    e = p_expr(&first, mod, T__NOT_STATEMENT);
+    EXCEPT(e);
+  } else if (tok.t == TLPAR) {
     e = p_expr(&first, mod, T__NOT_STATEMENT);
     EXCEPT(e);
     e = scan_expected(mod, TRPAR);
@@ -1916,7 +1919,7 @@ shift:
 
   if (expr_terminators[tok.t]) {
     goto done;
-  } else if (IS_OP(tok.t) && OP_BINARY(tok.t)) {
+  } else if (tok.t != TBARROW && IS_OP(tok.t) && OP_BINARY(tok.t)) {
     if (tok.t == TCOMMA) {
       if (OP_PREC(tok.t) < OP_PREC(parent_op)
           || topmost) {
@@ -1928,9 +1931,9 @@ shift:
         goto done;
       }
     } else if (OP_PREC(tok.t) < OP_PREC(parent_op)
-        || (OP_PREC(tok.t) == OP_PREC(parent_op)
-            && OP_ASSOC(tok.t) == ASSOC_RIGHT)
-        || topmost) {
+               || (OP_PREC(tok.t) == OP_PREC(parent_op)
+                   && OP_ASSOC(tok.t) == ASSOC_RIGHT)
+               || topmost) {
       e = p_expr_binary(&second, &first, mod);
       EXCEPT(e);
 
@@ -1951,7 +1954,8 @@ shift:
     }
 
     goto shift;
-  } else if (OP_PREC(T__CALL) < OP_PREC(parent_op) || topmost) {
+  } else if (OP_PREC(T__CALL) < OP_PREC(parent_op)
+             || topmost) {
     e = p_expr_call(&second, &first, mod);
     if (topmost) {
       parent_op = T__CALL;
