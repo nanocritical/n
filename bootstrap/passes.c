@@ -1803,7 +1803,6 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
   case OP_BIN_SYM_BOOL:
     e = typ_compatible(mod, node, node->typ, typ_lookup_builtin(mod, TBI_BOOL));
     EXCEPT(e);
-    node->typ = typ_lookup_builtin(mod, TBI_BOOL);
     break;
   case OP_BIN_SYM_NUM:
     e = typ_compatible_numeric(mod, node, node->typ);
@@ -4098,7 +4097,7 @@ static error step_string_literal_conversion(struct module *mod, struct node *nod
   node->which = CALL;
 
   struct node *fun = mk_node(mod, node, DIRECTDEF);
-  struct node *fund = node_get_member(mod, copy.typ->definition, ID_FROM_LITERAL_STRING);
+  struct node *fund = node_get_member(mod, copy.typ->definition, ID_FROM_STATIC_STRING);
   assert(fund != NULL);
   fun->as.DIRECTDEF.definition = fund;
 
@@ -4128,7 +4127,7 @@ static error step_bool_literal_conversion(struct module *mod, struct node *node,
   node->which = CALL;
 
   struct node *fun = mk_node(mod, node, DIRECTDEF);
-  struct node *fund = node_get_member(mod, copy.typ->definition, ID_FROM_LITERAL_BOOL);
+  struct node *fund = node_get_member(mod, copy.typ->definition, ID_FROM_BOOL);
   assert(fund != NULL);
   fun->as.DIRECTDEF.definition = fund;
 

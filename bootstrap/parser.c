@@ -102,6 +102,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_ANY] = "i_any",
   [ID_TBI_PSEUDO_TUPLE] = "pseudo_tuple",
   [ID_TBI_BOOL] = "bool",
+  [ID_TBI_BOOL_COMPATIBLE] = "i_bool_compatible",
   [ID_TBI_I8] = "i8",
   [ID_TBI_U8] = "u8",
   [ID_TBI_I16] = "i16",
@@ -117,7 +118,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_CHAR] = "char",
   [ID_TBI_STRING] = "string",
   [ID_TBI_STATIC_STRING] = "static_string",
-  [ID_TBI_FROM_LITERAL_STRING] = "i_from_literal_string",
+  [ID_TBI_STATIC_STRING_COMPATIBLE] = "i_static_string_compatible",
   [ID_TBI_STATIC_ARRAY] = "static_array",
   [ID_TBI_ANY_REF] = "i_any_ref",
   [ID_TBI_ANY_ANY_REF] = "i_any_any_ref",
@@ -166,8 +167,8 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_MKV] = "mkv",
   [ID_NEWV] = "newv",
   [ID_C] = "c",
-  [ID_FROM_LITERAL_STRING] = "from_literal_string",
-  [ID_FROM_LITERAL_BOOL] = "from_literal_bool",
+  [ID_FROM_STATIC_STRING] = "from_static_string",
+  [ID_FROM_BOOL] = "from_bool",
   [ID_NRETVAL] = "_nretval",
   [ID_OPERATOR_OR] = "operator_or",
   [ID_OPERATOR_AND] = "operator_and",
@@ -3310,7 +3311,7 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
   }
 
   if (a == typ_lookup_builtin(mod, TBI_BOOL)) {
-    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN))) {
+    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_BOOL_COMPATIBLE))) {
       return 0;
     }
   }
@@ -3325,7 +3326,7 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
   }
 
   if (typ_equal(mod, a, typ_lookup_builtin(mod, TBI_STATIC_STRING))) {
-    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_FROM_LITERAL_STRING))) {
+    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_STATIC_STRING_COMPATIBLE))) {
       return 0;
     }
   }

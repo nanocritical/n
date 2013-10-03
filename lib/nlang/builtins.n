@@ -116,11 +116,11 @@ export intf i_native_anysign_integer = \
 
 export intf i_generalized_boolean = \
     export i_ordered
-  fun from_literal_bool literal:bool = final
-  method operator_or other:@final = final
-  method operator_and other:@final = final
-  method operator_not = final
   method operator_test = bool
+
+export intf i_bool_compatible = \
+    export i_generalized_boolean
+  fun from_bool b:bool = final
 
 export intf i_native_boolean = \
     export i_trivial_ctor \
@@ -149,11 +149,11 @@ export extern bool method i_ordered.operator_le other:@this = bool
 export extern bool method i_ordered.operator_lt other:@this = bool
 export extern bool method i_ordered.operator_gt other:@this = bool
 export extern bool method i_ordered.operator_ge other:@this = bool
-export bool fun from_literal_bool literal:bool = this
-  return literal
-export extern bool method i_generalized_boolean.operator_or other:@this = this
-export extern bool method i_generalized_boolean.operator_and other:@this = this
-export extern bool method i_generalized_boolean.operator_not = this
+export bool fun from_bool b:bool = this
+  return b
+export extern bool method operator_or other:@this = this
+export extern bool method operator_and other:@this = this
+export extern bool method operator_not = this
 export extern bool method i_generalized_boolean.operator_test = bool
 export extern bool method to_u8 = u8
 export extern bool method to_u16 = u16
@@ -705,6 +705,7 @@ export intf i_sum_ctor_with =
   method# ctor = void
   fun mk = r:final
   fun new = @#final
+
 
 export extern fun abort = void
 

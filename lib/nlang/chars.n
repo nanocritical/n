@@ -9,13 +9,13 @@ export inline type char = \
     export i_return_by_copy \
     export i_trivial_equality \
     export i_trivial_order \
-    export i_from_literal_string \
+    export i_static_string_compatible \
     export i_show
   code:u32
 
-export inline char fun from_literal_string literal:static_string = this
+export inline char fun from_static_string s:static_string = this
   assert <- s.count == 1
-  return { code=(literal.get_char 0).code }
+  return { code=(s.get_char 0).code }
 
 export inline char fun from_ascii c:u8 = char
   return { code=c.to_u32 }
@@ -25,10 +25,10 @@ example -> char.from_ascii 49 == '1':char
 export inline char method i_show.show buf:@#i_string_buffer = void
   buf#push self.
 
-export intf i_from_literal_string =
-  fun from_literal_string literal:static_string = final
+export intf i_static_string_compatible =
+  fun from_static_string s:static_string = final
 
-export intf i_const_string = export i_from_literal_string
+export intf i_const_string = export i_static_string_compatible
 -- export i_random_container
   method count = size
   method all = index_range
@@ -52,6 +52,7 @@ export inline type static_string = \
     export i_ordered_by_compare \
     export i_return_by_copy \
     export i_show \
+    export i_static_string_compatible \
     export i_const_string
   _bytes:(slice u8)
 
@@ -59,8 +60,8 @@ export inline static_string method# ctor bytes:@u8 count:size = void
   let raw = (nlang.unsafe.cast @u8 @#u8) bytes
   self._bytes#unsafe_wrap raw count
 
-export inline static_string fun from_literal_string literal:static_string = this
-  return { _bytes=literal._bytes }
+export inline static_string fun from_static_string s:static_string = this
+  return { _bytes=s._bytes }
 
 export inline static_string method i_const_string.count = size
   return self._bytes.count

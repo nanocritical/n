@@ -8,7 +8,7 @@ export inline type string = \
     export i_string_buffer
   bytes:(vector u8)
 
-export string fun from_literal_string literal:static_string = s:this
+export string fun from_static_string literal:static_string = s:this
   s.bytes#append_slice literal.bytes_utf8
 
 export string method i_const_string.count = size
