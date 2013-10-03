@@ -22,7 +22,6 @@ const char *node_which_strings[] = {
   [CALL] = "CALL",
   [INIT] = "INIT",
   [RETURN] = "RETURN",
-  [EXCEP] = "EXCEP",
   [BLOCK] = "BLOCK",
   [FUTURE] = "FUTURE",
   [LAMBDA] = "LAMBDA",
@@ -34,6 +33,9 @@ const char *node_which_strings[] = {
   [IF] = "IF",
   [MATCH] = "MATCH",
   [TRY] = "TRY",
+  [CATCH] = "CATCH",
+  [EXCEP] = "EXCEP",
+  [SPIT] = "SPIT",
   [TYPECONSTRAINT] = "TYPECONSTRAINT",
   [DYN] = "DYN",
   [DEFFUN] = "DEFFUN",
@@ -80,6 +82,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_FINAL] = "final",
   [ID_SELF] = "self",
   [ID_OTHERWISE] = "_",
+  [ID_SPIT] = "spit",
   [ID_MAIN] = "main",
   [ID_WHICH] = "which__",
   [ID_AS] = "as__",
@@ -1671,7 +1674,7 @@ again:
     EXCEPT(e);
     e = p_block(node_new_subnode(mod, node), mod);
     EXCEPT(e);
-    e = scan(&tok, mod);
+    e = scan(&eol, mod);
     EXCEPT(e);
     if (eol.t != TEOL) {
       back(mod, &eol);
@@ -1771,21 +1774,90 @@ static error p_try(struct node *node, struct module *mod) {
 
   error e = scan_expected(mod, TSOB);
   EXCEPT(e);
-  e = p_block(node_new_subnode(mod, node), mod);
+
+  struct node *elet = mk_node(mod, node, LET);
+  struct node *edefp = mk_node(mod, elet, DEFPATTERN);
+  struct node *eident = mk_node(mod, edefp, IDENT);
+  eident->as.IDENT.name = gensym(mod);
+  node->as.TRY.error = node_ident(eident);
+  struct node *eblock = mk_node(mod, elet, BLOCK);
+
+  e = p_block(node_new_subnode(mod, eblock), mod);
   EXCEPT(e);
   e = scan_expected(mod, TEOL);
   EXCEPT(e);
-  e = scan_expected(mod, Tcatch);
+
+  bool first = TRUE;
+  bool has_label = FALSE;
+  struct token tok = { 0 }, label = { 0 };
+  struct node *catch;
+
+again:
+  e = scan(&tok, mod);
   EXCEPT(e);
 
-  e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
+  if (tok.t != Tcatch) {
+    if (first) {
+      UNEXPECTED(mod, &tok);
+    }
+
+    if (!has_label) {
+      assert(eblock->subs_count == 2);
+      catch->as.CATCH.label = gensym(mod);
+    }
+
+    back(mod, &tok);
+    return 0;
+  }
+
+  if (!first && !has_label) {
+    goto missing_label;
+  }
+
+  catch = mk_node(mod, eblock, CATCH);
+
+  e = scan(&label, mod);
   EXCEPT(e);
+  if (label.t != TIDENT) {
+    UNEXPECTED(mod, &label);
+  }
+
+  e = scan(&tok, mod);
+  EXCEPT(e);
+  if (tok.t == TIDENT) {
+    has_label = TRUE;
+    catch->as.CATCH.label = idents_add(mod->gctx, &label);
+    catch->as.CATCH.is_user_label = TRUE;
+  } else if (tok.t == TSOB) {
+    if (!first) {
+      goto missing_label;
+    }
+
+    back(mod, &tok);
+    tok = label;
+  } else {
+    UNEXPECTED(mod, &tok);
+  }
+
+  struct node *let = mk_node(mod, catch, LET);
+  struct node *defp = mk_node(mod, let, DEFPATTERN);
+  struct node *var = mk_node(mod, defp, IDENT);
+  var->as.IDENT.name = idents_add(mod->gctx, &tok);
+  struct node *expr = mk_node(mod, defp, IDENT);
+  expr->as.IDENT.name = node_ident(eident);
+
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
-
-  e = p_block(node_new_subnode(mod, node), mod);
+  e = p_block(node_new_subnode(mod, catch), mod);
+  EXCEPT(e);
+  e = scan_expected(mod, TEOL);
   EXCEPT(e);
 
+  first = FALSE;
+  goto again;
+
+missing_label:
+  EXCEPT_SYNTAX(mod, &tok, "to use multiple catch in a try block, each must have a label");
   return 0;
 }
 
@@ -2002,6 +2074,20 @@ static error p_except(struct node *node, struct module *mod) {
   return 0;
 }
 
+static error p_spit(struct node *node, struct module *mod) {
+  node->which = SPIT;
+  struct token tok = { 0 };
+  error e = scan(&tok, mod);
+  EXCEPT(e);
+  back(mod, &tok);
+
+  if (!expr_terminators[tok.t]) {
+    e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
+    EXCEPT(e);
+  }
+  return 0;
+}
+
 static error p_defpattern(struct node *node, struct module *mod,
                           enum token_type let_alias) {
   node->which = DEFPATTERN;
@@ -2137,6 +2223,9 @@ static error p_statement(struct node *parent, struct module *mod) {
     break;
   case Texcept:
     e = p_except(NEW, mod);
+    break;
+  case Tspit:
+    e = p_spit(NEW, mod);
     break;
   case Tlet:
   case Tand:
@@ -3071,8 +3160,9 @@ void module_retval_clear(struct module *mod) {
   mod->fun_state->retval = NULL;
 }
 
-void module_excepts_open_try(struct module *mod) {
+void module_excepts_open_try(struct module *mod, struct node *tryy) {
   PUSH_STATE(mod->try_state);
+  mod->try_state->tryy = tryy;
 }
 
 void module_excepts_push(struct module *mod, struct node *excep_node) {

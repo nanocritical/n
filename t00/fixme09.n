@@ -1,0 +1,14 @@
+from nlang import *
+
+intf i =
+  fun foo = i32
+
+type a =
+  x	:i32
+
+a fun i.foo = i32
+  return self.x
+
+extern fun main = i32
+  let y = {}:a
+  return y.foo

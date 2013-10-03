@@ -30,7 +30,6 @@ const char *token_strings[TOKEN__NUM] = {
   [Ttry] = "try",
   [Tcatch] = "catch",
   [Texcept] = "except",
-  [Tthrow] = "throw",
   [Tblock] = "block",
   [Tdelegate] = "delegate",
   [Tdeclare] = "declare",
@@ -373,13 +372,24 @@ static void print_match(FILE *out, const struct module *mod, int indent, const s
 }
 
 static void print_try(FILE *out, const struct module *mod, int indent, const struct node *node) {
+  const struct node *eblock = node->subs[0]->subs[1];
+
   fprintf(out, "try");
-  print_block(out, mod, indent, node->subs[0]);
+  print_block(out, mod, indent, eblock->subs[0]);
   fprintf(out, "\n");
-  spaces(out, indent);
-  fprintf(out, "catch ");
-  print_expr(out, mod, node->subs[1], T__STATEMENT);
-  print_block(out, mod, indent, node->subs[2]);
+
+  for (size_t n = 1; n < eblock->subs_count; ++n) {
+    struct node *catch = eblock->subs[n];
+
+    spaces(out, indent);
+    fprintf(out, "catch ");
+    if (catch->as.CATCH.label != ID__NONE) {
+      fprintf(out, "%s ", idents_value(mod->gctx, catch->as.CATCH.label));
+    }
+    print_expr(out, mod, catch->subs[0]->subs[0]->subs[0], T__STATEMENT);
+    fprintf(out, "\n");
+    print_block(out, mod, indent, catch->subs[1]);
+  }
 }
 
 static void print_pre(FILE *out, const struct module *mod, int indent, const struct node *node) {
@@ -472,6 +482,18 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
     break;
   case NOOP:
     fprintf(out, "noop");
+    break;
+  case SPIT:
+    fprintf(out, "spit ");
+    for (size_t n = 0; n < node->subs_count; ++n) {
+      print_expr(out, mod, node->subs[n], T__CALL);
+    }
+    break;
+  case EXCEP:
+    fprintf(out, "except ");
+    for (size_t n = 0; n < node->subs_count; ++n) {
+      print_expr(out, mod, node->subs[n], T__CALL);
+    }
     break;
   case BLOCK:
     fprintf(out, "block");

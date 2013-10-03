@@ -118,7 +118,7 @@ normal:
   "try" { R(Ttry); }
   "catch" { R(Tcatch); }
   "except" { R(Texcept); }
-  "throw" { R(Tthrow); }
+  "spit" { R(Tspit); }
   "block" { R(Tblock); }
   "import" { R(Timport); }
   "export" { R(Texport); }

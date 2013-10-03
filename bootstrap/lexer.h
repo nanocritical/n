@@ -32,7 +32,7 @@ enum token_type {
   Ttry,
   Tcatch,
   Texcept,
-  Tthrow,
+  Tspit,
   Tblock,
   Tdelegate,
   Tdeclare,

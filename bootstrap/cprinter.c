@@ -132,6 +132,8 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
 static void print_typeconstraint(FILE *out, const struct module *mod, const struct node *node);
 static void print_ident(FILE *out, const struct module *mod, const struct node *node);
 static void print_statement(FILE *out, const struct module *mod, const struct node *node);
+static void print_let(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node);
+static void print_defpattern(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node);
 
 static void print_pattern(FILE *out, const struct module *mod, const struct node *node) {
   print_expr(out, mod, node, T__STATEMENT);
@@ -599,12 +601,23 @@ static void print_match(FILE *out, const struct module *mod, const struct node *
 }
 
 static void print_try(FILE *out, const struct module *mod, const struct node *node) {
-  fprintf(out, "try");
-  print_block(out, mod, node->subs[0], FALSE);
-  fprintf(out, "\n");
-  fprintf(out, "catch ");
-  print_expr(out, mod, node->subs[1], T__STATEMENT);
-  print_block(out, mod, node->subs[2], FALSE);
+  const struct node *elet = node->subs[0];
+  const struct node *edefp = elet->subs[0];
+  const struct node *eblock = elet->subs[1];
+
+  print_defpattern(out, FALSE, FWD_DEFINE_FUNCTIONS, mod, edefp);
+  print_block(out, mod, eblock->subs[0], FALSE);
+
+  for (size_t n = 1; n < eblock->subs_count; ++n) {
+    struct node *catch = eblock->subs[n];
+
+    fprintf(out, "\n%s: {\n", idents_value(mod->gctx, catch->as.CATCH.label));
+
+    print_let(out, FALSE, FWD_DEFINE_FUNCTIONS, mod, catch->subs[0]);
+    print_block(out, mod, catch->subs[1], FALSE);
+
+    fprintf(out, "\n}\n");
+  }
 }
 
 static void print_pre(FILE *out, const struct module *mod, const struct node *node) {
@@ -863,6 +876,16 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
     break;
   case NOOP:
     fprintf(out, ";");
+    break;
+  case SPIT:
+    fprintf(out, "%s = ", idents_value(mod->gctx, node->as.SPIT.error));
+    print_expr(out, mod, node->subs_count == 1 ? node->subs[0] : node->subs[1], TASSIGN);
+    fprintf(out, "; goto %s", idents_value(mod->gctx, node->as.SPIT.target));
+    break;
+  case EXCEP:
+    fprintf(out, "%s = ", idents_value(mod->gctx, node->as.EXCEP.error));
+    print_expr(out, mod, node->subs_count == 1 ? node->subs[0] : node->subs[1], TASSIGN);
+    fprintf(out, "; goto %s", idents_value(mod->gctx, node->as.EXCEP.target));
     break;
   case IF:
     print_if(out, mod, node);

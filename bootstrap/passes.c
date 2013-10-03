@@ -906,9 +906,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
     id = node->as.DEFNAME.pattern;
     sc = node->scope->parent->parent->parent;
     break;
-  case TRY:
-    id = node->subs[1];
-    sc = node->scope;
+  case CATCH:
     break;
   default:
     return 0;
@@ -948,6 +946,12 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
 
     e = lexical_retval(mod, node, node_fun_retval(node));
     EXCEPT(e);
+    break;
+  case CATCH:
+    if (node->as.CATCH.is_user_label) {
+      e = scope_define_ident(mod, node->scope->parent, node->as.CATCH.label, node);
+      EXCEPT(e);
+    }
     break;
   default:
     break;
@@ -1185,7 +1189,15 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
     mark_subs(mod, node, pending, 0, 1, 1);
     break;
   case TRY:
-    mark_subs(mod, node, pending, 1, 2, 1);
+    mark_subs(mod, node->subs[0], pending, 0, node->subs[0]->subs_count, 1);
+    break;
+  case BLOCK:
+    if (node->scope->parent->node->which == BLOCK
+        && node->scope->parent->parent->node->which == LET
+        && node->scope->parent->parent->parent->node->which == TRY) {
+      node->typ = NULL;
+      mark_subs(mod, node, NULL, 0, node->subs_count, 1);
+    }
     break;
   case MATCH:
     mark_subs(mod, node, pending, 1, node->subs_count, 2);
@@ -1619,14 +1631,94 @@ static error step_type_gather_excepts(struct module *mod, struct node *node, voi
   DSTEP(mod, node);
   switch (node->which) {
   case TRY:
-    module_excepts_open_try(mod);
-    return 0;
+    module_excepts_open_try(mod, node);
+    break;
   case EXCEP:
+    module_excepts_push(mod, node);
+    break;
+  case SPIT:
     module_excepts_push(mod, node);
     break;
   default:
     break;
   }
+  return 0;
+}
+
+static error step_excepts_store_label(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  size_t label_idx;
+  const char *which = NULL;
+  switch (node->which) {
+  case EXCEP:
+    which = "except";
+    label_idx = 0;
+    break;
+  case SPIT:
+    which = "spit";
+    label_idx = 1;
+    break;
+  default:
+    return 0;
+  }
+
+  struct node *tryy = module_excepts_get(mod)->tryy;
+  struct node *eblock = tryy->subs[0]->subs[1];
+  error e;
+  ident target;
+  if (node->subs_count == label_idx) {
+    if (eblock->subs_count != 2) {
+      e = mk_except(mod, node,
+                    "try block has multiple catch,"
+                    " %s must use a label", which);
+      EXCEPT(e);
+    }
+
+    assert(eblock->subs[1]->which == CATCH);
+    target = eblock->subs[1]->as.CATCH.label;
+  } else if (node->subs_count == label_idx + 1) {
+    if (eblock->subs_count == 2) {
+      assert(eblock->subs[1]->which == CATCH);
+      if (!eblock->subs[1]->as.CATCH.is_user_label) {
+        e = mk_except(mod, node,
+                      "try block has a single catch without a label,"
+                      " %s must not use a label",
+                      which);
+        EXCEPT(e);
+      }
+    }
+
+    struct node *def = NULL;
+    e = scope_lookup(&def, mod, node->scope, node->subs[label_idx]);
+    EXCEPT(e);
+
+    if (def->which != CATCH || def->scope->parent->node != eblock) {
+      e = mk_except(mod, node->subs[label_idx],
+                    "invalid label '%s'",
+                    idents_value(mod->gctx, node_ident(node->subs[label_idx])));
+      EXCEPT(e);
+    }
+
+    target = node_ident(node->subs[0]);
+  } else {
+    e = mk_except(mod, node, "%s takes 1 or 2 arguments", which);
+    EXCEPT(e);
+  }
+
+  switch (node->which) {
+  case EXCEP:
+    node->as.EXCEP.target = target;
+    node->as.EXCEP.error = tryy->as.TRY.error;
+    break;
+  case SPIT:
+    node->as.SPIT.target = target;
+    node->as.SPIT.error = tryy->as.TRY.error;
+    break;
+  default:
+    assert(FALSE);
+  }
+
   return 0;
 }
 
@@ -2584,7 +2676,9 @@ static error type_inference_block(struct module *mod, struct node *node) {
     for (size_t n = 0; n < node->subs_count - 1; ++n) {
       struct node *s = node->subs[n];
       if (!typ_equal(mod, s->typ, typ_lookup_builtin(mod, TBI_VOID))) {
-        e = mk_except_type(mod, s, "intermediate statements in a block must be of type void (except the last one), not '%s'",
+        e = mk_except_type(mod, s,
+                           "intermediate statements in a block must be of type void"
+                           " (except the last one), not '%s'",
                            typ_pretty_name(mod, s->typ));
         EXCEPT(e);
       }
@@ -2707,20 +2801,59 @@ static error type_inference_try(struct module *mod, struct node *node) {
     EXCEPT(e);
   }
 
-  const struct typ *u = st->excepts[0]->typ;
-  for (size_t n = 1; n < st->count; ++n) {
+  const struct typ *exu = NULL;
+  for (size_t n = 0; n < st->count; ++n) {
     struct node *exc = st->excepts[n];
-    e = typ_unify(&u, mod, exc, u, exc->typ);
-    EXCEPT(e);
+    if (exc->subs_count == 2) {
+      exc = exc->subs[1];
+    } else {
+      exc = exc->subs[0];
+    }
+
+    if (exu == NULL) {
+      exu = exc->typ;
+    } else {
+      e = typ_unify(&exu, mod, exc, exu, exc->typ);
+      EXCEPT(e);
+    }
   }
 
-  e = type_destruct(mod, node->subs[1], u);
-  EXCEPT(e);
+  struct node *elet = node->subs[0];
+  struct node *error_defp = elet->subs[0];
+  for (size_t n = 0; n < error_defp->subs_count; ++n) {
+    e = type_destruct(mod, error_defp->subs[n], exu);
+    EXCEPT(e);
+  }
+  error_defp->typ = typ_lookup_builtin(mod, TBI_VOID);
 
-  e = typ_compatible(mod, node->subs[1], node->subs[1]->typ,
-                     node->subs[0]->typ);
-  EXCEPT(e);
-  node->typ = node->subs[0]->typ;
+  struct node *eblock = elet->subs[1];
+  struct node *main_block = eblock->subs[0];
+  const struct typ *u = main_block->typ;
+
+  for (size_t n = 1; n < eblock->subs_count; ++n) {
+    struct node *catch = eblock->subs[n];
+    struct node *let = catch->subs[0];
+    struct node *defp = let->subs[0];
+
+    for (size_t n = 0; n < defp->subs_count; ++n) {
+      e = type_destruct(mod, defp->subs[n], exu);
+      EXCEPT(e);
+    }
+    defp->typ = typ_lookup_builtin(mod, TBI_VOID);
+
+    struct node *block = catch->subs[1];
+    e = type_destruct(mod, block, u);
+    EXCEPT(e);
+    e = typ_unify(&u, mod, block, block->typ, u);
+    EXCEPT(e);
+
+    let->typ = u;
+    catch->typ = u;
+  }
+
+  eblock->typ = u;
+  elet->typ = u;
+  node->typ = u;
 
   return 0;
 }
@@ -3025,6 +3158,18 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
     break;
+  case RETURN:
+    e = typ_check_equal(mod, node, constraint, typ_lookup_builtin(mod, TBI_VOID));
+    EXCEPT(e);
+    if (node->subs_count > 0) {
+      e = type_destruct(mod, node->subs[0], module_retval_get(mod)->typ);
+      EXCEPT(e);
+      node->typ = node->subs[0]->typ;
+      node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
+    } else {
+      node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    }
+    break;
   case BLOCK:
     e = type_destruct(mod, node->subs[node->subs_count-1], constraint);
     EXCEPT(e);
@@ -3047,11 +3192,17 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     EXCEPT(e);
     break;
   case TRY:
-    e = type_destruct(mod, node->subs[0], constraint);
-    EXCEPT(e);
-    e = type_destruct(mod, node->subs[2], constraint);
-    EXCEPT(e);
     e = type_inference_try(mod, node);
+    EXCEPT(e);
+    struct node *elet = node->subs[0];
+    struct node *eblock = elet->subs[1];
+    for (size_t n = 0; n < eblock->subs_count; ++n) {
+      e = type_destruct(mod, eblock->subs[n], constraint);
+      EXCEPT(e);
+    }
+    break;
+  case CATCH:
+    e = type_destruct(mod, node->subs[1], constraint);
     EXCEPT(e);
     break;
   case MATCH:
@@ -3161,20 +3312,15 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     }
     goto ok;
   case RETURN:
-    if (node->subs_count > 0) {
-      e = type_destruct(mod, node->subs[0], module_retval_get(mod)->typ);
-      EXCEPT(e);
-      node->typ = node->subs[0]->typ;
-      node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
-    } else {
-      node->typ = typ_lookup_builtin(mod, TBI_VOID);
-    }
+    e = type_destruct(mod, node, typ_lookup_builtin(mod, TBI_VOID));
+    EXCEPT(e);
     goto ok;
   case BLOCK:
     e = type_inference_block(mod, node);
     EXCEPT(e);
     goto ok;
   case EXCEP:
+  case SPIT:
   case BREAK:
   case CONTINUE:
   case NOOP:
@@ -5142,11 +5288,13 @@ static const struct pass _passes[] = {
       step_stop_submodules,
       step_codeloc_for_generated,
       step_defpattern_extract_defname,
+      step_type_gather_excepts,
       step_lexical_scoping,
       NULL,
     },
     {
       step_type_deftypes_defintfs,
+      step_type_drop_excepts,
       step_complete_instantiation,
       NULL,
     }
@@ -5269,6 +5417,7 @@ static const struct pass _passes[] = {
       NULL,
     },
     {
+      step_excepts_store_label,
       step_rewrite_defname_no_expr,
       step_rewrite_sum_constructors,
       step_detect_not_dyn_intf_up,

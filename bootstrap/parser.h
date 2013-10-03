@@ -21,7 +21,6 @@ enum node_which {
   CALL,
   INIT,
   RETURN,
-  EXCEP,
   BLOCK,
   FUTURE,
   LAMBDA,
@@ -33,6 +32,9 @@ enum node_which {
   IF,
   MATCH,
   TRY,
+  CATCH,
+  EXCEP,
+  SPIT,
   TYPECONSTRAINT,
   DYN,
   DEFFUN,
@@ -163,7 +165,21 @@ struct node_continue {};
 struct node_pass {};
 struct node_if {};
 struct node_match {};
-struct node_try {};
+struct node_try {
+  ident error;
+};
+struct node_catch {
+  bool is_user_label;
+  ident label;
+};
+struct node_excep {
+  ident target;
+  ident error;
+};
+struct node_spit {
+  ident target;
+  ident error;
+};
 struct node_typeconstraint {
   bool in_pattern;
 };
@@ -281,6 +297,9 @@ union node_as {
   struct node_if IF;
   struct node_match MATCH;
   struct node_try TRY;
+  struct node_catch CATCH;
+  struct node_excep EXCEP;
+  struct node_spit SPIT;
   struct node_typeconstraint TYPECONSTRAINT;
   struct node_dyn DYN;
   struct node_deffun DEFFUN;
@@ -373,6 +392,7 @@ enum predefined_idents {
   ID_FINAL,
   ID_SELF,
   ID_OTHERWISE,
+  ID_SPIT,
 
   ID_MAIN,
   ID_WHICH,
@@ -619,6 +639,7 @@ struct fun_state {
 struct try_state {
   struct try_state *prev;
 
+  struct node *tryy;
   struct node **excepts;
   size_t count;
 };
@@ -717,7 +738,7 @@ error need_instance(struct module *mod, struct node *needer, const struct typ *t
 void module_retval_set(struct module *mod, const struct node *retval);
 const struct node *module_retval_get(struct module *mod);
 void module_retval_clear(struct module *mod);
-void module_excepts_open_try(struct module *mod);
+void module_excepts_open_try(struct module *mod, struct node *tryy);
 void module_excepts_push(struct module *mod, struct node *excep_node);
 struct try_state *module_excepts_get(struct module *mod);
 void module_excepts_close_try(struct module *mod);

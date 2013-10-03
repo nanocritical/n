@@ -2,6 +2,7 @@ from nlang.chars import i_string_buffer i_show
 from nlang.memory import slice
 from nlang.containers import index_range range
 from nlang.unsafe import cast
+from nlang import say print
 
 export intf i_any =
 
@@ -736,3 +737,45 @@ export inline (fun t:i_numeric) max a:t b:t = t
     return a
   else
     return b
+
+
+export intf i_error = \
+    export i_trivial_ctor \
+    export i_copyable \
+    export i_generalized_boolean \
+    export i_show
+
+export inline type error = export i_error \
+    export i_trivial_copy
+  code	:i32
+
+export error method i_generalized_boolean.operator_test = bool
+  return self.code != 0
+
+export error method i_has_equality.operator_eq other:@final = bool
+  return self.code == other.code
+
+export error method i_has_equality.operator_ne other:@final = bool
+  return self.code != other.code
+
+export error method i_ordered.operator_le other:@final = bool
+  return self.code <= other.code
+
+export error method i_ordered.operator_lt other:@final = bool
+  return self.code < other.code
+
+export error method i_ordered.operator_gt other:@final = bool
+  return self.code > other.code
+
+export error method i_ordered.operator_ge other:@final = bool
+  return self.code >= other.code
+
+export error method i_show.show buf:@#i_string_buffer = void
+  self.code.show buf
+
+export (fun e:i_error) swallow err:e = void
+  noop
+
+export (fun e:i_error) fatal err:e = void
+  print @"Fatal: "
+  say @err
