@@ -11,12 +11,12 @@ export fun main = i32
   such
     v#push 0
     v#push 1
-    assert (v#pop == 1)
+    assert <- v#pop == 1
     v#push 1
     for i in v.all.iter
-      assert ((v.at i). == i.trim_u32.reinterpret_signed)
+      assert <- (v.at i). == i.trim_u32.reinterpret_signed
   let w = foo
-  assert ((w.at 0). == 1)
-  assert ((w.at 1). == 0)
-  assert ((w.at 2). == 2)
+  assert <- (w.at 0). == 1
+  assert <- (w.at 1). == 0
+  assert <- (w.at 2). == 2
   return (v.at 1). - 1

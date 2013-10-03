@@ -18,7 +18,7 @@ export vector method count = size
   return self._count
 
 export vector method$ at n:size = @$t
-  assert (n <= self._count)
+  assert <- n <= self._count
   return self._p$at n
 
 export vector method$ first = @$t
@@ -49,7 +49,7 @@ export vector method# push x:t = void
   d! = x
 
 export vector method# pop = t
-  assert (self._count != 0)
+  assert <- self._count != 0
   let d = self.last
   self!_count -= 1
   return d.

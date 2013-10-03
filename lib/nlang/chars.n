@@ -14,7 +14,7 @@ export inline type char = \
   code:u32
 
 export inline char fun from_literal_string literal:static_string = this
-  assert (literal.count == 1)
+  assert <- s.count == 1
   return { code=(literal.get_char 0).code }
 
 export inline char fun from_ascii c:u8 = char

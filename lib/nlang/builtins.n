@@ -687,15 +687,15 @@ export inline static_array method all = index_range
   return range 0 self._count
 
 export inline static_array method$ unsafe_rawdata = @$u8
-  assert (self._count != 0)
+  assert <- self._count != 0
   return (cast ?@!t @$u8) self$_data
 
 export inline static_array method$ unsafe_data = @$t
-  assert (self._count != 0)
+  assert <- self._count != 0
   return self$_data
 
 export inline static_array method$ at n:size = @$t
-  assert (n < self._count)
+  assert <- n < self._count
   let off = n * (sizeof t)
   let p = static_array_at_byte ((cast @$this @!this) self)!unsafe_rawdata off
   return (cast @!u8 @$t) p

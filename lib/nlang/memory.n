@@ -33,29 +33,29 @@ export inline slice method all = index_range
   return range 0 self._count
 
 export inline slice method$ unsafe_rawdata = @$u8
-  assert (self._count != 0)
+  assert <- self._count != 0
   return (nlang.unsafe.cast ?@#t @$u8) self$_data
 
 export inline slice method$ unsafe_data = @$t
-  assert (self._count != 0)
+  assert <- self._count != 0
   return (nlang.unsafe.cast ?@#t @$t) self._data
 
 export inline slice method$ at n:size = @$t
-  assert (n < self._count)
+  assert <- n < self._count
   let off = n * (sizeof t)
   let p = slice_at_byte ((nlang.unsafe.cast @$this @#this) self)#unsafe_rawdata off
   return (nlang.unsafe.cast @#u8 @$t) p
 
 export inline slice method! copy at:size other:@this off:size count:size = void
-  assert (off + count <= other.count)
-  assert (at + count <= self.count)
+  assert <- off + count <= other.count
+  assert <- at + count <= self.count
   let bat = at * (sizeof t)
   let boff = off * (sizeof t)
   let bsz = count * (sizeof t)
   slice_memcpy self#unsafe_rawdata bat other.unsafe_rawdata boff bsz
 
 export inline slice method$ sub r:index_range = @$this -- ::unique
-  assert (r.end <= self.count)
+  assert <- r.end <= self.count
   let p = (nlang.unsafe.cast @$t @#t) (self$at r.begin)
   let ret = this.new
   such
