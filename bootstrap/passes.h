@@ -6,7 +6,7 @@
 typedef error (*step)(struct module *mod, struct node *node, void *user, bool *stop);
 
 error pass(struct module *mod, struct node *node,
-           const step *down_steps, const step *up_steps, ssize_t last_up,
+           const step *down_steps, const step *up_steps, ssize_t shallow_last_up,
            void *user);
 
 enum pass_kind {

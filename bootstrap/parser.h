@@ -18,6 +18,8 @@ enum node_which {
   BIN,
   UN,
   TUPLE,
+  TUPLEEXTRACT,
+  TUPLENTH,
   CALL,
   INIT,
   RETURN,
@@ -143,6 +145,9 @@ struct node_un {
   enum token_type operator;
 };
 struct node_tuple {};
+struct node_tuplenth {
+  size_t nth;
+};
 struct node_call {
   const struct node *return_through_ref_expr;
 };
@@ -287,6 +292,7 @@ union node_as {
   struct node_bin BIN;
   struct node_un UN;
   struct node_tuple TUPLE;
+  struct node_tuplenth TUPLENTH;
   struct node_call CALL;
   struct node_future FUTURE;
   struct node_init INIT;
@@ -415,7 +421,22 @@ enum predefined_idents {
   ID_TBI_LITERALS_FLOATING,
   ID_TBI_LITERALS_INIT,
   ID_TBI_LITERALS_INIT_ARRAY,
-  ID_TBI_PSEUDO_TUPLE,
+  ID_TBI_ANY_TUPLE,
+  ID_TBI_TUPLE_2,
+  ID_TBI_TUPLE_3,
+  ID_TBI_TUPLE_4,
+  ID_TBI_TUPLE_5,
+  ID_TBI_TUPLE_6,
+  ID_TBI_TUPLE_7,
+  ID_TBI_TUPLE_8,
+  ID_TBI_TUPLE_9,
+  ID_TBI_TUPLE_10,
+  ID_TBI_TUPLE_11,
+  ID_TBI_TUPLE_12,
+  ID_TBI_TUPLE_13,
+  ID_TBI_TUPLE_14,
+  ID_TBI_TUPLE_15,
+  ID_TBI_TUPLE_16,
   ID_TBI_ANY,
   ID_TBI_BOOL,
   ID_TBI_BOOL_COMPATIBLE,
@@ -542,7 +563,22 @@ enum typ_builtin {
   TBI_LITERALS_FLOATING,
   TBI_LITERALS_INIT,
   TBI_LITERALS_INIT_ARRAY,
-  TBI_PSEUDO_TUPLE,
+  TBI_ANY_TUPLE,
+  TBI_TUPLE_2,
+  TBI_TUPLE_3,
+  TBI_TUPLE_4,
+  TBI_TUPLE_5,
+  TBI_TUPLE_6,
+  TBI_TUPLE_7,
+  TBI_TUPLE_8,
+  TBI_TUPLE_9,
+  TBI_TUPLE_10,
+  TBI_TUPLE_11,
+  TBI_TUPLE_12,
+  TBI_TUPLE_13,
+  TBI_TUPLE_14,
+  TBI_TUPLE_15,
+  TBI_TUPLE_16,
   TBI_ANY,
   TBI_BOOL,
   TBI_BOOL_COMPATIBLE,
@@ -608,7 +644,6 @@ enum typ_builtin {
 
 enum typ_which {
   TYPE_DEF,
-  TYPE_TUPLE,
   TYPE_FUNCTION,
   TYPE__MARKER,
 };
@@ -734,7 +769,6 @@ void globalctx_init(struct globalctx *gctx);
 
 error module_open(struct globalctx *gctx, struct stage *stage, struct module *mod,
                   const char *prefix, const char *fn);
-error need_instance(struct module *mod, struct node *needer, const struct typ *typ);
 void module_retval_set(struct module *mod, const struct node *retval);
 const struct node *module_retval_get(struct module *mod);
 void module_retval_clear(struct module *mod);
@@ -806,6 +840,7 @@ struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
 struct typ *typ_genarg_mark_as_abstract(const struct typ *t);
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id);
+struct typ *typ_lookup_builtin_tuple(const struct module *mod, size_t arity);
 bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b);
 error typ_check_equal(const struct module *mod, const struct node *for_error,
                       const struct typ *a, const struct typ *b);

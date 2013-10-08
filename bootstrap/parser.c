@@ -19,6 +19,8 @@ const char *node_which_strings[] = {
   [BIN] = "BIN",
   [UN] = "UN",
   [TUPLE] = "TUPLE",
+  [TUPLEEXTRACT] = "TUPLEEXTRACT",
+  [TUPLENTH] = "TUPLENTH",
   [CALL] = "CALL",
   [INIT] = "INIT",
   [RETURN] = "RETURN",
@@ -103,7 +105,22 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_LITERALS_INIT] = "init",
   [ID_TBI_LITERALS_INIT_ARRAY] = "init_array",
   [ID_TBI_ANY] = "i_any",
-  [ID_TBI_PSEUDO_TUPLE] = "pseudo_tuple",
+  [ID_TBI_ANY_TUPLE] = "i_any_tuple",
+  [ID_TBI_TUPLE_2] = "tuple_2",
+  [ID_TBI_TUPLE_3] = "tuple_3",
+  [ID_TBI_TUPLE_4] = "tuple_4",
+  [ID_TBI_TUPLE_5] = "tuple_5",
+  [ID_TBI_TUPLE_6] = "tuple_6",
+  [ID_TBI_TUPLE_7] = "tuple_7",
+  [ID_TBI_TUPLE_8] = "tuple_8",
+  [ID_TBI_TUPLE_9] = "tuple_9",
+  [ID_TBI_TUPLE_10] = "tuple_10",
+  [ID_TBI_TUPLE_11] = "tuple_11",
+  [ID_TBI_TUPLE_12] = "tuple_12",
+  [ID_TBI_TUPLE_13] = "tuple_13",
+  [ID_TBI_TUPLE_14] = "tuple_14",
+  [ID_TBI_TUPLE_15] = "tuple_15",
+  [ID_TBI_TUPLE_16] = "tuple_16",
   [ID_TBI_BOOL] = "bool",
   [ID_TBI_BOOL_COMPATIBLE] = "i_bool_compatible",
   [ID_TBI_I8] = "i8",
@@ -1553,17 +1570,25 @@ static error p_expr_tuple(struct node *node, const struct node *first,
   struct node *fst = node_new_subnode(mod, node);
   *fst = *first;
 
+  size_t count = 1;
   while (TRUE) {
     e = scan(&tok, mod);
     EXCEPT(e);
 
     if (tok.t != TCOMMA) {
       back(mod, &tok);
+
+      if (count > 16) {
+        EXCEPT_SYNTAX(mod, &tok, "tuples can have no more than 16 elements");
+      }
+
       return 0;
     }
 
     e = p_expr(node_new_subnode(mod, node), mod, TCOMMA);
     EXCEPT(e);
+
+    count += 1;
   }
 }
 
@@ -2323,27 +2348,31 @@ static error p_defarg(struct node *node, struct module *mod, bool is_optional) {
   return 0;
 }
 
-static error p_defret(struct node *node, struct module *mod) {
-  node->which = DEFARG;
-  node->as.DEFARG.is_retval = TRUE;
-  error e = p_expr(node_new_subnode(mod, node), mod, TCOLON);
-  EXCEPT(e);
+// FIXME: Avoid these forward declarations.
+typedef error (*step)(struct module *mod, struct node *node, void *user, bool *stop);
 
-  struct token tok = { 0 };
-  e = scan(&tok, mod);
-  EXCEPT(e);
-  if (tok.t != TCOLON) {
-    struct node **to_free = node->subs;
-    struct node *first = node->subs[0];
-    memcpy(node, first, sizeof(*node));
-    free(to_free);
+error pass(struct module *mod, struct node *node,
+           const step *down_steps, const step *up_steps, ssize_t shallow_last_up,
+           void *user);
 
-    back(mod, &tok);
-    return 0;
+static error step_rewrite_into_defarg(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
+  if (node->which == TYPECONSTRAINT) {
+    node->which = DEFARG;
   }
+  return 0;
+}
 
-  e = p_typeexpr(node_new_subnode(mod, node), mod);
+static error p_defret(struct node *node, struct module *mod) {
+  error e = p_expr(node, mod, T__STATEMENT);
   EXCEPT(e);
+
+  static const step downs[] = { NULL };
+  static const step ups[] = { step_rewrite_into_defarg, NULL };
+
+  e = pass(mod, node, downs, ups, -1, NULL);
+  EXCEPT(e);
+
   return 0;
 }
 
@@ -3142,12 +3171,6 @@ ident gensym(struct module *mod) {
   return idents_add_string(mod->gctx, name, cnt);
 }
 
-error need_instance(struct module *mod, struct node *needer, const struct typ *typ) {
-  if (node_module_owner(needer) == node_module_owner(typ->definition)) {
-  }
-  return 0;
-}
-
 void module_retval_set(struct module *mod, const struct node *retval) {
   mod->fun_state->retval = retval;
 }
@@ -3192,6 +3215,7 @@ static struct typ *typ_new_builtin(struct node *definition,
     r->gen_args = calloc(gen_arity + 1, sizeof(struct typ *));
     if (definition != NULL && definition->typ != NULL) {
       r->gen_args[0] = definition->typ;
+      assert(r->gen_args[0]->gen_arity == 0);
     }
   }
   if (which == TYPE_FUNCTION) {
@@ -3239,6 +3263,13 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
   case TYPE_DEF:
     if (t->gen_arity == 0) {
       s += sprintf(s, "%s", typ_name(mod, t));
+    } else if (typ_isa(mod, t, typ_lookup_builtin(mod, TBI_ANY_TUPLE))) {
+      for (size_t n = 1; n < t->gen_arity + 1; ++n) {
+        if (n > 1) {
+          s += sprintf(s, ", ");
+        }
+        s += sprintf(s, "%s", typ_pretty_name(mod, t->gen_args[n]));
+      }
     } else {
       s += sprintf(s, "(%s", typ_name(mod, t));
       for (size_t n = 1; n < t->gen_arity + 1; ++n) {
@@ -3247,14 +3278,6 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
         free(s2);
       }
       s += sprintf(s, ")");
-    }
-    break;
-  case TYPE_TUPLE:
-    for (size_t n = 1; n < t->gen_arity + 1; ++n) {
-      if (n > 1) {
-        s += sprintf(s, ", ");
-      }
-      s += sprintf(s, "%s", typ_pretty_name(mod, t->gen_args[1+n]));
     }
     break;
   default:
@@ -3266,6 +3289,27 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
 
 struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
   return mod->gctx->builtin_typs[id];
+}
+
+struct typ *typ_lookup_builtin_tuple(const struct module *mod, size_t arity) {
+  switch (arity) {
+  case 2: return typ_lookup_builtin(mod, TBI_TUPLE_2);
+  case 3: return typ_lookup_builtin(mod, TBI_TUPLE_3);
+  case 4: return typ_lookup_builtin(mod, TBI_TUPLE_4);
+  case 5: return typ_lookup_builtin(mod, TBI_TUPLE_5);
+  case 6: return typ_lookup_builtin(mod, TBI_TUPLE_6);
+  case 7: return typ_lookup_builtin(mod, TBI_TUPLE_7);
+  case 8: return typ_lookup_builtin(mod, TBI_TUPLE_8);
+  case 9: return typ_lookup_builtin(mod, TBI_TUPLE_9);
+  case 10: return typ_lookup_builtin(mod, TBI_TUPLE_10);
+  case 11: return typ_lookup_builtin(mod, TBI_TUPLE_11);
+  case 12: return typ_lookup_builtin(mod, TBI_TUPLE_12);
+  case 13: return typ_lookup_builtin(mod, TBI_TUPLE_13);
+  case 14: return typ_lookup_builtin(mod, TBI_TUPLE_14);
+  case 15: return typ_lookup_builtin(mod, TBI_TUPLE_15);
+  case 16: return typ_lookup_builtin(mod, TBI_TUPLE_16);
+  default: assert(FALSE); return NULL;
+  }
 }
 
 bool typ_is_same_generic(const struct module *mod,
@@ -3667,8 +3711,7 @@ bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t) {
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__NOT_TYPEABLE))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT))
       || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MUTABLE))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MERCURIAL))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE));
+      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MERCURIAL));
 }
 
 bool typ_is_trivial(const struct module *mod, const struct typ *t) {
@@ -3695,10 +3738,14 @@ error typ_unify(const struct typ **u, const struct module *mod, const struct nod
 
   if (a->gen_arity > 0) {
     // Choose the concrete typ if there is one.
+    //
+    // We first create a new typ, as the result of choosing the concrete
+    // types will potentially result in a different type in the end than
+    // either a or b.
     if (typ_is_concrete(mod, a)) {
-      *u = typ_new(a->definition, a->which, a->gen_arity, 0);
+      *u = typ_new(a->gen_args[0]->definition, a->which, a->gen_arity, 0);
     } else {
-      *u = typ_new(b->definition, b->which, b->gen_arity, 0);
+      *u = typ_new(b->gen_args[0]->definition, b->which, b->gen_arity, 0);
     }
 
     for (size_t n = 0; n < a->gen_arity; ++n) {
@@ -3737,6 +3784,21 @@ bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *in
       && intf->definition->subs[IDX_GENARGS]->subs_count > 0) {
     // intf is a "2nd order" generic, i.e. the generic functor itself.
     if (typ_isa(mod, a->gen_args[0], intf)) {
+      return TRUE;
+    }
+  }
+
+  if (a->gen_arity > 0
+      && !typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_ANY_TUPLE))
+      && typ_isa(mod, a, typ_lookup_builtin(mod, TBI_ANY_TUPLE))) {
+    // FIXME: only valid for certain builtin interfaces (copy, trivial...)
+    size_t n;
+    for (n = 0; n < a->gen_arity; ++n) {
+      if (!typ_isa(mod, a->gen_args[1+n], intf)) {
+        break;
+      }
+    }
+    if (n == a->gen_arity) {
       return TRUE;
     }
   }

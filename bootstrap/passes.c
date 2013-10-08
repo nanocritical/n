@@ -500,6 +500,34 @@ static error step_add_builtin_members(struct module *mod, struct node *node, voi
   return 0;
 }
 
+static void fix_scopes_after_move(struct node *node) {
+  node->scope->node = node;
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    assert(node->subs[n]->scope->parent == node->scope);
+  }
+}
+
+static error insert_tupleextract(struct module *mod, size_t arity, struct node *expr) {
+  struct scope *parent_scope = expr->scope->parent;
+  struct node copy = *expr;
+
+  memset(expr, 0, sizeof(*expr));
+  expr->which = TUPLEEXTRACT;
+  for (size_t n = 0; n < arity; ++n) {
+    struct node *nth = mk_node(mod, expr, TUPLENTH);
+    nth->as.TUPLENTH.nth = n;
+  }
+  struct node *value = node_new_subnode(mod, expr);
+  *value = copy;
+  fix_scopes_after_move(value);
+
+  const struct node *except[] = { value, NULL };
+  error e = catchup(mod, except, expr, parent_scope, CATCHUP_REWRITING_CURRENT);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error extract_defnames_in_pattern(struct module *mod, struct node *defpattern,
                                          struct node *pattern, struct node *expr) {
   struct node *defn;
@@ -508,9 +536,13 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
   if (expr != NULL
       && pattern->which != expr->which
       && pattern->which != IDENT) {
-    // FIXME
-    e = mk_except(mod, pattern, "value destruct not yet supported");
-    EXCEPT(e);
+    if (pattern->which == TUPLE) {
+      e = insert_tupleextract(mod, pattern->subs_count, expr);
+      EXCEPT(e);
+    } else {
+      e = mk_except(mod, pattern, "value destruct not supported");
+      EXCEPT(e);
+    }
   }
 
 #define UNLESS_NULL(n, sub) ( (n) != NULL ? (sub) : NULL )
@@ -529,6 +561,7 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
     EXCEPT(e);
     return 0;
   case UN:
+    assert(FALSE && "Unsupported");
     e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0],
                                     UNLESS_NULL(expr, expr->subs[0]));
     EXCEPT(e);
@@ -818,6 +851,13 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
   case DEFARG:
     e = scope_define(mod, fun->scope, retval->subs[0], retval);
     EXCEPT(e);
+    break;
+  case TUPLE:
+    for (size_t n = 0; n < retval->subs_count; ++n) {
+      struct node *r = retval->subs[n];
+      e = lexical_retval(mod, fun, r);
+      EXCEPT(e);
+    }
     break;
   default:
     e = mk_except(mod, retval, "return value type expression not supported");
@@ -1187,6 +1227,9 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   case SETGENARG:
   case TYPECONSTRAINT:
     mark_subs(mod, node, pending, 0, 1, 1);
+    break;
+  case TUPLEEXTRACT:
+    mark_subs(mod, node, pending, 0, node->subs_count - 1, 1);
     break;
   case TRY:
     mark_subs(mod, node->subs[0], pending, 0, node->subs[0]->subs_count, 1);
@@ -2114,20 +2157,72 @@ static error type_inference_bin(struct module *mod, struct node *node) {
   }
 }
 
-static error type_inference_tuple(struct module *mod, struct node *node) {
-  node->typ = typ_new(typ_lookup_builtin(mod, TBI_PSEUDO_TUPLE)->definition,
-                      TYPE_TUPLE, node->subs_count, 0);
-  for (size_t n = 0; n < node->typ->gen_arity; ++n) {
-    node->typ->gen_args[1+n] = node->subs[n]->typ;
+static const struct typ *typ_tuple(struct module *mod, struct node *node) {
+  struct node *gendef = typ_lookup_builtin_tuple(mod, node->subs_count)->definition;
 
+  struct toplevel *toplevel = node_toplevel(gendef);
+  for (size_t j = 1; j < toplevel->instances_count; ++j) {
+    struct node *i = toplevel->instances[j];
+
+    size_t n;
+    for (n = 0; n < i->typ->gen_arity; ++n) {
+      if (!typ_equal(mod, i->typ->gen_args[1+n], node->subs[n]->typ)) {
+        break;
+      }
+    }
+
+    if (n == i->typ->gen_arity) {
+      return i->typ;
+    }
+  }
+
+  struct node *pristine = toplevel->instances[0];
+  struct node *instance = add_instance_deepcopy_from_pristine(mod, gendef, pristine);
+  node_toplevel(instance)->generic_definition = gendef;
+
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    const struct typ *t = node->subs[n]->typ;
+    struct node *ga = instance->subs[IDX_GENARGS]->subs[n];
+    ga->which = SETGENARG;
+    // FIXME leaking ga->subs[1]
+    ga->subs[1]->which = DIRECTDEF;
+    ga->subs[1]->as.DIRECTDEF.definition = t->definition;
+    ga->typ = t;
+    ga->flags = NODE_IS_TYPE;
+  }
+
+  error e = catchup_instantiation(node_module_owner(gendef),
+                                  instance, gendef->scope->parent);
+  assert(!e);
+
+  return instance->typ;
+}
+
+static error type_inference_tuple(struct module *mod, struct node *node) {
+  node->typ = typ_tuple(mod, node);
+
+  for (size_t n = 0; n < node->typ->gen_arity; ++n) {
     if (n > 0 && (node->flags & NODE_IS_TYPE) != (node->subs[n]->flags & NODE_IS_TYPE)) {
       error e = mk_except_type(mod, node->subs[n], "tuple combines values and types");
       EXCEPT(e);
     }
     node->flags |= (node->subs[n]->flags & NODE__TRANSITIVE);
   }
-  error e = need_instance(mod, node, node->typ);
-  EXCEPT(e);
+
+  return 0;
+}
+
+static error type_inference_tupleextract(struct module *mod, struct node *node) {
+  struct node *expr = node->subs[node->subs_count - 1];
+  assert(node->subs_count == expr->typ->gen_arity + 1
+         && typ_isa(mod, expr->typ,
+                      typ_lookup_builtin(mod, TBI_ANY_TUPLE)));
+
+  for (size_t n = 0; n < node->subs_count - 1; ++n) {
+    node->subs[n]->typ = expr->typ->gen_args[1 + n];
+  }
+  node->typ = node->subs[node->subs_count - 1]->typ;
+  node->flags = node->subs[node->subs_count - 1]->flags; // Copy all flags, transparent node.
   return 0;
 }
 
@@ -2973,15 +3068,19 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     // In this case, y (for instance), will not have NODE_IS_TYPE set properly.
     // NODE_IS_TYPE needs to be set recursively when descending via
     // type_destruct.
-    e = scope_lookup_ident_wontimport(&def, node, mod, node->scope,
-                                      node_ident(node), FALSE);
-    EXCEPT(e);
-    if (def->which == DEFNAME) {
-      e = type_destruct(mod, def, constraint);
+    if (node_ident(node) == ID_OTHERWISE) {
+      node->typ = constraint;
+    } else {
+      e = scope_lookup_ident_wontimport(&def, node, mod, node->scope,
+                                        node_ident(node), FALSE);
       EXCEPT(e);
+      if (def->which == DEFNAME) {
+        e = type_destruct(mod, def, constraint);
+        EXCEPT(e);
+      }
+      node->typ = def->typ;
+      node->flags |= (def->flags & NODE__TRANSITIVE);
     }
-    node->typ = def->typ;
-    node->flags |= (def->flags & NODE__TRANSITIVE);
     break;
   case DEFNAME:
     if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)) {
@@ -3139,14 +3238,18 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     node->typ = constraint;
     break;
   case TUPLE:
-    e = type_inference_tuple(mod, node);
-    EXCEPT(e);
-    e = typ_unify(&node->typ, mod, node, node->typ, constraint);
-    EXCEPT(e);
     for (size_t n = 0; n < node->subs_count; ++n) {
-      e = type_destruct(mod, node->subs[n], node->typ->gen_args[1+n]);
+      e = type_destruct(mod, node->subs[n], constraint->gen_args[1+n]);
       EXCEPT(e);
     }
+    e = type_inference_tuple(mod, node);
+    EXCEPT(e);
+    break;
+  case TUPLEEXTRACT:
+    e = type_destruct(mod, node->subs[node->subs_count - 1], constraint);
+    EXCEPT(e);
+    e = type_inference_tupleextract(mod, node);
+    EXCEPT(e);
     break;
   case INIT:
     e = type_destruct_init(mod, node, constraint);
@@ -3298,6 +3401,10 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case TUPLE:
     e = type_inference_tuple(mod, node);
+    EXCEPT(e);
+    goto ok;
+  case TUPLEEXTRACT:
+    e = type_inference_tupleextract(mod, node);
     EXCEPT(e);
     goto ok;
   case CALL:
@@ -4222,13 +4329,6 @@ static const ident operator_ident[TOKEN__NUM] = {
   [TBWNOT] = ID_OPERATOR_BWNOT,
 };
 
-static void fix_scopes_after_move(struct node *node) {
-  node->scope->node = node;
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    node->subs[n]->scope->parent = node->scope;
-  }
-}
-
 static error step_string_literal_conversion(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -4551,6 +4651,12 @@ static error check_exhaustive_intf_impl_eachisalist(struct module *mod, const st
                                                     const struct typ *intf, void *user) {
   (void) user;
   struct node *deft = t->definition;
+
+  // FIXME: Remove
+  if (typ_isa(mod, t, typ_lookup_builtin(mod, TBI_ANY_TUPLE))) {
+    return 0;
+  }
+
   const struct node *dintf = intf->definition;
 
   for (size_t m = 0; m < dintf->subs_count; ++m) {
@@ -5038,6 +5144,11 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
     }
     temporaries_add(temps, node);
     break;
+  case TUPLEEXTRACT:
+    if (node->subs[node->subs_count - 1]->which != IDENT) {
+      temporaries_add(temps, node);
+    }
+    break;
   case IF:
   case TRY:
   case MATCH:
@@ -5178,22 +5289,41 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
     const struct node *except[2];
     except[1] = NULL;
 
-    struct node *nvalue;
     if (rv->which == UN && OP_KIND(rv->as.UN.operator) == OP_UN_REFOF) {
       rv->subs[0]->flags |= NODE_IS_TEMPORARY;
       rew_append(assign, rv->subs[0]);
       except[0] = rv->subs[0];
 
-      nvalue = mk_node(mod, nrv, UN);
+      struct node *nvalue = mk_node(mod, nrv, UN);
       nvalue->as.UN.operator = rv->as.UN.operator;
       struct node *nvalue_name = mk_node(mod, nvalue, IDENT);
       nvalue_name->as.IDENT.name = g;
+    } else if (rv->which == TUPLEEXTRACT) {
+      struct node *tuple = rv->subs[rv->subs_count - 1];
+      rew_pop(rv, TRUE);
+      rew_append(assign, tuple);
+      except[0] = tuple;
+
+      struct node *extractor = mk_node(mod, nrv, TUPLEEXTRACT);
+      for (size_t n = 0; n < tuple->typ->gen_arity; ++n) {
+        // We want to reuse the original TUPLENTH from 'rv' as they may be
+        // pointed to by nearby DEFNAME.expr, so their location in memory
+        // cannot change.
+        struct node *nth = rv->subs[n];
+        memset(nth, 0, sizeof(*nth));
+        nth->which = TUPLENTH;
+        nth->as.TUPLENTH.nth = n;
+        rew_append(extractor, nth);
+      }
+      struct node *nvalue = mk_node(mod, extractor, IDENT);
+      nvalue->as.IDENT.name = g;
+
     } else {
       rv->flags |= NODE_IS_TEMPORARY;
       rew_append(assign, rv);
       except[0] = rv;
 
-      nvalue = mk_node(mod, nrv, IDENT);
+      struct node *nvalue = mk_node(mod, nrv, IDENT);
       nvalue->as.IDENT.name = g;
     }
 

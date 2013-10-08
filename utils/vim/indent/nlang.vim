@@ -11,7 +11,7 @@ setlocal nolisp
 setlocal autoindent
 
 setlocal indentexpr=GetNlangIndent(v:lnum)
-setlocal indentkeys=o,O,0{,0},!^F,<\\>,0=elif\ ,0=else,0=catch,0=type\ ,0=intf\ ,0=fun\ ,0=delegate\ ,=method\ ,0\|,*<Return>
+setlocal indentkeys="o,O,0{,0},!^F,<\\>,0=elif\ ,0=else,0=catch,0=type\ ,0=intf\ ,0=fun\ ,0=delegate\ ,=method\ ,0\|"
 
 if exists("*GetNlangIndent")
   finish
@@ -76,7 +76,7 @@ function GetNlangIndent(lnum)
     return &sw
   elseif line =~ TYPE_INTF
     return 0
-  elseif line =~ TYPE_FUNMETH
+  elseif line =~ TYPE_FUNMETH || line =~ FUN
     return 0
   endif
 

@@ -277,3 +277,159 @@ export fun push_async s:@string = void
 export fun store t:@#htable x:@string:(capturedby t) = void
 export htable method store x:@string:captured = void
 
+
+
+  let p = @&!{}:i32
+  let p = @!&{}:i32
+
+  let q = &{}:i32
+
+  let p = @{}:t::shared
+
+fun foo px:(pshared @i32) py:(refcnt @t) = bool
+fun foo px:&i32 py:(refcnt @t) = bool
+fun foo px:&i32 py:@t = bool
+
+prop bgl
+
+type mutex guard:prop =
+  noop
+
+mutex method! lock = locker::guard
+
+letvar g_lock = {}:(thrd.mutex bgl)
+
+
+prop guardedby lock =
+  lock::locked => self::protected
+
+type t =
+  x	:u32
+  y	:u32
+  s	:&#string	::(guardedby g_lock)
+
+type t =
+  x	:u32
+  y	:u32
+  lock	:mutex
+  s	:&#string	::(guardedby self.lock)
+
+
+&!t <=> @!t::multithreaded
+
+prop multithreaded
+  not self::protected => false
+
+
+fun foo p:@!t py:sh@i32 = bool
+  block
+    let scoped_locker = g_lock.lock
+    p.s!append 'postfix'
+
+  with g_lock.lock
+    -- fact: g_lock::locked
+    -- implies: forall self:t, self.s::protected
+    p.s!append 'postfix'
+
+  with p.lock!lock
+    -- fact: p.lock::locked
+    -- implies: p.s::protected
+    p.s!append 'postfix'
+
+  -- breaking the rules:
+  claim p.s::protected
+    p.s!append 'postfix'
+
+-- Rewriting rule:
+--   instance::(truth args) rewrites to
+--   truth instance args
+
+-- Should propositions be allowed as generic arguments? It would make some
+-- sense to allow it.
+--
+-- e.g.
+prop needs p =
+  self::p => self::protected
+
+-- How do we describe:
+--  - preconditions on self for a method call?
+--  - what happens to self after a method call?
+--  - changes in propositions on arguments after a call?
+--
+-- Can we reuse pre and post? but if they contain :: statements, that's OK?
+-- Aren't they allowed anywhere anyway and will trigger a check? Just like with
+-- TYPECONSTRAINTs?
+-- It comes down to a question of export. pre, post, invariant (for the whole
+-- function) can be part of the API. When on the function prototype, they are
+-- implicitly export. This is a nice scheme.
+--
+t method! foobar arg:u32::p = u32::a
+  export pre
+    arg::p
+  pre
+    self::precond
+  invariant
+    noop -- not the same thing as pre, even for a (const) arg?
+  export post
+    u32::a
+  post
+    self::postcond
+
+
+
+
+
+mutex method! lock = locker::(guard self)
+prop guard target =
+  self::locked
+
+
+-- How can you grab a lock on a readonly object? Do we allow mutating fields?
+-- Do we need shallow const? (at least if it's memory in a different area?)
+--
+-- A const object should have all its (sizeof self) memory be const. That's like
+-- basic sanity.
+--
+-- struct a {
+--   struct a *next;
+--   int n;
+-- };
+--
+-- const struct a x;
+--
+-- In this, it makes sense for x.next->n to be writable: x.next is not
+-- writeable, but x.next is still a 'struct a *', so it makes sense.
+--
+-- Same thing using a N method to get to next:
+--
+--  type a =
+--    next	:@!a
+--    n		:int
+--
+--  a method get_next = @!a
+--
+--  fun ...
+--    let x = {}:a
+--    let p = x.get_next:@!a
+--    p!n! = 0
+--
+-- Field access behave like method$. E.g.
+--
+--   a method$ n = @$int
+--
+--   p!n! = 0 -- OK
+--   p.n! = 0 -- not ok, p.n:@int
+--
+--   a method$ next = @$@!a
+--   
+--   p!next! = @!other -- OK
+--   p.next! = @!other -- not
+--   p.next!n! = 0 -- OK
+--   p.next.n! = 0 -- not
+--
+-- So, really, it's no different. Whether the #/!/. dance becomes a pain in
+-- practice is a good question. I'm not sure what the answer should be.
+--
+-- But in N, it is possible to implement an accessor that would fully lock the
+-- value in:
+--  a method next = @$@$a

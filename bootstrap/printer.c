@@ -294,6 +294,9 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case TUPLE:
     print_tuple(out, mod, node, parent_op);
     break;
+  case TUPLEEXTRACT:
+    print_expr(out, mod, node->subs[node->subs_count - 1], parent_op);
+    break;
   case INIT:
     print_init(out, mod, node);
     break;
@@ -426,17 +429,12 @@ static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
 
 static void print_defpattern(FILE *out, const struct module *mod, int indent, const struct node *node,
                              bool first_defp) {
-  bool first_defn = TRUE;
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    const struct node *d = node->subs[n];
-    if (d->which != DEFNAME) {
-      continue;
-    }
+  fprintf(out, first_defp ? "let " : "and ");
+  print_pattern(out, mod, node->subs[0]);
 
-    fprintf(out, (first_defp && first_defn) ? "let " : "and ");
-    print_pattern(out, mod, node->subs[0]);
-
-    first_defn = FALSE;
+  if (node->subs[1]->which != DEFNAME) {
+    fprintf(out, " = ");
+    print_expr(out, mod, node->subs[1], T__STATEMENT);
   }
 }
 
@@ -530,6 +528,7 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
   case BIN:
   case UN:
   case CALL:
+  case TUPLEEXTRACT:
   case TYPECONSTRAINT:
     print_expr(out, mod, node, T__STATEMENT);
     break;

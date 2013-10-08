@@ -239,23 +239,34 @@ static void print_un(FILE *out, const struct module *mod, const struct node *nod
 }
 
 static void print_tuple(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
-  const uint32_t prec = OP_PREC(TCOMMA);
-  const uint32_t parent_prec = OP_PREC(parent_op);
-
-  if (prec >= parent_prec) {
-    fprintf(out, "(");
+  if (node->flags & NODE_IS_TYPE) {
+    print_typ(out, mod, node->typ);
+    return;
   }
 
+  fprintf(out, "(");
+  print_typ(out, mod, node->typ);
+  fprintf(out, "){");
   for (size_t n = 0; n < node->subs_count; ++n) {
     if (n > 0) {
       fprintf(out, ", ");
     }
     print_expr(out, mod, node->subs[n], TCOMMA);
   }
+  fprintf(out, "}");
+}
 
-  if (prec >= parent_prec) {
-    fprintf(out, ")");
-  }
+static void print_tuplenth(FILE *out, const struct module *mod, const struct node *node) {
+  const struct node *parent = node_parent_const(node);
+  assert(parent->which == TUPLEEXTRACT);
+  const struct node *target = parent->subs[parent->subs_count - 1];
+  assert(target != node);
+  fprintf(out, "((");
+  print_expr(out, mod, target, T__STATEMENT);
+  fprintf(out, ")%sx%zu",
+          typ_is_reference_instance(mod, target->typ) ? "->" : ".",
+          node->as.TUPLENTH.nth);
+  fprintf(out, ")");
 }
 
 static char *replace_dots(char *n) {
@@ -519,6 +530,12 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case TUPLE:
     print_tuple(out, mod, node, parent_op);
     break;
+  case TUPLEEXTRACT:
+    print_expr(out, mod, node->subs[node->subs_count - 1], parent_op);
+    break;
+  case TUPLENTH:
+    print_tuplenth(out, mod, node);
+    break;
   case INIT:
     print_init(out, mod, node);
     break;
@@ -683,6 +700,7 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
       print_typ(out, mod, typ->gen_args[1]);
       break;
     }
+
     if (typ->gen_arity > 0) {
       fprintf(out, "_Ngen_");
     }
@@ -722,18 +740,8 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
       fprintf(out, "_genN_");
     }
     break;
-  case TYPE_TUPLE:
-    fprintf(out, "_Ntup_");
-    for (size_t n = 1; n < typ->gen_arity + 1; ++n) {
-      if (n > 1) {
-        fprintf(out, "__");
-      }
-      print_typ(out, mod, typ->gen_args[n]);
-    }
-    fprintf(out, "_putN_");
-    break;
   default:
-    break;
+    assert(FALSE);
   }
 }
 
@@ -805,9 +813,22 @@ static void print_defpattern(FILE *out, bool header, enum forward fwd, const str
     return;
   }
 
-  if (node_ident(node->subs[0]) == ID_OTHERWISE) {
-    fprintf(out, "(void)");
+  bool defname_to_subexpr = FALSE;
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    struct node *d = node->subs[n];
+    if (d->which != DEFNAME) {
+      continue;
+    }
+
+    defname_to_subexpr |= d->as.DEFNAME.expr != NULL
+      && d->as.DEFNAME.expr->which == TUPLENTH;
+  }
+
+  if (defname_to_subexpr
+      || node_ident(node->subs[0]) == ID_OTHERWISE) {
+    fprintf(out, "(void) (");
     print_expr(out, mod, node->subs[1], T__STATEMENT);
+    fprintf(out, ");\n");
   }
 
   for (size_t n = 0; n < node->subs_count; ++n) {
@@ -915,6 +936,7 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
   case BIN:
   case UN:
   case CALL:
+  case TUPLEEXTRACT:
   case TYPECONSTRAINT:
     print_expr(out, mod, node, T__STATEMENT);
     break;
@@ -2103,7 +2125,13 @@ static void print_top(FILE *out, bool header, enum forward fwd, const struct mod
     if (toplevel->instances_count > 1) {
       for (size_t n = 1; n < toplevel->instances_count; ++n) {
         const struct node *instance = toplevel->instances[n];
-        if (typ_is_abstract_instance(mod, instance->typ)) {
+        if (typ_is_abstract_instance(mod, instance->typ)
+            // It's possible for a non-concrete instance to be created,
+            // because of the incremental nature of the typing unification
+            // (e.g. in 'let x, y = 1, 1' the tuples will be first typed
+            // nlang.literal.integer, nlang.literal.integer). Eventually
+            // however, no non-concrete type must remain in use.
+            || !typ_is_concrete(mod, instance->typ)) {
           continue;
         }
         print_top(out, header, fwd, mod, instance);

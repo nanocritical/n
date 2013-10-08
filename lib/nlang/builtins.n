@@ -76,7 +76,172 @@ export intf i_nullable_ref t:i_any = export (i_any_ref t)
 export intf i_nullable_mutable_ref t:i_any = export (i_nullable_ref t)
 export intf i_nullable_mercurial_ref t:i_any = export (i_nullable_mutable_ref t)
 
-export extern type pseudo_tuple = export i_copyable
+export intf i_any_tuple = export i_copyable
+
+export inline type tuple_2 t0:i_copyable t1:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+
+export inline type tuple_3 t0:i_copyable t1:i_copyable t2:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+
+export inline type tuple_4 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+
+export inline type tuple_5 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+
+export inline type tuple_6 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+  x5	:t5
+
+export inline type tuple_7 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+  x5	:t5
+  x6	:t6
+
+export inline type tuple_8 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+  x5	:t5
+  x6	:t6
+  x7	:t7
+
+export inline type tuple_9 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+  x5	:t5
+  x6	:t6
+  x7	:t7
+  x8	:t8
+
+export inline type tuple_10 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+  x5	:t5
+  x6	:t6
+  x7	:t7
+  x8	:t8
+  x9	:t9
+
+export inline type tuple_11 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+  x5	:t5
+  x6	:t6
+  x7	:t7
+  x8	:t8
+  x9	:t9
+  x10	:t10
+
+export inline type tuple_12 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+  x5	:t5
+  x6	:t6
+  x7	:t7
+  x8	:t8
+  x9	:t9
+  x10	:t10
+  x11	:t11
+
+export inline type tuple_13 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+  x5	:t5
+  x6	:t6
+  x7	:t7
+  x8	:t8
+  x9	:t9
+  x10	:t10
+  x11	:t11
+  x12	:t12
+
+export inline type tuple_14 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+  x5	:t5
+  x6	:t6
+  x7	:t7
+  x8	:t8
+  x9	:t9
+  x10	:t10
+  x11	:t11
+  x12	:t12
+  x13	:t13
+
+export inline type tuple_15 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable t14:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+  x5	:t5
+  x6	:t6
+  x7	:t7
+  x8	:t8
+  x9	:t9
+  x10	:t10
+  x11	:t11
+  x12	:t12
+  x13	:t13
+  x14	:t14
+
+export inline type tuple_16 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable t14:i_copyable t15:i_copyable = export i_any_tuple
+  x0	:t0
+  x1	:t1
+  x2	:t2
+  x3	:t3
+  x4	:t4
+  x5	:t5
+  x6	:t6
+  x7	:t7
+  x8	:t8
+  x9	:t9
+  x10	:t10
+  x11	:t11
+  x12	:t12
+  x13	:t13
+  x14	:t14
+  x15	:t15
 
 export intf i_numeric = \
     export i_copyable \

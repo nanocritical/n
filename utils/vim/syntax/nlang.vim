@@ -5,7 +5,8 @@ syn keyword nInclude import from
 syn keyword nDecl type union fun method intf delegate
 syn keyword nStorageClass inline extern
 syn keyword nExport export
-syn keyword nSemantic unique shared captured capturedby capturedbyret owned ownedby protected protect protecting
+syn keyword nSemantic unique shared pshared
+syn keyword nSemantic capturedby capturedbyret owned ownedby protected protect protecting prop claim
 
 syn keyword nDecl pre _pre post _post invariant _invariant example _example assert alias
 syn keyword nDecl contract honors _honors pretag posttag tag
@@ -19,7 +20,7 @@ syn keyword nOperator sizeof
 syn keyword nKeyword noop as attr declare
 syn keyword nException try catch spit except swallow fatal
 syn match nOperator "[@:]"
-syn match nSemanticOperator "[&]"
+syn match nSemantic "[&]"
 
 syn keyword nKeyword self this final
 
@@ -93,7 +94,6 @@ hi def link nNumbers Number
 hi def link nString String
 hi def link nSpecial SpecialChar
 hi def link nSemantic Semantic
-hi def link nSemanticOperator SemanticOperator
 hi def link nMutate Constant
 hi def link nMercurial Constant
 hi def link nNullable Constant

@@ -1,0 +1,7 @@
+from nlang import *
+
+type a =
+  x	:b
+
+type b =
+  y	:a
