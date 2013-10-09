@@ -280,6 +280,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case BIN:
     print_bin(out, mod, node, parent_op);
     break;
+  case DEFARG:
   case TYPECONSTRAINT:
     print_expr(out, mod, node->subs[0], parent_op);
     fprintf(out, ":");
@@ -561,13 +562,6 @@ static void print_typeconstraint(FILE *out, const struct module *mod, const stru
   print_typeexpr(out, mod, node->subs[1]);
 }
 
-static void print_defarg(FILE *out, const struct module *mod, const struct node *node) {
-  assert(node->which == DEFARG);
-  print_expr(out, mod, node->subs[0], T__STATEMENT);
-  fprintf(out, ":");
-  print_typeexpr(out, mod, node->subs[1]);
-}
-
 static void print_deffun(FILE *out, const struct module *mod, int indent, const struct node *node) {
   const size_t args_count = node_fun_explicit_args_count(node);
   const struct node *name = node->subs[0];
@@ -585,11 +579,7 @@ static void print_deffun(FILE *out, const struct module *mod, int indent, const 
   }
 
   fprintf(out, " = ");
-  if (retval->which == DEFARG) {
-    print_defarg(out, mod, retval);
-  } else {
-    print_expr(out, mod, retval, T__STATEMENT);
-  }
+  print_expr(out, mod, retval, T__STATEMENT);
 
   if (!node_toplevel_const(node)->is_prototype
       && node_toplevel_const(node)->builtingen == BG__NOT) {
@@ -712,11 +702,7 @@ static void print_defmethod(FILE *out, const struct module *mod, int indent, con
   }
 
   fprintf(out, " = ");
-  if (retval->which == DEFARG) {
-    print_defarg(out, mod, retval);
-  } else {
-    print_expr(out, mod, retval, T__STATEMENT);
-  }
+  print_expr(out, mod, retval, T__STATEMENT);
 
   if (!node_is_prototype(node) && node_toplevel_const(node)->builtingen == BG__NOT) {
     const struct node *block = node->subs[node->subs_count - 1];
