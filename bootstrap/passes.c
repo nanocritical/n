@@ -2994,6 +2994,33 @@ static error type_destruct_import_path(struct module *mod, struct node *node) {
   return 0;
 }
 
+static error type_inference_ident(struct module *mod, struct node *node) {
+  struct node *def = NULL;
+  error e = scope_lookup(&def, mod, node->scope, node);
+  EXCEPT(e);
+
+  if (def->typ == NULL) {
+    e = mk_except(mod, node, "'%s' is used before its definition in this scope",
+                  idents_value(mod->gctx, node_ident(node)));
+    EXCEPT(e);
+  }
+
+  if (def->typ->which == TYPE_FUNCTION
+      && node->typ != typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT)) {
+    if (node_fun_explicit_args_count(def->typ->definition) != 0) {
+      e = mk_except_call_args_count(mod, node, def->typ->definition, 0, 0);
+      EXCEPT(e);
+    }
+    e = rewrite_unary_call(mod, node, def->typ);
+    EXCEPT(e);
+  } else {
+    node->typ = def->typ;
+    node->flags = def->flags;
+  }
+
+  return 0;
+}
+
 static struct typ* number_literal_typ(struct module *mod, struct node *node) {
   assert(node->which == NUMBER);
   if (strchr(node->as.NUMBER.value, '.') != NULL) {
@@ -3018,7 +3045,6 @@ static bool string_literal_has_length_one(const char *s) {
 
 static error type_destruct(struct module *mod, struct node *node, const struct typ *constraint) {
   error e;
-  struct node *def = NULL;
 
   assert(node->typ != typ_lookup_builtin(mod, TBI__NOT_TYPEABLE));
 
@@ -3063,23 +3089,26 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     EXCEPT(e);
     break;
   case IDENT:
-    // FIXME make sure ident not used before definition.
-    // FIXME let x, (y, z) = i32, (i32, i32)
-    // In this case, y (for instance), will not have NODE_IS_TYPE set properly.
-    // NODE_IS_TYPE needs to be set recursively when descending via
-    // type_destruct.
+    assert(node->which == IDENT);
     if (node_ident(node) == ID_OTHERWISE) {
       node->typ = constraint;
     } else {
-      e = scope_lookup_ident_wontimport(&def, node, mod, node->scope,
-                                        node_ident(node), FALSE);
+      e = type_inference_ident(mod, node);
       EXCEPT(e);
+
+      if (node->which == CALL) {
+        // node was rewritten in type_inference_ident() as a unary call.
+        break;
+      }
+
+      struct node *def = NULL;
+      error e = scope_lookup(&def, mod, node->scope, node);
+      EXCEPT(e);
+
       if (def->which == DEFNAME) {
         e = type_destruct(mod, def, constraint);
         EXCEPT(e);
       }
-      node->typ = def->typ;
-      node->flags |= (def->flags & NODE__TRANSITIVE);
     }
     break;
   case DEFNAME:
@@ -3088,9 +3117,10 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     } else {
       e = typ_unify(&node->typ, mod, node, node->typ, constraint);
       EXCEPT(e);
-      node->as.DEFNAME.pattern->typ = node->typ;
-      EXCEPT(e);
     }
+
+    node->as.DEFNAME.pattern->typ = node->typ;
+
     if (node->as.DEFNAME.expr != NULL) {
       e = type_destruct(mod, node->as.DEFNAME.expr, node->typ);
       EXCEPT(e);
@@ -3343,27 +3373,8 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     node->typ = typ_lookup_builtin(mod, TBI_LITERALS_NULL);
     goto ok;
   case IDENT:
-    e = scope_lookup(&def, mod, node->scope, node);
+    e = type_inference_ident(mod, node);
     EXCEPT(e);
-
-    if (def->typ == NULL) {
-      e = mk_except(mod, node, "'%s' is used before its definition in this scope",
-                    idents_value(mod->gctx, node_ident(node)));
-      EXCEPT(e);
-    }
-
-    if (def->typ->which == TYPE_FUNCTION
-        && node->typ != typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT)) {
-      if (node_fun_explicit_args_count(def->typ->definition) != 0) {
-        e = mk_except_call_args_count(mod, node, def->typ->definition, 0, 0);
-        EXCEPT(e);
-      }
-      e = rewrite_unary_call(mod, node, def->typ);
-      EXCEPT(e);
-    } else {
-      node->typ = def->typ;
-      node->flags = def->flags;
-    }
     goto ok;
   case IMPORT:
     e = scope_lookup_module(&def, mod, node->subs[0], FALSE);
