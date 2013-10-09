@@ -3136,7 +3136,9 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
 
     switch (OP_KIND(node->as.UN.operator)) {
     case OP_UN_REFOF:
-      node->typ = typ_new(constraint->definition, TYPE_DEF, 1, 0);
+      assert(constraint->definition->typ->gen_arity > 0);
+      node->typ = typ_new(constraint->definition->typ->gen_args[0]->definition,
+                          TYPE_DEF, 1, 0);
       node->typ->gen_args[1] = node->subs[0]->typ;
       break;
     default:
