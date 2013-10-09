@@ -1,8 +1,25 @@
 from nlang import *
 
-export fun main = i32
+fun foo = i32
   try
-    spit { code=1 }:error
+    spit ONE { code=1 }:error
+    spit ZERO { code=0 }:error
+  catch ZERO _
+    return 0
+  catch ONE _
+    return 1
+
+--fun bar = i32
+--  try
+--    let except = { code=1 }:error
+--    return 0
+--  catch err
+--    return err.code
+
+export fun main = i32
+  assert <- foo == 1
+  try
+    spit { code=foo }:error
     return 1
   catch err
     return err.code - 1

@@ -2093,7 +2093,7 @@ static error p_except(struct node *node, struct module *mod) {
   back(mod, &tok);
 
   if (!expr_terminators[tok.t]) {
-    e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
+    e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
     EXCEPT(e);
   }
   return 0;
@@ -2101,13 +2101,17 @@ static error p_except(struct node *node, struct module *mod) {
 
 static error p_spit(struct node *node, struct module *mod) {
   node->which = SPIT;
+
+  error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
+  EXCEPT(e);
+
   struct token tok = { 0 };
-  error e = scan(&tok, mod);
+  e = scan(&tok, mod);
   EXCEPT(e);
   back(mod, &tok);
 
   if (!expr_terminators[tok.t]) {
-    e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
+    e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
     EXCEPT(e);
   }
   return 0;

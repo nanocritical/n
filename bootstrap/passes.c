@@ -1231,6 +1231,16 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   case TUPLEEXTRACT:
     mark_subs(mod, node, pending, 0, node->subs_count - 1, 1);
     break;
+  case EXCEP:
+    if (node->subs_count == 1) {
+      mark_subs(mod, node, pending, 0, 1, 1);
+    }
+    break;
+  case SPIT:
+    if (node->subs_count == 2) {
+      mark_subs(mod, node, pending, 0, 1, 1);
+    }
+    break;
   case TRY:
     mark_subs(mod, node->subs[0], pending, 0, node->subs[0]->subs_count, 1);
     break;
@@ -1691,16 +1701,16 @@ static error step_type_gather_excepts(struct module *mod, struct node *node, voi
 static error step_excepts_store_label(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
 
-  size_t label_idx;
+  size_t count_with_label;
   const char *which = NULL;
   switch (node->which) {
   case EXCEP:
     which = "except";
-    label_idx = 0;
+    count_with_label = 1;
     break;
   case SPIT:
     which = "spit";
-    label_idx = 1;
+    count_with_label = 2;
     break;
   default:
     return 0;
@@ -1710,7 +1720,7 @@ static error step_excepts_store_label(struct module *mod, struct node *node, voi
   struct node *eblock = tryy->subs[0]->subs[1];
   error e;
   ident target;
-  if (node->subs_count == label_idx) {
+  if (node->subs_count < count_with_label) {
     if (eblock->subs_count != 2) {
       e = mk_except(mod, node,
                     "try block has multiple catch,"
@@ -1720,7 +1730,9 @@ static error step_excepts_store_label(struct module *mod, struct node *node, voi
 
     assert(eblock->subs[1]->which == CATCH);
     target = eblock->subs[1]->as.CATCH.label;
-  } else if (node->subs_count == label_idx + 1) {
+  } else if (node->subs_count == count_with_label) {
+    struct node *label = node->subs[0];
+
     if (eblock->subs_count == 2) {
       assert(eblock->subs[1]->which == CATCH);
       if (!eblock->subs[1]->as.CATCH.is_user_label) {
@@ -1733,19 +1745,20 @@ static error step_excepts_store_label(struct module *mod, struct node *node, voi
     }
 
     struct node *def = NULL;
-    e = scope_lookup(&def, mod, node->scope, node->subs[label_idx]);
+    e = scope_lookup(&def, mod, node->scope, label);
     EXCEPT(e);
 
     if (def->which != CATCH || def->scope->parent->node != eblock) {
-      e = mk_except(mod, node->subs[label_idx],
+      e = mk_except(mod, label,
                     "invalid label '%s'",
-                    idents_value(mod->gctx, node_ident(node->subs[label_idx])));
+                    idents_value(mod->gctx, node_ident(label)));
       EXCEPT(e);
     }
 
-    target = node_ident(node->subs[0]);
+    target = node_ident(label);
   } else {
-    e = mk_except(mod, node, "%s takes 1 or 2 arguments", which);
+    e = mk_except(mod, node, "%s takes %zu or %zu arguments",
+                  which, count_with_label - 1, count_with_label);
     EXCEPT(e);
   }
 
