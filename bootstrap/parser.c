@@ -4121,7 +4121,7 @@ void rew_append(struct node *node, struct node *sub) {
   node->subs[node->subs_count - 1] = sub;
 }
 
-size_t rew_find_subnode_in_parent(const struct node *parent, struct node *node) {
+size_t rew_find_subnode_in_parent(const struct node *parent, const struct node *node) {
   for (size_t n = 0; n < parent->subs_count; ++n) {
     if (parent->subs[n] == node) {
       return n;

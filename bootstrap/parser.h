@@ -896,6 +896,6 @@ void rew_pop(struct node *node, bool saved_it);
 void rew_move_last_over(struct node *node, size_t pos, bool saved_it);
 void rew_prepend(struct node *node, struct node *sub);
 void rew_append(struct node *node, struct node *sub);
-size_t rew_find_subnode_in_parent(const struct node *parent, struct node *node);
+size_t rew_find_subnode_in_parent(const struct node *parent, const struct node *node);
 
 #endif
