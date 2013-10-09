@@ -436,7 +436,7 @@ static void print_deffun_name(FILE *out, const struct module *mod, const struct 
                               const struct typ *intf_final_typ) {
   const ident id = node_ident(node);
   if (id == ID_MAIN) {
-    fprintf(out, "__Nmain");
+    fprintf(out, "_Nmain");
   } else if (intf_final_typ != NULL) {
     print_typ(out, mod, intf_final_typ);
     fprintf(out, "_%s", idents_value(mod->gctx, node_ident(node)));

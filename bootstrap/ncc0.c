@@ -548,8 +548,8 @@ static error program_link(const struct stage *stage) {
   if (run == NULL) {
     EXCEPTF(errno, "Cannot open output file '%s'", main_fn);
   }
-  fprintf(run, "int __Nmain();\n");
-  fprintf(run, "int main(int argc, char **argv, char **env) {\nreturn __Nmain(argc, argv, env);\n}\n");
+  fprintf(run, "int _Nmain();\n");
+  fprintf(run, "int main(int argc, char **argv, char **env) {\nreturn _Nmain(argc, argv, env);\n}\n");
   fclose(run);
 
   char *inputs = file_list((const struct module **)stage->sorted,
