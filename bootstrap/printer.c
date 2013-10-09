@@ -252,6 +252,8 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
   }
 }
 
+static void print_statement(FILE *out, const struct module *mod, int indent, const struct node *node);
+
 static void print_expr(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const char *val = NULL;
 
@@ -315,6 +317,14 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     fprintf(out, "block ");
     print_block(out, mod, 0, node);
     fprintf(out, ";;");
+    break;
+  case IF:
+  case FOR:
+  case WHILE:
+  case TRY:
+  case MATCH:
+  case LET:
+    print_statement(out, mod, 0, node);
     break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
