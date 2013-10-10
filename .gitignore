@@ -6,8 +6,10 @@
 *.gen.[ch]pp
 *.gen.[ch]
 *_gen.py
+*.generated.c
 *t/t*.run
 *t/.tmp-*
 t/[0-9][0-9]/*.out
 t[0-9][0-9]/*.out
 lib/*/*.out
+.deps

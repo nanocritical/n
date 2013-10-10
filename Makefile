@@ -1,31 +1,40 @@
-MAKEFLAGS := -j2 -r -R
+MAKEFLAGS := -j2 -r -R --warn-undefined-variables
 .SUFFIXES:
 
+V ?=
+Q = $(if $V,,@)
+
 default:: ncc0
+
+SRC = bootstrap
+DEPS = .deps
 
 CFLAGS += -std=c99 -Wall -O0 -g \
 	  -Wmissing-prototypes -Wpointer-arith -Wstrict-prototypes \
 	  -Wmissing-declarations -Wno-format-zero-length -Wbad-function-cast \
 	  -Wcast-align -Wwrite-strings -Wno-missing-braces
 
-sources := \
-	bootstrap/ncc0.c \
-	bootstrap/common.c \
-	bootstrap/lexer.c \
-	bootstrap/parser.c \
-	bootstrap/passes.c \
-	bootstrap/printer.c \
-	bootstrap/cprinter.c \
-	bootstrap/hash.c \
-	bootstrap/bitops.c
+deps-dir-for-target = $(dir $(DEPS)/$1)
+deps-options = -MMD -MF $(DEPS)/$2.d -MT $1
+
+re2c-sources := $(shell find $(SRC) -name \*.re)
+
+sources := $(shell find $(SRC) -name \*.c -a ! -name \*.generated.\*)
+sources += $(patsubst %.re,%.generated.c,$(re2c-sources))
 
 objects := $(patsubst %.c,%.o,$(sources))
 
-%.c: %.re
-	@re2c -b -o $@ $^
+%.generated.c: %.re
+	$Qre2c -b -o $@ $<
 
-%.o: %.c
-	@gcc -c $(CFLAGS) -o $@ $^
+%.o: %.c $(DEPS) $(deps-dir-for-target)
+	$Qmkdir -p $(call deps-dir-for-target,$@)
+	$Qgcc -c $(CFLAGS) $(call deps-options,$@,$<) -o $@ $<
 
 ncc0: $(objects)
-	@gcc -g $(CFLAGS) -o $@ $^
+	$Qgcc -g $(CFLAGS) -o $@ $^
+
+$(DEPS):
+	$Qmkdir -p $(DEPS)
+
+include $(shell find $(DEPS) -name \*.d 2> /dev/null)
