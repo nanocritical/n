@@ -1,14 +1,14 @@
 from nlang import *
 fun foo = i32
   try
-    let _Ngensym6:nlang.builtins.error    such
+    let _Ngensymc:nlang.builtins.error    such
       spit ONEblock 
-  _Ngensym6 = { code=1 }
-  _Ngensym6;;
-    let _Ngensym7:nlang.builtins.error    such
+  _Ngensymc = { code=1 }
+  _Ngensymc;;
+    let _Ngensymd:nlang.builtins.error    such
       spit ZEROblock 
-  _Ngensym7 = { code=0 }
-  _Ngensym7;;
+  _Ngensymd = { code=0 }
+  _Ngensymd;;
   catch ZERO _
 
     return 0  catch ONE _
@@ -17,21 +17,37 @@ fun foo = i32
 
 fun bar = i32
   try
-    let _Ngensym5 = { code=1 }
+    let _Ngensym8 = { code=1 }
     return 0
-  catch _Ngensym2 err
+  catch _Ngensym3 err
 
-    return err.code
+    try
+      let _Ngensym9 = { code=err.code + 1 }
+      let _Ngensyma = { code=0 }
+    catch ONE err
+
+      return err.code - 1    catch ZERO _
+
+      return 0
+
+fun noerror = i32
+  try
+    let _Ngensymb = { code=0 }
+    return 0
+  catch _Ngensym5 _
+
+    return 1
 
 export fun main = i32
   assert (foo == 1)
   assert (bar == 1)
+  assert (noerror == 0)
   try
-    let _Ngensym8:nlang.builtins.error    such
+    let _Ngensyme:nlang.builtins.error    such
       spit block 
-  _Ngensym8 = { code=(bar) }
-  _Ngensym8;;
+  _Ngensyme = { code=(bar) }
+  _Ngensyme;;
     return 1
-  catch _Ngensym4 err
+  catch _Ngensym7 err
 
     return err.code - 1

@@ -14,11 +14,25 @@ fun bar = i32
     let except = { code=1 }:error
     return 0
   catch err
-    return err.code
+    try
+      let except ONE = { code=err.code+1 }:error
+      let except ZERO = { code=0 }:error
+    catch ONE err
+      return err.code - 1
+    catch ZERO _
+      return 0
+
+fun noerror = i32
+  try
+    let except = { code=0 }:error
+    return 0
+  catch _
+    return 1
 
 export fun main = i32
   assert <- foo == 1
   assert <- bar == 1
+  assert <- noerror == 0
   try
     spit { code=bar }:error
     return 1

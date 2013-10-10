@@ -8,6 +8,7 @@
 #undef NLANG_DECLARE_TYPES
 
 
+
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_TYPES
@@ -15,6 +16,7 @@
 #define NLANG_DEFINE_TYPES
 # include "t00/try.n.h.out"
 #undef NLANG_DEFINE_TYPES
+
 
 
 #define NLANG_DECLARE_FUNCTIONS
@@ -28,6 +30,8 @@ static nlang_builtins_i32 t00_try_foo(void);
 
 static nlang_builtins_i32 t00_try_bar(void);
 
+static nlang_builtins_i32 t00_try_noerror(void);
+
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
@@ -39,16 +43,16 @@ static nlang_builtins_i32 t00_try_foo(void){
  {
 nlang_builtins_error _Ngensym0 = { 0 };
  {
-nlang_builtins_error _Ngensym6 = { 0 };
-_Ngensym0 = ({ _Ngensym6.code = (nlang_builtins_i32)1;
+nlang_builtins_error _Ngensymc = { 0 };
+_Ngensym0 = ({ _Ngensymc.code = (nlang_builtins_i32)1;
 ;
-_Ngensym6;
+_Ngensymc;
 ; }); goto ONE;
 ;
-nlang_builtins_error _Ngensym7 = { 0 };
-_Ngensym0 = ({ _Ngensym7.code = (nlang_builtins_i32)0;
+nlang_builtins_error _Ngensymd = { 0 };
+_Ngensym0 = ({ _Ngensymd.code = (nlang_builtins_i32)0;
 ;
-_Ngensym7;
+_Ngensymd;
 ; }); goto ZERO;
 ;
 }
@@ -73,16 +77,60 @@ static nlang_builtins_i32 t00_try_bar(void){
  {
 nlang_builtins_error _Ngensym1 = { 0 };
  {
-nlang_builtins_error _Ngensym5= { 0 };
-_Ngensym5.code = (nlang_builtins_i32)1;
+nlang_builtins_error _Ngensym8= { 0 };
+_Ngensym8.code = (nlang_builtins_i32)1;
 ;
-_Ngensym1 = _Ngensym5; if (nlang_builtins_error_operator_test(((&_Ngensym5)))) { goto _Ngensym2; };
+_Ngensym1 = _Ngensym8; if (nlang_builtins_error_operator_test(((&_Ngensym8)))) { goto _Ngensym3; };
 return (nlang_builtins_i32)0;
 }
-_Ngensym2: {
+_Ngensym3: {
 nlang_builtins_error err = _Ngensym1;
  {
-return (err.code);
+nlang_builtins_error _Ngensym2 = { 0 };
+ {
+nlang_builtins_error _Ngensym9= { 0 };
+_Ngensym9.code = ((err.code) + (nlang_builtins_i32)1);
+;
+_Ngensym2 = _Ngensym9; if (nlang_builtins_error_operator_test(((&_Ngensym9)))) { goto ONE; };
+nlang_builtins_error _Ngensyma= { 0 };
+_Ngensyma.code = (nlang_builtins_i32)0;
+;
+_Ngensym2 = _Ngensyma; if (nlang_builtins_error_operator_test(((&_Ngensyma)))) { goto ZERO; };
+}
+ONE: {
+nlang_builtins_error err = _Ngensym2;
+ {
+return ((err.code) - (nlang_builtins_i32)1);
+}
+}
+
+ZERO: {
+(void) (_Ngensym2);
+ {
+return (nlang_builtins_i32)0;
+}
+}
+;
+}
+}
+;
+}
+}
+
+static nlang_builtins_i32 t00_try_noerror(void){
+ {
+nlang_builtins_error _Ngensym4 = { 0 };
+ {
+nlang_builtins_error _Ngensymb= { 0 };
+_Ngensymb.code = (nlang_builtins_i32)0;
+;
+_Ngensym4 = _Ngensymb; if (nlang_builtins_error_operator_test(((&_Ngensymb)))) { goto _Ngensym5; };
+return (nlang_builtins_i32)0;
+}
+_Ngensym5: {
+(void) (_Ngensym4);
+ {
+return (nlang_builtins_i32)1;
 }
 }
 ;
@@ -93,18 +141,19 @@ nlang_builtins_i32 _Nmain(void){
  {
 nlang_builtins_assert((t00_try_foo() == (nlang_builtins_i32)1));
 nlang_builtins_assert((t00_try_bar() == (nlang_builtins_i32)1));
-nlang_builtins_error _Ngensym3 = { 0 };
+nlang_builtins_assert((t00_try_noerror() == (nlang_builtins_i32)0));
+nlang_builtins_error _Ngensym6 = { 0 };
  {
-nlang_builtins_error _Ngensym8 = { 0 };
-_Ngensym3 = ({ _Ngensym8.code = t00_try_bar();
+nlang_builtins_error _Ngensyme = { 0 };
+_Ngensym6 = ({ _Ngensyme.code = t00_try_bar();
 ;
-_Ngensym8;
-; }); goto _Ngensym4;
+_Ngensyme;
+; }); goto _Ngensym7;
 ;
 return (nlang_builtins_i32)1;
 }
-_Ngensym4: {
-nlang_builtins_error err = _Ngensym3;
+_Ngensym7: {
+nlang_builtins_error err = _Ngensym6;
  {
 return ((err.code) - (nlang_builtins_i32)1);
 }

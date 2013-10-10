@@ -176,6 +176,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_SUM_ORDER] = "i_sum_order",
   [ID_TBI_ITERATOR] = "i_iterator",
   [ID_TBI__PENDING_DESTRUCT] = "__internal_pending_destruct__",
+  [ID_TBI__DELAYED] = "__internal_delayed__",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_TBI__CALL_FUNCTION_SLOT] = "__call_function_slot__",
   [ID_TBI__MUTABLE] = "__mutable__",
@@ -1244,6 +1245,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_SUM_ORDER = gctx->builtin_typs_by_name[ID_TBI_SUM_ORDER];
   TBI_ITERATOR = gctx->builtin_typs_by_name[ID_TBI_ITERATOR];
   TBI__PENDING_DESTRUCT = gctx->builtin_typs_by_name[ID_TBI__PENDING_DESTRUCT];
+  TBI__DELAYED = gctx->builtin_typs_by_name[ID_TBI__DELAYED];
   TBI__NOT_TYPEABLE = gctx->builtin_typs_by_name[ID_TBI__NOT_TYPEABLE];
   TBI__CALL_FUNCTION_SLOT = gctx->builtin_typs_by_name[ID_TBI__CALL_FUNCTION_SLOT];
   TBI__MUTABLE = gctx->builtin_typs_by_name[ID_TBI__MUTABLE];
@@ -3795,6 +3797,7 @@ bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t) {
       || typ_equal(mod, t, TBI_LITERALS_INIT)
       || typ_equal(mod, t, TBI_LITERALS_INIT_ARRAY)
       || typ_equal(mod, t, TBI__PENDING_DESTRUCT)
+      || typ_equal(mod, t, TBI__DELAYED)
       || typ_equal(mod, t, TBI__NOT_TYPEABLE)
       || typ_equal(mod, t, TBI__CALL_FUNCTION_SLOT)
       || typ_equal(mod, t, TBI__MUTABLE)

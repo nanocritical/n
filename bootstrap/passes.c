@@ -192,6 +192,17 @@ static error catchup_instantiation(struct module *gendef_mod,
   return 0;
 }
 
+static error resume_current_pass(struct module *mod, struct node *node) {
+  PUSH_STATE(mod->state);
+  const struct pass *pa = &passes[mod->stage->state->passing];
+  int module_depth = 0;
+  error e = pass(mod, node, pa->downs, pa->ups, -1, &module_depth);
+  EXCEPT(e);
+  POP_STATE(mod->state);
+
+  return 0;
+}
+
 static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
@@ -1047,9 +1058,8 @@ static void mark_subs(struct module *mod, struct node *node, const struct typ *m
 }
 
 static void inherit(struct module *mod, struct node *node) {
-  const struct typ *pending = TBI__PENDING_DESTRUCT;
-  const struct typ *not_typeable = TBI__NOT_TYPEABLE;
-  if (node->typ == pending || node->typ == not_typeable) {
+  if (node->typ == TBI__PENDING_DESTRUCT
+      || node->typ == TBI__NOT_TYPEABLE) {
     mark_subs(mod, node, node->typ, 0, node->subs_count, 1);
   }
 }
@@ -1259,16 +1269,8 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
       mark_subs(mod, node, pending, 0, 1, 1);
     }
     break;
-  case TRY:
-    mark_subs(mod, node, pending, 0, node->subs_count, 1);
-    break;
-  case BLOCK:
-    if (node->scope->parent->node->which == BLOCK
-        && node->scope->parent->parent->node->which == LET
-        && node->scope->parent->parent->parent->node->which == TRY) {
-      node->typ = NULL;
-      mark_subs(mod, node, NULL, 0, node->subs_count, 1);
-    }
+  case CATCH:
+    *stop = TRUE;
     break;
   case MATCH:
     mark_subs(mod, node, pending, 1, node->subs_count, 2);
@@ -2115,14 +2117,15 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
     node->typ = NULL;
     parent->typ = NULL;
 
-    // Force a new pass of the first BODY pass, clearing the pending
-    // destruct marker first to type this node in isolation.
-    PUSH_STATE(mod->state);
-    const struct pass *pa = &passes[mod->stage->state->passing];
-    int module_depth = 0;
-    e = pass(mod, node, pa->downs, pa->ups, -1, &module_depth);
+    // Clear the pending destruct marker to type this node in
+    // isolation. This happens in the expression:
+    //   { field=a.b }:t
+    // Typically, INIT expressions 'field=expr' are typed using a type
+    // destruct once 't' is known, and therefore the type of 'field'. But
+    // expressions such as 'a.b' need to be independently typed for such a
+    // type destruct to work.
+    error e = resume_current_pass(mod, node);
     EXCEPT(e);
-    POP_STATE(mod->state);
 
     return 0;
   }
@@ -2818,6 +2821,16 @@ static error type_inference_block(struct module *mod, struct node *node) {
       EXCEPT(e);
     }
   }
+
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    struct node *s = node->subs[n];
+    if (s->which == CATCH && s->typ == NULL) {
+      // We are in a TRY that gets typed later.
+      node->typ = TBI__DELAYED;
+      return 0;
+    }
+  }
+
   if (node->subs_count > 0) {
     for (size_t n = 0; n < node->subs_count - 1; ++n) {
       struct node *s = node->subs[n];
@@ -2943,7 +2956,7 @@ static error type_inference_try(struct module *mod, struct node *node) {
   struct try_state *st = module_excepts_get(mod);
 
   if (st->count == 0) {
-    e = mk_except(mod, node, "try block has no except statement, catch is unreachable");
+    e = mk_except(mod, node, "try block has no except or spit statement, catch is unreachable");
     EXCEPT(e);
   }
 
@@ -2990,13 +3003,15 @@ static error type_inference_try(struct module *mod, struct node *node) {
     struct node *let = catch->subs[0];
     struct node *defp = let->subs[0];
 
-    for (size_t n = 0; n < defp->subs_count; ++n) {
-      e = type_destruct(mod, defp->subs[n], exu);
-      EXCEPT(e);
-    }
-    defp->typ = TBI_VOID;
+    e = type_destruct(mod, defp->subs[1], exu);
+    EXCEPT(e);
+    e = resume_current_pass(mod, defp);
+    EXCEPT(e);
 
     struct node *block = catch->subs[1];
+    e = resume_current_pass(mod, block);
+    EXCEPT(e);
+
     e = type_destruct(mod, block, u);
     EXCEPT(e);
     e = typ_unify(&u, mod, block, block->typ, u);
@@ -3149,7 +3164,6 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     EXCEPT(e);
     break;
   case IDENT:
-    assert(node->which == IDENT);
     if (node_ident(node) == ID_OTHERWISE) {
       node->typ = constraint;
     } else {
@@ -3653,7 +3667,9 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   }
 
 ok:
-  assert(node->typ != TBI__PENDING_DESTRUCT);
+  // It's ok for an IDENT whose DEFNAME has no expression to not be typed
+  // yet. e.g. let x; such -> x = ...
+  assert(node->which == IDENT || node->typ != TBI__PENDING_DESTRUCT);
   assert(node->typ != NULL);
   return 0;
 }

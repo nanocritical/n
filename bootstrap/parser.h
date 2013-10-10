@@ -495,6 +495,7 @@ enum predefined_idents {
   ID_TBI_ITERATOR,
   ID_TBI__PENDING_DESTRUCT,
   ID_TBI__FIRST_MARKER = ID_TBI__PENDING_DESTRUCT,
+  ID_TBI__DELAYED,
   ID_TBI__NOT_TYPEABLE,
   ID_TBI__CALL_FUNCTION_SLOT,
   ID_TBI__MUTABLE,
@@ -634,6 +635,7 @@ const struct typ *TBI_SUM_EQUALITY;
 const struct typ *TBI_SUM_ORDER;
 const struct typ *TBI_ITERATOR;
 const struct typ *TBI__PENDING_DESTRUCT;
+const struct typ *TBI__DELAYED;
 const struct typ *TBI__NOT_TYPEABLE;
 const struct typ *TBI__CALL_FUNCTION_SLOT;
 const struct typ *TBI__MUTABLE;

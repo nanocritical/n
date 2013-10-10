@@ -24,41 +24,41 @@ MODULE_BODY :__internal_not_typeable__
        LET :nlang.builtins.void
         DEFPATTERN :nlang.builtins.void
          TYPECONSTRAINT :nlang.builtins.error
-          IDENT(_Ngensym6) :nlang.builtins.error
+          IDENT(_Ngensymc) :nlang.builtins.error
           DIRECTDEF :nlang.builtins.error
-         DEFNAME(_Ngensym6) :nlang.builtins.error
+         DEFNAME(_Ngensymc) :nlang.builtins.error
         BLOCK :nlang.builtins.void
          SPIT :nlang.builtins.void
           IDENT(ONE) :__internal_pending_destruct__
           BLOCK :nlang.builtins.error
            BIN( = ) :nlang.builtins.void
-            IDENT(_Ngensym6) :nlang.builtins.error
+            IDENT(_Ngensymc) :nlang.builtins.error
             INIT :nlang.builtins.error
              IDENT(code) :__internal_pending_destruct__
              NUMBER(1) :nlang.builtins.i32
-           IDENT(_Ngensym6) :nlang.builtins.error
+           IDENT(_Ngensymc) :nlang.builtins.error
        LET :nlang.builtins.void
         DEFPATTERN :nlang.builtins.void
          TYPECONSTRAINT :nlang.builtins.error
-          IDENT(_Ngensym7) :nlang.builtins.error
+          IDENT(_Ngensymd) :nlang.builtins.error
           DIRECTDEF :nlang.builtins.error
-         DEFNAME(_Ngensym7) :nlang.builtins.error
+         DEFNAME(_Ngensymd) :nlang.builtins.error
         BLOCK :nlang.builtins.void
          SPIT :nlang.builtins.void
           IDENT(ZERO) :__internal_pending_destruct__
           BLOCK :nlang.builtins.error
            BIN( = ) :nlang.builtins.void
-            IDENT(_Ngensym7) :nlang.builtins.error
+            IDENT(_Ngensymd) :nlang.builtins.error
             INIT :nlang.builtins.error
              IDENT(code) :__internal_pending_destruct__
              NUMBER(0) :nlang.builtins.i32
-           IDENT(_Ngensym7) :nlang.builtins.error
+           IDENT(_Ngensymd) :nlang.builtins.error
       CATCH :nlang.builtins.void
        LET :nlang.builtins.void
         DEFPATTERN :nlang.builtins.void
          IDENT(_) :nlang.builtins.error
          IDENT(_Ngensym0) :nlang.builtins.error
-         DEFNAME(_) :nlang.builtins.error
+         DEFNAME(_) :__internal_pending_destruct__
        BLOCK :nlang.builtins.void
         RETURN :nlang.builtins.i32
          NUMBER(0) :nlang.builtins.i32
@@ -67,7 +67,7 @@ MODULE_BODY :__internal_not_typeable__
         DEFPATTERN :nlang.builtins.void
          IDENT(_) :nlang.builtins.error
          IDENT(_Ngensym0) :nlang.builtins.error
-         DEFNAME(_) :nlang.builtins.error
+         DEFNAME(_) :__internal_pending_destruct__
        BLOCK :nlang.builtins.void
         RETURN :nlang.builtins.i32
          NUMBER(1) :nlang.builtins.i32
@@ -85,17 +85,17 @@ MODULE_BODY :__internal_not_typeable__
       BLOCK :nlang.builtins.void
        LET :nlang.builtins.void
         DEFPATTERN :nlang.builtins.void
-         IDENT(_Ngensym5) :nlang.builtins.error
+         IDENT(_Ngensym8) :nlang.builtins.error
          INIT :nlang.builtins.error
           IDENT(code) :__internal_pending_destruct__
           NUMBER(1) :nlang.builtins.i32
-         DEFNAME(excep _Ngensym2 _Ngensym5) :nlang.builtins.error
+         DEFNAME(excep _Ngensym3 _Ngensym8) :nlang.builtins.error
           CALL :nlang.builtins.bool
            BIN(.) :nlang.builtins.error.operator_test
             DIRECTDEF :nlang.builtins.error
             IDENT(operator_test) :__internal_not_typeable__
            UN(@) :(nlang.builtins.i_ref nlang.builtins.error)
-            IDENT(_Ngensym5) :nlang.builtins.error
+            IDENT(_Ngensym8) :nlang.builtins.error
        RETURN :nlang.builtins.i32
         NUMBER(0) :nlang.builtins.i32
       CATCH :nlang.builtins.void
@@ -105,10 +105,101 @@ MODULE_BODY :__internal_not_typeable__
          IDENT(_Ngensym1) :nlang.builtins.error
          DEFNAME(err) :nlang.builtins.error
        BLOCK :nlang.builtins.void
+        TRY :nlang.builtins.void
+         LET :nlang.builtins.void
+          DEFPATTERN :nlang.builtins.void
+           IDENT(_Ngensym2) :nlang.builtins.error
+           DEFNAME(_Ngensym2) :nlang.builtins.error
+          BLOCK :nlang.builtins.void
+           BLOCK :nlang.builtins.void
+            LET :nlang.builtins.void
+             DEFPATTERN :nlang.builtins.void
+              IDENT(_Ngensym9) :nlang.builtins.error
+              INIT :nlang.builtins.error
+               IDENT(code) :__internal_pending_destruct__
+               BIN( + ) :nlang.builtins.i32
+                BIN(.) :nlang.builtins.i32
+                 IDENT(err) :nlang.builtins.error
+                 IDENT(code) :__internal_not_typeable__
+                NUMBER(1) :nlang.builtins.i32
+              DEFNAME(excep ONE _Ngensym9) :nlang.builtins.error
+               CALL :nlang.builtins.bool
+                BIN(.) :nlang.builtins.error.operator_test
+                 DIRECTDEF :nlang.builtins.error
+                 IDENT(operator_test) :__internal_not_typeable__
+                UN(@) :(nlang.builtins.i_ref nlang.builtins.error)
+                 IDENT(_Ngensym9) :nlang.builtins.error
+            LET :nlang.builtins.void
+             DEFPATTERN :nlang.builtins.void
+              IDENT(_Ngensyma) :nlang.builtins.error
+              INIT :nlang.builtins.error
+               IDENT(code) :__internal_pending_destruct__
+               NUMBER(0) :nlang.builtins.i32
+              DEFNAME(excep ZERO _Ngensyma) :nlang.builtins.error
+               CALL :nlang.builtins.bool
+                BIN(.) :nlang.builtins.error.operator_test
+                 DIRECTDEF :nlang.builtins.error
+                 IDENT(operator_test) :__internal_not_typeable__
+                UN(@) :(nlang.builtins.i_ref nlang.builtins.error)
+                 IDENT(_Ngensyma) :nlang.builtins.error
+           CATCH :nlang.builtins.void
+            LET :nlang.builtins.void
+             DEFPATTERN :nlang.builtins.void
+              IDENT(err) :nlang.builtins.error
+              IDENT(_Ngensym2) :nlang.builtins.error
+              DEFNAME(err) :nlang.builtins.error
+            BLOCK :nlang.builtins.void
+             RETURN :nlang.builtins.i32
+              BIN( - ) :nlang.builtins.i32
+               BIN(.) :nlang.builtins.i32
+                IDENT(err) :nlang.builtins.error
+                IDENT(code) :__internal_not_typeable__
+               NUMBER(1) :nlang.builtins.i32
+           CATCH :nlang.builtins.void
+            LET :nlang.builtins.void
+             DEFPATTERN :nlang.builtins.void
+              IDENT(_) :nlang.builtins.error
+              IDENT(_Ngensym2) :nlang.builtins.error
+              DEFNAME(_) :__internal_pending_destruct__
+            BLOCK :nlang.builtins.void
+             RETURN :nlang.builtins.i32
+              NUMBER(0) :nlang.builtins.i32
+ DEFFUN :t00.try.noerror
+  IDENT(noerror) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   TRY :nlang.builtins.void
+    LET :nlang.builtins.void
+     DEFPATTERN :nlang.builtins.void
+      IDENT(_Ngensym4) :nlang.builtins.error
+      DEFNAME(_Ngensym4) :nlang.builtins.error
+     BLOCK :nlang.builtins.void
+      BLOCK :nlang.builtins.void
+       LET :nlang.builtins.void
+        DEFPATTERN :nlang.builtins.void
+         IDENT(_Ngensymb) :nlang.builtins.error
+         INIT :nlang.builtins.error
+          IDENT(code) :__internal_pending_destruct__
+          NUMBER(0) :nlang.builtins.i32
+         DEFNAME(excep _Ngensym5 _Ngensymb) :nlang.builtins.error
+          CALL :nlang.builtins.bool
+           BIN(.) :nlang.builtins.error.operator_test
+            DIRECTDEF :nlang.builtins.error
+            IDENT(operator_test) :__internal_not_typeable__
+           UN(@) :(nlang.builtins.i_ref nlang.builtins.error)
+            IDENT(_Ngensymb) :nlang.builtins.error
+       RETURN :nlang.builtins.i32
+        NUMBER(0) :nlang.builtins.i32
+      CATCH :nlang.builtins.void
+       LET :nlang.builtins.void
+        DEFPATTERN :nlang.builtins.void
+         IDENT(_) :nlang.builtins.error
+         IDENT(_Ngensym4) :nlang.builtins.error
+         DEFNAME(_) :__internal_pending_destruct__
+       BLOCK :nlang.builtins.void
         RETURN :nlang.builtins.i32
-         BIN(.) :nlang.builtins.i32
-          IDENT(err) :nlang.builtins.error
-          IDENT(code) :__internal_not_typeable__
+         NUMBER(1) :nlang.builtins.i32
  DEFFUN :t00.try.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
@@ -126,36 +217,42 @@ MODULE_BODY :__internal_not_typeable__
      CALL :nlang.builtins.i32
       IDENT(bar) :t00.try.bar
      NUMBER(1) :nlang.builtins.i32
+   CALL :nlang.builtins.void
+    IDENT(assert) :nlang.builtins.assert
+    BIN( == ) :nlang.builtins.bool
+     CALL :nlang.builtins.i32
+      IDENT(noerror) :t00.try.noerror
+     NUMBER(0) :nlang.builtins.i32
    TRY :nlang.builtins.void
     LET :nlang.builtins.void
      DEFPATTERN :nlang.builtins.void
-      IDENT(_Ngensym3) :nlang.builtins.error
-      DEFNAME(_Ngensym3) :nlang.builtins.error
+      IDENT(_Ngensym6) :nlang.builtins.error
+      DEFNAME(_Ngensym6) :nlang.builtins.error
      BLOCK :nlang.builtins.void
       BLOCK :nlang.builtins.void
        LET :nlang.builtins.void
         DEFPATTERN :nlang.builtins.void
          TYPECONSTRAINT :nlang.builtins.error
-          IDENT(_Ngensym8) :nlang.builtins.error
+          IDENT(_Ngensyme) :nlang.builtins.error
           DIRECTDEF :nlang.builtins.error
-         DEFNAME(_Ngensym8) :nlang.builtins.error
+         DEFNAME(_Ngensyme) :nlang.builtins.error
         BLOCK :nlang.builtins.void
          SPIT :nlang.builtins.void
           BLOCK :nlang.builtins.error
            BIN( = ) :nlang.builtins.void
-            IDENT(_Ngensym8) :nlang.builtins.error
+            IDENT(_Ngensyme) :nlang.builtins.error
             INIT :nlang.builtins.error
              IDENT(code) :__internal_pending_destruct__
              CALL :nlang.builtins.i32
               IDENT(bar) :t00.try.bar
-           IDENT(_Ngensym8) :nlang.builtins.error
+           IDENT(_Ngensyme) :nlang.builtins.error
        RETURN :nlang.builtins.i32
         NUMBER(1) :nlang.builtins.i32
       CATCH :nlang.builtins.void
        LET :nlang.builtins.void
         DEFPATTERN :nlang.builtins.void
          IDENT(err) :nlang.builtins.error
-         IDENT(_Ngensym3) :nlang.builtins.error
+         IDENT(_Ngensym6) :nlang.builtins.error
          DEFNAME(err) :nlang.builtins.error
        BLOCK :nlang.builtins.void
         RETURN :nlang.builtins.i32
