@@ -1698,18 +1698,52 @@ static error step_type_gather_retval(struct module *mod, struct node *node, void
   return 0;
 }
 
+// FIXME: This is O(depth * number_spit_except).
+// Would be O(number_spit_except) if we remembered whether we're in the TRY
+// or in one of the CATCH, when descending.
+static error check_in_try(struct module *mod, struct node *node, const char *which) {
+  error e;
+
+  struct try_state *st = module_excepts_get(mod);
+  if (st == NULL) {
+    goto fail;
+  }
+
+  const struct node *p = node;
+  do {
+    p = node_parent_const(p);
+    if (p->which == CATCH) {
+      goto fail;
+    }
+  } while (p->which != TRY);
+
+  goto ok;
+
+fail:
+  e = mk_except(mod, node, "%s not in try block", which);
+  EXCEPT(e);
+
+ok:
+  return 0;
+}
+
 static error step_type_gather_excepts(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
+  error e;
   switch (node->which) {
   case TRY:
     module_excepts_open_try(mod, node);
     break;
   case DEFNAME:
     if (node->as.DEFNAME.is_excep) {
+      e = check_in_try(mod, node, "except");
+      EXCEPT(e);
       module_excepts_push(mod, node);
     }
     break;
   case SPIT:
+    e = check_in_try(mod, node, "spit");
+    EXCEPT(e);
     module_excepts_push(mod, node);
     break;
   default:
