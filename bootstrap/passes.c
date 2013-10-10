@@ -3188,7 +3188,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     }
 
     if (node->as.DEFNAME.is_excep) {
-      node->subs[0]->typ = node->typ;
+      node->subs[IDX_DEFNAME_EXCEP_TEST]->typ = node->typ;
     }
     break;
   case UN:
@@ -4576,7 +4576,7 @@ static error step_operator_test_call_inference(struct module *mod, struct node *
   switch (node->which) {
   case DEFNAME:
     if (node->as.DEFNAME.is_excep) {
-      e = gen_operator_test_call(mod, node, 0);
+      e = gen_operator_test_call(mod, node, IDX_DEFNAME_EXCEP_TEST);
       EXCEPT(e);
     }
     break;

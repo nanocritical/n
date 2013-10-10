@@ -757,7 +757,7 @@ static void print_defname_excep(FILE *out, const struct module *mod, const struc
   fprintf(out, "%s = ", idents_value(mod->gctx, node->as.DEFNAME.excep_error));
   print_expr(out, mod, node->as.DEFNAME.pattern, TASSIGN);
   fprintf(out, "; if (");
-  print_expr(out, mod, node->subs[0], T__CALL);
+  print_expr(out, mod, node->subs[IDX_DEFNAME_EXCEP_TEST], T__CALL);
   fprintf(out, ") { goto %s; }", idents_value(mod->gctx, node->as.DEFNAME.excep_label));
 }
 

@@ -369,6 +369,7 @@ enum subnode_idx {
   IDX_FOR_IT_BLOCK_WHILE = 0,
   IDX_FOR_IT_BLOCK_WHILE_BLOCK = 1,
   IDX_FUN_FIRSTARG = 2,
+  IDX_DEFNAME_EXCEP_TEST = 0,
 };
 
 struct idents_map;
