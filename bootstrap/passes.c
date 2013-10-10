@@ -1047,8 +1047,8 @@ static void mark_subs(struct module *mod, struct node *node, const struct typ *m
 }
 
 static void inherit(struct module *mod, struct node *node) {
-  const struct typ *pending = typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT);
-  const struct typ *not_typeable = typ_lookup_builtin(mod, TBI__NOT_TYPEABLE);
+  const struct typ *pending = TBI__PENDING_DESTRUCT;
+  const struct typ *not_typeable = TBI__NOT_TYPEABLE;
   if (node->typ == pending || node->typ == not_typeable) {
     mark_subs(mod, node, node->typ, 0, node->subs_count, 1);
   }
@@ -1184,17 +1184,17 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node, void 
     if (e) {
       break;
     }
-    if (typ_equal(mod, def->typ, typ_lookup_builtin(mod, TBI_REF))) {
+    if (typ_equal(mod, def->typ, TBI_REF)) {
       mod->fun_state->ref_wildcard = TREFDOT;
       mod->fun_state->nulref_wildcard = TNULREFDOT;
       mod->fun_state->deref_wildcard = TDEREFDOT;
       mod->fun_state->wildcard = TDOT;
-    } else if (typ_equal(mod, def->typ, typ_lookup_builtin(mod, TBI_MREF))) {
+    } else if (typ_equal(mod, def->typ, TBI_MREF)) {
       mod->fun_state->ref_wildcard = TREFBANG;
       mod->fun_state->nulref_wildcard = TNULREFBANG;
       mod->fun_state->deref_wildcard = TDEREFBANG;
       mod->fun_state->wildcard = TBANG;
-    } else if (typ_equal(mod, def->typ, typ_lookup_builtin(mod, TBI_MMREF))) {
+    } else if (typ_equal(mod, def->typ, TBI_MMREF)) {
       mod->fun_state->ref_wildcard = TREFSHARP;
       mod->fun_state->nulref_wildcard = TNULREFSHARP;
       mod->fun_state->deref_wildcard = TDEREFSHARP;
@@ -1241,8 +1241,8 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
 
   inherit(mod, node);
 
-  const struct typ *pending = typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT);
-  const struct typ *not_typeable = typ_lookup_builtin(mod, TBI__NOT_TYPEABLE);
+  const struct typ *pending = TBI__PENDING_DESTRUCT;
+  const struct typ *not_typeable = TBI__NOT_TYPEABLE;
 
   switch (node->which) {
   case DEFARG:
@@ -1301,7 +1301,7 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
     if (node->subs[0]->typ == NULL) {
       // Otherwise, we are rewriting this expression and we should not touch
       // subs[0].
-      mark_subs(mod, node, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT), 0, 1, 1);
+      mark_subs(mod, node, TBI__CALL_FUNCTION_SLOT, 0, 1, 1);
     }
     break;
   case DEFFUN:
@@ -1341,8 +1341,8 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
 
 static error step_type_mutability_mark(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
-  const struct typ *mutable = typ_lookup_builtin(mod, TBI__MUTABLE);
-  const struct typ *mercurial = typ_lookup_builtin(mod, TBI__MERCURIAL);
+  const struct typ *mutable = TBI__MUTABLE;
+  const struct typ *mercurial = TBI__MERCURIAL;
 
   switch (node->which) {
   case BIN:
@@ -1376,8 +1376,7 @@ static error step_type_mutability_mark(struct module *mod, struct node *node, vo
     case TREFBANG:
       if (arg->typ != NULL) {
         if (arg->which == BIN && !(arg->flags & NODE_IS_TYPE)) {
-          error e = typ_check_deref_against_mark(mod, arg,
-                                                 typ_lookup_builtin(mod, TBI__MUTABLE),
+          error e = typ_check_deref_against_mark(mod, arg, TBI__MUTABLE,
                                                  arg->as.BIN.operator);
           EXCEPT(e);
         }
@@ -1388,8 +1387,7 @@ static error step_type_mutability_mark(struct module *mod, struct node *node, vo
     case TREFSHARP:
       if (arg->typ != NULL) {
         if (arg->which == BIN && !(arg->flags & NODE_IS_TYPE)) {
-          error e = typ_check_deref_against_mark(mod, arg,
-                                                 typ_lookup_builtin(mod, TBI__MERCURIAL),
+          error e = typ_check_deref_against_mark(mod, arg, TBI__MERCURIAL,
                                                  arg->as.BIN.operator);
           EXCEPT(e);
         }
@@ -1506,8 +1504,8 @@ static error step_type_inference_genargs(struct module *mod, struct node *node, 
     return 0;
   }
 
-  if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
-      || node->typ == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)) {
+  if (node->typ == TBI__PENDING_DESTRUCT
+      || node->typ == TBI__NOT_TYPEABLE) {
     return 0;
   }
 
@@ -1538,8 +1536,8 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
     return 0;
   }
 
-  if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
-      || node->typ == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)) {
+  if (node->typ == TBI__PENDING_DESTRUCT
+      || node->typ == TBI__NOT_TYPEABLE) {
     return 0;
   }
 
@@ -1622,7 +1620,7 @@ static error step_type_defchoices(struct module *mod, struct node *node, void *u
     case DEFTYPE_ENUM:
     case DEFTYPE_SUM:
       {
-        const struct typ *u = typ_lookup_builtin(mod, TBI_LITERALS_INTEGER);
+        const struct typ *u = TBI_LITERALS_INTEGER;
         for (size_t n = 0; n < node->subs_count; ++n) {
           struct node *ch = node->subs[n];
           if (ch->which != DEFCHOICE) {
@@ -1634,8 +1632,8 @@ static error step_type_defchoices(struct module *mod, struct node *node, void *u
           ch->flags |= NODE_IS_DEFCHOICE;
         }
 
-        if (typ_equal(mod, u, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))) {
-          u = typ_lookup_builtin(mod, TBI_U32);
+        if (typ_equal(mod, u, TBI_LITERALS_INTEGER)) {
+          u = TBI_U32;
         }
         node->as.DEFTYPE.choice_typ = u;
 
@@ -1899,23 +1897,8 @@ static error type_inference_explicit_unary_call(struct module *mod, struct node 
   return 0;
 }
 
-static const uint32_t tbi_for_ref[TOKEN__NUM] = {
-  [TREFDOT] = TBI_REF,
-  [TREFBANG] = TBI_MREF,
-  [TREFSHARP] = TBI_MMREF,
-  [TREFWILDCARD] = TBI_MMREF,
-  [TDEREFDOT] = TBI_REF,
-  [TDEREFBANG] = TBI_MREF,
-  [TDEREFSHARP] = TBI_MMREF,
-  [TDEREFWILDCARD] = TBI_MMREF,
-  [TNULREFDOT] = TBI_NREF,
-  [TNULREFBANG] = TBI_NMREF,
-  [TNULREFSHARP] = TBI_NMMREF,
-  [TNULREFWILDCARD] = TBI_NMMREF,
-};
-
 static const struct typ *typ_ref(struct module *mod, enum token_type op, const struct typ *typ) {
-  struct node *gendef = typ_lookup_builtin(mod, tbi_for_ref[op])->definition;
+  struct node *gendef = mod->gctx->builtin_typs_for_refop[op]->definition;
 
   struct toplevel *toplevel = node_toplevel(gendef);
   for (size_t n = 1; n < toplevel->instances_count; ++n) {
@@ -1964,11 +1947,11 @@ static error type_inference_un(struct module *mod, struct node *node) {
     break;
   case OP_UN_BOOL:
     if (typ_is_concrete(mod, node->subs[0]->typ)) {
-      e = typ_compatible(mod, node, node->subs[0]->typ, typ_lookup_builtin(mod, TBI_BOOL));
+      e = typ_compatible(mod, node, node->subs[0]->typ, TBI_BOOL);
       EXCEPT(e);
       node->typ = node->subs[0]->typ;
     } else {
-      e = type_destruct(mod, node, typ_lookup_builtin(mod, TBI_BOOL));
+      e = type_destruct(mod, node, TBI_BOOL);
       EXCEPT(e);
     }
     break;
@@ -2006,7 +1989,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
 
   switch (OP_KIND(node->as.BIN.operator)) {
   case OP_BIN_SYM_BOOL:
-    e = typ_compatible(mod, node, node->typ, typ_lookup_builtin(mod, TBI_BOOL));
+    e = typ_compatible(mod, node, node->typ, TBI_BOOL);
     EXCEPT(e);
     break;
   case OP_BIN_SYM_NUM:
@@ -2017,7 +2000,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     case TLT:
     case TGT:
     case TGE:
-      node->typ = typ_lookup_builtin(mod, TBI_BOOL);
+      node->typ = TBI_BOOL;
       break;
     case TPLUS_ASSIGN:
     case TMINUS_ASSIGN:
@@ -2029,7 +2012,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     case TBWXOR_ASSIGN:
     case TRSHIFT_ASSIGN:
     case TLSHIFT_ASSIGN:
-      node->typ = typ_lookup_builtin(mod, TBI_VOID);
+      node->typ = TBI_VOID;
       break;
     default:
       break;
@@ -2040,7 +2023,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     EXCEPT(e);
     e = typ_check_is_reference_instance(mod, node, node->subs[1]->typ);
     EXCEPT(e);
-    node->typ = typ_lookup_builtin(mod, TBI_BOOL);
+    node->typ = TBI_BOOL;
     break;
   case OP_BIN_SYM:
     switch (node->as.BIN.operator) {
@@ -2050,7 +2033,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     case TGE:
     case TEQ:
     case TNE:
-      node->typ = typ_lookup_builtin(mod, TBI_BOOL);
+      node->typ = TBI_BOOL;
       break;
     default:
       break;
@@ -2069,7 +2052,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
       EXCEPT(e);
     }
 
-    node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    node->typ = TBI_VOID;
     node->subs[0]->flags |= (node->subs[1]->flags & NODE__TRANSITIVE);
   }
   node->flags |= (node->subs[0]->flags & NODE__TRANSITIVE);
@@ -2128,7 +2111,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   const struct typ *mark = node->typ;
 
   struct node *parent = node->subs[0];
-  if (typ_equal(mod, parent->typ, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))) {
+  if (typ_equal(mod, parent->typ, TBI__PENDING_DESTRUCT)) {
     node->typ = NULL;
     parent->typ = NULL;
 
@@ -2156,7 +2139,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   EXCEPT(e);
 
   if (field->typ->which == TYPE_FUNCTION
-      && node->typ != typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT)) {
+      && node->typ != TBI__CALL_FUNCTION_SLOT) {
     if (node_fun_explicit_args_count(field) != 0) {
       e = mk_except_call_args_count(mod, node, field, 0, 0);
       EXCEPT(e);
@@ -2183,10 +2166,10 @@ static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   e = typ_compatible_numeric(mod, node->subs[0], node->subs[0]->typ);
   EXCEPT(e);
   e = typ_check_isa(mod, node->subs[1], node->subs[1]->typ,
-                    typ_lookup_builtin(mod, TBI_UNSIGNED_INTEGER));
+                    TBI_UNSIGNED_INTEGER);
   EXCEPT(e);
   if (node->subs[1]->typ->definition->which == DEFINTF) {
-    node->subs[1]->typ = typ_lookup_builtin(mod, TBI_UNSIGNED_INTEGER);
+    node->subs[1]->typ = TBI_UNSIGNED_INTEGER;
   } else {
     // noop
   }
@@ -2285,8 +2268,7 @@ static error type_inference_tuple(struct module *mod, struct node *node) {
 static error type_inference_tupleextract(struct module *mod, struct node *node) {
   struct node *expr = node->subs[node->subs_count - 1];
   assert(node->subs_count == expr->typ->gen_arity + 1
-         && typ_isa(mod, expr->typ,
-                      typ_lookup_builtin(mod, TBI_ANY_TUPLE)));
+         && typ_isa(mod, expr->typ, TBI_ANY_TUPLE));
 
   for (size_t n = 0; n < node->subs_count - 1; ++n) {
     node->subs[n]->typ = expr->typ->gen_args[1 + n];
@@ -2320,8 +2302,7 @@ static error find_array_ctor_isalisteach(struct module *mod,
   const struct typ **result = user;
 
   if (intf->gen_arity > 0
-      && typ_equal(mod, intf->gen_args[0],
-                   typ_lookup_builtin(mod, TBI_ARRAY_CTOR))) {
+      && typ_equal(mod, intf->gen_args[0], TBI_ARRAY_CTOR)) {
     *result = intf;
   }
 
@@ -2593,7 +2574,7 @@ static error rewrite_deftype_instance_genargs(struct module *mod, const struct n
   }
 
   const struct typ *gendeft = node_toplevel(instance)->generic_definition->typ;
-  const bool gendef_is_ref = typ_isa(mod, gendeft, typ_lookup_builtin(mod, TBI_ANY_ANY_REF));;
+  const bool gendef_is_ref = typ_isa(mod, gendeft, TBI_ANY_ANY_REF);;
 
   for (size_t n = 0; n < genargs->subs_count; ++n) {
     struct node *ex = expr->subs[offset + n];
@@ -2840,7 +2821,7 @@ static error type_inference_block(struct module *mod, struct node *node) {
   if (node->subs_count > 0) {
     for (size_t n = 0; n < node->subs_count - 1; ++n) {
       struct node *s = node->subs[n];
-      if (!typ_equal(mod, s->typ, typ_lookup_builtin(mod, TBI_VOID))) {
+      if (!typ_equal(mod, s->typ, TBI_VOID)) {
         e = mk_except_type(mod, s,
                            "intermediate statements in a block must be of type void"
                            " (except the last one), not '%s'",
@@ -2849,12 +2830,12 @@ static error type_inference_block(struct module *mod, struct node *node) {
       }
     }
     if (node->subs[node->subs_count - 1]->which == RETURN) {
-      node->typ = typ_lookup_builtin(mod, TBI_VOID);
+      node->typ = TBI_VOID;
     } else {
       node->typ = node->subs[node->subs_count - 1]->typ;
     }
   } else {
-    node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    node->typ = TBI_VOID;
   }
 
   return 0;
@@ -2865,7 +2846,7 @@ static error type_inference_if(struct module *mod, struct node *node) {
 
   for (size_t n = 0; n < node->subs_count-1; n += 2) {
     e = typ_check_isa(mod, node->subs[n], node->subs[n]->typ,
-                      typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN));
+                      TBI_GENERALIZED_BOOLEAN);
     EXCEPT(e);
   }
 
@@ -2881,7 +2862,7 @@ static error type_inference_if(struct module *mod, struct node *node) {
     e = typ_unify(&u, mod, els, u, els->typ);
     EXCEPT(e);
   } else {
-    if (!typ_equal(mod, u, typ_lookup_builtin(mod, TBI_VOID))) {
+    if (!typ_equal(mod, u, TBI_VOID)) {
       e = mk_except_type(mod, node,
                          "if statement is not of type void but is missing an else branch");
       EXCEPT(e);
@@ -2998,7 +2979,7 @@ static error type_inference_try(struct module *mod, struct node *node) {
     e = type_destruct(mod, error_defp->subs[n], exu);
     EXCEPT(e);
   }
-  error_defp->typ = typ_lookup_builtin(mod, TBI_VOID);
+  error_defp->typ = TBI_VOID;
 
   struct node *eblock = elet->subs[1];
   struct node *main_block = eblock->subs[0];
@@ -3013,7 +2994,7 @@ static error type_inference_try(struct module *mod, struct node *node) {
       e = type_destruct(mod, defp->subs[n], exu);
       EXCEPT(e);
     }
-    defp->typ = typ_lookup_builtin(mod, TBI_VOID);
+    defp->typ = TBI_VOID;
 
     struct node *block = catch->subs[1];
     e = type_destruct(mod, block, u);
@@ -3085,7 +3066,7 @@ static error type_inference_ident(struct module *mod, struct node *node) {
   }
 
   if (def->typ->which == TYPE_FUNCTION
-      && node->typ != typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT)) {
+      && node->typ != TBI__CALL_FUNCTION_SLOT) {
     if (node_fun_explicit_args_count(def->typ->definition) != 0) {
       e = mk_except_call_args_count(mod, node, def->typ->definition, 0, 0);
       EXCEPT(e);
@@ -3100,12 +3081,12 @@ static error type_inference_ident(struct module *mod, struct node *node) {
   return 0;
 }
 
-static struct typ* number_literal_typ(struct module *mod, struct node *node) {
+static const struct typ* number_literal_typ(struct module *mod, struct node *node) {
   assert(node->which == NUMBER);
   if (strchr(node->as.NUMBER.value, '.') != NULL) {
-    return typ_lookup_builtin(mod, TBI_LITERALS_FLOATING);
+    return TBI_LITERALS_FLOATING;
   } else {
-    return typ_lookup_builtin(mod, TBI_LITERALS_INTEGER);
+    return TBI_LITERALS_INTEGER;
   }
 }
 
@@ -3125,12 +3106,12 @@ static bool string_literal_has_length_one(const char *s) {
 static error type_destruct(struct module *mod, struct node *node, const struct typ *constraint) {
   error e;
 
-  assert(node->typ != typ_lookup_builtin(mod, TBI__NOT_TYPEABLE));
+  assert(node->typ != TBI__NOT_TYPEABLE);
 
   if (node->typ != NULL
-      && node->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
-      && node->typ != typ_lookup_builtin(mod, TBI__MUTABLE)
-      && node->typ != typ_lookup_builtin(mod, TBI__MERCURIAL)
+      && node->typ != TBI__PENDING_DESTRUCT
+      && node->typ != TBI__MUTABLE
+      && node->typ != TBI__MERCURIAL
       && typ_is_concrete(mod, node->typ)) {
     e = typ_unify(&node->typ, mod, node, node->typ, constraint);
     EXCEPT(e);
@@ -3139,7 +3120,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
 
   switch (node->which) {
   case NUL:
-    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_LITERALS_NULL), constraint);
+    e = typ_unify(&node->typ, mod, node, TBI_LITERALS_NULL, constraint);
     EXCEPT(e);
     break;
   case NUMBER:
@@ -3147,11 +3128,11 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     EXCEPT(e);
     break;
   case BOOL:
-    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_BOOL), constraint);
+    e = typ_unify(&node->typ, mod, node, TBI_BOOL, constraint);
     EXCEPT(e);
     break;
   case STRING:
-    if (typ_equal(mod, constraint, typ_lookup_builtin(mod, TBI_CHAR))) {
+    if (typ_equal(mod, constraint, TBI_CHAR)) {
       if (!string_literal_has_length_one(node->as.STRING.value)) {
         e = mk_except_type(mod, node,
                            "string literal '%s' does not have length 1, cannot coerce to char",
@@ -3160,11 +3141,11 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       }
     }
 
-    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_STATIC_STRING), constraint);
+    e = typ_unify(&node->typ, mod, node, TBI_STATIC_STRING, constraint);
     EXCEPT(e);
     break;
   case SIZEOF:
-    e = typ_unify(&node->typ, mod, node, typ_lookup_builtin(mod, TBI_SIZE), constraint);
+    e = typ_unify(&node->typ, mod, node, TBI_SIZE, constraint);
     EXCEPT(e);
     break;
   case IDENT:
@@ -3191,8 +3172,8 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     }
     break;
   case DEFNAME:
-    if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)) {
-      assert(constraint != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT));
+    if (node->typ == TBI__PENDING_DESTRUCT) {
+      assert(constraint != TBI__PENDING_DESTRUCT);
       node->typ = constraint;
     } else {
       e = typ_unify(&node->typ, mod, node, node->typ, constraint);
@@ -3213,7 +3194,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
   case UN:
     switch (OP_KIND(node->as.UN.operator)) {
     case OP_UN_BOOL:
-      e = typ_compatible(mod, node, constraint, typ_lookup_builtin(mod, TBI_BOOL));
+      e = typ_compatible(mod, node, constraint, TBI_BOOL);
       break;
     case OP_UN_NUM:
       e = typ_compatible_numeric(mod, node, constraint);
@@ -3274,7 +3255,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
 
     switch (OP_KIND(node->as.BIN.operator)) {
     case OP_BIN_SYM_BOOL:
-      e = typ_compatible(mod, node, constraint, typ_lookup_builtin(mod, TBI_BOOL));
+      e = typ_compatible(mod, node, constraint, TBI_BOOL);
       EXCEPT(e);
       break;
     case OP_BIN_SYM_NUM:
@@ -3320,7 +3301,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       break;
     case OP_BIN_RHS_TYPE:
       if (node->as.BIN.operator == Tisa) {
-        node->typ = typ_lookup_builtin(mod, TBI_BOOL);
+        node->typ = TBI_BOOL;
       } else if (node->as.BIN.operator == TCOLON) {
         node->typ = node->subs[0]->typ;
       } else {
@@ -3378,7 +3359,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     EXCEPT(e);
     break;
   case RETURN:
-    e = typ_check_equal(mod, node, constraint, typ_lookup_builtin(mod, TBI_VOID));
+    e = typ_check_equal(mod, node, constraint, TBI_VOID);
     EXCEPT(e);
     if (node->subs_count > 0) {
       e = type_destruct(mod, node->subs[0], module_retval_get(mod)->typ);
@@ -3386,7 +3367,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
       node->typ = node->subs[0]->typ;
       node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
     } else {
-      node->typ = typ_lookup_builtin(mod, TBI_VOID);
+      node->typ = TBI_VOID;
     }
     break;
   case BLOCK:
@@ -3437,7 +3418,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     assert(FALSE);
   }
 
-  assert(node->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT));
+  assert(node->typ != TBI__PENDING_DESTRUCT);
   assert(node->typ != NULL);
   return 0;
 }
@@ -3447,14 +3428,14 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   error e;
   struct node *def = NULL;
 
-  if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)
-      || node->typ == typ_lookup_builtin(mod, TBI__NOT_TYPEABLE)) {
+  if (node->typ == TBI__PENDING_DESTRUCT
+      || node->typ == TBI__NOT_TYPEABLE) {
     return 0;
   }
 
   switch (node->which) {
   case NUL:
-    node->typ = typ_lookup_builtin(mod, TBI_LITERALS_NULL);
+    node->typ = TBI_LITERALS_NULL;
     goto ok;
   case IDENT:
     e = type_inference_ident(mod, node);
@@ -3482,13 +3463,13 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     node->typ = number_literal_typ(mod, node);
     goto ok;
   case BOOL:
-    node->typ = typ_lookup_builtin(mod, TBI_BOOL);
+    node->typ = TBI_BOOL;
     goto ok;
   case STRING:
-    node->typ = typ_lookup_builtin(mod, TBI_STATIC_STRING);
+    node->typ = TBI_STATIC_STRING;
     goto ok;
   case SIZEOF:
-    node->typ = typ_lookup_builtin(mod, TBI_SIZE);
+    node->typ = TBI_SIZE;
     goto ok;
   case BIN:
     e = type_inference_bin(mod, node);
@@ -3512,13 +3493,13 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case INIT:
     if (node->as.INIT.is_array) {
-      node->typ = typ_lookup_builtin(mod, TBI_LITERALS_INIT_ARRAY);
+      node->typ = TBI_LITERALS_INIT_ARRAY;
     } else {
-      node->typ = typ_lookup_builtin(mod, TBI_LITERALS_INIT);
+      node->typ = TBI_LITERALS_INIT;
     }
     goto ok;
   case RETURN:
-    e = type_destruct(mod, node, typ_lookup_builtin(mod, TBI_VOID));
+    e = type_destruct(mod, node, TBI_VOID);
     EXCEPT(e);
     goto ok;
   case BLOCK:
@@ -3529,31 +3510,29 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case BREAK:
   case CONTINUE:
   case NOOP:
-    node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    node->typ = TBI_VOID;
     goto ok;
   case IF:
     e = type_inference_if(mod, node);
     EXCEPT(e);
     goto ok;
   case FOR:
-    node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    node->typ = TBI_VOID;
     struct node *it = node->subs[IDX_FOR_IT]
       ->subs[IDX_FOR_IT_DEFP]
       ->subs[IDX_FOR_IT_DEFP_DEFN];
-    e = typ_check_isa(mod, it, it->typ,
-                      typ_lookup_builtin(mod, TBI_ITERATOR));
+    e = typ_check_isa(mod, it, it->typ, TBI_ITERATOR);
     EXCEPT(e);
     e = typ_compatible(mod, node_for_block(node), node_for_block(node)->typ,
-                       typ_lookup_builtin(mod, TBI_VOID));
+                       TBI_VOID);
     EXCEPT(e);
     goto ok;
   case WHILE:
-    node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    node->typ = TBI_VOID;
     e = typ_check_isa(mod, node->subs[0], node->subs[0]->typ,
-                      typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN));
+                      TBI_GENERALIZED_BOOLEAN);
     EXCEPT(e);
-    e = typ_compatible(mod, node->subs[1], node->subs[1]->typ,
-                       typ_lookup_builtin(mod, TBI_VOID));
+    e = typ_compatible(mod, node->subs[1], node->subs[1]->typ, TBI_VOID);
     EXCEPT(e);
     EXCEPT(e);
     goto ok;
@@ -3619,7 +3598,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case DEFTYPE:
     goto ok;
   case DEFPATTERN:
-    node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    node->typ = TBI_VOID;
     bool has_expr = node->subs_count > 1 && node->subs[1]->which != DEFNAME;
     if (has_expr) {
       e = type_destruct(mod, node->subs[0], node->subs[1]->typ);
@@ -3639,16 +3618,15 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     node->typ = node->subs[1]->typ;
     goto ok;
   case EXAMPLE:
-    e = type_destruct(mod, node->subs[0],
-                      typ_lookup_builtin(mod, TBI_BOOL));
+    e = type_destruct(mod, node->subs[0], TBI_BOOL);
     EXCEPT(e);
-    node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    node->typ = TBI_VOID;
     goto ok;
   case LET:
     if (node_has_tail_block(node)) {
       node->typ = node->subs[node->subs_count - 1]->typ;
     } else {
-      node->typ = typ_lookup_builtin(mod, TBI_VOID);
+      node->typ = TBI_VOID;
     }
     goto ok;
   case DELEGATE:
@@ -3657,7 +3635,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case INVARIANT:
   case ISALIST:
   case GENARGS:
-    node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    node->typ = TBI_VOID;
     goto ok;
   case ISA:
     node->typ = node->subs[0]->typ;
@@ -3675,7 +3653,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   }
 
 ok:
-  assert(node->typ != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT));
+  assert(node->typ != TBI__PENDING_DESTRUCT);
   assert(node->typ != NULL);
   return 0;
 }
@@ -4020,7 +3998,7 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
 
   const struct typ *targ = node->subs[IDX_CH_PAYLOAD]->typ;
   error e = typ_check_isa(mod, node->subs[IDX_CH_PAYLOAD],
-                          targ, typ_lookup_builtin(mod, TBI_COPYABLE));
+                          targ, TBI_COPYABLE);
   EXCEPT(e);
 
   define_defchoice_builtin(
@@ -4133,14 +4111,14 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node, void
     return 0;
   }
 
-  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_CTOR))) {
+  if (typ_isa(mod, node->typ, TBI_TRIVIAL_CTOR)) {
     define_builtin(mod, node, BG_TRIVIAL_CTOR_CTOR);
     define_builtin(mod, node, BG_TRIVIAL_CTOR_MK);
     define_builtin(mod, node, BG_TRIVIAL_CTOR_NEW);
-  } else if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_DEFAULT_CTOR))) {
+  } else if (typ_isa(mod, node->typ, TBI_DEFAULT_CTOR)) {
     define_builtin(mod, node, BG_DEFAULT_CTOR_MK);
     define_builtin(mod, node, BG_DEFAULT_CTOR_NEW);
-  } else if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_CTOR_WITH))) {
+  } else if (typ_isa(mod, node->typ, TBI_CTOR_WITH)) {
     define_builtin(mod, node, BG_CTOR_WITH_MK);
     define_builtin(mod, node, BG_CTOR_WITH_NEW);
   } else {
@@ -4162,11 +4140,11 @@ static error step_add_builtin_mkv_newv(struct module *mod, struct node *node, vo
     return 0;
   }
 
-  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_ARRAY_CTOR))) {
+  if (typ_isa(mod, node->typ, TBI_TRIVIAL_ARRAY_CTOR)) {
     return 0;
   }
 
-  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_ARRAY_CTOR))) {
+  if (typ_isa(mod, node->typ, TBI_ARRAY_CTOR)) {
     define_builtin(mod, node, BG_AUTO_MKV);
     define_builtin(mod, node, BG_AUTO_NEWV);
   }
@@ -4210,8 +4188,7 @@ static error step_add_builtin_operators(struct module *mod, struct node *node, v
   case DEFTYPE_SUM:
     break;
   case DEFTYPE_ENUM:
-    if (!typ_isa(mod, node->as.DEFTYPE.choice_typ,
-                 typ_lookup_builtin(mod, TBI_NATIVE_INTEGER))) {
+    if (!typ_isa(mod, node->as.DEFTYPE.choice_typ, TBI_NATIVE_INTEGER)) {
       define_builtin(mod, node, BG_ENUM_EQ);
       define_builtin(mod, node, BG_ENUM_NE);
     }
@@ -4236,10 +4213,10 @@ static error step_add_trivials(struct module *mod, struct node *node, void *user
     return 0;
   }
 
-  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))) {
+  if (typ_isa(mod, node->typ, TBI_TRIVIAL_COPY)) {
     define_builtin(mod, node, BG_TRIVIAL_COPY_COPY_CTOR);
   }
-  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY))) {
+  if (typ_isa(mod, node->typ, TBI_TRIVIAL_EQUALITY)) {
     define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_EQ);
     define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_NE);
   }
@@ -4314,12 +4291,12 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
 
     const struct typ *intf = typ_isalist(node->typ)[n];
     const struct typ *check_intf = intf;
-    if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_COPY))) {
-      check_intf = typ_lookup_builtin(mod, TBI_COPYABLE);
-    } else if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_EQUALITY))) {
-      check_intf = typ_lookup_builtin(mod, TBI_HAS_EQUALITY);
-    } else if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_ORDER))) {
-      check_intf = typ_lookup_builtin(mod, TBI_ORDERED);
+    if (typ_equal(mod, intf, TBI_SUM_COPY)) {
+      check_intf = TBI_COPYABLE;
+    } else if (typ_equal(mod, intf, TBI_SUM_EQUALITY)) {
+      check_intf = TBI_HAS_EQUALITY;
+    } else if (typ_equal(mod, intf, TBI_SUM_ORDER)) {
+      check_intf = TBI_ORDERED;
     }
 
     for (size_t c = 0; c < node->subs_count; ++c) {
@@ -4329,7 +4306,7 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
       }
 
       const struct typ *tch = NULL;
-      if (typ_equal(mod, ch->subs[IDX_CH_PAYLOAD]->typ, typ_lookup_builtin(mod, TBI_VOID))) {
+      if (typ_equal(mod, ch->subs[IDX_CH_PAYLOAD]->typ, TBI_VOID)) {
         tch = node->as.DEFTYPE.choice_typ;
       } else {
         tch = ch->subs[IDX_CH_PAYLOAD]->typ;
@@ -4339,16 +4316,16 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
       EXCEPT(e);
     }
 
-    if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_COPY))) {
-      if (!typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))) {
+    if (typ_equal(mod, intf, TBI_SUM_COPY)) {
+      if (!typ_isa(mod, node->typ, TBI_TRIVIAL_COPY)) {
         define_builtin(mod, node, BG_SUM_COPY);
       }
-    } else if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_EQUALITY))) {
-      if (!typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY))) {
+    } else if (typ_equal(mod, intf, TBI_SUM_EQUALITY)) {
+      if (!typ_isa(mod, node->typ, TBI_TRIVIAL_EQUALITY)) {
         define_builtin(mod, node, BG_SUM_EQUALITY_EQ);
         define_builtin(mod, node, BG_SUM_EQUALITY_NE);
       }
-    } else if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_SUM_ORDER))) {
+    } else if (typ_equal(mod, intf, TBI_SUM_ORDER)) {
       define_builtin(mod, node, BG_SUM_ORDER_LE);
       define_builtin(mod, node, BG_SUM_ORDER_LT);
       define_builtin(mod, node, BG_SUM_ORDER_GT);
@@ -4368,7 +4345,7 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
   }
 
   struct node *retval = node_fun_retval(node);
-  if (typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+  if (typ_isa(mod, retval->typ, TBI_RETURN_BY_COPY)) {
     return 0;
   }
 
@@ -4432,7 +4409,7 @@ static error step_string_literal_conversion(struct module *mod, struct node *nod
   DSTEP(mod, node);
 
   if (node->which != STRING
-      || typ_equal(mod, node->typ, typ_lookup_builtin(mod, TBI_STATIC_STRING))) {
+      || typ_equal(mod, node->typ, TBI_STATIC_STRING)) {
     return 0;
   }
 
@@ -4449,7 +4426,7 @@ static error step_string_literal_conversion(struct module *mod, struct node *nod
   struct node *literal = node_new_subnode(mod, node);
   *literal = copy;
   fix_scopes_after_move(literal);
-  literal->typ = typ_lookup_builtin(mod, TBI_STATIC_STRING);
+  literal->typ = TBI_STATIC_STRING;
 
   const struct node *except[] = { literal, NULL };
   error e = catchup(mod, except, node, copy.scope->parent, CATCHUP_REWRITING_CURRENT);
@@ -4462,7 +4439,7 @@ static error step_bool_literal_conversion(struct module *mod, struct node *node,
   DSTEP(mod, node);
 
   if (node->which != BOOL
-      || typ_equal(mod, node->typ, typ_lookup_builtin(mod, TBI_BOOL))) {
+      || typ_equal(mod, node->typ, TBI_BOOL)) {
     return 0;
   }
 
@@ -4479,7 +4456,7 @@ static error step_bool_literal_conversion(struct module *mod, struct node *node,
   struct node *literal = node_new_subnode(mod, node);
   *literal = copy;
   fix_scopes_after_move(literal);
-  literal->typ = typ_lookup_builtin(mod, TBI_BOOL);
+  literal->typ = TBI_BOOL;
 
   const struct node *except[] = { literal, NULL };
   error e = catchup(mod, except, node, copy.scope->parent, CATCHUP_REWRITING_CURRENT);
@@ -4552,17 +4529,16 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
     return 0;
   }
 
-  if (typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_NATIVE_INTEGER))
-      || typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_NATIVE_BOOLEAN))
-      || typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_NATIVE_FLOATING))) {
+  if (typ_isa(mod, left->typ, TBI_NATIVE_INTEGER)
+      || typ_isa(mod, left->typ, TBI_NATIVE_BOOLEAN)
+      || typ_isa(mod, left->typ, TBI_NATIVE_FLOATING)) {
     return 0;
   }
 
   struct node *dleft = left->typ->definition;
   if (dleft->which == DEFTYPE
       && dleft->as.DEFTYPE.kind == DEFTYPE_ENUM
-      && typ_isa(mod, dleft->as.DEFTYPE.choice_typ,
-                 typ_lookup_builtin(mod, TBI_NATIVE_INTEGER))) {
+      && typ_isa(mod, dleft->as.DEFTYPE.choice_typ, TBI_NATIVE_INTEGER)) {
     return 0;
   }
 
@@ -4580,7 +4556,7 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
 
 static error gen_operator_test_call(struct module *mod, struct node *node, size_t n) {
   struct node *expr = node->subs[n];
-  if (typ_equal(mod, expr->typ, typ_lookup_builtin(mod, TBI_BOOL))) {
+  if (typ_equal(mod, expr->typ, TBI_BOOL)) {
     return 0;
   }
 
@@ -4633,7 +4609,7 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
     return 0;
   }
 
-  if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_ARRAY_CTOR))) {
+  if (typ_isa(mod, node->typ, TBI_TRIVIAL_ARRAY_CTOR)) {
     return 0;
   }
 
@@ -4678,7 +4654,7 @@ static bool expr_is_literal_initializer(struct node **init, struct module *mod, 
 
 static bool expr_is_return_through_ref(struct node **init, struct module *mod, struct node *expr) {
   return (expr_is_literal_initializer(init, mod, expr) || expr->which == CALL)
-    && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
+    && !typ_isa(mod, expr->typ, TBI_RETURN_BY_COPY);
 }
 
 static error assign_copy_call_inference(struct module *mod, struct node *node) {
@@ -4745,7 +4721,7 @@ static error step_copy_call_inference(struct module *mod, struct node *node, voi
     return 0;
   }
 
-  if (typ_isa(mod, left->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))) {
+  if (typ_isa(mod, left->typ, TBI_TRIVIAL_COPY)) {
     return 0;
   }
 
@@ -4753,7 +4729,7 @@ static error step_copy_call_inference(struct module *mod, struct node *node, voi
     return 0;
   }
 
-  error e = typ_check_isa(mod, left, left->typ, typ_lookup_builtin(mod, TBI_COPYABLE));
+  error e = typ_check_isa(mod, left, left->typ, TBI_COPYABLE);
   EXCEPT(e);
 
   switch (node->which) {
@@ -4776,7 +4752,7 @@ static error check_exhaustive_intf_impl_eachisalist(struct module *mod, const st
   struct node *deft = t->definition;
 
   // FIXME: Remove
-  if (typ_isa(mod, t, typ_lookup_builtin(mod, TBI_ANY_TUPLE))) {
+  if (typ_isa(mod, t, TBI_ANY_TUPLE)) {
     return 0;
   }
 
@@ -4944,7 +4920,7 @@ static void block_insert_value_assign(struct module *mod, struct node *block,
   rew_move_last_over(block, where, TRUE);
 
   rew_append(assign, last);
-  block->typ = typ_lookup_builtin(mod, TBI_VOID);
+  block->typ = TBI_VOID;
 
   const struct node *except[] = { last, NULL };
   error e = catchup(mod, except, assign, block->scope, CATCHUP_BELOW_CURRENT);
@@ -5000,7 +4976,7 @@ static error step_move_assign_in_block_like(struct module *mod, struct node *nod
   *node = *right;
   fix_scopes_after_move(node);
   node->scope->parent = saved_parent;
-  node->typ = typ_lookup_builtin(mod, TBI_VOID);
+  node->typ = TBI_VOID;
 
   return 0;
 }
@@ -5085,7 +5061,7 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
   switch (node->which) {
   case RETURN:
     if (node->subs_count == 0
-        || typ_equal(mod, node->subs[0]->typ, typ_lookup_builtin(mod, TBI_VOID))) {
+        || typ_equal(mod, node->subs[0]->typ, TBI_VOID)) {
       return 0;
     }
 
@@ -5102,8 +5078,8 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
       } else {
         assert(FALSE);
       }
-    } else if (!typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))
-               && typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_COPYABLE))) {
+    } else if (!typ_isa(mod, expr->typ, TBI_RETURN_BY_COPY)
+               && typ_isa(mod, expr->typ, TBI_COPYABLE)) {
       // FIXME need to insert copy_ctor
 
       if (node->subs[0]->which == IDENT
@@ -5177,8 +5153,7 @@ static bool block_like_needs_temporary(struct module *mod,
   }
 
   if (significant_parent->which == RETURN
-      && !typ_isa(mod, node->typ,
-                  typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+      && !typ_isa(mod, node->typ, TBI_RETURN_BY_COPY)) {
     return FALSE;
   } else if (significant_parent->which == DEFPATTERN) {
     return FALSE;
@@ -5227,8 +5202,7 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
     break;
   case INIT:
     if (significant_parent->which == RETURN
-        && !typ_isa(mod, node->typ,
-                    typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+        && !typ_isa(mod, node->typ, TBI_RETURN_BY_COPY)) {
       break;
     }
     if (significant_parent->which == DEFPATTERN) {
@@ -5248,7 +5222,7 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
     if ((node->flags & NODE_IS_TYPE)) {
       break;
     }
-    if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+    if (typ_isa(mod, node->typ, TBI_RETURN_BY_COPY)) {
       break;
     }
     if (significant_parent->which == RETURN) {
@@ -5275,7 +5249,7 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
   case IF:
   case TRY:
   case MATCH:
-    if (typ_equal(mod, node->typ, typ_lookup_builtin(mod, TBI_VOID))) {
+    if (typ_equal(mod, node->typ, TBI_VOID)) {
       break;
     }
 

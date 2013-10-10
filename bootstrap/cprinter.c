@@ -145,7 +145,7 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
   if (OP_ASSIGN(op)
       && (right->which == INIT
           || (right->which == CALL
-              && !typ_isa(mod, right->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))))) {
+              && !typ_isa(mod, right->typ, TBI_RETURN_BY_COPY)))) {
     print_expr(out, mod, right, T__STATEMENT);
   } else {
     print_expr(out, mod, node->subs[0], op);
@@ -351,7 +351,7 @@ static void print_init_array(FILE *out, const struct module *mod, const struct n
     return;
   }
 
-  assert(typ_isa(mod, node->subs[1]->typ, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY)) && "not yet supported");
+  assert(typ_isa(mod, node->subs[1]->typ, TBI_TRIVIAL_COPY) && "not yet supported");
 
   fprintf(out, "(const ");
   print_typ(out, mod, node->typ);
@@ -500,9 +500,9 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case STRING:
     {
       char *s = escape_string(node->as.STRING.value);
-      if (typ_equal(mod, node->typ, typ_lookup_builtin(mod, TBI_STATIC_STRING))) {
+      if (typ_equal(mod, node->typ, TBI_STATIC_STRING)) {
         fprintf(out, "nlang_chars_static_string_mk((const nlang_builtins_u8 *)\"%s\", sizeof(\"%s\")-1)", s, s);
-      } else if (typ_equal(mod, node->typ, typ_lookup_builtin(mod, TBI_CHAR))) {
+      } else if (typ_equal(mod, node->typ, TBI_CHAR)) {
         fprintf(out, "nlang_chars_char_from_ascii('%s')", s);
       } else {
         assert(FALSE);
@@ -810,7 +810,7 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
         if (expr->which == INIT) {
           print_init(out, mod, expr);
         } else if (expr->which == CALL
-                   && !typ_isa(mod, expr->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+                   && !typ_isa(mod, expr->typ, TBI_RETURN_BY_COPY)) {
           fprintf(out, " = { 0 };\n");
           print_expr(out, mod, expr, T__STATEMENT);
         } else {
@@ -885,7 +885,7 @@ static void print_let(FILE *out, bool header, enum forward fwd, const struct mod
 static void print_return(FILE *out, const struct module *mod, const struct node *node) {
   if (node->subs_count > 0) {
     const struct node *expr = node->subs[0];
-    if (typ_isa(mod, node->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY))) {
+    if (typ_isa(mod, node->typ, TBI_RETURN_BY_COPY)) {
       fprintf(out, "return ");
       print_expr(out, mod, node->subs[0], T__STATEMENT);
     } else if (node->as.RETURN.return_through_ref_expr != NULL) {
@@ -1097,7 +1097,7 @@ static const struct node *get_defchoice_member(const struct module *mod,
 }
 
 static const char *returns_something(const struct module *mod, const struct node *m) {
-  return node_fun_retval_const(m)->typ == typ_lookup_builtin(mod, TBI_VOID) ? "" : "return";
+  return node_fun_retval_const(m)->typ == TBI_VOID ? "" : "return";
 }
 
 static const struct node *parent_in_tuple(const struct node *n) {
@@ -1154,7 +1154,7 @@ static void print_rtr_helpers_fully_named_tuple(FILE *out,
 static void print_rtr_helpers(FILE *out, const struct module *mod,
                               const struct node *retval, bool start) {
   const bool named_retval = retval->which == DEFARG;
-  const bool bycopy = typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
+  const bool bycopy = typ_isa(mod, retval->typ, TBI_RETURN_BY_COPY);
 
   const bool parent_tuple = node_parent_const(retval)->which == TUPLE;
   const bool is_tuple = retval->which == TUPLE
@@ -1221,7 +1221,7 @@ static void rtr_helpers(FILE *out, const struct module *mod,
 static void bg_return_if_by_copy(FILE *out, const struct module *mod, const struct node *node,
                                  const char *what) {
   const struct node *retval = node_fun_retval_const(node);
-  const bool retval_bycopy = typ_isa(mod, retval->typ, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
+  const bool retval_bycopy = typ_isa(mod, retval->typ, TBI_RETURN_BY_COPY);
   if (!retval_bycopy) {
     return;
   }
@@ -2079,8 +2079,7 @@ static error print_defintf_member_eachisalist(struct module *mod, const struct t
 
     const bool retval_throughref = !typ_isa_return_by_copy(mod, node_fun_retval_const(d)->typ);
     if (!retval_throughref
-        && !typ_equal(mod, node_fun_retval_const(d)->typ,
-                      typ_lookup_builtin(mod, TBI_VOID))) {
+        && !typ_equal(mod, node_fun_retval_const(d)->typ, TBI_VOID)) {
       fprintf(st->out, "return ");
     }
     fprintf(st->out, "self.vptr->%s(", idents_value(mod->gctx, node_ident(d)));

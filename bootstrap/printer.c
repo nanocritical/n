@@ -612,7 +612,7 @@ static void print_defchoice(FILE *out, const struct module *mod, const struct no
   print_expr(out, mod, node->subs[0], T__STATEMENT);
   fprintf(out, " = ");
   print_expr(out, mod, node->subs[IDX_CH_VALUE], T__STATEMENT);
-  if (node->subs[IDX_CH_PAYLOAD]->typ != typ_lookup_builtin(mod, TBI_VOID)) {
+  if (node->subs[IDX_CH_PAYLOAD]->typ != TBI_VOID) {
     fprintf(out, " -> ");
     print_expr(out, mod, node->subs[IDX_CH_PAYLOAD], T__STATEMENT);
   }

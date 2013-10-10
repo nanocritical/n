@@ -555,92 +555,88 @@ struct scope {
   struct node *node;
 };
 
-enum typ_builtin {
-  TBI__NONE = 0,
-  TBI_VOID,
-  TBI_LITERALS_NULL,
-  TBI_LITERALS_INTEGER,
-  TBI_LITERALS_FLOATING,
-  TBI_LITERALS_INIT,
-  TBI_LITERALS_INIT_ARRAY,
-  TBI_ANY_TUPLE,
-  TBI_TUPLE_2,
-  TBI_TUPLE_3,
-  TBI_TUPLE_4,
-  TBI_TUPLE_5,
-  TBI_TUPLE_6,
-  TBI_TUPLE_7,
-  TBI_TUPLE_8,
-  TBI_TUPLE_9,
-  TBI_TUPLE_10,
-  TBI_TUPLE_11,
-  TBI_TUPLE_12,
-  TBI_TUPLE_13,
-  TBI_TUPLE_14,
-  TBI_TUPLE_15,
-  TBI_TUPLE_16,
-  TBI_ANY,
-  TBI_BOOL,
-  TBI_BOOL_COMPATIBLE,
-  TBI_I8,
-  TBI_U8,
-  TBI_I16,
-  TBI_U16,
-  TBI_I32,
-  TBI_U32,
-  TBI_I64,
-  TBI_U64,
-  TBI_SIZE,
-  TBI_SSIZE,
-  TBI_FLOAT,
-  TBI_DOUBLE,
-  TBI_CHAR,
-  TBI_STRING,
-  TBI_STATIC_STRING,
-  TBI_STATIC_STRING_COMPATIBLE,
-  TBI_STATIC_ARRAY,
-  TBI_ANY_REF,
-  TBI_ANY_ANY_REF,
-  TBI_REF, // @
-  TBI_MREF, // @!
-  TBI_MMREF, // @#
-  TBI_NREF, // ?@
-  TBI_NMREF, // ?@!
-  TBI_NMMREF, // ?@#
-  TBI_ARITHMETIC,
-  TBI_INTEGER,
-  TBI_UNSIGNED_INTEGER,
-  TBI_NATIVE_INTEGER,
-  TBI_NATIVE_ANYSIGN_INTEGER,
-  TBI_GENERALIZED_BOOLEAN,
-  TBI_NATIVE_BOOLEAN,
-  TBI_FLOATING,
-  TBI_NATIVE_FLOATING,
-  TBI_HAS_EQUALITY,
-  TBI_ORDERED,
-  TBI_ORDERED_BY_COMPARE,
-  TBI_COPYABLE,
-  TBI_DEFAULT_CTOR,
-  TBI_CTOR_WITH,
-  TBI_ARRAY_CTOR,
-  TBI_TRIVIAL_COPY,
-  TBI_TRIVIAL_CTOR,
-  TBI_TRIVIAL_ARRAY_CTOR,
-  TBI_TRIVIAL_DTOR,
-  TBI_TRIVIAL_EQUALITY,
-  TBI_TRIVIAL_ORDER,
-  TBI_RETURN_BY_COPY,
-  TBI_SUM_COPY,
-  TBI_SUM_EQUALITY,
-  TBI_SUM_ORDER,
-  TBI_ITERATOR,
-  TBI__PENDING_DESTRUCT,
-  TBI__NOT_TYPEABLE,
-  TBI__CALL_FUNCTION_SLOT,
-  TBI__MUTABLE,
-  TBI__MERCURIAL,
-  TBI__NUM,
-};
+const struct typ *TBI_VOID;
+const struct typ *TBI_LITERALS_NULL;
+const struct typ *TBI_LITERALS_INTEGER;
+const struct typ *TBI_LITERALS_FLOATING;
+const struct typ *TBI_LITERALS_INIT;
+const struct typ *TBI_LITERALS_INIT_ARRAY;
+const struct typ *TBI_ANY_TUPLE;
+const struct typ *TBI_TUPLE_2;
+const struct typ *TBI_TUPLE_3;
+const struct typ *TBI_TUPLE_4;
+const struct typ *TBI_TUPLE_5;
+const struct typ *TBI_TUPLE_6;
+const struct typ *TBI_TUPLE_7;
+const struct typ *TBI_TUPLE_8;
+const struct typ *TBI_TUPLE_9;
+const struct typ *TBI_TUPLE_10;
+const struct typ *TBI_TUPLE_11;
+const struct typ *TBI_TUPLE_12;
+const struct typ *TBI_TUPLE_13;
+const struct typ *TBI_TUPLE_14;
+const struct typ *TBI_TUPLE_15;
+const struct typ *TBI_TUPLE_16;
+const struct typ *TBI_ANY;
+const struct typ *TBI_BOOL;
+const struct typ *TBI_BOOL_COMPATIBLE;
+const struct typ *TBI_I8;
+const struct typ *TBI_U8;
+const struct typ *TBI_I16;
+const struct typ *TBI_U16;
+const struct typ *TBI_I32;
+const struct typ *TBI_U32;
+const struct typ *TBI_I64;
+const struct typ *TBI_U64;
+const struct typ *TBI_SIZE;
+const struct typ *TBI_SSIZE;
+const struct typ *TBI_FLOAT;
+const struct typ *TBI_DOUBLE;
+const struct typ *TBI_CHAR;
+const struct typ *TBI_STRING;
+const struct typ *TBI_STATIC_STRING;
+const struct typ *TBI_STATIC_STRING_COMPATIBLE;
+const struct typ *TBI_STATIC_ARRAY;
+const struct typ *TBI_ANY_REF;
+const struct typ *TBI_ANY_ANY_REF;
+const struct typ *TBI_REF; // @
+const struct typ *TBI_MREF; // @!
+const struct typ *TBI_MMREF; // @#
+const struct typ *TBI_NREF; // ?@
+const struct typ *TBI_NMREF; // ?@!
+const struct typ *TBI_NMMREF; // ?@#
+const struct typ *TBI_ARITHMETIC;
+const struct typ *TBI_INTEGER;
+const struct typ *TBI_UNSIGNED_INTEGER;
+const struct typ *TBI_NATIVE_INTEGER;
+const struct typ *TBI_NATIVE_ANYSIGN_INTEGER;
+const struct typ *TBI_GENERALIZED_BOOLEAN;
+const struct typ *TBI_NATIVE_BOOLEAN;
+const struct typ *TBI_FLOATING;
+const struct typ *TBI_NATIVE_FLOATING;
+const struct typ *TBI_HAS_EQUALITY;
+const struct typ *TBI_ORDERED;
+const struct typ *TBI_ORDERED_BY_COMPARE;
+const struct typ *TBI_COPYABLE;
+const struct typ *TBI_DEFAULT_CTOR;
+const struct typ *TBI_CTOR_WITH;
+const struct typ *TBI_ARRAY_CTOR;
+const struct typ *TBI_TRIVIAL_COPY;
+const struct typ *TBI_TRIVIAL_CTOR;
+const struct typ *TBI_TRIVIAL_ARRAY_CTOR;
+const struct typ *TBI_TRIVIAL_DTOR;
+const struct typ *TBI_TRIVIAL_EQUALITY;
+const struct typ *TBI_TRIVIAL_ORDER;
+const struct typ *TBI_RETURN_BY_COPY;
+const struct typ *TBI_SUM_COPY;
+const struct typ *TBI_SUM_EQUALITY;
+const struct typ *TBI_SUM_ORDER;
+const struct typ *TBI_ITERATOR;
+const struct typ *TBI__PENDING_DESTRUCT;
+const struct typ *TBI__NOT_TYPEABLE;
+const struct typ *TBI__CALL_FUNCTION_SLOT;
+const struct typ *TBI__MUTABLE;
+const struct typ *TBI__MERCURIAL;
 
 enum typ_which {
   TYPE_DEF,
@@ -709,8 +705,8 @@ struct globalctx {
   // absolute name. It is not used for lexical lookup.
   struct node modules_root;
 
-  struct typ *builtin_typs[TBI__NUM];
   struct typ *builtin_typs_by_name[ID__NUM];
+  const struct typ *builtin_typs_for_refop[TOKEN__NUM];
 };
 
 struct stage_state {
@@ -839,8 +835,7 @@ void node_deepcopy(struct module *mod, struct node *dst,
 struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
 struct typ *typ_genarg_mark_as_abstract(const struct typ *t);
-struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id);
-struct typ *typ_lookup_builtin_tuple(const struct module *mod, size_t arity);
+const struct typ *typ_lookup_builtin_tuple(const struct module *mod, size_t arity);
 bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b);
 error typ_check_equal(const struct module *mod, const struct node *for_error,
                       const struct typ *a, const struct typ *b);

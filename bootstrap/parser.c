@@ -1165,6 +1165,104 @@ struct typ *typ_genarg_mark_as_abstract(const struct typ *t) {
   return r;
 }
 
+static void init_tbis(struct globalctx *gctx) {
+  TBI_VOID = gctx->builtin_typs_by_name[ID_TBI_VOID];
+  TBI_LITERALS_NULL = gctx->builtin_typs_by_name[ID_TBI_LITERALS_NULL];
+  TBI_LITERALS_INTEGER = gctx->builtin_typs_by_name[ID_TBI_LITERALS_INTEGER];
+  TBI_LITERALS_FLOATING = gctx->builtin_typs_by_name[ID_TBI_LITERALS_FLOATING];
+  TBI_LITERALS_INIT = gctx->builtin_typs_by_name[ID_TBI_LITERALS_INIT];
+  TBI_LITERALS_INIT_ARRAY = gctx->builtin_typs_by_name[ID_TBI_LITERALS_INIT_ARRAY];
+  TBI_ANY_TUPLE = gctx->builtin_typs_by_name[ID_TBI_ANY_TUPLE];
+  TBI_TUPLE_2 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_2];
+  TBI_TUPLE_3 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_3];
+  TBI_TUPLE_4 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_4];
+  TBI_TUPLE_5 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_5];
+  TBI_TUPLE_6 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_6];
+  TBI_TUPLE_7 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_7];
+  TBI_TUPLE_8 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_8];
+  TBI_TUPLE_9 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_9];
+  TBI_TUPLE_10 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_10];
+  TBI_TUPLE_11 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_11];
+  TBI_TUPLE_12 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_12];
+  TBI_TUPLE_13 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_13];
+  TBI_TUPLE_14 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_14];
+  TBI_TUPLE_15 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_15];
+  TBI_TUPLE_16 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_16];
+  TBI_ANY = gctx->builtin_typs_by_name[ID_TBI_ANY];
+  TBI_BOOL = gctx->builtin_typs_by_name[ID_TBI_BOOL];
+  TBI_BOOL_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_BOOL_COMPATIBLE];
+  TBI_I8 = gctx->builtin_typs_by_name[ID_TBI_I8];
+  TBI_U8 = gctx->builtin_typs_by_name[ID_TBI_U8];
+  TBI_I16 = gctx->builtin_typs_by_name[ID_TBI_I16];
+  TBI_U16 = gctx->builtin_typs_by_name[ID_TBI_U16];
+  TBI_I32 = gctx->builtin_typs_by_name[ID_TBI_I32];
+  TBI_U32 = gctx->builtin_typs_by_name[ID_TBI_U32];
+  TBI_I64 = gctx->builtin_typs_by_name[ID_TBI_I64];
+  TBI_U64 = gctx->builtin_typs_by_name[ID_TBI_U64];
+  TBI_SIZE = gctx->builtin_typs_by_name[ID_TBI_SIZE];
+  TBI_SSIZE = gctx->builtin_typs_by_name[ID_TBI_SSIZE];
+  TBI_FLOAT = gctx->builtin_typs_by_name[ID_TBI_FLOAT];
+  TBI_DOUBLE = gctx->builtin_typs_by_name[ID_TBI_DOUBLE];
+  TBI_CHAR = gctx->builtin_typs_by_name[ID_TBI_CHAR];
+  TBI_STRING = gctx->builtin_typs_by_name[ID_TBI_STRING];
+  TBI_STATIC_STRING = gctx->builtin_typs_by_name[ID_TBI_STATIC_STRING];
+  TBI_STATIC_STRING_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_STATIC_STRING_COMPATIBLE];
+  TBI_STATIC_ARRAY = gctx->builtin_typs_by_name[ID_TBI_STATIC_ARRAY];
+  TBI_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_REF];
+  TBI_ANY_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_ANY_REF];
+  TBI_REF = gctx->builtin_typs_by_name[ID_TBI_REF]; // @
+  TBI_MREF = gctx->builtin_typs_by_name[ID_TBI_MREF]; // @!
+  TBI_MMREF = gctx->builtin_typs_by_name[ID_TBI_MMREF]; // @#
+  TBI_NREF = gctx->builtin_typs_by_name[ID_TBI_NREF]; // ?@
+  TBI_NMREF = gctx->builtin_typs_by_name[ID_TBI_NMREF]; // ?@!
+  TBI_NMMREF = gctx->builtin_typs_by_name[ID_TBI_NMMREF]; // ?@#
+  TBI_ARITHMETIC = gctx->builtin_typs_by_name[ID_TBI_ARITHMETIC];
+  TBI_INTEGER = gctx->builtin_typs_by_name[ID_TBI_INTEGER];
+  TBI_UNSIGNED_INTEGER = gctx->builtin_typs_by_name[ID_TBI_UNSIGNED_INTEGER];
+  TBI_NATIVE_INTEGER = gctx->builtin_typs_by_name[ID_TBI_NATIVE_INTEGER];
+  TBI_NATIVE_ANYSIGN_INTEGER = gctx->builtin_typs_by_name[ID_TBI_NATIVE_ANYSIGN_INTEGER];
+  TBI_GENERALIZED_BOOLEAN = gctx->builtin_typs_by_name[ID_TBI_GENERALIZED_BOOLEAN];
+  TBI_NATIVE_BOOLEAN = gctx->builtin_typs_by_name[ID_TBI_NATIVE_BOOLEAN];
+  TBI_FLOATING = gctx->builtin_typs_by_name[ID_TBI_FLOATING];
+  TBI_NATIVE_FLOATING = gctx->builtin_typs_by_name[ID_TBI_NATIVE_FLOATING];
+  TBI_HAS_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_HAS_EQUALITY];
+  TBI_ORDERED = gctx->builtin_typs_by_name[ID_TBI_ORDERED];
+  TBI_ORDERED_BY_COMPARE = gctx->builtin_typs_by_name[ID_TBI_ORDERED_BY_COMPARE];
+  TBI_COPYABLE = gctx->builtin_typs_by_name[ID_TBI_COPYABLE];
+  TBI_DEFAULT_CTOR = gctx->builtin_typs_by_name[ID_TBI_DEFAULT_CTOR];
+  TBI_CTOR_WITH = gctx->builtin_typs_by_name[ID_TBI_CTOR_WITH];
+  TBI_ARRAY_CTOR = gctx->builtin_typs_by_name[ID_TBI_ARRAY_CTOR];
+  TBI_TRIVIAL_COPY = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_COPY];
+  TBI_TRIVIAL_CTOR = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_CTOR];
+  TBI_TRIVIAL_ARRAY_CTOR = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_ARRAY_CTOR];
+  TBI_TRIVIAL_DTOR = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_DTOR];
+  TBI_TRIVIAL_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_EQUALITY];
+  TBI_TRIVIAL_ORDER = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_ORDER];
+  TBI_RETURN_BY_COPY = gctx->builtin_typs_by_name[ID_TBI_RETURN_BY_COPY];
+  TBI_SUM_COPY = gctx->builtin_typs_by_name[ID_TBI_SUM_COPY];
+  TBI_SUM_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_SUM_EQUALITY];
+  TBI_SUM_ORDER = gctx->builtin_typs_by_name[ID_TBI_SUM_ORDER];
+  TBI_ITERATOR = gctx->builtin_typs_by_name[ID_TBI_ITERATOR];
+  TBI__PENDING_DESTRUCT = gctx->builtin_typs_by_name[ID_TBI__PENDING_DESTRUCT];
+  TBI__NOT_TYPEABLE = gctx->builtin_typs_by_name[ID_TBI__NOT_TYPEABLE];
+  TBI__CALL_FUNCTION_SLOT = gctx->builtin_typs_by_name[ID_TBI__CALL_FUNCTION_SLOT];
+  TBI__MUTABLE = gctx->builtin_typs_by_name[ID_TBI__MUTABLE];
+  TBI__MERCURIAL = gctx->builtin_typs_by_name[ID_TBI__MERCURIAL];
+
+  gctx->builtin_typs_for_refop[TREFDOT] = TBI_REF;
+  gctx->builtin_typs_for_refop[TREFBANG] = TBI_MREF;
+  gctx->builtin_typs_for_refop[TREFSHARP] = TBI_MMREF;
+  gctx->builtin_typs_for_refop[TREFWILDCARD] = TBI_MMREF;
+  gctx->builtin_typs_for_refop[TDEREFDOT] = TBI_REF;
+  gctx->builtin_typs_for_refop[TDEREFBANG] = TBI_MREF;
+  gctx->builtin_typs_for_refop[TDEREFSHARP] = TBI_MMREF;
+  gctx->builtin_typs_for_refop[TDEREFWILDCARD] = TBI_MMREF;
+  gctx->builtin_typs_for_refop[TNULREFDOT] = TBI_NREF;
+  gctx->builtin_typs_for_refop[TNULREFBANG] = TBI_NMREF;
+  gctx->builtin_typs_for_refop[TNULREFSHARP] = TBI_NMMREF;
+  gctx->builtin_typs_for_refop[TNULREFWILDCARD] = TBI_NMMREF;
+}
+
 void globalctx_init(struct globalctx *gctx) {
   memset(gctx, 0, sizeof(*gctx));
 
@@ -1173,8 +1271,6 @@ void globalctx_init(struct globalctx *gctx) {
   idents_map_set_delete_val(gctx->idents.map, -1);
   idents_map_set_custom_hashf(gctx->idents.map, token_hash);
   idents_map_set_custom_cmpf(gctx->idents.map, token_cmp);
-
-  assert(ID_TBI__LAST - ID_TBI__FIRST + 2 == TBI__NUM);
 
   gctx->idents.count = ID__NUM;
   gctx->idents.capacity = ID__NUM;
@@ -1196,11 +1292,11 @@ void globalctx_init(struct globalctx *gctx) {
         t = typ_new_builtin(NULL, TYPE__MARKER, 0, 0);
       }
 
-      gctx->builtin_typs[i - ID_TBI__FIRST + 1] = t;
-
       gctx->builtin_typs_by_name[i] = t;
     }
   }
+
+  init_tbis(gctx);
 
   gctx->modules_root.scope = scope_new(&gctx->modules_root);
   gctx->modules_root.which = ROOT_OF_ALL;
@@ -3270,7 +3366,7 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
   case TYPE_DEF:
     if (t->gen_arity == 0) {
       s += sprintf(s, "%s", typ_name(mod, t));
-    } else if (typ_isa(mod, t, typ_lookup_builtin(mod, TBI_ANY_TUPLE))) {
+    } else if (typ_isa(mod, t, TBI_ANY_TUPLE)) {
       for (size_t n = 1; n < t->gen_arity + 1; ++n) {
         if (n > 1) {
           s += sprintf(s, ", ");
@@ -3294,27 +3390,23 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
   return r;
 }
 
-struct typ *typ_lookup_builtin(const struct module *mod, enum typ_builtin id) {
-  return mod->gctx->builtin_typs[id];
-}
-
-struct typ *typ_lookup_builtin_tuple(const struct module *mod, size_t arity) {
+const struct typ *typ_lookup_builtin_tuple(const struct module *mod, size_t arity) {
   switch (arity) {
-  case 2: return typ_lookup_builtin(mod, TBI_TUPLE_2);
-  case 3: return typ_lookup_builtin(mod, TBI_TUPLE_3);
-  case 4: return typ_lookup_builtin(mod, TBI_TUPLE_4);
-  case 5: return typ_lookup_builtin(mod, TBI_TUPLE_5);
-  case 6: return typ_lookup_builtin(mod, TBI_TUPLE_6);
-  case 7: return typ_lookup_builtin(mod, TBI_TUPLE_7);
-  case 8: return typ_lookup_builtin(mod, TBI_TUPLE_8);
-  case 9: return typ_lookup_builtin(mod, TBI_TUPLE_9);
-  case 10: return typ_lookup_builtin(mod, TBI_TUPLE_10);
-  case 11: return typ_lookup_builtin(mod, TBI_TUPLE_11);
-  case 12: return typ_lookup_builtin(mod, TBI_TUPLE_12);
-  case 13: return typ_lookup_builtin(mod, TBI_TUPLE_13);
-  case 14: return typ_lookup_builtin(mod, TBI_TUPLE_14);
-  case 15: return typ_lookup_builtin(mod, TBI_TUPLE_15);
-  case 16: return typ_lookup_builtin(mod, TBI_TUPLE_16);
+  case 2: return TBI_TUPLE_2;
+  case 3: return TBI_TUPLE_3;
+  case 4: return TBI_TUPLE_4;
+  case 5: return TBI_TUPLE_5;
+  case 6: return TBI_TUPLE_6;
+  case 7: return TBI_TUPLE_7;
+  case 8: return TBI_TUPLE_8;
+  case 9: return TBI_TUPLE_9;
+  case 10: return TBI_TUPLE_10;
+  case 11: return TBI_TUPLE_11;
+  case 12: return TBI_TUPLE_12;
+  case 13: return TBI_TUPLE_13;
+  case 14: return TBI_TUPLE_14;
+  case 15: return TBI_TUPLE_15;
+  case 16: return TBI_TUPLE_16;
   default: assert(FALSE); return NULL;
   }
 }
@@ -3428,46 +3520,46 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  if (constraint == typ_lookup_builtin(mod, TBI_LITERALS_INIT)) {
+  if (constraint == TBI_LITERALS_INIT) {
     return 0;
   }
 
-  if (constraint == typ_lookup_builtin(mod, TBI_LITERALS_INIT_ARRAY)) {
-    error e = typ_check_isa(mod, for_error, a, typ_lookup_builtin(mod, TBI_ARRAY_CTOR));
+  if (constraint == TBI_LITERALS_INIT_ARRAY) {
+    error e = typ_check_isa(mod, for_error, a, TBI_ARRAY_CTOR);
     EXCEPT(e);
     return 0;
   }
 
-  if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
-    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_INTEGER))) {
+  if (a == TBI_LITERALS_INTEGER) {
+    if (typ_isa(mod, constraint, TBI_INTEGER)) {
       return 0;
     }
   }
 
-  if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)) {
-    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_FLOATING))) {
+  if (a == TBI_LITERALS_INTEGER
+      || a == TBI_LITERALS_FLOATING) {
+    if (typ_isa(mod, constraint, TBI_FLOATING)) {
       return 0;
     }
   }
 
-  if (a == typ_lookup_builtin(mod, TBI_BOOL)) {
-    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_BOOL_COMPATIBLE))) {
+  if (a == TBI_BOOL) {
+    if (typ_isa(mod, constraint, TBI_BOOL_COMPATIBLE)) {
       return 0;
     }
   }
 
-  if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
+  if (a == TBI_LITERALS_NULL
       && typ_is_reference_instance(mod, constraint)) {
-    if (typ_is_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NREF))
-        || typ_is_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NMREF))
-        || typ_is_same_generic(mod, constraint, typ_lookup_builtin(mod, TBI_NMMREF))) {
+    if (typ_is_same_generic(mod, constraint, TBI_NREF)
+        || typ_is_same_generic(mod, constraint, TBI_NMREF)
+        || typ_is_same_generic(mod, constraint, TBI_NMMREF)) {
       return 0;
     }
   }
 
-  if (typ_equal(mod, a, typ_lookup_builtin(mod, TBI_STATIC_STRING))) {
-    if (typ_isa(mod, constraint, typ_lookup_builtin(mod, TBI_STATIC_STRING_COMPATIBLE))) {
+  if (typ_equal(mod, a, TBI_STATIC_STRING)) {
+    if (typ_isa(mod, constraint, TBI_STATIC_STRING_COMPATIBLE)) {
       return 0;
     }
   }
@@ -3495,7 +3587,7 @@ except:
 
 error typ_compatible_numeric(const struct module *mod, const struct node *for_error,
                              const struct typ *a) {
-  if (typ_isa(mod, a, typ_lookup_builtin(mod, TBI_ARITHMETIC))) {
+  if (typ_isa(mod, a, TBI_ARITHMETIC)) {
     return 0;
   }
 
@@ -3513,7 +3605,7 @@ bool typ_is_reference_instance(const struct module *mod, const struct typ *a) {
     return FALSE;
   }
 
-  return typ_isa(mod, a, typ_lookup_builtin(mod, TBI_ANY_ANY_REF));
+  return typ_isa(mod, a, TBI_ANY_ANY_REF);
 }
 
 error typ_check_is_reference_instance(const struct module *mod, const struct node *for_error,
@@ -3530,18 +3622,6 @@ except:
   free(na);
   return e;
 }
-
-static const uint32_t tbi_for_ref[TOKEN__NUM] = {
-  [TREFDOT] = TBI_REF,
-  [TREFBANG] = TBI_MREF,
-  [TREFSHARP] = TBI_MMREF,
-  [TDEREFDOT] = TBI_REF,
-  [TDEREFBANG] = TBI_MREF,
-  [TDEREFSHARP] = TBI_MMREF,
-  [TNULREFDOT] = TBI_NREF,
-  [TNULREFBANG] = TBI_NMREF,
-  [TNULREFSHARP] = TBI_NMMREF,
-};
 
 static const char *string_for_ref[TOKEN__NUM] = {
   [TREFDOT] = "@",
@@ -3565,8 +3645,8 @@ error typ_check_reference_compatible(const struct module *mod, const struct node
                      "'%s' type is not a reference", na);
   }
 
-  assert(tbi_for_ref[operator] != 0);
-  if (a->gen_args[0] == typ_lookup_builtin(mod, tbi_for_ref[operator])) {
+  assert(mod->gctx->builtin_typs_for_refop[operator] != NULL);
+  if (a->gen_args[0] == mod->gctx->builtin_typs_for_refop[operator]) {
     return 0;
   }
 
@@ -3595,11 +3675,11 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
     ok = TRUE;
     break;
   case TDEREFBANG:
-    ok = typ_is_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MREF))
-      || typ_is_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MMREF));
+    ok = typ_is_same_generic(mod, a, TBI_MREF)
+      || typ_is_same_generic(mod, a, TBI_MMREF);
     break;
   case TDEREFSHARP:
-    ok = typ_is_same_generic(mod, a, typ_lookup_builtin(mod, TBI_MMREF));
+    ok = typ_is_same_generic(mod, a, TBI_MMREF);
     break;
   default:
     assert(FALSE);
@@ -3622,12 +3702,12 @@ error typ_check_deref_against_mark(const struct module *mod, const struct node *
   const char *kind = NULL;
   if (t == NULL) {
     return 0;
-  } else if (t == typ_lookup_builtin(mod, TBI__MUTABLE)) {
+  } else if (t == TBI__MUTABLE) {
     if (operator != TDOT && operator != TDEREFDOT) {
       return 0;
     }
     kind = "mutable";
-  } else if (t == typ_lookup_builtin(mod, TBI__MERCURIAL)) {
+  } else if (t == TBI__MERCURIAL) {
     if (operator == TSHARP || operator == TDEREFSHARP) {
       return 0;
     }
@@ -3647,11 +3727,11 @@ except:
 }
 
 bool typ_is_concrete(const struct module *mod, const struct typ *a) {
-  if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_INIT)
-      || a == typ_lookup_builtin(mod, TBI_LITERALS_INIT_ARRAY)) {
+  if (a == TBI_LITERALS_NULL
+      || a == TBI_LITERALS_INTEGER
+      || a == TBI_LITERALS_FLOATING
+      || a == TBI_LITERALS_INIT
+      || a == TBI_LITERALS_INIT_ARRAY) {
     return FALSE;
   }
 
@@ -3665,8 +3745,8 @@ bool typ_is_concrete(const struct module *mod, const struct typ *a) {
 }
 
 static bool typ_is_weak_concrete(const struct module *mod, const struct typ *a) {
-  if (a == typ_lookup_builtin(mod, TBI_STATIC_STRING)
-      || a == typ_lookup_builtin(mod, TBI_BOOL)) {
+  if (a == TBI_STATIC_STRING
+      || a == TBI_BOOL) {
     return TRUE;
   }
 
@@ -3676,7 +3756,7 @@ static bool typ_is_weak_concrete(const struct module *mod, const struct typ *a) 
 bool typ_is_abstract_instance(const struct module *mod, const struct typ *a) {
   if (a->gen_arity == 0) {
     return a->definition->which == DEFINTF
-      && !typ_isa(mod, a, typ_lookup_builtin(mod, TBI_ANY_ANY_REF));
+      && !typ_isa(mod, a, TBI_ANY_ANY_REF);
   }
 
   for (size_t n = 1; n < a->gen_arity + 1; ++n) {
@@ -3692,16 +3772,16 @@ bool typ_isa_return_by_copy(const struct module *mod, const struct typ *t) {
   const struct node *def = t->definition;
   if (def->which == DEFINTF) {
     return TRUE;
-  } else if (typ_equal(mod, t, typ_lookup_builtin(mod, TBI_VOID))) {
+  } else if (typ_equal(mod, t, TBI_VOID)) {
     return TRUE;
   } else {
-    return typ_isa(mod, t, typ_lookup_builtin(mod, TBI_RETURN_BY_COPY));
+    return typ_isa(mod, t, TBI_RETURN_BY_COPY);
   }
 }
 
 bool typ_is_builtin(const struct module *mod, const struct typ *t) {
-  for (size_t n = TBI__NONE+1; n < TBI__NUM; ++n) {
-    if (typ_equal(mod, t, mod->gctx->builtin_typs[n])) {
+  for (size_t n = ID_TBI__FIRST; n <= ID_TBI__LAST; ++n) {
+    if (typ_equal(mod, t, mod->gctx->builtin_typs_by_name[n])) {
       return TRUE;
     }
   }
@@ -3709,25 +3789,25 @@ bool typ_is_builtin(const struct module *mod, const struct typ *t) {
 }
 
 bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t) {
-  return typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_NULL))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INTEGER))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_FLOATING))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INIT))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_LITERALS_INIT_ARRAY))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__NOT_TYPEABLE))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__CALL_FUNCTION_SLOT))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MUTABLE))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI__MERCURIAL));
+  return typ_equal(mod, t, TBI_LITERALS_NULL)
+      || typ_equal(mod, t, TBI_LITERALS_INTEGER)
+      || typ_equal(mod, t, TBI_LITERALS_FLOATING)
+      || typ_equal(mod, t, TBI_LITERALS_INIT)
+      || typ_equal(mod, t, TBI_LITERALS_INIT_ARRAY)
+      || typ_equal(mod, t, TBI__PENDING_DESTRUCT)
+      || typ_equal(mod, t, TBI__NOT_TYPEABLE)
+      || typ_equal(mod, t, TBI__CALL_FUNCTION_SLOT)
+      || typ_equal(mod, t, TBI__MUTABLE)
+      || typ_equal(mod, t, TBI__MERCURIAL);
 }
 
 bool typ_is_trivial(const struct module *mod, const struct typ *t) {
-  return typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_CTOR))
-      || typ_is_same_generic(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_ARRAY_CTOR))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_COPY))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_EQUALITY))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_ORDER))
-      || typ_equal(mod, t, typ_lookup_builtin(mod, TBI_TRIVIAL_DTOR));
+  return typ_equal(mod, t, TBI_TRIVIAL_CTOR)
+      || typ_is_same_generic(mod, t, TBI_TRIVIAL_ARRAY_CTOR)
+      || typ_equal(mod, t, TBI_TRIVIAL_COPY)
+      || typ_equal(mod, t, TBI_TRIVIAL_EQUALITY)
+      || typ_equal(mod, t, TBI_TRIVIAL_ORDER)
+      || typ_equal(mod, t, TBI_TRIVIAL_DTOR);
 }
 
 error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,
@@ -3778,7 +3858,7 @@ error typ_unify(const struct typ **u, const struct module *mod, const struct nod
 }
 
 bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf) {
-  if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_ANY))) {
+  if (typ_equal(mod, intf, TBI_ANY)) {
     return TRUE;
   }
 
@@ -3796,8 +3876,8 @@ bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *in
   }
 
   if (a->gen_arity > 0
-      && !typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_ANY_TUPLE))
-      && typ_isa(mod, a, typ_lookup_builtin(mod, TBI_ANY_TUPLE))) {
+      && !typ_equal(mod, intf, TBI_ANY_TUPLE)
+      && typ_isa(mod, a, TBI_ANY_TUPLE)) {
     // FIXME: only valid for certain builtin interfaces (copy, trivial...)
     size_t n;
     for (n = 0; n < a->gen_arity; ++n) {
@@ -3823,12 +3903,12 @@ bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *in
   }
 
   // Literals types do not have a isalist.
-  if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
-    return typ_isa(mod, typ_lookup_builtin(mod, TBI_NATIVE_ANYSIGN_INTEGER), intf);
-  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
-    return typ_isa(mod, typ_lookup_builtin(mod, TBI_NREF), intf);
-  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)) {
-    return typ_isa(mod, typ_lookup_builtin(mod, TBI_NATIVE_FLOATING), intf);
+  if (a == TBI_LITERALS_INTEGER) {
+    return typ_isa(mod, TBI_NATIVE_ANYSIGN_INTEGER, intf);
+  } else if (a == TBI_LITERALS_NULL) {
+    return typ_isa(mod, TBI_NREF, intf);
+  } else if (a == TBI_LITERALS_FLOATING) {
+    return typ_isa(mod, TBI_NATIVE_FLOATING, intf);
   }
 
   for (size_t n = 0; n < typ_isalist_count(a); ++n) {
@@ -3866,7 +3946,7 @@ except:
 error typ_find_matching_concrete_isa(const struct typ **concrete,
                                      const struct module *mod, const struct node *for_error,
                                      const struct typ *a, const struct typ *intf) {
-  if (typ_equal(mod, intf, typ_lookup_builtin(mod, TBI_ANY))) {
+  if (typ_equal(mod, intf, TBI_ANY)) {
     *concrete = intf;
     return 0;
   }
@@ -3890,19 +3970,19 @@ error typ_find_matching_concrete_isa(const struct typ **concrete,
   }
 
   // Literals types do not have a isalist.
-  if (a == typ_lookup_builtin(mod, TBI_LITERALS_INTEGER)) {
+  if (a == TBI_LITERALS_INTEGER) {
     e = typ_find_matching_concrete_isa(concrete, mod, for_error,
-                                       typ_lookup_builtin(mod, TBI_NATIVE_ANYSIGN_INTEGER), intf);
+                                       TBI_NATIVE_ANYSIGN_INTEGER, intf);
     EXCEPT(e);
     return 0;
-  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_FLOATING)) {
+  } else if (a == TBI_LITERALS_FLOATING) {
     e = typ_find_matching_concrete_isa(concrete, mod, for_error,
-                                       typ_lookup_builtin(mod, TBI_NATIVE_FLOATING), intf);
+                                       TBI_NATIVE_FLOATING, intf);
     EXCEPT(e);
     return 0;
-  } else if (a == typ_lookup_builtin(mod, TBI_LITERALS_NULL)) {
+  } else if (a == TBI_LITERALS_NULL) {
     e = typ_find_matching_concrete_isa(concrete, mod, for_error,
-                                       typ_lookup_builtin(mod, TBI_NREF), intf);
+                                       TBI_NREF, intf);
     EXCEPT(e);
     return 0;
   }
