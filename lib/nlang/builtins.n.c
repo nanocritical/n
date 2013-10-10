@@ -22,6 +22,7 @@ static void native_write_buffer(nlang_chars_i_string_buffer buf, const char *s) 
   NB(bool) t##_operator_gt(const t *self, const t *other) { return *self > * other; } \
   NB(bool) t##_operator_ge(const t *self, const t *other) { return *self >= * other; } \
   \
+  t t##_operator_test(const t *self) { return *self; } \
   t t##_operator_or(const t *self, const t *other) { return *self || *other; } \
   t t##_operator_and(const t *self, const t *other) { return *self && *other; } \
   t t##_operator_not(const t *self) { return ! *self; } \
