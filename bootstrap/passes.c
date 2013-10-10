@@ -1932,17 +1932,17 @@ static const struct typ *typ_ref(struct module *mod, enum token_type op, const s
 static error type_inference_un(struct module *mod, struct node *node) {
   assert(node->which == UN);
   error e;
+  const enum token_type operator = node->as.UN.operator;
 
-  const enum token_type op = node->as.UN.operator;
-  switch (OP_KIND(op)) {
+  switch (OP_KIND(operator)) {
   case OP_UN_REFOF:
-    node->typ = typ_ref(mod, op, node->subs[0]->typ);
+    node->typ = typ_ref(mod, operator, node->subs[0]->typ);
     node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
     break;
   case OP_UN_DEREF:
-    e = typ_check_can_deref(mod, node->subs[0], node->subs[0]->typ, node->as.UN.operator);
+    e = typ_check_can_deref(mod, node->subs[0], node->subs[0]->typ, operator);
     EXCEPT(e);
-    e = typ_check_deref_against_mark(mod, node, node->typ, node->as.UN.operator);
+    e = typ_check_deref_against_mark(mod, node, node->typ, operator);
     EXCEPT(e);
     node->typ = node->subs[0]->typ->gen_args[1];
     node->flags |= node->subs[0]->flags & NODE__TRANSITIVE;
@@ -1972,24 +1972,28 @@ static error type_inference_un(struct module *mod, struct node *node) {
 static error type_inference_bin_sym(struct module *mod, struct node *node) {
   assert(node->which == BIN);
 
+  struct node *left = node->subs[0];
+  struct node *right = node->subs[1];
+  const enum token_type operator = node->as.BIN.operator;
+
   error e;
-  if (typ_is_concrete(mod, node->subs[0]->typ)
-      && typ_is_concrete(mod, node->subs[1]->typ)) {
-    e = typ_compatible(mod, node, node->subs[0]->typ, node->subs[1]->typ);
+  if (typ_is_concrete(mod, left->typ)
+      && typ_is_concrete(mod, right->typ)) {
+    e = typ_compatible(mod, node, left->typ, right->typ);
     EXCEPT(e);
-  } else if (typ_is_concrete(mod, node->subs[0]->typ)) {
-    e = type_destruct(mod, node->subs[1], node->subs[0]->typ);
+  } else if (typ_is_concrete(mod, left->typ)) {
+    e = type_destruct(mod, right, left->typ);
     EXCEPT(e);
-  } else if (typ_is_concrete(mod, node->subs[1]->typ)) {
-    e = type_destruct(mod, node->subs[0], node->subs[1]->typ);
+  } else if (typ_is_concrete(mod, right->typ)) {
+    e = type_destruct(mod, left, right->typ);
     EXCEPT(e);
   }
 
   e = typ_unify(&node->typ, mod, node,
-                node->subs[0]->typ, node->subs[1]->typ);
+                left->typ, right->typ);
   EXCEPT(e);
 
-  switch (OP_KIND(node->as.BIN.operator)) {
+  switch (OP_KIND(operator)) {
   case OP_BIN_SYM_BOOL:
     e = typ_compatible(mod, node, node->typ, TBI_BOOL);
     EXCEPT(e);
@@ -1997,7 +2001,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
   case OP_BIN_SYM_NUM:
     e = typ_compatible_numeric(mod, node, node->typ);
     EXCEPT(e);
-    switch (node->as.BIN.operator) {
+    switch (operator) {
     case TLE:
     case TLT:
     case TGT:
@@ -2021,14 +2025,14 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     }
     break;
   case OP_BIN_SYM_PTR:
-    e = typ_check_is_reference_instance(mod, node, node->subs[0]->typ);
+    e = typ_check_is_reference_instance(mod, node, left->typ);
     EXCEPT(e);
-    e = typ_check_is_reference_instance(mod, node, node->subs[1]->typ);
+    e = typ_check_is_reference_instance(mod, node, right->typ);
     EXCEPT(e);
     node->typ = TBI_BOOL;
     break;
   case OP_BIN_SYM:
-    switch (node->as.BIN.operator) {
+    switch (operator) {
     case TLE:
     case TLT:
     case TGT:
@@ -2044,20 +2048,20 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     break;
   }
 
-  if (OP_ASSIGN(node->as.BIN.operator)) {
-    if ((node->subs[0]->flags & NODE_IS_TYPE)) {
-      e = mk_except_type(mod, node->subs[0], "cannot assign to a type variable");
+  if (OP_ASSIGN(operator)) {
+    if ((left->flags & NODE_IS_TYPE)) {
+      e = mk_except_type(mod, left, "cannot assign to a type variable");
       EXCEPT(e);
     }
-    if ((node->subs[1]->flags & NODE_IS_TYPE)) {
-      e = mk_except_type(mod, node->subs[1], "cannot assign a type");
+    if ((right->flags & NODE_IS_TYPE)) {
+      e = mk_except_type(mod, right, "cannot assign a type");
       EXCEPT(e);
     }
 
     node->typ = TBI_VOID;
-    node->subs[0]->flags |= (node->subs[1]->flags & NODE__TRANSITIVE);
+    left->flags |= (right->flags & NODE__TRANSITIVE);
   }
-  node->flags |= (node->subs[0]->flags & NODE__TRANSITIVE);
+  node->flags |= (left->flags & NODE__TRANSITIVE);
 
   return 0;
 }
