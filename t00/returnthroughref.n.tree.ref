@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -82,10 +86,9 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :t00.returnthroughref.t
    IDENT(_nretval) :t00.returnthroughref.t
    IDENT(t) :t00.returnthroughref.t
-  BLOCK :t00.returnthroughref.t
+  BLOCK :nlang.builtins.void
    RETURN :t00.returnthroughref.t
     INIT :t00.returnthroughref.t
-     IDENT(t) :t00.returnthroughref.t
      IDENT(x) :__internal_pending_destruct__
      NUMBER(3) :nlang.builtins.i32
  DEFFUN :t00.returnthroughref.bar
@@ -94,7 +97,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :t00.returnthroughref.t
    IDENT(_nretval) :t00.returnthroughref.t
    IDENT(t) :t00.returnthroughref.t
-  BLOCK :t00.returnthroughref.t
+  BLOCK :nlang.builtins.void
    RETURN :t00.returnthroughref.t
     CALL :t00.returnthroughref.t
      IDENT(foo) :t00.returnthroughref.foo
@@ -104,7 +107,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :t00.returnthroughref.t
    IDENT(r) :t00.returnthroughref.t
    IDENT(t) :t00.returnthroughref.t
-  BLOCK :t00.returnthroughref.t
+  BLOCK :nlang.builtins.void
    BIN( = ) :nlang.builtins.void
     IDENT(r) :t00.returnthroughref.t
     CALL :t00.returnthroughref.t
@@ -115,7 +118,7 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(y) :t00.returnthroughref.t
@@ -124,21 +127,27 @@ MODULE_BODY :__internal_not_typeable__
      DEFNAME(y) :t00.returnthroughref.t
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym0) :t00.returnthroughref.t
-     CALL :t00.returnthroughref.t
-      IDENT(bar2) :t00.returnthroughref.bar2
-     DEFNAME(__gensym0) :t00.returnthroughref.t
-   IF :nlang.builtins.void
-    BIN( != ) :nlang.builtins.bool
-     BIN(.) :nlang.builtins.i32
-      IDENT(y) :t00.returnthroughref.t
-      IDENT(x) :__internal_not_typeable__
-     BIN(.) :nlang.builtins.i32
-      IDENT(__gensym0) :t00.returnthroughref.t
-      IDENT(x) :__internal_not_typeable__
-    BLOCK :nlang.builtins.i32
-     RETURN :nlang.builtins.i32
-      NUMBER(1) :nlang.builtins.i32
+     TYPECONSTRAINT :t00.returnthroughref.t
+      IDENT(_Ngensym0) :t00.returnthroughref.t
+      DIRECTDEF :t00.returnthroughref.t
+     DEFNAME(_Ngensym0) :t00.returnthroughref.t
+    BLOCK :nlang.builtins.void
+     IF :nlang.builtins.void
+      BIN( != ) :nlang.builtins.bool
+       BIN(.) :nlang.builtins.i32
+        IDENT(y) :t00.returnthroughref.t
+        IDENT(x) :__internal_not_typeable__
+       BIN(.) :nlang.builtins.i32
+        BLOCK :t00.returnthroughref.t
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym0) :t00.returnthroughref.t
+          CALL :t00.returnthroughref.t
+           IDENT(bar2) :t00.returnthroughref.bar2
+         IDENT(_Ngensym0) :t00.returnthroughref.t
+        IDENT(x) :__internal_not_typeable__
+      BLOCK :nlang.builtins.void
+       RETURN :nlang.builtins.i32
+        NUMBER(1) :nlang.builtins.i32
    RETURN :nlang.builtins.i32
     BIN(.) :nlang.builtins.i32
      IDENT(y) :t00.returnthroughref.t

@@ -31,7 +31,7 @@
 # include "t00/syntaxintf.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
 return (nlang_builtins_i32)0;
 }

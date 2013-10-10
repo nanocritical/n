@@ -44,11 +44,15 @@ type sum_nocopy =
   | B = 0 + 1 -> tb
 
 export fun main = i32
-  let __gensym0 = ta{{ x=0 }}
-  let m = sum_nocopy.A.mk __gensym0
+  let _Ngensym0:t00.sum.ta
+  and m = sum_nocopy.A.mk block 
+  _Ngensym0 = { x=0 }
+  _Ngensym0;;
   let n = sum.A.mk 0
-  let __gensym1 = sum.A.mk 0
-  if t00.sum.sum.operator_eq @n @__gensym1
-    return 0
-  else
-    return 1
+  let _Ngensym1:t00.sum.sum  such
+    if t00.sum.sum.operator_eq @n block 
+  _Ngensym1 = sum.A.mk 0
+  @_Ngensym1;;
+      return 0
+    else
+      return 1

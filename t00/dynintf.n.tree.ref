@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -105,7 +109,7 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(answer) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32
     NUMBER(42) :nlang.builtins.i32
  DEFMETHOD :t00.dynintf.d.get
@@ -116,7 +120,7 @@ MODULE_BODY :__internal_not_typeable__
    UN(@) :(nlang.builtins.i_ref t00.dynintf.d)
     IDENT(final) :t00.dynintf.d
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32
     BIN(.) :nlang.builtins.i32
      IDENT(self) :(nlang.builtins.i_ref t00.dynintf.d)
@@ -195,7 +199,7 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(answer) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32
     NUMBER(42) :nlang.builtins.i32
  DEFMETHOD :t00.dynintf.dc.get
@@ -206,7 +210,7 @@ MODULE_BODY :__internal_not_typeable__
    UN(@) :(nlang.builtins.i_ref t00.dynintf.dc)
     IDENT(final) :t00.dynintf.dc
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32
     NUMBER(42) :nlang.builtins.i32
  DEFFUN :t00.dynintf.foo
@@ -217,7 +221,7 @@ MODULE_BODY :__internal_not_typeable__
    UN(@) :(nlang.builtins.i_ref t00.dynintf.i_d)
     IDENT(i_d) :t00.dynintf.i_d
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32
     CALL :nlang.builtins.i32
      DIRECTDEF :t00.dynintf.i_d.get
@@ -228,7 +232,6 @@ MODULE_BODY :__internal_not_typeable__
     DEFPATTERN :nlang.builtins.void
      IDENT(x) :t00.dynintf.d
      INIT :t00.dynintf.d
-      IDENT(d) :t00.dynintf.d
       IDENT(x) :__internal_pending_destruct__
       NUMBER(42) :nlang.builtins.i32
      DEFNAME(x) :t00.dynintf.d
@@ -247,7 +250,7 @@ MODULE_BODY :__internal_not_typeable__
    UN(@) :(nlang.builtins.i_ref t00.dynintf.i_d)
     IDENT(i_d) :t00.dynintf.i_d
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32
     CALL :nlang.builtins.i32
      BIN(.) :t00.dynintf.i_d.answer
@@ -261,7 +264,7 @@ MODULE_BODY :__internal_not_typeable__
    UN(@) :(nlang.builtins.i_ref t00.dynintf.d)
     IDENT(d) :t00.dynintf.d
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32
     CALL :nlang.builtins.i32
      IDENT(foo) :t00.dynintf.foo
@@ -271,12 +274,11 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(xd) :t00.dynintf.d
      INIT :t00.dynintf.d
-      IDENT(d) :t00.dynintf.d
       IDENT(x) :__internal_pending_destruct__
       NUMBER(42) :nlang.builtins.i32
      DEFNAME(xd) :t00.dynintf.d
@@ -284,7 +286,6 @@ MODULE_BODY :__internal_not_typeable__
     DEFPATTERN :nlang.builtins.void
      IDENT(xdc) :t00.dynintf.dc
      INIT :t00.dynintf.dc
-      IDENT(dc) :t00.dynintf.dc
      DEFNAME(xdc) :t00.dynintf.dc
    IF :nlang.builtins.void
     BIN( != ) :nlang.builtins.bool
@@ -298,7 +299,7 @@ MODULE_BODY :__internal_not_typeable__
       DYN :(nlang.builtins.i_ref t00.dynintf.i_d)
        UN(@) :(nlang.builtins.i_ref t00.dynintf.dc)
         IDENT(xdc) :t00.dynintf.dc
-    BLOCK :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.i32
       NUMBER(1) :nlang.builtins.i32
    LET :nlang.builtins.void
@@ -316,7 +317,7 @@ MODULE_BODY :__internal_not_typeable__
       IDENT(rfoo) :t00.dynintf.rfoo
       DYN :(nlang.builtins.i_ref t00.dynintf.i_d)
        IDENT(pxd) :(nlang.builtins.i_ref t00.dynintf.d)
-    BLOCK :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.i32
       NUMBER(1) :nlang.builtins.i32
    RETURN :nlang.builtins.i32

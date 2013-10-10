@@ -12,14 +12,18 @@ fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 blah method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 blah method i_blah.decr self:@final = _nretval:t
-  let __gensym0 = 1
-  return nlang.builtins.i_numeric.operator_minus @x @__gensym0
+  let _Ngensym0:nlang.builtins.i_numeric  such
+    return nlang.builtins.i_numeric.operator_minus @x block 
+  _Ngensym0 = 1
+  @_Ngensym0;;
 
 blah method decrf self:@final = _nretval:t
-  let __gensym1 = 1
-  return nlang.builtins.i_numeric.operator_minus @x @__gensym1
+  let _Ngensym1:nlang.builtins.i_numeric  such
+    return nlang.builtins.i_numeric.operator_minus @x block 
+  _Ngensym1 = 1
+  @_Ngensym1;;
 
 export fun main = i32
-  let b = { dummy=0 }:blah
+  let b = { dummy=0 }
   let _ = (blah.decr u32) @b 1
   return (blah.decrf i32) @b 1

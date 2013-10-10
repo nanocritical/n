@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -9,30 +13,46 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym0) :nlang.chars.static_string
-     STRING('123') :nlang.chars.static_string
-     DEFNAME(__gensym0) :nlang.chars.static_string
-   LET :nlang.builtins.void
+     TYPECONSTRAINT :nlang.chars.static_string
+      IDENT(_Ngensym0) :nlang.chars.static_string
+      DIRECTDEF :nlang.chars.static_string
+     DEFNAME(_Ngensym0) :nlang.chars.static_string
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym1) :nlang.builtins.size
-     CALL :nlang.builtins.size
-      DIRECTDEF :nlang.chars.static_string.count
-      UN(@) :(nlang.builtins.i_ref nlang.chars.static_string)
-       IDENT(__gensym0) :nlang.chars.static_string
-     DEFNAME(__gensym1) :nlang.builtins.size
-   LET :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.size
+      IDENT(_Ngensym1) :nlang.builtins.size
+      DIRECTDEF :nlang.builtins.size
+     DEFNAME(_Ngensym1) :nlang.builtins.size
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym2) :nlang.builtins.u32
-     CALL :nlang.builtins.u32
-      DIRECTDEF :nlang.builtins.size.trim_u32
-      UN(@) :(nlang.builtins.i_ref nlang.builtins.size)
-       IDENT(__gensym1) :nlang.builtins.size
-     DEFNAME(__gensym2) :nlang.builtins.u32
-   RETURN :nlang.builtins.i32
-    CALL :nlang.builtins.i32
-     DIRECTDEF :nlang.builtins.u32.reinterpret_signed
-     UN(@) :(nlang.builtins.i_ref nlang.builtins.u32)
-      IDENT(__gensym2) :nlang.builtins.u32
+     TYPECONSTRAINT :nlang.builtins.u32
+      IDENT(_Ngensym2) :nlang.builtins.u32
+      DIRECTDEF :nlang.builtins.u32
+     DEFNAME(_Ngensym2) :nlang.builtins.u32
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      BIN( - ) :nlang.builtins.i32
+       CALL :nlang.builtins.i32
+        DIRECTDEF :nlang.builtins.u32.reinterpret_signed
+        BLOCK :(nlang.builtins.i_ref nlang.builtins.u32)
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym2) :nlang.builtins.u32
+          CALL :nlang.builtins.u32
+           DIRECTDEF :nlang.builtins.size.trim_u32
+           BLOCK :(nlang.builtins.i_ref nlang.builtins.size)
+            BIN( = ) :nlang.builtins.void
+             IDENT(_Ngensym1) :nlang.builtins.size
+             CALL :nlang.builtins.size
+              DIRECTDEF :nlang.chars.static_string.count
+              BLOCK :(nlang.builtins.i_ref nlang.chars.static_string)
+               BIN( = ) :nlang.builtins.void
+                IDENT(_Ngensym0) :nlang.chars.static_string
+                STRING('123') :nlang.chars.static_string
+               UN(@) :(nlang.builtins.i_ref nlang.chars.static_string)
+                IDENT(_Ngensym0) :nlang.chars.static_string
+            UN(@) :(nlang.builtins.i_ref nlang.builtins.size)
+             IDENT(_Ngensym1) :nlang.builtins.size
+         UN(@) :(nlang.builtins.i_ref nlang.builtins.u32)
+          IDENT(_Ngensym2) :nlang.builtins.u32
+       NUMBER(3) :nlang.builtins.i32

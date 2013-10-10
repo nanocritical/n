@@ -85,9 +85,9 @@ return ((&(self->x)));
 #undef THIS
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
-t01_wildcardmutability_c x; memset(&(x), 0, sizeof(t01_wildcardmutability_c));
+t01_wildcardmutability_c x= { 0 };
 x.x = (nlang_builtins_i32)0;
 ;
 ;

@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -9,7 +13,7 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(x) :nlang.literals.integer

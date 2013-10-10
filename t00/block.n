@@ -15,16 +15,18 @@ export fun main = i32
     assert true
   let x = block
     1
-  assert (x == 1:u32)
+  assert <- x == 1:u32
+
+  assert <- foo == 0
 
   let x1 = block -> 0;; + 1
-  assert (x1 == x)
+  assert <- x1 == x
   let x2 = block -> 1;; + block -> 2
-  assert (x2 == 3:u32)
+  assert <- x2 == 3:u32
 
   let y1 = if x > 0 -> 'test';; else -> 'error'
   and z1 = if y1 == 'test' -> 0;; else -> 1:u32
-  assert (z1 == 0)
+  assert <- z1 == 0
 
   let y2 = if x > 0 -> 'test';; else -> 'error'
   and z2 = block
@@ -32,9 +34,9 @@ export fun main = i32
     such
       for i in (range 0 100).iter -> tmp += i.trim_u32.reinterpret_signed
     tmp
-  assert (y2 == 'test')
-  assert (z2 == 50*99)
+  assert <- y2 == 'test'
+  assert <- z2 == 50*99
 
-  assert ((deref @block -> 1:u32;;) == 1)
+  assert <- (deref @block -> 1:u32;;) == 1
 
   return 0

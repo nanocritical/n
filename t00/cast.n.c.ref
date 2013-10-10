@@ -53,11 +53,13 @@ return (_Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_)(x);
 }
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
-nlang_builtins_u32 __gensym0 = (nlang_builtins_u32)1;
+nlang_builtins_u32 _Ngensym0 = { 0 };
+return (((*t00_cast_foo(({ _Ngensym0 = (nlang_builtins_u32)1;
+((&_Ngensym0));
+; })))) - (nlang_builtins_i32)1);
 ;
-return (((*t00_cast_foo(((&__gensym0))))) - (nlang_builtins_i32)1);
 }
 }
 void t00_cast_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

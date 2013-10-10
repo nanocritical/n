@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -123,21 +127,27 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :nlang.builtins.i_numeric
    IDENT(_nretval) :nlang.builtins.i_numeric
    IDENT(t) :nlang.builtins.i_numeric
-  BLOCK :nlang.builtins.i_numeric
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym0) :nlang.builtins.i_numeric
-     NUMBER(1) :nlang.builtins.i_numeric
-     DEFNAME(__gensym0) :nlang.builtins.i_numeric
-   RETURN :nlang.builtins.i_numeric
-    CALL :nlang.builtins.i_arithmetic
-     BIN(.) :nlang.builtins.i_arithmetic.operator_minus
+     TYPECONSTRAINT :nlang.builtins.i_numeric
+      IDENT(_Ngensym0) :nlang.builtins.i_numeric
       DIRECTDEF :nlang.builtins.i_numeric
-      IDENT(operator_minus) :__internal_not_typeable__
-     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
-      IDENT(x) :nlang.builtins.i_numeric
-     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
-      IDENT(__gensym0) :nlang.builtins.i_numeric
+     DEFNAME(_Ngensym0) :nlang.builtins.i_numeric
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i_numeric
+      CALL :nlang.builtins.i_arithmetic
+       BIN(.) :nlang.builtins.i_arithmetic.operator_minus
+        DIRECTDEF :nlang.builtins.i_numeric
+        IDENT(operator_minus) :__internal_not_typeable__
+       UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+        IDENT(x) :nlang.builtins.i_numeric
+       BLOCK :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+        BIN( = ) :nlang.builtins.void
+         IDENT(_Ngensym0) :nlang.builtins.i_numeric
+         NUMBER(1) :nlang.builtins.i_numeric
+        UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+         IDENT(_Ngensym0) :nlang.builtins.i_numeric
  DEFMETHOD :t01.genericmethod.blah.decrf
   IDENT(decrf) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
@@ -154,38 +164,42 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :nlang.builtins.i_numeric
    IDENT(_nretval) :nlang.builtins.i_numeric
    IDENT(t) :nlang.builtins.i_numeric
-  BLOCK :nlang.builtins.i_numeric
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym1) :nlang.builtins.i_numeric
-     NUMBER(1) :nlang.builtins.i_numeric
-     DEFNAME(__gensym1) :nlang.builtins.i_numeric
-   RETURN :nlang.builtins.i_numeric
-    CALL :nlang.builtins.i_arithmetic
-     BIN(.) :nlang.builtins.i_arithmetic.operator_minus
+     TYPECONSTRAINT :nlang.builtins.i_numeric
+      IDENT(_Ngensym1) :nlang.builtins.i_numeric
       DIRECTDEF :nlang.builtins.i_numeric
-      IDENT(operator_minus) :__internal_not_typeable__
-     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
-      IDENT(x) :nlang.builtins.i_numeric
-     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
-      IDENT(__gensym1) :nlang.builtins.i_numeric
+     DEFNAME(_Ngensym1) :nlang.builtins.i_numeric
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i_numeric
+      CALL :nlang.builtins.i_arithmetic
+       BIN(.) :nlang.builtins.i_arithmetic.operator_minus
+        DIRECTDEF :nlang.builtins.i_numeric
+        IDENT(operator_minus) :__internal_not_typeable__
+       UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+        IDENT(x) :nlang.builtins.i_numeric
+       BLOCK :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+        BIN( = ) :nlang.builtins.void
+         IDENT(_Ngensym1) :nlang.builtins.i_numeric
+         NUMBER(1) :nlang.builtins.i_numeric
+        UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+         IDENT(_Ngensym1) :nlang.builtins.i_numeric
  DEFFUN :t01.genericmethod.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(b) :t01.genericmethod.blah
-     TYPECONSTRAINT :t01.genericmethod.blah
-      INIT :t01.genericmethod.blah
-       IDENT(dummy) :__internal_pending_destruct__
-       NUMBER(0) :nlang.builtins.u8
-      IDENT(blah) :t01.genericmethod.blah
+     INIT :t01.genericmethod.blah
+      IDENT(dummy) :__internal_pending_destruct__
+      NUMBER(0) :nlang.builtins.u8
      DEFNAME(b) :t01.genericmethod.blah
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(_) :__internal_pending_destruct__
+     IDENT(_) :nlang.builtins.u32
      CALL :nlang.builtins.u32
       CALL :(t01.genericmethod.blah.decr nlang.builtins.u32)
        BIN(.) :t01.genericmethod.blah.decr
@@ -195,6 +209,7 @@ MODULE_BODY :__internal_not_typeable__
       UN(@) :(nlang.builtins.i_ref t01.genericmethod.blah)
        IDENT(b) :t01.genericmethod.blah
       NUMBER(1) :nlang.builtins.u32
+     DEFNAME(_) :__internal_pending_destruct__
    RETURN :nlang.builtins.i32
     CALL :nlang.builtins.i32
      CALL :(t01.genericmethod.blah.decrf nlang.builtins.i32)

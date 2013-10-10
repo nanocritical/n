@@ -1,0 +1,117 @@
+#include <lib/nlang/runtime.h>
+#define NLANG_DECLARE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_TYPES
+
+#define NLANG_DECLARE_TYPES
+# include "t00/try.n.h.out"
+#undef NLANG_DECLARE_TYPES
+
+
+#define NLANG_DEFINE_TYPES
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+#define NLANG_DEFINE_TYPES
+# include "t00/try.n.h.out"
+#undef NLANG_DEFINE_TYPES
+
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_DECLARE_FUNCTIONS
+# include "t00/try.n.h.out"
+#undef NLANG_DECLARE_FUNCTIONS
+static nlang_builtins_i32 t00_try_foo(void);
+
+static nlang_builtins_i32 t00_try_bar(void);
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "lib/nlang/module.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+
+#define NLANG_DEFINE_FUNCTIONS
+# include "t00/try.n.h.out"
+#undef NLANG_DEFINE_FUNCTIONS
+static nlang_builtins_i32 t00_try_foo(void){
+ {
+nlang_builtins_error _Ngensym0 = { 0 };
+ {
+nlang_builtins_error _Ngensym6 = { 0 };
+_Ngensym0 = ({ _Ngensym6.code = (nlang_builtins_i32)1;
+;
+_Ngensym6;
+; }); goto ONE;
+;
+nlang_builtins_error _Ngensym7 = { 0 };
+_Ngensym0 = ({ _Ngensym7.code = (nlang_builtins_i32)0;
+;
+_Ngensym7;
+; }); goto ZERO;
+;
+}
+ZERO: {
+(void) (_Ngensym0);
+ {
+return (nlang_builtins_i32)0;
+}
+}
+
+ONE: {
+(void) (_Ngensym0);
+ {
+return (nlang_builtins_i32)1;
+}
+}
+;
+}
+}
+
+static nlang_builtins_i32 t00_try_bar(void){
+ {
+nlang_builtins_error _Ngensym1 = { 0 };
+ {
+nlang_builtins_error _Ngensym5= { 0 };
+_Ngensym5.code = (nlang_builtins_i32)1;
+;
+_Ngensym1 = _Ngensym5; if (nlang_builtins_error_operator_test(((&_Ngensym5)))) { goto _Ngensym2; };
+return (nlang_builtins_i32)0;
+}
+_Ngensym2: {
+nlang_builtins_error err = _Ngensym1;
+ {
+return (err.code);
+}
+}
+;
+}
+}
+
+nlang_builtins_i32 _Nmain(void){
+ {
+nlang_builtins_assert((t00_try_foo() == (nlang_builtins_i32)1));
+nlang_builtins_assert((t00_try_bar() == (nlang_builtins_i32)1));
+nlang_builtins_error _Ngensym3 = { 0 };
+ {
+nlang_builtins_error _Ngensym8 = { 0 };
+_Ngensym3 = ({ _Ngensym8.code = t00_try_bar();
+;
+_Ngensym8;
+; }); goto _Ngensym4;
+;
+return (nlang_builtins_i32)1;
+}
+_Ngensym4: {
+nlang_builtins_error err = _Ngensym3;
+ {
+return ((err.code) - (nlang_builtins_i32)1);
+}
+}
+;
+}
+}
+void t00_try_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
+void t00_try_Nrunexamples(void) {
+}

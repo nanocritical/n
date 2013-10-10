@@ -33,13 +33,15 @@ static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_
 #undef NLANG_DEFINE_FUNCTIONS
 static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_tmp(void){
  {
-nlang_builtins_i32 __gensym0 = (nlang_builtins_i32)0;
+nlang_builtins_i32 _Ngensym0 = { 0 };
+return ({ _Ngensym0 = (nlang_builtins_i32)0;
+((&_Ngensym0));
+; });
 ;
-return ((&__gensym0));
 }
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
 return ((*t00_fixme02_returns_tmp()));
 }

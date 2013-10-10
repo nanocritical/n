@@ -228,11 +228,12 @@ return t00_dynintf_i_d_get(v);
 }
 
 void t00_dynintf__Nexample0(void) {
-t00_dynintf_d x; memset(&(x), 0, sizeof(t00_dynintf_d));
+nlang_builtins_assert(({ t00_dynintf_d x= { 0 };
 x.x = (nlang_builtins_i32)42;
 ;
 ;
-nlang_builtins_assert(((nlang_builtins_i32)42 == t00_dynintf_foo(t00_dynintf_d_mkdyn__t00_dynintf_i_d((void *)((&x))))));
+((nlang_builtins_i32)42 == t00_dynintf_foo(t00_dynintf_d_mkdyn__t00_dynintf_i_d((void *)((&x)))));
+; }));
 }
 static nlang_builtins_i32 t00_dynintf_rfoo(t00_dynintf_i_d pv){
  {
@@ -246,13 +247,13 @@ return t00_dynintf_foo(t00_dynintf_d_mkdyn__t00_dynintf_i_d((void *)pv));
 }
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
-t00_dynintf_d xd; memset(&(xd), 0, sizeof(t00_dynintf_d));
+t00_dynintf_d xd= { 0 };
 xd.x = (nlang_builtins_i32)42;
 ;
 ;
-t00_dynintf_dc xdc; memset(&(xdc), 0, sizeof(t00_dynintf_dc));
+t00_dynintf_dc xdc= { 0 };
 ;
 ;
 if ((t00_dynintf_foo(t00_dynintf_d_mkdyn__t00_dynintf_i_d((void *)((&xd)))) != t00_dynintf_foo(t00_dynintf_dc_mkdyn__t00_dynintf_i_d((void *)((&xdc)))))) {

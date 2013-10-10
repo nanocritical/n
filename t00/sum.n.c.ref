@@ -347,27 +347,28 @@ self->as__.B = c;
 #undef THIS
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
-t00_sum_ta __gensym0; memset(&(__gensym0), 0, sizeof(t00_sum_ta));
-__gensym0.x = (nlang_builtins_u32)0;
-;
-;
+t00_sum_ta _Ngensym0 = { 0 };
 t00_sum_sum_nocopy m = { 0 };
-t00_sum_sum_nocopy_A_mk(__gensym0, &(m));
+t00_sum_sum_nocopy_A_mk(({ _Ngensym0.x = (nlang_builtins_u32)0;
+;
+_Ngensym0;
+; }), &(m));
 ;
 t00_sum_sum n = { 0 };
 t00_sum_sum_A_mk((nlang_builtins_u32)0, &(n));
 ;
-t00_sum_sum __gensym1 = { 0 };
-t00_sum_sum_A_mk((nlang_builtins_u32)0, &(__gensym1));
-;
-if (t00_sum_sum_operator_eq(((&n)), ((&__gensym1)))) {
+t00_sum_sum _Ngensym1 = { 0 };
+if (t00_sum_sum_operator_eq(((&n)), ({ t00_sum_sum_A_mk((nlang_builtins_u32)0, &(_Ngensym1));
+((&_Ngensym1));
+; }))) {
 return (nlang_builtins_i32)0;
 }
 else  {
 return (nlang_builtins_i32)1;
 };
+;
 }
 }
 void t00_sum_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

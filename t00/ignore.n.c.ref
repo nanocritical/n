@@ -27,9 +27,10 @@
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/ignore.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
-(void)(nlang_builtins_u32)0;
+(void) ((nlang_builtins_u32)0);
+;
 return (nlang_builtins_i32)0;
 }
 }

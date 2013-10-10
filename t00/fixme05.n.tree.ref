@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -79,7 +83,7 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :t00.fixme05.nocopy
    IDENT(_nretval) :t00.fixme05.nocopy
    IDENT(nocopy) :t00.fixme05.nocopy
-  BLOCK :t00.fixme05.nocopy
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      TYPECONSTRAINT :t00.fixme05.nocopy
@@ -98,14 +102,20 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym0) :t00.fixme05.nocopy
-     CALL :t00.fixme05.nocopy
-      IDENT(foo) :t00.fixme05.foo
-     DEFNAME(__gensym0) :t00.fixme05.nocopy
-   RETURN :nlang.builtins.i32
-    BIN(.) :nlang.builtins.i32
-     IDENT(__gensym0) :t00.fixme05.nocopy
-     IDENT(x) :__internal_not_typeable__
+     TYPECONSTRAINT :t00.fixme05.nocopy
+      IDENT(_Ngensym0) :t00.fixme05.nocopy
+      DIRECTDEF :t00.fixme05.nocopy
+     DEFNAME(_Ngensym0) :t00.fixme05.nocopy
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      BIN(.) :nlang.builtins.i32
+       BLOCK :t00.fixme05.nocopy
+        BIN( = ) :nlang.builtins.void
+         IDENT(_Ngensym0) :t00.fixme05.nocopy
+         CALL :t00.fixme05.nocopy
+          IDENT(foo) :t00.fixme05.foo
+        IDENT(_Ngensym0) :t00.fixme05.nocopy
+       IDENT(x) :__internal_not_typeable__

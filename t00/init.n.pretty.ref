@@ -1,8 +1,23 @@
 from nlang import *
+type tt = i_trivial_copy <root>.nlang.builtins.i_trivial_ctor
+  let this = tt
+  let final = tt
+  x:i32
+  y:i32
+
+tt method <root>.nlang.builtins.i_copyable.copy_ctor self:@#final = void
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+
+tt method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
 type t = i_trivial_copy <root>.nlang.builtins.i_trivial_ctor
   let this = t
   let final = t
   x:i32
+  y:tt
 
 t method <root>.nlang.builtins.i_copyable.copy_ctor self:@#final = void
 
@@ -12,6 +27,13 @@ fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 
 t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
+fun foo x:i32 y:i32 = i32
+  return x
+
 export fun main = i32
-  let tt = t{{ x=1 }}
-  return tt.x - 1
+  let _Ngensym0:t00.init.tt
+  and a = { x=1 y=block 
+  _Ngensym0 = { x=1 y=0 }
+  _Ngensym0;; }
+  let b = foo (foo 0 1) 1
+  return b + a.y.x - 1

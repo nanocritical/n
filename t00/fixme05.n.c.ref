@@ -81,21 +81,21 @@ static void t00_fixme05_foo(t00_fixme05_nocopy *_nrtr__nretval){
 #define _nretval (*_nrtr__nretval)
  {
 t00_fixme05_nocopy r = { 0 };
- {
-((r.x) = (nlang_builtins_i32)0);
-};
+(r.x) = (nlang_builtins_i32)0;
+;
 ;
 return;
 }
 #undef _nretval
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
-t00_fixme05_nocopy __gensym0 = { 0 };
-t00_fixme05_foo(&(__gensym0));
+t00_fixme05_nocopy _Ngensym0 = { 0 };
+return (({ t00_fixme05_foo(&(_Ngensym0));
+_Ngensym0;
+; }).x);
 ;
-return (__gensym0.x);
 }
 }
 void t00_fixme05_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

@@ -1,7 +1,9 @@
 from nlang import *
 fun returns_tmp = @i32
-  let __gensym0 = 0:i32
-  return @__gensym0
+  let _Ngensym0:nlang.builtins.i32  such
+    return block 
+  _Ngensym0 = 0
+  @_Ngensym0;;
 
 export fun main = i32
   return .(returns_tmp)

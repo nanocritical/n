@@ -17,9 +17,6 @@ typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_ _Ngen_nlang_bu
 
 
 
-
-
-
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_TYPES
@@ -35,9 +32,6 @@ static const t00_match_enu t00_match_enu_B = t00_match_enu_B_label__;
 
 
 
-
-
-
 #define NLANG_DECLARE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
@@ -47,12 +41,6 @@ static const t00_match_enu t00_match_enu_B = t00_match_enu_B_label__;
 #undef NLANG_DECLARE_FUNCTIONS
 
 nlang_builtins_void t00_match_enu_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_ self, _Ngen_nlang_builtins_i_ref__t00_match_enu_genN_ other);
-
-_Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_ t00_match_enu_new(void);
-
-void t00_match_enu_mk(t00_match_enu *_nrtr_r);
-
-nlang_builtins_void t00_match_enu_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_ self);
 
 static nlang_builtins_i32 t00_match_foo(t00_match_enu n);
 
@@ -69,24 +57,6 @@ static nlang_builtins_i32 t00_match_bar(t00_match_enu n);
 nlang_builtins_void t00_match_enu_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_ self, _Ngen_nlang_builtins_i_ref__t00_match_enu_genN_ other) {
 #define THIS(x) t00_match_enu##x
 memcpy(self, other, sizeof(*self));
-#undef THIS
-}
-
-_Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_ t00_match_enu_new(void) {
-#define THIS(x) t00_match_enu##x
-return calloc(1, sizeof(THIS()));
-#undef THIS
-}
-
-void t00_match_enu_mk(t00_match_enu *_nrtr_r) {
-#define THIS(x) t00_match_enu##x
-#define r (*_nrtr_r)
-#undef r
-#undef THIS
-}
-
-nlang_builtins_void t00_match_enu_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_match_enu_genN_ self) {
-#define THIS(x) t00_match_enu##x
 #undef THIS
 }
 
@@ -121,12 +91,14 @@ return (nlang_builtins_i32)1;
 }
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
 t00_match_enu n = (t00_match_enu_A);
 ;
-(void)t00_match_foo(n);
-(void)t00_match_bar(n);
+(void) (t00_match_foo(n));
+;
+(void) (t00_match_bar(n));
+;
 switch (n) {
 case t00_match_enu_A_label__:
  {

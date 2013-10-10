@@ -27,13 +27,12 @@
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/operators.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
 nlang_builtins_i32 x = (nlang_builtins_i32)0;
 nlang_builtins_i32 y = (nlang_builtins_i32)1;
- {
 (x ^= y);
-};
+;
 return (x ^ (nlang_builtins_i32)1);
 }
 }

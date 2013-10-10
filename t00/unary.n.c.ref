@@ -95,9 +95,9 @@ return (self->x);
 #undef THIS
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
-t00_unary_t tt; memset(&(tt), 0, sizeof(t00_unary_t));
+t00_unary_t tt= { 0 };
 tt.x = (nlang_builtins_i32)0;
 ;
 ;

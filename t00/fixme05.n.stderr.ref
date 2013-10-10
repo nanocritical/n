@@ -1,2 +1,4 @@
 t00/fixme05.n.c.out: In function ‘t00_fixme05_foo’:
 t00/fixme05.n.c.out:83:20: warning: variable ‘r’ set but not used [-Wunused-but-set-variable]
+ t00_fixme05_nocopy r = { 0 };
+                    ^

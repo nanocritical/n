@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -512,13 +516,10 @@ MODULE_BODY :__internal_not_typeable__
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym0) :t00.sum.ta
-     INIT :t00.sum.ta
-      IDENT(ta) :t00.sum.ta
-      IDENT(x) :__internal_pending_destruct__
-      NUMBER(0) :nlang.builtins.u32
-     DEFNAME(__gensym0) :t00.sum.ta
-   LET :nlang.builtins.void
+     TYPECONSTRAINT :t00.sum.ta
+      IDENT(_Ngensym0) :t00.sum.ta
+      DIRECTDEF :t00.sum.ta
+     DEFNAME(_Ngensym0) :t00.sum.ta
     DEFPATTERN :nlang.builtins.void
      IDENT(m) :t00.sum.sum_nocopy
      CALL :t00.sum.sum_nocopy
@@ -527,7 +528,13 @@ MODULE_BODY :__internal_not_typeable__
         IDENT(sum_nocopy) :t00.sum.sum_nocopy
         IDENT(A) :__internal_not_typeable__
        IDENT(mk) :__internal_not_typeable__
-      IDENT(__gensym0) :t00.sum.ta
+      BLOCK :t00.sum.ta
+       BIN( = ) :nlang.builtins.void
+        IDENT(_Ngensym0) :t00.sum.ta
+        INIT :t00.sum.ta
+         IDENT(x) :__internal_pending_destruct__
+         NUMBER(0) :nlang.builtins.u32
+       IDENT(_Ngensym0) :t00.sum.ta
      DEFNAME(m) :t00.sum.sum_nocopy
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
@@ -542,27 +549,33 @@ MODULE_BODY :__internal_not_typeable__
      DEFNAME(n) :t00.sum.sum
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym1) :t00.sum.sum
-     CALL :t00.sum.sum
-      BIN(.) :t00.sum.sum.A.mk
-       BIN(.) :t00.sum.sum
-        IDENT(sum) :t00.sum.sum
-        IDENT(A) :__internal_not_typeable__
-       IDENT(mk) :__internal_not_typeable__
-      NUMBER(0) :nlang.builtins.u32
-     DEFNAME(__gensym1) :t00.sum.sum
-   IF :nlang.builtins.void
-    CALL :nlang.builtins.bool
-     BIN(.) :t00.sum.sum.operator_eq
+     TYPECONSTRAINT :t00.sum.sum
+      IDENT(_Ngensym1) :t00.sum.sum
       DIRECTDEF :t00.sum.sum
-      IDENT(operator_eq) :__internal_not_typeable__
-     UN(@) :(nlang.builtins.i_ref t00.sum.sum)
-      IDENT(n) :t00.sum.sum
-     UN(@) :(nlang.builtins.i_ref t00.sum.sum)
-      IDENT(__gensym1) :t00.sum.sum
-    BLOCK :nlang.builtins.i32
-     RETURN :nlang.builtins.i32
-      NUMBER(0) :nlang.builtins.i32
-    BLOCK :nlang.builtins.i32
-     RETURN :nlang.builtins.i32
-      NUMBER(1) :nlang.builtins.i32
+     DEFNAME(_Ngensym1) :t00.sum.sum
+    BLOCK :nlang.builtins.void
+     IF :nlang.builtins.void
+      CALL :nlang.builtins.bool
+       BIN(.) :t00.sum.sum.operator_eq
+        DIRECTDEF :t00.sum.sum
+        IDENT(operator_eq) :__internal_not_typeable__
+       UN(@) :(nlang.builtins.i_ref t00.sum.sum)
+        IDENT(n) :t00.sum.sum
+       BLOCK :(nlang.builtins.i_ref t00.sum.sum)
+        BIN( = ) :nlang.builtins.void
+         IDENT(_Ngensym1) :t00.sum.sum
+         CALL :t00.sum.sum
+          BIN(.) :t00.sum.sum.A.mk
+           BIN(.) :t00.sum.sum
+            IDENT(sum) :t00.sum.sum
+            IDENT(A) :__internal_not_typeable__
+           IDENT(mk) :__internal_not_typeable__
+          NUMBER(0) :nlang.builtins.u32
+        UN(@) :(nlang.builtins.i_ref t00.sum.sum)
+         IDENT(_Ngensym1) :t00.sum.sum
+      BLOCK :nlang.builtins.void
+       RETURN :nlang.builtins.i32
+        NUMBER(0) :nlang.builtins.i32
+      BLOCK :nlang.builtins.void
+       RETURN :nlang.builtins.i32
+        NUMBER(1) :nlang.builtins.i32

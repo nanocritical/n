@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -103,17 +107,16 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :t00.copy.copy
    IDENT(_nretval) :t00.copy.copy
    IDENT(copy) :t00.copy.copy
-  BLOCK :t00.copy.copy
+  BLOCK :nlang.builtins.void
    RETURN :t00.copy.copy
     INIT :t00.copy.copy
-     IDENT(copy) :t00.copy.copy
      IDENT(x) :__internal_pending_destruct__
      NUMBER(0) :nlang.builtins.i32
  DEFFUN :t00.copy.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(w) :t00.copy.copy
@@ -124,7 +127,6 @@ MODULE_BODY :__internal_not_typeable__
     DEFPATTERN :nlang.builtins.void
      IDENT(y) :t00.copy.copy
      INIT :t00.copy.copy
-      IDENT(copy) :t00.copy.copy
       IDENT(x) :__internal_pending_destruct__
       UN(-) :nlang.builtins.i32
        NUMBER(1) :nlang.builtins.i32
@@ -140,7 +142,7 @@ MODULE_BODY :__internal_not_typeable__
       BIN(.) :t00.copy.copy.copy_ctor
        DIRECTDEF :t00.copy.copy
        IDENT(copy_ctor) :__internal_not_typeable__
-      UN(@#) :(nlang.builtins.i_mercurial_ref t00.copy.copy)
+      UN(@) :(nlang.builtins.i_ref t00.copy.copy)
        IDENT(z) :t00.copy.copy
       UN(@) :(nlang.builtins.i_ref t00.copy.copy)
        IDENT(y) :t00.copy.copy
@@ -154,7 +156,7 @@ MODULE_BODY :__internal_not_typeable__
       BIN(.) :t00.copy.copy.copy_ctor
        DIRECTDEF :t00.copy.copy
        IDENT(copy_ctor) :__internal_not_typeable__
-      UN(@#) :(nlang.builtins.i_mercurial_ref t00.copy.copy)
+      UN(@) :(nlang.builtins.i_ref t00.copy.copy)
        IDENT(zz) :t00.copy.copy
       UN(@) :(nlang.builtins.i_ref t00.copy.copy)
        IDENT(z) :t00.copy.copy

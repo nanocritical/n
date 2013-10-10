@@ -1,8 +1,10 @@
 from nlang import *
 export fun main = i32
-  let j = 0:i32
-    let __gensym1 = range 0 10
-    for i in nlang.containers.index_range.iter @__gensym1
-      unused i
-      j += 1
+  let j = 0  such
+    let _Ngensym1:nlang.containers.index_range    such
+      for i in nlang.containers.index_range.iter block 
+  _Ngensym1 = range 0 10
+  @_Ngensym1;;
+        unused i
+        j += 1
   return j - 10

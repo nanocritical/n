@@ -1,6 +1,12 @@
 from nlang import *
 export fun main = i32
-  let __gensym0 = '123'
-  let __gensym1 = nlang.chars.static_string.count @__gensym0
-  let __gensym2 = nlang.builtins.size.trim_u32 @__gensym1
-  return nlang.builtins.u32.reinterpret_signed @__gensym2
+  let _Ngensym0:nlang.chars.static_string
+  and _Ngensym1:nlang.builtins.size
+  and _Ngensym2:nlang.builtins.u32  such
+    return (nlang.builtins.u32.reinterpret_signed block 
+  _Ngensym2 = nlang.builtins.size.trim_u32 block 
+  _Ngensym1 = nlang.chars.static_string.count block 
+  _Ngensym0 = '123'
+  @_Ngensym0;;
+  @_Ngensym1;;
+  @_Ngensym2;;) - 3

@@ -89,7 +89,6 @@ nlang_builtins_void t00_returnthroughref_t_ctor(_Ngen_nlang_builtins_i_mercurial
 static void t00_returnthroughref_foo(t00_returnthroughref_t *_nrtr__nretval){
 #define _nretval (*_nrtr__nretval)
  {
-; memset(&(_nretval), 0, sizeof(t00_returnthroughref_t));
 _nretval.x = (nlang_builtins_i32)3;
 ;
 return;
@@ -109,24 +108,25 @@ return;
 static void t00_returnthroughref_bar2(t00_returnthroughref_t *_nrtr_r){
 #define r (*_nrtr_r)
  {
-(t00_returnthroughref_bar(&(r)));
+t00_returnthroughref_bar(&(r));
 ;
 return;
 }
 #undef r
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
 t00_returnthroughref_t y = { 0 };
 t00_returnthroughref_bar(&(y));
 ;
-t00_returnthroughref_t __gensym0 = { 0 };
-t00_returnthroughref_bar2(&(__gensym0));
-;
-if (((y.x) != (__gensym0.x))) {
+t00_returnthroughref_t _Ngensym0 = { 0 };
+if (((y.x) != (({ t00_returnthroughref_bar2(&(_Ngensym0));
+_Ngensym0;
+; }).x))) {
 return (nlang_builtins_i32)1;
 };
+;
 return (y.xx);
 }
 }

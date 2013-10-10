@@ -1,4 +1,4 @@
-t00/fixme06.n.c.out: In function ‘__Nmain’:
+t00/fixme06.n.c.out: In function ‘_Nmain’:
 t00/fixme06.n.c.out:32:1: error: unknown type name ‘nlang_literals_integer’
  nlang_literals_integer x = (nlang_literals_integer)1;
  ^
@@ -12,4 +12,4 @@ t00/fixme06.n.c.out:32:52: error: expected ‘,’ or ‘;’ before numeric con
 t00/fixme06.n.c.out:32:24: warning: unused variable ‘x’ [-Wunused-variable]
  nlang_literals_integer x = (nlang_literals_integer)1;
                         ^
-command exited with 1: gcc -Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -pedantic -I. -g -xc t00/fixme06.n.c.out -c -o t00/fixme06.n.o
+command exited with 1: gcc -Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g -xc t00/fixme06.n.c.out -c -o t00/fixme06.n.o

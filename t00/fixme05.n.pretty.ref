@@ -11,10 +11,12 @@ fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 nocopy method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 fun foo = _nretval:nocopy
-  let r:nocopy
+  let r:nocopy  such
     r!x = 0
   return r
 
 export fun main = i32
-  let __gensym0 = foo
-  return __gensym0.x
+  let _Ngensym0:t00.fixme05.nocopy  such
+    return block 
+  _Ngensym0 = foo
+  _Ngensym0;;.x

@@ -1,0 +1,171 @@
+MODULE_BODY :__internal_not_typeable__
+ IMPORT :nlang
+  IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
+  IMPORT :nlang.say
+   BIN(.) :nlang.say
+    IDENT(nlang) :nlang
+    IDENT(say) :__internal_not_typeable__
+ DEFFUN :t00.tuple.foo
+  IDENT(foo) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  TUPLE :nlang.builtins.i32, nlang.builtins.i32
+   IDENT(i32) :nlang.builtins.i32
+   IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   RETURN :nlang.builtins.i32, nlang.builtins.i32
+    TUPLE :nlang.builtins.i32, nlang.builtins.i32
+     NUMBER(1) :nlang.builtins.i32
+     UN(-) :nlang.builtins.i32
+      NUMBER(1) :nlang.builtins.i32
+ DEFFUN :t00.tuple.bar
+  IDENT(bar) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  TUPLE :nlang.builtins.i32, nlang.builtins.i32
+   DEFARG :nlang.builtins.i32
+    IDENT(x) :nlang.builtins.i32
+    IDENT(i32) :nlang.builtins.i32
+   DEFARG :nlang.builtins.i32
+    IDENT(y) :nlang.builtins.i32
+    IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   BIN( = ) :nlang.builtins.void
+    IDENT(x) :nlang.builtins.i32
+    NUMBER(1) :nlang.builtins.i32
+   BIN( = ) :nlang.builtins.void
+    IDENT(y) :nlang.builtins.i32
+    UN(-) :nlang.builtins.i32
+     NUMBER(1) :nlang.builtins.i32
+ DEFFUN :t00.tuple.main
+  IDENT(main) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     TUPLE :nlang.literals.integer, nlang.literals.integer
+      IDENT(x0) :nlang.builtins.i32
+      IDENT(y0) :nlang.builtins.i32
+     TUPLE :nlang.literals.integer, nlang.literals.integer
+      NUMBER(1) :nlang.builtins.i32
+      UN(-) :nlang.builtins.i32
+       NUMBER(1) :nlang.builtins.i32
+     DEFNAME(x0) :nlang.builtins.i32
+     DEFNAME(y0) :nlang.builtins.i32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32, nlang.builtins.i32
+      IDENT(_Ngensym0) :nlang.builtins.i32, nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32, nlang.builtins.i32
+     DEFNAME(_Ngensym0) :nlang.builtins.i32, nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
+     TUPLE :nlang.builtins.i32, nlang.builtins.i32
+      IDENT(x) :nlang.builtins.i32
+      IDENT(y) :nlang.builtins.i32
+     BLOCK :nlang.builtins.i32, nlang.builtins.i32
+      BIN( = ) :nlang.builtins.void
+       IDENT(_Ngensym0) :nlang.builtins.i32, nlang.builtins.i32
+       CALL :nlang.builtins.i32, nlang.builtins.i32
+        IDENT(foo) :t00.tuple.foo
+      TUPLEEXTRACT :nlang.builtins.i32, nlang.builtins.i32
+       TUPLENTH :nlang.builtins.i32
+       TUPLENTH :nlang.builtins.i32
+       IDENT(_Ngensym0) :nlang.builtins.i32, nlang.builtins.i32
+     DEFNAME(x) :nlang.builtins.i32
+     DEFNAME(y) :nlang.builtins.i32
+   CALL :nlang.builtins.void
+    IDENT(assert) :nlang.builtins.assert
+    BIN( == ) :nlang.builtins.bool
+     BIN( * ) :nlang.builtins.i32
+      BIN( * ) :nlang.builtins.i32
+       BIN( * ) :nlang.literals.integer
+        IDENT(x0) :nlang.literals.integer
+        IDENT(y0) :nlang.literals.integer
+       IDENT(x) :nlang.builtins.i32
+      IDENT(y) :nlang.builtins.i32
+     NUMBER(1) :nlang.builtins.i32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32, nlang.builtins.i32
+      IDENT(_Ngensym1) :nlang.builtins.i32, nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32, nlang.builtins.i32
+     DEFNAME(_Ngensym1) :nlang.builtins.i32, nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
+     TUPLE :nlang.builtins.i32, nlang.builtins.i32
+      IDENT(x1) :nlang.builtins.i32
+      IDENT(_) :nlang.builtins.i32
+     BLOCK :nlang.builtins.i32, nlang.builtins.i32
+      BIN( = ) :nlang.builtins.void
+       IDENT(_Ngensym1) :nlang.builtins.i32, nlang.builtins.i32
+       CALL :nlang.builtins.i32, nlang.builtins.i32
+        IDENT(foo) :t00.tuple.foo
+      TUPLEEXTRACT :nlang.builtins.i32, nlang.builtins.i32
+       TUPLENTH :nlang.builtins.i32
+       TUPLENTH :nlang.builtins.i32
+       IDENT(_Ngensym1) :nlang.builtins.i32, nlang.builtins.i32
+     DEFNAME(x1) :nlang.builtins.i32
+     DEFNAME(_) :__internal_pending_destruct__
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32, nlang.builtins.i32
+      IDENT(_Ngensym2) :nlang.builtins.i32, nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32, nlang.builtins.i32
+     DEFNAME(_Ngensym2) :nlang.builtins.i32, nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
+     TUPLE :nlang.builtins.i32, nlang.builtins.i32
+      IDENT(_) :nlang.builtins.i32
+      IDENT(y1) :nlang.builtins.i32
+     BLOCK :nlang.builtins.i32, nlang.builtins.i32
+      BIN( = ) :nlang.builtins.void
+       IDENT(_Ngensym2) :nlang.builtins.i32, nlang.builtins.i32
+       CALL :nlang.builtins.i32, nlang.builtins.i32
+        IDENT(foo) :t00.tuple.foo
+      TUPLEEXTRACT :nlang.builtins.i32, nlang.builtins.i32
+       TUPLENTH :nlang.builtins.i32
+       TUPLENTH :nlang.builtins.i32
+       IDENT(_Ngensym2) :nlang.builtins.i32, nlang.builtins.i32
+     DEFNAME(_) :__internal_pending_destruct__
+     DEFNAME(y1) :nlang.builtins.i32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32, nlang.builtins.i32
+      IDENT(_Ngensym3) :nlang.builtins.i32, nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32, nlang.builtins.i32
+     DEFNAME(_Ngensym3) :nlang.builtins.i32, nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
+     TUPLE :nlang.builtins.i32, nlang.builtins.i32
+      IDENT(x2) :nlang.builtins.i32
+      IDENT(y2) :nlang.builtins.i32
+     BLOCK :nlang.builtins.i32, nlang.builtins.i32
+      BIN( = ) :nlang.builtins.void
+       IDENT(_Ngensym3) :nlang.builtins.i32, nlang.builtins.i32
+       CALL :nlang.builtins.i32, nlang.builtins.i32
+        IDENT(bar) :t00.tuple.bar
+      TUPLEEXTRACT :nlang.builtins.i32, nlang.builtins.i32
+       TUPLENTH :nlang.builtins.i32
+       TUPLENTH :nlang.builtins.i32
+       IDENT(_Ngensym3) :nlang.builtins.i32, nlang.builtins.i32
+     DEFNAME(x2) :nlang.builtins.i32
+     DEFNAME(y2) :nlang.builtins.i32
+   CALL :nlang.builtins.void
+    IDENT(assert) :nlang.builtins.assert
+    BIN( == ) :nlang.builtins.bool
+     BIN( + ) :nlang.builtins.i32
+      IDENT(x2) :nlang.builtins.i32
+      IDENT(y2) :nlang.builtins.i32
+     NUMBER(0) :nlang.builtins.i32
+   RETURN :nlang.builtins.i32
+    BIN( + ) :nlang.builtins.i32
+     BIN( + ) :nlang.builtins.i32
+      BIN( + ) :nlang.builtins.i32
+       IDENT(x0) :nlang.builtins.i32
+       IDENT(y0) :nlang.builtins.i32
+      BIN( + ) :nlang.builtins.i32
+       IDENT(x) :nlang.builtins.i32
+       IDENT(y) :nlang.builtins.i32
+     BIN( + ) :nlang.builtins.i32
+      IDENT(x1) :nlang.builtins.i32
+      IDENT(y1) :nlang.builtins.i32

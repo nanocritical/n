@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -18,7 +22,7 @@ MODULE_BODY :__internal_not_typeable__
     IDENT(u32) :nlang.builtins.u32
   UN(@) :(nlang.builtins.i_ref nlang.builtins.i32)
    IDENT(i32) :nlang.builtins.i32
-  BLOCK :(nlang.builtins.i_ref nlang.builtins.i32)
+  BLOCK :nlang.builtins.void
    RETURN :(nlang.builtins.i_ref nlang.builtins.i32)
     CALL :(nlang.builtins.i_ref nlang.builtins.i32)
      CALL :(nlang.unsafe.cast (nlang.builtins.i_ref nlang.builtins.u32) (nlang.builtins.i_ref nlang.builtins.i32))
@@ -36,17 +40,23 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym0) :nlang.builtins.u32
-     NUMBER(1) :nlang.builtins.u32
-     DEFNAME(__gensym0) :nlang.builtins.u32
-   RETURN :nlang.builtins.i32
-    BIN( - ) :nlang.builtins.i32
-     UN(.) :nlang.builtins.i32
-      CALL :(nlang.builtins.i_ref nlang.builtins.i32)
-       IDENT(foo) :t00.cast.foo
-       UN(@) :(nlang.builtins.i_ref nlang.builtins.u32)
-        IDENT(__gensym0) :nlang.builtins.u32
-     NUMBER(1) :nlang.builtins.i32
+     TYPECONSTRAINT :nlang.builtins.u32
+      IDENT(_Ngensym0) :nlang.builtins.u32
+      DIRECTDEF :nlang.builtins.u32
+     DEFNAME(_Ngensym0) :nlang.builtins.u32
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i32
+      BIN( - ) :nlang.builtins.i32
+       UN(.) :nlang.builtins.i32
+        CALL :(nlang.builtins.i_ref nlang.builtins.i32)
+         IDENT(foo) :t00.cast.foo
+         BLOCK :(nlang.builtins.i_ref nlang.builtins.u32)
+          BIN( = ) :nlang.builtins.void
+           IDENT(_Ngensym0) :nlang.builtins.u32
+           NUMBER(1) :nlang.builtins.u32
+          UN(@) :(nlang.builtins.i_ref nlang.builtins.u32)
+           IDENT(_Ngensym0) :nlang.builtins.u32
+       NUMBER(1) :nlang.builtins.i32

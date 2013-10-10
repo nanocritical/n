@@ -12,7 +12,7 @@ fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 fun foo = _nretval:t
-  return t{{ x=3 }}
+  return { x=3 }
 
 fun bar = _nretval:t
   return foo
@@ -23,7 +23,9 @@ fun bar2 = r:t
 
 export fun main = i32
   let y = bar
-  let __gensym0 = bar2
-  if y.x != __gensym0.x
-    return 1
+  let _Ngensym0:t00.returnthroughref.t  such
+    if y.x != block 
+  _Ngensym0 = bar2
+  _Ngensym0;;.x
+      return 1
   return y.xx

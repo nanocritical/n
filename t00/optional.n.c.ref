@@ -37,16 +37,20 @@ return _Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_(a, (nlang_builtin
 }
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
-nlang_builtins_i32 __gensym0 = (nlang_builtins_i32)1;
-;
-if ((t00_optional_opts(((&__gensym0))) != (nlang_builtins_i32)1)) {
+nlang_builtins_i32 _Ngensym0 = { 0 };
+if ((t00_optional_opts(({ _Ngensym0 = (nlang_builtins_i32)1;
+((&_Ngensym0));
+; })) != (nlang_builtins_i32)1)) {
 return (nlang_builtins_i32)1;
 };
-nlang_builtins_i32 __gensym1 = (nlang_builtins_i32)0;
 ;
-return t00_optional_opts(((&__gensym1)));
+nlang_builtins_i32 _Ngensym1 = { 0 };
+return t00_optional_opts(({ _Ngensym1 = (nlang_builtins_i32)0;
+((&_Ngensym1));
+; }));
+;
 }
 }
 void t00_optional_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

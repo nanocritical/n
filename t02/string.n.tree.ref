@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -21,36 +25,48 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :nlang.strings.string
    IDENT(_nretval) :nlang.strings.string
    IDENT(string) :nlang.strings.string
-  BLOCK :nlang.strings.string
+  BLOCK :nlang.builtins.void
    RETURN :nlang.strings.string
     CALL :nlang.strings.string
-     DIRECTDEF :nlang.strings.string.from_literal_string
+     DIRECTDEF :nlang.strings.string.from_static_string
      STRING('test') :nlang.chars.static_string
  DEFFUN :t02.string.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym0) :nlang.chars.static_string
-     STRING('test') :nlang.chars.static_string
-     DEFNAME(__gensym0) :nlang.chars.static_string
-   CALL :nlang.builtins.void
-    IDENT(say) :nlang.say
-    DYN :(nlang.builtins.i_ref nlang.chars.i_show)
-     UN(@) :(nlang.builtins.i_ref nlang.chars.static_string)
-      IDENT(__gensym0) :nlang.chars.static_string
+     TYPECONSTRAINT :nlang.chars.static_string
+      IDENT(_Ngensym0) :nlang.chars.static_string
+      DIRECTDEF :nlang.chars.static_string
+     DEFNAME(_Ngensym0) :nlang.chars.static_string
+    BLOCK :nlang.builtins.void
+     CALL :nlang.builtins.void
+      IDENT(say) :nlang.say
+      DYN :(nlang.builtins.i_ref nlang.chars.i_show)
+       BLOCK :(nlang.builtins.i_ref nlang.chars.static_string)
+        BIN( = ) :nlang.builtins.void
+         IDENT(_Ngensym0) :nlang.chars.static_string
+         STRING('test') :nlang.chars.static_string
+        UN(@) :(nlang.builtins.i_ref nlang.chars.static_string)
+         IDENT(_Ngensym0) :nlang.chars.static_string
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym1) :nlang.strings.string
-     CALL :nlang.strings.string
-      IDENT(foo) :t02.string.foo
-     DEFNAME(__gensym1) :nlang.strings.string
-   CALL :nlang.builtins.void
-    IDENT(say) :nlang.say
-    DYN :(nlang.builtins.i_ref nlang.chars.i_show)
-     UN(@) :(nlang.builtins.i_ref nlang.strings.string)
-      IDENT(__gensym1) :nlang.strings.string
+     TYPECONSTRAINT :nlang.strings.string
+      IDENT(_Ngensym1) :nlang.strings.string
+      DIRECTDEF :nlang.strings.string
+     DEFNAME(_Ngensym1) :nlang.strings.string
+    BLOCK :nlang.builtins.void
+     CALL :nlang.builtins.void
+      IDENT(say) :nlang.say
+      DYN :(nlang.builtins.i_ref nlang.chars.i_show)
+       BLOCK :(nlang.builtins.i_ref nlang.strings.string)
+        BIN( = ) :nlang.builtins.void
+         IDENT(_Ngensym1) :nlang.strings.string
+         CALL :nlang.strings.string
+          IDENT(foo) :t02.string.foo
+        UN(@) :(nlang.builtins.i_ref nlang.strings.string)
+         IDENT(_Ngensym1) :nlang.strings.string
    RETURN :nlang.builtins.i32
     NUMBER(0) :nlang.builtins.i32

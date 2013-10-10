@@ -8,6 +8,6 @@ container method add self:@!final = void
   nlang.builtins.i_numeric.operator_assign_plus @self.x @x
 
 export fun main = i32
-  let v = container i32{{ x=0 }}
+  let v = { x=0 }  such
     t01.genericsum.container.add @!v 1
   return v.x - 1

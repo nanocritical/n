@@ -1,0 +1,29 @@
+from nlang import *
+fun foo = i32, i32
+  return 1, -1
+
+fun bar = x:i32, y:i32
+  x = 1
+  y = -1
+
+export fun main = i32
+  let x0, y0 = 1, -1
+  let _Ngensym0:nlang.builtins.tuple_2
+  and x, y = block 
+  _Ngensym0 = foo
+  _Ngensym0;;
+  assert (x0 * y0 * x * y == 1)
+  let _Ngensym1:nlang.builtins.tuple_2
+  and x1, _ = block 
+  _Ngensym1 = foo
+  _Ngensym1;;
+  let _Ngensym2:nlang.builtins.tuple_2
+  and _, y1 = block 
+  _Ngensym2 = foo
+  _Ngensym2;;
+  let _Ngensym3:nlang.builtins.tuple_2
+  and x2, y2 = block 
+  _Ngensym3 = bar
+  _Ngensym3;;
+  assert (x2 + y2 == 0)
+  return x0 + y0 + x + y + x1 + y1

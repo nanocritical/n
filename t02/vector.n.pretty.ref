@@ -1,14 +1,28 @@
 from nlang import *
 from nlang.vectors import vector
 let v32 = vector i32
+fun foo = _nretval:v32
+  let _Ngensym1:nlang.builtins.static_array  such
+    return nlang.vectors.vector.mkv block 
+  _Ngensym1 = { 1 0 2 }
+  @_Ngensym1;;
+
 export fun main = i32
-  let v = v32.mk
+  let v = v32.mk  such
     nlang.vectors.vector.push @#v 0
     nlang.vectors.vector.push @#v 1
     assert (nlang.vectors.vector.pop @#v == 1)
     nlang.vectors.vector.push @#v 1
-    let __gensym2 = nlang.vectors.vector.all @v
-    for i in nlang.containers.index_range.iter @__gensym2
-      let __gensym1 = nlang.builtins.size.trim_u32 @i
-      assert (.(nlang.vectors.vector.at @v i) == nlang.builtins.u32.reinterpret_signed @__gensym1)
+    let _Ngensym3:nlang.containers.index_range    such
+      for i in nlang.containers.index_range.iter block 
+  _Ngensym3 = nlang.vectors.vector.all @v
+  @_Ngensym3;;
+        let _Ngensym2:nlang.builtins.u32        such
+          assert (.(nlang.vectors.vector.at @v i) == nlang.builtins.u32.reinterpret_signed block 
+  _Ngensym2 = nlang.builtins.size.trim_u32 @i
+  @_Ngensym2;;)
+  let w = foo
+  assert (.(nlang.vectors.vector.at @w 0) == 1)
+  assert (.(nlang.vectors.vector.at @w 1) == 0)
+  assert (.(nlang.vectors.vector.at @w 2) == 2)
   return .(nlang.vectors.vector.at @v 1) - 1

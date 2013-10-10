@@ -1,0 +1,9 @@
+t00/fixme08.n.c.out: In function ‘t00_fixme08_a_foo’:
+t00/fixme08.n.c.out:84:8: error: ‘t00’ undeclared (first use in this function)
+ return t00.fixme08.a.foo.x;
+        ^
+t00/fixme08.n.c.out:84:8: note: each undeclared identifier is reported only once for each function it appears in
+t00/fixme08.n.c.out:87:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+command exited with 1: gcc -Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g -xc t00/fixme08.n.c.out -c -o t00/fixme08.n.o

@@ -1,0 +1,37 @@
+from nlang import *
+fun foo = i32
+  try
+    let _Ngensym6:nlang.builtins.error    such
+      spit ONEblock 
+  _Ngensym6 = { code=1 }
+  _Ngensym6;;
+    let _Ngensym7:nlang.builtins.error    such
+      spit ZEROblock 
+  _Ngensym7 = { code=0 }
+  _Ngensym7;;
+  catch ZERO _
+
+    return 0  catch ONE _
+
+    return 1
+
+fun bar = i32
+  try
+    let _Ngensym5 = { code=1 }
+    return 0
+  catch _Ngensym2 err
+
+    return err.code
+
+export fun main = i32
+  assert (foo == 1)
+  assert (bar == 1)
+  try
+    let _Ngensym8:nlang.builtins.error    such
+      spit block 
+  _Ngensym8 = { code=(bar) }
+  _Ngensym8;;
+    return 1
+  catch _Ngensym4 err
+
+    return err.code - 1

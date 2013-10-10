@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -87,7 +91,7 @@ MODULE_BODY :__internal_not_typeable__
   CALL :(nlang.builtins.i_ref nlang.builtins.i32)
    IDENT(__wildcard_ref_arg__) :nlang.builtins.i_ref
    IDENT(i32) :nlang.builtins.i32
-  BLOCK :(nlang.builtins.i_ref nlang.builtins.i32)
+  BLOCK :nlang.builtins.void
    RETURN :(nlang.builtins.i_ref nlang.builtins.i32)
     UN(@) :(nlang.builtins.i_ref nlang.builtins.i32)
      BIN(.) :nlang.builtins.i32
@@ -97,12 +101,11 @@ MODULE_BODY :__internal_not_typeable__
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(x) :t01.wildcardmutability.c
      INIT :t01.wildcardmutability.c
-      IDENT(c) :t01.wildcardmutability.c
       IDENT(x) :__internal_pending_destruct__
       NUMBER(0) :nlang.builtins.i32
      DEFNAME(x) :t01.wildcardmutability.c

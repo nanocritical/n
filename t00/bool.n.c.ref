@@ -27,15 +27,15 @@
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/bool.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
 nlang_builtins_bool x = (nlang_builtins_bool)0;
 ;
 if ((x && (nlang_builtins_bool)1)) {
-return (nlang_builtins_i32)0;
+return (nlang_builtins_i32)1;
 }
 else  {
-return (nlang_builtins_i32)1;
+return (nlang_builtins_i32)0;
 };
 }
 }

@@ -1,5 +1,5 @@
 from nlang import *
 export fun main = i32
-  let x = 1:i32
+  let x = 1
   x = 0
   return x

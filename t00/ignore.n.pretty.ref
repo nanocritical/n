@@ -1,4 +1,4 @@
 from nlang import *
 export fun main = i32
-  let _ = 0:u32
+  let _ = 0
   return 0

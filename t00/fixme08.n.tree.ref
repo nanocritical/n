@@ -1,0 +1,105 @@
+MODULE_BODY :__internal_not_typeable__
+ IMPORT :nlang
+  IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
+  IMPORT :nlang.say
+   BIN(.) :nlang.say
+    IDENT(nlang) :nlang
+    IDENT(say) :__internal_not_typeable__
+ DEFTYPE :t00.fixme08.a
+  IDENT(a) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  ISALIST :nlang.builtins.void
+   ISA :nlang.builtins.i_trivial_ctor
+    BIN(.) :nlang.builtins.i_trivial_ctor
+     BIN(.) :nlang.builtins
+      BIN(.) :nlang
+       DIRECTDEF :<root>
+       IDENT(nlang) :__internal_not_typeable__
+      IDENT(builtins) :__internal_not_typeable__
+     IDENT(i_trivial_ctor) :__internal_not_typeable__
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.fixme08.a
+    IDENT(a) :t00.fixme08.a
+    DEFNAME(this) :t00.fixme08.a
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(final) :t00.fixme08.a
+    IDENT(a) :t00.fixme08.a
+    DEFNAME(final) :t00.fixme08.a
+  DEFFIELD :nlang.builtins.i32
+   IDENT(x) :__internal_not_typeable__
+   IDENT(i32) :nlang.builtins.i32
+ DEFFUN :t00.fixme08.a.new
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(i_trivial_ctor) :__internal_not_typeable__
+   IDENT(new) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  UN(@#) :(nlang.builtins.i_mercurial_ref t00.fixme08.a)
+   IDENT(final) :t00.fixme08.a
+ DEFFUN :t00.fixme08.a.mk
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(i_trivial_ctor) :__internal_not_typeable__
+   IDENT(mk) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :t00.fixme08.a
+   IDENT(r) :t00.fixme08.a
+   IDENT(final) :t00.fixme08.a
+ DEFMETHOD :t00.fixme08.a.ctor
+  BIN(.) :__internal_not_typeable__
+   BIN(.) :__internal_not_typeable__
+    BIN(.) :__internal_not_typeable__
+     BIN(.) :__internal_not_typeable__
+      DIRECTDEF :__internal_not_typeable__
+      IDENT(nlang) :__internal_not_typeable__
+     IDENT(builtins) :__internal_not_typeable__
+    IDENT(i_trivial_ctor) :__internal_not_typeable__
+   IDENT(ctor) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :(nlang.builtins.i_mercurial_ref t00.fixme08.a)
+   IDENT(self) :(nlang.builtins.i_mercurial_ref t00.fixme08.a)
+   UN(@#) :(nlang.builtins.i_mercurial_ref t00.fixme08.a)
+    IDENT(final) :t00.fixme08.a
+  IDENT(void) :nlang.builtins.void
+ DEFMETHOD :t00.fixme08.a.foo
+  IDENT(foo) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  DEFARG :(nlang.builtins.i_ref t00.fixme08.a)
+   IDENT(self) :(nlang.builtins.i_ref t00.fixme08.a)
+   UN(@) :(nlang.builtins.i_ref t00.fixme08.a)
+    IDENT(final) :t00.fixme08.a
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   RETURN :nlang.builtins.i32
+    IDENT(x) :nlang.builtins.i32
+ DEFFUN :t00.fixme08.main
+  IDENT(main) :__internal_not_typeable__
+  GENARGS :nlang.builtins.void
+  IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(y) :t00.fixme08.a
+     INIT :t00.fixme08.a
+     DEFNAME(y) :t00.fixme08.a
+   RETURN :nlang.builtins.i32
+    CALL :nlang.builtins.i32
+     DIRECTDEF :t00.fixme08.a.foo
+     UN(@) :(nlang.builtins.i_ref t00.fixme08.a)
+      IDENT(y) :t00.fixme08.a

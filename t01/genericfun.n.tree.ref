@@ -1,6 +1,10 @@
 MODULE_BODY :__internal_not_typeable__
  IMPORT :nlang
   IDENT(nlang) :nlang
+  IMPORT :nlang.print
+   BIN(.) :nlang.print
+    IDENT(nlang) :nlang
+    IDENT(print) :__internal_not_typeable__
   IMPORT :nlang.say
    BIN(.) :nlang.say
     IDENT(nlang) :nlang
@@ -17,26 +21,32 @@ MODULE_BODY :__internal_not_typeable__
   DEFARG :nlang.builtins.i_numeric
    IDENT(_nretval) :nlang.builtins.i_numeric
    IDENT(t) :nlang.builtins.i_numeric
-  BLOCK :nlang.builtins.i_numeric
+  BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     IDENT(__gensym0) :nlang.builtins.i_numeric
-     NUMBER(1) :nlang.builtins.i_numeric
-     DEFNAME(__gensym0) :nlang.builtins.i_numeric
-   RETURN :nlang.builtins.i_numeric
-    CALL :nlang.builtins.i_arithmetic
-     BIN(.) :nlang.builtins.i_arithmetic.operator_minus
+     TYPECONSTRAINT :nlang.builtins.i_numeric
+      IDENT(_Ngensym0) :nlang.builtins.i_numeric
       DIRECTDEF :nlang.builtins.i_numeric
-      IDENT(operator_minus) :__internal_not_typeable__
-     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
-      IDENT(x) :nlang.builtins.i_numeric
-     UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
-      IDENT(__gensym0) :nlang.builtins.i_numeric
+     DEFNAME(_Ngensym0) :nlang.builtins.i_numeric
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.i_numeric
+      CALL :nlang.builtins.i_arithmetic
+       BIN(.) :nlang.builtins.i_arithmetic.operator_minus
+        DIRECTDEF :nlang.builtins.i_numeric
+        IDENT(operator_minus) :__internal_not_typeable__
+       UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+        IDENT(x) :nlang.builtins.i_numeric
+       BLOCK :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+        BIN( = ) :nlang.builtins.void
+         IDENT(_Ngensym0) :nlang.builtins.i_numeric
+         NUMBER(1) :nlang.builtins.i_numeric
+        UN(@) :(nlang.builtins.i_ref nlang.builtins.i_numeric)
+         IDENT(_Ngensym0) :nlang.builtins.i_numeric
  DEFFUN :t01.genericfun.main
   IDENT(main) :__internal_not_typeable__
   GENARGS :nlang.builtins.void
   IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.i32
     CALL :nlang.builtins.i32
      CALL :(t01.genericfun.decr nlang.builtins.i32)

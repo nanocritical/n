@@ -37,7 +37,7 @@ return (x - (nlang_builtins_i32)1);
 }
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
 return _Ngen_t01_genericfun_decr__nlang_builtins_i32_genN_((nlang_builtins_i32)1);
 }

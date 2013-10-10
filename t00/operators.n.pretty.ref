@@ -1,6 +1,6 @@
 from nlang import *
 export fun main = i32
-  let x = 0:i32
-  and y = 1
+  let x = 0
+  and y = 1  such
     x bwxor= y
   return x bwxor 1

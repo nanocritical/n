@@ -14,13 +14,13 @@ copy method i_copyable.copy_ctor self:@#final = void
   self!x = other.x
 
 fun foo = _nretval:copy
-  return copy{{ x=0 }}
+  return { x=0 }
 
 export fun main = i32
   let w = foo
-  let y = copy{{ x=-1 }}
-  let z:copy
-    t00.copy.copy.copy_ctor @#z @y
-  let zz = z
-    t00.copy.copy.copy_ctor @#zz @z
+  let y = { x=-1 }
+  let z:copy  such
+    t00.copy.copy.copy_ctor @z @y
+  let zz = z  such
+    t00.copy.copy.copy_ctor @zz @z
   return z.x + 1

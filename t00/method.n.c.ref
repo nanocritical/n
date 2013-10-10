@@ -102,19 +102,18 @@ return (self->x);
 nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_i_mutable_ref__t00_method_t_genN_ self, nlang_builtins_i32 x){
 #define THIS(x) t00_method_t##x
  {
-((self->x) = x);
+(self->x) = x;
 }
 #undef THIS
 }
 
-nlang_builtins_i32 __Nmain(void){
+nlang_builtins_i32 _Nmain(void){
  {
-t00_method_t tt; memset(&(tt), 0, sizeof(t00_method_t));
+t00_method_t tt= { 0 };
 tt.x = (nlang_builtins_i32)0;
 ;
- {
 t00_method_t_set(((&tt)), (nlang_builtins_i32)1);
-};
+;
 return (t00_method_t_get(((&tt))) - (nlang_builtins_i32)1);
 }
 }
