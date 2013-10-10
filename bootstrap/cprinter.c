@@ -547,6 +547,14 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     print_block(out, mod, node, TRUE);
     fprintf(out, "; })");
     break;
+  case IF:
+  case TRY:
+  case MATCH:
+  case LET:
+    fprintf(out, "({ ");
+    print_statement(out, mod, node);
+    fprintf(out, "; })");
+    break;
   default:
     fprintf(stderr, "Unsupported node: %d\n", node->which);
     assert(FALSE);
@@ -745,6 +753,14 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
   }
 }
 
+static void print_defname_excep(FILE *out, const struct module *mod, const struct node *node) {
+  fprintf(out, "%s = ", idents_value(mod->gctx, node->as.DEFNAME.excep_error));
+  print_expr(out, mod, node->as.DEFNAME.pattern, TASSIGN);
+  fprintf(out, "; if (");
+  print_expr(out, mod, node->subs[0], T__CALL);
+  fprintf(out, ") { goto %s; }", idents_value(mod->gctx, node->as.DEFNAME.excep_label));
+}
+
 static const struct node *significant_expr_or_null(const struct node *node) {
   if (node == NULL) {
     return NULL;
@@ -777,6 +793,11 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
       }
     }
   } else if (!(node->flags & NODE_IS_TYPE)) {
+    if (node_ident(node) == ID_OTHERWISE
+        || node->as.DEFNAME.pattern->which == EXCEP) {
+      return;
+    }
+
     print_toplevel(out, header, node->scope->parent->parent->node);
 
     print_typ(out, mod, node->typ);
@@ -832,11 +853,16 @@ static void print_defpattern(FILE *out, bool header, enum forward fwd, const str
   }
 
   for (size_t n = 0; n < node->subs_count; ++n) {
-    if (node->subs[n]->which != DEFNAME) {
+    struct node *d = node->subs[n];
+    if (d->which != DEFNAME) {
       continue;
     }
 
-    print_defname(out, header, fwd, mod, node->subs[n], node);
+    print_defname(out, header, fwd, mod, d, node);
+
+    if (d->as.DEFNAME.is_excep) {
+      print_defname_excep(out, mod, d);
+    }
   }
 }
 
@@ -901,12 +927,7 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
   case SPIT:
     fprintf(out, "%s = ", idents_value(mod->gctx, node->as.SPIT.error));
     print_expr(out, mod, node->subs_count == 1 ? node->subs[0] : node->subs[1], TASSIGN);
-    fprintf(out, "; goto %s", idents_value(mod->gctx, node->as.SPIT.target));
-    break;
-  case EXCEP:
-    fprintf(out, "%s = ", idents_value(mod->gctx, node->as.EXCEP.error));
-    print_expr(out, mod, node->subs_count == 1 ? node->subs[0] : node->subs[1], TASSIGN);
-    fprintf(out, "; goto %s", idents_value(mod->gctx, node->as.EXCEP.target));
+    fprintf(out, "; goto %s", idents_value(mod->gctx, node->as.SPIT.label));
     break;
   case IF:
     print_if(out, mod, node);

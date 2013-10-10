@@ -9,17 +9,18 @@ fun foo = i32
   catch ONE _
     return 1
 
---fun bar = i32
---  try
---    let except = { code=1 }:error
---    return 0
---  catch err
---    return err.code
+fun bar = i32
+  try
+    let except = { code=1 }:error
+    return 0
+  catch err
+    return err.code
 
 export fun main = i32
   assert <- foo == 1
+  assert <- bar == 1
   try
-    spit { code=foo }:error
+    spit { code=bar }:error
     return 1
   catch err
     return err.code - 1

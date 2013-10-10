@@ -530,12 +530,13 @@ static error insert_tupleextract(struct module *mod, size_t arity, struct node *
 
 static error extract_defnames_in_pattern(struct module *mod, struct node *defpattern,
                                          struct node *pattern, struct node *expr) {
-  struct node *defn;
+  struct node *def;
   error e;
 
   if (expr != NULL
       && pattern->which != expr->which
-      && pattern->which != IDENT) {
+      && pattern->which != IDENT
+      && pattern->which != EXCEP) {
     if (pattern->which == TUPLE) {
       e = insert_tupleextract(mod, pattern->subs_count, expr);
       EXCEPT(e);
@@ -548,18 +549,47 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
 #define UNLESS_NULL(n, sub) ( (n) != NULL ? (sub) : NULL )
 
   switch (pattern->which) {
-  case IDENT:
-    if (node_ident(pattern) == ID_OTHERWISE) {
+  case EXCEP:
+    {
+      struct node *parent = node_parent(pattern);
+      const size_t where = rew_find_subnode_in_parent(parent, pattern);
+
+      struct node *label_ident = NULL;
+      if (pattern->subs_count > 0) {
+        label_ident = pattern->subs[0];
+      }
+
+      pattern = mk_node(mod, parent, IDENT);
+      pattern->as.IDENT.name = gensym(mod);
+      rew_move_last_over(parent, where, FALSE);
+
+      e = catchup(mod, NULL, pattern, defpattern->scope, CATCHUP_BELOW_CURRENT);
+      EXCEPT(e);
+
+      def = mk_node(mod, defpattern, DEFNAME);
+      def->as.DEFNAME.pattern = pattern;
+      def->as.DEFNAME.expr = expr;
+      def->as.DEFNAME.is_excep = TRUE;
+      def->as.DEFNAME.excep_label_ident = label_ident;
+
+      struct node *test = mk_node(mod, def, IDENT);
+      test->as.IDENT.name = node_ident(pattern);
+
+      e = catchup(mod, NULL, def, defpattern->scope, CATCHUP_BELOW_CURRENT);
+      EXCEPT(e);
+
       return 0;
     }
-    defn = mk_node(mod, defpattern, DEFNAME);
 
-    defn->as.DEFNAME.pattern = pattern;
-    defn->as.DEFNAME.expr = expr;
+  case IDENT:
+    def = mk_node(mod, defpattern, DEFNAME);
+    def->as.DEFNAME.pattern = pattern;
+    def->as.DEFNAME.expr = expr;
 
-    e = catchup(mod, NULL, defn, defpattern->scope, CATCHUP_BELOW_CURRENT);
+    e = catchup(mod, NULL, def, defpattern->scope, CATCHUP_BELOW_CURRENT);
     EXCEPT(e);
     return 0;
+
   case UN:
     assert(FALSE && "Unsupported");
     e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0],
@@ -572,11 +602,6 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
                                       UNLESS_NULL(expr, expr->subs[n]));
       EXCEPT(e);
     }
-    break;
-  case EXCEP:
-    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0],
-                                    UNLESS_NULL(expr, expr->subs[0]));
-    EXCEPT(e);
     break;
   case TYPECONSTRAINT:
     pattern->as.TYPECONSTRAINT.in_pattern = TRUE;
@@ -597,10 +622,6 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
 static error step_defpattern_extract_defname(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFPATTERN) {
-    return 0;
-  }
-
-  if (node_ident(node) == ID_OTHERWISE) {
     return 0;
   }
 
@@ -943,8 +964,10 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
     sc = node->scope->parent;
     break;
   case DEFNAME:
-    id = node->as.DEFNAME.pattern;
-    sc = node->scope->parent->parent->parent;
+    if (node_ident(node) != ID_OTHERWISE) {
+      id = node->as.DEFNAME.pattern;
+      sc = node->scope->parent->parent->parent;
+    }
     break;
   case CATCH:
     break;
@@ -1231,18 +1254,13 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   case TUPLEEXTRACT:
     mark_subs(mod, node, pending, 0, node->subs_count - 1, 1);
     break;
-  case EXCEP:
-    if (node->subs_count == 1) {
-      mark_subs(mod, node, pending, 0, 1, 1);
-    }
-    break;
   case SPIT:
     if (node->subs_count == 2) {
       mark_subs(mod, node, pending, 0, 1, 1);
     }
     break;
   case TRY:
-    mark_subs(mod, node->subs[0], pending, 0, node->subs[0]->subs_count, 1);
+    mark_subs(mod, node, pending, 0, node->subs_count, 1);
     break;
   case BLOCK:
     if (node->scope->parent->node->which == BLOCK
@@ -1686,8 +1704,10 @@ static error step_type_gather_excepts(struct module *mod, struct node *node, voi
   case TRY:
     module_excepts_open_try(mod, node);
     break;
-  case EXCEP:
-    module_excepts_push(mod, node);
+  case DEFNAME:
+    if (node->as.DEFNAME.is_excep) {
+      module_excepts_push(mod, node);
+    }
     break;
   case SPIT:
     module_excepts_push(mod, node);
@@ -1701,16 +1721,22 @@ static error step_type_gather_excepts(struct module *mod, struct node *node, voi
 static error step_excepts_store_label(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
 
-  size_t count_with_label;
+  struct node *label_ident = NULL;
+
   const char *which = NULL;
   switch (node->which) {
-  case EXCEP:
-    which = "except";
-    count_with_label = 1;
-    break;
+  case DEFNAME:
+    if (node->as.DEFNAME.is_excep) {
+      which = "except";
+      label_ident = node->as.DEFNAME.excep_label_ident;
+      break;
+    }
+    return 0;
   case SPIT:
     which = "spit";
-    count_with_label = 2;
+    if (node->subs_count == 2) {
+      label_ident = node->subs[0];
+    }
     break;
   default:
     return 0;
@@ -1718,9 +1744,11 @@ static error step_excepts_store_label(struct module *mod, struct node *node, voi
 
   struct node *tryy = module_excepts_get(mod)->tryy;
   struct node *eblock = tryy->subs[0]->subs[1];
+
+  ident label = ID__NONE;
   error e;
-  ident target;
-  if (node->subs_count < count_with_label) {
+
+  if (label_ident == NULL) {
     if (eblock->subs_count != 2) {
       e = mk_except(mod, node,
                     "try block has multiple catch,"
@@ -1729,10 +1757,9 @@ static error step_excepts_store_label(struct module *mod, struct node *node, voi
     }
 
     assert(eblock->subs[1]->which == CATCH);
-    target = eblock->subs[1]->as.CATCH.label;
-  } else if (node->subs_count == count_with_label) {
-    struct node *label = node->subs[0];
+    label = eblock->subs[1]->as.CATCH.label;
 
+  } else {
     if (eblock->subs_count == 2) {
       assert(eblock->subs[1]->which == CATCH);
       if (!eblock->subs[1]->as.CATCH.is_user_label) {
@@ -1745,30 +1772,26 @@ static error step_excepts_store_label(struct module *mod, struct node *node, voi
     }
 
     struct node *def = NULL;
-    e = scope_lookup(&def, mod, node->scope, label);
+    e = scope_lookup(&def, mod, node->scope, label_ident);
     EXCEPT(e);
 
     if (def->which != CATCH || def->scope->parent->node != eblock) {
-      e = mk_except(mod, label,
+      e = mk_except(mod, label_ident,
                     "invalid label '%s'",
-                    idents_value(mod->gctx, node_ident(label)));
+                    idents_value(mod->gctx, node_ident(label_ident)));
       EXCEPT(e);
     }
 
-    target = node_ident(label);
-  } else {
-    e = mk_except(mod, node, "%s takes %zu or %zu arguments",
-                  which, count_with_label - 1, count_with_label);
-    EXCEPT(e);
+    label = node_ident(label_ident);
   }
 
   switch (node->which) {
-  case EXCEP:
-    node->as.EXCEP.target = target;
-    node->as.EXCEP.error = tryy->as.TRY.error;
+  case DEFNAME:
+    node->as.DEFNAME.excep_label = label;
+    node->as.DEFNAME.excep_error = tryy->as.TRY.error;
     break;
   case SPIT:
-    node->as.SPIT.target = target;
+    node->as.SPIT.label = label;
     node->as.SPIT.error = tryy->as.TRY.error;
     break;
   default:
@@ -2807,8 +2830,8 @@ static error type_inference_if(struct module *mod, struct node *node) {
   error e;
 
   for (size_t n = 0; n < node->subs_count-1; n += 2) {
-    e = typ_compatible(mod, node->subs[n], node->subs[n]->typ,
-                       typ_lookup_builtin(mod, TBI_BOOL));
+    e = typ_check_isa(mod, node->subs[n], node->subs[n]->typ,
+                      typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN));
     EXCEPT(e);
   }
 
@@ -2912,10 +2935,19 @@ static error type_inference_try(struct module *mod, struct node *node) {
   const struct typ *exu = NULL;
   for (size_t n = 0; n < st->count; ++n) {
     struct node *exc = st->excepts[n];
-    if (exc->subs_count == 2) {
-      exc = exc->subs[1];
-    } else {
-      exc = exc->subs[0];
+    switch (exc->which) {
+    case SPIT:
+      if (exc->subs_count == 2) {
+        exc = exc->subs[1];
+      } else {
+        exc = exc->subs[0];
+      }
+      break;
+    case DEFNAME:
+      exc = exc->as.DEFNAME.expr;
+      break;
+    default:
+      assert(FALSE);
     }
 
     if (exu == NULL) {
@@ -3126,6 +3158,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     break;
   case DEFNAME:
     if (node->typ == typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT)) {
+      assert(constraint != typ_lookup_builtin(mod, TBI__PENDING_DESTRUCT));
       node->typ = constraint;
     } else {
       e = typ_unify(&node->typ, mod, node, node->typ, constraint);
@@ -3137,6 +3170,10 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     if (node->as.DEFNAME.expr != NULL) {
       e = type_destruct(mod, node->as.DEFNAME.expr, node->typ);
       EXCEPT(e);
+    }
+
+    if (node->as.DEFNAME.is_excep) {
+      node->subs[0]->typ = node->typ;
     }
     break;
   case UN:
@@ -3389,6 +3426,8 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     e = type_inference_ident(mod, node);
     EXCEPT(e);
     goto ok;
+  case DEFNAME:
+    goto ok;
   case IMPORT:
     e = scope_lookup_module(&def, mod, node->subs[0], FALSE);
     EXCEPT(e);
@@ -3452,7 +3491,6 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     e = type_inference_block(mod, node);
     EXCEPT(e);
     goto ok;
-  case EXCEP:
   case SPIT:
   case BREAK:
   case CONTINUE:
@@ -3477,8 +3515,8 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case WHILE:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
-    e = typ_compatible(mod, node->subs[0], node->subs[0]->typ,
-                       typ_lookup_builtin(mod, TBI_BOOL));
+    e = typ_check_isa(mod, node->subs[0], node->subs[0]->typ,
+                      typ_lookup_builtin(mod, TBI_GENERALIZED_BOOLEAN));
     EXCEPT(e);
     e = typ_compatible(mod, node->subs[1], node->subs[1]->typ,
                        typ_lookup_builtin(mod, TBI_VOID));
@@ -3548,9 +3586,6 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     goto ok;
   case DEFPATTERN:
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
-    if (node_ident(node->subs[0]) == ID_OTHERWISE) {
-      goto ok;
-    }
     bool has_expr = node->subs_count > 1 && node->subs[1]->which != DEFNAME;
     if (has_expr) {
       e = type_destruct(mod, node->subs[0], node->subs[1]->typ);
@@ -3560,8 +3595,6 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     for (size_t n = 0; n < node->subs_count; ++n) {
       struct node *d = node->subs[n];
       if (d->which == DEFNAME) {
-        d->as.DEFNAME.pattern->typ = d->typ;
-
         if (has_expr) {
           d->flags |= d->as.DEFNAME.expr->flags & NODE__TRANSITIVE;
         }
@@ -3578,6 +3611,12 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     node->typ = typ_lookup_builtin(mod, TBI_VOID);
     goto ok;
   case LET:
+    if (node_has_tail_block(node)) {
+      node->typ = node->subs[node->subs_count - 1]->typ;
+    } else {
+      node->typ = typ_lookup_builtin(mod, TBI_VOID);
+    }
+    goto ok;
   case DELEGATE:
   case PRE:
   case POST:
@@ -4415,6 +4454,34 @@ static error step_bool_literal_conversion(struct module *mod, struct node *node,
   return 0;
 }
 
+static error gen_operator_call(struct module *mod,
+                               struct scope *saved_parent, struct node *node,
+                               ident operator_name, struct node *left, struct node *right,
+                               enum catchup_for catchup_for) {
+  memset(node, 0, sizeof(*node));
+  node->which = CALL;
+  struct node *fun = mk_node(mod, node, BIN);
+  fun->as.BIN.operator = TDOT;
+  struct node *base = mk_node(mod, fun, DIRECTDEF);
+  base->as.DIRECTDEF.definition = left->typ->definition;
+  struct node *member = mk_node(mod, fun, IDENT);
+  member->as.IDENT.name = operator_name;
+
+  const struct node *except[3] = { NULL, NULL, NULL };
+  except[0] = left;
+  rew_append(node, generated_expr_ref(TREFDOT, left));
+
+  if (right != NULL) {
+    except[1] = right;
+    rew_append(node, generated_expr_ref(TREFDOT, right));
+  }
+
+  error e = catchup(mod, except, node, saved_parent, catchup_for);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error step_operator_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -4469,28 +4536,53 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
     return 0;
   }
 
-  struct scope *saved_parent = node->scope->parent;
+  error e = gen_operator_call(mod, node->scope->parent, node,
+                              operator_ident[op], left, right,
+                              CATCHUP_REWRITING_CURRENT);
+  EXCEPT(e);
 
-  memset(node, 0, sizeof(*node));
-  node->which = CALL;
-  struct node *fun = mk_node(mod, node, BIN);
-  fun->as.BIN.operator = TDOT;
-  struct node *base = mk_node(mod, fun, DIRECTDEF);
-  base->as.DIRECTDEF.definition = dleft;
-  struct node *member = mk_node(mod, fun, IDENT);
-  member->as.IDENT.name = operator_ident[op];
+  return 0;
+}
 
-  const struct node *except[3] = { NULL, NULL, NULL };
-  except[0] = left;
-  rew_append(node, generated_expr_ref(TREFDOT, left));
-
-  if (node->subs_count == 2) {
-    except[1] = right;
-    rew_append(node, generated_expr_ref(TREFDOT, right));
+static error gen_operator_test_call(struct module *mod, struct node *node, size_t n) {
+  struct node *expr = node->subs[n];
+  if (typ_equal(mod, expr->typ, typ_lookup_builtin(mod, TBI_BOOL))) {
+    return 0;
   }
 
-  error e = catchup(mod, except, node, saved_parent, CATCHUP_REWRITING_CURRENT);
+  struct node *test = node_new_subnode(mod, node);
+  rew_move_last_over(node, n, TRUE);
+  error e = gen_operator_call(mod, node->scope->parent, test,
+                              ID_OPERATOR_TEST, expr, NULL,
+                              CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
+  return 0;
+}
+
+static error step_operator_test_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+  error e;
+
+  switch (node->which) {
+  case DEFNAME:
+    if (node->as.DEFNAME.is_excep) {
+      e = gen_operator_test_call(mod, node, 0);
+      EXCEPT(e);
+    }
+    break;
+  case IF:
+    for (size_t n = 0; n < node->subs_count - 1; n += 2) {
+      e = gen_operator_test_call(mod, node, n);
+      EXCEPT(e);
+    }
+    break;
+  case WHILE:
+    e = gen_operator_test_call(mod, node, 0);
+    EXCEPT(e);
+    break;
+  default:
+    break;
+  }
 
   return 0;
 }
@@ -4556,26 +4648,10 @@ static bool expr_is_return_through_ref(struct node **init, struct module *mod, s
 }
 
 static error assign_copy_call_inference(struct module *mod, struct node *node) {
-  struct node *left = node->subs[0];
-  struct node *right = node->subs[1];
-  struct scope *saved_parent = node->scope->parent;
-
-  memset(node, 0, sizeof(*node));
-  node->which = CALL;
-  struct node *fun = mk_node(mod, node, BIN);
-  fun->as.BIN.operator = TDOT;
-  struct node *base = mk_node(mod, fun, DIRECTDEF);
-  base->as.DIRECTDEF.definition = left->typ->definition;
-  struct node *member = mk_node(mod, fun, IDENT);
-  member->as.IDENT.name = ID_COPY_CTOR;
-
-  rew_append(node, generated_expr_ref(TREFSHARP, left));
-  rew_append(node, generated_expr_ref(TREFDOT, right));
-
-  const struct node *except[] = { left, right, NULL };
-  error e = catchup(mod, except, node, saved_parent, CATCHUP_REWRITING_CURRENT);
+  error e = gen_operator_call(mod, node->scope->parent, node,
+                              ID_COPY_CTOR, node->subs[0], node->subs[1],
+                              CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
-
   return 0;
 }
 
@@ -4594,27 +4670,14 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
 
   struct node *left = node->as.DEFNAME.pattern;
   struct node *right = node->as.DEFNAME.expr;
+  node->as.DEFNAME.expr = NULL; // Steal right.
   struct scope *saved_parent = within->scope->parent;
 
-  struct node *copycall = mk_node(mod, within, CALL);
-  struct node *fun = mk_node(mod, copycall, BIN);
-  fun->as.BIN.operator = TDOT;
-  struct node *base = mk_node(mod, fun, DIRECTDEF);
-  base->as.DIRECTDEF.definition = left->typ->definition;
-  struct node *member = mk_node(mod, fun, IDENT);
-  member->as.IDENT.name = ID_COPY_CTOR;
-
-  struct node *copyleft = calloc(1, sizeof(struct node));
-  node_deepcopy(mod, copyleft, left);
-
-  rew_append(copycall, generated_expr_ref(TREFSHARP, copyleft));
-  // Steal right:
-  node->as.DEFNAME.expr = NULL;
-  rew_append(copycall, generated_expr_ref(TREFDOT, right));
-
-  error e = catchup(mod, NULL, copycall, saved_parent, CATCHUP_AFTER_CURRENT);
+  struct node *copycall = node_new_subnode(mod, within);
+  error e = gen_operator_call(mod, saved_parent, copycall,
+                              ID_COPY_CTOR, left, right,
+                              CATCHUP_AFTER_CURRENT);
   EXCEPT(e);
-
   return 0;
 }
 
@@ -5601,6 +5664,7 @@ static const struct pass _passes[] = {
       step_string_literal_conversion,
       step_bool_literal_conversion,
       step_operator_call_inference,
+      step_operator_test_call_inference,
       step_ctor_call_inference,
       step_array_ctor_call_inference,
       step_dtor_call_inference,

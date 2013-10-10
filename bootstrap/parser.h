@@ -177,12 +177,8 @@ struct node_catch {
   bool is_user_label;
   ident label;
 };
-struct node_excep {
-  ident target;
-  ident error;
-};
 struct node_spit {
-  ident target;
+  ident label;
   ident error;
 };
 struct node_typeconstraint {
@@ -232,6 +228,11 @@ struct node_defintf {
 struct node_defname {
   struct node *pattern;
   struct node *expr;
+
+  bool is_excep;
+  struct node *excep_label_ident;
+  ident excep_label;
+  ident excep_error;
 };
 struct node_defpattern {
   bool is_alias;
@@ -304,7 +305,6 @@ union node_as {
   struct node_match MATCH;
   struct node_try TRY;
   struct node_catch CATCH;
-  struct node_excep EXCEP;
   struct node_spit SPIT;
   struct node_typeconstraint TYPECONSTRAINT;
   struct node_dyn DYN;

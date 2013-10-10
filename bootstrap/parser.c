@@ -448,6 +448,8 @@ ident node_ident(const struct node *node) {
   switch (node->which) {
   case IDENT:
     return node->as.IDENT.name;
+  case DEFNAME:
+    return node_ident(node->as.DEFNAME.pattern);
   case DEFARG:
     return node_ident(node->subs[0]);
   case FOR:
@@ -1416,6 +1418,21 @@ static error p_bool(struct node *node, struct module *mod) {
   return 0;
 }
 
+static error p_except(struct node *node, struct module *mod) {
+  node->which = EXCEP;
+  struct token tok = { 0 };
+  error e = scan(&tok, mod);
+  EXCEPT(e);
+  back(mod, &tok);
+
+  if (tok.t == TIDENT) {
+    error e = p_ident(node_new_subnode(mod, node), mod);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
 static error p_string(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   error e = scan_oneof(&tok, mod, TSTRING, 0);
@@ -1948,6 +1965,9 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
       first.which = SIZEOF;
       e = p_expr(node_new_subnode(mod, &first), mod, T__CALL);
       break;
+    case Texcept:
+      e = p_except(&first, mod);
+      break;
     case TIDENT:
       back(mod, &tok);
       e = p_ident(&first, mod);
@@ -2080,20 +2100,6 @@ static error p_return(struct node *node, struct module *mod) {
 
   if (!expr_terminators[tok.t]) {
     e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
-    EXCEPT(e);
-  }
-  return 0;
-}
-
-static error p_except(struct node *node, struct module *mod) {
-  node->which = EXCEP;
-  struct token tok = { 0 };
-  error e = scan(&tok, mod);
-  EXCEPT(e);
-  back(mod, &tok);
-
-  if (!expr_terminators[tok.t]) {
-    e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
     EXCEPT(e);
   }
   return 0;
@@ -2249,9 +2255,6 @@ static error p_statement(struct node *parent, struct module *mod) {
   switch (tok.t) {
   case Treturn:
     e = p_return(NEW, mod);
-    break;
-  case Texcept:
-    e = p_except(NEW, mod);
     break;
   case Tspit:
     e = p_spit(NEW, mod);
@@ -4107,6 +4110,7 @@ void rew_move_last_over(struct node *node, size_t pos, bool saved_it) {
   struct node *would_leak = node->subs[pos];
   // Ensures there is nothing to leak.
   assert(saved_it || (would_leak->which == IDENT
+                      || would_leak->which == EXCEP
                       || would_leak->which == DIRECTDEF
                       || would_leak->which == BLOCK));
   node->subs[pos] = node->subs[node->subs_count - 1];

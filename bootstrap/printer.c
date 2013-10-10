@@ -274,6 +274,9 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case STRING:
     fprintf(out, "%s", node->as.STRING.value);
     break;
+  case EXCEP:
+    fprintf(out, "except");
+    break;
   case SIZEOF:
     fprintf(out, "(sizeof ");
     print_expr(out, mod, node->subs[0], T__CALL);
@@ -319,8 +322,6 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     fprintf(out, ";;");
     break;
   case IF:
-  case FOR:
-  case WHILE:
   case TRY:
   case MATCH:
   case LET:
@@ -845,7 +846,13 @@ static void print_tree_node(FILE *out, const struct module *mod,
     break;
   case DEFNAME:
     assert(node->as.DEFNAME.pattern->which == IDENT);
-    fprintf(out, "(%s)", idents_value(mod->gctx, node_ident(node->as.DEFNAME.pattern)));
+    if (node->as.DEFNAME.is_excep) {
+      fprintf(out, "(excep %s %s)",
+              idents_value(mod->gctx, node->as.DEFNAME.excep_label),
+              idents_value(mod->gctx, node_ident(node->as.DEFNAME.pattern)));
+    } else {
+      fprintf(out, "(%s)", idents_value(mod->gctx, node_ident(node->as.DEFNAME.pattern)));
+    }
     break;
   default:
     break;
