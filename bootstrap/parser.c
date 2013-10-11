@@ -3526,12 +3526,6 @@ error typ_compatible(const struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  if (constraint == TBI_LITERALS_INIT_ARRAY) {
-    error e = typ_check_isa(mod, for_error, a, TBI_ARRAY_CTOR);
-    EXCEPT(e);
-    return 0;
-  }
-
   if (a == TBI_LITERALS_INTEGER) {
     if (typ_isa(mod, constraint, TBI_INTEGER)) {
       return 0;
