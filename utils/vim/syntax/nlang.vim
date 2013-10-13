@@ -18,7 +18,7 @@ syn keyword nStatement let return block lambda async such
 syn keyword nOperator in and or not bwxor isa
 syn keyword nOperator sizeof
 syn keyword nKeyword noop as attr declare
-syn keyword nException try catch spit except swallow fatal
+syn keyword nException try catch except throw drop fatal
 syn match nOperator "[@:]"
 syn match nSemantic "[&]"
 

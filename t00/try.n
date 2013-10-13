@@ -2,8 +2,8 @@ from nlang import *
 
 fun foo = i32
   try
-    spit ONE { code=1 }:error
-    spit ZERO { code=0 }:error
+    throw ONE { code=1 }:error
+    throw ZERO { code=0 }:error
   catch ZERO _
     return 0
   catch ONE _
@@ -34,7 +34,7 @@ export fun main = i32
   assert <- bar == 1
   assert <- noerror == 0
   try
-    spit { code=bar }:error
+    throw { code=bar }:error
     return 1
   catch err
     return err.code - 1

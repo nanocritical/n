@@ -924,10 +924,10 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
   case NOOP:
     fprintf(out, ";");
     break;
-  case SPIT:
-    fprintf(out, "%s = ", idents_value(mod->gctx, node->as.SPIT.error));
+  case THROW:
+    fprintf(out, "%s = ", idents_value(mod->gctx, node->as.THROW.error));
     print_expr(out, mod, node->subs_count == 1 ? node->subs[0] : node->subs[1], TASSIGN);
-    fprintf(out, "; goto %s", idents_value(mod->gctx, node->as.SPIT.label));
+    fprintf(out, "; goto %s", idents_value(mod->gctx, node->as.THROW.label));
     break;
   case IF:
     print_if(out, mod, node);

@@ -37,7 +37,7 @@ const char *node_which_strings[] = {
   [TRY] = "TRY",
   [CATCH] = "CATCH",
   [EXCEP] = "EXCEP",
-  [SPIT] = "SPIT",
+  [THROW] = "THROW",
   [TYPECONSTRAINT] = "TYPECONSTRAINT",
   [DYN] = "DYN",
   [DEFFUN] = "DEFFUN",
@@ -84,7 +84,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_FINAL] = "final",
   [ID_SELF] = "self",
   [ID_OTHERWISE] = "_",
-  [ID_SPIT] = "spit",
+  [ID_THROW] = "throw",
   [ID_MAIN] = "main",
   [ID_WHICH] = "which__",
   [ID_AS] = "as__",
@@ -2203,8 +2203,8 @@ static error p_return(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_spit(struct node *node, struct module *mod) {
-  node->which = SPIT;
+static error p_throw(struct node *node, struct module *mod) {
+  node->which = THROW;
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
   EXCEPT(e);
@@ -2354,8 +2354,8 @@ static error p_statement(struct node *parent, struct module *mod) {
   case Treturn:
     e = p_return(NEW, mod);
     break;
-  case Tspit:
-    e = p_spit(NEW, mod);
+  case Tthrow:
+    e = p_throw(NEW, mod);
     break;
   case Tlet:
   case Tand:

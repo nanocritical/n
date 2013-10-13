@@ -1264,7 +1264,7 @@ static error step_type_destruct_mark(struct module *mod, struct node *node, void
   case TUPLEEXTRACT:
     mark_subs(mod, node, pending, 0, node->subs_count - 1, 1);
     break;
-  case SPIT:
+  case THROW:
     if (node->subs_count == 2) {
       mark_subs(mod, node, pending, 0, 1, 1);
     }
@@ -1698,8 +1698,8 @@ static error step_type_gather_retval(struct module *mod, struct node *node, void
   return 0;
 }
 
-// FIXME: This is O(depth * number_spit_except).
-// Would be O(number_spit_except) if we remembered whether we're in the TRY
+// FIXME: This is O(depth * number_throw_except).
+// Would be O(number_throw_except) if we remembered whether we're in the TRY
 // or in one of the CATCH, when descending.
 static error check_in_try(struct module *mod, struct node *node, const char *which) {
   error e;
@@ -1741,8 +1741,8 @@ static error step_type_gather_excepts(struct module *mod, struct node *node, voi
       module_excepts_push(mod, node);
     }
     break;
-  case SPIT:
-    e = check_in_try(mod, node, "spit");
+  case THROW:
+    e = check_in_try(mod, node, "throw");
     EXCEPT(e);
     module_excepts_push(mod, node);
     break;
@@ -1766,8 +1766,8 @@ static error step_excepts_store_label(struct module *mod, struct node *node, voi
       break;
     }
     return 0;
-  case SPIT:
-    which = "spit";
+  case THROW:
+    which = "throw";
     if (node->subs_count == 2) {
       label_ident = node->subs[0];
     }
@@ -1824,9 +1824,9 @@ static error step_excepts_store_label(struct module *mod, struct node *node, voi
     node->as.DEFNAME.excep_label = label;
     node->as.DEFNAME.excep_error = tryy->as.TRY.error;
     break;
-  case SPIT:
-    node->as.SPIT.label = label;
-    node->as.SPIT.error = tryy->as.TRY.error;
+  case THROW:
+    node->as.THROW.label = label;
+    node->as.THROW.error = tryy->as.TRY.error;
     break;
   default:
     assert(FALSE);
@@ -2960,7 +2960,7 @@ static error type_inference_try(struct module *mod, struct node *node) {
   struct try_state *st = module_excepts_get(mod);
 
   if (st->count == 0) {
-    e = mk_except(mod, node, "try block has no except or spit statement, catch is unreachable");
+    e = mk_except(mod, node, "try block has no except or throw statement, catch is unreachable");
     EXCEPT(e);
   }
 
@@ -2968,7 +2968,7 @@ static error type_inference_try(struct module *mod, struct node *node) {
   for (size_t n = 0; n < st->count; ++n) {
     struct node *exc = st->excepts[n];
     switch (exc->which) {
-    case SPIT:
+    case THROW:
       if (exc->subs_count == 2) {
         exc = exc->subs[1];
       } else {
@@ -3524,7 +3524,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     e = type_inference_block(mod, node);
     EXCEPT(e);
     goto ok;
-  case SPIT:
+  case THROW:
   case BREAK:
   case CONTINUE:
   case NOOP:

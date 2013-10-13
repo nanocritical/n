@@ -938,7 +938,7 @@ export error method i_ordered.operator_ge other:@final = bool
 export error method i_show.show buf:@#i_string_buffer = void
   self.code.show buf
 
-export (fun e:i_error) swallow err:e = void
+export (fun e:i_error) drop err:e = void
   noop
 
 export (fun e:i_error) fatal err:e = void

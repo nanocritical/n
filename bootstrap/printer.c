@@ -493,8 +493,8 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
   case NOOP:
     fprintf(out, "noop");
     break;
-  case SPIT:
-    fprintf(out, "spit ");
+  case THROW:
+    fprintf(out, "throw ");
     for (size_t n = 0; n < node->subs_count; ++n) {
       print_expr(out, mod, node->subs[n], T__CALL);
     }

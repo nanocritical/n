@@ -36,7 +36,7 @@ enum node_which {
   TRY,
   CATCH,
   EXCEP,
-  SPIT,
+  THROW,
   TYPECONSTRAINT,
   DYN,
   DEFFUN,
@@ -177,7 +177,7 @@ struct node_catch {
   bool is_user_label;
   ident label;
 };
-struct node_spit {
+struct node_throw {
   ident label;
   ident error;
 };
@@ -305,7 +305,7 @@ union node_as {
   struct node_match MATCH;
   struct node_try TRY;
   struct node_catch CATCH;
-  struct node_spit SPIT;
+  struct node_throw THROW;
   struct node_typeconstraint TYPECONSTRAINT;
   struct node_dyn DYN;
   struct node_deffun DEFFUN;
@@ -399,7 +399,7 @@ enum predefined_idents {
   ID_FINAL,
   ID_SELF,
   ID_OTHERWISE,
-  ID_SPIT,
+  ID_THROW,
 
   ID_MAIN,
   ID_WHICH,
