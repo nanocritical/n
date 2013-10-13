@@ -1467,7 +1467,7 @@ static error step_type_deftypes_defintfs(struct module *mod, struct node *node, 
   if (node->subs[IDX_GENARGS]->subs_count > 0
       && node_toplevel(node)->generic_definition != NULL) {
     struct typ *mutable_typ = typ_new(node_toplevel(node)->generic_definition,
-                                      TYPE_DEF, node->subs[IDX_GENARGS]->subs_count, 0);
+                                      TYP_DEF, node->subs[IDX_GENARGS]->subs_count, 0);
     mutable_typ->gen_args[0] = node_toplevel(node)->generic_definition->typ;
     mutable_typ->definition = node;
     node->typ = mutable_typ;
@@ -1485,7 +1485,7 @@ static error step_type_deftypes_defintfs(struct module *mod, struct node *node, 
     t->definition = node;
     node->typ = t;
   } else {
-    node->typ = typ_new(node, TYPE_DEF, 0, 0);
+    node->typ = typ_new(node, TYP_DEF, 0, 0);
   }
   node->flags = NODE_IS_TYPE;
 
@@ -1851,7 +1851,7 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
   }
 
   struct node *fun = node->subs[0];
-  if (fun->typ->which != TYPE_DEF
+  if (fun->typ->which != TYP_DEF
       || fun->typ->definition->as.DEFTYPE.kind != DEFTYPE_SUM) {
     return 0;
   }
@@ -2145,7 +2145,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
                                    node_ident(node->subs[1]), FALSE);
   EXCEPT(e);
 
-  if (field->typ->which == TYPE_FUNCTION
+  if (field->typ->which == TYP_FUNCTION
       && node->typ != TBI__CALL_FUNCTION_SLOT) {
     if (node_fun_explicit_args_count(field) != 0) {
       e = mk_except_call_args_count(mod, node, field, 0, 0);
@@ -2680,7 +2680,7 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
 
   } else {
     is_explicit = FALSE;
-    assert(gendef->typ->which == TYPE_FUNCTION);
+    assert(gendef->typ->which == TYP_FUNCTION);
 
     struct node *instantiation = calloc(1, sizeof(struct node));
     instantiation->which = GENARGS;
@@ -2743,7 +2743,7 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
     }
     node->flags = NODE_IS_TYPE;
   } else {
-    assert(gendef->typ->which == TYPE_FUNCTION && "only for functions, for now");
+    assert(gendef->typ->which == TYP_FUNCTION && "only for functions, for now");
     fun->typ = instance->typ;
     for (size_t n = 1; n < node->subs_count; ++n) {
       e = type_destruct(mod, node->subs[n], fun->typ->fun_args[n-1]);
@@ -2761,7 +2761,7 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
 static error type_inference_call(struct module *mod, struct node *node) {
   struct node *fun = node->subs[0];
 
-  if (fun->typ->which == TYPE_DEF) {
+  if (fun->typ->which == TYP_DEF) {
     if (!node_can_have_genargs(fun->typ->definition)
         || fun->typ->definition->subs[IDX_GENARGS]->subs_count == 0) {
       error e = mk_except_type(mod, fun, "not a generic type");
@@ -2773,7 +2773,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
     return 0;
   }
 
-  if (fun->typ->which != TYPE_FUNCTION) {
+  if (fun->typ->which != TYP_FUNCTION) {
     error e = mk_except_type(mod, fun, "not a function or sum type constructor");
     EXCEPT(e);
   }
@@ -2781,7 +2781,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
   error e = prepare_call_arguments(mod, node);
   EXCEPT(e);
 
-  if (fun->typ->which == TYPE_FUNCTION
+  if (fun->typ->which == TYP_FUNCTION
       && fun->typ->definition->subs[IDX_GENARGS]->subs_count > 0
       && node_toplevel_const(fun->typ->definition)->generic_definition == NULL) {
     error e = type_inference_generic_instantiation(mod, node);
@@ -3084,7 +3084,7 @@ static error type_inference_ident(struct module *mod, struct node *node) {
     EXCEPT(e);
   }
 
-  if (def->typ->which == TYPE_FUNCTION
+  if (def->typ->which == TYP_FUNCTION
       && node->typ != TBI__CALL_FUNCTION_SLOT) {
     if (node_fun_explicit_args_count(def->typ->definition) != 0) {
       e = mk_except_call_args_count(mod, node, def->typ->definition, 0, 0);
@@ -3251,7 +3251,7 @@ static error type_destruct(struct module *mod, struct node *node, const struct t
     case OP_UN_REFOF:
       assert(constraint->definition->typ->gen_arity > 0);
       node->typ = typ_new(constraint->definition->typ->gen_args[0]->definition,
-                          TYPE_DEF, 1, 0);
+                          TYP_DEF, 1, 0);
       node->typ->gen_args[1] = node->subs[0]->typ;
       break;
     default:
@@ -3589,7 +3589,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     if (node->subs[IDX_GENARGS]->subs_count > 0
         && node_toplevel(node)->generic_definition != NULL) {
       struct typ *mutable_typ = typ_new(node_toplevel(node)->generic_definition,
-                                        TYPE_FUNCTION, node->subs[IDX_GENARGS]->subs_count,
+                                        TYP_FUNCTION, node->subs[IDX_GENARGS]->subs_count,
                                         node_fun_all_args_count(node));
       mutable_typ->gen_args[0] = node_toplevel(node)->generic_definition->typ;
       mutable_typ->definition = node;
@@ -3600,7 +3600,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
         node->typ->gen_args[1 + n] = node->subs[IDX_GENARGS]->subs[n]->typ;
       }
     } else {
-      node->typ = typ_new(node, TYPE_FUNCTION, 0,
+      node->typ = typ_new(node, TYP_FUNCTION, 0,
                           node_fun_all_args_count(node));
     }
 

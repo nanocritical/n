@@ -642,14 +642,15 @@ const struct typ *TBI__MUTABLE;
 const struct typ *TBI__MERCURIAL;
 
 enum typ_which {
-  TYPE_DEF,
-  TYPE_FUNCTION,
-  TYPE__MARKER,
+  TYP_DEF,
+  TYP_FUNCTION,
+  TYP__MARKER,
 };
 
 struct typ {
   struct node *definition;
   enum typ_which which;
+
   size_t gen_arity;
   const struct typ **gen_args; // length gen_arity + 1
 

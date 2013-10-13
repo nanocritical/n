@@ -1289,9 +1289,9 @@ void globalctx_init(struct globalctx *gctx) {
     if (i >= ID_TBI__FIRST && i <= ID_TBI__LAST) {
       struct typ *t = calloc(1, sizeof(struct typ));
       if (i < ID_TBI__FIRST_MARKER) {
-        t = typ_new_builtin(NULL, TYPE_DEF, 0, 0);
+        t = typ_new_builtin(NULL, TYP_DEF, 0, 0);
       } else {
-        t = typ_new_builtin(NULL, TYPE__MARKER, 0, 0);
+        t = typ_new_builtin(NULL, TYP__MARKER, 0, 0);
       }
 
       gctx->builtin_typs_by_name[i] = t;
@@ -1302,7 +1302,7 @@ void globalctx_init(struct globalctx *gctx) {
 
   gctx->modules_root.scope = scope_new(&gctx->modules_root);
   gctx->modules_root.which = ROOT_OF_ALL;
-  gctx->modules_root.typ = typ_new(&gctx->modules_root, TYPE_DEF, 0, 0);
+  gctx->modules_root.typ = typ_new(&gctx->modules_root, TYP_DEF, 0, 0);
 }
 
 static error module_read(struct module *mod, const char *prefix, const char *fn) {
@@ -3195,7 +3195,7 @@ static error register_module(struct node **parent,
       m->as.MODULE.mod = p == last ? mod : NULL;
       m->scope = scope_new(m);
       m->scope->parent = root->scope;
-      m->typ = typ_new(m, TYPE_DEF, 0, 0);
+      m->typ = typ_new(m, TYP_DEF, 0, 0);
 
       e = scope_define_ident(mod, root->scope, i, m);
       EXCEPT(e);
@@ -3323,7 +3323,7 @@ static struct typ *typ_new_builtin(struct node *definition,
       assert(r->gen_args[0]->gen_arity == 0);
     }
   }
-  if (which == TYPE_FUNCTION) {
+  if (which == TYP_FUNCTION) {
     r->fun_arity = fun_arity;
     r->fun_args = calloc(fun_arity + 1, sizeof(struct typ *));
   }
@@ -3334,7 +3334,7 @@ static struct typ *typ_new_builtin(struct node *definition,
 struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity,
                     size_t fun_arity) {
-  assert(which == TYPE__MARKER || definition != NULL);
+  assert(which == TYP__MARKER || definition != NULL);
   if (gen_arity > 0) {
     assert(definition->typ != NULL);
   }
@@ -3356,7 +3356,7 @@ char *typ_name(const struct module *mod, const struct typ *t) {
 }
 
 char *typ_pretty_name(const struct module *mod, const struct typ *t) {
-  if (t->which == TYPE__MARKER) {
+  if (t->which == TYP__MARKER) {
     return typ_name(mod, t);
   }
 
@@ -3364,8 +3364,8 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
   char *s = r;
 
   switch (t->which) {
-  case TYPE_FUNCTION:
-  case TYPE_DEF:
+  case TYP_FUNCTION:
+  case TYP_DEF:
     if (t->gen_arity == 0) {
       s += sprintf(s, "%s", typ_name(mod, t));
     } else if (typ_isa(mod, t, TBI_ANY_TUPLE)) {
@@ -3462,7 +3462,7 @@ bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *
     }
   }
 
-  if (a->which == TYPE_FUNCTION && b->which == TYPE_FUNCTION) {
+  if (a->which == TYP_FUNCTION && b->which == TYP_FUNCTION) {
     const struct typ *pa = node_parent(a->definition)->typ;
     const struct typ *pb = node_parent(b->definition)->typ;
     if (typ_equal(mod, pa, pb)) {

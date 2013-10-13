@@ -702,7 +702,7 @@ static void print_toplevel(FILE *out, bool header, const struct node *node) {
 
 static void print_typ(FILE *out, const struct module *mod, const struct typ *typ) {
   switch (typ->which) {
-  case TYPE_DEF:
+  case TYP_DEF:
     if (typ_is_reference_instance(mod, typ)
         && typ->gen_args[1]->definition->which == DEFINTF) {
       print_typ(out, mod, typ->gen_args[1]);
@@ -723,7 +723,7 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
       fprintf(out, "_genN_");
     }
     break;
-  case TYPE_FUNCTION:
+  case TYP_FUNCTION:
     if (typ->gen_arity > 0) {
       fprintf(out, "_Ngen_");
     }
