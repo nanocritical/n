@@ -656,8 +656,6 @@ struct typ {
 
   size_t fun_arity;
   const struct typ **fun_args; // length fun_arity + 1
-
-  bool is_abstract_genarg;
 };
 
 struct fun_state {
@@ -838,8 +836,8 @@ void node_deepcopy(struct module *mod, struct node *dst,
 
 struct typ *typ_new(struct node *definition,
                     enum typ_which which, size_t gen_arity, size_t fun_arity);
-struct typ *typ_genarg_mark_as_abstract(const struct typ *t);
 const struct typ *typ_lookup_builtin_tuple(const struct module *mod, size_t arity);
+bool typ_is_uninstantiated_genarg(const struct typ *t);
 bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b);
 error typ_check_equal(const struct module *mod, const struct node *for_error,
                       const struct typ *a, const struct typ *b);

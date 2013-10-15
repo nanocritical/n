@@ -2622,21 +2622,13 @@ static error rewrite_deftype_instance_genargs(struct module *mod, const struct n
 
 static void found_existing_instance_explicit(struct module *mod, struct node *node,
                                              struct node *fun, struct node *i) {
-  if (fun->typ->is_abstract_genarg) {
-    node->typ = typ_genarg_mark_as_abstract(i->typ);
-  } else {
-    node->typ = i->typ;
-  }
+  node->typ = i->typ;
   node->flags = NODE_IS_TYPE;
 }
 
 static error found_existing_instance_implicit_deffun(struct module *mod, struct node *node,
                                                      struct node *fun, struct node *i) {
-  if (fun->typ->is_abstract_genarg) {
-    fun->typ = typ_genarg_mark_as_abstract(i->typ);
-  } else {
-    fun->typ = i->typ;
-  }
+  fun->typ = i->typ;
   for (size_t n = 1; n < node->subs_count; ++n) {
     error e = type_destruct(mod, node->subs[n], fun->typ->fun_args[n-1]);
     EXCEPT(e);
@@ -2736,11 +2728,7 @@ static error type_inference_generic_instantiation(struct module *mod, struct nod
   EXCEPT(e);
 
   if (is_explicit) {
-    if (fun->typ->is_abstract_genarg) {
-      node->typ = typ_genarg_mark_as_abstract(instance->typ);
-    } else {
-      node->typ = instance->typ;
-    }
+    node->typ = instance->typ;
     node->flags = NODE_IS_TYPE;
   } else {
     assert(gendef->typ->which == TYP_FUNCTION && "only for functions, for now");
@@ -3573,7 +3561,8 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     EXCEPT(e);
     goto ok;
   case DEFGENARG:
-    node->typ = typ_genarg_mark_as_abstract(node->subs[1]->typ);
+    node->typ = node->subs[1]->typ;
+    assert(typ_is_uninstantiated_genarg(node->typ));
     e = type_destruct(mod, node->subs[0], node->typ);
     EXCEPT(e);
     node->flags |= NODE_IS_TYPE;

@@ -1159,13 +1159,6 @@ static struct typ *typ_new_builtin(struct node *definition,
                                    enum typ_which which, size_t gen_arity,
                                    size_t fun_arity);
 
-struct typ *typ_genarg_mark_as_abstract(const struct typ *t) {
-  struct typ *r = calloc(1, sizeof(struct typ));
-  memcpy(r, t, sizeof(*r));
-  r->is_abstract_genarg = TRUE;
-  return r;
-}
-
 static void init_tbis(struct globalctx *gctx) {
   TBI_VOID = gctx->builtin_typs_by_name[ID_TBI_VOID];
   TBI_LITERALS_NULL = gctx->builtin_typs_by_name[ID_TBI_LITERALS_NULL];
@@ -3427,58 +3420,7 @@ bool typ_is_same_generic(const struct module *mod,
 }
 
 bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b) {
-  // FIXME Typ equality will have to be named-based in the future, when we
-  // have forward-declarations across modules.
-
-  if (a == b) {
-    return TRUE;
-  }
-
-  if (a->gen_arity > 0
-      && a->gen_arity == b->gen_arity
-      && typ_equal(mod, a->gen_args[0], b->gen_args[0])) {
-    for (size_t n = 0; n < a->gen_arity; ++n) {
-      if (!typ_equal(mod, a->gen_args[1+n], b->gen_args[1+n])) {
-        return FALSE;
-      }
-    }
-    return TRUE;
-  }
-
-  if (a->is_abstract_genarg || b->is_abstract_genarg) {
-    if (a->definition == b->definition) { // Necessary condition.
-      // Try again, masking out these flags.
-      struct typ *ma = calloc(1, sizeof(*a));
-      memcpy(ma, a, sizeof(*ma));
-      ma->is_abstract_genarg = FALSE;
-      struct typ *mb = calloc(1, sizeof(*b));
-      memcpy(mb, b, sizeof(*mb));
-      mb->is_abstract_genarg = FALSE;
-
-      const bool r = memcmp(ma, mb, sizeof(*ma)) == 0;
-      free(mb);
-      free(ma);
-      return r;
-    }
-  }
-
-  if (a->which == TYP_FUNCTION && b->which == TYP_FUNCTION) {
-    const struct typ *pa = node_parent(a->definition)->typ;
-    const struct typ *pb = node_parent(b->definition)->typ;
-    if (typ_equal(mod, pa, pb)) {
-      size_t n;
-      for (n = 0; n < a->gen_arity; ++n) {
-        if (!typ_equal(mod, a->gen_args[1+n], b->gen_args[1+n])) {
-          break;
-        }
-      }
-      if (n == a->gen_arity) {
-        return TRUE;
-      }
-    }
-  }
-
-  return FALSE;
+  return a == b;
 }
 
 error typ_check_equal(const struct module *mod, const struct node *for_error,
@@ -3498,13 +3440,19 @@ except:
   return e;
 }
 
+bool typ_is_uninstantiated_genarg(const struct typ *t) {
+  return t->definition->which == DEFINTF
+    && (t->definition->subs[IDX_GENARGS]->subs_count == 0
+        || t->definition->subs[IDX_GENARGS]->subs[0]->which == DEFGENARG);
+}
+
 error typ_compatible(const struct module *mod, const struct node *for_error,
                      const struct typ *a, const struct typ *constraint) {
-  if (constraint->is_abstract_genarg) {
+  if (typ_is_uninstantiated_genarg(constraint)) {
     error e = typ_check_isa(mod, for_error, a, constraint);
     EXCEPT(e);
     return 0;
-  } else if (a->is_abstract_genarg) {
+  } else if (typ_is_uninstantiated_genarg(a)) {
     error e = typ_check_isa(mod, for_error, constraint, a);
     EXCEPT(e);
     return 0;
