@@ -65,16 +65,29 @@ export intf i_sum_copy = export i_copyable
 export intf i_sum_equality = export i_has_equality
 export intf i_sum_order = export i_ordered
 
+
 export extern type void = i_return_by_copy
 
-export intf i_any_any_ref = export i_return_by_copy export i_trivial_copy export i_trivial_equality
+export extern intf __i_ref_compatible r:i_any_any_ref =
+
+export intf i_any_any_ref = \
+    export i_return_by_copy \
+    export i_trivial_copy \
+    export i_trivial_equality
 export intf i_any_ref t:i_any = export i_any_any_ref
-export intf i_ref t:i_any = export (i_any_ref t)
-export intf i_mutable_ref t:i_any = export (i_ref t)
-export intf i_mercurial_ref t:i_any = export (i_mutable_ref t)
-export intf i_nullable_ref t:i_any = export (i_any_ref t)
-export intf i_nullable_mutable_ref t:i_any = export (i_nullable_ref t)
-export intf i_nullable_mercurial_ref t:i_any = export (i_nullable_mutable_ref t)
+export intf i_any_mutable_ref t:i_any = export (i_any_ref t)
+export intf i_any_nullable_ref t:i_any = export i_any_any_ref
+export intf i_any_nullable_mutable_ref t:i_any = export (i_any_nullable_ref t)
+
+export extern type ref t:i_any = export (i_any_ref t)
+export extern type mutable_ref t:i_any = export (i_any_mutable_ref t)
+export extern type mercurial_ref t:i_any = export (i_any_mutable_ref t)
+
+-- FIXME: to replace with semantic constraint
+export extern type nullable_ref t:i_any = export (i_any_nullable_ref t)
+export extern type nullable_mutable_ref t:i_any = export (i_any_nullable_mutable_ref t)
+export extern type nullable_mercurial_ref t:i_any = export (i_any_nullable_mutable_ref t)
+
 
 export intf i_any_tuple = export i_copyable
 
@@ -284,8 +297,7 @@ export intf i_generalized_boolean = \
     export i_ordered
   method operator_test = bool
 
-export intf i_bool_compatible = \
-    export i_generalized_boolean
+export intf i_bool_compatible =
   fun from_bool b:bool = final
 
 export intf i_native_boolean = \
@@ -293,6 +305,7 @@ export intf i_native_boolean = \
     export i_trivial_copy \
     export i_return_by_copy \
     export i_generalized_boolean \
+    export i_bool_compatible \
     export i_show
 
 export intf i_floating = \
@@ -854,7 +867,7 @@ export inline static_array method all = index_range
 
 export inline static_array method$ unsafe_rawdata = @$u8
   assert <- self._count != 0
-  return (cast ?@!t @$u8) self$_data
+  return (cast ?@$t @$u8) self$_data
 
 export inline static_array method$ unsafe_data = @$t
   assert <- self._count != 0

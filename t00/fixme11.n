@@ -1,0 +1,14 @@
+from nlang import *
+from nlang.strings import string
+
+fun foo s:static_string = void
+  pass
+
+fun bar s:string = void
+  pass
+
+export fun main = i32
+  let s = 'abc'
+  foo s
+  bar s
+  return 0

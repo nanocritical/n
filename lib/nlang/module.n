@@ -19,3 +19,10 @@ export fun say a:@i_show = void
   print a
   let eol = '\n':char
   write_buf 1 @eol.code.trim_u8 1
+
+
+export inline (fun t:i_any r:(i_any_ref t)) just_const p:r = @t
+  return p
+
+export inline (fun t:i_any r:(i_any_mutable_ref t)) just_mutable p:r = @!t
+  return p

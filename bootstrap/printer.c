@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "printer.h"
+#include "types.h"
 
 const char *token_strings[TOKEN__NUM] = {
   [Timport] = "import",
@@ -311,7 +312,8 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     print_expr(out, mod, node->subs[0], parent_op);
     break;
   case DIRECTDEF:
-    fprintf(out, "%s", scope_name(mod, node->as.DIRECTDEF.definition->scope));
+    fprintf(out, "%s",
+            scope_name(mod, typ_definition_const(node->as.DIRECTDEF.typ)->scope));
     break;
   case DYN:
     print_expr(out, mod, node->subs[0], parent_op);
@@ -583,9 +585,10 @@ static void print_deffun(FILE *out, const struct module *mod, int indent, const 
   fprintf(out, "fun ");
   print_expr(out, mod, name, T__STATEMENT);
 
+  const struct node *funargs = node->subs[IDX_FUNARGS];
   for (size_t n = 0; n < args_count; ++n) {
     fprintf(out, " ");
-    const struct node *arg = node->subs[IDX_FUN_FIRSTARG + n];
+    const struct node *arg = funargs->subs[n];
     print_typeconstraint(out, mod, arg);
   }
 
@@ -706,9 +709,10 @@ static void print_defmethod(FILE *out, const struct module *mod, int indent, con
   fprintf(out, "%s method ", scope);
   print_expr(out, mod, name, T__STATEMENT);
 
-  for (size_t n = 0; n < args_count; ++n) {
+  const struct node *funargs = node->subs[IDX_FUNARGS];
+  for (size_t n = 1; n < args_count; ++n) {
     fprintf(out, " ");
-    const struct node *arg = node->subs[IDX_FUN_FIRSTARG + n];
+    const struct node *arg = funargs->subs[n];
     print_typeconstraint(out, mod, arg);
   }
 
@@ -765,7 +769,10 @@ static void print_import(FILE *out, const struct module *mod, int indent, const 
     fprintf(out, " %s ", kind);
 
     for (size_t n = 1; n < node->subs_count; ++n) {
-      print_expr(out, mod, node->subs[n]->subs[0]->subs[1], T__CALL);
+      struct node *i = node->subs[n];
+      if (i->typ == NULL) {
+        print_expr(out, mod, i->subs[0]->subs[1], T__CALL);
+      }
     }
   }
 }
@@ -859,9 +866,14 @@ static void print_tree_node(FILE *out, const struct module *mod,
   }
 
   if (node->typ != NULL) {
-    char *typn = typ_pretty_name(mod, node->typ);
-    fprintf(out, " :%s", typn);
-    free(typn);
+    const struct node *def = typ_definition_const(node->typ);
+    if (def->which == IMPORT) {
+      fprintf(out, " :<import>");
+    } else {
+      char *typn = typ_pretty_name(mod, node->typ);
+      fprintf(out, " :%s", typn);
+      free(typn);
+    }
   }
 
   fprintf(out, "\n");

@@ -465,9 +465,11 @@ static error gather_dependencies(struct node *node, struct dependencies *deps) {
 
   struct module *mod = node_module_owner(node);
   PUSH_STATE(mod->state);
+  PUSH_STATE(mod->state->step_state);
   error e = pass(mod, mod->body,
                  down, up, -1, deps);
   EXCEPT(e);
+  POP_STATE(mod->state->step_state);
   POP_STATE(mod->state);
 
   return 0;
@@ -606,19 +608,19 @@ int main(int argc, char **argv) {
     for (size_t n = 0; n < stage.sorted_count; ++n) {
       struct module *mod = stage.sorted[n];
 
-      PUSH_STATE(mod->state);
+      PUSH_STATE(mod->state->step_state);
 
       e = advance(mod, p);
       EXCEPT(e);
 
-      POP_STATE(mod->state);
+      POP_STATE(mod->state->step_state);
     }
   }
 
   for (size_t n = 0; n < stage.sorted_count; ++n) {
     struct module *mod = stage.sorted[n];
 
-    PUSH_STATE(mod->state);
+    PUSH_STATE(mod->state->step_state);
 
     for (size_t pp = p; passes[pp].kind == PASS_BODY; ++pp) {
       stage.state->passing = pp;
@@ -627,7 +629,9 @@ int main(int argc, char **argv) {
       EXCEPT(e);
     }
 
-    POP_STATE(mod->state);
+    mod->done = TRUE;
+
+    POP_STATE(mod->state->step_state);
   }
 
   for (size_t n = 0; n < stage.sorted_count; ++n) {

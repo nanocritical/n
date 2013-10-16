@@ -2,9 +2,7 @@ export extern type __null__ =
 export extern type integer =
 export extern type floating =
 
-export extern type init =
-export extern type init_array =
-
+export extern type __internal_not_typeable__ =
 export extern type __call_function_slot__ =
 
 export extern type __mutable__ =

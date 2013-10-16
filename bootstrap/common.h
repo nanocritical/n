@@ -77,6 +77,10 @@ void __break(void);
   type __max_b = b; \
   __max_a >= __max_b ? __max_a : __max_b; })
 
+#define SWAP(a, b) ({ \
+  __typeof__(a) __tmp = a; \
+  a = b; \
+  b = __tmp; })
 
 #define SLICE(v, hi, lo) ( ((v) >> (lo)) & ((1ULL << ((hi) - (lo) + 1)) - 1) )
 
@@ -172,7 +176,7 @@ static inline uint32_t bitreverse32(uint32_t x) {
 #define rounddown_mult_pow2(x, pow2) ( x & ~(pow2 - 1) )
 
 #define roundup_mult(x, mult) ({ \
-  typeof(x) rem = x % mult; \
+  __typeof__(x) rem = x % mult; \
   rem ? x + mult - rem : x \
 })
 

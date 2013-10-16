@@ -6,7 +6,12 @@
 
 #define MODULE_PATH_MAXLEN 16
 
+struct typ;
+
 typedef uint32_t ident;
+
+uint32_t ident_hash(const ident *a);
+int ident_cmp(const ident *a, const ident *b);
 
 enum node_which {
   NUL = 1,
@@ -41,10 +46,13 @@ enum node_which {
   DYN,
   DEFFUN,
   DEFTYPE,
+  DEFNAMEDLITERAL,
+  DEFCONSTRAINTLITERAL,
   DEFMETHOD,
   DEFINTF,
   DEFNAME,
   DEFPATTERN,
+  FUNARGS,
   DEFARG,
   GENARGS,
   DEFGENARG,
@@ -118,9 +126,10 @@ struct toplevel {
   struct node *full_definition;
   enum builtingen builtingen;
 
+  size_t first_explicit_genarg;
   struct node **instances;
   size_t instances_count;
-  struct node *generic_definition;
+  struct typ *our_generic_functor;
 
   ssize_t yet_to_pass;
 };
@@ -159,6 +168,7 @@ struct node_init {
 };
 struct node_return {
   const struct node *return_through_ref_expr;
+  bool forced_return_through_ref;
 };
 struct node_for {
   struct node *pattern;
@@ -185,7 +195,7 @@ struct node_typeconstraint {
   bool in_pattern;
 };
 struct node_dyn {
-  const struct typ *intf;
+  struct typ *intf;
 };
 struct node_deffun {
   struct toplevel toplevel;
@@ -198,11 +208,9 @@ enum deftype_kind {
   DEFTYPE_SUM,
 };
 
-struct typ;
-
 struct isalist {
   size_t count;
-  const struct typ **list;
+  struct typ **list;
   bool *exported;
 };
 
@@ -210,7 +218,7 @@ struct node_deftype {
   struct toplevel toplevel;
 
   enum deftype_kind kind;
-  const struct typ *choice_typ;
+  struct typ *choice_typ;
 
   struct node **members;
   size_t members_count;
@@ -222,6 +230,14 @@ struct node_defmethod {
   enum token_type access;
 };
 struct node_defintf {
+  struct toplevel toplevel;
+  struct isalist isalist;
+};
+struct node_defnamedliteral {
+  struct toplevel toplevel;
+  struct isalist isalist;
+};
+struct node_defconstraintliteral {
   struct toplevel toplevel;
   struct isalist isalist;
 };
@@ -268,6 +284,7 @@ struct node_example {
 struct node_import {
   struct toplevel toplevel;
   bool is_all;
+  bool intermediate_mark;
 };
 
 struct module;
@@ -281,7 +298,8 @@ struct node_module_body {
 };
 
 struct node_directdef {
-  struct node *definition;
+  struct typ *typ;
+  uint32_t flags;
 };
 
 union node_as {
@@ -310,6 +328,8 @@ union node_as {
   struct node_dyn DYN;
   struct node_deffun DEFFUN;
   struct node_deftype DEFTYPE;
+  struct node_defnamedliteral DEFNAMEDLITERAL;
+  struct node_defconstraintliteral DEFCONSTRAINTLITERAL;
   struct node_defmethod DEFMETHOD;
   struct node_defintf DEFINTF;
   struct node_defname DEFNAME;
@@ -352,7 +372,7 @@ struct node {
   struct node **subs;
 
   struct scope *scope;
-  const struct typ *typ;
+  struct typ *typ;
   uint32_t flags;
 };
 
@@ -368,7 +388,7 @@ enum subnode_idx {
   IDX_FOR_IT_BLOCK = 1,
   IDX_FOR_IT_BLOCK_WHILE = 0,
   IDX_FOR_IT_BLOCK_WHILE_BLOCK = 1,
-  IDX_FUN_FIRSTARG = 2,
+  IDX_FUNARGS = 2,
   IDX_DEFNAME_EXCEP_TEST = 0,
 };
 
@@ -420,8 +440,6 @@ enum predefined_idents {
   ID_TBI_LITERALS_NULL,
   ID_TBI_LITERALS_INTEGER,
   ID_TBI_LITERALS_FLOATING,
-  ID_TBI_LITERALS_INIT,
-  ID_TBI_LITERALS_INIT_ARRAY,
   ID_TBI_ANY_TUPLE,
   ID_TBI_TUPLE_2,
   ID_TBI_TUPLE_3,
@@ -458,8 +476,12 @@ enum predefined_idents {
   ID_TBI_STATIC_STRING,
   ID_TBI_STATIC_STRING_COMPATIBLE,
   ID_TBI_STATIC_ARRAY,
-  ID_TBI_ANY_REF,
+  ID_TBI_REF_COMPATIBLE,
   ID_TBI_ANY_ANY_REF,
+  ID_TBI_ANY_REF,
+  ID_TBI_ANY_MUTABLE_REF,
+  ID_TBI_ANY_NULLABLE_REF,
+  ID_TBI_ANY_NULLABLE_MUTABLE_REF,
   ID_TBI_REF,
   ID_TBI_MREF,
   ID_TBI_MMREF,
@@ -493,10 +515,8 @@ enum predefined_idents {
   ID_TBI_SUM_EQUALITY,
   ID_TBI_SUM_ORDER,
   ID_TBI_ITERATOR,
-  ID_TBI__PENDING_DESTRUCT,
-  ID_TBI__FIRST_MARKER = ID_TBI__PENDING_DESTRUCT,
-  ID_TBI__DELAYED,
   ID_TBI__NOT_TYPEABLE,
+  ID_TBI__FIRST_MARKER = ID_TBI__NOT_TYPEABLE,
   ID_TBI__CALL_FUNCTION_SLOT,
   ID_TBI__MUTABLE,
   ID_TBI__MERCURIAL,
@@ -557,107 +577,6 @@ struct scope {
   struct node *node;
 };
 
-const struct typ *TBI_VOID;
-const struct typ *TBI_LITERALS_NULL;
-const struct typ *TBI_LITERALS_INTEGER;
-const struct typ *TBI_LITERALS_FLOATING;
-const struct typ *TBI_LITERALS_INIT;
-const struct typ *TBI_LITERALS_INIT_ARRAY;
-const struct typ *TBI_ANY_TUPLE;
-const struct typ *TBI_TUPLE_2;
-const struct typ *TBI_TUPLE_3;
-const struct typ *TBI_TUPLE_4;
-const struct typ *TBI_TUPLE_5;
-const struct typ *TBI_TUPLE_6;
-const struct typ *TBI_TUPLE_7;
-const struct typ *TBI_TUPLE_8;
-const struct typ *TBI_TUPLE_9;
-const struct typ *TBI_TUPLE_10;
-const struct typ *TBI_TUPLE_11;
-const struct typ *TBI_TUPLE_12;
-const struct typ *TBI_TUPLE_13;
-const struct typ *TBI_TUPLE_14;
-const struct typ *TBI_TUPLE_15;
-const struct typ *TBI_TUPLE_16;
-const struct typ *TBI_ANY;
-const struct typ *TBI_BOOL;
-const struct typ *TBI_BOOL_COMPATIBLE;
-const struct typ *TBI_I8;
-const struct typ *TBI_U8;
-const struct typ *TBI_I16;
-const struct typ *TBI_U16;
-const struct typ *TBI_I32;
-const struct typ *TBI_U32;
-const struct typ *TBI_I64;
-const struct typ *TBI_U64;
-const struct typ *TBI_SIZE;
-const struct typ *TBI_SSIZE;
-const struct typ *TBI_FLOAT;
-const struct typ *TBI_DOUBLE;
-const struct typ *TBI_CHAR;
-const struct typ *TBI_STRING;
-const struct typ *TBI_STATIC_STRING;
-const struct typ *TBI_STATIC_STRING_COMPATIBLE;
-const struct typ *TBI_STATIC_ARRAY;
-const struct typ *TBI_ANY_REF;
-const struct typ *TBI_ANY_ANY_REF;
-const struct typ *TBI_REF; // @
-const struct typ *TBI_MREF; // @!
-const struct typ *TBI_MMREF; // @#
-const struct typ *TBI_NREF; // ?@
-const struct typ *TBI_NMREF; // ?@!
-const struct typ *TBI_NMMREF; // ?@#
-const struct typ *TBI_ARITHMETIC;
-const struct typ *TBI_INTEGER;
-const struct typ *TBI_UNSIGNED_INTEGER;
-const struct typ *TBI_NATIVE_INTEGER;
-const struct typ *TBI_NATIVE_ANYSIGN_INTEGER;
-const struct typ *TBI_GENERALIZED_BOOLEAN;
-const struct typ *TBI_NATIVE_BOOLEAN;
-const struct typ *TBI_FLOATING;
-const struct typ *TBI_NATIVE_FLOATING;
-const struct typ *TBI_HAS_EQUALITY;
-const struct typ *TBI_ORDERED;
-const struct typ *TBI_ORDERED_BY_COMPARE;
-const struct typ *TBI_COPYABLE;
-const struct typ *TBI_DEFAULT_CTOR;
-const struct typ *TBI_CTOR_WITH;
-const struct typ *TBI_ARRAY_CTOR;
-const struct typ *TBI_TRIVIAL_COPY;
-const struct typ *TBI_TRIVIAL_CTOR;
-const struct typ *TBI_TRIVIAL_ARRAY_CTOR;
-const struct typ *TBI_TRIVIAL_DTOR;
-const struct typ *TBI_TRIVIAL_EQUALITY;
-const struct typ *TBI_TRIVIAL_ORDER;
-const struct typ *TBI_RETURN_BY_COPY;
-const struct typ *TBI_SUM_COPY;
-const struct typ *TBI_SUM_EQUALITY;
-const struct typ *TBI_SUM_ORDER;
-const struct typ *TBI_ITERATOR;
-const struct typ *TBI__PENDING_DESTRUCT;
-const struct typ *TBI__DELAYED;
-const struct typ *TBI__NOT_TYPEABLE;
-const struct typ *TBI__CALL_FUNCTION_SLOT;
-const struct typ *TBI__MUTABLE;
-const struct typ *TBI__MERCURIAL;
-
-enum typ_which {
-  TYP_DEF,
-  TYP_FUNCTION,
-  TYP__MARKER,
-};
-
-struct typ {
-  struct node *definition;
-  enum typ_which which;
-
-  size_t gen_arity;
-  const struct typ **gen_args; // length gen_arity + 1
-
-  size_t fun_arity;
-  const struct typ **fun_args; // length fun_arity + 1
-};
-
 struct fun_state {
   struct fun_state *prev;
 
@@ -677,10 +596,25 @@ struct try_state {
   size_t count;
 };
 
-struct module_state {
-  struct module_state *prev;
+struct step_state {
+  struct step_state *prev;
+
   bool upward;
   size_t stepping;
+};
+
+struct module_state {
+  struct module_state *prev;
+
+  bool tentatively;
+
+  struct node **tentative_instantiations;
+  size_t tentative_instantiations_count;
+
+  struct fun_state *fun_state;
+  struct try_state *try_state;
+
+  struct step_state *step_state;
 };
 
 struct except_list {
@@ -696,6 +630,7 @@ struct except_list {
 } while (0)
 
 #define POP_STATE(st) do { \
+  assert(st != NULL); \
   __typeof__(st) ost = st; \
   st = ost->prev; \
   free(ost); \
@@ -708,7 +643,7 @@ struct globalctx {
   struct node modules_root;
 
   struct typ *builtin_typs_by_name[ID__NUM];
-  const struct typ *builtin_typs_for_refop[TOKEN__NUM];
+  struct typ *builtin_typs_for_refop[TOKEN__NUM];
 };
 
 struct stage_state {
@@ -756,9 +691,9 @@ struct module {
   size_t next_post;
   size_t next_invariant;
 
+  bool done;
+
   struct module_state *state;
-  struct fun_state *fun_state;
-  struct try_state *try_state;
 
   struct except_list *excepts;
 };
@@ -769,7 +704,6 @@ error module_open(struct globalctx *gctx, struct stage *stage, struct module *mo
                   const char *prefix, const char *fn);
 void module_retval_set(struct module *mod, const struct node *retval);
 const struct node *module_retval_get(struct module *mod);
-void module_retval_clear(struct module *mod);
 void module_excepts_open_try(struct module *mod, struct node *tryy);
 void module_excepts_push(struct module *mod, struct node *excep_node);
 struct try_state *module_excepts_get(struct module *mod);
@@ -803,7 +737,10 @@ char *scope_definitions_name_list(const struct module *mod, const struct scope *
 void copy_and_extend_import_path(struct module *mod, struct node *imported,
                                  const struct node *import, const struct token *tok);
 
+const struct module *try_node_module_owner_const(const struct module *mod,
+                                                 const struct node *node);
 struct module *node_module_owner(struct node *node);
+const struct module *node_module_owner_const(const struct node *node);
 struct node *node_toplevel_owner(struct node *node);
 struct node *node_statement_owner(struct node *node);
 
@@ -820,6 +757,7 @@ bool node_is_at_top(const struct node *node);
 bool node_can_have_genargs(const struct node *node);
 struct node *node_new_subnode(const struct module *mod, struct node *node);
 bool node_has_tail_block(const struct node *node);
+bool node_is_fun(const struct node *node);
 size_t node_fun_all_args_count(const struct node *def);
 size_t node_fun_explicit_args_count(const struct node *def);
 struct node *node_fun_retval(struct node *def);
@@ -830,63 +768,25 @@ const struct toplevel *node_toplevel_const(const struct node *node);
 struct node *node_get_member(struct module *mod, struct node *node, ident id);
 const struct node *node_get_member_const(const struct module *mod, const struct node *node, ident id);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);
-struct node *node_typ_member(const struct typ *typ, const char *member);
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src);
 
-struct typ *typ_new(struct node *definition,
-                    enum typ_which which, size_t gen_arity, size_t fun_arity);
-const struct typ *typ_lookup_builtin_tuple(const struct module *mod, size_t arity);
-bool typ_is_uninstantiated_genarg(const struct typ *t);
-bool typ_equal(const struct module *mod, const struct typ *a, const struct typ *b);
-error typ_check_equal(const struct module *mod, const struct node *for_error,
-                      const struct typ *a, const struct typ *b);
-error typ_compatible(const struct module *mod, const struct node *for_error,
-                     const struct typ *a, const struct typ *constraint);
-error typ_compatible_numeric(const struct module *mod, const struct node *for_error, const struct typ *a);
-error typ_check_reference_compatible(const struct module *mod, const struct node *for_error,
-                                     enum token_type operator, const struct typ *a);
-error typ_check_can_deref(const struct module *mod, const struct node *for_error,
-                          const struct typ *a, enum token_type operator);
-error typ_check_deref_against_mark(const struct module *mod, const struct node *for_error,
-                                   const struct typ *t, enum token_type operator);
-bool typ_is_reference_instance(const struct module *mod, const struct typ *a);
-error typ_check_is_reference_instance(const struct module *mod, const struct node *for_error,
-                                      const struct typ *a);
-bool typ_is_same_generic(const struct module *mod,
-                         const struct typ *a, const struct typ *b);
-bool typ_is_concrete(const struct module *mod, const struct typ *a);
-bool typ_is_abstract_instance(const struct module *mod, const struct typ *a);
-bool typ_isa_return_by_copy(const struct module *mod, const struct typ *t);
-error typ_unify(const struct typ **u, const struct module *mod, const struct node *for_error,
-                const struct typ *a, const struct typ *b);
-bool typ_isa(const struct module *mod, const struct typ *a, const struct typ *intf);
-error typ_check_isa(const struct module *mod, const struct node *for_error,
-                    const struct typ *a, const struct typ *intf);
-error typ_find_matching_concrete_isa(const struct typ **concrete,
-                                     const struct module *mod, const struct node *for_error,
-                                     const struct typ *a, const struct typ *intf);
-error mk_except(const struct module *mod, const struct node *node, const char *fmt, ...);
-error mk_except_type(const struct module *mod, const struct node *node, const char *fmt, ...);
+// Return value must be freed by caller.
+char *typ_name(const struct module *mod, const struct typ *t);
+// Return value must be freed by caller.
+char *typ_pretty_name(const struct module *mod, const struct typ *t);
+
+error mk_except(const struct module *mod, const struct node *node, const char *fmt, ...)
+  __attribute__((__format__(__printf__, 3, 4)));
+error mk_except_type(const struct module *mod, const struct node *node, const char *fmt, ...)
+  __attribute__((__format__(__printf__, 3, 4)));
 error mk_except_call_args_count(const struct module *mod, const struct node *node,
                                 const struct node *definition, size_t extra, size_t given);
-char *typ_name(const struct module *mod, const struct typ *t);
-char *typ_pretty_name(const struct module *mod, const struct typ *t);
-bool typ_is_builtin(const struct module *mod, const struct typ *t);
-bool typ_is_pseudo_builtin(const struct module *mod, const struct typ *t);
-bool typ_is_trivial(const struct module *mod, const struct typ *t);
 
-size_t typ_isalist_count(const struct typ *t);
-const struct typ **typ_isalist(const struct typ *t);
-const bool *typ_isalist_exported(const struct typ *t);
-enum isalist_filter {
-  ISALIST_FILTER_NOT_EXPORTED = 0x1,
-  ISALIST_FILTER_EXPORTED = 0x2,
-  ISALIST_FILTER_TRIVIAL_ISALIST = 0x4,
-};
-typedef error (*isalist_each)(struct module *mod, const struct typ *t, const struct typ *intf, void *user);
-error typ_isalist_foreach(struct module *mod, const struct typ *t, uint32_t filter,
-                          isalist_each iter, void *user);
+#define GOTO_EXCEPT_TYPE(mod, node, fmt, ...) do { \
+  e = mk_except_type(mod, node, fmt, ##__VA_ARGS__); \
+  GOTO_EXCEPT(e); \
+} while (0)
 
 void rew_insert_last_at(struct node *node, size_t pos);
 void rew_pop(struct node *node, bool saved_it);

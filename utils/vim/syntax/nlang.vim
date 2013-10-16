@@ -2,19 +2,20 @@ if exists("b:current_syntax") | finish | endif
 let b:current_syntax = "nlang"
 
 syn keyword nInclude import from
-syn keyword nDecl type union fun method intf delegate
+syn keyword nDecl union fun method intf delegate struct enum
 syn keyword nStorageClass inline extern
 syn keyword nExport export
 syn keyword nSemantic unique shared pshared
 syn keyword nSemantic capturedby capturedbyret owned ownedby protected protect protecting prop claim
 
-syn keyword nDecl pre _pre post _post invariant _invariant example _example assert alias
+syn keyword nAssert assert pre post invariant
+syn keyword nDecl example alias
 syn keyword nDecl contract honors _honors pretag posttag tag
 
 syn keyword nConditional if elif else match
-syn keyword nRepeat while continue break
-syn keyword nRepeat for pfor foreach pforeach
-syn keyword nStatement let return block lambda async such
+syn keyword nRepeat while for pfor foreach pforeach
+syn keyword nKeyword let block lambda async such
+syn keyword nStatement return continue break unreached
 syn keyword nOperator in and or not bwxor isa
 syn keyword nOperator sizeof
 syn keyword nKeyword noop as attr declare
@@ -36,7 +37,7 @@ syn match nMercurial "#"
 syn match nNullable "?"
 syn match nWildcard "\$"
 
-syn match nIntf "i_\w\+"
+syn match nIntf "_*i_\w\+"
 
 syn match nSpaceError display excludenl "\s\+$"
 syn match nSpaceError display "^\ *\t"me=e-1
@@ -76,6 +77,7 @@ syn region	nString		start=+L\="+ skip=+\\\\\|\\"+ end=+"+ contains=cSpecial,cFor
 syn region	nString		start=+L\='+ skip=+\\\\\|\\'+ end=+'+ contains=cSpecial,cFormat,@Spell
 
 hi def link nDecl Structure
+hi def link nAssert Assert
 hi def link nInclude Include
 hi def link nStorageClass StorageClass
 hi def link nConditional Conditional
@@ -94,9 +96,9 @@ hi def link nNumbers Number
 hi def link nString String
 hi def link nSpecial SpecialChar
 hi def link nSemantic Semantic
-hi def link nMutate Constant
-hi def link nMercurial Constant
-hi def link nNullable Constant
+hi def link nMutate Constness
+hi def link nMercurial Constness
+hi def link nNullable Constness
 hi def link nWildcard Special
 hi def link nIntf Type
 hi def link nFunction Function
