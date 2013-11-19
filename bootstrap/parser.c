@@ -547,7 +547,9 @@ struct toplevel *node_toplevel(struct node *node) {
 
 bool node_is_prototype(const struct node *node) {
   const struct toplevel *toplevel = node_toplevel_const(node);
-  if (toplevel == NULL) {
+  if (node->which == MODULE) {
+    return node->as.MODULE.is_placeholder;
+  } else if (toplevel == NULL) {
     return FALSE;
   } else {
     return toplevel->is_prototype;
@@ -726,7 +728,8 @@ static int scope_definitions_name_list_iter(const ident *key,
   return 0;
 }
 
-char *scope_definitions_name_list(const struct module *mod, const struct scope *scope) {
+char *scope_definitions_name_list(const struct module *mod,
+                                  const struct scope *scope) {
   struct scope_definitions_name_list_data d = {
     .mod = mod,
     .s = NULL,
@@ -738,7 +741,8 @@ char *scope_definitions_name_list(const struct module *mod, const struct scope *
   return d.s;
 }
 
-error scope_define_ident(const struct module *mod, struct scope *scope, ident id, struct node *node) {
+error scope_define_ident(const struct module *mod, struct scope *scope,
+                         ident id, struct node *node) {
   assert(id != ID__NONE);
   struct node **existing = scope_map_get(scope->map, id);
 
@@ -757,13 +761,12 @@ error scope_define_ident(const struct module *mod, struct scope *scope, ident id
     GOTO_EXCEPT_PARSE(try_node_module_owner_const(mod, node), node->codeloc,
                       "in scope %s: identifier '%s' already defined at %s:%d:%d",
                       scname, idents_value(mod->gctx, id), existing_mod->filename,
-                      line(&existing_mod->parser, &existing_tok), column(&existing_mod->parser, &existing_tok));
+                      line(&existing_mod->parser, &existing_tok),
+                      column(&existing_mod->parser, &existing_tok));
 except:
     free(scname);
     return e;
-  }
-
-  if (existing != NULL) {
+  } else if (existing != NULL) {
     struct toplevel *toplevel = node_toplevel(*existing);
     if (toplevel != NULL) {
       // FIXME? Should it only be possible to shadow an imported name from
@@ -774,17 +777,20 @@ except:
   } else {
     scope_map_set(scope->map, id, node);
   }
+
   return 0;
 }
 
-error scope_define(const struct module *mod, struct scope *scope, struct node *id, struct node *node) {
+error scope_define(const struct module *mod, struct scope *scope,
+                   struct node *id, struct node *node) {
   assert(id->which == IDENT);
   error e = scope_define_ident(mod, scope, id->as.IDENT.name, node);
   EXCEPT(e);
   return 0;
 }
 
-static error do_scope_lookup_ident_immediate(struct node **result, const struct node *for_error,
+static error do_scope_lookup_ident_immediate(struct node **result,
+                                             const struct node *for_error,
                                              const struct module *mod,
                                              const struct scope *scope, ident id,
                                              bool failure_ok) {
@@ -2566,6 +2572,7 @@ static error p_isa(struct node *node, struct module *mod, bool is_export) {
   EXCEPT(e);
   return 0;
 }
+
 static error p_isalist(struct node *node, struct module *mod) {
   node->which = ISALIST;
 
@@ -3120,6 +3127,12 @@ static error module_parse(struct module *mod) {
   do {
     e = p_toplevel(mod);
     EXCEPT(e);
+
+    if (eof(&mod->parser)) {
+      // Only hit with source file containing just comments.
+      break;
+    }
+
     e = scan_expected(mod, TEOL);
     EXCEPT(e);
   } while (!eof(&mod->parser));
@@ -3138,78 +3151,132 @@ static void module_init(struct globalctx *gctx, struct stage *stage,
   PUSH_STATE(mod->state->step_state);
 }
 
-static error register_module(struct node **parent,
-                             struct globalctx *gctx, struct module *mod,
+EXAMPLE(parse_modpath) {
+  {
+    struct globalctx gctx = { 0 };
+    globalctx_init(&gctx);
+    struct stage stage = { 0 };
+    struct module m = { 0 };
+    module_init(&gctx, &stage, &m);
+    parse_modpath(&m, "test.n");
+    assert(m.path_len == 1);
+    const char *p = "test";
+    assert(m.path[0] == idents_add_string(&gctx, p, strlen(p)));
+  }
+  {
+    struct globalctx gctx = { 0 };
+    globalctx_init(&gctx);
+    struct stage stage = { 0 };
+    struct module m = { 0 };
+    module_init(&gctx, &stage, &m);
+    parse_modpath(&m, "bootstrap/module.n");
+    assert(m.path_len == 1);
+    const char *p = "bootstrap";
+    assert(m.path[0] == idents_add_string(&gctx, p, strlen(p)));
+  }
+  {
+    struct globalctx gctx = { 0 };
+    globalctx_init(&gctx);
+    struct stage stage = { 0 };
+    struct module m = { 0 };
+    module_init(&gctx, &stage, &m);
+    parse_modpath(&m, "bootstrap/test.n");
+    assert(m.path_len == 2);
+    const char *p1 = "bootstrap";
+    const char *p2 = "test";
+    assert(m.path[0] == idents_add_string(&gctx, p1, strlen(p1)));
+    assert(m.path[1] == idents_add_string(&gctx, p2, strlen(p2)));
+  }
+}
+
+static struct node *create_module_node(struct node *parent, ident basename,
+                                       bool is_placeholder,
+                                       struct module *non_placeholder_mod) {
+  struct node *m = node_new_subnode(non_placeholder_mod, parent);
+  m->which = MODULE;
+  m->as.MODULE.name = basename;
+  m->as.MODULE.is_placeholder = is_placeholder;
+  m->as.MODULE.mod = is_placeholder ? NULL : non_placeholder_mod;
+  m->scope = scope_new(m);
+  m->scope->parent = parent->scope;
+  m->typ = typ_create(m);
+  m->flags = NODE_IS_TYPE;
+
+  if (!is_placeholder) {
+    non_placeholder_mod->root = m;
+  }
+
+  return m;
+}
+
+static error register_module(struct globalctx *gctx, struct module *to_register,
                              const char *filename) {
-  const size_t last = mod->path_len - 1;
-  struct node *root = &gctx->modules_root;
+  // A number of the calls below need access to global state, but don't care
+  // about 'to_register' specifically. This variable makes this distinction
+  // clearer.
+  struct module *some_module = to_register;
+
+  const size_t last = to_register->path_len - 1;
+  struct node *parent = &gctx->modules_root;
 
   for (size_t p = 0; p <= last; ++p) {
-    ident i = mod->path[p];
+    ident i = to_register->path[p];
     struct node *m = NULL;
-    error e = scope_lookup_ident_wontimport(&m, root, mod, root->scope, i, TRUE);
+    error e = scope_lookup_ident_wontimport(&m, parent, some_module, parent->scope,
+                                            i, TRUE);
     if (e == EINVAL) {
-      m = node_new_subnode(mod, root);
-      m->which = MODULE;
-      m->as.MODULE.name = i;
-      m->as.MODULE.is_placeholder = p != last;
-      m->as.MODULE.mod = p == last ? mod : NULL;
-      m->scope = scope_new(m);
-      m->scope->parent = root->scope;
-      m->typ = typ_create(m);
-      m->flags = NODE_IS_TYPE;
+      m = create_module_node(parent, i, p != last, to_register);
 
-      e = scope_define_ident(mod, root->scope, i, m);
+      e = scope_define_ident(some_module, parent->scope, i, m);
       EXCEPT(e);
+
     } else if (e) {
       // Repeat bound-to-fail lookup to get the error message right.
-      e = scope_lookup_ident_wontimport(&m, root, mod, root->scope, i, FALSE);
+      e = scope_lookup_ident_wontimport(&m, parent, some_module, parent->scope,
+                                        i, FALSE);
       EXCEPT(e);
     } else {
+      assert(m->which == MODULE);
       if (p == last) {
-        assert(m->which == MODULE);
         if (!m->as.MODULE.is_placeholder) {
           EXCEPTF(EINVAL, "Cannot load_module module '%s' more than once",
                   filename);
         } else {
-          assert(mod->root->which == MODULE);
-          mod->root->as.MODULE.mod = mod;
+          assert(to_register->root == NULL);
+          to_register->root = create_module_node(parent, i, FALSE, to_register);
 
           for (size_t s = 0; s < m->subs_count; ++s) {
             struct node *to_save = m->subs[s];
             assert(to_save->which == MODULE);
-            e = scope_define_ident(mod, mod->root->scope,
-                                   to_save->as.MODULE.name, to_save);
+            e = scope_define_ident(some_module, to_register->root->scope,
+                                   node_ident(to_save), to_save);
             EXCEPT(e);
           }
 
-          // Accepts to overwrite because it is a placeholder.
-          e = scope_define_ident(mod, root->scope, i, mod->root);
+          // scope_define_ident() knows to accept to overwrite because it
+          // was a placeholder.
+          e = scope_define_ident(some_module, parent->scope, i, to_register->root);
           EXCEPT(e);
         }
+
+        break;
       }
     }
 
-    *parent = root;
-    root = m;
+    parent = m;
   }
-
-  mod->root = root;
-  assert(mod->root->which == MODULE);
-  mod->root->as.MODULE.mod = mod;
 
   return 0;
 }
 
-error module_open(struct globalctx *gctx, struct stage *stage, struct module *mod,
-                  const char *prefix, const char *fn) {
+error module_open(struct globalctx *gctx, struct stage *stage,
+                  struct module *mod, const char *prefix, const char *fn) {
   module_init(gctx, stage, mod);
 
   error e = parse_modpath(mod, fn);
   EXCEPT(e);
 
-  struct node *parent = NULL;
-  e = register_module(&parent, gctx, mod, fn);
+  e = register_module(gctx, mod, fn);
   EXCEPT(e);
 
   e = module_read(mod, prefix, fn);

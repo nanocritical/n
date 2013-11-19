@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include "table.h"
 #include "types.h"
+#include "mock.h"
 
 //#define DEBUG_PASS
 
@@ -10,9 +11,9 @@
 #define DSTEP(mod, node) do { \
   ident id = node_ident(node); \
   if (id != ID__NONE) { \
-    fprintf(stderr, "%s %s\n", __func__, idents_value(mod->gctx, id)); \
+    fprintf(g_env.stderr, "%s %s\n", __func__, idents_value(mod->gctx, id)); \
   } else { \
-    fprintf(stderr, "%s\n", __func__); \
+    fprintf(g_env.stderr, "%s\n", __func__); \
   } \
 } while (0)
 #else
@@ -1219,6 +1220,7 @@ static error step_stop_marker_tbi(struct module *mod, struct node *node, void *u
 
 static error step_stop_block(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
+
   switch (node->which) {
   case BLOCK:
     *stop = TRUE;
@@ -2561,7 +2563,7 @@ static error check_reference_compatibility(struct module *mod,
   const struct typ *a0 = typ_generic_functor_const(a);
   const struct typ *target0 = typ_generic_functor_const(target);
 
-  bool ok;
+  bool ok = FALSE;
   error e;
   if (typ_equal(target0, TBI_ANY_REF)) {
     ok = typ_isa(a0, TBI_ANY_REF);
@@ -2684,6 +2686,38 @@ static error unify_reference(struct module *mod, const struct node *for_error,
 
   return 0;
 }
+
+//static error typ_ref(struct typ **result,
+//                     struct module *mod, struct node *for_error,
+//                     enum token_type op, struct typ *typ);
+//
+//EXAMPLE_NCC(unify_with_reference_literal) {
+//  struct node *foo = mock_deffun(mod, "foo");
+//  struct node *body = foo->subs[foo->subs_count-1];
+//  mock_parse(mod, body, "return (@1).");
+//
+//  MK(intlit, body, NUMBER);
+//  intlit->as.NUMBER.value = "1";
+//  intlit->typ = typ_create_link(TBI_LITERALS_INTEGER);
+//  struct node *for_error = intlit;
+//
+//  struct typ *rintlit = typ_create(NULL);
+//  error e = typ_ref(&rintlit, mod, for_error, TREFDOT, intlit->typ);
+//  assert(!e);
+//  assert(typ_is_link(rintlit));
+//
+//  struct typ *drintlit = typ_generic_arg(rintlit, 0);
+//  assert(typ_equal(drintlit, TBI_LITERALS_INTEGER));
+//  assert(typ_is_link(drintlit));
+//
+//  struct typ *i32 = typ_create_link(TBI_I32);
+//  struct typ *ri32 = typ_create(NULL);
+//  e = typ_ref(&ri32, mod, for_error, TREFDOT, i32);
+//  assert(!e);
+//  assert(typ_is_link(ri32));
+//
+//  assert(typ_equal(ri32, rintlit));
+//}
 
 static error unify_with_any(struct module *mod, const struct node *for_error,
                             struct typ *lnk_a, struct typ *a,
@@ -2811,17 +2845,23 @@ static error unify(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-//EXAMPLE(unify) {
+EXAMPLE_NCC(unify) {
+//  struct node *for_error = calloc(1, sizeof(struct node));
 //  error e;
 //  {
-//    struct typ a, b;
-//    typ_link(a, TBI_I32);
-//    typ_link(b, TBI_INTEGER);
-//    e = unify(mod, NULL, a, b);
+//    struct typ *a = typ_create_link(TBI_I32);
+//    struct typ *b = typ_create_link(TBI_INTEGER);
+//    e = unify(mod, for_error, a, b);
 //    assert(!e);
-//    assert(typ_equal(a, b));
+//    assert(typ_definition_const(typ_follow(b)) == typ_definition_const(a));
 //  }
-//}
+//  {
+//    struct typ *a = typ_create_link(TBI_I32);
+//    struct typ *b = typ_create_link(TBI_U32);
+//    e = unify(mod, for_error, a, b);
+//    assert(e);
+//  }
+}
 
 static error typ_ref(struct typ **result,
                      struct module *mod, struct node *for_error,
@@ -2891,6 +2931,20 @@ static struct typ *try_wrap_ref_compatible(struct module *mod,
   return r;
 }
 
+static error check_assign_not_types(struct module *mod, struct node *left,
+                                    struct node *right) {
+  error e;
+  if ((left->flags & NODE_IS_TYPE)) {
+    e = mk_except_type(mod, left, "cannot assign to a type variable");
+    EXCEPT(e);
+  }
+  if ((right->flags & NODE_IS_TYPE)) {
+    e = mk_except_type(mod, right, "cannot assign a type");
+    EXCEPT(e);
+  }
+  return 0;
+}
+
 static error type_inference_bin_sym(struct module *mod, struct node *node) {
   assert(node->which == BIN);
 
@@ -2900,6 +2954,9 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
 
   error e;
   if (operator == TASSIGN) {
+    e = check_assign_not_types(mod, left, right);
+    EXCEPT(e);
+
     e = unify(mod, node,
               try_wrap_ref_compatible(mod, node, 0, left->typ), right->typ);
     EXCEPT(e);
@@ -2925,14 +2982,9 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     case TBWXOR_ASSIGN:
     case TRSHIFT_ASSIGN:
     case TLSHIFT_ASSIGN:
-      if ((left->flags & NODE_IS_TYPE)) {
-        e = mk_except_type(mod, left, "cannot assign to a type variable");
-        EXCEPT(e);
-      }
-      if ((right->flags & NODE_IS_TYPE)) {
-        e = mk_except_type(mod, right, "cannot assign a type");
-        EXCEPT(e);
-      }
+      e = check_assign_not_types(mod, left, right);
+      EXCEPT(e);
+
       e = unify(mod, node, left->typ, typ_create_link(TBI_ARITHMETIC));
       EXCEPT(e);
 

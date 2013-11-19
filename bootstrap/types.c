@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include "table.h"
-
+#include "mock.h"
 
 struct typ {
   struct typ *link;
@@ -10,7 +10,7 @@ struct typ {
 };
 
 void typ_pprint(const struct module *mod, const struct typ *t) {
-  fprintf(stderr, "%s\n", typ_pretty_name(mod, t));
+  fprintf(g_env.stderr, "%s\n", typ_pretty_name(mod, t));
 }
 
 struct typ *typ_create(struct node *definition) {
@@ -19,13 +19,33 @@ struct typ *typ_create(struct node *definition) {
   return r;
 }
 
+EXAMPLE(typ_create) {
+  assert(typ_create(NULL)->definition == NULL);
+  struct node n = { 0 };
+  assert(typ_create(&n)->definition == &n);
+}
+
 struct typ *typ_init_tbi(struct typ *tbi, struct node *definition) {
   tbi->definition = definition;
   return tbi;
 }
 
+EXAMPLE(typ_create_tbi) {
+  struct typ t = { 0 };
+  struct node n = { 0 };
+  struct typ *tt = typ_init_tbi(&t, &n);
+  assert(tt == &t && tt->definition == &n);
+}
+
 bool typ_is_link(const struct typ *t) {
   return t->link != NULL;
+}
+
+EXAMPLE(typ_is_link) {
+  struct typ t = { .link = NULL };
+  assert(!typ_is_link(&t));
+  struct typ s = { .link = &t };
+  assert(typ_is_link(&s));
 }
 
 struct typ *typ_create_link(struct typ *dst) {
@@ -33,6 +53,16 @@ struct typ *typ_create_link(struct typ *dst) {
   struct typ *r = calloc(1, sizeof(struct typ));
   r->link = dst;
   return r;
+}
+
+EXAMPLE(typ_create_link) {
+  struct node n = { 0 };
+  struct typ t = { .definition = &n };
+  struct typ *l = typ_create_link(&t);
+  assert(typ_is_link(l));
+  assert(l->link == &t);
+  assert(typ_follow(l) == &t);
+  assert(typ_definition(l) == &n);
 }
 
 void typ_link(struct typ *dst, struct typ *src) {
@@ -66,6 +96,19 @@ void typ_link(struct typ *dst, struct typ *src) {
   (void) typ_follow(src);
 }
 
+EXAMPLE(typ_link) {
+  struct node d1 = { 0 }, d2 = { 0 };
+  struct typ *a = typ_create(&d1);
+  struct typ *b = typ_create(&d2);
+  struct typ *lnk_a = typ_create_link(a);
+  struct typ *lnk_b = typ_create_link(b);
+  assert(typ_follow(lnk_a) != typ_follow(lnk_b));
+  typ_link(lnk_a, lnk_b);
+  assert(typ_is_link(lnk_a));
+  assert(typ_is_link(lnk_b));
+  assert(typ_follow(lnk_a) == typ_follow(lnk_b));
+}
+
 struct typ *typ_follow(struct typ *t) {
   if (t == NULL) {
     return NULL;
@@ -75,6 +118,15 @@ struct typ *typ_follow(struct typ *t) {
     t = t->link;
   }
   return t;
+}
+
+EXAMPLE(typ_follow) {
+  assert(NULL == typ_follow(NULL));
+  struct node n = { 0 };
+  struct typ t = { .definition = &n };
+  assert(&t == typ_follow(&t));
+  struct typ s = { .link = &t };
+  assert(&t == typ_follow(&s));
 }
 
 size_t typ_link_length(const struct typ *t) {
@@ -90,9 +142,26 @@ size_t typ_link_length(const struct typ *t) {
   return len;
 }
 
+EXAMPLE(typ_link_length) {
+  assert(0 == typ_link_length(NULL));
+  struct typ t = { 0 };
+  assert(0 == typ_link_length(&t));
+  struct typ s = { .link = &t };
+  assert(1 == typ_link_length(&s));
+}
+
 void typ_lock(struct typ *t) {
   t->definition = typ_follow_const(t)->definition;
   t->link = NULL;
+}
+
+EXAMPLE(typ_lock) {
+  struct node n = { 0 };
+  struct typ s = { .definition = &n };
+  struct typ t = { .link = &s };
+  typ_lock(&t);
+  assert(!typ_is_link(&t));
+  assert(typ_definition_const(&t) == typ_definition_const(&s));
 }
 
 struct node *typ_definition(struct typ *t) {
@@ -121,6 +190,12 @@ struct typ *typ_generic_functor(struct typ *t) {
   }
 }
 
+EXAMPLE_NCC(typ_generic_functor) {
+  struct node *test = mock_deftype(mod, "test");
+  struct typ ttest = { .definition = test };
+  assert(typ_generic_functor(&ttest) == NULL);
+}
+
 size_t typ_generic_arity(const struct typ *t) {
   t = typ_follow_const(t);
 
@@ -128,6 +203,25 @@ size_t typ_generic_arity(const struct typ *t) {
     return t->definition->subs[IDX_GENARGS]->subs_count;
   } else {
     return 0;
+  }
+}
+
+EXAMPLE_NCC(typ_generic_arity) {
+  {
+    struct node *test = mock_deftype(mod, "test");
+    struct typ ttest = { .definition = test };
+    assert(typ_generic_arity(&ttest) == 0);
+  }
+  {
+    struct node *test = mock_deftype(mod, "test2");
+    struct node *genargs = test->subs[IDX_GENARGS];
+    MK(g1, genargs, DEFGENARG,
+       MK_IDENT(name_g1, g1, "g1"));
+    MK(g2, genargs, DEFGENARG,
+       MK_IDENT(name_g2, g2, "g2"));
+
+    struct typ ttest = { .definition = test };
+    assert(typ_generic_arity(&ttest) == 2);
   }
 }
 
@@ -311,6 +405,39 @@ error typ_isalist_foreach(struct module *mod, struct typ *t, uint32_t filter,
   return 0;
 }
 
+static error example_isalist_each(struct module *mod, struct typ *base,
+                                  struct typ *intf, bool *stop, void *user) {
+  assert(base != intf);
+  assert(!typ_equal(base, intf));
+  assert(typ_isa(base, intf));
+
+  int *count = user;
+  *count += 1;
+
+  return 0;
+}
+
+EXAMPLE_NCC(typ_isalist_foreach) {
+  struct node *i_test = mock_defintf(mod, "i_test");
+  struct node *test = mock_deftype(mod, "test");
+  MK(isa, test->subs[IDX_ISALIST], ISA,
+     MK_IDENT(isa_name, isa, "i_test"));
+
+  i_test->typ = typ_create(i_test);
+  test->typ = typ_create(test);
+  isa_name->typ = typ_create_link(i_test->typ);
+  isa->typ = isa_name->typ;
+
+  test->as.DEFTYPE.isalist.count = 1;
+  test->as.DEFTYPE.isalist.list = &i_test->typ;
+  bool no = FALSE;
+  test->as.DEFTYPE.isalist.exported = &no;
+
+  int count = 0;
+  error e = typ_isalist_foreach(mod, test->typ, 0, example_isalist_each, &count);
+  assert(!e);
+  assert(count == 1);
+}
 
 struct typ *TBI_VOID;
 struct typ *TBI_LITERALS_NULL;
@@ -430,6 +557,55 @@ bool typ_equal(const struct typ *a, const struct typ *b) {
 
     return TRUE;
   }
+}
+
+EXAMPLE_NCC(typ_equal) {
+  struct node *di = mock_defintf(mod, "i");
+  struct typ *i = typ_create(di);
+  di->typ = i;
+
+  struct node *da = mock_deftype(mod, "a");
+  struct node *db = mock_deftype(mod, "b");
+
+  da->typ = typ_create(da);
+  struct typ *alt_a = typ_create(da);
+  db->typ = typ_create(db);
+
+  assert(typ_equal(da->typ, da->typ));
+  assert(typ_equal(da->typ, alt_a));
+  assert(typ_equal(alt_a, da->typ));
+  struct typ *a = typ_create_link(da->typ);
+  assert(typ_equal(da->typ, a));
+  assert(typ_equal(a, da->typ));
+
+  assert(!typ_equal(da->typ, db->typ));
+  assert(!typ_equal(db->typ, da->typ));
+
+  struct node *dc = mock_deftype(mod, "dc");
+  {
+    MK(g, dc->subs[IDX_GENARGS], DEFGENARG,
+       MK_IDENT(g_name, g, "g");
+       MK_IDENT(g_type, g, "i"));
+    dc->typ = typ_create(dc);
+    g_type->typ = i;
+    g->typ = i;
+    assert(typ_generic_arity(dc->typ) == 1);
+  }
+
+  struct node *dd = mock_deftype(mod, "dd");
+  {
+    MK(g, dd->subs[IDX_GENARGS], SETGENARG,
+       MK_IDENT(g_name, g, "g");
+       MK_IDENT(g_type, g, "i"));
+    dd->typ = typ_create(dd);
+    node_toplevel(dd)->our_generic_functor = dc->typ;
+    g_type->typ = i;
+    g->typ = i;
+    assert(typ_generic_arity(dd->typ) == 1);
+  }
+
+  assert(typ_equal(typ_generic_functor(dc->typ), typ_generic_functor(dd->typ)));
+  assert(!typ_equal(dc->typ, dd->typ));
 }
 
 error typ_check_equal(const struct module *mod, const struct node *for_error,

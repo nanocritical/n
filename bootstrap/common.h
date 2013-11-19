@@ -1,6 +1,8 @@
 #ifndef COMMON_H__
 #define COMMON_H__
 
+#define _XOPEN_SOURCE 700 // fmemopen(3)
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,7 +34,7 @@ void __break(void);
 #define EXCEPT(e) do { \
   if (e) { \
     __break(); \
-    fprintf(stderr, "\tE: %s:%d: %s()\n", __FILE__, __LINE__, __func__); \
+    fprintf(g_env.stderr, "\tE: %s:%d: %s()\n", __FILE__, __LINE__, __func__); \
     return e; \
   } \
 } while (0)
@@ -41,7 +43,7 @@ void __break(void);
   if (_e) { \
     __break(); \
     e = _e; \
-    fprintf(stderr, "\tE: %s:%d: %s()\n", __FILE__, __LINE__, __func__); \
+    fprintf(g_env.stderr, "\tE: %s:%d: %s()\n", __FILE__, __LINE__, __func__); \
     goto except; \
   } \
 } while (0)
@@ -49,8 +51,8 @@ void __break(void);
 #define EXCEPTF(e, fmt, ...) do { \
   if (e) { \
     __break(); \
-    fprintf(stderr, fmt "\n", ##__VA_ARGS__); \
-    fprintf(stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
+    fprintf(g_env.stderr, fmt "\n", ##__VA_ARGS__); \
+    fprintf(g_env.stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
     return e; \
   } \
 } while (0)
@@ -59,8 +61,8 @@ void __break(void);
   if (_e) { \
     __break(); \
     e = _e; \
-    fprintf(stderr, fmt "\n", ##__VA_ARGS__); \
-    fprintf(stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
+    fprintf(g_env.stderr, fmt "\n", ##__VA_ARGS__); \
+    fprintf(g_env.stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
     goto except; \
   } \
 } while (0)
@@ -180,34 +182,45 @@ static inline uint32_t bitreverse32(uint32_t x) {
   rem ? x + mult - rem : x \
 })
 
-static inline char *strdup(const char *s) {
-  char *r = calloc(strlen(s) + 1, sizeof(char));
-  strcpy(r, s);
-  return r;
-}
+char *strdup(const char *s);
 
 // Must free return value
-static inline char *xdirname(const char *s) {
-  if (s == NULL) {
-    return strdup(".");
-  } else if (strcmp(s, "/") == 0) {
-    return strdup("/");
-  } else {
-    const size_t len = strlen(s);
-    ssize_t n;
-    for (n = len - 1; n >= 0; --n) {
-      if (s[n] == '/') {
-        break;
-      }
-    }
-    if (n < 0) {
-      return strdup(s);
-    } else {
-      char *r = calloc(n + 1, sizeof(char));
-      memcpy(r, s, n);
-      return r;
-    }
-  }
-}
+char *xdirname(const char *s);
+
+#define ENV_BUF_SIZE 1024
+struct env {
+  char *stderr_mem;
+  FILE *stderr;
+};
+
+struct env g_env;
+
+void env_init(void);
+
+#define EXAMPLES_DECLS
+#define EXAMPLES_INIT_ARGS
+#define EXAMPLES_PROTO void
+#define EXAMPLES_ARGS
+void examples_init(const char *name);
+void examples_destroy(const char *name);
+
+#define EXAMPLE(name) \
+  __attribute__((section(".text.examples"))) \
+  void example__##name(void); \
+  void example__##name(void)
+
+struct module;
+#define EXAMPLES_DECLS_NCC \
+  struct module *mod
+#define EXAMPLES_INIT_ARGS_NCC , &mod
+#define EXAMPLES_PROTO_NCC struct module *mod
+#define EXAMPLES_ARGS_NCC mod
+void examples_init_NCC(const char *name, struct module **mod);
+void examples_destroy_NCC(const char *name, struct module **mod);
+
+#define EXAMPLE_NCC(name) \
+  __attribute__((section(".text.examples._NCC"))) \
+  void example_NCC__##name(struct module *mod); \
+  void example_NCC__##name(struct module *mod)
 
 #endif

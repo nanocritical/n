@@ -1,0 +1,3 @@
+from nlang.literals import *
+from nlang.builtins import *
+-- Used as template module for EXAMPLE_NCC

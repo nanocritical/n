@@ -560,7 +560,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     fprintf(out, "; })");
     break;
   default:
-    fprintf(stderr, "Unsupported node: %d\n", node->which);
+    fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
     assert(FALSE);
   }
 }
@@ -982,7 +982,7 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
     print_block(out, mod, node, FALSE);
     break;
   default:
-    fprintf(stderr, "Unsupported node: %d\n", node->which);
+    fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
     assert(FALSE);
   }
 }
@@ -2332,7 +2332,7 @@ static void print_top(FILE *out, bool header, enum forward fwd, const struct mod
     print_import(out, header, fwd, mod, node);
     break;
   default:
-    fprintf(stderr, "Unsupported node: %d\n", node->which);
+    fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
     assert(FALSE);
   }
 }

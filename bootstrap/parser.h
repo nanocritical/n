@@ -771,6 +771,19 @@ struct node *mk_node(struct module *mod, struct node *parent, enum node_which ki
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src);
 
+#define MK(var, parent, which, ...) \
+  __attribute__((unused)) \
+  struct node *var = mk_node(mod, parent, which); \
+  __VA_ARGS__
+
+#define MK_IDENT(var, parent, _name, ...) \
+  MK(var, parent, IDENT, \
+     { \
+       const char *__name = (_name); \
+       var->as.IDENT.name = idents_add_string(mod->gctx, __name, strlen(__name)); \
+     } \
+     __VA_ARGS__)
+
 // Return value must be freed by caller.
 char *typ_name(const struct module *mod, const struct typ *t);
 // Return value must be freed by caller.
