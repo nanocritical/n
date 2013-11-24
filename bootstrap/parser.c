@@ -715,7 +715,7 @@ static error do_scope_lookup_ident_immediate(struct node **result,
     // to specificy which intf is being called if it's ambiguous.
     const struct node *parent = scope->node;
     for (size_t n = 0; n < typ_isalist_count(parent->typ); ++n) {
-      const struct typ *t = typ_follow(typ_isalist(parent->typ, n));
+      const struct typ *t = typ_isalist(parent->typ, n);
       error e = do_scope_lookup_ident_immediate(result, for_error, mod,
                                                 typ_definition_const(t)->scope, id, TRUE);
       if (!e) {

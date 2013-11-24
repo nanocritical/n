@@ -5,8 +5,12 @@
 #include "mock.h"
 
 struct typ {
-  struct typ *link;
-  struct node *definition;
+  union {
+    struct typ *link;
+    struct node *definition;
+  } as;
+  bool is_link;
+  bool is_locked;
 };
 
 void typ_pprint(const struct module *mod, const struct typ *t) {
@@ -15,18 +19,23 @@ void typ_pprint(const struct module *mod, const struct typ *t) {
 
 struct typ *typ_create(struct node *definition) {
   struct typ *r = calloc(1, sizeof(struct typ));
-  r->definition = definition;
+  r->as.definition = definition;
+  r->is_locked = TRUE;
   return r;
 }
 
 EXAMPLE(typ_create) {
-  assert(typ_create(NULL)->definition == NULL);
+  assert(typ_create(NULL)->as.definition == NULL);
   struct node n = { 0 };
-  assert(typ_create(&n)->definition == &n);
+  struct typ *t = typ_create(&n);
+  assert(!t->is_link);
+  assert(t->as.definition == &n);
 }
 
 struct typ *typ_init_tbi(struct typ *tbi, struct node *definition) {
-  tbi->definition = definition;
+  tbi->as.definition = definition;
+  tbi->is_link = FALSE;
+  tbi->is_locked = TRUE;
   return tbi;
 }
 
@@ -34,63 +43,67 @@ EXAMPLE(typ_create_tbi) {
   struct typ t = { 0 };
   struct node n = { 0 };
   struct typ *tt = typ_init_tbi(&t, &n);
-  assert(tt == &t && tt->definition == &n);
+  assert(tt == &t && tt->as.definition == &n);
 }
 
 bool typ_is_link(const struct typ *t) {
-  return t->link != NULL;
+  return t->is_link;
 }
 
 EXAMPLE(typ_is_link) {
-  struct typ t = { .link = NULL };
+  struct typ t = { 0 };
   assert(!typ_is_link(&t));
-  struct typ s = { .link = &t };
+  struct typ s = { 0 };
+  s.is_link = TRUE;
+  s.as.link = &t;
   assert(typ_is_link(&s));
 }
 
 struct typ *typ_create_link(struct typ *dst) {
   assert(dst != NULL);
   struct typ *r = calloc(1, sizeof(struct typ));
-  r->link = dst;
+  r->is_link = TRUE;
+  r->as.link = dst;
   return r;
 }
 
 EXAMPLE(typ_create_link) {
   struct node n = { 0 };
-  struct typ t = { .definition = &n };
+  struct typ t = { 0 };
+  t.as.definition = &n;
   struct typ *l = typ_create_link(&t);
   assert(typ_is_link(l));
-  assert(l->link == &t);
+  assert(l->as.link == &t);
   assert(typ_follow(l) == &t);
   assert(typ_definition(l) == &n);
 }
 
 void typ_link(struct typ *dst, struct typ *src) {
   if (dst == src
-      || (dst->definition != NULL
-          && src->definition != NULL
-          && dst->definition == src->definition)) {
+      || (!typ_is_link(dst) && !typ_is_link(src)
+          && dst->as.definition == src->as.definition)) {
     return;
   }
 
   assert(typ_is_link(src));
 
   struct typ *d = dst;
-  while (d->link != NULL && d->link->link != NULL) {
-    d = d->link;
-    if (d == src || d->link == src) {
+  while (typ_is_link(d) && typ_is_link(d->as.link)) {
+    d = d->as.link;
+    if (d == src || d->as.link == src) {
       return;
     }
   }
 
-  while (src->link != NULL && src->link->link != NULL) {
-    src = src->link;
+  while (typ_is_link(src) && typ_is_link(src->as.link)) {
+    src = src->as.link;
     if (src == d) {
       return;
     }
   }
 
-  src->link = dst;
+  src->is_link = TRUE;
+  src->as.link = dst;
 
   // FIXME: remove; used to detect circular links.
   (void) typ_follow(src);
@@ -114,8 +127,8 @@ struct typ *typ_follow(struct typ *t) {
     return NULL;
   }
 
-  while (t->link != NULL) {
-    t = t->link;
+  while (typ_is_link(t)) {
+    t = t->as.link;
   }
   return t;
 }
@@ -123,9 +136,12 @@ struct typ *typ_follow(struct typ *t) {
 EXAMPLE(typ_follow) {
   assert(NULL == typ_follow(NULL));
   struct node n = { 0 };
-  struct typ t = { .definition = &n };
+  struct typ t = { 0 };
+  t.as.definition = &n;
   assert(&t == typ_follow(&t));
-  struct typ s = { .link = &t };
+  struct typ s = { 0 };
+  s.is_link = TRUE;
+  s.as.link = &t;
   assert(&t == typ_follow(&s));
 }
 
@@ -135,8 +151,8 @@ size_t typ_link_length(const struct typ *t) {
   }
 
   size_t len = 0;
-  while (t->link != NULL) {
-    t = t->link;
+  while (typ_is_link(t)) {
+    t = t->as.link;
     len += 1;
   }
   return len;
@@ -146,19 +162,27 @@ EXAMPLE(typ_link_length) {
   assert(0 == typ_link_length(NULL));
   struct typ t = { 0 };
   assert(0 == typ_link_length(&t));
-  struct typ s = { .link = &t };
+  struct typ s = { 0 };
+  s.is_link = TRUE;
+  s.as.link = &t;
   assert(1 == typ_link_length(&s));
 }
 
 void typ_lock(struct typ *t) {
-  t->definition = typ_follow_const(t)->definition;
-  t->link = NULL;
+  struct node *d = typ_definition(t);
+
+  t->is_locked = TRUE;
+  t->is_link = FALSE;
+  t->as.definition = d;
 }
 
 EXAMPLE(typ_lock) {
   struct node n = { 0 };
-  struct typ s = { .definition = &n };
-  struct typ t = { .link = &s };
+  struct typ s = { 0 };
+  s.as.definition = &n;
+  struct typ t = { 0 };
+  t.is_link = TRUE;
+  t.as.link = &s;
   typ_lock(&t);
   assert(!typ_is_link(&t));
   assert(typ_definition_const(&t) == typ_definition_const(&s));
@@ -167,7 +191,7 @@ EXAMPLE(typ_lock) {
 struct node *typ_definition(struct typ *t) {
   t = typ_follow(t);
 
-  return t->definition;
+  return t->as.definition;
 }
 
 bool typ_is_function(const struct typ *t) {
@@ -182,7 +206,7 @@ struct typ *typ_generic_functor(struct typ *t) {
     return NULL;
   }
 
-  const struct toplevel *toplevel = node_toplevel_const(t->definition);
+  const struct toplevel *toplevel = node_toplevel_const(t->as.definition);
   if (toplevel->our_generic_functor != NULL) {
     return toplevel->our_generic_functor;
   } else {
@@ -192,15 +216,16 @@ struct typ *typ_generic_functor(struct typ *t) {
 
 EXAMPLE_NCC(typ_generic_functor) {
   struct node *test = mock_deftype(mod, "test");
-  struct typ ttest = { .definition = test };
+  struct typ ttest = { 0 };
+  ttest.as.definition = test;
   assert(typ_generic_functor(&ttest) == NULL);
 }
 
 size_t typ_generic_arity(const struct typ *t) {
   t = typ_follow_const(t);
 
-  if (node_can_have_genargs(t->definition)) {
-    return t->definition->subs[IDX_GENARGS]->subs_count;
+  if (node_can_have_genargs(t->as.definition)) {
+    return t->as.definition->subs[IDX_GENARGS]->subs_count;
   } else {
     return 0;
   }
@@ -209,7 +234,8 @@ size_t typ_generic_arity(const struct typ *t) {
 EXAMPLE_NCC(typ_generic_arity) {
   {
     struct node *test = mock_deftype(mod, "test");
-    struct typ ttest = { .definition = test };
+    struct typ ttest = { 0 };
+    ttest.as.definition = test;
     assert(typ_generic_arity(&ttest) == 0);
   }
   {
@@ -220,7 +246,8 @@ EXAMPLE_NCC(typ_generic_arity) {
     G(g2, genargs, DEFGENARG,
        G_IDENT(name_g2, g2, "g2"));
 
-    struct typ ttest = { .definition = test };
+    struct typ ttest = { 0 };
+    ttest.as.definition = test;
     assert(typ_generic_arity(&ttest) == 2);
   }
 }
@@ -228,35 +255,37 @@ EXAMPLE_NCC(typ_generic_arity) {
 size_t typ_generic_first_explicit_arg(const struct typ *t) {
   t = typ_follow_const(t);
 
-  return node_toplevel_const(t->definition)->first_explicit_genarg;
+  return node_toplevel_const(t->as.definition)->first_explicit_genarg;
 }
 
 struct typ *typ_generic_arg(struct typ *t, size_t n) {
   t = typ_follow(t);
 
   assert(n < typ_generic_arity(t));
-  return t->definition->subs[IDX_GENARGS]->subs[n]->typ;
+  return t->as.definition->subs[IDX_GENARGS]->subs[n]->typ;
 }
 
 size_t typ_function_arity(const struct typ *t) {
   t = typ_follow_const(t);
 
-  assert(t->definition->which == DEFFUN || t->definition->which == DEFMETHOD);
-  return node_fun_all_args_count(t->definition);
+  assert(t->as.definition->which == DEFFUN
+         || t->as.definition->which == DEFMETHOD);
+  return node_fun_all_args_count(t->as.definition);
 }
 
 struct typ *typ_function_arg(struct typ *t, size_t n) {
   t = typ_follow(t);
 
   assert(n < typ_function_arity(t));
-  return t->definition->subs[IDX_FUNARGS]->subs[n]->typ;
+  return t->as.definition->subs[IDX_FUNARGS]->subs[n]->typ;
 }
 
 struct typ *typ_function_return(struct typ *t) {
   t = typ_follow(t);
 
-  assert(t->definition->which == DEFFUN || t->definition->which == DEFMETHOD);
-  return node_fun_retval(t->definition)->typ;
+  assert(t->as.definition->which == DEFFUN
+         || t->as.definition->which == DEFMETHOD);
+  return node_fun_retval(t->as.definition)->typ;
 }
 
 const struct node *typ_definition_const(const struct typ *t) {
@@ -286,7 +315,7 @@ const struct typ *typ_follow_const(const struct typ *t) {
 size_t typ_isalist_count(const struct typ *t) {
   t = typ_follow_const(t);
 
-  struct node *def = t->definition;
+  struct node *def = t->as.definition;
   if (def->which == DEFTYPE) {
     return def->as.DEFTYPE.isalist.count;
   } else if (def->which == DEFINTF) {
@@ -299,7 +328,7 @@ size_t typ_isalist_count(const struct typ *t) {
 struct typ *typ_isalist(struct typ *t, size_t n) {
   t = typ_follow(t);
 
-  struct node *def = t->definition;
+  struct node *def = t->as.definition;
   struct typ **list = NULL;
   if (def->which == DEFTYPE) {
     list = def->as.DEFTYPE.isalist.list;
@@ -320,7 +349,7 @@ const struct typ *typ_isalist_const(const struct typ *t, size_t n) {
 const bool *typ_isalist_exported(const struct typ *t) {
   t = typ_follow_const(t);
 
-  struct node *def = t->definition;
+  struct node *def = t->as.definition;
   if (def->which == DEFTYPE) {
     return def->as.DEFTYPE.isalist.exported;
   } else if (def->which == DEFINTF) {
@@ -334,7 +363,7 @@ HTABLE_SPARSE(typs_set, bool, struct typ *);
 implement_htable_sparse(__attribute__((unused)) static, typs_set, bool, struct typ *);
 
 static uint32_t typ_hash(const struct typ **a) {
-  return node_ident(typ_follow_const(*a)->definition);;
+  return node_ident(typ_follow_const(*a)->as.definition);;
 }
 
 static int typ_cmp(const struct typ **a, const struct typ **b) {
