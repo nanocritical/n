@@ -10,6 +10,12 @@
 #include "table.h"
 #include "types.h"
 
+EXAMPLE(data_structure_size_stats) {
+  // It is a good idea to keep track of what is responsible for the size of
+  // 'node_as'. In other words, where to look first to shrink 'struct node'.
+  assert(sizeof(struct node_deftype) == sizeof(union node_as));
+}
+
 const char *node_which_strings[] = {
   [NUL] = "NUL",
   [IDENT] = "IDENT",
