@@ -527,11 +527,12 @@ bool typ_equal(const struct typ *a, const struct typ *b) {
   a = typ_follow_const(a);
   b = typ_follow_const(b);
 
-  if (typ_generic_arity(a) == 0) {
+  const size_t a_ga = typ_generic_arity(a);
+  if (a_ga == 0) {
     return typ_definition_const(typ_follow_const(a))
       == typ_definition_const(typ_follow_const(b));
   } else {
-    if (typ_generic_arity(a) != typ_generic_arity(b)) {
+    if (a_ga != typ_generic_arity(b)) {
       return FALSE;
     }
 
@@ -548,7 +549,7 @@ bool typ_equal(const struct typ *a, const struct typ *b) {
       return FALSE;
     }
 
-    for (size_t n = 0; n < typ_generic_arity(a); ++n) {
+    for (size_t n = 0; n < a_ga; ++n) {
       if (!typ_equal(typ_generic_arg_const(a, n),
                      typ_generic_arg_const(b, n))) {
         return FALSE;
@@ -683,7 +684,8 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
     return TRUE;
   }
 
-  if (typ_generic_arity(a) > 0
+  const size_t a_ga = typ_generic_arity(a);
+  if (a_ga > 0
       && !typ_is_generic_functor(a)
       && typ_is_generic_functor(intf)) {
     if (typ_isa(typ_generic_functor_const(a), intf)) {
@@ -691,33 +693,33 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
     }
   }
 
-  if (typ_generic_arity(a) > 0
+  if (a_ga > 0
       && !typ_equal(intf, TBI_ANY_TUPLE)
       && typ_isa(a, TBI_ANY_TUPLE)) {
     // FIXME: only valid for certain builtin interfaces (copy, trivial...)
     size_t n;
-    for (n = 0; n < typ_generic_arity(a); ++n) {
+    for (n = 0; n < a_ga; ++n) {
       if (!typ_isa(typ_generic_arg_const(a, n), intf)) {
         break;
       }
     }
-    if (n == typ_generic_arity(a)) {
+    if (n == a_ga) {
       return TRUE;
     }
   }
 
-  if (typ_generic_arity(a) > 0
-      && typ_generic_arity(a) == typ_generic_arity(intf)
+  if (a_ga > 0
+      && a_ga == typ_generic_arity(intf)
       && typ_equal(typ_generic_functor_const(a),
                    typ_generic_functor_const(intf))) {
     size_t n = 0;
-    for (n = 0; n < typ_generic_arity(a); ++n) {
+    for (n = 0; n < a_ga; ++n) {
       if (!typ_isa(typ_generic_arg_const(a, n),
                    typ_generic_arg_const(intf, n))) {
         break;
       }
     }
-    if (n == typ_generic_arity(a)) {
+    if (n == a_ga) {
       return TRUE;
     }
   }

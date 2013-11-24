@@ -1200,17 +1200,17 @@ static void inherit(struct module *mod, struct node *node) {
 
 static error step_stop_marker_tbi(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
-  switch (node_ident(node)) {
-  case ID_TBI__NOT_TYPEABLE:
-  case ID_TBI__CALL_FUNCTION_SLOT:
-    *stop = TRUE;
-    return 0;
-  default:
-    break;
+
+  if (node->which == DEFTYPE) {
+    switch (node_ident(node)) {
+    case ID_TBI__NOT_TYPEABLE:
+    case ID_TBI__CALL_FUNCTION_SLOT:
+      *stop = TRUE;
+      return 0;
+    }
   }
 
-  if (node->which == IMPORT
-      && node->typ != NULL) {
+  if (node->which == IMPORT && node->typ != NULL) {
     *stop = TRUE;
     return 0;
   }

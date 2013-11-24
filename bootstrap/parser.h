@@ -744,9 +744,69 @@ const struct module *node_module_owner_const(const struct node *node);
 struct node *node_toplevel_owner(struct node *node);
 struct node *node_statement_owner(struct node *node);
 
-ident node_ident(const struct node *node);
-struct node *node_parent(struct node *node);
-const struct node *node_parent_const(const struct node *node);
+static inline ident node_ident(const struct node *node) {
+  switch (node->which) {
+  case IDENT:
+    return node->as.IDENT.name;
+  case DEFNAME:
+    return node_ident(node->as.DEFNAME.pattern);
+  case DEFARG:
+    return node_ident(node->subs[0]);
+  case FOR:
+    return ID_FOR;
+  case WHILE:
+    return ID_WHILE;
+  case MATCH:
+    return ID_MATCH;
+  case TRY:
+    return ID_TRY;
+  case PRE:
+    return ID_PRE;
+  case POST:
+    return ID_POST;
+  case INVARIANT:
+    return ID_INVARIANT;
+  case EXAMPLE:
+    return ID_EXAMPLE;
+  case DEFFUN:
+  case DEFMETHOD:
+    if (node->subs[0]->which == IDENT) {
+      return node->subs[0]->as.IDENT.name;
+    } else {
+      assert(node->subs[0]->which == BIN);
+      assert(node->subs[0]->subs[1]->which == IDENT);
+      return node->subs[0]->subs[1]->as.IDENT.name;
+    }
+    break;
+  case DEFTYPE:
+  case DEFFIELD:
+  case DEFCHOICE:
+  case DEFINTF:
+    assert(node->subs[0]->which == IDENT);
+    return node->subs[0]->as.IDENT.name;
+  case LET:
+    return ID_LET;
+  case MODULE:
+    return node->as.MODULE.name;
+  case ROOT_OF_ALL:
+    return ID_ROOT_OF_ALL;
+  default:
+    return ID_ANONYMOUS;
+  }
+}
+
+static inline struct node *node_parent(struct node *node) {
+  if (node->scope == NULL) {
+    return NULL;
+  } else {
+    return node->scope->parent->node;
+  }
+}
+
+static inline const struct node *node_parent_const(const struct node *node) {
+  return node_parent((struct node *) node);
+}
+
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);
 bool node_is_export(const struct node *node);
@@ -754,7 +814,19 @@ bool node_is_def(const struct node *node);
 bool node_is_statement(const struct node *node);
 bool node_is_rvalue(const struct node *node);
 bool node_is_at_top(const struct node *node);
-bool node_can_have_genargs(const struct node *node);
+
+static inline bool node_can_have_genargs(const struct node *node) {
+  switch (node->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+  case DEFTYPE:
+  case DEFINTF:
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
 struct node *node_new_subnode(const struct module *mod, struct node *node);
 bool node_has_tail_block(const struct node *node);
 bool node_is_fun(const struct node *node);
@@ -763,8 +835,46 @@ size_t node_fun_explicit_args_count(const struct node *def);
 struct node *node_fun_retval(struct node *def);
 const struct node *node_fun_retval_const(const struct node *def);
 struct node *node_for_block(struct node *node);
-struct toplevel *node_toplevel(struct node *node);
-const struct toplevel *node_toplevel_const(const struct node *node);
+
+static inline const struct toplevel *node_toplevel_const(const struct node *node) {
+  const struct toplevel *toplevel = NULL;
+
+  switch (node->which) {
+  case DEFFUN:
+    toplevel = &node->as.DEFFUN.toplevel;
+    break;
+  case DEFTYPE:
+    toplevel = &node->as.DEFTYPE.toplevel;
+    break;
+  case DEFMETHOD:
+    toplevel = &node->as.DEFMETHOD.toplevel;
+    break;
+  case DEFINTF:
+    toplevel = &node->as.DEFINTF.toplevel;
+    break;
+  case DEFNAMEDLITERAL:
+    toplevel = &node->as.DEFNAMEDLITERAL.toplevel;
+    break;
+  case DEFCONSTRAINTLITERAL:
+    toplevel = &node->as.DEFCONSTRAINTLITERAL.toplevel;
+    break;
+  case LET:
+    toplevel = &node->as.LET.toplevel;
+    break;
+  case IMPORT:
+    toplevel = &node->as.IMPORT.toplevel;
+    break;
+  default:
+    break;
+  }
+
+  return toplevel;
+}
+
+static inline struct toplevel *node_toplevel(struct node *node) {
+  return (struct toplevel *) node_toplevel_const(node);
+}
+
 struct node *node_get_member(struct module *mod, struct node *node, ident id);
 const struct node *node_get_member_const(const struct module *mod, const struct node *node, ident id);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);

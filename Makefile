@@ -3,17 +3,23 @@ MAKEFLAGS := -j2 -r -R --warn-undefined-variables
 
 V ?=
 Q = $(if $V,,@)
+O ?= -O0
+P ?= 0
 
 default:: examples ncc0
 
 SRC = bootstrap
 DEPS = .deps
 
-CFLAGS += -std=c99 -Wall -O0 -g \
+ifeq ($(P),1)
+	CFLAGS += -pg
+endif
+
+CFLAGS += -std=c99 -Wall $(O) -g \
 	  -Wmissing-prototypes -Wpointer-arith \
 	  -Wmissing-declarations -Wno-format-zero-length -Wbad-function-cast \
-	  -Wcast-align -Wwrite-strings -Wno-missing-braces -Wstrict-prototypes
-
+	  -Wcast-align -Wwrite-strings -Wno-missing-braces -Wstrict-prototypes \
+	  -Wmaybe-uninitialized -Wuninitialized
 
 deps-dir-for-target = $(dir $(DEPS)/$1)
 deps-options = -MMD -MF $(DEPS)/$2.d -MT $1
