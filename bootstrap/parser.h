@@ -122,8 +122,6 @@ struct toplevel {
   bool is_prototype;
   bool is_shadowed;
   bool is_not_dyn;
-  struct node *forward_declaration;
-  struct node *full_definition;
   enum builtingen builtingen;
 
   size_t first_explicit_genarg;
