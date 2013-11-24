@@ -1,27 +1,27 @@
 #include "mock.h"
 
 struct node *mock_deftype(struct module *mod, const char *name) {
-  MK(test, mod->body, DEFTYPE,
-     MK_IDENT(_name, test, name);
-     MK(genargs, test, GENARGS);
-     MK(isalist, test, ISALIST));
+  G(test, mod->body, DEFTYPE,
+     G_IDENT(_name, test, name);
+     G(genargs, test, GENARGS);
+     G(isalist, test, ISALIST));
   return test;
 }
 
 struct node *mock_defintf(struct module *mod, const char *name) {
-  MK(test, mod->body, DEFTYPE,
-     MK_IDENT(_name, test, name);
-     MK(genargs, test, GENARGS);
-     MK(isalist, test, ISALIST));
+  G(test, mod->body, DEFTYPE,
+     G_IDENT(_name, test, name);
+     G(genargs, test, GENARGS);
+     G(isalist, test, ISALIST));
   return test;
 }
 
 struct node *mock_deffun(struct module *mod, const char *name) {
-  MK(foo, mod->body, DEFFUN,
-     MK_IDENT(_name, foo, name);
-     MK(genargs, foo, GENARGS);
-     MK(funargs, foo, FUNARGS,
-        MK_IDENT(retval, funargs, "void"));
-     MK(body, foo, BLOCK));
+  G(foo, mod->body, DEFFUN,
+     G_IDENT(_name, foo, name);
+     G(genargs, foo, GENARGS);
+     G(funargs, foo, FUNARGS,
+        G_IDENT(retval, funargs, "void"));
+     G(body, foo, BLOCK));
   return foo;
 }

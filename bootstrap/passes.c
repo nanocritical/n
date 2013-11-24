@@ -2696,7 +2696,7 @@ static error unify_reference(struct module *mod, const struct node *for_error,
 //  struct node *body = foo->subs[foo->subs_count-1];
 //  mock_parse(mod, body, "return (@1).");
 //
-//  MK(intlit, body, NUMBER);
+//  G(intlit, body, NUMBER);
 //  intlit->as.NUMBER.value = "1";
 //  intlit->typ = typ_create_link(TBI_LITERALS_INTEGER);
 //  struct node *for_error = intlit;

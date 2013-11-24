@@ -215,10 +215,10 @@ EXAMPLE_NCC(typ_generic_arity) {
   {
     struct node *test = mock_deftype(mod, "test2");
     struct node *genargs = test->subs[IDX_GENARGS];
-    MK(g1, genargs, DEFGENARG,
-       MK_IDENT(name_g1, g1, "g1"));
-    MK(g2, genargs, DEFGENARG,
-       MK_IDENT(name_g2, g2, "g2"));
+    G(g1, genargs, DEFGENARG,
+       G_IDENT(name_g1, g1, "g1"));
+    G(g2, genargs, DEFGENARG,
+       G_IDENT(name_g2, g2, "g2"));
 
     struct typ ttest = { .definition = test };
     assert(typ_generic_arity(&ttest) == 2);
@@ -420,8 +420,8 @@ static error example_isalist_each(struct module *mod, struct typ *base,
 EXAMPLE_NCC(typ_isalist_foreach) {
   struct node *i_test = mock_defintf(mod, "i_test");
   struct node *test = mock_deftype(mod, "test");
-  MK(isa, test->subs[IDX_ISALIST], ISA,
-     MK_IDENT(isa_name, isa, "i_test"));
+  G(isa, test->subs[IDX_ISALIST], ISA,
+     G_IDENT(isa_name, isa, "i_test"));
 
   i_test->typ = typ_create(i_test);
   test->typ = typ_create(test);
@@ -584,9 +584,9 @@ EXAMPLE_NCC(typ_equal) {
 
   struct node *dc = mock_deftype(mod, "dc");
   {
-    MK(g, dc->subs[IDX_GENARGS], DEFGENARG,
-       MK_IDENT(g_name, g, "g");
-       MK_IDENT(g_type, g, "i"));
+    G(g, dc->subs[IDX_GENARGS], DEFGENARG,
+       G_IDENT(g_name, g, "g");
+       G_IDENT(g_type, g, "i"));
     dc->typ = typ_create(dc);
     g_type->typ = i;
     g->typ = i;
@@ -595,9 +595,9 @@ EXAMPLE_NCC(typ_equal) {
 
   struct node *dd = mock_deftype(mod, "dd");
   {
-    MK(g, dd->subs[IDX_GENARGS], SETGENARG,
-       MK_IDENT(g_name, g, "g");
-       MK_IDENT(g_type, g, "i"));
+    G(g, dd->subs[IDX_GENARGS], SETGENARG,
+       G_IDENT(g_name, g, "g");
+       G_IDENT(g_type, g, "i"));
     dd->typ = typ_create(dd);
     node_toplevel(dd)->our_generic_functor = dc->typ;
     g_type->typ = i;
