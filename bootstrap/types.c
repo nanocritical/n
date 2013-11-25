@@ -10,7 +10,7 @@ struct typ {
     struct node *definition;
   } as;
   bool is_link;
-  bool is_locked;
+  bool is_final;
 };
 
 void typ_pprint(const struct module *mod, const struct typ *t) {
@@ -20,7 +20,6 @@ void typ_pprint(const struct module *mod, const struct typ *t) {
 struct typ *typ_create(struct node *definition) {
   struct typ *r = calloc(1, sizeof(struct typ));
   r->as.definition = definition;
-  r->is_locked = TRUE;
   return r;
 }
 
@@ -35,7 +34,6 @@ EXAMPLE(typ_create) {
 struct typ *typ_init_tbi(struct typ *tbi, struct node *definition) {
   tbi->as.definition = definition;
   tbi->is_link = FALSE;
-  tbi->is_locked = TRUE;
   return tbi;
 }
 
@@ -171,7 +169,6 @@ EXAMPLE(typ_link_length) {
 void typ_lock(struct typ *t) {
   struct node *d = typ_definition(t);
 
-  t->is_locked = TRUE;
   t->is_link = FALSE;
   t->as.definition = d;
 }
@@ -186,6 +183,11 @@ EXAMPLE(typ_lock) {
   typ_lock(&t);
   assert(!typ_is_link(&t));
   assert(typ_definition_const(&t) == typ_definition_const(&s));
+}
+
+void typ_final(struct typ *t) {
+  assert(!t->is_link);
+  t->is_final = TRUE;
 }
 
 struct node *typ_definition(struct typ *t) {

@@ -2129,13 +2129,21 @@ static bool is_tentative(const struct module *mod,
   }
 }
 
-static error pass_lock_types(struct module *mod, struct node *node) {
+static error step_lockfinal_types(struct module *mod, struct node *node, void *user, bool *stop) {
+  if (node->typ != NULL) {
+    typ_lock(node->typ);
+    typ_final(node->typ);
+  }
+  return 0;
+}
+
+static error pass_lockfinal_types(struct module *mod, struct node *node) {
   static const step down[] = {
     NULL,
   };
 
   static const step up[] = {
-    step_lock_types,
+    step_lockfinal_types,
     NULL,
   };
 
@@ -2183,7 +2191,7 @@ static error instance(struct typ **result,
       EXCEPT(e);
     }
 
-    pass_lock_types(mod, typ_definition(r));
+    pass_lockfinal_types(mod, typ_definition(r));
   }
 
   *result = typ_create_link(r);
@@ -4220,7 +4228,7 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
 
     free(args);
 
-    pass_lock_types(mod, typ_definition(i));
+    pass_lockfinal_types(mod, typ_definition(i));
 
     typ_link(i, t);
   }

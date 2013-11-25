@@ -30,6 +30,7 @@ struct typ *typ_follow(struct typ *t);
 size_t typ_link_length(const struct typ *t);
 
 void typ_lock(struct typ *t);
+void typ_final(struct typ *t);
 
 struct typ *typ_lookup_builtin_tuple(struct module *mod, size_t arity);
 
