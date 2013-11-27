@@ -168,7 +168,7 @@ static void print_bin_acc(FILE *out, const struct module *mod, const struct node
     print_typ(out, mod, node->typ);
   } else {
     const char *deref = ".";
-    if (typ_is_reference_instance(left->typ)) {
+    if (typ_is_reference(left->typ)) {
       deref = "->";
     }
     print_expr(out, mod, left, op);
@@ -265,7 +265,7 @@ static void print_tuplenth(FILE *out, const struct module *mod, const struct nod
   fprintf(out, "((");
   print_expr(out, mod, target, T__STATEMENT);
   fprintf(out, ")%sx%zu",
-          typ_is_reference_instance(target->typ) ? "->" : ".",
+          typ_is_reference(target->typ) ? "->" : ".",
           node->as.TUPLENTH.nth);
   fprintf(out, ")");
 }
@@ -318,7 +318,7 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
     if (n == 0
         && fdef->which == DEFMETHOD
         && parentd->which == DEFINTF) {
-      assert(typ_is_reference_instance(arg->typ));
+      assert(typ_is_reference(arg->typ));
       if (!typ_equal(parentd->typ, typ_generic_arg_const(arg->typ, 0))) {
         fprintf(out, "*(");
         print_typ(out, mod, parentd->typ);
@@ -738,7 +738,7 @@ static void print_typ_data(FILE *out, const struct module *mod, const struct typ
   if (typ_is_generic_functor(typ)) {
     fprintf(out, "%s", replace_dots(typ_name(mod, typ)));
     return;
-  } else if (typ_is_reference_instance(typ)
+  } else if (typ_is_reference(typ)
       && !typ_equal(typ, TBI_ANY_ANY_REF)
       && typ_definition_const(typ_generic_arg_const(typ, 0))->which == DEFINTF) {
     // dyn
@@ -1538,7 +1538,7 @@ static void print_deffun(FILE *out, bool header, enum forward fwd, const struct 
   } else {
     print_fun_prototype(out, header, mod, node, FALSE, FALSE, FALSE, NULL);
 
-    fprintf(out, "{\n");
+    fprintf(out, " {\n");
     if (node_parent_const(node)->which == DEFTYPE) {
       fprintf(out, "#define THIS(x) ");
       print_typ(out, mod, node_parent_const(node)->typ);
@@ -2169,7 +2169,7 @@ static void print_defintf(FILE *out, bool header, enum forward fwd, const struct
   if (typ_is_pseudo_builtin(node->typ)) {
     return;
   }
-  if (typ_is_reference_instance(node->typ)) {
+  if (typ_is_reference(node->typ)) {
     return;
   }
 
@@ -2264,7 +2264,7 @@ static bool file_exists(const char *base, const char *postfix) {
 }
 
 static bool is_concrete(const struct typ *t) {
-  if (typ_is_reference_instance(t)) {
+  if (typ_is_reference(t)) {
     return FALSE;
   } else {
     for (size_t n = 0; n < typ_generic_arity(t); ++n) {

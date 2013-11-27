@@ -4,196 +4,411 @@
 #include "table.h"
 #include "mock.h"
 
-struct typ {
-  union {
-    struct typ *link;
-    struct node *definition;
-  } as;
-  bool is_link;
-  bool is_final;
+#define BACKLINKS_LEN 7 // arbitrary
+#define USERS_LEN 7 // arbitrary
+
+struct backlinks {
+  size_t count;
+  struct typ **links[BACKLINKS_LEN];
+  struct backlinks *more;
 };
 
-void typ_pprint(const struct module *mod, const struct typ *t) {
-  fprintf(g_env.stderr, "%s\n", typ_pretty_name(mod, t));
+struct users {
+  size_t count;
+  struct typ *users[USERS_LEN];
+  struct users *more;
+};
+
+HTABLE_SPARSE(typs_set, bool, struct typ *);
+implement_htable_sparse(__attribute__((unused)) static, typs_set, bool, struct typ *);
+
+enum typ_flags {
+  TYPF_TENTATIVE = 0x1,
+  TYPF_BUILTIN = 0x2,
+  TYPF_PSEUDO_BUILTIN = 0x4,
+  TYPF_TRIVIAL = 0x8,
+  TYPF_REF = 0x10,
+  TYPF_LITERAL = 0x20,
+  TYPF_WEAKLY_CONCRETE = 0x40,
+  TYPF__INHERIT_FROM_FUNCTOR = TYPF_TENTATIVE
+    | TYPF_TRIVIAL | TYPF_REF | TYPF_WEAKLY_CONCRETE,
+  TYPF__MASK_HASH = 0xffff & ~TYPF_TENTATIVE,
+};
+
+struct typ {
+  uint32_t flags;
+  uint32_t hash;
+
+  struct node *definition;
+
+  struct typs_set quickisa;
+
+  struct backlinks backlinks;
+  struct users users;
+};
+
+#define FOREACH_BACKLINK(back, t, what) do { \
+  struct backlinks *backlinks = &t->backlinks; \
+  do { \
+    for (size_t n = 0; n < backlinks->count; ++n) { \
+      struct typ **back = backlinks->links[n]; \
+      if (back != NULL) { \
+        what; \
+      } \
+    } \
+    backlinks = backlinks->more; \
+  } while (backlinks != NULL); \
+} while (0)
+
+#define FOREACH_USER(user, t, what) do { \
+  struct users *users = &t->users; \
+  do { \
+    for (size_t n = 0; n < users->count; ++n) { \
+      struct typ *user = users->users[n]; \
+      what; \
+    } \
+    users = users->more; \
+  } while (users != NULL); \
+} while (0)
+
+static void remove_backlink(struct typ *t, struct typ **loc) {
+  FOREACH_BACKLINK(back, t,
+                   if (back == loc) { backlinks->links[n] = NULL; });
 }
 
-struct typ *typ_create(struct node *definition) {
-  struct typ *r = calloc(1, sizeof(struct typ));
-  r->as.definition = definition;
-  return r;
+void set_typ(struct typ **loc, struct typ *t) {
+  if (*loc != NULL) {
+    if (*loc == t) {
+      return;
+    }
+
+    remove_backlink(t, loc);
+  }
+
+  *loc = t;
+
+  if (typ_is_tentative(t)) {
+    struct backlinks *backlinks = &t->backlinks;
+    while (backlinks->more != NULL) {
+      backlinks = backlinks->more;
+    }
+
+    if (backlinks->count == BACKLINKS_LEN) {
+      backlinks->more = calloc(1, sizeof(*backlinks->more));
+      backlinks = backlinks->more;
+    }
+
+    backlinks->links[backlinks->count] = loc;
+    backlinks->count += 1;
+  }
 }
 
-EXAMPLE(typ_create) {
-  assert(typ_create(NULL)->as.definition == NULL);
-  struct node n = { 0 };
-  struct typ *t = typ_create(&n);
-  assert(!t->is_link);
-  assert(t->as.definition == &n);
+static void clear_backlinks(struct typ *t) {
+  struct backlinks *b = &t->backlinks;
+
+  while (b->more != NULL) {
+    struct backlinks *m = b->more;
+    free(b);
+    b = m;
+  }
+
+  memset(&t->backlinks, 0, sizeof(t->backlinks));
 }
 
-struct typ *typ_init_tbi(struct typ *tbi, struct node *definition) {
-  tbi->as.definition = definition;
-  tbi->is_link = FALSE;
-  return tbi;
-}
-
-EXAMPLE(typ_create_tbi) {
-  struct typ t = { 0 };
-  struct node n = { 0 };
-  struct typ *tt = typ_init_tbi(&t, &n);
-  assert(tt == &t && tt->as.definition == &n);
-}
-
-bool typ_is_link(const struct typ *t) {
-  return t->is_link;
-}
-
-EXAMPLE(typ_is_link) {
-  struct typ t = { 0 };
-  assert(!typ_is_link(&t));
-  struct typ s = { 0 };
-  s.is_link = TRUE;
-  s.as.link = &t;
-  assert(typ_is_link(&s));
-}
-
-struct typ *typ_create_link(struct typ *dst) {
-  assert(dst != NULL);
-  struct typ *r = calloc(1, sizeof(struct typ));
-  r->is_link = TRUE;
-  r->as.link = dst;
-  return r;
-}
-
-EXAMPLE(typ_create_link) {
-  struct node n = { 0 };
-  struct typ t = { 0 };
-  t.as.definition = &n;
-  struct typ *l = typ_create_link(&t);
-  assert(typ_is_link(l));
-  assert(l->as.link == &t);
-  assert(typ_follow(l) == &t);
-  assert(typ_definition(l) == &n);
-}
-
-void typ_link(struct typ *dst, struct typ *src) {
-  if (dst == src
-      || (!typ_is_link(dst) && !typ_is_link(src)
-          && dst->as.definition == src->as.definition)) {
+static void add_user(struct typ *arg, struct typ *user) {
+  if (!typ_is_tentative(arg)) {
     return;
   }
 
-  assert(typ_is_link(src));
+  assert(typ_is_tentative(user));
 
-  struct typ *d = dst;
-  while (typ_is_link(d) && typ_is_link(d->as.link)) {
-    d = d->as.link;
-    if (d == src || d->as.link == src) {
-      return;
+  struct users *users = &arg->users;
+  while (users->more != NULL) {
+    users = users->more;
+  }
+
+  if (users->count == USERS_LEN) {
+    users->more = calloc(1, sizeof(*users->more));
+    users = users->more;
+  }
+
+  users->users[users->count] = user;
+  users->count += 1;
+}
+
+static void clear_users(struct typ *t) {
+  struct users *b = &t->users;
+
+  while (b->more != NULL) {
+    struct users *m = b->more;
+    free(b);
+    b = m;
+  }
+
+  memset(&t->users, 0, sizeof(t->users));
+}
+
+static uint32_t typ_hash(const struct typ **a) {
+  return (*a)->hash;
+}
+
+static int typ_cmp(const struct typ **a, const struct typ **b) {
+  return !typ_equal(*a, *b);
+}
+
+static void quickisa_init(struct typ *t) {
+  typs_set_init(&t->quickisa, 0);
+  typs_set_set_delete_val(&t->quickisa, NULL);
+  typs_set_set_custom_hashf(&t->quickisa, typ_hash);
+  typs_set_set_custom_cmpf(&t->quickisa, typ_cmp);
+}
+
+static void create_flags(struct typ *t, struct typ *tbi) {
+  if (typ_definition_const(t) == NULL) {
+    // This is very early in the global init.
+    return;
+  }
+
+  const struct toplevel *toplevel = node_toplevel_const(typ_definition_const(t));
+  const struct typ *functor = NULL;
+  if (toplevel != NULL) {
+    functor = toplevel->our_generic_functor_typ;
+  }
+
+  if (t == TBI_LITERALS_NULL
+      || t == TBI_ANY_ANY_REF) {
+    t->flags |= TYPF_REF;
+  }
+
+  const struct typ *maybe_ref = tbi;
+  if (functor != NULL) {
+    maybe_ref = functor;
+
+    t->flags |= functor->flags & TYPF__INHERIT_FROM_FUNCTOR;
+  }
+
+  if (maybe_ref == TBI_ANY_REF
+      || maybe_ref == TBI_ANY_MUTABLE_REF
+      || maybe_ref == TBI_ANY_NULLABLE_REF
+      || maybe_ref == TBI_ANY_NULLABLE_MUTABLE_REF
+      || maybe_ref == TBI_REF
+      || maybe_ref == TBI_MREF
+      || maybe_ref == TBI_MMREF
+      || maybe_ref == TBI_NREF
+      || maybe_ref == TBI_NMREF
+      || maybe_ref == TBI_NMMREF
+      || maybe_ref == TBI__REF_COMPATIBLE) {
+    t->flags |= TYPF_REF;
+  }
+
+  if (tbi == NULL) {
+    return;
+  }
+
+  t->flags |= TYPF_BUILTIN;
+
+  if (tbi == TBI_LITERALS_NULL
+      || tbi == TBI_LITERALS_INTEGER
+      || tbi == TBI_LITERALS_FLOATING
+      || tbi == TBI__REF_COMPATIBLE
+      || tbi == TBI__NOT_TYPEABLE
+      || tbi == TBI__CALL_FUNCTION_SLOT
+      || tbi == TBI__MUTABLE
+      || tbi == TBI__MERCURIAL) {
+    t->flags |= TYPF_PSEUDO_BUILTIN;
+  }
+
+  if (functor != NULL && typ_equal(functor, TBI_TRIVIAL_ARRAY_CTOR)) {
+    t->flags |= TYPF_TRIVIAL;
+  }
+  if (t->flags & TYPF_REF) {
+    t->flags |= TYPF_TRIVIAL;
+  }
+  if (tbi == TBI_TRIVIAL_CTOR
+      || tbi == TBI_TRIVIAL_COPY
+      || tbi == TBI_TRIVIAL_EQUALITY
+      || tbi == TBI_TRIVIAL_ORDER
+      || tbi == TBI_TRIVIAL_DTOR
+      || tbi == TBI_TRIVIAL_ARRAY_CTOR) {
+    t->flags |= TYPF_TRIVIAL;
+  }
+
+  if (tbi == TBI_LITERALS_NULL
+      || tbi == TBI_LITERALS_INTEGER
+      || tbi == TBI_LITERALS_FLOATING) {
+    t->flags |= TYPF_LITERAL;
+  }
+
+  if (tbi == TBI_BOOL
+      || tbi == TBI_STATIC_STRING) {
+    t->flags |= TYPF_WEAKLY_CONCRETE;
+  }
+}
+
+struct typ *typ_create(struct typ *tbi, struct node *definition) {
+  struct typ *r = tbi != NULL ? tbi : calloc(1, sizeof(struct typ));
+
+  r->definition = definition;
+  create_flags(r, tbi);
+  quickisa_init(r);
+
+  return r;
+}
+
+void typ_create_update_genargs(struct typ *t) {
+  if (typ_generic_arity(t) == 0) {
+    return;
+  }
+
+  if (typ_is_tentative(typ_generic_functor_const(t))) {
+    t->flags |= TYPF_TENTATIVE;
+  }
+  for (size_t n = 0, count = typ_generic_arity(t); n < count; ++n) {
+    struct typ *arg = typ_generic_arg(t, n);
+    if (typ_is_tentative(arg)) {
+      t->flags |= TYPF_TENTATIVE;
+      add_user(arg, t);
     }
   }
 
-  while (typ_is_link(src) && typ_is_link(src->as.link)) {
-    src = src->as.link;
-    if (src == d) {
-      return;
+}
+
+void typ_create_update_hash(struct typ *t) {
+  const struct node *d = typ_definition_const(t);
+  const struct node *genargs = d->subs[IDX_GENARGS];
+
+#define LEN 8 // arbitrary, at least 4
+  uint32_t buf[LEN] = { 0 };
+  buf[0] = t->flags & TYPF__MASK_HASH;
+  buf[1] = node_ident(d);
+  buf[2] = genargs->subs_count;
+  size_t i = 3;
+  for (size_t n = 0; n < genargs->subs_count && i < LEN; ++n, ++i) {
+    buf[i] = node_ident(typ_definition_const(genargs->subs[n]->typ));
+  }
+#undef LEN
+
+  t->hash = hash32_hsieh(buf, sizeof(buf));
+}
+
+static error update_quickisa_isalist_each(struct module *mod,
+                                          struct typ *t, struct typ *intf,
+                                          bool *stop, void *user) {
+  typs_set_set(&t->quickisa, intf, TRUE);
+  return 0;
+}
+
+void typ_create_update_quickisa(struct typ *t) {
+  if (typs_set_count(&t->quickisa) > 0) {
+    typs_set_destroy(&t->quickisa);
+    quickisa_init(t);
+  }
+
+  typ_isalist_foreach(NULL, t, 0, update_quickisa_isalist_each, NULL);
+}
+
+bool typ_is_tentative(const struct typ *t) {
+  return t->flags & TYPF_TENTATIVE;
+}
+
+static bool check_can_be_tentative(const struct typ *t) {
+  const struct node *d = typ_definition_const(t);
+  if (d->which == DEFINTF
+      || d->which == DEFNAMEDLITERAL
+      || d->which == DEFCONSTRAINTLITERAL) {
+    return TRUE;
+  }
+
+  if (typ_is_literal(t) || (t->flags & TYPF_WEAKLY_CONCRETE)) {
+    return TRUE;
+  }
+
+  for (size_t n = 0, count = typ_generic_arity(t); n < count; ++n) {
+    const struct node *da = typ_definition_const(typ_generic_arg_const(t, n));
+    if (da->which == DEFINTF) {
+      return TRUE;
     }
   }
 
-  src->is_link = TRUE;
-  src->as.link = dst;
-
-  // FIXME: remove; used to detect circular links.
-  (void) typ_follow(src);
+  return FALSE;
 }
 
-EXAMPLE(typ_link) {
-  struct node d1 = { 0 }, d2 = { 0 };
-  struct typ *a = typ_create(&d1);
-  struct typ *b = typ_create(&d2);
-  struct typ *lnk_a = typ_create_link(a);
-  struct typ *lnk_b = typ_create_link(b);
-  assert(typ_follow(lnk_a) != typ_follow(lnk_b));
-  typ_link(lnk_a, lnk_b);
-  assert(typ_is_link(lnk_a));
-  assert(typ_is_link(lnk_b));
-  assert(typ_follow(lnk_a) == typ_follow(lnk_b));
-}
+struct typ *typ_create_tentative(struct typ *target) {
+  assert(target != NULL);
+  assert(target->hash != 0);
 
-struct typ *typ_follow(struct typ *t) {
-  if (t == NULL) {
-    return NULL;
+  if (typ_is_tentative(target)) {
+    return target;
   }
 
-  while (typ_is_link(t)) {
-    t = t->as.link;
+  assert(check_can_be_tentative(target));
+
+  struct typ *r = calloc(1, sizeof(struct typ));
+  r->flags = target->flags | TYPF_TENTATIVE;
+  r->hash = target->hash;
+  r->definition = target->definition;
+  quickisa_init(r);
+
+  typs_set_rehash(&r->quickisa, (struct typs_set *) &target->quickisa);
+
+  return r;
+}
+
+static void link_generic_arg_update(struct typ *user) {
+  assert(typ_is_tentative(user));
+
+  // It is possible that now that 'arg' is not tentative, 'user' itself
+  // should loose its tentative status. This will be handled in
+  // step_gather_final_instantiations().
+
+  typ_create_update_hash(user);
+  typ_create_update_quickisa(user);
+}
+
+static void link_to_final(struct typ *dst, struct typ *src) {
+  FOREACH_BACKLINK(back, src, set_typ(back, dst));
+
+  FOREACH_USER(user, src, link_generic_arg_update(user));
+}
+
+static void link_to_tentative(struct typ *dst, struct typ *src) {
+  FOREACH_BACKLINK(back, src, set_typ(back, dst));
+
+  FOREACH_USER(user, src, add_user(dst, user));
+
+  clear_backlinks(src);
+  clear_users(src);
+
+  // Noone should be referring to 'src' anymore; let's make sure.
+//  memset(src, 0, sizeof(*src));
+}
+
+void typ_link_tentative(struct typ *dst, struct typ *src) {
+  assert(typ_is_tentative(src));
+
+  if (dst == src) {
+    return;
   }
-  return t;
+
+  if (!typ_is_tentative(dst)) {
+    link_to_final(dst, src);
+  } else {
+    link_to_tentative(dst, src);
+  }
 }
 
-EXAMPLE(typ_follow) {
-  assert(NULL == typ_follow(NULL));
-  struct node n = { 0 };
-  struct typ t = { 0 };
-  t.as.definition = &n;
-  assert(&t == typ_follow(&t));
-  struct typ s = { 0 };
-  s.is_link = TRUE;
-  s.as.link = &t;
-  assert(&t == typ_follow(&s));
-}
+void typ_link_to_existing_final(struct typ *dst, struct typ *src) {
+  assert(!typ_is_tentative(dst));
 
-size_t typ_link_length(const struct typ *t) {
-  if (t == NULL) {
-    return 0;
+  if (dst == src) {
+    return;
   }
 
-  size_t len = 0;
-  while (typ_is_link(t)) {
-    t = t->as.link;
-    len += 1;
-  }
-  return len;
-}
-
-EXAMPLE(typ_link_length) {
-  assert(0 == typ_link_length(NULL));
-  struct typ t = { 0 };
-  assert(0 == typ_link_length(&t));
-  struct typ s = { 0 };
-  s.is_link = TRUE;
-  s.as.link = &t;
-  assert(1 == typ_link_length(&s));
-}
-
-void typ_lock(struct typ *t) {
-  struct node *d = typ_definition(t);
-
-  t->is_link = FALSE;
-  t->as.definition = d;
-}
-
-EXAMPLE(typ_lock) {
-  struct node n = { 0 };
-  struct typ s = { 0 };
-  s.as.definition = &n;
-  struct typ t = { 0 };
-  t.is_link = TRUE;
-  t.as.link = &s;
-  typ_lock(&t);
-  assert(!typ_is_link(&t));
-  assert(typ_definition_const(&t) == typ_definition_const(&s));
-}
-
-void typ_final(struct typ *t) {
-  assert(!t->is_link);
-  t->is_final = TRUE;
+  link_to_final(dst, src);
 }
 
 struct node *typ_definition(struct typ *t) {
-  t = typ_follow(t);
-
-  return t->as.definition;
+  return t->definition;
 }
 
 bool typ_is_function(const struct typ *t) {
@@ -202,92 +417,79 @@ bool typ_is_function(const struct typ *t) {
 }
 
 struct typ *typ_generic_functor(struct typ *t) {
-  t = typ_follow(t);
-
   if (typ_generic_arity(t) == 0) {
     return NULL;
   }
 
-  const struct toplevel *toplevel = node_toplevel_const(t->as.definition);
-  if (toplevel->our_generic_functor != NULL) {
-    return toplevel->our_generic_functor;
+  const struct toplevel *toplevel = node_toplevel_const(typ_definition_const(t));
+  if (toplevel->our_generic_functor_typ != NULL) {
+    return toplevel->our_generic_functor_typ;
   } else {
     return t;
   }
 }
 
 EXAMPLE_NCC(typ_generic_functor) {
-  struct node *test = mock_deftype(mod, "test");
-  struct typ ttest = { 0 };
-  ttest.as.definition = test;
-  assert(typ_generic_functor(&ttest) == NULL);
+//  struct node *test = mock_deftype(mod, "test");
+//  struct typ ttest = { 0 };
+//  ttest.definition = test;
+//  assert(typ_generic_functor(&ttest) == NULL);
 }
 
 size_t typ_generic_arity(const struct typ *t) {
-  t = typ_follow_const(t);
-
-  if (node_can_have_genargs(t->as.definition)) {
-    return t->as.definition->subs[IDX_GENARGS]->subs_count;
+  const struct node *d = typ_definition_const(t);
+  if (node_can_have_genargs(d)) {
+    return d->subs[IDX_GENARGS]->subs_count;
   } else {
     return 0;
   }
 }
 
 EXAMPLE_NCC(typ_generic_arity) {
-  {
-    struct node *test = mock_deftype(mod, "test");
-    struct typ ttest = { 0 };
-    ttest.as.definition = test;
-    assert(typ_generic_arity(&ttest) == 0);
-  }
-  {
-    struct node *test = mock_deftype(mod, "test2");
-    struct node *genargs = test->subs[IDX_GENARGS];
-    G(g1, genargs, DEFGENARG,
-       G_IDENT(name_g1, g1, "g1"));
-    G(g2, genargs, DEFGENARG,
-       G_IDENT(name_g2, g2, "g2"));
-
-    struct typ ttest = { 0 };
-    ttest.as.definition = test;
-    assert(typ_generic_arity(&ttest) == 2);
-  }
+//  {
+//    struct node *test = mock_deftype(mod, "test");
+//    struct typ ttest = { 0 };
+//    ttest.definition = test;
+//    assert(typ_generic_arity(&ttest) == 0);
+//  }
+//  {
+//    struct node *test = mock_deftype(mod, "test2");
+//    struct node *genargs = test->subs[IDX_GENARGS];
+//    G(g1, genargs, DEFGENARG,
+//       G_IDENT(name_g1, g1, "g1"));
+//    G(g2, genargs, DEFGENARG,
+//       G_IDENT(name_g2, g2, "g2"));
+//
+//    struct typ ttest = { 0 };
+//    ttest.definition = test;
+//    assert(typ_generic_arity(&ttest) == 2);
+//  }
 }
 
 size_t typ_generic_first_explicit_arg(const struct typ *t) {
-  t = typ_follow_const(t);
-
-  return node_toplevel_const(t->as.definition)->first_explicit_genarg;
+  return node_toplevel_const(typ_definition_const(t))->first_explicit_genarg;
 }
 
 struct typ *typ_generic_arg(struct typ *t, size_t n) {
-  t = typ_follow(t);
-
   assert(n < typ_generic_arity(t));
-  return t->as.definition->subs[IDX_GENARGS]->subs[n]->typ;
+  return typ_definition_const(t)->subs[IDX_GENARGS]->subs[n]->typ;
 }
 
 size_t typ_function_arity(const struct typ *t) {
-  t = typ_follow_const(t);
-
-  assert(t->as.definition->which == DEFFUN
-         || t->as.definition->which == DEFMETHOD);
-  return node_fun_all_args_count(t->as.definition);
+  assert(typ_definition_const(t)->which == DEFFUN
+         || typ_definition_const(t)->which == DEFMETHOD);
+  return node_fun_all_args_count(typ_definition_const(t));
 }
 
 struct typ *typ_function_arg(struct typ *t, size_t n) {
-  t = typ_follow(t);
-
   assert(n < typ_function_arity(t));
-  return t->as.definition->subs[IDX_FUNARGS]->subs[n]->typ;
+  return typ_definition_const(t)->subs[IDX_FUNARGS]->subs[n]->typ;
 }
 
 struct typ *typ_function_return(struct typ *t) {
-  t = typ_follow(t);
-
-  assert(t->as.definition->which == DEFFUN
-         || t->as.definition->which == DEFMETHOD);
-  return node_fun_retval(t->as.definition)->typ;
+  assert(typ_definition_const(t)->which == DEFFUN
+         || typ_definition_const(t)->which == DEFMETHOD);
+  return node_fun_retval_const(typ_definition_const(t))->typ;
 }
 
 const struct node *typ_definition_const(const struct typ *t) {
@@ -310,78 +512,50 @@ const struct typ *typ_function_return_const(const struct typ *t) {
   return typ_function_return((struct typ *) t);
 }
 
-const struct typ *typ_follow_const(const struct typ *t) {
-  return typ_follow((struct typ *) t);
-}
-
-size_t typ_isalist_count(const struct typ *t) {
-  t = typ_follow_const(t);
-
-  struct node *def = t->as.definition;
-  if (def->which == DEFTYPE) {
-    return def->as.DEFTYPE.isalist.count;
-  } else if (def->which == DEFINTF) {
-    return def->as.DEFINTF.isalist.count;
-  } else {
+static size_t direct_isalist_count(const struct typ *t) {
+  const struct node *def = typ_definition_const(t);
+  switch (def->which) {
+  case DEFTYPE:
+  case DEFINTF:
+    return def->subs[IDX_ISALIST]->subs_count;
+  default:
     return 0;
   }
 }
 
-struct typ *typ_isalist(struct typ *t, size_t n) {
-  t = typ_follow(t);
-
-  struct node *def = t->as.definition;
-  struct typ **list = NULL;
-  if (def->which == DEFTYPE) {
-    list = def->as.DEFTYPE.isalist.list;
-  } else if (def->which == DEFINTF) {
-    list = def->as.DEFINTF.isalist.list;
-  } else {
+static struct typ *direct_isalist(struct typ *t, size_t n) {
+  const struct node *def = typ_definition_const(t);
+  switch (def->which) {
+  case DEFTYPE:
+  case DEFINTF:
+    assert(n < def->subs[IDX_ISALIST]->subs_count);
+    return def->subs[IDX_ISALIST]->subs[n]->typ;
+  default:
     assert(FALSE);
-  }
-
-  assert(n < typ_isalist_count(t));
-  return list[n];
-}
-
-const struct typ *typ_isalist_const(const struct typ *t, size_t n) {
-  return typ_isalist((struct typ *) t, n);
-}
-
-const bool *typ_isalist_exported(const struct typ *t) {
-  t = typ_follow_const(t);
-
-  struct node *def = t->as.definition;
-  if (def->which == DEFTYPE) {
-    return def->as.DEFTYPE.isalist.exported;
-  } else if (def->which == DEFINTF) {
-    return def->as.DEFINTF.isalist.exported;
-  } else {
-    return NULL;
+    return 0;
   }
 }
 
-HTABLE_SPARSE(typs_set, bool, struct typ *);
-implement_htable_sparse(__attribute__((unused)) static, typs_set, bool, struct typ *);
-
-static uint32_t typ_hash(const struct typ **a) {
-  return node_ident(typ_follow_const(*a)->as.definition);;
+static const struct typ *direct_isalist_const(const struct typ *t, size_t n) {
+  return direct_isalist((struct typ *) t, n);
 }
 
-static int typ_cmp(const struct typ **a, const struct typ **b) {
-  const struct typ *aa = typ_follow_const(*a);
-  const struct typ *bb = typ_follow_const(*b);
-  return !typ_equal(aa, bb);
+static bool direct_isalist_exported(const struct typ *t, size_t n) {
+  const struct node *def = typ_definition_const(t);
+  switch (def->which) {
+  case DEFTYPE:
+  case DEFINTF:
+    return def->subs[IDX_ISALIST]->subs[n]->as.ISA.is_export;
+  default:
+    return 0;
+  }
 }
 
 static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct typ *base,
                                     uint32_t filter, isalist_each iter, void *user,
                                     bool *stop, struct typs_set *set) {
-  t = typ_follow(t);
-  base = typ_follow(base);
-
-  for (size_t n = 0; n < typ_isalist_count(base); ++n) {
-    struct typ *intf = typ_follow(typ_isalist(base, n));
+  for (size_t n = 0; n < direct_isalist_count(base); ++n) {
+    struct typ *intf = direct_isalist(base, n);
     if (typs_set_get(set, intf) != NULL) {
       continue;
     }
@@ -389,7 +563,7 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
     const bool filter_not_exported = filter & ISALIST_FILTER_NOT_EXPORTED;
     const bool filter_exported = filter & ISALIST_FILTER_EXPORTED;
     const bool filter_trivial_isalist = filter & ISALIST_FILTER_TRIVIAL_ISALIST;
-    const bool exported = typ_isalist_exported(base)[n];
+    const bool exported = direct_isalist_exported(base, n);
     if (filter_not_exported && !exported) {
       continue;
     }
@@ -448,26 +622,21 @@ static error example_isalist_each(struct module *mod, struct typ *base,
   return 0;
 }
 
-EXAMPLE_NCC(typ_isalist_foreach) {
-  struct node *i_test = mock_defintf(mod, "i_test");
-  struct node *test = mock_deftype(mod, "test");
-  G(isa, test->subs[IDX_ISALIST], ISA,
-     G_IDENT(isa_name, isa, "i_test"));
-
-  i_test->typ = typ_create(i_test);
-  test->typ = typ_create(test);
-  isa_name->typ = typ_create_link(i_test->typ);
-  isa->typ = isa_name->typ;
-
-  test->as.DEFTYPE.isalist.count = 1;
-  test->as.DEFTYPE.isalist.list = &i_test->typ;
-  bool no = FALSE;
-  test->as.DEFTYPE.isalist.exported = &no;
-
-  int count = 0;
-  error e = typ_isalist_foreach(mod, test->typ, 0, example_isalist_each, &count);
-  assert(!e);
-  assert(count == 1);
+EXAMPLE_NCC(direct_isalist_foreach) {
+//  struct node *i_test = mock_defintf(mod, "i_test");
+//  struct node *test = mock_deftype(mod, "test");
+//  G(isa, test->subs[IDX_ISALIST], ISA,
+//     G_IDENT(isa_name, isa, "i_test"));
+//
+//  i_test->typ = typ_create(NULL, i_test);
+//  test->typ = typ_create(NULL, test);
+//  set_typ(&isa_name->typ, i_test->typ);
+//  set_typ(&isa->typ, isa_name->typ);
+//
+//  int count = 0;
+//  error e = typ_isalist_foreach(mod, test->typ, 0, example_isalist_each, &count);
+//  assert(!e);
+//  assert(count == 1);
 }
 
 struct typ *TBI_VOID;
@@ -510,7 +679,7 @@ struct typ *TBI_STRING;
 struct typ *TBI_STATIC_STRING;
 struct typ *TBI_STATIC_STRING_COMPATIBLE;
 struct typ *TBI_STATIC_ARRAY;
-struct typ *TBI_REF_COMPATIBLE;
+struct typ *TBI__REF_COMPATIBLE;
 struct typ *TBI_ANY_ANY_REF;
 struct typ *TBI_ANY_REF;
 struct typ *TBI_ANY_MUTABLE_REF;
@@ -554,21 +723,26 @@ struct typ *TBI__CALL_FUNCTION_SLOT;
 struct typ *TBI__MUTABLE;
 struct typ *TBI__MERCURIAL;
 
-bool typ_equal(const struct typ *a, const struct typ *b) {
-  a = typ_follow_const(a);
-  b = typ_follow_const(b);
+static bool __typ_equal(const struct typ *a, const struct typ *b) {
+  assert(a->hash != 0 && b->hash != 0);
+
+  const struct node *da = typ_definition_const(a);
+  const struct node *db = typ_definition_const(b);
+  if (da == db) {
+    return TRUE;
+  }
 
   const size_t a_ga = typ_generic_arity(a);
   if (a_ga == 0) {
-    return typ_definition_const(typ_follow_const(a))
-      == typ_definition_const(typ_follow_const(b));
+    return da == db;
   } else {
     if (a_ga != typ_generic_arity(b)) {
       return FALSE;
     }
 
-    if (typ_definition_const(typ_generic_functor_const(a))
-        != typ_definition_const(typ_generic_functor_const(b))) {
+    const struct typ *a0 = typ_generic_functor_const(a);
+    const struct typ *b0 = typ_generic_functor_const(b);
+    if (a0 != b0) {
       return FALSE;
     }
 
@@ -591,53 +765,65 @@ bool typ_equal(const struct typ *a, const struct typ *b) {
   }
 }
 
+bool typ_equal(const struct typ *a, const struct typ *b) {
+  bool hr = TRUE;
+  if (a->hash != b->hash) {
+    hr = FALSE;
+  }
+
+  const bool r = __typ_equal(a, b);
+  static int x;
+  if (r && !hr) {
+    __break();
+    fprintf(stderr, "%u\n", ++x);
+  }
+  return r;
+}
+
 EXAMPLE_NCC(typ_equal) {
-  struct node *di = mock_defintf(mod, "i");
-  struct typ *i = typ_create(di);
-  di->typ = i;
-
-  struct node *da = mock_deftype(mod, "a");
-  struct node *db = mock_deftype(mod, "b");
-
-  da->typ = typ_create(da);
-  struct typ *alt_a = typ_create(da);
-  db->typ = typ_create(db);
-
-  assert(typ_equal(da->typ, da->typ));
-  assert(typ_equal(da->typ, alt_a));
-  assert(typ_equal(alt_a, da->typ));
-  struct typ *a = typ_create_link(da->typ);
-  assert(typ_equal(da->typ, a));
-  assert(typ_equal(a, da->typ));
-
-  assert(!typ_equal(da->typ, db->typ));
-  assert(!typ_equal(db->typ, da->typ));
-
-  struct node *dc = mock_deftype(mod, "dc");
-  {
-    G(g, dc->subs[IDX_GENARGS], DEFGENARG,
-       G_IDENT(g_name, g, "g");
-       G_IDENT(g_type, g, "i"));
-    dc->typ = typ_create(dc);
-    g_type->typ = i;
-    g->typ = i;
-    assert(typ_generic_arity(dc->typ) == 1);
-  }
-
-  struct node *dd = mock_deftype(mod, "dd");
-  {
-    G(g, dd->subs[IDX_GENARGS], SETGENARG,
-       G_IDENT(g_name, g, "g");
-       G_IDENT(g_type, g, "i"));
-    dd->typ = typ_create(dd);
-    node_toplevel(dd)->our_generic_functor = dc->typ;
-    g_type->typ = i;
-    g->typ = i;
-    assert(typ_generic_arity(dd->typ) == 1);
-  }
-
-  assert(typ_equal(typ_generic_functor(dc->typ), typ_generic_functor(dd->typ)));
-  assert(!typ_equal(dc->typ, dd->typ));
+//  struct node *di = mock_defintf(mod, "i");
+//  struct typ *i = typ_create(NULL, di);
+//  di->typ = i;
+//
+//  struct node *da = mock_deftype(mod, "a");
+//  struct node *db = mock_deftype(mod, "b");
+//
+//  da->typ = typ_create(NULL, da);
+//  struct typ *alt_a = typ_create(NULL, da);
+//  db->typ = typ_create(NULL, db);
+//
+//  assert(typ_equal(da->typ, da->typ));
+//  assert(typ_equal(da->typ, alt_a));
+//  assert(typ_equal(alt_a, da->typ));
+//
+//  assert(!typ_equal(da->typ, db->typ));
+//  assert(!typ_equal(db->typ, da->typ));
+//
+//  struct node *dc = mock_deftype(mod, "dc");
+//  {
+//    G(g, dc->subs[IDX_GENARGS], DEFGENARG,
+//       G_IDENT(g_name, g, "g");
+//       G_IDENT(g_type, g, "i"));
+//    dc->typ = typ_create(NULL, dc);
+//    g_type->typ = i;
+//    g->typ = i;
+//    assert(typ_generic_arity(dc->typ) == 1);
+//  }
+//
+//  struct node *dd = mock_deftype(mod, "dd");
+//  {
+//    G(g, dd->subs[IDX_GENARGS], SETGENARG,
+//       G_IDENT(g_name, g, "g");
+//       G_IDENT(g_type, g, "i"));
+//    dd->typ = typ_create(NULL, dd);
+//    node_toplevel(dd)->our_generic_functor_typ = dc->typ;
+//    g_type->typ = i;
+//    g->typ = i;
+//    assert(typ_generic_arity(dd->typ) == 1);
+//  }
+//
+//  assert(typ_equal(typ_generic_functor(dc->typ), typ_generic_functor(dd->typ)));
+//  assert(!typ_equal(dc->typ, dd->typ));
 }
 
 error typ_check_equal(const struct module *mod, const struct node *for_error,
@@ -680,9 +866,6 @@ struct typ *typ_lookup_builtin_tuple(struct module *mod, size_t arity) {
 
 bool typ_has_same_generic_functor(const struct module *mod,
                                   const struct typ *a, const struct typ *b) {
-  a = typ_follow_const(a);
-  b = typ_follow_const(b);
-
   const size_t a_arity = typ_generic_arity(a);
   const size_t b_arity = typ_generic_arity(b);
 
@@ -698,15 +881,11 @@ bool typ_has_same_generic_functor(const struct module *mod,
 }
 
 bool typ_is_generic_functor(const struct typ *t) {
-  t = typ_follow_const(t);
   return typ_generic_arity(t) > 0
     && typ_generic_functor_const(t) == t;
 }
 
 bool typ_isa(const struct typ *a, const struct typ *intf) {
-  a = typ_follow_const(a);
-  intf = typ_follow_const(intf);
-
   if (typ_equal(intf, TBI_ANY)) {
     return TRUE;
   }
@@ -764,14 +943,14 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
     return typ_isa(TBI_FLOATING, intf);
   }
 
-  for (size_t n = 0; n < typ_isalist_count(a); ++n) {
-    if (typ_equal(typ_isalist_const(a, n), intf)) {
+  for (size_t n = 0; n < direct_isalist_count(a); ++n) {
+    if (typ_equal(direct_isalist_const(a, n), intf)) {
       return TRUE;
     }
   }
 
-  for (size_t n = 0; n < typ_isalist_count(a); ++n) {
-    if (typ_isa(typ_isalist_const(a, n), intf)) {
+  for (size_t n = 0; n < direct_isalist_count(a); ++n) {
+    if (typ_isa(direct_isalist_const(a, n), intf)) {
       return TRUE;
     }
   }
@@ -796,19 +975,13 @@ except:
   return e;
 }
 
-bool typ_is_reference_instance(const struct typ *a) {
-  a = typ_follow_const(a);
-
-  return typ_isa(a, TBI_ANY_ANY_REF)
-    || (typ_generic_arity(a) > 0
-        && typ_equal(typ_generic_functor_const(a), TBI_REF_COMPATIBLE));
+bool typ_is_reference(const struct typ *t) {
+  return t->flags & TYPF_REF;
 }
 
-error typ_check_is_reference_instance(const struct module *mod, const struct node *for_error,
+error typ_check_is_reference(const struct module *mod, const struct node *for_error,
                                       const struct typ *a) {
-  a = typ_follow_const(a);
-
-  if (typ_is_reference_instance(a)) {
+  if (typ_is_reference(a)) {
     return 0;
   }
 
@@ -835,11 +1008,9 @@ static const char *string_for_ref[TOKEN__NUM] = {
 
 error typ_check_can_deref(const struct module *mod, const struct node *for_error,
                           const struct typ *a, enum token_type operator) {
-  a = typ_follow_const(a);
-
   error e = 0;
   char *na = NULL;
-  if (!typ_is_reference_instance(a)) {
+  if (!typ_is_reference(a)) {
     na = typ_pretty_name(mod, a);
     GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                      "'%s' type is not a reference", na);
@@ -879,8 +1050,6 @@ error typ_check_deref_against_mark(const struct module *mod, const struct node *
     return 0;
   }
 
-  t = typ_follow_const(t);
-
   const char *kind = NULL;
   if (typ_equal(t, TBI__MUTABLE)) {
     if (operator != TDOT && operator != TDEREFDOT && operator != TDEREFWILDCARD) {
@@ -908,41 +1077,23 @@ except:
 }
 
 bool typ_is_builtin(const struct module *mod, const struct typ *t) {
-  t = typ_follow_const(t);
-
-  for (size_t n = ID_TBI__FIRST; n <= ID_TBI__LAST; ++n) {
-    if (typ_equal(t, mod->gctx->builtin_typs_by_name[n])) {
-      return TRUE;
-    }
-  }
-  return FALSE;
+  return t->flags & TYPF_BUILTIN;
 }
 
 bool typ_is_pseudo_builtin(const struct typ *t) {
-  t = typ_follow_const(t);
-
-  return typ_equal(t, TBI_LITERALS_NULL)
-      || typ_equal(t, TBI_LITERALS_INTEGER)
-      || typ_equal(t, TBI_LITERALS_FLOATING)
-      || typ_equal(t, TBI_REF_COMPATIBLE)
-      || typ_equal(t, TBI__NOT_TYPEABLE)
-      || typ_equal(t, TBI__CALL_FUNCTION_SLOT)
-      || typ_equal(t, TBI__MUTABLE)
-      || typ_equal(t, TBI__MERCURIAL);
+  return t->flags & TYPF_PSEUDO_BUILTIN;
 }
 
 bool typ_is_trivial(const struct typ *t) {
-  t = typ_follow_const(t);
+  return t->flags & TYPF_TRIVIAL;
+}
 
-  const struct typ *t0 = typ_generic_functor_const(t);
+bool typ_is_literal(const struct typ *t) {
+  return t->flags & TYPF_LITERAL;
+}
 
-  return typ_equal(t, TBI_TRIVIAL_CTOR)
-      || (t0 != NULL && typ_equal(t0, TBI_TRIVIAL_ARRAY_CTOR))
-      || typ_equal(t, TBI_TRIVIAL_COPY)
-      || typ_equal(t, TBI_TRIVIAL_EQUALITY)
-      || typ_equal(t, TBI_TRIVIAL_ORDER)
-      || typ_equal(t, TBI_TRIVIAL_DTOR)
-      || typ_is_reference_instance(t);
+bool typ_is_weakly_concrete(const struct typ *t) {
+  return (t->flags & TYPF_WEAKLY_CONCRETE) && typ_is_tentative(t);
 }
 
 bool typ_isa_return_by_copy(const struct typ *t) {

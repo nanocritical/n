@@ -5,10 +5,10 @@
 
 struct typ;
 
-void typ_pprint(const struct module *mod, const struct typ *t);
-
-struct typ *typ_create(struct node *definition);
-struct typ *typ_init_tbi(struct typ *tbi, struct node *definition);
+struct typ *typ_create(struct typ *tbi, struct node *definition);
+void typ_create_update_hash(struct typ *t);
+void typ_create_update_genargs(struct typ *t);
+void typ_create_update_quickisa(struct typ *t);
 
 struct node *typ_definition(struct typ *t);
 
@@ -23,14 +23,13 @@ size_t typ_function_arity(const struct typ *t);
 struct typ *typ_function_arg(struct typ *t, size_t n);
 struct typ *typ_function_return(struct typ *t);
 
-bool typ_is_link(const struct typ *t);
-struct typ *typ_create_link(struct typ *dst);
-void typ_link(struct typ *dst, struct typ *src);
-struct typ *typ_follow(struct typ *t);
-size_t typ_link_length(const struct typ *t);
+void set_typ(struct typ **loc, struct typ *t);
 
-void typ_lock(struct typ *t);
-void typ_final(struct typ *t);
+struct typ *typ_create_tentative(struct typ *target);
+bool typ_is_tentative(const struct typ *t);
+
+void typ_link_tentative(struct typ *dst, struct typ *src);
+void typ_link_to_existing_final(struct typ *dst, struct typ *src);
 
 struct typ *typ_lookup_builtin_tuple(struct module *mod, size_t arity);
 
@@ -43,8 +42,8 @@ bool typ_isa(const struct typ *a, const struct typ *intf);
 error typ_check_isa(const struct module *mod, const struct node *for_error,
                     const struct typ *a, const struct typ *intf);
 
-bool typ_is_reference_instance(const struct typ *a);
-error typ_check_is_reference_instance(const struct module *mod, const struct node *for_error,
+bool typ_is_reference(const struct typ *a);
+error typ_check_is_reference(const struct module *mod, const struct node *for_error,
                                       const struct typ *a);
 error typ_check_can_deref(const struct module *mod, const struct node *for_error,
                           const struct typ *a, enum token_type operator);
@@ -54,11 +53,10 @@ error typ_check_deref_against_mark(const struct module *mod, const struct node *
 bool typ_is_builtin(const struct module *mod, const struct typ *t);
 bool typ_is_pseudo_builtin(const struct typ *t);
 bool typ_is_trivial(const struct typ *t);
+bool typ_is_literal(const struct typ *t);
+bool typ_is_weakly_concrete(const struct typ *t);
 bool typ_isa_return_by_copy(const struct typ *t);
 
-size_t typ_isalist_count(const struct typ *t);
-struct typ *typ_isalist(struct typ *t, size_t n);
-const bool *typ_isalist_exported(const struct typ *t);
 enum isalist_filter {
   ISALIST_FILTER_NOT_EXPORTED = 0x1,
   ISALIST_FILTER_EXPORTED = 0x2,
@@ -75,8 +73,6 @@ const struct typ *typ_generic_functor_const(const struct typ *t);
 const struct typ *typ_generic_arg_const(const struct typ *t, size_t n);
 const struct typ *typ_function_arg_const(const struct typ *t, size_t n);
 const struct typ *typ_function_return_const(const struct typ *t);
-const struct typ *typ_follow_const(const struct typ *t);
-const struct typ *typ_isalist_const(const struct typ *t, size_t n);
 
 extern struct typ *TBI_VOID;
 extern struct typ *TBI_LITERALS_NULL;
@@ -119,7 +115,7 @@ extern struct typ *TBI_STRING;
 extern struct typ *TBI_STATIC_STRING;
 extern struct typ *TBI_STATIC_STRING_COMPATIBLE;
 extern struct typ *TBI_STATIC_ARRAY;
-extern struct typ *TBI_REF_COMPATIBLE;
+extern struct typ *TBI__REF_COMPATIBLE;
 extern struct typ *TBI_ANY_ANY_REF;
 extern struct typ *TBI_ANY_REF;
 extern struct typ *TBI_ANY_MUTABLE_REF;

@@ -39,6 +39,12 @@ void __break(void);
   } \
 } while (0)
 
+#define THROW(e) do { \
+  assert(e); \
+  EXCEPT(e); \
+  return e; \
+} while (0)
+
 #define GOTO_EXCEPT(_e) do { \
   if (_e) { \
     __break(); \
@@ -46,6 +52,12 @@ void __break(void);
     fprintf(g_env.stderr, "\tE: %s:%d: %s()\n", __FILE__, __LINE__, __func__); \
     goto except; \
   } \
+} while (0)
+
+#define GOTO_THROW(e) do { \
+  assert(e); \
+  GOTO_EXCEPT(e); \
+  goto except; \
 } while (0)
 
 #define EXCEPTF(e, fmt, ...) do { \

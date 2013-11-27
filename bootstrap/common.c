@@ -84,8 +84,11 @@ void examples_destroy(const char *name) {
 }
 
 static void module_prepare_mocks(struct module **mod) {
+  struct globalctx *gctx = calloc(1, sizeof(struct globalctx));
+  globalctx_init(gctx);
+
   struct stage *stage = calloc(1, sizeof(struct stage));
-  error e = stage_load(stage, "bootstrap/mockbasic.n");
+  error e = stage_load(gctx, stage, "bootstrap/mockbasic.n");
   assert(!e);
 
   *mod = stage->entry_point;

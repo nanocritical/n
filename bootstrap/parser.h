@@ -127,7 +127,7 @@ struct toplevel {
   size_t first_explicit_genarg;
   struct node **instances;
   size_t instances_count;
-  struct typ *our_generic_functor;
+  struct typ *our_generic_functor_typ;
 
   ssize_t yet_to_pass;
 };
@@ -193,7 +193,7 @@ struct node_typeconstraint {
   bool in_pattern;
 };
 struct node_dyn {
-  struct typ *intf;
+  struct typ *intf_typ;
 };
 struct node_deffun {
   struct toplevel toplevel;
@@ -206,12 +206,6 @@ enum deftype_kind {
   DEFTYPE_SUM,
 };
 
-struct isalist {
-  size_t count;
-  struct typ **list;
-  bool *exported;
-};
-
 struct node_deftype {
   struct toplevel toplevel;
 
@@ -220,8 +214,6 @@ struct node_deftype {
 
   struct node **members;
   size_t members_count;
-
-  struct isalist isalist;
 };
 struct node_defmethod {
   struct toplevel toplevel;
@@ -229,15 +221,12 @@ struct node_defmethod {
 };
 struct node_defintf {
   struct toplevel toplevel;
-  struct isalist isalist;
 };
 struct node_defnamedliteral {
   struct toplevel toplevel;
-  struct isalist isalist;
 };
 struct node_defconstraintliteral {
   struct toplevel toplevel;
-  struct isalist isalist;
 };
 struct node_defname {
   struct node *pattern;
@@ -267,7 +256,6 @@ struct node_deffield {};
 struct node_defchoice {
   bool has_value;
 };
-struct node_isalist {};
 struct node_isa {
   bool is_export;
   bool is_explicit;
@@ -343,7 +331,6 @@ union node_as {
   struct node_post POST;
   struct node_invariant INVARIANT;
   struct node_example EXAMPLE;
-  struct node_isalist ISALIST;
   struct node_isa ISA;
   struct node_import IMPORT;
   struct node_module MODULE;
@@ -474,7 +461,7 @@ enum predefined_idents {
   ID_TBI_STATIC_STRING,
   ID_TBI_STATIC_STRING_COMPATIBLE,
   ID_TBI_STATIC_ARRAY,
-  ID_TBI_REF_COMPATIBLE,
+  ID_TBI__REF_COMPATIBLE,
   ID_TBI_ANY_ANY_REF,
   ID_TBI_ANY_REF,
   ID_TBI_ANY_MUTABLE_REF,
@@ -707,6 +694,10 @@ void module_excepts_push(struct module *mod, struct node *excep_node);
 struct try_state *module_excepts_get(struct module *mod);
 void module_excepts_close_try(struct module *mod);
 
+struct typ *instances_register(struct module *mod, struct typ *t);
+struct typ *instances_find_existing_for_tentative(struct module *mod,
+                                                  struct typ *t);
+
 ident gensym(struct module *mod);
 
 const char *idents_value(const struct globalctx *gctx, ident id);
@@ -780,6 +771,8 @@ static inline ident node_ident(const struct node *node) {
   case DEFFIELD:
   case DEFCHOICE:
   case DEFINTF:
+  case DEFNAMEDLITERAL:
+  case DEFCONSTRAINTLITERAL:
     assert(node->subs[0]->which == IDENT);
     return node->subs[0]->as.IDENT.name;
   case LET:

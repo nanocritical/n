@@ -226,8 +226,11 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  struct globalctx gctx;
+  globalctx_init(&gctx);
+
   struct stage stage = { 0 };
-  error e = stage_load(&stage, argv[1]);
+  error e = stage_load(&gctx, &stage, argv[1]);
   EXCEPT(e);
 
   for (size_t n = 0; n < stage.sorted_count; ++n) {

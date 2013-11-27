@@ -354,13 +354,10 @@ static error calculate_dependencies(struct dependencies *deps) {
   return 0;
 }
 
-error stage_load(struct stage *stage, const char *entry_point_fn) {
-  struct globalctx gctx;
-  globalctx_init(&gctx);
-
+error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_point_fn) {
   PUSH_STATE(stage->state);
 
-  error e = load_module(&stage->entry_point, &gctx, stage, NULL, entry_point_fn);
+  error e = load_module(&stage->entry_point, gctx, stage, NULL, entry_point_fn);
   EXCEPT(e);
 
   const char *prefixes[] = { "", "lib", NULL };
@@ -374,7 +371,7 @@ error stage_load(struct stage *stage, const char *entry_point_fn) {
   }
 
   struct dependencies deps = { 0 };
-  deps.gctx = &gctx;
+  deps.gctx = gctx;
   modules_set_init(&deps.added, 0);
   modules_set_set_delete_val(&deps.added, FALSE);
   modules_set_set_custom_hashf(&deps.added, module_pointer_hash);

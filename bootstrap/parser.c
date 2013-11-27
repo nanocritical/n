@@ -148,7 +148,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_STATIC_STRING] = "static_string",
   [ID_TBI_STATIC_STRING_COMPATIBLE] = "i_static_string_compatible",
   [ID_TBI_STATIC_ARRAY] = "static_array",
-  [ID_TBI_REF_COMPATIBLE] = "__i_ref_compatible",
+  [ID_TBI__REF_COMPATIBLE] = "__i_ref_compatible",
   [ID_TBI_ANY_ANY_REF] = "i_any_any_ref",
   [ID_TBI_ANY_REF] = "i_any_ref",
   [ID_TBI_ANY_MUTABLE_REF] = "i_any_mutable_ref",
@@ -684,12 +684,46 @@ error scope_define(const struct module *mod, struct scope *scope,
   return 0;
 }
 
+struct use_isalist_state {
+  struct node *result;
+  const struct node *for_error;
+  ident id;
+};
+
 static error do_scope_lookup_ident_immediate(struct node **result,
                                              const struct node *for_error,
                                              const struct module *mod,
                                              const struct scope *scope, ident id,
-                                             bool failure_ok) {
-  const bool use_isalist = scope->node->which == DEFINTF && scope->node->typ != NULL;
+                                             bool allow_isalist, bool failure_ok);
+
+static error use_isalist_scope_lookup(struct module *mod,
+                                      struct typ *t, struct typ *intf,
+                                      bool *stop, void *user) {
+  struct use_isalist_state *st = user;
+
+  struct node *result = NULL;
+  error e = do_scope_lookup_ident_immediate(&result, st->for_error, mod,
+                                            typ_definition_const(intf)->scope,
+                                            st->id, FALSE, TRUE);
+
+  if (!e) {
+    if (result->which == DEFFUN || result->which == DEFMETHOD) {
+      st->result = result;
+      *stop = TRUE;
+    }
+  }
+
+  return 0;
+}
+
+static error do_scope_lookup_ident_immediate(struct node **result,
+                                             const struct node *for_error,
+                                             const struct module *mod,
+                                             const struct scope *scope, ident id,
+                                             bool allow_isalist, bool failure_ok) {
+  const bool use_isalist = allow_isalist
+    && scope->node->which == DEFINTF
+    && scope->node->typ != NULL;
 
   assert(id != ID__NONE);
   struct node **r = scope_map_get(scope->map, id);
@@ -701,7 +735,7 @@ static error do_scope_lookup_ident_immediate(struct node **result,
   if (scope->node->which == MODULE && scope->node->subs_count >= 1) {
     struct node *body = scope->node->subs[0];
     error e = do_scope_lookup_ident_immediate(result, for_error, mod, body->scope,
-                                              id, failure_ok);
+                                              id, allow_isalist, failure_ok);
     if (!e) {
       return 0;
     } else if (failure_ok) {
@@ -712,20 +746,26 @@ static error do_scope_lookup_ident_immediate(struct node **result,
   }
 
   if (use_isalist) {
-    // Depth-first.
+    const struct node *parent = scope->node;
     // FIXME: We should statically detect when this search would return
     // different results depending on order. And we should force the caller
     // to specificy which intf is being called if it's ambiguous.
-    const struct node *parent = scope->node;
-    for (size_t n = 0; n < typ_isalist_count(parent->typ); ++n) {
-      const struct typ *t = typ_isalist(parent->typ, n);
-      error e = do_scope_lookup_ident_immediate(result, for_error, mod,
-                                                typ_definition_const(t)->scope, id, TRUE);
-      if (!e) {
-        if ((*result)->which == DEFFUN || (*result)->which == DEFMETHOD) {
-          return 0;
-        }
-      }
+    // FIXME: Should prevent lookups from another module to use non-exported
+    // interfaces.
+    enum isalist_filter filter = 0;
+    struct use_isalist_state st = {
+      .result = NULL,
+      .for_error = for_error,
+      .id = id,
+    };
+
+    error e = typ_isalist_foreach((struct module *) mod, parent->typ, filter,
+                                  use_isalist_scope_lookup, &st);
+    EXCEPT(e);
+
+    if (st.result != NULL) {
+      *result = st.result;
+      return 0;
     }
   }
 
@@ -751,7 +791,8 @@ error scope_lookup_ident_immediate(struct node **result, const struct node *for_
                                    const struct module *mod,
                                    const struct scope *scope, ident id,
                                    bool failure_ok) {
-  return do_scope_lookup_ident_immediate(result, for_error, mod, scope, id, failure_ok);
+  return do_scope_lookup_ident_immediate(result, for_error, mod, scope, id,
+                                         TRUE, failure_ok);
 }
 
 static error do_scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,
@@ -763,7 +804,7 @@ static error do_scope_lookup_ident_wontimport(struct node **result, const struct
   error e;
 
 skip:
-  e = do_scope_lookup_ident_immediate(result, for_error, mod, scope, id, TRUE);
+  e = do_scope_lookup_ident_immediate(result, for_error, mod, scope, id, FALSE, TRUE);
   if (!e) {
     if (scope->node->which == DEFTYPE
         && ((*result)->which == DEFFUN || (*result)->which == DEFMETHOD)) {
@@ -844,7 +885,7 @@ static error do_scope_lookup(struct node **result, const struct node *for_error,
     EXCEPT_UNLESS(e, failure_ok);
 
     e = do_scope_lookup_ident_immediate(&r, for_error, mod, parent->scope,
-                                        id->subs[1]->as.IDENT.name, failure_ok);
+                                        id->subs[1]->as.IDENT.name, FALSE, failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
 
     break;
@@ -934,7 +975,7 @@ except:
 
 static error do_scope_lookup_abspath(struct node **result, const struct node *for_error,
                                      const struct module *mod,
-                                     const char *path, ssize_t len) {
+                                     const char *path, ssize_t len, ssize_t full_len) {
   ssize_t i;
   ident id = ID__NONE;
   for (i = len-1; i >= 0; --i) {
@@ -953,12 +994,14 @@ static error do_scope_lookup_abspath(struct node **result, const struct node *fo
   error e;
   if (i == 0) {
     e = do_scope_lookup_ident_immediate(result, for_error, mod,
-                                        mod->gctx->modules_root.scope, id, TRUE);
+                                        mod->gctx->modules_root.scope, id,
+                                        FALSE, TRUE);
   } else {
     struct node *parent = NULL;
-    e = do_scope_lookup_abspath(&parent, for_error, mod, path, i);
+    e = do_scope_lookup_abspath(&parent, for_error, mod, path, i, full_len);
     EXCEPT(e);
-    e = do_scope_lookup_ident_immediate(result, for_error, mod, parent->scope, id, TRUE);
+    e = do_scope_lookup_ident_immediate(result, for_error, mod, parent->scope, id,
+                                        len == full_len, TRUE);
   }
 
   if (e) {
@@ -976,7 +1019,8 @@ except:
 
 error scope_lookup_abspath(struct node **result, const struct node *for_error,
                            const struct module *mod, const char *path) {
-  return do_scope_lookup_abspath(result, for_error, mod, path, strlen(path));
+  const ssize_t len = strlen(path);
+  return do_scope_lookup_abspath(result, for_error, mod, path, len, len);
 }
 
 static error parse_modpath(struct module *mod, const char *raw_fn) {
@@ -1070,7 +1114,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_STATIC_STRING = gctx->builtin_typs_by_name[ID_TBI_STATIC_STRING];
   TBI_STATIC_STRING_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_STATIC_STRING_COMPATIBLE];
   TBI_STATIC_ARRAY = gctx->builtin_typs_by_name[ID_TBI_STATIC_ARRAY];
-  TBI_REF_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_REF_COMPATIBLE];
+  TBI__REF_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI__REF_COMPATIBLE];
   TBI_ANY_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_ANY_REF];
   TBI_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_REF];
   TBI_ANY_MUTABLE_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_MUTABLE_REF];
@@ -1150,7 +1194,7 @@ void globalctx_init(struct globalctx *gctx) {
     idents_map_set(gctx->idents.map, tok, i);
 
     if (i >= ID_TBI__FIRST && i <= ID_TBI__LAST) {
-      gctx->builtin_typs_by_name[i] = typ_create(NULL);
+      gctx->builtin_typs_by_name[i] = typ_create(NULL, NULL);
     }
   }
 
@@ -1158,7 +1202,7 @@ void globalctx_init(struct globalctx *gctx) {
 
   gctx->modules_root.scope = scope_new(&gctx->modules_root);
   gctx->modules_root.which = ROOT_OF_ALL;
-  gctx->modules_root.typ = typ_create(&gctx->modules_root);
+  gctx->modules_root.typ = typ_create(NULL, &gctx->modules_root);
 }
 
 static error module_read(struct module *mod, const char *prefix, const char *fn) {
@@ -3094,7 +3138,7 @@ static struct node *create_module_node(struct node *parent, ident basename,
   m->as.MODULE.mod = is_placeholder ? NULL : non_placeholder_mod;
   m->scope = scope_new(m);
   m->scope->parent = parent->scope;
-  m->typ = typ_create(m);
+  m->typ = typ_create(NULL, m);
   m->flags = NODE_IS_TYPE;
 
   if (!is_placeholder) {
@@ -3195,7 +3239,6 @@ ident gensym(struct module *mod) {
 
   char name[64] = { 0 };
   int cnt = snprintf(name, ARRAY_SIZE(name), "_Ngensym%zx", g);
-  assert(cnt < ARRAY_SIZE(name));
 
   return idents_add_string(mod->gctx, name, cnt);
 }
@@ -3230,8 +3273,6 @@ void module_excepts_close_try(struct module *mod) {
 }
 
 char *typ_name(const struct module *mod, const struct typ *t) {
-  t = typ_follow_const(t);
-
   if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
     return typ_name(mod, typ_generic_functor_const(t));
   } else if (typ_definition_const(t) != NULL) {
@@ -3246,50 +3287,48 @@ char *typ_name(const struct module *mod, const struct typ *t) {
   return NULL;
 }
 
+extern char *stpcpy(char *dest, const char *src);
 char *typ_pretty_name(const struct module *mod, const struct typ *t) {
   char *r = calloc(2048, sizeof(char));
   char *s = r;
 
-  s += sprintf(s, "%zu ", typ_link_length(t));
-
-  t = typ_follow_const(t);
-
   if (typ_generic_arity(t) == 0) {
-    s += sprintf(s, "%s", typ_name(mod, t));
+    s = stpcpy(s, typ_name(mod, t));
   } else if (typ_isa(t, TBI_ANY_TUPLE)) {
     if (typ_is_generic_functor(t)) {
-      s += sprintf(s, "functor ");
+      s = stpcpy(s, "functor ");
     }
 
     for (size_t n = 0; n < typ_generic_arity(t); ++n) {
       if (n > 0) {
-        s += sprintf(s, ", ");
+        s = stpcpy(s, ", ");
       }
       char *s2 = typ_pretty_name(mod, typ_generic_arg_const(t, n));
-      s += sprintf(s, "%s", s2);
+      s = stpcpy(s, s2);
       free(s2);
     }
   } else {
-    s += sprintf(s, "(");
+    s = stpcpy(s, "(");
     if (typ_is_generic_functor(t)) {
-      s += sprintf(s, "functor %s", typ_name(mod, t));
+      s = stpcpy(s, "functor ");
+      s = stpcpy(s, typ_name(mod, t));
     } else {
       const struct typ *f = typ_generic_functor_const(t);
-      s += sprintf(s, "%zu ", typ_link_length(f));
-      s += sprintf(s, "%s", typ_name(mod, f));
+      s = stpcpy(s, typ_name(mod, f));
     }
 
     for (size_t n = 0; n < typ_generic_arity(t); ++n) {
       const struct typ *ga = typ_generic_arg_const(t, n);
       if (ga == NULL) {
-        s += sprintf(s, " null");
+        s = stpcpy(s, " null");
       } else {
         char *s2 = typ_pretty_name(mod, ga);
-        s += sprintf(s, " %s", s2);
+        s = stpcpy(s, " ");
+s = stpcpy(s, s2);
         free(s2);
       }
     }
-    s += sprintf(s, ")");
+    s = stpcpy(s, ")");
   }
 
   return r;
@@ -3344,8 +3383,7 @@ error mk_except_call_args_count(const struct module *mod, const struct node *nod
   error e = mk_except_type(mod, node,
                            "invalid number of arguments: %zu expected, but %zu given",
                            node_fun_explicit_args_count(definition) + extra, given);
-  EXCEPT(e);
-  return 0;
+  THROW(e);
 }
 
 void rew_insert_last_at(struct node *node, size_t pos) {
