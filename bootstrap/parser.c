@@ -287,7 +287,7 @@ static int token_cmp(const struct token *a, const struct token *b) {
 }
 
 const char *idents_value(const struct globalctx *gctx, ident id) {
-  assert(id <= gctx->idents.count);
+  assert(id < gctx->idents.count);
   return gctx->idents.values[id];
 }
 
@@ -319,7 +319,10 @@ ident idents_add(struct globalctx *gctx, const struct token *tok) {
   idents->values[id] = cpy;
   idents->count += 1;
 
-  idents_map_set(idents->map, *tok, id);
+  struct token tokcpy = *tok;
+  tokcpy.value = cpy;
+
+  idents_map_set(idents->map, tokcpy, id);
 
   return id;
 }
@@ -3190,7 +3193,7 @@ ident gensym(struct module *mod) {
   size_t g = mod->next_gensym;
   mod->next_gensym += 1;
 
-  char name[64];
+  char name[64] = { 0 };
   int cnt = snprintf(name, ARRAY_SIZE(name), "_Ngensym%zx", g);
   assert(cnt < ARRAY_SIZE(name));
 
