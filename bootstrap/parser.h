@@ -349,16 +349,16 @@ enum node_flags {
 
 struct node {
   enum node_which which;
-  union node_as as;
-
-  size_t codeloc;
+  uint32_t flags;
 
   size_t subs_count;
   struct node **subs;
 
-  struct scope *scope;
   struct typ *typ;
-  uint32_t flags;
+  struct scope *scope;
+
+  union node_as as;
+  size_t codeloc;
 };
 
 enum subnode_idx {
