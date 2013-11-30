@@ -766,18 +766,11 @@ static bool __typ_equal(const struct typ *a, const struct typ *b) {
 }
 
 bool typ_equal(const struct typ *a, const struct typ *b) {
-  bool hr = TRUE;
   if (a->hash != b->hash) {
-    hr = FALSE;
+    return FALSE;
   }
 
-  const bool r = __typ_equal(a, b);
-  static int x;
-  if (r && !hr) {
-    __break();
-    fprintf(stderr, "%u\n", ++x);
-  }
-  return r;
+  return __typ_equal(a, b);
 }
 
 EXAMPLE_NCC(typ_equal) {
