@@ -2828,7 +2828,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
     EXCEPT(e);
     break;
   case OP_UN_NUM:
-    set_typ(&node->typ, TBI_ARITHMETIC);
+    set_typ(&node->typ, typ_create_tentative(TBI_ARITHMETIC));
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
