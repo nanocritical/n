@@ -62,10 +62,12 @@ for t in $list; do
 		perl -i -ne 'if (!m/^\tE: /) { print; }' $t.stderr.out
 	fi
 
-	for all in stderr stdout tree pretty c; do
+	need_hr=0
+	for all in stderr stdout; do
 		if [ -f $t.$all.ref ] || [ -f $t.$all.out ]; then
 			if ! cmp -s $t.$all.ref $t.$all.out; then
 				ret=1
+				need_hr=1
 				echo "FAILED $t: different output '$all'"
 				if [[ "$all" = "stderr" || "$all" = "stdout" ]]; then
 					diff -Nu $t.$all.ref $t.$all.out
@@ -73,6 +75,10 @@ for t in $list; do
 			fi
 		fi
 	done
+
+	if (( $need_hr )); then
+		echo "---------------------------------------------------------------"
+	fi
 done
 
 exit $ret
