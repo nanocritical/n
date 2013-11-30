@@ -1,7 +1,5 @@
 from nlang import *
 
-type a t:i_
-
 fun noerror = i32
   let x
   such
@@ -13,8 +11,8 @@ fun noerror = i32
   return x
 
 export fun main = i32
-  let x = 2
+  let x = 2 + noerror
   such
     x = x + 1
---    x = (max x 0) + 1
+    x = (max x 0) + 1
   return x - 3

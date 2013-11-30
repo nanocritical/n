@@ -2400,7 +2400,8 @@ static error unify_with_defnamedliteral(struct module *mod, const struct node *f
   error e;
 
   struct node *a_def = typ_definition(a);
-  struct node *dnl_body = typ_definition(dnl)->subs[1];
+  struct node *ddnl = typ_definition(dnl);
+  struct node *dnl_body = ddnl->subs[ddnl->subs_count - 1];
   for (size_t n = 0; n < dnl_body->subs_count; ++n) {
     struct node *f = dnl_body->subs[n];
     ident f_name = node_ident(f);
@@ -3672,7 +3673,6 @@ static error unify_try_errors(struct typ **exu, struct module *mod,
 }
 
 static error type_inference_try(struct module *mod, struct node *node) {
-  assert(node->typ == TBI__NOT_TYPEABLE);
   node->typ = NULL;
 
   error e;
@@ -3718,16 +3718,25 @@ static error type_inference_try(struct module *mod, struct node *node) {
 }
 
 static error type_inference_ident(struct module *mod, struct node *node) {
+  if (node_ident(node) == ID_OTHERWISE) {
+    node->typ = typ_create_tentative(TBI_ANY);
+    return 0;
+  }
+
   struct node *def = NULL;
   error e = scope_lookup(&def, mod, node->scope, node);
   EXCEPT(e);
 
-  if (def->typ == NULL) {
+  if (def->which == DEFNAME && def->typ == NULL) {
+    // This happens when typing an IDENT in the pattern of a DEFPATTERN:
+    // 'def' is the corresponding DEFNAME and not yet typed (as it appears
+    // later in the tree).
+    set_typ(&def->typ, typ_create_tentative(TBI_ANY));
+
     // FIXME: Cannot detect if an ident is used before its definition, e.g.:
     //   block
     //     x = a
     //     let a = 0
-    def->typ = typ_create_tentative(TBI_ANY);
   }
 
   if (typ_is_function(def->typ)
@@ -3813,6 +3822,12 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     EXCEPT(e);
     break;
   case DEFNAME:
+    if (node->typ == NULL && node_ident(node) == ID_OTHERWISE) {
+      set_typ(&node->typ, typ_create_tentative(TBI_ANY));
+      set_typ(&node->as.DEFNAME.pattern->typ, node->typ);
+    }
+    assert(node->typ == node->as.DEFNAME.pattern->typ);
+
     if (node->as.DEFNAME.expr != NULL) {
       e = unify(mod, node,
                 node->as.DEFNAME.expr->typ,
@@ -3822,9 +3837,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
       node->as.DEFNAME.pattern->flags |= node->as.DEFNAME.expr->flags;
     }
 
-    set_typ(&node->typ, node->as.DEFNAME.pattern->typ);
     node->flags = node->as.DEFNAME.pattern->flags;
-
     break;
   case NUMBER:
     set_typ(&node->typ, typ_create_tentative(number_literal_typ(mod, node)));
@@ -3869,6 +3882,9 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case BLOCK:
     e = type_inference_block(mod, node);
     EXCEPT(e);
+    break;
+  case CATCH:
+    set_typ(&node->typ, node->subs[node->subs_count - 1]->typ);
     break;
   case THROW:
   case BREAK:
@@ -3972,7 +3988,8 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     break;
   }
 
-  assert(node->typ != NULL);
+  assert(node->typ != NULL
+         || (node->which == IDENT && "tolerate when its DEFNAME not yet typed"));
   return 0;
 }
 
