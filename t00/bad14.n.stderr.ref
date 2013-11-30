@@ -1,1 +1,0 @@
-t00/bad14.n:7:14: type: generic argument 1 'nlang.literals.integer' of generic 't00.bad14.foo' is not concrete (it is a literal)

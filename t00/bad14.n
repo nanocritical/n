@@ -1,8 +1,0 @@
-from nlang import *
-
-(fun t:i_any) foo x:t = t
-  return x
-
-export fun main = i32
-  let x = foo 1
-  return x - 1
