@@ -104,9 +104,9 @@ void set_typ(struct typ **loc, struct typ *t) {
 }
 
 static void clear_backlinks(struct typ *t) {
-  struct backlinks *b = &t->backlinks;
+  struct backlinks *b = t->backlinks.more;
 
-  while (b->more != NULL) {
+  while (b != NULL) {
     struct backlinks *m = b->more;
     free(b);
     b = m;
@@ -137,9 +137,9 @@ static void add_user(struct typ *arg, struct typ *user) {
 }
 
 static void clear_users(struct typ *t) {
-  struct users *b = &t->users;
+  struct users *b = t->users.more;
 
-  while (b->more != NULL) {
+  while (b != NULL) {
     struct users *m = b->more;
     free(b);
     b = m;
