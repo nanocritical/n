@@ -932,7 +932,7 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
      IDENT(_) :nlang.builtins.i32
      CALL :nlang.builtins.i32
       IDENT(bar) :t00.match.bar
-      IDENT(n) :t00.match.enu
+      IDENT(A) :t00.match.enu
      DEFNAME(_) :nlang.builtins.i32
    MATCH :nlang.builtins.void
     IDENT(n) :t00.match.enu

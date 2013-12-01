@@ -100,7 +100,7 @@ return (nlang_builtins_i32)1;
 };
 (void) (t00_match_foo(n));
 ;
-(void) (t00_match_bar(n));
+(void) (t00_match_bar(t00_match_enu_A));
 ;
 switch (n) {
 case t00_match_enu_A_label__:

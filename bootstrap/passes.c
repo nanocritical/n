@@ -1543,6 +1543,23 @@ static error step_bin_mark_terms(struct module *mod, struct node *node, void *us
   return 0;
 }
 
+static error step_call_mark_args(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node->which != CALL) {
+    return 0;
+  }
+
+  for (size_t n = 1; n < node->subs_count; ++n) {
+    struct node *arg = node->subs[n];
+    if (arg->which == IDENT) {
+      arg->as.IDENT.matched_against = node->subs[0];
+    }
+  }
+
+  return 0;
+}
+
 static error step_stop_already_morningtypepass(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
@@ -3809,19 +3826,33 @@ static error type_inference_ident(struct module *mod, struct node *node) {
     return 0;
   }
 
+  error e;
   struct scope *alt_sc = NULL;
   if (node->as.IDENT.matched_against != NULL) {
-    const struct typ *m = node->as.IDENT.matched_against->typ;
-    const struct node *dm = typ_definition_const(m);
-    if (dm->which == DEFTYPE
-        && (dm->as.DEFTYPE.kind == DEFTYPE_ENUM
-            || dm->as.DEFTYPE.kind == DEFTYPE_SUM)) {
-      alt_sc = dm->scope;
+    const struct typ *m;
+    const struct node *parent = node_parent_const(node);
+    if (parent->which == CALL) {
+      const size_t where = rew_find_subnode_in_parent(parent, node);
+      m = typ_function_arg_const(parent->subs[0]->typ, where - 1);
+      if (typ_is_tentative(m)) {
+        m = NULL;
+      }
+    } else {
+      m = node->as.IDENT.matched_against->typ;
+    }
+
+    if (m != NULL) {
+      const struct node *dm = typ_definition_const(m);
+      if (dm->which == DEFTYPE
+          && (dm->as.DEFTYPE.kind == DEFTYPE_ENUM
+              || dm->as.DEFTYPE.kind == DEFTYPE_SUM)) {
+        alt_sc = dm->scope;
+      }
     }
   }
 
   struct node *def = NULL;
-  error e = scope_lookup(&def, mod, node->scope, node, TRUE);
+  e = scope_lookup(&def, mod, node->scope, node, TRUE);
   if (e == EINVAL && alt_sc != NULL) {
     e = scope_lookup(&def, mod, alt_sc, node, FALSE);
     if (e == 0) {
@@ -6279,6 +6310,7 @@ static const struct pass _passes[] = {
       step_type_mutability_mark,
       step_match_mark_patterns,
       step_bin_mark_terms,
+      step_call_mark_args,
       step_type_gather_retval,
       step_type_gather_excepts,
       NULL,

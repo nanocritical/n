@@ -26,7 +26,7 @@ export fun main = i32
   if n != A
     return 1
   let _ = foo n
-  let _ = bar n
+  let _ = bar A
   match n
   | enu.A
     return 0
