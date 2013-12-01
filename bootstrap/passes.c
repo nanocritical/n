@@ -3872,6 +3872,12 @@ static error type_inference_ident(struct module *mod, struct node *node) {
     node->as.IDENT.non_local_scope = def->scope;
   }
 
+  if (def->which == DEFFIELD) {
+    e = mk_except(mod, node,
+                  "fields identifiers must be accessed through 'self'");
+    THROW(e);
+  }
+
   if (def->which == DEFNAME && def->typ == NULL) {
     // This happens when typing an IDENT in the pattern of a DEFPATTERN:
     // 'def' is the corresponding DEFNAME and not yet typed (as it appears
