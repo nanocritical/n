@@ -3,8 +3,12 @@ from nlang import *
 type nocopy =
   x:i32
 
+fun bar = r:nocopy
+  r!x = 0
+  return r -- this is legal but not handled
+
 fun foo = nocopy
-  let r:nocopy
+  let r:nocopy -- should not be legal: declare a named retval
   such
     r!x = 0
   return r

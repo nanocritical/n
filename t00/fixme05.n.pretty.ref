@@ -1,7 +1,7 @@
 from nlang import *
 type nocopy = <root>.nlang.builtins.i_trivial_ctor
-  let this = nocopy
-  let final = nocopy
+  let this = t00.fixme05.nocopy
+  let final = t00.fixme05.nocopy
   x:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -9,6 +9,10 @@ fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
 fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 
 nocopy method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+fun bar = r:nocopy
+  r!x = 0
+  return r
 
 fun foo = _nretval:nocopy
   let r:nocopy  such
