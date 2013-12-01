@@ -2506,6 +2506,47 @@ static error check_reference_compatibility(struct module *mod,
   return 0;
 }
 
+static error unify_dyn(struct module *mod, const struct node *for_error,
+                       struct typ *a, struct typ *b,
+                       bool a_intf, bool b_intf) {
+  if (!b_intf) {
+    SWAP(a, b);
+    SWAP(a_intf, b_intf);
+  }
+
+  error e = typ_check_isa(mod, for_error, a, b);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static error unify_reference_arg(struct module *mod,
+                                 const struct node *for_error,
+                                 struct typ *a, struct typ *b) {
+  struct typ *arg_a = typ_generic_arg(a, 0);
+  struct typ *arg_b = typ_generic_arg(b, 0);
+  const bool arg_a_intf = typ_definition_const(arg_a)->which == DEFINTF;
+  const bool arg_b_intf = typ_definition_const(arg_b)->which == DEFINTF;
+  const bool arg_a_tentative = typ_is_tentative(arg_a);
+  const bool arg_b_tentative = typ_is_tentative(arg_b);
+  const bool arg_a_weak = typ_is_weakly_concrete(arg_a);
+  const bool arg_b_weak = typ_is_weakly_concrete(arg_b);
+
+  error e;
+  if ((arg_a_intf || arg_b_intf)
+      && ((!arg_a_tentative && !arg_b_tentative)
+          || (!arg_a_tentative && arg_b_weak)
+          || (!arg_b_tentative && arg_a_weak))) {
+    e = unify_dyn(mod, for_error, arg_a, arg_b, arg_a_intf, arg_b_intf);
+    EXCEPT(e);
+  } else {
+    e = unify(mod, for_error, arg_a, arg_b);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
 static error unify_with_reference_compatible(struct module *mod,
                                              const struct node *for_error,
                                              struct typ *a, struct typ *b,
@@ -2522,10 +2563,18 @@ static error unify_with_reference_compatible(struct module *mod,
   EXCEPT(e);
 
   struct typ *real_b0 = typ_generic_functor(real_b);
-  if (typ_definition_const(real_b0)->which == DEFINTF
-      && typ_is_tentative(real_b0)) {
+  if (typ_definition_const(real_b0)->which == DEFINTF && typ_is_tentative(real_b0)) {
     typ_link_tentative(typ_generic_functor(a), real_b0);
   }
+
+  if (typ_equal(a, real_b)) {
+    e = unify_with_equal(mod, for_error, a, real_b);
+    EXCEPT(e);
+    return 0;
+  }
+
+  e = unify_reference_arg(mod, for_error, a, real_b);
+  EXCEPT(e);
 
   return 0;
 }
@@ -2580,15 +2629,11 @@ static error unify_reference(struct module *mod, const struct node *for_error,
   if (typ_equal(a, b)) {
     e = unify_with_equal(mod, for_error, a, b);
     EXCEPT(e);
-  } else {
-    if (!typ_is_tentative(b)) {
-      SWAP(a, b);
-      SWAP(a0, b0);
-      SWAP(a_ref, b_ref);
-    }
-
-    typ_link_tentative(a, b);
+    return 0;
   }
+
+  e = unify_reference_arg(mod, for_error, a, b);
+  EXCEPT(e);
 
   return 0;
 }
@@ -3537,6 +3582,7 @@ static error type_inference_block(struct module *mod, struct node *node) {
       }
     }
     if (node->subs[node->subs_count - 1]->which == RETURN) {
+      // FIXME: should make sure there are no statements after a RETURN.
       set_typ(&node->typ, TBI_VOID);
     } else {
       set_typ(&node->typ, node->subs[node->subs_count - 1]->typ);
