@@ -1513,11 +1513,31 @@ static error step_match_mark_patterns(struct module *mod, struct node *node, voi
   const struct node *expr = node->subs[0];
   for (size_t n = 1; n < node->subs_count; n += 2) {
     struct node *pattern = node->subs[n];
-    if (pattern->which != IDENT) {
-      continue;
+    if (pattern->which == IDENT) {
+      pattern->as.IDENT.matched_against = expr;
     }
+  }
 
-    pattern->as.IDENT.matched_against = expr;
+  return 0;
+}
+
+static error step_bin_mark_terms(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node->which != BIN) {
+    return 0;
+  }
+
+  enum token_type op = node->as.BIN.operator;
+  if (op != TEQ && op != TNE) {
+    return 0;
+  }
+
+  const struct node *left = node->subs[0];
+  struct node *right = node->subs[1];
+
+  if (right->which == IDENT) {
+    right->as.IDENT.matched_against = left;
   }
 
   return 0;
@@ -1911,7 +1931,7 @@ static error step_excepts_store_label(struct module *mod, struct node *node, voi
     }
 
     struct node *def = NULL;
-    e = scope_lookup(&def, mod, node->scope, label_ident);
+    e = scope_lookup(&def, mod, node->scope, label_ident, FALSE);
     EXCEPT(e);
 
     if (def->which != CATCH || def->scope->parent->node != eblock) {
@@ -1963,7 +1983,7 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
   }
 
   struct node *member = NULL;
-  error e = scope_lookup(&member, mod, fun->scope, fun);
+  error e = scope_lookup(&member, mod, fun->scope, fun, FALSE);
   EXCEPT(e);
   if (member->which != DEFCHOICE) {
     return 0;
@@ -3084,7 +3104,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
 
   if (field->which == IMPORT && !field->as.IMPORT.intermediate_mark) {
     e = scope_lookup(&field, mod, mod->gctx->modules_root.scope,
-                     field->subs[0]);
+                     field->subs[0], FALSE);
     assert(!e);
   }
 
@@ -3789,21 +3809,37 @@ static error type_inference_ident(struct module *mod, struct node *node) {
     return 0;
   }
 
-  struct scope *sc = node->scope;
-
+  struct scope *alt_sc = NULL;
   if (node->as.IDENT.matched_against != NULL) {
     const struct typ *m = node->as.IDENT.matched_against->typ;
     const struct node *dm = typ_definition_const(m);
     if (dm->which == DEFTYPE
         && (dm->as.DEFTYPE.kind == DEFTYPE_ENUM
             || dm->as.DEFTYPE.kind == DEFTYPE_SUM)) {
-      sc = dm->scope;
+      alt_sc = dm->scope;
     }
   }
 
   struct node *def = NULL;
-  error e = scope_lookup(&def, mod, sc, node);
-  EXCEPT(e);
+  error e = scope_lookup(&def, mod, node->scope, node, TRUE);
+  if (e == EINVAL && alt_sc != NULL) {
+    e = scope_lookup(&def, mod, alt_sc, node, FALSE);
+    if (e == 0) {
+      node->as.IDENT.non_local_scope = alt_sc;
+    }
+    // 'e' is tested again below.
+  }
+
+  if (e) {
+    // Repeat bound-to-fail lookup to get the error message right.
+    e = scope_lookup(&def, mod, node->scope, node, FALSE);
+    THROW(e);
+  }
+
+  const enum node_which parent_which = node_parent_const(def)->which;
+  if (parent_which == MODULE || parent_which == DEFTYPE || parent_which == DEFINTF) {
+    node->as.IDENT.non_local_scope = def->scope;
+  }
 
   if (def->which == DEFNAME && def->typ == NULL) {
     // This happens when typing an IDENT in the pattern of a DEFPATTERN:
@@ -6242,6 +6278,7 @@ static const struct pass _passes[] = {
       step_type_destruct_mark,
       step_type_mutability_mark,
       step_match_mark_patterns,
+      step_bin_mark_terms,
       step_type_gather_retval,
       step_type_gather_excepts,
       NULL,

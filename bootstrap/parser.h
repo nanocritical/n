@@ -136,6 +136,8 @@ struct node_nul {};
 struct node_ident {
   ident name;
   const struct node *matched_against;
+
+  struct scope *non_local_scope;
 };
 struct node_number {
   const char *value;
@@ -716,7 +718,8 @@ error scope_lookup_ident_immediate(struct node **result, const struct node *for_
                                    const struct scope *scope, ident id,
                                    bool failure_ok);
 error scope_lookup(struct node **result, const struct module *mod,
-                   const struct scope *scope, const struct node *id);
+                   const struct scope *scope, const struct node *id,
+                   bool failure_ok);
 error scope_lookup_module(struct node **result, const struct module *mod,
                           const struct node *id, bool failure_ok);
 error scope_lookup_abspath(struct node **result, const struct node *for_error,

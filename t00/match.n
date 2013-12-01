@@ -16,6 +16,8 @@ fun bar n:enu = i32
 
 export fun main = i32
   let n = enu.A
+  if n != A
+    return 1
   let _ = foo n
   let _ = bar n
   match n

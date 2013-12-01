@@ -916,8 +916,9 @@ except:
 }
 
 error scope_lookup(struct node **result, const struct module *mod,
-                   const struct scope *scope, const struct node *id) {
-  return do_scope_lookup(result, id, mod, scope, id, FALSE);
+                   const struct scope *scope, const struct node *id,
+                   bool failure_ok) {
+  return do_scope_lookup(result, id, mod, scope, id, failure_ok);
 }
 
 error scope_lookup_module(struct node **result, const struct module *mod,
@@ -3173,7 +3174,7 @@ static error register_module(struct globalctx *gctx, struct module *to_register,
       // Repeat bound-to-fail lookup to get the error message right.
       e = scope_lookup_ident_wontimport(&m, parent, some_module, parent->scope,
                                         i, FALSE);
-      EXCEPT(e);
+      THROW(e);
     } else {
       assert(m->which == MODULE);
       if (p == last) {

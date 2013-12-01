@@ -418,20 +418,6 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
   }
 }
 
-static error is_local_name(bool *is_local, const struct module *mod, const struct node *node) {
-  if (node->which == DEFNAME) {
-    *is_local = TRUE;
-    return 0;
-  }
-
-  struct node *def = NULL;
-  error e = scope_lookup(&def, mod, node->scope, node);
-  EXCEPT(e);
-  enum node_which parent_which = node_parent_const(def)->which;
-  *is_local = parent_which != MODULE && parent_which != DEFTYPE && parent_which != DEFINTF;
-  return 0;
-}
-
 static void print_deftype_name(FILE *out, const struct module *mod, const struct node *node) {
   print_typ(out, mod, node->typ);
 }
@@ -455,17 +441,15 @@ static void print_deffield_name(FILE *out, const struct module *mod, const struc
 }
 
 static void print_ident(FILE *out, const struct module *mod, const struct node *node) {
-  bool is_local = FALSE;
-  error e = is_local_name(&is_local, mod, node);
-  assert(!e);
+  assert(node->which == IDENT);
 
   const ident id = node_ident(node);
   if (id == ID_MAIN) {
     fprintf(out, "main");
-  } else if (is_local) {
-    fprintf(out, "%s", idents_value(mod->gctx, id));
+  } else if (node->as.IDENT.non_local_scope != NULL) {
+    fprintf(out, "%s", replace_dots(scope_name(mod, node->as.IDENT.non_local_scope)));
   } else {
-    fprintf(out, "%s", scope_name(mod, node->scope));
+    fprintf(out, "%s", idents_value(mod->gctx, id));
   }
 }
 
@@ -2243,7 +2227,8 @@ static void print_guarded_include(FILE *out, bool header, enum forward fwd,
 static void print_import(FILE *out, bool header, enum forward fwd,
                          const struct module *mod, const struct node *node) {
   struct node *target = NULL;
-  error e = scope_lookup(&target, mod, mod->gctx->modules_root.scope, node->subs[0]);
+  error e = scope_lookup(&target, mod, mod->gctx->modules_root.scope, node->subs[0],
+                         FALSE);
   assert(!e);
   if (target->which == MODULE) {
     print_guarded_include(out, header, fwd, target->as.MODULE.mod->filename, ".h.out");
