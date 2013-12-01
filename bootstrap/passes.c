@@ -4877,8 +4877,30 @@ static const ident operator_ident[TOKEN__NUM] = {
   [TBWNOT] = ID_OPERATOR_BWNOT,
 };
 
-static error step_literal_conversion(struct module *mod, struct node *node,
-                                     void *user, bool *stop) {
+static error step_check_no_literals_left(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
+  switch (node->which) {
+  case NUMBER:
+  case NUL:
+    break;
+  default:
+    return 0;
+  }
+
+  if (typ_is_literal(node->typ)) {
+    char *s = typ_pretty_name(mod, node->typ);
+    error e = mk_except_type(mod, node,
+                             "literal of type '%s' did not unify"
+                             " to a concrete type", s);
+    free(s);
+    THROW(e);
+  }
+
+  return 0;
+}
+
+static error step_weak_literal_conversion(struct module *mod, struct node *node,
+                                          void *user, bool *stop) {
   DSTEP(mod, node);
 
   ident id;
@@ -6214,10 +6236,11 @@ static const struct pass _passes[] = {
       step_stop_marker_tbi,
       step_push_fun_state,
       step_type_gather_retval,
+      step_check_no_literals_left,
       NULL,
     },
     {
-      step_literal_conversion,
+      step_weak_literal_conversion,
       step_operator_call_inference,
       step_operator_test_call_inference,
       step_ctor_call_inference,

@@ -1,15 +1,4 @@
 t00/fixme06.n.c.out: In function ‘_Nmain’:
-t00/fixme06.n.c.out:32:1: error: unknown type name ‘nlang_literals_integer’
- nlang_literals_integer x = (nlang_literals_integer)1;
- ^
-t00/fixme06.n.c.out:32:29: error: ‘nlang_literals_integer’ undeclared (first use in this function)
- nlang_literals_integer x = (nlang_literals_integer)1;
-                             ^
-t00/fixme06.n.c.out:32:29: note: each undeclared identifier is reported only once for each function it appears in
-t00/fixme06.n.c.out:32:52: error: expected ‘,’ or ‘;’ before numeric constant
- nlang_literals_integer x = (nlang_literals_integer)1;
-                                                    ^
-t00/fixme06.n.c.out:32:24: warning: unused variable ‘x’ [-Wunused-variable]
- nlang_literals_integer x = (nlang_literals_integer)1;
-                        ^
-command exited with 1: gcc -Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g -xc t00/fixme06.n.c.out -c -o t00/fixme06.n.o
+t00/fixme06.n.c.out:32:20: warning: unused variable ‘x’ [-Wunused-variable]
+ nlang_builtins_i32 x = (nlang_builtins_i32)1;
+                    ^

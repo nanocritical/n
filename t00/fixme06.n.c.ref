@@ -27,9 +27,9 @@
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/fixme06.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
-nlang_literals_integer x = (nlang_literals_integer)1;
+nlang_builtins_i32 x = (nlang_builtins_i32)1;
 ;
 return (nlang_builtins_i32)1;
 }
