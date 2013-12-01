@@ -2,10 +2,10 @@ from nlang import *
 from nlang.strings import string
 
 fun foo s:static_string = void
-  pass
+  noop
 
 fun bar s:string = void
-  pass
+  noop
 
 export fun main = i32
   let s = 'abc'
