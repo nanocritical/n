@@ -135,6 +135,7 @@ struct toplevel {
 struct node_nul {};
 struct node_ident {
   ident name;
+  const struct node *matched_against;
 };
 struct node_number {
   const char *value;

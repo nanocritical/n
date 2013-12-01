@@ -1503,6 +1503,26 @@ static error step_type_mutability_mark(struct module *mod, struct node *node, vo
   return 0;
 }
 
+static error step_match_mark_patterns(struct module *mod, struct node *node, void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node->which != MATCH) {
+    return 0;
+  }
+
+  const struct node *expr = node->subs[0];
+  for (size_t n = 1; n < node->subs_count; n += 2) {
+    struct node *pattern = node->subs[n];
+    if (pattern->which != IDENT) {
+      continue;
+    }
+
+    pattern->as.IDENT.matched_against = expr;
+  }
+
+  return 0;
+}
+
 static error step_stop_already_morningtypepass(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
@@ -1719,7 +1739,10 @@ static error step_type_defchoices(struct module *mod, struct node *node, void *u
     case DEFTYPE_ENUM:
     case DEFTYPE_SUM:
       {
-        struct typ *u = typ_create_tentative(TBI_LITERALS_INTEGER);
+        set_typ(&node->as.DEFTYPE.choice_typ,
+                typ_create_tentative(TBI_LITERALS_INTEGER));
+        struct typ *u = node->as.DEFTYPE.choice_typ;
+
         for (size_t n = 0; n < node->subs_count; ++n) {
           struct node *ch = node->subs[n];
           if (ch->which != DEFCHOICE) {
@@ -1733,11 +1756,8 @@ static error step_type_defchoices(struct module *mod, struct node *node, void *u
         }
 
         if (typ_equal(u, TBI_LITERALS_INTEGER)) {
-          e = unify(mod, node, u, TBI_U32);
-          EXCEPT(e);
+          typ_link_tentative(TBI_U32, u);
         }
-
-        set_typ(&node->as.DEFTYPE.choice_typ, u);
       }
       break;
     default:
@@ -3769,8 +3789,20 @@ static error type_inference_ident(struct module *mod, struct node *node) {
     return 0;
   }
 
+  struct scope *sc = node->scope;
+
+  if (node->as.IDENT.matched_against != NULL) {
+    const struct typ *m = node->as.IDENT.matched_against->typ;
+    const struct node *dm = typ_definition_const(m);
+    if (dm->which == DEFTYPE
+        && (dm->as.DEFTYPE.kind == DEFTYPE_ENUM
+            || dm->as.DEFTYPE.kind == DEFTYPE_SUM)) {
+      sc = dm->scope;
+    }
+  }
+
   struct node *def = NULL;
-  error e = scope_lookup(&def, mod, node->scope, node);
+  error e = scope_lookup(&def, mod, sc, node);
   EXCEPT(e);
 
   if (def->which == DEFNAME && def->typ == NULL) {
@@ -6209,6 +6241,7 @@ static const struct pass _passes[] = {
       step_rewrite_wildcards,
       step_type_destruct_mark,
       step_type_mutability_mark,
+      step_match_mark_patterns,
       step_type_gather_retval,
       step_type_gather_excepts,
       NULL,
