@@ -2167,6 +2167,7 @@ static error p_let(struct node *node, struct module *mod, const struct toplevel 
     node->which = LET;
     if (toplevel != NULL) {
       node->as.LET.toplevel = *toplevel;
+      node->flags |= NODE_IS_GLOBAL_LET;
     }
   }
 
@@ -2213,8 +2214,10 @@ static error p_post(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_invariant(struct node *node, struct module *mod) {
+static error p_invariant(struct node *node, struct module *mod,
+                         struct toplevel *toplevel) {
   node->which = INVARIANT;
+  node->as.INVARIANT.toplevel = *toplevel;
 
   error e = scan_expected(mod, TSOB);
   EXCEPT(e);
@@ -2284,7 +2287,7 @@ static error p_statement(struct node *parent, struct module *mod) {
     e = p_post(NEW, mod);
     break;
   case Tinvariant:
-    e = p_invariant(NEW, mod);
+    e = p_invariant(NEW, mod, NULL);
     break;
   default:
     back(mod, &tok);
@@ -2542,8 +2545,10 @@ again:
   }
 }
 
-static error p_delegate(struct node *node, struct module *mod) {
+static error p_delegate(struct node *node, struct module *mod,
+                        struct toplevel *toplevel) {
   node->which = DELEGATE;
+  node->as.DELEGATE.toplevel = *toplevel;
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
   EXCEPT(e);
@@ -2570,6 +2575,7 @@ static error p_deftype_statement(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   struct toplevel toplevel = { 0 };
 
+again:
   e = scan(&tok, mod);
   EXCEPT(e);
 
@@ -2581,11 +2587,20 @@ static error p_deftype_statement(struct node *node, struct module *mod) {
   case Talias:
     e = p_let(node, mod, &toplevel, tok.t);
     break;
+  case Texport:
+    toplevel.is_export = TRUE;
+    goto again;
+  case Textern:
+    toplevel.is_extern = TRUE;
+    goto again;
+  case Tinline:
+    toplevel.is_inline = TRUE;
+    goto again;
   case Tdelegate:
-    e = p_delegate(node, mod);
+    e = p_delegate(node, mod, &toplevel);
     break;
   case Tinvariant:
-    e = p_invariant(node, mod);
+    e = p_invariant(node, mod, &toplevel);
     break;
   case TIDENT:
     back(mod, &tok);
@@ -2759,7 +2774,7 @@ again:
     e = p_let(node, mod, &toplevel, tok.t);
     break;
   case Tinvariant:
-    e = p_invariant(node, mod);
+    e = p_invariant(node, mod, &toplevel);
     break;
   case TIDENT:
     back(mod, &tok);

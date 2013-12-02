@@ -630,16 +630,6 @@ static error step_add_scopes(struct module *mod, struct node *node, void *user, 
   DSTEP(mod, node);
   if (node->which != MODULE) {
     node->scope = scope_new(node);
-
-    // In later passes, we may rewrite nodes that have been marked, we must
-    // erase the marking. But not for module nodes that are:
-    //   (i) never rewritten,
-    //   (ii) are typed void when created, to allow global module lookup to
-    //   use the 'typ' field when typing import nodes.
-    if (node->which != SETGENARG) {
-      node->typ = NULL;
-      node->flags = 0;
-    }
   }
 
   for (size_t n = 0; n < node->subs_count; ++n) {
@@ -1132,6 +1122,7 @@ static error step_add_builtin_members(struct module *mod, struct node *node, voi
 
   {
     struct node *let = mk_node(mod, node, LET);
+    let->flags = NODE_IS_GLOBAL_LET;
     struct node *defp = mk_node(mod, let, DEFPATTERN);
     defp->as.DEFPATTERN.is_alias = TRUE;
     struct node *name = mk_node(mod, defp, IDENT);
@@ -1148,6 +1139,7 @@ static error step_add_builtin_members(struct module *mod, struct node *node, voi
 
   {
     struct node *let = mk_node(mod, node, LET);
+    let->flags = NODE_IS_GLOBAL_LET;
     struct node *defp = mk_node(mod, let, DEFPATTERN);
     defp->as.DEFPATTERN.is_alias = TRUE;
     struct node *name = mk_node(mod, defp, IDENT);
@@ -2952,7 +2944,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
     node->flags |= term->flags & NODE__TRANSITIVE;
     break;
   case OP_UN_BOOL:
-    set_typ(&node->typ, typ_create_tentative(TBI_BOOL));
+    set_typ(&node->typ, TBI_BOOL);
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
@@ -3864,8 +3856,8 @@ static void type_inference_ident_unknown(struct module *mod, struct node *node) 
   error e = catchup_instantiation(mod, mod, unk, node->scope, tentative);
   assert(!e);
 
-  // So we can rewrite it with the final enum or sum scope in
-  // step_check_no_unknown_ident_left().
+  // Special marker, so we can rewrite it with the final enum or sum scope
+  // in step_check_no_unknown_ident_left().
   node->as.IDENT.non_local_scope = unk->scope;
 
   set_typ(&node->typ, typ_create_tentative(unk->typ));
@@ -3886,13 +3878,20 @@ static error type_inference_ident(struct module *mod, struct node *node) {
 
   const enum node_which parent_which = node_parent_const(def)->which;
   if (parent_which == MODULE || parent_which == DEFTYPE || parent_which == DEFINTF) {
-    node->as.IDENT.non_local_scope = def->scope;
+    node->as.IDENT.non_local_scope = def->scope->parent;
+  } else if (def->flags & NODE_IS_GLOBAL_LET) {
+    node->as.IDENT.non_local_scope = def->scope->parent->parent->parent;
   }
 
   if (def->which == DEFFIELD) {
     e = mk_except(mod, node,
                   "fields identifiers must be accessed through 'self'");
     THROW(e);
+  }
+
+  if (def->which == CATCH) {
+    // 'node' is a throw or except label.
+    return 0;
   }
 
   if (def->which == DEFNAME && def->typ == NULL) {
@@ -4006,7 +4005,19 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
       node->as.DEFNAME.pattern->flags |= node->as.DEFNAME.expr->flags;
     }
 
+    if (node->as.DEFNAME.is_excep) {
+      struct node *tryy = module_excepts_get(mod)->tryy;
+      struct node *err = tryy->subs[0]->subs[0]->subs[1];
+      assert(err->which == DEFNAME);
+      e = unify(mod, node, node->typ, err->typ);
+      EXCEPT(e);
+    }
+
     node->flags = node->as.DEFNAME.pattern->flags;
+
+    const struct node *let = node_parent_const(node_parent_const(node));
+    assert(let->which == LET);
+    node->flags |= (let->flags & NODE_IS_GLOBAL_LET);
     break;
   case NUMBER:
     set_typ(&node->typ, typ_create_tentative(number_literal_typ(mod, node)));
@@ -4056,6 +4067,15 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     set_typ(&node->typ, node->subs[node->subs_count - 1]->typ);
     break;
   case THROW:
+    {
+      struct node *tryy = module_excepts_get(mod)->tryy;
+      struct node *err = tryy->subs[0]->subs[0]->subs[1];
+      assert(err->which == DEFNAME);
+      e = unify(mod, node, node->subs[node->subs_count - 1]->typ, err->typ);
+      EXCEPT(e);
+      set_typ(&node->typ, TBI_VOID);
+      break;
+    }
   case BREAK:
   case CONTINUE:
   case NOOP:
@@ -5052,7 +5072,7 @@ static error step_check_no_unknown_ident_left(struct module *mod, struct node *n
     error e = scope_lookup_ident_immediate(&def, node, mod, d->scope,
                                            node_ident(node), FALSE);
     assert(!e);
-    node->as.IDENT.non_local_scope = def->scope;
+    node->as.IDENT.non_local_scope = def->scope->parent;
   }
 
   return 0;
@@ -5251,16 +5271,6 @@ static error step_operator_test_call_inference(struct module *mod, struct node *
       e = gen_operator_test_call(mod, node, IDX_DEFNAME_EXCEP_TEST);
       EXCEPT(e);
     }
-    break;
-  case IF:
-    for (size_t n = 0; n < node->subs_count - 1; n += 2) {
-      e = gen_operator_test_call(mod, node, n);
-      EXCEPT(e);
-    }
-    break;
-  case WHILE:
-    e = gen_operator_test_call(mod, node, 0);
-    EXCEPT(e);
     break;
   default:
     break;

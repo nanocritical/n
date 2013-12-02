@@ -9,6 +9,7 @@
 
 
 
+
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_TYPES
@@ -19,6 +20,7 @@
 
 
 
+
 #define NLANG_DECLARE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
@@ -26,6 +28,8 @@
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/try.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
+static void t00_try_inferred(nlang_builtins_error *_nrtr__nretval);
+
 static nlang_builtins_i32 t00_try_foo(void);
 
 static nlang_builtins_i32 t00_try_bar(void);
@@ -39,70 +43,49 @@ static nlang_builtins_i32 t00_try_noerror(void);
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/try.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-static nlang_builtins_i32 t00_try_foo(void){
+static void t00_try_inferred(nlang_builtins_error *_nrtr__nretval) {
+#define _nretval (*_nrtr__nretval)
  {
 nlang_builtins_error _Ngensym0 = { 0 };
  {
-nlang_builtins_error _Ngensymc = { 0 };
-_Ngensym0 = ({ _Ngensymc.code = (nlang_builtins_i32)1;
+nlang_builtins_error _Ngensym16 = { 0 };
+_Ngensym0 = ({ _Ngensym16.code = (nlang_builtins_i32)1;
 ;
-_Ngensymc;
-; }); goto ONE;
+_Ngensym16;
+; }); goto _Ngensym1;
 ;
-nlang_builtins_error _Ngensymd = { 0 };
-_Ngensym0 = ({ _Ngensymd.code = (nlang_builtins_i32)0;
-;
-_Ngensymd;
-; }); goto ZERO;
-;
-}
-ZERO: {
-(void) (_Ngensym0);
+}while (0) {
+
+_Ngensym1: {
+nlang_builtins_error err = _Ngensym0;
  {
-return (nlang_builtins_i32)0;
+_nretval = err;
+return;
 }
+}
+}
+;
+}
+#undef _nretval
 }
 
-ONE: {
-(void) (_Ngensym0);
- {
-return (nlang_builtins_i32)1;
-}
-}
-;
-}
-}
-
-static nlang_builtins_i32 t00_try_bar(void){
- {
-nlang_builtins_error _Ngensym1 = { 0 };
- {
-nlang_builtins_error _Ngensym8= { 0 };
-_Ngensym8.code = (nlang_builtins_i32)1;
-;
-_Ngensym1 = _Ngensym8; if (nlang_builtins_error_operator_test(((&_Ngensym8)))) { goto _Ngensym3; };
-return (nlang_builtins_i32)0;
-}
-_Ngensym3: {
-nlang_builtins_error err = _Ngensym1;
+static nlang_builtins_i32 t00_try_foo(void) {
  {
 nlang_builtins_error _Ngensym2 = { 0 };
  {
-nlang_builtins_error _Ngensym9= { 0 };
-_Ngensym9.code = ((err.code) + (nlang_builtins_i32)1);
+nlang_builtins_error _Ngensym17 = { 0 };
+_Ngensym2 = ({ _Ngensym17.code = (nlang_builtins_i32)1;
 ;
-_Ngensym2 = _Ngensym9; if (nlang_builtins_error_operator_test(((&_Ngensym9)))) { goto ONE; };
-nlang_builtins_error _Ngensyma= { 0 };
-_Ngensyma.code = (nlang_builtins_i32)0;
+_Ngensym17;
+; }); goto ONE;
 ;
-_Ngensym2 = _Ngensyma; if (nlang_builtins_error_operator_test(((&_Ngensyma)))) { goto ZERO; };
-}
-ONE: {
-nlang_builtins_error err = _Ngensym2;
- {
-return ((err.code) - (nlang_builtins_i32)1);
-}
-}
+nlang_builtins_error _Ngensym18 = { 0 };
+_Ngensym2 = ({ _Ngensym18.code = (nlang_builtins_i32)0;
+;
+_Ngensym18;
+; }); goto ZERO;
+;
+}while (0) {
 
 ZERO: {
 (void) (_Ngensym2);
@@ -110,52 +93,115 @@ ZERO: {
 return (nlang_builtins_i32)0;
 }
 }
-;
+
+ONE: {
+(void) (_Ngensym2);
+ {
+return (nlang_builtins_i32)1;
+}
 }
 }
 ;
 }
 }
 
-static nlang_builtins_i32 t00_try_noerror(void){
+static nlang_builtins_i32 t00_try_bar(void) {
+ {
+nlang_builtins_error _Ngensym3 = { 0 };
+ {
+nlang_builtins_error _Ngensyma= { 0 };
+_Ngensyma.code = (nlang_builtins_i32)1;
+;
+_Ngensym3 = _Ngensyma; if (nlang_builtins_error_operator_test(((&_Ngensyma)))) { goto _Ngensym5; };
+return (nlang_builtins_i32)0;
+}while (0) {
+
+_Ngensym5: {
+nlang_builtins_error err = _Ngensym3;
  {
 nlang_builtins_error _Ngensym4 = { 0 };
  {
 nlang_builtins_error _Ngensymb= { 0 };
-_Ngensymb.code = (nlang_builtins_i32)0;
+_Ngensymb.code = ((err.code) + (nlang_builtins_i32)1);
 ;
-_Ngensym4 = _Ngensymb; if (nlang_builtins_error_operator_test(((&_Ngensymb)))) { goto _Ngensym5; };
+_Ngensym4 = _Ngensymb; if (nlang_builtins_error_operator_test(((&_Ngensymb)))) { goto ONE; };
+nlang_builtins_error _Ngensymc= { 0 };
+_Ngensymc.code = (nlang_builtins_i32)0;
+;
+_Ngensym4 = _Ngensymc; if (nlang_builtins_error_operator_test(((&_Ngensymc)))) { goto ZERO; };
 return (nlang_builtins_i32)0;
+}while (0) {
+
+ONE: {
+nlang_builtins_error err = _Ngensym4;
+ {
+return ((err.code) - (nlang_builtins_i32)1);
 }
-_Ngensym5: {
+}
+
+ZERO: {
 (void) (_Ngensym4);
  {
-return (nlang_builtins_i32)1;
+return (nlang_builtins_i32)0;
+}
+}
+}
+;
+}
 }
 }
 ;
 }
 }
 
-nlang_builtins_i32 _Nmain(void){
+static nlang_builtins_i32 t00_try_noerror(void) {
  {
+nlang_builtins_error _Ngensym6 = { 0 };
+ {
+nlang_builtins_error _Ngensymd= { 0 };
+_Ngensymd.code = (nlang_builtins_i32)0;
+;
+_Ngensym6 = _Ngensymd; if (nlang_builtins_error_operator_test(((&_Ngensymd)))) { goto _Ngensym7; };
+return (nlang_builtins_i32)0;
+}while (0) {
+
+_Ngensym7: {
+(void) (_Ngensym6);
+ {
+return (nlang_builtins_i32)1;
+}
+}
+}
+;
+}
+}
+
+nlang_builtins_i32 _Nmain(void) {
+ {
+nlang_builtins_error _Ngensym19 = { 0 };
+nlang_builtins_assert(nlang_builtins_error_operator_ne(({ t00_try_inferred(&(_Ngensym19));
+((&_Ngensym19));
+; }), ((&(nlang_builtins_error_OK)))));
+;
 nlang_builtins_assert((t00_try_foo() == (nlang_builtins_i32)1));
 nlang_builtins_assert((t00_try_bar() == (nlang_builtins_i32)1));
 nlang_builtins_assert((t00_try_noerror() == (nlang_builtins_i32)0));
-nlang_builtins_error _Ngensym6 = { 0 };
+nlang_builtins_error _Ngensym8 = { 0 };
  {
-nlang_builtins_error _Ngensyme = { 0 };
-_Ngensym6 = ({ _Ngensyme.code = t00_try_bar();
+nlang_builtins_error _Ngensym1a = { 0 };
+_Ngensym8 = ({ _Ngensym1a.code = t00_try_bar();
 ;
-_Ngensyme;
-; }); goto _Ngensym7;
+_Ngensym1a;
+; }); goto _Ngensym9;
 ;
 return (nlang_builtins_i32)1;
-}
-_Ngensym7: {
-nlang_builtins_error err = _Ngensym6;
+}while (0) {
+
+_Ngensym9: {
+nlang_builtins_error err = _Ngensym8;
  {
 return ((err.code) - (nlang_builtins_i32)1);
+}
 }
 }
 ;

@@ -1,14 +1,24 @@
 from nlang import *
+fun inferred = _nretval:error
+  try
+    let _Ngensym16:nlang.builtins.error    such
+      throw block 
+  _Ngensym16 = { code=1 }
+  _Ngensym16;;
+  catch _Ngensym1 err
+
+    return err
+
 fun foo = i32
   try
-    let _Ngensymc:nlang.builtins.error    such
-      spit ONEblock 
-  _Ngensymc = { code=1 }
-  _Ngensymc;;
-    let _Ngensymd:nlang.builtins.error    such
-      spit ZEROblock 
-  _Ngensymd = { code=0 }
-  _Ngensymd;;
+    let _Ngensym17:nlang.builtins.error    such
+      throw ONEblock 
+  _Ngensym17 = { code=1 }
+  _Ngensym17;;
+    let _Ngensym18:nlang.builtins.error    such
+      throw ZEROblock 
+  _Ngensym18 = { code=0 }
+  _Ngensym18;;
   catch ZERO _
 
     return 0  catch ONE _
@@ -17,13 +27,14 @@ fun foo = i32
 
 fun bar = i32
   try
-    let _Ngensym8 = { code=1 }
+    let _Ngensyma = { code=1 }
     return 0
-  catch _Ngensym3 err
+  catch _Ngensym5 err
 
     try
-      let _Ngensym9 = { code=err.code + 1 }
-      let _Ngensyma = { code=0 }
+      let _Ngensymb = { code=err.code + 1 }
+      let _Ngensymc = { code=0 }
+      return 0
     catch ONE err
 
       return err.code - 1    catch ZERO _
@@ -32,22 +43,26 @@ fun bar = i32
 
 fun noerror = i32
   try
-    let _Ngensymb = { code=0 }
+    let _Ngensymd = { code=0 }
     return 0
-  catch _Ngensym5 _
+  catch _Ngensym7 _
 
     return 1
 
 export fun main = i32
+  let _Ngensym19:nlang.builtins.error  such
+    assert (nlang.builtins.error.operator_ne block 
+  _Ngensym19 = inferred
+  @_Ngensym19;; @error.OK)
   assert (foo == 1)
   assert (bar == 1)
   assert (noerror == 0)
   try
-    let _Ngensyme:nlang.builtins.error    such
-      spit block 
-  _Ngensyme = { code=(bar) }
-  _Ngensyme;;
+    let _Ngensym1a:nlang.builtins.error    such
+      throw block 
+  _Ngensym1a = { code=(bar) }
+  _Ngensym1a;;
     return 1
-  catch _Ngensym7 err
+  catch _Ngensym9 err
 
     return err.code - 1

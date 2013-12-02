@@ -1,5 +1,11 @@
 from nlang import *
 
+fun inferred = error
+  try
+    throw { code=1 }
+  catch err
+    return err
+
 fun foo = i32
   try
     throw ONE { code=1 }:error
@@ -17,6 +23,7 @@ fun bar = i32
     try
       let except ONE = { code=err.code+1 }:error
       let except ZERO = { code=0 }:error
+      return 0
     catch ONE err
       return err.code - 1
     catch ZERO _
@@ -30,6 +37,7 @@ fun noerror = i32
     return 1
 
 export fun main = i32
+  assert <- inferred != error.OK
   assert <- foo == 1
   assert <- bar == 1
   assert <- noerror == 0

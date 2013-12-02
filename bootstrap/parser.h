@@ -266,10 +266,14 @@ struct node_isa {
   bool is_export;
   bool is_explicit;
 };
-struct node_delegate {};
+struct node_delegate {
+  struct toplevel toplevel;
+};
 struct node_pre {};
 struct node_post {};
-struct node_invariant {};
+struct node_invariant {
+  struct toplevel toplevel;
+};
 struct node_example {
   size_t name;
 };
@@ -350,8 +354,9 @@ struct scope;
 enum node_flags {
   NODE_IS_TYPE = 0x1,
   NODE_IS_DEFCHOICE = 0x2,
-  NODE__TRANSITIVE = NODE_IS_TYPE,
   NODE_IS_TEMPORARY = 0x4,
+  NODE_IS_GLOBAL_LET = 0x8,
+  NODE__TRANSITIVE = NODE_IS_TYPE,
 };
 
 struct node {
@@ -862,6 +867,12 @@ static inline const struct toplevel *node_toplevel_const(const struct node *node
     break;
   case LET:
     toplevel = &node->as.LET.toplevel;
+    break;
+  case INVARIANT:
+    toplevel = &node->as.INVARIANT.toplevel;
+    break;
+  case DELEGATE:
+    toplevel = &node->as.DELEGATE.toplevel;
     break;
   case IMPORT:
     toplevel = &node->as.IMPORT.toplevel;

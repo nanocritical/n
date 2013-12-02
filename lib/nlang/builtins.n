@@ -927,6 +927,8 @@ export inline type error = export i_error \
     export i_trivial_copy
   code	:i32
 
+  export inline let OK = {}:error
+
 export error method i_generalized_boolean.operator_test = bool
   return self.code != 0
 
