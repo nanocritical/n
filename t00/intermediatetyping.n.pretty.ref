@@ -1,18 +1,16 @@
 from nlang import *
-
 fun noerror = i32
-  let x
-  such
+  let x  such
     try
-      let except = { code=0 }:error
+      let _Ngensym2 = { code=0 }
       x = 0
-    catch _
+    catch _Ngensym1 _
+
       return 1
   return x
 
 export fun main = i32
-  let x = 2 + noerror
-  such
+  let x = 2 + (noerror)  such
     x = x + 1
     x = (max x 0) + 1
   return x - 4

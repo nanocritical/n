@@ -621,6 +621,7 @@ static void print_try(FILE *out, const struct module *mod, const struct node *no
   print_defpattern(out, FALSE, FWD_DEFINE_FUNCTIONS, mod, edefp);
   print_block(out, mod, eblock->subs[0], FALSE);
 
+  fprintf(out, "while (0) {\n");
   for (size_t n = 1; n < eblock->subs_count; ++n) {
     struct node *catch = eblock->subs[n];
 
@@ -631,6 +632,7 @@ static void print_try(FILE *out, const struct module *mod, const struct node *no
 
     fprintf(out, "\n}\n");
   }
+  fprintf(out, "}\n");
 }
 
 static void print_pre(FILE *out, const struct module *mod, const struct node *node) {
