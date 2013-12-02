@@ -1,2 +1,0 @@
-t00/match.n:19:12: parse: from scope t00.match.main.A: in scope t00.match: unknown identifier 'A'
-ncc0: bootstrap/cprinter.c:460: print_ident: Assertion `!e' failed.

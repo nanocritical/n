@@ -315,7 +315,8 @@ static bool check_can_be_tentative(const struct typ *t) {
   const struct node *d = typ_definition_const(t);
   if (d->which == DEFINTF
       || d->which == DEFNAMEDLITERAL
-      || d->which == DEFCONSTRAINTLITERAL) {
+      || d->which == DEFCONSTRAINTLITERAL
+      || d->which == DEFUNKNOWNIDENT) {
     return TRUE;
   }
 

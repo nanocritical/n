@@ -1503,63 +1503,6 @@ static error step_type_mutability_mark(struct module *mod, struct node *node, vo
   return 0;
 }
 
-static error step_match_mark_patterns(struct module *mod, struct node *node, void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (node->which != MATCH) {
-    return 0;
-  }
-
-  const struct node *expr = node->subs[0];
-  for (size_t n = 1; n < node->subs_count; n += 2) {
-    struct node *pattern = node->subs[n];
-    if (pattern->which == IDENT) {
-      pattern->as.IDENT.matched_against = expr;
-    }
-  }
-
-  return 0;
-}
-
-static error step_bin_mark_terms(struct module *mod, struct node *node, void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (node->which != BIN) {
-    return 0;
-  }
-
-  enum token_type op = node->as.BIN.operator;
-  if (op != TEQ && op != TNE) {
-    return 0;
-  }
-
-  const struct node *left = node->subs[0];
-  struct node *right = node->subs[1];
-
-  if (right->which == IDENT) {
-    right->as.IDENT.matched_against = left;
-  }
-
-  return 0;
-}
-
-static error step_call_mark_args(struct module *mod, struct node *node, void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (node->which != CALL) {
-    return 0;
-  }
-
-  for (size_t n = 1; n < node->subs_count; ++n) {
-    struct node *arg = node->subs[n];
-    if (arg->which == IDENT) {
-      arg->as.IDENT.matched_against = node->subs[0];
-    }
-  }
-
-  return 0;
-}
-
 static error step_stop_already_morningtypepass(struct module *mod, struct node *node, void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
@@ -1619,6 +1562,7 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
   case DEFINTF:
   case DEFNAMEDLITERAL:
   case DEFCONSTRAINTLITERAL:
+  case DEFUNKNOWNIDENT:
   case DEFFUN:
   case DEFMETHOD:
     break;
@@ -1654,6 +1598,7 @@ static error step_type_inference_genargs(struct module *mod, struct node *node, 
   case DEFINTF:
   case DEFNAMEDLITERAL:
   case DEFCONSTRAINTLITERAL:
+  case DEFUNKNOWNIDENT:
   case DEFFUN:
   case DEFMETHOD:
     break;
@@ -1680,6 +1625,7 @@ static error step_type_create_update(struct module *mod, struct node *node, void
   case DEFINTF:
   case DEFNAMEDLITERAL:
   case DEFCONSTRAINTLITERAL:
+  case DEFUNKNOWNIDENT:
   case DEFFUN:
   case DEFMETHOD:
     break;
@@ -1717,6 +1663,7 @@ static error step_type_update_quickisa(struct module *mod, struct node *node, vo
   case DEFINTF:
   case DEFNAMEDLITERAL:
   case DEFCONSTRAINTLITERAL:
+  case DEFUNKNOWNIDENT:
     break;
   default:
     return 0;
@@ -2498,6 +2445,74 @@ static error unify_defnamedliterals(struct module *mod, const struct node *for_e
   return 0;
 }
 
+static error unify_two_defunknownidents(struct module *mod, const struct node *for_error,
+                                        struct typ *a, struct typ *b) {
+  const struct node *a_unk = typ_definition_const(a)->subs[2]->subs[0];
+  const struct node *b_unk = typ_definition_const(b)->subs[2]->subs[0];
+  assert(a_unk->which == IDENT && b_unk->which == IDENT);
+
+  if (node_ident(a_unk) != node_ident(b_unk)) {
+    error e = mk_except_type(mod, for_error,
+                             "unresolved idents '%s' and '%s' cannot be unified",
+                             idents_value(mod->gctx, node_ident(a_unk)),
+                             idents_value(mod->gctx, node_ident(b_unk)));
+    THROW(e);
+  }
+
+  typ_link_tentative(a, b);
+  return 0;
+}
+
+static error unify_with_defunknownident(struct module *mod, const struct node *for_error,
+                                        struct typ *a, struct typ *dui) {
+  const struct node *unk = typ_definition_const(dui)->subs[2]->subs[0];
+  const struct node *da = typ_definition_const(a);
+
+  error e;
+  if (da->which != DEFTYPE
+      || da->as.DEFTYPE.kind != DEFTYPE_ENUM) {
+    char *s = typ_pretty_name(mod, a);
+    e = mk_except_type(mod, for_error,
+                       "ident '%s' cannot be resolved in type '%s'"
+                       " (not an enum)",
+                       idents_value(mod->gctx, node_ident(unk)), s);
+    free(s);
+    THROW(e);
+  }
+
+  struct node *def = NULL;
+  e = scope_lookup_ident_immediate(&def, for_error, mod,
+                                   da->scope,
+                                   node_ident(unk), FALSE);
+  EXCEPT(e);
+
+  typ_link_tentative(a, dui);
+
+  return 0;
+}
+
+static error unify_defunknownidents(struct module *mod, const struct node *for_error,
+                                    struct typ *a, struct typ *b,
+                                    bool a_dui, bool b_dui) {
+  error e;
+  if (a_dui && b_dui) {
+    e = unify_two_defunknownidents(mod, for_error, a, b);
+    EXCEPT(e);
+
+    return 0;
+  }
+
+  if (a_dui && !b_dui) {
+    SWAP(a, b);
+    SWAP(a_dui, b_dui);
+  }
+
+  e = unify_with_defunknownident(mod, for_error, a, b);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error unify_with_equal(struct module *mod, const struct node *for_error,
                               struct typ *a, struct typ *b) {
   error e = typ_check_equal(mod, for_error, a, b);
@@ -2782,15 +2797,27 @@ static error unify(struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  bool a_is_any = typ_equal(a, TBI_ANY);
-  bool b_is_any = typ_equal(b, TBI_ANY);
+  const bool a_is_any = typ_equal(a, TBI_ANY);
+  const bool b_is_any = typ_equal(b, TBI_ANY);
   if (a_is_any || b_is_any) {
     unify_with_any(mod, for_error, a, b, a_is_any, b_is_any);
     return 0;
   }
 
-  const bool a_dnl = typ_definition(a)->which == DEFNAMEDLITERAL;
-  const bool b_dnl = typ_definition(b)->which == DEFNAMEDLITERAL;
+  const struct node *da = typ_definition_const(a);
+  const struct node *db = typ_definition_const(b);
+
+  const bool a_dui = da->which == DEFUNKNOWNIDENT;
+  const bool b_dui = db->which == DEFUNKNOWNIDENT;
+  if (a_dui || b_dui) {
+    e = unify_defunknownidents(mod, for_error, a, b, a_dui, b_dui);
+    EXCEPT(e);
+    return 0;
+  }
+
+
+  const bool a_dnl = da->which == DEFNAMEDLITERAL;
+  const bool b_dnl = db->which == DEFNAMEDLITERAL;
   if (a_dnl || b_dnl) {
     e = unify_defnamedliterals(mod, for_error, a, b, a_dnl, b_dnl);
     EXCEPT(e);
@@ -3820,51 +3847,41 @@ static error type_inference_try(struct module *mod, struct node *node) {
   return 0;
 }
 
+static void type_inference_ident_unknown(struct module *mod, struct node *node) {
+  // FIXME: Detached node, would have to be freed when releasing the
+  // mod fun_state in which it is recorded below.
+  //
+  struct node *unk = calloc(1, sizeof(struct node));
+  unk->which = DEFUNKNOWNIDENT;
+  G(unk_name, unk, IDENT,
+    unk_name->as.IDENT.name = gensym(mod));
+  G(genargs, unk, GENARGS);
+  G(unk_body, unk, BLOCK,
+    G(unk_ident, unk_body, IDENT,
+      unk_ident->as.IDENT.name = node_ident(node)));
+
+  const bool tentative = TRUE;
+  error e = catchup_instantiation(mod, mod, unk, node->scope, tentative);
+  assert(!e);
+
+  // So we can rewrite it with the final enum or sum scope in
+  // step_check_no_unknown_ident_left().
+  node->as.IDENT.non_local_scope = unk->scope;
+
+  set_typ(&node->typ, typ_create_tentative(unk->typ));
+}
+
 static error type_inference_ident(struct module *mod, struct node *node) {
   if (node_ident(node) == ID_OTHERWISE) {
     node->typ = typ_create_tentative(TBI_ANY);
     return 0;
   }
 
-  error e;
-  struct scope *alt_sc = NULL;
-  if (node->as.IDENT.matched_against != NULL) {
-    const struct typ *m;
-    const struct node *parent = node_parent_const(node);
-    if (parent->which == CALL) {
-      const size_t where = rew_find_subnode_in_parent(parent, node);
-      m = typ_function_arg_const(parent->subs[0]->typ, where - 1);
-      if (typ_is_tentative(m)) {
-        m = NULL;
-      }
-    } else {
-      m = node->as.IDENT.matched_against->typ;
-    }
-
-    if (m != NULL) {
-      const struct node *dm = typ_definition_const(m);
-      if (dm->which == DEFTYPE
-          && (dm->as.DEFTYPE.kind == DEFTYPE_ENUM
-              || dm->as.DEFTYPE.kind == DEFTYPE_SUM)) {
-        alt_sc = dm->scope;
-      }
-    }
-  }
-
   struct node *def = NULL;
-  e = scope_lookup(&def, mod, node->scope, node, TRUE);
-  if (e == EINVAL && alt_sc != NULL) {
-    e = scope_lookup(&def, mod, alt_sc, node, FALSE);
-    if (e == 0) {
-      node->as.IDENT.non_local_scope = alt_sc;
-    }
-    // 'e' is tested again below.
-  }
-
-  if (e) {
-    // Repeat bound-to-fail lookup to get the error message right.
-    e = scope_lookup(&def, mod, node->scope, node, FALSE);
-    THROW(e);
+  error e = scope_lookup(&def, mod, node->scope, node, TRUE);
+  if (e == EINVAL) {
+    type_inference_ident_unknown(mod, node);
+    return 0;
   }
 
   const enum node_which parent_which = node_parent_const(def)->which;
@@ -3941,8 +3958,9 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case DEFTYPE:
   case DEFFUN:
   case DEFMETHOD:
-  case DEFCONSTRAINTLITERAL:
   case DEFNAMEDLITERAL:
+  case DEFCONSTRAINTLITERAL:
+  case DEFUNKNOWNIDENT:
     assert(node->typ != NULL);
     // Already typed.
     return 0;
@@ -4999,6 +5017,42 @@ static error step_check_no_literals_left(struct module *mod, struct node *node,
                              " to a concrete type", s);
     free(s);
     THROW(e);
+  }
+
+  return 0;
+}
+
+static error step_check_no_unknown_ident_left(struct module *mod, struct node *node,
+                                              void *user, bool *stop) {
+  switch (node->which) {
+  case IDENT:
+    break;
+  default:
+    return 0;
+  }
+
+  if (node->typ == NULL) {
+    return 0;
+  }
+
+  const struct node *d = typ_definition_const(node->typ);
+  if (d->which == DEFUNKNOWNIDENT) {
+    error e = mk_except_type(mod, node,
+                             "bare ident '%s' was never resolved",
+                             idents_value(mod->gctx, node_ident(d->subs[2]->subs[0])));
+    THROW(e);
+  }
+
+  struct scope *non_local_scope = node->as.IDENT.non_local_scope;
+  if (non_local_scope != NULL
+      && non_local_scope->node->which == DEFUNKNOWNIDENT
+      && d->which == DEFTYPE
+      && d->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+    struct node *def = NULL;
+    error e = scope_lookup_ident_immediate(&def, node, mod, d->scope,
+                                           node_ident(node), FALSE);
+    assert(!e);
+    node->as.IDENT.non_local_scope = def->scope;
   }
 
   return 0;
@@ -6314,9 +6368,6 @@ static const struct pass _passes[] = {
       step_rewrite_wildcards,
       step_type_destruct_mark,
       step_type_mutability_mark,
-      step_match_mark_patterns,
-      step_bin_mark_terms,
-      step_call_mark_args,
       step_type_gather_retval,
       step_type_gather_excepts,
       NULL,
@@ -6345,6 +6396,7 @@ static const struct pass _passes[] = {
       step_push_fun_state,
       step_type_gather_retval,
       step_check_no_literals_left,
+      step_check_no_unknown_ident_left,
       NULL,
     },
     {

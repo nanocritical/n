@@ -17,6 +17,19 @@ typedef _Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_ _Ngen_nlang_buil
 
 
 
+struct t00_match_t;
+typedef struct t00_match_t t00_match_t;
+typedef const t00_match_t* _Ngen_nlang_builtins_ref__t00_match_t_genN_;
+typedef _Ngen_nlang_builtins_ref__t00_match_t_genN_ _Ngen_nlang_builtins_nullable_ref__t00_match_t_genN_;
+typedef t00_match_t* _Ngen_nlang_builtins_mutable_ref__t00_match_t_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_match_t_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_match_t_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_match_t_genN_;
+typedef _Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_match_t_genN_;
+
+
+
+
+
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_TYPES
@@ -28,6 +41,15 @@ typedef _Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_ _Ngen_nlang_buil
 static const t00_match_enu t00_match_enu_A = t00_match_enu_A_label__;
 #define t00_match_enu_B_label__ (((nlang_builtins_u32)0 + (nlang_builtins_u32)1))
 static const t00_match_enu t00_match_enu_B = t00_match_enu_B_label__;
+
+
+
+
+struct t00_match_t {
+t00_match_enu x;
+}
+;
+
 
 
 
@@ -45,6 +67,15 @@ nlang_builtins_void t00_match_enu_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__
 static nlang_builtins_i32 t00_match_foo(t00_match_enu n);
 
 static nlang_builtins_i32 t00_match_bar(t00_match_enu n);
+
+
+_Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ t00_match_t_new(void);
+
+void t00_match_t_mk(t00_match_t *_nrtr_r);
+
+nlang_builtins_void t00_match_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ self);
+
+static nlang_builtins_bool t00_match_bor(_Ngen_nlang_builtins_ref__t00_match_t_genN_ xt);
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
@@ -91,11 +122,43 @@ return (nlang_builtins_i32)1;
 }
 }
 
+
+_Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ t00_match_t_new(void) {
+#define THIS(x) t00_match_t##x
+return calloc(1, sizeof(THIS()));
+#undef THIS
+}
+
+void t00_match_t_mk(t00_match_t *_nrtr_r) {
+#define THIS(x) t00_match_t##x
+#define r (*_nrtr_r)
+#undef r
+#undef THIS
+}
+
+nlang_builtins_void t00_match_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ self) {
+#define THIS(x) t00_match_t##x
+#undef THIS
+}
+
+static nlang_builtins_bool t00_match_bor(_Ngen_nlang_builtins_ref__t00_match_t_genN_ xt) {
+ {
+return ((xt->x) == t00_match_enu_A);
+}
+}
+
 nlang_builtins_i32 _Nmain(void) {
  {
+t00_match_t xt= { 0 };
+xt.x = t00_match_enu_A;
+;
+;
+if ((!t00_match_bor(((&xt))))) {
+return (nlang_builtins_i32)1;
+};
 t00_match_enu n = (t00_match_enu_A);
 ;
-if ((n != t00_match_enu_A)) {
+if ((n != (xt.x))) {
 return (nlang_builtins_i32)1;
 };
 (void) (t00_match_foo(n));

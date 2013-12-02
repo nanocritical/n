@@ -14,9 +14,19 @@ fun bar n:enu = i32
   | A -> return 0
   | _ -> return 1
 
+type t =
+  x	:enu
+
+fun bor xt:@t = bool
+  return xt.x == A
+
 export fun main = i32
+  let xt = { x=A }
+  if not bor @xt
+    return 1
+
   let n = enu.A
-  if n != A
+  if n != xt.x
     return 1
   let _ = foo n
   let _ = bar A

@@ -48,6 +48,7 @@ enum node_which {
   DEFTYPE,
   DEFNAMEDLITERAL,
   DEFCONSTRAINTLITERAL,
+  DEFUNKNOWNIDENT,
   DEFMETHOD,
   DEFINTF,
   DEFNAME,
@@ -135,7 +136,6 @@ struct toplevel {
 struct node_nul {};
 struct node_ident {
   ident name;
-  const struct node *matched_against;
 
   struct scope *non_local_scope;
 };
@@ -231,6 +231,9 @@ struct node_defnamedliteral {
 struct node_defconstraintliteral {
   struct toplevel toplevel;
 };
+struct node_defunknownident {
+  struct toplevel toplevel;
+};
 struct node_defname {
   struct node *pattern;
   struct node *expr;
@@ -319,6 +322,7 @@ union node_as {
   struct node_deftype DEFTYPE;
   struct node_defnamedliteral DEFNAMEDLITERAL;
   struct node_defconstraintliteral DEFCONSTRAINTLITERAL;
+  struct node_defunknownident DEFUNKNOWNIDENT;
   struct node_defmethod DEFMETHOD;
   struct node_defintf DEFINTF;
   struct node_defname DEFNAME;
@@ -852,6 +856,9 @@ static inline const struct toplevel *node_toplevel_const(const struct node *node
     break;
   case DEFCONSTRAINTLITERAL:
     toplevel = &node->as.DEFCONSTRAINTLITERAL.toplevel;
+    break;
+  case DEFUNKNOWNIDENT:
+    toplevel = &node->as.DEFUNKNOWNIDENT.toplevel;
     break;
   case LET:
     toplevel = &node->as.LET.toplevel;

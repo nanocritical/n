@@ -900,12 +900,115 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
     BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.void
       NUMBER(1) :nlang.builtins.i32
+ DEFTYPE :t00.match.t
+  IDENT(t) :nlang.literals.__internal_not_typeable__
+  GENARGS :nlang.literals.__internal_not_typeable__
+  ISALIST :nlang.literals.__internal_not_typeable__
+   ISA :nlang.builtins.i_trivial_ctor
+    BIN(.) :nlang.builtins.i_trivial_ctor
+     BIN(.) :nlang.builtins
+      BIN(.) :nlang
+       DIRECTDEF :<root>
+       IDENT(nlang) :nlang.literals.__internal_not_typeable__
+      IDENT(builtins) :nlang.literals.__internal_not_typeable__
+     IDENT(i_trivial_ctor) :nlang.literals.__internal_not_typeable__
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.match.t
+    DIRECTDEF :t00.match.t
+    DEFNAME(this) :t00.match.t
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(final) :t00.match.t
+    DIRECTDEF :t00.match.t
+    DEFNAME(final) :t00.match.t
+  DEFFIELD :t00.match.enu
+   IDENT(x) :nlang.literals.__internal_not_typeable__
+   IDENT(enu) :t00.match.enu
+ DEFFUN :t00.match.t.new
+  BIN(.) :nlang.literals.__internal_not_typeable__
+   BIN(.) :nlang.literals.__internal_not_typeable__
+    BIN(.) :nlang.literals.__internal_not_typeable__
+     BIN(.) :nlang.literals.__internal_not_typeable__
+      DIRECTDEF :nlang.literals.__internal_not_typeable__
+      IDENT(nlang) :nlang.literals.__internal_not_typeable__
+     IDENT(builtins) :nlang.literals.__internal_not_typeable__
+    IDENT(i_trivial_ctor) :nlang.literals.__internal_not_typeable__
+   IDENT(new) :nlang.literals.__internal_not_typeable__
+  GENARGS :nlang.literals.__internal_not_typeable__
+  FUNARGS :nlang.literals.__internal_not_typeable__
+   UN(@#) :(nlang.builtins.mercurial_ref t00.match.t)
+    IDENT(final) :t00.match.t
+ DEFFUN :t00.match.t.mk
+  BIN(.) :nlang.literals.__internal_not_typeable__
+   BIN(.) :nlang.literals.__internal_not_typeable__
+    BIN(.) :nlang.literals.__internal_not_typeable__
+     BIN(.) :nlang.literals.__internal_not_typeable__
+      DIRECTDEF :nlang.literals.__internal_not_typeable__
+      IDENT(nlang) :nlang.literals.__internal_not_typeable__
+     IDENT(builtins) :nlang.literals.__internal_not_typeable__
+    IDENT(i_trivial_ctor) :nlang.literals.__internal_not_typeable__
+   IDENT(mk) :nlang.literals.__internal_not_typeable__
+  GENARGS :nlang.literals.__internal_not_typeable__
+  FUNARGS :nlang.literals.__internal_not_typeable__
+   DEFARG :t00.match.t
+    IDENT(r) :nlang.literals.__internal_not_typeable__
+    IDENT(final) :t00.match.t
+ DEFMETHOD :t00.match.t.ctor
+  BIN(.) :nlang.literals.__internal_not_typeable__
+   BIN(.) :nlang.literals.__internal_not_typeable__
+    BIN(.) :nlang.literals.__internal_not_typeable__
+     BIN(.) :nlang.literals.__internal_not_typeable__
+      DIRECTDEF :nlang.literals.__internal_not_typeable__
+      IDENT(nlang) :nlang.literals.__internal_not_typeable__
+     IDENT(builtins) :nlang.literals.__internal_not_typeable__
+    IDENT(i_trivial_ctor) :nlang.literals.__internal_not_typeable__
+   IDENT(ctor) :nlang.literals.__internal_not_typeable__
+  GENARGS :nlang.literals.__internal_not_typeable__
+  FUNARGS :nlang.literals.__internal_not_typeable__
+   DEFARG :(nlang.builtins.mercurial_ref t00.match.t)
+    IDENT(self) :nlang.literals.__internal_not_typeable__
+    UN(@#) :(nlang.builtins.mercurial_ref t00.match.t)
+     IDENT(final) :t00.match.t
+   IDENT(void) :nlang.builtins.void
+ DEFFUN :t00.match.bor
+  IDENT(bor) :nlang.literals.__internal_not_typeable__
+  GENARGS :nlang.literals.__internal_not_typeable__
+  FUNARGS :nlang.literals.__internal_not_typeable__
+   DEFARG :(nlang.builtins.ref t00.match.t)
+    IDENT(xt) :nlang.literals.__internal_not_typeable__
+    UN(@) :(nlang.builtins.ref t00.match.t)
+     IDENT(t) :t00.match.t
+   IDENT(bool) :nlang.builtins.bool
+  BLOCK :nlang.builtins.void
+   RETURN :nlang.builtins.void
+    BIN( == ) :nlang.builtins.bool
+     BIN(.) :t00.match.enu
+      IDENT(xt) :(nlang.builtins.ref t00.match.t)
+      IDENT(x) :nlang.literals.__internal_not_typeable__
+     IDENT(A) :t00.match.enu
  DEFFUN :t00.match.main
   IDENT(main) :nlang.literals.__internal_not_typeable__
   GENARGS :nlang.literals.__internal_not_typeable__
   FUNARGS :nlang.literals.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(xt) :t00.match.t
+     INIT :t00.match.t
+      IDENT(x) :nlang.literals.__internal_not_typeable__
+      IDENT(A) :t00.match.enu
+     DEFNAME(xt) :t00.match.t
+   IF :nlang.builtins.void
+    UN(not ) :nlang.builtins.bool
+     CALL :nlang.builtins.bool
+      IDENT(bor) :t00.match.bor
+      UN(@) :(nlang.builtins.ref t00.match.t)
+       IDENT(xt) :t00.match.t
+    BLOCK :nlang.builtins.void
+     RETURN :nlang.builtins.void
+      NUMBER(1) :nlang.builtins.i32
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(n) :t00.match.enu
@@ -916,7 +1019,9 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
    IF :nlang.builtins.void
     BIN( != ) :nlang.builtins.bool
      IDENT(n) :t00.match.enu
-     IDENT(A) :t00.match.enu
+     BIN(.) :t00.match.enu
+      IDENT(xt) :t00.match.t
+      IDENT(x) :nlang.literals.__internal_not_typeable__
     BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.void
       NUMBER(1) :nlang.builtins.i32

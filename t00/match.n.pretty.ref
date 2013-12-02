@@ -21,9 +21,26 @@ fun bar n:enu = i32
   | _
     return 1
 
+type t = <root>.nlang.builtins.i_trivial_ctor
+  let this = t00.match.t
+  let final = t00.match.t
+  x:enu
+
+fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+
+fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+
+t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+fun bor xt:@t = bool
+  return xt.x == A
+
 export fun main = i32
+  let xt = { x=A }
+  if not bor @xt
+    return 1
   let n = enu.A
-  if n != A
+  if n != xt.x
     return 1
   let _ = foo n
   let _ = bar A

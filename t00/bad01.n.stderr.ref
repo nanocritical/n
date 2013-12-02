@@ -1,1 +1,1 @@
-t00/bad01.n:4:7: parse: from scope t00.bad01.main.x: in scope t00.bad01: unknown identifier 'x'
+t00/bad01.n:4:7: type: ident 'x' cannot be resolved in type 'nlang.builtins.i_generalized_boolean' (not an enum)
