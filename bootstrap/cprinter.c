@@ -893,8 +893,8 @@ static void print_return(FILE *out, const struct module *mod, const struct node 
       print_expr(out, mod, node->subs[0], T__STATEMENT);
       fprintf(out, ";\nreturn");
     } else if (!node->as.RETURN.forced_return_through_ref
-               && typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
-      fprintf(out, "return ");
+               && typ_isa(expr->typ, TBI_RETURN_BY_COPY)) {
+      fprintf(out, "/*xx*/return ");
       print_expr(out, mod, node->subs[0], T__STATEMENT);
     } else {
       if (expr->which != IDENT) {
