@@ -4,8 +4,9 @@ type c =
   x:i32
 
 (fun r:i_any_ref) get m:(r c) = (r i32)
+  -- FIXME: the wildcards here are not really well specified
   return @$ m$x
 
 export fun main = i32
   let x = { x=0 }:c
-  return ((get i_ref) @x).
+  return ((get ref) @x).
