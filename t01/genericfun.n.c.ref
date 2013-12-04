@@ -31,13 +31,13 @@ static nlang_builtins_i32 _Ngen_t01_genericfun_decr__nlang_builtins_i32_genN_(nl
 #define NLANG_DEFINE_FUNCTIONS
 # include "t01/genericfun.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-static nlang_builtins_i32 _Ngen_t01_genericfun_decr__nlang_builtins_i32_genN_(nlang_builtins_i32 x){
+static nlang_builtins_i32 _Ngen_t01_genericfun_decr__nlang_builtins_i32_genN_(nlang_builtins_i32 x) {
  {
 return (x - (nlang_builtins_i32)1);
 }
 }
 
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 return _Ngen_t01_genericfun_decr__nlang_builtins_i32_genN_((nlang_builtins_i32)1);
 }

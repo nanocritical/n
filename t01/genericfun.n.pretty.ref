@@ -1,7 +1,7 @@
 from nlang import *
 fun decr x:t = _nretval:t
-  let _Ngensym0:nlang.builtins.i_numeric  such
-    return nlang.builtins.i_numeric.operator_minus @x block 
+  let _Ngensym0:nlang.builtins.i_integer  such
+    return nlang.builtins.i_arithmetic.operator_minus @x block 
   _Ngensym0 = 1
   @_Ngensym0;;
 

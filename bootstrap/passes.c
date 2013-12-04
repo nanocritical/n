@@ -2254,14 +2254,14 @@ static error unify_literal(struct module *mod, const struct node *for_error,
       EXCEPT(e);
     }
   } else if (typ_equal(b, TBI_LITERALS_INTEGER)) {
-    if (typ_isa(TBI_INTEGER, a)) {
+    if (typ_is_tentative(a) && typ_isa(TBI_INTEGER, a)) {
       SWAP(a, b);
     } else {
       e = typ_check_isa(mod, for_error, a, TBI_INTEGER);
       EXCEPT(e);
     }
   } else if (typ_equal(b, TBI_LITERALS_FLOATING)) {
-    if (typ_isa(TBI_FLOATING, a)) {
+    if (typ_is_tentative(a) && typ_isa(TBI_FLOATING, a)) {
       SWAP(a, b);
     } else {
       e = typ_check_isa(mod, for_error, a, TBI_FLOATING);
