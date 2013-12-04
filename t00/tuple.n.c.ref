@@ -35,13 +35,13 @@ static _Ngen_nlang_builtins_tuple_2__nlang_builtins_i32__nlang_builtins_i32_genN
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/tuple.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-static _Ngen_nlang_builtins_tuple_2__nlang_builtins_i32__nlang_builtins_i32_genN_ t00_tuple_foo(void){
+static _Ngen_nlang_builtins_tuple_2__nlang_builtins_i32__nlang_builtins_i32_genN_ t00_tuple_foo(void) {
  {
 return (_Ngen_nlang_builtins_tuple_2__nlang_builtins_i32__nlang_builtins_i32_genN_){(nlang_builtins_i32)1, (-(nlang_builtins_i32)1)};
 }
 }
 
-static _Ngen_nlang_builtins_tuple_2__nlang_builtins_i32__nlang_builtins_i32_genN_ t00_tuple_bar(void){
+static _Ngen_nlang_builtins_tuple_2__nlang_builtins_i32__nlang_builtins_i32_genN_ t00_tuple_bar(void) {
 __attribute__((__unused__)) nlang_builtins_i32 x = { 0 };
 __attribute__((__unused__)) nlang_builtins_i32 y = { 0 };
  {
@@ -51,7 +51,7 @@ y = (-(nlang_builtins_i32)1);
 return (_Ngen_nlang_builtins_tuple_2__nlang_builtins_i32__nlang_builtins_i32_genN_){x, y};
 }
 
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 nlang_builtins_i32 x0 = (nlang_builtins_i32)1;
 nlang_builtins_i32 y0 = (-(nlang_builtins_i32)1);

@@ -2169,12 +2169,10 @@ static error unify_same_generic_functor(struct module *mod, const struct node *f
     struct typ *arga = typ_generic_arg(a, n);
     struct typ *argb = typ_generic_arg(b, n);
 
-    if (typ_isa(arga, argb)) {
-      typ_link_tentative(arga, argb);
-    } else if (typ_isa(argb, arga)) {
-      typ_link_tentative(argb, arga);
-    } else {
-      error e = mk_except_type_unification(mod, for_error, a, b);
+    error e = unify(mod, for_error, arga, argb);
+    if (e) {
+      e = mk_except_type(mod, for_error, "unifying generic argument %zu",
+                         1 + n);
       THROW(e);
     }
   }
@@ -3241,7 +3239,7 @@ static error typ_tuple(struct typ **result, struct module *mod, struct node *nod
 }
 
 static error type_inference_tuple(struct module *mod, struct node *node) {
-  for (size_t n = 0; n < typ_generic_arity(node->typ); ++n) {
+  for (size_t n = 0; n < node->subs_count; ++n) {
     if (n > 0 && (node->flags & NODE_IS_TYPE) != (node->subs[n]->flags & NODE_IS_TYPE)) {
       error e = mk_except_type(mod, node->subs[n], "tuple combines values and types");
       THROW(e);
@@ -3865,7 +3863,7 @@ static void type_inference_ident_unknown(struct module *mod, struct node *node) 
 
 static error type_inference_ident(struct module *mod, struct node *node) {
   if (node_ident(node) == ID_OTHERWISE) {
-    node->typ = typ_create_tentative(TBI_ANY);
+    set_typ(&node->typ, typ_create_tentative(TBI_ANY));
     return 0;
   }
 
@@ -3991,8 +3989,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     break;
   case DEFNAME:
     if (node->typ == NULL && node_ident(node) == ID_OTHERWISE) {
-      set_typ(&node->typ, typ_create_tentative(TBI_ANY));
-      set_typ(&node->as.DEFNAME.pattern->typ, node->typ);
+      set_typ(&node->typ, node->as.DEFNAME.pattern->typ);
     }
     assert(node->typ == node->as.DEFNAME.pattern->typ);
 
@@ -4046,6 +4043,9 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
   case TUPLEEXTRACT:
     e = type_inference_tupleextract(mod, node);
     EXCEPT(e);
+    break;
+  case TUPLENTH:
+    node->typ = typ_create_tentative(TBI_COPYABLE);
     break;
   case CALL:
     e = type_inference_call(mod, node);
