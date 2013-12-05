@@ -720,6 +720,7 @@ struct typ *TBI_NREF; // ?@
 struct typ *TBI_NMREF; // ?@!
 struct typ *TBI_NMMREF; // ?@#
 struct typ *TBI_ARITHMETIC;
+struct typ *TBI_BITWISE;
 struct typ *TBI_INTEGER;
 struct typ *TBI_UNSIGNED_INTEGER;
 struct typ *TBI_NATIVE_INTEGER;

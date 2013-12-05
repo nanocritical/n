@@ -749,8 +749,28 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
+     IDENT(m) :nlang.builtins.i32
+     NUMBER(0xffff) :nlang.builtins.i32
+     DEFNAME(m) :nlang.builtins.i32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(y) :nlang.builtins.i32
+     BIN( + ) :nlang.builtins.i32
+      BIN( | ) :nlang.builtins.i32
+       IDENT(m) :nlang.builtins.i32
+       IDENT(m) :nlang.builtins.i32
+      BIN( << ) :nlang.builtins.i32
+       NUMBER(0) :nlang.builtins.i32
+       NUMBER(1) :nlang.builtins.u32
+     DEFNAME(y) :nlang.builtins.i32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
      IDENT(x) :nlang.builtins.i32
-     NUMBER(2) :nlang.builtins.i32
+     BIN( & ) :nlang.builtins.i32
+      NUMBER(2) :nlang.builtins.i32
+      BIN( | ) :nlang.builtins.i32
+       IDENT(m) :nlang.builtins.i32
+       IDENT(y) :nlang.builtins.i32
      DEFNAME(x) :nlang.builtins.i32
    RETURN :nlang.builtins.void
     BIN( - ) :nlang.builtins.i32

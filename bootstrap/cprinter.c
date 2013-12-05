@@ -143,7 +143,7 @@ static void print_pattern(FILE *out, const struct module *mod, const struct node
 static void print_bin_sym(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.BIN.operator;
   const struct node *right = node->subs[1];
-  if (OP_ASSIGN(op)
+  if (OP_IS_ASSIGN(op)
       && (right->which == INIT
           || (right->which == CALL
               && !typ_isa(right->typ, TBI_RETURN_BY_COPY)))) {
@@ -194,7 +194,7 @@ static void print_bin_acc(FILE *out, const struct module *mod, const struct node
 static void print_bin(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.BIN.operator;
 
-  if (!OP_ASSIGN(op)) {
+  if (!OP_IS_ASSIGN(op)) {
     fprintf(out, "(");
   }
 
@@ -202,9 +202,10 @@ static void print_bin(FILE *out, const struct module *mod, const struct node *no
   case OP_BIN:
   case OP_BIN_SYM:
   case OP_BIN_SYM_BOOL:
-  case OP_BIN_SYM_NUM:
+  case OP_BIN_SYM_ARITH:
+  case OP_BIN_SYM_BW:
   case OP_BIN_SYM_PTR:
-  case OP_BIN_NUM_RHS_UNSIGNED:
+  case OP_BIN_BW_RHS_UNSIGNED:
     print_bin_sym(out, mod, node, parent_op);
     break;
   case OP_BIN_ACC:
@@ -215,7 +216,7 @@ static void print_bin(FILE *out, const struct module *mod, const struct node *no
     break;
   }
 
-  if (!OP_ASSIGN(op)) {
+  if (!OP_IS_ASSIGN(op)) {
     fprintf(out, ")");
   }
 }
@@ -245,7 +246,8 @@ static void print_un(FILE *out, const struct module *mod, const struct node *nod
     }
     break;
   case OP_UN_BOOL:
-  case OP_UN_NUM:
+  case OP_UN_ARITH:
+  case OP_UN_BW:
     print_token(out, op);
     print_expr(out, mod, node->subs[0], op);
     break;
@@ -348,7 +350,7 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
 
 static void print_init_array(FILE *out, const struct module *mod, const struct node *node) {
   const struct node *parent = node_parent_const(node);
-  if (parent->which == BIN && OP_ASSIGN(parent->as.BIN.operator)) {
+  if (parent->which == BIN && OP_IS_ASSIGN(parent->as.BIN.operator)) {
     const struct node *target = node->as.INIT.target_expr;
     print_expr(out, mod, target, T__STATEMENT);
   }

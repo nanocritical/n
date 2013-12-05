@@ -162,6 +162,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NMREF] = "nullable_mutable_ref",
   [ID_TBI_NMMREF] = "nullable_mercurial_ref",
   [ID_TBI_ARITHMETIC] = "i_arithmetic",
+  [ID_TBI_BITWISE] = "i_bitwise",
   [ID_TBI_INTEGER] = "i_integer",
   [ID_TBI_UNSIGNED_INTEGER] = "i_unsigned_integer",
   [ID_TBI_NATIVE_INTEGER] = "i_native_integer",
@@ -1129,6 +1130,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_NMREF = gctx->builtin_typs_by_name[ID_TBI_NMREF]; // ?@!
   TBI_NMMREF = gctx->builtin_typs_by_name[ID_TBI_NMMREF]; // ?@#
   TBI_ARITHMETIC = gctx->builtin_typs_by_name[ID_TBI_ARITHMETIC];
+  TBI_BITWISE = gctx->builtin_typs_by_name[ID_TBI_BITWISE];
   TBI_INTEGER = gctx->builtin_typs_by_name[ID_TBI_INTEGER];
   TBI_UNSIGNED_INTEGER = gctx->builtin_typs_by_name[ID_TBI_UNSIGNED_INTEGER];
   TBI_NATIVE_INTEGER = gctx->builtin_typs_by_name[ID_TBI_NATIVE_INTEGER];
@@ -1926,6 +1928,20 @@ again:
   goto again;
 }
 
+static bool mixing_arith_and_bw(enum token_type a, enum token_type b) {
+  return (OP_KIND(a) == OP_BIN_SYM_ARITH
+          && (OP_KIND(b) == OP_BIN_SYM_BW
+              || OP_KIND(b) == OP_BIN_BW_RHS_UNSIGNED))
+    || (OP_KIND(b) == OP_BIN_SYM_ARITH
+          && (OP_KIND(a) == OP_BIN_SYM_BW
+              || OP_KIND(a) == OP_BIN_BW_RHS_UNSIGNED));
+}
+
+EXAMPLE(mixing_arith_and_bw) {
+  assert(mixing_arith_and_bw(TPLUS, TBWOR));
+  assert(!mixing_arith_and_bw(TPLUS, TMINUS));
+}
+
 static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
   assert(parent_op < TOKEN__NUM && IS_OP(parent_op));
 
@@ -1999,7 +2015,7 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
       break;
     default:
       back(mod, &tok);
-      if ((IS_OP(tok.t) && OP_UNARY(tok.t))
+      if ((IS_OP(tok.t) && OP_IS_UNARY(tok.t))
           || tok.t == TMINUS || tok.t == TPLUS) { // Unary versions.
         e = p_expr_unary(&first, mod);
       } else {
@@ -2015,10 +2031,23 @@ shift:
   EXCEPT(e);
   back(mod, &tok);
 
-  if (IS_OP(tok.t) && OP_BINARY(tok.t)
-      && OP_PREC(tok.t) == OP_PREC(parent_op)
-      && OP_ASSOC(tok.t) == ASSOC_NON) {
-    EXCEPT_SYNTAX(mod, &tok, "Operator '%.*s' is non-associative", (int)tok.len, tok.value);
+  if (parent_op != 0) {
+    if (IS_OP(tok.t) && OP_IS_BINARY(tok.t)
+        && OP_PREC(tok.t) == OP_PREC(parent_op)) {
+      if (OP_ASSOC(tok.t) == ASSOC_LEFT_SAME && tok.t != parent_op) {
+        EXCEPT_SYNTAX(mod, &tok,
+                      "Operator '%.*s' must be parenthesized when combined"
+                      " with operators of the same precedence",
+                      (int)tok.len, tok.value);
+      } else if (OP_ASSOC(tok.t) == ASSOC_NON) {
+        EXCEPT_SYNTAX(mod, &tok,
+                      "Operator '%.*s' is non-associative, use parentheses",
+                      (int)tok.len, tok.value);
+      }
+    } else if (mixing_arith_and_bw(tok.t, parent_op)) {
+      EXCEPT_SYNTAX(mod, &tok, "Combining arithmetic and bitwise"
+                    " operators requires parentheses");
+    }
   }
 
   if (first_iteration) {
@@ -2031,7 +2060,7 @@ shift:
 
   if (expr_terminators[tok.t]) {
     goto done;
-  } else if (tok.t != TBARROW && IS_OP(tok.t) && OP_BINARY(tok.t)) {
+  } else if (tok.t != TBARROW && IS_OP(tok.t) && OP_IS_BINARY(tok.t)) {
     if (tok.t == TCOMMA) {
       if (OP_PREC(tok.t) < OP_PREC(parent_op)
           || topmost) {
@@ -2057,7 +2086,7 @@ shift:
     } else {
       goto done;
     }
-  } else if (IS_OP(tok.t) && OP_UNARY(tok.t) && OP_KIND(tok.t) == OP_UN_DEREF) {
+  } else if (IS_OP(tok.t) && OP_IS_UNARY(tok.t) && OP_KIND(tok.t) == OP_UN_DEREF) {
     e = p_expr_post_unary(&second, &first, mod);
     EXCEPT(e);
 

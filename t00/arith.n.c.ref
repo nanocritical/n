@@ -29,7 +29,11 @@
 #undef NLANG_DEFINE_FUNCTIONS
 nlang_builtins_i32 _Nmain(void) {
  {
-nlang_builtins_i32 x = (nlang_builtins_i32)2;
+nlang_builtins_i32 m = (nlang_builtins_i32)0xffff;
+;
+nlang_builtins_i32 y = ((m | m) + ((nlang_builtins_i32)0 << (nlang_builtins_u32)1));
+;
+nlang_builtins_i32 x = ((nlang_builtins_i32)2 & (m | y));
 ;
 return (x - (nlang_builtins_i32)2);
 }

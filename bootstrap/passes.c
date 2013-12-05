@@ -2962,8 +2962,13 @@ static error type_inference_un(struct module *mod, struct node *node) {
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
-  case OP_UN_NUM:
+  case OP_UN_ARITH:
     set_typ(&node->typ, typ_create_tentative(TBI_ARITHMETIC));
+    e = unify(mod, node, node->typ, term->typ);
+    EXCEPT(e);
+    break;
+  case OP_UN_BW:
+    set_typ(&node->typ, typ_create_tentative(TBI_BITWISE));
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
@@ -3030,21 +3035,16 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
   case OP_BIN_SYM_BOOL:
     set_typ(&node->typ, left->typ);
     break;
-  case OP_BIN_SYM_NUM:
+  case OP_BIN_SYM_ARITH:
+    e = check_assign_not_types(mod, left, right);
+    EXCEPT(e);
+
     switch (operator) {
     case TPLUS_ASSIGN:
     case TMINUS_ASSIGN:
     case TTIMES_ASSIGN:
     case TDIVIDE_ASSIGN:
     case TMODULO_ASSIGN:
-    case TBWAND_ASSIGN:
-    case TBWOR_ASSIGN:
-    case TBWXOR_ASSIGN:
-    case TRSHIFT_ASSIGN:
-    case TLSHIFT_ASSIGN:
-      e = check_assign_not_types(mod, left, right);
-      EXCEPT(e);
-
       e = typ_check_isa(mod, node, left->typ, TBI_ARITHMETIC);
       EXCEPT(e);
 
@@ -3053,6 +3053,29 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
       break;
     default:
       set_typ(&node->typ, typ_create_tentative(TBI_ARITHMETIC));
+      e = unify(mod, node, node->typ, left->typ);
+      EXCEPT(e);
+      break;
+    }
+    break;
+  case OP_BIN_SYM_BW:
+    e = check_assign_not_types(mod, left, right);
+    EXCEPT(e);
+
+    switch (operator) {
+    case TBWAND_ASSIGN:
+    case TBWOR_ASSIGN:
+    case TBWXOR_ASSIGN:
+    case TRSHIFT_ASSIGN:
+    case TLSHIFT_ASSIGN:
+      e = typ_check_isa(mod, node, left->typ, TBI_BITWISE);
+      EXCEPT(e);
+
+      set_typ(&node->typ, TBI_VOID);
+      left->flags |= right->flags & NODE__TRANSITIVE;
+      break;
+    default:
+      set_typ(&node->typ, typ_create_tentative(TBI_BITWISE));
       e = unify(mod, node, node->typ, left->typ);
       EXCEPT(e);
       break;
@@ -3196,7 +3219,7 @@ static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   e = unify(mod, node->subs[1], node->subs[1]->typ, TBI_U32);
   EXCEPT(e);
 
-  set_typ(&node->typ, typ_create_tentative(TBI_ARITHMETIC));
+  set_typ(&node->typ, typ_create_tentative(TBI_BITWISE));
   e = unify(mod, node, node->subs[0]->typ, node->typ);
   EXCEPT(e);
 
@@ -3223,10 +3246,11 @@ static error type_inference_bin(struct module *mod, struct node *node) {
   switch (OP_KIND(node->as.BIN.operator)) {
   case OP_BIN_SYM:
   case OP_BIN_SYM_BOOL:
-  case OP_BIN_SYM_NUM:
+  case OP_BIN_SYM_ARITH:
+  case OP_BIN_SYM_BW:
   case OP_BIN_SYM_PTR:
     return type_inference_bin_sym(mod, node);
-  case OP_BIN_NUM_RHS_UNSIGNED:
+  case OP_BIN_BW_RHS_UNSIGNED:
     return type_inference_bin_rhs_unsigned(mod, node);
   case OP_BIN_ACC:
     return type_inference_bin_accessor(mod, node);
@@ -5238,12 +5262,14 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   case OP_BIN_SYM_PTR:
     return 0;
   case OP_UN_BOOL:
-  case OP_UN_NUM:
+  case OP_UN_ARITH:
+  case OP_UN_BW:
   case OP_BIN:
   case OP_BIN_SYM:
   case OP_BIN_SYM_BOOL:
-  case OP_BIN_SYM_NUM:
-  case OP_BIN_NUM_RHS_UNSIGNED:
+  case OP_BIN_SYM_ARITH:
+  case OP_BIN_SYM_BW:
+  case OP_BIN_BW_RHS_UNSIGNED:
     break;
   default:
     return 0;
@@ -5683,7 +5709,7 @@ static void block_like_insert_value_assign(struct module *mod, struct node *node
 }
 
 static error step_move_assign_in_block_like(struct module *mod, struct node *node, void *user, bool *stop) {
-  if (node->which != BIN || !OP_ASSIGN(node->as.BIN.operator)) {
+  if (node->which != BIN || !OP_IS_ASSIGN(node->as.BIN.operator)) {
     return 0;
   }
 
@@ -5838,7 +5864,7 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
     }
     return 0;
   case BIN:
-    if (!OP_ASSIGN(node->as.BIN.operator)) {
+    if (!OP_IS_ASSIGN(node->as.BIN.operator)) {
       return 0;
     }
     struct node *left = node->subs[0];
@@ -5883,7 +5909,7 @@ static bool block_like_needs_temporary(struct module *mod,
   } else if (significant_parent->which == DEFPATTERN) {
     return FALSE;
   } else if (significant_parent->which == BIN
-             && OP_ASSIGN(significant_parent->as.BIN.operator)) {
+             && OP_IS_ASSIGN(significant_parent->as.BIN.operator)) {
     return FALSE;
   } else {
     return TRUE;
@@ -5934,7 +5960,7 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
       break;
     }
     if (significant_parent->which == BIN
-        && OP_ASSIGN(significant_parent->as.BIN.operator)) {
+        && OP_IS_ASSIGN(significant_parent->as.BIN.operator)) {
       break;
     }
     if (significant_parent->which == UN
@@ -5954,7 +5980,7 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
       break;
     }
     if (significant_parent->which == BIN
-        && OP_ASSIGN(significant_parent->as.BIN.operator)) {
+        && OP_IS_ASSIGN(significant_parent->as.BIN.operator)) {
       break;
     }
     if (significant_parent->which == UN

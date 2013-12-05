@@ -1,4 +1,6 @@
 from nlang import *
 export fun main = i32
-  let x = 2
+  let m = 0xffff
+  let y = (m | m) + (0 << 1)
+  let x = 2 & m | y
   return x - 2
