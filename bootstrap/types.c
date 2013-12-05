@@ -76,6 +76,17 @@ static void remove_backlink(struct typ *t, struct typ **loc) {
                    if (back == loc) { backlinks->links[n] = NULL; });
 }
 
+size_t typ_debug_backlinks_count(const struct typ *t) {
+  const struct backlinks *backlinks = &t->backlinks;
+  size_t c = 0;
+  while (backlinks->more != NULL) {
+    backlinks = backlinks->more;
+    c += 7;
+  }
+
+  return c + backlinks->count;
+}
+
 void set_typ(struct typ **loc, struct typ *t) {
   if (*loc != NULL) {
     if (*loc == t) {
@@ -240,7 +251,8 @@ static void create_flags(struct typ *t, struct typ *tbi) {
   }
 
   if (tbi == TBI_BOOL
-      || tbi == TBI_STATIC_STRING) {
+      || tbi == TBI_STATIC_STRING
+      || tbi == TBI_STATIC_ARRAY) {
     t->flags |= TYPF_WEAKLY_CONCRETE;
   }
 }
@@ -260,8 +272,10 @@ void typ_create_update_genargs(struct typ *t) {
     return;
   }
 
-  if (typ_is_tentative(typ_generic_functor_const(t))) {
+  struct typ *t0 = typ_generic_functor(t);
+  if (typ_is_tentative(t0)) {
     t->flags |= TYPF_TENTATIVE;
+    add_user(t0, t);
   }
   for (size_t n = 0, count = typ_generic_arity(t); n < count; ++n) {
     struct typ *arg = typ_generic_arg(t, n);
@@ -370,6 +384,9 @@ static void link_to_final(struct typ *dst, struct typ *src) {
   FOREACH_BACKLINK(back, src, set_typ(back, dst));
 
   FOREACH_USER(user, src, link_generic_arg_update(user));
+
+  // Noone should be referring to 'src' anymore; let's make sure.
+  memset(src, 0, sizeof(*src));
 }
 
 static void link_to_tentative(struct typ *dst, struct typ *src) {
@@ -381,7 +398,7 @@ static void link_to_tentative(struct typ *dst, struct typ *src) {
   clear_users(src);
 
   // Noone should be referring to 'src' anymore; let's make sure.
-//  memset(src, 0, sizeof(*src));
+  memset(src, 0, sizeof(*src));
 }
 
 void typ_link_tentative(struct typ *dst, struct typ *src) {
@@ -406,6 +423,16 @@ void typ_link_to_existing_final(struct typ *dst, struct typ *src) {
   }
 
   link_to_final(dst, src);
+}
+
+void typ_debug_check_in_backlinks(struct typ **u) {
+  struct typ *t = *u;
+  if (t == NULL || !typ_is_tentative(t)) {
+    return;
+  }
+  bool r = FALSE;
+  FOREACH_BACKLINK(b, t, if (b != NULL) { r |= b == u; });
+  if (!r) __break();
 }
 
 struct node *typ_definition(struct typ *t) {

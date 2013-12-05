@@ -51,7 +51,7 @@ static void t02_vector_foo(_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN_ 
 # include "t02/vector.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
 
-static void t02_vector_foo(_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN_ *_nrtr__nretval){
+static void t02_vector_foo(_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN_ *_nrtr__nretval) {
 #define _nretval (*_nrtr__nretval)
  {
 _Ngen_nlang_builtins_static_array__nlang_builtins_i32_genN_ _Ngensym1 = { 0 };
@@ -65,7 +65,7 @@ return;
 #undef _nretval
 }
 
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 _Ngen_nlang_vectors_vector__nlang_builtins_i32_genN_ v = { 0 };
 _Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__mk(&(v));
@@ -81,7 +81,7 @@ nlang_containers_index_range_iter(({ _Ngensym3 = _Ngen_nlang_vectors_vector__nla
 while (nlang_containers_index_iterator_is_valid(((&_Ngensym0)))) {
 nlang_builtins_size i = nlang_containers_index_iterator_get(((&_Ngensym0)));
 nlang_builtins_u32 _Ngensym2 = { 0 };
-nlang_builtins_assert((((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_i_ref_genN_(((&v)), i))) == nlang_builtins_u32_reinterpret_signed(({ _Ngensym2 = nlang_builtins_size_trim_u32(((&i)));
+nlang_builtins_assert((((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_ref_genN_(((&v)), i))) == nlang_builtins_u32_reinterpret_signed(({ _Ngensym2 = nlang_builtins_size_trim_u32(((&i)));
 ((&_Ngensym2));
 ; }))));
 ;
@@ -94,10 +94,10 @@ nlang_containers_index_iterator_next(((&_Ngensym0)));
 _Ngen_nlang_vectors_vector__nlang_builtins_i32_genN_ w = { 0 };
 t02_vector_foo(&(w));
 ;
-nlang_builtins_assert((((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_i_ref_genN_(((&w)), (nlang_builtins_size)0))) == (nlang_builtins_i32)1));
-nlang_builtins_assert((((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_i_ref_genN_(((&w)), (nlang_builtins_size)1))) == (nlang_builtins_i32)0));
-nlang_builtins_assert((((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_i_ref_genN_(((&w)), (nlang_builtins_size)2))) == (nlang_builtins_i32)2));
-return (((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_i_ref_genN_(((&v)), (nlang_builtins_size)1))) - (nlang_builtins_i32)1);
+nlang_builtins_assert((((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_ref_genN_(((&w)), (nlang_builtins_size)0))) == (nlang_builtins_i32)1));
+nlang_builtins_assert((((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_ref_genN_(((&w)), (nlang_builtins_size)1))) == (nlang_builtins_i32)0));
+nlang_builtins_assert((((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_ref_genN_(((&w)), (nlang_builtins_size)2))) == (nlang_builtins_i32)2));
+return (((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_ref_genN_(((&v)), (nlang_builtins_size)1))) - (nlang_builtins_i32)1);
 }
 }
 void t02_vector_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

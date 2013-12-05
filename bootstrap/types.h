@@ -5,6 +5,9 @@
 
 struct typ;
 
+size_t typ_debug_backlinks_count(const struct typ *t);
+void typ_debug_check_in_backlinks(struct typ **u);
+
 struct typ *typ_create(struct typ *tbi, struct node *definition);
 void typ_create_update_hash(struct typ *t);
 void typ_create_update_genargs(struct typ *t);

@@ -162,9 +162,11 @@ static error catchup(struct module *mod,
     assert(FALSE && "Unreached");
   }
 
+  const struct node *parent = parent_scope->node;
   const bool need_new_state =
-    how == CATCHUP_NEW_INSTANCE
-    || how == CATCHUP_TENTATIVE_NEW_INSTANCE;
+    parent->which == MODULE_BODY
+    || parent->which == DEFTYPE
+    || parent->which == DEFINTF;
 
   PUSH_STATE(mod->stage->state);
   if (need_new_state) {
@@ -238,8 +240,6 @@ static error catchup_instantiation(struct module *instantiating_mod,
 
   error e = catchup(gendef_mod, NULL, instance, parent_scope, how);
   EXCEPT(e);
-
-  assert(typ_definition(instance->typ));
 
   if (instance->which == DEFTYPE) {
     for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
@@ -1960,7 +1960,7 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
   return 0;
 }
 
-static error do_instantiate(struct typ **result,
+static error do_instantiate(struct node **result,
                             struct module *mod, struct typ *t,
                             struct typ **explicit_args, size_t arity,
                             bool tentative) {
@@ -1998,7 +1998,10 @@ static error do_instantiate(struct typ **result,
                                   tentative);
   EXCEPT(e);
 
-  *result = instance->typ;
+  if (result != NULL) {
+    *result = instance;
+  }
+
   return 0;
 }
 
@@ -2066,7 +2069,7 @@ static bool is_tentative(const struct module *mod,
   }
 }
 
-static error instance(struct typ **result,
+static error instance(struct node **result,
                       struct module *mod,
                       struct node *for_error, size_t for_error_offset,
                       struct typ *t, struct typ **explicit_args, size_t arity) {
@@ -2074,33 +2077,34 @@ static error instance(struct typ **result,
   assert(arity == typ_generic_arity(t) - first);
 
   const bool tentative = is_tentative(mod, t, explicit_args, arity);
-  struct typ *r = NULL;
   if (tentative) {
     struct typ **args = calloc(arity, sizeof(struct typ *));
     for (size_t n = 0; n < arity; ++n) {
       args[n] = typ_create_tentative(typ_generic_arg(t, n));
     }
 
-    error e = do_instantiate(&r, mod, t, args, arity, TRUE);
+    error e = do_instantiate(result, mod, t, args, arity, TRUE);
     EXCEPT(e);
 
     for (size_t n = 0; n < arity; ++n) {
       e = unify(mod, for_error->subs[for_error_offset + n],
-                typ_generic_arg(r, first + n),
+                typ_generic_arg((*result)->typ, first + n),
                 explicit_args[n]);
       EXCEPT(e);
     }
 
     free(args);
   } else {
-    r = find_existing_instance(mod, t, explicit_args, arity);
-    if (r == NULL) {
-      error e = do_instantiate(&r, mod, t, explicit_args, arity, FALSE);
-      EXCEPT(e);
+    struct typ *r = find_existing_instance(mod, t, explicit_args, arity);
+    if (r != NULL) {
+      if (result != NULL) {
+        *result = typ_definition(r);
+      }
+      return 0;
     }
+    error e = do_instantiate(result, mod, t, explicit_args, arity, FALSE);
+    EXCEPT(e);
   }
-
-  *result = r;
 
   return 0;
 }
@@ -2176,6 +2180,65 @@ static error unify_same_generic_functor(struct module *mod, const struct node *f
       THROW(e);
     }
   }
+
+  return 0;
+}
+
+struct instance_of {
+  struct typ *functor;
+  struct typ *result;
+};
+
+static error find_instance_of(struct module *mod, struct typ *t,
+                              struct typ *intf, bool *stop, void *user) {
+  struct instance_of *r = user;
+
+  struct typ *intf0 = typ_generic_functor(intf);
+  if (intf0 != NULL && typ_equal(intf0, r->functor)) {
+    r->result = intf;
+    *stop = TRUE;
+  }
+
+  return 0;
+}
+
+static error unify_generics(struct module *mod, const struct node *for_error,
+                            struct typ *a, struct typ *b) {
+  struct typ *a0 = typ_generic_functor(a);
+  struct typ *b0 = typ_generic_functor(b);
+
+  error e;
+  if (typ_isa(a0, b0)) {
+    // noop
+  } else if (typ_isa(b0, a0)) {
+    SWAP(a, b);
+    SWAP(a0, b0);
+  } else if (typ_definition(a)->which == DEFINTF
+             && typ_definition(b)->which == DEFINTF) {
+    assert(FALSE && "FIXME Unsupported (e.g. combining constraints i_arithmethic and i_bitwise)");
+  } else {
+    e = mk_except_type_unification(mod, for_error, a, b);
+    THROW(e);
+  }
+
+  if (!typ_equal(b, TBI_ANY)) {
+    struct typ *b_in_a = NULL;
+
+    if (typ_equal(a0, b0)) {
+      b_in_a = a;
+    } else {
+      struct instance_of user = { .functor = b0, .result = NULL };
+      typ_isalist_foreach(mod, a, 0, find_instance_of, &user);
+      assert(user.result != NULL);
+      b_in_a = user.result;
+    }
+    assert(b_in_a != b && "FIXME What does that mean?");
+
+    e = unify_same_generic_functor(mod, for_error, b_in_a, b);
+    EXCEPT(e);
+  }
+
+  typ_link_tentative(a, b);
 
   return 0;
 }
@@ -2276,18 +2339,6 @@ static error unify_literal(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-static bool typ_check_compat_weakly_concrete(struct module *mod,
-                                             const struct typ *a,
-                                             const struct typ *weak) {
-  if (typ_equal(weak, TBI_BOOL)) {
-    return typ_isa(a, TBI_BOOL_COMPATIBLE);
-  } else if (typ_equal(weak, TBI_STATIC_STRING)) {
-    return typ_isa(a, TBI_STATIC_STRING_COMPATIBLE);
-  } else {
-    assert(FALSE && "Unreached.");
-  }
-}
-
 static error unify_with_weakly_concrete(bool *success,
                                         struct module *mod,
                                         const struct node *for_error,
@@ -2298,9 +2349,22 @@ static error unify_with_weakly_concrete(bool *success,
     SWAP(a, b);
   }
 
-  *success = typ_check_compat_weakly_concrete(mod, a, b);
-  if (*success) {
-    typ_link_tentative(a, b);
+  if (typ_equal(b, TBI_BOOL)) {
+    if (typ_isa(a, TBI_BOOL_COMPATIBLE)) {
+      typ_link_tentative(a, b);
+      *success = TRUE;
+    }
+  } else if (typ_equal(b, TBI_STATIC_STRING)) {
+    if (typ_isa(a, TBI_STATIC_STRING_COMPATIBLE)) {
+      typ_link_tentative(a, b);
+      *success = TRUE;
+    }
+  } else if (same_generic_functor(mod, b, TBI_STATIC_ARRAY)) {
+    if (typ_isa(a, TBI_ARRAY_CTOR)) {
+      typ_link_tentative(typ_generic_arg(a, 0), typ_generic_arg(b, 0));
+      typ_link_tentative(a, b);
+      *success = TRUE;
+    }
   }
 
   return 0;
@@ -2745,24 +2809,6 @@ static error unify_with_any(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-struct instance_of {
-  struct typ *functor;
-  struct typ *result;
-};
-
-static error find_instance_of(struct module *mod, struct typ *t,
-                              struct typ *intf, bool *stop, void *user) {
-  struct instance_of *r = user;
-
-  struct typ *intf0 = typ_generic_functor(intf);
-  if (intf0 != NULL && typ_equal(intf0, r->functor)) {
-    r->result = intf;
-    *stop = TRUE;
-  }
-
-  return 0;
-}
-
 static error unify(struct module *mod, const struct node *for_error,
                    struct typ *a, struct typ *b) {
   error e;
@@ -2852,40 +2898,8 @@ static error unify(struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  struct typ *a0 = typ_generic_functor(a);
-  struct typ *b0 = typ_generic_functor(b);
-
-  if (typ_isa(a0, b0)) {
-    // noop
-  } else if (typ_isa(b0, a0)) {
-    SWAP(a, b);
-    SWAP(a0, b0);
-  } else if (typ_definition(a)->which == DEFINTF
-             && typ_definition(b)->which == DEFINTF) {
-    assert(FALSE && "FIXME Unsupported (e.g. combining constraints i_arithmethic and i_bitwise)");
-  } else {
-    e = mk_except_type_unification(mod, for_error, a, b);
-    THROW(e);
-  }
-
-  if (!typ_equal(b, TBI_ANY)) {
-    struct typ *b_in_a = NULL;
-
-    if (typ_equal(a0, b0)) {
-      b_in_a = a;
-    } else {
-      struct instance_of user = { .functor = b0, .result = NULL };
-      typ_isalist_foreach(mod, a, 0, find_instance_of, &user);
-      assert(user.result != NULL);
-      b_in_a = user.result;
-    }
-    assert(b_in_a != b && "FIXME What does that mean?");
-
-    e = unify_same_generic_functor(mod, for_error, b_in_a, b);
-    EXCEPT(e);
-  }
-
-  typ_link_tentative(a, b);
+  e = unify_generics(mod, for_error, a, b);
+  EXCEPT(e);
 
   return 0;
 }
@@ -2908,7 +2922,7 @@ EXAMPLE_NCC(unify) {
 //  }
 }
 
-static error typ_ref(struct typ **result,
+static error typ_ref(struct node **result,
                      struct module *mod, struct node *for_error,
                      enum token_type op, struct typ *typ) {
   error e = instance(result, mod, for_error, 0,
@@ -2924,13 +2938,15 @@ static error type_inference_un(struct module *mod, struct node *node) {
   const enum token_type operator = node->as.UN.operator;
   struct node *term = node->subs[0];
 
+  struct node *i = NULL;
   switch (OP_KIND(operator)) {
   case OP_UN_REFOF:
     // FIXME: it's not OK to take a mutable reference of:
     //   fun foo p:@t = void
     //     let mut = @!(p.)
-    e = typ_ref(&node->typ, mod, node, operator, term->typ);
+    e = typ_ref(&i, mod, node, operator, term->typ);
     EXCEPT(e);
+    set_typ(&node->typ, i->typ);
     node->flags |= term->flags & NODE__TRANSITIVE;
     break;
   case OP_UN_DEREF:
@@ -2968,12 +2984,12 @@ static struct typ *try_wrap_ref_compatible(struct module *mod,
     return t;
   }
 
-  struct typ *r = NULL;
-  error e = instance(&r, mod, for_error, for_error_offset,
+  struct node *i = NULL;
+  error e = instance(&i, mod, for_error, for_error_offset,
                      TBI__REF_COMPATIBLE, &t, 1);
   assert(!e);
 
-  return typ_create_tentative(r);
+  return typ_create_tentative(i->typ);
 }
 
 static error check_assign_not_types(struct module *mod, struct node *left,
@@ -3151,17 +3167,17 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
     e = rewrite_unary_call(mod, node, field->typ);
     EXCEPT(e);
   } else {
-    struct typ *t = field->typ;
-
     if (operator == TWILDCARD
         && typ_is_reference(field->typ)) {
       assert(typ_is_reference(field->typ));
-      e = typ_ref(&t, mod, node, TREFWILDCARD,
+      struct node *i = NULL;
+      e = typ_ref(&i, mod, node, TREFWILDCARD,
                   typ_generic_arg(field->typ, 0));
       assert(!e);
+      set_typ(&node->typ, i->typ);
+    } else {
+      set_typ(&node->typ, field->typ);
     }
-
-    set_typ(&node->typ, t);
     assert(field->which != BIN || field->flags != 0);
     node->flags = field->flags;
   }
@@ -3222,7 +3238,7 @@ static error type_inference_bin(struct module *mod, struct node *node) {
   }
 }
 
-static error typ_tuple(struct typ **result, struct module *mod, struct node *node) {
+static error typ_tuple(struct node **result, struct module *mod, struct node *node) {
   const size_t arity = node->subs_count;
   struct typ **args = calloc(arity, sizeof(struct typ *));
   for (size_t n = 0; n < arity; ++n) {
@@ -3247,8 +3263,11 @@ static error type_inference_tuple(struct module *mod, struct node *node) {
     node->flags |= (node->subs[n]->flags & NODE__TRANSITIVE);
   }
 
-  error e = typ_tuple(&node->typ, mod, node);
+  struct node *i = NULL;
+  error e = typ_tuple(&i, mod, node);
   EXCEPT(e);
+
+  set_typ(&node->typ, i->typ);
 
   return 0;
 }
@@ -3307,15 +3326,18 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
 
 static error type_inference_init_array(struct module *mod, struct node *node) {
   struct typ *el = typ_create_tentative(typ_generic_arg(TBI_STATIC_ARRAY, 0));
-
-  for (size_t n = 0; n < node->subs_count; n += 1) {
-    error e = unify(mod, node->subs[n], node->subs[n]->typ, el);
-    EXCEPT(e);
-  }
-
-  error e = instance(&node->typ, mod, node, 0,
+  struct node *i = NULL;
+  error e = instance(&i, mod, node, 0,
                      TBI_STATIC_ARRAY, &el, 1);
   EXCEPT(e);
+
+  set_typ(&node->typ, typ_create_tentative(i->typ));
+
+  for (size_t n = 0; n < node->subs_count; n += 1) {
+    error e = unify(mod, node->subs[n], node->subs[n]->typ,
+                    typ_generic_arg(node->typ, 0));
+    EXCEPT(e);
+  }
 
   return 0;
 }
@@ -3489,11 +3511,13 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
     args[n] = node->subs[1 + n]->typ;
   }
 
-  e = instance(&node->typ, mod, node, 1,
+  struct node *i = NULL;
+  e = instance(&i, mod, node, 1,
                t, args, arity);
   EXCEPT(e);
   free(args);
 
+  set_typ(&node->typ, i->typ);
   node->flags |= NODE_IS_TYPE;
 
   return 0;
@@ -3513,22 +3537,22 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
     args[n] = typ_create_tentative(typ_generic_arg(tfun, n));
   }
 
-  struct typ *i = NULL;
+  struct node *i = NULL;
   e = instance(&i, mod, node, 0, tfun, args, gen_arity);
   assert(!e);
 
-  for (size_t n = 0; n < typ_function_arity(i); ++n) {
+  for (size_t n = 0; n < typ_function_arity(i->typ); ++n) {
     e = unify(mod, node->subs[1 + n],
               try_wrap_ref_compatible(mod, node, 1,
-                                      typ_function_arg(i, n)),
+                                      typ_function_arg(i->typ, n)),
               node->subs[1 + n]->typ);
     EXCEPT(e);
   }
 
   free(args);
 
-  set_typ(&node->subs[0]->typ, i);
-  set_typ(&node->typ, typ_function_return(i));
+  set_typ(&node->subs[0]->typ, i->typ);
+  set_typ(&node->typ, typ_function_return(i->typ));
 
   return 0;
 }
@@ -3991,6 +4015,7 @@ static error step_type_inference(struct module *mod, struct node *node, void *us
     if (node->typ == NULL && node_ident(node) == ID_OTHERWISE) {
       set_typ(&node->typ, node->as.DEFNAME.pattern->typ);
     }
+
     assert(node->typ == node->as.DEFNAME.pattern->typ);
 
     if (node->as.DEFNAME.expr != NULL) {
@@ -4310,6 +4335,10 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
 
   for (size_t n = 0; n < st->tentative_instantiations_count; ++n) {
     struct typ *t = st->tentative_instantiations[n]->typ;
+    if (typ_definition_const(t) == NULL) {
+      // 't' was cleared in link_to_final()
+      continue;
+    }
 
     if (typ_generic_arity(t) == 0) {
       // For instance, a DEFNAMEDLITERAL that unified to a non-generic.
@@ -4352,8 +4381,7 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
       args[m] = typ_generic_arg(t, m);
     }
 
-    struct typ *i = NULL;
-    error e = do_instantiate(&i, mod, functor, args, arity, FALSE);
+    error e = do_instantiate(NULL, mod, functor, args, arity, FALSE);
     EXCEPT(e);
 
     free(args);
