@@ -48,6 +48,7 @@ error typ_check_isa(const struct module *mod, const struct node *for_error,
 bool typ_is_reference(const struct typ *a);
 error typ_check_is_reference(const struct module *mod, const struct node *for_error,
                                       const struct typ *a);
+bool typ_is_dyn(const struct typ *a);
 error typ_check_can_deref(const struct module *mod, const struct node *for_error,
                           const struct typ *a, enum token_type operator);
 error typ_check_deref_against_mark(const struct module *mod, const struct node *for_error,

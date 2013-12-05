@@ -62,7 +62,7 @@ t00_match_enu x;
 # include "t00/match.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
 
-nlang_builtins_void t00_match_enu_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_ self, _Ngen_nlang_builtins_ref__t00_match_enu_genN_ other);
+nlang_builtins_void t00_match_enu_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_ self, _Ngen_nlang_builtins_ref__t00_match_enu_genN_ other) __attribute__((__nonnull__(1, 2)));
 
 static nlang_builtins_i32 t00_match_foo(t00_match_enu n);
 
@@ -73,9 +73,9 @@ _Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ t00_match_t_new(void);
 
 void t00_match_t_mk(t00_match_t *_nrtr_r);
 
-nlang_builtins_void t00_match_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ self);
+nlang_builtins_void t00_match_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ self) __attribute__((__nonnull__(1)));
 
-static nlang_builtins_bool t00_match_bor(_Ngen_nlang_builtins_ref__t00_match_t_genN_ xt);
+static nlang_builtins_bool t00_match_bor(_Ngen_nlang_builtins_ref__t00_match_t_genN_ xt) __attribute__((__nonnull__(1)));
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"

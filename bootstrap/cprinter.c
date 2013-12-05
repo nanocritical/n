@@ -1522,6 +1522,48 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   fprintf(out, "}\n");
 }
 
+static bool do_fun_nonnull_attribute(FILE *out, const struct typ *tfun) {
+  if (out != NULL) {
+    fprintf(out, " __attribute__((__nonnull__(");
+  }
+  size_t count = 0;
+  for (size_t n = 0, arity = typ_function_arity(tfun); n < arity; ++n) {
+    const struct typ *a = typ_function_arg_const(tfun, n);
+    if (typ_is_reference(a)
+        && !typ_isa(a, TBI_ANY_NULLABLE_REF)
+        && !typ_is_dyn(a)) {
+      if (count > 0) {
+        if (out != NULL) {
+          fprintf(out, ", ");
+        }
+      }
+      if (out != NULL) {
+        fprintf(out, "%zu", 1 + n);
+      }
+      count += 1;
+    }
+  }
+  if (out != NULL) {
+    fprintf(out, ")))");
+  }
+
+  return count > 0;
+}
+
+static void fun_nonnull_attribute(FILE *out, bool header,
+                                  const struct module *mod,
+                                  const struct node *node) {
+  const struct typ *tfun = node->typ;
+  const size_t arity = typ_function_arity(tfun);
+  if (arity == 0) {
+    return;
+  }
+
+  if (do_fun_nonnull_attribute(NULL, tfun)) {
+    (void) do_fun_nonnull_attribute(out, tfun);
+  }
+}
+
 static void print_deffun(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
   if (fwd == FWD_DECLARE_TYPES || fwd == FWD_DEFINE_TYPES) {
     return;
@@ -1545,6 +1587,7 @@ static void print_deffun(FILE *out, bool header, enum forward fwd, const struct 
 
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     print_fun_prototype(out, header, mod, node, FALSE, FALSE, FALSE, NULL);
+    fun_nonnull_attribute(out, header, mod, node);
     fprintf(out, ";\n");
   } else if (prototype_only(header, node)) {
     // noop

@@ -26,7 +26,7 @@
 #undef NLANG_DECLARE_FUNCTIONS
 static nlang_builtins_i32 t00_block_foo(void);
 
-static nlang_builtins_u32 t00_block_deref(_Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_ p);
+static nlang_builtins_u32 t00_block_deref(_Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_ p) __attribute__((__nonnull__(1)));
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"

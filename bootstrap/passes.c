@@ -5543,9 +5543,7 @@ static bool need_insert_dyn(struct module *mod,
                             const struct typ *intf,
                             const struct typ *concrete) {
   return
-    typ_is_reference(intf)
-    && typ_generic_arity(intf) > 0
-    && typ_definition_const(typ_generic_arg_const(intf, 0))->which == DEFINTF
+    typ_is_dyn(intf)
     && typ_is_reference(concrete)
     && typ_definition_const(typ_generic_arg_const(concrete, 0))->which != DEFINTF;
 }

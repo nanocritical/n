@@ -45,15 +45,15 @@ nlang_builtins_i32 x;
 # include "t00/unary.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
 
-nlang_builtins_void t00_unary_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_unary_t_genN_ self, _Ngen_nlang_builtins_ref__t00_unary_t_genN_ other);
+nlang_builtins_void t00_unary_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_unary_t_genN_ self, _Ngen_nlang_builtins_ref__t00_unary_t_genN_ other) __attribute__((__nonnull__(1, 2)));
 
 _Ngen_nlang_builtins_mercurial_ref__t00_unary_t_genN_ t00_unary_t_new(void);
 
 void t00_unary_t_mk(t00_unary_t *_nrtr_r);
 
-nlang_builtins_void t00_unary_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_unary_t_genN_ self);
+nlang_builtins_void t00_unary_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_unary_t_genN_ self) __attribute__((__nonnull__(1)));
 
-nlang_builtins_i32 t00_unary_t_get(_Ngen_nlang_builtins_ref__t00_unary_t_genN_ self);
+nlang_builtins_i32 t00_unary_t_get(_Ngen_nlang_builtins_ref__t00_unary_t_genN_ self) __attribute__((__nonnull__(1)));
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"

@@ -1001,6 +1001,13 @@ bool typ_is_reference(const struct typ *t) {
   return t->flags & TYPF_REF;
 }
 
+bool typ_is_dyn(const struct typ *t) {
+  return !typ_is_tentative(t)
+    && typ_is_reference(t)
+    && typ_generic_arity(t) > 0
+    && typ_definition_const(typ_generic_arg_const(t, 0))->which == DEFINTF;
+}
+
 error typ_check_is_reference(const struct module *mod, const struct node *for_error,
                                       const struct typ *a) {
   if (typ_is_reference(a)) {

@@ -49,7 +49,7 @@ _Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_ t00_fixme05_nocopy_
 
 void t00_fixme05_nocopy_mk(t00_fixme05_nocopy *_nrtr_r);
 
-nlang_builtins_void t00_fixme05_nocopy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_ self);
+nlang_builtins_void t00_fixme05_nocopy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_ self) __attribute__((__nonnull__(1)));
 
 static void t00_fixme05_bar(t00_fixme05_nocopy *_nrtr_r);
 

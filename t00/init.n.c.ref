@@ -69,22 +69,22 @@ t00_init_tt y;
 # include "t00/init.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
 
-nlang_builtins_void t00_init_tt_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_init_tt_genN_ self, _Ngen_nlang_builtins_ref__t00_init_tt_genN_ other);
+nlang_builtins_void t00_init_tt_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_init_tt_genN_ self, _Ngen_nlang_builtins_ref__t00_init_tt_genN_ other) __attribute__((__nonnull__(1, 2)));
 
 _Ngen_nlang_builtins_mercurial_ref__t00_init_tt_genN_ t00_init_tt_new(void);
 
 void t00_init_tt_mk(t00_init_tt *_nrtr_r);
 
-nlang_builtins_void t00_init_tt_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_init_tt_genN_ self);
+nlang_builtins_void t00_init_tt_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_init_tt_genN_ self) __attribute__((__nonnull__(1)));
 
 
-nlang_builtins_void t00_init_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_init_t_genN_ self, _Ngen_nlang_builtins_ref__t00_init_t_genN_ other);
+nlang_builtins_void t00_init_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_init_t_genN_ self, _Ngen_nlang_builtins_ref__t00_init_t_genN_ other) __attribute__((__nonnull__(1, 2)));
 
 _Ngen_nlang_builtins_mercurial_ref__t00_init_t_genN_ t00_init_t_new(void);
 
 void t00_init_t_mk(t00_init_t *_nrtr_r);
 
-nlang_builtins_void t00_init_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_init_t_genN_ self);
+nlang_builtins_void t00_init_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_init_t_genN_ self) __attribute__((__nonnull__(1)));
 
 static nlang_builtins_i32 t00_init_foo(nlang_builtins_i32 x, nlang_builtins_i32 y);
 

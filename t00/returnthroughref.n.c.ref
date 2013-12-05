@@ -52,7 +52,7 @@ _Ngen_nlang_builtins_mercurial_ref__t00_returnthroughref_t_genN_ t00_returnthrou
 
 void t00_returnthroughref_t_mk(t00_returnthroughref_t *_nrtr_r);
 
-nlang_builtins_void t00_returnthroughref_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_returnthroughref_t_genN_ self);
+nlang_builtins_void t00_returnthroughref_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_returnthroughref_t_genN_ self) __attribute__((__nonnull__(1)));
 
 static void t00_returnthroughref_foo(t00_returnthroughref_t *_nrtr__nretval);
 

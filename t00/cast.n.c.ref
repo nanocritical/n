@@ -34,7 +34,7 @@
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/cast.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
-static _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ t00_cast_foo(_Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_ x);
+static _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ t00_cast_foo(_Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_ x) __attribute__((__nonnull__(1)));
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
