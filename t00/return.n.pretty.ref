@@ -1,7 +1,7 @@
 from nlang import *
 type copy = i_return_by_copy <root>.nlang.builtins.i_trivial_ctor
-  let this = copy
-  let final = copy
+  let this = t00.return.copy
+  let final = t00.return.copy
   x:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final

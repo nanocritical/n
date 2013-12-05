@@ -43,13 +43,13 @@
 #define NLANG_DEFINE_FUNCTIONS
 # include "t02/slice.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_ s = { 0 };
 _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__mk(&(s));
-_Ngen_nlang_sysheap_heap_slice_realloc__nlang_builtins_i32_genN_(((&sysheap)), ((&s)), (nlang_builtins_size)1);
+_Ngen_nlang_sysheap_heap_slice_realloc__nlang_builtins_i32_genN_(((&nlang_sysheap_sysheap)), ((&s)), (nlang_builtins_size)1);
 ;
-_Ngen_nlang_builtins_i_mutable_ref__nlang_builtins_i32_genN_ p = _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__at__nlang_builtins_i_mutable_ref_genN_(((&s)), (nlang_builtins_size)0);
+_Ngen_nlang_builtins_mutable_ref__nlang_builtins_i32_genN_ p = _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__at__nlang_builtins_mutable_ref_genN_(((&s)), (nlang_builtins_size)0);
 ;
 ((*p)) = (nlang_builtins_i32)1;
 return (((*p)) - (nlang_builtins_i32)1);

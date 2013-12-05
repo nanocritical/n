@@ -1,8 +1,8 @@
 from nlang import *
 
 type d = i_d <root>.nlang.builtins.i_trivial_ctor
-  let this = d
-  let final = d
+  let this = t00.dynintf.d
+  let final = t00.dynintf.d
   x:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -18,8 +18,8 @@ d method get = i32
   return self.x
 
 type dc = i_d <root>.nlang.builtins.i_trivial_ctor
-  let this = dc
-  let final = dc
+  let this = t00.dynintf.dc
+  let final = t00.dynintf.dc
   dummy:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final

@@ -85,7 +85,8 @@ static void t00_fixme05_bar(t00_fixme05_nocopy *_nrtr_r) {
 #define r (*_nrtr_r)
  {
 (r.x) = (nlang_builtins_i32)0;
-return r;
+;
+return;
 }
 #undef r
 }
@@ -96,7 +97,8 @@ static void t00_fixme05_foo(t00_fixme05_nocopy *_nrtr__nretval) {
 t00_fixme05_nocopy r = { 0 };
 (r.x) = (nlang_builtins_i32)0;
 ;
-return r;
+;
+return;
 }
 #undef _nretval
 }

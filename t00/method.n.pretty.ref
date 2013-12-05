@@ -1,10 +1,10 @@
 from nlang import *
 type t = i_trivial_copy <root>.nlang.builtins.i_trivial_ctor
-  let this = t
-  let final = t
+  let this = t00.method.t
+  let final = t00.method.t
   x:i32
 
-t method <root>.nlang.builtins.i_copyable.copy_ctor self:@#final = void
+t method <root>.nlang.builtins.i_copyable.copy_ctor = void
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
 
@@ -15,7 +15,7 @@ t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 t method get = i32
   return self.x
 
-t method set self:@!final = void
+t method set = void
   self!x = x
 
 export fun main = i32

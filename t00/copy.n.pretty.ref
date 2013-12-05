@@ -1,7 +1,7 @@
 from nlang import *
 type copy = i_copyable <root>.nlang.builtins.i_trivial_ctor
-  let this = copy
-  let final = copy
+  let this = t00.copy.copy
+  let final = t00.copy.copy
   x:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -10,7 +10,7 @@ fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 
 copy method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
-copy method i_copyable.copy_ctor self:@#final = void
+copy method i_copyable.copy_ctor = void
   self!x = other.x
 
 fun foo = _nretval:copy
@@ -20,7 +20,7 @@ export fun main = i32
   let w = foo
   let y = { x=-1 }
   let z:copy  such
-    t00.copy.copy.copy_ctor @z @y
+    t00.copy.copy.copy_ctor @#z @y
   let zz = z  such
-    t00.copy.copy.copy_ctor @zz @z
+    t00.copy.copy.copy_ctor @#zz @z
   return z.x + 1

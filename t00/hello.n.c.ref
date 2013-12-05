@@ -27,7 +27,7 @@
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/hello.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 nlang_chars_static_string _Ngensym0 = { 0 };
 nlang_say(nlang_chars_static_string_mkdyn__nlang_chars_i_show((void *)({ _Ngensym0 = nlang_chars_static_string_mk((const nlang_builtins_u8 *)"Hello, World!", sizeof("Hello, World!")-1);

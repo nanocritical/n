@@ -34,7 +34,7 @@
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/cast.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
-static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_cast_foo(_Ngen_nlang_builtins_i_ref__nlang_builtins_u32_genN_ x);
+static _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ t00_cast_foo(_Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_ x);
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
@@ -47,13 +47,13 @@ static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_cast_foo(_Ngen_n
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/cast.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-static _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ t00_cast_foo(_Ngen_nlang_builtins_i_ref__nlang_builtins_u32_genN_ x){
+static _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ t00_cast_foo(_Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_ x) {
  {
-return (_Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_)(x);
+return (_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_)(x);
 }
 }
 
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 nlang_builtins_u32 _Ngensym0 = { 0 };
 return (((*t00_cast_foo(({ _Ngensym0 = (nlang_builtins_u32)1;

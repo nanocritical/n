@@ -1,7 +1,7 @@
 from nlang import *
 type container = i_trivial_ctor <root>.nlang.builtins.i_trivial_ctor
-  let this = container
-  let final = container
+  let this = t01.generic.container
+  let final = t01.generic.container
   x:t
 
 export fun main = i32

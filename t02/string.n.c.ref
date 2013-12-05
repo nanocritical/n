@@ -47,7 +47,7 @@ static void t02_string_foo(nlang_strings_string *_nrtr__nretval);
 #define NLANG_DEFINE_FUNCTIONS
 # include "t02/string.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-static void t02_string_foo(nlang_strings_string *_nrtr__nretval){
+static void t02_string_foo(nlang_strings_string *_nrtr__nretval) {
 #define _nretval (*_nrtr__nretval)
  {
 nlang_strings_string_from_static_string(nlang_chars_static_string_mk((const nlang_builtins_u8 *)"test", sizeof("test")-1), &(_nretval));
@@ -56,7 +56,7 @@ return;
 #undef _nretval
 }
 
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 nlang_chars_static_string _Ngensym0 = { 0 };
 nlang_say(nlang_chars_static_string_mkdyn__nlang_chars_i_show((void *)({ _Ngensym0 = nlang_chars_static_string_mk((const nlang_builtins_u8 *)"test", sizeof("test")-1);

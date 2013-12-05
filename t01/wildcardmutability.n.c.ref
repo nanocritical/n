@@ -8,12 +8,12 @@
 #undef NLANG_DECLARE_TYPES
 struct t01_wildcardmutability_c;
 typedef struct t01_wildcardmutability_c t01_wildcardmutability_c;
-typedef const t01_wildcardmutability_c* _Ngen_nlang_builtins_i_ref__t01_wildcardmutability_c_genN_;
-typedef _Ngen_nlang_builtins_i_ref__t01_wildcardmutability_c_genN_ _Ngen_nlang_builtins_i_nullable_ref__t01_wildcardmutability_c_genN_;
-typedef t01_wildcardmutability_c* _Ngen_nlang_builtins_i_mutable_ref__t01_wildcardmutability_c_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t01_wildcardmutability_c_genN_ _Ngen_nlang_builtins_i_mercurial_ref__t01_wildcardmutability_c_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t01_wildcardmutability_c_genN_ _Ngen_nlang_builtins_i_nullable_mutable_ref__t01_wildcardmutability_c_genN_;
-typedef _Ngen_nlang_builtins_i_mercurial_ref__t01_wildcardmutability_c_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t01_wildcardmutability_c_genN_;
+typedef const t01_wildcardmutability_c* _Ngen_nlang_builtins_ref__t01_wildcardmutability_c_genN_;
+typedef _Ngen_nlang_builtins_ref__t01_wildcardmutability_c_genN_ _Ngen_nlang_builtins_nullable_ref__t01_wildcardmutability_c_genN_;
+typedef t01_wildcardmutability_c* _Ngen_nlang_builtins_mutable_ref__t01_wildcardmutability_c_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t01_wildcardmutability_c_genN_ _Ngen_nlang_builtins_mercurial_ref__t01_wildcardmutability_c_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t01_wildcardmutability_c_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t01_wildcardmutability_c_genN_;
+typedef _Ngen_nlang_builtins_mercurial_ref__t01_wildcardmutability_c_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t01_wildcardmutability_c_genN_;
 
 
 
@@ -43,13 +43,13 @@ nlang_builtins_i32 x;
 # include "t01/wildcardmutability.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
 
-_Ngen_nlang_builtins_i_mercurial_ref__t01_wildcardmutability_c_genN_ t01_wildcardmutability_c_new(void);
+_Ngen_nlang_builtins_mercurial_ref__t01_wildcardmutability_c_genN_ t01_wildcardmutability_c_new(void);
 
 void t01_wildcardmutability_c_mk(t01_wildcardmutability_c *_nrtr_r);
 
-nlang_builtins_void t01_wildcardmutability_c_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t01_wildcardmutability_c_genN_ self);
+nlang_builtins_void t01_wildcardmutability_c_ctor(_Ngen_nlang_builtins_mercurial_ref__t01_wildcardmutability_c_genN_ self);
 
-_Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ _Ngen_t01_wildcardmutability_c_get__nlang_builtins_i_ref_genN_(_Ngen_nlang_builtins_i_ref__t01_wildcardmutability_c_genN_ self);
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngen_t01_wildcardmutability_c_get__nlang_builtins_ref_genN_(_Ngen_nlang_builtins_ref__t01_wildcardmutability_c_genN_ self);
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
@@ -59,7 +59,7 @@ _Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ _Ngen_t01_wildcardmutabilit
 # include "t01/wildcardmutability.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
 
-_Ngen_nlang_builtins_i_mercurial_ref__t01_wildcardmutability_c_genN_ t01_wildcardmutability_c_new(void) {
+_Ngen_nlang_builtins_mercurial_ref__t01_wildcardmutability_c_genN_ t01_wildcardmutability_c_new(void) {
 #define THIS(x) t01_wildcardmutability_c##x
 return calloc(1, sizeof(THIS()));
 #undef THIS
@@ -72,12 +72,12 @@ void t01_wildcardmutability_c_mk(t01_wildcardmutability_c *_nrtr_r) {
 #undef THIS
 }
 
-nlang_builtins_void t01_wildcardmutability_c_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t01_wildcardmutability_c_genN_ self) {
+nlang_builtins_void t01_wildcardmutability_c_ctor(_Ngen_nlang_builtins_mercurial_ref__t01_wildcardmutability_c_genN_ self) {
 #define THIS(x) t01_wildcardmutability_c##x
 #undef THIS
 }
 
-_Ngen_nlang_builtins_i_ref__nlang_builtins_i32_genN_ _Ngen_t01_wildcardmutability_c_get__nlang_builtins_i_ref_genN_(_Ngen_nlang_builtins_i_ref__t01_wildcardmutability_c_genN_ self){
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngen_t01_wildcardmutability_c_get__nlang_builtins_ref_genN_(_Ngen_nlang_builtins_ref__t01_wildcardmutability_c_genN_ self) {
 #define THIS(x) t01_wildcardmutability_c##x
  {
 return ((&(self->x)));
@@ -85,13 +85,13 @@ return ((&(self->x)));
 #undef THIS
 }
 
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 t01_wildcardmutability_c x= { 0 };
 x.x = (nlang_builtins_i32)0;
 ;
 ;
-return ((*_Ngen_t01_wildcardmutability_c_get__nlang_builtins_i_ref_genN_(((&x)))));
+return ((*_Ngen_t01_wildcardmutability_c_get__nlang_builtins_ref_genN_(((&x)))));
 }
 }
 void t01_wildcardmutability_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));

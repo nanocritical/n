@@ -21,12 +21,12 @@ typedef struct t00_syntax_ia t00_syntax_ia;
 
 struct t00_syntax_test;
 typedef struct t00_syntax_test t00_syntax_test;
-typedef const t00_syntax_test* _Ngen_nlang_builtins_i_ref__t00_syntax_test_genN_;
-typedef _Ngen_nlang_builtins_i_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_i_nullable_ref__t00_syntax_test_genN_;
-typedef t00_syntax_test* _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_test_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_i_nullable_mutable_ref__t00_syntax_test_genN_;
-typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t00_syntax_test_genN_;
+typedef const t00_syntax_test* _Ngen_nlang_builtins_ref__t00_syntax_test_genN_;
+typedef _Ngen_nlang_builtins_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_nullable_ref__t00_syntax_test_genN_;
+typedef t00_syntax_test* _Ngen_nlang_builtins_mutable_ref__t00_syntax_test_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_syntax_test_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_syntax_test_genN_;
+typedef _Ngen_nlang_builtins_mercurial_ref__t00_syntax_test_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_syntax_test_genN_;
 
 
 
@@ -35,12 +35,12 @@ typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test_genN_ _Ngen_nlang_
 
 
 typedef nlang_builtins_u32 t00_syntax_enu;
-typedef const t00_syntax_enu* _Ngen_nlang_builtins_i_ref__t00_syntax_enu_genN_;
-typedef _Ngen_nlang_builtins_i_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_i_nullable_ref__t00_syntax_enu_genN_;
-typedef t00_syntax_enu* _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_enu_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_enu_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_i_nullable_mutable_ref__t00_syntax_enu_genN_;
-typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t00_syntax_enu_genN_;
+typedef const t00_syntax_enu* _Ngen_nlang_builtins_ref__t00_syntax_enu_genN_;
+typedef _Ngen_nlang_builtins_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_nullable_ref__t00_syntax_enu_genN_;
+typedef t00_syntax_enu* _Ngen_nlang_builtins_mutable_ref__t00_syntax_enu_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_syntax_enu_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_syntax_enu_genN_;
+typedef _Ngen_nlang_builtins_mercurial_ref__t00_syntax_enu_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_syntax_enu_genN_;
 
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
@@ -105,20 +105,20 @@ extern nlang_builtins_i32 t00_syntax_other5(nlang_builtins_i32 x);
 
 static inline t00_syntax_ia t00_syntax_test_mkdyn__t00_syntax_ia(t00_syntax_test *obj);
 
-_Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test_genN_ t00_syntax_test_new(void);
+_Ngen_nlang_builtins_mercurial_ref__t00_syntax_test_genN_ t00_syntax_test_new(void);
 
 void t00_syntax_test_mk(t00_syntax_test *_nrtr_r);
 
-nlang_builtins_void t00_syntax_test_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test_genN_ self);
+nlang_builtins_void t00_syntax_test_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_syntax_test_genN_ self);
 
-nlang_builtins_i32 t00_syntax_test_foo(_Ngen_nlang_builtins_i_ref__t00_syntax_test_genN_ self, nlang_builtins_i32 x);
+nlang_builtins_i32 t00_syntax_test_foo(_Ngen_nlang_builtins_ref__t00_syntax_test_genN_ self, nlang_builtins_i32 x);
 
 static nlang_builtins_i32 t00_syntax_foobar(nlang_builtins_i32 x);
 
 static nlang_builtins_void t00_syntax_foobar2(void);
 
 
-nlang_builtins_void t00_syntax_enu_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_enu_genN_ self, _Ngen_nlang_builtins_i_ref__t00_syntax_enu_genN_ other);
+nlang_builtins_void t00_syntax_enu_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_syntax_enu_genN_ self, _Ngen_nlang_builtins_ref__t00_syntax_enu_genN_ other);
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
@@ -130,7 +130,7 @@ nlang_builtins_void t00_syntax_enu_copy_ctor(_Ngen_nlang_builtins_i_mercurial_re
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/syntax.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 nlang_builtins_i32 x = (nlang_builtins_i32)1;
 ;
@@ -140,7 +140,7 @@ return ((nlang_builtins_i32)0 + y);
 }
 }
 
-nlang_builtins_i32 t00_syntax_main2(void){
+nlang_builtins_i32 t00_syntax_main2(void) {
  {
 return (nlang_builtins_i32)0;
 }
@@ -157,7 +157,7 @@ static const struct _Ndyn_t00_syntax_ia vtable = {
 return (t00_syntax_ia){ .vptr = &vtable, .obj = obj };
 }
 
-_Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test_genN_ t00_syntax_test_new(void) {
+_Ngen_nlang_builtins_mercurial_ref__t00_syntax_test_genN_ t00_syntax_test_new(void) {
 #define THIS(x) t00_syntax_test##x
 return calloc(1, sizeof(THIS()));
 #undef THIS
@@ -170,12 +170,12 @@ void t00_syntax_test_mk(t00_syntax_test *_nrtr_r) {
 #undef THIS
 }
 
-nlang_builtins_void t00_syntax_test_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_test_genN_ self) {
+nlang_builtins_void t00_syntax_test_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_syntax_test_genN_ self) {
 #define THIS(x) t00_syntax_test##x
 #undef THIS
 }
 
-nlang_builtins_i32 t00_syntax_test_foo(_Ngen_nlang_builtins_i_ref__t00_syntax_test_genN_ self, nlang_builtins_i32 x){
+nlang_builtins_i32 t00_syntax_test_foo(_Ngen_nlang_builtins_ref__t00_syntax_test_genN_ self, nlang_builtins_i32 x) {
 #define THIS(x) t00_syntax_test##x
  {
 nlang_builtins_i32 y = x;
@@ -185,7 +185,7 @@ return y;
 #undef THIS
 }
 
-static nlang_builtins_i32 t00_syntax_foobar(nlang_builtins_i32 x){
+static nlang_builtins_i32 t00_syntax_foobar(nlang_builtins_i32 x) {
  {
 nlang_builtins_assert(({ (x != (nlang_builtins_i32)0);
 ; }));
@@ -195,14 +195,14 @@ return (nlang_builtins_i32)0;
 }
 }
 
-static nlang_builtins_void t00_syntax_foobar2(void){
+static nlang_builtins_void t00_syntax_foobar2(void) {
  {
 return;
 }
 }
 
 
-nlang_builtins_void t00_syntax_enu_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_syntax_enu_genN_ self, _Ngen_nlang_builtins_i_ref__t00_syntax_enu_genN_ other) {
+nlang_builtins_void t00_syntax_enu_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_syntax_enu_genN_ self, _Ngen_nlang_builtins_ref__t00_syntax_enu_genN_ other) {
 #define THIS(x) t00_syntax_enu##x
 memcpy(self, other, sizeof(*self));
 #undef THIS

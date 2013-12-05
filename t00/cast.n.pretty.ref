@@ -1,5 +1,5 @@
 from nlang import *
-import nlang.unsafe
+from nlang.unsafe import 
 fun foo x:@u32 = @i32
   return (nlang.unsafe.cast @u32 @i32) x
 

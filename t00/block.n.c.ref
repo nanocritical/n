@@ -26,7 +26,7 @@
 #undef NLANG_DECLARE_FUNCTIONS
 static nlang_builtins_i32 t00_block_foo(void);
 
-static nlang_builtins_u32 t00_block_deref(_Ngen_nlang_builtins_i_ref__nlang_builtins_u32_genN_ p);
+static nlang_builtins_u32 t00_block_deref(_Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_ p);
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
@@ -35,20 +35,20 @@ static nlang_builtins_u32 t00_block_deref(_Ngen_nlang_builtins_i_ref__nlang_buil
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/block.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-static nlang_builtins_i32 t00_block_foo(void){
+static nlang_builtins_i32 t00_block_foo(void) {
  {
 return ({ (nlang_builtins_i32)0;
 ; });
 }
 }
 
-static nlang_builtins_u32 t00_block_deref(_Ngen_nlang_builtins_i_ref__nlang_builtins_u32_genN_ p){
+static nlang_builtins_u32 t00_block_deref(_Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_ p) {
  {
 return ((*p));
 }
 }
 
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 if ((nlang_builtins_bool)1) {
 ;;
@@ -122,9 +122,9 @@ nlang_containers_index_range_iter(({ _Ngensym3 = nlang_containers_range((nlang_b
 while (nlang_containers_index_iterator_is_valid(((&_Ngensym0)))) {
 nlang_builtins_size i = nlang_containers_index_iterator_get(((&_Ngensym0)));
 nlang_builtins_u32 _Ngensym2 = { 0 };
-(tmp += nlang_builtins_u32_reinterpret_signed(({ _Ngensym2 = nlang_builtins_size_trim_u32(((&i)));
+tmp += nlang_builtins_u32_reinterpret_signed(({ _Ngensym2 = nlang_builtins_size_trim_u32(((&i)));
 ((&_Ngensym2));
-; })));
+; }));
 ;
 ;
 nlang_containers_index_iterator_next(((&_Ngensym0)));

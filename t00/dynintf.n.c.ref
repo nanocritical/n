@@ -12,12 +12,12 @@ typedef struct t00_dynintf_i_d t00_dynintf_i_d;
 
 struct t00_dynintf_d;
 typedef struct t00_dynintf_d t00_dynintf_d;
-typedef const t00_dynintf_d* _Ngen_nlang_builtins_i_ref__t00_dynintf_d_genN_;
-typedef _Ngen_nlang_builtins_i_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_i_nullable_ref__t00_dynintf_d_genN_;
-typedef t00_dynintf_d* _Ngen_nlang_builtins_i_mutable_ref__t00_dynintf_d_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_d_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_i_nullable_mutable_ref__t00_dynintf_d_genN_;
-typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t00_dynintf_d_genN_;
+typedef const t00_dynintf_d* _Ngen_nlang_builtins_ref__t00_dynintf_d_genN_;
+typedef _Ngen_nlang_builtins_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_nullable_ref__t00_dynintf_d_genN_;
+typedef t00_dynintf_d* _Ngen_nlang_builtins_mutable_ref__t00_dynintf_d_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_dynintf_d_genN_;
+typedef _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_dynintf_d_genN_;
 
 
 
@@ -26,12 +26,12 @@ typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_d_genN_ _Ngen_nlang_bu
 
 struct t00_dynintf_dc;
 typedef struct t00_dynintf_dc t00_dynintf_dc;
-typedef const t00_dynintf_dc* _Ngen_nlang_builtins_i_ref__t00_dynintf_dc_genN_;
-typedef _Ngen_nlang_builtins_i_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_i_nullable_ref__t00_dynintf_dc_genN_;
-typedef t00_dynintf_dc* _Ngen_nlang_builtins_i_mutable_ref__t00_dynintf_dc_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_dc_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_i_nullable_mutable_ref__t00_dynintf_dc_genN_;
-typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t00_dynintf_dc_genN_;
+typedef const t00_dynintf_dc* _Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_;
+typedef _Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_nullable_ref__t00_dynintf_dc_genN_;
+typedef t00_dynintf_dc* _Ngen_nlang_builtins_mutable_ref__t00_dynintf_dc_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_dynintf_dc_genN_;
+typedef _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_dynintf_dc_genN_;
 
 
 
@@ -94,34 +94,34 @@ nlang_builtins_i32 t00_dynintf_i_d_get(t00_dynintf_i_d self);
 
 static inline t00_dynintf_i_d t00_dynintf_d_mkdyn__t00_dynintf_i_d(t00_dynintf_d *obj);
 
-_Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_d_genN_ t00_dynintf_d_new(void);
+_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_ t00_dynintf_d_new(void);
 
 void t00_dynintf_d_mk(t00_dynintf_d *_nrtr_r);
 
-nlang_builtins_void t00_dynintf_d_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_d_genN_ self);
+nlang_builtins_void t00_dynintf_d_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_ self);
 
 nlang_builtins_i32 t00_dynintf_d_answer(void);
 
-nlang_builtins_i32 t00_dynintf_d_get(_Ngen_nlang_builtins_i_ref__t00_dynintf_d_genN_ self);
+nlang_builtins_i32 t00_dynintf_d_get(_Ngen_nlang_builtins_ref__t00_dynintf_d_genN_ self);
 
 static inline t00_dynintf_i_d t00_dynintf_dc_mkdyn__t00_dynintf_i_d(t00_dynintf_dc *obj);
 
-_Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_dc_genN_ t00_dynintf_dc_new(void);
+_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_ t00_dynintf_dc_new(void);
 
 void t00_dynintf_dc_mk(t00_dynintf_dc *_nrtr_r);
 
-nlang_builtins_void t00_dynintf_dc_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_dc_genN_ self);
+nlang_builtins_void t00_dynintf_dc_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_ self);
 
 nlang_builtins_i32 t00_dynintf_dc_answer(void);
 
-nlang_builtins_i32 t00_dynintf_dc_get(_Ngen_nlang_builtins_i_ref__t00_dynintf_dc_genN_ self);
+nlang_builtins_i32 t00_dynintf_dc_get(_Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_ self);
 
 static nlang_builtins_i32 t00_dynintf_foo(t00_dynintf_i_d v);
 
 void t00_dynintf__Nexample0(void) __attribute__((section(".text.nlang.examples")));
 static nlang_builtins_i32 t00_dynintf_rfoo(t00_dynintf_i_d pv);
 
-static nlang_builtins_i32 t00_dynintf_bar(_Ngen_nlang_builtins_i_ref__t00_dynintf_d_genN_ pv);
+static nlang_builtins_i32 t00_dynintf_bar(_Ngen_nlang_builtins_ref__t00_dynintf_d_genN_ pv);
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
@@ -145,7 +145,7 @@ static const struct _Ndyn_t00_dynintf_i_d vtable = {
 return (t00_dynintf_i_d){ .vptr = &vtable, .obj = obj };
 }
 
-_Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_d_genN_ t00_dynintf_d_new(void) {
+_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_ t00_dynintf_d_new(void) {
 #define THIS(x) t00_dynintf_d##x
 return calloc(1, sizeof(THIS()));
 #undef THIS
@@ -158,12 +158,12 @@ void t00_dynintf_d_mk(t00_dynintf_d *_nrtr_r) {
 #undef THIS
 }
 
-nlang_builtins_void t00_dynintf_d_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_d_genN_ self) {
+nlang_builtins_void t00_dynintf_d_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_ self) {
 #define THIS(x) t00_dynintf_d##x
 #undef THIS
 }
 
-nlang_builtins_i32 t00_dynintf_d_answer(void){
+nlang_builtins_i32 t00_dynintf_d_answer(void) {
 #define THIS(x) t00_dynintf_d##x
  {
 return (nlang_builtins_i32)42;
@@ -171,7 +171,7 @@ return (nlang_builtins_i32)42;
 #undef THIS
 }
 
-nlang_builtins_i32 t00_dynintf_d_get(_Ngen_nlang_builtins_i_ref__t00_dynintf_d_genN_ self){
+nlang_builtins_i32 t00_dynintf_d_get(_Ngen_nlang_builtins_ref__t00_dynintf_d_genN_ self) {
 #define THIS(x) t00_dynintf_d##x
  {
 return (self->x);
@@ -187,7 +187,7 @@ static const struct _Ndyn_t00_dynintf_i_d vtable = {
 return (t00_dynintf_i_d){ .vptr = &vtable, .obj = obj };
 }
 
-_Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_dc_genN_ t00_dynintf_dc_new(void) {
+_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_ t00_dynintf_dc_new(void) {
 #define THIS(x) t00_dynintf_dc##x
 return calloc(1, sizeof(THIS()));
 #undef THIS
@@ -200,20 +200,12 @@ void t00_dynintf_dc_mk(t00_dynintf_dc *_nrtr_r) {
 #undef THIS
 }
 
-nlang_builtins_void t00_dynintf_dc_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_dynintf_dc_genN_ self) {
+nlang_builtins_void t00_dynintf_dc_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_ self) {
 #define THIS(x) t00_dynintf_dc##x
 #undef THIS
 }
 
-nlang_builtins_i32 t00_dynintf_dc_answer(void){
-#define THIS(x) t00_dynintf_dc##x
- {
-return (nlang_builtins_i32)42;
-}
-#undef THIS
-}
-
-nlang_builtins_i32 t00_dynintf_dc_get(_Ngen_nlang_builtins_i_ref__t00_dynintf_dc_genN_ self){
+nlang_builtins_i32 t00_dynintf_dc_answer(void) {
 #define THIS(x) t00_dynintf_dc##x
  {
 return (nlang_builtins_i32)42;
@@ -221,7 +213,15 @@ return (nlang_builtins_i32)42;
 #undef THIS
 }
 
-static nlang_builtins_i32 t00_dynintf_foo(t00_dynintf_i_d v){
+nlang_builtins_i32 t00_dynintf_dc_get(_Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_ self) {
+#define THIS(x) t00_dynintf_dc##x
+ {
+return (nlang_builtins_i32)42;
+}
+#undef THIS
+}
+
+static nlang_builtins_i32 t00_dynintf_foo(t00_dynintf_i_d v) {
  {
 return t00_dynintf_i_d_get(v);
 }
@@ -235,19 +235,19 @@ x.x = (nlang_builtins_i32)42;
 ((nlang_builtins_i32)42 == t00_dynintf_foo(t00_dynintf_d_mkdyn__t00_dynintf_i_d((void *)((&x)))));
 ; }));
 }
-static nlang_builtins_i32 t00_dynintf_rfoo(t00_dynintf_i_d pv){
+static nlang_builtins_i32 t00_dynintf_rfoo(t00_dynintf_i_d pv) {
  {
 return t00_dynintf_i_d_answer(*(t00_dynintf_i_d *)&pv);
 }
 }
 
-static nlang_builtins_i32 t00_dynintf_bar(_Ngen_nlang_builtins_i_ref__t00_dynintf_d_genN_ pv){
+static nlang_builtins_i32 t00_dynintf_bar(_Ngen_nlang_builtins_ref__t00_dynintf_d_genN_ pv) {
  {
 return t00_dynintf_foo(t00_dynintf_d_mkdyn__t00_dynintf_i_d((void *)pv));
 }
 }
 
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 t00_dynintf_d xd= { 0 };
 xd.x = (nlang_builtins_i32)42;
@@ -259,7 +259,7 @@ t00_dynintf_dc xdc= { 0 };
 if ((t00_dynintf_foo(t00_dynintf_d_mkdyn__t00_dynintf_i_d((void *)((&xd)))) != t00_dynintf_foo(t00_dynintf_dc_mkdyn__t00_dynintf_i_d((void *)((&xdc)))))) {
 return (nlang_builtins_i32)1;
 };
-_Ngen_nlang_builtins_i_ref__t00_dynintf_d_genN_ pxd = ((&xd));
+_Ngen_nlang_builtins_ref__t00_dynintf_d_genN_ pxd = ((&xd));
 ;
 if ((t00_dynintf_bar(pxd) != t00_dynintf_rfoo(t00_dynintf_d_mkdyn__t00_dynintf_i_d((void *)pxd)))) {
 return (nlang_builtins_i32)1;

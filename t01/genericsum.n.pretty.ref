@@ -1,11 +1,11 @@
 from nlang import *
 type container = i_trivial_ctor <root>.nlang.builtins.i_trivial_ctor
-  let this = container
-  let final = container
+  let this = t01.genericsum.container
+  let final = t01.genericsum.container
   x:t
 
-container method add self:@!final = void
-  nlang.builtins.i_numeric.operator_assign_plus @self.x @x
+container method add = void
+  nlang.builtins.i_arithmetic.operator_assign_plus @!self!x @x
 
 export fun main = i32
   let v = { x=0 }  such

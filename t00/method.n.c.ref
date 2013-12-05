@@ -8,12 +8,12 @@
 #undef NLANG_DECLARE_TYPES
 struct t00_method_t;
 typedef struct t00_method_t t00_method_t;
-typedef const t00_method_t* _Ngen_nlang_builtins_i_ref__t00_method_t_genN_;
-typedef _Ngen_nlang_builtins_i_ref__t00_method_t_genN_ _Ngen_nlang_builtins_i_nullable_ref__t00_method_t_genN_;
-typedef t00_method_t* _Ngen_nlang_builtins_i_mutable_ref__t00_method_t_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t00_method_t_genN_ _Ngen_nlang_builtins_i_mercurial_ref__t00_method_t_genN_;
-typedef _Ngen_nlang_builtins_i_mutable_ref__t00_method_t_genN_ _Ngen_nlang_builtins_i_nullable_mutable_ref__t00_method_t_genN_;
-typedef _Ngen_nlang_builtins_i_mercurial_ref__t00_method_t_genN_ _Ngen_nlang_builtins_i_nullable_mercurial_ref__t00_method_t_genN_;
+typedef const t00_method_t* _Ngen_nlang_builtins_ref__t00_method_t_genN_;
+typedef _Ngen_nlang_builtins_ref__t00_method_t_genN_ _Ngen_nlang_builtins_nullable_ref__t00_method_t_genN_;
+typedef t00_method_t* _Ngen_nlang_builtins_mutable_ref__t00_method_t_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_method_t_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_;
+typedef _Ngen_nlang_builtins_mutable_ref__t00_method_t_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_method_t_genN_;
+typedef _Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_method_t_genN_;
 
 
 
@@ -47,17 +47,17 @@ nlang_builtins_i32 x;
 # include "t00/method.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
 
-nlang_builtins_void t00_method_t_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_method_t_genN_ self, _Ngen_nlang_builtins_i_ref__t00_method_t_genN_ other);
+nlang_builtins_void t00_method_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self, _Ngen_nlang_builtins_ref__t00_method_t_genN_ other);
 
-_Ngen_nlang_builtins_i_mercurial_ref__t00_method_t_genN_ t00_method_t_new(void);
+_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ t00_method_t_new(void);
 
 void t00_method_t_mk(t00_method_t *_nrtr_r);
 
-nlang_builtins_void t00_method_t_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_method_t_genN_ self);
+nlang_builtins_void t00_method_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self);
 
-nlang_builtins_i32 t00_method_t_get(_Ngen_nlang_builtins_i_ref__t00_method_t_genN_ self);
+nlang_builtins_i32 t00_method_t_get(_Ngen_nlang_builtins_ref__t00_method_t_genN_ self);
 
-nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_i_mutable_ref__t00_method_t_genN_ self, nlang_builtins_i32 x);
+nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_mutable_ref__t00_method_t_genN_ self, nlang_builtins_i32 x);
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
@@ -67,13 +67,13 @@ nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_i_mutable_ref__t00_met
 # include "t00/method.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
 
-nlang_builtins_void t00_method_t_copy_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_method_t_genN_ self, _Ngen_nlang_builtins_i_ref__t00_method_t_genN_ other) {
+nlang_builtins_void t00_method_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self, _Ngen_nlang_builtins_ref__t00_method_t_genN_ other) {
 #define THIS(x) t00_method_t##x
 memcpy(self, other, sizeof(*self));
 #undef THIS
 }
 
-_Ngen_nlang_builtins_i_mercurial_ref__t00_method_t_genN_ t00_method_t_new(void) {
+_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ t00_method_t_new(void) {
 #define THIS(x) t00_method_t##x
 return calloc(1, sizeof(THIS()));
 #undef THIS
@@ -86,12 +86,12 @@ void t00_method_t_mk(t00_method_t *_nrtr_r) {
 #undef THIS
 }
 
-nlang_builtins_void t00_method_t_ctor(_Ngen_nlang_builtins_i_mercurial_ref__t00_method_t_genN_ self) {
+nlang_builtins_void t00_method_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self) {
 #define THIS(x) t00_method_t##x
 #undef THIS
 }
 
-nlang_builtins_i32 t00_method_t_get(_Ngen_nlang_builtins_i_ref__t00_method_t_genN_ self){
+nlang_builtins_i32 t00_method_t_get(_Ngen_nlang_builtins_ref__t00_method_t_genN_ self) {
 #define THIS(x) t00_method_t##x
  {
 return (self->x);
@@ -99,7 +99,7 @@ return (self->x);
 #undef THIS
 }
 
-nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_i_mutable_ref__t00_method_t_genN_ self, nlang_builtins_i32 x){
+nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_mutable_ref__t00_method_t_genN_ self, nlang_builtins_i32 x) {
 #define THIS(x) t00_method_t##x
  {
 (self->x) = x;
@@ -107,7 +107,7 @@ nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_i_mutable_ref__t00_met
 #undef THIS
 }
 
-nlang_builtins_i32 _Nmain(void){
+nlang_builtins_i32 _Nmain(void) {
  {
 t00_method_t tt= { 0 };
 tt.x = (nlang_builtins_i32)0;

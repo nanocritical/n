@@ -1,39 +1,777 @@
-MODULE_BODY :__internal_not_typeable__
- IMPORT :nlang
-  IDENT(nlang) :nlang
-  IMPORT :nlang.print
-   BIN(.) :nlang.print
-    IDENT(nlang) :nlang
-    IDENT(print) :__internal_not_typeable__
-  IMPORT :nlang.say
-   BIN(.) :nlang.say
-    IDENT(nlang) :nlang
-    IDENT(say) :__internal_not_typeable__
- IMPORT :nlang.strings
-  BIN(.) :nlang.strings
-   IDENT(nlang) :nlang
-   IDENT(strings) :__internal_not_typeable__
-  IMPORT :nlang.strings.string
-   BIN(.) :nlang.strings.string
-    BIN(.) :nlang.strings
-     IDENT(nlang) :nlang
-     IDENT(strings) :__internal_not_typeable__
-    IDENT(string) :__internal_not_typeable__
+MODULE_BODY :nlang.literals.__internal_not_typeable__
+ IMPORT :nlang.literals.__internal_not_typeable__
+  IDENT(nlang)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(literals)
+    IDENT(__null__)
+  IMPORT :<import>
+   IDENT(nlang)
+   IMPORT :<import>
+    BIN(.)
+     IDENT(nlang)
+     IDENT(literals)
+   IMPORT :<import>
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+   IMPORT :<import>
+    BIN(.)
+     IDENT(nlang)
+     IDENT(containers)
+   IMPORT :<import>
+    BIN(.)
+     IDENT(nlang)
+     IDENT(memory)
+   IMPORT :<import>
+    BIN(.)
+     IDENT(nlang)
+     IDENT(chars)
+   IMPORT :<import>
+    BIN(.)
+     IDENT(nlang)
+     IDENT(strings)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(literals)
+    IDENT(integer)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(literals)
+    IDENT(floating)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(literals)
+    IDENT(__internal_not_typeable__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(literals)
+    IDENT(__call_function_slot__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(literals)
+    IDENT(__mutable__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(literals)
+    IDENT(__mercurial__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_any)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_copyable)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_copyable_but_owned)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_trivial_copy)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_trivial_copy_but_owned)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_return_by_copy)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_default_ctor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_trivial_ctor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_trivial_dtor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_matchable)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_has_equality)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_trivial_equality)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_has_compare)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_ordered)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_trivial_order)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_ordered_by_compare)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_arithmetic)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_bitwise)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_sum_copy)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_sum_equality)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_sum_order)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(void)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(__i_ref_compatible)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_any_any_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_any_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_any_mutable_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_any_nullable_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_any_nullable_mutable_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(mutable_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(mercurial_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(nullable_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(nullable_mutable_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(nullable_mercurial_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_any_tuple)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_2)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_3)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_4)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_5)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_6)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_7)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_8)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_9)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_10)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_11)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_12)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_13)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_14)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_15)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(tuple_16)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_numeric)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_integer)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_signed_integer)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_unsigned_integer)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_native_integer)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_native_signed_integer)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_native_unsigned_integer)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_native_anysign_integer)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_generalized_boolean)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_bool_compatible)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_native_boolean)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_floating)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_native_floating)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(bool)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i8)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i16)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i32)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i64)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(u8)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(u16)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(u32)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(u64)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(ssize)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(size)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(float)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(double)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_auto_ctor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_ctor_with)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_trivial_array_ctor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_array_ctor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(static_array)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_sum_ctor_with)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(abort)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(assert)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(likely)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(unlikely)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(unused)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(optional)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(min)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(max)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(i_error)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(error)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(drop)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(fatal)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(containers)
+    IDENT(i_locus)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(containers)
+    IDENT(i_fwd_locus)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(containers)
+    IDENT(i_bidir_locus)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(containers)
+    IDENT(i_iterator)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(containers)
+    IDENT(index_range)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(containers)
+    IDENT(index_iterator)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(containers)
+    IDENT(range)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(memory)
+    IDENT(i_allocator)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(memory)
+    IDENT(slice)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(chars)
+    IDENT(char)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(chars)
+    IDENT(i_static_string_compatible)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(chars)
+    IDENT(i_const_string)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(chars)
+    IDENT(i_string)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(chars)
+    IDENT(i_string_buffer)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(chars)
+    IDENT(static_string)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(chars)
+    IDENT(i_show)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(print)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(say)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(just_const)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(just_mutable)
+ IMPORT :nlang.literals.__internal_not_typeable__
+  BIN(.)
+   IDENT(nlang)
+   IDENT(strings)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(strings)
+    IDENT(string)
  DEFFUN :t02.string.foo
-  IDENT(foo) :__internal_not_typeable__
-  GENARGS :nlang.builtins.void
-  DEFARG :nlang.strings.string
-   IDENT(_nretval) :nlang.strings.string
-   IDENT(string) :nlang.strings.string
+  IDENT(foo) :nlang.literals.__internal_not_typeable__
+  GENARGS :nlang.literals.__internal_not_typeable__
+  FUNARGS :nlang.literals.__internal_not_typeable__
+   DEFARG :nlang.strings.string
+    IDENT(_nretval)
+    IDENT(string) :nlang.strings.string
   BLOCK :nlang.builtins.void
-   RETURN :nlang.strings.string
+   RETURN :nlang.builtins.void
     CALL :nlang.strings.string
      DIRECTDEF :nlang.strings.string.from_static_string
      STRING('test') :nlang.chars.static_string
  DEFFUN :t02.string.main
-  IDENT(main) :__internal_not_typeable__
-  GENARGS :nlang.builtins.void
-  IDENT(i32) :nlang.builtins.i32
+  IDENT(main) :nlang.literals.__internal_not_typeable__
+  GENARGS :nlang.literals.__internal_not_typeable__
+  FUNARGS :nlang.literals.__internal_not_typeable__
+   IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
@@ -44,12 +782,12 @@ MODULE_BODY :__internal_not_typeable__
     BLOCK :nlang.builtins.void
      CALL :nlang.builtins.void
       IDENT(say) :nlang.say
-      DYN :(nlang.builtins.i_ref nlang.chars.i_show)
-       BLOCK :(nlang.builtins.i_ref nlang.chars.static_string)
+      DYN :(nlang.builtins.ref nlang.chars.i_show)
+       BLOCK :(nlang.builtins.ref nlang.chars.static_string)
         BIN( = ) :nlang.builtins.void
          IDENT(_Ngensym0) :nlang.chars.static_string
          STRING('test') :nlang.chars.static_string
-        UN(@) :(nlang.builtins.i_ref nlang.chars.static_string)
+        UN(@) :(nlang.builtins.ref nlang.chars.static_string)
          IDENT(_Ngensym0) :nlang.chars.static_string
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
@@ -60,13 +798,13 @@ MODULE_BODY :__internal_not_typeable__
     BLOCK :nlang.builtins.void
      CALL :nlang.builtins.void
       IDENT(say) :nlang.say
-      DYN :(nlang.builtins.i_ref nlang.chars.i_show)
-       BLOCK :(nlang.builtins.i_ref nlang.strings.string)
+      DYN :(nlang.builtins.ref nlang.chars.i_show)
+       BLOCK :(nlang.builtins.ref nlang.strings.string)
         BIN( = ) :nlang.builtins.void
          IDENT(_Ngensym1) :nlang.strings.string
          CALL :nlang.strings.string
           IDENT(foo) :t02.string.foo
-        UN(@) :(nlang.builtins.i_ref nlang.strings.string)
+        UN(@) :(nlang.builtins.ref nlang.strings.string)
          IDENT(_Ngensym1) :nlang.strings.string
-   RETURN :nlang.builtins.i32
+   RETURN :nlang.builtins.void
     NUMBER(0) :nlang.builtins.i32
