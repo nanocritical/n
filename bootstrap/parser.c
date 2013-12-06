@@ -1134,8 +1134,12 @@ static error p_expr_binary(struct node *node, const struct node *first,
   EXCEPT(e);
 
   assert(tok.t != TCOMMA);
-  node->which = tok.t == TCOLON ? TYPECONSTRAINT : BIN;
-  node->as.BIN.operator = tok.t;
+  if (tok.t == TCOLON) {
+    node->which = TYPECONSTRAINT;
+  } else {
+    node->which = BIN;
+    node->as.BIN.operator = tok.t;
+  }
 
   struct node *left = node_new_subnode(mod, node);
   *left = *first;
