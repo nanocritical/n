@@ -1,1 +1,1 @@
-t00/fixme04.n:9:13: parse: from scope t00.fixme04.main: in scope t00.fixme04.c: unknown identifier '<anonymous>'
+t00/fixme04.n:9:13: from scope t00.fixme04.main: in scope t00.fixme04.c: unknown identifier '<anonymous>'

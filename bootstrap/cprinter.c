@@ -5,6 +5,7 @@
 
 #include "printer.h"
 #include "types.h"
+#include "scope.h"
 
 enum forward {
   FWD_DECLARE_TYPES,

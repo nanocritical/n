@@ -4,6 +4,7 @@
 #include "printer.h"
 #include "passes.h"
 #include "table.h"
+#include "scope.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -67,7 +68,7 @@ static error load_module(struct module **main_mod,
   stage->loaded[stage->loaded_count] = mod->root;
   stage->loaded_count += 1;
 
-  e = advance(mod, 0);
+  e = advance(mod);
   EXCEPT(e);
 
   if (main_mod != NULL) {
@@ -384,7 +385,7 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
   EXCEPT(e);
 
   size_t p;
-  for (p = 1; passes[p].kind == PASS_FORWARD; ++p) {
+  for (p = 1; passes(p)->kind == PASS_FORWARD; ++p) {
     stage->state->passing = p;
 
     for (size_t n = 0; n < stage->sorted_count; ++n) {
@@ -392,7 +393,7 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
 
       PUSH_STATE(mod->state->step_state);
 
-      e = advance(mod, p);
+      e = advance(mod);
       EXCEPT(e);
 
       POP_STATE(mod->state->step_state);
@@ -404,10 +405,10 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
 
     PUSH_STATE(mod->state->step_state);
 
-    for (size_t pp = p; passes[pp].kind == PASS_BODY; ++pp) {
+    for (size_t pp = p; passes(pp) != NULL; ++pp) {
       stage->state->passing = pp;
 
-      e = advance(mod, pp);
+      e = advance(mod);
       EXCEPT(e);
     }
 

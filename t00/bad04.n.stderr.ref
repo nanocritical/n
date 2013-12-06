@@ -1,1 +1,1 @@
-t00/bad04.n:5:4: parse: in scope t00.bad04: identifier 'foobar' already defined at t00/bad04.n:3:4
+t00/bad04.n:5:4: in scope t00.bad04: identifier 'foobar' already defined at t00/bad04.n:3:4

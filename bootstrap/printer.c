@@ -5,6 +5,7 @@
 
 #include "printer.h"
 #include "types.h"
+#include "scope.h"
 
 const char *token_strings[TOKEN__NUM] = {
   [Timport] = "import",
