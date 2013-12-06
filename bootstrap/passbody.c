@@ -2636,12 +2636,7 @@ static error step_check_exhaustive_intf_impl(struct module *mod, struct node *no
 static bool need_insert_dyn(struct module *mod,
                             const struct typ *intf,
                             const struct typ *concrete) {
-  // FIXME: further constraint on intf and concrete: their genarg, if any,
-  // must be concrete.
-  return
-    typ_is_dyn(intf)
-    && typ_is_reference(concrete)
-    && typ_definition_const(typ_generic_arg_const(concrete, 0))->which != DEFINTF;
+  return typ_is_dyn(intf) && typ_is_dyn_compatible(concrete);
 }
 
 static error insert_dyn(struct module *mod, struct node *node,

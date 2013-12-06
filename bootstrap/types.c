@@ -1001,11 +1001,39 @@ bool typ_is_reference(const struct typ *t) {
   return t->flags & TYPF_REF;
 }
 
+static bool dyn_concrete(const struct typ *t) {
+  const size_t arity = typ_generic_arity(t);
+  if (arity == 0) {
+    return TRUE;
+  }
+
+  for (size_t n = 0; n < arity; ++n) {
+    if (typ_definition_const(typ_generic_arg_const(t, n))->which == DEFINTF) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
 bool typ_is_dyn(const struct typ *t) {
-  return !typ_is_tentative(t)
-    && typ_is_reference(t)
-    && typ_generic_arity(t) > 0
-    && typ_definition_const(typ_generic_arg_const(t, 0))->which == DEFINTF;
+  if (typ_is_tentative(t)
+      || !typ_is_reference(t)
+      || typ_generic_arity(t) == 0) {
+    return FALSE;
+  }
+
+  const struct typ *a = typ_generic_arg_const(t, 0);
+  return typ_definition_const(a)->which == DEFINTF && dyn_concrete(a);
+}
+
+bool typ_is_dyn_compatible(const struct typ *t) {
+  if (!typ_is_reference(t)
+      || typ_generic_arity(t) == 0) {
+    return FALSE;
+  }
+
+  const struct typ *a = typ_generic_arg_const(t, 0);
+  return typ_definition_const(a)->which != DEFINTF && dyn_concrete(a);
 }
 
 error typ_check_is_reference(const struct module *mod, const struct node *for_error,
