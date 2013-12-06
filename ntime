@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+count=$1
+shift
+
+export TIMEFORMAT='%3R'
+
+L=.ntime.log
+rm -f $L
+
+echo "print (" >>$L
+for i in $(seq $count); do
+	{ time $*; } 2>> $L
+	echo + >> $L
+done
+echo "0) / $count" >> $L
+
+(tr "\n" " " < $L ; echo) | bc -ql
+echo
+
+rm -f $L
