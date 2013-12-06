@@ -1343,6 +1343,7 @@ const struct pass passfwd[] = {
       step_stop_submodules,
       step_lexical_import,
       step_add_builtin_members,
+      step_stop_funblock,
       NULL,
     },
     {
