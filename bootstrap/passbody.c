@@ -1946,7 +1946,6 @@ static error step_remove_typeconstraints(struct module *mod, struct node *node,
     struct node *sub = node->subs[0];
     struct scope *parent = node->scope->parent;
 
-    memset(node, 0, sizeof(*node));
     *node = *sub;
     node->scope->parent = parent;
     node->scope->node = node;
