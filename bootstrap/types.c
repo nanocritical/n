@@ -956,15 +956,6 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
     }
   }
 
-  // Literals types do not have a isalist. FIXME: Why not?
-  if (typ_equal(a, TBI_LITERALS_INTEGER)) {
-    return typ_isa(TBI_INTEGER, intf);
-  } else if (typ_equal(a, TBI_LITERALS_NULL)) {
-    return typ_isa(TBI_NREF, intf);
-  } else if (typ_equal(a, TBI_LITERALS_FLOATING)) {
-    return typ_isa(TBI_FLOATING, intf);
-  }
-
   for (size_t n = 0; n < direct_isalist_count(a); ++n) {
     if (typ_equal(direct_isalist_const(a, n), intf)) {
       return TRUE;
