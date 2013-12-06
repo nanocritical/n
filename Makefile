@@ -3,7 +3,7 @@ MAKEFLAGS := -j2 -r -R --warn-undefined-variables
 
 V ?=
 Q = $(if $V,,@)
-O ?= -O0
+O ?= 0
 P ?= 0
 
 default:: examples ncc0
@@ -15,7 +15,7 @@ ifeq ($(P),1)
 	CFLAGS += -pg
 endif
 
-CFLAGS += -std=c99 -Wall $(O) -ggdb \
+CFLAGS += -std=c99 -Wall -O$(O) -ggdb \
 	  -Wmissing-prototypes -Wpointer-arith \
 	  -Wmissing-declarations -Wno-format-zero-length -Wbad-function-cast \
 	  -Wcast-align -Wwrite-strings -Wno-missing-braces -Wstrict-prototypes \
