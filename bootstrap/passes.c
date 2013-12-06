@@ -32,21 +32,6 @@ const struct pass *passes(size_t p) {
   return v[p];
 };
 
-static bool is_excepted(const struct module *mod, struct node *node) {
-  if (mod == NULL) {
-    return FALSE;
-  }
-
-  for (struct except_list *ex = mod->excepts; ex != NULL; ex = ex->prev) {
-    for (size_t n = 0; ex->list[n] != NULL; ++n) {
-      if (ex->list[n] == node) {
-        return TRUE;
-      }
-    }
-  }
-  return FALSE;
-}
-
 error pass(struct module *mod, struct node *node,
            const step *down_steps, const step *up_steps, ssize_t shallow_last_up,
            void *user) {
@@ -55,7 +40,7 @@ error pass(struct module *mod, struct node *node,
     node = mod->root;
   }
 
-  if (is_excepted(mod, node)) {
+  if (node->flags & NODE__EXCEPTED) {
     return 0;
   }
 
@@ -133,6 +118,26 @@ static size_t last_tentative_instance_pass(void) {
   return r;
 }
 
+static void mark_excepted(const struct node **except) {
+  if (except == NULL) {
+    return;
+  }
+
+  for (size_t n = 0; except[n] != NULL; ++n) {
+    ((struct node *) except[n])->flags |= NODE__EXCEPTED;
+  }
+}
+
+static void unmark_excepted(const struct node **except) {
+  if (except == NULL) {
+    return;
+  }
+
+  for (size_t n = 0; except[n] != NULL; ++n) {
+    ((struct node *) except[n])->flags &= ~NODE__EXCEPTED;
+  }
+}
+
 // Rules for generated nodes:
 // - No constraints when modifying anything below the current node (in
 // node->subs, etc.);
@@ -144,10 +149,7 @@ error catchup(struct module *mod,
               struct node *node,
               struct scope *parent_scope,
               enum catchup_for how) {
-  if (except != NULL) {
-    PUSH_STATE(mod->excepts);
-    mod->excepts->list = except;
-  }
+  mark_excepted(except);
 
   ssize_t from = 0, goal;
   if (how == CATCHUP_NEW_INSTANCE) {
@@ -214,9 +216,7 @@ error catchup(struct module *mod,
   }
   POP_STATE(mod->stage->state);
 
-  if (except != NULL) {
-    POP_STATE(mod->excepts);
-  }
+  unmark_excepted(except);
 
   return 0;
 }

@@ -357,6 +357,7 @@ enum node_flags {
   NODE_IS_TEMPORARY = 0x4,
   NODE_IS_GLOBAL_LET = 0x8,
   NODE__TRANSITIVE = NODE_IS_TYPE,
+  NODE__EXCEPTED = 0x8000,
 };
 
 struct node {
@@ -615,12 +616,6 @@ struct module_state {
   struct step_state *step_state;
 };
 
-struct except_list {
-  struct except_list *prev;
-
-  const struct node **list;
-};
-
 #define PUSH_STATE(st) do { \
   __typeof__(st) nst = calloc(1, sizeof(*st)); \
   nst->prev = st; \
@@ -692,8 +687,6 @@ struct module {
   bool done;
 
   struct module_state *state;
-
-  struct except_list *excepts;
 };
 
 int parser_line(const struct parser *parser, const struct token *tok);
