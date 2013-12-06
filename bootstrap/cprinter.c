@@ -399,8 +399,9 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
     return;
   }
 
-  if (node->scope->parent->parent->parent->node->which == LET) {
-    switch (node->scope->parent->parent->parent->parent->node->which) {
+  const struct node *context = node->scope->parent->parent->parent->node;
+  if (context->which == LET) {
+    switch (context->which) {
     case MODULE_BODY:
     case DEFTYPE:
       print_init_toplevel(out, mod, node);

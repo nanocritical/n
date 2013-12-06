@@ -245,7 +245,7 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
     return 0;
 
   case UN:
-    assert(FALSE && "Unsupported");
+    assert(FALSE && "FIXME: Unsupported");
     e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0],
                                     UNLESS_NULL(expr, expr->subs[0]));
     EXCEPT(e);
@@ -289,6 +289,7 @@ static error step_defpattern_extract_defname(struct module *mod, struct node *no
 
   return 0;
 }
+
 static void append_member(struct node *deft, struct node *m) {
   assert(deft->which == DEFTYPE);
 
