@@ -2,7 +2,8 @@
 
 #include "scope.h"
 
-static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node *node,
+                                                 void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case UN:
@@ -26,7 +27,8 @@ static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node
   return 0;
 }
 
-static error step_rewrite_prototype_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_rewrite_prototype_wildcards(struct module *mod, struct node *node,
+                                              void *user, bool *stop) {
   DSTEP(mod, node);
 
   static const step down[] = {
@@ -92,7 +94,8 @@ struct node *add_instance_deepcopy_from_pristine(struct module *mod,
   return instance;
 }
 
-static error step_generics_pristine_copy(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_generics_pristine_copy(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case DEFTYPE:
@@ -115,7 +118,8 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node, 
   return 0;
 }
 
-static error step_detect_prototypes(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_detect_prototypes(struct module *mod, struct node *node,
+                                    void *user, bool *stop) {
   DSTEP(mod, node);
   struct toplevel *toplevel = node_toplevel(node);
   switch (node->which) {
@@ -131,7 +135,8 @@ static error step_detect_prototypes(struct module *mod, struct node *node, void 
 }
 
 // Must be run before builtins are added.
-static error step_detect_deftype_kind(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_detect_deftype_kind(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE) {
     return 0;
@@ -175,7 +180,8 @@ field_and_sum:
   THROW(e);
 }
 
-static error step_assign_deftype_which_values(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_assign_deftype_which_values(struct module *mod, struct node *node,
+                                              void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE
       || (node->as.DEFTYPE.kind != DEFTYPE_ENUM
@@ -216,7 +222,8 @@ static error step_assign_deftype_which_values(struct module *mod, struct node *n
   return 0;
 }
 
-error step_add_scopes(struct module *mod, struct node *node, void *user, bool *stop) {
+error step_add_scopes(struct module *mod, struct node *node,
+                      void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != MODULE) {
     node->scope = scope_new(node);
@@ -232,7 +239,8 @@ error step_add_scopes(struct module *mod, struct node *node, void *user, bool *s
   return 0;
 }
 
-error step_stop_submodules(struct module *mod, struct node *node, void *user, bool *stop) {
+error step_stop_submodules(struct module *mod, struct node *node,
+                           void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != MODULE) {
     return 0;

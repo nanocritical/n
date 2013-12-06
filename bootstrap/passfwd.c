@@ -10,7 +10,8 @@
 #include "passzero.h"
 #include "passbody.h"
 
-static error step_codeloc_for_generated(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_codeloc_for_generated(struct module *mod, struct node *node,
+                                        void *user, bool *stop) {
   if (node->codeloc == 0
       && node->scope != NULL
       && node->scope->parent != NULL) {
@@ -20,7 +21,8 @@ static error step_codeloc_for_generated(struct module *mod, struct node *node, v
   return 0;
 }
 
-error step_stop_already_morningtypepass(struct module *mod, struct node *node, void *user, bool *stop) {
+error step_stop_already_morningtypepass(struct module *mod, struct node *node,
+                                        void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case LET:
@@ -70,7 +72,8 @@ static error morningtypepass(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error step_type_definitions(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_definitions(struct module *mod, struct node *node,
+                                   void *user, bool *stop) {
   DSTEP(mod, node);
 
   switch (node->which) {
@@ -105,7 +108,8 @@ static error step_type_definitions(struct module *mod, struct node *node, void *
   return 0;
 }
 
-static error step_lexical_import(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_lexical_import(struct module *mod, struct node *node,
+                                 void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
 
@@ -268,7 +272,8 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
   return 0;
 }
 
-static error step_defpattern_extract_defname(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_defpattern_extract_defname(struct module *mod, struct node *node,
+                                             void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFPATTERN) {
     return 0;
@@ -304,7 +309,8 @@ static void add_deftype_pristine_external_member(struct module *mod, struct node
   append_member(deft_pristine, member_pristine);
 }
 
-static error step_lexical_scoping(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_lexical_scoping(struct module *mod, struct node *node,
+                                  void *user, bool *stop) {
   DSTEP(mod, node);
   struct node *id = NULL;
   struct scope *sc = NULL;
@@ -330,7 +336,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
       // use this or final.
       sc = NULL;
     } else if (toplevel->scope_name == 0
-        || node_parent(node)->which == DEFINTF) {
+               || node_parent(node)->which == DEFINTF) {
       sc = node->scope->parent;
     } else {
       if (node_parent(node)->which == DEFTYPE) {
@@ -436,7 +442,8 @@ static error step_lexical_scoping(struct module *mod, struct node *node, void *u
   return 0;
 }
 
-static error step_add_builtin_members(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_builtin_members(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case DEFTYPE:
@@ -487,7 +494,8 @@ static error step_add_builtin_members(struct module *mod, struct node *node, voi
   return 0;
 }
 
-static error step_type_inference_genargs(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_inference_genargs(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
 
@@ -515,7 +523,8 @@ static error step_type_inference_genargs(struct module *mod, struct node *node, 
   return 0;
 }
 
-static error step_type_create_update(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_create_update(struct module *mod, struct node *node,
+                                     void *user, bool *stop) {
   DSTEP(mod, node);
 
   switch (node->which) {
@@ -537,7 +546,8 @@ static error step_type_create_update(struct module *mod, struct node *node, void
   return 0;
 }
 
-static error step_type_inference_isalist(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_inference_isalist(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
 
@@ -553,7 +563,8 @@ static error step_type_inference_isalist(struct module *mod, struct node *node, 
   return 0;
 }
 
-static error step_type_update_quickisa(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_update_quickisa(struct module *mod, struct node *node,
+                                       void *user, bool *stop) {
   DSTEP(mod, node);
 
   switch (node->which) {
@@ -572,7 +583,8 @@ static error step_type_update_quickisa(struct module *mod, struct node *node, vo
   return 0;
 }
 
-static error step_type_lets(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_lets(struct module *mod, struct node *node,
+                            void *user, bool *stop) {
   DSTEP(mod, node);
 
   error e;
@@ -593,7 +605,8 @@ static error step_type_lets(struct module *mod, struct node *node, void *user, b
   return 0;
 }
 
-static error step_type_deffields(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_deffields(struct module *mod, struct node *node,
+                                 void *user, bool *stop) {
   DSTEP(mod, node);
 
   error e;
@@ -610,7 +623,8 @@ static error step_type_deffields(struct module *mod, struct node *node, void *us
   return 0;
 }
 
-static error step_type_defchoices(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_defchoices(struct module *mod, struct node *node,
+                                  void *user, bool *stop) {
   DSTEP(mod, node);
 
   error e;
@@ -651,7 +665,8 @@ static error step_type_defchoices(struct module *mod, struct node *node, void *u
   return 0;
 }
 
-static error step_type_deffuns(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_deffuns(struct module *mod, struct node *node,
+                               void *user, bool *stop) {
   DSTEP(mod, node);
 
   error e;
@@ -726,7 +741,8 @@ static void add_inferred_isa(struct module *mod, struct node *deft, const char *
   typ_create_update_quickisa(deft->typ);
 }
 
-static error step_add_builtin_enum_intf(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_builtin_enum_intf(struct module *mod, struct node *node,
+                                        void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE
       || node->as.DEFTYPE.kind != DEFTYPE_ENUM) {
@@ -739,7 +755,8 @@ static error step_add_builtin_enum_intf(struct module *mod, struct node *node, v
   return 0;
 }
 
-static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *node,
+                                               void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE) {
     return 0;
@@ -767,7 +784,8 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
   return 0;
 }
 
-static error step_rewrite_final_this(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_rewrite_final_this(struct module *mod, struct node *node,
+                                     void *user, bool *stop) {
   struct typ *thi = user;
   if (node->which == IDENT) {
     ident id = node_ident(node);
@@ -892,7 +910,8 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   assert(!e);
 }
 
-static error step_add_builtin_defchoice_constructors(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_builtin_defchoice_constructors(struct module *mod, struct node *node,
+                                                     void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFCHOICE) {
     return 0;
@@ -914,7 +933,8 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
   return 0;
 }
 
-static error step_add_builtin_ctor(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_builtin_ctor(struct module *mod, struct node *node,
+                                   void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE) {
     return 0;
@@ -926,7 +946,8 @@ static error step_add_builtin_ctor(struct module *mod, struct node *node, void *
   return 0;
 }
 
-static error step_add_builtin_dtor(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_builtin_dtor(struct module *mod, struct node *node,
+                                   void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE) {
     return 0;
@@ -1011,7 +1032,8 @@ static error define_auto(struct module *mod, struct node *deft,
   return 0;
 }
 
-static error step_add_builtin_mk_new(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_builtin_mk_new(struct module *mod, struct node *node,
+                                     void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE) {
     return 0;
@@ -1044,7 +1066,8 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node, void
   return 0;
 }
 
-static error step_add_builtin_mkv_newv(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_builtin_mkv_newv(struct module *mod, struct node *node,
+                                       void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE) {
     return 0;
@@ -1065,7 +1088,8 @@ static error step_add_builtin_mkv_newv(struct module *mod, struct node *node, vo
   return 0;
 }
 
-static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *node,
+                                               void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFCHOICE) {
     return 0;
@@ -1084,7 +1108,8 @@ static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *
   return 0;
 }
 
-static error step_add_builtin_operators(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_builtin_operators(struct module *mod, struct node *node,
+                                        void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE) {
     return 0;
@@ -1111,7 +1136,8 @@ static error step_add_builtin_operators(struct module *mod, struct node *node, v
   return 0;
 }
 
-static error step_add_trivials(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_trivials(struct module *mod, struct node *node,
+                               void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFTYPE) {
     return 0;
@@ -1228,7 +1254,8 @@ static error sum_choice_with_intf(struct module *mod, struct typ *t,
   return 0;
 }
 
-static error step_add_sum_dispatch(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_add_sum_dispatch(struct module *mod, struct node *node,
+                                   void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case DEFTYPE:
@@ -1247,13 +1274,14 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node, void *
   }
 
   error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTER_TRIVIAL_ISALIST,
-                          sum_choice_with_intf, node);
+                                sum_choice_with_intf, node);
   EXCEPT(e);
 
   return 0;
 }
 
-static error step_rewrite_def_return_through_ref(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_rewrite_def_return_through_ref(struct module *mod, struct node *node,
+                                                 void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFFUN && node->which != DEFMETHOD) {
     return 0;

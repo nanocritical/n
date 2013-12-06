@@ -8,7 +8,8 @@
 #include "passzero.h"
 #include "passfwd.h"
 
-static error step_push_fun_state(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_push_fun_state(struct module *mod, struct node *node,
+                                 void *user, bool *stop) {
   switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
@@ -21,7 +22,8 @@ static error step_push_fun_state(struct module *mod, struct node *node, void *us
   return 0;
 }
 
-static error step_pop_fun_state(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_pop_fun_state(struct module *mod, struct node *node,
+                                void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case DEFFUN:
@@ -36,7 +38,8 @@ static error step_pop_fun_state(struct module *mod, struct node *node, void *use
 
 }
 
-static error step_detect_not_dyn_intf_down(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_detect_not_dyn_intf_down(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case DEFFUN:
@@ -49,7 +52,8 @@ static error step_detect_not_dyn_intf_down(struct module *mod, struct node *node
   return 0;
 }
 
-static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
   DSTEP(mod, node);
 
   if (mod->state->fun_state == NULL) {
@@ -82,7 +86,8 @@ static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node, 
   return 0;
 }
 
-static error step_rewrite_wildcards(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_rewrite_wildcards(struct module *mod, struct node *node,
+                                    void *user, bool *stop) {
   DSTEP(mod, node);
 
 #define SET_UNLESS_ZERO(dst, src) if (src != 0) { dst = src; }
@@ -165,7 +170,8 @@ static void inherit(struct module *mod, struct node *node) {
   }
 }
 
-error step_type_destruct_mark(struct module *mod, struct node *node, void *user, bool *stop) {
+error step_type_destruct_mark(struct module *mod, struct node *node,
+                              void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which == MODULE) {
     return 0;
@@ -220,7 +226,8 @@ error step_type_destruct_mark(struct module *mod, struct node *node, void *user,
   return 0;
 }
 
-static error step_type_mutability_mark(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_mutability_mark(struct module *mod, struct node *node,
+                                       void *user, bool *stop) {
   DSTEP(mod, node);
   struct typ *mutable = TBI__MUTABLE;
   struct typ *mercurial = TBI__MERCURIAL;
@@ -292,7 +299,8 @@ static error step_type_mutability_mark(struct module *mod, struct node *node, vo
   return 0;
 }
 
-static error step_type_gather_retval(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_gather_retval(struct module *mod, struct node *node,
+                                     void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case DEFFUN:
@@ -334,7 +342,8 @@ ok:
   return 0;
 }
 
-static error step_type_gather_excepts(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_gather_excepts(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
   switch (node->which) {
@@ -359,7 +368,8 @@ static error step_type_gather_excepts(struct module *mod, struct node *node, voi
   return 0;
 }
 
-static error step_excepts_store_label(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_excepts_store_label(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
   DSTEP(mod, node);
 
   struct node *label_ident = NULL;
@@ -442,7 +452,8 @@ static error step_excepts_store_label(struct module *mod, struct node *node, voi
   return 0;
 }
 
-static error step_rewrite_defname_no_expr(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_rewrite_defname_no_expr(struct module *mod, struct node *node,
+                                          void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != DEFNAME) {
     return 0;
@@ -451,7 +462,8 @@ static error step_rewrite_defname_no_expr(struct module *mod, struct node *node,
   return 0;
 }
 
-static error step_rewrite_sum_constructors(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_rewrite_sum_constructors(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != CALL) {
     return 0;
@@ -1683,7 +1695,8 @@ static bool string_literal_has_length_one(const char *s) {
   }
 }
 
-error step_type_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+error step_type_inference(struct module *mod, struct node *node,
+                          void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
 
@@ -1924,7 +1937,8 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
   return 0;
 }
 
-static error step_remove_typeconstraints(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_remove_typeconstraints(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
   DSTEP(mod, node);
 
   if (node->which == TYPECONSTRAINT && !node->as.TYPECONSTRAINT.in_pattern) {
@@ -1944,7 +1958,8 @@ static error step_remove_typeconstraints(struct module *mod, struct node *node, 
   return 0;
 }
 
-static error step_type_drop_excepts(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_type_drop_excepts(struct module *mod, struct node *node,
+                                    void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case TRY:
@@ -1971,7 +1986,8 @@ static size_t defchoice_count(struct node *deft) {
   return r;
 }
 
-static error step_check_exhaustive_match(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_check_exhaustive_match(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
   if (node->which != MATCH) {
     return 0;
   }
@@ -2310,7 +2326,8 @@ static error gen_operator_call(struct module *mod,
   return 0;
 }
 
-static error step_operator_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_operator_call_inference(struct module *mod, struct node *node,
+                                          void *user, bool *stop) {
   DSTEP(mod, node);
 
   enum token_type op;
@@ -2388,7 +2405,8 @@ static error gen_operator_test_call(struct module *mod, struct node *node, size_
   return 0;
 }
 
-static error step_operator_test_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_operator_test_call_inference(struct module *mod, struct node *node,
+                                               void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
 
@@ -2406,12 +2424,14 @@ static error step_operator_test_call_inference(struct module *mod, struct node *
   return 0;
 }
 
-static error step_ctor_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_ctor_call_inference(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
   DSTEP(mod, node);
   return 0;
 }
 
-static error step_array_ctor_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_array_ctor_call_inference(struct module *mod, struct node *node,
+                                            void *user, bool *stop) {
   DSTEP(mod, node);
 
   if (node->which != INIT || !node->as.INIT.is_array) {
@@ -2447,7 +2467,8 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
   return 0;
 }
 
-static error step_dtor_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_dtor_call_inference(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
   DSTEP(mod, node);
   return 0;
 }
@@ -2503,7 +2524,8 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
   return 0;
 }
 
-static error step_copy_call_inference(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_copy_call_inference(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
   DSTEP(mod, node);
   struct node *left;
   struct node *right;
@@ -2615,6 +2637,8 @@ static error step_check_exhaustive_intf_impl(struct module *mod, struct node *no
 static bool need_insert_dyn(struct module *mod,
                             const struct typ *intf,
                             const struct typ *concrete) {
+  // FIXME: further constraint on intf and concrete: their genarg, if any,
+  // must be concrete.
   return
     typ_is_dyn(intf)
     && typ_is_reference(concrete)
@@ -2779,7 +2803,8 @@ static void block_like_insert_value_assign(struct module *mod, struct node *node
   }
 }
 
-static error step_move_assign_in_block_like(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_move_assign_in_block_like(struct module *mod, struct node *node,
+                                            void *user, bool *stop) {
   if (node->which != BIN || !OP_IS_ASSIGN(node->as.BIN.operator)) {
     return 0;
   }
@@ -2803,7 +2828,8 @@ static error step_move_assign_in_block_like(struct module *mod, struct node *nod
   return 0;
 }
 
-static error step_move_defname_expr_in_let_block(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_move_defname_expr_in_let_block(struct module *mod, struct node *node,
+                                                 void *user, bool *stop) {
   if (node->which != DEFPATTERN) {
     return 0;
   }
@@ -2874,7 +2900,8 @@ static const struct node *retval_name(struct module *mod) {
   return retval->subs[0];
 }
 
-static error step_store_return_through_ref_expr(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_store_return_through_ref_expr(struct module *mod, struct node *node,
+                                                void *user, bool *stop) {
   DSTEP(mod, node);
 
   struct node *expr = NULL;
@@ -2999,7 +3026,8 @@ static void temporaries_add(struct temporaries *temps, struct node *node) {
   temps->rvalues[temps->count - 1] = node;
 }
 
-static error step_gather_temporary_rvalues(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_gather_temporary_rvalues(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
   DSTEP(mod, node);
   struct temporaries *temps = user;
 
@@ -3162,7 +3190,8 @@ static void declare_temporaries(struct module *mod, struct node *statement,
   }
 }
 
-static error step_define_temporary_rvalues(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_define_temporary_rvalues(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
   DSTEP(mod, node);
   if (!node_is_statement(node)) {
     return 0;

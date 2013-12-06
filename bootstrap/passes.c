@@ -67,7 +67,7 @@ error pass(struct module *mod, struct node *node,
   }
 
   for (ssize_t s = 0; up_steps[s] != NULL
-                      && (shallow_last_up == -1 || s <= shallow_last_up); ++s) {
+       && (shallow_last_up == -1 || s <= shallow_last_up); ++s) {
     if (mod != NULL) {
       mod->state->step_state->upward = TRUE;
       mod->state->step_state->stepping = s;
@@ -280,7 +280,8 @@ error catchup_instantiation(struct module *instantiating_mod,
   return 0;
 }
 
-error step_stop_marker_tbi(struct module *mod, struct node *node, void *user, bool *stop) {
+error step_stop_marker_tbi(struct module *mod, struct node *node,
+                           void *user, bool *stop) {
   DSTEP(mod, node);
 
   if (node->which == DEFTYPE) {
@@ -300,7 +301,8 @@ error step_stop_marker_tbi(struct module *mod, struct node *node, void *user, bo
   return 0;
 }
 
-error step_stop_block(struct module *mod, struct node *node, void *user, bool *stop) {
+error step_stop_block(struct module *mod, struct node *node,
+                      void *user, bool *stop) {
   DSTEP(mod, node);
 
   switch (node->which) {
@@ -312,7 +314,8 @@ error step_stop_block(struct module *mod, struct node *node, void *user, bool *s
   }
 }
 
-error step_stop_funblock(struct module *mod, struct node *node, void *user, bool *stop) {
+error step_stop_funblock(struct module *mod, struct node *node,
+                         void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
   case BLOCK:
@@ -372,7 +375,8 @@ static error do_complete_instantiation(struct module *mod, struct node *node) {
   return 0;
 }
 
-error step_complete_instantiation(struct module *mod, struct node *node, void *user, bool *stop) {
+error step_complete_instantiation(struct module *mod, struct node *node,
+                                  void *user, bool *stop) {
   DSTEP(mod, node);
 
   struct toplevel *toplevel = node_toplevel(node);
