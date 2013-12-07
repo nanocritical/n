@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export TDIFF_WHAT="stderr stdout"
+
 wd=$(dirname $0)
 WD="$wd/"
 if [ "$WD" == "./" ]; then
@@ -62,23 +64,7 @@ for t in $list; do
 		perl -i -ne 'if (!m/^\tE: /) { print; }' $t.stderr.out
 	fi
 
-	need_hr=0
-	for all in stderr stdout; do
-		if [ -f $t.$all.ref ] || [ -f $t.$all.out ]; then
-			if ! cmp -s $t.$all.ref $t.$all.out; then
-				ret=1
-				need_hr=1
-				echo "FAILED $t: different output '$all'"
-				if [[ "$all" = "stderr" || "$all" = "stdout" ]]; then
-					diff -Nu $t.$all.ref $t.$all.out
-				fi
-			fi
-		fi
-	done
-
-	if (( $need_hr )); then
-		echo "---------------------------------------------------------------"
-	fi
+        ./tdiff $t
 done
 
 exit $ret

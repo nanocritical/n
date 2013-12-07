@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+wd=$(dirname $0)
+WD="$wd/"
+if [ "$WD" == "./" ]; then
+	WD=""
+fi
+
+list=$*
+if [ -z "$list" ]; then
+	list=${WD}t[0-9][0-9]/*.n
+fi
+
+ret=0
+
+if [ -z "$TDIFF_WHAT" ]; then
+	TDIFF_WHAT="stderr stdout tree pretty c"
+fi
+
+for t in $list; do
+	for all in $TDIFF_WHAT; do
+		if [ -f $t.$all.ref ] || [ -f $t.$all.out ]; then
+			if ! cmp -s $t.$all.ref $t.$all.out; then
+				ret=1
+				need_hr=1
+				echo "FAILED $t: different output '$all'"
+				diff -Nu $t.$all.ref $t.$all.out
+			fi
+		fi
+	done
+
+	if (( $need_hr )); then
+		echo "---------------------------------------------------------------"
+	fi
+done
+
+exit $ret
