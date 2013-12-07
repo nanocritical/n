@@ -226,6 +226,11 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  bool opt_compile = TRUE;
+  if (getenv("NCC_GEN_ONLY")) {
+    opt_compile = FALSE;
+  }
+
   struct globalctx gctx;
   globalctx_init(&gctx);
 
@@ -238,6 +243,10 @@ int main(int argc, char **argv) {
 
     e = generate(mod->root);
     EXCEPT(e);
+  }
+
+  if (!opt_compile) {
+    return 0;
   }
 
   for (size_t n = 0; n < stage.sorted_count; ++n) {
