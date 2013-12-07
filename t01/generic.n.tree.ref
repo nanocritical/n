@@ -1,18 +1,14 @@
-MODULE_BODY :nlang.literals.__internal_not_typeable__
- IMPORT :nlang.literals.__internal_not_typeable__
+MODULE_BODY :nlang.builtins.__internal_not_typeable__
+ IMPORT :nlang.builtins.__internal_not_typeable__
   IDENT(nlang)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(__null__)
+     IDENT(builtins)
+    IDENT(__literal_null__)
   IMPORT :<import>
    IDENT(nlang)
-   IMPORT :<import>
-    BIN(.)
-     IDENT(nlang)
-     IDENT(literals)
    IMPORT :<import>
     BIN(.)
      IDENT(nlang)
@@ -33,37 +29,37 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(integer)
+     IDENT(builtins)
+    IDENT(__literal_integer__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(floating)
+     IDENT(builtins)
+    IDENT(__literal_floating__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__internal_not_typeable__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__call_function_slot__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__mutable__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__mercurial__)
   IMPORT :<import>
    BIN(.)
@@ -742,12 +738,12 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
     IDENT(nlang)
     IDENT(just_mutable)
  DEFTYPE :(functor t01.generic.container nlang.builtins.i_copyable)
-  IDENT(container) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
+  IDENT(container) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
    DEFGENARG :nlang.builtins.i_copyable
-    IDENT(t) :nlang.literals.__internal_not_typeable__
+    IDENT(t) :nlang.builtins.__internal_not_typeable__
     IDENT(i_copyable) :nlang.builtins.i_copyable
-  ISALIST :nlang.literals.__internal_not_typeable__
+  ISALIST :nlang.builtins.__internal_not_typeable__
    ISA :nlang.builtins.i_trivial_ctor
     IDENT(i_trivial_ctor) :nlang.builtins.i_trivial_ctor
    ISA :nlang.builtins.i_trivial_ctor
@@ -755,9 +751,9 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
      BIN(.) :nlang.builtins
       BIN(.) :nlang
        DIRECTDEF :<root>
-       IDENT(nlang) :nlang.literals.__internal_not_typeable__
-      IDENT(builtins) :nlang.literals.__internal_not_typeable__
-     IDENT(i_trivial_ctor) :nlang.literals.__internal_not_typeable__
+       IDENT(nlang) :nlang.builtins.__internal_not_typeable__
+      IDENT(builtins) :nlang.builtins.__internal_not_typeable__
+     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
     IDENT(this) :(functor t01.generic.container nlang.builtins.i_copyable)
@@ -769,24 +765,24 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
     DIRECTDEF :(functor t01.generic.container nlang.builtins.i_copyable)
     DEFNAME(final) :(functor t01.generic.container nlang.builtins.i_copyable)
   DEFFIELD :nlang.builtins.i_copyable
-   IDENT(x) :nlang.literals.__internal_not_typeable__
+   IDENT(x) :nlang.builtins.__internal_not_typeable__
    IDENT(t) :nlang.builtins.i_copyable
  DEFFUN :t01.generic.main
-  IDENT(main) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  IDENT(main) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(v) :(t01.generic.container nlang.builtins.i32)
      INIT :(t01.generic.container nlang.builtins.i32)
-      IDENT(x) :nlang.literals.__internal_not_typeable__
+      IDENT(x) :nlang.builtins.__internal_not_typeable__
       NUMBER(1) :nlang.builtins.i32
      DEFNAME(v) :(t01.generic.container nlang.builtins.i32)
    RETURN :nlang.builtins.void
     BIN( - ) :nlang.builtins.i32
      BIN(.) :nlang.builtins.i32
       IDENT(v) :(t01.generic.container nlang.builtins.i32)
-      IDENT(x) :nlang.literals.__internal_not_typeable__
+      IDENT(x) :nlang.builtins.__internal_not_typeable__
      NUMBER(1) :nlang.builtins.i32

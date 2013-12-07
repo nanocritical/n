@@ -1,4 +1,3 @@
-from nlang.literals import *
 from nlang.builtins import *
 
 export extern (fun u:i_any_any_ref v:i_any_any_ref) cast a:u = v

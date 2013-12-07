@@ -1,4 +1,3 @@
-from nlang.literals import *
 from nlang.builtins import *
 from nlang.containers import *
 import nlang.unsafe

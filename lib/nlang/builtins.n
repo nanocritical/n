@@ -4,6 +4,16 @@ from nlang.containers import index_range range
 from nlang.unsafe import cast
 from nlang import say print
 
+export extern type __literal_null__ = export i_any_nullable_ref
+export extern type __literal_integer__ = export i_integer
+export extern type __literal_floating__ = export i_floating
+
+export extern type __internal_not_typeable__ =
+export extern type __call_function_slot__ =
+
+export extern type __mutable__ =
+export extern type __mercurial__ =
+
 export intf i_any =
 
 export intf i_copyable =

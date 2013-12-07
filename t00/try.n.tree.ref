@@ -1,18 +1,14 @@
-MODULE_BODY :nlang.literals.__internal_not_typeable__
- IMPORT :nlang.literals.__internal_not_typeable__
+MODULE_BODY :nlang.builtins.__internal_not_typeable__
+ IMPORT :nlang.builtins.__internal_not_typeable__
   IDENT(nlang)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(__null__)
+     IDENT(builtins)
+    IDENT(__literal_null__)
   IMPORT :<import>
    IDENT(nlang)
-   IMPORT :<import>
-    BIN(.)
-     IDENT(nlang)
-     IDENT(literals)
    IMPORT :<import>
     BIN(.)
      IDENT(nlang)
@@ -33,37 +29,37 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(integer)
+     IDENT(builtins)
+    IDENT(__literal_integer__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(floating)
+     IDENT(builtins)
+    IDENT(__literal_floating__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__internal_not_typeable__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__call_function_slot__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__mutable__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__mercurial__)
   IMPORT :<import>
    BIN(.)
@@ -742,9 +738,9 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
     IDENT(nlang)
     IDENT(just_mutable)
  DEFFUN :t00.try.inferred
-  IDENT(inferred) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  IDENT(inferred) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    DEFARG :nlang.builtins.error
     IDENT(_nretval)
     IDENT(error) :nlang.builtins.error
@@ -768,7 +764,7 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
            BIN( = ) :nlang.builtins.void
             IDENT(_Ngensym16) :nlang.builtins.error
             INIT :nlang.builtins.error
-             IDENT(code) :nlang.literals.__internal_not_typeable__
+             IDENT(code) :nlang.builtins.__internal_not_typeable__
              NUMBER(1) :nlang.builtins.i32
            IDENT(_Ngensym16) :nlang.builtins.error
       CATCH :nlang.builtins.void
@@ -781,9 +777,9 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
         RETURN :nlang.builtins.void
          IDENT(err) :nlang.builtins.error
  DEFFUN :t00.try.foo
-  IDENT(foo) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  IDENT(foo) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    TRY :nlang.builtins.void
@@ -806,7 +802,7 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
            BIN( = ) :nlang.builtins.void
             IDENT(_Ngensym17) :nlang.builtins.error
             INIT :nlang.builtins.error
-             IDENT(code) :nlang.literals.__internal_not_typeable__
+             IDENT(code) :nlang.builtins.__internal_not_typeable__
              NUMBER(1) :nlang.builtins.i32
            IDENT(_Ngensym17) :nlang.builtins.error
        LET :nlang.builtins.void
@@ -822,7 +818,7 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
            BIN( = ) :nlang.builtins.void
             IDENT(_Ngensym18) :nlang.builtins.error
             INIT :nlang.builtins.error
-             IDENT(code) :nlang.literals.__internal_not_typeable__
+             IDENT(code) :nlang.builtins.__internal_not_typeable__
              NUMBER(0) :nlang.builtins.i32
            IDENT(_Ngensym18) :nlang.builtins.error
       CATCH :nlang.builtins.void
@@ -844,9 +840,9 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
         RETURN :nlang.builtins.void
          NUMBER(1) :nlang.builtins.i32
  DEFFUN :t00.try.bar
-  IDENT(bar) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  IDENT(bar) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    TRY :nlang.builtins.void
@@ -860,7 +856,7 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
         DEFPATTERN :nlang.builtins.void
          IDENT(_Ngensyma) :nlang.builtins.error
          INIT :nlang.builtins.error
-          IDENT(code) :nlang.literals.__internal_not_typeable__
+          IDENT(code) :nlang.builtins.__internal_not_typeable__
           NUMBER(1) :nlang.builtins.i32
          DEFNAME(excep _Ngensym5 _Ngensyma) :nlang.builtins.error
           CALL :nlang.builtins.bool
@@ -887,11 +883,11 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
              DEFPATTERN :nlang.builtins.void
               IDENT(_Ngensymb) :nlang.builtins.error
               INIT :nlang.builtins.error
-               IDENT(code) :nlang.literals.__internal_not_typeable__
+               IDENT(code) :nlang.builtins.__internal_not_typeable__
                BIN( + ) :nlang.builtins.i32
                 BIN(.) :nlang.builtins.i32
                  IDENT(err) :nlang.builtins.error
-                 IDENT(code) :nlang.literals.__internal_not_typeable__
+                 IDENT(code) :nlang.builtins.__internal_not_typeable__
                 NUMBER(1) :nlang.builtins.i32
               DEFNAME(excep ONE _Ngensymb) :nlang.builtins.error
                CALL :nlang.builtins.bool
@@ -902,7 +898,7 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
              DEFPATTERN :nlang.builtins.void
               IDENT(_Ngensymc) :nlang.builtins.error
               INIT :nlang.builtins.error
-               IDENT(code) :nlang.literals.__internal_not_typeable__
+               IDENT(code) :nlang.builtins.__internal_not_typeable__
                NUMBER(0) :nlang.builtins.i32
               DEFNAME(excep ZERO _Ngensymc) :nlang.builtins.error
                CALL :nlang.builtins.bool
@@ -922,7 +918,7 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
               BIN( - ) :nlang.builtins.i32
                BIN(.) :nlang.builtins.i32
                 IDENT(err) :nlang.builtins.error
-                IDENT(code) :nlang.literals.__internal_not_typeable__
+                IDENT(code) :nlang.builtins.__internal_not_typeable__
                NUMBER(1) :nlang.builtins.i32
            CATCH :nlang.builtins.void
             LET :nlang.builtins.void
@@ -934,9 +930,9 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
              RETURN :nlang.builtins.void
               NUMBER(0) :nlang.builtins.i32
  DEFFUN :t00.try.noerror
-  IDENT(noerror) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  IDENT(noerror) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    TRY :nlang.builtins.void
@@ -950,7 +946,7 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
         DEFPATTERN :nlang.builtins.void
          IDENT(_Ngensymd) :nlang.builtins.error
          INIT :nlang.builtins.error
-          IDENT(code) :nlang.literals.__internal_not_typeable__
+          IDENT(code) :nlang.builtins.__internal_not_typeable__
           NUMBER(0) :nlang.builtins.i32
          DEFNAME(excep _Ngensym7 _Ngensymd) :nlang.builtins.error
           CALL :nlang.builtins.bool
@@ -969,9 +965,9 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
         RETURN :nlang.builtins.void
          NUMBER(1) :nlang.builtins.i32
  DEFFUN :t00.try.main
-  IDENT(main) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  IDENT(main) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
@@ -995,7 +991,7 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
        UN(@) :(nlang.builtins.ref nlang.builtins.error)
         BIN(.) :nlang.builtins.error
          IDENT(error) :nlang.builtins.error
-         IDENT(OK) :nlang.literals.__internal_not_typeable__
+         IDENT(OK) :nlang.builtins.__internal_not_typeable__
    CALL :nlang.builtins.void
     IDENT(assert) :nlang.builtins.assert
     BIN( == ) :nlang.builtins.bool
@@ -1033,7 +1029,7 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
            BIN( = ) :nlang.builtins.void
             IDENT(_Ngensym1a) :nlang.builtins.error
             INIT :nlang.builtins.error
-             IDENT(code) :nlang.literals.__internal_not_typeable__
+             IDENT(code) :nlang.builtins.__internal_not_typeable__
              CALL :nlang.builtins.i32
               IDENT(bar) :t00.try.bar
            IDENT(_Ngensym1a) :nlang.builtins.error
@@ -1050,5 +1046,5 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
          BIN( - ) :nlang.builtins.i32
           BIN(.) :nlang.builtins.i32
            IDENT(err) :nlang.builtins.error
-           IDENT(code) :nlang.literals.__internal_not_typeable__
+           IDENT(code) :nlang.builtins.__internal_not_typeable__
           NUMBER(1) :nlang.builtins.i32

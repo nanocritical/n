@@ -1,18 +1,14 @@
-MODULE_BODY :nlang.literals.__internal_not_typeable__
- IMPORT :nlang.literals.__internal_not_typeable__
+MODULE_BODY :nlang.builtins.__internal_not_typeable__
+ IMPORT :nlang.builtins.__internal_not_typeable__
   IDENT(nlang)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(__null__)
+     IDENT(builtins)
+    IDENT(__literal_null__)
   IMPORT :<import>
    IDENT(nlang)
-   IMPORT :<import>
-    BIN(.)
-     IDENT(nlang)
-     IDENT(literals)
    IMPORT :<import>
     BIN(.)
      IDENT(nlang)
@@ -33,37 +29,37 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(integer)
+     IDENT(builtins)
+    IDENT(__literal_integer__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(floating)
+     IDENT(builtins)
+    IDENT(__literal_floating__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__internal_not_typeable__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__call_function_slot__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__mutable__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__mercurial__)
   IMPORT :<import>
    BIN(.)
@@ -742,17 +738,17 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
     IDENT(nlang)
     IDENT(just_mutable)
  DEFTYPE :t00.returnthroughref.t
-  IDENT(t) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  ISALIST :nlang.literals.__internal_not_typeable__
+  IDENT(t) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  ISALIST :nlang.builtins.__internal_not_typeable__
    ISA :nlang.builtins.i_trivial_ctor
     BIN(.) :nlang.builtins.i_trivial_ctor
      BIN(.) :nlang.builtins
       BIN(.) :nlang
        DIRECTDEF :<root>
-       IDENT(nlang) :nlang.literals.__internal_not_typeable__
-      IDENT(builtins) :nlang.literals.__internal_not_typeable__
-     IDENT(i_trivial_ctor) :nlang.literals.__internal_not_typeable__
+       IDENT(nlang) :nlang.builtins.__internal_not_typeable__
+      IDENT(builtins) :nlang.builtins.__internal_not_typeable__
+     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.returnthroughref.t
@@ -764,73 +760,73 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
     DIRECTDEF :t00.returnthroughref.t
     DEFNAME(final) :t00.returnthroughref.t
   DEFFIELD :nlang.builtins.i32
-   IDENT(x) :nlang.literals.__internal_not_typeable__
+   IDENT(x) :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
   DEFFIELD :nlang.builtins.i32
-   IDENT(xx) :nlang.literals.__internal_not_typeable__
+   IDENT(xx) :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
  DEFFUN :t00.returnthroughref.t.new
-  BIN(.) :nlang.literals.__internal_not_typeable__
-   BIN(.) :nlang.literals.__internal_not_typeable__
-    BIN(.) :nlang.literals.__internal_not_typeable__
-     BIN(.) :nlang.literals.__internal_not_typeable__
-      DIRECTDEF :nlang.literals.__internal_not_typeable__
-      IDENT(nlang) :nlang.literals.__internal_not_typeable__
-     IDENT(builtins) :nlang.literals.__internal_not_typeable__
-    IDENT(i_trivial_ctor) :nlang.literals.__internal_not_typeable__
-   IDENT(new) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  BIN(.) :nlang.builtins.__internal_not_typeable__
+   BIN(.) :nlang.builtins.__internal_not_typeable__
+    BIN(.) :nlang.builtins.__internal_not_typeable__
+     BIN(.) :nlang.builtins.__internal_not_typeable__
+      DIRECTDEF :nlang.builtins.__internal_not_typeable__
+      IDENT(nlang) :nlang.builtins.__internal_not_typeable__
+     IDENT(builtins) :nlang.builtins.__internal_not_typeable__
+    IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+   IDENT(new) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    UN(@#) :(nlang.builtins.mercurial_ref t00.returnthroughref.t)
     IDENT(final) :t00.returnthroughref.t
  DEFFUN :t00.returnthroughref.t.mk
-  BIN(.) :nlang.literals.__internal_not_typeable__
-   BIN(.) :nlang.literals.__internal_not_typeable__
-    BIN(.) :nlang.literals.__internal_not_typeable__
-     BIN(.) :nlang.literals.__internal_not_typeable__
-      DIRECTDEF :nlang.literals.__internal_not_typeable__
-      IDENT(nlang) :nlang.literals.__internal_not_typeable__
-     IDENT(builtins) :nlang.literals.__internal_not_typeable__
-    IDENT(i_trivial_ctor) :nlang.literals.__internal_not_typeable__
-   IDENT(mk) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  BIN(.) :nlang.builtins.__internal_not_typeable__
+   BIN(.) :nlang.builtins.__internal_not_typeable__
+    BIN(.) :nlang.builtins.__internal_not_typeable__
+     BIN(.) :nlang.builtins.__internal_not_typeable__
+      DIRECTDEF :nlang.builtins.__internal_not_typeable__
+      IDENT(nlang) :nlang.builtins.__internal_not_typeable__
+     IDENT(builtins) :nlang.builtins.__internal_not_typeable__
+    IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+   IDENT(mk) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    DEFARG :t00.returnthroughref.t
-    IDENT(r) :nlang.literals.__internal_not_typeable__
+    IDENT(r) :nlang.builtins.__internal_not_typeable__
     IDENT(final) :t00.returnthroughref.t
  DEFMETHOD :t00.returnthroughref.t.ctor
-  BIN(.) :nlang.literals.__internal_not_typeable__
-   BIN(.) :nlang.literals.__internal_not_typeable__
-    BIN(.) :nlang.literals.__internal_not_typeable__
-     BIN(.) :nlang.literals.__internal_not_typeable__
-      DIRECTDEF :nlang.literals.__internal_not_typeable__
-      IDENT(nlang) :nlang.literals.__internal_not_typeable__
-     IDENT(builtins) :nlang.literals.__internal_not_typeable__
-    IDENT(i_trivial_ctor) :nlang.literals.__internal_not_typeable__
-   IDENT(ctor) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  BIN(.) :nlang.builtins.__internal_not_typeable__
+   BIN(.) :nlang.builtins.__internal_not_typeable__
+    BIN(.) :nlang.builtins.__internal_not_typeable__
+     BIN(.) :nlang.builtins.__internal_not_typeable__
+      DIRECTDEF :nlang.builtins.__internal_not_typeable__
+      IDENT(nlang) :nlang.builtins.__internal_not_typeable__
+     IDENT(builtins) :nlang.builtins.__internal_not_typeable__
+    IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+   IDENT(ctor) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    DEFARG :(nlang.builtins.mercurial_ref t00.returnthroughref.t)
-    IDENT(self) :nlang.literals.__internal_not_typeable__
+    IDENT(self) :nlang.builtins.__internal_not_typeable__
     UN(@#) :(nlang.builtins.mercurial_ref t00.returnthroughref.t)
      IDENT(final) :t00.returnthroughref.t
    IDENT(void) :nlang.builtins.void
  DEFFUN :t00.returnthroughref.foo
-  IDENT(foo) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  IDENT(foo) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    DEFARG :t00.returnthroughref.t
     IDENT(_nretval)
     IDENT(t) :t00.returnthroughref.t
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.void
     INIT :t00.returnthroughref.t
-     IDENT(x) :nlang.literals.__internal_not_typeable__
+     IDENT(x) :nlang.builtins.__internal_not_typeable__
      NUMBER(3) :nlang.builtins.i32
  DEFFUN :t00.returnthroughref.bar
-  IDENT(bar) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  IDENT(bar) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    DEFARG :t00.returnthroughref.t
     IDENT(_nretval)
     IDENT(t) :t00.returnthroughref.t
@@ -839,11 +835,11 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
     CALL :t00.returnthroughref.t
      IDENT(foo) :t00.returnthroughref.foo
  DEFFUN :t00.returnthroughref.bar2
-  IDENT(bar2) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  IDENT(bar2) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    DEFARG :t00.returnthroughref.t
-    IDENT(r) :nlang.literals.__internal_not_typeable__
+    IDENT(r) :nlang.builtins.__internal_not_typeable__
     IDENT(t) :t00.returnthroughref.t
   BLOCK :nlang.builtins.void
    BIN( = ) :nlang.builtins.void
@@ -853,9 +849,9 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
    RETURN :nlang.builtins.void
     IDENT(r) :t00.returnthroughref.t
  DEFFUN :t00.returnthroughref.main
-  IDENT(main) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  IDENT(main) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
@@ -875,7 +871,7 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
       BIN( != ) :nlang.builtins.bool
        BIN(.) :nlang.builtins.i32
         IDENT(y) :t00.returnthroughref.t
-        IDENT(x) :nlang.literals.__internal_not_typeable__
+        IDENT(x) :nlang.builtins.__internal_not_typeable__
        BIN(.) :nlang.builtins.i32
         BLOCK :t00.returnthroughref.t
          BIN( = ) :nlang.builtins.void
@@ -883,11 +879,11 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
           CALL :t00.returnthroughref.t
            IDENT(bar2) :t00.returnthroughref.bar2
          IDENT(_Ngensym1) :t00.returnthroughref.t
-        IDENT(x) :nlang.literals.__internal_not_typeable__
+        IDENT(x) :nlang.builtins.__internal_not_typeable__
       BLOCK :nlang.builtins.void
        RETURN :nlang.builtins.void
         NUMBER(1) :nlang.builtins.i32
    RETURN :nlang.builtins.void
     BIN(.) :nlang.builtins.i32
      IDENT(y) :t00.returnthroughref.t
-     IDENT(xx) :nlang.literals.__internal_not_typeable__
+     IDENT(xx) :nlang.builtins.__internal_not_typeable__

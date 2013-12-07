@@ -1,18 +1,14 @@
-MODULE_BODY :nlang.literals.__internal_not_typeable__
- IMPORT :nlang.literals.__internal_not_typeable__
+MODULE_BODY :nlang.builtins.__internal_not_typeable__
+ IMPORT :nlang.builtins.__internal_not_typeable__
   IDENT(nlang)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(__null__)
+     IDENT(builtins)
+    IDENT(__literal_null__)
   IMPORT :<import>
    IDENT(nlang)
-   IMPORT :<import>
-    BIN(.)
-     IDENT(nlang)
-     IDENT(literals)
    IMPORT :<import>
     BIN(.)
      IDENT(nlang)
@@ -33,37 +29,37 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(integer)
+     IDENT(builtins)
+    IDENT(__literal_integer__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
-    IDENT(floating)
+     IDENT(builtins)
+    IDENT(__literal_floating__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__internal_not_typeable__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__call_function_slot__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__mutable__)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
-     IDENT(literals)
+     IDENT(builtins)
     IDENT(__mercurial__)
   IMPORT :<import>
    BIN(.)
@@ -742,9 +738,9 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
     IDENT(nlang)
     IDENT(just_mutable)
  DEFINTF :t00.syntaxintf.i_example
-  IDENT(i_example) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  ISALIST :nlang.literals.__internal_not_typeable__
+  IDENT(i_example) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  ISALIST :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.syntaxintf.i_example
@@ -756,77 +752,77 @@ MODULE_BODY :nlang.literals.__internal_not_typeable__
     DIRECTDEF :t00.syntaxintf.i_example
     DEFNAME(final) :t00.syntaxintf.i_example
   DEFMETHOD :(functor t00.syntaxintf.i_example.alloc nlang.builtins.i_any)
-   IDENT(alloc) :nlang.literals.__internal_not_typeable__
-   GENARGS :nlang.literals.__internal_not_typeable__
+   IDENT(alloc) :nlang.builtins.__internal_not_typeable__
+   GENARGS :nlang.builtins.__internal_not_typeable__
     DEFGENARG :nlang.builtins.i_any
-     IDENT(t) :nlang.literals.__internal_not_typeable__
+     IDENT(t) :nlang.builtins.__internal_not_typeable__
      IDENT(i_any) :nlang.builtins.i_any
-   FUNARGS :nlang.literals.__internal_not_typeable__
+   FUNARGS :nlang.builtins.__internal_not_typeable__
     DEFARG :(nlang.builtins.ref t00.syntaxintf.i_example)
-     IDENT(self) :nlang.literals.__internal_not_typeable__
+     IDENT(self) :nlang.builtins.__internal_not_typeable__
      UN(@) :(nlang.builtins.ref t00.syntaxintf.i_example)
       IDENT(final) :t00.syntaxintf.i_example
     UN(@#) :(nlang.builtins.mercurial_ref nlang.builtins.i_any)
      IDENT(t) :nlang.builtins.i_any
   DEFMETHOD :(functor t00.syntaxintf.i_example.free nlang.builtins.i_any)
-   IDENT(free) :nlang.literals.__internal_not_typeable__
-   GENARGS :nlang.literals.__internal_not_typeable__
+   IDENT(free) :nlang.builtins.__internal_not_typeable__
+   GENARGS :nlang.builtins.__internal_not_typeable__
     DEFGENARG :nlang.builtins.i_any
-     IDENT(t) :nlang.literals.__internal_not_typeable__
+     IDENT(t) :nlang.builtins.__internal_not_typeable__
      IDENT(i_any) :nlang.builtins.i_any
-   FUNARGS :nlang.literals.__internal_not_typeable__
+   FUNARGS :nlang.builtins.__internal_not_typeable__
     DEFARG :(nlang.builtins.ref t00.syntaxintf.i_example)
-     IDENT(self) :nlang.literals.__internal_not_typeable__
+     IDENT(self) :nlang.builtins.__internal_not_typeable__
      UN(@) :(nlang.builtins.ref t00.syntaxintf.i_example)
       IDENT(final) :t00.syntaxintf.i_example
     DEFARG :(nlang.builtins.nullable_mercurial_ref nlang.builtins.i_any)
-     IDENT(p) :nlang.literals.__internal_not_typeable__
+     IDENT(p) :nlang.builtins.__internal_not_typeable__
      UN(?@#) :(nlang.builtins.nullable_mercurial_ref nlang.builtins.i_any)
       IDENT(t) :nlang.builtins.i_any
     IDENT(void) :nlang.builtins.void
   DEFMETHOD :(functor t00.syntaxintf.i_example.slice_realloc nlang.builtins.i_trivial_ctor)
-   IDENT(slice_realloc) :nlang.literals.__internal_not_typeable__
-   GENARGS :nlang.literals.__internal_not_typeable__
+   IDENT(slice_realloc) :nlang.builtins.__internal_not_typeable__
+   GENARGS :nlang.builtins.__internal_not_typeable__
     DEFGENARG :nlang.builtins.i_trivial_ctor
-     IDENT(t) :nlang.literals.__internal_not_typeable__
+     IDENT(t) :nlang.builtins.__internal_not_typeable__
      IDENT(i_trivial_ctor) :nlang.builtins.i_trivial_ctor
-   FUNARGS :nlang.literals.__internal_not_typeable__
+   FUNARGS :nlang.builtins.__internal_not_typeable__
     DEFARG :(nlang.builtins.ref t00.syntaxintf.i_example)
-     IDENT(self) :nlang.literals.__internal_not_typeable__
+     IDENT(self) :nlang.builtins.__internal_not_typeable__
      UN(@) :(nlang.builtins.ref t00.syntaxintf.i_example)
       IDENT(final) :t00.syntaxintf.i_example
     DEFARG :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
-     IDENT(s) :nlang.literals.__internal_not_typeable__
+     IDENT(s) :nlang.builtins.__internal_not_typeable__
      UN(@#) :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
       CALL :(nlang.memory.slice nlang.builtins.i_trivial_ctor)
        IDENT(slice) :(functor nlang.memory.slice nlang.builtins.i_any)
        IDENT(t) :nlang.builtins.i_trivial_ctor
     DEFARG :nlang.builtins.size
-     IDENT(count) :nlang.literals.__internal_not_typeable__
+     IDENT(count) :nlang.builtins.__internal_not_typeable__
      IDENT(size) :nlang.builtins.size
     IDENT(void) :nlang.builtins.void
   DEFMETHOD :(functor t00.syntaxintf.i_example.slice_free nlang.builtins.i_trivial_ctor)
-   IDENT(slice_free) :nlang.literals.__internal_not_typeable__
-   GENARGS :nlang.literals.__internal_not_typeable__
+   IDENT(slice_free) :nlang.builtins.__internal_not_typeable__
+   GENARGS :nlang.builtins.__internal_not_typeable__
     DEFGENARG :nlang.builtins.i_trivial_ctor
-     IDENT(t) :nlang.literals.__internal_not_typeable__
+     IDENT(t) :nlang.builtins.__internal_not_typeable__
      IDENT(i_trivial_ctor) :nlang.builtins.i_trivial_ctor
-   FUNARGS :nlang.literals.__internal_not_typeable__
+   FUNARGS :nlang.builtins.__internal_not_typeable__
     DEFARG :(nlang.builtins.ref t00.syntaxintf.i_example)
-     IDENT(self) :nlang.literals.__internal_not_typeable__
+     IDENT(self) :nlang.builtins.__internal_not_typeable__
      UN(@) :(nlang.builtins.ref t00.syntaxintf.i_example)
       IDENT(final) :t00.syntaxintf.i_example
     DEFARG :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
-     IDENT(s) :nlang.literals.__internal_not_typeable__
+     IDENT(s) :nlang.builtins.__internal_not_typeable__
      UN(@#) :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.i_trivial_ctor))
       CALL :(nlang.memory.slice nlang.builtins.i_trivial_ctor)
        IDENT(slice) :(functor nlang.memory.slice nlang.builtins.i_any)
        IDENT(t) :nlang.builtins.i_trivial_ctor
     IDENT(void) :nlang.builtins.void
  DEFFUN :t00.syntaxintf.main
-  IDENT(main) :nlang.literals.__internal_not_typeable__
-  GENARGS :nlang.literals.__internal_not_typeable__
-  FUNARGS :nlang.literals.__internal_not_typeable__
+  IDENT(main) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.void

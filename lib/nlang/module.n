@@ -1,4 +1,3 @@
-from nlang.literals export *
 from nlang.builtins export *
 from nlang.containers export *
 from nlang.memory export *

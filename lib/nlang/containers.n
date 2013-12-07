@@ -1,4 +1,3 @@
-from nlang.literals import *
 from nlang.builtins import *
 
 export intf i_locus = i_has_equality i_copyable_but_owned
