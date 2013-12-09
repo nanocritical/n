@@ -13,7 +13,7 @@ static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node
       //   (intf t:Any) i_nullable r:(i_ref t) = (i_any_ref t)
       // instead of i_nullable_ref, i_nullable_mutable_ref, and i_nullable_mercurial_ref.
       // and use (i_nullable __wildcard_ref_arg__) here.
-      assert(node->as.UN.operator != TNULREFWILDCARD && "Unsupported yet");
+      assert(node->as.UN.operator != TNULREFWILDCARD && "FIXME: Unsupported");
 
       node->which = CALL;
       struct node *d = mk_node(mod, node, IDENT);
@@ -27,18 +27,15 @@ static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node
   return 0;
 }
 
+static error pass_rewrite_wildcards(struct module *mod, struct node *root,
+                                    void *user, ssize_t shallow_last_up) {
+  PASS(, UP_STEP(step_do_rewrite_prototype_wildcards));
+  return 0;
+}
+
 static error step_rewrite_prototype_wildcards(struct module *mod, struct node *node,
                                               void *user, bool *stop) {
   DSTEP(mod, node);
-
-  static const step down[] = {
-    NULL,
-  };
-
-  static const step up[] = {
-    step_do_rewrite_prototype_wildcards,
-    NULL,
-  };
 
   struct node *funargs;
   switch (node->which) {
@@ -52,7 +49,7 @@ static error step_rewrite_prototype_wildcards(struct module *mod, struct node *n
       }
 
       PUSH_STATE(mod->state->step_state);
-      error e = pass(mod, arg, down, up, -1, NULL);
+      error e = pass_rewrite_wildcards(mod, arg, NULL, -1);
       EXCEPT(e);
       POP_STATE(mod->state->step_state);
     }
@@ -231,9 +228,7 @@ error step_add_scopes(struct module *mod, struct node *node,
 
   for (size_t n = 0; n < node->subs_count; ++n) {
     struct node *s = node->subs[n];
-    if (s->scope != NULL) {
-      s->scope->parent = node->scope;
-    }
+    s->scope->parent = node->scope;
   }
 
   return 0;
@@ -255,20 +250,18 @@ error step_stop_submodules(struct module *mod, struct node *node,
   return 0;
 }
 
-const struct pass passzero[] = {
-  {
-    PASS_ZERO, "zero",
-    {
-      step_rewrite_prototype_wildcards,
-      step_generics_pristine_copy,
-      step_detect_prototypes,
-      step_detect_deftype_kind,
-      step_assign_deftype_which_values,
-      NULL,
-    },
-    {
-      step_add_scopes,
-      NULL,
-    }
-  }
-};
+static error passzero0(struct module *mod, struct node *root,
+                       void *user, ssize_t shallow_last_up) {
+  PASS(
+    DOWN_STEP(step_rewrite_prototype_wildcards);
+    DOWN_STEP(step_generics_pristine_copy);
+    DOWN_STEP(step_detect_prototypes);
+    DOWN_STEP(step_detect_deftype_kind);
+    DOWN_STEP(step_assign_deftype_which_values);
+    ,
+    UP_STEP(step_add_scopes);
+    );
+  return 0;
+}
+
+a_pass passzero[] = { passzero0 };

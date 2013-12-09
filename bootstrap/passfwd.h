@@ -3,7 +3,7 @@
 
 #include "passes.h"
 
-const struct pass passfwd[PASSFWD_COUNT];
+a_pass passfwd[PASSFWD_COUNT];
 
 void fix_scopes_after_move(struct node *node);
 

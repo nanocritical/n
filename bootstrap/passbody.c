@@ -3113,6 +3113,9 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
   return 0;
 }
 
+static error finish_passbody1(struct module *mod, struct node *root,
+                              void *user, ssize_t shallow_last_up);
+
 static void declare_temporaries(struct module *mod, struct node *statement,
                                 struct temporaries *temps) {
   temps->gensyms = calloc(temps->count, sizeof(*temps->gensyms));
@@ -3121,12 +3124,6 @@ static void declare_temporaries(struct module *mod, struct node *statement,
   if (statement->which == LET) {
     let = statement;
   } else {
-    // We are going to move the current stepping node down in the tree, and
-    // it would normally be in the except list and not be processed by later
-    // steps in the current pass. But these steps may be crucial as
-    // 'statement' could be anything at all. So we must force these steps by
-    // hand. Yes, it's hacky at best.
-
     struct node copy;
     copy = *statement;
 
@@ -3142,17 +3139,12 @@ static void declare_temporaries(struct module *mod, struct node *statement,
     error e = catchup(mod, except, let, copy.scope->parent, CATCHUP_REWRITING_CURRENT);
     assert(!e);
 
-    const struct pass *pa = passes(mod->stage->state->passing);
+    // We moved the current stepping node down in the tree, and it was in
+    // the catchup() except list and not processed by later steps in the
+    // current pass. But these steps may be crucial as 'statement' could be
+    // anything at all. So we must force these steps by hand.
     PUSH_STATE(mod->state->step_state);
-    for (size_t s = mod->state->step_state->prev->stepping + 1; pa->ups[s] != NULL; ++s) {
-      mod->state->step_state->upward = TRUE;
-      mod->state->step_state->stepping = s;
-
-      bool stop = FALSE;
-      e = pa->ups[s](mod, new_statement, NULL, &stop);
-      assert(!e);
-      assert(!stop);
-    }
+    e = finish_passbody1(mod, let, NULL, -1);
     POP_STATE(mod->state->step_state);
   }
 
@@ -3184,6 +3176,13 @@ static void declare_temporaries(struct module *mod, struct node *statement,
   }
 }
 
+
+static error pass_gather_temps(struct module *mod, struct node *root,
+                               void *user, ssize_t shallow_last_up) {
+  PASS(, UP_STEP(step_gather_temporary_rvalues));
+  return 0;
+}
+
 static error step_define_temporary_rvalues(struct module *mod, struct node *node,
                                            void *user, bool *stop) {
   DSTEP(mod, node);
@@ -3191,21 +3190,12 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
     return 0;
   }
 
-  static const step temprvalue_down[] = {
-    NULL,
-  };
-
-  static const step temprvalue_up[] = {
-    step_gather_temporary_rvalues,
-    NULL,
-  };
-
   struct temporaries temps = { 0 };
 
   PUSH_STATE(mod->state->step_state);
-  error e = pass(mod, node, temprvalue_down, temprvalue_up, -1, &temps);
-  EXCEPT(e);
+  error e = pass_gather_temps(mod, node, &temps, -1);
   POP_STATE(mod->state->step_state);
+  EXCEPT(e);
 
   if (temps.count == 0) {
     return 0;
@@ -3280,68 +3270,83 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
   return 0;
 }
 
-const struct pass passbody[] = {
-  {
-    PASS_BODY, "first",
-    {
-      step_stop_submodules,
-      step_stop_marker_tbi,
-      step_stop_already_morningtypepass,
-      step_push_fun_state,
-      step_detect_not_dyn_intf_down,
-      step_rewrite_wildcards,
-      step_type_destruct_mark,
-      step_type_mutability_mark,
-      step_type_gather_retval,
-      step_type_gather_excepts,
-      NULL,
-    },
-    {
-      step_excepts_store_label,
-      step_rewrite_defname_no_expr,
-      step_rewrite_sum_constructors,
-      step_detect_not_dyn_intf_up,
-      step_type_inference,
-      step_remove_typeconstraints,
-      step_type_drop_excepts,
-      step_check_exhaustive_match,
-      step_gather_final_instantiations,
-      step_pop_fun_state,
-      step_complete_instantiation,
-      NULL,
-    }
-  },
+static error passbody0(struct module *mod, struct node *root,
+                       void *user, ssize_t shallow_last_up) {
+  // first
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_already_morningtypepass);
+    DOWN_STEP(step_push_fun_state);
+    DOWN_STEP(step_detect_not_dyn_intf_down);
+    DOWN_STEP(step_rewrite_wildcards);
+    DOWN_STEP(step_type_destruct_mark);
+    DOWN_STEP(step_type_mutability_mark);
+    DOWN_STEP(step_type_gather_retval);
+    DOWN_STEP(step_type_gather_excepts);
+    ,
+    UP_STEP(step_excepts_store_label);
+    UP_STEP(step_rewrite_defname_no_expr);
+    UP_STEP(step_rewrite_sum_constructors);
+    UP_STEP(step_detect_not_dyn_intf_up);
+    UP_STEP(step_type_inference);
+    UP_STEP(step_remove_typeconstraints);
+    UP_STEP(step_type_drop_excepts);
+    UP_STEP(step_check_exhaustive_match);
+    UP_STEP(step_gather_final_instantiations);
+    UP_STEP(step_pop_fun_state);
+    UP_STEP(step_complete_instantiation);
+    );
+    return 0;
+}
 
-  {
-    PASS_BODY, "second",
-    {
-      step_stop_submodules,
-      step_stop_marker_tbi,
-      step_push_fun_state,
-      step_type_gather_retval,
-      step_check_no_literals_left,
-      step_check_no_unknown_ident_left,
-      NULL,
-    },
-    {
-      step_weak_literal_conversion,
-      step_operator_call_inference,
-      step_operator_test_call_inference,
-      step_ctor_call_inference,
-      step_array_ctor_call_inference,
-      step_dtor_call_inference,
-      step_copy_call_inference,
-      step_check_exhaustive_intf_impl,
-      step_dyn_inference,
+static error finish_passbody1(struct module *mod, struct node *root,
+                              void *user, ssize_t shallow_last_up) {
+  PASS(
+    ,
+    // Must start after 'step_define_temporary_rvalues'
+    UP_STEP(step_move_assign_in_block_like);
+    UP_STEP(step_move_defname_expr_in_let_block);
+    UP_STEP(step_store_return_through_ref_expr);
 
-      step_define_temporary_rvalues,
-      step_move_assign_in_block_like,
-      step_move_defname_expr_in_let_block,
-      step_store_return_through_ref_expr,
+    UP_STEP(step_pop_fun_state);
+    UP_STEP(step_complete_instantiation);
+    );
+  return 0;
+}
 
-      step_pop_fun_state,
-      step_complete_instantiation,
-      NULL,
-    }
-  },
-};
+
+static error passbody1(struct module *mod, struct node *root,
+                       void *user, ssize_t shallow_last_up) {
+  // second
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_push_fun_state);
+    DOWN_STEP(step_type_gather_retval);
+    DOWN_STEP(step_check_no_literals_left);
+    DOWN_STEP(step_check_no_unknown_ident_left);
+    ,
+    UP_STEP(step_weak_literal_conversion);
+    UP_STEP(step_operator_call_inference);
+    UP_STEP(step_operator_test_call_inference);
+    UP_STEP(step_ctor_call_inference);
+    UP_STEP(step_array_ctor_call_inference);
+    UP_STEP(step_dtor_call_inference);
+    UP_STEP(step_copy_call_inference);
+    UP_STEP(step_check_exhaustive_intf_impl);
+    UP_STEP(step_dyn_inference);
+
+    // Must be kept in sync with finish_passbody1().
+    UP_STEP(step_define_temporary_rvalues);
+    UP_STEP(step_move_assign_in_block_like);
+    UP_STEP(step_move_defname_expr_in_let_block);
+    UP_STEP(step_store_return_through_ref_expr);
+
+    UP_STEP(step_pop_fun_state);
+    UP_STEP(step_complete_instantiation);
+    );
+    return 0;
+}
+
+a_pass passbody[] = { passbody0, passbody1 };

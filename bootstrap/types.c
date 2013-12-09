@@ -88,6 +88,8 @@ size_t typ_debug_backlinks_count(const struct typ *t) {
 }
 
 void set_typ(struct typ **loc, struct typ *t) {
+  assert(t != NULL);
+
   if (*loc != NULL) {
     if (*loc == t) {
       return;

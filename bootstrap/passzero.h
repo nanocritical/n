@@ -3,7 +3,7 @@
 
 #include "passes.h"
 
-const struct pass passzero[PASSZERO_COUNT];
+a_pass passzero[PASSZERO_COUNT];
 
 error step_add_scopes(struct module *mod, struct node *node, void *user, bool *stop);
 error step_stop_submodules(struct module *mod, struct node *node, void *user, bool *stop);

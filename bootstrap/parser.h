@@ -602,6 +602,11 @@ struct step_state {
   size_t stepping;
 };
 
+struct stackel {
+  struct node *node;
+  size_t subp;
+};
+
 struct module_state {
   struct module_state *prev;
 
@@ -614,6 +619,10 @@ struct module_state {
   struct try_state *try_state;
 
   struct step_state *step_state;
+
+#define PASS_STACK_DEPTH 512
+  struct stackel stack[PASS_STACK_DEPTH];
+  size_t stackp;
 };
 
 #define PUSH_STATE(st) do { \

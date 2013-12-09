@@ -30,23 +30,25 @@ struct scope *scope_new(struct node *node) {
 
 // Return value must be freed by caller.
 char *scope_name(const struct module *mod, const struct scope *scope) {
-  if (scope->node == &mod->gctx->modules_root) {
+  if (scope->parent == NULL) {
     const char *name = idents_value(mod->gctx, node_ident(scope->node));
     char *r = calloc(strlen(name) + 1, sizeof(char));
     strcpy(r, name);
     return r;
   }
 
-  size_t len = 0;
+  ssize_t len = 0;
   const struct scope *root = scope;
   while (root->parent != NULL) {
     ident id = node_ident(root->node);
     if (id != ID_ANONYMOUS) {
-      len += strlen(idents_value(mod->gctx, id)) + 1;
+      const char *name = idents_value(mod->gctx, id);
+      size_t name_len = strlen(name);
+      len += name_len + 1;
     }
     root = root->parent;
   }
-  len -= 1;
+  len = max(size_t, 1, len) - 1;
 
   char *r = calloc(len + 1, sizeof(char));
   root = scope;
@@ -59,8 +61,13 @@ char *scope_name(const struct module *mod, const struct scope *scope) {
         memcpy(r, name, name_len);
       } else {
         len -= name_len + 1;
-        r[len] = '.';
-        memcpy(r + len + 1, name, name_len);
+        if (len < 0) {
+          // Can happen if there are several anonymous nodes at the root.
+          memcpy(r, name, name_len);
+        } else {
+          r[len] = '.';
+          memcpy(r + len + 1, name, name_len);
+        }
       }
     }
     root = root->parent;

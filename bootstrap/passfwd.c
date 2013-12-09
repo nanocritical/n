@@ -45,26 +45,25 @@ error step_stop_already_morningtypepass(struct module *mod, struct node *node,
   return 0;
 }
 
+static error pass_early_typing(struct module *mod, struct node *root,
+                               void *user, ssize_t shallow_last_up) {
+  PASS(
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_block);
+    DOWN_STEP(step_stop_already_morningtypepass);
+    DOWN_STEP(step_type_destruct_mark);
+    ,
+    UP_STEP(step_type_inference));
+  return 0;
+}
+
 static error morningtypepass(struct module *mod, struct node *node) {
-  static const step down[] = {
-    step_stop_marker_tbi,
-    step_stop_block,
-    step_stop_already_morningtypepass,
-    step_type_destruct_mark,
-    NULL,
-  };
-
-  static const step up[] = {
-    step_type_inference,
-    NULL,
-  };
-
   PUSH_STATE(mod->state->step_state);
   if (mod->state->prev != NULL) {
     mod->state->tentatively |= mod->state->prev->tentatively;
   }
 
-  error e = pass(mod, node, down, up, -1, NULL);
+  error e = pass_early_typing(mod, node, NULL, -1);
   EXCEPT(e);
 
   POP_STATE(mod->state->step_state);
@@ -799,21 +798,18 @@ static error step_rewrite_final_this(struct module *mod, struct node *node,
   return 0;
 }
 
+static error pass_rewrite_final_this(struct module *mod, struct node *root,
+                                     void *user, ssize_t shallow_last_up) {
+  PASS(DOWN_STEP(step_rewrite_final_this),);
+  return 0;
+}
+
 static void intf_proto_deepcopy(struct module *mod, struct typ *thi,
                                 struct node *dst, struct node *src) {
   node_deepcopy(mod, dst, src);
 
-  static const step down[] = {
-    step_rewrite_final_this,
-    NULL,
-  };
-
-  static const step up[] = {
-    NULL,
-  };
-
   PUSH_STATE(mod->state->step_state);
-  error e = pass(mod, dst, down, up, -1, thi);
+  error e = pass_rewrite_final_this(mod, dst, thi, -1);
   assert(!e);
   POP_STATE(mod->state->step_state);
 
@@ -1320,161 +1316,162 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
   return 0;
 }
 
-const struct pass passfwd[] = {
-  {
-    PASS_FORWARD, "scoping_deftypes",
-    {
-      step_stop_submodules,
-      step_codeloc_for_generated,
-      step_defpattern_extract_defname,
-      step_lexical_scoping,
-      NULL,
-    },
-    {
-      step_type_definitions,
-      step_gather_final_instantiations,
-      step_complete_instantiation,
-      NULL,
-    }
-  },
+static error passfwd0(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  // scoping_deftypes
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_codeloc_for_generated);
+    DOWN_STEP(step_defpattern_extract_defname);
+    DOWN_STEP(step_lexical_scoping);
+    ,
+    UP_STEP(step_type_definitions);
+    UP_STEP(step_gather_final_instantiations);
+    UP_STEP(step_complete_instantiation);
+    );
+  return 0;
+}
 
-  {
-    PASS_FORWARD, "imports",
-    {
-      step_stop_submodules,
-      step_lexical_import,
-      step_add_builtin_members,
-      step_stop_funblock,
-      NULL,
-    },
-    {
-      step_gather_final_instantiations,
-      step_complete_instantiation,
-      NULL,
-    }
-  },
+static error passfwd1(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  // imports
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_lexical_import);
+    DOWN_STEP(step_add_builtin_members);
+    DOWN_STEP(step_stop_funblock);
+    ,
+    UP_STEP(step_gather_final_instantiations);
+    UP_STEP(step_complete_instantiation);
+    );
+  return 0;
+}
 
-  {
-    PASS_FORWARD, "type_genargs",
-    {
-      step_stop_submodules,
-      step_stop_marker_tbi,
-      step_stop_funblock,
-      step_type_inference_genargs,
-      NULL,
-    },
-    {
-      step_gather_final_instantiations,
-      step_complete_instantiation,
-      NULL,
-    }
-  },
+static error passfwd2(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  // type_genargs
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_funblock);
+    DOWN_STEP(step_type_inference_genargs);
+    ,
+    UP_STEP(step_gather_final_instantiations);
+    UP_STEP(step_complete_instantiation);
+    );
+  return 0;
+}
 
-  {
-    PASS_FORWARD, "type_isalist",
-    {
-      step_stop_submodules,
-      step_type_create_update,
-      step_stop_marker_tbi,
-      step_stop_funblock,
-      NULL,
-    },
-    {
-      step_type_inference_isalist,
-      step_gather_final_instantiations,
-      step_complete_instantiation,
-      NULL,
-    }
-  },
+static error passfwd3(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  // type_isalist
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_type_create_update);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_funblock);
+    ,
+    UP_STEP(step_type_inference_isalist);
+    UP_STEP(step_gather_final_instantiations);
+    UP_STEP(step_complete_instantiation);
+    );
+  return 0;
+}
 
-  {
-    PASS_FORWARD, "type_complete_create",
-    {
-      step_stop_submodules,
-      step_type_update_quickisa,
-      step_stop_marker_tbi,
-      step_stop_funblock,
-      NULL,
-    },
-    {
-      step_gather_final_instantiations,
-      NULL,
-    }
-  },
+static error passfwd4(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  // type_complete_create
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_type_update_quickisa);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_funblock);
+    ,
+    UP_STEP(step_gather_final_instantiations);
+    );
+  return 0;
+}
 
-  {
-    PASS_FORWARD, "type_add_builtin_intf",
-    {
-      step_stop_submodules,
-      step_stop_marker_tbi,
-      step_stop_funblock,
-      NULL,
-    },
-    {
-      step_add_builtin_enum_intf,
-      step_add_builtin_detect_ctor_intf,
-      step_gather_final_instantiations,
-      step_complete_instantiation,
-      NULL,
-    }
-  },
+static error passfwd5(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  // type_add_builtin_intf
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_funblock);
+    ,
+    UP_STEP(step_add_builtin_enum_intf);
+    UP_STEP(step_add_builtin_detect_ctor_intf);
+    UP_STEP(step_gather_final_instantiations);
+    UP_STEP(step_complete_instantiation);
+    );
+  return 0;
+}
 
-  {
-    PASS_FORWARD, "type_lets",
-    {
-      step_stop_submodules,
-      step_stop_marker_tbi,
-      step_stop_funblock,
-      NULL,
-    },
-    {
-      step_type_lets,
-      step_gather_final_instantiations,
-      step_complete_instantiation,
-      NULL,
-    }
-  },
+static error passfwd6(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  // type_lets
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_funblock);
+    ,
+    UP_STEP(step_type_lets);
+    UP_STEP(step_gather_final_instantiations);
+    UP_STEP(step_complete_instantiation);
+    );
+  return 0;
+}
 
-  {
-    PASS_FORWARD, "type_deffields",
-    {
-      step_stop_submodules,
-      step_stop_marker_tbi,
-      step_stop_funblock,
-      NULL,
-    },
-    {
-      step_type_deffields,
-      step_type_defchoices,
-      step_gather_final_instantiations,
-      step_complete_instantiation,
-      NULL,
-    }
-  },
+static error passfwd7(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  // type_deffields
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_funblock);
+    ,
+    UP_STEP(step_type_deffields);
+    UP_STEP(step_type_defchoices);
+    UP_STEP(step_gather_final_instantiations);
+    UP_STEP(step_complete_instantiation);
+    );
+  return 0;
+}
 
-  {
-    PASS_FORWARD, "type_deffuns",
-    {
-      step_stop_submodules,
-      step_stop_marker_tbi,
-      step_stop_funblock,
-      NULL,
-    },
-    {
-      step_type_deffuns,
-      step_add_builtin_defchoice_mk_new,
-      step_add_builtin_defchoice_constructors,
-      step_add_builtin_ctor,
-      step_add_builtin_dtor,
-      step_add_builtin_mk_new,
-      step_add_builtin_mkv_newv,
-      step_add_builtin_operators,
-      step_add_trivials,
-      step_add_sum_dispatch,
-      step_rewrite_def_return_through_ref,
-      step_gather_final_instantiations,
-      step_complete_instantiation,
-      NULL,
-    }
-  },
+static error passfwd8(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  // type_deffuns
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_funblock);
+    ,
+    UP_STEP(step_type_deffuns);
+    UP_STEP(step_add_builtin_defchoice_mk_new);
+    UP_STEP(step_add_builtin_defchoice_constructors);
+    UP_STEP(step_add_builtin_ctor);
+    UP_STEP(step_add_builtin_dtor);
+    UP_STEP(step_add_builtin_mk_new);
+    UP_STEP(step_add_builtin_mkv_newv);
+    UP_STEP(step_add_builtin_operators);
+    UP_STEP(step_add_trivials);
+    UP_STEP(step_add_sum_dispatch);
+    UP_STEP(step_rewrite_def_return_through_ref);
+    UP_STEP(step_gather_final_instantiations);
+    UP_STEP(step_complete_instantiation);
+    );
+  return 0;
+}
+
+a_pass passfwd[] = {
+  passfwd0,
+  passfwd1,
+  passfwd2,
+  passfwd3,
+  passfwd4,
+  passfwd5,
+  passfwd6,
+  passfwd7,
+  passfwd8,
 };

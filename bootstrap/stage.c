@@ -18,7 +18,7 @@ struct node_op {
   void *user;
 };
 
-static error step_for_all_nodes(struct module *mod, struct node *node,
+static error step_for_all_nodes(struct module *dummy, struct node *node,
                                 void *user, bool *stop) {
   struct node_op *op = user;
 
@@ -30,26 +30,30 @@ static error step_for_all_nodes(struct module *mod, struct node *node,
   return 0;
 }
 
+static error pass_for_all_nodes(struct module *mod, struct node *root,
+                                void *user, ssize_t shallow_last_up) {
+  PASS(DOWN_STEP(step_for_all_nodes),);
+  return 0;
+}
+
 static error for_all_nodes(struct node *root,
                            enum node_which filter, // 0 to get all nodes
                            error (*node_fun)(struct node *node, void *user, bool *stop_descent),
                            void *user) {
-  static const step downsteps[] = {
-    step_for_all_nodes,
-    NULL,
-  };
-  static const step upsteps[] = {
-    NULL,
-  };
-
   struct node_op op = {
     .filter = filter,
     .fun = node_fun,
     .user = user,
   };
 
-  error e = pass(NULL, root, downsteps, upsteps, -1, &op);
+  struct module *dummy = calloc(1, sizeof(struct module));
+  PUSH_STATE(dummy->state);
+  PUSH_STATE(dummy->state->step_state);
+  error e = pass_for_all_nodes(dummy, root, &op, -1);
   EXCEPT(e);
+  POP_STATE(dummy->state->step_state);
+  POP_STATE(dummy->state);
+  free(dummy);
 
   return 0;
 }
@@ -204,25 +208,29 @@ static error lookup_import(const char **prefix, char **fn,
   return 0;
 }
 
+struct load_import_state {
+  struct module *mod;
+  const char **prefixes;
+};
+
 static error load_import(struct node *node, void *user, bool *stop) {
   *stop = TRUE;
 
   assert(node->which == IMPORT);
-  const char **prefixes = user;
-  struct module *mod = node_module_owner(node);
+  struct load_import_state *st = user;
 
   struct node *existing = NULL;
-  error e = scope_lookup_module(&existing, mod, node->subs[0], TRUE);
+  error e = scope_lookup_module(&existing, st->mod, node->subs[0], TRUE);
   if (!e && !existing->as.MODULE.is_placeholder) {
     return 0;
   }
 
   const char *prefix = NULL;
   char *fn = NULL;
-  e = lookup_import(&prefix, &fn, mod, node, prefixes);
+  e = lookup_import(&prefix, &fn, st->mod, node, st->prefixes);
   EXCEPT(e);
 
-  e = load_module(NULL, mod->gctx, mod->stage, prefix, fn);
+  e = load_module(NULL, st->mod->gctx, st->mod->stage, prefix, fn);
   free(fn);
   EXCEPT(e);
 
@@ -237,8 +245,11 @@ static error load_imports(struct stage *stage, struct node *node) {
   }
 
   assert(node->as.MODULE.mod != NULL);
-  error e = for_all_nodes(node->as.MODULE.mod->root, IMPORT, load_import,
-                          stage->prefixes);
+  struct load_import_state st = {
+    .mod = node->as.MODULE.mod,
+    .prefixes = stage->prefixes,
+  };
+  error e = for_all_nodes(st.mod->root, IMPORT, load_import, &st);
   EXCEPT(e);
 
   return 0;
@@ -264,7 +275,8 @@ struct dependencies {
 
 static error gather_dependencies(struct node *node, struct dependencies *deps);
 
-static error step_gather_dependencies_in_module(struct module *mod, struct node *node, void *user, bool *stop) {
+static error step_gather_dependencies_in_module(struct module *mod, struct node *node,
+                                                void *user, bool *stop) {
   struct dependencies *deps = user;
 
   assert(node->which != MODULE);
@@ -275,7 +287,9 @@ static error step_gather_dependencies_in_module(struct module *mod, struct node 
   *stop = TRUE;
 
   struct node *nmod = NULL;
-  error e = scope_lookup_module(&nmod, node_module_owner(node), node->subs[0], FALSE);
+  error e = scope_lookup_module(&nmod,
+                                // 'mod' is not 'node' owner, but that's OK.
+                                mod, node->subs[0], FALSE);
   EXCEPT(e);
 
   assert(nmod->which == MODULE);
@@ -294,6 +308,12 @@ static error step_gather_dependencies_in_module(struct module *mod, struct node 
   return 0;
 }
 
+static error pass_gather_dependencies(struct module *mod, struct node *root,
+                                      void *user, ssize_t shallow_last_up) {
+  PASS(DOWN_STEP(step_gather_dependencies_in_module),);
+  return 0;
+}
+
 static error gather_dependencies(struct node *node, struct dependencies *deps) {
   assert(node->which == MODULE);
 
@@ -305,20 +325,10 @@ static error gather_dependencies(struct node *node, struct dependencies *deps) {
   deps->tmp = realloc(deps->tmp, deps->tmp_count * sizeof(*deps->tmp));
   deps->tmp[deps->tmp_count - 1] = node_module_owner(node);
 
-  static const step down[] = {
-    step_gather_dependencies_in_module,
-    NULL,
-  };
-
-  static const step up[] = {
-    NULL,
-  };
-
   struct module *mod = node_module_owner(node);
   PUSH_STATE(mod->state);
   PUSH_STATE(mod->state->step_state);
-  error e = pass(mod, mod->body,
-                 down, up, -1, deps);
+  error e = pass_gather_dependencies(mod, mod->body, deps, -1);
   EXCEPT(e);
   POP_STATE(mod->state->step_state);
   POP_STATE(mod->state);
@@ -385,7 +395,7 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
   EXCEPT(e);
 
   size_t p;
-  for (p = 1; passes(p)->kind == PASS_FORWARD; ++p) {
+  for (p = PASSZERO_COUNT; p < PASSZERO_COUNT + PASSFWD_COUNT; ++p) {
     stage->state->passing = p;
 
     for (size_t n = 0; n < stage->sorted_count; ++n) {
@@ -405,7 +415,7 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
 
     PUSH_STATE(mod->state->step_state);
 
-    for (size_t pp = p; passes(pp) != NULL; ++pp) {
+    for (size_t pp = p; pp < PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT; ++pp) {
       stage->state->passing = pp;
 
       e = advance(mod);

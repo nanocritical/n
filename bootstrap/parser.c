@@ -10,6 +10,7 @@
 #include "table.h"
 #include "types.h"
 #include "scope.h"
+#include "passes.h"
 
 EXAMPLE(data_structure_size_stats) {
   // It is a good idea to keep track of what is responsible for the size of
@@ -1897,14 +1898,17 @@ static error step_rewrite_into_defarg(struct module *mod, struct node *node,
   return 0;
 }
 
+static error pass_rewrite_into_defarg(struct module *mod, struct node *root,
+                                      void *user, size_t shallow_last_up) {
+  PASS(, UP_STEP(step_rewrite_into_defarg));
+  return 0;
+}
+
 static error p_defret(struct node *node, struct module *mod) {
   error e = p_expr(node, mod, T__STATEMENT);
   EXCEPT(e);
 
-  static const step downs[] = { NULL };
-  static const step ups[] = { step_rewrite_into_defarg, NULL };
-
-  e = pass(mod, node, downs, ups, -1, NULL);
+  e = pass_rewrite_into_defarg(mod, node, NULL, -1);
   EXCEPT(e);
 
   return 0;
@@ -2482,6 +2486,10 @@ again:
 }
 
 static error p_toplevel(struct module *mod) {
+  if (mod->parser.len == 0) {
+    return 0;
+  }
+
   struct toplevel toplevel = { 0 };
   struct node *genargs = NULL;
 

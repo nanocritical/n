@@ -9,22 +9,22 @@
 #include "passfwd.h"
 #include "passbody.h"
 
-const struct pass *passes(size_t p) {
-  static __thread const struct pass *v[PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT + 1];
+a_pass passes(size_t p) {
+  static __thread a_pass v[PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT + 1];
 
   if (v[0] == NULL) {
-    v[0] = &passzero[0];
-    v[PASSZERO_COUNT + 0] = &passfwd[0];
-    v[PASSZERO_COUNT + 1] = &passfwd[1];
-    v[PASSZERO_COUNT + 2] = &passfwd[2];
-    v[PASSZERO_COUNT + 3] = &passfwd[3];
-    v[PASSZERO_COUNT + 4] = &passfwd[4];
-    v[PASSZERO_COUNT + 5] = &passfwd[5];
-    v[PASSZERO_COUNT + 6] = &passfwd[6];
-    v[PASSZERO_COUNT + 7] = &passfwd[7];
-    v[PASSZERO_COUNT + 8] = &passfwd[8];
-    v[PASSZERO_COUNT + PASSFWD_COUNT + 0] = &passbody[0];
-    v[PASSZERO_COUNT + PASSFWD_COUNT + 1] = &passbody[1];
+    v[0] = passzero[0];
+    v[PASSZERO_COUNT + 0] = passfwd[0];
+    v[PASSZERO_COUNT + 1] = passfwd[1];
+    v[PASSZERO_COUNT + 2] = passfwd[2];
+    v[PASSZERO_COUNT + 3] = passfwd[3];
+    v[PASSZERO_COUNT + 4] = passfwd[4];
+    v[PASSZERO_COUNT + 5] = passfwd[5];
+    v[PASSZERO_COUNT + 6] = passfwd[6];
+    v[PASSZERO_COUNT + 7] = passfwd[7];
+    v[PASSZERO_COUNT + 8] = passfwd[8];
+    v[PASSZERO_COUNT + PASSFWD_COUNT + 0] = passbody[0];
+    v[PASSZERO_COUNT + PASSFWD_COUNT + 1] = passbody[1];
     v[PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT] = NULL;
   }
 
@@ -32,90 +32,23 @@ const struct pass *passes(size_t p) {
   return v[p];
 };
 
-error pass(struct module *mod, struct node *node,
-           const step *down_steps, const step *up_steps, ssize_t shallow_last_up,
-           void *user) {
-  error e;
-  if (node == NULL) {
-    node = mod->root;
-  }
-
-  if (node->flags & NODE__EXCEPTED) {
-    return 0;
-  }
-
-  bool stop = FALSE;
-  for (size_t s = 0; down_steps[s] != NULL; ++s) {
-    if (mod != NULL) {
-      mod->state->step_state->upward = FALSE;
-      mod->state->step_state->stepping = s;
-    }
-
-    bool stop = FALSE;
-    e = down_steps[s](mod, node, user, &stop);
-    EXCEPT(e);
-
-    if (stop) {
-      return 0;
-    }
-  }
-
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *sub = node->subs[n];
-    e = pass(mod, sub, down_steps, up_steps, -1, user);
-    EXCEPT(e);
-  }
-
-  for (ssize_t s = 0; up_steps[s] != NULL
-       && (shallow_last_up == -1 || s <= shallow_last_up); ++s) {
-    if (mod != NULL) {
-      mod->state->step_state->upward = TRUE;
-      mod->state->step_state->stepping = s;
-    }
-
-    e = up_steps[s](mod, node, user, &stop);
-    EXCEPT(e);
-
-    if (stop) {
-      return 0;
-    }
-  }
-
-  return 0;
-}
-
 error advance(struct module *mod) {
   const size_t p = mod->stage->state->passing;
-  const struct pass *pa = passes(p);
+  a_pass pa = passes(p);
 
   int module_depth = 0;
-  error e = pass(mod, NULL,
-                 pa->downs, pa->ups, -1,
-                 &module_depth);
+  error e = pa(mod, NULL, &module_depth, -1);
   EXCEPT(e);
 
   return 0;
 }
 
 static size_t last_pass(void) {
-  static __thread size_t r;
-  if (r == 0) {
-    while (passes(r) != NULL) {
-      r += 1;
-    }
-  }
-  return r - 1;
+  return PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT - 1;
 }
 
 static size_t last_tentative_instance_pass(void) {
-  static __thread size_t r;
-  if (r == 0) {
-    while (passes(r)->kind != PASS_BODY) {
-      r += 1;
-    }
-    r -= 1;
-  }
-  return r;
+  return PASSZERO_COUNT + PASSFWD_COUNT - 1;
 }
 
 static void mark_excepted(const struct node **except) {
@@ -186,13 +119,11 @@ error catchup(struct module *mod,
   }
 
   for (ssize_t p = from; p <= goal; ++p) {
-    const struct pass *pa = passes(p);
+    a_pass pa = passes(p);
     mod->stage->state->passing = p;
 
     int module_depth = 0;
-    error e = pass(mod, node,
-                   pa->downs, pa->ups, -1,
-                   &module_depth);
+    error e = pa(mod, node, &module_depth, -1);
     EXCEPT(e);
 
     if (p == 0) {
@@ -202,13 +133,11 @@ error catchup(struct module *mod,
 
   if (was_upward && how == CATCHUP_REWRITING_CURRENT) {
     // Catch up to, and including, the current step.
-    const struct pass *pa = passes(goal + 1);
+    a_pass pa = passes(goal + 1);
     mod->stage->state->passing = goal + 1;
 
     int module_depth = 0;
-    error e = pass(mod, node,
-                   pa->downs, pa->ups, mod->state->step_state->prev->stepping,
-                   &module_depth);
+    error e = pa(mod, node, &module_depth, mod->state->step_state->prev->stepping);
     EXCEPT(e);
   }
 
@@ -347,11 +276,11 @@ static error do_complete_instantiation(struct module *mod, struct node *node) {
 
   struct toplevel *toplevel = node_toplevel(node);
   for (ssize_t p = toplevel->yet_to_pass; p <= goal; ++p) {
-    const struct pass *pa = passes(p);
+    a_pass pa = passes(p);
     mod->stage->state->passing = p;
 
     int module_depth = 0;
-    error e = pass(mod, node, pa->downs, pa->ups, -1, &module_depth);
+    error e = pa(mod, node, &module_depth, -1);
     EXCEPT(e);
 
     toplevel->yet_to_pass = p + 1;
@@ -363,7 +292,7 @@ static error do_complete_instantiation(struct module *mod, struct node *node) {
           continue;
         }
 
-        error e = pass(mod, m, pa->downs, pa->ups, -1, &module_depth);
+        error e = pa(mod, m, &module_depth, -1);
         EXCEPT(e);
 
         node_toplevel(m)->yet_to_pass = p + 1;
@@ -399,4 +328,78 @@ error step_complete_instantiation(struct module *mod, struct node *node,
   toplevel->yet_to_pass = mod->stage->state->passing + 1;
 
   return 0;
+}
+
+static error step_test_down(struct module *mod, struct node *node,
+                            void *user, bool *stop) {
+  size_t *u = user;
+  *u += 1;
+  return 0;
+}
+
+static error step_test_up(struct module *mod, struct node *node,
+                          void *user, bool *stop) {
+  size_t *u = user;
+  *u -= 1;
+  return 0;
+}
+
+static error passtest(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  PASS(
+    DOWN_STEP(step_test_down);
+    ,
+    UP_STEP(step_test_up);
+    );
+  return 0;
+}
+
+EXAMPLE_NCC_EMPTY(as_many_up_down) {
+  (void) mock_deftype(mod, "test");
+
+  size_t u = 0;
+  error e = passtest(mod, NULL, &u, -1);
+  assert(!e);
+  assert(u == 0);
+
+  u = 0;
+  e = passtest(mod, NULL, &u, -1);
+  assert(!e);
+  assert(u == 0);
+}
+
+static error step_test_stop_deftype_down(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
+  size_t *u = user;
+  *u += 1;
+  if (node->which == DEFTYPE) {
+    *stop = TRUE;
+  }
+  return 0;
+}
+
+static error step_test_stop_deftype_up(struct module *mod, struct node *node,
+                                       void *user, bool *stop) {
+  size_t *u = user;
+  *u -= 1;
+  return 0;
+}
+
+static error passtest_stop_deftype(struct module *mod, struct node *root,
+                                   void *user, ssize_t shallow_last_up) {
+  PASS(
+    DOWN_STEP(step_test_stop_deftype_down);
+    ,
+    UP_STEP(step_test_stop_deftype_up);
+    );
+  return 0;
+}
+
+EXAMPLE_NCC_EMPTY(down_stop) {
+  (void) mock_deftype(mod, "test");
+
+  size_t u = 0;
+  error e = passtest_stop_deftype(mod, NULL, &u, -1);
+  assert(!e);
+  assert(u == 1);
 }

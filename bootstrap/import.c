@@ -6,18 +6,16 @@
 
 #include "passzero.h"
 
+static error do_pass_import_mark(struct module *mod, struct node *root,
+                                 void *user, size_t shallow_last_up) {
+  PASS(, UP_STEP(step_add_scopes));
+  return 0;
+}
+
 static void pass_import_mark(struct module *mod, struct node *mark,
                              struct scope *parent_scope) {
-  static const step down[] = {
-    NULL,
-  };
-  static const step up[] = {
-    step_add_scopes,
-    NULL,
-  };
-
   PUSH_STATE(mod->state->step_state);
-  error e = pass(mod, mark, down, up, -1, NULL);
+  error e = do_pass_import_mark(mod, mark, NULL, -1);
   assert(!e);
   POP_STATE(mod->state->step_state);
 
