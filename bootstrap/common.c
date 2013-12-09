@@ -83,6 +83,27 @@ void examples_destroy(const char *name) {
   g_env.stderr = NULL;
 }
 
+static void module_prepare_empty_mocks(struct module **mod) {
+  struct globalctx *gctx = calloc(1, sizeof(struct globalctx));
+  globalctx_init(gctx);
+
+  struct stage *stage = calloc(1, sizeof(struct stage));
+  error e = stage_load(gctx, stage, "bootstrap/mockempty.n");
+  assert(!e);
+
+  *mod = stage->entry_point;
+}
+
+void examples_init_NCC_EMPTY(const char *name, struct module **mod) {
+  examples_init(name);
+
+  module_prepare_empty_mocks(mod);
+}
+
+void examples_destroy_NCC_EMPTY(const char *name, struct module **mod) {
+  examples_destroy(name);
+}
+
 static void module_prepare_mocks(struct module **mod) {
   struct globalctx *gctx = calloc(1, sizeof(struct globalctx));
   globalctx_init(gctx);

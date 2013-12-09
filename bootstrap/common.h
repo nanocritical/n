@@ -222,6 +222,19 @@ void examples_destroy(const char *name);
   void example__##name(void)
 
 struct module;
+#define EXAMPLES_DECLS_NCC_EMPTY \
+  struct module *mod
+#define EXAMPLES_INIT_ARGS_NCC_EMPTY , &mod
+#define EXAMPLES_PROTO_NCC_EMPTY struct module *mod
+#define EXAMPLES_ARGS_NCC_EMPTY mod
+void examples_init_NCC_EMPTY(const char *name, struct module **mod);
+void examples_destroy_NCC_EMPTY(const char *name, struct module **mod);
+
+#define EXAMPLE_NCC_EMPTY(name) \
+  __attribute__((section(".text.examples._NCC_EMPTY"))) \
+  void example_NCC_EMPTY__##name(struct module *mod); \
+  void example_NCC_EMPTY__##name(struct module *mod)
+
 #define EXAMPLES_DECLS_NCC \
   struct module *mod
 #define EXAMPLES_INIT_ARGS_NCC , &mod
