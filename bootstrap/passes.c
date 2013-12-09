@@ -167,6 +167,8 @@ error catchup(struct module *mod,
     assert(FALSE && "Unreached");
   }
 
+  const bool was_upward = mod->state->step_state->upward;
+
   const struct node *parent = parent_scope->node;
   const bool need_new_state =
     parent->which == MODULE_BODY
@@ -198,7 +200,7 @@ error catchup(struct module *mod,
     }
   }
 
-  if (mod->state->step_state->upward && how == CATCHUP_REWRITING_CURRENT) {
+  if (was_upward && how == CATCHUP_REWRITING_CURRENT) {
     // Catch up to, and including, the current step.
     const struct pass *pa = passes(goal + 1);
     mod->stage->state->passing = goal + 1;
