@@ -1947,6 +1947,7 @@ static error step_remove_typeconstraints(struct module *mod, struct node *node,
 
     *node = *sub;
     node->scope.parent = parent;
+    fix_scopes_after_move(node);
 
     free(sub);
     free(subs);
