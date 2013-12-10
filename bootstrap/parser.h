@@ -9,6 +9,11 @@
 
 struct typ;
 
+#define SF(which) ( (uint64_t)1 << (which) )
+#define STEP_FILTER(step, m) const uint64_t step##_filter = (m)
+
+#define node_whichmask(node) SF(node->which)
+
 enum node_which {
   NUL = 1,
   IDENT,
@@ -271,6 +276,7 @@ struct node_invariant {
   struct toplevel toplevel;
 };
 struct node_example {
+  struct toplevel toplevel;
   size_t name;
 };
 struct node_import {
@@ -814,6 +820,17 @@ struct node *node_fun_retval(struct node *def);
 const struct node *node_fun_retval_const(const struct node *def);
 struct node *node_for_block(struct node *node);
 
+#define STEP_FILTER_DEFS_NO_FUNS \
+  (SF(DEFTYPE) | SF(DEFINTF) | SF(DEFNAMEDLITERAL) \
+   | SF(DEFCONSTRAINTLITERAL) | SF(DEFUNKNOWNIDENT))
+
+#define STEP_FILTER_DEFS \
+   (STEP_FILTER_DEFS_NO_FUNS | SF(DEFFUN) | SF(DEFMETHOD))
+
+#define STEP_FILTER_HAS_TOPLEVEL \
+  (STEP_FILTER_DEFS | SF(LET) | SF(INVARIANT) | SF(DELEGATE) \
+   | SF(IMPORT) | SF(EXAMPLE))
+
 static inline const struct toplevel *node_toplevel_const(const struct node *node) {
   const struct toplevel *toplevel = NULL;
 
@@ -847,6 +864,9 @@ static inline const struct toplevel *node_toplevel_const(const struct node *node
     break;
   case DELEGATE:
     toplevel = &node->as.DELEGATE.toplevel;
+    break;
+  case EXAMPLE:
+    toplevel = &node->as.EXAMPLE.toplevel;
     break;
   case IMPORT:
     toplevel = &node->as.IMPORT.toplevel;

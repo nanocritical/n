@@ -44,9 +44,13 @@ typedef error (*a_pass)(struct module *mod, struct node *root,
 a_pass passes(size_t p);
 error advance(struct module *mod);
 
+const uint64_t step_stop_marker_tbi_filter;
 error step_stop_marker_tbi(struct module *mod, struct node *node, void *user, bool *stop);
+const uint64_t step_stop_block_filter;
 error step_stop_block(struct module *mod, struct node *node, void *user, bool *stop);
+const uint64_t step_stop_funblock_filter;
 error step_stop_funblock(struct module *mod, struct node *node, void *user, bool *stop);
+const uint64_t step_complete_instantiation_filter;
 error step_complete_instantiation(struct module *mod, struct node *node, void *user, bool *stop);
 
 
@@ -83,7 +87,7 @@ start: \
   downs; \
   \
   if (node->subs_count == 0) { \
-    goto do_ups; \
+    goto skip_descend; \
   } \
   subp = 0; \
   sub = node->subs + subp; \
@@ -108,7 +112,7 @@ next: \
     goto descend; \
   } \
   \
-do_ups: \
+skip_descend: \
   mod->state->step_state->upward = TRUE; \
   mod->state->step_state->stepping = 0; \
   \
@@ -130,12 +134,14 @@ done:
 #define DOWN_STEP(step) do { \
   mod->state->step_state->stepping += 1; \
   \
-  bool stop = FALSE; \
-  error e = step(mod, node, user, &stop); \
-  EXCEPT(e); \
-  \
-  if (stop) { \
-    goto ascend; \
+  if (node_whichmask(node) & step##_filter) { \
+    bool stop = FALSE; \
+    error e = step(mod, node, user, &stop); \
+    EXCEPT(e); \
+    \
+    if (stop) { \
+      goto ascend; \
+    } \
   } \
   \
 } while (0)
@@ -147,12 +153,14 @@ done:
     goto ascend; \
   } \
   \
-  bool stop = FALSE; \
-  error e = step(mod, node, user, &stop); \
-  EXCEPT(e); \
-  \
-  if (stop) { \
-    goto ascend; \
+  if (node_whichmask(node) & step##_filter) { \
+    bool stop = FALSE; \
+    error e = step(mod, node, user, &stop); \
+    EXCEPT(e); \
+    \
+    if (stop) { \
+      goto ascend; \
+    } \
   } \
   \
 } while (0)

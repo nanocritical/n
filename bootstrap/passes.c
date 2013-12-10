@@ -211,6 +211,8 @@ error catchup_instantiation(struct module *instantiating_mod,
   return 0;
 }
 
+STEP_FILTER(step_stop_marker_tbi,
+            SF(DEFTYPE) | SF(IMPORT));
 error step_stop_marker_tbi(struct module *mod, struct node *node,
                            void *user, bool *stop) {
   DSTEP(mod, node);
@@ -222,38 +224,32 @@ error step_stop_marker_tbi(struct module *mod, struct node *node,
       *stop = TRUE;
       return 0;
     }
-  }
-
-  if (node->which == IMPORT && node->typ != NULL) {
+  } else if (node->which == IMPORT && node->typ != NULL) {
     *stop = TRUE;
     return 0;
+  } else {
+    assert(FALSE && "Unreached");
   }
 
   return 0;
 }
 
+STEP_FILTER(step_stop_block,
+            SF(BLOCK));
 error step_stop_block(struct module *mod, struct node *node,
                       void *user, bool *stop) {
   DSTEP(mod, node);
 
-  switch (node->which) {
-  case BLOCK:
-    *stop = TRUE;
-    return 0;
-  default:
-    return 0;
-  }
+  *stop = TRUE;
+
+  return 0;
 }
 
+STEP_FILTER(step_stop_funblock,
+            SF(BLOCK));
 error step_stop_funblock(struct module *mod, struct node *node,
                          void *user, bool *stop) {
   DSTEP(mod, node);
-  switch (node->which) {
-  case BLOCK:
-    break;
-  default:
-    return 0;
-  }
 
   switch (node_parent(node)->which) {
   case DEFFUN:
@@ -306,15 +302,13 @@ static error do_complete_instantiation(struct module *mod, struct node *node) {
   return 0;
 }
 
+STEP_FILTER(step_complete_instantiation,
+            STEP_FILTER_HAS_TOPLEVEL);
 error step_complete_instantiation(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
 
   struct toplevel *toplevel = node_toplevel(node);
-  if (toplevel == NULL) {
-    return 0;
-  }
-
   if (toplevel->yet_to_pass > mod->stage->state->passing) {
     return 0;
   }
@@ -330,6 +324,8 @@ error step_complete_instantiation(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_test_down,
+                   -1);
 static error step_test_down(struct module *mod, struct node *node,
                             void *user, bool *stop) {
   size_t *u = user;
@@ -337,6 +333,8 @@ static error step_test_down(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_test_up,
+                   -1);
 static error step_test_up(struct module *mod, struct node *node,
                           void *user, bool *stop) {
   size_t *u = user;
@@ -368,20 +366,22 @@ EXAMPLE_NCC_EMPTY(as_many_up_down) {
   assert(u == 0);
 }
 
+static STEP_FILTER(step_test_stop_deftype_down,
+                   SF(DEFTYPE));
 static error step_test_stop_deftype_down(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
-  size_t *u = user;
-  *u += 1;
   if (node->which == DEFTYPE) {
     *stop = TRUE;
   }
   return 0;
 }
 
+static STEP_FILTER(step_test_stop_deftype_up,
+                   SF(DEFTYPE));
 static error step_test_stop_deftype_up(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   size_t *u = user;
-  *u -= 1;
+  *u += 1;
   return 0;
 }
 
@@ -401,5 +401,5 @@ EXAMPLE_NCC_EMPTY(down_stop) {
   size_t u = 0;
   error e = passtest_stop_deftype(mod, NULL, &u, -1);
   assert(!e);
-  assert(u == 1);
+  assert(u == 0);
 }

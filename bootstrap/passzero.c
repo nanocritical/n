@@ -2,27 +2,23 @@
 
 #include "scope.h"
 
+static STEP_FILTER(step_do_rewrite_prototype_wildcards,
+                   SF(UN));
 static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node *node,
                                                  void *user, bool *stop) {
   DSTEP(mod, node);
-  switch (node->which) {
-  case UN:
-    if (node->as.UN.operator == TREFWILDCARD
-        || node->as.UN.operator == TNULREFWILDCARD) {
-      // FIXME The proper solution is to use
-      //   (intf t:Any) i_nullable r:(i_ref t) = (i_any_ref t)
-      // instead of i_nullable_ref, i_nullable_mutable_ref, and i_nullable_mercurial_ref.
-      // and use (i_nullable __wildcard_ref_arg__) here.
-      assert(node->as.UN.operator != TNULREFWILDCARD && "FIXME: Unsupported");
+  if (node->as.UN.operator == TREFWILDCARD
+      || node->as.UN.operator == TNULREFWILDCARD) {
+    // FIXME The proper solution is to use
+    //   (intf t:Any) i_nullable r:(i_ref t) = (i_any_ref t)
+    // instead of i_nullable_ref, i_nullable_mutable_ref, and i_nullable_mercurial_ref.
+    // and use (i_nullable __wildcard_ref_arg__) here.
+    assert(node->as.UN.operator != TNULREFWILDCARD && "FIXME: Unsupported");
 
-      node->which = CALL;
-      struct node *d = mk_node(mod, node, IDENT);
-      d->as.IDENT.name = ID_WILDCARD_REF_ARG;
-      rew_insert_last_at(node, 0);
-    }
-    break;
-  default:
-    break;
+    node->which = CALL;
+    struct node *d = mk_node(mod, node, IDENT);
+    d->as.IDENT.name = ID_WILDCARD_REF_ARG;
+    rew_insert_last_at(node, 0);
   }
   return 0;
 }
@@ -33,29 +29,23 @@ static error pass_rewrite_wildcards(struct module *mod, struct node *root,
   return 0;
 }
 
+static STEP_FILTER(step_rewrite_prototype_wildcards,
+                   SF(DEFFUN) | SF(DEFMETHOD));
 static error step_rewrite_prototype_wildcards(struct module *mod, struct node *node,
                                               void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct node *funargs;
-  switch (node->which) {
-  case DEFFUN:
-  case DEFMETHOD:
-    funargs = node->subs[IDX_FUNARGS];
-    for (size_t n = 0; n < funargs->subs_count; ++n) {
-      struct node *arg = funargs->subs[n];
-      if (arg->which == BLOCK) {
-        break;
-      }
-
-      PUSH_STATE(mod->state->step_state);
-      error e = pass_rewrite_wildcards(mod, arg, NULL, -1);
-      EXCEPT(e);
-      POP_STATE(mod->state->step_state);
+  struct node *funargs = node->subs[IDX_FUNARGS];
+  for (size_t n = 0; n < funargs->subs_count; ++n) {
+    struct node *arg = funargs->subs[n];
+    if (arg->which == BLOCK) {
+      break;
     }
-    break;
-  default:
-    break;
+
+    PUSH_STATE(mod->state->step_state);
+    error e = pass_rewrite_wildcards(mod, arg, NULL, -1);
+    EXCEPT(e);
+    POP_STATE(mod->state->step_state);
   }
 
   return 0;
@@ -91,6 +81,8 @@ struct node *add_instance_deepcopy_from_pristine(struct module *mod,
   return instance;
 }
 
+static STEP_FILTER(step_generics_pristine_copy,
+                   SF(DEFTYPE) | SF(DEFINTF) | SF(DEFFUN) | SF(DEFMETHOD));
 static error step_generics_pristine_copy(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
@@ -109,35 +101,32 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node,
     (void) add_instance_deepcopy_from_pristine(mod, node, node, FALSE);
     break;
   default:
+    assert(FALSE && "Unreached");
     break;
   }
 
   return 0;
 }
 
+static STEP_FILTER(step_detect_prototypes,
+                   SF(DEFFUN) | SF(DEFMETHOD));
 static error step_detect_prototypes(struct module *mod, struct node *node,
                                     void *user, bool *stop) {
   DSTEP(mod, node);
+
   struct toplevel *toplevel = node_toplevel(node);
-  switch (node->which) {
-  case DEFFUN:
-  case DEFMETHOD:
-    toplevel->is_prototype = toplevel->builtingen == BG__NOT
-      && !node_has_tail_block(node);
-    break;
-  default:
-    break;
-  }
+  toplevel->is_prototype = toplevel->builtingen == BG__NOT
+    && !node_has_tail_block(node);
+
   return 0;
 }
 
+static STEP_FILTER(step_detect_deftype_kind,
+                   SF(DEFTYPE));
 // Must be run before builtins are added.
 static error step_detect_deftype_kind(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFTYPE) {
-    return 0;
-  }
 
   error e;
   struct node *f = NULL;
@@ -177,12 +166,13 @@ field_and_sum:
   THROW(e);
 }
 
+static STEP_FILTER(step_assign_deftype_which_values,
+                   SF(DEFTYPE));
 static error step_assign_deftype_which_values(struct module *mod, struct node *node,
                                               void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFTYPE
-      || (node->as.DEFTYPE.kind != DEFTYPE_ENUM
-          && node->as.DEFTYPE.kind != DEFTYPE_SUM)) {
+  if (node->as.DEFTYPE.kind != DEFTYPE_ENUM
+      && node->as.DEFTYPE.kind != DEFTYPE_SUM) {
     return 0;
   }
 
@@ -219,6 +209,8 @@ static error step_assign_deftype_which_values(struct module *mod, struct node *n
   return 0;
 }
 
+STEP_FILTER(step_add_scopes,
+            -1);
 error step_add_scopes(struct module *mod, struct node *node,
                       void *user, bool *stop) {
   DSTEP(mod, node);
@@ -231,12 +223,11 @@ error step_add_scopes(struct module *mod, struct node *node,
   return 0;
 }
 
+STEP_FILTER(step_stop_submodules,
+            SF(MODULE));
 error step_stop_submodules(struct module *mod, struct node *node,
                            void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != MODULE) {
-    return 0;
-  }
 
   int *module_depth = user;
   *module_depth += 1;

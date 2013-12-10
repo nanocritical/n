@@ -22,6 +22,12 @@ void scope_init(struct scope *scope) {
   scope_map_set_custom_cmpf(&scope->map, ident_cmp);
 }
 
+void fix_scopes_after_move(struct node *node) {
+  for (size_t n = 0; n < node->subs_count; ++n) {
+    node->subs[n]->scope.parent = &node->scope;
+  }
+}
+
 // Return value must be freed by caller.
 char *scope_name(const struct module *mod, const struct scope *scope) {
   if (scope->parent == NULL) {

@@ -91,10 +91,6 @@ void set_typ(struct typ **loc, struct typ *t) {
   assert(t != NULL);
 
   if (*loc != NULL) {
-    if (*loc == t) {
-      return;
-    }
-
     remove_backlink(t, loc);
   }
 

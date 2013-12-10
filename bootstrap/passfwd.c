@@ -10,6 +10,8 @@
 #include "passzero.h"
 #include "passbody.h"
 
+static STEP_FILTER(step_codeloc_for_generated,
+                   -1);
 static error step_codeloc_for_generated(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   if (node->codeloc == 0
@@ -20,27 +22,22 @@ static error step_codeloc_for_generated(struct module *mod, struct node *node,
   return 0;
 }
 
+STEP_FILTER(step_stop_already_morningtypepass,
+            SF(LET) | SF(ISA) | SF(GENARGS) | SF(FUNARGS) | SF(DEFGENARG) |
+            SF(SETGENARG) | SF(DEFFIELD) | SF(DEFCHOICE));
 error step_stop_already_morningtypepass(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   DSTEP(mod, node);
-  switch (node->which) {
-  case LET:
+
+  if (node->which == LET) {
     if (node_is_at_top(node) || node_is_at_top(node_parent_const(node))) {
       *stop = node->typ != NULL;
     }
-    break;
-  case ISA:
-  case GENARGS:
-  case FUNARGS:
-  case DEFGENARG:
-  case SETGENARG:
-  case DEFFIELD:
-  case DEFCHOICE:
-    *stop = node->typ != NULL;
-    break;
-  default:
-    break;
+    return 0;
   }
+
+  *stop = node->typ != NULL;
+
   return 0;
 }
 
@@ -70,22 +67,11 @@ static error morningtypepass(struct module *mod, struct node *node) {
   return 0;
 }
 
+static STEP_FILTER(step_type_definitions,
+                   STEP_FILTER_DEFS);
 static error step_type_definitions(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
-
-  switch (node->which) {
-  case DEFTYPE:
-  case DEFINTF:
-  case DEFNAMEDLITERAL:
-  case DEFCONSTRAINTLITERAL:
-  case DEFUNKNOWNIDENT:
-  case DEFFUN:
-  case DEFMETHOD:
-    break;
-  default:
-    return 0;
-  }
 
   ident id = node_ident(node->subs[0]);
 
@@ -106,21 +92,19 @@ static error step_type_definitions(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_lexical_import,
+                   SF(IMPORT));
 static error step_lexical_import(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
 
-  switch (node->which) {
-  case IMPORT:
-    if (node_is_at_top(node)) {
-      e = lexical_import(&mod->body->scope, mod, node, node);
-      EXCEPT(e);
-    }
-    return 0;
-  default:
-    return 0;
+  if (node_is_at_top(node)) {
+    e = lexical_import(&mod->body->scope, mod, node, node);
+    EXCEPT(e);
   }
+
+  return 0;
 }
 
 static error lexical_retval(struct module *mod, struct node *fun, struct node *retval) {
@@ -151,12 +135,6 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
   return 0;
 }
 
-void fix_scopes_after_move(struct node *node) {
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    node->subs[n]->scope.parent = &node->scope;
-  }
-}
-
 static error insert_tupleextract(struct module *mod, size_t arity, struct node *expr) {
   struct scope *parent_scope = expr->scope.parent;
   struct node copy = *expr;
@@ -170,6 +148,7 @@ static error insert_tupleextract(struct module *mod, size_t arity, struct node *
   struct node *value = node_new_subnode(mod, expr);
   *value = copy;
   fix_scopes_after_move(value);
+  assert(value->typ == NULL);
 
   const struct node *except[] = { value, NULL };
   error e = catchup(mod, except, expr, parent_scope, CATCHUP_REWRITING_CURRENT);
@@ -269,12 +248,11 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
   return 0;
 }
 
+static STEP_FILTER(step_defpattern_extract_defname,
+                   SF(DEFPATTERN));
 static error step_defpattern_extract_defname(struct module *mod, struct node *node,
                                              void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFPATTERN) {
-    return 0;
-  }
 
   struct node *expr = NULL;
   if (node->subs_count >= 2) {
@@ -307,6 +285,9 @@ static void add_deftype_pristine_external_member(struct module *mod, struct node
   append_member(deft_pristine, member_pristine);
 }
 
+static STEP_FILTER(step_lexical_scoping,
+                   SF(DEFFUN) | SF(DEFMETHOD) | SF(DEFTYPE) | SF(DEFINTF) |
+                   SF(DEFFIELD) | SF(DEFCHOICE) | SF(DEFNAME) | SF(CATCH));
 static error step_lexical_scoping(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
@@ -389,6 +370,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
   case CATCH:
     break;
   default:
+    assert(FALSE && "Unreached");
     return 0;
   }
 
@@ -440,16 +422,11 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_add_builtin_members,
+                   SF(DEFTYPE) | SF(DEFINTF));
 static error step_add_builtin_members(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
-  switch (node->which) {
-  case DEFTYPE:
-  case DEFINTF:
-    break;
-  default:
-    return 0;
-  }
 
   if (typ_is_pseudo_builtin(node->typ)) {
     return 0;
@@ -492,23 +469,12 @@ static error step_add_builtin_members(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_type_inference_genargs,
+                   STEP_FILTER_DEFS);
 static error step_type_inference_genargs(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
-
-  switch (node->which) {
-  case DEFTYPE:
-  case DEFINTF:
-  case DEFNAMEDLITERAL:
-  case DEFCONSTRAINTLITERAL:
-  case DEFUNKNOWNIDENT:
-  case DEFFUN:
-  case DEFMETHOD:
-    break;
-  default:
-    return 0;
-  }
 
   if (node->typ == TBI__NOT_TYPEABLE) {
     return 0;
@@ -521,22 +487,11 @@ static error step_type_inference_genargs(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_type_create_update,
+                   STEP_FILTER_DEFS);
 static error step_type_create_update(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
-
-  switch (node->which) {
-  case DEFTYPE:
-  case DEFINTF:
-  case DEFNAMEDLITERAL:
-  case DEFCONSTRAINTLITERAL:
-  case DEFUNKNOWNIDENT:
-  case DEFFUN:
-  case DEFMETHOD:
-    break;
-  default:
-    return 0;
-  }
 
   typ_create_update_genargs(node->typ);
   typ_create_update_hash(node->typ);
@@ -544,142 +499,103 @@ static error step_type_create_update(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_type_inference_isalist,
+                   SF(ISA));
 static error step_type_inference_isalist(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
-  error e;
 
-  switch (node->which) {
-  case ISA:
-    e = morningtypepass(mod, node);
-    EXCEPT(e);
-    break;
-  default:
-    break;
-  }
+  error e = morningtypepass(mod, node);
+  EXCEPT(e);
 
   return 0;
 }
 
+static STEP_FILTER(step_type_update_quickisa,
+                   STEP_FILTER_DEFS_NO_FUNS);
 static error step_type_update_quickisa(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
-
-  switch (node->which) {
-  case DEFTYPE:
-  case DEFINTF:
-  case DEFNAMEDLITERAL:
-  case DEFCONSTRAINTLITERAL:
-  case DEFUNKNOWNIDENT:
-    break;
-  default:
-    return 0;
-  }
 
   typ_create_update_quickisa(node->typ);
 
   return 0;
 }
 
+static STEP_FILTER(step_type_lets,
+                   SF(LET));
 static error step_type_lets(struct module *mod, struct node *node,
                             void *user, bool *stop) {
   DSTEP(mod, node);
 
-  error e;
-  switch (node->which) {
-  case LET:
-    {
-      struct node *parent = node_parent(node);
-      if (node_is_at_top(node) || node_is_at_top(parent)) {
-        e = morningtypepass(mod, node);
-        EXCEPT(e);
-      }
-    }
-    break;
-  default:
-    break;
+  struct node *parent = node_parent(node);
+  if (node_is_at_top(node) || node_is_at_top(parent)) {
+    error e = morningtypepass(mod, node);
+    EXCEPT(e);
   }
 
   return 0;
 }
 
+static STEP_FILTER(step_type_deffields,
+                   SF(DEFCHOICE) | SF(DEFFIELD));
 static error step_type_deffields(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
 
-  error e;
-  switch (node->which) {
-  case DEFCHOICE:
-  case DEFFIELD:
-    e = morningtypepass(mod, node);
-    EXCEPT(e);
-    return 0;
-  default:
-    return 0;
-  }
+  error e = morningtypepass(mod, node);
+  EXCEPT(e);
 
   return 0;
 }
 
+static STEP_FILTER(step_type_defchoices,
+                   SF(DEFTYPE));
 static error step_type_defchoices(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
 
   error e;
-  switch (node->which) {
-  case DEFTYPE:
-    switch (node->as.DEFTYPE.kind) {
-    case DEFTYPE_ENUM:
-    case DEFTYPE_SUM:
-      {
-        set_typ(&node->as.DEFTYPE.choice_typ,
-                typ_create_tentative(TBI_LITERALS_INTEGER));
-        struct typ *u = node->as.DEFTYPE.choice_typ;
+  switch (node->as.DEFTYPE.kind) {
+  case DEFTYPE_ENUM:
+  case DEFTYPE_SUM:
+    {
+      set_typ(&node->as.DEFTYPE.choice_typ,
+              typ_create_tentative(TBI_LITERALS_INTEGER));
+      struct typ *u = node->as.DEFTYPE.choice_typ;
 
-        for (size_t n = 0; n < node->subs_count; ++n) {
-          struct node *ch = node->subs[n];
-          if (ch->which != DEFCHOICE) {
-            continue;
-          }
-
-          e = unify(mod, ch, u, ch->subs[IDX_CH_VALUE]->typ);
-          EXCEPT(e);
-
-          ch->flags |= NODE_IS_DEFCHOICE;
+      for (size_t n = 0; n < node->subs_count; ++n) {
+        struct node *ch = node->subs[n];
+        if (ch->which != DEFCHOICE) {
+          continue;
         }
 
-        if (typ_equal(u, TBI_LITERALS_INTEGER)) {
-          typ_link_tentative(TBI_U32, u);
-        }
+        e = unify(mod, ch, u, ch->subs[IDX_CH_VALUE]->typ);
+        EXCEPT(e);
+
+        ch->flags |= NODE_IS_DEFCHOICE;
       }
-      break;
-    default:
-      break;
+
+      if (typ_equal(u, TBI_LITERALS_INTEGER)) {
+        typ_link_tentative(TBI_U32, u);
+      }
     }
     break;
   default:
     break;
   }
+
   return 0;
 }
 
+static STEP_FILTER(step_type_deffuns,
+                   SF(DEFMETHOD) | SF(DEFFUN));
 static error step_type_deffuns(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   DSTEP(mod, node);
 
-  error e;
-  switch (node->which) {
-  case DEFMETHOD:
-  case DEFFUN:
-    e = morningtypepass(mod, node);
-    EXCEPT(e);
-    return 0;
-  case DEFTYPE:
-  case DEFINTF:
-    break;
-  default:
-    return 0;
-  }
+  error e = morningtypepass(mod, node);
+  EXCEPT(e);
 
   return 0;
 }
@@ -739,11 +655,12 @@ static void add_inferred_isa(struct module *mod, struct node *deft, const char *
   typ_create_update_quickisa(deft->typ);
 }
 
+static STEP_FILTER(step_add_builtin_enum_intf,
+                   SF(DEFTYPE));
 static error step_add_builtin_enum_intf(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFTYPE
-      || node->as.DEFTYPE.kind != DEFTYPE_ENUM) {
+  if (node->as.DEFTYPE.kind != DEFTYPE_ENUM) {
     return 0;
   }
 
@@ -753,12 +670,12 @@ static error step_add_builtin_enum_intf(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_add_builtin_detect_ctor_intf,
+                   SF(DEFTYPE));
 static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *node,
                                                void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFTYPE) {
-    return 0;
-  }
+
   if (node_toplevel_const(node)->is_extern) {
     return 0;
   }
@@ -782,16 +699,16 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
   return 0;
 }
 
+static STEP_FILTER(step_rewrite_final_this,
+                   SF(IDENT));
 static error step_rewrite_final_this(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   struct typ *thi = user;
-  if (node->which == IDENT) {
-    ident id = node_ident(node);
-    if (id == ID_THIS) {
-      node->which = DIRECTDEF;
-      set_typ(&node->as.DIRECTDEF.typ, thi);
-      node->as.DIRECTDEF.flags = NODE_IS_TYPE;
-    }
+  ident id = node_ident(node);
+  if (id == ID_THIS) {
+    node->which = DIRECTDEF;
+    set_typ(&node->as.DIRECTDEF.typ, thi);
+    node->as.DIRECTDEF.flags = NODE_IS_TYPE;
   }
   return 0;
 }
@@ -905,12 +822,11 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   assert(!e);
 }
 
+static STEP_FILTER(step_add_builtin_defchoice_constructors,
+                   SF(DEFCHOICE));
 static error step_add_builtin_defchoice_constructors(struct module *mod, struct node *node,
                                                      void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFCHOICE) {
-    return 0;
-  }
 
   const struct node *deft = node_parent(node);
   if (deft->as.DEFTYPE.kind == DEFTYPE_ENUM) {
@@ -928,12 +844,12 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
   return 0;
 }
 
+static STEP_FILTER(step_add_builtin_ctor,
+                   SF(DEFTYPE));
 static error step_add_builtin_ctor(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFTYPE) {
-    return 0;
-  }
+
   if (node_toplevel_const(node)->is_extern) {
     return 0;
   }
@@ -941,12 +857,12 @@ static error step_add_builtin_ctor(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_add_builtin_dtor,
+                   SF(DEFTYPE));
 static error step_add_builtin_dtor(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFTYPE) {
-    return 0;
-  }
+
   if (node_toplevel_const(node)->is_extern) {
     return 0;
   }
@@ -1027,12 +943,12 @@ static error define_auto(struct module *mod, struct node *deft,
   return 0;
 }
 
+static STEP_FILTER(step_add_builtin_mk_new,
+                   SF(DEFTYPE));
 static error step_add_builtin_mk_new(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFTYPE) {
-    return 0;
-  }
+
   if (node_toplevel_const(node)->is_extern) {
     return 0;
   }
@@ -1061,12 +977,12 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_add_builtin_mkv_newv,
+                   SF(DEFTYPE));
 static error step_add_builtin_mkv_newv(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFTYPE) {
-    return 0;
-  }
+
   if (node_toplevel_const(node)->is_extern) {
     return 0;
   }
@@ -1083,6 +999,8 @@ static error step_add_builtin_mkv_newv(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_add_builtin_defchoice_mk_new,
+                   SF(DEFCHOICE));
 static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *node,
                                                void *user, bool *stop) {
   DSTEP(mod, node);
@@ -1103,12 +1021,12 @@ static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *
   return 0;
 }
 
+static STEP_FILTER(step_add_builtin_operators,
+                   SF(DEFTYPE));
 static error step_add_builtin_operators(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFTYPE) {
-    return 0;
-  }
+
   if (node_toplevel_const(node)->is_extern) {
     return 0;
   }
@@ -1131,12 +1049,11 @@ static error step_add_builtin_operators(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_add_trivials,
+                   SF(DEFTYPE));
 static error step_add_trivials(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFTYPE) {
-    return 0;
-  }
 
   // FIXME: We should check that the fields/defchoice do indeed support
   // these trivial interfaces. It must be safe to declare them.
@@ -1249,15 +1166,11 @@ static error sum_choice_with_intf(struct module *mod, struct typ *t,
   return 0;
 }
 
+static STEP_FILTER(step_add_sum_dispatch,
+                   SF(DEFTYPE));
 static error step_add_sum_dispatch(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
-  switch (node->which) {
-  case DEFTYPE:
-    break;
-  default:
-    return 0;
-  }
 
   switch (node->as.DEFTYPE.kind) {
   case DEFTYPE_PROTOTYPE:
@@ -1275,12 +1188,11 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_rewrite_def_return_through_ref,
+                   SF(DEFFUN) | SF(DEFMETHOD));
 static error step_rewrite_def_return_through_ref(struct module *mod, struct node *node,
                                                  void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->which != DEFFUN && node->which != DEFMETHOD) {
-    return 0;
-  }
 
   struct node *retval = node_fun_retval(node);
   if (typ_isa(retval->typ, TBI_RETURN_BY_COPY)) {

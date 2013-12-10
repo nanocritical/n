@@ -18,6 +18,8 @@ struct node_op {
   void *user;
 };
 
+static STEP_FILTER(step_for_all_nodes,
+                   -1);
 static error step_for_all_nodes(struct module *dummy, struct node *node,
                                 void *user, bool *stop) {
   struct node_op *op = user;
@@ -275,14 +277,11 @@ struct dependencies {
 
 static error gather_dependencies(struct node *node, struct dependencies *deps);
 
+static STEP_FILTER(step_gather_dependencies_in_module,
+                   SF(IMPORT));
 static error step_gather_dependencies_in_module(struct module *mod, struct node *node,
                                                 void *user, bool *stop) {
   struct dependencies *deps = user;
-
-  assert(node->which != MODULE);
-  if (node->which != IMPORT) {
-    return 0;
-  }
 
   *stop = TRUE;
 

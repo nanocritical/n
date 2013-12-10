@@ -1890,11 +1890,11 @@ error pass(struct module *mod, struct node *node,
            const step *down_steps, const step *up_steps, ssize_t shallow_last_up,
            void *user);
 
+static STEP_FILTER(step_rewrite_into_defarg,
+                   SF(TYPECONSTRAINT));
 static error step_rewrite_into_defarg(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
-  if (node->which == TYPECONSTRAINT) {
-    node->which = DEFARG;
-  }
+  node->which = DEFARG;
   return 0;
 }
 
