@@ -2971,35 +2971,22 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
   }
 }
 
-static bool is_significant(const struct node *node) {
-  return node->which != TYPECONSTRAINT;
-}
-
-static void closest_significant_parent(struct node **parent, struct node *node) {
-  struct node *n = node;
-  do {
-    n = node_parent(n);
-  } while (!is_significant(n));
-  *parent = n;
-}
-
 static bool block_like_needs_temporary(struct module *mod,
                                        struct node *node) {
   assert(is_block_like(node));
-  struct node *significant_parent = NULL;
-  closest_significant_parent(&significant_parent, node);
+  struct node *parent = node_parent(node);
 
-  if (is_block_like(significant_parent)) {
+  if (is_block_like(parent)) {
     return FALSE;
   }
 
-  if (significant_parent->which == RETURN
+  if (parent->which == RETURN
       && !typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
     return FALSE;
-  } else if (significant_parent->which == DEFPATTERN) {
+  } else if (parent->which == DEFPATTERN) {
     return FALSE;
-  } else if (significant_parent->which == BIN
-             && OP_IS_ASSIGN(significant_parent->as.BIN.operator)) {
+  } else if (parent->which == BIN
+             && OP_IS_ASSIGN(parent->as.BIN.operator)) {
     return FALSE;
   } else {
     return TRUE;
@@ -3023,12 +3010,7 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
   DSTEP(mod, node);
   struct temporaries *temps = user;
 
-  if (!is_significant(node)) {
-    return 0;
-  }
-
-  struct node *significant_parent = NULL;
-  closest_significant_parent(&significant_parent, node);
+  struct node *parent = node_parent(node);
 
   switch (node->which) {
   case UN:
@@ -3043,19 +3025,19 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
     }
     break;
   case INIT:
-    if (significant_parent->which == RETURN
+    if (parent->which == RETURN
         && !typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
       break;
     }
-    if (significant_parent->which == DEFPATTERN) {
+    if (parent->which == DEFPATTERN) {
       break;
     }
-    if (significant_parent->which == BIN
-        && OP_IS_ASSIGN(significant_parent->as.BIN.operator)) {
+    if (parent->which == BIN
+        && OP_IS_ASSIGN(parent->as.BIN.operator)) {
       break;
     }
-    if (significant_parent->which == UN
-        && OP_KIND(significant_parent->as.UN.operator) == OP_UN_REFOF) {
+    if (parent->which == UN
+        && OP_KIND(parent->as.UN.operator) == OP_UN_REFOF) {
       break;
     }
     temporaries_add(temps, node);
@@ -3067,18 +3049,18 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
     if (typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
       break;
     }
-    if (significant_parent->which == RETURN) {
+    if (parent->which == RETURN) {
       break;
     }
-    if (significant_parent->which == BIN
-        && OP_IS_ASSIGN(significant_parent->as.BIN.operator)) {
+    if (parent->which == BIN
+        && OP_IS_ASSIGN(parent->as.BIN.operator)) {
       break;
     }
-    if (significant_parent->which == UN
-        && OP_KIND(significant_parent->as.UN.operator) == OP_UN_REFOF) {
+    if (parent->which == UN
+        && OP_KIND(parent->as.UN.operator) == OP_UN_REFOF) {
       break;
     }
-    if (significant_parent->which == DEFPATTERN) {
+    if (parent->which == DEFPATTERN) {
       break;
     }
     temporaries_add(temps, node);
@@ -3205,8 +3187,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
     const ident g = temps.gensyms[n];
     struct node *rv = temps.rvalues[n];
 
-    struct node *rv_parent = NULL;
-    closest_significant_parent(&rv_parent, rv);
+    struct node *rv_parent = node_parent(rv);
     const size_t rv_where = rew_find_subnode_in_parent(rv_parent, rv);
 
     struct node *nrv = mk_node(mod, rv_parent, BLOCK);
