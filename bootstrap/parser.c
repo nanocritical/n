@@ -377,7 +377,7 @@ static struct node *do_node_module_owner(struct node *node) {
   if (node->which == MODULE) {
     return node;
   } else {
-    if (node->scope == NULL || node->scope->parent == NULL) {
+    if (node->scope.parent == NULL) {
       return NULL;
     }
     return do_node_module_owner(node_parent(node));
@@ -471,12 +471,12 @@ bool node_is_def(const struct node *node) {
 }
 
 bool node_is_statement(const struct node *node) {
-  return node->scope->parent != NULL
+  return node->scope.parent != NULL
     && node_parent_const(node)->which == BLOCK;
 }
 
 bool node_is_at_top(const struct node *node) {
-  if (node->scope->parent == NULL) {
+  if (node->scope.parent == NULL) {
     return FALSE;
   } else {
     return node_parent_const(node)->which == MODULE_BODY;
@@ -702,7 +702,7 @@ void globalctx_init(struct globalctx *gctx) {
 
   init_tbis(gctx);
 
-  gctx->modules_root.scope = scope_new(&gctx->modules_root);
+  scope_init(&gctx->modules_root.scope);
   gctx->modules_root.which = ROOT_OF_ALL;
   gctx->modules_root.typ = typ_create(NULL, &gctx->modules_root);
 }
@@ -861,7 +861,7 @@ struct node *node_fun_retval(struct node *def) {
 struct node *node_get_member(struct module *mod, struct node *node, ident id) {
   assert(node->which == DEFTYPE || node->which == DEFCHOICE || node->which == DEFINTF);
   struct node *m = NULL;
-  (void)scope_lookup_ident_immediate(&m, node, mod, node->scope, id, TRUE);
+  (void)scope_lookup_ident_immediate(&m, node, mod, &node->scope, id, TRUE);
   return m;
 }
 
@@ -2394,7 +2394,7 @@ void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src) {
   dst->which = src->which;
   memcpy(dst, src, sizeof(*dst));
-  dst->scope = NULL;
+  memset(&dst->scope, 0, sizeof(dst->scope));
   dst->subs = NULL;
   dst->subs_count = 0;
   dst->typ = NULL;
@@ -2691,8 +2691,8 @@ static struct node *create_module_node(struct node *parent, ident basename,
   m->as.MODULE.name = basename;
   m->as.MODULE.is_placeholder = is_placeholder;
   m->as.MODULE.mod = is_placeholder ? NULL : non_placeholder_mod;
-  m->scope = scope_new(m);
-  m->scope->parent = parent->scope;
+  scope_init(&m->scope);
+  m->scope.parent = &parent->scope;
   m->typ = typ_create(NULL, m);
   m->flags = NODE_IS_TYPE;
 
@@ -2716,17 +2716,17 @@ static error register_module(struct globalctx *gctx, struct module *to_register,
   for (size_t p = 0; p <= last; ++p) {
     ident i = to_register->path[p];
     struct node *m = NULL;
-    error e = scope_lookup_ident_wontimport(&m, parent, some_module, parent->scope,
+    error e = scope_lookup_ident_wontimport(&m, parent, some_module, &parent->scope,
                                             i, TRUE);
     if (e == EINVAL) {
       m = create_module_node(parent, i, p != last, to_register);
 
-      e = scope_define_ident(some_module, parent->scope, i, m);
+      e = scope_define_ident(some_module, &parent->scope, i, m);
       EXCEPT(e);
 
     } else if (e) {
       // Repeat bound-to-fail lookup to get the error message right.
-      e = scope_lookup_ident_wontimport(&m, parent, some_module, parent->scope,
+      e = scope_lookup_ident_wontimport(&m, parent, some_module, &parent->scope,
                                         i, FALSE);
       THROW(e);
     } else {
@@ -2742,14 +2742,14 @@ static error register_module(struct globalctx *gctx, struct module *to_register,
           for (size_t s = 0; s < m->subs_count; ++s) {
             struct node *to_save = m->subs[s];
             assert(to_save->which == MODULE);
-            e = scope_define_ident(some_module, to_register->root->scope,
+            e = scope_define_ident(some_module, &to_register->root->scope,
                                    node_ident(to_save), to_save);
             EXCEPT(e);
           }
 
           // scope_define_ident() knows to accept to overwrite because it
           // was a placeholder.
-          e = scope_define_ident(some_module, parent->scope, i, to_register->root);
+          e = scope_define_ident(some_module, &parent->scope, i, to_register->root);
           EXCEPT(e);
         }
 
@@ -2831,7 +2831,7 @@ char *typ_name(const struct module *mod, const struct typ *t) {
   if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
     return typ_name(mod, typ_generic_functor_const(t));
   } else if (typ_definition_const(t) != NULL) {
-    return scope_name(mod, typ_definition_const(t)->scope);
+    return scope_name(mod, &typ_definition_const(t)->scope);
   } else {
     for (size_t n = ID_TBI__FIRST; n < ID_TBI__LAST; ++n) {
       if (mod->gctx->builtin_typs_by_name[n] == t) {

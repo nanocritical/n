@@ -98,7 +98,7 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
       break;
     }
     struct node *def = NULL;
-    error e = scope_lookup_ident_immediate(&def, node, mod, node->scope,
+    error e = scope_lookup_ident_immediate(&def, node, mod, &node->scope,
                                            ID_WILDCARD_REF_ARG, TRUE);
     if (e) {
       break;
@@ -423,10 +423,10 @@ static error step_excepts_store_label(struct module *mod, struct node *node,
     }
 
     struct node *def = NULL;
-    e = scope_lookup(&def, mod, node->scope, label_ident, FALSE);
+    e = scope_lookup(&def, mod, &node->scope, label_ident, FALSE);
     EXCEPT(e);
 
-    if (def->which != CATCH || def->scope->parent->node != eblock) {
+    if (def->which != CATCH || scope_node(def->scope.parent) != eblock) {
       e = mk_except(mod, label_ident,
                     "invalid label '%s'",
                     idents_value(mod->gctx, node_ident(label_ident)));
@@ -477,7 +477,7 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
   }
 
   struct node *member = NULL;
-  error e = scope_lookup(&member, mod, fun->scope, fun, FALSE);
+  error e = scope_lookup(&member, mod, &fun->scope, fun, FALSE);
   EXCEPT(e);
   if (member->which != DEFCHOICE) {
     return 0;
@@ -492,7 +492,7 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
   rew_move_last_over(node, 0, TRUE);
 
   const struct node *except[] = { fun, NULL };
-  e = catchup(mod, except, mk_fun, node->scope, CATCHUP_BELOW_CURRENT);
+  e = catchup(mod, except, mk_fun, &node->scope, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
 
   return 0;
@@ -532,7 +532,7 @@ static error do_instantiate(struct node **result,
   }
 
   error e = catchup_instantiation(mod, node_module_owner(gendef),
-                                  instance, gendef->scope->parent,
+                                  instance, gendef->scope.parent,
                                   tentative);
   EXCEPT(e);
 
@@ -825,7 +825,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
 static void bin_accessor_maybe_ref(struct scope **parent_scope,
                                    struct module *mod, struct node *parent) {
   if (typ_is_reference(parent->typ)) {
-    *parent_scope = typ_definition(typ_generic_arg(parent->typ, 0))->scope;
+    *parent_scope = &typ_definition(typ_generic_arg(parent->typ, 0))->scope;
   }
 }
 
@@ -836,22 +836,21 @@ static void bin_accessor_maybe_defchoice(struct scope **parent_scope, struct nod
 
     struct node *defchoice = NULL;
     error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
-                                           typ_definition(parent->typ)->scope,
+                                           &typ_definition(parent->typ)->scope,
                                            node_ident(parent->subs[1]), FALSE);
     assert(!e);
     assert(defchoice->which == DEFCHOICE);
 
-    *parent_scope = defchoice->scope;
+    *parent_scope = &defchoice->scope;
   }
 }
 
 static error rewrite_unary_call(struct module *mod, struct node *node, struct typ *tfun) {
-  struct scope *parent_scope = node->scope->parent;
+  struct scope *parent_scope = node->scope.parent;
 
   struct node *fun = calloc(1, sizeof(struct node));
   memcpy(fun, node, sizeof(*fun));
   set_typ(&fun->typ, tfun);
-  fun->scope->node = fun;
 
   memset(node, 0, sizeof(*node));
   node->which = CALL;
@@ -870,7 +869,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   const struct typ *mark = node->typ;
 
   struct node *container = node->subs[0];
-  struct scope *container_scope = typ_definition(container->typ)->scope;
+  struct scope *container_scope = &typ_definition(container->typ)->scope;
   bin_accessor_maybe_ref(&container_scope, mod, container);
   bin_accessor_maybe_defchoice(&container_scope, node, mod, container);
 
@@ -881,7 +880,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   EXCEPT(e);
 
   if (field->which == IMPORT && !field->as.IMPORT.intermediate_mark) {
-    e = scope_lookup(&field, mod, mod->gctx->modules_root.scope,
+    e = scope_lookup(&field, mod, &mod->gctx->modules_root.scope,
                      field->subs[0], FALSE);
     assert(!e);
   }
@@ -1046,7 +1045,7 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
   const bool tentative = TRUE;
   free(args);
   error e = catchup_instantiation(mod, mod,
-                                  littype, node->scope,
+                                  littype, &node->scope,
                                   tentative);
   assert(!e);
 
@@ -1194,14 +1193,14 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
         rew_insert_last_at(node, 1);
 
         const struct node *except[] = { fun->subs[0], NULL };
-        error e = catchup(mod, except, self, node->scope, CATCHUP_BELOW_CURRENT);
+        error e = catchup(mod, except, self, &node->scope, CATCHUP_BELOW_CURRENT);
         EXCEPT(e);
 
         e = typ_check_can_deref(mod, fun, self->typ,
                                 derefop_for_accop[fun->as.BIN.operator]);
         EXCEPT(e);
 
-        e = catchup(mod, NULL, m, node->scope, CATCHUP_BELOW_CURRENT);
+        e = catchup(mod, NULL, m, &node->scope, CATCHUP_BELOW_CURRENT);
         EXCEPT(e);
       }
     } else if ((fun->flags & NODE_IS_TYPE) && fun->which == CALL) {
@@ -1476,7 +1475,7 @@ static error unify_match_pattern(struct module *mod, struct node *expr, struct n
       && pattern->which == IDENT) {
     struct node *field = NULL;
     e = scope_lookup_ident_immediate(&field, pattern, mod,
-                                     d->scope,
+                                     &d->scope,
                                      node_ident(pattern),
                                      TRUE);
     if (!e) {
@@ -1604,12 +1603,12 @@ static void type_inference_ident_unknown(struct module *mod, struct node *node) 
       unk_ident->as.IDENT.name = node_ident(node)));
 
   const bool tentative = TRUE;
-  error e = catchup_instantiation(mod, mod, unk, node->scope, tentative);
+  error e = catchup_instantiation(mod, mod, unk, &node->scope, tentative);
   assert(!e);
 
   // Special marker, so we can rewrite it with the final enum or sum scope
   // in step_check_no_unknown_ident_left().
-  node->as.IDENT.non_local_scope = unk->scope;
+  node->as.IDENT.non_local_scope = &unk->scope;
 
   set_typ(&node->typ, typ_create_tentative(unk->typ));
 }
@@ -1621,7 +1620,7 @@ static error type_inference_ident(struct module *mod, struct node *node) {
   }
 
   struct node *def = NULL;
-  error e = scope_lookup(&def, mod, node->scope, node, TRUE);
+  error e = scope_lookup(&def, mod, &node->scope, node, TRUE);
   if (e == EINVAL) {
     type_inference_ident_unknown(mod, node);
     return 0;
@@ -1629,9 +1628,9 @@ static error type_inference_ident(struct module *mod, struct node *node) {
 
   const enum node_which parent_which = node_parent_const(def)->which;
   if (parent_which == MODULE || parent_which == DEFTYPE || parent_which == DEFINTF) {
-    node->as.IDENT.non_local_scope = def->scope->parent;
+    node->as.IDENT.non_local_scope = def->scope.parent;
   } else if (def->flags & NODE_IS_GLOBAL_LET) {
-    node->as.IDENT.non_local_scope = def->scope->parent->parent->parent;
+    node->as.IDENT.non_local_scope = def->scope.parent->parent->parent;
   }
 
   if (def->which == DEFFIELD) {
@@ -1944,11 +1943,10 @@ static error step_remove_typeconstraints(struct module *mod, struct node *node,
   if (node->which == TYPECONSTRAINT && !node->as.TYPECONSTRAINT.in_pattern) {
     struct node **subs = node->subs;
     struct node *sub = node->subs[0];
-    struct scope *parent = node->scope->parent;
+    struct scope *parent = node->scope.parent;
 
     *node = *sub;
-    node->scope->parent = parent;
-    node->scope->node = node;
+    node->scope.parent = parent;
 
     free(sub);
     free(subs);
@@ -2205,14 +2203,14 @@ static error step_check_no_unknown_ident_left(struct module *mod, struct node *n
 
   struct scope *non_local_scope = node->as.IDENT.non_local_scope;
   if (non_local_scope != NULL
-      && non_local_scope->node->which == DEFUNKNOWNIDENT
+      && scope_node(non_local_scope)->which == DEFUNKNOWNIDENT
       && d->which == DEFTYPE
       && d->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     struct node *def = NULL;
-    error e = scope_lookup_ident_immediate(&def, node, mod, d->scope,
+    error e = scope_lookup_ident_immediate(&def, node, mod, &d->scope,
                                            node_ident(node), FALSE);
     assert(!e);
-    node->as.IDENT.non_local_scope = def->scope->parent;
+    node->as.IDENT.non_local_scope = def->scope.parent;
   }
 
   return 0;
@@ -2273,7 +2271,7 @@ static error step_weak_literal_conversion(struct module *mod, struct node *node,
   set_typ(&literal->typ, lit_typ);
 
   const struct node *except[] = { literal, NULL };
-  error e = catchup(mod, except, node, copy.scope->parent,
+  error e = catchup(mod, except, node, copy.scope.parent,
                     CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
@@ -2381,7 +2379,7 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
     return 0;
   }
 
-  error e = gen_operator_call(mod, node->scope->parent, node,
+  error e = gen_operator_call(mod, node->scope.parent, node,
                               operator_ident[op], left, right,
                               CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
@@ -2397,7 +2395,7 @@ static error gen_operator_test_call(struct module *mod, struct node *node, size_
 
   struct node *test = node_new_subnode(mod, node);
   rew_move_last_over(node, n, TRUE);
-  error e = gen_operator_call(mod, node->scope->parent, test,
+  error e = gen_operator_call(mod, node->scope.parent, test,
                               ID_OPERATOR_TEST, expr, NULL,
                               CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
@@ -2459,7 +2457,7 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
           typ_generic_arg(typ_function_arg(fun->as.DIRECTDEF.typ, 0), 0));
 
   const struct node *except[] = { array, NULL };
-  error e = catchup(mod, except, node, copy.scope->parent,
+  error e = catchup(mod, except, node, copy.scope.parent,
                     CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
@@ -2490,7 +2488,7 @@ static bool expr_is_return_through_ref(struct node **init, struct module *mod, s
 }
 
 static error assign_copy_call_inference(struct module *mod, struct node *node) {
-  error e = gen_operator_call(mod, node->scope->parent, node,
+  error e = gen_operator_call(mod, node->scope.parent, node,
                               ID_COPY_CTOR, node->subs[0], node->subs[1],
                               CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
@@ -2506,14 +2504,14 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
     within = let->subs[let->subs_count-1];
   } else {
     within = mk_node(mod, let, BLOCK);
-    error e = catchup(mod, NULL, within, let->scope, CATCHUP_BELOW_CURRENT);
+    error e = catchup(mod, NULL, within, &let->scope, CATCHUP_BELOW_CURRENT);
     EXCEPT(e);
   }
 
   struct node *left = node->as.DEFNAME.pattern;
   struct node *right = node->as.DEFNAME.expr;
   node->as.DEFNAME.expr = NULL; // Steal right.
-  struct scope *saved_parent = within->scope->parent;
+  struct scope *saved_parent = within->scope.parent;
 
   struct node *copycall = node_new_subnode(mod, within);
   error e = gen_operator_call(mod, saved_parent, copycall,
@@ -2649,7 +2647,7 @@ static error insert_dyn(struct module *mod, struct node *node,
   rew_append(d, src);
 
   const struct node *except[] = { target, src, NULL };
-  error e = catchup(mod, except, d, node->scope, CATCHUP_BELOW_CURRENT);
+  error e = catchup(mod, except, d, &node->scope, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
 
   return 0;
@@ -2763,7 +2761,7 @@ static void block_insert_value_assign(struct module *mod, struct node *block,
   set_typ(&block->typ, TBI_VOID);
 
   const struct node *except[] = { last, NULL };
-  error e = catchup(mod, except, assign, block->scope, CATCHUP_BELOW_CURRENT);
+  error e = catchup(mod, except, assign, &block->scope, CATCHUP_BELOW_CURRENT);
   assert(!e);
 }
 
@@ -2811,12 +2809,11 @@ static error step_move_assign_in_block_like(struct module *mod, struct node *nod
 
   block_like_insert_value_assign(mod, right, left, 0);
 
-  struct scope *saved_parent = node->scope->parent;
-  free(node->scope);
+  struct scope *saved_parent = node->scope.parent;
   memset(node, 0, sizeof(*node));
   *node = *right;
   fix_scopes_after_move(node);
-  node->scope->parent = saved_parent;
+  node->scope.parent = saved_parent;
   set_typ(&node->typ, TBI_VOID);
 
   return 0;
@@ -2860,7 +2857,7 @@ static error step_move_defname_expr_in_let_block(struct module *mod, struct node
             rew_append(target_let_block, let_block);
 
             const struct node *except[] = { let_block, NULL };
-            error e = catchup(mod, except, target_let_block, let->scope,
+            error e = catchup(mod, except, target_let_block, &let->scope,
                               CATCHUP_AFTER_CURRENT);
             assert(!e);
           } else {
@@ -2868,20 +2865,20 @@ static error step_move_defname_expr_in_let_block(struct module *mod, struct node
           }
         } else {
           target_let_block = mk_node(mod, let, BLOCK);
-          error e = catchup(mod, NULL, target_let_block, let->scope,
+          error e = catchup(mod, NULL, target_let_block, &let->scope,
                             CATCHUP_AFTER_CURRENT);
           assert(!e);
         }
 
         defp_block = mk_node(mod, target_let_block, BLOCK);
-        error e = catchup(mod, NULL, defp_block, target_let_block->scope,
+        error e = catchup(mod, NULL, defp_block, &target_let_block->scope,
                           CATCHUP_AFTER_CURRENT);
         assert(!e);
       }
 
       d->as.DEFNAME.expr = NULL;
       rew_prepend(defp_block, expr);
-      expr->scope->parent = defp_block->scope;
+      expr->scope.parent = &defp_block->scope;
     }
   }
 
@@ -3136,7 +3133,7 @@ static void declare_temporaries(struct module *mod, struct node *statement,
     fix_scopes_after_move(new_statement);
 
     const struct node *except[] = { new_statement, NULL };
-    error e = catchup(mod, except, let, copy.scope->parent, CATCHUP_REWRITING_CURRENT);
+    error e = catchup(mod, except, let, copy.scope.parent, CATCHUP_REWRITING_CURRENT);
     assert(!e);
 
     // We moved the current stepping node down in the tree, and it was in
@@ -3171,7 +3168,7 @@ static void declare_temporaries(struct module *mod, struct node *statement,
     }
     typ->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
-    error e = catchup(mod, NULL, let->subs[n], let->scope, CATCHUP_BELOW_CURRENT);
+    error e = catchup(mod, NULL, let->subs[n], &let->scope, CATCHUP_BELOW_CURRENT);
     assert(!e);
   }
 }
@@ -3260,7 +3257,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
       nvalue->as.IDENT.name = g;
     }
 
-    e = catchup(mod, except, nrv, rv_parent->scope, CATCHUP_BELOW_CURRENT);
+    e = catchup(mod, except, nrv, &rv_parent->scope, CATCHUP_BELOW_CURRENT);
     EXCEPT(e);
   }
 

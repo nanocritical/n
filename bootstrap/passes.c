@@ -102,7 +102,7 @@ error catchup(struct module *mod,
 
   const bool was_upward = mod->state->step_state->upward;
 
-  const struct node *parent = parent_scope->node;
+  const struct node *parent = scope_node(parent_scope);
   const bool need_new_state =
     parent->which == MODULE_BODY
     || parent->which == DEFTYPE
@@ -127,7 +127,7 @@ error catchup(struct module *mod,
     EXCEPT(e);
 
     if (p == 0) {
-      node->scope->parent = parent_scope;
+      node->scope.parent = parent_scope;
     }
   }
 
@@ -203,7 +203,7 @@ error catchup_instantiation(struct module *instantiating_mod,
         continue;
       }
 
-      error e = catchup(gendef_mod, NULL, m, instance->scope, how);
+      error e = catchup(gendef_mod, NULL, m, &instance->scope, how);
       EXCEPT(e);
     }
   }

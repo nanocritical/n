@@ -3,15 +3,11 @@
 
 #include "common.h"
 #include "lexer.h"
+#include "scope.h"
 
 #define MODULE_PATH_MAXLEN 16
 
 struct typ;
-
-typedef uint32_t ident;
-
-uint32_t ident_hash(const ident *a);
-int ident_cmp(const ident *a, const ident *b);
 
 enum node_which {
   NUL = 1,
@@ -368,7 +364,7 @@ struct node {
   struct node **subs;
 
   struct typ *typ;
-  struct scope *scope;
+  struct scope scope;
 
   union node_as as;
   size_t codeloc;
@@ -566,14 +562,6 @@ enum predefined_idents {
   ID_OPERATOR_BWNOT,
 
   ID__NUM,
-};
-
-struct scope_map;
-
-struct scope {
-  struct scope_map *map;
-  struct scope *parent;
-  struct node *node;
 };
 
 struct fun_state {
@@ -786,10 +774,10 @@ static inline ident node_ident(const struct node *node) {
 }
 
 static inline struct node *node_parent(struct node *node) {
-  if (node->scope == NULL) {
+  if (node->scope.parent == NULL) {
     return NULL;
   } else {
-    return node->scope->parent->node;
+    return scope_node(node->scope.parent);
   }
 }
 

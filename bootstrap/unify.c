@@ -307,7 +307,7 @@ static struct typ *merge_defnamedliterals(struct module *mod,
                                                     args, arity);
   free(args);
   error e = catchup_instantiation(mod, mod,
-                                  littype, mod->body->scope,
+                                  littype, &mod->body->scope,
                                   tentative);
   assert(!e);
 
@@ -362,7 +362,7 @@ static error unify_with_defnamedliteral(struct module *mod, const struct node *f
     ident f_name = node_ident(f);
 
     struct node *d = NULL;
-    e = scope_lookup_ident_immediate(&d, a_def, mod, a_def->scope, f_name, FALSE);
+    e = scope_lookup_ident_immediate(&d, a_def, mod, &a_def->scope, f_name, FALSE);
     EXCEPT(e);
 
     e = unify(mod, for_error, f->typ, d->typ);
@@ -433,7 +433,7 @@ static error unify_with_defunknownident(struct module *mod, const struct node *f
 
   struct node *def = NULL;
   e = scope_lookup_ident_immediate(&def, for_error, mod,
-                                   da->scope,
+                                   &da->scope,
                                    node_ident(unk), FALSE);
   EXCEPT(e);
 

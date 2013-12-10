@@ -1,9 +1,26 @@
 #ifndef SCOPE_H__
 #define SCOPE_H__
 
-#include "parser.h"
+#include "common.h"
+#include "table.h"
 
-struct scope *scope_new(struct node *node);
+struct node;
+struct module;
+
+typedef uint32_t ident;
+uint32_t ident_hash(const ident *a);
+int ident_cmp(const ident *a, const ident *b);
+
+HTABLE_SPARSE(scope_map, struct node *, ident);
+
+struct scope {
+  struct scope_map map;
+  struct scope *parent;
+};
+
+#define scope_node(sc) container_of(sc, struct node, scope)
+
+void scope_init(struct scope *scope);
 error scope_define_ident(const struct module *mod, struct scope *scope, ident id, struct node *node);
 error scope_define(const struct module *mod, struct scope *scope, struct node *id, struct node *node);
 error scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,

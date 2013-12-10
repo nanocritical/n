@@ -19,7 +19,7 @@ static void pass_import_mark(struct module *mod, struct node *mark,
   assert(!e);
   POP_STATE(mod->state->step_state);
 
-  mark->scope->parent = parent_scope;
+  mark->scope.parent = parent_scope;
   // Special self-referencing typ; see type_inference_bin_accessor().
   mark->typ = typ_create(NULL, mark);
 }
@@ -77,15 +77,15 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
   e = scope_lookup_ident_immediate(&mark, mark_ident, mod, *scope, name, TRUE);
   if (e == EINVAL) {
     // We need to create an (intermediate) mark.
-    struct node *anchor = (*scope == mod->body->scope)
+    struct node *anchor = (*scope == &mod->body->scope)
       ? original_import
-      : (*scope)->node;
+      : scope_node((*scope));
 
     mark = mk_node(mod, anchor, IMPORT);
     mark->as.IMPORT.toplevel.is_export = original_import->as.IMPORT.toplevel.is_export;
     mark->as.IMPORT.intermediate_mark = TRUE;
     node_deepcopy(mod, node_new_subnode(mod, mark), import_path);
-    pass_import_mark(mod, mark, anchor->scope);
+    pass_import_mark(mod, mark, &anchor->scope);
 
     e = scope_define_ident(mod, *scope, name, mark);
     assert(!e);
@@ -96,8 +96,7 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
     assert(mark->which == IMPORT);
   }
 
-  assert(mark->scope);
-  *scope = mark->scope;
+  *scope = &mark->scope;
 
   return NULL;
 }
@@ -124,7 +123,7 @@ static error check_import_target_exists(struct module *mod,
     struct node *target = NULL;
     struct node *id = module_import_path->subs[1];
     e = scope_lookup_ident_immediate(&target, id,
-                                     mod, def->scope,
+                                     mod, &def->scope,
                                      node_ident(id), FALSE);
     EXCEPT(e);
   }
@@ -188,7 +187,7 @@ static struct node *create_import_node_for_ex(struct module *mod,
   tok.len = strlen(tok.value);
   copy_and_extend_import_path(mod, id, import, &tok);
 
-  pass_import_mark(mod, id, original_import->scope);
+  pass_import_mark(mod, id, &original_import->scope);
 
   return id;
 }

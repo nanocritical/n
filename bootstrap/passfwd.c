@@ -13,8 +13,7 @@
 static error step_codeloc_for_generated(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   if (node->codeloc == 0
-      && node->scope != NULL
-      && node->scope->parent != NULL) {
+      && node->scope.parent != NULL) {
     node->codeloc = node_parent(node)->codeloc;
   }
 
@@ -115,7 +114,7 @@ static error step_lexical_import(struct module *mod, struct node *node,
   switch (node->which) {
   case IMPORT:
     if (node_is_at_top(node)) {
-      e = lexical_import(mod->body->scope, mod, node, node);
+      e = lexical_import(&mod->body->scope, mod, node, node);
       EXCEPT(e);
     }
     return 0;
@@ -134,7 +133,7 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
   case CALL:
     break;
   case DEFARG:
-    e = scope_define(mod, fun->scope, retval->subs[0], retval);
+    e = scope_define(mod, &fun->scope, retval->subs[0], retval);
     EXCEPT(e);
     break;
   case TUPLE:
@@ -153,14 +152,13 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
 }
 
 void fix_scopes_after_move(struct node *node) {
-  node->scope->node = node;
   for (size_t n = 0; n < node->subs_count; ++n) {
-    assert(node->subs[n]->scope->parent == node->scope);
+    node->subs[n]->scope.parent = &node->scope;
   }
 }
 
 static error insert_tupleextract(struct module *mod, size_t arity, struct node *expr) {
-  struct scope *parent_scope = expr->scope->parent;
+  struct scope *parent_scope = expr->scope.parent;
   struct node copy = *expr;
 
   memset(expr, 0, sizeof(*expr));
@@ -215,7 +213,7 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
       pattern->as.IDENT.name = gensym(mod);
       rew_move_last_over(parent, where, FALSE);
 
-      e = catchup(mod, NULL, pattern, defpattern->scope, CATCHUP_BELOW_CURRENT);
+      e = catchup(mod, NULL, pattern, &defpattern->scope, CATCHUP_BELOW_CURRENT);
       EXCEPT(e);
 
       def = mk_node(mod, defpattern, DEFNAME);
@@ -227,7 +225,7 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
       struct node *test = mk_node(mod, def, IDENT);
       test->as.IDENT.name = node_ident(pattern);
 
-      e = catchup(mod, NULL, def, defpattern->scope, CATCHUP_BELOW_CURRENT);
+      e = catchup(mod, NULL, def, &defpattern->scope, CATCHUP_BELOW_CURRENT);
       EXCEPT(e);
 
       return 0;
@@ -238,7 +236,7 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
     def->as.DEFNAME.pattern = pattern;
     def->as.DEFNAME.expr = expr;
 
-    e = catchup(mod, NULL, def, defpattern->scope, CATCHUP_BELOW_CURRENT);
+    e = catchup(mod, NULL, def, &defpattern->scope, CATCHUP_BELOW_CURRENT);
     EXCEPT(e);
 
     return 0;
@@ -337,18 +335,18 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
       sc = NULL;
     } else if (toplevel->scope_name == 0
                || node_parent(node)->which == DEFINTF) {
-      sc = node->scope->parent;
+      sc = node->scope.parent;
     } else {
       if (node_parent(node)->which == DEFTYPE) {
         // Generic instance *members* already have the 'right' parent.
         container = node_parent(node);
-        sc = container->scope;
+        sc = &container->scope;
       } else {
-        e = scope_lookup_ident_wontimport(&container, node, mod, node->scope->parent,
+        e = scope_lookup_ident_wontimport(&container, node, mod, node->scope.parent,
                                           toplevel->scope_name, FALSE);
         EXCEPT(e);
-        sc = container->scope;
-        node->scope->parent = sc;
+        sc = &container->scope;
+        node->scope.parent = sc;
       }
 
       const struct toplevel *ctoplevel = node_toplevel_const(container);
@@ -370,22 +368,22 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
       // For generic instances, define the name in its own scope, to make
       // sure lookups inside the instance resolve to the instance itself
       // (e.g. the definition of this).
-      e = scope_define(mod, node->scope, node->subs[0], node);
+      e = scope_define(mod, &node->scope, node->subs[0], node);
       EXCEPT(e);
     } else {
       id = node->subs[0];
-      sc = node->scope->parent;
+      sc = node->scope.parent;
     }
     break;
   case DEFFIELD:
   case DEFCHOICE:
     id = node->subs[0];
-    sc = node->scope->parent;
+    sc = node->scope.parent;
     break;
   case DEFNAME:
     if (node_ident(node) != ID_OTHERWISE) {
       id = node->as.DEFNAME.pattern;
-      sc = node->scope->parent->parent->parent;
+      sc = node->scope.parent->parent->parent;
     }
     break;
   case CATCH:
@@ -405,7 +403,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     for (size_t n = 0; n < node->subs[IDX_GENARGS]->subs_count; ++n) {
       struct node *ga = node->subs[IDX_GENARGS]->subs[n];
       assert(ga->which == DEFGENARG || ga->which == SETGENARG);
-      e = scope_define(mod, node->scope, ga->subs[0], ga);
+      e = scope_define(mod, &node->scope, ga->subs[0], ga);
       EXCEPT(e);
     }
     break;
@@ -414,7 +412,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     for (size_t n = 0; n < node->subs[IDX_GENARGS]->subs_count; ++n) {
       struct node *ga = node->subs[IDX_GENARGS]->subs[n];
       assert(ga->which == DEFGENARG || ga->which == SETGENARG);
-      e = scope_define(mod, node->scope, ga->subs[0], ga);
+      e = scope_define(mod, &node->scope, ga->subs[0], ga);
       EXCEPT(e);
     }
 
@@ -422,7 +420,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     for (size_t n = 0; n < node_fun_all_args_count(node); ++n) {
       struct node *arg = funargs->subs[n];
       assert(arg->which == DEFARG);
-      e = scope_define(mod, node->scope, arg->subs[0], arg);
+      e = scope_define(mod, &node->scope, arg->subs[0], arg);
       EXCEPT(e);
     }
 
@@ -431,7 +429,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     break;
   case CATCH:
     if (node->as.CATCH.is_user_label) {
-      e = scope_define_ident(mod, node->scope->parent, node->as.CATCH.label, node);
+      e = scope_define_ident(mod, node->scope.parent, node->as.CATCH.label, node);
       EXCEPT(e);
     }
     break;
@@ -470,7 +468,7 @@ static error step_add_builtin_members(struct module *mod, struct node *node,
 
     rew_insert_last_at(node, 3);
 
-    error e = catchup(mod, NULL, let, node->scope, CATCHUP_BELOW_CURRENT);
+    error e = catchup(mod, NULL, let, &node->scope, CATCHUP_BELOW_CURRENT);
     EXCEPT(e);
   }
 
@@ -487,7 +485,7 @@ static error step_add_builtin_members(struct module *mod, struct node *node,
 
     rew_insert_last_at(node, 4);
 
-    error e = catchup(mod, NULL, let, node->scope, CATCHUP_BELOW_CURRENT);
+    error e = catchup(mod, NULL, let, &node->scope, CATCHUP_BELOW_CURRENT);
     EXCEPT(e);
   }
 
@@ -735,7 +733,7 @@ static void add_inferred_isa(struct module *mod, struct node *deft, const char *
   isa->as.ISA.is_export = node_toplevel(deft)->is_inline;
   (void)mk_expr_abspath(mod, isa, path);
 
-  error e = catchup(mod, NULL, isa, isalist->scope, CATCHUP_BELOW_CURRENT);
+  error e = catchup(mod, NULL, isa, &isalist->scope, CATCHUP_BELOW_CURRENT);
   assert(!e);
 
   typ_create_update_quickisa(deft->typ);
@@ -865,7 +863,7 @@ static void define_builtin(struct module *mod, struct node *deft,
     how = CATCHUP_BELOW_CURRENT;
   }
 
-  e = catchup(mod, NULL, d, deft->scope, how);
+  e = catchup(mod, NULL, d, &deft->scope, how);
   assert(!e);
 }
 
@@ -903,7 +901,7 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
     rew_insert_last_at(funargs, (d->which == DEFMETHOD) ? 1 : 0);
   }
 
-  e = catchup(mod, NULL, d, ch->scope, CATCHUP_BELOW_CURRENT);
+  e = catchup(mod, NULL, d, &ch->scope, CATCHUP_BELOW_CURRENT);
   assert(!e);
 }
 
@@ -968,7 +966,7 @@ static error define_auto(struct module *mod, struct node *deft,
   }
 
   struct node *ctor = NULL;
-  e = scope_lookup_ident_immediate(&ctor, deft, mod, deft->scope,
+  e = scope_lookup_ident_immediate(&ctor, deft, mod, &deft->scope,
                                    ID_CTOR, TRUE);
   if (e) {
     // FIXME This should be narrower and only in the case the type cannot be
@@ -1023,7 +1021,7 @@ static error define_auto(struct module *mod, struct node *deft,
   }
 
   assert(node_toplevel(d)->yet_to_pass == 0);
-  e = catchup(mod, NULL, d, deft->scope, how);
+  e = catchup(mod, NULL, d, &deft->scope, how);
   assert(!e);
 
   return 0;
@@ -1182,7 +1180,7 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
 
     struct node *d = mk_node(mod, modbody, proto->which);
     intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
-    char *abspath = scope_name(mod, proto->scope);
+    char *abspath = scope_name(mod, &proto->scope);
     mk_expr_abspath(mod, d, abspath);
     rew_move_last_over(d, 0, FALSE);
 
@@ -1195,7 +1193,7 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
 
     rew_insert_last_at(modbody, insert_pos);
 
-    error e = catchup(mod, NULL, d, deft->scope, CATCHUP_BELOW_CURRENT);
+    error e = catchup(mod, NULL, d, &deft->scope, CATCHUP_BELOW_CURRENT);
     assert(!e);
   }
 }
@@ -1306,7 +1304,7 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
   EXCEPT(e);
 
   const struct node *except[] = { retval, NULL };
-  e = catchup(mod, except, named, node->scope, CATCHUP_BELOW_CURRENT);
+  e = catchup(mod, except, named, &node->scope, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
 
   // We need to force the typing of 'named' by hand.

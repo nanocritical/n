@@ -223,12 +223,12 @@ error step_add_scopes(struct module *mod, struct node *node,
                       void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->which != MODULE) {
-    node->scope = scope_new(node);
+    scope_init(&node->scope);
   }
 
   for (size_t n = 0; n < node->subs_count; ++n) {
     struct node *s = node->subs[n];
-    s->scope->parent = node->scope;
+    s->scope.parent = &node->scope;
   }
 
   return 0;

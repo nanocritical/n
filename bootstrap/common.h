@@ -11,6 +11,11 @@
 #include <errno.h>
 #include <assert.h>
 
+#define offsetof(type, member) __builtin_offsetof(type, member)
+#define container_of(ptr, type, member) \
+  ({ const __typeof__( ((type *)0)->member ) *__mptr = (ptr); \
+   (type *)( (char *)__mptr - offsetof(type, member) );})
+
 #define packed__ __attribute__((__packed__))
 #define unused__ __attribute__((__unused__))
 #define pure__ __attribute__((__pure__))

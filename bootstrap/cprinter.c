@@ -180,7 +180,7 @@ static void print_bin_acc(FILE *out, const struct module *mod, const struct node
     print_typ(out, mod, node->typ);
   } else if (node->flags & NODE_IS_GLOBAL_LET) {
     fprintf(out, "%s_%s",
-            replace_dots(scope_name(mod, typ_definition_const(left->typ)->scope)),
+            replace_dots(scope_name(mod, &typ_definition_const(left->typ)->scope)),
             idents_value(mod->gctx, node_ident(right)));
   } else {
     const char *deref = ".";
@@ -399,7 +399,7 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
     return;
   }
 
-  const struct node *context = node->scope->parent->parent->parent->node;
+  const struct node *context = node_parent_const(node_parent_const(node));
   if (context->which == LET) {
     switch (context->which) {
     case MODULE_BODY:
@@ -671,10 +671,10 @@ static void print_example(FILE *out, bool header, enum forward fwd, const struct
   }
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     fprintf(out, "void %s__Nexample%zu(void) " ATTR_SECTION_EXAMPLES ";",
-            replace_dots(scope_name(mod, mod->root->scope)), node->as.EXAMPLE.name);
+            replace_dots(scope_name(mod, &mod->root->scope)), node->as.EXAMPLE.name);
   } else if (fwd == FWD_DEFINE_FUNCTIONS) {
     fprintf(out, "void %s__Nexample%zu(void) {\n",
-            replace_dots(scope_name(mod, mod->root->scope)), node->as.EXAMPLE.name);
+            replace_dots(scope_name(mod, &mod->root->scope)), node->as.EXAMPLE.name);
     const struct node *block = node->subs[0];
     fprintf(out, "nlang_builtins_assert(");
     print_expr(out, mod, block, T__STATEMENT);
@@ -790,7 +790,7 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
   assert(node->which == DEFNAME);
   if (fwd == FWD_DECLARE_TYPES) {
     if ((node->flags & NODE_IS_TYPE)) {
-      struct node *pp = node->scope->parent->parent->node;
+      const struct node *pp = node_parent_const(node_parent_const(node));
       if (pp->which == DEFTYPE) {
         const ident id = node_ident(node->as.DEFNAME.pattern);
         if (id != ID_THIS) {
@@ -812,14 +812,14 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
       return;
     }
 
-    print_toplevel(out, header, node->scope->parent->parent->node);
+    print_toplevel(out, header, node_parent_const(node_parent_const(node)));
 
     print_typ(out, mod, node->typ);
     fprintf(out, " ");
 
     if (node->flags & NODE_IS_GLOBAL_LET) {
       fprintf(out, "%s_",
-              replace_dots(scope_name(mod, node_parent_const(let)->scope)));
+              replace_dots(scope_name(mod, &node_parent_const(let)->scope)));
     }
     print_pattern(out, mod, node->as.DEFNAME.pattern);
 
@@ -1127,7 +1127,7 @@ static const struct node *get_defchoice_member(const struct module *mod,
   struct node *m = NULL;
   error e = scope_lookup_ident_immediate(
     &m, ch, mod,
-    typ_definition_const(ch->subs[IDX_CH_PAYLOAD]->typ)->scope, member_id, FALSE);
+    &typ_definition_const(ch->subs[IDX_CH_PAYLOAD]->typ)->scope, member_id, FALSE);
   assert(!e);
   return m;
 }
@@ -1340,7 +1340,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     fprintf(out, "return self;\n");
     break;
   case BG_SUM_CTOR_WITH_CTOR:
-    fprintf(out, "self->which__ = %s_which__;\n", replace_dots(scope_name(mod, node->scope->parent)));
+    fprintf(out, "self->which__ = %s_which__;\n", replace_dots(scope_name(mod, node->scope.parent)));
     fprintf(out, "self->as__.%s = c;\n", idents_value(mod->gctx, node_ident(node_parent_const(node))));
     break;
   case BG_SUM_CTOR_WITH_MK:
@@ -1371,7 +1371,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, m->scope));
+        char *nm = replace_dots(scope_name(mod, &m->scope));
         fprintf(out, "case THIS(_%s_which___label__): %s %s(", nch, returns_something(mod, m), nm);
         free(nm);
 
@@ -1396,7 +1396,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, m->scope));
+        char *nm = replace_dots(scope_name(mod, &m->scope));
         fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
                 nch, returns_something(mod, m), nm, nch, nch);
         free(nm);
@@ -1412,7 +1412,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, m->scope));
+        char *nm = replace_dots(scope_name(mod, &m->scope));
         fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
                 nch, returns_something(mod, m), nm, nch, nch);
         free(nm);
@@ -1428,7 +1428,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, m->scope));
+        char *nm = replace_dots(scope_name(mod, &m->scope));
         fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
                 nch, returns_something(mod, m), nm, nch, nch);
         free(nm);
@@ -1444,7 +1444,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, m->scope));
+        char *nm = replace_dots(scope_name(mod, &m->scope));
         fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
                 nch, returns_something(mod, m), nm, nch, nch);
         free(nm);
@@ -1460,7 +1460,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, m->scope));
+        char *nm = replace_dots(scope_name(mod, &m->scope));
         fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
                 nch, returns_something(mod, m), nm, nch, nch);
         free(nm);
@@ -1477,7 +1477,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, m->scope));
+        char *nm = replace_dots(scope_name(mod, &m->scope));
         fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
                 nch, returns_something(mod, m), nm, nch, nch);
         free(nm);
@@ -1493,7 +1493,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, m->scope));
+        char *nm = replace_dots(scope_name(mod, &m->scope));
         fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
                 nch, returns_something(mod, m), nm, nch, nch);
         free(nm);
@@ -2306,8 +2306,8 @@ static void print_guarded_include(FILE *out, bool header, enum forward fwd,
 static void print_import(FILE *out, bool header, enum forward fwd,
                          const struct module *mod, const struct node *node) {
   struct node *target = NULL;
-  error e = scope_lookup(&target, mod, mod->gctx->modules_root.scope, node->subs[0],
-                         FALSE);
+  error e = scope_lookup(&target, mod, &mod->gctx->modules_root.scope,
+                         node->subs[0], FALSE);
   assert(!e);
   if (target->which == MODULE) {
     print_guarded_include(out, header, fwd, target->as.MODULE.mod->filename, ".h.out");
@@ -2422,7 +2422,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
 
     if (header) {
       fprintf(out, "#ifdef %s\n", forward_guards[fwd]);
-      const char *guard = replace_dots(scope_name(mod, mod->root->scope));
+      const char *guard = replace_dots(scope_name(mod, &mod->root->scope));
       fprintf(out, "#ifndef %s__%s\n#define %s__%s\n\n",
               forward_guards[fwd], guard, forward_guards[fwd], guard);
     }
@@ -2468,7 +2468,7 @@ static error print_runexamples(FILE *out, const struct module *mod) {
   fprintf(out, "void %s(void) {\n", printer_c_runexamples_name(mod));
   for (size_t n = 0; n < mod->next_example; ++n) {
     fprintf(out, "%s__Nexample%zu();\n",
-            replace_dots(scope_name(mod, mod->root->scope)), n);
+            replace_dots(scope_name(mod, &mod->root->scope)), n);
   }
   fprintf(out, "}\n");
   return 0;
@@ -2501,7 +2501,7 @@ error printer_h(int fd, const struct module *mod) {
 
 char *printer_c_runexamples_name(const struct module *mod) {
   static const char runexamples[] = "_Nrunexamples";
-  char *sc = replace_dots(scope_name(mod, mod->root->scope));
+  char *sc = replace_dots(scope_name(mod, &mod->root->scope));
   char *r = calloc(strlen(sc) + sizeof(runexamples), sizeof(char));
   sprintf(r, "%s%s", sc, runexamples);
   free(sc);
