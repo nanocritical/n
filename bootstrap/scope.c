@@ -6,11 +6,13 @@
 implement_htable_sparse(__attribute__((unused)) static, scope_map, struct node *, ident);
 
 uint32_t ident_hash(const ident *a) {
-  return hash32_hsieh(a, sizeof(*a));
+  return *a * 31;
 }
 
 int ident_cmp(const ident *a, const ident *b) {
-  return memcmp(a, b, sizeof(*a));
+  const ident aa = *a;
+  const ident bb = *b;
+  return aa == bb ? 0 : (aa > bb ? 1 : -1);
 }
 
 void scope_init(struct scope *scope) {
