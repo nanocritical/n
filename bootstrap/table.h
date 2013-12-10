@@ -531,6 +531,10 @@ implement_htable_rehash(storage, name, type, key_type)
 #define implement_htable_get(name, type, key_type) \
     type *name ## _get(struct name *ht, const key_type k) \
 { \
+  if (name ## _count(ht) == 0) { \
+    return NULL; \
+  } \
+  \
   const key_type *pk = &k; \
   struct name ## _unit__ *b; \
   uint32_t hash; \

@@ -146,6 +146,10 @@ error scope_define_ident(const struct module *mod, struct scope *scope,
     }
     *existing = node;
   } else {
+    if (scope->map.hashf == NULL) {
+      scope_init(scope);
+    }
+
     scope_map_set(&scope->map, id, node);
   }
 
