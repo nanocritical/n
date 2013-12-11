@@ -57,7 +57,7 @@ static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
   case DEFFUN:
   case DEFMETHOD:
     node_toplevel(node)->is_not_dyn = mod->state->fun_state->fun_uses_final
-      || node->subs[IDX_GENARGS]->subs_count != 0;
+      || node_subs_count_atleast(node_subs_at_const(node, IDX_GENARGS), 1);
     break;
   case IDENT:
     if (node_ident(node) == ID_FINAL) {
@@ -65,7 +65,7 @@ static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
     }
     break;
   case DEFARG:
-    if (rew_find_subnode_in_parent(node_parent(node), node) == 0
+    if (node_subs_first(node_parent(node)) == node
         && node_parent(node)->which == DEFMETHOD) {
       // We just found self as a method argument on the way up, doesn't count.
       assert(mod->state->fun_state->fun_uses_final);
@@ -89,7 +89,7 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
 
   switch (node->which) {
   case DEFMETHOD:
-    if (node->subs[IDX_GENARGS]->subs_count == 0) {
+    if (!node_subs_count_atleast(node_subs_at_const(node, IDX_GENARGS), 1)) {
       break;
     }
     struct node *def = NULL;
@@ -154,15 +154,29 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
 }
 
 static void mark_subs(struct module *mod, struct node *node, struct typ *mark,
-                      size_t begin, size_t end, size_t incr) {
-  for (size_t n = begin; n < end; n += incr){
-    node->subs[n]->typ = mark;
+                      struct node *first, struct node *last, size_t incr) {
+  if (first == NULL) {
+    return;
+  }
+
+  struct node *n = first;
+  while (TRUE) {
+    n->typ = mark;
+
+    for (size_t i = 0; i < incr; ++i) {
+      if (n == last) {
+        return;
+      }
+
+      n = node_next(n);
+    }
   }
 }
 
 static void inherit(struct module *mod, struct node *node) {
   if (node->typ == TBI__NOT_TYPEABLE) {
-    mark_subs(mod, node, node->typ, 0, node->subs_count, 1);
+    mark_subs(mod, node, node->typ,
+              node_subs_first(node), node_subs_last(node), 1);
   }
 }
 
@@ -181,44 +195,46 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
   inherit(mod, node);
 
   struct typ *not_typeable = TBI__NOT_TYPEABLE;
+  struct node *first = node_subs_first(node);
+  struct node *last = node_subs_last(node);
 
   switch (node->which) {
   case BIN:
     if (OP_KIND(node->as.BIN.operator) == OP_BIN_ACC) {
-      mark_subs(mod, node, not_typeable, 1, node->subs_count, 1);
+      mark_subs(mod, node, not_typeable, node_next(first), last, 1);
     }
     break;
   case CALL:
-    if (node->subs[0]->typ == NULL) {
+    if (first->typ == NULL) {
       // Otherwise, we are rewriting this expression and we should not touch
-      // subs[0].
-      mark_subs(mod, node, TBI__CALL_FUNCTION_SLOT, 0, 1, 1);
+      // first.
+      first->typ = TBI__CALL_FUNCTION_SLOT;
     }
     break;
   case INIT:
     if (!node->as.INIT.is_array) {
-      mark_subs(mod, node, TBI__NOT_TYPEABLE, 0, node->subs_count, 2);
+      mark_subs(mod, node, TBI__NOT_TYPEABLE, first, last, 2);
     }
     break;
   case DEFFUN:
   case DEFMETHOD:
-    node->subs[0]->typ = not_typeable;
+    first->typ = not_typeable;
     break;
   case DEFTYPE:
   case DEFINTF:
-    node->subs[0]->typ = not_typeable;
+    first->typ = not_typeable;
     break;
   case DEFFIELD:
   case DEFARG:
   case DEFGENARG:
   case SETGENARG:
-    node->subs[0]->typ = not_typeable;
+    first->typ = not_typeable;
     break;
   case MODULE_BODY:
     node->typ = not_typeable;
     break;
   case DEFCHOICE:
-    node->subs[0]->typ = not_typeable;
+    first->typ = not_typeable;
     break;
   default:
     assert(FALSE && "Unreached");
@@ -236,6 +252,8 @@ static error step_type_mutability_mark(struct module *mod, struct node *node,
   struct typ *mutable = TBI__MUTABLE;
   struct typ *mercurial = TBI__MERCURIAL;
 
+  struct node *first = node_subs_first(node);
+
   switch (node->which) {
   case BIN:
     switch (node->as.BIN.operator) {
@@ -250,7 +268,7 @@ static error step_type_mutability_mark(struct module *mod, struct node *node,
     case TBWXOR_ASSIGN:
     case TRSHIFT_ASSIGN:
     case TLSHIFT_ASSIGN:
-      mark_subs(mod, node, mutable, 0, 1, 1);
+      first->typ = mutable;
       break;
     default:
       break;
@@ -263,33 +281,32 @@ static error step_type_mutability_mark(struct module *mod, struct node *node,
 
     // Below, we're interested in catching cases like: @#(self!p)
 
-    struct node *arg= node->subs[0];
     switch (node->as.UN.operator) {
     case TREFDOT:
       // no-op
       break;
     case TREFBANG:
-      if (arg->typ != NULL) {
-        if (arg->which == BIN && !(arg->flags & NODE_IS_TYPE)) {
-          error e = typ_check_deref_against_mark(mod, arg, TBI__MUTABLE,
-                                                 arg->as.BIN.operator);
+      if (first->typ != NULL) {
+        if (first->which == BIN && !(first->flags & NODE_IS_TYPE)) {
+          error e = typ_check_deref_against_mark(mod, first, TBI__MUTABLE,
+                                                 first->as.BIN.operator);
           EXCEPT(e);
         }
       } else {
-        mark_subs(mod, node, mutable, 0, 1, 1);
+        first->typ = mutable;
       }
       break;
     case TREFWILDCARD:
     case TREFSHARP:
-      if (arg->typ != NULL) {
-        if (arg->which == BIN && !(arg->flags & NODE_IS_TYPE)) {
-          error e = typ_check_deref_against_mark(mod, arg, TBI__MERCURIAL,
-                                                 arg->as.BIN.operator);
+      if (first->typ != NULL) {
+        if (first->which == BIN && !(first->flags & NODE_IS_TYPE)) {
+          error e = typ_check_deref_against_mark(mod, first, TBI__MERCURIAL,
+                                                 first->as.BIN.operator);
           EXCEPT(e);
         }
         return 0;
       } else {
-        mark_subs(mod, node, mercurial, 0, 1, 1);
+        first->typ = mercurial;
       }
       break;
     default:
@@ -392,8 +409,8 @@ static error step_excepts_store_label(struct module *mod, struct node *node,
     return 0;
   case THROW:
     which = "throw";
-    if (node->subs_count == 2) {
-      label_ident = node->subs[0];
+    if (node_subs_count(node) == 2) {
+      label_ident = node_subs_first(node);
     }
     break;
   default:
@@ -402,26 +419,28 @@ static error step_excepts_store_label(struct module *mod, struct node *node,
   }
 
   struct node *tryy = module_excepts_get(mod)->tryy;
-  struct node *eblock = tryy->subs[0]->subs[1];
+  struct node *eblock = node_subs_at(node_subs_first(tryy), 1);
 
   ident label = ID__NONE;
   error e;
 
   if (label_ident == NULL) {
-    if (eblock->subs_count != 2) {
+    if (node_subs_count(eblock) == 2) {
       e = mk_except(mod, node,
                     "try block has multiple catch,"
                     " %s must use a label", which);
       THROW(e);
     }
 
-    assert(eblock->subs[1]->which == CATCH);
-    label = eblock->subs[1]->as.CATCH.label;
+    struct node *catch = node_subs_at(eblock, 1);
+    assert(catch->which == CATCH);
+    label = catch->as.CATCH.label;
 
   } else {
-    if (eblock->subs_count == 2) {
-      assert(eblock->subs[1]->which == CATCH);
-      if (!eblock->subs[1]->as.CATCH.is_user_label) {
+    if (!node_subs_count_atleast(eblock, 3)) {
+      struct node *catch = node_subs_at(eblock, 1);
+      assert(catch->which == CATCH);
+      if (!catch->as.CATCH.is_user_label) {
         e = mk_except(mod, node,
                       "try block has a single catch without a label,"
                       " %s must not use a label",
@@ -475,7 +494,7 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
                                            void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct node *fun = node->subs[0];
+  struct node *fun = node_subs_first(node);
   struct node *dfun = typ_definition(fun->typ);
   if (dfun->which != DEFTYPE
       || dfun->as.DEFTYPE.kind != DEFTYPE_SUM) {
@@ -490,12 +509,12 @@ static error step_rewrite_sum_constructors(struct module *mod, struct node *node
   }
 
   struct node *mk_fun = mk_node(mod, node, BIN);
+  node_subs_remove(node, mk_fun);
+  node_subs_replace(node, fun, mk_fun);
   mk_fun->as.BIN.operator = TDOT;
-  rew_append(mk_fun, fun);
+  node_subs_append(mk_fun, fun);
   struct node *mk = mk_node(mod, mk_fun, IDENT);
   mk->as.IDENT.name = ID_MK;
-
-  rew_move_last_over(node, 0, TRUE);
 
   const struct node *except[] = { fun, NULL };
   e = catchup(mod, except, mk_fun, &node->scope, CATCHUP_BELOW_CURRENT);
@@ -516,25 +535,28 @@ static error do_instantiate(struct node **result,
                                                               pristine, tentative);
   set_typ(&node_toplevel(instance)->our_generic_functor_typ, t);
 
-  struct node *genargs = instance->subs[IDX_GENARGS];
   const size_t first = typ_generic_first_explicit_arg(t);
+  struct node *genargs = node_subs_at(instance, IDX_GENARGS);
+  struct node *ga = node_subs_first(genargs);
   for (size_t n = 0; n < first; ++n) {
-    struct node *ga = genargs->subs[n];
-    ga->which = SETGENARG;
-    // FIXME leaking ga->subs[1]
-    ga->subs[1]->which = DIRECTDEF;
-    set_typ(&ga->subs[1]->as.DIRECTDEF.typ,
+    node_set_which(ga, SETGENARG);
+    struct node *ga_arg = node_subs_last(ga);
+    node_set_which(ga_arg, DIRECTDEF);
+    set_typ(&ga_arg->as.DIRECTDEF.typ,
             typ_create_tentative(typ_generic_arg(t, n)));
-    ga->subs[1]->as.DIRECTDEF.flags = NODE_IS_TYPE;
+    ga_arg->as.DIRECTDEF.flags = NODE_IS_TYPE;
+
+    ga = node_next(ga);
   }
 
   for (size_t n = 0; n < arity; ++n) {
-    struct node *ga = genargs->subs[first + n];
-    ga->which = SETGENARG;
-    // FIXME leaking ga->subs[1]
-    ga->subs[1]->which = DIRECTDEF;
-    set_typ(&ga->subs[1]->as.DIRECTDEF.typ, explicit_args[n]);
-    ga->subs[1]->as.DIRECTDEF.flags = NODE_IS_TYPE;
+    node_set_which(ga, SETGENARG);
+    struct node *ga_arg = node_subs_last(ga);
+    node_set_which(ga_arg, DIRECTDEF);
+    set_typ(&ga_arg->as.DIRECTDEF.typ, explicit_args[n]);
+    ga_arg->as.DIRECTDEF.flags = NODE_IS_TYPE;
+
+    ga = node_next(ga);
   }
 
   error e = catchup_instantiation(mod, node_module_owner(gendef),
@@ -610,11 +632,14 @@ static error instance(struct node **result,
     error e = do_instantiate(result, mod, t, args, arity, TRUE);
     EXCEPT(e);
 
+    struct node *fe = node_subs_at(for_error, for_error_offset);
     for (size_t n = 0; n < arity; ++n) {
-      e = unify(mod, for_error->subs[for_error_offset + n],
+      e = unify(mod, fe,
                 typ_generic_arg((*result)->typ, first + n),
                 explicit_args[n]);
       EXCEPT(e);
+
+      fe = node_next(fe);
     }
 
     free(args);
@@ -647,7 +672,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
   assert(node->which == UN);
   error e;
   const enum token_type operator = node->as.UN.operator;
-  struct node *term = node->subs[0];
+  struct node *term = node_subs_first(node);
 
   struct node *i = NULL;
   switch (OP_KIND(operator)) {
@@ -725,8 +750,8 @@ static error check_assign_not_types(struct module *mod, struct node *left,
 static error type_inference_bin_sym(struct module *mod, struct node *node) {
   assert(node->which == BIN);
 
-  struct node *left = node->subs[0];
-  struct node *right = node->subs[1];
+  struct node *left = node_subs_first(node);
+  struct node *right = node_subs_last(node);
   const enum token_type operator = node->as.BIN.operator;
 
   error e;
@@ -843,7 +868,7 @@ static void bin_accessor_maybe_defchoice(struct scope **parent_scope, struct nod
     struct node *defchoice = NULL;
     error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
                                            &typ_definition(parent->typ)->scope,
-                                           node_ident(parent->subs[1]), FALSE);
+                                           node_ident(node_subs_last(parent)), FALSE);
     assert(!e);
     assert(defchoice->which == DEFCHOICE);
 
@@ -854,12 +879,11 @@ static void bin_accessor_maybe_defchoice(struct scope **parent_scope, struct nod
 static error rewrite_unary_call(struct module *mod, struct node *node, struct typ *tfun) {
   struct scope *parent_scope = node->scope.parent;
 
-  struct node copy = *node;
-  memset(node, 0, sizeof(*node));
-  node->which = CALL;
   struct node *fun = node_new_subnode(mod, node);
-  *fun = copy;
-  fix_scopes_after_move(fun);
+  node_subs_remove(node, fun);
+  node_move_content(fun, node);
+  node_subs_append(node, fun);
+  node_set_which(node, CALL);
   set_typ(&fun->typ, tfun);
 
   const struct node *except[] = { fun, NULL };
@@ -875,20 +899,20 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   enum token_type operator = node->as.BIN.operator;
   const struct typ *mark = node->typ;
 
-  struct node *container = node->subs[0];
+  struct node *container = node_subs_first(node);
   struct scope *container_scope = &typ_definition(container->typ)->scope;
   bin_accessor_maybe_ref(&container_scope, mod, container);
   bin_accessor_maybe_defchoice(&container_scope, node, mod, container);
 
-  struct node *for_error = node->subs[1];
+  struct node *name = node_subs_last(node);
   struct node *field = NULL;
-  e = scope_lookup_ident_immediate(&field, for_error, mod, container_scope,
-                                   node_ident(node->subs[1]), FALSE);
+  e = scope_lookup_ident_immediate(&field, name, mod, container_scope,
+                                   node_ident(name), FALSE);
   EXCEPT(e);
 
   if (field->which == IMPORT && !field->as.IMPORT.intermediate_mark) {
     e = scope_lookup(&field, mod, &mod->gctx->modules_root.scope,
-                     field->subs[0], FALSE);
+                     node_subs_first(field), FALSE);
     assert(!e);
   }
 
@@ -926,12 +950,14 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
 
 static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *node) {
   error e;
+  struct node *left = node_subs_first(node);
+  struct node *right = node_subs_last(node);
 
-  e = unify(mod, node->subs[1], node->subs[1]->typ, TBI_U32);
+  e = unify(mod, right, right->typ, TBI_U32);
   EXCEPT(e);
 
   set_typ(&node->typ, typ_create_tentative(TBI_BITWISE));
-  e = unify(mod, node, node->subs[0]->typ, node->typ);
+  e = unify(mod, node, left->typ, node->typ);
   EXCEPT(e);
 
   return 0;
@@ -939,14 +965,18 @@ static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
 
 static error type_inference_bin_rhs_type(struct module *mod, struct node *node) {
   error e;
+  struct node *left = node_subs_first(node);
+  struct node *right = node_subs_last(node);
 
-  if (!(node->subs[1]->flags & NODE_IS_TYPE)) {
-    e = mk_except_type(mod, node->subs[1], "right-hand side not a type");
+  if (!(right->flags & NODE_IS_TYPE)) {
+    e = mk_except_type(mod, right, "right-hand side not a type");
     THROW(e);
   }
 
-  e = unify(mod, node, node->subs[0]->typ, node->subs[1]->typ);
+  e = unify(mod, node, left->typ, right->typ);
   EXCEPT(e);
+
+  set_typ(&node->typ, left->typ);
 
   return 0;
 }
@@ -974,10 +1004,12 @@ static error type_inference_bin(struct module *mod, struct node *node) {
 }
 
 static error typ_tuple(struct node **result, struct module *mod, struct node *node) {
-  const size_t arity = node->subs_count;
+  const size_t arity = node_subs_count(node);
   struct typ **args = calloc(arity, sizeof(struct typ *));
-  for (size_t n = 0; n < arity; ++n) {
-    args[n] = node->subs[n]->typ;
+  size_t n = 0;
+  FOREACH_SUB(s, node) {
+    args[n] = s->typ;
+    n += 1;
   }
 
   error e = instance(result, mod, node, 0,
@@ -990,12 +1022,14 @@ static error typ_tuple(struct node **result, struct module *mod, struct node *no
 }
 
 static error type_inference_tuple(struct module *mod, struct node *node) {
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    if (n > 0 && (node->flags & NODE_IS_TYPE) != (node->subs[n]->flags & NODE_IS_TYPE)) {
-      error e = mk_except_type(mod, node->subs[n], "tuple combines values and types");
+  size_t n = 0;
+  FOREACH_SUB(s, node) {
+    if (n > 0 && (node->flags & NODE_IS_TYPE) != (s->flags & NODE_IS_TYPE)) {
+      error e = mk_except_type(mod, s, "tuple combines values and types");
       THROW(e);
     }
-    node->flags |= (node->subs[n]->flags & NODE__TRANSITIVE);
+    node->flags |= (s->flags & NODE__TRANSITIVE);
+    n += 1;
   }
 
   struct node *i = NULL;
@@ -1008,16 +1042,23 @@ static error type_inference_tuple(struct module *mod, struct node *node) {
 }
 
 static error type_inference_tupleextract(struct module *mod, struct node *node) {
-  struct node *expr = node->subs[node->subs_count - 1];
-  assert(node->subs_count == typ_generic_arity(expr->typ) + 1
+  struct node *expr = node_subs_last(node);
+  assert(node_subs_count(node) == typ_generic_arity(expr->typ) + 1
          && typ_isa(expr->typ, TBI_ANY_TUPLE));
 
-  for (size_t n = 0; n < node->subs_count - 1; ++n) {
-    set_typ(&node->subs[n]->typ, typ_generic_arg(expr->typ, n));
+  struct node *second_last = NULL;
+  size_t n = 0;
+  FOREACH_SUB(s, node) {
+    if (node_next(s) == NULL) {
+      second_last = node_prev(s);
+      break;
+    }
+    set_typ(&s->typ, typ_generic_arg(expr->typ, n));
+    n += 1;
   }
 
-  set_typ(&node->typ, node->subs[node->subs_count - 1]->typ);
-  node->flags = node->subs[node->subs_count - 1]->flags; // Copy all flags, transparent node.
+  set_typ(&node->typ, second_last->typ);
+  node->flags = second_last->flags; // Copy all flags, transparent node.
 
   return 0;
 }
@@ -1027,17 +1068,18 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
   // mod fun_state in which it is recorded below.
   //
   struct node *littype = calloc(1, sizeof(struct node));
-  littype->which = DEFNAMEDLITERAL;
+  node_set_which(littype, DEFNAMEDLITERAL);
   struct node *littype_name = mk_node(mod, littype, IDENT);
   littype_name->as.IDENT.name = gensym(mod);
   (void)mk_node(mod, littype, GENARGS);
   struct node *littype_body = mk_node(mod, littype, BLOCK);
 
-  const size_t arity = node->subs_count / 2;
+  const size_t arity = node_subs_count(node) / 2;
   struct typ **args = calloc(arity, sizeof(struct typ *));
-  for (size_t n = 0; n < node->subs_count; n += 2) {
-    const struct node *left = node->subs[n];
-    const struct node *right = node->subs[n+1];
+  size_t n = 0;
+  FOREACH_SUB_EVERY(s, node, 0, 2) {
+    const struct node *left = s;
+    const struct node *right = node_next(s);
 
     struct node *f = mk_node(mod, littype_body, DEFFIELD);
     struct node *name = mk_node(mod, f, IDENT);
@@ -1046,7 +1088,8 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
     set_typ(&t->as.DIRECTDEF.typ, right->typ);
     t->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
-    args[n / 2] = right->typ;
+    args[n] = right->typ;
+    n += 1;
   }
 
   const bool tentative = TRUE;
@@ -1068,8 +1111,8 @@ static error type_inference_init_array(struct module *mod, struct node *node) {
 
   set_typ(&node->typ, typ_create_tentative(i->typ));
 
-  for (size_t n = 0; n < node->subs_count; n += 1) {
-    error e = unify(mod, node->subs[n], node->subs[n]->typ,
+  FOREACH_SUB(s, node) {
+    error e = unify(mod, s, s->typ,
                     typ_generic_arg(node->typ, 0));
     EXCEPT(e);
   }
@@ -1090,8 +1133,9 @@ static error type_inference_init(struct module *mod, struct node *node) {
 static error type_inference_return(struct module *mod, struct node *node) {
   assert(node->which == RETURN);
 
-  if (node->subs_count > 0) {
-    error e = unify(mod, node->subs[0], node->subs[0]->typ,
+  if (node_subs_count_atleast(node, 1)) {
+    struct node *arg = node_subs_first(node);
+    error e = unify(mod, arg, arg->typ,
                     try_wrap_ref_compatible(mod, node, 1,
                                             module_retval_get(mod)->typ));
     EXCEPT(e);
@@ -1123,7 +1167,8 @@ static enum token_type derefop_for_accop[] = {
   [TWILDCARD] = TDEREFWILDCARD,
 };
 
-static struct node *expr_ref(enum token_type refop, struct node *node) {
+static struct node *expr_ref(struct module *mod, struct node *parent,
+                             enum token_type refop, struct node *node) {
   if (node->which == BIN && OP_KIND(node->as.BIN.operator) == OP_BIN_ACC) {
     // Of the form
     //   self.x.y!method args
@@ -1136,71 +1181,82 @@ static struct node *expr_ref(enum token_type refop, struct node *node) {
     node->as.BIN.operator = accop_for_refop[refop];
   }
 
-  struct node *n = calloc(1, sizeof(struct node));
-  n->which = UN;
+  struct node *n = mk_node(mod, parent, UN);
   n->as.UN.operator = refop;
-  n->subs_count = 1;
-  n->subs = calloc(n->subs_count, sizeof(struct node *));
-  n->subs[0] = node;
+  node_subs_append(n, node);
   return n;
 }
 
-static struct node *self_ref_if_value(struct module *mod,
-                                      enum token_type access, struct node *node) {
-  if (typ_is_reference(node->typ)) {
-    return node;
+static error self_ref_if_value(struct node **self,
+                               struct module *mod, struct node *node,
+                               enum token_type access,
+                               struct node *fun) {
+  struct node *old_self = node_subs_first(fun);
+  if (typ_is_reference(old_self->typ)) {
+    node_subs_remove(fun, old_self);
+    node_subs_insert_after(node, node_subs_first(node), old_self);
+    *self = old_self;
   } else {
-    return expr_ref(access, node);
+    node_subs_remove(fun, old_self);
+    struct node *s = expr_ref(mod, node, access, old_self);
+    node_subs_remove(node, s);
+    node_subs_insert_after(node, node_subs_first(node), s);
+    *self = s;
   }
+
+  const struct node *except[] = { old_self, NULL };
+  error e = catchup(mod, except, *self, &node->scope, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+
+  return 0;
 }
 
 static error prepare_call_arguments(struct module *mod, struct node *node) {
-  struct node *fun = node->subs[0];
+  struct node *fun = node_subs_first(node);
 
-  if (node->subs_count > 1 && (node->subs[1]->flags & NODE_IS_TYPE)) {
+  if (node_subs_count_atleast(node, 2)
+      && (node_subs_at(node, 1)->flags & NODE_IS_TYPE)) {
     // Explicit generic function instantiation.
     return 0;
   }
 
   struct node *dfun = typ_definition(fun->typ);
+  const size_t subs_count = node_subs_count(node);
   switch (dfun->which) {
   case DEFFUN:
-    if (node_fun_explicit_args_count(dfun) != node->subs_count - 1) {
+    if (node_fun_explicit_args_count(dfun) != subs_count - 1) {
       error e = mk_except_call_args_count(mod, node, dfun, 0,
-                                          node->subs_count - 1);
+                                          subs_count - 1);
       THROW(e);
     }
     break;
   case DEFMETHOD:
     if (fun->which == BIN) {
-      if ((fun->subs[0]->flags & NODE_IS_TYPE)) {
+      if ((node_subs_first(fun)->flags & NODE_IS_TYPE)) {
         // Form (type.method self ...).
-        if (1 + node_fun_explicit_args_count(dfun) != node->subs_count - 1) {
+        if (1 + node_fun_explicit_args_count(dfun) != subs_count - 1) {
           error e = mk_except_call_args_count(mod, node, dfun, 1,
-                                              node->subs_count - 1);
+                                              subs_count - 1);
           THROW(e);
         }
       } else {
         // Form (self.method ...); rewrite as (type.method self ...).
-        if (node_fun_explicit_args_count(dfun) != node->subs_count - 1) {
+        if (node_fun_explicit_args_count(dfun) != subs_count - 1) {
           error e = mk_except_call_args_count(mod, node, dfun, 0,
-                                              node->subs_count - 1);
+                                              subs_count - 1);
           THROW(e);
         }
 
         struct node *m = mk_node(mod, node, DIRECTDEF);
         set_typ(&m->as.DIRECTDEF.typ, fun->typ);
         m->as.DIRECTDEF.flags = NODE_IS_TYPE;
-        rew_move_last_over(node, 0, TRUE);
+        node_subs_remove(node, m);
+        node_subs_replace(node, fun, m);
 
-        struct node *self = self_ref_if_value(mod,
-                                              refop_for_accop[fun->as.BIN.operator],
-                                              fun->subs[0]);
-        rew_append(node, self);
-        rew_insert_last_at(node, 1);
-
-        const struct node *except[] = { fun->subs[0], NULL };
-        error e = catchup(mod, except, self, &node->scope, CATCHUP_BELOW_CURRENT);
+        struct node *self = NULL;
+        error e = self_ref_if_value(&self, mod, node,
+                                    refop_for_accop[fun->as.BIN.operator],
+                                    fun);
         EXCEPT(e);
 
         e = typ_check_can_deref(mod, fun, self->typ,
@@ -1212,9 +1268,9 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
       }
     } else if ((fun->flags & NODE_IS_TYPE) && fun->which == CALL) {
       // Generic method instantiation: (type.method u32 i32) self
-      if (1 + node_fun_explicit_args_count(dfun) != node->subs_count - 1) {
+      if (1 + node_fun_explicit_args_count(dfun) != subs_count - 1) {
         error e = mk_except_call_args_count(mod, node, dfun, 1,
-                                            node->subs_count - 1);
+                                            subs_count - 1);
         THROW(e);
       }
     }
@@ -1228,8 +1284,8 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
 
 static error explicit_instantiation(struct module *mod, struct node *node) {
   error e;
-  struct typ *t = node->subs[0]->typ;
-  const size_t arity = node->subs_count - 1;
+  struct typ *t = node_subs_first(node)->typ;
+  const size_t arity = node_subs_count(node) - 1;
 
   const size_t first = typ_generic_first_explicit_arg(t);
   const size_t explicit_arity = typ_generic_arity(t) - first;
@@ -1241,9 +1297,11 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
     THROW(e);
   }
 
-  struct typ **args = calloc(node->subs_count - 1, sizeof(struct typ *));
-  for (size_t n = 0; n < arity; ++n) {
-    args[n] = node->subs[1 + n]->typ;
+  struct typ **args = calloc(arity, sizeof(struct typ *));
+  size_t n = 0;
+  FOREACH_SUB_EVERY(s, node, 1, 1) {
+    args[n] = s->typ;
+    n += 1;
   }
 
   struct node *i = NULL;
@@ -1260,8 +1318,8 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
 
 static error implicit_function_instantiation(struct module *mod, struct node *node) {
   error e;
-  struct typ *tfun = node->subs[0]->typ;
-  const size_t arity = node->subs_count - 1;
+  struct typ *tfun = node_subs_first(node)->typ;
+  const size_t arity = node_subs_count(node) - 1;
 
   // Already checked in prepare_call_arguments().
   assert(arity == typ_function_arity(tfun));
@@ -1276,26 +1334,27 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
   e = instance(&i, mod, node, 0, tfun, args, gen_arity);
   assert(!e);
 
-  for (size_t n = 0; n < typ_function_arity(i->typ); ++n) {
-    e = unify(mod, node->subs[1 + n],
+  size_t n = 0;
+  FOREACH_SUB_EVERY(s, node, 1, 1) {
+    e = unify(mod, s, s->typ,
               try_wrap_ref_compatible(mod, node, 1,
-                                      typ_function_arg(i->typ, n)),
-              node->subs[1 + n]->typ);
+                                      typ_function_arg(i->typ, n)));
     EXCEPT(e);
+    n += 1;
   }
 
   free(args);
 
-  set_typ(&node->subs[0]->typ, i->typ);
+  set_typ(&node_subs_first(node)->typ, i->typ);
   set_typ(&node->typ, typ_function_return(i->typ));
 
   return 0;
 }
 
 static error function_instantiation(struct module *mod, struct node *node) {
-  assert(node->subs_count >= 2);
+  assert(node_subs_count_atleast(node, 2));
 
-  if (node->subs[1]->flags & NODE_IS_TYPE) {
+  if (node_subs_at(node, 1)->flags & NODE_IS_TYPE) {
     return explicit_instantiation(mod, node);
   } else {
     return implicit_function_instantiation(mod, node);
@@ -1303,12 +1362,10 @@ static error function_instantiation(struct module *mod, struct node *node) {
 }
 
 static error check_consistent_either_types_or_values(struct module *mod,
-                                                     struct node **subs,
-                                                     size_t count) {
+                                                     struct node *arg0) {
   uint32_t flags = 0;
-  for (size_t n = 0; n < count; ++n) {
-    struct node *s = subs[n];
-    if (n > 0 && (flags & NODE_IS_TYPE) != (s->flags & NODE_IS_TYPE)) {
+  for (struct node *s = arg0; s != NULL; s = node_next(s)) {
+    if (s != arg0 && (flags & NODE_IS_TYPE) != (s->flags & NODE_IS_TYPE)) {
       error e = mk_except_type(mod, s, "expression combines types and values");
       THROW(e);
     }
@@ -1319,19 +1376,20 @@ static error check_consistent_either_types_or_values(struct module *mod,
 }
 
 static error type_inference_explicit_unary_call(struct module *mod, struct node *node, struct node *dfun) {
-  if (dfun->which == DEFFUN && node->subs_count != 1) {
-    error e = mk_except_call_args_count(mod, node, dfun, 0, node->subs_count - 1);
+  const size_t subs_count = node_subs_count(node);
+  if (dfun->which == DEFFUN && subs_count != 1) {
+    error e = mk_except_call_args_count(mod, node, dfun, 0, subs_count - 1);
     THROW(e);
-  } else if (dfun->which == DEFMETHOD && node->subs_count != 2) {
-    error e = mk_except_call_args_count(mod, node, dfun, 1, node->subs_count - 1);
+  } else if (dfun->which == DEFMETHOD && subs_count != 2) {
+    error e = mk_except_call_args_count(mod, node, dfun, 1, subs_count - 1);
     THROW(e);
   }
 
   if (dfun->which == DEFMETHOD) {
-    error e = unify(mod, node->subs[1],
+    struct node *self = node_subs_at(node, 1);
+    error e = unify(mod, self, self->typ,
                     try_wrap_ref_compatible(mod, node, 1,
-                                            typ_function_arg(dfun->typ, 0)),
-                    node->subs[1]->typ);
+                                            typ_function_arg(dfun->typ, 0)));
     EXCEPT(e);
   }
 
@@ -1342,13 +1400,13 @@ static error type_inference_explicit_unary_call(struct module *mod, struct node 
 
 static error type_inference_call(struct module *mod, struct node *node) {
   error e;
-  struct node *fun = node->subs[0];
+  struct node *fun = node_subs_first(node);
   struct typ *tfun = fun->typ;
   struct node *dfun = typ_definition(tfun);
 
   if (!node_is_fun(dfun)) {
     if (!node_can_have_genargs(dfun)
-        || dfun->subs[IDX_GENARGS]->subs_count == 0) {
+        || !node_subs_count_atleast(node_subs_at(dfun, IDX_GENARGS), 1)) {
       e = mk_except_type(mod, fun, "not a generic type");
       THROW(e);
     }
@@ -1362,12 +1420,10 @@ static error type_inference_call(struct module *mod, struct node *node) {
   e = prepare_call_arguments(mod, node);
   EXCEPT(e);
 
-  e = check_consistent_either_types_or_values(mod,
-                                              node->subs + 1,
-                                              node->subs_count - 1);
+  e = check_consistent_either_types_or_values(mod, try_node_subs_at(node, 1));
   EXCEPT(e);
 
-  if (dfun->subs[IDX_GENARGS]->subs_count > 0
+  if (node_subs_count_atleast(node_subs_at(dfun, IDX_GENARGS), 1)
       && node_toplevel_const(dfun)->our_generic_functor_typ == NULL) {
     e = function_instantiation(mod, node);
     EXCEPT(e);
@@ -1379,12 +1435,13 @@ static error type_inference_call(struct module *mod, struct node *node) {
     return type_inference_explicit_unary_call(mod, node, dfun);
   }
 
-  for (size_t n = 1; n < node->subs_count; ++n) {
-    e = unify(mod, node->subs[n],
+  size_t n = 0;
+  FOREACH_SUB_EVERY(arg, node, 1, 1) {
+    e = unify(mod, arg, arg->typ,
               try_wrap_ref_compatible(mod, node, 1,
-                                      typ_function_arg(tfun, n-1)),
-              node->subs[n]->typ);
+                                      typ_function_arg(tfun, n)));
     EXCEPT(e);
+    n += 1;
   }
 
   set_typ(&node->typ, typ_function_return(tfun));
@@ -1395,17 +1452,18 @@ static error type_inference_call(struct module *mod, struct node *node) {
 static error type_inference_block(struct module *mod, struct node *node) {
   error e;
 
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *s = node->subs[n];
+  FOREACH_SUB(s, node) {
     if ((s->flags & NODE_IS_TYPE)) {
       e = mk_except_type(mod, s, "block statements cannot be type names");
       THROW(e);
     }
   }
 
-  if (node->subs_count > 0) {
-    for (size_t n = 0; n < node->subs_count - 1; ++n) {
-      struct node *s = node->subs[n];
+  if (node_subs_count_atleast(node, 1)) {
+    FOREACH_SUB(s, node) {
+      if (node_next(s) == NULL) {
+        break;
+      }
       if (!typ_equal(s->typ, TBI_VOID)) {
         e = mk_except_type(mod, s,
                            "intermediate statements in a block must be of type void"
@@ -1414,11 +1472,12 @@ static error type_inference_block(struct module *mod, struct node *node) {
         THROW(e);
       }
     }
-    if (node->subs[node->subs_count - 1]->which == RETURN) {
+
+    if (node_subs_last(node)->which == RETURN) {
       // FIXME: should make sure there are no statements after a RETURN.
       set_typ(&node->typ, TBI_VOID);
     } else {
-      set_typ(&node->typ, node->subs[node->subs_count - 1]->typ);
+      set_typ(&node->typ, node_subs_last(node)->typ);
     }
   } else {
     set_typ(&node->typ, TBI_VOID);
@@ -1430,22 +1489,28 @@ static error type_inference_block(struct module *mod, struct node *node) {
 static error type_inference_if(struct module *mod, struct node *node) {
   error e;
 
-  for (size_t n = 0; n < node->subs_count-1; n += 2) {
-    e = unify(mod, node->subs[n], node->subs[n]->typ,
+  FOREACH_SUB_EVERY(s, node, 0, 2) {
+    if (node_next_const(s) == NULL) {
+      break;
+    }
+    e = unify(mod, s, s->typ,
               typ_create_tentative(TBI_GENERALIZED_BOOLEAN));
     EXCEPT(e);
   }
 
-  set_typ(&node->typ, node->subs[1]->typ);
+  set_typ(&node->typ, node_subs_at(node, 1)->typ);
 
-  for (size_t n = 3; n < node->subs_count; n += 2) {
-    struct node *elif = node->subs[n];
-    e = unify(mod, elif, node->typ, elif->typ);
-    EXCEPT(e);
+  struct node *last_elif = node_subs_at(node, 1);
+  if (node_subs_count_atleast(node, 3)) {
+    FOREACH_SUB_EVERY(b, node, 3, 2) {
+      e = unify(mod, b, node->typ, b->typ);
+      EXCEPT(e);
+      last_elif = b;
+    }
   }
 
-  if (node->subs_count % 2 == 1) {
-    struct node *els = node->subs[node->subs_count-1];
+  if (last_elif != node_subs_last(node)) {
+    struct node *els = node_next(last_elif);
     e = unify(mod, els, node->typ, els->typ);
     EXCEPT(e);
   } else {
@@ -1505,16 +1570,18 @@ static error unify_match_pattern(struct module *mod, struct node *expr, struct n
 static error type_inference_match(struct module *mod, struct node *node) {
   error e;
 
-  struct node *expr = node->subs[0];
-  for (size_t n = 1; n < node->subs_count; n += 2) {
-    e = unify_match_pattern(mod, expr, node->subs[n]);
+  struct node *expr = node_subs_first(node);
+  FOREACH_SUB_EVERY(s, node, 1, 2) {
+    e = unify_match_pattern(mod, expr, s);
     EXCEPT(e);
   }
 
-  set_typ(&node->typ, node->subs[2]->typ);
-  for (size_t n = 4; n < node->subs_count; n += 2) {
-    e = unify(mod, node->subs[n], node->subs[n]->typ, node->typ);
-    EXCEPT(e);
+  set_typ(&node->typ, node_subs_at(node, 2)->typ);
+  if (node_subs_count_atleast(node, 4)) {
+    FOREACH_SUB_EVERY(s, node, 4, 2) {
+      e = unify(mod, s, s->typ, node->typ);
+      EXCEPT(e);
+    }
   }
 
   return 0;
@@ -1527,10 +1594,10 @@ static error unify_try_errors(struct typ **exu, struct module *mod,
 
     switch (exc->which) {
     case THROW:
-      if (exc->subs_count == 2) {
-        exc = exc->subs[1];
+      if (node_subs_count(exc) == 2) {
+        exc = node_subs_at(exc, 1);
       } else {
-        exc = exc->subs[0];
+        exc = node_subs_first(exc);
       }
       break;
     case DEFNAME:
@@ -1568,21 +1635,22 @@ static error type_inference_try(struct module *mod, struct node *node) {
   e = unify_try_errors(&exu, mod, st);
   EXCEPT(e);
 
-  struct node *elet = node->subs[0];
-  struct node *edefp = elet->subs[0];
-  struct node *eident = edefp->subs[0];
+#define f(n) node_subs_first(n)
+#define s(n) node_subs_at(n, 1)
+  struct node *elet = f(node);
+  struct node *edefp = f(elet);
+  struct node *eident = f(edefp);
   set_typ(&eident->typ, exu);
 
-  struct node *eblock = elet->subs[1];
-  struct node *main_block = eblock->subs[0];
+  struct node *eblock = s(elet);
+  struct node *main_block = f(eblock);
   struct typ *u = main_block->typ;
 
-  for (size_t n = 1; n < eblock->subs_count; ++n) {
-    struct node *catch = eblock->subs[n];
-    struct node *let = catch->subs[0];
-    struct node *defp = let->subs[0];
-    struct node *error = defp->subs[1];
-    struct node *block = catch->subs[1];
+  FOREACH_SUB_EVERY(catch, eblock, 1, 1) {
+    struct node *let = f(catch);
+    struct node *defp = f(let);
+    struct node *error = s(defp);
+    struct node *block = s(catch);
 
     e = unify(mod, error, error->typ, exu);
     EXCEPT(e);
@@ -1590,6 +1658,8 @@ static error type_inference_try(struct module *mod, struct node *node) {
     e = unify(mod, block, block->typ, u);
     EXCEPT(e);
   }
+#undef s
+#undef f
 
   set_typ(&node->typ, u);
 
@@ -1601,7 +1671,7 @@ static void type_inference_ident_unknown(struct module *mod, struct node *node) 
   // mod fun_state in which it is recorded below.
   //
   struct node *unk = calloc(1, sizeof(struct node));
-  unk->which = DEFUNKNOWNIDENT;
+  node_set_which(unk, DEFUNKNOWNIDENT);
   G(unk_name, unk, IDENT,
     unk_name->as.IDENT.name = gensym(mod));
   G(genargs, unk, GENARGS);
@@ -1767,7 +1837,7 @@ error step_type_inference(struct module *mod, struct node *node,
 
     if (node->as.DEFNAME.is_excep) {
       struct node *tryy = module_excepts_get(mod)->tryy;
-      struct node *err = tryy->subs[0]->subs[0]->subs[1];
+      struct node *err = node_subs_at(node_subs_first(node_subs_first(tryy)), 1);
       assert(err->which == DEFNAME);
       e = unify(mod, node, node->typ, err->typ);
       EXCEPT(e);
@@ -1827,14 +1897,14 @@ error step_type_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case CATCH:
-    set_typ(&node->typ, node->subs[node->subs_count - 1]->typ);
+    set_typ(&node->typ, node_subs_last(node)->typ);
     break;
   case THROW:
     {
       struct node *tryy = module_excepts_get(mod)->tryy;
-      struct node *err = tryy->subs[0]->subs[0]->subs[1];
+      struct node *err = node_subs_at(node_subs_first(node_subs_first(tryy)), 1);
       assert(err->which == DEFNAME);
-      e = unify(mod, node, node->subs[node->subs_count - 1]->typ, err->typ);
+      e = unify(mod, node, node_subs_last(node)->typ, err->typ);
       EXCEPT(e);
       set_typ(&node->typ, TBI_VOID);
       break;
@@ -1850,9 +1920,12 @@ error step_type_inference(struct module *mod, struct node *node,
     break;
   case FOR:
     set_typ(&node->typ, TBI_VOID);
-    struct node *it = node->subs[IDX_FOR_IT]
-      ->subs[IDX_FOR_IT_DEFP]
-      ->subs[IDX_FOR_IT_DEFP_DEFN];
+    struct node *it = node_subs_at(
+      node_subs_at(
+        node_subs_at(node, IDX_FOR_IT),
+        IDX_FOR_IT_DEFP),
+      IDX_FOR_IT_DEFP_DEFN);
+
     e = unify(mod, it, it->typ, typ_create_tentative(TBI_ITERATOR));
     EXCEPT(e);
     e = typ_check_equal(mod, node_for_block(node),
@@ -1862,10 +1935,10 @@ error step_type_inference(struct module *mod, struct node *node,
     break;
   case WHILE:
     set_typ(&node->typ, TBI_VOID);
-    struct node *cond = node->subs[0];
+    struct node *cond = node_subs_first(node);
     e = unify(mod, cond, cond->typ, typ_create_tentative(TBI_GENERALIZED_BOOLEAN));
     EXCEPT(e);
-    struct node *block = node->subs[1];
+    struct node *block = node_subs_at(node, 1);
     e = typ_check_equal(mod, block, block->typ, TBI_VOID);
     EXCEPT(e);
     break;
@@ -1878,37 +1951,37 @@ error step_type_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case DYN:
-    assert(typ_is_reference(node->subs[0]->typ));
+    assert(typ_is_reference(node_subs_first(node)->typ));
     set_typ(&node->typ, node->as.DYN.intf_typ);
     break;
   case TYPECONSTRAINT:
-    set_typ(&node->typ, node->subs[1]->typ);
-    e = unify(mod, node->subs[0], node->subs[0]->typ, node->typ);
+    set_typ(&node->typ, node_subs_at(node, 1)->typ);
+    e = unify(mod, node_subs_first(node), node_subs_first(node)->typ, node->typ);
     EXCEPT(e);
     break;
   case DEFARG:
-    set_typ(&node->typ, node->subs[1]->typ);
+    set_typ(&node->typ, node_subs_at(node, 1)->typ);
     break;
   case DEFGENARG:
   case SETGENARG:
-    set_typ(&node->typ, node->subs[1]->typ);
+    set_typ(&node->typ, node_subs_at(node, 1)->typ);
     node->flags |= NODE_IS_TYPE;
     break;
   case DEFPATTERN:
     set_typ(&node->typ, TBI_VOID);
     break;
   case DEFFIELD:
-    set_typ(&node->typ, node->subs[1]->typ);
+    set_typ(&node->typ, node_subs_at(node, 1)->typ);
     break;
   case EXAMPLE:
-    e = unify(mod, node->subs[0], node->subs[0]->typ,
+    e = unify(mod, node_subs_first(node), node_subs_first(node)->typ,
               typ_create_tentative(TBI_BOOL));
     EXCEPT(e);
     set_typ(&node->typ, TBI_VOID);
     break;
   case LET:
     if (node_has_tail_block(node)) {
-      set_typ(&node->typ, node->subs[node->subs_count - 1]->typ);
+      set_typ(&node->typ, node_subs_last(node)->typ);
     } else {
       set_typ(&node->typ, TBI_VOID);
     }
@@ -1926,8 +1999,8 @@ error step_type_inference(struct module *mod, struct node *node,
     node->typ = TBI__NOT_TYPEABLE;
     break;
   case ISA:
-    set_typ(&node->typ, node->subs[0]->typ);
-    node->flags = node->subs[0]->flags & NODE__TRANSITIVE;
+    set_typ(&node->typ, node_subs_first(node)->typ);
+    node->flags = node_subs_first(node)->flags & NODE__TRANSITIVE;
     break;
   case DIRECTDEF:
     set_typ(&node->typ, node->as.DIRECTDEF.typ);
@@ -1953,17 +2026,10 @@ static error step_remove_typeconstraints(struct module *mod, struct node *node,
   DSTEP(mod, node);
 
   if (!node->as.TYPECONSTRAINT.in_pattern) {
-    struct node **subs = node->subs;
-    struct node *sub = node->subs[0];
-    struct scope *parent = node->scope.parent;
-
-    *node = *sub;
-    node->scope.parent = parent;
-    fix_scopes_after_move(node);
-    set_typ(&node->typ, sub->typ);
-
-    free(sub);
-    free(subs);
+    struct typ *saved = node->typ;
+    struct node *sub = node_subs_first(node);
+    node_move_content(node, sub);
+    set_typ(&node->typ, saved);
   }
 
   return 0;
@@ -1987,8 +2053,7 @@ static size_t defchoice_count(struct node *deft) {
   assert(deft->which == DEFTYPE);
 
   size_t r = 0;
-  for (size_t n = 0; n < deft->subs_count; ++n) {
-    struct node *d = deft->subs[n];
+  FOREACH_SUB(d, deft) {
     if (d->which == DEFCHOICE) {
       r += 1;
     }
@@ -2000,7 +2065,7 @@ static STEP_FILTER(step_check_exhaustive_match,
                    SF(MATCH));
 static error step_check_exhaustive_match(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
-  struct node *expr = node->subs[0];
+  struct node *expr = node_subs_first(node);
   struct node *dexpr = typ_definition(expr->typ);
   const bool enum_or_sum = dexpr->as.DEFTYPE.kind == DEFTYPE_ENUM
     || dexpr->as.DEFTYPE.kind == DEFTYPE_SUM;
@@ -2016,14 +2081,13 @@ static error step_check_exhaustive_match(struct module *mod, struct node *node,
   idents_set_set_custom_cmpf(&set, ident_cmp);
 
   error e = 0;
-  for (size_t n = 1; n < node->subs_count; n += 2) {
-    struct node *p = node->subs[n];
+  FOREACH_SUB_EVERY(p, node, 1, 2) {
     ident id;
     switch (p->which) {
     case IDENT:
       id = node_ident(p);
       if (id == ID_OTHERWISE) {
-        if (n != node->subs_count - 2) {
+        if (p != node_prev(node_subs_last(node))) {
           e = mk_except(mod, p, "default pattern '_' must be last");
           GOTO_THROW(e);
         }
@@ -2033,7 +2097,7 @@ static error step_check_exhaustive_match(struct module *mod, struct node *node,
       break;
     case BIN:
       assert(OP_KIND(p->as.BIN.operator) == OP_BIN_ACC);
-      id = node_ident(p->subs[1]);
+      id = node_ident(node_subs_at(p, 1));
       break;
     default:
       assert(FALSE);
@@ -2190,9 +2254,10 @@ static error step_check_no_unknown_ident_left(struct module *mod, struct node *n
 
   const struct node *d = typ_definition_const(node->typ);
   if (d->which == DEFUNKNOWNIDENT) {
+    const struct node *id = node_subs_first_const(node_subs_at_const(d, 2));
     error e = mk_except_type(mod, node,
                              "bare ident '%s' was never resolved",
-                             idents_value(mod->gctx, node_ident(d->subs[2]->subs[0])));
+                             idents_value(mod->gctx, node_ident(id)));
     THROW(e);
   }
 
@@ -2252,24 +2317,19 @@ static error step_weak_literal_conversion(struct module *mod, struct node *node,
     return 0;
   }
 
-  struct node copy = *node;
-
-  memset(node, 0, sizeof(*node));
-  node->which = CALL;
-
   struct node *fun = mk_node(mod, node, DIRECTDEF);
-  struct node *fund = node_get_member(mod, typ_definition(copy.typ), id);
+  struct node *fund = node_get_member(mod, typ_definition(node->typ), id);
   assert(fund != NULL);
-  set_typ(&fun->as.DIRECTDEF.typ, fund->typ);
-  fun->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
   struct node *literal = node_new_subnode(mod, node);
-  *literal = copy;
-  fix_scopes_after_move(literal);
+  node_move_content(literal, node);
+  node_set_which(node, CALL);
+  set_typ(&fun->as.DIRECTDEF.typ, fund->typ);
+  fun->as.DIRECTDEF.flags = NODE_IS_TYPE;
   set_typ(&literal->typ, lit_typ);
 
   const struct node *except[] = { literal, NULL };
-  error e = catchup(mod, except, node, copy.scope.parent,
+  error e = catchup(mod, except, node, node->scope.parent,
                     CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
@@ -2297,22 +2357,27 @@ static error gen_operator_call(struct module *mod,
                                struct scope *saved_parent, struct node *node,
                                ident operator_name, struct node *left, struct node *right,
                                enum catchup_for catchup_for) {
+  node_subs_remove(node, left);
+  if (right != NULL) {
+    node_subs_remove(node, right);
+  }
+
   struct typ *tfun = node_get_member(mod, typ_definition(left->typ),
                                      operator_name)->typ;
 
   memset(node, 0, sizeof(*node));
-  node->which = CALL;
+  node_set_which(node, CALL);
   struct node *fun = mk_node(mod, node, DIRECTDEF);
   set_typ(&fun->as.DIRECTDEF.typ, tfun);
   fun->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
   const struct node *except[3] = { NULL, NULL, NULL };
   except[0] = left;
-  rew_append(node, expr_ref(operator_call_arg_refop(mod, tfun, 0), left));
+  expr_ref(mod, node, operator_call_arg_refop(mod, tfun, 0), left);
 
   if (right != NULL) {
     except[1] = right;
-    rew_append(node, expr_ref(operator_call_arg_refop(mod, tfun, 1), right));
+    expr_ref(mod, node, operator_call_arg_refop(mod, tfun, 1), right);
   }
 
   error e = catchup(mod, except, node, saved_parent, catchup_for);
@@ -2334,12 +2399,12 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   switch (node->which) {
   case UN:
     op = node->as.UN.operator;
-    left = node->subs[0];
+    left = node_subs_first(node);
     break;
   case BIN:
     op = node->as.BIN.operator;
-    left = node->subs[0];
-    right = node->subs[1];
+    left = node_subs_first(node);
+    right = node_subs_last(node);
     break;
   default:
     assert(FALSE && "Unreached");
@@ -2389,13 +2454,14 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
 }
 
 static error gen_operator_test_call(struct module *mod, struct node *node, size_t n) {
-  struct node *expr = node->subs[n];
+  struct node *expr = node_subs_at(node, n);
   if (typ_equal(expr->typ, TBI_BOOL)) {
     return 0;
   }
 
   struct node *test = node_new_subnode(mod, node);
-  rew_move_last_over(node, n, TRUE);
+  node_subs_remove(node, test);
+  node_subs_replace(node, expr, test);
   error e = gen_operator_call(mod, node->scope.parent, test,
                               ID_OPERATOR_TEST, expr, NULL,
                               CATCHUP_BELOW_CURRENT);
@@ -2440,25 +2506,22 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
     return 0;
   }
 
-  struct node copy = *node;
-
-  memset(node, 0, sizeof(*node));
-  node->which = CALL;
+  struct typ *saved = node->typ;
   struct node *fun = mk_node(mod, node, DIRECTDEF);
   set_typ(&fun->as.DIRECTDEF.typ,
-          node_get_member(mod, typ_definition(copy.typ), ID_MKV)->typ);
+          node_get_member(mod, typ_definition(saved), ID_MKV)->typ);
   fun->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
   struct node *ref_array = mk_node(mod, node, UN);
   ref_array->as.UN.operator = TREFDOT;
   struct node *array = node_new_subnode(mod, ref_array);
-  *array = copy;
-  fix_scopes_after_move(array);
+  node_move_content(array, node);
+  node_set_which(node, CALL);
   set_typ(&array->typ,
           typ_generic_arg(typ_function_arg(fun->as.DIRECTDEF.typ, 0), 0));
 
   const struct node *except[] = { array, NULL };
-  error e = catchup(mod, except, node, copy.scope.parent,
+  error e = catchup(mod, except, node, node->scope.parent,
                     CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
@@ -2481,7 +2544,7 @@ static bool expr_is_literal_initializer(struct node **init, struct module *mod, 
     return TRUE;
   } else {
     return expr->which == TYPECONSTRAINT
-      && expr_is_literal_initializer(init, mod, expr->subs[0]);
+      && expr_is_literal_initializer(init, mod, node_subs_first(expr));
   }
 }
 
@@ -2492,7 +2555,8 @@ static bool expr_is_return_through_ref(struct node **init, struct module *mod, s
 
 static error assign_copy_call_inference(struct module *mod, struct node *node) {
   error e = gen_operator_call(mod, node->scope.parent, node,
-                              ID_COPY_CTOR, node->subs[0], node->subs[1],
+                              ID_COPY_CTOR, node_subs_first(node),
+                              node_subs_at(node, 1),
                               CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
   return 0;
@@ -2504,7 +2568,7 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
 
   struct node *within;
   if (node_has_tail_block(let)) {
-    within = let->subs[let->subs_count-1];
+    within = node_subs_last(let);
   } else {
     within = mk_node(mod, let, BLOCK);
     error e = catchup(mod, NULL, within, &let->scope, CATCHUP_BELOW_CURRENT);
@@ -2534,8 +2598,8 @@ static error step_copy_call_inference(struct module *mod, struct node *node,
   switch (node->which) {
   case BIN:
     if (node->as.BIN.operator == TASSIGN) {
-      left = node->subs[0];
-      right = node->subs[1];
+      left = node_subs_first(node);
+      right = node_subs_last(node);
       break;
     }
     return 0;
@@ -2598,8 +2662,7 @@ static error check_exhaustive_intf_impl_eachisalist(struct module *mod,
 
   const struct node *dintf = typ_definition_const(intf);
 
-  for (size_t m = 0; m < dintf->subs_count; ++m) {
-    const struct node *f = dintf->subs[m];
+  FOREACH_SUB_CONST(f, dintf) {
     if (f->which != DEFFUN && f->which != DEFMETHOD) {
       continue;
     }
@@ -2647,9 +2710,9 @@ static error insert_dyn(struct module *mod, struct node *node,
   struct node *d = mk_node(mod, node, DYN);
   set_typ(&d->as.DYN.intf_typ, target->typ);
 
-  const size_t where = rew_find_subnode_in_parent(node, src);
-  rew_move_last_over(node, where, TRUE);
-  rew_append(d, src);
+  node_subs_remove(node, d);
+  node_subs_replace(node, src, d);
+  node_subs_append(d, src);
 
   const struct node *except[] = { target, src, NULL };
   error e = catchup(mod, except, d, &node->scope, CATCHUP_BELOW_CURRENT);
@@ -2681,19 +2744,19 @@ static error step_dyn_inference(struct module *mod, struct node *node,
   error e;
   switch (node->which) {
   case RETURN:
-    if (node->subs_count == 0) {
+    if (!node_subs_count_atleast(node, 1)) {
       return 0;
     }
     target = module_retval_get(mod);
-    src = node->subs[0];
+    src = node_subs_first(node);
 
     e = try_insert_dyn(mod, node, target, src);
     EXCEPT(e);
     return 0;
   case BIN:
     if (node->as.BIN.operator == TASSIGN) {
-      target = node->subs[0];
-      src = node->subs[1];
+      target = node_subs_first(node);
+      src = node_subs_at(node, 1);
       e = try_insert_dyn(mod, node, target, src);
       EXCEPT(e);
     }
@@ -2709,8 +2772,8 @@ static error step_dyn_inference(struct module *mod, struct node *node,
     }
     return 0;
   case TYPECONSTRAINT:
-    target = node->subs[0];
-    src = node->subs[1];
+    target = node_subs_first(node);
+    src = node_subs_last(node);
     e = try_insert_dyn(mod, node, target, src);
     EXCEPT(e);
     return 0;
@@ -2719,16 +2782,14 @@ static error step_dyn_inference(struct module *mod, struct node *node,
       return 0;
     }
 
-    struct node *funargs = typ_definition(node->subs[0]->typ)->subs[IDX_FUNARGS];
-    for (size_t n = 1; n < node->subs_count; ++n) {
-      struct node *arg = node->subs[n];
-      if (arg->which == BLOCK) {
-        break;
-      }
-      target = funargs->subs[n - 1];
-      src = arg;
+    struct node *funargs = node_subs_at(
+      typ_definition(node_subs_first(node)->typ), IDX_FUNARGS);
+
+    struct node *target = node_subs_first(funargs);
+    FOREACH_SUB_EVERY(src, node, 1, 1) {
       e = try_insert_dyn(mod, node, target, src);
       EXCEPT(e);
+      target = node_next(target);
     }
     return 0;
   case INIT:
@@ -2756,20 +2817,20 @@ static void block_insert_value_assign(struct module *mod, struct node *block,
                                       struct node *target, ident target_name) {
   assert(block->which == BLOCK);
 
-  const size_t where = block->subs_count - 1;
-  struct node *last = block->subs[where];
+  struct node *last = node_subs_last(block);
 
   struct node *assign = mk_node(mod, block, BIN);
   assign->as.BIN.operator = TASSIGN;
   if (target != NULL) {
-    rew_append(assign, target);
+    node_subs_append(assign, target);
   } else {
     struct node *left = mk_node(mod, assign, IDENT);
     left->as.IDENT.name = target_name;
   }
-  rew_move_last_over(block, where, TRUE);
+  node_subs_remove(block, assign);
+  node_subs_replace(block, last, assign);
 
-  rew_append(assign, last);
+  node_subs_append(assign, last);
   set_typ(&block->typ, TBI_VOID);
 
   const struct node *except[] = { last, NULL };
@@ -2779,23 +2840,25 @@ static void block_insert_value_assign(struct module *mod, struct node *block,
 
 static void block_like_insert_value_assign(struct module *mod, struct node *node,
                                            struct node *target, ident target_name) {
+  struct node *last_elif = NULL;
   switch (node->which) {
   case IF:
-    for (size_t n = 1; n < node->subs_count; n += 2) {
-      block_insert_value_assign(mod, node->subs[n], target, target_name);
+    FOREACH_SUB_EVERY(b, node, 1, 2) {
+      block_insert_value_assign(mod, b, target, target_name);
+      last_elif = b;
     }
-    if (node->subs_count % 2 == 1) {
-      struct node *els = node->subs[node->subs_count-1];
+    if (last_elif != node_subs_last(node)) {
+      struct node *els = node_subs_last(node);
       block_insert_value_assign(mod, els, target, target_name);
     }
     break;
   case TRY:
-    block_insert_value_assign(mod, node->subs[0], target, target_name);
-    block_insert_value_assign(mod, node->subs[2], target, target_name);
+    block_insert_value_assign(mod, node_subs_first(node), target, target_name);
+    block_insert_value_assign(mod, node_subs_at(node, 2), target, target_name);
     break;
   case MATCH:
-    for (size_t n = 2; n < node->subs_count; n += 2) {
-      block_insert_value_assign(mod, node->subs[n], target, target_name);
+    FOREACH_SUB_EVERY(b, node, 2, 2) {
+      block_insert_value_assign(mod, b, target, target_name);
     }
     break;
   case BLOCK:
@@ -2815,19 +2878,15 @@ static error step_move_assign_in_block_like(struct module *mod, struct node *nod
     return 0;
   }
 
-  struct node *left = node->subs[0];
-  struct node *right = node->subs[1];
+  struct node *left = node_subs_first(node);
+  struct node *right = node_subs_last(node);
   if (!is_block_like(right)) {
     return 0;
   }
 
   block_like_insert_value_assign(mod, right, left, 0);
 
-  struct scope *saved_parent = node->scope.parent;
-  memset(node, 0, sizeof(*node));
-  *node = *right;
-  fix_scopes_after_move(node);
-  node->scope.parent = saved_parent;
+  node_move_content(node, right);
   set_typ(&node->typ, TBI_VOID);
 
   return 0;
@@ -2844,8 +2903,7 @@ static error step_move_defname_expr_in_let_block(struct module *mod, struct node
   //     block -> x = 0
   //     block -> y = 0
   struct node *defp_block = NULL;
-  for (ssize_t n = node->subs_count - 1; n >= 0; --n) {
-    struct node *d = node->subs[n];
+  REVERSE_FOREACH_SUB(d, node) {
     if (d->which != DEFNAME) {
       continue;
     }
@@ -2861,19 +2919,20 @@ static error step_move_defname_expr_in_let_block(struct module *mod, struct node
         struct node *target_let_block = NULL;
 
         if (node_has_tail_block(let)) {
-          const bool first_defpattern_in_let = rew_find_subnode_in_parent(let, node) == 0;
+          const bool first_defpattern_in_let = node_subs_first(let) == node;
           if (first_defpattern_in_let) {
-            struct node *let_block = let->subs[let->subs_count-1];
+            struct node *let_block = node_subs_last(let);
             target_let_block = mk_node(mod, let, BLOCK);
-            rew_move_last_over(let, let->subs_count - 2, TRUE);
-            rew_append(target_let_block, let_block);
+            node_subs_remove(let, target_let_block);
+            node_subs_replace(let, let_block, target_let_block);
+            node_subs_append(target_let_block, let_block);
 
             const struct node *except[] = { let_block, NULL };
             error e = catchup(mod, except, target_let_block, &let->scope,
                               CATCHUP_AFTER_CURRENT);
             assert(!e);
           } else {
-            target_let_block = let->subs[let->subs_count - 1];
+            target_let_block = node_subs_last(let);
           }
         } else {
           target_let_block = mk_node(mod, let, BLOCK);
@@ -2889,7 +2948,7 @@ static error step_move_defname_expr_in_let_block(struct module *mod, struct node
       }
 
       d->as.DEFNAME.expr = NULL;
-      rew_prepend(defp_block, expr);
+      node_subs_prepend(defp_block, expr);
       expr->scope.parent = &defp_block->scope;
     }
   }
@@ -2899,8 +2958,8 @@ static error step_move_defname_expr_in_let_block(struct module *mod, struct node
 
 static const struct node *retval_name(struct module *mod) {
   const struct node *retval = module_retval_get(mod);
-  assert(retval->subs_count > 0);
-  return retval->subs[0];
+  assert(node_subs_count_atleast(retval, 1));
+  return node_subs_first_const(retval);
 }
 
 static STEP_FILTER(step_store_return_through_ref_expr,
@@ -2914,12 +2973,12 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
 
   switch (node->which) {
   case RETURN:
-    if (node->subs_count == 0
-        || typ_equal(node->subs[0]->typ, TBI_VOID)) {
+    if (!node_subs_count_atleast(node, 1)
+        || typ_equal(node_subs_first(node)->typ, TBI_VOID)) {
       return 0;
     }
 
-    expr = node->subs[0];
+    expr = node_subs_first(node);
     if (expr_is_return_through_ref(&init_expr, mod, expr)) {
       // Keep node->as.RETURN.return_through_ref_expr null as the
       // subexpression CALL or INIT will directly write to it.
@@ -2937,8 +2996,8 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
                && typ_isa(expr->typ, TBI_COPYABLE)) {
       // FIXME need to insert copy_ctor
 
-      if (node->subs[0]->which == IDENT
-          && node_ident(retval_name(mod)) == node_ident(node->subs[0])) {
+      if (expr->which == IDENT
+          && node_ident(retval_name(mod)) == node_ident(expr)) {
         // noop
       } else if (is_block_like(expr)) {
         block_like_insert_value_assign(mod, expr, NULL, node_ident(retval_name(mod)));
@@ -2950,8 +3009,7 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
     }
     return 0;
   case DEFPATTERN:
-    for (ssize_t n = node->subs_count - 1; n >= 0; --n) {
-      struct node *d = node->subs[n];
+    REVERSE_FOREACH_SUB(d, node) {
       if (d->which != DEFNAME) {
         continue;
       }
@@ -2970,8 +3028,8 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
     if (!OP_IS_ASSIGN(node->as.BIN.operator)) {
       return 0;
     }
-    struct node *left = node->subs[0];
-    struct node *right = node->subs[1];
+    struct node *left = node_subs_first(node);
+    struct node *right = node_subs_last(node);
     init_expr = NULL;
     if (expr_is_literal_initializer(&init_expr, mod, right)) {
       init_expr->as.INIT.target_expr = left;
@@ -3032,7 +3090,7 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
   switch (node->which) {
   case UN:
     if (OP_KIND(node->as.UN.operator) == OP_UN_REFOF
-        && node_is_rvalue(node->subs[0])) {
+        && node_is_rvalue(node_subs_first(node))) {
       if (node->as.UN.operator != TREFDOT) {
         error e = mk_except(mod, node, "Cannot take a mutating reference of a rvalue");
         THROW(e);
@@ -3083,7 +3141,7 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
     temporaries_add(temps, node);
     break;
   case TUPLEEXTRACT:
-    if (node->subs[node->subs_count - 1]->which != IDENT) {
+    if (node_subs_last(node)->which != IDENT) {
       temporaries_add(temps, node);
     }
     break;
@@ -3122,20 +3180,17 @@ static void declare_temporaries(struct module *mod, struct node *statement,
   if (statement->which == LET) {
     let = statement;
   } else {
-    struct node copy;
-    copy = *statement;
-
-    let = statement;
-    memset(let, 0, sizeof(*let));
-    let->which = LET;
-    struct node *block = mk_node(mod, let, BLOCK);
+    struct scope *saved_parent = statement->scope.parent;
+    struct typ *saved = statement->typ;
+    struct node *block = mk_node(mod, statement, BLOCK);
     struct node *new_statement = node_new_subnode(mod, block);
-    *new_statement = copy;
-    fix_scopes_after_move(new_statement);
-    set_typ(&new_statement->typ, copy.typ);
+    node_move_content(new_statement, statement);
+    node_set_which(statement, LET);
+    set_typ(&new_statement->typ, saved);
 
     const struct node *except[] = { new_statement, NULL };
-    error e = catchup(mod, except, let, copy.scope.parent, CATCHUP_REWRITING_CURRENT);
+    error e = catchup(mod, except, statement, saved_parent,
+                      CATCHUP_REWRITING_CURRENT);
     assert(!e);
 
     // We moved the current stepping node down in the tree, and it was in
@@ -3143,16 +3198,20 @@ static void declare_temporaries(struct module *mod, struct node *statement,
     // current pass. But these steps may be crucial as 'statement' could be
     // anything at all. So we must force these steps by hand.
     PUSH_STATE(mod->state->step_state);
-    e = finish_passbody1(mod, let, NULL, -1);
+    e = finish_passbody1(mod, statement, NULL, -1);
     POP_STATE(mod->state->step_state);
+
+    let = statement;
   }
 
   statement = NULL;
 
+  struct node *prev = NULL;
   for (size_t n = 0; n < temps->count; ++n) {
     const struct node *rv = temps->rvalues[n];
     struct node *defp = mk_node(mod, let, DEFPATTERN);
-    rew_insert_last_at(let, n);
+    node_subs_remove(let, defp);
+    node_subs_insert_after(let, prev, defp);
 
     struct node *typc = mk_node(mod, defp, TYPECONSTRAINT);
 
@@ -3170,8 +3229,10 @@ static void declare_temporaries(struct module *mod, struct node *statement,
     }
     typ->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
-    error e = catchup(mod, NULL, let->subs[n], &let->scope, CATCHUP_BELOW_CURRENT);
+    error e = catchup(mod, NULL, defp, &let->scope, CATCHUP_BELOW_CURRENT);
     assert(!e);
+
+    prev = defp;
   }
 }
 
@@ -3209,10 +3270,9 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
     struct node *rv = temps.rvalues[n];
 
     struct node *rv_parent = node_parent(rv);
-    const size_t rv_where = rew_find_subnode_in_parent(rv_parent, rv);
-
     struct node *nrv = mk_node(mod, rv_parent, BLOCK);
-    rew_move_last_over(rv_parent, rv_where, TRUE);
+    node_subs_remove(rv_parent, nrv);
+    node_subs_replace(rv_parent, rv, nrv);
     struct node *assign = mk_node(mod, nrv, BIN);
     assign->as.BIN.operator = TASSIGN;
 
@@ -3223,37 +3283,39 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
     except[1] = NULL;
 
     if (rv->which == UN && OP_KIND(rv->as.UN.operator) == OP_UN_REFOF) {
-      rv->subs[0]->flags |= NODE_IS_TEMPORARY;
-      rew_append(assign, rv->subs[0]);
-      except[0] = rv->subs[0];
+      node_subs_first(rv)->flags |= NODE_IS_TEMPORARY;
+      node_subs_append(assign, node_subs_first(rv));
+      except[0] = node_subs_first(rv);
 
       struct node *nvalue = mk_node(mod, nrv, UN);
       nvalue->as.UN.operator = rv->as.UN.operator;
       struct node *nvalue_name = mk_node(mod, nvalue, IDENT);
       nvalue_name->as.IDENT.name = g;
     } else if (rv->which == TUPLEEXTRACT) {
-      struct node *tuple = rv->subs[rv->subs_count - 1];
-      rew_pop(rv, TRUE);
-      rew_append(assign, tuple);
+      struct node *tuple = node_subs_last(rv);
+      node_subs_remove(rv, tuple);
+      node_subs_append(assign, tuple);
       except[0] = tuple;
 
       struct node *extractor = mk_node(mod, nrv, TUPLEEXTRACT);
+      struct node *nth = node_subs_first(rv);
       for (size_t n = 0; n < typ_generic_arity(tuple->typ); ++n) {
         // We want to reuse the original TUPLENTH from 'rv' as they may be
         // pointed to by nearby DEFNAME.expr, so their location in memory
         // cannot change.
-        struct node *nth = rv->subs[n];
         memset(nth, 0, sizeof(*nth));
-        nth->which = TUPLENTH;
+        node_set_which(nth, TUPLENTH);
         nth->as.TUPLENTH.nth = n;
-        rew_append(extractor, nth);
+        node_subs_append(extractor, nth);
+
+        nth = node_next(nth);
       }
       struct node *nvalue = mk_node(mod, extractor, IDENT);
       nvalue->as.IDENT.name = g;
 
     } else {
       rv->flags |= NODE_IS_TEMPORARY;
-      rew_append(assign, rv);
+      node_subs_append(assign, rv);
       except[0] = rv;
 
       struct node *nvalue = mk_node(mod, nrv, IDENT);

@@ -366,8 +366,10 @@ struct node {
   enum node_which which;
   uint32_t flags;
 
-  size_t subs_count;
-  struct node **subs;
+  struct node *next;
+  struct node *prev;
+  struct node *subs_first;
+  struct node *subs_last;
 
   struct typ *typ;
   struct scope scope;
@@ -375,6 +377,297 @@ struct node {
   union node_as as;
   size_t codeloc;
 };
+
+extern void unset_typ(struct typ **loc);
+
+// This is a tricky operation when 'node->which' is already set: we may
+// be destroying all sorts of state. We try to do it cleanly.
+static inline void node_set_which(struct node *node, enum node_which which) {
+  if (node->which == 0) {
+    node->which = which;
+    return;
+  }
+
+  switch (node->which) {
+  case DIRECTDEF:
+    unset_typ(&node->as.DIRECTDEF.typ);
+    break;
+  case DYN:
+    unset_typ(&node->as.DYN.intf_typ);
+    break;
+  case DEFTYPE:
+  case DEFINTF:
+  case DEFFUN:
+  case DEFMETHOD:
+  case DEFNAMEDLITERAL:
+  case DEFCONSTRAINTLITERAL:
+  case DEFUNKNOWNIDENT:
+    assert(FALSE && "Don't do that");
+    break;
+  default:
+    break;
+  }
+
+  memset(&node->as, 0, sizeof(node->as));
+  node->which = which;
+}
+
+// Does not move src->typ, clears it in both 'dst' and 'src'.
+void node_move_content(struct node *dst, struct node *src);
+
+void node_invariant(const struct node *node);
+
+#define INVARIANT_NODE(node) INVARIANT(node_invariant(node))
+
+#define FOREACH_SUB(s, n) \
+  for (struct node *__p_##s = (n), *s = __p_##s->subs_first; \
+       s != NULL; s = s->next)
+
+#define REVERSE_FOREACH_SUB(s, n) \
+  for (struct node *__p_##s = (n), *s = __p_##s->subs_last; \
+       s != NULL; s = s->prev)
+
+#define NODE_NEXTTH(n, repeat) ({ \
+  size_t count = repeat; \
+  __typeof__(n) r = n; \
+  while (count > 0) { \
+    count -= 1; \
+    r = r->next; \
+    if (r == NULL) { \
+      break; \
+    } \
+  } \
+  r; })
+
+#define FOREACH_SUB_EVERY(s, n, from, every) \
+  for (struct node *__p_##s = (n), *s = try_node_subs_at(__p_##s, from); \
+       s != NULL; s = NODE_NEXTTH(s, every))
+
+#define FOREACH_SUB_CONST(s, n) \
+  for (const struct node *__p_##s = (n), *s = __p_##s->subs_first; \
+       s != NULL; s = s->next)
+
+#define FOREACH_SUB_EVERY_CONST(s, n, from, every) \
+  for (const struct node *__p_##s = (n), *s = try_node_subs_at_const(__p_##s, from); \
+       s != NULL; s = NODE_NEXTTH(s, every))
+
+static inline size_t node_subs_count(const struct node *node) {
+  size_t n = 0;
+  FOREACH_SUB_CONST(s, node) {
+    n += 1;
+  }
+  return n;
+}
+
+// Prefer whenever possible.
+static inline bool node_subs_count_atleast(const struct node *node, size_t min) {
+  INVARIANT_NODE(node);
+  if (min == 0) {
+    return TRUE;
+  }
+
+  size_t n = 0;
+  FOREACH_SUB_CONST(s, node) {
+    n += 1;
+    if (n >= min) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+static inline const struct node *node_subs_first_const(const struct node *node) {
+  return node->subs_first;
+}
+
+static inline const struct node *node_subs_last_const(const struct node *node) {
+  return node->subs_last;
+}
+
+static inline const struct node *node_next_const(const struct node *node) {
+  return node->next;
+}
+
+static inline const struct node *node_prev_const(const struct node *node) {
+  return node->prev;
+}
+
+static inline const struct node *node_subs_at_const(const struct node *node, size_t n) {
+  INVARIANT_NODE(node);
+  const struct node *r = node->subs_first;
+  size_t i;
+  for (i = 0; r != NULL && i < n; ++i) {
+    r = r->next;
+  }
+  assert(r != NULL && i == n && "Index out of bound");
+  return r;
+}
+
+static inline const struct node *try_node_subs_at_const(const struct node *node, size_t n) {
+  INVARIANT_NODE(node);
+  const struct node *r = node->subs_first;
+  size_t i;
+  for (i = 0; r != NULL && i < n; ++i) {
+    r = r->next;
+  }
+  return r;
+}
+
+static inline struct node *node_subs_first(struct node *node) {
+  return (struct node *)node_subs_first_const(node);
+}
+
+static inline struct node *node_subs_last(struct node *node) {
+  return (struct node *)node_subs_last_const(node);
+}
+
+static inline struct node *node_next(struct node *node) {
+  return (struct node *)node_next_const(node);
+}
+
+static inline struct node *node_prev(struct node *node) {
+  return (struct node *)node_prev_const(node);
+}
+
+static inline struct node *node_subs_at(struct node *node, size_t n) {
+  return (struct node *)node_subs_at_const(node, n);
+}
+
+static inline struct node *try_node_subs_at(struct node *node, size_t n) {
+  return (struct node *)try_node_subs_at_const(node, n);
+}
+
+static inline void node_subs_remove(struct node *node, struct node *sub) {
+  INVARIANT_NODE(node);
+  struct node *prev = sub->prev;
+  struct node *next = sub->next;
+  if (prev == NULL) {
+    node->subs_first = next;
+  } else {
+    prev->next = next;
+  }
+  if (next == NULL) {
+    node->subs_last = prev;
+  } else {
+    next->prev = prev;
+  }
+
+  sub->prev = NULL;
+  sub->next = NULL;
+  INVARIANT_NODE(node);
+}
+
+static inline void node_subs_append(struct node *node, struct node *sub) {
+  INVARIANT_NODE(node);
+  assert(sub->prev == NULL && sub->next == NULL);
+  struct node *last = node->subs_last;
+  if (last == NULL) {
+    node->subs_first = sub;
+    node->subs_last = sub;
+    return;
+  }
+  last->next = sub;
+  sub->prev = last;
+  sub->next = NULL;
+  node->subs_last = sub;
+  INVARIANT_NODE(node);
+}
+
+static inline void node_subs_prepend(struct node *node, struct node *sub) {
+  assert(sub->prev == NULL && sub->next == NULL);
+  struct node *first = node->subs_first;
+  if (first == NULL) {
+    node->subs_first = sub;
+    node->subs_last = sub;
+    INVARIANT_NODE(node);
+    return;
+  }
+  sub->next = first;
+  sub->prev = NULL;
+  first->prev = sub;
+  node->subs_first = sub;
+  INVARIANT_NODE(node);
+}
+
+static inline void node_subs_insert_before(struct node *node, struct node *where,
+                                           struct node *sub) {
+  assert(sub->prev == NULL && sub->next == NULL);
+  if (where == NULL) {
+    assert(node->subs_first == NULL && node->subs_last == NULL);
+    node->subs_first = sub;
+    node->subs_last = sub;
+    INVARIANT_NODE(node);
+    return;
+  }
+
+  struct node *prev = where->prev;
+  if (prev == sub) {
+    INVARIANT_NODE(node);
+    return;
+  }
+  sub->prev = prev;
+  if (prev == NULL) {
+    node->subs_first = sub;
+  } else {
+    prev->next = sub;
+  }
+
+  sub->next = where;
+  where->prev = sub;
+  INVARIANT_NODE(node);
+}
+
+static inline void node_subs_insert_after(struct node *node, struct node *where,
+                                          struct node *sub) {
+  assert(sub->prev == NULL && sub->next == NULL);
+  if (where == NULL) {
+    assert(node->subs_first == NULL && node->subs_last == NULL);
+    node->subs_first = sub;
+    node->subs_last = sub;
+    INVARIANT_NODE(node);
+    return;
+  }
+
+  struct node *next = where->next;
+  if (next == sub) {
+    INVARIANT_NODE(node);
+    return;
+  }
+  sub->next = next;
+  if (next == NULL) {
+    node->subs_last = sub;
+  } else {
+    next->prev = sub;
+  }
+
+  sub->prev = where;
+  where->next = sub;
+  INVARIANT_NODE(node);
+}
+
+static inline void node_subs_replace(struct node *node, struct node *where,
+                                     struct node *sub) {
+  assert(sub->prev == NULL && sub->next == NULL);
+  struct node *prev = where->prev;
+  sub->prev = prev;
+  if (prev == NULL) {
+    node->subs_first = sub;
+  } else {
+    prev->next = sub;
+  }
+
+  struct node *next = where->next;
+  sub->next = next;
+  if (next == NULL) {
+    node->subs_last = sub;
+  } else {
+    next->prev = sub;
+  }
+
+  where->prev = NULL;
+  where->next = NULL;
+  INVARIANT_NODE(node);
+}
 
 enum subnode_idx {
   IDX_GENARGS = 1,
@@ -598,7 +891,7 @@ struct step_state {
 
 struct stackel {
   struct node *node;
-  size_t subp;
+  struct node *sub;
 };
 
 struct module_state {
@@ -733,7 +1026,7 @@ static inline ident node_ident(const struct node *node) {
   case DEFNAME:
     return node_ident(node->as.DEFNAME.pattern);
   case DEFARG:
-    return node_ident(node->subs[0]);
+    return node_ident(node_subs_first_const(node));
   case FOR:
     return ID_FOR;
   case WHILE:
@@ -752,12 +1045,10 @@ static inline ident node_ident(const struct node *node) {
     return ID_EXAMPLE;
   case DEFFUN:
   case DEFMETHOD:
-    if (node->subs[0]->which == IDENT) {
-      return node->subs[0]->as.IDENT.name;
+    if (node_subs_first_const(node)->which == IDENT) {
+      return node_subs_first_const(node)->as.IDENT.name;
     } else {
-      assert(node->subs[0]->which == BIN);
-      assert(node->subs[0]->subs[1]->which == IDENT);
-      return node->subs[0]->subs[1]->as.IDENT.name;
+      return node_subs_at_const(node_subs_first_const(node), 1)->as.IDENT.name;
     }
     break;
   case DEFTYPE:
@@ -766,8 +1057,8 @@ static inline ident node_ident(const struct node *node) {
   case DEFINTF:
   case DEFNAMEDLITERAL:
   case DEFCONSTRAINTLITERAL:
-    assert(node->subs[0]->which == IDENT);
-    return node->subs[0]->as.IDENT.name;
+    assert(node_subs_first_const(node)->which == IDENT);
+    return node_subs_first_const(node)->as.IDENT.name;
   case LET:
     return ID_LET;
   case MODULE:
@@ -917,12 +1208,5 @@ error mk_except_call_args_count(const struct module *mod, const struct node *nod
   e = mk_except_type(mod, node, fmt, ##__VA_ARGS__); \
   GOTO_EXCEPT(e); \
 } while (0)
-
-void rew_insert_last_at(struct node *node, size_t pos);
-void rew_pop(struct node *node, bool saved_it);
-void rew_move_last_over(struct node *node, size_t pos, bool saved_it);
-void rew_prepend(struct node *node, struct node *sub);
-void rew_append(struct node *node, struct node *sub);
-size_t rew_find_subnode_in_parent(const struct node *parent, const struct node *node);
 
 #endif

@@ -62,6 +62,8 @@ def main():
     for obj_fn in objects:
         examples.extend(get_examples(obj_fn))
 
+    examples.sort(key=(lambda a: a[0]))
+
     with open(out_fn, 'w') as out:
         gen_main(out, examples)
 

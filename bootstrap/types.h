@@ -26,6 +26,7 @@ size_t typ_function_arity(const struct typ *t);
 struct typ *typ_function_arg(struct typ *t, size_t n);
 struct typ *typ_function_return(struct typ *t);
 
+void unset_typ(struct typ **loc);
 void set_typ(struct typ **loc, struct typ *t);
 
 struct typ *typ_create_tentative(struct typ *target);

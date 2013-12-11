@@ -143,16 +143,17 @@ static void print_pattern(FILE *out, const struct module *mod, const struct node
 
 static void print_bin_sym(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.BIN.operator;
-  const struct node *right = node->subs[1];
+  const struct node *left = node_subs_first_const(node);
+  const struct node *right = node_subs_last_const(node);
   if (OP_IS_ASSIGN(op)
       && (right->which == INIT
           || (right->which == CALL
               && !typ_isa(right->typ, TBI_RETURN_BY_COPY)))) {
     print_expr(out, mod, right, T__STATEMENT);
   } else {
-    print_expr(out, mod, node->subs[0], op);
+    print_expr(out, mod, left, op);
     print_token(out, op);
-    print_expr(out, mod, node->subs[1], op);
+    print_expr(out, mod, right, op);
   }
 }
 
@@ -168,27 +169,27 @@ static char *replace_dots(char *n) {
 }
 
 static void print_bin_acc(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
-  assert(node->subs[1]->which == IDENT);
   const uint32_t op = node->as.BIN.operator;
-  const struct node *left = node->subs[0];
-  const struct node *right = node->subs[1];
+  const struct node *base = node_subs_first_const(node);
+  const struct node *name = node_subs_last_const(node);
+  assert(name->which == IDENT);
 
   if (node->flags & NODE_IS_DEFCHOICE) {
-    print_typ(out, mod, left->typ);
-    fprintf(out, "_%s", idents_value(mod->gctx, node_ident(right)));
+    print_typ(out, mod, base->typ);
+    fprintf(out, "_%s", idents_value(mod->gctx, node_ident(name)));
   } else if (node->flags & NODE_IS_TYPE) {
     print_typ(out, mod, node->typ);
   } else if (node->flags & NODE_IS_GLOBAL_LET) {
     fprintf(out, "%s_%s",
-            replace_dots(scope_name(mod, &typ_definition_const(left->typ)->scope)),
-            idents_value(mod->gctx, node_ident(right)));
+            replace_dots(scope_name(mod, &typ_definition_const(base->typ)->scope)),
+            idents_value(mod->gctx, node_ident(name)));
   } else {
     const char *deref = ".";
-    if (typ_is_reference(left->typ)) {
+    if (typ_is_reference(base->typ)) {
       deref = "->";
     }
-    print_expr(out, mod, left, op);
-    fprintf(out, "%s%s", deref, idents_value(mod->gctx, right->as.IDENT.name));
+    print_expr(out, mod, base, op);
+    fprintf(out, "%s%s", deref, idents_value(mod->gctx, name->as.IDENT.name));
   }
 }
 
@@ -224,6 +225,7 @@ static void print_bin(FILE *out, const struct module *mod, const struct node *no
 
 static void print_un(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.UN.operator;
+  const struct node *term = node_subs_first_const(node);
 
   fprintf(out, "(");
 
@@ -233,16 +235,16 @@ static void print_un(FILE *out, const struct module *mod, const struct node *nod
       print_typ(out, mod, node->typ);
     } else {
       fprintf(out, "(&");
-      print_expr(out, mod, node->subs[0], op);
+      print_expr(out, mod, term, op);
       fprintf(out, ")");
     }
     break;
   case OP_UN_DEREF:
     if (node->flags & NODE_IS_TYPE) {
-      print_typ(out, mod, node->subs[0]->typ);
+      print_typ(out, mod, term->typ);
     } else {
       fprintf(out, "(*");
-      print_expr(out, mod, node->subs[0], op);
+      print_expr(out, mod, term, op);
       fprintf(out, ")");
     }
     break;
@@ -250,7 +252,7 @@ static void print_un(FILE *out, const struct module *mod, const struct node *nod
   case OP_UN_ARITH:
   case OP_UN_BW:
     print_token(out, op);
-    print_expr(out, mod, node->subs[0], op);
+    print_expr(out, mod, term, op);
     break;
   }
 
@@ -266,11 +268,14 @@ static void print_tuple(FILE *out, const struct module *mod, const struct node *
   fprintf(out, "(");
   print_typ(out, mod, node->typ);
   fprintf(out, "){");
-  for (size_t n = 0; n < node->subs_count; ++n) {
+
+  size_t n = 0;
+  FOREACH_SUB_CONST(s, node) {
     if (n > 0) {
       fprintf(out, ", ");
     }
-    print_expr(out, mod, node->subs[n], TCOMMA);
+    print_expr(out, mod, s, TCOMMA);
+    n += 1;
   }
   fprintf(out, "}");
 }
@@ -278,7 +283,7 @@ static void print_tuple(FILE *out, const struct module *mod, const struct node *
 static void print_tuplenth(FILE *out, const struct module *mod, const struct node *node) {
   const struct node *parent = node_parent_const(node);
   assert(parent->which == TUPLEEXTRACT);
-  const struct node *target = parent->subs[parent->subs_count - 1];
+  const struct node *target = node_subs_last_const(parent);
   assert(target != node);
   fprintf(out, "((");
   print_expr(out, mod, target, T__STATEMENT);
@@ -289,7 +294,7 @@ static void print_tuplenth(FILE *out, const struct module *mod, const struct nod
 }
 
 static void print_call(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
-  const struct node *fun = node->subs[0];
+  const struct node *fun = node_subs_first_const(node);
   const struct typ *ftyp = fun->typ;
   const struct node *fdef = typ_definition_const(ftyp);
 
@@ -297,7 +302,7 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
     fprintf(out, "(");
     print_typ(out, mod, node->typ);
     fprintf(out, ")(");
-    print_expr(out, mod, node->subs[1], T__CALL);
+    print_expr(out, mod, node_subs_at_const(node, 1), T__CALL);
     fprintf(out, ")");
     return;
   }
@@ -309,20 +314,21 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
   bool force_comma = FALSE;
   if (fdef->which == DEFFUN && parentd->which == DEFINTF) {
     fprintf(out, "*(");
-    print_typ(out, mod, fun->subs[0]->typ);
+    print_typ(out, mod, node_subs_first_const(fun)->typ);
     fprintf(out, " *)&");
-    print_expr(out, mod, fun->subs[0], T__CALL);
+    print_expr(out, mod, node_subs_first_const(fun), T__CALL);
     force_comma = TRUE;
   }
 
-  size_t n;
-  for (n = 0; n < c_fun_args_count(fdef); ++n) {
-    if (force_comma || n > 0) {
+  size_t n = 1;
+  FOREACH_SUB_EVERY_CONST(arg, node, 1, 1) {
+    if (node_next_const(arg) == NULL) {
+      break;
+    }
+    if (force_comma || n > 1) {
       fprintf(out, ", ");
     }
-
-    const struct node *arg = node->subs[1 + n];
-    if (n == 0
+    if (n == 1
         && fdef->which == DEFMETHOD
         && parentd->which == DEFINTF) {
       assert(typ_is_reference(arg->typ));
@@ -333,6 +339,7 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
       }
     }
     print_expr(out, mod, arg, T__CALL);
+    n += 1;
   }
 
   const bool retval_throughref = !typ_isa_return_by_copy(node->typ);
@@ -357,37 +364,38 @@ static void print_init_array(FILE *out, const struct module *mod, const struct n
   }
   fprintf(out, "= ");
 
-  if (node->subs_count == 1) {
+  if (!node_subs_count_atleast(node, 1)) {
     fprintf(out, "{ 0 }");
     return;
   }
 
-  assert(typ_isa(node->subs[1]->typ, TBI_TRIVIAL_COPY) && "not yet supported");
+  const struct node *el = node_subs_first_const(node);
+  assert(typ_isa(el->typ, TBI_TRIVIAL_COPY) && "not yet supported");
 
   fprintf(out, "(const ");
   print_typ(out, mod, node->typ);
   fprintf(out, "){ (");
-  print_typ(out, mod, node->subs[1]->typ);
+  print_typ(out, mod, el->typ);
   fprintf(out, "[]){ ");
 
-  for (size_t n = 0; n < node->subs_count; n += 1) {
-    print_expr(out, mod, node->subs[n], T__NOT_STATEMENT);
+  FOREACH_SUB_CONST(s, node) {
+    print_expr(out, mod, s, T__NOT_STATEMENT);
     fprintf(out, ", ");
   }
-  fprintf(out, " }, %zu }\n", node->subs_count);
+  fprintf(out, " }, %zu }\n", node_subs_count(node));
 }
 
 static void print_init_toplevel(FILE *out, const struct module *mod, const struct node *node) {
-  if (node->subs_count == 0) {
+  if (!node_subs_count_atleast(node, 1)) {
     fprintf(out, " = { 0 }");
     return;
   }
 
   fprintf(out, " = {\n");
-  for (size_t n = 0; n < node->subs_count; n += 2) {
+  FOREACH_SUB_EVERY_CONST(s, node, 0, 2) {
     fprintf(out, ".%s = ",
-            idents_value(mod->gctx, node_ident(node->subs[n])));
-    print_expr(out, mod, node->subs[n + 1], T__NOT_STATEMENT);
+            idents_value(mod->gctx, node_ident(s)));
+    print_expr(out, mod, node_next_const(s), T__NOT_STATEMENT);
     fprintf(out, ",\n");
   }
   fprintf(out, " }\n");
@@ -417,11 +425,11 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
 
   const struct node *target = node->as.INIT.target_expr;
 
-  for (size_t n = 0; n < node->subs_count; n += 2) {
+  FOREACH_SUB_EVERY_CONST(s, node, 0, 2) {
     print_expr(out, mod, target, TDOT);
     fprintf(out, ".%s = ",
-            idents_value(mod->gctx, node_ident(node->subs[n])));
-    print_expr(out, mod, node->subs[n + 1], T__NOT_STATEMENT);
+            idents_value(mod->gctx, node_ident(s)));
+    print_expr(out, mod, node_next_const(s), T__NOT_STATEMENT);
     fprintf(out, ";\n");
   }
 }
@@ -464,14 +472,15 @@ static void print_ident(FILE *out, const struct module *mod, const struct node *
 }
 
 static void print_dyn(FILE *out, const struct module *mod, const struct node *node) {
+  const struct node *arg = node_subs_first_const(node);
   const struct typ *intf = typ_generic_arg_const(node->typ, 0);
-  const struct typ *concrete = typ_generic_arg_const(node->subs[0]->typ, 0);
+  const struct typ *concrete = typ_generic_arg_const(arg->typ, 0);
 
   print_typ(out, mod, concrete);
   fprintf(out, "_mkdyn__");
   print_typ(out, mod, intf);
   fprintf(out, "((void *)");
-  print_expr(out, mod, node->subs[0], T__CALL);
+  print_expr(out, mod, arg, T__CALL);
   fprintf(out, ")");
 }
 
@@ -510,7 +519,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     break;
   case SIZEOF:
     fprintf(out, "sizeof(");
-    print_typ(out, mod, node->subs[0]->typ);
+    print_typ(out, mod, node_subs_first_const(node)->typ);
     fprintf(out, ")");
     break;
   case BIN:
@@ -529,7 +538,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     print_tuple(out, mod, node, parent_op);
     break;
   case TUPLEEXTRACT:
-    print_expr(out, mod, node->subs[node->subs_count - 1], parent_op);
+    print_expr(out, mod, node_subs_last_const(node), parent_op);
     break;
   case TUPLENTH:
     print_tuplenth(out, mod, node);
@@ -560,85 +569,94 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
 }
 
 static void print_for(FILE *out, const struct module *mod, const struct node *node) {
-  print_statement(out, mod, node->subs[0]);
+  print_statement(out, mod, node_subs_first_const(node));
 }
 
 static void print_while(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "while (");
-  print_expr(out, mod, node->subs[0], T__STATEMENT);
+  print_expr(out, mod, node_subs_first_const(node), T__STATEMENT);
   fprintf(out, ")");
-  print_block(out, mod, node->subs[1], FALSE);
+  print_block(out, mod, node_subs_at_const(node, 1), FALSE);
 }
 
 static void print_if(FILE *out, const struct module *mod, const struct node *node) {
+  const struct node *n = node_subs_first_const(node);
   fprintf(out, "if (");
-  print_expr(out, mod, node->subs[0], T__STATEMENT);
+  print_expr(out, mod, n, T__STATEMENT);
   fprintf(out, ")");
-  print_block(out, mod, node->subs[1], FALSE);
+  n = node_next_const(n);
+  print_block(out, mod, n, FALSE);
 
-  size_t p = 2;
-  size_t br_count = node->subs_count - 2;
-  while (br_count >= 2) {
+  n = node_next_const(n);
+  while (n != NULL && node_next_const(n) != NULL) {
     fprintf(out, "\n");
     fprintf(out, "else if (");
-    print_expr(out, mod, node->subs[p], T__STATEMENT);
+    print_expr(out, mod, n, T__STATEMENT);
     fprintf(out, ") ");
-    print_block(out, mod, node->subs[p+1], FALSE);
-    p += 2;
-    br_count -= 2;
+    n = node_next_const(n);
+    print_block(out, mod, n, FALSE);
+    n = node_next_const(n);
   }
 
-  if (br_count == 1) {
+  if (n != NULL) {
     fprintf(out, "\n");
     fprintf(out, "else ");
-    print_block(out, mod, node->subs[p], FALSE);
+    print_block(out, mod, n, FALSE);
   }
 }
 
 static void print_match(FILE *out, const struct module *mod, const struct node *node) {
+  const struct node *n = node_subs_first_const(node);
   fprintf(out, "switch (");
-  print_expr(out, mod, node->subs[0], T__STATEMENT);
+  print_expr(out, mod, n, T__STATEMENT);
   fprintf(out, ") {\n");
 
-  for (size_t n = 1; n < node->subs_count; n += 2) {
-    const struct node *p = node->subs[n];
+  while (n != NULL) {
+    const struct node *p = n;
+    const struct node *block = node_next_const(n);
+
     if (node_ident(p) != ID_OTHERWISE) {
       fprintf(out, "case ");
       print_typ(out, mod, p->typ);
       const struct node *id = p;
       if (p->which == BIN) {
-        id = node->subs[n]->subs[1];
+        id = node_subs_last_const(p);
       }
       fprintf(out, "_%s_label__", idents_value(mod->gctx, node_ident(id)));
       fprintf(out, ":\n");
     }
 
-    if (n == node->subs_count - 2) {
+    if (node_next_const(block) == NULL) {
       fprintf(out, "default:\n");
     }
 
-    print_block(out, mod, node->subs[n + 1], FALSE);
+    print_block(out, mod, block, FALSE);
     fprintf(out, "\n");
+
+    n = node_next_const(block);
   }
   fprintf(out, "}");
 }
 
 static void print_try(FILE *out, const struct module *mod, const struct node *node) {
-  const struct node *elet = node->subs[0];
-  const struct node *edefp = elet->subs[0];
-  const struct node *eblock = elet->subs[1];
+  const struct node *elet = node_subs_first_const(node);
+  const struct node *edefp = node_subs_first_const(elet);
+  const struct node *eblock = node_next_const(edefp);
 
   print_defpattern(out, FALSE, FWD_DEFINE_FUNCTIONS, mod, edefp);
-  print_block(out, mod, eblock->subs[0], FALSE);
+  print_block(out, mod, node_subs_first_const(eblock), FALSE);
 
   fprintf(out, "while (0) {\n");
-  for (size_t n = 1; n < eblock->subs_count; ++n) {
-    struct node *catch = eblock->subs[n];
+  size_t n = 0;
+  FOREACH_SUB_CONST(catch, eblock) {
+    if (n++ == 0) {
+      continue;
+    }
 
     fprintf(out, "\n%s: {\n", idents_value(mod->gctx, catch->as.CATCH.label));
 
-    print_let(out, FALSE, FWD_DEFINE_FUNCTIONS, mod, catch->subs[0]);
-    print_block(out, mod, catch->subs[1], FALSE);
+    print_let(out, FALSE, FWD_DEFINE_FUNCTIONS, mod, node_subs_first_const(catch));
+    print_block(out, mod, node_subs_at_const(catch, 1), FALSE);
 
     fprintf(out, "\n}\n");
   }
@@ -647,19 +665,19 @@ static void print_try(FILE *out, const struct module *mod, const struct node *no
 
 static void print_pre(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "nlang_builtins_assert(");
-  print_expr(out, mod, node->subs[0], T__CALL);
+  print_expr(out, mod, node_subs_first_const(node), T__CALL);
   fprintf(out, ")");
 }
 
 static void print_post(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "nlang_builtins_assert(");
-  print_expr(out, mod, node->subs[0], T__CALL);
+  print_expr(out, mod, node_subs_first_const(node), T__CALL);
   fprintf(out, ")");
 }
 
 static void print_invariant(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "nlang_builtins_assert(");
-  print_expr(out, mod, node->subs[0], T__CALL);
+  print_expr(out, mod, node_subs_first_const(node), T__CALL);
   fprintf(out, ")");
 }
 
@@ -675,7 +693,7 @@ static void print_example(FILE *out, bool header, enum forward fwd, const struct
   } else if (fwd == FWD_DEFINE_FUNCTIONS) {
     fprintf(out, "void %s__Nexample%zu(void) {\n",
             replace_dots(scope_name(mod, &mod->root->scope)), node->as.EXAMPLE.name);
-    const struct node *block = node->subs[0];
+    const struct node *block = node_subs_first_const(node);
     fprintf(out, "nlang_builtins_assert(");
     print_expr(out, mod, block, T__STATEMENT);
     fprintf(out, ");\n}");
@@ -769,7 +787,7 @@ static void print_defname_excep(FILE *out, const struct module *mod, const struc
   fprintf(out, "%s = ", idents_value(mod->gctx, node->as.DEFNAME.excep_error));
   print_expr(out, mod, node->as.DEFNAME.pattern, TASSIGN);
   fprintf(out, "; if (");
-  print_expr(out, mod, node->subs[IDX_DEFNAME_EXCEP_TEST], T__CALL);
+  print_expr(out, mod, node_subs_at_const(node, IDX_DEFNAME_EXCEP_TEST), T__CALL);
   fprintf(out, ") { goto %s; }", idents_value(mod->gctx, node->as.DEFNAME.excep_label));
 }
 
@@ -779,7 +797,7 @@ static const struct node *significant_expr_or_null(const struct node *node) {
   }
 
   while (node->which == TYPECONSTRAINT) {
-    node = node->subs[0];
+    node = node_subs_first_const(node);
   }
   return node;
 }
@@ -869,8 +887,7 @@ static void print_defpattern(FILE *out, bool header, enum forward fwd, const str
   }
 
   bool defname_to_subexpr = FALSE;
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *d = node->subs[n];
+  FOREACH_SUB_CONST(d, node) {
     if (d->which != DEFNAME) {
       continue;
     }
@@ -880,14 +897,13 @@ static void print_defpattern(FILE *out, bool header, enum forward fwd, const str
   }
 
   if (defname_to_subexpr
-      || node_ident(node->subs[0]) == ID_OTHERWISE) {
+      || node_ident(node_subs_first_const(node)) == ID_OTHERWISE) {
     fprintf(out, "(void) (");
-    print_expr(out, mod, node->subs[1], T__STATEMENT);
+    print_expr(out, mod, node_subs_at_const(node, 1), T__STATEMENT);
     fprintf(out, ");\n");
   }
 
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *d = node->subs[n];
+  FOREACH_SUB_CONST(d, node) {
     if (d->which != DEFNAME) {
       continue;
     }
@@ -901,33 +917,38 @@ static void print_defpattern(FILE *out, bool header, enum forward fwd, const str
 }
 
 static void print_let(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
-  const size_t last_def = node_has_tail_block(node) ? node->subs_count-2 : node->subs_count-1;
+  const struct node *last_def = node_has_tail_block(node)
+    ? node_prev_const(node_subs_last_const(node)) : node_subs_last_const(node);
 
-  for (size_t i = 0; i <= last_def; ++i) {
+  FOREACH_SUB_CONST(s, node) {
     // FIXME: not handling multiple definitions chained with 'and' that
     // refer to each others in their expressions.
-    print_defpattern(out, header, fwd, mod, node->subs[i]);
+    print_defpattern(out, header, fwd, mod, s);
+
+    if (s == last_def) {
+      break;
+    }
   }
 
-  if (fwd == FWD_DEFINE_FUNCTIONS && last_def != node->subs_count-1) {
+  if (fwd == FWD_DEFINE_FUNCTIONS && node_has_tail_block(node)) {
     assert(!node_is_inline(node));
-    struct node *block = node->subs[node->subs_count-1];
+    const struct node *block = node_subs_last_const(node);
     print_block(out, mod, block, TRUE);
   }
 }
 
 static void print_return(FILE *out, const struct module *mod, const struct node *node) {
-  if (node->subs_count > 0) {
-    const struct node *expr = node->subs[0];
+  if (node_subs_count_atleast(node, 1)) {
+    const struct node *expr = node_subs_first_const(node);
     if (node->as.RETURN.return_through_ref_expr != NULL) {
       print_expr(out, mod, node->as.RETURN.return_through_ref_expr, T__STATEMENT);
       fprintf(out, " = ");
-      print_expr(out, mod, node->subs[0], T__STATEMENT);
+      print_expr(out, mod, expr, T__STATEMENT);
       fprintf(out, ";\nreturn");
     } else if (!node->as.RETURN.forced_return_through_ref
                && typ_isa(expr->typ, TBI_RETURN_BY_COPY)) {
       fprintf(out, "return ");
-      print_expr(out, mod, node->subs[0], T__STATEMENT);
+      print_expr(out, mod, expr, T__STATEMENT);
     } else {
       if (expr->which != IDENT) {
         print_expr(out, mod, expr, T__STATEMENT);
@@ -961,7 +982,7 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
     break;
   case THROW:
     fprintf(out, "%s = ", idents_value(mod->gctx, node->as.THROW.error));
-    print_expr(out, mod, node->subs_count == 1 ? node->subs[0] : node->subs[1], TASSIGN);
+    print_expr(out, mod, node_subs_at_const(node, node_subs_count(node) == 1 ? 0 : 1), TASSIGN);
     fprintf(out, "; goto %s", idents_value(mod->gctx, node->as.THROW.label));
     break;
   case IF:
@@ -1010,8 +1031,7 @@ static void print_block(FILE *out, const struct module *mod, const struct node *
   if (!no_braces) {
     fprintf(out, " {\n");
   }
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    const struct node *statement = node->subs[n];
+  FOREACH_SUB_CONST(statement, node) {
     print_statement(out, mod, statement);
     fprintf(out, ";\n");
   }
@@ -1021,7 +1041,7 @@ static void print_block(FILE *out, const struct module *mod, const struct node *
 }
 
 static void print_typeconstraint(FILE *out, const struct module *mod, const struct node *node) {
-  print_expr(out, mod, node->subs[0], T__STATEMENT);
+  print_expr(out, mod, node_subs_first_const(node), T__STATEMENT);
 }
 
 static void print_defarg(FILE *out, const struct module *mod, const struct node *node,
@@ -1032,7 +1052,7 @@ static void print_defarg(FILE *out, const struct module *mod, const struct node 
   if (return_through_ref) {
     fprintf(out, "*_nrtr_");
   }
-  print_expr(out, mod, node->subs[0], T__STATEMENT);
+  print_expr(out, mod, node_subs_first_const(node), T__STATEMENT);
 }
 
 static void print_fun_prototype(FILE *out, bool header, const struct module *mod,
@@ -1077,7 +1097,7 @@ static void print_fun_prototype(FILE *out, bool header, const struct module *mod
     force_comma = TRUE;
   }
 
-  const struct node *funargs = node->subs[IDX_FUNARGS];
+  const struct node *funargs = node_subs_at_const(node, IDX_FUNARGS);
   size_t n;
   for (n = 0; n < args_count; ++n) {
     no_args_at_all = FALSE;
@@ -1090,7 +1110,7 @@ static void print_fun_prototype(FILE *out, bool header, const struct module *mod
       continue;
     }
 
-    const struct node *arg = funargs->subs[n];
+    const struct node *arg = node_subs_at_const(funargs, n);
     print_defarg(out, mod, arg, FALSE);
   }
 
@@ -1124,10 +1144,11 @@ static const struct node *get_defchoice_member(const struct module *mod,
                                                const struct node *ch,
                                                ident member_id) {
   assert(ch->which == DEFCHOICE);
+  const struct node *payload = node_subs_at_const(ch, IDX_CH_PAYLOAD);
   struct node *m = NULL;
   error e = scope_lookup_ident_immediate(
     &m, ch, mod,
-    &typ_definition_const(ch->subs[IDX_CH_PAYLOAD]->typ)->scope, member_id, FALSE);
+    &typ_definition_const(payload->typ)->scope, member_id, FALSE);
   assert(!e);
   return m;
 }
@@ -1150,7 +1171,7 @@ static const struct node *parent_in_tuple(const struct node *n) {
 static void print_rtr_helpers_tuple_accessor(FILE *out, const struct module *mod,
                                              const struct node *retval) {
   if (retval->which == DEFARG) {
-    print_rtr_helpers_tuple_accessor(out, mod, retval->subs[1]);
+    print_rtr_helpers_tuple_accessor(out, mod, node_subs_at_const(retval, 1));
     return;
   }
 
@@ -1160,7 +1181,17 @@ static void print_rtr_helpers_tuple_accessor(FILE *out, const struct module *mod
     print_rtr_helpers_tuple_accessor(out, mod, p);
   }
 
-  const size_t where = rew_find_subnode_in_parent(node_parent_const(p), p);
+  size_t where = 0;
+  bool found = FALSE;
+  FOREACH_SUB_CONST(s, node_parent_const(p)) {
+    if (s == p) {
+      found = TRUE;
+      break;
+    }
+    where += 1;
+  }
+  assert(!found);
+
   fprintf(out, ".x%zu", where);
 }
 
@@ -1168,17 +1199,19 @@ static void print_rtr_helpers_fully_named_tuple(FILE *out,
                                                 const struct module *mod,
                                                 const struct node *retval) {
   if (retval->which == DEFARG) {
-    print_expr(out, mod, retval->subs[0], TCOMMA);
+    print_expr(out, mod, node_subs_first_const(retval), TCOMMA);
   } else if (retval->which == TUPLE) {
     fprintf(out, "(");
     print_typ(out, mod, retval->typ);
     fprintf(out, "){");
-    for (size_t n = 0; n < retval->subs_count; ++n) {
-      if (n > 0) {
+
+    size_t n = 0;
+    FOREACH_SUB_CONST(r, retval) {
+      if (n++ > 0) {
         fprintf(out, ", ");
       }
 
-      print_rtr_helpers_fully_named_tuple(out, mod, retval->subs[n]);
+      print_rtr_helpers_fully_named_tuple(out, mod, r);
     }
     fprintf(out, "}");
   } else {
@@ -1194,7 +1227,7 @@ static void print_rtr_helpers(FILE *out, const struct module *mod,
 
   const bool parent_tuple = node_parent_const(retval)->which == TUPLE;
   const bool is_tuple = retval->which == TUPLE
-    || (named_retval && retval->subs[1]->which == TUPLE);
+    || (named_retval && node_subs_at_const(retval, 1)->which == TUPLE);
 
   if (start) {
     if (named_retval) {
@@ -1204,9 +1237,9 @@ static void print_rtr_helpers(FILE *out, const struct module *mod,
         fprintf(out, " = { 0 };\n");
       } else {
         fprintf(out, "#define ");
-        print_expr(out, mod, retval->subs[0], T__STATEMENT);
+        print_expr(out, mod, node_subs_first_const(retval), T__STATEMENT);
         fprintf(out, " (*_nrtr_");
-        print_expr(out, mod, retval->subs[0], T__STATEMENT);
+        print_expr(out, mod, node_subs_first_const(retval), T__STATEMENT);
         if (parent_tuple) {
           print_rtr_helpers_tuple_accessor(out, mod, retval);
         }
@@ -1217,15 +1250,15 @@ static void print_rtr_helpers(FILE *out, const struct module *mod,
     if (named_retval) {
       if (bycopy) {
         fprintf(out, "return ");
-        print_expr(out, mod, retval->subs[0], T__STATEMENT);
+        print_expr(out, mod, node_subs_first_const(retval), T__STATEMENT);
         fprintf(out, ";\n");
       } else {
         fprintf(out, "#undef ");
-        print_expr(out, mod, retval->subs[0], T__STATEMENT);
+        print_expr(out, mod, node_subs_first_const(retval), T__STATEMENT);
         fprintf(out, "\n");
       }
     } else {
-      if (bycopy && is_tuple && retval->subs[0]->which == DEFARG) {
+      if (bycopy && is_tuple && node_subs_first_const(retval)->which == DEFARG) {
         fprintf(out, "return ");
         print_rtr_helpers_fully_named_tuple(out, mod, retval);
         fprintf(out, ";\n");
@@ -1239,10 +1272,10 @@ static void print_rtr_helpers(FILE *out, const struct module *mod,
     }
 
     if (named_retval) {
-      print_rtr_helpers(out, mod, retval->subs[1], start);
+      print_rtr_helpers(out, mod, node_subs_at_const(retval, 1), start);
     } else {
-      for (size_t n = 0; n < retval->subs_count; ++n) {
-        print_rtr_helpers(out, mod, retval->subs[n], start);
+      FOREACH_SUB_CONST(r, retval) {
+        print_rtr_helpers(out, mod, r, start);
       }
     }
   }
@@ -1266,16 +1299,18 @@ static void bg_return_if_by_copy(FILE *out, const struct module *mod, const stru
 }
 
 static void print_deffun_builtingen(FILE *out, const struct module *mod, const struct node *node) {
+  const struct node *parent = node_parent_const(node);
+
   fprintf(out, " {\n");
-  if (node_parent_const(node)->which == DEFTYPE
-      || node_parent_const(node)->which == DEFCHOICE) {
+  if (parent->which == DEFTYPE || parent->which == DEFCHOICE) {
     fprintf(out, "#define THIS(x) ");
-    print_typ(out, mod, node_parent_const(node)->typ);
+    print_typ(out, mod, parent->typ);
     fprintf(out, "##x\n");
   }
 
   rtr_helpers(out, mod, node, TRUE);
 
+  size_t a;
   const struct node *funargs = NULL;
   switch (node_toplevel_const(node)->builtingen) {
   case BG_TRIVIAL_CTOR_CTOR:
@@ -1297,10 +1332,14 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     break;
   case BG_AUTO_MK:
     fprintf(out, "THIS(_ctor)(&r, ");
-    funargs = node->subs[IDX_FUNARGS];
-    for (size_t a = 0; a < c_fun_args_count(node); ++a) {
-      const struct node *arg = funargs->subs[a];
-      if (a > 0) {
+    funargs = node_subs_at_const(node, IDX_FUNARGS);
+
+    a = 0;
+    FOREACH_SUB_CONST(arg, funargs) {
+      if (node_next_const(arg) == NULL) {
+        break;
+      }
+      if (a++ > 0) {
         fprintf(out, ", ");
       }
       fprintf(out, "%s", idents_value(mod->gctx, node_ident(arg)));
@@ -1310,10 +1349,14 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_AUTO_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
     fprintf(out, "THIS(_ctor)(self, ");
-    funargs = node->subs[IDX_FUNARGS];
-    for (size_t a = 0; a < c_fun_args_count(node); ++a) {
-      const struct node *arg = funargs->subs[a];
-      if (a > 0) {
+    funargs = node_subs_at_const(node, IDX_FUNARGS);
+
+    a = 0;
+    FOREACH_SUB_CONST(arg, funargs) {
+      if (node_next_const(arg) == NULL) {
+        break;
+      }
+      if (a++ > 0) {
         fprintf(out, ", ");
       }
       fprintf(out, "%s", idents_value(mod->gctx, node_ident(arg)));
@@ -1341,15 +1384,15 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     break;
   case BG_SUM_CTOR_WITH_CTOR:
     fprintf(out, "self->which__ = %s_which__;\n", replace_dots(scope_name(mod, node->scope.parent)));
-    fprintf(out, "self->as__.%s = c;\n", idents_value(mod->gctx, node_ident(node_parent_const(node))));
+    fprintf(out, "self->as__.%s = c;\n", idents_value(mod->gctx, node_ident(parent)));
     break;
   case BG_SUM_CTOR_WITH_MK:
-    fprintf(out, "THIS(_%s_ctor)(&r, c);\n", idents_value(mod->gctx, node_ident(node_parent_const(node))));
+    fprintf(out, "THIS(_%s_ctor)(&r, c);\n", idents_value(mod->gctx, node_ident(parent)));
     bg_return_if_by_copy(out, mod, node, "r");
     break;
   case BG_SUM_CTOR_WITH_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
-    fprintf(out, "THIS(_%s_ctor)(self, c);\n", idents_value(mod->gctx, node_ident(node_parent_const(node))));
+    fprintf(out, "THIS(_%s_ctor)(self, c);\n", idents_value(mod->gctx, node_ident(parent)));
     fprintf(out, "return self;\n");
     break;
   case BG_ENUM_EQ:
@@ -1366,8 +1409,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     break;
   case BG_SUM_DISPATCH:
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
-      struct node *ch = node_parent_const(node)->subs[n];
+
+    FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1375,10 +1418,12 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
         fprintf(out, "case THIS(_%s_which___label__): %s %s(", nch, returns_something(mod, m), nm);
         free(nm);
 
-        const struct node *funargs = node->subs[IDX_FUNARGS];
-        for (size_t a = 0; a < c_fun_args_count(node); ++a) {
-          struct node *arg = funargs->subs[a];
-          if (a > 0) {
+        size_t a = 0;
+        FOREACH_SUB_CONST(arg, funargs) {
+          if (node_next_const(arg) == NULL) {
+            break;
+          }
+          if (a++ > 0) {
             fprintf(out, ", ");
           }
           fprintf(out, "%s", idents_value(mod->gctx, node_ident(arg)));
@@ -1391,8 +1436,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_COPY:
     fprintf(out, "self->which__ = other->which__;\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
-      struct node *ch = node_parent_const(node)->subs[n];
+
+    FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1407,8 +1452,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_EQUALITY_EQ:
     fprintf(out, "if (self->which__ != other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
-      struct node *ch = node_parent_const(node)->subs[n];
+
+    FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1423,8 +1468,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_EQUALITY_NE:
     fprintf(out, "if (self->which__ != other->which__) { return 1; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
-      struct node *ch = node_parent_const(node)->subs[n];
+
+    FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1439,8 +1484,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_ORDER_LE:
     fprintf(out, "if (self->which__ > other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
-      struct node *ch = node_parent_const(node)->subs[n];
+
+    FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1455,8 +1500,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_ORDER_LT:
     fprintf(out, "if (self->which__ >= other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
-      struct node *ch = node_parent_const(node)->subs[n];
+
+    FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1472,8 +1517,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_ORDER_GT:
     fprintf(out, "if (self->which__ <= other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
-      struct node *ch = node_parent_const(node)->subs[n];
+
+    FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1488,8 +1533,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_SUM_ORDER_GE:
     fprintf(out, "if (self->which__ < other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
-    for (size_t n = 0; n < node_parent_const(node)->subs_count; ++n) {
-      struct node *ch = node_parent_const(node)->subs[n];
+
+    FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
         const char *nch = idents_value(mod->gctx, node_ident(ch));
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
@@ -1517,8 +1562,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
   rtr_helpers(out, mod, node, FALSE);
 
-  if (node_parent_const(node)->which == DEFTYPE
-      || node_parent_const(node)->which == DEFCHOICE) {
+  if (parent->which == DEFTYPE || parent->which == DEFCHOICE) {
     fprintf(out, "#undef THIS\n");
   }
   fprintf(out, "}\n");
@@ -1608,7 +1652,7 @@ static void print_deffun(FILE *out, bool header, enum forward fwd, const struct 
 
     rtr_helpers(out, mod, node, TRUE);
 
-    const struct node *block = node->subs[node->subs_count - 1];
+    const struct node *block = node_subs_last_const(node);
     print_block(out, mod, block, FALSE);
 
     fprintf(out, "\n");
@@ -1630,11 +1674,11 @@ static void print_deffield(FILE *out, const struct module *mod, const struct nod
 
 static void print_delegate(FILE *out, const struct module *mod, const struct node *node) {
   fprintf(out, "delegate ");
-  print_expr(out, mod, node->subs[0], T__CALL);
+  print_expr(out, mod, node_subs_first_const(node), T__CALL);
 
-  for (size_t n = 1; n < node->subs_count; ++n) {
+  FOREACH_SUB_EVERY_CONST(s, node, 1, 1) {
     fprintf(out, " ");
-    print_expr(out, mod, node->subs[n], T__CALL);
+    print_expr(out, mod, s, T__CALL);
   }
 }
 
@@ -1677,12 +1721,9 @@ static void print_deftype_block(FILE *out, bool header, enum forward fwd, const 
   if (!do_static) {
     fprintf(out, " {\n");
   }
-  for (size_t n = 2; n < node->subs_count; ++n) {
-    ssize_t prev_pos = ftell(out);
-
-    const struct node *statement = node->subs[n];
+  FOREACH_SUB_EVERY_CONST(statement, node, 2, 1) {
+    const ssize_t prev_pos = ftell(out);
     print_deftype_statement(out, header, fwd, mod, statement, do_static);
-
     // Hack to prevent isolated ';' when statement does not print anything.
     if (ftell(out) != prev_pos) {
       fprintf(out, ";\n");
@@ -1750,10 +1791,9 @@ static void print_deftype_sum_choices_fwdtypes(FILE *out, bool header, const str
   }
 
   const struct typ *choice_typ = NULL;
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *ch = node->subs[n];
+  FOREACH_SUB_CONST(ch, node) {
     if (ch->which == DEFCHOICE) {
-      choice_typ = ch->subs[IDX_CH_VALUE]->typ;
+      choice_typ = node_subs_at_const(ch, IDX_CH_VALUE)->typ;
       break;
     }
   }
@@ -1765,8 +1805,7 @@ static void print_deftype_sum_choices_fwdtypes(FILE *out, bool header, const str
   print_deftype_name(out, mod, node);
   fprintf(out, "_%s;\n", idents_value(mod->gctx, ID_WHICH_TYPE));
 
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *ch = node->subs[n];
+  FOREACH_SUB_CONST(ch, node) {
     if (ch->which != DEFCHOICE) {
       continue;
     }
@@ -1776,7 +1815,7 @@ static void print_deftype_sum_choices_fwdtypes(FILE *out, bool header, const str
     fprintf(out, "_");
     print_deffield_name(out, mod, ch);
     fprintf(out, "_%s_label__ (", idents_value(mod->gctx, ID_WHICH));
-    print_expr(out, mod, ch->subs[IDX_CH_VALUE], T__NOT_STATEMENT);
+    print_expr(out, mod, node_subs_at_const(ch, IDX_CH_VALUE), T__NOT_STATEMENT);
     fprintf(out, ")\n");
 
     fprintf(out, "static const ");
@@ -1797,14 +1836,13 @@ static void print_deftype_sum_choices_fwdtypes(FILE *out, bool header, const str
     return;
   }
 
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *ch = node->subs[n];
+  FOREACH_SUB_CONST(ch, node) {
     if (ch->which != DEFCHOICE) {
       continue;
     }
 
     fprintf(out, "typedef ");
-    print_typ(out, mod, ch->subs[IDX_CH_PAYLOAD]->typ);
+    print_typ(out, mod, node_subs_at_const(ch, IDX_CH_PAYLOAD)->typ);
     fprintf(out, " ");
     print_deftype_name(out, mod, node);
     fprintf(out, "_");
@@ -1821,8 +1859,8 @@ static void print_deftype_sum_choices_deftypes(FILE *out, bool header, const str
   fprintf(out, "union ");
   print_deftype_name(out, mod, node);
   fprintf(out, "_%s {\n", idents_value(mod->gctx, ID_AS_TYPE));
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *ch = node->subs[n];
+
+  FOREACH_SUB_CONST(ch, node) {
     if (ch->which != DEFCHOICE) {
       continue;
     }
@@ -1848,14 +1886,12 @@ static void print_deftype_sum_members(FILE *out, bool header, enum forward fwd, 
     return;
   }
 
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    struct node *s = node->subs[n];
+  FOREACH_SUB_CONST(s, node) {
     if (s->which != DEFCHOICE) {
       continue;
     }
 
-    for (size_t m = 0; m < s->subs_count; ++m) {
-      struct node *cm = s->subs[m];
+    FOREACH_SUB_CONST(cm, s) {
       if (cm->which == DEFFUN || cm->which == DEFMETHOD) {
         print_deffun(out, header, fwd, mod, cm);
       }
@@ -1879,8 +1915,7 @@ static void print_deftype_enum(FILE *out, bool header, enum forward fwd,
 
   if (fwd == FWD_DEFINE_TYPES) {
     if (!prototype_only(header, node)) {
-      for (size_t n = 0; n < node->subs_count; ++n) {
-        struct node *s = node->subs[n];
+      FOREACH_SUB_CONST(s, node) {
         if (s->which != DEFCHOICE) {
           continue;
         }
@@ -1890,7 +1925,7 @@ static void print_deftype_enum(FILE *out, bool header, enum forward fwd,
         fprintf(out, "_");
         print_deffield_name(out, mod, s);
         fprintf(out, "_label__ (");
-        print_expr(out, mod, s->subs[IDX_CH_VALUE], T__NOT_STATEMENT);
+        print_expr(out, mod, node_subs_at_const(s, IDX_CH_VALUE), T__NOT_STATEMENT);
         fprintf(out, ")\n");
 
         fprintf(out, "static const ");
@@ -1948,15 +1983,14 @@ static error print_deftype_dyn_field_eachisalist(struct module *mod, struct typ 
   struct typ *t = st->user;
 
   const struct node *dintf = typ_definition_const(intf);
-  for (size_t m = 0; m < dintf->subs_count; ++m) {
-    const struct node *f = dintf->subs[m];
+  FOREACH_SUB_CONST(f, dintf) {
     if (f->which != DEFFUN && f->which != DEFMETHOD) {
       continue;
     }
     if (node_toplevel_const(f)->is_not_dyn) {
       continue;
     }
-    if (typ_definition_const(f->typ)->subs[IDX_GENARGS]->subs_count != 0) {
+    if (node_subs_count_atleast(node_subs_at_const(typ_definition_const(f->typ), IDX_GENARGS), 1)) {
       continue;
     }
 
@@ -2115,15 +2149,14 @@ static error print_defintf_dyn_field_eachisalist(struct module *mod, struct typ 
   struct printer_state *st = user;
 
   const struct node *dintf = typ_definition_const(intf);
-  for (size_t n = 0; n < dintf->subs_count; ++n) {
-    const struct node *d = dintf->subs[n];
+  FOREACH_SUB_CONST(d, dintf) {
     if (d->which != DEFFUN && d->which != DEFMETHOD) {
       continue;
     }
     if (node_toplevel_const(d)->is_not_dyn) {
       continue;
     }
-    if (typ_definition_const(d->typ)->subs[IDX_GENARGS]->subs_count != 0) {
+    if (node_subs_count_atleast(node_subs_at_const(typ_definition_const(d->typ), IDX_GENARGS), 1)) {
       continue;
     }
     print_fun_prototype(st->out, st->header, mod, d, TRUE, TRUE, TRUE, NULL);
@@ -2139,15 +2172,14 @@ static error print_defintf_member_proto_eachisalist(struct module *mod, struct t
   struct printer_state *st = user;
 
   const struct node *dintf = typ_definition_const(intf);
-  for (size_t n = 0; n < dintf->subs_count; ++n) {
-    const struct node *d = dintf->subs[n];
+  FOREACH_SUB_CONST(d, dintf) {
     if (d->which != DEFFUN && d->which != DEFMETHOD) {
       continue;
     }
     if (node_toplevel_const(d)->is_not_dyn) {
       continue;
     }
-    if (typ_definition_const(d->typ)->subs[IDX_GENARGS]->subs_count != 0) {
+    if (node_subs_count_atleast(node_subs_at_const(typ_definition_const(d->typ), IDX_GENARGS), 1)) {
       continue;
     }
     print_fun_prototype(st->out, st->header, mod, d, FALSE, FALSE, FALSE, t);
@@ -2161,15 +2193,14 @@ static error print_defintf_member_eachisalist(struct module *mod, struct typ *t,
   struct printer_state *st = user;
 
   const struct node *dintf = typ_definition_const(intf);
-  for (size_t n = 0; n < dintf->subs_count; ++n) {
-    const struct node *d = dintf->subs[n];
+  FOREACH_SUB_CONST(d, dintf) {
     if (d->which != DEFFUN && d->which != DEFMETHOD) {
       continue;
     }
     if (node_toplevel_const(d)->is_not_dyn) {
       continue;
     }
-    if (typ_definition_const(d->typ)->subs[IDX_GENARGS]->subs_count != 0) {
+    if (node_subs_count_atleast(node_subs_at_const(typ_definition_const(d->typ), IDX_GENARGS), 1)) {
       continue;
     }
 
@@ -2188,17 +2219,13 @@ static error print_defintf_member_eachisalist(struct module *mod, struct typ *t,
       fprintf(st->out, "self.obj");
     }
 
-    const struct node *funargs = d->subs[IDX_FUNARGS];
-    for (size_t a = 0; a < node_fun_all_args_count(d); ++a) {
-      if (a == 0 && d->which == DEFMETHOD) {
-        // skip self
-        continue;
-      }
+    const struct node *funargs = node_subs_at_const(d, IDX_FUNARGS);
+    FOREACH_SUB_EVERY_CONST(arg, funargs, d->which == DEFMETHOD ? 1 : 0, 1) {
       if (need_comma) {
         fprintf(st->out, ", ");
       }
       fprintf(st->out, "%s",
-              idents_value(mod->gctx, node_ident(funargs->subs[a])));
+              idents_value(mod->gctx, node_ident(arg)));
 
       need_comma = TRUE;
     }
@@ -2209,7 +2236,7 @@ static error print_defintf_member_eachisalist(struct module *mod, struct typ *t,
       }
 
       fprintf(st->out, "_nrtr_");
-      print_expr(st->out, mod, node_fun_retval_const(d)->subs[0], T__STATEMENT);
+      print_expr(st->out, mod, node_subs_first_const(node_fun_retval_const(d)), T__STATEMENT);
     }
 
     fprintf(st->out, ");\n}\n");
@@ -2307,7 +2334,7 @@ static void print_import(FILE *out, bool header, enum forward fwd,
                          const struct module *mod, const struct node *node) {
   struct node *target = NULL;
   error e = scope_lookup(&target, mod, &mod->gctx->modules_root.scope,
-                         node->subs[0], FALSE);
+                         node_subs_first_const(node), FALSE);
   assert(!e);
   if (target->which == MODULE) {
     print_guarded_include(out, header, fwd, target->as.MODULE.mod->filename, ".h.out");
@@ -2346,9 +2373,10 @@ static bool is_concrete(const struct typ *t) {
 
 static void print_top(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
   const struct toplevel *toplevel = node_toplevel_const(node);
+  const struct node *genargs = node_subs_at_const(node, IDX_GENARGS);
   if (node_can_have_genargs(node)
-      && node->subs[IDX_GENARGS]->subs_count > 0
-      && node->subs[IDX_GENARGS]->subs[0]->which == DEFGENARG) {
+      && node_subs_count_atleast(genargs, 1)
+      && node_subs_first_const(genargs)->which == DEFGENARG) {
 
     if (toplevel->instances_count > 1) {
       for (size_t n = 1; n < toplevel->instances_count; ++n) {
@@ -2406,14 +2434,13 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
 
   const struct node *top = mod->body;
 
-  size_t n;
-  for (n = 0; n < top->subs_count; ++n) {
-    const struct node *node = top->subs[n];
+  const struct node *first_non_import = NULL;
+  FOREACH_SUB_CONST(node, top) {
     if (node->which != IMPORT) {
+      first_non_import = node;
       break;
     }
   }
-  const size_t first_non_import = n;
 
   enum forward fwd_passes[] = {
     FWD_DECLARE_TYPES, FWD_DEFINE_TYPES, FWD_DECLARE_FUNCTIONS, FWD_DEFINE_FUNCTIONS };
@@ -2427,11 +2454,10 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
               forward_guards[fwd], guard, forward_guards[fwd], guard);
     }
 
-    for (size_t n = 0; n < first_non_import; ++n) {
-      const struct node *node = top->subs[n];
+    for (const struct node *node = first_non_import; node != NULL; node = node_next_const(node)) {
       print_top(out, header, fwd, mod, node);
 
-      if (n < top->subs_count - 1) {
+      if (node_next_const(node) != NULL) {
         fprintf(out, "\n");
       }
     }
@@ -2447,11 +2473,10 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       }
     }
 
-    for (size_t n = first_non_import; n < top->subs_count; ++n) {
-      const struct node *node = top->subs[n];
+    for (const struct node *node = first_non_import; node != NULL; node = node_next_const(node)) {
       print_top(out, header, fwd, mod, node);
 
-      if (n < top->subs_count - 1) {
+      if (node_next_const(node) != NULL) {
         fprintf(out, "\n");
       }
     }

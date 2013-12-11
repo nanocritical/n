@@ -90,8 +90,8 @@ static void import_filename(char **fn, size_t *len,
 
   switch (import->which) {
   case BIN:
-    import_filename(fn, len, mod, import->subs[0]);
-    to_append = import->subs[1];
+    import_filename(fn, len, mod, node_subs_first(import));
+    to_append = node_subs_at(import, 1);
     break;
   case IDENT:
     to_append = import;
@@ -131,7 +131,7 @@ static void import_module_path(char **module_path, size_t *mplen,
 static error try_import(char **fn, struct module *mod, struct node *import,
                         const char *prefix) {
   assert(import->which == IMPORT);
-  struct node *import_path = import->subs[0];
+  struct node *import_path = node_subs_first(import);
 
   *fn = NULL;
 
@@ -196,7 +196,7 @@ static error lookup_import(const char **prefix, char **fn,
 
   char *module_path = NULL;
   size_t module_path_len = 0;
-  struct node *import_path = import->subs[0];
+  struct node *import_path = node_subs_first(import);
   import_module_path(&module_path, &module_path_len, mod, import_path);
 
   fprintf(g_env.stderr, "After looking up in the directories:\n");
@@ -222,7 +222,7 @@ static error load_import(struct node *node, void *user, bool *stop) {
   struct load_import_state *st = user;
 
   struct node *existing = NULL;
-  error e = scope_lookup_module(&existing, st->mod, node->subs[0], TRUE);
+  error e = scope_lookup_module(&existing, st->mod, node_subs_first(node), TRUE);
   if (!e && !existing->as.MODULE.is_placeholder) {
     return 0;
   }
@@ -288,7 +288,7 @@ static error step_gather_dependencies_in_module(struct module *mod, struct node 
   struct node *nmod = NULL;
   error e = scope_lookup_module(&nmod,
                                 // 'mod' is not 'node' owner, but that's OK.
-                                mod, node->subs[0], FALSE);
+                                mod, node_subs_first(node), FALSE);
   EXCEPT(e);
 
   assert(nmod->which == MODULE);

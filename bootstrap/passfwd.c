@@ -73,9 +73,9 @@ static error step_type_definitions(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
 
-  ident id = node_ident(node->subs[0]);
+  ident id = node_ident(node_subs_first(node));
 
-  if (node->subs[IDX_GENARGS]->subs_count > 0
+  if (node_subs_count_atleast(node_subs_at(node, IDX_GENARGS), 1)
       && node_toplevel(node)->our_generic_functor_typ != NULL) {
     set_typ(&node->typ, typ_create(NULL, node));
   } else if (mod->path[0] == ID_NLANG
@@ -117,12 +117,11 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
   case CALL:
     break;
   case DEFARG:
-    e = scope_define(mod, &fun->scope, retval->subs[0], retval);
+    e = scope_define(mod, &fun->scope, node_subs_first(retval), retval);
     EXCEPT(e);
     break;
   case TUPLE:
-    for (size_t n = 0; n < retval->subs_count; ++n) {
-      struct node *r = retval->subs[n];
+    FOREACH_SUB(r, retval) {
       e = lexical_retval(mod, fun, r);
       EXCEPT(e);
     }
@@ -137,18 +136,14 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
 
 static error insert_tupleextract(struct module *mod, size_t arity, struct node *expr) {
   struct scope *parent_scope = expr->scope.parent;
-  struct node copy = *expr;
 
-  memset(expr, 0, sizeof(*expr));
-  expr->which = TUPLEEXTRACT;
   for (size_t n = 0; n < arity; ++n) {
     struct node *nth = mk_node(mod, expr, TUPLENTH);
     nth->as.TUPLENTH.nth = n;
   }
   struct node *value = node_new_subnode(mod, expr);
-  *value = copy;
-  fix_scopes_after_move(value);
-  assert(value->typ == NULL);
+  node_move_content(value, expr);
+  node_set_which(expr, TUPLEEXTRACT);
 
   const struct node *except[] = { value, NULL };
   error e = catchup(mod, except, expr, parent_scope, CATCHUP_REWRITING_CURRENT);
@@ -167,7 +162,7 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
       && pattern->which != IDENT
       && pattern->which != EXCEP) {
     if (pattern->which == TUPLE) {
-      e = insert_tupleextract(mod, pattern->subs_count, expr);
+      e = insert_tupleextract(mod, node_subs_count(pattern), expr);
       EXCEPT(e);
     } else {
       e = mk_except(mod, pattern, "value destruct not supported");
@@ -181,22 +176,22 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
   case EXCEP:
     {
       struct node *parent = node_parent(pattern);
-      const size_t where = rew_find_subnode_in_parent(parent, pattern);
 
       struct node *label_ident = NULL;
-      if (pattern->subs_count > 0) {
-        label_ident = pattern->subs[0];
+      if (node_subs_count_atleast(pattern, 1)) {
+        label_ident = node_subs_first(pattern);
       }
 
-      pattern = mk_node(mod, parent, IDENT);
-      pattern->as.IDENT.name = gensym(mod);
-      rew_move_last_over(parent, where, FALSE);
+      struct node *pattern_id = mk_node(mod, parent, IDENT);
+      pattern_id->as.IDENT.name = gensym(mod);
+      node_subs_remove(parent, pattern_id);
+      node_subs_replace(parent, pattern, pattern_id);
 
       e = catchup(mod, NULL, pattern, &defpattern->scope, CATCHUP_BELOW_CURRENT);
       EXCEPT(e);
 
       def = mk_node(mod, defpattern, DEFNAME);
-      def->as.DEFNAME.pattern = pattern;
+      def->as.DEFNAME.pattern = pattern_id;
       def->as.DEFNAME.expr = expr;
       def->as.DEFNAME.is_excep = TRUE;
       def->as.DEFNAME.excep_label_ident = label_ident;
@@ -222,21 +217,23 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
 
   case UN:
     assert(FALSE && "FIXME: Unsupported");
-    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0],
-                                    UNLESS_NULL(expr, expr->subs[0]));
+    e = extract_defnames_in_pattern(mod, defpattern, node_subs_first(pattern),
+                                    UNLESS_NULL(expr, node_subs_first(expr)));
     EXCEPT(e);
     break;
   case TUPLE:
-    for (size_t n = 0; n < pattern->subs_count; ++n) {
-      e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[n],
-                                      UNLESS_NULL(expr, expr->subs[n]));
+    for (struct node *p = node_subs_first(pattern),
+         *ex = node_subs_first(expr); p != NULL;
+         p = node_next(p), ex = node_next(ex)) {
+      e = extract_defnames_in_pattern(mod, defpattern, p,
+                                      UNLESS_NULL(expr, ex));
       EXCEPT(e);
     }
     break;
   case TYPECONSTRAINT:
     pattern->as.TYPECONSTRAINT.in_pattern = TRUE;
-    e = extract_defnames_in_pattern(mod, defpattern, pattern->subs[0],
-                                    UNLESS_NULL(expr, expr->subs[0]));
+    e = extract_defnames_in_pattern(mod, defpattern, node_subs_first(pattern),
+                                    UNLESS_NULL(expr, node_subs_first(expr)));
     EXCEPT(e);
     break;
   default:
@@ -255,11 +252,11 @@ static error step_defpattern_extract_defname(struct module *mod, struct node *no
   DSTEP(mod, node);
 
   struct node *expr = NULL;
-  if (node->subs_count >= 2) {
-    expr = node->subs[1];
+  if (node_subs_count_atleast(node, 2)) {
+    expr = node_subs_at(node, 1);
   }
 
-  error e = extract_defnames_in_pattern(mod, node, node->subs[0], expr);
+  error e = extract_defnames_in_pattern(mod, node, node_subs_first(node), expr);
   EXCEPT(e);
 
   return 0;
@@ -301,10 +298,10 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
   switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
-    if (node->subs[0]->which == IDENT) {
-      id = node->subs[0];
-    } else {
-      id = node->subs[0]->subs[1];
+    id = node_subs_first(node);
+    if (id->which != IDENT) {
+      assert(id->which == BIN);
+      id = node_subs_last(id);
     }
 
     toplevel = node_toplevel_const(node);
@@ -331,12 +328,13 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
       }
 
       const struct toplevel *ctoplevel = node_toplevel_const(container);
+      const struct node *cgenargs = node_subs_at(container, IDX_GENARGS);
       if (toplevel->builtingen == BG__NOT // otherwise, will be re-generated
           && ctoplevel != NULL
           && ctoplevel->instances != NULL
           && ctoplevel->our_generic_functor_typ == NULL
-          && container->subs[IDX_GENARGS]->subs_count > 0
-          && container->subs[IDX_GENARGS]->subs[0]->which == DEFGENARG) {
+          && node_subs_count_atleast(cgenargs, 1)
+          && node_subs_first_const(cgenargs)->which == DEFGENARG) {
         add_deftype_pristine_external_member(mod, container, node);
       }
     }
@@ -349,16 +347,16 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
       // For generic instances, define the name in its own scope, to make
       // sure lookups inside the instance resolve to the instance itself
       // (e.g. the definition of this).
-      e = scope_define(mod, &node->scope, node->subs[0], node);
+      e = scope_define(mod, &node->scope, node_subs_first(node), node);
       EXCEPT(e);
     } else {
-      id = node->subs[0];
+      id = node_subs_first(node);
       sc = node->scope.parent;
     }
     break;
   case DEFFIELD:
   case DEFCHOICE:
-    id = node->subs[0];
+    id = node_subs_first(node);
     sc = node->scope.parent;
     break;
   case DEFNAME:
@@ -379,30 +377,33 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     EXCEPT(e);
   }
 
+  struct node *genargs = NULL;
   switch (node->which) {
   case DEFTYPE:
   case DEFINTF:
-    for (size_t n = 0; n < node->subs[IDX_GENARGS]->subs_count; ++n) {
-      struct node *ga = node->subs[IDX_GENARGS]->subs[n];
+    genargs = node_subs_at(node, IDX_GENARGS);
+    FOREACH_SUB(ga, genargs) {
       assert(ga->which == DEFGENARG || ga->which == SETGENARG);
-      e = scope_define(mod, &node->scope, ga->subs[0], ga);
+      e = scope_define(mod, &node->scope, node_subs_first(ga), ga);
       EXCEPT(e);
     }
     break;
   case DEFFUN:
   case DEFMETHOD:
-    for (size_t n = 0; n < node->subs[IDX_GENARGS]->subs_count; ++n) {
-      struct node *ga = node->subs[IDX_GENARGS]->subs[n];
+    genargs = node_subs_at(node, IDX_GENARGS);
+    FOREACH_SUB(ga, genargs) {
       assert(ga->which == DEFGENARG || ga->which == SETGENARG);
-      e = scope_define(mod, &node->scope, ga->subs[0], ga);
+      e = scope_define(mod, &node->scope, node_subs_first(ga), ga);
       EXCEPT(e);
     }
 
-    struct node *funargs = node->subs[IDX_FUNARGS];
-    for (size_t n = 0; n < node_fun_all_args_count(node); ++n) {
-      struct node *arg = funargs->subs[n];
+    struct node *funargs = node_subs_at(node, IDX_FUNARGS);
+    FOREACH_SUB(arg, funargs) {
+      if (node_next_const(arg) == NULL) {
+        break;
+      }
       assert(arg->which == DEFARG);
-      e = scope_define(mod, &node->scope, arg->subs[0], arg);
+      e = scope_define(mod, &node->scope, node_subs_first(arg), arg);
       EXCEPT(e);
     }
 
@@ -434,6 +435,8 @@ static error step_add_builtin_members(struct module *mod, struct node *node,
 
   {
     struct node *let = mk_node(mod, node, LET);
+    node_subs_remove(node, let);
+    node_subs_insert_after(node, node_subs_at(node, 2), let);
     let->flags = NODE_IS_GLOBAL_LET;
     struct node *defp = mk_node(mod, let, DEFPATTERN);
     defp->as.DEFPATTERN.is_alias = TRUE;
@@ -443,14 +446,14 @@ static error step_add_builtin_members(struct module *mod, struct node *node,
     set_typ(&expr->as.DIRECTDEF.typ, node->typ);
     expr->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
-    rew_insert_last_at(node, 3);
-
     error e = catchup(mod, NULL, let, &node->scope, CATCHUP_BELOW_CURRENT);
     EXCEPT(e);
   }
 
   {
     struct node *let = mk_node(mod, node, LET);
+    node_subs_remove(node, let);
+    node_subs_insert_after(node, node_subs_at(node, 3), let);
     let->flags = NODE_IS_GLOBAL_LET;
     struct node *defp = mk_node(mod, let, DEFPATTERN);
     defp->as.DEFPATTERN.is_alias = TRUE;
@@ -459,8 +462,6 @@ static error step_add_builtin_members(struct module *mod, struct node *node,
     struct node *expr = mk_node(mod, defp, DIRECTDEF);
     set_typ(&expr->as.DIRECTDEF.typ, node->typ);
     expr->as.DIRECTDEF.flags = NODE_IS_TYPE;
-
-    rew_insert_last_at(node, 4);
 
     error e = catchup(mod, NULL, let, &node->scope, CATCHUP_BELOW_CURRENT);
     EXCEPT(e);
@@ -480,7 +481,7 @@ static error step_type_inference_genargs(struct module *mod, struct node *node,
     return 0;
   }
 
-  struct node *genargs = node->subs[IDX_GENARGS];
+  struct node *genargs = node_subs_at(node, IDX_GENARGS);
   e = morningtypepass(mod, genargs);
   EXCEPT(e);
 
@@ -564,13 +565,12 @@ static error step_type_defchoices(struct module *mod, struct node *node,
               typ_create_tentative(TBI_LITERALS_INTEGER));
       struct typ *u = node->as.DEFTYPE.choice_typ;
 
-      for (size_t n = 0; n < node->subs_count; ++n) {
-        struct node *ch = node->subs[n];
+      FOREACH_SUB(ch, node) {
         if (ch->which != DEFCHOICE) {
           continue;
         }
 
-        e = unify(mod, ch, u, ch->subs[IDX_CH_VALUE]->typ);
+        e = unify(mod, ch, u, node_subs_at(ch, IDX_CH_VALUE)->typ);
         EXCEPT(e);
 
         ch->flags |= NODE_IS_DEFCHOICE;
@@ -643,7 +643,7 @@ static struct node *mk_expr_abspath(struct module *mod, struct node *node, const
 }
 
 static void add_inferred_isa(struct module *mod, struct node *deft, const char *path) {
-  struct node *isalist = deft->subs[IDX_ISALIST];
+  struct node *isalist = node_subs_at(deft, IDX_ISALIST);
   assert(isalist->which == ISALIST);
   struct node *isa = mk_node(mod, isalist, ISA);
   isa->as.ISA.is_export = node_toplevel(deft)->is_inline;
@@ -706,7 +706,7 @@ static error step_rewrite_final_this(struct module *mod, struct node *node,
   struct typ *thi = user;
   ident id = node_ident(node);
   if (id == ID_THIS) {
-    node->which = DIRECTDEF;
+    node_set_which(node, DIRECTDEF);
     set_typ(&node->as.DIRECTDEF.typ, thi);
     node->as.DIRECTDEF.flags = NODE_IS_TYPE;
   }
@@ -736,13 +736,11 @@ static void intf_proto_deepcopy(struct module *mod, struct typ *thi,
 static void define_builtin(struct module *mod, struct node *deft,
                            enum builtingen bg) {
   struct node *modbody;
-  ssize_t insert_pos;
-  if (deft->subs[IDX_GENARGS]->subs_count > 0) {
+  struct node *genargs = node_subs_at(deft, IDX_GENARGS);
+  if (node_subs_count_atleast(genargs, 1)) {
     modbody = NULL;
-    insert_pos = -1;
   } else {
     modbody = node_parent(deft);
-    insert_pos = rew_find_subnode_in_parent(modbody, deft) + 1;
   }
 
   struct node *proto = NULL;
@@ -755,14 +753,16 @@ static void define_builtin(struct module *mod, struct node *deft,
   }
 
   struct node *d;
-  if (insert_pos >= 0) {
+  if (modbody != NULL) {
     d = node_new_subnode(mod, modbody);
   } else {
-    d = calloc(1, sizeof(*d));
+    d = node_new_subnode(mod, deft);
   }
   intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
-  mk_expr_abspath(mod, d, builtingen_abspath[bg]);
-  rew_move_last_over(d, 0, FALSE);
+  struct node *full_name = mk_expr_abspath(mod, d, builtingen_abspath[bg]);
+  node_subs_remove(d, full_name);
+  node_subs_remove(d, node_subs_first(d));
+  node_subs_insert_before(d, node_subs_first(d), full_name);
 
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->scope_name = node_ident(deft);
@@ -772,11 +772,11 @@ static void define_builtin(struct module *mod, struct node *deft,
   toplevel->is_inline = node_toplevel(deft)->is_inline;
 
   enum catchup_for how;
-  if (insert_pos >= 0) {
-    rew_insert_last_at(modbody, insert_pos);
+  if (modbody != NULL) {
+    node_subs_remove(modbody, d);
+    node_subs_insert_after(modbody, deft, d);
     how = CATCHUP_AFTER_CURRENT;
   } else {
-    append_member(deft, d);
     how = CATCHUP_BELOW_CURRENT;
   }
 
@@ -794,8 +794,9 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
 
   struct node *d = mk_node(mod, ch, which);
   intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
-  mk_expr_abspath(mod, d, builtingen_abspath[bg]);
-  rew_move_last_over(d, 0, FALSE);
+  struct node *full_name = mk_expr_abspath(mod, d, builtingen_abspath[bg]);
+  node_subs_remove(d, full_name);
+  node_subs_insert_before(d, node_subs_first(d), full_name);
 
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->scope_name = node_ident(ch);
@@ -807,15 +808,17 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   if (bg == BG_SUM_CTOR_WITH_CTOR
       || bg == BG_SUM_CTOR_WITH_MK
       || bg == BG_SUM_CTOR_WITH_NEW) {
-    struct node *funargs = d->subs[IDX_FUNARGS];
+    struct node *funargs = node_subs_at(d, IDX_FUNARGS);
     struct node *arg = mk_node(mod, funargs, DEFARG);
     struct node *name = mk_node(mod, arg, IDENT);
     name->as.IDENT.name = ID_C;
     struct node *typename = mk_node(mod, arg, DIRECTDEF);
-    set_typ(&typename->as.DIRECTDEF.typ, ch->subs[IDX_CH_PAYLOAD]->typ);
+    set_typ(&typename->as.DIRECTDEF.typ, node_subs_at(ch, IDX_CH_PAYLOAD)->typ);
     typename->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
-    rew_insert_last_at(funargs, (d->which == DEFMETHOD) ? 1 : 0);
+    node_subs_remove(funargs, arg);
+    node_subs_insert_before(
+      funargs, node_subs_at(funargs, (d->which == DEFMETHOD) ? 1 : 0), arg);
   }
 
   e = catchup(mod, NULL, d, &ch->scope, CATCHUP_BELOW_CURRENT);
@@ -833,9 +836,8 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
     return 0;
   }
 
-  const struct typ *targ = node->subs[IDX_CH_PAYLOAD]->typ;
-  error e = typ_check_isa(mod, node->subs[IDX_CH_PAYLOAD],
-                          targ, TBI_COPYABLE);
+  const struct node *arg = node_subs_at(node, IDX_CH_PAYLOAD);
+  error e = typ_check_isa(mod, arg, arg->typ, TBI_COPYABLE);
   EXCEPT(e);
 
   define_defchoice_builtin(
@@ -893,20 +895,18 @@ static error define_auto(struct module *mod, struct node *deft,
   }
 
   struct node *modbody;
-  ssize_t insert_pos;
-  if (deft->subs[IDX_GENARGS]->subs_count > 0) {
+  struct node *genargs = node_subs_at(deft, IDX_GENARGS);
+  if (node_subs_count_atleast(genargs, 1)) {
     modbody = NULL;
-    insert_pos = -1;
   } else {
     modbody = node_parent(deft);
-    insert_pos = rew_find_subnode_in_parent(modbody, deft) + 1;
   }
 
   struct node *d;
-  if (insert_pos >= 0) {
+  if (modbody != NULL) {
     d = node_new_subnode(mod, modbody);
   } else {
-    d = calloc(1, sizeof(*d));
+    d = node_new_subnode(mod, deft);
   }
   intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
 
@@ -917,22 +917,26 @@ static error define_auto(struct module *mod, struct node *deft,
   toplevel->is_export = node_toplevel(ctor)->is_export;
   toplevel->is_inline = node_toplevel(ctor)->is_inline;
 
-  struct node *ctor_funargs = ctor->subs[IDX_FUNARGS];
-  struct node *d_funargs = d->subs[IDX_FUNARGS];
-  // (Skip self.)
-  for (size_t n = 1; n < node_fun_all_args_count(ctor); ++n) {
-    struct node *arg = ctor_funargs->subs[n];
+  struct node *ctor_funargs = node_subs_at(ctor, IDX_FUNARGS);
+  struct node *d_funargs = node_subs_at(d, IDX_FUNARGS);
+  struct node *d_retval = node_subs_last(d_funargs);
+  FOREACH_SUB_EVERY(arg, ctor_funargs, 1, 1) {
+    if (node_next_const(arg) == NULL) {
+      // Skip self.
+      break;
+    }
     struct node *cpy = node_new_subnode(mod, d_funargs);
+    node_subs_remove(d_funargs, cpy);
+    node_subs_insert_before(d_funargs, d_retval, cpy);
     intf_proto_deepcopy(mod, node_parent(proto)->typ, cpy, arg);
-    rew_insert_last_at(d_funargs, n-1);
   }
 
   enum catchup_for how;
-  if (insert_pos >= 0) {
-    rew_insert_last_at(modbody, insert_pos);
+  if (modbody != NULL) {
+    node_subs_remove(modbody, d);
+    node_subs_insert_after(modbody, deft, d);
     how = CATCHUP_AFTER_CURRENT;
   } else {
-    append_member(deft, d);
     how = CATCHUP_BELOW_CURRENT;
   }
 
@@ -1079,10 +1083,8 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
   struct node *intf = typ_definition(tintf);
 
   struct node *modbody = node_parent(deft);
-  size_t insert_pos = rew_find_subnode_in_parent(modbody, deft) + 1;
 
-  for (size_t n = 0; n < intf->subs_count; ++n) {
-    struct node *proto = intf->subs[n];
+  FOREACH_SUB(proto, intf) {
     if (proto->which != DEFMETHOD && proto->which != DEFFUN) {
       continue;
     }
@@ -1096,10 +1098,13 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
     }
 
     struct node *d = mk_node(mod, modbody, proto->which);
+    node_subs_remove(modbody, d);
+    node_subs_insert_after(modbody, deft, d);
     intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
     char *abspath = scope_name(mod, &proto->scope);
-    mk_expr_abspath(mod, d, abspath);
-    rew_move_last_over(d, 0, FALSE);
+    struct node *full_name = mk_expr_abspath(mod, d, abspath);
+    node_subs_remove(d, full_name);
+    node_subs_replace(d, node_subs_first(d), full_name);
 
     struct toplevel *toplevel = node_toplevel(d);
     toplevel->scope_name = node_ident(deft);
@@ -1107,8 +1112,6 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
     toplevel->is_prototype = FALSE;
     toplevel->is_export = node_toplevel(deft)->is_export;
     toplevel->is_inline = node_toplevel(deft)->is_inline;
-
-    rew_insert_last_at(modbody, insert_pos);
 
     error e = catchup(mod, NULL, d, &deft->scope, CATCHUP_BELOW_CURRENT);
     assert(!e);
@@ -1128,17 +1131,16 @@ static error sum_choice_with_intf(struct module *mod, struct typ *t,
     to_check = TBI_ORDERED;
   }
 
-  for (size_t c = 0; c < node->subs_count; ++c) {
-    struct node *ch = node->subs[c];
+  FOREACH_SUB(ch, node) {
     if (ch->which != DEFCHOICE) {
       continue;
     }
 
     struct typ *tch = NULL;
-    if (typ_equal(ch->subs[IDX_CH_PAYLOAD]->typ, TBI_VOID)) {
+    if (typ_equal(node_subs_at(ch, IDX_CH_PAYLOAD)->typ, TBI_VOID)) {
       tch = node->as.DEFTYPE.choice_typ;
     } else {
-      tch = ch->subs[IDX_CH_PAYLOAD]->typ;
+      tch = node_subs_at(ch, IDX_CH_PAYLOAD)->typ;
     }
 
     error e = typ_check_isa(mod, ch, tch, to_check);
@@ -1203,14 +1205,14 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
     return 0;
   }
 
-  struct node *funargs = node->subs[IDX_FUNARGS];
-  const size_t where = rew_find_subnode_in_parent(funargs, retval);
+  struct node *funargs = node_subs_at(node, IDX_FUNARGS);
   struct node *named = mk_node(mod, funargs, DEFARG);
   named->as.DEFARG.is_retval = TRUE;
   struct node *name = mk_node(mod, named, IDENT);
   name->as.IDENT.name = ID_NRETVAL;
-  rew_append(named, retval);
-  rew_move_last_over(funargs, where, TRUE);
+  node_subs_remove(funargs, named);
+  node_subs_replace(funargs, retval, named);
+  node_subs_append(named, retval);
 
   error e = lexical_retval(mod, node, named);
   EXCEPT(e);

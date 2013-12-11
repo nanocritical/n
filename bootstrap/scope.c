@@ -22,12 +22,6 @@ void scope_init(struct scope *scope) {
   scope_map_set_custom_cmpf(&scope->map, ident_cmp);
 }
 
-void fix_scopes_after_move(struct node *node) {
-  for (size_t n = 0; n < node->subs_count; ++n) {
-    node->subs[n]->scope.parent = &node->scope;
-  }
-}
-
 // Return value must be freed by caller.
 char *scope_name(const struct module *mod, const struct scope *scope) {
   if (scope->parent == NULL) {
@@ -165,7 +159,7 @@ error scope_define_ident(const struct module *mod, struct scope *scope,
 error scope_define(const struct module *mod, struct scope *scope,
                    struct node *id, struct node *node) {
   assert(id->which == IDENT);
-  error e = scope_define_ident(mod, scope, id->as.IDENT.name, node);
+  error e = scope_define_ident(mod, scope, node_ident(id), node);
   EXCEPT(e);
   return 0;
 }
@@ -218,8 +212,9 @@ static error do_scope_lookup_ident_immediate(struct node **result,
     return 0;
   }
 
-  if (scope_node(scope)->which == MODULE && scope_node(scope)->subs_count >= 1) {
-    struct node *body = scope_node(scope)->subs[0];
+  if (scope_node(scope)->which == MODULE
+      && node_subs_count_atleast(scope_node(scope), 1)) {
+    struct node *body = node_subs_first(scope_node(scope));
     error e = do_scope_lookup_ident_immediate(result, for_error, mod, &body->scope,
                                               id, allow_isalist, failure_ok);
     if (!e) {
@@ -349,7 +344,8 @@ static error do_scope_lookup(struct node **result, const struct node *for_error,
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scope, id->as.IDENT.name, failure_ok);
+    e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scope,
+                                         node_ident(id), failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
 
     break;
@@ -359,15 +355,17 @@ static error do_scope_lookup(struct node **result, const struct node *for_error,
         && id->as.BIN.operator != TSHARP) {
       GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
     }
-    if (id->subs[1]->which != IDENT) {
+    const struct node *base = node_subs_first_const(id);
+    const struct node *name = node_subs_last_const(id);
+    if (name->which != IDENT) {
       GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
     }
 
-    e = do_scope_lookup(&parent, for_error, mod, scope, id->subs[0], failure_ok);
+    e = do_scope_lookup(&parent, for_error, mod, scope, base, failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
 
     e = do_scope_lookup_ident_immediate(&r, for_error, mod, &parent->scope,
-                                        id->subs[1]->as.IDENT.name, FALSE, failure_ok);
+                                        node_ident(name), FALSE, failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
 
     break;
@@ -383,7 +381,7 @@ static error do_scope_lookup(struct node **result, const struct node *for_error,
     struct node *mark = r;
     if (!mark->as.IMPORT.intermediate_mark) {
       e = do_scope_lookup(&r, for_error, mod, &mod->gctx->modules_root.scope,
-                          r->subs[0], failure_ok);
+                          node_subs_first(r), failure_ok);
       EXCEPT_UNLESS(e, failure_ok);
     }
   }
@@ -412,7 +410,8 @@ error scope_lookup_module(struct node **result, const struct module *mod,
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scope, id->as.IDENT.name, TRUE);
+    e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scope,
+                                         node_ident(id), TRUE);
     break;
   case BIN:
     if (id->as.BIN.operator != TDOT) {
@@ -420,11 +419,13 @@ error scope_lookup_module(struct node **result, const struct module *mod,
                          "malformed module path name");
       THROW(e);
     }
-    e = do_scope_lookup(&parent, for_error, mod, scope, id->subs[0], TRUE);
+    const struct node *base = node_subs_first_const(id);
+    const struct node *name = node_subs_last_const(id);
+    e = do_scope_lookup(&parent, for_error, mod, scope, base, TRUE);
     if (e) {
       break;
     }
-    e = do_scope_lookup(&r, for_error, mod, &parent->scope, id->subs[1], TRUE);
+    e = do_scope_lookup(&r, for_error, mod, &parent->scope, name, TRUE);
     if (e) {
       break;
     }

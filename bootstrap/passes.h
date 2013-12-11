@@ -77,8 +77,7 @@ error step_complete_instantiation(struct module *mod, struct node *node, void *u
   if (node->flags & NODE__EXCEPTED) { \
     goto done; \
   } \
-  struct node **sub = NULL; \
-  size_t subp = 0; \
+  struct node *sub = NULL; \
   \
 start: \
   mod->state->step_state->upward = FALSE; \
@@ -86,14 +85,13 @@ start: \
   \
   downs; \
   \
-  if (node->subs_count == 0) { \
+  if (node->subs_first == NULL) { \
     goto skip_descend; \
   } \
-  subp = 0; \
-  sub = node->subs + subp; \
+  sub = node->subs_first; \
   \
 descend: \
-  if ((*sub)->flags & NODE__EXCEPTED) { \
+  if (sub->flags & NODE__EXCEPTED) { \
     goto next; \
   } \
   \
@@ -101,14 +99,13 @@ descend: \
   assert(*stackp < PASS_STACK_DEPTH); \
   stack += 1; \
   stack[0].node = node; \
-  stack[0].subp = subp; \
-  node = *sub; \
+  stack[0].sub = sub; \
+  node = sub; \
   goto start; \
   \
 next: \
-  subp += 1; \
-  sub += 1; \
-  if (subp < node->subs_count) { \
+  sub = sub->next; \
+  if (sub != NULL) { \
     goto descend; \
   } \
   \
@@ -123,8 +120,7 @@ ascend: \
     goto done; \
   } \
   node = stack[0].node; \
-  subp = stack[0].subp; \
-  sub = node->subs + subp; \
+  sub = stack[0].sub; \
   *stackp -= 1; \
   stack -= 1; \
   goto next; \
@@ -137,6 +133,7 @@ done:
   if (node_whichmask(node) & step##_filter) { \
     bool stop = FALSE; \
     error e = step(mod, node, user, &stop); \
+    INVARIANT_NODE(node); \
     EXCEPT(e); \
     \
     if (stop) { \
@@ -156,6 +153,7 @@ done:
   if (node_whichmask(node) & step##_filter) { \
     bool stop = FALSE; \
     error e = step(mod, node, user, &stop); \
+    INVARIANT_NODE(node); \
     EXCEPT(e); \
     \
     if (stop) { \

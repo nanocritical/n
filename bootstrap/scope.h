@@ -40,7 +40,4 @@ error scope_lookup_abspath(struct node **result, const struct node *for_error,
 char *scope_name(const struct module *mod, const struct scope *scope);
 char *scope_definitions_name_list(const struct module *mod, const struct scope *scope);
 
-// Must follow this with a call to set_typ() to update backlinks.
-void fix_scopes_after_move(struct node *node);
-
 #endif
