@@ -124,3 +124,5 @@ void examples_init_NCC(const char *name, struct module **mod) {
 void examples_destroy_NCC(const char *name, struct module **mod) {
   examples_destroy(name);
 }
+
+uint32_t g_invariants_counter = 0;

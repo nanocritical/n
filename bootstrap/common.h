@@ -253,4 +253,14 @@ void examples_destroy_NCC(const char *name, struct module **mod);
   void example_NCC__##name(struct module *mod); \
   void example_NCC__##name(struct module *mod)
 
+
+#ifndef INVARIANTS
+#define INVARIANT(invs)
+#else
+extern uint32_t g_invariants_counter;
+#define CHECK_INVARIANTS() (++g_invariants_counter % INVARIANTS == 0)
+#define INVARIANT(invs) if (CHECK_INVARIANTS()) { invs; }
+#endif
+
+
 #endif

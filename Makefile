@@ -5,8 +5,9 @@ V ?=
 Q = $(if $V,,@)
 O ?= 0
 P ?=
+I ?=
 
-default:: examples ncc0
+default:: examples.run ncc0
 
 SRC = bootstrap
 DEPS = .deps
@@ -15,7 +16,7 @@ override CFLAGS += -std=c99 -Wall -O$(O) -ggdb $(if $P,-pg,) \
 	  -Wmissing-prototypes -Wpointer-arith \
 	  -Wmissing-declarations -Wno-format-zero-length -Wbad-function-cast \
 	  -Wcast-align -Wwrite-strings -Wno-missing-braces -Wstrict-prototypes \
-	  -Wmaybe-uninitialized -Wuninitialized
+	  -Wmaybe-uninitialized -Wuninitialized $(if $I,-DINVARIANTS=$I,)
 
 deps-dir-for-target = $(dir $(DEPS)/$1)
 deps-options = -MMD -MF $(DEPS)/$2.d -MT $1
@@ -36,7 +37,10 @@ $(examples-generated-sources): $(call objects-for-sources,$(sources)) $(examples
 
 examples-sources := $(sources)
 examples: $(call objects-for-sources,$(examples-sources)) $(examples-generated-sources)
-	$Qgcc -g $(CFLAGS) -o $@ $^ && ./$@
+	$Qgcc -g $(CFLAGS) -o $@ $^
+
+examples.run: examples
+	$Q./$<
 
 ncc0-sources := bootstrap/ncc0.main.c $(sources)
 ncc0: $(call objects-for-sources,$(ncc0-sources))
