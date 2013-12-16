@@ -1067,7 +1067,7 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
   // FIXME: Detached node, would have to be freed when releasing the
   // mod fun_state in which it is recorded below.
   //
-  struct node *littype = calloc(1, sizeof(struct node));
+  struct node *littype = mempool_calloc(mod, 1, sizeof(struct node));
   node_set_which(littype, DEFNAMEDLITERAL);
   struct node *littype_name = mk_node(mod, littype, IDENT);
   littype_name->as.IDENT.name = gensym(mod);
@@ -1670,7 +1670,7 @@ static void type_inference_ident_unknown(struct module *mod, struct node *node) 
   // FIXME: Detached node, would have to be freed when releasing the
   // mod fun_state in which it is recorded below.
   //
-  struct node *unk = calloc(1, sizeof(struct node));
+  struct node *unk = mempool_calloc(mod, 1, sizeof(struct node));
   node_set_which(unk, DEFUNKNOWNIDENT);
   G(unk_name, unk, IDENT,
     unk_name->as.IDENT.name = gensym(mod));

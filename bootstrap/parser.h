@@ -960,6 +960,13 @@ struct stage {
   struct stage_state *state;
 };
 
+struct mempool {
+  struct mempool *prev;
+
+  uint8_t *free;
+  uint8_t *end;
+};
+
 struct module {
   struct globalctx *gctx;
   struct stage *stage;
@@ -983,7 +990,11 @@ struct module {
   bool done;
 
   struct module_state *state;
+
+  struct mempool *mempool;
 };
+
+void *mempool_calloc(struct module *mod, size_t nmemb, size_t size);
 
 int parser_line(const struct parser *parser, const struct token *tok);
 int parser_column(const struct parser *parser, const struct token *tok);
@@ -1102,7 +1113,7 @@ static inline bool node_can_have_genargs(const struct node *node) {
   }
 }
 
-struct node *node_new_subnode(const struct module *mod, struct node *node);
+struct node *node_new_subnode(struct module *mod, struct node *node);
 bool node_has_tail_block(const struct node *node);
 bool node_is_fun(const struct node *node);
 size_t node_fun_all_args_count(const struct node *def);

@@ -12,6 +12,30 @@
 #include "scope.h"
 #include "passes.h"
 
+#define MEMPOOL_CHUNK (64*1024)
+
+noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
+  struct mempool *mempool = mod->mempool;
+
+  const size_t sz = nmemb * size;
+  assert(likely(sz <= MEMPOOL_CHUNK && sz != 0));
+
+  void *f = mempool->free;
+  mempool->free += sz;
+  if (likely((uintptr_t)mempool->free <= (uintptr_t)mempool->end)) {
+    return f;
+  }
+
+  mempool->free -= sz;
+
+  PUSH_STATE(mod->mempool);
+  uint8_t *g = calloc(1, MEMPOOL_CHUNK);
+  mod->mempool->free = g + sz;
+  mod->mempool->end = mod->mempool->free + (MEMPOOL_CHUNK - sz);
+
+  return g;
+}
+
 EXAMPLE(data_structure_size_stats) {
   // It is a good idea to keep track of what is responsible for the size of
   // 'node_as'. In other words, where to look first to shrink 'struct node'.
@@ -855,8 +879,8 @@ void node_move_content(struct node *dst, struct node *src) {
   fix_scopes_after_move(dst);
 }
 
-struct node *node_new_subnode(const struct module *mod, struct node *node) {
-  struct node *r = calloc(1, sizeof(struct node));
+struct node *node_new_subnode(struct module *mod, struct node *node) {
+  struct node *r = mempool_calloc(mod, 1, sizeof(struct node));
   node_subs_append(node, r);
 
   if (mod->parser.pos >= mod->parser.len) {
@@ -2777,6 +2801,7 @@ static void module_init(struct globalctx *gctx, struct stage *stage,
 
   PUSH_STATE(mod->state);
   PUSH_STATE(mod->state->step_state);
+  PUSH_STATE(mod->mempool);
 }
 
 EXAMPLE(parse_modpath) {

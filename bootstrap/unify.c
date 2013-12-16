@@ -284,7 +284,7 @@ static struct typ *merge_defnamedliterals(struct module *mod,
   // FIXME: Detached node, would have to be freed when releasing the
   // mod fun_state in which it is recorded below.
   //
-  struct node *littype = calloc(1, sizeof(struct node));
+  struct node *littype = mempool_calloc(mod, 1, sizeof(struct node));
   node_set_which(littype, DEFNAMEDLITERAL);
   struct node *littype_name = mk_node(mod, littype, IDENT);
   littype_name->as.IDENT.name = gensym(mod);
@@ -294,7 +294,7 @@ static struct typ *merge_defnamedliterals(struct module *mod,
   insert_defnamedliterals(mod, littype_body, b_body);
 
   const size_t arity = node_subs_count(littype_body);
-  struct typ **args = calloc(arity, sizeof(struct typ *));
+  struct typ **args = mempool_calloc(mod, arity, sizeof(struct typ *));
   size_t n = 0;
   FOREACH_SUB_CONST(f, littype_body) {
     const struct node *t = node_subs_at_const(f, 1);
