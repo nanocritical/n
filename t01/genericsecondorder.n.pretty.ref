@@ -1,7 +1,7 @@
 from nlang import *
 type c = <root>.nlang.builtins.i_trivial_ctor
-  let this = t01.genericsecondorder.c
-  let final = t01.genericsecondorder.c
+  and this = t01.genericsecondorder.c
+  and final = t01.genericsecondorder.c
   x:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -14,5 +14,5 @@ fun get m:r c = r i32
   return @$m$x
 
 export fun main = i32
-  let x = { x=0 }
+  and x = { x=0 }
   return .((get ref) @x)

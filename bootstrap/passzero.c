@@ -201,6 +201,7 @@ static error step_assign_deftype_which_values(struct module *mod, struct node *n
       right->as.NUMBER.value = "1";
     }
 
+    node_subs_remove(d, val);
     node_subs_insert_after(d, node_subs_at(d, IDX_CH_VALUE-1), val);
 
     prev = d;

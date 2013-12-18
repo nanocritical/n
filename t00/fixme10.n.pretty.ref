@@ -1,7 +1,7 @@
 from nlang import *
 type a = <root>.nlang.builtins.i_trivial_ctor
-  let this = t00.fixme10.a
-  let final = t00.fixme10.a
+  and this = t00.fixme10.a
+  and final = t00.fixme10.a
   x:b
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -11,8 +11,8 @@ fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 a method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 type b = <root>.nlang.builtins.i_trivial_ctor
-  let this = t00.fixme10.b
-  let final = t00.fixme10.b
+  and this = t00.fixme10.b
+  and final = t00.fixme10.b
   y:a
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final

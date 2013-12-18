@@ -3,12 +3,12 @@ fun opts a:?@i32 = i32
   return optional a 1
 
 export fun main = i32
-  let _Ngensym0:nlang.builtins.i32  such
+  and _Ngensym0:nlang.builtins.i32  such
     if opts block 
   _Ngensym0 = 1
   @_Ngensym0;; != 1
       return 1
-  let _Ngensym1:nlang.builtins.i32  such
+  and _Ngensym1:nlang.builtins.i32  such
     return opts block 
   _Ngensym1 = 0
   @_Ngensym1;;

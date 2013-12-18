@@ -1,18 +1,18 @@
 from nlang import *
 export fun main = i32
-  let _Ngensym0:nlang.chars.static_string  such
+  and _Ngensym0:nlang.chars.static_string  such
     say block 
   _Ngensym0 = 'Hello, World!'
   @_Ngensym0;;
-  let _Ngensym1:nlang.builtins.bool  such
+  and _Ngensym1:nlang.builtins.bool  such
     say block 
   _Ngensym1 = true
   @_Ngensym1;;
-  let _Ngensym2:nlang.builtins.u32  such
+  and _Ngensym2:nlang.builtins.u32  such
     say block 
   _Ngensym2 = 1
   @_Ngensym2;;
-  let _Ngensym3:nlang.builtins.float  such
+  and _Ngensym3:nlang.builtins.float  such
     say block 
   _Ngensym3 = 1.0
   @_Ngensym3;;

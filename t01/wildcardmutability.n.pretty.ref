@@ -1,7 +1,7 @@
 from nlang import *
 type c = <root>.nlang.builtins.i_trivial_ctor
-  let this = t01.wildcardmutability.c
-  let final = t01.wildcardmutability.c
+  and this = t01.wildcardmutability.c
+  and final = t01.wildcardmutability.c
   x:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -14,5 +14,5 @@ c method get = __wildcard_ref_arg__ i32
   return @$self$x
 
 export fun main = i32
-  let x = { x=0 }
+  and x = { x=0 }
   return .(t01.wildcardmutability.c.get @x)

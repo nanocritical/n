@@ -1,6 +1,6 @@
 from nlang import *
 from nlang.sysheap import heapsysheap
 export fun main = i32
-  let p = (heap.alloc i32) @!sysheap
+  and p = (heap.alloc i32) @!sysheap
   !p = 1
   return .p - 1

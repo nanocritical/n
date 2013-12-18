@@ -1,8 +1,8 @@
 from nlang import *
 
 type d = i_d <root>.nlang.builtins.i_trivial_ctor
-  let this = t00.dynintf.d
-  let final = t00.dynintf.d
+  and this = t00.dynintf.d
+  and final = t00.dynintf.d
   x:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -18,8 +18,8 @@ d method get = i32
   return self.x
 
 type dc = i_d <root>.nlang.builtins.i_trivial_ctor
-  let this = t00.dynintf.dc
-  let final = t00.dynintf.dc
+  and this = t00.dynintf.dc
+  and final = t00.dynintf.dc
   dummy:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -38,7 +38,7 @@ fun foo v:@i_d = i32
   return t00.dynintf.i_d.get v
 
 example
-  let x = { x=42 }
+  and x = { x=42 }
   42 == foo @x
 fun rfoo pv:@i_d = i32
   return pv.answer
@@ -47,11 +47,11 @@ fun bar pv:@d = i32
   return foo pv
 
 export fun main = i32
-  let xd = { x=42 }
-  let xdc = { }
+  and xd = { x=42 }
+  and xdc = { }
   if foo @xd != foo @xdc
     return 1
-  let pxd = @xd
+  and pxd = @xd
   if bar pxd != rfoo pxd
     return 1
   return 0

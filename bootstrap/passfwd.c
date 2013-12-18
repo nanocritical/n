@@ -137,13 +137,18 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
 static error insert_tupleextract(struct module *mod, size_t arity, struct node *expr) {
   struct scope *parent_scope = expr->scope.parent;
 
+  struct node *value = node_new_subnode(mod, expr);
+  node_subs_remove(expr, value);
+  node_move_content(value, expr);
+
+  node_set_which(expr, TUPLEEXTRACT);
+
   for (size_t n = 0; n < arity; ++n) {
     struct node *nth = mk_node(mod, expr, TUPLENTH);
     nth->as.TUPLENTH.nth = n;
   }
-  struct node *value = node_new_subnode(mod, expr);
-  node_move_content(value, expr);
-  node_set_which(expr, TUPLEEXTRACT);
+
+  node_subs_append(expr, value);
 
   const struct node *except[] = { value, NULL };
   error e = catchup(mod, except, expr, parent_scope, CATCHUP_REWRITING_CURRENT);
@@ -187,7 +192,7 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
       node_subs_remove(parent, pattern_id);
       node_subs_replace(parent, pattern, pattern_id);
 
-      e = catchup(mod, NULL, pattern, &defpattern->scope, CATCHUP_BELOW_CURRENT);
+      e = catchup(mod, NULL, pattern_id, &defpattern->scope, CATCHUP_BELOW_CURRENT);
       EXCEPT(e);
 
       def = mk_node(mod, defpattern, DEFNAME);
@@ -196,8 +201,8 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
       def->as.DEFNAME.is_excep = TRUE;
       def->as.DEFNAME.excep_label_ident = label_ident;
 
-      struct node *test = mk_node(mod, def, IDENT);
-      test->as.IDENT.name = node_ident(pattern);
+      struct node *for_test = mk_node(mod, def, IDENT);
+      for_test->as.IDENT.name = node_ident(pattern_id);
 
       e = catchup(mod, NULL, def, &defpattern->scope, CATCHUP_BELOW_CURRENT);
       EXCEPT(e);
@@ -223,8 +228,8 @@ static error extract_defnames_in_pattern(struct module *mod, struct node *defpat
     break;
   case TUPLE:
     for (struct node *p = node_subs_first(pattern),
-         *ex = node_subs_first(expr); p != NULL;
-         p = node_next(p), ex = node_next(ex)) {
+         *ex = UNLESS_NULL(expr, node_subs_first(expr)); p != NULL;
+         p = node_next(p), ex = UNLESS_NULL(expr, node_next(ex))) {
       e = extract_defnames_in_pattern(mod, defpattern, p,
                                       UNLESS_NULL(expr, ex));
       EXCEPT(e);
@@ -761,8 +766,7 @@ static void define_builtin(struct module *mod, struct node *deft,
   intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
   struct node *full_name = mk_expr_abspath(mod, d, builtingen_abspath[bg]);
   node_subs_remove(d, full_name);
-  node_subs_remove(d, node_subs_first(d));
-  node_subs_insert_before(d, node_subs_first(d), full_name);
+  node_subs_replace(d, node_subs_first(d), full_name);
 
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->scope_name = node_ident(deft);
@@ -777,6 +781,8 @@ static void define_builtin(struct module *mod, struct node *deft,
     node_subs_insert_after(modbody, deft, d);
     how = CATCHUP_AFTER_CURRENT;
   } else {
+    node_subs_remove(deft, d);
+    append_member(deft, d);
     how = CATCHUP_BELOW_CURRENT;
   }
 
@@ -785,18 +791,18 @@ static void define_builtin(struct module *mod, struct node *deft,
 }
 
 static void define_defchoice_builtin(struct module *mod, struct node *ch,
-                                     enum builtingen bg, enum node_which which) {
+                                     enum builtingen bg) {
   struct node *deft = node_parent(ch);
 
   struct node *proto = NULL;
   error e = scope_lookup_abspath(&proto, ch, mod, builtingen_abspath[bg]);
   assert(!e);
 
-  struct node *d = mk_node(mod, ch, which);
+  struct node *d = node_new_subnode(mod, ch);
   intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
   struct node *full_name = mk_expr_abspath(mod, d, builtingen_abspath[bg]);
   node_subs_remove(d, full_name);
-  node_subs_insert_before(d, node_subs_first(d), full_name);
+  node_subs_replace(d, node_subs_first(d), full_name);
 
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->scope_name = node_ident(ch);
@@ -840,8 +846,7 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
   error e = typ_check_isa(mod, arg, arg->typ, TBI_COPYABLE);
   EXCEPT(e);
 
-  define_defchoice_builtin(
-    mod, node, BG_SUM_CTOR_WITH_CTOR, DEFMETHOD);
+  define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_CTOR);
 
   return 0;
 }
@@ -937,6 +942,8 @@ static error define_auto(struct module *mod, struct node *deft,
     node_subs_insert_after(modbody, deft, d);
     how = CATCHUP_AFTER_CURRENT;
   } else {
+    node_subs_remove(deft, d);
+    append_member(deft, d);
     how = CATCHUP_BELOW_CURRENT;
   }
 
@@ -1015,11 +1022,11 @@ static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *
   struct node *deft = node_parent(node);
   assert(deft->which == DEFTYPE);
   if (deft->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-    define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_MK, DEFFUN);
-    define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_NEW, DEFFUN);
+    define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_MK);
+    define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_NEW);
   } else if (deft->as.DEFTYPE.kind == DEFTYPE_SUM) {
-    define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_MK, DEFFUN);
-    define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_NEW, DEFFUN);
+    define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_MK);
+    define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_NEW);
   }
 
   return 0;
@@ -1097,7 +1104,7 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
       return;
     }
 
-    struct node *d = mk_node(mod, modbody, proto->which);
+    struct node *d = node_new_subnode(mod, modbody);
     node_subs_remove(modbody, d);
     node_subs_insert_after(modbody, deft, d);
     intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);

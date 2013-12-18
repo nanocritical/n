@@ -1,7 +1,7 @@
 from nlang import *
 export fun main = i32
-  let j = 0  such
-    let _Ngensym1:nlang.containers.index_range    such
+  and j = 0  such
+    and _Ngensym1:nlang.containers.index_range    such
       for i in nlang.containers.index_range.iter block 
   _Ngensym1 = range 0 10
   @_Ngensym1;;

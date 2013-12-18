@@ -1,11 +1,11 @@
 from nlang import *
 type enu = i_trivial_ctor <root>.nlang.builtins.i_trivial_copy <root>.nlang.builtins.i_trivial_dtor
-  let this = t00.match.enu
-  let final = t00.match.enu
+  and this = t00.match.enu
+  and final = t00.match.enu
   | A = 0
   | B = 0 + 1
 
-enu method <root>.nlang.builtins.i_copyable.copy_ctor = void
+enu method <root>.nlang.builtins.i_copyable.copy_ctor other:@final = void
 
 fun foo n:enu = i32
   match n
@@ -22,8 +22,8 @@ fun bar n:enu = i32
     return 1
 
 type t = <root>.nlang.builtins.i_trivial_ctor
-  let this = t00.match.t
-  let final = t00.match.t
+  and this = t00.match.t
+  and final = t00.match.t
   x:enu
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -36,14 +36,14 @@ fun bor xt:@t = bool
   return xt.x == A
 
 export fun main = i32
-  let xt = { x=A }
+  and xt = { x=A }
   if not bor @xt
     return 1
-  let n = enu.A
+  and n = enu.A
   if n != xt.x
     return 1
-  let _ = foo n
-  let _ = bar A
+  and _ = foo n
+  and _ = bar A
   match n
   | enu.A
     return 0

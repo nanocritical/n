@@ -847,6 +847,20 @@ void node_invariant(const struct node *node) {
     }
     n += 1;
   }
+
+  switch (node->which) {
+  case IF:
+    assert(node_subs_count_atleast(node, 2));
+    break;
+  case DEFNAME:
+    assert(node->as.DEFNAME.pattern == NULL
+           || node->as.DEFNAME.pattern->which == IDENT);
+    break;
+  default:
+    break;
+  }
+
+  assert(node_parent_const(node) != node);
 }
 
 static void fix_scopes_after_move(struct node *node) {
@@ -857,6 +871,7 @@ static void fix_scopes_after_move(struct node *node) {
 
 void node_move_content(struct node *dst, struct node *src) {
   struct node copy = *src;
+  struct scope *saved_dst_parent = dst->scope.parent;
 
   unset_typ(&src->typ);
   unset_typ(&dst->typ);
@@ -870,6 +885,7 @@ void node_move_content(struct node *dst, struct node *src) {
   struct node *next = node_next(dst);
 
   *dst = copy;
+  dst->scope.parent = saved_dst_parent;
 
   dst->prev = prev;
   dst->next = next;
@@ -2557,9 +2573,7 @@ void node_deepcopy(struct module *mod, struct node *dst,
 
   FOREACH_SUB_CONST(s, src) {
     struct node *cpy = node_new_subnode(mod, dst);
-    INVARIANT_NODE(dst);
     node_deepcopy(mod, cpy, s);
-    INVARIANT_NODE(dst);
   }
 
   INVARIANT_NODE(dst);

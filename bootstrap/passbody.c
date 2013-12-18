@@ -425,7 +425,7 @@ static error step_excepts_store_label(struct module *mod, struct node *node,
   error e;
 
   if (label_ident == NULL) {
-    if (node_subs_count(eblock) == 2) {
+    if (node_subs_count_atleast(eblock, 3)) {
       e = mk_except(mod, node,
                     "try block has multiple catch,"
                     " %s must use a label", which);
@@ -1046,19 +1046,18 @@ static error type_inference_tupleextract(struct module *mod, struct node *node) 
   assert(node_subs_count(node) == typ_generic_arity(expr->typ) + 1
          && typ_isa(expr->typ, TBI_ANY_TUPLE));
 
-  struct node *second_last = NULL;
   size_t n = 0;
   FOREACH_SUB(s, node) {
     if (node_next(s) == NULL) {
-      second_last = node_prev(s);
       break;
     }
     set_typ(&s->typ, typ_generic_arg(expr->typ, n));
     n += 1;
   }
 
-  set_typ(&node->typ, second_last->typ);
-  node->flags = second_last->flags; // Copy all flags, transparent node.
+  struct node *value = node_subs_last(node);
+  set_typ(&node->typ, value->typ);
+  node->flags = value->flags; // Copy all flags, transparent node.
 
   return 0;
 }
@@ -1667,9 +1666,7 @@ static error type_inference_try(struct module *mod, struct node *node) {
 }
 
 static void type_inference_ident_unknown(struct module *mod, struct node *node) {
-  // FIXME: Detached node, would have to be freed when releasing the
-  // mod fun_state in which it is recorded below.
-  //
+  // Detached node.
   struct node *unk = mempool_calloc(mod, 1, sizeof(struct node));
   node_set_which(unk, DEFUNKNOWNIDENT);
   G(unk_name, unk, IDENT,
@@ -2317,19 +2314,26 @@ static error step_weak_literal_conversion(struct module *mod, struct node *node,
     return 0;
   }
 
-  struct node *fun = mk_node(mod, node, DIRECTDEF);
-  struct node *fund = node_get_member(mod, typ_definition(node->typ), id);
-  assert(fund != NULL);
+  struct scope *saved_parent = node->scope.parent;
+  struct typ *saved_typ = node->typ;
 
   struct node *literal = node_new_subnode(mod, node);
+  node_subs_remove(node, literal);
   node_move_content(literal, node);
+
   node_set_which(node, CALL);
+
+  struct node *fun = mk_node(mod, node, DIRECTDEF);
+  struct node *fund = node_get_member(mod, typ_definition(saved_typ), id);
+  assert(fund != NULL);
   set_typ(&fun->as.DIRECTDEF.typ, fund->typ);
   fun->as.DIRECTDEF.flags = NODE_IS_TYPE;
+
+  node_subs_append(node, literal);
   set_typ(&literal->typ, lit_typ);
 
   const struct node *except[] = { literal, NULL };
-  error e = catchup(mod, except, node, node->scope.parent,
+  error e = catchup(mod, except, node, saved_parent,
                     CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
@@ -2357,15 +2361,9 @@ static error gen_operator_call(struct module *mod,
                                struct scope *saved_parent, struct node *node,
                                ident operator_name, struct node *left, struct node *right,
                                enum catchup_for catchup_for) {
-  node_subs_remove(node, left);
-  if (right != NULL) {
-    node_subs_remove(node, right);
-  }
-
   struct typ *tfun = node_get_member(mod, typ_definition(left->typ),
                                      operator_name)->typ;
 
-  memset(node, 0, sizeof(*node));
   node_set_which(node, CALL);
   struct node *fun = mk_node(mod, node, DIRECTDEF);
   set_typ(&fun->as.DIRECTDEF.typ, tfun);
@@ -2445,6 +2443,10 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
     return 0;
   }
 
+  node_subs_remove(node, left);
+  if (right != NULL) {
+    node_subs_remove(node, right);
+  }
   error e = gen_operator_call(mod, node->scope.parent, node,
                               operator_ident[op], left, right,
                               CATCHUP_REWRITING_CURRENT);
@@ -2506,22 +2508,29 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
     return 0;
   }
 
-  struct typ *saved = node->typ;
+  struct scope *saved_parent = node->scope.parent;
+  struct typ *saved_typ = node->typ;
+
+  struct node *array = node_new_subnode(mod, node);
+  node_subs_remove(node, array);
+  node_move_content(array, node);
+
+  node_set_which(node, CALL);
+
   struct node *fun = mk_node(mod, node, DIRECTDEF);
   set_typ(&fun->as.DIRECTDEF.typ,
-          node_get_member(mod, typ_definition(saved), ID_MKV)->typ);
+          node_get_member(mod, typ_definition(saved_typ), ID_MKV)->typ);
   fun->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
   struct node *ref_array = mk_node(mod, node, UN);
   ref_array->as.UN.operator = TREFDOT;
-  struct node *array = node_new_subnode(mod, ref_array);
-  node_move_content(array, node);
-  node_set_which(node, CALL);
+
+  node_subs_append(ref_array, array);
   set_typ(&array->typ,
           typ_generic_arg(typ_function_arg(fun->as.DIRECTDEF.typ, 0), 0));
 
   const struct node *except[] = { array, NULL };
-  error e = catchup(mod, except, node, node->scope.parent,
+  error e = catchup(mod, except, node, saved_parent,
                     CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
@@ -2554,9 +2563,14 @@ static bool expr_is_return_through_ref(struct node **init, struct module *mod, s
 }
 
 static error assign_copy_call_inference(struct module *mod, struct node *node) {
+  struct node *left = node_subs_first(node);
+  struct node *right = node_subs_at(node, 1);
+
+  node_subs_remove(node, left);
+  node_subs_remove(node, right);
+
   error e = gen_operator_call(mod, node->scope.parent, node,
-                              ID_COPY_CTOR, node_subs_first(node),
-                              node_subs_at(node, 1),
+                              ID_COPY_CTOR, left, right,
                               CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
   return 0;
@@ -2571,15 +2585,20 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
     within = node_subs_last(let);
   } else {
     within = mk_node(mod, let, BLOCK);
-    error e = catchup(mod, NULL, within, &let->scope, CATCHUP_BELOW_CURRENT);
+    error e = catchup(mod, NULL, within, &let->scope, CATCHUP_AFTER_CURRENT);
     EXCEPT(e);
   }
 
-  struct node *left = node->as.DEFNAME.pattern;
+  struct node *left = mk_node(mod, within, IDENT);
+  left->as.IDENT.name = node_ident(node->as.DEFNAME.pattern);
+  set_typ(&left->typ, node->as.DEFNAME.pattern->typ);
+  node_subs_remove(within, left);
+
   struct node *right = node->as.DEFNAME.expr;
   node->as.DEFNAME.expr = NULL; // Steal right.
-  struct scope *saved_parent = within->scope.parent;
+  node_subs_remove(node_parent(right), right);
 
+  struct scope *saved_parent = within->scope.parent;
   struct node *copycall = node_new_subnode(mod, within);
   error e = gen_operator_call(mod, saved_parent, copycall,
                               ID_COPY_CTOR, left, right,
@@ -2884,9 +2903,12 @@ static error step_move_assign_in_block_like(struct module *mod, struct node *nod
     return 0;
   }
 
+  node_subs_remove(node, left);
   block_like_insert_value_assign(mod, right, left, 0);
 
+  node_subs_remove(node, right);
   node_move_content(node, right);
+
   set_typ(&node->typ, TBI_VOID);
 
   return 0;
@@ -2912,7 +2934,7 @@ static error step_move_defname_expr_in_let_block(struct module *mod, struct node
     if (expr == NULL) {
       continue;
     } else if (is_block_like(expr)) {
-      block_like_insert_value_assign(mod, expr, d->as.DEFNAME.pattern, 0);
+      block_like_insert_value_assign(mod, expr, NULL, node_ident(d->as.DEFNAME.pattern));
 
       if (defp_block == NULL) {
         struct node *let = node_parent(node);
@@ -2948,6 +2970,7 @@ static error step_move_defname_expr_in_let_block(struct module *mod, struct node
       }
 
       d->as.DEFNAME.expr = NULL;
+      node_subs_remove(node_parent(expr), expr);
       node_subs_prepend(defp_block, expr);
       expr->scope.parent = &defp_block->scope;
     }
@@ -3184,9 +3207,11 @@ static void declare_temporaries(struct module *mod, struct node *statement,
     struct typ *saved = statement->typ;
     struct node *block = mk_node(mod, statement, BLOCK);
     struct node *new_statement = node_new_subnode(mod, block);
+    node_subs_remove(statement, block);
     node_move_content(new_statement, statement);
-    node_set_which(statement, LET);
     set_typ(&new_statement->typ, saved);
+    node_set_which(statement, LET);
+    node_subs_append(statement, block);
 
     const struct node *except[] = { new_statement, NULL };
     error e = catchup(mod, except, statement, saved_parent,
@@ -3211,7 +3236,15 @@ static void declare_temporaries(struct module *mod, struct node *statement,
     const struct node *rv = temps->rvalues[n];
     struct node *defp = mk_node(mod, let, DEFPATTERN);
     node_subs_remove(let, defp);
-    node_subs_insert_after(let, prev, defp);
+    if (prev != NULL) {
+      node_subs_insert_after(let, prev, defp);
+    } else {
+      if (node_subs_count_atleast(let, 1)) {
+        node_subs_insert_before(let, node_subs_first(let), defp);
+      } else {
+        node_subs_append(let, defp);
+      }
+    }
 
     struct node *typc = mk_node(mod, defp, TYPECONSTRAINT);
 
@@ -3299,16 +3332,18 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
 
       struct node *extractor = mk_node(mod, nrv, TUPLEEXTRACT);
       struct node *nth = node_subs_first(rv);
+      struct node *next_nth = NULL;
       for (size_t n = 0; n < typ_generic_arity(tuple->typ); ++n) {
         // We want to reuse the original TUPLENTH from 'rv' as they may be
         // pointed to by nearby DEFNAME.expr, so their location in memory
         // cannot change.
-        memset(nth, 0, sizeof(*nth));
-        node_set_which(nth, TUPLENTH);
-        nth->as.TUPLENTH.nth = n;
-        node_subs_append(extractor, nth);
+        next_nth = node_next(nth);
 
-        nth = node_next(nth);
+        node_subs_remove(rv, nth);
+        node_subs_append(extractor, nth);
+        unset_typ(&nth->typ);
+
+        nth = next_nth;
       }
       struct node *nvalue = mk_node(mod, extractor, IDENT);
       nvalue->as.IDENT.name = g;

@@ -1,1 +1,1 @@
-t00/bad15.n:7:11: fields identifiers must be accessed through 'self'
+t00/bad15.n:7:10: fields identifiers must be accessed through 'self'

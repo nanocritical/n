@@ -322,9 +322,6 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
 
   size_t n = 1;
   FOREACH_SUB_EVERY_CONST(arg, node, 1, 1) {
-    if (node_next_const(arg) == NULL) {
-      break;
-    }
     if (force_comma || n > 1) {
       fprintf(out, ", ");
     }
@@ -344,7 +341,7 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
 
   const bool retval_throughref = !typ_isa_return_by_copy(node->typ);
   if (retval_throughref) {
-    if (n > 0) {
+    if (n > 1) {
       fprintf(out, ", ");
     }
 
@@ -611,6 +608,7 @@ static void print_match(FILE *out, const struct module *mod, const struct node *
   print_expr(out, mod, n, T__STATEMENT);
   fprintf(out, ") {\n");
 
+  n = node_next_const(n);
   while (n != NULL) {
     const struct node *p = n;
     const struct node *block = node_next_const(n);
@@ -2221,6 +2219,9 @@ static error print_defintf_member_eachisalist(struct module *mod, struct typ *t,
 
     const struct node *funargs = node_subs_at_const(d, IDX_FUNARGS);
     FOREACH_SUB_EVERY_CONST(arg, funargs, d->which == DEFMETHOD ? 1 : 0, 1) {
+      if (node_next_const(arg) == NULL) {
+        break;
+      }
       if (need_comma) {
         fprintf(st->out, ", ");
       }
@@ -2373,29 +2374,30 @@ static bool is_concrete(const struct typ *t) {
 
 static void print_top(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
   const struct toplevel *toplevel = node_toplevel_const(node);
-  const struct node *genargs = node_subs_at_const(node, IDX_GENARGS);
-  if (node_can_have_genargs(node)
-      && node_subs_count_atleast(genargs, 1)
-      && node_subs_first_const(genargs)->which == DEFGENARG) {
+  if (node_can_have_genargs(node)) {
+    const struct node *genargs = node_subs_at_const(node, IDX_GENARGS);
+    if (node_subs_count_atleast(genargs, 1)
+        && node_subs_first_const(genargs)->which == DEFGENARG) {
 
-    if (toplevel->instances_count > 1) {
-      for (size_t n = 1; n < toplevel->instances_count; ++n) {
-        const struct node *instance = toplevel->instances[n];
-        if (!is_concrete(instance->typ)) {
-          continue;
-        }
+      if (toplevel->instances_count > 1) {
+        for (size_t n = 1; n < toplevel->instances_count; ++n) {
+          const struct node *instance = toplevel->instances[n];
+          if (!is_concrete(instance->typ)) {
+            continue;
+          }
 
-        print_top(out, header, fwd, mod, instance);
+          print_top(out, header, fwd, mod, instance);
 
-        if (instance->which == DEFTYPE) {
-          for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
-            print_top(out, header, fwd, mod, instance->as.DEFTYPE.members[n]);
+          if (instance->which == DEFTYPE) {
+            for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
+              print_top(out, header, fwd, mod, instance->as.DEFTYPE.members[n]);
+            }
           }
         }
       }
-    }
 
-    return;
+      return;
+    }
   }
 
   switch (node->which) {
@@ -2434,7 +2436,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
 
   const struct node *top = mod->body;
 
-  const struct node *first_non_import = NULL;
+  const struct node *first_non_import = node_subs_first_const(top);
   FOREACH_SUB_CONST(node, top) {
     if (node->which != IMPORT) {
       first_non_import = node;
@@ -2454,7 +2456,8 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
               forward_guards[fwd], guard, forward_guards[fwd], guard);
     }
 
-    for (const struct node *node = first_non_import; node != NULL; node = node_next_const(node)) {
+    for (const struct node *node = node_subs_first_const(top);
+         node != first_non_import; node = node_next_const(node)) {
       print_top(out, header, fwd, mod, node);
 
       if (node_next_const(node) != NULL) {

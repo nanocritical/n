@@ -4,11 +4,11 @@ fun foo = _nretval:string
   return nlang.strings.string.from_static_string 'test'
 
 export fun main = i32
-  let _Ngensym0:nlang.chars.static_string  such
+  and _Ngensym0:nlang.chars.static_string  such
     say block 
   _Ngensym0 = 'test'
   @_Ngensym0;;
-  let _Ngensym1:nlang.strings.string  such
+  and _Ngensym1:nlang.strings.string  such
     say block 
   _Ngensym1 = foo
   @_Ngensym1;;

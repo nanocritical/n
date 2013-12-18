@@ -1,7 +1,7 @@
 from nlang import *
 type t = <root>.nlang.builtins.i_trivial_ctor
-  let this = t00.field.t
-  let final = t00.field.t
+  and this = t00.field.t
+  and final = t00.field.t
   x:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -11,5 +11,5 @@ fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
 export fun main = i32
-  let tt:t
+  and tt:t
   return tt.x

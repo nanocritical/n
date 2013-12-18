@@ -1,8 +1,8 @@
 from nlang import *
 
 type blah = i_blah <root>.nlang.builtins.i_trivial_ctor
-  let this = t01.genericmethod.blah
-  let final = t01.genericmethod.blah
+  and this = t01.genericmethod.blah
+  and final = t01.genericmethod.blah
   dummy:u8
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -11,19 +11,19 @@ fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 
 blah method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
-blah method i_blah.decr = _nretval:t
-  let _Ngensym1:nlang.builtins.i_integer  such
+blah method i_blah.decr x:t = _nretval:t
+  and _Ngensym1:nlang.builtins.i_integer  such
     return nlang.builtins.i_arithmetic.operator_minus @x block 
   _Ngensym1 = 1
   @_Ngensym1;;
 
-blah method decrf = _nretval:t
-  let _Ngensym2:nlang.builtins.i_integer  such
+blah method decrf x:t = _nretval:t
+  and _Ngensym2:nlang.builtins.i_integer  such
     return nlang.builtins.i_arithmetic.operator_minus @x block 
   _Ngensym2 = 1
   @_Ngensym2;;
 
 export fun main = i32
-  let b = { dummy=0 }
-  let _ = (blah.decr u32) @b 1
+  and b = { dummy=0 }
+  and _ = (blah.decr u32) @b 1
   return (blah.decrf i32) @b 1

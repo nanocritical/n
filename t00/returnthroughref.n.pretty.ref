@@ -1,7 +1,7 @@
 from nlang import *
 type t = <root>.nlang.builtins.i_trivial_ctor
-  let this = t00.returnthroughref.t
-  let final = t00.returnthroughref.t
+  and this = t00.returnthroughref.t
+  and final = t00.returnthroughref.t
   x:i32
   xx:i32
 
@@ -22,8 +22,8 @@ fun bar2 = r:t
   return r
 
 export fun main = i32
-  let y = bar
-  let _Ngensym1:t00.returnthroughref.t  such
+  and y = bar
+  and _Ngensym1:t00.returnthroughref.t  such
     if y.x != block 
   _Ngensym1 = bar2
   _Ngensym1;;.x

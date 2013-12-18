@@ -1,9 +1,9 @@
 from nlang import *
 type container = i_trivial_ctor <root>.nlang.builtins.i_trivial_ctor
-  let this = t01.generic.container
-  let final = t01.generic.container
+  and this = t01.generic.container
+  and final = t01.generic.container
   x:t
 
 export fun main = i32
-  let v = { x=1 }
+  and v = { x=1 }
   return v.x - 1

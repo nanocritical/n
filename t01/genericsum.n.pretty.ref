@@ -1,13 +1,13 @@
 from nlang import *
 type container = i_trivial_ctor <root>.nlang.builtins.i_trivial_ctor
-  let this = t01.genericsum.container
-  let final = t01.genericsum.container
+  and this = t01.genericsum.container
+  and final = t01.genericsum.container
   x:t
 
-container method add = void
+container method add x:t = void
   nlang.builtins.i_arithmetic.operator_assign_plus @!self!x @x
 
 export fun main = i32
-  let v = { x=0 }  such
+  and v = { x=0 }  such
     t01.genericsum.container.add @!v 1
   return v.x - 1

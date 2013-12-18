@@ -1,7 +1,7 @@
 from nlang import *
 type nocopy = <root>.nlang.builtins.i_trivial_ctor
-  let this = t00.fixme05.nocopy
-  let final = t00.fixme05.nocopy
+  and this = t00.fixme05.nocopy
+  and final = t00.fixme05.nocopy
   x:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -15,12 +15,12 @@ fun bar = r:nocopy
   return r
 
 fun foo = _nretval:nocopy
-  let r:nocopy  such
+  and r:nocopy  such
     r!x = 0
   return r
 
 export fun main = i32
-  let _Ngensym0:t00.fixme05.nocopy  such
+  and _Ngensym0:t00.fixme05.nocopy  such
     return block 
   _Ngensym0 = foo
   _Ngensym0;;.x

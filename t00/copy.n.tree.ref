@@ -881,7 +881,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(zz) :t00.copy.copy
-     IDENT(z) :t00.copy.copy
      DEFNAME(zz) :t00.copy.copy
     BLOCK :nlang.builtins.void
      CALL :nlang.builtins.void

@@ -1,1 +1,1 @@
-t00/bad13.n:6:6: type: cannot assign to a type variable
+t00/bad13.n:6:5: type: cannot assign to a type variable

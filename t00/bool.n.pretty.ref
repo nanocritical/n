@@ -1,6 +1,6 @@
 from nlang import *
 export fun main = i32
-  let x = false
+  and x = false
   if x and true
     return 1
   else

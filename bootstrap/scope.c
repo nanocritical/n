@@ -114,6 +114,10 @@ char *scope_definitions_name_list(const struct module *mod,
   return d.s;
 }
 
+size_t scope_count(const struct scope *scope) {
+  return scope_map_count((struct scope_map *)&scope->map);
+}
+
 error scope_define_ident(const struct module *mod, struct scope *scope,
                          ident id, struct node *node) {
   assert(id != ID__NONE);
@@ -313,8 +317,9 @@ skip:
     }
   }
 
-  return do_scope_lookup_ident_wontimport(result, for_error, mod, scope->parent,
+  e = do_scope_lookup_ident_wontimport(result, for_error, mod, scope->parent,
                                           id, failure_ok);
+  return e;
 }
 
 error scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,

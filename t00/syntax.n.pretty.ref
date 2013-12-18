@@ -1,8 +1,8 @@
 from nlang import *
 from nlang.strings import *
 export fun main = i32
-  let x = 1
-  let y = 2 + x
+  and x = 1
+  and y = 2 + x
   return 0 + y
 
 export fun main2 = i32
@@ -17,8 +17,8 @@ extern fun other5 x:i32 = i32
 
 
 type test = ia <root>.nlang.builtins.i_trivial_ctor
-  let this = t00.syntax.test
-  let final = t00.syntax.test
+  and this = t00.syntax.test
+  and final = t00.syntax.test
   t:i32
 
 fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
@@ -27,8 +27,8 @@ fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
 
 test method <root>.nlang.builtins.i_trivial_ctor.ctor = void
 
-test method foo = i32
-  let y = x
+test method foo x:i32 = i32
+  and y = x
   return y
 
 fun foobar x:i32 = i32
@@ -42,10 +42,10 @@ fun foobar2 = void
   return
 
 type enu = <root>.nlang.builtins.i_trivial_copy <root>.nlang.builtins.i_trivial_dtor
-  let this = t00.syntax.enu
-  let final = t00.syntax.enu
+  and this = t00.syntax.enu
+  and final = t00.syntax.enu
   | V1 = 0
   | V2 = 0 + 1
   | V3 = 0 + 1 + 1
 
-enu method <root>.nlang.builtins.i_copyable.copy_ctor = void
+enu method <root>.nlang.builtins.i_copyable.copy_ctor other:@final = void

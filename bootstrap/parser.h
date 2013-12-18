@@ -408,6 +408,10 @@ static inline void node_set_which(struct node *node, enum node_which which) {
     break;
   }
 
+  unset_typ(&node->typ);
+
+  assert(scope_count(&node->scope) == 0 && "Not handled");
+
   memset(&node->as, 0, sizeof(node->as));
   node->which = which;
 }
@@ -461,7 +465,6 @@ static inline size_t node_subs_count(const struct node *node) {
 
 // Prefer whenever possible.
 static inline bool node_subs_count_atleast(const struct node *node, size_t min) {
-  INVARIANT_NODE(node);
   if (min == 0) {
     return TRUE;
   }
@@ -493,7 +496,6 @@ static inline const struct node *node_prev_const(const struct node *node) {
 }
 
 static inline const struct node *node_subs_at_const(const struct node *node, size_t n) {
-  INVARIANT_NODE(node);
   const struct node *r = node->subs_first;
   size_t i;
   for (i = 0; r != NULL && i < n; ++i) {
@@ -504,7 +506,6 @@ static inline const struct node *node_subs_at_const(const struct node *node, siz
 }
 
 static inline const struct node *try_node_subs_at_const(const struct node *node, size_t n) {
-  INVARIANT_NODE(node);
   const struct node *r = node->subs_first;
   size_t i;
   for (i = 0; r != NULL && i < n; ++i) {
@@ -538,15 +539,16 @@ static inline struct node *try_node_subs_at(struct node *node, size_t n) {
 }
 
 static inline void node_subs_remove(struct node *node, struct node *sub) {
-  INVARIANT_NODE(node);
   struct node *prev = sub->prev;
   struct node *next = sub->next;
   if (prev == NULL) {
+    assert(node->subs_first == sub);
     node->subs_first = next;
   } else {
     prev->next = next;
   }
   if (next == NULL) {
+    assert(node->subs_last == sub);
     node->subs_last = prev;
   } else {
     next->prev = prev;
@@ -554,11 +556,9 @@ static inline void node_subs_remove(struct node *node, struct node *sub) {
 
   sub->prev = NULL;
   sub->next = NULL;
-  INVARIANT_NODE(node);
 }
 
 static inline void node_subs_append(struct node *node, struct node *sub) {
-  INVARIANT_NODE(node);
   assert(sub->prev == NULL && sub->next == NULL);
   struct node *last = node->subs_last;
   if (last == NULL) {
@@ -570,7 +570,6 @@ static inline void node_subs_append(struct node *node, struct node *sub) {
   sub->prev = last;
   sub->next = NULL;
   node->subs_last = sub;
-  INVARIANT_NODE(node);
 }
 
 static inline void node_subs_prepend(struct node *node, struct node *sub) {
@@ -579,14 +578,12 @@ static inline void node_subs_prepend(struct node *node, struct node *sub) {
   if (first == NULL) {
     node->subs_first = sub;
     node->subs_last = sub;
-    INVARIANT_NODE(node);
     return;
   }
   sub->next = first;
   sub->prev = NULL;
   first->prev = sub;
   node->subs_first = sub;
-  INVARIANT_NODE(node);
 }
 
 static inline void node_subs_insert_before(struct node *node, struct node *where,
@@ -596,13 +593,11 @@ static inline void node_subs_insert_before(struct node *node, struct node *where
     assert(node->subs_first == NULL && node->subs_last == NULL);
     node->subs_first = sub;
     node->subs_last = sub;
-    INVARIANT_NODE(node);
     return;
   }
 
   struct node *prev = where->prev;
   if (prev == sub) {
-    INVARIANT_NODE(node);
     return;
   }
   sub->prev = prev;
@@ -614,7 +609,6 @@ static inline void node_subs_insert_before(struct node *node, struct node *where
 
   sub->next = where;
   where->prev = sub;
-  INVARIANT_NODE(node);
 }
 
 static inline void node_subs_insert_after(struct node *node, struct node *where,
@@ -624,13 +618,11 @@ static inline void node_subs_insert_after(struct node *node, struct node *where,
     assert(node->subs_first == NULL && node->subs_last == NULL);
     node->subs_first = sub;
     node->subs_last = sub;
-    INVARIANT_NODE(node);
     return;
   }
 
   struct node *next = where->next;
   if (next == sub) {
-    INVARIANT_NODE(node);
     return;
   }
   sub->next = next;
@@ -642,7 +634,6 @@ static inline void node_subs_insert_after(struct node *node, struct node *where,
 
   sub->prev = where;
   where->next = sub;
-  INVARIANT_NODE(node);
 }
 
 static inline void node_subs_replace(struct node *node, struct node *where,
@@ -651,6 +642,7 @@ static inline void node_subs_replace(struct node *node, struct node *where,
   struct node *prev = where->prev;
   sub->prev = prev;
   if (prev == NULL) {
+    assert(node->subs_first == where);
     node->subs_first = sub;
   } else {
     prev->next = sub;
@@ -659,6 +651,7 @@ static inline void node_subs_replace(struct node *node, struct node *where,
   struct node *next = where->next;
   sub->next = next;
   if (next == NULL) {
+    assert(node->subs_last == where);
     node->subs_last = sub;
   } else {
     next->prev = sub;
@@ -666,7 +659,6 @@ static inline void node_subs_replace(struct node *node, struct node *where,
 
   where->prev = NULL;
   where->next = NULL;
-  INVARIANT_NODE(node);
 }
 
 enum subnode_idx {

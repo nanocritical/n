@@ -4,7 +4,7 @@ fun foo x:@u32 = @i32
   return (nlang.unsafe.cast @u32 @i32) x
 
 export fun main = i32
-  let _Ngensym0:nlang.builtins.u32  such
+  and _Ngensym0:nlang.builtins.u32  such
     return .(foo block 
   _Ngensym0 = 1
   @_Ngensym0;;) - 1

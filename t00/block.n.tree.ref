@@ -778,10 +778,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(x) :nlang.builtins.u32
-     BLOCK :nlang.builtins.void
-      BIN( = ) :nlang.builtins.void
-       IDENT(x) :nlang.builtins.u32
-       NUMBER(1) :nlang.builtins.u32
      DEFNAME(x) :nlang.builtins.u32
     BLOCK :nlang.builtins.void
      BLOCK :nlang.builtins.void
@@ -830,47 +826,9 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(y1) :nlang.chars.static_string
-     IF :nlang.chars.static_string
-      BIN( > ) :nlang.builtins.bool
-       IDENT(x) :nlang.builtins.u32
-       NUMBER(0) :nlang.builtins.u32
-      BLOCK :nlang.chars.static_string
-       BIN( = ) :nlang.builtins.void
-        IDENT(y1) :nlang.chars.static_string
-        STRING('test') :nlang.chars.static_string
-      BLOCK :nlang.chars.static_string
-       BIN( = ) :nlang.builtins.void
-        IDENT(y1) :nlang.chars.static_string
-        STRING('error') :nlang.chars.static_string
      DEFNAME(y1) :nlang.chars.static_string
     DEFPATTERN :nlang.builtins.void
      IDENT(z1) :nlang.builtins.u32
-     LET :nlang.builtins.u32
-      DEFPATTERN :nlang.builtins.void
-       TYPECONSTRAINT :nlang.chars.static_string
-        IDENT(_Ngensym1) :nlang.chars.static_string
-        DIRECTDEF :nlang.chars.static_string
-       DEFNAME(_Ngensym1) :nlang.chars.static_string
-      BLOCK :nlang.builtins.u32
-       IF :nlang.builtins.u32
-        CALL :nlang.builtins.bool
-         DIRECTDEF :nlang.chars.static_string.operator_eq
-         UN(@) :(nlang.builtins.ref nlang.chars.static_string)
-          IDENT(y1) :nlang.chars.static_string
-         BLOCK :(nlang.builtins.ref nlang.chars.static_string)
-          BIN( = ) :nlang.builtins.void
-           IDENT(_Ngensym1) :nlang.chars.static_string
-           STRING('test') :nlang.chars.static_string
-          UN(@) :(nlang.builtins.ref nlang.chars.static_string)
-           IDENT(_Ngensym1) :nlang.chars.static_string
-        BLOCK :nlang.builtins.void
-         BIN( = ) :nlang.builtins.void
-          IDENT(z1) :nlang.builtins.u32
-          NUMBER(0) :nlang.builtins.u32
-        BLOCK :nlang.builtins.void
-         BIN( = ) :nlang.builtins.void
-          IDENT(z1) :nlang.builtins.u32
-          NUMBER(1) :nlang.builtins.u32
      DEFNAME(z1) :nlang.builtins.u32
     BLOCK :nlang.builtins.void
      BLOCK :nlang.builtins.void
@@ -878,11 +836,11 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
        BIN( > ) :nlang.builtins.bool
         IDENT(x) :nlang.builtins.u32
         NUMBER(0) :nlang.builtins.u32
-       BLOCK :nlang.chars.static_string
+       BLOCK :nlang.builtins.void
         BIN( = ) :nlang.builtins.void
          IDENT(y1) :nlang.chars.static_string
          STRING('test') :nlang.chars.static_string
-       BLOCK :nlang.chars.static_string
+       BLOCK :nlang.builtins.void
         BIN( = ) :nlang.builtins.void
          IDENT(y1) :nlang.chars.static_string
          STRING('error') :nlang.chars.static_string
@@ -921,94 +879,9 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(y2) :nlang.chars.static_string
-     IF :nlang.chars.static_string
-      BIN( > ) :nlang.builtins.bool
-       IDENT(x) :nlang.builtins.u32
-       NUMBER(0) :nlang.builtins.u32
-      BLOCK :nlang.chars.static_string
-       BIN( = ) :nlang.builtins.void
-        IDENT(y2) :nlang.chars.static_string
-        STRING('test') :nlang.chars.static_string
-      BLOCK :nlang.chars.static_string
-       BIN( = ) :nlang.builtins.void
-        IDENT(y2) :nlang.chars.static_string
-        STRING('error') :nlang.chars.static_string
      DEFNAME(y2) :nlang.chars.static_string
     DEFPATTERN :nlang.builtins.void
      IDENT(z2) :nlang.builtins.i32
-     BLOCK :nlang.builtins.void
-      LET :nlang.builtins.void
-       DEFPATTERN :nlang.builtins.void
-        IDENT(tmp) :nlang.builtins.i32
-        NUMBER(0) :nlang.builtins.i32
-        DEFNAME(tmp) :nlang.builtins.i32
-       BLOCK :nlang.builtins.void
-        LET :nlang.builtins.void
-         DEFPATTERN :nlang.builtins.void
-          TYPECONSTRAINT :nlang.containers.index_range
-           IDENT(_Ngensym3) :nlang.containers.index_range
-           DIRECTDEF :nlang.containers.index_range
-          DEFNAME(_Ngensym3) :nlang.containers.index_range
-         BLOCK :nlang.builtins.void
-          FOR :nlang.builtins.void
-           LET :nlang.builtins.void
-            DEFPATTERN :nlang.builtins.void
-             IDENT(_Ngensym0) :nlang.containers.index_iterator
-             CALL :nlang.containers.index_iterator
-              DIRECTDEF :nlang.containers.index_range.iter
-              BLOCK :(nlang.builtins.ref nlang.containers.index_range)
-               BIN( = ) :nlang.builtins.void
-                IDENT(_Ngensym3) :nlang.containers.index_range
-                CALL :nlang.containers.index_range
-                 IDENT(range) :nlang.containers.range
-                 NUMBER(0) :nlang.builtins.size
-                 NUMBER(100) :nlang.builtins.size
-               UN(@) :(nlang.builtins.ref nlang.containers.index_range)
-                IDENT(_Ngensym3) :nlang.containers.index_range
-             DEFNAME(_Ngensym0) :nlang.containers.index_iterator
-            BLOCK :nlang.builtins.void
-             WHILE :nlang.builtins.void
-              CALL :nlang.builtins.bool
-               DIRECTDEF :nlang.containers.index_iterator.is_valid
-               UN(@) :(nlang.builtins.ref nlang.containers.index_iterator)
-                IDENT(_Ngensym0) :nlang.containers.index_iterator
-              BLOCK :nlang.builtins.void
-               LET :nlang.builtins.void
-                DEFPATTERN :nlang.builtins.void
-                 IDENT(i) :nlang.builtins.size
-                 CALL :nlang.builtins.size
-                  DIRECTDEF :nlang.containers.index_iterator.get
-                  UN(@) :(nlang.builtins.ref nlang.containers.index_iterator)
-                   IDENT(_Ngensym0) :nlang.containers.index_iterator
-                 DEFNAME(i) :nlang.builtins.size
-                BLOCK :nlang.builtins.void
-                 LET :nlang.builtins.void
-                  DEFPATTERN :nlang.builtins.void
-                   TYPECONSTRAINT :nlang.builtins.u32
-                    IDENT(_Ngensym2) :nlang.builtins.u32
-                    DIRECTDEF :nlang.builtins.u32
-                   DEFNAME(_Ngensym2) :nlang.builtins.u32
-                  BLOCK :nlang.builtins.void
-                   BIN( += ) :nlang.builtins.void
-                    IDENT(tmp) :nlang.builtins.i32
-                    CALL :nlang.builtins.i32
-                     DIRECTDEF :nlang.builtins.u32.reinterpret_signed
-                     BLOCK :(nlang.builtins.ref nlang.builtins.u32)
-                      BIN( = ) :nlang.builtins.void
-                       IDENT(_Ngensym2) :nlang.builtins.u32
-                       CALL :nlang.builtins.u32
-                        DIRECTDEF :nlang.builtins.size.trim_u32
-                        UN(@) :(nlang.builtins.ref nlang.builtins.size)
-                         IDENT(i) :nlang.builtins.size
-                      UN(@) :(nlang.builtins.ref nlang.builtins.u32)
-                       IDENT(_Ngensym2) :nlang.builtins.u32
-               CALL :nlang.builtins.void
-                DIRECTDEF :nlang.containers.index_iterator.next
-                UN(@!) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
-                 IDENT(_Ngensym0) :nlang.containers.index_iterator
-      BIN( = ) :nlang.builtins.void
-       IDENT(z2) :nlang.builtins.i32
-       IDENT(tmp) :nlang.builtins.i32
      DEFNAME(z2) :nlang.builtins.i32
     BLOCK :nlang.builtins.void
      BLOCK :nlang.builtins.void
@@ -1016,11 +889,11 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
        BIN( > ) :nlang.builtins.bool
         IDENT(x) :nlang.builtins.u32
         NUMBER(0) :nlang.builtins.u32
-       BLOCK :nlang.chars.static_string
+       BLOCK :nlang.builtins.void
         BIN( = ) :nlang.builtins.void
          IDENT(y2) :nlang.chars.static_string
          STRING('test') :nlang.chars.static_string
-       BLOCK :nlang.chars.static_string
+       BLOCK :nlang.builtins.void
         BIN( = ) :nlang.builtins.void
          IDENT(y2) :nlang.chars.static_string
          STRING('error') :nlang.chars.static_string

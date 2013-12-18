@@ -21,6 +21,7 @@ struct scope {
 #define scope_node(sc) container_of(sc, struct node, scope)
 
 void scope_init(struct scope *scope);
+size_t scope_count(const struct scope *scope);
 error scope_define_ident(const struct module *mod, struct scope *scope, ident id, struct node *node);
 error scope_define(const struct module *mod, struct scope *scope, struct node *id, struct node *node);
 error scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,
