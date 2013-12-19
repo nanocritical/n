@@ -15,9 +15,6 @@ typedef _Ngen_nlang_builtins_mutable_ref__t00_fixme10_a_genN_ _Ngen_nlang_builti
 typedef _Ngen_nlang_builtins_mutable_ref__t00_fixme10_a_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_fixme10_a_genN_;
 typedef _Ngen_nlang_builtins_mercurial_ref__t00_fixme10_a_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_fixme10_a_genN_;
 
-
-
-
 struct t00_fixme10_b;
 typedef struct t00_fixme10_b t00_fixme10_b;
 typedef const t00_fixme10_b* _Ngen_nlang_builtins_ref__t00_fixme10_b_genN_;
@@ -26,9 +23,6 @@ typedef t00_fixme10_b* _Ngen_nlang_builtins_mutable_ref__t00_fixme10_b_genN_;
 typedef _Ngen_nlang_builtins_mutable_ref__t00_fixme10_b_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_fixme10_b_genN_;
 typedef _Ngen_nlang_builtins_mutable_ref__t00_fixme10_b_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_fixme10_b_genN_;
 typedef _Ngen_nlang_builtins_mercurial_ref__t00_fixme10_b_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_fixme10_b_genN_;
-
-
-
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_TYPES
@@ -41,16 +35,10 @@ t00_fixme10_b x;
 }
 ;
 
-
-
-
 struct t00_fixme10_b {
 t00_fixme10_a y;
 }
 ;
-
-
-
 #define NLANG_DECLARE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
@@ -58,19 +46,19 @@ t00_fixme10_a y;
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/fixme10.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
-
-_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_a_genN_ t00_fixme10_a_new(void);
-
-void t00_fixme10_a_mk(t00_fixme10_a *_nrtr_r);
-
 nlang_builtins_void t00_fixme10_a_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_a_genN_ self) __attribute__((__nonnull__(1)));
-
-
-_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_b_genN_ t00_fixme10_b_new(void);
-
-void t00_fixme10_b_mk(t00_fixme10_b *_nrtr_r);
+;
+void t00_fixme10_a_mk(t00_fixme10_a *_nrtr_r);
+;
+_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_a_genN_ t00_fixme10_a_new(void);
+;
 
 nlang_builtins_void t00_fixme10_b_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_b_genN_ self) __attribute__((__nonnull__(1)));
+;
+void t00_fixme10_b_mk(t00_fixme10_b *_nrtr_r);
+;
+_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_b_genN_ t00_fixme10_b_new(void);
+;
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
@@ -78,43 +66,43 @@ nlang_builtins_void t00_fixme10_b_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_f
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/fixme10.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-
-_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_a_genN_ t00_fixme10_a_new(void) {
+nlang_builtins_void t00_fixme10_a_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_a_genN_ self) {
 #define THIS(x) t00_fixme10_a##x
-return calloc(1, sizeof(THIS()));
 #undef THIS
 }
-
+;
 void t00_fixme10_a_mk(t00_fixme10_a *_nrtr_r) {
 #define THIS(x) t00_fixme10_a##x
 #define r (*_nrtr_r)
 #undef r
 #undef THIS
 }
-
-nlang_builtins_void t00_fixme10_a_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_a_genN_ self) {
+;
+_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_a_genN_ t00_fixme10_a_new(void) {
 #define THIS(x) t00_fixme10_a##x
-#undef THIS
-}
-
-
-_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_b_genN_ t00_fixme10_b_new(void) {
-#define THIS(x) t00_fixme10_b##x
 return calloc(1, sizeof(THIS()));
 #undef THIS
 }
+;
 
+nlang_builtins_void t00_fixme10_b_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_b_genN_ self) {
+#define THIS(x) t00_fixme10_b##x
+#undef THIS
+}
+;
 void t00_fixme10_b_mk(t00_fixme10_b *_nrtr_r) {
 #define THIS(x) t00_fixme10_b##x
 #define r (*_nrtr_r)
 #undef r
 #undef THIS
 }
-
-nlang_builtins_void t00_fixme10_b_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_b_genN_ self) {
+;
+_Ngen_nlang_builtins_mercurial_ref__t00_fixme10_b_genN_ t00_fixme10_b_new(void) {
 #define THIS(x) t00_fixme10_b##x
+return calloc(1, sizeof(THIS()));
 #undef THIS
 }
+;
 void t00_fixme10_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_fixme10_Nrunexamples(void) {
 }

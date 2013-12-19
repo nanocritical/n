@@ -762,73 +762,73 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   DEFFIELD :nlang.builtins.i32
    IDENT(x) :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
- DEFFUN :t01.wildcardmutability.c.new
-  BIN(.) :nlang.builtins.__internal_not_typeable__
+  DEFMETHOD :(functor t01.wildcardmutability.c.get (functor nlang.builtins.i_any_ref nlang.builtins.i_any))
+   IDENT(get) :nlang.builtins.__internal_not_typeable__
+   GENARGS :nlang.builtins.__internal_not_typeable__
+    DEFGENARG :(functor nlang.builtins.i_any_ref nlang.builtins.i_any)
+     IDENT(__wildcard_ref_arg__) :nlang.builtins.__internal_not_typeable__
+     IDENT(i_any_ref) :(functor nlang.builtins.i_any_ref nlang.builtins.i_any)
+   FUNARGS :nlang.builtins.__internal_not_typeable__
+    DEFARG :(nlang.builtins.i_any_ref t01.wildcardmutability.c)
+     IDENT(self) :nlang.builtins.__internal_not_typeable__
+     CALL :(nlang.builtins.i_any_ref t01.wildcardmutability.c)
+      IDENT(__wildcard_ref_arg__) :(functor nlang.builtins.i_any_ref nlang.builtins.i_any)
+      IDENT(final) :t01.wildcardmutability.c
+    CALL :(nlang.builtins.i_any_ref nlang.builtins.i32)
+     IDENT(__wildcard_ref_arg__) :(functor nlang.builtins.i_any_ref nlang.builtins.i_any)
+     IDENT(i32) :nlang.builtins.i32
+   BLOCK :nlang.builtins.void
+    RETURN :nlang.builtins.void
+     UN(@$) :(nlang.builtins.i_any_ref nlang.builtins.i32)
+      BIN($) :nlang.builtins.i32
+       IDENT(self) :(nlang.builtins.i_any_ref t01.wildcardmutability.c)
+       IDENT(x) :nlang.builtins.__internal_not_typeable__
+  DEFMETHOD :t01.wildcardmutability.c.ctor
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
-      DIRECTDEF :nlang.builtins.__internal_not_typeable__
-      IDENT(nlang) :nlang.builtins.__internal_not_typeable__
-     IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-    IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
-   IDENT(new) :nlang.builtins.__internal_not_typeable__
-  GENARGS :nlang.builtins.__internal_not_typeable__
-  FUNARGS :nlang.builtins.__internal_not_typeable__
-   UN(@#) :(nlang.builtins.mercurial_ref t01.wildcardmutability.c)
-    IDENT(final) :t01.wildcardmutability.c
- DEFFUN :t01.wildcardmutability.c.mk
-  BIN(.) :nlang.builtins.__internal_not_typeable__
+      BIN(.) :nlang.builtins.__internal_not_typeable__
+       DIRECTDEF :nlang.builtins.__internal_not_typeable__
+       IDENT(nlang) :nlang.builtins.__internal_not_typeable__
+      IDENT(builtins) :nlang.builtins.__internal_not_typeable__
+     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+    IDENT(ctor) :nlang.builtins.__internal_not_typeable__
+   GENARGS :nlang.builtins.__internal_not_typeable__
+   FUNARGS :nlang.builtins.__internal_not_typeable__
+    DEFARG :(nlang.builtins.mercurial_ref t01.wildcardmutability.c)
+     IDENT(self) :nlang.builtins.__internal_not_typeable__
+     UN(@#) :(nlang.builtins.mercurial_ref t01.wildcardmutability.c)
+      IDENT(final) :t01.wildcardmutability.c
+    IDENT(void) :nlang.builtins.void
+  DEFFUN :t01.wildcardmutability.c.mk
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
-      DIRECTDEF :nlang.builtins.__internal_not_typeable__
-      IDENT(nlang) :nlang.builtins.__internal_not_typeable__
-     IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-    IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
-   IDENT(mk) :nlang.builtins.__internal_not_typeable__
-  GENARGS :nlang.builtins.__internal_not_typeable__
-  FUNARGS :nlang.builtins.__internal_not_typeable__
-   DEFARG :t01.wildcardmutability.c
-    IDENT(r) :nlang.builtins.__internal_not_typeable__
-    IDENT(final) :t01.wildcardmutability.c
- DEFMETHOD :t01.wildcardmutability.c.ctor
-  BIN(.) :nlang.builtins.__internal_not_typeable__
+      BIN(.) :nlang.builtins.__internal_not_typeable__
+       DIRECTDEF :nlang.builtins.__internal_not_typeable__
+       IDENT(nlang) :nlang.builtins.__internal_not_typeable__
+      IDENT(builtins) :nlang.builtins.__internal_not_typeable__
+     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+    IDENT(mk) :nlang.builtins.__internal_not_typeable__
+   GENARGS :nlang.builtins.__internal_not_typeable__
+   FUNARGS :nlang.builtins.__internal_not_typeable__
+    DEFARG :t01.wildcardmutability.c
+     IDENT(r) :nlang.builtins.__internal_not_typeable__
+     IDENT(final) :t01.wildcardmutability.c
+  DEFFUN :t01.wildcardmutability.c.new
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
-      DIRECTDEF :nlang.builtins.__internal_not_typeable__
-      IDENT(nlang) :nlang.builtins.__internal_not_typeable__
-     IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-    IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
-   IDENT(ctor) :nlang.builtins.__internal_not_typeable__
-  GENARGS :nlang.builtins.__internal_not_typeable__
-  FUNARGS :nlang.builtins.__internal_not_typeable__
-   DEFARG :(nlang.builtins.mercurial_ref t01.wildcardmutability.c)
-    IDENT(self) :nlang.builtins.__internal_not_typeable__
+      BIN(.) :nlang.builtins.__internal_not_typeable__
+       DIRECTDEF :nlang.builtins.__internal_not_typeable__
+       IDENT(nlang) :nlang.builtins.__internal_not_typeable__
+      IDENT(builtins) :nlang.builtins.__internal_not_typeable__
+     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+    IDENT(new) :nlang.builtins.__internal_not_typeable__
+   GENARGS :nlang.builtins.__internal_not_typeable__
+   FUNARGS :nlang.builtins.__internal_not_typeable__
     UN(@#) :(nlang.builtins.mercurial_ref t01.wildcardmutability.c)
      IDENT(final) :t01.wildcardmutability.c
-   IDENT(void) :nlang.builtins.void
- DEFMETHOD :(functor t01.wildcardmutability.c.get (functor nlang.builtins.i_any_ref nlang.builtins.i_any))
-  IDENT(get) :nlang.builtins.__internal_not_typeable__
-  GENARGS :nlang.builtins.__internal_not_typeable__
-   DEFGENARG :(functor nlang.builtins.i_any_ref nlang.builtins.i_any)
-    IDENT(__wildcard_ref_arg__) :nlang.builtins.__internal_not_typeable__
-    IDENT(i_any_ref) :(functor nlang.builtins.i_any_ref nlang.builtins.i_any)
-  FUNARGS :nlang.builtins.__internal_not_typeable__
-   DEFARG :(nlang.builtins.i_any_ref t01.wildcardmutability.c)
-    IDENT(self) :nlang.builtins.__internal_not_typeable__
-    CALL :(nlang.builtins.i_any_ref t01.wildcardmutability.c)
-     IDENT(__wildcard_ref_arg__) :(functor nlang.builtins.i_any_ref nlang.builtins.i_any)
-     IDENT(final) :t01.wildcardmutability.c
-   CALL :(nlang.builtins.i_any_ref nlang.builtins.i32)
-    IDENT(__wildcard_ref_arg__) :(functor nlang.builtins.i_any_ref nlang.builtins.i_any)
-    IDENT(i32) :nlang.builtins.i32
-  BLOCK :nlang.builtins.void
-   RETURN :nlang.builtins.void
-    UN(@$) :(nlang.builtins.i_any_ref nlang.builtins.i32)
-     BIN($) :nlang.builtins.i32
-      IDENT(self) :(nlang.builtins.i_any_ref t01.wildcardmutability.c)
-      IDENT(x) :nlang.builtins.__internal_not_typeable__
  DEFFUN :t01.wildcardmutability.main
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__

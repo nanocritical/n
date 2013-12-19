@@ -3,17 +3,17 @@ type t = i_trivial_copy <root>.nlang.builtins.i_trivial_ctor
   and this = t00.unary.t
   and final = t00.unary.t
   x:i32
-
-t method <root>.nlang.builtins.i_copyable.copy_ctor other:@final = void
-
-fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
-
-fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
-
-t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
-
-t method get = i32
+  t method get = i32
   return self.x
+
+  t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+  fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+
+  fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+
+  t method <root>.nlang.builtins.i_copyable.copy_ctor other:@final = void
+
 
 export fun main = i32
   and tt = { x=0 }

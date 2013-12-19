@@ -20,16 +20,16 @@ type test = ia <root>.nlang.builtins.i_trivial_ctor
   and this = t00.syntax.test
   and final = t00.syntax.test
   t:i32
-
-fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
-
-fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
-
-test method <root>.nlang.builtins.i_trivial_ctor.ctor = void
-
-test method foo x:i32 = i32
+  test method foo x:i32 = i32
   and y = x
   return y
+
+  test method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+  fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+
+  fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+
 
 fun foobar x:i32 = i32
   pre -> block 
@@ -47,5 +47,5 @@ type enu = <root>.nlang.builtins.i_trivial_copy <root>.nlang.builtins.i_trivial_
   | V1 = 0
   | V2 = 0 + 1
   | V3 = 0 + 1 + 1
+  enu method <root>.nlang.builtins.i_copyable.copy_ctor other:@final = void
 
-enu method <root>.nlang.builtins.i_copyable.copy_ctor other:@final = void

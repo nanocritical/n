@@ -3,15 +3,15 @@ type copy = i_copyable <root>.nlang.builtins.i_trivial_ctor
   and this = t00.copy.copy
   and final = t00.copy.copy
   x:i32
-
-fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
-
-fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
-
-copy method <root>.nlang.builtins.i_trivial_ctor.ctor = void
-
-copy method i_copyable.copy_ctor other:@this = void
+  copy method i_copyable.copy_ctor other:@this = void
   self!x = other.x
+
+  copy method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+  fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+
+  fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+
 
 fun foo = _nretval:copy
   return { x=0 }

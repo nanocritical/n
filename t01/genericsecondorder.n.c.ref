@@ -16,9 +16,6 @@ typedef _Ngen_nlang_builtins_mutable_ref__t01_genericsecondorder_c_genN_ _Ngen_n
 typedef _Ngen_nlang_builtins_mercurial_ref__t01_genericsecondorder_c_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t01_genericsecondorder_c_genN_;
 
 
-
-
-
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_TYPES
@@ -32,9 +29,6 @@ nlang_builtins_i32 x;
 ;
 
 
-
-
-
 #define NLANG_DECLARE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
@@ -42,12 +36,12 @@ nlang_builtins_i32 x;
 #define NLANG_DECLARE_FUNCTIONS
 # include "t01/genericsecondorder.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
-
-_Ngen_nlang_builtins_mercurial_ref__t01_genericsecondorder_c_genN_ t01_genericsecondorder_c_new(void);
-
-void t01_genericsecondorder_c_mk(t01_genericsecondorder_c *_nrtr_r);
-
 nlang_builtins_void t01_genericsecondorder_c_ctor(_Ngen_nlang_builtins_mercurial_ref__t01_genericsecondorder_c_genN_ self) __attribute__((__nonnull__(1)));
+;
+void t01_genericsecondorder_c_mk(t01_genericsecondorder_c *_nrtr_r);
+;
+_Ngen_nlang_builtins_mercurial_ref__t01_genericsecondorder_c_genN_ t01_genericsecondorder_c_new(void);
+;
 
 static _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngen_t01_genericsecondorder_get__nlang_builtins_ref_genN_(_Ngen_nlang_builtins_ref__t01_genericsecondorder_c_genN_ m) __attribute__((__nonnull__(1)));
 
@@ -58,24 +52,24 @@ static _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngen_t01_genericsecon
 #define NLANG_DEFINE_FUNCTIONS
 # include "t01/genericsecondorder.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-
-_Ngen_nlang_builtins_mercurial_ref__t01_genericsecondorder_c_genN_ t01_genericsecondorder_c_new(void) {
+nlang_builtins_void t01_genericsecondorder_c_ctor(_Ngen_nlang_builtins_mercurial_ref__t01_genericsecondorder_c_genN_ self) {
 #define THIS(x) t01_genericsecondorder_c##x
-return calloc(1, sizeof(THIS()));
 #undef THIS
 }
-
+;
 void t01_genericsecondorder_c_mk(t01_genericsecondorder_c *_nrtr_r) {
 #define THIS(x) t01_genericsecondorder_c##x
 #define r (*_nrtr_r)
 #undef r
 #undef THIS
 }
-
-nlang_builtins_void t01_genericsecondorder_c_ctor(_Ngen_nlang_builtins_mercurial_ref__t01_genericsecondorder_c_genN_ self) {
+;
+_Ngen_nlang_builtins_mercurial_ref__t01_genericsecondorder_c_genN_ t01_genericsecondorder_c_new(void) {
 #define THIS(x) t01_genericsecondorder_c##x
+return calloc(1, sizeof(THIS()));
 #undef THIS
 }
+;
 
 static _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngen_t01_genericsecondorder_get__nlang_builtins_ref_genN_(_Ngen_nlang_builtins_ref__t01_genericsecondorder_c_genN_ m) {
  {

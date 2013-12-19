@@ -15,12 +15,6 @@ typedef _Ngen_nlang_builtins_mutable_ref__t00_method_t_genN_ _Ngen_nlang_builtin
 typedef _Ngen_nlang_builtins_mutable_ref__t00_method_t_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_method_t_genN_;
 typedef _Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_method_t_genN_;
 
-
-
-
-
-
-
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_TYPES
@@ -33,12 +27,6 @@ nlang_builtins_i32 x;
 }
 ;
 
-
-
-
-
-
-
 #define NLANG_DECLARE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
@@ -46,18 +34,18 @@ nlang_builtins_i32 x;
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/method.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
-
-nlang_builtins_void t00_method_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self, _Ngen_nlang_builtins_ref__t00_method_t_genN_ other) __attribute__((__nonnull__(1, 2)));
-
-_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ t00_method_t_new(void);
-
-void t00_method_t_mk(t00_method_t *_nrtr_r);
-
-nlang_builtins_void t00_method_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self) __attribute__((__nonnull__(1)));
-
 nlang_builtins_i32 t00_method_t_get(_Ngen_nlang_builtins_ref__t00_method_t_genN_ self) __attribute__((__nonnull__(1)));
-
+;
 nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_mutable_ref__t00_method_t_genN_ self, nlang_builtins_i32 x) __attribute__((__nonnull__(1)));
+;
+nlang_builtins_void t00_method_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self) __attribute__((__nonnull__(1)));
+;
+void t00_method_t_mk(t00_method_t *_nrtr_r);
+;
+_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ t00_method_t_new(void);
+;
+nlang_builtins_void t00_method_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self, _Ngen_nlang_builtins_ref__t00_method_t_genN_ other) __attribute__((__nonnull__(1, 2)));
+;
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
@@ -66,31 +54,6 @@ nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_mutable_ref__t00_metho
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/method.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-
-nlang_builtins_void t00_method_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self, _Ngen_nlang_builtins_ref__t00_method_t_genN_ other) {
-#define THIS(x) t00_method_t##x
-memcpy(self, other, sizeof(*self));
-#undef THIS
-}
-
-_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ t00_method_t_new(void) {
-#define THIS(x) t00_method_t##x
-return calloc(1, sizeof(THIS()));
-#undef THIS
-}
-
-void t00_method_t_mk(t00_method_t *_nrtr_r) {
-#define THIS(x) t00_method_t##x
-#define r (*_nrtr_r)
-#undef r
-#undef THIS
-}
-
-nlang_builtins_void t00_method_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self) {
-#define THIS(x) t00_method_t##x
-#undef THIS
-}
-
 nlang_builtins_i32 t00_method_t_get(_Ngen_nlang_builtins_ref__t00_method_t_genN_ self) {
 #define THIS(x) t00_method_t##x
  {
@@ -98,7 +61,7 @@ return (self->x);
 }
 #undef THIS
 }
-
+;
 nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_mutable_ref__t00_method_t_genN_ self, nlang_builtins_i32 x) {
 #define THIS(x) t00_method_t##x
  {
@@ -106,6 +69,31 @@ nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_mutable_ref__t00_metho
 }
 #undef THIS
 }
+;
+nlang_builtins_void t00_method_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self) {
+#define THIS(x) t00_method_t##x
+#undef THIS
+}
+;
+void t00_method_t_mk(t00_method_t *_nrtr_r) {
+#define THIS(x) t00_method_t##x
+#define r (*_nrtr_r)
+#undef r
+#undef THIS
+}
+;
+_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ t00_method_t_new(void) {
+#define THIS(x) t00_method_t##x
+return calloc(1, sizeof(THIS()));
+#undef THIS
+}
+;
+nlang_builtins_void t00_method_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ self, _Ngen_nlang_builtins_ref__t00_method_t_genN_ other) {
+#define THIS(x) t00_method_t##x
+memcpy(self, other, sizeof(*self));
+#undef THIS
+}
+;
 
 nlang_builtins_i32 _Nmain(void) {
  {

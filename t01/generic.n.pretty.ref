@@ -3,6 +3,12 @@ type container = i_trivial_ctor <root>.nlang.builtins.i_trivial_ctor
   and this = t01.generic.container
   and final = t01.generic.container
   x:t
+  container method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+
+  fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+
+  fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+
 
 export fun main = i32
   and v = { x=1 }
