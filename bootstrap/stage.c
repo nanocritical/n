@@ -309,7 +309,8 @@ static error step_gather_dependencies_in_module(struct module *mod, struct node 
 
 static error pass_gather_dependencies(struct module *mod, struct node *root,
                                       void *user, ssize_t shallow_last_up) {
-  PASS(DOWN_STEP(step_gather_dependencies_in_module),);
+  PASS(DOWN_STEP(step_gather_dependencies_in_module);
+       DOWN_STEP(step_stop_block),);
   return 0;
 }
 

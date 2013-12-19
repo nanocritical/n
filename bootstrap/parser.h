@@ -215,9 +215,6 @@ struct node_deftype {
 
   enum deftype_kind kind;
   struct typ *choice_typ;
-
-  struct node **members;
-  size_t members_count;
 };
 struct node_defmethod {
   struct toplevel toplevel;
@@ -864,6 +861,9 @@ struct fun_state {
   enum token_type nulref_wildcard;
   enum token_type deref_wildcard;
   enum token_type wildcard;
+
+  struct node **tentative_instantiations;
+  size_t tentative_instantiations_count;
 };
 
 struct try_state {
@@ -884,15 +884,13 @@ struct step_state {
 struct stackel {
   struct node *node;
   struct node *sub;
+  struct node *next_sub;
 };
 
 struct module_state {
   struct module_state *prev;
 
   bool tentatively;
-
-  struct node **tentative_instantiations;
-  size_t tentative_instantiations_count;
 
   struct fun_state *fun_state;
   struct try_state *try_state;

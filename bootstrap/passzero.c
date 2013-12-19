@@ -54,6 +54,8 @@ struct node *add_instance_deepcopy_from_pristine(struct module *mod,
   struct node *instance = calloc(1, sizeof(struct node));
   node_deepcopy(mod, instance, pristine);
 
+  node_toplevel(instance)->scope_name = 0;
+
   if (!tentative) {
     struct toplevel *toplevel = node_toplevel(node);
     const size_t idx = toplevel->instances_count;
@@ -61,17 +63,6 @@ struct node *add_instance_deepcopy_from_pristine(struct module *mod,
     toplevel->instances = realloc(toplevel->instances,
                                   toplevel->instances_count * sizeof(*toplevel->instances));
     toplevel->instances[idx] = instance;
-  }
-
-  if (instance->which == DEFTYPE) {
-    instance->as.DEFTYPE.members_count = pristine->as.DEFTYPE.members_count,
-      instance->as.DEFTYPE.members = calloc(instance->as.DEFTYPE.members_count,
-                                            sizeof(*instance->as.DEFTYPE.members));
-
-    for (size_t n = 0; n < pristine->as.DEFTYPE.members_count; ++n) {
-      instance->as.DEFTYPE.members[n] = calloc(1, sizeof(**instance->as.DEFTYPE.members));
-      node_deepcopy(mod, instance->as.DEFTYPE.members[n], pristine->as.DEFTYPE.members[n]);
-    }
   }
 
   return instance;

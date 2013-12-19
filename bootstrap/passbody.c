@@ -2121,11 +2121,11 @@ except:
 
 STEP_FILTER(step_gather_final_instantiations,
             SF(DEFFUN) | SF(DEFMETHOD));
-error step_gather_final_instantiations(struct module *mod, struct node *node,
-                                       void *user, bool *stop) {
+static error step_gather_final_instantiations(struct module *mod, struct node *node,
+                                              void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct module_state *st = mod->state;
+  struct fun_state *st = mod->state->fun_state;
   if (st->tentative_instantiations == NULL) {
     return 0;
   }

@@ -1680,6 +1680,23 @@ static void print_delegate(FILE *out, const struct module *mod, const struct nod
   }
 }
 
+static bool is_concrete(const struct typ *t) {
+  if (typ_is_reference(t)) {
+    return FALSE;
+  } else {
+    for (size_t n = 0; n < typ_generic_arity(t); ++n) {
+      const struct typ *arg = typ_generic_arg_const(t, n);
+      if (typ_definition_const(arg)->which == DEFINTF) {
+        return FALSE;
+      }
+      if (!typ_is_generic_functor(arg) && !is_concrete(arg)) {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+}
+
 static void print_deftype_statement(FILE *out, bool header, enum forward fwd,
                                     const struct module *mod, const struct node *node,
                                     bool do_static) {
@@ -1696,6 +1713,22 @@ static void print_deftype_statement(FILE *out, bool header, enum forward fwd,
     case INVARIANT:
       if (fwd == FWD_DEFINE_FUNCTIONS) {
         print_invariant(out, mod, node);
+      }
+      break;
+    case DEFFUN:
+    case DEFMETHOD:
+      if (do_static) {
+        if (!typ_is_generic_functor(node->typ)) {
+          print_deffun(out, header, fwd, mod, node);
+        } else {
+          const struct toplevel *toplevel = node_toplevel_const(node);
+          for (size_t n = 1; n < toplevel->instances_count; ++n) {
+            const struct node *instance = toplevel->instances[n];
+            if (is_concrete(instance->typ)) {
+              print_deffun(out, header, fwd, mod, instance);
+            }
+          }
+        }
       }
       break;
     default:
@@ -2084,6 +2117,8 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
   if (typ_is_builtin(mod, node->typ) && node_toplevel_const(node)->is_extern) {
     if (fwd == FWD_DECLARE_TYPES) {
       print_deftype_typedefs(out, mod, node);
+    } else if (fwd == FWD_DECLARE_FUNCTIONS) {
+      print_deftype_block(out, header, fwd, mod, node, TRUE);
     }
     print_deftype_mkdyn(out, header, fwd, mod, node);
     return;
@@ -2355,23 +2390,6 @@ static bool file_exists(const char *base, const char *postfix) {
   return r;
 }
 
-static bool is_concrete(const struct typ *t) {
-  if (typ_is_reference(t)) {
-    return FALSE;
-  } else {
-    for (size_t n = 0; n < typ_generic_arity(t); ++n) {
-      const struct typ *arg = typ_generic_arg_const(t, n);
-      if (typ_definition_const(arg)->which == DEFINTF) {
-        return FALSE;
-      }
-      if (!typ_is_generic_functor(arg) && !is_concrete(arg)) {
-        return FALSE;
-      }
-    }
-    return TRUE;
-  }
-}
-
 static void print_top(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
   const struct toplevel *toplevel = node_toplevel_const(node);
   if (node_can_have_genargs(node)) {
@@ -2387,12 +2405,6 @@ static void print_top(FILE *out, bool header, enum forward fwd, const struct mod
           }
 
           print_top(out, header, fwd, mod, instance);
-
-          if (instance->which == DEFTYPE) {
-            for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
-              print_top(out, header, fwd, mod, instance->as.DEFTYPE.members[n]);
-            }
-          }
         }
       }
 
@@ -2402,13 +2414,7 @@ static void print_top(FILE *out, bool header, enum forward fwd, const struct mod
 
   switch (node->which) {
   case DEFFUN:
-  case DEFMETHOD:
-    if (toplevel->scope_name != 0
-        && node_toplevel_const(node_parent_const(node))->instances_count >= 1) {
-      // noop
-    } else {
-      print_deffun(out, header, fwd, mod, node);
-    }
+    print_deffun(out, header, fwd, mod, node);
     break;
   case DEFTYPE:
     print_deftype(out, header, fwd, mod, node);

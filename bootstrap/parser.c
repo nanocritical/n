@@ -2423,7 +2423,6 @@ static error p_defintf_statement(struct node *node, struct module *mod, ident in
   error e;
   struct token tok = { 0 }, tok2 = { 0 };
   struct toplevel toplevel = { 0 };
-  toplevel.scope_name = intf_name;
   struct node *genargs = NULL;
 
   e = scan(&tok, mod);
@@ -2565,10 +2564,6 @@ void node_deepcopy(struct module *mod, struct node *dst,
   if (dtoplevel != NULL) {
     dtoplevel->instances = NULL;
     dtoplevel->instances_count = 0;
-  }
-  if (dst->which == DEFTYPE) {
-    dst->as.DEFTYPE.members = NULL;
-    dst->as.DEFTYPE.members_count = 0;
   }
 
   FOREACH_SUB_CONST(s, src) {

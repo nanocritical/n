@@ -92,6 +92,61 @@ static error step_type_definitions(struct module *mod, struct node *node,
   return 0;
 }
 
+static struct node *do_move_detached_member(struct module *mod,
+                                            struct node *parent,
+                                            struct node *node) {
+  struct node *next = node_next(node);
+  struct toplevel *toplevel = node_toplevel(node);
+  if (toplevel->scope_name == 0) {
+    return next;
+  }
+  if (toplevel->our_generic_functor_typ != NULL) {
+    assert(node_parent(node)->which == DEFTYPE);
+    return next;
+  }
+
+  struct node *container = NULL;
+  error e = scope_lookup_ident_wontimport(&container, node, mod, node->scope.parent,
+                                          toplevel->scope_name, FALSE);
+  assert(!e);
+  assert(container->which == DEFTYPE);
+
+  toplevel->scope_name = 0;
+
+  node_subs_remove(parent, node);
+  node_subs_append(container, node);
+  node->scope.parent = &container->scope;
+
+  struct toplevel *container_toplevel = node_toplevel(container);
+  if (container_toplevel->instances_count > 0) {
+    struct node *copy = node_new_subnode(mod, container_toplevel->instances[0]);
+    node_deepcopy(mod, copy, toplevel->instances[0]);
+  }
+
+  return next;
+}
+
+static STEP_FILTER(step_move_detached_members,
+                   SF(MODULE_BODY));
+static error step_move_detached_members(struct module *mod, struct node *node,
+                                        void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  for (struct node *s = node_subs_first(node); s != NULL;) {
+    switch (s->which) {
+    case DEFFUN:
+    case DEFMETHOD:
+      s = do_move_detached_member(mod, node, s);
+      break;
+    default:
+      s = node_next(s);
+      break;
+    }
+  }
+
+  return 0;
+}
+
 static STEP_FILTER(step_lexical_import,
                    SF(IMPORT));
 static error step_lexical_import(struct module *mod, struct node *node,
@@ -267,26 +322,6 @@ static error step_defpattern_extract_defname(struct module *mod, struct node *no
   return 0;
 }
 
-static void append_member(struct node *deft, struct node *m) {
-  assert(deft->which == DEFTYPE);
-
-  deft->as.DEFTYPE.members_count += 1;
-  deft->as.DEFTYPE.members = realloc(
-    deft->as.DEFTYPE.members,
-    deft->as.DEFTYPE.members_count * sizeof(*deft->as.DEFTYPE.members));
-
-  deft->as.DEFTYPE.members[deft->as.DEFTYPE.members_count - 1] = m;
-}
-
-static void add_deftype_pristine_external_member(struct module *mod, struct node *deft,
-                                                 struct node *member) {
-  assert(deft->which == DEFTYPE);
-  struct node *deft_pristine = node_toplevel(deft)->instances[0];
-  struct node *member_pristine = node_toplevel(member)->instances[0];
-
-  append_member(deft_pristine, member_pristine);
-}
-
 static STEP_FILTER(step_lexical_scoping,
                    SF(DEFFUN) | SF(DEFMETHOD) | SF(DEFTYPE) | SF(DEFINTF) |
                    SF(DEFFIELD) | SF(DEFCHOICE) | SF(DEFNAME) | SF(CATCH));
@@ -297,9 +332,6 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
   struct scope *sc = NULL;
   error e;
 
-  struct node *container = NULL;
-  const struct toplevel *toplevel = NULL;
-
   switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
@@ -309,51 +341,32 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
       id = node_subs_last(id);
     }
 
-    toplevel = node_toplevel_const(node);
+    const struct toplevel *toplevel = node_toplevel_const(node);
     if (toplevel->our_generic_functor_typ != NULL) {
-      // For generic instances, do not define the name, as we want the type
-      // name to point to the generic functor (e.g. in (vector u8), allow
-      // vector to be used in (vector u16). To get the current instance,
-      // use this or final.
+      // See comment below for DEFTYPE/DEFINTF. To get the same instance
+      // than the current function, you have to explicitly instantiate it
+      // (as there is no 'thisfun').
       sc = NULL;
-    } else if (toplevel->scope_name == 0
-               || node_parent(node)->which == DEFINTF) {
-      sc = node->scope.parent;
-    } else {
-      if (node_parent(node)->which == DEFTYPE) {
-        // Generic instance *members* already have the 'right' parent.
-        container = node_parent(node);
-        sc = &container->scope;
-      } else {
-        e = scope_lookup_ident_wontimport(&container, node, mod, node->scope.parent,
-                                          toplevel->scope_name, FALSE);
-        EXCEPT(e);
-        sc = &container->scope;
-        node->scope.parent = sc;
-      }
+    } else if (toplevel->scope_name != 0) {
+      struct node *container = NULL;
+      error e = scope_lookup_ident_wontimport(&container, node, mod, node->scope.parent,
+                                              toplevel->scope_name, FALSE);
+      EXCEPT(e);
+      assert(container->which == DEFTYPE);
 
-      const struct toplevel *ctoplevel = node_toplevel_const(container);
-      const struct node *cgenargs = node_subs_at(container, IDX_GENARGS);
-      if (toplevel->builtingen == BG__NOT // otherwise, will be re-generated
-          && ctoplevel != NULL
-          && ctoplevel->instances != NULL
-          && ctoplevel->our_generic_functor_typ == NULL
-          && node_subs_count_atleast(cgenargs, 1)
-          && node_subs_first_const(cgenargs)->which == DEFGENARG) {
-        add_deftype_pristine_external_member(mod, container, node);
-      }
+      sc = &container->scope;
+    } else {
+      sc = &node_parent(node)->scope;
     }
     break;
   case DEFTYPE:
   case DEFINTF:
     if (node_toplevel_const(node)->our_generic_functor_typ != NULL) {
+      // For generic instances, do not define the name, as we want the type
+      // name to point to the generic functor (e.g. in '(vector u8)', allow
+      // 'vector' to be used in '(vector u16)'. To get the current instance,
+      // use this or final.
       sc = NULL;
-
-      // For generic instances, define the name in its own scope, to make
-      // sure lookups inside the instance resolve to the instance itself
-      // (e.g. the definition of this).
-      e = scope_define(mod, &node->scope, node_subs_first(node), node);
-      EXCEPT(e);
     } else {
       id = node_subs_first(node);
       sc = node->scope.parent;
@@ -740,14 +753,6 @@ static void intf_proto_deepcopy(struct module *mod, struct typ *thi,
 
 static void define_builtin(struct module *mod, struct node *deft,
                            enum builtingen bg) {
-  struct node *modbody;
-  struct node *genargs = node_subs_at(deft, IDX_GENARGS);
-  if (node_subs_count_atleast(genargs, 1)) {
-    modbody = NULL;
-  } else {
-    modbody = node_parent(deft);
-  }
-
   struct node *proto = NULL;
   error e = scope_lookup_abspath(&proto, deft, mod, builtingen_abspath[bg]);
   assert(!e);
@@ -757,36 +762,19 @@ static void define_builtin(struct module *mod, struct node *deft,
     return;
   }
 
-  struct node *d;
-  if (modbody != NULL) {
-    d = node_new_subnode(mod, modbody);
-  } else {
-    d = node_new_subnode(mod, deft);
-  }
+  struct node *d = node_new_subnode(mod, deft);
   intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
   struct node *full_name = mk_expr_abspath(mod, d, builtingen_abspath[bg]);
   node_subs_remove(d, full_name);
   node_subs_replace(d, node_subs_first(d), full_name);
 
   struct toplevel *toplevel = node_toplevel(d);
-  toplevel->scope_name = node_ident(deft);
   toplevel->is_prototype = FALSE;
   toplevel->builtingen = bg;
   toplevel->is_export = node_toplevel(deft)->is_export;
   toplevel->is_inline = node_toplevel(deft)->is_inline;
 
-  enum catchup_for how;
-  if (modbody != NULL) {
-    node_subs_remove(modbody, d);
-    node_subs_insert_after(modbody, deft, d);
-    how = CATCHUP_AFTER_CURRENT;
-  } else {
-    node_subs_remove(deft, d);
-    append_member(deft, d);
-    how = CATCHUP_BELOW_CURRENT;
-  }
-
-  e = catchup(mod, NULL, d, &deft->scope, how);
+  e = catchup(mod, NULL, d, &deft->scope, CATCHUP_BELOW_CURRENT);
   assert(!e);
 }
 
@@ -805,7 +793,6 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   node_subs_replace(d, node_subs_first(d), full_name);
 
   struct toplevel *toplevel = node_toplevel(d);
-  toplevel->scope_name = node_ident(ch);
   toplevel->is_prototype = FALSE;
   toplevel->builtingen = bg;
   toplevel->is_export = node_toplevel(deft)->is_export;
@@ -899,24 +886,10 @@ static error define_auto(struct module *mod, struct node *deft,
     THROW(e);
   }
 
-  struct node *modbody;
-  struct node *genargs = node_subs_at(deft, IDX_GENARGS);
-  if (node_subs_count_atleast(genargs, 1)) {
-    modbody = NULL;
-  } else {
-    modbody = node_parent(deft);
-  }
-
-  struct node *d;
-  if (modbody != NULL) {
-    d = node_new_subnode(mod, modbody);
-  } else {
-    d = node_new_subnode(mod, deft);
-  }
+  struct node *d = node_new_subnode(mod, deft);
   intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
 
   struct toplevel *toplevel = node_toplevel(d);
-  toplevel->scope_name = node_ident(deft);
   toplevel->is_prototype = FALSE;
   toplevel->builtingen = bg;
   toplevel->is_export = node_toplevel(ctor)->is_export;
@@ -936,19 +909,8 @@ static error define_auto(struct module *mod, struct node *deft,
     intf_proto_deepcopy(mod, node_parent(proto)->typ, cpy, arg);
   }
 
-  enum catchup_for how;
-  if (modbody != NULL) {
-    node_subs_remove(modbody, d);
-    node_subs_insert_after(modbody, deft, d);
-    how = CATCHUP_AFTER_CURRENT;
-  } else {
-    node_subs_remove(deft, d);
-    append_member(deft, d);
-    how = CATCHUP_BELOW_CURRENT;
-  }
-
   assert(node_toplevel(d)->yet_to_pass == 0);
-  e = catchup(mod, NULL, d, &deft->scope, how);
+  e = catchup(mod, NULL, d, &deft->scope, CATCHUP_BELOW_CURRENT);
   assert(!e);
 
   return 0;
@@ -1114,7 +1076,6 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
     node_subs_replace(d, node_subs_first(d), full_name);
 
     struct toplevel *toplevel = node_toplevel(d);
-    toplevel->scope_name = node_ident(deft);
     toplevel->builtingen = BG_SUM_DISPATCH;
     toplevel->is_prototype = FALSE;
     toplevel->is_export = node_toplevel(deft)->is_export;
@@ -1245,8 +1206,8 @@ static error passfwd0(struct module *mod, struct node *root,
     DOWN_STEP(step_lexical_scoping);
     ,
     UP_STEP(step_type_definitions);
-    UP_STEP(step_gather_final_instantiations);
     UP_STEP(step_complete_instantiation);
+    UP_STEP(step_move_detached_members);
     );
   return 0;
 }
@@ -1260,7 +1221,6 @@ static error passfwd1(struct module *mod, struct node *root,
     DOWN_STEP(step_add_builtin_members);
     DOWN_STEP(step_stop_funblock);
     ,
-    UP_STEP(step_gather_final_instantiations);
     UP_STEP(step_complete_instantiation);
     );
   return 0;
@@ -1275,7 +1235,6 @@ static error passfwd2(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_funblock);
     DOWN_STEP(step_type_inference_genargs);
     ,
-    UP_STEP(step_gather_final_instantiations);
     UP_STEP(step_complete_instantiation);
     );
   return 0;
@@ -1291,7 +1250,6 @@ static error passfwd3(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_funblock);
     ,
     UP_STEP(step_type_inference_isalist);
-    UP_STEP(step_gather_final_instantiations);
     UP_STEP(step_complete_instantiation);
     );
   return 0;
@@ -1306,7 +1264,6 @@ static error passfwd4(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
     ,
-    UP_STEP(step_gather_final_instantiations);
     );
   return 0;
 }
@@ -1321,7 +1278,6 @@ static error passfwd5(struct module *mod, struct node *root,
     ,
     UP_STEP(step_add_builtin_enum_intf);
     UP_STEP(step_add_builtin_detect_ctor_intf);
-    UP_STEP(step_gather_final_instantiations);
     UP_STEP(step_complete_instantiation);
     );
   return 0;
@@ -1336,7 +1292,6 @@ static error passfwd6(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_funblock);
     ,
     UP_STEP(step_type_lets);
-    UP_STEP(step_gather_final_instantiations);
     UP_STEP(step_complete_instantiation);
     );
   return 0;
@@ -1352,7 +1307,6 @@ static error passfwd7(struct module *mod, struct node *root,
     ,
     UP_STEP(step_type_deffields);
     UP_STEP(step_type_defchoices);
-    UP_STEP(step_gather_final_instantiations);
     UP_STEP(step_complete_instantiation);
     );
   return 0;
@@ -1377,7 +1331,6 @@ static error passfwd8(struct module *mod, struct node *root,
     UP_STEP(step_add_trivials);
     UP_STEP(step_add_sum_dispatch);
     UP_STEP(step_rewrite_def_return_through_ref);
-    UP_STEP(step_gather_final_instantiations);
     UP_STEP(step_complete_instantiation);
     );
   return 0;

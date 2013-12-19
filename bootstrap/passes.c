@@ -174,7 +174,11 @@ bool instantiation_is_tentative(const struct module *mod,
 }
 
 static void record_tentative_instantiation(struct module *mod, struct node *i) {
-  struct module_state *st = mod->state;
+  struct fun_state *st = mod->state->fun_state;
+  if (st == NULL) {
+    return;
+  }
+
   st->tentative_instantiations_count += 1;
   st->tentative_instantiations = realloc(
     st->tentative_instantiations,
@@ -195,18 +199,6 @@ error catchup_instantiation(struct module *instantiating_mod,
 
   error e = catchup(gendef_mod, NULL, instance, parent_scope, how);
   EXCEPT(e);
-
-  if (instance->which == DEFTYPE) {
-    for (size_t n = 0; n < instance->as.DEFTYPE.members_count; ++n) {
-      struct node *m = instance->as.DEFTYPE.members[n];
-      if (node_toplevel_const(m)->builtingen != BG__NOT) {
-        continue;
-      }
-
-      error e = catchup(gendef_mod, NULL, m, &instance->scope, how);
-      EXCEPT(e);
-    }
-  }
 
   return 0;
 }
@@ -280,20 +272,6 @@ static error do_complete_instantiation(struct module *mod, struct node *node) {
     EXCEPT(e);
 
     toplevel->yet_to_pass = p + 1;
-
-    if (node->which == DEFTYPE) {
-      for (size_t n = 0; n < node->as.DEFTYPE.members_count; ++n) {
-        struct node *m = node->as.DEFTYPE.members[n];
-        if (node_toplevel_const(m)->builtingen != BG__NOT) {
-          continue;
-        }
-
-        error e = pa(mod, m, &module_depth, -1);
-        EXCEPT(e);
-
-        node_toplevel(m)->yet_to_pass = p + 1;
-      }
-    }
   }
 
   POP_STATE(mod->state->step_state);

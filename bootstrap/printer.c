@@ -638,6 +638,8 @@ static void print_delegate(FILE *out, const struct module *mod, const struct nod
   }
 }
 
+static void print_defmethod(FILE *out, const struct module *mod, int indent, const struct node *node);
+
 static void print_deftype_statement(FILE *out, const struct module *mod, int indent, const struct node *node) {
   switch (node->which) {
   case LET:
@@ -658,6 +660,12 @@ static void print_deftype_statement(FILE *out, const struct module *mod, int ind
   case NOOP:
     spaces(out, indent + 2);
     fprintf(out, "noop");
+    break;
+  case DEFFUN:
+    print_deffun(out, mod, 0, node);
+    break;
+  case DEFMETHOD:
+    print_defmethod(out, mod, 0, node);
     break;
   default:
     fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
@@ -709,7 +717,7 @@ static void print_defmethod(FILE *out, const struct module *mod, int indent, con
 
   print_toplevel(out, &node->as.DEFMETHOD.toplevel);
 
-  const char *scope = idents_value(mod->gctx, node->as.DEFMETHOD.toplevel.scope_name);
+  const char *scope = idents_value(mod->gctx, node_ident(node_parent_const(node)));
   fprintf(out, "%s method ", scope);
   print_expr(out, mod, name, T__STATEMENT);
 
