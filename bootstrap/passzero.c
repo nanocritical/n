@@ -10,9 +10,9 @@ static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node
   if (node->as.UN.operator == TREFWILDCARD
       || node->as.UN.operator == TNULREFWILDCARD) {
     // FIXME The proper solution is to use
-    //   (intf t:Any) i_nullable r:(i_ref t) = (i_any_ref t)
-    // instead of i_nullable_ref, i_nullable_mutable_ref, and i_nullable_mercurial_ref.
-    // and use (i_nullable __wildcard_ref_arg__) here.
+    //   (intf t:Any) `nullable r:(`ref t) = (`any_ref t)
+    // instead of `nullable_ref, `nullable_mutable_ref, and `nullable_mercurial_ref.
+    // and use (`nullable __wildcard_ref_arg__) here.
     assert(node->as.UN.operator != TNULREFWILDCARD && "FIXME: Unsupported");
 
     node_set_which(node, CALL);

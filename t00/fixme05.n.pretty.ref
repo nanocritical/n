@@ -1,13 +1,13 @@
 from nlang import *
-type nocopy = <root>.nlang.builtins.i_trivial_ctor
+type nocopy = <root>.nlang.builtins.`trivial_ctor
   and this = t00.fixme05.nocopy
   and final = t00.fixme05.nocopy
   x:i32
-  nocopy method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+  nocopy method <root>.nlang.builtins.`trivial_ctor.ctor = void
 
-  fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
 
-  fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
 
 
 fun bar = r:nocopy

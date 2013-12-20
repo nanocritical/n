@@ -1,10 +1,10 @@
 from nlang import *
-type enu = i_trivial_ctor <root>.nlang.builtins.i_trivial_copy <root>.nlang.builtins.i_trivial_dtor
+type enu = `trivial_ctor <root>.nlang.builtins.`trivial_copy <root>.nlang.builtins.`trivial_dtor
   and this = t00.match.enu
   and final = t00.match.enu
   | A = 0
   | B = 0 + 1
-  enu method <root>.nlang.builtins.i_copyable.copy_ctor other:@final = void
+  enu method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void
 
 
 fun foo n:enu = i32
@@ -21,15 +21,15 @@ fun bar n:enu = i32
   | _
     return 1
 
-type t = <root>.nlang.builtins.i_trivial_ctor
+type t = <root>.nlang.builtins.`trivial_ctor
   and this = t00.match.t
   and final = t00.match.t
   x:enu
-  t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+  t method <root>.nlang.builtins.`trivial_ctor.ctor = void
 
-  fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
 
-  fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
 
 
 fun bor xt:@t = bool

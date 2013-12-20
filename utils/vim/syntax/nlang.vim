@@ -9,7 +9,7 @@ syn keyword nSemantic unique shared pshared
 syn keyword nSemantic capturedby capturedbyret owned ownedby protected protect protecting prop claim
 
 syn keyword nAssert assert pre post invariant
-syn keyword nDecl example alias
+syn keyword nDecl example alias within
 syn keyword nDecl contract honors _honors pretag posttag tag
 
 syn keyword nConditional if elif else match
@@ -19,9 +19,9 @@ syn keyword nStatement return continue break unreached
 syn keyword nOperator in and or not isa
 syn keyword nOperator sizeof
 syn keyword nKeyword noop as attr declare
-syn keyword nException try catch except throw drop fatal
-syn match nOperator "[@:]"
-syn match nSemantic "[&]"
+syn keyword nKeyword try catch
+syn keyword nException except throw drop fatal
+syn match nOperator "[@&:]"
 
 syn keyword nKeyword self this final
 
@@ -37,7 +37,7 @@ syn match nMercurial "#"
 syn match nNullable "?"
 syn match nWildcard "\$"
 
-syn match nIntf "_*i_\w\+"
+syn match nIntf "`\w\+"
 
 syn match nSpaceError display excludenl "\s\+$"
 syn match nSpaceError display "^\ *\t"me=e-1

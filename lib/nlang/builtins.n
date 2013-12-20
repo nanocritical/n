@@ -1,12 +1,12 @@
-from nlang.chars import i_string_buffer i_show
+from nlang.chars import `string_buffer `show
 from nlang.memory import slice
 from nlang.containers import index_range range
 from nlang.unsafe import cast
 from nlang import say print
 
-export extern struct __literal_null__ = export i_any_nullable_ref
-export extern struct __literal_integer__ = export i_integer
-export extern struct __literal_floating__ = export i_floating
+export extern struct __literal_null__ = export `any_nullable_ref
+export extern struct __literal_integer__ = export `integer
+export extern struct __literal_floating__ = export `floating
 
 export extern struct __internal_not_typeable__ =
 export extern struct __call_function_slot__ =
@@ -14,38 +14,38 @@ export extern struct __call_function_slot__ =
 export extern struct __mutable__ =
 export extern struct __mercurial__ =
 
-export intf i_any =
+export intf `any =
 
-export intf i_copyable =
+export intf `copyable =
   method@# copy_ctor other:@final = void
 
-export intf i_copyable_but_owned = export i_copyable -- FIXME
-export intf i_trivial_copy = export i_copyable
-export intf i_trivial_copy_but_owned = export i_trivial_copy \
-                                       export i_copyable_but_owned
-export intf i_return_by_copy =
-export intf i_default_ctor =
+export intf `copyable_but_owned = export `copyable -- FIXME
+export intf `trivial_copy = export `copyable
+export intf `trivial_copy_but_owned = export `trivial_copy \
+                                       export `copyable_but_owned
+export intf `return_by_copy =
+export intf `default_ctor =
   method@# ctor = void
   fun mk = r:final
   fun new = @#final
 
-export intf i_trivial_ctor = export i_default_ctor
-export intf i_trivial_dtor =
-export intf i_matchable =
-export intf i_has_equality = export i_matchable
+export intf `trivial_ctor = export `default_ctor
+export intf `trivial_dtor =
+export intf `matchable =
+export intf `has_equality = export `matchable
   method@ operator_eq other:@final = bool
   method@ operator_ne other:@final = bool
-export intf i_trivial_equality = export i_has_equality
-export intf i_has_compare =
+export intf `trivial_equality = export `has_equality
+export intf `has_compare =
   method@ operator_compare other:@final = i32
-export intf i_ordered = export i_has_equality
+export intf `ordered = export `has_equality
   method@ operator_le other:@final = bool
   method@ operator_lt other:@final = bool
   method@ operator_gt other:@final = bool
   method@ operator_ge other:@final = bool
-export intf i_trivial_order = export i_ordered
-export intf i_ordered_by_compare = export i_has_compare export i_ordered export i_has_equality
-export intf i_arithmetic =
+export intf `trivial_order = export `ordered
+export intf `ordered_by_compare = export `has_compare export `ordered export `has_equality
+export intf `arithmetic =
   method@ operator_plus other:@final = final
   method@ operator_minus other:@final = final
   method@ operator_divide other:@final = final
@@ -57,7 +57,7 @@ export intf i_arithmetic =
   method@! operator_assign_divide other:@final = void
   method@! operator_assign_modulo other:@final = void
   method@! operator_assign_times other:@final = void
-export intf i_bitwise =
+export intf `bitwise =
   method@ operator_bwor other:@final = final
   method@ operator_bwxor other:@final = final
   method@ operator_bwand other:@final = final
@@ -71,59 +71,59 @@ export intf i_bitwise =
   method@! operator_assign_rshift by:u32 = void
 
 
-export intf i_sum_copy = export i_copyable
-export intf i_sum_equality = export i_has_equality
-export intf i_sum_order = export i_ordered
+export intf `sum_copy = export `copyable
+export intf `sum_equality = export `has_equality
+export intf `sum_order = export `ordered
 
 
-export extern struct void = i_return_by_copy
+export extern struct void = `return_by_copy
 
-export extern intf __i_ref_compatible r:i_any_any_ref =
+export extern intf `__ref_compatible r:`any_any_ref =
 
-export intf i_any_any_ref = \
-    export i_return_by_copy \
-    export i_trivial_copy \
-    export i_trivial_equality
-export intf i_any_ref t:i_any = export i_any_any_ref
-export intf i_any_mutable_ref t:i_any = export (i_any_ref t)
-export intf i_any_nullable_ref t:i_any = export i_any_any_ref
-export intf i_any_nullable_mutable_ref t:i_any = export (i_any_nullable_ref t)
+export intf `any_any_ref = \
+    export `return_by_copy \
+    export `trivial_copy \
+    export `trivial_equality
+export intf `any_ref t:`any = export `any_any_ref
+export intf `any_mutable_ref t:`any = export (`any_ref t)
+export intf `any_nullable_ref t:`any = export `any_any_ref
+export intf `any_nullable_mutable_ref t:`any = export (`any_nullable_ref t)
 
-export extern struct ref t:i_any = export (i_any_ref t)
-export extern struct mutable_ref t:i_any = export (i_any_mutable_ref t)
-export extern struct mercurial_ref t:i_any = export (i_any_mutable_ref t)
+export extern struct ref t:`any = export (`any_ref t)
+export extern struct mutable_ref t:`any = export (`any_mutable_ref t)
+export extern struct mercurial_ref t:`any = export (`any_mutable_ref t)
 
 -- FIXME: to replace with semantic constraint
-export extern struct nullable_ref t:i_any = export (i_any_nullable_ref t)
-export extern struct nullable_mutable_ref t:i_any = export (i_any_nullable_mutable_ref t)
-export extern struct nullable_mercurial_ref t:i_any = export (i_any_nullable_mutable_ref t)
+export extern struct nullable_ref t:`any = export (`any_nullable_ref t)
+export extern struct nullable_mutable_ref t:`any = export (`any_nullable_mutable_ref t)
+export extern struct nullable_mercurial_ref t:`any = export (`any_nullable_mutable_ref t)
 
 
-export intf i_any_tuple = export i_copyable
+export intf `any_tuple = export `copyable
 
-export inline struct tuple_2 t0:i_copyable t1:i_copyable = export i_any_tuple
+export inline struct tuple_2 t0:`copyable t1:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
 
-export inline struct tuple_3 t0:i_copyable t1:i_copyable t2:i_copyable = export i_any_tuple
+export inline struct tuple_3 t0:`copyable t1:`copyable t2:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
 
-export inline struct tuple_4 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable = export i_any_tuple
+export inline struct tuple_4 t0:`copyable t1:`copyable t2:`copyable t3:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
   x3	:t3
 
-export inline struct tuple_5 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable = export i_any_tuple
+export inline struct tuple_5 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
   x3	:t3
   x4	:t4
 
-export inline struct tuple_6 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable = export i_any_tuple
+export inline struct tuple_6 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -131,7 +131,7 @@ export inline struct tuple_6 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copy
   x4	:t4
   x5	:t5
 
-export inline struct tuple_7 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable = export i_any_tuple
+export inline struct tuple_7 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -140,7 +140,7 @@ export inline struct tuple_7 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copy
   x5	:t5
   x6	:t6
 
-export inline struct tuple_8 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable = export i_any_tuple
+export inline struct tuple_8 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -150,7 +150,7 @@ export inline struct tuple_8 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copy
   x6	:t6
   x7	:t7
 
-export inline struct tuple_9 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable = export i_any_tuple
+export inline struct tuple_9 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -161,7 +161,7 @@ export inline struct tuple_9 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copy
   x7	:t7
   x8	:t8
 
-export inline struct tuple_10 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable = export i_any_tuple
+export inline struct tuple_10 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -173,7 +173,7 @@ export inline struct tuple_10 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_cop
   x8	:t8
   x9	:t9
 
-export inline struct tuple_11 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable = export i_any_tuple
+export inline struct tuple_11 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -186,7 +186,7 @@ export inline struct tuple_11 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_cop
   x9	:t9
   x10	:t10
 
-export inline struct tuple_12 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable = export i_any_tuple
+export inline struct tuple_12 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -200,7 +200,7 @@ export inline struct tuple_12 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_cop
   x10	:t10
   x11	:t11
 
-export inline struct tuple_13 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable = export i_any_tuple
+export inline struct tuple_13 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -215,7 +215,7 @@ export inline struct tuple_13 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_cop
   x11	:t11
   x12	:t12
 
-export inline struct tuple_14 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable = export i_any_tuple
+export inline struct tuple_14 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -231,7 +231,7 @@ export inline struct tuple_14 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_cop
   x12	:t12
   x13	:t13
 
-export inline struct tuple_15 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable t14:i_copyable = export i_any_tuple
+export inline struct tuple_15 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable t14:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -248,7 +248,7 @@ export inline struct tuple_15 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_cop
   x13	:t13
   x14	:t14
 
-export inline struct tuple_16 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable t14:i_copyable t15:i_copyable = export i_any_tuple
+export inline struct tuple_16 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable t14:`copyable t15:`copyable = export `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -266,463 +266,463 @@ export inline struct tuple_16 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_cop
   x14	:t14
   x15	:t15
 
-export intf i_numeric = \
-    export i_copyable \
-    export i_arithmetic \
-    export i_ordered
+export intf `numeric = \
+    export `copyable \
+    export `arithmetic \
+    export `ordered
 
-export intf i_integer = \
-    export i_numeric \
-    export i_bitwise \
-    export i_has_compare
-  alias this_signed = i_signed_integer
-  alias this_unsigned = i_unsigned_integer
+export intf `integer = \
+    export `numeric \
+    export `bitwise \
+    export `has_compare
+  alias this_signed = `signed_integer
+  alias this_unsigned = `unsigned_integer
   method@ reinterpret_signed = final.this_signed
   method@ reinterpret_unsigned = final.this_unsigned
 
-export intf i_signed_integer = export i_integer
+export intf `signed_integer = export `integer
 
-export intf i_unsigned_integer = export i_integer
+export intf `unsigned_integer = export `integer
 
-export intf i_native_integer = \
-    export i_trivial_ctor \
-    export i_trivial_copy \
-    export i_return_by_copy \
-    export i_integer \
-    export i_show
+export intf `native_integer = \
+    export `trivial_ctor \
+    export `trivial_copy \
+    export `return_by_copy \
+    export `integer \
+    export `show
 
-export intf i_native_signed_integer = \
-    export i_signed_integer \
-    export i_native_integer
+export intf `native_signed_integer = \
+    export `signed_integer \
+    export `native_integer
 
-export intf i_native_unsigned_integer = \
-    export i_unsigned_integer \
-    export i_native_integer
+export intf `native_unsigned_integer = \
+    export `unsigned_integer \
+    export `native_integer
 
-export intf i_native_anysign_integer = \
-    export i_native_signed_integer \
-    export i_native_unsigned_integer
+export intf `native_anysign_integer = \
+    export `native_signed_integer \
+    export `native_unsigned_integer
 
-export intf i_generalized_boolean = \
-    export i_ordered
+export intf `generalized_boolean = \
+    export `ordered
   method@ operator_test = bool
 
-export intf i_bool_compatible =
+export intf `bool_compatible =
   fun from_bool b:bool = final
 
-export intf i_native_boolean = \
-    export i_trivial_ctor \
-    export i_trivial_copy \
-    export i_return_by_copy \
-    export i_generalized_boolean \
-    export i_bool_compatible \
-    export i_show
+export intf `native_boolean = \
+    export `trivial_ctor \
+    export `trivial_copy \
+    export `return_by_copy \
+    export `generalized_boolean \
+    export `bool_compatible \
+    export `show
 
-export intf i_floating = \
-    export i_numeric \
-    export i_has_compare
+export intf `floating = \
+    export `numeric \
+    export `has_compare
 
-export intf i_native_floating = \
-    export i_trivial_ctor \
-    export i_trivial_copy \
-    export i_return_by_copy \
-    export i_floating \
-    export i_show
+export intf `native_floating = \
+    export `trivial_ctor \
+    export `trivial_copy \
+    export `return_by_copy \
+    export `floating \
+    export `show
 
-export extern struct bool = export i_native_boolean
-export extern bool method@# i_copyable.copy_ctor other:@this = void
-export extern bool method@ i_has_equality.operator_eq other:@this = bool
-export extern bool method@ i_has_equality.operator_ne other:@this = bool
-export extern bool method@ i_has_compare.operator_compare other:@this = i32
-export extern bool method@ i_ordered.operator_le other:@this = bool
-export extern bool method@ i_ordered.operator_lt other:@this = bool
-export extern bool method@ i_ordered.operator_gt other:@this = bool
-export extern bool method@ i_ordered.operator_ge other:@this = bool
+export extern struct bool = export `native_boolean
+export extern bool method@# `copyable.copy_ctor other:@this = void
+export extern bool method@ `has_equality.operator_eq other:@this = bool
+export extern bool method@ `has_equality.operator_ne other:@this = bool
+export extern bool method@ `has_compare.operator_compare other:@this = i32
+export extern bool method@ `ordered.operator_le other:@this = bool
+export extern bool method@ `ordered.operator_lt other:@this = bool
+export extern bool method@ `ordered.operator_gt other:@this = bool
+export extern bool method@ `ordered.operator_ge other:@this = bool
 export bool fun from_bool b:bool = this
   return b
 export extern bool method@ operator_or other:@this = this
 export extern bool method@ operator_and other:@this = this
 export extern bool method@ operator_not = this
-export extern bool method@ i_generalized_boolean.operator_test = bool
+export extern bool method@ `generalized_boolean.operator_test = bool
 export extern bool method@ to_u8 = u8
 export extern bool method@ to_u16 = u16
 export extern bool method@ to_u32 = u32
 export extern bool method@ to_u64 = u64
-export extern bool method@ i_show.show buf:@#i_string_buffer = void
+export extern bool method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i8 = export i_native_unsigned_integer
+export extern struct i8 = export `native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u8
-export extern i8 method@# i_copyable.copy_ctor other:@this = void
-export extern i8 method@ i_has_equality.operator_eq other:@this = bool
-export extern i8 method@ i_has_equality.operator_ne other:@this = bool
-export extern i8 method@ i_has_compare.operator_compare other:@this = i32
-export extern i8 method@ i_ordered.operator_le other:@this = bool
-export extern i8 method@ i_ordered.operator_lt other:@this = bool
-export extern i8 method@ i_ordered.operator_gt other:@this = bool
-export extern i8 method@ i_ordered.operator_ge other:@this = bool
-export extern i8 method@ i_arithmetic.operator_plus other:@this = this
-export extern i8 method@ i_arithmetic.operator_minus other:@this = this
-export extern i8 method@ i_arithmetic.operator_divide other:@this = this
-export extern i8 method@ i_arithmetic.operator_modulo other:@this = this
-export extern i8 method@ i_arithmetic.operator_times other:@this = this
-export extern i8 method@ i_arithmetic.operator_uminus = this
-export extern i8 method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern i8 method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern i8 method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern i8 method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern i8 method@! i_arithmetic.operator_assign_times other:@this = void
-export extern i8 method@ i_bitwise.operator_bwor other:@this = this
-export extern i8 method@ i_bitwise.operator_bwxor other:@this = this
-export extern i8 method@ i_bitwise.operator_bwand other:@this = this
-export extern i8 method@ i_bitwise.operator_lshift by:u32 = this
-export extern i8 method@ i_bitwise.operator_rshift by:u32 = this
-export extern i8 method@ i_bitwise.operator_bwnot = this
-export extern i8 method@! i_bitwise.operator_assign_bwor other:@this = void
-export extern i8 method@! i_bitwise.operator_assign_bwxor other:@this = void
-export extern i8 method@! i_bitwise.operator_assign_bwand other:@this = void
-export extern i8 method@! i_bitwise.operator_assign_lshift by:u32 = void
-export extern i8 method@! i_bitwise.operator_assign_rshift by:u32 = void
+export extern i8 method@# `copyable.copy_ctor other:@this = void
+export extern i8 method@ `has_equality.operator_eq other:@this = bool
+export extern i8 method@ `has_equality.operator_ne other:@this = bool
+export extern i8 method@ `has_compare.operator_compare other:@this = i32
+export extern i8 method@ `ordered.operator_le other:@this = bool
+export extern i8 method@ `ordered.operator_lt other:@this = bool
+export extern i8 method@ `ordered.operator_gt other:@this = bool
+export extern i8 method@ `ordered.operator_ge other:@this = bool
+export extern i8 method@ `arithmetic.operator_plus other:@this = this
+export extern i8 method@ `arithmetic.operator_minus other:@this = this
+export extern i8 method@ `arithmetic.operator_divide other:@this = this
+export extern i8 method@ `arithmetic.operator_modulo other:@this = this
+export extern i8 method@ `arithmetic.operator_times other:@this = this
+export extern i8 method@ `arithmetic.operator_uminus = this
+export extern i8 method@! `arithmetic.operator_assign_plus other:@this = void
+export extern i8 method@! `arithmetic.operator_assign_minus other:@this = void
+export extern i8 method@! `arithmetic.operator_assign_divide other:@this = void
+export extern i8 method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern i8 method@! `arithmetic.operator_assign_times other:@this = void
+export extern i8 method@ `bitwise.operator_bwor other:@this = this
+export extern i8 method@ `bitwise.operator_bwxor other:@this = this
+export extern i8 method@ `bitwise.operator_bwand other:@this = this
+export extern i8 method@ `bitwise.operator_lshift by:u32 = this
+export extern i8 method@ `bitwise.operator_rshift by:u32 = this
+export extern i8 method@ `bitwise.operator_bwnot = this
+export extern i8 method@! `bitwise.operator_assign_bwor other:@this = void
+export extern i8 method@! `bitwise.operator_assign_bwxor other:@this = void
+export extern i8 method@! `bitwise.operator_assign_bwand other:@this = void
+export extern i8 method@! `bitwise.operator_assign_lshift by:u32 = void
+export extern i8 method@! `bitwise.operator_assign_rshift by:u32 = void
 export extern inline i8 method@ reinterpret_unsigned = u8
 export extern inline i8 method@ reinterpret_signed = this
 export extern inline i8 method@ to_i16 = i16
 export extern inline i8 method@ to_i32 = i32
 export extern inline i8 method@ to_i64 = i64
-export extern inline i8 method@ i_integer.as_ssize = ssize
-export extern i8 method@ i_show.show buf:@#i_string_buffer = void
+export extern inline i8 method@ `integer.as_ssize = ssize
+export extern i8 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i16 = export i_native_unsigned_integer
+export extern struct i16 = export `native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u16
-export extern i16 method@# i_copyable.copy_ctor other:@this = void
-export extern i16 method@ i_has_equality.operator_eq other:@this = bool
-export extern i16 method@ i_has_equality.operator_ne other:@this = bool
-export extern i16 method@ i_has_compare.operator_compare other:@this = i32
-export extern i16 method@ i_ordered.operator_le other:@this = bool
-export extern i16 method@ i_ordered.operator_lt other:@this = bool
-export extern i16 method@ i_ordered.operator_gt other:@this = bool
-export extern i16 method@ i_ordered.operator_ge other:@this = bool
-export extern i16 method@ i_arithmetic.operator_plus other:@this = this
-export extern i16 method@ i_arithmetic.operator_minus other:@this = this
-export extern i16 method@ i_arithmetic.operator_divide other:@this = this
-export extern i16 method@ i_arithmetic.operator_modulo other:@this = this
-export extern i16 method@ i_arithmetic.operator_times other:@this = this
-export extern i16 method@ i_arithmetic.operator_uminus = this
-export extern i16 method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern i16 method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern i16 method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern i16 method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern i16 method@! i_arithmetic.operator_assign_times other:@this = void
-export extern i16 method@ i_bitwise.operator_bwor other:@this = this
-export extern i16 method@ i_bitwise.operator_bwxor other:@this = this
-export extern i16 method@ i_bitwise.operator_bwand other:@this = this
-export extern i16 method@ i_bitwise.operator_lshift by:u32 = this
-export extern i16 method@ i_bitwise.operator_rshift by:u32 = this
-export extern i16 method@ i_bitwise.operator_bwnot = this
-export extern i16 method@! i_bitwise.operator_assign_bwor other:@this = void
-export extern i16 method@! i_bitwise.operator_assign_bwxor other:@this = void
-export extern i16 method@! i_bitwise.operator_assign_bwand other:@this = void
-export extern i16 method@! i_bitwise.operator_assign_lshift by:u32 = void
-export extern i16 method@! i_bitwise.operator_assign_rshift by:u32 = void
+export extern i16 method@# `copyable.copy_ctor other:@this = void
+export extern i16 method@ `has_equality.operator_eq other:@this = bool
+export extern i16 method@ `has_equality.operator_ne other:@this = bool
+export extern i16 method@ `has_compare.operator_compare other:@this = i32
+export extern i16 method@ `ordered.operator_le other:@this = bool
+export extern i16 method@ `ordered.operator_lt other:@this = bool
+export extern i16 method@ `ordered.operator_gt other:@this = bool
+export extern i16 method@ `ordered.operator_ge other:@this = bool
+export extern i16 method@ `arithmetic.operator_plus other:@this = this
+export extern i16 method@ `arithmetic.operator_minus other:@this = this
+export extern i16 method@ `arithmetic.operator_divide other:@this = this
+export extern i16 method@ `arithmetic.operator_modulo other:@this = this
+export extern i16 method@ `arithmetic.operator_times other:@this = this
+export extern i16 method@ `arithmetic.operator_uminus = this
+export extern i16 method@! `arithmetic.operator_assign_plus other:@this = void
+export extern i16 method@! `arithmetic.operator_assign_minus other:@this = void
+export extern i16 method@! `arithmetic.operator_assign_divide other:@this = void
+export extern i16 method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern i16 method@! `arithmetic.operator_assign_times other:@this = void
+export extern i16 method@ `bitwise.operator_bwor other:@this = this
+export extern i16 method@ `bitwise.operator_bwxor other:@this = this
+export extern i16 method@ `bitwise.operator_bwand other:@this = this
+export extern i16 method@ `bitwise.operator_lshift by:u32 = this
+export extern i16 method@ `bitwise.operator_rshift by:u32 = this
+export extern i16 method@ `bitwise.operator_bwnot = this
+export extern i16 method@! `bitwise.operator_assign_bwor other:@this = void
+export extern i16 method@! `bitwise.operator_assign_bwxor other:@this = void
+export extern i16 method@! `bitwise.operator_assign_bwand other:@this = void
+export extern i16 method@! `bitwise.operator_assign_lshift by:u32 = void
+export extern i16 method@! `bitwise.operator_assign_rshift by:u32 = void
 export extern inline i16 method@ reinterpret_unsigned = u16
 export extern inline i16 method@ reinterpret_signed = this
 export extern inline i16 method@ trim_i8 = i8
 export extern inline i16 method@ to_i32 = i32
 export extern inline i16 method@ to_i64 = i64
-export extern inline i16 method@ i_integer.as_ssize = ssize
-export extern i16 method@ i_show.show buf:@#i_string_buffer = void
+export extern inline i16 method@ `integer.as_ssize = ssize
+export extern i16 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i32 = export i_native_unsigned_integer
+export extern struct i32 = export `native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u32
-export extern i32 method@# i_copyable.copy_ctor other:@this = void
-export extern i32 method@ i_has_equality.operator_eq other:@this = bool
-export extern i32 method@ i_has_equality.operator_ne other:@this = bool
-export extern i32 method@ i_has_compare.operator_compare other:@this = i32
-export extern i32 method@ i_ordered.operator_le other:@this = bool
-export extern i32 method@ i_ordered.operator_lt other:@this = bool
-export extern i32 method@ i_ordered.operator_gt other:@this = bool
-export extern i32 method@ i_ordered.operator_ge other:@this = bool
-export extern i32 method@ i_arithmetic.operator_plus other:@this = this
-export extern i32 method@ i_arithmetic.operator_minus other:@this = this
-export extern i32 method@ i_arithmetic.operator_divide other:@this = this
-export extern i32 method@ i_arithmetic.operator_modulo other:@this = this
-export extern i32 method@ i_arithmetic.operator_times other:@this = this
-export extern i32 method@ i_arithmetic.operator_uminus = this
-export extern i32 method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern i32 method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern i32 method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern i32 method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern i32 method@! i_arithmetic.operator_assign_times other:@this = void
-export extern i32 method@ i_bitwise.operator_bwor other:@this = this
-export extern i32 method@ i_bitwise.operator_bwxor other:@this = this
-export extern i32 method@ i_bitwise.operator_bwand other:@this = this
-export extern i32 method@ i_bitwise.operator_lshift by:u32 = this
-export extern i32 method@ i_bitwise.operator_rshift by:u32 = this
-export extern i32 method@ i_bitwise.operator_bwnot = this
-export extern i32 method@! i_bitwise.operator_assign_bwor other:@this = void
-export extern i32 method@! i_bitwise.operator_assign_bwxor other:@this = void
-export extern i32 method@! i_bitwise.operator_assign_bwand other:@this = void
-export extern i32 method@! i_bitwise.operator_assign_lshift by:u32 = void
-export extern i32 method@! i_bitwise.operator_assign_rshift by:u32 = void
+export extern i32 method@# `copyable.copy_ctor other:@this = void
+export extern i32 method@ `has_equality.operator_eq other:@this = bool
+export extern i32 method@ `has_equality.operator_ne other:@this = bool
+export extern i32 method@ `has_compare.operator_compare other:@this = i32
+export extern i32 method@ `ordered.operator_le other:@this = bool
+export extern i32 method@ `ordered.operator_lt other:@this = bool
+export extern i32 method@ `ordered.operator_gt other:@this = bool
+export extern i32 method@ `ordered.operator_ge other:@this = bool
+export extern i32 method@ `arithmetic.operator_plus other:@this = this
+export extern i32 method@ `arithmetic.operator_minus other:@this = this
+export extern i32 method@ `arithmetic.operator_divide other:@this = this
+export extern i32 method@ `arithmetic.operator_modulo other:@this = this
+export extern i32 method@ `arithmetic.operator_times other:@this = this
+export extern i32 method@ `arithmetic.operator_uminus = this
+export extern i32 method@! `arithmetic.operator_assign_plus other:@this = void
+export extern i32 method@! `arithmetic.operator_assign_minus other:@this = void
+export extern i32 method@! `arithmetic.operator_assign_divide other:@this = void
+export extern i32 method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern i32 method@! `arithmetic.operator_assign_times other:@this = void
+export extern i32 method@ `bitwise.operator_bwor other:@this = this
+export extern i32 method@ `bitwise.operator_bwxor other:@this = this
+export extern i32 method@ `bitwise.operator_bwand other:@this = this
+export extern i32 method@ `bitwise.operator_lshift by:u32 = this
+export extern i32 method@ `bitwise.operator_rshift by:u32 = this
+export extern i32 method@ `bitwise.operator_bwnot = this
+export extern i32 method@! `bitwise.operator_assign_bwor other:@this = void
+export extern i32 method@! `bitwise.operator_assign_bwxor other:@this = void
+export extern i32 method@! `bitwise.operator_assign_bwand other:@this = void
+export extern i32 method@! `bitwise.operator_assign_lshift by:u32 = void
+export extern i32 method@! `bitwise.operator_assign_rshift by:u32 = void
 export extern inline i32 method@ reinterpret_unsigned = u32
 export extern inline i32 method@ reinterpret_signed = this
 export extern inline i32 method@ trim_i8 = i8
 export extern inline i32 method@ trim_i16 = i16
 export extern inline i32 method@ to_i64 = i64
-export extern inline i32 method@ i_integer.as_ssize = ssize
+export extern inline i32 method@ `integer.as_ssize = ssize
 export extern inline i32 method@ trim_float = float
 export extern inline i32 method@ to_double = double
-export extern i32 method@ i_show.show buf:@#i_string_buffer = void
+export extern i32 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i64 = export i_native_unsigned_integer
+export extern struct i64 = export `native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u64
-export extern i64 method@# i_copyable.copy_ctor other:@this = void
-export extern i64 method@ i_has_equality.operator_eq other:@this = bool
-export extern i64 method@ i_has_equality.operator_ne other:@this = bool
-export extern i64 method@ i_has_compare.operator_compare other:@this = i32
-export extern i64 method@ i_ordered.operator_le other:@this = bool
-export extern i64 method@ i_ordered.operator_lt other:@this = bool
-export extern i64 method@ i_ordered.operator_gt other:@this = bool
-export extern i64 method@ i_ordered.operator_ge other:@this = bool
-export extern i64 method@ i_arithmetic.operator_plus other:@this = this
-export extern i64 method@ i_arithmetic.operator_minus other:@this = this
-export extern i64 method@ i_arithmetic.operator_divide other:@this = this
-export extern i64 method@ i_arithmetic.operator_modulo other:@this = this
-export extern i64 method@ i_arithmetic.operator_times other:@this = this
-export extern i64 method@ i_arithmetic.operator_uminus = this
-export extern i64 method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern i64 method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern i64 method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern i64 method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern i64 method@! i_arithmetic.operator_assign_times other:@this = void
-export extern i64 method@ i_bitwise.operator_bwor other:@this = this
-export extern i64 method@ i_bitwise.operator_bwxor other:@this = this
-export extern i64 method@ i_bitwise.operator_bwand other:@this = this
-export extern i64 method@ i_bitwise.operator_lshift by:u32 = this
-export extern i64 method@ i_bitwise.operator_rshift by:u32 = this
-export extern i64 method@ i_bitwise.operator_bwnot = this
-export extern i64 method@! i_bitwise.operator_assign_bwor other:@this = void
-export extern i64 method@! i_bitwise.operator_assign_bwxor other:@this = void
-export extern i64 method@! i_bitwise.operator_assign_bwand other:@this = void
-export extern i64 method@! i_bitwise.operator_assign_lshift by:u32 = void
-export extern i64 method@! i_bitwise.operator_assign_rshift by:u32 = void
+export extern i64 method@# `copyable.copy_ctor other:@this = void
+export extern i64 method@ `has_equality.operator_eq other:@this = bool
+export extern i64 method@ `has_equality.operator_ne other:@this = bool
+export extern i64 method@ `has_compare.operator_compare other:@this = i32
+export extern i64 method@ `ordered.operator_le other:@this = bool
+export extern i64 method@ `ordered.operator_lt other:@this = bool
+export extern i64 method@ `ordered.operator_gt other:@this = bool
+export extern i64 method@ `ordered.operator_ge other:@this = bool
+export extern i64 method@ `arithmetic.operator_plus other:@this = this
+export extern i64 method@ `arithmetic.operator_minus other:@this = this
+export extern i64 method@ `arithmetic.operator_divide other:@this = this
+export extern i64 method@ `arithmetic.operator_modulo other:@this = this
+export extern i64 method@ `arithmetic.operator_times other:@this = this
+export extern i64 method@ `arithmetic.operator_uminus = this
+export extern i64 method@! `arithmetic.operator_assign_plus other:@this = void
+export extern i64 method@! `arithmetic.operator_assign_minus other:@this = void
+export extern i64 method@! `arithmetic.operator_assign_divide other:@this = void
+export extern i64 method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern i64 method@! `arithmetic.operator_assign_times other:@this = void
+export extern i64 method@ `bitwise.operator_bwor other:@this = this
+export extern i64 method@ `bitwise.operator_bwxor other:@this = this
+export extern i64 method@ `bitwise.operator_bwand other:@this = this
+export extern i64 method@ `bitwise.operator_lshift by:u32 = this
+export extern i64 method@ `bitwise.operator_rshift by:u32 = this
+export extern i64 method@ `bitwise.operator_bwnot = this
+export extern i64 method@! `bitwise.operator_assign_bwor other:@this = void
+export extern i64 method@! `bitwise.operator_assign_bwxor other:@this = void
+export extern i64 method@! `bitwise.operator_assign_bwand other:@this = void
+export extern i64 method@! `bitwise.operator_assign_lshift by:u32 = void
+export extern i64 method@! `bitwise.operator_assign_rshift by:u32 = void
 export extern inline i64 method@ reinterpret_unsigned = u64
 export extern inline i64 method@ reinterpret_signed = this
 export extern inline i64 method@ trim_i8 = i8
 export extern inline i64 method@ trim_i16 = i16
 export extern inline i64 method@ trim_i32 = i32
-export extern inline i64 method@ i_integer.as_ssize = ssize
+export extern inline i64 method@ `integer.as_ssize = ssize
 export extern inline i64 method@ trim_float = float
 export extern inline i64 method@ trim_double = double
-export extern i64 method@ i_show.show buf:@#i_string_buffer = void
+export extern i64 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u8 = export i_native_unsigned_integer
+export extern struct u8 = export `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i8
-export extern u8 method@# i_copyable.copy_ctor other:@this = void
-export extern u8 method@ i_has_equality.operator_eq other:@this = bool
-export extern u8 method@ i_has_equality.operator_ne other:@this = bool
-export extern u8 method@ i_has_compare.operator_compare other:@this = i32
-export extern u8 method@ i_ordered.operator_le other:@this = bool
-export extern u8 method@ i_ordered.operator_lt other:@this = bool
-export extern u8 method@ i_ordered.operator_gt other:@this = bool
-export extern u8 method@ i_ordered.operator_ge other:@this = bool
-export extern u8 method@ i_arithmetic.operator_plus other:@this = this
-export extern u8 method@ i_arithmetic.operator_minus other:@this = this
-export extern u8 method@ i_arithmetic.operator_divide other:@this = this
-export extern u8 method@ i_arithmetic.operator_modulo other:@this = this
-export extern u8 method@ i_arithmetic.operator_times other:@this = this
-export extern u8 method@ i_arithmetic.operator_uminus = this
-export extern u8 method@ i_bitwise.operator_bwor other:@this = this
-export extern u8 method@ i_bitwise.operator_bwxor other:@this = this
-export extern u8 method@ i_bitwise.operator_bwand other:@this = this
-export extern u8 method@ i_bitwise.operator_lshift by:u32 = this
-export extern u8 method@ i_bitwise.operator_rshift by:u32 = this
-export extern u8 method@ i_bitwise.operator_bwnot = this
-export extern u8 method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern u8 method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern u8 method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern u8 method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern u8 method@! i_arithmetic.operator_assign_times other:@this = void
-export extern u8 method@! i_bitwise.operator_assign_bwor other:@this = void
-export extern u8 method@! i_bitwise.operator_assign_bwxor other:@this = void
-export extern u8 method@! i_bitwise.operator_assign_bwand other:@this = void
-export extern u8 method@! i_bitwise.operator_assign_lshift by:u32 = void
-export extern u8 method@! i_bitwise.operator_assign_rshift by:u32 = void
+export extern u8 method@# `copyable.copy_ctor other:@this = void
+export extern u8 method@ `has_equality.operator_eq other:@this = bool
+export extern u8 method@ `has_equality.operator_ne other:@this = bool
+export extern u8 method@ `has_compare.operator_compare other:@this = i32
+export extern u8 method@ `ordered.operator_le other:@this = bool
+export extern u8 method@ `ordered.operator_lt other:@this = bool
+export extern u8 method@ `ordered.operator_gt other:@this = bool
+export extern u8 method@ `ordered.operator_ge other:@this = bool
+export extern u8 method@ `arithmetic.operator_plus other:@this = this
+export extern u8 method@ `arithmetic.operator_minus other:@this = this
+export extern u8 method@ `arithmetic.operator_divide other:@this = this
+export extern u8 method@ `arithmetic.operator_modulo other:@this = this
+export extern u8 method@ `arithmetic.operator_times other:@this = this
+export extern u8 method@ `arithmetic.operator_uminus = this
+export extern u8 method@ `bitwise.operator_bwor other:@this = this
+export extern u8 method@ `bitwise.operator_bwxor other:@this = this
+export extern u8 method@ `bitwise.operator_bwand other:@this = this
+export extern u8 method@ `bitwise.operator_lshift by:u32 = this
+export extern u8 method@ `bitwise.operator_rshift by:u32 = this
+export extern u8 method@ `bitwise.operator_bwnot = this
+export extern u8 method@! `arithmetic.operator_assign_plus other:@this = void
+export extern u8 method@! `arithmetic.operator_assign_minus other:@this = void
+export extern u8 method@! `arithmetic.operator_assign_divide other:@this = void
+export extern u8 method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern u8 method@! `arithmetic.operator_assign_times other:@this = void
+export extern u8 method@! `bitwise.operator_assign_bwor other:@this = void
+export extern u8 method@! `bitwise.operator_assign_bwxor other:@this = void
+export extern u8 method@! `bitwise.operator_assign_bwand other:@this = void
+export extern u8 method@! `bitwise.operator_assign_lshift by:u32 = void
+export extern u8 method@! `bitwise.operator_assign_rshift by:u32 = void
 export extern inline u8 method@ reinterpret_unsigned = this
 export extern inline u8 method@ reinterpret_signed = i8
 export extern inline u8 method@ to_u16 = u16
 export extern inline u8 method@ to_u32 = u32
 export extern inline u8 method@ to_u64 = u64
-export extern inline u8 method@ i_integer.as_size = size
+export extern inline u8 method@ `integer.as_size = size
 export extern inline u8 method@ to_float = float
 export extern inline u8 method@ to_double = double
-export extern u8 method@ i_show.show buf:@#i_string_buffer = void
+export extern u8 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u16 = export i_native_unsigned_integer
+export extern struct u16 = export `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i16
-export extern u16 method@# i_copyable.copy_ctor other:@this = void
-export extern u16 method@ i_has_equality.operator_eq other:@this = bool
-export extern u16 method@ i_has_equality.operator_ne other:@this = bool
-export extern u16 method@ i_has_compare.operator_compare other:@this = i32
-export extern u16 method@ i_ordered.operator_le other:@this = bool
-export extern u16 method@ i_ordered.operator_lt other:@this = bool
-export extern u16 method@ i_ordered.operator_gt other:@this = bool
-export extern u16 method@ i_ordered.operator_ge other:@this = bool
-export extern u16 method@ i_arithmetic.operator_plus other:@this = this
-export extern u16 method@ i_arithmetic.operator_minus other:@this = this
-export extern u16 method@ i_arithmetic.operator_divide other:@this = this
-export extern u16 method@ i_arithmetic.operator_modulo other:@this = this
-export extern u16 method@ i_arithmetic.operator_times other:@this = this
-export extern u16 method@ i_arithmetic.operator_uminus = this
-export extern u16 method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern u16 method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern u16 method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern u16 method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern u16 method@! i_arithmetic.operator_assign_times other:@this = void
-export extern u16 method@ i_bitwise.operator_bwor other:@this = this
-export extern u16 method@ i_bitwise.operator_bwxor other:@this = this
-export extern u16 method@ i_bitwise.operator_bwand other:@this = this
-export extern u16 method@ i_bitwise.operator_lshift by:u32 = this
-export extern u16 method@ i_bitwise.operator_rshift by:u32 = this
-export extern u16 method@ i_bitwise.operator_bwnot = this
-export extern u16 method@! i_bitwise.operator_assign_bwor other:@this = void
-export extern u16 method@! i_bitwise.operator_assign_bwxor other:@this = void
-export extern u16 method@! i_bitwise.operator_assign_bwand other:@this = void
-export extern u16 method@! i_bitwise.operator_assign_lshift by:u32 = void
-export extern u16 method@! i_bitwise.operator_assign_rshift by:u32 = void
+export extern u16 method@# `copyable.copy_ctor other:@this = void
+export extern u16 method@ `has_equality.operator_eq other:@this = bool
+export extern u16 method@ `has_equality.operator_ne other:@this = bool
+export extern u16 method@ `has_compare.operator_compare other:@this = i32
+export extern u16 method@ `ordered.operator_le other:@this = bool
+export extern u16 method@ `ordered.operator_lt other:@this = bool
+export extern u16 method@ `ordered.operator_gt other:@this = bool
+export extern u16 method@ `ordered.operator_ge other:@this = bool
+export extern u16 method@ `arithmetic.operator_plus other:@this = this
+export extern u16 method@ `arithmetic.operator_minus other:@this = this
+export extern u16 method@ `arithmetic.operator_divide other:@this = this
+export extern u16 method@ `arithmetic.operator_modulo other:@this = this
+export extern u16 method@ `arithmetic.operator_times other:@this = this
+export extern u16 method@ `arithmetic.operator_uminus = this
+export extern u16 method@! `arithmetic.operator_assign_plus other:@this = void
+export extern u16 method@! `arithmetic.operator_assign_minus other:@this = void
+export extern u16 method@! `arithmetic.operator_assign_divide other:@this = void
+export extern u16 method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern u16 method@! `arithmetic.operator_assign_times other:@this = void
+export extern u16 method@ `bitwise.operator_bwor other:@this = this
+export extern u16 method@ `bitwise.operator_bwxor other:@this = this
+export extern u16 method@ `bitwise.operator_bwand other:@this = this
+export extern u16 method@ `bitwise.operator_lshift by:u32 = this
+export extern u16 method@ `bitwise.operator_rshift by:u32 = this
+export extern u16 method@ `bitwise.operator_bwnot = this
+export extern u16 method@! `bitwise.operator_assign_bwor other:@this = void
+export extern u16 method@! `bitwise.operator_assign_bwxor other:@this = void
+export extern u16 method@! `bitwise.operator_assign_bwand other:@this = void
+export extern u16 method@! `bitwise.operator_assign_lshift by:u32 = void
+export extern u16 method@! `bitwise.operator_assign_rshift by:u32 = void
 export extern inline u16 method@ reinterpret_unsigned = this
 export extern inline u16 method@ reinterpret_signed = i16
 export extern inline u16 method@ trim_u8 = u8
 export extern inline u16 method@ to_u32 = u32
 export extern inline u16 method@ to_u64 = u64
-export extern inline u16 method@ i_integer.as_size = size
+export extern inline u16 method@ `integer.as_size = size
 export extern inline u16 method@ to_float = float
 export extern inline u16 method@ to_double = double
-export extern u16 method@ i_show.show buf:@#i_string_buffer = void
+export extern u16 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u32 = export i_native_unsigned_integer
+export extern struct u32 = export `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i32
-export extern u32 method@# i_copyable.copy_ctor other:@this = void
-export extern u32 method@ i_has_equality.operator_eq other:@this = bool
-export extern u32 method@ i_has_equality.operator_ne other:@this = bool
-export extern u32 method@ i_has_compare.operator_compare other:@this = i32
-export extern u32 method@ i_ordered.operator_le other:@this = bool
-export extern u32 method@ i_ordered.operator_lt other:@this = bool
-export extern u32 method@ i_ordered.operator_gt other:@this = bool
-export extern u32 method@ i_ordered.operator_ge other:@this = bool
-export extern u32 method@ i_arithmetic.operator_plus other:@this = this
-export extern u32 method@ i_arithmetic.operator_minus other:@this = this
-export extern u32 method@ i_arithmetic.operator_divide other:@this = this
-export extern u32 method@ i_arithmetic.operator_modulo other:@this = this
-export extern u32 method@ i_arithmetic.operator_times other:@this = this
-export extern u32 method@ i_arithmetic.operator_uminus = this
-export extern u32 method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern u32 method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern u32 method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern u32 method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern u32 method@! i_arithmetic.operator_assign_times other:@this = void
-export extern u32 method@ i_bitwise.operator_bwor other:@this = this
-export extern u32 method@ i_bitwise.operator_bwxor other:@this = this
-export extern u32 method@ i_bitwise.operator_bwand other:@this = this
-export extern u32 method@ i_bitwise.operator_lshift by:u32 = this
-export extern u32 method@ i_bitwise.operator_rshift by:u32 = this
-export extern u32 method@ i_bitwise.operator_bwnot = this
-export extern u32 method@! i_bitwise.operator_assign_bwor other:@this = void
-export extern u32 method@! i_bitwise.operator_assign_bwxor other:@this = void
-export extern u32 method@! i_bitwise.operator_assign_bwand other:@this = void
-export extern u32 method@! i_bitwise.operator_assign_lshift by:u32 = void
-export extern u32 method@! i_bitwise.operator_assign_rshift by:u32 = void
+export extern u32 method@# `copyable.copy_ctor other:@this = void
+export extern u32 method@ `has_equality.operator_eq other:@this = bool
+export extern u32 method@ `has_equality.operator_ne other:@this = bool
+export extern u32 method@ `has_compare.operator_compare other:@this = i32
+export extern u32 method@ `ordered.operator_le other:@this = bool
+export extern u32 method@ `ordered.operator_lt other:@this = bool
+export extern u32 method@ `ordered.operator_gt other:@this = bool
+export extern u32 method@ `ordered.operator_ge other:@this = bool
+export extern u32 method@ `arithmetic.operator_plus other:@this = this
+export extern u32 method@ `arithmetic.operator_minus other:@this = this
+export extern u32 method@ `arithmetic.operator_divide other:@this = this
+export extern u32 method@ `arithmetic.operator_modulo other:@this = this
+export extern u32 method@ `arithmetic.operator_times other:@this = this
+export extern u32 method@ `arithmetic.operator_uminus = this
+export extern u32 method@! `arithmetic.operator_assign_plus other:@this = void
+export extern u32 method@! `arithmetic.operator_assign_minus other:@this = void
+export extern u32 method@! `arithmetic.operator_assign_divide other:@this = void
+export extern u32 method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern u32 method@! `arithmetic.operator_assign_times other:@this = void
+export extern u32 method@ `bitwise.operator_bwor other:@this = this
+export extern u32 method@ `bitwise.operator_bwxor other:@this = this
+export extern u32 method@ `bitwise.operator_bwand other:@this = this
+export extern u32 method@ `bitwise.operator_lshift by:u32 = this
+export extern u32 method@ `bitwise.operator_rshift by:u32 = this
+export extern u32 method@ `bitwise.operator_bwnot = this
+export extern u32 method@! `bitwise.operator_assign_bwor other:@this = void
+export extern u32 method@! `bitwise.operator_assign_bwxor other:@this = void
+export extern u32 method@! `bitwise.operator_assign_bwand other:@this = void
+export extern u32 method@! `bitwise.operator_assign_lshift by:u32 = void
+export extern u32 method@! `bitwise.operator_assign_rshift by:u32 = void
 export extern inline u32 method@ reinterpret_unsigned = this
 export extern inline u32 method@ reinterpret_signed = i32
 export extern inline u32 method@ trim_u8 = u8
 export extern inline u32 method@ trim_u16 = u16
 export extern inline u32 method@ to_u64 = u64
-export extern inline u32 method@ i_integer.as_size = size
+export extern inline u32 method@ `integer.as_size = size
 export extern inline u32 method@ trim_float = float
 export extern inline u32 method@ to_double = double
-export extern u32 method@ i_show.show buf:@#i_string_buffer = void
+export extern u32 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u64 = export i_native_unsigned_integer
+export extern struct u64 = export `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i64
-export extern u64 method@# i_copyable.copy_ctor other:@this = void
-export extern u64 method@ i_has_equality.operator_eq other:@this = bool
-export extern u64 method@ i_has_equality.operator_ne other:@this = bool
-export extern u64 method@ i_has_compare.operator_compare other:@this = i32
-export extern u64 method@ i_ordered.operator_le other:@this = bool
-export extern u64 method@ i_ordered.operator_lt other:@this = bool
-export extern u64 method@ i_ordered.operator_gt other:@this = bool
-export extern u64 method@ i_ordered.operator_ge other:@this = bool
-export extern u64 method@ i_arithmetic.operator_plus other:@this = this
-export extern u64 method@ i_arithmetic.operator_minus other:@this = this
-export extern u64 method@ i_arithmetic.operator_divide other:@this = this
-export extern u64 method@ i_arithmetic.operator_modulo other:@this = this
-export extern u64 method@ i_arithmetic.operator_times other:@this = this
-export extern u64 method@ i_arithmetic.operator_uminus = this
-export extern u64 method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern u64 method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern u64 method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern u64 method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern u64 method@! i_arithmetic.operator_assign_times other:@this = void
-export extern u64 method@ i_bitwise.operator_bwor other:@this = this
-export extern u64 method@ i_bitwise.operator_bwxor other:@this = this
-export extern u64 method@ i_bitwise.operator_bwand other:@this = this
-export extern u64 method@ i_bitwise.operator_lshift by:u32 = this
-export extern u64 method@ i_bitwise.operator_rshift by:u32 = this
-export extern u64 method@ i_bitwise.operator_bwnot = this
-export extern u64 method@! i_bitwise.operator_assign_bwor other:@this = void
-export extern u64 method@! i_bitwise.operator_assign_bwxor other:@this = void
-export extern u64 method@! i_bitwise.operator_assign_bwand other:@this = void
-export extern u64 method@! i_bitwise.operator_assign_lshift by:u32 = void
-export extern u64 method@! i_bitwise.operator_assign_rshift by:u32 = void
+export extern u64 method@# `copyable.copy_ctor other:@this = void
+export extern u64 method@ `has_equality.operator_eq other:@this = bool
+export extern u64 method@ `has_equality.operator_ne other:@this = bool
+export extern u64 method@ `has_compare.operator_compare other:@this = i32
+export extern u64 method@ `ordered.operator_le other:@this = bool
+export extern u64 method@ `ordered.operator_lt other:@this = bool
+export extern u64 method@ `ordered.operator_gt other:@this = bool
+export extern u64 method@ `ordered.operator_ge other:@this = bool
+export extern u64 method@ `arithmetic.operator_plus other:@this = this
+export extern u64 method@ `arithmetic.operator_minus other:@this = this
+export extern u64 method@ `arithmetic.operator_divide other:@this = this
+export extern u64 method@ `arithmetic.operator_modulo other:@this = this
+export extern u64 method@ `arithmetic.operator_times other:@this = this
+export extern u64 method@ `arithmetic.operator_uminus = this
+export extern u64 method@! `arithmetic.operator_assign_plus other:@this = void
+export extern u64 method@! `arithmetic.operator_assign_minus other:@this = void
+export extern u64 method@! `arithmetic.operator_assign_divide other:@this = void
+export extern u64 method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern u64 method@! `arithmetic.operator_assign_times other:@this = void
+export extern u64 method@ `bitwise.operator_bwor other:@this = this
+export extern u64 method@ `bitwise.operator_bwxor other:@this = this
+export extern u64 method@ `bitwise.operator_bwand other:@this = this
+export extern u64 method@ `bitwise.operator_lshift by:u32 = this
+export extern u64 method@ `bitwise.operator_rshift by:u32 = this
+export extern u64 method@ `bitwise.operator_bwnot = this
+export extern u64 method@! `bitwise.operator_assign_bwor other:@this = void
+export extern u64 method@! `bitwise.operator_assign_bwxor other:@this = void
+export extern u64 method@! `bitwise.operator_assign_bwand other:@this = void
+export extern u64 method@! `bitwise.operator_assign_lshift by:u32 = void
+export extern u64 method@! `bitwise.operator_assign_rshift by:u32 = void
 export extern inline u64 method@ reinterpret_unsigned = this
 export extern inline u64 method@ reinterpret_signed = i64
 export extern inline u64 method@ trim_u8 = u8
 export extern inline u64 method@ trim_u16 = u16
 export extern inline u64 method@ trim_u32 = u32
-export extern inline u64 method@ i_integer.as_size = size
+export extern inline u64 method@ `integer.as_size = size
 export extern inline u64 method@ trim_float = float
 export extern inline u64 method@ trim_double = double
-export extern u64 method@ i_show.show buf:@#i_string_buffer = void
+export extern u64 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct ssize = export i_native_integer
+export extern struct ssize = export `native_integer
   alias this_signed = this
   alias this_unsigned = size
-export extern ssize method@# i_copyable.copy_ctor other:@this = void
-export extern ssize method@ i_has_equality.operator_eq other:@this = bool
-export extern ssize method@ i_has_equality.operator_ne other:@this = bool
-export extern ssize method@ i_has_compare.operator_compare other:@this = i32
-export extern ssize method@ i_ordered.operator_le other:@this = bool
-export extern ssize method@ i_ordered.operator_lt other:@this = bool
-export extern ssize method@ i_ordered.operator_gt other:@this = bool
-export extern ssize method@ i_ordered.operator_ge other:@this = bool
-export extern ssize method@ i_arithmetic.operator_plus other:@this = this
-export extern ssize method@ i_arithmetic.operator_minus other:@this = this
-export extern ssize method@ i_arithmetic.operator_divide other:@this = this
-export extern ssize method@ i_arithmetic.operator_modulo other:@this = this
-export extern ssize method@ i_arithmetic.operator_times other:@this = this
-export extern ssize method@ i_arithmetic.operator_uminus = this
-export extern ssize method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern ssize method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern ssize method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern ssize method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern ssize method@! i_arithmetic.operator_assign_times other:@this = void
-export extern ssize method@ i_bitwise.operator_bwor other:@this = this
-export extern ssize method@ i_bitwise.operator_bwxor other:@this = this
-export extern ssize method@ i_bitwise.operator_bwand other:@this = this
-export extern ssize method@ i_bitwise.operator_lshift by:u32 = this
-export extern ssize method@ i_bitwise.operator_rshift by:u32 = this
-export extern ssize method@ i_bitwise.operator_bwnot = this
-export extern ssize method@! i_bitwise.operator_assign_bwor other:@this = void
-export extern ssize method@! i_bitwise.operator_assign_bwxor other:@this = void
-export extern ssize method@! i_bitwise.operator_assign_bwand other:@this = void
-export extern ssize method@! i_bitwise.operator_assign_lshift by:u32 = void
-export extern ssize method@! i_bitwise.operator_assign_rshift by:u32 = void
+export extern ssize method@# `copyable.copy_ctor other:@this = void
+export extern ssize method@ `has_equality.operator_eq other:@this = bool
+export extern ssize method@ `has_equality.operator_ne other:@this = bool
+export extern ssize method@ `has_compare.operator_compare other:@this = i32
+export extern ssize method@ `ordered.operator_le other:@this = bool
+export extern ssize method@ `ordered.operator_lt other:@this = bool
+export extern ssize method@ `ordered.operator_gt other:@this = bool
+export extern ssize method@ `ordered.operator_ge other:@this = bool
+export extern ssize method@ `arithmetic.operator_plus other:@this = this
+export extern ssize method@ `arithmetic.operator_minus other:@this = this
+export extern ssize method@ `arithmetic.operator_divide other:@this = this
+export extern ssize method@ `arithmetic.operator_modulo other:@this = this
+export extern ssize method@ `arithmetic.operator_times other:@this = this
+export extern ssize method@ `arithmetic.operator_uminus = this
+export extern ssize method@! `arithmetic.operator_assign_plus other:@this = void
+export extern ssize method@! `arithmetic.operator_assign_minus other:@this = void
+export extern ssize method@! `arithmetic.operator_assign_divide other:@this = void
+export extern ssize method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern ssize method@! `arithmetic.operator_assign_times other:@this = void
+export extern ssize method@ `bitwise.operator_bwor other:@this = this
+export extern ssize method@ `bitwise.operator_bwxor other:@this = this
+export extern ssize method@ `bitwise.operator_bwand other:@this = this
+export extern ssize method@ `bitwise.operator_lshift by:u32 = this
+export extern ssize method@ `bitwise.operator_rshift by:u32 = this
+export extern ssize method@ `bitwise.operator_bwnot = this
+export extern ssize method@! `bitwise.operator_assign_bwor other:@this = void
+export extern ssize method@! `bitwise.operator_assign_bwxor other:@this = void
+export extern ssize method@! `bitwise.operator_assign_bwand other:@this = void
+export extern ssize method@! `bitwise.operator_assign_lshift by:u32 = void
+export extern ssize method@! `bitwise.operator_assign_rshift by:u32 = void
 export extern inline ssize method@ reinterpret_unsigned = size
 export extern inline ssize method@ reinterpret_signed = this
 export extern inline ssize method@ trim_i8 = i8
@@ -731,43 +731,43 @@ export extern inline ssize method@ trim_i32 = i32
 export extern inline ssize method@ trim_i64 = i64
 export extern inline ssize method@ trim_float = float
 export extern inline ssize method@ trim_double = double
-export extern ssize method@ i_show.show buf:@#i_string_buffer = void
+export extern ssize method@ `show.show buf:@#`string_buffer = void
 
 -- FIXME: size and ssize do not have a well-defined bit size, they therefore
--- should not be i_bitwise.
-export extern struct size = export i_native_unsigned_integer
+-- should not be `bitwise.
+export extern struct size = export `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = ssize
-export extern size method@# i_copyable.copy_ctor other:@this = void
-export extern size method@ i_has_equality.operator_eq other:@this = bool
-export extern size method@ i_has_equality.operator_ne other:@this = bool
-export extern size method@ i_has_compare.operator_compare other:@this = i32
-export extern size method@ i_ordered.operator_le other:@this = bool
-export extern size method@ i_ordered.operator_lt other:@this = bool
-export extern size method@ i_ordered.operator_gt other:@this = bool
-export extern size method@ i_ordered.operator_ge other:@this = bool
-export extern size method@ i_arithmetic.operator_plus other:@this = this
-export extern size method@ i_arithmetic.operator_minus other:@this = this
-export extern size method@ i_arithmetic.operator_divide other:@this = this
-export extern size method@ i_arithmetic.operator_modulo other:@this = this
-export extern size method@ i_arithmetic.operator_times other:@this = this
-export extern size method@ i_arithmetic.operator_uminus = this
-export extern size method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern size method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern size method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern size method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern size method@! i_arithmetic.operator_assign_times other:@this = void
-export extern size method@ i_bitwise.operator_bwor other:@this = this
-export extern size method@ i_bitwise.operator_bwxor other:@this = this
-export extern size method@ i_bitwise.operator_bwand other:@this = this
-export extern size method@ i_bitwise.operator_lshift by:u32 = this
-export extern size method@ i_bitwise.operator_rshift by:u32 = this
-export extern size method@ i_bitwise.operator_bwnot = this
-export extern size method@! i_bitwise.operator_assign_bwor other:@this = void
-export extern size method@! i_bitwise.operator_assign_bwxor other:@this = void
-export extern size method@! i_bitwise.operator_assign_bwand other:@this = void
-export extern size method@! i_bitwise.operator_assign_lshift by:u32 = void
-export extern size method@! i_bitwise.operator_assign_rshift by:u32 = void
+export extern size method@# `copyable.copy_ctor other:@this = void
+export extern size method@ `has_equality.operator_eq other:@this = bool
+export extern size method@ `has_equality.operator_ne other:@this = bool
+export extern size method@ `has_compare.operator_compare other:@this = i32
+export extern size method@ `ordered.operator_le other:@this = bool
+export extern size method@ `ordered.operator_lt other:@this = bool
+export extern size method@ `ordered.operator_gt other:@this = bool
+export extern size method@ `ordered.operator_ge other:@this = bool
+export extern size method@ `arithmetic.operator_plus other:@this = this
+export extern size method@ `arithmetic.operator_minus other:@this = this
+export extern size method@ `arithmetic.operator_divide other:@this = this
+export extern size method@ `arithmetic.operator_modulo other:@this = this
+export extern size method@ `arithmetic.operator_times other:@this = this
+export extern size method@ `arithmetic.operator_uminus = this
+export extern size method@! `arithmetic.operator_assign_plus other:@this = void
+export extern size method@! `arithmetic.operator_assign_minus other:@this = void
+export extern size method@! `arithmetic.operator_assign_divide other:@this = void
+export extern size method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern size method@! `arithmetic.operator_assign_times other:@this = void
+export extern size method@ `bitwise.operator_bwor other:@this = this
+export extern size method@ `bitwise.operator_bwxor other:@this = this
+export extern size method@ `bitwise.operator_bwand other:@this = this
+export extern size method@ `bitwise.operator_lshift by:u32 = this
+export extern size method@ `bitwise.operator_rshift by:u32 = this
+export extern size method@ `bitwise.operator_bwnot = this
+export extern size method@! `bitwise.operator_assign_bwor other:@this = void
+export extern size method@! `bitwise.operator_assign_bwxor other:@this = void
+export extern size method@! `bitwise.operator_assign_bwand other:@this = void
+export extern size method@! `bitwise.operator_assign_lshift by:u32 = void
+export extern size method@! `bitwise.operator_assign_rshift by:u32 = void
 export extern inline size method@ reinterpret_unsigned = this
 export extern inline size method@ reinterpret_signed = ssize
 export extern inline size method@ trim_u8 = u8
@@ -776,93 +776,93 @@ export extern inline size method@ trim_u32 = u32
 export extern inline size method@ trim_u64 = u64
 export extern inline size method@ trim_float = float
 export extern inline size method@ trim_double = double
-export extern size method@ i_show.show buf:@#i_string_buffer = void
+export extern size method@ `show.show buf:@#`string_buffer = void
 
-export extern struct float = export i_native_floating
-export extern float method@# i_copyable.copy_ctor other:@this = void
-export extern float method@ i_has_equality.operator_eq other:@this = bool
-export extern float method@ i_has_equality.operator_ne other:@this = bool
-export extern float method@ i_has_compare.operator_compare other:@this = i32
-export extern float method@ i_ordered.operator_le other:@this = bool
-export extern float method@ i_ordered.operator_lt other:@this = bool
-export extern float method@ i_ordered.operator_gt other:@this = bool
-export extern float method@ i_ordered.operator_ge other:@this = bool
-export extern float method@ i_arithmetic.operator_plus other:@this = this
-export extern float method@ i_arithmetic.operator_minus other:@this = this
-export extern float method@ i_arithmetic.operator_divide other:@this = this
-export extern float method@ i_arithmetic.operator_modulo other:@this = this
-export extern float method@ i_arithmetic.operator_times other:@this = this
-export extern float method@ i_arithmetic.operator_uminus = this
-export extern float method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern float method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern float method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern float method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern float method@! i_arithmetic.operator_assign_times other:@this = void
+export extern struct float = export `native_floating
+export extern float method@# `copyable.copy_ctor other:@this = void
+export extern float method@ `has_equality.operator_eq other:@this = bool
+export extern float method@ `has_equality.operator_ne other:@this = bool
+export extern float method@ `has_compare.operator_compare other:@this = i32
+export extern float method@ `ordered.operator_le other:@this = bool
+export extern float method@ `ordered.operator_lt other:@this = bool
+export extern float method@ `ordered.operator_gt other:@this = bool
+export extern float method@ `ordered.operator_ge other:@this = bool
+export extern float method@ `arithmetic.operator_plus other:@this = this
+export extern float method@ `arithmetic.operator_minus other:@this = this
+export extern float method@ `arithmetic.operator_divide other:@this = this
+export extern float method@ `arithmetic.operator_modulo other:@this = this
+export extern float method@ `arithmetic.operator_times other:@this = this
+export extern float method@ `arithmetic.operator_uminus = this
+export extern float method@! `arithmetic.operator_assign_plus other:@this = void
+export extern float method@! `arithmetic.operator_assign_minus other:@this = void
+export extern float method@! `arithmetic.operator_assign_divide other:@this = void
+export extern float method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern float method@! `arithmetic.operator_assign_times other:@this = void
 export extern inline float method@ trim_i8 = i8
 export extern inline float method@ trim_i16 = i16
 export extern inline float method@ to_i32 = i32
 export extern inline float method@ to_i64 = i64
 export extern inline float method@ to_double = double
 export extern inline float method@ as_ssize = ssize
-export extern float method@ i_show.show buf:@#i_string_buffer = void
+export extern float method@ `show.show buf:@#`string_buffer = void
 
-export extern struct double = export i_native_floating
-export extern double method@# i_copyable.copy_ctor other:@this = void
-export extern double method@ i_has_equality.operator_eq other:@this = bool
-export extern double method@ i_has_equality.operator_ne other:@this = bool
-export extern double method@ i_has_compare.operator_compare other:@this = i32
-export extern double method@ i_ordered.operator_le other:@this = bool
-export extern double method@ i_ordered.operator_lt other:@this = bool
-export extern double method@ i_ordered.operator_gt other:@this = bool
-export extern double method@ i_ordered.operator_ge other:@this = bool
-export extern double method@ i_arithmetic.operator_plus other:@this = this
-export extern double method@ i_arithmetic.operator_minus other:@this = this
-export extern double method@ i_arithmetic.operator_divide other:@this = this
-export extern double method@ i_arithmetic.operator_modulo other:@this = this
-export extern double method@ i_arithmetic.operator_times other:@this = this
-export extern double method@ i_arithmetic.operator_uminus = this
-export extern double method@! i_arithmetic.operator_assign_plus other:@this = void
-export extern double method@! i_arithmetic.operator_assign_minus other:@this = void
-export extern double method@! i_arithmetic.operator_assign_divide other:@this = void
-export extern double method@! i_arithmetic.operator_assign_modulo other:@this = void
-export extern double method@! i_arithmetic.operator_assign_times other:@this = void
+export extern struct double = export `native_floating
+export extern double method@# `copyable.copy_ctor other:@this = void
+export extern double method@ `has_equality.operator_eq other:@this = bool
+export extern double method@ `has_equality.operator_ne other:@this = bool
+export extern double method@ `has_compare.operator_compare other:@this = i32
+export extern double method@ `ordered.operator_le other:@this = bool
+export extern double method@ `ordered.operator_lt other:@this = bool
+export extern double method@ `ordered.operator_gt other:@this = bool
+export extern double method@ `ordered.operator_ge other:@this = bool
+export extern double method@ `arithmetic.operator_plus other:@this = this
+export extern double method@ `arithmetic.operator_minus other:@this = this
+export extern double method@ `arithmetic.operator_divide other:@this = this
+export extern double method@ `arithmetic.operator_modulo other:@this = this
+export extern double method@ `arithmetic.operator_times other:@this = this
+export extern double method@ `arithmetic.operator_uminus = this
+export extern double method@! `arithmetic.operator_assign_plus other:@this = void
+export extern double method@! `arithmetic.operator_assign_minus other:@this = void
+export extern double method@! `arithmetic.operator_assign_divide other:@this = void
+export extern double method@! `arithmetic.operator_assign_modulo other:@this = void
+export extern double method@! `arithmetic.operator_assign_times other:@this = void
 export extern inline double method@ trim_i8 = i8
 export extern inline double method@ trim_i16 = i16
 export extern inline double method@ trim_i32 = i32
 export extern inline double method@ to_i64 = i64
 export extern inline double method@ trim_float = float
 export extern inline double method@ as_ssize = ssize
-export extern double method@ i_show.show buf:@#i_string_buffer = void
+export extern double method@ `show.show buf:@#`string_buffer = void
 
-export intf i_auto_ctor =
+export intf `auto_ctor =
   fun mk = r:final
   fun new = @#final
 
-export intf i_ctor_with =
+export intf `ctor_with =
   method@# ctor = void
   fun mk = r:final
   fun new = @#final
 
 -- FIXME: actual definition below
---export intf i_ctor_with t:i_copyable =
+--export intf `ctor_with t:`copyable =
 --  method@# ctor c:t = void
 --  fun mk c:t = final
 --  fun new c:t = @#final
 --
 
-export intf i_trivial_array_ctor t:i_copyable = export (i_array_ctor t)
+export intf `trivial_array_ctor t:`copyable = export (`array_ctor t)
 
-export intf i_array_ctor t:i_copyable =
+export intf `array_ctor t:`copyable =
   method@# ctorv c:@(static_array t) = void
   fun mkv c:@(static_array t) = r:final
   fun newv c:@(static_array t) = @#final
 
 extern inline fun static_array_at_byte dp:@!u8 off:size = @!u8
 
-export inline struct static_array t:i_copyable = \
-    export (i_trivial_array_ctor t) \
-    export i_trivial_copy \
-    export i_return_by_copy
+export inline struct static_array t:`copyable = \
+    export (`trivial_array_ctor t) \
+    export `trivial_copy \
+    export `return_by_copy
   _data:?@!t
   _count:size
 
@@ -890,7 +890,7 @@ export inline static_array method@$ at n:size = @$t
   return (cast @!u8 @$t) p
 
 
-export intf i_sum_ctor_with =
+export intf `sum_ctor_with =
   method@# ctor = void
   fun mk = r:final
   fun new = @#final
@@ -905,67 +905,67 @@ export fun assert cond:bool = void
 export extern inline fun likely x:bool = bool
 export extern inline fun unlikely x:bool = bool
 
-export inline (fun t:i_any) unused x:t = void
+export inline (fun t:`any) unused x:t = void
   noop
 
-export inline (fun t:i_any) optional opt:?@t fallback:t = t
+export inline (fun t:`any) optional opt:?@t fallback:t = t
   if opt !== null
     return opt.
   else
     return fallback
 
-export inline (fun t:i_numeric) min a:t b:t = t
+export inline (fun t:`numeric) min a:t b:t = t
   if a <= b
     return a
   else
     return b
 
-export inline (fun t:i_numeric) max a:t b:t = t
+export inline (fun t:`numeric) max a:t b:t = t
   if a >= b
     return a
   else
     return b
 
 
-export intf i_error = \
-    export i_trivial_ctor \
-    export i_copyable \
-    export i_generalized_boolean \
-    export i_show
+export intf `error = \
+    export `trivial_ctor \
+    export `copyable \
+    export `generalized_boolean \
+    export `show
 
-export inline struct error = export i_error \
-    export i_trivial_copy
+export inline struct error = export `error \
+    export `trivial_copy
   code	:i32
 
   export inline let OK = {}:error
 
-export error method@ i_generalized_boolean.operator_test = bool
+export error method@ `generalized_boolean.operator_test = bool
   return self.code != 0
 
-export error method@ i_has_equality.operator_eq other:@final = bool
+export error method@ `has_equality.operator_eq other:@final = bool
   return self.code == other.code
 
-export error method@ i_has_equality.operator_ne other:@final = bool
+export error method@ `has_equality.operator_ne other:@final = bool
   return self.code != other.code
 
-export error method@ i_ordered.operator_le other:@final = bool
+export error method@ `ordered.operator_le other:@final = bool
   return self.code <= other.code
 
-export error method@ i_ordered.operator_lt other:@final = bool
+export error method@ `ordered.operator_lt other:@final = bool
   return self.code < other.code
 
-export error method@ i_ordered.operator_gt other:@final = bool
+export error method@ `ordered.operator_gt other:@final = bool
   return self.code > other.code
 
-export error method@ i_ordered.operator_ge other:@final = bool
+export error method@ `ordered.operator_ge other:@final = bool
   return self.code >= other.code
 
-export error method@ i_show.show buf:@#i_string_buffer = void
+export error method@ `show.show buf:@#`string_buffer = void
   self.code.show buf
 
-export (fun e:i_error) drop err:e = void
+export (fun e:`error) drop err:e = void
   noop
 
-export (fun e:i_error) fatal err:e = void
+export (fun e:`error) fatal err:e = void
   print @"Fatal: "
   say @err

@@ -682,8 +682,8 @@ static error step_add_builtin_enum_intf(struct module *mod, struct node *node,
     return 0;
   }
 
-  add_inferred_isa(mod, node, "nlang.builtins.i_trivial_copy");
-  add_inferred_isa(mod, node, "nlang.builtins.i_trivial_dtor");
+  add_inferred_isa(mod, node, "nlang.builtins.`trivial_copy");
+  add_inferred_isa(mod, node, "nlang.builtins.`trivial_dtor");
 
   return 0;
 }
@@ -706,12 +706,12 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
   struct node *ctor = node_get_member(mod, proxy, ID_CTOR);
   if (ctor != NULL) {
     if (node_fun_explicit_args_count(ctor) == 0) {
-      add_inferred_isa(mod, node, "nlang.builtins.i_default_ctor");
+      add_inferred_isa(mod, node, "nlang.builtins.`default_ctor");
     } else if (node_fun_explicit_args_count(ctor) == 1) {
-      add_inferred_isa(mod, node, "nlang.builtins.i_ctor_with");
+      add_inferred_isa(mod, node, "nlang.builtins.`ctor_with");
     }
   } else {
-    add_inferred_isa(mod, node, "nlang.builtins.i_trivial_ctor");
+    add_inferred_isa(mod, node, "nlang.builtins.`trivial_ctor");
   }
 
   return 0;
@@ -881,7 +881,7 @@ static error define_auto(struct module *mod, struct node *deft,
   if (e) {
     // FIXME This should be narrower and only in the case the type cannot be
     // given an automatically generated ctor.
-    e = mk_except_type(mod, deft, "type '%s' is not i_trivial_ctor and has no 'ctor'",
+    e = mk_except_type(mod, deft, "type '%s' is not `trivial_ctor and has no 'ctor'",
                        typ_pretty_name(mod, deft->typ));
     THROW(e);
   }

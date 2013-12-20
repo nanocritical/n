@@ -7,21 +7,21 @@ from nlang.strings import *
 
 fun write_buf fd:i32 s:@u8 count:size = void
 
-export fun print a:@i_show = void
+export fun print a:@`show = void
   let s = string.mk
   such
     a.show @#s
   let b = s.bytes_utf8
   write_buf 1 b.unsafe_data b.bytecount
 
-export fun say a:@i_show = void
+export fun say a:@`show = void
   print a
   let eol = '\n':char
   write_buf 1 @eol.code.trim_u8 1
 
 
-export inline (fun t:i_any r:(i_any_ref t)) just_const p:r = @t
+export inline (fun t:`any r:(`any_ref t)) just_const p:r = @t
   return p
 
-export inline (fun t:i_any r:(i_any_mutable_ref t)) just_mutable p:r = @!t
+export inline (fun t:`any r:(`any_mutable_ref t)) just_mutable p:r = @!t
   return p

@@ -241,7 +241,7 @@ normal:
     }
   }
 
-  [a-zA-Z_][a-zA-Z_0-9]* { R(TIDENT); }
+  [`a-zA-Z_][a-zA-Z_0-9]* { R(TIDENT); }
 
   ANY { ERROR(EINVAL, "lexer: illegal char '\\0%hho'", *(YYCURSOR - 1)); }
  */

@@ -1,6 +1,6 @@
 from nlang import *
 
-type d = i_d <root>.nlang.builtins.i_trivial_ctor
+type d = `d <root>.nlang.builtins.`trivial_ctor
   and this = t00.dynintf.d
   and final = t00.dynintf.d
   x:i32
@@ -10,14 +10,14 @@ type d = i_d <root>.nlang.builtins.i_trivial_ctor
   d method get = i32
   return self.x
 
-  d method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+  d method <root>.nlang.builtins.`trivial_ctor.ctor = void
 
-  fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
 
-  fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
 
 
-type dc = i_d <root>.nlang.builtins.i_trivial_ctor
+type dc = `d <root>.nlang.builtins.`trivial_ctor
   and this = t00.dynintf.dc
   and final = t00.dynintf.dc
   dummy:i32
@@ -27,20 +27,20 @@ type dc = i_d <root>.nlang.builtins.i_trivial_ctor
   dc method get = i32
   return 42
 
-  dc method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+  dc method <root>.nlang.builtins.`trivial_ctor.ctor = void
 
-  fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
 
-  fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
 
 
-fun foo v:@i_d = i32
-  return t00.dynintf.i_d.get v
+fun foo v:@`d = i32
+  return t00.dynintf.`d.get v
 
 example
   and x = { x=42 }
   42 == foo @x
-fun rfoo pv:@i_d = i32
+fun rfoo pv:@`d = i32
   return pv.answer
 
 fun bar pv:@d = i32

@@ -6,9 +6,9 @@
 #define NLANG_DECLARE_TYPES
 # include "t01/genericmethod.n.h.out"
 #undef NLANG_DECLARE_TYPES
-struct _Ndyn_t01_genericmethod_i_blah;
-struct t01_genericmethod_i_blah;
-typedef struct t01_genericmethod_i_blah t01_genericmethod_i_blah;
+struct _Ndyn_t01_genericmethod__Ni_blah;
+struct t01_genericmethod__Ni_blah;
+typedef struct t01_genericmethod__Ni_blah t01_genericmethod__Ni_blah;
 
 struct t01_genericmethod_blah;
 typedef struct t01_genericmethod_blah t01_genericmethod_blah;
@@ -26,11 +26,11 @@ typedef _Ngen_nlang_builtins_mercurial_ref__t01_genericmethod_blah_genN_ _Ngen_n
 #define NLANG_DEFINE_TYPES
 # include "t01/genericmethod.n.h.out"
 #undef NLANG_DEFINE_TYPES
-struct _Ndyn_t01_genericmethod_i_blah {
+struct _Ndyn_t01_genericmethod__Ni_blah {
 nlang_builtins_u8 __Nfiller;
 };
-struct t01_genericmethod_i_blah {
-const struct _Ndyn_t01_genericmethod_i_blah *vptr;
+struct t01_genericmethod__Ni_blah {
+const struct _Ndyn_t01_genericmethod__Ni_blah *vptr;
 void *obj;
 };
 
@@ -57,7 +57,7 @@ void t01_genericmethod_blah_mk(t01_genericmethod_blah *_nrtr_r);
 ;
 _Ngen_nlang_builtins_mercurial_ref__t01_genericmethod_blah_genN_ t01_genericmethod_blah_new(void);
 ;
-static inline t01_genericmethod_i_blah t01_genericmethod_blah_mkdyn__t01_genericmethod_i_blah(t01_genericmethod_blah *obj);
+static inline t01_genericmethod__Ni_blah t01_genericmethod_blah_mkdyn__t01_genericmethod__Ni_blah(t01_genericmethod_blah *obj);
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
@@ -101,11 +101,11 @@ return calloc(1, sizeof(THIS()));
 #undef THIS
 }
 ;
-static inline t01_genericmethod_i_blah t01_genericmethod_blah_mkdyn__t01_genericmethod_i_blah(t01_genericmethod_blah *obj) {
-static const struct _Ndyn_t01_genericmethod_i_blah vtable = {
+static inline t01_genericmethod__Ni_blah t01_genericmethod_blah_mkdyn__t01_genericmethod__Ni_blah(t01_genericmethod_blah *obj) {
+static const struct _Ndyn_t01_genericmethod__Ni_blah vtable = {
 0,
 };
-return (t01_genericmethod_i_blah){ .vptr = &vtable, .obj = obj };
+return (t01_genericmethod__Ni_blah){ .vptr = &vtable, .obj = obj };
 }
 
 nlang_builtins_i32 _Nmain(void) {

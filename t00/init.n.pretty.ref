@@ -1,30 +1,30 @@
 from nlang import *
-type tt = i_trivial_copy <root>.nlang.builtins.i_trivial_ctor
+type tt = `trivial_copy <root>.nlang.builtins.`trivial_ctor
   and this = t00.init.tt
   and final = t00.init.tt
   x:i32
   y:i32
-  tt method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+  tt method <root>.nlang.builtins.`trivial_ctor.ctor = void
 
-  fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
 
-  fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
 
-  tt method <root>.nlang.builtins.i_copyable.copy_ctor other:@final = void
+  tt method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void
 
 
-type t = i_trivial_copy <root>.nlang.builtins.i_trivial_ctor
+type t = `trivial_copy <root>.nlang.builtins.`trivial_ctor
   and this = t00.init.t
   and final = t00.init.t
   x:i32
   y:tt
-  t method <root>.nlang.builtins.i_trivial_ctor.ctor = void
+  t method <root>.nlang.builtins.`trivial_ctor.ctor = void
 
-  fun <root>.nlang.builtins.i_trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
 
-  fun <root>.nlang.builtins.i_trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
 
-  t method <root>.nlang.builtins.i_copyable.copy_ctor other:@final = void
+  t method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void
 
 
 fun foo x:i32 y:i32 = i32

@@ -1,12 +1,12 @@
 from nlang import *
 
-intf i =
+intf `i =
   fun foo = i32
 
 struct a =
   x	:i32
 
-a fun i.foo = i32
+a fun `i.foo = i32
   return self.x
 
 extern fun main = i32

@@ -1,6 +1,6 @@
 from nlang import *
 
-enum enu = i_trivial_ctor
+enum enu = `trivial_ctor
   | A
   | B
 

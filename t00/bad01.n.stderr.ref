@@ -1,1 +1,1 @@
-t00/bad01.n:4:5: type: ident 'x' cannot be resolved in type 'nlang.builtins.i_generalized_boolean' (not an enum)
+t00/bad01.n:4:5: type: ident 'x' cannot be resolved in type 'nlang.builtins.`generalized_boolean' (not an enum)

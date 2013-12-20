@@ -2,19 +2,19 @@ from nlang.builtins import *
 from nlang.containers import *
 import nlang.unsafe
 
-export intf i_allocator =
-  (method@! t:i_any) alloc = @#t
-  (method@! t:i_any) free p:?@#t = void
-  (method@! t:i_any) slice_realloc s:@#(slice t) count:size = void
-  (method@! t:i_any) slice_free s:@#(slice t) = void
+export intf `allocator =
+  (method@! t:`any) alloc = @#t
+  (method@! t:`any) free p:?@#t = void
+  (method@! t:`any) slice_realloc s:@#(slice t) count:size = void
+  (method@! t:`any) slice_free s:@#(slice t) = void
 
 
 extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
 extern inline fun slice_memcpy dst:@#u8 at:size src:@u8 off:size count:size = void
 
-export inline struct slice t:i_any = \
-    export i_trivial_ctor \
-    export i_trivial_copy_but_owned
+export inline struct slice t:`any = \
+    export `trivial_ctor \
+    export `trivial_copy_but_owned
   _data:?@#t
   _count:size
 

@@ -170,13 +170,16 @@ static error run_examples(const struct stage *stage) {
 
   for (size_t n = 0; n < stage->sorted_count; ++n) {
     const struct module *mod = stage->sorted[n];
-    fprintf(run, "void %s(void);\n", printer_c_runexamples_name(mod));
+    fprintf(run, "void ");
+    print_c_runexamples_name(run, mod);
+    fprintf(run, "(void);\n");
   }
 
   fprintf(run, "int main(void) {\n");
   for (size_t n = 0; n < stage->sorted_count; ++n) {
     const struct module *mod = stage->sorted[n];
-    fprintf(run, "%s();\n", printer_c_runexamples_name(mod));
+    print_c_runexamples_name(run, mod);
+    fprintf(run, "();\n");
   }
     fprintf(run, "}\n");
   fclose(run);

@@ -656,10 +656,10 @@ static error example_isalist_each(struct module *mod, struct typ *base,
 }
 
 EXAMPLE_NCC(direct_isalist_foreach) {
-//  struct node *i_test = mock_defintf(mod, "i_test");
+//  struct node *i_test = mock_defintf(mod, "`test");
 //  struct node *test = mock_deftype(mod, "test");
 //  G(isa, test->subs[IDX_ISALIST], ISA,
-//     G_IDENT(isa_name, isa, "i_test"));
+//     G_IDENT(isa_name, isa, "`test"));
 //
 //  i_test->typ = typ_create(NULL, i_test);
 //  test->typ = typ_create(NULL, test);

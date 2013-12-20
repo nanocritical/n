@@ -24,7 +24,7 @@ static error unify_two_non_generic(struct module *mod, const struct node *for_er
     SWAP(a, b);
   } else if (typ_definition(a)->which == DEFINTF
              && typ_definition(b)->which == DEFINTF) {
-    assert(FALSE && "FIXME Unsupported (e.g. i_arithmethic and i_bitwise)");
+    assert(FALSE && "FIXME Unsupported (e.g. `arithmethic and `bitwise)");
   } else {
     error e = mk_except_type_unification(mod, for_error, a, b);
     THROW(e);
@@ -111,7 +111,7 @@ static error unify_generics(struct module *mod, const struct node *for_error,
     SWAP(a0, b0);
   } else if (typ_definition(a)->which == DEFINTF
              && typ_definition(b)->which == DEFINTF) {
-    assert(FALSE && "FIXME Unsupported (e.g. combining constraints i_arithmethic and i_bitwise)");
+    assert(FALSE && "FIXME Unsupported (e.g. combining constraints `arithmethic and `bitwise)");
   } else {
     e = mk_except_type_unification(mod, for_error, a, b);
     THROW(e);

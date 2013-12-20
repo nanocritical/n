@@ -120,6 +120,36 @@ static char *escape_string(const char *s) {
   return r;
 }
 
+static void print_scope_name(FILE *out, const struct module *mod,
+                             const struct scope *scope);
+
+static void print_scope_last_name(FILE *out, const struct module *mod,
+                                  const struct scope *scope) {
+  const ident id = node_ident(scope_node(scope));
+  const char *name = idents_value(mod->gctx, id);
+  if (id == ID_ANONYMOUS) {
+    return;
+  }
+
+  if (name[0] == '`') {
+    fprintf(out, "_Ni_%s", name + 1);
+  } else {
+    fprintf(out, "%s", name);
+  }
+}
+
+static void print_scope_name(FILE *out, const struct module *mod,
+                             const struct scope *scope) {
+  if (scope->parent->parent != NULL) {
+    print_scope_name(out, mod, scope->parent);
+    if (node_ident(scope_node(scope)) != ID_ANONYMOUS) {
+      fprintf(out, "_");
+    }
+  }
+
+  print_scope_last_name(out, mod, scope);
+}
+
 static size_t c_fun_args_count(const struct node *node) {
   return node_fun_all_args_count(node);
 }
@@ -157,39 +187,25 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
   }
 }
 
-static char *replace_dots(char *n) {
-  char *p = n;
-  while (p[0] != '\0') {
-    if (p[0] == '.') {
-      p[0] = '_';
-    }
-    p += 1;
-  }
-  return n;
-}
-
 static void print_bin_acc(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.BIN.operator;
   const struct node *base = node_subs_first_const(node);
   const struct node *name = node_subs_last_const(node);
-  assert(name->which == IDENT);
+  const char *name_s = idents_value(mod->gctx, node_ident(name));
 
-  if (node->flags & NODE_IS_DEFCHOICE) {
+  if ((node->flags & NODE_IS_DEFCHOICE)
+      || (node->flags & NODE_IS_GLOBAL_LET)) {
     print_typ(out, mod, base->typ);
-    fprintf(out, "_%s", idents_value(mod->gctx, node_ident(name)));
+    fprintf(out, "_%s", name_s);
   } else if (node->flags & NODE_IS_TYPE) {
     print_typ(out, mod, node->typ);
-  } else if (node->flags & NODE_IS_GLOBAL_LET) {
-    fprintf(out, "%s_%s",
-            replace_dots(scope_name(mod, &typ_definition_const(base->typ)->scope)),
-            idents_value(mod->gctx, node_ident(name)));
   } else {
     const char *deref = ".";
     if (typ_is_reference(base->typ)) {
       deref = "->";
     }
     print_expr(out, mod, base, op);
-    fprintf(out, "%s%s", deref, idents_value(mod->gctx, name->as.IDENT.name));
+    fprintf(out, "%s%s", deref, name_s);
   }
 }
 
@@ -455,17 +471,14 @@ static void print_deffield_name(FILE *out, const struct module *mod, const struc
 
 static void print_ident(FILE *out, const struct module *mod, const struct node *node) {
   assert(node->which == IDENT);
+  assert(node_ident(node) != ID_ANONYMOUS);
 
-  const ident id = node_ident(node);
-  if (id == ID_MAIN) {
-    fprintf(out, "main");
-  } else if (node->as.IDENT.non_local_scope != NULL) {
-    fprintf(out, "%s_%s",
-            replace_dots(scope_name(mod, node->as.IDENT.non_local_scope)),
-            idents_value(mod->gctx, id));
-  } else {
-    fprintf(out, "%s", idents_value(mod->gctx, id));
+  if (node->as.IDENT.non_local_scope != NULL) {
+    print_scope_name(out, mod, node->as.IDENT.non_local_scope);
+    fprintf(out, "_");
   }
+
+  print_scope_last_name(out, mod, &node->scope);
 }
 
 static void print_dyn(FILE *out, const struct module *mod, const struct node *node) {
@@ -685,16 +698,22 @@ static void print_example(FILE *out, bool header, enum forward fwd, const struct
   if (header) {
     return;
   }
-  if (fwd == FWD_DECLARE_FUNCTIONS) {
-    fprintf(out, "void %s__Nexample%zu(void) " ATTR_SECTION_EXAMPLES ";",
-            replace_dots(scope_name(mod, &mod->root->scope)), node->as.EXAMPLE.name);
-  } else if (fwd == FWD_DEFINE_FUNCTIONS) {
-    fprintf(out, "void %s__Nexample%zu(void) {\n",
-            replace_dots(scope_name(mod, &mod->root->scope)), node->as.EXAMPLE.name);
-    const struct node *block = node_subs_first_const(node);
-    fprintf(out, "nlang_builtins_assert(");
-    print_expr(out, mod, block, T__STATEMENT);
-    fprintf(out, ");\n}");
+
+  if (fwd == FWD_DECLARE_FUNCTIONS
+      || fwd == FWD_DEFINE_FUNCTIONS) {
+    fprintf(out, "void ");
+    print_scope_name(out, mod, &mod->root->scope);
+    fprintf(out, "__Nexample%zu(void) ", node->as.EXAMPLE.name);
+
+    if (fwd == FWD_DECLARE_FUNCTIONS) {
+      fprintf(out, ATTR_SECTION_EXAMPLES ";");
+    } else if (fwd == FWD_DEFINE_FUNCTIONS) {
+      fprintf(out, "{\n");
+      const struct node *block = node_subs_first_const(node);
+      fprintf(out, "nlang_builtins_assert(");
+      print_expr(out, mod, block, T__STATEMENT);
+      fprintf(out, ");\n}");
+    }
   }
 }
 
@@ -716,7 +735,16 @@ static void print_toplevel(FILE *out, bool header, const struct node *node) {
   }
 }
 
-static void print_typ(FILE *out, const struct module *mod, const struct typ *typ);
+static void print_typ_name(FILE *out, const struct module *mod,
+                           const struct typ *t) {
+  if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
+    print_typ_name(out, mod, typ_generic_functor_const(t));
+    return;
+  }
+
+  const struct scope *scope = &typ_definition_const(t)->scope;
+  print_scope_name(out, mod, scope);
+}
 
 static void print_typ_function(FILE *out, const struct module *mod, const struct typ *typ) {
   const struct node *def = typ_definition_const(typ);
@@ -726,7 +754,7 @@ static void print_typ_function(FILE *out, const struct module *mod, const struct
   }
 
   if (node_is_at_top(def)) {
-    fprintf(out, "%s", replace_dots(typ_name(mod, typ)));
+    print_typ_name(out, mod, typ);
   } else {
     const struct node *parent = node_parent_const(def);
     const struct typ *tparent = parent->typ;
@@ -748,7 +776,7 @@ static void print_typ_function(FILE *out, const struct module *mod, const struct
 
 static void print_typ_data(FILE *out, const struct module *mod, const struct typ *typ) {
   if (typ_is_generic_functor(typ)) {
-    fprintf(out, "%s", replace_dots(typ_name(mod, typ)));
+    print_typ_name(out, mod, typ);
     return;
   } else if (typ_is_reference(typ)
       && !typ_equal(typ, TBI_ANY_ANY_REF)
@@ -762,7 +790,7 @@ static void print_typ_data(FILE *out, const struct module *mod, const struct typ
     fprintf(out, "_Ngen_");
   }
 
-  fprintf(out, "%s", replace_dots(typ_name(mod, typ)));
+  print_typ_name(out, mod, typ);
 
   if (typ_generic_arity(typ) > 0) {
     for (size_t n = 0; n < typ_generic_arity(typ); ++n) {
@@ -834,8 +862,8 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
     fprintf(out, " ");
 
     if (node->flags & NODE_IS_GLOBAL_LET) {
-      fprintf(out, "%s_",
-              replace_dots(scope_name(mod, &node_parent_const(let)->scope)));
+      print_scope_name(out, mod, &node_parent_const(let)->scope);
+      fprintf(out, "_");
     }
     print_pattern(out, mod, node->as.DEFNAME.pattern);
 
@@ -1055,7 +1083,8 @@ static void print_defarg(FILE *out, const struct module *mod, const struct node 
 
 static void print_fun_prototype(FILE *out, bool header, const struct module *mod,
                                 const struct node *node,
-                                bool as_fun_pointer, bool named_fun_pointer, bool as_dyn_fun_pointer,
+                                bool as_fun_pointer, bool named_fun_pointer,
+                                bool as_dyn_fun_pointer,
                                 const struct typ *intf_final_typ) {
   assert(!as_fun_pointer || (named_fun_pointer || as_dyn_fun_pointer));
 
@@ -1296,6 +1325,23 @@ static void bg_return_if_by_copy(FILE *out, const struct module *mod, const stru
   fprintf(out, "return %s;\n", what);
 }
 
+static void bg_choice_case(FILE *out, const struct module *mod,
+                           const struct node *node, const struct node *ch) {
+  const char *nch = idents_value(mod->gctx, node_ident(ch));
+  fprintf(out, "case THIS(_%s_which___label__):", nch);
+}
+
+static void bg_choice_bin_call(FILE *out, const struct module *mod,
+                               const struct node *node, const struct node *ch) {
+
+  const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
+  const char *nch = idents_value(mod->gctx, node_ident(ch));
+
+  fprintf(out, "%s ", returns_something(mod, m));
+  print_scope_name(out, mod, &m->scope);
+  fprintf(out, "(&self->as__.%s, &other->as__.%s);\n", nch, nch);
+}
+
 static void print_deffun_builtingen(FILE *out, const struct module *mod, const struct node *node) {
   const struct node *parent = node_parent_const(node);
 
@@ -1381,7 +1427,9 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     fprintf(out, "return self;\n");
     break;
   case BG_UNION_CTOR_WITH_CTOR:
-    fprintf(out, "self->which__ = %s_which__;\n", replace_dots(scope_name(mod, node->scope.parent)));
+    fprintf(out, "self->which__ = ");
+    print_scope_name(out, mod, node->scope.parent);
+    fprintf(out, "_which__;\n");
     fprintf(out, "self->as__.%s = c;\n", idents_value(mod->gctx, node_ident(parent)));
     break;
   case BG_UNION_CTOR_WITH_MK:
@@ -1410,11 +1458,12 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
     FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
-        const char *nch = idents_value(mod->gctx, node_ident(ch));
+        bg_choice_case(out, mod, node, ch);
+
         const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, &m->scope));
-        fprintf(out, "case THIS(_%s_which___label__): %s %s(", nch, returns_something(mod, m), nm);
-        free(nm);
+        fprintf(out, "%s ", returns_something(mod, m));
+        print_scope_name(out, mod, &m->scope);
+        fprintf(out, "(");
 
         size_t a = 0;
         FOREACH_SUB_CONST(arg, funargs) {
@@ -1437,12 +1486,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
     FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
-        const char *nch = idents_value(mod->gctx, node_ident(ch));
-        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, &m->scope));
-        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
-                nch, returns_something(mod, m), nm, nch, nch);
-        free(nm);
+        bg_choice_case(out, mod, node, ch);
+        bg_choice_bin_call(out, mod, node, ch);
       }
     }
     fprintf(out, "}\n");
@@ -1453,12 +1498,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
     FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
-        const char *nch = idents_value(mod->gctx, node_ident(ch));
-        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, &m->scope));
-        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
-                nch, returns_something(mod, m), nm, nch, nch);
-        free(nm);
+        bg_choice_case(out, mod, node, ch);
+        bg_choice_bin_call(out, mod, node, ch);
       }
     }
     fprintf(out, "}\nreturn 0;\n");
@@ -1469,12 +1510,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
     FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
-        const char *nch = idents_value(mod->gctx, node_ident(ch));
-        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, &m->scope));
-        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
-                nch, returns_something(mod, m), nm, nch, nch);
-        free(nm);
+        bg_choice_case(out, mod, node, ch);
+        bg_choice_bin_call(out, mod, node, ch);
       }
     }
     fprintf(out, "}\nreturn 0;\n");
@@ -1485,12 +1522,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
     FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
-        const char *nch = idents_value(mod->gctx, node_ident(ch));
-        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, &m->scope));
-        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
-                nch, returns_something(mod, m), nm, nch, nch);
-        free(nm);
+        bg_choice_case(out, mod, node, ch);
+        bg_choice_bin_call(out, mod, node, ch);
       }
     }
     fprintf(out, "}\nreturn 0;\n");
@@ -1501,12 +1534,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
     FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
-        const char *nch = idents_value(mod->gctx, node_ident(ch));
-        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, &m->scope));
-        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
-                nch, returns_something(mod, m), nm, nch, nch);
-        free(nm);
+        bg_choice_case(out, mod, node, ch);
+        bg_choice_bin_call(out, mod, node, ch);
       }
     }
     fprintf(out, "}\n");
@@ -1518,12 +1547,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
     FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
-        const char *nch = idents_value(mod->gctx, node_ident(ch));
-        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, &m->scope));
-        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
-                nch, returns_something(mod, m), nm, nch, nch);
-        free(nm);
+        bg_choice_case(out, mod, node, ch);
+        bg_choice_bin_call(out, mod, node, ch);
       }
     }
     fprintf(out, "}\nreturn 0;\n");
@@ -1534,12 +1559,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
     FOREACH_SUB_CONST(ch, parent) {
       if (ch->which == DEFCHOICE) {
-        const char *nch = idents_value(mod->gctx, node_ident(ch));
-        const struct node *m = get_defchoice_member(mod, ch, node_ident(node));
-        char *nm = replace_dots(scope_name(mod, &m->scope));
-        fprintf(out, "case THIS(_%s_which___label__): %s %s(&self->as__.%s, &other->as__.%s);\n",
-                nch, returns_something(mod, m), nm, nch, nch);
-        free(nm);
+        bg_choice_case(out, mod, node, ch);
+        bg_choice_bin_call(out, mod, node, ch);
       }
     }
     fprintf(out, "}\nreturn 0;\n");
@@ -2457,9 +2478,11 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
 
     if (header) {
       fprintf(out, "#ifdef %s\n", forward_guards[fwd]);
-      const char *guard = replace_dots(scope_name(mod, &mod->root->scope));
-      fprintf(out, "#ifndef %s__%s\n#define %s__%s\n\n",
-              forward_guards[fwd], guard, forward_guards[fwd], guard);
+      fprintf(out, "#ifndef %s__", forward_guards[fwd]);
+      print_scope_name(out, mod, &mod->root->scope);
+      fprintf(out, "\n#define %s__", forward_guards[fwd]);
+      print_scope_name(out, mod, &mod->root->scope);
+      fprintf(out, "\n\n");
     }
 
     for (const struct node *node = node_subs_first_const(top);
@@ -2498,11 +2521,16 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
 }
 
 static error print_runexamples(FILE *out, const struct module *mod) {
-  fprintf(out, "void %s(void) " ATTR_SECTION_EXAMPLES ";\n", printer_c_runexamples_name(mod));
-  fprintf(out, "void %s(void) {\n", printer_c_runexamples_name(mod));
+  fprintf(out, "void ");
+  print_c_runexamples_name(out, mod);
+  fprintf(out, "(void) " ATTR_SECTION_EXAMPLES ";\n");
+
+  fprintf(out, "void ");
+  print_c_runexamples_name(out, mod);
+  fprintf(out, "(void) {\n");
   for (size_t n = 0; n < mod->next_example; ++n) {
-    fprintf(out, "%s__Nexample%zu();\n",
-            replace_dots(scope_name(mod, &mod->root->scope)), n);
+    print_scope_name(out, mod, &mod->root->scope);
+    fprintf(out, "__Nexample%zu();\n", n);
   }
   fprintf(out, "}\n");
   return 0;
@@ -2533,11 +2561,7 @@ error printer_h(int fd, const struct module *mod) {
   return 0;
 }
 
-char *printer_c_runexamples_name(const struct module *mod) {
-  static const char runexamples[] = "_Nrunexamples";
-  char *sc = replace_dots(scope_name(mod, &mod->root->scope));
-  char *r = calloc(strlen(sc) + sizeof(runexamples), sizeof(char));
-  sprintf(r, "%s%s", sc, runexamples);
-  free(sc);
-  return r;
+void print_c_runexamples_name(FILE *out, const struct module *mod) {
+  print_scope_name(out, mod, &mod->root->scope);
+  fprintf(out, "_Nrunexamples");
 }

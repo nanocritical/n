@@ -3,7 +3,7 @@ from nlang import *
 struct c =
   x:i32
 
-(fun r:i_any_ref) get m:(r c) = (r i32)
+(fun r:`any_ref) get m:(r c) = (r i32)
   -- FIXME: the wildcards here are not really well specified
   return @$ m$x
 

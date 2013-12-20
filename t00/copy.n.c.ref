@@ -44,7 +44,7 @@ void t00_copy_copy_mk(t00_copy_copy *_nrtr_r);
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_ t00_copy_copy_new(void);
 ;
-static inline nlang_builtins_i_copyable t00_copy_copy_mkdyn__nlang_builtins_i_copyable(t00_copy_copy *obj);
+static inline nlang_builtins__Ni_copyable t00_copy_copy_mkdyn__nlang_builtins__Ni_copyable(t00_copy_copy *obj);
 
 static void t00_copy_foo(t00_copy_copy *_nrtr__nretval);
 
@@ -81,11 +81,11 @@ return calloc(1, sizeof(THIS()));
 #undef THIS
 }
 ;
-static inline nlang_builtins_i_copyable t00_copy_copy_mkdyn__nlang_builtins_i_copyable(t00_copy_copy *obj) {
-static const struct _Ndyn_nlang_builtins_i_copyable vtable = {
-.copy_ctor = (nlang_builtins_void (*)(void *self, nlang_builtins_i_copyable other))t00_copy_copy_copy_ctor,
+static inline nlang_builtins__Ni_copyable t00_copy_copy_mkdyn__nlang_builtins__Ni_copyable(t00_copy_copy *obj) {
+static const struct _Ndyn_nlang_builtins__Ni_copyable vtable = {
+.copy_ctor = (nlang_builtins_void (*)(void *self, nlang_builtins__Ni_copyable other))t00_copy_copy_copy_ctor,
 };
-return (nlang_builtins_i_copyable){ .vptr = &vtable, .obj = obj };
+return (nlang_builtins__Ni_copyable){ .vptr = &vtable, .obj = obj };
 }
 
 static void t00_copy_foo(t00_copy_copy *_nrtr__nretval) {

@@ -2,14 +2,14 @@ from nlang import *
 import nlang.unsafe
 from nlang.sysheap import heap sysheap
 
-export inline struct vector t:i_copyable = \
-    export i_trivial_ctor \
-    export (i_array_ctor t) \
-    export i_copyable
+export inline struct vector t:`copyable = \
+    export `trivial_ctor \
+    export (`array_ctor t) \
+    export `copyable
   _p:(slice t)
   _count:size
 
-export vector method@# i_array_ctor.ctorv c:@(static_array t) = void
+export vector method@# `array_ctor.ctorv c:@(static_array t) = void
   self#reserve c.count
   for i in c.all.iter
     self#push (c.at i).
@@ -60,7 +60,7 @@ export vector method@# clear = void
 export vector method@ all = index_range
   return range 0 self.count
 
-export vector method@# i_copyable.copy_ctor other:@this = void
+export vector method@# `copyable.copy_ctor other:@this = void
   (heap.slice_realloc t) @!sysheap @#self#_p other._p.count
   self._p#copy 0 @other._p 0 other._p.count
   self!_count = other._count

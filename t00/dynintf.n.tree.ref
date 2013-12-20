@@ -66,127 +66,127 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_any)
+    IDENT(`any)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_copyable)
+    IDENT(`copyable)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_copyable_but_owned)
+    IDENT(`copyable_but_owned)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_trivial_copy)
+    IDENT(`trivial_copy)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_trivial_copy_but_owned)
+    IDENT(`trivial_copy_but_owned)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_return_by_copy)
+    IDENT(`return_by_copy)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_default_ctor)
+    IDENT(`default_ctor)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_trivial_ctor)
+    IDENT(`trivial_ctor)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_trivial_dtor)
+    IDENT(`trivial_dtor)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_matchable)
+    IDENT(`matchable)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_has_equality)
+    IDENT(`has_equality)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_trivial_equality)
+    IDENT(`trivial_equality)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_has_compare)
+    IDENT(`has_compare)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_ordered)
+    IDENT(`ordered)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_trivial_order)
+    IDENT(`trivial_order)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_ordered_by_compare)
+    IDENT(`ordered_by_compare)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_arithmetic)
+    IDENT(`arithmetic)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_bitwise)
+    IDENT(`bitwise)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_sum_copy)
+    IDENT(`sum_copy)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_sum_equality)
+    IDENT(`sum_equality)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_sum_order)
+    IDENT(`sum_order)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -198,37 +198,37 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(__i_ref_compatible)
+    IDENT(`__ref_compatible)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_any_any_ref)
+    IDENT(`any_any_ref)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_any_ref)
+    IDENT(`any_ref)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_any_mutable_ref)
+    IDENT(`any_mutable_ref)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_any_nullable_ref)
+    IDENT(`any_nullable_ref)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_any_nullable_mutable_ref)
+    IDENT(`any_nullable_mutable_ref)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -270,7 +270,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_any_tuple)
+    IDENT(`any_tuple)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -366,79 +366,79 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_numeric)
+    IDENT(`numeric)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_integer)
+    IDENT(`integer)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_signed_integer)
+    IDENT(`signed_integer)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_unsigned_integer)
+    IDENT(`unsigned_integer)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_native_integer)
+    IDENT(`native_integer)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_native_signed_integer)
+    IDENT(`native_signed_integer)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_native_unsigned_integer)
+    IDENT(`native_unsigned_integer)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_native_anysign_integer)
+    IDENT(`native_anysign_integer)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_generalized_boolean)
+    IDENT(`generalized_boolean)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_bool_compatible)
+    IDENT(`bool_compatible)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_native_boolean)
+    IDENT(`native_boolean)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_floating)
+    IDENT(`floating)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_native_floating)
+    IDENT(`native_floating)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -522,25 +522,25 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_auto_ctor)
+    IDENT(`auto_ctor)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_ctor_with)
+    IDENT(`ctor_with)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_trivial_array_ctor)
+    IDENT(`trivial_array_ctor)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_array_ctor)
+    IDENT(`array_ctor)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -552,7 +552,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_sum_ctor_with)
+    IDENT(`sum_ctor_with)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -606,7 +606,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(i_error)
+    IDENT(`error)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -630,25 +630,25 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(containers)
-    IDENT(i_locus)
+    IDENT(`locus)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(containers)
-    IDENT(i_fwd_locus)
+    IDENT(`fwd_locus)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(containers)
-    IDENT(i_bidir_locus)
+    IDENT(`bidir_locus)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(containers)
-    IDENT(i_iterator)
+    IDENT(`iterator)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -672,7 +672,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(memory)
-    IDENT(i_allocator)
+    IDENT(`allocator)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -690,25 +690,25 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(chars)
-    IDENT(i_static_string_compatible)
+    IDENT(`static_string_compatible)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(chars)
-    IDENT(i_const_string)
+    IDENT(`const_string)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(chars)
-    IDENT(i_string)
+    IDENT(`string)
   IMPORT :<import>
    BIN(.)
     BIN(.)
      IDENT(nlang)
      IDENT(chars)
-    IDENT(i_string_buffer)
+    IDENT(`string_buffer)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -720,7 +720,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(chars)
-    IDENT(i_show)
+    IDENT(`show)
   IMPORT :<import>
    BIN(.)
     IDENT(nlang)
@@ -737,48 +737,48 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     IDENT(nlang)
     IDENT(just_mutable)
- DEFINTF :t00.dynintf.i_d
-  IDENT(i_d) :nlang.builtins.__internal_not_typeable__
+ DEFINTF :t00.dynintf.`d
+  IDENT(`d) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.dynintf.i_d
-    DIRECTDEF :t00.dynintf.i_d
-    DEFNAME(this) :t00.dynintf.i_d
+    IDENT(this) :t00.dynintf.`d
+    DIRECTDEF :t00.dynintf.`d
+    DEFNAME(this) :t00.dynintf.`d
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(final) :t00.dynintf.i_d
-    DIRECTDEF :t00.dynintf.i_d
-    DEFNAME(final) :t00.dynintf.i_d
-  DEFFUN :t00.dynintf.i_d.answer
+    IDENT(final) :t00.dynintf.`d
+    DIRECTDEF :t00.dynintf.`d
+    DEFNAME(final) :t00.dynintf.`d
+  DEFFUN :t00.dynintf.`d.answer
    IDENT(answer) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32
-  DEFMETHOD :t00.dynintf.i_d.get
+  DEFMETHOD :t00.dynintf.`d.get
    IDENT(get) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.ref t00.dynintf.i_d)
+    DEFARG :(nlang.builtins.ref t00.dynintf.`d)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref t00.dynintf.i_d)
-      IDENT(final) :t00.dynintf.i_d
+     UN(@) :(nlang.builtins.ref t00.dynintf.`d)
+      IDENT(final) :t00.dynintf.`d
     IDENT(i32) :nlang.builtins.i32
  DEFTYPE :t00.dynintf.d
   IDENT(d) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
-   ISA :t00.dynintf.i_d
-    IDENT(i_d) :t00.dynintf.i_d
-   ISA :nlang.builtins.i_trivial_ctor
-    BIN(.) :nlang.builtins.i_trivial_ctor
+   ISA :t00.dynintf.`d
+    IDENT(`d) :t00.dynintf.`d
+   ISA :nlang.builtins.`trivial_ctor
+    BIN(.) :nlang.builtins.`trivial_ctor
      BIN(.) :nlang.builtins
       BIN(.) :nlang
        DIRECTDEF :<root>
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+     IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.dynintf.d
@@ -822,7 +822,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
        DIRECTDEF :nlang.builtins.__internal_not_typeable__
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+     IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
     IDENT(ctor) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
@@ -839,7 +839,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
        DIRECTDEF :nlang.builtins.__internal_not_typeable__
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+     IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
     IDENT(mk) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
@@ -854,7 +854,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
        DIRECTDEF :nlang.builtins.__internal_not_typeable__
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+     IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
     IDENT(new) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
@@ -864,16 +864,16 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   IDENT(dc) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
-   ISA :t00.dynintf.i_d
-    IDENT(i_d) :t00.dynintf.i_d
-   ISA :nlang.builtins.i_trivial_ctor
-    BIN(.) :nlang.builtins.i_trivial_ctor
+   ISA :t00.dynintf.`d
+    IDENT(`d) :t00.dynintf.`d
+   ISA :nlang.builtins.`trivial_ctor
+    BIN(.) :nlang.builtins.`trivial_ctor
      BIN(.) :nlang.builtins
       BIN(.) :nlang
        DIRECTDEF :<root>
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+     IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
     IDENT(this) :t00.dynintf.dc
@@ -915,7 +915,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
        DIRECTDEF :nlang.builtins.__internal_not_typeable__
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+     IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
     IDENT(ctor) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
@@ -932,7 +932,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
        DIRECTDEF :nlang.builtins.__internal_not_typeable__
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+     IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
     IDENT(mk) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
@@ -947,7 +947,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
        DIRECTDEF :nlang.builtins.__internal_not_typeable__
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-     IDENT(i_trivial_ctor) :nlang.builtins.__internal_not_typeable__
+     IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
     IDENT(new) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
@@ -957,16 +957,16 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   IDENT(foo) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   DEFARG :(nlang.builtins.ref t00.dynintf.i_d)
+   DEFARG :(nlang.builtins.ref t00.dynintf.`d)
     IDENT(v) :nlang.builtins.__internal_not_typeable__
-    UN(@) :(nlang.builtins.ref t00.dynintf.i_d)
-     IDENT(i_d) :t00.dynintf.i_d
+    UN(@) :(nlang.builtins.ref t00.dynintf.`d)
+     IDENT(`d) :t00.dynintf.`d
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.void
     CALL :nlang.builtins.i32
-     DIRECTDEF :t00.dynintf.i_d.get
-     IDENT(v) :(nlang.builtins.ref t00.dynintf.i_d)
+     DIRECTDEF :t00.dynintf.`d.get
+     IDENT(v) :(nlang.builtins.ref t00.dynintf.`d)
  EXAMPLE :nlang.builtins.void
   BLOCK :nlang.builtins.bool
    LET :nlang.builtins.void
@@ -980,23 +980,23 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     NUMBER(42) :nlang.builtins.i32
     CALL :nlang.builtins.i32
      IDENT(foo) :t00.dynintf.foo
-     DYN :(nlang.builtins.ref t00.dynintf.i_d)
+     DYN :(nlang.builtins.ref t00.dynintf.`d)
       UN(@) :(nlang.builtins.ref t00.dynintf.d)
        IDENT(x) :t00.dynintf.d
  DEFFUN :t00.dynintf.rfoo
   IDENT(rfoo) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   DEFARG :(nlang.builtins.ref t00.dynintf.i_d)
+   DEFARG :(nlang.builtins.ref t00.dynintf.`d)
     IDENT(pv) :nlang.builtins.__internal_not_typeable__
-    UN(@) :(nlang.builtins.ref t00.dynintf.i_d)
-     IDENT(i_d) :t00.dynintf.i_d
+    UN(@) :(nlang.builtins.ref t00.dynintf.`d)
+     IDENT(`d) :t00.dynintf.`d
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.void
     CALL :nlang.builtins.i32
-     BIN(.) :t00.dynintf.i_d.answer
-      IDENT(pv) :(nlang.builtins.ref t00.dynintf.i_d)
+     BIN(.) :t00.dynintf.`d.answer
+      IDENT(pv) :(nlang.builtins.ref t00.dynintf.`d)
       IDENT(answer) :nlang.builtins.__internal_not_typeable__
  DEFFUN :t00.dynintf.bar
   IDENT(bar) :nlang.builtins.__internal_not_typeable__
@@ -1011,7 +1011,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    RETURN :nlang.builtins.void
     CALL :nlang.builtins.i32
      IDENT(foo) :t00.dynintf.foo
-     DYN :(nlang.builtins.ref t00.dynintf.i_d)
+     DYN :(nlang.builtins.ref t00.dynintf.`d)
       IDENT(pv) :(nlang.builtins.ref t00.dynintf.d)
  DEFFUN :t00.dynintf.main
   IDENT(main) :nlang.builtins.__internal_not_typeable__
@@ -1035,12 +1035,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN( != ) :nlang.builtins.bool
      CALL :nlang.builtins.i32
       IDENT(foo) :t00.dynintf.foo
-      DYN :(nlang.builtins.ref t00.dynintf.i_d)
+      DYN :(nlang.builtins.ref t00.dynintf.`d)
        UN(@) :(nlang.builtins.ref t00.dynintf.d)
         IDENT(xd) :t00.dynintf.d
      CALL :nlang.builtins.i32
       IDENT(foo) :t00.dynintf.foo
-      DYN :(nlang.builtins.ref t00.dynintf.i_d)
+      DYN :(nlang.builtins.ref t00.dynintf.`d)
        UN(@) :(nlang.builtins.ref t00.dynintf.dc)
         IDENT(xdc) :t00.dynintf.dc
     BLOCK :nlang.builtins.void
@@ -1059,7 +1059,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
       IDENT(pxd) :(nlang.builtins.ref t00.dynintf.d)
      CALL :nlang.builtins.i32
       IDENT(rfoo) :t00.dynintf.rfoo
-      DYN :(nlang.builtins.ref t00.dynintf.i_d)
+      DYN :(nlang.builtins.ref t00.dynintf.`d)
        IDENT(pxd) :(nlang.builtins.ref t00.dynintf.d)
     BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.void

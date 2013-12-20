@@ -1,10 +1,10 @@
 from nlang import *
 
-intf i =
+intf `i =
   fun foo = void
 
-struct a = i
+struct a = `i
   x:i32
 
-a fun i.foo = void
+a fun `i.foo = void
   return

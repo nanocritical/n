@@ -1,10 +1,10 @@
 from nlang import *
 
-intf i_d =
+intf `d =
   fun answer = i32
   method@ get = i32
 
-struct d = i_d
+struct d = `d
   x:i32
 
 d fun answer = i32
@@ -13,7 +13,7 @@ d fun answer = i32
 d method@ get = i32
   return self.x
 
-struct dc = i_d
+struct dc = `d
   dummy:i32
 
 dc fun answer = i32
@@ -22,14 +22,14 @@ dc fun answer = i32
 dc method@ get = i32
   return 42
 
-fun foo v:@i_d = i32
+fun foo v:@`d = i32
   return v.get
 
 example
   let x = { x=42 }:d
   42 == foo @x
 
-fun rfoo pv:@i_d = i32
+fun rfoo pv:@`d = i32
   return pv.answer
 
 fun bar pv:@d = i32

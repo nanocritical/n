@@ -1,6 +1,6 @@
 from nlang import *
 
-struct c = i_trivial_ctor
+struct c = `trivial_ctor
   x:@i32
 
 export fun main = i32

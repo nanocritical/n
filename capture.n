@@ -63,8 +63,8 @@ fun main = i32
     a.capture_unique p
   return p.
 
-(fun t:i_any) free p:@#t = void
-(fun t:i_any) free p:(unique @#t) = void
+(fun t:`any) free p:@#t = void
+(fun t:`any) free p:(unique @#t) = void
 
 
 struct tree =
