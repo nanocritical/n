@@ -21,7 +21,7 @@ export inline char fun from_ascii c:u8 = char
 
 example -> char.from_ascii 49 == '1':char
 
-export inline char method i_show.show buf:@#i_string_buffer = void
+export inline char method@ i_show.show buf:@#i_string_buffer = void
   buf#push self.
 
 export intf i_static_string_compatible =
@@ -29,22 +29,22 @@ export intf i_static_string_compatible =
 
 export intf i_const_string = export i_static_string_compatible
 -- export i_random_container
-  method count = size
-  method all = index_range
-  method get_char n:size = char
-  method bytes_utf8 = @(slice u8)
+  method@ count = size
+  method@ all = index_range
+  method@ get_char n:size = char
+  method@ bytes_utf8 = @(slice u8)
 
 export intf i_string = export i_const_string
-  method! set_char n:size c:char = void
-  method! fill c:char r:index_range = void
+  method@! set_char n:size c:char = void
+  method@! fill c:char r:index_range = void
 
 export intf i_string_buffer = export i_string
-  method# reserve count:size = void
-  method# clear = void
-  method# push c:char = void
-  method# pop = char
-  method# append other:@i_const_string = void
-  method# copy at:size other:@i_const_string off:size count:size = void
+  method@# reserve count:size = void
+  method@# clear = void
+  method@# push c:char = void
+  method@# pop = char
+  method@# append other:@i_const_string = void
+  method@# copy at:size other:@i_const_string off:size count:size = void
 
 export inline type static_string = \
     export i_trivial_copy \
@@ -55,51 +55,51 @@ export inline type static_string = \
     export i_const_string
   _bytes:(slice u8)
 
-export inline static_string method# ctor bytes:@u8 count:size = void
+export inline static_string method@# ctor bytes:@u8 count:size = void
   let raw = (nlang.unsafe.cast @u8 @#u8) bytes
   self._bytes#unsafe_wrap raw count
 
 export inline static_string fun from_static_string s:static_string = this
   return { _bytes=s._bytes }
 
-export inline static_string method i_const_string.count = size
+export inline static_string method@ i_const_string.count = size
   return self._bytes.count
 
-export inline static_string method i_const_string.all = index_range
+export inline static_string method@ i_const_string.all = index_range
   return self._bytes.all
 
-export inline static_string method i_const_string.get_char n:size = char
+export inline static_string method@ i_const_string.get_char n:size = char
   return char.from_ascii (self._bytes.at n).
 
-export inline static_string method i_const_string.bytes_utf8 = @(slice u8)
+export inline static_string method@ i_const_string.bytes_utf8 = @(slice u8)
   return @self._bytes
 
-export static_string method i_show.show buf:@#i_string_buffer = void
+export static_string method@ i_show.show buf:@#i_string_buffer = void
   buf#reserve buf.count + self.count
   for i in self.all.iter
     buf#push (self.get_char i)
 
 extern inline fun memcmp a:@u8 b:@u8 count:size = i32
 
-export inline static_string method i_has_equality.operator_eq other:@final = bool
+export inline static_string method@ i_has_equality.operator_eq other:@final = bool
   return (self.operator_compare other) == 0
 
-export inline static_string method i_has_equality.operator_ne other:@final = bool
+export inline static_string method@ i_has_equality.operator_ne other:@final = bool
   return (self.operator_compare other) != 0
 
-export inline static_string method i_has_equality.operator_le other:@final = bool
+export inline static_string method@ i_has_equality.operator_le other:@final = bool
   return (self.operator_compare other) <= 0
 
-export inline static_string method i_has_equality.operator_lt other:@final = bool
+export inline static_string method@ i_has_equality.operator_lt other:@final = bool
   return (self.operator_compare other) < 0
 
-export inline static_string method i_has_equality.operator_ge other:@final = bool
+export inline static_string method@ i_has_equality.operator_ge other:@final = bool
   return (self.operator_compare other) >= 0
 
-export inline static_string method i_has_equality.operator_gt other:@final = bool
+export inline static_string method@ i_has_equality.operator_gt other:@final = bool
   return (self.operator_compare other) > 0
 
-export inline static_string method i_ordered_by_compare.operator_compare other:@final = i32
+export inline static_string method@ i_ordered_by_compare.operator_compare other:@final = i32
   let a = self.bytes_utf8
   and b = self.bytes_utf8
   let cnt = min a.bytecount b.bytecount
@@ -115,4 +115,4 @@ example -> ('1234'.bytes_utf8.at 0). == 49
 
 
 export intf i_show =
-  method show buf:@#i_string_buffer = void
+  method@ show buf:@#i_string_buffer = void

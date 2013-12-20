@@ -5,8 +5,8 @@ export type path = export i_copyable -- export i_showable
   pathname:string
 --  delegate pathname Showable
 
-export path method# copy other:@this = void
+export path method@# copy other:@this = void
   self!pathname = other.pathname
 
-export path method! set s:@string = void
+export path method@! set s:@string = void
   self!pathname = s.

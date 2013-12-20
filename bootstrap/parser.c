@@ -2097,22 +2097,23 @@ static void add_self_arg(struct module *mod, struct node *node,
 }
 
 static error p_defmethod_access(struct node *node, struct module *mod) {
-  node->as.DEFMETHOD.access = TREFDOT;
-
   struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
   switch (tok.t) {
-  case TDEREFBANG:
-    node->as.DEFMETHOD.access = TREFBANG;
-    break;
-  case TDEREFSHARP:
-    node->as.DEFMETHOD.access = TREFSHARP;
-    break;
-  case TDEREFWILDCARD:
-    node->as.DEFMETHOD.access = TREFWILDCARD;
+  case TREFDOT:
+  case TREFBANG:
+  case TREFSHARP:
+  case TREFWILDCARD:
+    node->as.DEFMETHOD.access = tok.t;
     break;
   default:
+    // In 't (method@ u:i_any) foobar x:@u = void', p_defmethod_access() is
+    // called twice (once for when parsing the genargs, once in p_deffun).
+    if (node->as.DEFMETHOD.access == 0) {
+      EXCEPT_SYNTAX(mod, &tok, "passing self by value is not supported,"
+                    " use one of method{@,@!,@#,@$}");
+    }
     back(mod, &tok);
     break;
   }

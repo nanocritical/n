@@ -3,10 +3,10 @@ from nlang.containers import *
 import nlang.unsafe
 
 export intf i_allocator =
-  (method! t:i_any) alloc = @#t
-  (method! t:i_any) free p:?@#t = void
-  (method! t:i_any) slice_realloc s:@#(slice t) count:size = void
-  (method! t:i_any) slice_free s:@#(slice t) = void
+  (method@! t:i_any) alloc = @#t
+  (method@! t:i_any) free p:?@#t = void
+  (method@! t:i_any) slice_realloc s:@#(slice t) count:size = void
+  (method@! t:i_any) slice_free s:@#(slice t) = void
 
 
 extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
@@ -18,34 +18,34 @@ export inline type slice t:i_any = \
   _data:?@#t
   _count:size
 
-export inline slice method# unsafe_wrap data:@#t count:size = void
+export inline slice method@# unsafe_wrap data:@#t count:size = void
   self!_data = data
   self!_count = count
 
-export inline slice method count = size
+export inline slice method@ count = size
   return self._count
 
-export inline slice method bytecount = size
+export inline slice method@ bytecount = size
   return self._count * (sizeof t)
 
-export inline slice method all = index_range
+export inline slice method@ all = index_range
   return range 0 self._count
 
-export inline slice method$ unsafe_rawdata = @$u8
+export inline slice method@$ unsafe_rawdata = @$u8
   assert <- self._count != 0
   return (nlang.unsafe.cast ?@$t @$u8) self$_data
 
-export inline slice method$ unsafe_data = @$t
+export inline slice method@$ unsafe_data = @$t
   assert <- self._count != 0
   return (nlang.unsafe.cast ?@$t @$t) self$_data
 
-export inline slice method$ at n:size = @$t
+export inline slice method@$ at n:size = @$t
   assert <- n < self._count
   let off = n * (sizeof t)
   let p = slice_at_byte ((nlang.unsafe.cast @$this @#this) self)#unsafe_rawdata off
   return (nlang.unsafe.cast @#u8 @$t) p
 
-export inline slice method# copy at:size other:@this off:size count:size = void
+export inline slice method@# copy at:size other:@this off:size count:size = void
   assert <- off + count <= other.count
   assert <- at + count <= self.count
   let bat = at * (sizeof t)
@@ -53,7 +53,7 @@ export inline slice method# copy at:size other:@this off:size count:size = void
   let bsz = count * (sizeof t)
   slice_memcpy self#unsafe_rawdata bat other.unsafe_rawdata boff bsz
 
-export inline slice method$ sub r:index_range = @$this -- ::unique
+export inline slice method@$ sub r:index_range = @$this -- ::unique
   assert <- r.end <= self.count
   let p = (nlang.unsafe.cast @$t @#t) (self$at r.begin)
   let ret = this.new

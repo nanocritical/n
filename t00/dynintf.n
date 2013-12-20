@@ -2,7 +2,7 @@ from nlang import *
 
 intf i_d =
   fun answer = i32
-  method get = i32
+  method@ get = i32
 
 type d = i_d
   x:i32
@@ -10,7 +10,7 @@ type d = i_d
 d fun answer = i32
   return 42
 
-d method get = i32
+d method@ get = i32
   return self.x
 
 type dc = i_d
@@ -19,7 +19,7 @@ type dc = i_d
 dc fun answer = i32
   return 42
 
-dc method get = i32
+dc method@ get = i32
   return 42
 
 fun foo v:@i_d = i32

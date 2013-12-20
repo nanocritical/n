@@ -9,66 +9,66 @@ export inline type vector t:i_copyable = \
   _p:(slice t)
   _count:size
 
-export vector method# i_array_ctor.ctorv c:@(static_array t) = void
+export vector method@# i_array_ctor.ctorv c:@(static_array t) = void
   self#reserve c.count
   for i in c.all.iter
     self#push (c.at i).
 
-export vector method count = size
+export vector method@ count = size
   return self._count
 
-export vector method$ at n:size = @$t
+export vector method@$ at n:size = @$t
   assert <- n <= self._count
   return self$_p$at n
 
-export vector method$ first = @$t
+export vector method@$ first = @$t
   return self$at 0
 
-export vector method$ last = @$t
+export vector method@$ last = @$t
   return self$at self._count-1
 
-export vector method is_empty = bool
+export vector method@ is_empty = bool
   return self._count == 0
 
-export vector method capacity = size
+export vector method@ capacity = size
   return self._p.count
 
-export vector method# reserve n:size = void
+export vector method@# reserve n:size = void
   if n > self.capacity
     (heap.slice_realloc t) @!sysheap @#self#_p n
 
-export vector method# resize n:size = void
+export vector method@# resize n:size = void
   (heap.slice_realloc t) @!sysheap @#self#_p n
   self!_count = n
 
-export vector method# push x:t = void
+export vector method@# push x:t = void
   self#reserve self._count+1
   let n = self._count
   self!_count += 1
   let d = self!at n
   d! = x
 
-export vector method# pop = t
+export vector method@# pop = t
   assert <- self._count != 0
   let d = self.last
   self!_count -= 1
   return d.
 
-export vector method# clear = void
+export vector method@# clear = void
   (heap.slice_free t) @!sysheap @#self#_p
 
-export vector method all = index_range
+export vector method@ all = index_range
   return range 0 self.count
 
-export vector method# i_copyable.copy_ctor other:@this = void
+export vector method@# i_copyable.copy_ctor other:@this = void
   (heap.slice_realloc t) @!sysheap @#self#_p other._p.count
   self._p#copy 0 @other._p 0 other._p.count
   self!_count = other._count
 
-export vector method# append_slice other:@(slice t) = void
+export vector method@# append_slice other:@(slice t) = void
   (heap.slice_realloc t) @!sysheap @#self#_p other.count
   self._p#copy 0 other 0 other.count
   self!_count = other.count
 
-export vector method$ storage = @$(slice t) -- ::unique
+export vector method@$ storage = @$(slice t) -- ::unique
   return self._p$sub self.all

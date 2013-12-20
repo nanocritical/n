@@ -3,7 +3,7 @@ from nlang import *
 type c =
   x:i32
 
-c method$ get = @$i32
+c method@$ get = @$i32
   return @$ self$x
 
 export fun main = i32
