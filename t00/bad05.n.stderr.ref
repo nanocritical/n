@@ -1,1 +1,1 @@
-t00/bad05.n:5:3: type: type contains both fields and choices
+t00/bad05.n:5:3: type: struct contains a choice declaration

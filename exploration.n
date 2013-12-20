@@ -200,7 +200,7 @@ fun foobar x:U32 = Err, U32
   -- Makes it clear we evaluate both iftrue and iffalse
   -- (for this particular myif).
 
--- Is the '.concept__' implicit when used as the type of a generic argument?
+-- Is the '.concept__' implicit when used as the struct of a generic argument?
 -- (i.e. a concept) Would there ever be a confusion?
 
 -- Macros introduce a new lexical scope and cannot interact with the surrounding
@@ -230,21 +230,21 @@ ensuring
 -- But then we cannot have asserts over semantic-domain code?)
 
 
--- Generic functions are always instantiated implictly, as the type system
+-- Generic functions are always instantiated implictly, as the struct system
 -- is never ambiguous.
 -- 
--- If the function type needs to be instantiated, we don't use:
+-- If the function struct needs to be instantiated, we don't use:
 -- (fun foo T U) x:T y:U = U
 -- let myfuntype = (foo U32 U8)
 -- 
 -- Instead, we use:
 -- let myfuntype = foo.type__ U32 U8
 --
--- Indeed, it's not exactly correct to see a function as a type with call__
+-- Indeed, it's not exactly correct to see a function as a struct with call__
 -- defined. Instead, we should see it as a special thing with a (special)
 -- member type__.
 --
--- type footype T U =
+-- struct footype T U =
 --   fun call__ x:T y:U = U
 --
 -- (foo.type__ U32 U8).call__ 1 0

@@ -2,7 +2,7 @@ from nlang import *
 from nlang.vectors import vector
 import nlang.unsafe
 
-export inline type string = \
+export inline struct string = \
     export i_copyable \
     export i_show \
     export i_string_buffer

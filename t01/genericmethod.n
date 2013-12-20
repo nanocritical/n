@@ -3,7 +3,7 @@ from nlang import *
 intf i_blah =
   (method@ t:i_integer) decr x:t = t
 
-type blah = i_blah
+struct blah = i_blah
   dummy:u8
 
 blah (method@ t:i_integer) i_blah.decr x:t = t

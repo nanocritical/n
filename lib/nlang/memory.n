@@ -12,7 +12,7 @@ export intf i_allocator =
 extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
 extern inline fun slice_memcpy dst:@#u8 at:size src:@u8 off:size count:size = void
 
-export inline type slice t:i_any = \
+export inline struct slice t:i_any = \
     export i_trivial_ctor \
     export i_trivial_copy_but_owned
   _data:?@#t

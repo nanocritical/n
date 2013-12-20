@@ -3,7 +3,7 @@ from nlang.containers import *
 from nlang.memory import *
 import nlang.unsafe
 
-export inline type char = \
+export inline struct char = \
     export i_trivial_copy \
     export i_return_by_copy \
     export i_trivial_equality \
@@ -46,7 +46,7 @@ export intf i_string_buffer = export i_string
   method@# append other:@i_const_string = void
   method@# copy at:size other:@i_const_string off:size count:size = void
 
-export inline type static_string = \
+export inline struct static_string = \
     export i_trivial_copy \
     export i_ordered_by_compare \
     export i_return_by_copy \

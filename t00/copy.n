@@ -1,6 +1,6 @@
 from nlang import *
 
-type copy = i_copyable
+struct copy = i_copyable
   x:i32
 
 copy method@# i_copyable.copy_ctor other:@this = void

@@ -110,38 +110,37 @@ static error step_detect_prototypes(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_detect_deftype_kind,
+static STEP_FILTER(step_check_deftype_kind,
                    SF(DEFTYPE));
 // Must be run before builtins are added.
-static error step_detect_deftype_kind(struct module *mod, struct node *node,
-                                      void *user, bool *stop) {
+static error step_check_deftype_kind(struct module *mod, struct node *node,
+                                     void *user, bool *stop) {
   DSTEP(mod, node);
 
   error e;
-  struct node *for_error = NULL;
-  enum deftype_kind k = DEFTYPE_PROTOTYPE;
+  enum deftype_kind k = node->as.DEFTYPE.kind;
   FOREACH_SUB(f, node) {
     switch (f->which) {
     case DEFFIELD:
-      if (k == DEFTYPE_ENUM || k == DEFTYPE_SUM) {
-        for_error = f;
-        goto field_and_sum;
+      if (k == DEFTYPE_ENUM || k == DEFTYPE_UNION) {
+        e = mk_except_type(mod, f, "enum or union contains a field declaration");
+        THROW(e);
       }
-      k = DEFTYPE_STRUCT;
       break;
     case DEFCHOICE:
       if (k == DEFTYPE_STRUCT) {
-        for_error = f;
-        goto field_and_sum;
-      }
-      if (k != DEFTYPE_SUM) {
-        k = DEFTYPE_ENUM;
+        e = mk_except_type(mod, f, "struct contains a choice declaration");
+        THROW(e);
       }
       if ((!f->as.DEFCHOICE.has_value
            && node_ident(node_subs_at_const(f, IDX_CH_PAYLOAD-1)) != ID_TBI_VOID)
           || (f->as.DEFCHOICE.has_value
               && node_ident(node_subs_at_const(f, IDX_CH_PAYLOAD)) != ID_TBI_VOID)) {
-        k = DEFTYPE_SUM;
+        if (k == DEFTYPE_ENUM) {
+          e = mk_except_type(mod, f,
+                             "enum contains a choice declaration with a value");
+          THROW(e);
+        }
       }
       break;
     default:
@@ -149,12 +148,7 @@ static error step_detect_deftype_kind(struct module *mod, struct node *node,
     }
   }
 
-  node->as.DEFTYPE.kind = k;
   return 0;
-
-field_and_sum:
-  e = mk_except_type(mod, for_error, "type contains both fields and choices");
-  THROW(e);
 }
 
 static STEP_FILTER(step_assign_deftype_which_values,
@@ -163,7 +157,7 @@ static error step_assign_deftype_which_values(struct module *mod, struct node *n
                                               void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->as.DEFTYPE.kind != DEFTYPE_ENUM
-      && node->as.DEFTYPE.kind != DEFTYPE_SUM) {
+      && node->as.DEFTYPE.kind != DEFTYPE_UNION) {
     return 0;
   }
 
@@ -235,7 +229,7 @@ static error passzero0(struct module *mod, struct node *root,
     DOWN_STEP(step_rewrite_prototype_wildcards);
     DOWN_STEP(step_generics_pristine_copy);
     DOWN_STEP(step_detect_prototypes);
-    DOWN_STEP(step_detect_deftype_kind);
+    DOWN_STEP(step_check_deftype_kind);
     DOWN_STEP(step_assign_deftype_which_values);
     ,
     UP_STEP(step_add_scopes);

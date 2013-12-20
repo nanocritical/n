@@ -67,7 +67,7 @@ fun main = i32
 (fun t:i_any) free p:(unique @#t) = void
 
 
-type tree =
+struct tree =
   _left:@#tree
   _right:@#tree
 

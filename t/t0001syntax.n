@@ -7,7 +7,7 @@ fun foo x:u32 y:u32 = u32
 fun bar x:i32 y:i32 = i32
   return x*y
 
-type tb =
+struct tb =
 
 tb method@ foo = i64
   return 0

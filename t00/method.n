@@ -1,6 +1,6 @@
 from nlang import *
 
-type t = i_trivial_copy
+struct t = i_trivial_copy
   x:i32
 
 t method@ get = i32

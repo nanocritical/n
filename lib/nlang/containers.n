@@ -10,7 +10,7 @@ export intf i_iterator =
   method@ has_next = bool
   method@! next = void
 
-export inline type index_range = \
+export inline struct index_range = \
     export i_trivial_copy \
     export i_trivial_equality \
     export i_return_by_copy
@@ -52,7 +52,7 @@ export index_range method@ iter = index_iterator
   return { r=self. }
 
 
-export inline type index_iterator = export i_iterator
+export inline struct index_iterator = export i_iterator
   r:index_range
   p:size
 

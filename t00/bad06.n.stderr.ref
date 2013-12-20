@@ -1,1 +1,1 @@
-t00/bad06.n:5:3: type: type contains both fields and choices
+t00/bad06.n:5:3: type: enum or union contains a field declaration

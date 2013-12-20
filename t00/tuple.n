@@ -12,7 +12,7 @@ fun bar = x:i32, y:i32
 --   y = 1
 --   z = 2
 --
--- type nocopy =
+-- struct nocopy =
 --   s	:i32
 --
 -- fun byref = x:nocopy, y:nocopy

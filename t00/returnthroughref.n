@@ -1,6 +1,6 @@
 from nlang import *
 
-type t =
+struct t =
   x:i32
   xx:i32
 

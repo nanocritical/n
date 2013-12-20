@@ -4,15 +4,15 @@ from nlang.containers import index_range range
 from nlang.unsafe import cast
 from nlang import say print
 
-export extern type __literal_null__ = export i_any_nullable_ref
-export extern type __literal_integer__ = export i_integer
-export extern type __literal_floating__ = export i_floating
+export extern struct __literal_null__ = export i_any_nullable_ref
+export extern struct __literal_integer__ = export i_integer
+export extern struct __literal_floating__ = export i_floating
 
-export extern type __internal_not_typeable__ =
-export extern type __call_function_slot__ =
+export extern struct __internal_not_typeable__ =
+export extern struct __call_function_slot__ =
 
-export extern type __mutable__ =
-export extern type __mercurial__ =
+export extern struct __mutable__ =
+export extern struct __mercurial__ =
 
 export intf i_any =
 
@@ -76,7 +76,7 @@ export intf i_sum_equality = export i_has_equality
 export intf i_sum_order = export i_ordered
 
 
-export extern type void = i_return_by_copy
+export extern struct void = i_return_by_copy
 
 export extern intf __i_ref_compatible r:i_any_any_ref =
 
@@ -89,41 +89,41 @@ export intf i_any_mutable_ref t:i_any = export (i_any_ref t)
 export intf i_any_nullable_ref t:i_any = export i_any_any_ref
 export intf i_any_nullable_mutable_ref t:i_any = export (i_any_nullable_ref t)
 
-export extern type ref t:i_any = export (i_any_ref t)
-export extern type mutable_ref t:i_any = export (i_any_mutable_ref t)
-export extern type mercurial_ref t:i_any = export (i_any_mutable_ref t)
+export extern struct ref t:i_any = export (i_any_ref t)
+export extern struct mutable_ref t:i_any = export (i_any_mutable_ref t)
+export extern struct mercurial_ref t:i_any = export (i_any_mutable_ref t)
 
 -- FIXME: to replace with semantic constraint
-export extern type nullable_ref t:i_any = export (i_any_nullable_ref t)
-export extern type nullable_mutable_ref t:i_any = export (i_any_nullable_mutable_ref t)
-export extern type nullable_mercurial_ref t:i_any = export (i_any_nullable_mutable_ref t)
+export extern struct nullable_ref t:i_any = export (i_any_nullable_ref t)
+export extern struct nullable_mutable_ref t:i_any = export (i_any_nullable_mutable_ref t)
+export extern struct nullable_mercurial_ref t:i_any = export (i_any_nullable_mutable_ref t)
 
 
 export intf i_any_tuple = export i_copyable
 
-export inline type tuple_2 t0:i_copyable t1:i_copyable = export i_any_tuple
+export inline struct tuple_2 t0:i_copyable t1:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
 
-export inline type tuple_3 t0:i_copyable t1:i_copyable t2:i_copyable = export i_any_tuple
+export inline struct tuple_3 t0:i_copyable t1:i_copyable t2:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
 
-export inline type tuple_4 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable = export i_any_tuple
+export inline struct tuple_4 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
   x3	:t3
 
-export inline type tuple_5 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable = export i_any_tuple
+export inline struct tuple_5 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
   x3	:t3
   x4	:t4
 
-export inline type tuple_6 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable = export i_any_tuple
+export inline struct tuple_6 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -131,7 +131,7 @@ export inline type tuple_6 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyab
   x4	:t4
   x5	:t5
 
-export inline type tuple_7 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable = export i_any_tuple
+export inline struct tuple_7 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -140,7 +140,7 @@ export inline type tuple_7 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyab
   x5	:t5
   x6	:t6
 
-export inline type tuple_8 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable = export i_any_tuple
+export inline struct tuple_8 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -150,7 +150,7 @@ export inline type tuple_8 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyab
   x6	:t6
   x7	:t7
 
-export inline type tuple_9 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable = export i_any_tuple
+export inline struct tuple_9 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -161,7 +161,7 @@ export inline type tuple_9 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyab
   x7	:t7
   x8	:t8
 
-export inline type tuple_10 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable = export i_any_tuple
+export inline struct tuple_10 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -173,7 +173,7 @@ export inline type tuple_10 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copya
   x8	:t8
   x9	:t9
 
-export inline type tuple_11 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable = export i_any_tuple
+export inline struct tuple_11 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -186,7 +186,7 @@ export inline type tuple_11 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copya
   x9	:t9
   x10	:t10
 
-export inline type tuple_12 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable = export i_any_tuple
+export inline struct tuple_12 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -200,7 +200,7 @@ export inline type tuple_12 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copya
   x10	:t10
   x11	:t11
 
-export inline type tuple_13 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable = export i_any_tuple
+export inline struct tuple_13 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -215,7 +215,7 @@ export inline type tuple_13 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copya
   x11	:t11
   x12	:t12
 
-export inline type tuple_14 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable = export i_any_tuple
+export inline struct tuple_14 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -231,7 +231,7 @@ export inline type tuple_14 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copya
   x12	:t12
   x13	:t13
 
-export inline type tuple_15 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable t14:i_copyable = export i_any_tuple
+export inline struct tuple_15 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable t14:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -248,7 +248,7 @@ export inline type tuple_15 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copya
   x13	:t13
   x14	:t14
 
-export inline type tuple_16 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable t14:i_copyable t15:i_copyable = export i_any_tuple
+export inline struct tuple_16 t0:i_copyable t1:i_copyable t2:i_copyable t3:i_copyable t4:i_copyable t5:i_copyable t6:i_copyable t7:i_copyable t8:i_copyable t9:i_copyable t10:i_copyable t11:i_copyable t12:i_copyable t13:i_copyable t14:i_copyable t15:i_copyable = export i_any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -329,7 +329,7 @@ export intf i_native_floating = \
     export i_floating \
     export i_show
 
-export extern type bool = export i_native_boolean
+export extern struct bool = export i_native_boolean
 export extern bool method@# i_copyable.copy_ctor other:@this = void
 export extern bool method@ i_has_equality.operator_eq other:@this = bool
 export extern bool method@ i_has_equality.operator_ne other:@this = bool
@@ -350,7 +350,7 @@ export extern bool method@ to_u32 = u32
 export extern bool method@ to_u64 = u64
 export extern bool method@ i_show.show buf:@#i_string_buffer = void
 
-export extern type i8 = export i_native_unsigned_integer
+export extern struct i8 = export i_native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u8
 export extern i8 method@# i_copyable.copy_ctor other:@this = void
@@ -391,7 +391,7 @@ export extern inline i8 method@ to_i64 = i64
 export extern inline i8 method@ i_integer.as_ssize = ssize
 export extern i8 method@ i_show.show buf:@#i_string_buffer = void
 
-export extern type i16 = export i_native_unsigned_integer
+export extern struct i16 = export i_native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u16
 export extern i16 method@# i_copyable.copy_ctor other:@this = void
@@ -432,7 +432,7 @@ export extern inline i16 method@ to_i64 = i64
 export extern inline i16 method@ i_integer.as_ssize = ssize
 export extern i16 method@ i_show.show buf:@#i_string_buffer = void
 
-export extern type i32 = export i_native_unsigned_integer
+export extern struct i32 = export i_native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u32
 export extern i32 method@# i_copyable.copy_ctor other:@this = void
@@ -475,7 +475,7 @@ export extern inline i32 method@ trim_float = float
 export extern inline i32 method@ to_double = double
 export extern i32 method@ i_show.show buf:@#i_string_buffer = void
 
-export extern type i64 = export i_native_unsigned_integer
+export extern struct i64 = export i_native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u64
 export extern i64 method@# i_copyable.copy_ctor other:@this = void
@@ -518,7 +518,7 @@ export extern inline i64 method@ trim_float = float
 export extern inline i64 method@ trim_double = double
 export extern i64 method@ i_show.show buf:@#i_string_buffer = void
 
-export extern type u8 = export i_native_unsigned_integer
+export extern struct u8 = export i_native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i8
 export extern u8 method@# i_copyable.copy_ctor other:@this = void
@@ -561,7 +561,7 @@ export extern inline u8 method@ to_float = float
 export extern inline u8 method@ to_double = double
 export extern u8 method@ i_show.show buf:@#i_string_buffer = void
 
-export extern type u16 = export i_native_unsigned_integer
+export extern struct u16 = export i_native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i16
 export extern u16 method@# i_copyable.copy_ctor other:@this = void
@@ -604,7 +604,7 @@ export extern inline u16 method@ to_float = float
 export extern inline u16 method@ to_double = double
 export extern u16 method@ i_show.show buf:@#i_string_buffer = void
 
-export extern type u32 = export i_native_unsigned_integer
+export extern struct u32 = export i_native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i32
 export extern u32 method@# i_copyable.copy_ctor other:@this = void
@@ -647,7 +647,7 @@ export extern inline u32 method@ trim_float = float
 export extern inline u32 method@ to_double = double
 export extern u32 method@ i_show.show buf:@#i_string_buffer = void
 
-export extern type u64 = export i_native_unsigned_integer
+export extern struct u64 = export i_native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i64
 export extern u64 method@# i_copyable.copy_ctor other:@this = void
@@ -690,7 +690,7 @@ export extern inline u64 method@ trim_float = float
 export extern inline u64 method@ trim_double = double
 export extern u64 method@ i_show.show buf:@#i_string_buffer = void
 
-export extern type ssize = export i_native_integer
+export extern struct ssize = export i_native_integer
   alias this_signed = this
   alias this_unsigned = size
 export extern ssize method@# i_copyable.copy_ctor other:@this = void
@@ -735,7 +735,7 @@ export extern ssize method@ i_show.show buf:@#i_string_buffer = void
 
 -- FIXME: size and ssize do not have a well-defined bit size, they therefore
 -- should not be i_bitwise.
-export extern type size = export i_native_unsigned_integer
+export extern struct size = export i_native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = ssize
 export extern size method@# i_copyable.copy_ctor other:@this = void
@@ -778,7 +778,7 @@ export extern inline size method@ trim_float = float
 export extern inline size method@ trim_double = double
 export extern size method@ i_show.show buf:@#i_string_buffer = void
 
-export extern type float = export i_native_floating
+export extern struct float = export i_native_floating
 export extern float method@# i_copyable.copy_ctor other:@this = void
 export extern float method@ i_has_equality.operator_eq other:@this = bool
 export extern float method@ i_has_equality.operator_ne other:@this = bool
@@ -806,7 +806,7 @@ export extern inline float method@ to_double = double
 export extern inline float method@ as_ssize = ssize
 export extern float method@ i_show.show buf:@#i_string_buffer = void
 
-export extern type double = export i_native_floating
+export extern struct double = export i_native_floating
 export extern double method@# i_copyable.copy_ctor other:@this = void
 export extern double method@ i_has_equality.operator_eq other:@this = bool
 export extern double method@ i_has_equality.operator_ne other:@this = bool
@@ -859,7 +859,7 @@ export intf i_array_ctor t:i_copyable =
 
 extern inline fun static_array_at_byte dp:@!u8 off:size = @!u8
 
-export inline type static_array t:i_copyable = \
+export inline struct static_array t:i_copyable = \
     export (i_trivial_array_ctor t) \
     export i_trivial_copy \
     export i_return_by_copy
@@ -933,7 +933,7 @@ export intf i_error = \
     export i_generalized_boolean \
     export i_show
 
-export inline type error = export i_error \
+export inline struct error = export i_error \
     export i_trivial_copy
   code	:i32
 

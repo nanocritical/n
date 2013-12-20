@@ -3,7 +3,7 @@ from nlang import *
 intf i =
   fun foo = void
 
-type a = i
+struct a = i
   x:i32
 
 a fun i.foo = void

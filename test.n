@@ -1,3 +1,3 @@
-type nullable r:any_ref =
+struct nullable r:any_ref =
   | NULL
   | SOME of r

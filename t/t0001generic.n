@@ -1,7 +1,7 @@
 from nlang.prelude import *
 import nlang.unsafe
 
-type bar t:partially_ordered =
+struct bar t:partially_ordered =
   method@ foo x:@t = t
     if t.operator_lt__ @0:t x
       return 1

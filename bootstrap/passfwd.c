@@ -577,7 +577,7 @@ static error step_type_defchoices(struct module *mod, struct node *node,
   error e;
   switch (node->as.DEFTYPE.kind) {
   case DEFTYPE_ENUM:
-  case DEFTYPE_SUM:
+  case DEFTYPE_UNION:
     {
       set_typ(&node->as.DEFTYPE.choice_typ,
               typ_create_tentative(TBI_LITERALS_INTEGER));
@@ -698,7 +698,7 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
     return 0;
   }
   if (node->as.DEFTYPE.kind == DEFTYPE_ENUM
-      || node->as.DEFTYPE.kind == DEFTYPE_SUM) {
+      || node->as.DEFTYPE.kind == DEFTYPE_UNION) {
     return 0;
   }
 
@@ -798,9 +798,9 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   toplevel->is_export = node_toplevel(deft)->is_export;
   toplevel->is_inline = node_toplevel(deft)->is_inline;
 
-  if (bg == BG_SUM_CTOR_WITH_CTOR
-      || bg == BG_SUM_CTOR_WITH_MK
-      || bg == BG_SUM_CTOR_WITH_NEW) {
+  if (bg == BG_UNION_CTOR_WITH_CTOR
+      || bg == BG_UNION_CTOR_WITH_MK
+      || bg == BG_UNION_CTOR_WITH_NEW) {
     struct node *funargs = node_subs_at(d, IDX_FUNARGS);
     struct node *arg = mk_node(mod, funargs, DEFARG);
     struct node *name = mk_node(mod, arg, IDENT);
@@ -833,7 +833,7 @@ static error step_add_builtin_defchoice_constructors(struct module *mod, struct 
   error e = typ_check_isa(mod, arg, arg->typ, TBI_COPYABLE);
   EXCEPT(e);
 
-  define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_CTOR);
+  define_defchoice_builtin(mod, node, BG_UNION_CTOR_WITH_CTOR);
 
   return 0;
 }
@@ -925,7 +925,7 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node,
   if (node_toplevel_const(node)->is_extern) {
     return 0;
   }
-  if (node->as.DEFTYPE.kind == DEFTYPE_SUM
+  if (node->as.DEFTYPE.kind == DEFTYPE_UNION
       || node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     return 0;
   }
@@ -986,9 +986,9 @@ static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *
   if (deft->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_MK);
     define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_NEW);
-  } else if (deft->as.DEFTYPE.kind == DEFTYPE_SUM) {
-    define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_MK);
-    define_defchoice_builtin(mod, node, BG_SUM_CTOR_WITH_NEW);
+  } else if (deft->as.DEFTYPE.kind == DEFTYPE_UNION) {
+    define_defchoice_builtin(mod, node, BG_UNION_CTOR_WITH_MK);
+    define_defchoice_builtin(mod, node, BG_UNION_CTOR_WITH_NEW);
   }
 
   return 0;
@@ -1009,7 +1009,7 @@ static error step_add_builtin_operators(struct module *mod, struct node *node,
     break;
   case DEFTYPE_STRUCT:
     break;
-  case DEFTYPE_SUM:
+  case DEFTYPE_UNION:
     break;
   case DEFTYPE_ENUM:
     if (!typ_isa(node->as.DEFTYPE.choice_typ, TBI_NATIVE_INTEGER)) {
@@ -1076,7 +1076,7 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
     node_subs_replace(d, node_subs_first(d), full_name);
 
     struct toplevel *toplevel = node_toplevel(d);
-    toplevel->builtingen = BG_SUM_DISPATCH;
+    toplevel->builtingen = BG_UNION_DISPATCH;
     toplevel->is_prototype = FALSE;
     toplevel->is_export = node_toplevel(deft)->is_export;
     toplevel->is_inline = node_toplevel(deft)->is_inline;
@@ -1086,16 +1086,16 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
   }
 }
 
-static error sum_choice_with_intf(struct module *mod, struct typ *t,
+static error union_choice_with_intf(struct module *mod, struct typ *t,
                                   struct typ *intf, bool *stop, void *user) {
   struct node *node = user;
 
   struct typ *to_check = intf;
-  if (typ_equal(intf, TBI_SUM_COPY)) {
+  if (typ_equal(intf, TBI_UNION_COPY)) {
     to_check = TBI_COPYABLE;
-  } else if (typ_equal(intf, TBI_SUM_EQUALITY)) {
+  } else if (typ_equal(intf, TBI_UNION_EQUALITY)) {
     to_check = TBI_HAS_EQUALITY;
-  } else if (typ_equal(intf, TBI_SUM_ORDER)) {
+  } else if (typ_equal(intf, TBI_UNION_ORDER)) {
     to_check = TBI_ORDERED;
   }
 
@@ -1115,20 +1115,20 @@ static error sum_choice_with_intf(struct module *mod, struct typ *t,
     EXCEPT(e);
   }
 
-  if (typ_equal(intf, TBI_SUM_COPY)) {
+  if (typ_equal(intf, TBI_UNION_COPY)) {
     if (!typ_isa(node->typ, TBI_TRIVIAL_COPY)) {
-      define_builtin(mod, node, BG_SUM_COPY);
+      define_builtin(mod, node, BG_UNION_COPY);
     }
-  } else if (typ_equal(intf, TBI_SUM_EQUALITY)) {
+  } else if (typ_equal(intf, TBI_UNION_EQUALITY)) {
     if (!typ_isa(node->typ, TBI_TRIVIAL_EQUALITY)) {
-      define_builtin(mod, node, BG_SUM_EQUALITY_EQ);
-      define_builtin(mod, node, BG_SUM_EQUALITY_NE);
+      define_builtin(mod, node, BG_UNION_EQUALITY_EQ);
+      define_builtin(mod, node, BG_UNION_EQUALITY_NE);
     }
-  } else if (typ_equal(intf, TBI_SUM_ORDER)) {
-    define_builtin(mod, node, BG_SUM_ORDER_LE);
-    define_builtin(mod, node, BG_SUM_ORDER_LT);
-    define_builtin(mod, node, BG_SUM_ORDER_GT);
-    define_builtin(mod, node, BG_SUM_ORDER_GE);
+  } else if (typ_equal(intf, TBI_UNION_ORDER)) {
+    define_builtin(mod, node, BG_UNION_ORDER_LE);
+    define_builtin(mod, node, BG_UNION_ORDER_LT);
+    define_builtin(mod, node, BG_UNION_ORDER_GT);
+    define_builtin(mod, node, BG_UNION_ORDER_GE);
   } else {
     define_dispatch(mod, node, intf);
   }
@@ -1136,10 +1136,10 @@ static error sum_choice_with_intf(struct module *mod, struct typ *t,
   return 0;
 }
 
-static STEP_FILTER(step_add_sum_dispatch,
+static STEP_FILTER(step_add_union_dispatch,
                    SF(DEFTYPE));
-static error step_add_sum_dispatch(struct module *mod, struct node *node,
-                                   void *user, bool *stop) {
+static error step_add_union_dispatch(struct module *mod, struct node *node,
+                                     void *user, bool *stop) {
   DSTEP(mod, node);
 
   switch (node->as.DEFTYPE.kind) {
@@ -1147,12 +1147,12 @@ static error step_add_sum_dispatch(struct module *mod, struct node *node,
   case DEFTYPE_ENUM:
   case DEFTYPE_STRUCT:
     return 0;
-  case DEFTYPE_SUM:
+  case DEFTYPE_UNION:
     break;
   }
 
   error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTER_TRIVIAL_ISALIST,
-                                sum_choice_with_intf, node);
+                                union_choice_with_intf, node);
   EXCEPT(e);
 
   return 0;
@@ -1329,7 +1329,7 @@ static error passfwd8(struct module *mod, struct node *root,
     UP_STEP(step_add_builtin_mkv_newv);
     UP_STEP(step_add_builtin_operators);
     UP_STEP(step_add_trivials);
-    UP_STEP(step_add_sum_dispatch);
+    UP_STEP(step_add_union_dispatch);
     UP_STEP(step_rewrite_def_return_through_ref);
     UP_STEP(step_complete_instantiation);
     );

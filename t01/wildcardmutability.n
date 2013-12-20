@@ -1,6 +1,6 @@
 from nlang import *
 
-type c =
+struct c =
   x:i32
 
 c method@$ get = @$i32

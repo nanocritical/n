@@ -1,5 +1,5 @@
 from nlang import *
 
-type t =
+enum t =
   | A
   x:u32

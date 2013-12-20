@@ -1,10 +1,10 @@
 from nlang import *
 
-type tt = i_trivial_copy
+struct tt = i_trivial_copy
   x:i32
   y:i32
 
-type t = i_trivial_copy
+struct t = i_trivial_copy
   x:i32
   y:tt
 

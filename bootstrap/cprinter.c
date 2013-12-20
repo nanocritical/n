@@ -1380,15 +1380,15 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     fprintf(out, "THIS(_ctorv)(self, c);\n");
     fprintf(out, "return self;\n");
     break;
-  case BG_SUM_CTOR_WITH_CTOR:
+  case BG_UNION_CTOR_WITH_CTOR:
     fprintf(out, "self->which__ = %s_which__;\n", replace_dots(scope_name(mod, node->scope.parent)));
     fprintf(out, "self->as__.%s = c;\n", idents_value(mod->gctx, node_ident(parent)));
     break;
-  case BG_SUM_CTOR_WITH_MK:
+  case BG_UNION_CTOR_WITH_MK:
     fprintf(out, "THIS(_%s_ctor)(&r, c);\n", idents_value(mod->gctx, node_ident(parent)));
     bg_return_if_by_copy(out, mod, node, "r");
     break;
-  case BG_SUM_CTOR_WITH_NEW:
+  case BG_UNION_CTOR_WITH_NEW:
     fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
     fprintf(out, "THIS(_%s_ctor)(self, c);\n", idents_value(mod->gctx, node_ident(parent)));
     fprintf(out, "return self;\n");
@@ -1402,10 +1402,10 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_ENUM_MATCH:
     fprintf(out, "return *self == *other;\n");
     break;
-  case BG_SUM_MATCH:
+  case BG_UNION_MATCH:
     fprintf(out, "\n");
     break;
-  case BG_SUM_DISPATCH:
+  case BG_UNION_DISPATCH:
     fprintf(out, "switch (self->which__) {\n");
 
     FOREACH_SUB_CONST(ch, parent) {
@@ -1431,7 +1431,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     }
     fprintf(out, "}\n");
     break;
-  case BG_SUM_COPY:
+  case BG_UNION_COPY:
     fprintf(out, "self->which__ = other->which__;\n");
     fprintf(out, "switch (self->which__) {\n");
 
@@ -1447,7 +1447,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     }
     fprintf(out, "}\n");
     break;
-  case BG_SUM_EQUALITY_EQ:
+  case BG_UNION_EQUALITY_EQ:
     fprintf(out, "if (self->which__ != other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
 
@@ -1463,7 +1463,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     }
     fprintf(out, "}\nreturn 0;\n");
     break;
-  case BG_SUM_EQUALITY_NE:
+  case BG_UNION_EQUALITY_NE:
     fprintf(out, "if (self->which__ != other->which__) { return 1; }\n");
     fprintf(out, "switch (self->which__) {\n");
 
@@ -1479,7 +1479,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     }
     fprintf(out, "}\nreturn 0;\n");
     break;
-  case BG_SUM_ORDER_LE:
+  case BG_UNION_ORDER_LE:
     fprintf(out, "if (self->which__ > other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
 
@@ -1495,7 +1495,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     }
     fprintf(out, "}\nreturn 0;\n");
     break;
-  case BG_SUM_ORDER_LT:
+  case BG_UNION_ORDER_LT:
     fprintf(out, "if (self->which__ >= other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
 
@@ -1512,7 +1512,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     fprintf(out, "}\n");
     fprintf(out, "}\nreturn 0;\n");
     break;
-  case BG_SUM_ORDER_GT:
+  case BG_UNION_ORDER_GT:
     fprintf(out, "if (self->which__ <= other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
 
@@ -1528,7 +1528,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     }
     fprintf(out, "}\nreturn 0;\n");
     break;
-  case BG_SUM_ORDER_GE:
+  case BG_UNION_ORDER_GE:
     fprintf(out, "if (self->which__ < other->which__) { return 0; }\n");
     fprintf(out, "switch (self->which__) {\n");
 
@@ -1761,7 +1761,7 @@ static void print_deftype_block(FILE *out, bool header, enum forward fwd, const 
     }
   }
 
-  if (!do_static && (node->as.DEFTYPE.kind == DEFTYPE_SUM)) {
+  if (!do_static && (node->as.DEFTYPE.kind == DEFTYPE_UNION)) {
     print_deftype_name(out, mod, node);
     fprintf(out, "_%s %s;\n",
             idents_value(mod->gctx, ID_WHICH_TYPE),
@@ -1816,7 +1816,7 @@ static void print_deftype_typedefs(FILE *out, const struct module *mod, const st
   fprintf(out, "_genN_;\n");
 }
 
-static void print_deftype_sum_choices_fwdtypes(FILE *out, bool header, const struct module *mod, const struct node *node) {
+static void print_deftype_union_choices_fwdtypes(FILE *out, bool header, const struct module *mod, const struct node *node) {
   if (header && !(node_is_export(node) && node_is_inline(node))) {
     return;
   }
@@ -1863,7 +1863,7 @@ static void print_deftype_sum_choices_fwdtypes(FILE *out, bool header, const str
     fprintf(out, "_%s_label__;\n", idents_value(mod->gctx, ID_WHICH));
   }
 
-  if (node->as.DEFTYPE.kind != DEFTYPE_SUM) {
+  if (node->as.DEFTYPE.kind != DEFTYPE_UNION) {
     return;
   }
 
@@ -1882,7 +1882,7 @@ static void print_deftype_sum_choices_fwdtypes(FILE *out, bool header, const str
   }
 }
 
-static void print_deftype_sum_choices_deftypes(FILE *out, bool header, const struct module *mod, const struct node *node) {
+static void print_deftype_union_choices_deftypes(FILE *out, bool header, const struct module *mod, const struct node *node) {
   if (header && !(node_is_export(node) && node_is_inline(node))) {
     return;
   }
@@ -1912,7 +1912,7 @@ static void print_deftype_sum_choices_deftypes(FILE *out, bool header, const str
   fprintf(out, "_%s;\n", idents_value(mod->gctx, ID_AS_TYPE));
 }
 
-static void print_deftype_sum_members(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
+static void print_deftype_union_members(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
   if (header && !(node_is_export(node) && node_is_inline(node))) {
     return;
   }
@@ -2141,16 +2141,16 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
 
     print_deftype_typedefs(out, mod, node);
 
-    if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
-      print_deftype_sum_members(out, header, fwd, mod, node);
-      print_deftype_sum_choices_fwdtypes(out, header, mod, node);
+    if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
+      print_deftype_union_members(out, header, fwd, mod, node);
+      print_deftype_union_choices_fwdtypes(out, header, mod, node);
     }
 
     print_deftype_block(out, header, fwd, mod, node, TRUE);
 
   } else if (fwd == FWD_DEFINE_TYPES) {
-    if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
-      print_deftype_sum_choices_deftypes(out, header, mod, node);
+    if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
+      print_deftype_union_choices_deftypes(out, header, mod, node);
     }
 
     print_deftype_block(out, header, fwd, mod, node, TRUE);
@@ -2166,8 +2166,8 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
   }
 
   if (fwd == FWD_DECLARE_FUNCTIONS || fwd == FWD_DEFINE_FUNCTIONS) {
-    if (node->as.DEFTYPE.kind == DEFTYPE_SUM) {
-      print_deftype_sum_members(out, header, fwd, mod, node);
+    if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
+      print_deftype_union_members(out, header, fwd, mod, node);
     }
 
     print_deftype_block(out, header, fwd, mod, node, TRUE);

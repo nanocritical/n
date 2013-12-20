@@ -211,9 +211,9 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_TRIVIAL_EQUALITY] = "i_trivial_equality",
   [ID_TBI_TRIVIAL_ORDER] = "i_trivial_order",
   [ID_TBI_RETURN_BY_COPY] = "i_return_by_copy",
-  [ID_TBI_SUM_COPY] = "i_sum_copy",
-  [ID_TBI_SUM_EQUALITY] = "i_sum_equality",
-  [ID_TBI_SUM_ORDER] = "i_sum_order",
+  [ID_TBI_UNION_COPY] = "i_union_copy",
+  [ID_TBI_UNION_EQUALITY] = "i_union_equality",
+  [ID_TBI_UNION_ORDER] = "i_union_order",
   [ID_TBI_ITERATOR] = "i_iterator",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_TBI__CALL_FUNCTION_SLOT] = "__call_function_slot__",
@@ -278,22 +278,22 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_CTOR_WITH_NEW] = "nlang.builtins.i_ctor_with.new",
   [BG_AUTO_MKV] = "nlang.builtins.i_array_ctor.mkv",
   [BG_AUTO_NEWV] = "nlang.builtins.i_array_ctor.newv",
-  [BG_SUM_CTOR_WITH_CTOR] = "nlang.builtins.i_sum_ctor_with.ctor",
-  [BG_SUM_CTOR_WITH_MK] = "nlang.builtins.i_sum_ctor_with.mk",
-  [BG_SUM_CTOR_WITH_NEW] = "nlang.builtins.i_sum_ctor_with.new",
+  [BG_UNION_CTOR_WITH_CTOR] = "nlang.builtins.i_union_ctor_with.ctor",
+  [BG_UNION_CTOR_WITH_MK] = "nlang.builtins.i_union_ctor_with.mk",
+  [BG_UNION_CTOR_WITH_NEW] = "nlang.builtins.i_union_ctor_with.new",
 
   [BG_ENUM_EQ] = "nlang.builtins.i_has_equality.operator_eq",
   [BG_ENUM_NE] = "nlang.builtins.i_has_equality.operator_ne",
   [BG_ENUM_MATCH] = "nlang.builtins.i_matchable.operator_match",
-  [BG_SUM_MATCH] = "nlang.builtins.i_matchable.operator_match",
-  [BG_SUM_DISPATCH] = NULL,
-  [BG_SUM_COPY] = "nlang.builtins.i_copyable.copy_ctor",
-  [BG_SUM_EQUALITY_EQ] = "nlang.builtins.i_has_equality.operator_eq",
-  [BG_SUM_EQUALITY_NE] = "nlang.builtins.i_has_equality.operator_ne",
-  [BG_SUM_ORDER_LE] = "nlang.builtins.i_ordered.operator_le",
-  [BG_SUM_ORDER_LT] = "nlang.builtins.i_ordered.operator_lt",
-  [BG_SUM_ORDER_GT] = "nlang.builtins.i_ordered.operator_gt",
-  [BG_SUM_ORDER_GE] = "nlang.builtins.i_ordered.operator_ge",
+  [BG_UNION_MATCH] = "nlang.builtins.i_matchable.operator_match",
+  [BG_UNION_DISPATCH] = NULL,
+  [BG_UNION_COPY] = "nlang.builtins.i_copyable.copy_ctor",
+  [BG_UNION_EQUALITY_EQ] = "nlang.builtins.i_has_equality.operator_eq",
+  [BG_UNION_EQUALITY_NE] = "nlang.builtins.i_has_equality.operator_ne",
+  [BG_UNION_ORDER_LE] = "nlang.builtins.i_ordered.operator_le",
+  [BG_UNION_ORDER_LT] = "nlang.builtins.i_ordered.operator_lt",
+  [BG_UNION_ORDER_GT] = "nlang.builtins.i_ordered.operator_gt",
+  [BG_UNION_ORDER_GE] = "nlang.builtins.i_ordered.operator_ge",
   [BG_TRIVIAL_COPY_COPY_CTOR] = "nlang.builtins.i_copyable.copy_ctor",
   [BG_TRIVIAL_EQUALITY_OPERATOR_EQ] = "nlang.builtins.i_has_equality.operator_eq",
   [BG_TRIVIAL_EQUALITY_OPERATOR_NE] = "nlang.builtins.i_has_equality.operator_ne",
@@ -676,9 +676,9 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_TRIVIAL_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_EQUALITY];
   TBI_TRIVIAL_ORDER = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_ORDER];
   TBI_RETURN_BY_COPY = gctx->builtin_typs_by_name[ID_TBI_RETURN_BY_COPY];
-  TBI_SUM_COPY = gctx->builtin_typs_by_name[ID_TBI_SUM_COPY];
-  TBI_SUM_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_SUM_EQUALITY];
-  TBI_SUM_ORDER = gctx->builtin_typs_by_name[ID_TBI_SUM_ORDER];
+  TBI_UNION_COPY = gctx->builtin_typs_by_name[ID_TBI_UNION_COPY];
+  TBI_UNION_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_UNION_EQUALITY];
+  TBI_UNION_ORDER = gctx->builtin_typs_by_name[ID_TBI_UNION_ORDER];
   TBI_ITERATOR = gctx->builtin_typs_by_name[ID_TBI_ITERATOR];
   TBI__NOT_TYPEABLE = gctx->builtin_typs_by_name[ID_TBI__NOT_TYPEABLE];
   TBI__CALL_FUNCTION_SLOT = gctx->builtin_typs_by_name[ID_TBI__CALL_FUNCTION_SLOT];
@@ -2381,13 +2381,28 @@ again:
 }
 
 static error p_deftype(struct node *node, struct module *mod,
-                       struct node *some_genargs, struct toplevel *toplevel) {
+                       struct node *some_genargs, struct toplevel *toplevel,
+                       enum token_type decl_tok) {
   if (some_genargs != NULL) {
     toplevel->first_explicit_genarg = node_subs_count(some_genargs);
   }
 
   node_set_which(node, DEFTYPE);
   node->as.DEFTYPE.toplevel = *toplevel;
+  switch (decl_tok) {
+  case Tstruct:
+    node->as.DEFTYPE.kind = DEFTYPE_STRUCT;
+    break;
+  case Tenum:
+    node->as.DEFTYPE.kind = DEFTYPE_ENUM;
+    break;
+  case Tunion:
+    node->as.DEFTYPE.kind = DEFTYPE_UNION;
+    break;
+  default:
+    assert(FALSE && "Unreached");
+    break;
+  }
 
   error e = p_ident(node_subs_first(node), mod);
   EXCEPT(e);
@@ -2671,7 +2686,7 @@ bypass:
 
   switch (tok.t) {
   case TLPAR:
-    e = scan_oneof(&tok2, mod, Ttype, Tintf, Tfun, Tmethod, 0);
+    e = scan_oneof(&tok2, mod, Tstruct, Tenum, Tunion, Tintf, Tfun, Tmethod, 0);
     EXCEPT(e);
     node = NEW(mod, node);
     if (tok2.t == Tmethod) {
@@ -2684,13 +2699,15 @@ bypass:
     EXCEPT(e);
     tok = tok2;
     goto bypass;
-  case Ttype:
+  case Tstruct:
+  case Tenum:
+  case Tunion:
     node = NEW(mod, node);
     if (!node_subs_count_atleast(node, 1)) {
       (void)node_new_subnode(mod, node);
       (void)mk_node(mod, node, GENARGS);
     }
-    e = p_deftype(node, mod, genargs, &toplevel);
+    e = p_deftype(node, mod, genargs, &toplevel, tok.t);
     break;
   case Tintf:
     node = NEW(mod, node);

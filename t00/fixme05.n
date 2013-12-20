@@ -1,6 +1,6 @@
 from nlang import *
 
-type nocopy =
+struct nocopy =
   x:i32
 
 fun bar = r:nocopy

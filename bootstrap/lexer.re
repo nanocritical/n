@@ -96,7 +96,9 @@ normal:
 
   ["'] { opening = *(YYCURSOR-1); goto string; }
 
-  "type" { R(Ttype); }
+  "struct" { R(Tstruct); }
+  "enum" { R(Tenum); }
+  "union" { R(Tunion); }
   "extern" { R(Textern); }
   "fun" { R(Tfun); }
   "method" { R(Tmethod); }

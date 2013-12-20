@@ -4,7 +4,7 @@ export intf i_heap_element = \
     export i_copyable \
     export i_ordered
 
-export inline type heap t:i_heap_element = \
+export inline struct heap t:i_heap_element = \
     export i_trivial_ctor \
     export i_copyable
   _h:(vector t)

@@ -1,6 +1,6 @@
 from nlang import *
 
-type enu = i_trivial_ctor
+enum enu = i_trivial_ctor
   | A
   | B
 
@@ -14,7 +14,7 @@ fun bar n:enu = i32
   | A -> return 0
   | _ -> return 1
 
-type t =
+struct t =
   x	:enu
 
 fun bor xt:@t = bool

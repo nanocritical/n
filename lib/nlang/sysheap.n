@@ -4,7 +4,7 @@ import nlang.unsafe
 extern inline fun realloc p:?@#u8 oldbsz:size bsz:size = @#u8
 extern inline fun free p:?@#u8 sz:size = void
 
-export inline type heap = export i_allocator
+export inline struct heap = export i_allocator
   dummy:i32
 
 export heap (method@! t:i_any) i_allocator.alloc = @#t

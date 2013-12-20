@@ -17,7 +17,7 @@ extern fun other5 x:i32 = i32
 
 intf ia =
 
-type test = ia
+struct test = ia
   t:i32
 
 test method@ foo x:i32 = i32
@@ -32,7 +32,7 @@ fun foobar x:i32 = i32
 fun foobar2 = void
   return
 
-type enu =
+enum enu =
   | V1
   | V2
   | V3

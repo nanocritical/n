@@ -2,7 +2,7 @@ from nlang import *
 import nlang.unsafe
 from nlang.sysheap import heap sysheap
 
-export inline type vector t:i_copyable = \
+export inline struct vector t:i_copyable = \
     export i_trivial_ctor \
     export (i_array_ctor t) \
     export i_copyable

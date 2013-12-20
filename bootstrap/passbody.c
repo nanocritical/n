@@ -488,16 +488,16 @@ static error step_rewrite_defname_no_expr(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_rewrite_sum_constructors,
+static STEP_FILTER(step_rewrite_union_constructors,
                    SF(CALL));
-static error step_rewrite_sum_constructors(struct module *mod, struct node *node,
-                                           void *user, bool *stop) {
+static error step_rewrite_union_constructors(struct module *mod, struct node *node,
+                                             void *user, bool *stop) {
   DSTEP(mod, node);
 
   struct node *fun = node_subs_first(node);
   struct node *dfun = typ_definition(fun->typ);
   if (dfun->which != DEFTYPE
-      || dfun->as.DEFTYPE.kind != DEFTYPE_SUM) {
+      || dfun->as.DEFTYPE.kind != DEFTYPE_UNION) {
     return 0;
   }
 
@@ -1526,11 +1526,11 @@ static error type_inference_if(struct module *mod, struct node *node) {
 static error unify_match_pattern(struct module *mod, struct node *expr, struct node *pattern) {
   struct node *d = typ_definition(expr->typ);
   assert(d->which == DEFTYPE);
-  const bool enum_or_sum = d->as.DEFTYPE.kind == DEFTYPE_ENUM
-    || d->as.DEFTYPE.kind == DEFTYPE_SUM;
+  const bool enum_or_union = d->as.DEFTYPE.kind == DEFTYPE_ENUM
+    || d->as.DEFTYPE.kind == DEFTYPE_UNION;
 
   error e;
-  if (!enum_or_sum) {
+  if (!enum_or_union) {
     e = mk_except_type(mod, expr,
                        "must match over an enum or sum type (FIXME: for now)");
     THROW(e);
@@ -1542,7 +1542,7 @@ static error unify_match_pattern(struct module *mod, struct node *expr, struct n
   }
 
   if (d->which == DEFTYPE
-      && enum_or_sum
+      && enum_or_union
       && pattern->which == IDENT) {
     struct node *field = NULL;
     e = scope_lookup_ident_immediate(&field, pattern, mod,
@@ -2064,10 +2064,10 @@ static error step_check_exhaustive_match(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   struct node *expr = node_subs_first(node);
   struct node *dexpr = typ_definition(expr->typ);
-  const bool enum_or_sum = dexpr->as.DEFTYPE.kind == DEFTYPE_ENUM
-    || dexpr->as.DEFTYPE.kind == DEFTYPE_SUM;
+  const bool enum_or_union = dexpr->as.DEFTYPE.kind == DEFTYPE_ENUM
+    || dexpr->as.DEFTYPE.kind == DEFTYPE_UNION;
 
-  if (!enum_or_sum) {
+  if (!enum_or_union) {
     return 0;
   }
 
@@ -3384,7 +3384,7 @@ static error passbody0(struct module *mod, struct node *root,
     ,
     UP_STEP(step_excepts_store_label);
     UP_STEP(step_rewrite_defname_no_expr);
-    UP_STEP(step_rewrite_sum_constructors);
+    UP_STEP(step_rewrite_union_constructors);
     UP_STEP(step_detect_not_dyn_intf_up);
     UP_STEP(step_type_inference);
     UP_STEP(step_remove_typeconstraints);

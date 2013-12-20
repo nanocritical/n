@@ -1,6 +1,6 @@
 from nlang import *
 
-type a =
+struct a =
   x	:i32
 
 a method@ foo = i32

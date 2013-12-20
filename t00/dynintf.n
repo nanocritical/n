@@ -4,7 +4,7 @@ intf i_d =
   fun answer = i32
   method@ get = i32
 
-type d = i_d
+struct d = i_d
   x:i32
 
 d fun answer = i32
@@ -13,7 +13,7 @@ d fun answer = i32
 d method@ get = i32
   return self.x
 
-type dc = i_d
+struct dc = i_d
   dummy:i32
 
 dc fun answer = i32

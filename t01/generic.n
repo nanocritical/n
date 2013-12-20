@@ -1,6 +1,6 @@
 from nlang import *
 
-type container t:i_copyable = i_trivial_ctor
+struct container t:i_copyable = i_trivial_ctor
   x:t
 
 export fun main = i32

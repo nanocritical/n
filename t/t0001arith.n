@@ -1,10 +1,10 @@
 from nlang import *
 
-type enum =
+struct enum =
   | FIRST = 1
   | SECOND
 
-type test =
+struct test =
   | SUCCESS = 1
   | INTEGER i32 = 3
   | LONG i64

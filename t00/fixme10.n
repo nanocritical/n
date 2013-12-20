@@ -1,7 +1,7 @@
 from nlang import *
 
-type a =
+struct a =
   x	:b
 
-type b =
+struct b =
   y	:a
