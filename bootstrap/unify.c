@@ -266,21 +266,27 @@ static error unify_with_weakly_concrete(bool *success,
   return 0;
 }
 
-static void insert_defnamedliterals(struct module *mod,
-                                    struct node *littype_body,
-                                    struct node *a_body) {
-  FOREACH_SUB_CONST(of, a_body) {
-    struct node *f = mk_node(mod, littype_body, DEFFIELD);
+static size_t insert_defnamedliterals(struct module *mod,
+                                      struct node *littype,
+                                      struct node *a) {
+  size_t count = 0;
+  FOREACH_SUB_CONST(of, a) {
+    if (of->which != DEFFIELD) {
+      continue;
+    }
+    struct node *f = mk_node(mod, littype, DEFFIELD);
     struct node *name = mk_node(mod, f, IDENT);
     name->as.IDENT.name = node_ident(node_subs_first_const(of));
     struct node *t = mk_node(mod, f, DIRECTDEF);
     set_typ(&t->as.DIRECTDEF.typ, node_subs_at_const(of, 1)->typ);
     t->as.DIRECTDEF.flags = NODE_IS_TYPE;
+    count += 1;
   }
+  return count;
 }
 
 static struct typ *merge_defnamedliterals(struct module *mod,
-                                          struct node *a_body, struct node *b_body) {
+                                          struct node *a, struct node *b) {
   // FIXME: Detached node, would have to be freed when releasing the
   // mod fun_state in which it is recorded below.
   //
@@ -288,15 +294,18 @@ static struct typ *merge_defnamedliterals(struct module *mod,
   node_set_which(littype, DEFNAMEDLITERAL);
   struct node *littype_name = mk_node(mod, littype, IDENT);
   littype_name->as.IDENT.name = gensym(mod);
-  struct node *littype_body = mk_node(mod, littype, BLOCK);
+  (void)mk_node(mod, littype, GENARGS);
 
-  insert_defnamedliterals(mod, littype_body, a_body);
-  insert_defnamedliterals(mod, littype_body, b_body);
+  size_t arity = 0;
+  arity += insert_defnamedliterals(mod, littype, a);
+  arity += insert_defnamedliterals(mod, littype, b);
 
-  const size_t arity = node_subs_count(littype_body);
   struct typ **args = mempool_calloc(mod, arity, sizeof(struct typ *));
   size_t n = 0;
-  FOREACH_SUB_CONST(f, littype_body) {
+  FOREACH_SUB_CONST(f, littype) {
+    if (f->which != DEFFIELD) {
+      continue;
+    }
     const struct node *t = node_subs_at_const(f, 1);
     assert(t->which == DIRECTDEF);
     args[n] = t->as.DIRECTDEF.typ;
@@ -325,14 +334,20 @@ static error unify_two_defnamedliterals(struct module *mod, const struct node *f
   ident_typ_map_set_custom_hashf(&map, ident_hash);
   ident_typ_map_set_custom_cmpf(&map, ident_cmp);
 
-  struct node *a_body = node_subs_at(typ_definition(a), 1);
-  FOREACH_SUB_CONST(f, a_body) {
+  struct node *da = typ_definition(a);
+  FOREACH_SUB_CONST(f, da) {
+    if (f->which != DEFFIELD) {
+      continue;
+    }
     ident_typ_map_set(&map, node_ident(node_subs_first_const(f)),
                       node_subs_at_const(f, 1)->typ);
   }
 
-  struct node *b_body = node_subs_at(typ_definition(b), 1);
-  FOREACH_SUB_CONST(f, b_body) {
+  struct node *db = typ_definition(b);
+  FOREACH_SUB_CONST(f, db) {
+    if (f->which != DEFFIELD) {
+      continue;
+    }
     struct typ **existing = ident_typ_map_get(&map, node_ident(node_subs_first_const(f)));
     if (existing != NULL) {
       error e = unify(mod, for_error, *existing, node_subs_at_const(f, 1)->typ);
@@ -340,7 +355,7 @@ static error unify_two_defnamedliterals(struct module *mod, const struct node *f
     }
   }
 
-  struct typ *t = merge_defnamedliterals(mod, a_body, b_body);
+  struct typ *t = merge_defnamedliterals(mod, da, db);
   typ_link_tentative(t, a);
   typ_link_tentative(t, b);
 
@@ -355,10 +370,11 @@ static error unify_with_defnamedliteral(struct module *mod, const struct node *f
 
   struct node *a_def = typ_definition(a);
   struct node *ddnl = typ_definition(dnl);
-  struct node *dnl_body = node_subs_last(ddnl);
-  FOREACH_SUB_CONST(f, dnl_body) {
+  FOREACH_SUB_CONST(f, ddnl) {
+    if (f->which != DEFFIELD) {
+      continue;
+    }
     ident f_name = node_ident(f);
-
     struct node *d = NULL;
     e = scope_lookup_ident_immediate(&d, a_def, mod, &a_def->scope, f_name, FALSE);
     EXCEPT(e);
@@ -396,10 +412,10 @@ static error unify_defnamedliterals(struct module *mod, const struct node *for_e
 
 static error unify_two_defunknownidents(struct module *mod, const struct node *for_error,
                                         struct typ *a, struct typ *b) {
-  const struct node *a_unk = node_subs_first_const(
-    node_subs_at_const(typ_definition_const(a), 2));
-  const struct node *b_unk = node_subs_first_const(
-    node_subs_at_const(typ_definition_const(b), 2));
+  const struct node *a_unk = node_subs_at_const(typ_definition_const(a),
+                                                IDX_UNKNOWN_IDENT);
+  const struct node *b_unk = node_subs_at_const(typ_definition_const(b),
+                                                IDX_UNKNOWN_IDENT);
   assert(a_unk->which == IDENT && b_unk->which == IDENT);
 
   if (node_ident(a_unk) != node_ident(b_unk)) {
@@ -416,8 +432,8 @@ static error unify_two_defunknownidents(struct module *mod, const struct node *f
 
 static error unify_with_defunknownident(struct module *mod, const struct node *for_error,
                                         struct typ *a, struct typ *dui) {
-  const struct node *unk = node_subs_first_const(
-    node_subs_at_const(typ_definition_const(dui), 2));
+  const struct node *unk = node_subs_at_const(typ_definition_const(dui),
+                                              IDX_UNKNOWN_IDENT);
   const struct node *da = typ_definition_const(a);
 
   error e;

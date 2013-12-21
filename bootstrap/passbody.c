@@ -1071,7 +1071,6 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
   struct node *littype_name = mk_node(mod, littype, IDENT);
   littype_name->as.IDENT.name = gensym(mod);
   (void)mk_node(mod, littype, GENARGS);
-  struct node *littype_body = mk_node(mod, littype, BLOCK);
 
   const size_t arity = node_subs_count(node) / 2;
   struct typ **args = calloc(arity, sizeof(struct typ *));
@@ -1080,7 +1079,7 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
     const struct node *left = s;
     const struct node *right = node_next(s);
 
-    struct node *f = mk_node(mod, littype_body, DEFFIELD);
+    struct node *f = mk_node(mod, littype, DEFFIELD);
     struct node *name = mk_node(mod, f, IDENT);
     name->as.IDENT.name = node_ident(left);
     struct node *t = mk_node(mod, f, DIRECTDEF);
@@ -1672,9 +1671,8 @@ static void type_inference_ident_unknown(struct module *mod, struct node *node) 
   G(unk_name, unk, IDENT,
     unk_name->as.IDENT.name = gensym(mod));
   G(genargs, unk, GENARGS);
-  G(unk_body, unk, BLOCK,
-    G(unk_ident, unk_body, IDENT,
-      unk_ident->as.IDENT.name = node_ident(node)));
+  G(unk_ident, unk, IDENT,
+    unk_ident->as.IDENT.name = node_ident(node));
 
   const bool tentative = TRUE;
   error e = catchup_instantiation(mod, mod, unk, &node->scope, tentative);
@@ -2251,7 +2249,7 @@ static error step_check_no_unknown_ident_left(struct module *mod, struct node *n
 
   const struct node *d = typ_definition_const(node->typ);
   if (d->which == DEFUNKNOWNIDENT) {
-    const struct node *id = node_subs_first_const(node_subs_at_const(d, 2));
+    const struct node *id = node_subs_at_const(d, IDX_UNKNOWN_IDENT);
     error e = mk_except_type(mod, node,
                              "bare ident '%s' was never resolved",
                              idents_value(mod->gctx, node_ident(id)));
