@@ -2539,7 +2539,7 @@ static error print_runexamples(FILE *out, const struct module *mod) {
 error printer_c(int fd, const struct module *mod) {
   FILE *out = fdopen(fd, "w");
   if (out == NULL) {
-    EXCEPTF(errno, "Invalid output file descriptor '%d'", fd);
+    THROWF(errno, "Invalid output file descriptor '%d'", fd);
   }
 
   print_module(out, FALSE, mod);
@@ -2552,7 +2552,7 @@ error printer_c(int fd, const struct module *mod) {
 error printer_h(int fd, const struct module *mod) {
   FILE *out = fdopen(fd, "w");
   if (out == NULL) {
-    EXCEPTF(errno, "Invalid output file descriptor '%d'", fd);
+    THROWF(errno, "Invalid output file descriptor '%d'", fd);
   }
 
   print_module(out, TRUE, mod);

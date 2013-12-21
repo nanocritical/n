@@ -387,13 +387,13 @@ int parser_column(const struct parser *parser, const struct token *tok) {
   return count;
 }
 
-#define EXCEPT_SYNTAX(mod, tok, fmt, ...) do { \
-  EXCEPTF(EINVAL, "%s:%d:%d: syntax: " fmt, \
-          mod->filename, parser_line(&mod->parser, tok), parser_column(&mod->parser, tok), ##__VA_ARGS__); \
+#define THROW_SYNTAX(mod, tok, fmt, ...) do { \
+  THROWF(EINVAL, "%s:%d:%d: syntax: " fmt, \
+         mod->filename, parser_line(&mod->parser, tok), parser_column(&mod->parser, tok), ##__VA_ARGS__); \
 } while (0)
 
 #define UNEXPECTED(mod, tok) do { \
-  EXCEPT_SYNTAX(mod, tok, "unexpected token '%.*s'", (int)(tok)->len, (tok)->value); \
+  THROW_SYNTAX(mod, tok, "unexpected token '%.*s'", (int)(tok)->len, (tok)->value); \
 } while (0)
 
 static struct node *do_node_module_owner(struct node *node) {
@@ -559,7 +559,7 @@ static error parse_modpath(struct module *mod, const char *raw_fn) {
   bool must_be_last = FALSE;
   for (size_t n = 0, last = 0, p = 0; fn[p] != '\0'; ++p) {
     if (fn[p] == '_') {
-      EXCEPTF(EINVAL, "module path element cannot contain '_' in '%s'", fn);
+      THROWF(EINVAL, "module path element cannot contain '_' in '%s'", fn);
     }
 
     if (fn[p] == '/' || fn[p] == '.' || fn[p + 1] == '\0') {
@@ -577,7 +577,7 @@ static error parse_modpath(struct module *mod, const char *raw_fn) {
         last = p + 1;
         n += 1;
         if (n >= ARRAY_SIZE(mod->path)) {
-          EXCEPTF(EINVAL, "module path '%s' has too many elements", fn);
+          THROWF(EINVAL, "module path '%s' has too many elements", fn);
         }
       }
 
@@ -591,7 +591,7 @@ static error parse_modpath(struct module *mod, const char *raw_fn) {
       }
 
       if (must_be_last && fn[p+1] != '\0') {
-        EXCEPTF(EINVAL, "module path '%s' contains the"
+        THROWF(EINVAL, "module path '%s' contains the"
                 " element 'module' in an illegal position", fn);
       }
     }
@@ -747,21 +747,21 @@ static error module_read(struct module *mod, const char *prefix, const char *fn)
 
   int fd = open(fullpath, O_RDONLY);
   if (fd < 0) {
-    EXCEPTF(errno, "Cannot open module '%s'", fullpath);
+    THROWF(errno, "Cannot open module '%s'", fullpath);
   }
 
   struct stat st = { 0 };
   error e = fstat(fd, &st);
   if (e < 0) {
-    EXCEPTF(errno, "Cannot stat module '%s'", fullpath);
+    THROWF(errno, "Cannot stat module '%s'", fullpath);
   }
 
   char *data = calloc(st.st_size + 1, sizeof(char));
   ssize_t count = read(fd, data, st.st_size);
   if (count < 0) {
-    EXCEPTF(errno, "Error reading module '%s'", fullpath);
+    THROWF(errno, "Error reading module '%s'", fullpath);
   } else if (count != (ssize_t) st.st_size) {
-    EXCEPTF(errno, "Reading module '%s': Partial read not supported by parser", fullpath);
+    THROWF(errno, "Reading module '%s': Partial read not supported by parser", fullpath);
   }
 
   mod->parser.data = data;
@@ -779,7 +779,7 @@ static error scan(struct token *tok, struct module *mod) {
 
   error e = lexer_scan(tok, &mod->parser);
   if (e == EINVAL) {
-    EXCEPT_SYNTAX(mod, tok, "%s", mod->parser.error_message);
+    THROW_SYNTAX(mod, tok, "%s", mod->parser.error_message);
   } else {
     EXCEPT(e);
   }
@@ -1230,7 +1230,7 @@ static error p_expr_init(struct node *node, struct module *mod) {
       back(mod, &assign);
     } else {
       if (node->as.INIT.is_array) {
-        EXCEPT_SYNTAX(mod, &assign, "array initializer should not contain named pairs");
+        THROW_SYNTAX(mod, &assign, "array initializer should not contain named pairs");
       }
 
       e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
@@ -1253,7 +1253,7 @@ static error p_expr_tuple(struct node *node, struct module *mod) {
       back(mod, &tok);
 
       if (count > 16) {
-        EXCEPT_SYNTAX(mod, &tok, "tuples can have no more than 16 elements");
+        THROW_SYNTAX(mod, &tok, "tuples can have no more than 16 elements");
       }
 
       return 0;
@@ -1548,7 +1548,7 @@ again:
   goto again;
 
 missing_label:
-  EXCEPT_SYNTAX(mod, &tok, "to use multiple catch in a try block, each must have a label");
+  THROW_SYNTAX(mod, &tok, "to use multiple catch in a try block, each must have a label");
   return 0;
 }
 
@@ -1697,17 +1697,17 @@ shifted:
     if (IS_OP(tok.t) && OP_IS_BINARY(tok.t)
         && OP_PREC(tok.t) == OP_PREC(parent_op)) {
       if (OP_ASSOC(tok.t) == ASSOC_LEFT_SAME && tok.t != parent_op) {
-        EXCEPT_SYNTAX(mod, &tok,
+        THROW_SYNTAX(mod, &tok,
                       "Operator '%.*s' must be parenthesized when combined"
                       " with operators of the same precedence",
                       (int)tok.len, tok.value);
       } else if (OP_ASSOC(tok.t) == ASSOC_NON) {
-        EXCEPT_SYNTAX(mod, &tok,
+        THROW_SYNTAX(mod, &tok,
                       "Operator '%.*s' is non-associative, use parentheses",
                       (int)tok.len, tok.value);
       }
     } else if (mixing_arith_and_bw(tok.t, parent_op)) {
-      EXCEPT_SYNTAX(mod, &tok, "Combining arithmetic and bitwise"
+      THROW_SYNTAX(mod, &tok, "Combining arithmetic and bitwise"
                     " operators requires parentheses");
     }
   }
@@ -1999,7 +1999,7 @@ static error p_block(struct node *node, struct module *mod) {
 again:
   if (tok.t == TEOB) {
     if (first) {
-      EXCEPT_SYNTAX(mod, &tok, "block cannot be empty (use 'noop' instead)");;
+      THROW_SYNTAX(mod, &tok, "block cannot be empty (use 'noop' instead)");;
     } else {
       return 0;
     }
@@ -2111,7 +2111,7 @@ static error p_defmethod_access(struct node *node, struct module *mod) {
     // In 't (method@ u:`any) foobar x:@u = void', p_defmethod_access() is
     // called twice (once for when parsing the genargs, once in p_deffun).
     if (node->as.DEFMETHOD.access == 0) {
-      EXCEPT_SYNTAX(mod, &tok, "passing self by value is not supported,"
+      THROW_SYNTAX(mod, &tok, "passing self by value is not supported,"
                     " use one of method{@,@!,@#,@$}");
     }
     back(mod, &tok);
@@ -2147,13 +2147,13 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
   struct node *funargs = mk_node(mod, node, FUNARGS);
   if (fun_or_method == DEFMETHOD) {
     if (name->which != IDENT && name->which != BIN) {
-      EXCEPT_SYNTAX(mod, &tok, "malformed method name");
+      THROW_SYNTAX(mod, &tok, "malformed method name");
     }
 
     add_self_arg(mod, node, funargs);
   } else {
     if (name->which != IDENT) {
-      EXCEPT_SYNTAX(mod, &tok, "malformed fun name");
+      THROW_SYNTAX(mod, &tok, "malformed fun name");
     }
   }
 
@@ -2318,7 +2318,7 @@ static error p_deftype_block(struct node *node, struct module *mod) {
 again:
   if (tok.t == TEOB) {
     if (first) {
-      EXCEPT_SYNTAX(mod, &tok, "block cannot be empty (use 'noop' instead)");;
+      THROW_SYNTAX(mod, &tok, "block cannot be empty (use 'noop' instead)");;
     } else {
       return 0;
     }
@@ -2503,7 +2503,7 @@ static error p_defintf_block(struct node *node, struct module *mod, ident intf_n
 again:
   if (tok.t == TEOB) {
     if (first) {
-      EXCEPT_SYNTAX(mod, &tok, "block cannot be empty (use 'noop' instead)");;
+      THROW_SYNTAX(mod, &tok, "block cannot be empty (use 'noop' instead)");;
     } else {
       return 0;
     }
@@ -2768,7 +2768,7 @@ bypass:
   case TEOL:
     break;
   default:
-    EXCEPT_SYNTAX(mod, &tok, "malformed top-level statement at '%.*s'", (int)tok.len, tok.value);
+    THROW_SYNTAX(mod, &tok, "malformed top-level statement at '%.*s'", (int)tok.len, tok.value);
     break;
   }
 
@@ -2924,8 +2924,8 @@ static error register_module(struct globalctx *gctx, struct module *to_register,
       assert(m->which == MODULE);
       if (p == last) {
         if (!m->as.MODULE.is_placeholder) {
-          EXCEPTF(EINVAL, "Cannot load_module module '%s' more than once",
-                  filename);
+          THROWF(EINVAL, "Cannot load_module module '%s' more than once",
+                 filename);
         } else {
           assert(to_register->root == NULL);
           to_register->root = create_module_node(parent, i, FALSE, to_register);
@@ -3092,9 +3092,9 @@ error mk_except(const struct module *mod, const struct node *node,
   tok.value = mod->parser.data + node->codeloc;
 
   error e = 0;
-  GOTO_EXCEPTF(EINVAL, "%s:%d:%d: %s",
-               actual_mod->filename, parser_line(&actual_mod->parser, &tok),
-               parser_column(&actual_mod->parser, &tok), s);
+  GOTO_THROWF(EINVAL, "%s:%d:%d: %s",
+              actual_mod->filename, parser_line(&actual_mod->parser, &tok),
+              parser_column(&actual_mod->parser, &tok), s);
 
 except:
   va_end(ap);
@@ -3114,9 +3114,9 @@ error mk_except_type(const struct module *mod, const struct node *node,
   tok.value = mod->parser.data + node->codeloc;
 
   error e = 0;
-  GOTO_EXCEPTF(EINVAL, "%s:%d:%d: type: %s",
-               actual_mod->filename, parser_line(&actual_mod->parser, &tok),
-               parser_column(&actual_mod->parser, &tok), s);
+  GOTO_THROWF(EINVAL, "%s:%d:%d: type: %s",
+              actual_mod->filename, parser_line(&actual_mod->parser, &tok),
+              parser_column(&actual_mod->parser, &tok), s);
 
 except:
   va_end(ap);

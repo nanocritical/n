@@ -16,12 +16,12 @@
 static error sh(const char *cmd) {
   int status = system(cmd);
   if (status == -1) {
-    EXCEPTF(errno, "system(3) failed");
+    THROWF(errno, "system(3) failed");
   }
   if (WIFSIGNALED(status)) {
-    EXCEPTF(ECHILD, "command terminated by signal %d: %s", WTERMSIG(status), cmd);
+    THROWF(ECHILD, "command terminated by signal %d: %s", WTERMSIG(status), cmd);
   } else if (WEXITSTATUS(status) != 0) {
-    EXCEPTF(ECHILD, "command exited with %d: %s", WEXITSTATUS(status), cmd);
+    THROWF(ECHILD, "command exited with %d: %s", WEXITSTATUS(status), cmd);
   }
 
   return 0;
@@ -88,7 +88,7 @@ static error generate(struct node *node) {
 
   int fd = creat(out_fn, 00600);
   if (fd < 0) {
-    EXCEPTF(errno, "Cannot open output file '%s'", out_fn);
+    THROWF(errno, "Cannot open output file '%s'", out_fn);
   }
   free(out_fn);
 
@@ -101,7 +101,7 @@ static error generate(struct node *node) {
 
   fd = creat(out_fn, 00600);
   if (fd < 0) {
-    EXCEPTF(errno, "Cannot open output file '%s'", out_fn);
+    THROWF(errno, "Cannot open output file '%s'", out_fn);
   }
   free(out_fn);
 
@@ -114,7 +114,7 @@ static error generate(struct node *node) {
 
   fd = creat(c_fn, 00600);
   if (fd < 0) {
-    EXCEPTF(errno, "Cannot open output file '%s'", c_fn);
+    THROWF(errno, "Cannot open output file '%s'", c_fn);
   }
 
   e = printer_c(fd, mod);
@@ -126,7 +126,7 @@ static error generate(struct node *node) {
 
   fd = creat(h_fn, 00600);
   if (fd < 0) {
-    EXCEPTF(errno, "Cannot open output file '%s'", h_fn);
+    THROWF(errno, "Cannot open output file '%s'", h_fn);
   }
 
   e = printer_h(fd, mod);
@@ -165,7 +165,7 @@ static error run_examples(const struct stage *stage) {
 
   FILE *run = fopen(main_fn, "w");
   if (run == NULL) {
-    EXCEPTF(errno, "Cannot open output file '%s'", main_fn);
+    THROWF(errno, "Cannot open output file '%s'", main_fn);
   }
 
   for (size_t n = 0; n < stage->sorted_count; ++n) {
@@ -206,7 +206,7 @@ static error program_link(const struct stage *stage) {
 
   FILE *run = fopen(main_fn, "w");
   if (run == NULL) {
-    EXCEPTF(errno, "Cannot open output file '%s'", main_fn);
+    THROWF(errno, "Cannot open output file '%s'", main_fn);
   }
   fprintf(run, "int _Nmain();\n");
   fprintf(run, "int main(int argc, char **argv, char **env) {\nreturn _Nmain(argc, argv, env);\n}\n");

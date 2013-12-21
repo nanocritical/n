@@ -65,23 +65,23 @@ void __break(void);
   goto except; \
 } while (0)
 
-#define EXCEPTF(e, fmt, ...) do { \
-  if (e) { \
-    __break(); \
-    fprintf(g_env.stderr, fmt "\n", ##__VA_ARGS__); \
-    fprintf(g_env.stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
-    return e; \
-  } \
+#define EXCEPTF(e, fmt, ...) if (e) { THROWF(e, fmt, ##__VA_ARGS__); }
+
+#define THROWF(e, fmt, ...) do { \
+  assert(e); \
+  __break(); \
+  fprintf(g_env.stderr, fmt "\n", ##__VA_ARGS__); \
+  fprintf(g_env.stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
+  return e; \
 } while (0)
 
-#define GOTO_EXCEPTF(_e, fmt, ...) do { \
-  if (_e) { \
-    __break(); \
-    e = _e; \
-    fprintf(g_env.stderr, fmt "\n", ##__VA_ARGS__); \
-    fprintf(g_env.stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
-    goto except; \
-  } \
+#define GOTO_THROWF(_e, fmt, ...) do { \
+  assert(_e); \
+  __break(); \
+  e = _e; \
+  fprintf(g_env.stderr, fmt "\n", ##__VA_ARGS__); \
+  fprintf(g_env.stderr, "\tE: %s:%d: %s(): %s\n", __FILE__, __LINE__, __func__, strerror(e)); \
+  goto except; \
 } while (0)
 
 #define ARRAY_SIZE(a) ( sizeof(a) / sizeof(a[0]) )

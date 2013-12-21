@@ -139,7 +139,7 @@ static void do_printer_scopes(FILE *out, const struct module *mod, const struct 
 error printer_scopes(int fd, const struct module *mod, const struct node *root) {
   FILE *out = fdopen(fd, "w");
   if (out == NULL) {
-    EXCEPTF(errno, "Invalid output file descriptor '%d'", fd);
+    THROWF(errno, "Invalid output file descriptor '%d'", fd);
   }
 
   do_printer_scopes(out, mod, root, 0);
@@ -832,7 +832,7 @@ static void print_module(FILE *out, const struct module *mod) {
 error printer_pretty(int fd, const struct module *mod) {
   FILE *out = fdopen(fd, "w");
   if (out == NULL) {
-    EXCEPTF(errno, "Invalid output file descriptor '%d'", fd);
+    THROWF(errno, "Invalid output file descriptor '%d'", fd);
   }
 
   print_module(out, mod);
@@ -899,7 +899,7 @@ static void print_tree_node(FILE *out, const struct module *mod,
 error printer_tree(int fd, const struct module *mod, const struct node *root) {
   FILE *out = fdopen(fd, "w");
   if (out == NULL) {
-    EXCEPTF(errno, "Invalid output file descriptor '%d'", fd);
+    THROWF(errno, "Invalid output file descriptor '%d'", fd);
   }
 
   print_tree_node(out, mod, root != NULL ? root : mod->body, 0);
