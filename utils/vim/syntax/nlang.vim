@@ -38,6 +38,7 @@ syn match nNullable "?"
 syn match nWildcard "\$"
 
 syn match nIntf "`\w\+"
+set iskeyword+=`
 
 syn match nSpaceError display excludenl "\s\+$"
 syn match nSpaceError display "^\ *\t"me=e-1
