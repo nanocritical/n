@@ -2,11 +2,11 @@ if exists("b:current_syntax") | finish | endif
 let b:current_syntax = "nlang"
 
 syn keyword nInclude import from
-syn keyword nDecl union fun method intf delegate struct enum
+syn keyword nDecl union fun method intf delegate struct enum atom
 syn keyword nStorageClass inline extern opaque
 syn keyword nExport export
 syn keyword nSemantic unique shared pshared
-syn keyword nSemantic capturedby capturedbyret owned ownedby protected protect protecting prop claim
+syn keyword nSemantic capturedby capturedbyret owned ownedby protected protect protecting prop claim logic
 
 syn keyword nAssert assert pre post invariant
 syn keyword nDecl example alias within
@@ -25,6 +25,8 @@ syn keyword nException except throw drop fatal
 syn match nOperator "bw[&|\^~]"
 syn match nOperator "[@&\:+\-\*/%]"
 syn match nOperator "\(<<\|>>\|<=\|>=\|<\|>\|===\|!==\|==\|!=\)"
+
+syn match nSemantic "::"
 
 syn keyword nKeyword self this final
 
@@ -77,8 +79,8 @@ syn match	nSpecial	display contained "\\\(x\x\+\|\o\{1,3}\|.\|$\)"
 syn match	nSpecial	display contained "\\\(u\x\{4}\|U\x\{8}\)"
 syn match	nFormat		display "%\(\d\+\$\)\=[-+' #0*]*\(\d*\|\*\|\*\d\+\$\)\(\.\(\d*\|\*\|\*\d\+\$\)\)\=\([hlLjzt]\|ll\|hh\)\=\([aAbdiuoxXDOUfFeEgGcCsSpn]\|\[\^\=.[^]]*\]\)" contained
 syn match	nFormat		display "%%" contained
-syn region	nString		start=+L\="+ skip=+\\\\\|\\"+ end=+"+ contains=cSpecial,cFormat,@Spell
-syn region	nString		start=+L\='+ skip=+\\\\\|\\'+ end=+'+ contains=cSpecial,cFormat,@Spell
+syn region	nString		start=+L\="+ skip=+\\\\\|\\"+ end=+"+ contains=nSpecial,nFormat,@Spell
+syn region	nString		start=+L\='+ skip=+\\\\\|\\'+ end=+'+ contains=nSpecial,nFormat,@Spell
 
 hi def link nDecl Structure
 hi def link nAssert Assert
