@@ -71,6 +71,7 @@ enum token_type {
   TTIMES,
   TDIVIDE,
   TMODULO,
+  TPATTERNOR,
   TBWAND,
   TBWOR,
   TBWXOR,

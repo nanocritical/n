@@ -159,9 +159,9 @@ normal:
   "*=" { R(TTIMES_ASSIGN); }
   "/=" { R(TDIVIDE_ASSIGN); }
   "%=" { R(TMODULO_ASSIGN); }
-  "&=" { R(TBWAND_ASSIGN); }
-  "|=" { R(TBWOR_ASSIGN); }
-  "^=" { R(TBWXOR_ASSIGN); }
+  "bw&=" { R(TBWAND_ASSIGN); }
+  "bw|=" { R(TBWOR_ASSIGN); }
+  "bw^=" { R(TBWXOR_ASSIGN); }
   "==" { R(TEQ); }
   "!=" { R(TNE); }
   "===" { R(TEQPTR); }
@@ -176,10 +176,11 @@ normal:
   "*" { R(TTIMES); }
   "/" { R(TDIVIDE); }
   "%" { R(TMODULO); }
-  "&" { R(TBWAND); }
-  "|" { R(TBWOR); }
-  "^" { R(TBWXOR); }
-  "~" { R(TBWNOT); }
+  "|" { R(TPATTERNOR); }
+  "bw&" { R(TBWAND); }
+  "bw|" { R(TBWOR); }
+  "bw^" { R(TBWXOR); }
+  "bw~" { R(TBWNOT); }
   ":" { R(TCOLON); }
   "," { R(TCOMMA); }
   ";;" {

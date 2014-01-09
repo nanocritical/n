@@ -2,6 +2,6 @@ from nlang import *
 
 export fun main = i32
   let m = 0xffff
-  let y = (m | m) + (0 << 1)
-  let x = 2 & (m | y)
+  let y = (m bw| m) + (0 << 1)
+  let x = 2 bw& (m bw| y)
   return x - 2

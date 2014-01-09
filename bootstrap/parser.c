@@ -1564,7 +1564,7 @@ static error p_match(struct node *node, struct module *mod) {
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
-  if (tok.t != TBWOR) {
+  if (tok.t != TPATTERNOR) {
     back(mod, &tok);
     mod->parser.inject_eol_after_eob = TRUE;
     return 0;
@@ -2296,7 +2296,7 @@ again:
     back(mod, &tok);
     e = p_deffield(node, mod);
     break;
-  case TBWOR:
+  case TPATTERNOR:
     e = p_defchoice(node, mod);
     break;
   default:
