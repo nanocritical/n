@@ -22,7 +22,8 @@ syn keyword nKeyword noop as attr declare
 syn keyword nKeyword try catch
 syn keyword nException except throw drop fatal
 syn match nOperator "bw[&|\^~]"
-syn match nOperator "[@&:+-\*/%]"
+syn match nOperator "[@&\:+\-\*/%]"
+syn match nOperator "\(<<\|>>\|<=\|>=\|<\|>\|===\|!==\|==\|!=\)"
 
 syn keyword nKeyword self this final
 
