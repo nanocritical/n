@@ -570,6 +570,30 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(__pre__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(__post__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(__invariant__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(__example__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(likely)
   IMPORT :<import>
    BIN(.)

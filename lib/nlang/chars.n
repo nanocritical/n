@@ -14,7 +14,7 @@ export inline char fun from_static_string s:static_string = this
 export inline char fun from_ascii c:u8 = char
   return { code=c.to_u32 }
 
-example -> char.from_ascii 49 == '1':char
+example <- char.from_ascii 49 == '1':char
 
 export inline char method@ `show.show buf:@#`string_buffer = void
   buf#push self.
@@ -98,13 +98,13 @@ export inline static_string method@ `ordered_by_compare.operator_compare other:@
   let cnt = min a.bytecount b.bytecount
   return memcmp a.unsafe_rawdata b.unsafe_rawdata cnt
 
-example -> '1234'.count == 4
-example -> '1234'.all == range 0 4
-example -> '1234'.get_char 3 == '4'.get_char 0
-example -> '1234'.get_char 1 == '2':char
-example -> '1234' == '1234'
-example -> '1234'.bytes_utf8.count == 4
-example -> ('1234'.bytes_utf8.at 0). == 49
+example <- '1234'.count == 4
+example <- '1234'.all == range 0 4
+example <- '1234'.get_char 3 == '4'.get_char 0
+example <- '1234'.get_char 1 == '2':char
+example <- '1234' == '1234'
+example <- '1234'.bytes_utf8.count == 4
+example <- ('1234'.bytes_utf8.at 0). == 49
 
 
 export intf `show =

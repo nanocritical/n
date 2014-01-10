@@ -415,23 +415,23 @@ static void print_try(FILE *out, const struct module *mod, int indent, const str
 }
 
 static void print_pre(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  fprintf(out, "pre -> ");
+  fprintf(out, "pre ");
   print_expr(out, mod, node_subs_first_const(node), T__STATEMENT);
 }
 
 static void print_post(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  fprintf(out, "post -> ");
+  fprintf(out, "post ");
   print_expr(out, mod, node_subs_first_const(node), T__STATEMENT);
 }
 
 static void print_invariant(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  fprintf(out, "invariant -> ");
+  fprintf(out, "invariant ");
   print_expr(out, mod, node_subs_first_const(node), T__STATEMENT);
 }
 
 static void print_example(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  fprintf(out, "example");
-  print_block(out, mod, indent, node_subs_first_const(node));
+  fprintf(out, "example ");
+  print_expr(out, mod, node_subs_first_const(node), T__STATEMENT);
 }
 
 static void print_toplevel(FILE *out, const struct toplevel *toplevel) {

@@ -3,60 +3,60 @@ from nlang import *
 -- Returns one plus the index of the least significant 1-bit of x, or
 -- if x is zero, returns zero.
 export extern inline (fun t:`native_unsigned_integer) bit_ffs x:t = t
-example -> 0 == bit_ffs 0:u32
-example -> 1 == bit_ffs 1:u32
-example -> 1 == bit_ffs 0xffffffff:u32
-example -> 32 == bit_ffs 0x80000000:u32
-example -> 0 == bit_ffs 0:u64
-example -> 1 == bit_ffs 1:u64
-example -> 1 == bit_ffs 0xffffffff:u64
-example -> 32 == bit_ffs 0x80000000:u64
-example -> 9 == bit_ffs 0x100:u16
-example -> 1 == bit_ffs 1:u16
+example <- 0 == bit_ffs 0:u32
+example <- 1 == bit_ffs 1:u32
+example <- 1 == bit_ffs 0xffffffff:u32
+example <- 32 == bit_ffs 0x80000000:u32
+example <- 0 == bit_ffs 0:u64
+example <- 1 == bit_ffs 1:u64
+example <- 1 == bit_ffs 0xffffffff:u64
+example <- 32 == bit_ffs 0x80000000:u64
+example <- 9 == bit_ffs 0x100:u16
+example <- 1 == bit_ffs 1:u16
 
 -- Returns one plus the index of the most significant 1-bit of x, or
 -- if x is zero, returns zero.
 export extern inline (fun t:`native_unsigned_integer) bit_fls x:t = t
-example -> 0 == bit_fls 0:u32
-example -> 1 == bit_fls 1:u32
-example -> 32 == bit_fls 0xffffffff:u32
-example -> 32 == bit_fls 0x80000000:u32
-example -> 0 == bit_fls 0:u64
-example -> 1 == bit_fls 1:u64
-example -> 32 == bit_fls 0xffffffff:u64
-example -> 32 == bit_fls 0x80000000:u64
-example -> 9 == bit_fls 0x100:u16
-example -> 1 == bit_fls 1:u16
+example <- 0 == bit_fls 0:u32
+example <- 1 == bit_fls 1:u32
+example <- 32 == bit_fls 0xffffffff:u32
+example <- 32 == bit_fls 0x80000000:u32
+example <- 0 == bit_fls 0:u64
+example <- 1 == bit_fls 1:u64
+example <- 32 == bit_fls 0xffffffff:u64
+example <- 32 == bit_fls 0x80000000:u64
+example <- 9 == bit_fls 0x100:u16
+example <- 1 == bit_fls 1:u16
 
 -- Returns the number of leading 0-bits in x, starting at the most
 -- significant bit position. If x is 0, the result is 8*(sizeof t),
 -- arbitrarily.
 export extern inline (fun t:`native_unsigned_integer) bit_clz x:t = t
-example -> 0 == bit_clz 0xff:u8
-example -> 7 == bit_clz 1:u8
-example -> 28 == bit_clz 0xf00000000:u64
+example <- 0 == bit_clz 0xff:u8
+example <- 7 == bit_clz 1:u8
+example <- 28 == bit_clz 0xf00000000:u64
 
 -- Returns the number of trailing 0-bits in x, starting at the least
 -- significant bit position. If x is 0, the result is 8*(sizeof t),
 -- arbitrarily.
 export extern inline (fun t:`native_unsigned_integer) bit_ctz x:t = t
-example -> 0 == bit_ctz 0xff:u8
-example -> 0 == bit_ctz 1:u8
-example -> 32 == bit_ctz 0xf00000000:u64
+example <- 0 == bit_ctz 0xff:u8
+example <- 0 == bit_ctz 1:u8
+example <- 32 == bit_ctz 0xf00000000:u64
 
 export extern inline (fun t:`native_unsigned_integer) bit_popcount x:t = t
-example -> 0 == bit_popcount 0:u8
-example -> 0 == bit_popcount 0:u16
-example -> 8 == bit_popcount 0xff:u8
-example -> 16 == bit_popcount 0xffff:u16
-example -> 16 == bit_popcount 0xffff:u64
+example <- 0 == bit_popcount 0:u8
+example <- 0 == bit_popcount 0:u16
+example <- 8 == bit_popcount 0xff:u8
+example <- 16 == bit_popcount 0xffff:u16
+example <- 16 == bit_popcount 0xffff:u64
 
 export extern inline (fun t:`native_unsigned_integer) bit_parity x:t = bool
 
-example -> not (bit_parity 0:u32)
-example -> bit_parity 1:u8
-example -> not (bit_parity 0xffffffff:u32)
-example -> bit_parity 0xfffffff7:u32
+example <- not (bit_parity 0:u32)
+example <- bit_parity 1:u8
+example <- not (bit_parity 0xffffffff:u32)
+example <- bit_parity 0xfffffff7:u32
 
 export inline (fun t:`native_unsigned_integer) log2_ceil x:t = t
   if x != 0
@@ -64,11 +64,11 @@ export inline (fun t:`native_unsigned_integer) log2_ceil x:t = t
   else
     return 0
 
-example -> 0 == log2_ceil 0:u16
-example -> 1 == log2_ceil 1:u16
-example -> 2 == log2_ceil 2:u16
-example -> 12 == log2_ceil 0xfff:u16
-example -> 11 == log2_ceil 0x7ff:u16
+example <- 0 == log2_ceil 0:u16
+example <- 1 == log2_ceil 1:u16
+example <- 2 == log2_ceil 2:u16
+example <- 12 == log2_ceil 0xfff:u16
+example <- 11 == log2_ceil 0x7ff:u16
 
 export inline (fun t:`native_unsigned_integer) div_ceil a:t b:t = t
   if a == 0
@@ -76,10 +76,10 @@ export inline (fun t:`native_unsigned_integer) div_ceil a:t b:t = t
   else
     return (a - 1) / b + 1
 
-example -> 0 == (div_ceil u32) 0 1
-example -> 1 == (div_ceil u32) 1 2
-example -> 1 == (div_ceil u32) 1 3
-example -> 1 == (div_ceil u32) 1 1000
+example <- 0 == (div_ceil u32) 0 1
+example <- 1 == (div_ceil u32) 1 2
+example <- 1 == (div_ceil u32) 1 3
+example <- 1 == (div_ceil u32) 1 1000
 
 export inline (fun t:`native_unsigned_integer) roundup_pow2 x:t = t
   if x <= 1
@@ -87,36 +87,36 @@ export inline (fun t:`native_unsigned_integer) roundup_pow2 x:t = t
   else
     return 1 << (log2_ceil x-1)
 
-example -> 1 == roundup_pow2 0:u8
-example -> 4 == roundup_pow2 3:u8
-example -> 1 == roundup_pow2 0:u64
-example -> 1 == roundup_pow2 1:u64
-example -> 2 == roundup_pow2 2:u64
-example -> 4 == roundup_pow2 3:u64
-example -> 0x10000 == roundup_pow2 0xffff:u64
-example -> 0 == roundup_pow2 0xffff:u16
+example <- 1 == roundup_pow2 0:u8
+example <- 4 == roundup_pow2 3:u8
+example <- 1 == roundup_pow2 0:u64
+example <- 1 == roundup_pow2 1:u64
+example <- 2 == roundup_pow2 2:u64
+example <- 4 == roundup_pow2 3:u64
+example <- 0x10000 == roundup_pow2 0xffff:u64
+example <- 0 == roundup_pow2 0xffff:u16
 
 export inline (fun t:`native_unsigned_integer) roundup_mult_of_pow2 x:t pow2:t = t
   return (x + pow2 - 1) & ~(pow2 - 1)
 
-example -> 0 == roundup_mult_of_pow2 0:u8 16:u8
-example -> 16 == roundup_mult_of_pow2 1:u8 16:u8
-example -> 32 == roundup_mult_of_pow2 17:u8 16:u8
-example -> 0x1000 == roundup_mult_of_pow2 17:u16 4096:u16
-example -> 0x2000 == roundup_mult_of_pow2 0x1001:u16 4096:u16
-example -> 0xf000 == roundup_mult_of_pow2 0xe001:u16 4096:u16
-example -> 0 == roundup_mult_of_pow2 0xf001:u16 4096:u16
+example <- 0 == roundup_mult_of_pow2 0:u8 16:u8
+example <- 16 == roundup_mult_of_pow2 1:u8 16:u8
+example <- 32 == roundup_mult_of_pow2 17:u8 16:u8
+example <- 0x1000 == roundup_mult_of_pow2 17:u16 4096:u16
+example <- 0x2000 == roundup_mult_of_pow2 0x1001:u16 4096:u16
+example <- 0xf000 == roundup_mult_of_pow2 0xe001:u16 4096:u16
+example <- 0 == roundup_mult_of_pow2 0xf001:u16 4096:u16
 
 export inline (fun t:`native_unsigned_integer) rounddown_mult_of_pow2 x:t pow2:t = t
   return x & ~(pow2 - 1)
 
-example -> 0 == rounddown_mult_of_pow2 0:u8 16:u8
-example -> 0 == rounddown_mult_of_pow2 1:u8 16:u8
-example -> 16 == rounddown_mult_of_pow2 17:u8 16:u8
-example -> 0 == rounddown_mult_of_pow2 17:u16 4096:u16
-example -> 0x1000 == rounddown_mult_of_pow2 0x1001:u16 4096:u16
-example -> 0xe000 == rounddown_mult_of_pow2 0xe001:u16 4096:u16
-example -> 0xf000 == rounddown_mult_of_pow2 0xf001:u16 4096:u16
+example <- 0 == rounddown_mult_of_pow2 0:u8 16:u8
+example <- 0 == rounddown_mult_of_pow2 1:u8 16:u8
+example <- 16 == rounddown_mult_of_pow2 17:u8 16:u8
+example <- 0 == rounddown_mult_of_pow2 17:u16 4096:u16
+example <- 0x1000 == rounddown_mult_of_pow2 0x1001:u16 4096:u16
+example <- 0xe000 == rounddown_mult_of_pow2 0xe001:u16 4096:u16
+example <- 0xf000 == rounddown_mult_of_pow2 0xf001:u16 4096:u16
 
 export inline (fun t:`native_unsigned_integer) roundup_mult x:t mult:t = t
   let rem = x % mult
@@ -125,7 +125,7 @@ export inline (fun t:`native_unsigned_integer) roundup_mult x:t mult:t = t
   else
     return x
 
-example -> 0 == roundup_mult 0:u8 16:u8
-example -> 15 == roundup_mult 1:u8 15:u8
-example -> 17 == roundup_mult 17:u8 17:u8
-example -> 34 == roundup_mult 18:u8 17:u8
+example <- 0 == roundup_mult 0:u8 16:u8
+example <- 15 == roundup_mult 1:u8 15:u8
+example <- 17 == roundup_mult 17:u8 17:u8
+example <- 34 == roundup_mult 18:u8 17:u8

@@ -208,12 +208,13 @@ return t00_dynintf__Ni_d_get(v);
 }
 
 void t00_dynintf__Nexample0(void) {
-nlang_builtins_assert(({ t00_dynintf_d x= { 0 };
+({ nlang_builtins___example__(({ t00_dynintf_d x= { 0 };
 x.x = (nlang_builtins_i32)42;
 ;
 ;
 ((nlang_builtins_i32)42 == t00_dynintf_foo(t00_dynintf_d_mkdyn__t00_dynintf__Ni_d((void *)((&x)))));
 ; }));
+; });
 }
 static nlang_builtins_i32 t00_dynintf_rfoo(t00_dynintf__Ni_d pv) {
  {

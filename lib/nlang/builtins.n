@@ -934,6 +934,22 @@ export fun assert cond:bool = void
   if not cond
     abort
 
+export fun __pre__ cond:bool = void
+  if not cond
+    abort
+
+export fun __post__ cond:bool = void
+  if not cond
+    abort
+
+export fun __invariant__ cond:bool = void
+  if not cond
+    abort
+
+export fun __example__ cond:bool = void
+  if not cond
+    abort
+
 export extern inline fun likely x:bool = bool
 export extern inline fun unlikely x:bool = bool
 

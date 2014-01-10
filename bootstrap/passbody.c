@@ -1968,12 +1968,6 @@ error step_type_inference(struct module *mod, struct node *node,
   case DEFFIELD:
     set_typ(&node->typ, node_subs_at(node, 1)->typ);
     break;
-  case EXAMPLE:
-    e = unify(mod, node_subs_first(node), node_subs_first(node)->typ,
-              typ_create_tentative(TBI_BOOL));
-    EXCEPT(e);
-    set_typ(&node->typ, TBI_VOID);
-    break;
   case LET:
     if (node_has_tail_block(node)) {
       set_typ(&node->typ, node_subs_last(node)->typ);
@@ -1982,6 +1976,9 @@ error step_type_inference(struct module *mod, struct node *node,
     }
     break;
   case DELEGATE:
+    set_typ(&node->typ, TBI_VOID);
+    break;
+  case EXAMPLE:
   case PRE:
   case POST:
   case INVARIANT:

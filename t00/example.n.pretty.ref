@@ -2,11 +2,12 @@ from nlang import *
 fun foo x:i32 = i32
   return 0
 
-example
-  0 == foo 0
-example
-  foo 1 == 0
-example
-  foo -1 == 0
+example block 
+  __example__ (0 == foo 0);;
+example block 
+  __example__ (foo 1 == 0);;
+example block 
+  __example__ block 
+  foo -1 == 0;;;;
 export fun main = i32
   return foo 1

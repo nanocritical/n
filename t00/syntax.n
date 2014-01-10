@@ -26,8 +26,8 @@ test method@ foo x:i32 = i32
   return y
 
 fun foobar x:i32 = i32
-  pre -> x != 0
-  post -> x != 0
+  pre <- x != 0
+  post <- x != 0
   return 0
 
 fun foobar2 = void

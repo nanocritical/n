@@ -570,6 +570,30 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(__pre__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(__post__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(__invariant__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(__example__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(likely)
   IMPORT :<import>
    BIN(.)
@@ -749,27 +773,34 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    RETURN :nlang.builtins.void
     NUMBER(0) :nlang.builtins.i32
  EXAMPLE :nlang.builtins.void
-  BLOCK :nlang.builtins.bool
-   BIN( == ) :nlang.builtins.bool
-    NUMBER(0) :nlang.builtins.i32
-    CALL :nlang.builtins.i32
-     IDENT(foo) :t00.example.foo
+  BLOCK :nlang.builtins.void
+   CALL :nlang.builtins.void
+    IDENT(__example__) :nlang.builtins.__example__
+    BIN( == ) :nlang.builtins.bool
+     NUMBER(0) :nlang.builtins.i32
+     CALL :nlang.builtins.i32
+      IDENT(foo) :t00.example.foo
+      NUMBER(0) :nlang.builtins.i32
+ EXAMPLE :nlang.builtins.void
+  BLOCK :nlang.builtins.void
+   CALL :nlang.builtins.void
+    IDENT(__example__) :nlang.builtins.__example__
+    BIN( == ) :nlang.builtins.bool
+     CALL :nlang.builtins.i32
+      IDENT(foo) :t00.example.foo
+      NUMBER(1) :nlang.builtins.i32
      NUMBER(0) :nlang.builtins.i32
  EXAMPLE :nlang.builtins.void
-  BLOCK :nlang.builtins.bool
-   BIN( == ) :nlang.builtins.bool
-    CALL :nlang.builtins.i32
-     IDENT(foo) :t00.example.foo
-     NUMBER(1) :nlang.builtins.i32
-    NUMBER(0) :nlang.builtins.i32
- EXAMPLE :nlang.builtins.void
-  BLOCK :nlang.builtins.bool
-   BIN( == ) :nlang.builtins.bool
-    CALL :nlang.builtins.i32
-     IDENT(foo) :t00.example.foo
-     UN(-) :nlang.builtins.i32
-      NUMBER(1) :nlang.builtins.i32
-    NUMBER(0) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   CALL :nlang.builtins.void
+    IDENT(__example__) :nlang.builtins.__example__
+    BLOCK :nlang.builtins.bool
+     BIN( == ) :nlang.builtins.bool
+      CALL :nlang.builtins.i32
+       IDENT(foo) :t00.example.foo
+       UN(-) :nlang.builtins.i32
+        NUMBER(1) :nlang.builtins.i32
+      NUMBER(0) :nlang.builtins.i32
  DEFFUN :t00.example.main
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__

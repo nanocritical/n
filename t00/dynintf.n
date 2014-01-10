@@ -27,7 +27,7 @@ dc method@ get = i32
 fun foo v:@`d = i32
   return v.get
 
-example
+example block
   let x = { x=42 }:d
   42 == foo @x
 

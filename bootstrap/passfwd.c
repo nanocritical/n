@@ -22,6 +22,26 @@ static error step_codeloc_for_generated(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_FILTER(step_export_pre_post_invariant,
+                   SF(PRE) | SF(POST) | SF(INVARIANT));
+static error step_export_pre_post_invariant(struct module *mod, struct node *node,
+                                            void *user, bool *stop) {
+  const struct node *parent = node_parent_const(node);
+  if (parent->which == DEFTYPE || parent->which == DEFINTF) {
+    node_toplevel(node)->is_export = node_toplevel_const(parent)->is_export;
+    return 0;
+  }
+
+  if (parent->which == BLOCK) {
+    const struct node *pparent = node_parent_const(parent);
+    if (pparent->which == DEFFUN || pparent->which == DEFMETHOD) {
+      node_toplevel(node)->is_export = node_toplevel_const(pparent)->is_export;
+    }
+  }
+
+  return 0;
+}
+
 STEP_FILTER(step_stop_already_morningtypepass,
             SF(LET) | SF(ISA) | SF(GENARGS) | SF(FUNARGS) | SF(DEFGENARG) |
             SF(SETGENARG) | SF(DEFFIELD) | SF(DEFCHOICE));
@@ -1202,6 +1222,7 @@ static error passfwd0(struct module *mod, struct node *root,
   PASS(
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_codeloc_for_generated);
+    DOWN_STEP(step_export_pre_post_invariant);
     DOWN_STEP(step_defpattern_extract_defname);
     DOWN_STEP(step_lexical_scoping);
     ,

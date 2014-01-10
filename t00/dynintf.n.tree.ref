@@ -570,6 +570,30 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(__pre__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(__post__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(__invariant__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(__example__)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(likely)
   IMPORT :<import>
    BIN(.)
@@ -968,21 +992,24 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      DIRECTDEF :t00.dynintf.`d.get
      IDENT(v) :(nlang.builtins.ref t00.dynintf.`d)
  EXAMPLE :nlang.builtins.void
-  BLOCK :nlang.builtins.bool
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     IDENT(x) :t00.dynintf.d
-     INIT :t00.dynintf.d
-      IDENT(x) :nlang.builtins.__internal_not_typeable__
-      NUMBER(42) :nlang.builtins.i32
-     DEFNAME(x) :t00.dynintf.d
-   BIN( == ) :nlang.builtins.bool
-    NUMBER(42) :nlang.builtins.i32
-    CALL :nlang.builtins.i32
-     IDENT(foo) :t00.dynintf.foo
-     DYN :(nlang.builtins.ref t00.dynintf.`d)
-      UN(@) :(nlang.builtins.ref t00.dynintf.d)
+  BLOCK :nlang.builtins.void
+   CALL :nlang.builtins.void
+    IDENT(__example__) :nlang.builtins.__example__
+    BLOCK :nlang.builtins.bool
+     LET :nlang.builtins.void
+      DEFPATTERN :nlang.builtins.void
        IDENT(x) :t00.dynintf.d
+       INIT :t00.dynintf.d
+        IDENT(x) :nlang.builtins.__internal_not_typeable__
+        NUMBER(42) :nlang.builtins.i32
+       DEFNAME(x) :t00.dynintf.d
+     BIN( == ) :nlang.builtins.bool
+      NUMBER(42) :nlang.builtins.i32
+      CALL :nlang.builtins.i32
+       IDENT(foo) :t00.dynintf.foo
+       DYN :(nlang.builtins.ref t00.dynintf.`d)
+        UN(@) :(nlang.builtins.ref t00.dynintf.d)
+         IDENT(x) :t00.dynintf.d
  DEFFUN :t00.dynintf.rfoo
   IDENT(rfoo) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__

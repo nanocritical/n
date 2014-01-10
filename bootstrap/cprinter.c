@@ -675,21 +675,15 @@ static void print_try(FILE *out, const struct module *mod, const struct node *no
 }
 
 static void print_pre(FILE *out, const struct module *mod, const struct node *node) {
-  fprintf(out, "nlang_builtins_assert(");
   print_expr(out, mod, node_subs_first_const(node), T__CALL);
-  fprintf(out, ")");
 }
 
 static void print_post(FILE *out, const struct module *mod, const struct node *node) {
-  fprintf(out, "nlang_builtins_assert(");
   print_expr(out, mod, node_subs_first_const(node), T__CALL);
-  fprintf(out, ")");
 }
 
 static void print_invariant(FILE *out, const struct module *mod, const struct node *node) {
-  fprintf(out, "nlang_builtins_assert(");
   print_expr(out, mod, node_subs_first_const(node), T__CALL);
-  fprintf(out, ")");
 }
 
 #define ATTR_SECTION_EXAMPLES "__attribute__((section(\".text.nlang.examples\")))"
@@ -710,9 +704,8 @@ static void print_example(FILE *out, bool header, enum forward fwd, const struct
     } else if (fwd == FWD_DEFINE_FUNCTIONS) {
       fprintf(out, "{\n");
       const struct node *block = node_subs_first_const(node);
-      fprintf(out, "nlang_builtins_assert(");
       print_expr(out, mod, block, T__STATEMENT);
-      fprintf(out, ");\n}");
+      fprintf(out, ";\n}");
     }
   }
 }

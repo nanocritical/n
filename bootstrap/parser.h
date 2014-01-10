@@ -267,8 +267,12 @@ struct node_isa {
 struct node_delegate {
   struct toplevel toplevel;
 };
-struct node_pre {};
-struct node_post {};
+struct node_pre {
+  struct toplevel toplevel;
+};
+struct node_post {
+  struct toplevel toplevel;
+};
 struct node_invariant {
   struct toplevel toplevel;
 };
@@ -1152,11 +1156,17 @@ static inline const struct toplevel *node_toplevel_const(const struct node *node
   case LET:
     toplevel = &node->as.LET.toplevel;
     break;
-  case INVARIANT:
-    toplevel = &node->as.INVARIANT.toplevel;
-    break;
   case DELEGATE:
     toplevel = &node->as.DELEGATE.toplevel;
+    break;
+  case PRE:
+    toplevel = &node->as.PRE.toplevel;
+    break;
+  case POST:
+    toplevel = &node->as.POST.toplevel;
+    break;
+  case INVARIANT:
+    toplevel = &node->as.INVARIANT.toplevel;
     break;
   case EXAMPLE:
     toplevel = &node->as.EXAMPLE.toplevel;

@@ -113,10 +113,10 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_MATCH] = "<match>",
   [ID_TRY] = "<try_catch>",
   [ID_LET] = "<let>",
-  [ID_PRE] = "<pre>",
-  [ID_POST] = "<post>",
-  [ID_INVARIANT] = "<invariant>",
-  [ID_EXAMPLE] = "<example>",
+  [ID_PRE] = "__pre__",
+  [ID_POST] = "__post__",
+  [ID_INVARIANT] = "__invariant__",
+  [ID_EXAMPLE] = "__example__",
   [ID_THIS] = "this",
   [ID_FINAL] = "final",
   [ID_SELF] = "self",
@@ -1881,9 +1881,11 @@ static error p_noop(struct node *node, struct module *mod) {
 static error p_pre(struct node *node, struct module *mod) {
   node_set_which(node, PRE);
 
-  error e = scan_expected(mod, TSOB);
-  EXCEPT(e);
-  e = p_block(node_new_subnode(mod, node), mod);
+  G(block, node, BLOCK,
+    G(call, block, CALL,
+      G(name, call, IDENT,
+        name->as.IDENT.name = ID_PRE)));
+  error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
   EXCEPT(e);
 
   return 0;
@@ -1892,22 +1894,24 @@ static error p_pre(struct node *node, struct module *mod) {
 static error p_post(struct node *node, struct module *mod) {
   node_set_which(node, POST);
 
-  error e = scan_expected(mod, TSOB);
-  EXCEPT(e);
-  e = p_block(node_new_subnode(mod, node), mod);
+  G(block, node, BLOCK,
+    G(call, block, CALL,
+      G(name, call, IDENT,
+        name->as.IDENT.name = ID_POST)));
+  error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
   EXCEPT(e);
 
   return 0;
 }
 
-static error p_invariant(struct node *node, struct module *mod,
-                         struct toplevel *toplevel) {
+static error p_invariant(struct node *node, struct module *mod) {
   node_set_which(node, INVARIANT);
-  node->as.INVARIANT.toplevel = *toplevel;
 
-  error e = scan_expected(mod, TSOB);
-  EXCEPT(e);
-  e = p_block(node_new_subnode(mod, node), mod);
+  G(block, node, BLOCK,
+    G(call, block, CALL,
+      G(name, call, IDENT,
+        name->as.IDENT.name = ID_INVARIANT)));
+  error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
   EXCEPT(e);
 
   return 0;
@@ -1918,9 +1922,11 @@ static error p_example(struct node *node, struct module *mod) {
   node->as.EXAMPLE.name = mod->next_example;
   mod->next_example += 1;
 
-  error e = scan_expected(mod, TSOB);
-  EXCEPT(e);
-  e = p_block(node_new_subnode(mod, node), mod);
+  G(block, node, BLOCK,
+    G(call, block, CALL,
+      G(name, call, IDENT,
+        name->as.IDENT.name = ID_EXAMPLE)));
+  error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
   EXCEPT(e);
 
   return 0;
@@ -1973,7 +1979,7 @@ static error p_statement(struct node *parent, struct module *mod) {
     e = p_post(NEW, mod);
     break;
   case Tinvariant:
-    e = p_invariant(NEW, mod, NULL);
+    e = p_invariant(NEW, mod);
     break;
   default:
     back(mod, &tok);
@@ -2286,7 +2292,7 @@ again:
     e = p_delegate(node, mod, &toplevel);
     break;
   case Tinvariant:
-    e = p_invariant(node, mod, &toplevel);
+    e = p_invariant(node, mod);
     break;
   case TIDENT:
     back(mod, &tok);
@@ -2480,7 +2486,7 @@ again:
     e = p_let(node, mod, &toplevel, tok.t);
     break;
   case Tinvariant:
-    e = p_invariant(node, mod, &toplevel);
+    e = p_invariant(node, mod);
     break;
   case TIDENT:
     back(mod, &tok);
