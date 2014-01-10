@@ -2661,6 +2661,54 @@ static error step_copy_call_inference(struct module *mod, struct node *node,
   return 0;
 }
 
+static error check_has_matching_member(const struct module *mod,
+                                       const struct node *deft,
+                                       const struct typ *intf,
+                                       const struct node *mi) {
+  error e;
+  const struct node *m = node_get_member_const(mod, deft, node_ident(mi));
+  if (m == NULL) {
+    e = mk_except_type(mod, deft,
+                       "type '%s' isa '%s' but does not implement member '%s'",
+                       typ_pretty_name(mod, deft->typ),
+                       typ_pretty_name(mod, intf),
+                       idents_value(mod->gctx, node_ident(mi)));
+    THROW(e);
+  }
+
+  if (m->which != mi->which) {
+    e = mk_except_type(mod, deft,
+                       "in type '%s', member '%s' implemented from intf '%s'"
+                       " is not the right kind of declaration",
+                       typ_pretty_name(mod, deft->typ),
+                       idents_value(mod->gctx, node_ident(m)),
+                       typ_pretty_name(mod, intf));
+  }
+
+  if (m->which == DEFNAME
+      || m->which == DEFFIELD) {
+    // FIXME: if the type of mi is (lexically) 'final', we need to check
+    // that it is *equal* to deft->typ.
+
+    if (!typ_isa(m->typ, mi->typ)) {
+      e = mk_except_type(mod, deft,
+                         "in type '%s', member '%s' implemented from intf '%s'"
+                         " has type '%s' but must be isa '%s'",
+                         typ_pretty_name(mod, deft->typ),
+                         idents_value(mod->gctx, node_ident(m)),
+                         typ_pretty_name(mod, intf),
+                         typ_pretty_name(mod, m->typ),
+                         typ_pretty_name(mod, mi->typ));
+      THROW(e);
+    }
+  } else if (mi->which == DEFFUN || mi->which == DEFMETHOD) {
+    // FIXME check that the prototype is an exact match.
+    // FIXME: handle (lexically) 'final' in mi properly.
+  }
+
+  return 0;
+}
+
 static error check_exhaustive_intf_impl_eachisalist(struct module *mod,
                                                     struct typ *t,
                                                     struct typ *intf,
@@ -2668,29 +2716,36 @@ static error check_exhaustive_intf_impl_eachisalist(struct module *mod,
                                                     void *user) {
   (void) user;
   const struct node *deft = typ_definition_const(t);
+  const struct node *dintf = typ_definition_const(intf);
+  error e = 0;
 
-  // FIXME: Remove
-  if (typ_isa(t, TBI_ANY_TUPLE)) {
+  if (typ_isa(t, TBI_ANY_TUPLE) && typ_equal(intf, TBI_COPYABLE)) {
+    // FIXME: once we generate copy_ctor in the non-trivial_copy case,
+    // remove this.
     return 0;
   }
 
-  const struct node *dintf = typ_definition_const(intf);
+  FOREACH_SUB_EVERY_CONST(mi, dintf, IDX_ISALIST + 1, 1) {
+    if (mi->which == LET) {
+      FOREACH_SUB_CONST(defp, mi) {
+        FOREACH_SUB_CONST(d, defp) {
+          if (d->which != DEFNAME) {
+            continue;
+          }
 
-  FOREACH_SUB_CONST(f, dintf) {
-    if (f->which != DEFFUN && f->which != DEFMETHOD) {
-      continue;
+          ident id = node_ident(d);
+          if (id == ID_FINAL || id == ID_THIS) {
+            continue;
+          }
+
+          e = check_has_matching_member(mod, deft, intf, d);
+          EXCEPT(e);
+        }
+      }
+    } else {
+      e = check_has_matching_member(mod, deft, intf, mi);
+      EXCEPT(e);
     }
-
-    if (node_get_member_const(mod, deft, node_ident(f)) == NULL) {
-      error e = mk_except_type(mod, deft,
-                               "type '%s' isa '%s' but does not implement '%s'",
-                               typ_pretty_name(mod, deft->typ),
-                               typ_pretty_name(mod, intf),
-                               idents_value(mod->gctx, node_ident(f)));
-      THROW(e);
-    }
-
-    // FIXME check that the prototype is an exact match.
   }
 
   return 0;

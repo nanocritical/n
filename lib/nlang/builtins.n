@@ -372,7 +372,7 @@ export extern bool method@ to_u64 = u64
 export extern bool method@ `show.show buf:@#`string_buffer = void
 
 export extern struct i8 =
-  export isa `native_unsigned_integer
+  export isa `native_signed_integer
   alias this_signed = this
   alias this_unsigned = u8
 export extern i8 method@# `copyable.copy_ctor other:@this = void
@@ -414,7 +414,7 @@ export extern inline i8 method@ `integer.as_ssize = ssize
 export extern i8 method@ `show.show buf:@#`string_buffer = void
 
 export extern struct i16 =
-  export isa `native_unsigned_integer
+  export isa `native_signed_integer
   alias this_signed = this
   alias this_unsigned = u16
 export extern i16 method@# `copyable.copy_ctor other:@this = void
@@ -456,7 +456,7 @@ export extern inline i16 method@ `integer.as_ssize = ssize
 export extern i16 method@ `show.show buf:@#`string_buffer = void
 
 export extern struct i32 =
-  export isa `native_unsigned_integer
+  export isa `native_signed_integer
   alias this_signed = this
   alias this_unsigned = u32
 export extern i32 method@# `copyable.copy_ctor other:@this = void
@@ -500,7 +500,7 @@ export extern inline i32 method@ to_double = double
 export extern i32 method@ `show.show buf:@#`string_buffer = void
 
 export extern struct i64 =
-  export isa `native_unsigned_integer
+  export isa `native_signed_integer
   alias this_signed = this
   alias this_unsigned = u64
 export extern i64 method@# `copyable.copy_ctor other:@this = void
@@ -720,7 +720,7 @@ export extern inline u64 method@ trim_double = double
 export extern u64 method@ `show.show buf:@#`string_buffer = void
 
 export extern struct ssize =
-  export isa `native_integer
+  export isa `native_signed_integer
   alias this_signed = this
   alias this_unsigned = size
 export extern ssize method@# `copyable.copy_ctor other:@this = void
