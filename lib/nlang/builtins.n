@@ -934,6 +934,9 @@ export fun assert cond:bool = void
   if not cond
     abort
 
+export fun unreached = void
+  abort
+
 export fun __pre__ cond:bool = void
   if not cond
     abort
