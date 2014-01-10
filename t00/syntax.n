@@ -17,7 +17,8 @@ extern fun other5 x:i32 = i32
 
 intf `ia =
 
-struct test = `ia
+struct test =
+  isa `ia
   t:i32
 
 test method@ foo x:i32 = i32

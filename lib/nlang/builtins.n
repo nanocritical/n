@@ -4,9 +4,12 @@ from nlang.containers import index_range range
 from nlang.unsafe import cast
 from nlang import say print
 
-export extern struct __literal_null__ = export `any_nullable_ref
-export extern struct __literal_integer__ = export `integer
-export extern struct __literal_floating__ = export `floating
+export extern struct __literal_null__ =
+  export isa `any_nullable_ref
+export extern struct __literal_integer__ =
+  export isa `integer
+export extern struct __literal_floating__ =
+  export isa `floating
 
 export extern struct __internal_not_typeable__ =
 export extern struct __call_function_slot__ =
@@ -19,32 +22,40 @@ export intf `any =
 export intf `copyable =
   method@# copy_ctor other:@final = void
 
-export intf `copyable_but_owned = export `copyable -- FIXME
-export intf `trivial_copy = export `copyable
-export intf `trivial_copy_but_owned = export `trivial_copy \
-                                       export `copyable_but_owned
+export intf `copyable_but_owned =
+  isa `copyable -- FIXME
+export intf `trivial_copy =
+  isa `copyable
+export intf `trivial_copy_but_owned =
+  isa `trivial_copy `copyable_but_owned
 export intf `return_by_copy =
 export intf `default_ctor =
   method@# ctor = void
   fun mk = r:final
   fun new = @#final
 
-export intf `trivial_ctor = export `default_ctor
+export intf `trivial_ctor =
+  isa `default_ctor
 export intf `trivial_dtor =
 export intf `matchable =
-export intf `has_equality = export `matchable
+export intf `has_equality =
+  isa `matchable
   method@ operator_eq other:@final = bool
   method@ operator_ne other:@final = bool
-export intf `trivial_equality = export `has_equality
+export intf `trivial_equality =
+  isa `has_equality
 export intf `has_compare =
   method@ operator_compare other:@final = i32
-export intf `ordered = export `has_equality
+export intf `ordered =
+  isa `has_equality
   method@ operator_le other:@final = bool
   method@ operator_lt other:@final = bool
   method@ operator_gt other:@final = bool
   method@ operator_ge other:@final = bool
-export intf `trivial_order = export `ordered
-export intf `ordered_by_compare = export `has_compare export `ordered export `has_equality
+export intf `trivial_order =
+  isa `ordered
+export intf `ordered_by_compare =
+  isa `has_compare `ordered `has_equality
 export intf `arithmetic =
   method@ operator_plus other:@final = final
   method@ operator_minus other:@final = final
@@ -71,59 +82,77 @@ export intf `bitwise =
   method@! operator_assign_rshift by:u32 = void
 
 
-export intf `sum_copy = export `copyable
-export intf `sum_equality = export `has_equality
-export intf `sum_order = export `ordered
+export intf `sum_copy =
+  isa `copyable
+export intf `sum_equality =
+  isa `has_equality
+export intf `sum_order =
+  isa `ordered
 
 
-export extern struct void = `return_by_copy
+export extern struct void =
+  export isa `return_by_copy
 
 export extern intf `__ref_compatible r:`any_any_ref =
 
-export intf `any_any_ref = \
-    export `return_by_copy \
-    export `trivial_copy \
-    export `trivial_equality
-export intf `any_ref t:`any = export `any_any_ref
-export intf `any_mutable_ref t:`any = export (`any_ref t)
-export intf `any_nullable_ref t:`any = export `any_any_ref
-export intf `any_nullable_mutable_ref t:`any = export (`any_nullable_ref t)
+export intf `any_any_ref =
+  isa `return_by_copy `trivial_copy `trivial_equality
+export intf `any_ref t:`any =
+  isa `any_any_ref
+export intf `any_mutable_ref t:`any =
+  isa (`any_ref t)
+export intf `any_nullable_ref t:`any =
+  isa `any_any_ref
+export intf `any_nullable_mutable_ref t:`any =
+  isa (`any_nullable_ref t)
 
-export extern struct ref t:`any = export (`any_ref t)
-export extern struct mutable_ref t:`any = export (`any_mutable_ref t)
-export extern struct mercurial_ref t:`any = export (`any_mutable_ref t)
+export extern struct ref t:`any =
+  export isa (`any_ref t)
+export extern struct mutable_ref t:`any =
+  export isa (`any_mutable_ref t)
+export extern struct mercurial_ref t:`any =
+  export isa (`any_mutable_ref t)
 
 -- FIXME: to replace with semantic constraint
-export extern struct nullable_ref t:`any = export (`any_nullable_ref t)
-export extern struct nullable_mutable_ref t:`any = export (`any_nullable_mutable_ref t)
-export extern struct nullable_mercurial_ref t:`any = export (`any_nullable_mutable_ref t)
+export extern struct nullable_ref t:`any =
+  export isa (`any_nullable_ref t)
+export extern struct nullable_mutable_ref t:`any =
+  export isa (`any_nullable_mutable_ref t)
+export extern struct nullable_mercurial_ref t:`any =
+  export isa (`any_nullable_mutable_ref t)
 
 
-export intf `any_tuple = export `copyable
+export intf `any_tuple =
+  isa `copyable
 
-export inline struct tuple_2 t0:`copyable t1:`copyable = export `any_tuple
+export inline struct tuple_2 t0:`copyable t1:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
 
-export inline struct tuple_3 t0:`copyable t1:`copyable t2:`copyable = export `any_tuple
+export inline struct tuple_3 t0:`copyable t1:`copyable t2:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
 
-export inline struct tuple_4 t0:`copyable t1:`copyable t2:`copyable t3:`copyable = export `any_tuple
+export inline struct tuple_4 t0:`copyable t1:`copyable t2:`copyable t3:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
   x3	:t3
 
-export inline struct tuple_5 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable = export `any_tuple
+export inline struct tuple_5 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
   x3	:t3
   x4	:t4
 
-export inline struct tuple_6 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable = export `any_tuple
+export inline struct tuple_6 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -131,7 +160,8 @@ export inline struct tuple_6 t0:`copyable t1:`copyable t2:`copyable t3:`copyable
   x4	:t4
   x5	:t5
 
-export inline struct tuple_7 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable = export `any_tuple
+export inline struct tuple_7 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -140,7 +170,8 @@ export inline struct tuple_7 t0:`copyable t1:`copyable t2:`copyable t3:`copyable
   x5	:t5
   x6	:t6
 
-export inline struct tuple_8 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable = export `any_tuple
+export inline struct tuple_8 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -150,7 +181,8 @@ export inline struct tuple_8 t0:`copyable t1:`copyable t2:`copyable t3:`copyable
   x6	:t6
   x7	:t7
 
-export inline struct tuple_9 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable = export `any_tuple
+export inline struct tuple_9 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -161,7 +193,8 @@ export inline struct tuple_9 t0:`copyable t1:`copyable t2:`copyable t3:`copyable
   x7	:t7
   x8	:t8
 
-export inline struct tuple_10 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable = export `any_tuple
+export inline struct tuple_10 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -173,7 +206,8 @@ export inline struct tuple_10 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x8	:t8
   x9	:t9
 
-export inline struct tuple_11 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable = export `any_tuple
+export inline struct tuple_11 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -186,7 +220,8 @@ export inline struct tuple_11 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x9	:t9
   x10	:t10
 
-export inline struct tuple_12 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable = export `any_tuple
+export inline struct tuple_12 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -200,7 +235,8 @@ export inline struct tuple_12 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x10	:t10
   x11	:t11
 
-export inline struct tuple_13 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable = export `any_tuple
+export inline struct tuple_13 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -215,7 +251,8 @@ export inline struct tuple_13 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x11	:t11
   x12	:t12
 
-export inline struct tuple_14 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable = export `any_tuple
+export inline struct tuple_14 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -231,7 +268,8 @@ export inline struct tuple_14 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x12	:t12
   x13	:t13
 
-export inline struct tuple_15 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable t14:`copyable = export `any_tuple
+export inline struct tuple_15 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable t14:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -248,7 +286,8 @@ export inline struct tuple_15 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x13	:t13
   x14	:t14
 
-export inline struct tuple_16 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable t14:`copyable t15:`copyable = export `any_tuple
+export inline struct tuple_16 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable t14:`copyable t15:`copyable =
+  export isa `any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -266,70 +305,52 @@ export inline struct tuple_16 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x14	:t14
   x15	:t15
 
-export intf `numeric = \
-    export `copyable \
-    export `arithmetic \
-    export `ordered
+export intf `numeric =
+  isa `copyable `arithmetic `ordered
 
-export intf `integer = \
-    export `numeric \
-    export `bitwise \
-    export `has_compare
+export intf `integer =
+  isa `numeric `bitwise `has_compare
   alias this_signed = `signed_integer
   alias this_unsigned = `unsigned_integer
   method@ reinterpret_signed = final.this_signed
   method@ reinterpret_unsigned = final.this_unsigned
 
-export intf `signed_integer = export `integer
+export intf `signed_integer =
+  isa `integer
 
-export intf `unsigned_integer = export `integer
+export intf `unsigned_integer =
+  isa `integer
 
-export intf `native_integer = \
-    export `trivial_ctor \
-    export `trivial_copy \
-    export `return_by_copy \
-    export `integer \
-    export `show
+export intf `native_integer =
+  isa `trivial_ctor `trivial_copy `return_by_copy `integer `show
 
-export intf `native_signed_integer = \
-    export `signed_integer \
-    export `native_integer
+export intf `native_signed_integer =
+  isa `signed_integer `native_integer
 
-export intf `native_unsigned_integer = \
-    export `unsigned_integer \
-    export `native_integer
+export intf `native_unsigned_integer =
+  isa `unsigned_integer `native_integer
 
-export intf `native_anysign_integer = \
-    export `native_signed_integer \
-    export `native_unsigned_integer
+export intf `native_anysign_integer =
+  isa `native_signed_integer `native_unsigned_integer
 
-export intf `generalized_boolean = \
-    export `ordered
+export intf `generalized_boolean =
+  isa `ordered
   method@ operator_test = bool
 
 export intf `bool_compatible =
   fun from_bool b:bool = final
 
-export intf `native_boolean = \
-    export `trivial_ctor \
-    export `trivial_copy \
-    export `return_by_copy \
-    export `generalized_boolean \
-    export `bool_compatible \
-    export `show
+export intf `native_boolean =
+  isa `trivial_ctor `trivial_copy `return_by_copy `generalized_boolean `bool_compatible `show
 
-export intf `floating = \
-    export `numeric \
-    export `has_compare
+export intf `floating =
+  isa `numeric `has_compare
 
-export intf `native_floating = \
-    export `trivial_ctor \
-    export `trivial_copy \
-    export `return_by_copy \
-    export `floating \
-    export `show
+export intf `native_floating =
+  isa `trivial_ctor `trivial_copy `return_by_copy `floating `show
 
-export extern struct bool = export `native_boolean
+export extern struct bool =
+  export isa `native_boolean
 export extern bool method@# `copyable.copy_ctor other:@this = void
 export extern bool method@ `has_equality.operator_eq other:@this = bool
 export extern bool method@ `has_equality.operator_ne other:@this = bool
@@ -350,7 +371,8 @@ export extern bool method@ to_u32 = u32
 export extern bool method@ to_u64 = u64
 export extern bool method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i8 = export `native_unsigned_integer
+export extern struct i8 =
+  export isa `native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u8
 export extern i8 method@# `copyable.copy_ctor other:@this = void
@@ -391,7 +413,8 @@ export extern inline i8 method@ to_i64 = i64
 export extern inline i8 method@ `integer.as_ssize = ssize
 export extern i8 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i16 = export `native_unsigned_integer
+export extern struct i16 =
+  export isa `native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u16
 export extern i16 method@# `copyable.copy_ctor other:@this = void
@@ -432,7 +455,8 @@ export extern inline i16 method@ to_i64 = i64
 export extern inline i16 method@ `integer.as_ssize = ssize
 export extern i16 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i32 = export `native_unsigned_integer
+export extern struct i32 =
+  export isa `native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u32
 export extern i32 method@# `copyable.copy_ctor other:@this = void
@@ -475,7 +499,8 @@ export extern inline i32 method@ trim_float = float
 export extern inline i32 method@ to_double = double
 export extern i32 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i64 = export `native_unsigned_integer
+export extern struct i64 =
+  export isa `native_unsigned_integer
   alias this_signed = this
   alias this_unsigned = u64
 export extern i64 method@# `copyable.copy_ctor other:@this = void
@@ -518,7 +543,8 @@ export extern inline i64 method@ trim_float = float
 export extern inline i64 method@ trim_double = double
 export extern i64 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u8 = export `native_unsigned_integer
+export extern struct u8 =
+  export isa `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i8
 export extern u8 method@# `copyable.copy_ctor other:@this = void
@@ -561,7 +587,8 @@ export extern inline u8 method@ to_float = float
 export extern inline u8 method@ to_double = double
 export extern u8 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u16 = export `native_unsigned_integer
+export extern struct u16 =
+  export isa `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i16
 export extern u16 method@# `copyable.copy_ctor other:@this = void
@@ -604,7 +631,8 @@ export extern inline u16 method@ to_float = float
 export extern inline u16 method@ to_double = double
 export extern u16 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u32 = export `native_unsigned_integer
+export extern struct u32 =
+  export isa `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i32
 export extern u32 method@# `copyable.copy_ctor other:@this = void
@@ -647,7 +675,8 @@ export extern inline u32 method@ trim_float = float
 export extern inline u32 method@ to_double = double
 export extern u32 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u64 = export `native_unsigned_integer
+export extern struct u64 =
+  export isa `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i64
 export extern u64 method@# `copyable.copy_ctor other:@this = void
@@ -690,7 +719,8 @@ export extern inline u64 method@ trim_float = float
 export extern inline u64 method@ trim_double = double
 export extern u64 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct ssize = export `native_integer
+export extern struct ssize =
+  export isa `native_integer
   alias this_signed = this
   alias this_unsigned = size
 export extern ssize method@# `copyable.copy_ctor other:@this = void
@@ -735,7 +765,8 @@ export extern ssize method@ `show.show buf:@#`string_buffer = void
 
 -- FIXME: size and ssize do not have a well-defined bit size, they therefore
 -- should not be `bitwise.
-export extern struct size = export `native_unsigned_integer
+export extern struct size =
+  export isa `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = ssize
 export extern size method@# `copyable.copy_ctor other:@this = void
@@ -778,7 +809,8 @@ export extern inline size method@ trim_float = float
 export extern inline size method@ trim_double = double
 export extern size method@ `show.show buf:@#`string_buffer = void
 
-export extern struct float = export `native_floating
+export extern struct float =
+  export isa `native_floating
 export extern float method@# `copyable.copy_ctor other:@this = void
 export extern float method@ `has_equality.operator_eq other:@this = bool
 export extern float method@ `has_equality.operator_ne other:@this = bool
@@ -806,7 +838,8 @@ export extern inline float method@ to_double = double
 export extern inline float method@ as_ssize = ssize
 export extern float method@ `show.show buf:@#`string_buffer = void
 
-export extern struct double = export `native_floating
+export extern struct double =
+  export isa `native_floating
 export extern double method@# `copyable.copy_ctor other:@this = void
 export extern double method@ `has_equality.operator_eq other:@this = bool
 export extern double method@ `has_equality.operator_ne other:@this = bool
@@ -850,7 +883,8 @@ export intf `ctor_with =
 --  fun new c:t = @#final
 --
 
-export intf `trivial_array_ctor t:`copyable = export (`array_ctor t)
+export intf `trivial_array_ctor t:`copyable =
+  isa (`array_ctor t)
 
 export intf `array_ctor t:`copyable =
   method@# ctorv c:@(static_array t) = void
@@ -859,10 +893,8 @@ export intf `array_ctor t:`copyable =
 
 extern inline fun static_array_at_byte dp:@!u8 off:size = @!u8
 
-export inline struct static_array t:`copyable = \
-    export (`trivial_array_ctor t) \
-    export `trivial_copy \
-    export `return_by_copy
+export inline struct static_array t:`copyable =
+  export isa (`trivial_array_ctor t) `trivial_copy `return_by_copy
   _data:?@!t
   _count:size
 
@@ -927,14 +959,11 @@ export inline (fun t:`numeric) max a:t b:t = t
     return b
 
 
-export intf `error = \
-    export `trivial_ctor \
-    export `copyable \
-    export `generalized_boolean \
-    export `show
+export intf `error =
+  isa `trivial_ctor `copyable `generalized_boolean `show
 
-export inline struct error = export `error \
-    export `trivial_copy
+export inline struct error =
+  export isa `error `trivial_copy
   code	:i32
 
   export inline let OK = {}:error

@@ -1,6 +1,7 @@
 from nlang import *
 
-struct container t:`numeric = `trivial_ctor
+struct container t:`numeric =
+  isa `trivial_ctor
   x:t
 
 container method@! add x:t = void

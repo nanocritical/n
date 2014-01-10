@@ -1,8 +1,11 @@
 from nlang.builtins import *
 
-export intf `locus = `has_equality `copyable_but_owned
-export intf `fwd_locus = `locus `ordered
-export intf `bidir_locus = `locus `ordered
+export intf `locus =
+  isa `has_equality `copyable_but_owned
+export intf `fwd_locus =
+  isa `locus `ordered
+export intf `bidir_locus =
+  isa `locus `ordered
 
 export intf `iterator =
   method@ get = size
@@ -10,10 +13,8 @@ export intf `iterator =
   method@ has_next = bool
   method@! next = void
 
-export inline struct index_range = \
-    export `trivial_copy \
-    export `trivial_equality \
-    export `return_by_copy
+export inline struct index_range =
+  export isa `trivial_copy `trivial_equality `return_by_copy
   _b:size
   _e:size
 
@@ -52,7 +53,8 @@ export index_range method@ iter = index_iterator
   return { r=self. }
 
 
-export inline struct index_iterator = export `iterator
+export inline struct index_iterator =
+  export isa `iterator
   r:index_range
   p:size
 

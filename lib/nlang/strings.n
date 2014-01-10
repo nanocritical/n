@@ -2,10 +2,8 @@ from nlang import *
 from nlang.vectors import vector
 import nlang.unsafe
 
-export inline struct string = \
-    export `copyable \
-    export `show \
-    export `string_buffer
+export inline struct string =
+  export isa `copyable `show `string_buffer
   bytes:(vector u8)
 
 export string fun from_static_string literal:static_string = s:this

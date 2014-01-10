@@ -1,6 +1,7 @@
 from nlang import *
 
-struct copy = `copyable
+struct copy =
+  isa `copyable
   x:i32
 
 copy method@# `copyable.copy_ctor other:@this = void

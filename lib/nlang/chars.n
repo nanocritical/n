@@ -3,13 +3,8 @@ from nlang.containers import *
 from nlang.memory import *
 import nlang.unsafe
 
-export inline struct char = \
-    export `trivial_copy \
-    export `return_by_copy \
-    export `trivial_equality \
-    export `trivial_order \
-    export `static_string_compatible \
-    export `show
+export inline struct char =
+  export isa `trivial_copy `return_by_copy `trivial_equality `trivial_order `static_string_compatible `show
   code:u32
 
 export inline char fun from_static_string s:static_string = this
@@ -27,18 +22,21 @@ export inline char method@ `show.show buf:@#`string_buffer = void
 export intf `static_string_compatible =
   fun from_static_string s:static_string = final
 
-export intf `const_string = export `static_string_compatible
+export intf `const_string =
+  isa `static_string_compatible
 -- export `random_container
   method@ count = size
   method@ all = index_range
   method@ get_char n:size = char
   method@ bytes_utf8 = @(slice u8)
 
-export intf `string = export `const_string
+export intf `string =
+  isa `const_string
   method@! set_char n:size c:char = void
   method@! fill c:char r:index_range = void
 
-export intf `string_buffer = export `string
+export intf `string_buffer =
+  isa `string
   method@# reserve count:size = void
   method@# clear = void
   method@# push c:char = void
@@ -46,13 +44,8 @@ export intf `string_buffer = export `string
   method@# append other:@`const_string = void
   method@# copy at:size other:@`const_string off:size count:size = void
 
-export inline struct static_string = \
-    export `trivial_copy \
-    export `ordered_by_compare \
-    export `return_by_copy \
-    export `show \
-    export `static_string_compatible \
-    export `const_string
+export inline struct static_string =
+  export isa `trivial_copy `ordered_by_compare `return_by_copy `show `static_string_compatible `const_string
   _bytes:(slice u8)
 
 export inline static_string method@# ctor bytes:@u8 count:size = void

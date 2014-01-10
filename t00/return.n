@@ -1,6 +1,7 @@
 from nlang import *
 
-struct copy = `return_by_copy
+struct copy =
+  isa `return_by_copy
   x:i32
 
 fun foo x:i32 = n:copy

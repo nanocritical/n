@@ -17,6 +17,7 @@ syn keyword nRepeat while for pfor foreach pforeach
 syn keyword nKeyword let block lambda async such
 syn keyword nStatement return continue break unreached
 syn keyword nOperator in and or not isa
+syn match nDecl "^\s\+\(export\s\+\)\?isa" contains=nExport
 syn keyword nOperator sizeof
 syn keyword nKeyword noop as attr declare
 syn keyword nKeyword try catch

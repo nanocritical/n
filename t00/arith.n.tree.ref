@@ -752,7 +752,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFPATTERN :nlang.builtins.void
      IDENT(y) :nlang.builtins.i32
      BIN( + ) :nlang.builtins.i32
-      BIN( | ) :nlang.builtins.i32
+      BIN( bw| ) :nlang.builtins.i32
        IDENT(m) :nlang.builtins.i32
        IDENT(m) :nlang.builtins.i32
       BIN( << ) :nlang.builtins.i32
@@ -762,9 +762,9 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(x) :nlang.builtins.i32
-     BIN( & ) :nlang.builtins.i32
+     BIN( bw& ) :nlang.builtins.i32
       NUMBER(2) :nlang.builtins.i32
-      BIN( | ) :nlang.builtins.i32
+      BIN( bw| ) :nlang.builtins.i32
        IDENT(m) :nlang.builtins.i32
        IDENT(y) :nlang.builtins.i32
      DEFNAME(x) :nlang.builtins.i32

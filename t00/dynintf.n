@@ -4,7 +4,8 @@ intf `d =
   fun answer = i32
   method@ get = i32
 
-struct d = `d
+struct d =
+  isa `d
   x:i32
 
 d fun answer = i32
@@ -13,7 +14,8 @@ d fun answer = i32
 d method@ get = i32
   return self.x
 
-struct dc = `d
+struct dc =
+  isa `d
   dummy:i32
 
 dc fun answer = i32

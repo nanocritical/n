@@ -1,7 +1,8 @@
 from nlang import *
 from nlang.strings import string
 
-export struct path = export `copyable -- export `showable
+export struct path =
+  export isa `copyable -- `showable
   pathname:string
 --  delegate pathname Showable
 

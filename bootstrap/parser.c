@@ -2197,40 +2197,31 @@ retval:
   return 0;
 }
 
-static error p_isa(struct node *node, struct module *mod, bool is_export) {
-  node_set_which(node, ISA);
-  node->as.ISA.is_export = is_export;
-  node->as.ISA.is_explicit = TRUE;
-
-  error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
-  EXCEPT(e);
-  return 0;
-}
-
-static error p_isalist(struct node *node, struct module *mod) {
-  node_set_which(node, ISALIST);
+static error p_isalist(struct node *parent, struct module *mod, bool is_export) {
+  struct node *isalist = node_subs_at(parent, IDX_ISALIST);
 
   error e;
   struct token tok = { 0 };
-  bool is_export = FALSE;
 
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
 
   switch (tok.t) {
+  case TEOB:
   case TEOL:
-  case TSOB:
     back(mod, &tok);
     return 0;
-  case Texport:
-    is_export = TRUE;
-    goto again;
   default:
     back(mod, &tok);
-    e = p_isa(node_new_subnode(mod, node), mod, is_export);
+
+    struct node *isa = node_new_subnode(mod, isalist);
+    node_set_which(isa, ISA);
+    isa->as.ISA.is_export = is_export;
+    isa->as.ISA.is_explicit = TRUE;
+
+    e = p_expr(node_new_subnode(mod, isa), mod, T__CALL);
     EXCEPT(e);
-    is_export = FALSE;
     goto again;
   }
 }
@@ -2260,7 +2251,8 @@ again:
   goto again;
 }
 
-static error p_deftype_statement(struct node *node, struct module *mod) {
+static error p_deftype_statement(struct node *node, struct module *mod,
+                                 struct node *deft) {
   error e = 0;
   struct token tok = { 0 };
   struct toplevel toplevel = { 0 };
@@ -2286,6 +2278,10 @@ again:
   case Tinline:
     toplevel.is_inline = TRUE;
     goto again;
+  case Tisa:
+    node_subs_remove(deft, node);
+    e = p_isalist(deft, mod, toplevel.is_export);
+    break;
   case Tdelegate:
     e = p_delegate(node, mod, &toplevel);
     break;
@@ -2324,7 +2320,7 @@ again:
     }
   } else {
     back(mod, &tok);
-    e = p_deftype_statement(node_new_subnode(mod, node), mod);
+    e = p_deftype_statement(node_new_subnode(mod, node), mod, node);
     EXCEPT(e);
 
     e = scan_oneof(&tok, mod, TEOL, TEOB, 0);
@@ -2410,8 +2406,7 @@ static error p_deftype(struct node *node, struct module *mod,
   e = p_genargs(node_subs_at(node, IDX_GENARGS), mod, TASSIGN, TRUE);
   EXCEPT(e);
 
-  e = p_isalist(node_new_subnode(mod, node), mod);
-  EXCEPT(e);
+  (void)mk_node(mod, node, ISALIST);
 
   struct token tok = { 0 };
   e = scan_oneof(&tok, mod, TEOL, TSOB, 0);
@@ -2419,12 +2414,13 @@ static error p_deftype(struct node *node, struct module *mod,
 
   if (tok.t == TEOL) {
     back(mod, &tok);
-    return 0;
+    goto done;
   }
 
   e = p_deftype_block(node, mod);
   EXCEPT(e);
 
+done:
   return 0;
 }
 
@@ -2435,7 +2431,8 @@ static error p_implicit_genargs(struct node *genargs, struct module *mod) {
   return 0;
 }
 
-static error p_defintf_statement(struct node *node, struct module *mod, ident intf_name) {
+static error p_defintf_statement(struct node *node, struct module *mod,
+                                 struct node *intf) {
   error e;
   struct token tok = { 0 }, tok2 = { 0 };
   struct toplevel toplevel = { 0 };
@@ -2473,6 +2470,11 @@ again:
     }
     e = p_deffun(node, mod, &toplevel, DEFMETHOD);
     break;
+  case Tisa:
+    node_subs_remove(intf, node);
+    e = p_isalist(intf, mod, node_toplevel_const(intf)->is_export);
+    EXCEPT(e);
+    break;
   case Tlet:
   case Talias:
     e = p_let(node, mod, &toplevel, tok.t);
@@ -2492,7 +2494,7 @@ again:
   return 0;
 }
 
-static error p_defintf_block(struct node *node, struct module *mod, ident intf_name) {
+static error p_defintf_block(struct node *node, struct module *mod) {
   error e;
   struct token tok = { 0 };
   bool first = TRUE;
@@ -2509,7 +2511,7 @@ again:
     }
   } else {
     back(mod, &tok);
-    e = p_defintf_statement(node_new_subnode(mod, node), mod, intf_name);
+    e = p_defintf_statement(node_new_subnode(mod, node), mod, node);
     EXCEPT(e);
 
     e = scan_oneof(&tok, mod, TEOL, TEOB, 0);
@@ -2548,20 +2550,20 @@ static error p_defintf(struct node *node, struct module *mod,
   e = p_genargs(node_subs_at(node, IDX_GENARGS), mod, TASSIGN, TRUE);
   EXCEPT(e);
 
-  e = p_isalist(node_new_subnode(mod, node), mod);
-  EXCEPT(e);
+  (void)mk_node(mod, node, ISALIST);
 
   e = scan_oneof(&tok, mod, TEOL, TSOB, 0);
   EXCEPT(e);
 
   if (tok.t == TEOL) {
     back(mod, &tok);
-    return 0;
+    goto done;
   }
 
-  e = p_defintf_block(node, mod, node_ident(node));
+  e = p_defintf_block(node, mod);
   EXCEPT(e);
 
+done:
   return 0;
 }
 

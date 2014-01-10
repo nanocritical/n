@@ -1,10 +1,12 @@
 from nlang import *
 
-struct tt = `trivial_copy
+struct tt =
+  isa `trivial_copy
   x:i32
   y:i32
 
-struct t = `trivial_copy
+struct t =
+  isa `trivial_copy
   x:i32
   y:tt
 

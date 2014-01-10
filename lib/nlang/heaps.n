@@ -1,12 +1,10 @@
 from nlang import *
 
-export intf `heap_element = \
-    export `copyable \
-    export `ordered
+export intf `heap_element =
+  export isa `copyable `ordered
 
-export inline struct heap t:`heap_element = \
-    export `trivial_ctor \
-    export `copyable
+export inline struct heap t:`heap_element =
+  export isa `trivial_ctor `copyable
   _h:(vector t)
   _count:size
 

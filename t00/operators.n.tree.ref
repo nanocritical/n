@@ -753,10 +753,10 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      NUMBER(1) :nlang.builtins.i32
      DEFNAME(y) :nlang.builtins.i32
     BLOCK :nlang.builtins.void
-     BIN( ^= ) :nlang.builtins.void
+     BIN( bw^= ) :nlang.builtins.void
       IDENT(x) :nlang.builtins.i32
       IDENT(y) :nlang.builtins.i32
    RETURN :nlang.builtins.void
-    BIN( ^ ) :nlang.builtins.i32
+    BIN( bw^ ) :nlang.builtins.i32
      IDENT(x) :nlang.builtins.i32
      NUMBER(1) :nlang.builtins.i32
