@@ -1,0 +1,7 @@
+from nlang import *
+
+-- It doesn't make sense to export individual fields in an intf. It's either
+-- fully exported or not.
+
+export intf `i1 =
+  export method@ foo = u32
