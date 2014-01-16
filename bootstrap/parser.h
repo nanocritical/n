@@ -201,6 +201,7 @@ struct node_dyn {
 };
 struct node_deffun {
   struct toplevel toplevel;
+  ssize_t min_args, max_args, first_vararg;
 };
 
 enum deftype_kind {
@@ -219,6 +220,7 @@ struct node_deftype {
 struct node_defmethod {
   struct toplevel toplevel;
   enum token_type access;
+  ssize_t min_args, max_args, first_vararg;
 };
 struct node_defintf {
   struct toplevel toplevel;
@@ -246,6 +248,7 @@ struct node_defpattern {
 };
 struct node_defarg {
   bool is_optional;
+  bool is_vararg;
   bool is_retval;
 };
 struct node_defgenarg {
@@ -451,6 +454,10 @@ void node_invariant(const struct node *node);
 #define FOREACH_SUB_CONST(s, n) \
   for (const struct node *__p_##s = (n), *s = __p_##s->subs_first; \
        s != NULL; s = s->next)
+
+#define REVERSE_FOREACH_SUB_CONST(s, n) \
+  for (const struct node *__p_##s = (n), *s = __p_##s->subs_last; \
+       s != NULL; s = s->prev)
 
 #define FOREACH_SUB_EVERY_CONST(s, n, from, every) \
   for (const struct node *__p_##s = (n), *s = try_node_subs_at_const(__p_##s, from); \
@@ -1112,7 +1119,8 @@ struct node *node_new_subnode(struct module *mod, struct node *node);
 bool node_has_tail_block(const struct node *node);
 bool node_is_fun(const struct node *node);
 size_t node_fun_all_args_count(const struct node *def);
-size_t node_fun_explicit_args_count(const struct node *def);
+size_t node_fun_min_explicit_args_count(const struct node *def);
+size_t node_fun_max_explicit_args_count(const struct node *def);
 struct node *node_fun_retval(struct node *def);
 const struct node *node_fun_retval_const(const struct node *def);
 struct node *node_for_block(struct node *node);

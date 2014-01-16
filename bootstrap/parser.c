@@ -39,7 +39,7 @@ noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
 EXAMPLE(data_structure_size_stats) {
   // It is a good idea to keep track of what is responsible for the size of
   // 'node_as'. In other words, where to look first to shrink 'struct node'.
-  assert(sizeof(struct node_deftype) == sizeof(union node_as));
+  assert(sizeof(struct node_defmethod) == sizeof(union node_as));
 }
 
 const char *node_which_strings[] = {
@@ -999,20 +999,28 @@ size_t node_fun_all_args_count(const struct node *def) {
   return node_subs_count(node_subs_at_const(def, IDX_FUNARGS)) - 1;
 }
 
-size_t node_fun_explicit_args_count(const struct node *def) {
-  size_t minus = 0;
+size_t node_fun_min_explicit_args_count(const struct node *def) {
   switch(def->which) {
   case DEFFUN:
-    break;
+    return def->as.DEFFUN.min_args;
   case DEFMETHOD:
-    minus = 1;
-    break;
+    return def->as.DEFMETHOD.min_args;
   default:
     assert(FALSE);
     return -1;
   }
+}
 
-  return node_fun_all_args_count(def) - minus;
+size_t node_fun_max_explicit_args_count(const struct node *def) {
+  switch(def->which) {
+  case DEFFUN:
+    return def->as.DEFFUN.max_args;
+  case DEFMETHOD:
+    return def->as.DEFMETHOD.max_args;
+  default:
+    assert(FALSE);
+    return -1;
+  }
 }
 
 const struct node *node_fun_retval_const(const struct node *def) {
@@ -2127,6 +2135,50 @@ static error p_defmethod_access(struct node *node, struct module *mod) {
   return 0;
 }
 
+static void count_explicit_args(struct node *def) {
+  ssize_t minus = 0, *min, *max, *first_va;
+  switch(def->which) {
+  case DEFFUN:
+    min = &def->as.DEFFUN.min_args;
+    max = &def->as.DEFFUN.max_args;
+    first_va = &def->as.DEFFUN.first_vararg;
+    break;
+  case DEFMETHOD:
+    min = &def->as.DEFMETHOD.min_args;
+    max = &def->as.DEFMETHOD.max_args;
+    first_va = &def->as.DEFMETHOD.first_vararg;
+    minus = 1;
+    break;
+  default:
+    assert(FALSE);
+    return;
+  }
+
+  *max = node_fun_all_args_count(def) - minus;
+  *min = *max;
+
+  *first_va = -1;
+  bool last = TRUE;
+  REVERSE_FOREACH_SUB_CONST(arg, node_subs_at_const(def, IDX_FUNARGS)) {
+    if (last) {
+      last = FALSE;
+      continue;
+    }
+
+    assert(arg->which == DEFARG);
+    if (arg->as.DEFARG.is_optional) {
+      *min -= 1;
+    } else if (arg->as.DEFARG.is_vararg) {
+      if (*first_va == -1) {
+        *first_va = *min;
+      }
+      *min -= 1;
+    } else {
+      break;
+    }
+  }
+}
+
 static error p_deffun(struct node *node, struct module *mod, const struct toplevel *toplevel,
                       enum node_which fun_or_method) {
   error e;
@@ -2187,6 +2239,8 @@ again:
 retval:
   e = p_defret(node_new_subnode(mod, funargs), mod);
   EXCEPT(e);
+
+  count_explicit_args(node);
 
   e = scan_oneof(&tok, mod, TEOL, TSOB, TEOB, 0);
   EXCEPT(e);
@@ -3134,7 +3188,10 @@ except:
 error mk_except_call_args_count(const struct module *mod, const struct node *node,
                                 const struct node *definition, size_t extra, size_t given) {
   error e = mk_except_type(mod, node,
-                           "invalid number of arguments: %zu expected, but %zu given",
-                           node_fun_explicit_args_count(definition) + extra, given);
+                           "invalid number of arguments:"
+                           " between %zu and %zu expected, but %zu given",
+                           node_fun_min_explicit_args_count(definition) + extra,
+                           node_fun_max_explicit_args_count(definition) + extra,
+                           given);
   THROW(e);
 }

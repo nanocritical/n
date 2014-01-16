@@ -890,6 +890,9 @@ static error rewrite_unary_call(struct module *mod, struct node *node, struct ty
   error e = catchup(mod, except, node, parent_scope, CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
+  struct node *dfun = typ_definition(node_subs_first(node)->typ);
+  assert(node_fun_max_explicit_args_count(dfun) == node_subs_count(node)-1 - ((dfun->which==DEFMETHOD)?1:0));
+
   return 0;
 }
 
@@ -917,7 +920,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   }
 
   if (typ_is_function(field->typ) && mark != TBI__CALL_FUNCTION_SLOT) {
-    if (node_fun_explicit_args_count(field) != 0) {
+    if (node_fun_min_explicit_args_count(field) != 0) {
       e = mk_except_call_args_count(mod, node, field, 0, 0);
       THROW(e);
     }
@@ -1209,6 +1212,21 @@ static error self_ref_if_value(struct node **self,
   return 0;
 }
 
+static void fill_in_optional_args(struct module *mod, struct node *node,
+                                  struct node *dfun, size_t dmin, size_t dmax) {
+  const size_t self = (dfun->which == DEFMETHOD) ? 1 : 0;
+  struct node *arg = node_subs_at(node, dmin + self);
+  for (size_t n = dmin + self; n <= dmax + self; ++n) {
+    if (arg == NULL) {
+      struct node *nul = mk_node(mod, node, NUL);
+      error e = catchup(mod, NULL, nul, &node->scope, CATCHUP_BELOW_CURRENT);
+      assert(!e);
+    } else {
+      arg = node_next(arg);
+    }
+  }
+}
+
 static error prepare_call_arguments(struct module *mod, struct node *node) {
   struct node *fun = node_subs_first(node);
 
@@ -1219,12 +1237,15 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
   }
 
   struct node *dfun = typ_definition(fun->typ);
-  const size_t subs_count = node_subs_count(node);
+  const size_t dmin = node_fun_min_explicit_args_count(dfun);
+  const size_t dmax = node_fun_max_explicit_args_count(dfun);
+
+  const size_t args = node_subs_count(node) - 1;
+
   switch (dfun->which) {
   case DEFFUN:
-    if (node_fun_explicit_args_count(dfun) != subs_count - 1) {
-      error e = mk_except_call_args_count(mod, node, dfun, 0,
-                                          subs_count - 1);
+    if (args < dmin || args > dmax) {
+      error e = mk_except_call_args_count(mod, node, dfun, 0, args);
       THROW(e);
     }
     break;
@@ -1232,16 +1253,14 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
     if (fun->which == BIN) {
       if ((node_subs_first(fun)->flags & NODE_IS_TYPE)) {
         // Form (type.method self ...).
-        if (1 + node_fun_explicit_args_count(dfun) != subs_count - 1) {
-          error e = mk_except_call_args_count(mod, node, dfun, 1,
-                                              subs_count - 1);
+        if (args < dmin+1 || args > dmax+1) {
+          error e = mk_except_call_args_count(mod, node, dfun, 1, args);
           THROW(e);
         }
       } else {
         // Form (self.method ...); rewrite as (type.method self ...).
-        if (node_fun_explicit_args_count(dfun) != subs_count - 1) {
-          error e = mk_except_call_args_count(mod, node, dfun, 0,
-                                              subs_count - 1);
+        if (args < dmin || args > dmax) {
+          error e = mk_except_call_args_count(mod, node, dfun, 0, args);
           THROW(e);
         }
 
@@ -1264,18 +1283,23 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
         e = catchup(mod, NULL, m, &node->scope, CATCHUP_BELOW_CURRENT);
         EXCEPT(e);
       }
-    } else if ((fun->flags & NODE_IS_TYPE) && fun->which == CALL) {
+    } else if ((fun->flags & NODE_IS_TYPE)) {
+      assert(fun->which == CALL || fun->which == DIRECTDEF);
       // Generic method instantiation: (type.method u32 i32) self
-      if (1 + node_fun_explicit_args_count(dfun) != subs_count - 1) {
-        error e = mk_except_call_args_count(mod, node, dfun, 1,
-                                            subs_count - 1);
+      // or DIRECTDEF.
+      if (args < dmin+1 || args > dmax+1) {
+        error e = mk_except_call_args_count(mod, node, dfun, 1, args);
         THROW(e);
       }
+    } else {
+      assert(FALSE && "Unreached");
     }
     break;
   default:
     assert(FALSE);
   }
+
+  fill_in_optional_args(mod, node, dfun, dmin, dmax);
 
   return 0;
 }
@@ -1429,7 +1453,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
     return 0;
   }
 
-  if (node_fun_explicit_args_count(dfun) == 0) {
+  if (node_fun_max_explicit_args_count(dfun) == 0) {
     return type_inference_explicit_unary_call(mod, node, dfun);
   }
 
@@ -1730,7 +1754,7 @@ static error type_inference_ident(struct module *mod, struct node *node) {
 
   if (typ_is_function(def->typ)
       && node->typ != TBI__CALL_FUNCTION_SLOT) {
-    if (node_fun_explicit_args_count(typ_definition(def->typ)) != 0) {
+    if (node_fun_min_explicit_args_count(typ_definition(def->typ)) != 0) {
       e = mk_except_call_args_count(mod, node, typ_definition(def->typ), 0, 0);
       THROW(e);
     }
