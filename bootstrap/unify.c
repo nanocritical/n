@@ -39,10 +39,6 @@ static bool same_generic_functor(const struct module *mod,
                                  const struct typ *a, const struct typ *b) {
   if (typ_generic_arity(a) > 0 && typ_generic_arity(b) > 0) {
     return typ_equal(typ_generic_functor_const(a), typ_generic_functor_const(b));
-  } else if (typ_generic_arity(a) == 0 && typ_generic_arity(b) > 0) {
-    return typ_equal(a, typ_generic_functor_const(b));
-  } else if (typ_generic_arity(a) > 0 && typ_generic_arity(b) == 0) {
-    return typ_equal(typ_generic_functor_const(a), b);
   } else {
     return FALSE;
   }
@@ -150,13 +146,7 @@ static error unify_non_generic(struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  if (same_generic_functor(mod, a, b)) {
-    e = unify_same_generic_functor(mod, for_error, a, b);
-    EXCEPT(e);
-    return 0;
-  }
-
-  if (a_non_generic) {
+  if (!typ_is_tentative(b)) {
     SWAP(a, b);
     SWAP(a_non_generic, b_non_generic);
   }
