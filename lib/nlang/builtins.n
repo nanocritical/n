@@ -1,6 +1,6 @@
 from nlang.chars import `string_buffer `show
 from nlang.memory import slice
-from nlang.containers import index_range range
+from nlang.containers import index_range range `iterator
 from nlang.unsafe import cast
 from nlang import say print
 
@@ -1017,3 +1017,18 @@ export (fun e:`error) drop err:e = void
 export (fun e:`error) fatal err:e = void
   print @"Fatal: "
   say @err
+
+
+export extern inline struct valist =
+  isa `trivial_copy
+
+export inline struct vararg r:`any_any_ref =
+  export isa (`iterator r)
+  export isa `trivial_copy -- FIXME: remove `trivial_copy, needed by bootstrap
+  ap		:valist
+  left		:ssize
+
+export vararg method@ `iterator.has_next = bool
+  return self.left > 0
+
+export extern vararg method@! `iterator.next = r

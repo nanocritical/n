@@ -35,12 +35,11 @@ nlang_containers_index_iterator _Ngensym0 = { 0 };
 nlang_containers_index_range_iter(({ _Ngensym1 = nlang_containers_range((nlang_builtins_size)0, (nlang_builtins_size)10);
 ((&_Ngensym1));
 ; }), &(_Ngensym0));
-while (nlang_containers_index_iterator_is_valid(((&_Ngensym0)))) {
-nlang_builtins_size i = nlang_containers_index_iterator_get(((&_Ngensym0)));
+while (nlang_containers_index_iterator_has_next(((&_Ngensym0)))) {
+nlang_builtins_size i = nlang_containers_index_iterator_next(((&_Ngensym0)));
 _Ngen_nlang_builtins_unused__nlang_builtins_size_genN_(i);
 j += (nlang_builtins_i32)1;
 ;
-nlang_containers_index_iterator_next(((&_Ngensym0)));
 };
 ;
 ;

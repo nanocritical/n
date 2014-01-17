@@ -725,9 +725,9 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
   struct node *proxy = node;
   struct node *ctor = node_get_member(mod, proxy, ID_CTOR);
   if (ctor != NULL) {
-    if (node_fun_max_explicit_args_count(ctor) == 0) {
+    if (node_fun_max_args_count(ctor) == 0) {
       add_inferred_isa(mod, node, "nlang.builtins.`default_ctor");
-    } else if (node_fun_max_explicit_args_count(ctor) == 1) {
+    } else if (node_fun_max_args_count(ctor) == 1) {
       add_inferred_isa(mod, node, "nlang.builtins.`ctor_with");
     }
   } else {

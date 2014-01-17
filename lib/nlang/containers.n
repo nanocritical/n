@@ -7,11 +7,9 @@ export intf `fwd_locus =
 export intf `bidir_locus =
   isa `locus `ordered
 
-export intf `iterator =
-  method@ get = size
-  method@ is_valid = bool
+export intf `iterator t:`copyable =
   method@ has_next = bool
-  method@! next = void
+  method@! next = t
 
 export inline struct index_range =
   export isa `trivial_copy `trivial_equality `return_by_copy
@@ -54,21 +52,17 @@ export index_range method@ iter = index_iterator
 
 
 export inline struct index_iterator =
-  export isa `iterator
+  export isa (`iterator size)
   r:index_range
   p:size
 
-export index_iterator method@ get = size
-  return self.p
-
-export index_iterator method@ is_valid = bool
+export index_iterator method@ `iterator.has_next = bool
   return self.p < self.r.end
 
-export index_iterator method@ has_next = bool
-  return self.p + 1 < self.r.end
-
-export index_iterator method@! next = void
+export index_iterator method@! `iterator.next = size
+  let r = self.p
   self!p += 1
+  return r
 
 export fun range beg:size end:size = r:index_range
   r!init beg end

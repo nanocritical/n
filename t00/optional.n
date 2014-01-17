@@ -3,10 +3,31 @@ from nlang import *
 fun opts ?a:?@i32 = i32
   return optional a 1
 
+fun chained v:@!(vararg @i32) = i32
+  let s = 0
+  such
+    for i in v!
+      s += i.
+  return s
+
+fun var a:i32 ?b:?@i32 ...v:(vararg @i32) = i32
+  let s = chained @!v
+  return a + (optional b 0) + s
+
+fun onlyvar ...v:(vararg @i32) = i32
+  let s = 0
+  such
+    for i in v
+      s += i.
+  return s
+
 export fun main = i32
   if opts @1 != 1
     return 1
   if opts @1 != opts
     return 1
+
+  assert <- 10 == var 0 @1 @2 @3 @4
+  assert <- 10 == onlyvar @0 @1 @2 @3 @4
 
   return opts @0

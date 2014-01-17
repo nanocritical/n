@@ -1,3 +1,7 @@
 from nlang.builtins import *
 
 export extern (fun u:`any_any_ref v:`any_any_ref) cast a:u = v
+
+export extern struct voidref = -- FIXME implement
+export extern struct voidmref = -- FIXME implement
+export extern struct voidmmref = -- FIXME implement

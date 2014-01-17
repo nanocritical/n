@@ -27,13 +27,6 @@ bool instantiation_is_tentative(const struct module *mod,
                                 struct typ *t, struct typ **args,
                                 size_t arity);
 
-enum pass_kind {
-  PASS__NONE = 0,
-  PASS_ZERO,
-  PASS_FORWARD,
-  PASS_BODY,
-};
-
 typedef error (*a_pass)(struct module *mod, struct node *root,
                         void *user, ssize_t shallow_last_up);
 

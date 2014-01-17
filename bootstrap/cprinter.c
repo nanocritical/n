@@ -309,10 +309,37 @@ static void print_tuplenth(FILE *out, const struct module *mod, const struct nod
   fprintf(out, ")");
 }
 
-static void print_call(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
+static void print_call_vararg_count(FILE *out, const struct node *dfun,
+                                    const struct node *node, size_t n) {
+  size_t first_vararg;
+  switch (dfun->which) {
+  case DEFFUN:
+    first_vararg = dfun->as.DEFFUN.first_vararg;
+    break;
+  case DEFMETHOD:
+    first_vararg = dfun->as.DEFMETHOD.first_vararg;
+    break;
+  default:
+    assert(FALSE);
+  }
+
+  if (n != first_vararg) {
+    return;
+  }
+
+  const size_t count = node_subs_count(node) - 1 - first_vararg;
+  fprintf(out, "%zu", count);
+  if (count > 0) {
+    fprintf(out, ", ");
+  }
+}
+
+static void print_call(FILE *out, const struct module *mod,
+                       const struct node *node, uint32_t parent_op) {
   const struct node *fun = node_subs_first_const(node);
   const struct typ *ftyp = fun->typ;
   const struct node *fdef = typ_definition_const(ftyp);
+  const struct node *parentd = node_parent_const(fdef);
 
   if (node_ident(fdef) == ID_CAST) {
     fprintf(out, "(");
@@ -321,9 +348,20 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
     print_expr(out, mod, node_subs_at_const(node, 1), T__CALL);
     fprintf(out, ")");
     return;
+  } else if (node_ident(fdef) == ID_NEXT && typ_isa(parentd->typ, TBI_VARARG)) {
+    const struct node *self = node_subs_at_const(node, 1);
+    fprintf(out, "NLANG_BUILTINS_VARARG_NEXT(");
+    print_typ(out, mod, typ_generic_arg_const(parentd->typ, 0));
+    fprintf(out, ", ");
+    if (typ_is_reference(self->typ)) {
+      fprintf(out, "*");
+    }
+    fprintf(out, "(");
+    print_expr(out, mod, self, T__CALL);
+    fprintf(out, "))");
+    return;
   }
 
-  const struct node *parentd = node_parent_const(fdef);
   print_typ(out, mod, ftyp);
   fprintf(out, "(");
 
@@ -341,6 +379,9 @@ static void print_call(FILE *out, const struct module *mod, const struct node *n
     if (force_comma || n > 1) {
       fprintf(out, ", ");
     }
+
+    print_call_vararg_count(out, fdef, node, n - 1);
+
     if (n == 1
         && fdef->which == DEFMETHOD
         && parentd->which == DEFINTF) {
@@ -1074,6 +1115,27 @@ static void print_defarg(FILE *out, const struct module *mod, const struct node 
   print_expr(out, mod, node_subs_first_const(node), T__STATEMENT);
 }
 
+static bool print_call_vararg_proto(FILE *out, const struct node *dfun, size_t n) {
+  size_t first_vararg;
+  switch (dfun->which) {
+  case DEFFUN:
+    first_vararg = dfun->as.DEFFUN.first_vararg;
+    break;
+  case DEFMETHOD:
+    first_vararg = dfun->as.DEFMETHOD.first_vararg;
+    break;
+  default:
+    assert(FALSE);
+  }
+
+  if (n != first_vararg) {
+    return FALSE;
+  }
+
+  fprintf(out, "nlang_builtins_size _Nvararg_count, ...");
+  return TRUE;
+}
+
 static void print_fun_prototype(FILE *out, bool header, const struct module *mod,
                                 const struct node *node,
                                 bool as_fun_pointer, bool named_fun_pointer,
@@ -1123,6 +1185,10 @@ static void print_fun_prototype(FILE *out, bool header, const struct module *mod
     no_args_at_all = FALSE;
     if (force_comma || n > 0) {
       fprintf(out, ", ");
+    }
+
+    if (print_call_vararg_proto(out, node, n)) {
+      break;
     }
 
     if (n == 0 && node->which == DEFMETHOD && as_dyn_fun_pointer) {
@@ -1664,10 +1730,27 @@ static void print_deffun(FILE *out, bool header, enum forward fwd, const struct 
 
     rtr_helpers(out, mod, node, TRUE);
 
+    const struct node *funargs = node_subs_at_const(node, IDX_FUNARGS);
+    const ssize_t first_vararg = node_fun_first_vararg(node);
+    ident id_ap = ID__NONE;
+    if (first_vararg >= 0) {
+      const struct node *ap = node_subs_at_const(funargs, first_vararg);
+      id_ap = node_ident(ap);
+      print_typ(out, mod, ap->typ);
+      fprintf(out, " %s = { 0 };\nNLANG_BUILTINS_VARARG_START(%s);\n",
+              idents_value(mod->gctx, id_ap),
+              idents_value(mod->gctx, id_ap));
+    }
+
     const struct node *block = node_subs_last_const(node);
     print_block(out, mod, block, FALSE);
 
     fprintf(out, "\n");
+
+    if (first_vararg >= 0) {
+      fprintf(out, "NLANG_BUILTINS_VARARG_END(%s);\n",
+              idents_value(mod->gctx, id_ap));
+    }
 
     rtr_helpers(out, mod, node, FALSE);
 
@@ -1694,8 +1777,8 @@ static void print_delegate(FILE *out, const struct module *mod, const struct nod
   }
 }
 
-static bool is_concrete(const struct typ *t) {
-  if (typ_is_reference(t)) {
+static bool is_concrete(const struct typ *t, bool topmost) {
+  if (topmost && typ_is_reference(t)) {
     return FALSE;
   } else {
     for (size_t n = 0; n < typ_generic_arity(t); ++n) {
@@ -1703,7 +1786,7 @@ static bool is_concrete(const struct typ *t) {
       if (typ_definition_const(arg)->which == DEFINTF) {
         return FALSE;
       }
-      if (!typ_is_generic_functor(arg) && !is_concrete(arg)) {
+      if (!typ_is_generic_functor(arg) && !is_concrete(arg, FALSE)) {
         return FALSE;
       }
     }
@@ -1738,7 +1821,7 @@ static void print_deftype_statement(FILE *out, bool header, enum forward fwd,
           const struct toplevel *toplevel = node_toplevel_const(node);
           for (size_t n = 1; n < toplevel->instances_count; ++n) {
             const struct node *instance = toplevel->instances[n];
-            if (is_concrete(instance->typ)) {
+            if (is_concrete(instance->typ, TRUE)) {
               print_deffun(out, header, fwd, mod, instance);
             }
           }
@@ -2117,6 +2200,9 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
   if (header && !node_is_export(node)) {
     return;
   }
+  if (fwd == FWD_DEFINE_TYPES && node_is_extern(node)) {
+    return;
+  }
   if (!header) {
     if (node_is_export(node) && fwd == FWD_DECLARE_TYPES) {
       return;
@@ -2414,7 +2500,7 @@ static void print_top(FILE *out, bool header, enum forward fwd, const struct mod
       if (toplevel->instances_count > 1) {
         for (size_t n = 1; n < toplevel->instances_count; ++n) {
           const struct node *instance = toplevel->instances[n];
-          if (!is_concrete(instance->typ)) {
+          if (!is_concrete(instance->typ, TRUE)) {
             continue;
           }
 

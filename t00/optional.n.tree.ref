@@ -570,6 +570,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(unreached)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(__pre__)
   IMPORT :<import>
    BIN(.)
@@ -649,6 +655,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(nlang)
      IDENT(builtins)
     IDENT(fatal)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(valist)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(vararg)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -776,6 +794,136 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(optional) :(nlang.builtins.optional nlang.builtins.i32)
      IDENT(a) :(nlang.builtins.nullable_ref nlang.builtins.i32)
      NUMBER(1) :nlang.builtins.i32
+ DEFFUN :t00.optional.chained
+  IDENT(chained) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
+   DEFARG :(nlang.builtins.mutable_ref (nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32)))
+    IDENT(v) :nlang.builtins.__internal_not_typeable__
+    UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32)))
+     CALL :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+      IDENT(vararg) :(functor nlang.builtins.vararg nlang.builtins.`any_any_ref)
+      UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+       IDENT(i32) :nlang.builtins.i32
+   IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(s) :nlang.builtins.i32
+     NUMBER(0) :nlang.builtins.i32
+     DEFNAME(s) :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
+     FOR :nlang.builtins.void
+      LET :nlang.builtins.void
+       DEFPATTERN :nlang.builtins.void
+        IDENT(_Ngensym0) :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+        UN(!) :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+         IDENT(v) :(nlang.builtins.mutable_ref (nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32)))
+        DEFNAME(_Ngensym0) :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+       BLOCK :nlang.builtins.void
+        WHILE :nlang.builtins.void
+         CALL :nlang.builtins.bool
+          DIRECTDEF :nlang.builtins.vararg.has_next
+          UN(@) :(nlang.builtins.ref (nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32)))
+           IDENT(_Ngensym0) :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+         BLOCK :nlang.builtins.void
+          LET :nlang.builtins.void
+           DEFPATTERN :nlang.builtins.void
+            IDENT(i) :(nlang.builtins.ref nlang.builtins.i32)
+            CALL :(nlang.builtins.ref nlang.builtins.i32)
+             DIRECTDEF :nlang.builtins.vararg.next
+             UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32)))
+              IDENT(_Ngensym0) :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+            DEFNAME(i) :(nlang.builtins.ref nlang.builtins.i32)
+           BLOCK :nlang.builtins.void
+            BIN( += ) :nlang.builtins.void
+             IDENT(s) :nlang.builtins.i32
+             UN(.) :nlang.builtins.i32
+              IDENT(i) :(nlang.builtins.ref nlang.builtins.i32)
+   RETURN :nlang.builtins.void
+    IDENT(s) :nlang.builtins.i32
+ DEFFUN :t00.optional.var
+  IDENT(var) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
+   DEFARG :nlang.builtins.i32
+    IDENT(a) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32
+   DEFARG :(nlang.builtins.nullable_ref nlang.builtins.i32)
+    IDENT(b) :nlang.builtins.__internal_not_typeable__
+    UN(?@) :(nlang.builtins.nullable_ref nlang.builtins.i32)
+     IDENT(i32) :nlang.builtins.i32
+   DEFARG :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+    IDENT(v) :nlang.builtins.__internal_not_typeable__
+    CALL :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+     IDENT(vararg) :(functor nlang.builtins.vararg nlang.builtins.`any_any_ref)
+     UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+      IDENT(i32) :nlang.builtins.i32
+   IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(s) :nlang.builtins.i32
+     CALL :nlang.builtins.i32
+      IDENT(chained) :t00.optional.chained
+      UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32)))
+       IDENT(v) :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+     DEFNAME(s) :nlang.builtins.i32
+   RETURN :nlang.builtins.void
+    BIN( + ) :nlang.builtins.i32
+     BIN( + ) :nlang.builtins.i32
+      IDENT(a) :nlang.builtins.i32
+      CALL :nlang.builtins.i32
+       IDENT(optional) :(nlang.builtins.optional nlang.builtins.i32)
+       IDENT(b) :(nlang.builtins.nullable_ref nlang.builtins.i32)
+       NUMBER(0) :nlang.builtins.i32
+     IDENT(s) :nlang.builtins.i32
+ DEFFUN :t00.optional.onlyvar
+  IDENT(onlyvar) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
+   DEFARG :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+    IDENT(v) :nlang.builtins.__internal_not_typeable__
+    CALL :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+     IDENT(vararg) :(functor nlang.builtins.vararg nlang.builtins.`any_any_ref)
+     UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+      IDENT(i32) :nlang.builtins.i32
+   IDENT(i32) :nlang.builtins.i32
+  BLOCK :nlang.builtins.void
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     IDENT(s) :nlang.builtins.i32
+     NUMBER(0) :nlang.builtins.i32
+     DEFNAME(s) :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
+     FOR :nlang.builtins.void
+      LET :nlang.builtins.void
+       DEFPATTERN :nlang.builtins.void
+        IDENT(_Ngensym1) :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+        IDENT(v) :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+        DEFNAME(_Ngensym1) :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+       BLOCK :nlang.builtins.void
+        WHILE :nlang.builtins.void
+         CALL :nlang.builtins.bool
+          DIRECTDEF :nlang.builtins.vararg.has_next
+          UN(@) :(nlang.builtins.ref (nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32)))
+           IDENT(_Ngensym1) :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+         BLOCK :nlang.builtins.void
+          LET :nlang.builtins.void
+           DEFPATTERN :nlang.builtins.void
+            IDENT(i) :(nlang.builtins.ref nlang.builtins.i32)
+            CALL :(nlang.builtins.ref nlang.builtins.i32)
+             DIRECTDEF :nlang.builtins.vararg.next
+             UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32)))
+              IDENT(_Ngensym1) :(nlang.builtins.vararg (nlang.builtins.ref nlang.builtins.i32))
+            DEFNAME(i) :(nlang.builtins.ref nlang.builtins.i32)
+           BLOCK :nlang.builtins.void
+            BIN( += ) :nlang.builtins.void
+             IDENT(s) :nlang.builtins.i32
+             UN(.) :nlang.builtins.i32
+              IDENT(i) :(nlang.builtins.ref nlang.builtins.i32)
+   RETURN :nlang.builtins.void
+    IDENT(s) :nlang.builtins.i32
  DEFFUN :t00.optional.main
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
@@ -785,9 +933,9 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      TYPECONSTRAINT :nlang.builtins.i32
-      IDENT(_Ngensym0) :nlang.builtins.i32
+      IDENT(_Ngensym2) :nlang.builtins.i32
       DIRECTDEF :nlang.builtins.i32
-     DEFNAME(_Ngensym0) :nlang.builtins.i32
+     DEFNAME(_Ngensym2) :nlang.builtins.i32
     BLOCK :nlang.builtins.void
      IF :nlang.builtins.void
       BIN( != ) :nlang.builtins.bool
@@ -795,10 +943,10 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
         IDENT(opts) :t00.optional.opts
         BLOCK :(nlang.builtins.ref nlang.builtins.i32)
          BIN( = ) :nlang.builtins.void
-          IDENT(_Ngensym0) :nlang.builtins.i32
+          IDENT(_Ngensym2) :nlang.builtins.i32
           NUMBER(1) :nlang.builtins.i32
          UN(@) :(nlang.builtins.ref nlang.builtins.i32)
-          IDENT(_Ngensym0) :nlang.builtins.i32
+          IDENT(_Ngensym2) :nlang.builtins.i32
        NUMBER(1) :nlang.builtins.i32
       BLOCK :nlang.builtins.void
        RETURN :nlang.builtins.void
@@ -806,16 +954,155 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      TYPECONSTRAINT :nlang.builtins.i32
-      IDENT(_Ngensym1) :nlang.builtins.i32
+      IDENT(_Ngensym3) :nlang.builtins.i32
       DIRECTDEF :nlang.builtins.i32
-     DEFNAME(_Ngensym1) :nlang.builtins.i32
+     DEFNAME(_Ngensym3) :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
+     IF :nlang.builtins.void
+      BIN( != ) :nlang.builtins.bool
+       CALL :nlang.builtins.i32
+        IDENT(opts) :t00.optional.opts
+        BLOCK :(nlang.builtins.ref nlang.builtins.i32)
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym3) :nlang.builtins.i32
+          NUMBER(1) :nlang.builtins.i32
+         UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+          IDENT(_Ngensym3) :nlang.builtins.i32
+       CALL :nlang.builtins.i32
+        IDENT(opts) :t00.optional.opts
+        NUL :(nlang.builtins.nullable_ref nlang.builtins.i32)
+      BLOCK :nlang.builtins.void
+       RETURN :nlang.builtins.void
+        NUMBER(1) :nlang.builtins.i32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32
+      IDENT(_Ngensym4) :nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32
+     DEFNAME(_Ngensym4) :nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32
+      IDENT(_Ngensym5) :nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32
+     DEFNAME(_Ngensym5) :nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32
+      IDENT(_Ngensym6) :nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32
+     DEFNAME(_Ngensym6) :nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32
+      IDENT(_Ngensym7) :nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32
+     DEFNAME(_Ngensym7) :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
+     CALL :nlang.builtins.void
+      IDENT(assert) :nlang.builtins.assert
+      BIN( == ) :nlang.builtins.bool
+       NUMBER(10) :nlang.builtins.i32
+       CALL :nlang.builtins.i32
+        IDENT(var) :t00.optional.var
+        NUMBER(0) :nlang.builtins.i32
+        BLOCK :(nlang.builtins.ref nlang.builtins.i32)
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym4) :nlang.builtins.i32
+          NUMBER(1) :nlang.builtins.i32
+         UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+          IDENT(_Ngensym4) :nlang.builtins.i32
+        BLOCK :(nlang.builtins.ref nlang.builtins.i32)
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym5) :nlang.builtins.i32
+          NUMBER(2) :nlang.builtins.i32
+         UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+          IDENT(_Ngensym5) :nlang.builtins.i32
+        BLOCK :(nlang.builtins.ref nlang.builtins.i32)
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym6) :nlang.builtins.i32
+          NUMBER(3) :nlang.builtins.i32
+         UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+          IDENT(_Ngensym6) :nlang.builtins.i32
+        BLOCK :(nlang.builtins.ref nlang.builtins.i32)
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym7) :nlang.builtins.i32
+          NUMBER(4) :nlang.builtins.i32
+         UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+          IDENT(_Ngensym7) :nlang.builtins.i32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32
+      IDENT(_Ngensym8) :nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32
+     DEFNAME(_Ngensym8) :nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32
+      IDENT(_Ngensym9) :nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32
+     DEFNAME(_Ngensym9) :nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32
+      IDENT(_Ngensyma) :nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32
+     DEFNAME(_Ngensyma) :nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32
+      IDENT(_Ngensymb) :nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32
+     DEFNAME(_Ngensymb) :nlang.builtins.i32
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32
+      IDENT(_Ngensymc) :nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32
+     DEFNAME(_Ngensymc) :nlang.builtins.i32
+    BLOCK :nlang.builtins.void
+     CALL :nlang.builtins.void
+      IDENT(assert) :nlang.builtins.assert
+      BIN( == ) :nlang.builtins.bool
+       NUMBER(10) :nlang.builtins.i32
+       CALL :nlang.builtins.i32
+        IDENT(onlyvar) :t00.optional.onlyvar
+        BLOCK :(nlang.builtins.ref nlang.builtins.i32)
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym8) :nlang.builtins.i32
+          NUMBER(0) :nlang.builtins.i32
+         UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+          IDENT(_Ngensym8) :nlang.builtins.i32
+        BLOCK :(nlang.builtins.ref nlang.builtins.i32)
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym9) :nlang.builtins.i32
+          NUMBER(1) :nlang.builtins.i32
+         UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+          IDENT(_Ngensym9) :nlang.builtins.i32
+        BLOCK :(nlang.builtins.ref nlang.builtins.i32)
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensyma) :nlang.builtins.i32
+          NUMBER(2) :nlang.builtins.i32
+         UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+          IDENT(_Ngensyma) :nlang.builtins.i32
+        BLOCK :(nlang.builtins.ref nlang.builtins.i32)
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensymb) :nlang.builtins.i32
+          NUMBER(3) :nlang.builtins.i32
+         UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+          IDENT(_Ngensymb) :nlang.builtins.i32
+        BLOCK :(nlang.builtins.ref nlang.builtins.i32)
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensymc) :nlang.builtins.i32
+          NUMBER(4) :nlang.builtins.i32
+         UN(@) :(nlang.builtins.ref nlang.builtins.i32)
+          IDENT(_Ngensymc) :nlang.builtins.i32
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.i32
+      IDENT(_Ngensymd) :nlang.builtins.i32
+      DIRECTDEF :nlang.builtins.i32
+     DEFNAME(_Ngensymd) :nlang.builtins.i32
     BLOCK :nlang.builtins.void
      RETURN :nlang.builtins.void
       CALL :nlang.builtins.i32
        IDENT(opts) :t00.optional.opts
        BLOCK :(nlang.builtins.ref nlang.builtins.i32)
         BIN( = ) :nlang.builtins.void
-         IDENT(_Ngensym1) :nlang.builtins.i32
+         IDENT(_Ngensymd) :nlang.builtins.i32
          NUMBER(0) :nlang.builtins.i32
         UN(@) :(nlang.builtins.ref nlang.builtins.i32)
-         IDENT(_Ngensym1) :nlang.builtins.i32
+         IDENT(_Ngensymd) :nlang.builtins.i32

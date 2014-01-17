@@ -724,6 +724,7 @@ struct typ *TBI_MMREF; // @#
 struct typ *TBI_NREF; // ?@
 struct typ *TBI_NMREF; // ?@!
 struct typ *TBI_NMMREF; // ?@#
+struct typ *TBI_VARARG;
 struct typ *TBI_ARITHMETIC;
 struct typ *TBI_BITWISE;
 struct typ *TBI_INTEGER;

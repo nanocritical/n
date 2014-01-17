@@ -574,6 +574,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(unreached)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(__pre__)
   IMPORT :<import>
    BIN(.)
@@ -653,6 +659,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(nlang)
      IDENT(builtins)
     IDENT(fatal)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(valist)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(vararg)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -873,7 +891,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
          BLOCK :nlang.builtins.void
           WHILE :nlang.builtins.void
            CALL :nlang.builtins.bool
-            DIRECTDEF :nlang.containers.index_iterator.is_valid
+            DIRECTDEF :nlang.containers.index_iterator.has_next
             UN(@) :(nlang.builtins.ref nlang.containers.index_iterator)
              IDENT(_Ngensym0) :nlang.containers.index_iterator
            BLOCK :nlang.builtins.void
@@ -881,8 +899,8 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
              DEFPATTERN :nlang.builtins.void
               IDENT(i) :nlang.builtins.size
               CALL :nlang.builtins.size
-               DIRECTDEF :nlang.containers.index_iterator.get
-               UN(@) :(nlang.builtins.ref nlang.containers.index_iterator)
+               DIRECTDEF :nlang.containers.index_iterator.next
+               UN(@!) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
                 IDENT(_Ngensym0) :nlang.containers.index_iterator
               DEFNAME(i) :nlang.builtins.size
              BLOCK :nlang.builtins.void
@@ -913,10 +931,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
                        IDENT(i) :nlang.builtins.size
                     UN(@) :(nlang.builtins.ref nlang.builtins.u32)
                      IDENT(_Ngensym2) :nlang.builtins.u32
-            CALL :nlang.builtins.void
-             DIRECTDEF :nlang.containers.index_iterator.next
-             UN(@!) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
-              IDENT(_Ngensym0) :nlang.containers.index_iterator
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      IDENT(w) :(nlang.vectors.vector nlang.builtins.i32)

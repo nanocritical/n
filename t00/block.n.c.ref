@@ -119,15 +119,14 @@ nlang_containers_index_iterator _Ngensym0 = { 0 };
 nlang_containers_index_range_iter(({ _Ngensym3 = nlang_containers_range((nlang_builtins_size)0, (nlang_builtins_size)100);
 ((&_Ngensym3));
 ; }), &(_Ngensym0));
-while (nlang_containers_index_iterator_is_valid(((&_Ngensym0)))) {
-nlang_builtins_size i = nlang_containers_index_iterator_get(((&_Ngensym0)));
+while (nlang_containers_index_iterator_has_next(((&_Ngensym0)))) {
+nlang_builtins_size i = nlang_containers_index_iterator_next(((&_Ngensym0)));
 nlang_builtins_u32 _Ngensym2 = { 0 };
 tmp += nlang_builtins_u32_reinterpret_signed(({ _Ngensym2 = nlang_builtins_size_trim_u32(((&i)));
 ((&_Ngensym2));
 ; }));
 ;
 ;
-nlang_containers_index_iterator_next(((&_Ngensym0)));
 };
 ;
 ;

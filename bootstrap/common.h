@@ -4,6 +4,8 @@
 #define _XOPEN_SOURCE 700 // fmemopen(3)
 
 #include <stdint.h>
+#define  __USE_POSIX 1 // for SSIZE_MAX
+#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>

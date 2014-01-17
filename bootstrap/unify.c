@@ -46,12 +46,7 @@ static bool same_generic_functor(const struct module *mod,
 
 static error unify_same_generic_functor(struct module *mod, const struct node *for_error,
                                         struct typ *a, struct typ *b) {
-  assert(typ_generic_arity(a) != 0 || typ_generic_arity(b) != 0);
-
-  if (typ_generic_arity(a) == 0 || typ_generic_arity(b) == 0) {
-    error e = mk_except_type_unification(mod, for_error, a, b);
-    THROW(e);
-  }
+  assert(typ_generic_arity(a) != 0 && typ_generic_arity(b) != 0);
 
   if (typ_equal(a, b)) {
     typ_link_tentative(a, b);
@@ -67,8 +62,8 @@ static error unify_same_generic_functor(struct module *mod, const struct node *f
 
     error e = unify(mod, for_error, arga, argb);
     if (e) {
-      e = mk_except_type(mod, for_error, "unifying generic argument %zu",
-                         1 + n);
+      e = mk_except_type(mod, for_error,
+                         "unifying generic argument at position %zu", 1 + n);
       THROW(e);
     }
   }
@@ -95,16 +90,20 @@ static error find_instance_of(struct module *mod, struct typ *t,
 }
 
 static error unify_generics(struct module *mod, const struct node *for_error,
-                            struct typ *a, struct typ *b) {
+                            struct typ *a, struct typ *b,
+                            bool a_tentative, bool b_tentative) {
   struct typ *a0 = typ_generic_functor(a);
   struct typ *b0 = typ_generic_functor(b);
+  bool a_genf = typ_is_generic_functor(a);
+  bool b_genf = typ_is_generic_functor(b);
 
   error e;
   if (typ_isa(a0, b0)) {
     // noop
-  } else if (typ_isa(b0, a0)) {
+  } else if (a_tentative && typ_isa(b0, a0)) {
     SWAP(a, b);
     SWAP(a0, b0);
+    SWAP(a_genf, b_genf);
   } else if (typ_definition(a)->which == DEFINTF
              && typ_definition(b)->which == DEFINTF) {
     assert(FALSE && "FIXME Unsupported (e.g. combining constraints `arithmethic and `bitwise)");
@@ -113,7 +112,7 @@ static error unify_generics(struct module *mod, const struct node *for_error,
     THROW(e);
   }
 
-  if (!typ_equal(b, TBI_ANY)) {
+  if (!b_genf && !typ_equal(b, TBI_ANY)) {
     struct typ *b_in_a = NULL;
 
     if (typ_equal(a0, b0)) {
@@ -148,7 +147,6 @@ static error unify_non_generic(struct module *mod, const struct node *for_error,
 
   if (!typ_is_tentative(b)) {
     SWAP(a, b);
-    SWAP(a_non_generic, b_non_generic);
   }
 
   e = typ_check_isa(mod, for_error, a, b);
@@ -592,9 +590,11 @@ static error unify_with_reference_compatible(struct module *mod,
   error e = check_reference_compatibility(mod, for_error, a, real_b);
   EXCEPT(e);
 
-  struct typ *real_b0 = typ_generic_functor(real_b);
-  if (typ_definition_const(real_b0)->which == DEFINTF && typ_is_tentative(real_b0)) {
-    typ_link_tentative(typ_generic_functor(a), real_b0);
+  if (!typ_equal(real_b, TBI_ANY_ANY_REF)) {
+    struct typ *real_b0 = typ_generic_functor(real_b);
+    if (typ_definition_const(real_b0)->which == DEFINTF && typ_is_tentative(real_b0)) {
+      typ_link_tentative(typ_generic_functor(a), real_b0);
+    }
   }
 
   if (typ_equal(a, real_b)) {
@@ -619,6 +619,18 @@ static error unify_reference(struct module *mod, const struct node *for_error,
     THROW(e);
   }
 
+  struct typ *a0 = typ_generic_functor(a);
+  struct typ *b0 = typ_generic_functor(b);
+
+  const bool a_ref_compatible = a0 != NULL && typ_equal(a0, TBI__REF_COMPATIBLE);
+  const bool b_ref_compatible = b0 != NULL && typ_equal(b0, TBI__REF_COMPATIBLE);
+  if (a_ref_compatible || b_ref_compatible) {
+    e = unify_with_reference_compatible(mod, for_error, a, b,
+                                        a_ref_compatible, b_ref_compatible);
+    EXCEPT(e);
+    return 0;
+  }
+
   if (typ_equal(a, TBI_ANY_ANY_REF)) {
     typ_link_tentative(b, a);
     return 0;
@@ -626,18 +638,6 @@ static error unify_reference(struct module *mod, const struct node *for_error,
 
   if (typ_equal(b, TBI_ANY_ANY_REF)) {
     typ_link_tentative(a, b);
-    return 0;
-  }
-
-  struct typ *a0 = typ_generic_functor(a);
-  struct typ *b0 = typ_generic_functor(b);
-
-  const bool a_ref_compatible = typ_equal(a0, TBI__REF_COMPATIBLE);
-  const bool b_ref_compatible = typ_equal(b0, TBI__REF_COMPATIBLE);
-  if (a_ref_compatible || b_ref_compatible) {
-    e = unify_with_reference_compatible(mod, for_error, a, b,
-                                        a_ref_compatible, b_ref_compatible);
-    EXCEPT(e);
     return 0;
   }
 
@@ -802,7 +802,7 @@ error unify(struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  e = unify_generics(mod, for_error, a, b);
+  e = unify_generics(mod, for_error, a, b, a_tentative, b_tentative);
   EXCEPT(e);
 
   return 0;

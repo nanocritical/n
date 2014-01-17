@@ -127,9 +127,8 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_AS] = "as__",
   [ID_WHICH_TYPE] = "which_type__",
   [ID_AS_TYPE] = "as_type__",
+  [ID_HAS_NEXT] = "has_next",
   [ID_NEXT] = "next",
-  [ID_GET] = "get",
-  [ID_IS_VALID] = "is_valid",
   [ID_CAST] = "cast",
   [ID_WILDCARD_REF_ARG] = "__wildcard_ref_arg__",
   [ID_LIKELY] = "likely",
@@ -187,6 +186,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NREF] = "nullable_ref",
   [ID_TBI_NMREF] = "nullable_mutable_ref",
   [ID_TBI_NMMREF] = "nullable_mercurial_ref",
+  [ID_TBI_VARARG] = "vararg",
   [ID_TBI_ARITHMETIC] = "`arithmetic",
   [ID_TBI_BITWISE] = "`bitwise",
   [ID_TBI_INTEGER] = "`integer",
@@ -477,6 +477,15 @@ bool node_is_export(const struct node *node) {
   }
 }
 
+bool node_is_extern(const struct node *node) {
+  const struct toplevel *toplevel = node_toplevel_const(node);
+  if (toplevel == NULL) {
+    return FALSE;
+  } else {
+    return toplevel->is_extern;
+  }
+}
+
 bool node_is_def(const struct node *node) {
   switch (node->which) {
   case MODULE:
@@ -652,6 +661,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_NREF = gctx->builtin_typs_by_name[ID_TBI_NREF]; // ?@
   TBI_NMREF = gctx->builtin_typs_by_name[ID_TBI_NMREF]; // ?@!
   TBI_NMMREF = gctx->builtin_typs_by_name[ID_TBI_NMMREF]; // ?@#
+  TBI_VARARG = gctx->builtin_typs_by_name[ID_TBI_VARARG]; // ?@#
   TBI_ARITHMETIC = gctx->builtin_typs_by_name[ID_TBI_ARITHMETIC];
   TBI_BITWISE = gctx->builtin_typs_by_name[ID_TBI_BITWISE];
   TBI_INTEGER = gctx->builtin_typs_by_name[ID_TBI_INTEGER];
@@ -999,7 +1009,7 @@ size_t node_fun_all_args_count(const struct node *def) {
   return node_subs_count(node_subs_at_const(def, IDX_FUNARGS)) - 1;
 }
 
-size_t node_fun_min_explicit_args_count(const struct node *def) {
+size_t node_fun_min_args_count(const struct node *def) {
   switch(def->which) {
   case DEFFUN:
     return def->as.DEFFUN.min_args;
@@ -1011,12 +1021,24 @@ size_t node_fun_min_explicit_args_count(const struct node *def) {
   }
 }
 
-size_t node_fun_max_explicit_args_count(const struct node *def) {
+size_t node_fun_max_args_count(const struct node *def) {
   switch(def->which) {
   case DEFFUN:
     return def->as.DEFFUN.max_args;
   case DEFMETHOD:
     return def->as.DEFMETHOD.max_args;
+  default:
+    assert(FALSE);
+    return -1;
+  }
+}
+
+ssize_t node_fun_first_vararg(const struct node *def) {
+  switch(def->which) {
+  case DEFFUN:
+    return def->as.DEFFUN.first_vararg;
+  case DEFMETHOD:
+    return def->as.DEFMETHOD.first_vararg;
   default:
     assert(FALSE);
     return -1;
@@ -1416,7 +1438,7 @@ static error p_for(struct node *node, struct module *mod) {
   struct node *vmi = mk_node(mod, vm, IDENT);
   vmi->as.IDENT.name = node_ident(it_var);
   struct node *vmm = mk_node(mod, vm, IDENT);
-  vmm->as.IDENT.name = ID_IS_VALID;
+  vmm->as.IDENT.name = ID_HAS_NEXT;
 
   struct node *loop_block = mk_node(mod, loop, BLOCK);
   struct node *let_var = mk_node(mod, loop_block, LET);
@@ -1424,25 +1446,17 @@ static error p_for(struct node *node, struct module *mod) {
   node_subs_append(var, node->as.FOR.pattern);
   struct node *g = mk_node(mod, var, CALL);
   struct node *gm = mk_node(mod, g, BIN);
-  gm->as.BIN.operator = TDOT;
+  gm->as.BIN.operator = TBANG;
   struct node *gmi = mk_node(mod, gm, IDENT);
   gmi->as.IDENT.name = node_ident(it_var);
   struct node *gmm = mk_node(mod, gm, IDENT);
-  gmm->as.IDENT.name = ID_GET;
+  gmm->as.IDENT.name = ID_NEXT;
 
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
   node->as.FOR.block = mk_node(mod, let_var, BLOCK);
   e = p_block(node->as.FOR.block, mod);
   EXCEPT(e);
-
-  struct node *n = mk_node(mod, loop_block, CALL);
-  struct node *nm = mk_node(mod, n, BIN);
-  nm->as.BIN.operator = TBANG;
-  struct node *nmi = mk_node(mod, nm, IDENT);
-  nmi->as.IDENT.name = node_ident(it_var);
-  struct node *nmm = mk_node(mod, nm, IDENT);
-  nmm->as.IDENT.name = ID_NEXT;
 
   return 0;
 }
@@ -2037,9 +2051,10 @@ again:
   goto again;
 }
 
-static error p_defarg(struct node *node, struct module *mod, bool is_optional) {
+static error p_defarg(struct node *node, struct module *mod, enum token_type tokt) {
   node_set_which(node, DEFARG);
-  node->as.DEFARG.is_optional = is_optional;
+  node->as.DEFARG.is_optional = tokt == TQMARK;
+  node->as.DEFARG.is_vararg = tokt == TDOTDOTDOT;
 
   error e = p_expr(node_new_subnode(mod, node), mod, TCOLON);
   EXCEPT(e);
@@ -2135,8 +2150,8 @@ static error p_defmethod_access(struct node *node, struct module *mod) {
   return 0;
 }
 
-static void count_explicit_args(struct node *def) {
-  ssize_t minus = 0, *min, *max, *first_va;
+static void count_args(struct node *def) {
+  ssize_t *min, *max, *first_va;
   switch(def->which) {
   case DEFFUN:
     min = &def->as.DEFFUN.min_args;
@@ -2147,19 +2162,19 @@ static void count_explicit_args(struct node *def) {
     min = &def->as.DEFMETHOD.min_args;
     max = &def->as.DEFMETHOD.max_args;
     first_va = &def->as.DEFMETHOD.first_vararg;
-    minus = 1;
     break;
   default:
     assert(FALSE);
     return;
   }
 
-  *max = node_fun_all_args_count(def) - minus;
+  const struct node *funargs = node_subs_at_const(def, IDX_FUNARGS);
+  *max = node_fun_all_args_count(def);
   *min = *max;
 
   *first_va = -1;
   bool last = TRUE;
-  REVERSE_FOREACH_SUB_CONST(arg, node_subs_at_const(def, IDX_FUNARGS)) {
+  REVERSE_FOREACH_SUB_CONST(arg, funargs) {
     if (last) {
       last = FALSE;
       continue;
@@ -2169,10 +2184,9 @@ static void count_explicit_args(struct node *def) {
     if (arg->as.DEFARG.is_optional) {
       *min -= 1;
     } else if (arg->as.DEFARG.is_vararg) {
-      if (*first_va == -1) {
-        *first_va = *min;
-      }
       *min -= 1;
+      *first_va = *min;
+      *max = SSIZE_MAX;
     } else {
       break;
     }
@@ -2215,9 +2229,14 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     }
   }
 
+  bool must_be_last = FALSE;
 again:
-  e = scan_oneof(&tok, mod, TASSIGN, TIDENT, TQMARK, 0);
+  e = scan_oneof(&tok, mod, TASSIGN, TIDENT, TQMARK, TDOTDOTDOT, 0);
   EXCEPT(e);
+
+  if (must_be_last && tok.t != TASSIGN) {
+    THROW_SYNTAX(mod, &tok, "vararg must be last");
+  }
 
   switch (tok.t) {
   case TASSIGN:
@@ -2226,11 +2245,13 @@ again:
     back(mod, &tok);
     // Fallthrough
   case TQMARK:
+  case TDOTDOTDOT:
     {
       struct node *arg = node_new_subnode(mod, funargs);
-      e = p_defarg(arg, mod, tok.t == TQMARK);
+      e = p_defarg(arg, mod, tok.t);
       EXCEPT(e);
     }
+    must_be_last = tok.t == TDOTDOTDOT;
     goto again;
   default:
     assert(FALSE);
@@ -2240,7 +2261,7 @@ retval:
   e = p_defret(node_new_subnode(mod, funargs), mod);
   EXCEPT(e);
 
-  count_explicit_args(node);
+  count_args(node);
 
   e = scan_oneof(&tok, mod, TEOL, TSOB, TEOB, 0);
   EXCEPT(e);
@@ -3186,12 +3207,14 @@ except:
 }
 
 error mk_except_call_args_count(const struct module *mod, const struct node *node,
-                                const struct node *definition, size_t extra, size_t given) {
+                                const struct node *definition, bool implicit_self,
+                                size_t given) {
+  const size_t minus = implicit_self ? 1 : 0;
   error e = mk_except_type(mod, node,
                            "invalid number of arguments:"
                            " between %zu and %zu expected, but %zu given",
-                           node_fun_min_explicit_args_count(definition) + extra,
-                           node_fun_max_explicit_args_count(definition) + extra,
+                           node_fun_min_args_count(definition) - minus,
+                           node_fun_max_args_count(definition) - minus,
                            given);
   THROW(e);
 }

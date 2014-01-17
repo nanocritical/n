@@ -1,6 +1,26 @@
-#ifdef NLANG_DEFINE_FUNCTIONS
-
 #define NB(n) nlang_builtins_##n
+
+#ifdef NLANG_DEFINE_TYPES
+#include <stdarg.h>
+
+struct NB(valist) {
+  va_list ap;
+};
+
+#define NLANG_BUILTINS_VARARG_START(va) \
+  va_start((va).ap.ap, _Nvararg_count); \
+  (va).left = _Nvararg_count
+
+#define NLANG_BUILTINS_VARARG_END(va) \
+  va_end((va).ap.ap)
+
+#define NLANG_BUILTINS_VARARG_NEXT(t, va) \
+  ({ nlang_builtins_assert((va).left > 0); \
+   (va).left -= 1; \
+   va_arg((va).ap.ap, t); })
+#endif
+
+#ifdef NLANG_DEFINE_FUNCTIONS
 
 static inline NB(u8) NB(i8_reinterpret_unsigned)(const NB(i8) *self) {
   return (NB(u8)) *self;
@@ -387,6 +407,6 @@ static inline NB(u8) *NB(static_array_at_byte)(NB(u8) *p, NB(size) off) {
   return p + off;
 }
 
-#undef NB
-
 #endif
+
+#undef NB

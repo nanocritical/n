@@ -890,9 +890,6 @@ static error rewrite_unary_call(struct module *mod, struct node *node, struct ty
   error e = catchup(mod, except, node, parent_scope, CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
-  struct node *dfun = typ_definition(node_subs_first(node)->typ);
-  assert(node_fun_max_explicit_args_count(dfun) == node_subs_count(node)-1 - ((dfun->which==DEFMETHOD)?1:0));
-
   return 0;
 }
 
@@ -920,8 +917,9 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   }
 
   if (typ_is_function(field->typ) && mark != TBI__CALL_FUNCTION_SLOT) {
-    if (node_fun_min_explicit_args_count(field) != 0) {
-      e = mk_except_call_args_count(mod, node, field, 0, 0);
+    const bool is_method = typ_definition_const(field->typ)->which == DEFMETHOD;
+    if (node_fun_min_args_count(field) != (is_method ? 1 : 0)) {
+      e = mk_except_call_args_count(mod, node, field, is_method, 0);
       THROW(e);
     }
 
@@ -1214,9 +1212,22 @@ static error self_ref_if_value(struct node **self,
 
 static void fill_in_optional_args(struct module *mod, struct node *node,
                                   struct node *dfun, size_t dmin, size_t dmax) {
-  const size_t self = (dfun->which == DEFMETHOD) ? 1 : 0;
-  struct node *arg = node_subs_at(node, dmin + self);
-  for (size_t n = dmin + self; n <= dmax + self; ++n) {
+  size_t first_vararg;
+  switch (dfun->which) {
+  case DEFFUN:
+    first_vararg = dfun->as.DEFFUN.first_vararg;
+    break;
+  case DEFMETHOD:
+    first_vararg = dfun->as.DEFMETHOD.first_vararg;
+    break;
+  default:
+    assert(FALSE);
+    break;
+  }
+
+  struct node *arg = node_subs_at(node, dmin);
+  size_t n;
+  for (n = dmin; n <= dmax && n < first_vararg; ++n) {
     if (arg == NULL) {
       struct node *nul = mk_node(mod, node, NUL);
       error e = catchup(mod, NULL, nul, &node->scope, CATCHUP_BELOW_CURRENT);
@@ -1237,15 +1248,15 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
   }
 
   struct node *dfun = typ_definition(fun->typ);
-  const size_t dmin = node_fun_min_explicit_args_count(dfun);
-  const size_t dmax = node_fun_max_explicit_args_count(dfun);
+  const size_t dmin = node_fun_min_args_count(dfun);
+  const size_t dmax = node_fun_max_args_count(dfun);
 
   const size_t args = node_subs_count(node) - 1;
 
   switch (dfun->which) {
   case DEFFUN:
     if (args < dmin || args > dmax) {
-      error e = mk_except_call_args_count(mod, node, dfun, 0, args);
+      error e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
       THROW(e);
     }
     break;
@@ -1253,14 +1264,14 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
     if (fun->which == BIN) {
       if ((node_subs_first(fun)->flags & NODE_IS_TYPE)) {
         // Form (type.method self ...).
-        if (args < dmin+1 || args > dmax+1) {
-          error e = mk_except_call_args_count(mod, node, dfun, 1, args);
+        if (args < dmin || args > dmax) {
+          error e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
           THROW(e);
         }
       } else {
         // Form (self.method ...); rewrite as (type.method self ...).
-        if (args < dmin || args > dmax) {
-          error e = mk_except_call_args_count(mod, node, dfun, 0, args);
+        if (args+1 < dmin || args+1 > dmax) {
+          error e = mk_except_call_args_count(mod, node, dfun, TRUE, args);
           THROW(e);
         }
 
@@ -1287,8 +1298,8 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
       assert(fun->which == CALL || fun->which == DIRECTDEF);
       // Generic method instantiation: (type.method u32 i32) self
       // or DIRECTDEF.
-      if (args < dmin+1 || args > dmax+1) {
-        error e = mk_except_call_args_count(mod, node, dfun, 1, args);
+      if (args < dmin || args > dmax) {
+        error e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
         THROW(e);
       }
     } else {
@@ -1400,10 +1411,10 @@ static error check_consistent_either_types_or_values(struct module *mod,
 static error type_inference_explicit_unary_call(struct module *mod, struct node *node, struct node *dfun) {
   const size_t subs_count = node_subs_count(node);
   if (dfun->which == DEFFUN && subs_count != 1) {
-    error e = mk_except_call_args_count(mod, node, dfun, 0, subs_count - 1);
+    error e = mk_except_call_args_count(mod, node, dfun, FALSE, subs_count - 1);
     THROW(e);
   } else if (dfun->which == DEFMETHOD && subs_count != 2) {
-    error e = mk_except_call_args_count(mod, node, dfun, 1, subs_count - 1);
+    error e = mk_except_call_args_count(mod, node, dfun, FALSE, subs_count - 1);
     THROW(e);
   }
 
@@ -1453,17 +1464,33 @@ static error type_inference_call(struct module *mod, struct node *node) {
     return 0;
   }
 
-  if (node_fun_max_explicit_args_count(dfun) == 0) {
+  if (node_fun_max_args_count(dfun) == 0) {
     return type_inference_explicit_unary_call(mod, node, dfun);
   }
 
+  const ssize_t first_vararg = node_fun_first_vararg(dfun);
   size_t n = 0;
   FOREACH_SUB_EVERY(arg, node, 1, 1) {
+    if (n == first_vararg) {
+      break;
+    }
     e = unify(mod, arg, arg->typ,
               try_wrap_ref_compatible(mod, node, 1,
                                       typ_function_arg(tfun, n)));
     EXCEPT(e);
     n += 1;
+  }
+
+  if (n == first_vararg) {
+    struct typ *target = try_wrap_ref_compatible(
+      mod, node, 1,
+      typ_generic_arg(typ_function_arg(tfun, n), 0));
+
+    FOREACH_SUB_EVERY(arg, node, 1 + n, 1) {
+      e = unify(mod, arg, arg->typ, target);
+      EXCEPT(e);
+      n += 1;
+    }
   }
 
   set_typ(&node->typ, typ_function_return(tfun));
@@ -1688,7 +1715,17 @@ static error type_inference_try(struct module *mod, struct node *node) {
   return 0;
 }
 
-static void type_inference_ident_unknown(struct module *mod, struct node *node) {
+static bool in_a_body_pass(struct module *mod) {
+  return mod->stage->state->passing >= PASSZERO_COUNT + PASSFWD_COUNT;
+}
+
+static error type_inference_ident_unknown(struct module *mod, struct node *node) {
+  if (!in_a_body_pass(mod)) {
+    error e = mk_except(mod, node, "unknown ident '%s'",
+                        idents_value(mod->gctx, node_ident(node)));
+    EXCEPT(e);
+  }
+
   // Detached node.
   struct node *unk = mempool_calloc(mod, 1, sizeof(struct node));
   node_set_which(unk, DEFUNKNOWNIDENT);
@@ -1707,6 +1744,7 @@ static void type_inference_ident_unknown(struct module *mod, struct node *node) 
   node->as.IDENT.non_local_scope = &unk->scope;
 
   set_typ(&node->typ, typ_create_tentative(unk->typ));
+  return 0;
 }
 
 static error type_inference_ident(struct module *mod, struct node *node) {
@@ -1718,7 +1756,8 @@ static error type_inference_ident(struct module *mod, struct node *node) {
   struct node *def = NULL;
   error e = scope_lookup(&def, mod, &node->scope, node, TRUE);
   if (e == EINVAL) {
-    type_inference_ident_unknown(mod, node);
+    e = type_inference_ident_unknown(mod, node);
+    EXCEPT(e);
     return 0;
   }
 
@@ -1754,8 +1793,8 @@ static error type_inference_ident(struct module *mod, struct node *node) {
 
   if (typ_is_function(def->typ)
       && node->typ != TBI__CALL_FUNCTION_SLOT) {
-    if (node_fun_min_explicit_args_count(typ_definition(def->typ)) != 0) {
-      e = mk_except_call_args_count(mod, node, typ_definition(def->typ), 0, 0);
+    if (node_fun_min_args_count(typ_definition(def->typ)) != 0) {
+      e = mk_except_call_args_count(mod, node, typ_definition(def->typ), FALSE, 0);
       THROW(e);
     }
     e = rewrite_unary_call(mod, node, def->typ);
@@ -1980,6 +2019,18 @@ error step_type_inference(struct module *mod, struct node *node,
     break;
   case DEFARG:
     set_typ(&node->typ, node_subs_at(node, 1)->typ);
+    if (node->as.DEFARG.is_optional) {
+      e = typ_check_isa(mod, node, node->typ, TBI_ANY_NULLABLE_REF);
+      EXCEPT(e);
+    } else if (node->as.DEFARG.is_vararg) {
+      if (!typ_has_same_generic_functor(mod, node->typ, TBI_VARARG)) {
+        e = mk_except_type(mod, node,
+                           "vararg argument must have type"
+                           " (vararg `any_any_ref), not '%s'",
+                           typ_pretty_name(mod, node->typ));
+        THROW(e);
+      }
+    }
     break;
   case DEFGENARG:
   case SETGENARG:
@@ -2883,6 +2934,9 @@ static error step_dyn_inference(struct module *mod, struct node *node,
       e = try_insert_dyn(mod, node, target, src);
       EXCEPT(e);
       target = node_next(target);
+      if (target == NULL) {
+        break;
+      }
     }
     return 0;
   case INIT:

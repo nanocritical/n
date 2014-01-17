@@ -720,9 +720,8 @@ enum predefined_idents {
   ID_AS,
   ID_WHICH_TYPE,
   ID_AS_TYPE,
+  ID_HAS_NEXT,
   ID_NEXT,
-  ID_GET,
-  ID_IS_VALID,
   ID_CAST,
   ID_WILDCARD_REF_ARG,
   ID_LIKELY,
@@ -782,6 +781,7 @@ enum predefined_idents {
   ID_TBI_NREF,
   ID_TBI_NMREF,
   ID_TBI_NMMREF,
+  ID_TBI_VARARG,
   ID_TBI_ARITHMETIC,
   ID_TBI_BITWISE,
   ID_TBI_INTEGER,
@@ -1098,6 +1098,7 @@ static inline const struct node *node_parent_const(const struct node *node) {
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);
 bool node_is_export(const struct node *node);
+bool node_is_extern(const struct node *node);
 bool node_is_def(const struct node *node);
 bool node_is_statement(const struct node *node);
 bool node_is_rvalue(const struct node *node);
@@ -1119,8 +1120,9 @@ struct node *node_new_subnode(struct module *mod, struct node *node);
 bool node_has_tail_block(const struct node *node);
 bool node_is_fun(const struct node *node);
 size_t node_fun_all_args_count(const struct node *def);
-size_t node_fun_min_explicit_args_count(const struct node *def);
-size_t node_fun_max_explicit_args_count(const struct node *def);
+size_t node_fun_min_args_count(const struct node *def);
+size_t node_fun_max_args_count(const struct node *def);
+ssize_t node_fun_first_vararg(const struct node *def);
 struct node *node_fun_retval(struct node *def);
 const struct node *node_fun_retval_const(const struct node *def);
 struct node *node_for_block(struct node *node);
@@ -1222,7 +1224,7 @@ error mk_except(const struct module *mod, const struct node *node, const char *f
 error mk_except_type(const struct module *mod, const struct node *node, const char *fmt, ...)
   __attribute__((__format__(__printf__, 3, 4)));
 error mk_except_call_args_count(const struct module *mod, const struct node *node,
-                                const struct node *definition, size_t extra, size_t given);
+                                const struct node *definition, bool implicit_self, size_t given);
 
 #define GOTO_EXCEPT_TYPE(mod, node, fmt, ...) do { \
   e = mk_except_type(mod, node, fmt, ##__VA_ARGS__); \

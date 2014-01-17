@@ -133,6 +133,7 @@ extern struct typ *TBI_MMREF; // @#
 extern struct typ *TBI_NREF; // ?@
 extern struct typ *TBI_NMREF; // ?@!
 extern struct typ *TBI_NMMREF; // ?@#
+extern struct typ *TBI_VARARG;
 extern struct typ *TBI_ARITHMETIC;
 extern struct typ *TBI_BITWISE;
 extern struct typ *TBI_INTEGER;

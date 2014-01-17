@@ -2,13 +2,63 @@ from nlang import *
 fun opts a:?@i32 = i32
   return optional a 1
 
+fun chained v:@!(vararg @i32) = i32
+  and s = 0  such
+    for i in !v
+      s += .i
+  return s
+
+fun var a:i32 b:?@i32 v:vararg @i32 = i32
+  and s = chained @!v
+  return a + (optional b 0) + s
+
+fun onlyvar v:vararg @i32 = i32
+  and s = 0  such
+    for i in v
+      s += .i
+  return s
+
 export fun main = i32
-  and _Ngensym0:nlang.builtins.i32  such
+  and _Ngensym2:nlang.builtins.i32  such
     if opts block 
-  _Ngensym0 = 1
-  @_Ngensym0;; != 1
+  _Ngensym2 = 1
+  @_Ngensym2;; != 1
       return 1
-  and _Ngensym1:nlang.builtins.i32  such
+  and _Ngensym3:nlang.builtins.i32  such
+    if opts block 
+  _Ngensym3 = 1
+  @_Ngensym3;; != opts null
+      return 1
+  and _Ngensym4:nlang.builtins.i32
+  and _Ngensym5:nlang.builtins.i32
+  and _Ngensym6:nlang.builtins.i32
+  and _Ngensym7:nlang.builtins.i32  such
+    assert (10 == var 0 block 
+  _Ngensym4 = 1
+  @_Ngensym4;; block 
+  _Ngensym5 = 2
+  @_Ngensym5;; block 
+  _Ngensym6 = 3
+  @_Ngensym6;; block 
+  _Ngensym7 = 4
+  @_Ngensym7;;)
+  and _Ngensym8:nlang.builtins.i32
+  and _Ngensym9:nlang.builtins.i32
+  and _Ngensyma:nlang.builtins.i32
+  and _Ngensymb:nlang.builtins.i32
+  and _Ngensymc:nlang.builtins.i32  such
+    assert (10 == onlyvar block 
+  _Ngensym8 = 0
+  @_Ngensym8;; block 
+  _Ngensym9 = 1
+  @_Ngensym9;; block 
+  _Ngensyma = 2
+  @_Ngensyma;; block 
+  _Ngensymb = 3
+  @_Ngensymb;; block 
+  _Ngensymc = 4
+  @_Ngensymc;;)
+  and _Ngensymd:nlang.builtins.i32  such
     return opts block 
-  _Ngensym1 = 0
-  @_Ngensym1;;
+  _Ngensymd = 0
+  @_Ngensymd;;
