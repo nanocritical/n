@@ -44,28 +44,28 @@ export intf `string_buffer =
   method@# append other:@`const_string = void
   method@# copy at:size other:@`const_string off:size count:size = void
 
-export inline struct static_string =
+export opaque inline struct static_string =
   export isa `trivial_copy `ordered_by_compare `return_by_copy `show `static_string_compatible `const_string
-  _bytes:(slice u8)
+  bytes:(slice u8)
 
 export inline static_string method@# ctor bytes:@u8 count:size = void
   let raw = (nlang.unsafe.cast @u8 @#u8) bytes
-  self._bytes#unsafe_wrap raw count
+  self.bytes#unsafe_wrap raw count
 
 export inline static_string fun from_static_string s:static_string = this
-  return { _bytes=s._bytes }
+  return { bytes=s.bytes }
 
 export inline static_string method@ `const_string.count = size
-  return self._bytes.count
+  return self.bytes.count
 
 export inline static_string method@ `const_string.all = index_range
-  return self._bytes.all
+  return self.bytes.all
 
 export inline static_string method@ `const_string.get_char n:size = char
-  return char.from_ascii (self._bytes.at n).
+  return char.from_ascii (self.bytes.at n).
 
 export inline static_string method@ `const_string.bytes_utf8 = @(slice u8)
-  return @self._bytes
+  return @self.bytes
 
 export static_string method@ `show.show buf:@#`string_buffer = void
   buf#reserve buf.count + self.count

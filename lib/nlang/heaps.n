@@ -3,22 +3,22 @@ from nlang import *
 export intf `heap_element =
   export isa `copyable `ordered
 
-export inline struct heap t:`heap_element =
+export opaque inline struct heap t:`heap_element =
   export isa `trivial_ctor `copyable
-  _h:(vector t)
-  _count:size
+  h:(vector t)
+  c:size
 
 export inline heap method@# reserve count:size = void
-  self._h#reserve count
+  self.h#reserve count
 
 export inline heap method@ count = size
-  return self._count
+  return self.c
 
 export inline heap method@# push x:t = void
-  self!_count += 1
+  self!c += 1
 
 export inline heap method@# pop = t
-  self!_count -= 1
+  self!c -= 1
 
 export inline heap method@ first = t
 export inline heap method@ last = t

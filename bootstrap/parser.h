@@ -119,10 +119,11 @@ const char *builtingen_abspath[BG__NUM];
 enum toplevel_flags {
   TOP_IS_EXPORT = 0x1,
   TOP_IS_EXTERN = 0x2,
-  TOP_IS_INLINE = 0x4,
-  TOP_IS_PROTOTYPE = 0x8,
-  TOP_IS_SHADOWED = 0x10,
-  TOP_IS_NOT_DYN = 0x20,
+  TOP_IS_OPAQUE = 0x4,
+  TOP_IS_INLINE = 0x8,
+  TOP_IS_PROTOTYPE = 0x10,
+  TOP_IS_SHADOWED = 0x20,
+  TOP_IS_NOT_DYN = 0x40,
 };
 
 struct toplevel {

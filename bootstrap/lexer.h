@@ -14,6 +14,7 @@ enum token_type {
   Tenum,
   Tunion,
   Textern,
+  Topaque,
   Tfun,
   Tmethod,
   Tintf,

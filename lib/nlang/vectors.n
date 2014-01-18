@@ -2,10 +2,10 @@ from nlang import *
 import nlang.unsafe
 from nlang.sysheap import heap sysheap
 
-export inline struct vector t:`copyable =
+export opaque inline struct vector t:`copyable =
   export isa `trivial_ctor (`array_ctor t) `copyable
-  _p:(slice t)
-  _count:size
+  p:(slice t)
+  c:size
 
 export vector method@# `array_ctor.ctorv c:@(static_array t) = void
   self#reserve c.count
@@ -13,60 +13,60 @@ export vector method@# `array_ctor.ctorv c:@(static_array t) = void
     self#push (c.at i).
 
 export vector method@ count = size
-  return self._count
+  return self.c
 
 export vector method@$ at n:size = @$t
-  assert <- n <= self._count
-  return self$_p$at n
+  assert <- n <= self.c
+  return self$p$at n
 
 export vector method@$ first = @$t
   return self$at 0
 
 export vector method@$ last = @$t
-  return self$at self._count-1
+  return self$at self.c-1
 
 export vector method@ is_empty = bool
-  return self._count == 0
+  return self.c == 0
 
 export vector method@ capacity = size
-  return self._p.count
+  return self.p.count
 
 export vector method@# reserve n:size = void
   if n > self.capacity
-    (heap.slice_realloc t) @!sysheap @#self#_p n
+    (heap.slice_realloc t) @!sysheap @#self#p n
 
 export vector method@# resize n:size = void
-  (heap.slice_realloc t) @!sysheap @#self#_p n
-  self!_count = n
+  (heap.slice_realloc t) @!sysheap @#self#p n
+  self!c = n
 
 export vector method@# push x:t = void
-  self#reserve self._count+1
-  let n = self._count
-  self!_count += 1
+  self#reserve self.c+1
+  let n = self.c
+  self!c += 1
   let d = self!at n
   d! = x
 
 export vector method@# pop = t
-  assert <- self._count != 0
+  assert <- self.c != 0
   let d = self.last
-  self!_count -= 1
+  self!c -= 1
   return d.
 
 export vector method@# clear = void
-  (heap.slice_free t) @!sysheap @#self#_p
+  (heap.slice_free t) @!sysheap @#self#p
 
 export vector method@ all = index_range
   return range 0 self.count
 
 export vector method@# `copyable.copy_ctor other:@this = void
-  (heap.slice_realloc t) @!sysheap @#self#_p other._p.count
-  self._p#copy 0 @other._p 0 other._p.count
-  self!_count = other._count
+  (heap.slice_realloc t) @!sysheap @#self#p other.p.count
+  self.p#copy 0 @other.p 0 other.p.count
+  self!c = other.c
 
 export vector method@# append_slice other:@(slice t) = void
-  (heap.slice_realloc t) @!sysheap @#self#_p other.count
-  self._p#copy 0 other 0 other.count
-  self!_count = other.count
+  (heap.slice_realloc t) @!sysheap @#self#p other.count
+  self.p#copy 0 other 0 other.count
+  self!c = other.count
 
 export vector method@$ storage = @$(slice t) -- ::unique
-  return self._p$sub self.all
+  return self.p$sub self.all

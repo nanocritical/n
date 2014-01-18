@@ -3,7 +3,7 @@ let b:current_syntax = "nlang"
 
 syn keyword nInclude import from
 syn keyword nDecl union fun method intf delegate struct enum
-syn keyword nStorageClass inline extern
+syn keyword nStorageClass inline extern opaque
 syn keyword nExport export
 syn keyword nSemantic unique shared pshared
 syn keyword nSemantic capturedby capturedbyret owned ownedby protected protect protecting prop claim

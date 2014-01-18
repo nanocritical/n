@@ -893,30 +893,30 @@ export intf `array_ctor t:`copyable =
 
 extern inline fun static_array_at_byte dp:@!u8 off:size = @!u8
 
-export inline struct static_array t:`copyable =
+export opaque inline struct static_array t:`copyable =
   export isa (`trivial_array_ctor t) `trivial_copy `return_by_copy
-  _data:?@!t
-  _count:size
+  d:?@!t
+  c:size
 
 export inline static_array method@ count = size
-  return self._count
+  return self.c
 
 export inline static_array method@ bytecount = size
-  return self._count * (sizeof t)
+  return self.c * (sizeof t)
 
 export inline static_array method@ all = index_range
-  return range 0 self._count
+  return range 0 self.c
 
 export inline static_array method@$ unsafe_rawdata = @$u8
-  assert <- self._count != 0
-  return (cast ?@$t @$u8) self$_data
+  assert <- self.c != 0
+  return (cast ?@$t @$u8) self$d
 
 export inline static_array method@$ unsafe_data = @$t
-  assert <- self._count != 0
-  return self$_data
+  assert <- self.c != 0
+  return self$d
 
 export inline static_array method@$ at n:size = @$t
-  assert <- n < self._count
+  assert <- n < self.c
   let off = n * (sizeof t)
   let p = static_array_at_byte ((cast @$this @!this) self)!unsafe_rawdata off
   return (cast @!u8 @$t) p

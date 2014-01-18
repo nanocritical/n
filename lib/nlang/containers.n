@@ -11,27 +11,27 @@ export intf `iterator t:`copyable =
   method@ has_next = bool
   method@! next = t
 
-export inline struct index_range =
+export opaque inline struct index_range =
   export isa `trivial_copy `trivial_equality `return_by_copy
-  _b:size
-  _e:size
+  b:size
+  e:size
 
 export index_range method@! init beg:size end:size = void
   let e = end
   such
     if end < beg
       e = beg
-  self!_b = beg
-  self!_e = e
+  self!b = beg
+  self!e = e
 
 export index_range method@ begin = size
-  return self._b
+  return self.b
 
 export index_range method@ end = size
-  return self._e
+  return self.e
 
 export index_range method@ count = size
-  return self._e - self._b
+  return self.e - self.b
 
 export index_range method@ sub begin:size end:size = this
   let r:this

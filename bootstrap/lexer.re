@@ -100,6 +100,7 @@ normal:
   "enum" { R(Tenum); }
   "union" { R(Tunion); }
   "extern" { R(Textern); }
+  "opaque" { R(Topaque); }
   "fun" { R(Tfun); }
   "method" { R(Tmethod); }
   "intf" { R(Tintf); }

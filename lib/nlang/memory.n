@@ -12,34 +12,34 @@ export intf `allocator =
 extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
 extern inline fun slice_memcpy dst:@#u8 at:size src:@u8 off:size count:size = void
 
-export inline struct slice t:`any =
+export opaque inline struct slice t:`any =
   export isa `trivial_ctor `trivial_copy_but_owned
-  _data:?@#t
-  _count:size
+  d:?@#t
+  c:size
 
 export inline slice method@# unsafe_wrap data:@#t count:size = void
-  self!_data = data
-  self!_count = count
+  self!d = data
+  self!c = count
 
 export inline slice method@ count = size
-  return self._count
+  return self.c
 
 export inline slice method@ bytecount = size
-  return self._count * (sizeof t)
+  return self.c * (sizeof t)
 
 export inline slice method@ all = index_range
-  return range 0 self._count
+  return range 0 self.c
 
 export inline slice method@$ unsafe_rawdata = @$u8
-  assert <- self._count != 0
-  return (nlang.unsafe.cast ?@$t @$u8) self$_data
+  assert <- self.c != 0
+  return (nlang.unsafe.cast ?@$t @$u8) self$d
 
 export inline slice method@$ unsafe_data = @$t
-  assert <- self._count != 0
-  return (nlang.unsafe.cast ?@$t @$t) self$_data
+  assert <- self.c != 0
+  return (nlang.unsafe.cast ?@$t @$t) self$d
 
 export inline slice method@$ at n:size = @$t
-  assert <- n < self._count
+  assert <- n < self.c
   let off = n * (sizeof t)
   let p = slice_at_byte ((nlang.unsafe.cast @$this @#this) self)#unsafe_rawdata off
   return (nlang.unsafe.cast @#u8 @$t) p

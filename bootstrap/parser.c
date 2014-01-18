@@ -2356,6 +2356,9 @@ again:
   case Textern:
     toplevel.flags |= TOP_IS_EXTERN;
     goto again;
+  case Topaque:
+    toplevel.flags |= TOP_IS_OPAQUE;
+    goto again;
   case Tinline:
     toplevel.flags |= TOP_IS_INLINE;
     goto again;
@@ -2812,6 +2815,9 @@ bypass:
     goto again;
   case Textern:
     toplevel.flags |= TOP_IS_EXTERN;
+    goto again;
+  case Topaque:
+    toplevel.flags |= TOP_IS_OPAQUE;
     goto again;
   case Tinline:
     toplevel.flags |= TOP_IS_INLINE;
