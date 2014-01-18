@@ -435,13 +435,13 @@ static void print_example(FILE *out, const struct module *mod, int indent, const
 }
 
 static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
-  if (toplevel->is_export) {
+  if (toplevel->flags & TOP_IS_EXPORT) {
     fprintf(out, "export ");
   }
-  if (toplevel->is_extern) {
+  if (toplevel->flags & TOP_IS_EXTERN) {
     fprintf(out, "extern ");
   }
-  if (toplevel->is_inline) {
+  if (toplevel->flags & TOP_IS_INLINE) {
     fprintf(out, "inline ");
   }
 }
@@ -603,7 +603,7 @@ static void print_deffun(FILE *out, const struct module *mod, int indent, const 
   fprintf(out, " = ");
   print_expr(out, mod, retval, T__STATEMENT);
 
-  if (!node_toplevel_const(node)->is_prototype
+  if (!node_is_prototype(node)
       && node_toplevel_const(node)->builtingen == BG__NOT) {
     const struct node *block = node_subs_last_const(node);
     print_block(out, mod, 0, block);
@@ -765,7 +765,7 @@ static void print_import_path(FILE *out, const struct module *mod, const struct 
 
 static void print_import(FILE *out, const struct module *mod, int indent, const struct node *node) {
   const char *kind;
-  if (node->as.IMPORT.toplevel.is_export) {
+  if (node_is_export(node)) {
     kind = "export"; // export already printed by print_toplevel
   } else {
     kind = "import";

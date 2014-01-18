@@ -146,7 +146,7 @@ error scope_define_ident(const struct module *mod, struct scope *scope,
     if (toplevel != NULL) {
       // FIXME? Should it only be possible to shadow an imported name from
       // an from xxx import *
-      toplevel->is_shadowed = TRUE;
+      toplevel->flags |= TOP_IS_SHADOWED;
     }
     *existing = node;
   } else {

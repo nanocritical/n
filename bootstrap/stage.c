@@ -293,7 +293,7 @@ static error step_gather_dependencies_in_module(struct module *mod, struct node 
 
   assert(nmod->which == MODULE);
   const bool already = modules_set_set(&deps->added, nmod->as.MODULE.mod, TRUE);
-  if (already && !node_toplevel_const(node)->is_inline) {
+  if (already && !node_is_inline(node)) {
     return 0;
   }
 

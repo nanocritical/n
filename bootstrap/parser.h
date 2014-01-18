@@ -116,14 +116,18 @@ enum builtingen {
 
 const char *builtingen_abspath[BG__NUM];
 
+enum toplevel_flags {
+  TOP_IS_EXPORT = 0x1,
+  TOP_IS_EXTERN = 0x2,
+  TOP_IS_INLINE = 0x4,
+  TOP_IS_PROTOTYPE = 0x8,
+  TOP_IS_SHADOWED = 0x10,
+  TOP_IS_NOT_DYN = 0x20,
+};
+
 struct toplevel {
-  bool is_export;
-  bool is_extern;
-  bool is_inline;
   ident scope_name;
-  bool is_prototype;
-  bool is_shadowed;
-  bool is_not_dyn;
+  uint32_t flags;
   enum builtingen builtingen;
 
   size_t first_explicit_genarg;

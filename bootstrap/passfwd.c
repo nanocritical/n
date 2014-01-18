@@ -28,14 +28,14 @@ static error step_export_pre_post_invariant(struct module *mod, struct node *nod
                                             void *user, bool *stop) {
   const struct node *parent = node_parent_const(node);
   if (parent->which == DEFTYPE || parent->which == DEFINTF) {
-    node_toplevel(node)->is_export = node_toplevel_const(parent)->is_export;
+    node_toplevel(node)->flags |= node_toplevel_const(parent)->flags & TOP_IS_EXPORT;
     return 0;
   }
 
   if (parent->which == BLOCK) {
     const struct node *pparent = node_parent_const(parent);
     if (pparent->which == DEFFUN || pparent->which == DEFMETHOD) {
-      node_toplevel(node)->is_export = node_toplevel_const(pparent)->is_export;
+      node_toplevel(node)->flags |= node_toplevel_const(pparent)->flags & TOP_IS_EXPORT;
     }
   }
 
@@ -684,7 +684,7 @@ static void add_inferred_isa(struct module *mod, struct node *deft, const char *
   struct node *isalist = node_subs_at(deft, IDX_ISALIST);
   assert(isalist->which == ISALIST);
   struct node *isa = mk_node(mod, isalist, ISA);
-  isa->as.ISA.is_export = node_toplevel(deft)->is_inline;
+  isa->as.ISA.is_export = node_is_inline(deft);
   (void)mk_expr_abspath(mod, isa, path);
 
   error e = catchup(mod, NULL, isa, &isalist->scope, CATCHUP_BELOW_CURRENT);
@@ -714,7 +714,7 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
                                                void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node_toplevel_const(node)->is_extern) {
+  if (node_is_extern(node)) {
     return 0;
   }
   if (node->as.DEFTYPE.kind == DEFTYPE_ENUM
@@ -789,10 +789,9 @@ static void define_builtin(struct module *mod, struct node *deft,
   node_subs_replace(d, node_subs_first(d), full_name);
 
   struct toplevel *toplevel = node_toplevel(d);
-  toplevel->is_prototype = FALSE;
+  toplevel->flags &= ~TOP_IS_PROTOTYPE;
   toplevel->builtingen = bg;
-  toplevel->is_export = node_toplevel(deft)->is_export;
-  toplevel->is_inline = node_toplevel(deft)->is_inline;
+  toplevel->flags |= node_toplevel(deft)->flags & (TOP_IS_EXPORT | TOP_IS_INLINE);
 
   e = catchup(mod, NULL, d, &deft->scope, CATCHUP_BELOW_CURRENT);
   assert(!e);
@@ -813,10 +812,9 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   node_subs_replace(d, node_subs_first(d), full_name);
 
   struct toplevel *toplevel = node_toplevel(d);
-  toplevel->is_prototype = FALSE;
+  toplevel->flags &= ~TOP_IS_PROTOTYPE;
   toplevel->builtingen = bg;
-  toplevel->is_export = node_toplevel(deft)->is_export;
-  toplevel->is_inline = node_toplevel(deft)->is_inline;
+  toplevel->flags |= node_toplevel(deft)->flags & (TOP_IS_EXPORT | TOP_IS_INLINE);
 
   if (bg == BG_UNION_CTOR_WITH_CTOR
       || bg == BG_UNION_CTOR_WITH_MK
@@ -864,7 +862,7 @@ static error step_add_builtin_ctor(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node_toplevel_const(node)->is_extern) {
+  if (node_is_extern(node)) {
     return 0;
   }
 
@@ -877,7 +875,7 @@ static error step_add_builtin_dtor(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node_toplevel_const(node)->is_extern) {
+  if (node_is_extern(node)) {
     return 0;
   }
 
@@ -910,10 +908,9 @@ static error define_auto(struct module *mod, struct node *deft,
   intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
 
   struct toplevel *toplevel = node_toplevel(d);
-  toplevel->is_prototype = FALSE;
+  toplevel->flags &= ~TOP_IS_PROTOTYPE;
   toplevel->builtingen = bg;
-  toplevel->is_export = node_toplevel(ctor)->is_export;
-  toplevel->is_inline = node_toplevel(ctor)->is_inline;
+  toplevel->flags |= node_toplevel(ctor)->flags & (TOP_IS_EXPORT | TOP_IS_INLINE);
 
   struct node *ctor_funargs = node_subs_at(ctor, IDX_FUNARGS);
   struct node *d_funargs = node_subs_at(d, IDX_FUNARGS);
@@ -942,7 +939,7 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node_toplevel_const(node)->is_extern) {
+  if (node_is_extern(node)) {
     return 0;
   }
   if (node->as.DEFTYPE.kind == DEFTYPE_UNION
@@ -976,7 +973,7 @@ static error step_add_builtin_mkv_newv(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node_toplevel_const(node)->is_extern) {
+  if (node_is_extern(node)) {
     return 0;
   }
 
@@ -1020,7 +1017,7 @@ static error step_add_builtin_operators(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node_toplevel_const(node)->is_extern) {
+  if (node_is_extern(node)) {
     return 0;
   }
 
@@ -1077,7 +1074,7 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
     if (proto->which != DEFMETHOD && proto->which != DEFFUN) {
       continue;
     }
-    if (node_toplevel_const(proto)->is_not_dyn) {
+    if (node_toplevel_const(proto)->flags & TOP_IS_NOT_DYN) {
       continue;
     }
 
@@ -1097,9 +1094,8 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
 
     struct toplevel *toplevel = node_toplevel(d);
     toplevel->builtingen = BG_UNION_DISPATCH;
-    toplevel->is_prototype = FALSE;
-    toplevel->is_export = node_toplevel(deft)->is_export;
-    toplevel->is_inline = node_toplevel(deft)->is_inline;
+    toplevel->flags &= ~TOP_IS_PROTOTYPE;
+    toplevel->flags |= node_toplevel(deft)->flags & (TOP_IS_EXPORT | TOP_IS_INLINE);
 
     error e = catchup(mod, NULL, d, &deft->scope, CATCHUP_BELOW_CURRENT);
     assert(!e);

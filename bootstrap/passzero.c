@@ -104,8 +104,9 @@ static error step_detect_prototypes(struct module *mod, struct node *node,
   DSTEP(mod, node);
 
   struct toplevel *toplevel = node_toplevel(node);
-  toplevel->is_prototype = toplevel->builtingen == BG__NOT
-    && !node_has_tail_block(node);
+  if (toplevel->builtingen == BG__NOT && !node_has_tail_block(node)) {
+    toplevel->flags |= TOP_IS_PROTOTYPE;
+  }
 
   return 0;
 }

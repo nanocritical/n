@@ -56,8 +56,10 @@ static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
   switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
-    node_toplevel(node)->is_not_dyn = mod->state->fun_state->fun_uses_final
-      || node_subs_count_atleast(node_subs_at_const(node, IDX_GENARGS), 1);
+    if (mod->state->fun_state->fun_uses_final
+        || node_subs_count_atleast(node_subs_at_const(node, IDX_GENARGS), 1)) {
+      node_toplevel(node)->flags |= TOP_IS_NOT_DYN;
+    }
     break;
   case IDENT:
     if (node_ident(node) == ID_FINAL) {

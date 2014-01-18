@@ -757,14 +757,15 @@ static void print_toplevel(FILE *out, bool header, const struct node *node) {
   }
 
   const struct toplevel *toplevel = node_toplevel_const(node);
+  const uint32_t flags = toplevel->flags;
   if ((node->which == DEFFUN || node->which == DEFMETHOD)
-    && toplevel->is_extern && toplevel->is_inline) {
+    && (flags & TOP_IS_EXTERN) && (flags & TOP_IS_INLINE)) {
     fprintf(out, "static inline ");
-  } else if (toplevel->is_extern) {
+  } else if (flags & TOP_IS_EXTERN) {
     fprintf(out, "extern ");
-  } else if (toplevel->is_inline && node->which != LET) {
+  } else if ((flags & TOP_IS_INLINE) && node->which != LET) {
     fprintf(out, "static inline ");
-  } else if (node_is_at_top(node) && !toplevel->is_export) {
+  } else if (node_is_at_top(node) && !(flags & TOP_IS_EXPORT)) {
     fprintf(out, "static ");
   }
 }
@@ -2115,7 +2116,7 @@ static error print_deftype_dyn_field_eachisalist(struct module *mod, struct typ 
     if (f->which != DEFFUN && f->which != DEFMETHOD) {
       continue;
     }
-    if (node_toplevel_const(f)->is_not_dyn) {
+    if (node_toplevel_const(f)->flags & TOP_IS_NOT_DYN) {
       continue;
     }
     if (node_subs_count_atleast(node_subs_at_const(typ_definition_const(f->typ), IDX_GENARGS), 1)) {
@@ -2214,7 +2215,7 @@ static void print_deftype(FILE *out, bool header, enum forward fwd, const struct
   if (typ_is_pseudo_builtin(node->typ)) {
     return;
   }
-  if (typ_is_builtin(mod, node->typ) && node_toplevel_const(node)->is_extern) {
+  if (typ_is_builtin(mod, node->typ) && node_is_extern(node)) {
     if (fwd == FWD_DECLARE_TYPES) {
       print_deftype_typedefs(out, mod, node);
     } else if (fwd == FWD_DECLARE_FUNCTIONS) {
@@ -2286,7 +2287,7 @@ static error print_defintf_dyn_field_eachisalist(struct module *mod, struct typ 
     if (d->which != DEFFUN && d->which != DEFMETHOD) {
       continue;
     }
-    if (node_toplevel_const(d)->is_not_dyn) {
+    if (node_toplevel_const(d)->flags & TOP_IS_NOT_DYN) {
       continue;
     }
     if (node_subs_count_atleast(node_subs_at_const(typ_definition_const(d->typ), IDX_GENARGS), 1)) {
@@ -2309,7 +2310,7 @@ static error print_defintf_member_proto_eachisalist(struct module *mod, struct t
     if (d->which != DEFFUN && d->which != DEFMETHOD) {
       continue;
     }
-    if (node_toplevel_const(d)->is_not_dyn) {
+    if (node_toplevel_const(d)->flags & TOP_IS_NOT_DYN) {
       continue;
     }
     if (node_subs_count_atleast(node_subs_at_const(typ_definition_const(d->typ), IDX_GENARGS), 1)) {
@@ -2330,7 +2331,7 @@ static error print_defintf_member_eachisalist(struct module *mod, struct typ *t,
     if (d->which != DEFFUN && d->which != DEFMETHOD) {
       continue;
     }
-    if (node_toplevel_const(d)->is_not_dyn) {
+    if (node_toplevel_const(d)->flags & TOP_IS_NOT_DYN) {
       continue;
     }
     if (node_subs_count_atleast(node_subs_at_const(typ_definition_const(d->typ), IDX_GENARGS), 1)) {

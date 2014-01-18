@@ -82,7 +82,8 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
       : scope_node((*scope));
 
     mark = mk_node(mod, anchor, IMPORT);
-    mark->as.IMPORT.toplevel.is_export = original_import->as.IMPORT.toplevel.is_export;
+    mark->as.IMPORT.toplevel.flags |=
+      original_import->as.IMPORT.toplevel.flags & TOP_IS_EXPORT;
     mark->as.IMPORT.intermediate_mark = TRUE;
     node_deepcopy(mod, node_new_subnode(mod, mark), import_path);
     pass_import_mark(mod, mark, &anchor->scope);
@@ -182,7 +183,8 @@ static struct node *create_import_node_for_ex(struct module *mod,
                                               struct node *ex) {
   struct node *id = node_new_subnode(mod, original_import);
   node_set_which(id, IMPORT);
-  id->as.IMPORT.toplevel.is_export = original_import->as.IMPORT.toplevel.is_export;
+  id->as.IMPORT.toplevel.flags |=
+    original_import->as.IMPORT.toplevel.flags & TOP_IS_EXPORT;
 
   struct token tok = { 0 };
   tok.t = TIDENT;
@@ -217,9 +219,9 @@ static error lexical_import_path(struct scope *scope, struct module *mod,
   FOREACH_SUB(ex, target_body) {
     const struct toplevel *toplevel = node_toplevel_const(ex);
     if (toplevel == NULL
-        || !toplevel->is_export
+        || !(toplevel->flags & TOP_IS_EXPORT)
         || toplevel->scope_name != ID__NONE
-        || toplevel->is_shadowed) {
+        || (toplevel->flags & TOP_IS_SHADOWED)) {
       continue;
     }
 

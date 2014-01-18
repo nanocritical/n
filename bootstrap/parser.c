@@ -455,7 +455,7 @@ bool node_is_prototype(const struct node *node) {
   } else if (toplevel == NULL) {
     return FALSE;
   } else {
-    return toplevel->is_prototype;
+    return toplevel->flags & TOP_IS_PROTOTYPE;
   }
 }
 
@@ -464,7 +464,7 @@ bool node_is_inline(const struct node *node) {
   if (toplevel == NULL) {
     return FALSE;
   } else {
-    return toplevel->is_inline;
+    return toplevel->flags & TOP_IS_INLINE;
   }
 }
 
@@ -473,7 +473,7 @@ bool node_is_export(const struct node *node) {
   if (toplevel == NULL) {
     return FALSE;
   } else {
-    return toplevel->is_export;
+    return toplevel->flags & TOP_IS_EXPORT;
   }
 }
 
@@ -482,7 +482,7 @@ bool node_is_extern(const struct node *node) {
   if (toplevel == NULL) {
     return FALSE;
   } else {
-    return toplevel->is_extern;
+    return toplevel->flags & TOP_IS_EXTERN;
   }
 }
 
@@ -2268,7 +2268,7 @@ retval:
 
   if (tok.t == TEOL || tok.t == TEOB) {
     back(mod, &tok);
-    node_toplevel(node)->is_prototype = TRUE;
+    node_toplevel(node)->flags |= TOP_IS_PROTOTYPE;
     return 0;
   }
 
@@ -2351,17 +2351,17 @@ again:
     e = p_let(node, mod, &toplevel, tok.t);
     break;
   case Texport:
-    toplevel.is_export = TRUE;
+    toplevel.flags |= TOP_IS_EXPORT;
     goto again;
   case Textern:
-    toplevel.is_extern = TRUE;
+    toplevel.flags |= TOP_IS_EXTERN;
     goto again;
   case Tinline:
-    toplevel.is_inline = TRUE;
+    toplevel.flags |= TOP_IS_INLINE;
     goto again;
   case Tisa:
     node_subs_remove(deft, node);
-    e = p_isalist(deft, mod, toplevel.is_export);
+    e = p_isalist(deft, mod, toplevel.flags & TOP_IS_EXPORT);
     break;
   case Tdelegate:
     e = p_delegate(node, mod, &toplevel);
@@ -2553,7 +2553,7 @@ again:
     break;
   case Tisa:
     node_subs_remove(intf, node);
-    e = p_isalist(intf, mod, node_toplevel_const(intf)->is_export);
+    e = p_isalist(intf, mod, node_is_export(intf));
     EXCEPT(e);
     break;
   case Tlet:
@@ -2718,14 +2718,16 @@ again:
       UNEXPECTED(mod, &tok);
     }
     inline_count += 1;
-    node->as.IMPORT.toplevel.is_inline = TRUE;
+    node->as.IMPORT.toplevel.flags |= TOP_IS_INLINE;
     goto again;
   } else if (tok.t == Timport || tok.t == Texport) {
     if (!from || import_export_count > 0 || ident_count > 0) {
       UNEXPECTED(mod, &tok);
     }
     import_export_count += 1;
-    node->as.IMPORT.toplevel.is_export = tok.t == Texport;
+    if (tok.t == Texport) {
+      node->as.IMPORT.toplevel.flags |= TOP_IS_EXPORT;
+    }
     goto again;
   } else if (tok.t == TTIMES) {
     if (ident_count > 0) {
@@ -2806,13 +2808,13 @@ bypass:
     e = p_defintf(node, mod, genargs, &toplevel);
     break;
   case Texport:
-    toplevel.is_export = TRUE;
+    toplevel.flags |= TOP_IS_EXPORT;
     goto again;
   case Textern:
-    toplevel.is_extern = TRUE;
+    toplevel.flags |= TOP_IS_EXTERN;
     goto again;
   case Tinline:
-    toplevel.is_inline = TRUE;
+    toplevel.flags |= TOP_IS_INLINE;
     goto again;
   case Tfun:
     node = NEW(mod, node);
