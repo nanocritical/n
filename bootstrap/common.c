@@ -110,6 +110,10 @@ static void module_prepare_mocks(struct module **mod) {
 
   struct stage *stage = calloc(1, sizeof(struct stage));
   error e = stage_load(gctx, stage, "bootstrap/mockbasic.n");
+  if (e && g_env.stderr != stderr) {
+    fflush(g_env.stderr);
+    fprintf(stderr, "%s", g_env.stderr_mem);
+  }
   assert(!e);
 
   *mod = stage->entry_point;
