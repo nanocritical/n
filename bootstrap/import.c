@@ -149,6 +149,9 @@ static error import_single_ident(struct scope *scope, struct module *mod,
     ident id_name = node_ident(node_subs_last(id_full_import_path));
     e = scope_define_ident(mod, scope, id_name, id_import_marker);
     EXCEPT(e);
+
+    e = check_import_target_exists(mod, id_full_import_path, -1);
+    EXCEPT(e);
   } else {
     e = check_import_target_exists(mod, id_full_import_path, 1);
     EXCEPT(e);
