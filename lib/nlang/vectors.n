@@ -2,7 +2,7 @@ from nlang import *
 import nlang.unsafe
 from nlang.sysheap import heap sysheap
 
-export opaque inline struct vector t:`copyable =
+export opaque struct vector t:`copyable =
   export isa `trivial_ctor (`array_ctor t) `copyable
   p:(slice t)
   c:size

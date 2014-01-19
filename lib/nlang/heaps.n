@@ -3,7 +3,7 @@ from nlang import *
 export intf `heap_element =
   export isa `copyable `ordered
 
-export opaque inline struct heap t:`heap_element =
+export opaque struct heap t:`heap_element =
   export isa `trivial_ctor `copyable
   h:(vector t)
   c:size

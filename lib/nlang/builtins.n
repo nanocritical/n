@@ -893,7 +893,7 @@ export intf `array_ctor t:`copyable =
 
 extern inline fun static_array_at_byte dp:@!u8 off:size = @!u8
 
-export opaque inline struct static_array t:`copyable =
+export opaque struct static_array t:`copyable =
   export isa (`trivial_array_ctor t) `trivial_copy `return_by_copy
   d:?@!t
   c:size
@@ -1022,7 +1022,7 @@ export (fun e:`error) fatal err:e = void
 export extern inline struct valist =
   isa `trivial_copy
 
-export inline struct vararg r:`any_any_ref =
+export opaque struct vararg r:`any_any_ref =
   export isa (`iterator r)
   export isa `trivial_copy -- FIXME: remove `trivial_copy, needed by bootstrap
   ap		:valist
