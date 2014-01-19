@@ -2,7 +2,7 @@ from nlang.chars import `string_buffer `show
 from nlang.memory import slice
 from nlang.containers import index_range range `iterator
 from nlang.unsafe import cast
-from nlang import say print
+from nlang import say pr
 
 export extern struct __literal_null__ =
   export isa `any_nullable_ref
@@ -1015,7 +1015,7 @@ export (fun e:`error) drop err:e = void
   noop
 
 export (fun e:`error) fatal err:e = void
-  print @"Fatal: "
+  pr @"Fatal: "
   say @err
 
 
