@@ -52,6 +52,7 @@ enum token_type {
   Tinvariant,
   Texample,
   Tsizeof,
+  Talignof,
 
   TNUMBER,
   TSTRING,

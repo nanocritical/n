@@ -21,6 +21,7 @@ enum node_which {
   BOOL,
   STRING,
   SIZEOF,
+  ALIGNOF,
   BIN,
   UN,
   TUPLE,

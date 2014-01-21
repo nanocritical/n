@@ -49,6 +49,7 @@ const char *node_which_strings[] = {
   [BOOL] = "BOOL",
   [STRING] = "STRING",
   [SIZEOF] = "SIZEOF",
+  [ALIGNOF] = "ALIGNOF",
   [BIN] = "BIN",
   [UN] = "UN",
   [TUPLE] = "TUPLE",
@@ -1677,6 +1678,10 @@ static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
       break;
     case Tsizeof:
       node_set_which(node, SIZEOF);
+      e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
+      break;
+    case Talignof:
+      node_set_which(node, ALIGNOF);
       e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
       break;
     case Texcept:

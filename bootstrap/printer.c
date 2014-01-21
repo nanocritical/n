@@ -286,6 +286,11 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     print_expr(out, mod, node_subs_first_const(node), T__CALL);
     fprintf(out, ")");
     break;
+  case ALIGNOF:
+    fprintf(out, "(alignof ");
+    print_expr(out, mod, node_subs_first_const(node), T__CALL);
+    fprintf(out, ")");
+    break;
   case BIN:
     print_bin(out, mod, node, parent_op);
     break;

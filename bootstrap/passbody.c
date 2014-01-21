@@ -1995,6 +1995,9 @@ error step_type_inference(struct module *mod, struct node *node,
   case SIZEOF:
     set_typ(&node->typ, TBI_SIZE);
     break;
+  case ALIGNOF:
+    set_typ(&node->typ, TBI_SIZE);
+    break;
   case BIN:
     e = type_inference_bin(mod, node);
     EXCEPT(e);
