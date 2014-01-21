@@ -1802,8 +1802,8 @@ static void print_delegate(FILE *out, const struct module *mod, const struct nod
 }
 
 static bool is_concrete(const struct typ *t, bool topmost) {
-  if (topmost && typ_is_reference(t)) {
-    return FALSE;
+  if (typ_is_reference(t)) {
+    return !topmost;
   } else {
     for (size_t n = 0; n < typ_generic_arity(t); ++n) {
       const struct typ *arg = typ_generic_arg_const(t, n);
