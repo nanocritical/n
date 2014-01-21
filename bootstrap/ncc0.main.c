@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#define CC "gcc"
+//#define CC "clang"
 #define CFLAGS "-Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g"
 #define LDFLAGS CFLAGS " -Wl,--gc-sections"
 
@@ -35,7 +37,7 @@ static char *o_filename(const char *filename) {
 
 static error cc(const struct module *mod, const char *o_fn,
                 const char *c_fn) {
-  static const char *fmt = "gcc " CFLAGS " -xc %s -c -o %s";
+  static const char *fmt = CC " " CFLAGS " -xc %s -c -o %s";
   char *cmd = calloc(strlen(fmt) + strlen(c_fn) + strlen(o_fn) - 4 + 1, sizeof(char));
   sprintf(cmd, fmt, c_fn, o_fn);
 
@@ -65,7 +67,7 @@ static char *file_list(const struct module **modules, size_t count,
 }
 
 static error clink(const char *out_fn, const char *inputs, const char *extra) {
-  static const char fmt[] = "gcc " LDFLAGS " %s %s -o %s";
+  static const char fmt[] = CC " " LDFLAGS " %s %s -o %s";
   size_t len = strlen(fmt) + strlen(inputs) + strlen(extra) + strlen(out_fn) - 6;
   char *cmd = calloc(len + 1, sizeof(char));
   sprintf(cmd, fmt, inputs, extra, out_fn);
