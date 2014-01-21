@@ -50,18 +50,21 @@ fun noerror = i32
     return 1
 
 export fun main = i32
-  and _Ngensym19:nlang.builtins.error  such
+  and _Ngensym19:nlang.builtins.error
+  and _Ngensym1a:nlang.builtins.error  such
     assert (nlang.builtins.error.operator_ne block 
-  _Ngensym19 = inferred
-  @_Ngensym19;; @error.OK)
+  block
+    _Ngensym19 = inferred
+    _Ngensym1a = _Ngensym19
+  @_Ngensym1a;; @error.OK)
   assert (foo == 1)
   assert (bar == 1)
   assert (noerror == 0)
   try
-    and _Ngensym1a:nlang.builtins.error    such
+    and _Ngensym1b:nlang.builtins.error    such
       throw block 
-  _Ngensym1a = { code=(bar) }
-  _Ngensym1a;;
+  _Ngensym1b = { code=(bar) }
+  _Ngensym1b;;
     return 1
   catch _Ngensym9 err
 

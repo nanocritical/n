@@ -74,12 +74,18 @@ _Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__push(((&v)), (nlang_builtin
 nlang_builtins_assert((_Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__pop(((&v))) == (nlang_builtins_i32)1));
 _Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__push(((&v)), (nlang_builtins_i32)1);
 nlang_containers_index_range _Ngensym3 = { 0 };
-nlang_containers_index_iterator _Ngensym0 = { 0 };
+nlang_containers_index_iterator _Ngensym4 = { 0 };
+nlang_containers_index_iterator _Ngensym5 = { 0 };
+_Ngen_nlang_builtins_mutable_ref__nlang_containers_index_iterator_genN_ _Ngensym0 = ({  {
 nlang_containers_index_range_iter(({ _Ngensym3 = _Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__all(((&v)));
 ((&_Ngensym3));
-; }), &(_Ngensym0));
-while (nlang_containers_index_iterator_has_next(((&_Ngensym0)))) {
-nlang_builtins_size i = nlang_containers_index_iterator_next(((&_Ngensym0)));
+; }), &(_Ngensym4));
+_Ngensym5 = _Ngensym4;
+};
+((&_Ngensym5));
+; });
+while (nlang_containers_index_iterator_has_next(_Ngensym0)) {
+nlang_builtins_size i = nlang_containers_index_iterator_next(_Ngensym0);
 nlang_builtins_u32 _Ngensym2 = { 0 };
 nlang_builtins_assert((((*_Ngen__Ngen_nlang_vectors_vector__nlang_builtins_i32_genN__at__nlang_builtins_ref_genN_(((&v)), i))) == nlang_builtins_u32_reinterpret_signed(({ _Ngensym2 = nlang_builtins_size_trim_u32(((&i)));
 ((&_Ngensym2));

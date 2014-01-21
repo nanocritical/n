@@ -759,8 +759,6 @@ struct typ *TBI__MUTABLE;
 struct typ *TBI__MERCURIAL;
 
 static bool __typ_equal(const struct typ *a, const struct typ *b) {
-  assert(a->hash != 0 && b->hash != 0);
-
   const struct node *da = typ_definition_const(a);
   const struct node *db = typ_definition_const(b);
   if (da == db) {

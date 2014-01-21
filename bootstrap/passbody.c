@@ -619,7 +619,7 @@ static struct typ *find_existing_instance_for_tentative(struct module *mod,
 
 static error instance(struct node **result,
                       struct module *mod,
-                      struct node *for_error, size_t for_error_offset,
+                      const struct node *for_error, size_t for_error_offset,
                       struct typ *t, struct typ **explicit_args, size_t arity) {
   const size_t first = typ_generic_first_explicit_arg(t);
   assert(arity == typ_generic_arity(t) - first);
@@ -634,14 +634,14 @@ static error instance(struct node **result,
     error e = do_instantiate(result, mod, t, args, arity, TRUE);
     EXCEPT(e);
 
-    struct node *fe = node_subs_at(for_error, for_error_offset);
+    const struct node *fe = node_subs_at_const(for_error, for_error_offset);
     for (size_t n = 0; n < arity; ++n) {
       e = unify(mod, fe,
                 typ_generic_arg((*result)->typ, first + n),
                 explicit_args[n]);
       EXCEPT(e);
 
-      fe = node_next(fe);
+      fe = node_next_const(fe);
     }
 
     free(args);
@@ -878,6 +878,100 @@ static void bin_accessor_maybe_defchoice(struct scope **parent_scope, struct nod
   }
 }
 
+static error fill_in_optional_args(struct module *mod, struct node *node,
+                                   const struct typ *tfun) {
+  const struct node *dfun = typ_definition_const(tfun);
+  const size_t dmin = node_fun_min_args_count(dfun);
+  const size_t dmax = node_fun_max_args_count(dfun);
+
+  if (dmin == dmax) {
+    return 0;
+  }
+
+  ssize_t first_vararg;
+  switch (dfun->which) {
+  case DEFFUN:
+    first_vararg = dfun->as.DEFFUN.first_vararg;
+    break;
+  case DEFMETHOD:
+    first_vararg = dfun->as.DEFMETHOD.first_vararg;
+    break;
+  default:
+    assert(FALSE);
+    break;
+  }
+
+  const struct node *darg = node_subs_at_const(
+    node_subs_at_const(dfun, IDX_FUNARGS), dmin);
+  struct node *arg;
+  if (dmin == 0) {
+    // We use this form, so that 'arg' will be NULL if 'node' it's a unary call.
+    arg = node_next(node_subs_first(node));
+  } else {
+    arg = node_subs_at(node, dmin + 1);
+  }
+  size_t n;
+  error e;
+
+  for (n = dmin; n < dmax && (first_vararg == - 1 || n < first_vararg); ++n) {
+    if (arg == NULL) {
+      G(named, node, CALLNAMEDARG,
+        named->as.CALLNAMEDARG.name = node_ident(darg);
+        G(nul, named, NUL));
+      e = catchup(mod, NULL, named, &node->scope, CATCHUP_BELOW_CURRENT);
+      assert(!e);
+
+    } else if (arg->which != CALLNAMEDARG) {
+      // Assume this is the first vararg
+
+      if (first_vararg == -1) {
+        e = mk_except(mod, arg, "excessive positional argument"
+                      " or optional argument lacks a name");
+        THROW(e);
+      }
+
+      G(named, node, CALLNAMEDARG,
+        named->as.CALLNAMEDARG.name = node_ident(darg);
+        G(nul, named, NUL));
+
+      node_subs_remove(node, named);
+      node_subs_insert_before(node, arg, named);
+
+      e = catchup(mod, NULL, named, &node->scope, CATCHUP_BELOW_CURRENT);
+      assert(!e);
+
+    } else if (arg->which == CALLNAMEDARG) {
+      const ident name = node_ident(arg);
+      while (node_ident(darg) != name) {
+        darg = node_next_const(darg);
+        if (darg == NULL) {
+          e = mk_except(mod, arg, "named argument '%s' has bad name"
+                        " or appears out of order",
+                        idents_value(mod->gctx, name));
+          THROW(e);
+        }
+      }
+
+      arg = node_next(arg);
+    }
+
+    darg = node_next_const(darg);
+  }
+
+  assert(arg == NULL || first_vararg >= 0);
+  while (arg != NULL) {
+    if (arg->which == CALLNAMEDARG) {
+      const ident name = node_ident(arg);
+      e = mk_except(mod, arg, "excess named argument '%s' or appears out of order",
+                    idents_value(mod->gctx, name));
+      THROW(e);
+    }
+    arg = node_next(arg);
+  }
+
+  return 0;
+}
+
 static error rewrite_unary_call(struct module *mod, struct node *node, struct typ *tfun) {
   struct scope *parent_scope = node->scope.parent;
 
@@ -891,6 +985,9 @@ static error rewrite_unary_call(struct module *mod, struct node *node, struct ty
   const struct node *except[] = { fun, NULL };
   error e = catchup(mod, except, node, parent_scope, CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
+
+  e = fill_in_optional_args(mod, node, tfun);
+  assert(!e);
 
   return 0;
 }
@@ -1214,34 +1311,6 @@ static error self_ref_if_value(struct node **self,
   return 0;
 }
 
-static void fill_in_optional_args(struct module *mod, struct node *node,
-                                  struct node *dfun, size_t dmin, size_t dmax) {
-  size_t first_vararg;
-  switch (dfun->which) {
-  case DEFFUN:
-    first_vararg = dfun->as.DEFFUN.first_vararg;
-    break;
-  case DEFMETHOD:
-    first_vararg = dfun->as.DEFMETHOD.first_vararg;
-    break;
-  default:
-    assert(FALSE);
-    break;
-  }
-
-  struct node *arg = node_subs_at(node, dmin);
-  size_t n;
-  for (n = dmin; n <= dmax && n < first_vararg; ++n) {
-    if (arg == NULL) {
-      struct node *nul = mk_node(mod, node, NUL);
-      error e = catchup(mod, NULL, nul, &node->scope, CATCHUP_BELOW_CURRENT);
-      assert(!e);
-    } else {
-      arg = node_next(arg);
-    }
-  }
-}
-
 static error prepare_call_arguments(struct module *mod, struct node *node) {
   struct node *fun = node_subs_first(node);
 
@@ -1251,7 +1320,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
     return 0;
   }
 
-  struct node *dfun = typ_definition(fun->typ);
+  const struct node *dfun = typ_definition_const(fun->typ);
   const size_t dmin = node_fun_min_args_count(dfun);
   const size_t dmax = node_fun_max_args_count(dfun);
 
@@ -1314,7 +1383,8 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
     assert(FALSE);
   }
 
-  fill_in_optional_args(mod, node, dfun, dmin, dmax);
+  error e = fill_in_optional_args(mod, node, fun->typ);
+  EXCEPT(e);
 
   return 0;
 }
@@ -1342,8 +1412,7 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
   }
 
   struct node *i = NULL;
-  e = instance(&i, mod, node, 1,
-               t, args, arity);
+  e = instance(&i, mod, node, 1, t, args, arity);
   EXCEPT(e);
   free(args);
 
@@ -1363,12 +1432,13 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
 
   const size_t gen_arity = typ_generic_arity(tfun);
   struct typ **args = calloc(gen_arity, sizeof(struct typ *));
-  for (size_t n = 0; n < typ_generic_arity(tfun); ++n) {
+  for (size_t n = 0; n < gen_arity; ++n) {
     args[n] = typ_create_tentative(typ_generic_arg(tfun, n));
   }
 
   struct node *i = NULL;
-  e = instance(&i, mod, node, 0, tfun, args, gen_arity);
+  e = instance(&i, mod, typ_definition_const(tfun), 0,
+               tfun, args, gen_arity);
   assert(!e);
 
   size_t n = 0;
@@ -1459,6 +1529,8 @@ static error type_inference_call(struct module *mod, struct node *node) {
 
   e = check_consistent_either_types_or_values(mod, try_node_subs_at(node, 1));
   EXCEPT(e);
+
+  node->flags |= NODE_IS_TEMPORARY;
 
   if (node_subs_count_atleast(node_subs_at(dfun, IDX_GENARGS), 1)
       && node_toplevel_const(dfun)->our_generic_functor_typ == NULL) {
@@ -1940,7 +2012,10 @@ error step_type_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case TUPLENTH:
-    node->typ = typ_create_tentative(TBI_COPYABLE);
+    set_typ(&node->typ, typ_create_tentative(TBI_COPYABLE));
+    break;
+  case CALLNAMEDARG:
+    set_typ(&node->typ, node_subs_first(node)->typ);
     break;
   case CALL:
     e = type_inference_call(mod, node);
@@ -1988,7 +2063,12 @@ error step_type_inference(struct module *mod, struct node *node,
         IDX_FOR_IT_DEFP),
       IDX_FOR_IT_DEFP_DEFN);
 
-    e = unify(mod, it, it->typ, typ_create_tentative(TBI_ITERATOR));
+    struct node *r = NULL;
+    e = typ_ref(&r, mod, node, TREFBANG,
+                typ_create_tentative(TBI_ITERATOR));
+    assert(!e);
+
+    e = unify(mod, it, it->typ, r->typ);
     EXCEPT(e);
     e = typ_check_equal(mod, node_for_block(node),
                         node_for_block(node)->typ,
@@ -2225,7 +2305,8 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
       // generic arguments should have been linked to final types.
       for (size_t m = 0; m < typ_generic_arity(t); ++m) {
         struct typ *arg = typ_generic_arg(t, m);
-        assert(!typ_is_tentative(arg));
+        assert(!typ_is_tentative(arg)
+               && "FIXME: this should be an error, but how to explain it?");
       }
     }
 
@@ -2853,29 +2934,33 @@ static bool need_insert_dyn(struct module *mod,
   return typ_is_dyn(intf) && typ_is_dyn_compatible(concrete);
 }
 
-static error insert_dyn(struct module *mod, struct node *node,
-                        const struct node *target, struct node *src) {
+static error insert_dyn(struct node **src,
+                        struct module *mod, struct node *node,
+                        struct typ *target) {
   struct node *d = mk_node(mod, node, DYN);
-  set_typ(&d->as.DYN.intf_typ, target->typ);
+  set_typ(&d->as.DYN.intf_typ, target);
 
   node_subs_remove(node, d);
-  node_subs_replace(node, src, d);
-  node_subs_append(d, src);
+  node_subs_replace(node, *src, d);
+  node_subs_append(d, *src);
 
-  const struct node *except[] = { target, src, NULL };
+  const struct node *except[] = { *src, NULL };
   error e = catchup(mod, except, d, &node->scope, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
+
+  *src = d;
 
   return 0;
 }
 
-static error try_insert_dyn(struct module *mod, struct node *node,
-                            const struct node *target, struct node *src) {
-  if (!need_insert_dyn(mod, target->typ, src->typ)) {
+static error try_insert_dyn(struct node **src,
+                            struct module *mod, struct node *node,
+                            struct typ *target) {
+  if (!need_insert_dyn(mod, target, (*src)->typ)) {
     return 0;
   }
 
-  error e = insert_dyn(mod, node, target, src);
+  error e = insert_dyn(src, mod, node, target);
   EXCEPT(e);
   return 0;
 }
@@ -2898,14 +2983,14 @@ static error step_dyn_inference(struct module *mod, struct node *node,
     target = module_retval_get(mod);
     src = node_subs_first(node);
 
-    e = try_insert_dyn(mod, node, target, src);
+    e = try_insert_dyn(&src, mod, node, target->typ);
     EXCEPT(e);
     return 0;
   case BIN:
     if (node->as.BIN.operator == TASSIGN) {
       target = node_subs_first(node);
       src = node_subs_at(node, 1);
-      e = try_insert_dyn(mod, node, target, src);
+      e = try_insert_dyn(&src, mod, node, target->typ);
       EXCEPT(e);
     }
     return 0;
@@ -2914,7 +2999,7 @@ static error step_dyn_inference(struct module *mod, struct node *node,
       target = node->as.DEFNAME.pattern;
       src = node->as.DEFNAME.expr;
       if (src != NULL) {
-        e = try_insert_dyn(mod, node, target, src);
+        e = try_insert_dyn(&src, mod, node, target->typ);
         EXCEPT(e);
       }
     }
@@ -2922,7 +3007,7 @@ static error step_dyn_inference(struct module *mod, struct node *node,
   case TYPECONSTRAINT:
     target = node_subs_first(node);
     src = node_subs_last(node);
-    e = try_insert_dyn(mod, node, target, src);
+    e = try_insert_dyn(&src, mod, node, target->typ);
     EXCEPT(e);
     return 0;
   case CALL:
@@ -2930,18 +3015,25 @@ static error step_dyn_inference(struct module *mod, struct node *node,
       return 0;
     }
 
-    struct node *funargs = node_subs_at(
-      typ_definition(node_subs_first(node)->typ), IDX_FUNARGS);
+#define GET_TYP(target) \
+    ( (target)->as.DEFARG.is_vararg \
+      ? typ_generic_arg((target)->typ, 0) : (target)->typ)
 
-    struct node *target = node_subs_first(funargs);
+    const struct node *funargs = node_subs_at_const(
+      typ_definition_const(node_subs_first_const(node)->typ), IDX_FUNARGS);
+    const struct node *target = node_subs_first_const(funargs);
+
     FOREACH_SUB_EVERY(src, node, 1, 1) {
-      e = try_insert_dyn(mod, node, target, src);
+      e = try_insert_dyn(&src, mod, node, GET_TYP(target));
       EXCEPT(e);
-      target = node_next(target);
-      if (target == NULL) {
-        break;
+
+      if (!target->as.DEFARG.is_vararg) {
+        target = node_next_const(target);
       }
     }
+
+#undef GET_TYP
+
     return 0;
   case INIT:
     // FIXME: support missing
@@ -3181,11 +3273,6 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
   case UN:
     if (OP_KIND(node->as.UN.operator) == OP_UN_REFOF
         && node_is_rvalue(node_subs_first(node))) {
-      if (node->as.UN.operator != TREFDOT) {
-        error e = mk_except(mod, node, "Cannot take a mutating reference of a rvalue");
-        THROW(e);
-      }
-
       temporaries_add(temps, node);
     }
     break;
@@ -3219,10 +3306,6 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
     }
     if (parent->which == BIN
         && OP_IS_ASSIGN(parent->as.BIN.operator)) {
-      break;
-    }
-    if (parent->which == UN
-        && OP_KIND(parent->as.UN.operator) == OP_UN_REFOF) {
       break;
     }
     if (parent->which == DEFPATTERN) {
@@ -3322,7 +3405,6 @@ static void declare_temporaries(struct module *mod, struct node *statement,
 
     struct node *typ = mk_node(mod, typc, DIRECTDEF);
     if (rv->which == UN && OP_KIND(rv->as.UN.operator) == OP_UN_REFOF) {
-      assert(typ_generic_arity(rv->typ) == 1);
       set_typ(&typ->as.DIRECTDEF.typ, typ_generic_arg(rv->typ, 0));
     } else {
       set_typ(&typ->as.DIRECTDEF.typ, rv->typ);
@@ -3368,37 +3450,42 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
   for (size_t n = 0; n < temps.count; ++n) {
     const ident g = temps.gensyms[n];
     struct node *rv = temps.rvalues[n];
-
     struct node *rv_parent = node_parent(rv);
-    struct node *nrv = mk_node(mod, rv_parent, BLOCK);
-    node_subs_remove(rv_parent, nrv);
-    node_subs_replace(rv_parent, rv, nrv);
-    struct node *assign = mk_node(mod, nrv, BIN);
-    assign->as.BIN.operator = TASSIGN;
+    struct node saved = { 0 };
+    node_move_content(&saved, rv);
 
+    struct node *block = rv;
+    rv = NULL;
+
+    node_set_which(block, BLOCK);
+    struct node *assign = mk_node(mod, block, BIN);
+    assign->as.BIN.operator = TASSIGN;
     struct node *target = mk_node(mod, assign, IDENT);
     target->as.IDENT.name = g;
 
     const struct node *except[2];
     except[1] = NULL;
 
-    if (rv->which == UN && OP_KIND(rv->as.UN.operator) == OP_UN_REFOF) {
-      node_subs_first(rv)->flags |= NODE_IS_TEMPORARY;
-      node_subs_append(assign, node_subs_first(rv));
-      except[0] = node_subs_first(rv);
+    if (saved.which == UN && OP_KIND(saved.as.UN.operator) == OP_UN_REFOF) {
+      struct node *rv1 = node_subs_first(&saved);
+      node_subs_remove(&saved, rv1);
+      node_subs_append(assign, rv1);
+      rv1->flags |= NODE_IS_TEMPORARY;
+      except[0] = rv1;
 
-      struct node *nvalue = mk_node(mod, nrv, UN);
-      nvalue->as.UN.operator = rv->as.UN.operator;
+      struct node *nvalue = mk_node(mod, block, UN);
+      nvalue->as.UN.operator = saved.as.UN.operator;
       struct node *nvalue_name = mk_node(mod, nvalue, IDENT);
       nvalue_name->as.IDENT.name = g;
-    } else if (rv->which == TUPLEEXTRACT) {
-      struct node *tuple = node_subs_last(rv);
-      node_subs_remove(rv, tuple);
+
+    } else if (saved.which == TUPLEEXTRACT) {
+      struct node *tuple = node_subs_last(&saved);
+      node_subs_remove(&saved, tuple);
       node_subs_append(assign, tuple);
       except[0] = tuple;
 
-      struct node *extractor = mk_node(mod, nrv, TUPLEEXTRACT);
-      struct node *nth = node_subs_first(rv);
+      struct node *extractor = mk_node(mod, block, TUPLEEXTRACT);
+      struct node *nth = node_subs_first(&saved);
       struct node *next_nth = NULL;
       for (size_t n = 0; n < typ_generic_arity(tuple->typ); ++n) {
         // We want to reuse the original TUPLENTH from 'rv' as they may be
@@ -3406,7 +3493,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
         // cannot change.
         next_nth = node_next(nth);
 
-        node_subs_remove(rv, nth);
+        node_subs_remove(&saved, nth);
         node_subs_append(extractor, nth);
         unset_typ(&nth->typ);
 
@@ -3416,15 +3503,16 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
       nvalue->as.IDENT.name = g;
 
     } else {
-      rv->flags |= NODE_IS_TEMPORARY;
-      node_subs_append(assign, rv);
-      except[0] = rv;
+      struct node *moved_rv = node_new_subnode(mod, assign);
+      node_move_content(moved_rv, &saved);
+      moved_rv->flags |= NODE_IS_TEMPORARY;
+      except[0] = moved_rv;
 
-      struct node *nvalue = mk_node(mod, nrv, IDENT);
+      struct node *nvalue = mk_node(mod, block, IDENT);
       nvalue->as.IDENT.name = g;
     }
 
-    e = catchup(mod, except, nrv, &rv_parent->scope, CATCHUP_BELOW_CURRENT);
+    e = catchup(mod, except, block, &rv_parent->scope, CATCHUP_BELOW_CURRENT);
     EXCEPT(e);
   }
 

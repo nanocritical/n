@@ -55,6 +55,7 @@ const char *node_which_strings[] = {
   [TUPLEEXTRACT] = "TUPLEEXTRACT",
   [TUPLENTH] = "TUPLENTH",
   [CALL] = "CALL",
+  [CALLNAMEDARG] = "CALLNAMEDARG",
   [INIT] = "INIT",
   [RETURN] = "RETURN",
   [BLOCK] = "BLOCK",
@@ -1312,8 +1313,25 @@ static error p_expr_call(struct node *node, struct module *mod) {
       return 0;
     }
 
-    e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
+    struct node *tentative = node_new_subnode(mod, node);
+    e = p_expr(tentative, mod, T__CALL);
     EXCEPT(e);
+
+    if (tentative->which == IDENT) {
+      e = scan(&tok, mod);
+      EXCEPT(e);
+
+      if (tok.t == TASSIGN) {
+        const ident name = node_ident(tentative);
+        node_set_which(tentative, CALLNAMEDARG);
+        tentative->as.CALLNAMEDARG.name = name;
+
+        e = p_expr(node_new_subnode(mod, tentative), mod, T__CALL);
+        EXCEPT(e);
+      } else {
+        back(mod, &tok);
+      }
+    }
   }
 }
 

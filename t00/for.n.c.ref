@@ -31,12 +31,18 @@ nlang_builtins_i32 _Nmain(void) {
  {
 nlang_builtins_i32 j = (nlang_builtins_i32)0;
 nlang_containers_index_range _Ngensym1 = { 0 };
-nlang_containers_index_iterator _Ngensym0 = { 0 };
+nlang_containers_index_iterator _Ngensym2 = { 0 };
+nlang_containers_index_iterator _Ngensym3 = { 0 };
+_Ngen_nlang_builtins_mutable_ref__nlang_containers_index_iterator_genN_ _Ngensym0 = ({  {
 nlang_containers_index_range_iter(({ _Ngensym1 = nlang_containers_range((nlang_builtins_size)0, (nlang_builtins_size)10);
 ((&_Ngensym1));
-; }), &(_Ngensym0));
-while (nlang_containers_index_iterator_has_next(((&_Ngensym0)))) {
-nlang_builtins_size i = nlang_containers_index_iterator_next(((&_Ngensym0)));
+; }), &(_Ngensym2));
+_Ngensym3 = _Ngensym2;
+};
+((&_Ngensym3));
+; });
+while (nlang_containers_index_iterator_has_next(_Ngensym0)) {
+nlang_builtins_size i = nlang_containers_index_iterator_next(_Ngensym0);
 _Ngen_nlang_builtins_unused__nlang_builtins_size_genN_(i);
 j += (nlang_builtins_i32)1;
 ;

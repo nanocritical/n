@@ -1,0 +1,3 @@
+from nlang import *
+export fun main = i32
+  noop

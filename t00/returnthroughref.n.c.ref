@@ -115,11 +115,11 @@ t00_returnthroughref_t y = { 0 };
 t00_returnthroughref_bar(&(y));
 ;
 t00_returnthroughref_t _Ngensym1 = { 0 };
-if (((y.x) != (({ t00_returnthroughref_bar2(&(_Ngensym1));
+( (((y.x) != (({ t00_returnthroughref_bar2(&(_Ngensym1));
 _Ngensym1;
-; }).x))) {
+; }).x))) ? ( {
 return (nlang_builtins_i32)1;
-};
+}) : ({;}) );
 ;
 return (y.xx);
 }

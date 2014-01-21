@@ -22,12 +22,12 @@ fun onlyvar ...v:(vararg @i32) = i32
   return s
 
 export fun main = i32
-  if opts @1 != 1
+  if opts a=@1 != 1
     return 1
-  if opts @1 != opts
+  if opts a=@1 != opts
     return 1
 
-  assert <- 10 == var 0 @1 @2 @3 @4
+  assert <- 10 == var 0 b=@1 @2 @3 @4
   assert <- 10 == onlyvar @0 @1 @2 @3 @4
 
-  return opts @0
+  return opts a=@0

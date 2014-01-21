@@ -7,18 +7,27 @@ from nlang.strings import *
 
 fun write_buf fd:i32 s:@u8 count:size = void
 
-export fun pr a:@`show = void
+export fun vpr ?sep:?@string v:@!(vararg @`show) = void
+  let separator = optional_ref sep @' '
   let s = string.mk
   such
-    a.show @#s
+    for x in v!
+      x.show @#s
+      if v.left > 0
+	separator.show @#s
   let b = s.bytes_utf8
   write_buf 1 b.unsafe_data b.bytecount
 
-export fun say a:@`show = void
-  pr a
+export fun pr ?sep:?@string ...v:(vararg @`show) = void
+  vpr sep=sep @!v
+
+export fun vsay ?sep:?@string v:@!(vararg @`show) = void
+  vpr sep=sep v
   let eol = '\n':char
   write_buf 1 @eol.code.trim_u8 1
 
+export fun say ?sep:?@string ...v:(vararg @`show) = void
+  vsay sep=sep @!v
 
 export inline (fun t:`any r:(`any_ref t)) just_const p:r = @t
   return p

@@ -585,6 +585,9 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case CALL:
     print_call(out, mod, node, parent_op);
     break;
+  case CALLNAMEDARG:
+    print_expr(out, mod, node_subs_first_const(node), parent_op);
+    break;
   case TUPLE:
     print_tuple(out, mod, node, parent_op);
     break;
@@ -1156,7 +1159,7 @@ static bool print_call_vararg_proto(FILE *out, const struct node *dfun, size_t n
     return FALSE;
   }
 
-  fprintf(out, "nlang_builtins_size _Nvararg_count, ...");
+  fprintf(out, "nlang_builtins_size _Nvarargcount, ...");
   return TRUE;
 }
 

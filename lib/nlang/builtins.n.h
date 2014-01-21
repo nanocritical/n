@@ -7,16 +7,18 @@ struct NB(valist) {
   va_list ap;
 };
 
-#define NLANG_BUILTINS_VARARG_START(va) \
-  va_start((va).ap.ap, _Nvararg_count); \
-  (va).left = _Nvararg_count
+#define NLANG_BUILTINS_VARARG_START(va) do { \
+  va_start((va).ap.ap, _Nvarargcount); \
+  (va).n = _Nvarargcount; \
+} while (0)
 
-#define NLANG_BUILTINS_VARARG_END(va) \
-  va_end((va).ap.ap)
+#define NLANG_BUILTINS_VARARG_END(va) do { \
+  va_end((va).ap.ap); \
+} while (0)
 
 #define NLANG_BUILTINS_VARARG_NEXT(t, va) \
-  ({ nlang_builtins_assert((va).left > 0); \
-   (va).left -= 1; \
+  ({ nlang_builtins_assert((va).n > 0); \
+   (va).n -= 1; \
    va_arg((va).ap.ap, t); })
 #endif
 

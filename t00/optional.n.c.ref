@@ -32,9 +32,9 @@ static nlang_builtins_i32 t00_optional_opts(_Ngen_nlang_builtins_nullable_ref__n
 
 static nlang_builtins_i32 t00_optional_chained(_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ v) __attribute__((__nonnull__(1)));
 
-static nlang_builtins_i32 t00_optional_var(nlang_builtins_i32 a, _Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_ b, nlang_builtins_size _Nvararg_count, ...);
+static nlang_builtins_i32 t00_optional_var(nlang_builtins_i32 a, _Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_ b, nlang_builtins_size _Nvarargcount, ...);
 
-static nlang_builtins_i32 t00_optional_onlyvar(nlang_builtins_size _Nvararg_count, ...);
+static nlang_builtins_i32 t00_optional_onlyvar(nlang_builtins_size _Nvarargcount, ...);
 
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
@@ -52,9 +52,9 @@ return _Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_(a, (nlang_builtin
 static nlang_builtins_i32 t00_optional_chained(_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ v) {
  {
 nlang_builtins_i32 s = (nlang_builtins_i32)0;
-_Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN_ _Ngensym0 = ((*v));
-while (_Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__has_next(((&_Ngensym0)))) {
-_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ i = NLANG_BUILTINS_VARARG_NEXT(_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_, *(((&_Ngensym0))));
+_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ _Ngensym0 = ((&((*v))));
+while (_Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__has_next(_Ngensym0)) {
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ i = NLANG_BUILTINS_VARARG_NEXT(_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_, *(_Ngensym0));
 s += ((*i));
 ;
 };
@@ -64,7 +64,7 @@ return s;
 }
 }
 
-static nlang_builtins_i32 t00_optional_var(nlang_builtins_i32 a, _Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_ b, nlang_builtins_size _Nvararg_count, ...) {
+static nlang_builtins_i32 t00_optional_var(nlang_builtins_i32 a, _Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_ b, nlang_builtins_size _Nvarargcount, ...) {
 _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN_ v = { 0 };
 NLANG_BUILTINS_VARARG_START(v);
  {
@@ -75,14 +75,14 @@ return ((a + _Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_(b, (nlang_b
 NLANG_BUILTINS_VARARG_END(v);
 }
 
-static nlang_builtins_i32 t00_optional_onlyvar(nlang_builtins_size _Nvararg_count, ...) {
+static nlang_builtins_i32 t00_optional_onlyvar(nlang_builtins_size _Nvarargcount, ...) {
 _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN_ v = { 0 };
 NLANG_BUILTINS_VARARG_START(v);
  {
 nlang_builtins_i32 s = (nlang_builtins_i32)0;
-_Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN_ _Ngensym1 = v;
-while (_Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__has_next(((&_Ngensym1)))) {
-_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ i = NLANG_BUILTINS_VARARG_NEXT(_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_, *(((&_Ngensym1))));
+_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ _Ngensym1 = ((&v));
+while (_Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__has_next(_Ngensym1)) {
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ i = NLANG_BUILTINS_VARARG_NEXT(_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_, *(_Ngensym1));
 s += ((*i));
 ;
 };
@@ -96,18 +96,18 @@ NLANG_BUILTINS_VARARG_END(v);
 nlang_builtins_i32 _Nmain(void) {
  {
 nlang_builtins_i32 _Ngensym2 = { 0 };
-if ((t00_optional_opts(({ _Ngensym2 = (nlang_builtins_i32)1;
+( ((t00_optional_opts(({ _Ngensym2 = (nlang_builtins_i32)1;
 ((&_Ngensym2));
-; })) != (nlang_builtins_i32)1)) {
+; })) != (nlang_builtins_i32)1)) ? ( {
 return (nlang_builtins_i32)1;
-};
+}) : ({;}) );
 ;
 nlang_builtins_i32 _Ngensym3 = { 0 };
-if ((t00_optional_opts(({ _Ngensym3 = (nlang_builtins_i32)1;
+( ((t00_optional_opts(({ _Ngensym3 = (nlang_builtins_i32)1;
 ((&_Ngensym3));
-; })) != t00_optional_opts(NULL))) {
+; })) != t00_optional_opts(NULL))) ? ( {
 return (nlang_builtins_i32)1;
-};
+}) : ({;}) );
 ;
 nlang_builtins_i32 _Ngensym4 = { 0 };
 nlang_builtins_i32 _Ngensym5 = { 0 };

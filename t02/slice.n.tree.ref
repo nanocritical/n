@@ -628,6 +628,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(optional_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(min)
   IMPORT :<import>
    BIN(.)
@@ -770,7 +776,15 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   IMPORT :<import>
    BIN(.)
     IDENT(nlang)
-    IDENT(print)
+    IDENT(vpr)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(pr)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(vsay)
   IMPORT :<import>
    BIN(.)
     IDENT(nlang)

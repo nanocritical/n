@@ -1,0 +1,4 @@
+from nlang import *
+
+export fun main = i32
+  noop -- lacks return

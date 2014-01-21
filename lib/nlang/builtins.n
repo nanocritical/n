@@ -1,7 +1,7 @@
 from nlang.chars import `string_buffer `show
 from nlang.memory import slice
 from nlang.containers import index_range range `iterator
-from nlang.unsafe import cast
+from nlang.unsafe import cast nonnull
 from nlang import say pr
 
 export extern struct __literal_null__ =
@@ -965,6 +965,12 @@ export inline (fun t:`any) optional opt:?@t fallback:t = t
   else
     return fallback
 
+export inline (fun t:`any) optional_ref opt:?@t fallback:@t = @t
+  if opt !== null
+    return (nonnull t ?@t @t) opt
+  else
+    return fallback
+
 export inline (fun t:`numeric) min a:t b:t = t
   if a <= b
     return a
@@ -1025,10 +1031,32 @@ export extern inline struct valist =
 export opaque struct vararg r:`any_any_ref =
   export isa (`iterator r)
   export isa `trivial_copy -- FIXME: remove `trivial_copy, needed by bootstrap
-  ap		:valist
-  left		:ssize
+  ap	:valist
+  n	:size
 
 export vararg method@ `iterator.has_next = bool
-  return self.left > 0
+  return self.n > 0
 
 export extern vararg method@! `iterator.next = r
+
+export vararg method@ left = size
+  return self.n
+
+
+--export intf `environment declaring:`any =
+--  method@# install where:@!@#declaring = void
+--  method@# uninstall = previous:@#declaring
+--
+--export intf `debugenv =
+--  isa (`environment this)
+--  method@! _assert cond:bool ?expr:?@string = void
+--  method@! _pre cond:bool ?expr:?@string = void
+--  method@! _post cond:bool ?expr:?@string = void
+--  method@! _invariant cond:bool ?expr:?@string = void
+--  method@! _example cond:bool ?expr:?@string = void
+--
+--  method@! pr ?sep:?@string ...v:(vararg @`showable) = void
+--  method@! say ?sep:?@string ...v:(vararg @`showable) = void
+--
+--export struct debugenv =
+--  export isa `debugenv

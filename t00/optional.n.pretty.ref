@@ -4,7 +4,7 @@ fun opts a:?@i32 = i32
 
 fun chained v:@!(vararg @i32) = i32
   and s = 0  such
-    for i in !v
+    for i in @!!v
       s += .i
   return s
 
@@ -14,26 +14,26 @@ fun var a:i32 b:?@i32 v:vararg @i32 = i32
 
 fun onlyvar v:vararg @i32 = i32
   and s = 0  such
-    for i in v
+    for i in @!v
       s += .i
   return s
 
 export fun main = i32
   and _Ngensym2:nlang.builtins.i32  such
-    if opts block 
+    if opts a=block 
   _Ngensym2 = 1
   @_Ngensym2;; != 1
       return 1
   and _Ngensym3:nlang.builtins.i32  such
-    if opts block 
+    if opts a=block 
   _Ngensym3 = 1
-  @_Ngensym3;; != opts null
+  @_Ngensym3;; != opts a=null
       return 1
   and _Ngensym4:nlang.builtins.i32
   and _Ngensym5:nlang.builtins.i32
   and _Ngensym6:nlang.builtins.i32
   and _Ngensym7:nlang.builtins.i32  such
-    assert (10 == var 0 block 
+    assert (10 == var 0 b=block 
   _Ngensym4 = 1
   @_Ngensym4;; block 
   _Ngensym5 = 2
@@ -59,6 +59,6 @@ export fun main = i32
   _Ngensymc = 4
   @_Ngensymc;;)
   and _Ngensymd:nlang.builtins.i32  such
-    return opts block 
+    return opts a=block 
   _Ngensymd = 0
   @_Ngensymd;;

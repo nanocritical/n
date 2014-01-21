@@ -289,6 +289,10 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case BIN:
     print_bin(out, mod, node, parent_op);
     break;
+  case CALLNAMEDARG:
+    fprintf(out, "%s=", idents_value(mod->gctx, node_ident(node)));
+    print_expr(out, mod, node_subs_first_const(node), T__CALL);
+    break;
   case DEFARG:
   case TYPECONSTRAINT:
     print_expr(out, mod, node_subs_first_const(node), parent_op);
@@ -851,7 +855,8 @@ static void print_tree_node(FILE *out, const struct module *mod,
   fprintf(out, "%s", node_which_strings[node->which]);
   switch (node->which) {
   case IDENT:
-    fprintf(out, "(%s)", idents_value(mod->gctx, node->as.IDENT.name));
+  case CALLNAMEDARG:
+    fprintf(out, "(%s)", idents_value(mod->gctx, node_ident(node)));
     break;
   case NUMBER:
     fprintf(out, "(%s)", node->as.NUMBER.value);

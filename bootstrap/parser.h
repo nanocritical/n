@@ -27,6 +27,7 @@ enum node_which {
   TUPLEEXTRACT,
   TUPLENTH,
   CALL,
+  CALLNAMEDARG,
   INIT,
   RETURN,
   BLOCK,
@@ -166,6 +167,9 @@ struct node_tuplenth {
 };
 struct node_call {
   const struct node *return_through_ref_expr;
+};
+struct node_callnamedarg {
+  ident name;
 };
 struct node_future {};
 struct node_lambda {};
@@ -320,6 +324,7 @@ union node_as {
   struct node_tuple TUPLE;
   struct node_tuplenth TUPLENTH;
   struct node_call CALL;
+  struct node_callnamedarg CALLNAMEDARG;
   struct node_future FUTURE;
   struct node_init INIT;
   struct node_return RETURN;
@@ -1045,6 +1050,8 @@ static inline ident node_ident(const struct node *node) {
     return node_ident(node->as.DEFNAME.pattern);
   case DEFARG:
     return node_ident(node_subs_first_const(node));
+  case CALLNAMEDARG:
+    return node->as.CALLNAMEDARG.name;
   case FOR:
     return ID_FOR;
   case WHILE:

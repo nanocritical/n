@@ -624,6 +624,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(optional_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(min)
   IMPORT :<import>
    BIN(.)
@@ -766,7 +772,15 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   IMPORT :<import>
    BIN(.)
     IDENT(nlang)
-    IDENT(print)
+    IDENT(vpr)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(pr)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(vsay)
   IMPORT :<import>
    BIN(.)
     IDENT(nlang)
@@ -1018,18 +1032,27 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
       IDENT(_Ngensym19) :nlang.builtins.error
       DIRECTDEF :nlang.builtins.error
      DEFNAME(_Ngensym19) :nlang.builtins.error
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.error
+      IDENT(_Ngensym1a) :nlang.builtins.error
+      DIRECTDEF :nlang.builtins.error
+     DEFNAME(_Ngensym1a) :nlang.builtins.error
     BLOCK :nlang.builtins.void
      CALL :nlang.builtins.void
       IDENT(assert) :nlang.builtins.assert
       CALL :nlang.builtins.bool
        DIRECTDEF :nlang.builtins.error.operator_ne
        BLOCK :(nlang.builtins.ref nlang.builtins.error)
-        BIN( = ) :nlang.builtins.void
-         IDENT(_Ngensym19) :nlang.builtins.error
-         CALL :nlang.builtins.error
-          IDENT(inferred) :t00.try.inferred
+        BLOCK :nlang.builtins.void
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym19) :nlang.builtins.error
+          CALL :nlang.builtins.error
+           IDENT(inferred) :t00.try.inferred
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym1a) :nlang.builtins.error
+          IDENT(_Ngensym19) :nlang.builtins.error
         UN(@) :(nlang.builtins.ref nlang.builtins.error)
-         IDENT(_Ngensym19) :nlang.builtins.error
+         IDENT(_Ngensym1a) :nlang.builtins.error
        UN(@) :(nlang.builtins.ref nlang.builtins.error)
         BIN(.) :nlang.builtins.error
          IDENT(error) :nlang.builtins.error
@@ -1062,19 +1085,19 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
        LET :nlang.builtins.void
         DEFPATTERN :nlang.builtins.void
          TYPECONSTRAINT :nlang.builtins.error
-          IDENT(_Ngensym1a) :nlang.builtins.error
+          IDENT(_Ngensym1b) :nlang.builtins.error
           DIRECTDEF :nlang.builtins.error
-         DEFNAME(_Ngensym1a) :nlang.builtins.error
+         DEFNAME(_Ngensym1b) :nlang.builtins.error
         BLOCK :nlang.builtins.void
          THROW :nlang.builtins.void
           BLOCK :nlang.builtins.error
            BIN( = ) :nlang.builtins.void
-            IDENT(_Ngensym1a) :nlang.builtins.error
+            IDENT(_Ngensym1b) :nlang.builtins.error
             INIT :nlang.builtins.error
              IDENT(code) :nlang.builtins.__internal_not_typeable__
              CALL :nlang.builtins.i32
               IDENT(bar) :t00.try.bar
-           IDENT(_Ngensym1a) :nlang.builtins.error
+           IDENT(_Ngensym1b) :nlang.builtins.error
        RETURN :nlang.builtins.void
         NUMBER(1) :nlang.builtins.i32
       CATCH :nlang.builtins.void

@@ -5,11 +5,14 @@ fun foo = _nretval:string
 
 export fun main = i32
   and _Ngensym0:nlang.chars.static_string  such
-    say block 
+    say sep=null block 
   _Ngensym0 = 'test'
   @_Ngensym0;;
-  and _Ngensym1:nlang.strings.string  such
-    say block 
-  _Ngensym1 = foo
-  @_Ngensym1;;
+  and _Ngensym1:nlang.strings.string
+  and _Ngensym2:nlang.strings.string  such
+    say sep=null block 
+  block
+    _Ngensym1 = foo
+    nlang.strings.string.copy_ctor @#_Ngensym2 @_Ngensym1
+  @_Ngensym2;;
   return 0

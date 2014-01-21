@@ -2,6 +2,10 @@ from nlang.builtins import *
 
 export extern (fun u:`any_any_ref v:`any_any_ref) cast a:u = v
 
+export (fun t:`any nr:(`any_nullable_ref t) r:(`any_ref t)) nonnull a:nr = r
+  assert <- a !== null
+  return (cast nr r) a
+
 export extern struct voidref = -- FIXME implement
 export extern struct voidmref = -- FIXME implement
 export extern struct voidmmref = -- FIXME implement

@@ -1,10 +1,16 @@
 from nlang import *
 export fun main = i32
   and j = 0  such
-    and _Ngensym1:nlang.containers.index_range    such
-      for i in nlang.containers.index_range.iter block 
+    and _Ngensym1:nlang.containers.index_range
+    and _Ngensym2:nlang.containers.index_iterator
+    and _Ngensym3:nlang.containers.index_iterator    such
+      for i in block 
+  block
+    _Ngensym2 = nlang.containers.index_range.iter block 
   _Ngensym1 = range 0 10
   @_Ngensym1;;
+    _Ngensym3 = _Ngensym2
+  @!_Ngensym3;;
         unused i
         j += 1
   return j - 10

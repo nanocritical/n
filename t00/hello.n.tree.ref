@@ -624,6 +624,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(optional_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(min)
   IMPORT :<import>
    BIN(.)
@@ -766,7 +772,15 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   IMPORT :<import>
    BIN(.)
     IDENT(nlang)
-    IDENT(print)
+    IDENT(vpr)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(pr)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(vsay)
   IMPORT :<import>
    BIN(.)
     IDENT(nlang)
@@ -794,6 +808,8 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BLOCK :nlang.builtins.void
      CALL :nlang.builtins.void
       IDENT(say) :nlang.say
+      CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string)
+       NUL :(nlang.builtins.nullable_ref nlang.strings.string)
       DYN :(nlang.builtins.ref nlang.chars.`show)
        BLOCK :(nlang.builtins.ref nlang.chars.static_string)
         BIN( = ) :nlang.builtins.void
@@ -803,51 +819,111 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
          IDENT(_Ngensym0) :nlang.chars.static_string
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     TYPECONSTRAINT :nlang.builtins.bool
-      IDENT(_Ngensym1) :nlang.builtins.bool
-      DIRECTDEF :nlang.builtins.bool
-     DEFNAME(_Ngensym1) :nlang.builtins.bool
+     TYPECONSTRAINT :nlang.strings.string
+      IDENT(_Ngensym1) :nlang.strings.string
+      DIRECTDEF :nlang.strings.string
+     DEFNAME(_Ngensym1) :nlang.strings.string
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.strings.string
+      IDENT(_Ngensym2) :nlang.strings.string
+      DIRECTDEF :nlang.strings.string
+     DEFNAME(_Ngensym2) :nlang.strings.string
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.chars.static_string
+      IDENT(_Ngensym3) :nlang.chars.static_string
+      DIRECTDEF :nlang.chars.static_string
+     DEFNAME(_Ngensym3) :nlang.chars.static_string
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.chars.static_string
+      IDENT(_Ngensym4) :nlang.chars.static_string
+      DIRECTDEF :nlang.chars.static_string
+     DEFNAME(_Ngensym4) :nlang.chars.static_string
     BLOCK :nlang.builtins.void
      CALL :nlang.builtins.void
       IDENT(say) :nlang.say
+      CALLNAMEDARG(sep) :(nlang.builtins.ref nlang.strings.string)
+       BLOCK :(nlang.builtins.ref nlang.strings.string)
+        BLOCK :nlang.builtins.void
+         BIN( = ) :nlang.builtins.void
+          IDENT(_Ngensym1) :nlang.strings.string
+          CALL :nlang.strings.string
+           DIRECTDEF :nlang.strings.string.from_static_string
+           STRING(', ') :nlang.chars.static_string
+         CALL :nlang.builtins.void
+          DIRECTDEF :nlang.strings.string.copy_ctor
+          UN(@#) :(nlang.builtins.mercurial_ref nlang.strings.string)
+           IDENT(_Ngensym2) :nlang.strings.string
+          UN(@) :(nlang.builtins.ref nlang.strings.string)
+           IDENT(_Ngensym1) :nlang.strings.string
+        UN(@) :(nlang.builtins.ref nlang.strings.string)
+         IDENT(_Ngensym2) :nlang.strings.string
+      DYN :(nlang.builtins.ref nlang.chars.`show)
+       BLOCK :(nlang.builtins.ref nlang.chars.static_string)
+        BIN( = ) :nlang.builtins.void
+         IDENT(_Ngensym3) :nlang.chars.static_string
+         STRING('Hello') :nlang.chars.static_string
+        UN(@) :(nlang.builtins.ref nlang.chars.static_string)
+         IDENT(_Ngensym3) :nlang.chars.static_string
+      DYN :(nlang.builtins.ref nlang.chars.`show)
+       BLOCK :(nlang.builtins.ref nlang.chars.static_string)
+        BIN( = ) :nlang.builtins.void
+         IDENT(_Ngensym4) :nlang.chars.static_string
+         STRING('World!') :nlang.chars.static_string
+        UN(@) :(nlang.builtins.ref nlang.chars.static_string)
+         IDENT(_Ngensym4) :nlang.chars.static_string
+   LET :nlang.builtins.void
+    DEFPATTERN :nlang.builtins.void
+     TYPECONSTRAINT :nlang.builtins.bool
+      IDENT(_Ngensym5) :nlang.builtins.bool
+      DIRECTDEF :nlang.builtins.bool
+     DEFNAME(_Ngensym5) :nlang.builtins.bool
+    BLOCK :nlang.builtins.void
+     CALL :nlang.builtins.void
+      IDENT(say) :nlang.say
+      CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string)
+       NUL :(nlang.builtins.nullable_ref nlang.strings.string)
       DYN :(nlang.builtins.ref nlang.chars.`show)
        BLOCK :(nlang.builtins.ref nlang.builtins.bool)
         BIN( = ) :nlang.builtins.void
-         IDENT(_Ngensym1) :nlang.builtins.bool
+         IDENT(_Ngensym5) :nlang.builtins.bool
          BOOL :nlang.builtins.bool
         UN(@) :(nlang.builtins.ref nlang.builtins.bool)
-         IDENT(_Ngensym1) :nlang.builtins.bool
+         IDENT(_Ngensym5) :nlang.builtins.bool
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      TYPECONSTRAINT :nlang.builtins.u32
-      IDENT(_Ngensym2) :nlang.builtins.u32
+      IDENT(_Ngensym6) :nlang.builtins.u32
       DIRECTDEF :nlang.builtins.u32
-     DEFNAME(_Ngensym2) :nlang.builtins.u32
+     DEFNAME(_Ngensym6) :nlang.builtins.u32
     BLOCK :nlang.builtins.void
      CALL :nlang.builtins.void
       IDENT(say) :nlang.say
+      CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string)
+       NUL :(nlang.builtins.nullable_ref nlang.strings.string)
       DYN :(nlang.builtins.ref nlang.chars.`show)
        BLOCK :(nlang.builtins.ref nlang.builtins.u32)
         BIN( = ) :nlang.builtins.void
-         IDENT(_Ngensym2) :nlang.builtins.u32
+         IDENT(_Ngensym6) :nlang.builtins.u32
          NUMBER(1) :nlang.builtins.u32
         UN(@) :(nlang.builtins.ref nlang.builtins.u32)
-         IDENT(_Ngensym2) :nlang.builtins.u32
+         IDENT(_Ngensym6) :nlang.builtins.u32
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
      TYPECONSTRAINT :nlang.builtins.float
-      IDENT(_Ngensym3) :nlang.builtins.float
+      IDENT(_Ngensym7) :nlang.builtins.float
       DIRECTDEF :nlang.builtins.float
-     DEFNAME(_Ngensym3) :nlang.builtins.float
+     DEFNAME(_Ngensym7) :nlang.builtins.float
     BLOCK :nlang.builtins.void
      CALL :nlang.builtins.void
       IDENT(say) :nlang.say
+      CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string)
+       NUL :(nlang.builtins.nullable_ref nlang.strings.string)
       DYN :(nlang.builtins.ref nlang.chars.`show)
        BLOCK :(nlang.builtins.ref nlang.builtins.float)
         BIN( = ) :nlang.builtins.void
-         IDENT(_Ngensym3) :nlang.builtins.float
+         IDENT(_Ngensym7) :nlang.builtins.float
          NUMBER(1.0) :nlang.builtins.float
         UN(@) :(nlang.builtins.ref nlang.builtins.float)
-         IDENT(_Ngensym3) :nlang.builtins.float
+         IDENT(_Ngensym7) :nlang.builtins.float
    RETURN :nlang.builtins.void
     NUMBER(0) :nlang.builtins.i32

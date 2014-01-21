@@ -793,81 +793,10 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     IDENT(nlang)
     IDENT(just_mutable)
- DEFFUN :t00.for.main
+ DEFFUN :t00.fixme11.main
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
   BLOCK :nlang.builtins.void
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     IDENT(j) :nlang.builtins.i32
-     NUMBER(0) :nlang.builtins.i32
-     DEFNAME(j) :nlang.builtins.i32
-    BLOCK :nlang.builtins.void
-     LET :nlang.builtins.void
-      DEFPATTERN :nlang.builtins.void
-       TYPECONSTRAINT :nlang.containers.index_range
-        IDENT(_Ngensym1) :nlang.containers.index_range
-        DIRECTDEF :nlang.containers.index_range
-       DEFNAME(_Ngensym1) :nlang.containers.index_range
-      DEFPATTERN :nlang.builtins.void
-       TYPECONSTRAINT :nlang.containers.index_iterator
-        IDENT(_Ngensym2) :nlang.containers.index_iterator
-        DIRECTDEF :nlang.containers.index_iterator
-       DEFNAME(_Ngensym2) :nlang.containers.index_iterator
-      DEFPATTERN :nlang.builtins.void
-       TYPECONSTRAINT :nlang.containers.index_iterator
-        IDENT(_Ngensym3) :nlang.containers.index_iterator
-        DIRECTDEF :nlang.containers.index_iterator
-       DEFNAME(_Ngensym3) :nlang.containers.index_iterator
-      BLOCK :nlang.builtins.void
-       FOR :nlang.builtins.void
-        LET :nlang.builtins.void
-         DEFPATTERN :nlang.builtins.void
-          IDENT(_Ngensym0) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
-          BLOCK :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
-           BLOCK :nlang.builtins.void
-            BIN( = ) :nlang.builtins.void
-             IDENT(_Ngensym2) :nlang.containers.index_iterator
-             CALL :nlang.containers.index_iterator
-              DIRECTDEF :nlang.containers.index_range.iter
-              BLOCK :(nlang.builtins.ref nlang.containers.index_range)
-               BIN( = ) :nlang.builtins.void
-                IDENT(_Ngensym1) :nlang.containers.index_range
-                CALL :nlang.containers.index_range
-                 IDENT(range) :nlang.containers.range
-                 NUMBER(0) :nlang.builtins.size
-                 NUMBER(10) :nlang.builtins.size
-               UN(@) :(nlang.builtins.ref nlang.containers.index_range)
-                IDENT(_Ngensym1) :nlang.containers.index_range
-            BIN( = ) :nlang.builtins.void
-             IDENT(_Ngensym3) :nlang.containers.index_iterator
-             IDENT(_Ngensym2) :nlang.containers.index_iterator
-           UN(@!) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
-            IDENT(_Ngensym3) :nlang.containers.index_iterator
-          DEFNAME(_Ngensym0) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
-         BLOCK :nlang.builtins.void
-          WHILE :nlang.builtins.void
-           CALL :nlang.builtins.bool
-            DIRECTDEF :nlang.containers.index_iterator.has_next
-            IDENT(_Ngensym0) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
-           BLOCK :nlang.builtins.void
-            LET :nlang.builtins.void
-             DEFPATTERN :nlang.builtins.void
-              IDENT(i) :nlang.builtins.size
-              CALL :nlang.builtins.size
-               DIRECTDEF :nlang.containers.index_iterator.next
-               IDENT(_Ngensym0) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
-              DEFNAME(i) :nlang.builtins.size
-             BLOCK :nlang.builtins.void
-              CALL :nlang.builtins.void
-               IDENT(unused) :(nlang.builtins.unused nlang.builtins.size)
-               IDENT(i) :nlang.builtins.size
-              BIN( += ) :nlang.builtins.void
-               IDENT(j) :nlang.builtins.i32
-               NUMBER(1) :nlang.builtins.i32
-   RETURN :nlang.builtins.void
-    BIN( - ) :nlang.builtins.i32
-     IDENT(j) :nlang.builtins.i32
-     NUMBER(10) :nlang.builtins.i32
+   NOOP :nlang.builtins.void

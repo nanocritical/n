@@ -237,14 +237,14 @@ xd.x = (nlang_builtins_i32)42;
 t00_dynintf_dc xdc= { 0 };
 ;
 ;
-if ((t00_dynintf_foo(t00_dynintf_d_mkdyn__t00_dynintf__Ni_d((void *)((&xd)))) != t00_dynintf_foo(t00_dynintf_dc_mkdyn__t00_dynintf__Ni_d((void *)((&xdc)))))) {
+( ((t00_dynintf_foo(t00_dynintf_d_mkdyn__t00_dynintf__Ni_d((void *)((&xd)))) != t00_dynintf_foo(t00_dynintf_dc_mkdyn__t00_dynintf__Ni_d((void *)((&xdc)))))) ? ( {
 return (nlang_builtins_i32)1;
-};
+}) : ({;}) );
 _Ngen_nlang_builtins_ref__t00_dynintf_d_genN_ pxd = ((&xd));
 ;
-if ((t00_dynintf_bar(pxd) != t00_dynintf_rfoo(t00_dynintf_d_mkdyn__t00_dynintf__Ni_d((void *)pxd)))) {
+( ((t00_dynintf_bar(pxd) != t00_dynintf_rfoo(t00_dynintf_d_mkdyn__t00_dynintf__Ni_d((void *)pxd)))) ? ( {
 return (nlang_builtins_i32)1;
-};
+}) : ({;}) );
 return (nlang_builtins_i32)0;
 }
 }

@@ -628,6 +628,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(optional_ref)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(min)
   IMPORT :<import>
    BIN(.)
@@ -770,7 +776,15 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   IMPORT :<import>
    BIN(.)
     IDENT(nlang)
-    IDENT(print)
+    IDENT(vpr)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(pr)
+  IMPORT :<import>
+   BIN(.)
+    IDENT(nlang)
+    IDENT(vsay)
   IMPORT :<import>
    BIN(.)
     IDENT(nlang)
@@ -871,37 +885,54 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
         IDENT(_Ngensym3) :nlang.containers.index_range
         DIRECTDEF :nlang.containers.index_range
        DEFNAME(_Ngensym3) :nlang.containers.index_range
+      DEFPATTERN :nlang.builtins.void
+       TYPECONSTRAINT :nlang.containers.index_iterator
+        IDENT(_Ngensym4) :nlang.containers.index_iterator
+        DIRECTDEF :nlang.containers.index_iterator
+       DEFNAME(_Ngensym4) :nlang.containers.index_iterator
+      DEFPATTERN :nlang.builtins.void
+       TYPECONSTRAINT :nlang.containers.index_iterator
+        IDENT(_Ngensym5) :nlang.containers.index_iterator
+        DIRECTDEF :nlang.containers.index_iterator
+       DEFNAME(_Ngensym5) :nlang.containers.index_iterator
       BLOCK :nlang.builtins.void
        FOR :nlang.builtins.void
         LET :nlang.builtins.void
          DEFPATTERN :nlang.builtins.void
-          IDENT(_Ngensym0) :nlang.containers.index_iterator
-          CALL :nlang.containers.index_iterator
-           DIRECTDEF :nlang.containers.index_range.iter
-           BLOCK :(nlang.builtins.ref nlang.containers.index_range)
+          IDENT(_Ngensym0) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
+          BLOCK :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
+           BLOCK :nlang.builtins.void
             BIN( = ) :nlang.builtins.void
-             IDENT(_Ngensym3) :nlang.containers.index_range
-             CALL :nlang.containers.index_range
-              DIRECTDEF :nlang.vectors.vector.all
-              UN(@) :(nlang.builtins.ref (nlang.vectors.vector nlang.builtins.i32))
-               IDENT(v) :(nlang.vectors.vector nlang.builtins.i32)
-            UN(@) :(nlang.builtins.ref nlang.containers.index_range)
-             IDENT(_Ngensym3) :nlang.containers.index_range
-          DEFNAME(_Ngensym0) :nlang.containers.index_iterator
+             IDENT(_Ngensym4) :nlang.containers.index_iterator
+             CALL :nlang.containers.index_iterator
+              DIRECTDEF :nlang.containers.index_range.iter
+              BLOCK :(nlang.builtins.ref nlang.containers.index_range)
+               BIN( = ) :nlang.builtins.void
+                IDENT(_Ngensym3) :nlang.containers.index_range
+                CALL :nlang.containers.index_range
+                 DIRECTDEF :nlang.vectors.vector.all
+                 UN(@) :(nlang.builtins.ref (nlang.vectors.vector nlang.builtins.i32))
+                  IDENT(v) :(nlang.vectors.vector nlang.builtins.i32)
+               UN(@) :(nlang.builtins.ref nlang.containers.index_range)
+                IDENT(_Ngensym3) :nlang.containers.index_range
+            BIN( = ) :nlang.builtins.void
+             IDENT(_Ngensym5) :nlang.containers.index_iterator
+             IDENT(_Ngensym4) :nlang.containers.index_iterator
+           UN(@!) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
+            IDENT(_Ngensym5) :nlang.containers.index_iterator
+          DEFNAME(_Ngensym0) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
          BLOCK :nlang.builtins.void
           WHILE :nlang.builtins.void
            CALL :nlang.builtins.bool
             DIRECTDEF :nlang.containers.index_iterator.has_next
-            UN(@) :(nlang.builtins.ref nlang.containers.index_iterator)
-             IDENT(_Ngensym0) :nlang.containers.index_iterator
+            IDENT(_Ngensym0) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
            BLOCK :nlang.builtins.void
             LET :nlang.builtins.void
              DEFPATTERN :nlang.builtins.void
               IDENT(i) :nlang.builtins.size
               CALL :nlang.builtins.size
                DIRECTDEF :nlang.containers.index_iterator.next
-               UN(@!) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
-                IDENT(_Ngensym0) :nlang.containers.index_iterator
+               IDENT(_Ngensym0) :(nlang.builtins.mutable_ref nlang.containers.index_iterator)
               DEFNAME(i) :nlang.builtins.size
              BLOCK :nlang.builtins.void
               LET :nlang.builtins.void

@@ -179,8 +179,12 @@ return (nlang_builtins_i32)1;
 nlang_builtins_i32 _Nmain(void) {
  {
 nlang_builtins_error _Ngensym19 = { 0 };
-nlang_builtins_assert(nlang_builtins_error_operator_ne(({ t00_try_inferred(&(_Ngensym19));
-((&_Ngensym19));
+nlang_builtins_error _Ngensym1a = { 0 };
+nlang_builtins_assert(nlang_builtins_error_operator_ne(({  {
+t00_try_inferred(&(_Ngensym19));
+_Ngensym1a = _Ngensym19;
+};
+((&_Ngensym1a));
 ; }), ((&(nlang_builtins_error_OK)))));
 ;
 nlang_builtins_assert((t00_try_foo() == (nlang_builtins_i32)1));
@@ -188,10 +192,10 @@ nlang_builtins_assert((t00_try_bar() == (nlang_builtins_i32)1));
 nlang_builtins_assert((t00_try_noerror() == (nlang_builtins_i32)0));
 nlang_builtins_error _Ngensym8 = { 0 };
  {
-nlang_builtins_error _Ngensym1a = { 0 };
-_Ngensym8 = ({ _Ngensym1a.code = t00_try_bar();
+nlang_builtins_error _Ngensym1b = { 0 };
+_Ngensym8 = ({ _Ngensym1b.code = t00_try_bar();
 ;
-_Ngensym1a;
+_Ngensym1b;
 ; }); goto _Ngensym9;
 ;
 return (nlang_builtins_i32)1;

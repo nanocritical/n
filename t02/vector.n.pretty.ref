@@ -13,10 +13,16 @@ export fun main = i32
     nlang.vectors.vector.push @#v 1
     assert (nlang.vectors.vector.pop @#v == 1)
     nlang.vectors.vector.push @#v 1
-    and _Ngensym3:nlang.containers.index_range    such
-      for i in nlang.containers.index_range.iter block 
+    and _Ngensym3:nlang.containers.index_range
+    and _Ngensym4:nlang.containers.index_iterator
+    and _Ngensym5:nlang.containers.index_iterator    such
+      for i in block 
+  block
+    _Ngensym4 = nlang.containers.index_range.iter block 
   _Ngensym3 = nlang.vectors.vector.all @v
   @_Ngensym3;;
+    _Ngensym5 = _Ngensym4
+  @!_Ngensym5;;
         and _Ngensym2:nlang.builtins.u32        such
           assert (.(nlang.vectors.vector.at @v i) == nlang.builtins.u32.reinterpret_signed block 
   _Ngensym2 = nlang.builtins.size.trim_u32 @i

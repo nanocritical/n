@@ -1,19 +1,32 @@
 from nlang import *
 export fun main = i32
   and _Ngensym0:nlang.chars.static_string  such
-    say block 
+    say sep=null block 
   _Ngensym0 = 'Hello, World!'
   @_Ngensym0;;
-  and _Ngensym1:nlang.builtins.bool  such
-    say block 
-  _Ngensym1 = true
-  @_Ngensym1;;
-  and _Ngensym2:nlang.builtins.u32  such
-    say block 
-  _Ngensym2 = 1
-  @_Ngensym2;;
-  and _Ngensym3:nlang.builtins.float  such
-    say block 
-  _Ngensym3 = 1.0
-  @_Ngensym3;;
+  and _Ngensym1:nlang.strings.string
+  and _Ngensym2:nlang.strings.string
+  and _Ngensym3:nlang.chars.static_string
+  and _Ngensym4:nlang.chars.static_string  such
+    say sep=block 
+  block
+    _Ngensym1 = nlang.strings.string.from_static_string ', '
+    nlang.strings.string.copy_ctor @#_Ngensym2 @_Ngensym1
+  @_Ngensym2;; block 
+  _Ngensym3 = 'Hello'
+  @_Ngensym3;; block 
+  _Ngensym4 = 'World!'
+  @_Ngensym4;;
+  and _Ngensym5:nlang.builtins.bool  such
+    say sep=null block 
+  _Ngensym5 = true
+  @_Ngensym5;;
+  and _Ngensym6:nlang.builtins.u32  such
+    say sep=null block 
+  _Ngensym6 = 1
+  @_Ngensym6;;
+  and _Ngensym7:nlang.builtins.float  such
+    say sep=null block 
+  _Ngensym7 = 1.0
+  @_Ngensym7;;
   return 0
