@@ -944,8 +944,10 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   }
 
   if (!(node->flags & NODE_IS_TYPE)) {
-    e = typ_check_deref_against_mark(mod, node, mark, operator);
-    EXCEPT(e);
+    if (!(node->flags & NODE_IS_TEMPORARY)) {
+      e = typ_check_deref_against_mark(mod, node, mark, operator);
+      EXCEPT(e);
+    }
   }
 
   return 0;
