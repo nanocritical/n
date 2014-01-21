@@ -3044,71 +3044,6 @@ static error step_move_assign_in_block_like(struct module *mod, struct node *nod
   return 0;
 }
 
-static STEP_FILTER(step_move_defname_expr_in_let_block,
-                   SF(DEFPATTERN));
-static error step_move_defname_expr_in_let_block(struct module *mod, struct node *node,
-                                                 void *user, bool *stop) {
-  // Need to process them backwards for cases like:
-  //   let x, y = block -> 0;;, block -> 1;;
-  // where we prepend the blocks to the let-block, such that:
-  //   let x, y
-  //     block -> x = 0
-  //     block -> y = 0
-  struct node *defp_block = NULL;
-  REVERSE_FOREACH_SUB(d, node) {
-    if (d->which != DEFNAME) {
-      continue;
-    }
-
-    struct node *expr = d->as.DEFNAME.expr;
-    if (expr == NULL) {
-      continue;
-    } else if (is_block_like(expr)) {
-      block_like_insert_value_assign(mod, expr, NULL, node_ident(d->as.DEFNAME.pattern));
-
-      if (defp_block == NULL) {
-        struct node *let = node_parent(node);
-        struct node *target_let_block = NULL;
-
-        if (node_has_tail_block(let)) {
-          const bool first_defpattern_in_let = node_subs_first(let) == node;
-          if (first_defpattern_in_let) {
-            struct node *let_block = node_subs_last(let);
-            target_let_block = mk_node(mod, let, BLOCK);
-            node_subs_remove(let, target_let_block);
-            node_subs_replace(let, let_block, target_let_block);
-            node_subs_append(target_let_block, let_block);
-
-            const struct node *except[] = { let_block, NULL };
-            error e = catchup(mod, except, target_let_block, &let->scope,
-                              CATCHUP_AFTER_CURRENT);
-            assert(!e);
-          } else {
-            target_let_block = node_subs_last(let);
-          }
-        } else {
-          target_let_block = mk_node(mod, let, BLOCK);
-          error e = catchup(mod, NULL, target_let_block, &let->scope,
-                            CATCHUP_AFTER_CURRENT);
-          assert(!e);
-        }
-
-        defp_block = mk_node(mod, target_let_block, BLOCK);
-        error e = catchup(mod, NULL, defp_block, &target_let_block->scope,
-                          CATCHUP_AFTER_CURRENT);
-        assert(!e);
-      }
-
-      d->as.DEFNAME.expr = NULL;
-      node_subs_remove(node_parent(expr), expr);
-      node_subs_prepend(defp_block, expr);
-      expr->scope.parent = &defp_block->scope;
-    }
-  }
-
-  return 0;
-}
-
 static const struct node *retval_name(struct module *mod) {
   const struct node *retval = module_retval_get(mod);
   assert(node_subs_count_atleast(retval, 1));
@@ -3533,7 +3468,6 @@ static error finish_passbody1(struct module *mod, struct node *root,
     ,
     // Must start after 'step_define_temporary_rvalues'
     UP_STEP(step_move_assign_in_block_like);
-    UP_STEP(step_move_defname_expr_in_let_block);
     UP_STEP(step_store_return_through_ref_expr);
 
     UP_STEP(step_pop_fun_state);
@@ -3567,7 +3501,6 @@ static error passbody1(struct module *mod, struct node *root,
     // Must be kept in sync with finish_passbody1().
     UP_STEP(step_define_temporary_rvalues);
     UP_STEP(step_move_assign_in_block_like);
-    UP_STEP(step_move_defname_expr_in_let_block);
     UP_STEP(step_store_return_through_ref_expr);
 
     UP_STEP(step_pop_fun_state);

@@ -630,30 +630,52 @@ static void print_while(FILE *out, const struct module *mod, const struct node *
   print_block(out, mod, node_subs_at_const(node, 1), FALSE);
 }
 
+static void repeat(FILE *out, const char *s, size_t n) {
+  while (n > 0) {
+    fprintf(out, "%s", s);
+    n -= 1;
+  }
+}
+
 static void print_if(FILE *out, const struct module *mod, const struct node *node) {
   const struct node *n = node_subs_first_const(node);
-  fprintf(out, "if (");
+  const size_t subs_count = node_subs_count(node);
+  const size_t br_count = subs_count / 2 + subs_count % 2;
+
+  fprintf(out, "( (");
   print_expr(out, mod, n, T__STATEMENT);
-  fprintf(out, ")");
+  fprintf(out, ") ? (");
   n = node_next_const(n);
   print_block(out, mod, n, FALSE);
+  fprintf(out, ")");
+
+  if (br_count == 1) {
+    fprintf(out, " : ({;}) )");
+    return;
+  }
 
   n = node_next_const(n);
   while (n != NULL && node_next_const(n) != NULL) {
     fprintf(out, "\n");
-    fprintf(out, "else if (");
+    fprintf(out, " : ( (");
     print_expr(out, mod, n, T__STATEMENT);
-    fprintf(out, ") ");
+    fprintf(out, ") ? (");
     n = node_next_const(n);
     print_block(out, mod, n, FALSE);
+    fprintf(out, ")");
     n = node_next_const(n);
   }
 
   if (n != NULL) {
     fprintf(out, "\n");
-    fprintf(out, "else ");
+    fprintf(out, " : (");
     print_block(out, mod, n, FALSE);
+    fprintf(out, ")");
+  } else {
+    fprintf(out, " : ({;})");
   }
+
+  repeat(out, ")", br_count - 1);
 }
 
 static void print_match(FILE *out, const struct module *mod, const struct node *node) {
@@ -1070,6 +1092,7 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
   case IDENT:
   case NUMBER:
   case BOOL:
+  case STRING:
   case NUL:
   case BIN:
   case UN:

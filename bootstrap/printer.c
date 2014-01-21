@@ -545,6 +545,7 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
     break;
   case IDENT:
   case NUMBER:
+  case STRING:
   case BOOL:
   case NUL:
   case BIN:
