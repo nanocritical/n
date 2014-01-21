@@ -1426,8 +1426,10 @@ static error p_for(struct node *node, struct module *mod) {
   struct node *it = mk_node(mod, let_it, DEFPATTERN);
   struct node *it_var = mk_node(mod, it, IDENT);
   it_var->as.IDENT.name = gensym(mod);
+  struct node *it_expr = mk_node(mod, it, UN);
+  it_expr->as.UN.operator = TREFBANG;
 
-  e = p_expr(node_new_subnode(mod, it), mod, T__NOT_STATEMENT);
+  e = p_expr(node_new_subnode(mod, it_expr), mod, T__NOT_STATEMENT);
   EXCEPT(e);
 
   struct node *let_it_block = mk_node(mod, let_it, BLOCK);
