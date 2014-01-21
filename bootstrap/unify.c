@@ -505,9 +505,11 @@ static error check_reference_compatibility(struct module *mod,
   } else if (typ_equal(target0, TBI_ANY_MUTABLE_REF)) {
     ok = typ_isa(a0, TBI_ANY_MUTABLE_REF);
   } else if (typ_equal(target0, TBI_ANY_NULLABLE_REF)) {
-    ok = typ_isa(a0, TBI_ANY_REF);
+    ok = typ_isa(a0, TBI_ANY_REF)
+      || typ_isa(a0, TBI_ANY_NULLABLE_REF);
   } else if (typ_equal(target0, TBI_ANY_NULLABLE_MUTABLE_REF)) {
-    ok = typ_isa(a0, TBI_ANY_MUTABLE_REF);
+    ok = typ_isa(a0, TBI_ANY_MUTABLE_REF)
+      || typ_isa(a0, TBI_ANY_NULLABLE_MUTABLE_REF);
 
   } else if (typ_equal(target0, TBI_REF)) {
     ok = typ_isa(a0, TBI_ANY_REF);
