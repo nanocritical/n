@@ -47,6 +47,9 @@ EXAMPLE(data_structure_size_stats) {
   // It is a good idea to keep track of what is responsible for the size of
   // 'node_as'. In other words, where to look first to shrink 'struct node'.
   assert(sizeof(struct node_defmethod) == sizeof(union node_as));
+
+  // If not, we'll need to store step masks differently.
+  assert(NODE__NUM <= 64);
 }
 
 const char *node_which_strings[] = {
@@ -104,6 +107,7 @@ const char *node_which_strings[] = {
   [POST] = "POST",
   [INVARIANT] = "INVARIANT",
   [EXAMPLE] = "EXAMPLE",
+  [WITHIN] = "WITHIN",
   [ISALIST] = "ISALIST",
   [ISA] = "ISA",
   [IMPORT] = "IMPORT",
@@ -224,6 +228,8 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_UNION_EQUALITY] = "`union_equality",
   [ID_TBI_UNION_ORDER] = "`union_order",
   [ID_TBI_ITERATOR] = "`iterator",
+  [ID_TBI_ENVIRONMENT] = "`environment",
+  [ID_TBI_ANY_ENVIRONMENT] = "`any_environment",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_TBI__CALL_FUNCTION_SLOT] = "__call_function_slot__",
   [ID_TBI__MUTABLE] = "__mutable__",
@@ -306,6 +312,9 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_TRIVIAL_COPY_COPY_CTOR] = "nlang.builtins.`copyable.copy_ctor",
   [BG_TRIVIAL_EQUALITY_OPERATOR_EQ] = "nlang.builtins.`has_equality.operator_eq",
   [BG_TRIVIAL_EQUALITY_OPERATOR_NE] = "nlang.builtins.`has_equality.operator_ne",
+  [BG_ENVIRONMENT_PARENT] = "parent",
+  [BG_ENVIRONMENT_INSTALL] = "install",
+  [BG_ENVIRONMENT_UNINSTALL] = "uninstall",
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
@@ -699,6 +708,8 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_UNION_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_UNION_EQUALITY];
   TBI_UNION_ORDER = gctx->builtin_typs_by_name[ID_TBI_UNION_ORDER];
   TBI_ITERATOR = gctx->builtin_typs_by_name[ID_TBI_ITERATOR];
+  TBI_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ENVIRONMENT];
+  TBI_ANY_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ANY_ENVIRONMENT];
   TBI__NOT_TYPEABLE = gctx->builtin_typs_by_name[ID_TBI__NOT_TYPEABLE];
   TBI__CALL_FUNCTION_SLOT = gctx->builtin_typs_by_name[ID_TBI__CALL_FUNCTION_SLOT];
   TBI__MUTABLE = gctx->builtin_typs_by_name[ID_TBI__MUTABLE];
@@ -1858,12 +1869,32 @@ static error p_throw(struct node *node, struct module *mod) {
 }
 
 static error p_defpattern(struct node *node, struct module *mod,
-                          enum token_type let_alias) {
+                          enum token_type let_alias_globalenv) {
   node_set_which(node, DEFPATTERN);
-  node->as.DEFPATTERN.is_alias = let_alias == Talias;
+  node->as.DEFPATTERN.is_alias = let_alias_globalenv == Talias;
+  node->as.DEFPATTERN.is_globalenv = let_alias_globalenv == Tglobalenv;
 
-  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
+  error e;
+  struct node *prev = node_prev(node);
+  if (prev != NULL
+      && (prev->as.DEFPATTERN.is_alias || prev->as.DEFPATTERN.is_globalenv)) {
+    e = mk_except(mod, node, "cannot use 'and' or 'such'"
+                  " after an 'alias' or 'globalenv'");
+    THROW(e);
+  }
+
+  e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
+
+  if (node->as.DEFPATTERN.is_globalenv) {
+    struct node *n = node_subs_first(node);
+    if (n->which != TYPECONSTRAINT) {
+      e = mk_except(mod, node, "malformed expression, must be:"
+                    " globalenv name:type");
+      THROW(e);
+    }
+    return 0;
+  }
 
   struct token tok = { 0 };
   e = scan(&tok, mod);
@@ -1879,11 +1910,11 @@ static error p_defpattern(struct node *node, struct module *mod,
   return 0;
 }
 
-// When let_and_alias_such == Tand, node is previous LET we are appending
-// ourselves to. Same idea with Tsuch.
+// When let_and_alias_such_globalenv == Tand, node is previous LET we are
+// appending ourselves to. Same idea with Tsuch.
 static error p_let(struct node *node, struct module *mod, const struct toplevel *toplevel,
-                   enum token_type let_and_alias_such) {
-  if (let_and_alias_such == Tsuch) {
+                   enum token_type let_and_alias_such_globalenv) {
+  if (let_and_alias_such_globalenv == Tsuch) {
     assert(node->which == LET);
     assert(toplevel == NULL);
 
@@ -1900,7 +1931,7 @@ static error p_let(struct node *node, struct module *mod, const struct toplevel 
 
     return 0;
 
-  } else if (let_and_alias_such == Tand) {
+  } else if (let_and_alias_such_globalenv == Tand) {
     assert(node->which == LET);
     assert(toplevel == NULL);
   } else {
@@ -1911,7 +1942,8 @@ static error p_let(struct node *node, struct module *mod, const struct toplevel 
     }
   }
 
-  error e = p_defpattern(node_new_subnode(mod, node), mod, let_and_alias_such);
+  error e = p_defpattern(node_new_subnode(mod, node), mod,
+                         let_and_alias_such_globalenv);
   EXCEPT(e);
 
   return 0;
@@ -1982,6 +2014,34 @@ static error p_example(struct node *node, struct module *mod) {
         name->as.IDENT.name = ID_EXAMPLE)));
   error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
   EXCEPT(e);
+
+  return 0;
+}
+
+static error p_within(struct node *node, struct module *mod, bool is_list) {
+  node_set_which(node, WITHIN);
+
+  struct token tok = { 0 };
+  error e;
+
+  if (!is_list) {
+    e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
+    EXCEPT(e);
+    return 0;
+  }
+
+  while (TRUE) {
+    e = scan(&tok, mod);
+    EXCEPT(e);
+    back(mod, &tok);
+
+    if (tok.t != TIDENT) {
+      break;
+    }
+
+    e = p_within(node_new_subnode(mod, node), mod, FALSE);
+    EXCEPT(e);
+  }
 
   return 0;
 }
@@ -2295,6 +2355,16 @@ retval:
 
   count_args(node);
 
+  e = scan(&tok, mod);
+  EXCEPT(e);
+  if (tok.t == Twithin) {
+    e = p_within(node_new_subnode(mod, node), mod, TRUE);
+    EXCEPT(e);
+  } else {
+    back(mod, &tok);
+    (void) mk_node(mod, node, WITHIN);
+  }
+
   e = scan_oneof(&tok, mod, TEOL, TSOB, TEOB, 0);
   EXCEPT(e);
 
@@ -2496,7 +2566,7 @@ static error p_deftype(struct node *node, struct module *mod,
                        struct node *some_genargs, struct toplevel *toplevel,
                        enum token_type decl_tok) {
   if (some_genargs != NULL) {
-    toplevel->first_explicit_genarg = node_subs_count(some_genargs);
+    toplevel->generic->first_explicit_genarg = node_subs_count(some_genargs);
   }
 
   node_set_which(node, DEFTYPE);
@@ -2648,7 +2718,7 @@ again:
 static error p_defintf(struct node *node, struct module *mod,
                        struct node *some_genargs, struct toplevel *toplevel) {
   if (some_genargs != NULL) {
-    toplevel->first_explicit_genarg = node_subs_count(some_genargs);
+    toplevel->generic->first_explicit_genarg = node_subs_count(some_genargs);
   }
 
   node_set_which(node, DEFINTF);
@@ -2701,8 +2771,8 @@ void node_deepcopy(struct module *mod, struct node *dst,
 
   struct toplevel *dtoplevel = node_toplevel(dst);
   if (dtoplevel != NULL) {
-    dtoplevel->instances = NULL;
-    dtoplevel->instances_count = 0;
+    dtoplevel->generic = NULL;
+    dtoplevel->topdeps = NULL;
   }
 
   FOREACH_SUB_CONST(s, src) {
@@ -2798,7 +2868,13 @@ static error p_toplevel(struct module *mod) {
   struct token tok = { 0 }, tok2 = { 0 };
   struct node *node = NULL;
 
+  bool first = TRUE;
+  goto start;
+
 again:
+  first = FALSE;
+
+start:
   e = scan(&tok, mod);
   EXCEPT(e);
 
@@ -2875,6 +2951,7 @@ bypass:
     break;
   case Tlet:
   case Talias:
+  case Tglobalenv:
     e = p_let(NEW(mod, node), mod, &toplevel, tok.t);
     break;
   case TIDENT:
@@ -2888,7 +2965,14 @@ bypass:
   case Texample:
     e = p_example(NEW(mod, node), mod);
     break;
+  case Twithin:
+    e = p_within(NEW(mod, node), mod, TRUE);
+    break;
   case TEOL:
+    if (first) {
+      // This happens when a file starts with comments.
+      back(mod, &tok);
+    }
     break;
   default:
     THROW_SYNTAX(mod, &tok, "malformed top-level statement at '%.*s'", (int)tok.len, tok.value);
@@ -2930,6 +3014,7 @@ static void subnode_count_avg(struct module *mod) {
 static error module_parse(struct module *mod) {
   error e;
   mod->body = mk_node(mod, mod->root, MODULE_BODY);
+  scope_init(&mod->body->as.MODULE_BODY.globalenv_scope);
 
   do {
     e = p_toplevel(mod);
@@ -3162,19 +3247,6 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
 
   if (typ_generic_arity(t) == 0) {
     s = stpcpy(s, typ_name(mod, t));
-  } else if (typ_isa(t, TBI_ANY_TUPLE)) {
-    if (typ_is_generic_functor(t)) {
-      s = stpcpy(s, "functor ");
-    }
-
-    for (size_t n = 0; n < typ_generic_arity(t); ++n) {
-      if (n > 0) {
-        s = stpcpy(s, ", ");
-      }
-      char *s2 = typ_pretty_name(mod, typ_generic_arg_const(t, n));
-      s = stpcpy(s, s2);
-      free(s2);
-    }
   } else {
     s = stpcpy(s, "(");
     if (typ_is_generic_functor(t)) {
@@ -3200,6 +3272,25 @@ s = stpcpy(s, s2);
   }
 
   return r;
+}
+
+static int print_topdeps_foreach(const struct typ **t, uint8_t *yes, void *user) {
+  const struct module *mod = user;
+  if (*yes) {
+    fprintf(stderr, "\t%s\n", typ_pretty_name(mod, *t));
+  }
+  return 0;
+}
+
+void debug_print_topdeps(const struct module *mod, const struct node *node) {
+  const struct toplevel *toplevel = node_toplevel_const(node);
+  struct typset *topdeps = toplevel->topdeps;
+  if (topdeps == NULL) {
+    return;
+  }
+
+  fprintf(stderr, "%s\n", scope_name(mod, &node->scope));
+  typset_foreach(topdeps, print_topdeps_foreach, (void *)mod);
 }
 
 error mk_except(const struct module *mod, const struct node *node,
