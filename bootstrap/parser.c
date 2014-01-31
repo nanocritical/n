@@ -14,6 +14,12 @@
 
 #define MEMPOOL_CHUNK (64*1024)
 
+#ifdef CONFIG_MEMPOOL_JUST_MALLOC
+noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
+  (void) mod;
+  return calloc(nmemb, size);
+}
+#else
 noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
   struct mempool *mempool = mod->mempool;
 
@@ -35,6 +41,7 @@ noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
 
   return g;
 }
+#endif
 
 EXAMPLE(data_structure_size_stats) {
   // It is a good idea to keep track of what is responsible for the size of
