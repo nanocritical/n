@@ -737,11 +737,16 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
   return 0;
 }
 
+struct intf_proto_rewrite_state {
+  struct typ *thi;
+  const struct node *proto_parent;
+};
+
 static STEP_FILTER(step_rewrite_final_this,
                    SF(IDENT));
 static error step_rewrite_final_this(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
-  struct typ *thi = user;
+  struct typ *thi = ((struct intf_proto_rewrite_state *)user)->thi;
   ident id = node_ident(node);
   if (id == ID_THIS) {
     node_set_which(node, DIRECTDEF);
@@ -751,18 +756,64 @@ static error step_rewrite_final_this(struct module *mod, struct node *node,
   return 0;
 }
 
-static error pass_rewrite_final_this(struct module *mod, struct node *root,
-                                     void *user, ssize_t shallow_last_up) {
-  PASS(DOWN_STEP(step_rewrite_final_this),);
+static STEP_FILTER(step_rewrite_local_idents,
+                   SF(DEFARG) | SF(IDENT));
+static error step_rewrite_local_idents(struct module *mod, struct node *node,
+                                       void *user, bool *stop) {
+  const struct node *proto_parent =
+    ((struct intf_proto_rewrite_state *)user)->proto_parent;
+  if (proto_parent == NULL) {
+    return 0;
+  }
+
+  if (node->which == DEFARG) {
+    node_subs_first(node)->typ = TBI__NOT_TYPEABLE;
+    return 0;
+  }
+  if (node->typ == TBI__NOT_TYPEABLE) {
+    return 0;
+  }
+
+  const ident id = node_ident(node);
+  if (id == ID_THIS || id == ID_FINAL) {
+    return 0;
+  }
+
+  struct node *d = NULL;
+  error e = scope_lookup_ident_immediate(&d, node, mod, &proto_parent->scope,
+                                         id, TRUE);
+  if (e == EINVAL) {
+    return 0;
+  } else if (e) {
+    assert(!e);
+  }
+
+  node_set_which(node, DIRECTDEF);
+  set_typ(&node->as.DIRECTDEF.typ, d->typ);
+
   return 0;
 }
 
-static void intf_proto_deepcopy(struct module *mod, struct typ *thi,
-                                struct node *dst, struct node *src) {
+static error pass_rewrite_proto(struct module *mod, struct node *root,
+                                void *user, ssize_t shallow_last_up) {
+  PASS(DOWN_STEP(step_rewrite_final_this);
+       DOWN_STEP(step_rewrite_local_idents),);
+  return 0;
+}
+
+static void intf_proto_deepcopy(struct module *mod,
+                                struct node *dst, struct node *src,
+                                struct typ *thi,
+                                const struct node *proto_parent) {
   node_deepcopy(mod, dst, src);
 
+  struct intf_proto_rewrite_state st = {
+    .thi = thi,
+    .proto_parent = proto_parent,
+  };
+
   PUSH_STATE(mod->state->step_state);
-  error e = pass_rewrite_final_this(mod, dst, thi, -1);
+  error e = pass_rewrite_proto(mod, dst, &st, -1);
   assert(!e);
   POP_STATE(mod->state->step_state);
 
@@ -772,10 +823,21 @@ static void intf_proto_deepcopy(struct module *mod, struct typ *thi,
 }
 
 static void define_builtin(struct module *mod, struct node *deft,
-                           enum builtingen bg) {
-  struct node *proto = NULL;
-  error e = scope_lookup_abspath(&proto, deft, mod, builtingen_abspath[bg]);
-  assert(!e);
+                           enum builtingen bg,
+                           const struct node *proto_parent) {
+  error e;
+  struct node *proto;
+  if (proto_parent != NULL) {
+    const char *n = builtingen_abspath[bg];
+    const ident id = idents_add_string(mod->gctx, n, strlen(n));
+    e = scope_lookup_ident_immediate(&proto, deft, mod,
+                                     &proto_parent->scope,
+                                     id, FALSE);
+    assert(!e);
+  } else {
+    e = scope_lookup_abspath(&proto, deft, mod, builtingen_abspath[bg]);
+    assert(!e);
+  }
 
   struct node *existing = node_get_member(mod, deft, node_ident(proto));
   if (existing != NULL) {
@@ -783,7 +845,7 @@ static void define_builtin(struct module *mod, struct node *deft,
   }
 
   struct node *d = node_new_subnode(mod, deft);
-  intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
+  intf_proto_deepcopy(mod, d, proto, node_parent(proto)->typ, proto_parent);
   struct node *full_name = mk_expr_abspath(mod, d, builtingen_abspath[bg]);
   node_subs_remove(d, full_name);
   node_subs_replace(d, node_subs_first(d), full_name);
@@ -806,7 +868,7 @@ static void define_defchoice_builtin(struct module *mod, struct node *ch,
   assert(!e);
 
   struct node *d = node_new_subnode(mod, ch);
-  intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
+  intf_proto_deepcopy(mod, d, proto, node_parent(proto)->typ, NULL);
   struct node *full_name = mk_expr_abspath(mod, d, builtingen_abspath[bg]);
   node_subs_remove(d, full_name);
   node_subs_replace(d, node_subs_first(d), full_name);
@@ -905,7 +967,7 @@ static error define_auto(struct module *mod, struct node *deft,
   }
 
   struct node *d = node_new_subnode(mod, deft);
-  intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
+  intf_proto_deepcopy(mod, d, proto, node_parent(proto)->typ, NULL);
 
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->flags &= ~TOP_IS_PROTOTYPE;
@@ -923,7 +985,7 @@ static error define_auto(struct module *mod, struct node *deft,
     struct node *cpy = node_new_subnode(mod, d_funargs);
     node_subs_remove(d_funargs, cpy);
     node_subs_insert_before(d_funargs, d_retval, cpy);
-    intf_proto_deepcopy(mod, node_parent(proto)->typ, cpy, arg);
+    intf_proto_deepcopy(mod, cpy, arg, node_parent(proto)->typ, NULL);
   }
 
   assert(node_toplevel(d)->yet_to_pass == 0);
@@ -948,15 +1010,15 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node,
   }
 
   if (typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
-    define_builtin(mod, node, BG_TRIVIAL_CTOR_CTOR);
-    define_builtin(mod, node, BG_TRIVIAL_CTOR_MK);
-    define_builtin(mod, node, BG_TRIVIAL_CTOR_NEW);
+    define_builtin(mod, node, BG_TRIVIAL_CTOR_CTOR, NULL);
+    define_builtin(mod, node, BG_TRIVIAL_CTOR_MK, NULL);
+    define_builtin(mod, node, BG_TRIVIAL_CTOR_NEW, NULL);
   } else if (typ_isa(node->typ, TBI_DEFAULT_CTOR)) {
-    define_builtin(mod, node, BG_DEFAULT_CTOR_MK);
-    define_builtin(mod, node, BG_DEFAULT_CTOR_NEW);
+    define_builtin(mod, node, BG_DEFAULT_CTOR_MK, NULL);
+    define_builtin(mod, node, BG_DEFAULT_CTOR_NEW, NULL);
   } else if (typ_isa(node->typ, TBI_CTOR_WITH)) {
-    define_builtin(mod, node, BG_CTOR_WITH_MK);
-    define_builtin(mod, node, BG_CTOR_WITH_NEW);
+    define_builtin(mod, node, BG_CTOR_WITH_MK, NULL);
+    define_builtin(mod, node, BG_CTOR_WITH_NEW, NULL);
   } else {
     error e = define_auto(mod, node, BG_AUTO_MK);
     EXCEPT(e);
@@ -982,8 +1044,8 @@ static error step_add_builtin_mkv_newv(struct module *mod, struct node *node,
   }
 
   if (typ_isa(node->typ, TBI_ARRAY_CTOR)) {
-    define_builtin(mod, node, BG_AUTO_MKV);
-    define_builtin(mod, node, BG_AUTO_NEWV);
+    define_builtin(mod, node, BG_AUTO_MKV, NULL);
+    define_builtin(mod, node, BG_AUTO_NEWV, NULL);
   }
 
   return 0;
@@ -1030,8 +1092,8 @@ static error step_add_builtin_operators(struct module *mod, struct node *node,
     break;
   case DEFTYPE_ENUM:
     if (!typ_isa(node->as.DEFTYPE.choice_typ, TBI_NATIVE_INTEGER)) {
-      define_builtin(mod, node, BG_ENUM_EQ);
-      define_builtin(mod, node, BG_ENUM_NE);
+      define_builtin(mod, node, BG_ENUM_EQ, NULL);
+      define_builtin(mod, node, BG_ENUM_NE, NULL);
     }
     break;
   }
@@ -1055,11 +1117,11 @@ static error step_add_trivials(struct module *mod, struct node *node,
   }
 
   if (typ_isa(node->typ, TBI_TRIVIAL_COPY)) {
-    define_builtin(mod, node, BG_TRIVIAL_COPY_COPY_CTOR);
+    define_builtin(mod, node, BG_TRIVIAL_COPY_COPY_CTOR, NULL);
   }
   if (typ_isa(node->typ, TBI_TRIVIAL_EQUALITY)) {
-    define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_EQ);
-    define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_NE);
+    define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_EQ, NULL);
+    define_builtin(mod, node, BG_TRIVIAL_EQUALITY_OPERATOR_NE, NULL);
   }
 
   return 0;
@@ -1086,7 +1148,7 @@ static void define_dispatch(struct module *mod, struct node *deft, struct typ *t
     struct node *d = node_new_subnode(mod, modbody);
     node_subs_remove(modbody, d);
     node_subs_insert_after(modbody, deft, d);
-    intf_proto_deepcopy(mod, node_parent(proto)->typ, d, proto);
+    intf_proto_deepcopy(mod, d, proto, node_parent(proto)->typ, NULL);
     char *abspath = scope_name(mod, &proto->scope);
     struct node *full_name = mk_expr_abspath(mod, d, abspath);
     node_subs_remove(d, full_name);
@@ -1133,18 +1195,18 @@ static error union_choice_with_intf(struct module *mod, struct typ *t,
 
   if (typ_equal(intf, TBI_UNION_COPY)) {
     if (!typ_isa(node->typ, TBI_TRIVIAL_COPY)) {
-      define_builtin(mod, node, BG_UNION_COPY);
+      define_builtin(mod, node, BG_UNION_COPY, NULL);
     }
   } else if (typ_equal(intf, TBI_UNION_EQUALITY)) {
     if (!typ_isa(node->typ, TBI_TRIVIAL_EQUALITY)) {
-      define_builtin(mod, node, BG_UNION_EQUALITY_EQ);
-      define_builtin(mod, node, BG_UNION_EQUALITY_NE);
+      define_builtin(mod, node, BG_UNION_EQUALITY_EQ, NULL);
+      define_builtin(mod, node, BG_UNION_EQUALITY_NE, NULL);
     }
   } else if (typ_equal(intf, TBI_UNION_ORDER)) {
-    define_builtin(mod, node, BG_UNION_ORDER_LE);
-    define_builtin(mod, node, BG_UNION_ORDER_LT);
-    define_builtin(mod, node, BG_UNION_ORDER_GT);
-    define_builtin(mod, node, BG_UNION_ORDER_GE);
+    define_builtin(mod, node, BG_UNION_ORDER_LE, NULL);
+    define_builtin(mod, node, BG_UNION_ORDER_LT, NULL);
+    define_builtin(mod, node, BG_UNION_ORDER_GT, NULL);
+    define_builtin(mod, node, BG_UNION_ORDER_GE, NULL);
   } else {
     define_dispatch(mod, node, intf);
   }
