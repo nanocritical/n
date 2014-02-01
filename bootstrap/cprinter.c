@@ -1450,7 +1450,8 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
   size_t a;
   const struct node *funargs = NULL;
-  switch (node_toplevel_const(node)->builtingen) {
+  const enum builtingen bg = node_toplevel_const(node)->builtingen;
+  switch (bg) {
   case BG_TRIVIAL_CTOR_CTOR:
     break;
   case BG_TRIVIAL_CTOR_MK:
@@ -1667,6 +1668,23 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     break;
   case BG_TRIVIAL_EQUALITY_OPERATOR_NE:
     fprintf(out, "return memcmp(self, other, sizeof(*self)) != 0;\n");
+    break;
+  case BG_ENVIRONMENT_PARENT:
+    assert(node->which == DEFMETHOD);
+    fprintf(out, "NLANG_BUILTINS_BG_ENVIRONMENT_PARENT(");
+    print_typ(out, mod,
+              typ_generic_arg_const(
+                node_parent_const(node->as.DEFMETHOD.member_isa)->typ, 0));
+    fprintf(out, ");\n");
+    break;
+  case BG_ENVIRONMENT_INSTALL:
+  case BG_ENVIRONMENT_UNINSTALL:
+    funargs = node_subs_at_const(node, IDX_FUNARGS);
+    fprintf(out, "NLANG_BUILTINS_BG_ENVIRONMENT_%sINSTALL(",
+            bg == BG_ENVIRONMENT_UNINSTALL ? "UN" : "");
+    print_typ(out, mod,
+              typ_generic_arg_const(node_subs_at_const(funargs, 1)->typ, 0));
+    fprintf(out, ");\n");
     break;
   default:
     assert(FALSE);
@@ -1895,6 +1913,22 @@ struct cprinter_state {
   void *user;
 };
 
+static error print_deftype_envparent_eachisalist(struct module *mod,
+                                                 struct typ *t, struct typ *intf,
+                                                 bool *stop, void *user) {
+  if (typ_generic_arity(intf) == 0
+      || !typ_equal(typ_generic_functor_const(intf), TBI_ENVIRONMENT)) {
+    return 0;
+  }
+
+  struct cprinter_state *st = user;
+  fprintf(st->out, "NLANG_BUILTINS_DEFINE_ENVPARENT(");
+  print_typ(st->out, st->mod, typ_generic_arg_const(intf, 0));
+  fprintf(st->out, ");\n");
+
+  return 0;
+}
+
 static void print_deftype_block(FILE *out, bool header, enum forward fwd, const struct module *mod,
                                 const struct node *node, bool do_static, struct typset *printed) {
   if (!do_static) {
@@ -1920,6 +1954,17 @@ static void print_deftype_block(FILE *out, bool header, enum forward fwd, const 
     fprintf(out, "_%s %s;\n",
             idents_value(mod->gctx, ID_AS_TYPE),
             idents_value(mod->gctx, ID_AS));
+  }
+
+  if (!do_static && typ_isa(node->typ, TBI_ENVIRONMENT)) {
+    struct cprinter_state st = {
+      .out = out, .header = header, .fwd = fwd,
+      .mod = mod, .printed = 0, .user = NULL,
+    };
+    error e = typ_isalist_foreach((struct module *)mod, node->typ, 0,
+                                  print_deftype_envparent_eachisalist,
+                                  &st);
+    assert(!e);
   }
 
   if (!do_static) {
@@ -2701,6 +2746,8 @@ static void print_top(FILE *out, bool header, enum forward fwd,
     break;
   case IMPORT:
     print_import(out, header, fwd, mod, node);
+    break;
+  case WITHIN:
     break;
   default:
     fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);

@@ -53,6 +53,8 @@ enum token_type {
   Texample,
   Tsizeof,
   Talignof,
+  Twithin,
+  Tglobalenv,
 
   TNUMBER,
   TSTRING,
@@ -240,6 +242,7 @@ static const bool expr_terminators[TOKEN__NUM] = {
   [TRPAR] = TRUE,
   [TRSBRA] = TRUE,
   [TRCBRA] = TRUE,
+  [Twithin] = TRUE,
 };
 
 struct parser {

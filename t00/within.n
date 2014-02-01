@@ -1,0 +1,41 @@
+from nlang import *
+from nlang.strings import *
+
+globalenv e2:@!`env2
+
+intf `env2 =
+  isa (`environment this)
+  method@ say2 s:@string = void
+
+struct myenv2 =
+  isa `env2
+  dummy	:u32
+
+myenv2 method@ say2 s:@string = void
+  say @'saying2:' s
+
+intf `env1 =
+  isa (`environment this)
+  method@ say s:@string = void
+
+struct myenv1 =
+  isa `env1
+
+globalenv e1:@!`env1
+within e1
+
+myenv1 method@ say s:@string = void
+  say @'saying:' s
+
+fun do = i32 within e2
+  e2.say2 @'module'
+  e1.say @'function'
+  return 0
+
+export fun main = i32 within e2
+  let mye1 = {}:myenv1
+  and mye2 = {}:myenv2
+  such
+    mye1!install @!e1
+    mye2!install @!e2
+  return do

@@ -443,6 +443,25 @@ static void print_example(FILE *out, const struct module *mod, int indent, const
   print_expr(out, mod, node_subs_first_const(node), T__STATEMENT);
 }
 
+static void print_within(FILE *out, const struct module *mod, const struct node *node) {
+  if (!node_subs_count_atleast(node, 1)) {
+    return;
+  }
+
+  if (node_subs_first_const(node)->which != WITHIN) {
+    fprintf(out, "within ");
+    print_expr(out, mod, node_subs_first_const(node), T__CALL);
+    return;
+  }
+
+  const struct node *n = node_subs_first_const(node);
+  while (n != NULL) {
+    print_within(out, mod, n);
+    n = node_next_const(n);
+  }
+  return;
+}
+
 static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
   if (toplevel->flags & TOP_IS_EXPORT) {
     fprintf(out, "export ");
@@ -457,7 +476,13 @@ static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
 
 static void print_defpattern(FILE *out, const struct module *mod, int indent, const struct node *node,
                              bool first_defp) {
-  fprintf(out, first_defp ? "let " : "and ");
+  if (node->as.DEFPATTERN.is_alias) {
+    fprintf(out, "alias ");
+  } else if (node->as.DEFPATTERN.is_globalenv) {
+    fprintf(out, "globalenv ");
+  } else {
+    fprintf(out, first_defp ? "let " : "and ");
+  }
   print_pattern(out, mod, node_subs_first_const(node));
 
   if (node_subs_at_const(node, 1)->which != DEFNAME) {
@@ -613,6 +638,9 @@ static void print_deffun(FILE *out, const struct module *mod, int indent, const 
   fprintf(out, " = ");
   print_expr(out, mod, retval, T__STATEMENT);
 
+  fprintf(out, " ");
+  print_within(out, mod, node_subs_at_const(node, IDX_WITHIN));
+
   if (!node_is_prototype(node)
       && node_toplevel_const(node)->builtingen == BG__NOT) {
     const struct node *block = node_subs_last_const(node);
@@ -745,6 +773,9 @@ static void print_defmethod(FILE *out, const struct module *mod, int indent, con
   fprintf(out, " = ");
   print_expr(out, mod, retval, T__STATEMENT);
 
+  fprintf(out, " ");
+  print_within(out, mod, node_subs_at_const(node, IDX_WITHIN));
+
   if (!node_is_prototype(node) && node_toplevel_const(node)->builtingen == BG__NOT) {
     const struct node *block = node_subs_last_const(node);
     print_block(out, mod, 0, block);
@@ -827,6 +858,9 @@ static void print_module(FILE *out, const struct module *mod) {
       break;
     case EXAMPLE:
       print_example(out, mod, 0, node);
+      break;
+    case WITHIN:
+      print_within(out, mod, node);
       break;
     default:
       fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);

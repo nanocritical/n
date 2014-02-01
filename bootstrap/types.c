@@ -800,6 +800,8 @@ struct typ *TBI_UNION_COPY;
 struct typ *TBI_UNION_EQUALITY;
 struct typ *TBI_UNION_ORDER;
 struct typ *TBI_ITERATOR;
+struct typ *TBI_ENVIRONMENT;
+struct typ *TBI_ANY_ENVIRONMENT;
 struct typ *TBI__NOT_TYPEABLE;
 struct typ *TBI__CALL_FUNCTION_SLOT;
 struct typ *TBI__MUTABLE;

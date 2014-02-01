@@ -44,7 +44,7 @@ static error step_export_pre_post_invariant(struct module *mod, struct node *nod
 
 STEP_FILTER(step_stop_already_morningtypepass,
             SF(LET) | SF(ISA) | SF(GENARGS) | SF(FUNARGS) | SF(DEFGENARG) |
-            SF(SETGENARG) | SF(DEFFIELD) | SF(DEFCHOICE));
+            SF(SETGENARG) | SF(DEFFIELD) | SF(DEFCHOICE) | SF(WITHIN));
 error step_stop_already_morningtypepass(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   DSTEP(mod, node);
@@ -349,7 +349,8 @@ static error step_defpattern_extract_defname(struct module *mod, struct node *no
 
 static STEP_FILTER(step_lexical_scoping,
                    SF(DEFFUN) | SF(DEFMETHOD) | SF(DEFTYPE) | SF(DEFINTF) |
-                   SF(DEFFIELD) | SF(DEFCHOICE) | SF(DEFNAME) | SF(CATCH));
+                   SF(DEFFIELD) | SF(DEFCHOICE) | SF(DEFNAME) | SF(CATCH) |
+                   SF(WITHIN));
 static error step_lexical_scoping(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
@@ -417,6 +418,26 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     }
     break;
   case CATCH:
+    break;
+  case WITHIN:
+    if (node_subs_count_atleast(node, 1)
+        && node_subs_first(node)->which != WITHIN) {
+      struct node *n = node_subs_first(node);
+      if (n->which == BIN) {
+        assert(n->as.BIN.operator == TDOT);
+        id = node_subs_last(n);
+      } else {
+        id = n;
+      }
+
+      struct node *pparent = node_parent(node_parent(node));
+      if (pparent->which == MODULE_BODY) {
+        sc = &pparent->scope;
+      } else {
+        assert(pparent->which == DEFFUN || pparent->which == DEFMETHOD);
+        sc = &node_subs_last(node_parent(node_parent(node)))->scope;
+      }
+    }
     break;
   default:
     assert(FALSE && "Unreached");
@@ -1140,6 +1161,40 @@ static error step_add_trivials(struct module *mod, struct node *node,
   return 0;
 }
 
+static error add_environment_builtins_eachisalist(struct module *mod,
+                                                  struct typ *t,
+                                                  struct typ *intf,
+                                                  bool *stop,
+                                                  void *user) {
+  struct node *deft = user;
+  if (typ_generic_arity(intf) == 0
+      || !typ_equal(typ_generic_functor_const(intf), TBI_ENVIRONMENT)) {
+    return 0;
+  }
+
+  const struct node *dintf = typ_definition_const(intf);
+  define_builtin(mod, deft, BG_ENVIRONMENT_PARENT, dintf);
+  define_builtin(mod, deft, BG_ENVIRONMENT_INSTALL, dintf);
+  define_builtin(mod, deft, BG_ENVIRONMENT_UNINSTALL, dintf);
+  return 0;
+}
+
+static STEP_FILTER(step_add_environment_builtins,
+                   SF(DEFTYPE));
+static error step_add_environment_builtins(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (!typ_isa(node->typ, TBI_ANY_ENVIRONMENT)) {
+    return 0;
+  }
+
+  error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTER_TRIVIAL_ISALIST,
+                                add_environment_builtins_eachisalist, node);
+  EXCEPT(e);
+  return 0;
+}
+
 static void define_dispatch(struct module *mod, struct node *deft, struct typ *tintf) {
   struct node *intf = typ_definition(tintf);
 
@@ -1431,6 +1486,7 @@ static error passfwd8(struct module *mod, struct node *root,
     UP_STEP(step_add_builtin_mkv_newv);
     UP_STEP(step_add_builtin_operators);
     UP_STEP(step_add_trivials);
+    UP_STEP(step_add_environment_builtins);
     UP_STEP(step_add_union_dispatch);
     UP_STEP(step_rewrite_def_return_through_ref);
     UP_STEP(step_pop_top_state);

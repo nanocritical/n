@@ -9,7 +9,7 @@ syn keyword nSemantic unique shared pshared
 syn keyword nSemantic capturedby capturedbyret owned ownedby protected protect protecting prop claim logic
 
 syn keyword nAssert assert pre post invariant
-syn keyword nDecl example alias within
+syn keyword nDecl example alias within globalenv
 syn keyword nDecl contract honors _honors pretag posttag tag
 
 syn keyword nConditional if elif else match

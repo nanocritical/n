@@ -170,6 +170,8 @@ extern struct typ *TBI_UNION_COPY;
 extern struct typ *TBI_UNION_EQUALITY;
 extern struct typ *TBI_UNION_ORDER;
 extern struct typ *TBI_ITERATOR;
+extern struct typ *TBI_ENVIRONMENT;
+extern struct typ *TBI_ANY_ENVIRONMENT;
 extern struct typ *TBI__NOT_TYPEABLE;
 extern struct typ *TBI__CALL_FUNCTION_SLOT;
 extern struct typ *TBI__MUTABLE;

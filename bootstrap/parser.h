@@ -69,6 +69,7 @@ enum node_which {
   POST,
   INVARIANT,
   EXAMPLE,
+  WITHIN,
   ISALIST,
   ISA,
   IMPORT,
@@ -113,6 +114,9 @@ enum builtingen {
   BG_TRIVIAL_COPY_COPY_CTOR,
   BG_TRIVIAL_EQUALITY_OPERATOR_EQ,
   BG_TRIVIAL_EQUALITY_OPERATOR_NE,
+  BG_ENVIRONMENT_PARENT,
+  BG_ENVIRONMENT_INSTALL,
+  BG_ENVIRONMENT_UNINSTALL,
   BG__NUM,
 };
 
@@ -267,6 +271,7 @@ struct node_defname {
 };
 struct node_defpattern {
   bool is_alias;
+  bool is_globalenv;
 };
 struct node_defarg {
   bool is_optional;
@@ -307,6 +312,9 @@ struct node_example {
   struct toplevel toplevel;
   size_t name;
 };
+struct node_within {
+  struct toplevel toplevel;
+};
 struct node_import {
   struct toplevel toplevel;
   bool is_all;
@@ -321,6 +329,7 @@ struct node_module {
   struct module *mod;
 };
 struct node_module_body {
+  struct scope globalenv_scope;
 };
 
 struct node_directdef {
@@ -373,6 +382,7 @@ union node_as {
   struct node_post POST;
   struct node_invariant INVARIANT;
   struct node_example EXAMPLE;
+  struct node_within WITHIN;
   struct node_isa ISA;
   struct node_import IMPORT;
   struct node_module MODULE;
@@ -707,6 +717,7 @@ enum subnode_idx {
   IDX_FOR_IT_BLOCK_WHILE = 0,
   IDX_FOR_IT_BLOCK_WHILE_BLOCK = 1,
   IDX_FUNARGS = 2,
+  IDX_WITHIN = 3,
   IDX_DEFNAME_EXCEP_TEST = 0,
   IDX_UNKNOWN_IDENT = 2,
 };
@@ -835,6 +846,8 @@ enum predefined_idents {
   ID_TBI_UNION_EQUALITY,
   ID_TBI_UNION_ORDER,
   ID_TBI_ITERATOR,
+  ID_TBI_ENVIRONMENT,
+  ID_TBI_ANY_ENVIRONMENT,
   ID_TBI__NOT_TYPEABLE,
   ID_TBI__FIRST_MARKER = ID_TBI__NOT_TYPEABLE,
   ID_TBI__CALL_FUNCTION_SLOT,
@@ -970,6 +983,7 @@ struct stage_state {
   struct stage_state *prev;
 
   ssize_t passing;
+  struct module *base_mod;
 };
 
 // A compilation stage is a group of modules that are loaded and compiled
@@ -1163,7 +1177,7 @@ struct node *node_for_block(struct node *node);
 
 #define STEP_FILTER_HAS_TOPLEVEL \
   (STEP_FILTER_DEFS | SF(LET) | SF(INVARIANT) | SF(DELEGATE) \
-   | SF(IMPORT) | SF(EXAMPLE))
+   | SF(IMPORT) | SF(EXAMPLE) | SF(WITHIN))
 
 static inline const struct toplevel *node_toplevel_const(const struct node *node) {
   const struct toplevel *toplevel = NULL;
@@ -1207,6 +1221,9 @@ static inline const struct toplevel *node_toplevel_const(const struct node *node
     break;
   case EXAMPLE:
     toplevel = &node->as.EXAMPLE.toplevel;
+    break;
+  case WITHIN:
+    toplevel = &node->as.WITHIN.toplevel;
     break;
   case IMPORT:
     toplevel = &node->as.IMPORT.toplevel;

@@ -7,6 +7,8 @@ struct NB(valist) {
   va_list ap;
 };
 
+#define NLANG_BUILTINS_DEFINE_ENVPARENT(envt) envt _Nenvparent_##envt
+
 #endif
 
 #ifdef NLANG_DEFINE_FUNCTIONS
@@ -24,9 +26,19 @@ struct NB(valist) {
   ({ nlang_builtins_assert((va).n > 0); \
    (va).n -= 1; \
    va_arg((va).ap.ap, t); })
-#endif
 
-#ifdef NLANG_DEFINE_FUNCTIONS
+#define NLANG_BUILTINS_BG_ENVIRONMENT_PARENT(envt) do { \
+  return self->_Nenvparent_##envt; \
+} while (0)
+
+#define NLANG_BUILTINS_BG_ENVIRONMENT_INSTALL(envt) do { \
+  self->_Nenvparent_##envt = *where; \
+  *where = THIS(_mkdyn__##envt)(self); \
+} while (0)
+
+#define NLANG_BUILTINS_BG_ENVIRONMENT_UNINSTALL(envt) do { \
+  *where = where->vptr->parent(where->obj); \
+} while (0)
 
 static inline NB(u8) NB(i8_reinterpret_unsigned)(const NB(i8) *self) {
   return (NB(u8)) *self;

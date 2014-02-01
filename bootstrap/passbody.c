@@ -204,10 +204,10 @@ static void inherit(struct module *mod, struct node *node) {
 }
 
 STEP_FILTER(step_type_destruct_mark,
-            SF(BIN) | SF(CALL) | SF(INIT) | SF(DEFFUN) | SF(DEFMETHOD) |
-            SF(DEFTYPE) | SF(DEFINTF) | SF(DEFFIELD) | SF(DEFARG) |
-            SF(DEFGENARG) | SF(SETGENARG) | SF(MODULE_BODY) |
-            SF(DEFCHOICE));
+            SF(BIN) | SF(CALL) | SF(INIT) | SF(DEFFUN) |
+            SF(DEFMETHOD) | SF(DEFTYPE) | SF(DEFINTF) | SF(DEFFIELD) |
+            SF(DEFARG) | SF(DEFGENARG) | SF(SETGENARG) | SF(MODULE_BODY) |
+            SF(DEFCHOICE) | SF(WITHIN));
 error step_type_destruct_mark(struct module *mod, struct node *node,
                               void *user, bool *stop) {
   DSTEP(mod, node);
@@ -237,6 +237,14 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
   case INIT:
     if (!node->as.INIT.is_array) {
       mark_subs(mod, node, TBI__NOT_TYPEABLE, first, last, 2);
+    }
+    break;
+  case WITHIN:
+    if (node_subs_count_atleast(node, 1)
+        && first->which != WITHIN) {
+      // So it will not resolve in type_inference_ident(), but through
+      // type_inference_within().
+      first->typ = not_typeable;
     }
     break;
   case DEFFUN:
@@ -1853,7 +1861,23 @@ static error type_inference_ident_unknown(struct module *mod, struct node *node)
   return 0;
 }
 
+static bool is_name_of_globalenv(const struct node *node) {
+  const struct node *parent = node_parent_const(node);
+  if (parent->which == TYPECONSTRAINT
+      && node_subs_first_const(parent) == node) {
+    const struct node *pparent = node_parent_const(parent);
+    return pparent->which == DEFPATTERN && pparent->as.DEFPATTERN.is_globalenv;
+  } else {
+    return FALSE;
+  }
+}
+
 static error type_inference_ident(struct module *mod, struct node *node) {
+  if (is_name_of_globalenv(node)) {
+    set_typ(&node->typ, typ_create_tentative(TBI_ANY));
+    return 0;
+  }
+
   if (node_ident(node) == ID_OTHERWISE) {
     set_typ(&node->typ, typ_create_tentative(TBI_ANY));
     return 0;
@@ -1935,6 +1959,61 @@ static bool string_literal_has_length_one(const char *s) {
   }
 }
 
+static error type_inference_within(struct module *mod, struct node *node) {
+  node->typ = NULL;
+
+  error e;
+  struct node *def = NULL;
+  struct node *first = node_subs_first(node);
+
+  if (node->which == WITHIN) {
+    const struct node *modbody = NULL;
+    if (first->which == BIN) {
+      struct node *ffirst = node_subs_first(first);
+      e = type_inference_within(mod, ffirst);
+      EXCEPT(e);
+
+      modbody = typ_definition_const(ffirst->typ);
+
+      if (modbody->which != MODULE_BODY) {
+        e = mk_except(mod, node, "invalid within expression,"
+                      " must point to a globalenv declaration");
+        THROW(e);
+      }
+    } else if (first->which == IDENT) {
+      modbody = node_module_owner_const(node)->body;
+    } else {
+      goto malformed;
+    }
+
+    e = scope_lookup_ident_immediate(&def, node, mod,
+                                     &modbody->as.MODULE_BODY.globalenv_scope,
+                                     node_ident(node_subs_last_const(node)), FALSE);
+    EXCEPT(e);
+  } else if (node->which == IDENT) {
+    e = scope_lookup(&def, mod, &node->scope, node, FALSE);
+    EXCEPT(e);
+  } else if (node->which == BIN) {
+    e = type_inference_within(mod, first);
+    EXCEPT(e);
+
+    e = scope_lookup_ident_immediate(&def, node,
+                                     mod, &typ_definition(first->typ)->scope,
+                                     node_ident(node_subs_last_const(node)), FALSE);
+    EXCEPT(e);
+  } else {
+    goto malformed;
+  }
+
+  node->typ = def->typ;
+  node->flags |= def->flags;
+  return 0;
+
+malformed:
+  e = mk_except(mod, node, "malformed within expression");
+  THROW(e);
+}
+
 STEP_FILTER(step_type_inference,
             -1);
 error step_type_inference(struct module *mod, struct node *node,
@@ -1986,11 +2065,19 @@ error step_type_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case DEFNAME:
+    ;const struct node *defp = node_parent_const(node);
     if (node->typ == NULL && node_ident(node) == ID_OTHERWISE) {
       set_typ(&node->typ, node->as.DEFNAME.pattern->typ);
+    } else if (defp->as.DEFPATTERN.is_globalenv) {
+      struct typ *t = node->as.DEFNAME.pattern->typ;
+      if (!typ_is_reference(t)) {
+        e = mk_except_type(mod, node, "globalenv must declare a reference");
+        THROW(e);
+      }
+      set_typ(&node->typ, t);
+    } else {
+      assert(node->typ == node->as.DEFNAME.pattern->typ);
     }
-
-    assert(node->typ == node->as.DEFNAME.pattern->typ);
 
     if (node->as.DEFNAME.expr != NULL) {
       e = unify(mod, node,
@@ -2011,7 +2098,7 @@ error step_type_inference(struct module *mod, struct node *node,
 
     node->flags = node->as.DEFNAME.pattern->flags;
 
-    const struct node *let = node_parent_const(node_parent_const(node));
+    const struct node *let = node_parent_const(defp);
     assert(let->which == LET);
     node->flags |= (let->flags & NODE_IS_GLOBAL_LET);
     break;
@@ -2178,6 +2265,15 @@ error step_type_inference(struct module *mod, struct node *node,
   case INVARIANT:
     set_typ(&node->typ, TBI_VOID);
     break;
+  case WITHIN:
+    if (node_subs_count_atleast(node, 1)
+        && node_subs_first(node)->which != WITHIN) {
+      e = type_inference_within(mod, node);
+      EXCEPT(e);
+    } else {
+      set_typ(&node->typ, TBI_VOID);
+    }
+    break;
   case ISALIST:
   case GENARGS:
   case FUNARGS:
@@ -2202,7 +2298,9 @@ error step_type_inference(struct module *mod, struct node *node,
   record_topdep(mod, node->typ);
 
   assert(node->typ != NULL
-         || (node->which == IDENT && "tolerate when its DEFNAME not yet typed"));
+         || (node->which == IDENT
+             && "tolerate when its DEFNAME not yet typed,"
+             "or it's a CATCH label or WITHIN label"));
   return 0;
 }
 

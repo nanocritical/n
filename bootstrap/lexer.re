@@ -142,6 +142,8 @@ normal:
   "example" { R(Texample); }
   "sizeof" { R(Tsizeof); }
   "alignof" { R(Talignof); }
+  "within" { R(Twithin); }
+  "globalenv" { R(Tglobalenv); }
   "<-" { R(TBARROW); }
   "->" {
     error e = block_down(parser, TRUE);
