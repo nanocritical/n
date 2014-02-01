@@ -1267,9 +1267,8 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
   e = catchup(mod, except, named, &node->scope, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
 
-  // We need to force the typing of 'named' by hand.
-  e = step_type_inference(mod, named, NULL, NULL);
-  EXCEPT(e);
+  set_typ(&name->typ, TBI__NOT_TYPEABLE);
+  set_typ(&named->typ, retval->typ);
 
   return 0;
 }
