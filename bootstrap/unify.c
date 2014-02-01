@@ -44,13 +44,16 @@ static bool same_generic_functor(const struct module *mod,
   }
 }
 
+static error unify_with_equal(struct module *mod, const struct node *for_error,
+                              struct typ *a, struct typ *b);
+
 static error unify_same_generic_functor(struct module *mod, const struct node *for_error,
                                         struct typ *a, struct typ *b) {
   assert(typ_generic_arity(a) != 0 && typ_generic_arity(b) != 0);
 
   if (typ_equal(a, b)) {
-    typ_link_tentative(a, b);
-
+    error e = unify_with_equal(mod, for_error, a, b);
+    EXCEPT(e);
     return 0;
   }
 
@@ -476,6 +479,16 @@ static error unify_with_equal(struct module *mod, const struct node *for_error,
 
   if (!typ_is_tentative(b)) {
     SWAP(b, a);
+  }
+
+  assert(typ_generic_arity(a) == typ_generic_arity(b));
+  const size_t arity = typ_generic_arity(a);
+  for (size_t n = 0; n < arity; ++n) {
+    struct typ *arga = typ_generic_arg(a, n);
+    struct typ *argb = typ_generic_arg(b, n);
+
+    error e = unify_with_equal(mod, for_error, arga, argb);
+    assert(!e);
   }
 
   if (typ_is_tentative(b)) {
