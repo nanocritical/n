@@ -43,6 +43,13 @@ const uint64_t step_stop_block_filter;
 error step_stop_block(struct module *mod, struct node *node, void *user, bool *stop);
 const uint64_t step_stop_funblock_filter;
 error step_stop_funblock(struct module *mod, struct node *node, void *user, bool *stop);
+const uint64_t step_push_top_state_filter;
+error step_push_top_state(struct module *mod, struct node *node,
+                          void *user, bool *stop);
+const uint64_t step_pop_top_state_filter;
+error step_pop_top_state(struct module *mod, struct node *node,
+                         void *user, bool *stop);
+
 const uint64_t step_complete_instantiation_filter;
 error step_complete_instantiation(struct module *mod, struct node *node, void *user, bool *stop);
 

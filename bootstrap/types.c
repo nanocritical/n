@@ -19,8 +19,7 @@ struct users {
   struct users *more;
 };
 
-HTABLE_SPARSE(typs_set, bool, struct typ *);
-implement_htable_sparse(__attribute__((unused)) static, typs_set, bool, struct typ *);
+implement_htable_sparse(, typset, uint8_t, struct typ *);
 
 enum typ_flags {
   TYPF_TENTATIVE = 0x1,
@@ -42,17 +41,17 @@ struct typ {
 
   struct node *definition;
 
-  struct typs_set quickisa;
+  struct typset quickisa;
 
   struct backlinks backlinks;
   struct users users;
 };
 
-#define FOREACH_BACKLINK(back, t, what) do { \
+#define FOREACH_BACKLINK(idx, back, t, what) do { \
   struct backlinks *backlinks = &t->backlinks; \
   do { \
-    for (size_t n = 0; n < backlinks->count; ++n) { \
-      struct typ **back = backlinks->links[n]; \
+    for (size_t idx = 0; idx < backlinks->count; ++idx) { \
+      struct typ **back = backlinks->links[idx]; \
       if (back != NULL) { \
         what; \
       } \
@@ -61,20 +60,22 @@ struct typ {
   } while (backlinks != NULL); \
 } while (0)
 
-#define FOREACH_USER(user, t, what) do { \
+#define FOREACH_USER(idx, user, t, what) do { \
   struct users *users = &t->users; \
   do { \
-    for (size_t n = 0; n < users->count; ++n) { \
-      struct typ *user = users->users[n]; \
-      what; \
+    for (size_t idx = 0; idx < users->count; ++idx) { \
+      struct typ *user = users->users[idx]; \
+      if (user != NULL) { \
+        what; \
+      } \
     } \
     users = users->more; \
   } while (users != NULL); \
 } while (0)
 
 static void remove_backlink(struct typ *t, struct typ **loc) {
-  FOREACH_BACKLINK(back, t,
-                   if (back == loc) { backlinks->links[n] = NULL; });
+  FOREACH_BACKLINK(idx, back, t,
+                   if (back == loc) { backlinks->links[idx] = NULL; });
 }
 
 size_t typ_debug_backlinks_count(const struct typ *t) {
@@ -95,6 +96,25 @@ void unset_typ(struct typ **loc) {
   }
 }
 
+static void add_backlink(struct typ *t, struct typ **loc) {
+  if (!typ_is_tentative(t)) {
+    return;
+  }
+
+  struct backlinks *backlinks = &t->backlinks;
+  while (backlinks->more != NULL) {
+    backlinks = backlinks->more;
+  }
+
+  if (backlinks->count == BACKLINKS_LEN) {
+    backlinks->more = calloc(1, sizeof(*backlinks->more));
+    backlinks = backlinks->more;
+  }
+
+  backlinks->links[backlinks->count] = loc;
+  backlinks->count += 1;
+}
+
 void set_typ(struct typ **loc, struct typ *t) {
   assert(t != NULL);
 
@@ -102,20 +122,20 @@ void set_typ(struct typ **loc, struct typ *t) {
 
   *loc = t;
 
-  if (typ_is_tentative(t)) {
-    struct backlinks *backlinks = &t->backlinks;
-    while (backlinks->more != NULL) {
-      backlinks = backlinks->more;
-    }
+  add_backlink(t, loc);
+}
 
-    if (backlinks->count == BACKLINKS_LEN) {
-      backlinks->more = calloc(1, sizeof(*backlinks->more));
-      backlinks = backlinks->more;
-    }
+void typ_add_tentative_bit(struct typ **loc) {
+  (*loc)->flags |= TYPF_TENTATIVE;
+  add_backlink(*loc, loc);
+}
 
-    backlinks->links[backlinks->count] = loc;
-    backlinks->count += 1;
+void typ_declare_final(struct typ *t) {
+  for (size_t n = 0, arity = typ_generic_arity(t); n < arity; ++n) {
+    struct typ *arg = typ_generic_arg(t, n);
+    typ_declare_final(arg);
   }
+  t->flags &= ~TYPF_TENTATIVE;
 }
 
 static void clear_backlinks(struct typ *t) {
@@ -171,11 +191,15 @@ static int typ_cmp(const struct typ **a, const struct typ **b) {
   return !typ_equal(*a, *b);
 }
 
+void typset_fullinit(struct typset *set) {
+  typset_init(set, 0);
+  typset_set_delete_val(set, -1);
+  typset_set_custom_hashf(set, typ_hash);
+  typset_set_custom_cmpf(set, typ_cmp);
+}
+
 static void quickisa_init(struct typ *t) {
-  typs_set_init(&t->quickisa, 0);
-  typs_set_set_delete_val(&t->quickisa, NULL);
-  typs_set_set_custom_hashf(&t->quickisa, typ_hash);
-  typs_set_set_custom_cmpf(&t->quickisa, typ_cmp);
+  typset_fullinit(&t->quickisa);
 }
 
 static void create_flags(struct typ *t, struct typ *tbi) {
@@ -186,8 +210,8 @@ static void create_flags(struct typ *t, struct typ *tbi) {
 
   const struct toplevel *toplevel = node_toplevel_const(typ_definition_const(t));
   const struct typ *functor = NULL;
-  if (toplevel != NULL) {
-    functor = toplevel->our_generic_functor_typ;
+  if (toplevel != NULL && toplevel->generic != NULL) {
+    functor = toplevel->generic->our_generic_functor_typ;
   }
 
   if (t == TBI_LITERALS_NULL
@@ -316,13 +340,13 @@ void typ_create_update_hash(struct typ *t) {
 static error update_quickisa_isalist_each(struct module *mod,
                                           struct typ *t, struct typ *intf,
                                           bool *stop, void *user) {
-  typs_set_set(&t->quickisa, intf, TRUE);
+  typset_set(&t->quickisa, intf, TRUE);
   return 0;
 }
 
 void typ_create_update_quickisa(struct typ *t) {
-  if (typs_set_count(&t->quickisa) > 0) {
-    typs_set_destroy(&t->quickisa);
+  if (typset_count(&t->quickisa) > 0) {
+    typset_destroy(&t->quickisa);
     quickisa_init(t);
   }
 
@@ -372,7 +396,7 @@ struct typ *typ_create_tentative(struct typ *target) {
   r->definition = target->definition;
   quickisa_init(r);
 
-  typs_set_rehash(&r->quickisa, (struct typs_set *) &target->quickisa);
+  typset_rehash(&r->quickisa, (struct typset *) &target->quickisa);
 
   return r;
 }
@@ -389,9 +413,9 @@ static void link_generic_arg_update(struct typ *user) {
 }
 
 static void link_to_final(struct typ *dst, struct typ *src) {
-  FOREACH_BACKLINK(back, src, set_typ(back, dst));
+  FOREACH_BACKLINK(idx, back, src, set_typ(back, dst));
 
-  FOREACH_USER(user, src, link_generic_arg_update(user));
+  FOREACH_USER(idx, user, src, link_generic_arg_update(user));
 
   // Noone should be referring to 'src' anymore; let's make sure.
   memset(src, 0, sizeof(*src));
@@ -412,17 +436,18 @@ static void link_to_final(struct typ *dst, struct typ *src) {
 
 noinline__ // Expensive -- we want it to show up in profiles.
 static void remove_as_user_of_generic_args(struct typ *t) {
-  for (size_t m = 0, arity = typ_generic_arity(t); m < arity; ++m) {
-    struct typ *arg = typ_generic_arg(t, m);
-    FOREACH_USER(user, arg,
-                 if (user == t) { users->users[n] = NULL; });
+  for (size_t n = 0, arity = typ_generic_arity(t); n < arity; ++n) {
+    struct typ *arg = typ_generic_arg(t, n);
+    FOREACH_USER(idx, user, arg,
+                 if (user == t) { users->users[idx] = NULL; });
   }
 }
 
 static void link_to_tentative(struct typ *dst, struct typ *src) {
-  FOREACH_BACKLINK(back, src, set_typ(back, dst));
+  FOREACH_BACKLINK(idx, back, src, set_typ(back, dst));
 
-  FOREACH_USER(user, src, add_user(dst, user));
+  FOREACH_USER(idx, user, src, add_user(dst, user));
+
   remove_as_user_of_generic_args(src);
 
   clear_backlinks(src);
@@ -462,7 +487,7 @@ void typ_debug_check_in_backlinks(struct typ **u) {
     return;
   }
   bool r = FALSE;
-  FOREACH_BACKLINK(b, t, if (b != NULL) { r |= b == u; });
+  FOREACH_BACKLINK(idx, b, t, if (b != NULL) { r |= b == u; });
 }
 
 struct node *typ_definition(struct typ *t) {
@@ -480,8 +505,8 @@ struct typ *typ_generic_functor(struct typ *t) {
   }
 
   const struct toplevel *toplevel = node_toplevel_const(typ_definition_const(t));
-  if (toplevel->our_generic_functor_typ != NULL) {
-    return toplevel->our_generic_functor_typ;
+  if (toplevel->generic->our_generic_functor_typ != NULL) {
+    return toplevel->generic->our_generic_functor_typ;
   } else {
     return t;
   }
@@ -525,7 +550,8 @@ EXAMPLE_NCC(typ_generic_arity) {
 }
 
 size_t typ_generic_first_explicit_arg(const struct typ *t) {
-  return node_toplevel_const(typ_definition_const(t))->first_explicit_genarg;
+  return node_toplevel_const(typ_definition_const(t))
+    ->generic->first_explicit_genarg;
 }
 
 struct typ *typ_generic_arg(struct typ *t, size_t n) {
@@ -610,10 +636,10 @@ static bool direct_isalist_exported(const struct typ *t, size_t n) {
 
 static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct typ *base,
                                     uint32_t filter, isalist_each iter, void *user,
-                                    bool *stop, struct typs_set *set) {
+                                    bool *stop, struct typset *set) {
   for (size_t n = 0; n < direct_isalist_count(base); ++n) {
     struct typ *intf = direct_isalist(base, n);
-    if (typs_set_get(set, intf) != NULL) {
+    if (typset_get(set, intf) != NULL) {
       continue;
     }
 
@@ -631,7 +657,7 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
       continue;
     }
 
-    typs_set_set(set, intf, TRUE);
+    typset_set(set, intf, TRUE);
 
     error e = do_typ_isalist_foreach(mod, t, intf, filter, iter, user, stop, set);
     EXCEPT(e);
@@ -653,15 +679,12 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
 
 error typ_isalist_foreach(struct module *mod, struct typ *t, uint32_t filter,
                           isalist_each iter, void *user) {
-  struct typs_set set;
-  typs_set_init(&set, 0);
-  typs_set_set_delete_val(&set, NULL);
-  typs_set_set_custom_hashf(&set, typ_hash);
-  typs_set_set_custom_cmpf(&set, typ_cmp);
+  struct typset set;
+  typset_fullinit(&set);
 
   bool stop = FALSE;
   error e = do_typ_isalist_foreach(mod, t, t, filter, iter, user, &stop, &set);
-  typs_set_destroy(&set);
+  typset_destroy(&set);
   EXCEPT(e);
 
   return 0;
@@ -1056,7 +1079,7 @@ bool typ_is_dyn_compatible(const struct typ *t) {
 }
 
 error typ_check_is_reference(const struct module *mod, const struct node *for_error,
-                                      const struct typ *a) {
+                             const struct typ *a) {
   if (typ_is_reference(a)) {
     return 0;
   }

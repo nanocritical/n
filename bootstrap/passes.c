@@ -114,6 +114,7 @@ error catchup(struct module *mod,
   }
   PUSH_STATE(mod->state->step_state);
 
+  bool tentatively_saved = mod->state->tentatively;
   if (how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
     mod->state->tentatively = TRUE;
   }
@@ -141,6 +142,7 @@ error catchup(struct module *mod,
     EXCEPT(e);
   }
 
+  mod->state->tentatively = tentatively_saved;
   POP_STATE(mod->state->step_state);
   if (need_new_state) {
     POP_STATE(mod->state);
@@ -155,7 +157,7 @@ error catchup(struct module *mod,
 bool instantiation_is_tentative(const struct module *mod,
                                 struct typ *t, struct typ **args,
                                 size_t arity) {
-  if (mod->state->tentatively || mod->state->fun_state != NULL) {
+  if (mod->state->tentatively || mod->state->top_state != NULL) {
     if (typ_is_tentative(t)) {
       return TRUE;
     }
@@ -174,16 +176,14 @@ bool instantiation_is_tentative(const struct module *mod,
 }
 
 static void record_tentative_instantiation(struct module *mod, struct node *i) {
-  struct fun_state *st = mod->state->fun_state;
-  if (st == NULL) {
-    return;
-  }
+  struct toplevel *toplevel = node_toplevel(mod->state->top_state->top);
 
-  st->tentative_instantiations_count += 1;
-  st->tentative_instantiations = realloc(
-    st->tentative_instantiations,
-    st->tentative_instantiations_count * sizeof(*st->tentative_instantiations));
-  st->tentative_instantiations[st->tentative_instantiations_count - 1] = i;
+  toplevel->tentative_instantiations_count += 1;
+  toplevel->tentative_instantiations = realloc(
+    toplevel->tentative_instantiations,
+    toplevel->tentative_instantiations_count
+    * sizeof(*toplevel->tentative_instantiations));
+  toplevel->tentative_instantiations[toplevel->tentative_instantiations_count - 1] = i;
 }
 
 error catchup_instantiation(struct module *instantiating_mod,
@@ -199,6 +199,10 @@ error catchup_instantiation(struct module *instantiating_mod,
 
   error e = catchup(gendef_mod, NULL, instance, parent_scope, how);
   EXCEPT(e);
+
+  if (tentative) {
+    typ_add_tentative_bit(&instance->typ);
+  }
 
   return 0;
 }
@@ -256,6 +260,35 @@ error step_stop_funblock(struct module *mod, struct node *node,
   return 0;
 }
 
+STEP_FILTER(step_push_top_state, STEP_FILTER_HAS_TOPLEVEL);
+error step_push_top_state(struct module *mod, struct node *node,
+                          void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node->which == LET
+      && !(node_is_at_top(node) || node_is_at_top(node_parent_const(node)))) {
+    return 0;
+  }
+
+  PUSH_STATE(mod->state->top_state);
+  mod->state->top_state->top = node;
+  return 0;
+}
+
+STEP_FILTER(step_pop_top_state, STEP_FILTER_HAS_TOPLEVEL);
+error step_pop_top_state(struct module *mod, struct node *node,
+                         void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node->which == LET
+      && !(node_is_at_top(node) || node_is_at_top(node_parent_const(node)))) {
+    return 0;
+  }
+
+  POP_STATE(mod->state->top_state);
+  return 0;
+}
+
 static error do_complete_instantiation(struct module *mod, struct node *node) {
   const size_t goal = mod->stage->state->passing;
 
@@ -291,8 +324,12 @@ error step_complete_instantiation(struct module *mod, struct node *node,
     return 0;
   }
 
-  for (size_t n = 1; n < toplevel->instances_count; ++n) {
-    struct node *i = toplevel->instances[n];
+  if (toplevel->generic == NULL) {
+    return 0;
+  }
+
+  for (size_t n = 1; n < toplevel->generic->instances_count; ++n) {
+    struct node *i = toplevel->generic->instances[n];
     error e = do_complete_instantiation(mod, i);
     EXCEPT(e);
   }

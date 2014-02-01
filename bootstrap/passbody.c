@@ -8,8 +8,29 @@
 #include "passzero.h"
 #include "passfwd.h"
 
-static STEP_FILTER(step_push_fun_state,
-                   SF(DEFFUN) | SF(DEFMETHOD) | SF(EXAMPLE));
+noinline__
+static void record_topdep(struct module *mod, struct typ *t) {
+  struct top_state *st = mod->state->top_state;
+  if (st == NULL
+      || typ_is_tentative(t)
+      || typ_is_pseudo_builtin(t)
+      || typ_is_generic_functor(t)
+      || typ_generic_arity(t) == 0) {
+    return;
+  }
+
+  struct toplevel *toplevel = node_toplevel(st->top);
+  if (toplevel->topdeps == NULL) {
+    toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
+    typset_fullinit(toplevel->topdeps);
+  }
+
+  typset_set(toplevel->topdeps, t, TRUE);
+}
+
+
+STEP_FILTER(step_push_fun_state,
+            SF(DEFFUN) | SF(DEFMETHOD) | SF(EXAMPLE));
 static error step_push_fun_state(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
@@ -19,8 +40,8 @@ static error step_push_fun_state(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_pop_fun_state,
-                   SF(DEFFUN) | SF(DEFMETHOD) | SF(EXAMPLE));
+STEP_FILTER(step_pop_fun_state,
+            SF(DEFFUN) | SF(DEFMETHOD) | SF(EXAMPLE));
 static error step_pop_fun_state(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
@@ -532,10 +553,10 @@ static error do_instantiate(struct node **result,
   assert(arity == 0 || arity == typ_generic_arity(t));
 
   struct node *gendef = typ_definition(t);
-  struct node *pristine = node_toplevel(gendef)->instances[0];
+  struct node *pristine = node_toplevel(gendef)->generic->instances[0];
   struct node *instance = add_instance_deepcopy_from_pristine(mod, gendef,
                                                               pristine, tentative);
-  set_typ(&node_toplevel(instance)->our_generic_functor_typ, t);
+  set_typ(&node_toplevel(instance)->generic->our_generic_functor_typ, t);
 
   const size_t first = typ_generic_first_explicit_arg(t);
   struct node *genargs = node_subs_at(instance, IDX_GENARGS);
@@ -566,24 +587,25 @@ static error do_instantiate(struct node **result,
                                   tentative);
   EXCEPT(e);
 
-  if (result != NULL) {
-    *result = instance;
-  }
+  *result = instance;
 
   return 0;
 }
 
-static struct typ *find_existing_instance(struct module *mod,
-                                          struct typ *t,
-                                          struct typ **args,
-                                          size_t arity) {
+static struct typ *find_existing_final(struct module *mod,
+                                       struct typ *t,
+                                       struct typ **args,
+                                       size_t arity) {
   const size_t first = typ_generic_first_explicit_arg(t);
   assert(typ_generic_arity(t) - first == arity);
 
   const struct node *d = typ_definition_const(t);
   const struct toplevel *toplevel = node_toplevel_const(d);
-  for (size_t n = 1; n < toplevel->instances_count; ++n) {
-    struct typ *i = toplevel->instances[n]->typ;
+  for (size_t n = 1; n < toplevel->generic->instances_count; ++n) {
+    struct typ *i = toplevel->generic->instances[n]->typ;
+    if (typ_is_tentative(i)) {
+      continue;
+    }
 
     size_t a;
     for (a = first; a < arity; ++a) {
@@ -600,16 +622,15 @@ static struct typ *find_existing_instance(struct module *mod,
   return NULL;
 }
 
-// Same as find_existing_instance(), but with different arguments.
-static struct typ *find_existing_instance_for_tentative(struct module *mod,
-                                                        const struct typ *t) {
+// Same as find_existing_final(), but with different arguments.
+static struct typ *find_existing_final_for_tentative(struct module *mod,
+                                                     const struct typ *t) {
   const struct node *d = typ_definition_const(typ_generic_functor_const(t));
 
   const struct toplevel *toplevel = node_toplevel_const(d);
-  for (size_t n = 1; n < toplevel->instances_count; ++n) {
-    struct typ *i = toplevel->instances[n]->typ;
-
-    if (typ_equal(t, i)) {
+  for (size_t n = 1; n < toplevel->generic->instances_count; ++n) {
+    struct typ *i = toplevel->generic->instances[n]->typ;
+    if (!typ_is_tentative(i) && typ_equal(t, i)) {
       return i;
     }
   }
@@ -646,7 +667,7 @@ static error instance(struct node **result,
 
     free(args);
   } else {
-    struct typ *r = find_existing_instance(mod, t, explicit_args, arity);
+    struct typ *r = find_existing_final(mod, t, explicit_args, arity);
     if (r != NULL) {
       if (result != NULL) {
         *result = typ_definition(r);
@@ -1008,6 +1029,8 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   e = scope_lookup_ident_immediate(&field, name, mod, container_scope,
                                    node_ident(name), FALSE);
   EXCEPT(e);
+  // FIXME handle creation of DEFNAMEDLITERAL when name is not found in a
+  // container that is still a tentative `any.
 
   if (field->which == IMPORT && !field->as.IMPORT.intermediate_mark) {
     e = scope_lookup(&field, mod, &mod->gctx->modules_root.scope,
@@ -1417,6 +1440,7 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
   free(args);
 
   set_typ(&node->typ, i->typ);
+  record_topdep(mod, i->typ);
   node->flags |= NODE_IS_TYPE;
 
   return 0;
@@ -1453,6 +1477,7 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
   free(args);
 
   set_typ(&node_subs_first(node)->typ, i->typ);
+  record_topdep(mod, i->typ);
   set_typ(&node->typ, typ_function_return(i->typ));
 
   return 0;
@@ -1461,11 +1486,16 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
 static error function_instantiation(struct module *mod, struct node *node) {
   assert(node_subs_count_atleast(node, 2));
 
+  error e;
   if (node_subs_at(node, 1)->flags & NODE_IS_TYPE) {
-    return explicit_instantiation(mod, node);
+    e = explicit_instantiation(mod, node);
+    EXCEPT(e);
   } else {
-    return implicit_function_instantiation(mod, node);
+    e = implicit_function_instantiation(mod, node);
+    EXCEPT(e);
   }
+
+  return 0;
 }
 
 static error check_consistent_either_types_or_values(struct module *mod,
@@ -1533,7 +1563,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
   node->flags |= NODE_IS_TEMPORARY;
 
   if (node_subs_count_atleast(node_subs_at(dfun, IDX_GENARGS), 1)
-      && node_toplevel_const(dfun)->our_generic_functor_typ == NULL) {
+      && node_toplevel_const(dfun)->generic->our_generic_functor_typ == NULL) {
     e = function_instantiation(mod, node);
     EXCEPT(e);
 
@@ -1837,8 +1867,8 @@ static error type_inference_ident(struct module *mod, struct node *node) {
     return 0;
   }
 
-  const enum node_which parent_which = node_parent_const(def)->which;
-  if (parent_which == MODULE || parent_which == DEFTYPE || parent_which == DEFINTF) {
+  const enum node_which dparent_which = node_parent_const(def)->which;
+  if (dparent_which == MODULE || dparent_which == DEFTYPE || dparent_which == DEFINTF) {
     node->as.IDENT.non_local_scope = def->scope.parent;
   } else if (def->flags & NODE_IS_GLOBAL_LET) {
     node->as.IDENT.non_local_scope = def->scope.parent->parent->parent;
@@ -1926,10 +1956,12 @@ error step_type_inference(struct module *mod, struct node *node,
   case DEFUNKNOWNIDENT:
     assert(node->typ != NULL);
     // Already typed.
+    record_topdep(mod, node->typ);
     return 0;
   case IMPORT:
     if (node->typ != NULL) {
       // Already typed.
+      record_topdep(mod, node->typ);
       return 0;
     }
     break;
@@ -2167,6 +2199,8 @@ error step_type_inference(struct module *mod, struct node *node,
     break;
   }
 
+  record_topdep(mod, node->typ);
+
   assert(node->typ != NULL
          || (node->which == IDENT && "tolerate when its DEFNAME not yet typed"));
   return 0;
@@ -2277,18 +2311,27 @@ except:
 }
 
 STEP_FILTER(step_gather_final_instantiations,
-            SF(DEFFUN) | SF(DEFMETHOD));
+            SF(DEFTYPE) | SF(DEFINTF) | SF(DEFFUN) | SF(DEFMETHOD));
 static error step_gather_final_instantiations(struct module *mod, struct node *node,
                                               void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct fun_state *st = mod->state->fun_state;
-  if (st->tentative_instantiations == NULL) {
+  struct toplevel *toplevel = node_toplevel(mod->state->top_state->top);
+  if (toplevel->tentative_instantiations == NULL) {
     return 0;
   }
 
-  for (size_t n = 0; n < st->tentative_instantiations_count; ++n) {
-    struct typ *t = st->tentative_instantiations[n]->typ;
+  if (typ_is_generic_functor(node->typ)) {
+    return 0;
+  }
+  const struct node *parent = node_parent_const(node);
+  if (parent->which != MODULE_BODY
+      && typ_is_generic_functor(parent->typ)) {
+    return 0;
+  }
+
+  for (size_t n = 0; n < toplevel->tentative_instantiations_count; ++n) {
+    struct typ *t = toplevel->tentative_instantiations[n]->typ;
     if (typ_definition_const(t) == NULL) {
       // 't' was cleared in link_to_final()
       continue;
@@ -2299,7 +2342,11 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
       continue;
     }
 
-    if (typ_is_reference(t)) {
+    if (typ_is_pseudo_builtin(t)) {
+      continue;
+    }
+
+    if (typ_is_reference(t) && typ_definition_const(t)->which == DEFINTF) {
       continue;
     }
 
@@ -2308,26 +2355,26 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
       // generic arguments should have been linked to final types.
       for (size_t m = 0; m < typ_generic_arity(t); ++m) {
         struct typ *arg = typ_generic_arg(t, m);
-        assert(!typ_is_tentative(arg)
-               && "FIXME: this should be an error, but how to explain it?");
+        if (typ_is_weakly_concrete(arg)) {
+          continue;
+        }
+
+        if (typ_is_tentative(arg)) {
+          fprintf(g_env.stderr, "%s in %s\n",
+                  typ_pretty_name(mod, arg), typ_pretty_name(mod, t));
+          assert(!typ_is_tentative(arg)
+                 && "FIXME: this should be an error, but how to explain it?");
+        }
       }
     }
 
     struct typ *functor = typ_generic_functor(t);
     const size_t arity = typ_generic_arity(t);
 
-    if (typ_definition_const(functor)->which == DEFINTF) {
-      continue;
-    }
-    for (size_t m = 0; m < arity; ++m) {
-      if (typ_definition_const(typ_generic_arg_const(t, m))->which == DEFINTF) {
-        continue;
-      }
-    }
-
-    struct typ *existing = find_existing_instance_for_tentative(mod, t);
+    struct typ *existing = find_existing_final_for_tentative(mod, t);
     if (existing != NULL) {
       typ_link_to_existing_final(existing, t);
+      record_topdep(mod, existing);
       continue;
     }
 
@@ -2336,15 +2383,27 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
       args[m] = typ_generic_arg(t, m);
     }
 
-    error e = do_instantiate(NULL, mod, functor, args, arity, FALSE);
+    struct node *i = NULL;
+    error e = do_instantiate(&i, mod, functor, args, arity, FALSE);
     EXCEPT(e);
+
+    typ_declare_final(i->typ);
+    typ_link_to_existing_final(i->typ, t);
+    record_topdep(mod, i->typ);
 
     free(args);
   }
 
-  free(st->tentative_instantiations);
-  st->tentative_instantiations = NULL;
-  st->tentative_instantiations_count = 0;
+  if (node->which == DEFINTF) {
+    struct node *isal = node_subs_at(node, IDX_ISALIST);
+    FOREACH_SUB(isa, isal) {
+      assert(!typ_is_tentative(isa->typ));
+    }
+  }
+
+  free(toplevel->tentative_instantiations);
+  toplevel->tentative_instantiations = NULL;
+  toplevel->tentative_instantiations_count = 0;
 
   return 0;
 }
@@ -3552,6 +3611,7 @@ static error passbody0(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_already_morningtypepass);
+    DOWN_STEP(step_push_top_state);
     DOWN_STEP(step_push_fun_state);
     DOWN_STEP(step_detect_not_dyn_intf_down);
     DOWN_STEP(step_rewrite_wildcards);
@@ -3570,6 +3630,7 @@ static error passbody0(struct module *mod, struct node *root,
     UP_STEP(step_check_exhaustive_match);
     UP_STEP(step_gather_final_instantiations);
     UP_STEP(step_pop_fun_state);
+    UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );
     return 0;
@@ -3596,6 +3657,7 @@ static error passbody1(struct module *mod, struct node *root,
   PASS(
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_push_top_state);
     DOWN_STEP(step_push_fun_state);
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_check_no_literals_left);
@@ -3617,6 +3679,7 @@ static error passbody1(struct module *mod, struct node *root,
     UP_STEP(step_store_return_through_ref_expr);
 
     UP_STEP(step_pop_fun_state);
+    UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );
     return 0;

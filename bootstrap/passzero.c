@@ -47,22 +47,31 @@ static error step_rewrite_prototype_wildcards(struct module *mod, struct node *n
   return 0;
 }
 
+static void add_generic(struct node *node) {
+  struct toplevel *toplevel = node_toplevel(node);
+  if (toplevel->generic == NULL) {
+    toplevel->generic = calloc(1, sizeof(*toplevel->generic));
+  }
+}
+
 struct node *add_instance_deepcopy_from_pristine(struct module *mod,
                                                  struct node *node,
                                                  struct node *pristine,
                                                  bool tentative) {
   struct node *instance = calloc(1, sizeof(struct node));
   node_deepcopy(mod, instance, pristine);
-
   node_toplevel(instance)->scope_name = 0;
 
+  add_generic(node);
+  add_generic(instance);
+
   if (!tentative) {
-    struct toplevel *toplevel = node_toplevel(node);
-    const size_t idx = toplevel->instances_count;
-    toplevel->instances_count += 1;
-    toplevel->instances = realloc(toplevel->instances,
-                                  toplevel->instances_count * sizeof(*toplevel->instances));
-    toplevel->instances[idx] = instance;
+    struct generic *generic = node_toplevel(node)->generic;
+    const size_t idx = generic->instances_count;
+    generic->instances_count += 1;
+    generic->instances = realloc(generic->instances,
+                                 generic->instances_count * sizeof(*generic->instances));
+    generic->instances[idx] = instance;
   }
 
   return instance;

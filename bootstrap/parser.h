@@ -9,7 +9,7 @@
 
 struct typ;
 
-#define SF(which) ( (uint64_t)1 << (which) )
+#define SF(which) ( (uint64_t)1LL << (which) )
 #define STEP_FILTER(step, m) const uint64_t step##_filter = (m)
 
 #define node_whichmask(node) SF(node->which)
@@ -128,15 +128,23 @@ enum toplevel_flags {
   TOP_IS_NOT_DYN = 0x40,
 };
 
+struct generic {
+  size_t first_explicit_genarg;
+  struct node **instances;
+  size_t instances_count;
+  struct typ *our_generic_functor_typ;
+};
+
 struct toplevel {
   ident scope_name;
   uint32_t flags;
   enum builtingen builtingen;
 
-  size_t first_explicit_genarg;
-  struct node **instances;
-  size_t instances_count;
-  struct typ *our_generic_functor_typ;
+  struct generic *generic;
+  struct typset *topdeps;
+
+  struct node **tentative_instantiations;
+  size_t tentative_instantiations_count;
 
   ssize_t yet_to_pass;
 };
@@ -881,6 +889,12 @@ enum predefined_idents {
   ID__NUM,
 };
 
+struct top_state {
+  struct top_state *prev;
+
+  struct node *top;
+};
+
 struct fun_state {
   struct fun_state *prev;
 
@@ -890,9 +904,6 @@ struct fun_state {
   enum token_type nulref_wildcard;
   enum token_type deref_wildcard;
   enum token_type wildcard;
-
-  struct node **tentative_instantiations;
-  size_t tentative_instantiations_count;
 };
 
 struct try_state {
@@ -921,6 +932,7 @@ struct module_state {
 
   bool tentatively;
 
+  struct top_state *top_state;
   struct fun_state *fun_state;
   struct try_state *try_state;
 
@@ -1028,10 +1040,6 @@ void module_excepts_open_try(struct module *mod, struct node *tryy);
 void module_excepts_push(struct module *mod, struct node *excep_node);
 struct try_state *module_excepts_get(struct module *mod);
 void module_excepts_close_try(struct module *mod);
-
-struct typ *instances_register(struct module *mod, struct typ *t);
-struct typ *instances_find_existing_for_tentative(struct module *mod,
-                                                  struct typ *t);
 
 ident gensym(struct module *mod);
 
@@ -1237,6 +1245,7 @@ void node_deepcopy(struct module *mod, struct node *dst,
 char *typ_name(const struct module *mod, const struct typ *t);
 // Return value must be freed by caller.
 char *typ_pretty_name(const struct module *mod, const struct typ *t);
+void debug_print_topdeps(const struct module *mod, const struct node *node);
 
 error mk_except(const struct module *mod, const struct node *node, const char *fmt, ...)
   __attribute__((__format__(__printf__, 3, 4)));

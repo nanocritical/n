@@ -69,12 +69,14 @@ static error pass_early_typing(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_already_morningtypepass);
     DOWN_STEP(step_type_destruct_mark);
     ,
-    UP_STEP(step_type_inference));
+    UP_STEP(step_type_inference);
+    );
   return 0;
 }
 
 static error morningtypepass(struct module *mod, struct node *node) {
   PUSH_STATE(mod->state->step_state);
+  bool tentatively_saved = mod->state->tentatively;
   if (mod->state->prev != NULL) {
     mod->state->tentatively |= mod->state->prev->tentatively;
   }
@@ -82,6 +84,7 @@ static error morningtypepass(struct module *mod, struct node *node) {
   error e = pass_early_typing(mod, node, NULL, -1);
   EXCEPT(e);
 
+  mod->state->tentatively = tentatively_saved;
   POP_STATE(mod->state->step_state);
 
   return 0;
@@ -96,7 +99,7 @@ static error step_type_definitions(struct module *mod, struct node *node,
   ident id = node_ident(node_subs_first(node));
 
   if (node_subs_count_atleast(node_subs_at(node, IDX_GENARGS), 1)
-      && node_toplevel(node)->our_generic_functor_typ != NULL) {
+      && node_toplevel(node)->generic->our_generic_functor_typ != NULL) {
     set_typ(&node->typ, typ_create(NULL, node));
   } else if (mod->path[0] == ID_NLANG
              && (id >= ID_TBI__FIRST && id <= ID_TBI__LAST)) {
@@ -120,7 +123,7 @@ static struct node *do_move_detached_member(struct module *mod,
   if (toplevel->scope_name == 0) {
     return next;
   }
-  if (toplevel->our_generic_functor_typ != NULL) {
+  if (toplevel->generic->our_generic_functor_typ != NULL) {
     assert(node_parent(node)->which == DEFTYPE);
     return next;
   }
@@ -138,9 +141,11 @@ static struct node *do_move_detached_member(struct module *mod,
   node->scope.parent = &container->scope;
 
   struct toplevel *container_toplevel = node_toplevel(container);
-  if (container_toplevel->instances_count > 0) {
-    struct node *copy = node_new_subnode(mod, container_toplevel->instances[0]);
-    node_deepcopy(mod, copy, toplevel->instances[0]);
+  if (container_toplevel->generic != NULL
+      && container_toplevel->generic->instances_count > 0) {
+    struct node *copy = node_new_subnode(
+      mod, container_toplevel->generic->instances[0]);
+    node_deepcopy(mod, copy, toplevel->generic->instances[0]);
   }
 
   return next;
@@ -350,6 +355,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
   DSTEP(mod, node);
   struct node *id = NULL;
   struct scope *sc = NULL;
+  const struct toplevel *toplevel = NULL;
   error e;
 
   switch (node->which) {
@@ -361,8 +367,8 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
       id = node_subs_last(id);
     }
 
-    const struct toplevel *toplevel = node_toplevel_const(node);
-    if (toplevel->our_generic_functor_typ != NULL) {
+    toplevel = node_toplevel_const(node);
+    if (toplevel->generic->our_generic_functor_typ != NULL) {
       // See comment below for DEFTYPE/DEFINTF. To get the same instance
       // than the current function, you have to explicitly instantiate it
       // (as there is no 'thisfun').
@@ -381,7 +387,9 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     break;
   case DEFTYPE:
   case DEFINTF:
-    if (node_toplevel_const(node)->our_generic_functor_typ != NULL) {
+    toplevel = node_toplevel_const(node);
+    if (toplevel->generic != NULL
+        && toplevel->generic->our_generic_functor_typ != NULL) {
       // For generic instances, do not define the name, as we want the type
       // name to point to the generic functor (e.g. in '(vector u8)', allow
       // 'vector' to be used in '(vector u16)'. To get the current instance,
@@ -398,7 +406,12 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     sc = node->scope.parent;
     break;
   case DEFNAME:
-    if (node_ident(node) != ID_OTHERWISE) {
+    if (node_parent(node)->as.DEFPATTERN.is_globalenv) {
+      id = node->as.DEFNAME.pattern;
+      assert(node_parent(node_parent(node_parent(node)))->which == MODULE_BODY);
+      sc = &node_parent(node_parent(node_parent(node)))
+        ->as.MODULE_BODY.globalenv_scope;
+    } else if (node_ident(node) != ID_OTHERWISE) {
       id = node->as.DEFNAME.pattern;
       sc = node->scope.parent->parent->parent;
     }
@@ -1312,7 +1325,9 @@ static error passfwd2(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
     DOWN_STEP(step_type_inference_genargs);
+    DOWN_STEP(step_push_top_state);
     ,
+    UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );
   return 0;
@@ -1326,8 +1341,10 @@ static error passfwd3(struct module *mod, struct node *root,
     DOWN_STEP(step_type_create_update);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
+    DOWN_STEP(step_push_top_state);
     ,
     UP_STEP(step_type_inference_isalist);
+    UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );
   return 0;
@@ -1353,9 +1370,11 @@ static error passfwd5(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
+    DOWN_STEP(step_push_top_state);
     ,
     UP_STEP(step_add_builtin_enum_intf);
     UP_STEP(step_add_builtin_detect_ctor_intf);
+    UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );
   return 0;
@@ -1368,8 +1387,10 @@ static error passfwd6(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
+    DOWN_STEP(step_push_top_state);
     ,
     UP_STEP(step_type_lets);
+    UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );
   return 0;
@@ -1382,9 +1403,11 @@ static error passfwd7(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
+    DOWN_STEP(step_push_top_state);
     ,
     UP_STEP(step_type_deffields);
     UP_STEP(step_type_defchoices);
+    UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );
   return 0;
@@ -1397,6 +1420,7 @@ static error passfwd8(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
+    DOWN_STEP(step_push_top_state);
     ,
     UP_STEP(step_type_deffuns);
     UP_STEP(step_add_builtin_defchoice_mk_new);
@@ -1409,6 +1433,7 @@ static error passfwd8(struct module *mod, struct node *root,
     UP_STEP(step_add_trivials);
     UP_STEP(step_add_union_dispatch);
     UP_STEP(step_rewrite_def_return_through_ref);
+    UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );
   return 0;

@@ -7,6 +7,10 @@ struct NB(valist) {
   va_list ap;
 };
 
+#endif
+
+#ifdef NLANG_DEFINE_FUNCTIONS
+
 #define NLANG_BUILTINS_VARARG_START(va) do { \
   va_start((va).ap.ap, _Nvarargcount); \
   (va).n = _Nvarargcount; \

@@ -1,8 +1,4 @@
-from nlang.chars import `string_buffer `show
-from nlang.memory import slice
-from nlang.containers import index_range range `iterator
-from nlang.unsafe import cast nonnull
-from nlang import say pr
+-- In this file, imports go at the end of the file.
 
 export extern struct __literal_null__ =
   export isa `any_nullable_ref
@@ -1060,3 +1056,13 @@ export vararg method@ left = size
 --
 --export struct debugenv =
 --  export isa `debugenv
+
+-- We place the imports at the end of this file for the benefit of the bootstrap
+-- compiler lack of definition ordering understanding (across modules). As
+-- types defined in this module are used everywhere, they really need to appear
+-- first to the C compiler.
+from nlang.chars import `string_buffer `show
+from nlang.memory import slice
+from nlang.containers import index_range range `iterator
+from nlang.unsafe import cast nonnull
+from nlang import say pr

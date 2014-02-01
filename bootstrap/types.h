@@ -5,6 +5,10 @@
 
 struct typ;
 
+HTABLE_SPARSE(typset, uint8_t, struct typ *);
+declare_htable_sparse(typset, uint8_t, struct typ *);
+void typset_fullinit(struct typset *set);
+
 size_t typ_debug_backlinks_count(const struct typ *t);
 void typ_debug_check_in_backlinks(struct typ **u);
 
@@ -28,6 +32,10 @@ struct typ *typ_function_return(struct typ *t);
 
 void unset_typ(struct typ **loc);
 void set_typ(struct typ **loc, struct typ *t);
+
+// Don't call these; they're privileged.
+void typ_add_tentative_bit(struct typ **loc);
+void typ_declare_final(struct typ *t);
 
 struct typ *typ_create_tentative(struct typ *target);
 bool typ_is_tentative(const struct typ *t);
