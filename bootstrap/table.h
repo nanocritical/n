@@ -38,14 +38,14 @@
       unsigned count; \
     }
 
-#define declare_sptable(storage, name, type) \
-    storage declare_sptable_init(name, type); \
-storage declare_sptable_destroy(name, type); \
-storage declare_sptable_count(name, type); \
-storage declare_sptable_get(name, type); \
-storage declare_sptable_set(name, type); \
-storage declare_sptable_unset(name, type); \
-storage declare_sptable_foreach(name, type)
+#define declare_sptable(name, type) \
+    declare_sptable_init(name, type); \
+declare_sptable_destroy(name, type); \
+declare_sptable_count(name, type); \
+declare_sptable_get(name, type); \
+declare_sptable_set(name, type); \
+declare_sptable_unset(name, type); \
+declare_sptable_foreach(name, type)
 
 #define implement_sptable(storage, name, type) \
     storage implement_sptable_init(name, type) \
@@ -215,7 +215,7 @@ storage implement_sptable_foreach(name, type)
 
 #define DNTABLE_MIN_SIZE SPTABLE_MIN_SIZE
 
-#define declare_dntable(storage, name, type) \
+#define declare_dntable(name, type) \
     storage declare_dntable_init(name, type); \
 storage declare_dntable_destroy(name, type); \
 storage declare_dntable_count(name, type); \
@@ -344,18 +344,18 @@ struct name { \
   int (*cmpf)(const key_type *, const key_type *); \
 }
 
-#define declare_htable_sparse(storage, name, type, key_type) \
-    declare_sptable(storage, name ## _table__, struct name ## _unit__); \
-storage declare_htable_init(name, type, key_type); \
-storage declare_htable_destroy(name, type, key_type); \
-storage declare_htable_set_delete_val(name, type, key_type); \
-storage declare_htable_set_custom_hashf(name, type, key_type); \
-storage declare_htable_set_custom_cmpf(name, type, key_type); \
-storage declare_htable_count(name, type, key_type); \
-storage declare_htable_get(name, type, key_type); \
-storage declare_htable_set(name, type, key_type); \
-storage declare_htable_foreach(name, type, key_type); \
-storage declare_htable_rehash(name, type, key_type)
+#define declare_htable_sparse(name, type, key_type) \
+    declare_sptable(name ## _table__, struct name ## _unit__); \
+declare_htable_init(name, type, key_type); \
+declare_htable_destroy(name, type, key_type); \
+declare_htable_set_delete_val(name, type, key_type); \
+declare_htable_set_custom_hashf(name, type, key_type); \
+declare_htable_set_custom_cmpf(name, type, key_type); \
+declare_htable_count(name, type, key_type); \
+declare_htable_get(name, type, key_type); \
+declare_htable_set(name, type, key_type); \
+declare_htable_foreach(name, type, key_type); \
+declare_htable_rehash(name, type, key_type)
 
 #define implement_htable_sparse(storage, name, type, key_type) \
     implement_sptable(storage, name ## _table__, struct name ## _unit__); \
@@ -393,18 +393,18 @@ struct name { \
   int (*cmpf)(const key_type *, const key_type *); \
 }
 
-#define declare_htable_dense(storage, name, type, key_type) \
-    declare_dntable(storage, name ## _table__, struct name ## _unit__); \
-storage declare_htable_init(name, type, key_type); \
-storage declare_htable_destroy(name, type, key_type); \
-storage declare_htable_set_delete_val(name, type, key_type); \
-storage declare_htable_set_custom_hashf(name, type, key_type); \
-storage declare_htable_set_custom_cmpf(name, type, key_type); \
-storage declare_htable_count(name, type, key_type); \
-storage declare_htable_get(name, type, key_type); \
-storage declare_htable_set(name, type, key_type); \
-storage declare_htable_foreach(name, type, key_type); \
-storage declare_htable_rehash(name, type, key_type)
+#define declare_htable_dense(name, type, key_type) \
+    declare_dntable(name ## _table__, struct name ## _unit__); \
+declare_htable_init(name, type, key_type); \
+declare_htable_destroy(name, type, key_type); \
+declare_htable_set_delete_val(name, type, key_type); \
+declare_htable_set_custom_hashf(name, type, key_type); \
+declare_htable_set_custom_cmpf(name, type, key_type); \
+declare_htable_count(name, type, key_type); \
+declare_htable_get(name, type, key_type); \
+declare_htable_set(name, type, key_type); \
+declare_htable_foreach(name, type, key_type); \
+declare_htable_rehash(name, type, key_type)
 
 #define implement_htable_dense(storage, name, type, key_type) \
     implement_dntable(storage, name ## _table__, struct name ## _unit__); \
@@ -449,13 +449,18 @@ implement_htable_rehash(storage, name, type, key_type)
     int name ## _set(struct name *ht, const key_type k, type v)
 
 #define declare_htable_foreach(name, type, key_type) \
+    int name ## _foreach_iter__(struct name ## _unit__ *u, \
+                                void *user); \
     int name ## _foreach(struct name *ht, \
                          int (*iter)(const key_type *key, \
                                      type *val, \
                                      void *user), \
-                         void *user);
+                         void *user)
 
 #define declare_htable_rehash(name, type, key_type) \
+    int name ## _rehash_iter__(const key_type *key, \
+                               type *val, \
+                               void *user); \
     void name ## _rehash(struct name *hta, struct name *htb)
 
 
