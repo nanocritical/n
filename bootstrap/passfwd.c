@@ -141,11 +141,28 @@ static struct node *do_move_detached_member(struct module *mod,
   node->scope.parent = &container->scope;
 
   struct toplevel *container_toplevel = node_toplevel(container);
-  if (container_toplevel->generic != NULL
-      && container_toplevel->generic->instances_count > 0) {
+  if (container_toplevel->generic != NULL) {
     struct node *copy = node_new_subnode(
       mod, container_toplevel->generic->instances[0]);
     node_deepcopy(mod, copy, toplevel->generic->instances[0]);
+  } else {
+    const struct node *genargs = node_subs_at_const(node, IDX_GENARGS);
+    if (!node_subs_count_atleast(genargs, 1)) {
+      // Remove uneeded 'generic', added in step_generics_pristine_copy().
+      free(toplevel->generic->instances);
+      free(toplevel->generic);
+      toplevel->generic = NULL;
+    }
+  }
+
+  if (toplevel->generic != NULL
+      || container_toplevel->generic != NULL) {
+    // FIXME: This is not strictly correct, but for now, it is necessary to
+    // assume that all methods and functions in a generic type are 'inline'.
+    toplevel->flags |= TOP_IS_INLINE;
+    if (toplevel->generic != NULL) {
+      node_toplevel(toplevel->generic->instances[0])->flags |= TOP_IS_INLINE;
+    }
   }
 
   return next;

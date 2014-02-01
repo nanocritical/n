@@ -95,7 +95,8 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node,
   case DEFFUN:
   case DEFMETHOD:
     // Always needed because the method/fun could be part of a generic
-    // DEFTYPE, and we cannot know that yet.
+    // DEFTYPE, and we cannot know that yet. If the parent is not a generic,
+    // we will remove this unneeded stuff in do_move_detached_member().
     (void) add_instance_deepcopy_from_pristine(mod, node, node, FALSE);
     break;
   default:

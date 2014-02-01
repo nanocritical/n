@@ -15,6 +15,8 @@ export extern struct __mercurial__ =
 
 export intf `any =
 
+export intf `prevent_dyn =
+
 export intf `copyable =
   method@# copy_ctor other:@final = void
 
@@ -1024,18 +1026,21 @@ export (fun e:`error) fatal err:e = void
 export extern inline struct valist =
   isa `trivial_copy
 
+intf `no_dyn_iterator r:`any_any_ref =
+  isa (`iterator r) `prevent_dyn
+
 export opaque struct vararg r:`any_any_ref =
-  export isa (`iterator r)
+  export isa (`no_dyn_iterator r)
   export isa `trivial_copy -- FIXME: remove `trivial_copy, needed by bootstrap
   ap	:valist
   n	:size
 
-export vararg method@ `iterator.has_next = bool
+export inline vararg method@ `iterator.has_next = bool
   return self.n > 0
 
 export extern vararg method@! `iterator.next = r
 
-export vararg method@ left = size
+export inline vararg method@ left = size
   return self.n
 
 

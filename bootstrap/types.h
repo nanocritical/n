@@ -75,6 +75,7 @@ enum isalist_filter {
   ISALIST_FILTER_NOT_EXPORTED = 0x1,
   ISALIST_FILTER_EXPORTED = 0x2,
   ISALIST_FILTER_TRIVIAL_ISALIST = 0x4,
+  ISALIST_FILTER_PREVENT_DYN = 0x8,
 };
 typedef error (*isalist_each)(struct module *mod, struct typ *t, struct typ *intf,
                               bool *stop, void *user);
@@ -172,6 +173,7 @@ extern struct typ *TBI_UNION_ORDER;
 extern struct typ *TBI_ITERATOR;
 extern struct typ *TBI_ENVIRONMENT;
 extern struct typ *TBI_ANY_ENVIRONMENT;
+extern struct typ *TBI_PREVENT_DYN;
 extern struct typ *TBI__NOT_TYPEABLE;
 extern struct typ *TBI__CALL_FUNCTION_SLOT;
 extern struct typ *TBI__MUTABLE;

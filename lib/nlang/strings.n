@@ -2,7 +2,7 @@ from nlang import *
 from nlang.vectors import vector
 import nlang.unsafe
 
-export inline struct string =
+export opaque struct string =
   export isa `copyable `show `string_buffer
   bytes:(vector u8)
 

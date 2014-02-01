@@ -51,7 +51,7 @@ export index_range method@ iter = index_iterator
   return { r=self. }
 
 
-export inline struct index_iterator =
+export opaque struct index_iterator =
   export isa (`iterator size) `trivial_copy
   r:index_range
   p:size

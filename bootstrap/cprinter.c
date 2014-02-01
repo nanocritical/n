@@ -1773,7 +1773,13 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
   if (fwd == FWD_DECLARE_TYPES || fwd == FWD_DEFINE_TYPES) {
     return;
   }
-  if (header && !node_is_export(node)) {
+  if (node_is_extern(node) && fwd == FWD_DEFINE_FUNCTIONS) {
+    return;
+  }
+  if (node_ident(node) == ID_NEXT
+      && typ_generic_functor_const(node_parent_const(node)->typ) != NULL
+      && typ_equal(typ_generic_functor_const(node_parent_const(node)->typ), TBI_VARARG)) {
+    // This is a builtin and does not have a real function prototype.
     return;
   }
   if (!header) {
@@ -2205,6 +2211,7 @@ static error print_deftype_mkdyn_eachisalist(struct module *mod, struct typ *t,
   // FIXME: Shouldn't filter out trivial intf, but we don't yet have
   // builtingen for all of them.
   const uint32_t filter = ISALIST_FILTER_TRIVIAL_ISALIST
+    | ISALIST_FILTER_PREVENT_DYN
     | (st->header ? ISALIST_FILTER_NOT_EXPORTED : ISALIST_FILTER_EXPORTED);
   error e = typ_isalist_foreach((struct module *)mod, intf, filter,
                                 print_deftype_dyn_field_eachisalist,
@@ -2232,6 +2239,7 @@ static void print_deftype_mkdyn(FILE *out, bool header, enum forward fwd,
   // FIXME: Shouldn't filter out trivial intf, but we don't yet have
   // builtingen for all of them.
   const uint32_t filter = ISALIST_FILTER_TRIVIAL_ISALIST
+    | ISALIST_FILTER_PREVENT_DYN
     | (header ? ISALIST_FILTER_NOT_EXPORTED : ISALIST_FILTER_EXPORTED);
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,

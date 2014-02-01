@@ -646,6 +646,7 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
     const bool filter_not_exported = filter & ISALIST_FILTER_NOT_EXPORTED;
     const bool filter_exported = filter & ISALIST_FILTER_EXPORTED;
     const bool filter_trivial_isalist = filter & ISALIST_FILTER_TRIVIAL_ISALIST;
+    const bool filter_prevent_dyn = filter & ISALIST_FILTER_PREVENT_DYN;
     const bool exported = direct_isalist_exported(base, n);
     if (filter_not_exported && !exported) {
       continue;
@@ -654,6 +655,9 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
       continue;
     }
     if (filter_trivial_isalist && typ_is_trivial(intf)) {
+      continue;
+    }
+    if (filter_prevent_dyn && typ_isa(intf, TBI_PREVENT_DYN)) {
       continue;
     }
 
@@ -802,6 +806,7 @@ struct typ *TBI_UNION_ORDER;
 struct typ *TBI_ITERATOR;
 struct typ *TBI_ENVIRONMENT;
 struct typ *TBI_ANY_ENVIRONMENT;
+struct typ *TBI_PREVENT_DYN;
 struct typ *TBI__NOT_TYPEABLE;
 struct typ *TBI__CALL_FUNCTION_SLOT;
 struct typ *TBI__MUTABLE;
