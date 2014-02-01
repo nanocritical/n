@@ -212,6 +212,7 @@ struct node_dyn {
 struct node_deffun {
   struct toplevel toplevel;
   ssize_t min_args, max_args, first_vararg;
+  const struct node *member_isa;
 };
 
 enum deftype_kind {
@@ -231,6 +232,7 @@ struct node_defmethod {
   struct toplevel toplevel;
   enum token_type access;
   ssize_t min_args, max_args, first_vararg;
+  const struct node *member_isa;
 };
 struct node_defintf {
   struct toplevel toplevel;
@@ -252,6 +254,8 @@ struct node_defname {
   struct node *excep_label_ident;
   ident excep_label;
   ident excep_error;
+
+  const struct node *member_isa;
 };
 struct node_defpattern {
   bool is_alias;
@@ -269,7 +273,9 @@ struct node_setgenarg {
 struct node_let {
   struct toplevel toplevel;
 };
-struct node_deffield {};
+struct node_deffield {
+  const struct node *member_isa;
+};
 struct node_defchoice {
   bool has_value;
 };

@@ -2824,12 +2824,12 @@ static error step_copy_call_inference(struct module *mod, struct node *node,
   return 0;
 }
 
-static error check_has_matching_member(const struct module *mod,
-                                       const struct node *deft,
+static error check_has_matching_member(struct module *mod,
+                                       struct node *deft,
                                        const struct typ *intf,
                                        const struct node *mi) {
   error e;
-  const struct node *m = node_get_member_const(mod, deft, node_ident(mi));
+  struct node *m = node_get_member(mod, deft, node_ident(mi));
   if (m == NULL) {
     e = mk_except_type(mod, deft,
                        "type '%s' isa '%s' but does not implement member '%s'",
@@ -2867,6 +2867,26 @@ static error check_has_matching_member(const struct module *mod,
   } else if (mi->which == DEFFUN || mi->which == DEFMETHOD) {
     // FIXME check that the prototype is an exact match.
     // FIXME: handle (lexically) 'final' in mi properly.
+  } else {
+    assert(FALSE && "Unreached");
+  }
+
+  switch (m->which) {
+  case DEFNAME:
+    m->as.DEFNAME.member_isa = mi;
+    break;
+  case DEFFIELD:
+    m->as.DEFFIELD.member_isa = mi;
+    break;
+  case DEFFUN:
+    m->as.DEFFUN.member_isa = mi;
+    break;
+  case DEFMETHOD:
+    m->as.DEFMETHOD.member_isa = mi;
+    break;
+  default:
+    assert(FALSE && "Unreached");
+    break;
   }
 
   return 0;
@@ -2878,7 +2898,7 @@ static error check_exhaustive_intf_impl_eachisalist(struct module *mod,
                                                     bool *stop,
                                                     void *user) {
   (void) user;
-  const struct node *deft = typ_definition_const(t);
+  struct node *deft = typ_definition(t);
   const struct node *dintf = typ_definition_const(intf);
   error e = 0;
 
