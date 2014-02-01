@@ -1236,7 +1236,7 @@ static error type_inference_return(struct module *mod, struct node *node) {
   if (node_subs_count_atleast(node, 1)) {
     struct node *arg = node_subs_first(node);
     error e = unify(mod, arg, arg->typ,
-                    try_wrap_ref_compatible(mod, node, 1,
+                    try_wrap_ref_compatible(mod, node, 0,
                                             module_retval_get(mod)->typ));
     EXCEPT(e);
   }
