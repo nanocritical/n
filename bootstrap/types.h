@@ -5,8 +5,8 @@
 
 struct typ;
 
-HTABLE_SPARSE(typset, uint8_t, struct typ *);
-declare_htable_sparse(typset, uint8_t, struct typ *);
+HTABLE_SPARSE(typset, uint32_t, struct typ *);
+declare_htable_sparse(typset, uint32_t, struct typ *);
 void typset_fullinit(struct typset *set);
 
 size_t typ_debug_backlinks_count(const struct typ *t);

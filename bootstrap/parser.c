@@ -3276,11 +3276,9 @@ s = stpcpy(s, s2);
   return r;
 }
 
-static int print_topdeps_foreach(const struct typ **t, uint8_t *yes, void *user) {
+static int print_topdeps_foreach(const struct typ **t, uint32_t *value, void *user) {
   const struct module *mod = user;
-  if (*yes) {
-    fprintf(stderr, "\t%s\n", typ_pretty_name(mod, *t));
-  }
+  fprintf(stderr, "\t%04x %s\n", *value, typ_pretty_name(mod, *t));
   return 0;
 }
 

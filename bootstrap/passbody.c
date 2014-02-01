@@ -15,6 +15,7 @@ static void record_topdep(struct module *mod, struct typ *t) {
       || typ_is_tentative(t)
       || typ_is_pseudo_builtin(t)
       || typ_is_generic_functor(t)
+      || (st->top->typ != NULL && typ_equal(st->top->typ, t))
       || typ_generic_arity(t) == 0) {
     return;
   }
@@ -25,9 +26,13 @@ static void record_topdep(struct module *mod, struct typ *t) {
     typset_fullinit(toplevel->topdeps);
   }
 
-  typset_set(toplevel->topdeps, t, TRUE);
+  uint32_t *value = typset_get(toplevel->topdeps, t);
+  if (value == NULL) {
+    typset_set(toplevel->topdeps, t, st->topdep_mask);
+  } else {
+    *value |= st->topdep_mask;
+  }
 }
-
 
 STEP_FILTER(step_push_fun_state,
             SF(DEFFUN) | SF(DEFMETHOD) | SF(EXAMPLE));
@@ -50,6 +55,30 @@ static error step_pop_fun_state(struct module *mod, struct node *node,
 
   return 0;
 
+}
+
+STEP_FILTER(step_set_topdep_mask,
+            SF(BLOCK));
+static error step_set_topdep_mask(struct module *mod, struct node *node,
+                                  void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  struct top_state *st = mod->state->top_state;
+  switch (node_parent(node)->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+    if (typ_generic_arity(st->top->typ) == 0) {
+      st->topdep_mask &= TOP_IS_INLINE;
+    }
+    break;
+  case EXAMPLE:
+    st->topdep_mask &= TOP_IS_INLINE;
+    break;
+  default:
+    break;
+  }
+
+  return 0;
 }
 
 static STEP_FILTER(step_detect_not_dyn_intf_down,
@@ -3711,6 +3740,7 @@ static error passbody0(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_already_morningtypepass);
     DOWN_STEP(step_push_top_state);
     DOWN_STEP(step_push_fun_state);
+    DOWN_STEP(step_set_topdep_mask);
     DOWN_STEP(step_detect_not_dyn_intf_down);
     DOWN_STEP(step_rewrite_wildcards);
     DOWN_STEP(step_type_destruct_mark);

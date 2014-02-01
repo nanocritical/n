@@ -19,7 +19,7 @@ struct users {
   struct users *more;
 };
 
-implement_htable_sparse(, typset, uint8_t, struct typ *);
+implement_htable_sparse(, typset, uint32_t, struct typ *);
 
 enum typ_flags {
   TYPF_TENTATIVE = 0x1,

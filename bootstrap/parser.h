@@ -907,6 +907,7 @@ struct top_state {
   struct top_state *prev;
 
   struct node *top;
+  uint32_t topdep_mask;
 };
 
 struct fun_state {

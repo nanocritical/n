@@ -272,6 +272,11 @@ error step_push_top_state(struct module *mod, struct node *node,
 
   PUSH_STATE(mod->state->top_state);
   mod->state->top_state->top = node;
+
+  const struct toplevel *toplevel = node_toplevel_const(node);
+  mod->state->top_state->topdep_mask
+    = toplevel->flags & (TOP_IS_EXPORT | TOP_IS_INLINE);
+
   return 0;
 }
 
