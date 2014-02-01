@@ -629,9 +629,14 @@ static error unify_reference(struct module *mod, const struct node *for_error,
                              bool a_ref, bool b_ref) {
   error e;
 
-  if (!a_ref || !b_ref) {
-    e = mk_except_type_unification(mod, for_error, a, b);
-    THROW(e);
+  if (!a_ref) {
+    SWAP(a, b);
+    SWAP(a_ref, b_ref);
+  }
+
+  if (!typ_is_reference(b) && typ_is_tentative(b) && typ_isa(a, b)) {
+    typ_link_tentative(a, b);
+    return 0;
   }
 
   struct typ *a0 = typ_generic_functor(a);
