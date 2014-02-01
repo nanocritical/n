@@ -397,10 +397,33 @@ static void link_to_final(struct typ *dst, struct typ *src) {
   memset(src, 0, sizeof(*src));
 }
 
+// When linking src to a tentative dst, and when src is a generic, each of
+// the generic arguments of src have gained a user (dst) and lost a user
+// (src). But in the current code src, while listed as a user in the
+// generic arguments, has no backlink to these elements in the users lists.
+//
+// However, we did add_user() to dst. So by symmetry we need to remove src
+// as a user of each generic arg.
+//
+// An alternative approach, more efficient, would be to use set_typ() when
+// adding users. Then there would be no need for either add_user() or
+// remove_as_user_of_generic_args(). But all the implications of that are
+// not yet understood.
+
+noinline__ // Expensive -- we want it to show up in profiles.
+static void remove_as_user_of_generic_args(struct typ *t) {
+  for (size_t m = 0, arity = typ_generic_arity(t); m < arity; ++m) {
+    struct typ *arg = typ_generic_arg(t, m);
+    FOREACH_USER(user, arg,
+                 if (user == t) { users->users[n] = NULL; });
+  }
+}
+
 static void link_to_tentative(struct typ *dst, struct typ *src) {
   FOREACH_BACKLINK(back, src, set_typ(back, dst));
 
   FOREACH_USER(user, src, add_user(dst, user));
+  remove_as_user_of_generic_args(src);
 
   clear_backlinks(src);
   clear_users(src);
