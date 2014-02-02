@@ -2280,7 +2280,8 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
   }
 
   const char *prefix = "";
-  if (!(typ_is_builtin(mod, d->typ) && node_is_extern(d))) {
+  if (!(typ_is_builtin(mod, d->typ) && node_is_extern(d))
+      && !(d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_ENUM)) {
     prefix = "struct ";
     fprintf(out, "struct ");
     print_deftype_name(out, mod, d);
