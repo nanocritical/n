@@ -2324,7 +2324,9 @@ error step_type_inference(struct module *mod, struct node *node,
     break;
   }
 
-  record_topdep(mod, node->typ);
+  if (node->typ != NULL) {
+    record_topdep(mod, node->typ);
+  }
 
   assert(node->typ != NULL
          || (node->which == IDENT
