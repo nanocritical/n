@@ -1,9 +1,9 @@
 from nlang import *
 from nlang.strings import *
-fun foo = _nretval:string
+fun foo = _nretval:string 
   return nlang.strings.string.from_static_string 'test'
 
-export fun main = i32
+export fun main = i32 
   and _Ngensym0:nlang.chars.static_string  such
     say sep=null block 
   _Ngensym0 = 'test'

@@ -12,22 +12,37 @@ typedef struct t00_dynintf__Ni_d t00_dynintf__Ni_d;
 
 struct t00_dynintf_d;
 typedef struct t00_dynintf_d t00_dynintf_d;
-typedef const t00_dynintf_d* _Ngen_nlang_builtins_ref__t00_dynintf_d_genN_;
-typedef _Ngen_nlang_builtins_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_nullable_ref__t00_dynintf_d_genN_;
-typedef t00_dynintf_d* _Ngen_nlang_builtins_mutable_ref__t00_dynintf_d_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_dynintf_d_genN_;
-typedef _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_dynintf_d_genN_;
+#ifndef HAS0__Ngen_nlang_builtins_ref__t00_dynintf_d_genN_
+#define HAS0__Ngen_nlang_builtins_ref__t00_dynintf_d_genN_
+struct t00_dynintf_d;
+typedef const struct t00_dynintf_d* _Ngen_nlang_builtins_ref__t00_dynintf_d_genN_;
+#endif // HAS0__Ngen_nlang_builtins_ref__t00_dynintf_d_genN_
+;
+#ifndef HAS0__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_
+#define HAS0__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_
+struct t00_dynintf_d;
+typedef struct t00_dynintf_d* _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_;
+#endif // HAS0__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_
+;
 
 struct t00_dynintf_dc;
 typedef struct t00_dynintf_dc t00_dynintf_dc;
-typedef const t00_dynintf_dc* _Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_;
-typedef _Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_nullable_ref__t00_dynintf_dc_genN_;
-typedef t00_dynintf_dc* _Ngen_nlang_builtins_mutable_ref__t00_dynintf_dc_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_dynintf_dc_genN_;
-typedef _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_dynintf_dc_genN_;
+#ifndef HAS0__Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_
+#define HAS0__Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_
+struct t00_dynintf_dc;
+typedef const struct t00_dynintf_dc* _Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_;
+#endif // HAS0__Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_
+;
+#ifndef HAS0__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_
+#define HAS0__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_
+struct t00_dynintf_dc;
+typedef struct t00_dynintf_dc* _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_;
+#endif // HAS0__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_
+;
 
+#ifndef HAS0_t00_dynintf__Ni_d
+#define HAS0_t00_dynintf__Ni_d
+#endif // HAS0_t00_dynintf__Ni_d
 
 
 
@@ -74,8 +89,18 @@ nlang_builtins_i32 t00_dynintf__Ni_d_get(t00_dynintf__Ni_d self);
 
 nlang_builtins_i32 t00_dynintf_d_answer(void);
 ;
+#ifndef HAS2__Ngen_nlang_builtins_ref__t00_dynintf_d_genN_
+#define HAS2__Ngen_nlang_builtins_ref__t00_dynintf_d_genN_
+struct t00_dynintf_d;
+typedef const struct t00_dynintf_d* _Ngen_nlang_builtins_ref__t00_dynintf_d_genN_;
+#endif // HAS2__Ngen_nlang_builtins_ref__t00_dynintf_d_genN_
 nlang_builtins_i32 t00_dynintf_d_get(_Ngen_nlang_builtins_ref__t00_dynintf_d_genN_ self) __attribute__((__nonnull__(1)));
 ;
+#ifndef HAS2__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_
+#define HAS2__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_
+struct t00_dynintf_d;
+typedef struct t00_dynintf_d* _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_;
+#endif // HAS2__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_
 nlang_builtins_void t00_dynintf_d_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_ self) __attribute__((__nonnull__(1)));
 ;
 void t00_dynintf_d_mk(t00_dynintf_d *_nrtr_r);
@@ -86,8 +111,18 @@ static inline t00_dynintf__Ni_d t00_dynintf_d_mkdyn__t00_dynintf__Ni_d(t00_dynin
 
 nlang_builtins_i32 t00_dynintf_dc_answer(void);
 ;
+#ifndef HAS2__Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_
+#define HAS2__Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_
+struct t00_dynintf_dc;
+typedef const struct t00_dynintf_dc* _Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_;
+#endif // HAS2__Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_
 nlang_builtins_i32 t00_dynintf_dc_get(_Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_ self) __attribute__((__nonnull__(1)));
 ;
+#ifndef HAS2__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_
+#define HAS2__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_
+struct t00_dynintf_dc;
+typedef struct t00_dynintf_dc* _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_;
+#endif // HAS2__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_
 nlang_builtins_void t00_dynintf_dc_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_ self) __attribute__((__nonnull__(1)));
 ;
 void t00_dynintf_dc_mk(t00_dynintf_dc *_nrtr_r);
@@ -96,6 +131,9 @@ _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_ t00_dynintf_dc_new(void
 ;
 static inline t00_dynintf__Ni_d t00_dynintf_dc_mkdyn__t00_dynintf__Ni_d(t00_dynintf_dc *obj);
 
+#ifndef HAS2_t00_dynintf__Ni_d
+#define HAS2_t00_dynintf__Ni_d
+#endif // HAS2_t00_dynintf__Ni_d
 static nlang_builtins_i32 t00_dynintf_foo(t00_dynintf__Ni_d v);
 
 void t00_dynintf__Nexample0(void) __attribute__((section(".text.nlang.examples")));
@@ -125,6 +163,11 @@ return (nlang_builtins_i32)42;
 #undef THIS
 }
 ;
+#ifndef HAS3__Ngen_nlang_builtins_ref__t00_dynintf_d_genN_
+#define HAS3__Ngen_nlang_builtins_ref__t00_dynintf_d_genN_
+struct t00_dynintf_d;
+typedef const struct t00_dynintf_d* _Ngen_nlang_builtins_ref__t00_dynintf_d_genN_;
+#endif // HAS3__Ngen_nlang_builtins_ref__t00_dynintf_d_genN_
 nlang_builtins_i32 t00_dynintf_d_get(_Ngen_nlang_builtins_ref__t00_dynintf_d_genN_ self) {
 #define THIS(x) t00_dynintf_d##x
  {
@@ -133,6 +176,11 @@ return (self->x);
 #undef THIS
 }
 ;
+#ifndef HAS3__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_
+#define HAS3__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_
+struct t00_dynintf_d;
+typedef struct t00_dynintf_d* _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_;
+#endif // HAS3__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_
 nlang_builtins_void t00_dynintf_d_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_d_genN_ self) {
 #define THIS(x) t00_dynintf_d##x
 #undef THIS
@@ -167,6 +215,11 @@ return (nlang_builtins_i32)42;
 #undef THIS
 }
 ;
+#ifndef HAS3__Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_
+#define HAS3__Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_
+struct t00_dynintf_dc;
+typedef const struct t00_dynintf_dc* _Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_;
+#endif // HAS3__Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_
 nlang_builtins_i32 t00_dynintf_dc_get(_Ngen_nlang_builtins_ref__t00_dynintf_dc_genN_ self) {
 #define THIS(x) t00_dynintf_dc##x
  {
@@ -175,6 +228,11 @@ return (nlang_builtins_i32)42;
 #undef THIS
 }
 ;
+#ifndef HAS3__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_
+#define HAS3__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_
+struct t00_dynintf_dc;
+typedef struct t00_dynintf_dc* _Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_;
+#endif // HAS3__Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_
 nlang_builtins_void t00_dynintf_dc_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_dynintf_dc_genN_ self) {
 #define THIS(x) t00_dynintf_dc##x
 #undef THIS
@@ -201,6 +259,9 @@ static const struct _Ndyn_t00_dynintf__Ni_d vtable = {
 return (t00_dynintf__Ni_d){ .vptr = &vtable, .obj = obj };
 }
 
+#ifndef HAS3_t00_dynintf__Ni_d
+#define HAS3_t00_dynintf__Ni_d
+#endif // HAS3_t00_dynintf__Ni_d
 static nlang_builtins_i32 t00_dynintf_foo(t00_dynintf__Ni_d v) {
  {
 return t00_dynintf__Ni_d_get(v);

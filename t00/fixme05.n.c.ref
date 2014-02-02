@@ -8,12 +8,12 @@
 #undef NLANG_DECLARE_TYPES
 struct t00_fixme05_nocopy;
 typedef struct t00_fixme05_nocopy t00_fixme05_nocopy;
-typedef const t00_fixme05_nocopy* _Ngen_nlang_builtins_ref__t00_fixme05_nocopy_genN_;
-typedef _Ngen_nlang_builtins_ref__t00_fixme05_nocopy_genN_ _Ngen_nlang_builtins_nullable_ref__t00_fixme05_nocopy_genN_;
-typedef t00_fixme05_nocopy* _Ngen_nlang_builtins_mutable_ref__t00_fixme05_nocopy_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_fixme05_nocopy_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_fixme05_nocopy_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_fixme05_nocopy_genN_;
-typedef _Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_fixme05_nocopy_genN_;
+#ifndef HAS0__Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_
+#define HAS0__Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_
+struct t00_fixme05_nocopy;
+typedef struct t00_fixme05_nocopy* _Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_;
+#endif // HAS0__Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_
+;
 
 
 
@@ -38,6 +38,11 @@ nlang_builtins_i32 x;
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/fixme05.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
+#ifndef HAS2__Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_
+#define HAS2__Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_
+struct t00_fixme05_nocopy;
+typedef struct t00_fixme05_nocopy* _Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_;
+#endif // HAS2__Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_
 nlang_builtins_void t00_fixme05_nocopy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_ self) __attribute__((__nonnull__(1)));
 ;
 void t00_fixme05_nocopy_mk(t00_fixme05_nocopy *_nrtr_r);
@@ -56,6 +61,11 @@ static void t00_fixme05_foo(t00_fixme05_nocopy *_nrtr__nretval);
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/fixme05.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
+#ifndef HAS3__Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_
+#define HAS3__Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_
+struct t00_fixme05_nocopy;
+typedef struct t00_fixme05_nocopy* _Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_;
+#endif // HAS3__Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_
 nlang_builtins_void t00_fixme05_nocopy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_fixme05_nocopy_genN_ self) {
 #define THIS(x) t00_fixme05_nocopy##x
 #undef THIS

@@ -72,6 +72,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`prevent_dyn)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`copyable)
   IMPORT :<import>
    BIN(.)
@@ -677,6 +683,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     BIN(.)
      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`any_environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
      IDENT(containers)
     IDENT(`locus)
   IMPORT :<import>
@@ -798,8 +816,9 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    DEFARG :nlang.builtins.error
-    IDENT(_nretval)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
     IDENT(error) :nlang.builtins.error
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    TRY :nlang.builtins.void
     LET :nlang.builtins.void
@@ -837,6 +856,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    TRY :nlang.builtins.void
     LET :nlang.builtins.void
@@ -900,6 +920,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    TRY :nlang.builtins.void
     LET :nlang.builtins.void
@@ -990,6 +1011,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    TRY :nlang.builtins.void
     LET :nlang.builtins.void
@@ -1025,6 +1047,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void

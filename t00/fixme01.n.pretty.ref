@@ -1,5 +1,5 @@
 from nlang import *
-export fun main = i32
+export fun main = i32 
   and x = 1
   x = 0
   return x

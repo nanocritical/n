@@ -8,6 +8,11 @@
 #undef NLANG_DECLARE_TYPES
 
 
+#ifndef HAS0__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+#define HAS0__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+struct nlang_builtins_error;
+typedef const struct nlang_builtins_error* _Ngen_nlang_builtins_ref__nlang_builtins_error_genN_;
+#endif // HAS0__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
 
 
 #define NLANG_DEFINE_TYPES
@@ -32,6 +37,11 @@ static void t00_try_inferred(nlang_builtins_error *_nrtr__nretval);
 
 static nlang_builtins_i32 t00_try_foo(void);
 
+#ifndef HAS2__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+#define HAS2__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+struct nlang_builtins_error;
+typedef const struct nlang_builtins_error* _Ngen_nlang_builtins_ref__nlang_builtins_error_genN_;
+#endif // HAS2__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
 static nlang_builtins_i32 t00_try_bar(void);
 
 static nlang_builtins_i32 t00_try_noerror(void);
@@ -105,6 +115,11 @@ return (nlang_builtins_i32)1;
 }
 }
 
+#ifndef HAS3__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+#define HAS3__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+struct nlang_builtins_error;
+typedef const struct nlang_builtins_error* _Ngen_nlang_builtins_ref__nlang_builtins_error_genN_;
+#endif // HAS3__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
 static nlang_builtins_i32 t00_try_bar(void) {
  {
 nlang_builtins_error _Ngensym3 = { 0 };

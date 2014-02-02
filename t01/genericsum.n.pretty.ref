@@ -1,19 +1,19 @@
 from nlang import *
 type container = `trivial_ctor <root>.nlang.builtins.`trivial_ctor
-  and this = t01.genericsum.container
-  and final = t01.genericsum.container
+  alias this = t01.genericsum.container
+  alias final = t01.genericsum.container
   x:t
-  container method add x:t = void
+  inline container method add x:t = void 
   nlang.builtins.`arithmetic.operator_assign_plus @!self!x @x
 
-  container method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  container method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
 
-export fun main = i32
+export fun main = i32 
   and v = { x=0 }  such
     t01.genericsum.container.add @!v 1
   return v.x - 1

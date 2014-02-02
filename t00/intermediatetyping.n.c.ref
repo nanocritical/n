@@ -6,6 +6,11 @@
 #define NLANG_DECLARE_TYPES
 # include "t00/intermediatetyping.n.h.out"
 #undef NLANG_DECLARE_TYPES
+#ifndef HAS0__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+#define HAS0__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+struct nlang_builtins_error;
+typedef const struct nlang_builtins_error* _Ngen_nlang_builtins_ref__nlang_builtins_error_genN_;
+#endif // HAS0__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
 
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
@@ -22,8 +27,17 @@
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/intermediatetyping.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
+#ifndef HAS2__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+#define HAS2__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+struct nlang_builtins_error;
+typedef const struct nlang_builtins_error* _Ngen_nlang_builtins_ref__nlang_builtins_error_genN_;
+#endif // HAS2__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
 static nlang_builtins_i32 t00_intermediatetyping_noerror(void);
 
+#ifndef HAS2__Ngen_nlang_builtins_max__nlang_builtins_i32_genN_
+#define HAS2__Ngen_nlang_builtins_max__nlang_builtins_i32_genN_
+static inline nlang_builtins_i32 _Ngen_nlang_builtins_max__nlang_builtins_i32_genN_(nlang_builtins_i32 a, nlang_builtins_i32 b);
+#endif // HAS2__Ngen_nlang_builtins_max__nlang_builtins_i32_genN_
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
@@ -31,6 +45,11 @@ static nlang_builtins_i32 t00_intermediatetyping_noerror(void);
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/intermediatetyping.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
+#ifndef HAS3__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+#define HAS3__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
+struct nlang_builtins_error;
+typedef const struct nlang_builtins_error* _Ngen_nlang_builtins_ref__nlang_builtins_error_genN_;
+#endif // HAS3__Ngen_nlang_builtins_ref__nlang_builtins_error_genN_
 static nlang_builtins_i32 t00_intermediatetyping_noerror(void) {
  {
 nlang_builtins_i32 x = { 0 };
@@ -56,6 +75,19 @@ return x;
 }
 }
 
+#ifndef HAS3__Ngen_nlang_builtins_max__nlang_builtins_i32_genN_
+#define HAS3__Ngen_nlang_builtins_max__nlang_builtins_i32_genN_
+static inline nlang_builtins_i32 _Ngen_nlang_builtins_max__nlang_builtins_i32_genN_(nlang_builtins_i32 a, nlang_builtins_i32 b) {
+ {
+( ((a >= b)) ? ( {
+return a;
+})
+ : ( {
+return b;
+}));
+}
+}
+#endif // HAS3__Ngen_nlang_builtins_max__nlang_builtins_i32_genN_
 nlang_builtins_i32 _Nmain(void) {
  {
 nlang_builtins_i32 x = ((nlang_builtins_i32)2 + t00_intermediatetyping_noerror());

@@ -72,6 +72,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`prevent_dyn)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`copyable)
   IMPORT :<import>
    BIN(.)
@@ -677,6 +683,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     BIN(.)
      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`any_environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
      IDENT(containers)
     IDENT(`locus)
   IMPORT :<import>
@@ -797,12 +815,13 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   IDENT(foo) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   TUPLE :nlang.builtins.i32, nlang.builtins.i32
+   TUPLE :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
     IDENT(i32) :nlang.builtins.i32
     IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.void
-    TUPLE :nlang.builtins.i32, nlang.builtins.i32
+    TUPLE :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
      NUMBER(1) :nlang.builtins.i32
      UN(-) :nlang.builtins.i32
       NUMBER(1) :nlang.builtins.i32
@@ -810,13 +829,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   IDENT(bar) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   TUPLE :nlang.builtins.i32, nlang.builtins.i32
+   TUPLE :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
     DEFARG :nlang.builtins.i32
      IDENT(x) :nlang.builtins.__internal_not_typeable__
      IDENT(i32) :nlang.builtins.i32
     DEFARG :nlang.builtins.i32
      IDENT(y) :nlang.builtins.__internal_not_typeable__
      IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    BIN( = ) :nlang.builtins.void
     IDENT(x) :nlang.builtins.i32
@@ -830,13 +850,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     TUPLE :nlang.builtins.i32, nlang.builtins.i32
+     TUPLE :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
       IDENT(x0) :nlang.builtins.i32
       IDENT(y0) :nlang.builtins.i32
-     TUPLE :nlang.builtins.i32, nlang.builtins.i32
+     TUPLE :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
       NUMBER(1) :nlang.builtins.i32
       UN(-) :nlang.builtins.i32
        NUMBER(1) :nlang.builtins.i32
@@ -844,23 +865,23 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      DEFNAME(y0) :nlang.builtins.i32
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     TYPECONSTRAINT :nlang.builtins.i32, nlang.builtins.i32
-      IDENT(_Ngensym0) :nlang.builtins.i32, nlang.builtins.i32
-      DIRECTDEF :nlang.builtins.i32, nlang.builtins.i32
-     DEFNAME(_Ngensym0) :nlang.builtins.i32, nlang.builtins.i32
+     TYPECONSTRAINT :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+      IDENT(_Ngensym0) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+      DIRECTDEF :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+     DEFNAME(_Ngensym0) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
     DEFPATTERN :nlang.builtins.void
-     TUPLE :nlang.builtins.i32, nlang.builtins.i32
+     TUPLE :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
       IDENT(x) :nlang.builtins.i32
       IDENT(y) :nlang.builtins.i32
-     BLOCK :nlang.builtins.i32, nlang.builtins.i32
+     BLOCK :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
       BIN( = ) :nlang.builtins.void
-       IDENT(_Ngensym0) :nlang.builtins.i32, nlang.builtins.i32
-       CALL :nlang.builtins.i32, nlang.builtins.i32
+       IDENT(_Ngensym0) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+       CALL :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
         IDENT(foo) :t00.tuple.foo
-      TUPLEEXTRACT :nlang.builtins.i32, nlang.builtins.i32
+      TUPLEEXTRACT :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
        TUPLENTH :nlang.builtins.i32
        TUPLENTH :nlang.builtins.i32
-       IDENT(_Ngensym0) :nlang.builtins.i32, nlang.builtins.i32
+       IDENT(_Ngensym0) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
      DEFNAME(x) :nlang.builtins.i32
      DEFNAME(y) :nlang.builtins.i32
    CALL :nlang.builtins.void
@@ -876,65 +897,65 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      NUMBER(1) :nlang.builtins.i32
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     TYPECONSTRAINT :nlang.builtins.i32, nlang.builtins.i32
-      IDENT(_Ngensym1) :nlang.builtins.i32, nlang.builtins.i32
-      DIRECTDEF :nlang.builtins.i32, nlang.builtins.i32
-     DEFNAME(_Ngensym1) :nlang.builtins.i32, nlang.builtins.i32
+     TYPECONSTRAINT :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+      IDENT(_Ngensym1) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+      DIRECTDEF :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+     DEFNAME(_Ngensym1) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
     DEFPATTERN :nlang.builtins.void
-     TUPLE :nlang.builtins.i32, nlang.builtins.i32
+     TUPLE :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
       IDENT(x1) :nlang.builtins.i32
       IDENT(_) :nlang.builtins.i32
-     BLOCK :nlang.builtins.i32, nlang.builtins.i32
+     BLOCK :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
       BIN( = ) :nlang.builtins.void
-       IDENT(_Ngensym1) :nlang.builtins.i32, nlang.builtins.i32
-       CALL :nlang.builtins.i32, nlang.builtins.i32
+       IDENT(_Ngensym1) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+       CALL :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
         IDENT(foo) :t00.tuple.foo
-      TUPLEEXTRACT :nlang.builtins.i32, nlang.builtins.i32
+      TUPLEEXTRACT :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
        TUPLENTH :nlang.builtins.i32
        TUPLENTH :nlang.builtins.i32
-       IDENT(_Ngensym1) :nlang.builtins.i32, nlang.builtins.i32
+       IDENT(_Ngensym1) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
      DEFNAME(x1) :nlang.builtins.i32
      DEFNAME(_) :nlang.builtins.i32
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     TYPECONSTRAINT :nlang.builtins.i32, nlang.builtins.i32
-      IDENT(_Ngensym2) :nlang.builtins.i32, nlang.builtins.i32
-      DIRECTDEF :nlang.builtins.i32, nlang.builtins.i32
-     DEFNAME(_Ngensym2) :nlang.builtins.i32, nlang.builtins.i32
+     TYPECONSTRAINT :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+      IDENT(_Ngensym2) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+      DIRECTDEF :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+     DEFNAME(_Ngensym2) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
     DEFPATTERN :nlang.builtins.void
-     TUPLE :nlang.builtins.i32, nlang.builtins.i32
+     TUPLE :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
       IDENT(_) :nlang.builtins.i32
       IDENT(y1) :nlang.builtins.i32
-     BLOCK :nlang.builtins.i32, nlang.builtins.i32
+     BLOCK :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
       BIN( = ) :nlang.builtins.void
-       IDENT(_Ngensym2) :nlang.builtins.i32, nlang.builtins.i32
-       CALL :nlang.builtins.i32, nlang.builtins.i32
+       IDENT(_Ngensym2) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+       CALL :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
         IDENT(foo) :t00.tuple.foo
-      TUPLEEXTRACT :nlang.builtins.i32, nlang.builtins.i32
+      TUPLEEXTRACT :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
        TUPLENTH :nlang.builtins.i32
        TUPLENTH :nlang.builtins.i32
-       IDENT(_Ngensym2) :nlang.builtins.i32, nlang.builtins.i32
+       IDENT(_Ngensym2) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
      DEFNAME(_) :nlang.builtins.i32
      DEFNAME(y1) :nlang.builtins.i32
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void
-     TYPECONSTRAINT :nlang.builtins.i32, nlang.builtins.i32
-      IDENT(_Ngensym3) :nlang.builtins.i32, nlang.builtins.i32
-      DIRECTDEF :nlang.builtins.i32, nlang.builtins.i32
-     DEFNAME(_Ngensym3) :nlang.builtins.i32, nlang.builtins.i32
+     TYPECONSTRAINT :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+      IDENT(_Ngensym3) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+      DIRECTDEF :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+     DEFNAME(_Ngensym3) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
     DEFPATTERN :nlang.builtins.void
-     TUPLE :nlang.builtins.i32, nlang.builtins.i32
+     TUPLE :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
       IDENT(x2) :nlang.builtins.i32
       IDENT(y2) :nlang.builtins.i32
-     BLOCK :nlang.builtins.i32, nlang.builtins.i32
+     BLOCK :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
       BIN( = ) :nlang.builtins.void
-       IDENT(_Ngensym3) :nlang.builtins.i32, nlang.builtins.i32
-       CALL :nlang.builtins.i32, nlang.builtins.i32
+       IDENT(_Ngensym3) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
+       CALL :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
         IDENT(bar) :t00.tuple.bar
-      TUPLEEXTRACT :nlang.builtins.i32, nlang.builtins.i32
+      TUPLEEXTRACT :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
        TUPLENTH :nlang.builtins.i32
        TUPLENTH :nlang.builtins.i32
-       IDENT(_Ngensym3) :nlang.builtins.i32, nlang.builtins.i32
+       IDENT(_Ngensym3) :(nlang.builtins.tuple_2 nlang.builtins.i32 nlang.builtins.i32)
      DEFNAME(x2) :nlang.builtins.i32
      DEFNAME(y2) :nlang.builtins.i32
    CALL :nlang.builtins.void

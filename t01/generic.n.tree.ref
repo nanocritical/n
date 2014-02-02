@@ -72,6 +72,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`prevent_dyn)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`copyable)
   IMPORT :<import>
    BIN(.)
@@ -677,6 +683,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     BIN(.)
      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`any_environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
      IDENT(containers)
     IDENT(`locus)
   IMPORT :<import>
@@ -840,6 +858,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(@#) :(nlang.builtins.mercurial_ref (functor t01.generic.container nlang.builtins.`copyable))
       IDENT(final) :(functor t01.generic.container nlang.builtins.`copyable)
     IDENT(void) :nlang.builtins.void
+   WITHIN :nlang.builtins.void
   DEFFUN :t01.generic.container.mk
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -855,6 +874,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFARG :(functor t01.generic.container nlang.builtins.`copyable)
      IDENT(r) :nlang.builtins.__internal_not_typeable__
      IDENT(final) :(functor t01.generic.container nlang.builtins.`copyable)
+   WITHIN :nlang.builtins.void
   DEFFUN :t01.generic.container.new
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -869,11 +889,13 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
     UN(@#) :(nlang.builtins.mercurial_ref (functor t01.generic.container nlang.builtins.`copyable))
      IDENT(final) :(functor t01.generic.container nlang.builtins.`copyable)
+   WITHIN :nlang.builtins.void
  DEFFUN :t01.generic.main
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void

@@ -1,22 +1,22 @@
 from nlang import *
 type copy = `copyable <root>.nlang.builtins.`trivial_ctor
-  and this = t00.copy.copy
-  and final = t00.copy.copy
+  alias this = t00.copy.copy
+  alias final = t00.copy.copy
   x:i32
-  copy method `copyable.copy_ctor other:@this = void
+  copy method `copyable.copy_ctor other:@this = void 
   self!x = other.x
 
-  copy method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  copy method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
 
-fun foo = _nretval:copy
+fun foo = _nretval:copy 
   return { x=0 }
 
-export fun main = i32
+export fun main = i32 
   and w = foo
   and y = { x=-1 }
   and z:copy  such

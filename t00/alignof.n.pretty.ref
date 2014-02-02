@@ -1,4 +1,4 @@
 from nlang import *
 export fun main = i32 
-  and _ = 0
+  assert ((alignof i32) == (alignof u32))
   return 0

@@ -1,12 +1,12 @@
 from nlang import *
-fun foo = i32, i32
+fun foo = i32, i32 
   return 1, -1
 
-fun bar = x:i32, y:i32
+fun bar = x:i32, y:i32 
   x = 1
   y = -1
 
-export fun main = i32
+export fun main = i32 
   and x0, y0 = 1, -1
   and _Ngensym0:nlang.builtins.tuple_2
   and x, y = block 

@@ -1,0 +1,75 @@
+from nlang import *
+from nlang.strings import *
+globalenv e2:@!`env2
+
+type myenv2 = `env2 <root>.nlang.builtins.`trivial_ctor
+  alias this = t00.within.myenv2
+  alias final = t00.within.myenv2
+  dummy:u32
+  myenv2 method say2 s:@string = void 
+  and _Ngensym2:nlang.chars.static_string  such
+    say sep=null block 
+  _Ngensym2 = 'saying2:'
+  @_Ngensym2;; s
+
+  myenv2 method <root>.nlang.builtins.`trivial_ctor.ctor = void 
+
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
+
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
+
+  myenv2 method parent = @!t00.within.`env2 
+
+  myenv2 method install where:@!@!t00.within.`env2 = void 
+
+  myenv2 method uninstall where:@!@#t00.within.`env2 = void 
+
+
+
+type myenv1 = `env1 <root>.nlang.builtins.`trivial_ctor
+  alias this = t00.within.myenv1
+  alias final = t00.within.myenv1
+  myenv1 method say s:@string = void 
+  and _Ngensym3:nlang.chars.static_string  such
+    say sep=null block 
+  _Ngensym3 = 'saying:'
+  @_Ngensym3;; s
+
+  myenv1 method <root>.nlang.builtins.`trivial_ctor.ctor = void 
+
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
+
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
+
+  myenv1 method parent = @!t00.within.`env1 
+
+  myenv1 method install where:@!@!t00.within.`env1 = void 
+
+  myenv1 method uninstall where:@!@#t00.within.`env1 = void 
+
+
+globalenv e1:@!`env1
+within e1
+fun do = i32 within e2
+  and mye2 = { }  such
+    t00.within.myenv2.install @!mye2 @!e2
+  and _Ngensym4:nlang.strings.string
+  and _Ngensym5:nlang.strings.string  such
+    t00.within.`env2.say2 e2 block 
+  block
+    _Ngensym4 = nlang.strings.string.from_static_string 'module'
+    nlang.strings.string.copy_ctor @#_Ngensym5 @_Ngensym4
+  @_Ngensym5;;
+  and _Ngensym6:nlang.strings.string
+  and _Ngensym7:nlang.strings.string  such
+    t00.within.`env1.say e1 block 
+  block
+    _Ngensym6 = nlang.strings.string.from_static_string 'function'
+    nlang.strings.string.copy_ctor @#_Ngensym7 @_Ngensym6
+  @_Ngensym7;;
+  return 0
+
+export fun main = i32 
+  and mye1 = { }  such
+    t00.within.myenv1.install @!mye1 @!e1
+  return do

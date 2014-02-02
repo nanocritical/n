@@ -1,27 +1,27 @@
 from nlang import *
 type t = <root>.nlang.builtins.`trivial_ctor
-  and this = t00.returnthroughref.t
-  and final = t00.returnthroughref.t
+  alias this = t00.returnthroughref.t
+  alias final = t00.returnthroughref.t
   x:i32
   xx:i32
-  t method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  t method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
 
-fun foo = _nretval:t
+fun foo = _nretval:t 
   return { x=3 }
 
-fun bar = _nretval:t
+fun bar = _nretval:t 
   return foo
 
-fun bar2 = r:t
+fun bar2 = r:t 
   r = bar
   return r
 
-export fun main = i32
+export fun main = i32 
   and y = bar
   and _Ngensym1:t00.returnthroughref.t  such
     if y.x != block 

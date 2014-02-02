@@ -1,18 +1,18 @@
 from nlang import *
 type c = <root>.nlang.builtins.`trivial_ctor
-  and this = t01.genericsecondorder.c
-  and final = t01.genericsecondorder.c
+  alias this = t01.genericsecondorder.c
+  alias final = t01.genericsecondorder.c
   x:i32
-  c method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  c method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
 
-fun get m:r c = r i32
+fun get m:r c = r i32 
   return @$m$x
 
-export fun main = i32
+export fun main = i32 
   and x = { x=0 }
   return .((get ref) @x)

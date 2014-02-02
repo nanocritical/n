@@ -1,8 +1,8 @@
 t00/fixme05.n.c.out: In function ‘t00_fixme05_foo’:
-t00/fixme05.n.c.out:91:20: warning: variable ‘r’ set but not used [-Wunused-but-set-variable]
+t00/fixme05.n.c.out:101:20: warning: variable ‘r’ set but not used [-Wunused-but-set-variable]
  t00_fixme05_nocopy r = { 0 };
                     ^
 t00/fixme05.n.c.out: At top level:
-t00/fixme05.n.c.out:78:13: warning: ‘t00_fixme05_bar’ defined but not used [-Wunused-function]
+t00/fixme05.n.c.out:88:13: warning: ‘t00_fixme05_bar’ defined but not used [-Wunused-function]
  static void t00_fixme05_bar(t00_fixme05_nocopy *_nrtr_r) {
              ^

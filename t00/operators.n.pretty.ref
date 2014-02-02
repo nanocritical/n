@@ -1,5 +1,5 @@
 from nlang import *
-export fun main = i32
+export fun main = i32 
   and x = 0
   and y = 1  such
     x bw^= y

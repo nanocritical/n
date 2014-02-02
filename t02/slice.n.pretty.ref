@@ -1,6 +1,6 @@
 from nlang import *
 from nlang.sysheap import heapsysheap
-export fun main = i32
+export fun main = i32 
   and s = (slice i32).mk  such
     (heap.slice_realloc i32) @!sysheap @#s 1
   and p = nlang.memory.slice.at @!s 0

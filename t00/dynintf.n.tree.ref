@@ -72,6 +72,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`prevent_dyn)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`copyable)
   IMPORT :<import>
    BIN(.)
@@ -677,6 +683,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     BIN(.)
      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`any_environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
      IDENT(containers)
     IDENT(`locus)
   IMPORT :<import>
@@ -812,6 +830,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32
+   WITHIN :nlang.builtins.void
   DEFMETHOD :t00.dynintf.`d.get
    IDENT(get) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
@@ -821,6 +840,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(@) :(nlang.builtins.ref t00.dynintf.`d)
       IDENT(final) :t00.dynintf.`d
     IDENT(i32) :nlang.builtins.i32
+   WITHIN :nlang.builtins.void
  DEFTYPE :t00.dynintf.d
   IDENT(d) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
@@ -853,6 +873,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32
+   WITHIN :nlang.builtins.void
    BLOCK :nlang.builtins.void
     RETURN :nlang.builtins.void
      NUMBER(42) :nlang.builtins.i32
@@ -865,6 +886,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(@) :(nlang.builtins.ref t00.dynintf.d)
       IDENT(final) :t00.dynintf.d
     IDENT(i32) :nlang.builtins.i32
+   WITHIN :nlang.builtins.void
    BLOCK :nlang.builtins.void
     RETURN :nlang.builtins.void
      BIN(.) :nlang.builtins.i32
@@ -887,6 +909,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(@#) :(nlang.builtins.mercurial_ref t00.dynintf.d)
       IDENT(final) :t00.dynintf.d
     IDENT(void) :nlang.builtins.void
+   WITHIN :nlang.builtins.void
   DEFFUN :t00.dynintf.d.mk
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -902,6 +925,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFARG :t00.dynintf.d
      IDENT(r) :nlang.builtins.__internal_not_typeable__
      IDENT(final) :t00.dynintf.d
+   WITHIN :nlang.builtins.void
   DEFFUN :t00.dynintf.d.new
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -916,6 +940,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
     UN(@#) :(nlang.builtins.mercurial_ref t00.dynintf.d)
      IDENT(final) :t00.dynintf.d
+   WITHIN :nlang.builtins.void
  DEFTYPE :t00.dynintf.dc
   IDENT(dc) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
@@ -948,6 +973,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32
+   WITHIN :nlang.builtins.void
    BLOCK :nlang.builtins.void
     RETURN :nlang.builtins.void
      NUMBER(42) :nlang.builtins.i32
@@ -960,6 +986,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(@) :(nlang.builtins.ref t00.dynintf.dc)
       IDENT(final) :t00.dynintf.dc
     IDENT(i32) :nlang.builtins.i32
+   WITHIN :nlang.builtins.void
    BLOCK :nlang.builtins.void
     RETURN :nlang.builtins.void
      NUMBER(42) :nlang.builtins.i32
@@ -980,6 +1007,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(@#) :(nlang.builtins.mercurial_ref t00.dynintf.dc)
       IDENT(final) :t00.dynintf.dc
     IDENT(void) :nlang.builtins.void
+   WITHIN :nlang.builtins.void
   DEFFUN :t00.dynintf.dc.mk
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -995,6 +1023,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFARG :t00.dynintf.dc
      IDENT(r) :nlang.builtins.__internal_not_typeable__
      IDENT(final) :t00.dynintf.dc
+   WITHIN :nlang.builtins.void
   DEFFUN :t00.dynintf.dc.new
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -1009,6 +1038,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
     UN(@#) :(nlang.builtins.mercurial_ref t00.dynintf.dc)
      IDENT(final) :t00.dynintf.dc
+   WITHIN :nlang.builtins.void
  DEFFUN :t00.dynintf.foo
   IDENT(foo) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
@@ -1018,6 +1048,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     UN(@) :(nlang.builtins.ref t00.dynintf.`d)
      IDENT(`d) :t00.dynintf.`d
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.void
     CALL :nlang.builtins.i32
@@ -1051,6 +1082,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     UN(@) :(nlang.builtins.ref t00.dynintf.`d)
      IDENT(`d) :t00.dynintf.`d
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.void
     CALL :nlang.builtins.i32
@@ -1066,6 +1098,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     UN(@) :(nlang.builtins.ref t00.dynintf.d)
      IDENT(d) :t00.dynintf.d
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.void
     CALL :nlang.builtins.i32
@@ -1077,6 +1110,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void

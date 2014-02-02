@@ -1,9 +1,9 @@
 from nlang import *
-fun returns_tmp = @i32
+fun returns_tmp = @i32 
   and _Ngensym0:nlang.builtins.i32  such
     return block 
   _Ngensym0 = 0
   @_Ngensym0;;
 
-export fun main = i32
+export fun main = i32 
   return .(returns_tmp)

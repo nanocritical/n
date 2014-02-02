@@ -1,36 +1,36 @@
 from nlang import *
 type tt = `trivial_copy <root>.nlang.builtins.`trivial_ctor
-  and this = t00.init.tt
-  and final = t00.init.tt
+  alias this = t00.init.tt
+  alias final = t00.init.tt
   x:i32
   y:i32
-  tt method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  tt method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
-  tt method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void
+  tt method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void 
 
 
 type t = `trivial_copy <root>.nlang.builtins.`trivial_ctor
-  and this = t00.init.t
-  and final = t00.init.t
+  alias this = t00.init.t
+  alias final = t00.init.t
   x:i32
   y:tt
-  t method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  t method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
-  t method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void
+  t method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void 
 
 
-fun foo x:i32 y:i32 = i32
+fun foo x:i32 y:i32 = i32 
   return x
 
-export fun main = i32
+export fun main = i32 
   and _Ngensym2:t00.init.tt
   and a = { x=1 y=block 
   _Ngensym2 = { x=1 y=0 }

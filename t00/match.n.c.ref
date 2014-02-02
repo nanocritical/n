@@ -7,24 +7,32 @@
 # include "t00/match.n.h.out"
 #undef NLANG_DECLARE_TYPES
 typedef nlang_builtins_u32 t00_match_enu;
+#ifndef HAS0__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
+#define HAS0__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
+typedef t00_match_enu* _Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_;
+#endif // HAS0__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
+#ifndef HAS0__Ngen_nlang_builtins_ref__t00_match_enu_genN_
+#define HAS0__Ngen_nlang_builtins_ref__t00_match_enu_genN_
 typedef const t00_match_enu* _Ngen_nlang_builtins_ref__t00_match_enu_genN_;
-typedef _Ngen_nlang_builtins_ref__t00_match_enu_genN_ _Ngen_nlang_builtins_nullable_ref__t00_match_enu_genN_;
-typedef t00_match_enu* _Ngen_nlang_builtins_mutable_ref__t00_match_enu_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_match_enu_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_match_enu_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_match_enu_genN_;
-typedef _Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_match_enu_genN_;
+#endif // HAS0__Ngen_nlang_builtins_ref__t00_match_enu_genN_
+;
 
 
 
 struct t00_match_t;
 typedef struct t00_match_t t00_match_t;
-typedef const t00_match_t* _Ngen_nlang_builtins_ref__t00_match_t_genN_;
-typedef _Ngen_nlang_builtins_ref__t00_match_t_genN_ _Ngen_nlang_builtins_nullable_ref__t00_match_t_genN_;
-typedef t00_match_t* _Ngen_nlang_builtins_mutable_ref__t00_match_t_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_match_t_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_match_t_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_match_t_genN_;
-typedef _Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_match_t_genN_;
+#ifndef HAS0__Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_
+#define HAS0__Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_
+struct t00_match_t;
+typedef struct t00_match_t* _Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_;
+#endif // HAS0__Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_
+;
 
+#ifndef HAS0__Ngen_nlang_builtins_ref__t00_match_t_genN_
+#define HAS0__Ngen_nlang_builtins_ref__t00_match_t_genN_
+struct t00_match_t;
+typedef const struct t00_match_t* _Ngen_nlang_builtins_ref__t00_match_t_genN_;
+#endif // HAS0__Ngen_nlang_builtins_ref__t00_match_t_genN_
 
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
@@ -53,6 +61,14 @@ t00_match_enu x;
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/match.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
+#ifndef HAS2__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
+#define HAS2__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
+typedef t00_match_enu* _Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_;
+#endif // HAS2__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
+#ifndef HAS2__Ngen_nlang_builtins_ref__t00_match_enu_genN_
+#define HAS2__Ngen_nlang_builtins_ref__t00_match_enu_genN_
+typedef const t00_match_enu* _Ngen_nlang_builtins_ref__t00_match_enu_genN_;
+#endif // HAS2__Ngen_nlang_builtins_ref__t00_match_enu_genN_
 nlang_builtins_void t00_match_enu_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_ self, _Ngen_nlang_builtins_ref__t00_match_enu_genN_ other) __attribute__((__nonnull__(1, 2)));
 ;
 
@@ -60,6 +76,11 @@ static nlang_builtins_i32 t00_match_foo(t00_match_enu n);
 
 static nlang_builtins_i32 t00_match_bar(t00_match_enu n);
 
+#ifndef HAS2__Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_
+#define HAS2__Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_
+struct t00_match_t;
+typedef struct t00_match_t* _Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_;
+#endif // HAS2__Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_
 nlang_builtins_void t00_match_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ self) __attribute__((__nonnull__(1)));
 ;
 void t00_match_t_mk(t00_match_t *_nrtr_r);
@@ -67,6 +88,11 @@ void t00_match_t_mk(t00_match_t *_nrtr_r);
 _Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ t00_match_t_new(void);
 ;
 
+#ifndef HAS2__Ngen_nlang_builtins_ref__t00_match_t_genN_
+#define HAS2__Ngen_nlang_builtins_ref__t00_match_t_genN_
+struct t00_match_t;
+typedef const struct t00_match_t* _Ngen_nlang_builtins_ref__t00_match_t_genN_;
+#endif // HAS2__Ngen_nlang_builtins_ref__t00_match_t_genN_
 static nlang_builtins_bool t00_match_bor(_Ngen_nlang_builtins_ref__t00_match_t_genN_ xt) __attribute__((__nonnull__(1)));
 
 #define NLANG_DEFINE_FUNCTIONS
@@ -76,6 +102,14 @@ static nlang_builtins_bool t00_match_bor(_Ngen_nlang_builtins_ref__t00_match_t_g
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/match.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
+#ifndef HAS3__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
+#define HAS3__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
+typedef t00_match_enu* _Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_;
+#endif // HAS3__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
+#ifndef HAS3__Ngen_nlang_builtins_ref__t00_match_enu_genN_
+#define HAS3__Ngen_nlang_builtins_ref__t00_match_enu_genN_
+typedef const t00_match_enu* _Ngen_nlang_builtins_ref__t00_match_enu_genN_;
+#endif // HAS3__Ngen_nlang_builtins_ref__t00_match_enu_genN_
 nlang_builtins_void t00_match_enu_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_ self, _Ngen_nlang_builtins_ref__t00_match_enu_genN_ other) {
 #define THIS(x) t00_match_enu##x
 memcpy(self, other, sizeof(*self));
@@ -114,6 +148,11 @@ return (nlang_builtins_i32)1;
 }
 }
 
+#ifndef HAS3__Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_
+#define HAS3__Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_
+struct t00_match_t;
+typedef struct t00_match_t* _Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_;
+#endif // HAS3__Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_
 nlang_builtins_void t00_match_t_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ self) {
 #define THIS(x) t00_match_t##x
 #undef THIS
@@ -133,6 +172,11 @@ return calloc(1, sizeof(THIS()));
 }
 ;
 
+#ifndef HAS3__Ngen_nlang_builtins_ref__t00_match_t_genN_
+#define HAS3__Ngen_nlang_builtins_ref__t00_match_t_genN_
+struct t00_match_t;
+typedef const struct t00_match_t* _Ngen_nlang_builtins_ref__t00_match_t_genN_;
+#endif // HAS3__Ngen_nlang_builtins_ref__t00_match_t_genN_
 static nlang_builtins_bool t00_match_bor(_Ngen_nlang_builtins_ref__t00_match_t_genN_ xt) {
  {
 return ((xt->x) == t00_match_enu_A);

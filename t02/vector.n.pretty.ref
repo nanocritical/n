@@ -1,13 +1,13 @@
 from nlang import *
 from nlang.vectors import vector
-and v32 = vector i32
-fun foo = _nretval:v32
+alias v32 = vector i32
+fun foo = _nretval:v32 
   and _Ngensym1:nlang.builtins.static_array  such
     return nlang.vectors.vector.mkv block 
   _Ngensym1 = { 1 0 2 }
   @_Ngensym1;;
 
-export fun main = i32
+export fun main = i32 
   and v = v32.mk  such
     nlang.vectors.vector.push @#v 0
     nlang.vectors.vector.push @#v 1

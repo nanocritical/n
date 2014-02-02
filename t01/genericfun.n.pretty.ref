@@ -1,9 +1,9 @@
 from nlang import *
-fun decr x:t = _nretval:t
+fun decr x:t = _nretval:t 
   and _Ngensym0:nlang.builtins.`integer  such
     return nlang.builtins.`arithmetic.operator_minus @x block 
   _Ngensym0 = 1
   @_Ngensym0;;
 
-export fun main = i32
+export fun main = i32 
   return (decr i32) 1

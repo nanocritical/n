@@ -1,5 +1,5 @@
 from nlang import *
-export fun main = i32
+export fun main = i32 
   and f = 0.0213
   and g = f + 10.2 * .2
   if g < 0.1

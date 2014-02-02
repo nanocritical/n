@@ -1,18 +1,18 @@
 from nlang import *
 type c = <root>.nlang.builtins.`trivial_ctor
-  and this = t01.wildcardmutability.c
-  and final = t01.wildcardmutability.c
+  alias this = t01.wildcardmutability.c
+  alias final = t01.wildcardmutability.c
   x:i32
-  c method get = __wildcard_ref_arg__ i32
+  inline c method get = __wildcard_ref_arg__ i32 
   return @$self$x
 
-  c method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  c method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
 
-export fun main = i32
+export fun main = i32 
   and x = { x=0 }
   return .(t01.wildcardmutability.c.get @x)

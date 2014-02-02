@@ -1,11 +1,11 @@
 from nlang import *
-fun foo x:i32 = i32
+fun foo x:i32 = i32 
   return x
 
-fun bar x:i32 y:i32 = i32
+fun bar x:i32 y:i32 = i32 
   return x + y
 
-export fun main = i32
+export fun main = i32 
   and z = foo 0
   and x = z + (foo 1)
   return (foo (bar 0 1)) - x

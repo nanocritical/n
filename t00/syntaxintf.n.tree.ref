@@ -72,6 +72,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`prevent_dyn)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`copyable)
   IMPORT :<import>
    BIN(.)
@@ -677,6 +683,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     BIN(.)
      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`any_environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
      IDENT(containers)
     IDENT(`locus)
   IMPORT :<import>
@@ -820,6 +838,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
       IDENT(final) :t00.syntaxintf.`example
     UN(@#) :(nlang.builtins.mercurial_ref nlang.builtins.`any)
      IDENT(t) :nlang.builtins.`any
+   WITHIN :nlang.builtins.void
   DEFMETHOD :(functor t00.syntaxintf.`example.free nlang.builtins.`any)
    IDENT(free) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
@@ -836,6 +855,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(?@#) :(nlang.builtins.nullable_mercurial_ref nlang.builtins.`any)
       IDENT(t) :nlang.builtins.`any
     IDENT(void) :nlang.builtins.void
+   WITHIN :nlang.builtins.void
   DEFMETHOD :(functor t00.syntaxintf.`example.slice_realloc nlang.builtins.`trivial_ctor)
    IDENT(slice_realloc) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
@@ -857,6 +877,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(count) :nlang.builtins.__internal_not_typeable__
      IDENT(size) :nlang.builtins.size
     IDENT(void) :nlang.builtins.void
+   WITHIN :nlang.builtins.void
   DEFMETHOD :(functor t00.syntaxintf.`example.slice_free nlang.builtins.`trivial_ctor)
    IDENT(slice_free) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
@@ -875,11 +896,13 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
        IDENT(slice) :(functor nlang.memory.slice nlang.builtins.`any)
        IDENT(t) :nlang.builtins.`trivial_ctor
     IDENT(void) :nlang.builtins.void
+   WITHIN :nlang.builtins.void
  DEFFUN :t00.syntaxintf.main
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.void
     NUMBER(0) :nlang.builtins.i32

@@ -1,5 +1,5 @@
 from nlang import *
-export fun main = i32
+export fun main = i32 
   and _Ngensym0:nlang.chars.static_string
   and _Ngensym1:nlang.builtins.size
   and _Ngensym2:nlang.builtins.u32  such

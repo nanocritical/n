@@ -1,53 +1,53 @@
 from nlang import *
 
 type d = `d <root>.nlang.builtins.`trivial_ctor
-  and this = t00.dynintf.d
-  and final = t00.dynintf.d
+  alias this = t00.dynintf.d
+  alias final = t00.dynintf.d
   x:i32
-  fun answer = i32
+  fun answer = i32 
   return 42
 
-  d method get = i32
+  d method get = i32 
   return self.x
 
-  d method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  d method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
 
 type dc = `d <root>.nlang.builtins.`trivial_ctor
-  and this = t00.dynintf.dc
-  and final = t00.dynintf.dc
+  alias this = t00.dynintf.dc
+  alias final = t00.dynintf.dc
   dummy:i32
-  fun answer = i32
+  fun answer = i32 
   return 42
 
-  dc method get = i32
+  dc method get = i32 
   return 42
 
-  dc method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  dc method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
 
-fun foo v:@`d = i32
+fun foo v:@`d = i32 
   return t00.dynintf.`d.get v
 
 example block 
   __example__ block 
   and x = { x=42 }
   42 == foo @x;;;;
-fun rfoo pv:@`d = i32
+fun rfoo pv:@`d = i32 
   return pv.answer
 
-fun bar pv:@d = i32
+fun bar pv:@d = i32 
   return foo pv
 
-export fun main = i32
+export fun main = i32 
   and xd = { x=42 }
   and xdc = { }
   if foo @xd != foo @xdc

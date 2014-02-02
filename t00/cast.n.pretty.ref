@@ -1,9 +1,9 @@
 from nlang import *
 from nlang.unsafe import 
-fun foo x:@u32 = @i32
+fun foo x:@u32 = @i32 
   return (nlang.unsafe.cast @u32 @i32) x
 
-export fun main = i32
+export fun main = i32 
   and _Ngensym0:nlang.builtins.u32  such
     return .(foo block 
   _Ngensym0 = 1

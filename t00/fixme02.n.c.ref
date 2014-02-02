@@ -6,6 +6,10 @@
 #define NLANG_DECLARE_TYPES
 # include "t00/fixme02.n.h.out"
 #undef NLANG_DECLARE_TYPES
+#ifndef HAS0__Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_
+#define HAS0__Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_
+typedef const nlang_builtins_i32* _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_;
+#endif // HAS0__Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_
 
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
@@ -22,6 +26,10 @@
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/fixme02.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
+#ifndef HAS2__Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_
+#define HAS2__Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_
+typedef const nlang_builtins_i32* _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_;
+#endif // HAS2__Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_
 static _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_tmp(void);
 
 #define NLANG_DEFINE_FUNCTIONS
@@ -31,6 +39,10 @@ static _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_tm
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/fixme02.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
+#ifndef HAS3__Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_
+#define HAS3__Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_
+typedef const nlang_builtins_i32* _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_;
+#endif // HAS3__Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_
 static _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ t00_fixme02_returns_tmp(void) {
  {
 nlang_builtins_i32 _Ngensym0 = { 0 };

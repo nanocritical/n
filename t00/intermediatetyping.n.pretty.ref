@@ -1,5 +1,5 @@
 from nlang import *
-fun noerror = i32
+fun noerror = i32 
   and x  such
     try
       and _Ngensym2 = { code=0 }
@@ -9,7 +9,7 @@ fun noerror = i32
       return 1
   return x
 
-export fun main = i32
+export fun main = i32 
   and x = 2 + (noerror)  such
     x = x + 1
     x = (max x 0) + 1

@@ -1,24 +1,24 @@
 from nlang import *
-fun opts a:?@i32 = i32
+fun opts a:?@i32 = i32 
   return optional a 1
 
-fun chained v:@!(vararg @i32) = i32
+fun chained v:@!(vararg @i32) = i32 
   and s = 0  such
     for i in @!!v
       s += .i
   return s
 
-fun var a:i32 b:?@i32 v:vararg @i32 = i32
+fun var a:i32 b:?@i32 v:vararg @i32 = i32 
   and s = chained @!v
   return a + (optional b 0) + s
 
-fun onlyvar v:vararg @i32 = i32
+fun onlyvar v:vararg @i32 = i32 
   and s = 0  such
     for i in @!v
       s += .i
   return s
 
-export fun main = i32
+export fun main = i32 
   and _Ngensym2:nlang.builtins.i32  such
     if opts a=block 
   _Ngensym2 = 1

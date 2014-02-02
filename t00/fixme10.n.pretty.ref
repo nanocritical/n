@@ -1,22 +1,22 @@
 from nlang import *
 type a = <root>.nlang.builtins.`trivial_ctor
-  and this = t00.fixme10.a
-  and final = t00.fixme10.a
+  alias this = t00.fixme10.a
+  alias final = t00.fixme10.a
   x:b
-  a method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  a method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
 
 type b = <root>.nlang.builtins.`trivial_ctor
-  and this = t00.fixme10.b
-  and final = t00.fixme10.b
+  alias this = t00.fixme10.b
+  alias final = t00.fixme10.b
   y:a
-  b method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  b method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 

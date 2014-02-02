@@ -72,6 +72,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`prevent_dyn)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`copyable)
   IMPORT :<import>
    BIN(.)
@@ -677,6 +683,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     BIN(.)
      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`any_environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
      IDENT(containers)
     IDENT(`locus)
   IMPORT :<import>
@@ -829,6 +847,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(@) :(nlang.builtins.ref t00.unary.t)
       IDENT(final) :t00.unary.t
     IDENT(i32) :nlang.builtins.i32
+   WITHIN :nlang.builtins.void
    BLOCK :nlang.builtins.void
     RETURN :nlang.builtins.void
      BIN(.) :nlang.builtins.i32
@@ -851,6 +870,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(@#) :(nlang.builtins.mercurial_ref t00.unary.t)
       IDENT(final) :t00.unary.t
     IDENT(void) :nlang.builtins.void
+   WITHIN :nlang.builtins.void
   DEFFUN :t00.unary.t.mk
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -866,6 +886,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFARG :t00.unary.t
      IDENT(r) :nlang.builtins.__internal_not_typeable__
      IDENT(final) :t00.unary.t
+   WITHIN :nlang.builtins.void
   DEFFUN :t00.unary.t.new
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -880,6 +901,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
     UN(@#) :(nlang.builtins.mercurial_ref t00.unary.t)
      IDENT(final) :t00.unary.t
+   WITHIN :nlang.builtins.void
   DEFMETHOD :t00.unary.t.copy_ctor
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -901,11 +923,13 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(@) :(nlang.builtins.ref t00.unary.t)
       IDENT(final) :t00.unary.t
     IDENT(void) :nlang.builtins.void
+   WITHIN :nlang.builtins.void
  DEFFUN :t00.unary.main
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void

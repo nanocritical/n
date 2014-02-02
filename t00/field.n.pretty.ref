@@ -1,15 +1,15 @@
 from nlang import *
 type t = <root>.nlang.builtins.`trivial_ctor
-  and this = t00.field.t
-  and final = t00.field.t
+  alias this = t00.field.t
+  alias final = t00.field.t
   x:i32
-  t method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  t method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
 
-export fun main = i32
+export fun main = i32 
   and tt:t
   return tt.x

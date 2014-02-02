@@ -1,5 +1,5 @@
 from nlang import *
-fun inferred = _nretval:error
+fun inferred = _nretval:error 
   try
     and _Ngensym16:nlang.builtins.error    such
       throw block 
@@ -9,7 +9,7 @@ fun inferred = _nretval:error
 
     return err
 
-fun foo = i32
+fun foo = i32 
   try
     and _Ngensym17:nlang.builtins.error    such
       throw ONEblock 
@@ -25,7 +25,7 @@ fun foo = i32
 
     return 1
 
-fun bar = i32
+fun bar = i32 
   try
     and _Ngensyma = { code=1 }
     return 0
@@ -41,7 +41,7 @@ fun bar = i32
 
       return 0
 
-fun noerror = i32
+fun noerror = i32 
   try
     and _Ngensymd = { code=0 }
     return 0
@@ -49,7 +49,7 @@ fun noerror = i32
 
     return 1
 
-export fun main = i32
+export fun main = i32 
   and _Ngensym19:nlang.builtins.error
   and _Ngensym1a:nlang.builtins.error  such
     assert (nlang.builtins.error.operator_ne block 

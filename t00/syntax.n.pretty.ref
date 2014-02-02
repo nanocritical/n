@@ -1,51 +1,51 @@
 from nlang import *
 from nlang.strings import *
-export fun main = i32
+export fun main = i32 
   and x = 1
   and y = 2 + x
   return 0 + y
 
-export fun main2 = i32
+export fun main2 = i32 
   return 0
 
-export inline fun foo = _nretval:string
+export inline fun foo = _nretval:string 
   return nlang.strings.string.from_static_string 'test'
 
-inline fun other4 x:i32 = i32
+inline fun other4 x:i32 = i32 
 
-extern fun other5 x:i32 = i32
+extern fun other5 x:i32 = i32 
 
 
 type test = `ia <root>.nlang.builtins.`trivial_ctor
-  and this = t00.syntax.test
-  and final = t00.syntax.test
+  alias this = t00.syntax.test
+  alias final = t00.syntax.test
   t:i32
-  test method foo x:i32 = i32
+  test method foo x:i32 = i32 
   and y = x
   return y
 
-  test method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  test method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
 
-fun foobar x:i32 = i32
+fun foobar x:i32 = i32 
   pre block 
   __pre__ (x != 0);;
   post block 
   __post__ (x != 0);;
   return 0
 
-fun foobar2 = void
+fun foobar2 = void 
   return
 
 type enu = <root>.nlang.builtins.`trivial_copy <root>.nlang.builtins.`trivial_dtor
-  and this = t00.syntax.enu
-  and final = t00.syntax.enu
+  alias this = t00.syntax.enu
+  alias final = t00.syntax.enu
   | V1 = 0
   | V2 = 0 + 1
   | V3 = 0 + 1 + 1
-  enu method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void
+  enu method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void 
 

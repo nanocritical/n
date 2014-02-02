@@ -72,6 +72,12 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`prevent_dyn)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`copyable)
   IMPORT :<import>
    BIN(.)
@@ -677,6 +683,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     BIN(.)
      IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`any_environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`environment)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
      IDENT(containers)
     IDENT(`locus)
   IMPORT :<import>
@@ -844,6 +862,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      DEFARG :t00.match.enu
       IDENT(r) :nlang.builtins.__internal_not_typeable__
       IDENT(final) :t00.match.enu
+    WITHIN :nlang.builtins.void
    DEFFUN :t00.match.enu.A.new
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -858,6 +877,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     FUNARGS :nlang.builtins.__internal_not_typeable__
      UN(@#) :(nlang.builtins.mercurial_ref t00.match.enu)
       IDENT(final) :t00.match.enu
+    WITHIN :nlang.builtins.void
   DEFCHOICE :t00.match.enu
    IDENT(B) :nlang.builtins.__internal_not_typeable__
    BIN( + ) :nlang.builtins.u32
@@ -879,6 +899,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      DEFARG :t00.match.enu
       IDENT(r) :nlang.builtins.__internal_not_typeable__
       IDENT(final) :t00.match.enu
+    WITHIN :nlang.builtins.void
    DEFFUN :t00.match.enu.B.new
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -893,6 +914,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     FUNARGS :nlang.builtins.__internal_not_typeable__
      UN(@#) :(nlang.builtins.mercurial_ref t00.match.enu)
       IDENT(final) :t00.match.enu
+    WITHIN :nlang.builtins.void
   DEFMETHOD :t00.match.enu.copy_ctor
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -914,6 +936,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(@) :(nlang.builtins.ref t00.match.enu)
       IDENT(final) :t00.match.enu
     IDENT(void) :nlang.builtins.void
+   WITHIN :nlang.builtins.void
  DEFFUN :t00.match.foo
   IDENT(foo) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
@@ -922,6 +945,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(n) :nlang.builtins.__internal_not_typeable__
     IDENT(enu) :t00.match.enu
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    MATCH :nlang.builtins.void
     IDENT(n) :t00.match.enu
@@ -941,6 +965,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(n) :nlang.builtins.__internal_not_typeable__
     IDENT(enu) :t00.match.enu
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    MATCH :nlang.builtins.void
     IDENT(n) :t00.match.enu
@@ -994,6 +1019,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      UN(@#) :(nlang.builtins.mercurial_ref t00.match.t)
       IDENT(final) :t00.match.t
     IDENT(void) :nlang.builtins.void
+   WITHIN :nlang.builtins.void
   DEFFUN :t00.match.t.mk
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -1009,6 +1035,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFARG :t00.match.t
      IDENT(r) :nlang.builtins.__internal_not_typeable__
      IDENT(final) :t00.match.t
+   WITHIN :nlang.builtins.void
   DEFFUN :t00.match.t.new
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -1023,6 +1050,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
     UN(@#) :(nlang.builtins.mercurial_ref t00.match.t)
      IDENT(final) :t00.match.t
+   WITHIN :nlang.builtins.void
  DEFFUN :t00.match.bor
   IDENT(bor) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
@@ -1032,6 +1060,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     UN(@) :(nlang.builtins.ref t00.match.t)
      IDENT(t) :t00.match.t
    IDENT(bool) :nlang.builtins.bool
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    RETURN :nlang.builtins.void
     BIN( == ) :nlang.builtins.bool
@@ -1044,6 +1073,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
+  WITHIN :nlang.builtins.void
   BLOCK :nlang.builtins.void
    LET :nlang.builtins.void
     DEFPATTERN :nlang.builtins.void

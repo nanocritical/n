@@ -1,29 +1,29 @@
 from nlang import *
 
 type blah = `blah <root>.nlang.builtins.`trivial_ctor
-  and this = t01.genericmethod.blah
-  and final = t01.genericmethod.blah
+  alias this = t01.genericmethod.blah
+  alias final = t01.genericmethod.blah
   dummy:u8
-  blah method `blah.decr x:t = _nretval:t
+  inline blah method `blah.decr x:t = _nretval:t 
   and _Ngensym1:nlang.builtins.`integer  such
     return nlang.builtins.`arithmetic.operator_minus @x block 
   _Ngensym1 = 1
   @_Ngensym1;;
 
-  blah method decrf x:t = _nretval:t
+  inline blah method decrf x:t = _nretval:t 
   and _Ngensym2:nlang.builtins.`integer  such
     return nlang.builtins.`arithmetic.operator_minus @x block 
   _Ngensym2 = 1
   @_Ngensym2;;
 
-  blah method <root>.nlang.builtins.`trivial_ctor.ctor = void
+  blah method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
-  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final
+  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
 
 
-export fun main = i32
+export fun main = i32 
   and b = { dummy=0 }
   and _ = (blah.decr u32) @b 1
   return (blah.decrf i32) @b 1

@@ -8,12 +8,12 @@
 #undef NLANG_DECLARE_TYPES
 struct t00_return_copy;
 typedef struct t00_return_copy t00_return_copy;
-typedef const t00_return_copy* _Ngen_nlang_builtins_ref__t00_return_copy_genN_;
-typedef _Ngen_nlang_builtins_ref__t00_return_copy_genN_ _Ngen_nlang_builtins_nullable_ref__t00_return_copy_genN_;
-typedef t00_return_copy* _Ngen_nlang_builtins_mutable_ref__t00_return_copy_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_return_copy_genN_ _Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_;
-typedef _Ngen_nlang_builtins_mutable_ref__t00_return_copy_genN_ _Ngen_nlang_builtins_nullable_mutable_ref__t00_return_copy_genN_;
-typedef _Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_ _Ngen_nlang_builtins_nullable_mercurial_ref__t00_return_copy_genN_;
+#ifndef HAS0__Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_
+#define HAS0__Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_
+struct t00_return_copy;
+typedef struct t00_return_copy* _Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_;
+#endif // HAS0__Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_
+;
 
 
 
@@ -38,6 +38,11 @@ nlang_builtins_i32 x;
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/return.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
+#ifndef HAS2__Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_
+#define HAS2__Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_
+struct t00_return_copy;
+typedef struct t00_return_copy* _Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_;
+#endif // HAS2__Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_
 nlang_builtins_void t00_return_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_ self) __attribute__((__nonnull__(1)));
 ;
 t00_return_copy t00_return_copy_mk(void);
@@ -57,6 +62,11 @@ static t00_return_copy t00_return_chained(nlang_builtins_i32 x);
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/return.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
+#ifndef HAS3__Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_
+#define HAS3__Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_
+struct t00_return_copy;
+typedef struct t00_return_copy* _Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_;
+#endif // HAS3__Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_
 nlang_builtins_void t00_return_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_ self) {
 #define THIS(x) t00_return_copy##x
 #undef THIS
