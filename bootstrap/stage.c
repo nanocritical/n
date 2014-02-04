@@ -258,7 +258,7 @@ static error load_imports(struct stage *stage, struct node *node) {
 }
 
 HTABLE_SPARSE(modules_set, bool, struct module *);
-implement_htable_sparse(__attribute__((unused)) static, modules_set, bool, struct module *);
+implement_htable_sparse(unused__ static, modules_set, bool, struct module *);
 
 static uint32_t module_pointer_hash(const struct module **mod) {
   return hash32_hsieh(mod, sizeof(*mod));

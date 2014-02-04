@@ -1248,7 +1248,7 @@ void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src);
 
 #define G(var, parent, which, ...) \
-  __attribute__((unused)) \
+  unused__ \
   struct node *var = mk_node(mod, parent, which); \
   __VA_ARGS__
 

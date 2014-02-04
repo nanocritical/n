@@ -319,7 +319,7 @@ const char *builtingen_abspath[BG__NUM] = {
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
-implement_htable_sparse(__attribute__((unused)) static, idents_map, ident, struct token);
+implement_htable_sparse(unused__ static, idents_map, ident, struct token);
 
 static uint32_t token_hash(const struct token *tok) {
   return hash32_hsieh(tok->value, tok->len);
@@ -1163,20 +1163,6 @@ static error p_string(struct node *node, struct module *mod) {
 
 static error p_typeexpr(struct node *node, struct module *mod) {
   error e = p_expr(node, mod, T__CALL);
-  EXCEPT(e);
-  return 0;
-}
-
-__attribute((unused))
-static error p_typeconstraint(struct node *node, struct module *mod) {
-  node_set_which(node, TYPECONSTRAINT);
-  error e = p_ident(node_new_subnode(mod, node), mod);
-  EXCEPT(e);
-
-  e = scan_expected(mod, TCOLON);
-  EXCEPT(e);
-
-  e = p_typeexpr(node_new_subnode(mod, node), mod);
   EXCEPT(e);
   return 0;
 }

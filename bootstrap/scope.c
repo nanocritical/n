@@ -3,7 +3,7 @@
 #include "table.h"
 #include "types.h"
 
-implement_htable_sparse(__attribute__((unused)) static, scope_map, struct node *, ident);
+implement_htable_sparse(unused__ static, scope_map, struct node *, ident);
 
 uint32_t ident_hash(const ident *a) {
   return *a * 31;

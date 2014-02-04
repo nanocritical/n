@@ -2364,7 +2364,7 @@ static error step_type_drop_excepts(struct module *mod, struct node *node,
 }
 
 HTABLE_SPARSE(idents_set, bool, ident);
-implement_htable_sparse(__attribute__((unused)) static, idents_set, bool, ident);
+implement_htable_sparse(unused__ static, idents_set, bool, ident);
 
 static size_t defchoice_count(struct node *deft) {
   assert(deft->which == DEFTYPE);

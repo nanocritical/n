@@ -315,7 +315,7 @@ static struct typ *merge_defnamedliterals(struct module *mod,
 }
 
 HTABLE_SPARSE(ident_typ_map, struct typ *, ident);
-implement_htable_sparse(__attribute__((unused)) static, ident_typ_map, struct typ *, ident);
+implement_htable_sparse(unused__ static, ident_typ_map, struct typ *, ident);
 
 static error unify_two_defnamedliterals(struct module *mod, const struct node *for_error,
                                         struct typ *a, struct typ *b) {
