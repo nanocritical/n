@@ -583,6 +583,11 @@ static error unify_reference(struct module *mod, const struct node *for_error,
     return 0;
   }
 
+  if (!typ_is_reference(b)) {
+    e = mk_except_type_unification(mod, for_error, a, b);
+    THROW(e);
+  }
+
   struct typ *a0 = typ_generic_functor(a);
   struct typ *b0 = typ_generic_functor(b);
 
