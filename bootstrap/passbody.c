@@ -973,7 +973,7 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
   } else {
     arg = node_subs_at(node, dmin + 1);
   }
-  size_t n;
+  ssize_t n;
   error e;
 
   for (n = dmin; n < dmax && (first_vararg == - 1 || n < first_vararg); ++n) {
@@ -1366,14 +1366,86 @@ static error self_ref_if_value(struct node **self,
   return 0;
 }
 
-static error prepare_call_arguments(struct module *mod, struct node *node) {
-  struct node *fun = node_subs_first(node);
-
-  if (node_subs_count_atleast(node, 2)
-      && (node_subs_at(node, 1)->flags & NODE_IS_TYPE)) {
-    // Explicit generic function instantiation.
-    return 0;
+static error try_insert_const_ref(struct module *mod, struct node *node,
+                                  const struct typ *target, struct node *arg) {
+  struct node *parent = node;
+  struct node *real_arg = arg;
+  const bool is_named = arg->which == CALLNAMEDARG;
+  if (is_named) {
+    parent = arg;
+    real_arg = node_subs_first(arg);
   }
+
+  if (typ_is_reference(target) && !typ_is_reference(real_arg->typ)) {
+    if (typ_isa(target, TBI_ANY_ANY_REF)
+        && !typ_isa(target, TBI_ANY_MUTABLE_REF)) {
+      struct node *before = node_prev(real_arg);
+
+      node_subs_remove(parent, real_arg);
+      struct node *ref_arg = expr_ref(mod, parent, TREFDOT, real_arg);
+      node_subs_remove(parent, ref_arg);
+      node_subs_insert_after(parent, before, ref_arg);
+
+      if (is_named) {
+        unset_typ(&arg->typ);
+      }
+
+      const struct node *except[] = { real_arg, NULL };
+      error e = catchup(mod, except,
+                        is_named ? arg : ref_arg,
+                        &node->scope,
+                        CATCHUP_BELOW_CURRENT);
+      EXCEPT(e);
+    }
+  }
+
+  return 0;
+}
+
+static error call_insert_const_ref_operators(struct module *mod,
+                                             struct node *node,
+                                             const struct typ *tfun) {
+  const struct node *dfun = typ_definition_const(tfun);
+  const ssize_t first_vararg = node_fun_first_vararg(dfun);
+
+  error e;
+  ssize_t n = 0;
+  struct node *prev = NULL;
+  FOREACH_SUB_EVERY(arg, node, 1, 1) {
+    if (n == first_vararg) {
+      break;
+    }
+
+    e = try_insert_const_ref(mod, node,
+                             typ_function_arg_const(tfun, n), arg);
+    EXCEPT(e);
+
+    n += 1;
+    prev = arg;
+  }
+
+  if (n == first_vararg) {
+    const struct typ *target = typ_generic_arg_const(
+      typ_function_arg_const(tfun, n), 0);
+
+    struct node *next = prev == NULL
+      ? node_next(node_subs_first(node)) : node_next(prev);
+    while (next != NULL) {
+      // We record 'next' now as try_insert_const_ref() may move 'arg'.
+      struct node *arg = next;
+      next = node_next(next);
+
+      e = try_insert_const_ref(mod, node, target, arg);
+      EXCEPT(e);
+    }
+  }
+
+  return 0;
+}
+
+static error prepare_call_arguments(struct module *mod, struct node *node) {
+  error e;
+  struct node *fun = node_subs_first(node);
 
   const struct node *dfun = typ_definition_const(fun->typ);
   const size_t dmin = node_fun_min_args_count(dfun);
@@ -1384,7 +1456,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
   switch (dfun->which) {
   case DEFFUN:
     if (args < dmin || args > dmax) {
-      error e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
+      e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
       THROW(e);
     }
     break;
@@ -1393,13 +1465,13 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
       if ((node_subs_first(fun)->flags & NODE_IS_TYPE)) {
         // Form (type.method self ...).
         if (args < dmin || args > dmax) {
-          error e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
+          e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
           THROW(e);
         }
       } else {
         // Form (self.method ...); rewrite as (type.method self ...).
         if (args+1 < dmin || args+1 > dmax) {
-          error e = mk_except_call_args_count(mod, node, dfun, TRUE, args);
+          e = mk_except_call_args_count(mod, node, dfun, TRUE, args);
           THROW(e);
         }
 
@@ -1410,9 +1482,9 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
         node_subs_replace(node, fun, m);
 
         struct node *self = NULL;
-        error e = self_ref_if_value(&self, mod, node,
-                                    refop_for_accop[fun->as.BIN.operator],
-                                    fun);
+        e = self_ref_if_value(&self, mod, node,
+                              refop_for_accop[fun->as.BIN.operator],
+                              fun);
         EXCEPT(e);
 
         e = typ_check_can_deref(mod, fun, self->typ,
@@ -1427,7 +1499,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
       // Generic method instantiation: (type.method u32 i32) self
       // or DIRECTDEF.
       if (args < dmin || args > dmax) {
-        error e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
+        e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
         THROW(e);
       }
     } else {
@@ -1438,7 +1510,10 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
     assert(FALSE);
   }
 
-  error e = fill_in_optional_args(mod, node, fun->typ);
+  e = fill_in_optional_args(mod, node, fun->typ);
+  EXCEPT(e);
+
+  e = call_insert_const_ref_operators(mod, node, fun->typ);
   EXCEPT(e);
 
   return 0;
@@ -1573,9 +1648,13 @@ static error type_inference_call(struct module *mod, struct node *node) {
   struct typ *tfun = fun->typ;
   struct node *dfun = typ_definition(tfun);
 
-  if (!node_is_fun(dfun)) {
-    if (!node_can_have_genargs(dfun)
-        || !node_subs_count_atleast(node_subs_at(dfun, IDX_GENARGS), 1)) {
+  if (!node_is_fun(dfun)
+      || (node_subs_count_atleast(node, 2)
+          && (node_subs_at(node, 1)->flags & NODE_IS_TYPE))) {
+
+    if (!node_is_fun(dfun)
+        && (!node_can_have_genargs(dfun)
+            || !node_subs_count_atleast(node_subs_at(dfun, IDX_GENARGS), 1))) {
       e = mk_except_type(mod, fun, "not a generic type");
       THROW(e);
     }
@@ -1607,7 +1686,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
   }
 
   const ssize_t first_vararg = node_fun_first_vararg(dfun);
-  size_t n = 0;
+  ssize_t n = 0;
   FOREACH_SUB_EVERY(arg, node, 1, 1) {
     if (n == first_vararg) {
       break;
