@@ -60,7 +60,7 @@ export inline vector method@ all = index_range
 
 export inline vector method@# `copyable.copy_ctor other:@this = void
   (heap.slice_realloc t) @!sysheap @#self#p other.p.count
-  self.p#copy 0 @other.p 0 other.p.count
+  self.p#copy 0 other.p 0 other.p.count
   self!c = other.c
 
 export inline vector method@# append_slice other:@(slice t) = void

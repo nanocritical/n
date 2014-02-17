@@ -156,6 +156,7 @@ struct node_bin {
 };
 struct node_un {
   enum token_type operator;
+  bool is_explicit;
 };
 struct node_tuple {};
 struct node_tuplenth {

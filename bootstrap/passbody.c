@@ -1342,26 +1342,34 @@ static struct node *expr_ref(struct module *mod, struct node *parent,
   return n;
 }
 
-static error self_ref_if_value(struct node **self,
-                               struct module *mod, struct node *node,
-                               enum token_type access,
-                               struct node *fun) {
+static error rewrite_self(struct module *mod, struct node *node,
+                          struct node *fun) {
+  assert(fun->which == BIN);
+
   struct node *old_self = node_subs_first(fun);
+  struct node *self;
   if (typ_is_reference(old_self->typ)) {
     node_subs_remove(fun, old_self);
     node_subs_insert_after(node, node_subs_first(node), old_self);
-    *self = old_self;
+    self = old_self;
   } else {
     node_subs_remove(fun, old_self);
+    enum token_type access = refop_for_accop[fun->as.BIN.operator];
     struct node *s = expr_ref(mod, node, access, old_self);
     node_subs_remove(node, s);
     node_subs_insert_after(node, node_subs_first(node), s);
-    *self = s;
+    self = s;
   }
 
   const struct node *except[] = { old_self, NULL };
-  error e = catchup(mod, except, *self, &node->scope, CATCHUP_BELOW_CURRENT);
+  error e = catchup(mod, except, self, &node->scope, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
+
+  if (typ_is_reference(self->typ)) {
+    e = typ_check_can_deref(mod, fun, self->typ,
+                            derefop_for_accop[fun->as.BIN.operator]);
+    EXCEPT(e);
+  }
 
   return 0;
 }
@@ -1397,39 +1405,56 @@ static error try_insert_const_ref(struct module *mod, struct node *node,
                         CATCHUP_BELOW_CURRENT);
       EXCEPT(e);
     }
+  } else if (typ_is_reference(target) && typ_is_reference(real_arg->typ)) {
+    if (real_arg->which == UN
+        && real_arg->as.UN.operator == TREFDOT
+        && real_arg->as.UN.is_explicit) {
+      error e = mk_except(mod, real_arg, "explicit '@' operators are not"
+                          " allowed for unqualified const references");
+      THROW(e);
+    }
   }
 
   return 0;
 }
 
-static error call_insert_const_ref_operators(struct module *mod,
-                                             struct node *node,
-                                             const struct typ *tfun) {
+static error process_const_ref_call_arguments(struct module *mod,
+                                              struct node *node,
+                                              const struct typ *tfun) {
+  if (!node_subs_count_atleast(node, 2)) {
+    return 0;
+  }
+
   const struct node *dfun = typ_definition_const(tfun);
   const ssize_t first_vararg = node_fun_first_vararg(dfun);
 
   error e;
   ssize_t n = 0;
-  struct node *prev = NULL;
-  FOREACH_SUB_EVERY(arg, node, 1, 1) {
+  struct node *last = NULL;
+  struct node *next = node_subs_at(node, 1);
+  while (next != NULL) {
     if (n == first_vararg) {
       break;
     }
+
+    // We record 'next' now as try_insert_const_ref() may move 'arg'.
+    struct node *arg = next;
+    next = node_next(next);
 
     e = try_insert_const_ref(mod, node,
                              typ_function_arg_const(tfun, n), arg);
     EXCEPT(e);
 
     n += 1;
-    prev = arg;
+    last = arg;
   }
 
   if (n == first_vararg) {
     const struct typ *target = typ_generic_arg_const(
       typ_function_arg_const(tfun, n), 0);
 
-    struct node *next = prev == NULL
-      ? node_next(node_subs_first(node)) : node_next(prev);
+    struct node *next = last == NULL
+      ? node_next(node_subs_first(node)) : node_next(last);
     while (next != NULL) {
       // We record 'next' now as try_insert_const_ref() may move 'arg'.
       struct node *arg = next;
@@ -1481,14 +1506,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
         node_subs_remove(node, m);
         node_subs_replace(node, fun, m);
 
-        struct node *self = NULL;
-        e = self_ref_if_value(&self, mod, node,
-                              refop_for_accop[fun->as.BIN.operator],
-                              fun);
-        EXCEPT(e);
-
-        e = typ_check_can_deref(mod, fun, self->typ,
-                                derefop_for_accop[fun->as.BIN.operator]);
+        e = rewrite_self(mod, node, fun);
         EXCEPT(e);
 
         e = catchup(mod, NULL, m, &node->scope, CATCHUP_BELOW_CURRENT);
@@ -1513,7 +1531,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
   e = fill_in_optional_args(mod, node, fun->typ);
   EXCEPT(e);
 
-  e = call_insert_const_ref_operators(mod, node, fun->typ);
+  e = process_const_ref_call_arguments(mod, node, fun->typ);
   EXCEPT(e);
 
   return 0;
@@ -2039,19 +2057,6 @@ static struct typ* number_literal_typ(struct module *mod, struct node *node) {
     return TBI_LITERALS_FLOATING;
   } else {
     return TBI_LITERALS_INTEGER;
-  }
-}
-
-static bool string_literal_has_length_one(const char *s) {
-  const size_t len = strlen(s);
-  if (s == NULL) {
-    return FALSE;
-  } else if (len <= 2) {
-    return FALSE;
-  } else if (s[1] == '\\') {
-    return len == 4;
-  } else {
-    return len == 3;
   }
 }
 
@@ -2694,6 +2699,19 @@ static error step_ident_non_local_scope(struct module *mod, struct node *node,
     node->as.IDENT.non_local_scope = def->scope.parent;
   }
   return 0;
+}
+
+static bool string_literal_has_length_one(const char *s) {
+  const size_t len = strlen(s);
+  if (s == NULL) {
+    return FALSE;
+  } else if (len <= 2) {
+    return FALSE;
+  } else if (s[1] == '\\') {
+    return len == 4;
+  } else {
+    return len == 3;
+  }
 }
 
 static STEP_FILTER(step_weak_literal_conversion,

@@ -1213,6 +1213,7 @@ static error p_expr_unary(struct node *node, struct module *mod) {
 
   node_set_which(node, UN);
   node->as.UN.operator = op;
+  node->as.UN.is_explicit = TRUE;
 
   e = p_expr(node_new_subnode(mod, node), mod, op);
   EXCEPT(e);

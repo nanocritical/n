@@ -23,7 +23,7 @@ fun bor xt:@t = bool
 
 export fun main = i32
   let xt = { x=A }
-  if not bor @xt
+  if not bor xt
     return 1
 
   let n = enu.A

@@ -8,7 +8,7 @@ from nlang.strings import *
 fun write_buf fd:i32 s:@u8 count:size = void
 
 export fun vpr ?sep:?@string v:@!(vararg @`show) = void
-  let separator = optional_ref sep @' '
+  let separator = optional_ref sep ' '
   let s = string.mk
   such
     for x in v!
@@ -24,7 +24,7 @@ export fun pr ?sep:?@string ...v:(vararg @`show) = void
 export fun vsay ?sep:?@string v:@!(vararg @`show) = void
   vpr sep=sep v
   let eol = '\n':char
-  write_buf 1 @eol.code.trim_u8 1
+  write_buf 1 eol.code.trim_u8 1
 
 export fun say ?sep:?@string ...v:(vararg @`show) = void
   vsay sep=sep @!v

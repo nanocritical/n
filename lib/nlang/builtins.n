@@ -1019,8 +1019,8 @@ export (fun e:`error) drop err:e = void
   noop
 
 export (fun e:`error) fatal err:e = void
-  pr @"Fatal: "
-  say @err
+  pr "Fatal: "
+  say err
 
 
 export extern inline struct valist =

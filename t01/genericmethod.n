@@ -15,5 +15,5 @@ blah (method@ t:`integer) decrf x:t = t
 
 export fun main = i32
   let b = { dummy=0 }:blah
-  let _ = (blah.decr u32) @b 1
-  return (blah.decrf i32) @b 1
+  let _ = (blah.decr u32) b 1
+  return (blah.decrf i32) b 1

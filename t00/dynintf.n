@@ -29,7 +29,7 @@ fun foo v:@`d = i32
 
 example block
   let x = { x=42 }:d
-  42 == foo @x
+  42 == foo x
 
 fun rfoo pv:@`d = i32
   return pv.answer
@@ -40,7 +40,7 @@ fun bar pv:@d = i32
 export fun main = i32
   let xd = { x=42 }:d
   let xdc = { }:dc
-  if foo @xd != foo @xdc
+  if foo xd != foo xdc
     return 1
   let pxd = @xd
   if bar pxd != rfoo pxd

@@ -5,6 +5,6 @@ fun foo = string
   return 'test'
 
 export fun main = i32
-  say @'test'
-  say @foo
+  say 'test'
+  say foo
   return 0
