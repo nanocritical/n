@@ -114,6 +114,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`default_dtor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`error_dtor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`trivial_ctor)
   IMPORT :<import>
    BIN(.)
@@ -450,6 +462,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`enum)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`union)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(bool)
   IMPORT :<import>
    BIN(.)
@@ -534,12 +558,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(`ctor_with)
-  IMPORT :<import>
-   BIN(.)
-    BIN(.)
-     IDENT(nlang)
-     IDENT(builtins)
     IDENT(`trivial_array_ctor)
   IMPORT :<import>
    BIN(.)
@@ -553,12 +571,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(nlang)
      IDENT(builtins)
     IDENT(static_array)
-  IMPORT :<import>
-   BIN(.)
-    BIN(.)
-     IDENT(nlang)
-     IDENT(builtins)
-    IDENT(`sum_ctor_with)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -817,14 +829,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.dynintf.`d
-    DIRECTDEF :t00.dynintf.`d
-    DEFNAME(this) :t00.dynintf.`d
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
     IDENT(final) :t00.dynintf.`d
     DIRECTDEF :t00.dynintf.`d
     DEFNAME(final) :t00.dynintf.`d
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.dynintf.`d
+    DIRECTDEF :t00.dynintf.`d
+    DEFNAME(this) :t00.dynintf.`d
   DEFFUN :t00.dynintf.`d.answer
    IDENT(answer) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
@@ -857,14 +869,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.dynintf.d
-    DIRECTDEF :t00.dynintf.d
-    DEFNAME(this) :t00.dynintf.d
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
     IDENT(final) :t00.dynintf.d
     DIRECTDEF :t00.dynintf.d
     DEFNAME(final) :t00.dynintf.d
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.dynintf.d
+    DIRECTDEF :t00.dynintf.d
+    DEFNAME(this) :t00.dynintf.d
   DEFFIELD :nlang.builtins.i32
    IDENT(x) :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
@@ -957,14 +969,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.dynintf.dc
-    DIRECTDEF :t00.dynintf.dc
-    DEFNAME(this) :t00.dynintf.dc
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
     IDENT(final) :t00.dynintf.dc
     DIRECTDEF :t00.dynintf.dc
     DEFNAME(final) :t00.dynintf.dc
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.dynintf.dc
+    DIRECTDEF :t00.dynintf.dc
+    DEFNAME(this) :t00.dynintf.dc
   DEFFIELD :nlang.builtins.i32
    IDENT(dummy) :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32

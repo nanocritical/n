@@ -3,8 +3,8 @@ from nlang.strings import *
 globalenv e2:@!`env2
 
 type myenv2 = `env2 <root>.nlang.builtins.`trivial_ctor
-  alias this = t00.within.myenv2
   alias final = t00.within.myenv2
+  alias this = t00.within.myenv2
   dummy:u32
   myenv2 method say2 s:@string = void 
   and _Ngensym2:nlang.chars.static_string  such
@@ -27,8 +27,8 @@ type myenv2 = `env2 <root>.nlang.builtins.`trivial_ctor
 
 
 type myenv1 = `env1 <root>.nlang.builtins.`trivial_ctor
-  alias this = t00.within.myenv1
   alias final = t00.within.myenv1
+  alias this = t00.within.myenv1
   myenv1 method say s:@string = void 
   and _Ngensym3:nlang.chars.static_string  such
     say sep=null block 

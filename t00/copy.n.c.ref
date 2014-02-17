@@ -8,16 +8,16 @@
 #undef NLANG_DECLARE_TYPES
 struct t00_copy_copy;
 typedef struct t00_copy_copy t00_copy_copy;
-#ifndef HAS0__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
-#define HAS0__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
-struct t00_copy_copy;
-typedef const struct t00_copy_copy* _Ngen_nlang_builtins_ref__t00_copy_copy_genN_;
-#endif // HAS0__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
 #ifndef HAS0__Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_
 #define HAS0__Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_
 struct t00_copy_copy;
 typedef struct t00_copy_copy* _Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_;
 #endif // HAS0__Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_
+#ifndef HAS0__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
+#define HAS0__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
+struct t00_copy_copy;
+typedef const struct t00_copy_copy* _Ngen_nlang_builtins_ref__t00_copy_copy_genN_;
+#endif // HAS0__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
 ;
 
 
@@ -41,16 +41,16 @@ nlang_builtins_i32 x;
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/copy.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
-#ifndef HAS2__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
-#define HAS2__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
-struct t00_copy_copy;
-typedef const struct t00_copy_copy* _Ngen_nlang_builtins_ref__t00_copy_copy_genN_;
-#endif // HAS2__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
 #ifndef HAS2__Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_
 #define HAS2__Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_
 struct t00_copy_copy;
 typedef struct t00_copy_copy* _Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_;
 #endif // HAS2__Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_
+#ifndef HAS2__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
+#define HAS2__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
+struct t00_copy_copy;
+typedef const struct t00_copy_copy* _Ngen_nlang_builtins_ref__t00_copy_copy_genN_;
+#endif // HAS2__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
 nlang_builtins_void t00_copy_copy_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_ self, _Ngen_nlang_builtins_ref__t00_copy_copy_genN_ other) __attribute__((__nonnull__(1, 2)));
 ;
 nlang_builtins_void t00_copy_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_ self) __attribute__((__nonnull__(1)));
@@ -70,16 +70,16 @@ static void t00_copy_foo(t00_copy_copy *_nrtr__nretval);
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/copy.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-#ifndef HAS3__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
-#define HAS3__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
-struct t00_copy_copy;
-typedef const struct t00_copy_copy* _Ngen_nlang_builtins_ref__t00_copy_copy_genN_;
-#endif // HAS3__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
 #ifndef HAS3__Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_
 #define HAS3__Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_
 struct t00_copy_copy;
 typedef struct t00_copy_copy* _Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_;
 #endif // HAS3__Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_
+#ifndef HAS3__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
+#define HAS3__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
+struct t00_copy_copy;
+typedef const struct t00_copy_copy* _Ngen_nlang_builtins_ref__t00_copy_copy_genN_;
+#endif // HAS3__Ngen_nlang_builtins_ref__t00_copy_copy_genN_
 nlang_builtins_void t00_copy_copy_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_ self, _Ngen_nlang_builtins_ref__t00_copy_copy_genN_ other) {
 #define THIS(x) t00_copy_copy##x
  {

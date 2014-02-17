@@ -1,7 +1,7 @@
 from nlang import *
 type tt = `trivial_copy <root>.nlang.builtins.`trivial_ctor
-  alias this = t00.init.tt
   alias final = t00.init.tt
+  alias this = t00.init.tt
   x:i32
   y:i32
   tt method <root>.nlang.builtins.`trivial_ctor.ctor = void 
@@ -14,8 +14,8 @@ type tt = `trivial_copy <root>.nlang.builtins.`trivial_ctor
 
 
 type t = `trivial_copy <root>.nlang.builtins.`trivial_ctor
-  alias this = t00.init.t
   alias final = t00.init.t
+  alias this = t00.init.t
   x:i32
   y:tt
   t method <root>.nlang.builtins.`trivial_ctor.ctor = void 

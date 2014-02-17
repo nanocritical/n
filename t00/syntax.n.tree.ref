@@ -118,6 +118,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`default_dtor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`error_dtor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`trivial_ctor)
   IMPORT :<import>
    BIN(.)
@@ -454,6 +466,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`enum)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`union)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(bool)
   IMPORT :<import>
    BIN(.)
@@ -538,12 +562,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(`ctor_with)
-  IMPORT :<import>
-   BIN(.)
-    BIN(.)
-     IDENT(nlang)
-     IDENT(builtins)
     IDENT(`trivial_array_ctor)
   IMPORT :<import>
    BIN(.)
@@ -557,12 +575,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(nlang)
      IDENT(builtins)
     IDENT(static_array)
-  IMPORT :<import>
-   BIN(.)
-    BIN(.)
-     IDENT(nlang)
-     IDENT(builtins)
-    IDENT(`sum_ctor_with)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -894,14 +906,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.syntax.`ia
-    DIRECTDEF :t00.syntax.`ia
-    DEFNAME(this) :t00.syntax.`ia
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
     IDENT(final) :t00.syntax.`ia
     DIRECTDEF :t00.syntax.`ia
     DEFNAME(final) :t00.syntax.`ia
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.syntax.`ia
+    DIRECTDEF :t00.syntax.`ia
+    DEFNAME(this) :t00.syntax.`ia
  DEFTYPE :t00.syntax.test
   IDENT(test) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
@@ -918,14 +930,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.syntax.test
-    DIRECTDEF :t00.syntax.test
-    DEFNAME(this) :t00.syntax.test
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
     IDENT(final) :t00.syntax.test
     DIRECTDEF :t00.syntax.test
     DEFNAME(final) :t00.syntax.test
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.syntax.test
+    DIRECTDEF :t00.syntax.test
+    DEFNAME(this) :t00.syntax.test
   DEFFIELD :nlang.builtins.i32
    IDENT(t) :nlang.builtins.__internal_not_typeable__
    IDENT(i32) :nlang.builtins.i32
@@ -1055,86 +1067,29 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(`trivial_dtor) :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.syntax.enu
-    DIRECTDEF :t00.syntax.enu
-    DEFNAME(this) :t00.syntax.enu
+    IDENT(tag_type) :nlang.builtins.u32
+    DIRECTDEF :nlang.builtins.u32
+    DEFNAME(tag_type) :nlang.builtins.u32
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
     IDENT(final) :t00.syntax.enu
     DIRECTDEF :t00.syntax.enu
     DEFNAME(final) :t00.syntax.enu
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.syntax.enu
+    DIRECTDEF :t00.syntax.enu
+    DEFNAME(this) :t00.syntax.enu
   DEFCHOICE :t00.syntax.enu
    IDENT(V1) :nlang.builtins.__internal_not_typeable__
    NUMBER(0) :nlang.builtins.u32
-   IDENT(void) :nlang.builtins.void
-   DEFFUN :t00.syntax.enu.V1.mk
-    BIN(.) :nlang.builtins.__internal_not_typeable__
-     BIN(.) :nlang.builtins.__internal_not_typeable__
-      BIN(.) :nlang.builtins.__internal_not_typeable__
-       BIN(.) :nlang.builtins.__internal_not_typeable__
-        DIRECTDEF :nlang.builtins.__internal_not_typeable__
-        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
-       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-      IDENT(`default_ctor) :nlang.builtins.__internal_not_typeable__
-     IDENT(mk) :nlang.builtins.__internal_not_typeable__
-    GENARGS :nlang.builtins.__internal_not_typeable__
-    FUNARGS :nlang.builtins.__internal_not_typeable__
-     DEFARG :t00.syntax.enu
-      IDENT(r) :nlang.builtins.__internal_not_typeable__
-      IDENT(final) :t00.syntax.enu
-    WITHIN :nlang.builtins.void
-   DEFFUN :t00.syntax.enu.V1.new
-    BIN(.) :nlang.builtins.__internal_not_typeable__
-     BIN(.) :nlang.builtins.__internal_not_typeable__
-      BIN(.) :nlang.builtins.__internal_not_typeable__
-       BIN(.) :nlang.builtins.__internal_not_typeable__
-        DIRECTDEF :nlang.builtins.__internal_not_typeable__
-        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
-       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-      IDENT(`default_ctor) :nlang.builtins.__internal_not_typeable__
-     IDENT(new) :nlang.builtins.__internal_not_typeable__
-    GENARGS :nlang.builtins.__internal_not_typeable__
-    FUNARGS :nlang.builtins.__internal_not_typeable__
-     UN(@#) :(nlang.builtins.mercurial_ref t00.syntax.enu)
-      IDENT(final) :t00.syntax.enu
-    WITHIN :nlang.builtins.void
+   NUMBER(0) :nlang.builtins.u32
   DEFCHOICE :t00.syntax.enu
    IDENT(V2) :nlang.builtins.__internal_not_typeable__
    BIN( + ) :nlang.builtins.u32
     NUMBER(0) :nlang.builtins.u32
     NUMBER(1) :nlang.builtins.u32
-   IDENT(void) :nlang.builtins.void
-   DEFFUN :t00.syntax.enu.V2.mk
-    BIN(.) :nlang.builtins.__internal_not_typeable__
-     BIN(.) :nlang.builtins.__internal_not_typeable__
-      BIN(.) :nlang.builtins.__internal_not_typeable__
-       BIN(.) :nlang.builtins.__internal_not_typeable__
-        DIRECTDEF :nlang.builtins.__internal_not_typeable__
-        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
-       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-      IDENT(`default_ctor) :nlang.builtins.__internal_not_typeable__
-     IDENT(mk) :nlang.builtins.__internal_not_typeable__
-    GENARGS :nlang.builtins.__internal_not_typeable__
-    FUNARGS :nlang.builtins.__internal_not_typeable__
-     DEFARG :t00.syntax.enu
-      IDENT(r) :nlang.builtins.__internal_not_typeable__
-      IDENT(final) :t00.syntax.enu
-    WITHIN :nlang.builtins.void
-   DEFFUN :t00.syntax.enu.V2.new
-    BIN(.) :nlang.builtins.__internal_not_typeable__
-     BIN(.) :nlang.builtins.__internal_not_typeable__
-      BIN(.) :nlang.builtins.__internal_not_typeable__
-       BIN(.) :nlang.builtins.__internal_not_typeable__
-        DIRECTDEF :nlang.builtins.__internal_not_typeable__
-        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
-       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-      IDENT(`default_ctor) :nlang.builtins.__internal_not_typeable__
-     IDENT(new) :nlang.builtins.__internal_not_typeable__
-    GENARGS :nlang.builtins.__internal_not_typeable__
-    FUNARGS :nlang.builtins.__internal_not_typeable__
-     UN(@#) :(nlang.builtins.mercurial_ref t00.syntax.enu)
-      IDENT(final) :t00.syntax.enu
-    WITHIN :nlang.builtins.void
+   NUMBER(0) :nlang.builtins.u32
   DEFCHOICE :t00.syntax.enu
    IDENT(V3) :nlang.builtins.__internal_not_typeable__
    BIN( + ) :nlang.builtins.u32
@@ -1142,38 +1097,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      NUMBER(0) :nlang.builtins.u32
      NUMBER(1) :nlang.builtins.u32
     NUMBER(1) :nlang.builtins.u32
-   IDENT(void) :nlang.builtins.void
-   DEFFUN :t00.syntax.enu.V3.mk
-    BIN(.) :nlang.builtins.__internal_not_typeable__
-     BIN(.) :nlang.builtins.__internal_not_typeable__
-      BIN(.) :nlang.builtins.__internal_not_typeable__
-       BIN(.) :nlang.builtins.__internal_not_typeable__
-        DIRECTDEF :nlang.builtins.__internal_not_typeable__
-        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
-       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-      IDENT(`default_ctor) :nlang.builtins.__internal_not_typeable__
-     IDENT(mk) :nlang.builtins.__internal_not_typeable__
-    GENARGS :nlang.builtins.__internal_not_typeable__
-    FUNARGS :nlang.builtins.__internal_not_typeable__
-     DEFARG :t00.syntax.enu
-      IDENT(r) :nlang.builtins.__internal_not_typeable__
-      IDENT(final) :t00.syntax.enu
-    WITHIN :nlang.builtins.void
-   DEFFUN :t00.syntax.enu.V3.new
-    BIN(.) :nlang.builtins.__internal_not_typeable__
-     BIN(.) :nlang.builtins.__internal_not_typeable__
-      BIN(.) :nlang.builtins.__internal_not_typeable__
-       BIN(.) :nlang.builtins.__internal_not_typeable__
-        DIRECTDEF :nlang.builtins.__internal_not_typeable__
-        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
-       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
-      IDENT(`default_ctor) :nlang.builtins.__internal_not_typeable__
-     IDENT(new) :nlang.builtins.__internal_not_typeable__
-    GENARGS :nlang.builtins.__internal_not_typeable__
-    FUNARGS :nlang.builtins.__internal_not_typeable__
-     UN(@#) :(nlang.builtins.mercurial_ref t00.syntax.enu)
-      IDENT(final) :t00.syntax.enu
-    WITHIN :nlang.builtins.void
+   NUMBER(0) :nlang.builtins.u32
   DEFMETHOD :t00.syntax.enu.copy_ctor
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__

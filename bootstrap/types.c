@@ -360,9 +360,7 @@ bool typ_is_tentative(const struct typ *t) {
 static bool check_can_be_tentative(const struct typ *t) {
   const struct node *d = typ_definition_const(t);
   if (d->which == DEFINTF
-      || d->which == DEFNAMEDLITERAL
-      || d->which == DEFCONSTRAINTLITERAL
-      || d->which == DEFUNKNOWNIDENT) {
+      || d->which == DEFINCOMPLETE) {
     return TRUE;
   }
 
@@ -800,9 +798,7 @@ struct typ *TBI_TRIVIAL_DTOR;
 struct typ *TBI_TRIVIAL_EQUALITY;
 struct typ *TBI_TRIVIAL_ORDER;
 struct typ *TBI_RETURN_BY_COPY;
-struct typ *TBI_UNION_COPY;
-struct typ *TBI_UNION_EQUALITY;
-struct typ *TBI_UNION_ORDER;
+struct typ *TBI_ENUM;
 struct typ *TBI_ITERATOR;
 struct typ *TBI_ENVIRONMENT;
 struct typ *TBI_ANY_ENVIRONMENT;

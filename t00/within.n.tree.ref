@@ -118,6 +118,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`default_dtor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`error_dtor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`trivial_ctor)
   IMPORT :<import>
    BIN(.)
@@ -454,6 +466,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`enum)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`union)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(bool)
   IMPORT :<import>
    BIN(.)
@@ -538,12 +562,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(`ctor_with)
-  IMPORT :<import>
-   BIN(.)
-    BIN(.)
-     IDENT(nlang)
-     IDENT(builtins)
     IDENT(`trivial_array_ctor)
   IMPORT :<import>
    BIN(.)
@@ -557,12 +575,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(nlang)
      IDENT(builtins)
     IDENT(static_array)
-  IMPORT :<import>
-   BIN(.)
-    BIN(.)
-     IDENT(nlang)
-     IDENT(builtins)
-    IDENT(`sum_ctor_with)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -842,14 +854,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(this) :t00.within.`env2
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.within.`env2
-    DIRECTDEF :t00.within.`env2
-    DEFNAME(this) :t00.within.`env2
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
     IDENT(final) :t00.within.`env2
     DIRECTDEF :t00.within.`env2
     DEFNAME(final) :t00.within.`env2
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.within.`env2
+    DIRECTDEF :t00.within.`env2
+    DEFNAME(this) :t00.within.`env2
   DEFMETHOD :t00.within.`env2.say2
    IDENT(say2) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
@@ -880,14 +892,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.within.myenv2
-    DIRECTDEF :t00.within.myenv2
-    DEFNAME(this) :t00.within.myenv2
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
     IDENT(final) :t00.within.myenv2
     DIRECTDEF :t00.within.myenv2
     DEFNAME(final) :t00.within.myenv2
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.within.myenv2
+    DIRECTDEF :t00.within.myenv2
+    DEFNAME(this) :t00.within.myenv2
   DEFFIELD :nlang.builtins.u32
    IDENT(dummy) :nlang.builtins.__internal_not_typeable__
    IDENT(u32) :nlang.builtins.u32
@@ -1026,14 +1038,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(this) :t00.within.`env1
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.within.`env1
-    DIRECTDEF :t00.within.`env1
-    DEFNAME(this) :t00.within.`env1
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
     IDENT(final) :t00.within.`env1
     DIRECTDEF :t00.within.`env1
     DEFNAME(final) :t00.within.`env1
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.within.`env1
+    DIRECTDEF :t00.within.`env1
+    DEFNAME(this) :t00.within.`env1
   DEFMETHOD :t00.within.`env1.say
    IDENT(say) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
@@ -1064,14 +1076,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.within.myenv1
-    DIRECTDEF :t00.within.myenv1
-    DEFNAME(this) :t00.within.myenv1
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
     IDENT(final) :t00.within.myenv1
     DIRECTDEF :t00.within.myenv1
     DEFNAME(final) :t00.within.myenv1
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :t00.within.myenv1
+    DIRECTDEF :t00.within.myenv1
+    DEFNAME(this) :t00.within.myenv1
   DEFMETHOD :t00.within.myenv1.say
    IDENT(say) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__

@@ -10,7 +10,7 @@ syn keyword nSemantic capturedby capturedbyret owned ownedby protected protect p
 
 syn keyword nAssert assert pre post invariant
 syn keyword nDecl example alias within globalenv
-syn keyword nDecl contract honors _honors pretag posttag tag
+syn keyword nDecl contract honors _honors
 
 syn keyword nConditional if elif else match
 syn keyword nRepeat while for pfor foreach pforeach

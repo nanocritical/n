@@ -7,15 +7,6 @@
 # include "t00/match.n.h.out"
 #undef NLANG_DECLARE_TYPES
 typedef nlang_builtins_u32 t00_match_enu;
-#ifndef HAS0__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
-#define HAS0__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
-typedef t00_match_enu* _Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_;
-#endif // HAS0__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
-#ifndef HAS0__Ngen_nlang_builtins_ref__t00_match_enu_genN_
-#define HAS0__Ngen_nlang_builtins_ref__t00_match_enu_genN_
-typedef const t00_match_enu* _Ngen_nlang_builtins_ref__t00_match_enu_genN_;
-#endif // HAS0__Ngen_nlang_builtins_ref__t00_match_enu_genN_
-;
 
 
 
@@ -61,16 +52,6 @@ t00_match_enu x;
 #define NLANG_DECLARE_FUNCTIONS
 # include "t00/match.n.h.out"
 #undef NLANG_DECLARE_FUNCTIONS
-#ifndef HAS2__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
-#define HAS2__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
-typedef t00_match_enu* _Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_;
-#endif // HAS2__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
-#ifndef HAS2__Ngen_nlang_builtins_ref__t00_match_enu_genN_
-#define HAS2__Ngen_nlang_builtins_ref__t00_match_enu_genN_
-typedef const t00_match_enu* _Ngen_nlang_builtins_ref__t00_match_enu_genN_;
-#endif // HAS2__Ngen_nlang_builtins_ref__t00_match_enu_genN_
-nlang_builtins_void t00_match_enu_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_ self, _Ngen_nlang_builtins_ref__t00_match_enu_genN_ other) __attribute__((__nonnull__(1, 2)));
-;
 
 static nlang_builtins_i32 t00_match_foo(t00_match_enu n);
 
@@ -102,20 +83,6 @@ static nlang_builtins_bool t00_match_bor(_Ngen_nlang_builtins_ref__t00_match_t_g
 #define NLANG_DEFINE_FUNCTIONS
 # include "t00/match.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
-#ifndef HAS3__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
-#define HAS3__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
-typedef t00_match_enu* _Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_;
-#endif // HAS3__Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_
-#ifndef HAS3__Ngen_nlang_builtins_ref__t00_match_enu_genN_
-#define HAS3__Ngen_nlang_builtins_ref__t00_match_enu_genN_
-typedef const t00_match_enu* _Ngen_nlang_builtins_ref__t00_match_enu_genN_;
-#endif // HAS3__Ngen_nlang_builtins_ref__t00_match_enu_genN_
-nlang_builtins_void t00_match_enu_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_match_enu_genN_ self, _Ngen_nlang_builtins_ref__t00_match_enu_genN_ other) {
-#define THIS(x) t00_match_enu##x
-memcpy(self, other, sizeof(*self));
-#undef THIS
-}
-;
 
 static nlang_builtins_i32 t00_match_foo(t00_match_enu n) {
  {
@@ -124,11 +91,13 @@ case t00_match_enu_A_label__:
  {
 return (nlang_builtins_i32)0;
 }
+break;
 case t00_match_enu_B_label__:
 default:
  {
 return (nlang_builtins_i32)1;
 }
+break;
 };
 }
 }
@@ -140,10 +109,12 @@ case t00_match_enu_A_label__:
  {
 return (nlang_builtins_i32)0;
 }
+break;
 default:
  {
 return (nlang_builtins_i32)1;
 }
+break;
 };
 }
 }
@@ -206,11 +177,13 @@ case t00_match_enu_A_label__:
  {
 return (nlang_builtins_i32)0;
 }
+break;
 case t00_match_enu_B_label__:
 default:
  {
 return (nlang_builtins_i32)1;
 }
+break;
 };
 }
 }

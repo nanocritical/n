@@ -1,7 +1,8 @@
 from nlang import *
 type enu = `trivial_ctor <root>.nlang.builtins.`trivial_copy <root>.nlang.builtins.`trivial_dtor
-  alias this = t00.match.enu
+  alias tag_type = nlang.builtins.u32
   alias final = t00.match.enu
+  alias this = t00.match.enu
   | A = 0
   | B = 0 + 1
   enu method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void 
@@ -22,8 +23,8 @@ fun bar n:enu = i32
     return 1
 
 type t = <root>.nlang.builtins.`trivial_ctor
-  alias this = t00.match.t
   alias final = t00.match.t
+  alias this = t00.match.t
   x:enu
   t method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 

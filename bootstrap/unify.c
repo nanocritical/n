@@ -257,75 +257,54 @@ static error unify_with_weakly_concrete(bool *success,
   return 0;
 }
 
-static size_t insert_defnamedliterals(struct module *mod,
-                                      struct node *littype,
-                                      struct node *a) {
-  size_t count = 0;
-  FOREACH_SUB_CONST(of, a) {
-    if (of->which != DEFFIELD) {
-      continue;
-    }
-    struct node *f = mk_node(mod, littype, DEFFIELD);
-    struct node *name = mk_node(mod, f, IDENT);
-    name->as.IDENT.name = node_ident(node_subs_first_const(of));
-    struct node *t = mk_node(mod, f, DIRECTDEF);
-    set_typ(&t->as.DIRECTDEF.typ, node_subs_at_const(of, 1)->typ);
-    t->as.DIRECTDEF.flags = NODE_IS_TYPE;
-    count += 1;
-  }
-  return count;
-}
+static struct typ *merge_defincomplete(struct module *mod, const struct node *for_error,
+                                       const struct node *a, const struct node *b) {
+  struct node *dinc = defincomplete_create(mod, for_error);
 
-static struct typ *merge_defnamedliterals(struct module *mod,
-                                          struct node *a, struct node *b) {
-  // FIXME: Detached node, would have to be freed when releasing the
-  // mod fun_state in which it is recorded below.
-  //
-  struct node *littype = mempool_calloc(mod, 1, sizeof(struct node));
-  node_set_which(littype, DEFNAMEDLITERAL);
-  struct node *littype_name = mk_node(mod, littype, IDENT);
-  littype_name->as.IDENT.name = gensym(mod);
-  (void)mk_node(mod, littype, GENARGS);
-
-  size_t arity = 0;
-  arity += insert_defnamedliterals(mod, littype, a);
-  arity += insert_defnamedliterals(mod, littype, b);
-
-  struct typ **args = mempool_calloc(mod, arity, sizeof(struct typ *));
-  size_t n = 0;
-  FOREACH_SUB_CONST(f, littype) {
-    if (f->which != DEFFIELD) {
-      continue;
-    }
-    const struct node *t = node_subs_at_const(f, 1);
-    assert(t->which == DIRECTDEF);
-    args[n] = t->as.DIRECTDEF.typ;
-    n += 1;
+  if (a->as.DEFINCOMPLETE.ident != ID__NONE) {
+    defincomplete_set_ident(mod, a->as.DEFINCOMPLETE.ident_for_error,
+                            dinc, a->as.DEFINCOMPLETE.ident);
+  } else if (b->as.DEFINCOMPLETE.ident != ID__NONE) {
+    defincomplete_set_ident(mod, b->as.DEFINCOMPLETE.ident_for_error,
+                            dinc, b->as.DEFINCOMPLETE.ident);
   }
 
-  const bool tentative = instantiation_is_tentative(mod, littype->typ,
-                                                    args, arity);
-  free(args);
-  error e = catchup_instantiation(mod, mod,
-                                  littype, &mod->body->scope,
-                                  tentative);
+  const struct node *a_isalist = node_subs_at_const(a, IDX_ISALIST);
+  FOREACH_SUB_CONST(isa, a_isalist) {
+    defincomplete_add_field(mod, isa, dinc, node_ident(isa), isa->typ);
+  }
+  const struct node *b_isalist = node_subs_at_const(b, IDX_ISALIST);
+  FOREACH_SUB_CONST(isa, b_isalist) {
+    defincomplete_add_field(mod, isa, dinc, node_ident(isa), isa->typ);
+  }
+
+  error e = defincomplete_catchup(mod, dinc);
   assert(!e);
-
-  return littype->typ;
+  return dinc->typ;
 }
 
 HTABLE_SPARSE(ident_typ_map, struct typ *, ident);
 implement_htable_sparse(unused__ static, ident_typ_map, struct typ *, ident);
 
-static error unify_two_defnamedliterals(struct module *mod, const struct node *for_error,
-                                        struct typ *a, struct typ *b) {
+static error unify_two_defincomplete(struct module *mod, const struct node *for_error,
+                                     struct typ *a, struct typ *b) {
+  error e;
+  const char *reason;
+
+  struct node *da = typ_definition(a);
+  struct node *db = typ_definition(b);
+  if (da->as.DEFINCOMPLETE.ident != ID__NONE
+      && db->as.DEFINCOMPLETE.ident != ID__NONE) {
+    reason = "conflicting idents";
+    goto except;
+  }
+
   struct ident_typ_map map;
   ident_typ_map_init(&map, 0);
   ident_typ_map_set_delete_val(&map, FALSE);
   ident_typ_map_set_custom_hashf(&map, ident_hash);
   ident_typ_map_set_custom_cmpf(&map, ident_cmp);
 
-  struct node *da = typ_definition(a);
   FOREACH_SUB_CONST(f, da) {
     if (f->which != DEFFIELD) {
       continue;
@@ -334,144 +313,109 @@ static error unify_two_defnamedliterals(struct module *mod, const struct node *f
                       node_subs_at_const(f, 1)->typ);
   }
 
-  struct node *db = typ_definition(b);
   FOREACH_SUB_CONST(f, db) {
     if (f->which != DEFFIELD) {
       continue;
     }
     struct typ **existing = ident_typ_map_get(&map, node_ident(node_subs_first_const(f)));
     if (existing != NULL) {
-      error e = unify(mod, for_error, *existing, node_subs_at_const(f, 1)->typ);
-      EXCEPT(e);
+      reason = "conflicting fields";
+      e = unify(mod, for_error, *existing, node_subs_at_const(f, 1)->typ);
+      GOTO_EXCEPT(e);
     }
   }
 
-  struct typ *t = merge_defnamedliterals(mod, da, db);
-  typ_link_tentative(t, a);
-  typ_link_tentative(t, b);
+  struct typ *r = merge_defincomplete(mod, for_error, da, db);
+  typ_link_tentative(r, a);
+  typ_link_tentative(r, b);
 
   ident_typ_map_destroy(&map);
+  return 0;
+
+except:
+  assert(e == EINVAL);
+  ;char sa[2048], sb[2048];
+  snprint_defincomplete(sa, ARRAY_SIZE(sa), mod, da);
+  snprint_defincomplete(sb, ARRAY_SIZE(sb), mod, db);
+
+  e = mk_except_type(mod, for_error,
+                     "%s for incomplete types\n%sand\n%s",
+                     reason, sa, sb);
+  THROW(e);
+}
+
+static error unify_with_defunknownident(struct module *mod, const struct node *for_error,
+                                        struct typ *a, struct typ *inc) {
+  const struct node *dinc = typ_definition_const(inc);
+  const struct node *da = typ_definition_const(a);
+
+  ident unk = dinc->as.DEFINCOMPLETE.ident;
+
+  error e;
+  if (da->which != DEFTYPE || da->as.DEFTYPE.kind != DEFTYPE_ENUM) {
+    char *s = typ_pretty_name(mod, a);
+    e = mk_except_type(mod, for_error,
+                       "ident '%s' cannot be resolved in type '%s'"
+                       " (not an enum)",
+                       idents_value(mod->gctx, unk), s);
+    free(s);
+    THROW(e);
+  }
+
+  // Will typ_link_tentative() in unify_with_defincomplete().
 
   return 0;
 }
 
-static error unify_with_defnamedliteral(struct module *mod, const struct node *for_error,
-                                         struct typ *a, struct typ *dnl) {
+static error unify_with_defincomplete(struct module *mod, const struct node *for_error,
+                                      struct typ *a, struct typ *inc) {
   error e;
 
-  struct node *a_def = typ_definition(a);
-  struct node *ddnl = typ_definition(dnl);
-  FOREACH_SUB_CONST(f, ddnl) {
+  const struct node *dinc = typ_definition_const(inc);
+  if (dinc->as.DEFINCOMPLETE.ident != ID__NONE) {
+    e = unify_with_defunknownident(mod, for_error, a, inc);
+    EXCEPT(e);
+  }
+
+  struct node *da = typ_definition(a);
+  FOREACH_SUB_CONST(f, dinc) {
     if (f->which != DEFFIELD) {
       continue;
     }
     ident f_name = node_ident(f);
     struct node *d = NULL;
-    e = scope_lookup_ident_immediate(&d, a_def, mod, &a_def->scope, f_name, FALSE);
+    e = scope_lookup_ident_immediate(&d, da, mod, &da->scope, f_name, FALSE);
     EXCEPT(e);
 
     e = unify(mod, for_error, f->typ, d->typ);
     EXCEPT(e);
   }
 
-  typ_link_tentative(a, dnl);
-
+  typ_link_tentative(a, inc);
   return 0;
 }
 
-static error unify_defnamedliterals(struct module *mod, const struct node *for_error,
-                                    struct typ *a, struct typ *b,
-                                    bool a_dnl, bool b_dnl) {
+static error unify_defincomplete(struct module *mod, const struct node *for_error,
+                                 struct typ *a, struct typ *b,
+                                 bool a_inc, bool b_inc) {
   error e;
-  if (a_dnl && b_dnl) {
-    e = unify_two_defnamedliterals(mod, for_error, a, b);
+  if (a_inc && b_inc) {
+    e = unify_two_defincomplete(mod, for_error, a, b);
     EXCEPT(e);
 
     return 0;
   }
 
-  if (a_dnl && !b_dnl) {
+  if (a_inc && !b_inc) {
     SWAP(a, b);
-    SWAP(a_dnl, b_dnl);
+    SWAP(a_inc, b_inc);
   }
 
-  e = unify_with_defnamedliteral(mod, for_error, a, b);
+  e = unify_with_defincomplete(mod, for_error, a, b);
   EXCEPT(e);
 
   return 0;
 }
-
-static error unify_two_defunknownidents(struct module *mod, const struct node *for_error,
-                                        struct typ *a, struct typ *b) {
-  const struct node *a_unk = node_subs_at_const(typ_definition_const(a),
-                                                IDX_UNKNOWN_IDENT);
-  const struct node *b_unk = node_subs_at_const(typ_definition_const(b),
-                                                IDX_UNKNOWN_IDENT);
-  assert(a_unk->which == IDENT && b_unk->which == IDENT);
-
-  if (node_ident(a_unk) != node_ident(b_unk)) {
-    error e = mk_except_type(mod, for_error,
-                             "unresolved idents '%s' and '%s' cannot be unified",
-                             idents_value(mod->gctx, node_ident(a_unk)),
-                             idents_value(mod->gctx, node_ident(b_unk)));
-    THROW(e);
-  }
-
-  typ_link_tentative(a, b);
-  return 0;
-}
-
-static error unify_with_defunknownident(struct module *mod, const struct node *for_error,
-                                        struct typ *a, struct typ *dui) {
-  const struct node *unk = node_subs_at_const(typ_definition_const(dui),
-                                              IDX_UNKNOWN_IDENT);
-  const struct node *da = typ_definition_const(a);
-
-  error e;
-  if (da->which != DEFTYPE
-      || da->as.DEFTYPE.kind != DEFTYPE_ENUM) {
-    char *s = typ_pretty_name(mod, a);
-    e = mk_except_type(mod, for_error,
-                       "ident '%s' cannot be resolved in type '%s'"
-                       " (not an enum)",
-                       idents_value(mod->gctx, node_ident(unk)), s);
-    free(s);
-    THROW(e);
-  }
-
-  struct node *def = NULL;
-  e = scope_lookup_ident_immediate(&def, for_error, mod,
-                                   &da->scope,
-                                   node_ident(unk), FALSE);
-  EXCEPT(e);
-
-  typ_link_tentative(a, dui);
-
-  return 0;
-}
-
-static error unify_defunknownidents(struct module *mod, const struct node *for_error,
-                                    struct typ *a, struct typ *b,
-                                    bool a_dui, bool b_dui) {
-  error e;
-  if (a_dui && b_dui) {
-    e = unify_two_defunknownidents(mod, for_error, a, b);
-    EXCEPT(e);
-
-    return 0;
-  }
-
-  if (a_dui && !b_dui) {
-    SWAP(a, b);
-    SWAP(a_dui, b_dui);
-  }
-
-  e = unify_with_defunknownident(mod, for_error, a, b);
-  EXCEPT(e);
-
-  return 0;
-}
-
 static error unify_with_equal(struct module *mod, const struct node *for_error,
                               struct typ *a, struct typ *b) {
   error e = typ_check_equal(mod, for_error, a, b);
@@ -767,19 +711,10 @@ error unify(struct module *mod, const struct node *for_error,
   const struct node *da = typ_definition_const(a);
   const struct node *db = typ_definition_const(b);
 
-  const bool a_dui = da->which == DEFUNKNOWNIDENT;
-  const bool b_dui = db->which == DEFUNKNOWNIDENT;
-  if (a_dui || b_dui) {
-    e = unify_defunknownidents(mod, for_error, a, b, a_dui, b_dui);
-    EXCEPT(e);
-    return 0;
-  }
-
-
-  const bool a_dnl = da->which == DEFNAMEDLITERAL;
-  const bool b_dnl = db->which == DEFNAMEDLITERAL;
-  if (a_dnl || b_dnl) {
-    e = unify_defnamedliterals(mod, for_error, a, b, a_dnl, b_dnl);
+  const bool a_inc = da->which == DEFINCOMPLETE;
+  const bool b_inc = db->which == DEFINCOMPLETE;
+  if (a_inc || b_inc) {
+    e = unify_defincomplete(mod, for_error, a, b, a_inc, b_inc);
     EXCEPT(e);
     return 0;
   }

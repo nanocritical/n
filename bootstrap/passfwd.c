@@ -375,6 +375,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
   struct scope *sc = NULL;
   const struct toplevel *toplevel = NULL;
   error e;
+  struct node *parent = node_parent(node);
 
   switch (node->which) {
   case DEFFUN:
@@ -400,7 +401,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
 
       sc = &container->scope;
     } else {
-      sc = &node_parent(node)->scope;
+      sc = &parent->scope;
     }
     break;
   case DEFTYPE:
@@ -419,15 +420,22 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     }
     break;
   case DEFFIELD:
-  case DEFCHOICE:
     id = node_subs_first(node);
     sc = node->scope.parent;
     break;
+  case DEFCHOICE:
+    id = node_subs_first(node);
+    struct node *p = parent;
+    while (p->which == DEFCHOICE) {
+      p = node_parent(p);
+    }
+    sc = &p->scope;
+    break;
   case DEFNAME:
-    if (node_parent(node)->as.DEFPATTERN.is_globalenv) {
+    if (parent->as.DEFPATTERN.is_globalenv) {
       id = node->as.DEFNAME.pattern;
-      assert(node_parent(node_parent(node_parent(node)))->which == MODULE_BODY);
-      sc = &node_parent(node_parent(node_parent(node)))
+      assert(node_parent(node_parent(parent))->which == MODULE_BODY);
+      sc = &node_parent(node_parent(parent))
         ->as.MODULE_BODY.globalenv_scope;
     } else if (node_ident(node) != ID_OTHERWISE) {
       id = node->as.DEFNAME.pattern;
@@ -447,12 +455,12 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
         id = n;
       }
 
-      struct node *pparent = node_parent(node_parent(node));
+      struct node *pparent = node_parent(parent);
       if (pparent->which == MODULE_BODY) {
         sc = &pparent->scope;
       } else {
         assert(pparent->which == DEFFUN || pparent->which == DEFMETHOD);
-        sc = &node_subs_last(node_parent(node_parent(node)))->scope;
+        sc = &node_subs_last(node_parent(parent))->scope;
       }
     }
     break;
@@ -512,6 +520,25 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
   return 0;
 }
 
+static error define_builtin_alias(struct module *mod, struct node *node,
+                                  ident name, struct typ *t) {
+  struct node *let = mk_node(mod, node, LET);
+  node_subs_remove(node, let);
+  node_subs_insert_after(node, node_subs_at(node, 2), let);
+  let->flags = NODE_IS_GLOBAL_LET;
+  struct node *defp = mk_node(mod, let, DEFPATTERN);
+  defp->as.DEFPATTERN.is_alias = TRUE;
+  struct node *n = mk_node(mod, defp, IDENT);
+  n->as.IDENT.name = name;
+  struct node *expr = mk_node(mod, defp, DIRECTDEF);
+  set_typ(&expr->as.DIRECTDEF.typ, t);
+  expr->as.DIRECTDEF.flags = NODE_IS_TYPE;
+
+  error e = catchup(mod, NULL, let, &node->scope, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+  return 0;
+}
+
 static STEP_FILTER(step_add_builtin_members,
                    SF(DEFTYPE) | SF(DEFINTF));
 static error step_add_builtin_members(struct module *mod, struct node *node,
@@ -522,39 +549,24 @@ static error step_add_builtin_members(struct module *mod, struct node *node,
     return 0;
   }
 
-  {
-    struct node *let = mk_node(mod, node, LET);
-    node_subs_remove(node, let);
-    node_subs_insert_after(node, node_subs_at(node, 2), let);
-    let->flags = NODE_IS_GLOBAL_LET;
-    struct node *defp = mk_node(mod, let, DEFPATTERN);
-    defp->as.DEFPATTERN.is_alias = TRUE;
-    struct node *name = mk_node(mod, defp, IDENT);
-    name->as.IDENT.name = ID_THIS;
-    struct node *expr = mk_node(mod, defp, DIRECTDEF);
-    set_typ(&expr->as.DIRECTDEF.typ, node->typ);
-    expr->as.DIRECTDEF.flags = NODE_IS_TYPE;
+  define_builtin_alias(mod, node, ID_THIS, node->typ);
+  define_builtin_alias(mod, node, ID_FINAL, node->typ);
 
-    error e = catchup(mod, NULL, let, &node->scope, CATCHUP_BELOW_CURRENT);
-    EXCEPT(e);
+  return 0;
+}
+
+static STEP_FILTER(step_add_builtin_members_enum_union,
+                   SF(DEFTYPE));
+static error step_add_builtin_members_enum_union(struct module *mod, struct node *node,
+                                                 void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node->as.DEFTYPE.kind != DEFTYPE_ENUM
+      && node->as.DEFTYPE.kind != DEFTYPE_UNION) {
+    return 0;
   }
 
-  {
-    struct node *let = mk_node(mod, node, LET);
-    node_subs_remove(node, let);
-    node_subs_insert_after(node, node_subs_at(node, 3), let);
-    let->flags = NODE_IS_GLOBAL_LET;
-    struct node *defp = mk_node(mod, let, DEFPATTERN);
-    defp->as.DEFPATTERN.is_alias = TRUE;
-    struct node *name = mk_node(mod, defp, IDENT);
-    name->as.IDENT.name = ID_FINAL;
-    struct node *expr = mk_node(mod, defp, DIRECTDEF);
-    set_typ(&expr->as.DIRECTDEF.typ, node->typ);
-    expr->as.DIRECTDEF.flags = NODE_IS_TYPE;
-
-    error e = catchup(mod, NULL, let, &node->scope, CATCHUP_BELOW_CURRENT);
-    EXCEPT(e);
-  }
+  define_builtin_alias(mod, node, ID_TAG_TYPE, node->as.DEFTYPE.tag_typ);
 
   return 0;
 }
@@ -640,38 +652,43 @@ static error step_type_deffields(struct module *mod, struct node *node,
 }
 
 static STEP_FILTER(step_type_defchoices,
-                   SF(DEFTYPE));
+                   SF(DEFTYPE) | SF(DEFCHOICE));
 static error step_type_defchoices(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
 
-  error e;
-  switch (node->as.DEFTYPE.kind) {
-  case DEFTYPE_ENUM:
-  case DEFTYPE_UNION:
-    {
-      set_typ(&node->as.DEFTYPE.choice_typ,
-              typ_create_tentative(TBI_LITERALS_INTEGER));
-      struct typ *u = node->as.DEFTYPE.choice_typ;
-
-      FOREACH_SUB(ch, node) {
-        if (ch->which != DEFCHOICE) {
-          continue;
-        }
-
-        e = unify(mod, ch, u, node_subs_at(ch, IDX_CH_VALUE)->typ);
-        EXCEPT(e);
-
-        ch->flags |= NODE_IS_DEFCHOICE;
-      }
-
-      if (typ_equal(u, TBI_LITERALS_INTEGER)) {
-        typ_link_tentative(TBI_U32, u);
-      }
+  if (node->which == DEFTYPE) {
+    switch (node->as.DEFTYPE.kind) {
+    case DEFTYPE_ENUM:
+    case DEFTYPE_UNION:
+      break;
+    default:
+      return 0;
     }
-    break;
-  default:
-    break;
+  }
+
+  set_typ(&node->as.DEFTYPE.tag_typ,
+          typ_create_tentative(TBI_LITERALS_INTEGER));
+
+  error e;
+  FOREACH_SUB(ch, node) {
+    if (ch->which != DEFCHOICE) {
+      continue;
+    }
+
+    e = unify(mod, ch, node->as.DEFTYPE.tag_typ,
+              node_subs_at(ch, IDX_CH_TAG_FIRST)->typ);
+    EXCEPT(e);
+    e = unify(mod, ch, node->as.DEFTYPE.tag_typ,
+              node_subs_at(ch, IDX_CH_TAG_LAST)->typ);
+    EXCEPT(e);
+
+    ch->flags |= NODE_IS_DEFCHOICE;
+  }
+
+  if (typ_equal(node->as.DEFTYPE.tag_typ, TBI_LITERALS_INTEGER)) {
+    e = unify(mod, node, node->as.DEFTYPE.tag_typ, TBI_U32);
+    EXCEPT(e);
   }
 
   return 0;
@@ -910,65 +927,6 @@ static void define_builtin(struct module *mod, struct node *deft,
   assert(!e);
 }
 
-static void define_defchoice_builtin(struct module *mod, struct node *ch,
-                                     enum builtingen bg) {
-  struct node *deft = node_parent(ch);
-
-  struct node *proto = NULL;
-  error e = scope_lookup_abspath(&proto, ch, mod, builtingen_abspath[bg]);
-  assert(!e);
-
-  struct node *d = node_new_subnode(mod, ch);
-  intf_proto_deepcopy(mod, d, proto, node_parent(proto)->typ, NULL);
-  struct node *full_name = mk_expr_abspath(mod, d, builtingen_abspath[bg]);
-  node_subs_remove(d, full_name);
-  node_subs_replace(d, node_subs_first(d), full_name);
-
-  struct toplevel *toplevel = node_toplevel(d);
-  toplevel->flags &= ~TOP_IS_PROTOTYPE;
-  toplevel->builtingen = bg;
-  toplevel->flags |= node_toplevel(deft)->flags & (TOP_IS_EXPORT | TOP_IS_INLINE);
-
-  if (bg == BG_UNION_CTOR_WITH_CTOR
-      || bg == BG_UNION_CTOR_WITH_MK
-      || bg == BG_UNION_CTOR_WITH_NEW) {
-    struct node *funargs = node_subs_at(d, IDX_FUNARGS);
-    struct node *arg = mk_node(mod, funargs, DEFARG);
-    struct node *name = mk_node(mod, arg, IDENT);
-    name->as.IDENT.name = ID_C;
-    struct node *typename = mk_node(mod, arg, DIRECTDEF);
-    set_typ(&typename->as.DIRECTDEF.typ, node_subs_at(ch, IDX_CH_PAYLOAD)->typ);
-    typename->as.DIRECTDEF.flags = NODE_IS_TYPE;
-
-    node_subs_remove(funargs, arg);
-    node_subs_insert_before(
-      funargs, node_subs_at(funargs, (d->which == DEFMETHOD) ? 1 : 0), arg);
-  }
-
-  e = catchup(mod, NULL, d, &ch->scope, CATCHUP_BELOW_CURRENT);
-  assert(!e);
-}
-
-static STEP_FILTER(step_add_builtin_defchoice_constructors,
-                   SF(DEFCHOICE));
-static error step_add_builtin_defchoice_constructors(struct module *mod, struct node *node,
-                                                     void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  const struct node *deft = node_parent(node);
-  if (deft->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-    return 0;
-  }
-
-  const struct node *arg = node_subs_at(node, IDX_CH_PAYLOAD);
-  error e = typ_check_isa(mod, arg, arg->typ, TBI_COPYABLE);
-  EXCEPT(e);
-
-  define_defchoice_builtin(mod, node, BG_UNION_CTOR_WITH_CTOR);
-
-  return 0;
-}
-
 static STEP_FILTER(step_add_builtin_ctor,
                    SF(DEFTYPE));
 static error step_add_builtin_ctor(struct module *mod, struct node *node,
@@ -1102,56 +1060,6 @@ static error step_add_builtin_mkv_newv(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_add_builtin_defchoice_mk_new,
-                   SF(DEFCHOICE));
-static error step_add_builtin_defchoice_mk_new(struct module *mod, struct node *node,
-                                               void *user, bool *stop) {
-  DSTEP(mod, node);
-  if (node->which != DEFCHOICE) {
-    return 0;
-  }
-
-  struct node *deft = node_parent(node);
-  assert(deft->which == DEFTYPE);
-  if (deft->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-    define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_MK);
-    define_defchoice_builtin(mod, node, BG_DEFAULT_CTOR_NEW);
-  } else if (deft->as.DEFTYPE.kind == DEFTYPE_UNION) {
-    define_defchoice_builtin(mod, node, BG_UNION_CTOR_WITH_MK);
-    define_defchoice_builtin(mod, node, BG_UNION_CTOR_WITH_NEW);
-  }
-
-  return 0;
-}
-
-static STEP_FILTER(step_add_builtin_operators,
-                   SF(DEFTYPE));
-static error step_add_builtin_operators(struct module *mod, struct node *node,
-                                        void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (node_is_extern(node)) {
-    return 0;
-  }
-
-  switch (node->as.DEFTYPE.kind) {
-  case DEFTYPE_PROTOTYPE:
-    break;
-  case DEFTYPE_STRUCT:
-    break;
-  case DEFTYPE_UNION:
-    break;
-  case DEFTYPE_ENUM:
-    if (!typ_isa(node->as.DEFTYPE.choice_typ, TBI_NATIVE_INTEGER)) {
-      define_builtin(mod, node, BG_ENUM_EQ, NULL);
-      define_builtin(mod, node, BG_ENUM_NE, NULL);
-    }
-    break;
-  }
-
-  return 0;
-}
-
 static STEP_FILTER(step_add_trivials,
                    SF(DEFTYPE));
 static error step_add_trivials(struct module *mod, struct node *node,
@@ -1209,115 +1117,6 @@ static error step_add_environment_builtins(struct module *mod, struct node *node
   error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTER_TRIVIAL_ISALIST,
                                 add_environment_builtins_eachisalist, node);
   EXCEPT(e);
-  return 0;
-}
-
-static void define_dispatch(struct module *mod, struct node *deft, struct typ *tintf) {
-  struct node *intf = typ_definition(tintf);
-
-  struct node *modbody = node_parent(deft);
-
-  FOREACH_SUB(proto, intf) {
-    if (proto->which != DEFMETHOD && proto->which != DEFFUN) {
-      continue;
-    }
-    if (node_toplevel_const(proto)->flags & TOP_IS_NOT_DYN) {
-      continue;
-    }
-
-    struct node *existing = node_get_member(mod, deft, node_ident(proto));
-    if (existing != NULL) {
-      return;
-    }
-
-    struct node *d = node_new_subnode(mod, modbody);
-    node_subs_remove(modbody, d);
-    node_subs_insert_after(modbody, deft, d);
-    intf_proto_deepcopy(mod, d, proto, node_parent(proto)->typ, NULL);
-    char *abspath = scope_name(mod, &proto->scope);
-    struct node *full_name = mk_expr_abspath(mod, d, abspath);
-    node_subs_remove(d, full_name);
-    node_subs_replace(d, node_subs_first(d), full_name);
-
-    struct toplevel *toplevel = node_toplevel(d);
-    toplevel->builtingen = BG_UNION_DISPATCH;
-    toplevel->flags &= ~TOP_IS_PROTOTYPE;
-    toplevel->flags |= node_toplevel(deft)->flags & (TOP_IS_EXPORT | TOP_IS_INLINE);
-
-    error e = catchup(mod, NULL, d, &deft->scope, CATCHUP_BELOW_CURRENT);
-    assert(!e);
-  }
-}
-
-static error union_choice_with_intf(struct module *mod, struct typ *t,
-                                  struct typ *intf, bool *stop, void *user) {
-  struct node *node = user;
-
-  struct typ *to_check = intf;
-  if (typ_equal(intf, TBI_UNION_COPY)) {
-    to_check = TBI_COPYABLE;
-  } else if (typ_equal(intf, TBI_UNION_EQUALITY)) {
-    to_check = TBI_HAS_EQUALITY;
-  } else if (typ_equal(intf, TBI_UNION_ORDER)) {
-    to_check = TBI_ORDERED;
-  }
-
-  FOREACH_SUB(ch, node) {
-    if (ch->which != DEFCHOICE) {
-      continue;
-    }
-
-    struct typ *tch = NULL;
-    if (typ_equal(node_subs_at(ch, IDX_CH_PAYLOAD)->typ, TBI_VOID)) {
-      tch = node->as.DEFTYPE.choice_typ;
-    } else {
-      tch = node_subs_at(ch, IDX_CH_PAYLOAD)->typ;
-    }
-
-    error e = typ_check_isa(mod, ch, tch, to_check);
-    EXCEPT(e);
-  }
-
-  if (typ_equal(intf, TBI_UNION_COPY)) {
-    if (!typ_isa(node->typ, TBI_TRIVIAL_COPY)) {
-      define_builtin(mod, node, BG_UNION_COPY, NULL);
-    }
-  } else if (typ_equal(intf, TBI_UNION_EQUALITY)) {
-    if (!typ_isa(node->typ, TBI_TRIVIAL_EQUALITY)) {
-      define_builtin(mod, node, BG_UNION_EQUALITY_EQ, NULL);
-      define_builtin(mod, node, BG_UNION_EQUALITY_NE, NULL);
-    }
-  } else if (typ_equal(intf, TBI_UNION_ORDER)) {
-    define_builtin(mod, node, BG_UNION_ORDER_LE, NULL);
-    define_builtin(mod, node, BG_UNION_ORDER_LT, NULL);
-    define_builtin(mod, node, BG_UNION_ORDER_GT, NULL);
-    define_builtin(mod, node, BG_UNION_ORDER_GE, NULL);
-  } else {
-    define_dispatch(mod, node, intf);
-  }
-
-  return 0;
-}
-
-static STEP_FILTER(step_add_union_dispatch,
-                   SF(DEFTYPE));
-static error step_add_union_dispatch(struct module *mod, struct node *node,
-                                     void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  switch (node->as.DEFTYPE.kind) {
-  case DEFTYPE_PROTOTYPE:
-  case DEFTYPE_ENUM:
-  case DEFTYPE_STRUCT:
-    return 0;
-  case DEFTYPE_UNION:
-    break;
-  }
-
-  error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTER_TRIVIAL_ISALIST,
-                                union_choice_with_intf, node);
-  EXCEPT(e);
-
   return 0;
 }
 
@@ -1479,6 +1278,7 @@ static error passfwd7(struct module *mod, struct node *root,
     ,
     UP_STEP(step_type_deffields);
     UP_STEP(step_type_defchoices);
+    UP_STEP(step_add_builtin_members_enum_union);
     UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );
@@ -1495,16 +1295,12 @@ static error passfwd8(struct module *mod, struct node *root,
     DOWN_STEP(step_push_top_state);
     ,
     UP_STEP(step_type_deffuns);
-    UP_STEP(step_add_builtin_defchoice_mk_new);
-    UP_STEP(step_add_builtin_defchoice_constructors);
     UP_STEP(step_add_builtin_ctor);
     UP_STEP(step_add_builtin_dtor);
     UP_STEP(step_add_builtin_mk_new);
     UP_STEP(step_add_builtin_mkv_newv);
-    UP_STEP(step_add_builtin_operators);
     UP_STEP(step_add_trivials);
     UP_STEP(step_add_environment_builtins);
-    UP_STEP(step_add_union_dispatch);
     UP_STEP(step_rewrite_def_return_through_ref);
     UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);

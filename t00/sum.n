@@ -1,0 +1,47 @@
+from nlang import *
+
+enum en =
+  | A
+  | B = 3:u32
+  | C
+
+enum hen =
+  | A
+  | B
+    | BA
+    | BB
+    | BC
+  | C
+
+union un =
+  | A
+  | B
+    x	:u32
+  | C = 2:u8
+    x	:en
+
+union hun =
+  | A
+  | B
+    x	:u32
+    | BA
+      y	:u32
+      z	:u32
+    | BB
+      z	:i64
+
+export fun main = i32
+  let e = en.A
+  match e
+  | A -> noop
+  | _ -> return 1
+
+  let f = hen.BA
+  match f
+  | B -> noop
+  | _ -> return 1
+  match f
+  | BA -> noop
+  | _ -> return 1
+
+  return 0

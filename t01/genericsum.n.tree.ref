@@ -114,6 +114,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`default_dtor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`error_dtor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`trivial_ctor)
   IMPORT :<import>
    BIN(.)
@@ -450,6 +462,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`enum)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`union)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(bool)
   IMPORT :<import>
    BIN(.)
@@ -534,12 +558,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(`ctor_with)
-  IMPORT :<import>
-   BIN(.)
-    BIN(.)
-     IDENT(nlang)
-     IDENT(builtins)
     IDENT(`trivial_array_ctor)
   IMPORT :<import>
    BIN(.)
@@ -553,12 +571,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(nlang)
      IDENT(builtins)
     IDENT(static_array)
-  IMPORT :<import>
-   BIN(.)
-    BIN(.)
-     IDENT(nlang)
-     IDENT(builtins)
-    IDENT(`sum_ctor_with)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -830,14 +842,14 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
   LET :nlang.builtins.void
    DEFPATTERN :nlang.builtins.void
-    IDENT(this) :(functor t01.genericsum.container nlang.builtins.`numeric)
-    DIRECTDEF :(functor t01.genericsum.container nlang.builtins.`numeric)
-    DEFNAME(this) :(functor t01.genericsum.container nlang.builtins.`numeric)
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
     IDENT(final) :(functor t01.genericsum.container nlang.builtins.`numeric)
     DIRECTDEF :(functor t01.genericsum.container nlang.builtins.`numeric)
     DEFNAME(final) :(functor t01.genericsum.container nlang.builtins.`numeric)
+  LET :nlang.builtins.void
+   DEFPATTERN :nlang.builtins.void
+    IDENT(this) :(functor t01.genericsum.container nlang.builtins.`numeric)
+    DIRECTDEF :(functor t01.genericsum.container nlang.builtins.`numeric)
+    DEFNAME(this) :(functor t01.genericsum.container nlang.builtins.`numeric)
   DEFFIELD :nlang.builtins.`numeric
    IDENT(x) :nlang.builtins.__internal_not_typeable__
    IDENT(t) :nlang.builtins.`numeric

@@ -1,0 +1,66 @@
+from nlang import *
+type en = <root>.nlang.builtins.`trivial_copy <root>.nlang.builtins.`trivial_dtor
+  alias tag_type = nlang.builtins.u32
+  alias final = t00.sum.en
+  alias this = t00.sum.en
+  | A = 0
+  | B = 3:u32
+  | C = 3:u32 + 1
+  en method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void 
+
+
+type hen = <root>.nlang.builtins.`trivial_copy <root>.nlang.builtins.`trivial_dtor
+  alias tag_type = nlang.builtins.u32
+  alias final = t00.sum.hen
+  alias this = t00.sum.hen
+  | A = 0
+  | B = 0 + 1
+    | BA = 0 + 1
+    | BB = 0 + 1 + 1
+    | BC = 0 + 1 + 1 + 1
+  | C = 0 + 1 + 1
+  hen method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void 
+
+
+type un =
+  alias tag_type = nlang.builtins.u8
+  alias final = t00.sum.un
+  alias this = t00.sum.un
+  | A = 0
+  | B = 0 + 1
+    x:u32
+  | C = 2:u8
+    x:en
+
+type hun =
+  alias tag_type = nlang.builtins.u32
+  alias final = t00.sum.hun
+  alias this = t00.sum.hun
+  | A = 0
+  | B = 0 + 1
+    x:u32
+    | BA = 0 + 1
+      y:u32
+      z:u32
+    | BB = 0 + 1 + 1
+      z:i64
+
+export fun main = i32 
+  and e = en.A
+  match e
+  | A
+    noop
+  | _
+    return 1
+  and f = hen.BA
+  match f
+  | B
+    noop
+  | _
+    return 1
+  match f
+  | BA
+    noop
+  | _
+    return 1
+  return 0

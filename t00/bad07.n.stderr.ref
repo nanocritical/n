@@ -1,1 +1,1 @@
-t00/bad07.n:4:3: type: enum contains a choice declaration with a value
+t00/bad07.n:4:14: type: enum may not contain a field declaration

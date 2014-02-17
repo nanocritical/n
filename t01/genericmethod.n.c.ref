@@ -70,14 +70,14 @@ static inline t01_genericmethod__Ni_blah t01_genericmethod_blah_mkdyn__t01_gener
 struct t01_genericmethod_blah;
 typedef const struct t01_genericmethod_blah* _Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_;
 #endif // HAS2__Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_
-#ifndef HAS2__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
-#define HAS2__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
-static inline nlang_builtins_i32 _Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_(_Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_ self, nlang_builtins_i32 x) __attribute__((__nonnull__(1)));
-#endif // HAS2__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
 #ifndef HAS2__Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_
 #define HAS2__Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_
 static inline nlang_builtins_u32 _Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_(_Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_ self, nlang_builtins_u32 x) __attribute__((__nonnull__(1)));
 #endif // HAS2__Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_
+#ifndef HAS2__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
+#define HAS2__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
+static inline nlang_builtins_i32 _Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_(_Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_ self, nlang_builtins_i32 x) __attribute__((__nonnull__(1)));
+#endif // HAS2__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
@@ -121,16 +121,6 @@ return (t01_genericmethod__Ni_blah){ .vptr = &vtable, .obj = obj };
 struct t01_genericmethod_blah;
 typedef const struct t01_genericmethod_blah* _Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_;
 #endif // HAS3__Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_
-#ifndef HAS3__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
-#define HAS3__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
-static inline nlang_builtins_i32 _Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_(_Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_ self, nlang_builtins_i32 x) {
-#define THIS(x) t01_genericmethod_blah##x
- {
-return (x - (nlang_builtins_i32)1);
-}
-#undef THIS
-}
-#endif // HAS3__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
 #ifndef HAS3__Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_
 #define HAS3__Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_
 static inline nlang_builtins_u32 _Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_(_Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_ self, nlang_builtins_u32 x) {
@@ -141,6 +131,16 @@ return (x - (nlang_builtins_u32)1);
 #undef THIS
 }
 #endif // HAS3__Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_
+#ifndef HAS3__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
+#define HAS3__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
+static inline nlang_builtins_i32 _Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_(_Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_ self, nlang_builtins_i32 x) {
+#define THIS(x) t01_genericmethod_blah##x
+ {
+return (x - (nlang_builtins_i32)1);
+}
+#undef THIS
+}
+#endif // HAS3__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
 nlang_builtins_i32 _Nmain(void) {
  {
 t01_genericmethod_blah b= { 0 };

@@ -656,14 +656,20 @@ static void print_deffield(FILE *out, const struct module *mod, const struct nod
   print_typeexpr(out, mod, node_subs_at_const(node, 1));
 }
 
-static void print_defchoice(FILE *out, const struct module *mod, const struct node *node) {
+static void print_deftype_statement(FILE *out, const struct module *mod, int indent, const struct node *node);
+
+static void print_defchoice(FILE *out, const struct module *mod, int indent,
+                            const struct node *node) {
   fprintf(out, "| ");
   print_expr(out, mod, node_subs_first_const(node), T__STATEMENT);
   fprintf(out, " = ");
-  print_expr(out, mod, node_subs_at_const(node, IDX_CH_VALUE), T__STATEMENT);
-  if (node_subs_at_const(node, IDX_CH_PAYLOAD)->typ != TBI_VOID) {
-    fprintf(out, " -> ");
-    print_expr(out, mod, node_subs_at_const(node, IDX_CH_PAYLOAD), T__STATEMENT);
+  print_expr(out, mod, node_subs_at_const(node, IDX_CH_TAG_FIRST), T__STATEMENT);
+  if (node_subs_count_atleast(node, IDX_CH_FIRST_PAYLOAD+1)) {
+    FOREACH_SUB_EVERY_CONST(s, node, IDX_CH_FIRST_PAYLOAD, 1) {
+      fprintf(out, "\n");
+      spaces(out, indent+2);
+      print_deftype_statement(out, mod, indent+2, s);
+    }
   }
   return;
 }
@@ -695,7 +701,7 @@ static void print_deftype_statement(FILE *out, const struct module *mod, int ind
     print_deffield(out, mod, node);
     break;
   case DEFCHOICE:
-    print_defchoice(out, mod, node);
+    print_defchoice(out, mod, indent, node);
     break;
   case NOOP:
     spaces(out, indent + 2);

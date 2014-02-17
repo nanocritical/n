@@ -1,7 +1,7 @@
 from nlang import *
 type copy = `return_by_copy <root>.nlang.builtins.`trivial_ctor
-  alias this = t00.return.copy
   alias final = t00.return.copy
+  alias this = t00.return.copy
   x:i32
   copy method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 

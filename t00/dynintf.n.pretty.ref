@@ -1,8 +1,8 @@
 from nlang import *
 
 type d = `d <root>.nlang.builtins.`trivial_ctor
-  alias this = t00.dynintf.d
   alias final = t00.dynintf.d
+  alias this = t00.dynintf.d
   x:i32
   fun answer = i32 
   return 42
@@ -18,8 +18,8 @@ type d = `d <root>.nlang.builtins.`trivial_ctor
 
 
 type dc = `d <root>.nlang.builtins.`trivial_ctor
-  alias this = t00.dynintf.dc
   alias final = t00.dynintf.dc
+  alias this = t00.dynintf.dc
   dummy:i32
   fun answer = i32 
   return 42

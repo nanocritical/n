@@ -1,7 +1,7 @@
 from nlang import *
 type container = `trivial_ctor <root>.nlang.builtins.`trivial_ctor
-  alias this = t01.genericsum.container
   alias final = t01.genericsum.container
+  alias this = t01.genericsum.container
   x:t
   inline container method add x:t = void 
   nlang.builtins.`arithmetic.operator_assign_plus @!self!x @x

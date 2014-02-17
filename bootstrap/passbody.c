@@ -236,7 +236,7 @@ STEP_FILTER(step_type_destruct_mark,
             SF(BIN) | SF(CALL) | SF(INIT) | SF(DEFFUN) |
             SF(DEFMETHOD) | SF(DEFTYPE) | SF(DEFINTF) | SF(DEFFIELD) |
             SF(DEFARG) | SF(DEFGENARG) | SF(SETGENARG) | SF(MODULE_BODY) |
-            SF(DEFCHOICE) | SF(WITHIN));
+            SF(DEFCHOICE) | SF(WITHIN) | SF(THROW));
 error step_type_destruct_mark(struct module *mod, struct node *node,
                               void *user, bool *stop) {
   DSTEP(mod, node);
@@ -295,6 +295,11 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
     break;
   case DEFCHOICE:
     first->typ = not_typeable;
+    break;
+  case THROW:
+    if (node_subs_count_atleast(node, 2)) {
+      first->typ = not_typeable;
+    }
     break;
   default:
     assert(FALSE && "Unreached");
@@ -1061,13 +1066,27 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   bin_accessor_maybe_ref(&container_scope, mod, container);
   bin_accessor_maybe_defchoice(&container_scope, node, mod, container);
 
+  const bool container_is_tentative = typ_is_tentative(scope_node(container_scope)->typ);
+
   struct node *name = node_subs_last(node);
   struct node *field = NULL;
   e = scope_lookup_ident_immediate(&field, name, mod, container_scope,
-                                   node_ident(name), FALSE);
-  EXCEPT(e);
-  // FIXME handle creation of DEFNAMEDLITERAL when name is not found in a
-  // container that is still a tentative `any.
+                                   node_ident(name), container_is_tentative);
+  if (container_is_tentative && e == EINVAL) {
+    struct node *dinc = defincomplete_create(mod, node);
+    defincomplete_add_field(mod, node, dinc, node_ident(name), TBI_ANY);
+    e = defincomplete_catchup(mod, dinc);
+    EXCEPT(e);
+
+    e = unify(mod, node, container->typ, dinc->typ);
+    EXCEPT(e);
+
+    e = scope_lookup_ident_immediate(&field, name, mod, &dinc->scope,
+                                     node_ident(name), FALSE);
+    EXCEPT(e);
+  } else {
+    EXCEPT(e);
+  }
 
   if (field->which == IMPORT && !field->as.IMPORT.intermediate_mark) {
     e = scope_lookup(&field, mod, &mod->gctx->modules_root.scope,
@@ -1225,41 +1244,17 @@ static error type_inference_tupleextract(struct module *mod, struct node *node) 
 }
 
 static void type_inference_init_named(struct module *mod, struct node *node) {
-  // FIXME: Detached node, would have to be freed when releasing the
-  // mod fun_state in which it is recorded below.
-  //
-  struct node *littype = mempool_calloc(mod, 1, sizeof(struct node));
-  node_set_which(littype, DEFNAMEDLITERAL);
-  struct node *littype_name = mk_node(mod, littype, IDENT);
-  littype_name->as.IDENT.name = gensym(mod);
-  (void)mk_node(mod, littype, GENARGS);
+  struct node *dinc = defincomplete_create(mod, node);
 
-  const size_t arity = node_subs_count(node) / 2;
-  struct typ **args = calloc(arity, sizeof(struct typ *));
-  size_t n = 0;
   FOREACH_SUB_EVERY(s, node, 0, 2) {
     const struct node *left = s;
     const struct node *right = node_next(s);
-
-    struct node *f = mk_node(mod, littype, DEFFIELD);
-    struct node *name = mk_node(mod, f, IDENT);
-    name->as.IDENT.name = node_ident(left);
-    struct node *t = mk_node(mod, f, DIRECTDEF);
-    set_typ(&t->as.DIRECTDEF.typ, right->typ);
-    t->as.DIRECTDEF.flags = NODE_IS_TYPE;
-
-    args[n] = right->typ;
-    n += 1;
+    defincomplete_add_field(mod, s, dinc, node_ident(left), right->typ);
   }
 
-  const bool tentative = TRUE;
-  free(args);
-  error e = catchup_instantiation(mod, mod,
-                                  littype, &node->scope,
-                                  tentative);
+  error e = defincomplete_catchup(mod, dinc);
   assert(!e);
-
-  set_typ(&node->typ, typ_create_tentative(littype->typ));
+  set_typ(&node->typ, typ_create_tentative(dinc->typ));
 }
 
 static error type_inference_init_array(struct module *mod, struct node *node) {
@@ -1863,24 +1858,17 @@ static bool in_a_body_pass(struct module *mod) {
 }
 
 static error type_inference_ident_unknown(struct module *mod, struct node *node) {
+  error e;
   if (!in_a_body_pass(mod)) {
-    error e = mk_except(mod, node, "unknown ident '%s'",
-                        idents_value(mod->gctx, node_ident(node)));
+    e = mk_except(mod, node, "unknown ident '%s'",
+                  idents_value(mod->gctx, node_ident(node)));
     EXCEPT(e);
   }
 
-  // Detached node.
-  struct node *unk = mempool_calloc(mod, 1, sizeof(struct node));
-  node_set_which(unk, DEFUNKNOWNIDENT);
-  G(unk_name, unk, IDENT,
-    unk_name->as.IDENT.name = gensym(mod));
-  G(genargs, unk, GENARGS);
-  G(unk_ident, unk, IDENT,
-    unk_ident->as.IDENT.name = node_ident(node));
-
-  const bool tentative = TRUE;
-  error e = catchup_instantiation(mod, mod, unk, &node->scope, tentative);
-  assert(!e);
+  struct node *unk = defincomplete_create(mod, node);
+  defincomplete_set_ident(mod, node, unk, node_ident(node));
+  e = defincomplete_catchup(mod, unk);
+  EXCEPT(e);
 
   // Special marker, so we can rewrite it with the final enum or sum scope
   // in step_check_no_unknown_ident_left().
@@ -2059,9 +2047,7 @@ error step_type_inference(struct module *mod, struct node *node,
   case DEFTYPE:
   case DEFFUN:
   case DEFMETHOD:
-  case DEFNAMEDLITERAL:
-  case DEFCONSTRAINTLITERAL:
-  case DEFUNKNOWNIDENT:
+  case DEFINCOMPLETE:
     assert(node->typ != NULL);
     // Already typed.
     record_topdep(mod, node->typ);
@@ -2318,7 +2304,11 @@ error step_type_inference(struct module *mod, struct node *node,
     node->flags = node->as.DIRECTDEF.flags;
     break;
   case DEFCHOICE:
-    set_typ(&node->typ, node_parent(node)->typ);
+    ;const struct node *parent = node;
+    do {
+      parent = node_parent_const(parent);
+    } while (parent->which == DEFCHOICE);
+    set_typ(&node->typ, parent->typ);
     break;
   default:
     break;
@@ -2467,7 +2457,7 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
     }
 
     if (typ_generic_arity(t) == 0) {
-      // For instance, a DEFNAMEDLITERAL that unified to a non-generic.
+      // For instance, a DEFINCOMPLETE that unified to a non-generic.
       continue;
     }
 
@@ -2587,26 +2577,35 @@ static error step_check_no_literals_left(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_check_no_unknown_ident_left,
-                   SF(IDENT));
-static error step_check_no_unknown_ident_left(struct module *mod, struct node *node,
-                                              void *user, bool *stop) {
+static STEP_FILTER(step_check_no_incomplete_left,
+                   -1);
+static error step_check_no_incomplete_left(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
   if (node->typ == NULL) {
     return 0;
   }
 
   const struct node *d = typ_definition_const(node->typ);
-  if (d->which == DEFUNKNOWNIDENT) {
-    const struct node *id = node_subs_at_const(d, IDX_UNKNOWN_IDENT);
-    error e = mk_except_type(mod, node,
-                             "bare ident '%s' was never resolved",
-                             idents_value(mod->gctx, node_ident(id)));
-    THROW(e);
+  if (d == NULL || d->which != DEFINCOMPLETE) {
+    return 0;
   }
 
+  char msg[2048] = { 0 };
+  size_t pos = 0, len = ARRAY_SIZE(msg);
+  pos += snprintf(msg+pos, len-pos, "incomplete type was never resolved:\n");
+  pos += snprint_defincomplete(msg+pos, len-pos, mod, d);
+  THROWF(EINVAL, "%s", msg);
+}
+
+static STEP_FILTER(step_ident_non_local_scope,
+                   SF(IDENT));
+static error step_ident_non_local_scope(struct module *mod, struct node *node,
+                                        void *user, bool *stop) {
   struct scope *non_local_scope = node->as.IDENT.non_local_scope;
+  const struct node *d = typ_definition_const(node->typ);
+
   if (non_local_scope != NULL
-      && scope_node(non_local_scope)->which == DEFUNKNOWNIDENT
+      && scope_node(non_local_scope)->which == DEFINCOMPLETE
       && d->which == DEFTYPE
       && d->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     struct node *def = NULL;
@@ -2615,7 +2614,6 @@ static error step_check_no_unknown_ident_left(struct module *mod, struct node *n
     assert(!e);
     node->as.IDENT.non_local_scope = def->scope.parent;
   }
-
   return 0;
 }
 
@@ -2772,16 +2770,18 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
     return 0;
   }
 
+  const struct typ *l0 = typ_generic_functor_const(left->typ);
   if (typ_isa(left->typ, TBI_NATIVE_INTEGER)
       || typ_isa(left->typ, TBI_NATIVE_BOOLEAN)
-      || typ_isa(left->typ, TBI_NATIVE_FLOATING)) {
+      || typ_isa(left->typ, TBI_NATIVE_FLOATING)
+      || (l0 != NULL && typ_isa(l0, TBI_ENUM))) {
     return 0;
   }
 
   struct node *dleft = typ_definition(left->typ);
   if (dleft->which == DEFTYPE
       && dleft->as.DEFTYPE.kind == DEFTYPE_ENUM
-      && typ_isa(dleft->as.DEFTYPE.choice_typ, TBI_NATIVE_INTEGER)) {
+      && typ_isa(dleft->as.DEFTYPE.tag_typ, TBI_NATIVE_INTEGER)) {
     return 0;
   }
 
@@ -3791,7 +3791,8 @@ static error passbody1(struct module *mod, struct node *root,
     DOWN_STEP(step_push_fun_state);
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_check_no_literals_left);
-    DOWN_STEP(step_check_no_unknown_ident_left);
+    DOWN_STEP(step_check_no_incomplete_left);
+    DOWN_STEP(step_ident_non_local_scope);
     ,
     UP_STEP(step_weak_literal_conversion);
     UP_STEP(step_operator_call_inference);

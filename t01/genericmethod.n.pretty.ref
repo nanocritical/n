@@ -1,8 +1,8 @@
 from nlang import *
 
 type blah = `blah <root>.nlang.builtins.`trivial_ctor
-  alias this = t01.genericmethod.blah
   alias final = t01.genericmethod.blah
+  alias this = t01.genericmethod.blah
   dummy:u8
   inline blah method `blah.decr x:t = _nretval:t 
   and _Ngensym1:nlang.builtins.`integer  such

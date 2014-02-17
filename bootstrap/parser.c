@@ -87,9 +87,7 @@ const char *node_which_strings[] = {
   [DYN] = "DYN",
   [DEFFUN] = "DEFFUN",
   [DEFTYPE] = "DEFTYPE",
-  [DEFNAMEDLITERAL] = "DEFNAMEDLITERAL",
-  [DEFCONSTRAINTLITERAL] = "DEFCONSTRAINTLITERAL",
-  [DEFUNKNOWNIDENT] = "DEFUNKNOWNIDENT",
+  [DEFINCOMPLETE] = "DEFINCOMPLETE",
   [DEFMETHOD] = "DEFMETHOD",
   [DEFINTF] = "DEFINTF",
   [DEFNAME] = "DEFNAME",
@@ -136,10 +134,12 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_OTHERWISE] = "_",
   [ID_THROW] = "throw",
   [ID_MAIN] = "main",
-  [ID_WHICH] = "which__",
-  [ID_AS] = "as__",
-  [ID_WHICH_TYPE] = "which_type__",
-  [ID_AS_TYPE] = "as_type__",
+  [ID_TAG] = "tag",
+  [ID_FIRST_TAG] = "first_tag",
+  [ID_LAST_TAG] = "last_tag",
+  [ID_AS] = "as",
+  [ID_TAG_TYPE] = "tag_type",
+  [ID_AS_TYPE] = "as_type",
   [ID_HAS_NEXT] = "has_next",
   [ID_NEXT] = "next",
   [ID_CAST] = "cast",
@@ -224,9 +224,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_TRIVIAL_EQUALITY] = "`trivial_equality",
   [ID_TBI_TRIVIAL_ORDER] = "`trivial_order",
   [ID_TBI_RETURN_BY_COPY] = "`return_by_copy",
-  [ID_TBI_UNION_COPY] = "`union_copy",
-  [ID_TBI_UNION_EQUALITY] = "`union_equality",
-  [ID_TBI_UNION_ORDER] = "`union_order",
+  [ID_TBI_ENUM] = "`enum",
   [ID_TBI_ITERATOR] = "`iterator",
   [ID_TBI_ENVIRONMENT] = "`environment",
   [ID_TBI_ANY_ENVIRONMENT] = "`any_environment",
@@ -294,22 +292,7 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_CTOR_WITH_NEW] = "nlang.builtins.`ctor_with.new",
   [BG_AUTO_MKV] = "nlang.builtins.`array_ctor.mkv",
   [BG_AUTO_NEWV] = "nlang.builtins.`array_ctor.newv",
-  [BG_UNION_CTOR_WITH_CTOR] = "nlang.builtins.`union_ctor_with.ctor",
-  [BG_UNION_CTOR_WITH_MK] = "nlang.builtins.`union_ctor_with.mk",
-  [BG_UNION_CTOR_WITH_NEW] = "nlang.builtins.`union_ctor_with.new",
 
-  [BG_ENUM_EQ] = "nlang.builtins.`has_equality.operator_eq",
-  [BG_ENUM_NE] = "nlang.builtins.`has_equality.operator_ne",
-  [BG_ENUM_MATCH] = "nlang.builtins.`matchable.operator_match",
-  [BG_UNION_MATCH] = "nlang.builtins.`matchable.operator_match",
-  [BG_UNION_DISPATCH] = NULL,
-  [BG_UNION_COPY] = "nlang.builtins.`copyable.copy_ctor",
-  [BG_UNION_EQUALITY_EQ] = "nlang.builtins.`has_equality.operator_eq",
-  [BG_UNION_EQUALITY_NE] = "nlang.builtins.`has_equality.operator_ne",
-  [BG_UNION_ORDER_LE] = "nlang.builtins.`ordered.operator_le",
-  [BG_UNION_ORDER_LT] = "nlang.builtins.`ordered.operator_lt",
-  [BG_UNION_ORDER_GT] = "nlang.builtins.`ordered.operator_gt",
-  [BG_UNION_ORDER_GE] = "nlang.builtins.`ordered.operator_ge",
   [BG_TRIVIAL_COPY_COPY_CTOR] = "nlang.builtins.`copyable.copy_ctor",
   [BG_TRIVIAL_EQUALITY_OPERATOR_EQ] = "nlang.builtins.`has_equality.operator_eq",
   [BG_TRIVIAL_EQUALITY_OPERATOR_NE] = "nlang.builtins.`has_equality.operator_ne",
@@ -705,9 +688,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_TRIVIAL_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_EQUALITY];
   TBI_TRIVIAL_ORDER = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_ORDER];
   TBI_RETURN_BY_COPY = gctx->builtin_typs_by_name[ID_TBI_RETURN_BY_COPY];
-  TBI_UNION_COPY = gctx->builtin_typs_by_name[ID_TBI_UNION_COPY];
-  TBI_UNION_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_UNION_EQUALITY];
-  TBI_UNION_ORDER = gctx->builtin_typs_by_name[ID_TBI_UNION_ORDER];
+  TBI_ENUM = gctx->builtin_typs_by_name[ID_TBI_ENUM];
   TBI_ITERATOR = gctx->builtin_typs_by_name[ID_TBI_ITERATOR];
   TBI_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ENVIRONMENT];
   TBI_ANY_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ANY_ENVIRONMENT];
@@ -1180,6 +1161,8 @@ static error p_deffield(struct node *node, struct module *mod) {
   return 0;
 }
 
+static error p_deftype_block(struct node *node, struct module *mod);
+
 static error p_defchoice(struct node *node, struct module *mod) {
   node_set_which(node, DEFCHOICE);
   error e = p_ident(node_new_subnode(mod, node), mod);
@@ -1190,7 +1173,7 @@ static error p_defchoice(struct node *node, struct module *mod) {
   EXCEPT(e);
 
   if (tok.t == TASSIGN) {
-    node->as.DEFCHOICE.has_value = TRUE;
+    node->as.DEFCHOICE.has_tag = TRUE;
 
     e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
     EXCEPT(e);
@@ -1200,14 +1183,12 @@ static error p_defchoice(struct node *node, struct module *mod) {
   }
 
   if (tok.t == TSOB) {
-    e = p_typeexpr(node_new_subnode(mod, node), mod);
-    EXCEPT(e);
-    e = scan_expected(mod, TEOB);
+    node->as.DEFCHOICE.has_payload = TRUE;
+
+    e = p_deftype_block(node, mod);
     EXCEPT(e);
   } else {
     back(mod, &tok);
-    struct node *v = mk_node(mod, node, IDENT);
-    v->as.IDENT.name = ID_TBI_VOID;
   }
   return 0;
 }
@@ -2741,6 +2722,98 @@ done:
   return 0;
 }
 
+struct node *defincomplete_create(struct module *mod, const struct node *for_error) {
+  // FIXME: Detached node, would have to be freed when releasing the
+  // mod fun_state in which it is recorded below.
+  //
+  struct node *dinc = mempool_calloc(mod, 1, sizeof(struct node));
+  dinc->codeloc = for_error->codeloc;
+  node_set_which(dinc, DEFINCOMPLETE);
+  struct node *dinc_name = mk_node(mod, dinc, IDENT);
+  dinc_name->as.IDENT.name = gensym(mod);
+  (void)mk_node(mod, dinc, GENARGS);
+  (void)mk_node(mod, dinc, ISALIST);
+  return dinc;
+}
+
+void defincomplete_set_ident(struct module *mod, const struct node *for_error,
+                             struct node *dinc, ident name) {
+  assert(dinc->which == DEFINCOMPLETE);
+  dinc->as.DEFINCOMPLETE.ident = name;
+  dinc->as.DEFINCOMPLETE.ident_for_error = for_error;
+}
+
+void defincomplete_add_field(struct module *mod, const struct node *for_error,
+                             struct node *dinc, ident field, struct typ *t) {
+  assert(dinc->which == DEFINCOMPLETE);
+  struct node *f = mk_node(mod, dinc, DEFFIELD);
+  f->codeloc = for_error->codeloc;
+  struct node *n = mk_node(mod, f, IDENT);
+  n->as.IDENT.name = field;
+  struct node *d = mk_node(mod, f, DIRECTDEF);
+  set_typ(&d->as.DIRECTDEF.typ, t);
+  d->as.DIRECTDEF.flags = NODE_IS_TYPE;
+}
+
+void defincomplete_add_isa(struct module *mod, const struct node *for_error,
+                           struct node *dinc, struct typ *tisa) {
+  struct node *isalist = node_subs_at(dinc, IDX_ISALIST);
+  struct node *isa = mk_node(mod, isalist, ISA);
+  isa->codeloc = for_error->codeloc;
+  struct node *dd = mk_node(mod, isa, DIRECTDEF);
+  set_typ(&dd->as.DIRECTDEF.typ, tisa);
+}
+
+error defincomplete_catchup(struct module *mod, struct node *dinc) {
+  assert(dinc->which == DEFINCOMPLETE);
+  error e = catchup_instantiation(mod, mod, dinc, &mod->body->scope,
+                                  TRUE);
+  EXCEPT(e);
+  return 0;
+}
+
+int snprint_defincomplete(char *s, size_t len,
+                          const struct module *mod, const struct node *dinc) {
+  assert(dinc->which == DEFINCOMPLETE);
+  size_t pos = 0;
+
+  pos += snprint_codeloc(s+pos, len-pos, mod, dinc);
+  pos += snprintf(s+pos, len-pos, "\n");
+
+  const ident name = dinc->as.DEFINCOMPLETE.ident;
+  if (name != ID__NONE) {
+    pos += snprintf(s+pos, len-pos, "  ");
+    pos += snprint_codeloc(s+pos, len-pos, mod, dinc->as.DEFINCOMPLETE.ident_for_error);
+    pos += snprintf(s+pos, len-pos,
+                    "for ident '%s'\n",
+                    idents_value(mod->gctx, dinc->as.DEFINCOMPLETE.ident));
+  }
+
+  const struct node *isalist = node_subs_at_const(dinc, IDX_ISALIST);
+  if (node_subs_count_atleast(isalist, 1)) {
+    FOREACH_SUB_CONST(isa, isalist) {
+      pos += snprintf(s+pos, len-pos, "  ");
+      pos += snprint_codeloc(s+pos, len-pos, mod, isa);
+      pos += snprintf(s+pos, len-pos,
+                      "with constraint '%s'\n",
+                      typ_pretty_name(mod, isa->typ));
+    }
+  }
+
+  FOREACH_SUB_CONST(f, dinc) {
+    if (f->which == DEFFIELD) {
+      pos += snprintf(s+pos, len-pos, "  ");
+      pos += snprint_codeloc(s+pos, len-pos, mod, f);
+      pos += snprintf(s+pos, len-pos,
+                      "with field '%s', constrained by '%s'\n",
+                      idents_value(mod->gctx, node_ident(f)),
+                      typ_pretty_name(mod, f->typ));
+    }
+  }
+
+  return pos;
+}
+
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src) {
   INVARIANT_NODE(src);
@@ -3279,22 +3352,30 @@ void debug_print_topdeps(const struct module *mod, const struct node *node) {
   typset_foreach(topdeps, print_topdeps_foreach, (void *)mod);
 }
 
-error mk_except(const struct module *mod, const struct node *node,
-                const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  char s[2048];
-  vsnprintf(s, ARRAY_SIZE(s), fmt, ap);
-
+int snprint_codeloc(char *s, size_t len,
+                    const struct module *mod, const struct node *node) {
   const struct module *actual_mod = try_node_module_owner_const(mod, node);
 
   struct token tok = { 0 };
   tok.value = mod->parser.data + node->codeloc;
 
+  return snprintf(s, len, "%s:%d:%d: ",
+                  actual_mod->filename, parser_line(&actual_mod->parser, &tok),
+                  parser_column(&actual_mod->parser, &tok));
+}
+
+error mk_except(const struct module *mod, const struct node *node,
+                const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  char s[2048] = { 0 };
+  size_t pos = 0, len = ARRAY_SIZE(s);
+
+  pos += snprint_codeloc(s+pos, len-pos, mod, node);
+  pos += vsnprintf(s+pos, len-pos, fmt, ap);
+
   error e = 0;
-  GOTO_THROWF(EINVAL, "%s:%d:%d: %s",
-              actual_mod->filename, parser_line(&actual_mod->parser, &tok),
-              parser_column(&actual_mod->parser, &tok), s);
+  GOTO_THROWF(EINVAL, "%s", s);
 
 except:
   va_end(ap);
@@ -3305,18 +3386,15 @@ error mk_except_type(const struct module *mod, const struct node *node,
                      const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  char s[2048];
-  vsnprintf(s, ARRAY_SIZE(s), fmt, ap);
+  char s[2048] = { 0 };
+  size_t pos = 0, len = ARRAY_SIZE(s);
 
-  const struct module *actual_mod = try_node_module_owner_const(mod, node);
-
-  struct token tok = { 0 };
-  tok.value = mod->parser.data + node->codeloc;
+  pos += snprint_codeloc(s+pos, len-pos, mod, node);
+  pos += snprintf(s+pos, len-pos, "type: ");
+  pos += vsnprintf(s+pos, len-pos, fmt, ap);
 
   error e = 0;
-  GOTO_THROWF(EINVAL, "%s:%d:%d: type: %s",
-              actual_mod->filename, parser_line(&actual_mod->parser, &tok),
-              parser_column(&actual_mod->parser, &tok), s);
+  GOTO_THROWF(EINVAL, "%s", s);
 
 except:
   va_end(ap);

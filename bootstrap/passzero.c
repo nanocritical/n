@@ -121,86 +121,122 @@ static error step_detect_prototypes(struct module *mod, struct node *node,
   return 0;
 }
 
+static error do_check_deftype_kind(struct module *mod, struct node *deft,
+                                   struct node *node) {
+  error e;
+  enum deftype_kind k = deft->as.DEFTYPE.kind;
+  FOREACH_SUB(f, node) {
+    switch (f->which) {
+    case DEFFIELD:
+      if (k == DEFTYPE_ENUM) {
+        e = mk_except_type(mod, f, "enum may not contain a field declaration");
+        THROW(e);
+      }
+      break;
+    case DEFCHOICE:
+      if (k == DEFTYPE_STRUCT) {
+        e = mk_except_type(mod, f, "struct may not contain a choice declaration");
+        THROW(e);
+      }
+
+      e = do_check_deftype_kind(mod, deft, f);
+      EXCEPT(e);
+      break;
+    default:
+      break;
+    }
+  }
+  return 0;
+}
+
 static STEP_FILTER(step_check_deftype_kind,
                    SF(DEFTYPE));
 // Must be run before builtins are added.
 static error step_check_deftype_kind(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
+  error e = do_check_deftype_kind(mod, node, node);
+  EXCEPT(e);
+  return 0;
+}
 
-  error e;
-  enum deftype_kind k = node->as.DEFTYPE.kind;
-  FOREACH_SUB(f, node) {
-    switch (f->which) {
-    case DEFFIELD:
-      if (k == DEFTYPE_ENUM || k == DEFTYPE_UNION) {
-        e = mk_except_type(mod, f, "enum or union contains a field declaration");
-        THROW(e);
-      }
-      break;
-    case DEFCHOICE:
-      if (k == DEFTYPE_STRUCT) {
-        e = mk_except_type(mod, f, "struct contains a choice declaration");
-        THROW(e);
-      }
-      if ((!f->as.DEFCHOICE.has_value
-           && node_ident(node_subs_at_const(f, IDX_CH_PAYLOAD-1)) != ID_TBI_VOID)
-          || (f->as.DEFCHOICE.has_value
-              && node_ident(node_subs_at_const(f, IDX_CH_PAYLOAD)) != ID_TBI_VOID)) {
-        if (k == DEFTYPE_ENUM) {
-          e = mk_except_type(mod, f,
-                             "enum contains a choice declaration with a value");
-          THROW(e);
-        }
-      }
-      break;
-    default:
-      break;
+static void do_assign_defchoice_tag(struct module *mod,
+                                    struct node *parent, struct node *prev,
+                                    struct node *node) {
+  node->as.DEFCHOICE.is_leaf = TRUE;
+  if (node->as.DEFCHOICE.has_tag) {
+    return;
+  }
+
+  struct node *tag;
+  if (prev == NULL && parent->which != DEFCHOICE) {
+    tag = mk_node(mod, node, NUMBER);
+    tag->as.NUMBER.value = "0";
+  } else {
+    if (prev != NULL) {
+      struct node *pred = node_subs_at(prev, IDX_CH_TAG_FIRST);
+      tag = mk_node(mod, node, BIN);
+      tag->as.BIN.operator = TPLUS;
+      struct node *left = node_new_subnode(mod, tag);
+      node_deepcopy(mod, left, pred);
+      struct node *one = mk_node(mod, tag, NUMBER);
+      one->as.NUMBER.value = "1";
+    } else if (parent->which == DEFCHOICE) {
+      tag = node_new_subnode(mod, node);
+      node_deepcopy(mod, tag, node_subs_at(parent, IDX_CH_TAG_FIRST));
+    } else {
+      return;
+    }
+
+  }
+
+  node_subs_remove(node, tag);
+  node_subs_insert_after(node, node_subs_at(node, IDX_CH_TAG_FIRST-1), tag);
+
+  node->as.DEFCHOICE.has_tag = TRUE;
+  if (parent->which == DEFCHOICE) {
+    parent->as.DEFCHOICE.is_leaf = FALSE;
+  }
+}
+
+static STEP_FILTER(step_assign_defchoice_tag_down,
+                   SF(DEFTYPE) | SF(DEFCHOICE));
+static error step_assign_defchoice_tag_down(struct module *mod, struct node *node,
+                                            void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  struct node *prev = NULL;
+  FOREACH_SUB(d, node) {
+    if (d->which == DEFCHOICE) {
+      do_assign_defchoice_tag(mod, node, prev, d);
+      prev = d;
     }
   }
 
   return 0;
 }
 
-static STEP_FILTER(step_assign_deftype_which_values,
-                   SF(DEFTYPE));
-static error step_assign_deftype_which_values(struct module *mod, struct node *node,
-                                              void *user, bool *stop) {
+static STEP_FILTER(step_assign_defchoice_tag_up,
+                   SF(DEFCHOICE));
+static error step_assign_defchoice_tag_up(struct module *mod, struct node *node,
+                                          void *user, bool *stop) {
   DSTEP(mod, node);
-  if (node->as.DEFTYPE.kind != DEFTYPE_ENUM
-      && node->as.DEFTYPE.kind != DEFTYPE_UNION) {
+  if (node->as.DEFCHOICE.is_leaf) {
+    struct node *dummy = mk_node(mod, node, NUMBER);
+    dummy->as.NUMBER.value = "0";
+    node_subs_remove(node, dummy);
+    node_subs_insert_after(node, node_subs_at(node, IDX_CH_TAG_FIRST), dummy);
     return 0;
   }
 
-  struct node *prev = NULL;
-  FOREACH_SUB(d, node) {
-    if (d->which != DEFCHOICE) {
-      continue;
+  REVERSE_FOREACH_SUB(last, node) {
+    if (last->which == DEFCHOICE) {
+      struct node *last_tag = node_new_subnode(mod, node);
+      node_deepcopy(mod, last_tag, node_subs_at(last, IDX_CH_TAG_FIRST));
+      node_subs_remove(node, last_tag);
+      node_subs_insert_after(node, node_subs_at(node, IDX_CH_TAG_FIRST), last_tag);
+      break;
     }
-
-    if (d->as.DEFCHOICE.has_value) {
-      prev = d;
-      continue;
-    }
-
-    d->as.DEFCHOICE.has_value = TRUE;
-    struct node *val;
-    if (prev == NULL) {
-      val = mk_node(mod, d, NUMBER);
-      val->as.NUMBER.value = "0";
-    } else {
-      val = mk_node(mod, d, BIN);
-      val->as.BIN.operator = TPLUS;
-      struct node *left = node_new_subnode(mod, val);
-      node_deepcopy(mod, left, node_subs_at(prev, IDX_CH_VALUE));
-      struct node *right = mk_node(mod, val, NUMBER);
-      right->as.NUMBER.value = "1";
-    }
-
-    node_subs_remove(d, val);
-    node_subs_insert_after(d, node_subs_at(d, IDX_CH_VALUE-1), val);
-
-    prev = d;
   }
 
   return 0;
@@ -241,8 +277,9 @@ static error passzero0(struct module *mod, struct node *root,
     DOWN_STEP(step_generics_pristine_copy);
     DOWN_STEP(step_detect_prototypes);
     DOWN_STEP(step_check_deftype_kind);
-    DOWN_STEP(step_assign_deftype_which_values);
+    DOWN_STEP(step_assign_defchoice_tag_down);
     ,
+    UP_STEP(step_assign_defchoice_tag_up);
     UP_STEP(step_add_scopes);
     );
   return 0;

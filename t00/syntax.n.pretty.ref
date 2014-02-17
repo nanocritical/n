@@ -17,8 +17,8 @@ extern fun other5 x:i32 = i32
 
 
 type test = `ia <root>.nlang.builtins.`trivial_ctor
-  alias this = t00.syntax.test
   alias final = t00.syntax.test
+  alias this = t00.syntax.test
   t:i32
   test method foo x:i32 = i32 
   and y = x
@@ -42,8 +42,9 @@ fun foobar2 = void
   return
 
 type enu = <root>.nlang.builtins.`trivial_copy <root>.nlang.builtins.`trivial_dtor
-  alias this = t00.syntax.enu
+  alias tag_type = nlang.builtins.u32
   alias final = t00.syntax.enu
+  alias this = t00.syntax.enu
   | V1 = 0
   | V2 = 0 + 1
   | V3 = 0 + 1 + 1

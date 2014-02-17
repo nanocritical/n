@@ -12,6 +12,11 @@
 typedef const nlang_builtins_u32* _Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_;
 #endif // HAS0__Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_
 
+#ifndef HAS0__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
+#define HAS0__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
+struct nlang_chars_static_string;
+typedef const struct nlang_chars_static_string* _Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_;
+#endif // HAS0__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 #ifndef HAS0__Ngen_nlang_builtins_ref__nlang_containers_index_range_genN_
 #define HAS0__Ngen_nlang_builtins_ref__nlang_containers_index_range_genN_
 struct nlang_containers_index_range;
@@ -26,11 +31,6 @@ typedef const nlang_builtins_size* _Ngen_nlang_builtins_ref__nlang_builtins_size
 struct nlang_containers_index_iterator;
 typedef struct nlang_containers_index_iterator* _Ngen_nlang_builtins_mutable_ref__nlang_containers_index_iterator_genN_;
 #endif // HAS0__Ngen_nlang_builtins_mutable_ref__nlang_containers_index_iterator_genN_
-#ifndef HAS0__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
-#define HAS0__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
-struct nlang_chars_static_string;
-typedef const struct nlang_chars_static_string* _Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_;
-#endif // HAS0__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_TYPES
@@ -55,6 +55,11 @@ typedef const nlang_builtins_u32* _Ngen_nlang_builtins_ref__nlang_builtins_u32_g
 #endif // HAS2__Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_
 static nlang_builtins_u32 t00_block_deref(_Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_ p) __attribute__((__nonnull__(1)));
 
+#ifndef HAS2__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
+#define HAS2__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
+struct nlang_chars_static_string;
+typedef const struct nlang_chars_static_string* _Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_;
+#endif // HAS2__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 #ifndef HAS2__Ngen_nlang_builtins_ref__nlang_containers_index_range_genN_
 #define HAS2__Ngen_nlang_builtins_ref__nlang_containers_index_range_genN_
 struct nlang_containers_index_range;
@@ -69,11 +74,6 @@ typedef const nlang_builtins_size* _Ngen_nlang_builtins_ref__nlang_builtins_size
 struct nlang_containers_index_iterator;
 typedef struct nlang_containers_index_iterator* _Ngen_nlang_builtins_mutable_ref__nlang_containers_index_iterator_genN_;
 #endif // HAS2__Ngen_nlang_builtins_mutable_ref__nlang_containers_index_iterator_genN_
-#ifndef HAS2__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
-#define HAS2__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
-struct nlang_chars_static_string;
-typedef const struct nlang_chars_static_string* _Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_;
-#endif // HAS2__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
@@ -98,6 +98,11 @@ return ((*p));
 }
 }
 
+#ifndef HAS3__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
+#define HAS3__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
+struct nlang_chars_static_string;
+typedef const struct nlang_chars_static_string* _Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_;
+#endif // HAS3__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 #ifndef HAS3__Ngen_nlang_builtins_ref__nlang_containers_index_range_genN_
 #define HAS3__Ngen_nlang_builtins_ref__nlang_containers_index_range_genN_
 struct nlang_containers_index_range;
@@ -112,11 +117,6 @@ typedef const nlang_builtins_size* _Ngen_nlang_builtins_ref__nlang_builtins_size
 struct nlang_containers_index_iterator;
 typedef struct nlang_containers_index_iterator* _Ngen_nlang_builtins_mutable_ref__nlang_containers_index_iterator_genN_;
 #endif // HAS3__Ngen_nlang_builtins_mutable_ref__nlang_containers_index_iterator_genN_
-#ifndef HAS3__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
-#define HAS3__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
-struct nlang_chars_static_string;
-typedef const struct nlang_chars_static_string* _Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_;
-#endif // HAS3__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 nlang_builtins_i32 _Nmain(void) {
  {
 ( ((nlang_builtins_bool)1) ? ( {

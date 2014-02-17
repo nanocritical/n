@@ -49,9 +49,7 @@ enum node_which {
   DYN,
   DEFFUN,
   DEFTYPE,
-  DEFNAMEDLITERAL,
-  DEFCONSTRAINTLITERAL,
-  DEFUNKNOWNIDENT,
+  DEFINCOMPLETE,
   DEFMETHOD,
   DEFINTF,
   DEFNAME,
@@ -96,21 +94,6 @@ enum builtingen {
   BG_CTOR_WITH_NEW,
   BG_AUTO_MKV,
   BG_AUTO_NEWV,
-  BG_UNION_CTOR_WITH_CTOR,
-  BG_UNION_CTOR_WITH_MK,
-  BG_UNION_CTOR_WITH_NEW,
-  BG_ENUM_EQ,
-  BG_ENUM_NE,
-  BG_ENUM_MATCH,
-  BG_UNION_MATCH,
-  BG_UNION_DISPATCH,
-  BG_UNION_COPY,
-  BG_UNION_EQUALITY_EQ,
-  BG_UNION_EQUALITY_NE,
-  BG_UNION_ORDER_LE,
-  BG_UNION_ORDER_LT,
-  BG_UNION_ORDER_GT,
-  BG_UNION_ORDER_GE,
   BG_TRIVIAL_COPY_COPY_CTOR,
   BG_TRIVIAL_EQUALITY_OPERATOR_EQ,
   BG_TRIVIAL_EQUALITY_OPERATOR_NE,
@@ -238,7 +221,7 @@ struct node_deftype {
   struct toplevel toplevel;
 
   enum deftype_kind kind;
-  struct typ *choice_typ;
+  struct typ *tag_typ;
 };
 struct node_defmethod {
   struct toplevel toplevel;
@@ -249,14 +232,10 @@ struct node_defmethod {
 struct node_defintf {
   struct toplevel toplevel;
 };
-struct node_defnamedliteral {
+struct node_defincomplete {
   struct toplevel toplevel;
-};
-struct node_defconstraintliteral {
-  struct toplevel toplevel;
-};
-struct node_defunknownident {
-  struct toplevel toplevel;
+  ident ident;
+  const struct node *ident_for_error;
 };
 struct node_defname {
   struct node *pattern;
@@ -290,7 +269,9 @@ struct node_deffield {
   const struct node *member_isa;
 };
 struct node_defchoice {
-  bool has_value;
+  bool is_leaf;
+  bool has_tag;
+  bool has_payload;
 };
 struct node_isa {
   bool is_export;
@@ -364,9 +345,7 @@ union node_as {
   struct node_dyn DYN;
   struct node_deffun DEFFUN;
   struct node_deftype DEFTYPE;
-  struct node_defnamedliteral DEFNAMEDLITERAL;
-  struct node_defconstraintliteral DEFCONSTRAINTLITERAL;
-  struct node_defunknownident DEFUNKNOWNIDENT;
+  struct node_defincomplete DEFINCOMPLETE;
   struct node_defmethod DEFMETHOD;
   struct node_defintf DEFINTF;
   struct node_defname DEFNAME;
@@ -438,9 +417,7 @@ static inline void node_set_which(struct node *node, enum node_which which) {
   case DEFINTF:
   case DEFFUN:
   case DEFMETHOD:
-  case DEFNAMEDLITERAL:
-  case DEFCONSTRAINTLITERAL:
-  case DEFUNKNOWNIDENT:
+  case DEFINCOMPLETE:
     assert(FALSE && "Don't do that");
     break;
   default:
@@ -707,8 +684,9 @@ static inline void node_subs_replace(struct node *node, struct node *where,
 enum subnode_idx {
   IDX_GENARGS = 1,
   IDX_ISALIST = 2,
-  IDX_CH_VALUE = 1,
-  IDX_CH_PAYLOAD = 2,
+  IDX_CH_TAG_FIRST = 1,
+  IDX_CH_TAG_LAST = 2,
+  IDX_CH_FIRST_PAYLOAD = 3,
   IDX_FOR_IT = 0,
   IDX_FOR_IT_DEFP = 0,
   IDX_FOR_IT_DEFP_DEFN = 0,
@@ -719,7 +697,6 @@ enum subnode_idx {
   IDX_FUNARGS = 2,
   IDX_WITHIN = 3,
   IDX_DEFNAME_EXCEP_TEST = 0,
-  IDX_UNKNOWN_IDENT = 2,
 };
 
 struct idents_map;
@@ -752,9 +729,11 @@ enum predefined_idents {
   ID_THROW,
 
   ID_MAIN,
-  ID_WHICH,
+  ID_TAG,
+  ID_FIRST_TAG,
+  ID_LAST_TAG,
   ID_AS,
-  ID_WHICH_TYPE,
+  ID_TAG_TYPE,
   ID_AS_TYPE,
   ID_HAS_NEXT,
   ID_NEXT,
@@ -842,9 +821,7 @@ enum predefined_idents {
   ID_TBI_TRIVIAL_EQUALITY,
   ID_TBI_TRIVIAL_ORDER,
   ID_TBI_RETURN_BY_COPY,
-  ID_TBI_UNION_COPY,
-  ID_TBI_UNION_EQUALITY,
-  ID_TBI_UNION_ORDER,
+  ID_TBI_ENUM,
   ID_TBI_ITERATOR,
   ID_TBI_ENVIRONMENT,
   ID_TBI_ANY_ENVIRONMENT,
@@ -1111,8 +1088,7 @@ static inline ident node_ident(const struct node *node) {
   case DEFFIELD:
   case DEFCHOICE:
   case DEFINTF:
-  case DEFNAMEDLITERAL:
-  case DEFCONSTRAINTLITERAL:
+  case DEFINCOMPLETE:
     assert(node_subs_first_const(node)->which == IDENT);
     return node_subs_first_const(node)->as.IDENT.name;
   case LET:
@@ -1171,8 +1147,7 @@ const struct node *node_fun_retval_const(const struct node *def);
 struct node *node_for_block(struct node *node);
 
 #define STEP_FILTER_DEFS_NO_FUNS \
-  (SF(DEFTYPE) | SF(DEFINTF) | SF(DEFNAMEDLITERAL) \
-   | SF(DEFCONSTRAINTLITERAL) | SF(DEFUNKNOWNIDENT))
+  (SF(DEFTYPE) | SF(DEFINTF) | SF(DEFINCOMPLETE))
 
 #define STEP_FILTER_DEFS \
    (STEP_FILTER_DEFS_NO_FUNS | SF(DEFFUN) | SF(DEFMETHOD))
@@ -1197,14 +1172,8 @@ static inline const struct toplevel *node_toplevel_const(const struct node *node
   case DEFINTF:
     toplevel = &node->as.DEFINTF.toplevel;
     break;
-  case DEFNAMEDLITERAL:
-    toplevel = &node->as.DEFNAMEDLITERAL.toplevel;
-    break;
-  case DEFCONSTRAINTLITERAL:
-    toplevel = &node->as.DEFCONSTRAINTLITERAL.toplevel;
-    break;
-  case DEFUNKNOWNIDENT:
-    toplevel = &node->as.DEFUNKNOWNIDENT.toplevel;
+  case DEFINCOMPLETE:
+    toplevel = &node->as.DEFINCOMPLETE.toplevel;
     break;
   case LET:
     toplevel = &node->as.LET.toplevel;
@@ -1247,6 +1216,17 @@ struct node *mk_node(struct module *mod, struct node *parent, enum node_which ki
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src);
 
+struct node *defincomplete_create(struct module *mod, const struct node *for_error);
+void defincomplete_set_ident(struct module *mod, const struct node *for_error,
+                             struct node *dinc, ident name);
+void defincomplete_add_field(struct module *mod, const struct node *for_error,
+                             struct node *dinc, ident field, struct typ *t);
+void defincomplete_add_isa(struct module *mod, const struct node *for_error,
+                           struct node *dinc, struct typ *tisa);
+error defincomplete_catchup(struct module *mod, struct node *dinc);
+int snprint_defincomplete(char *s, size_t len,
+                          const struct module *mod, const struct node *dinc);
+
 #define G(var, parent, which, ...) \
   unused__ \
   struct node *var = mk_node(mod, parent, which); \
@@ -1266,6 +1246,8 @@ char *typ_name(const struct module *mod, const struct typ *t);
 char *typ_pretty_name(const struct module *mod, const struct typ *t);
 void debug_print_topdeps(const struct module *mod, const struct node *node);
 
+int snprint_codeloc(char *s, size_t len,
+                    const struct module *mod, const struct node *node);
 error mk_except(const struct module *mod, const struct node *node, const char *fmt, ...)
   __attribute__((__format__(__printf__, 3, 4)));
 error mk_except_type(const struct module *mod, const struct node *node, const char *fmt, ...)

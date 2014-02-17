@@ -1,7 +1,7 @@
 from nlang import *
 type c = <root>.nlang.builtins.`trivial_ctor
-  alias this = t01.wildcardmutability.c
   alias final = t01.wildcardmutability.c
+  alias this = t01.wildcardmutability.c
   x:i32
   inline c method get = __wildcard_ref_arg__ i32 
   return @$self$x

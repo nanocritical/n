@@ -1,6 +1,6 @@
 from nlang import *
 
 enum t =
-  | B = 2 -> i32
+  | B = 2 -> x:i32
   | A
   | C = 0:u32

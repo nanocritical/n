@@ -114,6 +114,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`default_dtor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`error_dtor)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(`trivial_ctor)
   IMPORT :<import>
    BIN(.)
@@ -450,6 +462,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
+    IDENT(`enum)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
+    IDENT(`union)
+  IMPORT :<import>
+   BIN(.)
+    BIN(.)
+     IDENT(nlang)
+     IDENT(builtins)
     IDENT(bool)
   IMPORT :<import>
    BIN(.)
@@ -534,12 +558,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     BIN(.)
      IDENT(nlang)
      IDENT(builtins)
-    IDENT(`ctor_with)
-  IMPORT :<import>
-   BIN(.)
-    BIN(.)
-     IDENT(nlang)
-     IDENT(builtins)
     IDENT(`trivial_array_ctor)
   IMPORT :<import>
    BIN(.)
@@ -553,12 +571,6 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(nlang)
      IDENT(builtins)
     IDENT(static_array)
-  IMPORT :<import>
-   BIN(.)
-    BIN(.)
-     IDENT(nlang)
-     IDENT(builtins)
-    IDENT(`sum_ctor_with)
   IMPORT :<import>
    BIN(.)
     BIN(.)
@@ -873,7 +885,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
          DEFNAME(_Ngensym17) :nlang.builtins.error
         BLOCK :nlang.builtins.void
          THROW :nlang.builtins.void
-          IDENT(ONE)
+          IDENT(ONE) :nlang.builtins.__internal_not_typeable__
           BLOCK :nlang.builtins.error
            BIN( = ) :nlang.builtins.void
             IDENT(_Ngensym17) :nlang.builtins.error
@@ -889,7 +901,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
          DEFNAME(_Ngensym18) :nlang.builtins.error
         BLOCK :nlang.builtins.void
          THROW :nlang.builtins.void
-          IDENT(ZERO)
+          IDENT(ZERO) :nlang.builtins.__internal_not_typeable__
           BLOCK :nlang.builtins.error
            BIN( = ) :nlang.builtins.void
             IDENT(_Ngensym18) :nlang.builtins.error

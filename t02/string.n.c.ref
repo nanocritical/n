@@ -11,24 +11,24 @@
 # include "t02/string.n.h.out"
 #undef NLANG_DECLARE_TYPES
 
-#ifndef HAS0__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
-#define HAS0__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
-struct nlang_strings_string;
-typedef const struct nlang_strings_string* _Ngen_nlang_builtins_ref__nlang_strings_string_genN_;
-#endif // HAS0__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
-#ifndef HAS0_nlang_chars__Ni_show
-#define HAS0_nlang_chars__Ni_show
-#endif // HAS0_nlang_chars__Ni_show
 #ifndef HAS0__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 #define HAS0__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 struct nlang_chars_static_string;
 typedef const struct nlang_chars_static_string* _Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_;
 #endif // HAS0__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
+#ifndef HAS0_nlang_chars__Ni_show
+#define HAS0_nlang_chars__Ni_show
+#endif // HAS0_nlang_chars__Ni_show
 #ifndef HAS0__Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_
 #define HAS0__Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_
 struct nlang_strings_string;
 typedef struct nlang_strings_string* _Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_;
 #endif // HAS0__Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_
+#ifndef HAS0__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
+#define HAS0__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
+struct nlang_strings_string;
+typedef const struct nlang_strings_string* _Ngen_nlang_builtins_ref__nlang_strings_string_genN_;
+#endif // HAS0__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
 #define NLANG_DEFINE_TYPES
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_TYPES
@@ -54,24 +54,24 @@ typedef struct nlang_strings_string* _Ngen_nlang_builtins_mercurial_ref__nlang_s
 #undef NLANG_DECLARE_FUNCTIONS
 static void t02_string_foo(nlang_strings_string *_nrtr__nretval);
 
-#ifndef HAS2__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
-#define HAS2__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
-struct nlang_strings_string;
-typedef const struct nlang_strings_string* _Ngen_nlang_builtins_ref__nlang_strings_string_genN_;
-#endif // HAS2__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
-#ifndef HAS2_nlang_chars__Ni_show
-#define HAS2_nlang_chars__Ni_show
-#endif // HAS2_nlang_chars__Ni_show
 #ifndef HAS2__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 #define HAS2__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 struct nlang_chars_static_string;
 typedef const struct nlang_chars_static_string* _Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_;
 #endif // HAS2__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
+#ifndef HAS2_nlang_chars__Ni_show
+#define HAS2_nlang_chars__Ni_show
+#endif // HAS2_nlang_chars__Ni_show
 #ifndef HAS2__Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_
 #define HAS2__Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_
 struct nlang_strings_string;
 typedef struct nlang_strings_string* _Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_;
 #endif // HAS2__Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_
+#ifndef HAS2__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
+#define HAS2__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
+struct nlang_strings_string;
+typedef const struct nlang_strings_string* _Ngen_nlang_builtins_ref__nlang_strings_string_genN_;
+#endif // HAS2__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
 #define NLANG_DEFINE_FUNCTIONS
 # include "lib/nlang/module.n.h.out"
 #undef NLANG_DEFINE_FUNCTIONS
@@ -92,24 +92,24 @@ return;
 #undef _nretval
 }
 
-#ifndef HAS3__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
-#define HAS3__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
-struct nlang_strings_string;
-typedef const struct nlang_strings_string* _Ngen_nlang_builtins_ref__nlang_strings_string_genN_;
-#endif // HAS3__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
-#ifndef HAS3_nlang_chars__Ni_show
-#define HAS3_nlang_chars__Ni_show
-#endif // HAS3_nlang_chars__Ni_show
 #ifndef HAS3__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 #define HAS3__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
 struct nlang_chars_static_string;
 typedef const struct nlang_chars_static_string* _Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_;
 #endif // HAS3__Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_
+#ifndef HAS3_nlang_chars__Ni_show
+#define HAS3_nlang_chars__Ni_show
+#endif // HAS3_nlang_chars__Ni_show
 #ifndef HAS3__Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_
 #define HAS3__Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_
 struct nlang_strings_string;
 typedef struct nlang_strings_string* _Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_;
 #endif // HAS3__Ngen_nlang_builtins_mercurial_ref__nlang_strings_string_genN_
+#ifndef HAS3__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
+#define HAS3__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
+struct nlang_strings_string;
+typedef const struct nlang_strings_string* _Ngen_nlang_builtins_ref__nlang_strings_string_genN_;
+#endif // HAS3__Ngen_nlang_builtins_ref__nlang_strings_string_genN_
 nlang_builtins_i32 _Nmain(void) {
  {
 nlang_chars_static_string _Ngensym0 = { 0 };

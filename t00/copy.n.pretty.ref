@@ -1,7 +1,7 @@
 from nlang import *
 type copy = `copyable <root>.nlang.builtins.`trivial_ctor
-  alias this = t00.copy.copy
   alias final = t00.copy.copy
+  alias this = t00.copy.copy
   x:i32
   copy method `copyable.copy_ctor other:@this = void 
   self!x = other.x

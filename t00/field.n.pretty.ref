@@ -1,7 +1,7 @@
 from nlang import *
 type t = <root>.nlang.builtins.`trivial_ctor
-  alias this = t00.field.t
   alias final = t00.field.t
+  alias this = t00.field.t
   x:i32
   t method <root>.nlang.builtins.`trivial_ctor.ctor = void 
 
