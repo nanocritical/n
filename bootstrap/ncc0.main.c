@@ -85,8 +85,8 @@ static error generate(struct node *node) {
   const char *fn = mod->filename;
   error e;
 
-  char *out_fn = calloc(strlen(fn) + sizeof(".tree.out"), sizeof(char));
-  sprintf(out_fn, "%s.tree.out", fn);
+  char *out_fn = calloc(strlen(fn) + sizeof(".o.tree"), sizeof(char));
+  sprintf(out_fn, "%s.o.tree", fn);
 
   int fd = creat(out_fn, 00600);
   if (fd < 0) {
@@ -98,8 +98,8 @@ static error generate(struct node *node) {
   EXCEPT(e);
   close(fd);
 
-  out_fn = calloc(strlen(fn) + sizeof(".pretty.out"), sizeof(char));
-  sprintf(out_fn, "%s.pretty.out", fn);
+  out_fn = calloc(strlen(fn) + sizeof(".o.pretty"), sizeof(char));
+  sprintf(out_fn, "%s.o.pretty", fn);
 
   fd = creat(out_fn, 00600);
   if (fd < 0) {
@@ -111,8 +111,8 @@ static error generate(struct node *node) {
   EXCEPT(e);
   close(fd);
 
-  char *c_fn = calloc(strlen(fn) + sizeof(".c.out"), sizeof(char));
-  sprintf(c_fn, "%s.c.out", fn);
+  char *c_fn = calloc(strlen(fn) + sizeof(".o.c"), sizeof(char));
+  sprintf(c_fn, "%s.o.c", fn);
 
   fd = creat(c_fn, 00600);
   if (fd < 0) {
@@ -123,8 +123,8 @@ static error generate(struct node *node) {
   EXCEPT(e);
   close(fd);
 
-  char *h_fn = calloc(strlen(fn) + sizeof(".h.out"), sizeof(char));
-  sprintf(h_fn, "%s.h.out", fn);
+  char *h_fn = calloc(strlen(fn) + sizeof(".o.h"), sizeof(char));
+  sprintf(h_fn, "%s.o.h", fn);
 
   fd = creat(h_fn, 00600);
   if (fd < 0) {
@@ -148,8 +148,8 @@ static error compile(struct node *node) {
   const char *fn = mod->filename;
   error e;
 
-  char *c_fn = calloc(strlen(fn) + sizeof(".c.out"), sizeof(char));
-  sprintf(c_fn, "%s.c.out", fn);
+  char *c_fn = calloc(strlen(fn) + sizeof(".o.c"), sizeof(char));
+  sprintf(c_fn, "%s.o.c", fn);
 
   char *o_fn = o_filename(mod->filename);
   e = cc(mod, o_fn, c_fn);

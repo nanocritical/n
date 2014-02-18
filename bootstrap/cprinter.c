@@ -2604,7 +2604,7 @@ static void print_import(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  print_guarded_include(out, header, fwd, target->as.MODULE.mod->filename, ".h.out");
+  print_guarded_include(out, header, fwd, target->as.MODULE.mod->filename, ".o.h");
 }
 
 static bool file_exists(const char *base, const char *postfix) {
@@ -2789,7 +2789,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
         print_guarded_include(out, header, fwd, mod->filename, ".h");
       }
     } else {
-      print_guarded_include(out, header, fwd, mod->filename, ".h.out");
+      print_guarded_include(out, header, fwd, mod->filename, ".o.h");
       if (file_exists(mod->filename, ".c")) {
         print_guarded_include(out, header, fwd, mod->filename, ".c");
       }

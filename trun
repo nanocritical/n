@@ -16,8 +16,8 @@ fi
 ret=0
 
 function build_and_run() {
-	$wd/ncc0 $1 2> $1.stderr.out || return
-	./a.out > $1.stdout.out 2>> $1.stderr.out || return
+	$wd/ncc0 $1 2> $1.o.stderr || return
+	./a.out > $1.o.stdout 2>> $1.o.stderr || return
 }
 
 function pretty_status() {
@@ -31,16 +31,16 @@ function pretty_status() {
 }
 
 for t in $list; do
-	rm -f $t.*.out
-	# Assume that having a .stderr.ref file means the test should fail.
-	if [ -f $t.stderr.ref ]; then
+	rm -f $t.o.{stderr,stdout}
+	# Assume that having a .ref.stderr file means the test should fail.
+	if [ -f $t.ref.stderr ]; then
 		build_and_run $t
 		ret=$?
 		if (( $ret == 0 )); then
 			echo "FAILED $t: did not fail ($(pretty_status $ret))"
-			if ! [ -s $t.stderr.out ]; then
+			if ! [ -s $t.o.stderr ]; then
 				# Remove empty.
-				rm $t.stderr.out
+				rm $t.o.stderr
 			fi
 		fi
 	else
@@ -49,19 +49,19 @@ for t in $list; do
 		if (( $ret != 0 )); then
 			echo "FAILED $t: did not succeed ($(pretty_status $ret))"
 		fi
-		if ! [ -s $t.stderr.out ]; then
+		if ! [ -s $t.o.stderr ]; then
 			# Remove empty.
-			rm $t.stderr.out
+			rm $t.o.stderr
 		fi
 	fi
 
-	if ! [ -s $t.stdout.out ]; then
+	if ! [ -s $t.o.stdout ]; then
 		# Remove empty.
-		rm -f $t.stdout.out
+		rm -f $t.o.stdout
 	fi
 
-	if [ -s $t.stderr.out ]; then
-		perl -i -ne 'if (!m/^\tE: /) { print; }' $t.stderr.out
+	if [ -s $t.o.stderr ]; then
+		perl -i -ne 'if (!m/^\tE: /) { print; }' $t.o.stderr
 	fi
 
         ./tdiff $t

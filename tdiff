@@ -19,12 +19,12 @@ fi
 
 for t in $list; do
 	for all in $TDIFF_WHAT; do
-		if [ -f $t.$all.ref ] || [ -f $t.$all.out ]; then
-			if ! cmp -s $t.$all.ref $t.$all.out; then
+		if [ -f $t.ref.$all ] || [ -f $t.o.$all ]; then
+			if ! cmp -s $t.ref.$all $t.o.$all; then
 				ret=1
 				need_hr=1
 				echo "FAILED $t: different output '$all'"
-				diff -Nu $t.$all.ref $t.$all.out
+				diff -Nu $t.ref.$all $t.o.$all
 			fi
 		fi
 	done
