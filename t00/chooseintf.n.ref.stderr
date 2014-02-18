@@ -1,0 +1,1 @@
+t00/chooseintf.n:15:9: in scope t00.chooseintf.a: identifier 'is_zero' already defined at t00/chooseintf.n:12:9

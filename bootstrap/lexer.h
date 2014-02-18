@@ -243,6 +243,8 @@ static const bool expr_terminators[TOKEN__NUM] = {
   [TRSBRA] = TRUE,
   [TRCBRA] = TRUE,
   [Twithin] = TRUE,
+  [Tand] = TRUE,
+  [Tsuch] = TRUE,
 };
 
 struct parser {

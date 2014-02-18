@@ -2098,11 +2098,15 @@ again:
     e = p_statement(node, mod);
     EXCEPT(e);
 
-    e = scan_oneof(&tok, mod, TEOL, TEOB, 0);
+    e = scan_oneof(&tok, mod, TEOL, TEOB, Tand, Tsuch, 0);
     EXCEPT(e);
 
     if (tok.t == TEOB) {
       return 0;
+    }
+
+    if (tok.t == Tand || tok.t == Tsuch) {
+      back(mod, &tok);
     }
   }
 

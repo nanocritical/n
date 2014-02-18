@@ -1,6 +1,11 @@
 from nlang import *
 export fun main = i32 
-  and j = 0  such
+  and m  such
+    m = 1
+    unused m
+  and j = 0
+  and k = 0  such
+    unused k
     and _Ngensym1:nlang.containers.index_range
     and _Ngensym2:nlang.containers.index_iterator
     and _Ngensym3:nlang.containers.index_iterator    such
