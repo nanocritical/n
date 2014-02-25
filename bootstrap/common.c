@@ -83,6 +83,21 @@ void examples_destroy(const char *name) {
   g_env.stderr = NULL;
 }
 
+void should_fail(error e) {
+  assert(e);
+  fflush(g_env.stderr);
+  rewind(g_env.stderr);
+  memset(g_env.stderr_mem, 0, ENV_BUF_SIZE * sizeof(*g_env.stderr_mem));
+}
+
+void should_fail_with(error e, const char *err) {
+  assert(e);
+  fflush(g_env.stderr);
+  assert(strcmp(g_env.stderr_mem, err) == 0);
+  rewind(g_env.stderr);
+  memset(g_env.stderr_mem, 0, ENV_BUF_SIZE * sizeof(*g_env.stderr_mem));
+}
+
 static void module_prepare_empty_mocks(struct module **mod) {
   struct globalctx *gctx = calloc(1, sizeof(struct globalctx));
   globalctx_init(gctx);

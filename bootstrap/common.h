@@ -216,6 +216,9 @@ struct env g_env;
 
 void env_init(void);
 
+void should_fail(error e);
+void should_fail_with(error e, const char *err);
+
 #define EXAMPLES_DECLS
 #define EXAMPLES_INIT_ARGS
 #define EXAMPLES_PROTO void
