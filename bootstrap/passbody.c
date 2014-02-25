@@ -792,10 +792,10 @@ static struct typ *try_wrap_ref_compatible(struct module *mod,
 
   struct node *i = NULL;
   error e = instance(&i, mod, for_error, for_error_offset,
-                     TBI__REF_COMPATIBLE, &t, 1);
+                     typ_create_tentative(TBI__REF_COMPATIBLE), &t, 1);
   assert(!e);
 
-  return typ_create_tentative(i->typ);
+  return i->typ;
 }
 
 static error check_assign_not_types(struct module *mod, struct node *left,
@@ -825,7 +825,8 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     EXCEPT(e);
 
     e = unify(mod, node,
-              try_wrap_ref_compatible(mod, node, 0, left->typ), right->typ);
+              try_wrap_ref_compatible(mod, node, 0, left->typ),
+              right->typ);
     EXCEPT(e);
   } else {
     e = unify(mod, node, left->typ, right->typ);
@@ -1593,7 +1594,7 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
   size_t n = 0;
   FOREACH_SUB_EVERY(s, node, 1, 1) {
     e = unify(mod, s, s->typ,
-              try_wrap_ref_compatible(mod, node, 1,
+              try_wrap_ref_compatible(mod, node, 1+n,
                                       typ_function_arg(i->typ, n)));
     EXCEPT(e);
     n += 1;
@@ -1710,7 +1711,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
       break;
     }
     e = unify(mod, arg, arg->typ,
-              try_wrap_ref_compatible(mod, node, 1,
+              try_wrap_ref_compatible(mod, node, 1+n,
                                       typ_function_arg(tfun, n)));
     EXCEPT(e);
     n += 1;
