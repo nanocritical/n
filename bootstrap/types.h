@@ -34,8 +34,8 @@ void unset_typ(struct typ **loc);
 void set_typ(struct typ **loc, struct typ *t);
 
 // Don't call these; they're privileged.
-void typ_add_tentative_bit(struct typ **loc);
-void typ_declare_final(struct typ *t);
+void typ_add_tentative_bit__privileged(struct typ **loc);
+void typ_declare_final__privileged(struct typ *t);
 
 struct typ *typ_create_tentative(struct typ *target);
 bool typ_is_tentative(const struct typ *t);

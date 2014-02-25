@@ -201,7 +201,7 @@ error catchup_instantiation(struct module *instantiating_mod,
   EXCEPT(e);
 
   if (tentative) {
-    typ_add_tentative_bit(&instance->typ);
+    typ_add_tentative_bit__privileged(&instance->typ);
   }
 
   return 0;

@@ -2591,7 +2591,7 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
     error e = do_instantiate(&i, mod, functor, args, arity, FALSE);
     EXCEPT(e);
 
-    typ_declare_final(i->typ);
+    typ_declare_final__privileged(i->typ);
     typ_link_to_existing_final(i->typ, t);
     record_topdep(mod, i->typ);
 

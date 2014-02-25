@@ -125,15 +125,15 @@ void set_typ(struct typ **loc, struct typ *t) {
   add_backlink(t, loc);
 }
 
-void typ_add_tentative_bit(struct typ **loc) {
+void typ_add_tentative_bit__privileged(struct typ **loc) {
   (*loc)->flags |= TYPF_TENTATIVE;
   add_backlink(*loc, loc);
 }
 
-void typ_declare_final(struct typ *t) {
+void typ_declare_final__privileged(struct typ *t) {
   for (size_t n = 0, arity = typ_generic_arity(t); n < arity; ++n) {
     struct typ *arg = typ_generic_arg(t, n);
-    typ_declare_final(arg);
+    typ_declare_final__privileged(arg);
   }
   t->flags &= ~TYPF_TENTATIVE;
 }
