@@ -9,6 +9,14 @@
 #include "hash.h"
 
 /*
+ * TODO:
+ * - Do not use function pointers for cmp() and hash(), make them arguments
+ *   to the implementation macro.
+ * - Rename macros all uppercase.
+ * - Define FOREACH_name(key, val, table) macro.
+ */
+
+/*
  * The sparse/dense table and sparse hashtable follow the specifications of
  * Google's own C++ sparsetable sparse_hash_set.
  */
