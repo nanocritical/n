@@ -108,4 +108,4 @@ hi def link nNullable Constness
 hi def link nWildcard Special
 hi def link nIntf Type
 hi def link nFunction Function
-hi def link nExport Special
+hi def link nExport Export
