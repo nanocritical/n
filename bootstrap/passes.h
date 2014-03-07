@@ -8,6 +8,7 @@ typedef error (*step)(struct module *mod, struct node *node, void *user, bool *s
 enum catchup_for {
   CATCHUP_BELOW_CURRENT = 0,
   CATCHUP_REWRITING_CURRENT,
+  CATCHUP_BEFORE_CURRENT,
   CATCHUP_AFTER_CURRENT, // depth-first order in the tree of nodes
   CATCHUP_NEW_INSTANCE,
   CATCHUP_TENTATIVE_NEW_INSTANCE,
@@ -74,7 +75,7 @@ error step_complete_instantiation(struct module *mod, struct node *node, void *u
   const size_t saved_stackp = *stackp; \
   struct stackel *stack = mod->state->stack + *stackp; \
   struct node *node = root != NULL ? root : mod->root; \
-  if (node->flags & NODE__EXCEPTED) { \
+  if (node->excepted > 0) { \
     goto done; \
   } \
   struct node *sub = NULL; \
@@ -91,7 +92,7 @@ start: \
   sub = node->subs_first; \
   \
 descend: \
-  if (sub->flags & NODE__EXCEPTED) { \
+  if (sub->excepted > 0) { \
     goto next; \
   } \
   \

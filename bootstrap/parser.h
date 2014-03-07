@@ -8,6 +8,8 @@
 #define MODULE_PATH_MAXLEN 16
 
 struct typ;
+struct constraint;
+struct constraint_resolve_state;
 
 #define SF(which) ( (uint64_t)1LL << (which) )
 #define STEP_FILTER(step, m) const uint64_t step##_filter = (m)
@@ -45,6 +47,9 @@ enum node_which {
   CATCH,
   EXCEP,
   THROW,
+  JUMP,
+  LANDING,
+  PHI,
   TYPECONSTRAINT,
   DYN,
   DEFFUN,
@@ -136,11 +141,107 @@ struct toplevel {
   ssize_t yet_to_pass;
 };
 
+struct vecnode {
+  struct node *small[4];
+  struct node **large;
+  size_t count;
+};
+
+static inline size_t vecnode_count(struct vecnode *v) {
+  return v->count;
+}
+
+static inline struct node *vecnode_get(struct vecnode *v, size_t n) {
+  assert(n < v->count);
+  if (v->count <= ARRAY_SIZE(v->small)) {
+    return v->small[n];
+  } else {
+    return v->large[n];
+  }
+}
+
+static inline void vecnode_destroy(struct vecnode *v) {
+  free(v->large);
+  memset(v, 0, sizeof(*v));
+}
+
+static inline void vecnode_push(struct vecnode *v, struct node *node) {
+  if (v->count < ARRAY_SIZE(v->small)) {
+    v->small[v->count] = node;
+    v->count += 1;
+  } else if (v->count == ARRAY_SIZE(v->small)) {
+    v->count += 1;
+    v->large = calloc(v->count, sizeof(*v->large));
+    memcpy(v->large, v->small, sizeof(v->small));
+    v->large[v->count - 1] = node;
+  } else {
+    v->count += 1;
+    v->large = realloc(v->large, v->count * sizeof(*v->large));
+    v->large[v->count - 1] = node;
+  }
+}
+
+static inline void vecnode_append(struct vecnode *v, struct vecnode *w) {
+  if (v->count + w->count <= ARRAY_SIZE(v->small)) {
+    memcpy(v->small + v->count, w->small, w->count * sizeof(*w->small));
+    v->count += w->count;
+  } else {
+    const size_t old_count = v->count;
+    v->count += w->count;
+    v->large = realloc(v->large, v->count * sizeof(*v->large));
+    if (w->count <= ARRAY_SIZE(w->small)) {
+      memcpy(v->large + old_count, w->small, w->count * sizeof(*v->large));
+    } else {
+      memcpy(v->large + old_count, w->large, w->count * sizeof(*v->large));
+    }
+  }
+}
+
+static inline struct node *vecnode_pop(struct vecnode *v) {
+  assert(v->count > 0);
+
+  struct node *r;
+  if (v->count <= ARRAY_SIZE(v->small)) {
+    v->count -= 1;
+    r = v->small[v->count];
+    v->small[v->count] = NULL;
+  } else if (v->count == ARRAY_SIZE(v->small) + 1) {
+    v->count -= 1;
+    r = v->large[v->count];
+    memcpy(v->small, v->large, sizeof(v->small));
+    free(v->large);
+    v->large = NULL;
+  } else {
+    v->count -= 1;
+    r = v->large[v->count];
+  }
+
+  return r;
+}
+
+struct phi_tracker_state {
+  struct phi_tracker_state *prev;
+
+  struct node *last;
+
+  struct node *branching;
+  struct node **per_branch_last;
+  size_t nth_branch;
+};
+
+HTABLE_SPARSE(nodeset, bool, struct node *);
+declare_htable_sparse(nodeset, bool, struct node *);
+uint32_t node_ptr_hash(const struct node **node);
+int node_ptr_cmp(const struct node **a, const struct node **b);
+
 struct node_nul {};
 struct node_ident {
   ident name;
 
   struct scope *non_local_scope;
+
+  struct node *def;
+  struct node *prev_use;
 };
 struct node_number {
   const char *value;
@@ -178,6 +279,8 @@ struct node_return {
   const struct node *return_through_ref_expr;
   bool forced_return_through_ref;
 };
+struct node_block {
+};
 struct node_for {
   struct node *pattern;
   struct node *block;
@@ -198,8 +301,20 @@ struct node_catch {
 struct node_throw {
   ident label;
   ident error;
+  struct node *landing;
+};
+struct node_jump {
+  struct node *landing;
+};
+struct node_landing {
+  struct vecnode jumps;
+};
+struct node_phi {
+  struct vecnode ancestors;
+  bool is_conditioned;
 };
 struct node_typeconstraint {
+  bool is_constraint;
   bool in_pattern;
 };
 struct node_dyn {
@@ -237,6 +352,7 @@ struct node_defincomplete {
   struct toplevel toplevel;
   ident ident;
   const struct node *ident_for_error;
+  struct typ *variant_of;
 };
 struct node_defname {
   struct node *pattern;
@@ -246,17 +362,24 @@ struct node_defname {
   struct node *excep_label_ident;
   ident excep_label;
   ident excep_error;
+  struct node *excep_landing;
 
   const struct node *member_isa;
+
+  struct phi_tracker_state *phi_state;
 };
 struct node_defpattern {
   bool is_alias;
   bool is_globalenv;
+  bool is_ssa_var;
 };
 struct node_defarg {
   bool is_optional;
   bool is_vararg;
   bool is_retval;
+  bool is_explicit;
+
+  struct phi_tracker_state *phi_state;
 };
 struct node_defgenarg {
   bool is_explicit;
@@ -334,6 +457,7 @@ union node_as {
   struct node_future FUTURE;
   struct node_init INIT;
   struct node_return RETURN;
+  struct node_block BLOCK;
   struct node_for FOR;
   struct node_break BREAK;
   struct node_continue CONTINUE;
@@ -342,6 +466,9 @@ union node_as {
   struct node_try TRY;
   struct node_catch CATCH;
   struct node_throw THROW;
+  struct node_jump JUMP;
+  struct node_landing LANDING;
+  struct node_phi PHI;
   struct node_typeconstraint TYPECONSTRAINT;
   struct node_dyn DYN;
   struct node_deffun DEFFUN;
@@ -378,12 +505,13 @@ enum node_flags {
   NODE_IS_TEMPORARY = 0x4,
   NODE_IS_GLOBAL_LET = 0x8,
   NODE__TRANSITIVE = NODE_IS_TYPE,
-  NODE__EXCEPTED = 0x8000,
+  NODE__ASSIGN_TRANSITIVE = NODE_IS_DEFCHOICE,
 };
 
 struct node {
   enum node_which which;
   uint32_t flags;
+  uint32_t excepted;
 
   struct node *next;
   struct node *prev;
@@ -392,6 +520,7 @@ struct node {
 
   struct typ *typ;
   struct scope scope;
+  struct constraint *constraint;
 
   union node_as as;
   size_t codeloc;
@@ -690,8 +819,8 @@ enum subnode_idx {
   IDX_CH_FIRST_PAYLOAD = 3,
   IDX_FOR_IT = 0,
   IDX_FOR_IT_DEFP = 0,
-  IDX_FOR_IT_DEFP_DEFN = 0,
-  IDX_FOR_IT_DEFP_EXPR = 1,
+  IDX_FOR_IT_DEFP_DEFN = 1,
+  IDX_FOR_IT_DEFP_EXPR = 0,
   IDX_FOR_IT_BLOCK = 1,
   IDX_FOR_IT_BLOCK_WHILE = 0,
   IDX_FOR_IT_BLOCK_WHILE_BLOCK = 1,
@@ -888,6 +1017,12 @@ struct top_state {
   uint32_t topdep_mask;
 };
 
+struct block_state {
+  struct block_state *prev;
+
+  struct node *current_statement;
+};
+
 struct fun_state {
   struct fun_state *prev;
 
@@ -897,14 +1032,24 @@ struct fun_state {
   enum token_type nulref_wildcard;
   enum token_type deref_wildcard;
   enum token_type wildcard;
+
+  struct block_state *block_state;
 };
 
 struct try_state {
   struct try_state *prev;
 
   struct node *tryy;
-  struct node **excepts;
-  size_t count;
+  struct vecnode excepts;
+};
+
+struct branch_state {
+  struct branch_state *prev;
+
+  struct node *branching;
+  ssize_t nth_branch;
+
+  struct nodeset need_phi;
 };
 
 struct step_state {
@@ -917,7 +1062,6 @@ struct step_state {
 struct stackel {
   struct node *node;
   struct node *sub;
-  struct node *next_sub;
 };
 
 struct module_state {
@@ -928,6 +1072,7 @@ struct module_state {
   struct top_state *top_state;
   struct fun_state *fun_state;
   struct try_state *try_state;
+  struct branch_state *branch_state;
 
   struct step_state *step_state;
 
@@ -1146,6 +1291,9 @@ ssize_t node_fun_first_vararg(const struct node *def);
 struct node *node_fun_retval(struct node *def);
 const struct node *node_fun_retval_const(const struct node *def);
 struct node *node_for_block(struct node *node);
+size_t node_branching_exhaustive_branch_count(struct node *node);
+struct node *node_branching_nth_cond(struct node *node, ssize_t nth);
+struct node *node_branching_nth_branch(struct node *node, ssize_t nth);
 
 #define STEP_FILTER_DEFS_NO_FUNS \
   (SF(DEFTYPE) | SF(DEFINTF) | SF(DEFINCOMPLETE))
@@ -1156,6 +1304,9 @@ struct node *node_for_block(struct node *node);
 #define STEP_FILTER_HAS_TOPLEVEL \
   (STEP_FILTER_DEFS | SF(LET) | SF(INVARIANT) | SF(DELEGATE) \
    | SF(IMPORT) | SF(EXAMPLE) | SF(WITHIN))
+
+#define STEP_FILTER_BRANCHING \
+  (SF(IF) | SF(FOR) | SF(WHILE) | SF(MATCH) | SF(TRY))
 
 static inline const struct toplevel *node_toplevel_const(const struct node *node) {
   const struct toplevel *toplevel = NULL;

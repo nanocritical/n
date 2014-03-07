@@ -5,9 +5,23 @@
 
 a_pass passbody[PASSBODY_COUNT];
 
-const uint64_t step_type_inference_filter;
+extern const uint64_t step_type_inference_filter;
 error step_type_inference(struct module *mod, struct node *node, void *user, bool *stop);
-const uint64_t step_type_destruct_mark_filter;
+extern const uint64_t step_type_destruct_mark_filter;
 error step_type_destruct_mark(struct module *mod, struct node *node, void *user, bool *stop);
+
+extern const uint64_t step_push_fun_state_filter;
+error step_push_fun_state(struct module *mod, struct node *node,
+                          void *user, bool *stop);
+extern const uint64_t step_pop_fun_state_filter;
+error step_pop_fun_state(struct module *mod, struct node *node,
+                         void *user, bool *stop);
+
+extern const uint64_t step_remove_typeconstraints_filter;
+error step_remove_typeconstraints(struct module *mod, struct node *node,
+                                  void *user, bool *stop);
+
+error passbody0(struct module *mod, struct node *root,
+                void *user, ssize_t shallow_last_up);
 
 #endif

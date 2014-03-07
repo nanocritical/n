@@ -54,9 +54,10 @@ bool typ_isa(const struct typ *a, const struct typ *intf);
 error typ_check_isa(const struct module *mod, const struct node *for_error,
                     const struct typ *a, const struct typ *intf);
 
-bool typ_is_reference(const struct typ *a);
+bool typ_is_reference(const struct typ *t);
+bool typ_is_nullable_reference(const struct typ *t);
 error typ_check_is_reference(const struct module *mod, const struct node *for_error,
-                                      const struct typ *a);
+                             const struct typ *a);
 bool typ_is_dyn(const struct typ *t);
 bool typ_is_dyn_compatible(const struct typ *t);
 error typ_check_can_deref(const struct module *mod, const struct node *for_error,

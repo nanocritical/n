@@ -367,24 +367,70 @@ static error unify_with_defunknownident(struct module *mod, const struct node *f
   return 0;
 }
 
-static error unify_with_defincomplete(struct module *mod, const struct node *for_error,
+static bool has_variant_with_field(struct module *mod,
+                                   const struct node *for_error,
+                                   const struct node *d, ident f) {
+  FOREACH_SUB_CONST(dc, d) {
+    if (dc->which != DEFCHOICE) {
+      continue;
+    }
+
+    struct node *r = NULL;
+    error e = scope_lookup_ident_immediate(&r, for_error, mod, &dc->scope,
+                                           f, TRUE);
+    if (!e) {
+      return TRUE;
+    }
+
+    if (has_variant_with_field(mod, for_error, dc, f)) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+static error unify_with_defincomplete(struct module *mod,
+                                      const struct node *for_error,
                                       struct typ *a, struct typ *inc) {
   error e;
 
-  const struct node *dinc = typ_definition_const(inc);
+  struct node *dinc = typ_definition(inc);
   if (dinc->as.DEFINCOMPLETE.ident != ID__NONE) {
     e = unify_with_defunknownident(mod, for_error, a, inc);
     EXCEPT(e);
   }
 
   struct node *da = typ_definition(a);
+  const bool is_union = da->which == DEFTYPE && da->as.DEFTYPE.kind == DEFTYPE_UNION;
+  if (is_union) {
+    FOREACH_SUB_CONST(f, dinc) {
+      if (f->which != DEFFIELD) {
+        continue;
+      }
+
+      if (!has_variant_with_field(mod, for_error, da, node_ident(f))) {
+        e = mk_except_type(mod, for_error, "cannot resolve field '%s' "
+                           "in any of the variants of the union",
+                           idents_value(mod->gctx, node_ident(f)));
+        (void) e;
+        e = mk_except_type_unification(mod, for_error, a, inc);
+        THROW(e);
+      }
+    }
+
+    dinc->as.DEFINCOMPLETE.variant_of = a;
+    return 0;
+  }
+
   FOREACH_SUB_CONST(f, dinc) {
     if (f->which != DEFFIELD) {
       continue;
     }
+
     ident f_name = node_ident(f);
     struct node *d = NULL;
-    e = scope_lookup_ident_immediate(&d, da, mod, &da->scope, f_name, FALSE);
+    e = scope_lookup_ident_immediate(&d, for_error, mod, &da->scope, f_name, FALSE);
     EXCEPT(e);
 
     e = unify(mod, for_error, f->typ, d->typ);

@@ -30,8 +30,12 @@ union hun =
     | BB
       z	:i64
 
+fun only_a x:en::|A = void
+  noop
+
 export fun main = i32
   let e = en.A
+  only_a e
   match e
   | A -> noop
   | _ -> return 1

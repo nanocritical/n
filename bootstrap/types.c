@@ -27,11 +27,13 @@ enum typ_flags {
   TYPF_PSEUDO_BUILTIN = 0x4,
   TYPF_TRIVIAL = 0x8,
   TYPF_REF = 0x10,
-  TYPF_LITERAL = 0x20,
-  TYPF_WEAKLY_CONCRETE = 0x40,
+  TYPF_NREF = 0x20,
+  TYPF_LITERAL = 0x40,
+  TYPF_WEAKLY_CONCRETE = 0x80,
   TYPF__INHERIT_FROM_FUNCTOR = TYPF_TENTATIVE
     | TYPF_BUILTIN | TYPF_PSEUDO_BUILTIN
-    | TYPF_TRIVIAL | TYPF_REF | TYPF_WEAKLY_CONCRETE,
+    | TYPF_TRIVIAL | TYPF_REF | TYPF_NREF
+    | TYPF_WEAKLY_CONCRETE,
   TYPF__MASK_HASH = 0xffff & ~TYPF_TENTATIVE,
 };
 
@@ -219,6 +221,10 @@ static void create_flags(struct typ *t, struct typ *tbi) {
     t->flags |= TYPF_REF;
   }
 
+  if (t == TBI_LITERALS_NULL) {
+    t->flags |= TYPF_NREF;
+  }
+
   const struct typ *maybe_ref = tbi;
   if (functor != NULL) {
     maybe_ref = functor;
@@ -238,6 +244,14 @@ static void create_flags(struct typ *t, struct typ *tbi) {
       || maybe_ref == TBI_NMMREF
       || maybe_ref == TBI__REF_COMPATIBLE) {
     t->flags |= TYPF_REF;
+  }
+
+  if (maybe_ref == TBI_ANY_NULLABLE_REF
+      || maybe_ref == TBI_ANY_NULLABLE_MUTABLE_REF
+      || maybe_ref == TBI_NREF
+      || maybe_ref == TBI_NMREF
+      || maybe_ref == TBI_NMMREF) {
+    t->flags |= TYPF_NREF;
   }
 
   if (tbi == NULL) {
@@ -1044,6 +1058,10 @@ except:
 
 bool typ_is_reference(const struct typ *t) {
   return t->flags & TYPF_REF;
+}
+
+bool typ_is_nullable_reference(const struct typ *t) {
+  return t->flags & TYPF_NREF;
 }
 
 static bool dyn_concrete(const struct typ *t) {

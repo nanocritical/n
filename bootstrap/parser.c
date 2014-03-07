@@ -12,6 +12,88 @@
 #include "scope.h"
 #include "passes.h"
 
+EXAMPLE(data_structure_size_stats) {
+  // It is a good idea to keep track of what is responsible for the size of
+  // 'union node_as'. In other words, where to look first to shrink 'struct
+  // node'.
+  assert(sizeof(struct node_defmethod) == sizeof(union node_as));
+
+  // If not, we'll need to store step masks differently.
+  assert(NODE__NUM <= 64);
+}
+
+EXAMPLE(vecnode) {
+  struct node a[8] = { 0 };
+  struct vecnode v = { 0 };
+  assert(0 == vecnode_count(&v));
+  for (size_t n = 0; n < 8; ++n) {
+    vecnode_push(&v, &a[n]);
+    assert(1 + n == vecnode_count(&v));
+    for (size_t m = 0; m < vecnode_count(&v); ++m) {
+      assert(&a[m] == vecnode_get(&v, m));
+    }
+  }
+  for (size_t n = 8; n > 3; --n) {
+    assert(&a[n - 1] == vecnode_pop(&v));
+    assert(n - 1 == vecnode_count(&v));
+  }
+  assert(3 == vecnode_count(&v));
+  vecnode_push(&v, &a[3]);
+  assert(4 == vecnode_count(&v));
+  assert(&a[3] == vecnode_pop(&v));
+  assert(3 == vecnode_count(&v));
+
+  vecnode_destroy(&v);
+  assert(0 == vecnode_count(&v));
+  for (size_t n = 0; n < 8; ++n) {
+    vecnode_push(&v, &a[n]);
+    assert(1 + n == vecnode_count(&v));
+    for (size_t m = 0; m < vecnode_count(&v); ++m) {
+      assert(&a[m] == vecnode_get(&v, m));
+    }
+  }
+  for (size_t n = 8; n > 0; --n) {
+    assert(&a[n - 1] == vecnode_pop(&v));
+    assert(n - 1 == vecnode_count(&v));
+  }
+
+  vecnode_destroy(&v);
+  assert(0 == vecnode_count(&v));
+
+  struct vecnode w = { 0 };
+  for (size_t n = 0; n < 8; ++n) {
+    vecnode_push(&v, &a[n]);
+    vecnode_push(&w, &a[n]);
+  }
+
+  vecnode_append(&w, &v);
+  assert(vecnode_count(&w) == 16);
+  for (size_t n = 16; n > 8; --n) {
+    assert(vecnode_get(&v, n - 8 - 1) == vecnode_get(&w, n - 1));
+    assert(&a[n - 8 - 1] == vecnode_get(&w, n - 1));
+  }
+  for (size_t n = 8; n > 0; --n) {
+    assert(vecnode_get(&v, n - 1) == vecnode_get(&w, n - 1));
+    assert(&a[n - 1] == vecnode_get(&w, n - 1));
+  }
+
+  vecnode_destroy(&w);
+  vecnode_destroy(&v);
+}
+
+implement_htable_sparse(, nodeset, bool, struct node *);
+
+uint32_t node_ptr_hash(const struct node **node) {
+  uintptr_t p = (uintptr_t) *node;
+  return hash32_hsieh(&p, sizeof(p));
+}
+
+int node_ptr_cmp(const struct node **a, const struct node **b) {
+  uintptr_t pa = (uintptr_t) a;
+  uintptr_t pb = (uintptr_t) b;
+  return (pa == pb) ? 0 : ((pa < pb) ? -1 : 1);
+}
+
 #define MEMPOOL_CHUNK (64*1024)
 
 #ifdef CONFIG_MEMPOOL_JUST_MALLOC
@@ -42,15 +124,6 @@ noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
   return g;
 }
 #endif
-
-EXAMPLE(data_structure_size_stats) {
-  // It is a good idea to keep track of what is responsible for the size of
-  // 'node_as'. In other words, where to look first to shrink 'struct node'.
-  assert(sizeof(struct node_defmethod) == sizeof(union node_as));
-
-  // If not, we'll need to store step masks differently.
-  assert(NODE__NUM <= 64);
-}
 
 const char *node_which_strings[] = {
   [NUL] = "NUL",
@@ -83,6 +156,9 @@ const char *node_which_strings[] = {
   [CATCH] = "CATCH",
   [EXCEP] = "EXCEP",
   [THROW] = "THROW",
+  [JUMP] = "JUMP",
+  [LANDING] = "LANDING",
+  [PHI] = "PHI",
   [TYPECONSTRAINT] = "TYPECONSTRAINT",
   [DYN] = "DYN",
   [DEFFUN] = "DEFFUN",
@@ -1069,6 +1145,91 @@ const struct node *node_get_member_const(const struct module *mod, const struct 
   return node_get_member((struct module *)mod, (struct node *)node, id);
 }
 
+size_t node_branching_exhaustive_branch_count(struct node *node) {
+  const size_t n = node_subs_count(node);
+  switch (node->which) {
+  case IF:
+    // Always include the else case, even if implicit:
+    return n / 2 + 1;
+  case WHILE:
+    return 1;
+  case FOR:
+    return 1;
+  case MATCH:
+    return n / 2;
+  case TRY:
+    {
+      struct node *elet = node_subs_first(node);
+      struct node *eblock = node_subs_at(elet, 1);
+      return node_subs_count(eblock);
+    }
+  default:
+    assert(FALSE);
+    return 0;
+  }
+}
+
+struct node *node_branching_nth_cond(struct node *node, ssize_t nth) {
+  assert(nth >= 0);
+
+  switch (node->which) {
+  case IF:
+    {
+      const size_t count = node_subs_count(node);
+      if (nth == count/2 + 1) {
+        // else cond
+        return NULL;
+      }
+      return node_subs_at(node, 2*nth);
+    }
+  case WHILE:
+    return node_subs_at(node, 0);
+  case FOR:
+    return node_subs_at(node_subs_at(node_subs_at(
+          node, IDX_FOR_IT_BLOCK), IDX_FOR_IT_BLOCK_WHILE), 0);
+  case MATCH:
+    return node_subs_at(node, 2*nth + 1);
+  case TRY:
+    return NULL;
+  default:
+    assert(FALSE);
+    return 0;
+  }
+}
+
+struct node *node_branching_nth_branch(struct node *node, ssize_t nth) {
+  assert(nth >= 0);
+
+  switch (node->which) {
+  case IF:
+    {
+      const size_t count = node_subs_count(node);
+      if (nth == count/2 + 1) {
+        assert(count % 2 == 1);
+        // else branch
+        return node_subs_last(node);
+      }
+      return node_subs_at(node, 2*nth + 1);
+    }
+  case WHILE:
+    return node_subs_at(node, 1);
+  case FOR:
+    return node_subs_at(node_subs_at(node_subs_at(
+          node, IDX_FOR_IT_BLOCK), IDX_FOR_IT_BLOCK_WHILE), IDX_FOR_IT_BLOCK_WHILE_BLOCK);
+  case MATCH:
+    return node_subs_at(node, 2*nth + 2);
+  case TRY:
+    {
+      struct node *elet = node_subs_first(node);
+      struct node *eblock = node_subs_at(elet, 1);
+      return node_subs_at(eblock, nth);
+    }
+  default:
+    assert(FALSE);
+    return 0;
+  }
+}
+
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind) {
   struct node *n = node_new_subnode(mod, parent);
   node_set_which(n, kind);
@@ -1431,10 +1592,10 @@ static error p_for(struct node *node, struct module *mod) {
 
   struct node *let_it = mk_node(mod, node, LET);
   struct node *it = mk_node(mod, let_it, DEFPATTERN);
-  struct node *it_var = mk_node(mod, it, IDENT);
-  it_var->as.IDENT.name = gensym(mod);
   struct node *it_expr = mk_node(mod, it, UN);
   it_expr->as.UN.operator = TREFBANG;
+  struct node *it_var = mk_node(mod, it, IDENT);
+  it_var->as.IDENT.name = gensym(mod);
 
   e = p_expr(node_new_subnode(mod, it_expr), mod, T__NOT_STATEMENT);
   EXCEPT(e);
@@ -1452,7 +1613,6 @@ static error p_for(struct node *node, struct module *mod) {
   struct node *loop_block = mk_node(mod, loop, BLOCK);
   struct node *let_var = mk_node(mod, loop_block, LET);
   struct node *var = mk_node(mod, let_var, DEFPATTERN);
-  node_subs_append(var, node->as.FOR.pattern);
   struct node *g = mk_node(mod, var, CALL);
   struct node *gm = mk_node(mod, g, BIN);
   gm->as.BIN.operator = TBANG;
@@ -1460,6 +1620,7 @@ static error p_for(struct node *node, struct module *mod) {
   gmi->as.IDENT.name = node_ident(it_var);
   struct node *gmm = mk_node(mod, gm, IDENT);
   gmm->as.IDENT.name = ID_NEXT;
+  node_subs_append(var, node->as.FOR.pattern);
 
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
@@ -1472,11 +1633,7 @@ static error p_for(struct node *node, struct module *mod) {
 
 struct node *node_for_block(struct node *node) {
  assert(node->which == FOR);
- return node_subs_at(node_subs_at(node_subs_at(node_subs_at(
-         node, IDX_FOR_IT),
-       IDX_FOR_IT_BLOCK),
-     IDX_FOR_IT_BLOCK_WHILE),
-   IDX_FOR_IT_BLOCK_WHILE_BLOCK);
+ return node->as.FOR.block;
 }
 
 static error p_while(struct node *node, struct module *mod) {
@@ -1563,10 +1720,10 @@ again:
 
   struct node *let = mk_node(mod, catch, LET);
   struct node *defp = mk_node(mod, let, DEFPATTERN);
-  struct node *var = mk_node(mod, defp, IDENT);
-  var->as.IDENT.name = idents_add(mod->gctx, &tok);
   struct node *expr = mk_node(mod, defp, IDENT);
   expr->as.IDENT.name = node_ident(eident);
+  struct node *var = mk_node(mod, defp, IDENT);
+  var->as.IDENT.name = idents_add(mod->gctx, &tok);
 
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
@@ -1874,8 +2031,12 @@ static error p_defpattern(struct node *node, struct module *mod,
     return 0;
   }
 
-  e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
+  struct node *expr = node_new_subnode(mod, node);
+  e = p_expr(expr, mod, T__NOT_STATEMENT);
   EXCEPT(e);
+
+  node_subs_remove(node, expr);
+  node_subs_insert_before(node, node_subs_first(node), expr);
 
   return 0;
 }
@@ -2140,26 +2301,28 @@ error pass(struct module *mod, struct node *node,
            const step *down_steps, const step *up_steps, ssize_t shallow_last_up,
            void *user);
 
-static STEP_FILTER(step_rewrite_into_defarg,
-                   SF(TYPECONSTRAINT));
-static error step_rewrite_into_defarg(struct module *mod, struct node *node,
-                                      void *user, bool *stop) {
-  node_set_which(node, DEFARG);
-  return 0;
-}
-
-static error pass_rewrite_into_defarg(struct module *mod, struct node *root,
-                                      void *user, size_t shallow_last_up) {
-  PASS(, UP_STEP(step_rewrite_into_defarg));
-  return 0;
-}
-
 static error p_defret(struct node *node, struct module *mod) {
-  error e = p_expr(node, mod, T__STATEMENT);
+  node_set_which(node, DEFARG);
+
+  struct node *first = node_new_subnode(mod, node);
+  error e = p_expr(first, mod, T__STATEMENT);
   EXCEPT(e);
 
-  e = pass_rewrite_into_defarg(mod, node, NULL, -1);
-  EXCEPT(e);
+  if (first->which == TYPECONSTRAINT) {
+    struct node *left = node_subs_first(first);
+    struct node *right = node_subs_last(first);
+    node_subs_remove(first, left);
+    node_subs_remove(first, right);
+
+    node_subs_remove(node, first);
+    node_subs_append(node, left);
+    node_subs_append(node, right);
+  } else {
+    struct node *name = mk_node(mod, node, IDENT);
+    name->as.IDENT.name = ID_NRETVAL;
+    node_subs_remove(node, name);
+    node_subs_insert_before(node, first, name);
+  }
 
   return 0;
 }
@@ -3277,9 +3440,7 @@ void module_excepts_open_try(struct module *mod, struct node *tryy) {
 
 void module_excepts_push(struct module *mod, struct node *excep_node) {
   struct try_state *st = mod->state->try_state;
-  st->count += 1;
-  st->excepts = realloc(st->excepts, st->count * sizeof(*st->excepts));
-  st->excepts[st->count - 1] = excep_node;
+  vecnode_push(&st->excepts, excep_node);
 }
 
 struct try_state *module_excepts_get(struct module *mod) {
@@ -3287,7 +3448,8 @@ struct try_state *module_excepts_get(struct module *mod) {
 }
 
 void module_excepts_close_try(struct module *mod) {
-  free(mod->state->try_state->excepts);
+  struct try_state *st = mod->state->try_state;
+  vecnode_destroy(&st->excepts);
   POP_STATE(mod->state->try_state);
 }
 

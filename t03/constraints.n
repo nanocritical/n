@@ -1,0 +1,28 @@
+from nlang import *
+
+union u =
+  | A
+  | B
+    x	:i32
+  | C
+    x	:u32
+
+export fun aux e:u = i32
+  match e
+  | B
+    return e.x
+  | _
+    return 1
+
+export fun main = i32
+  let g = {}:u.A
+
+  let f = {}:u.B
+  say f.x
+
+  let e = {x=0}:u.B
+  match e
+  | B
+    assert <- e.x == 0
+
+  return aux e

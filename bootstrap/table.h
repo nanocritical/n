@@ -522,6 +522,8 @@ implement_htable_rehash(storage, name, type, key_type)
   ht->cmpf = cmpf; \
 }
 
+/* FIXME: Count will not take into account any "deleted" value that was
+ * manually set to delete_val by the caller */
 #define implement_htable_count(name, type, key_type) \
     unsigned name ## _count(struct name *ht) \
 { \

@@ -5,6 +5,7 @@
 
 #include "printer.h"
 #include "types.h"
+#include "constraints.h"
 #include "scope.h"
 
 const char *token_strings[TOKEN__NUM] = {
@@ -341,6 +342,10 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case LET:
     print_statement(out, mod, 0, node);
     break;
+  case PHI:
+    fprintf(out, "-- phi %zu\n",
+            vecnode_count((struct vecnode *) &node->as.PHI.ancestors));
+    break;
   default:
     fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
     assert(FALSE);
@@ -483,11 +488,13 @@ static void print_defpattern(FILE *out, const struct module *mod, int indent, co
   } else {
     fprintf(out, first_defp ? "let " : "and ");
   }
-  print_pattern(out, mod, node_subs_first_const(node));
 
-  if (node_subs_at_const(node, 1)->which != DEFNAME) {
+  if (node_subs_first_const(node)->which != DEFNAME) {
+    print_pattern(out, mod, node_subs_last_const(node));
     fprintf(out, " = ");
-    print_expr(out, mod, node_subs_at_const(node, 1), T__STATEMENT);
+    print_expr(out, mod, node_subs_first_const(node), T__STATEMENT);
+  } else {
+    print_pattern(out, mod, node_subs_last_const(node));
   }
 }
 
@@ -587,6 +594,10 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
   case CALL:
   case TUPLEEXTRACT:
   case TYPECONSTRAINT:
+  case PHI:
+  case SIZEOF:
+  case ALIGNOF:
+  case INIT:
     print_expr(out, mod, node, T__STATEMENT);
     break;
   default:
@@ -939,6 +950,11 @@ static void print_tree_node(FILE *out, const struct module *mod,
       free(typn);
     }
   }
+  if (node->constraint != NULL) {
+    char s[1024];
+    snprint_constraint(s, ARRAY_SIZE(s), mod, node->constraint);
+    fprintf(out, " ::%s", s);
+  }
 
   fprintf(out, "\n");
 
@@ -954,6 +970,121 @@ error printer_tree(int fd, const struct module *mod, const struct node *root) {
   }
 
   print_tree_node(out, mod, root != NULL ? root : mod->body, 0);
+  fflush(out);
+
+  return 0;
+}
+
+static size_t dot_counter;
+
+static void print_dot_node(FILE *out, const struct module *mod,
+                           const struct node *node, int depth) {
+  switch (node->which) {
+  case IMPORT:
+    return;
+  default:
+    break;
+  }
+
+  const double x = 64 * depth;
+  const double y = 32 * dot_counter;
+  dot_counter += 1;
+
+  fprintf(out, "n%p [pos=\"%f,%f\", label=\"%s",
+          node, x, y, node_which_strings[node->which]);
+
+  switch (node->which) {
+  case IDENT:
+  case CALLNAMEDARG:
+    fprintf(out, "(%s)", idents_value(mod->gctx, node_ident(node)));
+    break;
+  case NUMBER:
+    fprintf(out, "(%s)", node->as.NUMBER.value);
+    break;
+  case STRING:
+    fprintf(out, "(%s)", node->as.STRING.value);
+    break;
+  case UN:
+    fprintf(out, "(%s)", token_strings[node->as.UN.operator]);
+    break;
+  case BIN:
+    fprintf(out, "(%s)", token_strings[node->as.BIN.operator]);
+    break;
+  case DEFNAME:
+    assert(node->as.DEFNAME.pattern->which == IDENT);
+    if (node->as.DEFNAME.is_excep) {
+      fprintf(out, "(excep %s %s)",
+              idents_value(mod->gctx, node->as.DEFNAME.excep_label),
+              idents_value(mod->gctx, node_ident(node->as.DEFNAME.pattern)));
+    } else {
+      fprintf(out, "(%s)", idents_value(mod->gctx, node_ident(node->as.DEFNAME.pattern)));
+    }
+    break;
+  default:
+    break;
+  }
+
+  if (node->typ != NULL) {
+    const struct node *def = typ_definition_const(node->typ);
+    if (def->which == IMPORT) {
+      fprintf(out, " :<import>");
+    } else {
+      char *typn = typ_pretty_name(mod, node->typ);
+      fprintf(out, " :%s", typn);
+      free(typn);
+    }
+  }
+  if (node->constraint != NULL) {
+    char s[1024];
+    snprint_constraint(s, ARRAY_SIZE(s), mod, node->constraint);
+    fprintf(out, " ::%s", s);
+  }
+
+  fprintf(out, "\"];\n");
+
+  FOREACH_SUB_CONST(s, node) {
+    switch (s->which) {
+    case IMPORT:
+      continue;
+    default:
+      break;
+    }
+
+    fprintf(out, "n%p -> n%p [weight=2];\n", node, s);
+  }
+
+  switch (node->which) {
+  case IDENT:
+    if (node->as.IDENT.prev_use != NULL) {
+      fprintf(out, "n%p -> n%p [weight=0, style=dotted];\n",
+              node, node->as.IDENT.prev_use);
+    }
+    break;
+  case PHI:
+    for (size_t n = 0, count = vecnode_count((struct vecnode *)&node->as.PHI.ancestors);
+         n < count; ++n) {
+      fprintf(out, "n%p -> n%p [weight=0, style=dashed];\n",
+              node, vecnode_get((struct vecnode *)&node->as.PHI.ancestors, n));
+    }
+    break;
+  default:
+    break;
+  }
+
+  FOREACH_SUB_CONST(s, node) {
+    print_dot_node(out, mod, s, depth+1);
+  }
+}
+
+error printer_dot(int fd, const struct module *mod, const struct node *root) {
+  FILE *out = fdopen(fd, "w");
+  if (out == NULL) {
+    THROWF(errno, "Invalid output file descriptor '%d'", fd);
+  }
+
+  fprintf(out, "digraph \"%s\" {\n", mod->filename);
+  print_dot_node(out, mod, root != NULL ? root : mod->body, 0);
+  fprintf(out, "}\n");
   fflush(out);
 
   return 0;

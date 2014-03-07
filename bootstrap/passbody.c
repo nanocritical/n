@@ -4,6 +4,8 @@
 #include "types.h"
 #include "scope.h"
 #include "unify.h"
+#include "constraints.h"
+#include "ssa.h"
 
 #include "passzero.h"
 #include "passfwd.h"
@@ -36,8 +38,8 @@ static void record_topdep(struct module *mod, struct typ *t) {
 
 STEP_FILTER(step_push_fun_state,
             SF(DEFFUN) | SF(DEFMETHOD) | SF(EXAMPLE));
-static error step_push_fun_state(struct module *mod, struct node *node,
-                                 void *user, bool *stop) {
+error step_push_fun_state(struct module *mod, struct node *node,
+                          void *user, bool *stop) {
   DSTEP(mod, node);
 
   PUSH_STATE(mod->state->fun_state);
@@ -47,8 +49,8 @@ static error step_push_fun_state(struct module *mod, struct node *node,
 
 STEP_FILTER(step_pop_fun_state,
             SF(DEFFUN) | SF(DEFMETHOD) | SF(EXAMPLE));
-static error step_pop_fun_state(struct module *mod, struct node *node,
-                                void *user, bool *stop) {
+error step_pop_fun_state(struct module *mod, struct node *node,
+                         void *user, bool *stop) {
   DSTEP(mod, node);
 
   POP_STATE(mod->state->fun_state);
@@ -828,6 +830,8 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
               try_wrap_ref_compatible(mod, node, 0, left->typ),
               right->typ);
     EXCEPT(e);
+
+    left->flags |= right->flags & NODE__ASSIGN_TRANSITIVE;
   } else {
     e = unify(mod, node, left->typ, right->typ);
     EXCEPT(e);
@@ -917,29 +921,6 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
   }
 
   return 0;
-}
-
-static void bin_accessor_maybe_ref(struct scope **parent_scope,
-                                   struct module *mod, struct node *parent) {
-  if (typ_is_reference(parent->typ)) {
-    *parent_scope = &typ_definition(typ_generic_arg(parent->typ, 0))->scope;
-  }
-}
-
-static void bin_accessor_maybe_defchoice(struct scope **parent_scope, struct node *for_error,
-                                         struct module *mod, struct node *parent) {
-  if (parent->flags & NODE_IS_DEFCHOICE) {
-    assert(parent->which == BIN);
-
-    struct node *defchoice = NULL;
-    error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
-                                           &typ_definition(parent->typ)->scope,
-                                           node_ident(node_subs_last(parent)), FALSE);
-    assert(!e);
-    assert(defchoice->which == DEFCHOICE);
-
-    *parent_scope = &defchoice->scope;
-  }
 }
 
 static error fill_in_optional_args(struct module *mod, struct node *node,
@@ -1054,6 +1035,28 @@ static error rewrite_unary_call(struct module *mod, struct node *node, struct ty
   assert(!e);
 
   return 0;
+}
+
+static void bin_accessor_maybe_ref(struct scope **parent_scope,
+                                   struct module *mod, struct node *parent) {
+  if (typ_is_reference(parent->typ)) {
+    *parent_scope = &typ_definition(typ_generic_arg(parent->typ, 0))->scope;
+  }
+}
+
+static void bin_accessor_maybe_defchoice(struct scope **parent_scope, struct node *for_error,
+                                         struct module *mod, struct node *parent) {
+  ident tag = ID__NONE;
+  if (constraint_has_common_root_tag(&tag, mod, parent)) {
+    struct node *defchoice = NULL;
+    error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
+                                           &typ_definition(parent->typ)->scope,
+                                           tag, FALSE);
+    assert(!e);
+    assert(defchoice->which == DEFCHOICE);
+
+    *parent_scope = &defchoice->scope;
+  }
 }
 
 static error type_inference_bin_accessor(struct module *mod, struct node *node) {
@@ -1725,7 +1728,6 @@ static error type_inference_call(struct module *mod, struct node *node) {
     FOREACH_SUB_EVERY(arg, node, 1 + n, 1) {
       e = unify(mod, arg, arg->typ, target);
       EXCEPT(e);
-      n += 1;
     }
   }
 
@@ -1744,28 +1746,24 @@ static error type_inference_block(struct module *mod, struct node *node) {
     }
   }
 
-  if (node_subs_count_atleast(node, 1)) {
-    FOREACH_SUB(s, node) {
-      if (node_next(s) == NULL) {
-        break;
-      }
-      if (!typ_equal(s->typ, TBI_VOID)) {
-        e = mk_except_type(mod, s,
-                           "intermediate statements in a block must be of type void"
-                           " (except the last one), not '%s'",
-                           typ_pretty_name(mod, s->typ));
-        THROW(e);
-      }
+  FOREACH_SUB(s, node) {
+    if (node_next(s) == NULL) {
+      break;
     }
+    if (!typ_equal(s->typ, TBI_VOID)) {
+      e = mk_except_type(mod, s,
+                         "intermediate statements in a block must be of type void"
+                         " (except the last one), not '%s'",
+                         typ_pretty_name(mod, s->typ));
+      THROW(e);
+    }
+  }
 
-    if (node_subs_last(node)->which == RETURN) {
-      // FIXME: should make sure there are no statements after a RETURN.
-      set_typ(&node->typ, TBI_VOID);
-    } else {
-      set_typ(&node->typ, node_subs_last(node)->typ);
-    }
-  } else {
+  if (node_subs_last(node)->which == RETURN) {
+    // FIXME: should make sure there are no statements after a RETURN.
     set_typ(&node->typ, TBI_VOID);
+  } else {
+    set_typ(&node->typ, node_subs_last(node)->typ);
   }
 
   return 0;
@@ -1874,8 +1872,8 @@ static error type_inference_match(struct module *mod, struct node *node) {
 
 static error unify_try_errors(struct typ **exu, struct module *mod,
                               struct try_state *st) {
-  for (size_t n = 0; n < st->count; ++n) {
-    struct node *exc = st->excepts[n];
+  for (size_t n = 0, count = vecnode_count(&st->excepts); n < count; ++n) {
+    struct node *exc = vecnode_get(&st->excepts, n);
 
     switch (exc->which) {
     case THROW:
@@ -1909,7 +1907,7 @@ static error type_inference_try(struct module *mod, struct node *node) {
   error e;
   struct try_state *st = module_excepts_get(mod);
 
-  if (st->count == 0) {
+  if (vecnode_count(&st->excepts) == 0) {
     e = mk_except(mod, node,
                   "try block has no except or throw statement,"
                   " catch is unreachable");
@@ -1976,6 +1974,350 @@ static error type_inference_ident_unknown(struct module *mod, struct node *node)
   return 0;
 }
 
+static struct phi_tracker_state *ident_def_phi_tracker(struct node *def) {
+  switch (def->which) {
+  case DEFNAME:
+    if (def->as.DEFNAME.phi_state == NULL) {
+      PUSH_STATE(def->as.DEFNAME.phi_state);
+    }
+    return def->as.DEFNAME.phi_state;
+  case DEFARG:
+    if (def->as.DEFARG.phi_state == NULL) {
+      PUSH_STATE(def->as.DEFARG.phi_state);
+    }
+    return def->as.DEFARG.phi_state;
+  default:
+    assert(FALSE);
+    return NULL;
+  }
+}
+
+static struct node *insert_conditioned_phi(struct module *mod,
+                                           struct branch_state *br_st,
+                                           struct node *pre_branch_use,
+                                           bool is_after_current) {
+  if (br_st->branching->which == TRY) {
+    // FIXME: unsupported in try/catch
+    return pre_branch_use;
+  }
+
+  struct node *block = node_branching_nth_branch(br_st->branching, br_st->nth_branch);
+  assert(block->which == BLOCK);
+  struct node *phi = mk_node(mod, block, PHI);
+  phi->as.PHI.is_conditioned = TRUE;
+  vecnode_push(&phi->as.PHI.ancestors, pre_branch_use);
+
+  node_subs_remove(block, phi);
+  node_subs_insert_before(block, node_subs_first(block), phi);
+
+  error e = catchup(mod, NULL, phi, &block->scope,
+                    is_after_current ? CATCHUP_AFTER_CURRENT
+                    : CATCHUP_BEFORE_CURRENT);
+  assert(!e);
+
+  return phi;
+}
+
+static void track_ident_use(struct module *mod, struct node *node,
+                            struct node *def, bool is_after_current) {
+  assert(node->which == IDENT);
+  node->as.IDENT.def = def;
+
+  // FIXME: inserting PHI under a branching for names defined in the current
+  // branch block, unnecessarily.
+
+  switch (def->which) {
+  case DEFGENARG:
+  case SETGENARG:
+  case DEFFUN:
+  case DEFMETHOD:
+  case DEFTYPE:
+  case DEFINTF:
+    node->as.IDENT.prev_use = def;
+    return;
+
+  case DEFNAME:
+  case DEFARG:
+    break;
+  default:
+    return;
+  }
+
+#define OR_ELSE(p, def) ( (p) != NULL ? (p) : (def) )
+
+  struct phi_tracker_state *phi_st = ident_def_phi_tracker(def);
+  struct branch_state *br_st = mod->state->branch_state;
+
+  if (br_st == NULL || br_st->nth_branch == -1) {
+    // Not in a branch.
+
+    node->as.IDENT.prev_use = OR_ELSE(phi_st->last, def);
+    phi_st->last = node;
+    return;
+  }
+
+  assert(br_st->branching != NULL);
+
+  if (br_st->branching == phi_st->branching && br_st->nth_branch == phi_st->nth_branch) {
+    // We've already seen a use under this branching node and this branch.
+    node->as.IDENT.prev_use
+      = OR_ELSE(phi_st->per_branch_last[phi_st->nth_branch], def);
+    phi_st->per_branch_last[phi_st->nth_branch] = node;
+    return;
+  }
+
+  if (br_st->branching == phi_st->branching && br_st->nth_branch != phi_st->nth_branch) {
+    // We've already seen a use under this branching node, but in a previous
+    // branch.
+    phi_st->nth_branch = br_st->nth_branch;
+
+    struct node *phi = insert_conditioned_phi(mod, br_st,
+                                              OR_ELSE(phi_st->prev->last, def),
+                                              is_after_current);
+    if (!is_after_current) {
+      node->as.IDENT.prev_use = phi;
+      phi_st->per_branch_last[phi_st->nth_branch] = node;
+    } else {
+      phi_st->per_branch_last[phi_st->nth_branch] = phi;
+    }
+    return;
+  }
+
+  // This is the first use under this branching node.
+  switch (def->which) {
+  case DEFNAME:
+    PUSH_STATE(def->as.DEFNAME.phi_state);
+    phi_st = def->as.DEFNAME.phi_state;
+    break;
+  case DEFARG:
+    PUSH_STATE(def->as.DEFARG.phi_state);
+    phi_st = def->as.DEFARG.phi_state;
+    break;
+  default:
+    assert(FALSE);
+  }
+  phi_st->branching = br_st->branching;
+  phi_st->nth_branch = br_st->nth_branch;
+  phi_st->per_branch_last = calloc(
+    node_branching_exhaustive_branch_count(phi_st->branching),
+    sizeof(*phi_st->per_branch_last));
+
+  struct node *phi = insert_conditioned_phi(mod, br_st,
+                                            OR_ELSE(phi_st->prev->last, def),
+                                            is_after_current);
+  if (!is_after_current) {
+    node->as.IDENT.prev_use = phi;
+    phi_st->per_branch_last[phi_st->nth_branch] = node;
+  } else {
+    phi_st->per_branch_last[phi_st->nth_branch] = phi;
+  }
+
+  if (nodeset_count(&br_st->need_phi) == 0) {
+    nodeset_init(&br_st->need_phi, 0);
+    nodeset_set_delete_val(&br_st->need_phi, FALSE);
+    nodeset_set_custom_hashf(&br_st->need_phi, node_ptr_hash);
+    nodeset_set_custom_cmpf(&br_st->need_phi, node_ptr_cmp);
+  }
+  nodeset_set(&br_st->need_phi, def, TRUE);
+
+#undef OR_ELSE
+}
+
+static void track_match_ident_use(struct module *mod, struct node *pattern) {
+  assert(pattern->which == IDENT);
+  struct node *parent = node_parent(pattern);
+  assert(parent->which == MATCH);
+  struct node *expr = node_subs_first(parent);
+  assert(expr->which == IDENT);
+
+  struct node *def = NULL;
+  error e = scope_lookup(&def, mod, &expr->scope, expr, FALSE);
+  assert(!e);
+
+  track_ident_use(mod, expr, def, TRUE);
+}
+
+static STEP_FILTER(step_branch_down,
+                   STEP_FILTER_BRANCHING);
+static error step_branch_down(struct module *mod, struct node *node,
+                              void *user, bool *stop) {
+  DSTEP(mod, node);
+  PUSH_STATE(mod->state->branch_state);
+  struct branch_state *st = mod->state->branch_state;
+  st->branching = node;
+  st->nth_branch = -1;
+  return 0;
+}
+
+static size_t find_in_parent(const struct node *parent, const struct node *node) {
+  size_t n = 0;
+  FOREACH_SUB_CONST(s, parent) {
+    if (s == node) {
+      return n;
+    }
+    n += 1;
+  }
+  assert(FALSE);
+  return 0;
+}
+
+static STEP_FILTER(step_branch_block_down,
+                   SF(BLOCK));
+static error step_branch_block_down(struct module *mod, struct node *node,
+                                    void *user, bool *stop) {
+  DSTEP(mod, node);
+  const struct node *parent = node_parent_const(node);
+  const size_t nth_sub = find_in_parent(parent, node);
+  struct branch_state *st = mod->state->branch_state;
+
+  switch (parent->which) {
+  case WHILE:
+  case FOR:
+    st->nth_branch = 0;
+    break;
+  case IF:
+    if (nth_sub % 2 == 0) {
+      // When the condition is itself a block 'if (block -> cond)'.
+      st->nth_branch = -1;
+    } else if (nth_sub % 2 == 1) {
+      st->nth_branch = nth_sub / 2;
+    } else if (node_subs_last_const(parent) == node) {
+      // Else branch.
+      st->nth_branch = nth_sub / 2 + 1;
+    }
+    break;
+  case MATCH:
+    assert(nth_sub % 2 == 0);
+    st->nth_branch = (nth_sub - 2) / 2;
+
+    track_match_ident_use(mod, node_prev(node));
+    break;
+  case TRY:
+    st->nth_branch = nth_sub;
+    break;
+  default:
+    return 0;
+  }
+
+  assert(st->branching == parent);
+
+  return 0;
+}
+
+static STEP_FILTER(step_branch_block_up,
+                   SF(BLOCK));
+static error step_branch_block_up(struct module *mod, struct node *node,
+                                  void *user, bool *stop) {
+  DSTEP(mod, node);
+  struct branch_state *st = mod->state->branch_state;
+  if (st == NULL) {
+    return 0;
+  }
+
+  const struct node *parent = node_parent_const(node);
+  if (st->branching == parent) {
+    st->nth_branch = -1;
+  }
+
+  return 0;
+}
+
+struct phi_insertion_state {
+  struct module *mod;
+  struct node *branching;
+  struct node *parent;
+};
+
+static int phi_insertion_foreach(const struct node **_def, bool *value, void *user) {
+  struct node *def = (struct node *) *_def;
+  struct phi_insertion_state *st = user;
+
+  assert(def->which == DEFNAME || def->which == DEFARG);
+  struct phi_tracker_state *phi_st = ident_def_phi_tracker(def);
+
+  struct node *phi = mk_node(st->mod, st->parent, PHI);
+  node_subs_remove(st->parent, phi);
+  node_subs_insert_after(st->parent, st->branching, phi);
+
+  for (size_t nth = 0, count = node_branching_exhaustive_branch_count(st->branching);
+       nth < count; ++nth) {
+    struct node *use = phi_st->per_branch_last[nth];
+    if (use != NULL) {
+      vecnode_push(&phi->as.PHI.ancestors, use);
+    }
+  }
+
+  error e = catchup(st->mod, NULL, phi, &st->parent->scope, CATCHUP_AFTER_CURRENT);
+  assert(!e);
+
+  phi_st->prev->last = phi;
+  switch (def->which) {
+  case DEFNAME:
+    POP_STATE(def->as.DEFNAME.phi_state);
+    break;
+  case DEFARG:
+    POP_STATE(def->as.DEFARG.phi_state);
+    break;
+  default:
+    assert(FALSE);
+    break;
+  }
+
+  return 0;
+}
+
+static void phi_insertion(struct module *mod, struct node *branching) {
+  struct phi_insertion_state st = {
+    .mod = mod,
+    .branching = branching,
+    .parent = node_parent(branching),
+  };
+
+  struct branch_state *br_st = mod->state->branch_state;
+  nodeset_foreach(&br_st->need_phi, phi_insertion_foreach, &st);
+}
+
+static STEP_FILTER(step_branch_up,
+                   STEP_FILTER_BRANCHING);
+static error step_branch_up(struct module *mod, struct node *node,
+                            void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  phi_insertion(mod, node);
+
+  POP_STATE(mod->state->branch_state);
+  return 0;
+}
+
+static STEP_FILTER(step_push_block_state,
+                   SF(BLOCK));
+static error step_push_block_state(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
+  DSTEP(mod, node);
+  PUSH_STATE(mod->state->fun_state->block_state);
+  return 0;
+}
+
+static STEP_FILTER(step_pop_block_state,
+                   SF(BLOCK));
+static error step_pop_block_state(struct module *mod, struct node *node,
+                                  void *user, bool *stop) {
+  DSTEP(mod, node);
+  POP_STATE(mod->state->fun_state->block_state);
+  return 0;
+}
+
+static STEP_FILTER(step_record_current_statement,
+                   -1);
+static error step_record_current_statement(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
+  DSTEP(mod, node);
+  if (node_parent(node)->which == BLOCK) {
+    mod->state->fun_state->block_state->current_statement = node;
+  }
+  return 0;
+}
+
 static bool is_name_of_globalenv(const struct node *node) {
   const struct node *parent = node_parent_const(node);
   if (parent->which == TYPECONSTRAINT
@@ -2011,6 +2353,8 @@ static error type_inference_ident(struct module *mod, struct node *node) {
     node->as.IDENT.non_local_scope = def->scope.parent;
   } else if (def->flags & NODE_IS_GLOBAL_LET) {
     node->as.IDENT.non_local_scope = def->scope.parent->parent->parent;
+  } else {
+    track_ident_use(mod, node, def, FALSE);
   }
 
   if (def->which == DEFFIELD) {
@@ -2024,17 +2368,7 @@ static error type_inference_ident(struct module *mod, struct node *node) {
     return 0;
   }
 
-  if (def->which == DEFNAME && def->typ == NULL) {
-    // This happens when typing an IDENT in the pattern of a DEFPATTERN:
-    // 'def' is the corresponding DEFNAME and not yet typed (as it appears
-    // later in the tree).
-    set_typ(&def->typ, typ_create_tentative(TBI_ANY));
-
-    // FIXME: Cannot detect if an ident is used before its definition, e.g.:
-    //   block
-    //     x = a
-    //     let a = 0
-  }
+  assert(def->which != DEFNAME || def->typ != NULL);
 
   if (typ_is_function(def->typ)
       && node->typ != TBI__CALL_FUNCTION_SLOT) {
@@ -2165,28 +2499,13 @@ error step_type_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case DEFNAME:
-    ;const struct node *defp = node_parent_const(node);
-    if (node->typ == NULL && node_ident(node) == ID_OTHERWISE) {
-      set_typ(&node->typ, node->as.DEFNAME.pattern->typ);
-    } else if (defp->as.DEFPATTERN.is_globalenv) {
-      struct typ *t = node->as.DEFNAME.pattern->typ;
-      if (!typ_is_reference(t)) {
-        e = mk_except_type(mod, node, "globalenv must declare a reference");
-        THROW(e);
-      }
-      set_typ(&node->typ, t);
-    } else {
-      assert(node->typ == node->as.DEFNAME.pattern->typ);
-    }
-
     if (node->as.DEFNAME.expr != NULL) {
-      e = unify(mod, node,
-                node->as.DEFNAME.expr->typ,
-                node->as.DEFNAME.pattern->typ);
-      EXCEPT(e);
-
+      set_typ(&node->typ, node->as.DEFNAME.expr->typ);
       node->as.DEFNAME.pattern->flags |= node->as.DEFNAME.expr->flags;
+    } else {
+      set_typ(&node->typ, typ_create_tentative(TBI_ANY));
     }
+    assert(node->typ != NULL);
 
     if (node->as.DEFNAME.is_excep) {
       struct node *tryy = module_excepts_get(mod)->tryy;
@@ -2198,9 +2517,28 @@ error step_type_inference(struct module *mod, struct node *node,
 
     node->flags = node->as.DEFNAME.pattern->flags;
 
+    const struct node *defp = node_parent_const(node);
     const struct node *let = node_parent_const(defp);
     assert(let->which == LET);
     node->flags |= (let->flags & NODE_IS_GLOBAL_LET);
+    break;
+  case DEFPATTERN:
+    FOREACH_SUB(d, node) {
+      if (d->which == DEFNAME) {
+        if (node->as.DEFPATTERN.is_globalenv) {
+          struct typ *t = d->as.DEFNAME.pattern->typ;
+          if (!typ_is_reference(t)) {
+            e = mk_except_type(mod, node, "globalenv must declare a reference");
+            THROW(e);
+          }
+        }
+
+        e = unify(mod, d, d->typ, d->as.DEFNAME.pattern->typ);
+        EXCEPT(e);
+      }
+    }
+
+    set_typ(&node->typ, TBI_VOID);
     break;
   case NUMBER:
     set_typ(&node->typ, typ_create_tentative(number_literal_typ(mod, node)));
@@ -2319,9 +2657,19 @@ error step_type_inference(struct module *mod, struct node *node,
     set_typ(&node->typ, node->as.DYN.intf_typ);
     break;
   case TYPECONSTRAINT:
-    set_typ(&node->typ, node_subs_at(node, 1)->typ);
-    e = unify(mod, node_subs_first(node), node_subs_first(node)->typ, node->typ);
-    EXCEPT(e);
+    if (node->as.TYPECONSTRAINT.is_constraint) {
+      set_typ(&node->typ, node_subs_first(node)->typ);
+    } else {
+      set_typ(&node->typ, node_subs_first(node)->typ);
+      e = unify(mod, node_subs_first(node),
+                node_subs_first(node)->typ, node_subs_last(node)->typ);
+      EXCEPT(e);
+    }
+    node->flags |= node_subs_first(node)->flags;
+    node->flags |= node_subs_last(node)->flags & NODE__ASSIGN_TRANSITIVE;
+    // Copy flags back, as TYPECONSTRAINT are elided in
+    // step_remove_typeconstraints().
+    node_subs_first(node)->flags |= node->flags;
     break;
   case DEFARG:
     set_typ(&node->typ, node_subs_at(node, 1)->typ);
@@ -2343,9 +2691,6 @@ error step_type_inference(struct module *mod, struct node *node,
     set_typ(&node->typ, node_subs_at(node, 1)->typ);
     node->flags |= NODE_IS_TYPE;
     break;
-  case DEFPATTERN:
-    set_typ(&node->typ, TBI_VOID);
-    break;
   case DEFFIELD:
     set_typ(&node->typ, node_subs_at(node, 1)->typ);
     break;
@@ -2363,6 +2708,7 @@ error step_type_inference(struct module *mod, struct node *node,
   case PRE:
   case POST:
   case INVARIANT:
+  case PHI:
     set_typ(&node->typ, TBI_VOID);
     break;
   case WITHIN:
@@ -2377,8 +2723,11 @@ error step_type_inference(struct module *mod, struct node *node,
   case ISALIST:
   case GENARGS:
   case FUNARGS:
+    node->typ = TBI__NOT_TYPEABLE;
+    break;
   case IMPORT:
     node->typ = TBI__NOT_TYPEABLE;
+    node->flags = NODE_IS_TYPE;
     break;
   case ISA:
     set_typ(&node->typ, node_subs_first(node)->typ);
@@ -2405,16 +2754,15 @@ error step_type_inference(struct module *mod, struct node *node,
 
   assert(node->typ != NULL
          || (node->which == IDENT
-             && "tolerate when its DEFNAME not yet typed,"
-             "or it's a CATCH label or WITHIN label"));
+             && "tolerate when it's a CATCH label or WITHIN label"));
   return 0;
 }
 
 // FIXME: should we be removing these before inferring dyn?
-static STEP_FILTER(step_remove_typeconstraints,
-                   SF(TYPECONSTRAINT));
-static error step_remove_typeconstraints(struct module *mod, struct node *node,
-                                         void *user, bool *stop) {
+STEP_FILTER(step_remove_typeconstraints,
+            SF(TYPECONSTRAINT));
+error step_remove_typeconstraints(struct module *mod, struct node *node,
+                                  void *user, bool *stop) {
   DSTEP(mod, node);
 
   if (!node->as.TYPECONSTRAINT.in_pattern) {
@@ -2422,6 +2770,10 @@ static error step_remove_typeconstraints(struct module *mod, struct node *node,
     struct node *sub = node_subs_first(node);
     node_move_content(node, sub);
     set_typ(&node->typ, saved);
+
+    if (node->which == IDENT) {
+      track_ident_use(mod, node, node->as.IDENT.def, FALSE);
+    }
   }
 
   return 0;
@@ -2436,82 +2788,6 @@ static error step_type_drop_excepts(struct module *mod, struct node *node,
   module_excepts_close_try(mod);
 
   return 0;
-}
-
-HTABLE_SPARSE(idents_set, bool, ident);
-implement_htable_sparse(unused__ static, idents_set, bool, ident);
-
-static size_t defchoice_count(struct node *deft) {
-  assert(deft->which == DEFTYPE);
-
-  size_t r = 0;
-  FOREACH_SUB(d, deft) {
-    if (d->which == DEFCHOICE) {
-      r += 1;
-    }
-  }
-  return r;
-}
-
-static STEP_FILTER(step_check_exhaustive_match,
-                   SF(MATCH));
-static error step_check_exhaustive_match(struct module *mod, struct node *node,
-                                         void *user, bool *stop) {
-  struct node *expr = node_subs_first(node);
-  struct node *dexpr = typ_definition(expr->typ);
-  const bool enum_or_union = dexpr->as.DEFTYPE.kind == DEFTYPE_ENUM
-    || dexpr->as.DEFTYPE.kind == DEFTYPE_UNION;
-
-  if (!enum_or_union) {
-    return 0;
-  }
-
-  struct idents_set set;
-  idents_set_init(&set, 0);
-  idents_set_set_delete_val(&set, FALSE);
-  idents_set_set_custom_hashf(&set, ident_hash);
-  idents_set_set_custom_cmpf(&set, ident_cmp);
-
-  error e = 0;
-  FOREACH_SUB_EVERY(p, node, 1, 2) {
-    ident id;
-    switch (p->which) {
-    case IDENT:
-      id = node_ident(p);
-      if (id == ID_OTHERWISE) {
-        if (p != node_prev(node_subs_last(node))) {
-          e = mk_except(mod, p, "default pattern '_' must be last");
-          GOTO_THROW(e);
-        }
-        // No need to check further.
-        goto ok;
-      }
-      break;
-    case BIN:
-      assert(OP_KIND(p->as.BIN.operator) == OP_BIN_ACC);
-      id = node_ident(node_subs_at(p, 1));
-      break;
-    default:
-      assert(FALSE);
-    }
-
-    if (idents_set_get(&set, id) != NULL) {
-      e = mk_except(mod, p, "duplicated match case");
-      GOTO_THROW(e);
-    }
-
-    idents_set_set(&set, id, TRUE);
-  }
-
-  if (idents_set_count(&set) != defchoice_count(dexpr)) {
-    e = mk_except_type(mod, node, "non-exhaustive match");
-    GOTO_THROW(e);
-  }
-
-ok:
-except:
-  idents_set_destroy(&set);
-  return e;
 }
 
 STEP_FILTER(step_gather_final_instantiations,
@@ -2989,21 +3265,34 @@ static error step_dtor_call_inference(struct module *mod, struct node *node,
   return 0;
 }
 
-static bool expr_is_literal_initializer(struct node **init, struct module *mod, struct node *expr) {
-  if (expr->which == INIT) {
-    if (init != NULL) {
-      *init = expr;
+static bool expr_is_literal_initializer(struct node **expr, struct module *mod, struct node *node) {
+  if (node->which == INIT) {
+    if (expr != NULL) {
+      *expr = node;
     }
     return TRUE;
+  } else if (node->which == BLOCK) {
+    return expr_is_literal_initializer(expr, mod, node_subs_last(node));
   } else {
-    return expr->which == TYPECONSTRAINT
-      && expr_is_literal_initializer(init, mod, node_subs_first(expr));
+    return FALSE;
   }
 }
 
-static bool expr_is_return_through_ref(struct node **init, struct module *mod, struct node *expr) {
-  return (expr_is_literal_initializer(init, mod, expr) || expr->which == CALL)
-    && !typ_isa(expr->typ, TBI_RETURN_BY_COPY);
+static bool expr_is_return_through_ref(struct node **expr, struct module *mod, struct node *node) {
+  if (typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
+    return FALSE;
+  }
+
+  if (expr_is_literal_initializer(expr, mod, node)) {
+    return TRUE;
+  } else if (node->which == CALL) {
+    *expr = node;
+    return TRUE;
+  } else if (node->which == BLOCK) {
+    return expr_is_return_through_ref(expr, mod, node_subs_last(node));
+  } else {
+    return FALSE;
+  }
 }
 
 static error assign_copy_call_inference(struct module *mod, struct node *node) {
@@ -3029,8 +3318,10 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
     within = node_subs_last(let);
   } else {
     within = mk_node(mod, let, BLOCK);
-    error e = catchup(mod, NULL, within, &let->scope, CATCHUP_AFTER_CURRENT);
+    struct node *to_remove = mk_node(mod, within, NOOP);
+    error e = catchup(mod, NULL, within, &let->scope, CATCHUP_BEFORE_CURRENT);
     EXCEPT(e);
+    node_subs_remove(within, to_remove);
   }
 
   struct node *left = mk_node(mod, within, IDENT);
@@ -3048,6 +3339,11 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
                               ID_COPY_CTOR, left, right,
                               CATCHUP_AFTER_CURRENT);
   EXCEPT(e);
+
+  assert(typ_equal(copycall->typ, TBI_VOID)
+         && "We used a PASS above to catchup() 'within', this only works "
+         "if the return type is void.");
+
   return 0;
 }
 
@@ -3067,6 +3363,9 @@ static error step_copy_call_inference(struct module *mod, struct node *node,
     }
     return 0;
   case DEFNAME:
+    if (node_parent(node)->as.DEFPATTERN.is_ssa_var) {
+      return 0;
+    }
     if (!(node->flags & NODE_IS_TYPE)) {
       left = node->as.DEFNAME.pattern;
       right = node->as.DEFNAME.expr;
@@ -3407,6 +3706,7 @@ static void block_like_insert_value_assign(struct module *mod, struct node *node
   case TRY:
     block_insert_value_assign(mod, node_subs_first(node), target, target_name);
     block_insert_value_assign(mod, node_subs_at(node, 2), target, target_name);
+    // FIXME: other CATCH blocks?
     break;
   case MATCH:
     FOREACH_SUB_EVERY(b, node, 2, 2) {
@@ -3459,8 +3759,11 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
                                                 void *user, bool *stop) {
   DSTEP(mod, node);
 
+  // FIXME: this is crap, mostly rendered useless by the introduction of the
+  // SSA step.
+
   struct node *expr = NULL;
-  struct node *init_expr = NULL;
+  struct node *real_expr = NULL;
 
   switch (node->which) {
   case RETURN:
@@ -3470,14 +3773,16 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
     }
 
     expr = node_subs_first(node);
-    if (expr_is_return_through_ref(&init_expr, mod, expr)) {
+    if (expr_is_return_through_ref(&real_expr, mod, expr)) {
       // Keep node->as.RETURN.return_through_ref_expr null as the
       // subexpression CALL or INIT will directly write to it.
-      if (init_expr != NULL) {
-        init_expr->as.INIT.target_expr = retval_name(mod);
-        node->as.RETURN.forced_return_through_ref = TRUE;
-      } else if (expr->which == CALL) {
-        expr->as.CALL.return_through_ref_expr = retval_name(mod);
+      if (real_expr != NULL) {
+        if (real_expr->which == INIT) {
+          real_expr->as.INIT.target_expr = retval_name(mod);
+          node->as.RETURN.forced_return_through_ref = TRUE;
+        } else if (real_expr->which == CALL) {
+          expr->as.CALL.return_through_ref_expr = retval_name(mod);
+        }
       } else if (is_block_like(expr)) {
         block_like_insert_value_assign(mod, expr, NULL, node_ident(retval_name(mod)));
       } else {
@@ -3505,13 +3810,12 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
         continue;
       }
       expr = d->as.DEFNAME.expr;
-      init_expr = NULL;
       if (expr == NULL) {
         // noop
-      } else if (expr_is_literal_initializer(&init_expr, mod, expr)) {
-        init_expr->as.INIT.target_expr = d->as.DEFNAME.pattern;
-      } else if (expr->which == CALL && expr_is_return_through_ref(NULL, mod, expr)) {
-        expr->as.CALL.return_through_ref_expr = d->as.DEFNAME.pattern;
+      } else if (expr_is_literal_initializer(&real_expr, mod, expr)) {
+        real_expr->as.INIT.target_expr = d->as.DEFNAME.pattern;
+      } else if (expr_is_return_through_ref(&real_expr, mod, expr)) {
+        real_expr->as.CALL.return_through_ref_expr = d->as.DEFNAME.pattern;
       }
     }
     return 0;
@@ -3521,11 +3825,10 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
     }
     struct node *left = node_subs_first(node);
     struct node *right = node_subs_last(node);
-    init_expr = NULL;
-    if (expr_is_literal_initializer(&init_expr, mod, right)) {
-      init_expr->as.INIT.target_expr = left;
-    } else if (right->which == CALL && expr_is_return_through_ref(NULL, mod, right)) {
-      right->as.CALL.return_through_ref_expr = left;
+    if (expr_is_literal_initializer(&real_expr, mod, right)) {
+      real_expr->as.INIT.target_expr = left;
+    } else if (expr_is_return_through_ref(&real_expr, mod, right)) {
+      real_expr->as.CALL.return_through_ref_expr = left;
     }
     return 0;
   default:
@@ -3654,8 +3957,8 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
 static error finish_passbody1(struct module *mod, struct node *root,
                               void *user, ssize_t shallow_last_up);
 
-static void declare_temporaries(struct module *mod, struct node *statement,
-                                struct temporaries *temps) {
+static error declare_temporaries(struct module *mod, struct node *statement,
+                                 struct temporaries *temps) {
   temps->gensyms = calloc(temps->count, sizeof(*temps->gensyms));
 
   struct node *let = NULL;
@@ -3683,6 +3986,7 @@ static void declare_temporaries(struct module *mod, struct node *statement,
     // anything at all. So we must force these steps by hand.
     PUSH_STATE(mod->state->step_state);
     e = finish_passbody1(mod, statement, NULL, -1);
+    EXCEPT(e);
     POP_STATE(mod->state->step_state);
 
     let = statement;
@@ -3725,6 +4029,8 @@ static void declare_temporaries(struct module *mod, struct node *statement,
 
     prev = defp;
   }
+
+  return 0;
 }
 
 
@@ -3738,6 +4044,12 @@ static STEP_FILTER(step_define_temporary_rvalues,
                    -1);
 static error step_define_temporary_rvalues(struct module *mod, struct node *node,
                                            void *user, bool *stop) {
+  return 0;
+  //FIXME
+  //
+  //
+  //
+  //
   DSTEP(mod, node);
   if (!node_is_statement(node)) {
     return 0;
@@ -3754,7 +4066,8 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
     return 0;
   }
 
-  declare_temporaries(mod, node, &temps);
+  e = declare_temporaries(mod, node, &temps);
+  EXCEPT(e);
 
   for (size_t n = 0; n < temps.count; ++n) {
     const ident g = temps.gensyms[n];
@@ -3831,8 +4144,8 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
   return 0;
 }
 
-static error passbody0(struct module *mod, struct node *root,
-                       void *user, ssize_t shallow_last_up) {
+error passbody0(struct module *mod, struct node *root,
+                void *user, ssize_t shallow_last_up) {
   // first
   PASS(
     DOWN_STEP(step_stop_submodules);
@@ -3847,15 +4160,24 @@ static error passbody0(struct module *mod, struct node *root,
     DOWN_STEP(step_type_mutability_mark);
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_type_gather_excepts);
+    DOWN_STEP(step_branch_down);
+    DOWN_STEP(step_branch_block_down);
+    DOWN_STEP(step_push_block_state);
+    DOWN_STEP(step_record_current_statement);
     ,
     UP_STEP(step_excepts_store_label);
     UP_STEP(step_rewrite_defname_no_expr);
     UP_STEP(step_rewrite_union_constructors);
     UP_STEP(step_detect_not_dyn_intf_up);
+    UP_STEP(step_ssa_convert);
     UP_STEP(step_type_inference);
+    UP_STEP(step_constraint_inference);
     UP_STEP(step_remove_typeconstraints);
     UP_STEP(step_type_drop_excepts);
     UP_STEP(step_check_exhaustive_match);
+    UP_STEP(step_branch_block_up);
+    UP_STEP(step_branch_up);
+    UP_STEP(step_pop_block_state);
     UP_STEP(step_gather_final_instantiations);
     UP_STEP(step_pop_fun_state);
     UP_STEP(step_pop_top_state);
@@ -3878,7 +4200,6 @@ static error finish_passbody1(struct module *mod, struct node *root,
   return 0;
 }
 
-
 static error passbody1(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   // second
@@ -3891,6 +4212,10 @@ static error passbody1(struct module *mod, struct node *root,
     DOWN_STEP(step_check_no_literals_left);
     DOWN_STEP(step_check_no_incomplete_left);
     DOWN_STEP(step_ident_non_local_scope);
+    DOWN_STEP(step_branch_down);
+    DOWN_STEP(step_branch_block_down);
+    DOWN_STEP(step_push_block_state);
+    DOWN_STEP(step_record_current_statement);
     ,
     UP_STEP(step_weak_literal_conversion);
     UP_STEP(step_operator_call_inference);
@@ -3907,6 +4232,9 @@ static error passbody1(struct module *mod, struct node *root,
     UP_STEP(step_move_assign_in_block_like);
     UP_STEP(step_store_return_through_ref_expr);
 
+    UP_STEP(step_branch_block_up);
+    UP_STEP(step_branch_up);
+    UP_STEP(step_pop_block_state);
     UP_STEP(step_pop_fun_state);
     UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);

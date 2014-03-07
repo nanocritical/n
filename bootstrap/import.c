@@ -22,6 +22,7 @@ static void pass_import_mark(struct module *mod, struct node *mark,
   mark->scope.parent = parent_scope;
   // Special self-referencing typ; see type_inference_bin_accessor().
   mark->typ = typ_create(NULL, mark);
+  mark->flags = NODE_IS_TYPE;
 }
 
 // Recursive, depth first; Will modify scope on the way back up.
@@ -266,6 +267,7 @@ error lexical_import(struct scope *scope, struct module *mod,
   }
 
   import->typ = TBI__NOT_TYPEABLE;
+  import->flags = NODE_IS_TYPE;
 
   return 0;
 }

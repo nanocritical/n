@@ -96,7 +96,7 @@ export intf `sum_order =
 
 
 export extern struct void =
-  export isa `return_by_copy
+  export isa `return_by_copy `trivial_copy
 
 export extern intf `__ref_compatible r:`any_any_ref =
 
@@ -899,8 +899,8 @@ extern inline fun static_array_at_byte dp:@!u8 off:size = @!u8
 
 export opaque struct static_array t:`copyable =
   export isa (`trivial_array_ctor t) `trivial_copy `return_by_copy
-  d:?@!t
-  c:size
+  d	:?@!t
+  c	:size
 
 export inline static_array method@ count = size
   return self.c
@@ -917,7 +917,7 @@ export inline static_array method@$ unsafe_rawdata = @$u8
 
 export inline static_array method@$ unsafe_data = @$t
   assert <- self.c != 0
-  return self$d
+  return (cast ?@$t @$t) self$d
 
 export inline static_array method@$ at n:size = @$t
   assert <- n < self.c
@@ -928,6 +928,7 @@ export inline static_array method@$ at n:size = @$t
 
 export extern fun abort = void
 
+-- FIXME: add an 'explain:@string' argument
 export fun assert cond:bool = void
   if not cond
     abort
@@ -1068,6 +1069,23 @@ export intf `environment declaring:`any =
 --
 --export struct debugenv =
 --  export isa `debugenv
+
+
+--atom identity_transitivity P =
+--  forall P, x
+--    P x => forall y
+--      y === x => P y
+--atom equality_transitivity P =
+--  identity_transitivity P
+--  forall P, x
+--    P x => forall y
+--      y == x => P y
+--
+--atom nonnull x =
+--  equality_transitivity this
+--
+--atom has_tag tag x =
+--  x ==| tag
 
 -- We place the imports at the end of this file for the benefit of the bootstrap
 -- compiler lack of definition ordering understanding (across modules). As

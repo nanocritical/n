@@ -185,6 +185,7 @@ normal:
   "bw|" { R(TBWOR); }
   "bw^" { R(TBWXOR); }
   "bw~" { R(TBWNOT); }
+  "::" { R(TDCOLON); }
   ":" { R(TCOLON); }
   "," { R(TCOMMA); }
   ";;" {

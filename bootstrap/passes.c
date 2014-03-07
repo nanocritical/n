@@ -10,22 +10,19 @@
 #include "passbody.h"
 
 a_pass passes(size_t p) {
-  static __thread a_pass v[PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT + 1];
+  static __thread a_pass v[PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT + 1]
+    = { 0 };
 
   if (v[0] == NULL) {
-    v[0] = passzero[0];
-    v[PASSZERO_COUNT + 0] = passfwd[0];
-    v[PASSZERO_COUNT + 1] = passfwd[1];
-    v[PASSZERO_COUNT + 2] = passfwd[2];
-    v[PASSZERO_COUNT + 3] = passfwd[3];
-    v[PASSZERO_COUNT + 4] = passfwd[4];
-    v[PASSZERO_COUNT + 5] = passfwd[5];
-    v[PASSZERO_COUNT + 6] = passfwd[6];
-    v[PASSZERO_COUNT + 7] = passfwd[7];
-    v[PASSZERO_COUNT + 8] = passfwd[8];
-    v[PASSZERO_COUNT + PASSFWD_COUNT + 0] = passbody[0];
-    v[PASSZERO_COUNT + PASSFWD_COUNT + 1] = passbody[1];
-    v[PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT] = NULL;
+    for (size_t n = 0; n < PASSZERO_COUNT; ++n) {
+      v[n] = passzero[n];
+    }
+    for (size_t n = 0; n < PASSFWD_COUNT; ++n) {
+      v[PASSZERO_COUNT + n] = passfwd[n];
+    }
+    for (size_t n = 0; n < PASSBODY_COUNT; ++n) {
+      v[PASSZERO_COUNT + PASSFWD_COUNT + n] = passbody[n];
+    }
   }
 
   assert(p < ARRAY_SIZE(v));
@@ -57,7 +54,7 @@ static void mark_excepted(const struct node **except) {
   }
 
   for (size_t n = 0; except[n] != NULL; ++n) {
-    ((struct node *) except[n])->flags |= NODE__EXCEPTED;
+    ((struct node *) except[n])->excepted += 1;
   }
 }
 
@@ -67,7 +64,7 @@ static void unmark_excepted(const struct node **except) {
   }
 
   for (size_t n = 0; except[n] != NULL; ++n) {
-    ((struct node *) except[n])->flags &= ~NODE__EXCEPTED;
+    ((struct node *) except[n])->excepted -= 1;
   }
 }
 
@@ -89,6 +86,8 @@ error catchup(struct module *mod,
     goal = mod->done ? last_pass() : mod->stage->state->passing;
   } else if (how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
     goal = min(size_t, mod->stage->state->passing, last_tentative_instance_pass());
+  } else if (how == CATCHUP_BEFORE_CURRENT) {
+    goal = mod->stage->state->passing;
   } else if (!mod->state->step_state->upward) {
     goal = mod->stage->state->passing - 1;
   } else if (how == CATCHUP_BELOW_CURRENT) {
@@ -101,6 +100,11 @@ error catchup(struct module *mod,
   }
 
   const bool was_upward = mod->state->step_state->upward;
+  struct node *saved_current_statement = NULL;
+  if (mod->state->fun_state != NULL
+      && mod->state->fun_state->block_state != NULL) {
+    saved_current_statement = mod->state->fun_state->block_state->current_statement;
+  }
 
   const struct node *parent = scope_node(parent_scope);
   const bool need_new_state =
@@ -148,6 +152,10 @@ error catchup(struct module *mod,
     POP_STATE(mod->state);
   }
   POP_STATE(mod->stage->state);
+
+  if (saved_current_statement != NULL) {
+    mod->state->fun_state->block_state->current_statement = saved_current_statement;
+  }
 
   unmark_excepted(except);
 
