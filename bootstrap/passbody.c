@@ -2115,8 +2115,6 @@ static void track_ident_use(struct module *mod, struct node *node,
   if (nodeset_count(&br_st->need_phi) == 0) {
     nodeset_init(&br_st->need_phi, 0);
     nodeset_set_delete_val(&br_st->need_phi, false);
-    nodeset_set_custom_hashf(&br_st->need_phi, node_ptr_hash);
-    nodeset_set_custom_cmpf(&br_st->need_phi, node_ptr_cmp);
   }
   nodeset_set(&br_st->need_phi, def, true);
 

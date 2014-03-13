@@ -230,7 +230,7 @@ struct phi_tracker_state {
 };
 
 HTABLE_SPARSE(nodeset, bool, struct node *);
-declare_htable_sparse(nodeset, bool, struct node *);
+DECLARE_HTABLE_SPARSE(nodeset, bool, struct node *);
 uint32_t node_ptr_hash(const struct node **node);
 int node_ptr_cmp(const struct node **a, const struct node **b);
 

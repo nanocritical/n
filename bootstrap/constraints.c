@@ -13,7 +13,8 @@ enum cbool_values {
 };
 
 HTABLE_SPARSE(tagset, cbool, ident);
-implement_htable_sparse(unused__ static, tagset, cbool, ident);
+IMPLEMENT_HTABLE_SPARSE(unused__ static, tagset, cbool, ident,
+                        ident_hash, ident_cmp);
 
 struct constraint {
   cbool init;
@@ -35,8 +36,6 @@ static struct constraint *new_constraint(struct module *mod) {
 
   tagset_init(&c->tags, 0);
   tagset_set_delete_val(&c->tags, U);
-  tagset_set_custom_hashf(&c->tags, ident_hash);
-  tagset_set_custom_cmpf(&c->tags, ident_cmp);
 
   return c;
 }
@@ -724,8 +723,6 @@ static error constraint_inference_phi(struct module *mod, struct node *node) {
     } else if (tagset_count(&a->tags) == 0) {
       tagset_destroy(&c->tags);
       tagset_set_delete_val(&c->tags, U);
-      tagset_set_custom_hashf(&c->tags, ident_hash);
-      tagset_set_custom_cmpf(&c->tags, ident_cmp);
     } else {
       tagset_foreach(&a->tags, least_common_tag_foreach, &c->tags);
     }
@@ -1280,8 +1277,6 @@ error step_check_exhaustive_match(struct module *mod, struct node *node,
   struct tagset matched;
   tagset_init(&matched, 0);
   tagset_set_delete_val(&matched, U);
-  tagset_set_custom_hashf(&matched, ident_hash);
-  tagset_set_custom_cmpf(&matched, ident_cmp);
 
   error e = 0;
   FOREACH_SUB_EVERY(p, node, 1, 2) {

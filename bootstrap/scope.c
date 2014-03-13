@@ -3,8 +3,6 @@
 #include "table.h"
 #include "types.h"
 
-implement_htable_sparse(unused__ static, scope_map, struct node *, ident);
-
 uint32_t ident_hash(const ident *a) {
   return *a * 31;
 }
@@ -15,11 +13,12 @@ int ident_cmp(const ident *a, const ident *b) {
   return aa == bb ? 0 : (aa > bb ? 1 : -1);
 }
 
+IMPLEMENT_HTABLE_SPARSE(unused__ static, scope_map, struct node *, ident,
+                        ident_hash, ident_cmp);
+
 void scope_init(struct scope *scope) {
   scope_map_init(&scope->map, 0);
   scope_map_set_delete_val(&scope->map, NULL);
-  scope_map_set_custom_hashf(&scope->map, ident_hash);
-  scope_map_set_custom_cmpf(&scope->map, ident_cmp);
 }
 
 // Return value must be freed by caller.

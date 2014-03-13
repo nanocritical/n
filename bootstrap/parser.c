@@ -81,8 +81,6 @@ EXAMPLE(vecnode) {
   vecnode_destroy(&v);
 }
 
-implement_htable_sparse(, nodeset, bool, struct node *);
-
 uint32_t node_ptr_hash(const struct node **node) {
   uintptr_t p = (uintptr_t) *node;
   return hash32_hsieh(&p, sizeof(p));
@@ -93,6 +91,9 @@ int node_ptr_cmp(const struct node **a, const struct node **b) {
   uintptr_t pb = (uintptr_t) b;
   return (pa == pb) ? 0 : ((pa < pb) ? -1 : 1);
 }
+
+IMPLEMENT_HTABLE_SPARSE(, nodeset, bool, struct node *,
+                        node_ptr_hash, node_ptr_cmp);
 
 #define MEMPOOL_CHUNK (64*1024)
 
@@ -377,9 +378,6 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_ENVIRONMENT_UNINSTALL] = "uninstall",
 };
 
-HTABLE_SPARSE(idents_map, ident, struct token);
-implement_htable_sparse(unused__ static, idents_map, ident, struct token);
-
 static uint32_t token_hash(const struct token *tok) {
   return hash32_hsieh(tok->value, tok->len);
 }
@@ -391,6 +389,10 @@ static int token_cmp(const struct token *a, const struct token *b) {
     return memcmp(a->value, b->value, min(size_t, a->len, b->len));
   }
 }
+
+HTABLE_SPARSE(idents_map, ident, struct token);
+IMPLEMENT_HTABLE_SPARSE(unused__ static, idents_map, ident, struct token,
+                        token_hash, token_cmp);
 
 const char *idents_value(const struct globalctx *gctx, ident id) {
   assert(id < gctx->idents.count);
@@ -794,8 +796,6 @@ void globalctx_init(struct globalctx *gctx) {
   gctx->idents.map = calloc(1, sizeof(struct idents_map));
   idents_map_init(gctx->idents.map, 100*1000);
   idents_map_set_delete_val(gctx->idents.map, -1);
-  idents_map_set_custom_hashf(gctx->idents.map, token_hash);
-  idents_map_set_custom_cmpf(gctx->idents.map, token_cmp);
 
   gctx->idents.count = ID__NUM;
   gctx->idents.capacity = ID__NUM;

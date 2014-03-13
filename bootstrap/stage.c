@@ -257,16 +257,17 @@ static error load_imports(struct stage *stage, struct node *node) {
   return 0;
 }
 
-HTABLE_SPARSE(modules_set, bool, struct module *);
-implement_htable_sparse(unused__ static, modules_set, bool, struct module *);
-
-static uint32_t module_pointer_hash(const struct module **mod) {
+static uint32_t module_ptr_hash(const struct module **mod) {
   return hash32_hsieh(mod, sizeof(*mod));
 }
 
-static int module_pointer_cmp(const struct module **a, const struct module **b) {
+static int module_ptr_cmp(const struct module **a, const struct module **b) {
   return memcmp(a, b, sizeof(*a));
 }
+
+HTABLE_SPARSE(modules_set, bool, struct module *);
+IMPLEMENT_HTABLE_SPARSE(unused__ static, modules_set, bool, struct module *,
+                        module_ptr_hash, module_ptr_cmp);
 
 struct dependencies {
   struct modules_set added;
@@ -340,8 +341,6 @@ static error calculate_dependencies(struct dependencies *deps) {
   struct modules_set pushed;
   modules_set_init(&pushed, 0);
   modules_set_set_delete_val(&pushed, 0);
-  modules_set_set_custom_hashf(&pushed, module_pointer_hash);
-  modules_set_set_custom_cmpf(&pushed, module_pointer_cmp);
 
   for (ssize_t n = deps->tmp_count - 1; n >= 0; --n) {
     struct module *m = deps->tmp[n];
@@ -385,8 +384,6 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
   deps.gctx = gctx;
   modules_set_init(&deps.added, 0);
   modules_set_set_delete_val(&deps.added, false);
-  modules_set_set_custom_hashf(&deps.added, module_pointer_hash);
-  modules_set_set_custom_cmpf(&deps.added, module_pointer_cmp);
 
   e = gather_dependencies(stage->entry_point->root, &deps);
   EXCEPT(e);

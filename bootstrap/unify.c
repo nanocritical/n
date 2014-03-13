@@ -284,7 +284,8 @@ static struct typ *merge_defincomplete(struct module *mod, const struct node *fo
 }
 
 HTABLE_SPARSE(ident_typ_map, struct typ *, ident);
-implement_htable_sparse(unused__ static, ident_typ_map, struct typ *, ident);
+IMPLEMENT_HTABLE_SPARSE(unused__ static, ident_typ_map, struct typ *, ident,
+                        ident_hash, ident_cmp);
 
 static error unify_two_defincomplete(struct module *mod, const struct node *for_error,
                                      struct typ *a, struct typ *b) {
@@ -302,8 +303,6 @@ static error unify_two_defincomplete(struct module *mod, const struct node *for_
   struct ident_typ_map map;
   ident_typ_map_init(&map, 0);
   ident_typ_map_set_delete_val(&map, false);
-  ident_typ_map_set_custom_hashf(&map, ident_hash);
-  ident_typ_map_set_custom_cmpf(&map, ident_cmp);
 
   FOREACH_SUB_CONST(f, da) {
     if (f->which != DEFFIELD) {

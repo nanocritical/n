@@ -19,8 +19,6 @@ struct users {
   struct users *more;
 };
 
-implement_htable_sparse(, typset, uint32_t, struct typ *);
-
 enum typ_flags {
   TYPF_TENTATIVE = 0x1,
   TYPF_BUILTIN = 0x2,
@@ -74,6 +72,17 @@ struct typ {
     users = users->more; \
   } while (users != NULL); \
 } while (0)
+
+static uint32_t typ_hash(const struct typ **a) {
+  return (*a)->hash;
+}
+
+static int typ_cmp(const struct typ **a, const struct typ **b) {
+  return !typ_equal(*a, *b);
+}
+
+IMPLEMENT_HTABLE_SPARSE(, typset, uint32_t, struct typ *,
+                        typ_hash, typ_cmp);
 
 static void remove_backlink(struct typ *t, struct typ **loc) {
   FOREACH_BACKLINK(idx, back, t,
@@ -185,19 +194,9 @@ static void clear_users(struct typ *t) {
   memset(&t->users, 0, sizeof(t->users));
 }
 
-static uint32_t typ_hash(const struct typ **a) {
-  return (*a)->hash;
-}
-
-static int typ_cmp(const struct typ **a, const struct typ **b) {
-  return !typ_equal(*a, *b);
-}
-
 void typset_fullinit(struct typset *set) {
   typset_init(set, 0);
   typset_set_delete_val(set, -1);
-  typset_set_custom_hashf(set, typ_hash);
-  typset_set_custom_cmpf(set, typ_cmp);
 }
 
 static void quickisa_init(struct typ *t) {
