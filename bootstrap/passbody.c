@@ -109,7 +109,7 @@ static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
   case DEFFUN:
   case DEFMETHOD:
     if (mod->state->fun_state->fun_uses_final
-        || node_subs_count_atleast(node_subs_at_const(node, IDX_GENARGS), 1)) {
+        || subs_count_atleast(subs_at_const(node, IDX_GENARGS), 1)) {
       node_toplevel(node)->flags |= TOP_IS_NOT_DYN;
     }
     break;
@@ -119,7 +119,7 @@ static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
     }
     break;
   case DEFARG:
-    if (node_subs_first(node_parent(node)) == node
+    if (subs_first(node_parent(node)) == node
         && node_parent(node)->which == DEFMETHOD) {
       // We just found self as a method argument on the way up, doesn't count.
       assert(mod->state->fun_state->fun_uses_final);
@@ -143,7 +143,7 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
 
   switch (node->which) {
   case DEFMETHOD:
-    if (!node_subs_count_atleast(node_subs_at_const(node, IDX_GENARGS), 1)) {
+    if (!subs_count_atleast(subs_at_const(node, IDX_GENARGS), 1)) {
       break;
     }
     struct node *def = NULL;
@@ -230,7 +230,7 @@ static void mark_subs(struct module *mod, struct node *node, struct typ *mark,
 static void inherit(struct module *mod, struct node *node) {
   if (node->typ == TBI__NOT_TYPEABLE) {
     mark_subs(mod, node, node->typ,
-              node_subs_first(node), node_subs_last(node), 1);
+              subs_first(node), subs_last(node), 1);
   }
 }
 
@@ -249,8 +249,8 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
   inherit(mod, node);
 
   struct typ *not_typeable = TBI__NOT_TYPEABLE;
-  struct node *first = node_subs_first(node);
-  struct node *last = node_subs_last(node);
+  struct node *first = subs_first(node);
+  struct node *last = subs_last(node);
 
   switch (node->which) {
   case BIN:
@@ -271,7 +271,7 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
     }
     break;
   case WITHIN:
-    if (node_subs_count_atleast(node, 1)
+    if (subs_count_atleast(node, 1)
         && first->which != WITHIN) {
       // So it will not resolve in type_inference_ident(), but through
       // type_inference_within().
@@ -299,7 +299,7 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
     first->typ = not_typeable;
     break;
   case THROW:
-    if (node_subs_count_atleast(node, 2)) {
+    if (subs_count_atleast(node, 2)) {
       first->typ = not_typeable;
     }
     break;
@@ -319,7 +319,7 @@ static error step_type_mutability_mark(struct module *mod, struct node *node,
   struct typ *mutable = TBI__MUTABLE;
   struct typ *mercurial = TBI__MERCURIAL;
 
-  struct node *first = node_subs_first(node);
+  struct node *first = subs_first(node);
 
   switch (node->which) {
   case BIN:
@@ -476,8 +476,8 @@ static error step_excepts_store_label(struct module *mod, struct node *node,
     return 0;
   case THROW:
     which = "throw";
-    if (node_subs_count(node) == 2) {
-      label_ident = node_subs_first(node);
+    if (subs_count(node) == 2) {
+      label_ident = subs_first(node);
     }
     break;
   default:
@@ -486,26 +486,26 @@ static error step_excepts_store_label(struct module *mod, struct node *node,
   }
 
   struct node *tryy = module_excepts_get(mod)->tryy;
-  struct node *eblock = node_subs_at(node_subs_first(tryy), 1);
+  struct node *eblock = subs_at(subs_first(tryy), 1);
 
   ident label = ID__NONE;
   error e;
 
   if (label_ident == NULL) {
-    if (node_subs_count_atleast(eblock, 3)) {
+    if (subs_count_atleast(eblock, 3)) {
       e = mk_except(mod, node,
                     "try block has multiple catch,"
                     " %s must use a label", which);
       THROW(e);
     }
 
-    struct node *catch = node_subs_at(eblock, 1);
+    struct node *catch = subs_at(eblock, 1);
     assert(catch->which == CATCH);
     label = catch->as.CATCH.label;
 
   } else {
-    if (!node_subs_count_atleast(eblock, 3)) {
-      struct node *catch = node_subs_at(eblock, 1);
+    if (!subs_count_atleast(eblock, 3)) {
+      struct node *catch = subs_at(eblock, 1);
       assert(catch->which == CATCH);
       if (!catch->as.CATCH.is_user_label) {
         e = mk_except(mod, node,
@@ -561,7 +561,7 @@ static error step_rewrite_union_constructors(struct module *mod, struct node *no
                                              void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct node *fun = node_subs_first(node);
+  struct node *fun = subs_first(node);
   struct node *dfun = typ_definition(fun->typ);
   if (dfun->which != DEFTYPE
       || dfun->as.DEFTYPE.kind != DEFTYPE_UNION) {
@@ -603,11 +603,11 @@ static error do_instantiate(struct node **result,
   set_typ(&node_toplevel(instance)->generic->our_generic_functor_typ, t);
 
   const size_t first = typ_generic_first_explicit_arg(t);
-  struct node *genargs = node_subs_at(instance, IDX_GENARGS);
-  struct node *ga = node_subs_first(genargs);
+  struct node *genargs = subs_at(instance, IDX_GENARGS);
+  struct node *ga = subs_first(genargs);
   for (size_t n = 0; n < first; ++n) {
     node_set_which(ga, SETGENARG);
-    struct node *ga_arg = node_subs_last(ga);
+    struct node *ga_arg = subs_last(ga);
     node_set_which(ga_arg, DIRECTDEF);
     set_typ(&ga_arg->as.DIRECTDEF.typ,
             typ_create_tentative(typ_generic_arg(t, n)));
@@ -618,7 +618,7 @@ static error do_instantiate(struct node **result,
 
   for (size_t n = 0; n < arity; ++n) {
     node_set_which(ga, SETGENARG);
-    struct node *ga_arg = node_subs_last(ga);
+    struct node *ga_arg = subs_last(ga);
     node_set_which(ga_arg, DIRECTDEF);
     set_typ(&ga_arg->as.DIRECTDEF.typ, explicit_args[n]);
     ga_arg->as.DIRECTDEF.flags = NODE_IS_TYPE;
@@ -699,7 +699,7 @@ static error instance(struct node **result,
     error e = do_instantiate(result, mod, t, args, arity, true);
     EXCEPT(e);
 
-    const struct node *fe = node_subs_at_const(for_error, for_error_offset);
+    const struct node *fe = subs_at_const(for_error, for_error_offset);
     for (size_t n = 0; n < arity; ++n) {
       e = unify(mod, fe,
                 typ_generic_arg((*result)->typ, first + n),
@@ -739,7 +739,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
   assert(node->which == UN);
   error e;
   const enum token_type operator = node->as.UN.operator;
-  struct node *term = node_subs_first(node);
+  struct node *term = subs_first(node);
 
   struct node *i = NULL;
   switch (OP_KIND(operator)) {
@@ -817,8 +817,8 @@ static error check_assign_not_types(struct module *mod, struct node *left,
 static error type_inference_bin_sym(struct module *mod, struct node *node) {
   assert(node->which == BIN);
 
-  struct node *left = node_subs_first(node);
-  struct node *right = node_subs_last(node);
+  struct node *left = subs_first(node);
+  struct node *right = subs_last(node);
   const enum token_type operator = node->as.BIN.operator;
 
   error e;
@@ -946,14 +946,14 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
     break;
   }
 
-  const struct node *darg = node_subs_at_const(
-    node_subs_at_const(dfun, IDX_FUNARGS), dmin);
+  const struct node *darg = subs_at_const(
+    subs_at_const(dfun, IDX_FUNARGS), dmin);
   struct node *arg;
   if (dmin == 0) {
     // We use this form, so that 'arg' will be NULL if 'node' it's a unary call.
-    arg = node_next(node_subs_first(node));
+    arg = node_next(subs_first(node));
   } else {
-    arg = node_subs_at(node, dmin + 1);
+    arg = subs_at(node, dmin + 1);
   }
   ssize_t n;
   error e;
@@ -1065,14 +1065,14 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   enum token_type operator = node->as.BIN.operator;
   const struct typ *mark = node->typ;
 
-  struct node *container = node_subs_first(node);
+  struct node *container = subs_first(node);
   struct scope *container_scope = &typ_definition(container->typ)->scope;
   bin_accessor_maybe_ref(&container_scope, mod, container);
   bin_accessor_maybe_defchoice(&container_scope, node, mod, container);
 
   const bool container_is_tentative = typ_is_tentative(scope_node(container_scope)->typ);
 
-  struct node *name = node_subs_last(node);
+  struct node *name = subs_last(node);
   struct node *field = NULL;
   e = scope_lookup_ident_immediate(&field, name, mod, container_scope,
                                    node_ident(name), container_is_tentative);
@@ -1094,7 +1094,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
 
   if (field->which == IMPORT && !field->as.IMPORT.intermediate_mark) {
     e = scope_lookup(&field, mod, &mod->gctx->modules_root.scope,
-                     node_subs_first(field), false);
+                     subs_first(field), false);
     assert(!e);
   }
 
@@ -1135,8 +1135,8 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
 
 static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *node) {
   error e;
-  struct node *left = node_subs_first(node);
-  struct node *right = node_subs_last(node);
+  struct node *left = subs_first(node);
+  struct node *right = subs_last(node);
 
   e = unify(mod, right, right->typ, TBI_U32);
   EXCEPT(e);
@@ -1150,8 +1150,8 @@ static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
 
 static error type_inference_bin_rhs_type(struct module *mod, struct node *node) {
   error e;
-  struct node *left = node_subs_first(node);
-  struct node *right = node_subs_last(node);
+  struct node *left = subs_first(node);
+  struct node *right = subs_last(node);
 
   if (!(right->flags & NODE_IS_TYPE)) {
     e = mk_except_type(mod, right, "right-hand side not a type");
@@ -1189,7 +1189,7 @@ static error type_inference_bin(struct module *mod, struct node *node) {
 }
 
 static error typ_tuple(struct node **result, struct module *mod, struct node *node) {
-  const size_t arity = node_subs_count(node);
+  const size_t arity = subs_count(node);
   struct typ **args = calloc(arity, sizeof(struct typ *));
   size_t n = 0;
   FOREACH_SUB(s, node) {
@@ -1227,8 +1227,8 @@ static error type_inference_tuple(struct module *mod, struct node *node) {
 }
 
 static error type_inference_tupleextract(struct module *mod, struct node *node) {
-  struct node *expr = node_subs_last(node);
-  assert(node_subs_count(node) == typ_generic_arity(expr->typ) + 1
+  struct node *expr = subs_last(node);
+  assert(subs_count(node) == typ_generic_arity(expr->typ) + 1
          && typ_isa(expr->typ, TBI_ANY_TUPLE));
 
   size_t n = 0;
@@ -1240,7 +1240,7 @@ static error type_inference_tupleextract(struct module *mod, struct node *node) 
     n += 1;
   }
 
-  struct node *value = node_subs_last(node);
+  struct node *value = subs_last(node);
   set_typ(&node->typ, value->typ);
   node->flags = value->flags; // Copy all flags, transparent node.
 
@@ -1292,8 +1292,8 @@ static error type_inference_init(struct module *mod, struct node *node) {
 static error type_inference_return(struct module *mod, struct node *node) {
   assert(node->which == RETURN);
 
-  if (node_subs_count_atleast(node, 1)) {
-    struct node *arg = node_subs_first(node);
+  if (subs_count_atleast(node, 1)) {
+    struct node *arg = subs_first(node);
     error e = unify(mod, arg, arg->typ,
                     try_wrap_ref_compatible(mod, node, 0,
                                             module_retval_get(mod)->typ));
@@ -1350,18 +1350,18 @@ static error rewrite_self(struct module *mod, struct node *node,
                           struct node *fun) {
   assert(fun->which == BIN);
 
-  struct node *old_self = node_subs_first(fun);
+  struct node *old_self = subs_first(fun);
   struct node *self;
   if (typ_is_reference(old_self->typ)) {
     node_subs_remove(fun, old_self);
-    node_subs_insert_after(node, node_subs_first(node), old_self);
+    node_subs_insert_after(node, subs_first(node), old_self);
     self = old_self;
   } else {
     node_subs_remove(fun, old_self);
     enum token_type access = refop_for_accop[fun->as.BIN.operator];
     struct node *s = expr_ref(mod, node, access, old_self);
     node_subs_remove(node, s);
-    node_subs_insert_after(node, node_subs_first(node), s);
+    node_subs_insert_after(node, subs_first(node), s);
     self = s;
   }
 
@@ -1385,7 +1385,7 @@ static error try_insert_const_ref(struct module *mod, struct node *node,
   const bool is_named = arg->which == CALLNAMEDARG;
   if (is_named) {
     parent = arg;
-    real_arg = node_subs_first(arg);
+    real_arg = subs_first(arg);
   }
 
   if (typ_is_reference(target) && !typ_is_reference(real_arg->typ)) {
@@ -1425,7 +1425,7 @@ static error try_insert_const_ref(struct module *mod, struct node *node,
 static error process_const_ref_call_arguments(struct module *mod,
                                               struct node *node,
                                               const struct typ *tfun) {
-  if (!node_subs_count_atleast(node, 2)) {
+  if (!subs_count_atleast(node, 2)) {
     return 0;
   }
 
@@ -1435,7 +1435,7 @@ static error process_const_ref_call_arguments(struct module *mod,
   error e;
   ssize_t n = 0;
   struct node *last = NULL;
-  struct node *next = node_subs_at(node, 1);
+  struct node *next = subs_at(node, 1);
   while (next != NULL) {
     if (n == first_vararg) {
       break;
@@ -1458,7 +1458,7 @@ static error process_const_ref_call_arguments(struct module *mod,
       typ_function_arg_const(tfun, n), 0);
 
     struct node *next = last == NULL
-      ? node_next(node_subs_first(node)) : node_next(last);
+      ? node_next(subs_first(node)) : node_next(last);
     while (next != NULL) {
       // We record 'next' now as try_insert_const_ref() may move 'arg'.
       struct node *arg = next;
@@ -1474,13 +1474,13 @@ static error process_const_ref_call_arguments(struct module *mod,
 
 static error prepare_call_arguments(struct module *mod, struct node *node) {
   error e;
-  struct node *fun = node_subs_first(node);
+  struct node *fun = subs_first(node);
 
   const struct node *dfun = typ_definition_const(fun->typ);
   const size_t dmin = node_fun_min_args_count(dfun);
   const size_t dmax = node_fun_max_args_count(dfun);
 
-  const size_t args = node_subs_count(node) - 1;
+  const size_t args = subs_count(node) - 1;
 
   switch (dfun->which) {
   case DEFFUN:
@@ -1491,7 +1491,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
     break;
   case DEFMETHOD:
     if (fun->which == BIN) {
-      if ((node_subs_first(fun)->flags & NODE_IS_TYPE)) {
+      if ((subs_first(fun)->flags & NODE_IS_TYPE)) {
         // Form (type.method self ...).
         if (args < dmin || args > dmax) {
           e = mk_except_call_args_count(mod, node, dfun, false, args);
@@ -1543,8 +1543,8 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
 
 static error explicit_instantiation(struct module *mod, struct node *node) {
   error e;
-  struct typ *t = node_subs_first(node)->typ;
-  const size_t arity = node_subs_count(node) - 1;
+  struct typ *t = subs_first(node)->typ;
+  const size_t arity = subs_count(node) - 1;
 
   const size_t first = typ_generic_first_explicit_arg(t);
   const size_t explicit_arity = typ_generic_arity(t) - first;
@@ -1577,8 +1577,8 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
 
 static error implicit_function_instantiation(struct module *mod, struct node *node) {
   error e;
-  struct typ *tfun = node_subs_first(node)->typ;
-  const size_t arity = node_subs_count(node) - 1;
+  struct typ *tfun = subs_first(node)->typ;
+  const size_t arity = subs_count(node) - 1;
 
   // Already checked in prepare_call_arguments().
   assert(arity == typ_function_arity(tfun));
@@ -1605,7 +1605,7 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
 
   free(args);
 
-  set_typ(&node_subs_first(node)->typ, i->typ);
+  set_typ(&subs_first(node)->typ, i->typ);
   record_topdep(mod, i->typ);
   set_typ(&node->typ, typ_function_return(i->typ));
 
@@ -1613,10 +1613,10 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
 }
 
 static error function_instantiation(struct module *mod, struct node *node) {
-  assert(node_subs_count_atleast(node, 2));
+  assert(subs_count_atleast(node, 2));
 
   error e;
-  if (node_subs_at(node, 1)->flags & NODE_IS_TYPE) {
+  if (subs_at(node, 1)->flags & NODE_IS_TYPE) {
     e = explicit_instantiation(mod, node);
     EXCEPT(e);
   } else {
@@ -1642,17 +1642,17 @@ static error check_consistent_either_types_or_values(struct module *mod,
 }
 
 static error type_inference_explicit_unary_call(struct module *mod, struct node *node, struct node *dfun) {
-  const size_t subs_count = node_subs_count(node);
-  if (dfun->which == DEFFUN && subs_count != 1) {
-    error e = mk_except_call_args_count(mod, node, dfun, false, subs_count - 1);
+  const size_t count = subs_count(node);
+  if (dfun->which == DEFFUN && count != 1) {
+    error e = mk_except_call_args_count(mod, node, dfun, false, count - 1);
     THROW(e);
-  } else if (dfun->which == DEFMETHOD && subs_count != 2) {
-    error e = mk_except_call_args_count(mod, node, dfun, false, subs_count - 1);
+  } else if (dfun->which == DEFMETHOD && count != 2) {
+    error e = mk_except_call_args_count(mod, node, dfun, false, count - 1);
     THROW(e);
   }
 
   if (dfun->which == DEFMETHOD) {
-    struct node *self = node_subs_at(node, 1);
+    struct node *self = subs_at(node, 1);
     error e = unify(mod, self, self->typ,
                     try_wrap_ref_compatible(mod, node, 1,
                                             typ_function_arg(dfun->typ, 0)));
@@ -1666,17 +1666,17 @@ static error type_inference_explicit_unary_call(struct module *mod, struct node 
 
 static error type_inference_call(struct module *mod, struct node *node) {
   error e;
-  struct node *fun = node_subs_first(node);
+  struct node *fun = subs_first(node);
   struct typ *tfun = fun->typ;
   struct node *dfun = typ_definition(tfun);
 
   if (!node_is_fun(dfun)
-      || (node_subs_count_atleast(node, 2)
-          && (node_subs_at(node, 1)->flags & NODE_IS_TYPE))) {
+      || (subs_count_atleast(node, 2)
+          && (subs_at(node, 1)->flags & NODE_IS_TYPE))) {
 
     if (!node_is_fun(dfun)
         && (!node_can_have_genargs(dfun)
-            || !node_subs_count_atleast(node_subs_at(dfun, IDX_GENARGS), 1))) {
+            || !subs_count_atleast(subs_at(dfun, IDX_GENARGS), 1))) {
       e = mk_except_type(mod, fun, "not a generic type");
       THROW(e);
     }
@@ -1695,7 +1695,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
 
   node->flags |= NODE_IS_TEMPORARY;
 
-  if (node_subs_count_atleast(node_subs_at(dfun, IDX_GENARGS), 1)
+  if (subs_count_atleast(subs_at(dfun, IDX_GENARGS), 1)
       && node_toplevel_const(dfun)->generic->our_generic_functor_typ == NULL) {
     e = function_instantiation(mod, node);
     EXCEPT(e);
@@ -1759,11 +1759,11 @@ static error type_inference_block(struct module *mod, struct node *node) {
     }
   }
 
-  if (node_subs_last(node)->which == RETURN) {
+  if (subs_last(node)->which == RETURN) {
     // FIXME: should make sure there are no statements after a RETURN.
     set_typ(&node->typ, TBI_VOID);
   } else {
-    set_typ(&node->typ, node_subs_last(node)->typ);
+    set_typ(&node->typ, subs_last(node)->typ);
   }
 
   return 0;
@@ -1781,10 +1781,10 @@ static error type_inference_if(struct module *mod, struct node *node) {
     EXCEPT(e);
   }
 
-  set_typ(&node->typ, node_subs_at(node, 1)->typ);
+  set_typ(&node->typ, subs_at(node, 1)->typ);
 
-  struct node *last_elif = node_subs_at(node, 1);
-  if (node_subs_count_atleast(node, 3)) {
+  struct node *last_elif = subs_at(node, 1);
+  if (subs_count_atleast(node, 3)) {
     FOREACH_SUB_EVERY(b, node, 3, 2) {
       e = unify(mod, b, node->typ, b->typ);
       EXCEPT(e);
@@ -1792,7 +1792,7 @@ static error type_inference_if(struct module *mod, struct node *node) {
     }
   }
 
-  if (last_elif != node_subs_last(node)) {
+  if (last_elif != subs_last(node)) {
     struct node *els = node_next(last_elif);
     e = unify(mod, els, node->typ, els->typ);
     EXCEPT(e);
@@ -1853,14 +1853,14 @@ static error unify_match_pattern(struct module *mod, struct node *expr, struct n
 static error type_inference_match(struct module *mod, struct node *node) {
   error e;
 
-  struct node *expr = node_subs_first(node);
+  struct node *expr = subs_first(node);
   FOREACH_SUB_EVERY(s, node, 1, 2) {
     e = unify_match_pattern(mod, expr, s);
     EXCEPT(e);
   }
 
-  set_typ(&node->typ, node_subs_at(node, 2)->typ);
-  if (node_subs_count_atleast(node, 4)) {
+  set_typ(&node->typ, subs_at(node, 2)->typ);
+  if (subs_count_atleast(node, 4)) {
     FOREACH_SUB_EVERY(s, node, 4, 2) {
       e = unify(mod, s, s->typ, node->typ);
       EXCEPT(e);
@@ -1877,10 +1877,10 @@ static error unify_try_errors(struct typ **exu, struct module *mod,
 
     switch (exc->which) {
     case THROW:
-      if (node_subs_count(exc) == 2) {
-        exc = node_subs_at(exc, 1);
+      if (subs_count(exc) == 2) {
+        exc = subs_at(exc, 1);
       } else {
-        exc = node_subs_first(exc);
+        exc = subs_first(exc);
       }
       break;
     case DEFNAME:
@@ -1918,8 +1918,8 @@ static error type_inference_try(struct module *mod, struct node *node) {
   e = unify_try_errors(&exu, mod, st);
   EXCEPT(e);
 
-#define f(n) node_subs_first(n)
-#define s(n) node_subs_at(n, 1)
+#define f(n) subs_first(n)
+#define s(n) subs_at(n, 1)
   struct node *elet = f(node);
   struct node *edefp = f(elet);
   struct node *eident = f(edefp);
@@ -2008,7 +2008,7 @@ static struct node *insert_conditioned_phi(struct module *mod,
   vecnode_push(&phi->as.PHI.ancestors, pre_branch_use);
 
   node_subs_remove(block, phi);
-  node_subs_insert_before(block, node_subs_first(block), phi);
+  node_subs_insert_before(block, subs_first(block), phi);
 
   error e = catchup(mod, NULL, phi, &block->scope,
                     is_after_current ? CATCHUP_AFTER_CURRENT
@@ -2127,7 +2127,7 @@ static void track_match_ident_use(struct module *mod, struct node *pattern) {
   assert(pattern->which == IDENT);
   struct node *parent = node_parent(pattern);
   assert(parent->which == MATCH);
-  struct node *expr = node_subs_first(parent);
+  struct node *expr = subs_first(parent);
   assert(expr->which == IDENT);
 
   struct node *def = NULL;
@@ -2181,7 +2181,7 @@ static error step_branch_block_down(struct module *mod, struct node *node,
       st->nth_branch = -1;
     } else if (nth_sub % 2 == 1) {
       st->nth_branch = nth_sub / 2;
-    } else if (node_subs_last_const(parent) == node) {
+    } else if (subs_last_const(parent) == node) {
       // Else branch.
       st->nth_branch = nth_sub / 2 + 1;
     }
@@ -2321,7 +2321,7 @@ static error step_record_current_statement(struct module *mod, struct node *node
 static bool is_name_of_globalenv(const struct node *node) {
   const struct node *parent = node_parent_const(node);
   if (parent->which == TYPECONSTRAINT
-      && node_subs_first_const(parent) == node) {
+      && subs_first_const(parent) == node) {
     const struct node *pparent = node_parent_const(parent);
     return pparent->which == DEFPATTERN && pparent->as.DEFPATTERN.is_globalenv;
   } else {
@@ -2400,12 +2400,12 @@ static error type_inference_within(struct module *mod, struct node *node) {
 
   error e;
   struct node *def = NULL;
-  struct node *first = node_subs_first(node);
+  struct node *first = subs_first(node);
 
   if (node->which == WITHIN) {
     const struct node *modbody = NULL;
     if (first->which == BIN) {
-      struct node *ffirst = node_subs_first(first);
+      struct node *ffirst = subs_first(first);
       e = type_inference_within(mod, ffirst);
       EXCEPT(e);
 
@@ -2424,7 +2424,7 @@ static error type_inference_within(struct module *mod, struct node *node) {
 
     e = scope_lookup_ident_immediate(&def, node, mod,
                                      &modbody->as.MODULE_BODY.globalenv_scope,
-                                     node_ident(node_subs_last_const(node)), false);
+                                     node_ident(subs_last_const(node)), false);
     EXCEPT(e);
   } else if (node->which == IDENT) {
     e = scope_lookup(&def, mod, &node->scope, node, false);
@@ -2435,7 +2435,7 @@ static error type_inference_within(struct module *mod, struct node *node) {
 
     e = scope_lookup_ident_immediate(&def, node,
                                      mod, &typ_definition(first->typ)->scope,
-                                     node_ident(node_subs_last_const(node)), false);
+                                     node_ident(subs_last_const(node)), false);
     EXCEPT(e);
   } else {
     goto malformed;
@@ -2509,7 +2509,7 @@ error step_type_inference(struct module *mod, struct node *node,
 
     if (node->as.DEFNAME.is_excep) {
       struct node *tryy = module_excepts_get(mod)->tryy;
-      struct node *err = node_subs_at(node_subs_first(node_subs_first(tryy)), 1);
+      struct node *err = subs_at(subs_first(subs_first(tryy)), 1);
       assert(err->which == DEFNAME);
       e = unify(mod, node, node->typ, err->typ);
       EXCEPT(e);
@@ -2575,7 +2575,7 @@ error step_type_inference(struct module *mod, struct node *node,
     set_typ(&node->typ, typ_create_tentative(TBI_COPYABLE));
     break;
   case CALLNAMEDARG:
-    set_typ(&node->typ, node_subs_first(node)->typ);
+    set_typ(&node->typ, subs_first(node)->typ);
     break;
   case CALL:
     e = type_inference_call(mod, node);
@@ -2594,14 +2594,14 @@ error step_type_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case CATCH:
-    set_typ(&node->typ, node_subs_last(node)->typ);
+    set_typ(&node->typ, subs_last(node)->typ);
     break;
   case THROW:
     {
       struct node *tryy = module_excepts_get(mod)->tryy;
-      struct node *err = node_subs_at(node_subs_first(node_subs_first(tryy)), 1);
+      struct node *err = subs_at(subs_first(subs_first(tryy)), 1);
       assert(err->which == DEFNAME);
-      e = unify(mod, node, node_subs_last(node)->typ, err->typ);
+      e = unify(mod, node, subs_last(node)->typ, err->typ);
       EXCEPT(e);
       set_typ(&node->typ, TBI_VOID);
       break;
@@ -2617,9 +2617,9 @@ error step_type_inference(struct module *mod, struct node *node,
     break;
   case FOR:
     set_typ(&node->typ, TBI_VOID);
-    struct node *it = node_subs_at(
-      node_subs_at(
-        node_subs_at(node, IDX_FOR_IT),
+    struct node *it = subs_at(
+      subs_at(
+        subs_at(node, IDX_FOR_IT),
         IDX_FOR_IT_DEFP),
       IDX_FOR_IT_DEFP_DEFN);
 
@@ -2637,10 +2637,10 @@ error step_type_inference(struct module *mod, struct node *node,
     break;
   case WHILE:
     set_typ(&node->typ, TBI_VOID);
-    struct node *cond = node_subs_first(node);
+    struct node *cond = subs_first(node);
     e = unify(mod, cond, cond->typ, typ_create_tentative(TBI_GENERALIZED_BOOLEAN));
     EXCEPT(e);
-    struct node *block = node_subs_at(node, 1);
+    struct node *block = subs_at(node, 1);
     e = typ_check_equal(mod, block, block->typ, TBI_VOID);
     EXCEPT(e);
     break;
@@ -2653,26 +2653,26 @@ error step_type_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case DYN:
-    assert(typ_is_reference(node_subs_first(node)->typ));
+    assert(typ_is_reference(subs_first(node)->typ));
     set_typ(&node->typ, node->as.DYN.intf_typ);
     break;
   case TYPECONSTRAINT:
     if (node->as.TYPECONSTRAINT.is_constraint) {
-      set_typ(&node->typ, node_subs_first(node)->typ);
+      set_typ(&node->typ, subs_first(node)->typ);
     } else {
-      set_typ(&node->typ, node_subs_first(node)->typ);
-      e = unify(mod, node_subs_first(node),
-                node_subs_first(node)->typ, node_subs_last(node)->typ);
+      set_typ(&node->typ, subs_first(node)->typ);
+      e = unify(mod, subs_first(node),
+                subs_first(node)->typ, subs_last(node)->typ);
       EXCEPT(e);
     }
-    node->flags |= node_subs_first(node)->flags;
-    node->flags |= node_subs_last(node)->flags & NODE__ASSIGN_TRANSITIVE;
+    node->flags |= subs_first(node)->flags;
+    node->flags |= subs_last(node)->flags & NODE__ASSIGN_TRANSITIVE;
     // Copy flags back, as TYPECONSTRAINT are elided in
     // step_remove_typeconstraints().
-    node_subs_first(node)->flags |= node->flags;
+    subs_first(node)->flags |= node->flags;
     break;
   case DEFARG:
-    set_typ(&node->typ, node_subs_at(node, 1)->typ);
+    set_typ(&node->typ, subs_at(node, 1)->typ);
     if (node->as.DEFARG.is_optional) {
       e = typ_check_isa(mod, node, node->typ, TBI_ANY_NULLABLE_REF);
       EXCEPT(e);
@@ -2688,15 +2688,15 @@ error step_type_inference(struct module *mod, struct node *node,
     break;
   case DEFGENARG:
   case SETGENARG:
-    set_typ(&node->typ, node_subs_at(node, 1)->typ);
+    set_typ(&node->typ, subs_at(node, 1)->typ);
     node->flags |= NODE_IS_TYPE;
     break;
   case DEFFIELD:
-    set_typ(&node->typ, node_subs_at(node, 1)->typ);
+    set_typ(&node->typ, subs_at(node, 1)->typ);
     break;
   case LET:
     if (node_has_tail_block(node)) {
-      set_typ(&node->typ, node_subs_last(node)->typ);
+      set_typ(&node->typ, subs_last(node)->typ);
     } else {
       set_typ(&node->typ, TBI_VOID);
     }
@@ -2712,8 +2712,8 @@ error step_type_inference(struct module *mod, struct node *node,
     set_typ(&node->typ, TBI_VOID);
     break;
   case WITHIN:
-    if (node_subs_count_atleast(node, 1)
-        && node_subs_first(node)->which != WITHIN) {
+    if (subs_count_atleast(node, 1)
+        && subs_first(node)->which != WITHIN) {
       e = type_inference_within(mod, node);
       EXCEPT(e);
     } else {
@@ -2730,8 +2730,8 @@ error step_type_inference(struct module *mod, struct node *node,
     node->flags = NODE_IS_TYPE;
     break;
   case ISA:
-    set_typ(&node->typ, node_subs_first(node)->typ);
-    node->flags = node_subs_first(node)->flags & NODE__TRANSITIVE;
+    set_typ(&node->typ, subs_first(node)->typ);
+    node->flags = subs_first(node)->flags & NODE__TRANSITIVE;
     break;
   case DIRECTDEF:
     set_typ(&node->typ, node->as.DIRECTDEF.typ);
@@ -2767,7 +2767,7 @@ error step_remove_typeconstraints(struct module *mod, struct node *node,
 
   if (!node->as.TYPECONSTRAINT.in_pattern) {
     struct typ *saved = node->typ;
-    struct node *sub = node_subs_first(node);
+    struct node *sub = subs_first(node);
     node_move_content(node, sub);
     set_typ(&node->typ, saved);
 
@@ -2875,7 +2875,7 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
   }
 
   if (node->which == DEFINTF) {
-    struct node *isal = node_subs_at(node, IDX_ISALIST);
+    struct node *isal = subs_at(node, IDX_ISALIST);
     FOREACH_SUB(isa, isal) {
       assert(!typ_is_tentative(isa->typ));
     }
@@ -3115,12 +3115,12 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   switch (node->which) {
   case UN:
     op = node->as.UN.operator;
-    left = node_subs_first(node);
+    left = subs_first(node);
     break;
   case BIN:
     op = node->as.BIN.operator;
-    left = node_subs_first(node);
-    right = node_subs_last(node);
+    left = subs_first(node);
+    right = subs_last(node);
     break;
   default:
     assert(false && "Unreached");
@@ -3176,7 +3176,7 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
 }
 
 static error gen_operator_test_call(struct module *mod, struct node *node, size_t n) {
-  struct node *expr = node_subs_at(node, n);
+  struct node *expr = subs_at(node, n);
   if (typ_equal(expr->typ, TBI_BOOL)) {
     return 0;
   }
@@ -3272,7 +3272,7 @@ static bool expr_is_literal_initializer(struct node **expr, struct module *mod, 
     }
     return true;
   } else if (node->which == BLOCK) {
-    return expr_is_literal_initializer(expr, mod, node_subs_last(node));
+    return expr_is_literal_initializer(expr, mod, subs_last(node));
   } else {
     return false;
   }
@@ -3289,15 +3289,15 @@ static bool expr_is_return_through_ref(struct node **expr, struct module *mod, s
     *expr = node;
     return true;
   } else if (node->which == BLOCK) {
-    return expr_is_return_through_ref(expr, mod, node_subs_last(node));
+    return expr_is_return_through_ref(expr, mod, subs_last(node));
   } else {
     return false;
   }
 }
 
 static error assign_copy_call_inference(struct module *mod, struct node *node) {
-  struct node *left = node_subs_first(node);
-  struct node *right = node_subs_at(node, 1);
+  struct node *left = subs_first(node);
+  struct node *right = subs_at(node, 1);
 
   node_subs_remove(node, left);
   node_subs_remove(node, right);
@@ -3315,7 +3315,7 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
 
   struct node *within;
   if (node_has_tail_block(let)) {
-    within = node_subs_last(let);
+    within = subs_last(let);
   } else {
     within = mk_node(mod, let, BLOCK);
     struct node *to_remove = mk_node(mod, within, NOOP);
@@ -3357,8 +3357,8 @@ static error step_copy_call_inference(struct module *mod, struct node *node,
   switch (node->which) {
   case BIN:
     if (node->as.BIN.operator == TASSIGN) {
-      left = node_subs_first(node);
-      right = node_subs_last(node);
+      left = subs_first(node);
+      right = subs_last(node);
       break;
     }
     return 0;
@@ -3585,19 +3585,19 @@ static error step_dyn_inference(struct module *mod, struct node *node,
   error e;
   switch (node->which) {
   case RETURN:
-    if (!node_subs_count_atleast(node, 1)) {
+    if (!subs_count_atleast(node, 1)) {
       return 0;
     }
     target = module_retval_get(mod);
-    src = node_subs_first(node);
+    src = subs_first(node);
 
     e = try_insert_dyn(&src, mod, node, target->typ);
     EXCEPT(e);
     return 0;
   case BIN:
     if (node->as.BIN.operator == TASSIGN) {
-      target = node_subs_first(node);
-      src = node_subs_at(node, 1);
+      target = subs_first(node);
+      src = subs_at(node, 1);
       e = try_insert_dyn(&src, mod, node, target->typ);
       EXCEPT(e);
     }
@@ -3613,8 +3613,8 @@ static error step_dyn_inference(struct module *mod, struct node *node,
     }
     return 0;
   case TYPECONSTRAINT:
-    target = node_subs_first(node);
-    src = node_subs_last(node);
+    target = subs_first(node);
+    src = subs_last(node);
     e = try_insert_dyn(&src, mod, node, target->typ);
     EXCEPT(e);
     return 0;
@@ -3627,9 +3627,9 @@ static error step_dyn_inference(struct module *mod, struct node *node,
     ( (target)->as.DEFARG.is_vararg \
       ? typ_generic_arg((target)->typ, 0) : (target)->typ)
 
-    const struct node *funargs = node_subs_at_const(
-      typ_definition_const(node_subs_first_const(node)->typ), IDX_FUNARGS);
-    const struct node *target = node_subs_first_const(funargs);
+    const struct node *funargs = subs_at_const(
+      typ_definition_const(subs_first_const(node)->typ), IDX_FUNARGS);
+    const struct node *target = subs_first_const(funargs);
 
     FOREACH_SUB_EVERY(src, node, 1, 1) {
       e = try_insert_dyn(&src, mod, node, GET_TYP(target));
@@ -3668,7 +3668,7 @@ static void block_insert_value_assign(struct module *mod, struct node *block,
                                       struct node *target, ident target_name) {
   assert(block->which == BLOCK);
 
-  struct node *last = node_subs_last(block);
+  struct node *last = subs_last(block);
 
   struct node *assign = mk_node(mod, block, BIN);
   assign->as.BIN.operator = TASSIGN;
@@ -3698,14 +3698,14 @@ static void block_like_insert_value_assign(struct module *mod, struct node *node
       block_insert_value_assign(mod, b, target, target_name);
       last_elif = b;
     }
-    if (last_elif != node_subs_last(node)) {
-      struct node *els = node_subs_last(node);
+    if (last_elif != subs_last(node)) {
+      struct node *els = subs_last(node);
       block_insert_value_assign(mod, els, target, target_name);
     }
     break;
   case TRY:
-    block_insert_value_assign(mod, node_subs_first(node), target, target_name);
-    block_insert_value_assign(mod, node_subs_at(node, 2), target, target_name);
+    block_insert_value_assign(mod, subs_first(node), target, target_name);
+    block_insert_value_assign(mod, subs_at(node, 2), target, target_name);
     // FIXME: other CATCH blocks?
     break;
   case MATCH:
@@ -3730,8 +3730,8 @@ static error step_move_assign_in_block_like(struct module *mod, struct node *nod
     return 0;
   }
 
-  struct node *left = node_subs_first(node);
-  struct node *right = node_subs_last(node);
+  struct node *left = subs_first(node);
+  struct node *right = subs_last(node);
   if (!is_block_like(right)) {
     return 0;
   }
@@ -3749,8 +3749,8 @@ static error step_move_assign_in_block_like(struct module *mod, struct node *nod
 
 static const struct node *retval_name(struct module *mod) {
   const struct node *retval = module_retval_get(mod);
-  assert(node_subs_count_atleast(retval, 1));
-  return node_subs_first_const(retval);
+  assert(subs_count_atleast(retval, 1));
+  return subs_first_const(retval);
 }
 
 static STEP_FILTER(step_store_return_through_ref_expr,
@@ -3767,12 +3767,12 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
 
   switch (node->which) {
   case RETURN:
-    if (!node_subs_count_atleast(node, 1)
-        || typ_equal(node_subs_first(node)->typ, TBI_VOID)) {
+    if (!subs_count_atleast(node, 1)
+        || typ_equal(subs_first(node)->typ, TBI_VOID)) {
       return 0;
     }
 
-    expr = node_subs_first(node);
+    expr = subs_first(node);
     if (expr_is_return_through_ref(&real_expr, mod, expr)) {
       // Keep node->as.RETURN.return_through_ref_expr null as the
       // subexpression CALL or INIT will directly write to it.
@@ -3823,8 +3823,8 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
     if (!OP_IS_ASSIGN(node->as.BIN.operator)) {
       return 0;
     }
-    struct node *left = node_subs_first(node);
-    struct node *right = node_subs_last(node);
+    struct node *left = subs_first(node);
+    struct node *right = subs_last(node);
     if (expr_is_literal_initializer(&real_expr, mod, right)) {
       real_expr->as.INIT.target_expr = left;
     } else if (expr_is_return_through_ref(&real_expr, mod, right)) {
@@ -3884,7 +3884,7 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
   switch (node->which) {
   case UN:
     if (OP_KIND(node->as.UN.operator) == OP_UN_REFOF
-        && node_is_rvalue(node_subs_first(node))) {
+        && node_is_rvalue(subs_first(node))) {
       temporaries_add(temps, node);
     }
     break;
@@ -3926,7 +3926,7 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
     temporaries_add(temps, node);
     break;
   case TUPLEEXTRACT:
-    if (node_subs_last(node)->which != IDENT) {
+    if (subs_last(node)->which != IDENT) {
       temporaries_add(temps, node);
     }
     break;
@@ -4002,8 +4002,8 @@ static error declare_temporaries(struct module *mod, struct node *statement,
     if (prev != NULL) {
       node_subs_insert_after(let, prev, defp);
     } else {
-      if (node_subs_count_atleast(let, 1)) {
-        node_subs_insert_before(let, node_subs_first(let), defp);
+      if (subs_count_atleast(let, 1)) {
+        node_subs_insert_before(let, subs_first(let), defp);
       } else {
         node_subs_append(let, defp);
       }
@@ -4089,7 +4089,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
     except[1] = NULL;
 
     if (saved.which == UN && OP_KIND(saved.as.UN.operator) == OP_UN_REFOF) {
-      struct node *rv1 = node_subs_first(&saved);
+      struct node *rv1 = subs_first(&saved);
       node_subs_remove(&saved, rv1);
       node_subs_append(assign, rv1);
       rv1->flags |= NODE_IS_TEMPORARY;
@@ -4101,13 +4101,13 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
       nvalue_name->as.IDENT.name = g;
 
     } else if (saved.which == TUPLEEXTRACT) {
-      struct node *tuple = node_subs_last(&saved);
+      struct node *tuple = subs_last(&saved);
       node_subs_remove(&saved, tuple);
       node_subs_append(assign, tuple);
       except[0] = tuple;
 
       struct node *extractor = mk_node(mod, block, TUPLEEXTRACT);
-      struct node *nth = node_subs_first(&saved);
+      struct node *nth = subs_first(&saved);
       struct node *next_nth = NULL;
       for (size_t n = 0; n < typ_generic_arity(tuple->typ); ++n) {
         // We want to reuse the original TUPLENTH from 'rv' as they may be

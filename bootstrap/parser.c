@@ -615,10 +615,10 @@ bool node_is_rvalue(const struct node *node) {
   case CALL:
     return true;
   case TYPECONSTRAINT:
-    return node_is_rvalue(node_subs_first_const(node));
+    return node_is_rvalue(subs_first_const(node));
   case BLOCK:
-    return node_subs_count_atleast(node, 1)
-      && node_is_rvalue(node_subs_last_const(node));
+    return subs_count_atleast(node, 1)
+      && node_is_rvalue(subs_last_const(node));
   case IF:
   case TRY:
   case MATCH:
@@ -917,7 +917,7 @@ static error scan_oneof(struct token *tok, struct module *mod, ...) {
 }
 
 void node_invariant(const struct node *node) {
-  assert(node_subs_count(node) != 1 || node->subs_first == node->subs_last);
+  assert(subs_count(node) != 1 || node->subs_first == node->subs_last);
   assert(node->subs_first != node && node->subs_last != node);
 
   ssize_t n = 0;
@@ -939,7 +939,7 @@ void node_invariant(const struct node *node) {
 
   switch (node->which) {
   case IF:
-    assert(node_subs_count_atleast(node, 2));
+    assert(subs_count_atleast(node, 2));
     break;
   case DEFNAME:
     assert(node->as.DEFNAME.pattern == NULL
@@ -978,8 +978,8 @@ void node_move_content(struct node *dst, struct node *src) {
 
   dst->prev = prev;
   dst->next = next;
-  dst->subs_first = node_subs_first(&copy);
-  dst->subs_last = node_subs_last(&copy);
+  dst->subs_first = subs_first(&copy);
+  dst->subs_last = subs_last(&copy);
 
   fix_scopes_after_move(dst);
 }
@@ -1001,27 +1001,27 @@ struct node *node_new_subnode(struct module *mod, struct node *node) {
 EXAMPLE(node_subs) {
   struct node n = { 0 };
   struct node a = { 0 };
-  assert(node_subs_count_atleast(&n, 0));
-  assert(!node_subs_count_atleast(&n, 1));
+  assert(subs_count_atleast(&n, 0));
+  assert(!subs_count_atleast(&n, 1));
   node_subs_append(&n, &a);
-  assert(node_subs_count(&n) == 1);
-  assert(node_subs_count_atleast(&n, 0));
-  assert(node_subs_count_atleast(&n, 1));
-  assert(!node_subs_count_atleast(&n, 2));
-  assert(&a == node_subs_first(&n));
-  assert(&a == node_subs_last(&n));
+  assert(subs_count(&n) == 1);
+  assert(subs_count_atleast(&n, 0));
+  assert(subs_count_atleast(&n, 1));
+  assert(!subs_count_atleast(&n, 2));
+  assert(&a == subs_first(&n));
+  assert(&a == subs_last(&n));
   assert(NULL == node_next(&a));
   assert(NULL == node_prev(&a));
 
   struct node b = { 0 };
   node_subs_append(&n, &b);
-  assert(node_subs_count(&n) == 2);
-  assert(node_subs_count_atleast(&n, 0));
-  assert(node_subs_count_atleast(&n, 1));
-  assert(node_subs_count_atleast(&n, 2));
-  assert(!node_subs_count_atleast(&n, 3));
-  assert(&a == node_subs_first(&n));
-  assert(&b == node_subs_last(&n));
+  assert(subs_count(&n) == 2);
+  assert(subs_count_atleast(&n, 0));
+  assert(subs_count_atleast(&n, 1));
+  assert(subs_count_atleast(&n, 2));
+  assert(!subs_count_atleast(&n, 3));
+  assert(&a == subs_first(&n));
+  assert(&b == subs_last(&n));
   assert(&b == node_next(&a));
   assert(NULL == node_prev(&a));
   assert(NULL == node_next(&b));
@@ -1031,22 +1031,22 @@ EXAMPLE(node_subs) {
   node_subs_replace(&n, &a, &c);
   assert(node_next(&a) == NULL);
   assert(node_prev(&a) == NULL);
-  assert(node_subs_count(&n) == 2);
-  assert(node_subs_count_atleast(&n, 0));
-  assert(node_subs_count_atleast(&n, 1));
-  assert(node_subs_count_atleast(&n, 2));
-  assert(!node_subs_count_atleast(&n, 3));
-  assert(&c == node_subs_first(&n));
-  assert(&b == node_subs_last(&n));
+  assert(subs_count(&n) == 2);
+  assert(subs_count_atleast(&n, 0));
+  assert(subs_count_atleast(&n, 1));
+  assert(subs_count_atleast(&n, 2));
+  assert(!subs_count_atleast(&n, 3));
+  assert(&c == subs_first(&n));
+  assert(&b == subs_last(&n));
   assert(&b == node_next(&c));
   assert(NULL == node_prev(&c));
   assert(NULL == node_next(&b));
   assert(&c == node_prev(&b));
 
   node_subs_insert_after(&n, &c, &a);
-  assert(node_subs_count(&n) == 3);
-  assert(&c == node_subs_first(&n));
-  assert(&b == node_subs_last(&n));
+  assert(subs_count(&n) == 3);
+  assert(&c == subs_first(&n));
+  assert(&b == subs_last(&n));
   assert(&a == node_next(&c));
   assert(&b == node_next(&a));
   assert(NULL == node_next(&b));
@@ -1055,18 +1055,18 @@ EXAMPLE(node_subs) {
   assert(&a == node_prev(&b));
 
   node_subs_remove(&n, &b);
-  assert(node_subs_count(&n) == 2);
-  assert(&c == node_subs_first(&n));
-  assert(&a == node_subs_last(&n));
+  assert(subs_count(&n) == 2);
+  assert(&c == subs_first(&n));
+  assert(&a == subs_last(&n));
   assert(&a == node_next(&c));
   assert(NULL == node_prev(&c));
   assert(NULL == node_next(&a));
   assert(&c == node_prev(&a));
 
   node_subs_insert_before(&n, &a, &b);
-  assert(node_subs_count(&n) == 3);
-  assert(&c == node_subs_first(&n));
-  assert(&a == node_subs_last(&n));
+  assert(subs_count(&n) == 3);
+  assert(&c == subs_first(&n));
+  assert(&a == subs_last(&n));
   assert(&b == node_next(&c));
   assert(&a == node_next(&b));
   assert(NULL == node_next(&a));
@@ -1076,8 +1076,8 @@ EXAMPLE(node_subs) {
 }
 
 bool node_has_tail_block(const struct node *node) {
-  return node_subs_count_atleast(node, 1)
-    && node_subs_last_const(node)->which == BLOCK;
+  return subs_count_atleast(node, 1)
+    && subs_last_const(node)->which == BLOCK;
 }
 
 bool node_is_fun(const struct node *node) {
@@ -1085,7 +1085,7 @@ bool node_is_fun(const struct node *node) {
 }
 
 size_t node_fun_all_args_count(const struct node *def) {
-  return node_subs_count(node_subs_at_const(def, IDX_FUNARGS)) - 1;
+  return subs_count(subs_at_const(def, IDX_FUNARGS)) - 1;
 }
 
 size_t node_fun_min_args_count(const struct node *def) {
@@ -1126,8 +1126,8 @@ ssize_t node_fun_first_vararg(const struct node *def) {
 
 const struct node *node_fun_retval_const(const struct node *def) {
   assert(def->which == DEFFUN || def->which == DEFMETHOD);
-  const struct node *funargs = node_subs_at_const(def, IDX_FUNARGS);
-  return node_subs_last_const(funargs);
+  const struct node *funargs = subs_at_const(def, IDX_FUNARGS);
+  return subs_last_const(funargs);
 }
 
 struct node *node_fun_retval(struct node *def) {
@@ -1146,7 +1146,7 @@ const struct node *node_get_member_const(const struct module *mod, const struct 
 }
 
 size_t node_branching_exhaustive_branch_count(struct node *node) {
-  const size_t n = node_subs_count(node);
+  const size_t n = subs_count(node);
   switch (node->which) {
   case IF:
     // Always include the else case, even if implicit:
@@ -1159,9 +1159,9 @@ size_t node_branching_exhaustive_branch_count(struct node *node) {
     return n / 2;
   case TRY:
     {
-      struct node *elet = node_subs_first(node);
-      struct node *eblock = node_subs_at(elet, 1);
-      return node_subs_count(eblock);
+      struct node *elet = subs_first(node);
+      struct node *eblock = subs_at(elet, 1);
+      return subs_count(eblock);
     }
   default:
     assert(false);
@@ -1175,20 +1175,20 @@ struct node *node_branching_nth_cond(struct node *node, ssize_t nth) {
   switch (node->which) {
   case IF:
     {
-      const size_t count = node_subs_count(node);
+      const size_t count = subs_count(node);
       if (nth == count/2 + 1) {
         // else cond
         return NULL;
       }
-      return node_subs_at(node, 2*nth);
+      return subs_at(node, 2*nth);
     }
   case WHILE:
-    return node_subs_at(node, 0);
+    return subs_at(node, 0);
   case FOR:
-    return node_subs_at(node_subs_at(node_subs_at(
+    return subs_at(subs_at(subs_at(
           node, IDX_FOR_IT_BLOCK), IDX_FOR_IT_BLOCK_WHILE), 0);
   case MATCH:
-    return node_subs_at(node, 2*nth + 1);
+    return subs_at(node, 2*nth + 1);
   case TRY:
     return NULL;
   default:
@@ -1203,26 +1203,26 @@ struct node *node_branching_nth_branch(struct node *node, ssize_t nth) {
   switch (node->which) {
   case IF:
     {
-      const size_t count = node_subs_count(node);
+      const size_t count = subs_count(node);
       if (nth == count/2 + 1) {
         assert(count % 2 == 1);
         // else branch
-        return node_subs_last(node);
+        return subs_last(node);
       }
-      return node_subs_at(node, 2*nth + 1);
+      return subs_at(node, 2*nth + 1);
     }
   case WHILE:
-    return node_subs_at(node, 1);
+    return subs_at(node, 1);
   case FOR:
-    return node_subs_at(node_subs_at(node_subs_at(
+    return subs_at(subs_at(subs_at(
           node, IDX_FOR_IT_BLOCK), IDX_FOR_IT_BLOCK_WHILE), IDX_FOR_IT_BLOCK_WHILE_BLOCK);
   case MATCH:
-    return node_subs_at(node, 2*nth + 2);
+    return subs_at(node, 2*nth + 2);
   case TRY:
     {
-      struct node *elet = node_subs_first(node);
-      struct node *eblock = node_subs_at(elet, 1);
-      return node_subs_at(eblock, nth);
+      struct node *elet = subs_first(node);
+      struct node *eblock = subs_at(elet, 1);
+      return subs_at(eblock, nth);
     }
   default:
     assert(false);
@@ -2014,7 +2014,7 @@ static error p_defpattern(struct node *node, struct module *mod,
   EXCEPT(e);
 
   if (node->as.DEFPATTERN.is_globalenv) {
-    struct node *n = node_subs_first(node);
+    struct node *n = subs_first(node);
     if (n->which != TYPECONSTRAINT) {
       e = mk_except(mod, node, "malformed expression, must be:"
                     " globalenv name:type");
@@ -2036,7 +2036,7 @@ static error p_defpattern(struct node *node, struct module *mod,
   EXCEPT(e);
 
   node_subs_remove(node, expr);
-  node_subs_insert_before(node, node_subs_first(node), expr);
+  node_subs_insert_before(node, subs_first(node), expr);
 
   return 0;
 }
@@ -2199,7 +2199,7 @@ static error p_statement(struct node *parent, struct module *mod) {
   case Talias:
     e = p_let((tok.t == Tlet || tok.t == Talias)
               ? NEW
-              : node_subs_last(parent),
+              : subs_last(parent),
               mod, NULL, tok.t);
     break;
   case Tfor:
@@ -2309,8 +2309,8 @@ static error p_defret(struct node *node, struct module *mod) {
   EXCEPT(e);
 
   if (first->which == TYPECONSTRAINT) {
-    struct node *left = node_subs_first(first);
-    struct node *right = node_subs_last(first);
+    struct node *left = subs_first(first);
+    struct node *right = subs_last(first);
     node_subs_remove(first, left);
     node_subs_remove(first, right);
 
@@ -2334,7 +2334,7 @@ static void add_self_arg(struct module *mod, struct node *node,
   name->as.IDENT.name = ID_SELF;
 
   if (node->as.DEFMETHOD.access == TREFWILDCARD) {
-    struct node *genargs = node_subs_at(node, IDX_GENARGS);
+    struct node *genargs = subs_at(node, IDX_GENARGS);
     struct node *ga = mk_node(mod, genargs, DEFGENARG);
     struct node *gan = mk_node(mod, ga, IDENT);
     gan->as.IDENT.name = ID_WILDCARD_REF_ARG;
@@ -2397,7 +2397,7 @@ static void count_args(struct node *def) {
     return;
   }
 
-  const struct node *funargs = node_subs_at_const(def, IDX_FUNARGS);
+  const struct node *funargs = subs_at_const(def, IDX_FUNARGS);
   *max = node_fun_all_args_count(def);
   *min = *max;
 
@@ -2441,7 +2441,7 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     assert(false);
   }
 
-  struct node *name = node_subs_first(node);
+  struct node *name = subs_first(node);
   e = p_expr(name, mod, T__CALL);
   EXCEPT(e);
 
@@ -2518,7 +2518,7 @@ retval:
 }
 
 static error p_isalist(struct node *parent, struct module *mod, bool is_export) {
-  struct node *isalist = node_subs_at(parent, IDX_ISALIST);
+  struct node *isalist = subs_at(parent, IDX_ISALIST);
 
   error e;
   struct token tok = { 0 };
@@ -2685,7 +2685,7 @@ again:
   e = scan(&tok, mod);
   EXCEPT(e);
   if (tok.t == terminator) {
-    if (!explicit && node_subs_first(node) == NULL) {
+    if (!explicit && subs_first(node) == NULL) {
       UNEXPECTED(mod, &tok);
     }
     return 0;
@@ -2703,7 +2703,7 @@ static error p_deftype(struct node *node, struct module *mod,
                        struct node *some_genargs, struct toplevel *toplevel,
                        enum token_type decl_tok) {
   if (some_genargs != NULL) {
-    toplevel->generic->first_explicit_genarg = node_subs_count(some_genargs);
+    toplevel->generic->first_explicit_genarg = subs_count(some_genargs);
   }
 
   node_set_which(node, DEFTYPE);
@@ -2723,10 +2723,10 @@ static error p_deftype(struct node *node, struct module *mod,
     break;
   }
 
-  error e = p_ident(node_subs_first(node), mod);
+  error e = p_ident(subs_first(node), mod);
   EXCEPT(e);
 
-  e = p_genargs(node_subs_at(node, IDX_GENARGS), mod, TASSIGN, true);
+  e = p_genargs(subs_at(node, IDX_GENARGS), mod, TASSIGN, true);
   EXCEPT(e);
 
   (void)mk_node(mod, node, ISALIST);
@@ -2780,14 +2780,14 @@ again:
     tok = tok2;
     goto again;
   case Tfun:
-    if (node_subs_first(node) == NULL) {
+    if (subs_first(node) == NULL) {
       (void)node_new_subnode(mod, node);
       (void)mk_node(mod, node, GENARGS);
     }
     e = p_deffun(node, mod, &toplevel, DEFFUN);
     break;
   case Tmethod:
-    if (node_subs_first(node) == NULL) {
+    if (subs_first(node) == NULL) {
       (void)node_new_subnode(mod, node);
       (void)mk_node(mod, node, GENARGS);
     }
@@ -2855,22 +2855,22 @@ again:
 static error p_defintf(struct node *node, struct module *mod,
                        struct node *some_genargs, struct toplevel *toplevel) {
   if (some_genargs != NULL) {
-    toplevel->generic->first_explicit_genarg = node_subs_count(some_genargs);
+    toplevel->generic->first_explicit_genarg = subs_count(some_genargs);
   }
 
   node_set_which(node, DEFINTF);
   node->as.DEFINTF.toplevel = *toplevel;
 
   struct token tok = { 0 };
-  error e = p_ident(node_subs_first(node), mod);
+  error e = p_ident(subs_first(node), mod);
   EXCEPT(e);
 
-  if (idents_value(mod->gctx, node_ident(node_subs_first(node)))[0] != '`') {
-    e = mk_except(mod, node_subs_first(node), "intf name doesn't start with '`'");
+  if (idents_value(mod->gctx, node_ident(subs_first(node)))[0] != '`') {
+    e = mk_except(mod, subs_first(node), "intf name doesn't start with '`'");
     THROW(e);
   }
 
-  e = p_genargs(node_subs_at(node, IDX_GENARGS), mod, TASSIGN, true);
+  e = p_genargs(subs_at(node, IDX_GENARGS), mod, TASSIGN, true);
   EXCEPT(e);
 
   (void)mk_node(mod, node, ISALIST);
@@ -2925,7 +2925,7 @@ void defincomplete_add_field(struct module *mod, const struct node *for_error,
 
 void defincomplete_add_isa(struct module *mod, const struct node *for_error,
                            struct node *dinc, struct typ *tisa) {
-  struct node *isalist = node_subs_at(dinc, IDX_ISALIST);
+  struct node *isalist = subs_at(dinc, IDX_ISALIST);
   struct node *isa = mk_node(mod, isalist, ISA);
   isa->codeloc = for_error->codeloc;
   struct node *dd = mk_node(mod, isa, DIRECTDEF);
@@ -2957,8 +2957,8 @@ int snprint_defincomplete(char *s, size_t len,
                     idents_value(mod->gctx, dinc->as.DEFINCOMPLETE.ident));
   }
 
-  const struct node *isalist = node_subs_at_const(dinc, IDX_ISALIST);
-  if (node_subs_count_atleast(isalist, 1)) {
+  const struct node *isalist = subs_at_const(dinc, IDX_ISALIST);
+  if (subs_count_atleast(isalist, 1)) {
     FOREACH_SUB_CONST(isa, isalist) {
       pos += snprintf(s+pos, len-pos, "  ");
       pos += snprint_codeloc(s+pos, len-pos, mod, isa);
@@ -3018,7 +3018,7 @@ void copy_and_extend_import_path(struct module *mod, struct node *imported,
   node_set_which(n, BIN);
   n->as.BIN.operator = TDOT;
 
-  const struct node *path = node_subs_first_const(import);
+  const struct node *path = subs_first_const(import);
   node_deepcopy(mod, node_new_subnode(mod, n), path);
 
   struct node *i = node_new_subnode(mod, n);
@@ -3133,7 +3133,7 @@ bypass:
   case Tenum:
   case Tunion:
     node = NEW(mod, node);
-    if (!node_subs_count_atleast(node, 1)) {
+    if (!subs_count_atleast(node, 1)) {
       (void)node_new_subnode(mod, node);
       (void)mk_node(mod, node, GENARGS);
     }
@@ -3141,7 +3141,7 @@ bypass:
     break;
   case Tintf:
     node = NEW(mod, node);
-    if (!node_subs_count_atleast(node, 1)) {
+    if (!subs_count_atleast(node, 1)) {
       (void)node_new_subnode(mod, node);
       (void)mk_node(mod, node, GENARGS);
     }
@@ -3161,7 +3161,7 @@ bypass:
     goto again;
   case Tfun:
     node = NEW(mod, node);
-    if (!node_subs_count_atleast(node, 1)) {
+    if (!subs_count_atleast(node, 1)) {
       (void)node_new_subnode(mod, node);
       (void)mk_node(mod, node, GENARGS);
     }
@@ -3172,7 +3172,7 @@ bypass:
       UNEXPECTED(mod, &tok);
     }
     node = NEW(mod, node);
-    if (!node_subs_count_atleast(node, 1)) {
+    if (!subs_count_atleast(node, 1)) {
       (void)node_new_subnode(mod, node);
       (void)mk_node(mod, node, GENARGS);
     }

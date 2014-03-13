@@ -19,7 +19,7 @@ static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node
     struct node *d = mk_node(mod, node, IDENT);
     d->as.IDENT.name = ID_WILDCARD_REF_ARG;
     node_subs_remove(node, d);
-    node_subs_insert_before(node, node_subs_first(node), d);
+    node_subs_insert_before(node, subs_first(node), d);
   }
   return 0;
 }
@@ -36,7 +36,7 @@ static error step_rewrite_prototype_wildcards(struct module *mod, struct node *n
                                               void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct node *funargs = node_subs_at(node, IDX_FUNARGS);
+  struct node *funargs = subs_at(node, IDX_FUNARGS);
   FOREACH_SUB(arg, funargs) {
     PUSH_STATE(mod->state->step_state);
     error e = pass_rewrite_wildcards(mod, arg, NULL, -1);
@@ -83,12 +83,12 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct node *genargs = node_subs_at(node, IDX_GENARGS);
+  struct node *genargs = subs_at(node, IDX_GENARGS);
   switch (node->which) {
   case DEFTYPE:
   case DEFINTF:
-    if (node_subs_count_atleast(genargs, 1)
-        && node_subs_first(genargs)->which == DEFGENARG) {
+    if (subs_count_atleast(genargs, 1)
+        && subs_first(genargs)->which == DEFGENARG) {
       (void) add_instance_deepcopy_from_pristine(mod, node, node, false);
     }
     break;
@@ -174,7 +174,7 @@ static void do_assign_defchoice_tag(struct module *mod,
     tag->as.NUMBER.value = "0";
   } else {
     if (prev != NULL) {
-      struct node *pred = node_subs_at(prev, IDX_CH_TAG_FIRST);
+      struct node *pred = subs_at(prev, IDX_CH_TAG_FIRST);
       tag = mk_node(mod, node, BIN);
       tag->as.BIN.operator = TPLUS;
       struct node *left = node_new_subnode(mod, tag);
@@ -183,7 +183,7 @@ static void do_assign_defchoice_tag(struct module *mod,
       one->as.NUMBER.value = "1";
     } else if (parent->which == DEFCHOICE) {
       tag = node_new_subnode(mod, node);
-      node_deepcopy(mod, tag, node_subs_at(parent, IDX_CH_TAG_FIRST));
+      node_deepcopy(mod, tag, subs_at(parent, IDX_CH_TAG_FIRST));
     } else {
       return;
     }
@@ -191,7 +191,7 @@ static void do_assign_defchoice_tag(struct module *mod,
   }
 
   node_subs_remove(node, tag);
-  node_subs_insert_after(node, node_subs_at(node, IDX_CH_TAG_FIRST-1), tag);
+  node_subs_insert_after(node, subs_at(node, IDX_CH_TAG_FIRST-1), tag);
 
   node->as.DEFCHOICE.has_tag = true;
   if (parent->which == DEFCHOICE) {
@@ -225,16 +225,16 @@ static error step_assign_defchoice_tag_up(struct module *mod, struct node *node,
     struct node *dummy = mk_node(mod, node, NUMBER);
     dummy->as.NUMBER.value = "0";
     node_subs_remove(node, dummy);
-    node_subs_insert_after(node, node_subs_at(node, IDX_CH_TAG_FIRST), dummy);
+    node_subs_insert_after(node, subs_at(node, IDX_CH_TAG_FIRST), dummy);
     return 0;
   }
 
   REVERSE_FOREACH_SUB(last, node) {
     if (last->which == DEFCHOICE) {
       struct node *last_tag = node_new_subnode(mod, node);
-      node_deepcopy(mod, last_tag, node_subs_at(last, IDX_CH_TAG_FIRST));
+      node_deepcopy(mod, last_tag, subs_at(last, IDX_CH_TAG_FIRST));
       node_subs_remove(node, last_tag);
-      node_subs_insert_after(node, node_subs_at(node, IDX_CH_TAG_FIRST), last_tag);
+      node_subs_insert_after(node, subs_at(node, IDX_CH_TAG_FIRST), last_tag);
       break;
     }
   }

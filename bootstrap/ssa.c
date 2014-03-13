@@ -41,7 +41,7 @@ static void ssa_sub(struct module *mod, struct node *statement,
 
 static void ssa_all_subs(struct module *mod, struct node *statement,
                          struct node *node, struct node *first) {
-  struct node *next, *sub = first != NULL ? first : node_subs_first(node);
+  struct node *next, *sub = first != NULL ? first : subs_first(node);
   if (sub == NULL) {
     return;
   }
@@ -76,9 +76,9 @@ error step_ssa_convert(struct module *mod, struct node *node,
 
   case BIN:
     {
-      struct node *left = node_subs_first(node);
+      struct node *left = subs_first(node);
       if (left->which == UN && OP_KIND(left->as.UN.operator) == OP_UN_DEREF) {
-        ssa_all_subs(mod, statement, node, node_subs_last(node));
+        ssa_all_subs(mod, statement, node, subs_last(node));
         break;
       }
       // fallthrough
@@ -100,14 +100,14 @@ error step_ssa_convert(struct module *mod, struct node *node,
     break;
 
   case CALL:
-    if (node_subs_count_atleast(node, 2)) {
-      ssa_all_subs(mod, statement, node, node_subs_at(node, 1));
+    if (subs_count_atleast(node, 2)) {
+      ssa_all_subs(mod, statement, node, subs_at(node, 1));
     }
     break;
 
   case WHILE:
   case MATCH:
-    ssa_sub(mod, statement, node, node_subs_first(node));
+    ssa_sub(mod, statement, node, subs_first(node));
     break;
   case IF:
     FOREACH_SUB_EVERY(cond, node, 0, 2) {

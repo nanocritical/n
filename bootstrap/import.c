@@ -43,8 +43,8 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
     break;
   case BIN:
     (void)create_lexical_import_hierarchy(scope, mod, original_import,
-                                          node_subs_first(import_path), NULL);
-    mark_ident = node_subs_last(import_path);
+                                          subs_first(import_path), NULL);
+    mark_ident = subs_last(import_path);
     break;
   default:
     assert(false);
@@ -107,7 +107,7 @@ static error check_import_target_exists(struct module *mod,
                                         struct node *module_import_path,
                                         int points_inside_module) {
   struct node *mpath
-    = points_inside_module == 1 ? node_subs_first(module_import_path) : module_import_path;
+    = points_inside_module == 1 ? subs_first(module_import_path) : module_import_path;
 
   struct node *def = NULL;
   error e = scope_lookup_module(&def, mod, mpath, true);
@@ -123,7 +123,7 @@ static error check_import_target_exists(struct module *mod,
   if (points_inside_module == 1) {
     // We don't use target, but we check that it exists.
     struct node *target = NULL;
-    struct node *id = node_subs_last(module_import_path);
+    struct node *id = subs_last(module_import_path);
     e = scope_lookup_ident_immediate(&target, id,
                                      mod, &def->scope,
                                      node_ident(id), false);
@@ -136,9 +136,9 @@ static error check_import_target_exists(struct module *mod,
 static error import_single_ident(struct scope *scope, struct module *mod,
                                  struct node *original_import,
                                  struct node *id, bool define) {
-  struct node *id_full_import_path = node_subs_first(id);
+  struct node *id_full_import_path = subs_first(id);
   assert(id_full_import_path->which == BIN);
-  assert(node_subs_last(id_full_import_path)->which == IDENT);
+  assert(subs_last(id_full_import_path)->which == IDENT);
 
   struct scope *tmp = scope;
   struct node *id_import_marker = create_lexical_import_hierarchy(
@@ -147,7 +147,7 @@ static error import_single_ident(struct scope *scope, struct module *mod,
 
   error e;
   if (define) {
-    ident id_name = node_ident(node_subs_last(id_full_import_path));
+    ident id_name = node_ident(subs_last(id_full_import_path));
     e = scope_define_ident(mod, scope, id_name, id_import_marker);
     EXCEPT(e);
 
@@ -168,7 +168,7 @@ static error lexical_import_from_path(struct scope *scope, struct module *mod,
   error e;
   // We take of copy of 'last' now as 'import' will grow if
   // 'import == original_import'.
-  struct node *last = node_subs_last(import);
+  struct node *last = subs_last(import);
   FOREACH_SUB_EVERY(id, import, 1, 1) {
     e = import_single_ident(scope, mod, original_import, id, true);
     EXCEPT(e);
@@ -206,7 +206,7 @@ static error lexical_import_path(struct scope *scope, struct module *mod,
                                  struct node *import) {
   error e;
   struct node *target = NULL;
-  e = scope_lookup_module(&target, mod, node_subs_first(import), false);
+  e = scope_lookup_module(&target, mod, subs_first(import), false);
   EXCEPT(e);
 
   bool need_expose_all = original_import->as.IMPORT.is_all
@@ -256,7 +256,7 @@ error lexical_import(struct scope *scope, struct module *mod,
     // from <path> (import|export) *
     e = lexical_import_path(scope, mod, original_import, import);
     EXCEPT(e);
-  } else if (node_next(node_subs_first(import)) == NULL) {
+  } else if (node_next(subs_first(import)) == NULL) {
     // (import|export) <path>
     e = lexical_import_path(scope, mod, original_import, import);
     EXCEPT(e);

@@ -269,11 +269,11 @@ static struct typ *merge_defincomplete(struct module *mod, const struct node *fo
                             dinc, b->as.DEFINCOMPLETE.ident);
   }
 
-  const struct node *a_isalist = node_subs_at_const(a, IDX_ISALIST);
+  const struct node *a_isalist = subs_at_const(a, IDX_ISALIST);
   FOREACH_SUB_CONST(isa, a_isalist) {
     defincomplete_add_field(mod, isa, dinc, node_ident(isa), isa->typ);
   }
-  const struct node *b_isalist = node_subs_at_const(b, IDX_ISALIST);
+  const struct node *b_isalist = subs_at_const(b, IDX_ISALIST);
   FOREACH_SUB_CONST(isa, b_isalist) {
     defincomplete_add_field(mod, isa, dinc, node_ident(isa), isa->typ);
   }
@@ -309,18 +309,18 @@ static error unify_two_defincomplete(struct module *mod, const struct node *for_
     if (f->which != DEFFIELD) {
       continue;
     }
-    ident_typ_map_set(&map, node_ident(node_subs_first_const(f)),
-                      node_subs_at_const(f, 1)->typ);
+    ident_typ_map_set(&map, node_ident(subs_first_const(f)),
+                      subs_at_const(f, 1)->typ);
   }
 
   FOREACH_SUB_CONST(f, db) {
     if (f->which != DEFFIELD) {
       continue;
     }
-    struct typ **existing = ident_typ_map_get(&map, node_ident(node_subs_first_const(f)));
+    struct typ **existing = ident_typ_map_get(&map, node_ident(subs_first_const(f)));
     if (existing != NULL) {
       reason = "conflicting fields";
-      e = unify(mod, for_error, *existing, node_subs_at_const(f, 1)->typ);
+      e = unify(mod, for_error, *existing, subs_at_const(f, 1)->typ);
       GOTO_EXCEPT(e);
     }
   }

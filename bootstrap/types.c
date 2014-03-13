@@ -331,13 +331,13 @@ void typ_create_update_genargs(struct typ *t) {
 
 void typ_create_update_hash(struct typ *t) {
   const struct node *d = typ_definition_const(t);
-  const struct node *genargs = node_subs_at_const(d, IDX_GENARGS);
+  const struct node *genargs = subs_at_const(d, IDX_GENARGS);
 
 #define LEN 8 // arbitrary, at least 4
   uint32_t buf[LEN] = { 0 };
   buf[0] = t->flags & TYPF__MASK_HASH;
   buf[1] = node_ident(d);
-  buf[2] = node_subs_count(genargs);
+  buf[2] = subs_count(genargs);
   size_t i = 3;
   FOREACH_SUB_CONST(ga, genargs) {
     if (i == LEN) {
@@ -534,7 +534,7 @@ EXAMPLE_NCC(typ_generic_functor) {
 size_t typ_generic_arity(const struct typ *t) {
   const struct node *d = typ_definition_const(t);
   if (node_can_have_genargs(d)) {
-    return node_subs_count(node_subs_at_const(d, IDX_GENARGS));
+    return subs_count(subs_at_const(d, IDX_GENARGS));
   } else {
     return 0;
   }
@@ -568,7 +568,7 @@ size_t typ_generic_first_explicit_arg(const struct typ *t) {
 
 struct typ *typ_generic_arg(struct typ *t, size_t n) {
   assert(n < typ_generic_arity(t));
-  return node_subs_at_const(node_subs_at_const(typ_definition_const(t), IDX_GENARGS), n)->typ;
+  return subs_at_const(subs_at_const(typ_definition_const(t), IDX_GENARGS), n)->typ;
 }
 
 size_t typ_function_arity(const struct typ *t) {
@@ -579,7 +579,7 @@ size_t typ_function_arity(const struct typ *t) {
 
 struct typ *typ_function_arg(struct typ *t, size_t n) {
   assert(n < typ_function_arity(t));
-  return node_subs_at_const(node_subs_at_const(typ_definition_const(t), IDX_FUNARGS), n)->typ;
+  return subs_at_const(subs_at_const(typ_definition_const(t), IDX_FUNARGS), n)->typ;
 }
 
 struct typ *typ_function_return(struct typ *t) {
@@ -613,7 +613,7 @@ static size_t direct_isalist_count(const struct typ *t) {
   switch (def->which) {
   case DEFTYPE:
   case DEFINTF:
-    return node_subs_count(node_subs_at_const(def, IDX_ISALIST));
+    return subs_count(subs_at_const(def, IDX_ISALIST));
   default:
     return 0;
   }
@@ -624,7 +624,7 @@ static struct typ *direct_isalist(struct typ *t, size_t n) {
   switch (def->which) {
   case DEFTYPE:
   case DEFINTF:
-    return node_subs_at_const(node_subs_at_const(def, IDX_ISALIST), n)->typ;
+    return subs_at_const(subs_at_const(def, IDX_ISALIST), n)->typ;
   default:
     assert(false);
     return 0;
@@ -640,7 +640,7 @@ static bool direct_isalist_exported(const struct typ *t, size_t n) {
   switch (def->which) {
   case DEFTYPE:
   case DEFINTF:
-    return node_subs_at_const(node_subs_at_const(def, IDX_ISALIST), n)->as.ISA.is_export;
+    return subs_at_const(subs_at_const(def, IDX_ISALIST), n)->as.ISA.is_export;
   default:
     return 0;
   }

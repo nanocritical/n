@@ -217,8 +217,8 @@ static error do_scope_lookup_ident_immediate(struct node **result,
   }
 
   if (scope_node(scope)->which == MODULE
-      && node_subs_count_atleast(scope_node(scope), 1)) {
-    struct node *body = node_subs_first(scope_node(scope));
+      && subs_count_atleast(scope_node(scope), 1)) {
+    struct node *body = subs_first(scope_node(scope));
     error e = do_scope_lookup_ident_immediate(result, for_error, mod, &body->scope,
                                               id, allow_isalist, failure_ok);
     if (!e) {
@@ -360,8 +360,8 @@ static error do_scope_lookup(struct node **result, const struct node *for_error,
         && id->as.BIN.operator != TSHARP) {
       GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
     }
-    const struct node *base = node_subs_first_const(id);
-    const struct node *name = node_subs_last_const(id);
+    const struct node *base = subs_first_const(id);
+    const struct node *name = subs_last_const(id);
     if (name->which != IDENT) {
       GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
     }
@@ -386,7 +386,7 @@ static error do_scope_lookup(struct node **result, const struct node *for_error,
     struct node *mark = r;
     if (!mark->as.IMPORT.intermediate_mark) {
       e = do_scope_lookup(&r, for_error, mod, &mod->gctx->modules_root.scope,
-                          node_subs_first(r), failure_ok);
+                          subs_first(r), failure_ok);
       EXCEPT_UNLESS(e, failure_ok);
     }
   }
@@ -424,8 +424,8 @@ error scope_lookup_module(struct node **result, const struct module *mod,
                          "malformed module path name");
       THROW(e);
     }
-    const struct node *base = node_subs_first_const(id);
-    const struct node *name = node_subs_last_const(id);
+    const struct node *base = subs_first_const(id);
+    const struct node *name = subs_last_const(id);
     e = do_scope_lookup(&parent, for_error, mod, scope, base, true);
     if (e) {
       break;

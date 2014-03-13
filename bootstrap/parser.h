@@ -605,7 +605,7 @@ void node_invariant(const struct node *node);
   for (const struct node *__p_##s = (n), *s = try_node_subs_at_const(__p_##s, from); \
        s != NULL; s = NODE_NEXTTH(s, every))
 
-static inline size_t node_subs_count(const struct node *node) {
+static inline size_t subs_count(const struct node *node) {
   size_t n = 0;
   FOREACH_SUB_CONST(s, node) {
     n += 1;
@@ -614,7 +614,7 @@ static inline size_t node_subs_count(const struct node *node) {
 }
 
 // Prefer whenever possible.
-static inline bool node_subs_count_atleast(const struct node *node, size_t min) {
+static inline bool subs_count_atleast(const struct node *node, size_t min) {
   if (min == 0) {
     return true;
   }
@@ -629,11 +629,11 @@ static inline bool node_subs_count_atleast(const struct node *node, size_t min) 
   return false;
 }
 
-static inline const struct node *node_subs_first_const(const struct node *node) {
+static inline const struct node *subs_first_const(const struct node *node) {
   return node->subs_first;
 }
 
-static inline const struct node *node_subs_last_const(const struct node *node) {
+static inline const struct node *subs_last_const(const struct node *node) {
   return node->subs_last;
 }
 
@@ -645,7 +645,7 @@ static inline const struct node *node_prev_const(const struct node *node) {
   return node->prev;
 }
 
-static inline const struct node *node_subs_at_const(const struct node *node, size_t n) {
+static inline const struct node *subs_at_const(const struct node *node, size_t n) {
   const struct node *r = node->subs_first;
   size_t i;
   for (i = 0; r != NULL && i < n; ++i) {
@@ -664,12 +664,12 @@ static inline const struct node *try_node_subs_at_const(const struct node *node,
   return r;
 }
 
-static inline struct node *node_subs_first(struct node *node) {
-  return (struct node *)node_subs_first_const(node);
+static inline struct node *subs_first(struct node *node) {
+  return (struct node *)subs_first_const(node);
 }
 
-static inline struct node *node_subs_last(struct node *node) {
-  return (struct node *)node_subs_last_const(node);
+static inline struct node *subs_last(struct node *node) {
+  return (struct node *)subs_last_const(node);
 }
 
 static inline struct node *node_next(struct node *node) {
@@ -680,8 +680,8 @@ static inline struct node *node_prev(struct node *node) {
   return (struct node *)node_prev_const(node);
 }
 
-static inline struct node *node_subs_at(struct node *node, size_t n) {
-  return (struct node *)node_subs_at_const(node, n);
+static inline struct node *subs_at(struct node *node, size_t n) {
+  return (struct node *)subs_at_const(node, n);
 }
 
 static inline struct node *try_node_subs_at(struct node *node, size_t n) {
@@ -1203,7 +1203,7 @@ static inline ident node_ident(const struct node *node) {
   case DEFNAME:
     return node_ident(node->as.DEFNAME.pattern);
   case DEFARG:
-    return node_ident(node_subs_first_const(node));
+    return node_ident(subs_first_const(node));
   case CALLNAMEDARG:
     return node->as.CALLNAMEDARG.name;
   case FOR:
@@ -1224,10 +1224,10 @@ static inline ident node_ident(const struct node *node) {
     return ID_EXAMPLE;
   case DEFFUN:
   case DEFMETHOD:
-    if (node_subs_first_const(node)->which == IDENT) {
-      return node_subs_first_const(node)->as.IDENT.name;
+    if (subs_first_const(node)->which == IDENT) {
+      return subs_first_const(node)->as.IDENT.name;
     } else {
-      return node_subs_at_const(node_subs_first_const(node), 1)->as.IDENT.name;
+      return subs_at_const(subs_first_const(node), 1)->as.IDENT.name;
     }
     break;
   case DEFTYPE:
@@ -1235,8 +1235,8 @@ static inline ident node_ident(const struct node *node) {
   case DEFCHOICE:
   case DEFINTF:
   case DEFINCOMPLETE:
-    assert(node_subs_first_const(node)->which == IDENT);
-    return node_subs_first_const(node)->as.IDENT.name;
+    assert(subs_first_const(node)->which == IDENT);
+    return subs_first_const(node)->as.IDENT.name;
   case LET:
     return ID_LET;
   case MODULE:

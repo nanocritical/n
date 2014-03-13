@@ -536,8 +536,8 @@ static error constraint_inference_ident(struct module *mod, struct node *node) {
 static error cond_descend_eval_bin(struct module *mod, struct node *conditioned,
                                    struct node *conditioned_def,
                                    struct node *node, bool reversed) {
-  struct node *na = node_subs_first(node);
-  struct node *nb = node_subs_last(node);
+  struct node *na = subs_first(node);
+  struct node *nb = subs_last(node);
   struct constraint *a = na->constraint;
   struct constraint *b = nb->constraint;
   enum token_type op = node->as.BIN.operator;
@@ -749,7 +749,7 @@ bool constraint_has_common_root_tag(ident *tag,
 
 static void constraint_defchoice_container(const struct node **container,
                                            struct module *mod, struct node *node) {
-  struct node *parent = node_subs_first(node);
+  struct node *parent = subs_first(node);
   assert(parent->flags & NODE_IS_DEFCHOICE);
 
   ident common = ID__NONE;
@@ -763,8 +763,8 @@ static void constraint_defchoice_container(const struct node **container,
 
 static error constraint_inference_bin_acc(struct module *mod,
                                           struct node *node) {
-  struct node *parent = node_subs_first(node);
-  struct node *name = node_subs_last(node);
+  struct node *parent = subs_first(node);
+  struct node *name = subs_last(node);
 
   error e;
   if (!(parent->flags & NODE_IS_TYPE)) {
@@ -800,9 +800,9 @@ static error constraint_inference_bin(struct module *mod,
     return 0;
   case OP_BIN_SYM:
     if (OP_IS_ASSIGN(op)) {
-      e = constraint_check_init(mod, node_subs_last(node));
+      e = constraint_check_init(mod, subs_last(node));
       EXCEPT(e);
-      constraint_copy(mod, node_subs_first(node), node_subs_last(node));
+      constraint_copy(mod, subs_first(node), subs_last(node));
       constraint_set_init(mod, node, false);
       return 0;
     }
@@ -812,9 +812,9 @@ static error constraint_inference_bin(struct module *mod,
   case OP_BIN_SYM_BW:
   case OP_BIN_SYM_PTR:
   case OP_BIN_BW_RHS_UNSIGNED:
-    e = constraint_check_init(mod, node_subs_first(node));
+    e = constraint_check_init(mod, subs_first(node));
     EXCEPT(e);
-    e = constraint_check_init(mod, node_subs_last(node));
+    e = constraint_check_init(mod, subs_last(node));
     EXCEPT(e);
     constraint_set_init(mod, node, false);
     return 0;
@@ -847,16 +847,16 @@ static error constraint_inference_un(struct module *mod,
     constraint_set_init(mod, node, false);
     return 0;
   case OP_UN_DEREF:
-    e = constraint_check_init(mod, node_subs_first(node));
+    e = constraint_check_init(mod, subs_first(node));
     EXCEPT(e);
-    e = constraint_check_nonnull(mod, node_subs_first(node));
+    e = constraint_check_nonnull(mod, subs_first(node));
     EXCEPT(e);
     constraint_set_init(mod, node, false);
     return 0;
   case OP_UN_BOOL:
   case OP_UN_ARITH:
   case OP_UN_BW:
-    e = constraint_check_init(mod, node_subs_first(node));
+    e = constraint_check_init(mod, subs_first(node));
     EXCEPT(e);
     constraint_set_init(mod, node, false);
     return 0;
@@ -881,25 +881,25 @@ static error constraint_inference_call(struct module *mod,
   }
 
   error e;
-  const struct node *fun = node_subs_first(node);
+  const struct node *fun = subs_first(node);
   const struct typ *tfun = fun->typ;
   const struct node *dfun = typ_definition_const(tfun);
 
-  const struct node *funargs = node_subs_at_const(dfun, IDX_FUNARGS);
+  const struct node *funargs = subs_at_const(dfun, IDX_FUNARGS);
   const ssize_t first_vararg = node_fun_first_vararg(dfun);
   ssize_t n = 0;
   FOREACH_SUB_EVERY(arg, node, 1, 1) {
     if (n == first_vararg) {
       break;
     }
-    const struct node *target = node_subs_at_const(funargs, n);
+    const struct node *target = subs_at_const(funargs, n);
     e = constraint_check_compatible_assign(mod, target, arg);
     EXCEPT(e);
     n += 1;
   }
 
   if (n == first_vararg) {
-    const struct node *target = node_subs_at_const(funargs, n);
+    const struct node *target = subs_at_const(funargs, n);
 
     FOREACH_SUB_EVERY(arg, node, 1 + n, 1) {
       e = constraint_check_compatible_assign(mod, target, arg);
@@ -907,7 +907,7 @@ static error constraint_inference_call(struct module *mod,
     }
   }
 
-  const struct node *ret = node_subs_at_const(funargs, n);
+  const struct node *ret = subs_at_const(funargs, n);
   constraint_copy(mod, node, ret);
 
   return 0;
@@ -916,7 +916,7 @@ static error constraint_inference_call(struct module *mod,
 static error constraint_inference_return(struct module *mod,
                                          struct node *node) {
   const struct node *ret = module_retval_get(mod);
-  error e = constraint_check_compatible_assign(mod, ret, node_subs_first(node));
+  error e = constraint_check_compatible_assign(mod, ret, subs_first(node));
   EXCEPT(e);
 
   return 0;
@@ -985,19 +985,19 @@ static error unify_defchoice_init(struct module *mod, struct node *node,
 
   constraint_set_tag(mod, node, root, false);
   constraint_set_init(mod, node, false);
-  constraint_copy(mod, node_subs_first(node), node);
+  constraint_copy(mod, subs_first(node), node);
 
   return 0;
 }
 
 static error constraint_inference_typeconstraint(struct module *mod,
                                                  struct node *node) {
-  constraint_copy(mod, node, node_subs_first(node));
+  constraint_copy(mod, node, subs_first(node));
 
   struct constraint *c = node->constraint;
-  struct node *nleft = node_subs_first(node);
+  struct node *nleft = subs_first(node);
   struct constraint *left = nleft->constraint;
-  struct node *nright = node_subs_last(node);
+  struct node *nright = subs_last(node);
   struct constraint *right = nright->constraint;
   error e;
 
@@ -1062,13 +1062,13 @@ static error constraint_inference_typeconstraint(struct module *mod,
 
   // Copy over to LHS as the TYPECONSTRAINT itself will get elided in
   // step_remove_typeconstraints().
-  constraint_copy(mod, node_subs_first(node), node);
+  constraint_copy(mod, subs_first(node), node);
   return 0;
 }
 
 static error constraint_inference_defarg(struct module *mod,
                                          struct node *node) {
-  constraint_copy(mod, node, node_subs_last(node));
+  constraint_copy(mod, node, subs_last(node));
   constraint_set_init(mod, node, false);
   return 0;
 }
@@ -1147,7 +1147,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case CALLNAMEDARG:
-    constraint_copy(mod, node, node_subs_first(node));
+    constraint_copy(mod, node, subs_first(node));
     break;
   case RETURN:
     e = constraint_inference_return(mod, node);
@@ -1155,7 +1155,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
     break;
   case BLOCK:
   case CATCH:
-    constraint_copy(mod, node, node_subs_last(node));
+    constraint_copy(mod, node, subs_last(node));
     break;
   case IF:
   case WHILE:
@@ -1167,7 +1167,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case DYN:
-    constraint_copy(mod, node, node_subs_first(node));
+    constraint_copy(mod, node, subs_first(node));
     break;
   case DEFNAME:
     if (node->as.DEFNAME.expr != NULL) {
@@ -1268,7 +1268,7 @@ STEP_FILTER(step_check_exhaustive_match,
             SF(MATCH));
 error step_check_exhaustive_match(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
-  struct node *expr = node_subs_first(node);
+  struct node *expr = subs_first(node);
   struct node *dexpr = typ_definition(expr->typ);
   const bool enum_or_union = dexpr->as.DEFTYPE.kind == DEFTYPE_ENUM
     || dexpr->as.DEFTYPE.kind == DEFTYPE_UNION;
@@ -1290,7 +1290,7 @@ error step_check_exhaustive_match(struct module *mod, struct node *node,
     case IDENT:
       id = node_ident(p);
       if (id == ID_OTHERWISE) {
-        if (p != node_prev(node_subs_last(node))) {
+        if (p != node_prev(subs_last(node))) {
           e = mk_except(mod, p, "default pattern '_' must be last");
           GOTO_THROW(e);
         }
@@ -1300,7 +1300,7 @@ error step_check_exhaustive_match(struct module *mod, struct node *node,
       break;
     case BIN:
       assert(OP_KIND(p->as.BIN.operator) == OP_BIN_ACC);
-      id = node_ident(node_subs_at(p, 1));
+      id = node_ident(subs_at(p, 1));
       break;
     default:
       assert(false);
