@@ -16,7 +16,7 @@ export inline vector method@ count = size
   return self.c
 
 export inline vector method@$ at n:size = @$t
-  assert <- n <= self.c
+  assert <- n < self.c
   return self$p$at n
 
 export inline vector method@$ first = @$t

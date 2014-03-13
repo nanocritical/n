@@ -320,7 +320,8 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
   }
 }
 
-static error mk_except_constraint(struct module *mod, const struct node *for_error,
+static error mk_except_constraint(const struct module *mod,
+                                  const struct node *for_error,
                                   const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
@@ -355,7 +356,8 @@ static int constraint_get_single_tag_foreach(const ident *tag, cbool *value, voi
 }
 
 static error constraint_get_single_tag(ident *tag,
-                                       struct module *mod, struct node *node) {
+                                       const struct module *mod,
+                                       const struct node *node) {
   struct constraint *c = node->constraint;
   INVARIANT_CONSTRAINT(c);
 
@@ -732,7 +734,7 @@ static error constraint_inference_phi(struct module *mod, struct node *node) {
 }
 
 bool constraint_has_common_root_tag(ident *tag,
-                                    struct module *mod, struct node *node) {
+                                    const struct module *mod, const struct node *node) {
   size_t count = tagset_count(&node->constraint->tags);
   if (count == 0) {
     return FALSE;

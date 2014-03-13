@@ -6,6 +6,7 @@
 #include "printer.h"
 #include "types.h"
 #include "scope.h"
+#include "constraints.h"
 
 enum forward {
   FWD_DECLARE_TYPES,
@@ -158,17 +159,28 @@ static void print_token(FILE *out, enum token_type t) {
   fprintf(out, "%s", c_token_strings[t]);
 }
 
-static void print_expr(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op);
-static void print_block(FILE *out, const struct module *mod, const struct node *node, bool no_braces);
+static void print_expr(FILE *out, const struct module *mod,
+                       const struct node *node, uint32_t parent_op);
+static void print_block(FILE *out, const struct module *mod,
+                        const struct node *node, bool no_braces);
 static void print_typ(FILE *out, const struct module *mod, const struct typ *typ);
-static void print_typeconstraint(FILE *out, const struct module *mod, const struct node *node);
-static void print_ident(FILE *out, const struct module *mod, const struct node *node);
-static void print_statement(FILE *out, const struct module *mod, const struct node *node);
-static void print_let(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node);
-static void print_defpattern(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node);
+static void print_typeconstraint(FILE *out, const struct module *mod,
+                                 const struct node *node);
+static void print_ident(FILE *out, const struct module *mod,
+                        const struct node *node);
+static void print_statement(FILE *out, const struct module *mod,
+                            const struct node *node);
+static void print_let(FILE *out, bool header, enum forward fwd,
+                      const struct module *mod, const struct node *node);
+static void print_defpattern(FILE *out, bool header, enum forward fwd,
+                             const struct module *mod, const struct node *node);
 static void print_top(FILE *out, bool header, enum forward fwd,
                       const struct module *mod, const struct node *node,
                       struct typset *printed);
+static void print_defchoice_path(FILE *out,
+                                 const struct module *mod,
+                                 const struct node *deft,
+                                 const struct node *ch);
 
 static void print_pattern(FILE *out, const struct module *mod, const struct node *node) {
   print_expr(out, mod, node, T__STATEMENT);
@@ -190,7 +202,33 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
   }
 }
 
-static void print_bin_acc(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
+static void print_defchoice_access(FILE *out, const struct module *mod,
+                                   const struct node *node) {
+  const struct node *parent = node_parent_const(node);
+  if (parent->which == DEFCHOICE) {
+    print_defchoice_access(out, mod, parent);
+  }
+
+  fprintf(out, "as.%s.", idents_value(mod->gctx, node_ident(node)));
+}
+
+static void print_union_access_path(FILE *out, const struct module *mod,
+                                const struct node *node) {
+  const struct node *d = typ_definition_const(node->typ);
+  if (d->which != DEFTYPE || d->as.DEFTYPE.kind != DEFTYPE_UNION) {
+    return;
+  }
+
+  ident tag = ID__NONE;
+  const bool yes = constraint_has_common_root_tag(&tag, mod, node);
+  assert(yes);
+
+  const struct node *dc = node_get_member_const(mod, d, tag);
+  print_defchoice_access(out, mod, dc);
+}
+
+static void print_bin_acc(FILE *out, const struct module *mod,
+                          const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.BIN.operator;
   const struct node *base = node_subs_first_const(node);
   const struct node *name = node_subs_last_const(node);
@@ -208,7 +246,9 @@ static void print_bin_acc(FILE *out, const struct module *mod, const struct node
       deref = "->";
     }
     print_expr(out, mod, base, op);
-    fprintf(out, "%s%s", deref, name_s);
+    fprintf(out, "%s", deref);
+    print_union_access_path(out, mod, base);
+    fprintf(out, "%s", name_s);
   }
 }
 
@@ -443,23 +483,51 @@ static void print_init_array(FILE *out, const struct module *mod, const struct n
   fprintf(out, " }, %zu }\n", node_subs_count(node));
 }
 
-static void print_init_toplevel(FILE *out, const struct module *mod, const struct node *node) {
+static void print_tag_init(FILE *out, const struct module *mod,
+                           const struct node *node, bool is_inline) {
+  const struct node *d = typ_definition_const(node->typ);
+  if (d->which != DEFTYPE || d->as.DEFTYPE.kind != DEFTYPE_UNION) {
+    return;
+  }
+
+  ident tag = ID__NONE;
+  const bool yes = constraint_has_common_root_tag(&tag, mod, node);
+  assert(yes);
+  const struct node *ch = node_get_member_const(mod, d, tag);
+
+  if (!is_inline) {
+    print_expr(out, mod, node, TDOT);
+  }
+  fprintf(out, ".%s = ", idents_value(mod->gctx, ID_TAG));
+  print_defchoice_path(out, mod, d, ch);
+  fprintf(out, "_%s", idents_value(mod->gctx, ID_TAG));
+  if (!is_inline) {
+    fprintf(out, ";\n");
+  }
+}
+
+static void print_init_toplevel(FILE *out, const struct module *mod,
+                                const struct node *node) {
   if (!node_subs_count_atleast(node, 1)) {
     fprintf(out, " = { 0 }");
     return;
   }
 
   fprintf(out, " = {\n");
+  print_tag_init(out, mod, node->as.INIT.target_expr, TRUE);
   FOREACH_SUB_EVERY_CONST(s, node, 0, 2) {
-    fprintf(out, ".%s = ",
-            idents_value(mod->gctx, node_ident(s)));
+    fprintf(out, ".");
+    print_union_access_path(out, mod, node->as.INIT.target_expr);
+    fprintf(out, "%s", idents_value(mod->gctx, node_ident(s)));
+    fprintf(out, " = ");
     print_expr(out, mod, node_next_const(s), T__NOT_STATEMENT);
     fprintf(out, ",\n");
   }
   fprintf(out, " }\n");
 }
 
-static void print_init(FILE *out, const struct module *mod, const struct node *node) {
+static void print_init(FILE *out, const struct module *mod,
+                       const struct node *node) {
   if (node->as.INIT.is_array) {
     print_init_array(out, mod, node);
     return;
@@ -482,10 +550,14 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
     fprintf(out, "= { 0 };\n");
   }
 
+  print_tag_init(out, mod, node->as.INIT.target_expr, FALSE);
+
   FOREACH_SUB_EVERY_CONST(s, node, 0, 2) {
     print_expr(out, mod, node->as.INIT.target_expr, TDOT);
-    fprintf(out, ".%s = ",
-            idents_value(mod->gctx, node_ident(s)));
+    fprintf(out, ".");
+    print_union_access_path(out, mod, node->as.INIT.target_expr);
+    fprintf(out, "%s", idents_value(mod->gctx, node_ident(s)));
+    fprintf(out, " = ");
     print_expr(out, mod, node_next_const(s), T__NOT_STATEMENT);
     fprintf(out, ";\n");
   }
@@ -728,7 +800,7 @@ static void print_match_label(FILE *out, const struct module *mod,
   if (ch->as.DEFCHOICE.is_leaf) {
     fprintf(out, "case ");
     print_defchoice_path(out, mod, deft, ch);
-    fprintf(out, "_label__");
+    fprintf(out, "_%s_label__", idents_value(mod->gctx, ID_TAG));
     fprintf(out, ":\n");
     return;
   }
@@ -742,12 +814,16 @@ static void print_match_label(FILE *out, const struct module *mod,
 
 static void print_match(FILE *out, const struct module *mod,
                         const struct node *node) {
-  const struct node *n = node_subs_first_const(node);
+  const struct node *expr = node_subs_first_const(node);
+  const struct node *dexpr = typ_definition_const(expr->typ);
   fprintf(out, "switch (");
-  print_expr(out, mod, n, T__STATEMENT);
+  print_expr(out, mod, expr, T__STATEMENT);
+  if (dexpr->which == DEFTYPE && dexpr->as.DEFTYPE.kind == DEFTYPE_UNION) {
+    fprintf(out, ".tag");
+  }
   fprintf(out, ") {\n");
 
-  n = node_next_const(n);
+  const struct node *n = node_next_const(expr);
   while (n != NULL) {
     const struct node *p = n;
     const struct node *block = node_next_const(n);

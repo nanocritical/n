@@ -16,11 +16,15 @@ export fun aux e:u = i32
 
 export fun main = i32
   let g = {}:u.A
+  match g
+  | B -> return 1
+  | C -> return 1
+  | _ -> noop
 
   let f = {}:u.B
   say f.x
 
-  let e = {x=0}:u.B
+  let e = {x=1}:u.B
   match e
   | B
     assert <- e.x == 0

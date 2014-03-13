@@ -12,7 +12,8 @@ int snprint_constraint(char *s, size_t len,
                        const struct module *mod, struct constraint *c);
 
 bool constraint_has_common_root_tag(ident *tag,
-                                    struct module *mod, struct node *node);
+                                    const struct module *mod,
+                                    const struct node *node);
 
 extern const uint64_t step_constraint_inference_filter;
 error step_constraint_inference(struct module *mod, struct node *node,
