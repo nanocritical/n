@@ -150,7 +150,9 @@ error scope_define_ident(const struct module *mod, struct scope *scope,
     }
     *existing = node;
   } else {
-    if (scope->map.hashf == NULL) {
+    if (scope->map.table.size == 0) {
+      // Lazy initialize scope. It is a property of the underlying sptable
+      // that when its size is 0, it has not be initialized.
       scope_init(scope);
     }
 

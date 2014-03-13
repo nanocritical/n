@@ -248,6 +248,8 @@ error step_add_scopes(struct module *mod, struct node *node,
                       void *user, bool *stop) {
   DSTEP(mod, node);
 
+  // Initialize scope on-demand in scope_define_ident().
+
   FOREACH_SUB(s, node) {
     s->scope.parent = &node->scope;
   }
