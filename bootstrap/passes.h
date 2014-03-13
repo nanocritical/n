@@ -131,7 +131,7 @@ done:
 #define DOWN_STEP(step) do { \
   mod->state->step_state->stepping += 1; \
   \
-  if (node_whichmask(node) & step##_filter) { \
+  if (NM(node->which) & step##_filter) { \
     bool stop = false; \
     error e = step(mod, node, user, &stop); \
     INVARIANT_NODE(node); \
@@ -151,7 +151,7 @@ done:
     goto ascend; \
   } \
   \
-  if (node_whichmask(node) & step##_filter) { \
+  if (NM(node->which) & step##_filter) { \
     bool stop = false; \
     error e = step(mod, node, user, &stop); \
     INVARIANT_NODE(node); \

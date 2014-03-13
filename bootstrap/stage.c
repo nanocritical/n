@@ -18,8 +18,8 @@ struct node_op {
   void *user;
 };
 
-static STEP_FILTER(step_for_all_nodes,
-                   -1);
+static STEP_NM(step_for_all_nodes,
+               -1);
 static error step_for_all_nodes(struct module *dummy, struct node *node,
                                 void *user, bool *stop) {
   struct node_op *op = user;
@@ -70,7 +70,7 @@ static error load_module(struct module **main_mod,
   EXCEPT(e);
 
   stage->loaded = realloc(stage->loaded,
-                         (stage->loaded_count + 1) * sizeof(*stage->loaded));
+                          (stage->loaded_count + 1) * sizeof(*stage->loaded));
   stage->loaded[stage->loaded_count] = mod->root;
   stage->loaded_count += 1;
 
@@ -278,8 +278,8 @@ struct dependencies {
 
 static error gather_dependencies(struct node *node, struct dependencies *deps);
 
-static STEP_FILTER(step_gather_dependencies_in_module,
-                   SF(IMPORT));
+static STEP_NM(step_gather_dependencies_in_module,
+               NM(IMPORT));
 static error step_gather_dependencies_in_module(struct module *mod, struct node *node,
                                                 void *user, bool *stop) {
   struct dependencies *deps = user;

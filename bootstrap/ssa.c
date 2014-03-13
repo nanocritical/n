@@ -54,8 +54,8 @@ static void ssa_all_subs(struct module *mod, struct node *statement,
   } while (sub != NULL);
 }
 
-STEP_FILTER(step_ssa_convert,
-            ~(SF(MODULE) | SF(MODULE_BODY) | STEP_FILTER_DEFS));
+STEP_NM(step_ssa_convert,
+        ~(NM(MODULE) | NM(MODULE_BODY) | STEP_NM_DEFS));
 error step_ssa_convert(struct module *mod, struct node *node,
                        void *user, bool *stop) {
   DSTEP(mod, node);

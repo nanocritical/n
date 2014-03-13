@@ -11,8 +11,8 @@
 #include "passzero.h"
 #include "passbody.h"
 
-static STEP_FILTER(step_codeloc_for_generated,
-                   -1);
+static STEP_NM(step_codeloc_for_generated,
+               -1);
 static error step_codeloc_for_generated(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   if (node->codeloc == 0
@@ -23,8 +23,8 @@ static error step_codeloc_for_generated(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_export_pre_post_invariant,
-                   SF(PRE) | SF(POST) | SF(INVARIANT));
+static STEP_NM(step_export_pre_post_invariant,
+               NM(PRE) | NM(POST) | NM(INVARIANT));
 static error step_export_pre_post_invariant(struct module *mod, struct node *node,
                                             void *user, bool *stop) {
   const struct node *parent = node_parent_const(node);
@@ -43,9 +43,9 @@ static error step_export_pre_post_invariant(struct module *mod, struct node *nod
   return 0;
 }
 
-STEP_FILTER(step_stop_already_morningtypepass,
-            SF(LET) | SF(ISA) | SF(GENARGS) | SF(FUNARGS) | SF(DEFGENARG) |
-            SF(SETGENARG) | SF(DEFFIELD) | SF(DEFCHOICE) | SF(WITHIN));
+STEP_NM(step_stop_already_morningtypepass,
+        NM(LET) | NM(ISA) | NM(GENARGS) | NM(FUNARGS) | NM(DEFGENARG) |
+        NM(SETGENARG) | NM(DEFFIELD) | NM(DEFCHOICE) | NM(WITHIN));
 error step_stop_already_morningtypepass(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   DSTEP(mod, node);
@@ -93,8 +93,8 @@ static error morningtypepass(struct module *mod, struct node *node) {
   return 0;
 }
 
-static STEP_FILTER(step_type_definitions,
-                   STEP_FILTER_DEFS);
+static STEP_NM(step_type_definitions,
+               STEP_NM_DEFS);
 static error step_type_definitions(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
@@ -173,8 +173,8 @@ static struct node *do_move_detached_member(struct module *mod,
   return nxt;
 }
 
-static STEP_FILTER(step_move_detached_members,
-                   SF(MODULE_BODY));
+static STEP_NM(step_move_detached_members,
+               NM(MODULE_BODY));
 static error step_move_detached_members(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   DSTEP(mod, node);
@@ -194,8 +194,8 @@ static error step_move_detached_members(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_lexical_import,
-                   SF(IMPORT));
+static STEP_NM(step_lexical_import,
+               NM(IMPORT));
 static error step_lexical_import(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
@@ -360,8 +360,8 @@ static error extract_defnames_in_pattern(struct module *mod,
   return 0;
 }
 
-static STEP_FILTER(step_defpattern_extract_defname,
-                   SF(DEFPATTERN));
+static STEP_NM(step_defpattern_extract_defname,
+               NM(DEFPATTERN));
 static error step_defpattern_extract_defname(struct module *mod, struct node *node,
                                              void *user, bool *stop) {
   DSTEP(mod, node);
@@ -408,10 +408,10 @@ static error do_define_field_defchoice_leaf(struct module *mod, struct scope *sc
   return 0;
 }
 
-static STEP_FILTER(step_lexical_scoping,
-                   SF(DEFFUN) | SF(DEFMETHOD) | SF(DEFTYPE) | SF(DEFINTF) |
-                   SF(DEFFIELD) | SF(DEFCHOICE) | SF(DEFNAME) | SF(CATCH) |
-                   SF(WITHIN));
+static STEP_NM(step_lexical_scoping,
+               NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(DEFINTF) |
+               NM(DEFFIELD) | NM(DEFCHOICE) | NM(DEFNAME) | NM(CATCH) |
+               NM(WITHIN));
 static error step_lexical_scoping(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
@@ -592,8 +592,8 @@ static error define_builtin_alias(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_add_builtin_members,
-                   SF(DEFTYPE) | SF(DEFINTF));
+static STEP_NM(step_add_builtin_members,
+               NM(DEFTYPE) | NM(DEFINTF));
 static error step_add_builtin_members(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
@@ -608,8 +608,8 @@ static error step_add_builtin_members(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_add_builtin_members_enum_union,
-                   SF(DEFTYPE));
+static STEP_NM(step_add_builtin_members_enum_union,
+               NM(DEFTYPE));
 static error step_add_builtin_members_enum_union(struct module *mod, struct node *node,
                                                  void *user, bool *stop) {
   DSTEP(mod, node);
@@ -624,8 +624,8 @@ static error step_add_builtin_members_enum_union(struct module *mod, struct node
   return 0;
 }
 
-static STEP_FILTER(step_type_inference_genargs,
-                   STEP_FILTER_DEFS);
+static STEP_NM(step_type_inference_genargs,
+               STEP_NM_DEFS);
 static error step_type_inference_genargs(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
@@ -642,8 +642,8 @@ static error step_type_inference_genargs(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_type_create_update,
-                   STEP_FILTER_DEFS);
+static STEP_NM(step_type_create_update,
+               STEP_NM_DEFS);
 static error step_type_create_update(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
@@ -654,8 +654,8 @@ static error step_type_create_update(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_type_inference_isalist,
-                   SF(ISA));
+static STEP_NM(step_type_inference_isalist,
+               NM(ISA));
 static error step_type_inference_isalist(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
@@ -666,8 +666,8 @@ static error step_type_inference_isalist(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_type_update_quickisa,
-                   STEP_FILTER_DEFS_NO_FUNS);
+static STEP_NM(step_type_update_quickisa,
+               STEP_NM_DEFS_NO_FUNS);
 static error step_type_update_quickisa(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
@@ -677,8 +677,8 @@ static error step_type_update_quickisa(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_type_lets,
-                   SF(LET));
+static STEP_NM(step_type_lets,
+               NM(LET));
 static error step_type_lets(struct module *mod, struct node *node,
                             void *user, bool *stop) {
   DSTEP(mod, node);
@@ -692,8 +692,8 @@ static error step_type_lets(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_type_deffields,
-                   SF(DEFCHOICE) | SF(DEFFIELD));
+static STEP_NM(step_type_deffields,
+               NM(DEFCHOICE) | NM(DEFFIELD));
 static error step_type_deffields(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
@@ -704,8 +704,8 @@ static error step_type_deffields(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_type_defchoices,
-                   SF(DEFTYPE) | SF(DEFCHOICE));
+static STEP_NM(step_type_defchoices,
+               NM(DEFTYPE) | NM(DEFCHOICE));
 static error step_type_defchoices(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
@@ -747,8 +747,8 @@ static error step_type_defchoices(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_type_deffuns,
-                   SF(DEFMETHOD) | SF(DEFFUN));
+static STEP_NM(step_type_deffuns,
+               NM(DEFMETHOD) | NM(DEFFUN));
 static error step_type_deffuns(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   DSTEP(mod, node);
@@ -814,8 +814,8 @@ static void add_inferred_isa(struct module *mod, struct node *deft, const char *
   typ_create_update_quickisa(deft->typ);
 }
 
-static STEP_FILTER(step_add_builtin_enum_intf,
-                   SF(DEFTYPE));
+static STEP_NM(step_add_builtin_enum_intf,
+               NM(DEFTYPE));
 static error step_add_builtin_enum_intf(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   DSTEP(mod, node);
@@ -829,8 +829,8 @@ static error step_add_builtin_enum_intf(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_add_builtin_detect_ctor_intf,
-                   SF(DEFTYPE));
+static STEP_NM(step_add_builtin_detect_ctor_intf,
+               NM(DEFTYPE));
 static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *node,
                                                void *user, bool *stop) {
   DSTEP(mod, node);
@@ -863,8 +863,8 @@ struct intf_proto_rewrite_state {
   const struct node *proto_parent;
 };
 
-static STEP_FILTER(step_rewrite_final_this,
-                   SF(IDENT));
+static STEP_NM(step_rewrite_final_this,
+               NM(IDENT));
 static error step_rewrite_final_this(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   struct typ *thi = ((struct intf_proto_rewrite_state *)user)->thi;
@@ -877,8 +877,8 @@ static error step_rewrite_final_this(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_rewrite_local_idents,
-                   SF(DEFARG) | SF(IDENT));
+static STEP_NM(step_rewrite_local_idents,
+               NM(DEFARG) | NM(IDENT));
 static error step_rewrite_local_idents(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   const struct node *proto_parent =
@@ -980,8 +980,8 @@ static void define_builtin(struct module *mod, struct node *deft,
   assert(!e);
 }
 
-static STEP_FILTER(step_add_builtin_ctor,
-                   SF(DEFTYPE));
+static STEP_NM(step_add_builtin_ctor,
+               NM(DEFTYPE));
 static error step_add_builtin_ctor(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
@@ -993,8 +993,8 @@ static error step_add_builtin_ctor(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_add_builtin_dtor,
-                   SF(DEFTYPE));
+static STEP_NM(step_add_builtin_dtor,
+               NM(DEFTYPE));
 static error step_add_builtin_dtor(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
@@ -1057,8 +1057,8 @@ static error define_auto(struct module *mod, struct node *deft,
   return 0;
 }
 
-static STEP_FILTER(step_add_builtin_mk_new,
-                   SF(DEFTYPE));
+static STEP_NM(step_add_builtin_mk_new,
+               NM(DEFTYPE));
 static error step_add_builtin_mk_new(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
@@ -1091,8 +1091,8 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_add_builtin_mkv_newv,
-                   SF(DEFTYPE));
+static STEP_NM(step_add_builtin_mkv_newv,
+               NM(DEFTYPE));
 static error step_add_builtin_mkv_newv(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
@@ -1113,8 +1113,8 @@ static error step_add_builtin_mkv_newv(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_add_trivials,
-                   SF(DEFTYPE));
+static STEP_NM(step_add_trivials,
+               NM(DEFTYPE));
 static error step_add_trivials(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   DSTEP(mod, node);
@@ -1157,8 +1157,8 @@ static error add_environment_builtins_eachisalist(struct module *mod,
   return 0;
 }
 
-static STEP_FILTER(step_add_environment_builtins,
-                   SF(DEFTYPE));
+static STEP_NM(step_add_environment_builtins,
+               NM(DEFTYPE));
 static error step_add_environment_builtins(struct module *mod, struct node *node,
                                            void *user, bool *stop) {
   DSTEP(mod, node);

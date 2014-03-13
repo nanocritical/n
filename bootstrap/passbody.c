@@ -36,8 +36,8 @@ static void record_topdep(struct module *mod, struct typ *t) {
   }
 }
 
-STEP_FILTER(step_push_fun_state,
-            SF(DEFFUN) | SF(DEFMETHOD) | SF(EXAMPLE));
+STEP_NM(step_push_fun_state,
+        NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE));
 error step_push_fun_state(struct module *mod, struct node *node,
                           void *user, bool *stop) {
   DSTEP(mod, node);
@@ -47,8 +47,8 @@ error step_push_fun_state(struct module *mod, struct node *node,
   return 0;
 }
 
-STEP_FILTER(step_pop_fun_state,
-            SF(DEFFUN) | SF(DEFMETHOD) | SF(EXAMPLE));
+STEP_NM(step_pop_fun_state,
+        NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE));
 error step_pop_fun_state(struct module *mod, struct node *node,
                          void *user, bool *stop) {
   DSTEP(mod, node);
@@ -59,8 +59,8 @@ error step_pop_fun_state(struct module *mod, struct node *node,
 
 }
 
-STEP_FILTER(step_set_topdep_mask,
-            SF(BLOCK));
+STEP_NM(step_set_topdep_mask,
+        NM(BLOCK));
 static error step_set_topdep_mask(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
@@ -83,8 +83,8 @@ static error step_set_topdep_mask(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_detect_not_dyn_intf_down,
-                   SF(DEFFUN) | SF(DEFMETHOD));
+static STEP_NM(step_detect_not_dyn_intf_down,
+               NM(DEFFUN) | NM(DEFMETHOD));
 static error step_detect_not_dyn_intf_down(struct module *mod, struct node *node,
                                            void *user, bool *stop) {
   DSTEP(mod, node);
@@ -94,8 +94,8 @@ static error step_detect_not_dyn_intf_down(struct module *mod, struct node *node
   return 0;
 }
 
-static STEP_FILTER(step_detect_not_dyn_intf_up,
-                   SF(DEFFUN) | SF(DEFMETHOD) | SF(IDENT) | SF(DEFARG));
+static STEP_NM(step_detect_not_dyn_intf_up,
+               NM(DEFFUN) | NM(DEFMETHOD) | NM(IDENT) | NM(DEFARG));
 static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
@@ -133,8 +133,8 @@ static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_rewrite_wildcards,
-                   SF(DEFMETHOD) | SF(UN) | SF(BIN));
+static STEP_NM(step_rewrite_wildcards,
+               NM(DEFMETHOD) | NM(UN) | NM(BIN));
 static error step_rewrite_wildcards(struct module *mod, struct node *node,
                                     void *user, bool *stop) {
   DSTEP(mod, node);
@@ -234,11 +234,11 @@ static void inherit(struct module *mod, struct node *node) {
   }
 }
 
-STEP_FILTER(step_type_destruct_mark,
-            SF(BIN) | SF(CALL) | SF(INIT) | SF(DEFFUN) |
-            SF(DEFMETHOD) | SF(DEFTYPE) | SF(DEFINTF) | SF(DEFFIELD) |
-            SF(DEFARG) | SF(DEFGENARG) | SF(SETGENARG) | SF(MODULE_BODY) |
-            SF(DEFCHOICE) | SF(WITHIN) | SF(THROW));
+STEP_NM(step_type_destruct_mark,
+        NM(BIN) | NM(CALL) | NM(INIT) | NM(DEFFUN) |
+        NM(DEFMETHOD) | NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFIELD) |
+        NM(DEFARG) | NM(DEFGENARG) | NM(SETGENARG) | NM(MODULE_BODY) |
+        NM(DEFCHOICE) | NM(WITHIN) | NM(THROW));
 error step_type_destruct_mark(struct module *mod, struct node *node,
                               void *user, bool *stop) {
   DSTEP(mod, node);
@@ -311,8 +311,8 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_type_mutability_mark,
-                   SF(BIN) | SF(UN));
+static STEP_NM(step_type_mutability_mark,
+               NM(BIN) | NM(UN));
 static error step_type_mutability_mark(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
@@ -388,8 +388,8 @@ static error step_type_mutability_mark(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_type_gather_retval,
-                   SF(DEFFUN) | SF(DEFMETHOD));
+static STEP_NM(step_type_gather_retval,
+               NM(DEFFUN) | NM(DEFMETHOD));
 static error step_type_gather_retval(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
@@ -428,8 +428,8 @@ ok:
   return 0;
 }
 
-static STEP_FILTER(step_type_gather_excepts,
-                   SF(TRY) | SF(DEFNAME) | SF(THROW));
+static STEP_NM(step_type_gather_excepts,
+               NM(TRY) | NM(DEFNAME) | NM(THROW));
 static error step_type_gather_excepts(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
@@ -457,8 +457,8 @@ static error step_type_gather_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_excepts_store_label,
-                   SF(DEFNAME) | SF(THROW));
+static STEP_NM(step_excepts_store_label,
+               NM(DEFNAME) | NM(THROW));
 static error step_excepts_store_label(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
@@ -546,8 +546,8 @@ static error step_excepts_store_label(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_rewrite_defname_no_expr,
-                   SF(DEFNAME));
+static STEP_NM(step_rewrite_defname_no_expr,
+               NM(DEFNAME));
 static error step_rewrite_defname_no_expr(struct module *mod, struct node *node,
                                           void *user, bool *stop) {
   DSTEP(mod, node);
@@ -555,8 +555,8 @@ static error step_rewrite_defname_no_expr(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_rewrite_union_constructors,
-                   SF(CALL));
+static STEP_NM(step_rewrite_union_constructors,
+               NM(CALL));
 static error step_rewrite_union_constructors(struct module *mod, struct node *node,
                                              void *user, bool *stop) {
   DSTEP(mod, node);
@@ -2135,8 +2135,8 @@ static void track_match_ident_use(struct module *mod, struct node *pattern) {
   track_ident_use(mod, expr, def, true);
 }
 
-static STEP_FILTER(step_branch_down,
-                   STEP_FILTER_BRANCHING);
+static STEP_NM(step_branch_down,
+               STEP_NM_BRANCHING);
 static error step_branch_down(struct module *mod, struct node *node,
                               void *user, bool *stop) {
   DSTEP(mod, node);
@@ -2159,8 +2159,8 @@ static size_t find_in_parent(const struct node *parent, const struct node *node)
   return 0;
 }
 
-static STEP_FILTER(step_branch_block_down,
-                   SF(BLOCK));
+static STEP_NM(step_branch_block_down,
+               NM(BLOCK));
 static error step_branch_block_down(struct module *mod, struct node *node,
                                     void *user, bool *stop) {
   DSTEP(mod, node);
@@ -2202,8 +2202,8 @@ static error step_branch_block_down(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_branch_block_up,
-                   SF(BLOCK));
+static STEP_NM(step_branch_block_up,
+               NM(BLOCK));
 static error step_branch_block_up(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
@@ -2275,8 +2275,8 @@ static void phi_insertion(struct module *mod, struct node *branching) {
   nodeset_foreach(&br_st->need_phi, phi_insertion_foreach, &st);
 }
 
-static STEP_FILTER(step_branch_up,
-                   STEP_FILTER_BRANCHING);
+static STEP_NM(step_branch_up,
+               STEP_NM_BRANCHING);
 static error step_branch_up(struct module *mod, struct node *node,
                             void *user, bool *stop) {
   DSTEP(mod, node);
@@ -2287,17 +2287,17 @@ static error step_branch_up(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_push_block_state,
-                   SF(BLOCK));
+static STEP_NM(step_push_block_state,
+               NM(BLOCK));
 static error step_push_block_state(struct module *mod, struct node *node,
-                                           void *user, bool *stop) {
+                                   void *user, bool *stop) {
   DSTEP(mod, node);
   PUSH_STATE(mod->state->fun_state->block_state);
   return 0;
 }
 
-static STEP_FILTER(step_pop_block_state,
-                   SF(BLOCK));
+static STEP_NM(step_pop_block_state,
+               NM(BLOCK));
 static error step_pop_block_state(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
@@ -2305,8 +2305,8 @@ static error step_pop_block_state(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_record_current_statement,
-                   -1);
+static STEP_NM(step_record_current_statement,
+               -1);
 static error step_record_current_statement(struct module *mod, struct node *node,
                                            void *user, bool *stop) {
   DSTEP(mod, node);
@@ -2448,8 +2448,8 @@ malformed:
   THROW(e);
 }
 
-STEP_FILTER(step_type_inference,
-            -1);
+STEP_NM(step_type_inference,
+        -1);
 error step_type_inference(struct module *mod, struct node *node,
                           void *user, bool *stop) {
   DSTEP(mod, node);
@@ -2757,8 +2757,8 @@ error step_type_inference(struct module *mod, struct node *node,
 }
 
 // FIXME: should we be removing these before inferring dyn?
-STEP_FILTER(step_remove_typeconstraints,
-            SF(TYPECONSTRAINT));
+STEP_NM(step_remove_typeconstraints,
+        NM(TYPECONSTRAINT));
 error step_remove_typeconstraints(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
@@ -2777,8 +2777,8 @@ error step_remove_typeconstraints(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_type_drop_excepts,
-                   SF(TRY));
+static STEP_NM(step_type_drop_excepts,
+               NM(TRY));
 static error step_type_drop_excepts(struct module *mod, struct node *node,
                                     void *user, bool *stop) {
   DSTEP(mod, node);
@@ -2788,8 +2788,8 @@ static error step_type_drop_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
-STEP_FILTER(step_gather_final_instantiations,
-            SF(DEFTYPE) | SF(DEFINTF) | SF(DEFFUN) | SF(DEFMETHOD));
+STEP_NM(step_gather_final_instantiations,
+        NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD));
 static error step_gather_final_instantiations(struct module *mod, struct node *node,
                                               void *user, bool *stop) {
   DSTEP(mod, node);
@@ -2920,8 +2920,8 @@ static const ident operator_ident[TOKEN__NUM] = {
   [TBWNOT] = ID_OPERATOR_BWNOT,
 };
 
-static STEP_FILTER(step_check_no_literals_left,
-                   SF(NUMBER) | SF(NUL));
+static STEP_NM(step_check_no_literals_left,
+               NM(NUMBER) | NM(NUL));
 static error step_check_no_literals_left(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   if (typ_is_literal(node->typ)) {
@@ -2936,8 +2936,8 @@ static error step_check_no_literals_left(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_check_no_incomplete_left,
-                   -1);
+static STEP_NM(step_check_no_incomplete_left,
+               -1);
 static error step_check_no_incomplete_left(struct module *mod, struct node *node,
                                            void *user, bool *stop) {
   if (node->typ == NULL) {
@@ -2956,8 +2956,8 @@ static error step_check_no_incomplete_left(struct module *mod, struct node *node
   THROWF(EINVAL, "%s", msg);
 }
 
-static STEP_FILTER(step_ident_non_local_scope,
-                   SF(IDENT));
+static STEP_NM(step_ident_non_local_scope,
+               NM(IDENT));
 static error step_ident_non_local_scope(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   struct scope *non_local_scope = node->as.IDENT.non_local_scope;
@@ -2989,8 +2989,8 @@ static bool string_literal_has_length_one(const char *s) {
   }
 }
 
-static STEP_FILTER(step_weak_literal_conversion,
-                   SF(STRING) | SF(BOOL));
+static STEP_NM(step_weak_literal_conversion,
+               NM(STRING) | NM(BOOL));
 static error step_weak_literal_conversion(struct module *mod, struct node *node,
                                           void *user, bool *stop) {
   DSTEP(mod, node);
@@ -3100,8 +3100,8 @@ static error gen_operator_call(struct module *mod,
   return 0;
 }
 
-static STEP_FILTER(step_operator_call_inference,
-                   SF(UN) | SF(BIN));
+static STEP_NM(step_operator_call_inference,
+               NM(UN) | NM(BIN));
 static error step_operator_call_inference(struct module *mod, struct node *node,
                                           void *user, bool *stop) {
   DSTEP(mod, node);
@@ -3189,8 +3189,8 @@ static error gen_operator_test_call(struct module *mod, struct node *node, size_
   return 0;
 }
 
-static STEP_FILTER(step_operator_test_call_inference,
-                   SF(DEFNAME));
+static STEP_NM(step_operator_test_call_inference,
+               NM(DEFNAME));
 static error step_operator_test_call_inference(struct module *mod, struct node *node,
                                                void *user, bool *stop) {
   DSTEP(mod, node);
@@ -3203,17 +3203,17 @@ static error step_operator_test_call_inference(struct module *mod, struct node *
   return 0;
 }
 
-static STEP_FILTER(step_ctor_call_inference,
-                   SF(RETURN) | SF(BIN) | SF(DEFNAME) | SF(TYPECONSTRAINT) |
-                   SF(CALL) | SF(INIT));
+static STEP_NM(step_ctor_call_inference,
+               NM(RETURN) | NM(BIN) | NM(DEFNAME) | NM(TYPECONSTRAINT) |
+               NM(CALL) | NM(INIT));
 static error step_ctor_call_inference(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
   return 0;
 }
 
-static STEP_FILTER(step_array_ctor_call_inference,
-                   SF(INIT));
+static STEP_NM(step_array_ctor_call_inference,
+               NM(INIT));
 static error step_array_ctor_call_inference(struct module *mod, struct node *node,
                                             void *user, bool *stop) {
   DSTEP(mod, node);
@@ -3255,8 +3255,8 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
   return 0;
 }
 
-static STEP_FILTER(step_dtor_call_inference,
-                   SF(BLOCK));
+static STEP_NM(step_dtor_call_inference,
+               NM(BLOCK));
 static error step_dtor_call_inference(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
@@ -3345,8 +3345,8 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
   return 0;
 }
 
-static STEP_FILTER(step_copy_call_inference,
-                   SF(BIN) | SF(DEFNAME));
+static STEP_NM(step_copy_call_inference,
+               NM(BIN) | NM(DEFNAME));
 static error step_copy_call_inference(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
@@ -3517,8 +3517,8 @@ static error check_exhaustive_intf_impl_eachisalist(struct module *mod,
   return 0;
 }
 
-static STEP_FILTER(step_check_exhaustive_intf_impl,
-                   SF(DEFTYPE));
+static STEP_NM(step_check_exhaustive_intf_impl,
+               NM(DEFTYPE));
 static error step_check_exhaustive_intf_impl(struct module *mod, struct node *node,
                                              void *user, bool *stop) {
   DSTEP(mod, node);
@@ -3571,9 +3571,9 @@ static error try_insert_dyn(struct node **src,
   return 0;
 }
 
-static STEP_FILTER(step_dyn_inference,
-                   SF(RETURN) | SF(BIN) | SF(DEFNAME) | SF(TYPECONSTRAINT) |
-                   SF(CALL) | SF(INIT));
+static STEP_NM(step_dyn_inference,
+               NM(RETURN) | NM(BIN) | NM(DEFNAME) | NM(TYPECONSTRAINT) |
+               NM(CALL) | NM(INIT));
 static error step_dyn_inference(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
@@ -3720,8 +3720,8 @@ static void block_like_insert_value_assign(struct module *mod, struct node *node
   }
 }
 
-static STEP_FILTER(step_move_assign_in_block_like,
-                   SF(BIN));
+static STEP_NM(step_move_assign_in_block_like,
+               NM(BIN));
 static error step_move_assign_in_block_like(struct module *mod, struct node *node,
                                             void *user, bool *stop) {
   if (!OP_IS_ASSIGN(node->as.BIN.operator)) {
@@ -3751,8 +3751,8 @@ static const struct node *retval_name(struct module *mod) {
   return subs_first_const(retval);
 }
 
-static STEP_FILTER(step_store_return_through_ref_expr,
-                   SF(RETURN) | SF(DEFPATTERN) | SF(BIN));
+static STEP_NM(step_store_return_through_ref_expr,
+               NM(RETURN) | NM(DEFPATTERN) | NM(BIN));
 static error step_store_return_through_ref_expr(struct module *mod, struct node *node,
                                                 void *user, bool *stop) {
   DSTEP(mod, node);
@@ -3869,9 +3869,9 @@ static void temporaries_add(struct temporaries *temps, struct node *node) {
   temps->rvalues[temps->count - 1] = node;
 }
 
-static STEP_FILTER(step_gather_temporary_rvalues,
-                   SF(UN) | SF(INIT) | SF(CALL) | SF(TUPLEEXTRACT) |
-                   SF(IF) | SF(TRY) | SF(MATCH) | SF(BLOCK));
+static STEP_NM(step_gather_temporary_rvalues,
+               NM(UN) | NM(INIT) | NM(CALL) | NM(TUPLEEXTRACT) |
+               NM(IF) | NM(TRY) | NM(MATCH) | NM(BLOCK));
 static error step_gather_temporary_rvalues(struct module *mod, struct node *node,
                                            void *user, bool *stop) {
   DSTEP(mod, node);
@@ -4038,8 +4038,8 @@ static error pass_gather_temps(struct module *mod, struct node *root,
   return 0;
 }
 
-static STEP_FILTER(step_define_temporary_rvalues,
-                   -1);
+static STEP_NM(step_define_temporary_rvalues,
+               -1);
 static error step_define_temporary_rvalues(struct module *mod, struct node *node,
                                            void *user, bool *stop) {
   return 0;

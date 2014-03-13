@@ -11,10 +11,8 @@ struct typ;
 struct constraint;
 struct constraint_resolve_state;
 
-#define SF(which) ( (uint64_t)1LL << (which) )
-#define STEP_FILTER(step, m) const uint64_t step##_filter = (m)
-
-#define node_whichmask(node) SF(node->which)
+#define NM(which) ( (uint64_t)1LL << (which) )
+#define STEP_NM(step, m) const uint64_t step##_filter = (m)
 
 enum node_which {
   NUL = 1,
@@ -1295,18 +1293,18 @@ size_t node_branching_exhaustive_branch_count(struct node *node);
 struct node *node_branching_nth_cond(struct node *node, ssize_t nth);
 struct node *node_branching_nth_branch(struct node *node, ssize_t nth);
 
-#define STEP_FILTER_DEFS_NO_FUNS \
-  (SF(DEFTYPE) | SF(DEFINTF) | SF(DEFINCOMPLETE))
+#define STEP_NM_DEFS_NO_FUNS \
+  (NM(DEFTYPE) | NM(DEFINTF) | NM(DEFINCOMPLETE))
 
-#define STEP_FILTER_DEFS \
-   (STEP_FILTER_DEFS_NO_FUNS | SF(DEFFUN) | SF(DEFMETHOD))
+#define STEP_NM_DEFS \
+   (STEP_NM_DEFS_NO_FUNS | NM(DEFFUN) | NM(DEFMETHOD))
 
-#define STEP_FILTER_HAS_TOPLEVEL \
-  (STEP_FILTER_DEFS | SF(LET) | SF(INVARIANT) | SF(DELEGATE) \
-   | SF(IMPORT) | SF(EXAMPLE) | SF(WITHIN))
+#define STEP_NM_HAS_TOPLEVEL \
+  (STEP_NM_DEFS | NM(LET) | NM(INVARIANT) | NM(DELEGATE) \
+   | NM(IMPORT) | NM(EXAMPLE) | NM(WITHIN))
 
-#define STEP_FILTER_BRANCHING \
-  (SF(IF) | SF(FOR) | SF(WHILE) | SF(MATCH) | SF(TRY))
+#define STEP_NM_BRANCHING \
+  (NM(IF) | NM(FOR) | NM(WHILE) | NM(MATCH) | NM(TRY))
 
 static inline const struct toplevel *node_toplevel_const(const struct node *node) {
   const struct toplevel *toplevel = NULL;

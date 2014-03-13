@@ -1091,8 +1091,8 @@ static error constraint_inference_genarg(struct module *mod,
   return 0;
 }
 
-STEP_FILTER(step_constraint_inference,
-            -1);
+STEP_NM(step_constraint_inference,
+        -1);
 error step_constraint_inference(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
@@ -1261,8 +1261,8 @@ static int check_tag_is_matched_foreach(const ident *name, cbool *value,
   return 0;
 }
 
-STEP_FILTER(step_check_exhaustive_match,
-            SF(MATCH));
+STEP_NM(step_check_exhaustive_match,
+        NM(MATCH));
 error step_check_exhaustive_match(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   struct node *expr = subs_first(node);

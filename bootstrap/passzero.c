@@ -2,8 +2,8 @@
 
 #include "scope.h"
 
-static STEP_FILTER(step_do_rewrite_prototype_wildcards,
-                   SF(UN));
+static STEP_NM(step_do_rewrite_prototype_wildcards,
+               NM(UN));
 static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node *node,
                                                  void *user, bool *stop) {
   DSTEP(mod, node);
@@ -30,8 +30,8 @@ static error pass_rewrite_wildcards(struct module *mod, struct node *root,
   return 0;
 }
 
-static STEP_FILTER(step_rewrite_prototype_wildcards,
-                   SF(DEFFUN) | SF(DEFMETHOD));
+static STEP_NM(step_rewrite_prototype_wildcards,
+               NM(DEFFUN) | NM(DEFMETHOD));
 static error step_rewrite_prototype_wildcards(struct module *mod, struct node *node,
                                               void *user, bool *stop) {
   DSTEP(mod, node);
@@ -77,8 +77,8 @@ struct node *add_instance_deepcopy_from_pristine(struct module *mod,
   return instance;
 }
 
-static STEP_FILTER(step_generics_pristine_copy,
-                   SF(DEFTYPE) | SF(DEFINTF) | SF(DEFFUN) | SF(DEFMETHOD));
+static STEP_NM(step_generics_pristine_copy,
+               NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD));
 static error step_generics_pristine_copy(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
@@ -107,8 +107,8 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_FILTER(step_detect_prototypes,
-                   SF(DEFFUN) | SF(DEFMETHOD));
+static STEP_NM(step_detect_prototypes,
+               NM(DEFFUN) | NM(DEFMETHOD));
 static error step_detect_prototypes(struct module *mod, struct node *node,
                                     void *user, bool *stop) {
   DSTEP(mod, node);
@@ -149,8 +149,8 @@ static error do_check_deftype_kind(struct module *mod, struct node *deft,
   return 0;
 }
 
-static STEP_FILTER(step_check_deftype_kind,
-                   SF(DEFTYPE));
+static STEP_NM(step_check_deftype_kind,
+               NM(DEFTYPE));
 // Must be run before builtins are added.
 static error step_check_deftype_kind(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
@@ -199,8 +199,8 @@ static void do_assign_defchoice_tag(struct module *mod,
   }
 }
 
-static STEP_FILTER(step_assign_defchoice_tag_down,
-                   SF(DEFTYPE) | SF(DEFCHOICE));
+static STEP_NM(step_assign_defchoice_tag_down,
+               NM(DEFTYPE) | NM(DEFCHOICE));
 static error step_assign_defchoice_tag_down(struct module *mod, struct node *node,
                                             void *user, bool *stop) {
   DSTEP(mod, node);
@@ -216,8 +216,8 @@ static error step_assign_defchoice_tag_down(struct module *mod, struct node *nod
   return 0;
 }
 
-static STEP_FILTER(step_assign_defchoice_tag_up,
-                   SF(DEFCHOICE));
+static STEP_NM(step_assign_defchoice_tag_up,
+               NM(DEFCHOICE));
 static error step_assign_defchoice_tag_up(struct module *mod, struct node *node,
                                           void *user, bool *stop) {
   DSTEP(mod, node);
@@ -242,8 +242,8 @@ static error step_assign_defchoice_tag_up(struct module *mod, struct node *node,
   return 0;
 }
 
-STEP_FILTER(step_add_scopes,
-            -1);
+STEP_NM(step_add_scopes,
+        -1);
 error step_add_scopes(struct module *mod, struct node *node,
                       void *user, bool *stop) {
   DSTEP(mod, node);
@@ -257,8 +257,8 @@ error step_add_scopes(struct module *mod, struct node *node,
   return 0;
 }
 
-STEP_FILTER(step_stop_submodules,
-            SF(MODULE));
+STEP_NM(step_stop_submodules,
+        NM(MODULE));
 error step_stop_submodules(struct module *mod, struct node *node,
                            void *user, bool *stop) {
   DSTEP(mod, node);
