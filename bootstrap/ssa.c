@@ -41,16 +41,16 @@ static void ssa_sub(struct module *mod, struct node *statement,
 
 static void ssa_all_subs(struct module *mod, struct node *statement,
                          struct node *node, struct node *first) {
-  struct node *next, *sub = first != NULL ? first : subs_first(node);
+  struct node *nxt, *sub = first != NULL ? first : subs_first(node);
   if (sub == NULL) {
     return;
   }
 
   do {
     // 'sub' is moved by ssa_sub(), so we must store the next one now.
-    next = node_next(sub);
+    nxt = next(sub);
     ssa_sub(mod, statement, node, sub);
-    sub = next;
+    sub = nxt;
   } while (sub != NULL);
 }
 
@@ -111,7 +111,7 @@ error step_ssa_convert(struct module *mod, struct node *node,
     break;
   case IF:
     FOREACH_SUB_EVERY(cond, node, 0, 2) {
-      if (node_next(cond) == NULL) {
+      if (next(cond) == NULL) {
         // else
         break;
       }

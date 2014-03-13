@@ -222,7 +222,7 @@ static void mark_subs(struct module *mod, struct node *node, struct typ *mark,
         return;
       }
 
-      n = node_next(n);
+      n = next(n);
     }
   }
 }
@@ -255,7 +255,7 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
   switch (node->which) {
   case BIN:
     if (OP_KIND(node->as.BIN.operator) == OP_BIN_ACC) {
-      mark_subs(mod, node, not_typeable, node_next(first), last, 1);
+      mark_subs(mod, node, not_typeable, next(first), last, 1);
     }
     break;
   case CALL:
@@ -613,7 +613,7 @@ static error do_instantiate(struct node **result,
             typ_create_tentative(typ_generic_arg(t, n)));
     ga_arg->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
-    ga = node_next(ga);
+    ga = next(ga);
   }
 
   for (size_t n = 0; n < arity; ++n) {
@@ -623,7 +623,7 @@ static error do_instantiate(struct node **result,
     set_typ(&ga_arg->as.DIRECTDEF.typ, explicit_args[n]);
     ga_arg->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
-    ga = node_next(ga);
+    ga = next(ga);
   }
 
   error e = catchup_instantiation(mod, node_module_owner(gendef),
@@ -951,7 +951,7 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
   struct node *arg;
   if (dmin == 0) {
     // We use this form, so that 'arg' will be NULL if 'node' it's a unary call.
-    arg = node_next(subs_first(node));
+    arg = next(subs_first(node));
   } else {
     arg = subs_at(node, dmin + 1);
   }
@@ -997,7 +997,7 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
         }
       }
 
-      arg = node_next(arg);
+      arg = next(arg);
     }
 
     darg = node_next_const(darg);
@@ -1011,7 +1011,7 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
                     idents_value(mod->gctx, name));
       THROW(e);
     }
-    arg = node_next(arg);
+    arg = next(arg);
   }
 
   return 0;
@@ -1233,7 +1233,7 @@ static error type_inference_tupleextract(struct module *mod, struct node *node) 
 
   size_t n = 0;
   FOREACH_SUB(s, node) {
-    if (node_next(s) == NULL) {
+    if (next(s) == NULL) {
       break;
     }
     set_typ(&s->typ, typ_generic_arg(expr->typ, n));
@@ -1252,7 +1252,7 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
 
   FOREACH_SUB_EVERY(s, node, 0, 2) {
     const struct node *left = s;
-    const struct node *right = node_next(s);
+    const struct node *right = next(s);
     defincomplete_add_field(mod, s, dinc, node_ident(left), right->typ);
   }
 
@@ -1391,7 +1391,7 @@ static error try_insert_const_ref(struct module *mod, struct node *node,
   if (typ_is_reference(target) && !typ_is_reference(real_arg->typ)) {
     if (typ_isa(target, TBI_ANY_ANY_REF)
         && !typ_isa(target, TBI_ANY_MUTABLE_REF)) {
-      struct node *before = node_prev(real_arg);
+      struct node *before = prev(real_arg);
 
       node_subs_remove(parent, real_arg);
       struct node *ref_arg = expr_ref(mod, parent, TREFDOT, real_arg);
@@ -1435,15 +1435,15 @@ static error process_const_ref_call_arguments(struct module *mod,
   error e;
   ssize_t n = 0;
   struct node *last = NULL;
-  struct node *next = subs_at(node, 1);
-  while (next != NULL) {
+  struct node *nxt = subs_at(node, 1);
+  while (nxt != NULL) {
     if (n == first_vararg) {
       break;
     }
 
-    // We record 'next' now as try_insert_const_ref() may move 'arg'.
-    struct node *arg = next;
-    next = node_next(next);
+    // We record 'nxt' now as try_insert_const_ref() may move 'arg'.
+    struct node *arg = nxt;
+    nxt = next(nxt);
 
     e = try_insert_const_ref(mod, node,
                              typ_function_arg_const(tfun, n), arg);
@@ -1457,12 +1457,12 @@ static error process_const_ref_call_arguments(struct module *mod,
     const struct typ *target = typ_generic_arg_const(
       typ_function_arg_const(tfun, n), 0);
 
-    struct node *next = last == NULL
-      ? node_next(subs_first(node)) : node_next(last);
-    while (next != NULL) {
-      // We record 'next' now as try_insert_const_ref() may move 'arg'.
-      struct node *arg = next;
-      next = node_next(next);
+    struct node *nxt = last == NULL
+      ? next(subs_first(node)) : next(last);
+    while (nxt != NULL) {
+      // We record 'nxt' now as try_insert_const_ref() may move 'arg'.
+      struct node *arg = nxt;
+      nxt = next(nxt);
 
       e = try_insert_const_ref(mod, node, target, arg);
       EXCEPT(e);
@@ -1630,7 +1630,7 @@ static error function_instantiation(struct module *mod, struct node *node) {
 static error check_consistent_either_types_or_values(struct module *mod,
                                                      struct node *arg0) {
   uint32_t flags = 0;
-  for (struct node *s = arg0; s != NULL; s = node_next(s)) {
+  for (struct node *s = arg0; s != NULL; s = next(s)) {
     if (s != arg0 && (flags & NODE_IS_TYPE) != (s->flags & NODE_IS_TYPE)) {
       error e = mk_except_type(mod, s, "expression combines types and values");
       THROW(e);
@@ -1747,7 +1747,7 @@ static error type_inference_block(struct module *mod, struct node *node) {
   }
 
   FOREACH_SUB(s, node) {
-    if (node_next(s) == NULL) {
+    if (next(s) == NULL) {
       break;
     }
     if (!typ_equal(s->typ, TBI_VOID)) {
@@ -1793,7 +1793,7 @@ static error type_inference_if(struct module *mod, struct node *node) {
   }
 
   if (last_elif != subs_last(node)) {
-    struct node *els = node_next(last_elif);
+    struct node *els = next(last_elif);
     e = unify(mod, els, node->typ, els->typ);
     EXCEPT(e);
   } else {
@@ -2190,7 +2190,7 @@ static error step_branch_block_down(struct module *mod, struct node *node,
     assert(nth_sub % 2 == 0);
     st->nth_branch = (nth_sub - 2) / 2;
 
-    track_match_ident_use(mod, node_prev(node));
+    track_match_ident_use(mod, prev(node));
     break;
   case TRY:
     st->nth_branch = nth_sub;
@@ -4113,7 +4113,7 @@ static error step_define_temporary_rvalues(struct module *mod, struct node *node
         // We want to reuse the original TUPLENTH from 'rv' as they may be
         // pointed to by nearby DEFNAME.expr, so their location in memory
         // cannot change.
-        next_nth = node_next(nth);
+        next_nth = next(nth);
 
         node_subs_remove(&saved, nth);
         node_subs_append(extractor, nth);

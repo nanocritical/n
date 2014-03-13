@@ -123,14 +123,14 @@ static error step_type_definitions(struct module *mod, struct node *node,
 static struct node *do_move_detached_member(struct module *mod,
                                             struct node *parent,
                                             struct node *node) {
-  struct node *next = node_next(node);
+  struct node *nxt = next(node);
   struct toplevel *toplevel = node_toplevel(node);
   if (toplevel->scope_name == 0) {
-    return next;
+    return nxt;
   }
   if (toplevel->generic->our_generic_functor_typ != NULL) {
     assert(node_parent(node)->which == DEFTYPE);
-    return next;
+    return nxt;
   }
 
   struct node *container = NULL;
@@ -170,7 +170,7 @@ static struct node *do_move_detached_member(struct module *mod,
     }
   }
 
-  return next;
+  return nxt;
 }
 
 static STEP_FILTER(step_move_detached_members,
@@ -186,7 +186,7 @@ static error step_move_detached_members(struct module *mod, struct node *node,
       s = do_move_detached_member(mod, node, s);
       break;
     default:
-      s = node_next(s);
+      s = next(s);
       break;
     }
   }
@@ -338,7 +338,7 @@ static error extract_defnames_in_pattern(struct module *mod,
   case TUPLE:
     for (struct node *p = subs_first(pattern),
          *ex = UNLESS_NULL(expr, subs_first(expr)); p != NULL;
-         p = node_next(p), ex = UNLESS_NULL(expr, node_next(ex))) {
+         p = next(p), ex = UNLESS_NULL(expr, next(ex))) {
       e = extract_defnames_in_pattern(mod, defpattern, where_defname, p,
                                       UNLESS_NULL(expr, ex));
       EXCEPT(e);

@@ -256,7 +256,7 @@ error lexical_import(struct scope *scope, struct module *mod,
     // from <path> (import|export) *
     e = lexical_import_path(scope, mod, original_import, import);
     EXCEPT(e);
-  } else if (node_next(subs_first(import)) == NULL) {
+  } else if (next(subs_first(import)) == NULL) {
     // (import|export) <path>
     e = lexical_import_path(scope, mod, original_import, import);
     EXCEPT(e);

@@ -672,11 +672,11 @@ static inline struct node *subs_last(struct node *node) {
   return (struct node *)subs_last_const(node);
 }
 
-static inline struct node *node_next(struct node *node) {
+static inline struct node *next(struct node *node) {
   return (struct node *)node_next_const(node);
 }
 
-static inline struct node *node_prev(struct node *node) {
+static inline struct node *prev(struct node *node) {
   return (struct node *)node_prev_const(node);
 }
 

@@ -636,20 +636,20 @@ static error cond_descend_eval(struct module *mod, struct node *conditioned,
 static error constraint_inference_phi_conditioned(struct module *mod,
                                                   struct node *node) {
   assert(vecnode_count(&node->as.PHI.ancestors) == 1);
-  struct node *prev = vecnode_get(&node->as.PHI.ancestors, 0);
-  constraint_copy(mod, node, prev);
+  struct node *ancestor = vecnode_get(&node->as.PHI.ancestors, 0);
+  constraint_copy(mod, node, ancestor);
 
-  struct node *def = prev->which == IDENT ? prev->as.IDENT.def : prev;
+  struct node *def = ancestor->which == IDENT ? ancestor->as.IDENT.def : ancestor;
 
   error e;
   struct branch_state *br_st = mod->state->branch_state;
   if (br_st->branching->which == MATCH) {
-    struct node *pattern = node_prev(node_parent(node));
+    struct node *pattern = prev(node_parent(node));
     if (node_ident(pattern) == ID_OTHERWISE) {
-      pattern = node_prev(node_prev(pattern));
+      pattern = prev(prev(pattern));
       while (pattern != NULL) {
         constraint_set_tag(mod, node, node_ident(pattern), true);
-        pattern = node_prev(node_prev(pattern));
+        pattern = prev(prev(pattern));
       }
     } else {
       constraint_set_tag(mod, node, node_ident(pattern), false);
@@ -980,7 +980,7 @@ static error unify_defchoice_init(struct module *mod, struct node *node,
                                      node_ident(name), false);
     EXCEPT(e);
 
-    typ_link_tentative(field->typ, node_next(name)->typ);
+    typ_link_tentative(field->typ, next(name)->typ);
   }
 
   constraint_set_tag(mod, node, root, false);
@@ -1290,7 +1290,7 @@ error step_check_exhaustive_match(struct module *mod, struct node *node,
     case IDENT:
       id = node_ident(p);
       if (id == ID_OTHERWISE) {
-        if (p != node_prev(subs_last(node))) {
+        if (p != prev(subs_last(node))) {
           e = mk_except(mod, p, "default pattern '_' must be last");
           GOTO_THROW(e);
         }

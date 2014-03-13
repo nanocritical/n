@@ -967,17 +967,17 @@ void node_move_content(struct node *dst, struct node *src) {
 
   memset(src, 0, sizeof(*src));
 
-  src->prev = node_prev(&copy);
-  src->next = node_next(&copy);
+  src->prev = prev(&copy);
+  src->next = next(&copy);
 
-  struct node *prev = node_prev(dst);
-  struct node *next = node_next(dst);
+  struct node *prv = prev(dst);
+  struct node *nxt = next(dst);
 
   *dst = copy;
   dst->scope.parent = saved_dst_parent;
 
-  dst->prev = prev;
-  dst->next = next;
+  dst->prev = prv;
+  dst->next = nxt;
   dst->subs_first = subs_first(&copy);
   dst->subs_last = subs_last(&copy);
 
@@ -1010,8 +1010,8 @@ EXAMPLE(node_subs) {
   assert(!subs_count_atleast(&n, 2));
   assert(&a == subs_first(&n));
   assert(&a == subs_last(&n));
-  assert(NULL == node_next(&a));
-  assert(NULL == node_prev(&a));
+  assert(NULL == next(&a));
+  assert(NULL == prev(&a));
 
   struct node b = { 0 };
   node_subs_append(&n, &b);
@@ -1022,15 +1022,15 @@ EXAMPLE(node_subs) {
   assert(!subs_count_atleast(&n, 3));
   assert(&a == subs_first(&n));
   assert(&b == subs_last(&n));
-  assert(&b == node_next(&a));
-  assert(NULL == node_prev(&a));
-  assert(NULL == node_next(&b));
-  assert(&a == node_prev(&b));
+  assert(&b == next(&a));
+  assert(NULL == prev(&a));
+  assert(NULL == next(&b));
+  assert(&a == prev(&b));
 
   struct node c = { 0 };
   node_subs_replace(&n, &a, &c);
-  assert(node_next(&a) == NULL);
-  assert(node_prev(&a) == NULL);
+  assert(next(&a) == NULL);
+  assert(prev(&a) == NULL);
   assert(subs_count(&n) == 2);
   assert(subs_count_atleast(&n, 0));
   assert(subs_count_atleast(&n, 1));
@@ -1038,41 +1038,41 @@ EXAMPLE(node_subs) {
   assert(!subs_count_atleast(&n, 3));
   assert(&c == subs_first(&n));
   assert(&b == subs_last(&n));
-  assert(&b == node_next(&c));
-  assert(NULL == node_prev(&c));
-  assert(NULL == node_next(&b));
-  assert(&c == node_prev(&b));
+  assert(&b == next(&c));
+  assert(NULL == prev(&c));
+  assert(NULL == next(&b));
+  assert(&c == prev(&b));
 
   node_subs_insert_after(&n, &c, &a);
   assert(subs_count(&n) == 3);
   assert(&c == subs_first(&n));
   assert(&b == subs_last(&n));
-  assert(&a == node_next(&c));
-  assert(&b == node_next(&a));
-  assert(NULL == node_next(&b));
-  assert(NULL == node_prev(&c));
-  assert(&c == node_prev(&a));
-  assert(&a == node_prev(&b));
+  assert(&a == next(&c));
+  assert(&b == next(&a));
+  assert(NULL == next(&b));
+  assert(NULL == prev(&c));
+  assert(&c == prev(&a));
+  assert(&a == prev(&b));
 
   node_subs_remove(&n, &b);
   assert(subs_count(&n) == 2);
   assert(&c == subs_first(&n));
   assert(&a == subs_last(&n));
-  assert(&a == node_next(&c));
-  assert(NULL == node_prev(&c));
-  assert(NULL == node_next(&a));
-  assert(&c == node_prev(&a));
+  assert(&a == next(&c));
+  assert(NULL == prev(&c));
+  assert(NULL == next(&a));
+  assert(&c == prev(&a));
 
   node_subs_insert_before(&n, &a, &b);
   assert(subs_count(&n) == 3);
   assert(&c == subs_first(&n));
   assert(&a == subs_last(&n));
-  assert(&b == node_next(&c));
-  assert(&a == node_next(&b));
-  assert(NULL == node_next(&a));
-  assert(NULL == node_prev(&c));
-  assert(&c == node_prev(&b));
-  assert(&b == node_prev(&a));
+  assert(&b == next(&c));
+  assert(&a == next(&b));
+  assert(NULL == next(&a));
+  assert(NULL == prev(&c));
+  assert(&c == prev(&b));
+  assert(&b == prev(&a));
 }
 
 bool node_has_tail_block(const struct node *node) {
@@ -2002,9 +2002,9 @@ static error p_defpattern(struct node *node, struct module *mod,
   node->as.DEFPATTERN.is_globalenv = let_alias_globalenv == Tglobalenv;
 
   error e;
-  struct node *prev = node_prev(node);
-  if (prev != NULL
-      && (prev->as.DEFPATTERN.is_alias || prev->as.DEFPATTERN.is_globalenv)) {
+  struct node *prv = prev(node);
+  if (prv != NULL
+      && (prv->as.DEFPATTERN.is_alias || prv->as.DEFPATTERN.is_globalenv)) {
     e = mk_except(mod, node, "cannot use 'and' or 'such'"
                   " after an 'alias' or 'globalenv'");
     THROW(e);
