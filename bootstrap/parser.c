@@ -531,7 +531,7 @@ bool node_is_prototype(const struct node *node) {
   if (node->which == MODULE) {
     return node->as.MODULE.is_placeholder;
   } else if (toplevel == NULL) {
-    return FALSE;
+    return false;
   } else {
     return toplevel->flags & TOP_IS_PROTOTYPE;
   }
@@ -540,7 +540,7 @@ bool node_is_prototype(const struct node *node) {
 bool node_is_inline(const struct node *node) {
   const struct toplevel *toplevel = node_toplevel_const(node);
   if (toplevel == NULL) {
-    return FALSE;
+    return false;
   } else {
     return toplevel->flags & TOP_IS_INLINE;
   }
@@ -549,7 +549,7 @@ bool node_is_inline(const struct node *node) {
 bool node_is_export(const struct node *node) {
   const struct toplevel *toplevel = node_toplevel_const(node);
   if (toplevel == NULL) {
-    return FALSE;
+    return false;
   } else {
     return toplevel->flags & TOP_IS_EXPORT;
   }
@@ -558,7 +558,7 @@ bool node_is_export(const struct node *node) {
 bool node_is_extern(const struct node *node) {
   const struct toplevel *toplevel = node_toplevel_const(node);
   if (toplevel == NULL) {
-    return FALSE;
+    return false;
   } else {
     return toplevel->flags & TOP_IS_EXTERN;
   }
@@ -575,9 +575,9 @@ bool node_is_def(const struct node *node) {
   case DEFFIELD:
   case DEFINTF:
   case DEFCHOICE:
-    return TRUE;
+    return true;
   default:
-    return FALSE;
+    return false;
   }
 }
 
@@ -588,7 +588,7 @@ bool node_is_statement(const struct node *node) {
 
 bool node_is_at_top(const struct node *node) {
   if (node->scope.parent == NULL) {
-    return FALSE;
+    return false;
   } else {
     return node_parent_const(node)->which == MODULE_BODY;
   }
@@ -598,14 +598,14 @@ bool node_is_rvalue(const struct node *node) {
   switch (node->which) {
   case BIN:
     if (OP_KIND(node->as.BIN.operator) == OP_BIN_ACC) {
-      return FALSE;
+      return false;
     }
-    return TRUE;
+    return true;
   case UN:
     if (OP_KIND(node->as.UN.operator) == OP_UN_DEREF) {
-      return FALSE;
+      return false;
     }
-    return TRUE;
+    return true;
   case BOOL:
   case STRING:
   case NUMBER:
@@ -613,7 +613,7 @@ bool node_is_rvalue(const struct node *node) {
   case TUPLE:
   case INIT:
   case CALL:
-    return TRUE;
+    return true;
   case TYPECONSTRAINT:
     return node_is_rvalue(node_subs_first_const(node));
   case BLOCK:
@@ -632,7 +632,7 @@ bool node_is_rvalue(const struct node *node) {
 
     // Fallthrough.
   default:
-    return FALSE;
+    return false;
   }
 }
 
@@ -643,7 +643,7 @@ static error parse_modpath(struct module *mod, const char *raw_fn) {
   }
 
   mod->path_len = 0;
-  bool must_be_last = FALSE;
+  bool must_be_last = false;
   for (size_t n = 0, last = 0, p = 0; fn[p] != '\0'; ++p) {
     if (fn[p] == '_') {
       THROWF(EINVAL, "module path element cannot contain '_' in '%s'", fn);
@@ -656,7 +656,7 @@ static error parse_modpath(struct module *mod, const char *raw_fn) {
       tok.len = p - last;
 
       if (strncmp(tok.value, "module", tok.len) == 0) {
-        must_be_last = TRUE;
+        must_be_last = true;
       } else {
         mod->path[n] = idents_add(mod->gctx, &tok);
         mod->path_len += 1;
@@ -898,7 +898,7 @@ static error scan_oneof(struct token *tok, struct module *mod, ...) {
   va_list ap;
   va_start(ap, mod);
 
-  while (TRUE) {
+  while (true) {
     enum token_type t = va_arg(ap, enum token_type);
     if (t == 0) {
       break;
@@ -1095,7 +1095,7 @@ size_t node_fun_min_args_count(const struct node *def) {
   case DEFMETHOD:
     return def->as.DEFMETHOD.min_args;
   default:
-    assert(FALSE);
+    assert(false);
     return -1;
   }
 }
@@ -1107,7 +1107,7 @@ size_t node_fun_max_args_count(const struct node *def) {
   case DEFMETHOD:
     return def->as.DEFMETHOD.max_args;
   default:
-    assert(FALSE);
+    assert(false);
     return -1;
   }
 }
@@ -1119,7 +1119,7 @@ ssize_t node_fun_first_vararg(const struct node *def) {
   case DEFMETHOD:
     return def->as.DEFMETHOD.first_vararg;
   default:
-    assert(FALSE);
+    assert(false);
     return -1;
   }
 }
@@ -1137,7 +1137,7 @@ struct node *node_fun_retval(struct node *def) {
 struct node *node_get_member(struct module *mod, struct node *node, ident id) {
   assert(node->which == DEFTYPE || node->which == DEFCHOICE || node->which == DEFINTF);
   struct node *m = NULL;
-  (void)scope_lookup_ident_immediate(&m, node, mod, &node->scope, id, TRUE);
+  (void)scope_lookup_ident_immediate(&m, node, mod, &node->scope, id, true);
   return m;
 }
 
@@ -1164,7 +1164,7 @@ size_t node_branching_exhaustive_branch_count(struct node *node) {
       return node_subs_count(eblock);
     }
   default:
-    assert(FALSE);
+    assert(false);
     return 0;
   }
 }
@@ -1192,7 +1192,7 @@ struct node *node_branching_nth_cond(struct node *node, ssize_t nth) {
   case TRY:
     return NULL;
   default:
-    assert(FALSE);
+    assert(false);
     return 0;
   }
 }
@@ -1225,7 +1225,7 @@ struct node *node_branching_nth_branch(struct node *node, ssize_t nth) {
       return node_subs_at(eblock, nth);
     }
   default:
-    assert(FALSE);
+    assert(false);
     return 0;
   }
 }
@@ -1334,7 +1334,7 @@ static error p_defchoice(struct node *node, struct module *mod) {
   EXCEPT(e);
 
   if (tok.t == TASSIGN) {
-    node->as.DEFCHOICE.has_tag = TRUE;
+    node->as.DEFCHOICE.has_tag = true;
 
     e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
     EXCEPT(e);
@@ -1344,7 +1344,7 @@ static error p_defchoice(struct node *node, struct module *mod) {
   }
 
   if (tok.t == TSOB) {
-    node->as.DEFCHOICE.has_payload = TRUE;
+    node->as.DEFCHOICE.has_payload = true;
 
     e = p_deftype_block(node, mod);
     EXCEPT(e);
@@ -1374,7 +1374,7 @@ static error p_expr_unary(struct node *node, struct module *mod) {
 
   node_set_which(node, UN);
   node->as.UN.operator = op;
-  node->as.UN.is_explicit = TRUE;
+  node->as.UN.is_explicit = true;
 
   e = p_expr(node_new_subnode(mod, node), mod, op);
   EXCEPT(e);
@@ -1390,7 +1390,7 @@ static error p_expr_init(struct node *node, struct module *mod) {
 
   struct token tok = { 0 };
 
-  while (TRUE) {
+  while (true) {
     e = scan(&tok, mod);
     EXCEPT(e);
 
@@ -1407,7 +1407,7 @@ static error p_expr_init(struct node *node, struct module *mod) {
     EXCEPT(e);
 
     if (assign.t != TASSIGN) {
-      node->as.INIT.is_array = TRUE;
+      node->as.INIT.is_array = true;
       back(mod, &assign);
     } else {
       if (node->as.INIT.is_array) {
@@ -1426,7 +1426,7 @@ static error p_expr_tuple(struct node *node, struct module *mod) {
   struct token tok = { 0 };
 
   size_t count = 1;
-  while (TRUE) {
+  while (true) {
     e = scan(&tok, mod);
     EXCEPT(e);
 
@@ -1452,7 +1452,7 @@ static error p_expr_call(struct node *node, struct module *mod) {
   error e;
   struct token tok = { 0 };
 
-  while (TRUE) {
+  while (true) {
     e = scan(&tok, mod);
     EXCEPT(e);
     back(mod, &tok);
@@ -1575,7 +1575,7 @@ again:
   }
 
   // Need to reinject the eol after the last block.
-  mod->parser.inject_eol_after_eob = TRUE;
+  mod->parser.inject_eol_after_eob = true;
 
   return 0;
 }
@@ -1667,8 +1667,8 @@ static error p_try(struct node *node, struct module *mod) {
   e = scan_expected(mod, TEOL);
   EXCEPT(e);
 
-  bool first = TRUE;
-  bool has_label = FALSE;
+  bool first = true;
+  bool has_label = false;
   struct token tok = { 0 }, label = { 0 };
   struct node *catch;
 
@@ -1704,9 +1704,9 @@ again:
   e = scan(&tok, mod);
   EXCEPT(e);
   if (tok.t == TIDENT) {
-    has_label = TRUE;
+    has_label = true;
     catch->as.CATCH.label = idents_add(mod->gctx, &label);
-    catch->as.CATCH.is_user_label = TRUE;
+    catch->as.CATCH.is_user_label = true;
   } else if (tok.t == TSOB) {
     if (!first) {
       goto missing_label;
@@ -1732,7 +1732,7 @@ again:
   e = scan_expected(mod, TEOL);
   EXCEPT(e);
 
-  first = FALSE;
+  first = false;
   goto again;
 
 missing_label:
@@ -1754,7 +1754,7 @@ again:
   EXCEPT(e);
   if (tok.t != TPATTERNOR) {
     back(mod, &tok);
-    mod->parser.inject_eol_after_eob = TRUE;
+    mod->parser.inject_eol_after_eob = true;
     return 0;
   }
 
@@ -2161,7 +2161,7 @@ static error p_within(struct node *node, struct module *mod, bool is_list) {
     return 0;
   }
 
-  while (TRUE) {
+  while (true) {
     e = scan(&tok, mod);
     EXCEPT(e);
     back(mod, &tok);
@@ -2170,7 +2170,7 @@ static error p_within(struct node *node, struct module *mod, bool is_list) {
       break;
     }
 
-    e = p_within(node_new_subnode(mod, node), mod, FALSE);
+    e = p_within(node_new_subnode(mod, node), mod, false);
     EXCEPT(e);
   }
 
@@ -2242,7 +2242,7 @@ static error p_block(struct node *node, struct module *mod) {
   node_set_which(node, BLOCK);
   error e;
   struct token tok = { 0 };
-  bool first = TRUE;
+  bool first = true;
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -2271,7 +2271,7 @@ again:
     }
   }
 
-  first = FALSE;
+  first = false;
   e = scan(&tok, mod);
   EXCEPT(e);
 
@@ -2393,7 +2393,7 @@ static void count_args(struct node *def) {
     first_va = &def->as.DEFMETHOD.first_vararg;
     break;
   default:
-    assert(FALSE);
+    assert(false);
     return;
   }
 
@@ -2402,10 +2402,10 @@ static void count_args(struct node *def) {
   *min = *max;
 
   *first_va = -1;
-  bool last = TRUE;
+  bool last = true;
   REVERSE_FOREACH_SUB_CONST(arg, funargs) {
     if (last) {
-      last = FALSE;
+      last = false;
       continue;
     }
 
@@ -2438,7 +2438,7 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     EXCEPT(e);
     break;
   default:
-    assert(FALSE);
+    assert(false);
   }
 
   struct node *name = node_subs_first(node);
@@ -2458,7 +2458,7 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     }
   }
 
-  bool must_be_last = FALSE;
+  bool must_be_last = false;
 again:
   e = scan_oneof(&tok, mod, TASSIGN, TIDENT, TQMARK, TDOTDOTDOT, 0);
   EXCEPT(e);
@@ -2483,7 +2483,7 @@ again:
     must_be_last = tok.t == TDOTDOTDOT;
     goto again;
   default:
-    assert(FALSE);
+    assert(false);
   }
 
 retval:
@@ -2495,7 +2495,7 @@ retval:
   e = scan(&tok, mod);
   EXCEPT(e);
   if (tok.t == Twithin) {
-    e = p_within(node_new_subnode(mod, node), mod, TRUE);
+    e = p_within(node_new_subnode(mod, node), mod, true);
     EXCEPT(e);
   } else {
     back(mod, &tok);
@@ -2538,7 +2538,7 @@ again:
     struct node *isa = node_new_subnode(mod, isalist);
     node_set_which(isa, ISA);
     isa->as.ISA.is_export = is_export;
-    isa->as.ISA.is_explicit = TRUE;
+    isa->as.ISA.is_explicit = true;
 
     e = p_expr(node_new_subnode(mod, isa), mod, T__CALL);
     EXCEPT(e);
@@ -2629,7 +2629,7 @@ again:
 static error p_deftype_block(struct node *node, struct module *mod) {
   error e;
   struct token tok = { 0 };
-  bool first = TRUE;
+  bool first = true;
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -2654,7 +2654,7 @@ again:
     }
   }
 
-  first = FALSE;
+  first = false;
   e = scan(&tok, mod);
   EXCEPT(e);
 
@@ -2719,14 +2719,14 @@ static error p_deftype(struct node *node, struct module *mod,
     node->as.DEFTYPE.kind = DEFTYPE_UNION;
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     break;
   }
 
   error e = p_ident(node_subs_first(node), mod);
   EXCEPT(e);
 
-  e = p_genargs(node_subs_at(node, IDX_GENARGS), mod, TASSIGN, TRUE);
+  e = p_genargs(node_subs_at(node, IDX_GENARGS), mod, TASSIGN, true);
   EXCEPT(e);
 
   (void)mk_node(mod, node, ISALIST);
@@ -2748,7 +2748,7 @@ done:
 }
 
 static error p_implicit_genargs(struct node *genargs, struct module *mod) {
-  error e = p_genargs(genargs, mod, TRPAR, FALSE);
+  error e = p_genargs(genargs, mod, TRPAR, false);
   EXCEPT(e);
 
   return 0;
@@ -2820,7 +2820,7 @@ again:
 static error p_defintf_block(struct node *node, struct module *mod) {
   error e;
   struct token tok = { 0 };
-  bool first = TRUE;
+  bool first = true;
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -2845,7 +2845,7 @@ again:
     }
   }
 
-  first = FALSE;
+  first = false;
   e = scan(&tok, mod);
   EXCEPT(e);
 
@@ -2870,7 +2870,7 @@ static error p_defintf(struct node *node, struct module *mod,
     THROW(e);
   }
 
-  e = p_genargs(node_subs_at(node, IDX_GENARGS), mod, TASSIGN, TRUE);
+  e = p_genargs(node_subs_at(node, IDX_GENARGS), mod, TASSIGN, true);
   EXCEPT(e);
 
   (void)mk_node(mod, node, ISALIST);
@@ -2935,7 +2935,7 @@ void defincomplete_add_isa(struct module *mod, const struct node *for_error,
 error defincomplete_catchup(struct module *mod, struct node *dinc) {
   assert(dinc->which == DEFINCOMPLETE);
   error e = catchup_instantiation(mod, mod, dinc, &mod->body->scope,
-                                  TRUE);
+                                  true);
   EXCEPT(e);
   return 0;
 }
@@ -3067,7 +3067,7 @@ again:
     if (ident_count > 0) {
       UNEXPECTED(mod, &tok);
     }
-    node->as.IMPORT.is_all = TRUE;
+    node->as.IMPORT.is_all = true;
     return 0;
   } else if (tok.t == TIDENT) {
     ident_count += 1;
@@ -3092,16 +3092,16 @@ static error p_toplevel(struct module *mod) {
   struct toplevel toplevel = { 0 };
   struct node *genargs = NULL;
 
-  bool is_scoped = FALSE;
+  bool is_scoped = false;
   error e;
   struct token tok = { 0 }, tok2 = { 0 };
   struct node *node = NULL;
 
-  bool first = TRUE;
+  bool first = true;
   goto start;
 
 again:
-  first = FALSE;
+  first = false;
 
 start:
   e = scan(&tok, mod);
@@ -3185,7 +3185,7 @@ bypass:
     break;
   case TIDENT:
     toplevel.scope_name = idents_add(mod->gctx, &tok);
-    is_scoped = TRUE;
+    is_scoped = true;
     goto again;
   case Tfrom:
   case Timport:
@@ -3195,7 +3195,7 @@ bypass:
     e = p_example(NEW(mod, node), mod);
     break;
   case Twithin:
-    e = p_within(NEW(mod, node), mod, TRUE);
+    e = p_within(NEW(mod, node), mod, true);
     break;
   case TEOL:
     if (first) {
@@ -3345,7 +3345,7 @@ static error register_module(struct globalctx *gctx, struct module *to_register,
     ident i = to_register->path[p];
     struct node *m = NULL;
     error e = scope_lookup_ident_wontimport(&m, parent, some_module, &parent->scope,
-                                            i, TRUE);
+                                            i, true);
     if (e == EINVAL) {
       m = create_module_node(parent, i, p != last, to_register);
 
@@ -3355,7 +3355,7 @@ static error register_module(struct globalctx *gctx, struct module *to_register,
     } else if (e) {
       // Repeat bound-to-fail lookup to get the error message right.
       e = scope_lookup_ident_wontimport(&m, parent, some_module, &parent->scope,
-                                        i, FALSE);
+                                        i, false);
       THROW(e);
     } else {
       assert(m->which == MODULE);
@@ -3365,7 +3365,7 @@ static error register_module(struct globalctx *gctx, struct module *to_register,
                  filename);
         } else {
           assert(to_register->root == NULL);
-          to_register->root = create_module_node(parent, i, FALSE, to_register);
+          to_register->root = create_module_node(parent, i, false, to_register);
 
           FOREACH_SUB(to_save, m) {
             assert(to_save->which == MODULE);

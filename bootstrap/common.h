@@ -31,8 +31,8 @@
 #define STRINGIFY(x) _STRINGIFY(x)
 
 typedef _Bool bool;
-#define TRUE 1
-#define FALSE 0
+#define true 1
+#define false 0
 
 typedef int error;
 

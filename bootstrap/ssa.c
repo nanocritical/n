@@ -25,7 +25,7 @@ static void ssa_sub(struct module *mod, struct node *statement,
   struct scope *scope = &statement_parent->scope;
 
   struct node *defp = mk_node(mod, let, DEFPATTERN);
-  defp->as.DEFPATTERN.is_ssa_var = TRUE;
+  defp->as.DEFPATTERN.is_ssa_var = true;
 
   node_subs_append(defp, sub);
   struct node *name = mk_node(mod, defp, IDENT);
@@ -168,7 +168,7 @@ error step_ssa_convert(struct module *mod, struct node *node,
     break;
 
   default:
-    assert(FALSE);
+    assert(false);
     break;
   }
 

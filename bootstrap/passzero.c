@@ -89,7 +89,7 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node,
   case DEFINTF:
     if (node_subs_count_atleast(genargs, 1)
         && node_subs_first(genargs)->which == DEFGENARG) {
-      (void) add_instance_deepcopy_from_pristine(mod, node, node, FALSE);
+      (void) add_instance_deepcopy_from_pristine(mod, node, node, false);
     }
     break;
   case DEFFUN:
@@ -97,10 +97,10 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node,
     // Always needed because the method/fun could be part of a generic
     // DEFTYPE, and we cannot know that yet. If the parent is not a generic,
     // we will remove this unneeded stuff in do_move_detached_member().
-    (void) add_instance_deepcopy_from_pristine(mod, node, node, FALSE);
+    (void) add_instance_deepcopy_from_pristine(mod, node, node, false);
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     break;
   }
 
@@ -163,7 +163,7 @@ static error step_check_deftype_kind(struct module *mod, struct node *node,
 static void do_assign_defchoice_tag(struct module *mod,
                                     struct node *parent, struct node *prev,
                                     struct node *node) {
-  node->as.DEFCHOICE.is_leaf = TRUE;
+  node->as.DEFCHOICE.is_leaf = true;
   if (node->as.DEFCHOICE.has_tag) {
     return;
   }
@@ -193,9 +193,9 @@ static void do_assign_defchoice_tag(struct module *mod,
   node_subs_remove(node, tag);
   node_subs_insert_after(node, node_subs_at(node, IDX_CH_TAG_FIRST-1), tag);
 
-  node->as.DEFCHOICE.has_tag = TRUE;
+  node->as.DEFCHOICE.has_tag = true;
   if (parent->which == DEFCHOICE) {
-    parent->as.DEFCHOICE.is_leaf = FALSE;
+    parent->as.DEFCHOICE.is_leaf = false;
   }
 }
 
@@ -265,7 +265,7 @@ error step_stop_submodules(struct module *mod, struct node *node,
   *module_depth += 1;
 
   if (*module_depth > 1) {
-    *stop = TRUE;
+    *stop = true;
   }
   return 0;
 }

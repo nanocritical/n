@@ -96,7 +96,7 @@ error catchup(struct module *mod,
              || how == CATCHUP_AFTER_CURRENT) {
     goal = mod->stage->state->passing - 1;
   } else {
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
   }
 
   const bool was_upward = mod->state->step_state->upward;
@@ -120,7 +120,7 @@ error catchup(struct module *mod,
 
   bool tentatively_saved = mod->state->tentatively;
   if (how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
-    mod->state->tentatively = TRUE;
+    mod->state->tentatively = true;
   }
 
   for (ssize_t p = from; p <= goal; ++p) {
@@ -167,19 +167,19 @@ bool instantiation_is_tentative(const struct module *mod,
                                 size_t arity) {
   if (mod->state->tentatively || mod->state->top_state != NULL) {
     if (typ_is_tentative(t)) {
-      return TRUE;
+      return true;
     }
 
     for (size_t n = 0; n < arity; ++n) {
       if (typ_is_tentative(args[n])) {
-        return TRUE;
+        return true;
       }
     }
 
     // Optimisation: immediately turn into a final instantiation.
-    return FALSE;
+    return false;
   } else {
-    return FALSE;
+    return false;
   }
 }
 
@@ -225,14 +225,14 @@ error step_stop_marker_tbi(struct module *mod, struct node *node,
     switch (node_ident(node)) {
     case ID_TBI__NOT_TYPEABLE:
     case ID_TBI__CALL_FUNCTION_SLOT:
-      *stop = TRUE;
+      *stop = true;
       return 0;
     }
   } else if (node->which == IMPORT && node->typ != NULL) {
-    *stop = TRUE;
+    *stop = true;
     return 0;
   } else {
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
   }
 
   return 0;
@@ -244,7 +244,7 @@ error step_stop_block(struct module *mod, struct node *node,
                       void *user, bool *stop) {
   DSTEP(mod, node);
 
-  *stop = TRUE;
+  *stop = true;
 
   return 0;
 }
@@ -259,7 +259,7 @@ error step_stop_funblock(struct module *mod, struct node *node,
   case DEFFUN:
   case DEFMETHOD:
   case EXAMPLE:
-    *stop = TRUE;
+    *stop = true;
     break;
   default:
     break;
@@ -399,7 +399,7 @@ static STEP_FILTER(step_test_stop_deftype_down,
 static error step_test_stop_deftype_down(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   if (node->which == DEFTYPE) {
-    *stop = TRUE;
+    *stop = true;
   }
   return 0;
 }

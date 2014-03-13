@@ -238,15 +238,15 @@ static const uint32_t operators[TOKEN__NUM] = {
 };
 
 static const bool expr_terminators[TOKEN__NUM] = {
-  [TEOL] = TRUE,
-  [TSOB] = TRUE,
-  [TEOB] = TRUE,
-  [TRPAR] = TRUE,
-  [TRSBRA] = TRUE,
-  [TRCBRA] = TRUE,
-  [Twithin] = TRUE,
-  [Tand] = TRUE,
-  [Tsuch] = TRUE,
+  [TEOL] = true,
+  [TSOB] = true,
+  [TEOB] = true,
+  [TRPAR] = true,
+  [TRSBRA] = true,
+  [TRCBRA] = true,
+  [Twithin] = true,
+  [Tand] = true,
+  [Tsuch] = true,
 };
 
 struct parser {

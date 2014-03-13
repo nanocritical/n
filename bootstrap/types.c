@@ -354,7 +354,7 @@ void typ_create_update_hash(struct typ *t) {
 static error update_quickisa_isalist_each(struct module *mod,
                                           struct typ *t, struct typ *intf,
                                           bool *stop, void *user) {
-  typset_set(&t->quickisa, intf, TRUE);
+  typset_set(&t->quickisa, intf, true);
   return 0;
 }
 
@@ -375,21 +375,21 @@ static bool check_can_be_tentative(const struct typ *t) {
   const struct node *d = typ_definition_const(t);
   if (d->which == DEFINTF
       || d->which == DEFINCOMPLETE) {
-    return TRUE;
+    return true;
   }
 
   if (typ_is_literal(t) || (t->flags & TYPF_WEAKLY_CONCRETE)) {
-    return TRUE;
+    return true;
   }
 
   for (size_t n = 0, count = typ_generic_arity(t); n < count; ++n) {
     const struct node *da = typ_definition_const(typ_generic_arg_const(t, n));
     if (da->which == DEFINTF) {
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 struct typ *typ_create_tentative(struct typ *target) {
@@ -498,7 +498,7 @@ void typ_debug_check_in_backlinks(struct typ **u) {
   if (t == NULL || !typ_is_tentative(t)) {
     return;
   }
-  bool r = FALSE;
+  bool r = false;
   FOREACH_BACKLINK(idx, b, t, if (b != NULL) { r |= b == u; });
 }
 
@@ -626,7 +626,7 @@ static struct typ *direct_isalist(struct typ *t, size_t n) {
   case DEFINTF:
     return node_subs_at_const(node_subs_at_const(def, IDX_ISALIST), n)->typ;
   default:
-    assert(FALSE);
+    assert(false);
     return 0;
   }
 }
@@ -673,7 +673,7 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
       continue;
     }
 
-    typset_set(set, intf, TRUE);
+    typset_set(set, intf, true);
 
     error e = do_typ_isalist_foreach(mod, t, intf, filter, iter, user, stop, set);
     EXCEPT(e);
@@ -698,7 +698,7 @@ error typ_isalist_foreach(struct module *mod, struct typ *t, uint32_t filter,
   struct typset set;
   typset_fullinit(&set);
 
-  bool stop = FALSE;
+  bool stop = false;
   error e = do_typ_isalist_foreach(mod, t, t, filter, iter, user, &stop, &set);
   typset_destroy(&set);
   EXCEPT(e);
@@ -826,7 +826,7 @@ static bool __typ_equal(const struct typ *a, const struct typ *b) {
   const struct node *da = typ_definition_const(a);
   const struct node *db = typ_definition_const(b);
   if (da == db) {
-    return TRUE;
+    return true;
   }
 
   const size_t a_ga = typ_generic_arity(a);
@@ -834,37 +834,37 @@ static bool __typ_equal(const struct typ *a, const struct typ *b) {
     return da == db;
   } else {
     if (a_ga != typ_generic_arity(b)) {
-      return FALSE;
+      return false;
     }
 
     const struct typ *a0 = typ_generic_functor_const(a);
     const struct typ *b0 = typ_generic_functor_const(b);
     if (a0 != b0) {
-      return FALSE;
+      return false;
     }
 
     const bool a_functor = typ_is_generic_functor(a);
     const bool b_functor = typ_is_generic_functor(b);
     if (a_functor && b_functor) {
-      return TRUE;
+      return true;
     } else if (a_functor || b_functor) {
-      return FALSE;
+      return false;
     }
 
     for (size_t n = 0; n < a_ga; ++n) {
       if (!typ_equal(typ_generic_arg_const(a, n),
                      typ_generic_arg_const(b, n))) {
-        return FALSE;
+        return false;
       }
     }
 
-    return TRUE;
+    return true;
   }
 }
 
 bool typ_equal(const struct typ *a, const struct typ *b) {
   if (a->hash != b->hash) {
-    return FALSE;
+    return false;
   }
 
   return __typ_equal(a, b);
@@ -950,7 +950,7 @@ struct typ *typ_lookup_builtin_tuple(struct module *mod, size_t arity) {
   case 14: return TBI_TUPLE_14;
   case 15: return TBI_TUPLE_15;
   case 16: return TBI_TUPLE_16;
-  default: assert(FALSE); return NULL;
+  default: assert(false); return NULL;
   }
 }
 
@@ -966,7 +966,7 @@ bool typ_has_same_generic_functor(const struct module *mod,
   } else if (a_arity > 0 && b_arity == 0) {
     return typ_equal(typ_generic_functor_const(a), b);
   } else {
-    return FALSE;
+    return false;
   }
 }
 
@@ -977,11 +977,11 @@ bool typ_is_generic_functor(const struct typ *t) {
 
 bool typ_isa(const struct typ *a, const struct typ *intf) {
   if (typ_equal(intf, TBI_ANY)) {
-    return TRUE;
+    return true;
   }
 
   if (typ_equal(a, intf)) {
-    return TRUE;
+    return true;
   }
 
   const size_t a_ga = typ_generic_arity(a);
@@ -989,7 +989,7 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
       && !typ_is_generic_functor(a)
       && typ_is_generic_functor(intf)) {
     if (typ_isa(typ_generic_functor_const(a), intf)) {
-      return TRUE;
+      return true;
     }
   }
 
@@ -1004,7 +1004,7 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
       }
     }
     if (n == a_ga) {
-      return TRUE;
+      return true;
     }
   }
 
@@ -1020,23 +1020,23 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
       }
     }
     if (n == a_ga) {
-      return TRUE;
+      return true;
     }
   }
 
   for (size_t n = 0; n < direct_isalist_count(a); ++n) {
     if (typ_equal(direct_isalist_const(a, n), intf)) {
-      return TRUE;
+      return true;
     }
   }
 
   for (size_t n = 0; n < direct_isalist_count(a); ++n) {
     if (typ_isa(direct_isalist_const(a, n), intf)) {
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 error typ_check_isa(const struct module *mod, const struct node *for_error,
@@ -1067,22 +1067,22 @@ bool typ_is_nullable_reference(const struct typ *t) {
 static bool dyn_concrete(const struct typ *t) {
   const size_t arity = typ_generic_arity(t);
   if (arity == 0) {
-    return TRUE;
+    return true;
   }
 
   for (size_t n = 0; n < arity; ++n) {
     if (typ_definition_const(typ_generic_arg_const(t, n))->which == DEFINTF) {
-      return FALSE;
+      return false;
     }
   }
-  return TRUE;
+  return true;
 }
 
 bool typ_is_dyn(const struct typ *t) {
   if (typ_is_tentative(t)
       || !typ_is_reference(t)
       || typ_generic_arity(t) == 0) {
-    return FALSE;
+    return false;
   }
 
   const struct typ *a = typ_generic_arg_const(t, 0);
@@ -1092,7 +1092,7 @@ bool typ_is_dyn(const struct typ *t) {
 bool typ_is_dyn_compatible(const struct typ *t) {
   if (!typ_is_reference(t)
       || typ_generic_arity(t) == 0) {
-    return FALSE;
+    return false;
   }
 
   const struct typ *a = typ_generic_arg_const(t, 0);
@@ -1136,11 +1136,11 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
                      "'%s' type is not a reference", na);
   }
 
-  bool ok = FALSE;
+  bool ok = false;
   switch (operator) {
   case TDEREFDOT:
   case TDEREFWILDCARD:
-    ok = TRUE;
+    ok = true;
     break;
   case TDEREFBANG:
     ok = typ_isa(a, TBI_ANY_MUTABLE_REF);
@@ -1149,7 +1149,7 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
     ok = typ_has_same_generic_functor(mod, a, TBI_MMREF);
     break;
   default:
-    assert(FALSE);
+    assert(false);
   }
   if (ok) {
     return 0;

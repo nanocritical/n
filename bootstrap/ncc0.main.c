@@ -231,9 +231,9 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  bool opt_compile = TRUE;
+  bool opt_compile = true;
   if (getenv("NCC_GEN_ONLY")) {
-    opt_compile = FALSE;
+    opt_compile = false;
   }
 
   struct globalctx gctx;

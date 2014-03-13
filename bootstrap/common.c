@@ -76,7 +76,7 @@ void examples_destroy(const char *name) {
   if (ftell(g_env.stderr) != 0) {
     fflush(g_env.stderr);
     fprintf(stderr, "Example '%s' non-empty stderr:\n%s\n", name, g_env.stderr_mem);
-    assert(FALSE);
+    assert(false);
   }
 
   fclose(g_env.stderr);

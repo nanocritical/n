@@ -89,7 +89,7 @@ static error step_detect_not_dyn_intf_down(struct module *mod, struct node *node
                                            void *user, bool *stop) {
   DSTEP(mod, node);
 
-  mod->state->fun_state->fun_uses_final = FALSE;
+  mod->state->fun_state->fun_uses_final = false;
 
   return 0;
 }
@@ -115,7 +115,7 @@ static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
     break;
   case IDENT:
     if (node_ident(node) == ID_FINAL) {
-      mod->state->fun_state->fun_uses_final = TRUE;
+      mod->state->fun_state->fun_uses_final = true;
     }
     break;
   case DEFARG:
@@ -123,11 +123,11 @@ static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
         && node_parent(node)->which == DEFMETHOD) {
       // We just found self as a method argument on the way up, doesn't count.
       assert(mod->state->fun_state->fun_uses_final);
-      mod->state->fun_state->fun_uses_final = FALSE;
+      mod->state->fun_state->fun_uses_final = false;
     }
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     break;
   }
   return 0;
@@ -148,7 +148,7 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
     }
     struct node *def = NULL;
     error e = scope_lookup_ident_immediate(&def, node, mod, &node->scope,
-                                           ID_WILDCARD_REF_ARG, TRUE);
+                                           ID_WILDCARD_REF_ARG, true);
     if (e) {
       break;
     }
@@ -170,7 +170,7 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
       mod->state->fun_state->deref_wildcard = TDEREFSHARP;
       mod->state->fun_state->wildcard = TSHARP;
     } else {
-      assert(FALSE);
+      assert(false);
     }
     break;
   case UN:
@@ -198,7 +198,7 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
     }
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     break;
   }
 
@@ -214,7 +214,7 @@ static void mark_subs(struct module *mod, struct node *node, struct typ *mark,
   }
 
   struct node *n = first;
-  while (TRUE) {
+  while (true) {
     n->typ = mark;
 
     for (size_t i = 0; i < incr; ++i) {
@@ -304,7 +304,7 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
     }
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     break;
   }
 
@@ -381,7 +381,7 @@ static error step_type_mutability_mark(struct module *mod, struct node *node,
     }
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     break;
   }
 
@@ -451,7 +451,7 @@ static error step_type_gather_excepts(struct module *mod, struct node *node,
     module_excepts_push(mod, node);
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     break;
   }
   return 0;
@@ -481,7 +481,7 @@ static error step_excepts_store_label(struct module *mod, struct node *node,
     }
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     return 0;
   }
 
@@ -517,7 +517,7 @@ static error step_excepts_store_label(struct module *mod, struct node *node,
     }
 
     struct node *def = NULL;
-    e = scope_lookup(&def, mod, &node->scope, label_ident, FALSE);
+    e = scope_lookup(&def, mod, &node->scope, label_ident, false);
     EXCEPT(e);
 
     if (def->which != CATCH || scope_node(def->scope.parent) != eblock) {
@@ -540,7 +540,7 @@ static error step_excepts_store_label(struct module *mod, struct node *node,
     node->as.THROW.error = tryy->as.TRY.error;
     break;
   default:
-    assert(FALSE);
+    assert(false);
   }
 
   return 0;
@@ -569,7 +569,7 @@ static error step_rewrite_union_constructors(struct module *mod, struct node *no
   }
 
   struct node *member = NULL;
-  error e = scope_lookup(&member, mod, &fun->scope, fun, FALSE);
+  error e = scope_lookup(&member, mod, &fun->scope, fun, false);
   EXCEPT(e);
   if (member->which != DEFCHOICE) {
     return 0;
@@ -696,7 +696,7 @@ static error instance(struct node **result,
       args[n] = typ_create_tentative(typ_generic_arg(t, n));
     }
 
-    error e = do_instantiate(result, mod, t, args, arity, TRUE);
+    error e = do_instantiate(result, mod, t, args, arity, true);
     EXCEPT(e);
 
     const struct node *fe = node_subs_at_const(for_error, for_error_offset);
@@ -718,7 +718,7 @@ static error instance(struct node **result,
       }
       return 0;
     }
-    error e = do_instantiate(result, mod, t, explicit_args, arity, FALSE);
+    error e = do_instantiate(result, mod, t, explicit_args, arity, false);
     EXCEPT(e);
   }
 
@@ -776,7 +776,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
     EXCEPT(e);
     break;
   default:
-    assert(FALSE);
+    assert(false);
   }
 
   return 0;
@@ -942,7 +942,7 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
     first_vararg = dfun->as.DEFMETHOD.first_vararg;
     break;
   default:
-    assert(FALSE);
+    assert(false);
     break;
   }
 
@@ -1051,7 +1051,7 @@ static void bin_accessor_maybe_defchoice(struct scope **parent_scope, struct nod
     struct node *defchoice = NULL;
     error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
                                            &typ_definition(parent->typ)->scope,
-                                           tag, FALSE);
+                                           tag, false);
     assert(!e);
     assert(defchoice->which == DEFCHOICE);
 
@@ -1086,7 +1086,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
     EXCEPT(e);
 
     e = scope_lookup_ident_immediate(&field, name, mod, &dinc->scope,
-                                     node_ident(name), FALSE);
+                                     node_ident(name), false);
     EXCEPT(e);
   } else {
     EXCEPT(e);
@@ -1094,7 +1094,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
 
   if (field->which == IMPORT && !field->as.IMPORT.intermediate_mark) {
     e = scope_lookup(&field, mod, &mod->gctx->modules_root.scope,
-                     node_subs_first(field), FALSE);
+                     node_subs_first(field), false);
     assert(!e);
   }
 
@@ -1183,7 +1183,7 @@ static error type_inference_bin(struct module *mod, struct node *node) {
   case OP_BIN_RHS_TYPE:
     return type_inference_bin_rhs_type(mod, node);
   default:
-    assert(FALSE);
+    assert(false);
     return 0;
   }
 }
@@ -1485,7 +1485,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
   switch (dfun->which) {
   case DEFFUN:
     if (args < dmin || args > dmax) {
-      e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
+      e = mk_except_call_args_count(mod, node, dfun, false, args);
       THROW(e);
     }
     break;
@@ -1494,13 +1494,13 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
       if ((node_subs_first(fun)->flags & NODE_IS_TYPE)) {
         // Form (type.method self ...).
         if (args < dmin || args > dmax) {
-          e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
+          e = mk_except_call_args_count(mod, node, dfun, false, args);
           THROW(e);
         }
       } else {
         // Form (self.method ...); rewrite as (type.method self ...).
         if (args+1 < dmin || args+1 > dmax) {
-          e = mk_except_call_args_count(mod, node, dfun, TRUE, args);
+          e = mk_except_call_args_count(mod, node, dfun, true, args);
           THROW(e);
         }
 
@@ -1521,15 +1521,15 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
       // Generic method instantiation: (type.method u32 i32) self
       // or DIRECTDEF.
       if (args < dmin || args > dmax) {
-        e = mk_except_call_args_count(mod, node, dfun, FALSE, args);
+        e = mk_except_call_args_count(mod, node, dfun, false, args);
         THROW(e);
       }
     } else {
-      assert(FALSE && "Unreached");
+      assert(false && "Unreached");
     }
     break;
   default:
-    assert(FALSE);
+    assert(false);
   }
 
   e = fill_in_optional_args(mod, node, fun->typ);
@@ -1644,10 +1644,10 @@ static error check_consistent_either_types_or_values(struct module *mod,
 static error type_inference_explicit_unary_call(struct module *mod, struct node *node, struct node *dfun) {
   const size_t subs_count = node_subs_count(node);
   if (dfun->which == DEFFUN && subs_count != 1) {
-    error e = mk_except_call_args_count(mod, node, dfun, FALSE, subs_count - 1);
+    error e = mk_except_call_args_count(mod, node, dfun, false, subs_count - 1);
     THROW(e);
   } else if (dfun->which == DEFMETHOD && subs_count != 2) {
-    error e = mk_except_call_args_count(mod, node, dfun, FALSE, subs_count - 1);
+    error e = mk_except_call_args_count(mod, node, dfun, false, subs_count - 1);
     THROW(e);
   }
 
@@ -1832,7 +1832,7 @@ static error unify_match_pattern(struct module *mod, struct node *expr, struct n
     e = scope_lookup_ident_immediate(&field, pattern, mod,
                                      &d->scope,
                                      node_ident(pattern),
-                                     TRUE);
+                                     true);
     if (!e) {
       e = typ_check_equal(mod, pattern, expr->typ, field->typ);
       EXCEPT(e);
@@ -1887,7 +1887,7 @@ static error unify_try_errors(struct typ **exu, struct module *mod,
       exc = exc->as.DEFNAME.expr;
       break;
     default:
-      assert(FALSE);
+      assert(false);
     }
 
     if (*exu == NULL) {
@@ -1987,7 +1987,7 @@ static struct phi_tracker_state *ident_def_phi_tracker(struct node *def) {
     }
     return def->as.DEFARG.phi_state;
   default:
-    assert(FALSE);
+    assert(false);
     return NULL;
   }
 }
@@ -2004,7 +2004,7 @@ static struct node *insert_conditioned_phi(struct module *mod,
   struct node *block = node_branching_nth_branch(br_st->branching, br_st->nth_branch);
   assert(block->which == BLOCK);
   struct node *phi = mk_node(mod, block, PHI);
-  phi->as.PHI.is_conditioned = TRUE;
+  phi->as.PHI.is_conditioned = true;
   vecnode_push(&phi->as.PHI.ancestors, pre_branch_use);
 
   node_subs_remove(block, phi);
@@ -2094,7 +2094,7 @@ static void track_ident_use(struct module *mod, struct node *node,
     phi_st = def->as.DEFARG.phi_state;
     break;
   default:
-    assert(FALSE);
+    assert(false);
   }
   phi_st->branching = br_st->branching;
   phi_st->nth_branch = br_st->nth_branch;
@@ -2114,11 +2114,11 @@ static void track_ident_use(struct module *mod, struct node *node,
 
   if (nodeset_count(&br_st->need_phi) == 0) {
     nodeset_init(&br_st->need_phi, 0);
-    nodeset_set_delete_val(&br_st->need_phi, FALSE);
+    nodeset_set_delete_val(&br_st->need_phi, false);
     nodeset_set_custom_hashf(&br_st->need_phi, node_ptr_hash);
     nodeset_set_custom_cmpf(&br_st->need_phi, node_ptr_cmp);
   }
-  nodeset_set(&br_st->need_phi, def, TRUE);
+  nodeset_set(&br_st->need_phi, def, true);
 
 #undef OR_ELSE
 }
@@ -2131,10 +2131,10 @@ static void track_match_ident_use(struct module *mod, struct node *pattern) {
   assert(expr->which == IDENT);
 
   struct node *def = NULL;
-  error e = scope_lookup(&def, mod, &expr->scope, expr, FALSE);
+  error e = scope_lookup(&def, mod, &expr->scope, expr, false);
   assert(!e);
 
-  track_ident_use(mod, expr, def, TRUE);
+  track_ident_use(mod, expr, def, true);
 }
 
 static STEP_FILTER(step_branch_down,
@@ -2157,7 +2157,7 @@ static size_t find_in_parent(const struct node *parent, const struct node *node)
     }
     n += 1;
   }
-  assert(FALSE);
+  assert(false);
   return 0;
 }
 
@@ -2259,7 +2259,7 @@ static int phi_insertion_foreach(const struct node **_def, bool *value, void *us
     POP_STATE(def->as.DEFARG.phi_state);
     break;
   default:
-    assert(FALSE);
+    assert(false);
     break;
   }
 
@@ -2325,7 +2325,7 @@ static bool is_name_of_globalenv(const struct node *node) {
     const struct node *pparent = node_parent_const(parent);
     return pparent->which == DEFPATTERN && pparent->as.DEFPATTERN.is_globalenv;
   } else {
-    return FALSE;
+    return false;
   }
 }
 
@@ -2341,7 +2341,7 @@ static error type_inference_ident(struct module *mod, struct node *node) {
   }
 
   struct node *def = NULL;
-  error e = scope_lookup(&def, mod, &node->scope, node, TRUE);
+  error e = scope_lookup(&def, mod, &node->scope, node, true);
   if (e == EINVAL) {
     e = type_inference_ident_unknown(mod, node);
     EXCEPT(e);
@@ -2354,7 +2354,7 @@ static error type_inference_ident(struct module *mod, struct node *node) {
   } else if (def->flags & NODE_IS_GLOBAL_LET) {
     node->as.IDENT.non_local_scope = def->scope.parent->parent->parent;
   } else {
-    track_ident_use(mod, node, def, FALSE);
+    track_ident_use(mod, node, def, false);
   }
 
   if (def->which == DEFFIELD) {
@@ -2373,7 +2373,7 @@ static error type_inference_ident(struct module *mod, struct node *node) {
   if (typ_is_function(def->typ)
       && node->typ != TBI__CALL_FUNCTION_SLOT) {
     if (node_fun_min_args_count(typ_definition(def->typ)) != 0) {
-      e = mk_except_call_args_count(mod, node, typ_definition(def->typ), FALSE, 0);
+      e = mk_except_call_args_count(mod, node, typ_definition(def->typ), false, 0);
       THROW(e);
     }
     e = rewrite_unary_call(mod, node, def->typ);
@@ -2424,10 +2424,10 @@ static error type_inference_within(struct module *mod, struct node *node) {
 
     e = scope_lookup_ident_immediate(&def, node, mod,
                                      &modbody->as.MODULE_BODY.globalenv_scope,
-                                     node_ident(node_subs_last_const(node)), FALSE);
+                                     node_ident(node_subs_last_const(node)), false);
     EXCEPT(e);
   } else if (node->which == IDENT) {
-    e = scope_lookup(&def, mod, &node->scope, node, FALSE);
+    e = scope_lookup(&def, mod, &node->scope, node, false);
     EXCEPT(e);
   } else if (node->which == BIN) {
     e = type_inference_within(mod, first);
@@ -2435,7 +2435,7 @@ static error type_inference_within(struct module *mod, struct node *node) {
 
     e = scope_lookup_ident_immediate(&def, node,
                                      mod, &typ_definition(first->typ)->scope,
-                                     node_ident(node_subs_last_const(node)), FALSE);
+                                     node_ident(node_subs_last_const(node)), false);
     EXCEPT(e);
   } else {
     goto malformed;
@@ -2772,7 +2772,7 @@ error step_remove_typeconstraints(struct module *mod, struct node *node,
     set_typ(&node->typ, saved);
 
     if (node->which == IDENT) {
-      track_ident_use(mod, node, node->as.IDENT.def, FALSE);
+      track_ident_use(mod, node, node->as.IDENT.def, false);
     }
   }
 
@@ -2864,7 +2864,7 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
     }
 
     struct node *i = NULL;
-    error e = do_instantiate(&i, mod, functor, args, arity, FALSE);
+    error e = do_instantiate(&i, mod, functor, args, arity, false);
     EXCEPT(e);
 
     typ_declare_final__privileged(i->typ);
@@ -2971,7 +2971,7 @@ static error step_ident_non_local_scope(struct module *mod, struct node *node,
       && d->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     struct node *def = NULL;
     error e = scope_lookup_ident_immediate(&def, node, mod, &d->scope,
-                                           node_ident(node), FALSE);
+                                           node_ident(node), false);
     assert(!e);
     node->as.IDENT.non_local_scope = def->scope.parent;
   }
@@ -2981,9 +2981,9 @@ static error step_ident_non_local_scope(struct module *mod, struct node *node,
 static bool string_literal_has_length_one(const char *s) {
   const size_t len = strlen(s);
   if (s == NULL) {
-    return FALSE;
+    return false;
   } else if (len <= 2) {
-    return FALSE;
+    return false;
   } else if (s[1] == '\\') {
     return len == 4;
   } else {
@@ -3028,7 +3028,7 @@ static error step_weak_literal_conversion(struct module *mod, struct node *node,
     lit_typ = TBI_BOOL;
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     return 0;
   }
 
@@ -3070,7 +3070,7 @@ static enum token_type operator_call_arg_refop(const struct module *mod,
   } else if (typ_equal(arg0, TBI_MMREF) || typ_equal(arg0, TBI_NMMREF)) {
     return TREFSHARP;
   } else {
-    assert(FALSE);
+    assert(false);
     return 0;
   }
 }
@@ -3123,7 +3123,7 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
     right = node_subs_last(node);
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     return 0;
   }
 
@@ -3270,28 +3270,28 @@ static bool expr_is_literal_initializer(struct node **expr, struct module *mod, 
     if (expr != NULL) {
       *expr = node;
     }
-    return TRUE;
+    return true;
   } else if (node->which == BLOCK) {
     return expr_is_literal_initializer(expr, mod, node_subs_last(node));
   } else {
-    return FALSE;
+    return false;
   }
 }
 
 static bool expr_is_return_through_ref(struct node **expr, struct module *mod, struct node *node) {
   if (typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
-    return FALSE;
+    return false;
   }
 
   if (expr_is_literal_initializer(expr, mod, node)) {
-    return TRUE;
+    return true;
   } else if (node->which == CALL) {
     *expr = node;
-    return TRUE;
+    return true;
   } else if (node->which == BLOCK) {
     return expr_is_return_through_ref(expr, mod, node_subs_last(node));
   } else {
-    return FALSE;
+    return false;
   }
 }
 
@@ -3375,7 +3375,7 @@ static error step_copy_call_inference(struct module *mod, struct node *node,
     }
     return 0;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     return 0;
   }
 
@@ -3403,7 +3403,7 @@ static error step_copy_call_inference(struct module *mod, struct node *node,
     e = defname_copy_call_inference(mod, node);
     break;
   default:
-    assert(FALSE);
+    assert(false);
   }
   EXCEPT(e);
   return 0;
@@ -3453,7 +3453,7 @@ static error check_has_matching_member(struct module *mod,
     // FIXME check that the prototype is an exact match.
     // FIXME: handle (lexically) 'final' in mi properly.
   } else {
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
   }
 
   switch (m->which) {
@@ -3470,7 +3470,7 @@ static error check_has_matching_member(struct module *mod,
     m->as.DEFMETHOD.member_isa = mi;
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     break;
   }
 
@@ -3647,7 +3647,7 @@ static error step_dyn_inference(struct module *mod, struct node *node,
     // FIXME: support missing
     return 0;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     return 0;
   }
 }
@@ -3658,9 +3658,9 @@ static bool is_block_like(struct node *node) {
   case TRY:
   case MATCH:
   case BLOCK:
-    return TRUE;
+    return true;
   default:
-    return FALSE;
+    return false;
   }
 }
 
@@ -3717,7 +3717,7 @@ static void block_like_insert_value_assign(struct module *mod, struct node *node
     block_insert_value_assign(mod, node, target, target_name);
     break;
   default:
-    assert(FALSE);
+    assert(false);
     break;
   }
 }
@@ -3779,14 +3779,14 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
       if (real_expr != NULL) {
         if (real_expr->which == INIT) {
           real_expr->as.INIT.target_expr = retval_name(mod);
-          node->as.RETURN.forced_return_through_ref = TRUE;
+          node->as.RETURN.forced_return_through_ref = true;
         } else if (real_expr->which == CALL) {
           expr->as.CALL.return_through_ref_expr = retval_name(mod);
         }
       } else if (is_block_like(expr)) {
         block_like_insert_value_assign(mod, expr, NULL, node_ident(retval_name(mod)));
       } else {
-        assert(FALSE);
+        assert(false);
       }
     } else if (!typ_isa(expr->typ, TBI_RETURN_BY_COPY)
                && typ_isa(expr->typ, TBI_COPYABLE)) {
@@ -3832,7 +3832,7 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
     }
     return 0;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     return 0;
   }
 }
@@ -3843,19 +3843,19 @@ static bool block_like_needs_temporary(struct module *mod,
   struct node *parent = node_parent(node);
 
   if (is_block_like(parent)) {
-    return FALSE;
+    return false;
   }
 
   if (parent->which == RETURN
       && !typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
-    return FALSE;
+    return false;
   } else if (parent->which == DEFPATTERN) {
-    return FALSE;
+    return false;
   } else if (parent->which == BIN
              && OP_IS_ASSIGN(parent->as.BIN.operator)) {
-    return FALSE;
+    return false;
   } else {
-    return TRUE;
+    return true;
   }
 }
 
@@ -3944,10 +3944,10 @@ static error step_gather_temporary_rvalues(struct module *mod, struct node *node
     temporaries_add(temps, node);
     break;
   case BLOCK:
-    *stop = TRUE;
+    *stop = true;
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     return 0;
   }
 

@@ -67,15 +67,15 @@ error lexer_scan(struct token *tok, struct parser *parser) {
 } while (0)
 
   if (parser->inject_eol_after_eob) {
-    parser->inject_eol_after_eob = FALSE;
-    parser->tok_was_injected = TRUE;
+    parser->inject_eol_after_eob = false;
+    parser->tok_was_injected = true;
     tok->t = TEOL;
     tok->value = first_eol_back(parser->data, YYCURSOR);
     tok->len = 1;
     return 0;
   }
 
-  parser->tok_was_injected = FALSE;
+  parser->tok_was_injected = false;
 
 normal:
   start = YYCURSOR;
@@ -146,7 +146,7 @@ normal:
   "globalenv" { R(Tglobalenv); }
   "<-" { R(TBARROW); }
   "->" {
-    error e = block_down(parser, TRUE);
+    error e = block_down(parser, true);
     if (e) {
       ERROR(e, "lexer: too many block levels");
     }
@@ -191,7 +191,7 @@ normal:
   ";;" {
     if (block_style(parser)) {
       parser->indent -= 2;
-      block_up(parser, TRUE);
+      block_up(parser, true);
       R(TEOB);
     } else {
       ERROR(EINVAL, "lexer: unexpected double-semicolon in multi-line block");
@@ -278,8 +278,8 @@ eol_any:
 
   if (spaces == parser->indent) {
     if (block_style(parser)) {
-      parser->inject_eol_after_eob = TRUE;
-      block_up(parser, TRUE);
+      parser->inject_eol_after_eob = true;
+      block_up(parser, true);
       R(TEOB);
     } else {
       R(TEOL);
@@ -287,7 +287,7 @@ eol_any:
   } else if (spaces == parser->indent + 2) {
     parser->indent = spaces;
 
-    error e = block_down(parser, FALSE);
+    error e = block_down(parser, false);
     if (e) {
       ERROR(e, "lexer: too many block levels");
     }
@@ -304,11 +304,11 @@ eol_any:
     if (spaces != parser->indent) {
       // Closing several blocks at once, return token for the others.
       YYCURSOR = start;
-      parser->tok_was_injected = TRUE;
+      parser->tok_was_injected = true;
     }
 
     // EOB must be followed by an EOL.
-    parser->inject_eol_after_eob = TRUE;
+    parser->inject_eol_after_eob = true;
 
     block_up(parser, block_style(parser));
     R(TEOB);
@@ -382,7 +382,7 @@ void lexer_back(struct parser *parser, const struct token *tok) {
     return;
   }
 
-  parser->inject_eol_after_eob = FALSE;
+  parser->inject_eol_after_eob = false;
 
   assert(tok->len < parser->pos);
   parser->pos -= tok->len;

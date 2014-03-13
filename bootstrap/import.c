@@ -47,7 +47,7 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
     mark_ident = node_subs_last(import_path);
     break;
   default:
-    assert(FALSE);
+    assert(false);
   }
 
   // Ascent.
@@ -56,7 +56,7 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
     struct node *placeholder;
     ident name = node_ident(mark_ident);
     e = scope_lookup_ident_immediate(&placeholder, mark_ident, mod, *scope,
-                                     name, TRUE);
+                                     name, true);
     if (!e) {
       e = mk_except(mod, original_import,
                     "importing identifier '%s' more than once",
@@ -75,7 +75,7 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
   ident name = node_ident(mark_ident);
   // Find existing import mark, if any.
   struct node *mark = NULL;
-  e = scope_lookup_ident_immediate(&mark, mark_ident, mod, *scope, name, TRUE);
+  e = scope_lookup_ident_immediate(&mark, mark_ident, mod, *scope, name, true);
   if (e == EINVAL) {
     // We need to create an (intermediate) mark.
     struct node *anchor = (*scope == &mod->body->scope)
@@ -85,7 +85,7 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
     mark = mk_node(mod, anchor, IMPORT);
     mark->as.IMPORT.toplevel.flags |=
       original_import->as.IMPORT.toplevel.flags & TOP_IS_EXPORT;
-    mark->as.IMPORT.intermediate_mark = TRUE;
+    mark->as.IMPORT.intermediate_mark = true;
     node_deepcopy(mod, node_new_subnode(mod, mark), import_path);
     pass_import_mark(mod, mark, &anchor->scope);
 
@@ -93,7 +93,7 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
     assert(!e);
 
   } else if (e) {
-    assert(FALSE);
+    assert(false);
   } else {
     assert(mark->which == IMPORT);
   }
@@ -110,7 +110,7 @@ static error check_import_target_exists(struct module *mod,
     = points_inside_module == 1 ? node_subs_first(module_import_path) : module_import_path;
 
   struct node *def = NULL;
-  error e = scope_lookup_module(&def, mod, mpath, TRUE);
+  error e = scope_lookup_module(&def, mod, mpath, true);
 
   if (e == EINVAL && points_inside_module == -1 /* caller doesn't know */) {
     e = check_import_target_exists(mod, module_import_path, 1);
@@ -126,7 +126,7 @@ static error check_import_target_exists(struct module *mod,
     struct node *id = node_subs_last(module_import_path);
     e = scope_lookup_ident_immediate(&target, id,
                                      mod, &def->scope,
-                                     node_ident(id), FALSE);
+                                     node_ident(id), false);
     EXCEPT(e);
   }
 
@@ -170,7 +170,7 @@ static error lexical_import_from_path(struct scope *scope, struct module *mod,
   // 'import == original_import'.
   struct node *last = node_subs_last(import);
   FOREACH_SUB_EVERY(id, import, 1, 1) {
-    e = import_single_ident(scope, mod, original_import, id, TRUE);
+    e = import_single_ident(scope, mod, original_import, id, true);
     EXCEPT(e);
 
     if (id == last) {
@@ -206,14 +206,14 @@ static error lexical_import_path(struct scope *scope, struct module *mod,
                                  struct node *import) {
   error e;
   struct node *target = NULL;
-  e = scope_lookup_module(&target, mod, node_subs_first(import), FALSE);
+  e = scope_lookup_module(&target, mod, node_subs_first(import), false);
   EXCEPT(e);
 
   bool need_expose_all = original_import->as.IMPORT.is_all
     || target->which == MODULE;
 
   if (!need_expose_all) {
-    e = import_single_ident(scope, mod, original_import, import, FALSE);
+    e = import_single_ident(scope, mod, original_import, import, false);
     EXCEPT(e);
     return 0;
   }

@@ -59,22 +59,22 @@ static bool constraint_equal(const struct constraint *_a, const struct constrain
   INVARIANT_CONSTRAINT(b);
 
   if (a->init != b->init) {
-    return FALSE;
+    return false;
   }
   if (a->nonnull != b->nonnull) {
-    return FALSE;
+    return false;
   }
   if (tagset_count(&a->tags) != tagset_count(&b->tags)) {
-    return FALSE;
+    return false;
   }
   if (tagset_foreach(&a->tags, constraint_equal_tag_foreach, &b->tags)) {
-    return FALSE;
+    return false;
   }
   if (tagset_foreach(&b->tags, constraint_equal_tag_foreach, &a->tags)) {
-    return FALSE;
+    return false;
   }
 
-  return TRUE;
+  return true;
 }
 
 EXAMPLE_NCC_EMPTY(constraint_equal) {
@@ -187,9 +187,9 @@ static int snprint_constraint_tag_foreach(const ident *tag, cbool *value, void *
                      "|%s", idents_value(st->mod->gctx, *tag));
     st->s += n;
     st->len -= n;
-    st->has_yess = TRUE;
+    st->has_yess = true;
   } else if (*value == N) {
-    st->has_nos = TRUE;
+    st->has_nos = true;
   }
   return 0;
 }
@@ -225,9 +225,9 @@ int snprint_constraint(char *s, size_t len,
       .mod = mod,
       .s = s + pos,
       .len = len - pos,
-      .do_nos = FALSE,
-      .has_yess = FALSE,
-      .has_nos = FALSE,
+      .do_nos = false,
+      .has_yess = false,
+      .has_nos = false,
     };
 
     tagset_foreach(&c->tags, snprint_constraint_tag_foreach, &st);
@@ -239,7 +239,7 @@ int snprint_constraint(char *s, size_t len,
         st.len -= n;
       }
 
-      st.do_nos = TRUE;
+      st.do_nos = true;
       tagset_foreach(&c->tags, snprint_constraint_tag_foreach, &st);
     }
 
@@ -257,21 +257,21 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
   {
     struct node *na = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, FALSE);
+    constraint_set_init(mod, na, false);
     snprint_constraint(s, len, mod, na->constraint);
     assert(strcmp(s, "(init)") == 0);
   }
   {
     struct node *na = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, TRUE);
+    constraint_set_init(mod, na, true);
     snprint_constraint(s, len, mod, na->constraint);
     assert(strcmp(s, "(not init)") == 0);
   }
   {
     struct node *na = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, TRUE);
+    constraint_set_init(mod, na, true);
     constraint_unset_init(mod, na);
     snprint_constraint(s, len, mod, na->constraint);
     assert(strcmp(s, "()") == 0);
@@ -279,42 +279,42 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
   {
     struct node *na = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
-    constraint_set_nonnull(mod, na, FALSE);
+    constraint_set_nonnull(mod, na, false);
     constraint_unset_nonnull(mod, na);
-    constraint_set_nonnull(mod, na, TRUE);
+    constraint_set_nonnull(mod, na, true);
     snprint_constraint(s, len, mod, na->constraint);
     assert(strcmp(s, "(not nonnull)") == 0);
   }
   {
     struct node *na = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, FALSE);
-    constraint_set_nonnull(mod, na, TRUE);
+    constraint_set_init(mod, na, false);
+    constraint_set_nonnull(mod, na, true);
     snprint_constraint(s, len, mod, na->constraint);
     assert(strcmp(s, "(init and not nonnull)") == 0);
   }
   {
     struct node *na = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
-    constraint_set_tag(mod, na, ID_C, FALSE);
+    constraint_set_tag(mod, na, ID_C, false);
     constraint_unset_tag(mod, na, ID_C);
-    constraint_set_tag(mod, na, ID_C, FALSE);
+    constraint_set_tag(mod, na, ID_C, false);
     snprint_constraint(s, len, mod, na->constraint);
     assert(strcmp(s, "(|c)") == 0);
   }
   {
     struct node *na = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
-    constraint_set_tag(mod, na, ID_C, FALSE);
-    constraint_set_tag(mod, na, ID_CTOR, FALSE);
+    constraint_set_tag(mod, na, ID_C, false);
+    constraint_set_tag(mod, na, ID_CTOR, false);
     snprint_constraint(s, len, mod, na->constraint);
     assert(strcmp(s, "(|c|ctor)") == 0);
   }
   {
     struct node *na = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
-    constraint_set_tag(mod, na, ID_C, FALSE);
-    constraint_set_tag(mod, na, ID_CTOR, TRUE);
+    constraint_set_tag(mod, na, ID_C, false);
+    constraint_set_tag(mod, na, ID_CTOR, true);
     snprint_constraint(s, len, mod, na->constraint);
     assert(strcmp(s, "(|c and not |ctor)") == 0);
   }
@@ -482,8 +482,8 @@ EXAMPLE_NCC_EMPTY(constraint) {
     struct node *nb = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
     nb->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, FALSE);
-    constraint_set_init(mod, nb, FALSE);
+    constraint_set_init(mod, na, false);
+    constraint_set_init(mod, nb, false);
     assert(0 == constraint_check_compatible_assign(mod, na, nb));
   }
   {
@@ -491,7 +491,7 @@ EXAMPLE_NCC_EMPTY(constraint) {
     struct node *nb = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
     nb->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, FALSE);
+    constraint_set_init(mod, na, false);
     should_fail(constraint_check_compatible_assign(mod, na, nb));
   }
   {
@@ -499,8 +499,8 @@ EXAMPLE_NCC_EMPTY(constraint) {
     struct node *nb = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
     nb->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, FALSE);
-    constraint_set_nonnull(mod, nb, FALSE);
+    constraint_set_init(mod, na, false);
+    constraint_set_nonnull(mod, nb, false);
     should_fail(constraint_check_compatible_assign(mod, na, nb));
   }
   {
@@ -508,11 +508,11 @@ EXAMPLE_NCC_EMPTY(constraint) {
     struct node *nb = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
     nb->constraint = new_constraint(mod);
-    constraint_set_tag(mod, na, ID_C, FALSE);
-    constraint_set_tag(mod, na, ID_CTOR, FALSE);
-    constraint_set_tag(mod, nb, ID_C, FALSE);
+    constraint_set_tag(mod, na, ID_C, false);
+    constraint_set_tag(mod, na, ID_CTOR, false);
+    constraint_set_tag(mod, nb, ID_C, false);
     constraint_unset_tag(mod, na, ID_CTOR);
-    constraint_set_tag(mod, na, ID_CTOR, FALSE);
+    constraint_set_tag(mod, na, ID_CTOR, false);
     assert(0 == constraint_check_compatible_assign(mod, na, nb));
   }
 }
@@ -576,7 +576,7 @@ static error cond_descend_eval_bin(struct module *mod, struct node *conditioned,
     reversed = !reversed;
     break;
   default:
-    assert(FALSE);
+    assert(false);
     break;
   }
 
@@ -648,24 +648,24 @@ static error constraint_inference_phi_conditioned(struct module *mod,
     if (node_ident(pattern) == ID_OTHERWISE) {
       pattern = node_prev(node_prev(pattern));
       while (pattern != NULL) {
-        constraint_set_tag(mod, node, node_ident(pattern), TRUE);
+        constraint_set_tag(mod, node, node_ident(pattern), true);
         pattern = node_prev(node_prev(pattern));
       }
     } else {
-      constraint_set_tag(mod, node, node_ident(pattern), FALSE);
+      constraint_set_tag(mod, node, node_ident(pattern), false);
     }
 
   } else {
     for (size_t nth = 0; nth < br_st->nth_branch; ++nth) {
       e = cond_descend_eval(
         mod, node, def,
-        node_branching_nth_cond(br_st->branching, nth), TRUE);
+        node_branching_nth_cond(br_st->branching, nth), true);
       EXCEPT(e);
     }
 
     e = cond_descend_eval(
       mod, node, def,
-      node_branching_nth_cond(br_st->branching, br_st->nth_branch), FALSE);
+      node_branching_nth_cond(br_st->branching, br_st->nth_branch), false);
     EXCEPT(e);
   }
 
@@ -737,13 +737,13 @@ bool constraint_has_common_root_tag(ident *tag,
                                     const struct module *mod, const struct node *node) {
   size_t count = tagset_count(&node->constraint->tags);
   if (count == 0) {
-    return FALSE;
+    return false;
   } else if (count == 1) {
     error e = constraint_get_single_tag(tag, mod, node);
     assert(!e);
-    return TRUE;
+    return true;
   } else {
-    return FALSE;
+    return false;
   }
 }
 
@@ -778,15 +778,15 @@ static error constraint_inference_bin_acc(struct module *mod,
 
     struct node *field = NULL;
     e = scope_lookup_ident_immediate(&field, name, mod, &container->scope,
-                                     node_ident(name), FALSE);
+                                     node_ident(name), false);
     EXCEPT(e);
   }
 
   if (node->flags & NODE_IS_DEFCHOICE) {
-    constraint_set_tag(mod, node, node_ident(name), FALSE);
+    constraint_set_tag(mod, node, node_ident(name), false);
   }
 
-  constraint_set_init(mod, node, FALSE);
+  constraint_set_init(mod, node, false);
   return 0;
 }
 
@@ -803,7 +803,7 @@ static error constraint_inference_bin(struct module *mod,
       e = constraint_check_init(mod, node_subs_last(node));
       EXCEPT(e);
       constraint_copy(mod, node_subs_first(node), node_subs_last(node));
-      constraint_set_init(mod, node, FALSE);
+      constraint_set_init(mod, node, false);
       return 0;
     }
     // fallthrough
@@ -816,14 +816,14 @@ static error constraint_inference_bin(struct module *mod,
     EXCEPT(e);
     e = constraint_check_init(mod, node_subs_last(node));
     EXCEPT(e);
-    constraint_set_init(mod, node, FALSE);
+    constraint_set_init(mod, node, false);
     return 0;
   case OP_BIN_ACC:
     e = constraint_inference_bin_acc(mod, node);
     EXCEPT(e);
     return 0;
   default:
-    assert(FALSE);
+    assert(false);
     break;
   }
   return 0;
@@ -841,27 +841,27 @@ static error constraint_inference_un(struct module *mod,
     case TNULREFWILDCARD:
       break;
     default:
-      constraint_set_nonnull(mod, node, FALSE);
+      constraint_set_nonnull(mod, node, false);
       break;
     }
-    constraint_set_init(mod, node, FALSE);
+    constraint_set_init(mod, node, false);
     return 0;
   case OP_UN_DEREF:
     e = constraint_check_init(mod, node_subs_first(node));
     EXCEPT(e);
     e = constraint_check_nonnull(mod, node_subs_first(node));
     EXCEPT(e);
-    constraint_set_init(mod, node, FALSE);
+    constraint_set_init(mod, node, false);
     return 0;
   case OP_UN_BOOL:
   case OP_UN_ARITH:
   case OP_UN_BW:
     e = constraint_check_init(mod, node_subs_first(node));
     EXCEPT(e);
-    constraint_set_init(mod, node, FALSE);
+    constraint_set_init(mod, node, false);
     return 0;
   default:
-    assert(FALSE);
+    assert(false);
     break;
   }
   return 0;
@@ -977,14 +977,14 @@ static error unify_defchoice_init(struct module *mod, struct node *node,
   FOREACH_SUB_EVERY(name, nleft, 0, 2) {
     struct node *field = NULL;
     e = scope_lookup_ident_immediate(&field, name, mod, &dc->scope,
-                                     node_ident(name), FALSE);
+                                     node_ident(name), false);
     EXCEPT(e);
 
     typ_link_tentative(field->typ, node_next(name)->typ);
   }
 
-  constraint_set_tag(mod, node, root, FALSE);
-  constraint_set_init(mod, node, FALSE);
+  constraint_set_tag(mod, node, root, false);
+  constraint_set_init(mod, node, false);
   constraint_copy(mod, node_subs_first(node), node);
 
   return 0;
@@ -1069,7 +1069,7 @@ static error constraint_inference_typeconstraint(struct module *mod,
 static error constraint_inference_defarg(struct module *mod,
                                          struct node *node) {
   constraint_copy(mod, node, node_subs_last(node));
-  constraint_set_init(mod, node, FALSE);
+  constraint_set_init(mod, node, false);
   return 0;
 }
 
@@ -1081,7 +1081,7 @@ static error constraint_inference_deffield(struct module *mod,
 static error constraint_inference_definitions(struct module *mod,
                                               struct node *node) {
   if (typ_is_reference(node->typ) && !typ_is_nullable_reference(node->typ)) {
-    constraint_set_nonnull(mod, node, FALSE);
+    constraint_set_nonnull(mod, node, false);
   }
   return 0;
 }
@@ -1089,7 +1089,7 @@ static error constraint_inference_definitions(struct module *mod,
 static error constraint_inference_genarg(struct module *mod,
                                          struct node *node) {
   if (typ_is_reference(node->typ) && !typ_is_nullable_reference(node->typ)) {
-    constraint_set_nonnull(mod, node, FALSE);
+    constraint_set_nonnull(mod, node, false);
   }
   return 0;
 }
@@ -1109,8 +1109,8 @@ error step_constraint_inference(struct module *mod, struct node *node,
 
   switch (node->which) {
   case NUL:
-    constraint_set_init(mod, node, FALSE);
-    constraint_set_nonnull(mod, node, TRUE);
+    constraint_set_init(mod, node, false);
+    constraint_set_nonnull(mod, node, true);
     break;
   case IDENT:
     e = constraint_inference_ident(mod, node);
@@ -1126,7 +1126,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
   case SIZEOF:
   case ALIGNOF:
   case INIT:
-    constraint_set_init(mod, node, FALSE);
+    constraint_set_init(mod, node, false);
     break;
   case BIN:
     e = constraint_inference_bin(mod, node);
@@ -1178,7 +1178,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
     FOREACH_SUB(d, node) {
       if (d->which == DEFNAME) {
         if (typ_isa(d->typ, TBI_DEFAULT_CTOR)) {
-          constraint_set_init(mod, d, FALSE);
+          constraint_set_init(mod, d, false);
         }
 
         constraint_copy(mod, d->as.DEFNAME.pattern, d);
@@ -1239,7 +1239,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
     // noop
     break;
   default:
-    assert(FALSE);
+    assert(false);
     break;
   }
 
@@ -1303,7 +1303,7 @@ error step_check_exhaustive_match(struct module *mod, struct node *node,
       id = node_ident(node_subs_at(p, 1));
       break;
     default:
-      assert(FALSE);
+      assert(false);
     }
 
     if (tagset_get(&matched, id) != NULL) {

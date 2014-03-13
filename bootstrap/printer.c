@@ -348,7 +348,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     break;
   default:
     fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
-    assert(FALSE);
+    assert(false);
   }
 }
 
@@ -602,7 +602,7 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
     break;
   default:
     fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
-    assert(FALSE);
+    assert(false);
   }
 }
 
@@ -726,7 +726,7 @@ static void print_deftype_statement(FILE *out, const struct module *mod, int ind
     break;
   default:
     fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
-    assert(FALSE);
+    assert(false);
   }
 }
 
@@ -816,7 +816,7 @@ static void print_import_path(FILE *out, const struct module *mod, const struct 
     print_expr(out, mod, node_subs_last_const(node), T__CALL);
     break;
   default:
-    assert(FALSE);
+    assert(false);
     break;
   }
 }
@@ -881,7 +881,7 @@ static void print_module(FILE *out, const struct module *mod) {
       break;
     default:
       fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
-      assert(FALSE);
+      assert(false);
     }
 
     if (node_next_const(node) != NULL) {

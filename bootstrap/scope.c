@@ -188,12 +188,12 @@ static error use_isalist_scope_lookup(struct module *mod,
   struct node *result = NULL;
   error e = do_scope_lookup_ident_immediate(&result, st->for_error, mod,
                                             &typ_definition_const(intf)->scope,
-                                            st->id, FALSE, TRUE);
+                                            st->id, false, true);
 
   if (!e) {
     if (result->which == DEFFUN || result->which == DEFMETHOD) {
       st->result = result;
-      *stop = TRUE;
+      *stop = true;
     }
   }
 
@@ -275,7 +275,7 @@ error scope_lookup_ident_immediate(struct node **result, const struct node *for_
                                    const struct scope *scope, ident id,
                                    bool failure_ok) {
   return do_scope_lookup_ident_immediate(result, for_error, mod, scope, id,
-                                         TRUE, failure_ok);
+                                         true, failure_ok);
 }
 
 static error do_scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,
@@ -287,7 +287,7 @@ static error do_scope_lookup_ident_wontimport(struct node **result, const struct
   error e;
 
 skip:
-  e = do_scope_lookup_ident_immediate(result, for_error, mod, scope, id, FALSE, TRUE);
+  e = do_scope_lookup_ident_immediate(result, for_error, mod, scope, id, false, true);
   if (!e) {
     if (scope_node(scope)->which == DEFTYPE
         && ((*result)->which == DEFFUN || (*result)->which == DEFMETHOD)) {
@@ -370,7 +370,7 @@ static error do_scope_lookup(struct node **result, const struct node *for_error,
     EXCEPT_UNLESS(e, failure_ok);
 
     e = do_scope_lookup_ident_immediate(&r, for_error, mod, &parent->scope,
-                                        node_ident(name), FALSE, failure_ok);
+                                        node_ident(name), false, failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
 
     break;
@@ -378,7 +378,7 @@ static error do_scope_lookup(struct node **result, const struct node *for_error,
     r = typ_definition(id->as.DIRECTDEF.typ);
     break;
   default:
-    assert(FALSE);
+    assert(false);
     return 0;
   }
 
@@ -416,7 +416,7 @@ error scope_lookup_module(struct node **result, const struct module *mod,
   switch (id->which) {
   case IDENT:
     e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scope,
-                                         node_ident(id), TRUE);
+                                         node_ident(id), true);
     break;
   case BIN:
     if (id->as.BIN.operator != TDOT) {
@@ -426,17 +426,17 @@ error scope_lookup_module(struct node **result, const struct module *mod,
     }
     const struct node *base = node_subs_first_const(id);
     const struct node *name = node_subs_last_const(id);
-    e = do_scope_lookup(&parent, for_error, mod, scope, base, TRUE);
+    e = do_scope_lookup(&parent, for_error, mod, scope, base, true);
     if (e) {
       break;
     }
-    e = do_scope_lookup(&r, for_error, mod, &parent->scope, name, TRUE);
+    e = do_scope_lookup(&r, for_error, mod, &parent->scope, name, true);
     if (e) {
       break;
     }
     break;
   default:
-    assert(FALSE);
+    assert(false);
     return 0;
   }
 
@@ -462,7 +462,7 @@ err:
     }
   }
 
-  assert(FALSE && "Unreached.");
+  assert(false && "Unreached.");
   return 0;
 }
 
@@ -488,13 +488,13 @@ static error do_scope_lookup_abspath(struct node **result, const struct node *fo
   if (i == 0) {
     e = do_scope_lookup_ident_immediate(result, for_error, mod,
                                         &mod->gctx->modules_root.scope, id,
-                                        FALSE, TRUE);
+                                        false, true);
   } else {
     struct node *parent = NULL;
     e = do_scope_lookup_abspath(&parent, for_error, mod, path, i, full_len);
     EXCEPT(e);
     e = do_scope_lookup_ident_immediate(result, for_error, mod, &parent->scope, id,
-                                        len == full_len, TRUE);
+                                        len == full_len, true);
   }
 
   if (e) {

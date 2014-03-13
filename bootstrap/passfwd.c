@@ -135,7 +135,7 @@ static struct node *do_move_detached_member(struct module *mod,
 
   struct node *container = NULL;
   error e = scope_lookup_ident_wontimport(&container, node, mod, node->scope.parent,
-                                          toplevel->scope_name, FALSE);
+                                          toplevel->scope_name, false);
   assert(!e);
   assert(container->which == DEFTYPE);
 
@@ -302,7 +302,7 @@ static error extract_defnames_in_pattern(struct module *mod,
       def = mk_node(mod, defpattern, DEFNAME);
       def->as.DEFNAME.pattern = pattern_id;
       def->as.DEFNAME.expr = expr;
-      def->as.DEFNAME.is_excep = TRUE;
+      def->as.DEFNAME.is_excep = true;
       def->as.DEFNAME.excep_label_ident = label_ident;
       node_subs_remove(defpattern, def);
       node_subs_insert_before(defpattern, where_defname, def);
@@ -329,7 +329,7 @@ static error extract_defnames_in_pattern(struct module *mod,
     return 0;
 
   case UN:
-    assert(FALSE && "FIXME: Unsupported");
+    assert(false && "FIXME: Unsupported");
     e = extract_defnames_in_pattern(mod, defpattern, where_defname,
                                     node_subs_first(pattern),
                                     UNLESS_NULL(expr, node_subs_first(expr)));
@@ -345,7 +345,7 @@ static error extract_defnames_in_pattern(struct module *mod,
     }
     break;
   case TYPECONSTRAINT:
-    pattern->as.TYPECONSTRAINT.in_pattern = TRUE;
+    pattern->as.TYPECONSTRAINT.in_pattern = true;
     e = extract_defnames_in_pattern(mod, defpattern, where_defname,
                                     node_subs_first(pattern),
                                     UNLESS_NULL(expr, node_subs_first(expr)));
@@ -439,7 +439,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     } else if (toplevel->scope_name != 0) {
       struct node *container = NULL;
       error e = scope_lookup_ident_wontimport(&container, node, mod, node->scope.parent,
-                                              toplevel->scope_name, FALSE);
+                                              toplevel->scope_name, false);
       EXCEPT(e);
       assert(container->which == DEFTYPE);
 
@@ -513,7 +513,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     }
     break;
   default:
-    assert(FALSE && "Unreached");
+    assert(false && "Unreached");
     return 0;
   }
 
@@ -580,7 +580,7 @@ static error define_builtin_alias(struct module *mod, struct node *node,
   node_subs_insert_after(node, node_subs_at(node, 2), let);
   let->flags = NODE_IS_GLOBAL_LET;
   struct node *defp = mk_node(mod, let, DEFPATTERN);
-  defp->as.DEFPATTERN.is_alias = TRUE;
+  defp->as.DEFPATTERN.is_alias = true;
   struct node *expr = mk_node(mod, defp, DIRECTDEF);
   set_typ(&expr->as.DIRECTDEF.typ, t);
   expr->as.DIRECTDEF.flags = NODE_IS_TYPE;
@@ -902,7 +902,7 @@ static error step_rewrite_local_idents(struct module *mod, struct node *node,
 
   struct node *d = NULL;
   error e = scope_lookup_ident_immediate(&d, node, mod, &proto_parent->scope,
-                                         id, TRUE);
+                                         id, true);
   if (e == EINVAL) {
     return 0;
   } else if (e) {
@@ -953,7 +953,7 @@ static void define_builtin(struct module *mod, struct node *deft,
     const ident id = idents_add_string(mod->gctx, n, strlen(n));
     e = scope_lookup_ident_immediate(&proto, deft, mod,
                                      &proto_parent->scope,
-                                     id, FALSE);
+                                     id, false);
     assert(!e);
   } else {
     e = scope_lookup_abspath(&proto, deft, mod, builtingen_abspath[bg]);
@@ -1019,7 +1019,7 @@ static error define_auto(struct module *mod, struct node *deft,
 
   struct node *ctor = NULL;
   e = scope_lookup_ident_immediate(&ctor, deft, mod, &deft->scope,
-                                   ID_CTOR, TRUE);
+                                   ID_CTOR, true);
   if (e) {
     // FIXME This should be narrower and only in the case the type cannot be
     // given an automatically generated ctor.

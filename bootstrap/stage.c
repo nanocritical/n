@@ -97,7 +97,7 @@ static void import_filename(char **fn, size_t *len,
     to_append = import;
     break;
   default:
-    assert(FALSE);
+    assert(false);
   }
 
   assert(to_append->which == IDENT);
@@ -216,13 +216,13 @@ struct load_import_state {
 };
 
 static error load_import(struct node *node, void *user, bool *stop) {
-  *stop = TRUE;
+  *stop = true;
 
   assert(node->which == IMPORT);
   struct load_import_state *st = user;
 
   struct node *existing = NULL;
-  error e = scope_lookup_module(&existing, st->mod, node_subs_first(node), TRUE);
+  error e = scope_lookup_module(&existing, st->mod, node_subs_first(node), true);
   if (!e && !existing->as.MODULE.is_placeholder) {
     return 0;
   }
@@ -283,16 +283,16 @@ static error step_gather_dependencies_in_module(struct module *mod, struct node 
                                                 void *user, bool *stop) {
   struct dependencies *deps = user;
 
-  *stop = TRUE;
+  *stop = true;
 
   struct node *nmod = NULL;
   error e = scope_lookup_module(&nmod,
                                 // 'mod' is not 'node' owner, but that's OK.
-                                mod, node_subs_first(node), FALSE);
+                                mod, node_subs_first(node), false);
   EXCEPT(e);
 
   assert(nmod->which == MODULE);
-  const bool already = modules_set_set(&deps->added, nmod->as.MODULE.mod, TRUE);
+  const bool already = modules_set_set(&deps->added, nmod->as.MODULE.mod, true);
   if (already && !node_is_inline(node)) {
     return 0;
   }
@@ -384,7 +384,7 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
   struct dependencies deps = { 0 };
   deps.gctx = gctx;
   modules_set_init(&deps.added, 0);
-  modules_set_set_delete_val(&deps.added, FALSE);
+  modules_set_set_delete_val(&deps.added, false);
   modules_set_set_custom_hashf(&deps.added, module_pointer_hash);
   modules_set_set_custom_cmpf(&deps.added, module_pointer_cmp);
 
@@ -422,7 +422,7 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
       EXCEPT(e);
     }
 
-    mod->done = TRUE;
+    mod->done = true;
 
     POP_STATE(mod->state->step_state);
   }

@@ -24,7 +24,7 @@ static error unify_two_non_generic(struct module *mod, const struct node *for_er
     SWAP(a, b);
   } else if (typ_definition(a)->which == DEFINTF
              && typ_definition(b)->which == DEFINTF) {
-    assert(FALSE && "FIXME Unsupported (e.g. `arithmethic and `bitwise)");
+    assert(false && "FIXME Unsupported (e.g. `arithmethic and `bitwise)");
   } else {
     error e = mk_except_type_unification(mod, for_error, a, b);
     THROW(e);
@@ -40,7 +40,7 @@ static bool same_generic_functor(const struct module *mod,
   if (typ_generic_arity(a) > 0 && typ_generic_arity(b) > 0) {
     return typ_equal(typ_generic_functor_const(a), typ_generic_functor_const(b));
   } else {
-    return FALSE;
+    return false;
   }
 }
 
@@ -86,7 +86,7 @@ static error find_instance_of(struct module *mod, struct typ *t,
   struct typ *intf0 = typ_generic_functor(intf);
   if (intf0 != NULL && typ_equal(intf0, r->functor)) {
     r->result = intf;
-    *stop = TRUE;
+    *stop = true;
   }
 
   return 0;
@@ -109,7 +109,7 @@ static error unify_generics(struct module *mod, const struct node *for_error,
     SWAP(a_genf, b_genf);
   } else if (typ_definition(a)->which == DEFINTF
              && typ_definition(b)->which == DEFINTF) {
-    assert(FALSE && "FIXME Unsupported (e.g. combining constraints `arithmethic and `bitwise)");
+    assert(false && "FIXME Unsupported (e.g. combining constraints `arithmethic and `bitwise)");
   } else {
     e = mk_except_type_unification(mod, for_error, a, b);
     THROW(e);
@@ -218,7 +218,7 @@ static error unify_literal(struct module *mod, const struct node *for_error,
       EXCEPT(e);
     }
   } else {
-    assert(FALSE);
+    assert(false);
   }
 
   typ_link_tentative(a, b);
@@ -239,18 +239,18 @@ static error unify_with_weakly_concrete(bool *success,
   if (typ_equal(b, TBI_BOOL)) {
     if (typ_isa(a, TBI_BOOL_COMPATIBLE)) {
       typ_link_tentative(a, b);
-      *success = TRUE;
+      *success = true;
     }
   } else if (typ_equal(b, TBI_STATIC_STRING)) {
     if (typ_isa(a, TBI_STATIC_STRING_COMPATIBLE)) {
       typ_link_tentative(a, b);
-      *success = TRUE;
+      *success = true;
     }
   } else if (same_generic_functor(mod, b, TBI_STATIC_ARRAY)) {
     if (typ_isa(a, TBI_ARRAY_CTOR)) {
       typ_link_tentative(typ_generic_arg(a, 0), typ_generic_arg(b, 0));
       typ_link_tentative(a, b);
-      *success = TRUE;
+      *success = true;
     }
   }
 
@@ -301,7 +301,7 @@ static error unify_two_defincomplete(struct module *mod, const struct node *for_
 
   struct ident_typ_map map;
   ident_typ_map_init(&map, 0);
-  ident_typ_map_set_delete_val(&map, FALSE);
+  ident_typ_map_set_delete_val(&map, false);
   ident_typ_map_set_custom_hashf(&map, ident_hash);
   ident_typ_map_set_custom_cmpf(&map, ident_cmp);
 
@@ -377,17 +377,17 @@ static bool has_variant_with_field(struct module *mod,
 
     struct node *r = NULL;
     error e = scope_lookup_ident_immediate(&r, for_error, mod, &dc->scope,
-                                           f, TRUE);
+                                           f, true);
     if (!e) {
-      return TRUE;
+      return true;
     }
 
     if (has_variant_with_field(mod, for_error, dc, f)) {
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 static error unify_with_defincomplete(struct module *mod,
@@ -430,7 +430,7 @@ static error unify_with_defincomplete(struct module *mod,
 
     ident f_name = node_ident(f);
     struct node *d = NULL;
-    e = scope_lookup_ident_immediate(&d, for_error, mod, &da->scope, f_name, FALSE);
+    e = scope_lookup_ident_immediate(&d, for_error, mod, &da->scope, f_name, false);
     EXCEPT(e);
 
     e = unify(mod, for_error, f->typ, d->typ);
@@ -501,7 +501,7 @@ static error check_reference_compatibility(struct module *mod,
   const struct typ *a0 = typ_generic_functor_const(a);
   const struct typ *target0 = typ_generic_functor_const(target);
 
-  bool ok = FALSE;
+  bool ok = false;
   error e;
   if (typ_equal(target0, TBI_ANY_REF)) {
     ok = typ_isa(a0, TBI_ANY_REF);
@@ -789,7 +789,7 @@ error unify(struct module *mod, const struct node *for_error,
   const bool a_weakly_concrete = typ_is_weakly_concrete(a);
   const bool b_weakly_concrete = typ_is_weakly_concrete(b);
   if (a_weakly_concrete || b_weakly_concrete) {
-    bool success = FALSE;
+    bool success = false;
     e = unify_with_weakly_concrete(&success,
                                    mod, for_error, a, b,
                                    a_weakly_concrete, b_weakly_concrete);

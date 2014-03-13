@@ -81,7 +81,7 @@ error step_complete_instantiation(struct module *mod, struct node *node, void *u
   struct node *sub = NULL; \
   \
 start: \
-  mod->state->step_state->upward = FALSE; \
+  mod->state->step_state->upward = false; \
   mod->state->step_state->stepping = 0; \
   \
   downs; \
@@ -111,7 +111,7 @@ next: \
   } \
   \
 skip_descend: \
-  mod->state->step_state->upward = TRUE; \
+  mod->state->step_state->upward = true; \
   mod->state->step_state->stepping = 0; \
   \
   ups; \
@@ -132,7 +132,7 @@ done:
   mod->state->step_state->stepping += 1; \
   \
   if (node_whichmask(node) & step##_filter) { \
-    bool stop = FALSE; \
+    bool stop = false; \
     error e = step(mod, node, user, &stop); \
     INVARIANT_NODE(node); \
     EXCEPT(e); \
@@ -152,7 +152,7 @@ done:
   } \
   \
   if (node_whichmask(node) & step##_filter) { \
-    bool stop = FALSE; \
+    bool stop = false; \
     error e = step(mod, node, user, &stop); \
     INVARIANT_NODE(node); \
     EXCEPT(e); \

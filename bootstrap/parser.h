@@ -548,7 +548,7 @@ static inline void node_set_which(struct node *node, enum node_which which) {
   case DEFFUN:
   case DEFMETHOD:
   case DEFINCOMPLETE:
-    assert(FALSE && "Don't do that");
+    assert(false && "Don't do that");
     break;
   default:
     break;
@@ -616,17 +616,17 @@ static inline size_t node_subs_count(const struct node *node) {
 // Prefer whenever possible.
 static inline bool node_subs_count_atleast(const struct node *node, size_t min) {
   if (min == 0) {
-    return TRUE;
+    return true;
   }
 
   size_t n = 0;
   FOREACH_SUB_CONST(s, node) {
     n += 1;
     if (n >= min) {
-      return TRUE;
+      return true;
     }
   }
-  return FALSE;
+  return false;
 }
 
 static inline const struct node *node_subs_first_const(const struct node *node) {
@@ -1275,9 +1275,9 @@ static inline bool node_can_have_genargs(const struct node *node) {
   case DEFMETHOD:
   case DEFTYPE:
   case DEFINTF:
-    return TRUE;
+    return true;
   default:
-    return FALSE;
+    return false;
   }
 }
 
