@@ -823,32 +823,30 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     IDENT(nlang)
     IDENT(just_mutable)
- DEFTYPE :t01.genericsecondorder.c
+ DEFTYPE :t01.fixme01.c ::()
   IDENT(c) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
-   ISA :nlang.builtins.`trivial_ctor
-    BIN(.) :nlang.builtins.`trivial_ctor
-     BIN(.) :nlang.builtins
-      BIN(.) :nlang
-       DIRECTDEF :<root>
+   ISA :nlang.builtins.`trivial_ctor ::()
+    BIN(.) :nlang.builtins.`trivial_ctor ::()
+     BIN(.) :nlang.builtins ::()
+      BIN(.) :nlang ::()
+       DIRECTDEF :<root> ::()
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
      IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(final) :t01.genericsecondorder.c
-    DIRECTDEF :t01.genericsecondorder.c
-    DEFNAME(final) :t01.genericsecondorder.c
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t01.genericsecondorder.c
-    DIRECTDEF :t01.genericsecondorder.c
-    DEFNAME(this) :t01.genericsecondorder.c
-  DEFFIELD :nlang.builtins.i32
+  LET :nlang.builtins.void ::()
+   DEFALIAS(final) :t01.fixme01.c ::()
+    IDENT(final) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t01.fixme01.c ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(this) :t01.fixme01.c ::()
+    IDENT(this) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t01.fixme01.c ::()
+  DEFFIELD :nlang.builtins.i32 ::()
    IDENT(x) :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  DEFMETHOD :t01.genericsecondorder.c.ctor
+   IDENT(i32) :nlang.builtins.i32 ::()
+  DEFMETHOD :t01.fixme01.c.ctor ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -860,13 +858,15 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(ctor) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mercurial_ref t01.genericsecondorder.c)
+    DEFARG :(nlang.builtins.mercurial_ref t01.fixme01.c) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@#) :(nlang.builtins.mercurial_ref t01.genericsecondorder.c)
-      IDENT(final) :t01.genericsecondorder.c
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
-  DEFFUN :t01.genericsecondorder.c.mk
+     UN(@#) :(nlang.builtins.mercurial_ref t01.fixme01.c) ::(init and nonnull)
+      IDENT(final) :t01.fixme01.c ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFFUN :t01.fixme01.c.mk ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -878,11 +878,11 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(mk) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :t01.genericsecondorder.c
+    DEFARG :t01.fixme01.c ::(init)
      IDENT(r) :nlang.builtins.__internal_not_typeable__
-     IDENT(final) :t01.genericsecondorder.c
-   WITHIN :nlang.builtins.void
-  DEFFUN :t01.genericsecondorder.c.new
+     IDENT(final) :t01.fixme01.c ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFFUN :t01.fixme01.c.new ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -894,50 +894,78 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(new) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    UN(@#) :(nlang.builtins.mercurial_ref t01.genericsecondorder.c)
-     IDENT(final) :t01.genericsecondorder.c
-   WITHIN :nlang.builtins.void
- DEFFUN :(functor t01.genericsecondorder.get (functor nlang.builtins.`any_ref nlang.builtins.`any))
+    DEFARG :(nlang.builtins.mercurial_ref t01.fixme01.c) ::(init and nonnull)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     UN(@#) :(nlang.builtins.mercurial_ref t01.fixme01.c) ::(init and nonnull)
+      IDENT(final) :t01.fixme01.c ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+ DEFFUN :(functor t01.fixme01.get (functor nlang.builtins.`any_ref nlang.builtins.`any)) ::()
   IDENT(get) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
-   DEFGENARG :(functor nlang.builtins.`any_ref nlang.builtins.`any)
+   DEFGENARG :(functor nlang.builtins.`any_ref nlang.builtins.`any) ::(nonnull)
     IDENT(r) :nlang.builtins.__internal_not_typeable__
-    IDENT(`any_ref) :(functor nlang.builtins.`any_ref nlang.builtins.`any)
+    IDENT(`any_ref) :(functor nlang.builtins.`any_ref nlang.builtins.`any) ::(nonnull)
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   DEFARG :(nlang.builtins.`any_ref t01.genericsecondorder.c)
+   DEFARG :(nlang.builtins.`any_ref t01.fixme01.c) ::(init and nonnull)
     IDENT(m) :nlang.builtins.__internal_not_typeable__
-    CALL :(nlang.builtins.`any_ref t01.genericsecondorder.c)
-     IDENT(r) :(functor nlang.builtins.`any_ref nlang.builtins.`any)
-     IDENT(c) :t01.genericsecondorder.c
-   CALL :(nlang.builtins.`any_ref nlang.builtins.i32)
-    IDENT(r) :(functor nlang.builtins.`any_ref nlang.builtins.`any)
-    IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   RETURN :nlang.builtins.void
-    UN(@$) :(nlang.builtins.`any_ref nlang.builtins.i32)
-     BIN($) :nlang.builtins.i32
-      IDENT(m) :(nlang.builtins.`any_ref t01.genericsecondorder.c)
-      IDENT(x) :nlang.builtins.__internal_not_typeable__
- DEFFUN :t01.genericsecondorder.main
+    CALL :(nlang.builtins.`any_ref t01.fixme01.c) ::(nonnull)
+     IDENT(r) :(functor nlang.builtins.`any_ref nlang.builtins.`any) ::(nonnull)
+     IDENT(c) :t01.fixme01.c ::()
+   DEFARG :(nlang.builtins.`any_ref nlang.builtins.i32) ::(init and nonnull)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    CALL :(nlang.builtins.`any_ref nlang.builtins.i32) ::(nonnull)
+     IDENT(r) :(functor nlang.builtins.`any_ref nlang.builtins.`any) ::(nonnull)
+     IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   NOOP :nlang.builtins.void ::()
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym1) :(nlang.builtins.`any_ref nlang.builtins.i32) ::(init and nonnull)
+     IDENT(_Ngensym1) :nlang.builtins.__internal_not_typeable__
+     UN(@$) :(nlang.builtins.`any_ref nlang.builtins.i32) ::(init and nonnull)
+      BIN($) :nlang.builtins.i32 ::(init)
+       IDENT(m) :(nlang.builtins.`any_ref t01.fixme01.c) ::(init and nonnull)
+       IDENT(x) :nlang.builtins.__internal_not_typeable__
+   RETURN :nlang.builtins.void ::()
+    IDENT(_Ngensym1) :(nlang.builtins.`any_ref nlang.builtins.i32) ::(init and nonnull)
+ DEFFUN :t01.fixme01.main ::()
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     IDENT(x) :t01.genericsecondorder.c
-     INIT :t01.genericsecondorder.c
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   BLOCK :nlang.builtins.void ::()
+    NOOP :nlang.builtins.void ::()
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym2) :nlang.builtins.i32 ::(init)
+      IDENT(_Ngensym2) :nlang.builtins.__internal_not_typeable__
+      NUMBER(0) :nlang.builtins.i32 ::(init)
+    LET :nlang.builtins.void ::()
+     DEFNAME(x) :t01.fixme01.c ::(init)
       IDENT(x) :nlang.builtins.__internal_not_typeable__
-      NUMBER(0) :nlang.builtins.i32
-     DEFNAME(x) :t01.genericsecondorder.c
-   RETURN :nlang.builtins.void
-    UN(.) :nlang.builtins.i32
-     CALL :(nlang.builtins.ref nlang.builtins.i32)
-      CALL :(t01.genericsecondorder.get (functor nlang.builtins.ref nlang.builtins.`any))
-       IDENT(get) :(functor t01.genericsecondorder.get (functor nlang.builtins.`any_ref nlang.builtins.`any))
-       IDENT(ref) :(functor nlang.builtins.ref nlang.builtins.`any)
-      UN(@) :(nlang.builtins.ref t01.genericsecondorder.c)
-       IDENT(x) :t01.genericsecondorder.c
+      INIT :t01.fixme01.c ::(init)
+       IDENT(x) :nlang.builtins.__internal_not_typeable__
+       IDENT(_Ngensym2) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym8) :(nlang.builtins.ref t01.fixme01.c) ::(init and nonnull)
+     IDENT(_Ngensym8) :nlang.builtins.__internal_not_typeable__
+     UN(@) :(nlang.builtins.ref t01.fixme01.c) ::(init and nonnull)
+      IDENT(x) :t01.fixme01.c ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym3) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+     IDENT(_Ngensym3) :nlang.builtins.__internal_not_typeable__
+     CALL :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+      CALL :(t01.fixme01.get (functor nlang.builtins.ref nlang.builtins.`any)) ::()
+       IDENT(get) :(functor t01.fixme01.get (functor nlang.builtins.`any_ref nlang.builtins.`any)) ::()
+       IDENT(ref) :(functor nlang.builtins.ref nlang.builtins.`any) ::(nonnull)
+      IDENT(_Ngensym8) :(nlang.builtins.ref t01.fixme01.c) ::(init and nonnull)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym4) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym4) :nlang.builtins.__internal_not_typeable__
+     UN(.) :nlang.builtins.i32 ::(init)
+      IDENT(_Ngensym3) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+   RETURN :nlang.builtins.void ::()
+    IDENT(_Ngensym4) :nlang.builtins.i32 ::(init)

@@ -1,11 +1,11 @@
 #include "passbody.h"
 
 #include "table.h"
+#include "ssa.h"
 #include "types.h"
 #include "scope.h"
 #include "unify.h"
 #include "constraints.h"
-#include "ssa.h"
 
 #include "passzero.h"
 #include "passfwd.h"
@@ -59,6 +59,76 @@ error step_pop_fun_state(struct module *mod, struct node *node,
 
 }
 
+STEP_NM(step_push_block_state,
+        NM(BLOCK));
+error step_push_block_state(struct module *mod, struct node *node,
+                            void *user, bool *stop) {
+  DSTEP(mod, node);
+  PUSH_STATE(mod->state->fun_state->block_state);
+
+  if (mod->state->fun_state->block_state->prev != NULL) {
+    mod->state->fun_state->block_state->current_statement
+      = mod->state->fun_state->block_state->prev->current_statement;
+  }
+
+  return 0;
+}
+
+STEP_NM(step_pop_block_state,
+        NM(BLOCK));
+error step_pop_block_state(struct module *mod, struct node *node,
+                           void *user, bool *stop) {
+  DSTEP(mod, node);
+  POP_STATE(mod->state->fun_state->block_state);
+  return 0;
+}
+
+STEP_NM(step_record_current_statement,
+        -1);
+error step_record_current_statement(struct module *mod, struct node *node,
+                                    void *user, bool *stop) {
+  DSTEP(mod, node);
+  if (parent(node)->which == BLOCK) {
+    mod->state->fun_state->block_state->current_statement = node;
+  }
+  return 0;
+}
+
+static STEP_NM(step_increment_def_name_passed,
+               NM(DEFNAME) | NM(DEFALIAS));
+static error step_increment_def_name_passed(struct module *mod, struct node *node,
+                                            void *user, bool *stop) {
+  DSTEP(mod, node);
+  switch (node->which) {
+  case DEFNAME:
+    node->as.DEFNAME.passed = mod->stage->state->passing;
+    break;
+  case DEFALIAS:
+    node->as.DEFALIAS.passed = mod->stage->state->passing;
+    break;
+  default:
+    assert(false);
+    break;
+  }
+  return 0;
+}
+
+// Scopes are defined over an entire BLOCK, but a name becomes defined only
+// in the statements following its DEFNAME or DEFALIAS within the block.
+static bool local_name_is_scoped(struct module *mod, struct node *node) {
+  switch (node->which) {
+  case DEFARG:
+    return true;
+  case DEFNAME:
+    return node->as.DEFNAME.passed >= mod->stage->state->passing;
+  case DEFALIAS:
+    return node->as.DEFALIAS.passed >= mod->stage->state->passing;
+  default:
+    assert(false);
+    return false;
+  }
+}
+
 STEP_NM(step_set_topdep_mask,
         NM(BLOCK));
 static error step_set_topdep_mask(struct module *mod, struct node *node,
@@ -66,7 +136,7 @@ static error step_set_topdep_mask(struct module *mod, struct node *node,
   DSTEP(mod, node);
 
   struct top_state *st = mod->state->top_state;
-  switch (node_parent(node)->which) {
+  switch (parent(node)->which) {
   case DEFFUN:
   case DEFMETHOD:
     if (typ_generic_arity(st->top->typ) == 0) {
@@ -119,8 +189,8 @@ static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
     }
     break;
   case DEFARG:
-    if (subs_first(node_parent(node)) == node
-        && node_parent(node)->which == DEFMETHOD) {
+    if (subs_first(parent(node)) == node
+        && parent(node)->which == DEFMETHOD) {
       // We just found self as a method argument on the way up, doesn't count.
       assert(mod->state->fun_state->fun_uses_final);
       mod->state->fun_state->fun_uses_final = false;
@@ -141,6 +211,7 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
 
 #define SET_UNLESS_ZERO(dst, src) if (src != 0) { dst = src; }
 
+  // FIXME: handle DEFFUN like in t02/fixme01.n
   switch (node->which) {
   case DEFMETHOD:
     if (!subs_count_atleast(subs_at_const(node, IDX_GENARGS), 1)) {
@@ -191,7 +262,7 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
   case BIN:
     switch (node->as.BIN.operator) {
     case TWILDCARD:
-      SET_UNLESS_ZERO(node->as.UN.operator, mod->state->fun_state->wildcard);
+      SET_UNLESS_ZERO(node->as.BIN.operator, mod->state->fun_state->wildcard);
       break;
     default:
       break;
@@ -235,10 +306,10 @@ static void inherit(struct module *mod, struct node *node) {
 }
 
 STEP_NM(step_type_destruct_mark,
-        NM(BIN) | NM(CALL) | NM(INIT) | NM(DEFFUN) |
-        NM(DEFMETHOD) | NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFIELD) |
-        NM(DEFARG) | NM(DEFGENARG) | NM(SETGENARG) | NM(MODULE_BODY) |
-        NM(DEFCHOICE) | NM(WITHIN) | NM(THROW));
+        NM(BIN) | NM(CALL) | NM(INIT) | NM(DEFALIAS) | NM(DEFNAME) |
+        NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(DEFINTF) |
+        NM(DEFFIELD) | NM(DEFARG) | NM(DEFGENARG) | NM(SETGENARG) |
+        NM(MODULE_BODY) | NM(DEFCHOICE) | NM(WITHIN) | NM(THROW));
 error step_type_destruct_mark(struct module *mod, struct node *node,
                               void *user, bool *stop) {
   DSTEP(mod, node);
@@ -282,10 +353,10 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
   case DEFMETHOD:
     first->typ = not_typeable;
     break;
+  case DEFALIAS:
+  case DEFNAME:
   case DEFTYPE:
   case DEFINTF:
-    first->typ = not_typeable;
-    break;
   case DEFFIELD:
   case DEFARG:
   case DEFGENARG:
@@ -343,7 +414,7 @@ static error step_type_mutability_mark(struct module *mod, struct node *node,
     break;
   case UN:
     if (OP_KIND(node->as.UN.operator) != OP_UN_REFOF) {
-      return 0;
+      break;
     }
 
     // Below, we're interested in catching cases like: @#(self!p)
@@ -371,7 +442,6 @@ static error step_type_mutability_mark(struct module *mod, struct node *node,
                                                  first->as.BIN.operator);
           EXCEPT(e);
         }
-        return 0;
       } else {
         first->typ = mercurial;
       }
@@ -412,7 +482,7 @@ static error check_in_try(struct module *mod, struct node *node, const char *whi
 
   const struct node *p = node;
   do {
-    p = node_parent_const(p);
+    p = parent_const(p);
     if (p->which == CATCH) {
       goto fail;
     }
@@ -429,7 +499,7 @@ ok:
 }
 
 static STEP_NM(step_type_gather_excepts,
-               NM(TRY) | NM(DEFNAME) | NM(THROW));
+               NM(TRY) | NM(THROW));
 static error step_type_gather_excepts(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
@@ -437,13 +507,6 @@ static error step_type_gather_excepts(struct module *mod, struct node *node,
   switch (node->which) {
   case TRY:
     module_excepts_open_try(mod, node);
-    break;
-  case DEFNAME:
-    if (node->as.DEFNAME.is_excep) {
-      e = check_in_try(mod, node, "except");
-      EXCEPT(e);
-      module_excepts_push(mod, node);
-    }
     break;
   case THROW:
     e = check_in_try(mod, node, "throw");
@@ -454,104 +517,6 @@ static error step_type_gather_excepts(struct module *mod, struct node *node,
     assert(false && "Unreached");
     break;
   }
-  return 0;
-}
-
-static STEP_NM(step_excepts_store_label,
-               NM(DEFNAME) | NM(THROW));
-static error step_excepts_store_label(struct module *mod, struct node *node,
-                                      void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  struct node *label_ident = NULL;
-
-  const char *which = NULL;
-  switch (node->which) {
-  case DEFNAME:
-    if (node->as.DEFNAME.is_excep) {
-      which = "except";
-      label_ident = node->as.DEFNAME.excep_label_ident;
-      break;
-    }
-    return 0;
-  case THROW:
-    which = "throw";
-    if (subs_count(node) == 2) {
-      label_ident = subs_first(node);
-    }
-    break;
-  default:
-    assert(false && "Unreached");
-    return 0;
-  }
-
-  struct node *tryy = module_excepts_get(mod)->tryy;
-  struct node *eblock = subs_at(subs_first(tryy), 1);
-
-  ident label = ID__NONE;
-  error e;
-
-  if (label_ident == NULL) {
-    if (subs_count_atleast(eblock, 3)) {
-      e = mk_except(mod, node,
-                    "try block has multiple catch,"
-                    " %s must use a label", which);
-      THROW(e);
-    }
-
-    struct node *catch = subs_at(eblock, 1);
-    assert(catch->which == CATCH);
-    label = catch->as.CATCH.label;
-
-  } else {
-    if (!subs_count_atleast(eblock, 3)) {
-      struct node *catch = subs_at(eblock, 1);
-      assert(catch->which == CATCH);
-      if (!catch->as.CATCH.is_user_label) {
-        e = mk_except(mod, node,
-                      "try block has a single catch without a label,"
-                      " %s must not use a label",
-                      which);
-        THROW(e);
-      }
-    }
-
-    struct node *def = NULL;
-    e = scope_lookup(&def, mod, &node->scope, label_ident, false);
-    EXCEPT(e);
-
-    if (def->which != CATCH || scope_node(def->scope.parent) != eblock) {
-      e = mk_except(mod, label_ident,
-                    "invalid label '%s'",
-                    idents_value(mod->gctx, node_ident(label_ident)));
-      THROW(e);
-    }
-
-    label = node_ident(label_ident);
-  }
-
-  switch (node->which) {
-  case DEFNAME:
-    node->as.DEFNAME.excep_label = label;
-    node->as.DEFNAME.excep_error = tryy->as.TRY.error;
-    break;
-  case THROW:
-    node->as.THROW.label = label;
-    node->as.THROW.error = tryy->as.TRY.error;
-    break;
-  default:
-    assert(false);
-  }
-
-  return 0;
-}
-
-static STEP_NM(step_rewrite_defname_no_expr,
-               NM(DEFNAME));
-static error step_rewrite_defname_no_expr(struct module *mod, struct node *node,
-                                          void *user, bool *stop) {
-  DSTEP(mod, node);
-
   return 0;
 }
 
@@ -584,7 +549,7 @@ static error step_rewrite_union_constructors(struct module *mod, struct node *no
   mk->as.IDENT.name = ID_MK;
 
   const struct node *except[] = { fun, NULL };
-  e = catchup(mod, except, mk_fun, &node->scope, CATCHUP_BELOW_CURRENT);
+  e = catchup(mod, except, mk_fun, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
 
   return 0;
@@ -627,8 +592,7 @@ static error do_instantiate(struct node **result,
   }
 
   error e = catchup_instantiation(mod, node_module_owner(gendef),
-                                  instance, gendef->scope.parent,
-                                  tentative);
+                                  instance, tentative);
   EXCEPT(e);
 
   *result = instance;
@@ -706,7 +670,7 @@ static error instance(struct node **result,
                 explicit_args[n]);
       EXCEPT(e);
 
-      fe = node_next_const(fe);
+      fe = next_const(fe);
     }
 
     free(args);
@@ -825,6 +789,17 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
   if (operator == TASSIGN) {
     e = check_assign_not_types(mod, left, right);
     EXCEPT(e);
+
+    if (typ_equal(right->typ, TBI_VOID)) {
+      if (left->which == IDENT
+          && left->as.IDENT.def->which == DEFNAME
+          && left->as.IDENT.def->as.DEFNAME.ssa_user != NULL) {
+        // noop
+      } else {
+        e = mk_except(mod, node, "cannot assign an expression of type 'void'");
+        THROW(e);
+      }
+    }
 
     e = unify(mod, node,
               try_wrap_ref_compatible(mod, node, 0, left->typ),
@@ -950,7 +925,7 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
     subs_at_const(dfun, IDX_FUNARGS), dmin);
   struct node *arg;
   if (dmin == 0) {
-    // We use this form, so that 'arg' will be NULL if 'node' it's a unary call.
+    // We use this form, so that 'arg' will be NULL if 'node' is a unary call.
     arg = next(subs_first(node));
   } else {
     arg = subs_at(node, dmin + 1);
@@ -960,10 +935,11 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
 
   for (n = dmin; n < dmax && (first_vararg == - 1 || n < first_vararg); ++n) {
     if (arg == NULL) {
-      G(named, node, CALLNAMEDARG,
+      GSTART();
+      G0(named, node, CALLNAMEDARG,
         named->as.CALLNAMEDARG.name = node_ident(darg);
-        G(nul, named, NUL));
-      e = catchup(mod, NULL, named, &node->scope, CATCHUP_BELOW_CURRENT);
+        G(nul, NUL));
+      e = catchup(mod, NULL, named, CATCHUP_BELOW_CURRENT);
       assert(!e);
 
     } else if (arg->which != CALLNAMEDARG) {
@@ -975,20 +951,21 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
         THROW(e);
       }
 
-      G(named, node, CALLNAMEDARG,
+      GSTART();
+      G0(named, node, CALLNAMEDARG,
         named->as.CALLNAMEDARG.name = node_ident(darg);
-        G(nul, named, NUL));
+        G(nul, NUL));
 
       node_subs_remove(node, named);
       node_subs_insert_before(node, arg, named);
 
-      e = catchup(mod, NULL, named, &node->scope, CATCHUP_BELOW_CURRENT);
+      e = catchup(mod, NULL, named, CATCHUP_BELOW_CURRENT);
       assert(!e);
 
     } else if (arg->which == CALLNAMEDARG) {
       const ident name = node_ident(arg);
       while (node_ident(darg) != name) {
-        darg = node_next_const(darg);
+        darg = next_const(darg);
         if (darg == NULL) {
           e = mk_except(mod, arg, "named argument '%s' has bad name"
                         " or appears out of order",
@@ -1000,7 +977,7 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
       arg = next(arg);
     }
 
-    darg = node_next_const(darg);
+    darg = next_const(darg);
   }
 
   assert(arg == NULL || first_vararg >= 0);
@@ -1018,8 +995,6 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
 }
 
 static error rewrite_unary_call(struct module *mod, struct node *node, struct typ *tfun) {
-  struct scope *parent_scope = node->scope.parent;
-
   struct node *fun = node_new_subnode(mod, node);
   node_subs_remove(node, fun);
   node_move_content(fun, node);
@@ -1027,31 +1002,30 @@ static error rewrite_unary_call(struct module *mod, struct node *node, struct ty
   node_set_which(node, CALL);
   set_typ(&fun->typ, tfun);
 
-  const struct node *except[] = { fun, NULL };
-  error e = catchup(mod, except, node, parent_scope, CATCHUP_REWRITING_CURRENT);
-  EXCEPT(e);
-
-  e = fill_in_optional_args(mod, node, tfun);
+  error e = fill_in_optional_args(mod, node, tfun);
   assert(!e);
+
+  const struct node *except[] = { fun, NULL };
+  e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
+  EXCEPT(e);
 
   return 0;
 }
 
 static void bin_accessor_maybe_ref(struct scope **parent_scope,
-                                   struct module *mod, struct node *parent) {
-  if (typ_is_reference(parent->typ)) {
-    *parent_scope = &typ_definition(typ_generic_arg(parent->typ, 0))->scope;
+                                   struct module *mod, struct node *par) {
+  if (typ_is_reference(par->typ)) {
+    *parent_scope = &typ_definition(typ_generic_arg(par->typ, 0))->scope;
   }
 }
 
 static void bin_accessor_maybe_defchoice(struct scope **parent_scope, struct node *for_error,
-                                         struct module *mod, struct node *parent) {
-  ident tag = ID__NONE;
-  if (constraint_has_common_root_tag(&tag, mod, parent)) {
+                                         struct module *mod, struct node *par) {
+  if (par->flags & NODE_IS_DEFCHOICE) {
     struct node *defchoice = NULL;
     error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
-                                           &typ_definition(parent->typ)->scope,
-                                           tag, false);
+                                           &typ_definition(par->typ)->scope,
+                                           node_ident(subs_last(par)), false);
     assert(!e);
     assert(defchoice->which == DEFCHOICE);
 
@@ -1226,27 +1200,6 @@ static error type_inference_tuple(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error type_inference_tupleextract(struct module *mod, struct node *node) {
-  struct node *expr = subs_last(node);
-  assert(subs_count(node) == typ_generic_arity(expr->typ) + 1
-         && typ_isa(expr->typ, TBI_ANY_TUPLE));
-
-  size_t n = 0;
-  FOREACH_SUB(s, node) {
-    if (next(s) == NULL) {
-      break;
-    }
-    set_typ(&s->typ, typ_generic_arg(expr->typ, n));
-    n += 1;
-  }
-
-  struct node *value = subs_last(node);
-  set_typ(&node->typ, value->typ);
-  node->flags = value->flags; // Copy all flags, transparent node.
-
-  return 0;
-}
-
 static void type_inference_init_named(struct module *mod, struct node *node) {
   struct node *dinc = defincomplete_create(mod, node);
 
@@ -1326,7 +1279,7 @@ static enum token_type derefop_for_accop[] = {
   [TWILDCARD] = TDEREFWILDCARD,
 };
 
-static struct node *expr_ref(struct module *mod, struct node *parent,
+static struct node *expr_ref(struct module *mod, struct node *par,
                              enum token_type refop, struct node *node) {
   if (node->which == BIN && OP_KIND(node->as.BIN.operator) == OP_BIN_ACC) {
     // Of the form
@@ -1340,7 +1293,7 @@ static struct node *expr_ref(struct module *mod, struct node *parent,
     node->as.BIN.operator = accop_for_refop[refop];
   }
 
-  struct node *n = mk_node(mod, parent, UN);
+  struct node *n = mk_node(mod, par, UN);
   n->as.UN.operator = refop;
   node_subs_append(n, node);
   return n;
@@ -1366,7 +1319,7 @@ static error rewrite_self(struct module *mod, struct node *node,
   }
 
   const struct node *except[] = { old_self, NULL };
-  error e = catchup(mod, except, self, &node->scope, CATCHUP_BELOW_CURRENT);
+  error e = catchup(mod, except, self, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
 
   if (typ_is_reference(self->typ)) {
@@ -1380,11 +1333,11 @@ static error rewrite_self(struct module *mod, struct node *node,
 
 static error try_insert_const_ref(struct module *mod, struct node *node,
                                   const struct typ *target, struct node *arg) {
-  struct node *parent = node;
+  struct node *par = node;
   struct node *real_arg = arg;
   const bool is_named = arg->which == CALLNAMEDARG;
   if (is_named) {
-    parent = arg;
+    par = arg;
     real_arg = subs_first(arg);
   }
 
@@ -1393,10 +1346,10 @@ static error try_insert_const_ref(struct module *mod, struct node *node,
         && !typ_isa(target, TBI_ANY_MUTABLE_REF)) {
       struct node *before = prev(real_arg);
 
-      node_subs_remove(parent, real_arg);
-      struct node *ref_arg = expr_ref(mod, parent, TREFDOT, real_arg);
-      node_subs_remove(parent, ref_arg);
-      node_subs_insert_after(parent, before, ref_arg);
+      node_subs_remove(par, real_arg);
+      struct node *ref_arg = expr_ref(mod, par, TREFDOT, real_arg);
+      node_subs_remove(par, ref_arg);
+      node_subs_insert_after(par, before, ref_arg);
 
       if (is_named) {
         unset_typ(&arg->typ);
@@ -1405,7 +1358,6 @@ static error try_insert_const_ref(struct module *mod, struct node *node,
       const struct node *except[] = { real_arg, NULL };
       error e = catchup(mod, except,
                         is_named ? arg : ref_arg,
-                        &node->scope,
                         CATCHUP_BELOW_CURRENT);
       EXCEPT(e);
     }
@@ -1513,7 +1465,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
         e = rewrite_self(mod, node, fun);
         EXCEPT(e);
 
-        e = catchup(mod, NULL, m, &node->scope, CATCHUP_BELOW_CURRENT);
+        e = catchup(mod, NULL, m, CATCHUP_BELOW_CURRENT);
         EXCEPT(e);
       }
     } else if ((fun->flags & NODE_IS_TYPE)) {
@@ -1739,17 +1691,25 @@ static error type_inference_call(struct module *mod, struct node *node) {
 static error type_inference_block(struct module *mod, struct node *node) {
   error e;
 
+  struct node *last_typable = subs_last(node);
+  while (typ_equal(last_typable->typ, TBI__NOT_TYPEABLE)) {
+    last_typable = prev(last_typable);
+  }
+
   FOREACH_SUB(s, node) {
     if ((s->flags & NODE_IS_TYPE)) {
       e = mk_except_type(mod, s, "block statements cannot be type names");
       THROW(e);
     }
-  }
 
-  FOREACH_SUB(s, node) {
-    if (next(s) == NULL) {
+    if (s->typ == TBI__NOT_TYPEABLE) {
+      continue;
+    }
+
+    if (s == last_typable) {
       break;
     }
+
     if (!typ_equal(s->typ, TBI_VOID)) {
       e = mk_except_type(mod, s,
                          "intermediate statements in a block must be of type void"
@@ -1759,11 +1719,11 @@ static error type_inference_block(struct module *mod, struct node *node) {
     }
   }
 
-  if (subs_last(node)->which == RETURN) {
+  if (last_typable->which == RETURN) {
     // FIXME: should make sure there are no statements after a RETURN.
     set_typ(&node->typ, TBI_VOID);
   } else {
-    set_typ(&node->typ, subs_last(node)->typ);
+    set_typ(&node->typ, last_typable->typ);
   }
 
   return 0;
@@ -1772,37 +1732,17 @@ static error type_inference_block(struct module *mod, struct node *node) {
 static error type_inference_if(struct module *mod, struct node *node) {
   error e;
 
-  FOREACH_SUB_EVERY(s, node, 0, 2) {
-    if (node_next_const(s) == NULL) {
-      break;
-    }
-    e = unify(mod, s, s->typ,
-              typ_create_tentative(TBI_GENERALIZED_BOOLEAN));
-    EXCEPT(e);
-  }
+  struct node *cond = subs_first(node);
+  e = unify(mod, cond, cond->typ,
+            typ_create_tentative(TBI_GENERALIZED_BOOLEAN));
+  EXCEPT(e);
 
-  set_typ(&node->typ, subs_at(node, 1)->typ);
+  struct node *yes = next(cond);
+  struct node *els = subs_last(node);
+  e = unify(mod, els, yes->typ, els->typ);
+  EXCEPT(e);
 
-  struct node *last_elif = subs_at(node, 1);
-  if (subs_count_atleast(node, 3)) {
-    FOREACH_SUB_EVERY(b, node, 3, 2) {
-      e = unify(mod, b, node->typ, b->typ);
-      EXCEPT(e);
-      last_elif = b;
-    }
-  }
-
-  if (last_elif != subs_last(node)) {
-    struct node *els = next(last_elif);
-    e = unify(mod, els, node->typ, els->typ);
-    EXCEPT(e);
-  } else {
-    if (!typ_equal(node->typ, TBI_VOID)) {
-      e = mk_except_type(mod, node,
-                         "if statement is not of type void but is missing an else branch");
-      THROW(e);
-    }
-  }
+  set_typ(&node->typ, yes->typ);
 
   return 0;
 }
@@ -1818,30 +1758,6 @@ static error unify_match_pattern(struct module *mod, struct node *expr, struct n
     e = mk_except_type(mod, expr,
                        "must match over an enum or sum type (FIXME: for now)");
     THROW(e);
-  }
-
-  if (node_ident(pattern) == ID_OTHERWISE) {
-    set_typ(&pattern->typ, expr->typ);
-    return 0;
-  }
-
-  if (d->which == DEFTYPE
-      && enum_or_union
-      && pattern->which == IDENT) {
-    struct node *field = NULL;
-    e = scope_lookup_ident_immediate(&field, pattern, mod,
-                                     &d->scope,
-                                     node_ident(pattern),
-                                     true);
-    if (!e) {
-      e = typ_check_equal(mod, pattern, expr->typ, field->typ);
-      EXCEPT(e);
-      set_typ(&pattern->typ, field->typ);
-      pattern->flags = field->flags;
-      return 0;
-    } else {
-      // drop e
-    }
   }
 
   e = unify(mod, pattern, pattern->typ, expr->typ);
@@ -1866,85 +1782,6 @@ static error type_inference_match(struct module *mod, struct node *node) {
       EXCEPT(e);
     }
   }
-
-  return 0;
-}
-
-static error unify_try_errors(struct typ **exu, struct module *mod,
-                              struct try_state *st) {
-  for (size_t n = 0, count = vecnode_count(&st->excepts); n < count; ++n) {
-    struct node *exc = vecnode_get(&st->excepts, n);
-
-    switch (exc->which) {
-    case THROW:
-      if (subs_count(exc) == 2) {
-        exc = subs_at(exc, 1);
-      } else {
-        exc = subs_first(exc);
-      }
-      break;
-    case DEFNAME:
-      exc = exc->as.DEFNAME.expr;
-      break;
-    default:
-      assert(false);
-    }
-
-    if (*exu == NULL) {
-      *exu = exc->typ;
-    } else {
-      error e = unify(mod, exc, *exu, exc->typ);
-      EXCEPT(e);
-    }
-  }
-
-  return 0;
-}
-
-static error type_inference_try(struct module *mod, struct node *node) {
-  node->typ = NULL;
-
-  error e;
-  struct try_state *st = module_excepts_get(mod);
-
-  if (vecnode_count(&st->excepts) == 0) {
-    e = mk_except(mod, node,
-                  "try block has no except or throw statement,"
-                  " catch is unreachable");
-    THROW(e);
-  }
-
-  struct typ *exu = NULL;
-  e = unify_try_errors(&exu, mod, st);
-  EXCEPT(e);
-
-#define f(n) subs_first(n)
-#define s(n) subs_at(n, 1)
-  struct node *elet = f(node);
-  struct node *edefp = f(elet);
-  struct node *eident = f(edefp);
-  set_typ(&eident->typ, exu);
-
-  struct node *eblock = s(elet);
-  struct node *main_block = f(eblock);
-  struct typ *u = main_block->typ;
-
-  FOREACH_SUB_EVERY(catch, eblock, 1, 1) {
-    struct node *let = f(catch);
-    struct node *defp = f(let);
-    struct node *error = s(defp);
-    struct node *block = s(catch);
-
-    e = unify(mod, error, error->typ, exu);
-    EXCEPT(e);
-
-    e = unify(mod, block, block->typ, u);
-    EXCEPT(e);
-  }
-#undef s
-#undef f
-
-  set_typ(&node->typ, u);
 
   return 0;
 }
@@ -1974,17 +1811,11 @@ static error type_inference_ident_unknown(struct module *mod, struct node *node)
   return 0;
 }
 
-static struct phi_tracker_state *ident_def_phi_tracker(struct node *def) {
+struct phi_tracker_state *get_phi_tracker(struct node *def) {
   switch (def->which) {
   case DEFNAME:
-    if (def->as.DEFNAME.phi_state == NULL) {
-      PUSH_STATE(def->as.DEFNAME.phi_state);
-    }
     return def->as.DEFNAME.phi_state;
   case DEFARG:
-    if (def->as.DEFARG.phi_state == NULL) {
-      PUSH_STATE(def->as.DEFARG.phi_state);
-    }
     return def->as.DEFARG.phi_state;
   default:
     assert(false);
@@ -1992,263 +1823,156 @@ static struct phi_tracker_state *ident_def_phi_tracker(struct node *def) {
   }
 }
 
+#define OR_ELSE(p, def) ( (p) != NULL ? (p) : (def) )
+
+static struct node *scoped_block_surrounding(struct node *node) {
+  struct node *n = node;
+  do {
+    n = parent(n);
+  } while (n->which != BLOCK || n->as.BLOCK.is_scopeless);
+  return n;
+}
+
+static error branching_block_foreach_scoped_ident(struct module *mod,
+                                                  struct node *branching,
+                                                  struct node *block,
+                                                  scope_each each) {
+  error e;
+  struct node *fun = mod->state->top_state->top;
+  assert(fun->which == DEFFUN || fun->which == DEFMETHOD);
+  struct node *funargs = subs_at(fun, IDX_FUNARGS);
+  FOREACH_SUB(arg, funargs) {
+    e = each(mod, arg, block);
+    EXCEPT(e);
+  }
+
+  struct node *top_block = subs_last(fun);
+  struct node *b = branching;
+  do {
+    b = scoped_block_surrounding(b);
+
+    e = scope_foreach(mod, &b->scope, each, block);
+    EXCEPT(e);
+  } while (b != top_block);
+
+  return 0;
+}
+
 static struct node *insert_conditioned_phi(struct module *mod,
                                            struct branch_state *br_st,
-                                           struct node *pre_branch_use,
-                                           bool is_after_current) {
+                                           struct node *br_block,
+                                           struct node *pre_branch_use) {
   if (br_st->branching->which == TRY) {
     // FIXME: unsupported in try/catch
     return pre_branch_use;
   }
 
-  struct node *block = node_branching_nth_branch(br_st->branching, br_st->nth_branch);
-  assert(block->which == BLOCK);
-  struct node *phi = mk_node(mod, block, PHI);
+  assert(br_block->which == BLOCK);
+  struct node *phi = mk_node(mod, br_block, PHI);
   phi->as.PHI.is_conditioned = true;
-  vecnode_push(&phi->as.PHI.ancestors, pre_branch_use);
+  switch (pre_branch_use->which) {
+  case PHI:
+    phi->as.PHI.def = pre_branch_use->as.PHI.def;
+    break;
+  case IDENT:
+    phi->as.PHI.def = pre_branch_use->as.IDENT.def;
+    break;
+  case DEFARG:
+  case DEFNAME:
+    phi->as.PHI.def = pre_branch_use;
+    break;
+  default:
+    assert(false);
+  }
 
-  node_subs_remove(block, phi);
-  node_subs_insert_before(block, subs_first(block), phi);
+  struct ancestor ancestor = { .prev = pre_branch_use, 0 };
+  if (br_st->prev != NULL) {
+    ancestor.cond = br_st->prev->cond;
+    ancestor.reversed = br_st->prev->reversed;
+  }
+  vecancestor_push(&phi->as.PHI.ancestors, ancestor);
 
-  error e = catchup(mod, NULL, phi, &block->scope,
-                    is_after_current ? CATCHUP_AFTER_CURRENT
-                    : CATCHUP_BEFORE_CURRENT);
+  node_subs_remove(br_block, phi);
+  node_subs_insert_before(br_block, subs_first(br_block), phi);
+
+  error e = catchup(mod, NULL, phi, CATCHUP_AFTER_CURRENT);
   assert(!e);
 
   return phi;
 }
 
-static void track_ident_use(struct module *mod, struct node *node,
-                            struct node *def, bool is_after_current) {
-  assert(node->which == IDENT);
-  node->as.IDENT.def = def;
-
-  // FIXME: inserting PHI under a branching for names defined in the current
-  // branch block, unnecessarily.
-
-  switch (def->which) {
-  case DEFGENARG:
-  case SETGENARG:
-  case DEFFUN:
-  case DEFMETHOD:
-  case DEFTYPE:
-  case DEFINTF:
-    node->as.IDENT.prev_use = def;
-    return;
-
-  case DEFNAME:
-  case DEFARG:
-    break;
-  default:
-    return;
+static error insert_all_possible_conditioned_phi_each(struct module *mod,
+                                                      struct node *def,
+                                                      void *user) {
+  struct node *br_block = user;
+  if (!local_name_is_scoped(mod, def)) {
+    return 0;
   }
+  assert(def->which == DEFNAME || def->which == DEFARG);
 
-#define OR_ELSE(p, def) ( (p) != NULL ? (p) : (def) )
-
-  struct phi_tracker_state *phi_st = ident_def_phi_tracker(def);
   struct branch_state *br_st = mod->state->branch_state;
+  struct phi_tracker_state *phi_st = get_phi_tracker(def);
 
-  if (br_st == NULL || br_st->nth_branch == -1) {
-    // Not in a branch.
+  struct node *prev = phi_st->prev != NULL
+    ? OR_ELSE(phi_st->prev->last, def) : def;
+  struct node *phi = insert_conditioned_phi(mod, br_st, br_block, prev);
+  phi_st->last = phi;
+  return 0;
+}
 
-    node->as.IDENT.prev_use = OR_ELSE(phi_st->last, def);
-    phi_st->last = node;
-    return;
+static error insert_all_possible_conditioned_phi(struct module *mod,
+                                                 struct node *block) {
+  error e = branching_block_foreach_scoped_ident(
+    mod, parent(block), block, insert_all_possible_conditioned_phi_each);
+  EXCEPT(e);
+  return 0;
+}
+
+static error init_phi_trackers_for_branching_each(struct module *mod,
+                                                  struct node *def,
+                                                  void *user) {
+  struct node *br_block = user;
+  assert(br_block == NULL);
+
+  if (!local_name_is_scoped(mod, def)) {
+    return 0;
   }
+  assert(def->which == DEFNAME || def->which == DEFARG);
 
-  assert(br_st->branching != NULL);
-
-  if (br_st->branching == phi_st->branching && br_st->nth_branch == phi_st->nth_branch) {
-    // We've already seen a use under this branching node and this branch.
-    node->as.IDENT.prev_use
-      = OR_ELSE(phi_st->per_branch_last[phi_st->nth_branch], def);
-    phi_st->per_branch_last[phi_st->nth_branch] = node;
-    return;
-  }
-
-  if (br_st->branching == phi_st->branching && br_st->nth_branch != phi_st->nth_branch) {
-    // We've already seen a use under this branching node, but in a previous
-    // branch.
-    phi_st->nth_branch = br_st->nth_branch;
-
-    struct node *phi = insert_conditioned_phi(mod, br_st,
-                                              OR_ELSE(phi_st->prev->last, def),
-                                              is_after_current);
-    if (!is_after_current) {
-      node->as.IDENT.prev_use = phi;
-      phi_st->per_branch_last[phi_st->nth_branch] = node;
-    } else {
-      phi_st->per_branch_last[phi_st->nth_branch] = phi;
-    }
-    return;
-  }
-
-  // This is the first use under this branching node.
   switch (def->which) {
   case DEFNAME:
     PUSH_STATE(def->as.DEFNAME.phi_state);
-    phi_st = def->as.DEFNAME.phi_state;
     break;
   case DEFARG:
     PUSH_STATE(def->as.DEFARG.phi_state);
-    phi_st = def->as.DEFARG.phi_state;
     break;
   default:
     assert(false);
   }
-  phi_st->branching = br_st->branching;
-  phi_st->nth_branch = br_st->nth_branch;
-  phi_st->per_branch_last = calloc(
-    node_branching_exhaustive_branch_count(phi_st->branching),
-    sizeof(*phi_st->per_branch_last));
 
-  struct node *phi = insert_conditioned_phi(mod, br_st,
-                                            OR_ELSE(phi_st->prev->last, def),
-                                            is_after_current);
-  if (!is_after_current) {
-    node->as.IDENT.prev_use = phi;
-    phi_st->per_branch_last[phi_st->nth_branch] = node;
-  } else {
-    phi_st->per_branch_last[phi_st->nth_branch] = phi;
-  }
-
-  if (nodeset_count(&br_st->need_phi) == 0) {
-    nodeset_init(&br_st->need_phi, 0);
-    nodeset_set_delete_val(&br_st->need_phi, false);
-  }
-  nodeset_set(&br_st->need_phi, def, true);
-
-#undef OR_ELSE
+  return 0;
 }
 
-static void track_match_ident_use(struct module *mod, struct node *pattern) {
-  assert(pattern->which == IDENT);
-  struct node *parent = node_parent(pattern);
-  assert(parent->which == MATCH);
-  struct node *expr = subs_first(parent);
-  assert(expr->which == IDENT);
+static void init_phi_trackers_for_branching(struct module *mod) {
+  struct branch_state *br_st = mod->state->branch_state;
+  struct node *branching = br_st->branching;
 
-  struct node *def = NULL;
-  error e = scope_lookup(&def, mod, &expr->scope, expr, false);
+  error e = branching_block_foreach_scoped_ident(
+    mod, branching, NULL, init_phi_trackers_for_branching_each);
   assert(!e);
-
-  track_ident_use(mod, expr, def, true);
 }
 
-static STEP_NM(step_branch_down,
-               STEP_NM_BRANCHING);
-static error step_branch_down(struct module *mod, struct node *node,
-                              void *user, bool *stop) {
-  DSTEP(mod, node);
-  PUSH_STATE(mod->state->branch_state);
-  struct branch_state *st = mod->state->branch_state;
-  st->branching = node;
-  st->nth_branch = -1;
-  return 0;
-}
+static error uninit_phi_trackers_for_branching_each(struct module *mod,
+                                                    struct node *def,
+                                                    void *user) {
+  struct node *br_block = user;
+  assert(br_block == NULL);
 
-static size_t find_in_parent(const struct node *parent, const struct node *node) {
-  size_t n = 0;
-  FOREACH_SUB_CONST(s, parent) {
-    if (s == node) {
-      return n;
-    }
-    n += 1;
-  }
-  assert(false);
-  return 0;
-}
-
-static STEP_NM(step_branch_block_down,
-               NM(BLOCK));
-static error step_branch_block_down(struct module *mod, struct node *node,
-                                    void *user, bool *stop) {
-  DSTEP(mod, node);
-  const struct node *parent = node_parent_const(node);
-  const size_t nth_sub = find_in_parent(parent, node);
-  struct branch_state *st = mod->state->branch_state;
-
-  switch (parent->which) {
-  case WHILE:
-  case FOR:
-    st->nth_branch = 0;
-    break;
-  case IF:
-    if (nth_sub % 2 == 0) {
-      // When the condition is itself a block 'if (block -> cond)'.
-      st->nth_branch = -1;
-    } else if (nth_sub % 2 == 1) {
-      st->nth_branch = nth_sub / 2;
-    } else if (subs_last_const(parent) == node) {
-      // Else branch.
-      st->nth_branch = nth_sub / 2 + 1;
-    }
-    break;
-  case MATCH:
-    assert(nth_sub % 2 == 0);
-    st->nth_branch = (nth_sub - 2) / 2;
-
-    track_match_ident_use(mod, prev(node));
-    break;
-  case TRY:
-    st->nth_branch = nth_sub;
-    break;
-  default:
+  if (!local_name_is_scoped(mod, def)) {
     return 0;
   }
-
-  assert(st->branching == parent);
-
-  return 0;
-}
-
-static STEP_NM(step_branch_block_up,
-               NM(BLOCK));
-static error step_branch_block_up(struct module *mod, struct node *node,
-                                  void *user, bool *stop) {
-  DSTEP(mod, node);
-  struct branch_state *st = mod->state->branch_state;
-  if (st == NULL) {
-    return 0;
-  }
-
-  const struct node *parent = node_parent_const(node);
-  if (st->branching == parent) {
-    st->nth_branch = -1;
-  }
-
-  return 0;
-}
-
-struct phi_insertion_state {
-  struct module *mod;
-  struct node *branching;
-  struct node *parent;
-};
-
-static int phi_insertion_foreach(const struct node **_def, bool *value, void *user) {
-  struct node *def = (struct node *) *_def;
-  struct phi_insertion_state *st = user;
-
   assert(def->which == DEFNAME || def->which == DEFARG);
-  struct phi_tracker_state *phi_st = ident_def_phi_tracker(def);
 
-  struct node *phi = mk_node(st->mod, st->parent, PHI);
-  node_subs_remove(st->parent, phi);
-  node_subs_insert_after(st->parent, st->branching, phi);
-
-  for (size_t nth = 0, count = node_branching_exhaustive_branch_count(st->branching);
-       nth < count; ++nth) {
-    struct node *use = phi_st->per_branch_last[nth];
-    if (use != NULL) {
-      vecnode_push(&phi->as.PHI.ancestors, use);
-    }
-  }
-
-  error e = catchup(st->mod, NULL, phi, &st->parent->scope, CATCHUP_AFTER_CURRENT);
-  assert(!e);
-
-  phi_st->prev->last = phi;
   switch (def->which) {
   case DEFNAME:
     POP_STATE(def->as.DEFNAME.phi_state);
@@ -2258,73 +1982,261 @@ static int phi_insertion_foreach(const struct node **_def, bool *value, void *us
     break;
   default:
     assert(false);
-    break;
   }
 
   return 0;
 }
 
-static void phi_insertion(struct module *mod, struct node *branching) {
-  struct phi_insertion_state st = {
-    .mod = mod,
-    .branching = branching,
-    .parent = node_parent(branching),
-  };
-
+static void uninit_phi_trackers_for_branching(struct module *mod) {
   struct branch_state *br_st = mod->state->branch_state;
-  nodeset_foreach(&br_st->need_phi, phi_insertion_foreach, &st);
+  struct node *branching = br_st->branching;
+
+  error e = branching_block_foreach_scoped_ident(
+    mod, branching, NULL, uninit_phi_trackers_for_branching_each);
+  assert(!e);
 }
 
-static STEP_NM(step_branch_up,
+static STEP_NM(step_branching_down,
                STEP_NM_BRANCHING);
-static error step_branch_up(struct module *mod, struct node *node,
-                            void *user, bool *stop) {
+static error step_branching_down(struct module *mod, struct node *node,
+                                 void *user, bool *stop) {
   DSTEP(mod, node);
 
+  PUSH_STATE(mod->state->branch_state);
+  struct branch_state *st = mod->state->branch_state;
+  st->branching = node;
+  st->cond = NULL;
+  st->reversed = false;
+
+  return 0;
+}
+
+static size_t find_in_parent(const struct node *par, const struct node *node) {
+  size_t n = 0;
+  FOREACH_SUB_CONST(s, par) {
+    if (s == node) {
+      return n;
+    }
+    n += 1;
+  }
+  assert(false);
+  return 0;
+}
+
+static STEP_NM(step_branching_block_down,
+               NM(BLOCK));
+static error step_branching_block_down(struct module *mod, struct node *node,
+                                       void *user, bool *stop) {
+  DSTEP(mod, node);
+  struct node *par = parent(node);
+  const size_t nth_sub = find_in_parent(par, node);
+  struct branch_state *st = mod->state->branch_state;
+
+  switch (par->which) {
+  case WHILE:
+    if (nth_sub == 0) {
+      st->cond = NULL;
+      return 0;
+    } else {
+      st->cond = subs_first(par);
+    }
+    break;
+  case IF:
+    if (nth_sub == 0) {
+      // When the condition is itself a block 'if (block -> cond)'.
+      st->cond = NULL;
+      return 0;
+    } else if (nth_sub == 1) {
+      st->cond = subs_first(par);
+      st->reversed = false;
+    } else if (nth_sub == 2) {
+      // Else branch.
+      st->cond = subs_first(par);
+      st->reversed = true;
+    } else {
+      assert(false);
+    }
+    break;
+  case MATCH:
+    if (nth_sub == 0) {
+      st->cond = NULL;
+    } else {
+      st->cond = subs_first(par);
+    }
+    break;
+  case TRY:
+    return 0;
+  default:
+    return 0;
+  }
+
+  assert(st->branching == par);
+
+  return 0;
+}
+
+static STEP_NM(step_branching_block_down_phi,
+               NM(BLOCK));
+static error step_branching_block_down_phi(struct module *mod, struct node *node,
+                                        void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  const struct node *par = parent_const(node);
+  if (!(NM(par->which) & STEP_NM_BRANCHING)) {
+    return 0;
+  }
+
+  struct branch_state *br_st = mod->state->branch_state;
+  assert(br_st->branching == par);
+  if (br_st->cond == NULL) {
+    return 0;
+  }
+
+  init_phi_trackers_for_branching(mod);
+  insert_all_possible_conditioned_phi(mod, node);
+
+  return 0;
+}
+
+static void mark_conditioned_phi_chain_used(struct node *node) {
+  if (node->which == PHI && !node->as.PHI.is_used) {
+    node->as.PHI.is_used = true;
+
+    if (node->as.PHI.is_conditioned) {
+      struct node *ancestor = vecancestor_get(&node->as.PHI.ancestors, 0)->prev;
+      mark_conditioned_phi_chain_used(ancestor);
+    }
+  }
+}
+
+static error track_ident_use(struct module *mod, struct node *node,
+                             struct node *def) {
+  assert(node->which == IDENT);
+  node->as.IDENT.def = def;
+
+  switch (def->which) {
+  case DEFGENARG:
+  case SETGENARG:
+  case DEFFUN:
+  case DEFMETHOD:
+  case DEFTYPE:
+  case DEFINTF:
+  case DEFALIAS:
+    node->as.IDENT.prev_use = def;
+    return 0;
+
+  case DEFNAME:
+  case DEFARG:
+    break;
+  default:
+    return 0;
+  }
+
+  if (!local_name_is_scoped(mod, def)) {
+    error e = mk_except(mod, node, "identifier '%s' used before its definition",
+                        idents_value(mod->gctx, node_ident(node)));
+    THROW(e);
+  }
+
+  struct phi_tracker_state *phi_st = get_phi_tracker(def);
+
+  node->as.IDENT.prev_use = OR_ELSE(phi_st->last, def);
+  if (phi_st->last != NULL && phi_st->last->which == IDENT) {
+    phi_st->last->as.IDENT.next_use = node;
+  }
+
+  mark_conditioned_phi_chain_used(node->as.IDENT.prev_use);
+
+  phi_st->last = node;
+  return 0;
+}
+
+static void phi_insertion(struct module *mod, struct node *br_block) {
+  struct branch_state *br_st = mod->state->branch_state;
+  struct node *branching = parent(br_block);
+  assert(NM(branching->which) & STEP_NM_BRANCHING);
+  struct node *where_phi = parent(branching);
+  struct node *maybe_first_phi = next(branching);
+
+  struct node *cphi = subs_first(br_block);
+  while (cphi->which == PHI) {
+    assert(cphi->as.PHI.is_conditioned);
+    if (!cphi->as.PHI.is_used) {
+      struct node *to_remove = cphi;
+      cphi = next(cphi);
+      node_subs_remove(br_block, to_remove);
+      continue;
+    }
+
+    // Look for a suitable existing PHI. Slow-ish, quadratic-ish.
+    struct node *phi = maybe_first_phi;
+    while (phi != NULL && phi->which == PHI && node_ident(phi) != node_ident(cphi)) {
+      phi = next(phi);
+    }
+
+    if (phi == NULL || phi->which != PHI) {
+      struct node *nxt = phi;
+      phi = mk_node(mod, where_phi, PHI);
+      phi->as.PHI.def = cphi->as.PHI.def;
+
+      if (nxt != NULL) {
+        node_subs_remove(where_phi, phi);
+        node_subs_insert_before(where_phi, nxt, phi);
+      }
+
+      struct ancestor *pre_branch = vecancestor_get(&cphi->as.PHI.ancestors, 0);
+      vecancestor_push(&phi->as.PHI.ancestors, *pre_branch);
+    }
+
+    assert(phi->as.PHI.def == cphi->as.PHI.def);
+    struct phi_tracker_state *phi_st = get_phi_tracker(cphi->as.PHI.def);
+
+    struct ancestor ancestor = {
+      .prev = phi_st->last,
+      .cond = br_st->cond,
+      .reversed = br_st->reversed,
+    };
+    vecancestor_push(&phi->as.PHI.ancestors, ancestor);
+
+    cphi = next(cphi);
+  }
+}
+
+static STEP_NM(step_branching_block_up_phi,
+               NM(BLOCK));
+static error step_branching_block_up_phi(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  const struct node *par = parent_const(node);
+  if (!(NM(par->which) & STEP_NM_BRANCHING)) {
+    return 0;
+  }
+
+  struct branch_state *br_st = mod->state->branch_state;
+  assert(br_st->branching == par);
+  if (br_st->cond == NULL) {
+    return 0;
+  }
+
   phi_insertion(mod, node);
+  uninit_phi_trackers_for_branching(mod);
+  return 0;
+}
+
+static STEP_NM(step_branching_up,
+               STEP_NM_BRANCHING);
+static error step_branching_up(struct module *mod, struct node *node,
+                               void *user, bool *stop) {
+  DSTEP(mod, node);
 
   POP_STATE(mod->state->branch_state);
   return 0;
 }
 
-static STEP_NM(step_push_block_state,
-               NM(BLOCK));
-static error step_push_block_state(struct module *mod, struct node *node,
-                                   void *user, bool *stop) {
-  DSTEP(mod, node);
-  PUSH_STATE(mod->state->fun_state->block_state);
-  return 0;
-}
-
-static STEP_NM(step_pop_block_state,
-               NM(BLOCK));
-static error step_pop_block_state(struct module *mod, struct node *node,
-                                  void *user, bool *stop) {
-  DSTEP(mod, node);
-  POP_STATE(mod->state->fun_state->block_state);
-  return 0;
-}
-
-static STEP_NM(step_record_current_statement,
-               -1);
-static error step_record_current_statement(struct module *mod, struct node *node,
-                                           void *user, bool *stop) {
-  DSTEP(mod, node);
-  if (node_parent(node)->which == BLOCK) {
-    mod->state->fun_state->block_state->current_statement = node;
-  }
-  return 0;
-}
-
 static bool is_name_of_globalenv(const struct node *node) {
-  const struct node *parent = node_parent_const(node);
-  if (parent->which == TYPECONSTRAINT
-      && subs_first_const(parent) == node) {
-    const struct node *pparent = node_parent_const(parent);
-    return pparent->which == DEFPATTERN && pparent->as.DEFPATTERN.is_globalenv;
-  } else {
-    return false;
-  }
+  const struct node *par = parent_const(node);
+  return par->which == DEFNAME && par->as.DEFNAME.is_globalenv;
 }
 
 static error type_inference_ident(struct module *mod, struct node *node) {
@@ -2346,14 +2258,14 @@ static error type_inference_ident(struct module *mod, struct node *node) {
     return 0;
   }
 
-  const enum node_which dparent_which = node_parent_const(def)->which;
+  const enum node_which dparent_which = parent_const(def)->which;
   if (dparent_which == MODULE || dparent_which == DEFTYPE || dparent_which == DEFINTF) {
-    node->as.IDENT.non_local_scope = def->scope.parent;
+    node->as.IDENT.non_local_scope = &parent(def)->scope;
   } else if (def->flags & NODE_IS_GLOBAL_LET) {
-    node->as.IDENT.non_local_scope = def->scope.parent->parent->parent;
-  } else {
-    track_ident_use(mod, node, def, false);
+    node->as.IDENT.non_local_scope = &parent(parent(parent(def)))->scope;
   }
+  e = track_ident_use(mod, node, def);
+  EXCEPT(e);
 
   if (def->which == DEFFIELD) {
     e = mk_except(mod, node,
@@ -2366,6 +2278,13 @@ static error type_inference_ident(struct module *mod, struct node *node) {
     return 0;
   }
 
+  if (def->typ == NULL) {
+    e = mk_except(mod, node,
+                  "identifer '%s' used before definition",
+                  idents_value(mod->gctx, node_ident(node)));
+    THROW(e);
+  }
+
   assert(def->which != DEFNAME || def->typ != NULL);
 
   if (typ_is_function(def->typ)
@@ -2374,6 +2293,7 @@ static error type_inference_ident(struct module *mod, struct node *node) {
       e = mk_except_call_args_count(mod, node, typ_definition(def->typ), false, 0);
       THROW(e);
     }
+
     e = rewrite_unary_call(mod, node, def->typ);
     EXCEPT(e);
   } else {
@@ -2448,6 +2368,24 @@ malformed:
   THROW(e);
 }
 
+static error type_inference_try(struct module *mod, struct node *node) {
+  struct node *eblock = subs_last(node);
+
+  struct typ *u = NULL;
+  FOREACH_SUB(b, eblock) {
+    if (u == NULL) {
+      u = b->typ;
+    } else {
+      error e = unify(mod, b, b->typ, u);
+      EXCEPT(e);
+    }
+  }
+
+  set_typ(&node->typ, u);
+
+  return 0;
+}
+
 STEP_NM(step_type_inference,
         -1);
 error step_type_inference(struct module *mod, struct node *node,
@@ -2480,13 +2418,24 @@ error step_type_inference(struct module *mod, struct node *node,
     break;
   }
 
-  assert(node->typ == NULL
-         || node->typ == TBI__MUTABLE
-         || node->typ == TBI__MERCURIAL
-         || node->typ == TBI__CALL_FUNCTION_SLOT
-         || node->which == DEFNAME
-         || typ_definition_const(node->typ)->which == MODULE
-         || typ_definition_const(node->typ)->which == ROOT_OF_ALL);
+  if (node->typ == NULL
+      || node->typ == TBI__MUTABLE
+      || node->typ == TBI__MERCURIAL
+      || node->typ == TBI__CALL_FUNCTION_SLOT
+      || node->which == DEFNAME
+      || typ_definition_const(node->typ)->which == MODULE
+      || typ_definition_const(node->typ)->which == ROOT_OF_ALL) {
+    // noop
+  } else {
+    return 0;
+  }
+  //assert(node->typ == NULL
+  //       || node->typ == TBI__MUTABLE
+  //       || node->typ == TBI__MERCURIAL
+  //       || node->typ == TBI__CALL_FUNCTION_SLOT
+  //       || node->which == DEFNAME
+  //       || typ_definition_const(node->typ)->which == MODULE
+  //       || typ_definition_const(node->typ)->which == ROOT_OF_ALL);
 
   switch (node->which) {
   case NUL:
@@ -2497,46 +2446,33 @@ error step_type_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case DEFNAME:
-    if (node->as.DEFNAME.expr != NULL) {
-      set_typ(&node->typ, node->as.DEFNAME.expr->typ);
-      node->as.DEFNAME.pattern->flags |= node->as.DEFNAME.expr->flags;
-    } else {
-      set_typ(&node->typ, typ_create_tentative(TBI_ANY));
-    }
-    assert(node->typ != NULL);
+    PUSH_STATE(node->as.DEFNAME.phi_state);
 
-    if (node->as.DEFNAME.is_excep) {
-      struct node *tryy = module_excepts_get(mod)->tryy;
-      struct node *err = subs_at(subs_first(subs_first(tryy)), 1);
-      assert(err->which == DEFNAME);
-      e = unify(mod, node, node->typ, err->typ);
-      EXCEPT(e);
+    set_typ(&node->typ, subs_last(node)->typ);
+    node->flags |= subs_last(node)->flags & NODE__TRANSITIVE;
+
+    if (try_remove_unnecessary_ssa_defname(mod, node)) {
+      set_typ(&node->typ, TBI_VOID);
+      break;
     }
 
-    node->flags = node->as.DEFNAME.pattern->flags;
+    if (node->flags & NODE_IS_TYPE) {
+      e = mk_except(mod, node, "let cannot be used with a type name (use alias)");
+      THROW(e);
+    }
 
-    const struct node *defp = node_parent_const(node);
-    const struct node *let = node_parent_const(defp);
-    assert(let->which == LET);
-    node->flags |= (let->flags & NODE_IS_GLOBAL_LET);
+    if (typ_equal(node->typ, TBI_VOID)) {
+      e = mk_except(mod, node, "cannot define a variable of type 'void'");
+      THROW(e);
+    }
     break;
-  case DEFPATTERN:
-    FOREACH_SUB(d, node) {
-      if (d->which == DEFNAME) {
-        if (node->as.DEFPATTERN.is_globalenv) {
-          struct typ *t = d->as.DEFNAME.pattern->typ;
-          if (!typ_is_reference(t)) {
-            e = mk_except_type(mod, node, "globalenv must declare a reference");
-            THROW(e);
-          }
-        }
-
-        e = unify(mod, d, d->typ, d->as.DEFNAME.pattern->typ);
-        EXCEPT(e);
-      }
+  case DEFALIAS:
+    set_typ(&node->typ, subs_last(node)->typ);
+    node->flags |= subs_last(node)->flags & NODE__TRANSITIVE;
+    if (!(node->flags & NODE_IS_TYPE)) {
+      e = mk_except(mod, node, "alias cannot be used with a value (use let)");
+      THROW(e);
     }
-
-    set_typ(&node->typ, TBI_VOID);
     break;
   case NUMBER:
     set_typ(&node->typ, typ_create_tentative(number_literal_typ(mod, node)));
@@ -2564,13 +2500,6 @@ error step_type_inference(struct module *mod, struct node *node,
   case TUPLE:
     e = type_inference_tuple(mod, node);
     EXCEPT(e);
-    break;
-  case TUPLEEXTRACT:
-    e = type_inference_tupleextract(mod, node);
-    EXCEPT(e);
-    break;
-  case TUPLENTH:
-    set_typ(&node->typ, typ_create_tentative(TBI_COPYABLE));
     break;
   case CALLNAMEDARG:
     set_typ(&node->typ, subs_first(node)->typ);
@@ -2604,6 +2533,7 @@ error step_type_inference(struct module *mod, struct node *node,
       set_typ(&node->typ, TBI_VOID);
       break;
     }
+  case JUMP:
   case BREAK:
   case CONTINUE:
   case NOOP:
@@ -2611,26 +2541,6 @@ error step_type_inference(struct module *mod, struct node *node,
     break;
   case IF:
     e = type_inference_if(mod, node);
-    EXCEPT(e);
-    break;
-  case FOR:
-    set_typ(&node->typ, TBI_VOID);
-    struct node *it = subs_at(
-      subs_at(
-        subs_at(node, IDX_FOR_IT),
-        IDX_FOR_IT_DEFP),
-      IDX_FOR_IT_DEFP_DEFN);
-
-    struct node *r = NULL;
-    e = typ_ref(&r, mod, node, TREFBANG,
-                typ_create_tentative(TBI_ITERATOR));
-    assert(!e);
-
-    e = unify(mod, it, it->typ, r->typ);
-    EXCEPT(e);
-    e = typ_check_equal(mod, node_for_block(node),
-                        node_for_block(node)->typ,
-                        TBI_VOID);
     EXCEPT(e);
     break;
   case WHILE:
@@ -2670,6 +2580,8 @@ error step_type_inference(struct module *mod, struct node *node,
     subs_first(node)->flags |= node->flags;
     break;
   case DEFARG:
+    PUSH_STATE(node->as.DEFARG.phi_state);
+
     set_typ(&node->typ, subs_at(node, 1)->typ);
     if (node->as.DEFARG.is_optional) {
       e = typ_check_isa(mod, node, node->typ, TBI_ANY_NULLABLE_REF);
@@ -2693,11 +2605,7 @@ error step_type_inference(struct module *mod, struct node *node,
     set_typ(&node->typ, subs_at(node, 1)->typ);
     break;
   case LET:
-    if (node_has_tail_block(node)) {
-      set_typ(&node->typ, subs_last(node)->typ);
-    } else {
-      set_typ(&node->typ, TBI_VOID);
-    }
+    set_typ(&node->typ, TBI_VOID);
     break;
   case DELEGATE:
     set_typ(&node->typ, TBI_VOID);
@@ -2706,12 +2614,26 @@ error step_type_inference(struct module *mod, struct node *node,
   case PRE:
   case POST:
   case INVARIANT:
-  case PHI:
     set_typ(&node->typ, TBI_VOID);
     break;
+  case PHI:
+    node->typ = TBI__NOT_TYPEABLE;
+    {
+      struct node *def = node->as.PHI.def;
+      switch (def->which) {
+      case DEFNAME:
+        def->as.DEFNAME.phi_state->last = node;
+        break;
+      case DEFARG:
+        def->as.DEFARG.phi_state->last = node;
+        break;
+      default:
+        break;
+      }
+    }
+    break;
   case WITHIN:
-    if (subs_count_atleast(node, 1)
-        && subs_first(node)->which != WITHIN) {
+    if (subs_count_atleast(node, 1) && subs_first(node)->which != WITHIN) {
       e = type_inference_within(mod, node);
       EXCEPT(e);
     } else {
@@ -2736,11 +2658,13 @@ error step_type_inference(struct module *mod, struct node *node,
     node->flags = node->as.DIRECTDEF.flags;
     break;
   case DEFCHOICE:
-    ;const struct node *parent = node;
-    do {
-      parent = node_parent_const(parent);
-    } while (parent->which == DEFCHOICE);
-    set_typ(&node->typ, parent->typ);
+    {
+      const struct node *par = node;
+      do {
+        par = parent_const(par);
+      } while (par->which == DEFCHOICE);
+      set_typ(&node->typ, par->typ);
+    }
     break;
   default:
     break;
@@ -2763,15 +2687,14 @@ error step_remove_typeconstraints(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (!node->as.TYPECONSTRAINT.in_pattern) {
-    struct typ *saved = node->typ;
-    struct node *sub = subs_first(node);
-    node_move_content(node, sub);
-    set_typ(&node->typ, saved);
+  struct typ *saved = node->typ;
+  struct node *sub = subs_first(node);
+  node_move_content(node, sub);
+  set_typ(&node->typ, saved);
 
-    if (node->which == IDENT) {
-      track_ident_use(mod, node, node->as.IDENT.def, false);
-    }
+  if (node->which == IDENT) {
+    error e = track_ident_use(mod, node, node->as.IDENT.def);
+    EXCEPT(e);
   }
 
   return 0;
@@ -2788,6 +2711,91 @@ static error step_type_drop_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
+static error finalize_generic_instantiation(struct module *mod, struct typ *t) {
+  if (typ_definition_const(t) == NULL) {
+    // 't' was cleared in link_to_final()
+    return 0;
+  }
+
+  if (typ_generic_arity(t) == 0) {
+    // For instance, a DEFINCOMPLETE that unified to a non-generic.
+    return 0;
+  }
+
+  if (typ_is_pseudo_builtin(t)) {
+    return 0;
+  }
+
+  if (typ_is_reference(t) && typ_definition_const(t)->which == DEFINTF) {
+    return 0;
+  }
+
+  if (typ_is_tentative(t)) {
+    // By now, this instance should not be tentative anymore, as all its
+    // generic arguments should have been linked to final types.
+    for (size_t m = 0; m < typ_generic_arity(t); ++m) {
+      struct typ *arg = typ_generic_arg(t, m);
+      if (typ_is_weakly_concrete(arg)) {
+        return 0;
+      }
+
+      if (typ_is_tentative(arg)) {
+        fprintf(g_env.stderr, "%s in %s\n",
+                typ_pretty_name(mod, arg), typ_pretty_name(mod, t));
+        assert(!typ_is_tentative(arg)
+               && "FIXME: this should be an error, but how to explain it?");
+      }
+    }
+  }
+
+  struct typ *functor = typ_generic_functor(t);
+  const size_t arity = typ_generic_arity(t);
+
+  struct typ *existing = find_existing_final_for_tentative(mod, t);
+  if (existing != NULL) {
+    typ_link_to_existing_final(existing, t);
+    record_topdep(mod, existing);
+    return 0;
+  }
+
+  struct typ **args = calloc(arity, sizeof(struct typ *));
+  for (size_t m = 0; m < arity; ++m) {
+    args[m] = typ_generic_arg(t, m);
+  }
+
+  struct node *i = NULL;
+  error e = do_instantiate(&i, mod, functor, args, arity, false);
+  EXCEPT(e);
+
+  typ_declare_final__privileged(i->typ);
+  typ_link_to_existing_final(i->typ, t);
+  record_topdep(mod, i->typ);
+
+  free(args);
+  return 0;
+}
+
+// Typically, unify_with_defincomplete() finishes the job. But in some cases
+// it's not enough.
+//   fun foo = error
+//     let e = {}:(definc {})
+//     let a = {x=0}:(definc {x:`integer})
+//     e:(definc {x:`integer}) = a -- a.typ is linked to e.typ
+//     return e
+// The typing of the return unifies 'e.typ' to 'error', which correctly
+// updates 'a.typ' to 'error', but unify_with_defincomplete() only sees
+// 'error' and 'e.typ', and doesn't know to find the definition 'a.typ' and
+// unify the fields of *that* DEFINCOMPLETE (it does know about the
+// different DEFINCOMPLETE behind 'e.typ').
+//
+// So we fix it after the fact.
+static void finalize_defincomplete_unification(struct module *mod, struct node *dinc) {
+  error e = unify_with_defincomplete_entrails(mod, dinc, dinc->typ,
+                                              dinc->typ, dinc);
+  assert(!e);
+}
+
+// See bootstrap/types.c for some ideas on how to get rid of this step.
 STEP_NM(step_gather_final_instantiations,
         NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD));
 static error step_gather_final_instantiations(struct module *mod, struct node *node,
@@ -2802,74 +2810,21 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
   if (typ_is_generic_functor(node->typ)) {
     return 0;
   }
-  const struct node *parent = node_parent_const(node);
-  if (parent->which != MODULE_BODY
-      && typ_is_generic_functor(parent->typ)) {
+  const struct node *par = parent_const(node);
+  if (par->which != MODULE_BODY
+      && typ_is_generic_functor(par->typ)) {
     return 0;
   }
 
   for (size_t n = 0; n < toplevel->tentative_instantiations_count; ++n) {
-    struct typ *t = toplevel->tentative_instantiations[n]->typ;
-    if (typ_definition_const(t) == NULL) {
-      // 't' was cleared in link_to_final()
-      continue;
+    struct node *d = toplevel->tentative_instantiations[n];
+    struct typ *t = d->typ;
+    if (d->which == DEFINCOMPLETE) {
+      finalize_defincomplete_unification(mod, d);
+    } else {
+      error e = finalize_generic_instantiation(mod, t);
+      EXCEPT(e);
     }
-
-    if (typ_generic_arity(t) == 0) {
-      // For instance, a DEFINCOMPLETE that unified to a non-generic.
-      continue;
-    }
-
-    if (typ_is_pseudo_builtin(t)) {
-      continue;
-    }
-
-    if (typ_is_reference(t) && typ_definition_const(t)->which == DEFINTF) {
-      continue;
-    }
-
-    if (typ_is_tentative(t)) {
-      // By now, this instance should not be tentative anymore, as all its
-      // generic arguments should have been linked to final types.
-      for (size_t m = 0; m < typ_generic_arity(t); ++m) {
-        struct typ *arg = typ_generic_arg(t, m);
-        if (typ_is_weakly_concrete(arg)) {
-          continue;
-        }
-
-        if (typ_is_tentative(arg)) {
-          fprintf(g_env.stderr, "%s in %s\n",
-                  typ_pretty_name(mod, arg), typ_pretty_name(mod, t));
-          assert(!typ_is_tentative(arg)
-                 && "FIXME: this should be an error, but how to explain it?");
-        }
-      }
-    }
-
-    struct typ *functor = typ_generic_functor(t);
-    const size_t arity = typ_generic_arity(t);
-
-    struct typ *existing = find_existing_final_for_tentative(mod, t);
-    if (existing != NULL) {
-      typ_link_to_existing_final(existing, t);
-      record_topdep(mod, existing);
-      continue;
-    }
-
-    struct typ **args = calloc(arity, sizeof(struct typ *));
-    for (size_t m = 0; m < arity; ++m) {
-      args[m] = typ_generic_arg(t, m);
-    }
-
-    struct node *i = NULL;
-    error e = do_instantiate(&i, mod, functor, args, arity, false);
-    EXCEPT(e);
-
-    typ_declare_final__privileged(i->typ);
-    typ_link_to_existing_final(i->typ, t);
-    record_topdep(mod, i->typ);
-
-    free(args);
   }
 
   if (node->which == DEFINTF) {
@@ -2971,7 +2926,10 @@ static error step_ident_non_local_scope(struct module *mod, struct node *node,
     error e = scope_lookup_ident_immediate(&def, node, mod, &d->scope,
                                            node_ident(node), false);
     assert(!e);
-    node->as.IDENT.non_local_scope = def->scope.parent;
+    node->as.IDENT.non_local_scope = &parent(def)->scope;
+
+    e = track_ident_use(mod, node, def);
+    assert(!e);
   }
   return 0;
 }
@@ -3030,7 +2988,6 @@ static error step_weak_literal_conversion(struct module *mod, struct node *node,
     return 0;
   }
 
-  struct scope *saved_parent = node->scope.parent;
   struct typ *saved_typ = node->typ;
 
   struct node *literal = node_new_subnode(mod, node);
@@ -3049,7 +3006,7 @@ static error step_weak_literal_conversion(struct module *mod, struct node *node,
   set_typ(&literal->typ, lit_typ);
 
   const struct node *except[] = { literal, NULL };
-  error e = catchup(mod, except, node, saved_parent,
+  error e = catchup(mod, except, node,
                     CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
@@ -3073,9 +3030,9 @@ static enum token_type operator_call_arg_refop(const struct module *mod,
   }
 }
 
-static error gen_operator_call(struct module *mod,
-                               struct scope *saved_parent, struct node *node,
-                               ident operator_name, struct node *left, struct node *right,
+static error gen_operator_call(struct module *mod, struct node *node,
+                               ident operator_name,
+                               struct node *left, struct node *right,
                                enum catchup_for catchup_for) {
   struct typ *tfun = node_get_member(mod, typ_definition(left->typ),
                                      operator_name)->typ;
@@ -3094,7 +3051,7 @@ static error gen_operator_call(struct module *mod,
     expr_ref(mod, node, operator_call_arg_refop(mod, tfun, 1), right);
   }
 
-  error e = catchup(mod, except, node, saved_parent, catchup_for);
+  error e = catchup(mod, except, node, catchup_for);
   EXCEPT(e);
 
   return 0;
@@ -3165,40 +3122,9 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   if (right != NULL) {
     node_subs_remove(node, right);
   }
-  error e = gen_operator_call(mod, node->scope.parent, node,
-                              operator_ident[op], left, right,
+  error e = gen_operator_call(mod, node, operator_ident[op], left, right,
                               CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
-
-  return 0;
-}
-
-static error gen_operator_test_call(struct module *mod, struct node *node, size_t n) {
-  struct node *expr = subs_at(node, n);
-  if (typ_equal(expr->typ, TBI_BOOL)) {
-    return 0;
-  }
-
-  struct node *test = node_new_subnode(mod, node);
-  node_subs_remove(node, test);
-  node_subs_replace(node, expr, test);
-  error e = gen_operator_call(mod, node->scope.parent, test,
-                              ID_OPERATOR_TEST, expr, NULL,
-                              CATCHUP_BELOW_CURRENT);
-  EXCEPT(e);
-  return 0;
-}
-
-static STEP_NM(step_operator_test_call_inference,
-               NM(DEFNAME));
-static error step_operator_test_call_inference(struct module *mod, struct node *node,
-                                               void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (node->as.DEFNAME.is_excep) {
-    error e = gen_operator_test_call(mod, node, IDX_DEFNAME_EXCEP_TEST);
-    EXCEPT(e);
-  }
 
   return 0;
 }
@@ -3226,7 +3152,6 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
     return 0;
   }
 
-  struct scope *saved_parent = node->scope.parent;
   struct typ *saved_typ = node->typ;
 
   struct node *array = node_new_subnode(mod, node);
@@ -3248,8 +3173,7 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
           typ_generic_arg(typ_function_arg(fun->as.DIRECTDEF.typ, 0), 0));
 
   const struct node *except[] = { array, NULL };
-  error e = catchup(mod, except, node, saved_parent,
-                    CATCHUP_REWRITING_CURRENT);
+  error e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
   return 0;
@@ -3300,47 +3224,30 @@ static error assign_copy_call_inference(struct module *mod, struct node *node) {
   node_subs_remove(node, left);
   node_subs_remove(node, right);
 
-  error e = gen_operator_call(mod, node->scope.parent, node,
-                              ID_COPY_CTOR, left, right,
+  error e = gen_operator_call(mod, node, ID_COPY_CTOR, left, right,
                               CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
   return 0;
 }
 
 static error defname_copy_call_inference(struct module *mod, struct node *node) {
-  struct node *let = node_parent(node_parent(node));
-  assert(let->which == LET);
+  struct node *left = mk_node(mod, node, IDENT);
+  left->as.IDENT.name = node_ident(node);
+  node_subs_remove(node, left);
 
-  struct node *within;
-  if (node_has_tail_block(let)) {
-    within = subs_last(let);
-  } else {
-    within = mk_node(mod, let, BLOCK);
-    struct node *to_remove = mk_node(mod, within, NOOP);
-    error e = catchup(mod, NULL, within, &let->scope, CATCHUP_BEFORE_CURRENT);
-    EXCEPT(e);
-    node_subs_remove(within, to_remove);
-  }
+  struct node *right = subs_last(node);
+  node_subs_remove(node, right); // steal defname expression
 
-  struct node *left = mk_node(mod, within, IDENT);
-  left->as.IDENT.name = node_ident(node->as.DEFNAME.pattern);
-  set_typ(&left->typ, node->as.DEFNAME.pattern->typ);
-  node_subs_remove(within, left);
+  set_typ(&left->typ, right->typ);
 
-  struct node *right = node->as.DEFNAME.expr;
-  node->as.DEFNAME.expr = NULL; // Steal right.
-  node_subs_remove(node_parent(right), right);
-
-  struct scope *saved_parent = within->scope.parent;
+  struct node *within = parent(parent(node));
   struct node *copycall = node_new_subnode(mod, within);
-  error e = gen_operator_call(mod, saved_parent, copycall,
-                              ID_COPY_CTOR, left, right,
+  node_subs_remove(within, copycall);
+  node_subs_insert_after(within, parent(node), copycall);
+
+  error e = gen_operator_call(mod, copycall, ID_COPY_CTOR, left, right,
                               CATCHUP_AFTER_CURRENT);
   EXCEPT(e);
-
-  assert(typ_equal(copycall->typ, TBI_VOID)
-         && "We used a PASS above to catchup() 'within', this only works "
-         "if the return type is void.");
 
   return 0;
 }
@@ -3361,12 +3268,12 @@ static error step_copy_call_inference(struct module *mod, struct node *node,
     }
     return 0;
   case DEFNAME:
-    if (node_parent(node)->as.DEFPATTERN.is_ssa_var) {
+    if (node->as.DEFNAME.ssa_user != NULL) {
       return 0;
     }
     if (!(node->flags & NODE_IS_TYPE)) {
-      left = node->as.DEFNAME.pattern;
-      right = node->as.DEFNAME.expr;
+      left = node;
+      right = subs_last(node);
       if (right != NULL) {
         break;
       }
@@ -3390,7 +3297,7 @@ static error step_copy_call_inference(struct module *mod, struct node *node,
     return 0;
   }
 
-  error e = typ_check_isa(mod, left, left->typ, TBI_COPYABLE);
+  error e = typ_check_isa(mod, right, right->typ, TBI_COPYABLE);
   EXCEPT(e);
 
   switch (node->which) {
@@ -3432,6 +3339,7 @@ static error check_has_matching_member(struct module *mod,
   }
 
   if (m->which == DEFNAME
+      || m->which == DEFALIAS
       || m->which == DEFFIELD) {
     // FIXME: if the type of mi is (lexically) 'final', we need to check
     // that it is *equal* to deft->typ.
@@ -3455,6 +3363,9 @@ static error check_has_matching_member(struct module *mod,
   }
 
   switch (m->which) {
+  case DEFALIAS:
+    m->as.DEFALIAS.member_isa = mi;
+    break;
   case DEFNAME:
     m->as.DEFNAME.member_isa = mi;
     break;
@@ -3492,21 +3403,19 @@ static error check_exhaustive_intf_impl_eachisalist(struct module *mod,
   }
 
   FOREACH_SUB_EVERY_CONST(mi, dintf, IDX_ISALIST + 1, 1) {
-    if (mi->which == LET) {
-      FOREACH_SUB_CONST(defp, mi) {
-        FOREACH_SUB_CONST(d, defp) {
-          if (d->which != DEFNAME) {
-            continue;
-          }
+    if (mi->which == NOOP) {
+      // noop
+    } else if (mi->which == LET) {
+      FOREACH_SUB_CONST(d, mi) {
+        assert(NM(d->which) & (NM(DEFNAME) | NM(DEFALIAS)));
 
-          ident id = node_ident(d);
-          if (id == ID_FINAL || id == ID_THIS) {
-            continue;
-          }
-
-          e = check_has_matching_member(mod, deft, intf, d);
-          EXCEPT(e);
+        ident id = node_ident(d);
+        if (id == ID_FINAL || id == ID_THIS) {
+          continue;
         }
+
+        e = check_has_matching_member(mod, deft, intf, d);
+        EXCEPT(e);
       }
     } else {
       e = check_has_matching_member(mod, deft, intf, mi);
@@ -3551,7 +3460,7 @@ static error insert_dyn(struct node **src,
   node_subs_append(d, *src);
 
   const struct node *except[] = { *src, NULL };
-  error e = catchup(mod, except, d, &node->scope, CATCHUP_BELOW_CURRENT);
+  error e = catchup(mod, except, d, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
 
   *src = d;
@@ -3602,8 +3511,8 @@ static error step_dyn_inference(struct module *mod, struct node *node,
     return 0;
   case DEFNAME:
     if (!(node->flags & NODE_IS_TYPE)) {
-      target = node->as.DEFNAME.pattern;
-      src = node->as.DEFNAME.expr;
+      target = subs_first(node);
+      src = subs_last(node);
       if (src != NULL) {
         e = try_insert_dyn(&src, mod, node, target->typ);
         EXCEPT(e);
@@ -3634,7 +3543,7 @@ static error step_dyn_inference(struct module *mod, struct node *node,
       EXCEPT(e);
 
       if (!target->as.DEFARG.is_vararg) {
-        target = node_next_const(target);
+        target = next_const(target);
       }
     }
 
@@ -3667,6 +3576,9 @@ static void block_insert_value_assign(struct module *mod, struct node *block,
   assert(block->which == BLOCK);
 
   struct node *last = subs_last(block);
+  while (last->typ == TBI__NOT_TYPEABLE) {
+    last = prev(last);
+  }
 
   struct node *assign = mk_node(mod, block, BIN);
   assign->as.BIN.operator = TASSIGN;
@@ -3683,7 +3595,7 @@ static void block_insert_value_assign(struct module *mod, struct node *block,
   set_typ(&block->typ, TBI_VOID);
 
   const struct node *except[] = { last, NULL };
-  error e = catchup(mod, except, assign, &block->scope, CATCHUP_BELOW_CURRENT);
+  error e = catchup(mod, except, assign, CATCHUP_BELOW_CURRENT);
   assert(!e);
 }
 
@@ -3752,13 +3664,10 @@ static const struct node *retval_name(struct module *mod) {
 }
 
 static STEP_NM(step_store_return_through_ref_expr,
-               NM(RETURN) | NM(DEFPATTERN) | NM(BIN));
+               NM(RETURN) | NM(DEFNAME) | NM(BIN));
 static error step_store_return_through_ref_expr(struct module *mod, struct node *node,
                                                 void *user, bool *stop) {
   DSTEP(mod, node);
-
-  // FIXME: this is crap, mostly rendered useless by the introduction of the
-  // SSA step.
 
   struct node *expr = NULL;
   struct node *real_expr = NULL;
@@ -3802,19 +3711,14 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
       }
     }
     return 0;
-  case DEFPATTERN:
-    REVERSE_FOREACH_SUB(d, node) {
-      if (d->which != DEFNAME) {
-        continue;
-      }
-      expr = d->as.DEFNAME.expr;
-      if (expr == NULL) {
-        // noop
-      } else if (expr_is_literal_initializer(&real_expr, mod, expr)) {
-        real_expr->as.INIT.target_expr = d->as.DEFNAME.pattern;
-      } else if (expr_is_return_through_ref(&real_expr, mod, expr)) {
-        real_expr->as.CALL.return_through_ref_expr = d->as.DEFNAME.pattern;
-      }
+  case DEFNAME:
+    expr = next(subs_first(node));
+    if (expr == NULL) {
+      // noop
+    } else if (expr_is_literal_initializer(&real_expr, mod, expr)) {
+      real_expr->as.INIT.target_expr = subs_first(node);
+    } else if (expr_is_return_through_ref(&real_expr, mod, expr)) {
+      real_expr->as.CALL.return_through_ref_expr = subs_first(node);
     }
     return 0;
   case BIN:
@@ -3835,313 +3739,6 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
   }
 }
 
-static bool block_like_needs_temporary(struct module *mod,
-                                       struct node *node) {
-  assert(is_block_like(node));
-  struct node *parent = node_parent(node);
-
-  if (is_block_like(parent)) {
-    return false;
-  }
-
-  if (parent->which == RETURN
-      && !typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
-    return false;
-  } else if (parent->which == DEFPATTERN) {
-    return false;
-  } else if (parent->which == BIN
-             && OP_IS_ASSIGN(parent->as.BIN.operator)) {
-    return false;
-  } else {
-    return true;
-  }
-}
-
-struct temporaries {
-  struct node **rvalues;
-  ident *gensyms;
-  size_t count;
-};
-
-static void temporaries_add(struct temporaries *temps, struct node *node) {
-  temps->count += 1;
-  temps->rvalues = realloc(temps->rvalues, temps->count * sizeof(*temps->rvalues));
-  temps->rvalues[temps->count - 1] = node;
-}
-
-static STEP_NM(step_gather_temporary_rvalues,
-               NM(UN) | NM(INIT) | NM(CALL) | NM(TUPLEEXTRACT) |
-               NM(IF) | NM(TRY) | NM(MATCH) | NM(BLOCK));
-static error step_gather_temporary_rvalues(struct module *mod, struct node *node,
-                                           void *user, bool *stop) {
-  DSTEP(mod, node);
-  struct temporaries *temps = user;
-
-  struct node *parent = node_parent(node);
-
-  switch (node->which) {
-  case UN:
-    if (OP_KIND(node->as.UN.operator) == OP_UN_REFOF
-        && node_is_rvalue(subs_first(node))) {
-      temporaries_add(temps, node);
-    }
-    break;
-  case INIT:
-    if (parent->which == RETURN
-        && !typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
-      break;
-    }
-    if (parent->which == DEFPATTERN) {
-      break;
-    }
-    if (parent->which == BIN
-        && OP_IS_ASSIGN(parent->as.BIN.operator)) {
-      break;
-    }
-    if (parent->which == UN
-        && OP_KIND(parent->as.UN.operator) == OP_UN_REFOF) {
-      break;
-    }
-    temporaries_add(temps, node);
-    break;
-  case CALL:
-    if ((node->flags & NODE_IS_TYPE)) {
-      break;
-    }
-    if (typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
-      break;
-    }
-    if (parent->which == RETURN) {
-      break;
-    }
-    if (parent->which == BIN
-        && OP_IS_ASSIGN(parent->as.BIN.operator)) {
-      break;
-    }
-    if (parent->which == DEFPATTERN) {
-      break;
-    }
-    temporaries_add(temps, node);
-    break;
-  case TUPLEEXTRACT:
-    if (subs_last(node)->which != IDENT) {
-      temporaries_add(temps, node);
-    }
-    break;
-  case IF:
-  case TRY:
-  case MATCH:
-    if (typ_equal(node->typ, TBI_VOID)) {
-      break;
-    }
-
-    if (!block_like_needs_temporary(mod, node)) {
-      break;
-    }
-
-    temporaries_add(temps, node);
-    break;
-  case BLOCK:
-    *stop = true;
-    break;
-  default:
-    assert(false && "Unreached");
-    return 0;
-  }
-
-  return 0;
-}
-
-static error finish_passbody1(struct module *mod, struct node *root,
-                              void *user, ssize_t shallow_last_up);
-
-static error declare_temporaries(struct module *mod, struct node *statement,
-                                 struct temporaries *temps) {
-  temps->gensyms = calloc(temps->count, sizeof(*temps->gensyms));
-
-  struct node *let = NULL;
-  if (statement->which == LET) {
-    let = statement;
-  } else {
-    struct scope *saved_parent = statement->scope.parent;
-    struct typ *saved = statement->typ;
-    struct node *block = mk_node(mod, statement, BLOCK);
-    struct node *new_statement = node_new_subnode(mod, block);
-    node_subs_remove(statement, block);
-    node_move_content(new_statement, statement);
-    set_typ(&new_statement->typ, saved);
-    node_set_which(statement, LET);
-    node_subs_append(statement, block);
-
-    const struct node *except[] = { new_statement, NULL };
-    error e = catchup(mod, except, statement, saved_parent,
-                      CATCHUP_REWRITING_CURRENT);
-    assert(!e);
-
-    // We moved the current stepping node down in the tree, and it was in
-    // the catchup() except list and not processed by later steps in the
-    // current pass. But these steps may be crucial as 'statement' could be
-    // anything at all. So we must force these steps by hand.
-    PUSH_STATE(mod->state->step_state);
-    e = finish_passbody1(mod, statement, NULL, -1);
-    EXCEPT(e);
-    POP_STATE(mod->state->step_state);
-
-    let = statement;
-  }
-
-  statement = NULL;
-
-  struct node *prev = NULL;
-  for (size_t n = 0; n < temps->count; ++n) {
-    const struct node *rv = temps->rvalues[n];
-    struct node *defp = mk_node(mod, let, DEFPATTERN);
-    node_subs_remove(let, defp);
-    if (prev != NULL) {
-      node_subs_insert_after(let, prev, defp);
-    } else {
-      if (subs_count_atleast(let, 1)) {
-        node_subs_insert_before(let, subs_first(let), defp);
-      } else {
-        node_subs_append(let, defp);
-      }
-    }
-
-    struct node *typc = mk_node(mod, defp, TYPECONSTRAINT);
-
-    struct node *tmp_name = mk_node(mod, typc, IDENT);
-    const ident g = gensym(mod);
-    tmp_name->as.IDENT.name = g;
-    temps->gensyms[n] = g;
-
-    struct node *typ = mk_node(mod, typc, DIRECTDEF);
-    if (rv->which == UN && OP_KIND(rv->as.UN.operator) == OP_UN_REFOF) {
-      set_typ(&typ->as.DIRECTDEF.typ, typ_generic_arg(rv->typ, 0));
-    } else {
-      set_typ(&typ->as.DIRECTDEF.typ, rv->typ);
-    }
-    typ->as.DIRECTDEF.flags = NODE_IS_TYPE;
-
-    error e = catchup(mod, NULL, defp, &let->scope, CATCHUP_BELOW_CURRENT);
-    assert(!e);
-
-    prev = defp;
-  }
-
-  return 0;
-}
-
-
-static error pass_gather_temps(struct module *mod, struct node *root,
-                               void *user, ssize_t shallow_last_up) {
-  PASS(, UP_STEP(step_gather_temporary_rvalues));
-  return 0;
-}
-
-static STEP_NM(step_define_temporary_rvalues,
-               -1);
-static error step_define_temporary_rvalues(struct module *mod, struct node *node,
-                                           void *user, bool *stop) {
-  return 0;
-  //FIXME
-  //
-  //
-  //
-  //
-  DSTEP(mod, node);
-  if (!node_is_statement(node)) {
-    return 0;
-  }
-
-  struct temporaries temps = { 0 };
-
-  PUSH_STATE(mod->state->step_state);
-  error e = pass_gather_temps(mod, node, &temps, -1);
-  POP_STATE(mod->state->step_state);
-  EXCEPT(e);
-
-  if (temps.count == 0) {
-    return 0;
-  }
-
-  e = declare_temporaries(mod, node, &temps);
-  EXCEPT(e);
-
-  for (size_t n = 0; n < temps.count; ++n) {
-    const ident g = temps.gensyms[n];
-    struct node *rv = temps.rvalues[n];
-    struct node *rv_parent = node_parent(rv);
-    struct node saved = { 0 };
-    node_move_content(&saved, rv);
-
-    struct node *block = rv;
-    rv = NULL;
-
-    node_set_which(block, BLOCK);
-    struct node *assign = mk_node(mod, block, BIN);
-    assign->as.BIN.operator = TASSIGN;
-    struct node *target = mk_node(mod, assign, IDENT);
-    target->as.IDENT.name = g;
-
-    const struct node *except[2];
-    except[1] = NULL;
-
-    if (saved.which == UN && OP_KIND(saved.as.UN.operator) == OP_UN_REFOF) {
-      struct node *rv1 = subs_first(&saved);
-      node_subs_remove(&saved, rv1);
-      node_subs_append(assign, rv1);
-      rv1->flags |= NODE_IS_TEMPORARY;
-      except[0] = rv1;
-
-      struct node *nvalue = mk_node(mod, block, UN);
-      nvalue->as.UN.operator = saved.as.UN.operator;
-      struct node *nvalue_name = mk_node(mod, nvalue, IDENT);
-      nvalue_name->as.IDENT.name = g;
-
-    } else if (saved.which == TUPLEEXTRACT) {
-      struct node *tuple = subs_last(&saved);
-      node_subs_remove(&saved, tuple);
-      node_subs_append(assign, tuple);
-      except[0] = tuple;
-
-      struct node *extractor = mk_node(mod, block, TUPLEEXTRACT);
-      struct node *nth = subs_first(&saved);
-      struct node *next_nth = NULL;
-      for (size_t n = 0; n < typ_generic_arity(tuple->typ); ++n) {
-        // We want to reuse the original TUPLENTH from 'rv' as they may be
-        // pointed to by nearby DEFNAME.expr, so their location in memory
-        // cannot change.
-        next_nth = next(nth);
-
-        node_subs_remove(&saved, nth);
-        node_subs_append(extractor, nth);
-        unset_typ(&nth->typ);
-
-        nth = next_nth;
-      }
-      struct node *nvalue = mk_node(mod, extractor, IDENT);
-      nvalue->as.IDENT.name = g;
-
-    } else {
-      struct node *moved_rv = node_new_subnode(mod, assign);
-      node_move_content(moved_rv, &saved);
-      moved_rv->flags |= NODE_IS_TEMPORARY;
-      except[0] = moved_rv;
-
-      struct node *nvalue = mk_node(mod, block, IDENT);
-      nvalue->as.IDENT.name = g;
-    }
-
-    e = catchup(mod, except, block, &rv_parent->scope, CATCHUP_BELOW_CURRENT);
-    EXCEPT(e);
-  }
-
-  free(temps.rvalues);
-  free(temps.gensyms);
-
-  return 0;
-}
-
 error passbody0(struct module *mod, struct node *root,
                 void *user, ssize_t shallow_last_up) {
   // first
@@ -4151,6 +3748,8 @@ error passbody0(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_already_morningtypepass);
     DOWN_STEP(step_push_top_state);
     DOWN_STEP(step_push_fun_state);
+    DOWN_STEP(step_push_block_state);
+    DOWN_STEP(step_record_current_statement);
     DOWN_STEP(step_set_topdep_mask);
     DOWN_STEP(step_detect_not_dyn_intf_down);
     DOWN_STEP(step_rewrite_wildcards);
@@ -4158,44 +3757,24 @@ error passbody0(struct module *mod, struct node *root,
     DOWN_STEP(step_type_mutability_mark);
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_type_gather_excepts);
-    DOWN_STEP(step_branch_down);
-    DOWN_STEP(step_branch_block_down);
-    DOWN_STEP(step_push_block_state);
-    DOWN_STEP(step_record_current_statement);
+    DOWN_STEP(step_branching_down);
+    DOWN_STEP(step_branching_block_down);
+    DOWN_STEP(step_branching_block_down_phi);
     ,
-    UP_STEP(step_excepts_store_label);
-    UP_STEP(step_rewrite_defname_no_expr);
     UP_STEP(step_rewrite_union_constructors);
     UP_STEP(step_detect_not_dyn_intf_up);
-    UP_STEP(step_ssa_convert);
     UP_STEP(step_type_inference);
-    UP_STEP(step_constraint_inference);
-    UP_STEP(step_remove_typeconstraints);
     UP_STEP(step_type_drop_excepts);
-    UP_STEP(step_check_exhaustive_match);
-    UP_STEP(step_branch_block_up);
-    UP_STEP(step_branch_up);
-    UP_STEP(step_pop_block_state);
+    UP_STEP(step_branching_block_up_phi);
+    UP_STEP(step_branching_up);
     UP_STEP(step_gather_final_instantiations);
+    UP_STEP(step_pop_block_state);
     UP_STEP(step_pop_fun_state);
     UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
+    UP_STEP(step_increment_def_name_passed);
     );
     return 0;
-}
-
-static error finish_passbody1(struct module *mod, struct node *root,
-                              void *user, ssize_t shallow_last_up) {
-  PASS(
-    ,
-    // Must start after 'step_define_temporary_rvalues'
-    UP_STEP(step_move_assign_in_block_like);
-    UP_STEP(step_store_return_through_ref_expr);
-
-    UP_STEP(step_pop_fun_state);
-    UP_STEP(step_complete_instantiation);
-    );
-  return 0;
 }
 
 static error passbody1(struct module *mod, struct node *root,
@@ -4206,18 +3785,20 @@ static error passbody1(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_push_top_state);
     DOWN_STEP(step_push_fun_state);
+    DOWN_STEP(step_push_block_state);
+    DOWN_STEP(step_record_current_statement);
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_check_no_literals_left);
     DOWN_STEP(step_check_no_incomplete_left);
     DOWN_STEP(step_ident_non_local_scope);
-    DOWN_STEP(step_branch_down);
-    DOWN_STEP(step_branch_block_down);
-    DOWN_STEP(step_push_block_state);
-    DOWN_STEP(step_record_current_statement);
+    DOWN_STEP(step_branching_down);
+    DOWN_STEP(step_branching_block_down);
     ,
+    UP_STEP(step_constraint_inference);
+    UP_STEP(step_check_exhaustive_match);
+    UP_STEP(step_remove_typeconstraints);
     UP_STEP(step_weak_literal_conversion);
     UP_STEP(step_operator_call_inference);
-    UP_STEP(step_operator_test_call_inference);
     UP_STEP(step_ctor_call_inference);
     UP_STEP(step_array_ctor_call_inference);
     UP_STEP(step_dtor_call_inference);
@@ -4225,17 +3806,15 @@ static error passbody1(struct module *mod, struct node *root,
     UP_STEP(step_check_exhaustive_intf_impl);
     UP_STEP(step_dyn_inference);
 
-    // Must be kept in sync with finish_passbody1().
-    UP_STEP(step_define_temporary_rvalues);
     UP_STEP(step_move_assign_in_block_like);
     UP_STEP(step_store_return_through_ref_expr);
 
-    UP_STEP(step_branch_block_up);
-    UP_STEP(step_branch_up);
+    UP_STEP(step_branching_up);
     UP_STEP(step_pop_block_state);
     UP_STEP(step_pop_fun_state);
     UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
+    UP_STEP(step_increment_def_name_passed);
     );
     return 0;
 }

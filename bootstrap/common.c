@@ -3,6 +3,8 @@
 #include "parser.h"
 #include "stage.h"
 
+#include <stdarg.h>
+
 void __break(void) {
   static volatile int dummy;
   dummy += 1;
@@ -145,3 +147,147 @@ void examples_destroy_NCC(const char *name, struct module **mod) {
 }
 
 uint32_t g_invariants_counter = 0;
+
+enum spec_move {
+  DOWN,
+  UP,
+  NEXT,
+};
+
+static void init_read_spec_map(struct idents_map *map) {
+  if (idents_map_count(map) != 0) {
+    return;
+  }
+
+  idents_map_init(map, 100);
+  idents_map_set_delete_val(map, -1);
+
+  for (size_t n = 1; n < NODE__NUM; ++n) {
+    struct token tok = {
+      .t = IDENT,
+      .value = node_which_strings[n],
+      .len = strlen(node_which_strings[n]),
+    };
+
+    idents_map_set(map, tok, (ident) n);
+  }
+}
+
+static enum node_which read_spec(enum spec_move *move, size_t *repeat,
+                                 size_t *indent, const char *s) {
+  static __thread struct idents_map map;
+  init_read_spec_map(&map);
+
+  size_t whites = 0;
+  while (s[0] == ' ') {
+    whites += 1;
+    s += 1;
+  }
+
+  ssize_t d = whites - *indent;
+  if (d == +1) {
+    *move = DOWN;
+    *repeat = 1;
+  } else if (d == 0) {
+    *move = NEXT;
+    *repeat = 1;
+  } else if (d < 0) {
+    *move = UP;
+    *repeat = - d;
+  }
+
+  *indent = whites;
+
+  const char *end = s;
+  while (end[0] != '\0') {
+    end += 1;
+  }
+
+  struct token tok = { .t = IDENT, .value = s, .len = end - s, };
+  ident *code = idents_map_get(&map, tok);
+  assert(code != NULL);
+  return (enum node_which) *code;
+}
+
+void check_structure(struct node *node, ...) {
+  va_list ap;
+  va_start(ap, node);
+
+  struct node *n = node;
+  size_t indent = 0;
+  bool first = true;
+
+  while (true) {
+    const char *s = va_arg(ap, const char *);
+    if (s == NULL) {
+      break;
+    }
+
+    enum spec_move move = 0;
+    size_t repeat = 0;
+    enum node_which which = read_spec(&move, &repeat, &indent, s);
+
+    if (!first) {
+      switch (move) {
+      case DOWN:
+        n = subs_first(n);
+        break;
+      case UP:
+        while (repeat > 0) {
+          n = parent(n);
+          repeat -= 1;
+        }
+        n = next(n);
+        break;
+      case NEXT:
+        n = next(n);
+        break;
+      }
+    }
+    first = false;
+
+    assert(n != NULL && which == n->which && "Failed structure check");
+  }
+
+  va_end(ap);
+}
+
+EXAMPLE_NCC_EMPTY(check_structure) {
+  struct node *let = mk_node(mod, mod->body, LET);
+  check_structure(let, "LET", NULL);
+
+  struct node *defn = mk_node(mod, let, DEFNAME);
+  check_structure(defn, "DEFNAME", NULL);
+  check_structure(let,
+                  "LET",
+                  " DEFNAME", NULL);
+
+  struct node *ident = mk_node(mod, defn, IDENT);
+  check_structure(ident, "IDENT", NULL);
+  check_structure(defn,
+                  "DEFNAME",
+                  " IDENT", NULL);
+  check_structure(let,
+                  "LET",
+                  " DEFNAME",
+                  "  IDENT", NULL);
+
+  struct node *deft = mk_node(mod, mod->body, DEFTYPE);
+  check_structure(deft, "DEFTYPE", NULL);
+
+  check_structure(ident, "IDENT", NULL);
+  check_structure(defn,
+                  "DEFNAME",
+                  " IDENT", NULL);
+  check_structure(let,
+                  "LET",
+                  " DEFNAME",
+                  "  IDENT", NULL);
+
+  check_structure(mod->body,
+                  "MODULE_BODY",
+                  " LET",
+                  "  DEFNAME",
+                  "   IDENT",
+                  " DEFTYPE", NULL);
+}

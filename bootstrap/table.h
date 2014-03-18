@@ -72,7 +72,7 @@ storage IMPLEMENT_SPTABLE_FOREACH(name, type)
   void name ## _destroy(struct name *tbl)
 
 #define DECLARE_SPTABLE_COUNT(name, type) \
-  unsigned name ## _count(struct name *tbl)
+  unsigned name ## _count(const struct name *tbl)
 
 #define DECLARE_SPTABLE_GET(name, type) \
   type *name ## _get(struct name *tbl, unsigned i)
@@ -124,7 +124,7 @@ storage IMPLEMENT_SPTABLE_FOREACH(name, type)
     - 1 )
 
 #define IMPLEMENT_SPTABLE_COUNT(name, type) \
-  unsigned name ## _count(struct name *tbl) \
+  unsigned name ## _count(const struct name *tbl) \
 { \
   return tbl->count; \
 }
@@ -251,7 +251,7 @@ storage IMPLEMENT_DNTABLE_FOREACH(name, type)
   void name ## _destroy(struct name *tbl)
 
 #define DECLARE_DNTABLE_COUNT(name, type) \
-  unsigned name ## _count(struct name *tbl)
+  unsigned name ## _count(const struct name *tbl)
 
 #define DECLARE_DNTABLE_GET(name, type) \
   type *name ## _get(struct name *tbl, unsigned i)
@@ -286,7 +286,7 @@ storage IMPLEMENT_DNTABLE_FOREACH(name, type)
 }
 
 #define IMPLEMENT_DNTABLE_COUNT(name, type) \
-  unsigned name ## _count(struct name *tbl) \
+  unsigned name ## _count(const struct name *tbl) \
 { \
   return tbl->count; \
 }
@@ -433,7 +433,7 @@ IMPLEMENT_HTABLE_REHASH(storage, name, type, key_type, hashf, cmpf)
   void name ## _set_delete_val(struct name *ht, type d)
 
 #define DECLARE_HTABLE_COUNT(name, type, key_type) \
-  unsigned name ## _count(struct name *ht)
+  unsigned name ## _count(const struct name *ht)
 
 #define DECLARE_HTABLE_GET(name, type, key_type) \
   type *name ## _get(struct name *ht, const key_type k)
@@ -454,7 +454,8 @@ int name ## _foreach(struct name *ht, \
   int name ## _rehash_iter__(const key_type *key, \
                              type *val, \
                              void *user); \
-void name ## _rehash(struct name *hta, struct name *htb)
+void name ## _rehash(struct name *hta, const struct name *htb); \
+void name ## _copy(struct name *hta, const struct name *htb)
 
 
 #define HTABLE_TOOFULL(ht) \
@@ -493,7 +494,7 @@ void name ## _rehash(struct name *hta, struct name *htb)
 /* FIXME: Count will not take into account any "deleted" value that was
  * manually set to delete_val by the caller */
 #define IMPLEMENT_HTABLE_COUNT(name, type, key_type, hashf, cmpf) \
-  unsigned name ## _count(struct name *ht) \
+  unsigned name ## _count(const struct name *ht) \
 { \
   return name ## _table___count(&((ht)->table)); \
 }
@@ -564,7 +565,7 @@ void name ## _rehash(struct name *hta, struct name *htb)
  * temporary.
  */
 #define IMPLEMENT_HTABLE_SET(storage, name, type, key_type, hashf, cmpf) \
-  void name ## _rehash(struct name *hta, struct name *htb); \
+  void name ## _rehash(struct name *hta, const struct name *htb); \
 storage int name ## _set(struct name *ht, const key_type k, type v) \
 { \
   const key_type *pk = &k; \
@@ -654,9 +655,15 @@ storage int name ## _foreach(struct name *ht, \
   } \
   return 0; \
 } \
-storage void name ## _rehash(struct name *hta, struct name *htb)\
+storage void name ## _rehash(struct name *hta, const struct name *htb)\
 { \
-  name ## _foreach(htb, name ## _rehash_iter__, hta); \
+  name ## _foreach((struct name *) htb, name ## _rehash_iter__, hta); \
+} \
+storage void name ## _copy(struct name *hta, const struct name *htb)\
+{ \
+  name ## _destroy(hta); \
+  name ## _init(hta, name ## _count(htb)); \
+  name ## _rehash(hta, htb); \
 }
 
 #endif

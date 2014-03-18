@@ -2,7 +2,8 @@ from nlang import *
 
 export fun main = i32
   let m such -> m = 1:i32; unused m
-  let j = 0:i32 and k = 0:i32 such
+  let j = 0:i32
+  and k = 0:i32 such
     unused k
     for i in (range 0 10).iter
       unused i

@@ -15,9 +15,8 @@ static STEP_NM(step_codeloc_for_generated,
                -1);
 static error step_codeloc_for_generated(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
-  if (node->codeloc == 0
-      && node->scope.parent != NULL) {
-    node->codeloc = node_parent(node)->codeloc;
+  if (node->codeloc == 0) {
+    node->codeloc = parent(node)->codeloc;
   }
 
   return 0;
@@ -27,14 +26,14 @@ static STEP_NM(step_export_pre_post_invariant,
                NM(PRE) | NM(POST) | NM(INVARIANT));
 static error step_export_pre_post_invariant(struct module *mod, struct node *node,
                                             void *user, bool *stop) {
-  const struct node *parent = node_parent_const(node);
-  if (parent->which == DEFTYPE || parent->which == DEFINTF) {
-    node_toplevel(node)->flags |= node_toplevel_const(parent)->flags & TOP_IS_EXPORT;
+  const struct node *par = parent_const(node);
+  if (par->which == DEFTYPE || par->which == DEFINTF) {
+    node_toplevel(node)->flags |= node_toplevel_const(par)->flags & TOP_IS_EXPORT;
     return 0;
   }
 
-  if (parent->which == BLOCK) {
-    const struct node *pparent = node_parent_const(parent);
+  if (par->which == BLOCK) {
+    const struct node *pparent = parent_const(par);
     if (pparent->which == DEFFUN || pparent->which == DEFMETHOD) {
       node_toplevel(node)->flags |= node_toplevel_const(pparent)->flags & TOP_IS_EXPORT;
     }
@@ -44,18 +43,12 @@ static error step_export_pre_post_invariant(struct module *mod, struct node *nod
 }
 
 STEP_NM(step_stop_already_morningtypepass,
-        NM(LET) | NM(ISA) | NM(GENARGS) | NM(FUNARGS) | NM(DEFGENARG) |
-        NM(SETGENARG) | NM(DEFFIELD) | NM(DEFCHOICE) | NM(WITHIN));
+        NM(LET) | NM(ISA) | NM(GENARGS) | NM(FUNARGS) |
+        NM(DEFGENARG) | NM(SETGENARG) | NM(DEFFIELD) | NM(DEFCHOICE) |
+        NM(WITHIN));
 error step_stop_already_morningtypepass(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   DSTEP(mod, node);
-
-  if (node->which == LET) {
-    if (node_is_at_top(node) || node_is_at_top(node_parent_const(node))) {
-      *stop = node->typ != NULL;
-    }
-    return 0;
-  }
 
   *stop = node->typ != NULL;
 
@@ -121,7 +114,7 @@ static error step_type_definitions(struct module *mod, struct node *node,
 }
 
 static struct node *do_move_detached_member(struct module *mod,
-                                            struct node *parent,
+                                            struct node *par,
                                             struct node *node) {
   struct node *nxt = next(node);
   struct toplevel *toplevel = node_toplevel(node);
@@ -129,21 +122,21 @@ static struct node *do_move_detached_member(struct module *mod,
     return nxt;
   }
   if (toplevel->generic->our_generic_functor_typ != NULL) {
-    assert(node_parent(node)->which == DEFTYPE);
+    assert(parent(node)->which == DEFTYPE);
     return nxt;
   }
 
   struct node *container = NULL;
-  error e = scope_lookup_ident_wontimport(&container, node, mod, node->scope.parent,
+  error e = scope_lookup_ident_wontimport(&container, node, mod,
+                                          &parent(node)->scope,
                                           toplevel->scope_name, false);
   assert(!e);
   assert(container->which == DEFTYPE);
 
   toplevel->scope_name = 0;
 
-  node_subs_remove(parent, node);
+  node_subs_remove(par, node);
   node_subs_append(container, node);
-  node->scope.parent = &container->scope;
 
   struct toplevel *container_toplevel = node_toplevel(container);
   if (container_toplevel->generic != NULL) {
@@ -221,6 +214,10 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
   case DEFARG:
     e = scope_define(mod, &fun->scope, subs_first(retval), retval);
     EXCEPT(e);
+    if (subs_last(retval)->which == TUPLE) {
+      e = lexical_retval(mod, fun, subs_last(retval));
+      EXCEPT(e);
+    }
     break;
   case TUPLE:
     FOREACH_SUB(r, retval) {
@@ -236,159 +233,6 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
   return 0;
 }
 
-static error insert_tupleextract(struct module *mod, size_t arity, struct node *expr) {
-  struct scope *parent_scope = expr->scope.parent;
-
-  struct node *value = node_new_subnode(mod, expr);
-  node_subs_remove(expr, value);
-  node_move_content(value, expr);
-
-  node_set_which(expr, TUPLEEXTRACT);
-
-  for (size_t n = 0; n < arity; ++n) {
-    struct node *nth = mk_node(mod, expr, TUPLENTH);
-    nth->as.TUPLENTH.nth = n;
-  }
-
-  node_subs_append(expr, value);
-
-  const struct node *except[] = { value, NULL };
-  error e = catchup(mod, except, expr, parent_scope, CATCHUP_REWRITING_CURRENT);
-  EXCEPT(e);
-
-  return 0;
-}
-
-static error extract_defnames_in_pattern(struct module *mod,
-                                         struct node *defpattern,
-                                         struct node *where_defname,
-                                         struct node *pattern, struct node *expr) {
-  struct node *def;
-  error e;
-
-  if (expr != NULL
-      && pattern->which != expr->which
-      && pattern->which != IDENT
-      && pattern->which != EXCEP) {
-    if (pattern->which == TUPLE) {
-      e = insert_tupleextract(mod, subs_count(pattern), expr);
-      EXCEPT(e);
-    } else {
-      e = mk_except(mod, pattern, "value destruct not supported");
-      THROW(e);
-    }
-  }
-
-#define UNLESS_NULL(n, sub) ( (n) != NULL ? (sub) : NULL )
-
-  switch (pattern->which) {
-  case EXCEP:
-    {
-      struct node *parent = node_parent(pattern);
-
-      struct node *label_ident = NULL;
-      if (subs_count_atleast(pattern, 1)) {
-        label_ident = subs_first(pattern);
-      }
-
-      struct node *pattern_id = mk_node(mod, parent, IDENT);
-      pattern_id->as.IDENT.name = gensym(mod);
-      node_subs_remove(parent, pattern_id);
-      node_subs_replace(parent, pattern, pattern_id);
-
-      e = catchup(mod, NULL, pattern_id, &defpattern->scope, CATCHUP_BELOW_CURRENT);
-      EXCEPT(e);
-
-      def = mk_node(mod, defpattern, DEFNAME);
-      def->as.DEFNAME.pattern = pattern_id;
-      def->as.DEFNAME.expr = expr;
-      def->as.DEFNAME.is_excep = true;
-      def->as.DEFNAME.excep_label_ident = label_ident;
-      node_subs_remove(defpattern, def);
-      node_subs_insert_before(defpattern, where_defname, def);
-
-      struct node *for_test = mk_node(mod, def, IDENT);
-      for_test->as.IDENT.name = node_ident(pattern_id);
-
-      e = catchup(mod, NULL, def, &defpattern->scope, CATCHUP_BELOW_CURRENT);
-      EXCEPT(e);
-
-      return 0;
-    }
-
-  case IDENT:
-    def = mk_node(mod, defpattern, DEFNAME);
-    def->as.DEFNAME.pattern = pattern;
-    def->as.DEFNAME.expr = expr;
-    node_subs_remove(defpattern, def);
-    node_subs_insert_before(defpattern, where_defname, def);
-
-    e = catchup(mod, NULL, def, &defpattern->scope, CATCHUP_BELOW_CURRENT);
-    EXCEPT(e);
-
-    return 0;
-
-  case UN:
-    assert(false && "FIXME: Unsupported");
-    e = extract_defnames_in_pattern(mod, defpattern, where_defname,
-                                    subs_first(pattern),
-                                    UNLESS_NULL(expr, subs_first(expr)));
-    EXCEPT(e);
-    break;
-  case TUPLE:
-    for (struct node *p = subs_first(pattern),
-         *ex = UNLESS_NULL(expr, subs_first(expr)); p != NULL;
-         p = next(p), ex = UNLESS_NULL(expr, next(ex))) {
-      e = extract_defnames_in_pattern(mod, defpattern, where_defname, p,
-                                      UNLESS_NULL(expr, ex));
-      EXCEPT(e);
-    }
-    break;
-  case TYPECONSTRAINT:
-    pattern->as.TYPECONSTRAINT.in_pattern = true;
-    e = extract_defnames_in_pattern(mod, defpattern, where_defname,
-                                    subs_first(pattern),
-                                    UNLESS_NULL(expr, subs_first(expr)));
-    EXCEPT(e);
-    break;
-  default:
-    e = mk_except(mod, pattern, "invalid construct in pattern");
-    THROW(e);
-  }
-#undef UNLESS_NULL
-
-  return 0;
-}
-
-static STEP_NM(step_defpattern_extract_defname,
-               NM(DEFPATTERN));
-static error step_defpattern_extract_defname(struct module *mod, struct node *node,
-                                             void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  // We want the order
-  // DEFPATTERN
-  //   <expr>?
-  //   DEFNAME
-  //   DEFNAME
-  //   ...
-  //   <pattern>
-
-  struct node *pattern = NULL;
-  struct node *expr = NULL;
-  if (subs_count_atleast(node, 2)) {
-    expr = subs_first(node);
-    pattern = subs_at(node, 1);
-  } else {
-    pattern = subs_first(node);
-  }
-
-  error e = extract_defnames_in_pattern(mod, node, pattern, pattern, expr);
-  EXCEPT(e);
-
-  return 0;
-}
-
 static error do_define_field_defchoice_leaf(struct module *mod, struct scope *sc,
                                             struct node *node) {
   error e;
@@ -399,18 +243,38 @@ static error do_define_field_defchoice_leaf(struct module *mod, struct scope *sc
     }
   }
 
-  struct node *parent = node_parent(node);
-  if (parent->which == DEFCHOICE) {
-    e = do_define_field_defchoice_leaf(mod, sc, parent);
+  struct node *par = parent(node);
+  if (par->which == DEFCHOICE) {
+    e = do_define_field_defchoice_leaf(mod, sc, par);
     EXCEPT(e);
   }
 
   return 0;
 }
 
+static struct scope *find_scope_for_name(struct node *node) {
+  assert(node->which == DEFNAME || node->which == DEFALIAS);
+
+  if (node_ident(node) == ID_OTHERWISE) {
+    return NULL;
+  } else if (node->as.DEFNAME.is_globalenv) {
+    assert(parent(parent(node))->which == MODULE_BODY);
+    return &parent(parent(node))->as.MODULE_BODY.globalenv_scope;
+  } else if (NM(parent(parent(node))->which)
+             & (STEP_NM_DEFS_NO_FUNS | NM(MODULE_BODY))) {
+    return &parent(parent(node))->scope;
+  } else {
+    struct node *p = node;
+    do {
+      p = parent(p);
+    } while (p->which != BLOCK || p->as.BLOCK.is_scopeless);
+    return &p->scope;
+  }
+}
+
 static STEP_NM(step_lexical_scoping,
                NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(DEFINTF) |
-               NM(DEFFIELD) | NM(DEFCHOICE) | NM(DEFNAME) | NM(CATCH) |
+               NM(DEFFIELD) | NM(DEFCHOICE) | NM(DEFALIAS) | NM(DEFNAME) |
                NM(WITHIN));
 static error step_lexical_scoping(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
@@ -419,7 +283,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
   struct scope *sc = NULL;
   const struct toplevel *toplevel = NULL;
   error e;
-  struct node *parent = node_parent(node);
+  struct node *par = parent(node);
 
   switch (node->which) {
   case DEFFUN:
@@ -438,14 +302,15 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
       sc = NULL;
     } else if (toplevel->scope_name != 0) {
       struct node *container = NULL;
-      error e = scope_lookup_ident_wontimport(&container, node, mod, node->scope.parent,
+      error e = scope_lookup_ident_wontimport(&container, node, mod,
+                                              &parent(node)->scope,
                                               toplevel->scope_name, false);
       EXCEPT(e);
       assert(container->which == DEFTYPE);
 
       sc = &container->scope;
     } else {
-      sc = &parent->scope;
+      sc = &par->scope;
     }
     break;
   case DEFTYPE:
@@ -460,37 +325,29 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
       sc = NULL;
     } else {
       id = subs_first(node);
-      sc = node->scope.parent;
+      sc = &parent(node)->scope;
     }
     break;
   case DEFFIELD:
-    if (parent->which == DEFCHOICE) {
+    if (par->which == DEFCHOICE) {
       sc = NULL;
     } else {
       id = subs_first(node);
-      sc = node->scope.parent;
+      sc = &parent(node)->scope;
     }
     break;
   case DEFCHOICE:
     id = subs_first(node);
-    struct node *p = parent;
+    struct node *p = par;
     while (p->which == DEFCHOICE) {
-      p = node_parent(p);
+      p = parent(p);
     }
     sc = &p->scope;
     break;
   case DEFNAME:
-    if (parent->as.DEFPATTERN.is_globalenv) {
-      id = node->as.DEFNAME.pattern;
-      assert(node_parent(node_parent(parent))->which == MODULE_BODY);
-      sc = &node_parent(node_parent(parent))
-        ->as.MODULE_BODY.globalenv_scope;
-    } else if (node_ident(node) != ID_OTHERWISE) {
-      id = node->as.DEFNAME.pattern;
-      sc = node->scope.parent->parent->parent;
-    }
-    break;
-  case CATCH:
+  case DEFALIAS:
+    id = subs_first(node);
+    sc = find_scope_for_name(node);
     break;
   case WITHIN:
     if (subs_count_atleast(node, 1)
@@ -503,12 +360,12 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
         id = n;
       }
 
-      struct node *pparent = node_parent(parent);
+      struct node *pparent = parent(par);
       if (pparent->which == MODULE_BODY) {
         sc = &pparent->scope;
       } else {
         assert(pparent->which == DEFFUN || pparent->which == DEFMETHOD);
-        sc = &subs_last(node_parent(parent))->scope;
+        sc = &subs_last(parent(par))->scope;
       }
     }
     break;
@@ -544,7 +401,7 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
 
     struct node *funargs = subs_at(node, IDX_FUNARGS);
     FOREACH_SUB(arg, funargs) {
-      if (node_next_const(arg) == NULL) {
+      if (next_const(arg) == NULL) {
         break;
       }
       assert(arg->which == DEFARG);
@@ -554,12 +411,6 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
 
     e = lexical_retval(mod, node, node_fun_retval(node));
     EXCEPT(e);
-    break;
-  case CATCH:
-    if (node->as.CATCH.is_user_label) {
-      e = scope_define_ident(mod, node->scope.parent, node->as.CATCH.label, node);
-      EXCEPT(e);
-    }
     break;
   case DEFCHOICE:
     if (node->as.DEFCHOICE.is_leaf) {
@@ -579,15 +430,14 @@ static error define_builtin_alias(struct module *mod, struct node *node,
   node_subs_remove(node, let);
   node_subs_insert_after(node, subs_at(node, 2), let);
   let->flags = NODE_IS_GLOBAL_LET;
-  struct node *defp = mk_node(mod, let, DEFPATTERN);
-  defp->as.DEFPATTERN.is_alias = true;
-  struct node *expr = mk_node(mod, defp, DIRECTDEF);
+  struct node *defa = mk_node(mod, let, DEFALIAS);
+  struct node *n = mk_node(mod, defa, IDENT);
+  n->as.IDENT.name = name;
+  struct node *expr = mk_node(mod, defa, DIRECTDEF);
   set_typ(&expr->as.DIRECTDEF.typ, t);
   expr->as.DIRECTDEF.flags = NODE_IS_TYPE;
-  struct node *n = mk_node(mod, defp, IDENT);
-  n->as.IDENT.name = name;
 
-  error e = catchup(mod, NULL, let, &node->scope, CATCHUP_BELOW_CURRENT);
+  error e = catchup(mod, NULL, let, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
   return 0;
 }
@@ -677,14 +527,30 @@ static error step_type_update_quickisa(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_type_aliases,
+               NM(LET));
+static error step_type_aliases(struct module *mod, struct node *node,
+                            void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  struct node *par = parent(node);
+  if ((node_is_at_top(node) || node_is_at_top(par))
+      && subs_first(node)->which == DEFALIAS) {
+    error e = morningtypepass(mod, node);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
 static STEP_NM(step_type_lets,
                NM(LET));
 static error step_type_lets(struct module *mod, struct node *node,
                             void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct node *parent = node_parent(node);
-  if (node_is_at_top(node) || node_is_at_top(parent)) {
+  struct node *par = parent(node);
+  if (node_is_at_top(node) || node_is_at_top(par)) {
     error e = morningtypepass(mod, node);
     EXCEPT(e);
   }
@@ -739,7 +605,8 @@ static error step_type_defchoices(struct module *mod, struct node *node,
     ch->flags |= NODE_IS_DEFCHOICE;
   }
 
-  if (typ_equal(node->as.DEFTYPE.tag_typ, TBI_LITERALS_INTEGER)) {
+  if (typ_definition_const(node->as.DEFTYPE.tag_typ)->which == DEFINTF
+      || typ_equal(node->as.DEFTYPE.tag_typ, TBI_LITERALS_INTEGER)) {
     e = unify(mod, node, node->as.DEFTYPE.tag_typ, TBI_U32);
     EXCEPT(e);
   }
@@ -808,7 +675,7 @@ static void add_inferred_isa(struct module *mod, struct node *deft, const char *
   isa->as.ISA.is_export = node_is_inline(deft);
   (void)mk_expr_abspath(mod, isa, path);
 
-  error e = catchup(mod, NULL, isa, &isalist->scope, CATCHUP_BELOW_CURRENT);
+  error e = catchup(mod, NULL, isa, CATCHUP_BELOW_CURRENT);
   assert(!e);
 
   typ_create_update_quickisa(deft->typ);
@@ -825,6 +692,7 @@ static error step_add_builtin_enum_intf(struct module *mod, struct node *node,
 
   add_inferred_isa(mod, node, "nlang.builtins.`trivial_copy");
   add_inferred_isa(mod, node, "nlang.builtins.`trivial_dtor");
+  add_inferred_isa(mod, node, "nlang.builtins.`enum");
 
   return 0;
 }
@@ -966,7 +834,7 @@ static void define_builtin(struct module *mod, struct node *deft,
   }
 
   struct node *d = node_new_subnode(mod, deft);
-  intf_proto_deepcopy(mod, d, proto, node_parent(proto)->typ, proto_parent);
+  intf_proto_deepcopy(mod, d, proto, parent(proto)->typ, proto_parent);
   struct node *full_name = mk_expr_abspath(mod, d, builtingen_abspath[bg]);
   node_subs_remove(d, full_name);
   node_subs_replace(d, subs_first(d), full_name);
@@ -976,7 +844,7 @@ static void define_builtin(struct module *mod, struct node *deft,
   toplevel->builtingen = bg;
   toplevel->flags |= node_toplevel(deft)->flags & (TOP_IS_EXPORT | TOP_IS_INLINE);
 
-  e = catchup(mod, NULL, d, &deft->scope, CATCHUP_BELOW_CURRENT);
+  e = catchup(mod, NULL, d, CATCHUP_BELOW_CURRENT);
   assert(!e);
 }
 
@@ -1029,7 +897,7 @@ static error define_auto(struct module *mod, struct node *deft,
   }
 
   struct node *d = node_new_subnode(mod, deft);
-  intf_proto_deepcopy(mod, d, proto, node_parent(proto)->typ, NULL);
+  intf_proto_deepcopy(mod, d, proto, parent(proto)->typ, NULL);
 
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->flags &= ~TOP_IS_PROTOTYPE;
@@ -1040,18 +908,18 @@ static error define_auto(struct module *mod, struct node *deft,
   struct node *d_funargs = subs_at(d, IDX_FUNARGS);
   struct node *d_retval = subs_last(d_funargs);
   FOREACH_SUB_EVERY(arg, ctor_funargs, 1, 1) {
-    if (node_next_const(arg) == NULL) {
+    if (next_const(arg) == NULL) {
       // Skip self.
       break;
     }
     struct node *cpy = node_new_subnode(mod, d_funargs);
     node_subs_remove(d_funargs, cpy);
     node_subs_insert_before(d_funargs, d_retval, cpy);
-    intf_proto_deepcopy(mod, cpy, arg, node_parent(proto)->typ, NULL);
+    intf_proto_deepcopy(mod, cpy, arg, parent(proto)->typ, NULL);
   }
 
   assert(node_toplevel(d)->yet_to_pass == 0);
-  e = catchup(mod, NULL, d, &deft->scope, CATCHUP_BELOW_CURRENT);
+  e = catchup(mod, NULL, d, CATCHUP_BELOW_CURRENT);
   assert(!e);
 
   return 0;
@@ -1173,6 +1041,43 @@ static error step_add_environment_builtins(struct module *mod, struct node *node
   return 0;
 }
 
+static STEP_NM(step_rewrite_def_return_through_ref,
+               NM(DEFFUN) | NM(DEFMETHOD));
+static error step_rewrite_def_return_through_ref(struct module *mod, struct node *node,
+                                                 void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  struct node *retval = node_fun_retval(node);
+  if (typ_isa(retval->typ, TBI_RETURN_BY_COPY)) {
+    return 0;
+  }
+
+  if (retval->which == DEFARG) {
+    return 0;
+  }
+
+  struct node *funargs = subs_at(node, IDX_FUNARGS);
+  struct node *named = mk_node(mod, funargs, DEFARG);
+  named->as.DEFARG.is_retval = true;
+  struct node *name = mk_node(mod, named, IDENT);
+  name->as.IDENT.name = ID_NRETVAL;
+  node_subs_remove(funargs, named);
+  node_subs_replace(funargs, retval, named);
+  node_subs_append(named, retval);
+
+  error e = lexical_retval(mod, node, named);
+  EXCEPT(e);
+
+  const struct node *except[] = { retval, NULL };
+  e = catchup(mod, except, named, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+
+  set_typ(&name->typ, TBI__NOT_TYPEABLE);
+  set_typ(&named->typ, retval->typ);
+
+  return 0;
+}
+
 static error passfwd0(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   // scoping_deftypes
@@ -1180,7 +1085,6 @@ static error passfwd0(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_codeloc_for_generated);
     DOWN_STEP(step_export_pre_post_invariant);
-    DOWN_STEP(step_defpattern_extract_defname);
     DOWN_STEP(step_lexical_scoping);
     ,
     UP_STEP(step_type_definitions);
@@ -1214,6 +1118,7 @@ static error passfwd2(struct module *mod, struct node *root,
     DOWN_STEP(step_type_inference_genargs);
     DOWN_STEP(step_push_top_state);
     ,
+    UP_STEP(step_type_aliases);
     UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );
@@ -1269,7 +1174,7 @@ static error passfwd5(struct module *mod, struct node *root,
 
 static error passfwd6(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
-  // type_lets
+  // type_def_lets
   PASS(
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
@@ -1317,6 +1222,7 @@ static error passfwd8(struct module *mod, struct node *root,
     UP_STEP(step_add_builtin_mkv_newv);
     UP_STEP(step_add_trivials);
     UP_STEP(step_add_environment_builtins);
+    UP_STEP(step_rewrite_def_return_through_ref);
     UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );

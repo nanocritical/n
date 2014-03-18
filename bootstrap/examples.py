@@ -28,9 +28,18 @@ def get_examples(obj_fn):
             r.append((kind, name))
     return r
 
+order = { None: 0, '_NCC_EMPTY': 10, '_NCC': 20 }
+
+def cmp_examples(a, b):
+    pa = order[a[0]] if a[0] in order else 100
+    pb = order[b[0]] if b[0] in order else 100
+    return cmp(pa, pb)
+
 def gen_main(out, examples):
     print>>out, '''#include "common.h"
 '''
+    examples.sort(cmp=cmp_examples)
+
     for kind, ex in examples:
         kind = kind or ''
         print>>out, '''

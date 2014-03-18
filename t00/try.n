@@ -10,6 +10,7 @@ fun foo = i32
   try
     throw ONE { code=1 }:error
     throw ZERO { code=0 }:error
+    return 2
   catch ZERO _
     return 0
   catch ONE _

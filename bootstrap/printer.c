@@ -249,7 +249,7 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
     FOREACH_SUB_EVERY_CONST(s, node, 0, 2) {
       print_expr(out, mod, s, T__STATEMENT);
       fprintf(out, "=");
-      print_expr(out, mod, node_next_const(s), T__CALL);
+      print_expr(out, mod, next_const(s), T__CALL);
       fprintf(out, " ");
     }
 
@@ -314,9 +314,6 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case TUPLE:
     print_tuple(out, mod, node, parent_op);
     break;
-  case TUPLEEXTRACT:
-    print_expr(out, mod, subs_last_const(node), parent_op);
-    break;
   case INIT:
     print_init(out, mod, node);
     break;
@@ -375,7 +372,7 @@ static void print_if(FILE *out, const struct module *mod, int indent, const stru
 
   const struct node *els = NULL;
   FOREACH_SUB_EVERY_CONST(cond, node, 2, 2) {
-    if (node_next_const(cond) == NULL) {
+    if (next_const(cond) == NULL) {
       els = cond;
       break;
     }
@@ -383,7 +380,7 @@ static void print_if(FILE *out, const struct module *mod, int indent, const stru
     spaces(out, indent);
     fprintf(out, "elif ");
     print_expr(out, mod, cond, T__STATEMENT);
-    print_block(out, mod, indent, node_next_const(cond));
+    print_block(out, mod, indent, next_const(cond));
   }
 
   if (els != NULL) {
@@ -403,12 +400,12 @@ static void print_match(FILE *out, const struct module *mod, int indent, const s
     spaces(out, indent);
     fprintf(out, "| ");
     print_expr(out, mod, p, T__STATEMENT);
-    print_block(out, mod, indent, node_next_const(p));
+    print_block(out, mod, indent, next_const(p));
   }
 }
 
 static void print_try(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  const struct node *eblock = subs_at_const(subs_first_const(node), 1);
+  const struct node *eblock = subs_last_const(node);
 
   fprintf(out, "try");
   print_block(out, mod, indent, subs_first_const(eblock));
@@ -420,11 +417,7 @@ static void print_try(FILE *out, const struct module *mod, int indent, const str
     if (catch->as.CATCH.label != ID__NONE) {
       fprintf(out, "%s ", idents_value(mod->gctx, catch->as.CATCH.label));
     }
-    print_expr(out, mod,
-               subs_first_const(subs_first_const(subs_first_const(catch))),
-               T__STATEMENT);
-    fprintf(out, "\n");
-    print_block(out, mod, indent, subs_at_const(catch, 1));
+    print_block(out, mod, indent, subs_first_const(catch));
   }
 }
 
@@ -462,7 +455,7 @@ static void print_within(FILE *out, const struct module *mod, const struct node 
   const struct node *n = subs_first_const(node);
   while (n != NULL) {
     print_within(out, mod, n);
-    n = node_next_const(n);
+    n = next_const(n);
   }
   return;
 }
@@ -481,21 +474,15 @@ static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
 
 static void print_defpattern(FILE *out, const struct module *mod, int indent, const struct node *node,
                              bool first_defp) {
-  if (node->as.DEFPATTERN.is_alias) {
-    fprintf(out, "alias ");
-  } else if (node->as.DEFPATTERN.is_globalenv) {
+  if (node->as.DEFPATTERN.is_globalenv) {
     fprintf(out, "globalenv ");
   } else {
     fprintf(out, first_defp ? "let " : "and ");
   }
 
-  if (subs_first_const(node)->which != DEFNAME) {
-    print_pattern(out, mod, subs_last_const(node));
-    fprintf(out, " = ");
-    print_expr(out, mod, subs_first_const(node), T__STATEMENT);
-  } else {
-    print_pattern(out, mod, subs_last_const(node));
-  }
+  print_pattern(out, mod, subs_first_const(node));
+  fprintf(out, " = ");
+  print_expr(out, mod, subs_last_const(node), T__STATEMENT);
 }
 
 static void print_let(FILE *out, const struct module *mod, int indent, const struct node *node) {
@@ -510,7 +497,20 @@ static void print_let(FILE *out, const struct module *mod, int indent, const str
       fprintf(out, "\n");
       spaces(out, indent);
     }
-    print_defpattern(out, mod, indent, d, i == 0);
+    switch (d->which) {
+    case DEFPATTERN:
+      print_defpattern(out, mod, indent, d, i == 0);
+      break;
+    case DEFALIAS:
+    case DEFNAME:
+      print_expr(out, mod, subs_first_const(d), T__STATEMENT);
+      fprintf(out, " = ");
+      print_expr(out, mod, subs_last_const(d), T__STATEMENT);
+      break;
+    default:
+      assert(false);
+      break;
+    }
   }
 
   if (node_has_tail_block(node)) {
@@ -584,6 +584,15 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
   case LET:
     print_let(out, mod, indent, node);
     break;
+  case JUMP:
+    if (node->as.JUMP.is_break) {
+      fprintf(out, "break");
+    } else if (node->as.JUMP.is_continue) {
+      fprintf(out, "continue");
+    } else {
+      fprintf(out, "jump %s", idents_value(mod->gctx, node->as.JUMP.label));
+    }
+    break;
   case IDENT:
   case NUMBER:
   case STRING:
@@ -592,7 +601,6 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
   case BIN:
   case UN:
   case CALL:
-  case TUPLEEXTRACT:
   case TYPECONSTRAINT:
   case PHI:
   case SIZEOF:
@@ -612,7 +620,7 @@ static void print_block(FILE *out, const struct module *mod, int indent, const s
   FOREACH_SUB_CONST(statement, node) {
     spaces(out, indent + 2);
     print_statement(out, mod, indent + 2, statement);
-    if (node_next_const(statement) != NULL) {
+    if (next_const(statement) != NULL) {
       fprintf(out, "\n");
     }
   }
@@ -639,7 +647,7 @@ static void print_deffun(FILE *out, const struct module *mod, int indent, const 
 
   const struct node *funargs = subs_at_const(node, IDX_FUNARGS);
   FOREACH_SUB_CONST(arg, funargs) {
-    if (node_next_const(arg) == NULL) {
+    if (next_const(arg) == NULL) {
       break;
     }
     fprintf(out, " ");
@@ -736,7 +744,7 @@ static void print_deftype_block(FILE *out, const struct module *mod, int indent,
   FOREACH_SUB_EVERY_CONST(statement, node, first, 1) {
     spaces(out, indent + 2);
     print_deftype_statement(out, mod, indent + 2, statement);
-    if (node_next_const(statement) != NULL) {
+    if (next_const(statement) != NULL) {
       fprintf(out, "\n");
     }
   }
@@ -774,13 +782,13 @@ static void print_defmethod(FILE *out, const struct module *mod, int indent, con
 
   print_toplevel(out, &node->as.DEFMETHOD.toplevel);
 
-  const char *scope = idents_value(mod->gctx, node_ident(node_parent_const(node)));
+  const char *scope = idents_value(mod->gctx, node_ident(parent_const(node)));
   fprintf(out, "%s method ", scope);
   print_expr(out, mod, name, T__STATEMENT);
 
   const struct node *funargs = subs_at_const(node, IDX_FUNARGS);
   FOREACH_SUB_EVERY_CONST(arg, funargs, 1, 1) {
-    if (node_next_const(arg) == NULL) {
+    if (next_const(arg) == NULL) {
       break;
     }
     fprintf(out, " ");
@@ -879,12 +887,14 @@ static void print_module(FILE *out, const struct module *mod) {
     case WITHIN:
       print_within(out, mod, node);
       break;
+    case NOOP:
+      break;
     default:
       fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
       assert(false);
     }
 
-    if (node_next_const(node) != NULL) {
+    if (next_const(node) != NULL) {
       fprintf(out, "\n");
     }
   }
@@ -912,7 +922,14 @@ static void print_tree_node(FILE *out, const struct module *mod,
   switch (node->which) {
   case IDENT:
   case CALLNAMEDARG:
+  case DEFNAME:
+  case DEFALIAS:
     fprintf(out, "(%s)", idents_value(mod->gctx, node_ident(node)));
+    break;
+  case PHI:
+    fprintf(out, "%c(%s)",
+            " c"[!!node->as.PHI.is_conditioned],
+            idents_value(mod->gctx, node_ident(node)));
     break;
   case NUMBER:
     fprintf(out, "(%s)", node->as.NUMBER.value);
@@ -925,16 +942,6 @@ static void print_tree_node(FILE *out, const struct module *mod,
     break;
   case BIN:
     fprintf(out, "(%s)", token_strings[node->as.BIN.operator]);
-    break;
-  case DEFNAME:
-    assert(node->as.DEFNAME.pattern->which == IDENT);
-    if (node->as.DEFNAME.is_excep) {
-      fprintf(out, "(excep %s %s)",
-              idents_value(mod->gctx, node->as.DEFNAME.excep_label),
-              idents_value(mod->gctx, node_ident(node->as.DEFNAME.pattern)));
-    } else {
-      fprintf(out, "(%s)", idents_value(mod->gctx, node_ident(node->as.DEFNAME.pattern)));
-    }
     break;
   default:
     break;
@@ -1011,14 +1018,7 @@ static void print_dot_node(FILE *out, const struct module *mod,
     fprintf(out, "(%s)", token_strings[node->as.BIN.operator]);
     break;
   case DEFNAME:
-    assert(node->as.DEFNAME.pattern->which == IDENT);
-    if (node->as.DEFNAME.is_excep) {
-      fprintf(out, "(excep %s %s)",
-              idents_value(mod->gctx, node->as.DEFNAME.excep_label),
-              idents_value(mod->gctx, node_ident(node->as.DEFNAME.pattern)));
-    } else {
-      fprintf(out, "(%s)", idents_value(mod->gctx, node_ident(node->as.DEFNAME.pattern)));
-    }
+    fprintf(out, "(%s)", idents_value(mod->gctx, node_ident(node)));
     break;
   default:
     break;

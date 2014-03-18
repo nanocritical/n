@@ -17,12 +17,11 @@ enum catchup_for {
 error catchup(struct module *mod,
               const struct node **except,
               struct node *node,
-              struct scope *parent_scope,
               enum catchup_for how);
+void record_tentative_instantiation(struct module *mod, struct node *i);
 error catchup_instantiation(struct module *instantiating_mod,
                             struct module *gendef_mod,
                             struct node *instance,
-                            struct scope *parent_scope,
                             bool tentative);
 bool instantiation_is_tentative(const struct module *mod,
                                 struct typ *t, struct typ **args,
@@ -31,7 +30,7 @@ bool instantiation_is_tentative(const struct module *mod,
 typedef error (*a_pass)(struct module *mod, struct node *root,
                         void *user, ssize_t shallow_last_up);
 
-#define PASSZERO_COUNT 1
+#define PASSZERO_COUNT 2
 #define PASSFWD_COUNT 9
 #define PASSBODY_COUNT 2
 
@@ -133,6 +132,7 @@ done:
   \
   if (NM(node->which) & step##_filter) { \
     bool stop = false; \
+    unused__ static const char *current_step = STRINGIFY(step); \
     error e = step(mod, node, user, &stop); \
     INVARIANT_NODE(node); \
     EXCEPT(e); \
@@ -153,6 +153,7 @@ done:
   \
   if (NM(node->which) & step##_filter) { \
     bool stop = false; \
+    unused__ static const char *current_step = STRINGIFY(step); \
     error e = step(mod, node, user, &stop); \
     INVARIANT_NODE(node); \
     EXCEPT(e); \

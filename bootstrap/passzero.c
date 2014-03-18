@@ -1,6 +1,10 @@
 #include "passzero.h"
 
 #include "scope.h"
+#include "lir.h"
+#include "ssa.h"
+
+#include "passbody.h"
 
 static STEP_NM(step_do_rewrite_prototype_wildcards,
                NM(UN));
@@ -47,7 +51,7 @@ static error step_rewrite_prototype_wildcards(struct module *mod, struct node *n
   return 0;
 }
 
-static void add_generic(struct node *node) {
+static void try_add_generic(struct node *node) {
   struct toplevel *toplevel = node_toplevel(node);
   if (toplevel->generic == NULL) {
     toplevel->generic = calloc(1, sizeof(*toplevel->generic));
@@ -59,11 +63,12 @@ struct node *add_instance_deepcopy_from_pristine(struct module *mod,
                                                  struct node *pristine,
                                                  bool tentative) {
   struct node *instance = calloc(1, sizeof(struct node));
+  instance->parent = parent(node);
   node_deepcopy(mod, instance, pristine);
   node_toplevel(instance)->scope_name = 0;
 
-  add_generic(node);
-  add_generic(instance);
+  try_add_generic(node);
+  try_add_generic(instance);
 
   if (!tentative) {
     struct generic *generic = node_toplevel(node)->generic;
@@ -95,7 +100,7 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node,
   case DEFFUN:
   case DEFMETHOD:
     // Always needed because the method/fun could be part of a generic
-    // DEFTYPE, and we cannot know that yet. If the parent is not a generic,
+    // DEFTYPE, and we cannot know that yet. If the par is not a generic,
     // we will remove this unneeded stuff in do_move_detached_member().
     (void) add_instance_deepcopy_from_pristine(mod, node, node, false);
     break;
@@ -161,7 +166,7 @@ static error step_check_deftype_kind(struct module *mod, struct node *node,
 }
 
 static void do_assign_defchoice_tag(struct module *mod,
-                                    struct node *parent, struct node *prev,
+                                    struct node *par, struct node *prev,
                                     struct node *node) {
   node->as.DEFCHOICE.is_leaf = true;
   if (node->as.DEFCHOICE.has_tag) {
@@ -169,7 +174,7 @@ static void do_assign_defchoice_tag(struct module *mod,
   }
 
   struct node *tag;
-  if (prev == NULL && parent->which != DEFCHOICE) {
+  if (prev == NULL && par->which != DEFCHOICE) {
     tag = mk_node(mod, node, NUMBER);
     tag->as.NUMBER.value = "0";
   } else {
@@ -181,9 +186,9 @@ static void do_assign_defchoice_tag(struct module *mod,
       node_deepcopy(mod, left, pred);
       struct node *one = mk_node(mod, tag, NUMBER);
       one->as.NUMBER.value = "1";
-    } else if (parent->which == DEFCHOICE) {
+    } else if (par->which == DEFCHOICE) {
       tag = node_new_subnode(mod, node);
-      node_deepcopy(mod, tag, subs_at(parent, IDX_CH_TAG_FIRST));
+      node_deepcopy(mod, tag, subs_at(par, IDX_CH_TAG_FIRST));
     } else {
       return;
     }
@@ -194,8 +199,8 @@ static void do_assign_defchoice_tag(struct module *mod,
   node_subs_insert_after(node, subs_at(node, IDX_CH_TAG_FIRST-1), tag);
 
   node->as.DEFCHOICE.has_tag = true;
-  if (parent->which == DEFCHOICE) {
-    parent->as.DEFCHOICE.is_leaf = false;
+  if (par->which == DEFCHOICE) {
+    par->as.DEFCHOICE.is_leaf = false;
   }
 }
 
@@ -242,21 +247,6 @@ static error step_assign_defchoice_tag_up(struct module *mod, struct node *node,
   return 0;
 }
 
-STEP_NM(step_add_scopes,
-        -1);
-error step_add_scopes(struct module *mod, struct node *node,
-                      void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  // Initialize scope on-demand in scope_define_ident().
-
-  FOREACH_SUB(s, node) {
-    s->scope.parent = &node->scope;
-  }
-
-  return 0;
-}
-
 STEP_NM(step_stop_submodules,
         NM(MODULE));
 error step_stop_submodules(struct module *mod, struct node *node,
@@ -275,16 +265,32 @@ error step_stop_submodules(struct module *mod, struct node *node,
 static error passzero0(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   PASS(
-    DOWN_STEP(step_rewrite_prototype_wildcards);
     DOWN_STEP(step_generics_pristine_copy);
+    DOWN_STEP(step_lir_conversion_down);
+    DOWN_STEP(step_push_fun_state);
+    DOWN_STEP(step_push_block_state);
+    DOWN_STEP(step_record_current_statement);
+    DOWN_STEP(step_add_sequence_points);
+    ,
+    UP_STEP(step_lir_conversion_up);
+    UP_STEP(step_pop_block_state);
+    UP_STEP(step_ssa_convert);
+    UP_STEP(step_pop_fun_state);
+    );
+  return 0;
+}
+
+static error passzero1(struct module *mod, struct node *root,
+                       void *user, ssize_t shallow_last_up) {
+  PASS(
+    DOWN_STEP(step_rewrite_prototype_wildcards);
     DOWN_STEP(step_detect_prototypes);
     DOWN_STEP(step_check_deftype_kind);
     DOWN_STEP(step_assign_defchoice_tag_down);
     ,
     UP_STEP(step_assign_defchoice_tag_up);
-    UP_STEP(step_add_scopes);
     );
   return 0;
 }
 
-a_pass passzero[] = { passzero0 };
+a_pass passzero[] = { passzero0, passzero1 };

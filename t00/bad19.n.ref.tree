@@ -823,7 +823,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     IDENT(nlang)
     IDENT(just_mutable)
- DEFFUN :t00.fixme11.main ::()
+ DEFFUN :t00.bad19.main ::()
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
@@ -832,4 +832,40 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32 ::()
   WITHIN :nlang.builtins.void ::()
   BLOCK :nlang.builtins.void ::()
-   NOOP :nlang.builtins.void ::()
+   BLOCK :nlang.builtins.void ::()
+    IF :nlang.builtins.void ::()
+     BLOCK :nlang.builtins.bool ::(init)
+      LET :nlang.builtins.void ::()
+       DEFNAME(_Ngensym0) :nlang.builtins.bool ::(init)
+        IDENT(_Ngensym0) :nlang.builtins.__internal_not_typeable__
+        BOOL :nlang.builtins.bool ::(init)
+      IDENT(_Ngensym0) :nlang.builtins.bool ::(init)
+     BLOCK :nlang.builtins.void ::()
+      NOOP :nlang.builtins.void ::()
+     BLOCK :nlang.builtins.void ::()
+      NOOP :nlang.builtins.void ::()
+   LET :nlang.builtins.void ::()
+    DEFNAME(x) :nlang.builtins.i32 ::(init)
+     IDENT(x) :nlang.builtins.__internal_not_typeable__
+     NUMBER(0) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym1) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+     IDENT(_Ngensym1) :nlang.builtins.__internal_not_typeable__
+     UN(@) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+      IDENT(x) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym2) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+     IDENT(_Ngensym2) :nlang.builtins.__internal_not_typeable__
+     NUL :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym3) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+     IDENT(_Ngensym3) :nlang.builtins.__internal_not_typeable__
+     DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+      IDENT(_Ngensym1) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+   CALL :nlang.builtins.void ::(init)
+    IDENT(say) :nlang.say ::()
+    CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+     IDENT(_Ngensym2) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+    IDENT(_Ngensym3) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+   RETURN :nlang.builtins.void ::()
+    IDENT(x) :nlang.builtins.i32 ::(init)

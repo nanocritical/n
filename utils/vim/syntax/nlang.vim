@@ -101,7 +101,7 @@ hi def link nOctal Number
 hi def link nNumbers Number
 hi def link nString String
 hi def link nSpecial SpecialChar
-hi def link nSemantic Semantic
+"hi def link nSemantic Semantic
 hi def link nMutate Constness
 hi def link nMercurial Constness
 hi def link nNullable Constness

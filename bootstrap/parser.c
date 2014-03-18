@@ -30,7 +30,7 @@ EXAMPLE(vecnode) {
     vecnode_push(&v, &a[n]);
     assert(1 + n == vecnode_count(&v));
     for (size_t m = 0; m < vecnode_count(&v); ++m) {
-      assert(&a[m] == vecnode_get(&v, m));
+      assert(&a[m] == *vecnode_get(&v, m));
     }
   }
   for (size_t n = 8; n > 3; --n) {
@@ -49,7 +49,7 @@ EXAMPLE(vecnode) {
     vecnode_push(&v, &a[n]);
     assert(1 + n == vecnode_count(&v));
     for (size_t m = 0; m < vecnode_count(&v); ++m) {
-      assert(&a[m] == vecnode_get(&v, m));
+      assert(&a[m] == *vecnode_get(&v, m));
     }
   }
   for (size_t n = 8; n > 0; --n) {
@@ -61,43 +61,26 @@ EXAMPLE(vecnode) {
   assert(0 == vecnode_count(&v));
 
   struct vecnode w = { 0 };
+  vecnode_resize(&w, 8);
   for (size_t n = 0; n < 8; ++n) {
     vecnode_push(&v, &a[n]);
-    vecnode_push(&w, &a[n]);
   }
 
-  vecnode_append(&w, &v);
-  assert(vecnode_count(&w) == 16);
-  for (size_t n = 16; n > 8; --n) {
-    assert(vecnode_get(&v, n - 8 - 1) == vecnode_get(&w, n - 1));
-    assert(&a[n - 8 - 1] == vecnode_get(&w, n - 1));
-  }
+  vecnode_copy(&w, &v);
   for (size_t n = 8; n > 0; --n) {
-    assert(vecnode_get(&v, n - 1) == vecnode_get(&w, n - 1));
-    assert(&a[n - 1] == vecnode_get(&w, n - 1));
+    assert(*vecnode_get(&v, n - 1) == *vecnode_get(&w, n - 1));
+    assert(&a[n - 1] == *vecnode_get(&w, n - 1));
   }
 
   vecnode_destroy(&w);
   vecnode_destroy(&v);
 }
 
-uint32_t node_ptr_hash(const struct node **node) {
-  uintptr_t p = (uintptr_t) *node;
-  return hash32_hsieh(&p, sizeof(p));
-}
-
-int node_ptr_cmp(const struct node **a, const struct node **b) {
-  uintptr_t pa = (uintptr_t) a;
-  uintptr_t pb = (uintptr_t) b;
-  return (pa == pb) ? 0 : ((pa < pb) ? -1 : 1);
-}
-
-IMPLEMENT_HTABLE_SPARSE(, nodeset, bool, struct node *,
-                        node_ptr_hash, node_ptr_cmp);
+IMPLEMENT_VECTOR(, vecancestor, struct ancestor);
 
 #define MEMPOOL_CHUNK (64*1024)
 
-#ifdef CONFIG_MEMPOOL_JUST_MALLOC
+#if CONFIG_MEMPOOL_JUST_MALLOC == 1
 noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
   (void) mod;
   return calloc(nmemb, size);
@@ -137,8 +120,6 @@ const char *node_which_strings[] = {
   [BIN] = "BIN",
   [UN] = "UN",
   [TUPLE] = "TUPLE",
-  [TUPLEEXTRACT] = "TUPLEEXTRACT",
-  [TUPLENTH] = "TUPLENTH",
   [CALL] = "CALL",
   [CALLNAMEDARG] = "CALLNAMEDARG",
   [INIT] = "INIT",
@@ -158,7 +139,6 @@ const char *node_which_strings[] = {
   [EXCEP] = "EXCEP",
   [THROW] = "THROW",
   [JUMP] = "JUMP",
-  [LANDING] = "LANDING",
   [PHI] = "PHI",
   [TYPECONSTRAINT] = "TYPECONSTRAINT",
   [DYN] = "DYN",
@@ -167,6 +147,7 @@ const char *node_which_strings[] = {
   [DEFINCOMPLETE] = "DEFINCOMPLETE",
   [DEFMETHOD] = "DEFMETHOD",
   [DEFINTF] = "DEFINTF",
+  [DEFALIAS] = "DEFALIAS",
   [DEFNAME] = "DEFNAME",
   [DEFPATTERN] = "DEFPATTERN",
   [FUNARGS] = "FUNARGS",
@@ -390,8 +371,7 @@ static int token_cmp(const struct token *a, const struct token *b) {
   }
 }
 
-HTABLE_SPARSE(idents_map, ident, struct token);
-IMPLEMENT_HTABLE_SPARSE(unused__ static, idents_map, ident, struct token,
+IMPLEMENT_HTABLE_SPARSE(, idents_map, ident, struct token,
                         token_hash, token_cmp);
 
 const char *idents_value(const struct globalctx *gctx, ident id) {
@@ -481,10 +461,10 @@ static struct node *do_node_module_owner(struct node *node) {
   if (node->which == MODULE) {
     return node;
   } else {
-    if (node->scope.parent == NULL) {
+    if (parent(node) == NULL) {
       return NULL;
     }
-    return do_node_module_owner(node_parent(node));
+    return do_node_module_owner(parent(node));
   }
 }
 
@@ -516,7 +496,7 @@ struct node *node_toplevel_owner(struct node *node) {
   if (node_toplevel(node) != NULL) {
     return node;
   } else {
-    return node_toplevel_owner(node_parent(node));
+    return node_toplevel_owner(parent(node));
   }
 }
 
@@ -524,7 +504,7 @@ struct node *node_statement_owner(struct node *node) {
   if (node_is_statement(node)) {
     return node;
   } else {
-    return node_statement_owner(node_parent(node));
+    return node_statement_owner(parent(node));
   }
 }
 
@@ -550,11 +530,8 @@ bool node_is_inline(const struct node *node) {
 
 bool node_is_export(const struct node *node) {
   const struct toplevel *toplevel = node_toplevel_const(node);
-  if (toplevel == NULL) {
-    return false;
-  } else {
-    return toplevel->flags & TOP_IS_EXPORT;
-  }
+  assert(toplevel != NULL);
+  return toplevel->flags & TOP_IS_EXPORT;
 }
 
 bool node_is_extern(const struct node *node) {
@@ -584,15 +561,14 @@ bool node_is_def(const struct node *node) {
 }
 
 bool node_is_statement(const struct node *node) {
-  return node->scope.parent != NULL
-    && node_parent_const(node)->which == BLOCK;
+  return parent_const(node) != NULL && parent_const(node)->which == BLOCK;
 }
 
 bool node_is_at_top(const struct node *node) {
-  if (node->scope.parent == NULL) {
+  if (parent_const(node) == NULL) {
     return false;
   } else {
-    return node_parent_const(node)->which == MODULE_BODY;
+    return parent_const(node)->which == MODULE_BODY;
   }
 }
 
@@ -920,8 +896,15 @@ void node_invariant(const struct node *node) {
   assert(subs_count(node) != 1 || node->subs_first == node->subs_last);
   assert(node->subs_first != node && node->subs_last != node);
 
+  assert(!(NM(node->which) & NM(IDENT))
+         || parent_const(node) == NULL
+         || next_const(node) != NULL
+         || prev_const(node) != NULL
+         || !subs_count_atleast(parent_const(node), 2));
+
   ssize_t n = 0;
   FOREACH_SUB_CONST(s, node) {
+    assert(s->parent == node);
     if (n == 0) {
       assert(s->prev == NULL);
       assert(s == node->subs_first);
@@ -938,35 +921,55 @@ void node_invariant(const struct node *node) {
   }
 
   switch (node->which) {
+  case NOOP:
+  case NUMBER:
+  case STRING:
+  case BOOL:
+  case NUL:
+    assert(!subs_count_atleast(node, 1));
+    break;
   case IF:
     assert(subs_count_atleast(node, 2));
     break;
+  case CALL:
+    assert(subs_count_atleast(node, 1));
+    break;
+  case UN:
+    assert(subs_count(node) == 1);
+    break;
+  case LET:
+    assert(subs_count_atleast(node, 1));
+    assert(NM(subs_first_const(node)->which)
+           & (NM(DEFNAME) | NM(DEFPATTERN) | NM(DEFALIAS)));
+    break;
+  case BIN:
+    assert(subs_count(node) == 2);
+    break;
   case DEFNAME:
-    assert(node->as.DEFNAME.pattern == NULL
-           || node->as.DEFNAME.pattern->which == IDENT);
+    assert(node->as.DEFNAME.ssa_user == NULL
+           || parent(node->as.DEFNAME.ssa_user) != NULL);
     break;
   default:
     break;
   }
 
-  assert(node_parent_const(node) != node);
-}
-
-static void fix_scopes_after_move(struct node *node) {
-  FOREACH_SUB(s, node) {
-    s->scope.parent = &node->scope;
-  }
+  assert(parent_const(node) != node);
 }
 
 void node_move_content(struct node *dst, struct node *src) {
+  INVARIANT_NODE(src);
+
   struct node copy = *src;
-  struct scope *saved_dst_parent = dst->scope.parent;
+  struct node *saved_dst_parent = parent(dst);
 
   unset_typ(&src->typ);
   unset_typ(&dst->typ);
 
   memset(src, 0, sizeof(*src));
 
+  // The source is emptied, but is left in its original position in the
+  // tree.
+  src->parent = parent(&copy);
   src->prev = prev(&copy);
   src->next = next(&copy);
 
@@ -974,14 +977,18 @@ void node_move_content(struct node *dst, struct node *src) {
   struct node *nxt = next(dst);
 
   *dst = copy;
-  dst->scope.parent = saved_dst_parent;
+  dst->parent = saved_dst_parent;
 
   dst->prev = prv;
   dst->next = nxt;
   dst->subs_first = subs_first(&copy);
   dst->subs_last = subs_last(&copy);
 
-  fix_scopes_after_move(dst);
+  FOREACH_SUB(s, dst) {
+    s->parent = dst;
+  }
+
+  INVARIANT_NODE(dst);
 }
 
 struct node *node_new_subnode(struct module *mod, struct node *node) {
@@ -1169,69 +1176,8 @@ size_t node_branching_exhaustive_branch_count(struct node *node) {
   }
 }
 
-struct node *node_branching_nth_cond(struct node *node, ssize_t nth) {
-  assert(nth >= 0);
-
-  switch (node->which) {
-  case IF:
-    {
-      const size_t count = subs_count(node);
-      if (nth == count/2 + 1) {
-        // else cond
-        return NULL;
-      }
-      return subs_at(node, 2*nth);
-    }
-  case WHILE:
-    return subs_at(node, 0);
-  case FOR:
-    return subs_at(subs_at(subs_at(
-          node, IDX_FOR_IT_BLOCK), IDX_FOR_IT_BLOCK_WHILE), 0);
-  case MATCH:
-    return subs_at(node, 2*nth + 1);
-  case TRY:
-    return NULL;
-  default:
-    assert(false);
-    return 0;
-  }
-}
-
-struct node *node_branching_nth_branch(struct node *node, ssize_t nth) {
-  assert(nth >= 0);
-
-  switch (node->which) {
-  case IF:
-    {
-      const size_t count = subs_count(node);
-      if (nth == count/2 + 1) {
-        assert(count % 2 == 1);
-        // else branch
-        return subs_last(node);
-      }
-      return subs_at(node, 2*nth + 1);
-    }
-  case WHILE:
-    return subs_at(node, 1);
-  case FOR:
-    return subs_at(subs_at(subs_at(
-          node, IDX_FOR_IT_BLOCK), IDX_FOR_IT_BLOCK_WHILE), IDX_FOR_IT_BLOCK_WHILE_BLOCK);
-  case MATCH:
-    return subs_at(node, 2*nth + 2);
-  case TRY:
-    {
-      struct node *elet = subs_first(node);
-      struct node *eblock = subs_at(elet, 1);
-      return subs_at(eblock, nth);
-    }
-  default:
-    assert(false);
-    return 0;
-  }
-}
-
-struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind) {
-  struct node *n = node_new_subnode(mod, parent);
+struct node *mk_node(struct module *mod, struct node *par, enum node_which kind) {
+  struct node *n = node_new_subnode(mod, par);
   node_set_which(n, kind);
   return n;
 }
@@ -1279,11 +1225,11 @@ static error p_except(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
-  back(mod, &tok);
 
   if (tok.t == TIDENT) {
-    error e = p_ident(node_new_subnode(mod, node), mod);
-    EXCEPT(e);
+    node->as.EXCEP.label = idents_add(mod->gctx, &tok);
+  } else {
+    back(mod, &tok);
   }
 
   return 0;
@@ -1583,57 +1529,22 @@ again:
 static error p_for(struct node *node, struct module *mod) {
   node_set_which(node, FOR);
 
-  node->as.FOR.pattern = calloc(1, sizeof(*node->as.FOR.pattern));
-  error e = p_expr(node->as.FOR.pattern, mod, T__NOT_STATEMENT);
+  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
 
   e = scan_expected(mod, Tin);
   EXCEPT(e);
 
-  struct node *let_it = mk_node(mod, node, LET);
-  struct node *it = mk_node(mod, let_it, DEFPATTERN);
-  struct node *it_expr = mk_node(mod, it, UN);
-  it_expr->as.UN.operator = TREFBANG;
-  struct node *it_var = mk_node(mod, it, IDENT);
-  it_var->as.IDENT.name = gensym(mod);
-
-  e = p_expr(node_new_subnode(mod, it_expr), mod, T__NOT_STATEMENT);
+  e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
-
-  struct node *let_it_block = mk_node(mod, let_it, BLOCK);
-  struct node *loop = mk_node(mod, let_it_block, WHILE);
-  struct node *v = mk_node(mod, loop, CALL);
-  struct node *vm = mk_node(mod, v, BIN);
-  vm->as.BIN.operator = TDOT;
-  struct node *vmi = mk_node(mod, vm, IDENT);
-  vmi->as.IDENT.name = node_ident(it_var);
-  struct node *vmm = mk_node(mod, vm, IDENT);
-  vmm->as.IDENT.name = ID_HAS_NEXT;
-
-  struct node *loop_block = mk_node(mod, loop, BLOCK);
-  struct node *let_var = mk_node(mod, loop_block, LET);
-  struct node *var = mk_node(mod, let_var, DEFPATTERN);
-  struct node *g = mk_node(mod, var, CALL);
-  struct node *gm = mk_node(mod, g, BIN);
-  gm->as.BIN.operator = TBANG;
-  struct node *gmi = mk_node(mod, gm, IDENT);
-  gmi->as.IDENT.name = node_ident(it_var);
-  struct node *gmm = mk_node(mod, gm, IDENT);
-  gmm->as.IDENT.name = ID_NEXT;
-  node_subs_append(var, node->as.FOR.pattern);
 
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
-  node->as.FOR.block = mk_node(mod, let_var, BLOCK);
-  e = p_block(node->as.FOR.block, mod);
+
+  e = p_block(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
   return 0;
-}
-
-struct node *node_for_block(struct node *node) {
- assert(node->which == FOR);
- return node->as.FOR.block;
 }
 
 static error p_while(struct node *node, struct module *mod) {
@@ -1718,16 +1629,17 @@ again:
     UNEXPECTED(mod, &tok);
   }
 
-  struct node *let = mk_node(mod, catch, LET);
+  struct node *block = mk_node(mod, catch, BLOCK);
+  struct node *let = mk_node(mod, block, LET);
   struct node *defp = mk_node(mod, let, DEFPATTERN);
-  struct node *expr = mk_node(mod, defp, IDENT);
-  expr->as.IDENT.name = node_ident(eident);
   struct node *var = mk_node(mod, defp, IDENT);
   var->as.IDENT.name = idents_add(mod->gctx, &tok);
+  struct node *expr = mk_node(mod, defp, IDENT);
+  expr->as.IDENT.name = node_ident(eident);
 
   e = scan_expected(mod, TSOB);
   EXCEPT(e);
-  e = p_block(node_new_subnode(mod, catch), mod);
+  e = p_block(node_new_subnode(mod, block), mod);
   EXCEPT(e);
   e = scan_expected(mod, TEOL);
   EXCEPT(e);
@@ -1787,14 +1699,14 @@ static void shift(struct module *mod, struct node *node) {
   struct node *first = node_new_subnode(mod, node);
   node_subs_remove(node, first);
 
-  *first = *node;
+  node_move_content(first, node);
 
   node_set_which(node, 0);
   memset(&node->as, 0, sizeof(node->as));
-  node->subs_first = first;
-  node->subs_last = first;
   first->next = NULL;
   first->prev = NULL;
+
+  node_subs_append(node, first);
 }
 
 static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
@@ -1934,7 +1846,9 @@ shifted:
     } else {
       goto done;
     }
-  } else if (IS_OP(tok.t) && OP_IS_UNARY(tok.t) && OP_KIND(tok.t) == OP_UN_DEREF) {
+  } else if (IS_OP(tok.t) && OP_IS_UNARY(tok.t)
+             && OP_KIND(tok.t) == OP_UN_DEREF
+             && OP_PREC(tok.t) < OP_PREC(parent_op)) {
     shift(mod, node);
     e = p_expr_post_unary(node, mod);
     EXCEPT(e);
@@ -1989,6 +1903,10 @@ static error p_throw(struct node *node, struct module *mod) {
   back(mod, &tok);
 
   if (!expr_terminators[tok.t]) {
+    struct node *label = subs_first(node);
+    node_subs_remove(node, label);
+    node->as.THROW.label = node_ident(label);
+
     e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
     EXCEPT(e);
   }
@@ -2034,9 +1952,6 @@ static error p_defpattern(struct node *node, struct module *mod,
   struct node *expr = node_new_subnode(mod, node);
   e = p_expr(expr, mod, T__NOT_STATEMENT);
   EXCEPT(e);
-
-  node_subs_remove(node, expr);
-  node_subs_insert_before(node, subs_first(node), expr);
 
   return 0;
 }
@@ -2098,9 +2013,10 @@ static error p_noop(struct node *node, struct module *mod) {
 static error p_pre(struct node *node, struct module *mod) {
   node_set_which(node, PRE);
 
-  G(block, node, BLOCK,
-    G(call, block, CALL,
-      G(name, call, IDENT,
+  GSTART();
+  G0(block, node, BLOCK,
+    G(call, CALL,
+      G(name, IDENT,
         name->as.IDENT.name = ID_PRE)));
   error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
   EXCEPT(e);
@@ -2111,9 +2027,10 @@ static error p_pre(struct node *node, struct module *mod) {
 static error p_post(struct node *node, struct module *mod) {
   node_set_which(node, POST);
 
-  G(block, node, BLOCK,
-    G(call, block, CALL,
-      G(name, call, IDENT,
+  GSTART();
+  G0(block, node, BLOCK,
+    G(call, CALL,
+      G(name, IDENT,
         name->as.IDENT.name = ID_POST)));
   error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
   EXCEPT(e);
@@ -2124,9 +2041,10 @@ static error p_post(struct node *node, struct module *mod) {
 static error p_invariant(struct node *node, struct module *mod) {
   node_set_which(node, INVARIANT);
 
-  G(block, node, BLOCK,
-    G(call, block, CALL,
-      G(name, call, IDENT,
+  GSTART();
+  G0(block, node, BLOCK,
+    G(call, CALL,
+      G(name, IDENT,
         name->as.IDENT.name = ID_INVARIANT)));
   error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
   EXCEPT(e);
@@ -2139,9 +2057,10 @@ static error p_example(struct node *node, struct module *mod) {
   node->as.EXAMPLE.name = mod->next_example;
   mod->next_example += 1;
 
-  G(block, node, BLOCK,
-    G(call, block, CALL,
-      G(name, call, IDENT,
+  GSTART();
+  G0(block, node, BLOCK,
+    G(call, CALL,
+      G(name, IDENT,
         name->as.IDENT.name = ID_EXAMPLE)));
   error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
   EXCEPT(e);
@@ -2177,11 +2096,11 @@ static error p_within(struct node *node, struct module *mod, bool is_list) {
   return 0;
 }
 
-static error p_statement(struct node *parent, struct module *mod) {
+static error p_statement(struct node *par, struct module *mod) {
   error e;
   struct token tok = { 0 };
 
-#define NEW node_new_subnode(mod, parent)
+#define NEW node_new_subnode(mod, par)
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -2199,7 +2118,7 @@ static error p_statement(struct node *parent, struct module *mod) {
   case Talias:
     e = p_let((tok.t == Tlet || tok.t == Talias)
               ? NEW
-              : subs_last(parent),
+              : subs_last(par),
               mod, NULL, tok.t);
     break;
   case Tfor:
@@ -2294,34 +2213,40 @@ static error p_defarg(struct node *node, struct module *mod, enum token_type tok
   return 0;
 }
 
-// FIXME: Avoid these forward declarations.
-typedef error (*step)(struct module *mod, struct node *node, void *user, bool *stop);
+static STEP_NM(step_rewrite_into_defarg,
+               NM(TYPECONSTRAINT));
+static error step_rewrite_into_defarg(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
+  node_set_which(node, DEFARG);
+  return 0;
+}
 
-error pass(struct module *mod, struct node *node,
-           const step *down_steps, const step *up_steps, ssize_t shallow_last_up,
-           void *user);
+static error rewrite_into_defarg(struct module *mod, struct node *root,
+                                 void *user, size_t shallow_last_up) {
+  PASS(, UP_STEP(step_rewrite_into_defarg));
+  return 0;
+}
 
 static error p_defret(struct node *node, struct module *mod) {
-  node_set_which(node, DEFARG);
-
-  struct node *first = node_new_subnode(mod, node);
-  error e = p_expr(first, mod, T__STATEMENT);
+  error e = p_expr(node, mod, T__STATEMENT);
   EXCEPT(e);
 
-  if (first->which == TYPECONSTRAINT) {
-    struct node *left = subs_first(first);
-    struct node *right = subs_last(first);
-    node_subs_remove(first, left);
-    node_subs_remove(first, right);
+  if (node->which == TYPECONSTRAINT) {
+    node_set_which(node, DEFARG);
+  } else if (node->which == TUPLE) {
+    e = rewrite_into_defarg(mod, node, NULL, -1);
+    EXCEPT(e);
+  }
 
-    node_subs_remove(node, first);
-    node_subs_append(node, left);
-    node_subs_append(node, right);
-  } else {
-    struct node *name = mk_node(mod, node, IDENT);
+  if (node->which != DEFARG) {
+    struct node *par = parent(node);
+    struct node *defarg = mk_node(mod, par, DEFARG);
+    node_subs_remove(par, defarg);
+    node_subs_replace(par, node, defarg);
+
+    struct node *name = mk_node(mod, defarg, IDENT);
     name->as.IDENT.name = ID_NRETVAL;
-    node_subs_remove(node, name);
-    node_subs_insert_before(node, first, name);
+    node_subs_append(defarg, node);;
   }
 
   return 0;
@@ -2517,8 +2442,8 @@ retval:
   return 0;
 }
 
-static error p_isalist(struct node *parent, struct module *mod, bool is_export) {
-  struct node *isalist = subs_at(parent, IDX_ISALIST);
+static error p_isalist(struct node *par, struct module *mod, bool is_export) {
+  struct node *isalist = subs_at(par, IDX_ISALIST);
 
   error e;
   struct token tok = { 0 };
@@ -2895,6 +2820,8 @@ struct node *defincomplete_create(struct module *mod, const struct node *for_err
   // mod fun_state in which it is recorded below.
   //
   struct node *dinc = mempool_calloc(mod, 1, sizeof(struct node));
+  record_tentative_instantiation(mod, dinc);
+  dinc->parent = mod->body;
   dinc->codeloc = for_error->codeloc;
   node_set_which(dinc, DEFINCOMPLETE);
   struct node *dinc_name = mk_node(mod, dinc, IDENT);
@@ -2934,8 +2861,7 @@ void defincomplete_add_isa(struct module *mod, const struct node *for_error,
 
 error defincomplete_catchup(struct module *mod, struct node *dinc) {
   assert(dinc->which == DEFINCOMPLETE);
-  error e = catchup_instantiation(mod, mod, dinc, &mod->body->scope,
-                                  true);
+  error e = catchup_instantiation(mod, mod, dinc, true);
   EXCEPT(e);
   return 0;
 }
@@ -2986,17 +2912,21 @@ void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src) {
   INVARIANT_NODE(src);
 
+  struct node *par = dst->parent;
   struct node *prev = dst->prev;
   struct node *next = dst->next;
 
   node_set_which(dst, src->which);
-  memcpy(dst, src, sizeof(*dst));
+  *dst = *src;
   memset(&dst->scope, 0, sizeof(dst->scope));
+  dst->parent = par;
   dst->prev = prev;
   dst->next = next;
   dst->subs_first = NULL;
   dst->subs_last = NULL;
   dst->typ = NULL;
+  dst->constraint = NULL;
+  dst->excepted = 0;
 
   struct toplevel *dtoplevel = node_toplevel(dst);
   if (dtoplevel != NULL) {
@@ -3112,7 +3042,8 @@ bypass:
     UNEXPECTED(mod, &tok);
   }
 
-#define NEW(mod, node) ( (node != NULL) ? node : node_new_subnode(mod, mod->body) )
+#define NEW(mod, node) ( (node != NULL) \
+                         ? node : (node = node_new_subnode(mod, mod->body), node) )
 
   switch (tok.t) {
   case TLPAR:
@@ -3311,16 +3242,15 @@ EXAMPLE(parse_modpath) {
   }
 }
 
-static struct node *create_module_node(struct node *parent, ident basename,
+static struct node *create_module_node(struct node *par, ident basename,
                                        bool is_placeholder,
                                        struct module *non_placeholder_mod) {
-  struct node *m = node_new_subnode(non_placeholder_mod, parent);
+  struct node *m = node_new_subnode(non_placeholder_mod, par);
   node_set_which(m, MODULE);
   m->as.MODULE.name = basename;
   m->as.MODULE.is_placeholder = is_placeholder;
   m->as.MODULE.mod = is_placeholder ? NULL : non_placeholder_mod;
   scope_init(&m->scope);
-  m->scope.parent = &parent->scope;
   m->typ = typ_create(NULL, m);
   m->flags = NODE_IS_TYPE;
 
@@ -3339,22 +3269,22 @@ static error register_module(struct globalctx *gctx, struct module *to_register,
   struct module *some_module = to_register;
 
   const size_t last = to_register->path_len - 1;
-  struct node *parent = &gctx->modules_root;
+  struct node *par = &gctx->modules_root;
 
   for (size_t p = 0; p <= last; ++p) {
     ident i = to_register->path[p];
     struct node *m = NULL;
-    error e = scope_lookup_ident_wontimport(&m, parent, some_module, &parent->scope,
+    error e = scope_lookup_ident_wontimport(&m, par, some_module, &par->scope,
                                             i, true);
     if (e == EINVAL) {
-      m = create_module_node(parent, i, p != last, to_register);
+      m = create_module_node(par, i, p != last, to_register);
 
-      e = scope_define_ident(some_module, &parent->scope, i, m);
+      e = scope_define_ident(some_module, &par->scope, i, m);
       EXCEPT(e);
 
     } else if (e) {
       // Repeat bound-to-fail lookup to get the error message right.
-      e = scope_lookup_ident_wontimport(&m, parent, some_module, &parent->scope,
+      e = scope_lookup_ident_wontimport(&m, par, some_module, &par->scope,
                                         i, false);
       THROW(e);
     } else {
@@ -3365,7 +3295,7 @@ static error register_module(struct globalctx *gctx, struct module *to_register,
                  filename);
         } else {
           assert(to_register->root == NULL);
-          to_register->root = create_module_node(parent, i, false, to_register);
+          to_register->root = create_module_node(par, i, false, to_register);
 
           FOREACH_SUB(to_save, m) {
             assert(to_save->which == MODULE);
@@ -3376,7 +3306,7 @@ static error register_module(struct globalctx *gctx, struct module *to_register,
 
           // scope_define_ident() knows to accept to overwrite because it
           // was a placeholder.
-          e = scope_define_ident(some_module, &parent->scope, i, to_register->root);
+          e = scope_define_ident(some_module, &par->scope, i, to_register->root);
           EXCEPT(e);
         }
 
@@ -3384,7 +3314,7 @@ static error register_module(struct globalctx *gctx, struct module *to_register,
       }
     }
 
-    parent = m;
+    par = m;
   }
 
   return 0;

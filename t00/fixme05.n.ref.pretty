@@ -1,26 +1,33 @@
 from nlang import *
 type nocopy = <root>.nlang.builtins.`trivial_ctor
-  alias final = t00.fixme05.nocopy
-  alias this = t00.fixme05.nocopy
+  final = t00.fixme05.nocopy
+  this = t00.fixme05.nocopy
   x:i32
-  nocopy method <root>.nlang.builtins.`trivial_ctor.ctor = void 
+  nocopy method <root>.nlang.builtins.`trivial_ctor.ctor = _nretval:void 
 
   fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
+  fun <root>.nlang.builtins.`trivial_ctor.new = _nretval:@#final 
 
 
 fun bar = r:nocopy 
-  r!x = 0
+  block
+    noop
+    _Ngensym1 = 0
+    r!x = _Ngensym1
   return r
 
 fun foo = _nretval:nocopy 
-  and r:nocopy  such
-    r!x = 0
+  block
+    noop
+    r = { }
+    block
+      noop
+      _Ngensym3 = 0
+      r!x = _Ngensym3
   return r
 
-export fun main = i32 
-  and _Ngensym0:t00.fixme05.nocopy  such
-    return block 
-  _Ngensym0 = foo
-  _Ngensym0;;.x
+export fun main = _nretval:i32 
+  _Ngensym6 = foo
+  noop
+  return _Ngensym6.x

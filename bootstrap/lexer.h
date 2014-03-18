@@ -227,14 +227,14 @@ static const uint32_t operators[TOKEN__NUM] = {
   [TNULREFWILDCARD] = OP(0, OP_UN_REFOF, ASSOC_RIGHT, 0x40),
   [TDCOLON] = OP(0, OP_BIN_RHS_TYPE, ASSOC_LEFT, 0x31),
   [TCOLON] = OP(0, OP_BIN_RHS_TYPE, ASSOC_LEFT, 0x30),
-  [TDOT] = OP(0, OP_BIN_ACC, ASSOC_LEFT, 0x20),
-  [TBANG] = OP(0, OP_BIN_ACC, ASSOC_LEFT, 0x20),
-  [TSHARP] = OP(0, OP_BIN_ACC, ASSOC_LEFT, 0x20),
-  [TWILDCARD] = OP(0, OP_BIN_ACC, ASSOC_LEFT, 0x20),
-  [TDEREFDOT] = OP(0, OP_UN_DEREF, ASSOC_LEFT, 0x1f),
-  [TDEREFBANG] = OP(0, OP_UN_DEREF, ASSOC_LEFT, 0x1f),
-  [TDEREFSHARP] = OP(0, OP_UN_DEREF, ASSOC_LEFT, 0x1f),
-  [TDEREFWILDCARD] = OP(0, OP_UN_DEREF, ASSOC_LEFT, 0x1f),
+  [TDEREFDOT] = OP(0, OP_UN_DEREF, ASSOC_LEFT, 0x20),
+  [TDEREFBANG] = OP(0, OP_UN_DEREF, ASSOC_LEFT, 0x20),
+  [TDEREFSHARP] = OP(0, OP_UN_DEREF, ASSOC_LEFT, 0x20),
+  [TDEREFWILDCARD] = OP(0, OP_UN_DEREF, ASSOC_LEFT, 0x20),
+  [TDOT] = OP(0, OP_BIN_ACC, ASSOC_LEFT, 0x1f),
+  [TBANG] = OP(0, OP_BIN_ACC, ASSOC_LEFT, 0x1f),
+  [TSHARP] = OP(0, OP_BIN_ACC, ASSOC_LEFT, 0x1f),
+  [TWILDCARD] = OP(0, OP_BIN_ACC, ASSOC_LEFT, 0x1f),
 };
 
 static const bool expr_terminators[TOKEN__NUM] = {
@@ -245,7 +245,6 @@ static const bool expr_terminators[TOKEN__NUM] = {
   [TRSBRA] = true,
   [TRCBRA] = true,
   [Twithin] = true,
-  [Tand] = true,
   [Tsuch] = true,
 };
 

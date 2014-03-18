@@ -143,7 +143,7 @@ struct _Ndyn__Ngen_nlang_builtins__Ni_environment__t00_within__Ni_env2_genN_ {
 nlang_builtins_void (*ctor)(void *self);
 void (*mk)(nlang_builtins__Ni_default_ctor *_nrtr_r);
 nlang_builtins__Ni_default_ctor (*new)(void);
-t00_within__Ni_env2 (*parent)(void *self);
+t00_within__Ni_env2 (*par)(void *self);
 nlang_builtins_void (*install)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env2_genN_ where);
 nlang_builtins_void (*uninstall)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env2_genN_ where);
 };
@@ -156,7 +156,7 @@ struct _Ndyn_t00_within__Ni_env2 {
 nlang_builtins_void (*ctor)(void *self);
 void (*mk)(nlang_builtins__Ni_default_ctor *_nrtr_r);
 nlang_builtins__Ni_default_ctor (*new)(void);
-t00_within__Ni_env2 (*parent)(void *self);
+t00_within__Ni_env2 (*par)(void *self);
 nlang_builtins_void (*install)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env2_genN_ where);
 nlang_builtins_void (*uninstall)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env2_genN_ where);
 nlang_builtins_void (*say2)(void *self, _Ngen_nlang_builtins_ref__nlang_strings_string_genN_ s);
@@ -178,7 +178,7 @@ struct _Ndyn__Ngen_nlang_builtins__Ni_environment__t00_within__Ni_env1_genN_ {
 nlang_builtins_void (*ctor)(void *self);
 void (*mk)(nlang_builtins__Ni_default_ctor *_nrtr_r);
 nlang_builtins__Ni_default_ctor (*new)(void);
-t00_within__Ni_env1 (*parent)(void *self);
+t00_within__Ni_env1 (*par)(void *self);
 nlang_builtins_void (*install)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env1_genN_ where);
 nlang_builtins_void (*uninstall)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env1_genN_ where);
 };
@@ -191,7 +191,7 @@ struct _Ndyn_t00_within__Ni_env1 {
 nlang_builtins_void (*ctor)(void *self);
 void (*mk)(nlang_builtins__Ni_default_ctor *_nrtr_r);
 nlang_builtins__Ni_default_ctor (*new)(void);
-t00_within__Ni_env1 (*parent)(void *self);
+t00_within__Ni_env1 (*par)(void *self);
 nlang_builtins_void (*install)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env1_genN_ where);
 nlang_builtins_void (*uninstall)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env1_genN_ where);
 nlang_builtins_void (*say)(void *self, _Ngen_nlang_builtins_ref__nlang_strings_string_genN_ s);
@@ -474,7 +474,7 @@ NLANG_BUILTINS_BG_ENVIRONMENT_UNINSTALL(t00_within__Ni_env2);
 ;
 static inline _Ngen_nlang_builtins__Ni_environment__t00_within__Ni_env2_genN_ t00_within_myenv2_mkdyn___Ngen_nlang_builtins__Ni_environment__t00_within__Ni_env2_genN_(t00_within_myenv2 *obj) {
 static const struct _Ndyn__Ngen_nlang_builtins__Ni_environment__t00_within__Ni_env2_genN_ vtable = {
-.parent = (t00_within__Ni_env2 (*)(void *self))t00_within_myenv2_parent,
+.par = (t00_within__Ni_env2 (*)(void *self))t00_within_myenv2_parent,
 .install = (nlang_builtins_void (*)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env2_genN_ where))t00_within_myenv2_install,
 .uninstall = (nlang_builtins_void (*)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env2_genN_ where))t00_within_myenv2_uninstall,
 };
@@ -482,7 +482,7 @@ return (_Ngen_nlang_builtins__Ni_environment__t00_within__Ni_env2_genN_){ .vptr 
 }
 static inline t00_within__Ni_env2 t00_within_myenv2_mkdyn__t00_within__Ni_env2(t00_within_myenv2 *obj) {
 static const struct _Ndyn_t00_within__Ni_env2 vtable = {
-.parent = (t00_within__Ni_env2 (*)(void *self))t00_within_myenv2_parent,
+.par = (t00_within__Ni_env2 (*)(void *self))t00_within_myenv2_parent,
 .install = (nlang_builtins_void (*)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env2_genN_ where))t00_within_myenv2_install,
 .uninstall = (nlang_builtins_void (*)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env2_genN_ where))t00_within_myenv2_uninstall,
 .say2 = (nlang_builtins_void (*)(void *self, _Ngen_nlang_builtins_ref__nlang_strings_string_genN_ s))t00_within_myenv2_say2,
@@ -585,7 +585,7 @@ NLANG_BUILTINS_BG_ENVIRONMENT_UNINSTALL(t00_within__Ni_env1);
 ;
 static inline _Ngen_nlang_builtins__Ni_environment__t00_within__Ni_env1_genN_ t00_within_myenv1_mkdyn___Ngen_nlang_builtins__Ni_environment__t00_within__Ni_env1_genN_(t00_within_myenv1 *obj) {
 static const struct _Ndyn__Ngen_nlang_builtins__Ni_environment__t00_within__Ni_env1_genN_ vtable = {
-.parent = (t00_within__Ni_env1 (*)(void *self))t00_within_myenv1_parent,
+.par = (t00_within__Ni_env1 (*)(void *self))t00_within_myenv1_parent,
 .install = (nlang_builtins_void (*)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env1_genN_ where))t00_within_myenv1_install,
 .uninstall = (nlang_builtins_void (*)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env1_genN_ where))t00_within_myenv1_uninstall,
 };
@@ -593,7 +593,7 @@ return (_Ngen_nlang_builtins__Ni_environment__t00_within__Ni_env1_genN_){ .vptr 
 }
 static inline t00_within__Ni_env1 t00_within_myenv1_mkdyn__t00_within__Ni_env1(t00_within_myenv1 *obj) {
 static const struct _Ndyn_t00_within__Ni_env1 vtable = {
-.parent = (t00_within__Ni_env1 (*)(void *self))t00_within_myenv1_parent,
+.par = (t00_within__Ni_env1 (*)(void *self))t00_within_myenv1_parent,
 .install = (nlang_builtins_void (*)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env1_genN_ where))t00_within_myenv1_install,
 .uninstall = (nlang_builtins_void (*)(void *self, _Ngen_nlang_builtins_mutable_ref__t00_within__Ni_env1_genN_ where))t00_within_myenv1_uninstall,
 .say = (nlang_builtins_void (*)(void *self, _Ngen_nlang_builtins_ref__nlang_strings_string_genN_ s))t00_within_myenv1_say,

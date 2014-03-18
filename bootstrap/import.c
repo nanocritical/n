@@ -4,22 +4,7 @@
 #include "scope.h"
 #include "passes.h"
 
-#include "passzero.h"
-
-static error do_pass_import_mark(struct module *mod, struct node *root,
-                                 void *user, size_t shallow_last_up) {
-  PASS(, UP_STEP(step_add_scopes));
-  return 0;
-}
-
-static void pass_import_mark(struct module *mod, struct node *mark,
-                             struct scope *parent_scope) {
-  PUSH_STATE(mod->state->step_state);
-  error e = do_pass_import_mark(mod, mark, NULL, -1);
-  assert(!e);
-  POP_STATE(mod->state->step_state);
-
-  mark->scope.parent = parent_scope;
+static void pass_import_mark(struct module *mod, struct node *mark) {
   // Special self-referencing typ; see type_inference_bin_accessor().
   mark->typ = typ_create(NULL, mark);
   mark->flags = NODE_IS_TYPE;
@@ -87,7 +72,7 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
       original_import->as.IMPORT.toplevel.flags & TOP_IS_EXPORT;
     mark->as.IMPORT.intermediate_mark = true;
     node_deepcopy(mod, node_new_subnode(mod, mark), import_path);
-    pass_import_mark(mod, mark, &anchor->scope);
+    pass_import_mark(mod, mark);
 
     e = scope_define_ident(mod, *scope, name, mark);
     assert(!e);
@@ -196,7 +181,7 @@ static struct node *create_import_node_for_ex(struct module *mod,
   tok.len = strlen(tok.value);
   copy_and_extend_import_path(mod, id, import, &tok);
 
-  pass_import_mark(mod, id, &original_import->scope);
+  pass_import_mark(mod, id);
 
   return id;
 }

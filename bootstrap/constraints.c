@@ -12,23 +12,85 @@ enum cbool_values {
   Y = 1,
 };
 
+enum constraint_builtins {
+  CBI__ANYTAG,
+  CBI_INIT,
+  CBI_NONNULL,
+  CBI_EQTRUE,
+  CBI_VALID,
+  CBI__NUM,
+};
+
+static const char *constraint_builtins_strings[CBI__NUM] = {
+  [CBI_INIT] = "init",
+  [CBI_NONNULL] = "nonnull",
+  [CBI_EQTRUE] = "eqtrue",
+  [CBI_VALID] = "valid",
+};
+
 HTABLE_SPARSE(tagset, cbool, ident);
 IMPLEMENT_HTABLE_SPARSE(unused__ static, tagset, cbool, ident,
                         ident_hash, ident_cmp);
 
+static uint32_t node_ptr_hash(const struct node **node) {
+  uintptr_t p = (uintptr_t) *node;
+  return hash32_hsieh(&p, sizeof(p));
+}
+
+static int node_ptr_cmp(const struct node **a, const struct node **b) {
+  uintptr_t pa = (uintptr_t) *a;
+  uintptr_t pb = (uintptr_t) *b;
+  return (pa == pb) ? 0 : ((pa < pb) ? -1 : 1);
+}
+
+// An boolean_hypothesis is additional constraints that result from a single
+// boolean condition being assumed to be true or false.
+struct hypothesis {
+  struct constraint *if_true;
+  struct constraint *if_false;
+};
+
+//struct tag_alsoif {
+//};
+//
+//struct value_alsoif {
+//};
+//
+//union alsoif_as {
+//  struct boolean_alsoif HYP_BOOLEAN;
+//  struct tag_alsoif HYP_TAG;
+//  struct value_alsoif HYP_VALUE;
+//};
+//
+//enum alsoif_which {
+//  HYP_BOOLEAN,
+//  HYP_TAG,
+//  HYP_VALUE,
+//};
+//
+//struct alsoif {
+//  enum alsoif_which which;
+//  union alsoif_as as;
+//};
+
+HTABLE_SPARSE(hypmap, struct hypothesis, struct node *);
+IMPLEMENT_HTABLE_SPARSE(unused__ static, hypmap, struct hypothesis,
+                        struct node *, node_ptr_hash, node_ptr_cmp);
+
 struct constraint {
-  cbool init;
-  cbool nonnull;
+  cbool table[CBI__NUM];
   struct tagset tags;
   // FIXME: 'tags' is not normalized: it can be full of 'U' that while
   // considered to be deleted by the underlying table, do appear in
   // tagset_count().
 
-  struct constraint *surround;
+  struct hypmap under;
 };
 
 void constraint_invariant(const struct constraint *c) {
-  assert(c->init >= N && c->init <= Y);
+  for (size_t cbi = 0; cbi < CBI__NUM; ++cbi) {
+    assert(c->table[cbi] >= N && c->table[cbi] <= Y);
+  }
 }
 
 static struct constraint *new_constraint(struct module *mod) {
@@ -37,135 +99,181 @@ static struct constraint *new_constraint(struct module *mod) {
   tagset_init(&c->tags, 0);
   tagset_set_delete_val(&c->tags, U);
 
+  hypmap_init(&c->under, 0);
+
   return c;
 }
 
-static int constraint_equal_tag_foreach(const ident *tag, cbool *value, void *user) {
-  struct tagset *b = user;
-  cbool *existing = tagset_get(b, *tag);
-  if (*value == U) {
-    return !(existing == NULL || *existing == U);
-  } else {
-    return *value != *existing;
+static struct node *cond_def(struct node *cond) {
+  switch (cond->which) {
+  case DEFNAME:
+    return cond;
+  case IDENT:
+    return cond->as.IDENT.def;
+  case BLOCK:
+    {
+      struct node *s = subs_last(cond);
+      while (typ_equal(s->typ, TBI__NOT_TYPEABLE)) {
+        s = prev(s);
+      }
+      return cond_def(s);
+    }
+  default:
+    assert(false);
+    return NULL;
   }
 }
 
-static bool constraint_equal(const struct constraint *_a, const struct constraint *_b) {
-  struct constraint *a = (struct constraint *) _a;
-  struct constraint *b = (struct constraint *) _b;
+static struct constraint *do_assuming(struct module *mod, struct constraint *c,
+                                      struct node *cond, bool reversed,
+                                      bool create) {
+  cond = cond_def(cond);
+  assert(NM(cond->which) & (NM(DEFNAME) | NM(DEFARG)));
 
-  INVARIANT_CONSTRAINT(a);
-  INVARIANT_CONSTRAINT(b);
+  struct hypothesis *existing = hypmap_get(&c->under, cond);
+  if (existing == NULL) {
+    if (!create) {
+      return NULL;
+    }
 
-  if (a->init != b->init) {
+    struct hypothesis hyp = { 0 };
+    if (reversed) {
+      hyp.if_false = new_constraint(mod);
+    } else {
+      hyp.if_true = new_constraint(mod);
+    }
+    hypmap_set(&c->under, cond, hyp);
+
+    return reversed ? hyp.if_false : hyp.if_true;
+
+  } else {
+    if (reversed) {
+      if (create && existing->if_false == NULL) {
+        existing->if_false = new_constraint(mod);
+      }
+      return existing->if_false;
+    } else {
+      if (create && existing->if_true == NULL) {
+        existing->if_true = new_constraint(mod);
+      }
+      return existing->if_true;
+    }
+  }
+}
+
+static struct constraint *assuming(struct module *mod, struct constraint *c,
+                                   struct node *cond, bool reversed) {
+  return do_assuming(mod, c, cond, reversed, true);
+}
+
+static struct constraint *try_assuming(struct module *mod, struct constraint *c,
+                                       struct node *cond, bool reversed) {
+  return do_assuming(mod, c, cond, reversed, false);
+}
+
+static int merge_hypothesis_each(const struct node **cond,
+                                 struct hypothesis *hyp,
+                                 void *user) {
+  struct hypmap *c_under = user;
+  hypmap_set(c_under, *cond, *hyp);
+  return 0;
+}
+
+static void constraint_merge_hypothesis(struct constraint *c,
+                                        struct constraint *a) {
+  for (size_t cbi = 0; cbi < CBI__NUM; ++cbi) {
+    if (a->table[cbi] != U) {
+      c->table[cbi] = a->table[cbi];
+    }
+  }
+
+  if (a->table[CBI__ANYTAG] == N) {
+    tagset_copy(&c->tags, &a->tags);
+  }
+
+  if (hypmap_count(&a->under) != 0) {
+    hypmap_foreach(&a->under, merge_hypothesis_each, &c->under);
+  }
+}
+
+static void constraint_set(struct module *mod, struct constraint *c,
+                           enum constraint_builtins cbi, bool reversed) {
+  INVARIANT_CONSTRAINT(c);
+  c->table[cbi] = reversed ? N : Y;
+}
+
+static void constraint_unset(struct module *mod, struct constraint *c,
+                             enum constraint_builtins cbi) {
+  INVARIANT_CONSTRAINT(c);
+  c->table[cbi] = U;
+}
+
+static void constraint_set_tag(struct module *mod, struct constraint *c,
+                               ident tag, bool reversed) {
+  INVARIANT_CONSTRAINT(c);
+  c->table[CBI__ANYTAG] = N;
+  tagset_set(&c->tags, tag, reversed ? N : Y);
+}
+
+static void constraint_unset_tag(struct module *mod, struct constraint *c,
+                                 ident tag) {
+  INVARIANT_CONSTRAINT(c);
+  tagset_set(&c->tags, tag, U);
+  // FIXME: unable to reset CBI__ANYTAG to Y because we can't trust
+  // tagset_count() with many U's.
+}
+
+static int equal_tag_each(const ident *name, cbool *value, void *user) {
+  struct tagset *b = user;
+  const cbool *other = tagset_get(b, *name);
+  return other == NULL || *value != *other;
+}
+
+static bool constraint_equal(struct constraint *a, struct constraint *b);
+
+static int equal_hypothesis_each(const struct node **cond,
+                                 struct hypothesis *hyp,
+                                 void *user) {
+  struct hypmap *b = user;
+  const struct hypothesis *other = hypmap_get(b, *cond);
+  return other == NULL
+    || !constraint_equal(hyp->if_true, other->if_true)
+    || !constraint_equal(hyp->if_false, other->if_false);
+}
+
+static bool constraint_equal(struct constraint *a, struct constraint *b) {
+  if (a == b) {
+    return true;
+  }
+
+  if (a == NULL || b == NULL) {
     return false;
   }
-  if (a->nonnull != b->nonnull) {
+
+  int c = memcmp(a->table, b->table, sizeof(a->table));
+  if (c != 0) {
     return false;
   }
-  if (tagset_count(&a->tags) != tagset_count(&b->tags)) {
+
+  if (a->table[CBI__ANYTAG] == N && b->table[CBI__ANYTAG] == N) {
+    if (tagset_count(&a->tags) != tagset_count(&b->tags)) {
+      return false;
+    }
+
+    if (tagset_foreach(&a->tags, equal_tag_each, &b->tags)) {
+      return false;
+    }
+  }
+
+  if (hypmap_count(&a->under) != hypmap_count(&b->under)) {
     return false;
   }
-  if (tagset_foreach(&a->tags, constraint_equal_tag_foreach, &b->tags)) {
-    return false;
-  }
-  if (tagset_foreach(&b->tags, constraint_equal_tag_foreach, &a->tags)) {
+
+  if (hypmap_foreach(&a->under, equal_hypothesis_each, &b->under)) {
     return false;
   }
 
   return true;
-}
-
-EXAMPLE_NCC_EMPTY(constraint_equal) {
-  {
-    struct constraint *a = new_constraint(mod), *b = new_constraint(mod);
-    a->init = Y;
-    b->init = Y;
-    assert(constraint_equal(a, b));
-  }
-  {
-    struct constraint *a = new_constraint(mod), *b = new_constraint(mod);
-    a->init = Y;
-    b->init = N;
-    assert(!constraint_equal(a, b));
-  }
-  {
-    struct constraint *a = new_constraint(mod), *b = new_constraint(mod);
-    a->init = U;
-    b->init = N;
-    assert(!constraint_equal(a, b));
-  }
-  {
-    struct constraint *a = new_constraint(mod), *b = new_constraint(mod);
-    a->nonnull = U;
-    b->nonnull = N;
-    assert(!constraint_equal(a, b));
-  }
-  {
-    struct constraint *a = new_constraint(mod), *b = new_constraint(mod);
-    tagset_set(&a->tags, ID_C, Y);
-    assert(!constraint_equal(a, b));
-  }
-  {
-    struct constraint *a = new_constraint(mod), *b = new_constraint(mod);
-    tagset_set(&b->tags, ID_C, Y);
-    assert(!constraint_equal(a, b));
-  }
-  {
-    struct constraint *a = new_constraint(mod), *b = new_constraint(mod);
-    tagset_set(&a->tags, ID_C, Y);
-    tagset_set(&b->tags, ID_C, Y);
-    assert(constraint_equal(a, b));
-  }
-  {
-    struct constraint *a = new_constraint(mod), *b = new_constraint(mod);
-    tagset_set(&a->tags, ID_C, U);
-    tagset_set(&b->tags, ID_C, Y);
-    assert(!constraint_equal(a, b));
-  }
-}
-
-static void constraint_set_init(struct module *mod, struct node *node, bool reversed) {
-  struct constraint *c = node->constraint;
-  INVARIANT_CONSTRAINT(c);
-
-  c->init = reversed ? N : Y;
-}
-
-static void constraint_unset_init(struct module *mod, struct node *node) {
-  struct constraint *c = node->constraint;
-  INVARIANT_CONSTRAINT(c);
-
-  c->init = U;
-}
-
-static void constraint_set_nonnull(struct module *mod, struct node *node, bool reversed) {
-  struct constraint *c = node->constraint;
-  INVARIANT_CONSTRAINT(c);
-
-  c->nonnull = reversed ? N : Y;
-}
-
-static void constraint_unset_nonnull(struct module *mod, struct node *node) {
-  struct constraint *c = node->constraint;
-  INVARIANT_CONSTRAINT(c);
-
-  c->nonnull = U;
-}
-
-static void constraint_set_tag(struct module *mod, struct node *node,
-                               ident tag, bool reversed) {
-  struct constraint *c = node->constraint;
-  INVARIANT_CONSTRAINT(c);
-
-  tagset_set(&c->tags, tag, reversed ? N : Y);
-}
-
-static void constraint_unset_tag(struct module *mod, struct node *node, ident tag) {
-  struct constraint *c = node->constraint;
-  INVARIANT_CONSTRAINT(c);
-
-  tagset_set(&c->tags, tag, U);
 }
 
 struct snprint_constraint_state {
@@ -178,7 +286,8 @@ struct snprint_constraint_state {
   bool has_nos;
 };
 
-static int snprint_constraint_tag_foreach(const ident *tag, cbool *value, void *user) {
+static int snprint_constraint_tag_each(const ident *tag, cbool *value,
+                                       void *user) {
   struct snprint_constraint_state *st = user;
   if ((*value == Y && !st->do_nos)
       || (*value == N && st->do_nos)) {
@@ -193,33 +302,72 @@ static int snprint_constraint_tag_foreach(const ident *tag, cbool *value, void *
   return 0;
 }
 
+static int snprint_constraint_under_each(const struct node **_cond,
+                                         struct hypothesis *hyp,
+                                         void *user) {
+  struct node *cond = CONST_CAST(struct node *, *_cond);
+  struct snprint_constraint_state *st = user;
+
+  if (hyp->if_true != NULL) {
+    int n = snprintf(st->s, st->len, "(%s => ",
+                     scope_name(st->mod, &cond->scope));
+    st->s += n;
+    st->len -= n;
+
+    n = snprint_constraint(st->s, st->len, st->mod, hyp->if_true);
+    st->s += n;
+    st->len -= n;
+
+    n = snprintf(st->s, st->len, ")");
+    st->s += n;
+    st->len -= n;
+  }
+
+  if (hyp->if_false != NULL) {
+    int n = snprintf(st->s, st->len, "(not %s => ",
+                     scope_name(st->mod, &cond->scope));
+    st->s += n;
+    st->len -= n;
+
+    n = snprint_constraint(st->s, st->len, st->mod, hyp->if_false);
+    st->s += n;
+    st->len -= n;
+
+    n = snprintf(st->s, st->len, ")");
+    st->s += n;
+    st->len -= n;
+  }
+
+  return 0;
+}
+
 int snprint_constraint(char *s, size_t len,
-                       const struct module *mod, struct constraint *c) {
+                       const struct module *mod, const struct constraint *_c) {
+  struct constraint *c = CONST_CAST(struct constraint *, _c);
   size_t pos = 0;
   pos += snprintf(s+pos, len-pos, "(");
 
-  if (c->init == Y) {
-    pos += snprintf(s+pos, len-pos, "init");
-  } else if (c->init == N) {
-    pos += snprintf(s+pos, len-pos, "not init");
+  bool first = true;
+  for (size_t cbi = CBI__ANYTAG+1; cbi < CBI__NUM; ++cbi) {
+    const cbool v = c->table[cbi];
+    if (v != U && !first) {
+      pos += snprintf(s+pos, len-pos, " and ");
+    }
+
+    if (v == Y) {
+      first = false;
+      pos += snprintf(s+pos, len-pos, "%s", constraint_builtins_strings[cbi]);
+    } else if (v == N) {
+      first = false;
+      pos += snprintf(s+pos, len-pos, "not %s", constraint_builtins_strings[cbi]);
+    }
   }
 
-  if (c->init != U && c->nonnull != U) {
-    pos += snprintf(s+pos, len-pos, " and ");
-  }
+  if (c->table[CBI__ANYTAG] == N) {
+    if (!first) {
+      pos += snprintf(s+pos, len-pos, " and ");
+    }
 
-  if (c->nonnull == Y) {
-    pos += snprintf(s+pos, len-pos, "nonnull");
-  } else if (c->nonnull == N) {
-    pos += snprintf(s+pos, len-pos, "not nonnull");
-  }
-
-  if (((c->init != U && c->nonnull == U) || (c->init == U && c->nonnull != U))
-      && tagset_count(&c->tags) != 0) {
-    pos += snprintf(s+pos, len-pos, " and ");
-  }
-
-  if (tagset_count(&c->tags) != 0) {
     struct snprint_constraint_state st = {
       .mod = mod,
       .s = s + pos,
@@ -229,7 +377,9 @@ int snprint_constraint(char *s, size_t len,
       .has_nos = false,
     };
 
-    tagset_foreach(&c->tags, snprint_constraint_tag_foreach, &st);
+    tagset_foreach(&c->tags, snprint_constraint_tag_each, &st);
+
+    first &= !(st.has_yess || st.has_nos);
 
     if (st.has_nos) {
       if (st.has_yess) {
@@ -239,100 +389,136 @@ int snprint_constraint(char *s, size_t len,
       }
 
       st.do_nos = true;
-      tagset_foreach(&c->tags, snprint_constraint_tag_foreach, &st);
+      tagset_foreach(&c->tags, snprint_constraint_tag_each, &st);
     }
 
     pos += len - pos - st.len;
   }
 
+  if (hypmap_count(&c->under) != 0) {
+    if (!first) {
+      pos += snprintf(s+pos, len-pos, " and ");
+    }
+
+    struct snprint_constraint_state st = {
+      .mod = mod,
+      .s = s + pos,
+      .len = len - pos,
+      0
+    };
+
+    hypmap_foreach(&c->under, snprint_constraint_under_each, &st);
+
+    pos += len - pos - st.len;
+  }
+
   pos += snprintf(s+pos, len-pos, ")");
-  return 0;
+  return pos;
 }
 
 EXAMPLE_NCC_EMPTY(snprint_constraint) {
-  char s[2048] = { 0 };
+  char s[512] = { 0 };
   size_t len = ARRAY_SIZE(s);
 
   {
-    struct node *na = node_new_subnode(mod, mod->body);
-    na->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, false);
-    snprint_constraint(s, len, mod, na->constraint);
+    struct node *n = mk_node(mod, mod->body, IDENT);
+    n->constraint = new_constraint(mod);
+    constraint_set(mod, n->constraint, CBI_INIT, false);
+    snprint_constraint(s, len, mod, n->constraint);
     assert(strcmp(s, "(init)") == 0);
   }
   {
-    struct node *na = node_new_subnode(mod, mod->body);
-    na->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, true);
-    snprint_constraint(s, len, mod, na->constraint);
+    struct node *n = mk_node(mod, mod->body, IDENT);
+    n->constraint = new_constraint(mod);
+    constraint_set(mod, n->constraint, CBI_INIT, true);
+    snprint_constraint(s, len, mod, n->constraint);
     assert(strcmp(s, "(not init)") == 0);
   }
   {
-    struct node *na = node_new_subnode(mod, mod->body);
-    na->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, true);
-    constraint_unset_init(mod, na);
-    snprint_constraint(s, len, mod, na->constraint);
+    struct node *n = mk_node(mod, mod->body, IDENT);
+    n->constraint = new_constraint(mod);
+    constraint_set(mod, n->constraint, CBI_INIT, true);
+    constraint_unset(mod, n->constraint, CBI_INIT);
+    assert(2 == snprint_constraint(s, len, mod, n->constraint));
     assert(strcmp(s, "()") == 0);
   }
   {
-    struct node *na = node_new_subnode(mod, mod->body);
-    na->constraint = new_constraint(mod);
-    constraint_set_nonnull(mod, na, false);
-    constraint_unset_nonnull(mod, na);
-    constraint_set_nonnull(mod, na, true);
-    snprint_constraint(s, len, mod, na->constraint);
+    struct node *n = mk_node(mod, mod->body, IDENT);
+    n->constraint = new_constraint(mod);
+    constraint_set(mod, n->constraint, CBI_NONNULL, false);
+    constraint_unset(mod, n->constraint, CBI_NONNULL);
+    constraint_set(mod, n->constraint, CBI_NONNULL, true);
+    snprint_constraint(s, len, mod, n->constraint);
     assert(strcmp(s, "(not nonnull)") == 0);
   }
   {
-    struct node *na = node_new_subnode(mod, mod->body);
-    na->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, false);
-    constraint_set_nonnull(mod, na, true);
-    snprint_constraint(s, len, mod, na->constraint);
+    struct node *n = mk_node(mod, mod->body, IDENT);
+    n->constraint = new_constraint(mod);
+    constraint_set(mod, n->constraint, CBI_INIT, false);
+    constraint_set(mod, n->constraint, CBI_NONNULL, true);
+    snprint_constraint(s, len, mod, n->constraint);
     assert(strcmp(s, "(init and not nonnull)") == 0);
   }
   {
-    struct node *na = node_new_subnode(mod, mod->body);
-    na->constraint = new_constraint(mod);
-    constraint_set_tag(mod, na, ID_C, false);
-    constraint_unset_tag(mod, na, ID_C);
-    constraint_set_tag(mod, na, ID_C, false);
-    snprint_constraint(s, len, mod, na->constraint);
+    struct node *n = mk_node(mod, mod->body, IDENT);
+    n->constraint = new_constraint(mod);
+    constraint_set_tag(mod, n->constraint, ID_C, false);
+    constraint_unset_tag(mod, n->constraint, ID_C);
+    constraint_set_tag(mod, n->constraint, ID_C, false);
+    assert(4 == snprint_constraint(s, len, mod, n->constraint));
     assert(strcmp(s, "(|c)") == 0);
   }
   {
-    struct node *na = node_new_subnode(mod, mod->body);
-    na->constraint = new_constraint(mod);
-    constraint_set_tag(mod, na, ID_C, false);
-    constraint_set_tag(mod, na, ID_CTOR, false);
-    snprint_constraint(s, len, mod, na->constraint);
+    struct node *n = mk_node(mod, mod->body, IDENT);
+    n->constraint = new_constraint(mod);
+    constraint_set_tag(mod, n->constraint, ID_C, false);
+    constraint_set_tag(mod, n->constraint, ID_CTOR, false);
+    snprint_constraint(s, len, mod, n->constraint);
     assert(strcmp(s, "(|c|ctor)") == 0);
   }
   {
+    struct node *n = mk_node(mod, mod->body, IDENT);
+    n->constraint = new_constraint(mod);
+    constraint_set_tag(mod, n->constraint, ID_C, false);
+    constraint_set_tag(mod, n->constraint, ID_CTOR, true);
+    snprint_constraint(s, len, mod, n->constraint);
+    assert(strcmp(s, "(|c and not |ctor)") == 0);
+  }
+  {
+    struct node *let = mk_node(mod, mod->body, LET);
+    struct node *d = mk_node(mod, let, DEFNAME);
+    struct node *name = mk_node(mod, d, IDENT);
+    name->as.IDENT.name = ID_NEXT;
+
     struct node *na = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
-    constraint_set_tag(mod, na, ID_C, false);
-    constraint_set_tag(mod, na, ID_CTOR, true);
+    na->constraint->table[CBI_INIT] = Y;
+    constraint_set_tag(mod, na->constraint, ID_C, true);
+
+    struct constraint *c = assuming(mod, na->constraint, d, false);
+    c->table[CBI_NONNULL] = Y;
+    c->table[CBI_VALID] = N;
+
     snprint_constraint(s, len, mod, na->constraint);
-    assert(strcmp(s, "(|c and not |ctor)") == 0);
+    assert(strcmp(s, "(init and |c and (bootstrap.mockempty.<let>.next"
+                  " => (nonnull and not valid)))") == 0);
   }
 }
 
 static error mk_except_constraint(const struct module *mod,
-                                  const struct node *for_error,
+                                  const struct node *node,
                                   const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   char s[2048] = { 0 };
   size_t pos = 0, len = ARRAY_SIZE(s);
 
-  pos += snprint_codeloc(s+pos, len-pos, mod, for_error);
+  pos += snprint_codeloc(s+pos, len-pos, mod, node);
   pos += snprintf(s+pos, len-pos, "constraint: ");
   pos += vsnprintf(s+pos, len-pos, fmt, ap);
-  if (for_error != NULL) {
+  if (node != NULL) {
     pos += snprintf(s+pos, len-pos, " ");
-    pos += snprint_constraint(s+pos, len-pos, mod, for_error->constraint);
+    pos += snprint_constraint(s+pos, len-pos, mod, node->constraint);
   }
 
   error e = 0;
@@ -343,7 +529,8 @@ except:
   return e;
 }
 
-static int constraint_get_single_tag_foreach(const ident *tag, cbool *value, void *user) {
+static int constraint_get_single_tag_each(const ident *tag, cbool *value,
+                                          void *user) {
   if (*value != U) {
     ident *result = user;
     if (*result != ID__NONE) {
@@ -354,70 +541,91 @@ static int constraint_get_single_tag_foreach(const ident *tag, cbool *value, voi
   return 0;
 }
 
-static error constraint_get_single_tag(ident *tag,
-                                       const struct module *mod,
-                                       const struct node *node) {
+error constraint_get_single_tag(ident *tag,
+                                const struct module *mod,
+                                const struct node *node) {
+  error e;
   struct constraint *c = node->constraint;
   INVARIANT_CONSTRAINT(c);
 
+  if (c->table[CBI__ANYTAG] != N) {
+    goto many;
+  }
+
   *tag = ID__NONE;
-  int too_many = tagset_foreach(&c->tags, constraint_get_single_tag_foreach, tag);
+  int too_many = tagset_foreach(&c->tags, constraint_get_single_tag_each, tag);
   if (too_many) {
-    error e = mk_except_constraint(mod, node, "too many possible tags");
-    EXCEPT(e);
+    goto many;
   } else if (*tag == ID__NONE) {
-    error e = mk_except_constraint(mod, node, "no known tag");
-    EXCEPT(e);
+    e = mk_except_constraint(mod, node, "no known tag");
+    THROW(e);
+  }
+
+  return 0;
+
+many:
+  e = mk_except_constraint(mod, node, "too many possible tags");
+  THROW(e);
+}
+
+static void constraint_copy(struct module *mod,
+                            struct constraint *cdst,
+                            const struct constraint *csrc);
+
+static int deepcopy_hypothesis_each(const struct node **cond,
+                                    struct hypothesis *hyp, void *user) {
+  struct module *mod = user;
+
+  struct constraint *if_true = hyp->if_true;
+  if (if_true != NULL) {
+    hyp->if_true = new_constraint(mod);
+    constraint_copy(mod, hyp->if_true, if_true);
+  }
+
+  struct constraint *if_false = hyp->if_false;
+  if (if_false != NULL) {
+    hyp->if_false = new_constraint(mod);
+    constraint_copy(mod, hyp->if_false, if_false);
   }
 
   return 0;
 }
 
-static void constraint_copy_direct(struct module *mod,
-                                   struct constraint *cdst,
-                                   const struct constraint *csrc) {
-  cdst->init = csrc->init;
-  cdst->nonnull = csrc->nonnull;
-
-  tagset_rehash(&cdst->tags, (struct tagset *) &csrc->tags);
+static void constraint_copy(struct module *mod,
+                            struct constraint *cdst,
+                            const struct constraint *csrc) {
+  memcpy(cdst->table, csrc->table, sizeof(cdst->table));
+  tagset_copy(&cdst->tags, &csrc->tags);
+  hypmap_copy(&cdst->under, &csrc->under);
+  hypmap_foreach(&cdst->under, deepcopy_hypothesis_each, mod);
 }
 
-static void constraint_copy(struct module *mod, struct node *dst, const struct node *src) {
-  struct constraint *cdst = dst->constraint;
-  const struct constraint *csrc = src->constraint;
-
-  constraint_copy_direct(mod, cdst, csrc);
-}
-
-static error constraint_check_init(struct module *mod, struct node *node) {
-  if (node->constraint->init != Y) {
-    error e = mk_except_constraint(mod, node, "'init' constraint not satisfied");
-    EXCEPT(e);
-  }
-  return 0;
-}
-
-static error constraint_check_nonnull(struct module *mod, struct node *node) {
-  if (node->constraint->nonnull != Y) {
-    error e = mk_except_constraint(mod, node, "'nonnull' constraint not satisfied");
-    EXCEPT(e);
-  }
-  return 0;
-}
-
-struct constraint_compatible_state {
+struct merge_state {
   struct module *mod;
   struct constraint *target;
-  const struct node *nc;
+  const struct node *for_error;
 };
 
-static int constraint_compatible_assign_tag_foreach(const ident *tag,
-                                                    cbool *value, void *user) {
-  struct constraint_compatible_state *st = user;
+static error constraint_check(struct module *mod, const struct node *node,
+                              enum constraint_builtins cbi, bool reversed) {
+  struct constraint *c = node->constraint;
+  if (c->table[cbi] != Y) {
+    const char *not = reversed ? "not " : "";
+    error e = mk_except_constraint(mod, node, "'%s%s' constraint not satisfied",
+                                   not, constraint_builtins_strings[cbi]);
+    EXCEPT(e);
+  }
+  return 0;
+}
+
+static int constraint_compatible_assign_tag_each(const ident *tag,
+                                                 cbool *value, void *user) {
+  struct merge_state *st = user;
 
   cbool *existing = tagset_get(&st->target->tags, *tag);
   if (existing == NULL || *existing == U) {
-    error e = mk_except_constraint(st->mod, st->nc, "constraint does not allow"
+    error e = mk_except_constraint(st->mod, st->for_error,
+                                   "constraint does not allow"
                                    " possible case '%s' from",
                                    idents_value(st->mod->gctx, *tag));
     THROW(e);
@@ -430,45 +638,41 @@ static error constraint_check_compatible_assign(struct module *mod,
                                                 const struct node *ntarget,
                                                 const struct node *nc) {
   struct constraint *target = ntarget->constraint;
-  struct constraint *c = (struct constraint *) nc->constraint;
+  struct constraint *c = CONST_CAST(struct constraint *, nc->constraint);
 
   error e;
-  if (target->init == Y && c->init != Y) {
-    e = mk_except_constraint(mod, nc,
-                             "'init' constraint not satisfied");
-    EXCEPT(e);
-  }
-  if (target->init == N && c->init != N) {
-    e = mk_except_constraint(mod, nc,
-                             "'not init' constraint does not allow 'init'");
-    EXCEPT(e);
-  }
-
-  if (target->nonnull == Y && c->nonnull != Y) {
-    e = mk_except_constraint(mod, nc,
-                             "'nonnull' constraint not satisfied");
-    EXCEPT(e);
-  }
-  if (target->nonnull == N && c->nonnull != N) {
-    e = mk_except_constraint(mod, nc,
-                             "'not nonnull' constraint does not allow 'nonnull'");
-    EXCEPT(e);
-  }
-
-  if (tagset_count(&target->tags) != 0) {
-    if (tagset_count(&c->tags) == 0) {
+  for (size_t cbi = 0; cbi < CBI__NUM; ++cbi) {
+    if (target->table[cbi] == Y && c->table[cbi] != Y) {
       e = mk_except_constraint(mod, nc,
-                               "constrained enum or union does not allow"
-                               " unconstrained enum or union");
+                               "'%s' constraint on target"
+                               " not satisfied by source",
+                               constraint_builtins_strings[cbi]);
+      EXCEPT(e);
+    }
+    if (target->table[cbi] == N && c->table[cbi] != N) {
+      e = mk_except_constraint(mod, nc,
+                               "'not %s' constraint on target"
+                               " not satisfied by source",
+                               constraint_builtins_strings[cbi]);
+      EXCEPT(e);
+    }
+  }
+
+  if (target->table[CBI__ANYTAG] == N) {
+    if (c->table[CBI__ANYTAG] != N) {
+      e = mk_except_constraint(mod, nc,
+                               "constrained enum or union target"
+                               " does not allow unconstrained"
+                               " enum or union source");
       THROW(e);
     }
 
-    struct constraint_compatible_state st = {
+    struct merge_state st = {
       .mod = mod,
       .target = target,
-      .nc = nc,
+      .for_error = nc,
     };
-    e = tagset_foreach(&c->tags, constraint_compatible_assign_tag_foreach, &st);
+    e = tagset_foreach(&c->tags, constraint_compatible_assign_tag_each, &st);
     EXCEPT(e);
   }
 
@@ -481,8 +685,8 @@ EXAMPLE_NCC_EMPTY(constraint) {
     struct node *nb = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
     nb->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, false);
-    constraint_set_init(mod, nb, false);
+    constraint_set(mod, na->constraint, CBI_INIT, false);
+    constraint_set(mod, nb->constraint, CBI_INIT, false);
     assert(0 == constraint_check_compatible_assign(mod, na, nb));
   }
   {
@@ -490,7 +694,7 @@ EXAMPLE_NCC_EMPTY(constraint) {
     struct node *nb = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
     nb->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, false);
+    constraint_set(mod, na->constraint, CBI_INIT, false);
     should_fail(constraint_check_compatible_assign(mod, na, nb));
   }
   {
@@ -498,8 +702,8 @@ EXAMPLE_NCC_EMPTY(constraint) {
     struct node *nb = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
     nb->constraint = new_constraint(mod);
-    constraint_set_init(mod, na, false);
-    constraint_set_nonnull(mod, nb, false);
+    constraint_set(mod, na->constraint, CBI_INIT, false);
+    constraint_set(mod, nb->constraint, CBI_NONNULL, false);
     should_fail(constraint_check_compatible_assign(mod, na, nb));
   }
   {
@@ -507,33 +711,35 @@ EXAMPLE_NCC_EMPTY(constraint) {
     struct node *nb = node_new_subnode(mod, mod->body);
     na->constraint = new_constraint(mod);
     nb->constraint = new_constraint(mod);
-    constraint_set_tag(mod, na, ID_C, false);
-    constraint_set_tag(mod, na, ID_CTOR, false);
-    constraint_set_tag(mod, nb, ID_C, false);
-    constraint_unset_tag(mod, na, ID_CTOR);
-    constraint_set_tag(mod, na, ID_CTOR, false);
+    constraint_set_tag(mod, na->constraint, ID_C, false);
+    constraint_set_tag(mod, na->constraint, ID_CTOR, false);
+    constraint_set_tag(mod, nb->constraint, ID_C, false);
+    constraint_unset_tag(mod, na->constraint, ID_CTOR);
+    constraint_set_tag(mod, na->constraint, ID_CTOR, false);
     assert(0 == constraint_check_compatible_assign(mod, na, nb));
   }
 }
 
 static error constraint_inference_ident(struct module *mod, struct node *node) {
+  const struct node *def = node->as.IDENT.def;
+  if (def == NULL
+      || (NM(def->which) & ( NM(IMPORT) | NM(MODULE) | NM(MODULE_BODY)))) {
+    // noop
+  } else {
+    constraint_copy(mod, node->constraint, def->constraint);
+  }
+
   struct node *prev_use = node->as.IDENT.prev_use;
   if (prev_use != NULL) {
-    if (prev_use->which == DEFNAME) {
-      if (node == prev_use->as.DEFNAME.pattern) {
-        // noop
-      } else {
-        constraint_copy(mod, node, prev_use->as.DEFNAME.expr);
-      }
-    } else {
-      constraint_copy(mod, node, prev_use);
-    }
+    constraint_copy(mod, node->constraint, prev_use->constraint);
   }
   return 0;
 }
 
-static error cond_descend_eval_bin(struct module *mod, struct node *conditioned,
-                                   struct node *conditioned_def,
+static error cond_descend_eval(struct module *mod, struct node *cond,
+                               struct node *node, bool reversed);
+
+static error cond_descend_eval_bin(struct module *mod, struct node *cond,
                                    struct node *node, bool reversed) {
   struct node *na = subs_first(node);
   struct node *nb = subs_last(node);
@@ -541,89 +747,124 @@ static error cond_descend_eval_bin(struct module *mod, struct node *conditioned,
   struct constraint *b = nb->constraint;
   enum token_type op = node->as.BIN.operator;
 
-  if (OP_KIND(op) != OP_BIN_SYM_PTR) {
+  if (OP_KIND(op) != OP_BIN_SYM_PTR && OP_KIND(op) != OP_BIN_SYM_BOOL) {
     return 0;
   }
 
   error e;
+  bool operand_reversed;
+
   switch (op) {
+  case Tand:
+    e = cond_descend_eval(mod, cond, na, reversed);
+    EXCEPT(e);
+    e = cond_descend_eval(mod, cond, nb, reversed);
+    EXCEPT(e);
+    return 0;
+  case Tor:
+    // FIXME: unsupported.
+    return 0;
+
   case TEQPTR:
-    if (a->nonnull == b->nonnull) {
+    if (a->table[CBI_NONNULL] == b->table[CBI_NONNULL]) {
       // noop
-    } else if (a->nonnull == N && b->nonnull == Y) {
+    } else if (a->table[CBI_NONNULL] == N && b->table[CBI_NONNULL] == Y) {
       e = mk_except_constraint(mod, NULL, "unsatisfiable === comparison"
                                " lhs is 'not nonnull', rhs is 'nonnull'");
       THROW(e);
-    } else if (a->nonnull == Y && b->nonnull == N) {
+    } else if (a->table[CBI_NONNULL] == Y && b->table[CBI_NONNULL] == N) {
       e = mk_except_constraint(mod, NULL, "unsatisfiable === comparison"
                                " lhs is 'nonnull', rhs is 'not nonnull'");
       THROW(e);
     }
+    operand_reversed = reversed;
     break;
   case TNEPTR:
-    if (a->nonnull != b->nonnull) {
+    if (a->table[CBI_NONNULL] != b->table[CBI_NONNULL]) {
       // noop
-    } else if (a->nonnull == N && b->nonnull == N) {
+    } else if (a->table[CBI_NONNULL] == N && b->table[CBI_NONNULL] == N) {
       e = mk_except_constraint(mod, NULL, "unsatisfiable !== comparison"
                                " lhs is 'not nonnull', rhs is 'not nonnull'");
       THROW(e);
-    } else if (a->nonnull == Y && b->nonnull == Y) {
+    } else if (a->table[CBI_NONNULL] == Y && b->table[CBI_NONNULL] == Y) {
       e = mk_except_constraint(mod, NULL, "unsatisfiable !== comparison"
                                " lhs is 'nonnull', rhs is 'nonnull'");
       THROW(e);
     }
-    reversed = !reversed;
+    operand_reversed = !reversed;
     break;
   default:
     assert(false);
     break;
   }
 
-  if (b->nonnull == U) {
+  if (b->table[CBI_NONNULL] == U) {
     SWAP(a, b);
     SWAP(na, nb);
   }
 
-  if (a->nonnull == U) {
-    if (na->which == IDENT && na->as.IDENT.def == conditioned_def) {
-      struct constraint *c = conditioned->constraint;
-      switch (c->nonnull) {
-      case U:
-        c->nonnull = reversed ? Y : N;
-        break;
-      case Y:
-        assert(!reversed);
-        break;
-      case N:
-        assert(reversed);
-        break;
+  if (a->table[CBI_NONNULL] == U) {
+    struct constraint *ca = assuming(mod, a, cond, reversed);
+    switch (ca->table[CBI_NONNULL]) {
+    case U:
+      if (b->table[CBI_NONNULL] == Y) {
+        constraint_set(mod, ca, CBI_NONNULL, operand_reversed);
+      } else if (b->table[CBI_NONNULL] == N) {
+        constraint_set(mod, ca, CBI_NONNULL, !operand_reversed);
       }
+      break;
+    case Y:
+      if (b->table[CBI_NONNULL] == Y) {
+        assert(operand_reversed);
+      } else if (b->table[CBI_NONNULL] == N) {
+        assert(!operand_reversed);
+      }
+      break;
+    case N:
+      if (b->table[CBI_NONNULL] == Y) {
+        assert(!operand_reversed);
+      } else if (b->table[CBI_NONNULL] == N) {
+        assert(operand_reversed);
+      }
+      break;
     }
   }
 
   return 0;
 }
 
-static error cond_descend_eval_un(struct module *mod, struct node *conditioned,
-                                  struct node *conditioned_def,
+static error cond_descend_eval_un(struct module *mod, struct node *cond,
                                   struct node *node, bool reversed) {
+  error e;
+  switch (node->as.UN.operator) {
+  case Tnot:
+    e = cond_descend_eval(mod, cond, subs_first(node), !reversed);
+    EXCEPT(e);
+    break;
+  default:
+    break;
+  }
   return 0;
 }
 
-static error cond_descend_eval(struct module *mod, struct node *conditioned,
-                               struct node *conditioned_def,
+// This assumes SSA form and therefore doesn't need to be recursive.
+static error cond_descend_eval(struct module *mod, struct node *cond,
                                struct node *node, bool reversed) {
-  assert(conditioned->which == PHI);
-
   error e;
   switch (node->which) {
   case BIN:
-    e = cond_descend_eval_bin(mod, conditioned, conditioned_def, node, reversed);
+    e = cond_descend_eval_bin(mod, cond, node, reversed);
     EXCEPT(e);
     break;
   case UN:
-    e = cond_descend_eval_un(mod, conditioned, conditioned_def, node, reversed);
+    e = cond_descend_eval_un(mod, cond, node, reversed);
     EXCEPT(e);
+    break;
+  case IDENT:
+    {
+      struct constraint *c = assuming(mod, node->constraint, cond, reversed);
+      c->table[CBI_EQTRUE] = reversed ? N : Y;
+    }
     break;
   default:
     break;
@@ -632,60 +873,170 @@ static error cond_descend_eval(struct module *mod, struct node *conditioned,
   return 0;
 }
 
-static error constraint_inference_phi_conditioned(struct module *mod,
-                                                  struct node *node) {
-  assert(vecnode_count(&node->as.PHI.ancestors) == 1);
-  struct node *ancestor = vecnode_get(&node->as.PHI.ancestors, 0);
-  constraint_copy(mod, node, ancestor);
-
-  struct node *def = ancestor->which == IDENT ? ancestor->as.IDENT.def : ancestor;
-
-  error e;
-  struct branch_state *br_st = mod->state->branch_state;
-  if (br_st->branching->which == MATCH) {
-    struct node *pattern = prev(node_parent(node));
-    if (node_ident(pattern) == ID_OTHERWISE) {
+static void constraint_inference_phi_conditioned_match_pattern(struct module *mod,
+                                                               struct node *node) {
+  struct node *pattern = prev(parent(node));
+  if (node_ident(pattern) == ID_OTHERWISE) {
+    pattern = prev(prev(pattern));
+    while (pattern != NULL) {
+      constraint_set_tag(mod, node->constraint, node_ident(pattern), true);
       pattern = prev(prev(pattern));
-      while (pattern != NULL) {
-        constraint_set_tag(mod, node, node_ident(pattern), true);
-        pattern = prev(prev(pattern));
-      }
-    } else {
-      constraint_set_tag(mod, node, node_ident(pattern), false);
     }
-
   } else {
-    for (size_t nth = 0; nth < br_st->nth_branch; ++nth) {
-      e = cond_descend_eval(
-        mod, node, def,
-        node_branching_nth_cond(br_st->branching, nth), true);
-      EXCEPT(e);
-    }
+    constraint_set_tag(mod, node->constraint, node_ident(pattern), false);
+  }
+}
 
-    e = cond_descend_eval(
-      mod, node, def,
-      node_branching_nth_cond(br_st->branching, br_st->nth_branch), false);
-    EXCEPT(e);
+static void merge_branch_assumption(struct module *mod,
+                                    struct node *phi,
+                                    struct node *cond,
+                                    bool reversed,
+                                    const struct ancestor *ancestor) {
+  assert(phi->which == PHI);
+  struct constraint *c = phi->constraint;
+  struct constraint *a = try_assuming(mod, c, cond, reversed);
+  if (a != NULL) {
+    constraint_merge_hypothesis(c, a);
+  }
+}
+
+static error constraint_inference_phi_conditioned(struct module *mod,
+                                                  struct node *phi) {
+  assert(phi->as.PHI.is_conditioned);
+  assert(vecancestor_count(&phi->as.PHI.ancestors) == 1);
+  const struct ancestor *ancestor = vecancestor_get(&phi->as.PHI.ancestors, 0);
+  constraint_copy(mod, phi->constraint, ancestor->prev->constraint);
+
+  struct branch_state *br_st = mod->state->branch_state;
+  struct node *branching = br_st->branching;
+  struct node *cond = br_st->cond;
+  const bool reversed = br_st->reversed;
+
+  switch (branching->which) {
+  case MATCH:
+    constraint_inference_phi_conditioned_match_pattern(mod, phi);
+    break;
+  case IF:
+    merge_branch_assumption(mod, phi, cond, reversed, ancestor);
+    break;
+  case WHILE:
+    merge_branch_assumption(mod, phi, cond, reversed, ancestor);
+    break;
+  case TRY:
+    // FIXME: unsupported
+    break;
+  default:
+    assert(false);
+    return 0;
   }
 
   return 0;
 }
 
-static int least_common_tag_foreach(const ident *name, cbool *value, void *user) {
-  if (*value == U) {
+// This is inherently pessimistic. In general, we cannot know if a given set
+// of branches is exhaustive. Yet a constraint can be added to a PHI only if
+// the branches are unanimous.
+//   let x
+//   such
+//     if i > 0
+//       x = 0
+//     elif i <= 0
+//       x = 1
+// We don't know that x::init in all cases, because we don't know that 'i>0
+// or i<=0' is exhaustive. The LIR conversion adds an implicit else case in
+// which x is not initialized, but we're unable to tell (in general) that
+// the else case is redundant. N programmers should write the above thusly:
+//   let x
+//   such
+//     if i > 0
+//       x = 0
+//     else
+//       assert <- i <= 0
+//       x = 1
+
+// FIXME:
+//  if cond
+//    x ::not |A
+//  else
+//    x ::not |A
+//  x ::()
+//
+//  Then 'not |A' is lost!
+static int all_possible_tags_each(const ident *tag, cbool *value, void *user) {
+  if (*value != Y) {
     return 0;
   }
 
   struct tagset *ctags = user;
-  cbool *existing = tagset_get(ctags, *name);
-  if (existing == NULL) {
-    tagset_set(ctags, *name, *value);
-  } else if (*existing == U) {
-    *existing = *value;
-  } else if (*existing != *value) {
-    *existing = U;
+  cbool *existing = tagset_get(ctags, *tag);
+  if (existing != NULL) {
+    *existing = Y;
+  } else {
+    tagset_set(ctags, *tag, Y);
   }
+
   return 0;
+}
+
+// FIXME: same as all_possible_tags_each()
+static int unset_redundant_hypothesis_tag_each(const ident *tag, cbool *value,
+                                               void *user) {
+  if (*value != Y) {
+    return 0;
+  }
+
+  struct tagset *ctags = user;
+  cbool *existing = tagset_get(ctags, *tag);
+  if (existing != NULL && *existing == *value) {
+    *value = U;
+  }
+
+  return 0;
+}
+
+static void merge_unanimous_hypotheses(struct module *mod,
+                                       struct constraint *c,
+                                       struct node *cond) {
+  cond = cond_def(cond);
+
+  struct hypothesis *hyp = hypmap_get(&c->under, cond);
+  if (hyp == NULL) {
+    return;
+  }
+
+  struct constraint *a = hyp->if_true;
+  struct constraint *b = hyp->if_false;
+
+  if (a == NULL || b == NULL) {
+    return;
+  }
+
+  for (size_t cbi = 0; cbi < CBI__NUM; ++cbi) {
+    if (a->table[cbi] != U && a->table[cbi] == b->table[cbi]) {
+      c->table[cbi] = a->table[cbi];
+      a->table[cbi] = U;
+      b->table[cbi] = U;
+    }
+  }
+
+  if (c->table[CBI__ANYTAG] == N) {
+    tagset_destroy(&c->tags);
+    tagset_init(&c->tags, 0);
+    tagset_set_delete_val(&c->tags, U);
+  }
+
+  if (a->table[CBI__ANYTAG] == N && b->table[CBI__ANYTAG] == N) {
+    a->table[CBI__ANYTAG] = N;
+    tagset_foreach(&a->tags, all_possible_tags_each, &c->tags);
+    tagset_foreach(&b->tags, all_possible_tags_each, &c->tags);
+
+    tagset_foreach(&a->tags, unset_redundant_hypothesis_tag_each, &c->tags);
+    tagset_foreach(&b->tags, unset_redundant_hypothesis_tag_each, &c->tags);
+  } else if (a->table[CBI__ANYTAG] == Y || b->table[CBI__ANYTAG] == Y) {
+    c->table[CBI__ANYTAG] = Y;
+    a->table[CBI__ANYTAG] = U;
+    b->table[CBI__ANYTAG] = U;
+  }
 }
 
 static error constraint_inference_phi(struct module *mod, struct node *node) {
@@ -696,42 +1047,32 @@ static error constraint_inference_phi(struct module *mod, struct node *node) {
   }
 
   struct constraint *c = node->constraint;
-  for (size_t n = 0, count = vecnode_count(&node->as.PHI.ancestors);
+
+  for (size_t n = 0, count = vecancestor_count(&node->as.PHI.ancestors);
        n < count; ++n) {
-    struct node *na = vecnode_get(&node->as.PHI.ancestors, n);
-    struct constraint *a = na->constraint;
-
-    if (n == 0) {
-      constraint_copy(mod, node, na);
-      continue;
-    }
-
-    if (c->init == U) {
-      c->init = a->init;
-    } else if (c->init != a->init) {
-      c->init = U;
-    }
-
-    if (c->nonnull == U) {
-      c->nonnull = a->nonnull;
-    } else if (c->nonnull != a->nonnull) {
-      c->nonnull = U;
-    }
-
-    if (tagset_count(&c->tags) == 0) {
-      tagset_rehash(&c->tags, &a->tags);
-    } else if (tagset_count(&a->tags) == 0) {
-      tagset_destroy(&c->tags);
-      tagset_set_delete_val(&c->tags, U);
+    const struct ancestor *ancestor = vecancestor_get(&node->as.PHI.ancestors, n);
+    if (ancestor->cond != NULL) {
+      struct constraint *a = assuming(mod, c, ancestor->cond, ancestor->reversed);
+      constraint_copy(mod, a, ancestor->prev->constraint);
     } else {
-      tagset_foreach(&a->tags, least_common_tag_foreach, &c->tags);
+      constraint_copy(mod, c, ancestor->prev->constraint);
     }
   }
+
+  for (size_t n = 0, count = vecancestor_count(&node->as.PHI.ancestors);
+       n < count; ++n) {
+    const struct ancestor *ancestor = vecancestor_get(&node->as.PHI.ancestors, n);
+    if (ancestor->cond != NULL) {
+      merge_unanimous_hypotheses(mod, c, ancestor->cond);
+    }
+  }
+
   return 0;
 }
 
-bool constraint_has_common_root_tag(ident *tag,
-                                    const struct module *mod, const struct node *node) {
+static bool constraint_has_common_root_tag(ident *tag,
+                                           const struct module *mod,
+                                           const struct node *node) {
   size_t count = tagset_count(&node->constraint->tags);
   if (count == 0) {
     return false;
@@ -746,44 +1087,56 @@ bool constraint_has_common_root_tag(ident *tag,
 
 static void constraint_defchoice_container(const struct node **container,
                                            struct module *mod, struct node *node) {
-  struct node *parent = subs_first(node);
-  assert(parent->flags & NODE_IS_DEFCHOICE);
+  struct node *par = subs_first(node);
+  assert(par->flags & NODE_IS_DEFCHOICE);
 
   ident common = ID__NONE;
-  if (constraint_has_common_root_tag(&common, mod, parent)) {
-    *container = node_get_member_const(mod, typ_definition_const(parent->typ),
+  if (constraint_has_common_root_tag(&common, mod, par)) {
+    *container = node_get_member_const(mod, typ_definition_const(par->typ),
                                        common);
   } else {
-    *container = typ_definition_const(parent->typ);
+    *container = typ_definition_const(par->typ);
   }
 }
 
 static error constraint_inference_bin_acc(struct module *mod,
                                           struct node *node) {
-  struct node *parent = subs_first(node);
+  struct node *base = subs_first(node);
   struct node *name = subs_last(node);
 
   error e;
-  if (!(parent->flags & NODE_IS_TYPE)) {
-    e = constraint_check_init(mod, parent);
+  if (!(base->flags & NODE_IS_TYPE)) {
+    e = constraint_check(mod, base, CBI_INIT, false);
     EXCEPT(e);
   }
 
-  if (parent->flags & NODE_IS_DEFCHOICE) {
-    const struct node *container = NULL;
+  struct node *field = NULL;
+  const struct node *container;
+  if (base->flags & NODE_IS_DEFCHOICE) {
     constraint_defchoice_container(&container, mod, node);
-
-    struct node *field = NULL;
-    e = scope_lookup_ident_immediate(&field, name, mod, &container->scope,
-                                     node_ident(name), false);
-    EXCEPT(e);
+  } else if (typ_is_reference(base->typ)) {
+    container = typ_definition(typ_generic_arg(base->typ, 0));
+  } else {
+    container = typ_definition_const(base->typ);
+  }
+  e = scope_lookup_ident_immediate(&field, name, mod, &container->scope,
+                                   node_ident(name), false);
+  EXCEPT(e);
+  if (NM(field->which) & ( NM(IMPORT) | NM(MODULE) | NM(MODULE_BODY) )) {
+    // noop
+  } else {
+    constraint_copy(mod, node->constraint, field->constraint);
   }
 
   if (node->flags & NODE_IS_DEFCHOICE) {
-    constraint_set_tag(mod, node, node_ident(name), false);
+    constraint_set_tag(mod, node->constraint, node_ident(name), false);
   }
 
-  constraint_set_init(mod, node, false);
+  if (base->constraint->table[CBI_INIT] != U) {
+    constraint_set(mod, node->constraint, CBI_INIT,
+                   base->constraint->table[CBI_INIT] == N);
+  }
+
   return 0;
 }
 
@@ -797,10 +1150,11 @@ static error constraint_inference_bin(struct module *mod,
     return 0;
   case OP_BIN_SYM:
     if (OP_IS_ASSIGN(op)) {
-      e = constraint_check_init(mod, subs_last(node));
+      e = constraint_check(mod, subs_last(node), CBI_INIT, false);
       EXCEPT(e);
-      constraint_copy(mod, subs_first(node), subs_last(node));
-      constraint_set_init(mod, node, false);
+      constraint_copy(mod, subs_first(node)->constraint,
+                      subs_last(node)->constraint);
+      constraint_set(mod, node->constraint, CBI_INIT, false);
       return 0;
     }
     // fallthrough
@@ -809,11 +1163,11 @@ static error constraint_inference_bin(struct module *mod,
   case OP_BIN_SYM_BW:
   case OP_BIN_SYM_PTR:
   case OP_BIN_BW_RHS_UNSIGNED:
-    e = constraint_check_init(mod, subs_first(node));
+    e = constraint_check(mod, subs_first(node), CBI_INIT, false);
     EXCEPT(e);
-    e = constraint_check_init(mod, subs_last(node));
+    e = constraint_check(mod, subs_last(node), CBI_INIT, false);
     EXCEPT(e);
-    constraint_set_init(mod, node, false);
+    constraint_set(mod, node->constraint, CBI_INIT, false);
     return 0;
   case OP_BIN_ACC:
     e = constraint_inference_bin_acc(mod, node);
@@ -838,24 +1192,24 @@ static error constraint_inference_un(struct module *mod,
     case TNULREFWILDCARD:
       break;
     default:
-      constraint_set_nonnull(mod, node, false);
+      constraint_set(mod, node->constraint, CBI_NONNULL, false);
       break;
     }
-    constraint_set_init(mod, node, false);
+    constraint_set(mod, node->constraint, CBI_INIT, false);
     return 0;
   case OP_UN_DEREF:
-    e = constraint_check_init(mod, subs_first(node));
+    e = constraint_check(mod, subs_first(node), CBI_INIT, false);
     EXCEPT(e);
-    e = constraint_check_nonnull(mod, subs_first(node));
+    e = constraint_check(mod, subs_first(node), CBI_NONNULL, false);
     EXCEPT(e);
-    constraint_set_init(mod, node, false);
+    constraint_set(mod, node->constraint, CBI_INIT, false);
     return 0;
   case OP_UN_BOOL:
   case OP_UN_ARITH:
   case OP_UN_BW:
-    e = constraint_check_init(mod, subs_first(node));
+    e = constraint_check(mod, subs_first(node), CBI_INIT, false);
     EXCEPT(e);
-    constraint_set_init(mod, node, false);
+    constraint_set(mod, node->constraint, CBI_INIT, false);
     return 0;
   default:
     assert(false);
@@ -873,7 +1227,8 @@ static error constraint_inference_tuples(struct module *mod,
 static error constraint_inference_call(struct module *mod,
                                        struct node *node) {
   if (node->flags & NODE_IS_TYPE) {
-    constraint_copy(mod, node, typ_definition_const(node->typ));
+    constraint_copy(mod, node->constraint,
+                    typ_definition_const(node->typ)->constraint);
     return 0;
   }
 
@@ -905,7 +1260,7 @@ static error constraint_inference_call(struct module *mod,
   }
 
   const struct node *ret = subs_at_const(funargs, n);
-  constraint_copy(mod, node, ret);
+  constraint_copy(mod, node->constraint, ret->constraint);
 
   return 0;
 }
@@ -913,13 +1268,15 @@ static error constraint_inference_call(struct module *mod,
 static error constraint_inference_return(struct module *mod,
                                          struct node *node) {
   const struct node *ret = module_retval_get(mod);
-  error e = constraint_check_compatible_assign(mod, ret, subs_first(node));
-  EXCEPT(e);
+  if (!typ_equal(ret->typ, TBI_VOID)) {
+    error e = constraint_check_compatible_assign(mod, ret, subs_first(node));
+    EXCEPT(e);
+  }
 
   return 0;
 }
 
-static int check_weaker_tags_foreach(const ident *name, cbool *value, void *user) {
+static int check_weaker_tags_each(const ident *name, cbool *value, void *user) {
   struct tagset *right_tags = user;
   cbool *existing = tagset_get(right_tags, *name);
   if (existing != NULL && *existing == Y && (*value == N || *value == U)) {
@@ -928,7 +1285,7 @@ static int check_weaker_tags_foreach(const ident *name, cbool *value, void *user
   return 0;
 }
 
-static int restrict_tags_foreach(const ident *name, cbool *value, void *user) {
+static int restrict_tags_each(const ident *name, cbool *value, void *user) {
   if (*value == U) {
     return 0;
   }
@@ -955,7 +1312,6 @@ static error unify_defchoice_init(struct module *mod, struct node *node,
   struct node *dright = typ_definition(nright->typ);
 
   assert(tagset_count(&left->tags) == 0);
-  assert(dleft->as.DEFINCOMPLETE.variant_of != NULL);
   assert(nright->flags & NODE_IS_DEFCHOICE);
 
   ident root = ID__NONE;
@@ -980,16 +1336,16 @@ static error unify_defchoice_init(struct module *mod, struct node *node,
     typ_link_tentative(field->typ, next(name)->typ);
   }
 
-  constraint_set_tag(mod, node, root, false);
-  constraint_set_init(mod, node, false);
-  constraint_copy(mod, subs_first(node), node);
+  constraint_set_tag(mod, node->constraint, root, false);
+  constraint_set(mod, node->constraint, CBI_INIT, false);
+  constraint_copy(mod, subs_first(node)->constraint, node->constraint);
 
   return 0;
 }
 
 static error constraint_inference_typeconstraint(struct module *mod,
                                                  struct node *node) {
-  constraint_copy(mod, node, subs_first(node));
+  constraint_copy(mod, node->constraint, subs_first(node)->constraint);
 
   struct constraint *c = node->constraint;
   struct node *nleft = subs_first(node);
@@ -999,7 +1355,6 @@ static error constraint_inference_typeconstraint(struct module *mod,
   error e;
 
   if (nleft->which == INIT
-      && typ_definition_const(nleft->typ)->which == DEFINCOMPLETE
       && tagset_count(&right->tags) == 1) {
     // As an exception, a TYPECONSTRAINT with a constraint can narrow the
     // possible tag cases when the following form is used:
@@ -1009,21 +1364,21 @@ static error constraint_inference_typeconstraint(struct module *mod,
     return 0;
   }
 
-  if (c->init == U) {
-    c->init = right->init;
-  } else if (right->init == U) {
+  if (c->table[CBI_INIT] == U) {
+    c->table[CBI_INIT] = right->table[CBI_INIT];
+  } else if (right->table[CBI_INIT] == U) {
     // noop
-  } else if (c->init != right->init) {
+  } else if (c->table[CBI_INIT] != right->table[CBI_INIT]) {
     e = mk_except_constraint(mod, nright,
                              "incompatible constraints regarding 'init'");
     THROW(e);
   }
 
-  if (c->nonnull == U) {
-    c->nonnull = right->nonnull;
-  } else if (right->nonnull == U) {
+  if (c->table[CBI_NONNULL] == U) {
+    c->table[CBI_NONNULL] = right->table[CBI_NONNULL];
+  } else if (right->table[CBI_NONNULL] == U) {
     // noop
-  } else if (c->nonnull != right->nonnull) {
+  } else if (c->table[CBI_NONNULL] != right->table[CBI_NONNULL]) {
     e = mk_except_constraint(mod, nright,
                              "incompatible constraints regarding 'nonnull'");
     THROW(e);
@@ -1037,7 +1392,7 @@ static error constraint_inference_typeconstraint(struct module *mod,
                              "unconstrained tags");
     EXCEPT(e);
   } else {
-    int ret = tagset_foreach(&right->tags, check_weaker_tags_foreach, &c->tags);
+    int ret = tagset_foreach(&right->tags, check_weaker_tags_each, &c->tags);
     if (ret != 0) {
       ident failed = ret;
       e = mk_except_constraint(mod, nright,
@@ -1047,7 +1402,7 @@ static error constraint_inference_typeconstraint(struct module *mod,
       EXCEPT(e);
     }
 
-    ret = tagset_foreach(&c->tags, restrict_tags_foreach, &right->tags);
+    ret = tagset_foreach(&c->tags, restrict_tags_each, &right->tags);
     if (ret != 0) {
       ident failed = ret;
       e = mk_except_constraint(mod, nright,
@@ -1059,14 +1414,34 @@ static error constraint_inference_typeconstraint(struct module *mod,
 
   // Copy over to LHS as the TYPECONSTRAINT itself will get elided in
   // step_remove_typeconstraints().
-  constraint_copy(mod, subs_first(node), node);
+  constraint_copy(mod, subs_first(node)->constraint, node->constraint);
+  return 0;
+}
+
+static error constraint_inference_defname(struct module *mod,
+                                          struct node *node) {
+  assert(node->which == DEFNAME);
+
+  constraint_copy(mod, node->constraint, subs_last(node)->constraint);
+  if (typ_isa(node->typ, TBI_DEFAULT_CTOR)) {
+    constraint_set(mod, node->constraint, CBI_INIT, false);
+  }
+
+  if (typ_equal(node->typ, TBI_BOOL)) {
+    error e = cond_descend_eval(mod, node, subs_last(node), false);
+    EXCEPT(e);
+
+    e = cond_descend_eval(mod, node, subs_last(node), true);
+    EXCEPT(e);
+  }
+
   return 0;
 }
 
 static error constraint_inference_defarg(struct module *mod,
                                          struct node *node) {
-  constraint_copy(mod, node, subs_last(node));
-  constraint_set_init(mod, node, false);
+  constraint_copy(mod, node->constraint, subs_last(node)->constraint);
+  constraint_set(mod, node->constraint, CBI_INIT, false);
   return 0;
 }
 
@@ -1075,10 +1450,18 @@ static error constraint_inference_deffield(struct module *mod,
   return 0;
 }
 
+static error constraint_inference_defchoice(struct module *mod,
+                                            struct node *node) {
+  if (!node->as.DEFCHOICE.has_payload) {
+    constraint_set(mod, node->constraint, CBI_INIT, false);
+  }
+  return 0;
+}
+
 static error constraint_inference_definitions(struct module *mod,
                                               struct node *node) {
   if (typ_is_reference(node->typ) && !typ_is_nullable_reference(node->typ)) {
-    constraint_set_nonnull(mod, node, false);
+    constraint_set(mod, node->constraint, CBI_NONNULL, false);
   }
   return 0;
 }
@@ -1086,7 +1469,7 @@ static error constraint_inference_definitions(struct module *mod,
 static error constraint_inference_genarg(struct module *mod,
                                          struct node *node) {
   if (typ_is_reference(node->typ) && !typ_is_nullable_reference(node->typ)) {
-    constraint_set_nonnull(mod, node, false);
+    constraint_set(mod, node->constraint, CBI_NONNULL, false);
   }
   return 0;
 }
@@ -1098,7 +1481,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
   DSTEP(mod, node);
   error e;
 
-  if (node->typ == TBI__NOT_TYPEABLE) {
+  if (node->typ == TBI__NOT_TYPEABLE && node->which != PHI) {
     return 0;
   }
 
@@ -1106,8 +1489,8 @@ error step_constraint_inference(struct module *mod, struct node *node,
 
   switch (node->which) {
   case NUL:
-    constraint_set_init(mod, node, false);
-    constraint_set_nonnull(mod, node, true);
+    constraint_set(mod, node->constraint, CBI_INIT, false);
+    constraint_set(mod, node->constraint, CBI_NONNULL, true);
     break;
   case IDENT:
     e = constraint_inference_ident(mod, node);
@@ -1122,8 +1505,12 @@ error step_constraint_inference(struct module *mod, struct node *node,
   case STRING:
   case SIZEOF:
   case ALIGNOF:
+    constraint_set(mod, node->constraint, CBI_INIT, false);
+    break;
   case INIT:
-    constraint_set_init(mod, node, false);
+    if (typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
+      constraint_set(mod, node->constraint, CBI_INIT, false);
+    }
     break;
   case BIN:
     e = constraint_inference_bin(mod, node);
@@ -1134,8 +1521,6 @@ error step_constraint_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case TUPLE:
-  case TUPLEEXTRACT:
-  case TUPLENTH:
     e = constraint_inference_tuples(mod, node);
     EXCEPT(e);
     break;
@@ -1144,7 +1529,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case CALLNAMEDARG:
-    constraint_copy(mod, node, subs_first(node));
+    constraint_copy(mod, node->constraint, subs_first(node)->constraint);
     break;
   case RETURN:
     e = constraint_inference_return(mod, node);
@@ -1152,7 +1537,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
     break;
   case BLOCK:
   case CATCH:
-    constraint_copy(mod, node, subs_last(node));
+    constraint_copy(mod, node->constraint, subs_last(node)->constraint);
     break;
   case IF:
   case WHILE:
@@ -1164,23 +1549,14 @@ error step_constraint_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case DYN:
-    constraint_copy(mod, node, subs_first(node));
+    constraint_copy(mod, node->constraint, subs_first(node)->constraint);
+    break;
+  case DEFALIAS:
+    constraint_copy(mod, node->constraint, subs_last(node)->constraint);
     break;
   case DEFNAME:
-    if (node->as.DEFNAME.expr != NULL) {
-      constraint_copy(mod, node, node->as.DEFNAME.expr);
-    }
-    break;
-  case DEFPATTERN:
-    FOREACH_SUB(d, node) {
-      if (d->which == DEFNAME) {
-        if (typ_isa(d->typ, TBI_DEFAULT_CTOR)) {
-          constraint_set_init(mod, d, false);
-        }
-
-        constraint_copy(mod, d->as.DEFNAME.pattern, d);
-      }
-    }
+    e = constraint_inference_defname(mod, node);
+    EXCEPT(e);
     break;
   case DEFARG:
     e = constraint_inference_defarg(mod, node);
@@ -1190,11 +1566,15 @@ error step_constraint_inference(struct module *mod, struct node *node,
     e = constraint_inference_deffield(mod, node);
     EXCEPT(e);
     break;
+  case DEFCHOICE:
+    e = constraint_inference_defchoice(mod, node);
+    EXCEPT(e);
+    break;
   case DIRECTDEF:
     {
       struct node *def = typ_definition(node->as.DIRECTDEF.typ);
       if (def->constraint != NULL) {
-        constraint_copy(mod, node, def);
+        constraint_copy(mod, node->constraint, def->constraint);
       }
     }
     break;
@@ -1208,8 +1588,13 @@ error step_constraint_inference(struct module *mod, struct node *node,
     e = constraint_inference_genarg(mod, node);
     EXCEPT(e);
     break;
+  case WITHIN:
+    constraint_set(mod, node->constraint, CBI_INIT, false);
+    constraint_set(mod, node->constraint, CBI_NONNULL, false);
+    break;
   case FOR:
   case BREAK:
+  case JUMP:
   case CONTINUE:
   case NOOP:
   case EXCEP:
@@ -1225,8 +1610,6 @@ error step_constraint_inference(struct module *mod, struct node *node,
   case POST:
   case INVARIANT:
   case EXAMPLE:
-  case DEFCHOICE:
-  case WITHIN:
   case ISALIST:
   case ISA:
   case IMPORT:
@@ -1249,8 +1632,8 @@ struct check_tag_state {
   struct tagset *matched;
 };
 
-static int check_tag_is_matched_foreach(const ident *name, cbool *value,
-                                        void *user) {
+static int check_tag_is_matched_each(const ident *name, cbool *value,
+                                     void *user) {
   struct check_tag_state *st = user;
   if (tagset_get(st->matched, *name) == NULL) {
     error e = mk_except_type(st->mod, st->node,
@@ -1315,7 +1698,7 @@ error step_check_exhaustive_match(struct module *mod, struct node *node,
     .matched = &matched,
   };
   e = (error) tagset_foreach(&expr->constraint->tags,
-                             check_tag_is_matched_foreach, &st);
+                             check_tag_is_matched_each, &st);
   GOTO_EXCEPT(e);
 
 ok:

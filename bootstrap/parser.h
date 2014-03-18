@@ -4,6 +4,7 @@
 #include "common.h"
 #include "lexer.h"
 #include "scope.h"
+#include "vector.h"
 
 #define MODULE_PATH_MAXLEN 16
 
@@ -25,8 +26,6 @@ enum node_which {
   BIN,
   UN,
   TUPLE,
-  TUPLEEXTRACT,
-  TUPLENTH,
   CALL,
   CALLNAMEDARG,
   INIT,
@@ -46,7 +45,6 @@ enum node_which {
   EXCEP,
   THROW,
   JUMP,
-  LANDING,
   PHI,
   TYPECONSTRAINT,
   DYN,
@@ -55,6 +53,7 @@ enum node_which {
   DEFINCOMPLETE,
   DEFMETHOD,
   DEFINTF,
+  DEFALIAS,
   DEFNAME,
   DEFPATTERN,
   FUNARGS,
@@ -80,6 +79,13 @@ enum node_which {
   DIRECTDEF,
   NODE__NUM,
 };
+
+#define NMASK_HIR_ONLY \
+  ( NM(FUTURE) | NM(FOR) | NM(BREAK) \
+    | NM(EXCEP) | NM(THROW) \
+    | NM(DEFPATTERN) )
+
+#define NMASK_LIR_ONLY ( NM(JUMP) )
 
 const char *node_which_strings[NODE__NUM];
 
@@ -139,98 +145,14 @@ struct toplevel {
   ssize_t yet_to_pass;
 };
 
-struct vecnode {
-  struct node *small[4];
-  struct node **large;
-  size_t count;
-};
-
-static inline size_t vecnode_count(struct vecnode *v) {
-  return v->count;
-}
-
-static inline struct node *vecnode_get(struct vecnode *v, size_t n) {
-  assert(n < v->count);
-  if (v->count <= ARRAY_SIZE(v->small)) {
-    return v->small[n];
-  } else {
-    return v->large[n];
-  }
-}
-
-static inline void vecnode_destroy(struct vecnode *v) {
-  free(v->large);
-  memset(v, 0, sizeof(*v));
-}
-
-static inline void vecnode_push(struct vecnode *v, struct node *node) {
-  if (v->count < ARRAY_SIZE(v->small)) {
-    v->small[v->count] = node;
-    v->count += 1;
-  } else if (v->count == ARRAY_SIZE(v->small)) {
-    v->count += 1;
-    v->large = calloc(v->count, sizeof(*v->large));
-    memcpy(v->large, v->small, sizeof(v->small));
-    v->large[v->count - 1] = node;
-  } else {
-    v->count += 1;
-    v->large = realloc(v->large, v->count * sizeof(*v->large));
-    v->large[v->count - 1] = node;
-  }
-}
-
-static inline void vecnode_append(struct vecnode *v, struct vecnode *w) {
-  if (v->count + w->count <= ARRAY_SIZE(v->small)) {
-    memcpy(v->small + v->count, w->small, w->count * sizeof(*w->small));
-    v->count += w->count;
-  } else {
-    const size_t old_count = v->count;
-    v->count += w->count;
-    v->large = realloc(v->large, v->count * sizeof(*v->large));
-    if (w->count <= ARRAY_SIZE(w->small)) {
-      memcpy(v->large + old_count, w->small, w->count * sizeof(*v->large));
-    } else {
-      memcpy(v->large + old_count, w->large, w->count * sizeof(*v->large));
-    }
-  }
-}
-
-static inline struct node *vecnode_pop(struct vecnode *v) {
-  assert(v->count > 0);
-
-  struct node *r;
-  if (v->count <= ARRAY_SIZE(v->small)) {
-    v->count -= 1;
-    r = v->small[v->count];
-    v->small[v->count] = NULL;
-  } else if (v->count == ARRAY_SIZE(v->small) + 1) {
-    v->count -= 1;
-    r = v->large[v->count];
-    memcpy(v->small, v->large, sizeof(v->small));
-    free(v->large);
-    v->large = NULL;
-  } else {
-    v->count -= 1;
-    r = v->large[v->count];
-  }
-
-  return r;
-}
+VECTOR(vecnode, struct node *, 4);
+IMPLEMENT_VECTOR(static inline, vecnode, struct node *);
 
 struct phi_tracker_state {
   struct phi_tracker_state *prev;
 
   struct node *last;
-
-  struct node *branching;
-  struct node **per_branch_last;
-  size_t nth_branch;
 };
-
-HTABLE_SPARSE(nodeset, bool, struct node *);
-DECLARE_HTABLE_SPARSE(nodeset, bool, struct node *);
-uint32_t node_ptr_hash(const struct node **node);
-int node_ptr_cmp(const struct node **a, const struct node **b);
 
 struct node_nul {};
 struct node_ident {
@@ -240,6 +162,7 @@ struct node_ident {
 
   struct node *def;
   struct node *prev_use;
+  struct node *next_use;
 };
 struct node_number {
   const char *value;
@@ -278,6 +201,7 @@ struct node_return {
   bool forced_return_through_ref;
 };
 struct node_block {
+  bool is_scopeless;
 };
 struct node_for {
   struct node *pattern;
@@ -296,24 +220,38 @@ struct node_catch {
   bool is_user_label;
   ident label;
 };
+struct node_excep {
+  ident label;
+};
 struct node_throw {
   ident label;
-  ident error;
-  struct node *landing;
 };
 struct node_jump {
-  struct node *landing;
+  struct node *to;
+  bool is_break;
+  bool is_continue;
+  ident label;
 };
-struct node_landing {
-  struct vecnode jumps;
+
+struct ancestor {
+  struct node *prev;
+  struct node *cond;
+  bool reversed;
 };
+
+VECTOR(vecancestor, struct ancestor, 2);
+DECLARE_VECTOR(vecancestor, struct ancestor);
+
 struct node_phi {
-  struct vecnode ancestors;
+  struct node *def;
+
+  struct vecancestor ancestors;
+
   bool is_conditioned;
+  bool is_used;
 };
 struct node_typeconstraint {
   bool is_constraint;
-  bool in_pattern;
 };
 struct node_dyn {
   struct typ *intf_typ;
@@ -350,17 +288,16 @@ struct node_defincomplete {
   struct toplevel toplevel;
   ident ident;
   const struct node *ident_for_error;
-  struct typ *variant_of;
+};
+struct node_defalias {
+  uint32_t passed;
+
+  const struct node *member_isa;
 };
 struct node_defname {
-  struct node *pattern;
-  struct node *expr;
-
-  bool is_excep;
-  struct node *excep_label_ident;
-  ident excep_label;
-  ident excep_error;
-  struct node *excep_landing;
+  struct node *ssa_user;
+  bool is_globalenv;
+  uint32_t passed;
 
   const struct node *member_isa;
 
@@ -369,7 +306,6 @@ struct node_defname {
 struct node_defpattern {
   bool is_alias;
   bool is_globalenv;
-  bool is_ssa_var;
 };
 struct node_defarg {
   bool is_optional;
@@ -449,7 +385,6 @@ union node_as {
   struct node_bin BIN;
   struct node_un UN;
   struct node_tuple TUPLE;
-  struct node_tuplenth TUPLENTH;
   struct node_call CALL;
   struct node_callnamedarg CALLNAMEDARG;
   struct node_future FUTURE;
@@ -463,9 +398,9 @@ union node_as {
   struct node_match MATCH;
   struct node_try TRY;
   struct node_catch CATCH;
+  struct node_excep EXCEP;
   struct node_throw THROW;
   struct node_jump JUMP;
-  struct node_landing LANDING;
   struct node_phi PHI;
   struct node_typeconstraint TYPECONSTRAINT;
   struct node_dyn DYN;
@@ -474,6 +409,7 @@ union node_as {
   struct node_defincomplete DEFINCOMPLETE;
   struct node_defmethod DEFMETHOD;
   struct node_defintf DEFINTF;
+  struct node_defalias DEFALIAS;
   struct node_defname DEFNAME;
   struct node_defpattern DEFPATTERN;
   struct node_defarg DEFARG;
@@ -495,8 +431,6 @@ union node_as {
   struct node_directdef DIRECTDEF;
 };
 
-struct scope;
-
 enum node_flags {
   NODE_IS_TYPE = 0x1,
   NODE_IS_DEFCHOICE = 0x2,
@@ -511,6 +445,7 @@ struct node {
   uint32_t flags;
   uint32_t excepted;
 
+  struct node *parent;
   struct node *next;
   struct node *prev;
   struct node *subs_first;
@@ -635,11 +570,11 @@ static inline const struct node *subs_last_const(const struct node *node) {
   return node->subs_last;
 }
 
-static inline const struct node *node_next_const(const struct node *node) {
+static inline const struct node *next_const(const struct node *node) {
   return node->next;
 }
 
-static inline const struct node *node_prev_const(const struct node *node) {
+static inline const struct node *prev_const(const struct node *node) {
   return node->prev;
 }
 
@@ -663,27 +598,27 @@ static inline const struct node *try_node_subs_at_const(const struct node *node,
 }
 
 static inline struct node *subs_first(struct node *node) {
-  return (struct node *)subs_first_const(node);
+  return CONST_CAST(struct node *, subs_first_const(node));
 }
 
 static inline struct node *subs_last(struct node *node) {
-  return (struct node *)subs_last_const(node);
+  return CONST_CAST(struct node *, subs_last_const(node));
 }
 
 static inline struct node *next(struct node *node) {
-  return (struct node *)node_next_const(node);
+  return CONST_CAST(struct node *, next_const(node));
 }
 
 static inline struct node *prev(struct node *node) {
-  return (struct node *)node_prev_const(node);
+  return CONST_CAST(struct node *, prev_const(node));
 }
 
 static inline struct node *subs_at(struct node *node, size_t n) {
-  return (struct node *)subs_at_const(node, n);
+  return CONST_CAST(struct node *, subs_at_const(node, n));
 }
 
 static inline struct node *try_node_subs_at(struct node *node, size_t n) {
-  return (struct node *)try_node_subs_at_const(node, n);
+  return CONST_CAST(struct node *, try_node_subs_at_const(node, n));
 }
 
 static inline void node_subs_remove(struct node *node, struct node *sub) {
@@ -702,12 +637,14 @@ static inline void node_subs_remove(struct node *node, struct node *sub) {
     next->prev = prev;
   }
 
+  sub->parent = NULL;
   sub->prev = NULL;
   sub->next = NULL;
 }
 
 static inline void node_subs_append(struct node *node, struct node *sub) {
-  assert(sub->prev == NULL && sub->next == NULL);
+  assert(sub->prev == NULL && sub->next == NULL && sub->parent == NULL);
+  sub->parent = node;
   struct node *last = node->subs_last;
   if (last == NULL) {
     node->subs_first = sub;
@@ -721,7 +658,8 @@ static inline void node_subs_append(struct node *node, struct node *sub) {
 }
 
 static inline void node_subs_prepend(struct node *node, struct node *sub) {
-  assert(sub->prev == NULL && sub->next == NULL);
+  assert(sub->prev == NULL && sub->next == NULL && sub->parent == NULL);
+  sub->parent = node;
   struct node *first = node->subs_first;
   if (first == NULL) {
     node->subs_first = sub;
@@ -737,6 +675,7 @@ static inline void node_subs_prepend(struct node *node, struct node *sub) {
 static inline void node_subs_insert_before(struct node *node, struct node *where,
                                            struct node *sub) {
   assert(sub->prev == NULL && sub->next == NULL);
+  sub->parent = node;
   if (where == NULL) {
     assert(node->subs_first == NULL && node->subs_last == NULL);
     node->subs_first = sub;
@@ -762,6 +701,7 @@ static inline void node_subs_insert_before(struct node *node, struct node *where
 static inline void node_subs_insert_after(struct node *node, struct node *where,
                                           struct node *sub) {
   assert(sub->prev == NULL && sub->next == NULL);
+  sub->parent = node;
   if (where == NULL) {
     assert(node->subs_first == NULL && node->subs_last == NULL);
     node->subs_first = sub;
@@ -786,7 +726,8 @@ static inline void node_subs_insert_after(struct node *node, struct node *where,
 
 static inline void node_subs_replace(struct node *node, struct node *where,
                                      struct node *sub) {
-  assert(sub->prev == NULL && sub->next == NULL);
+  assert(sub->prev == NULL && sub->next == NULL && sub->parent == NULL);
+  sub->parent = node;
   struct node *prev = where->prev;
   sub->prev = prev;
   if (prev == NULL) {
@@ -805,6 +746,7 @@ static inline void node_subs_replace(struct node *node, struct node *where,
     next->prev = sub;
   }
 
+  where->parent = NULL;
   where->prev = NULL;
   where->next = NULL;
 }
@@ -827,7 +769,9 @@ enum subnode_idx {
   IDX_DEFNAME_EXCEP_TEST = 0,
 };
 
+HTABLE_SPARSE(idents_map, ident, struct token);
 struct idents_map;
+DECLARE_HTABLE_SPARSE(idents_map, ident, struct token);
 
 struct idents {
   const char **values;
@@ -1045,9 +989,8 @@ struct branch_state {
   struct branch_state *prev;
 
   struct node *branching;
-  ssize_t nth_branch;
-
-  struct nodeset need_phi;
+  struct node *cond;
+  bool reversed;
 };
 
 struct step_state {
@@ -1062,16 +1005,21 @@ struct stackel {
   struct node *sub;
 };
 
+struct lir_state;
+
 struct module_state {
   struct module_state *prev;
 
   bool tentatively;
+
+  struct lir_state *lir_state;
 
   struct top_state *top_state;
   struct fun_state *fun_state;
   struct try_state *try_state;
   struct branch_state *branch_state;
 
+  size_t furthest_passing;
   struct step_state *step_state;
 
 #define PASS_STACK_DEPTH 512
@@ -1198,10 +1146,20 @@ static inline ident node_ident(const struct node *node) {
   switch (node->which) {
   case IDENT:
     return node->as.IDENT.name;
+  case DEFALIAS:
   case DEFNAME:
-    return node_ident(node->as.DEFNAME.pattern);
+    return node_ident(subs_first_const(node));
   case DEFARG:
     return node_ident(subs_first_const(node));
+  case PHI:
+    if (vecancestor_count(CONST_CAST(struct vecancestor *, &node->as.PHI.ancestors))
+        == 0) {
+      return ID__NONE;
+    } else {
+      struct ancestor *ancestor = vecancestor_get(
+        CONST_CAST(struct vecancestor *, &node->as.PHI.ancestors), 0);
+      return node_ident(ancestor->prev);
+    }
   case CALLNAMEDARG:
     return node->as.CALLNAMEDARG.name;
   case FOR:
@@ -1246,16 +1204,12 @@ static inline ident node_ident(const struct node *node) {
   }
 }
 
-static inline struct node *node_parent(struct node *node) {
-  if (node->scope.parent == NULL) {
-    return NULL;
-  } else {
-    return scope_node(node->scope.parent);
-  }
+static inline struct node *parent(struct node *node) {
+  return node->parent;
 }
 
-static inline const struct node *node_parent_const(const struct node *node) {
-  return node_parent((struct node *) node);
+static inline const struct node *parent_const(const struct node *node) {
+  return node->parent;
 }
 
 bool node_is_prototype(const struct node *node);
@@ -1288,10 +1242,7 @@ size_t node_fun_max_args_count(const struct node *def);
 ssize_t node_fun_first_vararg(const struct node *def);
 struct node *node_fun_retval(struct node *def);
 const struct node *node_fun_retval_const(const struct node *def);
-struct node *node_for_block(struct node *node);
 size_t node_branching_exhaustive_branch_count(struct node *node);
-struct node *node_branching_nth_cond(struct node *node, ssize_t nth);
-struct node *node_branching_nth_branch(struct node *node, ssize_t nth);
 
 #define STEP_NM_DEFS_NO_FUNS \
   (NM(DEFTYPE) | NM(DEFINTF) | NM(DEFINCOMPLETE))
@@ -1357,7 +1308,7 @@ static inline const struct toplevel *node_toplevel_const(const struct node *node
 }
 
 static inline struct toplevel *node_toplevel(struct node *node) {
-  return (struct toplevel *) node_toplevel_const(node);
+  return CONST_CAST(struct toplevel *, node_toplevel_const(node));
 }
 
 struct node *node_get_member(struct module *mod, struct node *node, ident id);
@@ -1377,13 +1328,25 @@ error defincomplete_catchup(struct module *mod, struct node *dinc);
 int snprint_defincomplete(char *s, size_t len,
                           const struct module *mod, const struct node *dinc);
 
-#define G(var, parent, which, ...) \
+#define GSTART() \
+  struct node *gparent = NULL
+
+#define G0(var, parent, which, ...) \
   unused__ \
   struct node *var = mk_node(mod, parent, which); \
+  gparent = var; \
   __VA_ARGS__
 
-#define G_IDENT(var, parent, _name, ...) \
-  G(var, parent, IDENT, \
+#define G(var, which, ...) \
+  unused__ \
+  struct node *var = mk_node(mod, gparent, which); \
+  struct node *gparent_##var = gparent; \
+  gparent = var; \
+  __VA_ARGS__; \
+  gparent = gparent_##var; \
+
+#define G_IDENT(var, _name, ...) \
+  G(var, IDENT, \
      { \
        const char *__name = (_name); \
        var->as.IDENT.name = idents_add_string(mod->gctx, __name, strlen(__name)); \

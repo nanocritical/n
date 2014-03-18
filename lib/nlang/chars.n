@@ -4,7 +4,7 @@ from nlang.memory import *
 import nlang.unsafe
 
 export inline struct char =
-  export isa `trivial_copy `return_by_copy `trivial_equality `trivial_order `static_string_compatible `show
+  export isa `trivial_copy `return_by_copy `trivial_equality `trivial_order `static_string_compatible `show `trivial_ctor
   code:u32
 
 export inline char fun from_static_string s:static_string = this
@@ -45,12 +45,16 @@ export intf `string_buffer =
   method@# copy at:size other:@`const_string off:size count:size = void
 
 export opaque struct static_string =
-  export isa `trivial_copy `ordered_by_compare `return_by_copy `show `static_string_compatible `const_string
+  export isa `trivial_copy `ordered_by_compare `return_by_copy `show `static_string_compatible `const_string `trivial_ctor
   bytes:(slice u8)
 
 export inline static_string method@# ctor bytes:@u8 count:size = void
   let raw = (nlang.unsafe.cast @u8 @#u8) bytes
   self.bytes#unsafe_wrap raw count
+
+export inline static_string fun mk bytes:@u8 count:size = r:this
+  r#ctor bytes count
+  return r
 
 export inline static_string fun from_static_string s:static_string = this
   return { bytes=s.bytes }

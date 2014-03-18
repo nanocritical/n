@@ -5,8 +5,6 @@
 
 a_pass passzero[PASSZERO_COUNT];
 
-extern const uint64_t step_add_scopes_filter;
-error step_add_scopes(struct module *mod, struct node *node, void *user, bool *stop);
 extern const uint64_t step_stop_submodules_filter;
 error step_stop_submodules(struct module *mod, struct node *node, void *user, bool *stop);
 

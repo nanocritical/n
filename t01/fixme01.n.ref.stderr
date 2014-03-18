@@ -1,0 +1,11 @@
+t01/fixme01.n.o.c: In function ‘_Ngen_t01_fixme01_get__nlang_builtins_ref_genN_’:
+t01/fixme01.n.o.c:123:1: error: unknown type name ‘_Ngen_nlang_builtins__Ni_any_ref__nlang_builtins_i32_genN_’
+ _Ngen_nlang_builtins__Ni_any_ref__nlang_builtins_i32_genN_ _Ngensym7 = ((&(m->x)));
+ ^
+t01/fixme01.n.o.c:123:72: warning: initialization makes integer from pointer without a cast [enabled by default]
+ _Ngen_nlang_builtins__Ni_any_ref__nlang_builtins_i32_genN_ _Ngensym7 = ((&(m->x)));
+                                                                        ^
+t01/fixme01.n.o.c:125:1: warning: return makes pointer from integer without a cast [enabled by default]
+ return _Ngensym7;
+ ^
+command exited with 1: gcc -Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g -xc t01/fixme01.n.o.c -c -o t01/fixme01.n.o

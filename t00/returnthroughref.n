@@ -1,6 +1,7 @@
 from nlang import *
 
 struct t =
+  isa `trivial_copy
   x:i32
   xx:i32
 

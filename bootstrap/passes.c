@@ -3,7 +3,6 @@
 #include <stdarg.h>
 #include "types.h"
 #include "mock.h"
-#include "scope.h"
 
 #include "passzero.h"
 #include "passfwd.h"
@@ -32,6 +31,8 @@ a_pass passes(size_t p) {
 error advance(struct module *mod) {
   const size_t p = mod->stage->state->passing;
   a_pass pa = passes(p);
+
+  mod->state->furthest_passing = max(size_t, mod->state->furthest_passing, p);
 
   int module_depth = 0;
   error e = pa(mod, NULL, &module_depth, -1);
@@ -72,12 +73,11 @@ static void unmark_excepted(const struct node **except) {
 // - No constraints when modifying anything below the current node (in
 // node->subs, etc.);
 // - Allowed to *rewrite* current node (change its kind, content, etc.);
-// - Not allowed to modify the current node's parent->subs (including
+// - Not allowed to modify the current node's par->subs (including
 // replacing the current node).
 error catchup(struct module *mod,
               const struct node **except,
               struct node *node,
-              struct scope *parent_scope,
               enum catchup_for how) {
   mark_excepted(except);
 
@@ -87,13 +87,16 @@ error catchup(struct module *mod,
   } else if (how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
     goal = min(size_t, mod->stage->state->passing, last_tentative_instance_pass());
   } else if (how == CATCHUP_BEFORE_CURRENT) {
-    goal = mod->stage->state->passing;
+    assert(mod->stage->state->passing == 0 && "Unsupported");
+    goal = mod->state->furthest_passing;
+  } else if (how == CATCHUP_AFTER_CURRENT) {
+    goal = max(size_t, mod->stage->state->passing,
+               mod->state->furthest_passing) - 1;
   } else if (!mod->state->step_state->upward) {
     goal = mod->stage->state->passing - 1;
   } else if (how == CATCHUP_BELOW_CURRENT) {
     goal = mod->stage->state->passing;
-  } else if (how == CATCHUP_REWRITING_CURRENT
-             || how == CATCHUP_AFTER_CURRENT) {
+  } else if (how == CATCHUP_REWRITING_CURRENT) {
     goal = mod->stage->state->passing - 1;
   } else {
     assert(false && "Unreached");
@@ -106,11 +109,11 @@ error catchup(struct module *mod,
     saved_current_statement = mod->state->fun_state->block_state->current_statement;
   }
 
-  const struct node *parent = scope_node(parent_scope);
+  const struct node *par = parent(node);
   const bool need_new_state =
-    parent->which == MODULE_BODY
-    || parent->which == DEFTYPE
-    || parent->which == DEFINTF;
+    par->which == MODULE_BODY
+    || par->which == DEFTYPE
+    || par->which == DEFINTF;
 
   PUSH_STATE(mod->stage->state);
   if (need_new_state) {
@@ -126,20 +129,18 @@ error catchup(struct module *mod,
   for (ssize_t p = from; p <= goal; ++p) {
     a_pass pa = passes(p);
     mod->stage->state->passing = p;
+    mod->state->furthest_passing = max(size_t, mod->state->furthest_passing, p);
 
     int module_depth = 0;
     error e = pa(mod, node, &module_depth, -1);
     EXCEPT(e);
-
-    if (p == 0) {
-      node->scope.parent = parent_scope;
-    }
   }
 
   if (was_upward && how == CATCHUP_REWRITING_CURRENT) {
     // Catch up to, and including, the current step.
     a_pass pa = passes(goal + 1);
     mod->stage->state->passing = goal + 1;
+    mod->state->furthest_passing = max(size_t, mod->state->furthest_passing, goal + 1);
 
     int module_depth = 0;
     error e = pa(mod, node, &module_depth, mod->state->step_state->prev->stepping);
@@ -158,7 +159,6 @@ error catchup(struct module *mod,
   }
 
   unmark_excepted(except);
-
   return 0;
 }
 
@@ -183,7 +183,7 @@ bool instantiation_is_tentative(const struct module *mod,
   }
 }
 
-static void record_tentative_instantiation(struct module *mod, struct node *i) {
+void record_tentative_instantiation(struct module *mod, struct node *i) {
   struct toplevel *toplevel = node_toplevel(mod->state->top_state->top);
 
   toplevel->tentative_instantiations_count += 1;
@@ -197,7 +197,6 @@ static void record_tentative_instantiation(struct module *mod, struct node *i) {
 error catchup_instantiation(struct module *instantiating_mod,
                             struct module *gendef_mod,
                             struct node *instance,
-                            struct scope *parent_scope,
                             bool tentative) {
   enum catchup_for how = CATCHUP_NEW_INSTANCE;
   if (tentative) {
@@ -205,7 +204,7 @@ error catchup_instantiation(struct module *instantiating_mod,
     record_tentative_instantiation(instantiating_mod, instance);
   }
 
-  error e = catchup(gendef_mod, NULL, instance, parent_scope, how);
+  error e = catchup(gendef_mod, NULL, instance, how);
   EXCEPT(e);
 
   if (tentative) {
@@ -255,7 +254,7 @@ error step_stop_funblock(struct module *mod, struct node *node,
                          void *user, bool *stop) {
   DSTEP(mod, node);
 
-  switch (node_parent(node)->which) {
+  switch (parent(node)->which) {
   case DEFFUN:
   case DEFMETHOD:
   case EXAMPLE:
@@ -274,7 +273,7 @@ error step_push_top_state(struct module *mod, struct node *node,
   DSTEP(mod, node);
 
   if (node->which == LET
-      && !(node_is_at_top(node) || node_is_at_top(node_parent_const(node)))) {
+      && !(node_is_at_top(node) || node_is_at_top(parent_const(node)))) {
     return 0;
   }
 
@@ -294,7 +293,7 @@ error step_pop_top_state(struct module *mod, struct node *node,
   DSTEP(mod, node);
 
   if (node->which == LET
-      && !(node_is_at_top(node) || node_is_at_top(node_parent_const(node)))) {
+      && !(node_is_at_top(node) || node_is_at_top(parent_const(node)))) {
     return 0;
   }
 

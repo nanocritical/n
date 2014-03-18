@@ -1,6 +1,9 @@
 #ifndef COMMON_H__
 #define COMMON_H__
 
+#define CONFIG_MEMPOOL_JUST_MALLOC 0
+#define CONFIG_VECTOR_BOUND_CHECKS 1
+
 #define _XOPEN_SOURCE 700 // fmemopen(3)
 
 #include <stdint.h>
@@ -23,12 +26,15 @@
 #define pure__ __attribute__((__pure__))
 #define noinline__ __attribute__((noinline))
 #define warn_unused_result__ __attribute__((__warn_unused_result__))
+#define sentinel__ __attribute__((__sentinel__))
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
 #define _STRINGIFY(x) #x
 #define STRINGIFY(x) _STRINGIFY(x)
+
+#define CONST_CAST(t, x) ( (void) sizeof(((t) (x)) == x), (t) (x) )
 
 typedef _Bool bool;
 #define true 1
@@ -192,6 +198,8 @@ static inline uint32_t bitreverse32(uint32_t x) {
 
 #define roundup_pow2(x) ( 1ULL << log2_ceil(x) )
 
+#define rounddown_pow2(x) ( roundup_pow2(x) / 2 )
+
 #define roundup_mult_pow2(x, pow2) ( (x + pow2 - 1) & ~(pow2 - 1) )
 
 #define rounddown_mult_pow2(x, pow2) ( x & ~(pow2 - 1) )
@@ -267,5 +275,9 @@ extern uint32_t g_invariants_counter;
 #define INVARIANT(invs) if (CHECK_INVARIANTS()) { invs; }
 #endif
 
+
+struct node;
+
+void check_structure(struct node *node, ...) sentinel__;
 
 #endif

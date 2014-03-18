@@ -12,7 +12,7 @@ export intf `iterator t:`copyable =
   method@! next = t
 
 export opaque struct index_range =
-  export isa `trivial_copy `trivial_equality `return_by_copy
+  export isa `trivial_copy `trivial_equality `trivial_ctor `return_by_copy
   b:size
   e:size
 
@@ -52,7 +52,7 @@ export index_range method@ iter = index_iterator
 
 
 export opaque struct index_iterator =
-  export isa (`iterator size) `trivial_copy
+  export isa (`iterator size) `trivial_copy `trivial_ctor
   r:index_range
   p:size
 

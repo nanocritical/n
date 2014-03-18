@@ -1,4 +1,4 @@
 t00/fixme06.n.o.c: In function ‘_Nmain’:
-t00/fixme06.n.o.c:32:20: warning: unused variable ‘x’ [-Wunused-variable]
+t00/fixme06.n.o.c:34:20: warning: unused variable ‘x’ [-Wunused-variable]
  nlang_builtins_i32 x = (nlang_builtins_i32)1;
                     ^

@@ -68,12 +68,12 @@ nlang_builtins_i32 t;
 
 
 
-#define t00_syntax_enu_V1_label__ ((nlang_builtins_u32)0)
-static const t00_syntax_enu t00_syntax_enu_V1 = t00_syntax_enu_V1_label__;
-#define t00_syntax_enu_V2_label__ (((nlang_builtins_u32)0 + (nlang_builtins_u32)1))
-static const t00_syntax_enu t00_syntax_enu_V2 = t00_syntax_enu_V2_label__;
-#define t00_syntax_enu_V3_label__ ((((nlang_builtins_u32)0 + (nlang_builtins_u32)1) + (nlang_builtins_u32)1))
-static const t00_syntax_enu t00_syntax_enu_V3 = t00_syntax_enu_V3_label__;
+#define t00_syntax_enu_V1_tag_label__ ((nlang_builtins_u32)0)
+static const t00_syntax_enu t00_syntax_enu_V1 = t00_syntax_enu_V1_tag_label__;
+#define t00_syntax_enu_V2_tag_label__ (((nlang_builtins_u32)0 + (nlang_builtins_u32)1))
+static const t00_syntax_enu t00_syntax_enu_V2 = t00_syntax_enu_V2_tag_label__;
+#define t00_syntax_enu_V3_tag_label__ ((((nlang_builtins_u32)0 + (nlang_builtins_u32)1) + (nlang_builtins_u32)1))
+static const t00_syntax_enu t00_syntax_enu_V3 = t00_syntax_enu_V3_tag_label__;
 #define NLANG_DECLARE_FUNCTIONS
 # include "lib/nlang/module.n.o.h"
 #undef NLANG_DECLARE_FUNCTIONS
@@ -129,19 +129,34 @@ static nlang_builtins_void t00_syntax_foobar2(void);
 # include "t00/syntax.n.o.h"
 #undef NLANG_DEFINE_FUNCTIONS
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
 nlang_builtins_i32 x = (nlang_builtins_i32)1;
 ;
-nlang_builtins_i32 y = ((nlang_builtins_i32)2 + x);
 ;
-return ((nlang_builtins_i32)0 + y);
+;;
+nlang_builtins_i32 _Ngensym0 = (nlang_builtins_i32)2;
+;
+nlang_builtins_i32 y = (_Ngensym0 + x);
+;
+nlang_builtins_i32 _Ngensym1 = (nlang_builtins_i32)0;
+;
+nlang_builtins_i32 _Ngensym2 = (_Ngensym1 + y);
+;
+return _Ngensym2;
 }
+return _nretval;
 }
 
 nlang_builtins_i32 t00_syntax_main2(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
-return (nlang_builtins_i32)0;
+nlang_builtins_i32 _Ngensym3 = (nlang_builtins_i32)0;
+;
+return _Ngensym3;
 }
+return _nretval;
 }
 
 
@@ -155,11 +170,15 @@ typedef const struct t00_syntax_test* _Ngen_nlang_builtins_ref__t00_syntax_test_
 #endif // HAS3__Ngen_nlang_builtins_ref__t00_syntax_test_genN_
 nlang_builtins_i32 t00_syntax_test_foo(_Ngen_nlang_builtins_ref__t00_syntax_test_genN_ self, nlang_builtins_i32 x) {
 #define THIS(x) t00_syntax_test##x
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
 nlang_builtins_i32 y = x;
+;
 ;
 return y;
 }
+return _nretval;
 #undef THIS
 }
 ;
@@ -182,7 +201,9 @@ void t00_syntax_test_mk(t00_syntax_test *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_syntax_test_genN_ t00_syntax_test_new(void) {
 #define THIS(x) t00_syntax_test##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_syntax_test_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
@@ -194,13 +215,37 @@ return (t00_syntax__Ni_ia){ .vptr = &vtable, .obj = obj };
 }
 
 static nlang_builtins_i32 t00_syntax_foobar(nlang_builtins_i32 x) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
-({ nlang_builtins___pre__((x != (nlang_builtins_i32)0));
-; });
-({ nlang_builtins___post__((x != (nlang_builtins_i32)0));
-; });
-return (nlang_builtins_i32)0;
+;
+;
+ {
+nlang_builtins_i32 _Ngensym5 = (nlang_builtins_i32)0;
+;
+nlang_builtins_bool _Ngensym6 = (x != _Ngensym5);
+;
+;;
+nlang_builtins___pre__(_Ngensym6);
+};
+;;
+;
+;
+;
+;
+ {
+nlang_builtins_i32 _Ngensyma = (nlang_builtins_i32)0;
+;
+nlang_builtins_bool _Ngensymb = (x != _Ngensyma);
+;
+;;
+nlang_builtins___post__(_Ngensymb);
+};
+;
+nlang_builtins_i32 _Ngensyme = (nlang_builtins_i32)0;
+;
+return _Ngensyme;
 }
+return _nretval;
 }
 
 static nlang_builtins_void t00_syntax_foobar2(void) {

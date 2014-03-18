@@ -74,8 +74,12 @@ static error load_module(struct module **main_mod,
   stage->loaded[stage->loaded_count] = mod->root;
   stage->loaded_count += 1;
 
-  e = advance(mod);
-  EXCEPT(e);
+  for (size_t p = 0; p < PASSZERO_COUNT; ++p) {
+    stage->state->passing = p;
+
+    e = advance(mod);
+    EXCEPT(e);
+  }
 
   if (main_mod != NULL) {
     *main_mod = mod;

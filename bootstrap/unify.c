@@ -202,26 +202,34 @@ static error unify_literal(struct module *mod, const struct node *for_error,
     } else {
       e = typ_check_isa(mod, for_error, a, TBI_ANY_NULLABLE_REF);
       EXCEPT(e);
+
+      typ_link_tentative(a, b);
     }
   } else if (typ_equal(b, TBI_LITERALS_INTEGER)) {
-    if (typ_is_tentative(a) && typ_isa(TBI_INTEGER, a)) {
-      SWAP(a, b);
+    if (!typ_is_tentative(a) && typ_isa(TBI_INTEGER, a) && !typ_equal(a, TBI_INTEGER)) {
+      // noop
+    } else if (typ_is_tentative(a) && typ_isa(b, a)) {
+      typ_link_tentative(b, a);
     } else {
       e = typ_check_isa(mod, for_error, a, TBI_INTEGER);
       EXCEPT(e);
+
+      typ_link_tentative(a, b);
     }
-  } else if (typ_equal(b, TBI_LITERALS_FLOATING)) {
-    if (typ_is_tentative(a) && typ_isa(TBI_FLOATING, a)) {
-      SWAP(a, b);
+  } else if (typ_equal(b, TBI_LITERALS_FLOATING) && !typ_equal(a, TBI_FLOATING)) {
+    if (!typ_is_tentative(a) && typ_isa(TBI_FLOATING, a)) {
+      // noop
+    } else if (typ_is_tentative(a) && typ_isa(b, a)) {
+      typ_link_tentative(b, a);
     } else {
       e = typ_check_isa(mod, for_error, a, TBI_FLOATING);
       EXCEPT(e);
+
+      typ_link_tentative(a, b);
     }
   } else {
     assert(false);
   }
-
-  typ_link_tentative(a, b);
 
   return 0;
 }
@@ -344,15 +352,15 @@ except:
 }
 
 static error unify_with_defunknownident(struct module *mod, const struct node *for_error,
-                                        struct typ *a, struct typ *inc) {
-  const struct node *dinc = typ_definition_const(inc);
-  const struct node *da = typ_definition_const(a);
-
+                                        struct node *da, struct node *dinc) {
+  assert(dinc->which == DEFINCOMPLETE);
   ident unk = dinc->as.DEFINCOMPLETE.ident;
 
   error e;
-  if (da->which != DEFTYPE || da->as.DEFTYPE.kind != DEFTYPE_ENUM) {
-    char *s = typ_pretty_name(mod, a);
+  if (da->which != DEFTYPE
+      || (da->as.DEFTYPE.kind != DEFTYPE_ENUM
+          && da->as.DEFTYPE.kind != DEFTYPE_UNION)) {
+    char *s = typ_pretty_name(mod, da->typ);
     e = mk_except_type(mod, for_error,
                        "ident '%s' cannot be resolved in type '%s'"
                        " (not an enum)",
@@ -360,6 +368,11 @@ static error unify_with_defunknownident(struct module *mod, const struct node *f
     free(s);
     THROW(e);
   }
+
+  struct node *r = NULL;
+  e = scope_lookup_ident_immediate(&r, for_error, mod, &da->scope,
+                                   unk, false);
+  EXCEPT(e);
 
   // Will typ_link_tentative() in unify_with_defincomplete().
 
@@ -389,18 +402,19 @@ static bool has_variant_with_field(struct module *mod,
   return false;
 }
 
-static error unify_with_defincomplete(struct module *mod,
-                                      const struct node *for_error,
-                                      struct typ *a, struct typ *inc) {
+// Exported for the sole benefit of finalize_defincomplete_unification().
+error unify_with_defincomplete_entrails(struct module *mod,
+                                        const struct node *for_error,
+                                        struct typ *a,
+                                        struct typ *inc, struct node *dinc) {
   error e;
 
-  struct node *dinc = typ_definition(inc);
+  struct node *da = typ_definition(a);
   if (dinc->as.DEFINCOMPLETE.ident != ID__NONE) {
-    e = unify_with_defunknownident(mod, for_error, a, inc);
+    e = unify_with_defunknownident(mod, for_error, da, dinc);
     EXCEPT(e);
   }
 
-  struct node *da = typ_definition(a);
   const bool is_union = da->which == DEFTYPE && da->as.DEFTYPE.kind == DEFTYPE_UNION;
   if (is_union) {
     FOREACH_SUB_CONST(f, dinc) {
@@ -418,9 +432,11 @@ static error unify_with_defincomplete(struct module *mod,
       }
     }
 
-    dinc->as.DEFINCOMPLETE.variant_of = a;
     return 0;
   }
+
+  // FIXME: if 'a' is a tentative intf, we should be adding that intf as a
+  // restriction on 'dinc'.
 
   FOREACH_SUB_CONST(f, dinc) {
     if (f->which != DEFFIELD) {
@@ -436,7 +452,18 @@ static error unify_with_defincomplete(struct module *mod,
     EXCEPT(e);
   }
 
+  return 0;
+}
+
+static error unify_with_defincomplete(struct module *mod,
+                                      const struct node *for_error,
+                                      struct typ *a, struct typ *inc) {
+  struct node *dinc = typ_definition(inc);
+  error e = unify_with_defincomplete_entrails(mod, for_error, a, inc, dinc);
+  EXCEPT(e);
+
   typ_link_tentative(a, inc);
+
   return 0;
 }
 

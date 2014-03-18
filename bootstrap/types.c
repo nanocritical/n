@@ -407,7 +407,7 @@ struct typ *typ_create_tentative(struct typ *target) {
   r->definition = target->definition;
   quickisa_init(r);
 
-  typset_rehash(&r->quickisa, (struct typset *) &target->quickisa);
+  typset_copy(&r->quickisa, &target->quickisa);
 
   return r;
 }
@@ -418,6 +418,11 @@ static void link_generic_arg_update(struct typ *user) {
   // It is possible that now that 'arg' is not tentative, 'user' itself
   // should loose its tentative status. This will be handled in
   // step_gather_final_instantiations().
+  //
+  // As an alternative to relying on step_gather_final_instantiations(), we
+  // could have unify.c pass a callback to typ_link_tentative() that is run
+  // on all backlinks (that are definitions of tentative generic instances
+  // or are DEFINCOMPLETE).
 
   typ_create_update_hash(user);
   typ_create_update_quickisa(user);
@@ -701,18 +706,6 @@ error typ_isalist_foreach(struct module *mod, struct typ *t, uint32_t filter,
   error e = do_typ_isalist_foreach(mod, t, t, filter, iter, user, &stop, &set);
   typset_destroy(&set);
   EXCEPT(e);
-
-  return 0;
-}
-
-static error example_isalist_each(struct module *mod, struct typ *base,
-                                  struct typ *intf, bool *stop, void *user) {
-  assert(base != intf);
-  assert(!typ_equal(base, intf));
-  assert(typ_isa(base, intf));
-
-  int *count = user;
-  *count += 1;
 
   return 0;
 }
