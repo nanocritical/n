@@ -498,6 +498,10 @@ void name ## _rehash(struct name *hta, struct name *htb)
   return name ## _table___count(&((ht)->table)); \
 }
 
+#define __HTABLE_EQ_DELETE_VAL(ht, val) \
+  ( ((ht)->flag & HTABLE_HAS_DELETE) \
+    && memcmp(&val, &(ht)->delete_val, sizeof(val)) == 0 )
+
 /* Quadratic open addressing (see Knuth TAOCP 6.4 exercise 20) */
 #define __htable_idx(ht, hash, n) \
   ( ((hash) + (n)*((n)+1)/2) % (ht)->table.size )
@@ -524,6 +528,7 @@ void name ## _rehash(struct name *hta, struct name *htb)
     b = HTABLE_GET__(name, ht, hash, n); \
     n += 1; \
   } while (b && (hash != b->hkey \
+                 || __HTABLE_EQ_DELETE_VAL(ht, b->val) \
                  || cmpf((const key_type *) \
                          &(b->key), &k) != 0)); \
   \
@@ -580,6 +585,7 @@ storage int name ## _set(struct name *ht, const key_type k, type v) \
   do { \
     b = HTABLE_GET__(name, ht, hash, n); \
     if (b && ((cmph = b->hkey != hash) \
+              || __HTABLE_EQ_DELETE_VAL(ht, b->val) \
               || (cmp = cmpf((const key_type *) &b->key, \
                              (const key_type *) &k)) != 0)) {\
       n += 1; \
@@ -607,12 +613,16 @@ storage int name ## _set(struct name *ht, const key_type k, type v) \
                                       void *user) \
 { \
   struct { \
+    struct name *ht; \
     int (*iter)(const key_type *, type *, void *); \
     void *user; \
-  } *s; \
-  s = (__typeof__(s))user; \
+  } *s = (__typeof__(s))user; \
   \
-  return s->iter(&u->key, &u->val, s->user); \
+  if (!__HTABLE_EQ_DELETE_VAL(s->ht, u->val)) { \
+    return s->iter(&u->key, &u->val, s->user); \
+  } else { \
+    return 0; \
+  } \
 } \
 storage int name ## _foreach(struct name *ht, \
                              int (*iter)(const key_type *key, \
@@ -620,13 +630,13 @@ storage int name ## _foreach(struct name *ht, \
                                          void *user), \
                              void *user) \
 { \
-  struct name ## _table__ *table = &ht->table; \
   struct { \
+    struct name *ht; \
     int (*iter)(const key_type *, type *, void *); \
     void *user; \
-  } s = { iter, user }; \
+  } s = { ht, iter, user }; \
   \
-  return name ## _table___foreach(table, \
+  return name ## _table___foreach(&ht->table, \
                                   name ## _foreach_iter__, &s); \
 }
 
@@ -639,7 +649,9 @@ storage int name ## _foreach(struct name *ht, \
                                      void *user) \
 { \
   struct name *ht = (struct name *)user; \
-  name ## _set(ht, *key, *val); \
+  if (!__HTABLE_EQ_DELETE_VAL(ht, *val)) { \
+    name ## _set(ht, *key, *val); \
+  } \
   return 0; \
 } \
 storage void name ## _rehash(struct name *hta, struct name *htb)\
