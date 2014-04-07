@@ -823,64 +823,107 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     IDENT(nlang)
     IDENT(just_mutable)
- DEFFUN :t00.barrow.foo
+ DEFFUN :t00.barrow.foo ::()
   IDENT(foo) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   DEFARG :nlang.builtins.i32
+   DEFARG :nlang.builtins.i32 ::(init)
     IDENT(x) :nlang.builtins.__internal_not_typeable__
-    IDENT(i32) :nlang.builtins.i32
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   RETURN :nlang.builtins.void
-    IDENT(x) :nlang.builtins.i32
- DEFFUN :t00.barrow.bar
+    IDENT(i32) :nlang.builtins.i32 ::()
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   RETURN :nlang.builtins.void ::()
+    IDENT(x) :nlang.builtins.i32 ::(init)
+ DEFFUN :t00.barrow.bar ::()
   IDENT(bar) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   DEFARG :nlang.builtins.i32
+   DEFARG :nlang.builtins.i32 ::(init)
     IDENT(x) :nlang.builtins.__internal_not_typeable__
-    IDENT(i32) :nlang.builtins.i32
-   DEFARG :nlang.builtins.i32
+    IDENT(i32) :nlang.builtins.i32 ::()
+   DEFARG :nlang.builtins.i32 ::(init)
     IDENT(y) :nlang.builtins.__internal_not_typeable__
-    IDENT(i32) :nlang.builtins.i32
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   RETURN :nlang.builtins.void
-    BIN( + ) :nlang.builtins.i32
-     IDENT(x) :nlang.builtins.i32
-     IDENT(y) :nlang.builtins.i32
- DEFFUN :t00.barrow.main
+    IDENT(i32) :nlang.builtins.i32 ::()
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym0) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym0) :nlang.builtins.__internal_not_typeable__
+     BIN( + ) :nlang.builtins.i32 ::(init)
+      IDENT(x) :nlang.builtins.i32 ::(init)
+      IDENT(y) :nlang.builtins.i32 ::(init)
+   RETURN :nlang.builtins.void ::()
+    IDENT(_Ngensym0) :nlang.builtins.i32 ::(init)
+ DEFFUN :t00.barrow.main ::()
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     IDENT(z) :nlang.builtins.i32
-     CALL :nlang.builtins.i32
-      IDENT(foo) :t00.barrow.foo
-      NUMBER(0) :nlang.builtins.i32
-     DEFNAME(z) :nlang.builtins.i32
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     IDENT(x) :nlang.builtins.i32
-     BIN( + ) :nlang.builtins.i32
-      IDENT(z) :nlang.builtins.i32
-      CALL :nlang.builtins.i32
-       IDENT(foo) :t00.barrow.foo
-       NUMBER(1) :nlang.builtins.i32
-     DEFNAME(x) :nlang.builtins.i32
-   RETURN :nlang.builtins.void
-    BIN( - ) :nlang.builtins.i32
-     CALL :nlang.builtins.i32
-      IDENT(foo) :t00.barrow.foo
-      CALL :nlang.builtins.i32
-       IDENT(bar) :t00.barrow.bar
-       NUMBER(0) :nlang.builtins.i32
-       NUMBER(1) :nlang.builtins.i32
-     IDENT(x) :nlang.builtins.i32
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   BLOCK :nlang.builtins.void ::()
+    NOOP :nlang.builtins.void ::()
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym1) :nlang.builtins.i32 ::(init)
+      IDENT(_Ngensym1) :nlang.builtins.__internal_not_typeable__
+      NUMBER(0) :nlang.builtins.i32 ::(init)
+    LET :nlang.builtins.void ::()
+     DEFNAME(z) :nlang.builtins.i32 ::(init)
+      IDENT(z) :nlang.builtins.__internal_not_typeable__
+      CALL :nlang.builtins.i32 ::(init)
+       IDENT(foo) :t00.barrow.foo ::()
+       IDENT(_Ngensym1) :nlang.builtins.i32 ::(init)
+   NOOP :nlang.builtins.void ::()
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym2) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym2) :nlang.builtins.__internal_not_typeable__
+     NUMBER(1) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym3) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym3) :nlang.builtins.__internal_not_typeable__
+     CALL :nlang.builtins.i32 ::(init)
+      IDENT(foo) :t00.barrow.foo ::()
+      IDENT(_Ngensym2) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(x) :nlang.builtins.i32 ::(init)
+     IDENT(x) :nlang.builtins.__internal_not_typeable__
+     BIN( + ) :nlang.builtins.i32 ::(init)
+      IDENT(z) :nlang.builtins.i32 ::(init)
+      IDENT(_Ngensym3) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym4) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym4) :nlang.builtins.__internal_not_typeable__
+     NUMBER(0) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym5) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym5) :nlang.builtins.__internal_not_typeable__
+     NUMBER(1) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym6) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym6) :nlang.builtins.__internal_not_typeable__
+     CALL :nlang.builtins.i32 ::(init)
+      IDENT(bar) :t00.barrow.bar ::()
+      IDENT(_Ngensym4) :nlang.builtins.i32 ::(init)
+      IDENT(_Ngensym5) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym7) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym7) :nlang.builtins.__internal_not_typeable__
+     CALL :nlang.builtins.i32 ::(init)
+      IDENT(foo) :t00.barrow.foo ::()
+      IDENT(_Ngensym6) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym8) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym8) :nlang.builtins.__internal_not_typeable__
+     BIN( - ) :nlang.builtins.i32 ::(init)
+      IDENT(_Ngensym7) :nlang.builtins.i32 ::(init)
+      IDENT(x) :nlang.builtins.i32 ::(init)
+   RETURN :nlang.builtins.void ::()
+    IDENT(_Ngensym8) :nlang.builtins.i32 ::(init)

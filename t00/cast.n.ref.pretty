@@ -1,10 +1,17 @@
 from nlang import *
 from nlang.unsafe import 
-fun foo x:@u32 = @i32 
-  return (nlang.unsafe.cast @u32 @i32) x
+fun foo x:@u32 = _nretval:@i32 
+  noop
+  noop
+  noop
+  _Ngensym3 = (nlang.unsafe.cast @u32 @i32) x
+  return _Ngensym3
 
-export fun main = i32 
-  and _Ngensym0:nlang.builtins.u32  such
-    return .(foo block 
-  _Ngensym0 = 1
-  @_Ngensym0;;) - 1
+export fun main = _nretval:i32 
+  _Ngensym4 = 1
+  _Ngensym9 = @_Ngensym4
+  _Ngensym5 = foo _Ngensym9
+  _Ngensym6 = ._Ngensym5
+  _Ngensym7 = 1
+  _Ngensym8 = _Ngensym6 - _Ngensym7
+  return _Ngensym8

@@ -823,12 +823,18 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     IDENT(nlang)
     IDENT(just_mutable)
- DEFFUN :t00.main.main
+ DEFFUN :t00.main.main ::()
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   RETURN :nlang.builtins.void
-    NUMBER(0) :nlang.builtins.i32
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym0) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym0) :nlang.builtins.__internal_not_typeable__
+     NUMBER(0) :nlang.builtins.i32 ::(init)
+   RETURN :nlang.builtins.void ::()
+    IDENT(_Ngensym0) :nlang.builtins.i32 ::(init)

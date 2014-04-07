@@ -843,31 +843,55 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(nlang)
      IDENT(sysheap)
     IDENT(sysheap)
- DEFFUN :t02.alloc.main
+ DEFFUN :t02.alloc.main ::()
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     IDENT(p) :(nlang.builtins.mercurial_ref nlang.builtins.i32)
-     CALL :(nlang.builtins.mercurial_ref nlang.builtins.i32)
-      CALL :(nlang.sysheap.heap.alloc nlang.builtins.i32)
-       BIN(.) :(functor nlang.sysheap.heap.alloc nlang.builtins.`any)
-        IDENT(heap) :nlang.sysheap.heap
-        IDENT(alloc) :nlang.builtins.__internal_not_typeable__
-       IDENT(i32) :nlang.builtins.i32
-      UN(@!) :(nlang.builtins.mutable_ref nlang.sysheap.heap)
-       IDENT(sysheap) :nlang.sysheap.heap
-     DEFNAME(p) :(nlang.builtins.mercurial_ref nlang.builtins.i32)
-   BIN( = ) :nlang.builtins.void
-    UN(!) :nlang.builtins.i32
-     IDENT(p) :(nlang.builtins.mercurial_ref nlang.builtins.i32)
-    NUMBER(1) :nlang.builtins.i32
-   RETURN :nlang.builtins.void
-    BIN( - ) :nlang.builtins.i32
-     UN(.) :nlang.builtins.i32
-      IDENT(p) :(nlang.builtins.mercurial_ref nlang.builtins.i32)
-     NUMBER(1) :nlang.builtins.i32
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   BLOCK :nlang.builtins.void ::()
+    NOOP :nlang.builtins.void ::()
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym0) :(nlang.builtins.mutable_ref nlang.sysheap.heap) ::(init and nonnull)
+      IDENT(_Ngensym0) :nlang.builtins.__internal_not_typeable__
+      UN(@!) :(nlang.builtins.mutable_ref nlang.sysheap.heap) ::(init and nonnull)
+       IDENT(sysheap) :nlang.sysheap.heap ::(init)
+    LET :nlang.builtins.void ::()
+     DEFNAME(p) :(nlang.builtins.mercurial_ref nlang.builtins.i32) ::(init and nonnull)
+      IDENT(p) :nlang.builtins.__internal_not_typeable__
+      CALL :(nlang.builtins.mercurial_ref nlang.builtins.i32) ::(init and nonnull)
+       CALL :(nlang.sysheap.heap.alloc nlang.builtins.i32) ::()
+        BIN(.) :(functor nlang.sysheap.heap.alloc nlang.builtins.`any) ::()
+         IDENT(heap) :nlang.sysheap.heap ::()
+         IDENT(alloc) :nlang.builtins.__internal_not_typeable__
+        IDENT(i32) :nlang.builtins.i32 ::()
+       IDENT(_Ngensym0) :(nlang.builtins.mutable_ref nlang.sysheap.heap) ::(init and nonnull)
+   NOOP :nlang.builtins.void ::()
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym2) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym2) :nlang.builtins.__internal_not_typeable__
+     NUMBER(1) :nlang.builtins.i32 ::(init)
+   BIN( = ) :nlang.builtins.void ::(init)
+    UN(!) :nlang.builtins.i32 ::(init)
+     IDENT(p) :(nlang.builtins.mercurial_ref nlang.builtins.i32) ::(init and nonnull)
+    IDENT(_Ngensym2) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym3) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym3) :nlang.builtins.__internal_not_typeable__
+     UN(.) :nlang.builtins.i32 ::(init)
+      IDENT(p) :(nlang.builtins.mercurial_ref nlang.builtins.i32) ::(init and nonnull)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym4) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym4) :nlang.builtins.__internal_not_typeable__
+     NUMBER(1) :nlang.builtins.i32 ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym5) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym5) :nlang.builtins.__internal_not_typeable__
+     BIN( - ) :nlang.builtins.i32 ::(init)
+      IDENT(_Ngensym3) :nlang.builtins.i32 ::(init)
+      IDENT(_Ngensym4) :nlang.builtins.i32 ::(init)
+   RETURN :nlang.builtins.void ::()
+    IDENT(_Ngensym5) :nlang.builtins.i32 ::(init)

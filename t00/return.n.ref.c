@@ -82,7 +82,9 @@ return r;
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_ t00_return_copy_new(void) {
 #define THIS(x) t00_return_copy##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_return_copy_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
@@ -96,7 +98,9 @@ return (nlang_builtins__Ni_return_by_copy){ .vptr = &vtable, .obj = obj };
 static t00_return_copy t00_return_foo(nlang_builtins_i32 x) {
 __attribute__((__unused__)) t00_return_copy n = { 0 };
  {
+;;
 (n.x) = x;
+;
 return n;
 }
 return n;
@@ -105,15 +109,28 @@ return n;
 static t00_return_copy t00_return_chained(nlang_builtins_i32 x) {
 __attribute__((__unused__)) t00_return_copy n = { 0 };
  {
-return t00_return_foo(x);
+t00_return_copy _Ngensym1 = t00_return_foo(x);
+;
+return _Ngensym1;
 }
 return n;
 }
 
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
-return ((t00_return_chained((nlang_builtins_i32)1).x) - (nlang_builtins_i32)1);
+nlang_builtins_i32 _Ngensym2 = (nlang_builtins_i32)1;
+;
+t00_return_copy _Ngensym3 = t00_return_chained(_Ngensym2);
+;
+;;
+nlang_builtins_i32 _Ngensym5 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym6 = ((_Ngensym3.x) - _Ngensym5);
+;
+return _Ngensym6;
 }
+return _nretval;
 }
 void t00_return_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_return_Nrunexamples(void) {

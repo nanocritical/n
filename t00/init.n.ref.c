@@ -130,7 +130,9 @@ void t00_init_tt_mk(t00_init_tt *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_init_tt_genN_ t00_init_tt_new(void) {
 #define THIS(x) t00_init_tt##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_init_tt_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
@@ -165,7 +167,9 @@ void t00_init_t_mk(t00_init_t *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_init_t_genN_ t00_init_t_new(void) {
 #define THIS(x) t00_init_t##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_init_t_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
@@ -182,27 +186,56 @@ memcpy(self, other, sizeof(*self));
 ;
 
 static nlang_builtins_i32 t00_init_foo(nlang_builtins_i32 x, nlang_builtins_i32 y) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
 return x;
 }
+return _nretval;
 }
 
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
-t00_init_tt _Ngensym2 = { 0 };
+;;
+nlang_builtins_i32 _Ngensym0 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym1 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym2 = (nlang_builtins_i32)0;
+;
+t00_init_tt _Ngensym3= { 0 };
+_Ngensym3.x = _Ngensym1;
+_Ngensym3.y = _Ngensym2;
+;
+;
 t00_init_t a= { 0 };
-a.x = (nlang_builtins_i32)1;
-a.y = ({ _Ngensym2.x = (nlang_builtins_i32)1;
-_Ngensym2.y = (nlang_builtins_i32)0;
-;
-_Ngensym2;
-; });
+a.x = _Ngensym0;
+a.y = _Ngensym3;
 ;
 ;
-nlang_builtins_i32 b = t00_init_foo(t00_init_foo((nlang_builtins_i32)0, (nlang_builtins_i32)1), (nlang_builtins_i32)1);
 ;
-return ((b + ((a.y).x)) - (nlang_builtins_i32)1);
+;;
+nlang_builtins_i32 _Ngensym4 = (nlang_builtins_i32)0;
+;
+nlang_builtins_i32 _Ngensym5 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym6 = t00_init_foo(_Ngensym4, _Ngensym5);
+;
+nlang_builtins_i32 _Ngensym7 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 b = t00_init_foo(_Ngensym6, _Ngensym7);
+;
+;;
+;;
+nlang_builtins_i32 _Ngensyma = (b + ((a.y).x));
+;
+nlang_builtins_i32 _Ngensymb = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensymc = (_Ngensyma - _Ngensymb);
+;
+return _Ngensymc;
 }
+return _nretval;
 }
 void t00_init_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_init_Nrunexamples(void) {

@@ -823,98 +823,110 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     IDENT(nlang)
     IDENT(just_mutable)
- DEFINTF :t00.syntaxintf.`example
+ DEFINTF :t00.syntaxintf.`example ::()
   IDENT(`example) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(final) :t00.syntaxintf.`example
-    DIRECTDEF :t00.syntaxintf.`example
-    DEFNAME(final) :t00.syntaxintf.`example
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.syntaxintf.`example
-    DIRECTDEF :t00.syntaxintf.`example
-    DEFNAME(this) :t00.syntaxintf.`example
-  DEFMETHOD :(functor t00.syntaxintf.`example.alloc nlang.builtins.`any)
+  LET :nlang.builtins.void ::()
+   DEFALIAS(final) :t00.syntaxintf.`example ::()
+    IDENT(final) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.syntaxintf.`example ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(this) :t00.syntaxintf.`example ::()
+    IDENT(this) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.syntaxintf.`example ::()
+  DEFMETHOD :(functor t00.syntaxintf.`example.alloc nlang.builtins.`any) ::()
    IDENT(alloc) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
-    DEFGENARG :nlang.builtins.`any
+    DEFGENARG :nlang.builtins.`any ::()
      IDENT(t) :nlang.builtins.__internal_not_typeable__
-     IDENT(`any) :nlang.builtins.`any
+     IDENT(`any) :nlang.builtins.`any ::()
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mutable_ref t00.syntaxintf.`example)
+    DEFARG :(nlang.builtins.mutable_ref t00.syntaxintf.`example) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@!) :(nlang.builtins.mutable_ref t00.syntaxintf.`example)
-      IDENT(final) :t00.syntaxintf.`example
-    UN(@#) :(nlang.builtins.mercurial_ref nlang.builtins.`any)
-     IDENT(t) :nlang.builtins.`any
-   WITHIN :nlang.builtins.void
-  DEFMETHOD :(functor t00.syntaxintf.`example.free nlang.builtins.`any)
+     UN(@!) :(nlang.builtins.mutable_ref t00.syntaxintf.`example) ::(init and nonnull)
+      IDENT(final) :t00.syntaxintf.`example ::()
+    DEFARG :(nlang.builtins.mercurial_ref nlang.builtins.`any) ::(init and nonnull)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     UN(@#) :(nlang.builtins.mercurial_ref nlang.builtins.`any) ::(init and nonnull)
+      IDENT(t) :nlang.builtins.`any ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFMETHOD :(functor t00.syntaxintf.`example.free nlang.builtins.`any) ::()
    IDENT(free) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
-    DEFGENARG :nlang.builtins.`any
+    DEFGENARG :nlang.builtins.`any ::()
      IDENT(t) :nlang.builtins.__internal_not_typeable__
-     IDENT(`any) :nlang.builtins.`any
+     IDENT(`any) :nlang.builtins.`any ::()
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mutable_ref t00.syntaxintf.`example)
+    DEFARG :(nlang.builtins.mutable_ref t00.syntaxintf.`example) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@!) :(nlang.builtins.mutable_ref t00.syntaxintf.`example)
-      IDENT(final) :t00.syntaxintf.`example
-    DEFARG :(nlang.builtins.nullable_mercurial_ref nlang.builtins.`any)
+     UN(@!) :(nlang.builtins.mutable_ref t00.syntaxintf.`example) ::(init and nonnull)
+      IDENT(final) :t00.syntaxintf.`example ::()
+    DEFARG :(nlang.builtins.nullable_mercurial_ref nlang.builtins.`any) ::(init)
      IDENT(p) :nlang.builtins.__internal_not_typeable__
-     UN(?@#) :(nlang.builtins.nullable_mercurial_ref nlang.builtins.`any)
-      IDENT(t) :nlang.builtins.`any
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
-  DEFMETHOD :(functor t00.syntaxintf.`example.slice_realloc nlang.builtins.`trivial_ctor)
+     UN(?@#) :(nlang.builtins.nullable_mercurial_ref nlang.builtins.`any) ::(init)
+      IDENT(t) :nlang.builtins.`any ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFMETHOD :(functor t00.syntaxintf.`example.slice_realloc nlang.builtins.`trivial_ctor) ::()
    IDENT(slice_realloc) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
-    DEFGENARG :nlang.builtins.`trivial_ctor
+    DEFGENARG :nlang.builtins.`trivial_ctor ::()
      IDENT(t) :nlang.builtins.__internal_not_typeable__
-     IDENT(`trivial_ctor) :nlang.builtins.`trivial_ctor
+     IDENT(`trivial_ctor) :nlang.builtins.`trivial_ctor ::()
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mutable_ref t00.syntaxintf.`example)
+    DEFARG :(nlang.builtins.mutable_ref t00.syntaxintf.`example) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@!) :(nlang.builtins.mutable_ref t00.syntaxintf.`example)
-      IDENT(final) :t00.syntaxintf.`example
-    DEFARG :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.`trivial_ctor))
+     UN(@!) :(nlang.builtins.mutable_ref t00.syntaxintf.`example) ::(init and nonnull)
+      IDENT(final) :t00.syntaxintf.`example ::()
+    DEFARG :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.`trivial_ctor)) ::(init and nonnull)
      IDENT(s) :nlang.builtins.__internal_not_typeable__
-     UN(@#) :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.`trivial_ctor))
-      CALL :(nlang.memory.slice nlang.builtins.`trivial_ctor)
-       IDENT(slice) :(functor nlang.memory.slice nlang.builtins.`any)
-       IDENT(t) :nlang.builtins.`trivial_ctor
-    DEFARG :nlang.builtins.size
+     UN(@#) :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.`trivial_ctor)) ::(init and nonnull)
+      CALL :(nlang.memory.slice nlang.builtins.`trivial_ctor) ::()
+       IDENT(slice) :(functor nlang.memory.slice nlang.builtins.`any) ::()
+       IDENT(t) :nlang.builtins.`trivial_ctor ::()
+    DEFARG :nlang.builtins.size ::(init)
      IDENT(count) :nlang.builtins.__internal_not_typeable__
-     IDENT(size) :nlang.builtins.size
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
-  DEFMETHOD :(functor t00.syntaxintf.`example.slice_free nlang.builtins.`trivial_ctor)
+     IDENT(size) :nlang.builtins.size ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFMETHOD :(functor t00.syntaxintf.`example.slice_free nlang.builtins.`trivial_ctor) ::()
    IDENT(slice_free) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
-    DEFGENARG :nlang.builtins.`trivial_ctor
+    DEFGENARG :nlang.builtins.`trivial_ctor ::()
      IDENT(t) :nlang.builtins.__internal_not_typeable__
-     IDENT(`trivial_ctor) :nlang.builtins.`trivial_ctor
+     IDENT(`trivial_ctor) :nlang.builtins.`trivial_ctor ::()
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mutable_ref t00.syntaxintf.`example)
+    DEFARG :(nlang.builtins.mutable_ref t00.syntaxintf.`example) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@!) :(nlang.builtins.mutable_ref t00.syntaxintf.`example)
-      IDENT(final) :t00.syntaxintf.`example
-    DEFARG :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.`trivial_ctor))
+     UN(@!) :(nlang.builtins.mutable_ref t00.syntaxintf.`example) ::(init and nonnull)
+      IDENT(final) :t00.syntaxintf.`example ::()
+    DEFARG :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.`trivial_ctor)) ::(init and nonnull)
      IDENT(s) :nlang.builtins.__internal_not_typeable__
-     UN(@#) :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.`trivial_ctor))
-      CALL :(nlang.memory.slice nlang.builtins.`trivial_ctor)
-       IDENT(slice) :(functor nlang.memory.slice nlang.builtins.`any)
-       IDENT(t) :nlang.builtins.`trivial_ctor
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
- DEFFUN :t00.syntaxintf.main
+     UN(@#) :(nlang.builtins.mercurial_ref (nlang.memory.slice nlang.builtins.`trivial_ctor)) ::(init and nonnull)
+      CALL :(nlang.memory.slice nlang.builtins.`trivial_ctor) ::()
+       IDENT(slice) :(functor nlang.memory.slice nlang.builtins.`any) ::()
+       IDENT(t) :nlang.builtins.`trivial_ctor ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+ DEFFUN :t00.syntaxintf.main ::()
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   RETURN :nlang.builtins.void
-    NUMBER(0) :nlang.builtins.i32
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym0) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym0) :nlang.builtins.__internal_not_typeable__
+     NUMBER(0) :nlang.builtins.i32 ::(init)
+   RETURN :nlang.builtins.void ::()
+    IDENT(_Ngensym0) :nlang.builtins.i32 ::(init)

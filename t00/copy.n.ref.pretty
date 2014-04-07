@@ -1,26 +1,46 @@
 from nlang import *
 type copy = `copyable <root>.nlang.builtins.`trivial_ctor
-  alias final = t00.copy.copy
-  alias this = t00.copy.copy
+  final = t00.copy.copy
+  this = t00.copy.copy
   x:i32
-  copy method `copyable.copy_ctor other:@this = void 
+  copy method `copyable.copy_ctor other:@this = _nretval:void 
+  noop
+  noop
   self!x = other.x
 
-  copy method <root>.nlang.builtins.`trivial_ctor.ctor = void 
+  copy method <root>.nlang.builtins.`trivial_ctor.ctor = _nretval:void 
 
   fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
+  fun <root>.nlang.builtins.`trivial_ctor.new = _nretval:@#final 
 
 
 fun foo = _nretval:copy 
-  return { x=0 }
+  _Ngensym2 = 0
+  noop
+  return { x=_Ngensym2 }
 
-export fun main = i32 
-  and w = foo
-  and y = { x=-1 }
-  and z:copy  such
-    t00.copy.copy.copy_ctor @#z @y
-  and zz  such
-    t00.copy.copy.copy_ctor @#zz @z
-  return z.x + 1
+export fun main = _nretval:i32 
+  block
+    noop
+    w = foo
+  noop
+  _Ngensym4 = 1
+  _Ngensym5 = -_Ngensym4
+  y = { x=_Ngensym5 }
+  noop
+  z = { }
+  block
+    _Ngensymc = @#z
+    _Ngensymd = @y
+    noop
+    t00.copy.copy.copy_ctor _Ngensymc _Ngensymd
+  noop
+  zz = zz
+  _Ngensymf = @#zz
+  _Ngensym10 = @z
+  t00.copy.copy.copy_ctor _Ngensymf _Ngensym10
+  noop
+  _Ngensym7 = 1
+  _Ngensym8 = z.x + _Ngensym7
+  return _Ngensym8

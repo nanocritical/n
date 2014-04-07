@@ -1,71 +1,234 @@
 from nlang import *
 fun inferred = _nretval:error 
   try
-    and _Ngensym16:nlang.builtins.error    such
-      throw block 
-  _Ngensym16 = { code=1 }
-  _Ngensym16;;
-  catch _Ngensym1 err
+    block
+      block
+        block
+          _Ngensyma = 1
+          _Ngensymb = { code=_Ngensyma }
+          _Ngensym0 = _Ngensymb
+        jump _Ngensym1
+  catch _Ngensym1 
+    block
+      noop
+      err = _Ngensym0
+    block
+      return err
 
-    return err
-
-fun foo = i32 
+fun foo = _nretval:i32 
   try
-    and _Ngensym17:nlang.builtins.error    such
-      throw ONEblock 
-  _Ngensym17 = { code=1 }
-  _Ngensym17;;
-    and _Ngensym18:nlang.builtins.error    such
-      throw ZEROblock 
-  _Ngensym18 = { code=0 }
-  _Ngensym18;;
-  catch ZERO _
+    block
+      block
+        block
+          block
+            _Ngensymc = 1
+            _Ngensymd = { code=_Ngensymc }
+            _Ngensym2 = _Ngensymd
+          jump ONE
+      block
+        block
+          _Ngensyme = 0
+          _Ngensymf = { code=_Ngensyme }
+          _Ngensym2 = _Ngensymf
+        jump ZERO
+      _Ngensym10 = 2
+      return _Ngensym10
+  catch ZERO 
+    block
+      noop
+      _ = _Ngensym2
+    block
+      _Ngensym11 = 0
+      return _Ngensym11  catch ONE 
+    block
+      noop
+      _ = _Ngensym2
+    block
+      _Ngensym12 = 1
+      return _Ngensym12
 
-    return 0  catch ONE _
-
-    return 1
-
-fun bar = i32 
+fun bar = _nretval:i32 
   try
-    and _Ngensyma = { code=1 }
-    return 0
-  catch _Ngensym5 err
-
-    try
-      and _Ngensymb = { code=err.code + 1 }
-      and _Ngensymc = { code=0 }
-      return 0
-    catch ONE err
-
-      return err.code - 1    catch ZERO _
-
-      return 0
-
-fun noerror = i32 
-  try
-    and _Ngensymd = { code=0 }
-    return 0
-  catch _Ngensym7 _
-
-    return 1
-
-export fun main = i32 
-  and _Ngensym19:nlang.builtins.error
-  and _Ngensym1a:nlang.builtins.error  such
-    assert (nlang.builtins.error.operator_ne block 
+    block
+      block
+        noop
+        _Ngensym14 = 1
+        _Ngensym13 = { code=_Ngensym14 }
+        if block 
+  _Ngensym16 = { }
   block
-    _Ngensym19 = inferred
-    _Ngensym1a = _Ngensym19
-  @_Ngensym1a;; @error.OK)
-  assert (foo == 1)
-  assert (bar == 1)
-  assert (noerror == 0)
-  try
-    and _Ngensym1b:nlang.builtins.error    such
-      throw block 
-  _Ngensym1b = { code=(bar) }
-  _Ngensym1b;;
-    return 1
-  catch _Ngensym9 err
+    _Ngensym44 = @_Ngensym13
+    _Ngensym15 = nlang.builtins.error.operator_test _Ngensym44
+    _Ngensym16 = _Ngensym15
+  _Ngensym16;;
+          -- phi 1
 
-    return err.code - 1
+          -- phi 1
+
+          block
+            block
+              _Ngensym3 = _Ngensym13
+            jump _Ngensym5
+        else
+          noop
+        -- phi 2
+
+        -- phi 2
+
+      _Ngensym17 = 0
+      return _Ngensym17
+  catch _Ngensym5 
+    block
+      noop
+      err = _Ngensym3
+    block
+      try
+        block
+          block
+            noop
+            noop
+            _Ngensym1a = 1
+            _Ngensym1b = err.code + _Ngensym1a
+            _Ngensym18 = { code=_Ngensym1b }
+            if block 
+  _Ngensym1d = { }
+  block
+    _Ngensym48 = @_Ngensym18
+    _Ngensym1c = nlang.builtins.error.operator_test _Ngensym48
+    _Ngensym1d = _Ngensym1c
+  _Ngensym1d;;
+              -- phi 1
+
+              -- phi 1
+
+              block
+                block
+                  _Ngensym4 = _Ngensym18
+                jump ONE
+            else
+              noop
+            -- phi 2
+
+            -- phi 2
+
+          noop
+          _Ngensym1f = 0
+          _Ngensym1e = { code=_Ngensym1f }
+          _Ngensym20 = 0
+          return _Ngensym20
+          if block 
+  _Ngensym22 = { }
+  block
+    _Ngensym4b = @_Ngensym1e
+    _Ngensym21 = nlang.builtins.error.operator_test _Ngensym4b
+    _Ngensym22 = _Ngensym21
+  _Ngensym22;;
+            -- phi 1
+
+            -- phi 1
+
+            block
+              block
+                _Ngensym4 = _Ngensym1e
+              jump ZERO
+          else
+            noop
+          -- phi 2
+
+          -- phi 2
+
+      catch ONE 
+        block
+          noop
+          err = _Ngensym4
+        block
+          noop
+          _Ngensym24 = 1
+          _Ngensym25 = err.code - _Ngensym24
+          return _Ngensym25      catch ZERO 
+        block
+          noop
+          _ = _Ngensym4
+        block
+          _Ngensym26 = 0
+          return _Ngensym26
+
+fun noerror = _nretval:i32 
+  try
+    block
+      block
+        noop
+        _Ngensym28 = 0
+        _Ngensym27 = { code=_Ngensym28 }
+        if block 
+  _Ngensym2a = { }
+  block
+    _Ngensym4f = @_Ngensym27
+    _Ngensym29 = nlang.builtins.error.operator_test _Ngensym4f
+    _Ngensym2a = _Ngensym29
+  _Ngensym2a;;
+          -- phi 1
+
+          -- phi 1
+
+          block
+            block
+              _Ngensym6 = _Ngensym27
+            jump _Ngensym7
+        else
+          noop
+        -- phi 2
+
+        -- phi 2
+
+      _Ngensym2b = 0
+      return _Ngensym2b
+  catch _Ngensym7 
+    block
+      noop
+      _ = _Ngensym6
+    block
+      _Ngensym2c = 1
+      return _Ngensym2c
+
+export fun main = _nretval:i32 
+  block
+    noop
+    _Ngensym50 = inferred
+    _Ngensym57 = @_Ngensym50
+    _Ngensym58 = @error.OK
+    _Ngensym2e = nlang.builtins.error.operator_ne _Ngensym57 _Ngensym58
+    noop
+    assert _Ngensym2e
+  _Ngensym30 = 1
+  _Ngensym51 = foo
+  _Ngensym31 = _Ngensym51 == _Ngensym30
+  assert _Ngensym31
+  _Ngensym32 = 1
+  _Ngensym52 = bar
+  _Ngensym33 = _Ngensym52 == _Ngensym32
+  assert _Ngensym33
+  _Ngensym34 = 0
+  _Ngensym53 = noerror
+  _Ngensym35 = _Ngensym53 == _Ngensym34
+  assert _Ngensym35
+  try
+    block
+      block
+        block
+          block
+            _Ngensym55 = bar
+            _Ngensym36 = { code=_Ngensym55 }
+            _Ngensym8 = _Ngensym36
+          jump _Ngensym9
+      _Ngensym37 = 1
+      return _Ngensym37
+  catch _Ngensym9 
+    block
+      noop
+      err = _Ngensym8
+    block
+      noop
+      _Ngensym39 = 1
+      _Ngensym3a = err.code - _Ngensym39
+      return _Ngensym3a

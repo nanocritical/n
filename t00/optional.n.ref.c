@@ -190,20 +190,39 @@ typedef const nlang_builtins_i32* _Ngen_nlang_builtins_nullable_ref__nlang_built
 #ifndef HAS3__Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_
 #define HAS3__Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_
 static inline nlang_builtins_i32 _Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_(_Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_ opt, nlang_builtins_i32 fallback) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
-( ((opt != NULL)) ? ( {
-return ((*opt));
+( (({ _Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_ _Ngensym104 = NULL;
+;
+nlang_builtins_bool _Ngensym105 = (opt != _Ngensym104);
+;
+_Ngensym105;
+; })) ? ( {
+;
+nlang_builtins_i32 _Ngensym106 = ((*opt));
+;
+return _Ngensym106;
 })
  : ( {
+;
 return fallback;
 }));
+;
+;
 }
+return _nretval;
 }
 #endif // HAS3__Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_
 static nlang_builtins_i32 t00_optional_opts(_Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_ a) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
-return _Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_(a, (nlang_builtins_i32)1);
+nlang_builtins_i32 _Ngensym0 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym1 = _Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_(a, _Ngensym0);
+;
+return _Ngensym1;
 }
+return _nretval;
 }
 
 #ifndef HAS3__Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_
@@ -233,9 +252,16 @@ typedef const struct _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlan
 #define HAS3__Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__has_next
 static inline nlang_builtins_bool _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__has_next(_Ngen_nlang_builtins_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ self) {
 #define THIS(x) _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN_##x
+__attribute__((__unused__)) nlang_builtins_bool _nretval = { 0 };
  {
-return ((self->n) > (nlang_builtins_size)0);
+;;
+nlang_builtins_size _Ngensym99 = (nlang_builtins_size)0;
+;
+nlang_builtins_bool _Ngensym9a = ((self->n) > _Ngensym99);
+;
+return _Ngensym9a;
 }
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__has_next
@@ -244,9 +270,12 @@ return ((self->n) > (nlang_builtins_size)0);
 #define HAS3__Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__left
 static inline nlang_builtins_size _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__left(_Ngen_nlang_builtins_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ self) {
 #define THIS(x) _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN_##x
+__attribute__((__unused__)) nlang_builtins_size _nretval = { 0 };
  {
+;;
 return (self->n);
 }
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__left
@@ -278,7 +307,9 @@ static inline void _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_
 #define HAS3__Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__new
 static inline _Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__new(void) {
 #define THIS(x) _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN_##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__new
@@ -299,102 +330,214 @@ struct _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32
 typedef struct _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN_* _Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_;
 #endif // HAS3__Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_
 static nlang_builtins_i32 t00_optional_chained(_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ v) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
 nlang_builtins_i32 s = (nlang_builtins_i32)0;
-_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ _Ngensym0 = ((&((*v))));
-while (_Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__has_next(_Ngensym0)) {
-_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ i = NLANG_BUILTINS_VARARG_NEXT(_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_, *(_Ngensym0));
-s += ((*i));
 ;
+ {
+ {
+;;
+;;
+_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ _Ngensym2 = ((&((*v))));
+;
+ {
+while (({ nlang_builtins_bool _Ngensym4 = _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__has_next(_Ngensym2);
+;
+_Ngensym4;
+; })) {
+;
+;
+;;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ i = NLANG_BUILTINS_VARARG_NEXT(_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_, *(_Ngensym2));
+;
+ {
+nlang_builtins_i32 _Ngensym5 = ((*i));
+;
+s += _Ngensym5;
+};
 };
 ;
 ;
+};
+};
+};
+;
 return s;
 }
+return _nretval;
 }
 
 static nlang_builtins_i32 t00_optional_var(nlang_builtins_i32 a, _Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_ b, nlang_builtins_size _Nvarargcount, ...) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
 _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN_ v = { 0 };
 NLANG_BUILTINS_VARARG_START(v);
  {
-nlang_builtins_i32 s = t00_optional_chained(((&v)));
+;;
+_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ _Ngensym6 = ((&v));
 ;
-return ((a + _Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_(b, (nlang_builtins_i32)0)) + s);
+nlang_builtins_i32 s = t00_optional_chained(_Ngensym6);
+;
+;
+nlang_builtins_i32 _Ngensym7 = (nlang_builtins_i32)0;
+;
+nlang_builtins_i32 _Ngensym8 = _Ngen_nlang_builtins_optional__nlang_builtins_i32_genN_(b, _Ngensym7);
+;
+nlang_builtins_i32 _Ngensym9 = (a + _Ngensym8);
+;
+nlang_builtins_i32 _Ngensyma = (_Ngensym9 + s);
+;
+return _Ngensyma;
 }
 NLANG_BUILTINS_VARARG_END(v);
+return _nretval;
 }
 
 static nlang_builtins_i32 t00_optional_onlyvar(nlang_builtins_size _Nvarargcount, ...) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
 _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN_ v = { 0 };
 NLANG_BUILTINS_VARARG_START(v);
  {
+;;
 nlang_builtins_i32 s = (nlang_builtins_i32)0;
-_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ _Ngensym1 = ((&v));
-while (_Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__has_next(_Ngensym1)) {
-_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ i = NLANG_BUILTINS_VARARG_NEXT(_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_, *(_Ngensym1));
-s += ((*i));
 ;
+ {
+ {
+;;
+_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__genN_ _Ngensymb = ((&v));
+;
+ {
+while (({ nlang_builtins_bool _Ngensymc = _Ngen_nlang_builtins_vararg___Ngen_nlang_builtins_ref__nlang_builtins_i32_genN__genN__has_next(_Ngensymb);
+;
+_Ngensymc;
+; })) {
+;
+;
+;;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ i = NLANG_BUILTINS_VARARG_NEXT(_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_, *(_Ngensymb));
+;
+ {
+nlang_builtins_i32 _Ngensymd = ((*i));
+;
+s += _Ngensymd;
+};
 };
 ;
+;
+};
+};
+};
 ;
 return s;
 }
 NLANG_BUILTINS_VARARG_END(v);
+return _nretval;
 }
 
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
-nlang_builtins_i32 _Ngensym2 = { 0 };
-( ((t00_optional_opts(({ _Ngensym2 = (nlang_builtins_i32)1;
-((&_Ngensym2));
-; })) != (nlang_builtins_i32)1)) ? ( {
-return (nlang_builtins_i32)1;
-}) : ({;}) );
+( (({ nlang_builtins_i32 _Ngensyme = (nlang_builtins_i32)1;
 ;
-nlang_builtins_i32 _Ngensym3 = { 0 };
-( ((t00_optional_opts(({ _Ngensym3 = (nlang_builtins_i32)1;
-((&_Ngensym3));
-; })) != t00_optional_opts(NULL))) ? ( {
-return (nlang_builtins_i32)1;
-}) : ({;}) );
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym29 = ((&_Ngensyme));
 ;
-nlang_builtins_i32 _Ngensym4 = { 0 };
-nlang_builtins_i32 _Ngensym5 = { 0 };
-nlang_builtins_i32 _Ngensym6 = { 0 };
-nlang_builtins_i32 _Ngensym7 = { 0 };
-nlang_builtins_assert(((nlang_builtins_i32)10 == t00_optional_var((nlang_builtins_i32)0, ({ _Ngensym4 = (nlang_builtins_i32)1;
-((&_Ngensym4));
-; }), 3, ({ _Ngensym5 = (nlang_builtins_i32)2;
-((&_Ngensym5));
-; }), ({ _Ngensym6 = (nlang_builtins_i32)3;
-((&_Ngensym6));
-; }), ({ _Ngensym7 = (nlang_builtins_i32)4;
-((&_Ngensym7));
-; }))));
+nlang_builtins_i32 _Ngensymf = t00_optional_opts(_Ngensym29);
 ;
-nlang_builtins_i32 _Ngensym8 = { 0 };
-nlang_builtins_i32 _Ngensym9 = { 0 };
-nlang_builtins_i32 _Ngensyma = { 0 };
-nlang_builtins_i32 _Ngensymb = { 0 };
-nlang_builtins_i32 _Ngensymc = { 0 };
-nlang_builtins_assert(((nlang_builtins_i32)10 == t00_optional_onlyvar(5, ({ _Ngensym8 = (nlang_builtins_i32)0;
-((&_Ngensym8));
-; }), ({ _Ngensym9 = (nlang_builtins_i32)1;
-((&_Ngensym9));
-; }), ({ _Ngensyma = (nlang_builtins_i32)2;
-((&_Ngensyma));
-; }), ({ _Ngensymb = (nlang_builtins_i32)3;
-((&_Ngensymb));
-; }), ({ _Ngensymc = (nlang_builtins_i32)4;
-((&_Ngensymc));
-; }))));
+nlang_builtins_i32 _Ngensym10 = (nlang_builtins_i32)1;
 ;
-nlang_builtins_i32 _Ngensymd = { 0 };
-return t00_optional_opts(({ _Ngensymd = (nlang_builtins_i32)0;
-((&_Ngensymd));
-; }));
+nlang_builtins_bool _Ngensym11 = (_Ngensymf != _Ngensym10);
 ;
+_Ngensym11;
+; })) ? ( {
+nlang_builtins_i32 _Ngensym12 = (nlang_builtins_i32)1;
+;
+return _Ngensym12;
+})
+ : ( {
+;;
+}));
+( (({ nlang_builtins_i32 _Ngensym13 = (nlang_builtins_i32)1;
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym2a = ((&_Ngensym13));
+;
+nlang_builtins_i32 _Ngensym14 = t00_optional_opts(_Ngensym2a);
+;
+_Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_ _Ngensym2b = NULL;
+;
+nlang_builtins_i32 _Ngensym2c = t00_optional_opts(_Ngensym2b);
+;
+nlang_builtins_bool _Ngensym15 = (_Ngensym14 != _Ngensym2c);
+;
+_Ngensym15;
+; })) ? ( {
+nlang_builtins_i32 _Ngensym16 = (nlang_builtins_i32)1;
+;
+return _Ngensym16;
+})
+ : ( {
+;;
+}));
+nlang_builtins_i32 _Ngensym17 = (nlang_builtins_i32)10;
+;
+nlang_builtins_i32 _Ngensym18 = (nlang_builtins_i32)0;
+;
+nlang_builtins_i32 _Ngensym19 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym1a = (nlang_builtins_i32)2;
+;
+nlang_builtins_i32 _Ngensym1b = (nlang_builtins_i32)3;
+;
+nlang_builtins_i32 _Ngensym1c = (nlang_builtins_i32)4;
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym2d = ((&_Ngensym19));
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym2e = ((&_Ngensym1a));
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym2f = ((&_Ngensym1b));
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym30 = ((&_Ngensym1c));
+;
+nlang_builtins_i32 _Ngensym1d = t00_optional_var(_Ngensym18, _Ngensym2d, 3, _Ngensym2e, _Ngensym2f, _Ngensym30);
+;
+nlang_builtins_bool _Ngensym1e = (_Ngensym17 == _Ngensym1d);
+;
+nlang_builtins_assert(_Ngensym1e);
+nlang_builtins_i32 _Ngensym1f = (nlang_builtins_i32)10;
+;
+nlang_builtins_i32 _Ngensym20 = (nlang_builtins_i32)0;
+;
+nlang_builtins_i32 _Ngensym21 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym22 = (nlang_builtins_i32)2;
+;
+nlang_builtins_i32 _Ngensym23 = (nlang_builtins_i32)3;
+;
+nlang_builtins_i32 _Ngensym24 = (nlang_builtins_i32)4;
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym31 = ((&_Ngensym20));
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym32 = ((&_Ngensym21));
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym33 = ((&_Ngensym22));
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym34 = ((&_Ngensym23));
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym35 = ((&_Ngensym24));
+;
+nlang_builtins_i32 _Ngensym25 = t00_optional_onlyvar(5, _Ngensym31, _Ngensym32, _Ngensym33, _Ngensym34, _Ngensym35);
+;
+nlang_builtins_bool _Ngensym26 = (_Ngensym1f == _Ngensym25);
+;
+nlang_builtins_assert(_Ngensym26);
+nlang_builtins_i32 _Ngensym27 = (nlang_builtins_i32)0;
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym36 = ((&_Ngensym27));
+;
+nlang_builtins_i32 _Ngensym28 = t00_optional_opts(_Ngensym36);
+;
+return _Ngensym28;
 }
+return _nretval;
 }
 void t00_optional_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_optional_Nrunexamples(void) {

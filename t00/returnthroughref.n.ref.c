@@ -14,6 +14,12 @@ struct t00_returnthroughref_t;
 typedef struct t00_returnthroughref_t* _Ngen_nlang_builtins_mercurial_ref__t00_returnthroughref_t_genN_;
 #endif // HAS0__Ngen_nlang_builtins_mercurial_ref__t00_returnthroughref_t_genN_
 ;
+#ifndef HAS0__Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_
+#define HAS0__Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_
+struct t00_returnthroughref_t;
+typedef const struct t00_returnthroughref_t* _Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_;
+#endif // HAS0__Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_
+;
 
 
 
@@ -52,6 +58,13 @@ void t00_returnthroughref_t_mk(t00_returnthroughref_t *_nrtr_r);
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_returnthroughref_t_genN_ t00_returnthroughref_t_new(void);
 ;
+#ifndef HAS2__Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_
+#define HAS2__Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_
+struct t00_returnthroughref_t;
+typedef const struct t00_returnthroughref_t* _Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_;
+#endif // HAS2__Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_
+nlang_builtins_void t00_returnthroughref_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_returnthroughref_t_genN_ self, _Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_ other) __attribute__((__nonnull__(1, 2)));
+;
 
 static void t00_returnthroughref_foo(t00_returnthroughref_t *_nrtr__nretval);
 
@@ -85,7 +98,20 @@ void t00_returnthroughref_t_mk(t00_returnthroughref_t *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_returnthroughref_t_genN_ t00_returnthroughref_t_new(void) {
 #define THIS(x) t00_returnthroughref_t##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_returnthroughref_t_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
+#undef THIS
+}
+;
+#ifndef HAS3__Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_
+#define HAS3__Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_
+struct t00_returnthroughref_t;
+typedef const struct t00_returnthroughref_t* _Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_;
+#endif // HAS3__Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_
+nlang_builtins_void t00_returnthroughref_t_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_returnthroughref_t_genN_ self, _Ngen_nlang_builtins_ref__t00_returnthroughref_t_genN_ other) {
+#define THIS(x) t00_returnthroughref_t##x
+memcpy(self, other, sizeof(*self));
 #undef THIS
 }
 ;
@@ -93,7 +119,10 @@ return calloc(1, sizeof(THIS()));
 static void t00_returnthroughref_foo(t00_returnthroughref_t *_nrtr__nretval) {
 #define _nretval (*_nrtr__nretval)
  {
-_nretval.x = (nlang_builtins_i32)3;
+nlang_builtins_i32 _Ngensym0 = (nlang_builtins_i32)3;
+;
+;;
+_nretval.x = _Ngensym0;
 ;
 return;
 }
@@ -103,6 +132,7 @@ return;
 static void t00_returnthroughref_bar(t00_returnthroughref_t *_nrtr__nretval) {
 #define _nretval (*_nrtr__nretval)
  {
+;;
 t00_returnthroughref_foo(&(_nretval));
 return;
 }
@@ -112,7 +142,11 @@ return;
 static void t00_returnthroughref_bar2(t00_returnthroughref_t *_nrtr_r) {
 #define r (*_nrtr_r)
  {
-t00_returnthroughref_bar(&(r));
+t00_returnthroughref_t _Ngensym9 = { 0 };
+t00_returnthroughref_bar(&(_Ngensym9));
+;
+r = _Ngensym9;
+;
 ;
 return;
 }
@@ -120,19 +154,33 @@ return;
 }
 
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
 t00_returnthroughref_t y = { 0 };
 t00_returnthroughref_bar(&(y));
 ;
-t00_returnthroughref_t _Ngensym1 = { 0 };
-( (((y.x) != (({ t00_returnthroughref_bar2(&(_Ngensym1));
-_Ngensym1;
-; }).x))) ? ( {
-return (nlang_builtins_i32)1;
-}) : ({;}) );
 ;
+( (({ ;;
+t00_returnthroughref_t _Ngensyma = { 0 };
+t00_returnthroughref_bar2(&(_Ngensyma));
+;
+;;
+nlang_builtins_bool _Ngensym4 = ((y.x) != (_Ngensyma.x));
+;
+_Ngensym4;
+; })) ? ( {
+nlang_builtins_i32 _Ngensym5 = (nlang_builtins_i32)1;
+;
+return _Ngensym5;
+})
+ : ( {
+;;
+}));
+;;
 return (y.xx);
 }
+return _nretval;
 }
 void t00_returnthroughref_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_returnthroughref_Nrunexamples(void) {

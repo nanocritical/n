@@ -823,7 +823,125 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     IDENT(nlang)
     IDENT(just_mutable)
- DEFFUN :t00.hello.main ::()
+ DEFTYPE :t03.constraints.u ::()
+  IDENT(u) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  ISALIST :nlang.builtins.__internal_not_typeable__
+   ISA :nlang.builtins.`trivial_ctor ::()
+    IDENT(`trivial_ctor) :nlang.builtins.`trivial_ctor ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(tag_type) :nlang.builtins.u32 ::()
+    IDENT(tag_type) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :nlang.builtins.u32 ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(final) :t03.constraints.u ::()
+    IDENT(final) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t03.constraints.u ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(this) :t03.constraints.u ::()
+    IDENT(this) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t03.constraints.u ::()
+  DEFCHOICE :t03.constraints.u ::(init)
+   IDENT(A) :nlang.builtins.__internal_not_typeable__
+   NUMBER(0) :nlang.builtins.u32 ::(init)
+   NUMBER(0) :nlang.builtins.u32 ::(init)
+  DEFCHOICE :t03.constraints.u ::()
+   IDENT(B) :nlang.builtins.__internal_not_typeable__
+   BIN( + ) :nlang.builtins.u32 ::(init)
+    NUMBER(0) :nlang.builtins.u32 ::(init)
+    NUMBER(1) :nlang.builtins.u32 ::(init)
+   NUMBER(0) :nlang.builtins.u32 ::(init)
+   DEFFIELD :nlang.builtins.i32 ::()
+    IDENT(x) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  DEFCHOICE :t03.constraints.u ::()
+   IDENT(C) :nlang.builtins.__internal_not_typeable__
+   BIN( + ) :nlang.builtins.u32 ::(init)
+    BIN( + ) :nlang.builtins.u32 ::(init)
+     NUMBER(0) :nlang.builtins.u32 ::(init)
+     NUMBER(1) :nlang.builtins.u32 ::(init)
+    NUMBER(1) :nlang.builtins.u32 ::(init)
+   NUMBER(0) :nlang.builtins.u32 ::(init)
+   DEFFIELD :nlang.builtins.u32 ::()
+    IDENT(x) :nlang.builtins.__internal_not_typeable__
+    IDENT(u32) :nlang.builtins.u32 ::()
+ DEFFUN :t03.constraints.aux ::()
+  IDENT(aux) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
+   DEFARG :t03.constraints.u ::(init)
+    IDENT(e) :nlang.builtins.__internal_not_typeable__
+    IDENT(u) :t03.constraints.u ::()
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::(init and (t03.constraints.aux.e => (init and |B)))
+   MATCH :nlang.builtins.void ::()
+    BLOCK :t03.constraints.u ::(init)
+     IDENT(e) :t03.constraints.u ::(init)
+    IDENT(B) :t03.constraints.u ::()
+    BLOCK :nlang.builtins.void ::()
+     PHIc(e) :nlang.builtins.__internal_not_typeable__ ::(init and |B)
+     NOOP :nlang.builtins.void ::()
+     NOOP :nlang.builtins.void ::()
+     RETURN :nlang.builtins.void ::()
+      BIN(.) :nlang.builtins.i32 ::(init)
+       BIN(.) :t03.constraints.u ::(init and |B)
+        IDENT(e) :t03.constraints.u ::(init and |B)
+        IDENT(B) :nlang.builtins.__internal_not_typeable__
+       IDENT(x) :nlang.builtins.__internal_not_typeable__
+    IDENT(_) :t03.constraints.u ::()
+    BLOCK :nlang.builtins.void ::()
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym2) :nlang.builtins.i32 ::(init)
+       IDENT(_Ngensym2) :nlang.builtins.__internal_not_typeable__
+       NUMBER(1) :nlang.builtins.i32 ::(init)
+     RETURN :nlang.builtins.void ::()
+      IDENT(_Ngensym2) :nlang.builtins.i32 ::(init)
+   PHI (e) :nlang.builtins.__internal_not_typeable__ ::(init and (t03.constraints.aux.e => (init and |B)))
+ DEFFUN :t03.constraints.set1 ::()
+  IDENT(set1) :nlang.builtins.__internal_not_typeable__
+  GENARGS :nlang.builtins.__internal_not_typeable__
+  FUNARGS :nlang.builtins.__internal_not_typeable__
+   DEFARG :(nlang.builtins.mutable_ref t03.constraints.u) ::(init and nonnull)
+    IDENT(e) :nlang.builtins.__internal_not_typeable__
+    UN(@!) :(nlang.builtins.mutable_ref t03.constraints.u) ::(init and nonnull)
+     IDENT(u) :t03.constraints.u ::()
+   DEFARG :nlang.builtins.void ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(void) :nlang.builtins.void ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::(init and nonnull and (t03.constraints.set1.<match>.<let>._Ngensym3 => (init and nonnull and |B)))
+   MATCH :nlang.builtins.void ::()
+    BLOCK :t03.constraints.u ::(init)
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym3) :t03.constraints.u ::(init)
+       IDENT(_Ngensym3) :nlang.builtins.__internal_not_typeable__
+       UN(.) :t03.constraints.u ::(init)
+        IDENT(e) :(nlang.builtins.mutable_ref t03.constraints.u) ::(init and nonnull)
+     IDENT(_Ngensym3) :t03.constraints.u ::(init)
+    IDENT(B) :t03.constraints.u ::()
+    BLOCK :nlang.builtins.void ::(init)
+     PHIc(e) :nlang.builtins.__internal_not_typeable__ ::(init and nonnull and |B)
+     NOOP :nlang.builtins.void ::()
+     NOOP :nlang.builtins.void ::()
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym6) :nlang.builtins.i32 ::(init)
+       IDENT(_Ngensym6) :nlang.builtins.__internal_not_typeable__
+       NUMBER(1) :nlang.builtins.i32 ::(init)
+     BIN( = ) :nlang.builtins.void ::(init)
+      BIN(.) :nlang.builtins.i32 ::(init)
+       BIN(!) :t03.constraints.u ::(init and |B)
+        IDENT(e) :(nlang.builtins.mutable_ref t03.constraints.u) ::(init and nonnull and |B)
+        IDENT(B) :nlang.builtins.__internal_not_typeable__
+       IDENT(x) :nlang.builtins.__internal_not_typeable__
+      IDENT(_Ngensym6) :nlang.builtins.i32 ::(init)
+    IDENT(_) :t03.constraints.u ::()
+    BLOCK :nlang.builtins.void ::()
+     NOOP :nlang.builtins.void ::()
+   PHI (e) :nlang.builtins.__internal_not_typeable__ ::(init and nonnull and (t03.constraints.set1.<match>.<let>._Ngensym3 => (init and nonnull and |B)))
+ DEFFUN :t03.constraints.main ::()
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
@@ -832,148 +950,140 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32 ::()
   WITHIN :nlang.builtins.void ::(init and nonnull)
   BLOCK :nlang.builtins.void ::()
-   BLOCK :nlang.builtins.void ::(init)
-    LET :nlang.builtins.void ::()
-     DEFNAME(_Ngensym0) :nlang.chars.static_string ::(init)
-      IDENT(_Ngensym0) :nlang.builtins.__internal_not_typeable__
-      STRING('Hello, World!') :nlang.chars.static_string ::(init)
-    LET :nlang.builtins.void ::()
-     DEFNAME(_Ngensym9) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-      IDENT(_Ngensym9) :nlang.builtins.__internal_not_typeable__
-      NUL :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-    LET :nlang.builtins.void ::()
-     DEFNAME(_Ngensyma) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
-      IDENT(_Ngensyma) :nlang.builtins.__internal_not_typeable__
-      UN(@) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
-       IDENT(_Ngensym0) :nlang.chars.static_string ::(init)
+   BLOCK :nlang.builtins.void ::()
     NOOP :nlang.builtins.void ::()
     LET :nlang.builtins.void ::()
-     DEFNAME(_Ngensym14) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-      IDENT(_Ngensym14) :nlang.builtins.__internal_not_typeable__
-      DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-       IDENT(_Ngensyma) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
-    CALL :nlang.builtins.void ::(init)
-     IDENT(say) :nlang.say ::()
-     CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-      IDENT(_Ngensym9) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-     IDENT(_Ngensym14) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+     DEFNAME(g) :t03.constraints.u ::(init and |A)
+      IDENT(g) :nlang.builtins.__internal_not_typeable__
+      INIT :t03.constraints.u ::(init and |A)
+   MATCH :nlang.builtins.void ::()
+    BLOCK :t03.constraints.u ::(init and |A)
+     IDENT(g) :t03.constraints.u ::(init and |A)
+    IDENT(B) :t03.constraints.u ::()
+    BLOCK :nlang.builtins.void ::()
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym7) :nlang.builtins.i32 ::(init)
+       IDENT(_Ngensym7) :nlang.builtins.__internal_not_typeable__
+       NUMBER(1) :nlang.builtins.i32 ::(init)
+     RETURN :nlang.builtins.void ::()
+      IDENT(_Ngensym7) :nlang.builtins.i32 ::(init)
+    IDENT(C) :t03.constraints.u ::()
+    BLOCK :nlang.builtins.void ::()
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym8) :nlang.builtins.i32 ::(init)
+       IDENT(_Ngensym8) :nlang.builtins.__internal_not_typeable__
+       NUMBER(1) :nlang.builtins.i32 ::(init)
+     RETURN :nlang.builtins.void ::()
+      IDENT(_Ngensym8) :nlang.builtins.i32 ::(init)
+    IDENT(_) :t03.constraints.u ::()
+    BLOCK :nlang.builtins.void ::()
+     NOOP :nlang.builtins.void ::()
+   NOOP :nlang.builtins.void ::()
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym2) :nlang.strings.string ::(init)
-     IDENT(_Ngensym2) :nlang.builtins.__internal_not_typeable__
-     CALL :nlang.strings.string ::(init)
-      DIRECTDEF :nlang.strings.string.from_static_string ::()
-      STRING(', ') :nlang.chars.static_string ::(init)
+    DEFNAME(f) :t03.constraints.u ::(init and |B)
+     IDENT(f) :nlang.builtins.__internal_not_typeable__
+     INIT :t03.constraints.u ::(init and |B)
+   NOOP :nlang.builtins.void ::()
+   NOOP :nlang.builtins.void ::()
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym3) :nlang.chars.static_string ::(init)
-     IDENT(_Ngensym3) :nlang.builtins.__internal_not_typeable__
-     STRING('Hello') :nlang.chars.static_string ::(init)
+    DEFNAME(_Ngensym1b) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+     IDENT(_Ngensym1b) :nlang.builtins.__internal_not_typeable__
+     NUL :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym4) :nlang.chars.static_string ::(init)
-     IDENT(_Ngensym4) :nlang.builtins.__internal_not_typeable__
-     STRING('World!') :nlang.chars.static_string ::(init)
+    DEFNAME(_Ngensym1c) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+     IDENT(_Ngensym1c) :nlang.builtins.__internal_not_typeable__
+     UN(@) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+      BIN(.) :nlang.builtins.i32 ::(init)
+       BIN(.) :t03.constraints.u ::(init and |B)
+        IDENT(f) :t03.constraints.u ::(init and |B)
+        IDENT(B) :nlang.builtins.__internal_not_typeable__
+       IDENT(x) :nlang.builtins.__internal_not_typeable__
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensymb) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+    DEFNAME(_Ngensym21) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+     IDENT(_Ngensym21) :nlang.builtins.__internal_not_typeable__
+     DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+      IDENT(_Ngensym1c) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+   CALL :nlang.builtins.void ::(init)
+    IDENT(say) :nlang.say ::()
+    CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+     IDENT(_Ngensym1b) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+    IDENT(_Ngensym21) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensymb) :(nlang.builtins.mutable_ref t03.constraints.u) ::(init and nonnull)
      IDENT(_Ngensymb) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
-      IDENT(_Ngensym2) :nlang.strings.string ::(init)
+     UN(@!) :(nlang.builtins.mutable_ref t03.constraints.u) ::(init and nonnull)
+      IDENT(f) :t03.constraints.u ::(init and |B)
+   CALL :nlang.builtins.void ::(init)
+    IDENT(set1) :t03.constraints.set1 ::()
+    IDENT(_Ngensymb) :(nlang.builtins.mutable_ref t03.constraints.u) ::(init and nonnull)
+   NOOP :nlang.builtins.void ::()
+   NOOP :nlang.builtins.void ::()
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensymc) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
-     IDENT(_Ngensymc) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
-      IDENT(_Ngensym3) :nlang.chars.static_string ::(init)
+    DEFNAME(_Ngensym1d) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+     IDENT(_Ngensym1d) :nlang.builtins.__internal_not_typeable__
+     NUL :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensymd) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
-     IDENT(_Ngensymd) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
-      IDENT(_Ngensym4) :nlang.chars.static_string ::(init)
+    DEFNAME(_Ngensym1e) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+     IDENT(_Ngensym1e) :nlang.builtins.__internal_not_typeable__
+     UN(@) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+      BIN(.) :nlang.builtins.i32 ::(init)
+       BIN(.) :t03.constraints.u ::(init and |B)
+        IDENT(f) :t03.constraints.u ::(init and |B)
+        IDENT(B) :nlang.builtins.__internal_not_typeable__
+       IDENT(x) :nlang.builtins.__internal_not_typeable__
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym15) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-     IDENT(_Ngensym15) :nlang.builtins.__internal_not_typeable__
+    DEFNAME(_Ngensym22) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+     IDENT(_Ngensym22) :nlang.builtins.__internal_not_typeable__
      DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-      IDENT(_Ngensymc) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
-   LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym16) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-     IDENT(_Ngensym16) :nlang.builtins.__internal_not_typeable__
-     DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-      IDENT(_Ngensymd) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
+      IDENT(_Ngensym1e) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
    CALL :nlang.builtins.void ::(init)
     IDENT(say) :nlang.say ::()
-    CALLNAMEDARG(sep) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
-     IDENT(_Ngensymb) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
-    IDENT(_Ngensym15) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-    IDENT(_Ngensym16) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+    CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+     IDENT(_Ngensym1d) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+    IDENT(_Ngensym22) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+   NOOP :nlang.builtins.void ::()
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym5) :nlang.builtins.bool ::(init)
-     IDENT(_Ngensym5) :nlang.builtins.__internal_not_typeable__
-     BOOL :nlang.builtins.bool ::(init)
-   LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensyme) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+    DEFNAME(_Ngensyme) :nlang.builtins.i32 ::(init)
      IDENT(_Ngensyme) :nlang.builtins.__internal_not_typeable__
-     NUL :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+     NUMBER(1) :nlang.builtins.i32 ::(init)
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensymf) :(nlang.builtins.ref nlang.builtins.bool) ::(init and nonnull)
-     IDENT(_Ngensymf) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref nlang.builtins.bool) ::(init and nonnull)
-      IDENT(_Ngensym5) :nlang.builtins.bool ::(init)
+    DEFNAME(e) :t03.constraints.u ::(init and |B)
+     IDENT(e) :nlang.builtins.__internal_not_typeable__
+     INIT :t03.constraints.u ::(init and |B)
+      IDENT(x) :nlang.builtins.__internal_not_typeable__
+      IDENT(_Ngensyme) :nlang.builtins.i32 ::(init)
+   MATCH :nlang.builtins.void ::()
+    BLOCK :t03.constraints.u ::(init and |B)
+     IDENT(e) :t03.constraints.u ::(init and |B)
+    IDENT(B) :t03.constraints.u ::()
+    BLOCK :nlang.builtins.void ::(init)
+     PHIc(e) :nlang.builtins.__internal_not_typeable__ ::(init and |B)
+     NOOP :nlang.builtins.void ::()
+     NOOP :nlang.builtins.void ::()
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym11) :nlang.builtins.i32 ::(init)
+       IDENT(_Ngensym11) :nlang.builtins.__internal_not_typeable__
+       NUMBER(0) :nlang.builtins.i32 ::(init)
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym12) :nlang.builtins.bool ::(init)
+       IDENT(_Ngensym12) :nlang.builtins.__internal_not_typeable__
+       BIN( == ) :nlang.builtins.bool ::(init)
+        BIN(.) :nlang.builtins.i32 ::(init)
+         BIN(.) :t03.constraints.u ::(init and |B)
+          IDENT(e) :t03.constraints.u ::(init and |B)
+          IDENT(B) :nlang.builtins.__internal_not_typeable__
+         IDENT(x) :nlang.builtins.__internal_not_typeable__
+        IDENT(_Ngensym11) :nlang.builtins.i32 ::(init)
+     NOOP :nlang.builtins.void ::()
+     CALL :nlang.builtins.void ::(init)
+      IDENT(assert) :nlang.builtins.assert ::()
+      IDENT(_Ngensym12) :nlang.builtins.bool ::(init)
+   PHI (e) :nlang.builtins.__internal_not_typeable__ ::(init and |B and (t03.constraints.main.<let>.e => (init and |B)))
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym17) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-     IDENT(_Ngensym17) :nlang.builtins.__internal_not_typeable__
-     DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-      IDENT(_Ngensymf) :(nlang.builtins.ref nlang.builtins.bool) ::(init and nonnull)
-   CALL :nlang.builtins.void ::(init)
-    IDENT(say) :nlang.say ::()
-    CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-     IDENT(_Ngensyme) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-    IDENT(_Ngensym17) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-   LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym6) :nlang.builtins.u32 ::(init)
-     IDENT(_Ngensym6) :nlang.builtins.__internal_not_typeable__
-     NUMBER(1) :nlang.builtins.u32 ::(init)
-   LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym10) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-     IDENT(_Ngensym10) :nlang.builtins.__internal_not_typeable__
-     NUL :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-   LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym11) :(nlang.builtins.ref nlang.builtins.u32) ::(init and nonnull)
-     IDENT(_Ngensym11) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref nlang.builtins.u32) ::(init and nonnull)
-      IDENT(_Ngensym6) :nlang.builtins.u32 ::(init)
-   LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym18) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-     IDENT(_Ngensym18) :nlang.builtins.__internal_not_typeable__
-     DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-      IDENT(_Ngensym11) :(nlang.builtins.ref nlang.builtins.u32) ::(init and nonnull)
-   CALL :nlang.builtins.void ::(init)
-    IDENT(say) :nlang.say ::()
-    CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-     IDENT(_Ngensym10) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-    IDENT(_Ngensym18) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-   LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym7) :nlang.builtins.float ::(init)
-     IDENT(_Ngensym7) :nlang.builtins.__internal_not_typeable__
-     NUMBER(1.0) :nlang.builtins.float ::(init)
-   LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym12) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-     IDENT(_Ngensym12) :nlang.builtins.__internal_not_typeable__
-     NUL :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-   LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym13) :(nlang.builtins.ref nlang.builtins.float) ::(init and nonnull)
-     IDENT(_Ngensym13) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref nlang.builtins.float) ::(init and nonnull)
-      IDENT(_Ngensym7) :nlang.builtins.float ::(init)
-   LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym19) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-     IDENT(_Ngensym19) :nlang.builtins.__internal_not_typeable__
-     DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-      IDENT(_Ngensym13) :(nlang.builtins.ref nlang.builtins.float) ::(init and nonnull)
-   CALL :nlang.builtins.void ::(init)
-    IDENT(say) :nlang.say ::()
-    CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-     IDENT(_Ngensym12) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
-    IDENT(_Ngensym19) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
-   LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym8) :nlang.builtins.i32 ::(init)
-     IDENT(_Ngensym8) :nlang.builtins.__internal_not_typeable__
-     NUMBER(0) :nlang.builtins.i32 ::(init)
+    DEFNAME(_Ngensym14) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym14) :nlang.builtins.__internal_not_typeable__
+     CALL :nlang.builtins.i32 ::(init)
+      IDENT(aux) :t03.constraints.aux ::()
+      IDENT(e) :t03.constraints.u ::(init and |B and (t03.constraints.main.<let>.e => (init and |B)))
    RETURN :nlang.builtins.void ::()
-    IDENT(_Ngensym8) :nlang.builtins.i32 ::(init)
+    IDENT(_Ngensym14) :nlang.builtins.i32 ::(init)

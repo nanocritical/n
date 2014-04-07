@@ -823,19 +823,39 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     IDENT(nlang)
     IDENT(just_mutable)
- DEFFUN :t00.alignof.main
+ DEFFUN :t00.alignof.main ::()
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   CALL :nlang.builtins.void
-    IDENT(assert) :nlang.builtins.assert
-    BIN( == ) :nlang.builtins.bool
-     ALIGNOF :nlang.builtins.size
-      IDENT(i32) :nlang.builtins.i32
-     ALIGNOF :nlang.builtins.size
-      IDENT(u32) :nlang.builtins.u32
-   RETURN :nlang.builtins.void
-    NUMBER(0) :nlang.builtins.i32
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   BLOCK :nlang.builtins.void ::(init)
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym0) :nlang.builtins.size ::(init)
+      IDENT(_Ngensym0) :nlang.builtins.__internal_not_typeable__
+      ALIGNOF :nlang.builtins.size ::(init)
+       IDENT(i32) :nlang.builtins.i32 ::()
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym1) :nlang.builtins.size ::(init)
+      IDENT(_Ngensym1) :nlang.builtins.__internal_not_typeable__
+      ALIGNOF :nlang.builtins.size ::(init)
+       IDENT(u32) :nlang.builtins.u32 ::()
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym2) :nlang.builtins.bool ::(init)
+      IDENT(_Ngensym2) :nlang.builtins.__internal_not_typeable__
+      BIN( == ) :nlang.builtins.bool ::(init)
+       IDENT(_Ngensym0) :nlang.builtins.size ::(init)
+       IDENT(_Ngensym1) :nlang.builtins.size ::(init)
+    NOOP :nlang.builtins.void ::()
+    CALL :nlang.builtins.void ::(init)
+     IDENT(assert) :nlang.builtins.assert ::()
+     IDENT(_Ngensym2) :nlang.builtins.bool ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym4) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym4) :nlang.builtins.__internal_not_typeable__
+     NUMBER(0) :nlang.builtins.i32 ::(init)
+   RETURN :nlang.builtins.void ::()
+    IDENT(_Ngensym4) :nlang.builtins.i32 ::(init)

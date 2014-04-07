@@ -844,7 +844,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    DEFARG :nlang.builtins.i32 ::(init)
     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32 ::()
-  WITHIN :nlang.builtins.void ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
   BLOCK :nlang.builtins.void ::()
    BLOCK :nlang.builtins.void ::()
     NOOP :nlang.builtins.void ::()
@@ -882,7 +882,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    DEFARG :nlang.builtins.i32 ::(init)
     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32 ::()
-  WITHIN :nlang.builtins.void ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
   BLOCK :nlang.builtins.void ::()
    LET :nlang.builtins.void ::()
     DEFNAME(_Ngensym3) :nlang.builtins.i32 ::(init)
@@ -897,7 +897,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    DEFARG :nlang.strings.string ::(init)
     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
     IDENT(string) :nlang.strings.string ::()
-  WITHIN :nlang.builtins.void ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
   BLOCK :nlang.builtins.void ::()
    LET :nlang.builtins.void ::()
     DEFNAME(_Ngensym4) :nlang.strings.string ::(init)
@@ -917,7 +917,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    DEFARG :nlang.builtins.i32 ::(init)
     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32 ::()
-  WITHIN :nlang.builtins.void ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
  DEFFUN :t00.syntax.other5 ::()
   IDENT(other5) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
@@ -928,7 +928,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    DEFARG :nlang.builtins.i32 ::(init)
     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32 ::()
-  WITHIN :nlang.builtins.void ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
  DEFINTF :t00.syntax.`ia ::()
   IDENT(`ia) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
@@ -980,7 +980,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFARG :nlang.builtins.i32 ::(init)
      IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
      IDENT(i32) :nlang.builtins.i32 ::()
-   WITHIN :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
    BLOCK :nlang.builtins.void ::()
     BLOCK :nlang.builtins.void ::()
      NOOP :nlang.builtins.void ::()
@@ -1009,7 +1009,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFARG :nlang.builtins.void ::(init)
      IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
      IDENT(void) :nlang.builtins.void ::()
-   WITHIN :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
   DEFFUN :t00.syntax.test.mk ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -1025,7 +1025,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFARG :t00.syntax.test ::(init)
      IDENT(r) :nlang.builtins.__internal_not_typeable__
      IDENT(final) :t00.syntax.test ::()
-   WITHIN :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
   DEFFUN :t00.syntax.test.new ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -1042,7 +1042,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
      UN(@#) :(nlang.builtins.mercurial_ref t00.syntax.test) ::(init and nonnull)
       IDENT(final) :t00.syntax.test ::()
-   WITHIN :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
  DEFFUN :t00.syntax.foobar ::()
   IDENT(foobar) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
@@ -1053,7 +1053,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    DEFARG :nlang.builtins.i32 ::(init)
     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32 ::()
-  WITHIN :nlang.builtins.void ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
   BLOCK :nlang.builtins.void ::()
    BLOCK :nlang.builtins.void ::()
     LET :nlang.builtins.void ::()
@@ -1116,7 +1116,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    DEFARG :nlang.builtins.void ::(init)
     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
     IDENT(void) :nlang.builtins.void ::()
-  WITHIN :nlang.builtins.void ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
   BLOCK :nlang.builtins.void ::()
    RETURN :nlang.builtins.void ::()
  DEFTYPE :t00.syntax.enu ::()
@@ -1200,7 +1200,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFARG :nlang.builtins.void ::(init)
      IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
      IDENT(void) :nlang.builtins.void ::()
-   WITHIN :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
   DEFMETHOD :t00.syntax.enu.operator_eq ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -1224,7 +1224,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFARG :nlang.builtins.bool ::(init)
      IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
      IDENT(bool) :nlang.builtins.bool ::()
-   WITHIN :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
   DEFMETHOD :t00.syntax.enu.operator_ne ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -1248,4 +1248,4 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     DEFARG :nlang.builtins.bool ::(init)
      IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
      IDENT(bool) :nlang.builtins.bool ::()
-   WITHIN :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)

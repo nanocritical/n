@@ -1,13 +1,34 @@
 from nlang import *
-fun foo x:i32 = i32 
-  return 0
+fun foo x:i32 = _nretval:i32 
+  _Ngensym0 = 0
+  return _Ngensym0
 
 example block 
-  __example__ (0 == foo 0);;
+  _Ngensym1 = 0
+  _Ngensym2 = 0
+  _Ngensym3 = foo _Ngensym2
+  _Ngensym4 = _Ngensym1 == _Ngensym3
+  noop
+  __example__ _Ngensym4;;
 example block 
-  __example__ (foo 1 == 0);;
+  _Ngensym6 = 1
+  _Ngensym7 = foo _Ngensym6
+  _Ngensym8 = 0
+  _Ngensym9 = _Ngensym7 == _Ngensym8
+  noop
+  __example__ _Ngensym9;;
 example block 
-  __example__ block 
-  foo -1 == 0;;;;
-export fun main = i32 
-  return foo 1
+  _Ngensym10 = { }
+  block
+    _Ngensymb = 1
+    _Ngensymc = -_Ngensymb
+    _Ngensymd = foo _Ngensymc
+    _Ngensyme = 0
+    _Ngensymf = _Ngensymd == _Ngensyme
+    _Ngensym10 = _Ngensymf
+  noop
+  __example__ _Ngensym10;;
+export fun main = _nretval:i32 
+  _Ngensym12 = 1
+  _Ngensym13 = foo _Ngensym12
+  return _Ngensym13

@@ -823,25 +823,61 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     IDENT(nlang)
     IDENT(just_mutable)
- DEFFUN :t00.bool.main
+ DEFFUN :t00.bool.main ::()
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     IDENT(x) :nlang.builtins.bool
-     BOOL :nlang.builtins.bool
-     DEFNAME(x) :nlang.builtins.bool
-   IF :nlang.builtins.void
-    BIN( and ) :nlang.builtins.bool
-     IDENT(x) :nlang.builtins.bool
-     BOOL :nlang.builtins.bool
-    BLOCK :nlang.builtins.void
-     RETURN :nlang.builtins.void
-      NUMBER(1) :nlang.builtins.i32
-    BLOCK :nlang.builtins.void
-     RETURN :nlang.builtins.void
-      NUMBER(0) :nlang.builtins.i32
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   BLOCK :nlang.builtins.void ::()
+    NOOP :nlang.builtins.void ::()
+    LET :nlang.builtins.void ::()
+     DEFNAME(x) :nlang.builtins.bool ::(init)
+      IDENT(x) :nlang.builtins.__internal_not_typeable__
+      BOOL :nlang.builtins.bool ::(init)
+   IF :nlang.builtins.void ::()
+    BLOCK :nlang.builtins.bool ::(init and (t00.bool.main.<let>.x => ())(not t00.bool.main.<let>.x => ()))
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym2) :nlang.builtins.bool ::(init)
+       IDENT(_Ngensym2) :nlang.builtins.__internal_not_typeable__
+       INIT :nlang.builtins.bool ::(init)
+     IF :nlang.builtins.void ::()
+      BLOCK :nlang.builtins.bool ::(init)
+       IDENT(x) :nlang.builtins.bool ::(init)
+      BLOCK :nlang.builtins.void ::(init)
+       PHIc(_Ngensym2) :nlang.builtins.__internal_not_typeable__ ::(init)
+       LET :nlang.builtins.void ::()
+        DEFNAME(_Ngensym0) :nlang.builtins.bool ::(init)
+         IDENT(_Ngensym0) :nlang.builtins.__internal_not_typeable__
+         BOOL :nlang.builtins.bool ::(init)
+       BIN( = ) :nlang.builtins.void ::(init)
+        IDENT(_Ngensym2) :nlang.builtins.bool ::(init)
+        IDENT(_Ngensym0) :nlang.builtins.bool ::(init)
+      BLOCK :nlang.builtins.void ::(init)
+       PHIc(_Ngensym2) :nlang.builtins.__internal_not_typeable__ ::(init)
+       LET :nlang.builtins.void ::()
+        DEFNAME(_Ngensym1) :nlang.builtins.bool ::(init)
+         IDENT(_Ngensym1) :nlang.builtins.__internal_not_typeable__
+         BOOL :nlang.builtins.bool ::(init)
+       BIN( = ) :nlang.builtins.void ::(init)
+        IDENT(_Ngensym2) :nlang.builtins.bool ::(init)
+        IDENT(_Ngensym1) :nlang.builtins.bool ::(init)
+     PHI (_Ngensym2) :nlang.builtins.__internal_not_typeable__ ::(init and (t00.bool.main.<let>.x => ())(not t00.bool.main.<let>.x => ()))
+     IDENT(_Ngensym2) :nlang.builtins.bool ::(init and (t00.bool.main.<let>.x => ())(not t00.bool.main.<let>.x => ()))
+    BLOCK :nlang.builtins.void ::()
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym3) :nlang.builtins.i32 ::(init)
+       IDENT(_Ngensym3) :nlang.builtins.__internal_not_typeable__
+       NUMBER(1) :nlang.builtins.i32 ::(init)
+     RETURN :nlang.builtins.void ::()
+      IDENT(_Ngensym3) :nlang.builtins.i32 ::(init)
+    BLOCK :nlang.builtins.void ::()
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym4) :nlang.builtins.i32 ::(init)
+       IDENT(_Ngensym4) :nlang.builtins.__internal_not_typeable__
+       NUMBER(0) :nlang.builtins.i32 ::(init)
+     RETURN :nlang.builtins.void ::()
+      IDENT(_Ngensym4) :nlang.builtins.i32 ::(init)

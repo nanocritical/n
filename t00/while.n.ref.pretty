@@ -1,8 +1,29 @@
 from nlang import *
-export fun main = i32 
-  and j = 0  such
-    and i = 0    such
-      while i < 10
-        i += 1
-        j += 1
-  return j - 10
+export fun main = _nretval:i32 
+  block
+    noop
+    j = 0
+    block
+      noop
+      i = 0
+      block
+        while block 
+  _Ngensym0 = 10
+  _Ngensym1 = i < _Ngensym0
+  _Ngensym1;;
+          -- phi 1
+
+          -- phi 1
+
+          block
+            _Ngensym2 = 1
+            i += _Ngensym2
+          _Ngensym3 = 1
+          j += _Ngensym3
+        -- phi 2
+
+        -- phi 2
+
+  _Ngensym4 = 10
+  _Ngensym5 = j - _Ngensym4
+  return _Ngensym5

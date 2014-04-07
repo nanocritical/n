@@ -32,10 +32,10 @@ typedef const struct t00_match_t* _Ngen_nlang_builtins_ref__t00_match_t_genN_;
 #define NLANG_DEFINE_TYPES
 # include "t00/match.n.o.h"
 #undef NLANG_DEFINE_TYPES
-#define t00_match_enu_A_label__ ((nlang_builtins_u32)0)
-static const t00_match_enu t00_match_enu_A = t00_match_enu_A_label__;
-#define t00_match_enu_B_label__ (((nlang_builtins_u32)0 + (nlang_builtins_u32)1))
-static const t00_match_enu t00_match_enu_B = t00_match_enu_B_label__;
+#define t00_match_enu_A_tag_label__ ((nlang_builtins_u32)0)
+static const t00_match_enu t00_match_enu_A = t00_match_enu_A_tag_label__;
+#define t00_match_enu_B_tag_label__ (((nlang_builtins_u32)0 + (nlang_builtins_u32)1))
+static const t00_match_enu t00_match_enu_B = t00_match_enu_B_tag_label__;
 
 
 
@@ -85,38 +85,50 @@ static nlang_builtins_bool t00_match_bor(_Ngen_nlang_builtins_ref__t00_match_t_g
 #undef NLANG_DEFINE_FUNCTIONS
 
 static nlang_builtins_i32 t00_match_foo(t00_match_enu n) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
 switch (n) {
-case t00_match_enu_A_label__:
+case t00_match_enu_A_tag_label__:
  {
-return (nlang_builtins_i32)0;
+nlang_builtins_i32 _Ngensym0 = (nlang_builtins_i32)0;
+;
+return _Ngensym0;
 }
 break;
-case t00_match_enu_B_label__:
+case t00_match_enu_B_tag_label__:
 default:
  {
-return (nlang_builtins_i32)1;
+nlang_builtins_i32 _Ngensym1 = (nlang_builtins_i32)1;
+;
+return _Ngensym1;
 }
 break;
 };
 }
+return _nretval;
 }
 
 static nlang_builtins_i32 t00_match_bar(t00_match_enu n) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
 switch (n) {
-case t00_match_enu_A_label__:
+case t00_match_enu_A_tag_label__:
  {
-return (nlang_builtins_i32)0;
+nlang_builtins_i32 _Ngensym2 = (nlang_builtins_i32)0;
+;
+return _Ngensym2;
 }
 break;
 default:
  {
-return (nlang_builtins_i32)1;
+nlang_builtins_i32 _Ngensym3 = (nlang_builtins_i32)1;
+;
+return _Ngensym3;
 }
 break;
 };
 }
+return _nretval;
 }
 
 #ifndef HAS3__Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_
@@ -138,7 +150,9 @@ void t00_match_t_mk(t00_match_t *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ t00_match_t_new(void) {
 #define THIS(x) t00_match_t##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_match_t_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
@@ -149,43 +163,78 @@ struct t00_match_t;
 typedef const struct t00_match_t* _Ngen_nlang_builtins_ref__t00_match_t_genN_;
 #endif // HAS3__Ngen_nlang_builtins_ref__t00_match_t_genN_
 static nlang_builtins_bool t00_match_bor(_Ngen_nlang_builtins_ref__t00_match_t_genN_ xt) {
+__attribute__((__unused__)) nlang_builtins_bool _nretval = { 0 };
  {
-return ((xt->x) == t00_match_enu_A);
+;;
+nlang_builtins_bool _Ngensym5 = ((xt->x) == t00_match_enu_A);
+;
+return _Ngensym5;
 }
+return _nretval;
 }
 
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
 t00_match_t xt= { 0 };
 xt.x = t00_match_enu_A;
 ;
 ;
-( ((!t00_match_bor(((&xt))))) ? ( {
-return (nlang_builtins_i32)1;
-}) : ({;}) );
+;
+( (({ _Ngen_nlang_builtins_ref__t00_match_t_genN_ _Ngensym14 = ((&xt));
+;
+nlang_builtins_bool _Ngensym6 = t00_match_bor(_Ngensym14);
+;
+nlang_builtins_bool _Ngensym7 = (!_Ngensym6);
+;
+_Ngensym7;
+; })) ? ( {
+nlang_builtins_i32 _Ngensym8 = (nlang_builtins_i32)1;
+;
+return _Ngensym8;
+})
+ : ( {
+;;
+}));
+;;
 t00_match_enu n = (t00_match_enu_A);
 ;
-( ((n != (xt.x))) ? ( {
-return (nlang_builtins_i32)1;
-}) : ({;}) );
-(void) (t00_match_foo(n));
+( (({ ;;
+nlang_builtins_bool _Ngensyma = (n != (xt.x));
 ;
-(void) (t00_match_bar(t00_match_enu_A));
+_Ngensyma;
+; })) ? ( {
+nlang_builtins_i32 _Ngensymb = (nlang_builtins_i32)1;
 ;
+return _Ngensymb;
+})
+ : ( {
+;;
+}));
+;;
+(void) t00_match_foo(n);
+;;
+(void) t00_match_bar(t00_match_enu_A);
 switch (n) {
-case t00_match_enu_A_label__:
+case t00_match_enu_A_tag_label__:
  {
-return (nlang_builtins_i32)0;
+nlang_builtins_i32 _Ngensymc = (nlang_builtins_i32)0;
+;
+return _Ngensymc;
 }
 break;
-case t00_match_enu_B_label__:
+case t00_match_enu_B_tag_label__:
 default:
  {
-return (nlang_builtins_i32)1;
+nlang_builtins_i32 _Ngensymd = (nlang_builtins_i32)1;
+;
+return _Ngensymd;
 }
 break;
 };
 }
+return _nretval;
 }
 void t00_match_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_match_Nrunexamples(void) {

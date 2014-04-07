@@ -1,18 +1,21 @@
 from nlang import *
 from nlang.strings import *
 fun foo = _nretval:string 
-  return nlang.strings.string.from_static_string 'test'
+  _Ngensym0 = nlang.strings.string.from_static_string 'test'
+  return _Ngensym0
 
-export fun main = i32 
-  and _Ngensym0:nlang.chars.static_string  such
-    say sep=null block 
-  _Ngensym0 = 'test'
-  @_Ngensym0;;
-  and _Ngensym1:nlang.strings.string
-  and _Ngensym2:nlang.strings.string  such
-    say sep=null block 
+export fun main = _nretval:i32 
   block
-    _Ngensym1 = foo
-    nlang.strings.string.copy_ctor @#_Ngensym2 @_Ngensym1
-  @_Ngensym2;;
-  return 0
+    _Ngensym1 = 'test'
+    _Ngensym4 = null
+    _Ngensym5 = @_Ngensym1
+    noop
+    _Ngensym9 = _Ngensym5
+    say sep=_Ngensym4 _Ngensym9
+  _Ngensym6 = foo
+  _Ngensym7 = null
+  _Ngensym8 = @_Ngensym6
+  _Ngensyma = _Ngensym8
+  say sep=_Ngensym7 _Ngensyma
+  _Ngensym3 = 0
+  return _Ngensym3

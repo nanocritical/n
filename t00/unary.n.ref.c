@@ -75,9 +75,12 @@ typedef const struct t00_unary_t* _Ngen_nlang_builtins_ref__t00_unary_t_genN_;
 #endif // HAS3__Ngen_nlang_builtins_ref__t00_unary_t_genN_
 nlang_builtins_i32 t00_unary_t_get(_Ngen_nlang_builtins_ref__t00_unary_t_genN_ self) {
 #define THIS(x) t00_unary_t##x
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
 return (self->x);
 }
+return _nretval;
 #undef THIS
 }
 ;
@@ -100,7 +103,9 @@ void t00_unary_t_mk(t00_unary_t *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_unary_t_genN_ t00_unary_t_new(void) {
 #define THIS(x) t00_unary_t##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_unary_t_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
@@ -112,13 +117,23 @@ memcpy(self, other, sizeof(*self));
 ;
 
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
+nlang_builtins_i32 _Ngensym1 = (nlang_builtins_i32)0;
+;
 t00_unary_t tt= { 0 };
-tt.x = (nlang_builtins_i32)0;
+tt.x = _Ngensym1;
 ;
 ;
-return t00_unary_t_get(((&tt)));
+;
+_Ngen_nlang_builtins_ref__t00_unary_t_genN_ _Ngensym4 = ((&tt));
+;
+nlang_builtins_i32 _Ngensym2 = t00_unary_t_get(_Ngensym4);
+;
+return _Ngensym2;
 }
+return _nretval;
 }
 void t00_unary_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_unary_Nrunexamples(void) {

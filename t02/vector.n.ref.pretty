@@ -1,34 +1,98 @@
 from nlang import *
 from nlang.vectors import vector
-alias v32 = vector i32
-fun foo = _nretval:v32 
-  and _Ngensym1:nlang.builtins.static_array  such
-    return nlang.vectors.vector.mkv block 
-  _Ngensym1 = { 1 0 2 }
-  @_Ngensym1;;
 
-export fun main = i32 
-  and v = v32.mk  such
-    nlang.vectors.vector.push @#v 0
-    nlang.vectors.vector.push @#v 1
-    assert (nlang.vectors.vector.pop @#v == 1)
-    nlang.vectors.vector.push @#v 1
-    and _Ngensym3:nlang.containers.index_range
-    and _Ngensym4:nlang.containers.index_iterator
-    and _Ngensym5:nlang.containers.index_iterator    such
-      for i in block 
+v32 = vector i32
+fun foo = _nretval:v32 
+  _Ngensym0 = 1
+  _Ngensym1 = 0
+  _Ngensym2 = 2
+  noop
+  _Ngensym38 = @{ _Ngensym0 _Ngensym1 _Ngensym2 }
+  noop
+  return nlang.vectors.vector.mkv _Ngensym38
+
+export fun main = _nretval:i32 
   block
-    _Ngensym4 = nlang.containers.index_range.iter block 
-  _Ngensym3 = nlang.vectors.vector.all @v
-  @_Ngensym3;;
-    _Ngensym5 = _Ngensym4
-  @!_Ngensym5;;
-        and _Ngensym2:nlang.builtins.u32        such
-          assert (.(nlang.vectors.vector.at @v i) == nlang.builtins.u32.reinterpret_signed block 
-  _Ngensym2 = nlang.builtins.size.trim_u32 @i
-  @_Ngensym2;;)
-  and w = foo
-  assert (.(nlang.vectors.vector.at @w 0) == 1)
-  assert (.(nlang.vectors.vector.at @w 1) == 0)
-  assert (.(nlang.vectors.vector.at @w 2) == 2)
-  return .(nlang.vectors.vector.at @v 1) - 1
+    noop
+    v = v32.mk
+    block
+      block
+        _Ngensym4 = 0
+        _Ngensym2a = @#v
+        noop
+        nlang.vectors.vector.push _Ngensym2a _Ngensym4
+      _Ngensym6 = 1
+      _Ngensym2b = @#v
+      nlang.vectors.vector.push _Ngensym2b _Ngensym6
+      _Ngensym2c = @#v
+      _Ngensym7 = nlang.vectors.vector.pop _Ngensym2c
+      _Ngensym8 = 1
+      _Ngensym9 = _Ngensym7 == _Ngensym8
+      assert _Ngensym9
+      _Ngensyma = 1
+      _Ngensym2d = @#v
+      nlang.vectors.vector.push _Ngensym2d _Ngensyma
+      block
+        noop
+        _Ngensym2e = @v
+        _Ngensymc = nlang.vectors.vector.all _Ngensym2e
+        _Ngensym2f = @_Ngensymc
+        _Ngensymd = nlang.containers.index_range.iter _Ngensym2f
+        _Ngensymb = @!_Ngensymd
+        block
+          while block 
+  _Ngensyme = nlang.containers.index_iterator.has_next _Ngensymb
+  _Ngensyme;;
+            -- phi 1
+
+            -- phi 1
+
+            noop
+            i = nlang.containers.index_iterator.next _Ngensymb
+            _Ngensym15 = { }
+            block
+              _Ngensym31 = @v
+              _Ngensymf = nlang.vectors.vector.at _Ngensym31 i
+              _Ngensym10 = ._Ngensymf
+              _Ngensym32 = @i
+              _Ngensym11 = nlang.builtins.size.trim_u32 _Ngensym32
+              _Ngensym33 = @_Ngensym11
+              _Ngensym12 = nlang.builtins.u32.reinterpret_signed _Ngensym33
+              _Ngensym13 = _Ngensym10 == _Ngensym12
+              noop
+              _Ngensym15 = assert _Ngensym13
+            _Ngensym15
+          -- phi 2
+
+          -- phi 2
+
+  noop
+  w = foo
+  _Ngensym16 = 0
+  _Ngensym34 = @w
+  _Ngensym17 = nlang.vectors.vector.at _Ngensym34 _Ngensym16
+  _Ngensym18 = ._Ngensym17
+  _Ngensym19 = 1
+  _Ngensym1a = _Ngensym18 == _Ngensym19
+  assert _Ngensym1a
+  _Ngensym1b = 1
+  _Ngensym35 = @w
+  _Ngensym1c = nlang.vectors.vector.at _Ngensym35 _Ngensym1b
+  _Ngensym1d = ._Ngensym1c
+  _Ngensym1e = 0
+  _Ngensym1f = _Ngensym1d == _Ngensym1e
+  assert _Ngensym1f
+  _Ngensym20 = 2
+  _Ngensym36 = @w
+  _Ngensym21 = nlang.vectors.vector.at _Ngensym36 _Ngensym20
+  _Ngensym22 = ._Ngensym21
+  _Ngensym23 = 2
+  _Ngensym24 = _Ngensym22 == _Ngensym23
+  assert _Ngensym24
+  _Ngensym25 = 1
+  _Ngensym37 = @v
+  _Ngensym26 = nlang.vectors.vector.at _Ngensym37 _Ngensym25
+  _Ngensym27 = ._Ngensym26
+  _Ngensym28 = 1
+  _Ngensym29 = _Ngensym27 - _Ngensym28
+  return _Ngensym29

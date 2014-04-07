@@ -88,9 +88,12 @@ typedef const struct t00_method_t* _Ngen_nlang_builtins_ref__t00_method_t_genN_;
 #endif // HAS3__Ngen_nlang_builtins_ref__t00_method_t_genN_
 nlang_builtins_i32 t00_method_t_get(_Ngen_nlang_builtins_ref__t00_method_t_genN_ self) {
 #define THIS(x) t00_method_t##x
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
 return (self->x);
 }
+return _nretval;
 #undef THIS
 }
 ;
@@ -102,6 +105,7 @@ typedef struct t00_method_t* _Ngen_nlang_builtins_mutable_ref__t00_method_t_genN
 nlang_builtins_void t00_method_t_set(_Ngen_nlang_builtins_mutable_ref__t00_method_t_genN_ self, nlang_builtins_i32 x) {
 #define THIS(x) t00_method_t##x
  {
+;;
 (self->x) = x;
 }
 #undef THIS
@@ -126,7 +130,9 @@ void t00_method_t_mk(t00_method_t *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ t00_method_t_new(void) {
 #define THIS(x) t00_method_t##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_method_t_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
@@ -138,14 +144,38 @@ memcpy(self, other, sizeof(*self));
 ;
 
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
+nlang_builtins_i32 _Ngensym2 = (nlang_builtins_i32)0;
+;
 t00_method_t tt= { 0 };
-tt.x = (nlang_builtins_i32)0;
+tt.x = _Ngensym2;
 ;
-t00_method_t_set(((&tt)), (nlang_builtins_i32)1);
 ;
-return (t00_method_t_get(((&tt))) - (nlang_builtins_i32)1);
+;
+;
+ {
+nlang_builtins_i32 _Ngensym3 = (nlang_builtins_i32)1;
+;
+_Ngen_nlang_builtins_mutable_ref__t00_method_t_genN_ _Ngensymb = ((&tt));
+;
+;;
+t00_method_t_set(_Ngensymb, _Ngensym3);
+};
+;
+;
+_Ngen_nlang_builtins_ref__t00_method_t_genN_ _Ngensymc = ((&tt));
+;
+nlang_builtins_i32 _Ngensym6 = t00_method_t_get(_Ngensymc);
+;
+nlang_builtins_i32 _Ngensym7 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym8 = (_Ngensym6 - _Ngensym7);
+;
+return _Ngensym8;
 }
+return _nretval;
 }
 void t00_method_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_method_Nrunexamples(void) {

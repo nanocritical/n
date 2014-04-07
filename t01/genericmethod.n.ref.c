@@ -105,7 +105,9 @@ void t01_genericmethod_blah_mk(t01_genericmethod_blah *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t01_genericmethod_blah_genN_ t01_genericmethod_blah_new(void) {
 #define THIS(x) t01_genericmethod_blah##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t01_genericmethod_blah_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
@@ -125,9 +127,15 @@ typedef const struct t01_genericmethod_blah* _Ngen_nlang_builtins_ref__t01_gener
 #define HAS3__Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_
 static inline nlang_builtins_u32 _Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_(_Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_ self, nlang_builtins_u32 x) {
 #define THIS(x) t01_genericmethod_blah##x
+__attribute__((__unused__)) nlang_builtins_u32 _nretval = { 0 };
  {
-return (x - (nlang_builtins_u32)1);
+nlang_builtins_u32 _Ngensym9 = (nlang_builtins_u32)1;
+;
+nlang_builtins_u32 _Ngensyma = (x - _Ngensym9);
+;
+return _Ngensyma;
 }
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_
@@ -135,22 +143,44 @@ return (x - (nlang_builtins_u32)1);
 #define HAS3__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
 static inline nlang_builtins_i32 _Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_(_Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_ self, nlang_builtins_i32 x) {
 #define THIS(x) t01_genericmethod_blah##x
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
-return (x - (nlang_builtins_i32)1);
+nlang_builtins_i32 _Ngensymc = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensymd = (x - _Ngensymc);
+;
+return _Ngensymd;
 }
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
+nlang_builtins_u8 _Ngensym4 = (nlang_builtins_u8)0;
+;
 t01_genericmethod_blah b= { 0 };
-b.dummy = (nlang_builtins_u8)0;
+b.dummy = _Ngensym4;
 ;
 ;
-(void) (_Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_(((&b)), (nlang_builtins_u32)1));
 ;
-return _Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_(((&b)), (nlang_builtins_i32)1);
+;;
+nlang_builtins_u32 _Ngensym5 = (nlang_builtins_u32)1;
+;
+_Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_ _Ngensymb = ((&b));
+;
+(void) _Ngen_t01_genericmethod_blah_decr__nlang_builtins_u32_genN_(_Ngensymb, _Ngensym5);
+nlang_builtins_i32 _Ngensym6 = (nlang_builtins_i32)1;
+;
+_Ngen_nlang_builtins_ref__t01_genericmethod_blah_genN_ _Ngensyme = ((&b));
+;
+nlang_builtins_i32 _Ngensym7 = _Ngen_t01_genericmethod_blah_decrf__nlang_builtins_i32_genN_(_Ngensyme, _Ngensym6);
+;
+return _Ngensym7;
 }
+return _nretval;
 }
 void t01_genericmethod_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t01_genericmethod_Nrunexamples(void) {

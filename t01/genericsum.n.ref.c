@@ -100,6 +100,7 @@ typedef struct _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_* _Ngen_n
 nlang_builtins_void _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__add(_Ngen_nlang_builtins_mutable_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_ self, nlang_builtins_i32 x) {
 #define THIS(x) _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_##x
  {
+;;
 (self->x) += x;
 }
 #undef THIS
@@ -133,21 +134,44 @@ void _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__mk(_Ngen_t01_gener
 #define HAS3__Ngen_t01_genericsum_container__nlang_builtins_i32_genN__new
 _Ngen_nlang_builtins_mercurial_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_ _Ngen_t01_genericsum_container__nlang_builtins_i32_genN__new(void) {
 #define THIS(x) _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_t01_genericsum_container__nlang_builtins_i32_genN__new
 ;
 #endif // HAS3__Ngen_t01_genericsum_container__nlang_builtins_i32_genN_
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
+nlang_builtins_i32 _Ngensym1 = (nlang_builtins_i32)0;
+;
 _Ngen_t01_genericsum_container__nlang_builtins_i32_genN_ v= { 0 };
-v.x = (nlang_builtins_i32)0;
+v.x = _Ngensym1;
 ;
-_Ngen_t01_genericsum_container__nlang_builtins_i32_genN__add(((&v)), (nlang_builtins_i32)1);
 ;
-return ((v.x) - (nlang_builtins_i32)1);
+;
+;
+ {
+nlang_builtins_i32 _Ngensym2 = (nlang_builtins_i32)1;
+;
+_Ngen_nlang_builtins_mutable_ref___Ngen_t01_genericsum_container__nlang_builtins_i32_genN__genN_ _Ngensymb = ((&v));
+;
+;;
+_Ngen_t01_genericsum_container__nlang_builtins_i32_genN__add(_Ngensymb, _Ngensym2);
+};
+;
+;
+;;
+nlang_builtins_i32 _Ngensym6 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym7 = ((v.x) - _Ngensym6);
+;
+return _Ngensym7;
 }
+return _nretval;
 }
 void t01_genericsum_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t01_genericsum_Nrunexamples(void) {

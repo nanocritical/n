@@ -83,6 +83,8 @@ typedef const struct t00_copy_copy* _Ngen_nlang_builtins_ref__t00_copy_copy_genN
 nlang_builtins_void t00_copy_copy_copy_ctor(_Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_ self, _Ngen_nlang_builtins_ref__t00_copy_copy_genN_ other) {
 #define THIS(x) t00_copy_copy##x
  {
+;;
+;;
 (self->x) = (other->x);
 }
 #undef THIS
@@ -102,7 +104,9 @@ void t00_copy_copy_mk(t00_copy_copy *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_ t00_copy_copy_new(void) {
 #define THIS(x) t00_copy_copy##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
@@ -116,7 +120,10 @@ return (nlang_builtins__Ni_copyable){ .vptr = &vtable, .obj = obj };
 static void t00_copy_foo(t00_copy_copy *_nrtr__nretval) {
 #define _nretval (*_nrtr__nretval)
  {
-_nretval.x = (nlang_builtins_i32)0;
+nlang_builtins_i32 _Ngensym2 = (nlang_builtins_i32)0;
+;
+;;
+_nretval.x = _Ngensym2;
 ;
 return;
 }
@@ -124,22 +131,50 @@ return;
 }
 
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
 t00_copy_copy w = { 0 };
 t00_copy_foo(&(w));
 ;
+;
+;;
+nlang_builtins_i32 _Ngensym4 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym5 = (-_Ngensym4);
+;
 t00_copy_copy y= { 0 };
-y.x = (-(nlang_builtins_i32)1);
+y.x = _Ngensym5;
 ;
 ;
-t00_copy_copy z = { 0 };
-t00_copy_copy_copy_ctor(((&z)), ((&y)));
+;;
+t00_copy_copy z= { 0 };
 ;
-t00_copy_copy zz = { 0 };
-t00_copy_copy_copy_ctor(((&zz)), ((&z)));
 ;
-return ((z.x) + (nlang_builtins_i32)1);
+ {
+_Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_ _Ngensymc = ((&z));
+;
+_Ngen_nlang_builtins_ref__t00_copy_copy_genN_ _Ngensymd = ((&y));
+;
+;;
+t00_copy_copy_copy_ctor(_Ngensymc, _Ngensymd);
+};
+;;
+t00_copy_copy zz = zz;
+;
+_Ngen_nlang_builtins_mercurial_ref__t00_copy_copy_genN_ _Ngensymf = ((&zz));
+;
+_Ngen_nlang_builtins_ref__t00_copy_copy_genN_ _Ngensym10 = ((&z));
+;
+t00_copy_copy_copy_ctor(_Ngensymf, _Ngensym10);
+;;
+nlang_builtins_i32 _Ngensym7 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym8 = ((z.x) + _Ngensym7);
+;
+return _Ngensym8;
 }
+return _nretval;
 }
 void t00_copy_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_copy_Nrunexamples(void) {

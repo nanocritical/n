@@ -90,21 +90,51 @@ typedef nlang_builtins_u8* _Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8
 #define HAS3__Ngen_nlang_sysheap_heap_alloc__nlang_builtins_i32_genN_
 static inline _Ngen_nlang_builtins_mercurial_ref__nlang_builtins_i32_genN_ _Ngen_nlang_sysheap_heap_alloc__nlang_builtins_i32_genN_(_Ngen_nlang_builtins_mutable_ref__nlang_sysheap_heap_genN_ self) {
 #define THIS(x) nlang_sysheap_heap##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__nlang_builtins_i32_genN_ _nretval = { 0 };
  {
-_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ raw = nlang_sysheap_realloc(NULL, (nlang_builtins_size)0, sizeof(nlang_builtins_i32));
+;;
+_Ngen_nlang_builtins_nullable_mercurial_ref__nlang_builtins_u8_genN_ _Ngensym55 = NULL;
 ;
-return (_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_i32_genN_)(raw);
+nlang_builtins_size _Ngensym56 = (nlang_builtins_size)0;
+;
+nlang_builtins_size _Ngensym57 = sizeof(nlang_builtins_i32);
+;
+_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ raw = nlang_sysheap_realloc(_Ngensym55, _Ngensym56, _Ngensym57);
+;
+;
+;;
+;;
+;;
+_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_i32_genN_ _Ngensym5b = (_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_i32_genN_)(raw);
+;
+return _Ngensym5b;
 }
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_nlang_sysheap_heap_alloc__nlang_builtins_i32_genN_
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
-_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_i32_genN_ p = _Ngen_nlang_sysheap_heap_alloc__nlang_builtins_i32_genN_(((&nlang_sysheap_sysheap)));
+;;
+_Ngen_nlang_builtins_mutable_ref__nlang_sysheap_heap_genN_ _Ngensym0 = ((&nlang_sysheap_sysheap));
 ;
-((*p)) = (nlang_builtins_i32)1;
-return (((*p)) - (nlang_builtins_i32)1);
+_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_i32_genN_ p = _Ngen_nlang_sysheap_heap_alloc__nlang_builtins_i32_genN_(_Ngensym0);
+;
+;
+;;
+nlang_builtins_i32 _Ngensym2 = (nlang_builtins_i32)1;
+;
+((*p)) = _Ngensym2;
+nlang_builtins_i32 _Ngensym3 = ((*p));
+;
+nlang_builtins_i32 _Ngensym4 = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensym5 = (_Ngensym3 - _Ngensym4);
+;
+return _Ngensym5;
 }
+return _nretval;
 }
 void t02_alloc_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t02_alloc_Nrunexamples(void) {

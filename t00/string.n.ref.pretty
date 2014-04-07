@@ -1,12 +1,12 @@
 from nlang import *
-export fun main = i32 
-  and _Ngensym0:nlang.chars.static_string
-  and _Ngensym1:nlang.builtins.size
-  and _Ngensym2:nlang.builtins.u32  such
-    return (nlang.builtins.u32.reinterpret_signed block 
-  _Ngensym2 = nlang.builtins.size.trim_u32 block 
-  _Ngensym1 = nlang.chars.static_string.count block 
+export fun main = _nretval:i32 
   _Ngensym0 = '123'
-  @_Ngensym0;;
-  @_Ngensym1;;
-  @_Ngensym2;;) - 3
+  _Ngensym6 = @_Ngensym0
+  _Ngensym1 = nlang.chars.static_string.count _Ngensym6
+  _Ngensym7 = @_Ngensym1
+  _Ngensym2 = nlang.builtins.size.trim_u32 _Ngensym7
+  _Ngensym8 = @_Ngensym2
+  _Ngensym3 = nlang.builtins.u32.reinterpret_signed _Ngensym8
+  _Ngensym4 = 3
+  _Ngensym5 = _Ngensym3 - _Ngensym4
+  return _Ngensym5

@@ -823,32 +823,30 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    BIN(.)
     IDENT(nlang)
     IDENT(just_mutable)
- DEFTYPE :t00.field.t
+ DEFTYPE :t00.field.t ::()
   IDENT(t) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
-   ISA :nlang.builtins.`trivial_ctor
-    BIN(.) :nlang.builtins.`trivial_ctor
-     BIN(.) :nlang.builtins
-      BIN(.) :nlang
-       DIRECTDEF :<root>
+   ISA :nlang.builtins.`trivial_ctor ::()
+    BIN(.) :nlang.builtins.`trivial_ctor ::()
+     BIN(.) :nlang.builtins ::()
+      BIN(.) :nlang ::()
+       DIRECTDEF :<root> ::()
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
      IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(final) :t00.field.t
-    DIRECTDEF :t00.field.t
-    DEFNAME(final) :t00.field.t
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.field.t
-    DIRECTDEF :t00.field.t
-    DEFNAME(this) :t00.field.t
-  DEFFIELD :nlang.builtins.i32
+  LET :nlang.builtins.void ::()
+   DEFALIAS(final) :t00.field.t ::()
+    IDENT(final) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.field.t ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(this) :t00.field.t ::()
+    IDENT(this) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.field.t ::()
+  DEFFIELD :nlang.builtins.i32 ::()
    IDENT(x) :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  DEFMETHOD :t00.field.t.ctor
+   IDENT(i32) :nlang.builtins.i32 ::()
+  DEFMETHOD :t00.field.t.ctor ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -860,13 +858,15 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(ctor) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mercurial_ref t00.field.t)
+    DEFARG :(nlang.builtins.mercurial_ref t00.field.t) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@#) :(nlang.builtins.mercurial_ref t00.field.t)
-      IDENT(final) :t00.field.t
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
-  DEFFUN :t00.field.t.mk
+     UN(@#) :(nlang.builtins.mercurial_ref t00.field.t) ::(init and nonnull)
+      IDENT(final) :t00.field.t ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFFUN :t00.field.t.mk ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -878,11 +878,11 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(mk) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :t00.field.t
+    DEFARG :t00.field.t ::(init)
      IDENT(r) :nlang.builtins.__internal_not_typeable__
-     IDENT(final) :t00.field.t
-   WITHIN :nlang.builtins.void
-  DEFFUN :t00.field.t.new
+     IDENT(final) :t00.field.t ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFFUN :t00.field.t.new ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -894,23 +894,28 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(new) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    UN(@#) :(nlang.builtins.mercurial_ref t00.field.t)
-     IDENT(final) :t00.field.t
-   WITHIN :nlang.builtins.void
- DEFFUN :t00.field.main
+    DEFARG :(nlang.builtins.mercurial_ref t00.field.t) ::(init and nonnull)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     UN(@#) :(nlang.builtins.mercurial_ref t00.field.t) ::(init and nonnull)
+      IDENT(final) :t00.field.t ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+ DEFFUN :t00.field.main ::()
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     TYPECONSTRAINT :t00.field.t
-      IDENT(tt) :t00.field.t
-      IDENT(t) :t00.field.t
-     DEFNAME(tt) :t00.field.t
-   RETURN :nlang.builtins.void
-    BIN(.) :nlang.builtins.i32
-     IDENT(tt) :t00.field.t
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   BLOCK :nlang.builtins.void ::()
+    NOOP :nlang.builtins.void ::()
+    LET :nlang.builtins.void ::()
+     DEFNAME(tt) :t00.field.t ::(init)
+      IDENT(tt) :nlang.builtins.__internal_not_typeable__
+      INIT :t00.field.t ::(init)
+   NOOP :nlang.builtins.void ::()
+   RETURN :nlang.builtins.void ::()
+    BIN(.) :nlang.builtins.i32 ::(init)
+     IDENT(tt) :t00.field.t ::(init)
      IDENT(x) :nlang.builtins.__internal_not_typeable__

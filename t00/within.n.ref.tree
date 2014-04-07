@@ -837,108 +837,116 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
      IDENT(nlang)
      IDENT(strings)
     IDENT(string)
- LET :nlang.builtins.void
-  DEFPATTERN :nlang.builtins.void
-   TYPECONSTRAINT :(nlang.builtins.mutable_ref t00.within.`env2)
-    IDENT(e2) :(nlang.builtins.mutable_ref t00.within.`env2)
-    UN(@!) :(nlang.builtins.mutable_ref t00.within.`env2)
-     IDENT(`env2) :t00.within.`env2
-   DEFNAME(e2) :(nlang.builtins.mutable_ref t00.within.`env2)
- DEFINTF :t00.within.`env2
+ NOOP :nlang.builtins.void ::()
+ LET :nlang.builtins.void ::()
+  DEFNAME(e2) :(nlang.builtins.mutable_ref t00.within.`env2) ::()
+   IDENT(e2) :nlang.builtins.__internal_not_typeable__
+   INIT :(nlang.builtins.mutable_ref t00.within.`env2) ::()
+ DEFINTF :t00.within.`env2 ::()
   IDENT(`env2) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
-   ISA :(nlang.builtins.`environment t00.within.`env2)
-    CALL :(nlang.builtins.`environment t00.within.`env2)
-     IDENT(`environment) :(functor nlang.builtins.`environment nlang.builtins.`any)
-     IDENT(this) :t00.within.`env2
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(final) :t00.within.`env2
-    DIRECTDEF :t00.within.`env2
-    DEFNAME(final) :t00.within.`env2
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.within.`env2
-    DIRECTDEF :t00.within.`env2
-    DEFNAME(this) :t00.within.`env2
-  DEFMETHOD :t00.within.`env2.say2
+   ISA :(nlang.builtins.`environment t00.within.`env2) ::()
+    CALL :(nlang.builtins.`environment t00.within.`env2) ::()
+     IDENT(`environment) :(functor nlang.builtins.`environment nlang.builtins.`any) ::()
+     IDENT(this) :t00.within.`env2 ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(final) :t00.within.`env2 ::()
+    IDENT(final) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.within.`env2 ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(this) :t00.within.`env2 ::()
+    IDENT(this) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.within.`env2 ::()
+  DEFMETHOD :t00.within.`env2.say2 ::()
    IDENT(say2) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.ref t00.within.`env2)
+    DEFARG :(nlang.builtins.ref t00.within.`env2) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref t00.within.`env2)
-      IDENT(final) :t00.within.`env2
-    DEFARG :(nlang.builtins.ref nlang.strings.string)
+     UN(@) :(nlang.builtins.ref t00.within.`env2) ::(init and nonnull)
+      IDENT(final) :t00.within.`env2 ::()
+    DEFARG :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
      IDENT(s) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref nlang.strings.string)
-      IDENT(string) :nlang.strings.string
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
- DEFTYPE :t00.within.myenv2
+     UN(@) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+      IDENT(string) :nlang.strings.string ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+ DEFTYPE :t00.within.myenv2 ::()
   IDENT(myenv2) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
-   ISA :t00.within.`env2
-    IDENT(`env2) :t00.within.`env2
-   ISA :nlang.builtins.`trivial_ctor
-    BIN(.) :nlang.builtins.`trivial_ctor
-     BIN(.) :nlang.builtins
-      BIN(.) :nlang
-       DIRECTDEF :<root>
+   ISA :t00.within.`env2 ::()
+    IDENT(`env2) :t00.within.`env2 ::()
+   ISA :nlang.builtins.`trivial_ctor ::()
+    BIN(.) :nlang.builtins.`trivial_ctor ::()
+     BIN(.) :nlang.builtins ::()
+      BIN(.) :nlang ::()
+       DIRECTDEF :<root> ::()
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
      IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(final) :t00.within.myenv2
-    DIRECTDEF :t00.within.myenv2
-    DEFNAME(final) :t00.within.myenv2
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.within.myenv2
-    DIRECTDEF :t00.within.myenv2
-    DEFNAME(this) :t00.within.myenv2
-  DEFFIELD :nlang.builtins.u32
+  LET :nlang.builtins.void ::()
+   DEFALIAS(final) :t00.within.myenv2 ::()
+    IDENT(final) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.within.myenv2 ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(this) :t00.within.myenv2 ::()
+    IDENT(this) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.within.myenv2 ::()
+  DEFFIELD :nlang.builtins.u32 ::()
    IDENT(dummy) :nlang.builtins.__internal_not_typeable__
-   IDENT(u32) :nlang.builtins.u32
-  DEFMETHOD :t00.within.myenv2.say2
+   IDENT(u32) :nlang.builtins.u32 ::()
+  DEFMETHOD :t00.within.myenv2.say2 ::()
    IDENT(say2) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.ref t00.within.myenv2)
+    DEFARG :(nlang.builtins.ref t00.within.myenv2) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref t00.within.myenv2)
-      IDENT(final) :t00.within.myenv2
-    DEFARG :(nlang.builtins.ref nlang.strings.string)
+     UN(@) :(nlang.builtins.ref t00.within.myenv2) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv2 ::()
+    DEFARG :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
      IDENT(s) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref nlang.strings.string)
-      IDENT(string) :nlang.strings.string
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
-   BLOCK :nlang.builtins.void
-    LET :nlang.builtins.void
-     DEFPATTERN :nlang.builtins.void
-      TYPECONSTRAINT :nlang.chars.static_string
-       IDENT(_Ngensym2) :nlang.chars.static_string
-       DIRECTDEF :nlang.chars.static_string
-      DEFNAME(_Ngensym2) :nlang.chars.static_string
-     BLOCK :nlang.builtins.void
-      CALL :nlang.builtins.void
-       IDENT(say) :nlang.say
-       CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string)
-        NUL :(nlang.builtins.nullable_ref nlang.strings.string)
-       DYN :(nlang.builtins.ref nlang.chars.`show)
-        BLOCK :(nlang.builtins.ref nlang.chars.static_string)
-         BIN( = ) :nlang.builtins.void
-          IDENT(_Ngensym2) :nlang.chars.static_string
-          STRING('saying2:') :nlang.chars.static_string
-         UN(@) :(nlang.builtins.ref nlang.chars.static_string)
-          IDENT(_Ngensym2) :nlang.chars.static_string
-       DYN :(nlang.builtins.ref nlang.chars.`show)
-        IDENT(s) :(nlang.builtins.ref nlang.strings.string)
-  DEFMETHOD :t00.within.myenv2.ctor
+     UN(@) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+      IDENT(string) :nlang.strings.string ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+   BLOCK :nlang.builtins.void ::(init)
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym0) :nlang.chars.static_string ::(init)
+      IDENT(_Ngensym0) :nlang.builtins.__internal_not_typeable__
+      STRING('saying2:') :nlang.chars.static_string ::(init)
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensymf) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+      IDENT(_Ngensymf) :nlang.builtins.__internal_not_typeable__
+      NUL :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym10) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
+      IDENT(_Ngensym10) :nlang.builtins.__internal_not_typeable__
+      UN(@) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
+       IDENT(_Ngensym0) :nlang.chars.static_string ::(init)
+    NOOP :nlang.builtins.void ::()
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym1c) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+      IDENT(_Ngensym1c) :nlang.builtins.__internal_not_typeable__
+      DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+       IDENT(_Ngensym10) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym1d) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+      IDENT(_Ngensym1d) :nlang.builtins.__internal_not_typeable__
+      DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+       IDENT(s) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+    CALL :nlang.builtins.void ::(init)
+     IDENT(say) :nlang.say ::()
+     CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+      IDENT(_Ngensymf) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+     IDENT(_Ngensym1c) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+     IDENT(_Ngensym1d) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+  DEFMETHOD :t00.within.myenv2.ctor ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -950,13 +958,15 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(ctor) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mercurial_ref t00.within.myenv2)
+    DEFARG :(nlang.builtins.mercurial_ref t00.within.myenv2) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv2)
-      IDENT(final) :t00.within.myenv2
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
-  DEFFUN :t00.within.myenv2.mk
+     UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv2) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv2 ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFFUN :t00.within.myenv2.mk ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -968,11 +978,11 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(mk) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :t00.within.myenv2
+    DEFARG :t00.within.myenv2 ::(init)
      IDENT(r) :nlang.builtins.__internal_not_typeable__
-     IDENT(final) :t00.within.myenv2
-   WITHIN :nlang.builtins.void
-  DEFFUN :t00.within.myenv2.new
+     IDENT(final) :t00.within.myenv2 ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFFUN :t00.within.myenv2.new ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -984,142 +994,160 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(new) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv2)
-     IDENT(final) :t00.within.myenv2
-   WITHIN :nlang.builtins.void
-  DEFMETHOD :t00.within.myenv2.parent
+    DEFARG :(nlang.builtins.mercurial_ref t00.within.myenv2) ::(init and nonnull)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv2) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv2 ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFMETHOD :t00.within.myenv2.parent ::()
    IDENT(parent) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.ref t00.within.myenv2)
+    DEFARG :(nlang.builtins.ref t00.within.myenv2) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref t00.within.myenv2)
-      IDENT(final) :t00.within.myenv2
-    UN(@!) :(nlang.builtins.mutable_ref t00.within.`env2)
-     DIRECTDEF :t00.within.`env2
-   WITHIN :nlang.builtins.void
-  DEFMETHOD :t00.within.myenv2.install
+     UN(@) :(nlang.builtins.ref t00.within.myenv2) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv2 ::()
+    DEFARG :(nlang.builtins.mutable_ref t00.within.`env2) ::(init and nonnull)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     UN(@!) :(nlang.builtins.mutable_ref t00.within.`env2) ::(init and nonnull)
+      DIRECTDEF :t00.within.`env2 ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFMETHOD :t00.within.myenv2.install ::()
    IDENT(install) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mutable_ref t00.within.myenv2)
+    DEFARG :(nlang.builtins.mutable_ref t00.within.myenv2) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@!) :(nlang.builtins.mutable_ref t00.within.myenv2)
-      IDENT(final) :t00.within.myenv2
-    DEFARG :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env2))
+     UN(@!) :(nlang.builtins.mutable_ref t00.within.myenv2) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv2 ::()
+    DEFARG :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env2)) ::(init and nonnull)
      IDENT(where) :nlang.builtins.__internal_not_typeable__
-     UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env2))
-      UN(@!) :(nlang.builtins.mutable_ref t00.within.`env2)
-       DIRECTDEF :t00.within.`env2
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
-  DEFMETHOD :t00.within.myenv2.uninstall
+     UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env2)) ::(init and nonnull)
+      UN(@!) :(nlang.builtins.mutable_ref t00.within.`env2) ::(init and nonnull)
+       DIRECTDEF :t00.within.`env2 ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFMETHOD :t00.within.myenv2.uninstall ::()
    IDENT(uninstall) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mercurial_ref t00.within.myenv2)
+    DEFARG :(nlang.builtins.mercurial_ref t00.within.myenv2) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv2)
-      IDENT(final) :t00.within.myenv2
-    DEFARG :(nlang.builtins.mutable_ref (nlang.builtins.mercurial_ref t00.within.`env2))
+     UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv2) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv2 ::()
+    DEFARG :(nlang.builtins.mutable_ref (nlang.builtins.mercurial_ref t00.within.`env2)) ::(init and nonnull)
      IDENT(where) :nlang.builtins.__internal_not_typeable__
-     UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mercurial_ref t00.within.`env2))
-      UN(@#) :(nlang.builtins.mercurial_ref t00.within.`env2)
-       DIRECTDEF :t00.within.`env2
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
- DEFINTF :t00.within.`env1
+     UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mercurial_ref t00.within.`env2)) ::(init and nonnull)
+      UN(@#) :(nlang.builtins.mercurial_ref t00.within.`env2) ::(init and nonnull)
+       DIRECTDEF :t00.within.`env2 ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+ DEFINTF :t00.within.`env1 ::()
   IDENT(`env1) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
-   ISA :(nlang.builtins.`environment t00.within.`env1)
-    CALL :(nlang.builtins.`environment t00.within.`env1)
-     IDENT(`environment) :(functor nlang.builtins.`environment nlang.builtins.`any)
-     IDENT(this) :t00.within.`env1
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(final) :t00.within.`env1
-    DIRECTDEF :t00.within.`env1
-    DEFNAME(final) :t00.within.`env1
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.within.`env1
-    DIRECTDEF :t00.within.`env1
-    DEFNAME(this) :t00.within.`env1
-  DEFMETHOD :t00.within.`env1.say
+   ISA :(nlang.builtins.`environment t00.within.`env1) ::()
+    CALL :(nlang.builtins.`environment t00.within.`env1) ::()
+     IDENT(`environment) :(functor nlang.builtins.`environment nlang.builtins.`any) ::()
+     IDENT(this) :t00.within.`env1 ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(final) :t00.within.`env1 ::()
+    IDENT(final) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.within.`env1 ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(this) :t00.within.`env1 ::()
+    IDENT(this) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.within.`env1 ::()
+  DEFMETHOD :t00.within.`env1.say ::()
    IDENT(say) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.ref t00.within.`env1)
+    DEFARG :(nlang.builtins.ref t00.within.`env1) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref t00.within.`env1)
-      IDENT(final) :t00.within.`env1
-    DEFARG :(nlang.builtins.ref nlang.strings.string)
+     UN(@) :(nlang.builtins.ref t00.within.`env1) ::(init and nonnull)
+      IDENT(final) :t00.within.`env1 ::()
+    DEFARG :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
      IDENT(s) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref nlang.strings.string)
-      IDENT(string) :nlang.strings.string
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
- DEFTYPE :t00.within.myenv1
+     UN(@) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+      IDENT(string) :nlang.strings.string ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+ DEFTYPE :t00.within.myenv1 ::()
   IDENT(myenv1) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   ISALIST :nlang.builtins.__internal_not_typeable__
-   ISA :t00.within.`env1
-    IDENT(`env1) :t00.within.`env1
-   ISA :nlang.builtins.`trivial_ctor
-    BIN(.) :nlang.builtins.`trivial_ctor
-     BIN(.) :nlang.builtins
-      BIN(.) :nlang
-       DIRECTDEF :<root>
+   ISA :t00.within.`env1 ::()
+    IDENT(`env1) :t00.within.`env1 ::()
+   ISA :nlang.builtins.`trivial_ctor ::()
+    BIN(.) :nlang.builtins.`trivial_ctor ::()
+     BIN(.) :nlang.builtins ::()
+      BIN(.) :nlang ::()
+       DIRECTDEF :<root> ::()
        IDENT(nlang) :nlang.builtins.__internal_not_typeable__
       IDENT(builtins) :nlang.builtins.__internal_not_typeable__
      IDENT(`trivial_ctor) :nlang.builtins.__internal_not_typeable__
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(final) :t00.within.myenv1
-    DIRECTDEF :t00.within.myenv1
-    DEFNAME(final) :t00.within.myenv1
-  LET :nlang.builtins.void
-   DEFPATTERN :nlang.builtins.void
-    IDENT(this) :t00.within.myenv1
-    DIRECTDEF :t00.within.myenv1
-    DEFNAME(this) :t00.within.myenv1
-  DEFMETHOD :t00.within.myenv1.say
+  LET :nlang.builtins.void ::()
+   DEFALIAS(final) :t00.within.myenv1 ::()
+    IDENT(final) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.within.myenv1 ::()
+  LET :nlang.builtins.void ::()
+   DEFALIAS(this) :t00.within.myenv1 ::()
+    IDENT(this) :nlang.builtins.__internal_not_typeable__
+    DIRECTDEF :t00.within.myenv1 ::()
+  DEFMETHOD :t00.within.myenv1.say ::()
    IDENT(say) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.ref t00.within.myenv1)
+    DEFARG :(nlang.builtins.ref t00.within.myenv1) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref t00.within.myenv1)
-      IDENT(final) :t00.within.myenv1
-    DEFARG :(nlang.builtins.ref nlang.strings.string)
+     UN(@) :(nlang.builtins.ref t00.within.myenv1) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv1 ::()
+    DEFARG :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
      IDENT(s) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref nlang.strings.string)
-      IDENT(string) :nlang.strings.string
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
-   BLOCK :nlang.builtins.void
-    LET :nlang.builtins.void
-     DEFPATTERN :nlang.builtins.void
-      TYPECONSTRAINT :nlang.chars.static_string
-       IDENT(_Ngensym3) :nlang.chars.static_string
-       DIRECTDEF :nlang.chars.static_string
-      DEFNAME(_Ngensym3) :nlang.chars.static_string
-     BLOCK :nlang.builtins.void
-      CALL :nlang.builtins.void
-       IDENT(say) :nlang.say
-       CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string)
-        NUL :(nlang.builtins.nullable_ref nlang.strings.string)
-       DYN :(nlang.builtins.ref nlang.chars.`show)
-        BLOCK :(nlang.builtins.ref nlang.chars.static_string)
-         BIN( = ) :nlang.builtins.void
-          IDENT(_Ngensym3) :nlang.chars.static_string
-          STRING('saying:') :nlang.chars.static_string
-         UN(@) :(nlang.builtins.ref nlang.chars.static_string)
-          IDENT(_Ngensym3) :nlang.chars.static_string
-       DYN :(nlang.builtins.ref nlang.chars.`show)
-        IDENT(s) :(nlang.builtins.ref nlang.strings.string)
-  DEFMETHOD :t00.within.myenv1.ctor
+     UN(@) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+      IDENT(string) :nlang.strings.string ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+   BLOCK :nlang.builtins.void ::(init)
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym2) :nlang.chars.static_string ::(init)
+      IDENT(_Ngensym2) :nlang.builtins.__internal_not_typeable__
+      STRING('saying:') :nlang.chars.static_string ::(init)
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym11) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+      IDENT(_Ngensym11) :nlang.builtins.__internal_not_typeable__
+      NUL :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym12) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
+      IDENT(_Ngensym12) :nlang.builtins.__internal_not_typeable__
+      UN(@) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
+       IDENT(_Ngensym2) :nlang.chars.static_string ::(init)
+    NOOP :nlang.builtins.void ::()
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym1e) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+      IDENT(_Ngensym1e) :nlang.builtins.__internal_not_typeable__
+      DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+       IDENT(_Ngensym12) :(nlang.builtins.ref nlang.chars.static_string) ::(init and nonnull)
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym1f) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+      IDENT(_Ngensym1f) :nlang.builtins.__internal_not_typeable__
+      DYN :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+       IDENT(s) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+    CALL :nlang.builtins.void ::(init)
+     IDENT(say) :nlang.say ::()
+     CALLNAMEDARG(sep) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+      IDENT(_Ngensym11) :(nlang.builtins.nullable_ref nlang.strings.string) ::(init and not nonnull)
+     IDENT(_Ngensym1e) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+     IDENT(_Ngensym1f) :(nlang.builtins.ref nlang.chars.`show) ::(init and nonnull)
+  DEFMETHOD :t00.within.myenv1.ctor ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -1131,13 +1159,15 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(ctor) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mercurial_ref t00.within.myenv1)
+    DEFARG :(nlang.builtins.mercurial_ref t00.within.myenv1) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv1)
-      IDENT(final) :t00.within.myenv1
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
-  DEFFUN :t00.within.myenv1.mk
+     UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv1) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv1 ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFFUN :t00.within.myenv1.mk ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -1149,11 +1179,11 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(mk) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :t00.within.myenv1
+    DEFARG :t00.within.myenv1 ::(init)
      IDENT(r) :nlang.builtins.__internal_not_typeable__
-     IDENT(final) :t00.within.myenv1
-   WITHIN :nlang.builtins.void
-  DEFFUN :t00.within.myenv1.new
+     IDENT(final) :t00.within.myenv1 ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFFUN :t00.within.myenv1.new ::()
    BIN(.) :nlang.builtins.__internal_not_typeable__
     BIN(.) :nlang.builtins.__internal_not_typeable__
      BIN(.) :nlang.builtins.__internal_not_typeable__
@@ -1165,162 +1195,184 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
     IDENT(new) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv1)
-     IDENT(final) :t00.within.myenv1
-   WITHIN :nlang.builtins.void
-  DEFMETHOD :t00.within.myenv1.parent
+    DEFARG :(nlang.builtins.mercurial_ref t00.within.myenv1) ::(init and nonnull)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv1) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv1 ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFMETHOD :t00.within.myenv1.parent ::()
    IDENT(parent) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.ref t00.within.myenv1)
+    DEFARG :(nlang.builtins.ref t00.within.myenv1) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@) :(nlang.builtins.ref t00.within.myenv1)
-      IDENT(final) :t00.within.myenv1
-    UN(@!) :(nlang.builtins.mutable_ref t00.within.`env1)
-     DIRECTDEF :t00.within.`env1
-   WITHIN :nlang.builtins.void
-  DEFMETHOD :t00.within.myenv1.install
+     UN(@) :(nlang.builtins.ref t00.within.myenv1) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv1 ::()
+    DEFARG :(nlang.builtins.mutable_ref t00.within.`env1) ::(init and nonnull)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     UN(@!) :(nlang.builtins.mutable_ref t00.within.`env1) ::(init and nonnull)
+      DIRECTDEF :t00.within.`env1 ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFMETHOD :t00.within.myenv1.install ::()
    IDENT(install) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mutable_ref t00.within.myenv1)
+    DEFARG :(nlang.builtins.mutable_ref t00.within.myenv1) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@!) :(nlang.builtins.mutable_ref t00.within.myenv1)
-      IDENT(final) :t00.within.myenv1
-    DEFARG :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env1))
+     UN(@!) :(nlang.builtins.mutable_ref t00.within.myenv1) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv1 ::()
+    DEFARG :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env1)) ::(init and nonnull)
      IDENT(where) :nlang.builtins.__internal_not_typeable__
-     UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env1))
-      UN(@!) :(nlang.builtins.mutable_ref t00.within.`env1)
-       DIRECTDEF :t00.within.`env1
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
-  DEFMETHOD :t00.within.myenv1.uninstall
+     UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env1)) ::(init and nonnull)
+      UN(@!) :(nlang.builtins.mutable_ref t00.within.`env1) ::(init and nonnull)
+       DIRECTDEF :t00.within.`env1 ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+  DEFMETHOD :t00.within.myenv1.uninstall ::()
    IDENT(uninstall) :nlang.builtins.__internal_not_typeable__
    GENARGS :nlang.builtins.__internal_not_typeable__
    FUNARGS :nlang.builtins.__internal_not_typeable__
-    DEFARG :(nlang.builtins.mercurial_ref t00.within.myenv1)
+    DEFARG :(nlang.builtins.mercurial_ref t00.within.myenv1) ::(init and nonnull)
      IDENT(self) :nlang.builtins.__internal_not_typeable__
-     UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv1)
-      IDENT(final) :t00.within.myenv1
-    DEFARG :(nlang.builtins.mutable_ref (nlang.builtins.mercurial_ref t00.within.`env1))
+     UN(@#) :(nlang.builtins.mercurial_ref t00.within.myenv1) ::(init and nonnull)
+      IDENT(final) :t00.within.myenv1 ::()
+    DEFARG :(nlang.builtins.mutable_ref (nlang.builtins.mercurial_ref t00.within.`env1)) ::(init and nonnull)
      IDENT(where) :nlang.builtins.__internal_not_typeable__
-     UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mercurial_ref t00.within.`env1))
-      UN(@#) :(nlang.builtins.mercurial_ref t00.within.`env1)
-       DIRECTDEF :t00.within.`env1
-    IDENT(void) :nlang.builtins.void
-   WITHIN :nlang.builtins.void
- LET :nlang.builtins.void
-  DEFPATTERN :nlang.builtins.void
-   TYPECONSTRAINT :(nlang.builtins.mutable_ref t00.within.`env1)
-    IDENT(e1) :(nlang.builtins.mutable_ref t00.within.`env1)
-    UN(@!) :(nlang.builtins.mutable_ref t00.within.`env1)
-     IDENT(`env1) :t00.within.`env1
-   DEFNAME(e1) :(nlang.builtins.mutable_ref t00.within.`env1)
- WITHIN :nlang.builtins.void
-  WITHIN :(nlang.builtins.mutable_ref t00.within.`env1)
+     UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mercurial_ref t00.within.`env1)) ::(init and nonnull)
+      UN(@#) :(nlang.builtins.mercurial_ref t00.within.`env1) ::(init and nonnull)
+       DIRECTDEF :t00.within.`env1 ::()
+    DEFARG :nlang.builtins.void ::(init)
+     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+     IDENT(void) :nlang.builtins.void ::()
+   WITHIN :nlang.builtins.void ::(init and nonnull)
+ NOOP :nlang.builtins.void ::()
+ LET :nlang.builtins.void ::()
+  DEFNAME(e1) :(nlang.builtins.mutable_ref t00.within.`env1) ::()
    IDENT(e1) :nlang.builtins.__internal_not_typeable__
- DEFFUN :t00.within.do
+   INIT :(nlang.builtins.mutable_ref t00.within.`env1) ::()
+ WITHIN :nlang.builtins.void ::(init and nonnull)
+  WITHIN :(nlang.builtins.mutable_ref t00.within.`env1) ::(init and nonnull)
+   IDENT(e1) :nlang.builtins.__internal_not_typeable__
+ DEFFUN :t00.within.do ::()
   IDENT(do) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-   WITHIN :(nlang.builtins.mutable_ref t00.within.`env2)
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+   WITHIN :(nlang.builtins.mutable_ref t00.within.`env2) ::(init and nonnull)
     IDENT(e2) :nlang.builtins.__internal_not_typeable__
-  BLOCK :nlang.builtins.void
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     IDENT(mye2) :t00.within.myenv2
-     INIT :t00.within.myenv2
-     DEFNAME(mye2) :t00.within.myenv2
-    BLOCK :nlang.builtins.void
-     CALL :nlang.builtins.void
-      DIRECTDEF :t00.within.myenv2.install
-      UN(@!) :(nlang.builtins.mutable_ref t00.within.myenv2)
-       IDENT(mye2) :t00.within.myenv2
-      UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env2))
-       IDENT(e2) :(nlang.builtins.mutable_ref t00.within.`env2)
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     TYPECONSTRAINT :nlang.strings.string
-      IDENT(_Ngensym4) :nlang.strings.string
-      DIRECTDEF :nlang.strings.string
-     DEFNAME(_Ngensym4) :nlang.strings.string
-    DEFPATTERN :nlang.builtins.void
-     TYPECONSTRAINT :nlang.strings.string
-      IDENT(_Ngensym5) :nlang.strings.string
-      DIRECTDEF :nlang.strings.string
-     DEFNAME(_Ngensym5) :nlang.strings.string
-    BLOCK :nlang.builtins.void
-     CALL :nlang.builtins.void
-      DIRECTDEF :t00.within.`env2.say2
-      IDENT(e2) :(nlang.builtins.mutable_ref t00.within.`env2)
-      BLOCK :(nlang.builtins.ref nlang.strings.string)
-       BLOCK :nlang.builtins.void
-        BIN( = ) :nlang.builtins.void
-         IDENT(_Ngensym4) :nlang.strings.string
-         CALL :nlang.strings.string
-          DIRECTDEF :nlang.strings.string.from_static_string
-          STRING('module') :nlang.chars.static_string
-        CALL :nlang.builtins.void
-         DIRECTDEF :nlang.strings.string.copy_ctor
-         UN(@#) :(nlang.builtins.mercurial_ref nlang.strings.string)
-          IDENT(_Ngensym5) :nlang.strings.string
-         UN(@) :(nlang.builtins.ref nlang.strings.string)
-          IDENT(_Ngensym4) :nlang.strings.string
-       UN(@) :(nlang.builtins.ref nlang.strings.string)
-        IDENT(_Ngensym5) :nlang.strings.string
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     TYPECONSTRAINT :nlang.strings.string
-      IDENT(_Ngensym6) :nlang.strings.string
-      DIRECTDEF :nlang.strings.string
-     DEFNAME(_Ngensym6) :nlang.strings.string
-    DEFPATTERN :nlang.builtins.void
-     TYPECONSTRAINT :nlang.strings.string
-      IDENT(_Ngensym7) :nlang.strings.string
-      DIRECTDEF :nlang.strings.string
-     DEFNAME(_Ngensym7) :nlang.strings.string
-    BLOCK :nlang.builtins.void
-     CALL :nlang.builtins.void
-      DIRECTDEF :t00.within.`env1.say
-      IDENT(e1) :(nlang.builtins.mutable_ref t00.within.`env1)
-      BLOCK :(nlang.builtins.ref nlang.strings.string)
-       BLOCK :nlang.builtins.void
-        BIN( = ) :nlang.builtins.void
-         IDENT(_Ngensym6) :nlang.strings.string
-         CALL :nlang.strings.string
-          DIRECTDEF :nlang.strings.string.from_static_string
-          STRING('function') :nlang.chars.static_string
-        CALL :nlang.builtins.void
-         DIRECTDEF :nlang.strings.string.copy_ctor
-         UN(@#) :(nlang.builtins.mercurial_ref nlang.strings.string)
-          IDENT(_Ngensym7) :nlang.strings.string
-         UN(@) :(nlang.builtins.ref nlang.strings.string)
-          IDENT(_Ngensym6) :nlang.strings.string
-       UN(@) :(nlang.builtins.ref nlang.strings.string)
-        IDENT(_Ngensym7) :nlang.strings.string
-   RETURN :nlang.builtins.void
-    NUMBER(0) :nlang.builtins.i32
- DEFFUN :t00.within.main
+  BLOCK :nlang.builtins.void ::()
+   BLOCK :nlang.builtins.void ::(init)
+    NOOP :nlang.builtins.void ::()
+    LET :nlang.builtins.void ::()
+     DEFNAME(mye2) :t00.within.myenv2 ::(init)
+      IDENT(mye2) :nlang.builtins.__internal_not_typeable__
+      INIT :t00.within.myenv2 ::(init)
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensym6) :nlang.builtins.void ::()
+      IDENT(_Ngensym6) :nlang.builtins.__internal_not_typeable__
+      INIT :nlang.builtins.void ::()
+    BLOCK :nlang.builtins.void ::(init)
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym4) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env2)) ::(init and nonnull)
+       IDENT(_Ngensym4) :nlang.builtins.__internal_not_typeable__
+       UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env2)) ::(init and nonnull)
+        IDENT(e2) :(nlang.builtins.mutable_ref t00.within.`env2) ::(init and nonnull)
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym15) :(nlang.builtins.mutable_ref t00.within.myenv2) ::(init and nonnull)
+       IDENT(_Ngensym15) :nlang.builtins.__internal_not_typeable__
+       UN(@!) :(nlang.builtins.mutable_ref t00.within.myenv2) ::(init and nonnull)
+        IDENT(mye2) :t00.within.myenv2 ::(init)
+     NOOP :nlang.builtins.void ::()
+     BIN( = ) :nlang.builtins.void ::(init)
+      IDENT(_Ngensym6) :nlang.builtins.void ::(init)
+      CALL :nlang.builtins.void ::(init)
+       DIRECTDEF :t00.within.myenv2.install ::()
+       IDENT(_Ngensym15) :(nlang.builtins.mutable_ref t00.within.myenv2) ::(init and nonnull)
+       IDENT(_Ngensym4) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env2)) ::(init and nonnull)
+    IDENT(_Ngensym6) :nlang.builtins.void ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym7) :nlang.strings.string ::(init)
+     IDENT(_Ngensym7) :nlang.builtins.__internal_not_typeable__
+     CALL :nlang.strings.string ::(init)
+      DIRECTDEF :nlang.strings.string.from_static_string ::()
+      STRING('module') :nlang.chars.static_string ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym16) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+     IDENT(_Ngensym16) :nlang.builtins.__internal_not_typeable__
+     UN(@) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+      IDENT(_Ngensym7) :nlang.strings.string ::(init)
+   CALL :nlang.builtins.void ::(init)
+    DIRECTDEF :t00.within.`env2.say2 ::()
+    IDENT(e2) :(nlang.builtins.mutable_ref t00.within.`env2) ::(init and nonnull)
+    IDENT(_Ngensym16) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym8) :nlang.strings.string ::(init)
+     IDENT(_Ngensym8) :nlang.builtins.__internal_not_typeable__
+     CALL :nlang.strings.string ::(init)
+      DIRECTDEF :nlang.strings.string.from_static_string ::()
+      STRING('function') :nlang.chars.static_string ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym17) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+     IDENT(_Ngensym17) :nlang.builtins.__internal_not_typeable__
+     UN(@) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+      IDENT(_Ngensym8) :nlang.strings.string ::(init)
+   CALL :nlang.builtins.void ::(init)
+    DIRECTDEF :t00.within.`env1.say ::()
+    IDENT(e1) :(nlang.builtins.mutable_ref t00.within.`env1) ::(init and nonnull)
+    IDENT(_Ngensym17) :(nlang.builtins.ref nlang.strings.string) ::(init and nonnull)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym9) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym9) :nlang.builtins.__internal_not_typeable__
+     NUMBER(0) :nlang.builtins.i32 ::(init)
+   RETURN :nlang.builtins.void ::()
+    IDENT(_Ngensym9) :nlang.builtins.i32 ::(init)
+ DEFFUN :t00.within.main ::()
   IDENT(main) :nlang.builtins.__internal_not_typeable__
   GENARGS :nlang.builtins.__internal_not_typeable__
   FUNARGS :nlang.builtins.__internal_not_typeable__
-   IDENT(i32) :nlang.builtins.i32
-  WITHIN :nlang.builtins.void
-  BLOCK :nlang.builtins.void
-   LET :nlang.builtins.void
-    DEFPATTERN :nlang.builtins.void
-     IDENT(mye1) :t00.within.myenv1
-     INIT :t00.within.myenv1
-     DEFNAME(mye1) :t00.within.myenv1
-    BLOCK :nlang.builtins.void
-     CALL :nlang.builtins.void
-      DIRECTDEF :t00.within.myenv1.install
-      UN(@!) :(nlang.builtins.mutable_ref t00.within.myenv1)
-       IDENT(mye1) :t00.within.myenv1
-      UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env1))
-       IDENT(e1) :(nlang.builtins.mutable_ref t00.within.`env1)
-   RETURN :nlang.builtins.void
-    CALL :nlang.builtins.i32
-     IDENT(do) :t00.within.do
+   DEFARG :nlang.builtins.i32 ::(init)
+    IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
+    IDENT(i32) :nlang.builtins.i32 ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
+  BLOCK :nlang.builtins.void ::()
+   BLOCK :nlang.builtins.void ::(init)
+    NOOP :nlang.builtins.void ::()
+    LET :nlang.builtins.void ::()
+     DEFNAME(mye1) :t00.within.myenv1 ::(init)
+      IDENT(mye1) :nlang.builtins.__internal_not_typeable__
+      INIT :t00.within.myenv1 ::(init)
+    LET :nlang.builtins.void ::()
+     DEFNAME(_Ngensymc) :nlang.builtins.void ::()
+      IDENT(_Ngensymc) :nlang.builtins.__internal_not_typeable__
+      INIT :nlang.builtins.void ::()
+    BLOCK :nlang.builtins.void ::(init)
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensyma) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env1)) ::(init and nonnull)
+       IDENT(_Ngensyma) :nlang.builtins.__internal_not_typeable__
+       UN(@!) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env1)) ::(init and nonnull)
+        IDENT(e1) :(nlang.builtins.mutable_ref t00.within.`env1) ::(init and nonnull)
+     LET :nlang.builtins.void ::()
+      DEFNAME(_Ngensym1a) :(nlang.builtins.mutable_ref t00.within.myenv1) ::(init and nonnull)
+       IDENT(_Ngensym1a) :nlang.builtins.__internal_not_typeable__
+       UN(@!) :(nlang.builtins.mutable_ref t00.within.myenv1) ::(init and nonnull)
+        IDENT(mye1) :t00.within.myenv1 ::(init)
+     NOOP :nlang.builtins.void ::()
+     BIN( = ) :nlang.builtins.void ::(init)
+      IDENT(_Ngensymc) :nlang.builtins.void ::(init)
+      CALL :nlang.builtins.void ::(init)
+       DIRECTDEF :t00.within.myenv1.install ::()
+       IDENT(_Ngensym1a) :(nlang.builtins.mutable_ref t00.within.myenv1) ::(init and nonnull)
+       IDENT(_Ngensyma) :(nlang.builtins.mutable_ref (nlang.builtins.mutable_ref t00.within.`env1)) ::(init and nonnull)
+    IDENT(_Ngensymc) :nlang.builtins.void ::(init)
+   LET :nlang.builtins.void ::()
+    DEFNAME(_Ngensym1b) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym1b) :nlang.builtins.__internal_not_typeable__
+     CALL :nlang.builtins.i32 ::(init)
+      IDENT(do) :t00.within.do ::()
+   RETURN :nlang.builtins.void ::()
+    IDENT(_Ngensym1b) :nlang.builtins.i32 ::(init)

@@ -72,17 +72,25 @@ void t00_field_t_mk(t00_field_t *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_field_t_genN_ t00_field_t_new(void) {
 #define THIS(x) t00_field_t##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_field_t_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
 
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
-t00_field_t tt = { 0 };
+;;
+t00_field_t tt= { 0 };
 ;
+;
+;
+;;
 return (tt.x);
 }
+return _nretval;
 }
 void t00_field_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_field_Nrunexamples(void) {

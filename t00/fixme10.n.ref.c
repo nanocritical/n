@@ -95,7 +95,9 @@ void t00_fixme10_a_mk(t00_fixme10_a *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_fixme10_a_genN_ t00_fixme10_a_new(void) {
 #define THIS(x) t00_fixme10_a##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_fixme10_a_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
@@ -119,7 +121,9 @@ void t00_fixme10_b_mk(t00_fixme10_b *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t00_fixme10_b_genN_ t00_fixme10_b_new(void) {
 #define THIS(x) t00_fixme10_b##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t00_fixme10_b_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;

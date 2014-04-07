@@ -67,19 +67,29 @@ typedef const nlang_builtins_size* _Ngen_nlang_builtins_ref__nlang_builtins_size
 typedef const nlang_builtins_u32* _Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_;
 #endif // HAS3__Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
-nlang_chars_static_string _Ngensym0 = { 0 };
-nlang_builtins_size _Ngensym1 = { 0 };
-nlang_builtins_u32 _Ngensym2 = { 0 };
-return (nlang_builtins_u32_reinterpret_signed(({ _Ngensym2 = nlang_builtins_size_trim_u32(({ _Ngensym1 = nlang_chars_static_string_count(({ _Ngensym0 = nlang_chars_static_string_mk((const nlang_builtins_u8 *)"123", sizeof("123")-1);
-((&_Ngensym0));
-; }));
-((&_Ngensym1));
-; }));
-((&_Ngensym2));
-; })) - (nlang_builtins_i32)3);
+nlang_chars_static_string _Ngensym0 = nlang_chars_static_string_mk((const nlang_builtins_u8 *)"123", sizeof("123")-1);
 ;
+_Ngen_nlang_builtins_ref__nlang_chars_static_string_genN_ _Ngensym6 = ((&_Ngensym0));
+;
+nlang_builtins_size _Ngensym1 = nlang_chars_static_string_count(_Ngensym6);
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_size_genN_ _Ngensym7 = ((&_Ngensym1));
+;
+nlang_builtins_u32 _Ngensym2 = nlang_builtins_size_trim_u32(_Ngensym7);
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_u32_genN_ _Ngensym8 = ((&_Ngensym2));
+;
+nlang_builtins_i32 _Ngensym3 = nlang_builtins_u32_reinterpret_signed(_Ngensym8);
+;
+nlang_builtins_i32 _Ngensym4 = (nlang_builtins_i32)3;
+;
+nlang_builtins_i32 _Ngensym5 = (_Ngensym3 - _Ngensym4);
+;
+return _Ngensym5;
 }
+return _nretval;
 }
 void t00_string_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_string_Nrunexamples(void) {

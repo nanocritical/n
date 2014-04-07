@@ -1,9 +1,10 @@
 from nlang import *
-fun returns_tmp = @i32 
-  and _Ngensym0:nlang.builtins.i32  such
-    return block 
+fun returns_tmp = _nretval:@i32 
   _Ngensym0 = 0
-  @_Ngensym0;;
+  _Ngensym1 = @_Ngensym0
+  return _Ngensym1
 
-export fun main = i32 
-  return .(returns_tmp)
+export fun main = _nretval:i32 
+  _Ngensym3 = returns_tmp
+  _Ngensym2 = ._Ngensym3
+  return _Ngensym2

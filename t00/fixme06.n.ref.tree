@@ -830,7 +830,7 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
    DEFARG :nlang.builtins.i32 ::(init)
     IDENT(_nretval) :nlang.builtins.__internal_not_typeable__
     IDENT(i32) :nlang.builtins.i32 ::()
-  WITHIN :nlang.builtins.void ::()
+  WITHIN :nlang.builtins.void ::(init and nonnull)
   BLOCK :nlang.builtins.void ::()
    BLOCK :nlang.builtins.void ::()
     NOOP :nlang.builtins.void ::()

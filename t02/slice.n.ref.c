@@ -131,6 +131,10 @@ static inline nlang_builtins_size _Ngen_nlang_memory_slice__nlang_builtins_i32_g
 static inline nlang_containers_index_range _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__all(_Ngen_nlang_builtins_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self) __attribute__((__nonnull__(1)));
 #endif // HAS2__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__all
 ;
+#ifndef HAS2__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
+#define HAS2__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
+static inline _Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_(_Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self) __attribute__((__nonnull__(1)));
+#endif // HAS2__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
 #ifndef HAS2__Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_
 #define HAS2__Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_
 typedef const nlang_builtins_i32* _Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_;
@@ -143,10 +147,6 @@ typedef const nlang_builtins_u8* _Ngen_nlang_builtins_ref__nlang_builtins_u8_gen
 #define HAS2__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_ref_genN_
 static inline _Ngen_nlang_builtins_ref__nlang_builtins_u8_genN_ _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_ref_genN_(_Ngen_nlang_builtins_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self) __attribute__((__nonnull__(1)));
 #endif // HAS2__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_ref_genN_
-#ifndef HAS2__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
-#define HAS2__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
-static inline _Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_(_Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self) __attribute__((__nonnull__(1)));
-#endif // HAS2__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
 #ifndef HAS2__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__copy
 #define HAS2__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__copy
 static inline nlang_builtins_void _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__copy(_Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self, nlang_builtins_size at, _Ngen_nlang_builtins_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ other, nlang_builtins_size off, nlang_builtins_size count) __attribute__((__nonnull__(1, 3)));
@@ -230,7 +230,10 @@ typedef nlang_builtins_i32* _Ngen_nlang_builtins_mercurial_ref__nlang_builtins_i
 static inline nlang_builtins_void _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_wrap(_Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self, _Ngen_nlang_builtins_mercurial_ref__nlang_builtins_i32_genN_ data, nlang_builtins_size count) {
 #define THIS(x) _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_##x
  {
+;;
 (self->d) = data;
+;
+;;
 (self->c) = count;
 }
 #undef THIS
@@ -246,9 +249,12 @@ typedef const struct _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_* _Ngen_n
 #define HAS3__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__count
 static inline nlang_builtins_size _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__count(_Ngen_nlang_builtins_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self) {
 #define THIS(x) _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_##x
+__attribute__((__unused__)) nlang_builtins_size _nretval = { 0 };
  {
+;;
 return (self->c);
 }
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__count
@@ -257,9 +263,16 @@ return (self->c);
 #define HAS3__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__bytecount
 static inline nlang_builtins_size _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__bytecount(_Ngen_nlang_builtins_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self) {
 #define THIS(x) _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_##x
+__attribute__((__unused__)) nlang_builtins_size _nretval = { 0 };
  {
-return ((self->c) * sizeof(nlang_builtins_i32));
+;;
+nlang_builtins_size _Ngensym36d = sizeof(nlang_builtins_i32);
+;
+nlang_builtins_size _Ngensym36e = ((self->c) * _Ngensym36d);
+;
+return _Ngensym36e;
 }
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__bytecount
@@ -268,13 +281,46 @@ return ((self->c) * sizeof(nlang_builtins_i32));
 #define HAS3__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__all
 static inline nlang_containers_index_range _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__all(_Ngen_nlang_builtins_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self) {
 #define THIS(x) _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_##x
+__attribute__((__unused__)) nlang_containers_index_range _nretval = { 0 };
  {
-return nlang_containers_range((nlang_builtins_size)0, (self->c));
+nlang_builtins_size _Ngensym36f = (nlang_builtins_size)0;
+;
+;;
+nlang_containers_index_range _Ngensym371 = nlang_containers_range(_Ngensym36f, (self->c));
+;
+return _Ngensym371;
 }
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__all
 ;
+#ifndef HAS3__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
+#define HAS3__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
+static inline _Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_(_Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self) {
+#define THIS(x) _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ _nretval = { 0 };
+ {
+;;
+nlang_builtins_size _Ngensym3c5 = (nlang_builtins_size)0;
+;
+nlang_builtins_bool _Ngensym3c6 = ((self->c) != _Ngensym3c5);
+;
+;;
+nlang_builtins_assert(_Ngensym3c6);
+;
+;;
+;;
+;;
+;;
+_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ _Ngensym3cc = (_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_)((self->d));
+;
+return _Ngensym3cc;
+}
+return _nretval;
+#undef THIS
+}
+#endif // HAS3__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
 #ifndef HAS3__Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_
 #define HAS3__Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_
 typedef const nlang_builtins_i32* _Ngen_nlang_builtins_nullable_ref__nlang_builtins_i32_genN_;
@@ -287,38 +333,70 @@ typedef const nlang_builtins_u8* _Ngen_nlang_builtins_ref__nlang_builtins_u8_gen
 #define HAS3__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_ref_genN_
 static inline _Ngen_nlang_builtins_ref__nlang_builtins_u8_genN_ _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_ref_genN_(_Ngen_nlang_builtins_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self) {
 #define THIS(x) _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_ref__nlang_builtins_u8_genN_ _nretval = { 0 };
  {
-nlang_builtins_assert(((self->c) != (nlang_builtins_size)0));
-return (_Ngen_nlang_builtins_ref__nlang_builtins_u8_genN_)((self->d));
+;;
+nlang_builtins_size _Ngensym3ce = (nlang_builtins_size)0;
+;
+nlang_builtins_bool _Ngensym3cf = ((self->c) != _Ngensym3ce);
+;
+;;
+nlang_builtins_assert(_Ngensym3cf);
+;
+;;
+;;
+;;
+;;
+_Ngen_nlang_builtins_ref__nlang_builtins_u8_genN_ _Ngensym3d5 = (_Ngen_nlang_builtins_ref__nlang_builtins_u8_genN_)((self->d));
+;
+return _Ngensym3d5;
 }
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_ref_genN_
-#ifndef HAS3__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
-#define HAS3__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
-static inline _Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_(_Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self) {
-#define THIS(x) _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_##x
- {
-nlang_builtins_assert(((self->c) != (nlang_builtins_size)0));
-return (_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_)((self->d));
-}
-#undef THIS
-}
-#endif // HAS3__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_
 #ifndef HAS3__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__copy
 #define HAS3__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__copy
 static inline nlang_builtins_void _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__copy(_Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self, nlang_builtins_size at, _Ngen_nlang_builtins_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ other, nlang_builtins_size off, nlang_builtins_size count) {
 #define THIS(x) _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_##x
  {
-nlang_builtins_assert(((off + count) <= _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__count(other)));
-nlang_builtins_assert(((at + count) <= _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__count(self)));
-nlang_builtins_size bat = (at * sizeof(nlang_builtins_i32));
+nlang_builtins_size _Ngensym391 = (off + count);
 ;
-nlang_builtins_size boff = (off * sizeof(nlang_builtins_i32));
+nlang_builtins_size _Ngensym392 = _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__count(other);
 ;
-nlang_builtins_size bsz = (count * sizeof(nlang_builtins_i32));
+nlang_builtins_bool _Ngensym393 = (_Ngensym391 <= _Ngensym392);
 ;
-nlang_memory_slice_memcpy(_Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_(self), bat, _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_ref_genN_(other), boff, bsz);
+;;
+nlang_builtins_assert(_Ngensym393);
+;
+nlang_builtins_size _Ngensym395 = (at + count);
+;
+nlang_builtins_size _Ngensym396 = _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__count(self);
+;
+nlang_builtins_bool _Ngensym397 = (_Ngensym395 <= _Ngensym396);
+;
+nlang_builtins_assert(_Ngensym397);
+;;
+nlang_builtins_size _Ngensym398 = sizeof(nlang_builtins_i32);
+;
+nlang_builtins_size bat = (at * _Ngensym398);
+;
+;;
+nlang_builtins_size _Ngensym399 = sizeof(nlang_builtins_i32);
+;
+nlang_builtins_size boff = (off * _Ngensym399);
+;
+;;
+nlang_builtins_size _Ngensym39a = sizeof(nlang_builtins_i32);
+;
+nlang_builtins_size bsz = (count * _Ngensym39a);
+;
+_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ _Ngensym39b = _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_(self);
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_u8_genN_ _Ngensym39c = _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_ref_genN_(other);
+;
+;;
+nlang_memory_slice_memcpy(_Ngensym39b, bat, _Ngensym39c, boff, bsz);
 }
 #undef THIS
 }
@@ -346,7 +424,9 @@ static inline void _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__mk(_Ngen_n
 #define HAS3__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__new
 static inline _Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__new(void) {
 #define THIS(x) _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__new
@@ -379,14 +459,37 @@ typedef nlang_builtins_i32* _Ngen_nlang_builtins_mutable_ref__nlang_builtins_i32
 #define HAS3__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__at__nlang_builtins_mutable_ref_genN_
 static inline _Ngen_nlang_builtins_mutable_ref__nlang_builtins_i32_genN_ _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__at__nlang_builtins_mutable_ref_genN_(_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ self, nlang_builtins_size n) {
 #define THIS(x) _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mutable_ref__nlang_builtins_i32_genN_ _nretval = { 0 };
  {
-nlang_builtins_assert((n < (self->c)));
-nlang_builtins_size off = (n * sizeof(nlang_builtins_i32));
+;;
+nlang_builtins_bool _Ngensym3fd = (n < (self->c));
 ;
-_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ p = nlang_memory_slice_at_byte(_Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_((_Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_)(self)), off);
+;;
+nlang_builtins_assert(_Ngensym3fd);
 ;
-return (_Ngen_nlang_builtins_mutable_ref__nlang_builtins_i32_genN_)(p);
+;;
+nlang_builtins_size _Ngensym3ff = sizeof(nlang_builtins_i32);
+;
+nlang_builtins_size off = (n * _Ngensym3ff);
+;
+;;
+;;
+;;
+;;
+_Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ _Ngensym403 = (_Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_)(self);
+;
+_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ _Ngensym404 = _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_(_Ngensym403);
+;
+_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ p = nlang_memory_slice_at_byte(_Ngensym404, off);
+;
+;;
+;;
+;;
+_Ngen_nlang_builtins_mutable_ref__nlang_builtins_i32_genN_ _Ngensym408 = (_Ngen_nlang_builtins_mutable_ref__nlang_builtins_i32_genN_)(p);
+;
+return _Ngensym408;
 }
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__at__nlang_builtins_mutable_ref_genN_
@@ -400,35 +503,112 @@ typedef struct nlang_sysheap_heap* _Ngen_nlang_builtins_mutable_ref__nlang_syshe
 static inline nlang_builtins_void _Ngen_nlang_sysheap_heap_slice_realloc__nlang_builtins_i32_genN_(_Ngen_nlang_builtins_mutable_ref__nlang_sysheap_heap_genN_ self, _Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ s, nlang_builtins_size count) {
 #define THIS(x) nlang_sysheap_heap##x
  {
-nlang_builtins_size bsz = (count * sizeof(nlang_builtins_i32));
+;;
+nlang_builtins_size _Ngensym55 = sizeof(nlang_builtins_i32);
 ;
-( ((_Ngen_nlang_memory_slice__nlang_builtins_i32_genN__count(s) == (nlang_builtins_size)0)) ? ( {
-(s->d) = (_Ngen_nlang_builtins_nullable_mercurial_ref__nlang_builtins_i32_genN_)(nlang_sysheap_realloc(NULL, (nlang_builtins_size)0, bsz));
+nlang_builtins_size bsz = (count * _Ngensym55);
+;
+;
+( (({ nlang_builtins_size _Ngensym56 = _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__count(s);
+;
+nlang_builtins_size _Ngensym57 = (nlang_builtins_size)0;
+;
+nlang_builtins_bool _Ngensym58 = (_Ngensym56 == _Ngensym57);
+;
+_Ngensym58;
+; })) ? ( {
+;
+;
+;
+;;
+;;
+;;
+;;
+_Ngen_nlang_builtins_nullable_mercurial_ref__nlang_builtins_u8_genN_ _Ngensym5d = NULL;
+;
+nlang_builtins_size _Ngensym5e = (nlang_builtins_size)0;
+;
+_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ _Ngensym5f = nlang_sysheap_realloc(_Ngensym5d, _Ngensym5e, bsz);
+;
+_Ngen_nlang_builtins_nullable_mercurial_ref__nlang_builtins_i32_genN_ _Ngensym60 = (_Ngen_nlang_builtins_nullable_mercurial_ref__nlang_builtins_i32_genN_)(_Ngensym5f);
+;
+(s->d) = _Ngensym60;
+;
+;;
 (s->c) = count;
 })
  : ( {
+;
+;
+;
+;;
 nlang_builtins_size old_bsz = _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__bytecount(s);
 ;
+;
+;;
 _Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ raw = _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__unsafe_rawdata__nlang_builtins_mercurial_ref_genN_(s);
 ;
-(s->d) = (_Ngen_nlang_builtins_nullable_mercurial_ref__nlang_builtins_i32_genN_)(nlang_sysheap_realloc(raw, old_bsz, bsz));
+;;
+;;
+;;
+;;
+_Ngen_nlang_builtins_mercurial_ref__nlang_builtins_u8_genN_ _Ngensym66 = nlang_sysheap_realloc(raw, old_bsz, bsz);
+;
+_Ngen_nlang_builtins_nullable_mercurial_ref__nlang_builtins_i32_genN_ _Ngensym67 = (_Ngen_nlang_builtins_nullable_mercurial_ref__nlang_builtins_i32_genN_)(_Ngensym66);
+;
+(s->d) = _Ngensym67;
+;;
 (s->c) = count;
 }));
+;
+;
+;
 }
 #undef THIS
 }
 #endif // HAS3__Ngen_nlang_sysheap_heap_slice_realloc__nlang_builtins_i32_genN_
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
+;;
 _Ngen_nlang_memory_slice__nlang_builtins_i32_genN_ s = { 0 };
 _Ngen_nlang_memory_slice__nlang_builtins_i32_genN__mk(&(s));
-_Ngen_nlang_sysheap_heap_slice_realloc__nlang_builtins_i32_genN_(((&nlang_sysheap_sysheap)), ((&s)), (nlang_builtins_size)1);
 ;
-_Ngen_nlang_builtins_mutable_ref__nlang_builtins_i32_genN_ p = _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__at__nlang_builtins_mutable_ref_genN_(((&s)), (nlang_builtins_size)0);
 ;
-((*p)) = (nlang_builtins_i32)1;
-return (((*p)) - (nlang_builtins_i32)1);
+;
+ {
+_Ngen_nlang_builtins_mutable_ref__nlang_sysheap_heap_genN_ _Ngensym1 = ((&nlang_sysheap_sysheap));
+;
+_Ngen_nlang_builtins_mercurial_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ _Ngensym2 = ((&s));
+;
+nlang_builtins_size _Ngensym3 = (nlang_builtins_size)1;
+;
+;;
+_Ngen_nlang_sysheap_heap_slice_realloc__nlang_builtins_i32_genN_(_Ngensym1, _Ngensym2, _Ngensym3);
+};
+;
+;
+;;
+nlang_builtins_size _Ngensym6 = (nlang_builtins_size)0;
+;
+_Ngen_nlang_builtins_mutable_ref___Ngen_nlang_memory_slice__nlang_builtins_i32_genN__genN_ _Ngensymd = ((&s));
+;
+_Ngen_nlang_builtins_mutable_ref__nlang_builtins_i32_genN_ p = _Ngen__Ngen_nlang_memory_slice__nlang_builtins_i32_genN__at__nlang_builtins_mutable_ref_genN_(_Ngensymd, _Ngensym6);
+;
+;;
+nlang_builtins_i32 _Ngensym8 = (nlang_builtins_i32)1;
+;
+((*p)) = _Ngensym8;
+nlang_builtins_i32 _Ngensym9 = ((*p));
+;
+nlang_builtins_i32 _Ngensyma = (nlang_builtins_i32)1;
+;
+nlang_builtins_i32 _Ngensymb = (_Ngensym9 - _Ngensyma);
+;
+return _Ngensymb;
 }
+return _nretval;
 }
 void t02_slice_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t02_slice_Nrunexamples(void) {

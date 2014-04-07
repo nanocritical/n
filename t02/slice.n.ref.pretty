@@ -1,8 +1,26 @@
 from nlang import *
 from nlang.sysheap import heapsysheap
-export fun main = i32 
-  and s = (slice i32).mk  such
-    (heap.slice_realloc i32) @!sysheap @#s 1
-  and p = nlang.memory.slice.at @!s 0
-  !p = 1
-  return .p - 1
+export fun main = _nretval:i32 
+  block
+    noop
+    noop
+    s = (slice i32).mk
+    _Ngensym5 = { }
+    block
+      _Ngensym1 = @!sysheap
+      _Ngensym2 = @#s
+      _Ngensym3 = 1
+      noop
+      _Ngensym5 = (heap.slice_realloc i32) _Ngensym1 _Ngensym2 _Ngensym3
+    _Ngensym5
+  noop
+  _Ngensym6 = 0
+  _Ngensymd = @!s
+  p = nlang.memory.slice.at _Ngensymd _Ngensym6
+  noop
+  _Ngensym8 = 1
+  !p = _Ngensym8
+  _Ngensym9 = .p
+  _Ngensyma = 1
+  _Ngensymb = _Ngensym9 - _Ngensyma
+  return _Ngensymb

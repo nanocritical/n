@@ -94,7 +94,9 @@ void t01_wildcardmutability_c_mk(t01_wildcardmutability_c *_nrtr_r) {
 ;
 _Ngen_nlang_builtins_mercurial_ref__t01_wildcardmutability_c_genN_ t01_wildcardmutability_c_new(void) {
 #define THIS(x) t01_wildcardmutability_c##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_mercurial_ref__t01_wildcardmutability_c_genN_ _nretval = { 0 };
 return calloc(1, sizeof(THIS()));
+return _nretval;
 #undef THIS
 }
 ;
@@ -112,20 +114,37 @@ typedef const nlang_builtins_i32* _Ngen_nlang_builtins_ref__nlang_builtins_i32_g
 #define HAS3__Ngen_t01_wildcardmutability_c_get__nlang_builtins_ref_genN_
 static inline _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngen_t01_wildcardmutability_c_get__nlang_builtins_ref_genN_(_Ngen_nlang_builtins_ref__t01_wildcardmutability_c_genN_ self) {
 #define THIS(x) t01_wildcardmutability_c##x
+__attribute__((__unused__)) _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _nretval = { 0 };
  {
-return ((&(self->x)));
+;;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensyma = ((&(self->x)));
+;
+return _Ngensyma;
 }
+return _nretval;
 #undef THIS
 }
 #endif // HAS3__Ngen_t01_wildcardmutability_c_get__nlang_builtins_ref_genN_
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
+nlang_builtins_i32 _Ngensym2 = (nlang_builtins_i32)0;
+;
 t01_wildcardmutability_c x= { 0 };
-x.x = (nlang_builtins_i32)0;
+x.x = _Ngensym2;
 ;
 ;
-return ((*_Ngen_t01_wildcardmutability_c_get__nlang_builtins_ref_genN_(((&x)))));
+;
+_Ngen_nlang_builtins_ref__t01_wildcardmutability_c_genN_ _Ngensym6 = ((&x));
+;
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym3 = _Ngen_t01_wildcardmutability_c_get__nlang_builtins_ref_genN_(_Ngensym6);
+;
+nlang_builtins_i32 _Ngensym4 = ((*_Ngensym3));
+;
+return _Ngensym4;
 }
+return _nretval;
 }
 void t01_wildcardmutability_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t01_wildcardmutability_Nrunexamples(void) {

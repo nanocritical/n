@@ -1,6 +1,11 @@
 from nlang import *
-export fun main = i32 
-  and x = 0
-  and y = 1  such
-    x bw^= y
-  return x bw^ 1
+export fun main = _nretval:i32 
+  block
+    noop
+    x = 0
+    y = 1
+    block
+      x bw^= y
+  _Ngensym0 = 1
+  _Ngensym1 = x bw^ _Ngensym0
+  return _Ngensym1

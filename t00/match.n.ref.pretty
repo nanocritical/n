@@ -1,52 +1,85 @@
 from nlang import *
-type enu = `trivial_ctor <root>.nlang.builtins.`trivial_copy <root>.nlang.builtins.`trivial_dtor
-  alias tag_type = nlang.builtins.u32
-  alias final = t00.match.enu
-  alias this = t00.match.enu
+type enu = `trivial_ctor <root>.nlang.builtins.`trivial_copy <root>.nlang.builtins.`trivial_dtor <root>.nlang.builtins.`enum
+  tag_type = nlang.builtins.u32
+  final = t00.match.enu
+  this = t00.match.enu
   | A = 0
   | B = 0 + 1
-  enu method <root>.nlang.builtins.`copyable.copy_ctor other:@final = void 
+  enu method <root>.nlang.builtins.`copyable.copy_ctor other:@final = _nretval:void 
+
+  enu method <root>.nlang.builtins.`has_equality.operator_eq other:@final = _nretval:bool 
+
+  enu method <root>.nlang.builtins.`has_equality.operator_ne other:@final = _nretval:bool 
 
 
-fun foo n:enu = i32 
-  match n
+fun foo n:enu = _nretval:i32 
+  match block 
+  n;;
   | A
-    return 0
+    _Ngensym0 = 0
+    return _Ngensym0
   | B
-    return 1
+    _Ngensym1 = 1
+    return _Ngensym1
 
-fun bar n:enu = i32 
-  match n
+fun bar n:enu = _nretval:i32 
+  match block 
+  n;;
   | A
-    return 0
+    _Ngensym2 = 0
+    return _Ngensym2
   | _
-    return 1
+    _Ngensym3 = 1
+    return _Ngensym3
 
 type t = <root>.nlang.builtins.`trivial_ctor
-  alias final = t00.match.t
-  alias this = t00.match.t
+  final = t00.match.t
+  this = t00.match.t
   x:enu
-  t method <root>.nlang.builtins.`trivial_ctor.ctor = void 
+  t method <root>.nlang.builtins.`trivial_ctor.ctor = _nretval:void 
 
   fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
+  fun <root>.nlang.builtins.`trivial_ctor.new = _nretval:@#final 
 
 
-fun bor xt:@t = bool 
-  return xt.x == A
+fun bor xt:@t = _nretval:bool 
+  noop
+  _Ngensym5 = xt.x == A
+  return _Ngensym5
 
-export fun main = i32 
-  and xt = { x=A }
-  if not bor @xt
-    return 1
-  and n = enu.A
-  if n != xt.x
-    return 1
-  and _ = foo n
-  and _ = bar A
-  match n
+export fun main = _nretval:i32 
+  block
+    noop
+    xt = { x=A }
+  if block 
+  _Ngensym14 = @xt
+  _Ngensym6 = bor _Ngensym14
+  _Ngensym7 = not _Ngensym6
+  _Ngensym7;;
+    _Ngensym8 = 1
+    return _Ngensym8
+  else
+    noop
+  noop
+  n = enu.A
+  if block 
+  noop
+  _Ngensyma = n != xt.x
+  _Ngensyma;;
+    _Ngensymb = 1
+    return _Ngensymb
+  else
+    noop
+  noop
+  _ = foo n
+  noop
+  _ = bar A
+  match block 
+  n;;
   | enu.A
-    return 0
+    _Ngensymc = 0
+    return _Ngensymc
   | enu.B
-    return 1
+    _Ngensymd = 1
+    return _Ngensymd

@@ -1,11 +1,23 @@
 from nlang import *
-fun foo x:i32 = i32 
+fun foo x:i32 = _nretval:i32 
   return x
 
-fun bar x:i32 y:i32 = i32 
-  return x + y
+fun bar x:i32 y:i32 = _nretval:i32 
+  _Ngensym0 = x + y
+  return _Ngensym0
 
-export fun main = i32 
-  and z = foo 0
-  and x = z + (foo 1)
-  return (foo (bar 0 1)) - x
+export fun main = _nretval:i32 
+  block
+    noop
+    _Ngensym1 = 0
+    z = foo _Ngensym1
+  noop
+  _Ngensym2 = 1
+  _Ngensym3 = foo _Ngensym2
+  x = z + _Ngensym3
+  _Ngensym4 = 0
+  _Ngensym5 = 1
+  _Ngensym6 = bar _Ngensym4 _Ngensym5
+  _Ngensym7 = foo _Ngensym6
+  _Ngensym8 = _Ngensym7 - x
+  return _Ngensym8

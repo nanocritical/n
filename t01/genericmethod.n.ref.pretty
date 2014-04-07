@@ -1,29 +1,40 @@
 from nlang import *
 
 type blah = `blah <root>.nlang.builtins.`trivial_ctor
-  alias final = t01.genericmethod.blah
-  alias this = t01.genericmethod.blah
+  final = t01.genericmethod.blah
+  this = t01.genericmethod.blah
   dummy:u8
   inline blah method `blah.decr x:t = _nretval:t 
-  and _Ngensym1:nlang.builtins.`integer  such
-    return nlang.builtins.`arithmetic.operator_minus @x block 
-  _Ngensym1 = 1
-  @_Ngensym1;;
+  _Ngensym0 = 1
+  _Ngensymf = @x
+  _Ngensym10 = @_Ngensym0
+  _Ngensym1 = nlang.builtins.`arithmetic.operator_minus _Ngensymf _Ngensym10
+  return _Ngensym1
 
   inline blah method decrf x:t = _nretval:t 
-  and _Ngensym2:nlang.builtins.`integer  such
-    return nlang.builtins.`arithmetic.operator_minus @x block 
   _Ngensym2 = 1
-  @_Ngensym2;;
+  _Ngensym11 = @x
+  _Ngensym12 = @_Ngensym2
+  _Ngensym3 = nlang.builtins.`arithmetic.operator_minus _Ngensym11 _Ngensym12
+  return _Ngensym3
 
-  blah method <root>.nlang.builtins.`trivial_ctor.ctor = void 
+  blah method <root>.nlang.builtins.`trivial_ctor.ctor = _nretval:void 
 
   fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
 
-  fun <root>.nlang.builtins.`trivial_ctor.new = @#final 
+  fun <root>.nlang.builtins.`trivial_ctor.new = _nretval:@#final 
 
 
-export fun main = i32 
-  and b = { dummy=0 }
-  and _ = (blah.decr u32) @b 1
-  return (blah.decrf i32) @b 1
+export fun main = _nretval:i32 
+  block
+    noop
+    _Ngensym4 = 0
+    b = { dummy=_Ngensym4 }
+  noop
+  _Ngensym5 = 1
+  _Ngensymb = @b
+  _ = (blah.decr u32) _Ngensymb _Ngensym5
+  _Ngensym6 = 1
+  _Ngensyme = @b
+  _Ngensym7 = (blah.decrf i32) _Ngensyme _Ngensym6
+  return _Ngensym7

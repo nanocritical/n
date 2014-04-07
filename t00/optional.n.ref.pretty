@@ -1,64 +1,128 @@
 from nlang import *
-fun opts a:?@i32 = i32 
-  return optional a 1
+fun opts a:?@i32 = _nretval:i32 
+  _Ngensym0 = 1
+  _Ngensym1 = optional a _Ngensym0
+  return _Ngensym1
 
-fun chained v:@!(vararg @i32) = i32 
-  and s = 0  such
-    for i in @!!v
-      s += .i
+fun chained v:@!(vararg @i32) = _nretval:i32 
+  block
+    noop
+    s = 0
+    block
+      block
+        noop
+        noop
+        _Ngensym2 = @!!v
+        block
+          while block 
+  _Ngensym4 = nlang.builtins.vararg.has_next _Ngensym2
+  _Ngensym4;;
+            -- phi 1
+
+            -- phi 1
+
+            noop
+            i = nlang.builtins.vararg.next _Ngensym2
+            block
+              _Ngensym5 = .i
+              s += _Ngensym5
+          -- phi 2
+
+          -- phi 2
+
   return s
 
-fun var a:i32 b:?@i32 v:vararg @i32 = i32 
-  and s = chained @!v
-  return a + (optional b 0) + s
+fun var a:i32 b:?@i32 v:vararg @i32 = _nretval:i32 
+  block
+    noop
+    _Ngensym6 = @!v
+    s = chained _Ngensym6
+  _Ngensym7 = 0
+  _Ngensym8 = optional b _Ngensym7
+  _Ngensym9 = a + _Ngensym8
+  _Ngensyma = _Ngensym9 + s
+  return _Ngensyma
 
-fun onlyvar v:vararg @i32 = i32 
-  and s = 0  such
-    for i in @!v
-      s += .i
+fun onlyvar v:vararg @i32 = _nretval:i32 
+  block
+    noop
+    s = 0
+    block
+      block
+        noop
+        _Ngensymb = @!v
+        block
+          while block 
+  _Ngensymc = nlang.builtins.vararg.has_next _Ngensymb
+  _Ngensymc;;
+            -- phi 1
+
+            -- phi 1
+
+            noop
+            i = nlang.builtins.vararg.next _Ngensymb
+            block
+              _Ngensymd = .i
+              s += _Ngensymd
+          -- phi 2
+
+          -- phi 2
+
   return s
 
-export fun main = i32 
-  and _Ngensym2:nlang.builtins.i32  such
-    if opts a=block 
-  _Ngensym2 = 1
-  @_Ngensym2;; != 1
-      return 1
-  and _Ngensym3:nlang.builtins.i32  such
-    if opts a=block 
-  _Ngensym3 = 1
-  @_Ngensym3;; != opts a=null
-      return 1
-  and _Ngensym4:nlang.builtins.i32
-  and _Ngensym5:nlang.builtins.i32
-  and _Ngensym6:nlang.builtins.i32
-  and _Ngensym7:nlang.builtins.i32  such
-    assert (10 == var 0 b=block 
-  _Ngensym4 = 1
-  @_Ngensym4;; block 
-  _Ngensym5 = 2
-  @_Ngensym5;; block 
-  _Ngensym6 = 3
-  @_Ngensym6;; block 
-  _Ngensym7 = 4
-  @_Ngensym7;;)
-  and _Ngensym8:nlang.builtins.i32
-  and _Ngensym9:nlang.builtins.i32
-  and _Ngensyma:nlang.builtins.i32
-  and _Ngensymb:nlang.builtins.i32
-  and _Ngensymc:nlang.builtins.i32  such
-    assert (10 == onlyvar block 
-  _Ngensym8 = 0
-  @_Ngensym8;; block 
-  _Ngensym9 = 1
-  @_Ngensym9;; block 
-  _Ngensyma = 2
-  @_Ngensyma;; block 
-  _Ngensymb = 3
-  @_Ngensymb;; block 
-  _Ngensymc = 4
-  @_Ngensymc;;)
-  and _Ngensymd:nlang.builtins.i32  such
-    return opts a=block 
-  _Ngensymd = 0
-  @_Ngensymd;;
+export fun main = _nretval:i32 
+  block
+    if block 
+  _Ngensyme = 1
+  _Ngensym29 = @_Ngensyme
+  _Ngensymf = opts a=_Ngensym29
+  _Ngensym10 = 1
+  _Ngensym11 = _Ngensymf != _Ngensym10
+  _Ngensym11;;
+      _Ngensym12 = 1
+      return _Ngensym12
+    else
+      noop
+  if block 
+  _Ngensym13 = 1
+  _Ngensym2a = @_Ngensym13
+  _Ngensym14 = opts a=_Ngensym2a
+  _Ngensym2b = null
+  _Ngensym2c = opts a=_Ngensym2b
+  _Ngensym15 = _Ngensym14 != _Ngensym2c
+  _Ngensym15;;
+    _Ngensym16 = 1
+    return _Ngensym16
+  else
+    noop
+  _Ngensym17 = 10
+  _Ngensym18 = 0
+  _Ngensym19 = 1
+  _Ngensym1a = 2
+  _Ngensym1b = 3
+  _Ngensym1c = 4
+  _Ngensym2d = @_Ngensym19
+  _Ngensym2e = @_Ngensym1a
+  _Ngensym2f = @_Ngensym1b
+  _Ngensym30 = @_Ngensym1c
+  _Ngensym1d = var _Ngensym18 b=_Ngensym2d _Ngensym2e _Ngensym2f _Ngensym30
+  _Ngensym1e = _Ngensym17 == _Ngensym1d
+  assert _Ngensym1e
+  _Ngensym1f = 10
+  _Ngensym20 = 0
+  _Ngensym21 = 1
+  _Ngensym22 = 2
+  _Ngensym23 = 3
+  _Ngensym24 = 4
+  _Ngensym31 = @_Ngensym20
+  _Ngensym32 = @_Ngensym21
+  _Ngensym33 = @_Ngensym22
+  _Ngensym34 = @_Ngensym23
+  _Ngensym35 = @_Ngensym24
+  _Ngensym25 = onlyvar _Ngensym31 _Ngensym32 _Ngensym33 _Ngensym34 _Ngensym35
+  _Ngensym26 = _Ngensym1f == _Ngensym25
+  assert _Ngensym26
+  _Ngensym27 = 0
+  _Ngensym36 = @_Ngensym27
+  _Ngensym28 = opts a=_Ngensym36
+  return _Ngensym28

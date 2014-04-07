@@ -1,7 +1,26 @@
 from nlang import *
-export fun main = i32 
-  and x = false
-  if x and true
-    return 1
+export fun main = _nretval:i32 
+  block
+    noop
+    x = false
+  if block 
+  _Ngensym2 = { }
+  if block 
+  x;;
+    -- phi 1
+
+    _Ngensym0 = true
+    _Ngensym2 = _Ngensym0
   else
-    return 0
+    -- phi 1
+
+    _Ngensym1 = false
+    _Ngensym2 = _Ngensym1
+  -- phi 3
+
+  _Ngensym2;;
+    _Ngensym3 = 1
+    return _Ngensym3
+  else
+    _Ngensym4 = 0
+    return _Ngensym4

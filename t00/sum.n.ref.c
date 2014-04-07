@@ -58,27 +58,27 @@ typedef struct t00_sum_hun t00_sum_hun;
 #define NLANG_DEFINE_TYPES
 # include "t00/sum.n.o.h"
 #undef NLANG_DEFINE_TYPES
-#define t00_sum_en_A_label__ ((nlang_builtins_u32)0)
-static const t00_sum_en t00_sum_en_A = t00_sum_en_A_label__;
-#define t00_sum_en_B_label__ ((nlang_builtins_u32)3)
-static const t00_sum_en t00_sum_en_B = t00_sum_en_B_label__;
-#define t00_sum_en_C_label__ (((nlang_builtins_u32)3 + (nlang_builtins_u32)1))
-static const t00_sum_en t00_sum_en_C = t00_sum_en_C_label__;
+#define t00_sum_en_A_tag_label__ ((nlang_builtins_u32)0)
+static const t00_sum_en t00_sum_en_A = t00_sum_en_A_tag_label__;
+#define t00_sum_en_B_tag_label__ ((nlang_builtins_u32)3)
+static const t00_sum_en t00_sum_en_B = t00_sum_en_B_tag_label__;
+#define t00_sum_en_C_tag_label__ (((nlang_builtins_u32)3 + (nlang_builtins_u32)1))
+static const t00_sum_en t00_sum_en_C = t00_sum_en_C_tag_label__;
 
-#define t00_sum_hen_A_label__ ((nlang_builtins_u32)0)
-static const t00_sum_hen t00_sum_hen_A = t00_sum_hen_A_label__;
+#define t00_sum_hen_A_tag_label__ ((nlang_builtins_u32)0)
+static const t00_sum_hen t00_sum_hen_A = t00_sum_hen_A_tag_label__;
 #define t00_sum_hen_B_first_tag_label__ (((nlang_builtins_u32)0 + (nlang_builtins_u32)1))
 static const t00_sum_hen t00_sum_hen_B_first_tag = t00_sum_hen_B_first_tag_label__;
 #define t00_sum_hen_B_last_tag_label__ (((((nlang_builtins_u32)0 + (nlang_builtins_u32)1) + (nlang_builtins_u32)1) + (nlang_builtins_u32)1))
 static const t00_sum_hen t00_sum_hen_B_last_tag = t00_sum_hen_B_last_tag_label__;
-#define t00_sum_hen_BA_label__ (((nlang_builtins_u32)0 + (nlang_builtins_u32)1))
-static const t00_sum_hen t00_sum_hen_BA = t00_sum_hen_BA_label__;
-#define t00_sum_hen_BB_label__ ((((nlang_builtins_u32)0 + (nlang_builtins_u32)1) + (nlang_builtins_u32)1))
-static const t00_sum_hen t00_sum_hen_BB = t00_sum_hen_BB_label__;
-#define t00_sum_hen_BC_label__ (((((nlang_builtins_u32)0 + (nlang_builtins_u32)1) + (nlang_builtins_u32)1) + (nlang_builtins_u32)1))
-static const t00_sum_hen t00_sum_hen_BC = t00_sum_hen_BC_label__;
-#define t00_sum_hen_C_label__ ((((nlang_builtins_u32)0 + (nlang_builtins_u32)1) + (nlang_builtins_u32)1))
-static const t00_sum_hen t00_sum_hen_C = t00_sum_hen_C_label__;
+#define t00_sum_hen_BA_tag_label__ (((nlang_builtins_u32)0 + (nlang_builtins_u32)1))
+static const t00_sum_hen t00_sum_hen_BA = t00_sum_hen_BA_tag_label__;
+#define t00_sum_hen_BB_tag_label__ ((((nlang_builtins_u32)0 + (nlang_builtins_u32)1) + (nlang_builtins_u32)1))
+static const t00_sum_hen t00_sum_hen_BB = t00_sum_hen_BB_tag_label__;
+#define t00_sum_hen_BC_tag_label__ (((((nlang_builtins_u32)0 + (nlang_builtins_u32)1) + (nlang_builtins_u32)1) + (nlang_builtins_u32)1))
+static const t00_sum_hen t00_sum_hen_BC = t00_sum_hen_BC_tag_label__;
+#define t00_sum_hen_C_tag_label__ ((((nlang_builtins_u32)0 + (nlang_builtins_u32)1) + (nlang_builtins_u32)1))
+static const t00_sum_hen t00_sum_hen_C = t00_sum_hen_C_tag_label__;
 
 struct t00_sum_un_A {
 nlang_builtins_u8 _Nfiller;
@@ -149,51 +149,64 @@ union t00_sum_hun_as_type as;
 
 
 nlang_builtins_i32 _Nmain(void) {
+__attribute__((__unused__)) nlang_builtins_i32 _nretval = { 0 };
  {
+;;
 t00_sum_en e = (t00_sum_en_A);
 ;
+;
 switch (e) {
-case t00_sum_en_A_label__:
+case t00_sum_en_A_tag_label__:
  {
 ;;
 }
 break;
 default:
  {
-return (nlang_builtins_i32)1;
+nlang_builtins_i32 _Ngensym0 = (nlang_builtins_i32)1;
+;
+return _Ngensym0;
 }
 break;
 };
+;;
 t00_sum_hen f = (t00_sum_hen_BA);
 ;
 switch (f) {
-case t00_sum_hen_BA_label__:
-case t00_sum_hen_BB_label__:
-case t00_sum_hen_BC_label__:
+case t00_sum_hen_BA_tag_label__:
+case t00_sum_hen_BB_tag_label__:
+case t00_sum_hen_BC_tag_label__:
  {
 ;;
 }
 break;
 default:
  {
-return (nlang_builtins_i32)1;
+nlang_builtins_i32 _Ngensym1 = (nlang_builtins_i32)1;
+;
+return _Ngensym1;
 }
 break;
 };
 switch (f) {
-case t00_sum_hen_BA_label__:
+case t00_sum_hen_BA_tag_label__:
  {
 ;;
 }
 break;
 default:
  {
-return (nlang_builtins_i32)1;
+nlang_builtins_i32 _Ngensym2 = (nlang_builtins_i32)1;
+;
+return _Ngensym2;
 }
 break;
 };
-return (nlang_builtins_i32)0;
+nlang_builtins_i32 _Ngensym3 = (nlang_builtins_i32)0;
+;
+return _Ngensym3;
 }
+return _nretval;
 }
 void t00_sum_Nrunexamples(void) __attribute__((section(".text.nlang.examples")));
 void t00_sum_Nrunexamples(void) {
