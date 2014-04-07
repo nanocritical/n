@@ -4,8 +4,18 @@
 #include "types.h"
 #include "parser.h"
 
-#define scope_parent(sc) \
-  ( parent(scope_node(sc)) == NULL ? NULL :  &parent(scope_node(sc))->scope )
+struct node *scope_node(struct scope *sc) {
+  return container_of(sc, struct node, scope);
+}
+
+const struct node *scope_node_const(const struct scope *sc) {
+  return scope_node(CONST_CAST(struct scope *, sc));
+}
+
+static const struct scope *scope_parent(const struct scope *sc) {
+  return parent_const(scope_node_const(sc)) == NULL ? NULL
+    : &parent_const(scope_node_const(sc))->scope;
+}
 
 uint32_t ident_hash(const ident *a) {
   return *a * 31;
@@ -28,7 +38,7 @@ void scope_init(struct scope *scope) {
 // Return value must be freed by caller.
 char *scope_name(const struct module *mod, const struct scope *scope) {
   if (scope_parent(scope) == NULL) {
-    const char *name = idents_value(mod->gctx, node_ident(scope_node(scope)));
+    const char *name = idents_value(mod->gctx, node_ident(scope_node_const(scope)));
     char *r = calloc(strlen(name) + 1, sizeof(char));
     strcpy(r, name);
     return r;
@@ -37,7 +47,7 @@ char *scope_name(const struct module *mod, const struct scope *scope) {
   ssize_t len = 0;
   const struct scope *root = scope;
   while (scope_parent(root) != NULL) {
-    ident id = node_ident(scope_node(root));
+    ident id = node_ident(scope_node_const(root));
     if (id != ID_ANONYMOUS) {
       const char *name = idents_value(mod->gctx, id);
       size_t name_len = strlen(name);
@@ -50,7 +60,7 @@ char *scope_name(const struct module *mod, const struct scope *scope) {
   char *r = calloc(len + 1, sizeof(char));
   root = scope;
   while (scope_parent(root) != NULL) {
-    ident id = node_ident(scope_node(root));
+    ident id = node_ident(scope_node_const(root));
     if (id != ID_ANONYMOUS) {
       const char *name = idents_value(mod->gctx, id);
       size_t name_len = strlen(name);
@@ -219,8 +229,8 @@ static error do_scope_lookup_ident_immediate(struct node **result,
                                              const struct scope *scope, ident id,
                                              bool allow_isalist, bool failure_ok) {
   const bool use_isalist = allow_isalist
-    && scope_node(scope)->which == DEFINTF
-    && scope_node(scope)->typ != NULL;
+    && scope_node_const(scope)->which == DEFINTF
+    && scope_node_const(scope)->typ != NULL;
 
   assert(id != ID__NONE);
   struct node **r = scope_map_get((struct scope_map *)&scope->map, id);
@@ -229,9 +239,9 @@ static error do_scope_lookup_ident_immediate(struct node **result,
     return 0;
   }
 
-  if (scope_node(scope)->which == MODULE
-      && subs_count_atleast(scope_node(scope), 1)) {
-    struct node *body = subs_first(scope_node(scope));
+  if (scope_node_const(scope)->which == MODULE
+      && subs_count_atleast(scope_node_const(scope), 1)) {
+    const struct node *body = subs_first_const(scope_node_const(scope));
     error e = do_scope_lookup_ident_immediate(result, for_error, mod, &body->scope,
                                               id, allow_isalist, failure_ok);
     if (!e) {
@@ -244,7 +254,7 @@ static error do_scope_lookup_ident_immediate(struct node **result,
   }
 
   if (use_isalist) {
-    const struct node *par = scope_node(scope);
+    const struct node *par = scope_node_const(scope);
     // FIXME: We should statically detect when this search would return
     // different results depending on order. And we should force the caller
     // to specificy which intf is being called if it's ambiguous.
@@ -302,7 +312,7 @@ static error do_scope_lookup_ident_wontimport(struct node **result, const struct
 skip:
   e = do_scope_lookup_ident_immediate(result, for_error, mod, scope, id, false, true);
   if (!e) {
-    if (scope_node(scope)->which == DEFTYPE
+    if (scope_node_const(scope)->which == DEFTYPE
         && ((*result)->which == DEFFUN || (*result)->which == DEFMETHOD)) {
       // Skip scope: id is a bare identifier, cannot reference functions or
       // methods in the scope of a DEFTYPE. Must use the form 'this.name'.
@@ -315,7 +325,7 @@ skip:
   // Will not go up in modules_root past a MODULE_BODY node as there is no
   // permission to access these scopes unless descending from
   // gctx->modules_root.
-  if (scope_parent(scope) == NULL || scope_node(scope)->which == MODULE_BODY) {
+  if (scope_parent(scope) == NULL || scope_node_const(scope)->which == MODULE_BODY) {
     if (failure_ok) {
       return e;
     } else {

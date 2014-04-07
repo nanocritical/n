@@ -126,7 +126,7 @@ static void print_scope_name(FILE *out, const struct module *mod,
 
 static void print_scope_last_name(FILE *out, const struct module *mod,
                                   const struct scope *scope) {
-  const ident id = node_ident(scope_node(scope));
+  const ident id = node_ident(scope_node_const(scope));
   const char *name = idents_value(mod->gctx, id);
   if (id == ID_ANONYMOUS) {
     return;
@@ -141,9 +141,9 @@ static void print_scope_last_name(FILE *out, const struct module *mod,
 
 static void print_scope_name(FILE *out, const struct module *mod,
                              const struct scope *scope) {
-  if (parent(parent(scope_node(scope)))) {
-    print_scope_name(out, mod, &parent(scope_node(scope))->scope);
-    if (node_ident(scope_node(scope)) != ID_ANONYMOUS) {
+  if (parent_const(parent_const(scope_node_const(scope)))) {
+    print_scope_name(out, mod, &parent_const(scope_node_const(scope))->scope);
+    if (node_ident(scope_node_const(scope)) != ID_ANONYMOUS) {
       fprintf(out, "_");
     }
   }

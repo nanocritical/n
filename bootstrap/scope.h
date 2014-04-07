@@ -17,7 +17,8 @@ struct scope {
   struct scope_map map;
 };
 
-#define scope_node(sc) container_of(sc, struct node, scope)
+struct node *scope_node(struct scope *sc);
+const struct node *scope_node_const(const struct scope *sc);
 
 void scope_init(struct scope *scope);
 void scope_undefine_ssa_var(struct scope *scope, ident id);
