@@ -424,7 +424,7 @@ error unify_with_defincomplete_entrails(struct module *mod,
 
       if (!has_variant_with_field(mod, for_error, da, node_ident(f))) {
         e = mk_except_type(mod, for_error, "cannot resolve field '%s' "
-                           "in any of the variants of the union",
+                           "in any variant of the union",
                            idents_value(mod->gctx, node_ident(f)));
         (void) e;
         e = mk_except_type_unification(mod, for_error, a, inc);

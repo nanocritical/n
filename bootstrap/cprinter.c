@@ -210,29 +210,49 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
   }
 }
 
-static void print_defchoice_access(FILE *out, const struct module *mod,
-                                   const struct node *node) {
-  const struct node *par = parent_const(node);
-  if (par->which == DEFCHOICE) {
-    print_defchoice_access(out, mod, par);
+static void print_union_access_path(FILE *out, const struct module *mod,
+                                    const struct typ *t, ident tag) {
+  const struct node *d = typ_definition_const(t);
+  const struct node *defch = node_get_member_const(mod, d, tag);
+
+  struct node *field = NULL;
+  while (true) {
+    error e = scope_lookup_ident_immediate(&field, NULL, mod, &defch->scope,
+                                           tag, true);
+    if (!e) {
+      break;
+    }
+
+    assert(defch->which != DEFTYPE);
+
+    defch = parent_const(defch);
   }
 
-  fprintf(out, "as.%s.", idents_value(mod->gctx, node_ident(node)));
+  struct vecnode stack = { 0 };
+  const struct node *p = field;
+  while (p->which != DEFTYPE) {
+    vecnode_push(&stack, CONST_CAST(struct node *, p));
+    p = parent_const(p);
+  }
+
+  for (size_t n = vecnode_count(&stack); n > 0; --n) {
+    p = *vecnode_get(&stack, n - 1);
+    fprintf(out, "as.%s", idents_value(mod->gctx, node_ident(p)));
+  }
+  vecnode_destroy(&stack);
 }
 
-static void print_union_access_path(FILE *out, const struct module *mod,
-                                    const struct node *node) {
-  const struct node *d = typ_definition_const(node->typ);
-  if (d->which != DEFTYPE || d->as.DEFTYPE.kind != DEFTYPE_UNION) {
+static void print_union_init_access_path(FILE *out, const struct module *mod,
+                                         const struct node *node) {
+  assert(node->which == INIT);
+
+  const ident tag = node->as.INIT.for_tag;
+  if (tag == ID__NONE) {
     return;
   }
 
-  ident tag = ID__NONE;
-  error e = constraint_get_single_tag(&tag, mod, node);
-  assert(!e);
-
-  const struct node *dc = node_get_member_const(mod, d, tag);
-  print_defchoice_access(out, mod, dc);
+  print_union_access_path(out, mod, node->typ, tag);
+  fprintf(out, ".");
 }
 
 static void print_bin_acc(FILE *out, const struct module *mod,
@@ -242,7 +262,10 @@ static void print_bin_acc(FILE *out, const struct module *mod,
   const struct node *name = subs_last_const(node);
   const char *name_s = idents_value(mod->gctx, node_ident(name));
 
-  if ((node->flags & NODE_IS_DEFCHOICE)
+  const struct node *d = typ_definition_const(node->typ);
+  const bool is_enum = d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_ENUM;
+
+  if ((is_enum && (node->flags & NODE_IS_DEFCHOICE))
       || (node->flags & NODE_IS_GLOBAL_LET)) {
     print_typ(out, mod, base->typ);
     fprintf(out, "_%s", name_s);
@@ -255,8 +278,11 @@ static void print_bin_acc(FILE *out, const struct module *mod,
     }
     print_expr(out, mod, base, op);
     fprintf(out, "%s", deref);
-    print_union_access_path(out, mod, base);
-    fprintf(out, "%s", name_s);
+    if (node->flags & NODE_IS_DEFCHOICE) {
+      print_union_access_path(out, mod, node->typ, node_ident(name));
+    } else {
+      fprintf(out, "%s", name_s);
+    }
   }
 }
 
@@ -479,18 +505,17 @@ static void print_init_array(FILE *out, const struct module *mod, const struct n
 
 static void print_tag_init(FILE *out, const struct module *mod,
                            const struct node *node, bool is_inline) {
+  assert(node->which == INIT);
   const struct node *d = typ_definition_const(node->typ);
   if (d->which != DEFTYPE || d->as.DEFTYPE.kind != DEFTYPE_UNION) {
     return;
   }
 
-  ident tag = ID__NONE;
-  error e = constraint_get_single_tag(&tag, mod, node);
-  assert(!e);
+  const ident tag = node->as.INIT.for_tag;
   const struct node *ch = node_get_member_const(mod, d, tag);
 
   if (!is_inline) {
-    print_expr(out, mod, node, TDOT);
+    print_expr(out, mod, node->as.INIT.target_expr, TDOT);
   }
   fprintf(out, ".%s = ", idents_value(mod->gctx, ID_TAG));
   print_defchoice_path(out, mod, d, ch);
@@ -507,11 +532,12 @@ static void print_init_toplevel(FILE *out, const struct module *mod,
     return;
   }
 
+  // FIXME: unions unsupported
+
   fprintf(out, " = {\n");
-  print_tag_init(out, mod, node->as.INIT.target_expr, true);
+  print_tag_init(out, mod, node, true);
   FOREACH_SUB_EVERY_CONST(s, node, 0, 2) {
     fprintf(out, ".");
-    print_union_access_path(out, mod, node->as.INIT.target_expr);
     fprintf(out, "%s", idents_value(mod->gctx, node_ident(s)));
     fprintf(out, " = ");
     print_expr(out, mod, next_const(s), T__NOT_STATEMENT);
@@ -548,12 +574,12 @@ static void print_init(FILE *out, const struct module *mod,
     fprintf(out, "= { 0 };\n");
   }
 
-  print_tag_init(out, mod, node->as.INIT.target_expr, false);
+  print_tag_init(out, mod, node, false);
 
   FOREACH_SUB_EVERY_CONST(s, node, 0, 2) {
     print_expr(out, mod, node->as.INIT.target_expr, TDOT);
     fprintf(out, ".");
-    print_union_access_path(out, mod, node->as.INIT.target_expr);
+    print_union_init_access_path(out, mod, node);
     fprintf(out, "%s", idents_value(mod->gctx, node_ident(s)));
     fprintf(out, " = ");
     print_expr(out, mod, next_const(s), T__NOT_STATEMENT);

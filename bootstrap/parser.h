@@ -195,6 +195,7 @@ struct node_lambda {};
 struct node_init {
   const struct node *target_expr;
   bool is_array;
+  ident for_tag;
 };
 struct node_return {
   const struct node *return_through_ref_expr;
@@ -288,6 +289,7 @@ struct node_defincomplete {
   struct toplevel toplevel;
   ident ident;
   const struct node *ident_for_error;
+  struct typ *variant_of;
 };
 struct node_defalias {
   uint32_t passed;

@@ -1,18 +1,26 @@
 from nlang import *
 
 union u =
+  isa `trivial_ctor
   | A
   | B
     x	:i32
   | C
     x	:u32
 
-export fun aux e:u = i32
+fun aux e:u = i32
   match e
   | B
     return e.B.x
   | _
     return 1
+
+fun set1 e:@!u = void
+  match e.
+  | B
+    e!B.x = 1
+  | _
+    noop
 
 export fun main = i32
   let g = {}:u.A
@@ -22,6 +30,8 @@ export fun main = i32
   | _ -> noop
 
   let f = {}:u.B
+  say f.B.x
+  set1 @!f
   say f.B.x
 
   let e = {x=1}:u.B

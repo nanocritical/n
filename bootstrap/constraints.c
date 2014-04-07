@@ -79,10 +79,14 @@ IMPLEMENT_HTABLE_SPARSE(unused__ static, hypmap, struct hypothesis,
 
 struct constraint {
   cbool table[CBI__NUM];
+
   struct tagset tags;
   // FIXME: 'tags' is not normalized: it can be full of 'U' that while
   // considered to be deleted by the underlying table, do appear in
   // tagset_count().
+  // FIXME: a set is not a nice structure, as variants are hierarchical, and
+  // 'tags' should reflect that.
+  // FIXME: need to guarantee that all tags are set iff CBI__ANYTAG==Y
 
   struct hypmap under;
 };
@@ -206,6 +210,19 @@ static void constraint_unset(struct module *mod, struct constraint *c,
                              enum constraint_builtins cbi) {
   INVARIANT_CONSTRAINT(c);
   c->table[cbi] = U;
+}
+
+static cbool constraint_get_tag(struct constraint *c, ident tag) {
+  if (c->table[CBI__ANYTAG] == Y || c->table[CBI__ANYTAG] == U) {
+    return c->table[CBI__ANYTAG];
+  }
+
+  const cbool *existing = tagset_get(&c->tags, tag);
+  if (existing == NULL || *existing != Y) {
+    return N;
+  } else {
+    return Y;
+  }
 }
 
 static void constraint_set_tag(struct module *mod, struct constraint *c,
@@ -541,9 +558,9 @@ static int constraint_get_single_tag_each(const ident *tag, cbool *value,
   return 0;
 }
 
-error constraint_get_single_tag(ident *tag,
-                                const struct module *mod,
-                                const struct node *node) {
+static error constraint_get_single_tag(ident *tag,
+                                       const struct module *mod,
+                                       const struct node *node) {
   error e;
   struct constraint *c = node->constraint;
   INVARIANT_CONSTRAINT(c);
@@ -1129,6 +1146,21 @@ static error constraint_inference_bin_acc(struct module *mod,
   }
 
   if (node->flags & NODE_IS_DEFCHOICE) {
+    if (parent(node)->which == TYPECONSTRAINT
+        && subs_first(parent(node))->which == INIT) {
+      // noop
+    } else if ((base->flags & NODE_IS_TYPE)
+               && container->which == DEFTYPE
+               && container->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+    } else {
+      if (constraint_get_tag(base->constraint, node_ident(name)) != Y) {
+        e = mk_except_constraint(mod, base, "cannot access tag '%s'"
+                                 " with these constraints",
+                                 idents_value(mod->gctx, node_ident(name)));
+        THROW(e);
+      }
+    }
+
     constraint_set_tag(mod, node->constraint, node_ident(name), false);
   }
 
@@ -1276,11 +1308,13 @@ static error constraint_inference_return(struct module *mod,
   return 0;
 }
 
-static int check_weaker_tags_each(const ident *name, cbool *value, void *user) {
+static int check_tag_is_set_each(const ident *name, cbool *value, void *user) {
   struct tagset *right_tags = user;
-  cbool *existing = tagset_get(right_tags, *name);
-  if (existing != NULL && *existing == Y && (*value == N || *value == U)) {
-    return *name;
+  if (*value == Y) {
+    const cbool *existing = tagset_get(right_tags, *name);
+    if (existing == NULL || *existing == N) {
+      return *name;
+    }
   }
   return 0;
 }
@@ -1304,49 +1338,8 @@ static int restrict_tags_each(const ident *name, cbool *value, void *user) {
   return 0;
 }
 
-static error unify_defchoice_init(struct module *mod, struct node *node,
-                                  struct node *nleft, struct constraint *left,
-                                  struct node *nright, struct constraint *right) {
-  error e;
-  struct node *dleft = typ_definition(nleft->typ);
-  struct node *dright = typ_definition(nright->typ);
-
-  assert(tagset_count(&left->tags) == 0);
-  assert(nright->flags & NODE_IS_DEFCHOICE);
-
-  ident root = ID__NONE;
-  const bool yes = constraint_has_common_root_tag(&root, mod, nright);
-  assert(yes);
-
-  struct node *dc = node_get_member(mod, dright, root);
-  assert(dc->which == DEFCHOICE && dc->as.DEFCHOICE.is_leaf);
-
-  // Below, we force the links that we declined to create in
-  // unify_with_defincomplete() because we did not yet know of the
-  // constraint.
-
-  typ_link_tentative(nright->typ, nleft->typ);
-
-  FOREACH_SUB_EVERY(name, nleft, 0, 2) {
-    struct node *field = NULL;
-    e = scope_lookup_ident_immediate(&field, name, mod, &dc->scope,
-                                     node_ident(name), false);
-    EXCEPT(e);
-
-    typ_link_tentative(field->typ, next(name)->typ);
-  }
-
-  constraint_set_tag(mod, node->constraint, root, false);
-  constraint_set(mod, node->constraint, CBI_INIT, false);
-  constraint_copy(mod, subs_first(node)->constraint, node->constraint);
-
-  return 0;
-}
-
 static error constraint_inference_typeconstraint(struct module *mod,
                                                  struct node *node) {
-  constraint_copy(mod, node->constraint, subs_first(node)->constraint);
-
   struct constraint *c = node->constraint;
   struct node *nleft = subs_first(node);
   struct constraint *left = nleft->constraint;
@@ -1354,67 +1347,41 @@ static error constraint_inference_typeconstraint(struct module *mod,
   struct constraint *right = nright->constraint;
   error e;
 
-  if (nleft->which == INIT
-      && tagset_count(&right->tags) == 1) {
-    // As an exception, a TYPECONSTRAINT with a constraint can narrow the
-    // possible tag cases when the following form is used:
-    //   { ... }:some_union.A
-    e = unify_defchoice_init(mod, node, nleft, left, nright, right);
-    EXCEPT(e);
-    return 0;
-  }
+  constraint_copy(mod, node->constraint, left);
 
-  if (c->table[CBI_INIT] == U) {
-    c->table[CBI_INIT] = right->table[CBI_INIT];
-  } else if (right->table[CBI_INIT] == U) {
-    // noop
-  } else if (c->table[CBI_INIT] != right->table[CBI_INIT]) {
-    e = mk_except_constraint(mod, nright,
-                             "incompatible constraints regarding 'init'");
-    THROW(e);
-  }
-
-  if (c->table[CBI_NONNULL] == U) {
-    c->table[CBI_NONNULL] = right->table[CBI_NONNULL];
-  } else if (right->table[CBI_NONNULL] == U) {
-    // noop
-  } else if (c->table[CBI_NONNULL] != right->table[CBI_NONNULL]) {
-    e = mk_except_constraint(mod, nright,
-                             "incompatible constraints regarding 'nonnull'");
-    THROW(e);
-  }
-
-  if (tagset_count(&right->tags) == 0) {
-    // noop
-  } else if (tagset_count(&c->tags) == 0) {
-    e = mk_except_constraint(mod, nright,
-                             "tag constraints attempt to restrict "
-                             "unconstrained tags");
-    EXCEPT(e);
-  } else {
-    int ret = tagset_foreach(&right->tags, check_weaker_tags_each, &c->tags);
+  if (right->table[CBI__ANYTAG] == N && c->table[CBI__ANYTAG] == N) {
+    const int ret = tagset_foreach(&c->tags, check_tag_is_set_each,
+                                   &right->tags);
     if (ret != 0) {
-      ident failed = ret;
+      const ident failed = ret;
       e = mk_except_constraint(mod, nright,
-                               "tag constraint on '%s' attempts to restrict "
-                               "unconstrained tag",
+                               "constraint on tag '%s' is a restriction",
                                idents_value(mod->gctx, failed));
       EXCEPT(e);
     }
+  }
 
-    ret = tagset_foreach(&c->tags, restrict_tags_each, &right->tags);
-    if (ret != 0) {
-      ident failed = ret;
+  for (size_t cbi = 0; cbi < CBI__NUM; ++cbi) {
+    if (c->table[cbi] == U) {
+      c->table[cbi] = right->table[cbi];
+    } else if (right->table[cbi] == U) {
+      // noop
+    } else if (c->table[cbi] != right->table[cbi]) {
       e = mk_except_constraint(mod, nright,
-                               "incompatible constraints regarding tag '%s'",
-                               idents_value(mod->gctx, failed));
-      EXCEPT(e);
+                               "incompatible constraint '::%s'",
+                               constraint_builtins_strings[cbi]);
+      THROW(e);
     }
+  }
+
+  if (right->table[CBI__ANYTAG] == N) {
+     const int ret = tagset_foreach(&right->tags, restrict_tags_each, &c->tags);
+     assert(ret == 0);
   }
 
   // Copy over to LHS as the TYPECONSTRAINT itself will get elided in
   // step_remove_typeconstraints().
-  constraint_copy(mod, subs_first(node)->constraint, node->constraint);
+  constraint_copy(mod, left, c);
   return 0;
 }
 

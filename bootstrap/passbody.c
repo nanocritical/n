@@ -1098,7 +1098,8 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   }
 
   if (!(node->flags & NODE_IS_TYPE)) {
-    if (!(node->flags & NODE_IS_TEMPORARY)) {
+    if (!(node->flags & NODE_IS_TEMPORARY)
+        && !(subs_first(node)->flags & NODE_IS_DEFCHOICE)) {
       e = typ_check_deref_against_mark(mod, node, mark, operator);
       EXCEPT(e);
     }
@@ -2386,6 +2387,80 @@ static error type_inference_try(struct module *mod, struct node *node) {
   return 0;
 }
 
+static error type_inference_defchoice_init(struct module *mod,
+                                           struct node *node) {
+  error e;
+  struct node *left = subs_first(node);
+  struct node *right = subs_last(node);
+  struct node *dleft = typ_definition(left->typ);
+  struct node *dright = typ_definition(right->typ);
+
+  assert(left->which == INIT);
+  assert(dleft->which == DEFINCOMPLETE);
+
+  assert(right->flags & NODE_IS_DEFCHOICE);
+  assert(right->which == BIN);
+  const struct node *dleaf = node_get_member_const(mod, dright,
+                                                   node_ident(subs_last(right)));
+  assert(dleaf->which == DEFCHOICE);
+  if (!dleaf->as.DEFCHOICE.is_leaf) {
+    e = mk_except_type(mod, subs_last(right),
+                       "only union leaf variants can be initialized");
+    THROW(e);
+  }
+
+  left->as.INIT.for_tag = node_ident(dleaf);
+
+  FOREACH_SUB_EVERY(name, left, 0, 2) {
+    const struct node *d = dleaf;
+    struct node *field = NULL;
+    while (true) {
+      e = scope_lookup_ident_immediate(&field, name, mod, &d->scope,
+                                       node_ident(name), true);
+      if (!e) {
+        break;
+      }
+
+      if (d->which == DEFTYPE) {
+        assert(false && "field names were checked by unify_with_defincomplete()");
+      }
+
+      d = parent_const(d);
+    }
+
+    typ_link_tentative(field->typ, next(name)->typ);
+  }
+
+  return 0;
+}
+
+static error type_inference_typeconstraint(struct module *mod, struct node *node) {
+  if (node->as.TYPECONSTRAINT.is_constraint) {
+    set_typ(&node->typ, subs_first(node)->typ);
+    return 0;
+  }
+
+  error e;
+  if (subs_first(node)->which == INIT
+      && subs_last(node)->flags & NODE_IS_DEFCHOICE) {
+    e = type_inference_defchoice_init(mod, node);
+    EXCEPT(e);
+  }
+
+  set_typ(&node->typ, subs_first(node)->typ);
+  e = unify(mod, subs_first(node),
+            subs_first(node)->typ, subs_last(node)->typ);
+  EXCEPT(e);
+
+  node->flags |= subs_first(node)->flags;
+  node->flags |= subs_last(node)->flags & NODE__ASSIGN_TRANSITIVE;
+  // Copy flags back, as TYPECONSTRAINT are elided in
+  // step_remove_typeconstraints().
+  subs_first(node)->flags |= node->flags;
+
+  return 0;
+}
+
 STEP_NM(step_type_inference,
         -1);
 error step_type_inference(struct module *mod, struct node *node,
@@ -2565,19 +2640,8 @@ error step_type_inference(struct module *mod, struct node *node,
     set_typ(&node->typ, node->as.DYN.intf_typ);
     break;
   case TYPECONSTRAINT:
-    if (node->as.TYPECONSTRAINT.is_constraint) {
-      set_typ(&node->typ, subs_first(node)->typ);
-    } else {
-      set_typ(&node->typ, subs_first(node)->typ);
-      e = unify(mod, subs_first(node),
-                subs_first(node)->typ, subs_last(node)->typ);
-      EXCEPT(e);
-    }
-    node->flags |= subs_first(node)->flags;
-    node->flags |= subs_last(node)->flags & NODE__ASSIGN_TRANSITIVE;
-    // Copy flags back, as TYPECONSTRAINT are elided in
-    // step_remove_typeconstraints().
-    subs_first(node)->flags |= node->flags;
+    e = type_inference_typeconstraint(mod, node);
+    EXCEPT(e);
     break;
   case DEFARG:
     PUSH_STATE(node->as.DEFARG.phi_state);

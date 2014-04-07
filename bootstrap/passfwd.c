@@ -233,25 +233,6 @@ static error lexical_retval(struct module *mod, struct node *fun, struct node *r
   return 0;
 }
 
-static error do_define_field_defchoice_leaf(struct module *mod, struct scope *sc,
-                                            struct node *node) {
-  error e;
-  FOREACH_SUB(f, node) {
-    if (f->which == DEFFIELD) {
-      e = scope_define_ident(mod, sc, node_ident(f), f);
-      EXCEPT(e);
-    }
-  }
-
-  struct node *par = parent(node);
-  if (par->which == DEFCHOICE) {
-    e = do_define_field_defchoice_leaf(mod, sc, par);
-    EXCEPT(e);
-  }
-
-  return 0;
-}
-
 static struct scope *find_scope_for_name(struct node *node) {
   assert(node->which == DEFNAME || node->which == DEFALIAS);
 
@@ -329,12 +310,8 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     }
     break;
   case DEFFIELD:
-    if (par->which == DEFCHOICE) {
-      sc = NULL;
-    } else {
-      id = subs_first(node);
-      sc = &parent(node)->scope;
-    }
+    id = subs_first(node);
+    sc = &parent(node)->scope;
     break;
   case DEFCHOICE:
     id = subs_first(node);
@@ -412,11 +389,6 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     e = lexical_retval(mod, node, node_fun_retval(node));
     EXCEPT(e);
     break;
-  case DEFCHOICE:
-    if (node->as.DEFCHOICE.is_leaf) {
-      e = do_define_field_defchoice_leaf(mod, &node->scope, node);
-      EXCEPT(e);
-    }
   default:
     break;
   }
