@@ -1497,7 +1497,16 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
 
 static error explicit_instantiation(struct module *mod, struct node *node) {
   error e;
-  struct typ *t = subs_first(node)->typ;
+  struct node *what = subs_first(node);
+  if (what->which == BIN && !(subs_first(what)->flags & NODE_IS_TYPE)) {
+    e = mk_except_type(mod, what,
+                       "explicit generic instantion must use a type as functor;"
+                       " e.g. not 'self.method i32'"
+                       " but '(my_struct.method i32) self'");
+    THROW(e);
+  }
+
+  struct typ *t = what->typ;
   const size_t arity = subs_count(node) - 1;
 
   const size_t first = typ_generic_first_explicit_arg(t);
