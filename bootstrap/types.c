@@ -1128,6 +1128,12 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
                      "'%s' type is not a reference", na);
   }
 
+  if (typ_equal(a, TBI_ANY_ANY_REF)) {
+    na = typ_pretty_name(mod, a);
+    GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
+                     "cannot dereference type '%s'", na);
+  }
+
   bool ok = false;
   switch (operator) {
   case TDEREFDOT:
