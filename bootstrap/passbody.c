@@ -646,6 +646,15 @@ static struct typ *find_existing_final_for_tentative(struct module *mod,
   return NULL;
 }
 
+static bool are_all_tentative(struct typ **explicit_args, size_t arity) {
+  for (size_t n = 0; n < arity; ++n) {
+    if (!typ_is_tentative(explicit_args[n])) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static error instance(struct node **result,
                       struct module *mod,
                       const struct node *for_error, size_t for_error_offset,
@@ -653,14 +662,18 @@ static error instance(struct node **result,
   const size_t first = typ_generic_first_explicit_arg(t);
   assert(arity == typ_generic_arity(t) - first);
 
+  const bool already_tentative_args = are_all_tentative(explicit_args, arity);
   const bool tentative = instantiation_is_tentative(mod, t, explicit_args, arity);
-  if (tentative) {
+
+  error e;
+  if (tentative && !already_tentative_args) {
     struct typ **args = calloc(arity, sizeof(struct typ *));
     for (size_t n = 0; n < arity; ++n) {
       args[n] = typ_create_tentative(typ_generic_arg(t, n));
     }
 
-    error e = do_instantiate(result, mod, t, args, arity, true);
+    e = do_instantiate(result, mod, for_error, for_error_offset,
+                       t, args, arity, true);
     EXCEPT(e);
 
     const struct node *fe = subs_at_const(for_error, for_error_offset);
@@ -674,15 +687,22 @@ static error instance(struct node **result,
     }
 
     free(args);
+
   } else {
-    struct typ *r = find_existing_final(mod, t, explicit_args, arity);
-    if (r != NULL) {
-      if (result != NULL) {
-        *result = typ_definition(r);
+
+    if (!already_tentative_args) {
+      struct typ *r = find_existing_final(mod, t, explicit_args, arity);
+      if (r != NULL) {
+        if (result != NULL) {
+          *result = typ_definition(r);
+        }
+        return 0;
       }
-      return 0;
     }
-    error e = do_instantiate(result, mod, t, explicit_args, arity, false);
+
+    e = do_instantiate(result, mod, for_error, for_error_offset,
+                       t, explicit_args, arity,
+                       already_tentative_args);
     EXCEPT(e);
   }
 
