@@ -555,13 +555,26 @@ static error step_rewrite_union_constructors(struct module *mod, struct node *no
   return 0;
 }
 
+// Does not itself check that 'explicit_args' are valid types for instantiation.
+// This is done in passfwd.c:apply_genarg_wanted_type().
 static error do_instantiate(struct node **result,
-                            struct module *mod, struct typ *t,
+                            struct module *mod,
+                            const struct node *for_error, size_t for_error_offset,
+                            struct typ *t,
                             struct typ **explicit_args, size_t arity,
                             bool tentative) {
   assert(arity == 0 || arity == typ_generic_arity(t));
 
   struct node *gendef = typ_definition(t);
+  if (node_toplevel(gendef)->generic->instances_count == 0) {
+    if (for_error == NULL) {
+      assert(false);
+    } else {
+      error e = mk_except_type(mod, for_error, "not a generic functor");
+      EXCEPT(e);
+    }
+  }
+
   struct node *pristine = node_toplevel(gendef)->generic->instances[0];
   struct node *instance = add_instance_deepcopy_from_pristine(mod, gendef,
                                                               pristine, tentative);
@@ -578,6 +591,10 @@ static error do_instantiate(struct node **result,
             typ_create_tentative(typ_generic_arg(t, n)));
     ga_arg->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
+    if (for_error != NULL) {
+      ga->as.SETGENARG.for_error = for_error;
+    }
+
     ga = next(ga);
   }
 
@@ -588,12 +605,19 @@ static error do_instantiate(struct node **result,
     set_typ(&ga_arg->as.DIRECTDEF.typ, explicit_args[n]);
     ga_arg->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
+    if (for_error != NULL) {
+      ga->as.SETGENARG.for_error = subs_at_const(for_error, for_error_offset+n);
+    }
+
     ga = next(ga);
   }
 
   error e = catchup_instantiation(mod, node_module_owner(gendef),
                                   instance, tentative);
-  EXCEPT(e);
+  if (e) {
+    e = mk_except_type(mod, for_error, "while instantiating generic here");
+    THROW(e);
+  }
 
   *result = instance;
 
@@ -2858,7 +2882,7 @@ static error finalize_generic_instantiation(struct module *mod, struct typ *t) {
   }
 
   struct node *i = NULL;
-  error e = do_instantiate(&i, mod, functor, args, arity, false);
+  error e = do_instantiate(&i, mod, NULL, 0, functor, args, arity, false);
   EXCEPT(e);
 
   typ_declare_final__privileged(i->typ);

@@ -1,0 +1,21 @@
+from nlang import *
+
+(fun t:`any) foo p:t = void
+  noop
+
+(fun t:`integer) bar p:t = void
+  noop
+
+export fun main = i32
+  foo 1:i32
+  foo true
+  (foo i32) 1
+  (foo bool) true
+
+  bar 1:i32
+  (bar i32) 1
+
+  -- bool isn't an `integer
+  (bar bool) true
+
+  return 0

@@ -321,6 +321,7 @@ struct node_defgenarg {
   bool is_explicit;
 };
 struct node_setgenarg {
+  const struct node *for_error;
 };
 struct node_let {
   struct toplevel toplevel;

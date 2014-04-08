@@ -464,6 +464,22 @@ static error step_type_inference_genargs(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_type_aliases,
+               NM(LET));
+static error step_type_aliases(struct module *mod, struct node *node,
+                            void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  struct node *par = parent(node);
+  if ((node_is_at_top(node) || node_is_at_top(par))
+      && subs_first(node)->which == DEFALIAS) {
+    error e = morningtypepass(mod, node);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
 static STEP_NM(step_type_create_update,
                STEP_NM_DEFS);
 static error step_type_create_update(struct module *mod, struct node *node,
@@ -499,18 +515,37 @@ static error step_type_update_quickisa(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_NM(step_type_aliases,
-               NM(LET));
-static error step_type_aliases(struct module *mod, struct node *node,
-                            void *user, bool *stop) {
+static error validate_genarg_types(struct module *mod, struct node *node) {
+  struct node *genargs = subs_at(node, IDX_GENARGS);
+  if (!subs_count_atleast(genargs, 1)) {
+    return 0;
+  }
+
+  const struct typ *t0 = node_toplevel(node)->generic->our_generic_functor_typ;
+
+  size_t n = 0;
+  FOREACH_SUB(ga, genargs) {
+    if (ga->which == SETGENARG) {
+      error e = typ_check_isa(mod, ga->as.SETGENARG.for_error,
+                              ga->typ, typ_generic_arg_const(t0, n));
+      EXCEPT(e);
+      n += 1;
+    }
+  }
+
+  return 0;
+}
+
+static STEP_NM(step_validate_genargs,
+               STEP_NM_DEFS);
+static error step_validate_genargs(struct module *mod, struct node *node,
+                                   void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct node *par = parent(node);
-  if ((node_is_at_top(node) || node_is_at_top(par))
-      && subs_first(node)->which == DEFALIAS) {
-    error e = morningtypepass(mod, node);
-    EXCEPT(e);
-  }
+  // We couldn't do this before -- we needed to wait until all genargs were
+  // typed across the compilation unit.
+  error e = validate_genarg_types(mod, node);
+  EXCEPT(e);
 
   return 0;
 }
@@ -522,7 +557,8 @@ static error step_type_lets(struct module *mod, struct node *node,
   DSTEP(mod, node);
 
   struct node *par = parent(node);
-  if (node_is_at_top(node) || node_is_at_top(par)) {
+  if ((node_is_at_top(node) || node_is_at_top(par))
+      && subs_first(node)->which == DEFNAME) {
     error e = morningtypepass(mod, node);
     EXCEPT(e);
   }
@@ -1119,6 +1155,7 @@ static error passfwd4(struct module *mod, struct node *root,
   // type_complete_create
   PASS(
     DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_validate_genargs);
     DOWN_STEP(step_type_update_quickisa);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);

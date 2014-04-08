@@ -1,0 +1,2 @@
+t01/bad01.n:19:8: type: 'nlang.builtins.bool' not isa intf 'nlang.builtins.`integer'
+t01/bad01.n:19:8: type: while instantiating generic here
