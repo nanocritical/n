@@ -11,6 +11,7 @@ error step_add_sequence_points(struct module *mod, struct node *node,
   if (!node->as.BLOCK.is_scopeless && subs_count_atleast(node, 2)) {
     FOREACH_SUB(s, node) {
       struct node *seq_point = mk_node(mod, node, BLOCK);
+      seq_point->codeloc = s->codeloc;
       seq_point->as.BLOCK.is_scopeless = true;
       node_subs_remove(node, seq_point);
       node_subs_insert_after(node, s, seq_point);
@@ -133,6 +134,7 @@ static struct node *insert_temporary(struct module *mod, uint32_t flags,
                                      struct node *let_block, struct node *before,
                                      struct node *expr) {
   struct node *let = mk_node(mod, let_block, LET);
+  let->codeloc = expr->codeloc;
   if (before != NULL) {
     node_subs_remove(let_block, let);
     node_subs_insert_before(let_block, before, let);
@@ -176,6 +178,7 @@ static error extract_defnames(struct module *mod,
   case IDENT:
     {
       struct node *let = mk_node(mod, let_block, LET);
+      let->codeloc = pattern->codeloc;
       let->as.LET.toplevel = *toplevel;
       let->flags = flags;
       if (before != NULL) {
@@ -217,6 +220,7 @@ static error extract_defnames(struct module *mod,
       }
 
       struct node *i = mk_node(mod, let_block, IF);
+      i->codeloc = expr->codeloc;
       struct node *test_block = mk_node(mod, i, BLOCK);
       struct node *test = mk_node(mod, test_block, CALL);
       struct node *op = mk_node(mod, test, BIN);
@@ -256,6 +260,7 @@ static error extract_defnames(struct module *mod,
           assert(expr->which == IDENT);
 
           struct node *ex = mk_node(mod, let_block, BIN);
+          ex->codeloc = expr->codeloc;
           ex->as.BIN.operator = TDOT;
           node_subs_remove(let_block, ex);
 
@@ -337,6 +342,7 @@ static void ensure_in_block(struct module *mod, struct node *x) {
   struct node *node = parent(x);
 
   struct node *x_block = mk_node(mod, node, BLOCK);
+  x_block->codeloc = x->codeloc;
   node_subs_remove(node, x_block);
   node_subs_replace(node, x, x_block);
   node_subs_append(x_block, x);

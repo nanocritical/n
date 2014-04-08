@@ -1295,6 +1295,7 @@ static struct node *expr_ref(struct module *mod, struct node *par,
   }
 
   struct node *n = mk_node(mod, par, UN);
+  n->codeloc = node->codeloc;
   n->as.UN.operator = refop;
   node_subs_append(n, node);
   return n;

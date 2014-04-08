@@ -61,6 +61,7 @@ static void insert_assign(struct module *mod,
   node_subs_remove(block, last);
 
   struct node *assign = mk_node(mod, block, BIN);
+  assign->codeloc = last->codeloc;
   assign->as.BIN.operator = TASSIGN;
   struct node *name = mk_node(mod, assign, IDENT);
   name->as.IDENT.name = node_ident(defn);
@@ -134,9 +135,9 @@ static void ssa_sub(struct module *mod, struct node *statement,
   }
 
   struct node *let = mk_node(mod, statement_parent, LET);
+  let->codeloc = sub->codeloc;
   node_subs_remove(statement_parent, let);
   node_subs_insert_before(statement_parent, before, let);
-  let->codeloc = sub->codeloc;
 
   struct node *defn = mk_node(mod, let, DEFNAME);
   defn->as.DEFNAME.ssa_user = sub;

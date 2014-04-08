@@ -972,6 +972,7 @@ void node_move_content(struct node *dst, struct node *src) {
   src->parent = parent(&copy);
   src->prev = prev(&copy);
   src->next = next(&copy);
+  src->codeloc = copy.codeloc;
 
   struct node *prv = prev(dst);
   struct node *nxt = next(dst);
@@ -1702,7 +1703,9 @@ static void shift(struct module *mod, struct node *node) {
   node_move_content(first, node);
 
   node_set_which(node, 0);
+  node->codeloc = mod->parser.pos;
   memset(&node->as, 0, sizeof(node->as));
+
   first->next = NULL;
   first->prev = NULL;
 

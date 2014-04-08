@@ -1,1 +1,1 @@
-t00/bad12.n:9:5: type: 'nlang.builtins.__mutable__' type cannot be dereferenced with '.' in a mutable context
+t00/bad12.n:9:6: type: 'nlang.builtins.__mutable__' type cannot be dereferenced with '.' in a mutable context
