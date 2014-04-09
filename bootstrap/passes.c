@@ -343,7 +343,11 @@ error step_complete_instantiation(struct module *mod, struct node *node,
   for (size_t n = 1; n < toplevel->generic->instances_count; ++n) {
     struct node *i = toplevel->generic->instances[n];
     error e = do_complete_instantiation(mod, i);
-    EXCEPT(e);
+    if (e) {
+      e = mk_except_type(mod, node_toplevel_const(i)->generic->for_error,
+                         "while instantiating generic here");
+      THROW(e);
+    }
   }
 
   toplevel->yet_to_pass = mod->stage->state->passing + 1;

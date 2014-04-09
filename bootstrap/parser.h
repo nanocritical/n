@@ -129,6 +129,8 @@ struct generic {
   struct node **instances;
   size_t instances_count;
   struct typ *our_generic_functor_typ;
+
+  const struct node *for_error;
 };
 
 struct toplevel {

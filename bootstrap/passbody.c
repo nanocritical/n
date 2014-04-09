@@ -559,7 +559,7 @@ static error step_rewrite_union_constructors(struct module *mod, struct node *no
 // This is done in passfwd.c:apply_genarg_wanted_type().
 static error do_instantiate(struct node **result,
                             struct module *mod,
-                            const struct node *for_error, size_t for_error_offset,
+                            const struct node *for_error, ssize_t for_error_offset,
                             struct typ *t,
                             struct typ **explicit_args, size_t arity,
                             bool tentative) {
@@ -578,6 +578,7 @@ static error do_instantiate(struct node **result,
   struct node *pristine = node_toplevel(gendef)->generic->instances[0];
   struct node *instance = add_instance_deepcopy_from_pristine(mod, gendef,
                                                               pristine, tentative);
+  node_toplevel(instance)->generic->for_error = for_error;
   set_typ(&node_toplevel(instance)->generic->our_generic_functor_typ, t);
 
   const size_t first = typ_generic_first_explicit_arg(t);
@@ -606,7 +607,9 @@ static error do_instantiate(struct node **result,
     ga_arg->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
     if (for_error != NULL) {
-      ga->as.SETGENARG.for_error = subs_at_const(for_error, for_error_offset+n);
+      ga->as.SETGENARG.for_error = for_error_offset >= 0
+        ? subs_at_const(for_error, for_error_offset+n)
+        : for_error;
     }
 
     ga = next(ga);
@@ -1597,7 +1600,7 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
   }
 
   struct node *i = NULL;
-  e = instance(&i, mod, typ_definition_const(tfun), 0,
+  e = instance(&i, mod, node, 1,
                tfun, args, gen_arity);
   assert(!e);
 
@@ -2881,8 +2884,10 @@ static error finalize_generic_instantiation(struct module *mod, struct typ *t) {
     args[m] = typ_generic_arg(t, m);
   }
 
+  const struct node *for_error = node_toplevel_const(typ_definition_const(t))
+    ->generic->for_error;
   struct node *i = NULL;
-  error e = do_instantiate(&i, mod, NULL, 0, functor, args, arity, false);
+  error e = do_instantiate(&i, mod, for_error, -1, functor, args, arity, false);
   EXCEPT(e);
 
   typ_declare_final__privileged(i->typ);
