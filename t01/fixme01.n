@@ -9,4 +9,4 @@ struct c =
 
 export fun main = i32
   let x = { x=0 }:c
-  return ((get ref) x).
+  return ((get ref) @x).

@@ -1,0 +1,181 @@
+from nlang import *
+from nlang.vectors import *
+type A = `trivial_ctor <root>.nlang.builtins.`trivial_ctor
+  final = t00.autoderef.A
+  this = t00.autoderef.A
+  dummy:i32
+  inline A method foo p:@t = _nretval:t 
+  _Ngensym0 = .p
+  return _Ngensym0
+
+  A method <root>.nlang.builtins.`trivial_ctor.ctor = _nretval:void 
+
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
+
+  fun <root>.nlang.builtins.`trivial_ctor.new = _nretval:@#final 
+
+
+type B = `trivial_ctor <root>.nlang.builtins.`trivial_ctor
+  final = t00.autoderef.B
+  this = t00.autoderef.B
+  dummy:i32
+  inline B method foo p:r t = _nretval:t 
+  _Ngensym1 = .p
+  return _Ngensym1
+
+  B method <root>.nlang.builtins.`trivial_ctor.ctor = _nretval:void 
+
+  fun <root>.nlang.builtins.`trivial_ctor.mk = r:final 
+
+  fun <root>.nlang.builtins.`trivial_ctor.new = _nretval:@#final 
+
+
+export fun main = _nretval:i32 
+  block
+    _Ngensym2c = { }
+    block
+      block
+        noop
+        a = { }
+      _Ngensym2 = 1
+      _Ngensym3 = @_Ngensym2
+      _Ngensym4 = 1
+      _Ngensym5 = @_Ngensym4
+      _Ngensym6 = @_Ngensym5
+      _Ngensym58 = @a
+      _Ngensym7 = t00.autoderef.A.foo _Ngensym58 _Ngensym6
+      _Ngensym8 = _Ngensym3 !== _Ngensym7
+      assert _Ngensym8
+      _Ngensym9 = 1
+      _Ngensyma = 1
+      _Ngensymb = @_Ngensyma
+      _Ngensym5a = @a
+      _Ngensymc = t00.autoderef.A.foo _Ngensym5a _Ngensymb
+      _Ngensymd = _Ngensym9 == _Ngensymc
+      assert _Ngensymd
+      _Ngensyme = 1
+      _Ngensymf = 1
+      _Ngensym5c = @a
+      _Ngensym5d = @_Ngensymf
+      _Ngensym10 = t00.autoderef.A.foo _Ngensym5c _Ngensym5d
+      _Ngensym11 = _Ngensyme == _Ngensym10
+      assert _Ngensym11
+      noop
+      b = { }
+      _Ngensym12 = 1
+      _Ngensym13 = 1
+      _Ngensym14 = @_Ngensym13
+      _Ngensym60 = @b
+      _Ngensym15 = t00.autoderef.B.foo _Ngensym60 _Ngensym14
+      _Ngensym16 = _Ngensym12 == _Ngensym15
+      assert _Ngensym16
+      _Ngensym17 = 1
+      _Ngensym18 = @_Ngensym17
+      _Ngensym19 = 1
+      _Ngensym1a = @_Ngensym19
+      _Ngensym1b = @_Ngensym1a
+      _Ngensym62 = @b
+      _Ngensym1c = t00.autoderef.B.foo _Ngensym62 _Ngensym1b
+      _Ngensym1d = _Ngensym18 !== _Ngensym1c
+      assert _Ngensym1d
+      _Ngensym1e = 1
+      _Ngensym1f = 1
+      _Ngensym20 = @_Ngensym1f
+      _Ngensym65 = @b
+      _Ngensym21 = (B.foo i32 ref) _Ngensym65 _Ngensym20
+      _Ngensym22 = _Ngensym1e != _Ngensym21
+      assert _Ngensym22
+      _Ngensym23 = 1
+      _Ngensym24 = @_Ngensym23
+      noop
+      _Ngensym26 = 1
+      _Ngensym27 = @_Ngensym26
+      _Ngensym28 = @_Ngensym27
+      _Ngensym67 = @b
+      _Ngensym29 = (B.foo @i32 ref) _Ngensym67 _Ngensym28
+      _Ngensym2a = _Ngensym24 !== _Ngensym29
+      noop
+      _Ngensym2c = assert _Ngensym2a
+    _Ngensym2c
+  noop
+  a = 'test'
+  b = 'test'
+  noop
+  _Ngensym78 = @a
+  _Ngensym79 = @b
+  x = nlang.chars.static_string.operator_eq _Ngensym78 _Ngensym79
+  assert x
+  _Ngensym2d = @a
+  _Ngensym68 = ._Ngensym2d
+  _Ngensym7a = @_Ngensym68
+  _Ngensym7b = @b
+  _Ngensym2e = nlang.chars.static_string.operator_eq _Ngensym7a _Ngensym7b
+  assert _Ngensym2e
+  _Ngensym2f = @b
+  _Ngensym69 = ._Ngensym2f
+  _Ngensym7c = @a
+  _Ngensym7d = @_Ngensym69
+  _Ngensym30 = nlang.chars.static_string.operator_eq _Ngensym7c _Ngensym7d
+  assert _Ngensym30
+  _Ngensym31 = @a
+  _Ngensym32 = @b
+  _Ngensym6a = ._Ngensym31
+  _Ngensym6b = ._Ngensym32
+  _Ngensym7e = @_Ngensym6a
+  _Ngensym7f = @_Ngensym6b
+  _Ngensym33 = nlang.chars.static_string.operator_eq _Ngensym7e _Ngensym7f
+  assert _Ngensym33
+  noop
+  _Ngensym34 = 1
+  n = @_Ngensym34
+  noop
+  _Ngensym35 = 2
+  m = @_Ngensym35
+  _Ngensym6c = .n
+  _Ngensym6d = .m
+  _Ngensym36 = _Ngensym6c + _Ngensym6d
+  _Ngensym37 = 3
+  _Ngensym38 = _Ngensym36 == _Ngensym37
+  assert _Ngensym38
+  _Ngensym39 = 1
+  _Ngensym3a = @_Ngensym39
+  _Ngensym3b = 2
+  _Ngensym3c = @_Ngensym3b
+  _Ngensym6e = ._Ngensym3a
+  _Ngensym6f = ._Ngensym3c
+  _Ngensym3d = _Ngensym6e + _Ngensym6f
+  _Ngensym3e = 3
+  _Ngensym3f = _Ngensym3d == _Ngensym3e
+  assert _Ngensym3f
+  _Ngensym40 = 1
+  _Ngensym41 = @_Ngensym40
+  _Ngensym42 = 2
+  _Ngensym43 = @_Ngensym42
+  _Ngensym70 = ._Ngensym41
+  _Ngensym71 = ._Ngensym43
+  _Ngensym44 = _Ngensym70 + _Ngensym71
+  _Ngensym45 = 3
+  _Ngensym46 = @_Ngensym45
+  _Ngensym72 = ._Ngensym46
+  _Ngensym47 = _Ngensym44 == _Ngensym72
+  assert _Ngensym47
+  _Ngensym48 = 1
+  _Ngensym49 = 2
+  _Ngensym4a = @_Ngensym49
+  _Ngensym73 = ._Ngensym4a
+  _Ngensym4b = _Ngensym48 + _Ngensym73
+  _Ngensym4c = 3
+  _Ngensym4d = @_Ngensym4c
+  _Ngensym74 = ._Ngensym4d
+  _Ngensym4e = _Ngensym4b == _Ngensym74
+  assert _Ngensym4e
+  _Ngensym4f = 1
+  _Ngensym50 = 2
+  _Ngensym51 = @_Ngensym50
+  _Ngensym75 = ._Ngensym51
+  _Ngensym52 = _Ngensym4f + _Ngensym75
+  _Ngensym53 = 3
+  _Ngensym54 = _Ngensym52 == _Ngensym53
+  assert _Ngensym54
+  _Ngensym55 = 0
+  return _Ngensym55

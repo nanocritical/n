@@ -950,22 +950,22 @@ MODULE_BODY :nlang.builtins.__internal_not_typeable__
        IDENT(x) :nlang.builtins.__internal_not_typeable__
        IDENT(_Ngensym2) :nlang.builtins.i32 ::(init)
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym8) :(nlang.builtins.ref t01.fixme01.c) ::(init and nonnull)
-     IDENT(_Ngensym8) :nlang.builtins.__internal_not_typeable__
+    DEFNAME(_Ngensym3) :(nlang.builtins.ref t01.fixme01.c) ::(init and nonnull)
+     IDENT(_Ngensym3) :nlang.builtins.__internal_not_typeable__
      UN(@) :(nlang.builtins.ref t01.fixme01.c) ::(init and nonnull)
       IDENT(x) :t01.fixme01.c ::(init)
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym3) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
-     IDENT(_Ngensym3) :nlang.builtins.__internal_not_typeable__
+    DEFNAME(_Ngensym4) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+     IDENT(_Ngensym4) :nlang.builtins.__internal_not_typeable__
      CALL :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
       CALL :(t01.fixme01.get (functor nlang.builtins.ref nlang.builtins.`any)) ::()
        IDENT(get) :(functor t01.fixme01.get (functor nlang.builtins.`any_ref nlang.builtins.`any)) ::()
        IDENT(ref) :(functor nlang.builtins.ref nlang.builtins.`any) ::(nonnull)
-      IDENT(_Ngensym8) :(nlang.builtins.ref t01.fixme01.c) ::(init and nonnull)
+      IDENT(_Ngensym3) :(nlang.builtins.ref t01.fixme01.c) ::(init and nonnull)
    LET :nlang.builtins.void ::()
-    DEFNAME(_Ngensym4) :nlang.builtins.i32 ::(init)
-     IDENT(_Ngensym4) :nlang.builtins.__internal_not_typeable__
+    DEFNAME(_Ngensym5) :nlang.builtins.i32 ::(init)
+     IDENT(_Ngensym5) :nlang.builtins.__internal_not_typeable__
      UN(.) :nlang.builtins.i32 ::(init)
-      IDENT(_Ngensym3) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
+      IDENT(_Ngensym4) :(nlang.builtins.ref nlang.builtins.i32) ::(init and nonnull)
    RETURN :nlang.builtins.void ::()
-    IDENT(_Ngensym4) :nlang.builtins.i32 ::(init)
+    IDENT(_Ngensym5) :nlang.builtins.i32 ::(init)

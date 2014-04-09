@@ -825,12 +825,39 @@ static error check_assign_not_types(struct module *mod, struct node *left,
   return 0;
 }
 
+static struct node *try_insert_automagic_deref(struct module *mod,
+                                               struct node *node) {
+  if (!typ_is_reference(node->typ)) {
+    return node;
+  }
+
+  struct node *par = parent(node);
+  struct node *deref = mk_node(mod, par, UN);
+  deref->codeloc = node->codeloc;
+  deref->as.UN.operator = TDEREFDOT;
+
+  node_subs_remove(par, deref);
+  node_subs_replace(par, node, deref);
+  node_subs_append(deref, node);
+
+  const struct node *except[] = { node, NULL };
+  error e = catchup(mod, except, deref, CATCHUP_BELOW_CURRENT);
+  assert(!e);
+
+  return deref;
+}
+
 static error type_inference_bin_sym(struct module *mod, struct node *node) {
   assert(node->which == BIN);
 
   struct node *left = subs_first(node);
   struct node *right = subs_last(node);
   const enum token_type operator = node->as.BIN.operator;
+
+  if (!OP_IS_ASSIGN(operator) && OP_KIND(operator) != OP_BIN_SYM_PTR) {
+    left = try_insert_automagic_deref(mod, left);
+    right = try_insert_automagic_deref(mod, right);
+  }
 
   error e;
   if (operator == TASSIGN) {
@@ -1381,7 +1408,9 @@ static error rewrite_self(struct module *mod, struct node *node,
 }
 
 static error try_insert_const_ref(struct module *mod, struct node *node,
-                                  const struct typ *target, struct node *arg) {
+                                  const struct typ *target,
+                                  bool target_was_explicit_ref,
+                                  struct node *arg) {
   struct node *par = node;
   struct node *real_arg = arg;
   const bool is_named = arg->which == CALLNAMEDARG;
@@ -1390,37 +1419,58 @@ static error try_insert_const_ref(struct module *mod, struct node *node,
     real_arg = subs_first(arg);
   }
 
-  if (typ_is_reference(target) && !typ_is_reference(real_arg->typ)) {
-    if (typ_isa(target, TBI_ANY_ANY_REF)
-        && !typ_isa(target, TBI_ANY_MUTABLE_REF)) {
-      struct node *before = prev(real_arg);
+  if (target_was_explicit_ref) {
+    if (typ_is_reference(target) && !typ_is_reference(real_arg->typ)) {
+      if (!typ_isa(target, TBI_ANY_MUTABLE_REF)) {
+        struct node *before = prev(real_arg);
 
-      node_subs_remove(par, real_arg);
-      struct node *ref_arg = expr_ref(mod, par, TREFDOT, real_arg);
-      node_subs_remove(par, ref_arg);
-      node_subs_insert_after(par, before, ref_arg);
+        node_subs_remove(par, real_arg);
+        struct node *ref_arg = expr_ref(mod, par, TREFDOT, real_arg);
+        node_subs_remove(par, ref_arg);
+        node_subs_insert_after(par, before, ref_arg);
 
-      if (is_named) {
-        unset_typ(&arg->typ);
+        if (is_named) {
+          unset_typ(&arg->typ);
+        }
+
+        const struct node *except[] = { real_arg, NULL };
+        error e = catchup(mod, except,
+                          is_named ? arg : ref_arg,
+                          CATCHUP_BELOW_CURRENT);
+        EXCEPT(e);
       }
-
-      const struct node *except[] = { real_arg, NULL };
-      error e = catchup(mod, except,
-                        is_named ? arg : ref_arg,
-                        CATCHUP_BELOW_CURRENT);
-      EXCEPT(e);
+    } else if (typ_is_reference(target) && typ_is_reference(real_arg->typ)) {
+      if (real_arg->which == UN
+          && real_arg->as.UN.operator == TREFDOT
+          && real_arg->as.UN.is_explicit) {
+        error e = mk_except_type(mod, real_arg, "explicit '@' operators are not"
+                                 " allowed for unqualified const references");
+        THROW(e);
+      }
     }
-  } else if (typ_is_reference(target) && typ_is_reference(real_arg->typ)) {
-    if (real_arg->which == UN
-        && real_arg->as.UN.operator == TREFDOT
-        && real_arg->as.UN.is_explicit) {
-      error e = mk_except(mod, real_arg, "explicit '@' operators are not"
-                          " allowed for unqualified const references");
-      THROW(e);
+  } else {
+    if (typ_is_reference(target) && !typ_is_reference(real_arg->typ)) {
+      // We do not automagically insert const ref operators when the
+      // function does not always accept a reference, as in: (also see
+      // t00/autoderef.n)
+      //   s (method t:`any) foo p:t = void
+      //     noop
+      //   (s.foo @i32) self @1 -- '@' required on 1.
+      //   (s.foo i32) self 1
+
+      // noop -- this error will get caught by regular argument typing.
     }
   }
 
   return 0;
+}
+
+static bool was_explicit_const_ref(const struct node *dfun, size_t n) {
+  const struct node *funargs = subs_at_const(dfun, IDX_FUNARGS);
+  const struct node *darg = subs_at_const(funargs, n);
+  return subs_last_const(darg)->which == UN
+    && (subs_last_const(darg)->as.UN.operator == TREFDOT
+        || subs_last_const(darg)->as.UN.operator == TNULREFDOT);
 }
 
 static error process_const_ref_call_arguments(struct module *mod,
@@ -1447,7 +1497,9 @@ static error process_const_ref_call_arguments(struct module *mod,
     nxt = next(nxt);
 
     e = try_insert_const_ref(mod, node,
-                             typ_function_arg_const(tfun, n), arg);
+                             typ_function_arg_const(tfun, n),
+                             was_explicit_const_ref(dfun, n),
+                             arg);
     EXCEPT(e);
 
     n += 1;
@@ -1465,7 +1517,7 @@ static error process_const_ref_call_arguments(struct module *mod,
       struct node *arg = nxt;
       nxt = next(nxt);
 
-      e = try_insert_const_ref(mod, node, target, arg);
+      e = try_insert_const_ref(mod, node, target, true, arg);
       EXCEPT(e);
     }
   }

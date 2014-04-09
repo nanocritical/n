@@ -120,9 +120,9 @@ static _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngen_t01_fixme01_get_
 __attribute__((__unused__)) _Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _nretval = { 0 };
  {
 ;;
-_Ngen_nlang_builtins__Ni_any_ref__nlang_builtins_i32_genN_ _Ngensym7 = ((&(m->x)));
+_Ngen_nlang_builtins__Ni_any_ref__nlang_builtins_i32_genN_ _Ngensym8 = ((&(m->x)));
 ;
-return _Ngensym7;
+return _Ngensym8;
 }
 return _nretval;
 }
@@ -138,13 +138,13 @@ x.x = _Ngensym2;
 ;
 ;
 ;
-_Ngen_nlang_builtins_ref__t01_fixme01_c_genN_ _Ngensym8 = ((&x));
+_Ngen_nlang_builtins_ref__t01_fixme01_c_genN_ _Ngensym3 = ((&x));
 ;
-_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym3 = _Ngen_t01_fixme01_get__nlang_builtins_ref_genN_(_Ngensym8);
+_Ngen_nlang_builtins_ref__nlang_builtins_i32_genN_ _Ngensym4 = _Ngen_t01_fixme01_get__nlang_builtins_ref_genN_(_Ngensym3);
 ;
-nlang_builtins_i32 _Ngensym4 = ((*_Ngensym3));
+nlang_builtins_i32 _Ngensym5 = ((*_Ngensym4));
 ;
-return _Ngensym4;
+return _Ngensym5;
 }
 return _nretval;
 }
