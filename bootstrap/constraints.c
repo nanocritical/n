@@ -786,11 +786,11 @@ static error cond_descend_eval_bin(struct module *mod, struct node *cond,
     if (a->table[CBI_NONNULL] == b->table[CBI_NONNULL]) {
       // noop
     } else if (a->table[CBI_NONNULL] == N && b->table[CBI_NONNULL] == Y) {
-      e = mk_except_constraint(mod, NULL, "unsatisfiable === comparison"
+      e = mk_except_constraint(mod, node, "unsatisfiable === comparison"
                                " lhs is 'not nonnull', rhs is 'nonnull'");
       THROW(e);
     } else if (a->table[CBI_NONNULL] == Y && b->table[CBI_NONNULL] == N) {
-      e = mk_except_constraint(mod, NULL, "unsatisfiable === comparison"
+      e = mk_except_constraint(mod, node, "unsatisfiable === comparison"
                                " lhs is 'nonnull', rhs is 'not nonnull'");
       THROW(e);
     }
@@ -800,12 +800,8 @@ static error cond_descend_eval_bin(struct module *mod, struct node *cond,
     if (a->table[CBI_NONNULL] != b->table[CBI_NONNULL]) {
       // noop
     } else if (a->table[CBI_NONNULL] == N && b->table[CBI_NONNULL] == N) {
-      e = mk_except_constraint(mod, NULL, "unsatisfiable !== comparison"
+      e = mk_except_constraint(mod, node, "unsatisfiable !== comparison"
                                " lhs is 'not nonnull', rhs is 'not nonnull'");
-      THROW(e);
-    } else if (a->table[CBI_NONNULL] == Y && b->table[CBI_NONNULL] == Y) {
-      e = mk_except_constraint(mod, NULL, "unsatisfiable !== comparison"
-                               " lhs is 'nonnull', rhs is 'nonnull'");
       THROW(e);
     }
     operand_reversed = !reversed;
