@@ -1231,6 +1231,9 @@ static error constraint_inference_un(struct module *mod,
     e = constraint_check(mod, subs_first(node), CBI_NONNULL, false);
     EXCEPT(e);
     constraint_set(mod, node->constraint, CBI_INIT, false);
+    if (typ_is_reference(node->typ) && !typ_isa(node->typ, TBI_ANY_NULLABLE_REF)) {
+      constraint_set(mod, node->constraint, CBI_NONNULL, false);
+    }
     return 0;
   case OP_UN_BOOL:
   case OP_UN_ARITH:
