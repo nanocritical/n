@@ -131,7 +131,6 @@ extern struct typ *TBI_STRING;
 extern struct typ *TBI_STATIC_STRING;
 extern struct typ *TBI_STATIC_STRING_COMPATIBLE;
 extern struct typ *TBI_STATIC_ARRAY;
-extern struct typ *TBI__REF_COMPATIBLE;
 extern struct typ *TBI_ANY_ANY_REF;
 extern struct typ *TBI_ANY_REF;
 extern struct typ *TBI_ANY_MUTABLE_REF;

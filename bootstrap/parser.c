@@ -245,7 +245,6 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_STATIC_STRING] = "static_string",
   [ID_TBI_STATIC_STRING_COMPATIBLE] = "`static_string_compatible",
   [ID_TBI_STATIC_ARRAY] = "static_array",
-  [ID_TBI__REF_COMPATIBLE] = "`__ref_compatible",
   [ID_TBI_ANY_ANY_REF] = "`any_any_ref",
   [ID_TBI_ANY_REF] = "`any_ref",
   [ID_TBI_ANY_MUTABLE_REF] = "`any_mutable_ref",
@@ -705,7 +704,6 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_STATIC_STRING = gctx->builtin_typs_by_name[ID_TBI_STATIC_STRING];
   TBI_STATIC_STRING_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_STATIC_STRING_COMPATIBLE];
   TBI_STATIC_ARRAY = gctx->builtin_typs_by_name[ID_TBI_STATIC_ARRAY];
-  TBI__REF_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI__REF_COMPATIBLE];
   TBI_ANY_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_ANY_REF];
   TBI_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_REF];
   TBI_ANY_MUTABLE_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_MUTABLE_REF];

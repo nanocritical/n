@@ -98,8 +98,6 @@ export intf `sum_order =
 export extern struct void =
   export isa `return_by_copy `trivial_copy
 
-export extern intf `__ref_compatible r:`any_any_ref =
-
 export intf `any_any_ref =
   isa `return_by_copy `trivial_copy `trivial_equality
 export intf `any_ref t:`any =

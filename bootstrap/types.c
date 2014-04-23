@@ -240,8 +240,7 @@ static void create_flags(struct typ *t, struct typ *tbi) {
       || maybe_ref == TBI_MMREF
       || maybe_ref == TBI_NREF
       || maybe_ref == TBI_NMREF
-      || maybe_ref == TBI_NMMREF
-      || maybe_ref == TBI__REF_COMPATIBLE) {
+      || maybe_ref == TBI_NMMREF) {
     t->flags |= TYPF_REF;
   }
 
@@ -262,7 +261,6 @@ static void create_flags(struct typ *t, struct typ *tbi) {
   if (tbi == TBI_LITERALS_NULL
       || tbi == TBI_LITERALS_INTEGER
       || tbi == TBI_LITERALS_FLOATING
-      || tbi == TBI__REF_COMPATIBLE
       || tbi == TBI__NOT_TYPEABLE
       || tbi == TBI__CALL_FUNCTION_SLOT
       || tbi == TBI__MUTABLE
@@ -767,7 +765,6 @@ struct typ *TBI_STRING;
 struct typ *TBI_STATIC_STRING;
 struct typ *TBI_STATIC_STRING_COMPATIBLE;
 struct typ *TBI_STATIC_ARRAY;
-struct typ *TBI__REF_COMPATIBLE;
 struct typ *TBI_ANY_ANY_REF;
 struct typ *TBI_ANY_REF;
 struct typ *TBI_ANY_MUTABLE_REF;

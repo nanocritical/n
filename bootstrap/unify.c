@@ -5,6 +5,27 @@
 #include "scope.h"
 #include "passes.h"
 
+enum unify_flags {
+  REFCOMPAT_LEFT = 0x1,
+  REFCOMPAT_RIGHT = 0x2,
+  REFCOMPAT__SWAPPABLES = REFCOMPAT_LEFT | REFCOMPAT_RIGHT,
+};
+
+#define SWAP_FLAGS(flags) do { \
+  uint32_t tmp = (flags); \
+  flags &= ~REFCOMPAT__SWAPPABLES; \
+  if (tmp & REFCOMPAT_LEFT) { \
+    flags |= REFCOMPAT_RIGHT; \
+  } \
+  if (tmp & REFCOMPAT_RIGHT) { \
+    flags |= REFCOMPAT_LEFT; \
+  } \
+} while (0)
+
+static error do_unify(struct module *mod, uint32_t flags,
+                      const struct node *for_error,
+                      struct typ *a, struct typ *b);
+
 static error mk_except_type_unification(struct module *mod, const struct node *for_error,
                                         const struct typ *a, const struct typ *b) {
   char *sa = typ_pretty_name(mod, a);
@@ -160,7 +181,8 @@ static error unify_non_generic(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-static error unify_literal(struct module *mod, const struct node *for_error,
+static error unify_literal(struct module *mod, uint32_t flags,
+                           const struct node *for_error,
                            struct typ *a, struct typ *b,
                            bool a_literal, bool b_literal) {
   error e;
@@ -171,6 +193,7 @@ static error unify_literal(struct module *mod, const struct node *for_error,
       if (!a_floating && b_floating) {
         SWAP(a, b);
         SWAP(a_floating, b_floating);
+        SWAP_FLAGS(flags);
       }
       if (!a_floating) {
         if (!typ_equal(a, TBI_LITERALS_INTEGER)) {
@@ -193,10 +216,8 @@ static error unify_literal(struct module *mod, const struct node *for_error,
   }
 
   if (typ_equal(b, TBI_LITERALS_NULL)) {
-    if (typ_generic_functor(a) != NULL
-        && typ_equal(typ_generic_functor(a), TBI__REF_COMPATIBLE)) {
-      struct typ *real_a = typ_generic_arg(a, 0);
-      e = unify(mod, for_error, real_a, b);
+    if (typ_generic_functor(a) != NULL && (flags & REFCOMPAT_LEFT)) {
+      e = do_unify(mod, flags & ~REFCOMPAT_LEFT, for_error, a, b);
       EXCEPT(e);
       return 0;
     } else {
@@ -295,7 +316,8 @@ HTABLE_SPARSE(ident_typ_map, struct typ *, ident);
 IMPLEMENT_HTABLE_SPARSE(unused__ static, ident_typ_map, struct typ *, ident,
                         ident_hash, ident_cmp);
 
-static error unify_two_defincomplete(struct module *mod, const struct node *for_error,
+static error unify_two_defincomplete(struct module *mod,
+                                     const struct node *for_error,
                                      struct typ *a, struct typ *b) {
   error e;
   const char *reason;
@@ -341,7 +363,7 @@ static error unify_two_defincomplete(struct module *mod, const struct node *for_
 
 except:
   assert(e == EINVAL);
-  ;char sa[2048], sb[2048];
+  char sa[2048], sb[2048];
   snprint_defincomplete(sa, ARRAY_SIZE(sa), mod, da);
   snprint_defincomplete(sb, ARRAY_SIZE(sb), mod, db);
 
@@ -467,7 +489,8 @@ static error unify_with_defincomplete(struct module *mod,
   return 0;
 }
 
-static error unify_defincomplete(struct module *mod, const struct node *for_error,
+static error unify_defincomplete(struct module *mod,
+                                 const struct node *for_error,
                                  struct typ *a, struct typ *b,
                                  bool a_inc, bool b_inc) {
   error e;
@@ -579,7 +602,7 @@ static error unify_dyn(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-static error unify_reference_arg(struct module *mod,
+static error unify_reference_arg(struct module *mod, uint32_t flags,
                                  const struct node *for_error,
                                  struct typ *a, struct typ *b) {
   struct typ *arg_a = typ_generic_arg(a, 0);
@@ -599,14 +622,14 @@ static error unify_reference_arg(struct module *mod,
     e = unify_dyn(mod, for_error, arg_a, arg_b, arg_a_intf, arg_b_intf);
     EXCEPT(e);
   } else {
-    e = unify(mod, for_error, arg_a, arg_b);
+    e = do_unify(mod, flags, for_error, arg_a, arg_b);
     EXCEPT(e);
   }
 
   return 0;
 }
 
-static error unify_with_reference_compatible(struct module *mod,
+static error unify_with_reference_compatible(struct module *mod, uint32_t flags,
                                              const struct node *for_error,
                                              struct typ *a, struct typ *b,
                                              bool a_ref_compatible,
@@ -614,33 +637,33 @@ static error unify_with_reference_compatible(struct module *mod,
   if (a_ref_compatible) {
     SWAP(a, b);
     SWAP(a_ref_compatible, b_ref_compatible);
+    SWAP_FLAGS(flags);
   }
 
-  struct typ *real_b = typ_generic_arg(b, 0);
-
-  error e = check_reference_compatibility(mod, for_error, a, real_b);
+  error e = check_reference_compatibility(mod, for_error, a, b);
   EXCEPT(e);
 
-  if (!typ_equal(real_b, TBI_ANY_ANY_REF)) {
-    struct typ *real_b0 = typ_generic_functor(real_b);
-    if (typ_definition_const(real_b0)->which == DEFINTF && typ_is_tentative(real_b0)) {
-      typ_link_tentative(typ_generic_functor(a), real_b0);
+  if (!typ_equal(b, TBI_ANY_ANY_REF)) {
+    struct typ *b0 = typ_generic_functor(b);
+    if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
+      typ_link_tentative(typ_generic_functor(a), b0);
     }
   }
 
-  if (typ_equal(a, real_b)) {
-    e = unify_with_equal(mod, for_error, a, real_b);
+  if (typ_equal(a, b)) {
+    e = unify_with_equal(mod, for_error, a, b);
     EXCEPT(e);
     return 0;
   }
 
-  e = unify_reference_arg(mod, for_error, a, real_b);
+  e = unify_reference_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
 
   return 0;
 }
 
-static error unify_reference(struct module *mod, const struct node *for_error,
+static error unify_reference(struct module *mod, uint32_t flags,
+                             const struct node *for_error,
                              struct typ *a, struct typ *b,
                              bool a_ref, bool b_ref) {
   error e;
@@ -648,14 +671,15 @@ static error unify_reference(struct module *mod, const struct node *for_error,
   if (!a_ref) {
     SWAP(a, b);
     SWAP(a_ref, b_ref);
+    SWAP_FLAGS(flags);
   }
 
-  if (!typ_is_reference(b) && typ_is_tentative(b) && typ_isa(a, b)) {
+  if (!b_ref && typ_is_tentative(b) && typ_isa(a, b)) {
     typ_link_tentative(a, b);
     return 0;
   }
 
-  if (!typ_is_reference(b)) {
+  if (!b_ref) {
     e = mk_except_type_unification(mod, for_error, a, b);
     THROW(e);
   }
@@ -663,10 +687,10 @@ static error unify_reference(struct module *mod, const struct node *for_error,
   struct typ *a0 = typ_generic_functor(a);
   struct typ *b0 = typ_generic_functor(b);
 
-  const bool a_ref_compatible = a0 != NULL && typ_equal(a0, TBI__REF_COMPATIBLE);
-  const bool b_ref_compatible = b0 != NULL && typ_equal(b0, TBI__REF_COMPATIBLE);
+  const bool a_ref_compatible = flags & REFCOMPAT_LEFT;
+  const bool b_ref_compatible = flags & REFCOMPAT_RIGHT;
   if (a_ref_compatible || b_ref_compatible) {
-    e = unify_with_reference_compatible(mod, for_error, a, b,
+    e = unify_with_reference_compatible(mod, flags, for_error, a, b,
                                         a_ref_compatible, b_ref_compatible);
     EXCEPT(e);
     return 0;
@@ -686,6 +710,7 @@ static error unify_reference(struct module *mod, const struct node *for_error,
     SWAP(a, b);
     SWAP(a0, b0);
     SWAP(a_ref, b_ref);
+    SWAP_FLAGS(flags);
   }
 
   if (!typ_isa(a0, b0)) {
@@ -703,7 +728,7 @@ static error unify_reference(struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  e = unify_reference_arg(mod, for_error, a, b);
+  e = unify_reference_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
 
   return 0;
@@ -754,14 +779,16 @@ static error unify_with_any(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-error unify(struct module *mod, const struct node *for_error,
-            struct typ *a, struct typ *b) {
+static error do_unify(struct module *mod, uint32_t flags,
+                      const struct node *for_error,
+                      struct typ *a, struct typ *b) {
   error e;
 
   bool a_tentative = typ_is_tentative(a);
   bool b_tentative = typ_is_tentative(b);
 
-  if (!a_tentative && !b_tentative) {
+  if (!(flags & (REFCOMPAT_LEFT | REFCOMPAT_RIGHT))
+      && !a_tentative && !b_tentative) {
     e = typ_check_equal(mod, for_error, a, b);
     EXCEPT(e);
     return 0;
@@ -770,6 +797,7 @@ error unify(struct module *mod, const struct node *for_error,
   if (a_tentative && !b_tentative) {
     SWAP(a, b);
     SWAP(a_tentative, b_tentative);
+    SWAP_FLAGS(flags);
   }
 
   if (typ_equal(a, b)) {
@@ -799,7 +827,7 @@ error unify(struct module *mod, const struct node *for_error,
   const bool a_literal = typ_is_literal(a);
   const bool b_literal = typ_is_literal(b);
   if (a_literal || b_literal) {
-    e = unify_literal(mod, for_error, a, b, a_literal, b_literal);
+    e = unify_literal(mod, flags, for_error, a, b, a_literal, b_literal);
     EXCEPT(e);
     return 0;
   }
@@ -807,7 +835,7 @@ error unify(struct module *mod, const struct node *for_error,
   const bool a_ref = typ_is_reference(a);
   const bool b_ref = typ_is_reference(b);
   if (a_ref || b_ref) {
-    e = unify_reference(mod, for_error, a, b, a_ref, b_ref);
+    e = unify_reference(mod, flags, for_error, a, b, a_ref, b_ref);
     EXCEPT(e);
     return 0;
   }
@@ -837,6 +865,29 @@ error unify(struct module *mod, const struct node *for_error,
   e = unify_generics(mod, for_error, a, b, a_tentative, b_tentative);
   EXCEPT(e);
 
+  return 0;
+}
+
+error unify(struct module *mod, const struct node *for_error,
+            struct typ *a, struct typ *b) {
+  return do_unify(mod, 0, for_error, a, b);
+}
+
+// Be tolerant of acceptable differences in reference functors.
+error unify_refcompat(struct module *mod, const struct node *for_error,
+                      struct typ *target, struct typ *b) {
+  error e;
+
+  const bool target_ref = typ_is_reference(target);
+  const bool b_ref = typ_is_reference(b);
+  if (target_ref || b_ref) {
+    e = do_unify(mod, REFCOMPAT_LEFT, for_error, target, b);
+    EXCEPT(e);
+    return 0;
+  }
+
+  e = unify(mod, for_error, target, b);
+  EXCEPT(e);
   return 0;
 }
 

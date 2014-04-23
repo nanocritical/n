@@ -556,7 +556,7 @@ static error step_rewrite_union_constructors(struct module *mod, struct node *no
 }
 
 // Does not itself check that 'explicit_args' are valid types for instantiation.
-// This is done in passfwd.c:apply_genarg_wanted_type().
+// This is done in passfwd.c:validate_genarg_types().
 static error do_instantiate(struct node **result,
                             struct module *mod,
                             const struct node *for_error, ssize_t for_error_offset,
@@ -793,24 +793,6 @@ static error type_inference_un(struct module *mod, struct node *node) {
   return 0;
 }
 
-// for_error and for_error_offset are not actually used, as this call should
-// never fail, but we need something to pass down.
-static struct typ *try_wrap_ref_compatible(struct module *mod,
-                                           struct node *for_error,
-                                           size_t for_error_offset,
-                                           struct typ *t) {
-  if (!typ_is_reference(t)) {
-    return t;
-  }
-
-  struct node *i = NULL;
-  error e = instance(&i, mod, for_error, for_error_offset,
-                     typ_create_tentative(TBI__REF_COMPATIBLE), &t, 1);
-  assert(!e);
-
-  return i->typ;
-}
-
 static error check_assign_not_types(struct module *mod, struct node *left,
                                     struct node *right) {
   error e;
@@ -875,9 +857,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
       }
     }
 
-    e = unify(mod, node,
-              try_wrap_ref_compatible(mod, node, 0, left->typ),
-              right->typ);
+    e = unify_refcompat(mod, node, left->typ, right->typ);
     EXCEPT(e);
 
     left->flags |= right->flags & NODE__ASSIGN_TRANSITIVE;
@@ -1322,9 +1302,7 @@ static error type_inference_return(struct module *mod, struct node *node) {
 
   if (subs_count_atleast(node, 1)) {
     struct node *arg = subs_first(node);
-    error e = unify(mod, arg, arg->typ,
-                    try_wrap_ref_compatible(mod, node, 0,
-                                            module_retval_get(mod)->typ));
+    error e = unify_refcompat(mod, arg, module_retval_get(mod)->typ, arg->typ);
     EXCEPT(e);
   }
 
@@ -1658,9 +1636,7 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
 
   size_t n = 0;
   FOREACH_SUB_EVERY(s, node, 1, 1) {
-    e = unify(mod, s, s->typ,
-              try_wrap_ref_compatible(mod, node, 1+n,
-                                      typ_function_arg(i->typ, n)));
+    e = unify_refcompat(mod, s, typ_function_arg(i->typ, n), s->typ);
     EXCEPT(e);
     n += 1;
   }
@@ -1715,9 +1691,7 @@ static error type_inference_explicit_unary_call(struct module *mod, struct node 
 
   if (dfun->which == DEFMETHOD) {
     struct node *self = subs_at(node, 1);
-    error e = unify(mod, self, self->typ,
-                    try_wrap_ref_compatible(mod, node, 1,
-                                            typ_function_arg(dfun->typ, 0)));
+    error e = unify(mod, self, typ_function_arg(dfun->typ, 0), self->typ);
     EXCEPT(e);
   }
 
@@ -1775,20 +1749,16 @@ static error type_inference_call(struct module *mod, struct node *node) {
     if (n == first_vararg) {
       break;
     }
-    e = unify(mod, arg, arg->typ,
-              try_wrap_ref_compatible(mod, node, 1+n,
-                                      typ_function_arg(tfun, n)));
+    e = unify_refcompat(mod, arg, typ_function_arg(tfun, n), arg->typ);
     EXCEPT(e);
     n += 1;
   }
 
   if (n == first_vararg) {
-    struct typ *target = try_wrap_ref_compatible(
-      mod, node, 1,
-      typ_generic_arg(typ_function_arg(tfun, n), 0));
+    struct typ *target = typ_generic_arg(typ_function_arg(tfun, n), 0);
 
     FOREACH_SUB_EVERY(arg, node, 1 + n, 1) {
-      e = unify(mod, arg, arg->typ, target);
+      e = unify_refcompat(mod, arg, target, arg->typ);
       EXCEPT(e);
     }
   }
