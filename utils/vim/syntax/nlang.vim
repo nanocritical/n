@@ -24,6 +24,7 @@ syn keyword nKeyword try catch
 syn keyword nException except throw drop fatal
 syn match nOperator "bw[&|\^~]"
 syn match nOperator "[@&\:+\-\*/%]"
+syn match nOperator "[\:+\-\*/%]\?="
 syn match nOperator "\(<<\|>>\|<=\|>=\|<\|>\|===\|!==\|==\|!=\)"
 
 syn match nSemantic "::"
@@ -102,8 +103,8 @@ hi def link nNumbers Number
 hi def link nString String
 hi def link nSpecial SpecialChar
 "hi def link nSemantic Semantic
-hi def link nMutate Constness
-hi def link nMercurial Constness
+hi def link nMutate Operator
+hi def link nMercurial Operator
 hi def link nNullable Constness
 hi def link nWildcard Special
 hi def link nIntf Type
