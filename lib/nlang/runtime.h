@@ -6,19 +6,19 @@
 #include <unistd.h>
 #include <string.h>
 
-typedef void nlang_builtins_void;
-typedef _Bool nlang_builtins_bool;
-typedef int8_t nlang_builtins_i8;
-typedef int16_t nlang_builtins_i16;
-typedef int32_t nlang_builtins_i32;
-typedef int64_t nlang_builtins_i64;
-typedef uint8_t nlang_builtins_u8;
-typedef uint16_t nlang_builtins_u16;
-typedef uint32_t nlang_builtins_u32;
-typedef uint64_t nlang_builtins_u64;
-typedef size_t nlang_builtins_size;
-typedef ssize_t nlang_builtins_ssize;
-typedef float nlang_builtins_float;
-typedef double nlang_builtins_double;
+typedef void nlang$builtins$void;
+typedef _Bool nlang$builtins$bool;
+typedef int8_t nlang$builtins$i8;
+typedef int16_t nlang$builtins$i16;
+typedef int32_t nlang$builtins$i32;
+typedef int64_t nlang$builtins$i64;
+typedef uint8_t nlang$builtins$u8;
+typedef uint16_t nlang$builtins$u16;
+typedef uint32_t nlang$builtins$u32;
+typedef uint64_t nlang$builtins$u64;
+typedef size_t nlang$builtins$size;
+typedef ssize_t nlang$builtins$ssize;
+typedef float nlang$builtins$float;
+typedef double nlang$builtins$double;
 
 #endif

@@ -1,9 +1,9 @@
 #ifdef NLANG_DEFINE_FUNCTIONS
 
-#define NB(n) nlang_builtins_##n
-#define GEN1(t, f) _Ngen_lib_nlang_math_##f##__##t##_genN_
+#define NB(n) nlang$builtins$##n
+#define GEN1(t, f) _Ngen_nlang$math$##f##__##t##_genN_
 
-#define proto(name, rt, t) NB(rt) GEN1(nlang_builtins_##t, name)(NB(t) x)
+#define proto(name, rt, t) NB(rt) GEN1(NB(t), name)(NB(t) x)
 
 proto(bit_ffs, u8, u8) { return __builtin_ffs(x); }
 proto(bit_ffs, u16, u16) { return __builtin_ffs(x); }
