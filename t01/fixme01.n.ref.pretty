@@ -20,7 +20,7 @@ export fun main = _nretval:i32
     noop
     _Ngensym2 = 0
     x = { x=_Ngensym2 }
-  _Ngensym3 = @x
-  _Ngensym4 = (get ref) _Ngensym3
-  _Ngensym5 = ._Ngensym4
-  return _Ngensym5
+  _Ngensym8 = @x
+  _Ngensym3 = (get ref) _Ngensym8
+  _Ngensym4 = ._Ngensym3
+  return _Ngensym4

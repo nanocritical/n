@@ -1,0 +1,94 @@
+from nlang import *
+from nlang.vectors import *
+
+struct A =
+  isa `trivial_ctor
+  dummy	:i32
+
+A (method@ t:`any) explicit p:@t = t
+  return p.
+
+struct B =
+  isa `trivial_ctor
+  dummy	:i32
+
+B (method@ t:`any r:`any_ref) implicit p:(r t) = t
+  return p.
+
+fun null_arg p:?@?@i32 = void
+  assert <- p === null
+
+fun null_arg_value p:?@?@i32 = void
+  assert <- p !== null and p. === null
+
+fun bar p:?@?@i32 = void
+  noop
+
+export fun main = i32
+  let a = 'test'
+  and b = 'test'
+  let pa = @a
+  let pb = @b
+
+  let x = a == b
+  assert x
+  assert <- pa == b
+  assert <- a == pb
+  assert <- pa == pb
+
+  block
+    let p1 = @1
+    let a = {}:A
+
+    -- We can't accept both.
+    -- Well, we can. They just don't mean the same thing. The second form is
+    -- taking the address of a temporary variable that contains null. It shouldn't
+    -- compile without further typing specification.
+    null_arg null
+    null_arg_value @null
+
+    -- With @@ there is capture of the inner reference, so there should be a @
+    -- somewhere, no? Are we making captures very visible in the code? Is that
+    -- necessary as they are otherwise being tracked?
+
+    let x = {}
+    bar @x
+
+    --assert <- 1 == a.explicit @1:i32
+    assert <- 1 == a.explicit 1:i32
+    assert <- p1 !== @(a.explicit 1:i32)
+
+    let b = {}:B
+    assert <- 1 == b.implicit @1:i32
+    -- assert <- 1 == b.implicit 1:i32 -- invalid
+    assert <- @1 !== b.implicit @@1:i32
+
+    assert <- 1 == (B.implicit i32 ref) b @1:i32
+    -- assert <- 1 == (B.implicit i32 @i32) b 1:i32 -- invalid
+    -- assert <- @1 !== (B.implicit @i32 @@i32) b @1:i32 -- invalid
+    assert <- @1 !== (B.implicit @i32 ref) b @@1:i32
+
+  let n = @1
+  let m = @2
+  let p3 = @3
+  assert <- n + m == 3:i32
+  assert <- n + m == p3
+  assert <- 1 + 2 == p3
+  assert <- n + 2 == p3
+
+  -- FIXME: Not yet supported
+  --let v = {1 2}:(vector i32)
+  --let i = v.all.iter
+  --for x in @!i
+  --  say @x
+
+  --let e = @en.A
+  --match e
+  --| A -> noop
+  --| B -> noop
+
+  --match e
+  --| @A -> noop -- invalid
+  --| B -> noop
+
+  return 0
