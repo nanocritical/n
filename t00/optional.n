@@ -21,6 +21,13 @@ fun onlyvar ...v:(vararg @i32) = i32
       s += i.
   return s
 
+fun diff x:i32 ...v:(vararg @i32) = i32
+  let d = 0
+  such
+    for i in v
+      d -= i.
+  return x + d
+
 export fun main = i32
   if opts a=1 != 1
     return 1
@@ -29,5 +36,10 @@ export fun main = i32
 
   assert <- 10 == var 0 b=1 2 3 4
   assert <- 10 == onlyvar 0 1 2 3 4
+
+  -- Quite ambiguous... Hrm. Not good.
+  assert <- -1 == diff 0 - 1
+  assert <- -1 == diff 0 -1
+  assert <- 1 == diff 0 (-1)
 
   return opts a=0

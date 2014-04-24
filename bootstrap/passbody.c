@@ -1002,15 +1002,11 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
     break;
   }
 
-  const struct node *darg = subs_at_const(
-    subs_at_const(dfun, IDX_FUNARGS), dmin);
-  struct node *arg;
-  if (dmin == 0) {
-    // We use this form, so that 'arg' will be NULL if 'node' is a unary call.
-    arg = next(subs_first(node));
-  } else {
-    arg = subs_at(node, dmin + 1);
-  }
+  const struct node *darg = subs_at_const(subs_at_const(dfun, IDX_FUNARGS), dmin);
+  // We use this form, so that 'arg' will be NULL if the first optional
+  // argument is missing.
+  struct node *arg = next(subs_at(node, dmin));
+
   ssize_t n;
   error e;
 

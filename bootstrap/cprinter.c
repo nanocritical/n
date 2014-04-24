@@ -375,23 +375,15 @@ static void print_tuple(FILE *out, const struct module *mod, const struct node *
 
 static void print_call_vararg_count(FILE *out, const struct node *dfun,
                                     const struct node *node, size_t n) {
-  size_t first_vararg;
-  switch (dfun->which) {
-  case DEFFUN:
-    first_vararg = dfun->as.DEFFUN.first_vararg;
-    break;
-  case DEFMETHOD:
-    first_vararg = dfun->as.DEFMETHOD.first_vararg;
-    break;
-  default:
-    assert(false);
-  }
-
+  const ssize_t first_vararg = node_fun_first_vararg(dfun);
   if (n != first_vararg) {
     return;
   }
 
   const size_t count = subs_count(node) - 1 - first_vararg;
+  if (count == 0) {
+    fprintf(out, ", ");
+  }
   fprintf(out, "%zu", count);
   if (count > 0) {
     fprintf(out, ", ");
@@ -401,18 +393,18 @@ static void print_call_vararg_count(FILE *out, const struct node *dfun,
 static void print_call(FILE *out, const struct module *mod,
                        const struct node *node, uint32_t parent_op) {
   const struct node *fun = subs_first_const(node);
-  const struct typ *ftyp = fun->typ;
-  const struct node *fdef = typ_definition_const(ftyp);
-  const struct node *parentd = parent_const(fdef);
+  const struct typ *tfun = fun->typ;
+  const struct node *dfun = typ_definition_const(tfun);
+  const struct node *parentd = parent_const(dfun);
 
-  if (node_ident(fdef) == ID_CAST) {
+  if (node_ident(dfun) == ID_CAST) {
     fprintf(out, "(");
     print_typ(out, mod, node->typ);
     fprintf(out, ")(");
     print_expr(out, mod, subs_at_const(node, 1), T__CALL);
     fprintf(out, ")");
     return;
-  } else if (node_ident(fdef) == ID_NEXT && typ_isa(parentd->typ, TBI_VARARG)) {
+  } else if (node_ident(dfun) == ID_NEXT && typ_isa(parentd->typ, TBI_VARARG)) {
     const struct node *self = subs_at_const(node, 1);
     fprintf(out, "NLANG_BUILTINS_VARARG_NEXT(");
     print_typ(out, mod, typ_generic_arg_const(parentd->typ, 0));
@@ -426,11 +418,11 @@ static void print_call(FILE *out, const struct module *mod,
     return;
   }
 
-  print_typ(out, mod, ftyp);
+  print_typ(out, mod, tfun);
   fprintf(out, "(");
 
   bool force_comma = false;
-  if (fdef->which == DEFFUN && parentd->which == DEFINTF) {
+  if (dfun->which == DEFFUN && parentd->which == DEFINTF) {
     fprintf(out, "*(");
     print_typ(out, mod, subs_first_const(fun)->typ);
     fprintf(out, " *)&");
@@ -444,10 +436,10 @@ static void print_call(FILE *out, const struct module *mod,
       fprintf(out, ", ");
     }
 
-    print_call_vararg_count(out, fdef, node, n - 1);
+    print_call_vararg_count(out, dfun, node, n - 1);
 
     if (n == 1
-        && fdef->which == DEFMETHOD
+        && dfun->which == DEFMETHOD
         && parentd->which == DEFINTF) {
       assert(typ_is_reference(arg->typ));
       if (!typ_equal(parentd->typ, typ_generic_arg_const(arg->typ, 0))) {
@@ -458,6 +450,14 @@ static void print_call(FILE *out, const struct module *mod,
     }
     print_expr(out, mod, arg, T__CALL);
     n += 1;
+  }
+
+  const ssize_t first_vararg = node_fun_first_vararg(dfun);
+  if ((ssize_t)subs_count(node) - 1 <= first_vararg) {
+    if (n > 1) {
+      fprintf(out, ", ");
+    }
+    fprintf(out, "0");
   }
 
   if (node->as.CALL.return_through_ref_expr != NULL) {
@@ -1260,18 +1260,7 @@ static void print_defarg(FILE *out, const struct module *mod, const struct node 
 }
 
 static bool print_call_vararg_proto(FILE *out, const struct node *dfun, size_t n) {
-  size_t first_vararg;
-  switch (dfun->which) {
-  case DEFFUN:
-    first_vararg = dfun->as.DEFFUN.first_vararg;
-    break;
-  case DEFMETHOD:
-    first_vararg = dfun->as.DEFMETHOD.first_vararg;
-    break;
-  default:
-    assert(false);
-  }
-
+  const ssize_t first_vararg = node_fun_first_vararg(dfun);
   if (n != first_vararg) {
     return false;
   }
