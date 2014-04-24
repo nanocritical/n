@@ -1,0 +1,10 @@
+from nlang import *
+
+fun bar p:?@?@i32 = void
+  noop
+
+export fun main = i32
+  let x = {}
+  bar @x
+  bar @!x -- Should error here, not in the generated C code.
+  return 0
