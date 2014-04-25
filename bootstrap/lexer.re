@@ -1,5 +1,5 @@
-#include "common.h"
 #include "lexer.h"
+#include "parser.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -36,9 +36,126 @@ static bool block_style(struct parser *parser) {
   return parser->block_style[parser->block_depth - 1];
 }
 
+static void update_codeloc_incr(struct parser *parser, size_t new_pos) {
+  for (ssize_t p = parser->codeloc.pos; p != new_pos; ++p) {
+    if (parser->data[p] == '\n') {
+      parser->codeloc.line += 1;
+      parser->codeloc.column = 1;
+    } else {
+      parser->codeloc.column += 1;
+    }
+  }
+
+  parser->codeloc.pos = new_pos;
+}
+
+static int column(struct parser *parser, size_t new_pos) {
+  int c = 0;
+  if (parser->data[new_pos] == '\n') {
+    new_pos -= 1;
+    c = 1;
+  }
+  for (ssize_t p = new_pos; p >= 0; --p) {
+    if (parser->data[p] == '\n') {
+      break;
+    }
+    c += 1;
+  }
+  return c;
+}
+
+static void update_codeloc_decr(struct parser *parser, size_t new_pos) {
+  bool recompute_col = parser->data[parser->codeloc.pos] == '\n';
+
+  parser->codeloc.column -= 1;
+  for (ssize_t p = parser->codeloc.pos - 1; p != new_pos; --p) {
+    if (parser->data[p] == '\n') {
+      parser->codeloc.line -= 1;
+      recompute_col = true;
+    } else {
+      parser->codeloc.column -= 1;
+    }
+  }
+
+  if (parser->data[new_pos] == '\n') {
+    parser->codeloc.line -= 1;
+    recompute_col = true;
+  }
+
+  if (recompute_col) {
+    parser->codeloc.column = column(parser, new_pos);
+  }
+
+  parser->codeloc.pos = new_pos;
+}
+
+static void update_codeloc(struct parser *parser, size_t new_pos) {
+  if (new_pos == parser->codeloc.pos) {
+    return;
+  } else if (new_pos > parser->codeloc.pos) {
+    update_codeloc_incr(parser, new_pos);
+  } else {
+    update_codeloc_decr(parser, new_pos);
+  }
+}
+
+EXAMPLE(update_codeloc) {
+  struct parser parser = { 0 };
+  const struct codeloc ZERO = { .pos = 0, .line = 1, .column = 1, };
+  parser.codeloc = ZERO;
+
+#define CHECK() do { \
+  struct token tok = { \
+    .t = 0, \
+    .value = parser.data + parser.codeloc.pos, \
+    .len = 0, \
+  }; \
+  assert(parser.codeloc.line == parser_line(&parser, &tok)); \
+  assert(parser.codeloc.column == parser_column(&parser, &tok)); \
+} while (0)
+
+#define ALL(incr) do { \
+  parser.codeloc = ZERO; \
+  for (ssize_t n = 0, count = strlen(parser.data); n < count; n += incr) { \
+    update_codeloc(&parser, n); \
+    CHECK(); \
+  } \
+  for (ssize_t n = strlen(parser.data) - 1; n >= 0; n -= incr) { \
+    update_codeloc(&parser, n); \
+    CHECK(); \
+  } \
+} while (0)
+
+  parser.data = "\n2\n3";
+  ALL(1);
+  ALL(2);
+  ALL(3);
+
+  parser.codeloc = ZERO;
+  update_codeloc(&parser, 0);
+  CHECK();
+  update_codeloc(&parser, 3);
+  CHECK();
+  update_codeloc(&parser, 0);
+  CHECK();
+
+  update_codeloc(&parser, 3);
+  CHECK();
+  update_codeloc(&parser, 1);
+  CHECK();
+
+  parser.data = "test1\ntest2\ntest3";
+  ALL(1);
+  ALL(2);
+  ALL(3);
+
+#undef ALL
+#undef CHECK
+}
+
 error lexer_scan(struct token *tok, struct parser *parser) {
   typedef char YYCTYPE;
-  const char *YYCURSOR = parser->data + parser->pos;
+  const char *YYCURSOR = parser->data + parser->codeloc.pos;
   const char *YYLIMIT = parser->data + parser->len;
   const char *YYMARKER = NULL;
   const char *start;
@@ -59,7 +176,7 @@ error lexer_scan(struct token *tok, struct parser *parser) {
 } while (0)
 
 #define R(type) do { \
-  parser->pos = YYCURSOR - parser->data; \
+  update_codeloc(parser, YYCURSOR - parser->data); \
   tok->t = type; \
   tok->value = start; \
   tok->len = YYCURSOR - start; \
@@ -384,6 +501,6 @@ void lexer_back(struct parser *parser, const struct token *tok) {
 
   parser->inject_eol_after_eob = false;
 
-  assert(tok->len < parser->pos);
-  parser->pos -= tok->len;
+  assert(tok->len < parser->codeloc.pos);
+  update_codeloc(parser, parser->codeloc.pos - tok->len);
 }

@@ -15,7 +15,7 @@ static STEP_NM(step_codeloc_for_generated,
                -1);
 static error step_codeloc_for_generated(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
-  if (node->codeloc == 0) {
+  if (node->codeloc.pos == 0) {
     node->codeloc = parent(node)->codeloc;
   }
 

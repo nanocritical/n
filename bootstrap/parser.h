@@ -461,7 +461,7 @@ struct node {
   struct constraint *constraint;
 
   union node_as as;
-  size_t codeloc;
+  struct codeloc codeloc;
 };
 
 extern void unset_typ(struct typ **loc);

@@ -248,10 +248,16 @@ static const bool expr_terminators[TOKEN__NUM] = {
   [Tsuch] = true,
 };
 
+struct codeloc {
+  size_t pos;
+  int line;
+  int column;
+};
+
 struct parser {
   const char *data;
   size_t len;
-  size_t pos;
+  struct codeloc codeloc;
 
   size_t indent;
   size_t block_depth;

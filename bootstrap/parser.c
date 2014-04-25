@@ -423,7 +423,7 @@ ident idents_add_string(struct globalctx *gctx, const char *name, size_t len) {
 }
 
 int parser_line(const struct parser *parser, const struct token *tok) {
-  const size_t pos = tok->value != NULL ? tok->value - parser->data : parser->pos;
+  const size_t pos = tok->value != NULL ? tok->value - parser->data : parser->codeloc.pos;
   int count = 1;
   for (size_t p = 0; p < pos; ++p) {
     if (parser->data[p] == '\n') {
@@ -434,7 +434,7 @@ int parser_line(const struct parser *parser, const struct token *tok) {
 }
 
 int parser_column(const struct parser *parser, const struct token *tok) {
-  const size_t pos = tok->value != NULL ? tok->value - parser->data : parser->pos;
+  const size_t pos = tok->value != NULL ? tok->value - parser->data : parser->codeloc.pos;
   int count = 1;
   for (size_t p = 0; p < pos; ++p) {
     if (parser->data[p] == '\n') {
@@ -834,7 +834,7 @@ static error module_read(struct module *mod, const char *prefix, const char *fn)
 }
 
 static bool eof(struct parser *parser) {
-  return parser->pos >= parser->len;
+  return parser->codeloc.pos >= parser->len;
 }
 
 static error scan(struct token *tok, struct module *mod) {
@@ -994,11 +994,11 @@ struct node *node_new_subnode(struct module *mod, struct node *node) {
   struct node *r = mempool_calloc(mod, 1, sizeof(struct node));
   node_subs_append(node, r);
 
-  if (mod->parser.pos >= mod->parser.len) {
+  if (mod->parser.codeloc.pos >= mod->parser.len) {
     // It's a node inserted after parsing.
     r->codeloc = node->codeloc;
   } else {
-    r->codeloc = mod->parser.pos;
+    r->codeloc = mod->parser.codeloc;
   }
 
   return r;
@@ -1701,7 +1701,7 @@ static void shift(struct module *mod, struct node *node) {
   node_move_content(first, node);
 
   node_set_which(node, 0);
-  node->codeloc = mod->parser.pos;
+  node->codeloc = mod->parser.codeloc;
   memset(&node->as, 0, sizeof(node->as));
 
   first->next = NULL;
@@ -3200,6 +3200,10 @@ static void module_init(struct globalctx *gctx, struct stage *stage,
   mod->gctx = gctx;
   mod->stage = stage;
 
+  mod->parser.codeloc.pos = 0;
+  mod->parser.codeloc.line = 1;
+  mod->parser.codeloc.column = 1;
+
   PUSH_STATE(mod->state);
   PUSH_STATE(mod->state->step_state);
   PUSH_STATE(mod->mempool);
@@ -3454,12 +3458,8 @@ int snprint_codeloc(char *s, size_t len,
                     const struct module *mod, const struct node *node) {
   const struct module *actual_mod = try_node_module_owner_const(mod, node);
 
-  struct token tok = { 0 };
-  tok.value = mod->parser.data + node->codeloc;
-
   return snprintf(s, len, "%s:%d:%d: ",
-                  actual_mod->filename, parser_line(&actual_mod->parser, &tok),
-                  parser_column(&actual_mod->parser, &tok));
+                  actual_mod->filename, node->codeloc.line, node->codeloc.column);
 }
 
 error mk_except(const struct module *mod, const struct node *node,

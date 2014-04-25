@@ -150,16 +150,11 @@ error scope_define_ident(const struct module *mod, struct scope *scope,
       && (!node_is_prototype(*existing)
           || node->which != (*existing)->which)) {
     const struct module *existing_mod = try_node_module_owner_const(mod, *existing);
-    struct token existing_tok = { 0 };
-    existing_tok.t = TIDENT;
-    existing_tok.value = existing_mod->parser.data + (*existing)->codeloc;
-    existing_tok.len = 0;
     char *scname = scope_name(mod, scope);
     error e = mk_except(try_node_module_owner_const(mod, node), node,
                         "in scope %s: identifier '%s' already defined at %s:%d:%d",
                         scname, idents_value(mod->gctx, id), existing_mod->filename,
-                        parser_line(&existing_mod->parser, &existing_tok),
-                        parser_column(&existing_mod->parser, &existing_tok));
+                        (*existing)->codeloc.line, (*existing)->codeloc.column);
     free(scname);
     THROW(e);
   } else if (existing != NULL) {
