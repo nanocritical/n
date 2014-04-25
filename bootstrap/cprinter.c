@@ -86,7 +86,10 @@ static const char *c_token_strings[TOKEN__NUM] = {
 
 static char *escape_string(const char *s) {
   char *r = calloc(2 * strlen(s) + 1, sizeof(char));
+
   char delim = s[0];
+  assert(delim == '\'' || delim == '"');
+
   if (s[1] == delim) {
     r[0] = '\0';
     return r;
@@ -119,6 +122,20 @@ static char *escape_string(const char *s) {
   }
 
   return r;
+}
+
+EXAMPLE(escape_string) {
+  assert(strcmp("abc", escape_string("\"abc\"")) == 0);
+  assert(strcmp("ab'c", escape_string("\"ab'c\"")) == 0);
+  assert(strcmp("abc", escape_string("'abc'")) == 0);
+  assert(strcmp("", escape_string("\"\"")) == 0);
+  assert(strcmp("", escape_string("''")) == 0);
+  assert(strcmp("'", escape_string("'\\''")) == 0);
+  assert(strcmp("\\'", escape_string("\"\\'\"")) == 0);
+  assert(strcmp("\\\"", escape_string("\"\\\"\"")) == 0);
+  assert(strcmp("\n", escape_string("'\n'")) == 0);
+  assert(strcmp("t00/automagicref.n:76:10",
+                escape_string("\"t00/automagicref.n:76:10\"")) == 0);
 }
 
 static void print_scope_name(FILE *out, const struct module *mod,

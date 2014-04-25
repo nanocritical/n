@@ -927,30 +927,6 @@ export inline static_array method@$ at n:size = @$t
 
 export extern fun abort = void
 
--- FIXME: add an 'explain:@string' argument
-export fun assert cond:bool = void
-  if not cond
-    abort
-
-export fun unreached = void
-  abort
-
-export fun __pre__ cond:bool = void
-  if not cond
-    abort
-
-export fun __post__ cond:bool = void
-  if not cond
-    abort
-
-export fun __invariant__ cond:bool = void
-  if not cond
-    abort
-
-export fun __example__ cond:bool = void
-  if not cond
-    abort
-
 export extern inline fun likely x:bool = bool
 export extern inline fun unlikely x:bool = bool
 
@@ -1087,11 +1063,48 @@ export intf `environment declaring:`any =
 --  x ==| tag
 
 -- We place the imports at the end of this file for the benefit of the bootstrap
--- compiler lack of definition ordering understanding (across modules). As
--- types defined in this module are used everywhere, they really need to appear
--- first to the C compiler.
-from nlang.chars import `string_buffer `show
+-- compiler lack of understanding of definition ordering across modules, in
+-- codegen. As types defined in this module are used everywhere, they really
+-- need to appear first to the C compiler.
+from nlang.chars import `string_buffer `show static_string
 from nlang.memory import slice
 from nlang.containers import index_range range `iterator
 from nlang.unsafe import cast nonnull
 from nlang import say pr
+
+export inline struct codeloc =
+  where		:static_string
+  expression	:static_string
+
+export fun assert cond:bool ?_Ncodeloc:?@codeloc = void
+  if not cond
+    if _Ncodeloc !== null
+      say _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+    abort
+
+export fun unreached = void
+  abort
+
+export fun __pre__ cond:bool ?_Ncodeloc:?@codeloc = void
+  if not cond
+    if _Ncodeloc !== null
+      say _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+    abort
+
+export fun __post__ cond:bool ?_Ncodeloc:?@codeloc = void
+  if not cond
+    if _Ncodeloc !== null
+      say _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+    abort
+
+export fun __invariant__ cond:bool ?_Ncodeloc:?@codeloc = void
+  if not cond
+    if _Ncodeloc !== null
+      say _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+    abort
+
+export fun __example__ cond:bool ?_Ncodeloc:?@codeloc = void
+  if not cond
+    if _Ncodeloc !== null
+      say _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+    abort

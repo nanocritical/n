@@ -23,7 +23,7 @@ struct NB(valist) {
 } while (0)
 
 #define NLANG_BUILTINS_VARARG_NEXT(t, va) \
-  ({ nlang$builtins$assert((va).n > 0); \
+  ({ nlang$builtins$assert((va).n > 0, NULL); \
    (va).n -= 1; \
    va_arg((va).ap.ap, t); })
 

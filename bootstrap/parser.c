@@ -201,6 +201,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_HAS_NEXT] = "has_next",
   [ID_NEXT] = "next",
   [ID_CAST] = "cast",
+  [ID_NCODELOC] = "_Ncodeloc",
   [ID_WILDCARD_REF_ARG] = "__wildcard_ref_arg__",
   [ID_LIKELY] = "likely",
   [ID_UNLIKELY] = "unlikely",
@@ -3404,11 +3405,47 @@ char *typ_name(const struct module *mod, const struct typ *t) {
 }
 
 extern char *stpcpy(char *dest, const char *src);
+
+static char *typ_pretty_name_defincomplete(char *r, const struct module *mod,
+                                           const struct node *d) {
+  char *s = r;
+  s = stpcpy(s, idents_value(mod->gctx, node_ident(d)));
+  s = stpcpy(s, "{");
+  if (d->as.DEFINCOMPLETE.ident != ID__NONE) {
+    s = stpcpy(s, "\"");
+    s = stpcpy(s, idents_value(mod->gctx, d->as.DEFINCOMPLETE.ident));
+    s = stpcpy(s, "\" ");
+  }
+  const struct node *isalist = subs_at_const(d, IDX_ISALIST);
+  FOREACH_SUB_CONST(i, isalist) {
+    s = stpcpy(s, "isa ");
+    char *n = typ_pretty_name(mod, i->typ);
+    s = stpcpy(s, n);
+    free(n);
+    s = stpcpy(s, " ");
+  }
+  FOREACH_SUB_CONST(f, d) {
+    if (f->which == DEFFIELD) {
+      s = stpcpy(s, idents_value(mod->gctx, node_ident(f)));
+      s = stpcpy(s, ":");
+      char *n = typ_pretty_name(mod, f->typ);
+      s = stpcpy(s, n);
+      free(n);
+      s = stpcpy(s, " ");
+    }
+  }
+  s = stpcpy(s, "}");
+  return r;
+}
+
 char *typ_pretty_name(const struct module *mod, const struct typ *t) {
   char *r = calloc(2048, sizeof(char));
   char *s = r;
 
-  if (typ_generic_arity(t) == 0) {
+  const struct node *d = typ_definition_const(t);
+  if (d->which == DEFINCOMPLETE) {
+    s = typ_pretty_name_defincomplete(r, mod, d);
+  } else if (typ_generic_arity(t) == 0) {
     s = stpcpy(s, typ_name(mod, t));
   } else {
     s = stpcpy(s, "(");
@@ -3427,7 +3464,7 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
       } else {
         char *s2 = typ_pretty_name(mod, ga);
         s = stpcpy(s, " ");
-s = stpcpy(s, s2);
+        s = stpcpy(s, s2);
         free(s2);
       }
     }

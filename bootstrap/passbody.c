@@ -618,7 +618,9 @@ static error do_instantiate(struct node **result,
   error e = catchup_instantiation(mod, node_module_owner(gendef),
                                   instance, tentative);
   if (e) {
-    e = mk_except_type(mod, for_error, "while instantiating generic here");
+    char *n = typ_pretty_name(mod, t);
+    e = mk_except_type(mod, for_error, "while instantiating generic here '%s'", n);
+    free(n);
     THROW(e);
   }
 
@@ -979,6 +981,73 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
   return 0;
 }
 
+static size_t codeloc_pos_after(struct module *mod, struct node *node) {
+  struct node *n = node;
+  while (next(n) == NULL || next(n)->codeloc.pos == node->codeloc.pos) {
+    if (parent(n) == NULL) {
+      break;
+    }
+    n = parent(n);
+  }
+
+  n = next(n);
+  if (n == NULL) {
+    return mod->parser.len;
+  } else {
+    return n->codeloc.pos;
+  }
+}
+
+static char *quote_code(const char *data, size_t start, size_t end) {
+  int len = 0;
+  for (size_t n = start; n < end; ++n) {
+    switch (data[n]) {
+    case '\n':
+      goto done;
+    case '"':
+      len += 1;
+      break;
+    }
+    len += 1;
+  }
+
+done:
+  ;char *r = calloc(2 + len + 1, sizeof(char));
+  sprintf(r, "\"%.*s\"", len, data + start);
+  return r;
+}
+
+EXAMPLE(quote_code) {
+  const char *code = "abcd\nefgh";
+  assert(strcmp("\"abcd\"", quote_code(code, 0, 9)) == 0);
+  assert(strcmp("\"efgh\"", quote_code(code, 5, 9)) == 0);
+  assert(strcmp("\"d\"", quote_code(code, 3, 5)) == 0);
+}
+
+static void try_filling_codeloc(struct module *mod, struct node *named,
+                                struct node *node) {
+  if (node_ident(named) != ID_NCODELOC) {
+    return;
+  }
+
+  node_subs_remove(named, subs_first(named));
+  GSTART();
+  G0(init, named, INIT,
+     G_IDENT(wheren, "where");
+     G(wheres, STRING);
+     G_IDENT(exprn, "expression");
+     G(exprs, STRING));
+
+  const size_t len = 64 + strlen(mod->filename);
+  char *buf = calloc(len, sizeof(char));
+  snprintf(buf, len, "\"%s:%d:%d\"", mod->filename,
+           node->codeloc.line, node->codeloc.column);
+  wheres->as.STRING.value = buf;
+
+  exprs->as.STRING.value = quote_code(mod->parser.data, node->codeloc.pos,
+                                      codeloc_pos_after(mod, node));
+}
+
 static error fill_in_optional_args(struct module *mod, struct node *node,
                                    const struct typ *tfun) {
   const struct node *dfun = typ_definition_const(tfun);
@@ -989,18 +1058,7 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
     return 0;
   }
 
-  ssize_t first_vararg;
-  switch (dfun->which) {
-  case DEFFUN:
-    first_vararg = dfun->as.DEFFUN.first_vararg;
-    break;
-  case DEFMETHOD:
-    first_vararg = dfun->as.DEFMETHOD.first_vararg;
-    break;
-  default:
-    assert(false);
-    break;
-  }
+  const ssize_t first_vararg = node_fun_first_vararg(dfun);
 
   const struct node *darg = subs_at_const(subs_at_const(dfun, IDX_FUNARGS), dmin);
   // We use this form, so that 'arg' will be NULL if the first optional
@@ -1016,6 +1074,9 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
       G0(named, node, CALLNAMEDARG,
         named->as.CALLNAMEDARG.name = node_ident(darg);
         G(nul, NUL));
+
+      try_filling_codeloc(mod, named, node);
+
       e = catchup(mod, NULL, named, CATCHUP_BELOW_CURRENT);
       assert(!e);
 
@@ -1763,7 +1824,9 @@ static error type_inference_call(struct module *mod, struct node *node) {
     if (!node_is_fun(dfun)
         && (!node_can_have_genargs(dfun)
             || !subs_count_atleast(subs_at(dfun, IDX_GENARGS), 1))) {
-      e = mk_except_type(mod, fun, "not a generic type");
+      char *n = typ_pretty_name(mod, dfun->typ);
+      e = mk_except_type(mod, fun, "'%s' not a generic type", n);
+      free(n);
       THROW(e);
     }
 
