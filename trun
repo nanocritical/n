@@ -37,10 +37,16 @@ for t in $list; do
 		build_and_run $t
 		ret=$?
 		if (( $ret == 0 )); then
-			echo "FAILED $t: did not fail ($(pretty_status $ret))"
-			if ! [ -s $t.o.stderr ]; then
-				# Remove empty.
-				rm $t.o.stderr
+			if cmp $t.o.stderr $t.ref.stderr && test -s $t.o.stderr; then
+				# Exit code is 0, but stderr is not empty and
+				# matches the reference. That's a success.
+				echo -n
+			else
+				echo "FAILED $t: did not fail ($(pretty_status $ret))"
+				if ! [ -s $t.o.stderr ]; then
+					# Remove empty.
+					rm $t.o.stderr
+				fi
 			fi
 		fi
 	else
