@@ -1,8 +1,0 @@
-from nlang import *
-export fun main = _nretval:i32 
-  block
-    noop
-    x = 1
-  _Ngensym0 = 0
-  x = _Ngensym0
-  return x

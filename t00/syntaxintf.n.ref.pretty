@@ -1,5 +1,0 @@
-from nlang import *
-export 
-export fun main = _nretval:i32 
-  _Ngensym0 = 0
-  return _Ngensym0
