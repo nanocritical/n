@@ -1150,14 +1150,48 @@ static error rewrite_unary_call(struct module *mod, struct node *node, struct ty
   return 0;
 }
 
-static void bin_accessor_maybe_ref(struct scope **parent_scope,
-                                   struct module *mod, struct node *par) {
-  if (typ_is_reference(par->typ)) {
-    *parent_scope = &typ_definition(typ_generic_arg(par->typ, 0))->scope;
+static struct node *fully_implicit_instantiation(struct module *mod,
+                                                 struct typ *t) {
+  assert(typ_is_generic_functor(t));
+
+  const size_t gen_arity = typ_generic_arity(t);
+  struct typ **args = calloc(gen_arity, sizeof(struct typ *));
+  for (size_t n = 0; n < gen_arity; ++n) {
+    args[n] = typ_create_tentative(typ_generic_arg(t, n));
+  }
+
+  struct node *i = NULL;
+  error e = instance(&i, mod, NULL, -1,
+                     t, args, gen_arity);
+  assert(!e);
+  free(args);
+
+  return i;
+}
+
+static void bin_accessor_maybe_functor(struct module *mod, struct node *par) {
+  // Something like the (hypothetical): vector.mk_filled 100 0:u8
+  // 'vector' is a generic functor, and the instantiation will be done
+  // through the call to the function 'vector.mk_filled'. We need to have a
+  // fully tentative instance of 'vector' so that the unification of '0:u8'
+  // with t:`copyable succeeds.
+  if (typ_is_generic_functor(par->typ)) {
+    struct node *i = fully_implicit_instantiation(mod, par->typ);
+    unset_typ(&par->typ);
+    set_typ(&par->typ, i->typ);
   }
 }
 
-static void bin_accessor_maybe_defchoice(struct scope **parent_scope, struct node *for_error,
+static bool bin_accessor_maybe_ref(struct node **parent_scope,
+                                   struct module *mod, struct node *par) {
+  if (typ_is_reference(par->typ)) {
+    *parent_scope = typ_definition(typ_generic_arg(par->typ, 0));
+    return true;
+  }
+  return false;
+}
+
+static void bin_accessor_maybe_defchoice(struct node **parent_scope, struct node *for_error,
                                          struct module *mod, struct node *par) {
   if (par->flags & NODE_IS_DEFCHOICE) {
     struct node *defchoice = NULL;
@@ -1167,7 +1201,7 @@ static void bin_accessor_maybe_defchoice(struct scope **parent_scope, struct nod
     assert(!e);
     assert(defchoice->which == DEFCHOICE);
 
-    *parent_scope = &defchoice->scope;
+    *parent_scope = defchoice;
   }
 }
 
@@ -1177,10 +1211,14 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   enum token_type operator = node->as.BIN.operator;
   const struct typ *mark = node->typ;
 
-  struct node *container = subs_first(node);
-  struct scope *container_scope = &typ_definition(container->typ)->scope;
-  bin_accessor_maybe_ref(&container_scope, mod, container);
-  bin_accessor_maybe_defchoice(&container_scope, node, mod, container);
+  struct node *left = subs_first(node);
+  bin_accessor_maybe_functor(mod, left);
+
+  struct node *dcontainer = typ_definition(left->typ);
+  if (!bin_accessor_maybe_ref(&dcontainer, mod, left)) {
+    bin_accessor_maybe_defchoice(&dcontainer, node, mod, left);
+  }
+  struct scope *container_scope = &dcontainer->scope;
 
   const bool container_is_tentative = typ_is_tentative(scope_node(container_scope)->typ);
 
@@ -1194,7 +1232,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
     e = defincomplete_catchup(mod, dinc);
     EXCEPT(e);
 
-    e = unify(mod, node, container->typ, dinc->typ);
+    e = unify(mod, node, left->typ, dinc->typ);
     EXCEPT(e);
 
     e = scope_lookup_ident_immediate(&field, name, mod, &dinc->scope,
@@ -1220,8 +1258,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
     e = rewrite_unary_call(mod, node, field->typ);
     EXCEPT(e);
   } else {
-    if (operator == TWILDCARD
-        && typ_is_reference(field->typ)) {
+    if (operator == TWILDCARD && typ_is_reference(field->typ)) {
       assert(typ_is_reference(field->typ));
       struct node *i = NULL;
       e = typ_ref(&i, mod, node, TREFWILDCARD,
@@ -1734,16 +1771,7 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
   // Already checked in prepare_call_arguments().
   assert(arity == typ_function_arity(tfun));
 
-  const size_t gen_arity = typ_generic_arity(tfun);
-  struct typ **args = calloc(gen_arity, sizeof(struct typ *));
-  for (size_t n = 0; n < gen_arity; ++n) {
-    args[n] = typ_create_tentative(typ_generic_arg(tfun, n));
-  }
-
-  struct node *i = NULL;
-  e = instance(&i, mod, node, 1,
-               tfun, args, gen_arity);
-  assert(!e);
+  struct node *i = fully_implicit_instantiation(mod, tfun);
 
   size_t n = 0;
   FOREACH_SUB_EVERY(s, node, 1, 1) {
@@ -1751,8 +1779,6 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
     EXCEPT(e);
     n += 1;
   }
-
-  free(args);
 
   set_typ(&subs_first(node)->typ, i->typ);
   record_topdep(mod, i->typ);
@@ -2480,8 +2506,7 @@ static error type_inference_ident(struct module *mod, struct node *node) {
 
   assert(def->which != DEFNAME || def->typ != NULL);
 
-  if (typ_is_function(def->typ)
-      && node->typ != TBI__CALL_FUNCTION_SLOT) {
+  if (typ_is_function(def->typ) && node->typ != TBI__CALL_FUNCTION_SLOT) {
     if (node_fun_min_args_count(typ_definition(def->typ)) != 0) {
       e = mk_except_call_args_count(mod, node, typ_definition(def->typ), false, 0);
       THROW(e);
