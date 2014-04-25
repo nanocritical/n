@@ -1535,7 +1535,7 @@ static bool compare_ref_depth(const struct typ *target, const struct typ *arg,
 
 static error try_insert_const_ref(struct module *mod, struct node *node,
                                   const struct typ *target,
-                                  bool target_has_explicit_ref,
+                                  enum token_type target_explicit_ref,
                                   struct node *arg) {
   if (!typ_is_reference(target)) {
     return 0;
@@ -1545,7 +1545,7 @@ static error try_insert_const_ref(struct module *mod, struct node *node,
   struct node *real_arg = is_named ? subs_first(arg) : arg;
   struct node *expr_arg = follow_ssa(real_arg);
 
-  if (target_has_explicit_ref) {
+  if (target_explicit_ref == TREFDOT || target_explicit_ref == TNULREFDOT) {
     if (compare_ref_depth(target, real_arg->typ, 1)) {
       if (!typ_isa(target, TBI_ANY_MUTABLE_REF)) {
         struct node *before = prev(real_arg);
@@ -1591,15 +1591,52 @@ static error try_insert_const_ref(struct module *mod, struct node *node,
   return 0;
 }
 
-static bool has_explicit_const_ref(const struct node *dfun, size_t n) {
-  const struct node *funargs = subs_at_const(dfun, IDX_FUNARGS);
-  const struct node *darg = subs_at_const(funargs, n);
-  return subs_last_const(darg)->which == UN
-    && (subs_last_const(darg)->as.UN.operator == TREFDOT
-        || subs_last_const(darg)->as.UN.operator == TNULREFDOT);
+static error try_insert_const_deref(struct module *mod, struct node *node,
+                                    const struct typ *target,
+                                    enum token_type target_explicit_ref,
+                                    struct node *arg) {
+  if (typ_is_reference(target)) {
+    return 0;
+  }
+
+  const bool is_named = arg->which == CALLNAMEDARG;
+  struct node *real_arg = is_named ? subs_first(arg) : arg;
+
+  if (target_explicit_ref == 0 && typ_isa(arg->typ, TBI_ANY_REF)) {
+    struct node *before = prev(real_arg);
+
+    struct node *par = parent(real_arg);
+    node_subs_remove(par, real_arg);
+    struct node *deref_arg = mk_node(mod, par, UN);
+    deref_arg->as.UN.operator = TDEREFDOT;
+    node_subs_append(deref_arg, real_arg);
+    node_subs_remove(par, deref_arg);
+    node_subs_insert_after(par, before, deref_arg);
+
+    if (is_named) {
+      unset_typ(&arg->typ);
+    }
+
+    const struct node *except[] = { real_arg, NULL };
+    error e = catchup(mod, except,
+                      is_named ? arg : deref_arg,
+                      CATCHUP_BELOW_CURRENT);
+    EXCEPT(e);
+  }
+
+  return 0;
 }
 
-static error process_const_ref_call_arguments(struct module *mod,
+static enum token_type has_explicit_ref(const struct node *dfun, size_t n) {
+  const struct node *funargs = subs_at_const(dfun, IDX_FUNARGS);
+  const struct node *darg = subs_at_const(funargs, n);
+  if (subs_last_const(darg)->which == UN) {
+    return subs_last_const(darg)->as.UN.operator;
+  }
+  return 0;
+}
+
+static error process_automagic_call_arguments(struct module *mod,
                                               struct node *node,
                                               const struct typ *tfun) {
   if (!subs_count_atleast(node, 2)) {
@@ -1618,14 +1655,20 @@ static error process_const_ref_call_arguments(struct module *mod,
       break;
     }
 
-    // We record 'nxt' now as try_insert_const_ref() may move 'arg'.
+    // We record 'nxt' now as try_insert_const_{,de}ref() may move 'arg'.
     struct node *arg = nxt;
     nxt = next(nxt);
 
+    const enum token_type explicit_ref = has_explicit_ref(dfun, n);
+
     e = try_insert_const_ref(mod, node,
                              typ_function_arg_const(tfun, n),
-                             has_explicit_const_ref(dfun, n),
-                             arg);
+                             explicit_ref, arg);
+    EXCEPT(e);
+
+    e = try_insert_const_deref(mod, node,
+                               typ_function_arg_const(tfun, n),
+                               explicit_ref, arg);
     EXCEPT(e);
 
     n += 1;
@@ -1643,7 +1686,7 @@ static error process_const_ref_call_arguments(struct module *mod,
       struct node *arg = nxt;
       nxt = next(nxt);
 
-      e = try_insert_const_ref(mod, node, target, true, arg);
+      e = try_insert_const_ref(mod, node, target, TREFDOT, arg);
       EXCEPT(e);
     }
   }
@@ -1714,7 +1757,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
   e = fill_in_optional_args(mod, node, fun->typ);
   EXCEPT(e);
 
-  e = process_const_ref_call_arguments(mod, node, fun->typ);
+  e = process_automagic_call_arguments(mod, node, fun->typ);
   EXCEPT(e);
 
   return 0;

@@ -1,0 +1,32 @@
+from nlang import *
+
+struct holder t:`copyable =
+  x	:t
+
+holder fun mk x:t = this
+  return {x=x}
+
+fun id x:@i32 = @i32
+  return x
+
+export fun main = i32
+  let x = (max i32) 0 1:i32
+  let xx = max 0 1:i32
+
+  let p0 = @0:i32
+  let p1 = @1:i32
+  let y = (max i32) p0 p1
+  let yy = max p0 p1
+
+  let h = holder.mk p1
+  let hh = holder.mk @p1
+  let hhh = holder.mk 1:i32
+
+  assert <- 1 == p0 + p1
+  assert <- 1 == p0. + p1
+  assert <- 1 == p0 + p1.
+  assert <- 1 == p0. + p1.
+  assert <- 1 == (id p0) + p1
+  assert <- 1 == (id p0). + p1
+
+  return x + xx + p0 + p1 + y + yy + h.x + hh.x + hhh.x - 8
