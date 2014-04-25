@@ -1165,6 +1165,14 @@ static error constraint_inference_bin_acc(struct module *mod,
                    base->constraint->table[CBI_INIT] == N);
   }
 
+  if (field->which == DEFFIELD
+      && typ_is_reference(field->typ)
+      && !typ_isa(field->typ, TBI_ANY_NULLABLE_REF)
+      && base->constraint->table[CBI_INIT] != U) {
+    constraint_set(mod, node->constraint, CBI_NONNULL,
+                   base->constraint->table[CBI_NONNULL] == N);
+  }
+
   return 0;
 }
 
