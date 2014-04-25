@@ -9,7 +9,9 @@ for t in $list; do
 	for all in stderr stdout tree pretty c; do
 		if [ -f $t.o.$all ]; then
 			cp -p $t.o.$all $t.ref.$all
-			git add $t.ref.$all
+			if [[ "$all" =~ ^(stderr|stdout)$ ]]; then
+				git add $t.ref.$all
+			fi
 		else
 			if rm $t.ref.$all 2> /dev/null; then
 				git rm $t.ref.$all
