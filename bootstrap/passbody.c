@@ -748,6 +748,19 @@ static error typ_ref(struct node **result,
   return 0;
 }
 
+static error check_terms_not_types(struct module *mod, struct node *node) {
+  error e;
+  int nth = 1;
+  FOREACH_SUB_CONST(s, node) {
+    if (s->flags & NODE_IS_TYPE) {
+      e = mk_except_type(mod, s, "term %d cannot be a type", nth);
+      THROW(e);
+    }
+    nth += 1;
+  }
+  return 0;
+}
+
 static error type_inference_un(struct module *mod, struct node *node) {
   assert(node->which == UN);
   error e;
@@ -774,16 +787,22 @@ static error type_inference_un(struct module *mod, struct node *node) {
     node->flags |= term->flags & NODE__TRANSITIVE;
     break;
   case OP_UN_BOOL:
+    e = check_terms_not_types(mod, node);
+    EXCEPT(e);
     set_typ(&node->typ, TBI_BOOL);
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
   case OP_UN_ARITH:
+    e = check_terms_not_types(mod, node);
+    EXCEPT(e);
     set_typ(&node->typ, typ_create_tentative(TBI_ARITHMETIC));
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
   case OP_UN_BW:
+    e = check_terms_not_types(mod, node);
+    EXCEPT(e);
     set_typ(&node->typ, typ_create_tentative(TBI_BITWISE));
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
@@ -838,20 +857,6 @@ static error try_insert_automagic_deref(struct module *mod,
   return 0;
 }
 
-static error check_assign_not_types(struct module *mod, struct node *left,
-                                    struct node *right) {
-  error e;
-  if ((left->flags & NODE_IS_TYPE)) {
-    e = mk_except_type(mod, left, "cannot assign to a type variable");
-    THROW(e);
-  }
-  if ((right->flags & NODE_IS_TYPE)) {
-    e = mk_except_type(mod, right, "cannot assign a type");
-    THROW(e);
-  }
-  return 0;
-}
-
 static error type_inference_bin_sym(struct module *mod, struct node *node) {
   assert(node->which == BIN);
 
@@ -872,9 +877,6 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
   }
 
   if (operator == TASSIGN) {
-    e = check_assign_not_types(mod, left, right);
-    EXCEPT(e);
-
     if (typ_equal(right->typ, TBI_VOID)) {
       if (left->which == IDENT
           && left->as.IDENT.def->which == DEFNAME
@@ -900,9 +902,6 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     set_typ(&node->typ, left->typ);
     break;
   case OP_BIN_SYM_ARITH:
-    e = check_assign_not_types(mod, left, right);
-    EXCEPT(e);
-
     switch (operator) {
     case TPLUS_ASSIGN:
     case TMINUS_ASSIGN:
@@ -923,9 +922,6 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     }
     break;
   case OP_BIN_SYM_BW:
-    e = check_assign_not_types(mod, left, right);
-    EXCEPT(e);
-
     switch (operator) {
     case TBWAND_ASSIGN:
     case TBWOR_ASSIGN:
@@ -1319,14 +1315,19 @@ static error type_inference_bin_rhs_type(struct module *mod, struct node *node) 
 static error type_inference_bin(struct module *mod, struct node *node) {
   assert(node->which == BIN);
 
+  error e;
   switch (OP_KIND(node->as.BIN.operator)) {
   case OP_BIN_SYM:
   case OP_BIN_SYM_BOOL:
   case OP_BIN_SYM_ARITH:
   case OP_BIN_SYM_BW:
   case OP_BIN_SYM_PTR:
+    e = check_terms_not_types(mod, node);
+    EXCEPT(e);
     return type_inference_bin_sym(mod, node);
   case OP_BIN_BW_RHS_UNSIGNED:
+    e = check_terms_not_types(mod, node);
+    EXCEPT(e);
     return type_inference_bin_rhs_unsigned(mod, node);
   case OP_BIN_ACC:
     return type_inference_bin_accessor(mod, node);
