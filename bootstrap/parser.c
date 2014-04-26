@@ -1444,13 +1444,8 @@ static error p_expr_binary(struct node *node, struct module *mod) {
     node->as.BIN.operator = tok.t;
   }
 
-  if (tok.t == TCOLON) {
-    e = p_typeexpr(node_new_subnode(mod, node), mod);
-    EXCEPT(e);
-  } else {
-    e = p_expr(node_new_subnode(mod, node), mod, tok.t);
-    EXCEPT(e);
-  }
+  e = p_expr(node_new_subnode(mod, node), mod, tok.t);
+  EXCEPT(e);
 
   return 0;
 }
