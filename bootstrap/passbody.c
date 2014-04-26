@@ -761,59 +761,6 @@ static error check_terms_not_types(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error type_inference_un(struct module *mod, struct node *node) {
-  assert(node->which == UN);
-  error e;
-  const enum token_type operator = node->as.UN.operator;
-  struct node *term = subs_first(node);
-
-  struct node *i = NULL;
-  switch (OP_KIND(operator)) {
-  case OP_UN_REFOF:
-    // FIXME: it's not OK to take a mutable reference of:
-    //   fun foo p:@t = void
-    //     let mut = @!(p.)
-    e = typ_ref(&i, mod, node, operator, term->typ);
-    EXCEPT(e);
-    set_typ(&node->typ, i->typ);
-    node->flags |= term->flags & NODE__TRANSITIVE;
-    break;
-  case OP_UN_DEREF:
-    e = typ_check_can_deref(mod, term, term->typ, operator);
-    EXCEPT(e);
-    e = typ_check_deref_against_mark(mod, node, node->typ, operator);
-    EXCEPT(e);
-    set_typ(&node->typ, typ_generic_arg(term->typ, 0));
-    node->flags |= term->flags & NODE__TRANSITIVE;
-    break;
-  case OP_UN_BOOL:
-    e = check_terms_not_types(mod, node);
-    EXCEPT(e);
-    set_typ(&node->typ, TBI_BOOL);
-    e = unify(mod, node, node->typ, term->typ);
-    EXCEPT(e);
-    break;
-  case OP_UN_ARITH:
-    e = check_terms_not_types(mod, node);
-    EXCEPT(e);
-    set_typ(&node->typ, typ_create_tentative(TBI_ARITHMETIC));
-    e = unify(mod, node, node->typ, term->typ);
-    EXCEPT(e);
-    break;
-  case OP_UN_BW:
-    e = check_terms_not_types(mod, node);
-    EXCEPT(e);
-    set_typ(&node->typ, typ_create_tentative(TBI_BITWISE));
-    e = unify(mod, node, node->typ, term->typ);
-    EXCEPT(e);
-    break;
-  default:
-    assert(false);
-  }
-
-  return 0;
-}
-
 static struct node *follow_ssa(struct node *node) {
   struct node *expr = node;
   if (expr->which == IDENT) {
@@ -853,6 +800,70 @@ static error try_insert_automagic_deref(struct module *mod,
   const struct node *except[] = { node, NULL };
   error e = catchup(mod, except, deref, CATCHUP_BELOW_CURRENT);
   assert(!e);
+
+  return 0;
+}
+
+static error type_inference_un(struct module *mod, struct node *node) {
+  assert(node->which == UN);
+  error e;
+  const enum token_type operator = node->as.UN.operator;
+  struct node *term = subs_first(node);
+
+  struct node *i = NULL;
+  switch (OP_KIND(operator)) {
+  case OP_UN_REFOF:
+    // FIXME: it's not OK to take a mutable reference of:
+    //   fun foo p:@t = void
+    //     let mut = @!(p.)
+    e = typ_ref(&i, mod, node, operator, term->typ);
+    EXCEPT(e);
+    set_typ(&node->typ, i->typ);
+    node->flags |= term->flags & NODE__TRANSITIVE;
+    return 0;
+  case OP_UN_DEREF:
+    e = typ_check_can_deref(mod, term, term->typ, operator);
+    EXCEPT(e);
+    e = typ_check_deref_against_mark(mod, node, node->typ, operator);
+    EXCEPT(e);
+    set_typ(&node->typ, typ_generic_arg(term->typ, 0));
+    node->flags |= term->flags & NODE__TRANSITIVE;
+    return 0;
+
+  case OP_UN_BOOL:
+  case OP_UN_ARITH:
+  case OP_UN_BW:
+    break;
+  default:
+    assert(false);
+  }
+
+  e = check_terms_not_types(mod, node);
+  EXCEPT(e);
+
+  e = try_insert_automagic_deref(mod, term);
+  EXCEPT(e);
+  term = subs_first(node);
+
+  switch (OP_KIND(operator)) {
+  case OP_UN_BOOL:
+    set_typ(&node->typ, TBI_BOOL);
+    e = unify(mod, node, node->typ, term->typ);
+    EXCEPT(e);
+    break;
+  case OP_UN_ARITH:
+    set_typ(&node->typ, typ_create_tentative(TBI_ARITHMETIC));
+    e = unify(mod, node, node->typ, term->typ);
+    EXCEPT(e);
+    break;
+  case OP_UN_BW:
+    set_typ(&node->typ, typ_create_tentative(TBI_BITWISE));
+    e = unify(mod, node, node->typ, term->typ);
+    EXCEPT(e);
+    break;
+  default:
+    assert(false);
+  }
 
   return 0;
 }
@@ -1283,6 +1294,10 @@ static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   error e;
   struct node *left = subs_first(node);
   struct node *right = subs_last(node);
+
+  e = try_insert_automagic_deref(mod, right);
+  EXCEPT(e);
+  right = subs_last(node);
 
   e = unify(mod, right, right->typ, TBI_U32);
   EXCEPT(e);

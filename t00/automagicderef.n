@@ -29,4 +29,7 @@ export fun main = i32
   assert <- 1 == (id p0) + p1
   assert <- 1 == (id p0). + p1
 
+  let pu3 = @3:u32
+  assert <- 8 == 1:u64 << pu3
+
   return x + xx + p0 + p1 + y + yy + h.x + hh.x + hhh.x - 8
