@@ -7,7 +7,7 @@ from nlang.strings import *
 
 fun write_buf fd:i32 s:@u8 count:size = void
 
-export fun vpr ?sep:?@string v:@!(vararg @`show) = void
+export fun vpr v:@!(vararg @`show) ?err:?@bool ?sep:?@string = void
   let separator = optional_ref sep ' '
   let s = string.mk
   such
@@ -16,18 +16,30 @@ export fun vpr ?sep:?@string v:@!(vararg @`show) = void
       if v.left > 0
 	separator.show @#s
   let b = s.bytes_utf8
-  write_buf 1 b.unsafe_data b.bytecount
+  let fd = 1 such
+    if optional err false
+      fd = 2
+  write_buf fd b.unsafe_data b.bytecount
 
-export fun pr ?sep:?@string ...v:(vararg @`show) = void
-  vpr sep=sep @!v
+export fun pr ?err:?@bool ?sep:?@string ...v:(vararg @`show) = void
+  vpr @!v sep=sep
 
-export fun vsay ?sep:?@string v:@!(vararg @`show) = void
-  vpr sep=sep v
+export fun vsay v:@!(vararg @`show) ?err:?@bool ?sep:?@string = void
+  vpr v sep=sep
   let eol = '\n':char
-  write_buf 1 eol.code.trim_u8 1
+  let fd = 1 such
+    if optional err false
+      fd = 2
+  write_buf fd eol.code.trim_u8 1
 
-export fun say ?sep:?@string ...v:(vararg @`show) = void
-  vsay sep=sep @!v
+export fun say ?err:?@bool ?sep:?@string ...v:(vararg @`show) = void
+  vsay @!v sep=sep
+
+export fun epr ?sep:?@string ...v:(vararg @`show) = void
+  vpr @!v err=true sep=sep
+
+export fun esay ?sep:?@string ...v:(vararg @`show) = void
+  vsay @!v err=true sep=sep
 
 export inline (fun t:`any r:(`any_ref t)) just_const p:r = @t
   return p

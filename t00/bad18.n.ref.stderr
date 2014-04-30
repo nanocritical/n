@@ -1,1 +1,1 @@
-t00/bad18.n:4:26: excess named argument 'sep' or appears out of order
+t00/bad18.n:4:26: excess named argument 'sep' or appears out of order at position 2

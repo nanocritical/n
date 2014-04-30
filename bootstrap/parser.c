@@ -2338,13 +2338,12 @@ static void count_args(struct node *def) {
       *min -= 1;
       *first_va = *min;
       *max = SSIZE_MAX;
-    } else {
-      break;
     }
   }
 }
 
-static error p_deffun(struct node *node, struct module *mod, const struct toplevel *toplevel,
+static error p_deffun(struct node *node, struct module *mod,
+                      const struct toplevel *toplevel,
                       enum node_which fun_or_method) {
   error e;
   struct token tok = { 0 };
@@ -2380,6 +2379,7 @@ static error p_deffun(struct node *node, struct module *mod, const struct toplev
     }
   }
 
+  bool seen_named = false;
   bool must_be_last = false;
 again:
   e = scan_oneof(&tok, mod, TASSIGN, TIDENT, TQMARK, TDOTDOTDOT, 0);
@@ -2393,6 +2393,10 @@ again:
   case TASSIGN:
     goto retval;
   case TIDENT:
+    if (seen_named) {
+      THROW_SYNTAX(mod, &tok, "cannot have positional argument"
+                   " after optional named argument");
+    }
     back(mod, &tok);
     // Fallthrough
   case TQMARK:
@@ -2402,6 +2406,7 @@ again:
       e = p_defarg(arg, mod, tok.t);
       EXCEPT(e);
     }
+    seen_named = tok.t == TQMARK;
     must_be_last = tok.t == TDOTDOTDOT;
     goto again;
   default:

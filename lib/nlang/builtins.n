@@ -995,8 +995,8 @@ export (fun e:`error) drop err:e = void
   noop
 
 export (fun e:`error) fatal err:e = void
-  pr "Fatal: "
-  say err
+  epr "Fatal: "
+  esay err
 
 
 export extern inline struct valist =
@@ -1070,7 +1070,7 @@ from nlang.chars import `string_buffer `show static_string
 from nlang.memory import slice
 from nlang.containers import index_range range `iterator
 from nlang.unsafe import cast nonnull
-from nlang import say pr
+from nlang import esay epr
 
 export inline struct codeloc =
   where		:static_string
@@ -1079,7 +1079,7 @@ export inline struct codeloc =
 export fun assert cond:bool ?_Ncodeloc:?@codeloc = void
   if not cond
     if _Ncodeloc !== null
-      say _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+      esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
     abort
 
 export fun unreached = void
@@ -1088,23 +1088,23 @@ export fun unreached = void
 export fun __pre__ cond:bool ?_Ncodeloc:?@codeloc = void
   if not cond
     if _Ncodeloc !== null
-      say _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+      esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
     abort
 
 export fun __post__ cond:bool ?_Ncodeloc:?@codeloc = void
   if not cond
     if _Ncodeloc !== null
-      say _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+      esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
     abort
 
 export fun __invariant__ cond:bool ?_Ncodeloc:?@codeloc = void
   if not cond
     if _Ncodeloc !== null
-      say _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+      esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
     abort
 
 export fun __example__ cond:bool ?_Ncodeloc:?@codeloc = void
   if not cond
     if _Ncodeloc !== null
-      say _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+      esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
     abort

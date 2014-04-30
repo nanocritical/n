@@ -1055,6 +1055,22 @@ static void try_filling_codeloc(struct module *mod, struct node *named,
                                       codeloc_pos_after(mod, node));
 }
 
+static void insert_missing_optional_arg(struct module *mod, struct node *node,
+                                        struct node *after_this, ident name) {
+  assert(name != idents_add_string(mod->gctx, "v", 1));
+  GSTART();
+  G0(named, node, CALLNAMEDARG,
+     named->as.CALLNAMEDARG.name = name;
+     G(nul, NUL));
+  node_subs_remove(node, named);
+  node_subs_insert_after(node, after_this, named);
+
+  try_filling_codeloc(mod, named, node);
+
+  error e = catchup(mod, NULL, named, CATCHUP_BELOW_CURRENT);
+  assert(!e);
+}
+
 static error fill_in_optional_args(struct module *mod, struct node *node,
                                    const struct typ *tfun) {
   const struct node *dfun = typ_definition_const(tfun);
@@ -1065,61 +1081,65 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
     return 0;
   }
 
-  const ssize_t first_vararg = node_fun_first_vararg(dfun);
+  const struct node *funargs = subs_at_const(dfun, IDX_FUNARGS);
+  const struct node *darg = subs_first_const(funargs);
+  struct node *arg = next(subs_first(node));
 
-  const struct node *darg = subs_at_const(subs_at_const(dfun, IDX_FUNARGS), dmin);
-  // We use this form, so that 'arg' will be NULL if the first optional
-  // argument is missing.
-  struct node *arg = next(subs_at(node, dmin));
-
-  ssize_t n;
+  ssize_t n, code_pos = 0;
   error e;
+  for (n = 0; n < dmin; ++n, ++code_pos) {
+    if (arg == NULL) {
+      e = mk_except(mod, arg, "missing positional argument '%s' at position %zd",
+                    idents_value(mod->gctx, node_ident(darg)), code_pos);
+      THROW(e);
+    } else if (arg->which == CALLNAMEDARG) {
+      if (node_ident(arg) != node_ident(darg)) {
+        e = mk_except(mod, arg, "named argument '%s' has bad name"
+                      " or appears out of order at position %zd",
+                      idents_value(mod->gctx, node_ident(arg)), code_pos);
+        THROW(e);
+      }
+    }
 
+    darg = next_const(darg);
+    arg = next(arg);
+  }
+
+  const ssize_t first_vararg = node_fun_first_vararg(dfun);
   for (n = dmin; n < dmax && (first_vararg == - 1 || n < first_vararg); ++n) {
     if (arg == NULL) {
-      GSTART();
-      G0(named, node, CALLNAMEDARG,
-        named->as.CALLNAMEDARG.name = node_ident(darg);
-        G(nul, NUL));
-
-      try_filling_codeloc(mod, named, node);
-
-      e = catchup(mod, NULL, named, CATCHUP_BELOW_CURRENT);
-      assert(!e);
+      insert_missing_optional_arg(mod, node, subs_last(node), node_ident(darg));
 
     } else if (arg->which != CALLNAMEDARG) {
       // Assume this is the first vararg
 
       if (first_vararg == -1) {
         e = mk_except(mod, arg, "excessive positional argument"
-                      " or optional argument lacks a name");
+                      " or optional argument lacks a name at position %zd", code_pos);
         THROW(e);
       }
 
-      GSTART();
-      G0(named, node, CALLNAMEDARG,
-        named->as.CALLNAMEDARG.name = node_ident(darg);
-        G(nul, NUL));
-
-      node_subs_remove(node, named);
-      node_subs_insert_before(node, arg, named);
-
-      e = catchup(mod, NULL, named, CATCHUP_BELOW_CURRENT);
-      assert(!e);
+      insert_missing_optional_arg(mod, node, prev(arg), node_ident(darg));
 
     } else if (arg->which == CALLNAMEDARG) {
       const ident name = node_ident(arg);
+
       while (node_ident(darg) != name) {
+        insert_missing_optional_arg(mod, node, prev(arg), node_ident(darg));
+
         darg = next_const(darg);
-        if (darg == NULL) {
+        n += 1;
+        if ((first_vararg != -1 && n >= first_vararg)
+            || next_const(darg) == NULL) {
           e = mk_except(mod, arg, "named argument '%s' has bad name"
-                        " or appears out of order",
-                        idents_value(mod->gctx, name));
+                        " or appears out of order at position %zd",
+                        idents_value(mod->gctx, name), code_pos);
           THROW(e);
         }
       }
 
       arg = next(arg);
+      code_pos += 1;
     }
 
     darg = next_const(darg);
@@ -1129,11 +1149,13 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
   while (arg != NULL) {
     if (arg->which == CALLNAMEDARG) {
       const ident name = node_ident(arg);
-      e = mk_except(mod, arg, "excess named argument '%s' or appears out of order",
-                    idents_value(mod->gctx, name));
+      e = mk_except(mod, arg, "excess named argument '%s'"
+                    " or appears out of order at position %zd",
+                    idents_value(mod->gctx, name), code_pos);
       THROW(e);
     }
     arg = next(arg);
+    code_pos += 1;
   }
 
   return 0;
