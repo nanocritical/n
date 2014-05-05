@@ -954,9 +954,6 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node,
   } else if (typ_isa(node->typ, TBI_DEFAULT_CTOR)) {
     define_builtin(mod, node, BG_DEFAULT_CTOR_MK, NULL);
     define_builtin(mod, node, BG_DEFAULT_CTOR_NEW, NULL);
-  } else if (typ_isa(node->typ, TBI_CTOR_WITH)) {
-    define_builtin(mod, node, BG_CTOR_WITH_MK, NULL);
-    define_builtin(mod, node, BG_CTOR_WITH_NEW, NULL);
   } else {
     error e = define_auto(mod, node, BG_AUTO_MK);
     EXCEPT(e);

@@ -158,7 +158,6 @@ extern struct typ *TBI_ORDERED;
 extern struct typ *TBI_ORDERED_BY_COMPARE;
 extern struct typ *TBI_COPYABLE;
 extern struct typ *TBI_DEFAULT_CTOR;
-extern struct typ *TBI_CTOR_WITH;
 extern struct typ *TBI_ARRAY_CTOR;
 extern struct typ *TBI_TRIVIAL_COPY;
 extern struct typ *TBI_TRIVIAL_CTOR;

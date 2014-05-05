@@ -273,7 +273,6 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_ORDERED_BY_COMPARE] = "`ordered_by_compare",
   [ID_TBI_COPYABLE] = "`copyable",
   [ID_TBI_DEFAULT_CTOR] = "`default_ctor",
-  [ID_TBI_CTOR_WITH] = "`ctor_with",
   [ID_TBI_ARRAY_CTOR] = "`array_ctor",
   [ID_TBI_TRIVIAL_COPY] = "`trivial_copy",
   [ID_TBI_TRIVIAL_CTOR] = "`trivial_ctor",
@@ -346,8 +345,6 @@ const char *builtingen_abspath[BG__NUM] = {
   [BG_AUTO_MK] = "nlang.builtins.`auto_ctor.mk",
   [BG_AUTO_NEW] = "nlang.builtins.`auto_ctor.new",
   // These should be templates of `ctor_with.
-  [BG_CTOR_WITH_MK] = "nlang.builtins.`ctor_with.mk",
-  [BG_CTOR_WITH_NEW] = "nlang.builtins.`ctor_with.new",
   [BG_AUTO_MKV] = "nlang.builtins.`array_ctor.mkv",
   [BG_AUTO_NEWV] = "nlang.builtins.`array_ctor.newv",
 
@@ -732,7 +729,6 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_ORDERED_BY_COMPARE = gctx->builtin_typs_by_name[ID_TBI_ORDERED_BY_COMPARE];
   TBI_COPYABLE = gctx->builtin_typs_by_name[ID_TBI_COPYABLE];
   TBI_DEFAULT_CTOR = gctx->builtin_typs_by_name[ID_TBI_DEFAULT_CTOR];
-  TBI_CTOR_WITH = gctx->builtin_typs_by_name[ID_TBI_CTOR_WITH];
   TBI_ARRAY_CTOR = gctx->builtin_typs_by_name[ID_TBI_ARRAY_CTOR];
   TBI_TRIVIAL_COPY = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_COPY];
   TBI_TRIVIAL_CTOR = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_CTOR];

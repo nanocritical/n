@@ -792,7 +792,6 @@ struct typ *TBI_ORDERED;
 struct typ *TBI_ORDERED_BY_COMPARE;
 struct typ *TBI_COPYABLE;
 struct typ *TBI_DEFAULT_CTOR;
-struct typ *TBI_CTOR_WITH;
 struct typ *TBI_ARRAY_CTOR;
 struct typ *TBI_TRIVIAL_COPY;
 struct typ *TBI_TRIVIAL_CTOR;

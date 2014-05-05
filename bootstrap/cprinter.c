@@ -1578,15 +1578,6 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     fprintf(out, ");\n");
     fprintf(out, "return self;\n");
     break;
-  case BG_CTOR_WITH_MK:
-    fprintf(out, "THIS($ctor)(&r, c);\n");
-    bg_return_if_by_copy(out, mod, node, "r");
-    break;
-  case BG_CTOR_WITH_NEW:
-    fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
-    fprintf(out, "THIS($ctor)(self, c);\n");
-    fprintf(out, "return self;\n");
-    break;
   case BG_AUTO_MKV:
     fprintf(out, "THIS($ctorv)(&r, c);\n");
     bg_return_if_by_copy(out, mod, node, "r");
