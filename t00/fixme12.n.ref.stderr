@@ -1,7 +1,7 @@
 t00/fixme12.n.o.c: In function ‘_$Nmain’:
-t00/fixme12.n.o.c:129:1: warning: passing argument 1 of ‘t00$fixme12$bar’ from incompatible pointer type [enabled by default]
+t00/fixme12.n.o.c:132:1: warning: passing argument 1 of ‘t00$fixme12$bar’ from incompatible pointer type [enabled by default]
  t00$fixme12$bar(_Ngensym5);
  ^
-t00/fixme12.n.o.c:90:28: note: expected ‘const nlang$builtins$i32 * const*’ but argument is of type ‘nlang$builtins$i32 * const*’
+t00/fixme12.n.o.c:93:28: note: expected ‘const nlang$builtins$i32 * const*’ but argument is of type ‘nlang$builtins$i32 * const*’
  static nlang$builtins$void t00$fixme12$bar(_$Ngen_nlang$builtins$nullable_ref$$_$Ngen_nlang$builtins$nullable_ref$$nlang$builtins$i32_genN$__genN$_ p) {
                             ^

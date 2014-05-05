@@ -293,6 +293,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_MK] = "mk",
   [ID_NEW] = "new",
   [ID_CTOR] = "ctor",
+  [ID_DTOR] = "dtor",
   [ID_COPY_CTOR] = "copy_ctor",
   [ID_MKV] = "mkv",
   [ID_NEWV] = "newv",

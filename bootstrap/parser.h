@@ -910,6 +910,7 @@ enum predefined_idents {
   ID_MK,
   ID_NEW,
   ID_CTOR,
+  ID_DTOR,
   ID_COPY_CTOR,
   ID_MKV,
   ID_NEWV,

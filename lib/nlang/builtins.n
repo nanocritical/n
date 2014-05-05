@@ -58,7 +58,7 @@ export intf `ordered =
   method@ operator_gt other:@final = bool
   method@ operator_ge other:@final = bool
 export intf `trivial_order =
-  isa `ordered
+  isa `ordered `trivial_equality
 export intf `ordered_by_compare =
   isa `has_compare `ordered `has_equality
 export intf `arithmetic =
@@ -105,7 +105,7 @@ export intf `any_ref t:`any =
 export intf `any_mutable_ref t:`any =
   isa (`any_ref t)
 export intf `any_nullable_ref t:`any =
-  isa `any_any_ref
+  isa `any_any_ref `trivial_ctor
 export intf `any_nullable_mutable_ref t:`any =
   isa (`any_nullable_ref t)
 
@@ -325,7 +325,7 @@ export intf `unsigned_integer =
   isa `integer
 
 export intf `native_integer =
-  isa `trivial_ctor `trivial_copy `return_by_copy `integer `show
+  isa `trivial_ctor `trivial_dtor `trivial_copy `trivial_order `return_by_copy `integer `show
 
 export intf `native_signed_integer =
   isa `signed_integer `native_integer
@@ -1000,7 +1000,7 @@ export (fun e:`error) fatal err:e = void
 
 
 export extern inline struct valist =
-  isa `trivial_copy
+  isa `trivial_copy `trivial_ctor
 
 intf `no_dyn_iterator r:`any_any_ref =
   isa (`iterator r) `prevent_dyn

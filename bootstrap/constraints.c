@@ -491,7 +491,7 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
     constraint_set_tag(mod, n->constraint, ID_C, false);
     constraint_set_tag(mod, n->constraint, ID_CTOR, false);
     snprint_constraint(s, len, mod, n->constraint);
-    assert(strcmp(s, "(|c|ctor)") == 0);
+    assert(strcmp(s, "(|ctor|c)") == 0);
   }
   {
     struct node *n = mk_node(mod, mod->body, IDENT);

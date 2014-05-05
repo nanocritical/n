@@ -728,7 +728,81 @@ static error step_add_builtin_detect_ctor_intf(struct module *mod, struct node *
       add_inferred_isa(mod, node, "nlang.builtins.`ctor_with");
     }
   } else {
+    // see step_infer_trivial_intfs
+  }
+
+  return 0;
+}
+
+struct trivials {
+  bool ctor, dtor, copy, equality, order, return_by_copy;
+};
+
+static void have_trivials(struct trivials *trivials, const struct node *node) {
+  if (trivials->ctor && !typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
+    trivials->ctor = false;
+  }
+  if (trivials->dtor && !typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
+    trivials->dtor = false;
+  }
+  if (trivials->copy && !typ_isa(node->typ, TBI_TRIVIAL_COPY)) {
+    trivials->copy = false;
+  }
+  if (trivials->equality && !typ_isa(node->typ, TBI_TRIVIAL_EQUALITY)) {
+    trivials->equality = false;
+  }
+  if (trivials->order && !typ_isa(node->typ, TBI_TRIVIAL_ORDER)) {
+    trivials->order = false;
+  }
+  if (trivials->return_by_copy && !typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
+    trivials->return_by_copy = false;
+  }
+}
+
+static STEP_NM(step_infer_trivial_intfs,
+               NM(DEFTYPE));
+static error step_infer_trivial_intfs(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node_is_extern(node)) {
+    return 0;
+  }
+
+  struct trivials trivials = { true, true, true, true, true, true };
+  FOREACH_SUB_CONST(f, node) {
+    if (!(NM(f->which) & (NM(DEFFIELD) | NM(DEFCHOICE)))) {
+      continue;
+    }
+
+    have_trivials(&trivials, f);
+  }
+
+  if (trivials.ctor && node_get_member_const(mod, node, ID_CTOR) == NULL) {
     add_inferred_isa(mod, node, "nlang.builtins.`trivial_ctor");
+  }
+  if (trivials.dtor && node_get_member_const(mod, node, ID_DTOR) == NULL) {
+    add_inferred_isa(mod, node, "nlang.builtins.`trivial_dtor");
+  }
+  if (trivials.copy && node_get_member_const(mod, node, ID_COPY_CTOR) == NULL) {
+    add_inferred_isa(mod, node, "nlang.builtins.`trivial_copy");
+  } else {
+    trivials.return_by_copy = false;
+  }
+  if (trivials.equality
+      && node_get_member_const(mod, node, ID_OPERATOR_EQ) == NULL
+      && node_get_member_const(mod, node, ID_OPERATOR_NE) == NULL) {
+    add_inferred_isa(mod, node, "nlang.builtins.`trivial_equality");
+  }
+  if (trivials.order
+      && node_get_member_const(mod, node, ID_OPERATOR_LE) == NULL
+      && node_get_member_const(mod, node, ID_OPERATOR_LT) == NULL
+      && node_get_member_const(mod, node, ID_OPERATOR_GE) == NULL
+      && node_get_member_const(mod, node, ID_OPERATOR_GT) == NULL) {
+    add_inferred_isa(mod, node, "nlang.builtins.`trivial_order");
+  }
+  if (trivials.return_by_copy) {
+    add_inferred_isa(mod, node, "nlang.builtins.`return_by_copy");
   }
 
   return 0;
@@ -893,10 +967,8 @@ static error define_auto(struct module *mod, struct node *deft,
     return 0;
   }
 
-  struct node *ctor = NULL;
-  e = scope_lookup_ident_immediate(&ctor, deft, mod, &deft->scope,
-                                   ID_CTOR, true);
-  if (e) {
+  struct node *ctor = node_get_member(mod, deft, ID_CTOR);
+  if (ctor == NULL) {
     // FIXME This should be narrower and only in the case the type cannot be
     // given an automatically generated ctor.
     e = mk_except_type(mod, deft, "type '%s' is not `trivial_ctor and has no 'ctor'",
@@ -954,6 +1026,8 @@ static error step_add_builtin_mk_new(struct module *mod, struct node *node,
   } else if (typ_isa(node->typ, TBI_DEFAULT_CTOR)) {
     define_builtin(mod, node, BG_DEFAULT_CTOR_MK, NULL);
     define_builtin(mod, node, BG_DEFAULT_CTOR_NEW, NULL);
+  } else if (typ_isa(node->typ, TBI_ANY_TUPLE)) {
+    // noop
   } else {
     error e = define_auto(mod, node, BG_AUTO_MK);
     EXCEPT(e);
@@ -1163,23 +1237,6 @@ static error passfwd4(struct module *mod, struct node *root,
 
 static error passfwd5(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
-  // type_add_builtin_intf
-  PASS(
-    DOWN_STEP(step_stop_submodules);
-    DOWN_STEP(step_stop_marker_tbi);
-    DOWN_STEP(step_stop_funblock);
-    DOWN_STEP(step_push_top_state);
-    ,
-    UP_STEP(step_add_builtin_enum_intf);
-    UP_STEP(step_add_builtin_detect_ctor_intf);
-    UP_STEP(step_pop_top_state);
-    UP_STEP(step_complete_instantiation);
-    );
-  return 0;
-}
-
-static error passfwd6(struct module *mod, struct node *root,
-                      void *user, ssize_t shallow_last_up) {
   // type_def_lets
   PASS(
     DOWN_STEP(step_stop_submodules);
@@ -1194,7 +1251,7 @@ static error passfwd6(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passfwd7(struct module *mod, struct node *root,
+static error passfwd6(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   // type_deffields
   PASS(
@@ -1206,6 +1263,24 @@ static error passfwd7(struct module *mod, struct node *root,
     UP_STEP(step_type_deffields);
     UP_STEP(step_type_defchoices);
     UP_STEP(step_add_builtin_members_enum_union);
+    UP_STEP(step_pop_top_state);
+    UP_STEP(step_complete_instantiation);
+    );
+  return 0;
+}
+
+static error passfwd7(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  // type_add_builtin_intf
+  PASS(
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_funblock);
+    DOWN_STEP(step_push_top_state);
+    ,
+    UP_STEP(step_add_builtin_enum_intf);
+    UP_STEP(step_add_builtin_detect_ctor_intf);
+    UP_STEP(step_infer_trivial_intfs);
     UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
     );
