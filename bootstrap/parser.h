@@ -289,7 +289,7 @@ struct node_defincomplete {
   struct toplevel toplevel;
   ident ident;
   const struct node *ident_for_error;
-  struct typ *variant_of;
+  bool is_isalist_literal;
 };
 struct node_defalias {
   uint32_t passed;
@@ -1320,7 +1320,7 @@ struct node *mk_node(struct module *mod, struct node *parent, enum node_which ki
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src);
 
-struct node *defincomplete_create(struct module *mod, const struct node *for_error);
+struct node *defincomplete_create(struct module *mod, const struct node *trigger);
 void defincomplete_set_ident(struct module *mod, const struct node *for_error,
                              struct node *dinc, ident name);
 void defincomplete_add_field(struct module *mod, const struct node *for_error,

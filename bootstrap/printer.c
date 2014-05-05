@@ -889,6 +889,8 @@ static void print_module(FILE *out, const struct module *mod) {
       break;
     case NOOP:
       break;
+    case DEFINCOMPLETE:
+      break;
     default:
       fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
       assert(false);

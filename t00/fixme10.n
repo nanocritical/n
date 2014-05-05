@@ -1,7 +1,9 @@
 from nlang import *
 
 struct a =
+  isa `trivial_ctor
   x	:b
 
 struct b =
+  isa `trivial_ctor
   y	:a

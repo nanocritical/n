@@ -1482,7 +1482,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
     constraint_set(mod, node->constraint, CBI_INIT, false);
     break;
   case INIT:
-    if (typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
+    if (!(node->flags & NODE_IS_TYPE) && typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
       constraint_set(mod, node->constraint, CBI_INIT, false);
     }
     break;

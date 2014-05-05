@@ -615,6 +615,7 @@ static size_t direct_isalist_count(const struct typ *t) {
   switch (def->which) {
   case DEFTYPE:
   case DEFINTF:
+  case DEFINCOMPLETE:
     return subs_count(subs_at_const(def, IDX_ISALIST));
   default:
     return 0;
@@ -626,6 +627,7 @@ static struct typ *direct_isalist(struct typ *t, size_t n) {
   switch (def->which) {
   case DEFTYPE:
   case DEFINTF:
+  case DEFINCOMPLETE:
     return subs_at_const(subs_at_const(def, IDX_ISALIST), n)->typ;
   default:
     assert(false);
@@ -642,6 +644,7 @@ static bool direct_isalist_exported(const struct typ *t, size_t n) {
   switch (def->which) {
   case DEFTYPE:
   case DEFINTF:
+  case DEFINCOMPLETE:
     return subs_at_const(subs_at_const(def, IDX_ISALIST), n)->as.ISA.is_export;
   default:
     return 0;
@@ -963,6 +966,11 @@ bool typ_is_generic_functor(const struct typ *t) {
     && typ_generic_functor_const(t) == t;
 }
 
+static bool is_isalist_literal(const struct typ *t) {
+  const struct node *d = typ_definition_const(t);
+  return d->which == DEFINCOMPLETE && d->as.DEFINCOMPLETE.is_isalist_literal;
+}
+
 bool typ_isa(const struct typ *a, const struct typ *intf) {
   if (typ_equal(intf, TBI_ANY)) {
     return true;
@@ -1016,6 +1024,24 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
     if (typ_equal(direct_isalist_const(a, n), intf)) {
       return true;
     }
+  }
+
+  if (is_isalist_literal(a)) {
+    for (size_t n = 0; n < direct_isalist_count(a); ++n) {
+      if (!typ_isa(direct_isalist_const(a, n), intf)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  if (is_isalist_literal(intf)) {
+    for (size_t n = 0; n < direct_isalist_count(intf); ++n) {
+      if (!typ_isa(a, direct_isalist_const(intf, n))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   for (size_t n = 0; n < direct_isalist_count(a); ++n) {

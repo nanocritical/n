@@ -1,9 +1,11 @@
 from nlang import *
 
-struct holder t:`copyable =
+alias `our = {`copyable `trivial_ctor}
+
+struct holder t:`our =
   x	:t
 
-holder fun mk x:t = this
+holder fun mk x:t = this --::init
   return {x=x}
 
 fun id x:@i32 = @i32
@@ -15,13 +17,21 @@ export fun main = i32
 
   let p0 = @0:i32
   let p1 = @1:i32
+  let np1 = null
+  such
+    np1 = p1
   let y = (max i32) p0 p1
   let yy = max p0 p1
 
   let h = (holder.mk p1):(holder i32)
-  let h1 = ((holder @i32).mk p1):(holder @i32)
-  let hh = (holder.mk @p1):(holder @i32)
+  let h1 = ((holder ?@i32).mk p1):(holder ?@i32)
+  let hh = (holder.mk @np1):(holder ?@i32)
   let hhh = (holder.mk 1:i32):(holder i32)
+
+  -- FIXME: need support for ::init on mk to use h1.x and hh.x in the return
+  -- expression at the end.
+  let _ = h1.x
+  let _ = hh.x
 
   assert <- 1 == p0 + p1
   assert <- 1 == p0. + p1
@@ -33,4 +43,4 @@ export fun main = i32
   let pu3 = @3:u32
   assert <- 8 == 1:u64 << pu3
 
-  return x + xx + p0 + p1 + y + yy + h.x + hh.x + hhh.x - 8
+  return x + xx + p0 + p1 + y + yy + h.x + hhh.x - 7

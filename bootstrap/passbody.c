@@ -307,7 +307,7 @@ static void inherit(struct module *mod, struct node *node) {
 
 STEP_NM(step_type_destruct_mark,
         NM(BIN) | NM(CALL) | NM(INIT) | NM(DEFALIAS) | NM(DEFNAME) |
-        NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(DEFINTF) |
+        NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(DEFINTF) | NM(DEFINCOMPLETE) |
         NM(DEFFIELD) | NM(DEFARG) | NM(DEFGENARG) | NM(SETGENARG) |
         NM(MODULE_BODY) | NM(DEFCHOICE) | NM(WITHIN) | NM(THROW));
 error step_type_destruct_mark(struct module *mod, struct node *node,
@@ -357,6 +357,7 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
   case DEFNAME:
   case DEFTYPE:
   case DEFINTF:
+  case DEFINCOMPLETE:
   case DEFFIELD:
   case DEFARG:
   case DEFGENARG:
@@ -684,10 +685,10 @@ static bool are_all_tentative(struct typ **explicit_args, size_t arity) {
   return true;
 }
 
-static error instance(struct node **result,
-                      struct module *mod,
-                      const struct node *for_error, size_t for_error_offset,
-                      struct typ *t, struct typ **explicit_args, size_t arity) {
+error instance(struct node **result,
+               struct module *mod,
+               const struct node *for_error, size_t for_error_offset,
+               struct typ *t, struct typ **explicit_args, size_t arity) {
   const size_t first = typ_generic_first_explicit_arg(t);
   assert(arity == typ_generic_arity(t) - first);
 
@@ -1446,10 +1447,29 @@ static error type_inference_init_array(struct module *mod, struct node *node) {
   return 0;
 }
 
+static void type_inference_init_isalist_literal(struct module *mod, struct node *node) {
+  struct node *dinc = defincomplete_create(mod, node);
+
+  FOREACH_SUB(s, node) {
+    defincomplete_add_isa(mod, s, dinc, s->typ);
+  }
+
+  error e = defincomplete_catchup(mod, dinc);
+  assert(!e);
+  set_typ(&node->typ, dinc->typ);
+
+  node->flags |= NODE_IS_TYPE;
+}
+
 static error type_inference_init(struct module *mod, struct node *node) {
   assert(node->which == INIT);
   if (node->as.INIT.is_array) {
-    return type_inference_init_array(mod, node);
+    if (typ_definition(subs_first(node)->typ)->which == DEFINTF) {
+      type_inference_init_isalist_literal(mod, node);
+      return 0;
+    } else {
+      return type_inference_init_array(mod, node);
+    }
   } else {
     type_inference_init_named(mod, node);
     return 0;
@@ -3259,12 +3279,14 @@ static STEP_NM(step_check_no_incomplete_left,
                -1);
 static error step_check_no_incomplete_left(struct module *mod, struct node *node,
                                            void *user, bool *stop) {
-  if (node->typ == NULL) {
+  if (node->typ == NULL || node_is_at_top(node)) {
     return 0;
   }
 
   const struct node *d = typ_definition_const(node->typ);
-  if (d == NULL || d->which != DEFINCOMPLETE) {
+  if (d == NULL
+      || d->which != DEFINCOMPLETE
+      || d->as.DEFINCOMPLETE.is_isalist_literal) {
     return 0;
   }
 
@@ -3508,7 +3530,7 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
                                             void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (!node->as.INIT.is_array) {
+  if (!node->as.INIT.is_array || (node->flags & NODE_IS_TYPE)) {
     return 0;
   }
 

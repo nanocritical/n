@@ -2814,14 +2814,19 @@ done:
   return 0;
 }
 
-struct node *defincomplete_create(struct module *mod, const struct node *for_error) {
-  // FIXME: Detached node, would have to be freed when releasing the
-  // mod fun_state in which it is recorded below.
-  //
-  struct node *dinc = mempool_calloc(mod, 1, sizeof(struct node));
+struct node *defincomplete_create(struct module *mod, const struct node *trigger) {
+  struct node *at_top = CONST_CAST(struct node *, trigger);
+  while (parent(at_top)->which != MODULE_BODY) {
+    at_top = parent(at_top);
+  }
+
+  struct node *dinc = node_new_subnode(mod, mod->body);
+  node_subs_remove(mod->body, dinc);
+  node_subs_insert_after(mod->body, at_top, dinc);
+
   record_tentative_instantiation(mod, dinc);
   dinc->parent = mod->body;
-  dinc->codeloc = for_error->codeloc;
+  dinc->codeloc = trigger->codeloc;
   node_set_which(dinc, DEFINCOMPLETE);
   struct node *dinc_name = mk_node(mod, dinc, IDENT);
   dinc_name->as.IDENT.name = gensym(mod);
@@ -2853,6 +2858,7 @@ void defincomplete_add_isa(struct module *mod, const struct node *for_error,
                            struct node *dinc, struct typ *tisa) {
   struct node *isalist = subs_at(dinc, IDX_ISALIST);
   struct node *isa = mk_node(mod, isalist, ISA);
+  isa->as.ISA.is_export = true;
   isa->codeloc = for_error->codeloc;
   struct node *dd = mk_node(mod, isa, DIRECTDEF);
   set_typ(&dd->as.DIRECTDEF.typ, tisa);
@@ -2860,8 +2866,14 @@ void defincomplete_add_isa(struct module *mod, const struct node *for_error,
 
 error defincomplete_catchup(struct module *mod, struct node *dinc) {
   assert(dinc->which == DEFINCOMPLETE);
-  error e = catchup_instantiation(mod, mod, dinc, true);
+  const struct node *isalist = subs_at_const(dinc, IDX_ISALIST);
+  dinc->as.DEFINCOMPLETE.is_isalist_literal
+    = subs_count_atleast(isalist, 1) && !subs_count_atleast(dinc, IDX_ISALIST + 2);
+
+  const bool is_tentative = !dinc->as.DEFINCOMPLETE.is_isalist_literal;
+  error e = catchup_instantiation(mod, mod, dinc, is_tentative);
   EXCEPT(e);
+
   return 0;
 }
 
@@ -3436,6 +3448,10 @@ static char *typ_pretty_name_defincomplete(char *r, const struct module *mod,
 }
 
 char *typ_pretty_name(const struct module *mod, const struct typ *t) {
+  if (t == NULL) {
+    return strdup("(null)");
+  }
+
   char *r = calloc(2048, sizeof(char));
   char *s = r;
 

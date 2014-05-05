@@ -2795,6 +2795,8 @@ static void print_top(FILE *out, bool header, enum forward fwd,
     break;
   case WITHIN:
     break;
+  case DEFINCOMPLETE:
+    break;
   default:
     fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
     assert(false);

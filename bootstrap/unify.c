@@ -4,6 +4,7 @@
 #include "types.h"
 #include "scope.h"
 #include "passes.h"
+#include "passbody.h"
 
 enum unify_flags {
   REFCOMPAT_LEFT = 0x1,
@@ -45,7 +46,16 @@ static error unify_two_non_generic(struct module *mod, const struct node *for_er
     SWAP(a, b);
   } else if (typ_definition(a)->which == DEFINTF
              && typ_definition(b)->which == DEFINTF) {
-    assert(false && "FIXME Unsupported (e.g. `arithmethic and `bitwise)");
+    struct node *dinc = defincomplete_create(mod, for_error);
+
+    defincomplete_add_isa(mod, for_error, dinc, a);
+    defincomplete_add_isa(mod, for_error, dinc, b);
+
+    error e = defincomplete_catchup(mod, dinc);
+    assert(!e);
+
+    typ_link_tentative(dinc->typ, a);
+    typ_link_tentative(dinc->typ, b);
   } else {
     error e = mk_except_type_unification(mod, for_error, a, b);
     THROW(e);
@@ -181,6 +191,32 @@ static error unify_non_generic(struct module *mod, const struct node *for_error,
   return 0;
 }
 
+static struct typ *nullable(struct module *mod, const struct node *for_error,
+                            struct typ *t) {
+  if (typ_isa(t, TBI_ANY_NULLABLE_REF)) {
+    return t;
+  }
+
+  struct typ *r0 = NULL;
+  const struct typ *t0 = typ_generic_functor_const(t);
+  if (typ_equal(t0, TBI_REF)) {
+    r0 = TBI_NREF;
+  } else if (typ_equal(t0, TBI_MREF)) {
+    r0 = TBI_NMREF;
+  } else if (typ_equal(t0, TBI_MMREF)) {
+    r0 = TBI_NMMREF;
+  } else {
+    assert(false);
+  }
+
+  struct typ *a = typ_generic_arg(t, 0);
+
+  struct node *i = NULL;
+  error e = instance(&i, mod, for_error, 0, r0, &a, 1);
+  assert(!e);
+  return i->typ;
+}
+
 static error unify_literal(struct module *mod, uint32_t flags,
                            const struct node *for_error,
                            struct typ *a, struct typ *b,
@@ -220,6 +256,11 @@ static error unify_literal(struct module *mod, uint32_t flags,
       e = do_unify(mod, flags & ~REFCOMPAT_LEFT, for_error, a, b);
       EXCEPT(e);
       return 0;
+    } else if (flags & REFCOMPAT_RIGHT) {
+      e = typ_check_isa(mod, for_error, a, TBI_ANY_REF);
+      EXCEPT(e);
+
+      typ_link_tentative(nullable(mod, for_error, a), b);
     } else {
       e = typ_check_isa(mod, for_error, a, TBI_ANY_NULLABLE_REF);
       EXCEPT(e);
@@ -300,11 +341,22 @@ static struct typ *merge_defincomplete(struct module *mod, const struct node *fo
 
   const struct node *a_isalist = subs_at_const(a, IDX_ISALIST);
   FOREACH_SUB_CONST(isa, a_isalist) {
-    defincomplete_add_field(mod, isa, dinc, node_ident(isa), isa->typ);
+    defincomplete_add_isa(mod, isa, dinc, isa->typ);
   }
   const struct node *b_isalist = subs_at_const(b, IDX_ISALIST);
   FOREACH_SUB_CONST(isa, b_isalist) {
-    defincomplete_add_field(mod, isa, dinc, node_ident(isa), isa->typ);
+    defincomplete_add_isa(mod, isa, dinc, isa->typ);
+  }
+
+  FOREACH_SUB_CONST(f, a) {
+    if (f->which == DEFFIELD) {
+      defincomplete_add_field(mod, f, dinc, node_ident(f), f->typ);
+    }
+  }
+  FOREACH_SUB_CONST(f, b) {
+    if (f->which == DEFFIELD) {
+      defincomplete_add_field(mod, f, dinc, node_ident(f), f->typ);
+    }
   }
 
   error e = defincomplete_catchup(mod, dinc);

@@ -24,7 +24,9 @@ fun null_arg_value p:?@?@i32 = void
 fun bar p:?@?@i32 = void
   noop
 
-struct holder t:`copyable =
+alias `our = {`copyable `trivial_ctor}
+
+struct holder t:`our =
   x	:t
 
 holder fun create x:t = this
@@ -32,7 +34,9 @@ holder fun create x:t = this
 
 export fun main = i32
   let h = holder.create 1:i32
-  let hh = (holder @i32).create @1:i32
+  let hh = (holder ?@i32).create @1:i32
+  let _ = h.x
+  let _ = hh.x
 
   let a = 'test'
   and b = 'test'
