@@ -1,8 +1,8 @@
 from nlang import *
 import nlang.unsafe
 
-extern inline fun realloc p:?@#u8 oldbsz:size bsz:size = @#u8
-extern inline fun free p:?@#u8 sz:size = void
+export extern inline fun realloc p:?@#u8 oldbsz:size bsz:size = @#u8
+export extern inline fun free p:?@#u8 sz:size = void
 
 export opaque struct heap =
   export isa `allocator

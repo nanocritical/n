@@ -1,5 +1,6 @@
 from nlang.builtins import *
 from nlang.containers import *
+from nlang.sysheap import sysheap heap
 import nlang.unsafe
 
 export intf `allocator =
@@ -9,13 +10,13 @@ export intf `allocator =
   (method@! t:`any) slice_free s:@#(slice t) = void
 
 
-extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
-extern inline fun slice_memcpy dst:@#u8 at:size src:@u8 off:size count:size = void
+export extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
+export extern inline fun slice_memcpy dst:@#u8 at:size src:@u8 off:size count:size = void
 
 export opaque struct slice t:`any =
-  export isa `trivial_ctor `trivial_copy_but_owned
-  d:?@#t
-  c:size
+  export isa `trivial_copy_but_owned
+  d	:?@#t
+  c	:size
 
 export inline slice method@# unsafe_wrap data:@#t count:size = void
   self!d = data
@@ -55,7 +56,7 @@ export inline slice method@# copy at:size other:@this off:size count:size = void
 export inline slice method@$ sub r:index_range = @$this -- ::unique
   assert <- r.end <= self.count
   let p = (nlang.unsafe.cast @$t @#t) (self$at r.begin)
-  let ret = this.new
+  let ret = (heap.alloc this) @!sysheap
   such
     ret#unsafe_wrap p r.count
   return ret

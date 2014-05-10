@@ -276,6 +276,8 @@ static void create_flags(struct typ *t, struct typ *tbi) {
   }
   if (tbi == TBI_TRIVIAL_CTOR
       || tbi == TBI_TRIVIAL_COPY
+      || tbi == TBI_TRIVIAL_COPY_BUT_OWNED
+      || tbi == TBI_TRIVIAL_COMPARE
       || tbi == TBI_TRIVIAL_EQUALITY
       || tbi == TBI_TRIVIAL_ORDER
       || tbi == TBI_TRIVIAL_DTOR
@@ -591,23 +593,23 @@ struct typ *typ_function_return(struct typ *t) {
 }
 
 const struct node *typ_definition_const(const struct typ *t) {
-  return typ_definition((struct typ *) t);
+  return typ_definition(CONST_CAST(struct typ *, t));
 }
 
 const struct typ *typ_generic_functor_const(const struct typ *t) {
-  return typ_generic_functor((struct typ *) t);
+  return typ_generic_functor(CONST_CAST(struct typ *, t));
 }
 
 const struct typ *typ_generic_arg_const(const struct typ *t, size_t n) {
-  return typ_generic_arg((struct typ *) t, n);
+  return typ_generic_arg(CONST_CAST(struct typ *, t), n);
 }
 
 const struct typ *typ_function_arg_const(const struct typ *t, size_t n) {
-  return typ_function_arg((struct typ *) t, n);
+  return typ_function_arg(CONST_CAST(struct typ *, t), n);
 }
 
 const struct typ *typ_function_return_const(const struct typ *t) {
-  return typ_function_return((struct typ *) t);
+  return typ_function_return(CONST_CAST(struct typ *, t));
 }
 
 static size_t direct_isalist_count(const struct typ *t) {
@@ -636,7 +638,7 @@ static struct typ *direct_isalist(struct typ *t, size_t n) {
 }
 
 static const struct typ *direct_isalist_const(const struct typ *t, size_t n) {
-  return direct_isalist((struct typ *) t, n);
+  return direct_isalist(CONST_CAST(struct typ *, t), n);
 }
 
 static bool direct_isalist_exported(const struct typ *t, size_t n) {
@@ -654,16 +656,36 @@ static bool direct_isalist_exported(const struct typ *t, size_t n) {
 static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct typ *base,
                                     uint32_t filter, isalist_each iter, void *user,
                                     bool *stop, struct typset *set) {
+  const bool filter_not_exported = filter & ISALIST_FILTER_NOT_EXPORTED;
+  const bool filter_exported = filter & ISALIST_FILTER_EXPORTED;
+  const bool filter_trivial_isalist = filter & ISALIST_FILTER_TRIVIAL_ISALIST;
+  bool filter_nontrivial_isalist = filter & ISALIST_FILTER_NONTRIVIAL_ISALIST;
+  const bool filter_prevent_dyn = filter & ISALIST_FILTER_PREVENT_DYN;
+
+  if (filter_trivial_isalist && typ_is_trivial(base)) {
+    return 0;
+  }
+  if (filter_nontrivial_isalist && !typ_is_trivial(base)) {
+    return 0;
+  }
+  if (filter_prevent_dyn && typ_isa(base, TBI_PREVENT_DYN)) {
+    return 0;
+  }
+
+  if (typ_is_trivial(base)) {
+    // Trivial interfaces are often empty but refer to definitions in
+    // nontrivial interfaces.
+    filter &= ~ISALIST_FILTER_NONTRIVIAL_ISALIST;
+  }
+
+  filter_nontrivial_isalist = filter & ISALIST_FILTER_NONTRIVIAL_ISALIST;
+
   for (size_t n = 0; n < direct_isalist_count(base); ++n) {
     struct typ *intf = direct_isalist(base, n);
     if (typset_get(set, intf) != NULL) {
       continue;
     }
 
-    const bool filter_not_exported = filter & ISALIST_FILTER_NOT_EXPORTED;
-    const bool filter_exported = filter & ISALIST_FILTER_EXPORTED;
-    const bool filter_trivial_isalist = filter & ISALIST_FILTER_TRIVIAL_ISALIST;
-    const bool filter_prevent_dyn = filter & ISALIST_FILTER_PREVENT_DYN;
     const bool exported = direct_isalist_exported(base, n);
     if (filter_not_exported && !exported) {
       continue;
@@ -674,8 +696,17 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
     if (filter_trivial_isalist && typ_is_trivial(intf)) {
       continue;
     }
+    if (filter_nontrivial_isalist && !typ_is_trivial(intf)) {
+      continue;
+    }
     if (filter_prevent_dyn && typ_isa(intf, TBI_PREVENT_DYN)) {
       continue;
+    }
+
+    if (exported) {
+      filter &= ~ISALIST_FILTER_NOT_EXPORTED;
+    } else {
+      filter &= ~ISALIST_FILTER_EXPORTED;
     }
 
     typset_set(set, intf, true);
@@ -791,19 +822,30 @@ struct typ *TBI_NATIVE_BOOLEAN;
 struct typ *TBI_FLOATING;
 struct typ *TBI_NATIVE_FLOATING;
 struct typ *TBI_HAS_EQUALITY;
+struct typ *TBI_NOT_HAS_EQUALITY;
 struct typ *TBI_ORDERED;
+struct typ *TBI_NOT_ORDERED;
+struct typ *TBI_EQUALITY_BY_COMPARE;
 struct typ *TBI_ORDERED_BY_COMPARE;
 struct typ *TBI_COPYABLE;
+struct typ *TBI_NOT_COPYABLE;
 struct typ *TBI_DEFAULT_CTOR;
+struct typ *TBI_NON_DEFAULT_CTOR;
+struct typ *TBI_DEFAULT_DTOR;
 struct typ *TBI_ARRAY_CTOR;
 struct typ *TBI_TRIVIAL_COPY;
+struct typ *TBI_TRIVIAL_COPY_BUT_OWNED;
 struct typ *TBI_TRIVIAL_CTOR;
 struct typ *TBI_TRIVIAL_ARRAY_CTOR;
 struct typ *TBI_TRIVIAL_DTOR;
+struct typ *TBI_TRIVIAL_COMPARE;
 struct typ *TBI_TRIVIAL_EQUALITY;
 struct typ *TBI_TRIVIAL_ORDER;
 struct typ *TBI_RETURN_BY_COPY;
+struct typ *TBI_NOT_RETURN_BY_COPY;
 struct typ *TBI_ENUM;
+struct typ *TBI_UNION;
+struct typ *TBI_UNION_TRIVIAL_CTOR;
 struct typ *TBI_ITERATOR;
 struct typ *TBI_ENVIRONMENT;
 struct typ *TBI_ANY_ENVIRONMENT;
@@ -1028,11 +1070,11 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
 
   if (is_isalist_literal(a)) {
     for (size_t n = 0; n < direct_isalist_count(a); ++n) {
-      if (!typ_isa(direct_isalist_const(a, n), intf)) {
-        return false;
+      if (typ_isa(direct_isalist_const(a, n), intf)) {
+        return true;
       }
     }
-    return true;
+    return false;
   }
 
   if (is_isalist_literal(intf)) {

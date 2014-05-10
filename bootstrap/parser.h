@@ -91,26 +91,17 @@ const char *node_which_strings[NODE__NUM];
 
 enum builtingen {
   BG__NOT,
-  BG_DEFAULT_CTOR_CTOR,
-  BG_DEFAULT_CTOR_MK,
-  BG_DEFAULT_CTOR_NEW,
   BG_TRIVIAL_CTOR_CTOR,
-  BG_TRIVIAL_CTOR_MK,
-  BG_TRIVIAL_CTOR_NEW,
-  BG_AUTO_MK,
-  BG_AUTO_NEW,
-  BG_AUTO_MKV,
-  BG_AUTO_NEWV,
+  BG_TRIVIAL_DTOR_DTOR,
   BG_TRIVIAL_COPY_COPY_CTOR,
-  BG_TRIVIAL_EQUALITY_OPERATOR_EQ,
-  BG_TRIVIAL_EQUALITY_OPERATOR_NE,
+  BG_TRIVIAL_COMPARE_OPERATOR_COMPARE,
+  BG_ENUM_FROM_TAG,
+  BG_ENUM_TAG,
   BG_ENVIRONMENT_PARENT,
   BG_ENVIRONMENT_INSTALL,
   BG_ENVIRONMENT_UNINSTALL,
   BG__NUM,
 };
-
-const char *builtingen_abspath[BG__NUM];
 
 enum toplevel_flags {
   TOP_IS_EXPORT = 0x1,
@@ -275,6 +266,7 @@ struct node_deftype {
 
   enum deftype_kind kind;
   struct typ *tag_typ;
+  struct node *default_choice;
 };
 struct node_defmethod {
   struct toplevel toplevel;
@@ -883,19 +875,30 @@ enum predefined_idents {
   ID_TBI_FLOATING,
   ID_TBI_NATIVE_FLOATING,
   ID_TBI_HAS_EQUALITY,
+  ID_TBI_NOT_HAS_EQUALITY,
   ID_TBI_ORDERED,
+  ID_TBI_NOT_ORDERED,
+  ID_TBI_EQUALITY_BY_COMPARE,
   ID_TBI_ORDERED_BY_COMPARE,
   ID_TBI_COPYABLE,
+  ID_TBI_NOT_COPYABLE,
   ID_TBI_DEFAULT_CTOR,
+  ID_TBI_NON_DEFAULT_CTOR,
+  ID_TBI_DEFAULT_DTOR,
   ID_TBI_ARRAY_CTOR,
   ID_TBI_TRIVIAL_COPY,
+  ID_TBI_TRIVIAL_COPY_BUT_OWNED,
   ID_TBI_TRIVIAL_CTOR,
   ID_TBI_TRIVIAL_ARRAY_CTOR,
   ID_TBI_TRIVIAL_DTOR,
+  ID_TBI_TRIVIAL_COMPARE,
   ID_TBI_TRIVIAL_EQUALITY,
   ID_TBI_TRIVIAL_ORDER,
   ID_TBI_RETURN_BY_COPY,
+  ID_TBI_NOT_RETURN_BY_COPY,
   ID_TBI_ENUM,
+  ID_TBI_UNION,
+  ID_TBI_UNION_TRIVIAL_CTOR,
   ID_TBI_ITERATOR,
   ID_TBI_ENVIRONMENT,
   ID_TBI_ANY_ENVIRONMENT,
@@ -907,21 +910,21 @@ enum predefined_idents {
   ID_TBI__MERCURIAL,
   ID_TBI__LAST = ID_TBI__MERCURIAL,
 
-  ID_MK,
-  ID_NEW,
   ID_CTOR,
   ID_DTOR,
   ID_COPY_CTOR,
-  ID_MKV,
-  ID_NEWV,
   ID_C,
+  ID_OTHER,
   ID_FROM_STATIC_STRING,
   ID_FROM_BOOL,
+  ID_FROM_ARRAY,
+  ID_FROM_TAG,
   ID_NRETVAL,
   ID_OPERATOR_OR,
   ID_OPERATOR_AND,
   ID_OPERATOR_NOT,
   ID_OPERATOR_TEST,
+  ID_OPERATOR_COMPARE,
   ID_OPERATOR_LE,
   ID_OPERATOR_LT,
   ID_OPERATOR_GT,
@@ -951,6 +954,10 @@ enum predefined_idents {
   ID_OPERATOR_ASSIGN_TIMES,
   ID_OPERATOR_UMINUS,
   ID_OPERATOR_BWNOT,
+  ID_PARENT,
+  ID_INSTALL,
+  ID_UNINSTALL,
+  ID_SHOW,
 
   ID__NUM,
 };
@@ -1217,6 +1224,7 @@ static inline const struct node *parent_const(const struct node *node) {
 
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);
+bool node_is_opaque(const struct node *node);
 bool node_is_export(const struct node *node);
 bool node_is_extern(const struct node *node);
 bool node_is_def(const struct node *node);
@@ -1332,7 +1340,7 @@ int snprint_defincomplete(char *s, size_t len,
                           const struct module *mod, const struct node *dinc);
 
 #define GSTART() \
-  struct node *gparent = NULL
+  unused__ struct node *gparent = NULL
 
 #define G0(var, parent, which, ...) \
   unused__ \

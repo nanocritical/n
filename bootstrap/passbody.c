@@ -115,7 +115,7 @@ static error step_increment_def_name_passed(struct module *mod, struct node *nod
 
 // Scopes are defined over an entire BLOCK, but a name becomes defined only
 // in the statements following its DEFNAME or DEFALIAS within the block.
-static bool local_name_is_scoped(struct module *mod, struct node *node) {
+static bool local_name_is_scoped(struct module *mod, const struct node *node) {
   switch (node->which) {
   case DEFARG:
     return true;
@@ -521,41 +521,6 @@ static error step_type_gather_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_NM(step_rewrite_union_constructors,
-               NM(CALL));
-static error step_rewrite_union_constructors(struct module *mod, struct node *node,
-                                             void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  struct node *fun = subs_first(node);
-  struct node *dfun = typ_definition(fun->typ);
-  if (dfun->which != DEFTYPE
-      || dfun->as.DEFTYPE.kind != DEFTYPE_UNION) {
-    return 0;
-  }
-
-  struct node *member = NULL;
-  error e = scope_lookup(&member, mod, &fun->scope, fun, false);
-  EXCEPT(e);
-  if (member->which != DEFCHOICE) {
-    return 0;
-  }
-
-  struct node *mk_fun = mk_node(mod, node, BIN);
-  node_subs_remove(node, mk_fun);
-  node_subs_replace(node, fun, mk_fun);
-  mk_fun->as.BIN.operator = TDOT;
-  node_subs_append(mk_fun, fun);
-  struct node *mk = mk_node(mod, mk_fun, IDENT);
-  mk->as.IDENT.name = ID_MK;
-
-  const struct node *except[] = { fun, NULL };
-  e = catchup(mod, except, mk_fun, CATCHUP_BELOW_CURRENT);
-  EXCEPT(e);
-
-  return 0;
-}
-
 // Does not itself check that 'explicit_args' are valid types for instantiation.
 // This is done in passfwd.c:validate_genarg_types().
 static error do_instantiate(struct node **result,
@@ -564,6 +529,7 @@ static error do_instantiate(struct node **result,
                             struct typ *t,
                             struct typ **explicit_args, size_t arity,
                             bool tentative) {
+  assert(for_error != NULL);
   assert(arity == 0 || arity == typ_generic_arity(t));
 
   struct node *gendef = typ_definition(t);
@@ -1181,6 +1147,7 @@ static error rewrite_unary_call(struct module *mod, struct node *node, struct ty
 }
 
 static struct node *fully_implicit_instantiation(struct module *mod,
+                                                 const struct node *for_error,
                                                  struct typ *t) {
   assert(typ_is_generic_functor(t));
 
@@ -1191,7 +1158,7 @@ static struct node *fully_implicit_instantiation(struct module *mod,
   }
 
   struct node *i = NULL;
-  error e = instance(&i, mod, NULL, -1,
+  error e = instance(&i, mod, for_error, -1,
                      t, args, gen_arity);
   assert(!e);
   free(args);
@@ -1206,7 +1173,7 @@ static void bin_accessor_maybe_functor(struct module *mod, struct node *par) {
   // fully tentative instance of 'vector' so that the unification of '0:u8'
   // with t:`copyable succeeds.
   if (typ_is_generic_functor(par->typ)) {
-    struct node *i = fully_implicit_instantiation(mod, par->typ);
+    struct node *i = fully_implicit_instantiation(mod, par, par->typ);
     unset_typ(&par->typ);
     set_typ(&par->typ, i->typ);
   }
@@ -1828,7 +1795,7 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
     e = mk_except_type(mod, what,
                        "explicit generic instantion must use a type as functor;"
                        " e.g. not 'self.method i32'"
-                       " but '(my_struct.method i32) self'");
+                       " but '(my_struct.method i32) self' (FIXME: remove this restriction)");
     THROW(e);
   }
 
@@ -1872,7 +1839,7 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
   // Already checked in prepare_call_arguments().
   assert(arity == typ_function_arity(tfun));
 
-  struct node *i = fully_implicit_instantiation(mod, tfun);
+  struct node *i = fully_implicit_instantiation(mod, node, tfun);
 
   size_t n = 0;
   FOREACH_SUB_EVERY(s, node, 1, 1) {
@@ -2090,6 +2057,10 @@ static error type_inference_match(struct module *mod, struct node *node) {
   error e;
 
   struct node *expr = subs_first(node);
+  e = try_insert_automagic_deref(mod, expr);
+  EXCEPT(e);
+  expr = subs_first(node);
+
   FOREACH_SUB_EVERY(s, node, 1, 2) {
     e = unify_match_pattern(mod, expr, s);
     EXCEPT(e);
@@ -2435,6 +2406,9 @@ static error track_ident_use(struct module *mod, struct node *node,
   node->as.IDENT.def = def;
 
   switch (def->which) {
+  case WITHIN:
+    // FIXME: WITHIN should probably also have its own phi_tracker and be
+    // handled like DEFNAME and DEFARG below.
   case DEFGENARG:
   case SETGENARG:
   case DEFFUN:
@@ -2442,17 +2416,26 @@ static error track_ident_use(struct module *mod, struct node *node,
   case DEFTYPE:
   case DEFINTF:
   case DEFALIAS:
+  case DEFCHOICE:
     node->as.IDENT.prev_use = def;
+    return 0;
+  case IMPORT:
     return 0;
 
   case DEFNAME:
+    if (parent_const(parent_const(def))->which == MODULE_BODY) {
+      return 0;
+    }
+    break;
   case DEFARG:
     break;
+
   default:
+    assert(false);
     return 0;
   }
 
-  if (!local_name_is_scoped(mod, def)) {
+  if (node->as.IDENT.non_local_scope == NULL && !local_name_is_scoped(mod, def)) {
     error e = mk_except(mod, node, "identifier '%s' used before its definition",
                         idents_value(mod->gctx, node_ident(node)));
     THROW(e);
@@ -2578,15 +2561,6 @@ static error type_inference_ident(struct module *mod, struct node *node) {
     return 0;
   }
 
-  const enum node_which dparent_which = parent_const(def)->which;
-  if (dparent_which == MODULE || dparent_which == DEFTYPE || dparent_which == DEFINTF) {
-    node->as.IDENT.non_local_scope = &parent(def)->scope;
-  } else if (def->flags & NODE_IS_GLOBAL_LET) {
-    node->as.IDENT.non_local_scope = &parent(parent(parent(def)))->scope;
-  }
-  e = track_ident_use(mod, node, def);
-  EXCEPT(e);
-
   if (def->which == DEFFIELD) {
     e = mk_except(mod, node,
                   "fields identifiers must be accessed through 'self'");
@@ -2600,12 +2574,21 @@ static error type_inference_ident(struct module *mod, struct node *node) {
 
   if (def->typ == NULL) {
     e = mk_except(mod, node,
-                  "identifer '%s' used before definition",
+                  "identifier '%s' used before its definition",
                   idents_value(mod->gctx, node_ident(node)));
     THROW(e);
   }
 
-  assert(def->which != DEFNAME || def->typ != NULL);
+  if (parent_const(def)->which == MODULE_BODY
+      || parent_const(def)->which == DEFTYPE
+      || parent_const(def)->which == DEFINTF) {
+    node->as.IDENT.non_local_scope = &parent(def)->scope;
+  } else if (def->flags & NODE_IS_GLOBAL_LET) {
+    node->as.IDENT.non_local_scope = &parent(parent(parent(def)))->scope;
+  }
+
+  e = track_ident_use(mod, node, def);
+  EXCEPT(e);
 
   if (typ_is_function(def->typ) && node->typ != TBI__CALL_FUNCTION_SLOT) {
     if (node_fun_min_args_count(typ_definition(def->typ)) != 0) {
@@ -3399,8 +3382,7 @@ static error step_weak_literal_conversion(struct module *mod, struct node *node,
   return 0;
 }
 
-static enum token_type operator_call_arg_refop(const struct module *mod,
-                                               const struct typ *tfun, size_t n) {
+static enum token_type operator_call_arg_refop(const struct typ *tfun, size_t n) {
   const struct typ *arg0 = typ_generic_functor_const(typ_function_arg_const(tfun, n));
   assert(arg0 != NULL && typ_is_reference(arg0));
 
@@ -3430,11 +3412,11 @@ static error gen_operator_call(struct module *mod, struct node *node,
 
   const struct node *except[3] = { NULL, NULL, NULL };
   except[0] = left;
-  expr_ref(mod, node, operator_call_arg_refop(mod, tfun, 0), left);
+  expr_ref(mod, node, operator_call_arg_refop(tfun, 0), left);
 
   if (right != NULL) {
     except[1] = right;
-    expr_ref(mod, node, operator_call_arg_refop(mod, tfun, 1), right);
+    expr_ref(mod, node, operator_call_arg_refop(tfun, 1), right);
   }
 
   error e = catchup(mod, except, node, catchup_for);
@@ -3546,17 +3528,15 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
 
   node_set_which(node, CALL);
 
-  struct node *fun = mk_node(mod, node, DIRECTDEF);
-  set_typ(&fun->as.DIRECTDEF.typ,
-          node_get_member(mod, typ_definition(saved_typ), ID_MKV)->typ);
-  fun->as.DIRECTDEF.flags = NODE_IS_TYPE;
+  struct typ *tfun = node_get_member(mod, typ_definition(saved_typ), ID_FROM_ARRAY)->typ;
+  set_typ(&array->typ, typ_generic_arg(typ_function_arg(tfun, 0), 0));
 
-  struct node *ref_array = mk_node(mod, node, UN);
-  ref_array->as.UN.operator = TREFDOT;
-
-  node_subs_append(ref_array, array);
-  set_typ(&array->typ,
-          typ_generic_arg(typ_function_arg(fun->as.DIRECTDEF.typ, 0), 0));
+  GSTART();
+  G0(fun, node, DIRECTDEF,
+     fun->as.DIRECTDEF.typ = tfun);
+  G0(ref_array, node, UN,
+     ref_array->as.UN.operator = TREFDOT;
+     node_subs_append(ref_array, array));
 
   const struct node *except[] = { array, NULL };
   error e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
@@ -3570,6 +3550,7 @@ static STEP_NM(step_dtor_call_inference,
 static error step_dtor_call_inference(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
+  // FIXME
   return 0;
 }
 
@@ -4147,7 +4128,6 @@ error passbody0(struct module *mod, struct node *root,
     DOWN_STEP(step_branching_block_down);
     DOWN_STEP(step_branching_block_down_phi);
     ,
-    UP_STEP(step_rewrite_union_constructors);
     UP_STEP(step_detect_not_dyn_intf_up);
     UP_STEP(step_type_inference);
     UP_STEP(step_type_drop_excepts);

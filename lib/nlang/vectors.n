@@ -1,16 +1,16 @@
 from nlang import *
 import nlang.unsafe
-from nlang.sysheap import heap sysheap
+from nlang.sysheap import sysheap heap
 
 export opaque struct vector t:`copyable =
   export isa `trivial_ctor (`array_ctor t) `copyable
   p:(slice t)
   c:size
 
-export inline vector method@# `array_ctor.ctorv c:@(static_array t) = void
-  self#reserve c.count
+export inline vector fun from_array c:@(static_array t) = r:this
+  r#reserve c.count
   for i in c.all.iter
-    self#push (c.at i).
+    r#push (c.at i).
 
 export inline vector method@ count = size
   return self.c

@@ -1,8 +1,7 @@
 from nlang import *
 
 union u =
-  isa `trivial_ctor
-  | A
+  | A = 0
   | B
     x	:i32
   | C

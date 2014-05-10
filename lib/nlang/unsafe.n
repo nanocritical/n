@@ -6,6 +6,6 @@ export (fun t:`any nr:(`any_nullable_ref t) r:(`any_ref t)) nonnull a:nr = r
   assert <- a !== null
   return (cast nr r) a
 
-export extern struct voidref = -- FIXME implement
-export extern struct voidmref = -- FIXME implement
-export extern struct voidmmref = -- FIXME implement
+export extern inline struct voidref = -- FIXME implement
+export extern inline struct voidmref = -- FIXME implement
+export extern inline struct voidmmref = -- FIXME implement

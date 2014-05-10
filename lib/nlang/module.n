@@ -9,7 +9,7 @@ fun write_buf fd:i32 s:@u8 count:size = void
 
 export fun vpr v:@!(vararg @`show) ?err:?@bool ?sep:?@string = void
   let separator = optional_ref sep ' '
-  let s = string.mk
+  let s = {}:string
   such
     for x in v!
       x.show @#s

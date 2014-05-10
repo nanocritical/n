@@ -1,8 +1,7 @@
 from nlang import *
 
 enum enu =
-  isa `trivial_ctor
-  | A
+  | A = 0
   | B
 
 fun foo n:enu = i32
@@ -12,8 +11,8 @@ fun foo n:enu = i32
 
 fun bar n:enu = i32
   match n
-  | A -> return 0
-  | _ -> return 1
+  | A -> say n; return 0
+  | _ -> say n; return 1
 
 struct t =
   x	:enu

@@ -209,7 +209,8 @@ static error use_isalist_scope_lookup(struct module *mod,
                                             st->id, false, true);
 
   if (!e) {
-    if (result->which == DEFFUN || result->which == DEFMETHOD) {
+    if (result->which == DEFFUN || result->which == DEFMETHOD
+        || result->which == DEFALIAS) {
       st->result = result;
       *stop = true;
     }
@@ -224,7 +225,9 @@ static error do_scope_lookup_ident_immediate(struct node **result,
                                              const struct scope *scope, ident id,
                                              bool allow_isalist, bool failure_ok) {
   const bool use_isalist = allow_isalist
-    && scope_node_const(scope)->which == DEFINTF
+    && (scope_node_const(scope)->which == DEFINTF
+        || (scope_node_const(scope)->which == DEFINCOMPLETE
+            && scope_node_const(scope)->as.DEFINCOMPLETE.is_isalist_literal))
     && scope_node_const(scope)->typ != NULL;
 
   assert(id != ID__NONE);

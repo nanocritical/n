@@ -58,6 +58,7 @@ bool typ_is_reference(const struct typ *t);
 bool typ_is_nullable_reference(const struct typ *t);
 error typ_check_is_reference(const struct module *mod, const struct node *for_error,
                              const struct typ *a);
+
 bool typ_is_dyn(const struct typ *t);
 bool typ_is_dyn_compatible(const struct typ *t);
 error typ_check_can_deref(const struct module *mod, const struct node *for_error,
@@ -76,7 +77,8 @@ enum isalist_filter {
   ISALIST_FILTER_NOT_EXPORTED = 0x1,
   ISALIST_FILTER_EXPORTED = 0x2,
   ISALIST_FILTER_TRIVIAL_ISALIST = 0x4,
-  ISALIST_FILTER_PREVENT_DYN = 0x8,
+  ISALIST_FILTER_NONTRIVIAL_ISALIST = 0x8,
+  ISALIST_FILTER_PREVENT_DYN = 0x10,
 };
 typedef error (*isalist_each)(struct module *mod, struct typ *t, struct typ *intf,
                               bool *stop, void *user);
@@ -154,19 +156,30 @@ extern struct typ *TBI_NATIVE_BOOLEAN;
 extern struct typ *TBI_FLOATING;
 extern struct typ *TBI_NATIVE_FLOATING;
 extern struct typ *TBI_HAS_EQUALITY;
+extern struct typ *TBI_NOT_HAS_EQUALITY;
 extern struct typ *TBI_ORDERED;
+extern struct typ *TBI_NOT_ORDERED;
+extern struct typ *TBI_EQUALITY_BY_COMPARE;
 extern struct typ *TBI_ORDERED_BY_COMPARE;
 extern struct typ *TBI_COPYABLE;
+extern struct typ *TBI_NOT_COPYABLE;
 extern struct typ *TBI_DEFAULT_CTOR;
+extern struct typ *TBI_NON_DEFAULT_CTOR;
+extern struct typ *TBI_DEFAULT_DTOR;
 extern struct typ *TBI_ARRAY_CTOR;
 extern struct typ *TBI_TRIVIAL_COPY;
+extern struct typ *TBI_TRIVIAL_COPY_BUT_OWNED;
 extern struct typ *TBI_TRIVIAL_CTOR;
 extern struct typ *TBI_TRIVIAL_ARRAY_CTOR;
 extern struct typ *TBI_TRIVIAL_DTOR;
+extern struct typ *TBI_TRIVIAL_COMPARE;
 extern struct typ *TBI_TRIVIAL_EQUALITY;
 extern struct typ *TBI_TRIVIAL_ORDER;
 extern struct typ *TBI_RETURN_BY_COPY;
+extern struct typ *TBI_NOT_RETURN_BY_COPY;
 extern struct typ *TBI_ENUM;
+extern struct typ *TBI_UNION;
+extern struct typ *TBI_UNION_TRIVIAL_CTOR;
 extern struct typ *TBI_ITERATOR;
 extern struct typ *TBI_ENVIRONMENT;
 extern struct typ *TBI_ANY_ENVIRONMENT;

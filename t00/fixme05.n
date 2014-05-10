@@ -1,7 +1,12 @@
 from nlang import *
 
+struct prevent_copy =
+  isa `not_copyable
+  x	:i32
+
 struct nocopy =
-  x:i32
+  dummy	:prevent_copy
+  x	:i32
 
 fun bar = r:nocopy
   r!x = 0

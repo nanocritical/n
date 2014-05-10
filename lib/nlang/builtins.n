@@ -19,18 +19,18 @@ export intf `prevent_dyn =
 
 export intf `copyable =
   method@# copy_ctor other:@final = void
-
+export intf `not_copyable =
 export intf `copyable_but_owned =
   isa `copyable -- FIXME
 export intf `trivial_copy =
   isa `copyable
 export intf `trivial_copy_but_owned =
-  isa `trivial_copy `copyable_but_owned
+  isa `trivial_copy -- FIXME
 export intf `return_by_copy =
+export intf `not_return_by_copy =
 export intf `default_ctor =
   method@# ctor = void
-  fun mk = r:final
-  fun new = @#final
+export intf `non_default_ctor =
 
 export intf `default_dtor =
   method@# dtor = void
@@ -43,24 +43,36 @@ export intf `trivial_dtor =
   isa `default_dtor
 
 export intf `matchable =
+export intf `has_compare =
+  -- The relation defined by `has_compare.operator_compare may be a partial
+  -- order, or maybe not an order, or maybe not even an equality.
+  -- `equality_by_compare and `ordered_by_compare must be used to indicate what
+  -- this relation actually is.
+  method@ operator_compare other:@final = i32
+export intf `trivial_compare =
+  isa `has_compare
 export intf `has_equality =
-  isa `matchable
+  isa `has_compare `matchable
   method@ operator_eq other:@final = bool
   method@ operator_ne other:@final = bool
+export intf `not_has_equality =
+export intf `equality_by_compare =
+  -- Compiler generates operator_{eq,ne}.
+  isa `has_compare `has_equality
 export intf `trivial_equality =
-  isa `has_equality
-export intf `has_compare =
-  method@ operator_compare other:@final = i32
+  isa `trivial_compare `equality_by_compare
 export intf `ordered =
-  isa `has_equality
+  isa `has_equality `has_compare
   method@ operator_le other:@final = bool
   method@ operator_lt other:@final = bool
   method@ operator_gt other:@final = bool
   method@ operator_ge other:@final = bool
-export intf `trivial_order =
-  isa `ordered `trivial_equality
+export intf `not_ordered =
 export intf `ordered_by_compare =
-  isa `has_compare `ordered `has_equality
+  -- Compiler generates operator_{le,lt,gt,ge}.
+  isa `has_compare `ordered
+export intf `trivial_order =
+  isa `trivial_compare `ordered_by_compare
 export intf `arithmetic =
   method@ operator_plus other:@final = final
   method@ operator_minus other:@final = final
@@ -95,11 +107,11 @@ export intf `sum_order =
   isa `ordered
 
 
-export extern struct void =
-  export isa `return_by_copy `trivial_copy
+export extern inline struct void =
+  export isa `return_by_copy `trivial_copy `prevent_dyn
 
 export intf `any_any_ref =
-  isa `return_by_copy `trivial_copy `trivial_equality
+  isa `return_by_copy `trivial_copy_but_owned `trivial_equality
 export intf `any_ref t:`any =
   isa `any_any_ref
 export intf `any_mutable_ref t:`any =
@@ -325,7 +337,9 @@ export intf `unsigned_integer =
   isa `integer
 
 export intf `native_integer =
-  isa `trivial_ctor `trivial_dtor `trivial_copy `trivial_order `return_by_copy `integer `show
+  isa `trivial_ctor `trivial_dtor `trivial_copy `trivial_order `return_by_copy \
+      `integer `show
+
 
 export intf `native_signed_integer =
   isa `signed_integer `native_integer
@@ -344,41 +358,40 @@ export intf `bool_compatible =
   fun from_bool b:bool = final
 
 export intf `native_boolean =
-  isa `trivial_ctor `trivial_copy `return_by_copy `generalized_boolean `bool_compatible `show
+  isa `trivial_ctor `trivial_dtor `trivial_copy `return_by_copy `generalized_boolean \
+      `trivial_order `bool_compatible `show
 
 export intf `floating =
   isa `numeric `has_compare
 
 export intf `native_floating =
-  isa `trivial_ctor `trivial_copy `return_by_copy `floating `show
+  isa `trivial_ctor `trivial_dtor `trivial_copy `return_by_copy \
+      `floating `show
 
 export intf `enum =
-  isa `trivial_order `trivial_equality `trivial_copy `return_by_copy -- FIXME: `show
+  isa `trivial_order `trivial_equality `trivial_copy `return_by_copy `trivial_dtor `show
   alias tag_type = `integer
--- FIXME:
---  method@! with_tag t:final.tag_type = void
---  method@ tag = final.tag_type
+  fun from_tag value:final.tag_type = final
+  method@ tag = final.tag_type
 
 export intf `union =
-  isa `return_by_copy
   alias tag_type = `integer
   method@ tag = final.tag_type
 
-export extern struct bool =
+export intf `union_trivial_ctor =
+  isa `union `trivial_ctor
+  fun from_tag value:final.tag_type = final
+
+export extern inline struct bool =
   export isa `native_boolean
-export extern bool method@# `copyable.copy_ctor other:@this = void
 export extern bool method@ `has_equality.operator_eq other:@this = bool
 export extern bool method@ `has_equality.operator_ne other:@this = bool
-export extern bool method@ `has_compare.operator_compare other:@this = i32
 export extern bool method@ `ordered.operator_le other:@this = bool
 export extern bool method@ `ordered.operator_lt other:@this = bool
 export extern bool method@ `ordered.operator_gt other:@this = bool
 export extern bool method@ `ordered.operator_ge other:@this = bool
 export bool fun from_bool b:bool = this
   return b
-export extern bool method@ operator_or other:@this = this
-export extern bool method@ operator_and other:@this = this
-export extern bool method@ operator_not = this
 export extern bool method@ `generalized_boolean.operator_test = bool
 export extern bool method@ to_u8 = u8
 export extern bool method@ to_u16 = u16
@@ -386,14 +399,12 @@ export extern bool method@ to_u32 = u32
 export extern bool method@ to_u64 = u64
 export extern bool method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i8 =
+export extern inline struct i8 =
   export isa `native_signed_integer
   alias this_signed = this
   alias this_unsigned = u8
-export extern i8 method@# `copyable.copy_ctor other:@this = void
 export extern i8 method@ `has_equality.operator_eq other:@this = bool
 export extern i8 method@ `has_equality.operator_ne other:@this = bool
-export extern i8 method@ `has_compare.operator_compare other:@this = i32
 export extern i8 method@ `ordered.operator_le other:@this = bool
 export extern i8 method@ `ordered.operator_lt other:@this = bool
 export extern i8 method@ `ordered.operator_gt other:@this = bool
@@ -428,14 +439,12 @@ export extern inline i8 method@ to_i64 = i64
 export extern inline i8 method@ `integer.as_ssize = ssize
 export extern i8 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i16 =
+export extern inline struct i16 =
   export isa `native_signed_integer
   alias this_signed = this
   alias this_unsigned = u16
-export extern i16 method@# `copyable.copy_ctor other:@this = void
 export extern i16 method@ `has_equality.operator_eq other:@this = bool
 export extern i16 method@ `has_equality.operator_ne other:@this = bool
-export extern i16 method@ `has_compare.operator_compare other:@this = i32
 export extern i16 method@ `ordered.operator_le other:@this = bool
 export extern i16 method@ `ordered.operator_lt other:@this = bool
 export extern i16 method@ `ordered.operator_gt other:@this = bool
@@ -470,14 +479,12 @@ export extern inline i16 method@ to_i64 = i64
 export extern inline i16 method@ `integer.as_ssize = ssize
 export extern i16 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i32 =
+export extern inline struct i32 =
   export isa `native_signed_integer
   alias this_signed = this
   alias this_unsigned = u32
-export extern i32 method@# `copyable.copy_ctor other:@this = void
 export extern i32 method@ `has_equality.operator_eq other:@this = bool
 export extern i32 method@ `has_equality.operator_ne other:@this = bool
-export extern i32 method@ `has_compare.operator_compare other:@this = i32
 export extern i32 method@ `ordered.operator_le other:@this = bool
 export extern i32 method@ `ordered.operator_lt other:@this = bool
 export extern i32 method@ `ordered.operator_gt other:@this = bool
@@ -514,14 +521,12 @@ export extern inline i32 method@ trim_float = float
 export extern inline i32 method@ to_double = double
 export extern i32 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct i64 =
+export extern inline struct i64 =
   export isa `native_signed_integer
   alias this_signed = this
   alias this_unsigned = u64
-export extern i64 method@# `copyable.copy_ctor other:@this = void
 export extern i64 method@ `has_equality.operator_eq other:@this = bool
 export extern i64 method@ `has_equality.operator_ne other:@this = bool
-export extern i64 method@ `has_compare.operator_compare other:@this = i32
 export extern i64 method@ `ordered.operator_le other:@this = bool
 export extern i64 method@ `ordered.operator_lt other:@this = bool
 export extern i64 method@ `ordered.operator_gt other:@this = bool
@@ -558,14 +563,12 @@ export extern inline i64 method@ trim_float = float
 export extern inline i64 method@ trim_double = double
 export extern i64 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u8 =
+export extern inline struct u8 =
   export isa `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i8
-export extern u8 method@# `copyable.copy_ctor other:@this = void
 export extern u8 method@ `has_equality.operator_eq other:@this = bool
 export extern u8 method@ `has_equality.operator_ne other:@this = bool
-export extern u8 method@ `has_compare.operator_compare other:@this = i32
 export extern u8 method@ `ordered.operator_le other:@this = bool
 export extern u8 method@ `ordered.operator_lt other:@this = bool
 export extern u8 method@ `ordered.operator_gt other:@this = bool
@@ -602,14 +605,12 @@ export extern inline u8 method@ to_float = float
 export extern inline u8 method@ to_double = double
 export extern u8 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u16 =
+export extern inline struct u16 =
   export isa `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i16
-export extern u16 method@# `copyable.copy_ctor other:@this = void
 export extern u16 method@ `has_equality.operator_eq other:@this = bool
 export extern u16 method@ `has_equality.operator_ne other:@this = bool
-export extern u16 method@ `has_compare.operator_compare other:@this = i32
 export extern u16 method@ `ordered.operator_le other:@this = bool
 export extern u16 method@ `ordered.operator_lt other:@this = bool
 export extern u16 method@ `ordered.operator_gt other:@this = bool
@@ -646,14 +647,12 @@ export extern inline u16 method@ to_float = float
 export extern inline u16 method@ to_double = double
 export extern u16 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u32 =
+export extern inline struct u32 =
   export isa `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i32
-export extern u32 method@# `copyable.copy_ctor other:@this = void
 export extern u32 method@ `has_equality.operator_eq other:@this = bool
 export extern u32 method@ `has_equality.operator_ne other:@this = bool
-export extern u32 method@ `has_compare.operator_compare other:@this = i32
 export extern u32 method@ `ordered.operator_le other:@this = bool
 export extern u32 method@ `ordered.operator_lt other:@this = bool
 export extern u32 method@ `ordered.operator_gt other:@this = bool
@@ -690,14 +689,12 @@ export extern inline u32 method@ trim_float = float
 export extern inline u32 method@ to_double = double
 export extern u32 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct u64 =
+export extern inline struct u64 =
   export isa `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = i64
-export extern u64 method@# `copyable.copy_ctor other:@this = void
 export extern u64 method@ `has_equality.operator_eq other:@this = bool
 export extern u64 method@ `has_equality.operator_ne other:@this = bool
-export extern u64 method@ `has_compare.operator_compare other:@this = i32
 export extern u64 method@ `ordered.operator_le other:@this = bool
 export extern u64 method@ `ordered.operator_lt other:@this = bool
 export extern u64 method@ `ordered.operator_gt other:@this = bool
@@ -734,14 +731,12 @@ export extern inline u64 method@ trim_float = float
 export extern inline u64 method@ trim_double = double
 export extern u64 method@ `show.show buf:@#`string_buffer = void
 
-export extern struct ssize =
+export extern inline struct ssize =
   export isa `native_signed_integer
   alias this_signed = this
   alias this_unsigned = size
-export extern ssize method@# `copyable.copy_ctor other:@this = void
 export extern ssize method@ `has_equality.operator_eq other:@this = bool
 export extern ssize method@ `has_equality.operator_ne other:@this = bool
-export extern ssize method@ `has_compare.operator_compare other:@this = i32
 export extern ssize method@ `ordered.operator_le other:@this = bool
 export extern ssize method@ `ordered.operator_lt other:@this = bool
 export extern ssize method@ `ordered.operator_gt other:@this = bool
@@ -780,14 +775,12 @@ export extern ssize method@ `show.show buf:@#`string_buffer = void
 
 -- FIXME: size and ssize do not have a well-defined bit size, they therefore
 -- should not be `bitwise.
-export extern struct size =
+export extern inline struct size =
   export isa `native_unsigned_integer
   alias this_unsigned = this
   alias this_signed = ssize
-export extern size method@# `copyable.copy_ctor other:@this = void
 export extern size method@ `has_equality.operator_eq other:@this = bool
 export extern size method@ `has_equality.operator_ne other:@this = bool
-export extern size method@ `has_compare.operator_compare other:@this = i32
 export extern size method@ `ordered.operator_le other:@this = bool
 export extern size method@ `ordered.operator_lt other:@this = bool
 export extern size method@ `ordered.operator_gt other:@this = bool
@@ -824,12 +817,10 @@ export extern inline size method@ trim_float = float
 export extern inline size method@ trim_double = double
 export extern size method@ `show.show buf:@#`string_buffer = void
 
-export extern struct float =
+export extern inline struct float =
   export isa `native_floating
-export extern float method@# `copyable.copy_ctor other:@this = void
 export extern float method@ `has_equality.operator_eq other:@this = bool
 export extern float method@ `has_equality.operator_ne other:@this = bool
-export extern float method@ `has_compare.operator_compare other:@this = i32
 export extern float method@ `ordered.operator_le other:@this = bool
 export extern float method@ `ordered.operator_lt other:@this = bool
 export extern float method@ `ordered.operator_gt other:@this = bool
@@ -853,12 +844,10 @@ export extern inline float method@ to_double = double
 export extern inline float method@ as_ssize = ssize
 export extern float method@ `show.show buf:@#`string_buffer = void
 
-export extern struct double =
+export extern inline struct double =
   export isa `native_floating
-export extern double method@# `copyable.copy_ctor other:@this = void
 export extern double method@ `has_equality.operator_eq other:@this = bool
 export extern double method@ `has_equality.operator_ne other:@this = bool
-export extern double method@ `has_compare.operator_compare other:@this = i32
 export extern double method@ `ordered.operator_le other:@this = bool
 export extern double method@ `ordered.operator_lt other:@this = bool
 export extern double method@ `ordered.operator_gt other:@this = bool
@@ -882,17 +871,11 @@ export extern inline double method@ trim_float = float
 export extern inline double method@ as_ssize = ssize
 export extern double method@ `show.show buf:@#`string_buffer = void
 
-export intf `auto_ctor =
-  fun mk = r:final
-  fun new = @#final
-
 export intf `trivial_array_ctor t:`copyable =
-  isa (`array_ctor t)
+  isa (`array_ctor t) `prevent_dyn
 
 export intf `array_ctor t:`copyable =
-  method@# ctorv c:@(static_array t) = void
-  fun mkv c:@(static_array t) = r:final
-  fun newv c:@(static_array t) = @#final
+  fun from_array c:@(static_array t) = final
 
 extern inline fun static_array_at_byte dp:@!u8 off:size = @!u8
 
@@ -959,34 +942,16 @@ export inline (fun t:`numeric) max a:t b:t = t
 
 
 export intf `error =
-  isa `trivial_ctor `copyable `generalized_boolean `show
+  isa `copyable `generalized_boolean `show
 
 export inline struct error =
-  export isa `error `trivial_copy `trivial_ctor
+  export isa `error
   code	:i32
 
   export inline let OK = {}:error
 
 export error method@ `generalized_boolean.operator_test = bool
   return self.code != 0
-
-export error method@ `has_equality.operator_eq other:@final = bool
-  return self.code == other.code
-
-export error method@ `has_equality.operator_ne other:@final = bool
-  return self.code != other.code
-
-export error method@ `ordered.operator_le other:@final = bool
-  return self.code <= other.code
-
-export error method@ `ordered.operator_lt other:@final = bool
-  return self.code < other.code
-
-export error method@ `ordered.operator_gt other:@final = bool
-  return self.code > other.code
-
-export error method@ `ordered.operator_ge other:@final = bool
-  return self.code >= other.code
 
 export error method@ `show.show buf:@#`string_buffer = void
   self.code.show buf
@@ -1000,7 +965,7 @@ export (fun e:`error) fatal err:e = void
 
 
 export extern inline struct valist =
-  isa `trivial_copy `trivial_ctor
+  export isa `trivial_copy `trivial_ctor
 
 intf `no_dyn_iterator r:`any_any_ref =
   isa (`iterator r) `prevent_dyn

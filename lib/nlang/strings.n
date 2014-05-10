@@ -1,5 +1,6 @@
 from nlang import *
 from nlang.vectors import vector
+from nlang.sysheap import heap sysheap
 import nlang.unsafe
 
 export opaque struct string =
@@ -19,7 +20,7 @@ export string method@ `const_string.get_char n:size = char
   return char.from_ascii (self.bytes.at n).
 
 export string method@ `const_string.substring r:index_range = @`const_string
-  let sub = string.new
+  let sub = (heap.alloc string) @!sysheap
   such
     let mem = self.bytes.storage.sub r
     sub.bytes#append_slice mem

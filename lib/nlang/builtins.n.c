@@ -15,8 +15,6 @@ static void native_write_buffer(nlang$chars$_$Ni_string_buffer buf, const char *
   NB(bool) t##$operator_eq(const t *self, const t *other) { return *self == *other; } \
   NB(bool) t##$operator_ne(const t *self, const t *other) { return *self != *other; } \
   \
-  NB(i32) t##$operator_compare(const t *self, const t *other) { return memcmp(self, other, sizeof(*self)); } \
-  \
   NB(bool) t##$operator_le(const t *self, const t *other) { return *self <= * other; } \
   NB(bool) t##$operator_lt(const t *self, const t *other) { return *self < * other; } \
   NB(bool) t##$operator_gt(const t *self, const t *other) { return *self > * other; } \
@@ -27,7 +25,6 @@ static void native_write_buffer(nlang$chars$_$Ni_string_buffer buf, const char *
   t t##$operator_and(const t *self, const t *other) { return *self && *other; } \
   t t##$operator_not(const t *self) { return ! *self; } \
   \
-  void t##$copy_ctor(t *self, const t *other) { *self = *other; } \
   void t##$show(const t *self, nlang$chars$_$Ni_string_buffer buf) { \
     native_write_buffer(buf, *self ? "true" : "false"); \
   }
@@ -43,8 +40,6 @@ static void native_write_buffer(nlang$chars$_$Ni_string_buffer buf, const char *
 #define define_native_integer(t) \
   NB(bool) t##$operator_eq(const t *self, const t *other) { return *self == *other; } \
   NB(bool) t##$operator_ne(const t *self, const t *other) { return *self != *other; } \
-  \
-  NB(i32) t##$operator_compare(const t *self, const t *other) { return memcmp(self, other, sizeof(*self)); } \
   \
   NB(bool) t##$operator_le(const t *self, const t *other) { return *self <= * other; } \
   NB(bool) t##$operator_lt(const t *self, const t *other) { return *self < * other; } \
@@ -73,15 +68,11 @@ static void native_write_buffer(nlang$chars$_$Ni_string_buffer buf, const char *
   NB(void) t##$operator_assign_bwxor(t *self, const t *other) { *self ^= *other; } \
   NB(void) t##$operator_assign_bwand(t *self, const t *other) { *self &= *other; } \
   NB(void) t##$operator_assign_lshift(t *self, const NB(u32) by) { *self <<= by; } \
-  NB(void) t##$operator_assign_rshift(t *self, const NB(u32) by) { *self >>= by; } \
-  \
-  void t##$copy_ctor(t *self, const t *other) { *self = * other; }
+  NB(void) t##$operator_assign_rshift(t *self, const NB(u32) by) { *self >>= by; }
 
 #define define_native_floating(t) \
   NB(bool) t##$operator_eq(const t *self, const t *other) { return *self == *other; } \
   NB(bool) t##$operator_ne(const t *self, const t *other) { return *self != *other; } \
-  \
-  NB(i32) t##$operator_compare(const t *self, const t *other) { return memcmp(self, other, sizeof(*self)); } \
   \
   NB(bool) t##$operator_le(const t *self, const t *other) { return *self <= * other; } \
   NB(bool) t##$operator_lt(const t *self, const t *other) { return *self < * other; } \
@@ -92,9 +83,7 @@ static void native_write_buffer(nlang$chars$_$Ni_string_buffer buf, const char *
   t t##$operator_minus(const t *self, const t *other) { return *self - *other; } \
   t t##$operator_divide(const t *self, const t *other) { return *self / *other; } \
   t t##$operator_times(const t *self, const t *other) { return *self * *other; } \
-  t t##$operator_uminus(const t *self) { return - *self; } \
-  \
-  void t##$copy_ctor(t *self, const t *other) { *self = * other; }
+  t t##$operator_uminus(const t *self) { return - *self; }
 
 define_native_boolean(nlang$builtins$bool)
 define_native_integer(nlang$builtins$i8)

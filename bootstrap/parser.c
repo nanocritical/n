@@ -269,19 +269,30 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_FLOATING] = "`floating",
   [ID_TBI_NATIVE_FLOATING] = "`native_floating",
   [ID_TBI_HAS_EQUALITY] = "`has_equality",
+  [ID_TBI_NOT_HAS_EQUALITY] = "`not_has_equality",
   [ID_TBI_ORDERED] = "`ordered",
+  [ID_TBI_NOT_ORDERED] = "`not_ordered",
+  [ID_TBI_EQUALITY_BY_COMPARE] = "`equality_by_compare",
   [ID_TBI_ORDERED_BY_COMPARE] = "`ordered_by_compare",
   [ID_TBI_COPYABLE] = "`copyable",
+  [ID_TBI_NOT_COPYABLE] = "`not_copyable",
   [ID_TBI_DEFAULT_CTOR] = "`default_ctor",
+  [ID_TBI_NON_DEFAULT_CTOR] = "`non_default_ctor",
+  [ID_TBI_DEFAULT_DTOR] = "`default_dtor",
   [ID_TBI_ARRAY_CTOR] = "`array_ctor",
   [ID_TBI_TRIVIAL_COPY] = "`trivial_copy",
+  [ID_TBI_TRIVIAL_COPY_BUT_OWNED] = "`trivial_copy_but_owned",
   [ID_TBI_TRIVIAL_CTOR] = "`trivial_ctor",
   [ID_TBI_TRIVIAL_ARRAY_CTOR] = "`trivial_array_ctor",
   [ID_TBI_TRIVIAL_DTOR] = "`trivial_dtor",
+  [ID_TBI_TRIVIAL_COMPARE] = "`trivial_compare",
   [ID_TBI_TRIVIAL_EQUALITY] = "`trivial_equality",
   [ID_TBI_TRIVIAL_ORDER] = "`trivial_order",
   [ID_TBI_RETURN_BY_COPY] = "`return_by_copy",
+  [ID_TBI_NOT_RETURN_BY_COPY] = "`not_return_by_copy",
   [ID_TBI_ENUM] = "`enum",
+  [ID_TBI_UNION] = "`union",
+  [ID_TBI_UNION_TRIVIAL_CTOR] = "`union_trivial_ctor",
   [ID_TBI_ITERATOR] = "`iterator",
   [ID_TBI_ENVIRONMENT] = "`environment",
   [ID_TBI_ANY_ENVIRONMENT] = "`any_environment",
@@ -290,21 +301,21 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI__CALL_FUNCTION_SLOT] = "__call_function_slot__",
   [ID_TBI__MUTABLE] = "__mutable__",
   [ID_TBI__MERCURIAL] = "__mercurial__",
-  [ID_MK] = "mk",
-  [ID_NEW] = "new",
   [ID_CTOR] = "ctor",
   [ID_DTOR] = "dtor",
   [ID_COPY_CTOR] = "copy_ctor",
-  [ID_MKV] = "mkv",
-  [ID_NEWV] = "newv",
   [ID_C] = "c",
+  [ID_OTHER] = "other",
   [ID_FROM_STATIC_STRING] = "from_static_string",
   [ID_FROM_BOOL] = "from_bool",
+  [ID_FROM_ARRAY] = "from_array",
+  [ID_FROM_TAG] = "from_tag",
   [ID_NRETVAL] = "_nretval",
   [ID_OPERATOR_OR] = "operator_or",
   [ID_OPERATOR_AND] = "operator_and",
   [ID_OPERATOR_NOT] = "operator_not",
   [ID_OPERATOR_TEST] = "operator_test",
+  [ID_OPERATOR_COMPARE] = "operator_compare",
   [ID_OPERATOR_LE] = "operator_le",
   [ID_OPERATOR_LT] = "operator_lt",
   [ID_OPERATOR_GT] = "operator_gt",
@@ -334,27 +345,10 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_OPERATOR_ASSIGN_TIMES] = "operator_assign_times",
   [ID_OPERATOR_UMINUS] = "operator_uminus",
   [ID_OPERATOR_BWNOT] = "operator_bwnot",
-};
-
-const char *builtingen_abspath[BG__NUM] = {
-  [BG_DEFAULT_CTOR_CTOR] = "nlang.builtins.`default_ctor.ctor",
-  [BG_DEFAULT_CTOR_MK] = "nlang.builtins.`default_ctor.mk",
-  [BG_DEFAULT_CTOR_NEW] = "nlang.builtins.`default_ctor.new",
-  [BG_TRIVIAL_CTOR_CTOR] = "nlang.builtins.`trivial_ctor.ctor",
-  [BG_TRIVIAL_CTOR_MK] = "nlang.builtins.`trivial_ctor.mk",
-  [BG_TRIVIAL_CTOR_NEW] = "nlang.builtins.`trivial_ctor.new",
-  [BG_AUTO_MK] = "nlang.builtins.`auto_ctor.mk",
-  [BG_AUTO_NEW] = "nlang.builtins.`auto_ctor.new",
-  // These should be templates of `ctor_with.
-  [BG_AUTO_MKV] = "nlang.builtins.`array_ctor.mkv",
-  [BG_AUTO_NEWV] = "nlang.builtins.`array_ctor.newv",
-
-  [BG_TRIVIAL_COPY_COPY_CTOR] = "nlang.builtins.`copyable.copy_ctor",
-  [BG_TRIVIAL_EQUALITY_OPERATOR_EQ] = "nlang.builtins.`has_equality.operator_eq",
-  [BG_TRIVIAL_EQUALITY_OPERATOR_NE] = "nlang.builtins.`has_equality.operator_ne",
-  [BG_ENVIRONMENT_PARENT] = "parent",
-  [BG_ENVIRONMENT_INSTALL] = "install",
-  [BG_ENVIRONMENT_UNINSTALL] = "uninstall",
+  [ID_PARENT] = "parent",
+  [ID_INSTALL] = "install",
+  [ID_UNINSTALL] = "uninstall",
+  [ID_SHOW] = "show",
 };
 
 static uint32_t token_hash(const struct token *tok) {
@@ -523,6 +517,15 @@ bool node_is_inline(const struct node *node) {
     return false;
   } else {
     return toplevel->flags & TOP_IS_INLINE;
+  }
+}
+
+bool node_is_opaque(const struct node *node) {
+  const struct toplevel *toplevel = node_toplevel_const(node);
+  if (toplevel == NULL) {
+    return false;
+  } else {
+    return toplevel->flags & TOP_IS_OPAQUE;
   }
 }
 
@@ -726,19 +729,30 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_FLOATING = gctx->builtin_typs_by_name[ID_TBI_FLOATING];
   TBI_NATIVE_FLOATING = gctx->builtin_typs_by_name[ID_TBI_NATIVE_FLOATING];
   TBI_HAS_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_HAS_EQUALITY];
+  TBI_NOT_HAS_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_NOT_HAS_EQUALITY];
   TBI_ORDERED = gctx->builtin_typs_by_name[ID_TBI_ORDERED];
+  TBI_NOT_ORDERED = gctx->builtin_typs_by_name[ID_TBI_NOT_ORDERED];
+  TBI_EQUALITY_BY_COMPARE = gctx->builtin_typs_by_name[ID_TBI_EQUALITY_BY_COMPARE];
   TBI_ORDERED_BY_COMPARE = gctx->builtin_typs_by_name[ID_TBI_ORDERED_BY_COMPARE];
   TBI_COPYABLE = gctx->builtin_typs_by_name[ID_TBI_COPYABLE];
+  TBI_NOT_COPYABLE = gctx->builtin_typs_by_name[ID_TBI_NOT_COPYABLE];
   TBI_DEFAULT_CTOR = gctx->builtin_typs_by_name[ID_TBI_DEFAULT_CTOR];
+  TBI_NON_DEFAULT_CTOR = gctx->builtin_typs_by_name[ID_TBI_NON_DEFAULT_CTOR];
+  TBI_DEFAULT_DTOR = gctx->builtin_typs_by_name[ID_TBI_DEFAULT_DTOR];
   TBI_ARRAY_CTOR = gctx->builtin_typs_by_name[ID_TBI_ARRAY_CTOR];
   TBI_TRIVIAL_COPY = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_COPY];
+  TBI_TRIVIAL_COPY_BUT_OWNED = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_COPY_BUT_OWNED];
   TBI_TRIVIAL_CTOR = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_CTOR];
   TBI_TRIVIAL_ARRAY_CTOR = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_ARRAY_CTOR];
   TBI_TRIVIAL_DTOR = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_DTOR];
+  TBI_TRIVIAL_COMPARE = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_COMPARE];
   TBI_TRIVIAL_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_EQUALITY];
   TBI_TRIVIAL_ORDER = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_ORDER];
   TBI_RETURN_BY_COPY = gctx->builtin_typs_by_name[ID_TBI_RETURN_BY_COPY];
+  TBI_NOT_RETURN_BY_COPY = gctx->builtin_typs_by_name[ID_TBI_NOT_RETURN_BY_COPY];
   TBI_ENUM = gctx->builtin_typs_by_name[ID_TBI_ENUM];
+  TBI_UNION = gctx->builtin_typs_by_name[ID_TBI_UNION];
+  TBI_UNION_TRIVIAL_CTOR = gctx->builtin_typs_by_name[ID_TBI_UNION_TRIVIAL_CTOR];
   TBI_ITERATOR = gctx->builtin_typs_by_name[ID_TBI_ITERATOR];
   TBI_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ENVIRONMENT];
   TBI_ANY_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ANY_ENVIRONMENT];

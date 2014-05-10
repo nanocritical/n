@@ -929,7 +929,8 @@ static bool prototype_only(bool header, const struct node *node) {
     return (header && !node_is_export(node))
       || node_is_prototype(node);
   } else {
-    return (header && !(node_is_export(node) && node_is_inline(node)))
+    return
+      (header && !(node_is_export(node) && node_is_inline(node)))
       || node_is_prototype(node);
   }
 }
@@ -1500,17 +1501,6 @@ static void rtr_helpers(FILE *out, const struct module *mod,
   print_rtr_helpers(out, mod, retval, start);
 }
 
-static void bg_return_if_by_copy(FILE *out, const struct module *mod, const struct node *node,
-                                 const char *what) {
-  const struct node *retval = node_fun_retval_const(node);
-  const bool retval_bycopy = typ_isa(retval->typ, TBI_RETURN_BY_COPY);
-  if (!retval_bycopy) {
-    return;
-  }
-
-  fprintf(out, "return %s;\n", what);
-}
-
 static void print_deffun_builtingen(FILE *out, const struct module *mod, const struct node *node) {
   const struct node *par = parent_const(node);
 
@@ -1523,78 +1513,36 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
   rtr_helpers(out, mod, node, true);
 
-  size_t a;
   const struct node *funargs = NULL;
   const enum builtingen bg = node_toplevel_const(node)->builtingen;
   switch (bg) {
   case BG_TRIVIAL_CTOR_CTOR:
     break;
-  case BG_TRIVIAL_CTOR_MK:
-    bg_return_if_by_copy(out, mod, node, "(THIS()){ 0 }");
-    break;
-  case BG_TRIVIAL_CTOR_NEW:
-    fprintf(out, "return calloc(1, sizeof(THIS()));\n");
-    break;
-  case BG_DEFAULT_CTOR_MK:
-    fprintf(out, "THIS($ctor)(&r);\n");
-    bg_return_if_by_copy(out, mod, node, "r");
-    break;
-  case BG_DEFAULT_CTOR_NEW:
-    fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
-    fprintf(out, "THIS($ctor)(self);\n");
-    fprintf(out, "return self;\n");
-    break;
-  case BG_AUTO_MK:
-    fprintf(out, "THIS($ctor)(&r, ");
-    funargs = subs_at_const(node, IDX_FUNARGS);
-
-    a = 0;
-    FOREACH_SUB_CONST(arg, funargs) {
-      if (next_const(arg) == NULL) {
-        break;
-      }
-      if (a++ > 0) {
-        fprintf(out, ", ");
-      }
-      fprintf(out, "%s", idents_value(mod->gctx, node_ident(arg)));
-    }
-    fprintf(out, ");\n");
-    break;
-  case BG_AUTO_NEW:
-    fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
-    fprintf(out, "THIS($ctor)(self, ");
-    funargs = subs_at_const(node, IDX_FUNARGS);
-
-    a = 0;
-    FOREACH_SUB_CONST(arg, funargs) {
-      if (next_const(arg) == NULL) {
-        break;
-      }
-      if (a++ > 0) {
-        fprintf(out, ", ");
-      }
-      fprintf(out, "%s", idents_value(mod->gctx, node_ident(arg)));
-    }
-    fprintf(out, ");\n");
-    fprintf(out, "return self;\n");
-    break;
-  case BG_AUTO_MKV:
-    fprintf(out, "THIS($ctorv)(&r, c);\n");
-    bg_return_if_by_copy(out, mod, node, "r");
-    break;
-  case BG_AUTO_NEWV:
-    fprintf(out, "THIS() *self = calloc(1, sizeof(sizeof(THIS())));\n");
-    fprintf(out, "THIS($ctorv)(self, c);\n");
-    fprintf(out, "return self;\n");
+  case BG_TRIVIAL_DTOR_DTOR:
     break;
   case BG_TRIVIAL_COPY_COPY_CTOR:
     fprintf(out, "memcpy(self, other, sizeof(*self));\n");
     break;
-  case BG_TRIVIAL_EQUALITY_OPERATOR_EQ:
-    fprintf(out, "return memcmp(self, other, sizeof(*self)) == 0;\n");
+  case BG_TRIVIAL_COMPARE_OPERATOR_COMPARE:
+    fprintf(out, "return memcmp(self, other, sizeof(*self));\n");
     break;
-  case BG_TRIVIAL_EQUALITY_OPERATOR_NE:
-    fprintf(out, "return memcmp(self, other, sizeof(*self)) != 0;\n");
+  case BG_ENUM_FROM_TAG:
+    assert(par->which == DEFTYPE);
+    if (par->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+      fprintf(out, "return value;\n");
+    } else {
+      fprintf(out, "return (");
+      print_typ(out, mod, par->typ);
+      fprintf(out, "){ .tag = value };\n");
+    }
+    break;
+  case BG_ENUM_TAG:
+    assert(par->which == DEFTYPE);
+    if (par->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+      fprintf(out, "return *self;\n");
+    } else {
+      fprintf(out, "return self->tag;\n");
+    }
     break;
   case BG_ENVIRONMENT_PARENT:
     assert(node->which == DEFMETHOD);
@@ -1613,9 +1561,9 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
               typ_generic_arg_const(subs_at_const(funargs, 1)->typ, 0));
     fprintf(out, ");\n");
     break;
-  default:
+  case BG__NOT:
+  case BG__NUM:
     assert(false);
-    break;
   }
 
   rtr_helpers(out, mod, node, false);
@@ -1974,10 +1922,7 @@ static error print_mkdyn_eachisalist(struct module *mod, struct typ *t,
   st2.printed = 0;
   st2.user = (void *)t;
 
-  // FIXME: Shouldn't filter out trivial intf, but we don't yet have
-  // builtingen for all of them.
-  const uint32_t filter = ISALIST_FILTER_TRIVIAL_ISALIST
-    | ISALIST_FILTER_PREVENT_DYN
+  const uint32_t filter = ISALIST_FILTER_PREVENT_DYN
     | (st->header ? ISALIST_FILTER_NOT_EXPORTED : ISALIST_FILTER_EXPORTED);
   error e = typ_isalist_foreach((struct module *)mod, intf, filter,
                                 print_dyn_field_eachisalist,
@@ -2002,14 +1947,14 @@ static error print_mkdyn_eachisalist(struct module *mod, struct typ *t,
 
 static void print_mkdyn(FILE *out, bool header, enum forward fwd,
                         const struct module *mod, const struct node *node) {
-  // FIXME: Shouldn't filter out trivial intf, but we don't yet have
-  // builtingen for all of them.
-  const uint32_t filter = ISALIST_FILTER_TRIVIAL_ISALIST
-    | ISALIST_FILTER_PREVENT_DYN
+  const uint32_t filter = ISALIST_FILTER_PREVENT_DYN
     | (header ? ISALIST_FILTER_NOT_EXPORTED : ISALIST_FILTER_EXPORTED);
+
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,
       .mod = NULL, .printed = 0, .user = NULL };
+    if (!header && strcmp("t00/match.n", mod->filename) == 0)
+      __break();
     error e = typ_isalist_foreach((struct module *)mod, node->typ, filter,
                                   print_mkdyn_proto_eachisalist,
                                   &st);
@@ -2134,7 +2079,7 @@ static void print_defchoice(FILE *out,
   fprintf(out, "$%s_label__;\n", idents_value(mod->gctx, ID_LAST_TAG));
 }
 
-static void print_union_functions(FILE *out, bool header, enum forward fwd,
+static void print_enumunion_functions(FILE *out, bool header, enum forward fwd,
                                   const struct module *mod,
                                   const struct node *deft,
                                   const struct node *ch,
@@ -2150,7 +2095,7 @@ static void print_union_functions(FILE *out, bool header, enum forward fwd,
       print_top(out, header, fwd, mod, m, printed);
       break;
     case DEFCHOICE:
-      print_union_functions(out, header, fwd, mod, deft, m, printed);
+      print_enumunion_functions(out, header, fwd, mod, deft, m, printed);
       break;
     default:
       break;
@@ -2231,8 +2176,10 @@ static void print_union(FILE *out, bool header, enum forward fwd,
       }
     }
 
-    print_union_functions(out, header, fwd, mod, deft, node, printed);
-    print_mkdyn(out, header, fwd, mod, node);
+    if (node == deft) {
+      print_enumunion_functions(out, header, fwd, mod, deft, node, printed);
+      print_mkdyn(out, header, fwd, mod, deft);
+    }
     break;
   default:
     assert(false);
@@ -2308,6 +2255,13 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
 
         print_enum(out, header, fwd, mod, deft, s, printed);
       }
+    }
+  }
+
+  if (fwd == FWD_DECLARE_FUNCTIONS || fwd == FWD_DEFINE_FUNCTIONS) {
+    if (deft == node) {
+      print_enumunion_functions(out, header, fwd, mod, deft, node, printed);
+      print_mkdyn(out, header, fwd, mod, node);
     }
   }
 }
@@ -2392,14 +2346,6 @@ static void print_deftype(FILE *out, bool header, enum forward fwd,
     goto done;
   }
 
-  if (typ_is_builtin(mod, node->typ) && node_is_extern(node)) {
-    if (fwd == FWD_DECLARE_FUNCTIONS) {
-      print_deftype_block(out, header, fwd, mod, node, true, printed);
-    }
-    print_mkdyn(out, header, fwd, mod, node);
-    goto done;
-  }
-
   if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     print_enum(out, header, fwd, mod, node, node, printed);
     goto done;
@@ -2409,25 +2355,33 @@ static void print_deftype(FILE *out, bool header, enum forward fwd,
   }
 
   if (fwd == FWD_DECLARE_TYPES) {
-    fprintf(out, "struct ");
-    print_deftype_name(out, mod, node);
-    fprintf(out, ";\n");
-    fprintf(out, "typedef struct ");
-    print_deftype_name(out, mod, node);
-    fprintf(out, " ");
-    print_deftype_name(out, mod, node);
-    fprintf(out, ";\n");
-
-    print_deftype_block(out, header, fwd, mod, node, true, printed);
-
-  } else if (fwd == FWD_DEFINE_TYPES) {
-    print_deftype_block(out, header, fwd, mod, node, true, printed);
-
-    if (!prototype_only(header, node)) {
+    if (typ_is_builtin(mod, node->typ) && node_is_extern(node) && node_is_inline(node)) {
+      // noop
+    } else {
       fprintf(out, "struct ");
       print_deftype_name(out, mod, node);
-      print_deftype_block(out, header, fwd, mod, node, false, printed);
       fprintf(out, ";\n");
+      fprintf(out, "typedef struct ");
+      print_deftype_name(out, mod, node);
+      fprintf(out, " ");
+      print_deftype_name(out, mod, node);
+      fprintf(out, ";\n");
+
+      print_deftype_block(out, header, fwd, mod, node, true, printed);
+    }
+
+  } else if (fwd == FWD_DEFINE_TYPES) {
+    if (typ_is_builtin(mod, node->typ) && node_is_extern(node) && node_is_inline(node)) {
+      // noop
+    } else {
+      print_deftype_block(out, header, fwd, mod, node, true, printed);
+
+      if (!prototype_only(header, node)) {
+        fprintf(out, "struct ");
+        print_deftype_name(out, mod, node);
+        print_deftype_block(out, header, fwd, mod, node, false, printed);
+        fprintf(out, ";\n");
+      }
     }
   } else if (fwd == FWD_DECLARE_FUNCTIONS || fwd == FWD_DEFINE_FUNCTIONS) {
     print_deftype_block(out, header, fwd, mod, node, true, printed);

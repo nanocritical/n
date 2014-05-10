@@ -166,20 +166,47 @@ static error step_check_deftype_kind(struct module *mod, struct node *node,
 }
 
 static void do_assign_defchoice_tag(struct module *mod,
-                                    struct node *par, struct node *prev,
                                     struct node *node) {
+  struct node *par = parent(node);
+
   node->as.DEFCHOICE.is_leaf = true;
   if (node->as.DEFCHOICE.has_tag) {
+    struct node *tag = subs_last(node);
+    if (tag->which == NUMBER && strcmp(tag->as.NUMBER.value, "0") == 0) {
+      struct node *top = par;
+      while (top->which != DEFTYPE) {
+        top = parent(top);
+      }
+      top->as.DEFTYPE.default_choice = tag;
+    }
     return;
   }
 
+  struct node *pre = prev(node);
+  if (pre->which != DEFCHOICE) {
+    pre = NULL;
+  }
+
   struct node *tag;
-  if (prev == NULL && par->which != DEFCHOICE) {
+  if (pre == NULL && par->which == DEFTYPE) {
     tag = mk_node(mod, node, NUMBER);
-    tag->as.NUMBER.value = "0";
+    tag->as.NUMBER.value = "1";
   } else {
-    if (prev != NULL) {
-      struct node *pred = subs_at(prev, IDX_CH_TAG_FIRST);
+    if (pre != NULL) {
+      struct node *pred;
+      if (pre->which == DEFCHOICE && !pre->as.DEFCHOICE.is_leaf) {
+        struct node *pch = NULL;
+        REVERSE_FOREACH_SUB(sub, pre) {
+          if (sub->which == DEFCHOICE) {
+            pch = sub;
+            break;
+          }
+        }
+        pred = subs_at(pch, IDX_CH_TAG_FIRST);
+      } else {
+        pred = subs_at(pre, IDX_CH_TAG_FIRST);
+      }
+
       tag = mk_node(mod, node, BIN);
       tag->as.BIN.operator = TPLUS;
       struct node *left = node_new_subnode(mod, tag);
@@ -205,18 +232,12 @@ static void do_assign_defchoice_tag(struct module *mod,
 }
 
 static STEP_NM(step_assign_defchoice_tag_down,
-               NM(DEFTYPE) | NM(DEFCHOICE));
+               NM(DEFCHOICE));
 static error step_assign_defchoice_tag_down(struct module *mod, struct node *node,
                                             void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct node *prev = NULL;
-  FOREACH_SUB(d, node) {
-    if (d->which == DEFCHOICE) {
-      do_assign_defchoice_tag(mod, node, prev, d);
-      prev = d;
-    }
-  }
+  do_assign_defchoice_tag(mod, node);
 
   return 0;
 }

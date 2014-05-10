@@ -2,7 +2,7 @@ from nlang import *
 from nlang.sysheap import heap sysheap
 
 export fun main = i32
-  let s = (slice i32).mk
+  let s = {}:(slice i32)
   such
     (heap.slice_realloc i32) @!sysheap @#s 1
   let p = s!at 0
