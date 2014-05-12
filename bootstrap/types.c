@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "table.h"
 #include "mock.h"
+#include "unify.h"
 
 #define BACKLINKS_LEN 7 // arbitrary
 #define USERS_LEN 7 // arbitrary
@@ -162,6 +163,10 @@ static void clear_backlinks(struct typ *t) {
 }
 
 static void add_user(struct typ *arg, struct typ *user) {
+  if (arg == user) {
+    return;
+  }
+
   if (!typ_is_tentative(arg)) {
     return;
   }
@@ -325,7 +330,6 @@ void typ_create_update_genargs(struct typ *t) {
       add_user(arg, t);
     }
   }
-
 }
 
 void typ_create_update_hash(struct typ *t) {
@@ -412,10 +416,38 @@ struct typ *typ_create_tentative(struct typ *target) {
   return r;
 }
 
-static void link_generic_arg_update(struct typ *user) {
+static void link_generic_arg_update(struct module *trigger_mod,
+                                    struct typ *user, struct typ *dst, struct typ *src) {
   assert(typ_is_tentative(user));
 
-  // It is possible that now that 'arg' is not tentative, 'user' itself
+  struct typ *new_user = NULL;
+
+  if (trigger_mod != NULL) {
+    struct typ *user0 = typ_generic_functor(user);
+    if (typ_equal(user0, src)) {
+      // 'src' was used by 'user' as generic functor. Linking to the new
+      // functor means creating a new instance, and linking 'user' to it.
+
+      assert(typ_is_generic_functor(src));
+      assert(typ_is_generic_functor(dst));
+
+      new_user = unify_with_new_functor(trigger_mod, NULL, dst, user);
+    } else {
+      new_user = user;
+    }
+  } else {
+    assert(!typ_is_generic_functor(src));
+    new_user = user;
+  }
+
+  // If 'src' was used by 'user' as a generic arg, then the
+  // FOREACH_BACKLINK() pass already updated the SETGENARG in
+  // typ_definition(user).
+
+  typ_create_update_hash(new_user);
+  typ_create_update_quickisa(new_user);
+
+  // It is possible that now that 'src' is not tentative, 'user' itself
   // should loose its tentative status. This will be handled in
   // step_gather_final_instantiations().
   //
@@ -423,15 +455,12 @@ static void link_generic_arg_update(struct typ *user) {
   // could have unify.c pass a callback to typ_link_tentative() that is run
   // on all backlinks (that are definitions of tentative generic instances
   // or are DEFINCOMPLETE).
-
-  typ_create_update_hash(user);
-  typ_create_update_quickisa(user);
 }
 
-static void link_to_final(struct typ *dst, struct typ *src) {
+static void link_to_final(struct module *mod, struct typ *dst, struct typ *src) {
   FOREACH_BACKLINK(idx, back, src, set_typ(back, dst));
 
-  FOREACH_USER(idx, user, src, link_generic_arg_update(user));
+  FOREACH_USER(idx, user, src, link_generic_arg_update(mod, user, dst, src));
 
   // Noone should be referring to 'src' anymore; let's make sure.
   memset(src, 0, sizeof(*src));
@@ -459,10 +488,10 @@ static void remove_as_user_of_generic_args(struct typ *t) {
   }
 }
 
-static void link_to_tentative(struct typ *dst, struct typ *src) {
+static void link_to_tentative(struct module *mod, struct typ *dst, struct typ *src) {
   FOREACH_BACKLINK(idx, back, src, set_typ(back, dst));
 
-  FOREACH_USER(idx, user, src, add_user(dst, user));
+  FOREACH_USER(idx, user, src, link_generic_arg_update(mod, user, dst, src));
 
   remove_as_user_of_generic_args(src);
 
@@ -475,15 +504,32 @@ static void link_to_tentative(struct typ *dst, struct typ *src) {
 
 void typ_link_tentative(struct typ *dst, struct typ *src) {
   assert(typ_is_tentative(src));
+  assert(!typ_is_generic_functor(src) && "use typ_link_tentative_functor()");
 
   if (dst == src) {
     return;
   }
 
   if (!typ_is_tentative(dst)) {
-    link_to_final(dst, src);
+    link_to_final(NULL, dst, src);
   } else {
-    link_to_tentative(dst, src);
+    link_to_tentative(NULL, dst, src);
+  }
+}
+
+void typ_link_tentative_functor(struct module *mod, struct typ *dst, struct typ *src) {
+  assert(typ_is_tentative(src));
+  assert(typ_is_generic_functor(src));
+  assert(typ_is_generic_functor(dst));
+
+  if (dst == src) {
+    return;
+  }
+
+  if (!typ_is_tentative(dst)) {
+    link_to_final(mod, dst, src);
+  } else {
+    link_to_tentative(mod, dst, src);
   }
 }
 
@@ -494,7 +540,7 @@ void typ_link_to_existing_final(struct typ *dst, struct typ *src) {
     return;
   }
 
-  link_to_final(dst, src);
+  link_to_final(NULL, dst, src);
 }
 
 void typ_debug_check_in_backlinks(struct typ **u) {

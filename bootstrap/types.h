@@ -41,6 +41,7 @@ struct typ *typ_create_tentative(struct typ *target);
 bool typ_is_tentative(const struct typ *t);
 
 void typ_link_tentative(struct typ *dst, struct typ *src);
+void typ_link_tentative_functor(struct module *mod, struct typ *dst, struct typ *src);
 void typ_link_to_existing_final(struct typ *dst, struct typ *src);
 
 struct typ *typ_lookup_builtin_tuple(struct module *mod, size_t arity);

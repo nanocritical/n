@@ -17,6 +17,7 @@ enum token_type {
   Topaque,
   Tfun,
   Tmethod,
+  Tshallow,
   Tintf,
   Tinline,
   Tlet,

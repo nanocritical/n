@@ -10,6 +10,8 @@ static STEP_NM(step_do_rewrite_prototype_wildcards,
                NM(UN));
 static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node *node,
                                                  void *user, bool *stop) {
+  const bool within_self = *((bool *) user);
+
   DSTEP(mod, node);
   if (node->as.UN.operator == TREFWILDCARD
       || node->as.UN.operator == TNULREFWILDCARD) {
@@ -21,7 +23,7 @@ static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node
 
     node_set_which(node, CALL);
     struct node *d = mk_node(mod, node, IDENT);
-    d->as.IDENT.name = ID_WILDCARD_REF_ARG;
+    d->as.IDENT.name = within_self ? ID_WILDCARD_REF_ARG_SELF : ID_WILDCARD_REF_ARG;
     node_subs_remove(node, d);
     node_subs_insert_before(node, subs_first(node), d);
   }
@@ -43,7 +45,8 @@ static error step_rewrite_prototype_wildcards(struct module *mod, struct node *n
   struct node *funargs = subs_at(node, IDX_FUNARGS);
   FOREACH_SUB(arg, funargs) {
     PUSH_STATE(mod->state->step_state);
-    error e = pass_rewrite_wildcards(mod, arg, NULL, -1);
+    bool within_self = prev_const(arg) == NULL;
+    error e = pass_rewrite_wildcards(mod, arg, &within_self, -1);
     EXCEPT(e);
     POP_STATE(mod->state->step_state);
   }

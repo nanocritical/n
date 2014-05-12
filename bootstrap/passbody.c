@@ -211,6 +211,12 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
 
 #define SET_UNLESS_ZERO(dst, src) if (src != 0) { dst = src; }
 
+  bool is_self = false;
+
+#define GET_WILDCARD(kind) \
+    ( (is_self) ? mod->state->fun_state->self_wildcard.kind \
+      : mod->state->fun_state->wildcard.kind )
+
   // FIXME: handle DEFFUN like in t02/fixme01.n
   switch (node->which) {
   case DEFMETHOD:
@@ -223,46 +229,62 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
     if (e) {
       break;
     }
+
+    const bool is_shallow = node_toplevel_const(node)->flags & TOP_IS_SHALLOW;
     if (typ_equal(def->typ, TBI_ANY_REF)) {
       // noop
     } else if (typ_equal(def->typ, TBI_REF)) {
-      mod->state->fun_state->ref_wildcard = TREFDOT;
-      mod->state->fun_state->nulref_wildcard = TNULREFDOT;
-      mod->state->fun_state->deref_wildcard = TDEREFDOT;
-      mod->state->fun_state->wildcard = TDOT;
+      mod->state->fun_state->wildcard.ref = TREFDOT;
+      mod->state->fun_state->wildcard.nulref = TNULREFDOT;
+      mod->state->fun_state->wildcard.deref = TDEREFDOT;
+      mod->state->fun_state->wildcard.acc = TDOT;
+
+      mod->state->fun_state->self_wildcard = mod->state->fun_state->wildcard;
     } else if (typ_equal(def->typ, TBI_MREF)) {
-      mod->state->fun_state->ref_wildcard = TREFBANG;
-      mod->state->fun_state->nulref_wildcard = TNULREFBANG;
-      mod->state->fun_state->deref_wildcard = TDEREFBANG;
-      mod->state->fun_state->wildcard = TBANG;
+      mod->state->fun_state->wildcard.ref = is_shallow ? TREFSHARP : TREFBANG;
+      mod->state->fun_state->wildcard.nulref = is_shallow ? TNULREFSHARP : TNULREFBANG;
+      mod->state->fun_state->wildcard.deref = is_shallow ? TDEREFSHARP : TDEREFBANG;
+      mod->state->fun_state->wildcard.acc = is_shallow ? TSHARP : TBANG;
+
+      mod->state->fun_state->self_wildcard.ref = TREFBANG;
+      mod->state->fun_state->self_wildcard.nulref = TNULREFBANG;
+      mod->state->fun_state->self_wildcard.deref = TDEREFBANG;
+      mod->state->fun_state->self_wildcard.acc = TBANG;
     } else if (typ_equal(def->typ, TBI_MMREF)) {
-      mod->state->fun_state->ref_wildcard = TREFSHARP;
-      mod->state->fun_state->nulref_wildcard = TNULREFSHARP;
-      mod->state->fun_state->deref_wildcard = TDEREFSHARP;
-      mod->state->fun_state->wildcard = TSHARP;
+      mod->state->fun_state->wildcard.ref = TREFSHARP;
+      mod->state->fun_state->wildcard.nulref = TNULREFSHARP;
+      mod->state->fun_state->wildcard.deref = TDEREFSHARP;
+      mod->state->fun_state->wildcard.acc = TSHARP;
+
+      mod->state->fun_state->self_wildcard = mod->state->fun_state->wildcard;
     } else {
       assert(false);
     }
     break;
+
   case UN:
+    is_self = node_ident(subs_first_const(node)) == ID_SELF;
+
     switch (node->as.UN.operator) {
     case TREFWILDCARD:
-      SET_UNLESS_ZERO(node->as.UN.operator, mod->state->fun_state->ref_wildcard);
+      SET_UNLESS_ZERO(node->as.UN.operator, GET_WILDCARD(ref));
       break;
     case TNULREFWILDCARD:
-      SET_UNLESS_ZERO(node->as.UN.operator, mod->state->fun_state->nulref_wildcard);
+      SET_UNLESS_ZERO(node->as.UN.operator, GET_WILDCARD(nulref));
       break;
     case TDEREFWILDCARD:
-      SET_UNLESS_ZERO(node->as.UN.operator, mod->state->fun_state->deref_wildcard);
+      SET_UNLESS_ZERO(node->as.UN.operator, GET_WILDCARD(deref));
       break;
     default:
       break;
     }
     break;
   case BIN:
+    is_self = node_ident(subs_first_const(node)) == ID_SELF;
+
     switch (node->as.BIN.operator) {
     case TWILDCARD:
-      SET_UNLESS_ZERO(node->as.BIN.operator, mod->state->fun_state->wildcard);
+      SET_UNLESS_ZERO(node->as.BIN.operator, GET_WILDCARD(acc));
       break;
     default:
       break;
@@ -273,6 +295,7 @@ static error step_rewrite_wildcards(struct module *mod, struct node *node,
     break;
   }
 
+#undef GET_WILDCARD
 #undef SET_UNLESS_ZERO
 
   return 0;
@@ -529,7 +552,6 @@ static error do_instantiate(struct node **result,
                             struct typ *t,
                             struct typ **explicit_args, size_t arity,
                             bool tentative) {
-  assert(for_error != NULL);
   assert(arity == 0 || arity == typ_generic_arity(t));
 
   struct node *gendef = typ_definition(t);
@@ -546,7 +568,14 @@ static error do_instantiate(struct node **result,
   struct node *instance = add_instance_deepcopy_from_pristine(mod, gendef,
                                                               pristine, tentative);
   node_toplevel(instance)->generic->for_error = for_error;
-  set_typ(&node_toplevel(instance)->generic->our_generic_functor_typ, t);
+
+  // Do not use set_typ()! With second-order generics, we actually do not
+  // want to update this value when linking to another type during
+  // unification. If the functor for instance->typ gets linked to something
+  // else, then instance->typ itself must be linked to something else.
+  // Making instance unreachable (through a typ).
+  // See also types.c:link_generic_arg_update().
+  node_toplevel(instance)->generic->our_generic_functor_typ = t;
 
   const size_t first = typ_generic_first_explicit_arg(t);
   struct node *genargs = subs_at(instance, IDX_GENARGS);
@@ -708,6 +737,12 @@ error instance(struct node **result,
 static error typ_ref(struct node **result,
                      struct module *mod, struct node *for_error,
                      enum token_type op, struct typ *typ) {
+  // FIXME: when op is a wildcard (not substituted -- i.e. in the
+  // uninstantiated generic), we will not catch all possible
+  // incompatibilities. They will get caught when the function is
+  // instantiated on an actual reference, but we're supposed to catch
+  // everything prior to that.
+
   error e = instance(result, mod, for_error, 0,
                      mod->gctx->builtin_typs_for_refop[op], &typ, 1);
   EXCEPT(e);
@@ -1146,14 +1181,15 @@ static error rewrite_unary_call(struct module *mod, struct node *node, struct ty
   return 0;
 }
 
-static struct node *fully_implicit_instantiation(struct module *mod,
-                                                 const struct node *for_error,
-                                                 struct typ *t) {
+struct node *instance_fully_implicit(struct module *mod,
+                                     const struct node *for_error,
+                                     struct typ *t) {
   assert(typ_is_generic_functor(t));
 
   const size_t gen_arity = typ_generic_arity(t);
   struct typ **args = calloc(gen_arity, sizeof(struct typ *));
   for (size_t n = 0; n < gen_arity; ++n) {
+    assert(!typ_is_tentative(typ_generic_arg(t, n)));
     args[n] = typ_create_tentative(typ_generic_arg(t, n));
   }
 
@@ -1173,7 +1209,7 @@ static void bin_accessor_maybe_functor(struct module *mod, struct node *par) {
   // fully tentative instance of 'vector' so that the unification of '0:u8'
   // with t:`copyable succeeds.
   if (typ_is_generic_functor(par->typ)) {
-    struct node *i = fully_implicit_instantiation(mod, par, par->typ);
+    struct node *i = instance_fully_implicit(mod, par, par->typ);
     unset_typ(&par->typ);
     set_typ(&par->typ, i->typ);
   }
@@ -1839,12 +1875,32 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
   // Already checked in prepare_call_arguments().
   assert(arity == typ_function_arity(tfun));
 
-  struct node *i = fully_implicit_instantiation(mod, node, tfun);
+  struct node *i = instance_fully_implicit(mod, node, tfun);
 
   size_t n = 0;
   FOREACH_SUB_EVERY(s, node, 1, 1) {
     e = unify_refcompat(mod, s, typ_function_arg(i->typ, n), s->typ);
     EXCEPT(e);
+
+    if (n == 0) {
+      const struct node *genargs = subs_at_const(i, IDX_GENARGS);
+      if (i->which == DEFMETHOD
+          && subs_count_atleast(genargs, 2)
+          && node_ident(subs_first_const(genargs)) == ID_WILDCARD_REF_ARG_SELF) {
+        const struct node *wildcard = subs_at_const(genargs, 1);
+        if ((node_toplevel_const(i)->flags & TOP_IS_SHALLOW)
+            && typ_equal(typ_generic_functor(s->typ), TBI_MREF)) {
+          e = unify(mod, s, wildcard->typ, TBI_MMREF);
+          EXCEPT(e);
+        } else {
+          assert(typ_is_reference(s->typ));
+
+          e = unify(mod, s, wildcard->typ, typ_generic_functor(s->typ));
+          EXCEPT(e);
+        }
+      }
+    }
+
     n += 1;
   }
 

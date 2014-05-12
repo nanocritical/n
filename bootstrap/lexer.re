@@ -220,6 +220,7 @@ normal:
   "opaque" { R(Topaque); }
   "fun" { R(Tfun); }
   "method" { R(Tmethod); }
+  "shallow" { R(Tshallow); }
   "intf" { R(Tintf); }
   "inline" { R(Tinline); }
   "let" { R(Tlet); }

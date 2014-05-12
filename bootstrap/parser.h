@@ -111,6 +111,7 @@ enum toplevel_flags {
   TOP_IS_PROTOTYPE = 0x10,
   TOP_IS_SHADOWED = 0x20,
   TOP_IS_NOT_DYN = 0x40,
+  TOP_IS_SHALLOW = 0x80,
 };
 
 struct generic {
@@ -806,6 +807,7 @@ enum predefined_idents {
   ID_NEXT,
   ID_CAST,
   ID_WILDCARD_REF_ARG,
+  ID_WILDCARD_REF_ARG_SELF,
   ID_LIKELY,
   ID_UNLIKELY,
   ID_NLANG,
@@ -975,15 +977,20 @@ struct block_state {
   struct node *current_statement;
 };
 
+struct wildcard {
+  enum token_type ref;
+  enum token_type nulref;
+  enum token_type deref;
+  enum token_type acc;
+};
+
 struct fun_state {
   struct fun_state *prev;
 
   bool fun_uses_final;
   const struct node *retval;
-  enum token_type ref_wildcard;
-  enum token_type nulref_wildcard;
-  enum token_type deref_wildcard;
-  enum token_type wildcard;
+  struct wildcard wildcard;
+  struct wildcard self_wildcard;
 
   struct block_state *block_state;
 };
@@ -1158,8 +1165,9 @@ static inline ident node_ident(const struct node *node) {
     return node->as.IDENT.name;
   case DEFALIAS:
   case DEFNAME:
-    return node_ident(subs_first_const(node));
   case DEFARG:
+  case DEFGENARG:
+  case SETGENARG:
     return node_ident(subs_first_const(node));
   case PHI:
     if (vecancestor_count(CONST_CAST(struct vecancestor *, &node->as.PHI.ancestors))

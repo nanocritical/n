@@ -159,9 +159,13 @@ static error unify_generics(struct module *mod, const struct node *for_error,
     }
     assert(b_in_a != b && "FIXME What does that mean?");
 
+    assert(!typ_is_tentative(a0) && "FIXME handle it");
+
     e = unify_same_generic_functor(mod, for_error, b_in_a, b);
     EXCEPT(e);
   }
+
+  // FIXME: there are holes here: 2nd order generics, etc.
 
   typ_link_tentative(a, b);
 
@@ -583,7 +587,11 @@ static error unify_with_equal(struct module *mod, const struct node *for_error,
   }
 
   if (typ_is_tentative(b)) {
-    typ_link_tentative(a, b);
+    if (typ_is_generic_functor(b)) {
+      typ_link_tentative_functor(mod, a, b);
+    } else {
+      typ_link_tentative(a, b);
+    }
   } else {
     assert(a == b);
   }
@@ -681,6 +689,27 @@ static error unify_reference_arg(struct module *mod, uint32_t flags,
   return 0;
 }
 
+struct typ *unify_with_new_functor(struct module *mod, const struct node *for_error,
+                                   struct typ *f, struct typ *t) {
+  assert(typ_is_generic_functor(f));
+  assert(!typ_is_generic_functor(t));
+  assert(typ_generic_arity(t) == typ_generic_arity(f));
+
+  struct typ *t0 = typ_generic_functor(t);
+  assert(typ_is_tentative(t));
+  assert(typ_is_tentative(t0));
+
+  struct node *i = instance_fully_implicit(mod, for_error, f);
+
+  for (size_t n = 0, arity = typ_generic_arity(t); n < arity; ++n) {
+    typ_link_tentative(typ_generic_arg(t, n), typ_generic_arg(i->typ, n));
+  }
+
+  typ_link_tentative(i->typ, t);
+
+  return i->typ;
+}
+
 static error unify_with_reference_compatible(struct module *mod, uint32_t flags,
                                              const struct node *for_error,
                                              struct typ *a, struct typ *b,
@@ -695,11 +724,9 @@ static error unify_with_reference_compatible(struct module *mod, uint32_t flags,
   error e = check_reference_compatibility(mod, for_error, a, b);
   EXCEPT(e);
 
-  if (!typ_equal(b, TBI_ANY_ANY_REF)) {
-    struct typ *b0 = typ_generic_functor(b);
-    if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
-      typ_link_tentative(typ_generic_functor(a), b0);
-    }
+  if (typ_equal(b, TBI_ANY_ANY_REF)) {
+    typ_link_tentative(a, b);
+    return 0;
   }
 
   if (typ_equal(a, b)) {
@@ -710,6 +737,12 @@ static error unify_with_reference_compatible(struct module *mod, uint32_t flags,
 
   e = unify_reference_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
+
+  struct typ *b0 = typ_generic_functor(b);
+  if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
+    struct typ *a0 = typ_generic_functor(a);
+    typ_link_tentative_functor(mod, a0, b0);
+  }
 
   return 0;
 }
@@ -770,18 +803,12 @@ static error unify_reference(struct module *mod, uint32_t flags,
     THROW(e);
   }
 
-  if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
-    typ_link_tentative(a0, b0);
-  }
-
-  if (typ_equal(a, b)) {
-    e = unify_with_equal(mod, for_error, a, b);
-    EXCEPT(e);
-    return 0;
-  }
-
   e = unify_reference_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
+
+  if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
+    typ_link_tentative_functor(mod, a0, b0);
+  }
 
   return 0;
 }

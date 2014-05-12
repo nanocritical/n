@@ -41,5 +41,8 @@ error instance(struct node **result,
                struct module *mod,
                const struct node *for_error, size_t for_error_offset,
                struct typ *t, struct typ **explicit_args, size_t arity);
+struct node *instance_fully_implicit(struct module *mod,
+                                     const struct node *for_error,
+                                     struct typ *t);
 
 #endif

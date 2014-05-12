@@ -1,11 +1,17 @@
 from nlang import *
 
 struct c =
-  x:i32
+  x	:i32
 
 c method@$ get = @$i32
   return @$ self$x
 
+fun wants_mercurial x:@#i32 = i32
+  return x.
+
+c shallow method@$ sget = @$i32
+  return @$ self$x
+
 export fun main = i32
   let x = { x=0 }:c
-  return (x.get).
+  return (x.get). + (wants_mercurial x!sget)

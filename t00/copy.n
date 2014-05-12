@@ -17,4 +17,4 @@ export fun main = i32
   such
     z = y
   let zz = z
-  return z.x + 1
+  return w.x + z.x + zz.x + 2

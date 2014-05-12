@@ -203,6 +203,7 @@ static const char *predefined_idents_strings[ID__NUM] = {
   [ID_CAST] = "cast",
   [ID_NCODELOC] = "_Ncodeloc",
   [ID_WILDCARD_REF_ARG] = "__wildcard_ref_arg__",
+  [ID_WILDCARD_REF_ARG_SELF] = "__wildcard_ref_arg_self__",
   [ID_LIKELY] = "likely",
   [ID_UNLIKELY] = "unlikely",
   [ID_NLANG] = "nlang",
@@ -2268,17 +2269,33 @@ static void add_self_arg(struct module *mod, struct node *node,
 
   if (node->as.DEFMETHOD.access == TREFWILDCARD) {
     struct node *genargs = subs_at(node, IDX_GENARGS);
-    struct node *ga = mk_node(mod, genargs, DEFGENARG);
-    struct node *gan = mk_node(mod, ga, IDENT);
-    gan->as.IDENT.name = ID_WILDCARD_REF_ARG;
-    struct node *gat = mk_node(mod, ga, IDENT);
-    gat->as.IDENT.name = ID_TBI_ANY_REF;
 
-    struct node *argt = mk_node(mod, arg, CALL);
-    struct node *ref = mk_node(mod, argt, IDENT);
-    ref->as.IDENT.name = ID_WILDCARD_REF_ARG;
-    struct node *reft = mk_node(mod, argt, IDENT);
-    reft->as.IDENT.name = ID_FINAL;
+    GSTART();
+    G0(gas, genargs, DEFGENARG,
+       G(gasn, IDENT,
+         gasn->as.IDENT.name = ID_WILDCARD_REF_ARG_SELF);
+       G(gast, IDENT,
+         gast->as.IDENT.name = ID_TBI_ANY_REF));
+    G0(ga, genargs, DEFGENARG,
+       G(gan, IDENT,
+         gan->as.IDENT.name = ID_WILDCARD_REF_ARG);
+       G(gat, IDENT,
+         gat->as.IDENT.name = ID_TBI_ANY_REF));
+
+    if (subs_count_atleast(genargs, 3)) {
+      node_subs_remove(genargs, gas);
+      node_subs_remove(genargs, ga);
+
+      struct node *first = subs_first(genargs);
+      node_subs_insert_before(genargs, first, ga);
+      node_subs_insert_before(genargs, first, gas);
+    }
+
+    G0(argt, arg, CALL,
+       G(ref, IDENT,
+         ref->as.IDENT.name = ID_WILDCARD_REF_ARG_SELF);
+       G(reft, IDENT,
+         reft->as.IDENT.name = ID_FINAL));
   } else {
     struct node *ref = mk_node(mod, arg, UN);
     ref->as.UN.operator = node->as.DEFMETHOD.access;
@@ -3063,7 +3080,8 @@ start:
   EXCEPT(e);
 
 bypass:
-  if (is_scoped && tok.t != Tmethod && tok.t != Tfun && tok.t != TLPAR) {
+  if (is_scoped && tok.t != Tmethod && tok.t != Tfun && tok.t != TLPAR
+      && tok.t != Tshallow) {
     UNEXPECTED(mod, &tok);
   }
 
@@ -3123,6 +3141,12 @@ bypass:
     }
     e = p_deffun(node, mod, &toplevel, DEFFUN);
     break;
+  case Tshallow:
+    if (!is_scoped) {
+      UNEXPECTED(mod, &tok);
+    }
+    toplevel.flags |= TOP_IS_SHALLOW;
+    goto again;
   case Tmethod:
     if (!is_scoped) {
       UNEXPECTED(mod, &tok);
