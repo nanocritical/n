@@ -1,16 +1,16 @@
 from nlang import *
 
 intf `blah =
-  (method@ t:`integer) decr x:t = t
+  (method t:`integer) decr x:t = t
 
 struct blah =
   isa `blah
   dummy:u8
 
-blah (method@ t:`integer) `blah.decr x:t = t
+blah (method t:`integer) `blah.decr x:t = t
   return x - 1
 
-blah (method@ t:`integer) decrf x:t = t
+blah (method t:`integer) decrf x:t = t
   return x - 1
 
 export fun main = i32

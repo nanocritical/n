@@ -2309,18 +2309,24 @@ static error p_defmethod_access(struct node *node, struct module *mod) {
   error e = scan(&tok, mod);
   EXCEPT(e);
   switch (tok.t) {
-  case TREFDOT:
-  case TREFBANG:
-  case TREFSHARP:
-  case TREFWILDCARD:
-    node->as.DEFMETHOD.access = tok.t;
+  case TDEREFBANG:
+    node->as.DEFMETHOD.access = TREFBANG;
+    break;
+  case TDEREFSHARP:
+    node->as.DEFMETHOD.access = TREFSHARP;
+    break;
+  case TDEREFWILDCARD:
+    node->as.DEFMETHOD.access = TREFWILDCARD;
+    break;
+  case TIDENT:
+    back(mod, &tok);
+    node->as.DEFMETHOD.access = TREFDOT;
     break;
   default:
     // In 't (method@ u:`any) foobar x:@u = void', p_defmethod_access() is
     // called twice (once for when parsing the genargs, once in p_deffun).
     if (node->as.DEFMETHOD.access == 0) {
-      THROW_SYNTAX(mod, &tok, "passing self by value is not supported,"
-                    " use one of method{@,@!,@#,@$}");
+      UNEXPECTED(mod, &tok);
     }
     back(mod, &tok);
     break;

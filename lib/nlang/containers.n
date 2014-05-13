@@ -8,15 +8,15 @@ export intf `bidir_locus =
   isa `locus `ordered
 
 export intf `iterator t:`copyable =
-  method@ has_next = bool
-  method@! next = t
+  method has_next = bool
+  method! next = t
 
 export opaque struct index_range =
   export isa `trivial_copy `trivial_equality `trivial_ctor `return_by_copy
   b:size
   e:size
 
-export index_range method@! init beg:size end:size = void
+export index_range method! init beg:size end:size = void
   let e = end
   such
     if end < beg
@@ -24,16 +24,16 @@ export index_range method@! init beg:size end:size = void
   self!b = beg
   self!e = e
 
-export index_range method@ begin = size
+export index_range method begin = size
   return self.b
 
-export index_range method@ end = size
+export index_range method end = size
   return self.e
 
-export index_range method@ count = size
+export index_range method count = size
   return self.e - self.b
 
-export index_range method@ sub begin:size end:size = this
+export index_range method sub begin:size end:size = this
   let r:this
   such
     if begin < self.begin or end > self.end
@@ -41,13 +41,13 @@ export index_range method@ sub begin:size end:size = this
     r!init begin end
   return r
 
-export index_range method@ with_offset offset:size = this
+export index_range method with_offset offset:size = this
   let r:this
   such
     r!init self.begin+offset self.end+offset
   return r
 
-export index_range method@ iter = index_iterator
+export index_range method iter = index_iterator
   return { r=self. }
 
 
@@ -56,10 +56,10 @@ export opaque struct index_iterator =
   r:index_range
   p:size
 
-export index_iterator method@ `iterator.has_next = bool
+export index_iterator method `iterator.has_next = bool
   return self.p < self.r.end
 
-export index_iterator method@! `iterator.next = size
+export index_iterator method! `iterator.next = size
   let r = self.p
   self!p += 1
   return r

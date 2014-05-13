@@ -44,7 +44,7 @@ Over many lines:
 -- *type is an address, and is like C's type[] (except wrt sizeof() behavior)
 
 -- We probably should allow variable name shadowing. It's really a source of
--- problems in C or C++ because of macro expansion and method@ arguments/class
+-- problems in C or C++ because of macro expansion and method arguments/class
 -- fields clashes. We won't allow these.
 
 fun main args : string[] = os.Err
@@ -64,7 +64,7 @@ fun main args : string[] = os.Err
 
 
 interface Singer
-  method@ work arg :string
+  method work arg :string
 
 
 struct Fields =
@@ -75,7 +75,7 @@ struct Fields =
   -- Because there is a second return value, you are not allowed to
   -- create a Fields without an explicit binding of the second return
   -- value.
-  method@ __ctor__ = .: Fields _: os.Err
+  method __ctor__ = .: Fields _: os.Err
     -- . is created because it's a return value...
     -- So __ctor__ is not really built-in... Just guarantees that first return value
     -- has the right type?
@@ -88,7 +88,7 @@ struct Fields =
   -- single return value.
   -- Static functions would be used for everything else.
 
-  method@ __dtor .: Fields = Void
+  method __dtor .: Fields = Void
   ? .x == 0 and .y == 0
     return
 
@@ -102,7 +102,7 @@ struct Fields =
   -- copy. We try to enforce that as much as possible from the language's point
   -- of view.
   --
-  method@ __copy__ other : .This = Void
+  method __copy__ other : .This = Void
     _!memcopy other
     _!x = other.x + 1
 
@@ -118,8 +118,8 @@ struct Baryton<Y : any> : Singer =
   fun mk = Baryton<Y>
     return .ctor
 
-  method@ setall x y : I32 = Void
-  method@ setx x : I32 = Void
+  method setall x y : I32 = Void
+  method setx x : I32 = Void
     -- Only allow explicit capture, by copy, always.
     printer :=
       fun(.) val : I32 = Void
@@ -138,11 +138,11 @@ struct Baryton<Y : any> : Singer =
     -- Unsafe, captured a reference to .
     globalprinter = printer
 
-  /method@ getx = I32
+  /method getx = I32
     /_hidden = 1
     return .x
 
-  method@ work arg :string
+  method work arg :string
   method<T> morework args : T[]
 
 
@@ -178,9 +178,9 @@ fun constref x : !I32 = .I32
 
 struct Object =
   x y I32
-  method@ copyx other : .Object = Void
+  method copyx other : .Object = Void
     !x = other.x
-  method@ copyxto other : !Object = Void
+  method copyxto other : !Object = Void
     other!x = .x
 
 
@@ -242,17 +242,17 @@ struct Morecomplex X Y : any = (Iterable X) () Hasy (Keyed Y)
   _len : U32
   _y : Y
 
-  method@ getbykey y : Y = X
-  method@ __get x : U32 = X
-  method@ __iter = (Iterator X)
+  method getbykey y : Y = X
+  method __get x : U32 = X
+  method __iter = (Iterator X)
 
 struct Morecomplexiter X Y : any = (Iterator X)
   _c : wide .(Morecomplex X Y)
   _pos : U32
   
-  method@ __hasnext = Bool
+  method __hasnext = Bool
     return _pos < _c.len - 1
-  method@ __next = .X
+  method __next = .X
     p := _pos
     _pos += 1
     return c.[p]
@@ -322,7 +322,7 @@ struct Noncopyable =
 struct Madecopyable =
   x y : I32
   obj : !Object
-  method@ __copyctor other : .Madecopyable = .: .Madecopyable
+  method __copyctor other : .Madecopyable = .: .Madecopyable
   ? other.obj != null
     .__memcopy(other)
     .obj
@@ -618,15 +618,15 @@ struct Slice T :lang.Ref =
 struct Bitdb =
   parts []bitdb.Part
 
-  method@ load pn:io.Path = err:Err
+  method load pn:io.Path = err:Err
     return err
-  method@ get p:!bitdb.Part name:.string = err:Err
+  method get p:!bitdb.Part name:.string = err:Err
     return err
-  method@ get_byidcode p:!bitdb.Part idcode:U64 = err:Err
+  method get_byidcode p:!bitdb.Part idcode:U64 = err:Err
     return err
-  method@ get_frombit_anyspeed p:!bitdb.Part name:.string = err:Err
+  method get_frombit_anyspeed p:!bitdb.Part name:.string = err:Err
     return err
-  method@ getall_fordevice r:[]bitdb.Part device:.string = Void
+  method getall_fordevice r:[]bitdb.Part device:.string = Void
     return
 
 
@@ -664,7 +664,7 @@ struct Function =
   __retargs__ :[]Type
 
 struct Myfun = Function
-  method@ __ctor__ = This
+  method __ctor__ = This
     __code__ = "\x23\x1\x0\x23"
     __size__ = 4
     __args__ = [U32]
@@ -878,7 +878,7 @@ fun callchoose a b c :shared .U32 = U32
 -- could be just fine. For that, we need to track thread contexts.
 
 struct Thread =
-  method@ join = Err
+  method join = Err
   ~ fun.thread.end
 
 fun startthread p:!U32 = Thread
@@ -966,10 +966,10 @@ fun amove x:!unique U32 = r:!unique U32
 --
 struct Object =
   p :!U32
-  method@ __ctor__ = Object
+  method __ctor__ = Object
     this.__memclear__
 
-  method@ capture x:!U32 = Void
+  method capture x:!U32 = Void
     this.p = x
   -- ~ fun.captures x
   -- This is really captured by the Object instance.
@@ -1005,7 +1005,7 @@ fun alist2 = [].U32
 struct U32 = Primitive Integer Unsigned
   __size__ :const bootstrap.Size = 4
 
-  method@ __ctor_literal_integer__ x:.lang.literal.Integer = Err
+  method __ctor_literal_integer__ x:.lang.literal.Integer = Err
     if x.negative
       return Err.INVAL
     if x.bitwidth > 32
@@ -1026,9 +1026,9 @@ struct Tree T : any =
   | NODE -> ?.Tree
   | LEAF -> T
 
-  method@ getfirstleaf = T
-  method@ size = Size
-  method@ leafcount = Size
+  method getfirstleaf = T
+  method size = Size
+  method leafcount = Size
 
 
 -- We want to be able to choose the struct of the tag (in particular for enums).
@@ -1103,7 +1103,7 @@ struct ScopedVector T = (Iterable T) (Vector T).__intf__
 
 struct A =
   x y :U32
-  method@ total = U32
+  method total = U32
     return x + y
 
 struct B = A.__intf__
@@ -1113,7 +1113,7 @@ struct C = A.__funintf__
   from A import *
 
 struct D = A.__funintf__.dyn  -- dynamic interface?
-  method@ total = U32
+  method total = U32
     return 0
 
 
@@ -1136,7 +1136,7 @@ struct D = A.__funintf__.dyn  -- dynamic interface?
 struct A =
   _x :U32
   __y :U32
-  method@ update = Void
+  method update = Void
     this!_x += 1
     this!__y += this._x
 
@@ -1206,9 +1206,9 @@ fun usemap v:[].U32 = U32
 struct T =
   -- Fields come first, either in record, taggedunion or enum fashion.
   -- (only one mode is allowed).
-  -- Followed by method@ definitions.
+  -- Followed by method definitions.
 
--- Should we differentiate between method@ and fun? Method would implicitly take
+-- Should we differentiate between method and fun? Method would implicitly take
 -- the struct or the module (!) as first/this argument. That would be the only way
 -- to access global variables defined at the module scope. It would then make
 -- more sense to import a module in the scope of a type.
@@ -1361,7 +1361,7 @@ fun haskelldollar = I32
 
 struct T =
   -- Returns a copy of the object, must be a "safe" copy, i.e. deep-copy.
-  method@ __deepcopy__ = unique !T
+  method __deepcopy__ = unique !T
 
 -- Deep copy of shared is copy. Deep copy of unique is copy. Deep copy of scoped
 -- is recursive deep-copy. Well-defined, but there is the problem of
@@ -1427,7 +1427,7 @@ struct Promise T =
   _ready :Bool
   _lock :Mutex -- Let Mutex be modified, internal mutables.
 
-  method@! put x:T =
+  method! put x:T =
     ~ thisfun.takes .this._lock
     with this._lock
       this!_val = x
@@ -1435,10 +1435,10 @@ struct Promise T =
 struct Future T =
   p :(Promise T)
 
-  method@ get = T
+  method get = T
     return p._get
 
-  method@ tryget = T, Bool
+  method tryget = T, Bool
     with p._lock
       return p._val, p._ready
 
@@ -1461,7 +1461,7 @@ struct T =
 
 -- Generates .nh
 struct T =
-  method@ x = U32
+  method x = U32
 
 -- Should we allow the definition of setters?
 struct T =
@@ -1622,7 +1622,7 @@ fun usesdyn2 x:.B = U32
 intf B =
 intf C =
 dynintf D =
-  method@ Get = U32
+  method Get = U32
 struct A = B C D
 
 fun foo d:D = U32
@@ -1643,7 +1643,7 @@ fun bar a:A = U32
   return foo $ D a
 
 fun bar a:A = U32
-  return foo $ D &a -- Error if D contains a method@!
+  return foo $ D &a -- Error if D contains a method!
 fun bar a:A = U32
   return foo $ D &!a
 
@@ -1654,14 +1654,14 @@ fun bar a:A = U32
 -- "polymorph" and opaque reference toward an object of unknown type.
 
 fun bar a:A = U32
-  return foo (D &a) -- Error if D contains a method@!
+  return foo (D &a) -- Error if D contains a method!
 fun bar a:A = U32
   return foo (D &!a)
   return foo (D{ vptr=a.Type__.Isa.D.Virtualtable p=&!a })
 
 
 -- Should it be possible to call methods directly on objects? Like in python?
--- As regular functions? 'Class.method@ otherobj'
+-- As regular functions? 'Class.method otherobj'
 
 
 -- Construction syntax:
@@ -1699,13 +1699,13 @@ struct Vector T:Any =
 -- Semantic labelling
 
 intf Container T =
-  method@ Len = Size
-  method@ Capacity = Size
-  method@! Clear = Void
+  method Len = Size
+  method Capacity = Size
+  method! Clear = Void
     #~ self.Structchange
-  method@! Reserve len:Size = Void
+  method! Reserve len:Size = Void
     #~ self.Structchange
-  method@ All = (ElementIterator T)
+  method All = (ElementIterator T)
     #! retval.Prevents self.Structchange
 
   #~ prop Nonempty
@@ -1764,7 +1764,7 @@ fun foo a:!T b:!T = Void
 
 struct stores_refs =
   table :[]!T
-  method@! add p:!T =
+  method! add p:!T =
     self.table!Push p
   nethod getrand = !T
     return table.[random.randu32 &self.table.Len]
@@ -1821,7 +1821,7 @@ struct T =
   fun alloc ?allocator:Allocator = unique !this
     -- How do we pass it in recursively?
 
-  method@! Ctor ?heap_allocator:Allocator = this
+  method! Ctor ?heap_allocator:Allocator = this
     -- In that scenario every single Ctor that must support this feature would
     -- need to have this optional argument. A pain.
 
@@ -1863,10 +1863,10 @@ struct T =
 (type T) nlang.containers.ArrayProxy C:(Vector T) =
   obj :!C
 
-  method@ Ctor obj:!C = Void
+  method Ctor obj:!C = Void
     self!obj = obj
-  method@ Get idx:Size = T
-  method@! Set idx:Size x:T = Void
+  method Get idx:Size = T
+  method! Set idx:Size x:T = Void
 
 -- v.[0] will use ((ArrayProxy v.Type__) v).Get 0
 -- Not sure what the point would be. We would risk adding state. Not the point.

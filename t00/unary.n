@@ -4,7 +4,7 @@ struct t =
   isa `trivial_copy
   x:i32
 
-t method@ get = i32
+t method get = i32
   return self.x
 
 export fun main = i32

@@ -8,15 +8,15 @@ export opaque struct heap =
   export isa `allocator
   dummy:i32
 
-export heap (method@! t:`any) `allocator.alloc = @#t
+export heap (method! t:`any) `allocator.alloc = @#t
   let raw = realloc null 0 (sizeof t)
   return (nlang.unsafe.cast @#u8 @#t) raw
 
-export heap (method@! t:`any) `allocator.free p:?@#t = void
+export heap (method! t:`any) `allocator.free p:?@#t = void
   let raw = (nlang.unsafe.cast ?@#t ?@#u8) p
   return free raw (sizeof t)
 
-export heap (method@! t:`any) `allocator.slice_realloc s:@#(slice t) count:size = void
+export heap (method! t:`any) `allocator.slice_realloc s:@#(slice t) count:size = void
   let bsz = count * (sizeof t)
   if s.count == 0
     s#d = (nlang.unsafe.cast @#u8 ?@#t) (realloc null 0 bsz)
@@ -27,7 +27,7 @@ export heap (method@! t:`any) `allocator.slice_realloc s:@#(slice t) count:size 
     s#d = (nlang.unsafe.cast @#u8 ?@#t) (realloc raw old_bsz bsz)
     s#c = count
 
-export heap (method@! t:`any) `allocator.slice_free s:@#(slice t) = void
+export heap (method! t:`any) `allocator.slice_free s:@#(slice t) = void
   let bsz = s.bytecount
   let raw = s#unsafe_rawdata
   free raw bsz

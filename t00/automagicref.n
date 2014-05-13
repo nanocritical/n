@@ -5,14 +5,14 @@ struct A =
   isa `trivial_ctor
   dummy	:i32
 
-A (method@ t:`any) explicit p:@t = t
+A (method t:`any) explicit p:@t = t
   return p.
 
 struct B =
   isa `trivial_ctor
   dummy	:i32
 
-B (method@ t:`any r:`any_ref) implicit p:(r t) = t
+B (method t:`any r:`any_ref) implicit p:(r t) = t
   return p.
 
 fun null_arg p:?@?@i32 = void

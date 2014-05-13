@@ -8,17 +8,17 @@ export opaque struct heap t:`heap_element =
   h:(vector t)
   c:size
 
-export inline heap method@# reserve count:size = void
+export inline heap method# reserve count:size = void
   self.h#reserve count
 
-export inline heap method@ count = size
+export inline heap method count = size
   return self.c
 
-export inline heap method@# push x:t = void
+export inline heap method# push x:t = void
   self!c += 1
 
-export inline heap method@# pop = t
+export inline heap method# pop = t
   self!c -= 1
 
-export inline heap method@ first = t
-export inline heap method@ last = t
+export inline heap method first = t
+export inline heap method last = t

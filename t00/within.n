@@ -5,18 +5,18 @@ globalenv e2:@!`env2
 
 intf `env2 =
   isa (`environment this)
-  method@ say2 s:@string = void
+  method say2 s:@string = void
 
 struct myenv2 =
   isa `env2
   dummy	:u32
 
-myenv2 method@ say2 s:@string = void
+myenv2 method say2 s:@string = void
   say 'saying2:' s
 
 intf `env1 =
   isa (`environment this)
-  method@ say s:@string = void
+  method say s:@string = void
 
 struct myenv1 =
   isa `env1
@@ -24,7 +24,7 @@ struct myenv1 =
 globalenv e1:@!`env1
 within e1
 
-myenv1 method@ say s:@string = void
+myenv1 method say s:@string = void
   say 'saying:' s
 
 fun do = i32 within e2

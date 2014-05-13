@@ -2,7 +2,7 @@ from nlang import *
 
 intf `d =
   fun answer = i32
-  method@ get = i32
+  method get = i32
 
 struct d =
   isa `d
@@ -11,7 +11,7 @@ struct d =
 d fun answer = i32
   return 42
 
-d method@ get = i32
+d method get = i32
   return self.x
 
 struct dc =
@@ -21,7 +21,7 @@ struct dc =
 dc fun answer = i32
   return 42
 
-dc method@ get = i32
+dc method get = i32
   return 42
 
 fun foo v:@`d = i32
