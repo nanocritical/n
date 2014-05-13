@@ -12,4 +12,13 @@
 t/[0-9][0-9]/*.o.*
 t[0-9][0-9]/*.o.*
 lib/*/*.o.*
+t/[0-9][0-9]/*.ref.c
+t/[0-9][0-9]/*.ref.pretty
+t/[0-9][0-9]/*.ref.tree
+t[0-9][0-9]/*.ref.c
+t[0-9][0-9]/*.ref.pretty
+t[0-9][0-9]/*.ref.tree
+lib/*/*.ref.c
+lib/*/*.ref.pretty
+lib/*/*.ref.tree
 .deps
