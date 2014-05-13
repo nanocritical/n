@@ -140,7 +140,11 @@ static error unify_generics(struct module *mod, const struct node *for_error,
     SWAP(a_genf, b_genf);
   } else if (typ_definition(a)->which == DEFINTF
              && typ_definition(b)->which == DEFINTF) {
-    assert(false && "FIXME Unsupported (e.g. combining constraints `arithmethic and `bitwise)");
+    struct node *dinc = defincomplete_create(mod, for_error);
+    defincomplete_add_isa(mod, for_error, dinc, a);
+    defincomplete_add_isa(mod, for_error, dinc, b);
+    e = defincomplete_catchup(mod, dinc);
+    THROW(e);
   } else {
     e = mk_except_type_unification(mod, for_error, a, b);
     THROW(e);
