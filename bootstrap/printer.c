@@ -951,7 +951,9 @@ static void print_tree_node(FILE *out, const struct module *mod,
 
   if (node->typ != NULL) {
     const struct node *def = typ_definition_const(node->typ);
-    if (def->which == IMPORT) {
+    if (def == NULL) {
+      fprintf(out, " :<WRONGLY ZEROED>");
+    } else if (def->which == IMPORT) {
       fprintf(out, " :<import>");
     } else {
       char *typn = typ_pretty_name(mod, node->typ);

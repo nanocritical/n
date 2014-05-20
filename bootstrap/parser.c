@@ -110,6 +110,7 @@ noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
 #endif
 
 const char *node_which_strings[] = {
+  [0] = "(none)",
   [NUL] = "NUL",
   [IDENT] = "IDENT",
   [NUMBER] = "NUMBER",
