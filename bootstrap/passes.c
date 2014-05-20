@@ -29,6 +29,7 @@ a_pass passes(size_t p) {
 };
 
 error advance(struct module *mod) {
+  mod->stage->state->passing_in_mod = mod;
   const size_t p = mod->stage->state->passing;
   a_pass pa = passes(p);
 
@@ -116,6 +117,8 @@ error catchup(struct module *mod,
     || par->which == DEFINTF;
 
   PUSH_STATE(mod->stage->state);
+  mod->stage->state->passing_in_mod = mod;
+
   if (need_new_state) {
     PUSH_STATE(mod->state);
   }
@@ -184,7 +187,12 @@ bool instantiation_is_tentative(const struct module *mod,
 }
 
 void record_tentative_instantiation(struct module *mod, struct node *i) {
-  struct toplevel *toplevel = node_toplevel(mod->state->top_state->top);
+  struct module *m = mod;
+  while (m->state->top_state == NULL) {
+    m = m->stage->state->prev->passing_in_mod;
+  }
+
+  struct toplevel *toplevel = node_toplevel(m->state->top_state->top);
 
   toplevel->tentative_instantiations_count += 1;
   toplevel->tentative_instantiations = realloc(
@@ -307,10 +315,15 @@ static error do_complete_instantiation(struct module *mod, struct node *node) {
   PUSH_STATE(mod->stage->state);
   PUSH_STATE(mod->state->step_state);
 
+  const size_t saved_furthest_passing = mod->state->furthest_passing;
+
   struct toplevel *toplevel = node_toplevel(node);
   for (ssize_t p = toplevel->yet_to_pass; p <= goal; ++p) {
     a_pass pa = passes(p);
     mod->stage->state->passing = p;
+    if (mod->state->top_state != NULL) {
+      mod->state->furthest_passing = mod->stage->state->passing;
+    }
 
     int module_depth = 0;
     error e = pa(mod, node, &module_depth, -1);
@@ -318,6 +331,9 @@ static error do_complete_instantiation(struct module *mod, struct node *node) {
 
     toplevel->yet_to_pass = p + 1;
   }
+
+  mod->state->furthest_passing = max(size_t, saved_furthest_passing,
+                                     mod->state->furthest_passing);
 
   POP_STATE(mod->state->step_state);
   POP_STATE(mod->stage->state);

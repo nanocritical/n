@@ -1071,7 +1071,7 @@ struct stage_state {
   struct stage_state *prev;
 
   ssize_t passing;
-  struct module *base_mod;
+  struct module *passing_in_mod;
 };
 
 // A compilation stage is a group of modules that are loaded and compiled
