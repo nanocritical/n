@@ -2722,10 +2722,16 @@ static error p_defintf_statement(struct node *node, struct module *mod,
   struct toplevel toplevel = { 0 };
   struct node *genargs = NULL;
 
+  bool must_be_method = false;
+again:
   e = scan(&tok, mod);
   EXCEPT(e);
 
-again:
+bypass:
+  if (must_be_method && tok.t != Tmethod) {
+    UNEXPECTED(mod, &tok);
+  }
+
   switch (tok.t) {
   case TLPAR:
     e = scan_oneof(&tok2, mod, Tfun, Tmethod, 0);
@@ -2739,7 +2745,7 @@ again:
     e = p_implicit_genargs(genargs, mod);
     EXCEPT(e);
     tok = tok2;
-    goto again;
+    goto bypass;
   case Tfun:
     if (subs_first(node) == NULL) {
       (void)node_new_subnode(mod, node);
@@ -2747,6 +2753,10 @@ again:
     }
     e = p_deffun(node, mod, &toplevel, DEFFUN);
     break;
+  case Tshallow:
+    toplevel.flags |= TOP_IS_SHALLOW;
+    must_be_method = true;
+    goto again;
   case Tmethod:
     if (subs_first(node) == NULL) {
       (void)node_new_subnode(mod, node);
