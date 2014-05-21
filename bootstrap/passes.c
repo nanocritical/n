@@ -87,7 +87,7 @@ error catchup(struct module *mod,
     goal = mod->done ? last_pass() : mod->stage->state->passing;
   } else if (how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
     goal = min(size_t, mod->stage->state->passing, last_tentative_instance_pass());
-  } else if (how == CATCHUP_BEFORE_CURRENT) {
+  } else if (how == CATCHUP_BEFORE_CURRENT_SAME_TOP) {
     assert(mod->stage->state->passing == 0 && "Unsupported");
     goal = mod->state->furthest_passing;
   } else if (how == CATCHUP_AFTER_CURRENT) {

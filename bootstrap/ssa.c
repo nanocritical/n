@@ -67,7 +67,7 @@ static void insert_assign(struct module *mod,
   name->as.IDENT.name = node_ident(defn);
   node_subs_append(assign, last);
 
-  error e = catchup(mod, NULL, assign, CATCHUP_BEFORE_CURRENT);
+  error e = catchup(mod, NULL, assign, CATCHUP_BEFORE_CURRENT_SAME_TOP);
   assert(!e);
 }
 
@@ -157,7 +157,7 @@ static void ssa_sub(struct module *mod, struct node *statement,
   sub->as.IDENT.name = g;
 
   error e;
-  e = catchup(mod, NULL, let, CATCHUP_BEFORE_CURRENT);
+  e = catchup(mod, NULL, let, CATCHUP_BEFORE_CURRENT_SAME_TOP);
   assert(!e);
 
   INVARIANT_NODE(sub);

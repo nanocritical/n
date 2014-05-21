@@ -8,7 +8,7 @@ typedef error (*step)(struct module *mod, struct node *node, void *user, bool *s
 enum catchup_for {
   CATCHUP_BELOW_CURRENT = 0,
   CATCHUP_REWRITING_CURRENT,
-  CATCHUP_BEFORE_CURRENT,
+  CATCHUP_BEFORE_CURRENT_SAME_TOP,
   CATCHUP_AFTER_CURRENT, // depth-first order in the tree of nodes
   CATCHUP_NEW_INSTANCE,
   CATCHUP_TENTATIVE_NEW_INSTANCE,
