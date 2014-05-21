@@ -68,6 +68,7 @@ struct node *add_instance_deepcopy_from_pristine(struct module *mod,
   struct node *instance = calloc(1, sizeof(struct node));
   instance->parent = parent(node);
   node_deepcopy(mod, instance, pristine);
+  instance->flags |= NODE__DETACHED;
   node_toplevel(instance)->scope_name = 0;
 
   try_add_generic(node);

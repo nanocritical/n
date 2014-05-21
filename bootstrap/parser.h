@@ -435,6 +435,7 @@ enum node_flags {
   NODE_IS_GLOBAL_LET = 0x8,
   NODE__TRANSITIVE = NODE_IS_TYPE,
   NODE__ASSIGN_TRANSITIVE = NODE_IS_DEFCHOICE,
+  NODE__DETACHED = 0x10,
 };
 
 struct node {
@@ -671,7 +672,7 @@ static inline void node_subs_prepend(struct node *node, struct node *sub) {
 
 static inline void node_subs_insert_before(struct node *node, struct node *where,
                                            struct node *sub) {
-  assert(sub->prev == NULL && sub->next == NULL);
+  assert(sub->prev == NULL && sub->next == NULL && sub->parent == NULL);
   sub->parent = node;
   if (where == NULL) {
     assert(node->subs_first == NULL && node->subs_last == NULL);
@@ -680,10 +681,8 @@ static inline void node_subs_insert_before(struct node *node, struct node *where
     return;
   }
 
+  assert(where->parent == node);
   struct node *prev = where->prev;
-  if (prev == sub) {
-    return;
-  }
   sub->prev = prev;
   if (prev == NULL) {
     node->subs_first = sub;
@@ -697,7 +696,7 @@ static inline void node_subs_insert_before(struct node *node, struct node *where
 
 static inline void node_subs_insert_after(struct node *node, struct node *where,
                                           struct node *sub) {
-  assert(sub->prev == NULL && sub->next == NULL);
+  assert(sub->prev == NULL && sub->next == NULL && sub->parent == NULL);
   sub->parent = node;
   if (where == NULL) {
     assert(node->subs_first == NULL && node->subs_last == NULL);
@@ -705,11 +704,8 @@ static inline void node_subs_insert_after(struct node *node, struct node *where,
     node->subs_last = sub;
     return;
   }
-
+  assert(where->parent == node);
   struct node *next = where->next;
-  if (next == sub) {
-    return;
-  }
   sub->next = next;
   if (next == NULL) {
     node->subs_last = sub;

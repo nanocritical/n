@@ -3639,7 +3639,8 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
 
   GSTART();
   G0(fun, node, DIRECTDEF,
-     fun->as.DIRECTDEF.typ = tfun);
+     set_typ(&fun->as.DIRECTDEF.typ, tfun);
+     fun->as.DIRECTDEF.flags = NODE_IS_TYPE);
   G0(ref_array, node, UN,
      ref_array->as.UN.operator = TREFDOT;
      node_subs_append(ref_array, array));

@@ -914,14 +914,20 @@ void node_invariant(const struct node *node) {
          || prev_const(node) != NULL
          || !subs_count_atleast(parent_const(node), 2));
 
+  assert(node->which < NODE__NUM);
+
   ssize_t n = 0;
+  const struct node *p = NULL;
   FOREACH_SUB_CONST(s, node) {
+    assert(s->which < NODE__NUM);
+
     assert(s->parent == node);
     if (n == 0) {
       assert(s->prev == NULL);
       assert(s == node->subs_first);
     } else {
       assert(s->prev != NULL);
+      assert(s->prev == p);
       assert(s != node->subs_first);
     }
     if (s->next == NULL) {
@@ -930,6 +936,7 @@ void node_invariant(const struct node *node) {
       assert(s != node->subs_last);
     }
     n += 1;
+    p = s;
   }
 
   switch (node->which) {
@@ -958,11 +965,23 @@ void node_invariant(const struct node *node) {
     assert(subs_count(node) == 2);
     break;
   case DEFNAME:
+    assert(subs_count(node) == 2);
     assert(node->as.DEFNAME.ssa_user == NULL
            || parent(node->as.DEFNAME.ssa_user) != NULL);
     break;
   default:
     break;
+  }
+
+  if (node->parent != NULL && !(node->flags & NODE__DETACHED)) {
+    bool found = false;
+    FOREACH_SUB_CONST(s, node->parent) {
+      if (s == node) {
+        found = true;
+        break;
+      }
+    }
+    assert(found);
   }
 
   assert(parent_const(node) != node);
@@ -2863,23 +2882,17 @@ done:
 }
 
 struct node *defincomplete_create(struct module *mod, const struct node *trigger) {
-  struct node *at_top = CONST_CAST(struct node *, trigger);
-  while (parent(at_top)->which != MODULE_BODY) {
-    at_top = parent(at_top);
-  }
 
   struct node *dinc = node_new_subnode(mod, mod->body);
-  node_subs_remove(mod->body, dinc);
-  node_subs_insert_after(mod->body, at_top, dinc);
 
   record_tentative_instantiation(mod, dinc);
-  dinc->parent = mod->body;
   dinc->codeloc = trigger->codeloc;
   node_set_which(dinc, DEFINCOMPLETE);
   struct node *dinc_name = mk_node(mod, dinc, IDENT);
   dinc_name->as.IDENT.name = gensym(mod);
   (void)mk_node(mod, dinc, GENARGS);
   (void)mk_node(mod, dinc, ISALIST);
+
   return dinc;
 }
 
@@ -2997,8 +3010,6 @@ void node_deepcopy(struct module *mod, struct node *dst,
     struct node *cpy = node_new_subnode(mod, dst);
     node_deepcopy(mod, cpy, s);
   }
-
-  INVARIANT_NODE(dst);
 }
 
 void copy_and_extend_import_path(struct module *mod, struct node *imported,

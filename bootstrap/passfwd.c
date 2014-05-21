@@ -107,7 +107,7 @@ static error step_type_definitions(struct module *mod, struct node *node,
   } else {
     set_typ(&node->typ, typ_create(NULL, node));
   }
-  node->flags = NODE_IS_TYPE;
+  node->flags |= NODE_IS_TYPE;
 
   step_constraint_inference(mod, node, NULL, NULL);
 
