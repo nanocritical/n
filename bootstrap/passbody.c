@@ -3746,16 +3746,22 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
 
   struct node *right = subs_last(node);
   node_subs_remove(node, right); // steal defname expression
-
-  set_typ(&left->typ, right->typ);
+  struct node *init = mk_node(mod, node, INIT);
+  set_typ(&init->typ, right->typ);
 
   struct node *within = parent(parent(node));
   struct node *copycall = node_new_subnode(mod, within);
   node_subs_remove(within, copycall);
   node_subs_insert_after(within, parent(node), copycall);
 
-  error e = gen_operator_call(mod, copycall, ID_COPY_CTOR, left, right,
-                              CATCHUP_AFTER_CURRENT);
+  // We need 'left' to be caught up.
+  node_subs_append(copycall, left);
+  error e = catchup(mod, NULL, left, CATCHUP_AFTER_CURRENT);
+  assert(!e);
+  node_subs_remove(copycall, left);
+
+  e = gen_operator_call(mod, copycall, ID_COPY_CTOR, left, right,
+                        CATCHUP_AFTER_CURRENT);
   EXCEPT(e);
 
   return 0;
@@ -3780,12 +3786,10 @@ static error step_copy_call_inference(struct module *mod, struct node *node,
     if (node->as.DEFNAME.ssa_user != NULL) {
       return 0;
     }
-    if (!(node->flags & NODE_IS_TYPE)) {
-      left = node;
-      right = subs_last(node);
-      if (right != NULL) {
-        break;
-      }
+    left = node;
+    right = subs_last(node);
+    if (right != NULL && right->which != INIT) {
+      break;
     }
     return 0;
   default:
