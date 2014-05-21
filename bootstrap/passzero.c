@@ -73,10 +73,8 @@ struct node *add_instance_deepcopy_from_pristine(struct module *mod,
   try_add_generic(node);
   try_add_generic(instance);
 
-  if (!tentative) {
-    struct generic *generic = node_toplevel(node)->generic;
-    vecnode_push(&generic->instances, instance);
-  }
+  struct generic *generic = node_toplevel(node)->generic;
+  vecnode_push(&generic->instances, instance);
 
   return instance;
 }

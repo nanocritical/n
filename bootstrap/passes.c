@@ -352,6 +352,12 @@ error step_complete_instantiation(struct module *mod, struct node *node,
 
   for (size_t n = 1, count = vecnode_count(&toplevel->generic->instances); n < count; ++n) {
     struct node *i = *vecnode_get(&toplevel->generic->instances, n);
+    if (typ_is_tentative(i->typ)
+        // Was linked to something else.
+        || typ_definition_const(i->typ) != i) {
+      continue;
+    }
+
     error e = do_complete_instantiation(mod, i);
     if (e) {
       e = mk_except_type(mod, node_toplevel_const(i)->generic->for_error,

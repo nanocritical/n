@@ -3132,7 +3132,8 @@ static error step_type_drop_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
-static error finalize_generic_instantiation(struct module *mod, struct typ *t) {
+static error finalize_generic_instantiation(struct module *mod, const struct node *for_error,
+                                            struct typ *t) {
   if (typ_definition_const(t) == NULL) {
     // 't' was cleared in link_to_final()
     return 0;
@@ -3163,8 +3164,9 @@ static error finalize_generic_instantiation(struct module *mod, struct typ *t) {
       if (typ_is_tentative(arg)) {
         fprintf(g_env.stderr, "%s in %s\n",
                 typ_pretty_name(mod, arg), typ_pretty_name(mod, t));
-        assert(!typ_is_tentative(arg)
-               && "FIXME: this should be an error, but how to explain it?");
+        error e = mk_except(mod, for_error, "FIXME: this should be an error,"
+                            " but how to explain it?");
+        THROW(e);
       }
     }
   }
@@ -3184,10 +3186,10 @@ static error finalize_generic_instantiation(struct module *mod, struct typ *t) {
     args[m] = typ_generic_arg(t, m);
   }
 
-  const struct node *for_error = node_toplevel_const(typ_definition_const(t))
+  const struct node *instantiating_for_error = node_toplevel_const(typ_definition_const(t))
     ->generic->for_error;
   struct node *i = NULL;
-  error e = do_instantiate(&i, mod, for_error, -1, functor, args, arity, false);
+  error e = do_instantiate(&i, mod, instantiating_for_error, -1, functor, args, arity, false);
   EXCEPT(e);
 
   typ_declare_final__privileged(i->typ);
@@ -3246,7 +3248,7 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
     if (d->which == DEFINCOMPLETE) {
       finalize_defincomplete_unification(mod, d);
     } else {
-      error e = finalize_generic_instantiation(mod, t);
+      error e = finalize_generic_instantiation(mod, node, t);
       EXCEPT(e);
     }
   }
