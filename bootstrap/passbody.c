@@ -835,18 +835,40 @@ static error try_insert_automagic_deref(struct module *mod,
     THROW(e);
   }
 
-  struct node *par = parent(node);
+  struct node *last_block = NULL;
+  struct node *target = node;
+  while (target->which == BLOCK) {
+    last_block = target;
+    unset_typ(&last_block->typ);
+
+    target = subs_last(target);
+  }
+
+  struct node *par = parent(target);
   struct node *deref = mk_node(mod, par, UN);
-  deref->codeloc = node->codeloc;
+  deref->codeloc = target->codeloc;
   deref->as.UN.operator = TDEREFDOT;
 
   node_subs_remove(par, deref);
-  node_subs_replace(par, node, deref);
-  node_subs_append(deref, node);
+  node_subs_replace(par, target, deref);
+  node_subs_append(deref, target);
 
-  const struct node *except[] = { node, NULL };
+  const struct node *except[] = { target, NULL };
   error e = catchup(mod, except, deref, CATCHUP_BELOW_CURRENT);
   assert(!e);
+
+  if (last_block != NULL) {
+    struct node *n = last_block;
+    while (true) {
+      assert(n->which == BLOCK);
+      set_typ(&n->typ, subs_last(n)->typ);
+
+      if (n == node) {
+        break;
+      }
+      n = parent(n);
+    }
+  }
 
   return 0;
 }
