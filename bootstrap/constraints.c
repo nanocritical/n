@@ -1316,82 +1316,82 @@ static error constraint_inference_return(struct module *mod,
   return 0;
 }
 
-static int check_tag_is_set_each(const ident *name, cbool *value, void *user) {
-  struct tagset *right_tags = user;
-  if (*value == Y) {
-    const cbool *existing = tagset_get(right_tags, *name);
-    if (existing == NULL || *existing == N) {
-      return *name;
-    }
-  }
-  return 0;
-}
-
-static int restrict_tags_each(const ident *name, cbool *value, void *user) {
-  if (*value == U) {
-    return 0;
-  }
-
-  struct tagset *ctags = user;
-  cbool *existing = tagset_get(ctags, *name);
-  if (existing == NULL) {
-    tagset_set(ctags, *name, *value);
-  } else if (*existing == U) {
-    *existing = *value;
-  } else if (*value == U) {
-    // noop
-  } else if (*existing != *value) {
-    return *name;
-  }
-  return 0;
-}
-
-static error constraint_inference_typeconstraint(struct module *mod,
-                                                 struct node *node) {
-  struct constraint *c = node->constraint;
-  struct node *nleft = subs_first(node);
-  struct constraint *left = nleft->constraint;
-  struct node *nright = subs_last(node);
-  struct constraint *right = nright->constraint;
-  error e;
-
-  constraint_copy(mod, node->constraint, left);
-
-  if (right->table[CBI__ANYTAG] == N && c->table[CBI__ANYTAG] == N) {
-    const int ret = tagset_foreach(&c->tags, check_tag_is_set_each,
-                                   &right->tags);
-    if (ret != 0) {
-      const ident failed = ret;
-      e = mk_except_constraint(mod, nright,
-                               "constraint on tag '%s' is a restriction",
-                               idents_value(mod->gctx, failed));
-      EXCEPT(e);
-    }
-  }
-
-  for (size_t cbi = 0; cbi < CBI__NUM; ++cbi) {
-    if (c->table[cbi] == U) {
-      c->table[cbi] = right->table[cbi];
-    } else if (right->table[cbi] == U) {
-      // noop
-    } else if (c->table[cbi] != right->table[cbi]) {
-      e = mk_except_constraint(mod, nright,
-                               "incompatible constraint '::%s'",
-                               constraint_builtins_strings[cbi]);
-      THROW(e);
-    }
-  }
-
-  if (right->table[CBI__ANYTAG] == N) {
-     const int ret = tagset_foreach(&right->tags, restrict_tags_each, &c->tags);
-     assert(ret == 0);
-  }
-
-  // Copy over to LHS as the TYPECONSTRAINT itself will get elided in
-  // step_remove_typeconstraints().
-  constraint_copy(mod, left, c);
-  return 0;
-}
+//static int check_tag_is_set_each(const ident *name, cbool *value, void *user) {
+//  struct tagset *right_tags = user;
+//  if (*value == Y) {
+//    const cbool *existing = tagset_get(right_tags, *name);
+//    if (existing == NULL || *existing == N) {
+//      return *name;
+//    }
+//  }
+//  return 0;
+//}
+//
+//static int restrict_tags_each(const ident *name, cbool *value, void *user) {
+//  if (*value == U) {
+//    return 0;
+//  }
+//
+//  struct tagset *ctags = user;
+//  cbool *existing = tagset_get(ctags, *name);
+//  if (existing == NULL) {
+//    tagset_set(ctags, *name, *value);
+//  } else if (*existing == U) {
+//    *existing = *value;
+//  } else if (*value == U) {
+//    // noop
+//  } else if (*existing != *value) {
+//    return *name;
+//  }
+//  return 0;
+//}
+//
+//static error constraint_inference_typeconstraint(struct module *mod,
+//                                                 struct node *node) {
+//  struct constraint *c = node->constraint;
+//  struct node *nleft = subs_first(node);
+//  struct constraint *left = nleft->constraint;
+//  struct node *nright = subs_last(node);
+//  struct constraint *right = nright->constraint;
+//  error e;
+//
+//  constraint_copy(mod, node->constraint, left);
+//
+//  if (right->table[CBI__ANYTAG] == N && c->table[CBI__ANYTAG] == N) {
+//    const int ret = tagset_foreach(&c->tags, check_tag_is_set_each,
+//                                   &right->tags);
+//    if (ret != 0) {
+//      const ident failed = ret;
+//      e = mk_except_constraint(mod, nright,
+//                               "constraint on tag '%s' is a restriction",
+//                               idents_value(mod->gctx, failed));
+//      EXCEPT(e);
+//    }
+//  }
+//
+//  for (size_t cbi = 0; cbi < CBI__NUM; ++cbi) {
+//    if (c->table[cbi] == U) {
+//      c->table[cbi] = right->table[cbi];
+//    } else if (right->table[cbi] == U) {
+//      // noop
+//    } else if (c->table[cbi] != right->table[cbi]) {
+//      e = mk_except_constraint(mod, nright,
+//                               "incompatible constraint '::%s'",
+//                               constraint_builtins_strings[cbi]);
+//      THROW(e);
+//    }
+//  }
+//
+//  if (right->table[CBI__ANYTAG] == N) {
+//     const int ret = tagset_foreach(&right->tags, restrict_tags_each, &c->tags);
+//     assert(ret == 0);
+//  }
+//
+//  // Copy over to LHS as the TYPECONSTRAINT itself will get elided in
+//  // step_remove_typeconstraints().
+//  constraint_copy(mod, left, c);
+//  return 0;
+//}
 
 static error constraint_inference_defname(struct module *mod,
                                           struct node *node) {
@@ -1486,6 +1486,9 @@ error step_constraint_inference(struct module *mod, struct node *node,
     if (!(node->flags & NODE_IS_TYPE) && typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
       constraint_set(mod, node->constraint, CBI_INIT, false);
     }
+    if (node->as.INIT.for_tag != ID__NONE) {
+      constraint_set_tag(mod, node->constraint, node->as.INIT.for_tag, false);
+    }
     break;
   case BIN:
     e = constraint_inference_bin(mod, node);
@@ -1512,16 +1515,19 @@ error step_constraint_inference(struct module *mod, struct node *node,
     break;
   case BLOCK:
   case CATCH:
-    constraint_copy(mod, node->constraint, subs_last(node)->constraint);
+    {
+      struct node *not_phi = subs_last(node);
+      while (not_phi->which == PHI) {
+        not_phi = prev(not_phi);
+      }
+      constraint_copy(mod, node->constraint, not_phi->constraint);
+      constraint_copy(mod, node->constraint, not_phi->constraint);
+    }
     break;
   case IF:
   case WHILE:
   case MATCH:
   case TRY:
-    break;
-  case TYPECONSTRAINT:
-    e = constraint_inference_typeconstraint(mod, node);
-    EXCEPT(e);
     break;
   case DYN:
     constraint_copy(mod, node->constraint, subs_first(node)->constraint);
@@ -1571,6 +1577,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
   case BREAK:
   case JUMP:
   case CONTINUE:
+  case TYPECONSTRAINT:
   case NOOP:
   case EXCEP:
   case THROW:

@@ -32,7 +32,7 @@ typedef error (*a_pass)(struct module *mod, struct node *root,
 
 #define PASSZERO_COUNT 2
 #define PASSFWD_COUNT 9
-#define PASSBODY_COUNT 2
+#define PASSBODY_COUNT 3
 
 a_pass passes(size_t p);
 error advance(struct module *mod);
