@@ -1953,8 +1953,6 @@ static void print_mkdyn(FILE *out, bool header, enum forward fwd,
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,
       .mod = NULL, .printed = 0, .user = NULL };
-    if (!header && strcmp("t00/match.n", mod->filename) == 0)
-      __break();
     error e = typ_isalist_foreach((struct module *)mod, node->typ, filter,
                                   print_mkdyn_proto_eachisalist,
                                   &st);
@@ -2591,14 +2589,9 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
   guard_generic(out, header, fwd, mod, node, "", false);
 }
 
-static void print_guarded_include(FILE *out, bool header, enum forward fwd,
-                                  const char *filename, const char *postfix) {
-  fprintf(out, "#define %s\n", forward_guards[fwd]);
+static void print_include(FILE *out, const char *filename, const char *postfix) {
   fprintf(out, "# include \"%s%s\"\n", filename, postfix);
-  fprintf(out, "#undef %s\n", forward_guards[fwd]);
 }
-
-static void print_module(FILE *out, bool header, const struct module *mod);
 
 static void print_import(FILE *out, bool header, enum forward fwd,
                          const struct module *mod, const struct node *node) {
@@ -2610,7 +2603,7 @@ static void print_import(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  print_guarded_include(out, header, fwd, target->as.MODULE.mod->filename, ".o.h");
+  print_include(out, target->as.MODULE.mod->filename, ".o.h");
 }
 
 static bool file_exists(const char *base, const char *postfix) {
@@ -2785,6 +2778,8 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       fprintf(out, "\n#define %s__", forward_guards[fwd]);
       print_scope_name(out, mod, &mod->root->scope);
       fprintf(out, "\n\n");
+    } else {
+      fprintf(out, "#define %s\n", forward_guards[fwd]);
     }
 
     for (const struct node *node = subs_first_const(top);
@@ -2798,12 +2793,12 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
 
     if (header) {
       if (file_exists(mod->filename, ".h")) {
-        print_guarded_include(out, header, fwd, mod->filename, ".h");
+        print_include(out, mod->filename, ".h");
       }
     } else {
-      print_guarded_include(out, header, fwd, mod->filename, ".o.h");
+      print_include(out, mod->filename, ".o.h");
       if (file_exists(mod->filename, ".c")) {
-        print_guarded_include(out, header, fwd, mod->filename, ".c");
+        print_include(out, mod->filename, ".c");
       }
     }
 
@@ -2819,6 +2814,8 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
     if (header) {
       fprintf(out, "\n#endif\n");
       fprintf(out, "#endif // %s\n", forward_guards[fwd]);
+    } else {
+      fprintf(out, "#undef %s\n", forward_guards[fwd]);
     }
   }
 

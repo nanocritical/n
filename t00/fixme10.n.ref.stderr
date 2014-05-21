@@ -1,4 +1,4 @@
-t00/fixme10.n.o.c:34:15: error: field ‘x’ has incomplete type
+t00/fixme10.n.o.c:29:15: error: field ‘x’ has incomplete type
  t00$fixme10$b x;
                ^
 command exited with 1: gcc -Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g -xc t00/fixme10.n.o.c -c -o t00/fixme10.n.o
