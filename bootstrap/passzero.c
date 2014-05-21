@@ -75,11 +75,7 @@ struct node *add_instance_deepcopy_from_pristine(struct module *mod,
 
   if (!tentative) {
     struct generic *generic = node_toplevel(node)->generic;
-    const size_t idx = generic->instances_count;
-    generic->instances_count += 1;
-    generic->instances = realloc(generic->instances,
-                                 generic->instances_count * sizeof(*generic->instances));
-    generic->instances[idx] = instance;
+    vecnode_push(&generic->instances, instance);
   }
 
   return instance;

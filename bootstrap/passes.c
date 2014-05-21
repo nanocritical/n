@@ -193,13 +193,7 @@ void record_tentative_instantiation(struct module *mod, struct node *i) {
   }
 
   struct toplevel *toplevel = node_toplevel(m->state->top_state->top);
-
-  toplevel->tentative_instantiations_count += 1;
-  toplevel->tentative_instantiations = realloc(
-    toplevel->tentative_instantiations,
-    toplevel->tentative_instantiations_count
-    * sizeof(*toplevel->tentative_instantiations));
-  toplevel->tentative_instantiations[toplevel->tentative_instantiations_count - 1] = i;
+  vecnode_push(&toplevel->tentative_instantiations, i);
 }
 
 error catchup_instantiation(struct module *instantiating_mod,
@@ -356,8 +350,8 @@ error step_complete_instantiation(struct module *mod, struct node *node,
     return 0;
   }
 
-  for (size_t n = 1; n < toplevel->generic->instances_count; ++n) {
-    struct node *i = toplevel->generic->instances[n];
+  for (size_t n = 1, count = vecnode_count(&toplevel->generic->instances); n < count; ++n) {
+    struct node *i = *vecnode_get(&toplevel->generic->instances, n);
     error e = do_complete_instantiation(mod, i);
     if (e) {
       e = mk_except_type(mod, node_toplevel_const(i)->generic->for_error,

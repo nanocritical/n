@@ -114,10 +114,15 @@ enum toplevel_flags {
   TOP_IS_SHALLOW = 0x80,
 };
 
+VECTOR(vecbool, bool, 4);
+IMPLEMENT_VECTOR(static inline, vecbool, bool);
+
+VECTOR(vecnode, struct node *, 4);
+IMPLEMENT_VECTOR(static inline, vecnode, struct node *);
+
 struct generic {
   size_t first_explicit_genarg;
-  struct node **instances;
-  size_t instances_count;
+  struct vecnode instances;
   struct typ *our_generic_functor_typ;
 
   const struct node *for_error;
@@ -131,14 +136,10 @@ struct toplevel {
   struct generic *generic;
   struct typset *topdeps;
 
-  struct node **tentative_instantiations;
-  size_t tentative_instantiations_count;
+  struct vecnode tentative_instantiations;
 
   ssize_t yet_to_pass;
 };
-
-VECTOR(vecnode, struct node *, 4);
-IMPLEMENT_VECTOR(static inline, vecnode, struct node *);
 
 struct phi_tracker_state {
   struct phi_tracker_state *prev;

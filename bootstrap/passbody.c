@@ -555,7 +555,7 @@ static error do_instantiate(struct node **result,
   assert(arity == 0 || arity == typ_generic_arity(t));
 
   struct node *gendef = typ_definition(t);
-  if (node_toplevel(gendef)->generic->instances_count == 0) {
+  if (vecnode_count(&node_toplevel(gendef)->generic->instances) == 0) {
     if (for_error == NULL) {
       assert(false);
     } else {
@@ -564,7 +564,7 @@ static error do_instantiate(struct node **result,
     }
   }
 
-  struct node *pristine = node_toplevel(gendef)->generic->instances[0];
+  struct node *pristine = *vecnode_get(&node_toplevel(gendef)->generic->instances, 0);
   struct node *instance = add_instance_deepcopy_from_pristine(mod, gendef,
                                                               pristine, tentative);
   node_toplevel(instance)->generic->for_error = for_error;
@@ -634,8 +634,8 @@ static struct typ *find_existing_final(struct module *mod,
 
   const struct node *d = typ_definition_const(t);
   const struct toplevel *toplevel = node_toplevel_const(d);
-  for (size_t n = 1; n < toplevel->generic->instances_count; ++n) {
-    struct typ *i = toplevel->generic->instances[n]->typ;
+  for (size_t n = 1, count = vecnode_count(&toplevel->generic->instances); n < count; ++n) {
+    struct typ *i = (*vecnode_get(&toplevel->generic->instances, n))->typ;
     if (typ_is_tentative(i)) {
       continue;
     }
@@ -661,8 +661,8 @@ static struct typ *find_existing_final_for_tentative(struct module *mod,
   const struct node *d = typ_definition_const(typ_generic_functor_const(t));
 
   const struct toplevel *toplevel = node_toplevel_const(d);
-  for (size_t n = 1; n < toplevel->generic->instances_count; ++n) {
-    struct typ *i = toplevel->generic->instances[n]->typ;
+  for (size_t n = 1, count = vecnode_count(&toplevel->generic->instances); n < count; ++n) {
+    struct typ *i = (*vecnode_get(&toplevel->generic->instances, n))->typ;
     if (!typ_is_tentative(i) && typ_equal(t, i)) {
       return i;
     }
@@ -3226,7 +3226,7 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
   DSTEP(mod, node);
 
   struct toplevel *toplevel = node_toplevel(mod->state->top_state->top);
-  if (toplevel->tentative_instantiations == NULL) {
+  if (vecnode_count(&toplevel->tentative_instantiations) == 0) {
     return 0;
   }
 
@@ -3239,8 +3239,9 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
     return 0;
   }
 
-  for (size_t n = 0; n < toplevel->tentative_instantiations_count; ++n) {
-    struct node *d = toplevel->tentative_instantiations[n];
+  for (size_t n = 0, count = vecnode_count(&toplevel->tentative_instantiations);
+       n < count; ++n) {
+    struct node *d = *vecnode_get(&toplevel->tentative_instantiations, n);
     struct typ *t = d->typ;
     if (d->which == DEFINCOMPLETE) {
       finalize_defincomplete_unification(mod, d);
@@ -3257,9 +3258,7 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
     }
   }
 
-  free(toplevel->tentative_instantiations);
-  toplevel->tentative_instantiations = NULL;
-  toplevel->tentative_instantiations_count = 0;
+  vecnode_destroy(&toplevel->tentative_instantiations);
 
   return 0;
 }
