@@ -610,6 +610,54 @@ EXAMPLE_NCC_EMPTY(ssa_if_two) {
      G(funargs, FUNARGS,
        G_IDENT(ret, "void"));
      G(body, BLOCK,
+       G(ifx, IF,
+         G(acc, BIN,
+           acc->as.BIN.operator = TDOT;
+           G_IDENT(self, "self");
+           G_IDENT(f, "f"));
+         G(ba, BLOCK,
+           G_IDENT(a, "a"));
+         G(bb, BLOCK,
+           G_IDENT(b, "b")))));
+  assert(0 == ex_ssa_conversion(mod, n));
+  check_structure(n,
+                  "DEFFUN",
+                  " GENARGS",
+                  " FUNARGS",
+                  "  IDENT",
+                  " BLOCK",
+                  "  LET",
+                  "   DEFNAME",
+                  "    IDENT",
+                  "    INIT",
+                  "  IF",
+                  "   BLOCK",
+                  "    LET",
+                  "     DEFNAME",
+                  "      IDENT",
+                  "      BIN",
+                  "       IDENT",
+                  "       IDENT",
+                  "    IDENT",
+                  "   BLOCK",
+                  "    BIN",
+                  "     IDENT",
+                  "     IDENT",
+                  "   BLOCK",
+                  "    BIN",
+                  "     IDENT",
+                  "     IDENT",
+                  "  IDENT",
+                  NULL);
+}
+
+EXAMPLE_NCC_EMPTY(ssa_logical_or) {
+  GSTART();
+  G0(n, mod->body, DEFFUN,
+     G(genargs, GENARGS);
+     G(funargs, FUNARGS,
+       G_IDENT(ret, "void"));
+     G(body, BLOCK,
        G(or, BIN,
          or->as.BIN.operator = Tor;
          G(z, BIN,
@@ -729,6 +777,12 @@ static void remove_unnecessary_ssa_defname(struct module *mod, struct node *defn
   node_subs_remove(defn, subs_first(defn));
 }
 
+static bool needed_as_rvalue(struct node *user) {
+  struct node *par = parent(user);
+  return ((NM(par->which) & NM(BLOCK)) && needed_as_rvalue(par))
+    || (NM(par->which) & (NM(IF) | NM(WHILE) | NM(MATCH)));
+}
+
 bool try_remove_unnecessary_ssa_defname(struct module *mod, struct node *defn) {
   assert(defn->which == DEFNAME);
   if (defn->as.DEFNAME.ssa_user == NULL) {
@@ -737,26 +791,35 @@ bool try_remove_unnecessary_ssa_defname(struct module *mod, struct node *defn) {
 
   struct node *expr = subs_last(defn);
   struct node *user = defn->as.DEFNAME.ssa_user;
+
+  bool remove = false;
+
   if ((defn->flags & NODE_IS_TYPE)
-      || typ_equal(defn->typ, TBI_VOID)
-      // Any OP_BIN_ACC left at this stage is a field access.
-      || (expr->which == BIN
-          && OP_KIND(expr->as.BIN.operator) == OP_BIN_ACC)
-      || (expr->which == UN
-          && OP_KIND(expr->as.UN.operator) == OP_UN_DEREF
-          && parent(user)->which == UN
-          && OP_KIND(parent(user)->as.UN.operator) == OP_UN_REFOF)
-      || (expr->which == UN
-          && OP_KIND(expr->as.UN.operator) == OP_UN_DEREF
-          && parent(user)->which == BIN
-          && OP_IS_ASSIGN(parent(user)->as.BIN.operator)
-          && subs_first(parent(user)) == user)
-      || ((expr->which == INIT || expr->which == CALL)
-          && parent(user)->which == RETURN
-          && !typ_isa(module_retval_get(mod)->typ, TBI_RETURN_BY_COPY))) {
-    remove_unnecessary_ssa_defname(mod, defn);
-    return true;
+      || typ_equal(defn->typ, TBI_VOID)) {
+    remove = true;
+  } else if (needed_as_rvalue(user)) {
+    remove = false;
+  } else if (
+    // Any OP_BIN_ACC left at this stage is a field access.
+    (expr->which == BIN
+     && OP_KIND(expr->as.BIN.operator) == OP_BIN_ACC)
+    || (expr->which == UN
+        && OP_KIND(expr->as.UN.operator) == OP_UN_DEREF
+        && parent(user)->which == UN
+        && OP_KIND(parent(user)->as.UN.operator) == OP_UN_REFOF)
+    || (expr->which == UN
+        && OP_KIND(expr->as.UN.operator) == OP_UN_DEREF
+        && parent(user)->which == BIN
+        && OP_IS_ASSIGN(parent(user)->as.BIN.operator)
+        && subs_first(parent(user)) == user)
+    || ((expr->which == INIT || expr->which == CALL)
+        && parent(user)->which == RETURN
+        && !typ_isa(module_retval_get(mod)->typ, TBI_RETURN_BY_COPY))) {
+    remove = true;
   }
 
-  return false;
+  if (remove) {
+    remove_unnecessary_ssa_defname(mod, defn);
+  }
+  return remove;
 }
