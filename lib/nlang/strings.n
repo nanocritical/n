@@ -17,28 +17,28 @@ export string method `const_string.all = index_range
   return self.bytes.all
 
 export string method `const_string.get_char n:size = char
-  return char.from_ascii (self.bytes.at n).
+  return char.from_ascii self.bytes.[n].
 
 export string method `const_string.substring r:index_range = @`const_string
   let sub = (heap.alloc string) @!sysheap
   such
-    let mem = self.bytes.storage.sub r
+    let mem = self.bytes.storage.[r]
     sub.bytes#append_slice mem
     -- FIXME leaking mem
   return sub
 
-export string method `const_string.bytes_utf8 = @(slice u8)
-  return self.bytes.storage.sub self.bytes.all
+export string method `const_string.bytes_utf8 = []u8
+  return self.bytes.storage.[self.bytes.all]
 
 export string method! `string.set_char n:size c:char = void
-  (self.bytes!at n)! = c.code.trim_u8
+  self.bytes![n]! = c.code.trim_u8
 
 export string method! `string.fill c:char r:index_range = void
   let with = c.code.trim_u8
-  let sb = self.bytes!storage!sub r
+  let sb = self.bytes!storage![r]
   such
     for i in sb.all.iter
-      let p = sb!at i
+      let p = sb![i]
       p! = with
 
 export string method# `string_buffer.reserve count:size = void

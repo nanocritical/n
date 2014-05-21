@@ -110,6 +110,7 @@ export intf `sum_order =
 export extern inline struct void =
   export isa `return_by_copy `trivial_copy `prevent_dyn
 
+
 export intf `any_any_ref =
   isa `return_by_copy `trivial_copy_but_owned `trivial_equality
 export intf `any_ref t:`any =
@@ -135,6 +136,165 @@ export extern struct nullable_mutable_ref t:`any =
   export isa (`any_nullable_mutable_ref t)
 export extern struct nullable_mercurial_ref t:`any =
   export isa (`any_nullable_mutable_ref t)
+
+
+export intf `any_any_slice =
+  isa `return_by_copy `trivial_copy_but_owned
+
+export intf `any_slice t:`any =
+  isa `any_any_slice (`random_container t)
+  method count = size
+  method bytecount = size
+  method all = index_range
+  shallow method$ unsafe_rawdata = @$u8
+  shallow method$ unsafe_data = @$t
+  shallow method$ operator_at n:size = @$t
+  shallow method$ operator_sub r:index_range = []$t
+
+export intf `any_mutable_slice t:`any =
+  isa (`any_slice t) (`random_container t)
+  method! copy other:[]t = void
+
+-- The body of the methods for slice and mutable_slice are actually not used, as
+-- slice_impl is used in codegen for both slice and mutable_slice. The code in
+-- these functions has only one purpose: triggering the instantiation of the
+-- corresponding slice_impl methods.
+-- We will need a better solution down the road, as the code in these bogus
+-- methods is all sorts of wrong and is bound to be rejected by the compiler.
+
+export opaque struct slice t:`any =
+  export isa (`any_slice t)
+  dat	:?@#t
+  cnt	:size
+
+export inline slice fun create_impl_instance = (slice_impl t)
+  return {}
+export inline slice method# unsafe_wrap p:@u8 c:size = void
+  let s = this.create_impl_instance
+  s#unsafe_wrap p c
+export inline slice method count = size
+  let s = this.create_impl_instance
+  return s.count
+export inline slice method bytecount = size
+  let s = this.create_impl_instance
+  return s.bytecount
+export inline slice method all = index_range
+  let s = this.create_impl_instance
+  return s.all
+export inline slice shallow method$ unsafe_rawdata = @u8
+  let s = this.create_impl_instance
+  return s.unsafe_rawdata
+export inline slice shallow method$ unsafe_data = @t
+  let s = this.create_impl_instance
+  return s.unsafe_data
+export inline slice shallow method$ operator_at n:size = @t
+  let s = this.create_impl_instance
+  return s.operator_at n
+export inline slice shallow method$ operator_sub r:index_range = []t
+  let s = this.create_impl_instance
+  such
+    let _ = s.operator_sub r
+  return {}
+
+export opaque struct mutable_slice t:`any =
+  export isa (`any_mutable_slice t)
+  dat	:?@#t
+  cnt	:size
+
+export inline mutable_slice fun create_impl_instance = (slice_impl t)
+  return {}
+export inline mutable_slice method# unsafe_wrap p:@u8 c:size = void
+  let s = this.create_impl_instance
+  s#unsafe_wrap p c
+export inline mutable_slice method count = size
+  let s = this.create_impl_instance
+  return s.count
+export inline mutable_slice method bytecount = size
+  let s = this.create_impl_instance
+  return s.bytecount
+export inline mutable_slice method all = index_range
+  let s = this.create_impl_instance
+  return s.all
+export inline mutable_slice shallow method$ unsafe_rawdata = @$u8
+  let s = this.create_impl_instance
+  such
+    let _ = s.unsafe_rawdata
+    let _ = s!unsafe_rawdata
+    let p = s#unsafe_rawdata
+    return p
+export inline mutable_slice shallow method$ unsafe_data = @$t
+  let s = this.create_impl_instance
+  such
+    let _ = s.unsafe_data
+    let _ = s!unsafe_data
+    let p = s#unsafe_data
+    return p
+export inline mutable_slice shallow method$ operator_at n:size = @$t
+  let s = this.create_impl_instance
+  such
+    let _ = s.operator_at n
+    let _ = s!operator_at n
+    let p = s#operator_at n
+    return p
+export inline mutable_slice method! copy other:[]t = void
+  let s = this.create_impl_instance
+  such
+    s!copy s
+export inline mutable_slice shallow method$ operator_sub r:index_range = []$t
+  let s = this.create_impl_instance
+  such
+    let _ = (s.operator_sub r)
+    let _ = (s!operator_sub r)
+    let p = (s#operator_sub r)
+    return {}
+
+
+export extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
+export extern inline fun slice_memcpy dst:@#u8 src:@u8 count:size = void
+
+export opaque struct slice_impl t:`any =
+  export isa `trivial_ctor `trivial_dtor `trivial_copy_but_owned
+  dat	:?@#t
+  cnt	:size
+
+export inline slice_impl method# unsafe_wrap p:@u8 c:size = void
+  self#dat = (cast @u8 @#t) p
+  self#cnt = c
+
+export inline slice_impl method count = size
+  return self.cnt
+
+export inline slice_impl method bytecount = size
+  return (sizeof t) * self.cnt
+
+export inline slice_impl method all = index_range
+  return range 0 self.cnt
+
+export inline slice_impl shallow method$ unsafe_rawdata = @$u8
+  return (cast ?@$t @$u8) self$dat
+
+export inline slice_impl shallow method$ unsafe_data = @$t
+  return (nonnull_cast t ?@$t @$t) self$dat
+
+export inline slice_impl shallow method$ operator_at n:size = @$t
+  assert <- n < self.count
+  let raw = (cast ?@t @#u8) self.dat
+  and off = n * (sizeof t)
+  return (cast @#u8 @$t) <- slice_at_byte raw off
+
+export inline slice_impl method! copy other:this = void
+  assert <- self.count == other.count
+  let dst = self!unsafe_rawdata
+  and src = other.unsafe_rawdata
+  and bytecnt = other.cnt * (sizeof t)
+  slice_memcpy dst src bytecnt
+
+export inline slice_impl shallow method$ operator_sub r:index_range = this
+  assert <- r.begin < self.count
+  assert <- r.end <= self.count
+  let raw0 = (cast @u8 @#u8) self.unsafe_rawdata
+  let raw = slice_at_byte raw0 r.begin
+  return {dat=((cast @#u8 @#t) raw) cnt=r.count}
 
 
 export intf `any_tuple =
@@ -901,7 +1061,7 @@ export inline static_array method$ unsafe_data = @$t
   assert <- self.c != 0
   return (cast ?@$t @$t) self$d
 
-export inline static_array method$ at n:size = @$t
+export inline static_array shallow method$ operator_at n:size = @$t
   assert <- n < self.c
   let off = n * (sizeof t)
   let p = static_array_at_byte ((cast @$this @!this) self)!unsafe_rawdata off
@@ -924,7 +1084,7 @@ export inline (fun t:`any) optional opt:?@t fallback:t = t
 
 export inline (fun t:`any) optional_ref opt:?@t fallback:@t = @t
   if opt !== null
-    return (nonnull t ?@t @t) opt
+    return (nonnull_cast t ?@t @t) opt
   else
     return fallback
 
@@ -1032,9 +1192,8 @@ export intf `environment declaring:`any =
 -- codegen. As types defined in this module are used everywhere, they really
 -- need to appear first to the C compiler.
 from nlang.chars import `string_buffer `show static_string
-from nlang.memory import slice
-from nlang.containers import index_range range `iterator
-from nlang.unsafe import cast nonnull
+from nlang.containers import index_range range `iterator `random_container
+from nlang.unsafe import cast nonnull_cast
 from nlang import esay epr
 
 export inline struct codeloc =

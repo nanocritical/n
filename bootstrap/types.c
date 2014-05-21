@@ -27,8 +27,9 @@ enum typ_flags {
   TYPF_TRIVIAL = 0x8,
   TYPF_REF = 0x10,
   TYPF_NREF = 0x20,
-  TYPF_LITERAL = 0x40,
-  TYPF_WEAKLY_CONCRETE = 0x80,
+  TYPF_SLICE = 0x40,
+  TYPF_LITERAL = 0x80,
+  TYPF_WEAKLY_CONCRETE = 0x100,
   TYPF__INHERIT_FROM_FUNCTOR = TYPF_TENTATIVE
     | TYPF_BUILTIN | TYPF_PSEUDO_BUILTIN
     | TYPF_TRIVIAL | TYPF_REF | TYPF_NREF
@@ -255,6 +256,14 @@ static void create_flags(struct typ *t, struct typ *tbi) {
       || maybe_ref == TBI_NMREF
       || maybe_ref == TBI_NMMREF) {
     t->flags |= TYPF_NREF;
+  }
+
+  if (maybe_ref == TBI_ANY_ANY_SLICE
+      || maybe_ref == TBI_ANY_SLICE
+      || maybe_ref == TBI_ANY_MUTABLE_SLICE
+      || maybe_ref == TBI_SLICE
+      || maybe_ref == TBI_MSLICE) {
+    t->flags |= TYPF_SLICE;
   }
 
   if (tbi == NULL) {
@@ -856,6 +865,12 @@ struct typ *TBI_MMREF; // @#
 struct typ *TBI_NREF; // ?@
 struct typ *TBI_NMREF; // ?@!
 struct typ *TBI_NMMREF; // ?@#
+struct typ *TBI_ANY_ANY_SLICE;
+struct typ *TBI_ANY_SLICE;
+struct typ *TBI_ANY_MUTABLE_SLICE;
+struct typ *TBI_SLICE;
+struct typ *TBI_MSLICE;
+struct typ *TBI_SLICE_IMPL;
 struct typ *TBI_VARARG;
 struct typ *TBI_ARITHMETIC;
 struct typ *TBI_BITWISE;
@@ -892,6 +907,8 @@ struct typ *TBI_NOT_RETURN_BY_COPY;
 struct typ *TBI_ENUM;
 struct typ *TBI_UNION;
 struct typ *TBI_UNION_TRIVIAL_CTOR;
+struct typ *TBI_RANGE;
+struct typ *TBI_INDEX_BOUNDS;
 struct typ *TBI_ITERATOR;
 struct typ *TBI_ENVIRONMENT;
 struct typ *TBI_ANY_ENVIRONMENT;
@@ -1164,6 +1181,10 @@ bool typ_is_reference(const struct typ *t) {
 
 bool typ_is_nullable_reference(const struct typ *t) {
   return t->flags & TYPF_NREF;
+}
+
+bool typ_is_slice(const struct typ *t) {
+  return t->flags & TYPF_SLICE;
 }
 
 static bool dyn_concrete(const struct typ *t) {

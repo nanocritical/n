@@ -1,0 +1,20 @@
+from nlang import *
+from nlang.unsafe import nonnull_cast
+
+export fun main = i32
+  let p = @1
+  return (nonnull_cast p).
+
+  -- For this to work, we would have to change nonnull_cast to not have the
+  -- result of the type as a generic argument. But for that, we would a way to
+  -- get the non-nullable version of a nullable reference. The obvious approach
+  -- of defining a alias to (ref t) inside (nullable_ref t) doesn't work as the
+  -- binary accessor logic prevents accessing the content of a reference struct.
+  --
+  -- 	export extern struct ref t:`any =
+  -- 	  export isa (`any_ref t)
+  -- 	  alias nullable = nullable_ref t
+  --
+  -- We could allow it as a special case, or provide builtins type functions
+  -- nullable and nonnullable. Or use a generic (nullable ref) instead of
+  -- nullable_ref.

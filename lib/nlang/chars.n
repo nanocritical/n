@@ -28,7 +28,7 @@ export intf `const_string =
   method count = size
   method all = index_range
   method get_char n:size = char
-  method bytes_utf8 = @(slice u8)
+  method bytes_utf8 = []u8
 
 export intf `string =
   isa `const_string
@@ -45,9 +45,9 @@ export intf `string_buffer =
   method# copy at:size other:@`const_string off:size count:size = void
 
 export opaque struct static_string =
-  export isa `trivial_copy `ordered_by_compare `return_by_copy `show \
+  export isa `trivial_copy `return_by_copy `ordered_by_compare `show \
       `static_string_compatible `const_string `trivial_ctor
-  bytes	:(slice u8)
+  bytes	:[]u8
 
 export inline static_string method# unsafe_wrap bytes:@u8 count:size = void
   let raw = (nlang.unsafe.cast @u8 @#u8) bytes
@@ -67,10 +67,12 @@ export inline static_string method `const_string.all = index_range
   return self.bytes.all
 
 export inline static_string method `const_string.get_char n:size = char
-  return char.from_ascii (self.bytes.at n).
+  return char.from_ascii self.bytes.[n].
 
-export inline static_string method `const_string.bytes_utf8 = @(slice u8)
-  return @self.bytes
+export inline static_string method `const_string.bytes_utf8 = []u8
+  return self.bytes
+
+export extern static_string method operator_compare other:@this = i32
 
 export static_string method `show.show buf:@#`string_buffer = void
   buf#reserve buf.count + self.count
@@ -83,7 +85,7 @@ example <- '1234'.get_char 3 == '4'.get_char 0
 example <- '1234'.get_char 1 == '2':char
 example <- '1234' == '1234'
 example <- '1234'.bytes_utf8.count == 4
-example <- ('1234'.bytes_utf8.at 0). == 49
+example <- '1234'.bytes_utf8.[0]. == 49
 
 
 export intf `show =

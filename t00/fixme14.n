@@ -1,0 +1,12 @@
+from nlang import *
+
+export intf `example =
+  (method! t:`any) alloc = @#t
+  (method! t:`any) free p:?@#t = void
+
+  -- These 2 work fine when declared with t:`any, should work here too.
+  (method! t:`trivial_ctor) slice_realloc s:@#[]!t count:size = void
+  (method! t:`trivial_ctor) slice_free s:@#[]!t = void
+
+export fun main = i32
+  return 0

@@ -186,9 +186,12 @@ struct node_callnamedarg {
 struct node_future {};
 struct node_lambda {};
 struct node_init {
-  const struct node *target_expr;
   bool is_array;
+  bool is_range;
+  bool is_bounds;
+  struct node *defchoice;
   ident for_tag;
+  const struct node *target_expr;
 };
 struct node_return {
   const struct node *return_through_ref_expr;
@@ -862,6 +865,12 @@ enum predefined_idents {
   ID_TBI_NREF,
   ID_TBI_NMREF,
   ID_TBI_NMMREF,
+  ID_TBI_ANY_ANY_SLICE,
+  ID_TBI_ANY_SLICE,
+  ID_TBI_ANY_MUTABLE_SLICE,
+  ID_TBI_SLICE,
+  ID_TBI_MSLICE,
+  ID_TBI_SLICE_IMPL,
   ID_TBI_VARARG,
   ID_TBI_ARITHMETIC,
   ID_TBI_BITWISE,
@@ -898,6 +907,8 @@ enum predefined_idents {
   ID_TBI_ENUM,
   ID_TBI_UNION,
   ID_TBI_UNION_TRIVIAL_CTOR,
+  ID_TBI_RANGE,
+  ID_TBI_INDEX_BOUNDS,
   ID_TBI_ITERATOR,
   ID_TBI_ENVIRONMENT,
   ID_TBI_ANY_ENVIRONMENT,
@@ -953,6 +964,8 @@ enum predefined_idents {
   ID_OPERATOR_ASSIGN_TIMES,
   ID_OPERATOR_UMINUS,
   ID_OPERATOR_BWNOT,
+  ID_OPERATOR_AT,
+  ID_OPERATOR_SUB,
   ID_PARENT,
   ID_INSTALL,
   ID_UNINSTALL,

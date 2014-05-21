@@ -13,6 +13,14 @@ struct NB(valist) {
 
 #ifdef NLANG_DEFINE_FUNCTIONS
 
+static inline NB(u8) *NB(slice_at_byte)(NB(u8) *p, NB(size) off) {
+  return p + off;
+}
+
+static inline NB(void) NB(slice_memcpy)(NB(u8) *dst, const NB(u8) *src, NB(size) count) {
+  memcpy(dst, src, count);
+}
+
 #define NLANG_BUILTINS_VARARG_START(va) do { \
   va_start((va).ap.ap, _$Nvarargcount); \
   (va).n = _$Nvarargcount; \

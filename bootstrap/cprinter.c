@@ -76,7 +76,6 @@ static const char *c_token_strings[TOKEN__NUM] = {
   [TNULREFSHARP] = "?@#",
   [TDOTDOTDOT] = "...",
   [TSLICEBRAKETS] = "[]",
-  [TLSBRA] = "[",
   [TRSBRA] = "]",
   [TLCBRA] = "{",
   [TRCBRA] = "}",
@@ -956,12 +955,72 @@ static void print_linkage(FILE *out, bool header,
   }
 }
 
+static const struct typ *intercept_slices(const struct module *mod, const struct typ *t) {
+  const struct node *d = typ_definition_const(t);
+
+  if (NM(d->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+    const struct node *pd = parent_const(d);
+    const struct typ *pt = intercept_slices(mod, pd->typ);
+    if (pt == pd->typ) {
+      return t;
+    }
+
+    const struct node *m = node_get_member_const(mod, typ_definition_const(pt),
+                                           node_ident(d));
+    const struct typ *mt = m->typ;
+    if (typ_generic_arity(mt) == 0) {
+      return m->typ;
+    }
+
+    const struct toplevel *toplevel = node_toplevel_const(m);
+    const size_t arity = typ_generic_arity(mt);
+    for (size_t n = 1, count = vecnode_count(&toplevel->generic->instances);
+         n < count; ++n) {
+      const struct typ *i = (*vecnode_get(&toplevel->generic->instances, n))->typ;
+      if (typ_is_tentative(i)) {
+        continue;
+      }
+
+      size_t a;
+      for (a = 0; a < arity; ++a) {
+        if (!typ_equal(typ_generic_arg_const(i, a), typ_generic_arg_const(t, a))) {
+          break;
+        }
+      }
+      if (a == arity) {
+        return i;
+      }
+    }
+
+    assert(false);
+  }
+
+  if (!typ_is_slice(t)) {
+    return t;
+  }
+
+  if (d->which != DEFTYPE) {
+    return t;
+  }
+
+  if (typ_is_generic_functor(t)) {
+    return TBI_SLICE_IMPL;
+  } else {
+    const char name[] = "create_impl_instance";
+    const ident nameid = idents_add_string(mod->gctx, name, ARRAY_SIZE(name)-1);
+    const struct node *m = node_get_member_const(mod, d, nameid);
+    return node_fun_retval_const(m)->typ;
+  }
+}
+
 static void print_typ_name(FILE *out, const struct module *mod,
                            const struct typ *t) {
   if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
     print_typ_name(out, mod, typ_generic_functor_const(t));
     return;
   }
+
+  t = intercept_slices(mod, t);
 
   const struct scope *scope = &typ_definition_const(t)->scope;
   print_scope_name(out, mod, scope);
@@ -2649,7 +2708,8 @@ static bool is_printed(struct typset *printed,
   return false;
 }
 
-static void track_printed(struct typset *printed,
+static void track_printed(const struct module *mod,
+                          struct typset *printed,
                           bool header, enum forward fwd,
                           const struct typ *t) {
   const uint32_t update = track_id(header, fwd);
@@ -2661,22 +2721,23 @@ static void track_printed(struct typset *printed,
   }
 }
 
-static int print_topdeps_foreach(const struct typ **t, uint32_t *value, void *user) {
+static int print_topdeps_foreach(const struct typ **_t, uint32_t *value, void *user) {
   struct cprinter_state *st = user;
   struct typset *printed = st->user;
   enum toplevel_flags mask = *value;
+  const struct typ *t = intercept_slices(st->mod, *_t);
 
   if (st->header && !(mask & (TOP_IS_EXPORT | TOP_IS_INLINE))) {
     return 0;
   }
 
-  if (is_printed(printed, st->header, st->fwd, *t)) {
+  if (is_printed(printed, st->header, st->fwd, t)) {
     return 0;
   }
 
-  track_printed(printed, st->header, st->fwd, *t);
+  track_printed(st->mod, printed, st->header, st->fwd, t);
 
-  const struct node *d = typ_definition_const(*t);
+  const struct node *d = typ_definition_const(t);
   const struct module *dmod = node_module_owner_const(d);
   print_top(st->out, st->header, st->fwd, dmod, d, printed);
 

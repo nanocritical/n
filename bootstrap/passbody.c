@@ -881,6 +881,12 @@ static error type_inference_un(struct module *mod, struct node *node) {
 
   struct node *i = NULL;
   switch (OP_KIND(operator)) {
+  case OP_UN_SLICE:
+    if (!(term->flags & NODE_IS_TYPE)) {
+      e = mk_except_type(mod, node, "slice specifier must be applied to a type");
+      THROW(e);
+    }
+    // fallthrough
   case OP_UN_REFOF:
     // FIXME: it's not OK to take a mutable reference of:
     //   fun foo p:@t = void
@@ -1494,9 +1500,18 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
     defincomplete_add_field(mod, s, dinc, node_ident(left), right->typ);
   }
 
+  if (node->as.INIT.is_range) {
+    defincomplete_add_isa(mod, node, dinc, TBI_RANGE);
+  }
+
   error e = defincomplete_catchup(mod, dinc);
   assert(!e);
   set_typ(&node->typ, typ_create_tentative(dinc->typ));
+
+  if (node->as.INIT.is_bounds) {
+    e = unify(mod, node, node->typ, TBI_INDEX_BOUNDS);
+    assert(!e);
+  }
 }
 
 static error type_inference_init_array(struct module *mod, struct node *node) {
@@ -2032,6 +2047,55 @@ static error type_inference_explicit_unary_call(struct module *mod, struct node 
   return 0;
 }
 
+static error try_rewrite_operator_sub(struct module *mod, struct node *node) {
+  if (!subs_count_atleast(node, 3)) {
+    return 0;
+  }
+
+  struct node *fun = subs_first(node);
+  struct node *self = subs_at(node, 1);
+  struct node *arg = subs_at(node, 2);
+
+  if (!(typ_isa(arg->typ, TBI_RANGE) || typ_equal(arg->typ, TBI_INDEX_BOUNDS))
+      || node_ident(typ_definition_const(fun->typ)) != ID_OPERATOR_AT) {
+    return 0;
+  }
+
+  assert(typ_is_reference(self->typ));
+  struct node *dfun = typ_definition(typ_generic_arg(self->typ, 0));
+  struct node *m = node_get_member(mod, dfun, ID_OPERATOR_SUB);
+  if (m == NULL) {
+    error e = mk_except_type(mod, node, "type '%s' does not have 'operator_sub'",
+                       typ_pretty_name(mod, self->typ));
+    THROW(e);
+  }
+
+  unset_typ(&fun->typ);
+  set_typ(&fun->as.DIRECTDEF.typ, m->typ);
+
+  error e = catchup(mod, NULL, fun, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+
+  if (typ_equal(arg->typ, TBI_INDEX_BOUNDS)) {
+    // Magically convert v.[10...] to v.[(10...).range_of v].
+    node_subs_remove(node, arg);
+    GSTART();
+    G0(call, node, CALL,
+       G(b, BIN,
+         b->as.BIN.operator = TDOT;
+         node_subs_append(b, arg);
+         G_IDENT(f, "range_of"));
+       G(vn, IDENT,
+         vn->as.IDENT.name = node_ident(self)));
+
+    const struct node *except[] = { arg, NULL };
+    error e = catchup(mod, except, call, CATCHUP_BELOW_CURRENT);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
 static error type_inference_call(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
@@ -2058,6 +2122,10 @@ static error type_inference_call(struct module *mod, struct node *node) {
   }
 
   e = prepare_call_arguments(mod, node);
+  EXCEPT(e);
+
+  // Assumes that operator_at and operator_sub have the same arguments.
+  e = try_rewrite_operator_sub(mod, node);
   EXCEPT(e);
 
   e = check_consistent_either_types_or_values(mod, try_node_subs_at(node, 1));

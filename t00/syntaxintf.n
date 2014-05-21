@@ -3,8 +3,8 @@ from nlang import *
 export intf `example =
   (method! t:`any) alloc = @#t
   (method! t:`any) free p:?@#t = void
-  (method! t:`trivial_ctor) slice_realloc s:@#(slice t) count:size = void
-  (method! t:`trivial_ctor) slice_free s:@#(slice t) = void
+  (method! t:`any) slice_realloc s:@#[]!t count:size = void
+  (method! t:`any) slice_free s:@#[]!t = void
 
 export fun main = i32
   return 0

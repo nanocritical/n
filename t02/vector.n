@@ -14,9 +14,9 @@ export fun main = i32
     assert <- v#pop == 1
     v#push 1
     for i in v.all.iter
-      assert <- (v.at i). == i.trim_u32.reinterpret_signed
+      assert <- v.[i]. == i.trim_u32.reinterpret_signed
   let w = foo
-  assert <- (w.at 0). == 1
-  assert <- (w.at 1). == 0
-  assert <- (w.at 2). == 2
-  return (v.at 1). - 1
+  assert <- w.[0]. == 1
+  assert <- w.[1]. == 0
+  assert <- w.[2]. == 2
+  return v.[1]. - 1

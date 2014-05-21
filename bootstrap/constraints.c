@@ -1221,6 +1221,9 @@ static error constraint_inference_un(struct module *mod,
                                      struct node *node) {
   error e;
   switch (OP_KIND(node->as.UN.operator)) {
+  case OP_UN_SLICE:
+    constraint_set(mod, node->constraint, CBI_INIT, false);
+    return 0;
   case OP_UN_REFOF:
     switch (node->as.UN.operator) {
     case TNULREFDOT:

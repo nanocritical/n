@@ -1,28 +1,40 @@
 from nlang.builtins import *
 
-export intf `locus =
-  isa `has_equality `copyable_but_owned
-export intf `fwd_locus =
-  isa `locus `ordered
-export intf `bidir_locus =
-  isa `locus `ordered
+alias `locus = {`has_equality `copyable_but_owned}
+alias `fwd_locus = {`has_equality `copyable_but_owned `ordered}
+alias `bidir_locus = {`has_equality `copyable_but_owned `ordered}
+
+export intf `random_container t:`any =
+  method count = size
 
 export intf `iterator t:`copyable =
   method has_next = bool
   method! next = t
 
-export opaque struct index_range =
-  export isa `trivial_copy `trivial_equality `trivial_ctor `return_by_copy
-  b:size
-  e:size
+export inline struct index_bounds =
+  f	:bool
+  l	:bool
+  b	:size
+  e	:size
 
-export index_range method! init beg:size end:size = void
-  let e = end
-  such
-    if end < beg
-      e = beg
-  self!b = beg
-  self!e = e
+export inline index_bounds (method t:`any c:(`random_container t)) range_of v:@c = index_range
+  if self.f and self.l
+    return {b=0 e=v.count}
+  elif self.f
+    return {b=0 e=self.e}
+  elif self.l
+    return {b=self.b e=v.count}
+  else
+    return {b=0 e=v.count}
+
+
+export intf `range =
+  isa `trivial_copy `trivial_equality `trivial_ctor `return_by_copy
+
+export inline struct index_range =
+  export isa `range
+  b	:size
+  e	:size
 
 export index_range method begin = size
   return self.b
@@ -38,13 +50,11 @@ export index_range method sub begin:size end:size = this
   such
     if begin < self.begin or end > self.end
       abort
-    r!init begin end
+    r = {b=begin e=end}
   return r
 
 export index_range method with_offset offset:size = this
-  let r:this
-  such
-    r!init self.begin+offset self.end+offset
+  let r = {b=self.begin+offset e=self.end+offset}
   return r
 
 export index_range method iter = index_iterator
@@ -64,5 +74,5 @@ export index_iterator method! `iterator.next = size
   self!p += 1
   return r
 
-export fun range beg:size end:size = r:index_range
-  r!init beg end
+export fun range beg:size end:size = index_range
+  return {b=beg e=end}

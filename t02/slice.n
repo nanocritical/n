@@ -1,10 +1,47 @@
 from nlang import *
 from nlang.sysheap import heap sysheap
 
+--fun refconv p:@i32 = (slice i32) -- @[]i32
+--  return p
+--
+--fun mrefconv p:@!i32 = (mutable_slice i32) -- @![]i32
+--  return p
+--
+--fun mmrefconv p:@#i32 = (mercurial_slice i32) -- @#[]i32
+--  return p
+--
+--sysheap method slice_realloc s:@#@[]t = void
+--sysheap method slice_realloc s:@#(slice t) = void
+--sysheap method slice_free s:@#(slice t) = void
+--
+--fun cannot_grow_inplace s:@[]i32 = @[]i32
+--  heap.slice_realloc @!s
+
 export fun main = i32
-  let s = {}:(slice i32)
-  such
-    (heap.slice_realloc i32) @!sysheap @#s 1
-  let p = s!at 0
-  p! = 1
-  return p. - 1
+--  block
+--    let s = refconv 1
+--    assert <- s.count == 1
+--    assert <- (s.at 0). == 1
+--
+--  block
+--    let x = 42
+--    let s = mrefconv @!x
+--    assert <- s.count == 1
+--    assert <- (s.at 0). == 42
+--    (s.at 0)! = 41
+--    assert <- (s.at 0). == 41
+--
+--  block
+--    let a = {0:i32 1 2}
+--    let s = a.sub a.all -- a.[..]
+--    let 
+--
+--  let s = {}:(slice i32)
+--  such
+--    (heap.slice_realloc i32) @!sysheap @#s 1
+--  let p = s!at 0
+--  p! = 1
+--  return p. - 1
+  let v:[]i32
+  let x = v.[1]
+  return x.

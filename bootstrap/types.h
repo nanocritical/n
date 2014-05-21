@@ -59,6 +59,7 @@ bool typ_is_reference(const struct typ *t);
 bool typ_is_nullable_reference(const struct typ *t);
 error typ_check_is_reference(const struct module *mod, const struct node *for_error,
                              const struct typ *a);
+bool typ_is_slice(const struct typ *t);
 
 bool typ_is_dyn(const struct typ *t);
 bool typ_is_dyn_compatible(const struct typ *t);
@@ -145,6 +146,12 @@ extern struct typ *TBI_MMREF; // @#
 extern struct typ *TBI_NREF; // ?@
 extern struct typ *TBI_NMREF; // ?@!
 extern struct typ *TBI_NMMREF; // ?@#
+extern struct typ *TBI_ANY_ANY_SLICE;
+extern struct typ *TBI_ANY_SLICE;
+extern struct typ *TBI_ANY_MUTABLE_SLICE;
+extern struct typ *TBI_SLICE;
+extern struct typ *TBI_MSLICE;
+extern struct typ *TBI_SLICE_IMPL;
 extern struct typ *TBI_VARARG;
 extern struct typ *TBI_ARITHMETIC;
 extern struct typ *TBI_BITWISE;
@@ -181,6 +188,8 @@ extern struct typ *TBI_NOT_RETURN_BY_COPY;
 extern struct typ *TBI_ENUM;
 extern struct typ *TBI_UNION;
 extern struct typ *TBI_UNION_TRIVIAL_CTOR;
+extern struct typ *TBI_RANGE;
+extern struct typ *TBI_INDEX_BOUNDS;
 extern struct typ *TBI_ITERATOR;
 extern struct typ *TBI_ENVIRONMENT;
 extern struct typ *TBI_ANY_ENVIRONMENT;

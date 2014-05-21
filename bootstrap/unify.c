@@ -530,7 +530,7 @@ error unify_with_defincomplete_entrails(struct module *mod,
     e = scope_lookup_ident_immediate(&d, for_error, mod, &da->scope, f_name, false);
     EXCEPT(e);
 
-    e = unify(mod, for_error, f->typ, d->typ);
+    e = unify_refcompat(mod, for_error, d->typ, f->typ);
     EXCEPT(e);
   }
 
@@ -666,9 +666,9 @@ static error unify_dyn(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-static error unify_reference_arg(struct module *mod, uint32_t flags,
-                                 const struct node *for_error,
-                                 struct typ *a, struct typ *b) {
+static error unify_reforslice_arg(struct module *mod, uint32_t flags,
+                                  const struct node *for_error,
+                                  struct typ *a, struct typ *b) {
   struct typ *arg_a = typ_generic_arg(a, 0);
   struct typ *arg_b = typ_generic_arg(b, 0);
   const bool arg_a_intf = typ_definition_const(arg_a)->which == DEFINTF;
@@ -714,14 +714,14 @@ struct typ *unify_with_new_functor(struct module *mod, const struct node *for_er
   return i->typ;
 }
 
-static error unify_with_reference_compatible(struct module *mod, uint32_t flags,
-                                             const struct node *for_error,
-                                             struct typ *a, struct typ *b,
-                                             bool a_ref_compatible,
-                                             bool b_ref_compatible) {
-  if (a_ref_compatible) {
+static error unify_reference_with_refcompat(struct module *mod, uint32_t flags,
+                                            const struct node *for_error,
+                                            struct typ *a, struct typ *b,
+                                            bool a_refcompat,
+                                            bool b_refcompat) {
+  if (a_refcompat) {
     SWAP(a, b);
-    SWAP(a_ref_compatible, b_ref_compatible);
+    SWAP(a_refcompat, b_refcompat);
     SWAP_FLAGS(flags);
   }
 
@@ -739,7 +739,7 @@ static error unify_with_reference_compatible(struct module *mod, uint32_t flags,
     return 0;
   }
 
-  e = unify_reference_arg(mod, flags, for_error, a, b);
+  e = unify_reforslice_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
 
   struct typ *b0 = typ_generic_functor(b);
@@ -773,14 +773,11 @@ static error unify_reference(struct module *mod, uint32_t flags,
     THROW(e);
   }
 
-  struct typ *a0 = typ_generic_functor(a);
-  struct typ *b0 = typ_generic_functor(b);
-
-  const bool a_ref_compatible = flags & REFCOMPAT_LEFT;
-  const bool b_ref_compatible = flags & REFCOMPAT_RIGHT;
-  if (a_ref_compatible || b_ref_compatible) {
-    e = unify_with_reference_compatible(mod, flags, for_error, a, b,
-                                        a_ref_compatible, b_ref_compatible);
+  const bool a_refcompat = flags & REFCOMPAT_LEFT;
+  const bool b_refcompat = flags & REFCOMPAT_RIGHT;
+  if (a_refcompat || b_refcompat) {
+    e = unify_reference_with_refcompat(mod, flags, for_error, a, b,
+                                       a_refcompat, b_refcompat);
     EXCEPT(e);
     return 0;
   }
@@ -795,6 +792,9 @@ static error unify_reference(struct module *mod, uint32_t flags,
     return 0;
   }
 
+  struct typ *a0 = typ_generic_functor(a);
+  struct typ *b0 = typ_generic_functor(b);
+
   if (typ_isa(b0, a0)) {
     SWAP(a, b);
     SWAP(a0, b0);
@@ -807,7 +807,7 @@ static error unify_reference(struct module *mod, uint32_t flags,
     THROW(e);
   }
 
-  e = unify_reference_arg(mod, flags, for_error, a, b);
+  e = unify_reforslice_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
 
   if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
@@ -848,6 +848,141 @@ static error unify_reference(struct module *mod, uint32_t flags,
 //
 //  assert(typ_equal(ri32, rintlit));
 //}
+
+static error check_slice_compatibility(struct module *mod,
+                                       const struct node *for_error,
+                                       const struct typ *a,
+                                       const struct typ *target) {
+  if (typ_equal(target, TBI_ANY_ANY_SLICE)) {
+    return 0;
+  }
+
+  const struct typ *a0 = typ_generic_functor_const(a);
+  const struct typ *target0 = typ_generic_functor_const(target);
+
+  bool ok = false;
+  error e;
+  if (typ_equal(target0, TBI_ANY_SLICE)) {
+    ok = typ_isa(a0, TBI_ANY_SLICE);
+  } else if (typ_equal(target0, TBI_ANY_MUTABLE_SLICE)) {
+    ok = typ_isa(a0, TBI_ANY_MUTABLE_SLICE);
+
+  } else if (typ_equal(target0, TBI_SLICE)) {
+    ok = typ_isa(a0, TBI_ANY_SLICE);
+  } else if (typ_equal(target0, TBI_MSLICE)) {
+    ok = typ_isa(a0, TBI_ANY_MUTABLE_SLICE);
+  }
+
+  if (!ok) {
+    e = mk_except_type_unification(mod, for_error, a, target);
+    THROW(e);
+  }
+
+  return 0;
+}
+
+static error unify_slice_with_refcompat(struct module *mod, uint32_t flags,
+                                        const struct node *for_error,
+                                        struct typ *a, struct typ *b,
+                                        bool a_refcompat,
+                                        bool b_refcompat) {
+  if (a_refcompat) {
+    SWAP(a, b);
+    SWAP(a_refcompat, b_refcompat);
+    SWAP_FLAGS(flags);
+  }
+
+  error e = check_slice_compatibility(mod, for_error, a, b);
+  EXCEPT(e);
+
+  if (typ_equal(b, TBI_ANY_ANY_SLICE)) {
+    typ_link_tentative(a, b);
+    return 0;
+  }
+
+  if (typ_equal(a, b)) {
+    e = unify_with_equal(mod, for_error, a, b);
+    EXCEPT(e);
+    return 0;
+  }
+
+  e = unify_reforslice_arg(mod, flags, for_error, a, b);
+  EXCEPT(e);
+
+  struct typ *b0 = typ_generic_functor(b);
+  if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
+    struct typ *a0 = typ_generic_functor(a);
+    typ_link_tentative_functor(mod, a0, b0);
+  }
+
+  return 0;
+}
+
+static error unify_slice(struct module *mod, uint32_t flags,
+                         const struct node *for_error,
+                         struct typ *a, struct typ *b,
+                         bool a_slice, bool b_slice) {
+  error e;
+
+  if (!a_slice) {
+    SWAP(a, b);
+    SWAP(a_slice, b_slice);
+    SWAP_FLAGS(flags);
+  }
+
+  if (!b_slice && typ_is_tentative(b) && typ_isa(a, b)) {
+    typ_link_tentative(a, b);
+    return 0;
+  }
+
+  if (!b_slice) {
+    e = mk_except_type_unification(mod, for_error, a, b);
+    THROW(e);
+  }
+
+  const bool a_refcompat = flags & REFCOMPAT_LEFT;
+  const bool b_refcompat = flags & REFCOMPAT_RIGHT;
+  if (a_refcompat || b_refcompat) {
+    e = unify_slice_with_refcompat(mod, flags, for_error, a, b,
+                                   a_refcompat, b_refcompat);
+    EXCEPT(e);
+    return 0;
+  }
+
+  if (typ_equal(a, TBI_ANY_ANY_SLICE)) {
+    typ_link_tentative(b, a);
+    return 0;
+  }
+
+  if (typ_equal(b, TBI_ANY_ANY_SLICE)) {
+    typ_link_tentative(a, b);
+    return 0;
+  }
+
+  struct typ *a0 = typ_generic_functor(a);
+  struct typ *b0 = typ_generic_functor(b);
+
+  if (typ_isa(b0, a0)) {
+    SWAP(a, b);
+    SWAP(a0, b0);
+    SWAP(a_slice, b_slice);
+    SWAP_FLAGS(flags);
+  }
+
+  if (!typ_isa(a0, b0)) {
+    e = mk_except_type_unification(mod, for_error, a, b);
+    THROW(e);
+  }
+
+  e = unify_reforslice_arg(mod, flags, for_error, a, b);
+  EXCEPT(e);
+
+  if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
+    typ_link_tentative_functor(mod, a0, b0);
+  }
+
+  return 0;
+}
 
 static error unify_with_any(struct module *mod, const struct node *for_error,
                             struct typ *a, struct typ *b,
@@ -923,6 +1058,14 @@ static error do_unify(struct module *mod, uint32_t flags,
     return 0;
   }
 
+  const bool a_slice = typ_is_slice(a);
+  const bool b_slice = typ_is_slice(b);
+  if (a_slice && b_slice) {
+    e = unify_slice(mod, flags, for_error, a, b, a_slice, b_slice);
+    EXCEPT(e);
+    return 0;
+  }
+
   const bool a_weakly_concrete = typ_is_weakly_concrete(a);
   const bool b_weakly_concrete = typ_is_weakly_concrete(b);
   if (a_weakly_concrete || b_weakly_concrete) {
@@ -963,7 +1106,9 @@ error unify_refcompat(struct module *mod, const struct node *for_error,
 
   const bool target_ref = typ_is_reference(target);
   const bool b_ref = typ_is_reference(b);
-  if (target_ref || b_ref) {
+  const bool target_slice = typ_is_slice(target);
+  const bool b_slice = typ_is_slice(b);
+  if (target_ref || b_ref || target_slice || b_slice) {
     e = do_unify(mod, REFCOMPAT_LEFT, for_error, target, b);
     EXCEPT(e);
     return 0;

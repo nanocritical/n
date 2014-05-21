@@ -3,27 +3,27 @@ import nlang.unsafe
 from nlang.sysheap import sysheap heap
 
 export opaque struct vector t:`copyable =
-  export isa `trivial_ctor (`array_ctor t) `copyable
-  p:(slice t)
-  c:size
+  export isa `trivial_ctor (`array_ctor t) `copyable (`random_container t)
+  p	:[]!t
+  c	:size
 
 export inline vector fun from_array c:@(static_array t) = r:this
   r#reserve c.count
   for i in c.all.iter
-    r#push (c.at i).
+    r#push c.[i].
 
 export inline vector method count = size
   return self.c
 
-export inline vector method$ at n:size = @$t
+export inline vector shallow method$ operator_at n:size = @$t
   assert <- n < self.c
-  return self$p$at n
+  return self$p$[n]
 
 export inline vector method$ first = @$t
-  return self$at 0
+  return self$[0]
 
 export inline vector method$ last = @$t
-  return self$at self.c-1
+  return self$[self.c-1]
 
 export inline vector method is_empty = bool
   return self.c == 0
@@ -43,7 +43,7 @@ export inline vector method# push x:t = void
   self#reserve self.c+1
   let n = self.c
   self!c += 1
-  let d = self!at n
+  let d = self![n]
   d! = x
 
 export inline vector method# pop = t
@@ -60,13 +60,13 @@ export inline vector method all = index_range
 
 export inline vector method# `copyable.copy_ctor other:@this = void
   (heap.slice_realloc t) @!sysheap @#self#p other.p.count
-  self.p#copy 0 other.p 0 other.p.count
+  self.p!copy other.p
   self!c = other.c
 
-export inline vector method# append_slice other:@(slice t) = void
-  (heap.slice_realloc t) @!sysheap @#self#p other.count
-  self.p#copy 0 other 0 other.count
+export inline vector method# append_slice other:[]t = void
+  (heap.slice_realloc t) @!sysheap @#self#p self.count+other.count
+  self.p![self.c ...]!copy other
   self!c = other.count
 
-export inline vector method$ storage = @$(slice t) -- ::unique
-  return self.p$sub self.all
+export inline vector method$ storage = []$t
+  return self$p

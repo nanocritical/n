@@ -3,60 +3,38 @@ from nlang.containers import *
 from nlang.sysheap import sysheap heap
 import nlang.unsafe
 
-export intf `allocator =
-  (method! t:`any) alloc = @#t
-  (method! t:`any) free p:?@#t = void
-  (method! t:`any) slice_realloc s:@#(slice t) count:size = void
-  (method! t:`any) slice_free s:@#(slice t) = void
-
-
-export extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
-export extern inline fun slice_memcpy dst:@#u8 at:size src:@u8 off:size count:size = void
-
-export opaque struct slice t:`any =
-  export isa `trivial_copy_but_owned
-  d	:?@#t
-  c	:size
-
-export inline slice method# unsafe_wrap data:@#t count:size = void
-  self!d = data
-  self!c = count
-
-export inline slice method count = size
-  return self.c
-
-export inline slice method bytecount = size
-  return self.c * (sizeof t)
-
-export inline slice method all = index_range
-  return range 0 self.c
-
-export inline slice method$ unsafe_rawdata = @$u8
-  assert <- self.c != 0
-  return (nlang.unsafe.cast ?@$t @$u8) self$d
-
-export inline slice method$ unsafe_data = @$t
-  assert <- self.c != 0
-  return (nlang.unsafe.cast ?@$t @$t) self$d
-
-export inline slice method$ at n:size = @$t
-  assert <- n < self.c
-  let off = n * (sizeof t)
-  let p = slice_at_byte ((nlang.unsafe.cast @$this @#this) self)#unsafe_rawdata off
-  return (nlang.unsafe.cast @#u8 @$t) p
-
-export inline slice method# copy at:size other:@this off:size count:size = void
-  assert <- off + count <= other.count
-  assert <- at + count <= self.count
-  let bat = at * (sizeof t)
-  let boff = off * (sizeof t)
-  let bsz = count * (sizeof t)
-  slice_memcpy self#unsafe_rawdata bat other.unsafe_rawdata boff bsz
-
-export inline slice method$ sub r:index_range = @$this -- ::unique
-  assert <- r.end <= self.count
-  let p = (nlang.unsafe.cast @$t @#t) (self$at r.begin)
-  let ret = (heap.alloc this) @!sysheap
-  such
-    ret#unsafe_wrap p r.count
-  return ret
+--export extern struct array_impl t:`any N:size =
+--  export isa `trivial_ctor `trivial_dtor `trivial_copy_but_owned
+--
+--export array_impl fun count = size
+--  return N
+--
+--export array_impl fun bytecount = size
+--  return N * (sizeof t)
+--
+--export array_impl fun all = index_range
+--  return range 0 N
+--
+--export array_impl method$ unsafe_rawdata = @$u8
+--  return (unsafe.cast @$this @$u8) self
+--
+--export array_impl method$ unsafe_data = @$t
+--  return (unsafe.cast @$this @$t) self
+--
+--export array_impl method$ operator_at n:size = @$t
+--  assert <- n < N
+--  return (unsafe.cast @$u8 @$t) (slice_at_byte self$unsafe_rawdata n)
+--
+--export array_impl method# copy other:[]t = void
+--  assert <- N == other.count
+--  let dst = self#unsafe_rawdata
+--  and src = other.unsafe_rawdata
+--  and bytecnt = N * (sizeof t)
+--  slice_memcpy dst src bytecnt
+--
+--export array_impl shallow method$ operator_sub r:index_range = []$t
+--  assert <- r.begin < self.count
+--  assert <- r.end <= self.count
+--  let raw0 = self$unsafe_rawdata
+--  let raw = slice_at_byte raw0 r.begin
+--  return {dat=raw cnt=r.count}

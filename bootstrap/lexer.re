@@ -322,6 +322,9 @@ normal:
       ERROR(EINVAL, "lexer: unexpected semicolon in multi-line block");
     }
   }
+  ".[" { R(TATDOT); }
+  "![" { R(TATBANG); }
+  "$[" { R(TATWILDCARD); }
   "."[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFDOT); }
   "!"[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFBANG); }
   "#"[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFSHARP); }
@@ -341,8 +344,9 @@ normal:
   "?" { R(TQMARK); }
   "..." { R(TDOTDOTDOT); }
   "[]" { R(TSLICEBRAKETS); }
-  "[" { parser->no_block_depth += 1; R(TLSBRA); }
-  "]" { parser->no_block_depth -= 1; R(TRSBRA); }
+  "[]!" { R(TMSLICEBRAKETS); }
+  "[]$" { R(TWSLICEBRAKETS); }
+  "]" { R(TRSBRA); }
   "{" { parser->no_block_depth += 1; R(TLCBRA); }
   "}" { parser->no_block_depth -= 1; R(TRCBRA); }
   "(" { parser->no_block_depth += 1; R(TLPAR); }
@@ -474,11 +478,7 @@ comment_while_eol:
 }
 
 void lexer_back(struct parser *parser, const struct token *tok) {
-  if (tok->t == TLSBRA) {
-    parser->no_block_depth -= 1;
-  } else if (tok->t == TRSBRA) {
-    parser->no_block_depth += 1;
-  } else if (tok->t == TLCBRA) {
+  if (tok->t == TLCBRA) {
     parser->no_block_depth -= 1;
   } else if (tok->t == TRCBRA) {
     parser->no_block_depth += 1;
