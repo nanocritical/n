@@ -544,13 +544,13 @@ static error step_type_gather_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
-// Does not itself check that 'explicit_args' are valid types for instantiation.
+// Does not itself check that 'args' are valid types for instantiation.
 // This is done in passfwd.c:validate_genarg_types().
 static error do_instantiate(struct node **result,
                             struct module *mod,
                             const struct node *for_error, ssize_t for_error_offset,
                             struct typ *t,
-                            struct typ **explicit_args, size_t arity,
+                            struct typ **args, size_t arity,
                             bool tentative) {
   assert(arity == 0 || arity == typ_generic_arity(t));
 
@@ -577,29 +577,18 @@ static error do_instantiate(struct node **result,
   // See also types.c:link_generic_arg_update().
   node_toplevel(instance)->generic->our_generic_functor_typ = t;
 
-  const size_t first = typ_generic_first_explicit_arg(t);
   struct node *genargs = subs_at(instance, IDX_GENARGS);
   struct node *ga = subs_first(genargs);
-  for (size_t n = 0; n < first; ++n) {
-    node_set_which(ga, SETGENARG);
-    struct node *ga_arg = subs_last(ga);
-    node_set_which(ga_arg, DIRECTDEF);
-    set_typ(&ga_arg->as.DIRECTDEF.typ,
-            typ_create_tentative(typ_generic_arg(t, n)));
-    ga_arg->as.DIRECTDEF.flags = NODE_IS_TYPE;
-
-    if (for_error != NULL) {
-      ga->as.SETGENARG.for_error = for_error;
-    }
-
-    ga = next(ga);
-  }
-
   for (size_t n = 0; n < arity; ++n) {
     node_set_which(ga, SETGENARG);
+    if (args[n] == NULL) {
+      ga = next(ga);
+      continue;
+    }
+
     struct node *ga_arg = subs_last(ga);
     node_set_which(ga_arg, DIRECTDEF);
-    set_typ(&ga_arg->as.DIRECTDEF.typ, explicit_args[n]);
+    set_typ(&ga_arg->as.DIRECTDEF.typ, args[n]);
     ga_arg->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
     if (for_error != NULL) {
@@ -671,52 +660,109 @@ static struct typ *find_existing_final_for_tentative(struct module *mod,
   return NULL;
 }
 
-static bool are_all_tentative(struct typ **explicit_args, size_t arity) {
+// Allows self-referential instances, such as, in (slice t):
+//  alias us = slice t
+static struct typ *find_existing_identical(struct module *mod,
+                                           struct typ *t,
+                                           struct typ **args,
+                                           size_t arity) {
+  const size_t first_explicit = typ_generic_first_explicit_arg(t);
+
+  const struct node *d = typ_definition_const(t);
+  const struct toplevel *toplevel = node_toplevel_const(d);
+  for (size_t n = 1, count = vecnode_count(&toplevel->generic->instances); n < count; ++n) {
+    struct typ *i = (*vecnode_get(&toplevel->generic->instances, n))->typ;
+
+    size_t a;
+    for (a = first_explicit; a < arity; ++a) {
+      // Use pointer comparison: we're looking for the exact same arguments
+      // (same tentative bit, etc.).
+      if (typ_generic_arg_const(i, a) != args[a - first_explicit]) {
+        break;
+      }
+    }
+
+    if (a == arity) {
+      return i;
+    }
+  }
+
+  return NULL;
+}
+
+static bool are_all_tentative(struct typ **args, size_t arity) {
   for (size_t n = 0; n < arity; ++n) {
-    if (!typ_is_tentative(explicit_args[n])) {
+    if (args[n] == NULL) {
+      continue;
+    }
+    if (!typ_is_tentative(args[n])) {
       return false;
     }
   }
   return true;
 }
 
+static struct typ *tentative_generic_arg(struct typ *t, size_t n) {
+  struct typ *ga = typ_generic_arg(t, n);
+  const size_t arity = typ_generic_arity(ga);
+  if (arity == 0 || typ_is_generic_functor(ga)) {
+    assert(!typ_is_tentative(ga));
+    return typ_create_tentative(ga);
+  }
+
+  // Otherwise, the generic argument is declared as c:(`container t), where
+  // t is another generic argument. The typ will be created by the type
+  // inference step.
+
+  return NULL;
+}
+
 error instance(struct node **result,
                struct module *mod,
                const struct node *for_error, size_t for_error_offset,
-               struct typ *t, struct typ **explicit_args, size_t arity) {
-  const size_t first = typ_generic_first_explicit_arg(t);
-  assert(arity == typ_generic_arity(t) - first);
+               struct typ *t, struct typ **args, size_t arity) {
+  assert(arity == typ_generic_arity(t));
 
-  const bool already_tentative_args = are_all_tentative(explicit_args, arity);
-  const bool tentative = instantiation_is_tentative(mod, t, explicit_args, arity);
+  const bool already_tentative_args = are_all_tentative(args, arity);
+  const bool tentative = instantiation_is_tentative(mod, t, args, arity);
 
   error e;
   if (tentative && !already_tentative_args) {
-    struct typ **args = calloc(arity, sizeof(struct typ *));
+    struct typ **tentative_args = calloc(arity, sizeof(struct typ *));
     for (size_t n = 0; n < arity; ++n) {
-      args[n] = typ_create_tentative(typ_generic_arg(t, n));
+      tentative_args[n] = tentative_generic_arg(t, n);
     }
 
     e = do_instantiate(result, mod, for_error, for_error_offset,
-                       t, args, arity, true);
+                       t, tentative_args, arity, true);
     EXCEPT(e);
+
+    free(tentative_args);
 
     const struct node *fe = subs_at_const(for_error, for_error_offset);
     for (size_t n = 0; n < arity; ++n) {
+      if (args[n] == NULL) {
+        continue;
+      }
       e = unify(mod, fe,
-                typ_generic_arg((*result)->typ, first + n),
-                explicit_args[n]);
+                typ_generic_arg((*result)->typ, n),
+                args[n]);
       EXCEPT(e);
 
       fe = next_const(fe);
     }
 
-    free(args);
-
   } else {
+    struct typ *r = find_existing_identical(mod, t, args, arity);
+    if (r != NULL) {
+      if (result != NULL) {
+        *result = typ_definition(r);
+      }
+      return 0;
+    }
 
     if (!already_tentative_args) {
-      struct typ *r = find_existing_final(mod, t, explicit_args, arity);
+      struct typ *r = find_existing_final(mod, t, args, arity);
       if (r != NULL) {
         if (result != NULL) {
           *result = typ_definition(r);
@@ -726,8 +772,7 @@ error instance(struct node **result,
     }
 
     e = do_instantiate(result, mod, for_error, for_error_offset,
-                       t, explicit_args, arity,
-                       already_tentative_args);
+                       t, args, arity, tentative);
     EXCEPT(e);
   }
 
@@ -1190,7 +1235,7 @@ struct node *instance_fully_implicit(struct module *mod,
   struct typ **args = calloc(gen_arity, sizeof(struct typ *));
   for (size_t n = 0; n < gen_arity; ++n) {
     assert(!typ_is_tentative(typ_generic_arg(t, n)));
-    args[n] = typ_create_tentative(typ_generic_arg(t, n));
+    args[n] = tentative_generic_arg(t, n);
   }
 
   struct node *i = NULL;
@@ -1836,22 +1881,26 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
   }
 
   struct typ *t = what->typ;
-  const size_t arity = subs_count(node) - 1;
+  const size_t given_arity = subs_count(node) - 1;
 
-  const size_t first = typ_generic_first_explicit_arg(t);
-  const size_t explicit_arity = typ_generic_arity(t) - first;
-  if (arity != explicit_arity) {
+  const size_t arity = typ_generic_arity(t);
+  const size_t first_explicit = typ_generic_first_explicit_arg(t);
+  const size_t explicit_arity = arity - first_explicit;
+  if (given_arity != explicit_arity) {
     e = mk_except_type(mod, node,
                        "invalid number of explicit generic arguments:"
                        " %zu expected, but %zu given",
-                       explicit_arity, arity);
+                       explicit_arity, given_arity);
     THROW(e);
   }
 
   struct typ **args = calloc(arity, sizeof(struct typ *));
-  size_t n = 0;
+  size_t n;
+  for (n = 0; n < first_explicit; ++n) {
+    args[n] = tentative_generic_arg(t, n);
+  }
   FOREACH_SUB_EVERY(s, node, 1, 1) {
-    args[n] = s->typ;
+    args[first_explicit + n] = s->typ;
     n += 1;
   }
 

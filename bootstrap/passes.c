@@ -174,6 +174,9 @@ bool instantiation_is_tentative(const struct module *mod,
     }
 
     for (size_t n = 0; n < arity; ++n) {
+      if (args[n] == NULL) {
+        continue;
+      }
       if (typ_is_tentative(args[n])) {
         return true;
       }
