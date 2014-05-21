@@ -1214,7 +1214,7 @@ struct node *mk_node(struct module *mod, struct node *par, enum node_which kind)
   return n;
 }
 
-static error p_expr(struct node *node, struct module *mod, uint32_t parent_op);
+static error p_expr(struct node *node, struct module *mod, enum token_type parent_op);
 static error p_block(struct node *node, struct module *mod);
 
 static error p_ident(struct node *node, struct module *mod) {
@@ -1418,7 +1418,7 @@ static error p_expr_tuple(struct node *node, struct module *mod) {
       return 0;
     }
 
-    e = p_expr(node_new_subnode(mod, node), mod, TCOMMA);
+    e = p_expr(node_new_subnode(mod, node), mod, T__NOT_COMMA);
     EXCEPT(e);
 
     count += 1;
@@ -1738,12 +1738,15 @@ static void shift(struct module *mod, struct node *node) {
   node_subs_append(node, first);
 }
 
-static error p_expr(struct node *node, struct module *mod, uint32_t parent_op) {
-  assert(parent_op < TOKEN__NUM && IS_OP(parent_op));
+static error p_expr(struct node *node, struct module *mod,
+                    const enum token_type top_parent_op) {
+  assert(top_parent_op < TOKEN__NUM && IS_OP(top_parent_op));
 
   error e;
   struct token tok = { 0 };
-  bool topmost = parent_op == T__STATEMENT;
+
+  const bool topmost = top_parent_op == T__STATEMENT;
+  enum token_type parent_op = top_parent_op;
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -1860,8 +1863,9 @@ shifted:
         goto done;
       }
     } else if (OP_PREC(tok.t) < OP_PREC(parent_op)
-               || (OP_PREC(tok.t) == OP_PREC(parent_op)
-                   && OP_ASSOC(tok.t) == ASSOC_RIGHT)
+               || (OP_PREC(tok.t) < OP_PREC(top_parent_op)
+                   && OP_PREC(tok.t) == OP_PREC(parent_op)
+                   && OP_ASSOC(tok.t) == ASSOC_LEFT)
                || topmost) {
       shift(mod, node);
       e = p_expr_binary(node, mod);
@@ -1877,7 +1881,10 @@ shifted:
     }
   } else if (IS_OP(tok.t) && OP_IS_UNARY(tok.t)
              && OP_KIND(tok.t) == OP_UN_DEREF
-             && OP_PREC(tok.t) < OP_PREC(parent_op)) {
+             && (OP_PREC(tok.t) < OP_PREC(parent_op)
+                 || (OP_PREC(tok.t) < OP_PREC(top_parent_op)
+                     && OP_PREC(tok.t) == OP_PREC(parent_op)
+                     && OP_ASSOC(tok.t) == ASSOC_LEFT))) {
     shift(mod, node);
     e = p_expr_post_unary(node, mod);
     EXCEPT(e);
@@ -2231,7 +2238,7 @@ static error p_defarg(struct node *node, struct module *mod, enum token_type tok
   node->as.DEFARG.is_optional = tokt == TQMARK;
   node->as.DEFARG.is_vararg = tokt == TDOTDOTDOT;
 
-  error e = p_expr(node_new_subnode(mod, node), mod, TCOLON);
+  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_COLON);
   EXCEPT(e);
 
   e = scan_expected(mod, TCOLON);
@@ -2645,7 +2652,7 @@ again:
 static error p_defgenarg(struct node *node, struct module *mod, bool explicit) {
   node_set_which(node, DEFGENARG);
   node->as.DEFGENARG.is_explicit = explicit;
-  error e = p_expr(node_new_subnode(mod, node), mod, TCOLON);
+  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_COLON);
   EXCEPT(e);
 
   e = scan_expected(mod, TCOLON);

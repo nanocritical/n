@@ -131,6 +131,8 @@ enum token_type {
   T__CALL,
   T__NOT_STATEMENT,
   T__STATEMENT,
+  T__NOT_COLON,
+  T__NOT_COMMA,
 
   TOKEN__NUM,
 };
@@ -166,14 +168,14 @@ enum operator_kind {
   OP_ASSIGN__MASK = 0x1,
 };
 
-#define OP(assign, kind, assoc, precedence) ((assign << 26) | (kind << 18) | assoc | precedence)
+#define OP(assign, kind, assoc, precedence) ((assign << 27) | (kind << 19) | assoc | precedence)
 #define IS_OP(t) (operators[t] != 0)
-#define OP_IS_UNARY(t) (!!((operators[t] >> 18) & OP_UN__MASK))
-#define OP_IS_BINARY(t) (!!((operators[t] >> 18) & OP_BIN__MASK))
+#define OP_IS_UNARY(t) (!!((operators[t] >> 19) & OP_UN__MASK))
+#define OP_IS_BINARY(t) (!!((operators[t] >> 19) & OP_BIN__MASK))
 #define OP_ASSOC(t) (operators[t] & 0x30000)
 #define OP_PREC(t) (operators[t] & 0xffff)
-#define OP_KIND(t) ((operators[t] >> 18) & OP_KIND__MASK)
-#define OP_IS_ASSIGN(t) (!!((operators[t] >> 26) & OP_ASSIGN__MASK))
+#define OP_KIND(t) ((operators[t] >> 19) & OP_KIND__MASK)
+#define OP_IS_ASSIGN(t) (!!((operators[t] >> 27) & OP_ASSIGN__MASK))
 
 static const uint32_t operators[TOKEN__NUM] = {
   [T__STATEMENT] = OP(0, 0, 0, 0xffff),
@@ -191,6 +193,7 @@ static const uint32_t operators[TOKEN__NUM] = {
   [Tin] = OP(0, OP_BIN_SYM, ASSOC_NON, 0x140),
   [T__NOT_STATEMENT] = OP(0, OP_BIN, ASSOC_NON, 0x139),
   [TCOMMA] = OP(0, OP_BIN, ASSOC_LEFT, 0x130),
+  [T__NOT_COMMA] = OP(0, OP_BIN, ASSOC_NON, 0x129),
   [Tor] = OP(0, OP_BIN_SYM_BOOL, ASSOC_LEFT, 0x120),
   [Tand] = OP(0, OP_BIN_SYM_BOOL, ASSOC_LEFT, 0x110),
   [Tnot] = OP(0, OP_UN_BOOL, ASSOC_RIGHT, 0x100),
@@ -228,6 +231,7 @@ static const uint32_t operators[TOKEN__NUM] = {
   [TNULREFWILDCARD] = OP(0, OP_UN_REFOF, ASSOC_RIGHT, 0x40),
   [TDCOLON] = OP(0, OP_BIN_RHS_TYPE, ASSOC_LEFT, 0x31),
   [TCOLON] = OP(0, OP_BIN_RHS_TYPE, ASSOC_LEFT, 0x30),
+  [T__NOT_COLON] = OP(0, OP_BIN, ASSOC_NON, 0x29),
   [TDEREFDOT] = OP(0, OP_UN_DEREF, ASSOC_LEFT, 0x20),
   [TDEREFBANG] = OP(0, OP_UN_DEREF, ASSOC_LEFT, 0x20),
   [TDEREFSHARP] = OP(0, OP_UN_DEREF, ASSOC_LEFT, 0x20),
