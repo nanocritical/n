@@ -3329,7 +3329,8 @@ static error step_type_drop_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
-static error finalize_generic_instantiation(struct module *mod, const struct node *for_error,
+static error finalize_generic_instantiation(size_t *remaining,
+                                            struct module *mod, const struct node *for_error,
                                             struct typ *t) {
   if (typ_definition_const(t) == NULL) {
     // 't' was cleared in link_to_final()
@@ -3359,11 +3360,8 @@ static error finalize_generic_instantiation(struct module *mod, const struct nod
       }
 
       if (typ_is_tentative(arg)) {
-        fprintf(g_env.stderr, "%s in %s\n",
-                typ_pretty_name(mod, arg), typ_pretty_name(mod, t));
-        error e = mk_except(mod, for_error, "FIXME: this should be an error,"
-                            " but how to explain it?");
-        THROW(e);
+        *remaining += 1;
+        return 0;
       }
     }
   }
@@ -3438,6 +3436,11 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
     return 0;
   }
 
+  size_t prev_remaining, remaining = 0;
+again:
+  prev_remaining = remaining;
+  remaining = 0;
+
   for (size_t n = 0, count = vecnode_count(&toplevel->tentative_instantiations);
        n < count; ++n) {
     struct node *d = *vecnode_get(&toplevel->tentative_instantiations, n);
@@ -3445,8 +3448,22 @@ static error step_gather_final_instantiations(struct module *mod, struct node *n
     if (d->which == DEFINCOMPLETE) {
       finalize_defincomplete_unification(mod, d);
     } else {
-      error e = finalize_generic_instantiation(mod, node, t);
+      error e = finalize_generic_instantiation(&remaining, mod, node, t);
       EXCEPT(e);
+    }
+  }
+
+  if (remaining > 0) {
+    if (remaining != prev_remaining) {
+      // Need to loop over, as the tentative instances may depend on each
+      // others, and they may appear in an arbitrary order in the vector.
+      // TODO: sort them first so we can avoid this quadratic behavior.
+      goto again;
+    } else {
+      // FIXME: this sometimes is an error (under-constrained generic)
+      // that's get caught in cprinter or gcc. We don't know how to tell
+      // that case apart from a well-constrained generic in a
+      // non-instantiated generic. There is probably a bug somewhere.
     }
   }
 
