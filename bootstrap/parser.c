@@ -627,6 +627,11 @@ bool node_is_rvalue(const struct node *node) {
   }
 }
 
+bool node_is_name_of_globalenv(const struct node *node) {
+  const struct node *par = parent_const(node);
+  return par->which == DEFNAME && par->as.DEFNAME.is_globalenv;
+}
+
 static error parse_modpath(struct module *mod, const char *raw_fn) {
   const char *fn = raw_fn;
   while (fn[0] == '/' || fn[0] == '.') {

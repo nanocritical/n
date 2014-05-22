@@ -1249,6 +1249,7 @@ bool node_is_def(const struct node *node);
 bool node_is_statement(const struct node *node);
 bool node_is_rvalue(const struct node *node);
 bool node_is_at_top(const struct node *node);
+bool node_is_name_of_globalenv(const struct node *node);
 
 static inline bool node_can_have_genargs(const struct node *node) {
   switch (node->which) {
