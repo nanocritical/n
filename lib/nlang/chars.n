@@ -45,8 +45,8 @@ export intf `string_buffer =
   method# copy at:size other:@`const_string off:size count:size = void
 
 export opaque struct static_string =
-  export isa `trivial_copy `return_by_copy `ordered_by_compare `show \
-      `static_string_compatible `const_string `trivial_ctor
+  export isa `trivial_copy `return_by_copy `ordered_by_compare `show
+      \ `static_string_compatible `const_string `trivial_ctor
   bytes	:[]u8
 
 export inline static_string method# unsafe_wrap bytes:@u8 count:size = void

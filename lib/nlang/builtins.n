@@ -497,8 +497,8 @@ export intf `unsigned_integer =
   isa `integer
 
 export intf `native_integer =
-  isa `trivial_ctor `trivial_dtor `trivial_copy `trivial_order `return_by_copy \
-      `integer `show
+  isa `trivial_ctor `trivial_dtor `trivial_copy `trivial_order `return_by_copy
+      \ `integer `show
 
 
 export intf `native_signed_integer =
@@ -518,15 +518,15 @@ export intf `bool_compatible =
   fun from_bool b:bool = final
 
 export intf `native_boolean =
-  isa `trivial_ctor `trivial_dtor `trivial_copy `return_by_copy `generalized_boolean \
-      `trivial_order `bool_compatible `show
+  isa `trivial_ctor `trivial_dtor `trivial_copy `return_by_copy `generalized_boolean
+      \ `trivial_order `bool_compatible `show
 
 export intf `floating =
   isa `numeric `has_compare
 
 export intf `native_floating =
-  isa `trivial_ctor `trivial_dtor `trivial_copy `return_by_copy \
-      `floating `show
+  isa `trivial_ctor `trivial_dtor `trivial_copy `return_by_copy
+      \ `floating `show
 
 export intf `enum =
   isa `trivial_order `trivial_equality `trivial_copy `return_by_copy `trivial_dtor `show

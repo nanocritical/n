@@ -164,6 +164,7 @@ error lexer_scan(struct token *tok, struct parser *parser) {
   size_t spaces = 0;
 
 #define ERROR(e, fmt, ...) do { \
+  __break(); \
   tok->value = start; \
   snprintf(parser->error_message, sizeof(parser->error_message), fmt, ##__VA_ARGS__); \
   return e; \
@@ -352,8 +353,8 @@ normal:
   "(" { parser->no_block_depth += 1; R(TLPAR); }
   ")" { parser->no_block_depth -= 1; R(TRPAR); }
 
-  "\n" { 
-    spaces = 0;
+  "\n" {
+    YYCURSOR -= 1;
     goto eol;
   }
 
@@ -361,12 +362,7 @@ normal:
     if (YYCURSOR >= YYLIMIT) {
       ERROR(EINVAL, "escape character at the EOF");
     }
-    if (*YYCURSOR == '\n') {
-      YYCURSOR += 1;
-      goto normal;
-    } else {
-      ERROR(EINVAL, "invalid character following '\\'");
-    }
+    ERROR(EINVAL, "invalid character following '\\'");
   }
 
   [`a-zA-Z_][a-zA-Z_0-9]* { R(TIDENT); }
@@ -379,6 +375,7 @@ eol:
   " " { spaces += 1; goto eol; }
   "\t" { spaces += 8; goto eol; }
   "\r" { goto eol; }
+  "\n"[ \t]*"\\" { goto normal; }
   "\n" { spaces = 0; goto eol; }
   "-" {
     YYFILL(1);
