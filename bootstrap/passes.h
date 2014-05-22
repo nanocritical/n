@@ -23,9 +23,6 @@ error catchup_instantiation(struct module *instantiating_mod,
                             struct module *gendef_mod,
                             struct node *instance,
                             bool tentative);
-bool instantiation_is_tentative(const struct module *mod,
-                                struct typ *t, struct typ **args,
-                                size_t arity);
 
 typedef error (*a_pass)(struct module *mod, struct node *root,
                         void *user, ssize_t shallow_last_up);

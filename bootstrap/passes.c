@@ -165,30 +165,6 @@ error catchup(struct module *mod,
   return 0;
 }
 
-bool instantiation_is_tentative(const struct module *mod,
-                                struct typ *t, struct typ **args,
-                                size_t arity) {
-  if (mod->state->tentatively || mod->state->top_state != NULL) {
-    if (typ_is_tentative(t)) {
-      return true;
-    }
-
-    for (size_t n = 0; n < arity; ++n) {
-      if (args[n] == NULL) {
-        continue;
-      }
-      if (typ_is_tentative(args[n])) {
-        return true;
-      }
-    }
-
-    // Optimisation: immediately turn into a final instantiation.
-    return false;
-  } else {
-    return false;
-  }
-}
-
 void record_tentative_instantiation(struct module *mod, struct node *i) {
   struct module *m = mod;
   while (m->state->top_state == NULL) {

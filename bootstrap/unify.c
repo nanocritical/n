@@ -4,7 +4,7 @@
 #include "types.h"
 #include "scope.h"
 #include "passes.h"
-#include "passbody.h"
+#include "instantiate.h"
 
 enum unify_flags {
   REFCOMPAT_LEFT = 0x1,
@@ -220,7 +220,7 @@ static struct typ *nullable(struct module *mod, const struct node *for_error,
   struct typ *a = typ_generic_arg(t, 0);
 
   struct node *i = NULL;
-  error e = instance(&i, mod, for_error, 0, r0, &a, 1);
+  error e = instantiate(&i, mod, for_error, 0, r0, &a, 1);
   assert(!e);
   return i->typ;
 }
@@ -703,7 +703,7 @@ struct typ *unify_with_new_functor(struct module *mod, const struct node *for_er
   assert(typ_is_tentative(t));
   assert(typ_is_tentative(t0));
 
-  struct node *i = instance_fully_implicit(mod, for_error, f);
+  struct node *i = instantiate_fully_implicit(mod, for_error, f);
 
   for (size_t n = 0, arity = typ_generic_arity(t); n < arity; ++n) {
     typ_link_tentative(typ_generic_arg(t, n), typ_generic_arg(i->typ, n));
