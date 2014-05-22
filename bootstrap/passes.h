@@ -1,7 +1,7 @@
 #ifndef PASSES_H__
 #define PASSES_H__
 
-#include "parser.h"
+#include "nodes.h"
 
 typedef error (*step)(struct module *mod, struct node *node, void *user, bool *stop);
 

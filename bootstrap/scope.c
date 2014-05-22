@@ -2,6 +2,7 @@
 
 #include "table.h"
 #include "types.h"
+#include "nodes.h"
 #include "parser.h"
 
 struct node *scope_node(struct scope *sc) {

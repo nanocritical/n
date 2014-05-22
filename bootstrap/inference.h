@@ -1,7 +1,7 @@
 #ifndef INFERENCE_H__
 #define INFERENCE_H__
 
-#include "parser.h"
+#include "nodes.h"
 
 const uint64_t step_rewrite_wildcards_filter;
 error step_rewrite_wildcards(struct module *mod, struct node *node,

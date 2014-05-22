@@ -1,7 +1,7 @@
 #ifndef INSTANTIATE_H__
 #define INSTANTIATE_H__
 
-#include "parser.h"
+#include "nodes.h"
 
 struct typ *tentative_generic_arg(struct typ *t, size_t n);
 

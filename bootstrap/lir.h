@@ -1,7 +1,7 @@
 #ifndef LIR_H__
 #define LIR_H__
 
-#include "parser.h"
+#include "nodes.h"
 
 extern const uint64_t step_add_sequence_points_filter;
 error step_add_sequence_points(struct module *mod, struct node *node,

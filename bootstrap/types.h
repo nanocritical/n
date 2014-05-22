@@ -1,7 +1,7 @@
 #ifndef TYPES_H__
 #define TYPES_H__
 
-#include "parser.h"
+#include "nodes.h"
 
 struct typ;
 

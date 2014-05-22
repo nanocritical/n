@@ -1,5 +1,7 @@
 #include "mock.h"
 
+#include "parser.h"
+
 struct node *mock_deftype(struct module *mod, const char *name) {
   GSTART();
   G0(test, mod->body, DEFTYPE,

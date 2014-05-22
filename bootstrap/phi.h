@@ -1,7 +1,7 @@
 #ifndef PHI_H__
 #define PHI_H__
 
-#include "parser.h"
+#include "nodes.h"
 
 struct phi_tracker_state *get_phi_tracker(struct node *def);
 

@@ -1,7 +1,7 @@
 #ifndef CONSTRAINTS_H__
 #define CONSTRAINTS_H__
 
-#include "parser.h"
+#include "nodes.h"
 
 struct constraint;
 struct assumptions;
