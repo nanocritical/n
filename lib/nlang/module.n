@@ -22,10 +22,10 @@ export fun vpr v:@!(vararg @`show) ?err:?@bool ?sep:?@string = void
   write_buf fd b.unsafe_data b.bytecount
 
 export fun pr ?err:?@bool ?sep:?@string ...v:(vararg @`show) = void
-  vpr @!v sep=sep
+  vpr @!v err=err sep=sep
 
 export fun vsay v:@!(vararg @`show) ?err:?@bool ?sep:?@string = void
-  vpr v sep=sep
+  vpr v err=err sep=sep
   let eol = '\n':char
   let fd = 1 such
     if optional err false
@@ -33,7 +33,7 @@ export fun vsay v:@!(vararg @`show) ?err:?@bool ?sep:?@string = void
   write_buf fd eol.code.trim_u8 1
 
 export fun say ?err:?@bool ?sep:?@string ...v:(vararg @`show) = void
-  vsay @!v sep=sep
+  vsay @!v err=err sep=sep
 
 export fun epr ?sep:?@string ...v:(vararg @`show) = void
   vpr @!v err=true sep=sep

@@ -1,8 +1,27 @@
 from nlang import *
 
 export fun main = i32
+  if false and true
+    esay 'no'
+  if true and false
+    esay 'no'
+  if false and false
+    esay 'no'
+  if true and true
+    esay 'yes'
+
+  if false or true
+    esay 'yes'
+  if true or false
+    esay 'yes'
+  if false or false
+    esay 'no'
+  if true or true
+    esay 'yes'
+
   let x = false
-  if x and true
+  and y = true
+  if x and y
     return 1
   else
     return 0
