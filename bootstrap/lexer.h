@@ -146,10 +146,10 @@ enum token_type {
 const char *token_strings[TOKEN__NUM];
 
 enum operator_associativity {
-  ASSOC_NON = 0x10000,
-  ASSOC_LEFT = 0x20000,
-  ASSOC_LEFT_SAME = 0x30000,
-  ASSOC_RIGHT = 0x40000,
+  ASSOC_NON = 0x1,
+  ASSOC_LEFT = 0x2,
+  ASSOC_LEFT_SAME = 0x3,
+  ASSOC_RIGHT = 0x4,
 };
 
 enum operator_kind {
@@ -169,23 +169,37 @@ enum operator_kind {
   OP_BIN_ACC = 0x70,
   OP_BIN_BW_RHS_UNSIGNED = 0x80,
   OP_BIN_RHS_TYPE = 0x90,
-  OP_ASSIGN = 0x1,
   OP_UN__MASK = 0x0f,
   OP_BIN__MASK = 0xf0,
   OP_KIND__MASK = 0xff,
-  OP_ASSIGN__MASK = 0x1,
 };
 
-#define OP(assign, kind, assoc, precedence) ((assign << 27) | (kind << 19) | assoc | precedence)
-#define IS_OP(t) (operators[t] != 0)
-#define OP_IS_UNARY(t) (!!((operators[t] >> 19) & OP_UN__MASK))
-#define OP_IS_BINARY(t) (!!((operators[t] >> 19) & OP_BIN__MASK))
-#define OP_ASSOC(t) (operators[t] & 0x30000)
-#define OP_PREC(t) (operators[t] & 0xffff)
-#define OP_KIND(t) ((operators[t] >> 19) & OP_KIND__MASK)
-#define OP_IS_ASSIGN(t) (!!((operators[t] >> 27) & OP_ASSIGN__MASK))
+struct operator {
+  unsigned prec :16;
+  unsigned kind :8;
+  unsigned is_assign :1;
+  unsigned assoc :3;
+};
 
-static const uint32_t operators[TOKEN__NUM] = {
+#define OP_ASSIGN 0x1
+
+#define OP(assgn, knd, assc, precedence) \
+{ \
+  .prec = (precedence), \
+  .kind = (knd), \
+  .assoc = (assc), \
+  .is_assign = (assgn), \
+}
+
+#define IS_OP(t) (operators[t].prec != 0)
+#define OP_IS_UNARY(t) (!!(operators[t].kind & OP_UN__MASK))
+#define OP_IS_BINARY(t) (!!(operators[t].kind & OP_BIN__MASK))
+#define OP_ASSOC(t) (operators[t].assoc)
+#define OP_PREC(t) (operators[t].prec)
+#define OP_KIND(t) (operators[t].kind & OP_KIND__MASK)
+#define OP_IS_ASSIGN(t) (operators[t].is_assign)
+
+static const struct operator operators[TOKEN__NUM] = {
   [T__STATEMENT] = OP(0, 0, 0, 0xffff),
   [TASSIGN] = OP(OP_ASSIGN, OP_BIN_SYM, ASSOC_NON, 0x140),
   [TPLUS_ASSIGN] = OP(OP_ASSIGN, OP_BIN_SYM_ARITH, ASSOC_NON, 0x140),
