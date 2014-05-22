@@ -247,7 +247,7 @@ static void print_union_access_path(FILE *out, const struct module *mod,
   struct vecnode stack = { 0 };
   const struct node *p = field;
   while (p->which != DEFTYPE) {
-    vecnode_push(&stack, CONST_CAST(struct node *, p));
+    vecnode_push(&stack, CONST_CAST(p));
     p = parent_const(p);
   }
 

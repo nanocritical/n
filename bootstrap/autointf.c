@@ -443,7 +443,7 @@ static void add_inferred_isa(struct module *mod, struct node *deft,
        isa->as.ISA.is_export = node_is_export(deft)
         && (node_is_inline(deft) || node_is_opaque(deft));
        G(what, DIRECTDEF);
-       what->as.DIRECTDEF.typ = CONST_CAST(struct typ *, i));
+       what->as.DIRECTDEF.typ = CONST_CAST(i));
 
     error e = catchup(mod, NULL, isa, CATCHUP_BELOW_CURRENT);
     assert(!e);
@@ -452,14 +452,14 @@ static void add_inferred_isa(struct module *mod, struct node *deft,
   }
 
   if (!(node_is_extern(deft) && !typ_is_trivial(i))) {
-    add_inferred_isa_eachisalist(mod, CONST_CAST(struct typ *, i),
-                                 CONST_CAST(struct typ *, i),
+    add_inferred_isa_eachisalist(mod, CONST_CAST(i),
+                                 CONST_CAST(i),
                                  NULL, deft);
   }
 
   const uint32_t filter = (node_is_extern(deft) && !typ_is_trivial(i)) \
                           ? ISALIST_FILTER_NONTRIVIAL_ISALIST : 0;
-  typ_isalist_foreach(mod, CONST_CAST(struct typ *, i), filter,
+  typ_isalist_foreach(mod, CONST_CAST(i), filter,
                       add_inferred_isa_eachisalist, deft);
 }
 

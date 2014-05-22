@@ -648,23 +648,23 @@ struct typ *typ_function_return(struct typ *t) {
 }
 
 const struct node *typ_definition_const(const struct typ *t) {
-  return typ_definition(CONST_CAST(struct typ *, t));
+  return typ_definition(CONST_CAST(t));
 }
 
 const struct typ *typ_generic_functor_const(const struct typ *t) {
-  return typ_generic_functor(CONST_CAST(struct typ *, t));
+  return typ_generic_functor(CONST_CAST(t));
 }
 
 const struct typ *typ_generic_arg_const(const struct typ *t, size_t n) {
-  return typ_generic_arg(CONST_CAST(struct typ *, t), n);
+  return typ_generic_arg(CONST_CAST(t), n);
 }
 
 const struct typ *typ_function_arg_const(const struct typ *t, size_t n) {
-  return typ_function_arg(CONST_CAST(struct typ *, t), n);
+  return typ_function_arg(CONST_CAST(t), n);
 }
 
 const struct typ *typ_function_return_const(const struct typ *t) {
-  return typ_function_return(CONST_CAST(struct typ *, t));
+  return typ_function_return(CONST_CAST(t));
 }
 
 static size_t direct_isalist_count(const struct typ *t) {
@@ -693,7 +693,7 @@ static struct typ *direct_isalist(struct typ *t, size_t n) {
 }
 
 static const struct typ *direct_isalist_const(const struct typ *t, size_t n) {
-  return direct_isalist(CONST_CAST(struct typ *, t), n);
+  return direct_isalist(CONST_CAST(t), n);
 }
 
 static bool direct_isalist_exported(const struct typ *t, size_t n) {

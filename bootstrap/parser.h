@@ -599,27 +599,27 @@ static inline const struct node *try_node_subs_at_const(const struct node *node,
 }
 
 static inline struct node *subs_first(struct node *node) {
-  return CONST_CAST(struct node *, subs_first_const(node));
+  return CONST_CAST(subs_first_const(node));
 }
 
 static inline struct node *subs_last(struct node *node) {
-  return CONST_CAST(struct node *, subs_last_const(node));
+  return CONST_CAST(subs_last_const(node));
 }
 
 static inline struct node *next(struct node *node) {
-  return CONST_CAST(struct node *, next_const(node));
+  return CONST_CAST(next_const(node));
 }
 
 static inline struct node *prev(struct node *node) {
-  return CONST_CAST(struct node *, prev_const(node));
+  return CONST_CAST(prev_const(node));
 }
 
 static inline struct node *subs_at(struct node *node, size_t n) {
-  return CONST_CAST(struct node *, subs_at_const(node, n));
+  return CONST_CAST(subs_at_const(node, n));
 }
 
 static inline struct node *try_node_subs_at(struct node *node, size_t n) {
-  return CONST_CAST(struct node *, try_node_subs_at_const(node, n));
+  return CONST_CAST(try_node_subs_at_const(node, n));
 }
 
 static inline void node_subs_remove(struct node *node, struct node *sub) {
@@ -1180,12 +1180,12 @@ static inline ident node_ident(const struct node *node) {
   case SETGENARG:
     return node_ident(subs_first_const(node));
   case PHI:
-    if (vecancestor_count(CONST_CAST(struct vecancestor *, &node->as.PHI.ancestors))
+    if (vecancestor_count(CONST_CAST(&node->as.PHI.ancestors))
         == 0) {
       return ID__NONE;
     } else {
       struct ancestor *ancestor = vecancestor_get(
-        CONST_CAST(struct vecancestor *, &node->as.PHI.ancestors), 0);
+        CONST_CAST(&node->as.PHI.ancestors), 0);
       return node_ident(ancestor->prev);
     }
   case CALLNAMEDARG:
@@ -1337,7 +1337,7 @@ static inline const struct toplevel *node_toplevel_const(const struct node *node
 }
 
 static inline struct toplevel *node_toplevel(struct node *node) {
-  return CONST_CAST(struct toplevel *, node_toplevel_const(node));
+  return CONST_CAST(node_toplevel_const(node));
 }
 
 struct node *node_get_member(struct module *mod, struct node *node, ident id);

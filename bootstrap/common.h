@@ -34,7 +34,28 @@
 #define _STRINGIFY(x) #x
 #define STRINGIFY(x) _STRINGIFY(x)
 
-#define CONST_CAST(t, x) ( (void) sizeof(((t) (x)) == x), (t) (x) )
+#define STATIC_ASSERT(x) ( ({ unused__ char __failed[-(!(x))]; }), (void) 0 )
+
+#define CONST_CAST(x) \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(__typeof__(x), const struct node *), \
+    (struct node *) (x), \
+    __builtin_choose_expr( \
+      __builtin_types_compatible_p(__typeof__(x), const struct typ *), \
+      (struct typ *) (x), \
+      __builtin_choose_expr( \
+        __builtin_types_compatible_p(__typeof__(x), const struct toplevel *), \
+        (struct toplevel *) (x), \
+        __builtin_choose_expr( \
+          __builtin_types_compatible_p(__typeof__(x), const struct scope *), \
+          (struct scope *) (x), \
+          __builtin_choose_expr( \
+            __builtin_types_compatible_p(__typeof__(x), const struct constraint *), \
+            (struct constraint *) (x), \
+            __builtin_choose_expr( \
+              __builtin_types_compatible_p(__typeof__(x), const struct vecancestor *), \
+              (struct vecancestor *) (x), \
+              (x) ))))))
 
 typedef _Bool bool;
 #define true 1

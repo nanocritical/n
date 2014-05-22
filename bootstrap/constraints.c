@@ -322,7 +322,7 @@ static int snprint_constraint_tag_each(const ident *tag, cbool *value,
 static int snprint_constraint_under_each(const struct node **_cond,
                                          struct hypothesis *hyp,
                                          void *user) {
-  struct node *cond = CONST_CAST(struct node *, *_cond);
+  struct node *cond = CONST_CAST(*_cond);
   struct snprint_constraint_state *st = user;
 
   if (hyp->if_true != NULL) {
@@ -360,7 +360,7 @@ static int snprint_constraint_under_each(const struct node **_cond,
 
 int snprint_constraint(char *s, size_t len,
                        const struct module *mod, const struct constraint *_c) {
-  struct constraint *c = CONST_CAST(struct constraint *, _c);
+  struct constraint *c = CONST_CAST(_c);
   size_t pos = 0;
   pos += snprintf(s+pos, len-pos, "(");
 
@@ -655,7 +655,7 @@ static error constraint_check_compatible_assign(struct module *mod,
                                                 const struct node *ntarget,
                                                 const struct node *nc) {
   struct constraint *target = ntarget->constraint;
-  struct constraint *c = CONST_CAST(struct constraint *, nc->constraint);
+  struct constraint *c = CONST_CAST(nc->constraint);
 
   error e;
   for (size_t cbi = 0; cbi < CBI__NUM; ++cbi) {

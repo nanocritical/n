@@ -9,7 +9,7 @@ struct node *scope_node(struct scope *sc) {
 }
 
 const struct node *scope_node_const(const struct scope *sc) {
-  return scope_node(CONST_CAST(struct scope *, sc));
+  return scope_node(CONST_CAST(sc));
 }
 
 static const struct scope *scope_parent(const struct scope *sc) {
