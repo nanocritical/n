@@ -4056,7 +4056,7 @@ static error step_check_exhaustive_intf_impl(struct module *mod, struct node *no
     return 0;
   }
 
-  error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTER_TRIVIAL_ISALIST,
+  error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTEROUT_TRIVIAL_ISALIST,
                                 check_exhaustive_intf_impl_eachisalist, NULL);
   EXCEPT(e);
 

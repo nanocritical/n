@@ -458,7 +458,7 @@ static void add_inferred_isa(struct module *mod, struct node *deft,
   }
 
   const uint32_t filter = (node_is_extern(deft) && !typ_is_trivial(i)) \
-                          ? ISALIST_FILTER_NONTRIVIAL_ISALIST : 0;
+                          ? ISALIST_FILTEROUT_NONTRIVIAL_ISALIST : 0;
   typ_isalist_foreach(mod, CONST_CAST(i), filter,
                       add_inferred_isa_eachisalist, deft);
 }
@@ -703,7 +703,7 @@ error step_autointf_add_environment_builtins(struct module *mod, struct node *no
     return 0;
   }
 
-  error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTER_TRIVIAL_ISALIST,
+  error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTEROUT_TRIVIAL_ISALIST,
                                 add_environment_builtins_eachisalist, node);
   EXCEPT(e);
   return 0;

@@ -1981,8 +1981,8 @@ static error print_mkdyn_eachisalist(struct module *mod, struct typ *t,
   st2.printed = 0;
   st2.user = (void *)t;
 
-  const uint32_t filter = ISALIST_FILTER_PREVENT_DYN
-    | (st->header ? ISALIST_FILTER_NOT_EXPORTED : ISALIST_FILTER_EXPORTED);
+  const uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN
+    | (st->header ? ISALIST_FILTEROUT_NOT_EXPORTED : ISALIST_FILTEROUT_EXPORTED);
   error e = typ_isalist_foreach((struct module *)mod, intf, filter,
                                 print_dyn_field_eachisalist,
                                 &st2);
@@ -2006,8 +2006,8 @@ static error print_mkdyn_eachisalist(struct module *mod, struct typ *t,
 
 static void print_mkdyn(FILE *out, bool header, enum forward fwd,
                         const struct module *mod, const struct node *node) {
-  const uint32_t filter = ISALIST_FILTER_PREVENT_DYN
-    | (header ? ISALIST_FILTER_NOT_EXPORTED : ISALIST_FILTER_EXPORTED);
+  const uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN
+    | (header ? ISALIST_FILTEROUT_NOT_EXPORTED : ISALIST_FILTEROUT_EXPORTED);
 
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,

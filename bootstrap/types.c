@@ -711,11 +711,11 @@ static bool direct_isalist_exported(const struct typ *t, size_t n) {
 static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct typ *base,
                                     uint32_t filter, isalist_each iter, void *user,
                                     bool *stop, struct typset *set) {
-  const bool filter_not_exported = filter & ISALIST_FILTER_NOT_EXPORTED;
-  const bool filter_exported = filter & ISALIST_FILTER_EXPORTED;
-  const bool filter_trivial_isalist = filter & ISALIST_FILTER_TRIVIAL_ISALIST;
-  bool filter_nontrivial_isalist = filter & ISALIST_FILTER_NONTRIVIAL_ISALIST;
-  const bool filter_prevent_dyn = filter & ISALIST_FILTER_PREVENT_DYN;
+  const bool filter_not_exported = filter & ISALIST_FILTEROUT_NOT_EXPORTED;
+  const bool filter_exported = filter & ISALIST_FILTEROUT_EXPORTED;
+  const bool filter_trivial_isalist = filter & ISALIST_FILTEROUT_TRIVIAL_ISALIST;
+  bool filter_nontrivial_isalist = filter & ISALIST_FILTEROUT_NONTRIVIAL_ISALIST;
+  const bool filter_prevent_dyn = filter & ISALIST_FILTEROUT_PREVENT_DYN;
 
   if (filter_trivial_isalist && typ_is_trivial(base)) {
     return 0;
@@ -730,10 +730,10 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
   if (typ_is_trivial(base)) {
     // Trivial interfaces are often empty but refer to definitions in
     // nontrivial interfaces.
-    filter &= ~ISALIST_FILTER_NONTRIVIAL_ISALIST;
+    filter &= ~ISALIST_FILTEROUT_NONTRIVIAL_ISALIST;
   }
 
-  filter_nontrivial_isalist = filter & ISALIST_FILTER_NONTRIVIAL_ISALIST;
+  filter_nontrivial_isalist = filter & ISALIST_FILTEROUT_NONTRIVIAL_ISALIST;
 
   for (size_t n = 0; n < direct_isalist_count(base); ++n) {
     struct typ *intf = direct_isalist(base, n);
@@ -759,9 +759,9 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
     }
 
     if (exported) {
-      filter &= ~ISALIST_FILTER_NOT_EXPORTED;
+      filter &= ~ISALIST_FILTEROUT_NOT_EXPORTED;
     } else {
-      filter &= ~ISALIST_FILTER_EXPORTED;
+      filter &= ~ISALIST_FILTEROUT_EXPORTED;
     }
 
     typset_set(set, intf, true);

@@ -76,11 +76,11 @@ bool typ_is_weakly_concrete(const struct typ *t);
 bool typ_isa_return_by_copy(const struct typ *t);
 
 enum isalist_filter {
-  ISALIST_FILTER_NOT_EXPORTED = 0x1,
-  ISALIST_FILTER_EXPORTED = 0x2,
-  ISALIST_FILTER_TRIVIAL_ISALIST = 0x4,
-  ISALIST_FILTER_NONTRIVIAL_ISALIST = 0x8,
-  ISALIST_FILTER_PREVENT_DYN = 0x10,
+  ISALIST_FILTEROUT_NOT_EXPORTED = 0x1,
+  ISALIST_FILTEROUT_EXPORTED = 0x2,
+  ISALIST_FILTEROUT_TRIVIAL_ISALIST = 0x4,
+  ISALIST_FILTEROUT_NONTRIVIAL_ISALIST = 0x8,
+  ISALIST_FILTEROUT_PREVENT_DYN = 0x10,
 };
 typedef error (*isalist_each)(struct module *mod, struct typ *t, struct typ *intf,
                               bool *stop, void *user);
