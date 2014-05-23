@@ -204,6 +204,7 @@ struct node_block {
 struct node_for {
   struct node *pattern;
   struct node *block;
+  bool is_foreach;
 };
 struct node_while {};
 struct node_break {};
@@ -989,7 +990,7 @@ enum predefined_idents {
   ID_TBI_ENUM,
   ID_TBI_UNION,
   ID_TBI_UNION_TRIVIAL_CTOR,
-  ID_TBI_RANGE,
+  ID_TBI_INDEX_RANGE,
   ID_TBI_INDEX_BOUNDS,
   ID_TBI_ITERATOR,
   ID_TBI_ENVIRONMENT,

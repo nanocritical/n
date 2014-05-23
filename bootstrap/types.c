@@ -907,7 +907,7 @@ struct typ *TBI_NOT_RETURN_BY_COPY;
 struct typ *TBI_ENUM;
 struct typ *TBI_UNION;
 struct typ *TBI_UNION_TRIVIAL_CTOR;
-struct typ *TBI_RANGE;
+struct typ *TBI_INDEX_RANGE;
 struct typ *TBI_INDEX_BOUNDS;
 struct typ *TBI_ITERATOR;
 struct typ *TBI_ENVIRONMENT;

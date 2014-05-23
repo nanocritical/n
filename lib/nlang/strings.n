@@ -37,7 +37,7 @@ export string method! `string.fill c:char r:index_range = void
   let with = c.code.trim_u8
   let sb = self.bytes!storage![r]
   such
-    for i in sb.all.iter
+    foreach i in sb.all
       let p = sb![i]
       p! = with
 
@@ -55,12 +55,12 @@ export string method# `string_buffer.pop = char
 
 export string method# `string_buffer.append other:@`const_string = void
   self#reserve self.count+other.count
-  for i in other.all.iter
+  foreach i in other.all
     self#push (other.get_char i)
 
 export string method# `string_buffer.copy at:size other:@`const_string off:size count:size = void
   self#reserve at+count
-  for i in (range 0 count).iter
+  foreach i in 0 ... count
     let left = at + i
     let right = off + i
     let c = other.get_char right
@@ -74,5 +74,5 @@ export string method# `copyable.copy_ctor other:@this = void
 
 export string method `show.show buf:@#`string_buffer = void
   buf#reserve buf.count + self.count
-  for i in self.all.iter
+  foreach i in self.all
     buf#push (self.get_char i)

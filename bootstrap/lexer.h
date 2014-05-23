@@ -26,6 +26,7 @@ enum token_type {
   Tif,
   Telif,
   Telse,
+  Tforeach,
   Tfor,
   Tin,
   Twhile,

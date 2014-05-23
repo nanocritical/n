@@ -338,6 +338,94 @@ static error lir_conversion_defpattern(struct module *mod,
   return 0;
 }
 
+static void lir_conversion_foreach(struct module *mod, struct node *node) {
+  node_set_which(node, BLOCK);
+
+  struct node *orig_var = subs_first(node);
+  struct node *orig_expr = subs_at(node, 1);
+  struct node *orig_block = subs_last(node);
+  node_subs_remove(node, orig_var);
+  node_subs_remove(node, orig_expr);
+  node_subs_remove(node, orig_block);
+
+  GSTART();
+  G0(let_it, node, LET,
+     G(it, DEFPATTERN,
+       G(it_var, IDENT,
+         it_var->as.IDENT.name = gensym(mod));
+       G(it_expr, CALL,
+         G(it_expr_iter, BIN,
+           it_expr_iter->as.BIN.operator = TDOT;
+           node_subs_append(it_expr_iter, orig_expr);
+           G_IDENT(it_expr_fun, "iter"))));
+
+     G(let_it_block, BLOCK,
+       G(loop, WHILE,
+         G(v, CALL,
+           G(vm, BIN,
+             vm->as.BIN.operator = TDOT;
+             G(vmi, IDENT,
+               vmi->as.IDENT.name = node_ident(it_var));
+             G(vmm, IDENT,
+               vmm->as.IDENT.name = ID_HAS_NEXT)));
+         G(loop_block, BLOCK,
+           G(let_var, LET,
+             G(var, DEFPATTERN,
+               node_subs_append(var, orig_var);
+               G(g, CALL,
+                 G(gm, BIN,
+                   gm->as.BIN.operator = TBANG;
+                   G(gmi, IDENT,
+                     gmi->as.IDENT.name = node_ident(it_var));
+                   G(gmm, IDENT,
+                     gmm->as.IDENT.name = ID_NEXT)))))))));
+
+         node_subs_append(let_var, orig_block);
+}
+
+static void lir_conversion_for(struct module *mod, struct node *node) {
+  node_set_which(node, BLOCK);
+
+  struct node *orig_var = subs_first(node);
+  struct node *orig_expr = subs_at(node, 1);
+  struct node *orig_block = subs_last(node);
+  node_subs_remove(node, orig_var);
+  node_subs_remove(node, orig_expr);
+  node_subs_remove(node, orig_block);
+
+  GSTART();
+  G0(let_it, node, LET,
+     G(it, DEFPATTERN,
+       G(it_var, IDENT,
+         it_var->as.IDENT.name = gensym(mod));
+       G(it_expr, UN,
+         it_expr->as.UN.operator = TREFBANG;
+         node_subs_append(it_expr, orig_expr)));
+
+     G(let_it_block, BLOCK,
+       G(loop, WHILE,
+         G(v, CALL,
+           G(vm, BIN,
+             vm->as.BIN.operator = TDOT;
+             G(vmi, IDENT,
+               vmi->as.IDENT.name = node_ident(it_var));
+             G(vmm, IDENT,
+               vmm->as.IDENT.name = ID_HAS_NEXT)));
+         G(loop_block, BLOCK,
+           G(let_var, LET,
+             G(var, DEFPATTERN,
+               node_subs_append(var, orig_var);
+               G(g, CALL,
+                 G(gm, BIN,
+                   gm->as.BIN.operator = TBANG;
+                   G(gmi, IDENT,
+                     gmi->as.IDENT.name = node_ident(it_var));
+                   G(gmm, IDENT,
+                     gmm->as.IDENT.name = ID_NEXT)))))))));
+
+         node_subs_append(let_var, orig_block);
+}
+
 static void ensure_in_block(struct module *mod, struct node *x) {
   struct node *node = parent(x);
 
@@ -371,49 +459,12 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
   case FUTURE:
     break;
   case FOR:
-    {
-      node_set_which(node, BLOCK);
-
-      struct node *orig_var = subs_first(node);
-      struct node *orig_expr = subs_at(node, 1);
-      struct node *orig_block = subs_last(node);
-      node_subs_remove(node, orig_var);
-      node_subs_remove(node, orig_expr);
-      node_subs_remove(node, orig_block);
-
-      GSTART();
-      G0(let_it, node, LET,
-         G(it, DEFPATTERN,
-           G(it_var, IDENT,
-             it_var->as.IDENT.name = gensym(mod));
-           G(it_expr, UN,
-             it_expr->as.UN.operator = TREFBANG;
-             node_subs_append(it_expr, orig_expr)));
-
-         G(let_it_block, BLOCK,
-           G(loop, WHILE,
-             G(v, CALL,
-               G(vm, BIN,
-                 vm->as.BIN.operator = TDOT;
-                 G(vmi, IDENT,
-                   vmi->as.IDENT.name = node_ident(it_var));
-                 G(vmm, IDENT,
-                   vmm->as.IDENT.name = ID_HAS_NEXT)));
-             G(loop_block, BLOCK,
-               G(let_var, LET,
-                 G(var, DEFPATTERN,
-                   node_subs_append(var, orig_var);
-                   G(g, CALL,
-                     G(gm, BIN,
-                       gm->as.BIN.operator = TBANG;
-                       G(gmi, IDENT,
-                         gmi->as.IDENT.name = node_ident(it_var));
-                       G(gmm, IDENT,
-                         gmm->as.IDENT.name = ID_NEXT)))))))));
-
-      node_subs_append(let_var, orig_block);
-      break;
+    if (node->as.FOR.is_foreach) {
+      lir_conversion_foreach(mod, node);
+    } else {
+      lir_conversion_for(mod, node);
     }
+    break;
   case MATCH:
     ensure_in_block(mod, subs_first(node));
     break;

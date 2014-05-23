@@ -230,6 +230,7 @@ normal:
   "if" { R(Tif); }
   "elif" { R(Telif); }
   "else" { R(Telse); }
+  "foreach" { R(Tforeach); }
   "for" { R(Tfor); }
   "in" { R(Tin); }
   "while" { R(Twhile); }

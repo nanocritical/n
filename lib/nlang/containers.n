@@ -27,12 +27,8 @@ export inline index_bounds (method t:`any c:(`random_container t)) range_of v:@c
   else
     return {b=0 e=v.count}
 
-
-export intf `range =
-  isa `trivial_copy `trivial_equality `trivial_ctor `return_by_copy
-
 export inline struct index_range =
-  export isa `range
+  export isa `trivial_copy `trivial_equality `trivial_ctor `return_by_copy
   b	:size
   e	:size
 

@@ -354,7 +354,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
 }
 
 static void print_for(FILE *out, const struct module *mod, int indent, const struct node *node) {
-  fprintf(out, "for ");
+  fprintf(out, node->as.FOR.is_foreach ? "foreach " : "for ");
   print_pattern(out, mod, node->as.FOR.pattern);
   fprintf(out, " in ");
   const struct node *expr = subs_at_const(subs_at_const(subs_at_const(

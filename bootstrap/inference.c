@@ -1074,15 +1074,14 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
     defincomplete_add_field(mod, s, dinc, node_ident(left), right->typ);
   }
 
-  if (node->as.INIT.is_range) {
-    defincomplete_add_isa(mod, node, dinc, TBI_RANGE);
-  }
-
   error e = defincomplete_catchup(mod, dinc);
   assert(!e);
   set_typ(&node->typ, typ_create_tentative(dinc->typ));
 
-  if (node->as.INIT.is_bounds) {
+  if (node->as.INIT.is_range) {
+    e = unify(mod, node, node->typ, TBI_INDEX_RANGE);
+    assert(!e);
+  } else if (node->as.INIT.is_bounds) {
     e = unify(mod, node, node->typ, TBI_INDEX_BOUNDS);
     assert(!e);
   }
@@ -1630,7 +1629,7 @@ static error try_rewrite_operator_sub(struct module *mod, struct node *node) {
   struct node *self = subs_at(node, 1);
   struct node *arg = subs_at(node, 2);
 
-  if (!(typ_isa(arg->typ, TBI_RANGE) || typ_equal(arg->typ, TBI_INDEX_BOUNDS))
+  if (!(typ_equal(arg->typ, TBI_INDEX_RANGE) || typ_equal(arg->typ, TBI_INDEX_BOUNDS))
       || node_ident(typ_definition_const(fun->typ)) != ID_OPERATOR_AT) {
     return 0;
   }

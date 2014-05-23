@@ -9,7 +9,7 @@ export opaque struct vector t:`copyable =
 
 export inline vector fun from_array c:@(static_array t) = r:this
   r#reserve c.count
-  for i in c.all.iter
+  foreach i in c.all
     r#push c.[i].
 
 export inline vector method count = size

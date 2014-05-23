@@ -138,7 +138,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_ENUM] = "`enum",
   [ID_TBI_UNION] = "`union",
   [ID_TBI_UNION_TRIVIAL_CTOR] = "`union_trivial_ctor",
-  [ID_TBI_RANGE] = "`range",
+  [ID_TBI_INDEX_RANGE] = "index_range",
   [ID_TBI_INDEX_BOUNDS] = "index_bounds",
   [ID_TBI_ITERATOR] = "`iterator",
   [ID_TBI_ENVIRONMENT] = "`environment",
@@ -441,7 +441,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_ENUM = gctx->builtin_typs_by_name[ID_TBI_ENUM];
   TBI_UNION = gctx->builtin_typs_by_name[ID_TBI_UNION];
   TBI_UNION_TRIVIAL_CTOR = gctx->builtin_typs_by_name[ID_TBI_UNION_TRIVIAL_CTOR];
-  TBI_RANGE = gctx->builtin_typs_by_name[ID_TBI_RANGE];
+  TBI_INDEX_RANGE = gctx->builtin_typs_by_name[ID_TBI_INDEX_RANGE];
   TBI_INDEX_BOUNDS = gctx->builtin_typs_by_name[ID_TBI_INDEX_BOUNDS];
   TBI_ITERATOR = gctx->builtin_typs_by_name[ID_TBI_ITERATOR];
   TBI_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ENVIRONMENT];
@@ -1099,8 +1099,10 @@ again:
   return 0;
 }
 
-static error p_for(struct node *node, struct module *mod) {
+static error p_for(struct node *node, struct module *mod,
+                   enum token_type for_foreach) {
   node_set_which(node, FOR);
+  node->as.FOR.is_foreach = for_foreach == Tforeach;
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
@@ -1704,7 +1706,8 @@ static error p_statement(struct node *par, struct module *mod) {
               mod, NULL, tok.t);
     break;
   case Tfor:
-    e = p_for(NEW, mod);
+  case Tforeach:
+    e = p_for(NEW, mod, tok.t);
     break;
   case Twhile:
     e = p_while(NEW, mod);

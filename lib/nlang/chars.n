@@ -76,7 +76,7 @@ export extern static_string method operator_compare other:@this = i32
 
 export static_string method `show.show buf:@#`string_buffer = void
   buf#reserve buf.count + self.count
-  for i in self.all.iter
+  foreach i in self.all
     buf#push (self.get_char i)
 
 example <- '1234'.count == 4
