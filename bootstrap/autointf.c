@@ -590,6 +590,11 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
     true, true, true, true, true, true, true,
   };
 
+  if (node_is_extern(node)) {
+    inferred = (struct inferred){ 0 };
+    goto skip;
+  }
+
   // Any isa at this point has been explicitly declared by the user.
   if (immediate_isa(node, TBI_NON_DEFAULT_CTOR)) {
     inferred.default_ctor = inferred.trivial_ctor = false;
@@ -623,6 +628,7 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
 
   infer(&inferred, node);
 
+skip:
   if (inferred.trivial_ctor || typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
     if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
       if (node->as.DEFTYPE.default_choice != NULL) {
