@@ -76,7 +76,18 @@ struct typ {
 } while (0)
 
 static uint32_t typ_hash(const struct typ **a) {
-  return (*a)->hash;
+  // The 'hash' in a tentative typ is maintained as the typ gets linked to a
+  // new typs. So 'hash' can be used in typ_equal(), etc. But it cannot be
+  // used in a hash table *IF* elements of the table are re-linked while the
+  // table exists. typset can be used in typ_isalist_foreach() with
+  // tentative types when typs are not actively being linked. E.g.
+  // unify_generics() typ_isalist_each(find_instance_of) is fine. So we
+  // cannot assert(!typ_is_tentative(*a)) in general.
+  //
+  // FIXME: this is a difficult condition to respect.
+  assert(typ_hash_ready(*a));
+  const uint32_t h = (*a)->hash;
+  return h;
 }
 
 static int typ_cmp(const struct typ **a, const struct typ **b) {
@@ -371,6 +382,10 @@ static error update_quickisa_isalist_each(struct module *mod,
 }
 
 void typ_create_update_quickisa(struct typ *t) {
+  if (typ_is_tentative(t)) {
+    return;
+  }
+
   if (typset_count(&t->quickisa) > 0) {
     typset_destroy(&t->quickisa);
     quickisa_init(t);
