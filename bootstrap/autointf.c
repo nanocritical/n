@@ -336,7 +336,7 @@ static void gen_show(struct module *mod, struct node *deft,
   gen_show_choices(mod, deft, match, deft);
 }
 
-static void add_inferred_member(struct module *mod,
+static void add_auto_member(struct module *mod,
                                 struct node *deft,
                                 const struct typ *inferred_intf,
                                 const struct node *dintf,
@@ -351,6 +351,12 @@ static void add_inferred_member(struct module *mod,
   }
 
   struct node *m = define_builtin_start(mod, deft, dintf, mi);
+
+  if (deft->which == DEFINCOMPLETE) {
+    assert(deft->as.DEFINCOMPLETE.is_isalist_literal);
+    define_builtin_catchup(mod, m);
+    return;
+  }
 
   if (typ_is_trivial(inferred_intf)) {
     enum builtingen bg = BG__NOT;
@@ -416,7 +422,7 @@ non_bg:;
   define_builtin_catchup(mod, m);
 }
 
-static error add_inferred_isa_eachisalist(struct module *mod,
+static error add_auto_isa_eachisalist(struct module *mod,
                                           struct typ *t,
                                           struct typ *intf,
                                           bool *stop,
@@ -426,13 +432,13 @@ static error add_inferred_isa_eachisalist(struct module *mod,
 
   FOREACH_SUB_CONST(mi, dintf) {
     if (NM(mi->which) & (NM(DEFMETHOD) | NM(DEFFUN))) {
-      add_inferred_member(mod, deft, t, dintf, mi);
+      add_auto_member(mod, deft, t, dintf, mi);
     }
   }
   return 0;
 }
 
-static void add_inferred_isa(struct module *mod, struct node *deft,
+static void add_auto_isa(struct module *mod, struct node *deft,
                              const struct typ *i) {
   if (!typ_isa(deft->typ, i)) {
     struct node *isalist = subs_at(deft, IDX_ISALIST);
@@ -452,7 +458,7 @@ static void add_inferred_isa(struct module *mod, struct node *deft,
   }
 
   if (!(node_is_extern(deft) && !typ_is_trivial(i))) {
-    add_inferred_isa_eachisalist(mod, CONST_CAST(i),
+    add_auto_isa_eachisalist(mod, CONST_CAST(i),
                                  CONST_CAST(i),
                                  NULL, deft);
   }
@@ -460,7 +466,7 @@ static void add_inferred_isa(struct module *mod, struct node *deft,
   const uint32_t filter = (node_is_extern(deft) && !typ_is_trivial(i)) \
                           ? ISALIST_FILTEROUT_NONTRIVIAL_ISALIST : 0;
   typ_isalist_foreach(mod, CONST_CAST(i), filter,
-                      add_inferred_isa_eachisalist, deft);
+                      add_auto_isa_eachisalist, deft);
 }
 
 STEP_NM(step_autointf_enum_union,
@@ -469,13 +475,13 @@ error step_autointf_enum_union(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-    add_inferred_isa(mod, node, TBI_ENUM);
+    add_auto_isa(mod, node, TBI_ENUM);
 
     if (node->as.DEFTYPE.default_choice != NULL) {
-      add_inferred_isa(mod, node, TBI_TRIVIAL_CTOR);
+      add_auto_isa(mod, node, TBI_TRIVIAL_CTOR);
     }
   } else if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
-    add_inferred_isa(mod, node, TBI_UNION);
+    add_auto_isa(mod, node, TBI_UNION);
   }
 
   return 0;
@@ -499,7 +505,7 @@ error step_autointf_detect_default_ctor_dtor(struct module *mod, struct node *no
   struct node *ctor = node_get_member(mod, proxy, ID_CTOR);
   if (ctor != NULL) {
     if (node_fun_max_args_count(ctor) == 0) {
-      add_inferred_isa(mod, node, TBI_DEFAULT_CTOR);
+      add_auto_isa(mod, node, TBI_DEFAULT_CTOR);
     }
   } else {
     // see step_autointf_infer_intfs
@@ -576,7 +582,7 @@ static bool immediate_isa(const struct node *node, const struct typ *i) {
 }
 
 STEP_NM(step_autointf_infer_intfs,
-               NM(DEFTYPE));
+        NM(DEFTYPE));
 error step_autointf_infer_intfs(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
@@ -632,41 +638,58 @@ skip:
   if (inferred.trivial_ctor || typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
     if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
       if (node->as.DEFTYPE.default_choice != NULL) {
-        add_inferred_isa(mod, node, TBI_UNION_TRIVIAL_CTOR);
+        add_auto_isa(mod, node, TBI_UNION_TRIVIAL_CTOR);
       }
     } else {
-      add_inferred_isa(mod, node, TBI_TRIVIAL_CTOR);
+      add_auto_isa(mod, node, TBI_TRIVIAL_CTOR);
     }
   }
   if (inferred.trivial_dtor || typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
-    add_inferred_isa(mod, node, TBI_TRIVIAL_DTOR);
+    add_auto_isa(mod, node, TBI_TRIVIAL_DTOR);
   }
   if (inferred.trivial_copy_but_owned || typ_isa(node->typ, TBI_TRIVIAL_COPY_BUT_OWNED)) {
-    add_inferred_isa(mod, node, TBI_TRIVIAL_COPY_BUT_OWNED);
+    add_auto_isa(mod, node, TBI_TRIVIAL_COPY_BUT_OWNED);
   } else if (inferred.trivial_copy || typ_isa(node->typ, TBI_TRIVIAL_COPY)) {
-    add_inferred_isa(mod, node, TBI_TRIVIAL_COPY);
+    add_auto_isa(mod, node, TBI_TRIVIAL_COPY);
   } else {
     // Only infer `return_by_copy if `trivial_copy.
     inferred.return_by_copy = false;
 
     if (inferred.copyable) {
-      add_inferred_isa(mod, node, TBI_COPYABLE);
+      add_auto_isa(mod, node, TBI_COPYABLE);
     }
   }
   if (inferred.trivial_compare || typ_isa(node->typ, TBI_TRIVIAL_COMPARE)) {
-    add_inferred_isa(mod, node, TBI_TRIVIAL_COMPARE);
+    add_auto_isa(mod, node, TBI_TRIVIAL_COMPARE);
   }
   if (inferred.trivial_order || typ_isa(node->typ, TBI_TRIVIAL_ORDER)) {
-    add_inferred_isa(mod, node, TBI_TRIVIAL_ORDER);
+    add_auto_isa(mod, node, TBI_TRIVIAL_ORDER);
   } else if (inferred.ordered_by_compare || typ_isa(node->typ, TBI_ORDERED_BY_COMPARE)) {
-    add_inferred_isa(mod, node, TBI_ORDERED_BY_COMPARE);
+    add_auto_isa(mod, node, TBI_ORDERED_BY_COMPARE);
   } else if (inferred.trivial_equality || typ_isa(node->typ, TBI_TRIVIAL_EQUALITY)) {
-    add_inferred_isa(mod, node, TBI_TRIVIAL_EQUALITY);
+    add_auto_isa(mod, node, TBI_TRIVIAL_EQUALITY);
   } else if (inferred.equality_by_compare) {
-    add_inferred_isa(mod, node, TBI_EQUALITY_BY_COMPARE);
+    add_auto_isa(mod, node, TBI_EQUALITY_BY_COMPARE);
   }
   if (inferred.return_by_copy) {
-    add_inferred_isa(mod, node, TBI_RETURN_BY_COPY);
+    add_auto_isa(mod, node, TBI_RETURN_BY_COPY);
+  }
+
+  return 0;
+}
+
+STEP_NM(step_autointf_isalist_literal_protos,
+        NM(DEFINCOMPLETE));
+error step_autointf_isalist_literal_protos(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
+  DSTEP(mod, node);
+  if (!node->as.DEFINCOMPLETE.is_isalist_literal) {
+    return 0;
+  }
+
+  const struct node *isalist = subs_at_const(node, IDX_ISALIST);
+  FOREACH_SUB_CONST(isa, isalist) {
+    add_auto_isa(mod, node, isa->typ);
   }
 
   return 0;

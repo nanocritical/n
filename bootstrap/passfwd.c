@@ -415,12 +415,16 @@ static error define_builtin_alias(struct module *mod, struct node *node,
 }
 
 static STEP_NM(step_add_builtin_members,
-               NM(DEFTYPE) | NM(DEFINTF));
+               NM(DEFTYPE) | NM(DEFINTF) | NM(DEFINCOMPLETE));
 static error step_add_builtin_members(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
 
   if (typ_is_pseudo_builtin(node->typ)) {
+    return 0;
+  }
+  if (node->which == DEFINCOMPLETE
+      && !node->as.DEFINCOMPLETE.is_isalist_literal) {
     return 0;
   }
 
@@ -797,6 +801,9 @@ static error passfwd7(struct module *mod, struct node *root,
     UP_STEP(step_autointf_infer_intfs);
     UP_STEP(step_pop_top_state);
     UP_STEP(step_complete_instantiation);
+    UP_STEP(step_autointf_isalist_literal_protos);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
   return 0;
 }

@@ -226,9 +226,7 @@ static error do_scope_lookup_ident_immediate(struct node **result,
                                              const struct scope *scope, ident id,
                                              bool allow_isalist, bool failure_ok) {
   const bool use_isalist = allow_isalist
-    && (scope_node_const(scope)->which == DEFINTF
-        || (scope_node_const(scope)->which == DEFINCOMPLETE
-            && scope_node_const(scope)->as.DEFINCOMPLETE.is_isalist_literal))
+    && scope_node_const(scope)->which == DEFINTF
     && scope_node_const(scope)->typ != NULL;
 
   assert(id != ID__NONE);
@@ -486,55 +484,6 @@ err:
 
   assert(false && "Unreached.");
   return 0;
-}
-
-static error do_scope_lookup_abspath(struct node **result, const struct node *for_error,
-                                     const struct module *mod,
-                                     const char *path, ssize_t len, ssize_t full_len) {
-  ssize_t i;
-  ident id = ID__NONE;
-  for (i = len-1; i >= 0; --i) {
-    if (i == 0) {
-      assert(len > 1);
-      id = idents_add_string(mod->gctx, path, len - i);
-      break;
-    } else if (path[i] == '.') {
-      assert(len - i > 1);
-      id = idents_add_string(mod->gctx, path + i + 1, len - i - 1);
-      break;
-    }
-  }
-  assert(id != ID__NONE);
-
-  error e;
-  if (i == 0) {
-    e = do_scope_lookup_ident_immediate(result, for_error, mod,
-                                        &mod->gctx->modules_root.scope, id,
-                                        false, true);
-  } else {
-    struct node *par = NULL;
-    e = do_scope_lookup_abspath(&par, for_error, mod, path, i, full_len);
-    EXCEPT(e);
-    e = do_scope_lookup_ident_immediate(result, for_error, mod, &par->scope, id,
-                                        len == full_len, true);
-  }
-
-  if (e) {
-    char *escname = scope_name(mod, &for_error->scope);
-    e = mk_except(try_node_module_owner_const(mod, for_error), for_error,
-                  "from scope %s: in global scope, unknown identifier '%s'",
-                  escname, path);
-    free(escname);
-    THROW(e);
-  }
-
-  return 0;
-}
-
-error scope_lookup_abspath(struct node **result, const struct node *for_error,
-                           const struct module *mod, const char *path) {
-  const ssize_t len = strlen(path);
-  return do_scope_lookup_abspath(result, for_error, mod, path, len, len);
 }
 
 struct scope_foreach_state {

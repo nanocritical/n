@@ -37,8 +37,6 @@ error scope_lookup(struct node **result, const struct module *mod,
                    bool failure_ok);
 error scope_lookup_module(struct node **result, const struct module *mod,
                           const struct node *id, bool failure_ok);
-error scope_lookup_abspath(struct node **result, const struct node *for_error,
-                           const struct module *mod, const char *path);
 char *scope_name(const struct module *mod, const struct scope *scope);
 char *scope_definitions_name_list(const struct module *mod, const struct scope *scope);
 
