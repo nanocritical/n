@@ -451,6 +451,7 @@ struct node {
   struct node *parent;
   struct node *next;
   struct node *prev;
+  size_t subs_count;
   struct node *subs_first;
   struct node *subs_last;
 
@@ -542,27 +543,11 @@ void node_invariant(const struct node *node);
        s != NULL; s = NODE_NEXTTH(s, every))
 
 static inline size_t subs_count(const struct node *node) {
-  size_t n = 0;
-  FOREACH_SUB_CONST(s, node) {
-    n += 1;
-  }
-  return n;
+  return node->subs_count;
 }
 
-// Prefer whenever possible.
 static inline bool subs_count_atleast(const struct node *node, size_t min) {
-  if (min == 0) {
-    return true;
-  }
-
-  size_t n = 0;
-  FOREACH_SUB_CONST(s, node) {
-    n += 1;
-    if (n >= min) {
-      return true;
-    }
-  }
-  return false;
+  return node->subs_count >= min;
 }
 
 static inline const struct node *subs_first_const(const struct node *node) {
@@ -640,6 +625,8 @@ static inline void node_subs_remove(struct node *node, struct node *sub) {
     next->prev = prev;
   }
 
+  node->subs_count -= 1;
+
   sub->parent = NULL;
   sub->prev = NULL;
   sub->next = NULL;
@@ -652,12 +639,14 @@ static inline void node_subs_append(struct node *node, struct node *sub) {
   if (last == NULL) {
     node->subs_first = sub;
     node->subs_last = sub;
+    node->subs_count += 1;
     return;
   }
   last->next = sub;
   sub->prev = last;
   sub->next = NULL;
   node->subs_last = sub;
+  node->subs_count += 1;
 }
 
 static inline void node_subs_prepend(struct node *node, struct node *sub) {
@@ -667,12 +656,14 @@ static inline void node_subs_prepend(struct node *node, struct node *sub) {
   if (first == NULL) {
     node->subs_first = sub;
     node->subs_last = sub;
+    node->subs_count += 1;
     return;
   }
   sub->next = first;
   sub->prev = NULL;
   first->prev = sub;
   node->subs_first = sub;
+  node->subs_count += 1;
 }
 
 static inline void node_subs_insert_before(struct node *node, struct node *where,
@@ -683,6 +674,7 @@ static inline void node_subs_insert_before(struct node *node, struct node *where
     assert(node->subs_first == NULL && node->subs_last == NULL);
     node->subs_first = sub;
     node->subs_last = sub;
+    node->subs_count += 1;
     return;
   }
 
@@ -697,6 +689,7 @@ static inline void node_subs_insert_before(struct node *node, struct node *where
 
   sub->next = where;
   where->prev = sub;
+  node->subs_count += 1;
 }
 
 static inline void node_subs_insert_after(struct node *node, struct node *where,
@@ -707,6 +700,7 @@ static inline void node_subs_insert_after(struct node *node, struct node *where,
     assert(node->subs_first == NULL && node->subs_last == NULL);
     node->subs_first = sub;
     node->subs_last = sub;
+    node->subs_count += 1;
     return;
   }
   assert(where->parent == node);
@@ -720,6 +714,7 @@ static inline void node_subs_insert_after(struct node *node, struct node *where,
 
   sub->prev = where;
   where->next = sub;
+  node->subs_count += 1;
 }
 
 static inline void node_subs_replace(struct node *node, struct node *where,

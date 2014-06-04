@@ -791,6 +791,7 @@ void node_deepcopy(struct module *mod, struct node *dst,
   dst->parent = par;
   dst->prev = prev;
   dst->next = next;
+  dst->subs_count = 0;
   dst->subs_first = NULL;
   dst->subs_last = NULL;
   dst->typ = NULL;
