@@ -1233,15 +1233,10 @@ bool node_is_at_top(const struct node *node);
 bool node_is_name_of_globalenv(const struct node *node);
 
 static inline bool node_can_have_genargs(const struct node *node) {
-  switch (node->which) {
-  case DEFFUN:
-  case DEFMETHOD:
-  case DEFTYPE:
-  case DEFINTF:
-    return true;
-  default:
-    return false;
-  }
+  return NM(node->which) & (NM(DEFFUN)
+                            | NM(DEFMETHOD)
+                            | NM(DEFTYPE)
+                            | NM(DEFINTF));
 }
 
 struct node *node_new_subnode(struct module *mod, struct node *node);
