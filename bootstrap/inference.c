@@ -2428,6 +2428,14 @@ static error finalize_generic_instantiation(size_t *remaining,
   EXCEPT(e);
 
   typ_declare_final__privileged(i->typ);
+  if (NM(i->which) & STEP_NM_DEFS_NO_FUNS) {
+    FOREACH_SUB(m, i) {
+      if (NM(m->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+        typ_declare_final__privileged(m->typ);
+      }
+    }
+  }
+
   typ_link_to_existing_final(i->typ, t);
   record_topdep(mod, i->typ);
 

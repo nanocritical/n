@@ -154,8 +154,10 @@ void set_typ(struct typ **loc, struct typ *t) {
 }
 
 void typ_add_tentative_bit__privileged(struct typ **loc) {
-  (*loc)->flags |= TYPF_TENTATIVE;
-  add_backlink(*loc, loc);
+  if (!typ_is_tentative(*loc)) {
+    (*loc)->flags |= TYPF_TENTATIVE;
+    add_backlink(*loc, loc);
+  }
 }
 
 void typ_declare_final__privileged(struct typ *t) {
@@ -489,10 +491,41 @@ static void link_generic_arg_update(struct module *trigger_mod,
   // or are DEFINCOMPLETE).
 }
 
+// It is necessary to link 'src' members that introduce new types (DEFFUN and
+// DEFMETHOD) to their counterparts in 'dst'. This requirement will go away
+// when we don't introduce new types for each new method or function.
+static void link_members(struct typ *dst, struct typ *src) {
+  struct node *dsrc = typ_definition(src);
+  if (!(NM(dsrc->which) & NM(DEFTYPE))) {
+    return;
+  }
+
+  struct node *ddst = typ_definition(dst);
+  FOREACH_SUB(msrc, dsrc) {
+    if (NM(msrc->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+      struct node *mdst = node_get_member(ddst, node_ident(msrc));
+      if (mdst != NULL) {
+        if (typ_is_generic_functor(msrc->typ)) {
+          // FIXME: not linking functors. We do not have access to
+          // 'trigger_mod' here. We're not fixing it because this is all
+          // temporary as link_members() will not be needed forever.
+          // Just don't use this code path...
+
+          // noop: Unsupported
+        } else {
+          typ_link_tentative(mdst->typ, msrc->typ);
+        }
+      }
+    }
+  }
+}
+
 static void link_to_final(struct module *mod, struct typ *dst, struct typ *src) {
   FOREACH_BACKLINK(idx, back, src, set_typ(back, dst));
 
   FOREACH_USER(idx, user, src, link_generic_arg_update(mod, user, dst, src));
+
+  link_members(dst, src);
 
   // Noone should be referring to 'src' anymore; let's make sure.
   memset(src, 0, sizeof(*src));
@@ -526,6 +559,8 @@ static void link_to_tentative(struct module *mod, struct typ *dst, struct typ *s
   FOREACH_USER(idx, user, src, link_generic_arg_update(mod, user, dst, src));
 
   remove_as_user_of_generic_args(src);
+
+  link_members(dst, src);
 
   clear_backlinks(src);
   clear_users(src);
