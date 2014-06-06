@@ -66,7 +66,7 @@ error step_complete_instantiation(struct module *mod, struct node *node, void *u
 #define DSTEP(mod, node)
 #endif
 
-#define PASS(downs, ups) \
+#define PASS(downs, ups, finallys) \
   size_t *stackp = &mod->state->stackp; \
   const size_t saved_stackp = *stackp; \
   struct stackel *stack = mod->state->stack + *stackp; \
@@ -112,6 +112,10 @@ skip_descend: \
   \
   ups; \
   \
+finalize: \
+  finallys; \
+  \
+  goto ascend; /* force label use if no finally step */ \
 ascend: \
   if (*stackp == saved_stackp) { \
     goto done; \
@@ -122,7 +126,7 @@ ascend: \
   stack -= 1; \
   goto next; \
   \
-done:
+done: \
 
 #define DOWN_STEP(step) do { \
   mod->state->step_state->stepping += 1; \
@@ -135,13 +139,34 @@ done:
     EXCEPT(e); \
     \
     if (stop) { \
-      goto ascend; \
+      goto finalize; \
     } \
   } \
   \
 } while (0)
 
 #define UP_STEP(step) do { \
+  mod->state->step_state->stepping += 1; \
+  if (*stackp == saved_stackp \
+      && mod->state->step_state->stepping > shallow_last_up) { \
+    goto finalize; \
+  } \
+  \
+  if (NM(node->which) & step##_filter) { \
+    bool stop = false; \
+    unused__ static const char *current_step = STRINGIFY(step); \
+    error e = step(mod, node, user, &stop); \
+    INVARIANT_NODE(node); \
+    EXCEPT(e); \
+    \
+    if (stop) { \
+      goto finalize; \
+    } \
+  } \
+  \
+} while (0)
+
+#define FINALLY_STEP(step) do { \
   mod->state->step_state->stepping += 1; \
   if (*stackp == saved_stackp \
       && mod->state->step_state->stepping > shallow_last_up) { \
@@ -156,7 +181,8 @@ done:
     EXCEPT(e); \
     \
     if (stop) { \
-      goto ascend; \
+      assert(false && "finally steps cannot set stop"); \
+      goto done; \
     } \
   } \
   \
