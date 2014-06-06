@@ -1178,6 +1178,13 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
     }
   }
 
+  if (typ_is_reference(a) && typ_definition_const(a)->which != DEFINTF) {
+    const struct typ *arg = typ_generic_arg_const(a, 0);
+    if (typ_definition_const(arg)->which == DEFINTF) {
+      return typ_isa(arg, intf);
+    }
+  }
+
   return false;
 }
 
