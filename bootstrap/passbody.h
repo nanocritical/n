@@ -10,20 +10,6 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
 extern const uint64_t step_type_destruct_mark_filter;
 error step_type_destruct_mark(struct module *mod, struct node *node, void *user, bool *stop);
 
-extern const uint64_t step_push_fun_state_filter;
-error step_push_fun_state(struct module *mod, struct node *node,
-                          void *user, bool *stop);
-extern const uint64_t step_pop_fun_state_filter;
-error step_pop_fun_state(struct module *mod, struct node *node,
-                         void *user, bool *stop);
-
-extern const uint64_t step_push_block_state_filter;
-error step_push_block_state(struct module *mod, struct node *node,
-                            void *user, bool *stop);
-extern const uint64_t step_pop_block_state_filter;
-error step_pop_block_state(struct module *mod, struct node *node,
-                           void *user, bool *stop);
-
 extern const uint64_t step_record_current_statement_filter;
 error step_record_current_statement(struct module *mod, struct node *node,
                                     void *user, bool *stop);

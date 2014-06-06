@@ -24,9 +24,7 @@ fun null_arg_value p:?@?@i32 = void
 fun bar p:?@?@i32 = void
   noop
 
-alias `our = {`copyable `trivial_ctor}
-
-struct holder t:`our =
+struct holder t:{`copyable `trivial_ctor} =
   x	:t
 
 holder fun create x:t = this
@@ -89,11 +87,10 @@ export fun main = i32
   assert <- 1 + 2 == p3
   assert <- n + 2 == p3
 
-  -- FIXME: Not yet supported
-  --let v = {1 2}:(vector i32)
-  --let i = v.all.iter
-  --for x in @!i
-  --  say @x
+  let v = {1 2}:(vector i32)
+  let r = @v.all
+  foreach x in r
+    say x
 
   --let e = @en.A
   --match e

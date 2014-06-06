@@ -1,6 +1,7 @@
 #include "phi.h"
 
 #include "passes.h"
+#include "parser.h"
 #include "types.h"
 
 struct phi_tracker_state *get_phi_tracker(struct node *def) {

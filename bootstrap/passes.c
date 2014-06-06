@@ -1,26 +1,37 @@
 #include "passes.h"
 
-#include <stdarg.h>
 #include "types.h"
 #include "mock.h"
+#include "topdeps.h"
 
 #include "passzero.h"
 #include "passfwd.h"
 #include "passbody.h"
+#include "passsem.h"
+
+#include <stdarg.h>
 
 a_pass passes(size_t p) {
-  static __thread a_pass v[PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT + 1]
+  static __thread a_pass v[PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT
+    + PASSSEMFWD_COUNT + PASSSEMBODY_COUNT + 1]
     = { 0 };
 
   if (v[0] == NULL) {
-    for (size_t n = 0; n < PASSZERO_COUNT; ++n) {
-      v[n] = passzero[n];
+    size_t p = 0;
+    for (size_t n = 0; n < PASSZERO_COUNT; ++n, ++p) {
+      v[p] = passzero[n];
     }
-    for (size_t n = 0; n < PASSFWD_COUNT; ++n) {
-      v[PASSZERO_COUNT + n] = passfwd[n];
+    for (size_t n = 0; n < PASSFWD_COUNT; ++n, ++p) {
+      v[p] = passfwd[n];
     }
-    for (size_t n = 0; n < PASSBODY_COUNT; ++n) {
-      v[PASSZERO_COUNT + PASSFWD_COUNT + n] = passbody[n];
+    for (size_t n = 0; n < PASSBODY_COUNT; ++n, ++p) {
+      v[p] = passbody[n];
+    }
+    for (size_t n = 0; n < PASSSEMFWD_COUNT; ++n, ++p) {
+      v[p] = passsemfwd[n];
+    }
+    for (size_t n = 0; n < PASSSEMBODY_COUNT; ++n, ++p) {
+      v[p] = passsembody[n];
     }
   }
 
@@ -30,10 +41,10 @@ a_pass passes(size_t p) {
 
 error advance(struct module *mod) {
   mod->stage->state->passing_in_mod = mod;
-  const size_t p = mod->stage->state->passing;
+  const ssize_t p = mod->stage->state->passing;
   a_pass pa = passes(p);
 
-  mod->state->furthest_passing = max(size_t, mod->state->furthest_passing, p);
+  mod->state->furthest_passing = max(ssize_t, mod->state->furthest_passing, p);
 
   int module_depth = 0;
   error e = pa(mod, NULL, &module_depth, -1);
@@ -42,11 +53,15 @@ error advance(struct module *mod) {
   return 0;
 }
 
-static size_t last_pass(void) {
+static ssize_t first_fwd_pass(void) {
+  return PASSZERO_COUNT;
+}
+
+static ssize_t last_body_pass(void) {
   return PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT - 1;
 }
 
-static size_t last_tentative_instance_pass(void) {
+static ssize_t last_pass_with_tentative_body(void) {
   return PASSZERO_COUNT + PASSFWD_COUNT - 1;
 }
 
@@ -70,6 +85,25 @@ static void unmark_excepted(const struct node **except) {
   }
 }
 
+static struct node *try_find_triggering_top(struct module *mod) {
+  struct stage_state *st = mod->stage->state;
+  struct module *m = st->passing_in_mod;
+
+  while (st->prev != NULL
+          && (m->state->top_state == NULL
+              || (m->state->top_state->top->typ != NULL
+                  && typ_is_tentative(m->state->top_state->top->typ)))) {
+    st = st->prev;
+    m = st->passing_in_mod;
+  }
+
+  if (m->state->top_state == NULL) {
+    return NULL;
+  } else {
+    return m->state->top_state->top;
+  }
+}
+
 // Rules for generated nodes:
 // - No constraints when modifying anything below the current node (in
 // node->subs, etc.);
@@ -82,16 +116,33 @@ error catchup(struct module *mod,
               enum catchup_for how) {
   mark_excepted(except);
 
-  ssize_t from = 0, goal;
-  if (how == CATCHUP_NEW_INSTANCE) {
-    goal = mod->done ? last_pass() : mod->stage->state->passing;
-  } else if (how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
-    goal = min(size_t, mod->stage->state->passing, last_tentative_instance_pass());
+  struct node *triggering = try_find_triggering_top(mod);
+
+  ssize_t goal;
+  if (how == CATCHUP_NEW_INSTANCE || how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
+    if (mod->done) {
+      if (triggering == NULL) {
+        goal = last_body_pass();
+      } else {
+        goal = mod->stage->state->passing;
+      }
+    } else {
+      if (triggering == NULL) {
+        goal = mod->state->furthest_passing;
+      } else {
+        goal = mod->stage->state->passing;
+      }
+    }
   } else if (how == CATCHUP_BEFORE_CURRENT_SAME_TOP) {
     assert(mod->stage->state->passing == 0 && "Unsupported");
-    goal = mod->state->furthest_passing;
+
+    if (mod->state->top_state == NULL) {
+      goal = mod->state->furthest_passing;
+    } else {
+      goal = node_toplevel_const(mod->state->top_state->top)->passing;
+    }
   } else if (how == CATCHUP_AFTER_CURRENT) {
-    goal = max(size_t, mod->stage->state->passing,
+    goal = max(ssize_t, mod->stage->state->passing,
                mod->state->furthest_passing) - 1;
   } else if (!mod->state->step_state->upward) {
     goal = mod->stage->state->passing - 1;
@@ -104,10 +155,13 @@ error catchup(struct module *mod,
   }
 
   const bool was_upward = mod->state->step_state->upward;
-  struct node *saved_current_statement = NULL;
-  if (mod->state->fun_state != NULL
-      && mod->state->fun_state->block_state != NULL) {
-    saved_current_statement = mod->state->fun_state->block_state->current_statement;
+
+  bool need_new_block_state = mod->state->fun_state != NULL
+      && mod->state->fun_state->block_state != NULL;
+  if (need_new_block_state) {
+    PUSH_STATE(mod->state->fun_state->block_state);
+    mod->state->fun_state->block_state->current_statement
+      = mod->state->fun_state->block_state->prev->current_statement;
   }
 
   const struct node *par = parent(node);
@@ -129,21 +183,25 @@ error catchup(struct module *mod,
     mod->state->tentatively = true;
   }
 
-  for (ssize_t p = from; p <= goal; ++p) {
+  for (ssize_t p = 0; p <= goal; ++p) {
     a_pass pa = passes(p);
     mod->stage->state->passing = p;
-    mod->state->furthest_passing = max(size_t, mod->state->furthest_passing, p);
+    mod->state->furthest_passing = max(ssize_t, mod->state->furthest_passing, p);
 
     int module_depth = 0;
     error e = pa(mod, node, &module_depth, -1);
     EXCEPT(e);
+
+    if (p == first_fwd_pass() && how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
+      typ_add_tentative_bit__privileged(&node->typ);
+    }
   }
 
   if (was_upward && how == CATCHUP_REWRITING_CURRENT) {
     // Catch up to, and including, the current step.
     a_pass pa = passes(goal + 1);
     mod->stage->state->passing = goal + 1;
-    mod->state->furthest_passing = max(size_t, mod->state->furthest_passing, goal + 1);
+    mod->state->furthest_passing = max(ssize_t, mod->state->furthest_passing, goal + 1);
 
     int module_depth = 0;
     error e = pa(mod, node, &module_depth, mod->state->step_state->prev->stepping);
@@ -157,22 +215,19 @@ error catchup(struct module *mod,
   }
   POP_STATE(mod->stage->state);
 
-  if (saved_current_statement != NULL) {
-    mod->state->fun_state->block_state->current_statement = saved_current_statement;
+  if (need_new_block_state) {
+    POP_STATE(mod->state->fun_state->block_state);
   }
 
   unmark_excepted(except);
   return 0;
 }
 
-void record_tentative_instantiation(struct module *mod, struct node *i) {
-  struct module *m = mod;
-  while (m->state->top_state == NULL) {
-    m = m->stage->state->prev->passing_in_mod;
-  }
-
-  struct toplevel *toplevel = node_toplevel(m->state->top_state->top);
-  vecnode_push(&toplevel->tentative_instantiations, i);
+void record_triggered_instantiation(struct module *instantiating_mod,
+                                    struct module *gendef_mod,
+                                    struct node *i) {
+  struct toplevel *toplevel = node_toplevel(try_find_triggering_top(instantiating_mod));
+  vecnode_push(&toplevel->triggered_instantiations, i);
 }
 
 error catchup_instantiation(struct module *instantiating_mod,
@@ -182,15 +237,11 @@ error catchup_instantiation(struct module *instantiating_mod,
   enum catchup_for how = CATCHUP_NEW_INSTANCE;
   if (tentative) {
     how = CATCHUP_TENTATIVE_NEW_INSTANCE;
-    record_tentative_instantiation(instantiating_mod, instance);
   }
+  record_triggered_instantiation(instantiating_mod, gendef_mod, instance);
 
   error e = catchup(gendef_mod, NULL, instance, how);
   EXCEPT(e);
-
-  if (tentative) {
-    typ_add_tentative_bit__privileged(&instance->typ);
-  }
 
   return 0;
 }
@@ -248,64 +299,30 @@ error step_stop_funblock(struct module *mod, struct node *node,
   return 0;
 }
 
-STEP_NM(step_push_top_state, STEP_NM_HAS_TOPLEVEL);
-error step_push_top_state(struct module *mod, struct node *node,
-                          void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (node->which == LET
-      && !(node_is_at_top(node) || node_is_at_top(parent_const(node)))) {
-    return 0;
-  }
-
-  PUSH_STATE(mod->state->top_state);
-  mod->state->top_state->top = node;
-
-  const struct toplevel *toplevel = node_toplevel_const(node);
-  mod->state->top_state->topdep_mask
-    = toplevel->flags & (TOP_IS_EXPORT | TOP_IS_INLINE);
-
-  return 0;
-}
-
-STEP_NM(step_pop_top_state, STEP_NM_HAS_TOPLEVEL);
-error step_pop_top_state(struct module *mod, struct node *node,
-                         void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (node->which == LET
-      && !(node_is_at_top(node) || node_is_at_top(parent_const(node)))) {
-    return 0;
-  }
-
-  POP_STATE(mod->state->top_state);
-  return 0;
-}
-
-static error do_complete_instantiation(struct module *mod, struct node *node) {
-  const size_t goal = mod->stage->state->passing;
-
+static error do_do_complete_instantiation(struct module *mod, struct node *node,
+                                          ssize_t goal) {
   PUSH_STATE(mod->stage->state);
   PUSH_STATE(mod->state->step_state);
 
-  const size_t saved_furthest_passing = mod->state->furthest_passing;
+  mod->stage->state->passing_in_mod = mod;
+  const ssize_t saved_furthest_passing = mod->state->furthest_passing;
 
   struct toplevel *toplevel = node_toplevel(node);
-  for (ssize_t p = toplevel->yet_to_pass; p <= goal; ++p) {
-    a_pass pa = passes(p);
+
+  for (ssize_t p = toplevel->passed; p <= goal; ++p) {
     mod->stage->state->passing = p;
     if (mod->state->top_state != NULL) {
       mod->state->furthest_passing = mod->stage->state->passing;
     }
 
+    a_pass pa = passes(p);
+
     int module_depth = 0;
     error e = pa(mod, node, &module_depth, -1);
     EXCEPT(e);
-
-    toplevel->yet_to_pass = p + 1;
   }
 
-  mod->state->furthest_passing = max(size_t, saved_furthest_passing,
+  mod->state->furthest_passing = max(ssize_t, saved_furthest_passing,
                                      mod->state->furthest_passing);
 
   POP_STATE(mod->state->step_state);
@@ -314,38 +331,182 @@ static error do_complete_instantiation(struct module *mod, struct node *node) {
   return 0;
 }
 
-STEP_NM(step_complete_instantiation,
-        STEP_NM_HAS_TOPLEVEL);
-error step_complete_instantiation(struct module *mod, struct node *node,
-                                  void *user, bool *stop) {
-  DSTEP(mod, node);
+static bool is_tentative_function(struct node *node) {
+  switch (node->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+  case EXAMPLE:
+    return typ_is_tentative(node->typ)
+      || (!node_is_at_top(node) && typ_is_tentative(parent(node)->typ));
+  default:
+    return false;
+  }
+}
+
+static bool linked_to_something_else(struct node *node) {
+  return
+    (NM(node->which) & STEP_NM_DEFS)
+    && node->typ != NULL
+    && typ_hash_ready(node->typ) // i.e. we're far along enough in passfwd
+    && typ_definition_const(node->typ) != node;
+}
+
+static bool wont_go_further(struct node *node, ssize_t goal) {
+  return (goal > last_body_pass() && node->which == DEFINCOMPLETE
+          && !node->as.DEFINCOMPLETE.is_isalist_literal)
+    || (goal > last_pass_with_tentative_body() && is_tentative_function(node))
+    || linked_to_something_else(node);
+}
+
+static error do_complete_instantiation(struct module *mod, struct node *node) {
+  const ssize_t goal = mod->stage->state->passing;
 
   struct toplevel *toplevel = node_toplevel(node);
-  if (toplevel->yet_to_pass > mod->stage->state->passing) {
-    return 0;
-  }
 
-  if (toplevel->generic == NULL) {
-    return 0;
-  }
+  if (node_is_at_top(node)) {
+    FOREACH_SUB(s, node) {
+      if (NM(s->which) & STEP_NM_HAS_TOPLEVEL) {
+        if (wont_go_further(s, goal)) {
+          continue;
+        }
 
-  for (size_t n = 1, count = vecnode_count(&toplevel->generic->instances); n < count; ++n) {
-    struct node *i = *vecnode_get(&toplevel->generic->instances, n);
-    if (typ_is_tentative(i->typ)
-        // Was linked to something else.
-        || typ_definition_const(i->typ) != i) {
-      continue;
-    }
-
-    error e = do_complete_instantiation(mod, i);
-    if (e) {
-      e = mk_except_type(mod, node_toplevel_const(i)->generic->for_error,
-                         "while instantiating generic here");
-      THROW(e);
+        const ssize_t p = node_toplevel_const(s)->passed;
+        if (p + 1 == toplevel->passed) {
+          error e = do_do_complete_instantiation(mod, s, p + 1);
+          EXCEPT(e);
+        } else {
+          assert(p == toplevel->passed);
+        }
+      }
     }
   }
 
-  toplevel->yet_to_pass = mod->stage->state->passing + 1;
+  error e = do_do_complete_instantiation(mod, node, goal);
+  EXCEPT(e);
+  return 0;
+}
+
+static error advance_topdeps_each(struct module *mod, struct node *node,
+                                  struct typ *t, uint32_t topdep_mask, void *user) {
+  const ssize_t goal = *(ssize_t *) user;
+
+  struct node *d = typ_definition(t);
+  if (wont_go_further(d, goal)) {
+    return 0;
+  }
+
+  if (!node_is_at_top(d)) {
+    error e = advance_topdeps_each(mod, node, parent(d)->typ, 0, user);
+    EXCEPT(e);
+  }
+
+  if (node_toplevel(d)->passing >= goal) {
+    return 0;
+  }
+
+  error e = do_complete_instantiation(node_module_owner(d), d);
+  if (e) {
+    e = mk_except_type(mod, node_toplevel_const(d)->generic->for_error,
+                       "while instantiating generic here");
+    THROW(e);
+  }
+
+  return 0;
+}
+
+#if 0
+static struct vecnode debug_tops;
+
+unused__
+static void debug_print_tops(struct module *mod) {
+  for (ssize_t n = vecnode_count(&debug_tops) - 1; n >= 0; --n) {
+    const struct node *top = *vecnode_get(&debug_tops, n);
+    fprintf(stderr, "%s @%p\n", typ_pretty_name(mod, top->typ), top->typ);
+  }
+}
+#endif
+
+STEP_NM(step_push_state,
+        STEP_NM_HAS_TOPLEVEL | NM(BLOCK));
+error step_push_state(struct module *mod, struct node *node,
+                      void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node->which == BLOCK) {
+    PUSH_STATE(mod->state->fun_state->block_state);
+
+    if (mod->state->fun_state->block_state->prev != NULL) {
+      mod->state->fun_state->block_state->current_statement
+        = mod->state->fun_state->block_state->prev->current_statement;
+    } else {
+      mod->state->fun_state->block_state->current_statement = NULL;
+    }
+    return 0;
+  }
+
+  ssize_t goal = mod->stage->state->passing;
+  struct toplevel *toplevel = node_toplevel(node);
+
+  if (node->which == LET
+      && !node_is_at_top(node)
+      && !node_is_at_top(parent_const(node))) {
+    toplevel->passing = goal;
+    return 0;
+  }
+
+//  vecnode_push(&debug_tops, node);
+  PUSH_STATE(mod->state->top_state);
+  mod->state->top_state->top = node;
+
+  if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
+    PUSH_STATE(mod->state->fun_state);
+  }
+
+  if (wont_go_further(node, goal)) {
+    *stop = true;
+    return 0;
+  }
+
+  if (toplevel->passing >= goal) {
+    *stop = true;
+    return 0;
+  }
+
+  assert(node->which == IMPORT || goal == toplevel->passed + 1);
+  toplevel->passing = goal;
+
+  error e = topdeps_foreach(mod, node, advance_topdeps_each, &goal);
+  EXCEPT(e);
+
+  return 0;
+}
+
+STEP_NM(step_pop_state,
+        STEP_NM_HAS_TOPLEVEL | NM(BLOCK));
+error step_pop_state(struct module *mod, struct node *node,
+                     void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node->which == BLOCK) {
+    POP_STATE(mod->state->fun_state->block_state);
+    return 0;
+  }
+
+  struct toplevel *toplevel = node_toplevel(node);
+  toplevel->passed = toplevel->passing;
+
+  if (node->which == LET
+      && !node_is_at_top(node)
+      && !node_is_at_top(parent_const(node))) {
+    return 0;
+  }
+
+  if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
+    POP_STATE(mod->state->fun_state);
+  }
+
+  POP_STATE(mod->state->top_state);
+//  assert(node == vecnode_pop(&debug_tops));
 
   return 0;
 }
@@ -374,6 +535,7 @@ static error passtest(struct module *mod, struct node *root,
     DOWN_STEP(step_test_down);
     ,
     UP_STEP(step_test_up);
+    ,
     );
   return 0;
 }
@@ -417,6 +579,7 @@ static error passtest_stop_deftype(struct module *mod, struct node *root,
     DOWN_STEP(step_test_stop_deftype_down);
     ,
     UP_STEP(step_test_stop_deftype_up);
+    ,
     );
   return 0;
 }

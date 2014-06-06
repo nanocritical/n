@@ -3,6 +3,7 @@
 #include "types.h"
 #include "scope.h"
 #include "passes.h"
+#include "parser.h"
 
 static void pass_import_mark(struct module *mod, struct node *mark) {
   // Special self-referencing typ; see type_inference_bin_accessor().

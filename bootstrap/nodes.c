@@ -3,6 +3,7 @@
 #include "parser.h"
 #include "passes.h"
 #include "types.h"
+#include "topdeps.h"
 
 #include <stdarg.h>
 
@@ -188,7 +189,7 @@ struct module *node_module_owner(struct node *node) {
 }
 
 const struct module *node_module_owner_const(const struct node *node) {
-  struct node *n = do_node_module_owner((struct node *)node);
+  struct node *n = do_node_module_owner(CONST_CAST(node));
   assert(n != NULL);
   assert(n->which == MODULE);
   return n->as.MODULE.mod;
@@ -196,7 +197,7 @@ const struct module *node_module_owner_const(const struct node *node) {
 
 const struct module *try_node_module_owner_const(const struct module *mod,
                                                  const struct node *node) {
-  struct node *n = do_node_module_owner((struct node *)node);
+  struct node *n = do_node_module_owner(CONST_CAST(node));
   if (n == NULL) {
     return mod;
   } else {
@@ -598,7 +599,7 @@ bool node_has_tail_block(const struct node *node) {
 }
 
 bool node_is_fun(const struct node *node) {
-  return node->which == DEFFUN || node->which == DEFMETHOD;
+  return node->which == DEFFUN || node->which == DEFMETHOD || node->which == EXAMPLE;
 }
 
 size_t node_fun_all_args_count(const struct node *def) {
@@ -611,6 +612,8 @@ size_t node_fun_min_args_count(const struct node *def) {
     return def->as.DEFFUN.min_args;
   case DEFMETHOD:
     return def->as.DEFMETHOD.min_args;
+  case EXAMPLE:
+    return 0;
   default:
     assert(false);
     return -1;
@@ -623,6 +626,8 @@ size_t node_fun_max_args_count(const struct node *def) {
     return def->as.DEFFUN.max_args;
   case DEFMETHOD:
     return def->as.DEFMETHOD.max_args;
+  case EXAMPLE:
+    return 0;
   default:
     assert(false);
     return -1;
@@ -635,6 +640,8 @@ ssize_t node_fun_first_vararg(const struct node *def) {
     return def->as.DEFFUN.first_vararg;
   case DEFMETHOD:
     return def->as.DEFMETHOD.first_vararg;
+  case EXAMPLE:
+    return 0;
   default:
     assert(false);
     return -1;
@@ -642,13 +649,13 @@ ssize_t node_fun_first_vararg(const struct node *def) {
 }
 
 const struct node *node_fun_retval_const(const struct node *def) {
-  assert(def->which == DEFFUN || def->which == DEFMETHOD);
+  assert(def->which == DEFFUN || def->which == DEFMETHOD || def->which == EXAMPLE);
   const struct node *funargs = subs_at_const(def, IDX_FUNARGS);
   return subs_last_const(funargs);
 }
 
 struct node *node_fun_retval(struct node *def) {
-  return (struct node *) node_fun_retval_const(def);
+  return CONST_CAST(node_fun_retval_const(def));
 }
 
 struct node *node_get_member(struct node *node, ident id) {
@@ -696,7 +703,7 @@ struct node *defincomplete_create(struct module *mod, const struct node *trigger
 
   struct node *dinc = node_new_subnode(mod, mod->body);
 
-  record_tentative_instantiation(mod, dinc);
+  record_triggered_instantiation(mod, mod, dinc);
   dinc->codeloc = trigger->codeloc;
   node_set_which(dinc, DEFINCOMPLETE);
   struct node *dinc_name = mk_node(mod, dinc, IDENT);
@@ -728,6 +735,7 @@ void defincomplete_add_field(struct module *mod, const struct node *for_error,
 
 void defincomplete_add_isa(struct module *mod, const struct node *for_error,
                            struct node *dinc, struct typ *tisa) {
+  assert(!typ_is_tentative(tisa));
   struct node *isalist = subs_at(dinc, IDX_ISALIST);
   struct node *isa = mk_node(mod, isalist, ISA);
   isa->as.ISA.is_export = true;
@@ -918,23 +926,6 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
   }
 
   return r;
-}
-
-static int print_topdeps_foreach(const struct typ **t, uint32_t *value, void *user) {
-  const struct module *mod = user;
-  fprintf(stderr, "\t%04x %s\n", *value, typ_pretty_name(mod, *t));
-  return 0;
-}
-
-void debug_print_topdeps(const struct module *mod, const struct node *node) {
-  const struct toplevel *toplevel = node_toplevel_const(node);
-  struct typset *topdeps = toplevel->topdeps;
-  if (topdeps == NULL) {
-    return;
-  }
-
-  fprintf(stderr, "%s\n", scope_name(mod, &node->scope));
-  typset_foreach(topdeps, print_topdeps_foreach, (void *)mod);
 }
 
 int snprint_codeloc(char *s, size_t len,

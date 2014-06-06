@@ -3,59 +3,14 @@
 #include "table.h"
 #include "types.h"
 #include "instantiate.h"
+#include "parser.h"
 #include "phi.h"
 #include "inference.h"
 #include "constraints.h"
+#include "topdeps.h"
 
 #include "passzero.h"
 #include "passfwd.h"
-
-STEP_NM(step_push_fun_state,
-        NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE));
-error step_push_fun_state(struct module *mod, struct node *node,
-                          void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  PUSH_STATE(mod->state->fun_state);
-
-  return 0;
-}
-
-STEP_NM(step_pop_fun_state,
-        NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE));
-error step_pop_fun_state(struct module *mod, struct node *node,
-                         void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  POP_STATE(mod->state->fun_state);
-
-  return 0;
-
-}
-
-STEP_NM(step_push_block_state,
-        NM(BLOCK));
-error step_push_block_state(struct module *mod, struct node *node,
-                            void *user, bool *stop) {
-  DSTEP(mod, node);
-  PUSH_STATE(mod->state->fun_state->block_state);
-
-  if (mod->state->fun_state->block_state->prev != NULL) {
-    mod->state->fun_state->block_state->current_statement
-      = mod->state->fun_state->block_state->prev->current_statement;
-  }
-
-  return 0;
-}
-
-STEP_NM(step_pop_block_state,
-        NM(BLOCK));
-error step_pop_block_state(struct module *mod, struct node *node,
-                           void *user, bool *stop) {
-  DSTEP(mod, node);
-  POP_STATE(mod->state->fun_state->block_state);
-  return 0;
-}
 
 STEP_NM(step_record_current_statement,
         -1);
@@ -82,80 +37,6 @@ static error step_increment_def_name_passed(struct module *mod, struct node *nod
     break;
   default:
     assert(false);
-    break;
-  }
-  return 0;
-}
-
-STEP_NM(step_set_topdep_mask,
-        NM(BLOCK));
-static error step_set_topdep_mask(struct module *mod, struct node *node,
-                                  void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  struct top_state *st = mod->state->top_state;
-  switch (parent(node)->which) {
-  case DEFFUN:
-  case DEFMETHOD:
-    if (typ_generic_arity(st->top->typ) == 0) {
-      st->topdep_mask &= TOP_IS_INLINE;
-    }
-    break;
-  case EXAMPLE:
-    st->topdep_mask &= TOP_IS_INLINE;
-    break;
-  default:
-    break;
-  }
-
-  return 0;
-}
-
-static STEP_NM(step_detect_not_dyn_intf_down,
-               NM(DEFFUN) | NM(DEFMETHOD));
-static error step_detect_not_dyn_intf_down(struct module *mod, struct node *node,
-                                           void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  mod->state->fun_state->fun_uses_final = false;
-
-  return 0;
-}
-
-static STEP_NM(step_detect_not_dyn_intf_up,
-               NM(DEFFUN) | NM(DEFMETHOD) | NM(IDENT) | NM(DEFARG));
-static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
-                                         void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (mod->state->fun_state == NULL) {
-    // Not in a function.
-    return 0;
-  }
-
-  switch (node->which) {
-  case DEFFUN:
-  case DEFMETHOD:
-    if (mod->state->fun_state->fun_uses_final
-        || subs_count_atleast(subs_at_const(node, IDX_GENARGS), 1)) {
-      node_toplevel(node)->flags |= TOP_IS_NOT_DYN;
-    }
-    break;
-  case IDENT:
-    if (node_ident(node) == ID_FINAL) {
-      mod->state->fun_state->fun_uses_final = true;
-    }
-    break;
-  case DEFARG:
-    if (subs_first(parent(node)) == node
-        && parent(node)->which == DEFMETHOD) {
-      // We just found self as a method argument on the way up, doesn't count.
-      assert(mod->state->fun_state->fun_uses_final);
-      mod->state->fun_state->fun_uses_final = false;
-    }
-    break;
-  default:
-    assert(false && "Unreached");
     break;
   }
   return 0;
@@ -209,28 +90,6 @@ static error step_check_no_literals_left(struct module *mod, struct node *node,
   }
 
   return 0;
-}
-
-static STEP_NM(step_check_no_incomplete_left,
-               -1);
-static error step_check_no_incomplete_left(struct module *mod, struct node *node,
-                                           void *user, bool *stop) {
-  if (node->typ == NULL || node_is_at_top(node)) {
-    return 0;
-  }
-
-  const struct node *d = typ_definition_const(node->typ);
-  if (d == NULL
-      || d->which != DEFINCOMPLETE
-      || d->as.DEFINCOMPLETE.is_isalist_literal) {
-    return 0;
-  }
-
-  char msg[2048] = { 0 };
-  size_t pos = 0, len = ARRAY_SIZE(msg);
-  pos += snprintf(msg+pos, len-pos, "incomplete type was never resolved:\n");
-  pos += snprint_defincomplete(msg+pos, len-pos, mod, d);
-  THROWF(EINVAL, "%s", msg);
 }
 
 static bool string_literal_has_length_one(const char *s) {
@@ -616,135 +475,6 @@ static error step_copy_call_inference(struct module *mod, struct node *node,
   return 0;
 }
 
-static error check_has_matching_member(struct module *mod,
-                                       struct node *deft,
-                                       const struct typ *intf,
-                                       const struct node *mi) {
-  error e;
-  struct node *m = node_get_member(mod, deft, node_ident(mi));
-  if (m == NULL) {
-    e = mk_except_type(mod, deft,
-                       "type '%s' isa '%s' but does not implement member '%s'",
-                       typ_pretty_name(mod, deft->typ),
-                       typ_pretty_name(mod, intf),
-                       idents_value(mod->gctx, node_ident(mi)));
-    THROW(e);
-  }
-
-  if (m->which != mi->which) {
-    e = mk_except_type(mod, deft,
-                       "in type '%s', member '%s' implemented from intf '%s'"
-                       " is not the right kind of declaration",
-                       typ_pretty_name(mod, deft->typ),
-                       idents_value(mod->gctx, node_ident(m)),
-                       typ_pretty_name(mod, intf));
-  }
-
-  if (m->which == DEFNAME
-      || m->which == DEFALIAS
-      || m->which == DEFFIELD) {
-    // FIXME: if the type of mi is (lexically) 'final', we need to check
-    // that it is *equal* to deft->typ.
-
-    if (!typ_isa(m->typ, mi->typ)) {
-      e = mk_except_type(mod, deft,
-                         "in type '%s', member '%s' implemented from intf '%s'"
-                         " has type '%s' but must be isa '%s'",
-                         typ_pretty_name(mod, deft->typ),
-                         idents_value(mod->gctx, node_ident(m)),
-                         typ_pretty_name(mod, intf),
-                         typ_pretty_name(mod, m->typ),
-                         typ_pretty_name(mod, mi->typ));
-      THROW(e);
-    }
-  } else if (mi->which == DEFFUN || mi->which == DEFMETHOD) {
-    // FIXME check that the prototype is an exact match.
-    // FIXME: handle (lexically) 'final' in mi properly.
-  } else {
-    assert(false && "Unreached");
-  }
-
-  switch (m->which) {
-  case DEFALIAS:
-    m->as.DEFALIAS.member_isa = mi;
-    break;
-  case DEFNAME:
-    m->as.DEFNAME.member_isa = mi;
-    break;
-  case DEFFIELD:
-    m->as.DEFFIELD.member_isa = mi;
-    break;
-  case DEFFUN:
-    m->as.DEFFUN.member_isa = mi;
-    break;
-  case DEFMETHOD:
-    m->as.DEFMETHOD.member_isa = mi;
-    break;
-  default:
-    assert(false && "Unreached");
-    break;
-  }
-
-  return 0;
-}
-
-static error check_exhaustive_intf_impl_eachisalist(struct module *mod,
-                                                    struct typ *t,
-                                                    struct typ *intf,
-                                                    bool *stop,
-                                                    void *user) {
-  (void) user;
-  struct node *deft = typ_definition(t);
-  const struct node *dintf = typ_definition_const(intf);
-  error e = 0;
-
-  if (typ_isa(t, TBI_ANY_TUPLE) && typ_equal(intf, TBI_COPYABLE)) {
-    // FIXME: once we generate copy_ctor in the non-trivial_copy case,
-    // remove this.
-    return 0;
-  }
-
-  FOREACH_SUB_EVERY_CONST(mi, dintf, IDX_ISALIST + 1, 1) {
-    if (mi->which == NOOP) {
-      // noop
-    } else if (mi->which == LET) {
-      FOREACH_SUB_CONST(d, mi) {
-        assert(NM(d->which) & (NM(DEFNAME) | NM(DEFALIAS)));
-
-        ident id = node_ident(d);
-        if (id == ID_FINAL || id == ID_THIS) {
-          continue;
-        }
-
-        e = check_has_matching_member(mod, deft, intf, d);
-        EXCEPT(e);
-      }
-    } else {
-      e = check_has_matching_member(mod, deft, intf, mi);
-      EXCEPT(e);
-    }
-  }
-
-  return 0;
-}
-
-static STEP_NM(step_check_exhaustive_intf_impl,
-               NM(DEFTYPE));
-static error step_check_exhaustive_intf_impl(struct module *mod, struct node *node,
-                                             void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (typ_is_pseudo_builtin(node->typ)) {
-    return 0;
-  }
-
-  error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTEROUT_TRIVIAL_ISALIST,
-                                check_exhaustive_intf_impl_eachisalist, NULL);
-  EXCEPT(e);
-
-  return 0;
-}
-
 static bool need_insert_dyn(struct module *mod,
                             const struct typ *intf,
                             const struct typ *concrete) {
@@ -1016,34 +746,59 @@ static error step_store_return_through_ref_expr(struct module *mod, struct node 
   }
 }
 
+static  error add_dyn_topdep_each(struct module *mod, struct typ *t, struct typ *intf,
+                                  bool *stop, void *user) {
+  struct node *r = NULL;
+  error e = reference(&r, mod, NULL, TREFDOT, intf);
+  assert(!e);
+  topdeps_record(mod, r->typ);
+
+  e = reference(&r, mod, NULL, TREFBANG, intf);
+  assert(!e);
+  topdeps_record(mod, r->typ);
+
+  e = reference(&r, mod, NULL, TREFSHARP, intf);
+  assert(!e);
+  topdeps_record(mod, r->typ);
+  return 0;
+}
+
+static STEP_NM(step_add_dyn_topdep,
+               NM(DEFTYPE));
+static error step_add_dyn_topdep(struct module *mod, struct node *node,
+                                 void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (typ_is_reference(node->typ)) {
+    return 0;
+  }
+
+  typ_isalist_foreach(mod, node->typ, ISALIST_FILTEROUT_PREVENT_DYN,
+                      add_dyn_topdep_each, NULL);
+  return 0;
+}
+
 error passbody0(struct module *mod, struct node *root,
                 void *user, ssize_t shallow_last_up) {
   // first
   PASS(
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
-    DOWN_STEP(step_stop_already_morningtypepass);
-    DOWN_STEP(step_push_top_state);
-    DOWN_STEP(step_push_fun_state);
-    DOWN_STEP(step_push_block_state);
+    DOWN_STEP(step_stop_already_early_typing);
     DOWN_STEP(step_record_current_statement);
-    DOWN_STEP(step_set_topdep_mask);
-    DOWN_STEP(step_detect_not_dyn_intf_down);
     DOWN_STEP(step_rewrite_wildcards);
     DOWN_STEP(step_type_destruct_mark);
     DOWN_STEP(step_type_mutability_mark);
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_type_gather_excepts);
     ,
-    UP_STEP(step_detect_not_dyn_intf_up);
     UP_STEP(step_type_inference);
     UP_STEP(step_remove_typeconstraints);
     UP_STEP(step_type_drop_excepts);
     UP_STEP(step_gather_final_instantiations);
-    UP_STEP(step_pop_block_state);
-    UP_STEP(step_pop_fun_state);
-    UP_STEP(step_pop_top_state);
-    UP_STEP(step_complete_instantiation);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
     return 0;
 }
@@ -1052,39 +807,25 @@ static error passbody1(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   // second
   PASS(
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
-    DOWN_STEP(step_push_top_state);
-    DOWN_STEP(step_push_fun_state);
-    DOWN_STEP(step_push_block_state);
     DOWN_STEP(step_record_current_statement);
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_check_no_literals_left);
-    DOWN_STEP(step_check_no_incomplete_left);
-    DOWN_STEP(step_ident_non_local_scope);
-    DOWN_STEP(step_branching_down);
-    DOWN_STEP(step_branching_block_down);
-    DOWN_STEP(step_branching_block_down_phi);
     ,
-    UP_STEP(step_track_ident_use);
-    UP_STEP(step_increment_def_name_passed);
     UP_STEP(step_weak_literal_conversion);
     UP_STEP(step_operator_call_inference);
     UP_STEP(step_ctor_call_inference);
     UP_STEP(step_array_ctor_call_inference);
     UP_STEP(step_dtor_call_inference);
     UP_STEP(step_copy_call_inference);
-    UP_STEP(step_check_exhaustive_intf_impl);
     UP_STEP(step_dyn_inference);
 
     UP_STEP(step_store_return_through_ref_expr);
-
-    UP_STEP(step_branching_block_up_phi);
-    UP_STEP(step_branching_up);
-    UP_STEP(step_pop_block_state);
-    UP_STEP(step_pop_fun_state);
-    UP_STEP(step_pop_top_state);
-    UP_STEP(step_complete_instantiation);
+    UP_STEP(step_add_dyn_topdep);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
     return 0;
 }
@@ -1093,23 +834,23 @@ static error passbody2(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   // second
   PASS(
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
-    DOWN_STEP(step_push_top_state);
-    DOWN_STEP(step_push_fun_state);
-    DOWN_STEP(step_push_block_state);
+    DOWN_STEP(step_record_current_statement);
     DOWN_STEP(step_type_gather_retval);
+    DOWN_STEP(step_ident_non_local_scope);
     DOWN_STEP(step_branching_down);
     DOWN_STEP(step_branching_block_down);
+    DOWN_STEP(step_branching_block_down_phi);
     ,
-    UP_STEP(step_constraint_inference);
-    UP_STEP(step_check_exhaustive_match);
-    UP_STEP(step_branching_up);
-    UP_STEP(step_pop_block_state);
-    UP_STEP(step_pop_fun_state);
-    UP_STEP(step_pop_top_state);
-    UP_STEP(step_complete_instantiation);
+    UP_STEP(step_track_ident_use);
     UP_STEP(step_increment_def_name_passed);
+
+    UP_STEP(step_branching_block_up_phi);
+    UP_STEP(step_branching_up);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
     return 0;
 }

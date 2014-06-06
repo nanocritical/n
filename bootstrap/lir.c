@@ -1,6 +1,7 @@
 #include "lir.h"
 
 #include "passes.h"
+#include "parser.h"
 
 STEP_NM(step_add_sequence_points,
         NM(BLOCK));
@@ -674,6 +675,7 @@ static error ex_lir_conversion(struct module *mod, struct node *root) {
     DOWN_STEP(step_lir_conversion_down);
     ,
     UP_STEP(step_lir_conversion_up);
+    ,
     );
   return 0;
 }

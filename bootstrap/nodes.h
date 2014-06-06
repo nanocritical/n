@@ -12,6 +12,7 @@
 struct typ;
 struct constraint;
 struct constraint_resolve_state;
+struct topdeps;
 
 #define NM(which) ( (uint64_t)1LL << (which) )
 #define STEP_NM(step, m) const uint64_t step##_filter = (m)
@@ -112,7 +113,9 @@ enum toplevel_flags {
   TOP_IS_PROTOTYPE = 0x10,
   TOP_IS_SHADOWED = 0x20,
   TOP_IS_NOT_DYN = 0x40,
-  TOP_IS_SHALLOW = 0x80,
+  TOP_IS_PREVENT_DYN = 0x80,
+  TOP_IS_SHALLOW = 0x100,
+  TOP_IS_FUNCTOR = 0x200,
 };
 
 VECTOR(vecbool, bool, 4);
@@ -135,11 +138,11 @@ struct toplevel {
   enum builtingen builtingen;
 
   struct generic *generic;
-  struct typset *topdeps;
+  struct topdeps *topdeps;
 
-  struct vecnode tentative_instantiations;
+  struct vecnode triggered_instantiations;
 
-  ssize_t yet_to_pass;
+  ssize_t passing, passed;
 };
 
 struct phi_tracker_state {
@@ -766,7 +769,8 @@ struct top_state {
   struct top_state *prev;
 
   struct node *top;
-  uint32_t topdep_mask;
+
+  bool is_setgenarg;
 };
 
 struct block_state {
@@ -834,7 +838,7 @@ struct module_state {
   struct try_state *try_state;
   struct branch_state *branch_state;
 
-  size_t furthest_passing;
+  ssize_t furthest_passing;
   struct step_state *step_state;
 
 #define PASS_STACK_DEPTH 512
@@ -1366,7 +1370,6 @@ int snprint_defincomplete(char *s, size_t len,
 char *typ_name(const struct module *mod, const struct typ *t);
 // Return value must be freed by caller.
 char *typ_pretty_name(const struct module *mod, const struct typ *t);
-void debug_print_topdeps(const struct module *mod, const struct node *node);
 
 int snprint_codeloc(char *s, size_t len,
                     const struct module *mod, const struct node *node);

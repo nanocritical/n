@@ -18,7 +18,9 @@ error catchup(struct module *mod,
               const struct node **except,
               struct node *node,
               enum catchup_for how);
-void record_tentative_instantiation(struct module *mod, struct node *i);
+void record_triggered_instantiation(struct module *instantiating_mod,
+                                    struct module *gendef_mod,
+                                    struct node *i);
 error catchup_instantiation(struct module *instantiating_mod,
                             struct module *gendef_mod,
                             struct node *instance,
@@ -28,8 +30,10 @@ typedef error (*a_pass)(struct module *mod, struct node *root,
                         void *user, ssize_t shallow_last_up);
 
 #define PASSZERO_COUNT 2
-#define PASSFWD_COUNT 9
+#define PASSFWD_COUNT 11
 #define PASSBODY_COUNT 3
+#define PASSSEMFWD_COUNT 7
+#define PASSSEMBODY_COUNT 1
 
 a_pass passes(size_t p);
 error advance(struct module *mod);
@@ -40,15 +44,14 @@ const uint64_t step_stop_block_filter;
 error step_stop_block(struct module *mod, struct node *node, void *user, bool *stop);
 const uint64_t step_stop_funblock_filter;
 error step_stop_funblock(struct module *mod, struct node *node, void *user, bool *stop);
-const uint64_t step_push_top_state_filter;
-error step_push_top_state(struct module *mod, struct node *node,
-                          void *user, bool *stop);
-const uint64_t step_pop_top_state_filter;
-error step_pop_top_state(struct module *mod, struct node *node,
-                         void *user, bool *stop);
-
-const uint64_t step_complete_instantiation_filter;
-error step_complete_instantiation(struct module *mod, struct node *node, void *user, bool *stop);
+const uint64_t step_stop_tentative_funblock_filter;
+error step_stop_tentative_funblock(struct module *mod, struct node *node, void *user, bool *stop);
+const uint64_t step_push_state_filter;
+error step_push_state(struct module *mod, struct node *node,
+                      void *user, bool *stop);
+const uint64_t step_pop_state_filter;
+error step_pop_state(struct module *mod, struct node *node,
+                     void *user, bool *stop);
 
 
 //#define DEBUG_PASS

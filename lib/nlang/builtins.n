@@ -1,11 +1,11 @@
 -- In this file, imports go at the end of the file.
 
-export extern struct __literal_null__ =
-  export isa `any_nullable_ref
-export extern struct __literal_integer__ =
-  export isa `integer
-export extern struct __literal_floating__ =
-  export isa `floating
+export extern intf `__literal_null__ =
+  isa `any_nullable_ref
+export extern intf `__literal_integer__ =
+  isa `integer
+export extern intf `__literal_floating__ =
+  isa `floating
 
 export extern struct __internal_not_typeable__ =
 export extern struct __call_function_slot__ =
@@ -15,6 +15,8 @@ export extern struct __mercurial__ =
 
 export intf `any =
 
+-- `prevent_dyn stops the compiler from generating a dyntable for the rest of
+-- the isa list.
 export intf `prevent_dyn =
 
 export intf `copyable =
@@ -22,6 +24,9 @@ export intf `copyable =
 export intf `not_copyable =
 export intf `copyable_but_owned =
   isa `copyable -- FIXME
+-- FIXME: `trivial_copy should have other:@this, as it only needs `any.sizeof.
+-- And there should be a copy_slice operation over `trivial_copy. That's kinda
+-- the point.
 export intf `trivial_copy =
   isa `copyable
 export intf `trivial_copy_but_owned =
@@ -108,11 +113,11 @@ export intf `sum_order =
 
 
 export extern inline struct void =
-  export isa `return_by_copy `trivial_copy `prevent_dyn
+  export isa `prevent_dyn `return_by_copy `trivial_copy `trivial_ctor
 
 
 export intf `any_any_ref =
-  isa `return_by_copy `trivial_copy_but_owned `trivial_equality
+  isa `return_by_copy `trivial_copy_but_owned
 export intf `any_ref t:`any =
   isa `any_any_ref
 export intf `any_mutable_ref t:`any =
@@ -139,11 +144,10 @@ export extern struct nullable_mercurial_ref t:`any =
 
 
 export intf `any_any_slice =
-  isa `return_by_copy `trivial_copy_but_owned
+  isa `trivial_ctor `trivial_dtor `return_by_copy `trivial_copy_but_owned
 
 export intf `any_slice t:`any =
   isa `any_any_slice (`random_container t)
-  method count = size
   method bytecount = size
   method all = index_range
   shallow method$ unsafe_rawdata = @$u8
@@ -152,7 +156,7 @@ export intf `any_slice t:`any =
   shallow method$ operator_sub r:index_range = []$t
 
 export intf `any_mutable_slice t:`any =
-  isa (`any_slice t) (`random_container t)
+  isa (`any_slice t)
   method! copy other:[]t = void
 
 -- The body of the methods for slice and mutable_slice are actually not used, as
@@ -220,22 +224,22 @@ export inline mutable_slice shallow method$ unsafe_rawdata = @$u8
   such
     let _ = s.unsafe_rawdata
     let _ = s!unsafe_rawdata
-    let p = s#unsafe_rawdata
-    return p
+    let _ = s#unsafe_rawdata
+    return s$unsafe_rawdata
 export inline mutable_slice shallow method$ unsafe_data = @$t
   let s = this.create_impl_instance
   such
     let _ = s.unsafe_data
     let _ = s!unsafe_data
-    let p = s#unsafe_data
-    return p
+    let _ = s#unsafe_data
+    return s$unsafe_data
 export inline mutable_slice shallow method$ operator_at n:size = @$t
   let s = this.create_impl_instance
   such
     let _ = s.operator_at n
     let _ = s!operator_at n
     let p = s#operator_at n
-    return p
+    return s$operator_at n
 export inline mutable_slice method! copy other:[]t = void
   let s = this.create_impl_instance
   such
@@ -245,7 +249,7 @@ export inline mutable_slice shallow method$ operator_sub r:index_range = []$t
   such
     let _ = (s.operator_sub r)
     let _ = (s!operator_sub r)
-    let p = (s#operator_sub r)
+    let _ = (s#operator_sub r)
     return {}
 
 
@@ -253,7 +257,7 @@ export extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
 export extern inline fun slice_memcpy dst:@#u8 src:@u8 count:size = void
 
 export opaque struct slice_impl t:`any =
-  export isa `trivial_ctor `trivial_dtor `trivial_copy_but_owned
+  export isa (`any_mutable_slice t)
   dat	:?@#t
   cnt	:size
 
@@ -985,6 +989,7 @@ export extern float method `ordered.operator_le other:@this = bool
 export extern float method `ordered.operator_lt other:@this = bool
 export extern float method `ordered.operator_gt other:@this = bool
 export extern float method `ordered.operator_ge other:@this = bool
+export extern float method `has_compare.operator_compare other:@this = i32
 export extern float method `arithmetic.operator_plus other:@this = this
 export extern float method `arithmetic.operator_minus other:@this = this
 export extern float method `arithmetic.operator_divide other:@this = this
@@ -1012,6 +1017,7 @@ export extern double method `ordered.operator_le other:@this = bool
 export extern double method `ordered.operator_lt other:@this = bool
 export extern double method `ordered.operator_gt other:@this = bool
 export extern double method `ordered.operator_ge other:@this = bool
+export extern double method `has_compare.operator_compare other:@this = i32
 export extern double method `arithmetic.operator_plus other:@this = this
 export extern double method `arithmetic.operator_minus other:@this = this
 export extern double method `arithmetic.operator_divide other:@this = this
@@ -1032,7 +1038,7 @@ export extern inline double method as_ssize = ssize
 export extern double method `show.show buf:@#`string_buffer = void
 
 export intf `trivial_array_ctor t:`copyable =
-  isa (`array_ctor t) `prevent_dyn
+  isa `prevent_dyn (`array_ctor t)
 
 export intf `array_ctor t:`copyable =
   fun from_array c:@(static_array t) = final
@@ -1128,7 +1134,7 @@ export extern inline struct valist =
   export isa `trivial_copy `trivial_ctor
 
 intf `no_dyn_iterator r:`any_any_ref =
-  isa (`iterator r) `prevent_dyn
+  isa `prevent_dyn (`iterator r)
 
 export opaque struct vararg r:`any_any_ref =
   export isa (`no_dyn_iterator r)

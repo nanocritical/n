@@ -2,6 +2,7 @@
 
 #include "passes.h"
 #include "types.h"
+#include "parser.h"
 #include <stdarg.h>
 
 typedef int8_t cbool;
@@ -1452,12 +1453,25 @@ static error constraint_inference_genarg(struct module *mod,
   return 0;
 }
 
-STEP_NM(step_constraint_inference,
-        -1);
+static bool within_tentative_context(struct module *mod) {
+  const struct node *top = mod->state->top_state->top;
+  return typ_is_tentative(top->typ)
+    || (node_is_at_top(parent_const(top)) && typ_is_tentative(parent_const(top)->typ));
+}
+
+STEP_NM(step_constraint_inference, -1);
 error step_constraint_inference(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
+
+  if (mod->state->top_state == NULL) {
+    return 0;
+  }
+
+  if (within_tentative_context(mod)) {
+    return 0;
+  }
 
   if (node->typ == TBI__NOT_TYPEABLE && node->which != PHI) {
     return 0;
@@ -1557,9 +1571,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
   case DIRECTDEF:
     {
       struct node *def = typ_definition(node->as.DIRECTDEF.typ);
-      if (def->constraint != NULL) {
-        constraint_copy(mod, node->constraint, def->constraint);
-      }
+      constraint_copy(mod, node->constraint, def->constraint);
     }
     break;
   case DEFINTF:
@@ -1692,3 +1704,13 @@ except:
   return e;
 }
 
+STEP_NM(step_stop_generic_functor,
+        STEP_NM_DEFS);
+error step_stop_generic_functor(struct module *mod, struct node *node,
+                                void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  *stop = typ_is_generic_functor(node->typ);
+
+  return 0;
+}

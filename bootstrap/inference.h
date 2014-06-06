@@ -38,4 +38,8 @@ error step_gather_final_instantiations(struct module *mod, struct node *node,
 struct node *expr_ref(struct module *mod, struct node *par,
                       enum token_type refop, struct node *node);
 
+error reference(struct node **result,
+                struct module *mod, struct node *for_error,
+                enum token_type op, struct typ *typ);
+
 #endif

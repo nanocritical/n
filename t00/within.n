@@ -4,7 +4,7 @@ from nlang.strings import *
 globalenv e2:@!`env2
 
 intf `env2 =
-  isa (`environment this)
+  isa (`environment @this)
   method say2 s:@string = void
 
 struct myenv2 =
@@ -15,7 +15,7 @@ myenv2 method say2 s:@string = void
   say 'saying2:' s
 
 intf `env1 =
-  isa (`environment this)
+  isa (`environment @this)
   method say s:@string = void
 
 struct myenv1 =

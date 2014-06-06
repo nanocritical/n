@@ -276,12 +276,13 @@ static void create_update_concrete_flag(struct typ *t) {
 }
 
 static void create_flags(struct typ *t, struct typ *tbi) {
-  if (typ_definition_const(t) == NULL) {
+  const struct node *d = typ_definition_const(t);
+  if (d == NULL) {
     // This is very early in the global init.
     return;
   }
 
-  const struct toplevel *toplevel = node_toplevel_const(typ_definition_const(t));
+  const struct toplevel *toplevel = node_toplevel_const(d);
   const struct typ *functor = NULL;
   if (toplevel != NULL && toplevel->generic != NULL) {
     functor = toplevel->generic->our_generic_functor_typ;
@@ -330,6 +331,10 @@ static void create_flags(struct typ *t, struct typ *tbi) {
       || maybe_ref == TBI_SLICE
       || maybe_ref == TBI_MSLICE) {
     t->flags |= TYPF_SLICE;
+  }
+
+  if (d->which == IMPORT) {
+    t->flags |= TYPF_PSEUDO_BUILTIN;
   }
 
   if (tbi == NULL) {
@@ -457,36 +462,14 @@ bool typ_is_tentative(const struct typ *t) {
   return t->flags & TYPF_TENTATIVE;
 }
 
-static bool check_can_be_tentative(const struct typ *t) {
-  const struct node *d = typ_definition_const(t);
-  if (d->which == DEFINTF
-      || d->which == DEFINCOMPLETE) {
-    return true;
-  }
-
-  if (typ_is_literal(t) || (t->flags & TYPF_WEAKLY_CONCRETE)) {
-    return true;
-  }
-
-  for (size_t n = 0, count = typ_generic_arity(t); n < count; ++n) {
-    const struct node *da = typ_definition_const(typ_generic_arg_const(t, n));
-    if (da->which == DEFINTF) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-struct typ *typ_create_tentative(struct typ *target) {
+struct typ *typ_create_tentative_functor(struct typ *target) {
+  assert(typ_is_generic_functor(target));
   assert(target != NULL);
   assert(target->hash != 0);
 
   if (typ_is_tentative(target)) {
     return target;
   }
-
-  assert(check_can_be_tentative(target));
 
   struct typ *r = calloc(1, sizeof(struct typ));
   r->flags = target->flags | TYPF_TENTATIVE;
@@ -635,6 +618,7 @@ void typ_link_tentative(struct typ *dst, struct typ *src) {
 }
 
 void typ_link_tentative_functor(struct module *mod, struct typ *dst, struct typ *src) {
+  assert(mod != NULL);
   assert(typ_is_tentative(src));
   assert(typ_is_generic_functor(src));
   assert(typ_is_generic_functor(dst));
@@ -849,6 +833,10 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
       continue;
     }
 
+    if (filter_prevent_dyn && typ_equal(intf, TBI_PREVENT_DYN)) {
+      return 0;
+    }
+
     const bool exported = direct_isalist_exported(base, n);
     if (filter_not_exported && !exported) {
       continue;
@@ -860,9 +848,6 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
       continue;
     }
     if (filter_nontrivial_isalist && !typ_is_trivial(intf)) {
-      continue;
-    }
-    if (filter_prevent_dyn && typ_isa(intf, TBI_PREVENT_DYN)) {
       continue;
     }
 
@@ -1035,6 +1020,18 @@ static bool __typ_equal(const struct typ *a, const struct typ *b) {
 
   const size_t a_ga = typ_generic_arity(a);
   if (a_ga == 0) {
+    const bool a_tentative = typ_is_tentative(a);
+    const bool b_tentative = typ_is_tentative(b);
+    if (!a_tentative && !b_tentative) {
+      return da == db;
+    }
+
+    if (a_tentative) {
+      da = typ_definition_const(node_toplevel_const(da)->generic->our_generic_functor_typ);
+    }
+    if (b_tentative) {
+      db = typ_definition_const(node_toplevel_const(db)->generic->our_generic_functor_typ);
+    }
     return da == db;
   } else {
     if (a_ga != typ_generic_arity(b)) {

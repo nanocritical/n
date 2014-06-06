@@ -46,9 +46,9 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_UNLIKELY] = "unlikely",
   [ID_NLANG] = "nlang",
   [ID_TBI_VOID] = "void",
-  [ID_TBI_LITERALS_NULL] = "__literal_null__",
-  [ID_TBI_LITERALS_INTEGER] = "__literal_integer__",
-  [ID_TBI_LITERALS_FLOATING] = "__literal_floating__",
+  [ID_TBI_LITERALS_NULL] = "`__literal_null__",
+  [ID_TBI_LITERALS_INTEGER] = "`__literal_integer__",
+  [ID_TBI_LITERALS_FLOATING] = "`__literal_floating__",
   [ID_TBI_ANY] = "`any",
   [ID_TBI_ANY_TUPLE] = "`any_tuple",
   [ID_TBI_TUPLE_2] = "tuple_2",
@@ -1808,7 +1808,7 @@ static error step_rewrite_into_defarg(struct module *mod, struct node *node,
 
 static error rewrite_into_defarg(struct module *mod, struct node *root,
                                  void *user, size_t shallow_last_up) {
-  PASS(, UP_STEP(step_rewrite_into_defarg));
+  PASS(, UP_STEP(step_rewrite_into_defarg),);
   return 0;
 }
 

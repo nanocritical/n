@@ -34,7 +34,7 @@ static error step_for_all_nodes(struct module *dummy, struct node *node,
 
 static error pass_for_all_nodes(struct module *mod, struct node *root,
                                 void *user, ssize_t shallow_last_up) {
-  PASS(DOWN_STEP(step_for_all_nodes),);
+  PASS(DOWN_STEP(step_for_all_nodes),,);
   return 0;
 }
 
@@ -315,7 +315,7 @@ static error step_gather_dependencies_in_module(struct module *mod, struct node 
 static error pass_gather_dependencies(struct module *mod, struct node *root,
                                       void *user, ssize_t shallow_last_up) {
   PASS(DOWN_STEP(step_gather_dependencies_in_module);
-       DOWN_STEP(step_stop_block),);
+       DOWN_STEP(step_stop_block),,);
   return 0;
 }
 
@@ -424,6 +424,37 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
     }
 
     mod->done = true;
+
+    POP_STATE(mod->state->step_state);
+  }
+
+  p = PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT;
+  for (; p < PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT + PASSSEMFWD_COUNT; ++p) {
+    stage->state->passing = p;
+
+    for (size_t n = 0; n < stage->sorted_count; ++n) {
+      struct module *mod = stage->sorted[n];
+
+      PUSH_STATE(mod->state->step_state);
+
+      e = advance(mod);
+      EXCEPT(e);
+
+      POP_STATE(mod->state->step_state);
+    }
+  }
+
+  for (size_t n = 0; n < stage->sorted_count; ++n) {
+    struct module *mod = stage->sorted[n];
+
+    PUSH_STATE(mod->state->step_state);
+
+    for (size_t pp = p; pp < PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT + PASSSEMFWD_COUNT + PASSSEMBODY_COUNT; ++pp) {
+      stage->state->passing = pp;
+
+      e = advance(mod);
+      EXCEPT(e);
+    }
 
     POP_STATE(mod->state->step_state);
   }

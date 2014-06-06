@@ -3,6 +3,7 @@
 #include "table.h"
 #include "types.h"
 #include "scope.h"
+#include "parser.h"
 #include "passes.h"
 #include "instantiate.h"
 
@@ -573,6 +574,10 @@ static error unify_defincomplete(struct module *mod,
 }
 static error unify_with_equal(struct module *mod, const struct node *for_error,
                               struct typ *a, struct typ *b) {
+  if (a == b) {
+    return 0;
+  }
+
   error e = typ_check_equal(mod, for_error, a, b);
   EXCEPT(e);
 
@@ -719,6 +724,8 @@ static error unify_reference_with_refcompat(struct module *mod, uint32_t flags,
                                             struct typ *a, struct typ *b,
                                             bool a_refcompat,
                                             bool b_refcompat) {
+  assert(a_refcompat ^ b_refcompat);
+
   if (a_refcompat) {
     SWAP(a, b);
     SWAP(a_refcompat, b_refcompat);
@@ -742,10 +749,14 @@ static error unify_reference_with_refcompat(struct module *mod, uint32_t flags,
   e = unify_reforslice_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
 
+  struct typ *a0 = typ_generic_functor(a);
   struct typ *b0 = typ_generic_functor(b);
-  if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
-    struct typ *a0 = typ_generic_functor(a);
+  if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)
+      && typ_isa(a0, b0)) {
     typ_link_tentative_functor(mod, a0, b0);
+  } else if (typ_definition_const(a0)->which == DEFINTF && typ_is_tentative(a0)
+             && typ_isa(b0, a0)) {
+    typ_link_tentative_functor(mod, b0, a0);
   }
 
   return 0;

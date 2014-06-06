@@ -5,6 +5,7 @@
 
 #include "printer.h"
 #include "types.h"
+#include "topdeps.h"
 #include "scope.h"
 #include "constraints.h"
 
@@ -195,6 +196,8 @@ static void print_defchoice_path(FILE *out,
                                  const struct module *mod,
                                  const struct node *deft,
                                  const struct node *ch);
+static void print_defintf(FILE *out, bool header, enum forward fwd,
+                          const struct module *mod, const struct node *node);
 
 static bool ident_is_spurious_ssa_var(const struct node *node) {
   assert(node->which == IDENT);
@@ -439,9 +442,6 @@ static void print_call(FILE *out, const struct module *mod,
 
   bool force_comma = false;
   if (dfun->which == DEFFUN && parentd->which == DEFINTF) {
-    fprintf(out, "*(");
-    print_typ(out, mod, subs_first_const(fun)->typ);
-    fprintf(out, " *)&");
     print_expr(out, mod, subs_first_const(fun), T__CALL);
     force_comma = true;
   }
@@ -459,7 +459,7 @@ static void print_call(FILE *out, const struct module *mod,
         && parentd->which == DEFINTF) {
       assert(typ_is_reference(arg->typ));
       if (!typ_equal(parentd->typ, typ_generic_arg_const(arg->typ, 0))) {
-        fprintf(out, "*(");
+        fprintf(out, "*(_$Ndyn_");
         print_typ(out, mod, parentd->typ);
         fprintf(out, " *)&");
       }
@@ -900,7 +900,8 @@ static void print_invariant(FILE *out, const struct module *mod, const struct no
 
 #define ATTR_SECTION_EXAMPLES "__attribute__((section(\".text.nlang.examples\")))"
 
-static void print_example(FILE *out, bool header, enum forward fwd, const struct module *mod, const struct node *node) {
+static void print_example(FILE *out, bool header, enum forward fwd,
+                          const struct module *mod, const struct node *node) {
   if (header) {
     return;
   }
@@ -933,17 +934,36 @@ static bool prototype_only(bool header, const struct node *node) {
   }
 }
 
-static void print_linkage(FILE *out, bool header,
+static void print_generic_linkage(FILE *out, bool header, enum forward fwd,
+                                  const struct node *at_top,
+                                  const struct node *node) {
+  if (header) {
+    if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+      if (node_is_inline(node)) {
+        fprintf(out, "static inline ");
+      } else {
+        if (fwd == FWD_DECLARE_FUNCTIONS) {
+          fprintf(out, "__attribute__((__weak__)) ");
+        }
+      }
+    }
+  }
+}
+
+static void print_linkage(FILE *out, bool header, enum forward fwd,
                           const struct node *at_top,
                           const struct node *node) {
-  if (header && !node_is_export(at_top)) {
+  if (typ_generic_arity(node->typ) > 0
+      || (!node_is_at_top(node) && typ_generic_arity(parent_const(node)->typ) > 0)) {
+    print_generic_linkage(out, header, fwd, at_top, node);
     return;
   }
 
   const struct toplevel *toplevel = node_toplevel_const(at_top);
   const uint32_t flags = toplevel->flags;
-  if ((node->which == DEFFUN || node->which == DEFMETHOD)
-      && (flags & TOP_IS_EXTERN) && (flags & TOP_IS_INLINE)) {
+  if ((NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
+      && (flags & TOP_IS_EXTERN)
+      && (flags & TOP_IS_INLINE)) {
     fprintf(out, "static inline ");
   } else if (flags & TOP_IS_EXTERN) {
     fprintf(out, "extern ");
@@ -1060,7 +1080,7 @@ static void print_typ_data(FILE *out, const struct module *mod, const struct typ
   } else if (typ_is_reference(typ)
              && !typ_equal(typ, TBI_ANY_ANY_REF)
              && typ_definition_const(typ_generic_arg_const(typ, 0))->which == DEFINTF) {
-    // dyn
+    fprintf(out, "_$Ndyn_");
     print_typ(out, mod, typ_generic_arg_const(typ, 0));
     return;
   }
@@ -1155,7 +1175,7 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
   const bool is_void = typ_equal(node->typ, TBI_VOID);
   if (!is_void) {
     if (node->flags & NODE_IS_GLOBAL_LET) {
-      print_linkage(out, header, par, node);
+      print_linkage(out, header, fwd, par, node);
     }
 
     print_typ(out, mod, node->typ);
@@ -1327,6 +1347,11 @@ static void print_typeconstraint(FILE *out, const struct module *mod, const stru
 
 static void print_defarg(FILE *out, const struct module *mod, const struct node *node,
                          bool return_through_ref) {
+  if (return_through_ref) {
+    if (typ_definition_const(node->typ)->which == DEFINTF) {
+      fprintf(out, "_$Ndyn_");
+    }
+  }
   print_typ(out, mod, node->typ);
   fprintf(out, " ");
   if (return_through_ref) {
@@ -1345,7 +1370,8 @@ static bool print_call_vararg_proto(FILE *out, const struct node *dfun, size_t n
   return true;
 }
 
-static void print_fun_prototype(FILE *out, bool header, const struct module *mod,
+static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
+                                const struct module *mod,
                                 const struct node *node,
                                 bool as_fun_pointer, bool named_fun_pointer,
                                 bool as_dyn_fun_pointer,
@@ -1357,7 +1383,7 @@ static void print_fun_prototype(FILE *out, bool header, const struct module *mod
   const bool retval_throughref = !typ_isa_return_by_copy(retval->typ);
 
   if (!as_fun_pointer) {
-    print_linkage(out, header, node, node);
+    print_linkage(out, header, fwd, node, node);
   }
 
   if (retval_throughref) {
@@ -1382,6 +1408,7 @@ static void print_fun_prototype(FILE *out, bool header, const struct module *mod
   bool force_comma = false;
 
   if (node->which == DEFFUN && intf_final_typ != NULL) {
+    fprintf(out, "_$Ndyn_");
     print_typ(out, mod, intf_final_typ);
     fprintf(out, " self");
     no_args_at_all = false;
@@ -1674,30 +1701,30 @@ static void fun_nonnull_attribute(FILE *out, bool header,
   }
 }
 
-static uint32_t track_id(bool header, enum forward fwd) {
-  return (!!header << 4) | (uint8_t)fwd;
-}
-
 static void guard_generic(FILE *out, bool header, enum forward fwd,
                           const struct module *mod,
-                          const struct node *node, const char *postfix,
+                          const struct node *node,
                           bool begin) {
   const struct typ *t = node->typ;
   const struct node *par = parent_const(node);
-  if (typ_generic_arity(t) == 0 && typ_generic_arity(par->typ) == 0) {
+
+  const char *prefix = "";
+  if (node->which == DEFINTF) {
+    prefix = "_$Ndyn_";
+  } else if (typ_generic_arity(t) == 0 && typ_generic_arity(par->typ) == 0) {
     return;
   }
 
   if (begin) {
-    fprintf(out, "#ifndef HAS%x_", fwd);
+    fprintf(out, "#ifndef HAS%x_%s", fwd, prefix);
     print_typ(out, mod, t);
-    fprintf(out, "%s\n#define HAS%x_", postfix, fwd);
+    fprintf(out, "\n#define HAS%x_%s", fwd, prefix);
     print_typ(out, mod, t);
-    fprintf(out, "%s\n", postfix);
+    fprintf(out, "\n");
   } else {
-    fprintf(out, "#endif // HAS%x_", fwd);
+    fprintf(out, "#endif // HAS%x_%s", fwd, prefix);
     print_typ(out, mod, t);
-    fprintf(out, "%s\n", postfix);
+    fprintf(out, "\n");
   }
 }
 
@@ -1708,6 +1735,9 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     return;
   }
   if (node_is_extern(node) && fwd == FWD_DEFINE_FUNCTIONS) {
+    return;
+  }
+  if (header && !node_is_export(node)) {
     return;
   }
   if (node_ident(node) == ID_NEXT
@@ -1740,19 +1770,19 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  guard_generic(out, header, fwd, mod, node, "", true);
+  guard_generic(out, header, fwd, mod, node, true);
 
   if (fwd == FWD_DECLARE_FUNCTIONS) {
-    print_fun_prototype(out, header, mod, node, false, false, false, NULL);
+    print_fun_prototype(out, header, fwd, mod, node, false, false, false, NULL);
     fun_nonnull_attribute(out, header, mod, node);
     fprintf(out, ";\n");
   } else if (prototype_only(header, node)) {
     // noop
   } else if (node_toplevel_const(node)->builtingen != BG__NOT) {
-    print_fun_prototype(out, header, mod, node, false, false, false, NULL);
+    print_fun_prototype(out, header, fwd, mod, node, false, false, false, NULL);
     print_deffun_builtingen(out, mod, node);
   } else {
-    print_fun_prototype(out, header, mod, node, false, false, false, NULL);
+    print_fun_prototype(out, header, fwd, mod, node, false, false, false, NULL);
 
     fprintf(out, " {\n");
     if (par->which == DEFTYPE) {
@@ -1793,7 +1823,7 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     fprintf(out, "}\n");
   }
 
-  guard_generic(out, header, fwd, mod, node, "", false);
+  guard_generic(out, header, fwd, mod, node, false);
 }
 
 static void print_deffield(FILE *out, const struct module *mod, const struct node *node) {
@@ -1912,7 +1942,7 @@ static void print_deftype_block(FILE *out, bool header, enum forward fwd, const 
 
 static void print_mkdyn_proto(FILE *out, const struct module *mod,
                               const struct node *node, const struct typ *intf) {
-  fprintf(out, "static inline ");
+  fprintf(out, "static inline _$Ndyn_");
   print_typ(out, mod, intf);
   fprintf(out, " ");
   print_typ(out, mod, node->typ);
@@ -1956,7 +1986,7 @@ static error print_dyn_field_eachisalist(struct module *mod, struct typ *ignored
     const struct node *thisf = node_get_member_const(typ_definition_const(t),
                                                      node_ident(f));
     fprintf(st->out, ".%s = (", idents_value(mod->gctx, node_ident(thisf)));
-    print_fun_prototype(st->out, st->header, mod, f, true, false, true, NULL);
+    print_fun_prototype(st->out, st->header, st->fwd, mod, f, true, false, true, NULL);
     fprintf(st->out, ")");
     print_typ(st->out, mod, thisf->typ);
     fprintf(st->out, ",\n");
@@ -1972,9 +2002,9 @@ static error print_mkdyn_eachisalist(struct module *mod, struct typ *t,
 
   print_mkdyn_proto(st->out, mod, typ_definition_const(t), intf);
   fprintf(st->out, " {\n");
-  fprintf(st->out, "static const struct _$Ndyn_");
+  fprintf(st->out, "static const struct _$Ndyntable_");
   print_typ(st->out, mod, intf);
-  fprintf(st->out, " vtable = {\n");
+  fprintf(st->out, " dyntable = {\n");
 
   struct cprinter_state st2 = *st;
   st2.printed = 0;
@@ -1995,9 +2025,9 @@ static error print_mkdyn_eachisalist(struct module *mod, struct typ *t,
   }
   fprintf(st->out, "};\n");
 
-  fprintf(st->out, "return (");
+  fprintf(st->out, "return (_$Ndyn_");
   print_typ(st->out, mod, intf);
-  fprintf(st->out, "){ .vptr = &vtable, .obj = obj };\n");
+  fprintf(st->out, "){ .vptr = &dyntable, .obj = obj };\n");
 
   fprintf(st->out, "}\n");
   return 0;
@@ -2325,18 +2355,48 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
 static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
                                     const struct module *mod,
                                     const struct node *node) {
-  const struct typ *r = typ_generic_functor_const(node->typ);
-  const struct node *d = typ_definition_const(typ_generic_arg_const(node->typ, 0));
-
-  if (d->which == DEFINTF) {
+  if (fwd != FWD_DECLARE_TYPES) {
     return;
   }
 
+  const struct typ *r = typ_generic_functor_const(node->typ);
+  const struct node *d = typ_definition_const(typ_generic_arg_const(node->typ, 0));
+
+  if (header && !node_is_export(d)) {
+    return;
+  }
+
+  if (d->which == DEFINTF) {
+    if (typ_generic_arity(d->typ) > 0) {
+      print_defintf(out, header, fwd, mod, node);
+    }
+    return;
+  }
+
+  guard_generic(out, header, fwd, mod, node, true);
+
   const char *prefix = "";
-  if (!(typ_is_builtin(mod, d->typ) && node_is_extern(d))
-      && !(d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_ENUM)) {
+  if (typ_is_reference(d->typ)
+      && typ_definition_const(typ_generic_arg_const(d->typ, 0))->which == DEFINTF) {
+    const struct node *dd = typ_definition_const(typ_generic_arg_const(d->typ, 0));
+    fprintf(out, "struct _$Ndyn_");
+    print_deftype_name(out, mod, dd);
+    fprintf(out, ";\n");
+    fprintf(out, "typedef struct _$Ndyn_");
+    print_deftype_name(out, mod, dd);
+    fprintf(out, " _$Ndyn_");
+    print_deftype_name(out, mod, dd);
+    fprintf(out, ";\n");
+  } else if (d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+    print_enum(out, false, FWD_DECLARE_TYPES, mod, d, d, NULL);
+  } else if (!(typ_is_builtin(mod, d->typ) && node_is_extern(d))) {
     prefix = "struct ";
     fprintf(out, "struct ");
+    print_deftype_name(out, mod, d);
+    fprintf(out, ";\n");
+    fprintf(out, "typedef struct ");
+    print_deftype_name(out, mod, d);
+    fprintf(out, " ");
     print_deftype_name(out, mod, d);
     fprintf(out, ";\n");
   }
@@ -2368,37 +2428,37 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
   }
   print_deftype_name(out, mod, d);
   fprintf(out, "_genN$_;\n");
+
+  guard_generic(out, header, fwd, mod, node, false);
 }
 
 static void print_deftype(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node,
                           struct typset *printed) {
+  if (header && !node_is_export(node)) {
+    return;
+  }
   const bool is_gen = typ_generic_arity(node->typ) > 0;
-  if (!is_gen) {
-    if (header && !node_is_export(node)) {
+  if (!is_gen && !header) {
+    if (node_is_export(node) && fwd == FWD_DECLARE_TYPES) {
+      return;
+    } else if (node_is_export(node) && node_is_inline(node) && fwd == FWD_DEFINE_TYPES) {
       return;
     }
-    if (!header) {
-      if (node_is_export(node) && fwd == FWD_DECLARE_TYPES) {
-        return;
-      } else if (node_is_export(node) && node_is_inline(node) && fwd == FWD_DEFINE_TYPES) {
-        return;
-      }
-    }
-  }
-
-  if (fwd == FWD_DEFINE_TYPES && node_is_extern(node)) {
-    return;
   }
 
   if (typ_is_pseudo_builtin(node->typ)) {
     return;
   }
 
-  guard_generic(out, header, fwd, mod, node, "", true);
-
   if (typ_is_reference(node->typ)) {
     print_deftype_reference(out, header, fwd, mod, node);
+    return;
+  }
+
+  guard_generic(out, header, fwd, mod, node, true);
+
+  if (fwd == FWD_DEFINE_TYPES && node_is_extern(node)) {
     goto done;
   }
 
@@ -2446,12 +2506,12 @@ static void print_deftype(FILE *out, bool header, enum forward fwd,
   print_mkdyn(out, header, fwd, mod, node);
 
 done:
-  guard_generic(out, header, fwd, mod, node, "", false);
+  guard_generic(out, header, fwd, mod, node, false);
 }
 
-static error print_defintf_dyn_field_eachisalist(struct module *mod, struct typ *t,
-                                                 struct typ *intf,
-                                                 bool *stop, void *user) {
+static error print_defintf_dyntable_field_eachisalist(struct module *mod, struct typ *t,
+                                                      struct typ *intf,
+                                                      bool *stop, void *user) {
   struct cprinter_state *st = user;
 
   const struct node *dintf = typ_definition_const(intf);
@@ -2465,7 +2525,7 @@ static error print_defintf_dyn_field_eachisalist(struct module *mod, struct typ 
     if (subs_count_atleast(subs_at_const(typ_definition_const(d->typ), IDX_GENARGS), 1)) {
       continue;
     }
-    print_fun_prototype(st->out, st->header, mod, d, true, true, true, NULL);
+    print_fun_prototype(st->out, st->header, st->fwd, mod, d, true, true, true, NULL);
     fprintf(st->out, ";\n");
     st->printed += 1;
   }
@@ -2488,7 +2548,7 @@ static error print_defintf_member_proto_eachisalist(struct module *mod, struct t
     if (subs_count_atleast(subs_at_const(typ_definition_const(d->typ), IDX_GENARGS), 1)) {
       continue;
     }
-    print_fun_prototype(st->out, st->header, mod, d, false, false, false, t);
+    print_fun_prototype(st->out, st->header, st->fwd, mod, d, false, false, false, t);
     fprintf(st->out, ";\n");
   }
   return 0;
@@ -2510,7 +2570,7 @@ static error print_defintf_member_eachisalist(struct module *mod, struct typ *t,
       continue;
     }
 
-    print_fun_prototype(st->out, st->header, mod, d, false, false, false, t);
+    print_fun_prototype(st->out, st->header, st->fwd, mod, d, false, false, false, t);
     fprintf(st->out, " {\n");
 
     const bool retval_throughref = !typ_isa_return_by_copy(node_fun_retval_const(d)->typ);
@@ -2555,17 +2615,28 @@ static error print_defintf_member_eachisalist(struct module *mod, struct typ *t,
 
 static void print_defintf(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node) {
+  if (typ_is_generic_functor(node->typ)) {
+    return;
+  }
+  const struct node *isalist = subs_at_const(node, IDX_ISALIST);
+  if (subs_count_atleast(isalist, 1)
+      && typ_equal(subs_first_const(isalist)->typ, TBI_PREVENT_DYN)) {
+    return;
+  }
+
+  if (header && !node_is_export(node)) {
+    return;
+  }
+  if (header && fwd == FWD_DEFINE_FUNCTIONS) {
+    return;
+  }
+
   const bool is_gen = typ_generic_arity(node->typ) > 0;
-  if (!is_gen) {
-    if (header && !node_is_export(node)) {
+  if (!is_gen && !header) {
+    if (node_is_export(node) && fwd == FWD_DECLARE_TYPES) {
       return;
-    }
-    if (!header) {
-      if (node_is_export(node) && fwd == FWD_DECLARE_TYPES) {
-        return;
-      } else if (node_is_export(node) && fwd == FWD_DEFINE_TYPES) {
-        return;
-      }
+    } else if (node_is_export(node) && node_is_inline(node) && fwd == FWD_DEFINE_TYPES) {
+      return;
     }
   }
 
@@ -2577,25 +2648,25 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  guard_generic(out, header, fwd, mod, node, "", true);
+  guard_generic(out, header, fwd, mod, node, true);
 
   if (fwd == FWD_DECLARE_TYPES) {
+    fprintf(out, "struct _$Ndyntable_");
+    print_deftype_name(out, mod, node);
+    fprintf(out, ";\n");
+
     fprintf(out, "struct _$Ndyn_");
     print_deftype_name(out, mod, node);
     fprintf(out, ";\n");
-
-    fprintf(out, "struct ");
+    fprintf(out, "typedef struct _$Ndyn_");
     print_deftype_name(out, mod, node);
-    fprintf(out, ";\n");
-    fprintf(out, "typedef struct ");
-    print_deftype_name(out, mod, node);
-    fprintf(out, " ");
+    fprintf(out, " _$Ndyn_");
     print_deftype_name(out, mod, node);
     fprintf(out, ";\n");
 
   } else if (fwd == FWD_DEFINE_TYPES) {
     if (!prototype_only(header, node)) {
-      fprintf(out, "struct _$Ndyn_");
+      fprintf(out, "struct _$Ndyntable_");
       print_deftype_name(out, mod, node);
       fprintf(out, " {\n");
 
@@ -2603,15 +2674,16 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
         .out = out, .header = header, .fwd = fwd,
         .mod = NULL, .printed = 0, .user = NULL,
       };
-      error e = typ_isalist_foreach((struct module *)mod, node->typ, 0,
+      error e = typ_isalist_foreach((struct module *)mod, node->typ,
+                                    ISALIST_FILTEROUT_PREVENT_DYN,
                                     // filter is 0 because all members of an
                                     // intf inherit the exported status from
                                     // the intf itself.
-                                    print_defintf_dyn_field_eachisalist,
+                                    print_defintf_dyntable_field_eachisalist,
                                     &st);
       assert(!e);
-      e = print_defintf_dyn_field_eachisalist((struct module *)mod, node->typ,
-                                              node->typ, NULL, &st);
+      e = print_defintf_dyntable_field_eachisalist((struct module *)mod, node->typ,
+                                                   node->typ, NULL, &st);
       assert(!e);
 
       if (st.printed == 0) {
@@ -2621,10 +2693,10 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
       }
       fprintf(out, "};\n");
 
-      fprintf(out, "struct ");
+      fprintf(out, "struct _$Ndyn_");
       print_deftype_name(out, mod, node);
       fprintf(out, " {\n");
-      fprintf(out, "const struct _$Ndyn_");
+      fprintf(out, "const struct _$Ndyntable_");
       print_deftype_name(out, mod, node);
       fprintf(out, " *vptr;\n");
       fprintf(out, "void *obj;\n");
@@ -2644,7 +2716,7 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
     assert(!e);
   }
 
-  guard_generic(out, header, fwd, mod, node, "", false);
+  guard_generic(out, header, fwd, mod, node, false);
 }
 
 static void print_include(FILE *out, const char *filename, const char *postfix) {
@@ -2677,14 +2749,22 @@ static bool file_exists(const char *base, const char *postfix) {
   return r;
 }
 
+static uint32_t track_id(bool header, enum forward fwd) {
+  return (!!header << 8) | (uint8_t)fwd;
+}
+
 static bool is_printed(struct typset *printed,
                        bool header, enum forward fwd,
                        const struct typ *t) {
+  if (typ_equal(t, TBI__NOT_TYPEABLE)) {
+    return false;
+  }
+
   uint32_t *at = typset_get(printed, t);
 
   if (at != NULL) {
-    const uint32_t at_fwd = (*at) & 0x0f;
-    const uint32_t at_header = (*at) >> 4;
+    const uint32_t at_fwd = (*at) & 0xff;
+    const uint32_t at_header = (*at) >> 8;
     if ((!at_header && header) || at_fwd >= fwd) {
       return true;
     }
@@ -2697,6 +2777,10 @@ static void track_printed(const struct module *mod,
                           struct typset *printed,
                           bool header, enum forward fwd,
                           const struct typ *t) {
+  if (typ_equal(t, TBI__NOT_TYPEABLE)) {
+    return;
+  }
+
   const uint32_t update = track_id(header, fwd);
   uint32_t *at = typset_get(printed, t);
   if (at != NULL) {
@@ -2706,21 +2790,31 @@ static void track_printed(const struct module *mod,
   }
 }
 
-static int print_topdeps_foreach(const struct typ **_t, uint32_t *value, void *user) {
+static error print_topdeps_each(struct module *mod, struct node *node,
+                                struct typ *_t, uint32_t topdep_mask, void *user) {
+  if (topdep_mask & (TOP_IS_FUNCTOR | TOP_IS_PREVENT_DYN)) {
+    return 0;
+  }
+  if (!typ_is_concrete(_t)
+      || (!node_is_at_top(node) && !typ_is_concrete(parent_const(node)->typ))
+      || (typ_is_reference(_t) && typ_definition_const(_t)->which == DEFINTF)
+      || typ_is_generic_functor(_t)
+      || typ_generic_arity(_t) == 0
+      || typ_is_tentative(_t)) {
+    return 0;
+  }
+
   struct cprinter_state *st = user;
   struct typset *printed = st->user;
-  enum toplevel_flags mask = *value;
-  const struct typ *t = intercept_slices(st->mod, *_t);
+  const struct typ *t = intercept_slices(st->mod, _t);
 
-  if (st->header && !(mask & (TOP_IS_EXPORT | TOP_IS_INLINE))) {
+  if (st->header && !(topdep_mask & (TOP_IS_EXPORT | TOP_IS_INLINE))) {
     return 0;
   }
 
   if (is_printed(printed, st->header, st->fwd, t)) {
     return 0;
   }
-
-  track_printed(st->mod, printed, st->header, st->fwd, t);
 
   const struct node *d = typ_definition_const(t);
   const struct module *dmod = node_module_owner_const(d);
@@ -2733,11 +2827,6 @@ static void print_topdeps(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node,
                           struct typset *printed) {
   const struct toplevel *toplevel = node_toplevel_const(node);
-  struct typset *topdeps = toplevel->topdeps;
-  if (topdeps == NULL) {
-    return;
-  }
-
   if (header && !(toplevel->flags & TOP_IS_EXPORT)) {
     return;
   }
@@ -2750,7 +2839,10 @@ static void print_topdeps(FILE *out, bool header, enum forward fwd,
     .printed = 0,
     .user = printed,
   };
-  (void) typset_foreach(topdeps, print_topdeps_foreach, &st);
+
+  error e = topdeps_foreach(CONST_CAST(mod), CONST_CAST(node),
+                            print_topdeps_each, &st);
+  assert(!e);
 }
 
 static void print_top(FILE *out, bool header, enum forward fwd,
@@ -2765,7 +2857,23 @@ static void print_top(FILE *out, bool header, enum forward fwd,
     return;
   }
 
+  if (NM(node->which) & (NM(EXAMPLE) | NM(LET))) {
+    // not tracked
+  } else {
+    if (is_printed(printed, header, fwd, node->typ)) {
+      return;
+    }
+    track_printed(mod, printed, header, fwd, node->typ);
+  }
+
   print_topdeps(out, header, fwd, mod, node, printed);
+
+#if 1
+  fprintf(out, "/*\n");
+    stderr=out;
+    debug_print_topdeps(mod, node);
+  fprintf(out, "\n*/\n");
+#endif
 
   switch (node->which) {
   case DEFMETHOD:
@@ -2788,7 +2896,6 @@ static void print_top(FILE *out, bool header, enum forward fwd,
     print_import(out, header, fwd, mod, node);
     break;
   case WITHIN:
-    break;
   case DEFINCOMPLETE:
     break;
   default:

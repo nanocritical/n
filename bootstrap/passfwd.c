@@ -1,16 +1,17 @@
 #include "passfwd.h"
 
 #include "table.h"
+#include "parser.h"
 #include "types.h"
-#include "constraints.h"
 #include "scope.h"
 #include "unify.h"
 #include "import.h"
+#include "instantiate.h"
+#include "autointf.h"
 
 #include "passes.h"
 #include "passzero.h"
 #include "passbody.h"
-#include "autointf.h"
 
 static STEP_NM(step_codeloc_for_generated,
                -1);
@@ -43,16 +44,38 @@ static error step_export_pre_post_invariant(struct module *mod, struct node *nod
   return 0;
 }
 
-STEP_NM(step_stop_already_morningtypepass,
+STEP_NM(step_stop_already_early_typing,
         NM(LET) | NM(ISA) | NM(GENARGS) | NM(FUNARGS) |
         NM(DEFGENARG) | NM(SETGENARG) | NM(DEFFIELD) | NM(DEFCHOICE) |
         NM(WITHIN));
-error step_stop_already_morningtypepass(struct module *mod, struct node *node,
-                                        void *user, bool *stop) {
+error step_stop_already_early_typing(struct module *mod, struct node *node,
+                                     void *user, bool *stop) {
   DSTEP(mod, node);
 
-  *stop = node->typ != NULL;
+  if (node->which == WITHIN) {
+    *stop = parent_const(node)->which == WITHIN && node->typ != NULL;
+  } else {
+    *stop = node->typ != NULL;
+  }
 
+  return 0;
+}
+
+static STEP_NM(step_down_is_setgenarg,
+               NM(SETGENARG));
+static error step_down_is_setgenarg(struct module *mod, struct node *node,
+                                    void *user, bool *stop) {
+  DSTEP(mod, node);
+  mod->state->top_state->is_setgenarg = true;
+  return 0;
+}
+
+static STEP_NM(step_up_is_setgenarg,
+               NM(SETGENARG));
+static error step_up_is_setgenarg(struct module *mod, struct node *node,
+                                  void *user, bool *stop) {
+  DSTEP(mod, node);
+  mod->state->top_state->is_setgenarg = false;
   return 0;
 }
 
@@ -61,17 +84,19 @@ static error pass_early_typing(struct module *mod, struct node *root,
   PASS(
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_block);
-    DOWN_STEP(step_stop_already_morningtypepass);
+    DOWN_STEP(step_stop_already_early_typing);
     DOWN_STEP(step_type_destruct_mark);
+    DOWN_STEP(step_down_is_setgenarg);
     ,
     UP_STEP(step_type_inference);
-    UP_STEP(step_constraint_inference);
     UP_STEP(step_remove_typeconstraints);
+    UP_STEP(step_up_is_setgenarg);
+    ,
     );
   return 0;
 }
 
-static error morningtypepass(struct module *mod, struct node *node) {
+static error early_typing(struct module *mod, struct node *node) {
   PUSH_STATE(mod->state->step_state);
   bool tentatively_saved = mod->state->tentatively;
   if (mod->state->prev != NULL) {
@@ -95,8 +120,10 @@ static error step_type_definitions(struct module *mod, struct node *node,
 
   ident id = node_ident(subs_first(node));
 
-  if (subs_count_atleast(subs_at(node, IDX_GENARGS), 1)
-      && node_toplevel(node)->generic->our_generic_functor_typ != NULL) {
+  const struct toplevel *toplevel = node_toplevel_const(node);
+
+  if (toplevel->generic != NULL
+      && toplevel->generic->our_generic_functor_typ != NULL) {
     set_typ(&node->typ, typ_create(NULL, node));
   } else if (mod->path[0] == ID_NLANG
              && (id >= ID_TBI__FIRST && id <= ID_TBI__LAST)) {
@@ -109,9 +136,63 @@ static error step_type_definitions(struct module *mod, struct node *node,
   }
   node->flags |= NODE_IS_TYPE;
 
-  step_constraint_inference(mod, node, NULL, NULL);
+  return 0;
+}
+
+static STEP_NM(step_detect_not_dyn_intf_down,
+               NM(DEFFUN) | NM(DEFMETHOD));
+static error step_detect_not_dyn_intf_down(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  mod->state->fun_state->fun_uses_final = false;
 
   return 0;
+}
+
+static STEP_NM(step_detect_not_dyn_intf_up,
+               NM(DEFFUN) | NM(DEFMETHOD) | NM(IDENT) | NM(DEFARG));
+static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (mod->state->fun_state == NULL) {
+    // Not in a function.
+    return 0;
+  }
+
+  switch (node->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+    if (mod->state->fun_state->fun_uses_final
+        || subs_count_atleast(subs_at_const(node, IDX_GENARGS), 1)) {
+      node_toplevel(node)->flags |= TOP_IS_NOT_DYN;
+    }
+    break;
+  case IDENT:
+    if (node_ident(node) == ID_FINAL) {
+      mod->state->fun_state->fun_uses_final = true;
+    }
+    break;
+  case DEFARG:
+    if (subs_first(parent(node)) == node && parent(parent(node))->which == DEFMETHOD) {
+      // We just found 'self' as a method argument on the way up, doesn't
+      // count.  By setting it to false, we could be loosing track of uses
+      // before the declaration of 'self', but that would have to be in a
+      // generic argument specification, meaning that TOP_IS_NOT_DYN anyway.
+      assert(mod->state->fun_state->fun_uses_final);
+      mod->state->fun_state->fun_uses_final = false;
+    }
+    break;
+  default:
+    assert(false && "Unreached");
+    break;
+  }
+  return 0;
+}
+
+static bool demands_inline(const struct node *node) {
+  return subs_count_atleast(subs_at_const(node, IDX_GENARGS), 1);
 }
 
 static struct node *do_move_detached_member(struct module *mod,
@@ -140,27 +221,15 @@ static struct node *do_move_detached_member(struct module *mod,
   node_subs_append(container, node);
 
   struct toplevel *container_toplevel = node_toplevel(container);
-  if (container_toplevel->generic != NULL) {
-    struct node *copy = node_new_subnode(
-      mod, *vecnode_get(&container_toplevel->generic->instances, 0));
-    node_deepcopy(mod, copy, *vecnode_get(&toplevel->generic->instances, 0));
-  } else {
-    const struct node *genargs = subs_at_const(node, IDX_GENARGS);
-    if (!subs_count_atleast(genargs, 1)) {
-      // Remove uneeded 'generic', added in step_generics_pristine_copy().
-      vecnode_destroy(&toplevel->generic->instances);
-      toplevel->generic = NULL;
-    }
-  }
+  struct node *container_pristine = *vecnode_get(&container_toplevel->generic->instances, 0);
 
-  if (toplevel->generic != NULL
-      || container_toplevel->generic != NULL) {
-    // FIXME: This is not strictly correct, but for now, it is necessary to
-    // assume that all methods and functions in a generic type are 'inline'.
-    toplevel->flags |= TOP_IS_INLINE;
-    if (toplevel->generic != NULL) {
-      node_toplevel(*vecnode_get(&toplevel->generic->instances, 0))->flags |= TOP_IS_INLINE;
-    }
+  struct node *node_pristine = *vecnode_get(&toplevel->generic->instances, 0);
+  struct node *copy = node_new_subnode(mod, container_pristine);
+  node_deepcopy(mod, copy, node_pristine);
+
+  if (demands_inline(node) || demands_inline(parent_const(node))) {
+    node_toplevel(node)->flags |= TOP_IS_INLINE;
+    node_toplevel(node_pristine)->flags |= TOP_IS_INLINE;
   }
 
   return nxt;
@@ -276,7 +345,8 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
     }
 
     toplevel = node_toplevel_const(node);
-    if (toplevel->generic->our_generic_functor_typ != NULL) {
+    if (toplevel->generic != NULL
+        && toplevel->generic->our_generic_functor_typ != NULL) {
       // See comment below for DEFTYPE/DEFINTF. To get the same instance
       // than the current function, you have to explicitly instantiate it
       // (as there is no 'thisfun').
@@ -450,9 +520,9 @@ static error step_add_builtin_members_enum_union(struct module *mod, struct node
   return 0;
 }
 
-static STEP_NM(step_type_inference_genargs,
+static STEP_NM(step_type_genargs,
                STEP_NM_DEFS);
-static error step_type_inference_genargs(struct module *mod, struct node *node,
+static error step_type_genargs(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
@@ -462,7 +532,7 @@ static error step_type_inference_genargs(struct module *mod, struct node *node,
   }
 
   struct node *genargs = subs_at(node, IDX_GENARGS);
-  e = morningtypepass(mod, genargs);
+  e = early_typing(mod, genargs);
   EXCEPT(e);
 
   return 0;
@@ -477,7 +547,7 @@ static error step_type_aliases(struct module *mod, struct node *node,
   struct node *par = parent(node);
   if ((node_is_at_top(node) || node_is_at_top(par))
       && subs_first(node)->which == DEFALIAS) {
-    error e = morningtypepass(mod, node);
+    error e = early_typing(mod, node);
     EXCEPT(e);
   }
 
@@ -496,13 +566,13 @@ static error step_type_create_update(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_NM(step_type_inference_isalist,
+static STEP_NM(step_type_isalist,
                NM(ISA));
-static error step_type_inference_isalist(struct module *mod, struct node *node,
+static error step_type_isalist(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
 
-  error e = morningtypepass(mod, node);
+  error e = early_typing(mod, node);
   EXCEPT(e);
 
   return 0;
@@ -533,8 +603,8 @@ static error validate_genarg_types(struct module *mod, struct node *node) {
       error e = typ_check_isa(mod, ga->as.SETGENARG.for_error,
                               ga->typ, typ_generic_arg_const(t0, n));
       EXCEPT(e);
-      n += 1;
     }
+    n += 1;
   }
 
   return 0;
@@ -554,6 +624,21 @@ static error step_validate_genargs(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_detect_prevent_dyn,
+               STEP_NM_DEFS_NO_FUNS);
+static error step_detect_prevent_dyn(struct module *mod, struct node *node,
+                                     void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  const struct node *isalist = subs_at_const(node, IDX_ISALIST);
+  if (subs_count_atleast(isalist, 1)
+      && typ_equal(subs_first_const(isalist)->typ, TBI_PREVENT_DYN)) {
+    node_toplevel(node)->flags |= TOP_IS_PREVENT_DYN;
+  }
+
+  return 0;
+}
+
 static STEP_NM(step_type_lets,
                NM(LET));
 static error step_type_lets(struct module *mod, struct node *node,
@@ -563,7 +648,7 @@ static error step_type_lets(struct module *mod, struct node *node,
   struct node *par = parent(node);
   if ((node_is_at_top(node) || node_is_at_top(par))
       && subs_first(node)->which == DEFNAME) {
-    error e = morningtypepass(mod, node);
+    error e = early_typing(mod, node);
     EXCEPT(e);
   }
 
@@ -576,7 +661,7 @@ static error step_type_deffields(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
 
-  error e = morningtypepass(mod, node);
+  error e = early_typing(mod, node);
   EXCEPT(e);
 
   return 0;
@@ -599,7 +684,7 @@ static error step_type_defchoices(struct module *mod, struct node *node,
   }
 
   set_typ(&node->as.DEFTYPE.tag_typ,
-          typ_create_tentative(TBI_LITERALS_INTEGER));
+          instantiate_fully_implicit(mod, node, TBI_LITERALS_INTEGER)->typ);
 
   error e;
   FOREACH_SUB(ch, node) {
@@ -627,13 +712,26 @@ static error step_type_defchoices(struct module *mod, struct node *node,
 }
 
 static STEP_NM(step_type_deffuns,
-               NM(DEFMETHOD) | NM(DEFFUN));
+               NM(DEFMETHOD) | NM(DEFFUN) | NM(EXAMPLE));
 static error step_type_deffuns(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   DSTEP(mod, node);
 
-  error e = morningtypepass(mod, node);
+  error e = early_typing(mod, node);
   EXCEPT(e);
+
+  return 0;
+}
+
+static STEP_NM(step_mark_members_tentative,
+               NM(DEFMETHOD) | NM(DEFFUN));
+static error step_mark_members_tentative(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (!node_is_at_top(node) && typ_is_tentative(parent_const(node)->typ)) {
+    typ_add_tentative_bit__privileged(&node->typ);
+  }
 
   return 0;
 }
@@ -675,18 +773,151 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
   return 0;
 }
 
+static error check_has_matching_member(struct module *mod,
+                                       struct node *deft,
+                                       const struct typ *intf,
+                                       const struct node *mi) {
+  error e;
+  struct node *m = node_get_member(deft, node_ident(mi));
+  if (m == NULL) {
+    e = mk_except_type(mod, deft,
+                       "type '%s' isa '%s' but does not implement member '%s'",
+                       typ_pretty_name(mod, deft->typ),
+                       typ_pretty_name(mod, intf),
+                       idents_value(mod->gctx, node_ident(mi)));
+    THROW(e);
+  }
+
+  if (m->which != mi->which) {
+    e = mk_except_type(mod, deft,
+                       "in type '%s', member '%s' implemented from intf '%s'"
+                       " is not the right kind of declaration",
+                       typ_pretty_name(mod, deft->typ),
+                       idents_value(mod->gctx, node_ident(m)),
+                       typ_pretty_name(mod, intf));
+  }
+
+  if (m->which == DEFNAME
+      || m->which == DEFALIAS
+      || m->which == DEFFIELD) {
+    // FIXME: if the type of mi is (lexically) 'final', we need to check
+    // that it is *equal* to deft->typ.
+
+    if (!typ_isa(m->typ, mi->typ)) {
+      e = mk_except_type(mod, deft,
+                         "in type '%s', member '%s' implemented from intf '%s'"
+                         " has type '%s' but must be isa '%s'",
+                         typ_pretty_name(mod, deft->typ),
+                         idents_value(mod->gctx, node_ident(m)),
+                         typ_pretty_name(mod, intf),
+                         typ_pretty_name(mod, m->typ),
+                         typ_pretty_name(mod, mi->typ));
+      THROW(e);
+    }
+  } else if (mi->which == DEFFUN || mi->which == DEFMETHOD) {
+    // FIXME check that the prototype is an exact match.
+    // FIXME: handle (lexically) 'final' in mi properly.
+  } else {
+    assert(false && "Unreached");
+  }
+
+  switch (m->which) {
+  case DEFALIAS:
+    m->as.DEFALIAS.member_isa = mi;
+    break;
+  case DEFNAME:
+    m->as.DEFNAME.member_isa = mi;
+    break;
+  case DEFFIELD:
+    m->as.DEFFIELD.member_isa = mi;
+    break;
+  case DEFFUN:
+    m->as.DEFFUN.member_isa = mi;
+    break;
+  case DEFMETHOD:
+    m->as.DEFMETHOD.member_isa = mi;
+    break;
+  default:
+    assert(false && "Unreached");
+    break;
+  }
+
+  return 0;
+}
+
+static error check_exhaustive_intf_impl_eachisalist(struct module *mod,
+                                                    struct typ *t,
+                                                    struct typ *intf,
+                                                    bool *stop,
+                                                    void *user) {
+  (void) user;
+  struct node *deft = typ_definition(t);
+  const struct node *dintf = typ_definition_const(intf);
+  error e = 0;
+
+  if (typ_isa(t, TBI_ANY_TUPLE) && typ_equal(intf, TBI_COPYABLE)) {
+    // FIXME: once we generate copy_ctor in the non-trivial_copy case,
+    // remove this.
+    return 0;
+  }
+
+  FOREACH_SUB_EVERY_CONST(mi, dintf, IDX_ISALIST + 1, 1) {
+    if (mi->which == NOOP) {
+      // noop
+    } else if (mi->which == LET) {
+      FOREACH_SUB_CONST(d, mi) {
+        assert(NM(d->which) & (NM(DEFNAME) | NM(DEFALIAS)));
+
+        ident id = node_ident(d);
+        if (id == ID_FINAL || id == ID_THIS) {
+          continue;
+        }
+
+        e = check_has_matching_member(mod, deft, intf, d);
+        EXCEPT(e);
+      }
+    } else {
+      e = check_has_matching_member(mod, deft, intf, mi);
+      EXCEPT(e);
+    }
+  }
+
+  return 0;
+}
+
+static STEP_NM(step_check_exhaustive_intf_impl,
+               NM(DEFTYPE));
+static error step_check_exhaustive_intf_impl(struct module *mod, struct node *node,
+                                             void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (typ_is_pseudo_builtin(node->typ)) {
+    return 0;
+  }
+
+  error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTEROUT_TRIVIAL_ISALIST,
+                                check_exhaustive_intf_impl_eachisalist, NULL);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static error passfwd0(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   // scoping_deftypes
   PASS(
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_codeloc_for_generated);
     DOWN_STEP(step_export_pre_post_invariant);
     DOWN_STEP(step_lexical_scoping);
+    DOWN_STEP(step_detect_not_dyn_intf_down);
     ,
+    UP_STEP(step_detect_not_dyn_intf_up);
     UP_STEP(step_type_definitions);
-    UP_STEP(step_complete_instantiation);
     UP_STEP(step_move_detached_members);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
   return 0;
 }
@@ -695,113 +926,107 @@ static error passfwd1(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   // imports
   PASS(
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_funblock);
     DOWN_STEP(step_lexical_import);
     DOWN_STEP(step_add_builtin_members);
-    DOWN_STEP(step_stop_funblock);
     ,
-    UP_STEP(step_complete_instantiation);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
   return 0;
 }
 
 static error passfwd2(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
-  // type_genargs
   PASS(
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
-    DOWN_STEP(step_type_inference_genargs);
-    DOWN_STEP(step_push_top_state);
+    DOWN_STEP(step_type_genargs);
     ,
-    UP_STEP(step_type_aliases);
-    UP_STEP(step_pop_top_state);
-    UP_STEP(step_complete_instantiation);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
   return 0;
 }
 
 static error passfwd3(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
-  // type_isalist
   PASS(
-    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_type_create_update);
+    DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
-    DOWN_STEP(step_push_top_state);
     ,
-    UP_STEP(step_type_inference_isalist);
-    UP_STEP(step_pop_top_state);
-    UP_STEP(step_complete_instantiation);
+    UP_STEP(step_type_isalist);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
   return 0;
 }
 
 static error passfwd4(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
-  // type_complete_create
   PASS(
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
-    DOWN_STEP(step_validate_genargs);
-    DOWN_STEP(step_type_update_quickisa);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
     ,
+    UP_STEP(step_type_aliases);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
   return 0;
 }
 
 static error passfwd5(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
-  // type_def_lets
   PASS(
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
-    DOWN_STEP(step_push_top_state);
+    DOWN_STEP(step_validate_genargs);
+    DOWN_STEP(step_type_update_quickisa);
     ,
-    UP_STEP(step_type_lets);
-    UP_STEP(step_pop_top_state);
-    UP_STEP(step_complete_instantiation);
+    UP_STEP(step_detect_prevent_dyn);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
   return 0;
 }
 
 static error passfwd6(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
-  // type_deffields
   PASS(
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
-    DOWN_STEP(step_push_top_state);
     ,
-    UP_STEP(step_type_deffields);
-    UP_STEP(step_type_defchoices);
-    UP_STEP(step_add_builtin_members_enum_union);
-    UP_STEP(step_pop_top_state);
-    UP_STEP(step_complete_instantiation);
+    UP_STEP(step_type_lets);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
   return 0;
 }
 
 static error passfwd7(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
-  // type_add_builtin_intf
   PASS(
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
-    DOWN_STEP(step_push_top_state);
     ,
-    UP_STEP(step_autointf_enum_union);
-    UP_STEP(step_autointf_detect_default_ctor_dtor);
-    UP_STEP(step_autointf_infer_intfs);
-    UP_STEP(step_pop_top_state);
-    UP_STEP(step_complete_instantiation);
-    UP_STEP(step_autointf_isalist_literal_protos);
+    UP_STEP(step_type_deffields);
+    UP_STEP(step_type_defchoices);
+    UP_STEP(step_add_builtin_members_enum_union);
     ,
     FINALLY_STEP(step_pop_state);
     );
@@ -810,18 +1035,51 @@ static error passfwd7(struct module *mod, struct node *root,
 
 static error passfwd8(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
-  // type_deffuns
   PASS(
+    DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
-    DOWN_STEP(step_push_top_state);
+    ,
+    UP_STEP(step_autointf_enum_union);
+    UP_STEP(step_autointf_detect_default_ctor_dtor);
+    UP_STEP(step_autointf_infer_intfs);
+    UP_STEP(step_autointf_isalist_literal_protos);
+    ,
+    FINALLY_STEP(step_pop_state);
+    );
+  return 0;
+}
+
+static error passfwd9(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  PASS(
+    DOWN_STEP(step_push_state);
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_funblock);
     ,
     UP_STEP(step_type_deffuns);
+    UP_STEP(step_mark_members_tentative);
     UP_STEP(step_autointf_add_environment_builtins);
     UP_STEP(step_rewrite_def_return_through_ref);
-    UP_STEP(step_pop_top_state);
-    UP_STEP(step_complete_instantiation);
+    ,
+    FINALLY_STEP(step_pop_state);
+    );
+  return 0;
+}
+
+static error passfwd10(struct module *mod, struct node *root,
+                       void *user, ssize_t shallow_last_up) {
+  PASS(
+    DOWN_STEP(step_push_state);
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_funblock);
+    ,
+    UP_STEP(step_check_exhaustive_intf_impl);
+    ,
+    FINALLY_STEP(step_pop_state);
     );
   return 0;
 }
@@ -836,4 +1094,6 @@ a_pass passfwd[] = {
   passfwd6,
   passfwd7,
   passfwd8,
+  passfwd9,
+  passfwd10,
 };

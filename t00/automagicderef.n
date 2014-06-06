@@ -1,8 +1,6 @@
 from nlang import *
 
-alias `our = {`copyable `trivial_ctor}
-
-struct holder t:`our =
+struct holder t:{`copyable `trivial_ctor} =
   x	:t
 
 holder fun mk x:t = this --::init

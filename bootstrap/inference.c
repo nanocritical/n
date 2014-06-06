@@ -5,32 +5,13 @@
 #include "types.h"
 #include "unify.h"
 #include "scope.h"
+#include "parser.h"
 #include "instantiate.h"
+#include "topdeps.h"
 
-noinline__
-static void record_topdep(struct module *mod, struct typ *t) {
-  struct top_state *st = mod->state->top_state;
-  if (st == NULL
-      || typ_is_tentative(t)
-      || typ_is_pseudo_builtin(t)
-      || typ_is_generic_functor(t)
-      || (st->top->typ != NULL && typ_equal(st->top->typ, t))
-      || typ_generic_arity(t) == 0) {
-    return;
-  }
-
-  struct toplevel *toplevel = node_toplevel(st->top);
-  if (toplevel->topdeps == NULL) {
-    toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
-    typset_fullinit(toplevel->topdeps);
-  }
-
-  uint32_t *value = typset_get(toplevel->topdeps, t);
-  if (value == NULL) {
-    typset_set(toplevel->topdeps, t, st->topdep_mask);
-  } else {
-    *value |= st->topdep_mask;
-  }
+static struct typ *create_tentative(struct module *mod, const struct node *for_error,
+                                    struct typ *functor) {
+  return instantiate_fully_implicit(mod, for_error, functor)->typ;
 }
 
 STEP_NM(step_rewrite_wildcards,
@@ -61,9 +42,8 @@ error step_rewrite_wildcards(struct module *mod, struct node *node,
     }
 
     const bool is_shallow = node_toplevel_const(node)->flags & TOP_IS_SHALLOW;
-    if (typ_equal(def->typ, TBI_ANY_REF)) {
-      // noop
-    } else if (typ_equal(def->typ, TBI_REF)) {
+    if (typ_equal(def->typ, TBI_ANY_REF)
+        || typ_equal(def->typ, TBI_REF)) {
       mod->state->fun_state->wildcard.ref = TREFDOT;
       mod->state->fun_state->wildcard.nulref = TNULREFDOT;
       mod->state->fun_state->wildcard.deref = TDEREFDOT;
@@ -374,18 +354,28 @@ error step_type_gather_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
-static error typ_ref(struct node **result,
-                     struct module *mod, struct node *for_error,
-                     enum token_type op, struct typ *typ) {
-  // FIXME: when op is a wildcard (not substituted -- i.e. in the
-  // uninstantiated generic), we will not catch all possible
-  // incompatibilities. They will get caught when the function is
-  // instantiated on an actual reference, but we're supposed to catch
-  // everything prior to that.
+error reference(struct node **result,
+                struct module *mod, struct node *for_error,
+                enum token_type op, struct typ *typ) {
+  struct typ *f = mod->gctx->builtin_typs_for_refop[op];
+  switch (op) {
+  case TREFWILDCARD:
+  case TNULREFWILDCARD:
+    // FIXME: when op is a wildcard (not substituted -- i.e. in the
+    // uninstantiated generic), we will not catch all possible
+    // incompatibilities. They will get caught when the function is
+    // instantiated on an actual reference, but we're supposed to catch
+    // everything prior to that.
+    f = typ_create_tentative_functor(f);
+    break;
+  default:
+    break;
+  }
 
-  error e = instantiate(result, mod, for_error, 0,
-                        mod->gctx->builtin_typs_for_refop[op], &typ, 1);
+  error e = instantiate(result, mod, for_error, 0, f, &typ, 1);
   EXCEPT(e);
+
+  topdeps_record(mod, (*result)->typ);
 
   return 0;
 }
@@ -486,7 +476,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
     // FIXME: it's not OK to take a mutable reference of:
     //   fun foo p:@t = void
     //     let mut = @!(p.)
-    e = typ_ref(&i, mod, node, operator, term->typ);
+    e = reference(&i, mod, node, operator, term->typ);
     EXCEPT(e);
     set_typ(&node->typ, i->typ);
     node->flags |= term->flags & NODE__TRANSITIVE;
@@ -522,12 +512,12 @@ static error type_inference_un(struct module *mod, struct node *node) {
     EXCEPT(e);
     break;
   case OP_UN_ARITH:
-    set_typ(&node->typ, typ_create_tentative(TBI_ARITHMETIC));
+    set_typ(&node->typ, create_tentative(mod, node, TBI_ARITHMETIC));
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
   case OP_UN_BW:
-    set_typ(&node->typ, typ_create_tentative(TBI_BITWISE));
+    set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE));
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
@@ -596,7 +586,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
       left->flags |= right->flags & NODE__TRANSITIVE;
       break;
     default:
-      set_typ(&node->typ, typ_create_tentative(TBI_ARITHMETIC));
+      set_typ(&node->typ, create_tentative(mod, node, TBI_ARITHMETIC));
       e = unify(mod, node, node->typ, left->typ);
       EXCEPT(e);
       break;
@@ -616,7 +606,7 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
       left->flags |= right->flags & NODE__TRANSITIVE;
       break;
     default:
-      set_typ(&node->typ, typ_create_tentative(TBI_BITWISE));
+      set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE));
       e = unify(mod, node, node->typ, left->typ);
       EXCEPT(e);
       break;
@@ -941,8 +931,8 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
     if (operator == TWILDCARD && typ_is_reference(field->typ)) {
       assert(typ_is_reference(field->typ));
       struct node *i = NULL;
-      e = typ_ref(&i, mod, node, TREFWILDCARD,
-                  typ_generic_arg(field->typ, 0));
+      e = reference(&i, mod, node, TREFWILDCARD,
+                    typ_generic_arg(field->typ, 0));
       assert(!e);
       set_typ(&node->typ, i->typ);
     } else {
@@ -975,7 +965,7 @@ static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   e = unify(mod, right, right->typ, TBI_U32);
   EXCEPT(e);
 
-  set_typ(&node->typ, typ_create_tentative(TBI_BITWISE));
+  set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE));
   e = unify(mod, node, left->typ, node->typ);
   EXCEPT(e);
 
@@ -1076,7 +1066,7 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
 
   error e = defincomplete_catchup(mod, dinc);
   assert(!e);
-  set_typ(&node->typ, typ_create_tentative(dinc->typ));
+  set_typ(&node->typ, dinc->typ);
 
   if (node->as.INIT.is_range) {
     e = unify(mod, node, node->typ, TBI_INDEX_RANGE);
@@ -1088,13 +1078,7 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
 }
 
 static error type_inference_init_array(struct module *mod, struct node *node) {
-  struct typ *el = typ_create_tentative(typ_generic_arg(TBI_STATIC_ARRAY, 0));
-  struct node *i = NULL;
-  error e = instantiate(&i, mod, node, 0,
-                        TBI_STATIC_ARRAY, &el, 1);
-  EXCEPT(e);
-
-  set_typ(&node->typ, typ_create_tentative(i->typ));
+  set_typ(&node->typ, create_tentative(mod, node, TBI_STATIC_ARRAY));
 
   FOREACH_SUB(s, node) {
     error e = unify(mod, s, s->typ,
@@ -1122,7 +1106,8 @@ static void type_inference_init_isalist_literal(struct module *mod, struct node 
 static error type_inference_init(struct module *mod, struct node *node) {
   assert(node->which == INIT);
   if (node->as.INIT.is_array) {
-    if (typ_definition(subs_first(node)->typ)->which == DEFINTF) {
+    if (!typ_is_literal(subs_first(node)->typ)
+        && typ_definition(subs_first(node)->typ)->which == DEFINTF) {
       type_inference_init_isalist_literal(mod, node);
       return 0;
     } else {
@@ -1491,6 +1476,10 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
   }
 
   struct typ *t = what->typ;
+  if (mod->state->top_state->is_setgenarg) {
+    t = typ_create_tentative_functor(t);
+  }
+
   const size_t given_arity = subs_count(node) - 1;
 
   const size_t arity = typ_generic_arity(t);
@@ -1507,20 +1496,29 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
   struct typ **args = calloc(arity, sizeof(struct typ *));
   size_t n;
   for (n = 0; n < first_explicit; ++n) {
-    args[n] = tentative_generic_arg(t, n);
+    args[n] = tentative_generic_arg(mod, node, t, n);
   }
   FOREACH_SUB_EVERY(s, node, 1, 1) {
-    args[first_explicit + n] = s->typ;
+    args[n] = s->typ;
     n += 1;
   }
 
   struct node *i = NULL;
   e = instantiate(&i, mod, node, 1, t, args, arity);
   EXCEPT(e);
+
+  n = first_explicit;
+  FOREACH_SUB_EVERY(s, node, 1, 1) {
+    if (typ_generic_arity(typ_generic_arg(i->typ, n)) > 0) {
+      assert(typ_is_tentative(typ_generic_functor(typ_generic_arg(i->typ, n))) == typ_is_tentative(typ_generic_functor(s->typ)));
+    }
+    n += 1;
+  }
+
   free(args);
 
   set_typ(&node->typ, i->typ);
-  record_topdep(mod, i->typ);
+  topdeps_record(mod, i->typ);
   node->flags |= NODE_IS_TYPE;
 
   return 0;
@@ -1547,6 +1545,7 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
           && subs_count_atleast(genargs, 2)
           && node_ident(subs_first_const(genargs)) == ID_WILDCARD_REF_ARG_SELF) {
         const struct node *wildcard = subs_at_const(genargs, 1);
+
         if ((node_toplevel_const(i)->flags & TOP_IS_SHALLOW)
             && typ_equal(typ_generic_functor(s->typ), TBI_MREF)) {
           e = unify(mod, s, wildcard->typ, TBI_MMREF);
@@ -1564,7 +1563,7 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
   }
 
   set_typ(&subs_first(node)->typ, i->typ);
-  record_topdep(mod, i->typ);
+  topdeps_record(mod, i->typ);
   set_typ(&node->typ, typ_function_return(i->typ));
 
   return 0;
@@ -1789,7 +1788,7 @@ static error type_inference_if(struct module *mod, struct node *node) {
 
   struct node *cond = subs_first(node);
   e = unify(mod, cond, cond->typ,
-            typ_create_tentative(TBI_GENERALIZED_BOOLEAN));
+            create_tentative(mod, node, TBI_GENERALIZED_BOOLEAN));
   EXCEPT(e);
 
   struct node *yes = next(cond);
@@ -1866,18 +1865,18 @@ static error type_inference_ident_unknown(struct module *mod, struct node *node)
   // in step_check_no_unknown_ident_left().
   node->as.IDENT.non_local_scope = &unk->scope;
 
-  set_typ(&node->typ, typ_create_tentative(unk->typ));
+  set_typ(&node->typ, unk->typ);
   return 0;
 }
 
 static error type_inference_ident(struct module *mod, struct node *node) {
   if (node_is_name_of_globalenv(node)) {
-    set_typ(&node->typ, typ_create_tentative(TBI_ANY));
+    set_typ(&node->typ, create_tentative(mod, node, TBI_ANY));
     return 0;
   }
 
   if (node_ident(node) == ID_OTHERWISE) {
-    set_typ(&node->typ, typ_create_tentative(TBI_ANY));
+    set_typ(&node->typ, create_tentative(mod, node, TBI_ANY));
     return 0;
   }
 
@@ -2107,12 +2106,12 @@ error step_type_inference(struct module *mod, struct node *node,
   case DEFINCOMPLETE:
     assert(node->typ != NULL);
     // Already typed.
-    record_topdep(mod, node->typ);
+    topdeps_record(mod, node->typ);
     return 0;
   case IMPORT:
     if (node->typ != NULL) {
       // Already typed.
-      record_topdep(mod, node->typ);
+      topdeps_record(mod, node->typ);
       return 0;
     }
     break;
@@ -2141,7 +2140,7 @@ error step_type_inference(struct module *mod, struct node *node,
 
   switch (node->which) {
   case NUL:
-    set_typ(&node->typ, typ_create_tentative(TBI_LITERALS_NULL));
+    set_typ(&node->typ, create_tentative(mod, node, TBI_LITERALS_NULL));
     break;
   case IDENT:
     e = type_inference_ident(mod, node);
@@ -2180,13 +2179,13 @@ error step_type_inference(struct module *mod, struct node *node,
     node->typ = TBI__NOT_TYPEABLE;
     break;
   case NUMBER:
-    set_typ(&node->typ, typ_create_tentative(number_literal_typ(mod, node)));
+    set_typ(&node->typ, create_tentative(mod, node, number_literal_typ(mod, node)));
     break;
   case BOOL:
-    set_typ(&node->typ, typ_create_tentative(TBI_BOOL));
+    set_typ(&node->typ, create_tentative(mod, node, TBI_BOOL));
     break;
   case STRING:
-    set_typ(&node->typ, typ_create_tentative(TBI_STATIC_STRING));
+    set_typ(&node->typ, create_tentative(mod, node, TBI_STATIC_STRING));
     break;
   case SIZEOF:
     set_typ(&node->typ, TBI_SIZE);
@@ -2251,7 +2250,7 @@ error step_type_inference(struct module *mod, struct node *node,
   case WHILE:
     set_typ(&node->typ, TBI_VOID);
     struct node *cond = subs_first(node);
-    e = unify(mod, cond, cond->typ, typ_create_tentative(TBI_GENERALIZED_BOOLEAN));
+    e = unify(mod, cond, cond->typ, create_tentative(mod, node, TBI_GENERALIZED_BOOLEAN));
     EXCEPT(e);
     struct node *block = subs_at(node, 1);
     e = typ_check_equal(mod, block, block->typ, TBI_VOID);
@@ -2294,6 +2293,14 @@ error step_type_inference(struct module *mod, struct node *node,
   case SETGENARG:
     set_typ(&node->typ, subs_at(node, 1)->typ);
     node->flags |= NODE_IS_TYPE;
+    {
+      struct node *def = nparent(node, 2);
+      if (node->which == DEFGENARG) {
+        node_toplevel(def)->flags |= TOP_IS_FUNCTOR;
+      } else {
+        node_toplevel(def)->flags &= ~TOP_IS_FUNCTOR;
+      }
+    }
     break;
   case DEFFIELD:
     set_typ(&node->typ, subs_at(node, 1)->typ);
@@ -2349,7 +2356,7 @@ error step_type_inference(struct module *mod, struct node *node,
   }
 
   if (node->typ != NULL) {
-    record_topdep(mod, node->typ);
+    topdeps_record(mod, node->typ);
   }
 
   assert(node->typ != NULL
@@ -2444,7 +2451,7 @@ static error finalize_generic_instantiation(size_t *remaining,
   const struct node *instantiating_for_error = node_toplevel_const(typ_definition_const(t))
     ->generic->for_error;
   struct node *i = NULL;
-  error e = instantiate_no_reuse(&i, mod, instantiating_for_error, -1, functor, args, arity);
+  error e = instantiate(&i, mod, instantiating_for_error, -1, functor, args, arity);
   EXCEPT(e);
 
   typ_declare_final__privileged(i->typ);
@@ -2457,7 +2464,7 @@ static error finalize_generic_instantiation(size_t *remaining,
   }
 
   typ_link_to_existing_final(i->typ, t);
-  record_topdep(mod, i->typ);
+  topdeps_record(mod, i->typ);
 
   free(args);
   return 0;
@@ -2485,19 +2492,20 @@ static void finalize_defincomplete_unification(struct module *mod, struct node *
 
 // See bootstrap/types.c for some ideas on how to get rid of this step.
 STEP_NM(step_gather_final_instantiations,
-        NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD));
+        NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE));
 error step_gather_final_instantiations(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
 
   struct toplevel *toplevel = node_toplevel(mod->state->top_state->top);
-  if (vecnode_count(&toplevel->tentative_instantiations) == 0) {
+  if (vecnode_count(&toplevel->triggered_instantiations) == 0) {
     return 0;
   }
 
-  if (typ_is_generic_functor(node->typ)) {
+  if (typ_is_tentative(node->typ)) {
     return 0;
   }
+
   const struct node *par = parent_const(node);
   if (par->which != MODULE_BODY
       && typ_is_generic_functor(par->typ)) {
@@ -2509,9 +2517,8 @@ again:
   prev_remaining = remaining;
   remaining = 0;
 
-  for (size_t n = 0, count = vecnode_count(&toplevel->tentative_instantiations);
-       n < count; ++n) {
-    struct node *d = *vecnode_get(&toplevel->tentative_instantiations, n);
+  for (size_t n = 0; n < vecnode_count(&toplevel->triggered_instantiations); ++n) {
+    struct node *d = *vecnode_get(&toplevel->triggered_instantiations, n);
     struct typ *t = d->typ;
     if (d->which == DEFINCOMPLETE) {
       finalize_defincomplete_unification(mod, d);
@@ -2529,7 +2536,7 @@ again:
       goto again;
     } else {
       // FIXME: this sometimes is an error (under-constrained generic)
-      // that's get caught in cprinter or gcc. We don't know how to tell
+      // that gets caught in cprinter or gcc. We don't know how to tell
       // that case apart from a well-constrained generic in a
       // non-instantiated generic. There is probably a bug somewhere.
     }
@@ -2542,7 +2549,7 @@ again:
     }
   }
 
-  vecnode_destroy(&toplevel->tentative_instantiations);
+  vecnode_destroy(&toplevel->triggered_instantiations);
 
   return 0;
 }

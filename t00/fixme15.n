@@ -1,0 +1,17 @@
+from nlang import *
+from nlang.vectors import *
+
+-- Passes ordering problem:
+-- For `our to be used in a genarg list, aliases must be typed before genargs
+-- are. But the alias v32 cannot be typed before genargs are.
+-- So, sometimes aliases are first, sometimes genargs are first.
+-- The current implementation does genargs first, allowing v32 below, but
+-- preventing the use of `our in genargs (which is the lesser of two evils).
+--
+-- The solution involves passing over definitions according to the use-graph.
+
+alias `our = {`copyable `trivial_ctor}
+alias v32 = vector u32
+
+struct holder t:`our =
+  x	:t

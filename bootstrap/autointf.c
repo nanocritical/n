@@ -1,6 +1,8 @@
 #include "autointf.h"
+
 #include "types.h"
 #include "passes.h"
+#include "parser.h"
 
 struct intf_proto_rewrite_state {
   struct typ *thi;
@@ -70,7 +72,7 @@ static error step_rewrite_local_idents(struct module *mod, struct node *node,
 static error pass_rewrite_proto(struct module *mod, struct node *root,
                                 void *user, ssize_t shallow_last_up) {
   PASS(DOWN_STEP(step_rewrite_this);
-       DOWN_STEP(step_rewrite_local_idents),);
+       DOWN_STEP(step_rewrite_local_idents),,);
   return 0;
 }
 
@@ -91,7 +93,8 @@ static void intf_proto_deepcopy(struct module *mod,
   POP_STATE(mod->state->step_state);
 
   if (node_toplevel(dst) != NULL) {
-    node_toplevel(dst)->yet_to_pass = 0;
+    node_toplevel(dst)->passing = -1;
+    node_toplevel(dst)->passed = -1;
   }
 }
 
@@ -587,7 +590,8 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+  if (node->as.DEFTYPE.kind == DEFTYPE_ENUM
+      || typ_equal(node->typ, TBI_VOID)) {
     return 0;
   }
 

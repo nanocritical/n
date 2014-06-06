@@ -32,7 +32,7 @@ static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node
 
 static error pass_rewrite_wildcards(struct module *mod, struct node *root,
                                     void *user, ssize_t shallow_last_up) {
-  PASS(, UP_STEP(step_do_rewrite_prototype_wildcards));
+  PASS(, UP_STEP(step_do_rewrite_prototype_wildcards), );
   return 0;
 }
 
@@ -80,26 +80,30 @@ struct node *add_instance_deepcopy_from_pristine(struct module *mod,
   return instance;
 }
 
+static STEP_NM(step_init_toplevel,
+               STEP_NM_HAS_TOPLEVEL);
+static error step_init_toplevel(struct module *mod, struct node *node,
+                                void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  struct toplevel *toplevel = node_toplevel(node);
+  toplevel->passing = -1;
+  toplevel->passed = -1;
+  return 0;
+}
+
 static STEP_NM(step_generics_pristine_copy,
-               NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD));
+               NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFINCOMPLETE));
 static error step_generics_pristine_copy(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct node *genargs = subs_at(node, IDX_GENARGS);
   switch (node->which) {
   case DEFTYPE:
   case DEFINTF:
-    if (subs_count_atleast(genargs, 1)
-        && subs_first(genargs)->which == DEFGENARG) {
-      (void) add_instance_deepcopy_from_pristine(mod, node, node, false);
-    }
-    break;
   case DEFFUN:
   case DEFMETHOD:
-    // Always needed because the method/fun could be part of a generic
-    // DEFTYPE, and we cannot know that yet. If the par is not a generic,
-    // we will remove this unneeded stuff in do_move_detached_member().
+  case DEFINCOMPLETE:
     (void) add_instance_deepcopy_from_pristine(mod, node, node, false);
     break;
   default:
@@ -276,6 +280,7 @@ error step_stop_submodules(struct module *mod, struct node *node,
   *module_depth += 1;
 
   if (*module_depth > 1) {
+    assert(node->which == MODULE);
     *stop = true;
   }
   return 0;
@@ -284,17 +289,18 @@ error step_stop_submodules(struct module *mod, struct node *node,
 static error passzero0(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   PASS(
+    DOWN_STEP(step_init_toplevel);
     DOWN_STEP(step_generics_pristine_copy);
     DOWN_STEP(step_lir_conversion_down);
-    DOWN_STEP(step_push_fun_state);
-    DOWN_STEP(step_push_block_state);
+    DOWN_STEP(step_push_state);
+    DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_record_current_statement);
     DOWN_STEP(step_add_sequence_points);
     ,
     UP_STEP(step_lir_conversion_up);
-    UP_STEP(step_pop_block_state);
     UP_STEP(step_ssa_convert);
-    UP_STEP(step_pop_fun_state);
+    ,
+    UP_STEP(step_pop_state);
     );
   return 0;
 }
@@ -302,12 +308,16 @@ static error passzero0(struct module *mod, struct node *root,
 static error passzero1(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   PASS(
+    DOWN_STEP(step_push_state);
+    DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_rewrite_prototype_wildcards);
     DOWN_STEP(step_detect_prototypes);
     DOWN_STEP(step_check_deftype_kind);
     DOWN_STEP(step_assign_defchoice_tag_down);
     ,
     UP_STEP(step_assign_defchoice_tag_up);
+    ,
+    UP_STEP(step_pop_state);
     );
   return 0;
 }

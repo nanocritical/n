@@ -5,7 +5,7 @@
 
 #define NB(n) nlang$builtins$##n
 
-static void native_write_buffer(nlang$chars$_$Ni_string_buffer buf, const char *s) {
+static void native_write_buffer(_$Ndyn_nlang$chars$_$Ni_string_buffer buf, const char *s) {
   for (int i = 0; s[i] != '\0'; ++i) {
     nlang$chars$_$Ni_string_buffer$push(buf, nlang$chars$char$from_ascii((NB(u8)) s[i]));
   }
@@ -25,13 +25,13 @@ static void native_write_buffer(nlang$chars$_$Ni_string_buffer buf, const char *
   t t##$operator_and(const t *self, const t *other) { return *self && *other; } \
   t t##$operator_not(const t *self) { return ! *self; } \
   \
-  void t##$show(const t *self, nlang$chars$_$Ni_string_buffer buf) { \
+  void t##$show(const t *self, _$Ndyn_nlang$chars$_$Ni_string_buffer buf) { \
     native_write_buffer(buf, *self ? "true" : "false"); \
   }
 
 // ln(2^64)/ln(10) = 19.27
 #define define_show_number(t, fmt) \
-  void t##$show(const t *self, nlang$chars$_$Ni_string_buffer buf) { \
+  void t##$show(const t *self, _$Ndyn_nlang$chars$_$Ni_string_buffer buf) { \
     char s[32]; \
     snprintf(s, 32, fmt, *self); \
     native_write_buffer(buf, s); \

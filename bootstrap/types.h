@@ -39,8 +39,8 @@ void set_typ(struct typ **loc, struct typ *t);
 void typ_add_tentative_bit__privileged(struct typ **loc);
 void typ_declare_final__privileged(struct typ *t);
 
-struct typ *typ_create_tentative(struct typ *target);
 bool typ_is_tentative(const struct typ *t);
+struct typ *typ_create_tentative_functor(struct typ *target);
 
 void typ_link_tentative(struct typ *dst, struct typ *src);
 void typ_link_tentative_functor(struct module *mod, struct typ *dst, struct typ *src);
