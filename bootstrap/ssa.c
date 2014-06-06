@@ -1,6 +1,7 @@
 #include "ssa.h"
 
 #include "types.h"
+#include "parser.h"
 
 #include "passbody.h"
 #include "passzero.h"
@@ -127,12 +128,15 @@ static void ssa_sub(struct module *mod, struct node *statement,
 
   struct node *statement_parent = parent(statement);
 
-  struct node *before;
   if (sub == statement) {
-    before = sub;
-  } else {
-    before = statement;
+    assert(node->which == BLOCK);
+    if (mod->state->fun_state->block_state->prev != NULL) {
+      mod->state->fun_state->block_state->current_statement
+        = mod->state->fun_state->block_state->prev->current_statement;
+    }
   }
+
+  struct node *before = statement;
 
   struct node *let = mk_node(mod, statement_parent, LET);
   let->codeloc = sub->codeloc;
@@ -174,8 +178,8 @@ error step_ssa_convert(struct module *mod, struct node *node,
     return 0;
   }
 
-  struct node *statement = mod->state->fun_state->block_state->current_statement;
   struct node *par = parent(node);
+  struct node *statement = mod->state->fun_state->block_state->current_statement;
 
   switch (par->which) {
   case BIN:
@@ -212,6 +216,8 @@ error step_ssa_convert(struct module *mod, struct node *node,
   default:
     break;
   }
+  assert(mod->state->fun_state->block_state->current_statement == NULL
+         || parent(mod->state->fun_state->block_state->current_statement)->which == BLOCK);
   return 0;
 }
 
@@ -254,6 +260,47 @@ EXAMPLE_NCC_EMPTY(ssa_return) {
                   "   BIN",
                   "    IDENT",
                   "    IDENT",
+                  "  RETURN",
+                  "   IDENT",
+                  NULL);
+}
+
+EXAMPLE_NCC_EMPTY(ssa_return2) {
+  GSTART();
+  G0(n, mod->body, DEFFUN,
+     G_IDENT(name, "foo");
+     G(genargs, GENARGS);
+     G(funargs, FUNARGS,
+       G_IDENT(ret, "u32"));
+     G(body, BLOCK,
+       G(r, RETURN,
+         G(cmp, BIN,
+           cmp->as.BIN.operator = TLT;
+           G_IDENT(aa, "a");
+           G(b, BIN,
+             b->as.BIN.operator = TDOT;
+             G_IDENT(s2, "self");
+             G_IDENT(bb, "a"))))));
+  assert(0 == ex_ssa_conversion(mod, n));
+  check_structure(n,
+                  "DEFFUN",
+                  " IDENT",
+                  " GENARGS",
+                  " FUNARGS",
+                  "  IDENT",
+                  " BLOCK",
+                  "  LET",
+                  "   DEFNAME",
+                  "    IDENT",
+                  "    BIN",
+                  "     IDENT",
+                  "     IDENT",
+                  "  LET",
+                  "   DEFNAME",
+                  "    IDENT",
+                  "    BIN",
+                  "     IDENT",
+                  "     IDENT",
                   "  RETURN",
                   "   IDENT",
                   NULL);
@@ -736,6 +783,7 @@ static error pass_remove_expr_from_use_chain(struct module *mod, struct node *ro
   PASS(
     ,
     UP_STEP(step_remove_ident_from_use_chain);
+    ,
     );
   return 0;
 }
