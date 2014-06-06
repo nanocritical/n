@@ -2369,8 +2369,24 @@ error step_type_drop_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
+static void finalize_weakly_concrete(struct module *mod, struct typ *t) {
+  assert(typ_is_weakly_concrete(t));
+  struct node *d = typ_definition(t);
+  struct typ *concrete = node_toplevel(d)->generic->our_generic_functor_typ;
+  if (typ_equal(concrete, TBI_BOOL)) {
+    typ_link_tentative(TBI_BOOL, t);
+  } else if (typ_equal(concrete, TBI_STATIC_STRING)) {
+    typ_link_tentative(TBI_STATIC_STRING, t);
+  } else if (typ_equal(concrete, TBI_STATIC_ARRAY)) {
+    typ_link_tentative(TBI_STATIC_ARRAY, t);
+  } else {
+    assert(false);
+  }
+}
+
 static error finalize_generic_instantiation(size_t *remaining,
-                                            struct module *mod, const struct node *for_error,
+                                            struct module *mod,
+                                            const struct node *for_error,
                                             struct typ *t) {
   if (typ_definition_const(t) == NULL) {
     // 't' was cleared in link_to_final()
@@ -2379,6 +2395,9 @@ static error finalize_generic_instantiation(size_t *remaining,
 
   if (typ_generic_arity(t) == 0) {
     // For instance, a DEFINCOMPLETE that unified to a non-generic.
+    if (typ_is_weakly_concrete(t)) {
+      finalize_weakly_concrete(mod, t);
+    }
     return 0;
   }
 
@@ -2386,17 +2405,19 @@ static error finalize_generic_instantiation(size_t *remaining,
     return 0;
   }
 
-  if (typ_is_reference(t) && typ_definition_const(t)->which == DEFINTF) {
-    return 0;
-  }
+  struct typ *functor = typ_generic_functor(t);
 
   if (typ_is_tentative(t)) {
-    // By now, this instance should not be tentative anymore, as all its
-    // generic arguments should have been linked to final types.
+    if (typ_is_tentative(functor)) {
+      *remaining += 1;
+      return 0;
+    }
+
     for (size_t m = 0; m < typ_generic_arity(t); ++m) {
       struct typ *arg = typ_generic_arg(t, m);
       if (typ_is_weakly_concrete(arg)) {
-        return 0;
+        finalize_weakly_concrete(mod, arg);
+        continue;
       }
 
       if (typ_is_tentative(arg)) {
@@ -2406,13 +2427,12 @@ static error finalize_generic_instantiation(size_t *remaining,
     }
   }
 
-  struct typ *functor = typ_generic_functor(t);
   const size_t arity = typ_generic_arity(t);
 
   struct typ *existing = find_existing_final_for_tentative(mod, t);
   if (existing != NULL) {
     typ_link_to_existing_final(existing, t);
-    record_topdep(mod, existing);
+    topdeps_record(mod, existing);
     return 0;
   }
 

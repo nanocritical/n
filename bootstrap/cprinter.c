@@ -2677,20 +2677,6 @@ static bool file_exists(const char *base, const char *postfix) {
   return r;
 }
 
-static bool is_concrete(const struct node *instance) {
-  if (!node_can_have_genargs(instance)) {
-    return true;
-  }
-
-  const struct node *genargs = subs_at_const(instance, IDX_GENARGS);
-  FOREACH_SUB_CONST(g, genargs) {
-    if (g->which == DEFGENARG) {
-      return false;
-    }
-  }
-  return true;
-}
-
 static bool is_printed(struct typset *printed,
                        bool header, enum forward fwd,
                        const struct typ *t) {
@@ -2770,7 +2756,8 @@ static void print_topdeps(FILE *out, bool header, enum forward fwd,
 static void print_top(FILE *out, bool header, enum forward fwd,
                       const struct module *mod, const struct node *node,
                       struct typset *printed) {
-  if (!is_concrete(node)) {
+  if ((!typ_is_concrete(node->typ) && node->which != DEFINTF)
+      || (!node_is_at_top(node) && !typ_is_concrete(parent_const(node)->typ))) {
     return;
   }
 

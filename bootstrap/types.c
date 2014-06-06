@@ -30,10 +30,11 @@ enum typ_flags {
   TYPF_SLICE = 0x40,
   TYPF_LITERAL = 0x80,
   TYPF_WEAKLY_CONCRETE = 0x100,
+  TYPF_CONCRETE = 0x200,
   TYPF__INHERIT_FROM_FUNCTOR = TYPF_TENTATIVE
     | TYPF_BUILTIN | TYPF_PSEUDO_BUILTIN
     | TYPF_TRIVIAL | TYPF_REF | TYPF_NREF
-    | TYPF_WEAKLY_CONCRETE,
+    | TYPF_LITERAL | TYPF_WEAKLY_CONCRETE | TYPF_CONCRETE,
   TYPF__MASK_HASH = 0xffff & ~TYPF_TENTATIVE,
 };
 
@@ -224,6 +225,54 @@ void typset_fullinit(struct typset *set) {
 
 static void quickisa_init(struct typ *t) {
   typset_fullinit(&t->quickisa);
+}
+
+// Examples of non-concrete types: uninstantiated generics or instances
+// within an instantiated generic which are instantiated over non-tentative
+// interfaces.
+static void create_update_concrete_flag(struct typ *t) {
+  if (typ_is_generic_functor(t)) {
+    t->flags &= ~TYPF_CONCRETE;
+  } else if (typ_generic_arity(t) == 0) {
+    if (typ_definition_const(t)->which == DEFINTF) {
+      t->flags &= ~TYPF_CONCRETE;
+    } else {
+      t->flags |= TYPF_CONCRETE;
+    }
+  } else if (typ_is_reference(t)) {
+    if (typ_definition_const(t)->which == DEFINTF) {
+      t->flags &= ~TYPF_CONCRETE;
+    } else {
+      const struct typ *arg = typ_generic_arg_const(t, 0);
+      if (typ_generic_arity(arg) == 0) {
+        // Even if the generic argument is a DEFINTF, then t is a dyn, which
+        // is concrete.
+        t->flags |= TYPF_CONCRETE;
+      } else {
+        if (typ_is_concrete(arg)) {
+          t->flags |= TYPF_CONCRETE;
+        } else {
+          t->flags &= ~TYPF_CONCRETE;
+        }
+      }
+    }
+  } else {
+    t->flags |= TYPF_CONCRETE;
+    for (size_t n = 0, arity = typ_generic_arity(t); n < arity; ++n) {
+      const struct typ *arg = typ_generic_arg_const(t, n);
+      if (arg == NULL) {
+        // Too early to tell
+        break;
+      }
+      if (typ_is_generic_functor(arg)) {
+        continue;
+      }
+      if (!typ_is_concrete(arg)) {
+        t->flags &= ~TYPF_CONCRETE;
+        break;
+      }
+    }
+  }
 }
 
 static void create_flags(struct typ *t, struct typ *tbi) {
@@ -480,6 +529,7 @@ static void link_generic_arg_update(struct module *trigger_mod,
 
   typ_create_update_hash(new_user);
   typ_create_update_quickisa(new_user);
+  create_update_concrete_flag(new_user);
 
   // It is possible that now that 'src' is not tentative, 'user' itself
   // should loose its tentative status. This will be handled in
@@ -1408,6 +1458,10 @@ bool typ_is_literal(const struct typ *t) {
 
 bool typ_is_weakly_concrete(const struct typ *t) {
   return (t->flags & TYPF_WEAKLY_CONCRETE) && typ_is_tentative(t);
+}
+
+bool typ_is_concrete(const struct typ *t) {
+  return t->flags & TYPF_CONCRETE;
 }
 
 bool typ_isa_return_by_copy(const struct typ *t) {

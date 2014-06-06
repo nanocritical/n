@@ -75,6 +75,7 @@ bool typ_is_pseudo_builtin(const struct typ *t);
 bool typ_is_trivial(const struct typ *t);
 bool typ_is_literal(const struct typ *t);
 bool typ_is_weakly_concrete(const struct typ *t);
+bool typ_is_concrete(const struct typ *t);
 bool typ_isa_return_by_copy(const struct typ *t);
 
 enum isalist_filter {
