@@ -75,6 +75,10 @@ struct typ {
   } while (users != NULL); \
 } while (0)
 
+bool typ_hash_ready(const struct typ *t) {
+  return t->hash != 0;
+}
+
 static uint32_t typ_hash(const struct typ **a) {
   // The 'hash' in a tentative typ is maintained as the typ gets linked to a
   // new typs. So 'hash' can be used in typ_equal(), etc. But it cannot be
@@ -334,25 +338,29 @@ struct typ *typ_create(struct typ *tbi, struct node *definition) {
 }
 
 void typ_create_update_genargs(struct typ *t) {
+  create_update_concrete_flag(t);
+
   if (typ_generic_arity(t) == 0) {
     return;
   }
 
   struct typ *t0 = typ_generic_functor(t);
   if (typ_is_tentative(t0)) {
-    t->flags |= TYPF_TENTATIVE;
+    typ_add_tentative_bit__privileged(&typ_definition(t)->typ);
     add_user(t0, t);
   }
   for (size_t n = 0, count = typ_generic_arity(t); n < count; ++n) {
     struct typ *arg = typ_generic_arg(t, n);
     if (typ_is_tentative(arg)) {
-      t->flags |= TYPF_TENTATIVE;
+      typ_add_tentative_bit__privileged(&typ_definition(t)->typ);
       add_user(arg, t);
     }
   }
 }
 
 void typ_create_update_hash(struct typ *t) {
+  assert(!typ_hash_ready(t) || typ_is_tentative(t));
+
   const struct node *d = typ_definition_const(t);
   const struct node *genargs = subs_at_const(d, IDX_GENARGS);
 

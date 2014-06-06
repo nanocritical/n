@@ -17,6 +17,8 @@ void typ_create_update_hash(struct typ *t);
 void typ_create_update_genargs(struct typ *t);
 void typ_create_update_quickisa(struct typ *t);
 
+bool typ_hash_ready(const struct typ *t);
+
 struct node *typ_definition(struct typ *t);
 
 bool typ_is_generic_functor(const struct typ *t);
