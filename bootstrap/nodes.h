@@ -1221,6 +1221,9 @@ static inline const struct node *parent_const(const struct node *node) {
   return node->parent;
 }
 
+struct node *nparent(struct node *node, size_t nth);
+const struct node *nparent_const(const struct node *node, size_t nth);
+
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);
 bool node_is_opaque(const struct node *node);

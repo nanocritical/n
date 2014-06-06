@@ -578,6 +578,20 @@ EXAMPLE(node_subs) {
   assert(&b == prev(&a));
 }
 
+struct node *nparent(struct node *node, size_t nth) {
+  for (size_t n = 0; n < nth; ++n) {
+    node = node->parent;
+  }
+  return node;
+}
+
+const struct node *nparent_const(const struct node *node, size_t nth) {
+  for (size_t n = 0; n < nth; ++n) {
+    node = node->parent;
+  }
+  return node;
+}
+
 bool node_has_tail_block(const struct node *node) {
   return subs_count_atleast(node, 1)
     && subs_last_const(node)->which == BLOCK;
