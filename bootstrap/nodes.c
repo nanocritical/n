@@ -651,15 +651,15 @@ struct node *node_fun_retval(struct node *def) {
   return (struct node *) node_fun_retval_const(def);
 }
 
-struct node *node_get_member(struct module *mod, struct node *node, ident id) {
-  assert(node->which == DEFTYPE || node->which == DEFCHOICE || node->which == DEFINTF);
+struct node *node_get_member(struct node *node, ident id) {
+  assert(NM(node->which) & (NM(DEFTYPE) | NM(DEFCHOICE) | NM(DEFINTF) | NM(DEFINCOMPLETE)));
   struct node *m = NULL;
-  (void)scope_lookup_ident_immediate(&m, node, mod, &node->scope, id, true);
+  (void)scope_lookup_ident_immediate(&m, node, NULL, &node->scope, id, true);
   return m;
 }
 
-const struct node *node_get_member_const(const struct module *mod, const struct node *node, ident id) {
-  return node_get_member((struct module *)mod, (struct node *)node, id);
+const struct node *node_get_member_const(const struct node *node, ident id) {
+  return node_get_member(CONST_CAST(node), id);
 }
 
 size_t node_branching_exhaustive_branch_count(struct node *node) {

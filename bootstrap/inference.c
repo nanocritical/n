@@ -1636,7 +1636,7 @@ static error try_rewrite_operator_sub(struct module *mod, struct node *node) {
 
   assert(typ_is_reference(self->typ));
   struct node *dfun = typ_definition(typ_generic_arg(self->typ, 0));
-  struct node *m = node_get_member(mod, dfun, ID_OPERATOR_SUB);
+  struct node *m = node_get_member(dfun, ID_OPERATOR_SUB);
   if (m == NULL) {
     error e = mk_except_type(mod, node, "type '%s' does not have 'operator_sub'",
                              typ_pretty_name(mod, self->typ));
@@ -2027,7 +2027,7 @@ static error type_inference_defchoice_init(struct module *mod,
 
   assert(right->flags & NODE_IS_DEFCHOICE);
   assert(right->which == BIN);
-  const struct node *dleaf = node_get_member_const(mod, dright,
+  const struct node *dleaf = node_get_member_const(dright,
                                                    node_ident(subs_last(right)));
   assert(dleaf->which == DEFCHOICE);
   if (!dleaf->as.DEFCHOICE.is_leaf) {

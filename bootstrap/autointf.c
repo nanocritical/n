@@ -345,7 +345,7 @@ static void add_auto_member(struct module *mod,
     return;
   }
 
-  struct node *existing = node_get_member(mod, deft, node_ident(mi));
+  struct node *existing = node_get_member(deft, node_ident(mi));
   if (existing != NULL) {
     return;
   }
@@ -502,7 +502,7 @@ error step_autointf_detect_default_ctor_dtor(struct module *mod, struct node *no
   }
 
   struct node *proxy = node;
-  struct node *ctor = node_get_member(mod, proxy, ID_CTOR);
+  struct node *ctor = node_get_member(proxy, ID_CTOR);
   if (ctor != NULL) {
     if (node_fun_max_args_count(ctor) == 0) {
       add_auto_isa(mod, node, TBI_DEFAULT_CTOR);
@@ -699,7 +699,7 @@ static void define_builtin(struct module *mod, struct node *deft,
                            const struct node *proto_parent,
                            ident name, enum builtingen bg) {
   struct node *m = define_builtin_start(mod, deft, proto_parent,
-                                        node_get_member_const(mod, proto_parent, name));
+                                        node_get_member_const(proto_parent, name));
   node_toplevel(m)->builtingen = bg;
   define_builtin_catchup(mod, m);
 }

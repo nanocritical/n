@@ -1105,7 +1105,7 @@ static void constraint_defchoice_container(const struct node **container,
 
   ident common = ID__NONE;
   if (constraint_has_common_root_tag(&common, mod, par)) {
-    *container = node_get_member_const(mod, typ_definition_const(par->typ),
+    *container = node_get_member_const(typ_definition_const(par->typ),
                                        common);
   } else {
     *container = typ_definition_const(par->typ);

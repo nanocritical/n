@@ -1320,8 +1320,8 @@ static inline struct toplevel *node_toplevel(struct node *node) {
   return CONST_CAST(node_toplevel_const(node));
 }
 
-struct node *node_get_member(struct module *mod, struct node *node, ident id);
-const struct node *node_get_member_const(const struct module *mod, const struct node *node, ident id);
+struct node *node_get_member(struct node *node, ident id);
+const struct node *node_get_member_const(const struct node *node, ident id);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src);

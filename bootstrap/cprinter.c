@@ -229,7 +229,7 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
 static void print_union_access_path(FILE *out, const struct module *mod,
                                     const struct typ *t, ident tag) {
   const struct node *d = typ_definition_const(t);
-  const struct node *defch = node_get_member_const(mod, d, tag);
+  const struct node *defch = node_get_member_const(d, tag);
 
   struct node *field = NULL;
   while (true) {
@@ -528,7 +528,7 @@ static void print_tag_init(FILE *out, const struct module *mod,
   }
 
   const ident tag = node->as.INIT.for_tag;
-  const struct node *ch = node_get_member_const(mod, d, tag);
+  const struct node *ch = node_get_member_const(d, tag);
 
   if (!is_inline) {
     print_expr(out, mod, node->as.INIT.target_expr, TDOT);
@@ -822,8 +822,7 @@ static void print_match_label(FILE *out, const struct module *mod,
     id = subs_last_const(id);
   }
   const struct node *deft = typ_definition_const(label->typ);
-  const struct node *ch = node_get_member_const(
-    mod, deft, node_ident(id));
+  const struct node *ch = node_get_member_const(deft, node_ident(id));
 
   assert(ch->which == DEFCHOICE);
   if (ch->as.DEFCHOICE.is_leaf) {
@@ -965,8 +964,8 @@ static const struct typ *intercept_slices(const struct module *mod, const struct
       return t;
     }
 
-    const struct node *m = node_get_member_const(mod, typ_definition_const(pt),
-                                           node_ident(d));
+    const struct node *m = node_get_member_const(typ_definition_const(pt),
+                                                 node_ident(d));
     const struct typ *mt = m->typ;
     if (typ_generic_arity(mt) == 0) {
       return m->typ;
@@ -1008,7 +1007,7 @@ static const struct typ *intercept_slices(const struct module *mod, const struct
   } else {
     const char name[] = "create_impl_instance";
     const ident nameid = idents_add_string(mod->gctx, name, ARRAY_SIZE(name)-1);
-    const struct node *m = node_get_member_const(mod, d, nameid);
+    const struct node *m = node_get_member_const(d, nameid);
     return node_fun_retval_const(m)->typ;
   }
 }
@@ -1954,7 +1953,7 @@ static error print_dyn_field_eachisalist(struct module *mod, struct typ *ignored
     }
 
     st->printed += 1;
-    const struct node *thisf = node_get_member_const(mod, typ_definition_const(t),
+    const struct node *thisf = node_get_member_const(typ_definition_const(t),
                                                      node_ident(f));
     fprintf(st->out, ".%s = (", idents_value(mod->gctx, node_ident(thisf)));
     print_fun_prototype(st->out, st->header, mod, f, true, false, true, NULL);

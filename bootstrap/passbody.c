@@ -296,7 +296,7 @@ static error step_weak_literal_conversion(struct module *mod, struct node *node,
   node_set_which(node, CALL);
 
   struct node *fun = mk_node(mod, node, DIRECTDEF);
-  struct node *fund = node_get_member(mod, typ_definition(saved_typ), id);
+  struct node *fund = node_get_member(typ_definition(saved_typ), id);
   assert(fund != NULL);
   set_typ(&fun->as.DIRECTDEF.typ, fund->typ);
   fun->as.DIRECTDEF.flags = NODE_IS_TYPE;
@@ -332,7 +332,7 @@ static error gen_operator_call(struct module *mod, struct node *node,
                                ident operator_name,
                                struct node *left, struct node *right,
                                enum catchup_for catchup_for) {
-  struct typ *tfun = node_get_member(mod, typ_definition(left->typ),
+  struct typ *tfun = node_get_member(typ_definition(left->typ),
                                      operator_name)->typ;
 
   node_set_which(node, CALL);
@@ -458,7 +458,7 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
 
   node_set_which(node, CALL);
 
-  struct typ *tfun = node_get_member(mod, typ_definition(saved_typ), ID_FROM_ARRAY)->typ;
+  struct typ *tfun = node_get_member(typ_definition(saved_typ), ID_FROM_ARRAY)->typ;
   set_typ(&array->typ, typ_generic_arg(typ_function_arg(tfun, 0), 0));
 
   GSTART();
