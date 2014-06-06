@@ -954,16 +954,9 @@ static void print_tree_node(FILE *out, const struct module *mod,
   }
 
   if (node->typ != NULL) {
-    const struct node *def = typ_definition_const(node->typ);
-    if (def == NULL) {
-      fprintf(out, " :<WRONGLY ZEROED>");
-    } else if (def->which == IMPORT) {
-      fprintf(out, " :<import>");
-    } else {
-      char *typn = typ_pretty_name(mod, node->typ);
-      fprintf(out, " :%s", typn);
-      free(typn);
-    }
+    char *typn = typ_pretty_name(mod, node->typ);
+    fprintf(out, " :%s", typn);
+    free(typn);
   }
   if (node->constraint != NULL) {
     char s[1024];
@@ -982,6 +975,10 @@ error printer_tree(int fd, const struct module *mod, const struct node *root) {
   FILE *out = fdopen(fd, "w");
   if (out == NULL) {
     THROWF(errno, "Invalid output file descriptor '%d'", fd);
+  }
+
+  if (mod == NULL) {
+    mod = node_module_owner_const(root);
   }
 
   print_tree_node(out, mod, root != NULL ? root : mod->body, 0);

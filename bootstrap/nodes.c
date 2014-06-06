@@ -881,9 +881,15 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
   char *r = calloc(2048, sizeof(char));
   char *s = r;
 
+  s = stpcpy(s, typ_is_tentative(t) ? "*" : "");
+
   const struct node *d = typ_definition_const(t);
-  if (d->which == DEFINCOMPLETE) {
-    s = typ_pretty_name_defincomplete(r, mod, d);
+  if (d == NULL) {
+    s = stpcpy(s, "<ZEROED>");
+  } else if (d->which == IMPORT) {
+    s = stpcpy(s, "<import>");
+  } else if (d->which == DEFINCOMPLETE) {
+    s = typ_pretty_name_defincomplete(s, mod, d);
   } else if (typ_generic_arity(t) == 0) {
     s = stpcpy(s, typ_name(mod, t));
   } else {
@@ -893,6 +899,7 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
       s = stpcpy(s, typ_name(mod, t));
     } else {
       const struct typ *f = typ_generic_functor_const(t);
+      s = stpcpy(s, typ_is_tentative(f) ? "*" : "");
       s = stpcpy(s, typ_name(mod, f));
     }
 
@@ -932,6 +939,10 @@ void debug_print_topdeps(const struct module *mod, const struct node *node) {
 
 int snprint_codeloc(char *s, size_t len,
                     const struct module *mod, const struct node *node) {
+  if (node == NULL) {
+    return snprintf(s, len, "(unknown): ");
+  }
+
   const struct module *actual_mod = try_node_module_owner_const(mod, node);
 
   return snprintf(s, len, "%s:%d:%d: ",
