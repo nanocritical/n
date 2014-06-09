@@ -1,10 +1,10 @@
 from nlang import *
 
-export intf `example =
-  (met! t:`any) alloc = @#t
-  (met! t:`any) free p:?@#t = void
-  (met! t:`any) slice_realloc s:@#[]!t count:size = void
-  (met! t:`any) slice_free s:@#[]!t = void
+intf `Example =
+  (met! t:`Any) alloc = @#t
+  (met! t:`Any) Free p:?@#t = Void
+  (met! t:`Any) slice_realloc s:@#[]!t count:Size = Void
+  (met! t:`Any) slice_free s:@#[]!t = Void
 
-export fun main = i32
+fun Main = I32
   return 0

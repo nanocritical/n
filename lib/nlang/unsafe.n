@@ -1,11 +1,11 @@
 from nlang.builtins import *
 
-export extern inline (fun u:`any_any_ref v:`any_any_ref) cast a:u = v
+extern inline (fun u:`Any_any_ref v:`Any_any_ref) Cast a:u = v
 
-export inline (fun t:`any nr:(`any_nullable_ref t) r:(`any_ref t)) nonnull_cast a:nr = r
-  assert <- a !== null
-  return (cast nr r) a
+inline (fun t:`Any nr:(`Any_nullable_ref t) r:(`Any_ref t)) Nonnull_cast a:nr = r
+  Assert <- a !== null
+  return (Cast nr r) a
 
-export extern inline struct voidref = -- FIXME implement
-export extern inline struct voidmref = -- FIXME implement
-export extern inline struct voidmmref = -- FIXME implement
+extern inline struct Voidref = -- FIXME implement
+extern inline struct Voidmref = -- FIXME implement
+extern inline struct Voidmmref = -- FIXME implement

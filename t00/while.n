@@ -1,9 +1,9 @@
 from nlang import *
 
-export fun main = i32
-  let j = 0:i32
+fun Main = I32
+  let j = 0:I32
   such
-    let i = 0:i32
+    let i = 0:I32
     such
       while i < 10
         i += 1

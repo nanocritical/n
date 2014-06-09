@@ -1,9 +1,9 @@
 from nlang import *
 
 struct a =
-  isa `trivial_ctor
+  isa `Trivial_ctor
   x	:b
 
 struct b =
-  isa `trivial_ctor
+  isa `Trivial_ctor
   y	:a

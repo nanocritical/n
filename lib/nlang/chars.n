@@ -3,90 +3,90 @@ from nlang.containers import *
 from nlang.memory import *
 import nlang.unsafe
 
-export inline struct char =
-  export isa `static_string_compatible `show
-  code:u32
+inline struct Char =
+  isa `Static_string_compatible `Show
+  Code	:U32
 
-export inline char fun from_static_string s:static_string = this
-  assert <- s.count == 1
-  return { code=(s.get_char 0).code }
+inline Char fun From_static_string s:Static_string = this
+  Assert <- s.Count == 1
+  return { Code=(s.Get_char 0).Code }
 
-export inline char fun from_ascii c:u8 = char
-  return { code=c.to_u32 }
+inline Char fun From_ascii c:U8 = Char
+  return { Code=c.To_u32 }
 
-example <- char.from_ascii 49 == '1':char
+example <- Char.From_ascii 49 == '1':Char
 
-export inline char met `show.show buf:@#`string_buffer = void
-  buf#push self.
+inline Char met `Show.Show buf:@#`String_buffer = Void
+  buf#Push self.
 
-export intf `static_string_compatible =
-  fun from_static_string s:static_string = final
+intf `Static_string_compatible =
+  fun From_static_string s:Static_string = final
 
-export intf `const_string =
-  isa `static_string_compatible
--- export `random_container
-  met count = size
-  met all = index_range
-  met get_char n:size = char
-  met bytes_utf8 = []u8
+intf `Const_string =
+  isa `Static_string_compatible
+-- export `Random_container
+  met Count = Size
+  met All = Index_range
+  met Get_char n:Size = Char
+  met Bytes_utf8 = []U8
 
-export intf `string =
-  isa `const_string
-  met! set_char n:size c:char = void
-  met! fill c:char r:index_range = void
+intf `String =
+  isa `Const_string
+  met! Set_char n:Size c:Char = Void
+  met! Fill c:Char r:Index_range = Void
 
-export intf `string_buffer =
-  isa `string
-  met# reserve count:size = void
-  met# clear = void
-  met# push c:char = void
-  met# pop = char
-  met# append other:@`const_string = void
-  met# copy at:size other:@`const_string off:size count:size = void
+intf `String_buffer =
+  isa `String
+  met# Reserve Count:Size = Void
+  met# Clear = Void
+  met# Push c:Char = Void
+  met# Pop = Char
+  met# Append other:@`Const_string = Void
+  met# Copy at:Size other:@`Const_string off:Size Count:Size = Void
 
-export opaque struct static_string =
-  export isa `trivial_copy `return_by_copy `ordered_by_compare `show
-      \ `static_string_compatible `const_string `trivial_ctor
-  bytes	:[]u8
+opaque struct Static_string =
+  isa `Trivial_copy `Return_by_copy `Ordered_by_compare `Show
+      \ `Static_string_compatible `Const_string `Trivial_ctor
+  bytes	:[]U8
 
-export inline static_string met# unsafe_wrap bytes:@u8 count:size = void
-  let raw = (nlang.unsafe.cast @u8 @#u8) bytes
-  self.bytes#unsafe_wrap raw count
+inline Static_string met# Unsafe_wrap bytes:@U8 Count:Size = Void
+  let raw = (nlang.unsafe.Cast @U8 @#U8) bytes
+  self.bytes#Unsafe_wrap raw Count
 
-export inline static_string fun mk bytes:@u8 count:size = r:this
-  r#unsafe_wrap bytes count
+inline Static_string fun Mk bytes:@U8 Count:Size = r:this
+  r#Unsafe_wrap bytes Count
   return r
 
-export inline static_string fun from_static_string s:static_string = this
+inline Static_string fun From_static_string s:Static_string = this
   return { bytes=s.bytes }
 
-export inline static_string met `const_string.count = size
-  return self.bytes.count
+inline Static_string met `Const_string.Count = Size
+  return self.bytes.Count
 
-export inline static_string met `const_string.all = index_range
-  return self.bytes.all
+inline Static_string met `Const_string.All = Index_range
+  return self.bytes.All
 
-export inline static_string met `const_string.get_char n:size = char
-  return char.from_ascii self.bytes.[n].
+inline Static_string met `Const_string.Get_char n:Size = Char
+  return Char.From_ascii self.bytes.[n].
 
-export inline static_string met `const_string.bytes_utf8 = []u8
+inline Static_string met `Const_string.Bytes_utf8 = []U8
   return self.bytes
 
-export extern static_string met operator_compare other:@this = i32
+extern Static_string met Operator_compare other:@this = I32
 
-export static_string met `show.show buf:@#`string_buffer = void
-  buf#reserve buf.count + self.count
-  foreach i in self.all
-    buf#push (self.get_char i)
+Static_string met `Show.Show buf:@#`String_buffer = Void
+  buf#Reserve buf.Count + self.Count
+  foreach i in self.All
+    buf#Push (self.Get_char i)
 
-example <- '1234'.count == 4
-example <- '1234'.all == range 0 4
-example <- '1234'.get_char 3 == '4'.get_char 0
-example <- '1234'.get_char 1 == '2':char
+example <- '1234'.Count == 4
+example <- '1234'.All == Range 0 4
+example <- '1234'.Get_char 3 == '4'.Get_char 0
+example <- '1234'.Get_char 1 == '2':Char
 example <- '1234' == '1234'
-example <- '1234'.bytes_utf8.count == 4
-example <- '1234'.bytes_utf8.[0]. == 49
+example <- '1234'.Bytes_utf8.Count == 4
+example <- '1234'.Bytes_utf8.[0]. == 49
 
 
-export intf `show =
-  met show buf:@#`string_buffer = void
+intf `Show =
+  met Show buf:@#`String_buffer = Void

@@ -1,5 +1,5 @@
 from nlang import *
 
 struct t =
-  x:u32
+  x:U32
   | A

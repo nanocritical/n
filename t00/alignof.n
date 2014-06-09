@@ -1,5 +1,5 @@
 from nlang import *
 
-export fun main = i32
-  assert <- alignof i32 == alignof u32
+fun Main = I32
+  Assert <- alignof I32 == alignof U32
   return 0

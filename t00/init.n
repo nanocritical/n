@@ -1,19 +1,19 @@
 from nlang import *
 
 struct tt =
-  isa `trivial_copy
-  x:i32
-  y:i32
+  isa `Trivial_copy
+  x:I32
+  y:I32
 
 struct t =
-  isa `trivial_copy
-  x:i32
+  isa `Trivial_copy
+  x:I32
   y:tt
 
-fun foo x:i32 y:i32 = i32
+fun Foo x:I32 y:I32 = I32
   return x
 
-export fun main = i32
+fun Main = I32
   let a = {
     x = 1
     y = {
@@ -21,8 +21,8 @@ export fun main = i32
       y = 0
     }
   }:t
-  let b = (foo
-             (foo 0
+  let b = (Foo
+             (Foo 0
                 1)
              1)
   return b + a.y.x - 1

@@ -1,14 +1,14 @@
 from nlang import *
-from nlang.strings import string
+from nlang.strings import String
 
-fun foo s:static_string = void
+fun Foo s:Static_string = Void
   noop
 
-fun bar s:string = void
+fun bar s:String = Void
   noop
 
-export fun main = i32
+fun Main = I32
   let s = 'abc'
-  foo s
+  Foo s
   bar s
   return 0

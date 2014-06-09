@@ -10,8 +10,8 @@ from nlang.vectors import *
 --
 -- The solution involves passing over definitions according to the use-graph.
 
-alias `our = {`copyable `trivial_ctor}
-alias v32 = vector u32
+alias `our = {`Copyable `Trivial_ctor}
+alias v32 = vector U32
 
 struct holder t:`our =
   x	:t

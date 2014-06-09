@@ -1,12 +1,12 @@
 from nlang import *
 
 struct c =
-  x:i32
+  x:I32
 
-(fun r:`any_ref) get m:(r c) = (r i32)
+(fun r:`Any_ref) get m:(r c) = (r I32)
   -- FIXME: the wildcards here are not really well specified
   return @$ m$x
 
-export fun main = i32
+fun Main = I32
   let x = { x=0 }:c
-  return ((get ref) x).
+  return ((get Ref) x).

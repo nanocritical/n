@@ -677,9 +677,9 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     {
       char *s = escape_string(node->as.STRING.value);
       if (typ_equal(node->typ, TBI_STATIC_STRING)) {
-        fprintf(out, "nlang$chars$static_string$mk((const nlang$builtins$u8 *)\"%s\", sizeof(\"%s\")-1)", s, s);
+        fprintf(out, "nlang$chars$Static_string$Mk((const nlang$builtins$U8 *)\"%s\", sizeof(\"%s\")-1)", s, s);
       } else if (typ_equal(node->typ, TBI_CHAR)) {
-        fprintf(out, "nlang$chars$char$from_ascii('%s')", s);
+        fprintf(out, "nlang$chars$Char$From_ascii('%s')", s);
       } else {
         assert(false);
       }
@@ -1369,7 +1369,7 @@ static bool print_call_vararg_proto(FILE *out, const struct node *dfun, size_t n
     return false;
   }
 
-  fprintf(out, "nlang$builtins$size _$Nvarargcount, ...");
+  fprintf(out, "nlang$builtins$Size _$Nvarargcount, ...");
   return true;
 }
 
@@ -2407,27 +2407,27 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
   if (typ_equal(r, TBI_REF)) {
     fprintf(out, "typedef const %s", prefix);
     print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_nlang$builtins$ref$$");
+    fprintf(out, "* _$Ngen_nlang$builtins$Ref$$");
   } else if (typ_equal(r, TBI_NREF)) {
     fprintf(out, "typedef const %s", prefix);
     print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_nlang$builtins$nullable_ref$$");
+    fprintf(out, "* _$Ngen_nlang$builtins$Nullable_ref$$");
   } else if (typ_equal(r, TBI_MREF)) {
     fprintf(out, "typedef %s", prefix);
     print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_nlang$builtins$mutable_ref$$");
+    fprintf(out, "* _$Ngen_nlang$builtins$Mutable_ref$$");
   } else if (typ_equal(r, TBI_MMREF)) {
     fprintf(out, "typedef %s", prefix);
     print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_nlang$builtins$mercurial_ref$$");
+    fprintf(out, "* _$Ngen_nlang$builtins$Mercurial_ref$$");
   } else if (typ_equal(r, TBI_NMREF)) {
     fprintf(out, "typedef %s", prefix);
     print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_nlang$builtins$nullable_mutable_ref$$");
+    fprintf(out, "* _$Ngen_nlang$builtins$Nullable_mutable_ref$$");
   } else if (typ_equal(r, TBI_NMMREF)) {
     fprintf(out, "typedef %s", prefix);
     print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_nlang$builtins$nullable_mercurial_ref$$");
+    fprintf(out, "* _$Ngen_nlang$builtins$Nullable_mercurial_ref$$");
   }
   print_deftype_name(out, mod, d);
   fprintf(out, "_genN$_;\n");
@@ -2692,7 +2692,7 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
       if (st.printed == 0) {
         // Needed if all the members of the intf are *themselves* generics,
         // that form is indeed legal.
-        fprintf(out, "nlang$builtins$u8 _$Nfiller;\n");
+        fprintf(out, "nlang$builtins$U8 _$Nfiller;\n");
       }
       fprintf(out, "};\n");
 

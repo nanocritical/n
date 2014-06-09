@@ -5,44 +5,44 @@ from nlang.chars export *
 
 from nlang.strings import *
 
-fun write_buf fd:i32 s:@u8 count:size = void
+fun write_buf fd:I32 s:@U8 Count:Size = Void
 
-export fun vpr v:@!(vararg @`show) ?err:?@bool ?sep:?@string = void
-  let separator = optional_ref sep ' '
-  let s = {}:string
+fun Vpr v:@!(Vararg @`Show) ?err:?@Bool ?sep:?@String = Void
+  let separator = Optional_ref sep ' '
+  let s = {}:String
   such
     for x in v!
-      x.show @#s
-      if v.left > 0
-	separator.show @#s
-  let b = s.bytes_utf8
+      x.Show @#s
+      if v.Count_left > 0
+	separator.Show @#s
+  let b = s.Bytes_utf8
   let fd = 1 such
-    if optional err false
+    if Optional err false
       fd = 2
-  write_buf fd b.unsafe_data b.bytecount
+  write_buf fd b.Unsafe_data b.Bytecount
 
-export fun pr ?err:?@bool ?sep:?@string ...v:(vararg @`show) = void
-  vpr @!v err=err sep=sep
+fun Pr ?err:?@Bool ?sep:?@String ...v:(Vararg @`Show) = Void
+  Vpr @!v err=err sep=sep
 
-export fun vsay v:@!(vararg @`show) ?err:?@bool ?sep:?@string = void
-  vpr v err=err sep=sep
-  let eol = '\n':char
+fun Vsay v:@!(Vararg @`Show) ?err:?@Bool ?sep:?@String = Void
+  Vpr v err=err sep=sep
+  let eol = '\n':Char
   let fd = 1 such
-    if optional err false
+    if Optional err false
       fd = 2
-  write_buf fd eol.code.trim_u8 1
+  write_buf fd eol.Code.Trim_u8 1
 
-export fun say ?err:?@bool ?sep:?@string ...v:(vararg @`show) = void
-  vsay @!v err=err sep=sep
+fun Say ?err:?@Bool ?sep:?@String ...v:(Vararg @`Show) = Void
+  Vsay @!v err=err sep=sep
 
-export fun epr ?sep:?@string ...v:(vararg @`show) = void
-  vpr @!v err=true sep=sep
+fun Epr ?sep:?@String ...v:(Vararg @`Show) = Void
+  Vpr @!v err=true sep=sep
 
-export fun esay ?sep:?@string ...v:(vararg @`show) = void
-  vsay @!v err=true sep=sep
+fun Esay ?sep:?@String ...v:(Vararg @`Show) = Void
+  Vsay @!v err=true sep=sep
 
-export inline (fun t:`any r:(`any_ref t)) just_const p:r = @t
+inline (fun t:`Any r:(`Any_ref t)) Just_const p:r = @t
   return p
 
-export inline (fun t:`any r:(`any_mutable_ref t)) just_mutable p:r = @!t
+inline (fun t:`Any r:(`Any_mutable_ref t)) Just_mutable p:r = @!t
   return p

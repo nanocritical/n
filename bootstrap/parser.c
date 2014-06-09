@@ -20,184 +20,184 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_MATCH] = "<match>",
   [ID_TRY] = "<try_catch>",
   [ID_LET] = "<let>",
-  [ID_PRE] = "__pre__",
-  [ID_POST] = "__post__",
-  [ID_INVARIANT] = "__invariant__",
-  [ID_EXAMPLE] = "__example__",
+  [ID_PRE] = "Pre__",
+  [ID_POST] = "Post__",
+  [ID_INVARIANT] = "Invariant__",
+  [ID_EXAMPLE] = "Example__",
   [ID_THIS] = "this",
   [ID_FINAL] = "final",
   [ID_SELF] = "self",
   [ID_OTHERWISE] = "_",
   [ID_THROW] = "throw",
-  [ID_MAIN] = "main",
+  [ID_MAIN] = "Main",
   [ID_TAG] = "tag",
   [ID_FIRST_TAG] = "first_tag",
   [ID_LAST_TAG] = "last_tag",
   [ID_AS] = "as",
   [ID_TAG_TYPE] = "tag_type",
   [ID_AS_TYPE] = "as_type",
-  [ID_HAS_NEXT] = "has_next",
-  [ID_NEXT] = "next",
-  [ID_CAST] = "cast",
+  [ID_HAS_NEXT] = "Has_next",
+  [ID_NEXT] = "Next",
+  [ID_CAST] = "Cast",
   [ID_NCODELOC] = "_Ncodeloc",
   [ID_WILDCARD_REF_ARG] = "__wildcard_ref_arg__",
   [ID_WILDCARD_REF_ARG_SELF] = "__wildcard_ref_arg_self__",
-  [ID_LIKELY] = "likely",
-  [ID_UNLIKELY] = "unlikely",
+  [ID_LIKELY] = "Likely",
+  [ID_UNLIKELY] = "Unlikely",
   [ID_NLANG] = "nlang",
-  [ID_TBI_VOID] = "void",
+  [ID_TBI_VOID] = "Void",
   [ID_TBI_LITERALS_NULL] = "`__literal_null__",
   [ID_TBI_LITERALS_INTEGER] = "`__literal_integer__",
   [ID_TBI_LITERALS_FLOATING] = "`__literal_floating__",
-  [ID_TBI_ANY] = "`any",
-  [ID_TBI_ANY_TUPLE] = "`any_tuple",
-  [ID_TBI_TUPLE_2] = "tuple_2",
-  [ID_TBI_TUPLE_3] = "tuple_3",
-  [ID_TBI_TUPLE_4] = "tuple_4",
-  [ID_TBI_TUPLE_5] = "tuple_5",
-  [ID_TBI_TUPLE_6] = "tuple_6",
-  [ID_TBI_TUPLE_7] = "tuple_7",
-  [ID_TBI_TUPLE_8] = "tuple_8",
-  [ID_TBI_TUPLE_9] = "tuple_9",
-  [ID_TBI_TUPLE_10] = "tuple_10",
-  [ID_TBI_TUPLE_11] = "tuple_11",
-  [ID_TBI_TUPLE_12] = "tuple_12",
-  [ID_TBI_TUPLE_13] = "tuple_13",
-  [ID_TBI_TUPLE_14] = "tuple_14",
-  [ID_TBI_TUPLE_15] = "tuple_15",
-  [ID_TBI_TUPLE_16] = "tuple_16",
-  [ID_TBI_BOOL] = "bool",
-  [ID_TBI_BOOL_COMPATIBLE] = "`bool_compatible",
-  [ID_TBI_I8] = "i8",
-  [ID_TBI_U8] = "u8",
-  [ID_TBI_I16] = "i16",
-  [ID_TBI_U16] = "u16",
-  [ID_TBI_I32] = "i32",
-  [ID_TBI_U32] = "u32",
-  [ID_TBI_I64] = "i64",
-  [ID_TBI_U64] = "u64",
-  [ID_TBI_SIZE] = "size",
-  [ID_TBI_SSIZE] = "ssize",
-  [ID_TBI_FLOAT] = "float",
-  [ID_TBI_DOUBLE] = "double",
-  [ID_TBI_CHAR] = "char",
-  [ID_TBI_STRING] = "string",
-  [ID_TBI_STATIC_STRING] = "static_string",
-  [ID_TBI_STATIC_STRING_COMPATIBLE] = "`static_string_compatible",
-  [ID_TBI_STATIC_ARRAY] = "static_array",
-  [ID_TBI_ANY_ANY_REF] = "`any_any_ref",
-  [ID_TBI_ANY_REF] = "`any_ref",
-  [ID_TBI_ANY_MUTABLE_REF] = "`any_mutable_ref",
-  [ID_TBI_ANY_NULLABLE_REF] = "`any_nullable_ref",
-  [ID_TBI_ANY_NULLABLE_MUTABLE_REF] = "`any_nullable_mutable_ref",
-  [ID_TBI_REF] = "ref",
-  [ID_TBI_MREF] = "mutable_ref",
-  [ID_TBI_MMREF] = "mercurial_ref",
-  [ID_TBI_NREF] = "nullable_ref",
-  [ID_TBI_NMREF] = "nullable_mutable_ref",
-  [ID_TBI_NMMREF] = "nullable_mercurial_ref",
-  [ID_TBI_ANY_ANY_SLICE] = "`any_any_slice",
-  [ID_TBI_ANY_SLICE] = "`any_slice",
-  [ID_TBI_ANY_MUTABLE_SLICE] = "`any_mutable_slice",
-  [ID_TBI_SLICE] = "slice",
-  [ID_TBI_MSLICE] = "mutable_slice",
-  [ID_TBI_SLICE_IMPL] = "slice_impl",
-  [ID_TBI_VARARG] = "vararg",
-  [ID_TBI_ARITHMETIC] = "`arithmetic",
-  [ID_TBI_BITWISE] = "`bitwise",
-  [ID_TBI_INTEGER] = "`integer",
-  [ID_TBI_UNSIGNED_INTEGER] = "`unsigned_integer",
-  [ID_TBI_NATIVE_INTEGER] = "`native_integer",
-  [ID_TBI_NATIVE_ANYSIGN_INTEGER] = "`native_anysign_integer",
-  [ID_TBI_GENERALIZED_BOOLEAN] = "`generalized_boolean",
-  [ID_TBI_NATIVE_BOOLEAN] = "`native_boolean",
-  [ID_TBI_FLOATING] = "`floating",
-  [ID_TBI_NATIVE_FLOATING] = "`native_floating",
-  [ID_TBI_HAS_EQUALITY] = "`has_equality",
-  [ID_TBI_NOT_HAS_EQUALITY] = "`not_has_equality",
-  [ID_TBI_ORDERED] = "`ordered",
-  [ID_TBI_NOT_ORDERED] = "`not_ordered",
-  [ID_TBI_EQUALITY_BY_COMPARE] = "`equality_by_compare",
-  [ID_TBI_ORDERED_BY_COMPARE] = "`ordered_by_compare",
-  [ID_TBI_COPYABLE] = "`copyable",
-  [ID_TBI_NOT_COPYABLE] = "`not_copyable",
-  [ID_TBI_DEFAULT_CTOR] = "`default_ctor",
-  [ID_TBI_NON_DEFAULT_CTOR] = "`non_default_ctor",
-  [ID_TBI_DEFAULT_DTOR] = "`default_dtor",
-  [ID_TBI_ARRAY_CTOR] = "`array_ctor",
-  [ID_TBI_TRIVIAL_COPY] = "`trivial_copy",
-  [ID_TBI_TRIVIAL_COPY_BUT_OWNED] = "`trivial_copy_but_owned",
-  [ID_TBI_TRIVIAL_CTOR] = "`trivial_ctor",
-  [ID_TBI_TRIVIAL_ARRAY_CTOR] = "`trivial_array_ctor",
-  [ID_TBI_TRIVIAL_DTOR] = "`trivial_dtor",
-  [ID_TBI_TRIVIAL_COMPARE] = "`trivial_compare",
-  [ID_TBI_TRIVIAL_EQUALITY] = "`trivial_equality",
-  [ID_TBI_TRIVIAL_ORDER] = "`trivial_order",
-  [ID_TBI_RETURN_BY_COPY] = "`return_by_copy",
-  [ID_TBI_NOT_RETURN_BY_COPY] = "`not_return_by_copy",
-  [ID_TBI_ENUM] = "`enum",
-  [ID_TBI_UNION] = "`union",
-  [ID_TBI_UNION_TRIVIAL_CTOR] = "`union_trivial_ctor",
-  [ID_TBI_INDEX_RANGE] = "index_range",
-  [ID_TBI_INDEX_BOUNDS] = "index_bounds",
-  [ID_TBI_ITERATOR] = "`iterator",
-  [ID_TBI_ENVIRONMENT] = "`environment",
-  [ID_TBI_ANY_ENVIRONMENT] = "`any_environment",
-  [ID_TBI_PREVENT_DYN] = "`prevent_dyn",
+  [ID_TBI_ANY] = "`Any",
+  [ID_TBI_ANY_TUPLE] = "`Any_tuple",
+  [ID_TBI_TUPLE_2] = "Tuple_2",
+  [ID_TBI_TUPLE_3] = "Tuple_3",
+  [ID_TBI_TUPLE_4] = "Tuple_4",
+  [ID_TBI_TUPLE_5] = "Tuple_5",
+  [ID_TBI_TUPLE_6] = "Tuple_6",
+  [ID_TBI_TUPLE_7] = "Tuple_7",
+  [ID_TBI_TUPLE_8] = "Tuple_8",
+  [ID_TBI_TUPLE_9] = "Tuple_9",
+  [ID_TBI_TUPLE_10] = "Tuple_10",
+  [ID_TBI_TUPLE_11] = "Tuple_11",
+  [ID_TBI_TUPLE_12] = "Tuple_12",
+  [ID_TBI_TUPLE_13] = "Tuple_13",
+  [ID_TBI_TUPLE_14] = "Tuple_14",
+  [ID_TBI_TUPLE_15] = "Tuple_15",
+  [ID_TBI_TUPLE_16] = "Tuple_16",
+  [ID_TBI_BOOL] = "Bool",
+  [ID_TBI_BOOL_COMPATIBLE] = "`Bool_compatible",
+  [ID_TBI_I8] = "I8",
+  [ID_TBI_U8] = "U8",
+  [ID_TBI_I16] = "I16",
+  [ID_TBI_U16] = "U16",
+  [ID_TBI_I32] = "I32",
+  [ID_TBI_U32] = "U32",
+  [ID_TBI_I64] = "I64",
+  [ID_TBI_U64] = "U64",
+  [ID_TBI_SIZE] = "Size",
+  [ID_TBI_SSIZE] = "Ssize",
+  [ID_TBI_FLOAT] = "Float",
+  [ID_TBI_DOUBLE] = "Double",
+  [ID_TBI_CHAR] = "Char",
+  [ID_TBI_STRING] = "String",
+  [ID_TBI_STATIC_STRING] = "Static_string",
+  [ID_TBI_STATIC_STRING_COMPATIBLE] = "`Static_string_compatible",
+  [ID_TBI_STATIC_ARRAY] = "Static_array",
+  [ID_TBI_ANY_ANY_REF] = "`Any_any_ref",
+  [ID_TBI_ANY_REF] = "`Any_ref",
+  [ID_TBI_ANY_MUTABLE_REF] = "`Any_mutable_ref",
+  [ID_TBI_ANY_NULLABLE_REF] = "`Any_nullable_ref",
+  [ID_TBI_ANY_NULLABLE_MUTABLE_REF] = "`Any_nullable_mutable_ref",
+  [ID_TBI_REF] = "Ref",
+  [ID_TBI_MREF] = "Mutable_ref",
+  [ID_TBI_MMREF] = "Mercurial_ref",
+  [ID_TBI_NREF] = "Nullable_ref",
+  [ID_TBI_NMREF] = "Nullable_mutable_ref",
+  [ID_TBI_NMMREF] = "Nullable_mercurial_ref",
+  [ID_TBI_ANY_ANY_SLICE] = "`Any_any_slice",
+  [ID_TBI_ANY_SLICE] = "`Any_slice",
+  [ID_TBI_ANY_MUTABLE_SLICE] = "`Any_mutable_slice",
+  [ID_TBI_SLICE] = "Slice",
+  [ID_TBI_MSLICE] = "Mutable_slice",
+  [ID_TBI_SLICE_IMPL] = "Slice_impl",
+  [ID_TBI_VARARG] = "Vararg",
+  [ID_TBI_ARITHMETIC] = "`Arithmetic",
+  [ID_TBI_BITWISE] = "`Bitwise",
+  [ID_TBI_INTEGER] = "`Integer",
+  [ID_TBI_UNSIGNED_INTEGER] = "`Unsigned_integer",
+  [ID_TBI_NATIVE_INTEGER] = "`Native_integer",
+  [ID_TBI_NATIVE_ANYSIGN_INTEGER] = "`Native_anysign_integer",
+  [ID_TBI_GENERALIZED_BOOLEAN] = "`Generalized_boolean",
+  [ID_TBI_NATIVE_BOOLEAN] = "`Native_boolean",
+  [ID_TBI_FLOATING] = "`Floating",
+  [ID_TBI_NATIVE_FLOATING] = "`Native_floating",
+  [ID_TBI_HAS_EQUALITY] = "`Has_equality",
+  [ID_TBI_NOT_HAS_EQUALITY] = "`Not_has_equality",
+  [ID_TBI_ORDERED] = "`Ordered",
+  [ID_TBI_NOT_ORDERED] = "`Not_ordered",
+  [ID_TBI_EQUALITY_BY_COMPARE] = "`Equality_by_compare",
+  [ID_TBI_ORDERED_BY_COMPARE] = "`Ordered_by_compare",
+  [ID_TBI_COPYABLE] = "`Copyable",
+  [ID_TBI_NOT_COPYABLE] = "`Not_copyable",
+  [ID_TBI_DEFAULT_CTOR] = "`Default_ctor",
+  [ID_TBI_NON_DEFAULT_CTOR] = "`Non_default_ctor",
+  [ID_TBI_DEFAULT_DTOR] = "`Default_dtor",
+  [ID_TBI_ARRAY_CTOR] = "`Array_ctor",
+  [ID_TBI_TRIVIAL_COPY] = "`Trivial_copy",
+  [ID_TBI_TRIVIAL_COPY_BUT_OWNED] = "`Trivial_copy_but_owned",
+  [ID_TBI_TRIVIAL_CTOR] = "`Trivial_ctor",
+  [ID_TBI_TRIVIAL_ARRAY_CTOR] = "`Trivial_array_ctor",
+  [ID_TBI_TRIVIAL_DTOR] = "`Trivial_dtor",
+  [ID_TBI_TRIVIAL_COMPARE] = "`Trivial_compare",
+  [ID_TBI_TRIVIAL_EQUALITY] = "`Trivial_equality",
+  [ID_TBI_TRIVIAL_ORDER] = "`Trivial_order",
+  [ID_TBI_RETURN_BY_COPY] = "`Return_by_copy",
+  [ID_TBI_NOT_RETURN_BY_COPY] = "`Not_return_by_copy",
+  [ID_TBI_ENUM] = "`Enum",
+  [ID_TBI_UNION] = "`Union",
+  [ID_TBI_UNION_TRIVIAL_CTOR] = "`Union_trivial_ctor",
+  [ID_TBI_INDEX_RANGE] = "Index_range",
+  [ID_TBI_INDEX_BOUNDS] = "Index_bounds",
+  [ID_TBI_ITERATOR] = "`Iterator",
+  [ID_TBI_ENVIRONMENT] = "`Environment",
+  [ID_TBI_ANY_ENVIRONMENT] = "`Any_environment",
+  [ID_TBI_PREVENT_DYN] = "`Prevent_dyn",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_TBI__CALL_FUNCTION_SLOT] = "__call_function_slot__",
   [ID_TBI__MUTABLE] = "__mutable__",
   [ID_TBI__MERCURIAL] = "__mercurial__",
-  [ID_CTOR] = "ctor",
-  [ID_DTOR] = "dtor",
-  [ID_COPY_CTOR] = "copy_ctor",
+  [ID_CTOR] = "Ctor",
+  [ID_DTOR] = "Dtor",
+  [ID_COPY_CTOR] = "Copy_ctor",
   [ID_C] = "c",
   [ID_OTHER] = "other",
-  [ID_FROM_STATIC_STRING] = "from_static_string",
-  [ID_FROM_BOOL] = "from_bool",
-  [ID_FROM_ARRAY] = "from_array",
+  [ID_FROM_STATIC_STRING] = "From_static_string",
+  [ID_FROM_BOOL] = "From_bool",
+  [ID_FROM_ARRAY] = "From_array",
   [ID_FROM_TAG] = "from_tag",
   [ID_NRETVAL] = "_nretval",
-  [ID_OPERATOR_OR] = "operator_or",
-  [ID_OPERATOR_AND] = "operator_and",
-  [ID_OPERATOR_NOT] = "operator_not",
-  [ID_OPERATOR_TEST] = "operator_test",
-  [ID_OPERATOR_COMPARE] = "operator_compare",
-  [ID_OPERATOR_LE] = "operator_le",
-  [ID_OPERATOR_LT] = "operator_lt",
-  [ID_OPERATOR_GT] = "operator_gt",
-  [ID_OPERATOR_GE] = "operator_ge",
-  [ID_OPERATOR_EQ] = "operator_eq",
-  [ID_OPERATOR_NE] = "operator_ne",
-  [ID_OPERATOR_MATCH] = "operator_match",
-  [ID_OPERATOR_BWOR] = "operator_bwor",
-  [ID_OPERATOR_BWXOR] = "operator_bwxor",
-  [ID_OPERATOR_BWAND] = "operator_bwand",
-  [ID_OPERATOR_LSHIFT] = "operator_lshift",
-  [ID_OPERATOR_RSHIFT] = "operator_rshift",
-  [ID_OPERATOR_ASSIGN_BWOR] = "operator_assign_bwor",
-  [ID_OPERATOR_ASSIGN_BWXOR] = "operator_assign_bwxor",
-  [ID_OPERATOR_ASSIGN_BWAND] = "operator_assign_bwand",
-  [ID_OPERATOR_ASSIGN_LSHIFT] = "operator_assign_lshift",
-  [ID_OPERATOR_ASSIGN_RSHIFT] = "operator_assign_rshift",
-  [ID_OPERATOR_PLUS] = "operator_plus",
-  [ID_OPERATOR_MINUS] = "operator_minus",
-  [ID_OPERATOR_DIVIDE] = "operator_divide",
-  [ID_OPERATOR_MODULO] = "operator_modulo",
-  [ID_OPERATOR_TIMES] = "operator_times",
-  [ID_OPERATOR_ASSIGN_PLUS] = "operator_assign_plus",
-  [ID_OPERATOR_ASSIGN_MINUS] = "operator_assign_minus",
-  [ID_OPERATOR_ASSIGN_DIVIDE] = "operator_assign_divide",
-  [ID_OPERATOR_ASSIGN_MODULO] = "operator_assign_modulo",
-  [ID_OPERATOR_ASSIGN_TIMES] = "operator_assign_times",
-  [ID_OPERATOR_UMINUS] = "operator_uminus",
-  [ID_OPERATOR_BWNOT] = "operator_bwnot",
-  [ID_OPERATOR_AT] = "operator_at",
-  [ID_OPERATOR_SUB] = "operator_sub",
-  [ID_PARENT] = "parent",
-  [ID_INSTALL] = "install",
-  [ID_UNINSTALL] = "uninstall",
-  [ID_SHOW] = "show",
+  [ID_OPERATOR_OR] = "Operator_or",
+  [ID_OPERATOR_AND] = "Operator_and",
+  [ID_OPERATOR_NOT] = "Operator_not",
+  [ID_OPERATOR_TEST] = "Operator_test",
+  [ID_OPERATOR_COMPARE] = "Operator_compare",
+  [ID_OPERATOR_LE] = "Operator_le",
+  [ID_OPERATOR_LT] = "Operator_lt",
+  [ID_OPERATOR_GT] = "Operator_gt",
+  [ID_OPERATOR_GE] = "Operator_ge",
+  [ID_OPERATOR_EQ] = "Operator_eq",
+  [ID_OPERATOR_NE] = "Operator_ne",
+  [ID_OPERATOR_MATCH] = "Operator_match",
+  [ID_OPERATOR_BWOR] = "Operator_bwor",
+  [ID_OPERATOR_BWXOR] = "Operator_bwxor",
+  [ID_OPERATOR_BWAND] = "Operator_bwand",
+  [ID_OPERATOR_LSHIFT] = "Operator_lshift",
+  [ID_OPERATOR_RSHIFT] = "Operator_rshift",
+  [ID_OPERATOR_ASSIGN_BWOR] = "Operator_assign_bwor",
+  [ID_OPERATOR_ASSIGN_BWXOR] = "Operator_assign_bwxor",
+  [ID_OPERATOR_ASSIGN_BWAND] = "Operator_assign_bwand",
+  [ID_OPERATOR_ASSIGN_LSHIFT] = "Operator_assign_lshift",
+  [ID_OPERATOR_ASSIGN_RSHIFT] = "Operator_assign_rshift",
+  [ID_OPERATOR_PLUS] = "Operator_plus",
+  [ID_OPERATOR_MINUS] = "Operator_minus",
+  [ID_OPERATOR_DIVIDE] = "Operator_divide",
+  [ID_OPERATOR_MODULO] = "Operator_modulo",
+  [ID_OPERATOR_TIMES] = "Operator_times",
+  [ID_OPERATOR_ASSIGN_PLUS] = "Operator_assign_plus",
+  [ID_OPERATOR_ASSIGN_MINUS] = "Operator_assign_minus",
+  [ID_OPERATOR_ASSIGN_DIVIDE] = "Operator_assign_divide",
+  [ID_OPERATOR_ASSIGN_MODULO] = "Operator_assign_modulo",
+  [ID_OPERATOR_ASSIGN_TIMES] = "Operator_assign_times",
+  [ID_OPERATOR_UMINUS] = "Operator_uminus",
+  [ID_OPERATOR_BWNOT] = "Operator_bwnot",
+  [ID_OPERATOR_AT] = "Operator_at",
+  [ID_OPERATOR_SUB] = "Operator_sub",
+  [ID_PARENT] = "Parent",
+  [ID_INSTALL] = "Install",
+  [ID_UNINSTALL] = "Uninstall",
+  [ID_SHOW] = "Show",
 };
 
 static uint32_t token_hash(const struct token *tok) {
@@ -929,7 +929,7 @@ static void convert_at(struct module *mod, struct node *node) {
   GSTART();
   G0(fun, node, BIN,
      node_subs_append(fun, self);
-     G_IDENT(m, is_range ? "operator_sub" : "operator_at"));
+     G_IDENT(m, is_range ? "Operator_sub" : "Operator_at"));
   node_subs_append(node, idx);
 
   switch (op) {
@@ -1952,6 +1952,18 @@ static void count_args(struct node *def) {
   }
 }
 
+bool name_is_export(const struct module *mod, const struct node *name) {
+  if (name->which == BIN) {
+    name = subs_last_const(name);
+  }
+  assert(name->which == IDENT);
+
+  const char *v = idents_value(mod->gctx, node_ident(name));
+  int c1 = v[0];
+  int c2 = v[1];
+  return (c1 >= 'A' && c1 <= 'Z') || (c1 == '`' && c2 >= 'A' && c2 <= 'Z');
+}
+
 static error p_deffun(struct node *node, struct module *mod,
                       const struct toplevel *toplevel,
                       enum node_which fun_or_method) {
@@ -1975,6 +1987,10 @@ static error p_deffun(struct node *node, struct module *mod,
   struct node *name = subs_first(node);
   e = p_expr(name, mod, T__CALL);
   EXCEPT(e);
+
+  if (name_is_export(mod, name)) {
+    node_toplevel(node)->flags |= TOP_IS_EXPORT;
+  }
 
   struct node *funargs = mk_node(mod, node, FUNARGS);
   if (fun_or_method == DEFMETHOD) {
@@ -2054,7 +2070,7 @@ retval:
   return 0;
 }
 
-static error p_isalist(struct node *par, struct module *mod, bool is_export) {
+static error p_isalist(struct node *par, struct module *mod) {
   struct node *isalist = subs_at(par, IDX_ISALIST);
 
   error e;
@@ -2074,7 +2090,7 @@ again:
 
     struct node *isa = node_new_subnode(mod, isalist);
     node_set_which(isa, ISA);
-    isa->as.ISA.is_export = is_export;
+    isa->as.ISA.is_export = node_toplevel(par)->flags & TOP_IS_EXPORT;
     isa->as.ISA.is_explicit = true;
 
     e = p_expr(node_new_subnode(mod, isa), mod, T__CALL);
@@ -2126,9 +2142,6 @@ again:
   case Talias:
     e = p_let(node, mod, &toplevel, tok.t);
     break;
-  case Texport:
-    toplevel.flags |= TOP_IS_EXPORT;
-    goto again;
   case Textern:
     toplevel.flags |= TOP_IS_EXTERN;
     goto again;
@@ -2140,7 +2153,7 @@ again:
     goto again;
   case Tisa:
     node_subs_remove(deft, node);
-    e = p_isalist(deft, mod, toplevel.flags & TOP_IS_EXPORT);
+    e = p_isalist(deft, mod);
     break;
   case Tdelegate:
     e = p_delegate(node, mod, &toplevel);
@@ -2263,6 +2276,10 @@ static error p_deftype(struct node *node, struct module *mod,
   error e = p_ident(subs_first(node), mod);
   EXCEPT(e);
 
+  if (name_is_export(mod, subs_first_const(node))) {
+    node_toplevel(node)->flags |= TOP_IS_EXPORT;
+  }
+
   e = p_genargs(subs_at(node, IDX_GENARGS), mod, TASSIGN, true);
   EXCEPT(e);
 
@@ -2342,7 +2359,7 @@ bypass:
     break;
   case Tisa:
     node_subs_remove(intf, node);
-    e = p_isalist(intf, mod, node_is_export(intf));
+    e = p_isalist(intf, mod);
     EXCEPT(e);
     break;
   case Tlet:
@@ -2411,6 +2428,10 @@ static error p_defintf(struct node *node, struct module *mod,
   struct token tok = { 0 };
   error e = p_ident(subs_first(node), mod);
   EXCEPT(e);
+
+  if (name_is_export(mod, subs_first_const(node))) {
+    node_toplevel(node)->flags |= TOP_IS_EXPORT;
+  }
 
   if (idents_value(mod->gctx, node_ident(subs_first(node)))[0] != '`') {
     e = mk_except(mod, subs_first(node), "intf name doesn't start with '`'");
@@ -2574,9 +2595,6 @@ bypass:
     }
     e = p_defintf(node, mod, genargs, &toplevel);
     break;
-  case Texport:
-    toplevel.flags |= TOP_IS_EXPORT;
-    goto again;
   case Textern:
     toplevel.flags |= TOP_IS_EXTERN;
     goto again;

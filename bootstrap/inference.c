@@ -1649,14 +1649,14 @@ static error try_rewrite_operator_sub(struct module *mod, struct node *node) {
   EXCEPT(e);
 
   if (typ_equal(arg->typ, TBI_INDEX_BOUNDS)) {
-    // Magically convert v.[10...] to v.[(10...).range_of v].
+    // Magically convert v.[10...] to v.[(10...).Range_of v].
     node_subs_remove(node, arg);
     GSTART();
     G0(call, node, CALL,
        G(b, BIN,
          b->as.BIN.operator = TDOT;
          node_subs_append(b, arg);
-         G_IDENT(f, "range_of"));
+         G_IDENT(f, "Range_of"));
        G(vn, IDENT,
          vn->as.IDENT.name = node_ident(self)));
 

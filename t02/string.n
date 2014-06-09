@@ -1,10 +1,10 @@
 from nlang import *
 from nlang.strings import *
 
-fun foo = string
+fun foo = String
   return 'test'
 
-export fun main = i32
-  say 'test'
-  say foo
+fun Main = I32
+  Say 'test'
+  Say foo
   return 0

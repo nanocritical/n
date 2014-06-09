@@ -1,36 +1,36 @@
 from nlang import *
 from nlang.strings import *
 
-export fun main = i32
-  let x = 1:i32
+fun Main = I32
+  let x = 1:I32
   let y = 2 + x
   return 0 + y
 
-export fun main2 = i32
+fun Main2 = I32
   return 0
 
-export inline fun foo = string
+inline fun Foo = String
   return 'test'
 
-inline fun other4 x:i32 = i32
-extern fun other5 x:i32 = i32
+inline fun other4 x:I32 = I32
+extern fun other5 x:I32 = I32
 
 intf `ia =
 
 struct test =
   isa `ia
-  t:i32
+  t:I32
 
-test met foo x:i32 = i32
+test met Foo x:I32 = I32
   let y = x
   return y
 
-fun foobar x:i32 = i32
+fun foobar x:I32 = I32
   pre <- x != 0
   post <- x != 0
   return 0
 
-fun foobar2 = void
+fun foobar2 = Void
   return
 
 enum enu =

@@ -1,40 +1,40 @@
 from nlang.builtins import *
 from nlang.containers import *
-from nlang.sysheap import sysheap heap
+from nlang.sysheap import Sysheap Heap
 import nlang.unsafe
 
---export extern struct array_impl t:`any N:size =
---  export isa `trivial_ctor `trivial_dtor `trivial_copy_but_owned
+--extern struct Array_impl t:`Any N:Size =
+--  export isa `Trivial_ctor `Trivial_dtor `Trivial_copy_but_owned
 --
---export array_impl fun count = size
+--export Array_impl fun Count = Size
 --  return N
 --
---export array_impl fun bytecount = size
+--export Array_impl fun Bytecount = Size
 --  return N * (sizeof t)
 --
---export array_impl fun all = index_range
---  return range 0 N
+--export Array_impl fun All = Index_range
+--  return Range 0 N
 --
---export array_impl met$ unsafe_rawdata = @$u8
---  return (unsafe.cast @$this @$u8) self
+--export Array_impl met$ Unsafe_rawdata = @$U8
+--  return (unsafe.Cast @$this @$U8) self
 --
---export array_impl met$ unsafe_data = @$t
---  return (unsafe.cast @$this @$t) self
+--export Array_impl met$ Unsafe_data = @$t
+--  return (unsafe.Cast @$this @$t) self
 --
---export array_impl met$ operator_at n:size = @$t
---  assert <- n < N
---  return (unsafe.cast @$u8 @$t) (slice_at_byte self$unsafe_rawdata n)
+--export Array_impl met$ Operator_at n:Size = @$t
+--  Assert <- n < N
+--  return (unsafe.Cast @$U8 @$t) (Slice_at_byte self$Unsafe_rawdata n)
 --
---export array_impl met# copy other:[]t = void
---  assert <- N == other.count
---  let dst = self#unsafe_rawdata
---  and src = other.unsafe_rawdata
+--export Array_impl met# Copy other:[]t = Void
+--  Assert <- N == other.Count
+--  let dst = self#Unsafe_rawdata
+--  and src = other.Unsafe_rawdata
 --  and bytecnt = N * (sizeof t)
---  slice_memcpy dst src bytecnt
+--  Slice_memcpy dst src bytecnt
 --
---export array_impl shallow met$ operator_sub r:index_range = []$t
---  assert <- r.begin < self.count
---  assert <- r.end <= self.count
---  let raw0 = self$unsafe_rawdata
---  let raw = slice_at_byte raw0 r.begin
---  return {dat=raw cnt=r.count}
+--export Array_impl shallow met$ operator_sub r:Index_range = []$t
+--  Assert <- r.begin < self.Count
+--  Assert <- r.end <= self.Count
+--  let raw0 = self$Unsafe_rawdata
+--  let raw = Slice_at_byte raw0 r.begin
+--  return {dat=raw cnt=r.Count}

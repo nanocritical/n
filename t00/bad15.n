@@ -1,11 +1,11 @@
 from nlang import *
 
 struct a =
-  x	:i32
+  x	:I32
 
-a met foo = i32
+a met Foo = I32
   return x -- lexical lookup should fail
 
-extern fun main = i32
+extern fun Main = I32
   let y = {}:a
-  return y.foo
+  return y.Foo

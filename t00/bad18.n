@@ -1,5 +1,5 @@
 from nlang import *
 
-export fun main = i32
-  say @'Hello' @'World!' sep=@', '
+fun Main = I32
+  Say @'Hello' @'World!' sep=@', '
   return 0

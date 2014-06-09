@@ -1,17 +1,17 @@
 from nlang import *
 
 struct copy =
-  isa `copyable
-  x:i32
+  isa `Copyable
+  x:I32
 
-copy met# `copyable.copy_ctor other:@this = void
+copy met# `Copyable.copy_ctor other:@this = Void
   self!x = other.x
 
-fun foo = copy
+fun Foo = copy
   return { x=0 }
 
-export fun main = i32
-  let w = foo
+fun Main = I32
+  let w = Foo
   let y = { x=-1 }:copy
   let z:copy
   such

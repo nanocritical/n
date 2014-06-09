@@ -1,8 +1,8 @@
 from nlang import *
 
 struct t =
-  x:i32
+  x:I32
 
-export fun main = i32
+fun Main = I32
   let tt:t
   return tt.x

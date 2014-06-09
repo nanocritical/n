@@ -1,23 +1,23 @@
 from nlang import *
 
-export fun main = i32
+fun Main = I32
   if false and true
-    esay 'no'
+    Esay 'no'
   if true and false
-    esay 'no'
+    Esay 'no'
   if false and false
-    esay 'no'
+    Esay 'no'
   if true and true
-    esay 'yes'
+    Esay 'yes'
 
   if false or true
-    esay 'yes'
+    Esay 'yes'
   if true or false
-    esay 'yes'
+    Esay 'yes'
   if false or false
-    esay 'no'
+    Esay 'no'
   if true or true
-    esay 'yes'
+    Esay 'yes'
 
   let x = false
   and y = true

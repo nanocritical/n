@@ -2,24 +2,24 @@
 
 #define NB(x) nlang$builtins$##x
 
-static inline NB(u8) *nlang$sysheap$realloc(NB(u8) *ap, NB(size) oldbsz, NB(size) bsz) {
-  NB(u8) *r;
+static inline NB(U8) *nlang$sysheap$Realloc(NB(U8) *ap, NB(Size) oldbsz, NB(Size) bsz) {
+  NB(U8) *r;
   if (ap == NULL) {
     r = calloc(1, bsz);
     if (r == NULL) {
-      NB(abort)();
+      NB(Abort)();
     }
   } else {
     r = realloc(ap, bsz);
     if (r == NULL) {
-      NB(abort)();
+      NB(Abort)();
     }
     memset(r + oldbsz, 0, bsz - oldbsz);
   }
   return r;
 }
 
-static inline void nlang$sysheap$free(NB(u8) *ap, NB(size) bsz) {
+static inline void nlang$sysheap$Free(NB(U8) *ap, NB(Size) bsz) {
   free(ap);
 }
 

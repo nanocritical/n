@@ -1,12 +1,12 @@
 from nlang import *
 
-fun foo x:i32 = i32
+fun Foo x:I32 = I32
   return 0
 
-example <- 0 == foo 0
-example <- foo 1 == 0
+example <- 0 == Foo 0
+example <- Foo 1 == 0
 example block
-  foo (-1) == 0
+  Foo (-1) == 0
 
-export fun main = i32
-  return foo 1
+fun Main = I32
+  return Foo 1

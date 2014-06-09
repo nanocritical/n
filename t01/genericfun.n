@@ -1,7 +1,7 @@
 from nlang import *
 
-(fun t:`integer) decr x:t = t
+(fun t:`Integer) decr x:t = t
   return x - 1
 
-export fun main = i32
-  return (decr i32) 1
+fun Main = I32
+  return (decr I32) 1

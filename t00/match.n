@@ -4,23 +4,23 @@ enum enu =
   | A = 0
   | B
 
-fun foo n:enu = i32
+fun Foo n:enu = I32
   match n
   | A -> return 0
   | B -> return 1
 
-fun bar n:enu = i32
+fun bar n:enu = I32
   match n
-  | A -> say n; return 0
-  | _ -> say n; return 1
+  | A -> Say n; return 0
+  | _ -> Say n; return 1
 
 struct t =
   x	:enu
 
-fun bor xt:@t = bool
+fun bor xt:@t = Bool
   return xt.x == A
 
-export fun main = i32
+fun Main = I32
   let xt = { x=A }
   if not bor xt
     return 1
@@ -28,7 +28,7 @@ export fun main = i32
   let n = enu.A
   if n != xt.x
     return 1
-  let _ = foo n
+  let _ = Foo n
   let _ = bar A
   match n
   | enu.A -> return 0

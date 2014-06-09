@@ -1,14 +1,14 @@
 from nlang import *
 
 intf `i =
-  fun foo = i32
+  fun Foo = I32
 
 struct a =
-  x	:i32
+  x	:I32
 
-a fun `i.foo = i32
+a fun `i.Foo = I32
   return self.x
 
-extern fun main = i32
+extern fun Main = I32
   let y = {}:a
-  return y.foo
+  return y.Foo

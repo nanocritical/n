@@ -4,7 +4,7 @@
 
 #define NB(x) nlang$builtins$##x
 
-static void nlang$write_buf(NB(i32) fd, const NB(u8) *s, NB(size) count) {
+static void nlang$write_buf(NB(I32) fd, const NB(U8) *s, NB(Size) count) {
   write(fd, s, count);
 }
 

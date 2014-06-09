@@ -1,78 +1,78 @@
 from nlang import *
-from nlang.vectors import vector
-from nlang.sysheap import heap sysheap
+from nlang.vectors import Vector
+from nlang.sysheap import Heap Sysheap
 import nlang.unsafe
 
-export opaque struct string =
-  export isa `copyable `show `string_buffer
-  bytes:(vector u8)
+opaque struct String =
+  isa `Copyable `Show `String_buffer
+  bytes:(Vector U8)
 
-export string fun from_static_string literal:static_string = s:this
-  s.bytes#append_slice literal.bytes_utf8
+String fun From_static_string literal:Static_string = s:this
+  s.bytes#Append_slice literal.Bytes_utf8
 
-export string met `const_string.count = size
-  return self.bytes.count
+String met `Const_string.Count = Size
+  return self.bytes.Count
 
-export string met `const_string.all = index_range
-  return self.bytes.all
+String met `Const_string.All = Index_range
+  return self.bytes.All
 
-export string met `const_string.get_char n:size = char
-  return char.from_ascii self.bytes.[n].
+String met `Const_string.Get_char n:Size = Char
+  return Char.From_ascii self.bytes.[n].
 
-export string met `const_string.substring r:index_range = @`const_string
-  let sub = (heap.alloc string) @!sysheap
+String met `Const_string.substring r:Index_range = @`Const_string
+  let sub = (Heap.Alloc String) @!Sysheap
   such
-    let mem = self.bytes.storage.[r]
-    sub.bytes#append_slice mem
+    let mem = self.bytes.Storage.[r]
+    sub.bytes#Append_slice mem
     -- FIXME leaking mem
   return sub
 
-export string met `const_string.bytes_utf8 = []u8
-  return self.bytes.storage.[self.bytes.all]
+String met `Const_string.Bytes_utf8 = []U8
+  return self.bytes.Storage.[self.bytes.All]
 
-export string met! `string.set_char n:size c:char = void
-  self.bytes![n]! = c.code.trim_u8
+String met! `String.Set_char n:Size c:Char = Void
+  self.bytes![n]! = c.Code.Trim_u8
 
-export string met! `string.fill c:char r:index_range = void
-  let with = c.code.trim_u8
-  let sb = self.bytes!storage![r]
+String met! `String.Fill c:Char r:Index_range = Void
+  let with = c.Code.Trim_u8
+  let sb = self.bytes!Storage![r]
   such
-    foreach i in sb.all
+    foreach i in sb.All
       let p = sb![i]
       p! = with
 
-export string met# `string_buffer.reserve count:size = void
-  self.bytes#reserve count
+String met# `String_buffer.Reserve Count:Size = Void
+  self.bytes#Reserve Count
 
-export string met# `string_buffer.clear = void
-  self.bytes#clear
+String met# `String_buffer.Clear = Void
+  self.bytes#Clear
 
-export string met# `string_buffer.push c:char = void
-  self.bytes#push c.code.trim_u8
+String met# `String_buffer.Push c:Char = Void
+  self.bytes#Push c.Code.Trim_u8
 
-export string met# `string_buffer.pop = char
-  return char.from_ascii self.bytes#pop
+String met# `String_buffer.Pop = Char
+  return Char.From_ascii self.bytes#Pop
 
-export string met# `string_buffer.append other:@`const_string = void
-  self#reserve self.count+other.count
-  foreach i in other.all
-    self#push (other.get_char i)
+String met# `String_buffer.Append other:@`Const_string = Void
+  self#Reserve self.Count+other.Count
+  foreach i in other.All
+    self#Push (other.Get_char i)
 
-export string met# `string_buffer.copy at:size other:@`const_string off:size count:size = void
-  self#reserve at+count
-  foreach i in 0 .. count
+String met# `String_buffer.Copy at:Size other:@`Const_string off:Size Count:Size = Void
+  self#Reserve at+Count
+  foreach i in 0 .. Count
     let left = at + i
     let right = off + i
-    let c = other.get_char right
-    if left < self.count
-      self!set_char left c
+    let c = other.Get_char right
+    if left < self.Count
+      self!Set_char left c
     else
-      self#push c
+      self#Push c
 
-export string met# `copyable.copy_ctor other:@this = void
+String met# `Copyable.Copy_ctor other:@this = Void
   self!bytes = other.bytes
 
-export string met `show.show buf:@#`string_buffer = void
-  buf#reserve buf.count + self.count
-  foreach i in self.all
-    buf#push (self.get_char i)
+String met `Show.Show buf:@#`String_buffer = Void
+  buf#Reserve buf.Count + self.Count
+  foreach i in self.All
+    buf#Push (self.Get_char i)

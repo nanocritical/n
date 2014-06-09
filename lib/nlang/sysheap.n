@@ -1,36 +1,36 @@
 from nlang import *
 import nlang.unsafe
 
-export extern inline fun realloc p:?@#u8 oldbsz:size bsz:size = @#u8
-export extern inline fun free p:?@#u8 sz:size = void
+extern inline fun Realloc p:?@#U8 oldbsz:Size bsz:Size = @#U8
+extern inline fun Free p:?@#U8 sz:Size = Void
 
-export opaque struct heap =
-  dummy:i32
+opaque struct Heap =
+  dummy:I32
 
-export heap (met! t:`any) alloc = @#t
-  let raw = realloc null 0 (sizeof t)
-  return (nlang.unsafe.cast @#u8 @#t) raw
+Heap (met! t:`Any) Alloc = @#t
+  let raw = Realloc null 0 (sizeof t)
+  return (nlang.unsafe.Cast @#U8 @#t) raw
 
-export heap (met! t:`any) free p:?@#t = void
-  let raw = (nlang.unsafe.cast ?@#t ?@#u8) p
-  return free raw (sizeof t)
+Heap (met! t:`Any) Free p:?@#t = Void
+  let raw = (nlang.unsafe.Cast ?@#t ?@#U8) p
+  return Free raw (sizeof t)
 
-export heap (met! t:`any) slice_realloc s:@#[]!t count:size = void
-  let bsz = count * (sizeof t)
-  if s.count == 0
-    s#dat = (nlang.unsafe.cast @#u8 ?@#t) (realloc null 0 bsz)
-    s#cnt = count
+Heap (met! t:`Any) Slice_realloc s:@#[]!t Count:Size = Void
+  let bsz = Count * (sizeof t)
+  if s.Count == 0
+    s#dat = (nlang.unsafe.Cast @#U8 ?@#t) (Realloc null 0 bsz)
+    s#cnt = Count
   else
-    let old_bsz = s.bytecount
-    let raw = s#unsafe_rawdata
-    s#dat = (nlang.unsafe.cast @#u8 ?@#t) (realloc raw old_bsz bsz)
-    s#cnt = count
+    let old_bsz = s.Bytecount
+    let raw = s#Unsafe_rawdata
+    s#dat = (nlang.unsafe.Cast @#U8 ?@#t) (Realloc raw old_bsz bsz)
+    s#cnt = Count
 
-export heap (met! t:`any) slice_free s:@#[]!t = void
-  let bsz = s.bytecount
-  let raw = s#unsafe_rawdata
-  free raw bsz
+Heap (met! t:`Any) Slice_free s:@#[]!t = Void
+  let bsz = s.Bytecount
+  let raw = s#Unsafe_rawdata
+  Free raw bsz
   s#cnt = 0
   s#dat = null
 
-export let sysheap = {}:heap
+let Sysheap = {}:Heap

@@ -1,45 +1,45 @@
 from nlang import *
 
-fun opts ?a:?@i32 = i32
-  return optional a 1
+fun opts ?a:?@I32 = I32
+  return Optional a 1
 
-fun chained v:@!(vararg @i32) = i32
+fun chained v:@!(Vararg @I32) = I32
   let s = 0
   such
     for i in v!
       s += i.
   return s
 
-fun var a:i32 ?b:?@i32 ...v:(vararg @i32) = i32
+fun var a:I32 ?b:?@I32 ...v:(Vararg @I32) = I32
   let s = chained @!v
-  return a + (optional b 0) + s
+  return a + (Optional b 0) + s
 
-fun onlyvar ...v:(vararg @i32) = i32
+fun onlyvar ...v:(Vararg @I32) = I32
   let s = 0
   such
     for i in v
       s += i.
   return s
 
-fun diff x:i32 ...v:(vararg @i32) = i32
+fun diff x:I32 ...v:(Vararg @I32) = I32
   let d = 0
   such
     for i in v
       d -= i.
   return x + d
 
-export fun main = i32
+fun Main = I32
   if opts a=1 != 1
     return 1
   if opts a=1 != opts
     return 1
 
-  assert <- 10 == var 0 b=1 2 3 4
-  assert <- 10 == onlyvar 0 1 2 3 4
+  Assert <- 10 == var 0 b=1 2 3 4
+  Assert <- 10 == onlyvar 0 1 2 3 4
 
   -- Quite ambiguous... Hrm. Not good.
-  assert <- -1 == diff 0 - 1
-  assert <- -1 == diff 0 -1
-  assert <- 1 == diff 0 (-1)
+  Assert <- -1 == diff 0 - 1
+  Assert <- -1 == diff 0 -1
+  Assert <- 1 == diff 0 (-1)
 
   return opts a=0

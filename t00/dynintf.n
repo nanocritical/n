@@ -1,43 +1,43 @@
 from nlang import *
 
 intf `d =
-  fun answer = i32
-  met get = i32
+  fun answer = I32
+  met get = I32
 
 struct d =
   isa `d
-  x:i32
+  x:I32
 
-d fun answer = i32
+d fun answer = I32
   return 42
 
-d met get = i32
+d met get = I32
   return self.x
 
 struct dc =
   isa `d
-  dummy:i32
+  dummy:I32
 
-dc fun answer = i32
+dc fun answer = I32
   return 42
 
-dc met get = i32
+dc met get = I32
   return 42
 
-fun foo v:@`d = i32
+fun foo v:@`d = I32
   return v.get
 
 example block
   let x = { x=42 }:d
   42 == foo x
 
-fun rfoo pv:@`d = i32
+fun rfoo pv:@`d = I32
   return pv.answer
 
-fun bar pv:@d = i32
+fun bar pv:@d = I32
   return foo pv
 
-export fun main = i32
+fun Main = I32
   let xd = { x=42 }:d
   let xdc = { }:dc
   if foo xd != foo xdc

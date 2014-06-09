@@ -1,7 +1,7 @@
 from nlang import *
 
-fun sum x:i32 y:i32 = i32
+fun sum x:I32 y:I32 = I32
   return x + y
 
-export fun main = i32
+fun Main = I32
   sum -1 +2

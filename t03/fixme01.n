@@ -1,12 +1,12 @@
 from nlang import *
 
-fun foo = i32
-  let x:?@i32
+fun foo = I32
+  let x:?@I32
   such
     x = @1
   return x.
 
-fun bar x:?@i32 a:bool = i32
+fun bar x:?@I32 a:Bool = I32
   let c
   such
     if a
@@ -17,5 +17,5 @@ fun bar x:?@i32 a:bool = i32
     if a
       return x.
 
-export fun main = i32
+fun Main = I32
   return foo + (bar 1 true)

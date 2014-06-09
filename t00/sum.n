@@ -2,7 +2,7 @@ from nlang import *
 
 enum en =
   | A
-  | B = 3:u32
+  | B = 3:U32
   | C
 
 enum hen =
@@ -16,24 +16,24 @@ enum hen =
 union un =
   | A
   | B
-    x	:u32
-  | C = 2:u8
+    x	:U32
+  | C = 2:U8
     x	:en
 
 union hun =
   | A
   | B
-    x	:u32
+    x	:U32
     | BA
-      y	:u32
-      z	:u32
+      y	:U32
+      z	:U32
     | BB
-      z	:i64
+      z	:I64
 
---fun only_a x:en::|A = void
+--fun only_a x:en::|A = Void
 --  noop
 
-export fun main = i32
+fun Main = I32
   let e = en.A
 --  only_a e
   match e

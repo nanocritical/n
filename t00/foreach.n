@@ -1,8 +1,8 @@
 from nlang import *
 
-export fun main = i32
+fun Main = I32
   let j = 0
   such
     foreach i in 0 .. 10
       j += i
-  return j.trim_u32.reinterpret_signed - 45
+  return j.Trim_u32.Reinterpret_signed - 45

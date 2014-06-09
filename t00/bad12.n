@@ -1,9 +1,9 @@
 from nlang import *
 
 struct c =
-  x:i32
+  x:I32
 
-export fun main = i32
+fun Main = I32
   let y = { x=1 }:c
   such
     y.x = 0

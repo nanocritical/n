@@ -1,9 +1,9 @@
 from nlang import *
 
-struct container t:`copyable =
-  isa `trivial_ctor
+struct container t:`Copyable =
+  isa `Trivial_ctor
   x:t
 
-export fun main = i32
-  let v = { x=1 }:(container i32)
+fun Main = I32
+  let v = { x=1 }:(container I32)
   return v.x - 1

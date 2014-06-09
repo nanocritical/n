@@ -1,72 +1,72 @@
 from nlang import *
 import nlang.unsafe
-from nlang.sysheap import sysheap heap
+from nlang.sysheap import Sysheap Heap
 
-export opaque struct vector t:`copyable =
-  export isa `trivial_ctor (`array_ctor t) `copyable (`random_container t)
+opaque struct Vector t:`Copyable =
+  isa `Trivial_ctor (`Array_ctor t) `Copyable (`Random_container t)
   p	:[]!t
-  c	:size
+  c	:Size
 
-export inline vector fun from_array c:@(static_array t) = r:this
-  r#reserve c.count
-  foreach i in c.all
-    r#push c.[i].
+inline Vector fun From_array c:@(Static_array t) = r:this
+  r#Reserve c.Count
+  foreach i in c.All
+    r#Push c.[i].
 
-export inline vector met count = size
+inline Vector met Count = Size
   return self.c
 
-export inline vector shallow met$ operator_at n:size = @$t
-  assert <- n < self.c
+inline Vector shallow met$ Operator_at n:Size = @$t
+  Assert <- n < self.c
   return self$p$[n]
 
-export inline vector met$ first = @$t
+inline Vector met$ First = @$t
   return self$[0]
 
-export inline vector met$ last = @$t
+inline Vector met$ Last = @$t
   return self$[self.c-1]
 
-export inline vector met is_empty = bool
+inline Vector met Is_empty = Bool
   return self.c == 0
 
-export inline vector met capacity = size
-  return self.p.count
+inline Vector met Capacity = Size
+  return self.p.Count
 
-export inline vector met# reserve n:size = void
-  if n > self.capacity
-    (heap.slice_realloc t) @!sysheap @#self#p n
+inline Vector met# Reserve n:Size = Void
+  if n > self.Capacity
+    (Heap.Slice_realloc t) @!Sysheap @#self#p n
 
-export inline vector met# resize n:size = void
-  (heap.slice_realloc t) @!sysheap @#self#p n
+inline Vector met# Resize n:Size = Void
+  (Heap.Slice_realloc t) @!Sysheap @#self#p n
   self!c = n
 
-export inline vector met# push x:t = void
-  self#reserve self.c+1
+inline Vector met# Push x:t = Void
+  self#Reserve self.c+1
   let n = self.c
   self!c += 1
   let d = self![n]
   d! = x
 
-export inline vector met# pop = t
-  assert <- self.c != 0
-  let d = self.last
+inline Vector met# Pop = t
+  Assert <- self.c != 0
+  let d = self.Last
   self!c -= 1
   return d.
 
-export inline vector met# clear = void
-  (heap.slice_free t) @!sysheap @#self#p
+inline Vector met# Clear = Void
+  (Heap.Slice_free t) @!Sysheap @#self#p
 
-export inline vector met all = index_range
-  return range 0 self.count
+inline Vector met All = Index_range
+  return Range 0 self.Count
 
-export inline vector met# `copyable.copy_ctor other:@this = void
-  (heap.slice_realloc t) @!sysheap @#self#p other.p.count
-  self.p!copy other.p
+inline Vector met# `Copyable.Copy_ctor other:@this = Void
+  (Heap.Slice_realloc t) @!Sysheap @#self#p other.p.Count
+  self.p!Copy other.p
   self!c = other.c
 
-export inline vector met# append_slice other:[]t = void
-  (heap.slice_realloc t) @!sysheap @#self#p self.count+other.count
-  self.p![self.c ..]!copy other
-  self!c = other.count
+inline Vector met# Append_slice other:[]t = Void
+  (Heap.Slice_realloc t) @!Sysheap @#self#p self.Count+other.Count
+  self.p![self.c ..]!Copy other
+  self!c = other.Count
 
-export inline vector met$ storage = []$t
+inline Vector met$ Storage = []$t
   return self$p

@@ -490,17 +490,17 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
     struct node *n = mk_node(mod, mod->body, IDENT);
     n->constraint = new_constraint(mod);
     constraint_set_tag(mod, n->constraint, ID_C, false);
-    constraint_set_tag(mod, n->constraint, ID_CTOR, false);
+    constraint_set_tag(mod, n->constraint, ID_OTHER, false);
     snprint_constraint(s, len, mod, n->constraint);
-    assert(strlen(s) == strlen("(|c|ctor)"));
+    assert(strlen(s) == strlen("(|c|other)"));
   }
   {
     struct node *n = mk_node(mod, mod->body, IDENT);
     n->constraint = new_constraint(mod);
     constraint_set_tag(mod, n->constraint, ID_C, false);
-    constraint_set_tag(mod, n->constraint, ID_CTOR, true);
+    constraint_set_tag(mod, n->constraint, ID_OTHER, true);
     snprint_constraint(s, len, mod, n->constraint);
-    assert(strcmp(s, "(|c and not |ctor)") == 0);
+    assert(strcmp(s, "(|c and not |other)") == 0);
   }
   {
     struct node *let = mk_node(mod, mod->body, LET);
@@ -518,7 +518,7 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
     c->table[CBI_VALID] = N;
 
     snprint_constraint(s, len, mod, na->constraint);
-    assert(strcmp(s, "(init and |c and (bootstrap.mockempty.<let>.next"
+    assert(strcmp(s, "(init and |c and (bootstrap.mockempty.<let>.Next"
                   " => (nonnull and not valid)))") == 0);
   }
 }

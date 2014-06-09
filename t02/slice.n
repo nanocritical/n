@@ -1,47 +1,47 @@
 from nlang import *
-from nlang.sysheap import heap sysheap
+from nlang.sysheap import Heap Sysheap
 
---fun refconv p:@i32 = (slice i32) -- @[]i32
+--fun refconv p:@I32 = (slice I32) -- @[]I32
 --  return p
 --
---fun mrefconv p:@!i32 = (mutable_slice i32) -- @![]i32
+--fun mrefconv p:@!I32 = (mutable_slice I32) -- @![]I32
 --  return p
 --
---fun mmrefconv p:@#i32 = (mercurial_slice i32) -- @#[]i32
+--fun mmrefconv p:@#I32 = (mercurial_slice I32) -- @#[]I32
 --  return p
 --
---sysheap met slice_realloc s:@#@[]t = void
---sysheap met slice_realloc s:@#(slice t) = void
---sysheap met slice_free s:@#(slice t) = void
+--Sysheap met slice_realloc s:@#@[]t = Void
+--Sysheap met slice_realloc s:@#(slice t) = Void
+--Sysheap met slice_free s:@#(slice t) = Void
 --
---fun cannot_grow_inplace s:@[]i32 = @[]i32
+--fun cannot_grow_inplace s:@[]I32 = @[]I32
 --  heap.slice_realloc @!s
 
-export fun main = i32
+fun Main = I32
 --  block
 --    let s = refconv 1
---    assert <- s.count == 1
---    assert <- (s.at 0). == 1
+--    Assert <- s.count == 1
+--    Assert <- (s.at 0). == 1
 --
 --  block
 --    let x = 42
 --    let s = mrefconv @!x
---    assert <- s.count == 1
---    assert <- (s.at 0). == 42
+--    Assert <- s.count == 1
+--    Assert <- (s.at 0). == 42
 --    (s.at 0)! = 41
---    assert <- (s.at 0). == 41
+--    Assert <- (s.at 0). == 41
 --
 --  block
---    let a = {0:i32 1 2}
+--    let a = {0:I32 1 2}
 --    let s = a.sub a.all -- a.[..]
 --    let 
 --
---  let s = {}:(slice i32)
+--  let s = {}:(slice I32)
 --  such
---    (heap.slice_realloc i32) @!sysheap @#s 1
+--    (heap.slice_realloc I32) @!Sysheap @#s 1
 --  let p = s!at 0
 --  p! = 1
 --  return p. - 1
-  let v:[]i32
+  let v:[]I32
   let x = v.[1]
   return x.

@@ -1,10 +1,10 @@
 from nlang import *
 
 struct c =
-  isa `trivial_ctor
-  x:@i32
+  isa `Trivial_ctor
+  x:@I32
 
-export fun main = i32
+fun Main = I32
   let x = 0
   let y = { x=@x }:c
   -- return (y.x). works!

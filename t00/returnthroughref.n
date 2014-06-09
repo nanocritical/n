@@ -1,21 +1,21 @@
 from nlang import *
 
 struct t =
-  isa `trivial_copy
-  x:i32
-  xx:i32
+  isa `Trivial_copy
+  x:I32
+  xx:I32
 
-fun foo = t
+fun Foo = t
   return { x=3 }
 
 fun bar = t
-  return foo
+  return Foo
 
 fun bar2 = r:t
   r = bar
   return r
 
-export fun main = i32
+fun Main = I32
   let y = bar
   if y.x != bar2.x
     return 1

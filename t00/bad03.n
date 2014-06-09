@@ -1,4 +1,4 @@
 from nlang import *
 
-fun foobar x = void
+fun foobar x = Void
   return

@@ -3,7 +3,7 @@
 #ifdef NLANG_DEFINE_TYPES
 #include <stdarg.h>
 
-struct NB(valist) {
+struct NB(Valist) {
   va_list ap;
 };
 
@@ -13,11 +13,11 @@ struct NB(valist) {
 
 #ifdef NLANG_DEFINE_FUNCTIONS
 
-static inline NB(u8) *NB(slice_at_byte)(NB(u8) *p, NB(size) off) {
+static inline NB(U8) *NB(Slice_at_byte)(NB(U8) *p, NB(Size) off) {
   return p + off;
 }
 
-static inline NB(void) NB(slice_memcpy)(NB(u8) *dst, const NB(u8) *src, NB(size) count) {
+static inline NB(Void) NB(Slice_memcpy)(NB(U8) *dst, const NB(U8) *src, NB(Size) count) {
   memcpy(dst, src, count);
 }
 
@@ -31,7 +31,7 @@ static inline NB(void) NB(slice_memcpy)(NB(u8) *dst, const NB(u8) *src, NB(size)
 } while (0)
 
 #define NLANG_BUILTINS_VARARG_NEXT(t, va) \
-  ({ nlang$builtins$assert((va).n > 0, NULL); \
+  ({ nlang$builtins$Assert((va).n > 0, NULL); \
    (va).n -= 1; \
    va_arg((va).ap.ap, t); })
 
@@ -48,388 +48,388 @@ static inline NB(void) NB(slice_memcpy)(NB(u8) *dst, const NB(u8) *src, NB(size)
   *where = where->vptr->parent(where->obj); \
 } while (0)
 
-static inline NB(u8) NB(i8$reinterpret_unsigned)(const NB(i8) *self) {
-  return (NB(u8)) *self;
+static inline NB(U8) NB(I8$Reinterpret_unsigned)(const NB(I8) *self) {
+  return (NB(U8)) *self;
 }
 
-static inline NB(i8) NB(i8$reinterpret_signed)(const NB(i8) *self) {
+static inline NB(I8) NB(I8$Reinterpret_signed)(const NB(I8) *self) {
   return *self;
 }
 
-static inline NB(i16) NB(i8$to_i16)(const NB(i8) *self) {
-  return (NB(i16)) *self;
+static inline NB(I16) NB(I8$To_i16)(const NB(I8) *self) {
+  return (NB(I16)) *self;
 }
 
-static inline NB(i32) NB(i8$to_i32)(const NB(i8) *self) {
-  return (NB(i32)) *self;
+static inline NB(I32) NB(I8$To_i32)(const NB(I8) *self) {
+  return (NB(I32)) *self;
 }
 
-static inline NB(i64) NB(i8$to_i64)(const NB(i8) *self) {
-  return (NB(i64)) *self;
+static inline NB(I64) NB(I8$To_i64)(const NB(I8) *self) {
+  return (NB(I64)) *self;
 }
 
-static inline NB(ssize) NB(i8$as_ssize)(const NB(i8) *self) {
-  return (NB(ssize)) *self;
+static inline NB(Ssize) NB(I8$As_ssize)(const NB(I8) *self) {
+  return (NB(Ssize)) *self;
 }
 
-static inline NB(float) NB(i8$to_float)(const NB(i8) *self) {
-  return (NB(float)) *self;
+static inline NB(Float) NB(I8$To_float)(const NB(I8) *self) {
+  return (NB(Float)) *self;
 }
 
-static inline NB(double) NB(i8$to_double)(const NB(i8) *self) {
-  return (NB(double)) *self;
+static inline NB(Double) NB(I8$To_double)(const NB(I8) *self) {
+  return (NB(Double)) *self;
 }
 
 
-static inline NB(u16) NB(i16$reinterpret_unsigned)(const NB(i16) *self) {
-  return (NB(u16)) *self;
+static inline NB(U16) NB(I16$Reinterpret_unsigned)(const NB(I16) *self) {
+  return (NB(U16)) *self;
 }
 
-static inline NB(i16) NB(i16$reinterpret_signed)(const NB(i16) *self) {
+static inline NB(I16) NB(I16$Reinterpret_signed)(const NB(I16) *self) {
   return *self;
 }
 
-static inline NB(i8) NB(i16$trim_i8)(const NB(i16) *self) {
-  return (NB(i8)) *self;
+static inline NB(I8) NB(I16$Trim_i8)(const NB(I16) *self) {
+  return (NB(I8)) *self;
 }
 
-static inline NB(i32) NB(i16$to_i32)(const NB(i16) *self) {
-  return (NB(i32)) *self;
+static inline NB(I32) NB(I16$To_i32)(const NB(I16) *self) {
+  return (NB(I32)) *self;
 }
 
-static inline NB(i64) NB(i16$to_i64)(const NB(i16) *self) {
-  return (NB(i64)) *self;
+static inline NB(I64) NB(I16$To_i64)(const NB(I16) *self) {
+  return (NB(I64)) *self;
 }
 
-static inline NB(ssize) NB(i16$as_ssize)(const NB(i16) *self) {
-  return (NB(ssize)) *self;
+static inline NB(Ssize) NB(I16$As_ssize)(const NB(I16) *self) {
+  return (NB(Ssize)) *self;
 }
 
-static inline NB(float) NB(i16$to_float)(const NB(i16) *self) {
-  return (NB(float)) *self;
+static inline NB(Float) NB(I16$To_float)(const NB(I16) *self) {
+  return (NB(Float)) *self;
 }
 
-static inline NB(double) NB(i16$to_double)(const NB(i16) *self) {
-  return (NB(double)) *self;
+static inline NB(Double) NB(I16$To_double)(const NB(I16) *self) {
+  return (NB(Double)) *self;
 }
 
 
-static inline NB(u32) NB(i32$reinterpret_unsigned)(const NB(i32) *self) {
-  return (NB(u32)) *self;
+static inline NB(U32) NB(I32$Reinterpret_unsigned)(const NB(I32) *self) {
+  return (NB(U32)) *self;
 }
 
-static inline NB(i32) NB(i32$reinterpret_signed)(const NB(i32) *self) {
+static inline NB(I32) NB(I32$Reinterpret_signed)(const NB(I32) *self) {
   return *self;
 }
 
-static inline NB(i8) NB(i32$trim_i8)(const NB(i32) *self) {
-  return (NB(i8)) *self;
+static inline NB(I8) NB(I32$Trim_i8)(const NB(I32) *self) {
+  return (NB(I8)) *self;
 }
 
-static inline NB(i16) NB(i32$trim_i16)(const NB(i32) *self) {
-  return (NB(i16)) *self;
+static inline NB(I16) NB(I32$Trim_i16)(const NB(I32) *self) {
+  return (NB(I16)) *self;
 }
 
-static inline NB(i64) NB(i32$to_i64)(const NB(i32) *self) {
-  return (NB(i64)) *self;
+static inline NB(I64) NB(I32$To_i64)(const NB(I32) *self) {
+  return (NB(I64)) *self;
 }
 
-static inline NB(ssize) NB(i32$as_ssize)(const NB(i32) *self) {
-  return (NB(ssize)) *self;
+static inline NB(Ssize) NB(I32$As_ssize)(const NB(I32) *self) {
+  return (NB(Ssize)) *self;
 }
 
-static inline NB(float) NB(i32$trim_float)(const NB(i32) *self) {
-  return (NB(float)) *self;
+static inline NB(Float) NB(I32$Trim_float)(const NB(I32) *self) {
+  return (NB(Float)) *self;
 }
 
-static inline NB(double) NB(i32$to_double)(const NB(i32) *self) {
-  return (NB(double)) *self;
+static inline NB(Double) NB(I32$To_double)(const NB(I32) *self) {
+  return (NB(Double)) *self;
 }
 
 
-static inline NB(u64) NB(i64$reinterpret_unsigned)(const NB(i64) *self) {
-  return (NB(u64)) *self;
+static inline NB(U64) NB(I64$Reinterpret_unsigned)(const NB(I64) *self) {
+  return (NB(U64)) *self;
 }
 
-static inline NB(i64) NB(i64$reinterpret_signed)(const NB(i64) *self) {
+static inline NB(I64) NB(I64$Reinterpret_signed)(const NB(I64) *self) {
   return *self;
 }
 
-static inline NB(i8) NB(i64$trim_i8)(const NB(i64) *self) {
-  return (NB(i8)) *self;
+static inline NB(I8) NB(I64$Trim_i8)(const NB(I64) *self) {
+  return (NB(I8)) *self;
 }
 
-static inline NB(i16) NB(i64$trim_i16)(const NB(i64) *self) {
-  return (NB(i16)) *self;
+static inline NB(I16) NB(I64$Trim_i16)(const NB(I64) *self) {
+  return (NB(I16)) *self;
 }
 
-static inline NB(i32) NB(i64$trim_i32)(const NB(i64) *self) {
-  return (NB(i32)) *self;
+static inline NB(I32) NB(I64$Trim_i32)(const NB(I64) *self) {
+  return (NB(I32)) *self;
 }
 
-static inline NB(ssize) NB(i64$as_ssize)(const NB(i64) *self) {
-  return (NB(ssize)) *self;
+static inline NB(Ssize) NB(I64$As_ssize)(const NB(I64) *self) {
+  return (NB(Ssize)) *self;
 }
 
-static inline NB(float) NB(i64$trim_float)(const NB(i64) *self) {
-  return (NB(float)) *self;
+static inline NB(Float) NB(I64$Trim_float)(const NB(I64) *self) {
+  return (NB(Float)) *self;
 }
 
-static inline NB(double) NB(i64$trim_double)(const NB(i64) *self) {
-  return (NB(double)) *self;
+static inline NB(Double) NB(I64$Trim_double)(const NB(I64) *self) {
+  return (NB(Double)) *self;
 }
 
 
-static inline NB(u8) NB(u8$reinterpret_unsigned)(const NB(u8) *self) {
+static inline NB(U8) NB(U8$Reinterpret_unsigned)(const NB(U8) *self) {
   return *self;
 }
 
-static inline NB(i8) NB(u8$reinterpret_signed)(const NB(u8) *self) {
-  return (NB(i8)) *self;
+static inline NB(I8) NB(U8$Reinterpret_signed)(const NB(U8) *self) {
+  return (NB(I8)) *self;
 }
 
-static inline NB(u16) NB(u8$to_u16)(const NB(u8) *self) {
-  return (NB(u16)) *self;
+static inline NB(U16) NB(U8$To_u16)(const NB(U8) *self) {
+  return (NB(U16)) *self;
 }
 
-static inline NB(u32) NB(u8$to_u32)(const NB(u8) *self) {
-  return (NB(u32)) *self;
+static inline NB(U32) NB(U8$To_u32)(const NB(U8) *self) {
+  return (NB(U32)) *self;
 }
 
-static inline NB(u64) NB(u8$to_u64)(const NB(u8) *self) {
-  return (NB(u64)) *self;
+static inline NB(U64) NB(U8$To_u64)(const NB(U8) *self) {
+  return (NB(U64)) *self;
 }
 
-static inline NB(size) NB(u8$as_size)(const NB(u8) *self) {
-  return (NB(size)) *self;
+static inline NB(Size) NB(U8$As_size)(const NB(U8) *self) {
+  return (NB(Size)) *self;
 }
 
-static inline NB(float) NB(u8$to_float)(const NB(u8) *self) {
-  return (NB(float)) *self;
+static inline NB(Float) NB(U8$To_float)(const NB(U8) *self) {
+  return (NB(Float)) *self;
 }
 
-static inline NB(double) NB(u8$to_double)(const NB(u8) *self) {
-  return (NB(double)) *self;
+static inline NB(Double) NB(U8$To_double)(const NB(U8) *self) {
+  return (NB(Double)) *self;
 }
 
 
-static inline NB(u16) NB(u16$reinterpret_unsigned)(const NB(u16) *self) {
+static inline NB(U16) NB(U16$Reinterpret_unsigned)(const NB(U16) *self) {
   return *self;
 }
 
-static inline NB(i16) NB(u16$reinterpret_signed)(const NB(u16) *self) {
-  return (NB(i16)) *self;
+static inline NB(I16) NB(U16$Reinterpret_signed)(const NB(U16) *self) {
+  return (NB(I16)) *self;
 }
 
-static inline NB(u8) NB(u16$trim_u8)(const NB(u16) *self) {
-  return (NB(u8)) *self;
+static inline NB(U8) NB(U16$Trim_u8)(const NB(U16) *self) {
+  return (NB(U8)) *self;
 }
 
-static inline NB(u32) NB(u16$to_u32)(const NB(u16) *self) {
-  return (NB(u32)) *self;
+static inline NB(U32) NB(U16$To_u32)(const NB(U16) *self) {
+  return (NB(U32)) *self;
 }
 
-static inline NB(u64) NB(u16$to_u64)(const NB(u16) *self) {
-  return (NB(u64)) *self;
+static inline NB(U64) NB(U16$To_u64)(const NB(U16) *self) {
+  return (NB(U64)) *self;
 }
 
-static inline NB(size) NB(u16$as_size)(const NB(u16) *self) {
-  return (NB(size)) *self;
+static inline NB(Size) NB(U16$As_size)(const NB(U16) *self) {
+  return (NB(Size)) *self;
 }
 
-static inline NB(float) NB(u16$to_float)(const NB(u16) *self) {
-  return (NB(float)) *self;
+static inline NB(Float) NB(U16$To_float)(const NB(U16) *self) {
+  return (NB(Float)) *self;
 }
 
-static inline NB(double) NB(u16$to_double)(const NB(u16) *self) {
-  return (NB(double)) *self;
+static inline NB(Double) NB(U16$To_double)(const NB(U16) *self) {
+  return (NB(Double)) *self;
 }
 
 
-static inline NB(u32) NB(u32$reinterpret_unsigned)(const NB(u32) *self) {
+static inline NB(U32) NB(U32$Reinterpret_unsigned)(const NB(U32) *self) {
   return *self;
 }
 
-static inline NB(i32) NB(u32$reinterpret_signed)(const NB(u32) *self) {
-  return (NB(i32)) *self;
+static inline NB(I32) NB(U32$Reinterpret_signed)(const NB(U32) *self) {
+  return (NB(I32)) *self;
 }
 
-static inline NB(u8) NB(u32$trim_u8)(const NB(u32) *self) {
-  return (NB(u8)) *self;
+static inline NB(U8) NB(U32$Trim_u8)(const NB(U32) *self) {
+  return (NB(U8)) *self;
 }
 
-static inline NB(u16) NB(u32$trim_u16)(const NB(u32) *self) {
-  return (NB(u16)) *self;
+static inline NB(U16) NB(U32$Trim_u16)(const NB(U32) *self) {
+  return (NB(U16)) *self;
 }
 
-static inline NB(u64) NB(u32$to_u64)(const NB(u32) *self) {
-  return (NB(u64)) *self;
+static inline NB(U64) NB(U32$To_u64)(const NB(U32) *self) {
+  return (NB(U64)) *self;
 }
 
-static inline NB(size) NB(u32$as_size)(const NB(u32) *self) {
-  return (NB(size)) *self;
+static inline NB(Size) NB(U32$As_size)(const NB(U32) *self) {
+  return (NB(Size)) *self;
 }
 
-static inline NB(float) NB(u32$trim_float)(const NB(u32) *self) {
-  return (NB(float)) *self;
+static inline NB(Float) NB(U32$Trim_float)(const NB(U32) *self) {
+  return (NB(Float)) *self;
 }
 
-static inline NB(double) NB(u32$to_double)(const NB(u32) *self) {
-  return (NB(double)) *self;
+static inline NB(Double) NB(U32$To_double)(const NB(U32) *self) {
+  return (NB(Double)) *self;
 }
 
 
-static inline NB(u64) NB(u64$reinterpret_unsigned)(const NB(u64) *self) {
+static inline NB(U64) NB(U64$Reinterpret_unsigned)(const NB(U64) *self) {
   return *self;
 }
 
-static inline NB(i64) NB(u64$reinterpret_signed)(const NB(u64) *self) {
-  return (NB(i64)) *self;
+static inline NB(I64) NB(U64$Reinterpret_signed)(const NB(U64) *self) {
+  return (NB(I64)) *self;
 }
 
-static inline NB(u8) NB(u64$trim_u8)(const NB(u64) *self) {
-  return (NB(u8)) *self;
+static inline NB(U8) NB(U64$Trim_u8)(const NB(U64) *self) {
+  return (NB(U8)) *self;
 }
 
-static inline NB(u16) NB(u64$trim_u16)(const NB(u64) *self) {
-  return (NB(u16)) *self;
+static inline NB(U16) NB(U64$Trim_u16)(const NB(U64) *self) {
+  return (NB(U16)) *self;
 }
 
-static inline NB(u32) NB(u64$trim_u32)(const NB(u64) *self) {
-  return (NB(u32)) *self;
+static inline NB(U32) NB(U64$Trim_u32)(const NB(U64) *self) {
+  return (NB(U32)) *self;
 }
 
-static inline NB(size) NB(u64$as_size)(const NB(u64) *self) {
-  return (NB(size)) *self;
+static inline NB(Size) NB(U64$As_size)(const NB(U64) *self) {
+  return (NB(Size)) *self;
 }
 
-static inline NB(float) NB(u64$trim_float)(const NB(u64) *self) {
-  return (NB(float)) *self;
+static inline NB(Float) NB(U64$Trim_float)(const NB(U64) *self) {
+  return (NB(Float)) *self;
 }
 
-static inline NB(double) NB(u64$trim_double)(const NB(u64) *self) {
-  return (NB(double)) *self;
+static inline NB(Double) NB(U64$Trim_double)(const NB(U64) *self) {
+  return (NB(Double)) *self;
 }
 
 
-static inline NB(ssize) NB(ssize$reinterpret_signed)(const NB(ssize) *self) {
+static inline NB(Ssize) NB(Ssize$Reinterpret_signed)(const NB(Ssize) *self) {
   return *self;
 }
 
-static inline NB(size) NB(ssize$reinterpret_unsigned)(const NB(ssize) *self) {
-  return (NB(size)) *self;
+static inline NB(Size) NB(Ssize$Reinterpret_unsigned)(const NB(Ssize) *self) {
+  return (NB(Size)) *self;
 }
 
-static inline NB(i8) NB(ssize$trim_i8)(const NB(ssize) *self) {
-  return (NB(i8)) *self;
+static inline NB(I8) NB(Ssize$Trim_i8)(const NB(Ssize) *self) {
+  return (NB(I8)) *self;
 }
 
-static inline NB(i16) NB(ssize$trim_i16)(const NB(ssize) *self) {
-  return (NB(i16)) *self;
+static inline NB(I16) NB(Ssize$Trim_i16)(const NB(Ssize) *self) {
+  return (NB(I16)) *self;
 }
 
-static inline NB(i32) NB(ssize$trim_i32)(const NB(ssize) *self) {
-  return (NB(i32)) *self;
+static inline NB(I32) NB(Ssize$Trim_i32)(const NB(Ssize) *self) {
+  return (NB(I32)) *self;
 }
 
-static inline NB(i64) NB(ssize$trim_i64)(const NB(ssize) *self) {
-  return (NB(i64)) *self;
+static inline NB(I64) NB(Ssize$Trim_i64)(const NB(Ssize) *self) {
+  return (NB(I64)) *self;
 }
 
-static inline NB(float) NB(ssize$trim_float)(const NB(ssize) *self) {
-  return (NB(float)) *self;
+static inline NB(Float) NB(Ssize$Trim_float)(const NB(Ssize) *self) {
+  return (NB(Float)) *self;
 }
 
-static inline NB(double) NB(ssize$trim_double)(const NB(ssize) *self) {
-  return (NB(double)) *self;
+static inline NB(Double) NB(Ssize$Trim_double)(const NB(Ssize) *self) {
+  return (NB(Double)) *self;
 }
 
-static inline NB(size) NB(size$reinterpret_unsigned)(const NB(size) *self) {
+static inline NB(Size) NB(Size$Reinterpret_unsigned)(const NB(Size) *self) {
   return *self;
 }
 
-static inline NB(ssize) NB(size$reinterpret_signed)(const NB(size) *self) {
-  return (NB(ssize)) *self;
+static inline NB(Ssize) NB(Size$Reinterpret_signed)(const NB(Size) *self) {
+  return (NB(Ssize)) *self;
 }
 
-static inline NB(u8) NB(size$trim_u8)(const NB(size) *self) {
-  return (NB(u8)) *self;
+static inline NB(U8) NB(Size$Trim_u8)(const NB(Size) *self) {
+  return (NB(U8)) *self;
 }
 
-static inline NB(u16) NB(size$trim_u16)(const NB(size) *self) {
-  return (NB(u16)) *self;
+static inline NB(U16) NB(Size$Trim_u16)(const NB(Size) *self) {
+  return (NB(U16)) *self;
 }
 
-static inline NB(u32) NB(size$trim_u32)(const NB(size) *self) {
-  return (NB(u32)) *self;
+static inline NB(U32) NB(Size$Trim_u32)(const NB(Size) *self) {
+  return (NB(U32)) *self;
 }
 
-static inline NB(u64) NB(size$trim_u64)(const NB(size) *self) {
-  return (NB(u64)) *self;
+static inline NB(U64) NB(Size$Trim_u64)(const NB(Size) *self) {
+  return (NB(U64)) *self;
 }
 
-static inline NB(float) NB(size$trim_float)(const NB(size) *self) {
-  return (NB(float)) *self;
+static inline NB(Float) NB(Size$Trim_float)(const NB(Size) *self) {
+  return (NB(Float)) *self;
 }
 
-static inline NB(double) NB(size$trim_double)(const NB(size) *self) {
-  return (NB(double)) *self;
-}
-
-
-static inline NB(i8) NB(float$trim_i8)(const NB(float) *self) {
-  return (NB(i8)) *self;
-}
-
-static inline NB(i16) NB(float$trim_i16)(const NB(float) *self) {
-  return (NB(i16)) *self;
-}
-
-static inline NB(i32) NB(float$to_i32)(const NB(float) *self) {
-  return (NB(i32)) *self;
-}
-
-static inline NB(i64) NB(float$to_i64)(const NB(float) *self) {
-  return (NB(i64)) *self;
-}
-
-static inline NB(double) NB(float$to_double)(const NB(float) *self) {
-  return (NB(double)) *self;
-}
-
-static inline NB(ssize) NB(float$as_ssize)(const NB(float) *self) {
-  return (NB(ssize)) *self;
+static inline NB(Double) NB(Size$Trim_double)(const NB(Size) *self) {
+  return (NB(Double)) *self;
 }
 
 
-static inline NB(i8) NB(double$trim_i8)(const NB(double) *self) {
-  return (NB(i8)) *self;
+static inline NB(I8) NB(Float$Trim_i8)(const NB(Float) *self) {
+  return (NB(I8)) *self;
 }
 
-static inline NB(i16) NB(double$trim_i16)(const NB(double) *self) {
-  return (NB(i16)) *self;
+static inline NB(I16) NB(Float$Trim_i16)(const NB(Float) *self) {
+  return (NB(I16)) *self;
 }
 
-static inline NB(i32) NB(double$trim_i32)(const NB(double) *self) {
-  return (NB(i32)) *self;
+static inline NB(I32) NB(Float$To_i32)(const NB(Float) *self) {
+  return (NB(I32)) *self;
 }
 
-static inline NB(i64) NB(double$to_i64)(const NB(double) *self) {
-  return (NB(i64)) *self;
+static inline NB(I64) NB(Float$To_i64)(const NB(Float) *self) {
+  return (NB(I64)) *self;
 }
 
-static inline NB(float) NB(double$trim_float)(const NB(double) *self) {
-  return (NB(float)) *self;
+static inline NB(Double) NB(Float$To_double)(const NB(Float) *self) {
+  return (NB(Double)) *self;
 }
 
-static inline NB(ssize) NB(double$as_ssize)(const NB(double) *self) {
-  return (NB(ssize)) *self;
+static inline NB(Ssize) NB(Float$As_ssize)(const NB(Float) *self) {
+  return (NB(Ssize)) *self;
+}
+
+
+static inline NB(I8) NB(Double$Trim_i8)(const NB(Double) *self) {
+  return (NB(I8)) *self;
+}
+
+static inline NB(I16) NB(Double$Trim_i16)(const NB(Double) *self) {
+  return (NB(I16)) *self;
+}
+
+static inline NB(I32) NB(Double$Trim_i32)(const NB(Double) *self) {
+  return (NB(I32)) *self;
+}
+
+static inline NB(I64) NB(Double$To_i64)(const NB(Double) *self) {
+  return (NB(I64)) *self;
+}
+
+static inline NB(Float) NB(Double$Trim_float)(const NB(Double) *self) {
+  return (NB(Float)) *self;
+}
+
+static inline NB(Ssize) NB(Double$As_ssize)(const NB(Double) *self) {
+  return (NB(Ssize)) *self;
 }
 
 #define nlang$builtins$likely(x) __builtin_expect(!!(x), 1)
 #define nlang$builtins$unlikely(x) __builtin_expect(!!(x), 0)
 
-static inline NB(u8) *NB(static_array_at_byte)(NB(u8) *p, NB(size) off) {
+static inline NB(U8) *NB(Static_array_at_byte)(NB(U8) *p, NB(Size) off) {
   return p + off;
 }
 

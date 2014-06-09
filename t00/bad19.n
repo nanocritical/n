@@ -1,6 +1,6 @@
 from nlang import *
 
-export fun main = i32
-  say @x -- not yet defined
+fun Main = I32
+  Say @x -- not yet defined
   let x = 0
   return x

@@ -1,337 +1,337 @@
 -- In this file, imports go at the end of the file.
 
-export extern intf `__literal_null__ =
-  isa `any_nullable_ref
-export extern intf `__literal_integer__ =
-  isa `integer
-export extern intf `__literal_floating__ =
-  isa `floating
+extern intf `__literal_null__ =
+  isa `Any_nullable_ref
+extern intf `__literal_integer__ =
+  isa `Integer
+extern intf `__literal_floating__ =
+  isa `Floating
 
-export extern struct __internal_not_typeable__ =
-export extern struct __call_function_slot__ =
+extern struct __internal_not_typeable__ =
+extern struct __call_function_slot__ =
 
-export extern struct __mutable__ =
-export extern struct __mercurial__ =
+extern struct __mutable__ =
+extern struct __mercurial__ =
 
-export intf `any =
+intf `Any =
 
--- `prevent_dyn stops the compiler from generating a dyntable for the rest of
+-- `Prevent_dyn stops the compiler from generating a dyntable for the rest of
 -- the isa list.
-export intf `prevent_dyn =
+intf `Prevent_dyn =
 
-export intf `copyable =
-  met# copy_ctor other:@final = void
-export intf `not_copyable =
-export intf `copyable_but_owned =
-  isa `copyable -- FIXME
--- FIXME: `trivial_copy should have other:@this, as it only needs `any.sizeof.
--- And there should be a copy_slice operation over `trivial_copy. That's kinda
+intf `Copyable =
+  met# Copy_ctor other:@final = Void
+intf `Not_copyable =
+intf `Copyable_but_owned =
+  isa `Copyable -- FIXME
+-- FIXME: `Trivial_copy should have other:@this, as it only needs `Any.sizeof.
+-- And there should be a copy_slice operation over `Trivial_copy. That's kinda
 -- the point.
-export intf `trivial_copy =
-  isa `copyable
-export intf `trivial_copy_but_owned =
-  isa `trivial_copy -- FIXME
-export intf `return_by_copy =
-export intf `not_return_by_copy =
-export intf `default_ctor =
-  met# ctor = void
-export intf `non_default_ctor =
+intf `Trivial_copy =
+  isa `Copyable
+intf `Trivial_copy_but_owned =
+  isa `Trivial_copy -- FIXME
+intf `Return_by_copy =
+intf `Not_return_by_copy =
+intf `Default_ctor =
+  met# Ctor = Void
+intf `Non_default_ctor =
 
-export intf `default_dtor =
-  met# dtor = void
-export intf `error_dtor =
-  met# dtor = error
+intf `Default_dtor =
+  met# Dtor = Void
+intf `Error_dtor =
+  met# Dtor = Error
 
-export intf `trivial_ctor =
-  isa `default_ctor
-export intf `trivial_dtor =
-  isa `default_dtor
+intf `Trivial_ctor =
+  isa `Default_ctor
+intf `Trivial_dtor =
+  isa `Default_dtor
 
-export intf `matchable =
-export intf `has_compare =
-  -- The relation defined by `has_compare.operator_compare may be a partial
+intf `Matchable =
+intf `Has_compare =
+  -- The relation defined by `Has_compare.Operator_compare may be a partial
   -- order, or maybe not an order, or maybe not even an equality.
-  -- `equality_by_compare and `ordered_by_compare must be used to indicate what
+  -- `Equality_by_compare and `Ordered_by_compare must be used to indicate what
   -- this relation actually is.
-  met operator_compare other:@final = i32
-export intf `trivial_compare =
-  isa `has_compare
-export intf `has_equality =
-  isa `has_compare `matchable
-  met operator_eq other:@final = bool
-  met operator_ne other:@final = bool
-export intf `not_has_equality =
-export intf `equality_by_compare =
-  -- Compiler generates operator_{eq,ne}.
-  isa `has_compare `has_equality
-export intf `trivial_equality =
-  isa `trivial_compare `equality_by_compare
-export intf `ordered =
-  isa `has_equality `has_compare
-  met operator_le other:@final = bool
-  met operator_lt other:@final = bool
-  met operator_gt other:@final = bool
-  met operator_ge other:@final = bool
-export intf `not_ordered =
-export intf `ordered_by_compare =
-  -- Compiler generates operator_{le,lt,gt,ge}.
-  isa `has_compare `ordered
-export intf `trivial_order =
-  isa `trivial_compare `ordered_by_compare
-export intf `arithmetic =
-  met operator_plus other:@final = final
-  met operator_minus other:@final = final
-  met operator_divide other:@final = final
-  met operator_modulo other:@final = final
-  met operator_times other:@final = final
-  met operator_uminus = final
-  met! operator_assign_plus other:@final = void
-  met! operator_assign_minus other:@final = void
-  met! operator_assign_divide other:@final = void
-  met! operator_assign_modulo other:@final = void
-  met! operator_assign_times other:@final = void
-export intf `bitwise =
-  met operator_bwor other:@final = final
-  met operator_bwxor other:@final = final
-  met operator_bwand other:@final = final
-  met operator_lshift by:u32 = final
-  met operator_rshift by:u32 = final
-  met operator_bwnot = final
-  met! operator_assign_bwor other:@final = void
-  met! operator_assign_bwxor other:@final = void
-  met! operator_assign_bwand other:@final = void
-  met! operator_assign_lshift by:u32 = void
-  met! operator_assign_rshift by:u32 = void
+  met Operator_compare other:@final = I32
+intf `Trivial_compare =
+  isa `Has_compare
+intf `Has_equality =
+  isa `Has_compare `Matchable
+  met Operator_eq other:@final = Bool
+  met Operator_ne other:@final = Bool
+intf `Not_has_equality =
+intf `Equality_by_compare =
+  -- Compiler generates Operator_{eq,ne}.
+  isa `Has_compare `Has_equality
+intf `Trivial_equality =
+  isa `Trivial_compare `Equality_by_compare
+intf `Ordered =
+  isa `Has_equality `Has_compare
+  met Operator_le other:@final = Bool
+  met Operator_lt other:@final = Bool
+  met Operator_gt other:@final = Bool
+  met Operator_ge other:@final = Bool
+intf `Not_ordered =
+intf `Ordered_by_compare =
+  -- Compiler generates Operator_{le,lt,gt,ge}.
+  isa `Has_compare `Ordered
+intf `Trivial_order =
+  isa `Trivial_compare `Ordered_by_compare
+intf `Arithmetic =
+  met Operator_plus other:@final = final
+  met Operator_minus other:@final = final
+  met Operator_divide other:@final = final
+  met Operator_modulo other:@final = final
+  met Operator_times other:@final = final
+  met Operator_uminus = final
+  met! Operator_assign_plus other:@final = Void
+  met! Operator_assign_minus other:@final = Void
+  met! Operator_assign_divide other:@final = Void
+  met! Operator_assign_modulo other:@final = Void
+  met! Operator_assign_times other:@final = Void
+intf `Bitwise =
+  met Operator_bwor other:@final = final
+  met Operator_bwxor other:@final = final
+  met Operator_bwand other:@final = final
+  met Operator_lshift by:U32 = final
+  met Operator_rshift by:U32 = final
+  met Operator_bwnot = final
+  met! Operator_assign_bwor other:@final = Void
+  met! Operator_assign_bwxor other:@final = Void
+  met! Operator_assign_bwand other:@final = Void
+  met! Operator_assign_lshift by:U32 = Void
+  met! Operator_assign_rshift by:U32 = Void
 
 
-export intf `sum_copy =
-  isa `copyable
-export intf `sum_equality =
-  isa `has_equality
-export intf `sum_order =
-  isa `ordered
+intf `Sum_copy =
+  isa `Copyable
+intf `Sum_equality =
+  isa `Has_equality
+intf `Sum_order =
+  isa `Ordered
 
 
-export extern inline struct void =
-  export isa `prevent_dyn `return_by_copy `trivial_copy `trivial_ctor
+extern inline struct Void =
+  isa `Prevent_dyn `Return_by_copy `Trivial_copy `Trivial_ctor
 
 
-export intf `any_any_ref =
-  isa `return_by_copy `trivial_copy_but_owned
-export intf `any_ref t:`any =
-  isa `any_any_ref
-export intf `any_mutable_ref t:`any =
-  isa (`any_ref t)
-export intf `any_nullable_ref t:`any =
-  isa `any_any_ref `trivial_ctor
-export intf `any_nullable_mutable_ref t:`any =
-  isa (`any_nullable_ref t)
+intf `Any_any_ref =
+  isa `Return_by_copy `Trivial_copy_but_owned
+intf `Any_ref t:`Any =
+  isa `Any_any_ref
+intf `Any_mutable_ref t:`Any =
+  isa (`Any_ref t)
+intf `Any_nullable_ref t:`Any =
+  isa `Any_any_ref `Trivial_ctor
+intf `Any_nullable_mutable_ref t:`Any =
+  isa (`Any_nullable_ref t)
 
-export extern struct ref t:`any =
-  export isa (`any_ref t)
-export extern struct mutable_ref t:`any =
-  export isa (`any_mutable_ref t)
-export extern struct mercurial_ref t:`any =
-  export isa (`any_mutable_ref t)
+extern struct Ref t:`Any =
+  isa (`Any_ref t)
+extern struct Mutable_ref t:`Any =
+  isa (`Any_mutable_ref t)
+extern struct Mercurial_ref t:`Any =
+  isa (`Any_mutable_ref t)
 
 -- FIXME: to replace with semantic constraint
-export extern struct nullable_ref t:`any =
-  export isa (`any_nullable_ref t)
-export extern struct nullable_mutable_ref t:`any =
-  export isa (`any_nullable_mutable_ref t)
-export extern struct nullable_mercurial_ref t:`any =
-  export isa (`any_nullable_mutable_ref t)
+extern struct Nullable_ref t:`Any =
+  isa (`Any_nullable_ref t)
+extern struct Nullable_mutable_ref t:`Any =
+  isa (`Any_nullable_mutable_ref t)
+extern struct Nullable_mercurial_ref t:`Any =
+  isa (`Any_nullable_mutable_ref t)
 
 
-export intf `any_any_slice =
-  isa `trivial_ctor `trivial_dtor `return_by_copy `trivial_copy_but_owned
+intf `Any_any_slice =
+  isa `Trivial_ctor `Trivial_dtor `Return_by_copy `Trivial_copy_but_owned
 
-export intf `any_slice t:`any =
-  isa `any_any_slice (`random_container t)
-  met bytecount = size
-  met all = index_range
-  shallow met$ unsafe_rawdata = @$u8
-  shallow met$ unsafe_data = @$t
-  shallow met$ operator_at n:size = @$t
-  shallow met$ operator_sub r:index_range = []$t
+intf `Any_slice t:`Any =
+  isa `Any_any_slice (`Random_container t)
+  met Bytecount = Size
+  met All = Index_range
+  shallow met$ Unsafe_rawdata = @$U8
+  shallow met$ Unsafe_data = @$t
+  shallow met$ Operator_at n:Size = @$t
+  shallow met$ Operator_sub r:Index_range = []$t
 
-export intf `any_mutable_slice t:`any =
-  isa (`any_slice t)
-  met! copy other:[]t = void
+intf `Any_mutable_slice t:`Any =
+  isa (`Any_slice t)
+  met! Copy other:[]t = Void
 
--- The body of the methods for slice and mutable_slice are actually not used, as
--- slice_impl is used in codegen for both slice and mutable_slice. The code in
+-- The body of the methods for Slice and Mutable_slice are actually not used, as
+-- Slice_impl is used in codegen for both Slice and Mutable_slice. The code in
 -- these functions has only one purpose: triggering the instantiation of the
--- corresponding slice_impl methods.
+-- corresponding Slice_impl methods.
 -- We will need a better solution down the road, as the code in these bogus
--- methods is all sorts of wrong and is bound to be rejected by the compiler.
+-- methods is All sorts of wrong and is bound to be rejected by the compiler.
 
-export opaque struct slice t:`any =
-  export isa (`any_slice t)
+opaque struct Slice t:`Any =
+  isa (`Any_slice t)
   dat	:?@#t
-  cnt	:size
+  cnt	:Size
 
-export inline slice fun create_impl_instance = (slice_impl t)
+inline Slice fun create_impl_instance = (Slice_impl t)
   return {}
-export inline slice met# unsafe_wrap p:@u8 c:size = void
+inline Slice met# Unsafe_wrap p:@U8 c:Size = Void
   let s = this.create_impl_instance
-  s#unsafe_wrap p c
-export inline slice met count = size
+  s#Unsafe_wrap p c
+inline Slice met Count = Size
   let s = this.create_impl_instance
-  return s.count
-export inline slice met bytecount = size
+  return s.Count
+inline Slice met Bytecount = Size
   let s = this.create_impl_instance
-  return s.bytecount
-export inline slice met all = index_range
+  return s.Bytecount
+inline Slice met All = Index_range
   let s = this.create_impl_instance
-  return s.all
-export inline slice shallow met$ unsafe_rawdata = @u8
+  return s.All
+inline Slice shallow met$ Unsafe_rawdata = @U8
   let s = this.create_impl_instance
-  return s.unsafe_rawdata
-export inline slice shallow met$ unsafe_data = @t
+  return s.Unsafe_rawdata
+inline Slice shallow met$ Unsafe_data = @t
   let s = this.create_impl_instance
-  return s.unsafe_data
-export inline slice shallow met$ operator_at n:size = @t
+  return s.Unsafe_data
+inline Slice shallow met$ Operator_at n:Size = @t
   let s = this.create_impl_instance
-  return s.operator_at n
-export inline slice shallow met$ operator_sub r:index_range = []t
+  return s.Operator_at n
+inline Slice shallow met$ Operator_sub r:Index_range = []t
   let s = this.create_impl_instance
   such
-    let _ = s.operator_sub r
+    let _ = s.Operator_sub r
   return {}
 
-export opaque struct mutable_slice t:`any =
-  export isa (`any_mutable_slice t)
+opaque struct Mutable_slice t:`Any =
+  isa (`Any_mutable_slice t)
   dat	:?@#t
-  cnt	:size
+  cnt	:Size
 
-export inline mutable_slice fun create_impl_instance = (slice_impl t)
+inline Mutable_slice fun create_impl_instance = (Slice_impl t)
   return {}
-export inline mutable_slice met# unsafe_wrap p:@u8 c:size = void
+inline Mutable_slice met# Unsafe_wrap p:@U8 c:Size = Void
   let s = this.create_impl_instance
-  s#unsafe_wrap p c
-export inline mutable_slice met count = size
+  s#Unsafe_wrap p c
+inline Mutable_slice met Count = Size
   let s = this.create_impl_instance
-  return s.count
-export inline mutable_slice met bytecount = size
+  return s.Count
+inline Mutable_slice met Bytecount = Size
   let s = this.create_impl_instance
-  return s.bytecount
-export inline mutable_slice met all = index_range
+  return s.Bytecount
+inline Mutable_slice met All = Index_range
   let s = this.create_impl_instance
-  return s.all
-export inline mutable_slice shallow met$ unsafe_rawdata = @$u8
-  let s = this.create_impl_instance
-  such
-    let _ = s.unsafe_rawdata
-    let _ = s!unsafe_rawdata
-    let _ = s#unsafe_rawdata
-    return s$unsafe_rawdata
-export inline mutable_slice shallow met$ unsafe_data = @$t
+  return s.All
+inline Mutable_slice shallow met$ Unsafe_rawdata = @$U8
   let s = this.create_impl_instance
   such
-    let _ = s.unsafe_data
-    let _ = s!unsafe_data
-    let _ = s#unsafe_data
-    return s$unsafe_data
-export inline mutable_slice shallow met$ operator_at n:size = @$t
+    let _ = s.Unsafe_rawdata
+    let _ = s!Unsafe_rawdata
+    let _ = s#Unsafe_rawdata
+    return s$Unsafe_rawdata
+inline Mutable_slice shallow met$ Unsafe_data = @$t
   let s = this.create_impl_instance
   such
-    let _ = s.operator_at n
-    let _ = s!operator_at n
-    let p = s#operator_at n
-    return s$operator_at n
-export inline mutable_slice met! copy other:[]t = void
+    let _ = s.Unsafe_data
+    let _ = s!Unsafe_data
+    let _ = s#Unsafe_data
+    return s$Unsafe_data
+inline Mutable_slice shallow met$ Operator_at n:Size = @$t
   let s = this.create_impl_instance
   such
-    s!copy s
-export inline mutable_slice shallow met$ operator_sub r:index_range = []$t
+    let _ = s.Operator_at n
+    let _ = s!Operator_at n
+    let p = s#Operator_at n
+    return s$Operator_at n
+inline Mutable_slice met! Copy other:[]t = Void
   let s = this.create_impl_instance
   such
-    let _ = (s.operator_sub r)
-    let _ = (s!operator_sub r)
-    let _ = (s#operator_sub r)
+    s!Copy s
+inline Mutable_slice shallow met$ Operator_sub r:Index_range = []$t
+  let s = this.create_impl_instance
+  such
+    let _ = (s.Operator_sub r)
+    let _ = (s!Operator_sub r)
+    let _ = (s#Operator_sub r)
     return {}
 
 
-export extern inline fun slice_at_byte dp:@#u8 off:size = @#u8
-export extern inline fun slice_memcpy dst:@#u8 src:@u8 count:size = void
+extern inline fun Slice_at_byte dp:@#U8 off:Size = @#U8
+extern inline fun Slice_memcpy dst:@#U8 src:@U8 Count:Size = Void
 
-export opaque struct slice_impl t:`any =
-  export isa (`any_mutable_slice t)
+opaque struct Slice_impl t:`Any =
+  isa (`Any_mutable_slice t)
   dat	:?@#t
-  cnt	:size
+  cnt	:Size
 
-export inline slice_impl met# unsafe_wrap p:@u8 c:size = void
-  self#dat = (cast @u8 @#t) p
+inline Slice_impl met# Unsafe_wrap p:@U8 c:Size = Void
+  self#dat = (Cast @U8 @#t) p
   self#cnt = c
 
-export inline slice_impl met count = size
+inline Slice_impl met Count = Size
   return self.cnt
 
-export inline slice_impl met bytecount = size
+inline Slice_impl met Bytecount = Size
   return (sizeof t) * self.cnt
 
-export inline slice_impl met all = index_range
-  return range 0 self.cnt
+inline Slice_impl met All = Index_range
+  return Range 0 self.cnt
 
-export inline slice_impl shallow met$ unsafe_rawdata = @$u8
-  return (cast ?@$t @$u8) self$dat
+inline Slice_impl shallow met$ Unsafe_rawdata = @$U8
+  return (Cast ?@$t @$U8) self$dat
 
-export inline slice_impl shallow met$ unsafe_data = @$t
-  return (nonnull_cast t ?@$t @$t) self$dat
+inline Slice_impl shallow met$ Unsafe_data = @$t
+  return (Nonnull_cast t ?@$t @$t) self$dat
 
-export inline slice_impl shallow met$ operator_at n:size = @$t
-  assert <- n < self.count
-  let raw = (cast ?@t @#u8) self.dat
+inline Slice_impl shallow met$ Operator_at n:Size = @$t
+  Assert <- n < self.Count
+  let raw = (Cast ?@t @#U8) self.dat
   and off = n * (sizeof t)
-  return (cast @#u8 @$t) <- slice_at_byte raw off
+  return (Cast @#U8 @$t) <- Slice_at_byte raw off
 
-export inline slice_impl met! copy other:this = void
-  assert <- self.count == other.count
-  let dst = self!unsafe_rawdata
-  and src = other.unsafe_rawdata
+inline Slice_impl met! Copy other:this = Void
+  Assert <- self.Count == other.Count
+  let dst = self!Unsafe_rawdata
+  and src = other.Unsafe_rawdata
   and bytecnt = other.cnt * (sizeof t)
-  slice_memcpy dst src bytecnt
+  Slice_memcpy dst src bytecnt
 
-export inline slice_impl shallow met$ operator_sub r:index_range = this
-  assert <- r.begin < self.count
-  assert <- r.end <= self.count
-  let raw0 = (cast @u8 @#u8) self.unsafe_rawdata
-  let raw = slice_at_byte raw0 r.begin
-  return {dat=((cast @#u8 @#t) raw) cnt=r.count}
+inline Slice_impl shallow met$ Operator_sub r:Index_range = this
+  Assert <- r.Begin < self.Count
+  Assert <- r.End <= self.Count
+  let raw0 = (Cast @U8 @#U8) self.Unsafe_rawdata
+  let raw = Slice_at_byte raw0 r.Begin
+  return {dat=((Cast @#U8 @#t) raw) cnt=r.Count}
 
 
-export intf `any_tuple =
-  isa `copyable
+intf `Any_tuple =
+  isa `Copyable
 
-export inline struct tuple_2 t0:`copyable t1:`copyable =
-  export isa `any_tuple
+inline struct Tuple_2 t0:`Copyable t1:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
 
-export inline struct tuple_3 t0:`copyable t1:`copyable t2:`copyable =
-  export isa `any_tuple
+inline struct Tuple_3 t0:`Copyable t1:`Copyable t2:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
 
-export inline struct tuple_4 t0:`copyable t1:`copyable t2:`copyable t3:`copyable =
-  export isa `any_tuple
+inline struct Tuple_4 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
   x3	:t3
 
-export inline struct tuple_5 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable =
-  export isa `any_tuple
+inline struct Tuple_5 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
   x3	:t3
   x4	:t4
 
-export inline struct tuple_6 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable =
-  export isa `any_tuple
+inline struct Tuple_6 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -339,8 +339,8 @@ export inline struct tuple_6 t0:`copyable t1:`copyable t2:`copyable t3:`copyable
   x4	:t4
   x5	:t5
 
-export inline struct tuple_7 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable =
-  export isa `any_tuple
+inline struct Tuple_7 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -349,8 +349,8 @@ export inline struct tuple_7 t0:`copyable t1:`copyable t2:`copyable t3:`copyable
   x5	:t5
   x6	:t6
 
-export inline struct tuple_8 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable =
-  export isa `any_tuple
+inline struct Tuple_8 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -360,8 +360,8 @@ export inline struct tuple_8 t0:`copyable t1:`copyable t2:`copyable t3:`copyable
   x6	:t6
   x7	:t7
 
-export inline struct tuple_9 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable =
-  export isa `any_tuple
+inline struct Tuple_9 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -372,8 +372,8 @@ export inline struct tuple_9 t0:`copyable t1:`copyable t2:`copyable t3:`copyable
   x7	:t7
   x8	:t8
 
-export inline struct tuple_10 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable =
-  export isa `any_tuple
+inline struct Tuple_10 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -385,8 +385,8 @@ export inline struct tuple_10 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x8	:t8
   x9	:t9
 
-export inline struct tuple_11 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable =
-  export isa `any_tuple
+inline struct Tuple_11 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -399,8 +399,8 @@ export inline struct tuple_11 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x9	:t9
   x10	:t10
 
-export inline struct tuple_12 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable =
-  export isa `any_tuple
+inline struct Tuple_12 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -414,8 +414,8 @@ export inline struct tuple_12 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x10	:t10
   x11	:t11
 
-export inline struct tuple_13 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable =
-  export isa `any_tuple
+inline struct Tuple_13 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -430,8 +430,8 @@ export inline struct tuple_13 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x11	:t11
   x12	:t12
 
-export inline struct tuple_14 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable =
-  export isa `any_tuple
+inline struct Tuple_14 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -447,8 +447,8 @@ export inline struct tuple_14 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x12	:t12
   x13	:t13
 
-export inline struct tuple_15 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable t14:`copyable =
-  export isa `any_tuple
+inline struct Tuple_15 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable t14:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -465,8 +465,8 @@ export inline struct tuple_15 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x13	:t13
   x14	:t14
 
-export inline struct tuple_16 t0:`copyable t1:`copyable t2:`copyable t3:`copyable t4:`copyable t5:`copyable t6:`copyable t7:`copyable t8:`copyable t9:`copyable t10:`copyable t11:`copyable t12:`copyable t13:`copyable t14:`copyable t15:`copyable =
-  export isa `any_tuple
+inline struct Tuple_16 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable t14:`Copyable t15:`Copyable =
+  isa `Any_tuple
   x0	:t0
   x1	:t1
   x2	:t2
@@ -484,697 +484,697 @@ export inline struct tuple_16 t0:`copyable t1:`copyable t2:`copyable t3:`copyabl
   x14	:t14
   x15	:t15
 
-export intf `numeric =
-  isa `copyable `arithmetic `ordered `show
+intf `Numeric =
+  isa `Copyable `Arithmetic `Ordered `Show
 
-export intf `integer =
-  isa `numeric `bitwise `has_compare
-  alias this_signed = `signed_integer
-  alias this_unsigned = `unsigned_integer
-  met reinterpret_signed = final.this_signed
-  met reinterpret_unsigned = final.this_unsigned
+intf `Integer =
+  isa `Numeric `Bitwise `Has_compare
+  alias this_signed = `Signed_integer
+  alias this_unsigned = `Unsigned_integer
+  met Reinterpret_signed = final.this_signed
+  met Reinterpret_unsigned = final.this_unsigned
 
-export intf `signed_integer =
-  isa `integer
+intf `Signed_integer =
+  isa `Integer
 
-export intf `unsigned_integer =
-  isa `integer
+intf `Unsigned_integer =
+  isa `Integer
 
-export intf `native_integer =
-  isa `trivial_ctor `trivial_dtor `trivial_copy `trivial_order `return_by_copy
-      \ `integer `show
+intf `Native_integer =
+  isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy
+      \ `Integer `Show
 
 
-export intf `native_signed_integer =
-  isa `signed_integer `native_integer
+intf `Native_signed_integer =
+  isa `Signed_integer `Native_integer
 
-export intf `native_unsigned_integer =
-  isa `unsigned_integer `native_integer
+intf `Native_unsigned_integer =
+  isa `Unsigned_integer `Native_integer
 
-export intf `native_anysign_integer =
-  isa `native_signed_integer `native_unsigned_integer
+intf `Native_anysign_integer =
+  isa `Native_signed_integer `Native_unsigned_integer
 
-export intf `generalized_boolean =
-  isa `ordered
-  met operator_test = bool
+intf `Generalized_boolean =
+  isa `Ordered
+  met Operator_test = Bool
 
-export intf `bool_compatible =
-  fun from_bool b:bool = final
+intf `Bool_compatible =
+  fun From_bool b:Bool = final
 
-export intf `native_boolean =
-  isa `trivial_ctor `trivial_dtor `trivial_copy `return_by_copy `generalized_boolean
-      \ `trivial_order `bool_compatible `show
+intf `Native_boolean =
+  isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Return_by_copy `Generalized_boolean
+      \ `Trivial_order `Bool_compatible `Show
 
-export intf `floating =
-  isa `numeric `has_compare
+intf `Floating =
+  isa `Numeric `Has_compare
 
-export intf `native_floating =
-  isa `trivial_ctor `trivial_dtor `trivial_copy `return_by_copy
-      \ `floating `show
+intf `Native_floating =
+  isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Return_by_copy
+      \ `Floating `Show
 
-export intf `enum =
-  isa `trivial_order `trivial_equality `trivial_copy `return_by_copy `trivial_dtor `show
-  alias tag_type = `integer
+intf `Enum =
+  isa `Trivial_order `Trivial_equality `Trivial_copy `Return_by_copy `Trivial_dtor `Show
+  alias tag_type = `Integer
   fun from_tag value:final.tag_type = final
   met tag = final.tag_type
 
-export intf `union =
-  alias tag_type = `integer
+intf `Union =
+  alias tag_type = `Integer
   met tag = final.tag_type
 
-export intf `union_trivial_ctor =
-  isa `union `trivial_ctor
+intf `Union_trivial_ctor =
+  isa `Union `Trivial_ctor
   fun from_tag value:final.tag_type = final
 
-export extern inline struct bool =
-  export isa `native_boolean
-export extern bool met `has_equality.operator_eq other:@this = bool
-export extern bool met `has_equality.operator_ne other:@this = bool
-export extern bool met `ordered.operator_le other:@this = bool
-export extern bool met `ordered.operator_lt other:@this = bool
-export extern bool met `ordered.operator_gt other:@this = bool
-export extern bool met `ordered.operator_ge other:@this = bool
-export bool fun from_bool b:bool = this
+extern inline struct Bool =
+  isa `Native_boolean
+extern Bool met `Has_equality.Operator_eq other:@this = Bool
+extern Bool met `Has_equality.Operator_ne other:@this = Bool
+extern Bool met `Ordered.Operator_le other:@this = Bool
+extern Bool met `Ordered.Operator_lt other:@this = Bool
+extern Bool met `Ordered.Operator_gt other:@this = Bool
+extern Bool met `Ordered.Operator_ge other:@this = Bool
+Bool fun From_bool b:Bool = this
   return b
-export extern bool met `generalized_boolean.operator_test = bool
-export extern bool met to_u8 = u8
-export extern bool met to_u16 = u16
-export extern bool met to_u32 = u32
-export extern bool met to_u64 = u64
-export extern bool met `show.show buf:@#`string_buffer = void
+extern Bool met `Generalized_boolean.Operator_test = Bool
+extern Bool met To_u8 = U8
+extern Bool met To_u16 = U16
+extern Bool met To_u32 = U32
+extern Bool met To_u64 = U64
+extern Bool met `Show.Show buf:@#`String_buffer = Void
 
-export extern inline struct i8 =
-  export isa `native_signed_integer
+extern inline struct I8 =
+  isa `Native_signed_integer
   alias this_signed = this
-  alias this_unsigned = u8
-export extern i8 met `has_equality.operator_eq other:@this = bool
-export extern i8 met `has_equality.operator_ne other:@this = bool
-export extern i8 met `ordered.operator_le other:@this = bool
-export extern i8 met `ordered.operator_lt other:@this = bool
-export extern i8 met `ordered.operator_gt other:@this = bool
-export extern i8 met `ordered.operator_ge other:@this = bool
-export extern i8 met `arithmetic.operator_plus other:@this = this
-export extern i8 met `arithmetic.operator_minus other:@this = this
-export extern i8 met `arithmetic.operator_divide other:@this = this
-export extern i8 met `arithmetic.operator_modulo other:@this = this
-export extern i8 met `arithmetic.operator_times other:@this = this
-export extern i8 met `arithmetic.operator_uminus = this
-export extern i8 met! `arithmetic.operator_assign_plus other:@this = void
-export extern i8 met! `arithmetic.operator_assign_minus other:@this = void
-export extern i8 met! `arithmetic.operator_assign_divide other:@this = void
-export extern i8 met! `arithmetic.operator_assign_modulo other:@this = void
-export extern i8 met! `arithmetic.operator_assign_times other:@this = void
-export extern i8 met `bitwise.operator_bwor other:@this = this
-export extern i8 met `bitwise.operator_bwxor other:@this = this
-export extern i8 met `bitwise.operator_bwand other:@this = this
-export extern i8 met `bitwise.operator_lshift by:u32 = this
-export extern i8 met `bitwise.operator_rshift by:u32 = this
-export extern i8 met `bitwise.operator_bwnot = this
-export extern i8 met! `bitwise.operator_assign_bwor other:@this = void
-export extern i8 met! `bitwise.operator_assign_bwxor other:@this = void
-export extern i8 met! `bitwise.operator_assign_bwand other:@this = void
-export extern i8 met! `bitwise.operator_assign_lshift by:u32 = void
-export extern i8 met! `bitwise.operator_assign_rshift by:u32 = void
-export extern inline i8 met reinterpret_unsigned = u8
-export extern inline i8 met reinterpret_signed = this
-export extern inline i8 met to_i16 = i16
-export extern inline i8 met to_i32 = i32
-export extern inline i8 met to_i64 = i64
-export extern inline i8 met `integer.as_ssize = ssize
-export extern i8 met `show.show buf:@#`string_buffer = void
+  alias this_unsigned = U8
+extern I8 met `Has_equality.Operator_eq other:@this = Bool
+extern I8 met `Has_equality.Operator_ne other:@this = Bool
+extern I8 met `Ordered.Operator_le other:@this = Bool
+extern I8 met `Ordered.Operator_lt other:@this = Bool
+extern I8 met `Ordered.Operator_gt other:@this = Bool
+extern I8 met `Ordered.Operator_ge other:@this = Bool
+extern I8 met `Arithmetic.Operator_plus other:@this = this
+extern I8 met `Arithmetic.Operator_minus other:@this = this
+extern I8 met `Arithmetic.Operator_divide other:@this = this
+extern I8 met `Arithmetic.Operator_modulo other:@this = this
+extern I8 met `Arithmetic.Operator_times other:@this = this
+extern I8 met `Arithmetic.Operator_uminus = this
+extern I8 met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern I8 met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern I8 met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern I8 met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern I8 met! `Arithmetic.Operator_assign_times other:@this = Void
+extern I8 met `Bitwise.Operator_bwor other:@this = this
+extern I8 met `Bitwise.Operator_bwxor other:@this = this
+extern I8 met `Bitwise.Operator_bwand other:@this = this
+extern I8 met `Bitwise.Operator_lshift by:U32 = this
+extern I8 met `Bitwise.Operator_rshift by:U32 = this
+extern I8 met `Bitwise.Operator_bwnot = this
+extern I8 met! `Bitwise.Operator_assign_bwor other:@this = Void
+extern I8 met! `Bitwise.Operator_assign_bwxor other:@this = Void
+extern I8 met! `Bitwise.Operator_assign_bwand other:@this = Void
+extern I8 met! `Bitwise.Operator_assign_lshift by:U32 = Void
+extern I8 met! `Bitwise.Operator_assign_rshift by:U32 = Void
+extern inline I8 met Reinterpret_unsigned = U8
+extern inline I8 met Reinterpret_signed = this
+extern inline I8 met To_i16 = I16
+extern inline I8 met To_i32 = I32
+extern inline I8 met To_i64 = I64
+extern inline I8 met `Integer.As_ssize = Ssize
+extern I8 met `Show.Show buf:@#`String_buffer = Void
 
-export extern inline struct i16 =
-  export isa `native_signed_integer
+extern inline struct I16 =
+  isa `Native_signed_integer
   alias this_signed = this
-  alias this_unsigned = u16
-export extern i16 met `has_equality.operator_eq other:@this = bool
-export extern i16 met `has_equality.operator_ne other:@this = bool
-export extern i16 met `ordered.operator_le other:@this = bool
-export extern i16 met `ordered.operator_lt other:@this = bool
-export extern i16 met `ordered.operator_gt other:@this = bool
-export extern i16 met `ordered.operator_ge other:@this = bool
-export extern i16 met `arithmetic.operator_plus other:@this = this
-export extern i16 met `arithmetic.operator_minus other:@this = this
-export extern i16 met `arithmetic.operator_divide other:@this = this
-export extern i16 met `arithmetic.operator_modulo other:@this = this
-export extern i16 met `arithmetic.operator_times other:@this = this
-export extern i16 met `arithmetic.operator_uminus = this
-export extern i16 met! `arithmetic.operator_assign_plus other:@this = void
-export extern i16 met! `arithmetic.operator_assign_minus other:@this = void
-export extern i16 met! `arithmetic.operator_assign_divide other:@this = void
-export extern i16 met! `arithmetic.operator_assign_modulo other:@this = void
-export extern i16 met! `arithmetic.operator_assign_times other:@this = void
-export extern i16 met `bitwise.operator_bwor other:@this = this
-export extern i16 met `bitwise.operator_bwxor other:@this = this
-export extern i16 met `bitwise.operator_bwand other:@this = this
-export extern i16 met `bitwise.operator_lshift by:u32 = this
-export extern i16 met `bitwise.operator_rshift by:u32 = this
-export extern i16 met `bitwise.operator_bwnot = this
-export extern i16 met! `bitwise.operator_assign_bwor other:@this = void
-export extern i16 met! `bitwise.operator_assign_bwxor other:@this = void
-export extern i16 met! `bitwise.operator_assign_bwand other:@this = void
-export extern i16 met! `bitwise.operator_assign_lshift by:u32 = void
-export extern i16 met! `bitwise.operator_assign_rshift by:u32 = void
-export extern inline i16 met reinterpret_unsigned = u16
-export extern inline i16 met reinterpret_signed = this
-export extern inline i16 met trim_i8 = i8
-export extern inline i16 met to_i32 = i32
-export extern inline i16 met to_i64 = i64
-export extern inline i16 met `integer.as_ssize = ssize
-export extern i16 met `show.show buf:@#`string_buffer = void
+  alias this_unsigned = U16
+extern I16 met `Has_equality.Operator_eq other:@this = Bool
+extern I16 met `Has_equality.Operator_ne other:@this = Bool
+extern I16 met `Ordered.Operator_le other:@this = Bool
+extern I16 met `Ordered.Operator_lt other:@this = Bool
+extern I16 met `Ordered.Operator_gt other:@this = Bool
+extern I16 met `Ordered.Operator_ge other:@this = Bool
+extern I16 met `Arithmetic.Operator_plus other:@this = this
+extern I16 met `Arithmetic.Operator_minus other:@this = this
+extern I16 met `Arithmetic.Operator_divide other:@this = this
+extern I16 met `Arithmetic.Operator_modulo other:@this = this
+extern I16 met `Arithmetic.Operator_times other:@this = this
+extern I16 met `Arithmetic.Operator_uminus = this
+extern I16 met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern I16 met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern I16 met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern I16 met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern I16 met! `Arithmetic.Operator_assign_times other:@this = Void
+extern I16 met `Bitwise.Operator_bwor other:@this = this
+extern I16 met `Bitwise.Operator_bwxor other:@this = this
+extern I16 met `Bitwise.Operator_bwand other:@this = this
+extern I16 met `Bitwise.Operator_lshift by:U32 = this
+extern I16 met `Bitwise.Operator_rshift by:U32 = this
+extern I16 met `Bitwise.Operator_bwnot = this
+extern I16 met! `Bitwise.Operator_assign_bwor other:@this = Void
+extern I16 met! `Bitwise.Operator_assign_bwxor other:@this = Void
+extern I16 met! `Bitwise.Operator_assign_bwand other:@this = Void
+extern I16 met! `Bitwise.Operator_assign_lshift by:U32 = Void
+extern I16 met! `Bitwise.Operator_assign_rshift by:U32 = Void
+extern inline I16 met Reinterpret_unsigned = U16
+extern inline I16 met Reinterpret_signed = this
+extern inline I16 met Trim_i8 = I8
+extern inline I16 met To_i32 = I32
+extern inline I16 met To_i64 = I64
+extern inline I16 met `Integer.As_ssize = Ssize
+extern I16 met `Show.Show buf:@#`String_buffer = Void
 
-export extern inline struct i32 =
-  export isa `native_signed_integer
+extern inline struct I32 =
+  isa `Native_signed_integer
   alias this_signed = this
-  alias this_unsigned = u32
-export extern i32 met `has_equality.operator_eq other:@this = bool
-export extern i32 met `has_equality.operator_ne other:@this = bool
-export extern i32 met `ordered.operator_le other:@this = bool
-export extern i32 met `ordered.operator_lt other:@this = bool
-export extern i32 met `ordered.operator_gt other:@this = bool
-export extern i32 met `ordered.operator_ge other:@this = bool
-export extern i32 met `arithmetic.operator_plus other:@this = this
-export extern i32 met `arithmetic.operator_minus other:@this = this
-export extern i32 met `arithmetic.operator_divide other:@this = this
-export extern i32 met `arithmetic.operator_modulo other:@this = this
-export extern i32 met `arithmetic.operator_times other:@this = this
-export extern i32 met `arithmetic.operator_uminus = this
-export extern i32 met! `arithmetic.operator_assign_plus other:@this = void
-export extern i32 met! `arithmetic.operator_assign_minus other:@this = void
-export extern i32 met! `arithmetic.operator_assign_divide other:@this = void
-export extern i32 met! `arithmetic.operator_assign_modulo other:@this = void
-export extern i32 met! `arithmetic.operator_assign_times other:@this = void
-export extern i32 met `bitwise.operator_bwor other:@this = this
-export extern i32 met `bitwise.operator_bwxor other:@this = this
-export extern i32 met `bitwise.operator_bwand other:@this = this
-export extern i32 met `bitwise.operator_lshift by:u32 = this
-export extern i32 met `bitwise.operator_rshift by:u32 = this
-export extern i32 met `bitwise.operator_bwnot = this
-export extern i32 met! `bitwise.operator_assign_bwor other:@this = void
-export extern i32 met! `bitwise.operator_assign_bwxor other:@this = void
-export extern i32 met! `bitwise.operator_assign_bwand other:@this = void
-export extern i32 met! `bitwise.operator_assign_lshift by:u32 = void
-export extern i32 met! `bitwise.operator_assign_rshift by:u32 = void
-export extern inline i32 met reinterpret_unsigned = u32
-export extern inline i32 met reinterpret_signed = this
-export extern inline i32 met trim_i8 = i8
-export extern inline i32 met trim_i16 = i16
-export extern inline i32 met to_i64 = i64
-export extern inline i32 met `integer.as_ssize = ssize
-export extern inline i32 met trim_float = float
-export extern inline i32 met to_double = double
-export extern i32 met `show.show buf:@#`string_buffer = void
+  alias this_unsigned = U32
+extern I32 met `Has_equality.Operator_eq other:@this = Bool
+extern I32 met `Has_equality.Operator_ne other:@this = Bool
+extern I32 met `Ordered.Operator_le other:@this = Bool
+extern I32 met `Ordered.Operator_lt other:@this = Bool
+extern I32 met `Ordered.Operator_gt other:@this = Bool
+extern I32 met `Ordered.Operator_ge other:@this = Bool
+extern I32 met `Arithmetic.Operator_plus other:@this = this
+extern I32 met `Arithmetic.Operator_minus other:@this = this
+extern I32 met `Arithmetic.Operator_divide other:@this = this
+extern I32 met `Arithmetic.Operator_modulo other:@this = this
+extern I32 met `Arithmetic.Operator_times other:@this = this
+extern I32 met `Arithmetic.Operator_uminus = this
+extern I32 met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern I32 met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern I32 met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern I32 met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern I32 met! `Arithmetic.Operator_assign_times other:@this = Void
+extern I32 met `Bitwise.Operator_bwor other:@this = this
+extern I32 met `Bitwise.Operator_bwxor other:@this = this
+extern I32 met `Bitwise.Operator_bwand other:@this = this
+extern I32 met `Bitwise.Operator_lshift by:U32 = this
+extern I32 met `Bitwise.Operator_rshift by:U32 = this
+extern I32 met `Bitwise.Operator_bwnot = this
+extern I32 met! `Bitwise.Operator_assign_bwor other:@this = Void
+extern I32 met! `Bitwise.Operator_assign_bwxor other:@this = Void
+extern I32 met! `Bitwise.Operator_assign_bwand other:@this = Void
+extern I32 met! `Bitwise.Operator_assign_lshift by:U32 = Void
+extern I32 met! `Bitwise.Operator_assign_rshift by:U32 = Void
+extern inline I32 met Reinterpret_unsigned = U32
+extern inline I32 met Reinterpret_signed = this
+extern inline I32 met Trim_i8 = I8
+extern inline I32 met Trim_i16 = I16
+extern inline I32 met To_i64 = I64
+extern inline I32 met `Integer.As_ssize = Ssize
+extern inline I32 met Trim_float = Float
+extern inline I32 met To_double = Double
+extern I32 met `Show.Show buf:@#`String_buffer = Void
 
-export extern inline struct i64 =
-  export isa `native_signed_integer
+extern inline struct I64 =
+  isa `Native_signed_integer
   alias this_signed = this
-  alias this_unsigned = u64
-export extern i64 met `has_equality.operator_eq other:@this = bool
-export extern i64 met `has_equality.operator_ne other:@this = bool
-export extern i64 met `ordered.operator_le other:@this = bool
-export extern i64 met `ordered.operator_lt other:@this = bool
-export extern i64 met `ordered.operator_gt other:@this = bool
-export extern i64 met `ordered.operator_ge other:@this = bool
-export extern i64 met `arithmetic.operator_plus other:@this = this
-export extern i64 met `arithmetic.operator_minus other:@this = this
-export extern i64 met `arithmetic.operator_divide other:@this = this
-export extern i64 met `arithmetic.operator_modulo other:@this = this
-export extern i64 met `arithmetic.operator_times other:@this = this
-export extern i64 met `arithmetic.operator_uminus = this
-export extern i64 met! `arithmetic.operator_assign_plus other:@this = void
-export extern i64 met! `arithmetic.operator_assign_minus other:@this = void
-export extern i64 met! `arithmetic.operator_assign_divide other:@this = void
-export extern i64 met! `arithmetic.operator_assign_modulo other:@this = void
-export extern i64 met! `arithmetic.operator_assign_times other:@this = void
-export extern i64 met `bitwise.operator_bwor other:@this = this
-export extern i64 met `bitwise.operator_bwxor other:@this = this
-export extern i64 met `bitwise.operator_bwand other:@this = this
-export extern i64 met `bitwise.operator_lshift by:u32 = this
-export extern i64 met `bitwise.operator_rshift by:u32 = this
-export extern i64 met `bitwise.operator_bwnot = this
-export extern i64 met! `bitwise.operator_assign_bwor other:@this = void
-export extern i64 met! `bitwise.operator_assign_bwxor other:@this = void
-export extern i64 met! `bitwise.operator_assign_bwand other:@this = void
-export extern i64 met! `bitwise.operator_assign_lshift by:u32 = void
-export extern i64 met! `bitwise.operator_assign_rshift by:u32 = void
-export extern inline i64 met reinterpret_unsigned = u64
-export extern inline i64 met reinterpret_signed = this
-export extern inline i64 met trim_i8 = i8
-export extern inline i64 met trim_i16 = i16
-export extern inline i64 met trim_i32 = i32
-export extern inline i64 met `integer.as_ssize = ssize
-export extern inline i64 met trim_float = float
-export extern inline i64 met trim_double = double
-export extern i64 met `show.show buf:@#`string_buffer = void
+  alias this_unsigned = U64
+extern I64 met `Has_equality.Operator_eq other:@this = Bool
+extern I64 met `Has_equality.Operator_ne other:@this = Bool
+extern I64 met `Ordered.Operator_le other:@this = Bool
+extern I64 met `Ordered.Operator_lt other:@this = Bool
+extern I64 met `Ordered.Operator_gt other:@this = Bool
+extern I64 met `Ordered.Operator_ge other:@this = Bool
+extern I64 met `Arithmetic.Operator_plus other:@this = this
+extern I64 met `Arithmetic.Operator_minus other:@this = this
+extern I64 met `Arithmetic.Operator_divide other:@this = this
+extern I64 met `Arithmetic.Operator_modulo other:@this = this
+extern I64 met `Arithmetic.Operator_times other:@this = this
+extern I64 met `Arithmetic.Operator_uminus = this
+extern I64 met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern I64 met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern I64 met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern I64 met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern I64 met! `Arithmetic.Operator_assign_times other:@this = Void
+extern I64 met `Bitwise.Operator_bwor other:@this = this
+extern I64 met `Bitwise.Operator_bwxor other:@this = this
+extern I64 met `Bitwise.Operator_bwand other:@this = this
+extern I64 met `Bitwise.Operator_lshift by:U32 = this
+extern I64 met `Bitwise.Operator_rshift by:U32 = this
+extern I64 met `Bitwise.Operator_bwnot = this
+extern I64 met! `Bitwise.Operator_assign_bwor other:@this = Void
+extern I64 met! `Bitwise.Operator_assign_bwxor other:@this = Void
+extern I64 met! `Bitwise.Operator_assign_bwand other:@this = Void
+extern I64 met! `Bitwise.Operator_assign_lshift by:U32 = Void
+extern I64 met! `Bitwise.Operator_assign_rshift by:U32 = Void
+extern inline I64 met Reinterpret_unsigned = U64
+extern inline I64 met Reinterpret_signed = this
+extern inline I64 met Trim_i8 = I8
+extern inline I64 met Trim_i16 = I16
+extern inline I64 met Trim_i32 = I32
+extern inline I64 met `Integer.As_ssize = Ssize
+extern inline I64 met Trim_float = Float
+extern inline I64 met Trim_double = Double
+extern I64 met `Show.Show buf:@#`String_buffer = Void
 
-export extern inline struct u8 =
-  export isa `native_unsigned_integer
+extern inline struct U8 =
+  isa `Native_unsigned_integer
   alias this_unsigned = this
-  alias this_signed = i8
-export extern u8 met `has_equality.operator_eq other:@this = bool
-export extern u8 met `has_equality.operator_ne other:@this = bool
-export extern u8 met `ordered.operator_le other:@this = bool
-export extern u8 met `ordered.operator_lt other:@this = bool
-export extern u8 met `ordered.operator_gt other:@this = bool
-export extern u8 met `ordered.operator_ge other:@this = bool
-export extern u8 met `arithmetic.operator_plus other:@this = this
-export extern u8 met `arithmetic.operator_minus other:@this = this
-export extern u8 met `arithmetic.operator_divide other:@this = this
-export extern u8 met `arithmetic.operator_modulo other:@this = this
-export extern u8 met `arithmetic.operator_times other:@this = this
-export extern u8 met `arithmetic.operator_uminus = this
-export extern u8 met `bitwise.operator_bwor other:@this = this
-export extern u8 met `bitwise.operator_bwxor other:@this = this
-export extern u8 met `bitwise.operator_bwand other:@this = this
-export extern u8 met `bitwise.operator_lshift by:u32 = this
-export extern u8 met `bitwise.operator_rshift by:u32 = this
-export extern u8 met `bitwise.operator_bwnot = this
-export extern u8 met! `arithmetic.operator_assign_plus other:@this = void
-export extern u8 met! `arithmetic.operator_assign_minus other:@this = void
-export extern u8 met! `arithmetic.operator_assign_divide other:@this = void
-export extern u8 met! `arithmetic.operator_assign_modulo other:@this = void
-export extern u8 met! `arithmetic.operator_assign_times other:@this = void
-export extern u8 met! `bitwise.operator_assign_bwor other:@this = void
-export extern u8 met! `bitwise.operator_assign_bwxor other:@this = void
-export extern u8 met! `bitwise.operator_assign_bwand other:@this = void
-export extern u8 met! `bitwise.operator_assign_lshift by:u32 = void
-export extern u8 met! `bitwise.operator_assign_rshift by:u32 = void
-export extern inline u8 met reinterpret_unsigned = this
-export extern inline u8 met reinterpret_signed = i8
-export extern inline u8 met to_u16 = u16
-export extern inline u8 met to_u32 = u32
-export extern inline u8 met to_u64 = u64
-export extern inline u8 met `integer.as_size = size
-export extern inline u8 met to_float = float
-export extern inline u8 met to_double = double
-export extern u8 met `show.show buf:@#`string_buffer = void
+  alias this_signed = I8
+extern U8 met `Has_equality.Operator_eq other:@this = Bool
+extern U8 met `Has_equality.Operator_ne other:@this = Bool
+extern U8 met `Ordered.Operator_le other:@this = Bool
+extern U8 met `Ordered.Operator_lt other:@this = Bool
+extern U8 met `Ordered.Operator_gt other:@this = Bool
+extern U8 met `Ordered.Operator_ge other:@this = Bool
+extern U8 met `Arithmetic.Operator_plus other:@this = this
+extern U8 met `Arithmetic.Operator_minus other:@this = this
+extern U8 met `Arithmetic.Operator_divide other:@this = this
+extern U8 met `Arithmetic.Operator_modulo other:@this = this
+extern U8 met `Arithmetic.Operator_times other:@this = this
+extern U8 met `Arithmetic.Operator_uminus = this
+extern U8 met `Bitwise.Operator_bwor other:@this = this
+extern U8 met `Bitwise.Operator_bwxor other:@this = this
+extern U8 met `Bitwise.Operator_bwand other:@this = this
+extern U8 met `Bitwise.Operator_lshift by:U32 = this
+extern U8 met `Bitwise.Operator_rshift by:U32 = this
+extern U8 met `Bitwise.Operator_bwnot = this
+extern U8 met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern U8 met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern U8 met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern U8 met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern U8 met! `Arithmetic.Operator_assign_times other:@this = Void
+extern U8 met! `Bitwise.Operator_assign_bwor other:@this = Void
+extern U8 met! `Bitwise.Operator_assign_bwxor other:@this = Void
+extern U8 met! `Bitwise.Operator_assign_bwand other:@this = Void
+extern U8 met! `Bitwise.Operator_assign_lshift by:U32 = Void
+extern U8 met! `Bitwise.Operator_assign_rshift by:U32 = Void
+extern inline U8 met Reinterpret_unsigned = this
+extern inline U8 met Reinterpret_signed = I8
+extern inline U8 met To_u16 = U16
+extern inline U8 met To_u32 = U32
+extern inline U8 met To_u64 = U64
+extern inline U8 met `Integer.As_size = Size
+extern inline U8 met To_float = Float
+extern inline U8 met To_double = Double
+extern U8 met `Show.Show buf:@#`String_buffer = Void
 
-export extern inline struct u16 =
-  export isa `native_unsigned_integer
+extern inline struct U16 =
+  isa `Native_unsigned_integer
   alias this_unsigned = this
-  alias this_signed = i16
-export extern u16 met `has_equality.operator_eq other:@this = bool
-export extern u16 met `has_equality.operator_ne other:@this = bool
-export extern u16 met `ordered.operator_le other:@this = bool
-export extern u16 met `ordered.operator_lt other:@this = bool
-export extern u16 met `ordered.operator_gt other:@this = bool
-export extern u16 met `ordered.operator_ge other:@this = bool
-export extern u16 met `arithmetic.operator_plus other:@this = this
-export extern u16 met `arithmetic.operator_minus other:@this = this
-export extern u16 met `arithmetic.operator_divide other:@this = this
-export extern u16 met `arithmetic.operator_modulo other:@this = this
-export extern u16 met `arithmetic.operator_times other:@this = this
-export extern u16 met `arithmetic.operator_uminus = this
-export extern u16 met! `arithmetic.operator_assign_plus other:@this = void
-export extern u16 met! `arithmetic.operator_assign_minus other:@this = void
-export extern u16 met! `arithmetic.operator_assign_divide other:@this = void
-export extern u16 met! `arithmetic.operator_assign_modulo other:@this = void
-export extern u16 met! `arithmetic.operator_assign_times other:@this = void
-export extern u16 met `bitwise.operator_bwor other:@this = this
-export extern u16 met `bitwise.operator_bwxor other:@this = this
-export extern u16 met `bitwise.operator_bwand other:@this = this
-export extern u16 met `bitwise.operator_lshift by:u32 = this
-export extern u16 met `bitwise.operator_rshift by:u32 = this
-export extern u16 met `bitwise.operator_bwnot = this
-export extern u16 met! `bitwise.operator_assign_bwor other:@this = void
-export extern u16 met! `bitwise.operator_assign_bwxor other:@this = void
-export extern u16 met! `bitwise.operator_assign_bwand other:@this = void
-export extern u16 met! `bitwise.operator_assign_lshift by:u32 = void
-export extern u16 met! `bitwise.operator_assign_rshift by:u32 = void
-export extern inline u16 met reinterpret_unsigned = this
-export extern inline u16 met reinterpret_signed = i16
-export extern inline u16 met trim_u8 = u8
-export extern inline u16 met to_u32 = u32
-export extern inline u16 met to_u64 = u64
-export extern inline u16 met `integer.as_size = size
-export extern inline u16 met to_float = float
-export extern inline u16 met to_double = double
-export extern u16 met `show.show buf:@#`string_buffer = void
+  alias this_signed = I16
+extern U16 met `Has_equality.Operator_eq other:@this = Bool
+extern U16 met `Has_equality.Operator_ne other:@this = Bool
+extern U16 met `Ordered.Operator_le other:@this = Bool
+extern U16 met `Ordered.Operator_lt other:@this = Bool
+extern U16 met `Ordered.Operator_gt other:@this = Bool
+extern U16 met `Ordered.Operator_ge other:@this = Bool
+extern U16 met `Arithmetic.Operator_plus other:@this = this
+extern U16 met `Arithmetic.Operator_minus other:@this = this
+extern U16 met `Arithmetic.Operator_divide other:@this = this
+extern U16 met `Arithmetic.Operator_modulo other:@this = this
+extern U16 met `Arithmetic.Operator_times other:@this = this
+extern U16 met `Arithmetic.Operator_uminus = this
+extern U16 met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern U16 met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern U16 met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern U16 met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern U16 met! `Arithmetic.Operator_assign_times other:@this = Void
+extern U16 met `Bitwise.Operator_bwor other:@this = this
+extern U16 met `Bitwise.Operator_bwxor other:@this = this
+extern U16 met `Bitwise.Operator_bwand other:@this = this
+extern U16 met `Bitwise.Operator_lshift by:U32 = this
+extern U16 met `Bitwise.Operator_rshift by:U32 = this
+extern U16 met `Bitwise.Operator_bwnot = this
+extern U16 met! `Bitwise.Operator_assign_bwor other:@this = Void
+extern U16 met! `Bitwise.Operator_assign_bwxor other:@this = Void
+extern U16 met! `Bitwise.Operator_assign_bwand other:@this = Void
+extern U16 met! `Bitwise.Operator_assign_lshift by:U32 = Void
+extern U16 met! `Bitwise.Operator_assign_rshift by:U32 = Void
+extern inline U16 met Reinterpret_unsigned = this
+extern inline U16 met Reinterpret_signed = I16
+extern inline U16 met Trim_u8 = U8
+extern inline U16 met To_u32 = U32
+extern inline U16 met To_u64 = U64
+extern inline U16 met `Integer.As_size = Size
+extern inline U16 met To_float = Float
+extern inline U16 met To_double = Double
+extern U16 met `Show.Show buf:@#`String_buffer = Void
 
-export extern inline struct u32 =
-  export isa `native_unsigned_integer
+extern inline struct U32 =
+  isa `Native_unsigned_integer
   alias this_unsigned = this
-  alias this_signed = i32
-export extern u32 met `has_equality.operator_eq other:@this = bool
-export extern u32 met `has_equality.operator_ne other:@this = bool
-export extern u32 met `ordered.operator_le other:@this = bool
-export extern u32 met `ordered.operator_lt other:@this = bool
-export extern u32 met `ordered.operator_gt other:@this = bool
-export extern u32 met `ordered.operator_ge other:@this = bool
-export extern u32 met `arithmetic.operator_plus other:@this = this
-export extern u32 met `arithmetic.operator_minus other:@this = this
-export extern u32 met `arithmetic.operator_divide other:@this = this
-export extern u32 met `arithmetic.operator_modulo other:@this = this
-export extern u32 met `arithmetic.operator_times other:@this = this
-export extern u32 met `arithmetic.operator_uminus = this
-export extern u32 met! `arithmetic.operator_assign_plus other:@this = void
-export extern u32 met! `arithmetic.operator_assign_minus other:@this = void
-export extern u32 met! `arithmetic.operator_assign_divide other:@this = void
-export extern u32 met! `arithmetic.operator_assign_modulo other:@this = void
-export extern u32 met! `arithmetic.operator_assign_times other:@this = void
-export extern u32 met `bitwise.operator_bwor other:@this = this
-export extern u32 met `bitwise.operator_bwxor other:@this = this
-export extern u32 met `bitwise.operator_bwand other:@this = this
-export extern u32 met `bitwise.operator_lshift by:u32 = this
-export extern u32 met `bitwise.operator_rshift by:u32 = this
-export extern u32 met `bitwise.operator_bwnot = this
-export extern u32 met! `bitwise.operator_assign_bwor other:@this = void
-export extern u32 met! `bitwise.operator_assign_bwxor other:@this = void
-export extern u32 met! `bitwise.operator_assign_bwand other:@this = void
-export extern u32 met! `bitwise.operator_assign_lshift by:u32 = void
-export extern u32 met! `bitwise.operator_assign_rshift by:u32 = void
-export extern inline u32 met reinterpret_unsigned = this
-export extern inline u32 met reinterpret_signed = i32
-export extern inline u32 met trim_u8 = u8
-export extern inline u32 met trim_u16 = u16
-export extern inline u32 met to_u64 = u64
-export extern inline u32 met `integer.as_size = size
-export extern inline u32 met trim_float = float
-export extern inline u32 met to_double = double
-export extern u32 met `show.show buf:@#`string_buffer = void
+  alias this_signed = I32
+extern U32 met `Has_equality.Operator_eq other:@this = Bool
+extern U32 met `Has_equality.Operator_ne other:@this = Bool
+extern U32 met `Ordered.Operator_le other:@this = Bool
+extern U32 met `Ordered.Operator_lt other:@this = Bool
+extern U32 met `Ordered.Operator_gt other:@this = Bool
+extern U32 met `Ordered.Operator_ge other:@this = Bool
+extern U32 met `Arithmetic.Operator_plus other:@this = this
+extern U32 met `Arithmetic.Operator_minus other:@this = this
+extern U32 met `Arithmetic.Operator_divide other:@this = this
+extern U32 met `Arithmetic.Operator_modulo other:@this = this
+extern U32 met `Arithmetic.Operator_times other:@this = this
+extern U32 met `Arithmetic.Operator_uminus = this
+extern U32 met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern U32 met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern U32 met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern U32 met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern U32 met! `Arithmetic.Operator_assign_times other:@this = Void
+extern U32 met `Bitwise.Operator_bwor other:@this = this
+extern U32 met `Bitwise.Operator_bwxor other:@this = this
+extern U32 met `Bitwise.Operator_bwand other:@this = this
+extern U32 met `Bitwise.Operator_lshift by:U32 = this
+extern U32 met `Bitwise.Operator_rshift by:U32 = this
+extern U32 met `Bitwise.Operator_bwnot = this
+extern U32 met! `Bitwise.Operator_assign_bwor other:@this = Void
+extern U32 met! `Bitwise.Operator_assign_bwxor other:@this = Void
+extern U32 met! `Bitwise.Operator_assign_bwand other:@this = Void
+extern U32 met! `Bitwise.Operator_assign_lshift by:U32 = Void
+extern U32 met! `Bitwise.Operator_assign_rshift by:U32 = Void
+extern inline U32 met Reinterpret_unsigned = this
+extern inline U32 met Reinterpret_signed = I32
+extern inline U32 met Trim_u8 = U8
+extern inline U32 met Trim_u16 = U16
+extern inline U32 met To_u64 = U64
+extern inline U32 met `Integer.As_size = Size
+extern inline U32 met Trim_float = Float
+extern inline U32 met To_double = Double
+extern U32 met `Show.Show buf:@#`String_buffer = Void
 
-export extern inline struct u64 =
-  export isa `native_unsigned_integer
+extern inline struct U64 =
+  isa `Native_unsigned_integer
   alias this_unsigned = this
-  alias this_signed = i64
-export extern u64 met `has_equality.operator_eq other:@this = bool
-export extern u64 met `has_equality.operator_ne other:@this = bool
-export extern u64 met `ordered.operator_le other:@this = bool
-export extern u64 met `ordered.operator_lt other:@this = bool
-export extern u64 met `ordered.operator_gt other:@this = bool
-export extern u64 met `ordered.operator_ge other:@this = bool
-export extern u64 met `arithmetic.operator_plus other:@this = this
-export extern u64 met `arithmetic.operator_minus other:@this = this
-export extern u64 met `arithmetic.operator_divide other:@this = this
-export extern u64 met `arithmetic.operator_modulo other:@this = this
-export extern u64 met `arithmetic.operator_times other:@this = this
-export extern u64 met `arithmetic.operator_uminus = this
-export extern u64 met! `arithmetic.operator_assign_plus other:@this = void
-export extern u64 met! `arithmetic.operator_assign_minus other:@this = void
-export extern u64 met! `arithmetic.operator_assign_divide other:@this = void
-export extern u64 met! `arithmetic.operator_assign_modulo other:@this = void
-export extern u64 met! `arithmetic.operator_assign_times other:@this = void
-export extern u64 met `bitwise.operator_bwor other:@this = this
-export extern u64 met `bitwise.operator_bwxor other:@this = this
-export extern u64 met `bitwise.operator_bwand other:@this = this
-export extern u64 met `bitwise.operator_lshift by:u32 = this
-export extern u64 met `bitwise.operator_rshift by:u32 = this
-export extern u64 met `bitwise.operator_bwnot = this
-export extern u64 met! `bitwise.operator_assign_bwor other:@this = void
-export extern u64 met! `bitwise.operator_assign_bwxor other:@this = void
-export extern u64 met! `bitwise.operator_assign_bwand other:@this = void
-export extern u64 met! `bitwise.operator_assign_lshift by:u32 = void
-export extern u64 met! `bitwise.operator_assign_rshift by:u32 = void
-export extern inline u64 met reinterpret_unsigned = this
-export extern inline u64 met reinterpret_signed = i64
-export extern inline u64 met trim_u8 = u8
-export extern inline u64 met trim_u16 = u16
-export extern inline u64 met trim_u32 = u32
-export extern inline u64 met `integer.as_size = size
-export extern inline u64 met trim_float = float
-export extern inline u64 met trim_double = double
-export extern u64 met `show.show buf:@#`string_buffer = void
+  alias this_signed = I64
+extern U64 met `Has_equality.Operator_eq other:@this = Bool
+extern U64 met `Has_equality.Operator_ne other:@this = Bool
+extern U64 met `Ordered.Operator_le other:@this = Bool
+extern U64 met `Ordered.Operator_lt other:@this = Bool
+extern U64 met `Ordered.Operator_gt other:@this = Bool
+extern U64 met `Ordered.Operator_ge other:@this = Bool
+extern U64 met `Arithmetic.Operator_plus other:@this = this
+extern U64 met `Arithmetic.Operator_minus other:@this = this
+extern U64 met `Arithmetic.Operator_divide other:@this = this
+extern U64 met `Arithmetic.Operator_modulo other:@this = this
+extern U64 met `Arithmetic.Operator_times other:@this = this
+extern U64 met `Arithmetic.Operator_uminus = this
+extern U64 met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern U64 met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern U64 met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern U64 met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern U64 met! `Arithmetic.Operator_assign_times other:@this = Void
+extern U64 met `Bitwise.Operator_bwor other:@this = this
+extern U64 met `Bitwise.Operator_bwxor other:@this = this
+extern U64 met `Bitwise.Operator_bwand other:@this = this
+extern U64 met `Bitwise.Operator_lshift by:U32 = this
+extern U64 met `Bitwise.Operator_rshift by:U32 = this
+extern U64 met `Bitwise.Operator_bwnot = this
+extern U64 met! `Bitwise.Operator_assign_bwor other:@this = Void
+extern U64 met! `Bitwise.Operator_assign_bwxor other:@this = Void
+extern U64 met! `Bitwise.Operator_assign_bwand other:@this = Void
+extern U64 met! `Bitwise.Operator_assign_lshift by:U32 = Void
+extern U64 met! `Bitwise.Operator_assign_rshift by:U32 = Void
+extern inline U64 met Reinterpret_unsigned = this
+extern inline U64 met Reinterpret_signed = I64
+extern inline U64 met Trim_u8 = U8
+extern inline U64 met Trim_u16 = U16
+extern inline U64 met Trim_u32 = U32
+extern inline U64 met `Integer.As_size = Size
+extern inline U64 met Trim_float = Float
+extern inline U64 met Trim_double = Double
+extern U64 met `Show.Show buf:@#`String_buffer = Void
 
-export extern inline struct ssize =
-  export isa `native_signed_integer
+extern inline struct Ssize =
+  isa `Native_signed_integer
   alias this_signed = this
-  alias this_unsigned = size
-export extern ssize met `has_equality.operator_eq other:@this = bool
-export extern ssize met `has_equality.operator_ne other:@this = bool
-export extern ssize met `ordered.operator_le other:@this = bool
-export extern ssize met `ordered.operator_lt other:@this = bool
-export extern ssize met `ordered.operator_gt other:@this = bool
-export extern ssize met `ordered.operator_ge other:@this = bool
-export extern ssize met `arithmetic.operator_plus other:@this = this
-export extern ssize met `arithmetic.operator_minus other:@this = this
-export extern ssize met `arithmetic.operator_divide other:@this = this
-export extern ssize met `arithmetic.operator_modulo other:@this = this
-export extern ssize met `arithmetic.operator_times other:@this = this
-export extern ssize met `arithmetic.operator_uminus = this
-export extern ssize met! `arithmetic.operator_assign_plus other:@this = void
-export extern ssize met! `arithmetic.operator_assign_minus other:@this = void
-export extern ssize met! `arithmetic.operator_assign_divide other:@this = void
-export extern ssize met! `arithmetic.operator_assign_modulo other:@this = void
-export extern ssize met! `arithmetic.operator_assign_times other:@this = void
-export extern ssize met `bitwise.operator_bwor other:@this = this
-export extern ssize met `bitwise.operator_bwxor other:@this = this
-export extern ssize met `bitwise.operator_bwand other:@this = this
-export extern ssize met `bitwise.operator_lshift by:u32 = this
-export extern ssize met `bitwise.operator_rshift by:u32 = this
-export extern ssize met `bitwise.operator_bwnot = this
-export extern ssize met! `bitwise.operator_assign_bwor other:@this = void
-export extern ssize met! `bitwise.operator_assign_bwxor other:@this = void
-export extern ssize met! `bitwise.operator_assign_bwand other:@this = void
-export extern ssize met! `bitwise.operator_assign_lshift by:u32 = void
-export extern ssize met! `bitwise.operator_assign_rshift by:u32 = void
-export extern inline ssize met reinterpret_unsigned = size
-export extern inline ssize met reinterpret_signed = this
-export extern inline ssize met trim_i8 = i8
-export extern inline ssize met trim_i16 = i16
-export extern inline ssize met trim_i32 = i32
-export extern inline ssize met trim_i64 = i64
-export extern inline ssize met trim_float = float
-export extern inline ssize met trim_double = double
-export extern ssize met `show.show buf:@#`string_buffer = void
+  alias this_unsigned = Size
+extern Ssize met `Has_equality.Operator_eq other:@this = Bool
+extern Ssize met `Has_equality.Operator_ne other:@this = Bool
+extern Ssize met `Ordered.Operator_le other:@this = Bool
+extern Ssize met `Ordered.Operator_lt other:@this = Bool
+extern Ssize met `Ordered.Operator_gt other:@this = Bool
+extern Ssize met `Ordered.Operator_ge other:@this = Bool
+extern Ssize met `Arithmetic.Operator_plus other:@this = this
+extern Ssize met `Arithmetic.Operator_minus other:@this = this
+extern Ssize met `Arithmetic.Operator_divide other:@this = this
+extern Ssize met `Arithmetic.Operator_modulo other:@this = this
+extern Ssize met `Arithmetic.Operator_times other:@this = this
+extern Ssize met `Arithmetic.Operator_uminus = this
+extern Ssize met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern Ssize met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern Ssize met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern Ssize met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern Ssize met! `Arithmetic.Operator_assign_times other:@this = Void
+extern Ssize met `Bitwise.Operator_bwor other:@this = this
+extern Ssize met `Bitwise.Operator_bwxor other:@this = this
+extern Ssize met `Bitwise.Operator_bwand other:@this = this
+extern Ssize met `Bitwise.Operator_lshift by:U32 = this
+extern Ssize met `Bitwise.Operator_rshift by:U32 = this
+extern Ssize met `Bitwise.Operator_bwnot = this
+extern Ssize met! `Bitwise.Operator_assign_bwor other:@this = Void
+extern Ssize met! `Bitwise.Operator_assign_bwxor other:@this = Void
+extern Ssize met! `Bitwise.Operator_assign_bwand other:@this = Void
+extern Ssize met! `Bitwise.Operator_assign_lshift by:U32 = Void
+extern Ssize met! `Bitwise.Operator_assign_rshift by:U32 = Void
+extern inline Ssize met Reinterpret_unsigned = Size
+extern inline Ssize met Reinterpret_signed = this
+extern inline Ssize met Trim_i8 = I8
+extern inline Ssize met Trim_i16 = I16
+extern inline Ssize met Trim_i32 = I32
+extern inline Ssize met Trim_i64 = I64
+extern inline Ssize met Trim_float = Float
+extern inline Ssize met Trim_double = Double
+extern Ssize met `Show.Show buf:@#`String_buffer = Void
 
--- FIXME: size and ssize do not have a well-defined bit size, they therefore
--- should not be `bitwise.
-export extern inline struct size =
-  export isa `native_unsigned_integer
+-- FIXME: Size and Ssize do not have a well-defined bit Size, they therefore
+-- should not be `Bitwise.
+extern inline struct Size =
+  isa `Native_unsigned_integer
   alias this_unsigned = this
-  alias this_signed = ssize
-export extern size met `has_equality.operator_eq other:@this = bool
-export extern size met `has_equality.operator_ne other:@this = bool
-export extern size met `ordered.operator_le other:@this = bool
-export extern size met `ordered.operator_lt other:@this = bool
-export extern size met `ordered.operator_gt other:@this = bool
-export extern size met `ordered.operator_ge other:@this = bool
-export extern size met `arithmetic.operator_plus other:@this = this
-export extern size met `arithmetic.operator_minus other:@this = this
-export extern size met `arithmetic.operator_divide other:@this = this
-export extern size met `arithmetic.operator_modulo other:@this = this
-export extern size met `arithmetic.operator_times other:@this = this
-export extern size met `arithmetic.operator_uminus = this
-export extern size met! `arithmetic.operator_assign_plus other:@this = void
-export extern size met! `arithmetic.operator_assign_minus other:@this = void
-export extern size met! `arithmetic.operator_assign_divide other:@this = void
-export extern size met! `arithmetic.operator_assign_modulo other:@this = void
-export extern size met! `arithmetic.operator_assign_times other:@this = void
-export extern size met `bitwise.operator_bwor other:@this = this
-export extern size met `bitwise.operator_bwxor other:@this = this
-export extern size met `bitwise.operator_bwand other:@this = this
-export extern size met `bitwise.operator_lshift by:u32 = this
-export extern size met `bitwise.operator_rshift by:u32 = this
-export extern size met `bitwise.operator_bwnot = this
-export extern size met! `bitwise.operator_assign_bwor other:@this = void
-export extern size met! `bitwise.operator_assign_bwxor other:@this = void
-export extern size met! `bitwise.operator_assign_bwand other:@this = void
-export extern size met! `bitwise.operator_assign_lshift by:u32 = void
-export extern size met! `bitwise.operator_assign_rshift by:u32 = void
-export extern inline size met reinterpret_unsigned = this
-export extern inline size met reinterpret_signed = ssize
-export extern inline size met trim_u8 = u8
-export extern inline size met trim_u16 = u16
-export extern inline size met trim_u32 = u32
-export extern inline size met trim_u64 = u64
-export extern inline size met trim_float = float
-export extern inline size met trim_double = double
-export extern size met `show.show buf:@#`string_buffer = void
+  alias this_signed = Ssize
+extern Size met `Has_equality.Operator_eq other:@this = Bool
+extern Size met `Has_equality.Operator_ne other:@this = Bool
+extern Size met `Ordered.Operator_le other:@this = Bool
+extern Size met `Ordered.Operator_lt other:@this = Bool
+extern Size met `Ordered.Operator_gt other:@this = Bool
+extern Size met `Ordered.Operator_ge other:@this = Bool
+extern Size met `Arithmetic.Operator_plus other:@this = this
+extern Size met `Arithmetic.Operator_minus other:@this = this
+extern Size met `Arithmetic.Operator_divide other:@this = this
+extern Size met `Arithmetic.Operator_modulo other:@this = this
+extern Size met `Arithmetic.Operator_times other:@this = this
+extern Size met `Arithmetic.Operator_uminus = this
+extern Size met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern Size met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern Size met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern Size met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern Size met! `Arithmetic.Operator_assign_times other:@this = Void
+extern Size met `Bitwise.Operator_bwor other:@this = this
+extern Size met `Bitwise.Operator_bwxor other:@this = this
+extern Size met `Bitwise.Operator_bwand other:@this = this
+extern Size met `Bitwise.Operator_lshift by:U32 = this
+extern Size met `Bitwise.Operator_rshift by:U32 = this
+extern Size met `Bitwise.Operator_bwnot = this
+extern Size met! `Bitwise.Operator_assign_bwor other:@this = Void
+extern Size met! `Bitwise.Operator_assign_bwxor other:@this = Void
+extern Size met! `Bitwise.Operator_assign_bwand other:@this = Void
+extern Size met! `Bitwise.Operator_assign_lshift by:U32 = Void
+extern Size met! `Bitwise.Operator_assign_rshift by:U32 = Void
+extern inline Size met Reinterpret_unsigned = this
+extern inline Size met Reinterpret_signed = Ssize
+extern inline Size met Trim_u8 = U8
+extern inline Size met Trim_u16 = U16
+extern inline Size met Trim_u32 = U32
+extern inline Size met Trim_u64 = U64
+extern inline Size met Trim_float = Float
+extern inline Size met Trim_double = Double
+extern Size met `Show.Show buf:@#`String_buffer = Void
 
-export extern inline struct float =
-  export isa `native_floating
-export extern float met `has_equality.operator_eq other:@this = bool
-export extern float met `has_equality.operator_ne other:@this = bool
-export extern float met `ordered.operator_le other:@this = bool
-export extern float met `ordered.operator_lt other:@this = bool
-export extern float met `ordered.operator_gt other:@this = bool
-export extern float met `ordered.operator_ge other:@this = bool
-export extern float met `has_compare.operator_compare other:@this = i32
-export extern float met `arithmetic.operator_plus other:@this = this
-export extern float met `arithmetic.operator_minus other:@this = this
-export extern float met `arithmetic.operator_divide other:@this = this
-export extern float met `arithmetic.operator_modulo other:@this = this
-export extern float met `arithmetic.operator_times other:@this = this
-export extern float met `arithmetic.operator_uminus = this
-export extern float met! `arithmetic.operator_assign_plus other:@this = void
-export extern float met! `arithmetic.operator_assign_minus other:@this = void
-export extern float met! `arithmetic.operator_assign_divide other:@this = void
-export extern float met! `arithmetic.operator_assign_modulo other:@this = void
-export extern float met! `arithmetic.operator_assign_times other:@this = void
-export extern inline float met trim_i8 = i8
-export extern inline float met trim_i16 = i16
-export extern inline float met to_i32 = i32
-export extern inline float met to_i64 = i64
-export extern inline float met to_double = double
-export extern inline float met as_ssize = ssize
-export extern float met `show.show buf:@#`string_buffer = void
+extern inline struct Float =
+  isa `Native_floating
+extern Float met `Has_equality.Operator_eq other:@this = Bool
+extern Float met `Has_equality.Operator_ne other:@this = Bool
+extern Float met `Ordered.Operator_le other:@this = Bool
+extern Float met `Ordered.Operator_lt other:@this = Bool
+extern Float met `Ordered.Operator_gt other:@this = Bool
+extern Float met `Ordered.Operator_ge other:@this = Bool
+extern Float met `Has_compare.Operator_compare other:@this = I32
+extern Float met `Arithmetic.Operator_plus other:@this = this
+extern Float met `Arithmetic.Operator_minus other:@this = this
+extern Float met `Arithmetic.Operator_divide other:@this = this
+extern Float met `Arithmetic.Operator_modulo other:@this = this
+extern Float met `Arithmetic.Operator_times other:@this = this
+extern Float met `Arithmetic.Operator_uminus = this
+extern Float met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern Float met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern Float met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern Float met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern Float met! `Arithmetic.Operator_assign_times other:@this = Void
+extern inline Float met Trim_i8 = I8
+extern inline Float met Trim_i16 = I16
+extern inline Float met To_i32 = I32
+extern inline Float met To_i64 = I64
+extern inline Float met To_double = Double
+extern inline Float met As_ssize = Ssize
+extern Float met `Show.Show buf:@#`String_buffer = Void
 
-export extern inline struct double =
-  export isa `native_floating
-export extern double met `has_equality.operator_eq other:@this = bool
-export extern double met `has_equality.operator_ne other:@this = bool
-export extern double met `ordered.operator_le other:@this = bool
-export extern double met `ordered.operator_lt other:@this = bool
-export extern double met `ordered.operator_gt other:@this = bool
-export extern double met `ordered.operator_ge other:@this = bool
-export extern double met `has_compare.operator_compare other:@this = i32
-export extern double met `arithmetic.operator_plus other:@this = this
-export extern double met `arithmetic.operator_minus other:@this = this
-export extern double met `arithmetic.operator_divide other:@this = this
-export extern double met `arithmetic.operator_modulo other:@this = this
-export extern double met `arithmetic.operator_times other:@this = this
-export extern double met `arithmetic.operator_uminus = this
-export extern double met! `arithmetic.operator_assign_plus other:@this = void
-export extern double met! `arithmetic.operator_assign_minus other:@this = void
-export extern double met! `arithmetic.operator_assign_divide other:@this = void
-export extern double met! `arithmetic.operator_assign_modulo other:@this = void
-export extern double met! `arithmetic.operator_assign_times other:@this = void
-export extern inline double met trim_i8 = i8
-export extern inline double met trim_i16 = i16
-export extern inline double met trim_i32 = i32
-export extern inline double met to_i64 = i64
-export extern inline double met trim_float = float
-export extern inline double met as_ssize = ssize
-export extern double met `show.show buf:@#`string_buffer = void
+extern inline struct Double =
+  isa `Native_floating
+extern Double met `Has_equality.Operator_eq other:@this = Bool
+extern Double met `Has_equality.Operator_ne other:@this = Bool
+extern Double met `Ordered.Operator_le other:@this = Bool
+extern Double met `Ordered.Operator_lt other:@this = Bool
+extern Double met `Ordered.Operator_gt other:@this = Bool
+extern Double met `Ordered.Operator_ge other:@this = Bool
+extern Double met `Has_compare.Operator_compare other:@this = I32
+extern Double met `Arithmetic.Operator_plus other:@this = this
+extern Double met `Arithmetic.Operator_minus other:@this = this
+extern Double met `Arithmetic.Operator_divide other:@this = this
+extern Double met `Arithmetic.Operator_modulo other:@this = this
+extern Double met `Arithmetic.Operator_times other:@this = this
+extern Double met `Arithmetic.Operator_uminus = this
+extern Double met! `Arithmetic.Operator_assign_plus other:@this = Void
+extern Double met! `Arithmetic.Operator_assign_minus other:@this = Void
+extern Double met! `Arithmetic.Operator_assign_divide other:@this = Void
+extern Double met! `Arithmetic.Operator_assign_modulo other:@this = Void
+extern Double met! `Arithmetic.Operator_assign_times other:@this = Void
+extern inline Double met Trim_i8 = I8
+extern inline Double met Trim_i16 = I16
+extern inline Double met Trim_i32 = I32
+extern inline Double met To_i64 = I64
+extern inline Double met Trim_float = Float
+extern inline Double met As_ssize = Ssize
+extern Double met `Show.Show buf:@#`String_buffer = Void
 
-export intf `trivial_array_ctor t:`copyable =
-  isa `prevent_dyn (`array_ctor t)
+intf `Trivial_array_ctor t:`Copyable =
+  isa `Prevent_dyn (`Array_ctor t)
 
-export intf `array_ctor t:`copyable =
-  fun from_array c:@(static_array t) = final
+intf `Array_ctor t:`Copyable =
+  fun From_array c:@(Static_array t) = final
 
-extern inline fun static_array_at_byte dp:@!u8 off:size = @!u8
+extern inline fun Static_array_at_byte dp:@!U8 off:Size = @!U8
 
-export opaque struct static_array t:`copyable =
-  export isa (`trivial_array_ctor t) `trivial_copy `return_by_copy
+opaque struct Static_array t:`Copyable =
+  isa (`Trivial_array_ctor t) `Trivial_copy `Return_by_copy
   d	:?@!t
-  c	:size
+  c	:Size
 
-export inline static_array met count = size
+inline Static_array met Count = Size
   return self.c
 
-export inline static_array met bytecount = size
+inline Static_array met Bytecount = Size
   return self.c * (sizeof t)
 
-export inline static_array met all = index_range
-  return range 0 self.c
+inline Static_array met All = Index_range
+  return Range 0 self.c
 
-export inline static_array met$ unsafe_rawdata = @$u8
-  assert <- self.c != 0
-  return (cast ?@$t @$u8) self$d
+inline Static_array met$ Unsafe_rawdata = @$U8
+  Assert <- self.c != 0
+  return (Cast ?@$t @$U8) self$d
 
-export inline static_array met$ unsafe_data = @$t
-  assert <- self.c != 0
-  return (cast ?@$t @$t) self$d
+inline Static_array met$ Unsafe_data = @$t
+  Assert <- self.c != 0
+  return (Cast ?@$t @$t) self$d
 
-export inline static_array shallow met$ operator_at n:size = @$t
-  assert <- n < self.c
+inline Static_array shallow met$ Operator_at n:Size = @$t
+  Assert <- n < self.c
   let off = n * (sizeof t)
-  let p = static_array_at_byte ((cast @$this @!this) self)!unsafe_rawdata off
-  return (cast @!u8 @$t) p
+  let p = Static_array_at_byte ((Cast @$this @!this) self)!Unsafe_rawdata off
+  return (Cast @!U8 @$t) p
 
 
-export extern fun abort = void
+extern fun Abort = Void
 
-export extern inline fun likely x:bool = bool
-export extern inline fun unlikely x:bool = bool
+extern inline fun Likely x:Bool = Bool
+extern inline fun Unlikely x:Bool = Bool
 
-export inline (fun t:`any) unused x:t = void
+inline (fun t:`Any) Unused x:t = Void
   noop
 
-export inline (fun t:`any) optional opt:?@t fallback:t = t
+inline (fun t:`Any) Optional opt:?@t fallback:t = t
   if opt !== null
     return opt.
   else
     return fallback
 
-export inline (fun t:`any) optional_ref opt:?@t fallback:@t = @t
+inline (fun t:`Any) Optional_ref opt:?@t fallback:@t = @t
   if opt !== null
-    return (nonnull_cast t ?@t @t) opt
+    return (Nonnull_cast t ?@t @t) opt
   else
     return fallback
 
-export inline (fun t:`numeric) min a:t b:t = t
+inline (fun t:`Numeric) Min a:t b:t = t
   if a <= b
     return a
   else
     return b
 
-export inline (fun t:`numeric) max a:t b:t = t
+inline (fun t:`Numeric) Max a:t b:t = t
   if a >= b
     return a
   else
     return b
 
 
-export intf `error =
-  isa `copyable `generalized_boolean `show
+intf `Error =
+  isa `Copyable `Generalized_boolean `Show
 
-export inline struct error =
-  export isa `error
-  code	:i32
+inline struct Error =
+  isa `Error
+  code	:I32
 
-  export inline let OK = {}:error
+  inline let OK = {}:Error
 
-export error met `generalized_boolean.operator_test = bool
+Error met `Generalized_boolean.Operator_test = Bool
   return self.code != 0
 
-export error met `show.show buf:@#`string_buffer = void
-  self.code.show buf
+Error met `Show.Show buf:@#`String_buffer = Void
+  self.code.Show buf
 
-export (fun e:`error) drop err:e = void
+(fun e:`Error) drop err:e = Void
   noop
 
-export (fun e:`error) fatal err:e = void
-  epr "Fatal: "
-  esay err
+(fun e:`Error) fatal err:e = Void
+  Epr "Fatal: "
+  Esay err
 
 
-export extern inline struct valist =
-  export isa `trivial_copy `trivial_ctor
+extern inline struct Valist =
+  isa `Trivial_copy `Trivial_ctor
 
-intf `no_dyn_iterator r:`any_any_ref =
-  isa `prevent_dyn (`iterator r)
+intf `no_dyn_iterator r:`Any_any_ref =
+  isa `Prevent_dyn (`Iterator r)
 
-export opaque struct vararg r:`any_any_ref =
-  export isa (`no_dyn_iterator r)
-  export isa `trivial_copy -- FIXME: remove `trivial_copy, needed by bootstrap
-  ap	:valist
-  n	:size
+opaque struct Vararg r:`Any_any_ref =
+  isa (`no_dyn_iterator r)
+  isa `Trivial_copy -- FIXME: remove `Trivial_copy, needed by bootstrap
+  ap	:Valist
+  n	:Size
 
-export inline vararg met `iterator.has_next = bool
+inline Vararg met `Iterator.Has_next = Bool
   return self.n > 0
 
-export extern vararg met! `iterator.next = r
+extern Vararg met! `Iterator.Next = r
 
-export inline vararg met left = size
+inline Vararg met Count_left = Size
   return self.n
 
 
-export intf `any_environment =
-  isa `trivial_ctor
+intf `Any_environment =
+  isa `Trivial_ctor
 
 -- FIXME? Instead of 'declaring', we could use 'final'.
-export intf `environment declaring:`any =
-  isa `any_environment
+intf `Environment declaring:`Any =
+  isa `Any_environment
   -- Implementation of these mets is generated by the compiler.
-  met parent = @!declaring
-  met! install where:@!@!declaring = void
-  met# uninstall where:@!@#declaring = void
+  met Parent = @!declaring
+  met! Install where:@!@!declaring = Void
+  met# Uninstall where:@!@#declaring = Void
 
---export intf `debugenv =
---  isa (`environment this)
---  met! _assert cond:bool ?expr:?@string = void
---  met! _pre cond:bool ?expr:?@string = void
---  met! _post cond:bool ?expr:?@string = void
---  met! _invariant cond:bool ?expr:?@string = void
---  met! _example cond:bool ?expr:?@string = void
+--intf `Debugenv =
+--  isa (`Environment this)
+--  met! _Assert cond:Bool ?expr:?@String = Void
+--  met! _pre cond:Bool ?expr:?@String = Void
+--  met! _post cond:Bool ?expr:?@String = Void
+--  met! _invariant cond:Bool ?expr:?@String = Void
+--  met! _example cond:Bool ?expr:?@String = Void
 --
---  met! pr ?sep:?@string ...v:(vararg @`showable) = void
---  met! say ?sep:?@string ...v:(vararg @`showable) = void
+--  met! Pr ?sep:?@String ...v:(vararg @`Showable) = Void
+--  met! Say ?sep:?@String ...v:(vararg @`Showable) = Void
 --
---export struct debugenv =
---  export isa `debugenv
+--struct Debugenv =
+--  export isa `Debugenv
 
 
 --atom identity_transitivity P =
@@ -1197,44 +1197,44 @@ export intf `environment declaring:`any =
 -- compiler lack of understanding of definition ordering across modules, in
 -- codegen. As types defined in this module are used everywhere, they really
 -- need to appear first to the C compiler.
-from nlang.chars import `string_buffer `show static_string
-from nlang.containers import index_range range `iterator `random_container
-from nlang.unsafe import cast nonnull_cast
-from nlang import esay epr
+from nlang.chars import `String_buffer `Show Static_string
+from nlang.containers import Index_range Range `Iterator `Random_container
+from nlang.unsafe import Cast Nonnull_cast
+from nlang import Esay Epr
 
-export inline struct codeloc =
-  where		:static_string
-  expression	:static_string
+inline struct Codeloc =
+  where		:Static_string
+  expression	:Static_string
 
-export fun assert cond:bool ?_Ncodeloc:?@codeloc = void
+fun Assert cond:Bool ?_Ncodeloc:?@Codeloc = Void
   if not cond
     if _Ncodeloc !== null
-      esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-    abort
+      Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+    Abort
 
-export fun unreached = void
-  abort
+fun Unreached = Void
+  Abort
 
-export fun __pre__ cond:bool ?_Ncodeloc:?@codeloc = void
+fun Pre__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
   if not cond
     if _Ncodeloc !== null
-      esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-    abort
+      Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+    Abort
 
-export fun __post__ cond:bool ?_Ncodeloc:?@codeloc = void
+fun Post__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
   if not cond
     if _Ncodeloc !== null
-      esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-    abort
+      Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+    Abort
 
-export fun __invariant__ cond:bool ?_Ncodeloc:?@codeloc = void
+fun Invariant__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
   if not cond
     if _Ncodeloc !== null
-      esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-    abort
+      Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+    Abort
 
-export fun __example__ cond:bool ?_Ncodeloc:?@codeloc = void
+fun Example__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
   if not cond
     if _Ncodeloc !== null
-      esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-    abort
+      Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+    Abort

@@ -468,9 +468,6 @@ static void print_within(FILE *out, const struct module *mod, const struct node 
 }
 
 static void print_toplevel(FILE *out, const struct toplevel *toplevel) {
-  if (toplevel->flags & TOP_IS_EXPORT) {
-    fprintf(out, "export ");
-  }
   if (toplevel->flags & TOP_IS_EXTERN) {
     fprintf(out, "extern ");
   }

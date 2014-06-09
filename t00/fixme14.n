@@ -1,12 +1,12 @@
 from nlang import *
 
-export intf `example =
-  (met! t:`any) alloc = @#t
-  (met! t:`any) free p:?@#t = void
+intf `Example =
+  (met! t:`Any) alloc = @#t
+  (met! t:`Any) Free p:?@#t = Void
 
-  -- These 2 work fine when declared with t:`any, should work here too.
-  (met! t:`trivial_ctor) slice_realloc s:@#[]!t count:size = void
-  (met! t:`trivial_ctor) slice_free s:@#[]!t = void
+  -- These 2 work fine when declared with t:`Any, should work here too.
+  (met! t:`Trivial_ctor) slice_realloc s:@#[]!t count:Size = Void
+  (met! t:`Trivial_ctor) slice_free s:@#[]!t = Void
 
-export fun main = i32
+fun Main = I32
   return 0

@@ -1,11 +1,11 @@
 from nlang import *
 
 intf `i =
-  fun foo = void
+  fun Foo = Void
 
 struct a =
   isa `i
-  x:i32
+  x:I32
 
-a fun `i.foo = void
+a fun `i.Foo = Void
   return

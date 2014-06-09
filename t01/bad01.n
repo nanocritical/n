@@ -1,21 +1,21 @@
 from nlang import *
 
-(fun t:`any) foo p:t = void
+(fun t:`Any) Foo p:t = Void
   noop
 
-(fun t:`integer) bar p:t = void
+(fun t:`Integer) bar p:t = Void
   noop
 
-export fun main = i32
-  foo 1:i32
-  foo true
-  (foo i32) 1
-  (foo bool) true
+fun Main = I32
+  Foo 1:I32
+  Foo true
+  (Foo I32) 1
+  (Foo Bool) true
 
-  bar 1:i32
-  (bar i32) 1
+  bar 1:I32
+  (bar I32) 1
 
-  -- bool isn't an `integer
-  (bar bool) true
+  -- Bool isn't an `Integer
+  (bar Bool) true
 
   return 0

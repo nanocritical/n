@@ -4,19 +4,19 @@ from nlang.strings import *
 globalenv e2:@!`env2
 
 intf `env2 =
-  isa (`environment @this)
-  met say2 s:@string = void
+  isa (`Environment @this)
+  met say2 s:@string = Void
 
 struct myenv2 =
   isa `env2
-  dummy	:u32
+  dummy	:U32
 
-myenv2 met say2 s:@string = void
-  say 'saying2:' s
+myenv2 met say2 s:@string = Void
+  Say 'saying2:' s
 
 intf `env1 =
-  isa (`environment @this)
-  met say s:@string = void
+  isa (`Environment @this)
+  met Say s:@string = Void
 
 struct myenv1 =
   isa `env1
@@ -24,18 +24,18 @@ struct myenv1 =
 globalenv e1:@!`env1
 within e1
 
-myenv1 met say s:@string = void
-  say 'saying:' s
+myenv1 met Say s:@string = Void
+  Say 'saying:' s
 
-fun do = i32 within e2
+fun do = I32 within e2
   let mye2 = {}:myenv2
   such
     mye2!install @!e2
   e2.say2 'module'
-  e1.say 'function'
+  e1.Say 'function'
   return 0
 
-export fun main = i32
+fun Main = I32
   let mye1 = {}:myenv1
   such
     mye1!install @!e1

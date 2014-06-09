@@ -1,9 +1,9 @@
 t00/syntax.n.o.c:1555:34: warning: ‘t00$syntax$other4’ declared ‘static’ but never defined [-Wunused-function]
- static inline nlang$builtins$i32 t00$syntax$other4(nlang$builtins$i32 x);
+ static inline nlang$builtins$I32 t00$syntax$other4(nlang$builtins$I32 x);
                                   ^
-t00/syntax.n.o.c:3127:27: warning: ‘t00$syntax$foobar’ defined but not used [-Wunused-function]
- static nlang$builtins$i32 t00$syntax$foobar(nlang$builtins$i32 x) {
+t00/syntax.n.o.c:3106:27: warning: ‘t00$syntax$foobar’ defined but not used [-Wunused-function]
+ static nlang$builtins$I32 t00$syntax$foobar(nlang$builtins$I32 x) {
                            ^
-t00/syntax.n.o.c:3188:28: warning: ‘t00$syntax$foobar2’ defined but not used [-Wunused-function]
- static nlang$builtins$void t00$syntax$foobar2(void) {
+t00/syntax.n.o.c:3167:28: warning: ‘t00$syntax$foobar2’ defined but not used [-Wunused-function]
+ static nlang$builtins$Void t00$syntax$foobar2(void) {
                             ^

@@ -187,29 +187,32 @@ static error extract_defnames(struct module *mod,
         node_subs_insert_before(let_block, before, let);
       }
 
+      struct node *def = NULL;
       if (is_alias) {
-        struct node *defa = mk_node(mod, let, DEFALIAS);
-        defa->flags = flags;
-        node_subs_append(defa, pattern);
+        def = mk_node(mod, let, DEFALIAS);
+        def->flags = flags;
+        node_subs_append(def, pattern);
         if (expr == NULL) {
-          expr = mk_node(mod, defa, IDENT);
+          expr = mk_node(mod, def, IDENT);
           expr->as.IDENT.name = ID_TBI_ANY;
         } else {
-          node_subs_append(defa, expr);
+          node_subs_append(def, expr);
         }
-        return 0;
       } else {
-        struct node *defn = mk_node(mod, let, DEFNAME);
-        defn->flags = flags;
-        defn->as.DEFNAME.is_globalenv = is_globalenv;
-        node_subs_append(defn, pattern);
+        def = mk_node(mod, let, DEFNAME);
+        def->flags = flags;
+        def->as.DEFNAME.is_globalenv = is_globalenv;
+        node_subs_append(def, pattern);
         if (expr == NULL) {
-          expr = mk_node(mod, defn, INIT);
+          expr = mk_node(mod, def, INIT);
         } else {
-          node_subs_append(defn, expr);
+          node_subs_append(def, expr);
         }
-        return 0;
       }
+      if (name_is_export(mod, subs_first_const(def))) {
+        node_toplevel(let)->flags |= TOP_IS_EXPORT;
+      }
+      return 0;
     }
     break;
 
@@ -358,7 +361,7 @@ static void lir_conversion_foreach(struct module *mod, struct node *node) {
          G(it_expr_iter, BIN,
            it_expr_iter->as.BIN.operator = TDOT;
            node_subs_append(it_expr_iter, orig_expr);
-           G_IDENT(it_expr_fun, "iter"))));
+           G_IDENT(it_expr_fun, "Iter"))));
 
      G(let_it_block, BLOCK,
        G(loop, WHILE,

@@ -1,7 +1,7 @@
 from nlang import *
 
-fun returns_tmp = @i32
-  return @0:i32
+fun returns_tmp = @I32
+  return @0:I32
 
-export fun main = i32
+fun Main = I32
   return (returns_tmp).

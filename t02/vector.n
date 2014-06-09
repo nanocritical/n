@@ -1,22 +1,22 @@
 from nlang import *
-from nlang.vectors import vector
+from nlang.vectors import Vector
 
-alias v32 = vector i32
+alias v32 = Vector I32
 
 fun foo = v32
   return {1 0 2}
 
-export fun main = i32
+fun Main = I32
   let v = {}:v32
   such
-    v#push 0
-    v#push 1
-    assert <- v#pop == 1
-    v#push 1
-    for i in v.all.iter
-      assert <- v.[i]. == i.trim_u32.reinterpret_signed
+    v#Push 0
+    v#Push 1
+    Assert <- v#Pop == 1
+    v#Push 1
+    for i in v.All.Iter
+      Assert <- v.[i]. == i.Trim_u32.Reinterpret_signed
   let w = foo
-  assert <- w.[0]. == 1
-  assert <- w.[1]. == 0
-  assert <- w.[2]. == 2
+  Assert <- w.[0]. == 1
+  Assert <- w.[1]. == 0
+  Assert <- w.[2]. == 2
   return v.[1]. - 1

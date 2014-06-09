@@ -1,13 +1,290 @@
 from nlang import *
-from nlang.strings import string
+from nlang.ccompat import Cstring
 
-export struct path =
-  export isa `copyable -- `showable
-  pathname:string
---  delegate pathname Showable
+let SEP = '/'
+let DOT = '.'
 
-export path method# copy other:@this = void
-  self!pathname = other.pathname
+let EMPTY = "":Path
 
-export path method! set s:@string = void
-  self!pathname = s.
+struct Path =
+	Isa `Show `String_compatible
+	p	:string
+
+from `String_compatible
+within Heap
+Path met! From_string s:@String
+	self!p = s.Back_strip SEP
+
+example
+	Assert <- "a/":Path == "a"
+	Assert <- "/":Path == "/"
+	Assert <- "":Path == ""
+	Assert <- "//a":Path == "//a"
+	Assert <- "/a/b/":Path == "/a/b"
+
+Path met Show w:@#`String_writer
+	self.p.Show #w
+
+Path met To_string = String
+	return self.p
+
+within Heap
+Path met Join other:@Path = this
+	let clean = other.p.Front_strip SEP
+	return self.p.Cat SEP clean
+
+within Heap
+Path met Join ...v:(vararg @Path) = this
+	if not v.Has_next
+		return self
+
+	let acc = self
+	and first = true such
+		for part in v
+			if first and self.Is_empty
+				acc#Append part
+			else
+				acc#Append SEP part
+			first = false
+	return acc
+
+example
+	Assert <- ("":Path).Join "" == ""
+	Assert <- ("":Path).Join "b" == "b"
+	Assert <- ("":Path).Join "/b" == "/b"
+	Assert <- ("a":Path).Join "b" == "a/b"
+	Assert <- ("/":Path).Join "a" == "/a"
+	Assert <- ("/":Path).Join "/" == "/"
+	Assert <- ("/":Path).Join "/a" == "/a"
+	Assert <- ("/a":Path).Join "/b" == "/a/b"
+	Assert <- ("//a":Path).Join "/b" == "//a/b"
+
+within Heap
+Path met Split = this, this
+	try
+		let except, pos = self.p.Find SEP reverse=true
+		return self.p.[.. pos], self.p.[pos ..]
+	catch
+		return self, ""
+
+within Heap
+Path met Basename = this
+	let _, b = self.Split
+	return b
+
+within Heap
+Path met Dirname = this
+	let d, _ = self.Split
+	return d
+
+example
+	Assert <- ("a":Path).Split == "", "a"
+	Assert <- ("a/":Path).Split == "a", ""
+	Assert <- ("a//":Path).Split == "a", ""
+	Assert <- ("/a":Path).Split == "/", "a"
+	Assert <- ("//a":Path).Split == "//", "a"
+
+within Heap
+Path met Split_ext ?ext:?@String = this, this
+	if ext?
+		if self.p.Ends_with ext
+			return self.p.[.. self.p.Count - ext.Count], ext
+		else
+			return self, ""
+
+	try
+		let except, pos = self.p.Find DOT reverse=true
+		return self.p.[.. pos], self.p.[pos ..]
+	catch
+		return self, ""
+
+within Heap
+Path met Ext ?ext:?@String = this
+	let _, e = self.Split_ext ext
+	return e
+
+within Heap
+Path met Strip_ext ?ext:?@String = this
+	let p, _ = self.Split_ext ext
+	return p
+
+Path met Is_empty = Bool
+	return self.p.Length_eq  0
+
+Path met Is_absolute = Bool
+	return self.p.[0] == SEP
+
+Path met Depth = Uint
+	if self.Is_empty
+	  return 0
+
+	let last_repeated = 0:Int such
+	if self.p.Is_absolute
+		foreach c in self.p
+			if c != '/'
+				break
+			last_repeated += 1
+		last_repeated -= 1
+
+	let cnt = self.p.Count_matches '/' range=(last_repeated .. self.p.Count)
+	if cnt == 1 and self.p.Length_eq 1
+		return 1
+	else
+		return cnt + 1
+
+within Heap
+Path met Split_all = unique []#this
+	let depth = self.Depth
+	let r = (Heap!Alloc_slice Path) depth
+	and i, prev_pos, pos = 0, 0, 0
+	such
+		foreach c in self.p
+			if c == '/'
+				if pos == 0
+					r![i] = '/'
+				else
+					r![i] = self.p.[prev_pos .. pos]
+				i += 1
+				prev_pos = pos
+			pos += 1
+		Assert <- i == depth - 1
+		r![r.Count - 1] = self.p.[prev_pos ..]
+	return r
+
+alias Open_error = Error::
+		| OK
+		| ACCESS
+		| QUOTA
+		| EXISTS
+		| OVERFLOW
+		| INTR
+		| INVAL
+		| ISDIR
+		| LOOP
+		| MAXFILES
+		| NAMETOOLONG
+		| NOENT
+		| NOMEM
+		| NOSPC
+		| NOTDIR
+		| ROFS
+		| TXTBSY
+		| WOULDBLOCK
+
+alias Close_error = Error::
+		| INTR
+		| IO
+
+alias Stat_error = Error::
+		| ACCESS
+		| LOOP
+		| NAMETOOLONG
+		| NOENT
+		| NOMEM
+		| NOTDIR
+		| OVERFLOW
+
+fun stat_error_for eno:Int = Error
+fun open_error_for eno:Int = Error
+
+struct Fd =
+	fd	:Int
+	path	:Path
+
+Fd met# Ctor
+	self!fd = -1
+
+Fd met Number = Int
+	return self.fd
+
+within Heap
+Fd met# Open ?at:?@!Fd path:Path flags:Open_flags mode:Mode = Open_error
+
+within Heap
+Fd met# Close = Close_error
+
+Fd met Path = Error::|OK|NONE, @Path
+	if self.path.Is_empty
+		return NONE, {}
+	else
+		return OK, self.path
+
+-- Should we use Cstring, or should we pass in a regular String? How does the C
+-- code interact with our heap? Should we pass that in too? Should it be in a
+-- special Cstring wrapper?
+
+extern fun errno = Int
+extern let _AT_SYMLINK_NOFOLLOW
+extern struct stat =
+extern fun stat_mode st:@stat = Uint
+extern fun stat_nlink st:@stat = Uint
+extern fun stat_uid st:@stat = Uint
+extern fun stat_gid st:@stat = Uint
+extern fun stat_size st:@stat = Uint
+extern fun fstatat dirfd:Int path:Cstring buf:@!sysstat flags:Int = Int
+extern fun readlinkat dirfd:Int path:Cstring buf:@!Cstring = Int
+extern struct dir =
+extern fun fdopendir dirfd:Int = dir
+extern fun rewinddir d:dir
+extern struct dirent =
+extern fun readdir_r d:dir entry:@!dirent result:@!@!dirent = Int
+extern fun openat dirfd:Int path:Cstring flags:Int mode:Uint = Int
+
+fun timespec_sec ts:@timespec = Double
+fun timespec_nsec ts:@timespec = Double
+
+fun timespec_time ts:@timespec = Time
+	return Time.From_epoch <- (timespec_sec ts) + (timespec_nsec ts) * 10e-9
+
+enum Modes =
+	| UR
+	| UW
+	| UX
+	| GR
+	| GW
+	| GX
+	| OR
+	| OW
+	| OX
+
+struct Stat =
+	st	:stat
+	path	:Path
+
+Stat met Path = @Path
+	return self.path
+
+-- If 'at' is null, path must be an absolute path. There is no implicit current
+-- working directory. You may use Sys.Wd from the environment Sys.
+Stat met# On path:@Path ?no_follow:?@Bool ?at:?@!Fd = Stat_error
+	if not at? and not path.Is_absolute
+		return {why="Path not absolute"}:INVAL
+
+	let dirfd = at?.Number else -1
+	let flags = block
+		if no_follow? and no_follow
+			_AT_SYMLINK_NOFOLLOW
+		else
+			0
+	let ret = fstatat dirfd path self!st flags
+	if ret == -1
+		return stat_error_for errno
+	else
+		return OK
+
+Stat met Mode = (Enumset Modes)
+	return stat_mode self.st
+Stat met Link_count = Uint
+	return stat_nlink self.st
+Stat met Uid = Uint
+	return stat_uid self.st
+Stat met Gid = Uint
+	return stat_gid self.st
+Stat met Bytecount = Uint
+	return stat_size self.st
+Stat met Access_time = Time
+	return timespec_time <- stat_atime self.st
+Stat met Mod_time = Time
+	return timespec_time <- stat_mtime self.st
+Stat met Change_time
+	return timespec_time <- stat_ctime self.st

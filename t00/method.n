@@ -1,16 +1,16 @@
 from nlang import *
 
 struct t =
-  isa `trivial_copy
-  x:i32
+  isa `Trivial_copy
+  x:I32
 
-t met get = i32
+t met get = I32
   return self.x
 
-t met! set x:i32 = void
+t met! set x:I32 = Void
   self!x = x
 
-export fun main = i32
+fun Main = I32
   let tt = { x=0 }:t
   such
     tt!set 1

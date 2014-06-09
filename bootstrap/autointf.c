@@ -291,7 +291,7 @@ static void gen_by_compare(struct module *mod, struct node *deft,
          G(fun, BIN,
            fun->as.BIN.operator = TDOT;
            G_IDENT(self, "self");
-           G_IDENT(name, "operator_compare"));
+           G_IDENT(name, "Operator_compare"));
          G_IDENT(other, "other"))));
 }
 
@@ -315,7 +315,7 @@ static void gen_show_choices(struct module *mod, struct node *deft,
          G(fun, BIN,
            fun->as.BIN.operator = TSHARP;
            G_IDENT(buf, "buf");
-           G_IDENT(app, "append"));
+           G_IDENT(app, "Append"));
          G(s, STRING,
            s->as.STRING.value = v)));
     return;

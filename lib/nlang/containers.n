@@ -1,74 +1,74 @@
 from nlang.builtins import *
 
-alias `locus = {`has_equality `copyable_but_owned}
-alias `fwd_locus = {`has_equality `copyable_but_owned `ordered}
-alias `bidir_locus = {`has_equality `copyable_but_owned `ordered}
+alias `locus = {`Has_equality `Copyable_but_owned}
+alias `fwd_locus = {`Has_equality `Copyable_but_owned `Ordered}
+alias `bidir_locus = {`Has_equality `Copyable_but_owned `Ordered}
 
-export intf `random_container t:`any =
-  met count = size
+intf `Random_container t:`Any =
+  met Count = Size
 
-export intf `iterator t:`copyable =
-  met has_next = bool
-  met! next = t
+intf `Iterator t:`Copyable =
+  met Has_next = Bool
+  met! Next = t
 
-export inline struct index_bounds =
-  f	:bool
-  l	:bool
-  b	:size
-  e	:size
+inline struct Index_bounds =
+  f	:Bool
+  l	:Bool
+  b	:Size
+  e	:Size
 
-export inline index_bounds (met t:`any c:(`random_container t)) range_of v:@c = index_range
+inline Index_bounds (met t:`Any c:(`Random_container t)) Range_of v:@c = Index_range
   if self.f and self.l
-    return {b=0 e=v.count}
+    return {b=0 e=v.Count}
   elif self.f
     return {b=0 e=self.e}
   elif self.l
-    return {b=self.b e=v.count}
+    return {b=self.b e=v.Count}
   else
-    return {b=0 e=v.count}
+    return {b=0 e=v.Count}
 
-export inline struct index_range =
-  export isa `trivial_copy `trivial_equality `trivial_ctor `return_by_copy
-  b	:size
-  e	:size
+inline struct Index_range =
+  isa `Trivial_copy `Trivial_equality `Trivial_ctor `Return_by_copy
+  b	:Size
+  e	:Size
 
-export index_range met begin = size
+Index_range met Begin = Size
   return self.b
 
-export index_range met end = size
+Index_range met End = Size
   return self.e
 
-export index_range met count = size
+Index_range met Count = Size
   return self.e - self.b
 
-export index_range met sub begin:size end:size = this
+Index_range met sub begin:Size end:Size = this
   let r:this
   such
-    if begin < self.begin or end > self.end
-      abort
+    if begin < self.Begin or end > self.End
+      Abort
     r = {b=begin e=end}
   return r
 
-export index_range met with_offset offset:size = this
-  let r = {b=self.begin+offset e=self.end+offset}
+Index_range met with_offset offset:Size = this
+  let r = {b=self.Begin+offset e=self.End+offset}
   return r
 
-export index_range met iter = index_iterator
+Index_range met Iter = Index_iterator
   return { r=self. }
 
 
-export opaque struct index_iterator =
-  export isa (`iterator size) `trivial_copy `trivial_ctor
-  r:index_range
-  p:size
+opaque struct Index_iterator =
+  isa (`Iterator Size) `Trivial_copy `Trivial_ctor
+  r:Index_range
+  p:Size
 
-export index_iterator met `iterator.has_next = bool
-  return self.p < self.r.end
+Index_iterator met `Iterator.Has_next = Bool
+  return self.p < self.r.End
 
-export index_iterator met! `iterator.next = size
+Index_iterator met! `Iterator.Next = Size
   let r = self.p
   self!p += 1
   return r
 
-export fun range beg:size end:size = index_range
+fun Range beg:Size end:Size = Index_range
   return {b=beg e=end}

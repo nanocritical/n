@@ -1,8 +1,8 @@
 from nlang import *
 import nlang.unsafe
 
-fun foo x:@u32 = @i32
-  return (nlang.unsafe.cast @u32 @i32) x
+fun foo x:@U32 = @I32
+  return (nlang.unsafe.Cast @U32 @I32) x
 
-export fun main = i32
+fun Main = I32
   return (foo 1). - 1
