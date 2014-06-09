@@ -65,7 +65,7 @@ export inline vector method# `copyable.copy_ctor other:@this = void
 
 export inline vector method# append_slice other:[]t = void
   (heap.slice_realloc t) @!sysheap @#self#p self.count+other.count
-  self.p![self.c ...]!copy other
+  self.p![self.c ..]!copy other
   self!c = other.count
 
 export inline vector method$ storage = []$t

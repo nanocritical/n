@@ -324,6 +324,8 @@ normal:
       ERROR(EINVAL, "lexer: unexpected semicolon in multi-line block");
     }
   }
+  "..." { R(TDOTDOTDOT); }
+  ".." { R(TDOTDOT); }
   ".[" { R(TATDOT); }
   "![" { R(TATBANG); }
   "$[" { R(TATWILDCARD); }
@@ -344,7 +346,6 @@ normal:
   "?@$" { R(TNULREFWILDCARD); }
   "?@" { R(TNULREFDOT); }
   "?" { R(TQMARK); }
-  "..." { R(TDOTDOTDOT); }
   "[]" { R(TSLICEBRAKETS); }
   "[]!" { R(TMSLICEBRAKETS); }
   "[]$" { R(TWSLICEBRAKETS); }

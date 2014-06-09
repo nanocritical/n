@@ -60,7 +60,7 @@ export string method# `string_buffer.append other:@`const_string = void
 
 export string method# `string_buffer.copy at:size other:@`const_string off:size count:size = void
   self#reserve at+count
-  foreach i in 0 ... count
+  foreach i in 0 .. count
     let left = at + i
     let right = off + i
     let c = other.get_char right
