@@ -4,10 +4,10 @@ struct t =
   isa `trivial_copy
   x:i32
 
-t method get = i32
+t met get = i32
   return self.x
 
-t method! set x:i32 = void
+t met! set x:i32 = void
   self!x = x
 
 export fun main = i32

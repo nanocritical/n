@@ -10,9 +10,9 @@ from nlang.sysheap import heap sysheap
 --fun mmrefconv p:@#i32 = (mercurial_slice i32) -- @#[]i32
 --  return p
 --
---sysheap method slice_realloc s:@#@[]t = void
---sysheap method slice_realloc s:@#(slice t) = void
---sysheap method slice_free s:@#(slice t) = void
+--sysheap met slice_realloc s:@#@[]t = void
+--sysheap met slice_realloc s:@#(slice t) = void
+--sysheap met slice_free s:@#(slice t) = void
 --
 --fun cannot_grow_inplace s:@[]i32 = @[]i32
 --  heap.slice_realloc @!s

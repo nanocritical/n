@@ -5,11 +5,11 @@ alias `fwd_locus = {`has_equality `copyable_but_owned `ordered}
 alias `bidir_locus = {`has_equality `copyable_but_owned `ordered}
 
 export intf `random_container t:`any =
-  method count = size
+  met count = size
 
 export intf `iterator t:`copyable =
-  method has_next = bool
-  method! next = t
+  met has_next = bool
+  met! next = t
 
 export inline struct index_bounds =
   f	:bool
@@ -17,7 +17,7 @@ export inline struct index_bounds =
   b	:size
   e	:size
 
-export inline index_bounds (method t:`any c:(`random_container t)) range_of v:@c = index_range
+export inline index_bounds (met t:`any c:(`random_container t)) range_of v:@c = index_range
   if self.f and self.l
     return {b=0 e=v.count}
   elif self.f
@@ -32,16 +32,16 @@ export inline struct index_range =
   b	:size
   e	:size
 
-export index_range method begin = size
+export index_range met begin = size
   return self.b
 
-export index_range method end = size
+export index_range met end = size
   return self.e
 
-export index_range method count = size
+export index_range met count = size
   return self.e - self.b
 
-export index_range method sub begin:size end:size = this
+export index_range met sub begin:size end:size = this
   let r:this
   such
     if begin < self.begin or end > self.end
@@ -49,11 +49,11 @@ export index_range method sub begin:size end:size = this
     r = {b=begin e=end}
   return r
 
-export index_range method with_offset offset:size = this
+export index_range met with_offset offset:size = this
   let r = {b=self.begin+offset e=self.end+offset}
   return r
 
-export index_range method iter = index_iterator
+export index_range met iter = index_iterator
   return { r=self. }
 
 
@@ -62,10 +62,10 @@ export opaque struct index_iterator =
   r:index_range
   p:size
 
-export index_iterator method `iterator.has_next = bool
+export index_iterator met `iterator.has_next = bool
   return self.p < self.r.end
 
-export index_iterator method! `iterator.next = size
+export index_iterator met! `iterator.next = size
   let r = self.p
   self!p += 1
   return r

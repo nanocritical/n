@@ -7,15 +7,15 @@ export extern inline fun free p:?@#u8 sz:size = void
 export opaque struct heap =
   dummy:i32
 
-export heap (method! t:`any) alloc = @#t
+export heap (met! t:`any) alloc = @#t
   let raw = realloc null 0 (sizeof t)
   return (nlang.unsafe.cast @#u8 @#t) raw
 
-export heap (method! t:`any) free p:?@#t = void
+export heap (met! t:`any) free p:?@#t = void
   let raw = (nlang.unsafe.cast ?@#t ?@#u8) p
   return free raw (sizeof t)
 
-export heap (method! t:`any) slice_realloc s:@#[]!t count:size = void
+export heap (met! t:`any) slice_realloc s:@#[]!t count:size = void
   let bsz = count * (sizeof t)
   if s.count == 0
     s#dat = (nlang.unsafe.cast @#u8 ?@#t) (realloc null 0 bsz)
@@ -26,7 +26,7 @@ export heap (method! t:`any) slice_realloc s:@#[]!t count:size = void
     s#dat = (nlang.unsafe.cast @#u8 ?@#t) (realloc raw old_bsz bsz)
     s#cnt = count
 
-export heap (method! t:`any) slice_free s:@#[]!t = void
+export heap (met! t:`any) slice_free s:@#[]!t = void
   let bsz = s.bytecount
   let raw = s#unsafe_rawdata
   free raw bsz

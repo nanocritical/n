@@ -3,7 +3,7 @@ from nlang import *
 struct a =
   x	:i32
 
-a method foo = i32
+a met foo = i32
   return x -- lexical lookup should fail
 
 extern fun main = i32

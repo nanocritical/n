@@ -15,24 +15,24 @@ import nlang.unsafe
 --export array_impl fun all = index_range
 --  return range 0 N
 --
---export array_impl method$ unsafe_rawdata = @$u8
+--export array_impl met$ unsafe_rawdata = @$u8
 --  return (unsafe.cast @$this @$u8) self
 --
---export array_impl method$ unsafe_data = @$t
+--export array_impl met$ unsafe_data = @$t
 --  return (unsafe.cast @$this @$t) self
 --
---export array_impl method$ operator_at n:size = @$t
+--export array_impl met$ operator_at n:size = @$t
 --  assert <- n < N
 --  return (unsafe.cast @$u8 @$t) (slice_at_byte self$unsafe_rawdata n)
 --
---export array_impl method# copy other:[]t = void
+--export array_impl met# copy other:[]t = void
 --  assert <- N == other.count
 --  let dst = self#unsafe_rawdata
 --  and src = other.unsafe_rawdata
 --  and bytecnt = N * (sizeof t)
 --  slice_memcpy dst src bytecnt
 --
---export array_impl shallow method$ operator_sub r:index_range = []$t
+--export array_impl shallow met$ operator_sub r:index_range = []$t
 --  assert <- r.begin < self.count
 --  assert <- r.end <= self.count
 --  let raw0 = self$unsafe_rawdata

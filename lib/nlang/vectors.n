@@ -12,61 +12,61 @@ export inline vector fun from_array c:@(static_array t) = r:this
   foreach i in c.all
     r#push c.[i].
 
-export inline vector method count = size
+export inline vector met count = size
   return self.c
 
-export inline vector shallow method$ operator_at n:size = @$t
+export inline vector shallow met$ operator_at n:size = @$t
   assert <- n < self.c
   return self$p$[n]
 
-export inline vector method$ first = @$t
+export inline vector met$ first = @$t
   return self$[0]
 
-export inline vector method$ last = @$t
+export inline vector met$ last = @$t
   return self$[self.c-1]
 
-export inline vector method is_empty = bool
+export inline vector met is_empty = bool
   return self.c == 0
 
-export inline vector method capacity = size
+export inline vector met capacity = size
   return self.p.count
 
-export inline vector method# reserve n:size = void
+export inline vector met# reserve n:size = void
   if n > self.capacity
     (heap.slice_realloc t) @!sysheap @#self#p n
 
-export inline vector method# resize n:size = void
+export inline vector met# resize n:size = void
   (heap.slice_realloc t) @!sysheap @#self#p n
   self!c = n
 
-export inline vector method# push x:t = void
+export inline vector met# push x:t = void
   self#reserve self.c+1
   let n = self.c
   self!c += 1
   let d = self![n]
   d! = x
 
-export inline vector method# pop = t
+export inline vector met# pop = t
   assert <- self.c != 0
   let d = self.last
   self!c -= 1
   return d.
 
-export inline vector method# clear = void
+export inline vector met# clear = void
   (heap.slice_free t) @!sysheap @#self#p
 
-export inline vector method all = index_range
+export inline vector met all = index_range
   return range 0 self.count
 
-export inline vector method# `copyable.copy_ctor other:@this = void
+export inline vector met# `copyable.copy_ctor other:@this = void
   (heap.slice_realloc t) @!sysheap @#self#p other.p.count
   self.p!copy other.p
   self!c = other.c
 
-export inline vector method# append_slice other:[]t = void
+export inline vector met# append_slice other:[]t = void
   (heap.slice_realloc t) @!sysheap @#self#p self.count+other.count
   self.p![self.c ..]!copy other
   self!c = other.count
 
-export inline vector method$ storage = []$t
+export inline vector met$ storage = []$t
   return self$p

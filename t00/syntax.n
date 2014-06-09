@@ -21,7 +21,7 @@ struct test =
   isa `ia
   t:i32
 
-test method foo x:i32 = i32
+test met foo x:i32 = i32
   let y = x
   return y
 

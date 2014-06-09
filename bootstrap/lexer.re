@@ -220,7 +220,7 @@ normal:
   "extern" { R(Textern); }
   "opaque" { R(Topaque); }
   "fun" { R(Tfun); }
-  "method" { R(Tmethod); }
+  "met" { R(Tmethod); }
   "shallow" { R(Tshallow); }
   "intf" { R(Tintf); }
   "inline" { R(Tinline); }

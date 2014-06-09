@@ -16,7 +16,7 @@ export inline char fun from_ascii c:u8 = char
 
 example <- char.from_ascii 49 == '1':char
 
-export inline char method `show.show buf:@#`string_buffer = void
+export inline char met `show.show buf:@#`string_buffer = void
   buf#push self.
 
 export intf `static_string_compatible =
@@ -25,31 +25,31 @@ export intf `static_string_compatible =
 export intf `const_string =
   isa `static_string_compatible
 -- export `random_container
-  method count = size
-  method all = index_range
-  method get_char n:size = char
-  method bytes_utf8 = []u8
+  met count = size
+  met all = index_range
+  met get_char n:size = char
+  met bytes_utf8 = []u8
 
 export intf `string =
   isa `const_string
-  method! set_char n:size c:char = void
-  method! fill c:char r:index_range = void
+  met! set_char n:size c:char = void
+  met! fill c:char r:index_range = void
 
 export intf `string_buffer =
   isa `string
-  method# reserve count:size = void
-  method# clear = void
-  method# push c:char = void
-  method# pop = char
-  method# append other:@`const_string = void
-  method# copy at:size other:@`const_string off:size count:size = void
+  met# reserve count:size = void
+  met# clear = void
+  met# push c:char = void
+  met# pop = char
+  met# append other:@`const_string = void
+  met# copy at:size other:@`const_string off:size count:size = void
 
 export opaque struct static_string =
   export isa `trivial_copy `return_by_copy `ordered_by_compare `show
       \ `static_string_compatible `const_string `trivial_ctor
   bytes	:[]u8
 
-export inline static_string method# unsafe_wrap bytes:@u8 count:size = void
+export inline static_string met# unsafe_wrap bytes:@u8 count:size = void
   let raw = (nlang.unsafe.cast @u8 @#u8) bytes
   self.bytes#unsafe_wrap raw count
 
@@ -60,21 +60,21 @@ export inline static_string fun mk bytes:@u8 count:size = r:this
 export inline static_string fun from_static_string s:static_string = this
   return { bytes=s.bytes }
 
-export inline static_string method `const_string.count = size
+export inline static_string met `const_string.count = size
   return self.bytes.count
 
-export inline static_string method `const_string.all = index_range
+export inline static_string met `const_string.all = index_range
   return self.bytes.all
 
-export inline static_string method `const_string.get_char n:size = char
+export inline static_string met `const_string.get_char n:size = char
   return char.from_ascii self.bytes.[n].
 
-export inline static_string method `const_string.bytes_utf8 = []u8
+export inline static_string met `const_string.bytes_utf8 = []u8
   return self.bytes
 
-export extern static_string method operator_compare other:@this = i32
+export extern static_string met operator_compare other:@this = i32
 
-export static_string method `show.show buf:@#`string_buffer = void
+export static_string met `show.show buf:@#`string_buffer = void
   buf#reserve buf.count + self.count
   foreach i in self.all
     buf#push (self.get_char i)
@@ -89,4 +89,4 @@ example <- '1234'.bytes_utf8.[0]. == 49
 
 
 export intf `show =
-  method show buf:@#`string_buffer = void
+  met show buf:@#`string_buffer = void

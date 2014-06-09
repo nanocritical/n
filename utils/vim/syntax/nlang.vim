@@ -2,7 +2,7 @@ if exists("b:current_syntax") | finish | endif
 let b:current_syntax = "nlang"
 
 syn keyword nInclude import from
-syn keyword nDecl union fun method shallow intf delegate struct enum atom
+syn keyword nDecl union fun met shallow intf delegate struct enum atom
 syn keyword nStorageClass inline extern opaque
 syn keyword nExport export
 syn keyword nSemantic unique shared pshared

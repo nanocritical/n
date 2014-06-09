@@ -4,4 +4,4 @@ from nlang import *
 -- fully exported or not.
 
 export intf `i1 =
-  export method foo = u32
+  export met foo = u32
