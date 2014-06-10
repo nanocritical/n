@@ -646,7 +646,7 @@ static void print_dyn(FILE *out, const struct module *mod, const struct node *no
   const struct typ *concrete = typ_generic_arg_const(arg->typ, 0);
 
   print_typ(out, mod, concrete);
-  fprintf(out, "_$Nmkdyn__");
+  fprintf(out, "$_$Nmkdyn__");
   print_typ(out, mod, intf);
   fprintf(out, "((void *)");
   print_expr(out, mod, arg, T__CALL);
@@ -1949,7 +1949,7 @@ static void print_mkdyn_proto(FILE *out, const struct module *mod,
   print_typ(out, mod, intf);
   fprintf(out, " ");
   print_typ(out, mod, node->typ);
-  fprintf(out, "_$Nmkdyn__");
+  fprintf(out, "$_$Nmkdyn__");
   print_typ(out, mod, intf);
   fprintf(out, "(");
   print_typ(out, mod, node->typ);
