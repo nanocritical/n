@@ -37,9 +37,8 @@ fun Main = I32
   Assert <- 10 == var 0 b=1 2 3 4
   Assert <- 10 == onlyvar 0 1 2 3 4
 
-  -- Quite ambiguous... Hrm. Not good.
   Assert <- -1 == diff 0 - 1
-  Assert <- -1 == diff 0 -1
+  Assert <- 1 == diff 0 -1
   Assert <- 1 == diff 0 (-1)
 
   return opts a=0

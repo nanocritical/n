@@ -153,6 +153,11 @@ EXAMPLE(update_codeloc) {
 #undef CHECK
 }
 
+static bool is_space(const char *cursor) {
+  const int c = cursor[0];
+  return c == ' ' || c == '\t' || c == '\n';
+}
+
 error lexer_scan(struct token *tok, struct parser *parser) {
   typedef char YYCTYPE;
   const char *YYCURSOR = parser->data + parser->codeloc.pos;
@@ -182,6 +187,27 @@ error lexer_scan(struct token *tok, struct parser *parser) {
   tok->value = start; \
   tok->len = YYCURSOR - start; \
   return 0; \
+} while (0)
+
+#define RUNORBIN(token_len, un_pre, un_post, bin) do { \
+  const bool before = is_space(YYCURSOR - token_len - 1); \
+  const bool after = is_space(YYCURSOR); \
+  if (before == after) { \
+    if (bin == 0) { \
+      ERROR(EINVAL, "not a binary operator"); \
+    } \
+    R(bin); \
+  } else if (before && !after) { \
+    if (un_pre == 0) { \
+      ERROR(EINVAL, "not a prefix operator"); \
+    } \
+    R(un_pre); \
+  } else if (!before && after) { \
+    if (un_post == 0) { \
+      ERROR(EINVAL, "not a postfix operator"); \
+    } \
+    R(un_post); \
+  } \
 } while (0)
 
   if (parser->inject_eol_after_eob) {
@@ -295,8 +321,8 @@ normal:
   ">=" { R(TGE); }
   ">" { R(TGT); }
   "=" { R(TASSIGN); }
-  "+" { R(TPLUS); }
-  "-" { R(TMINUS); }
+  "+" { RUNORBIN(1, TUPLUS, 0, TPLUS); }
+  "-" { RUNORBIN(1, TUMINUS, 0, TMINUS); }
   "*" { R(TTIMES); }
   "/" { R(TDIVIDE); }
   "%" { R(TMODULO); }
@@ -329,14 +355,10 @@ normal:
   ".[" { R(TATDOT); }
   "![" { R(TATBANG); }
   "$[" { R(TATWILDCARD); }
-  "."[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFDOT); }
-  "!"[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFBANG); }
-  "#"[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFSHARP); }
-  "$"[^a-zA-Z_] { YYCURSOR -= 1; R(TDEREFWILDCARD); }
-  "." { R(TDOT); }
-  "!" { R(TBANG); }
-  "#" { R(TSHARP); }
-  "$" { R(TWILDCARD); }
+  "." { RUNORBIN(1, 0, TDEREFDOT, TDOT); }
+  "!" { RUNORBIN(1, 0, TDEREFBANG, TBANG); }
+  "#" { RUNORBIN(1, 0, TDEREFSHARP, TSHARP); }
+  "$" { RUNORBIN(1, 0, TDEREFWILDCARD, TWILDCARD); }
   "@!" { R(TREFBANG); }
   "@#" { R(TREFSHARP); }
   "@$" { R(TREFWILDCARD); }
