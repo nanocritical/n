@@ -1682,7 +1682,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
         && (!node_can_have_genargs(dfun)
             || !subs_count_atleast(subs_at(dfun, IDX_GENARGS), 1))) {
       char *n = typ_pretty_name(mod, dfun->typ);
-      e = mk_except_type(mod, fun, "'%s' not a generic type", n);
+      e = mk_except_type(mod, fun, "'%s' not a function or a generic", n);
       free(n);
       THROW(e);
     }
