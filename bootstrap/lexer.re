@@ -297,7 +297,7 @@ normal:
       ERROR(e, "lexer: too many block levels");
     }
 
-    parser->indent += 2;
+    parser->indent += 8;
     R(TSOB);
   }
   ">>=" { R(TRSHIFT_ASSIGN); }
@@ -336,7 +336,7 @@ normal:
   "," { R(TCOMMA); }
   ";;" {
     if (block_style(parser)) {
-      parser->indent -= 2;
+      parser->indent -= 8;
       block_up(parser, true);
       R(TEOB);
     } else {
@@ -396,7 +396,9 @@ normal:
 
 eol:
 /*!re2c
-  " " { spaces += 1; goto eol; }
+  " " {
+    ERROR(EINVAL, "indentation must be made of tabs, not spaces");
+  }
   "\t" { spaces += 8; goto eol; }
   "\r" { goto eol; }
   "\n"[ \t]*"\\" { goto normal; }
@@ -427,7 +429,7 @@ eol_any:
     } else {
       R(TEOL);
     }
-  } else if (spaces == parser->indent + 2) {
+  } else if (spaces == parser->indent + 8) {
     parser->indent = spaces;
 
     error e = block_down(parser, false);
@@ -437,12 +439,9 @@ eol_any:
 
     R(TSOB);
   } else if (spaces < parser->indent) {
-    if (spaces % 2 != 0) {
-      ERROR(EINVAL, "lexer: indentation must be a multiple of 2 spaces"
-              " (one tab counts for 8 spaces), not %zu", spaces);
-    }
+    assert(spaces % 8 == 0);
 
-    parser->indent -= 2;
+    parser->indent -= 8;
 
     if (spaces != parser->indent) {
       // Closing several blocks at once, return token for the others.
@@ -456,8 +455,7 @@ eol_any:
     block_up(parser, block_style(parser));
     R(TEOB);
   } else {
-    ERROR(EINVAL, "indentation must be a multiple of 2 spaces"
-            " (one tab counts for 8 spaces), not %zu", spaces);
+    assert(false);
   }
 
 string:
@@ -508,11 +506,11 @@ void lexer_back(struct parser *parser, const struct token *tok) {
   } else if (tok->t == TRPAR) {
     parser->no_block_depth += 1;
   } else if (tok->t == TSOB) {
-    parser->indent -= 2;
+    parser->indent -= 8;
     parser->block_depth -= 1;
   } else if (tok->t == TEOB) {
     parser->block_depth += 1;
-    parser->indent += 2;
+    parser->indent += 8;
   }
 
   if (parser->tok_was_injected) {
