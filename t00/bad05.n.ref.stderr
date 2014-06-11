@@ -1,1 +1,1 @@
-t00/bad05.n:5:3: type: struct may not contain a choice declaration
+t00/bad05.n:5:2: type: struct may not contain a choice declaration
