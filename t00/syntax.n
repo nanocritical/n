@@ -2,15 +2,15 @@ from n import *
 from n.strings import *
 
 fun Main = I32
-  let x = 1:I32
-  let y = 2 + x
-  return 0 + y
+	let x = 1:I32
+	let y = 2 + x
+	return 0 + y
 
 fun Main2 = I32
-  return 0
+	return 0
 
 inline fun Foo = String
-  return 'test'
+	return 'test'
 
 inline fun other4 x:I32 = I32
 extern fun other5 x:I32 = I32
@@ -18,22 +18,22 @@ extern fun other5 x:I32 = I32
 intf `ia =
 
 struct test =
-  isa `ia
-  t:I32
+	isa `ia
+	t:I32
 
 test met Foo x:I32 = I32
-  let y = x
-  return y
+	let y = x
+	return y
 
 fun foobar x:I32 = I32
-  pre <- x != 0
-  post <- x != 0
-  return 0
+	pre <- x != 0
+	post <- x != 0
+	return 0
 
 fun foobar2 = Void
-  return
+	return
 
 enum enu =
-  | V1
-  | V2
-  | V3
+	| V1
+	| V2
+	| V3

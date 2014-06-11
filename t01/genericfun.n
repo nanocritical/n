@@ -1,7 +1,7 @@
 from n import *
 
 (fun t:`Integer) decr x:t = t
-  return x - 1
+	return x - 1
 
 fun Main = I32
-  return (decr I32) 1
+	return (decr I32) 1

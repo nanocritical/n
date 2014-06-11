@@ -1,11 +1,11 @@
 from n import *
 
 fun Main = I32
-  let m such -> m = 1:I32; Unused m
-  let j = 0:I32
-  and k = 0:I32 such
-    Unused k
-    for i in (Range 0 10).Iter
-      Unused i
-      j += 1
-  return j - 10
+	let m such -> m = 1:I32; Unused m
+	let j = 0:I32
+	and k = 0:I32 such
+		Unused k
+		for i in (Range 0 10).Iter
+			Unused i
+			j += 1
+	return j - 10

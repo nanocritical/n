@@ -1,21 +1,21 @@
 from n import *
 
 (fun t:`Any) Foo p:t = Void
-  noop
+	noop
 
 (fun t:`Integer) bar p:t = Void
-  noop
+	noop
 
 fun Main = I32
-  Foo 1:I32
-  Foo true
-  (Foo I32) 1
-  (Foo Bool) true
+	Foo 1:I32
+	Foo true
+	(Foo I32) 1
+	(Foo Bool) true
 
-  bar 1:I32
-  (bar I32) 1
+	bar 1:I32
+	(bar I32) 1
 
-  -- Bool isn't an `Integer
-  (bar Bool) true
+	-- Bool isn't an `Integer
+	(bar Bool) true
 
-  return 0
+	return 0

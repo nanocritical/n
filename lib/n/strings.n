@@ -4,75 +4,75 @@ from n.sysheap import Heap Sysheap
 import n.unsafe
 
 opaque struct String =
-  isa `Copyable `Show `String_buffer
-  bytes:(Vector U8)
+	isa `Copyable `Show `String_buffer
+	bytes:(Vector U8)
 
 String fun From_static_string literal:Static_string = s:this
-  s.bytes#Append_slice literal.Bytes_utf8
+	s.bytes#Append_slice literal.Bytes_utf8
 
 String met Count = Size
-  return self.bytes.Count
+	return self.bytes.Count
 
 String met All = Index_range
-  return self.bytes.All
+	return self.bytes.All
 
 String met Get_char n:Size = Char
-  return Char.From_ascii self.bytes.[n].
+	return Char.From_ascii self.bytes.[n].
 
 String met substring r:Index_range = @`Const_string
-  let sub = (Heap.Alloc String) @!Sysheap
-  such
-    let mem = self.bytes.Storage.[r]
-    sub.bytes#Append_slice mem
-    -- FIXME leaking mem
-  return sub
+	let sub = (Heap.Alloc String) @!Sysheap
+	such
+		let mem = self.bytes.Storage.[r]
+		sub.bytes#Append_slice mem
+		-- FIXME leaking mem
+	return sub
 
 String met Bytes_utf8 = []U8
-  return self.bytes.Storage.[self.bytes.All]
+	return self.bytes.Storage.[self.bytes.All]
 
 String met! Set_char n:Size c:Char = Void
-  self.bytes![n]! = c.Code.Trim_u8
+	self.bytes![n]! = c.Code.Trim_u8
 
 String met! Fill c:Char r:Index_range = Void
-  let with = c.Code.Trim_u8
-  let sb = self.bytes!Storage![r]
-  such
-    foreach i in sb.All
-      let p = sb![i]
-      p! = with
+	let with = c.Code.Trim_u8
+	let sb = self.bytes!Storage![r]
+	such
+		foreach i in sb.All
+			let p = sb![i]
+			p! = with
 
 String met# Reserve Count:Size = Void
-  self.bytes#Reserve Count
+	self.bytes#Reserve Count
 
 String met# Clear = Void
-  self.bytes#Clear
+	self.bytes#Clear
 
 String met# Push c:Char = Void
-  self.bytes#Push c.Code.Trim_u8
+	self.bytes#Push c.Code.Trim_u8
 
 String met# Pop = Char
-  return Char.From_ascii self.bytes#Pop
+	return Char.From_ascii self.bytes#Pop
 
 String met# Append other:@`Const_string = Void
-  self#Reserve self.Count+other.Count
-  foreach i in other.All
-    self#Push (other.Get_char i)
+	self#Reserve self.Count+other.Count
+	foreach i in other.All
+		self#Push (other.Get_char i)
 
 String met# Copy at:Size other:@`Const_string off:Size Count:Size = Void
-  self#Reserve at+Count
-  foreach i in 0 .. Count
-    let left = at + i
-    let right = off + i
-    let c = other.Get_char right
-    if left < self.Count
-      self!Set_char left c
-    else
-      self#Push c
+	self#Reserve at+Count
+	foreach i in 0 .. Count
+		let left = at + i
+		let right = off + i
+		let c = other.Get_char right
+		if left < self.Count
+			self!Set_char left c
+		else
+			self#Push c
 
 String met# Copy_ctor other:@this = Void
-  self!bytes = other.bytes
+	self!bytes = other.bytes
 
 String met Show buf:@#`String_buffer = Void
-  buf#Reserve buf.Count + self.Count
-  foreach i in self.All
-    buf#Push (self.Get_char i)
+	buf#Reserve buf.Count + self.Count
+	foreach i in self.All
+		buf#Push (self.Get_char i)

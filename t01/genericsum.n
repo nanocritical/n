@@ -1,14 +1,14 @@
 from n import *
 
 struct container t:`Numeric =
-  isa `Trivial_ctor
-  x:t
+	isa `Trivial_ctor
+	x:t
 
 container met! add x:t = Void
-  self!x += x
+	self!x += x
 
 fun Main = I32
-  let v = { x=0 }:(container I32)
-  such
-    v!add 1
-  return v.x - 1
+	let v = { x=0 }:(container I32)
+	such
+		v!add 1
+	return v.x - 1

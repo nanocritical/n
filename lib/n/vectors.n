@@ -3,70 +3,70 @@ import n.unsafe
 from n.sysheap import Sysheap Heap
 
 opaque struct Vector t:`Copyable =
-  isa `Trivial_ctor (`Array_ctor t) `Copyable (`Random_container t)
-  p	:[]!t
-  c	:Size
+	isa `Trivial_ctor (`Array_ctor t) `Copyable (`Random_container t)
+	p	:[]!t
+	c	:Size
 
 inline Vector fun From_array c:@(Static_array t) = r:this
-  r#Reserve c.Count
-  foreach i in c.All
-    r#Push c.[i].
+	r#Reserve c.Count
+	foreach i in c.All
+		r#Push c.[i].
 
 inline Vector met Count = Size
-  return self.c
+	return self.c
 
 inline Vector shallow met$ Operator_at n:Size = @$t
-  Assert <- n < self.c
-  return self$p$[n]
+	Assert <- n < self.c
+	return self$p$[n]
 
 inline Vector met$ First = @$t
-  return self$[0]
+	return self$[0]
 
 inline Vector met$ Last = @$t
-  return self$[self.c-1]
+	return self$[self.c-1]
 
 inline Vector met Is_empty = Bool
-  return self.c == 0
+	return self.c == 0
 
 inline Vector met Capacity = Size
-  return self.p.Count
+	return self.p.Count
 
 inline Vector met# Reserve n:Size = Void
-  if n > self.Capacity
-    (Heap.Slice_realloc t) @!Sysheap @#self#p n
+	if n > self.Capacity
+		(Heap.Slice_realloc t) @!Sysheap @#self#p n
 
 inline Vector met# Resize n:Size = Void
-  (Heap.Slice_realloc t) @!Sysheap @#self#p n
-  self!c = n
+	(Heap.Slice_realloc t) @!Sysheap @#self#p n
+	self!c = n
 
 inline Vector met# Push x:t = Void
-  self#Reserve self.c+1
-  let n = self.c
-  self!c += 1
-  let d = self![n]
-  d! = x
+	self#Reserve self.c+1
+	let n = self.c
+	self!c += 1
+	let d = self![n]
+	d! = x
 
 inline Vector met# Pop = t
-  Assert <- self.c != 0
-  let d = self.Last
-  self!c -= 1
-  return d.
+	Assert <- self.c != 0
+	let d = self.Last
+	self!c -= 1
+	return d.
 
 inline Vector met# Clear = Void
-  (Heap.Slice_free t) @!Sysheap @#self#p
+	(Heap.Slice_free t) @!Sysheap @#self#p
 
 inline Vector met All = Index_range
-  return Range 0 self.Count
+	return Range 0 self.Count
 
 inline Vector met# Copy_ctor other:@this = Void
-  (Heap.Slice_realloc t) @!Sysheap @#self#p other.p.Count
-  self.p!Copy other.p
-  self!c = other.c
+	(Heap.Slice_realloc t) @!Sysheap @#self#p other.p.Count
+	self.p!Copy other.p
+	self!c = other.c
 
 inline Vector met# Append_slice other:[]t = Void
-  (Heap.Slice_realloc t) @!Sysheap @#self#p self.Count+other.Count
-  self.p![self.c ..]!Copy other
-  self!c = other.Count
+	(Heap.Slice_realloc t) @!Sysheap @#self#p self.Count+other.Count
+	self.p![self.c ..]!Copy other
+	self!c = other.Count
 
 inline Vector met$ Storage = []$t
-  return self$p
+	return self$p

@@ -2,9 +2,9 @@ from n import *
 from n.strings import *
 
 fun foo = String
-  return 'test'
+	return 'test'
 
 fun Main = I32
-  Say 'test'
-  Say foo
-  return 0
+	Say 'test'
+	Say foo
+	return 0

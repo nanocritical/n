@@ -1,6 +1,6 @@
 from n import *
 
 fun foobar = Void
-  return
+	return
 fun foobar = Void
-  return
+	return

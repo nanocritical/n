@@ -1,5 +1,5 @@
 from n import *
 
 fun Main = I32
-  Assert <- alignof I32 == alignof U32
-  return 0
+	Assert <- alignof I32 == alignof U32
+	return 0

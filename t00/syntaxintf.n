@@ -1,10 +1,10 @@
 from n import *
 
 intf `Example =
-  (met! t:`Any) alloc = @#t
-  (met! t:`Any) Free p:?@#t = Void
-  (met! t:`Any) slice_realloc s:@#[]!t count:Size = Void
-  (met! t:`Any) slice_free s:@#[]!t = Void
+	(met! t:`Any) alloc = @#t
+	(met! t:`Any) Free p:?@#t = Void
+	(met! t:`Any) slice_realloc s:@#[]!t count:Size = Void
+	(met! t:`Any) slice_free s:@#[]!t = Void
 
 fun Main = I32
-  return 0
+	return 0

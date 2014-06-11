@@ -1,24 +1,24 @@
 from n import *
 
 intf `Heap_element =
-  isa `Copyable `Ordered
+	isa `Copyable `Ordered
 
 opaque struct Heap t:`Heap_element =
-  isa `Trivial_ctor `Copyable
-  h:(Vector t)
-  c:Size
+	isa `Trivial_ctor `Copyable
+	h:(Vector t)
+	c:Size
 
 inline Heap met# Reserve Count:Size = Void
-  self.h#Reserve Count
+	self.h#Reserve Count
 
 inline Heap met Count = Size
-  return self.c
+	return self.c
 
 inline Heap met# Push x:t = Void
-  self!c += 1
+	self!c += 1
 
 inline Heap met# Pop = t
-  self!c -= 1
+	self!c -= 1
 
 inline Heap met first = t
 inline Heap met last = t

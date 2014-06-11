@@ -1,4 +1,4 @@
 from n import *
 
 fun foobar x = Void
-  return
+	return

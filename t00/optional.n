@@ -1,44 +1,44 @@
 from n import *
 
 fun opts ?a:?@I32 = I32
-  return Optional a 1
+	return Optional a 1
 
 fun chained v:@!(Vararg @I32) = I32
-  let s = 0
-  such
-    for i in v!
-      s += i.
-  return s
+	let s = 0
+	such
+		for i in v!
+			s += i.
+	return s
 
 fun var a:I32 ?b:?@I32 ...v:(Vararg @I32) = I32
-  let s = chained @!v
-  return a + (Optional b 0) + s
+	let s = chained @!v
+	return a + (Optional b 0) + s
 
 fun onlyvar ...v:(Vararg @I32) = I32
-  let s = 0
-  such
-    for i in v
-      s += i.
-  return s
+	let s = 0
+	such
+		for i in v
+			s += i.
+	return s
 
 fun diff x:I32 ...v:(Vararg @I32) = I32
-  let d = 0
-  such
-    for i in v
-      d -= i.
-  return x + d
+	let d = 0
+	such
+		for i in v
+			d -= i.
+	return x + d
 
 fun Main = I32
-  if opts a=1 != 1
-    return 1
-  if opts a=1 != opts
-    return 1
+	if opts a=1 != 1
+		return 1
+	if opts a=1 != opts
+		return 1
 
-  Assert <- 10 == var 0 b=1 2 3 4
-  Assert <- 10 == onlyvar 0 1 2 3 4
+	Assert <- 10 == var 0 b=1 2 3 4
+	Assert <- 10 == onlyvar 0 1 2 3 4
 
-  Assert <- -1 == diff 0 - 1
-  Assert <- 1 == diff 0 -1
-  Assert <- 1 == diff 0 (-1)
+	Assert <- -1 == diff 0 - 1
+	Assert <- 1 == diff 0 -1
+	Assert <- 1 == diff 0 (-1)
 
-  return opts a=0
+	return opts a=0

@@ -4,80 +4,80 @@ from n.memory import *
 import n.unsafe
 
 inline struct Char =
-  isa `Static_string_compatible `Show
-  Code	:U32
+	isa `Static_string_compatible `Show
+	Code	:U32
 
 inline Char fun From_static_string s:Static_string = this
-  Assert <- s.Count == 1
-  return { Code=(s.Get_char 0).Code }
+	Assert <- s.Count == 1
+	return { Code=(s.Get_char 0).Code }
 
 inline Char fun From_ascii c:U8 = Char
-  return { Code=c.To_u32 }
+	return { Code=c.To_u32 }
 
 example <- Char.From_ascii 49 == '1':Char
 
 inline Char met Show buf:@#`String_buffer = Void
-  buf#Push self.
+	buf#Push self.
 
 intf `Static_string_compatible =
-  fun From_static_string s:Static_string = final
+	fun From_static_string s:Static_string = final
 
 intf `Const_string =
-  isa `Static_string_compatible
+	isa `Static_string_compatible
 -- export `Random_container
-  met Count = Size
-  met All = Index_range
-  met Get_char n:Size = Char
-  met Bytes_utf8 = []U8
+	met Count = Size
+	met All = Index_range
+	met Get_char n:Size = Char
+	met Bytes_utf8 = []U8
 
 intf `String =
-  isa `Const_string
-  met! Set_char n:Size c:Char = Void
-  met! Fill c:Char r:Index_range = Void
+	isa `Const_string
+	met! Set_char n:Size c:Char = Void
+	met! Fill c:Char r:Index_range = Void
 
 intf `String_buffer =
-  isa `String
-  met# Reserve Count:Size = Void
-  met# Clear = Void
-  met# Push c:Char = Void
-  met# Pop = Char
-  met# Append other:@`Const_string = Void
-  met# Copy at:Size other:@`Const_string off:Size Count:Size = Void
+	isa `String
+	met# Reserve Count:Size = Void
+	met# Clear = Void
+	met# Push c:Char = Void
+	met# Pop = Char
+	met# Append other:@`Const_string = Void
+	met# Copy at:Size other:@`Const_string off:Size Count:Size = Void
 
 opaque struct Static_string =
-  isa `Trivial_copy `Return_by_copy `Ordered_by_compare `Show
-      \ `Static_string_compatible `Const_string `Trivial_ctor
-  bytes	:[]U8
+	isa `Trivial_copy `Return_by_copy `Ordered_by_compare `Show
+			\ `Static_string_compatible `Const_string `Trivial_ctor
+	bytes	:[]U8
 
 inline Static_string met# Unsafe_wrap bytes:@U8 Count:Size = Void
-  let raw = (n.unsafe.Cast @U8 @#U8) bytes
-  self.bytes#Unsafe_wrap raw Count
+	let raw = (n.unsafe.Cast @U8 @#U8) bytes
+	self.bytes#Unsafe_wrap raw Count
 
 inline Static_string fun Mk bytes:@U8 Count:Size = r:this
-  r#Unsafe_wrap bytes Count
-  return r
+	r#Unsafe_wrap bytes Count
+	return r
 
 inline Static_string fun From_static_string s:Static_string = this
-  return { bytes=s.bytes }
+	return { bytes=s.bytes }
 
 inline Static_string met Count = Size
-  return self.bytes.Count
+	return self.bytes.Count
 
 inline Static_string met All = Index_range
-  return self.bytes.All
+	return self.bytes.All
 
 inline Static_string met Get_char n:Size = Char
-  return Char.From_ascii self.bytes.[n].
+	return Char.From_ascii self.bytes.[n].
 
 inline Static_string met Bytes_utf8 = []U8
-  return self.bytes
+	return self.bytes
 
 extern Static_string met Operator_compare other:@this = I32
 
 Static_string met Show buf:@#`String_buffer = Void
-  buf#Reserve buf.Count + self.Count
-  foreach i in self.All
-    buf#Push (self.Get_char i)
+	buf#Reserve buf.Count + self.Count
+	foreach i in self.All
+		buf#Push (self.Get_char i)
 
 example <- '1234'.Count == 4
 example <- '1234'.All == Range 0 4
@@ -89,4 +89,4 @@ example <- '1234'.Bytes_utf8.[0]. == 49
 
 
 intf `Show =
-  met Show buf:@#`String_buffer = Void
+	met Show buf:@#`String_buffer = Void

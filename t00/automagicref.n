@@ -2,103 +2,103 @@ from n import *
 from n.vectors import *
 
 struct A =
-  isa `Trivial_ctor
-  dummy	:I32
+	isa `Trivial_ctor
+	dummy	:I32
 
 A (met t:`Any) explicit p:@t = t
-  return p.
+	return p.
 
 struct B =
-  isa `Trivial_ctor
-  dummy	:I32
+	isa `Trivial_ctor
+	dummy	:I32
 
 B (met t:`Any r:`Any_ref) implicit p:(r t) = t
-  return p.
+	return p.
 
 fun null_arg p:?@?@I32 = Void
-  Assert <- p === null
+	Assert <- p === null
 
 fun null_arg_value p:?@?@I32 = Void
-  Assert <- p !== null and p. === null
+	Assert <- p !== null and p. === null
 
 fun bar p:?@?@I32 = Void
-  noop
+	noop
 
 struct holder t:{`Copyable `Trivial_ctor} =
-  x	:t
+	x	:t
 
 holder fun create x:t = this
-  return {x=x}
+	return {x=x}
 
 fun Main = I32
-  let h = holder.create 1:I32
-  let hh = (holder ?@I32).create @1:I32
-  let _ = h.x
-  let _ = hh.x
+	let h = holder.create 1:I32
+	let hh = (holder ?@I32).create @1:I32
+	let _ = h.x
+	let _ = hh.x
 
-  let a = 'test'
-  and b = 'test'
-  let pa = @a
-  let pb = @b
+	let a = 'test'
+	and b = 'test'
+	let pa = @a
+	let pb = @b
 
-  let x = a == b
-  Assert x
-  Assert <- pa == b
-  Assert <- a == pb
-  Assert <- pa == pb
+	let x = a == b
+	Assert x
+	Assert <- pa == b
+	Assert <- a == pb
+	Assert <- pa == pb
 
-  block
-    let p1 = @1
-    let a = {}:A
+	block
+		let p1 = @1
+		let a = {}:A
 
-    -- We can't accept both.
-    -- Well, we can. They just don't mean the same thing. The second form is
-    -- taking the address of a temporary variable that contains null. It shouldn't
-    -- compile without further typing specification.
-    null_arg null
-    null_arg_value @null
+		-- We can't accept both.
+		-- Well, we can. They just don't mean the same thing. The second form is
+		-- taking the address of a temporary variable that contains null. It shouldn't
+		-- compile without further typing specification.
+		null_arg null
+		null_arg_value @null
 
-    -- With @@ there is capture of the inner reference, so there should be a @
-    -- somewhere, no? Are we making captures very visible in the code? Is that
-    -- necessary as they are otherwise being tracked?
+		-- With @@ there is capture of the inner reference, so there should be a @
+		-- somewhere, no? Are we making captures very visible in the code? Is that
+		-- necessary as they are otherwise being tracked?
 
-    let x = {}
-    bar @x
+		let x = {}
+		bar @x
 
-    --Assert <- 1 == a.explicit @1:I32
-    Assert <- 1 == a.explicit 1:I32
-    Assert <- p1 !== @(a.explicit 1:I32)
+		--Assert <- 1 == a.explicit @1:I32
+		Assert <- 1 == a.explicit 1:I32
+		Assert <- p1 !== @(a.explicit 1:I32)
 
-    let b = {}:B
-    Assert <- 1 == b.implicit @1:I32
-    -- Assert <- 1 == b.implicit 1:I32 -- invalid
-    Assert <- @1 !== b.implicit @@1:I32
+		let b = {}:B
+		Assert <- 1 == b.implicit @1:I32
+		-- Assert <- 1 == b.implicit 1:I32 -- invalid
+		Assert <- @1 !== b.implicit @@1:I32
 
-    Assert <- 1 == (B.implicit I32 Ref) b @1:I32
-    -- Assert <- 1 == (B.implicit I32 @I32) b 1:I32 -- invalid
-    -- Assert <- @1 !== (B.implicit @I32 @@I32) b @1:I32 -- invalid
-    Assert <- @1 !== (B.implicit @I32 Ref) b @@1:I32
+		Assert <- 1 == (B.implicit I32 Ref) b @1:I32
+		-- Assert <- 1 == (B.implicit I32 @I32) b 1:I32 -- invalid
+		-- Assert <- @1 !== (B.implicit @I32 @@I32) b @1:I32 -- invalid
+		Assert <- @1 !== (B.implicit @I32 Ref) b @@1:I32
 
-  let n = @1
-  let m = @2
-  let p3 = @3
-  Assert <- n + m == 3:I32
-  Assert <- n + m == p3
-  Assert <- 1 + 2 == p3
-  Assert <- n + 2 == p3
+	let n = @1
+	let m = @2
+	let p3 = @3
+	Assert <- n + m == 3:I32
+	Assert <- n + m == p3
+	Assert <- 1 + 2 == p3
+	Assert <- n + 2 == p3
 
-  let v = {1 2}:(Vector I32)
-  let r = @v.All
-  foreach x in r
-    Say x
+	let v = {1 2}:(Vector I32)
+	let r = @v.All
+	foreach x in r
+		Say x
 
-  --let e = @en.A
-  --match e
-  --| A -> noop
-  --| B -> noop
+	--let e = @en.A
+	--match e
+	--| A -> noop
+	--| B -> noop
 
-  --match e
-  --| @A -> noop -- invalid
-  --| B -> noop
+	--match e
+	--| @A -> noop -- invalid
+	--| B -> noop
 
-  return 0
+	return 0

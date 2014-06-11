@@ -4,19 +4,19 @@ from n.vectors import Vector
 alias v32 = Vector I32
 
 fun foo = v32
-  return {1 0 2}
+	return {1 0 2}
 
 fun Main = I32
-  let v = {}:v32
-  such
-    v#Push 0
-    v#Push 1
-    Assert <- v#Pop == 1
-    v#Push 1
-    for i in v.All.Iter
-      Assert <- v.[i]. == i.Trim_u32.Reinterpret_signed
-  let w = foo
-  Assert <- w.[0]. == 1
-  Assert <- w.[1]. == 0
-  Assert <- w.[2]. == 2
-  return v.[1]. - 1
+	let v = {}:v32
+	such
+		v#Push 0
+		v#Push 1
+		Assert <- v#Pop == 1
+		v#Push 1
+		for i in v.All.Iter
+			Assert <- v.[i]. == i.Trim_u32.Reinterpret_signed
+	let w = foo
+	Assert <- w.[0]. == 1
+	Assert <- w.[1]. == 0
+	Assert <- w.[2]. == 2
+	return v.[1]. - 1

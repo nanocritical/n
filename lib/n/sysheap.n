@@ -5,32 +5,32 @@ extern inline fun Realloc p:?@#U8 oldbsz:Size bsz:Size = @#U8
 extern inline fun Free p:?@#U8 sz:Size = Void
 
 opaque struct Heap =
-  dummy:I32
+	dummy:I32
 
 Heap (met! t:`Any) Alloc = @#t
-  let raw = Realloc null 0 (sizeof t)
-  return (n.unsafe.Cast @#U8 @#t) raw
+	let raw = Realloc null 0 (sizeof t)
+	return (n.unsafe.Cast @#U8 @#t) raw
 
 Heap (met! t:`Any) Free p:?@#t = Void
-  let raw = (n.unsafe.Cast ?@#t ?@#U8) p
-  return Free raw (sizeof t)
+	let raw = (n.unsafe.Cast ?@#t ?@#U8) p
+	return Free raw (sizeof t)
 
 Heap (met! t:`Any) Slice_realloc s:@#[]!t Count:Size = Void
-  let bsz = Count * (sizeof t)
-  if s.Count == 0
-    s#dat = (n.unsafe.Cast @#U8 ?@#t) (Realloc null 0 bsz)
-    s#cnt = Count
-  else
-    let old_bsz = s.Bytecount
-    let raw = s#Unsafe_rawdata
-    s#dat = (n.unsafe.Cast @#U8 ?@#t) (Realloc raw old_bsz bsz)
-    s#cnt = Count
+	let bsz = Count * (sizeof t)
+	if s.Count == 0
+		s#dat = (n.unsafe.Cast @#U8 ?@#t) (Realloc null 0 bsz)
+		s#cnt = Count
+	else
+		let old_bsz = s.Bytecount
+		let raw = s#Unsafe_rawdata
+		s#dat = (n.unsafe.Cast @#U8 ?@#t) (Realloc raw old_bsz bsz)
+		s#cnt = Count
 
 Heap (met! t:`Any) Slice_free s:@#[]!t = Void
-  let bsz = s.Bytecount
-  let raw = s#Unsafe_rawdata
-  Free raw bsz
-  s#cnt = 0
-  s#dat = null
+	let bsz = s.Bytecount
+	let raw = s#Unsafe_rawdata
+	Free raw bsz
+	s#cnt = 0
+	s#dat = null
 
 let Sysheap = {}:Heap

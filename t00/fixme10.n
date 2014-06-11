@@ -1,9 +1,9 @@
 from n import *
 
 struct a =
-  isa `Trivial_ctor
-  x	:b
+	isa `Trivial_ctor
+	x	:b
 
 struct b =
-  isa `Trivial_ctor
-  y	:a
+	isa `Trivial_ctor
+	y	:a

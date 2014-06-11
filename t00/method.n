@@ -1,17 +1,17 @@
 from n import *
 
 struct t =
-  isa `Trivial_copy
-  x:I32
+	isa `Trivial_copy
+	x:I32
 
 t met get = I32
-  return self.x
+	return self.x
 
 t met! set x:I32 = Void
-  self!x = x
+	self!x = x
 
 fun Main = I32
-  let tt = { x=0 }:t
-  such
-    tt!set 1
-  return tt.get - 1
+	let tt = { x=0 }:t
+	such
+		tt!set 1
+	return tt.get - 1

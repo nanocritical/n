@@ -1,28 +1,28 @@
 from n import *
 
 struct tt =
-  isa `Trivial_copy
-  x:I32
-  y:I32
+	isa `Trivial_copy
+	x:I32
+	y:I32
 
 struct t =
-  isa `Trivial_copy
-  x:I32
-  y:tt
+	isa `Trivial_copy
+	x:I32
+	y:tt
 
 fun Foo x:I32 y:I32 = I32
-  return x
+	return x
 
 fun Main = I32
-  let a = {
-    x = 1
-    y = {
-      x = 1
-      y = 0
-    }
-  }:t
-  let b = (Foo
-             (Foo 0
-                1)
-             1)
-  return b + a.y.x - 1
+	let a = {
+		x = 1
+		y = {
+			x = 1
+			y = 0
+		}
+	}:t
+	let b = (Foo
+			(Foo 0
+				1)
+			1)
+	return b + a.y.x - 1

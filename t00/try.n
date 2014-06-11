@@ -1,49 +1,49 @@
 from n import *
 
 fun inferred = Error
-  try
-    throw { code=1 }
-  catch err
-    return err
+	try
+		throw { code=1 }
+	catch err
+		return err
 
 fun Foo = I32
-  try
-    throw ONE { code=1 }:Error
-    throw ZERO { code=0 }:Error
-    return 2
-  catch ZERO _
-    return 0
-  catch ONE _
-    return 1
+	try
+		throw ONE { code=1 }:Error
+		throw ZERO { code=0 }:Error
+		return 2
+	catch ZERO _
+		return 0
+	catch ONE _
+		return 1
 
 fun bar = I32
-  try
-    let except = { code=1 }:Error
-    return 0
-  catch err
-    try
-      let except ONE = { code=err.code+1 }:Error
-      let except ZERO = { code=0 }:Error
-      return 0
-    catch ONE err
-      return err.code - 1
-    catch ZERO _
-      return 0
+	try
+		let except = { code=1 }:Error
+		return 0
+	catch err
+		try
+			let except ONE = { code=err.code+1 }:Error
+			let except ZERO = { code=0 }:Error
+			return 0
+		catch ONE err
+			return err.code - 1
+		catch ZERO _
+			return 0
 
 fun noerror = I32
-  try
-    let except = { code=0 }:Error
-    return 0
-  catch _
-    return 1
+	try
+		let except = { code=0 }:Error
+		return 0
+	catch _
+		return 1
 
 fun Main = I32
-  Assert <- inferred != Error.OK
-  Assert <- Foo == 1
-  Assert <- bar == 1
-  Assert <- noerror == 0
-  try
-    throw { code=bar }:Error
-    return 1
-  catch err
-    return err.code - 1
+	Assert <- inferred != Error.OK
+	Assert <- Foo == 1
+	Assert <- bar == 1
+	Assert <- noerror == 0
+	try
+		throw { code=bar }:Error
+		return 1
+	catch err
+		return err.code - 1

@@ -14,4 +14,4 @@ alias `our = {`Copyable `Trivial_ctor}
 alias v32 = vector U32
 
 struct holder t:`our =
-  x	:t
+	x	:t

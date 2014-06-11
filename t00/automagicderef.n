@@ -1,44 +1,44 @@
 from n import *
 
 struct holder t:{`Copyable `Trivial_ctor} =
-  x	:t
+	x	:t
 
 holder fun mk x:t = this --::(nonnull x => nonnull self.x)
-  return {x=x}
+	return {x=x}
 
 fun id x:@I32 = @I32
-  return x
+	return x
 
 fun Main = I32
-  let x = (Max I32) 0 1:I32
-  let xx = Max 0 1:I32
+	let x = (Max I32) 0 1:I32
+	let xx = Max 0 1:I32
 
-  let p0 = @0:I32
-  let p1 = @1:I32
-  let np1 = null
-  such
-    np1 = p1
-  let y = (Max I32) p0 p1
-  let yy = Max p0 p1
+	let p0 = @0:I32
+	let p1 = @1:I32
+	let np1 = null
+	such
+		np1 = p1
+	let y = (Max I32) p0 p1
+	let yy = Max p0 p1
 
-  let h = (holder.mk p1):(holder I32)
-  let h1 = ((holder ?@I32).mk p1):(holder ?@I32)
-  let hh = (holder.mk @np1):(holder ?@I32)
-  let hhh = (holder.mk 1:I32):(holder I32)
+	let h = (holder.mk p1):(holder I32)
+	let h1 = ((holder ?@I32).mk p1):(holder ?@I32)
+	let hh = (holder.mk @np1):(holder ?@I32)
+	let hhh = (holder.mk 1:I32):(holder I32)
 
-  -- FIXME: need support for ::nonnull on mk to use h1.x and hh.x in the return
-  -- expression at the end.
-  let _ = h1.x
-  let _ = hh.x
+	-- FIXME: need support for ::nonnull on mk to use h1.x and hh.x in the return
+	-- expression at the end.
+	let _ = h1.x
+	let _ = hh.x
 
-  Assert <- 1 == p0 + p1
-  Assert <- 1 == p0. + p1
-  Assert <- 1 == p0 + p1.
-  Assert <- 1 == p0. + p1.
-  Assert <- 1 == (id p0) + p1
-  Assert <- 1 == (id p0). + p1
+	Assert <- 1 == p0 + p1
+	Assert <- 1 == p0. + p1
+	Assert <- 1 == p0 + p1.
+	Assert <- 1 == p0. + p1.
+	Assert <- 1 == (id p0) + p1
+	Assert <- 1 == (id p0). + p1
 
-  let pu3 = @3:U32
-  Assert <- 8 == 1:U64 << pu3
+	let pu3 = @3:U32
+	Assert <- 8 == 1:U64 << pu3
 
-  return x + xx + p0 + p1 + y + yy + h.x + hhh.x - 7 -- + h1.x + hh.x - 2
+	return x + xx + p0 + p1 + y + yy + h.x + hhh.x - 7 -- + h1.x + hh.x - 2

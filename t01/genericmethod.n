@@ -1,19 +1,19 @@
 from n import *
 
 intf `blah =
-  (met t:`Integer) decr x:t = t
+	(met t:`Integer) decr x:t = t
 
 struct blah =
-  isa `blah
-  dummy:U8
+	isa `blah
+	dummy:U8
 
 blah (met t:`Integer) `blah.decr x:t = t
-  return x - 1
+	return x - 1
 
 blah (met t:`Integer) decrf x:t = t
-  return x - 1
+	return x - 1
 
 fun Main = I32
-  let b = { dummy=0 }:blah
-  let _ = (blah.decr U32) b 1
-  return (blah.decrf I32) b 1
+	let b = { dummy=0 }:blah
+	let _ = (blah.decr U32) b 1
+	return (blah.decrf I32) b 1

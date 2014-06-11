@@ -1,41 +1,41 @@
 from n import *
 
 union u =
-  | A = 0
-  | B
-    x	:I32
-  | C
-    x	:U32
+	| A = 0
+	| B
+		x	:I32
+	| C
+		x	:U32
 
 fun aux e:u = I32
-  match e
-  | B
-    return e.B.x
-  | _
-    return 0
+	match e
+	| B
+		return e.B.x
+	| _
+		return 0
 
 fun set1 e:@!u = Void
-  match e.
-  | B
-    e!B.x = 1
-  | _
-    noop
+	match e.
+	| B
+		e!B.x = 1
+	| _
+		noop
 
 fun Main = I32
-  let g = {}:u.A
-  match g
-  | B -> return 1
-  | C -> return 1
-  | _ -> noop
+	let g = {}:u.A
+	match g
+	| B -> return 1
+	| C -> return 1
+	| _ -> noop
 
-  let f = {}:u.B
-  Say f.B.x
-  set1 @!f
-  Say f.B.x
+	let f = {}:u.B
+	Say f.B.x
+	set1 @!f
+	Say f.B.x
 
-  let e = {x=1}:u.B
-  match e
-  | B
-    Assert <- e.B.x != 0
+	let e = {x=1}:u.B
+	match e
+	| B
+		Assert <- e.B.x != 0
 
-  return (aux e) - 1
+	return (aux e) - 1

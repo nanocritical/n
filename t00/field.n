@@ -1,8 +1,8 @@
 from n import *
 
 struct t =
-  x:I32
+	x:I32
 
 fun Main = I32
-  let tt:t
-  return tt.x
+	let tt:t
+	return tt.x

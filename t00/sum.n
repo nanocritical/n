@@ -1,51 +1,51 @@
 from n import *
 
 enum en =
-  | A
-  | B = 3:U32
-  | C
+	| A
+	| B = 3:U32
+	| C
 
 enum hen =
-  | A
-  | B
-    | BA
-    | BB
-    | BC
-  | C
+	| A
+	| B
+		| BA
+		| BB
+		| BC
+	| C
 
 union un =
-  | A
-  | B
-    x	:U32
-  | C = 2:U8
-    x	:en
+	| A
+	| B
+		x	:U32
+	| C = 2:U8
+		x	:en
 
 union hun =
-  | A
-  | B
-    x	:U32
-    | BA
-      y	:U32
-      z	:U32
-    | BB
-      z	:I64
+	| A
+	| B
+		x	:U32
+		| BA
+			y	:U32
+			z	:U32
+		| BB
+			z	:I64
 
 --fun only_a x:en::|A = Void
 --  noop
 
 fun Main = I32
-  let e = en.A
+	let e = en.A
 --  only_a e
-  match e
-  | A -> noop
-  | _ -> return 1
+	match e
+	| A -> noop
+	| _ -> return 1
 
-  let f = hen.BA
-  match f
-  | B -> noop
-  | _ -> return 1
-  match f
-  | BA -> noop
-  | _ -> return 1
+	let f = hen.BA
+	match f
+	| B -> noop
+	| _ -> return 1
+	match f
+	| BA -> noop
+	| _ -> return 1
 
-  return 0
+	return 0

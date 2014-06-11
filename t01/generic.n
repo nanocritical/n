@@ -1,9 +1,9 @@
 from n import *
 
 struct container t:`Copyable =
-  isa `Trivial_ctor
-  x:t
+	isa `Trivial_ctor
+	x:t
 
 fun Main = I32
-  let v = { x=1 }:(container I32)
-  return v.x - 1
+	let v = { x=1 }:(container I32)
+	return v.x - 1

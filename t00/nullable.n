@@ -2,16 +2,16 @@ from n import *
 from n.sysheap import Heap Sysheap
 
 fun mk_nullable = ?@I32
-  let r = (Heap.Alloc I32) @!Sysheap
-  r! = 1
-  return r
+	let r = (Heap.Alloc I32) @!Sysheap
+	r! = 1
+	return r
 
 fun Main = I32
-  let p = mk_nullable
-  if not p?
-    return 1
-  if not mk_nullable?
-    return 0
-  let q = mk_nullable
-  let x = q else 0
-  return x - 1
+	let p = mk_nullable
+	if not p?
+		return 1
+	if not mk_nullable?
+		return 0
+	let q = mk_nullable
+	let x = q else 0
+	return x - 1

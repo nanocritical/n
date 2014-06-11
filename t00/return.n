@@ -1,15 +1,15 @@
 from n import *
 
 struct copy =
-  isa `Return_by_copy
-  x:I32
+	isa `Return_by_copy
+	x:I32
 
 fun Foo x:I32 = n:copy
-  n!x = x
-  return n
+	n!x = x
+	return n
 
 fun chained x:I32 = n:copy
-  return Foo x
+	return Foo x
 
 fun Main = I32
-  return (chained 1).x - 1
+	return (chained 1).x - 1

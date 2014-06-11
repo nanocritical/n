@@ -1,5 +1,5 @@
 from n import *
 
 fun Main = I32
-  if x -> return 0
-  else -> return 1
+	if x -> return 0
+	else -> return 1

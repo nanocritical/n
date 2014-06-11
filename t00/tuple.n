@@ -1,11 +1,11 @@
 from n import *
 
 fun Foo = I32, I32
-  return 1, -1
+	return 1, -1
 
 fun bar = x:I32, y:I32
-  x = 1
-  y = -1
+	x = 1
+	y = -1
 
 -- fun bar2 = x:I32, (y:I32, z:I32)
 --   x = 1
@@ -25,17 +25,17 @@ fun bar = x:I32, y:I32
 --
 
 fun Main = I32
-  let x0, y0 = 1, -1
-  let x, y = Foo
-  Assert <- x0*y0*x*y == 1
+	let x0, y0 = 1, -1
+	let x, y = Foo
+	Assert <- x0*y0*x*y == 1
 
-  let x1, _ = Foo
-  let _, y1 = Foo
+	let x1, _ = Foo
+	let _, y1 = Foo
 
-  let x2, y2 = bar
-  Assert <- x2 + y2 == 0
+	let x2, y2 = bar
+	Assert <- x2 + y2 == 0
 
 --  let x3, (y3, z3) = bar2
 --  Assert <- x3 + y3 - z3 == 0
 
-  return (x0 + y0) + (x + y) + (x1 + y1)
+	return (x0 + y0) + (x + y) + (x1 + y1)

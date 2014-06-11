@@ -1,22 +1,22 @@
 from n import *
 
 struct t =
-  isa `Trivial_copy
-  x:I32
-  xx:I32
+	isa `Trivial_copy
+	x:I32
+	xx:I32
 
 fun Foo = t
-  return { x=3 }
+	return { x=3 }
 
 fun bar = t
-  return Foo
+	return Foo
 
 fun bar2 = r:t
-  r = bar
-  return r
+	r = bar
+	return r
 
 fun Main = I32
-  let y = bar
-  if y.x != bar2.x
-    return 1
-  return y.xx
+	let y = bar
+	if y.x != bar2.x
+		return 1
+	return y.xx

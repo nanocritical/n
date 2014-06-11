@@ -1,35 +1,35 @@
 from n import *
 
 enum enu =
-  | A = 0
-  | B
+	| A = 0
+	| B
 
 fun Foo n:enu = I32
-  match n
-  | A -> return 0
-  | B -> return 1
+	match n
+	| A -> return 0
+	| B -> return 1
 
 fun bar n:enu = I32
-  match n
-  | A -> Say n; return 0
-  | _ -> Say n; return 1
+	match n
+	| A -> Say n; return 0
+	| _ -> Say n; return 1
 
 struct t =
-  x	:enu
+	x	:enu
 
 fun bor xt:@t = Bool
-  return xt.x == A
+	return xt.x == A
 
 fun Main = I32
-  let xt = { x=A }
-  if not bor xt
-    return 1
+	let xt = { x=A }
+	if not bor xt
+		return 1
 
-  let n = enu.A
-  if n != xt.x
-    return 1
-  let _ = Foo n
-  let _ = bar A
-  match n
-  | enu.A -> return 0
-  | enu.B -> return 1
+	let n = enu.A
+	if n != xt.x
+		return 1
+	let _ = Foo n
+	let _ = bar A
+	match n
+	| enu.A -> return 0
+	| enu.B -> return 1

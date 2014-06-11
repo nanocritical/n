@@ -1,27 +1,27 @@
 from n import *
 
 fun Main = I32
-  if false and true
-    Esay 'no'
-  if true and false
-    Esay 'no'
-  if false and false
-    Esay 'no'
-  if true and true
-    Esay 'yes'
+	if false and true
+		Esay 'no'
+	if true and false
+		Esay 'no'
+	if false and false
+		Esay 'no'
+	if true and true
+		Esay 'yes'
 
-  if false or true
-    Esay 'yes'
-  if true or false
-    Esay 'yes'
-  if false or false
-    Esay 'no'
-  if true or true
-    Esay 'yes'
+	if false or true
+		Esay 'yes'
+	if true or false
+		Esay 'yes'
+	if false or false
+		Esay 'no'
+	if true or true
+		Esay 'yes'
 
-  let x = false
-  and y = true
-  if x and y
-    return 1
-  else
-    return 0
+	let x = false
+	and y = true
+	if x and y
+		return 1
+	else
+		return 0

@@ -1,9 +1,9 @@
 from n import *
 
 fun Main = I32
-  let f = 0.0213
-  let g = f + 10.2 * .2
-  if g < 0.1:Float
-    return 1
-  else
-    return 0
+	let f = 0.0213
+	let g = f + 10.2 * .2
+	if g < 0.1:Float
+		return 1
+	else
+		return 0

@@ -1,4 +1,4 @@
 from n import *
 
 fun Main = I32
-  noop -- lacks return
+	noop -- lacks return

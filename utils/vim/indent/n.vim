@@ -2,9 +2,8 @@ if exists("b:did_indent") | finish | endif
 let b:did_indent = 1
 
 setlocal ts=8
-setlocal sw=2
+setlocal sw=8
 setlocal sts=0
-setlocal sta
 setlocal noexpandtab
 
 setlocal nolisp

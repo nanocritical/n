@@ -1,42 +1,42 @@
 from n import *
 
 fun Foo = I32
-  return block -> 0
+	return block -> 0
 
 fun deref p:@U32 = U32
-  return p.
+	return p.
 
 fun Main = I32
-  if true
-    noop
-  else
-    noop
-  block
-    Assert true
-  let x = block
-    1
-  Assert <- x == 1:U32
+	if true
+		noop
+	else
+		noop
+	block
+		Assert true
+	let x = block
+		1
+	Assert <- x == 1:U32
 
-  Assert <- Foo == 0
+	Assert <- Foo == 0
 
-  let x1 = block -> 0;; + 1
-  Assert <- x1 == x
-  let x2 = block -> 1;; + block -> 2
-  Assert <- x2 == 3:U32
+	let x1 = block -> 0;; + 1
+	Assert <- x1 == x
+	let x2 = block -> 1;; + block -> 2
+	Assert <- x2 == 3:U32
 
-  let y1 = if x > 0 -> 'test';; else -> 'Error'
-  and z1 = if y1 == 'test' -> 0;; else -> 1:U32
-  Assert <- z1 == 0
+	let y1 = if x > 0 -> 'test';; else -> 'Error'
+	and z1 = if y1 == 'test' -> 0;; else -> 1:U32
+	Assert <- z1 == 0
 
-  let y2 = if x > 0 -> 'test';; else -> 'Error'
-  and z2 = block
-    let tmp = 0:I32
-    such
-      for i in (Range 0 100).Iter -> tmp += i.Trim_u32.Reinterpret_signed
-    tmp
-  Assert <- y2 == 'test'
-  Assert <- z2 == 50*99
+	let y2 = if x > 0 -> 'test';; else -> 'Error'
+	and z2 = block
+		let tmp = 0:I32
+		such
+			for i in (Range 0 100).Iter -> tmp += i.Trim_u32.Reinterpret_signed
+		tmp
+	Assert <- y2 == 'test'
+	Assert <- z2 == 50*99
 
-  Assert <- (deref block -> 1:U32;;) == 1
+	Assert <- (deref block -> 1:U32;;) == 1
 
-  return 0
+	return 0

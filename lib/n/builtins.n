@@ -1,11 +1,11 @@
 -- In this file, imports go at the end of the file.
 
 extern intf `__literal_null__ =
-  isa `Any_nullable_ref
+	isa `Any_nullable_ref
 extern intf `__literal_integer__ =
-  isa `Integer
+	isa `Integer
 extern intf `__literal_floating__ =
-  isa `Floating
+	isa `Floating
 
 extern struct __internal_not_typeable__ =
 extern struct __call_function_slot__ =
@@ -20,144 +20,144 @@ intf `Any =
 intf `Prevent_dyn =
 
 intf `Copyable =
-  met# Copy_ctor other:@final = Void
+	met# Copy_ctor other:@final = Void
 intf `Not_copyable =
 intf `Copyable_but_owned =
-  isa `Copyable -- FIXME
+	isa `Copyable -- FIXME
 -- FIXME: `Trivial_copy should have other:@this, as it only needs `Any.sizeof.
 -- And there should be a copy_slice operation over `Trivial_copy. That's kinda
 -- the point.
 intf `Trivial_copy =
-  isa `Copyable
+	isa `Copyable
 intf `Trivial_copy_but_owned =
-  isa `Trivial_copy -- FIXME
+	isa `Trivial_copy -- FIXME
 intf `Return_by_copy =
 intf `Not_return_by_copy =
 intf `Default_ctor =
-  met# Ctor = Void
+	met# Ctor = Void
 intf `Non_default_ctor =
 
 intf `Default_dtor =
-  met# Dtor = Void
+	met# Dtor = Void
 intf `Error_dtor =
-  met# Dtor = Error
+	met# Dtor = Error
 
 intf `Trivial_ctor =
-  isa `Default_ctor
+	isa `Default_ctor
 intf `Trivial_dtor =
-  isa `Default_dtor
+	isa `Default_dtor
 
 intf `Matchable =
 intf `Has_compare =
-  -- The relation defined by `Has_compare.Operator_compare may be a partial
-  -- order, or maybe not an order, or maybe not even an equality.
-  -- `Equality_by_compare and `Ordered_by_compare must be used to indicate what
-  -- this relation actually is.
-  met Operator_compare other:@final = I32
+	-- The relation defined by `Has_compare.Operator_compare may be a partial
+	-- order, or maybe not an order, or maybe not even an equality.
+	-- `Equality_by_compare and `Ordered_by_compare must be used to indicate what
+	-- this relation actually is.
+	met Operator_compare other:@final = I32
 intf `Trivial_compare =
-  isa `Has_compare
+	isa `Has_compare
 intf `Has_equality =
-  isa `Has_compare `Matchable
-  met Operator_eq other:@final = Bool
-  met Operator_ne other:@final = Bool
+	isa `Has_compare `Matchable
+	met Operator_eq other:@final = Bool
+	met Operator_ne other:@final = Bool
 intf `Not_has_equality =
 intf `Equality_by_compare =
-  -- Compiler generates Operator_{eq,ne}.
-  isa `Has_compare `Has_equality
+	-- Compiler generates Operator_{eq,ne}.
+	isa `Has_compare `Has_equality
 intf `Trivial_equality =
-  isa `Trivial_compare `Equality_by_compare
+	isa `Trivial_compare `Equality_by_compare
 intf `Ordered =
-  isa `Has_equality `Has_compare
-  met Operator_le other:@final = Bool
-  met Operator_lt other:@final = Bool
-  met Operator_gt other:@final = Bool
-  met Operator_ge other:@final = Bool
+	isa `Has_equality `Has_compare
+	met Operator_le other:@final = Bool
+	met Operator_lt other:@final = Bool
+	met Operator_gt other:@final = Bool
+	met Operator_ge other:@final = Bool
 intf `Not_ordered =
 intf `Ordered_by_compare =
-  -- Compiler generates Operator_{le,lt,gt,ge}.
-  isa `Has_compare `Ordered
+	-- Compiler generates Operator_{le,lt,gt,ge}.
+	isa `Has_compare `Ordered
 intf `Trivial_order =
-  isa `Trivial_compare `Ordered_by_compare
+	isa `Trivial_compare `Ordered_by_compare
 intf `Arithmetic =
-  met Operator_plus other:@final = final
-  met Operator_minus other:@final = final
-  met Operator_divide other:@final = final
-  met Operator_modulo other:@final = final
-  met Operator_times other:@final = final
-  met Operator_uminus = final
-  met! Operator_assign_plus other:@final = Void
-  met! Operator_assign_minus other:@final = Void
-  met! Operator_assign_divide other:@final = Void
-  met! Operator_assign_modulo other:@final = Void
-  met! Operator_assign_times other:@final = Void
+	met Operator_plus other:@final = final
+	met Operator_minus other:@final = final
+	met Operator_divide other:@final = final
+	met Operator_modulo other:@final = final
+	met Operator_times other:@final = final
+	met Operator_uminus = final
+	met! Operator_assign_plus other:@final = Void
+	met! Operator_assign_minus other:@final = Void
+	met! Operator_assign_divide other:@final = Void
+	met! Operator_assign_modulo other:@final = Void
+	met! Operator_assign_times other:@final = Void
 intf `Bitwise =
-  met Operator_bwor other:@final = final
-  met Operator_bwxor other:@final = final
-  met Operator_bwand other:@final = final
-  met Operator_lshift by:U32 = final
-  met Operator_rshift by:U32 = final
-  met Operator_bwnot = final
-  met! Operator_assign_bwor other:@final = Void
-  met! Operator_assign_bwxor other:@final = Void
-  met! Operator_assign_bwand other:@final = Void
-  met! Operator_assign_lshift by:U32 = Void
-  met! Operator_assign_rshift by:U32 = Void
+	met Operator_bwor other:@final = final
+	met Operator_bwxor other:@final = final
+	met Operator_bwand other:@final = final
+	met Operator_lshift by:U32 = final
+	met Operator_rshift by:U32 = final
+	met Operator_bwnot = final
+	met! Operator_assign_bwor other:@final = Void
+	met! Operator_assign_bwxor other:@final = Void
+	met! Operator_assign_bwand other:@final = Void
+	met! Operator_assign_lshift by:U32 = Void
+	met! Operator_assign_rshift by:U32 = Void
 
 
 intf `Sum_copy =
-  isa `Copyable
+	isa `Copyable
 intf `Sum_equality =
-  isa `Has_equality
+	isa `Has_equality
 intf `Sum_order =
-  isa `Ordered
+	isa `Ordered
 
 
 extern inline struct Void =
-  isa `Prevent_dyn `Return_by_copy `Trivial_copy `Trivial_ctor
+	isa `Prevent_dyn `Return_by_copy `Trivial_copy `Trivial_ctor
 
 
 intf `Any_any_ref =
-  isa `Return_by_copy `Trivial_copy_but_owned
+	isa `Return_by_copy `Trivial_copy_but_owned
 intf `Any_ref t:`Any =
-  isa `Any_any_ref
+	isa `Any_any_ref
 intf `Any_mutable_ref t:`Any =
-  isa (`Any_ref t)
+	isa (`Any_ref t)
 intf `Any_nullable_ref t:`Any =
-  isa `Any_any_ref `Trivial_ctor
+	isa `Any_any_ref `Trivial_ctor
 intf `Any_nullable_mutable_ref t:`Any =
-  isa (`Any_nullable_ref t)
+	isa (`Any_nullable_ref t)
 
 extern struct Ref t:`Any =
-  isa (`Any_ref t)
+	isa (`Any_ref t)
 extern struct Mutable_ref t:`Any =
-  isa (`Any_mutable_ref t)
+	isa (`Any_mutable_ref t)
 extern struct Mercurial_ref t:`Any =
-  isa (`Any_mutable_ref t)
+	isa (`Any_mutable_ref t)
 
 -- FIXME: to replace with semantic constraint
 extern struct Nullable_ref t:`Any =
-  isa (`Any_nullable_ref t)
+	isa (`Any_nullable_ref t)
 extern struct Nullable_mutable_ref t:`Any =
-  isa (`Any_nullable_mutable_ref t)
+	isa (`Any_nullable_mutable_ref t)
 extern struct Nullable_mercurial_ref t:`Any =
-  isa (`Any_nullable_mutable_ref t)
+	isa (`Any_nullable_mutable_ref t)
 
 
 intf `Any_any_slice =
-  isa `Trivial_ctor `Trivial_dtor `Return_by_copy `Trivial_copy_but_owned
+	isa `Trivial_ctor `Trivial_dtor `Return_by_copy `Trivial_copy_but_owned
 
 intf `Any_slice t:`Any =
-  isa `Any_any_slice (`Random_container t)
-  met Bytecount = Size
-  met All = Index_range
-  shallow met$ Unsafe_rawdata = @$U8
-  shallow met$ Unsafe_data = @$t
-  shallow met$ Operator_at n:Size = @$t
-  shallow met$ Operator_sub r:Index_range = []$t
+	isa `Any_any_slice (`Random_container t)
+	met Bytecount = Size
+	met All = Index_range
+	shallow met$ Unsafe_rawdata = @$U8
+	shallow met$ Unsafe_data = @$t
+	shallow met$ Operator_at n:Size = @$t
+	shallow met$ Operator_sub r:Index_range = []$t
 
 intf `Any_mutable_slice t:`Any =
-  isa (`Any_slice t)
-  met! Copy other:[]t = Void
+	isa (`Any_slice t)
+	met! Copy other:[]t = Void
 
 -- The body of the methods for Slice and Mutable_slice are actually not used, as
 -- Slice_impl is used in codegen for both Slice and Mutable_slice. The code in
@@ -167,387 +167,387 @@ intf `Any_mutable_slice t:`Any =
 -- methods is All sorts of wrong and is bound to be rejected by the compiler.
 
 opaque struct Slice t:`Any =
-  isa (`Any_slice t)
-  dat	:?@#t
-  cnt	:Size
+	isa (`Any_slice t)
+	dat	:?@#t
+	cnt	:Size
 
 inline Slice fun create_impl_instance = (Slice_impl t)
-  return {}
+	return {}
 inline Slice met# Unsafe_wrap p:@U8 c:Size = Void
-  let s = this.create_impl_instance
-  s#Unsafe_wrap p c
+	let s = this.create_impl_instance
+	s#Unsafe_wrap p c
 inline Slice met Count = Size
-  let s = this.create_impl_instance
-  return s.Count
+	let s = this.create_impl_instance
+	return s.Count
 inline Slice met Bytecount = Size
-  let s = this.create_impl_instance
-  return s.Bytecount
+	let s = this.create_impl_instance
+	return s.Bytecount
 inline Slice met All = Index_range
-  let s = this.create_impl_instance
-  return s.All
+	let s = this.create_impl_instance
+	return s.All
 inline Slice shallow met$ Unsafe_rawdata = @U8
-  let s = this.create_impl_instance
-  return s.Unsafe_rawdata
+	let s = this.create_impl_instance
+	return s.Unsafe_rawdata
 inline Slice shallow met$ Unsafe_data = @t
-  let s = this.create_impl_instance
-  return s.Unsafe_data
+	let s = this.create_impl_instance
+	return s.Unsafe_data
 inline Slice shallow met$ Operator_at n:Size = @t
-  let s = this.create_impl_instance
-  return s.Operator_at n
+	let s = this.create_impl_instance
+	return s.Operator_at n
 inline Slice shallow met$ Operator_sub r:Index_range = []t
-  let s = this.create_impl_instance
-  such
-    let _ = s.Operator_sub r
-  return {}
+	let s = this.create_impl_instance
+	such
+		let _ = s.Operator_sub r
+	return {}
 
 opaque struct Mutable_slice t:`Any =
-  isa (`Any_mutable_slice t)
-  dat	:?@#t
-  cnt	:Size
+	isa (`Any_mutable_slice t)
+	dat	:?@#t
+	cnt	:Size
 
 inline Mutable_slice fun create_impl_instance = (Slice_impl t)
-  return {}
+	return {}
 inline Mutable_slice met# Unsafe_wrap p:@U8 c:Size = Void
-  let s = this.create_impl_instance
-  s#Unsafe_wrap p c
+	let s = this.create_impl_instance
+	s#Unsafe_wrap p c
 inline Mutable_slice met Count = Size
-  let s = this.create_impl_instance
-  return s.Count
+	let s = this.create_impl_instance
+	return s.Count
 inline Mutable_slice met Bytecount = Size
-  let s = this.create_impl_instance
-  return s.Bytecount
+	let s = this.create_impl_instance
+	return s.Bytecount
 inline Mutable_slice met All = Index_range
-  let s = this.create_impl_instance
-  return s.All
+	let s = this.create_impl_instance
+	return s.All
 inline Mutable_slice shallow met$ Unsafe_rawdata = @$U8
-  let s = this.create_impl_instance
-  such
-    let _ = s.Unsafe_rawdata
-    let _ = s!Unsafe_rawdata
-    let _ = s#Unsafe_rawdata
-    return s$Unsafe_rawdata
+	let s = this.create_impl_instance
+	such
+		let _ = s.Unsafe_rawdata
+		let _ = s!Unsafe_rawdata
+		let _ = s#Unsafe_rawdata
+		return s$Unsafe_rawdata
 inline Mutable_slice shallow met$ Unsafe_data = @$t
-  let s = this.create_impl_instance
-  such
-    let _ = s.Unsafe_data
-    let _ = s!Unsafe_data
-    let _ = s#Unsafe_data
-    return s$Unsafe_data
+	let s = this.create_impl_instance
+	such
+		let _ = s.Unsafe_data
+		let _ = s!Unsafe_data
+		let _ = s#Unsafe_data
+		return s$Unsafe_data
 inline Mutable_slice shallow met$ Operator_at n:Size = @$t
-  let s = this.create_impl_instance
-  such
-    let _ = s.Operator_at n
-    let _ = s!Operator_at n
-    let p = s#Operator_at n
-    return s$Operator_at n
+	let s = this.create_impl_instance
+	such
+		let _ = s.Operator_at n
+		let _ = s!Operator_at n
+		let p = s#Operator_at n
+		return s$Operator_at n
 inline Mutable_slice met! Copy other:[]t = Void
-  let s = this.create_impl_instance
-  such
-    s!Copy s
+	let s = this.create_impl_instance
+	such
+		s!Copy s
 inline Mutable_slice shallow met$ Operator_sub r:Index_range = []$t
-  let s = this.create_impl_instance
-  such
-    let _ = (s.Operator_sub r)
-    let _ = (s!Operator_sub r)
-    let _ = (s#Operator_sub r)
-    return {}
+	let s = this.create_impl_instance
+	such
+		let _ = (s.Operator_sub r)
+		let _ = (s!Operator_sub r)
+		let _ = (s#Operator_sub r)
+		return {}
 
 
 extern inline fun Slice_at_byte dp:@#U8 off:Size = @#U8
 extern inline fun Slice_memcpy dst:@#U8 src:@U8 Count:Size = Void
 
 opaque struct Slice_impl t:`Any =
-  isa (`Any_mutable_slice t)
-  dat	:?@#t
-  cnt	:Size
+	isa (`Any_mutable_slice t)
+	dat	:?@#t
+	cnt	:Size
 
 inline Slice_impl met# Unsafe_wrap p:@U8 c:Size = Void
-  self#dat = (Cast @U8 @#t) p
-  self#cnt = c
+	self#dat = (Cast @U8 @#t) p
+	self#cnt = c
 
 inline Slice_impl met Count = Size
-  return self.cnt
+	return self.cnt
 
 inline Slice_impl met Bytecount = Size
-  return (sizeof t) * self.cnt
+	return (sizeof t) * self.cnt
 
 inline Slice_impl met All = Index_range
-  return Range 0 self.cnt
+	return Range 0 self.cnt
 
 inline Slice_impl shallow met$ Unsafe_rawdata = @$U8
-  return (Cast ?@$t @$U8) self$dat
+	return (Cast ?@$t @$U8) self$dat
 
 inline Slice_impl shallow met$ Unsafe_data = @$t
-  return (Nonnull_cast t ?@$t @$t) self$dat
+	return (Nonnull_cast t ?@$t @$t) self$dat
 
 inline Slice_impl shallow met$ Operator_at n:Size = @$t
-  Assert <- n < self.Count
-  let raw = (Cast ?@t @#U8) self.dat
-  and off = n * (sizeof t)
-  return (Cast @#U8 @$t) <- Slice_at_byte raw off
+	Assert <- n < self.Count
+	let raw = (Cast ?@t @#U8) self.dat
+	and off = n * (sizeof t)
+	return (Cast @#U8 @$t) <- Slice_at_byte raw off
 
 inline Slice_impl met! Copy other:this = Void
-  Assert <- self.Count == other.Count
-  let dst = self!Unsafe_rawdata
-  and src = other.Unsafe_rawdata
-  and bytecnt = other.cnt * (sizeof t)
-  Slice_memcpy dst src bytecnt
+	Assert <- self.Count == other.Count
+	let dst = self!Unsafe_rawdata
+	and src = other.Unsafe_rawdata
+	and bytecnt = other.cnt * (sizeof t)
+	Slice_memcpy dst src bytecnt
 
 inline Slice_impl shallow met$ Operator_sub r:Index_range = this
-  Assert <- r.Begin < self.Count
-  Assert <- r.End <= self.Count
-  let raw0 = (Cast @U8 @#U8) self.Unsafe_rawdata
-  let raw = Slice_at_byte raw0 r.Begin
-  return {dat=((Cast @#U8 @#t) raw) cnt=r.Count}
+	Assert <- r.Begin < self.Count
+	Assert <- r.End <= self.Count
+	let raw0 = (Cast @U8 @#U8) self.Unsafe_rawdata
+	let raw = Slice_at_byte raw0 r.Begin
+	return {dat=((Cast @#U8 @#t) raw) cnt=r.Count}
 
 
 intf `Any_tuple =
-  isa `Copyable
+	isa `Copyable
 
 inline struct Tuple_2 t0:`Copyable t1:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
 
 inline struct Tuple_3 t0:`Copyable t1:`Copyable t2:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
 
 inline struct Tuple_4 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
 
 inline struct Tuple_5 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
 
 inline struct Tuple_6 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
-  x5	:t5
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
+	x5	:t5
 
 inline struct Tuple_7 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
-  x5	:t5
-  x6	:t6
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
+	x5	:t5
+	x6	:t6
 
 inline struct Tuple_8 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
-  x5	:t5
-  x6	:t6
-  x7	:t7
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
+	x5	:t5
+	x6	:t6
+	x7	:t7
 
 inline struct Tuple_9 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
-  x5	:t5
-  x6	:t6
-  x7	:t7
-  x8	:t8
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
+	x5	:t5
+	x6	:t6
+	x7	:t7
+	x8	:t8
 
 inline struct Tuple_10 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
-  x5	:t5
-  x6	:t6
-  x7	:t7
-  x8	:t8
-  x9	:t9
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
+	x5	:t5
+	x6	:t6
+	x7	:t7
+	x8	:t8
+	x9	:t9
 
 inline struct Tuple_11 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
-  x5	:t5
-  x6	:t6
-  x7	:t7
-  x8	:t8
-  x9	:t9
-  x10	:t10
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
+	x5	:t5
+	x6	:t6
+	x7	:t7
+	x8	:t8
+	x9	:t9
+	x10	:t10
 
 inline struct Tuple_12 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
-  x5	:t5
-  x6	:t6
-  x7	:t7
-  x8	:t8
-  x9	:t9
-  x10	:t10
-  x11	:t11
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
+	x5	:t5
+	x6	:t6
+	x7	:t7
+	x8	:t8
+	x9	:t9
+	x10	:t10
+	x11	:t11
 
 inline struct Tuple_13 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
-  x5	:t5
-  x6	:t6
-  x7	:t7
-  x8	:t8
-  x9	:t9
-  x10	:t10
-  x11	:t11
-  x12	:t12
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
+	x5	:t5
+	x6	:t6
+	x7	:t7
+	x8	:t8
+	x9	:t9
+	x10	:t10
+	x11	:t11
+	x12	:t12
 
 inline struct Tuple_14 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
-  x5	:t5
-  x6	:t6
-  x7	:t7
-  x8	:t8
-  x9	:t9
-  x10	:t10
-  x11	:t11
-  x12	:t12
-  x13	:t13
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
+	x5	:t5
+	x6	:t6
+	x7	:t7
+	x8	:t8
+	x9	:t9
+	x10	:t10
+	x11	:t11
+	x12	:t12
+	x13	:t13
 
 inline struct Tuple_15 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable t14:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
-  x5	:t5
-  x6	:t6
-  x7	:t7
-  x8	:t8
-  x9	:t9
-  x10	:t10
-  x11	:t11
-  x12	:t12
-  x13	:t13
-  x14	:t14
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
+	x5	:t5
+	x6	:t6
+	x7	:t7
+	x8	:t8
+	x9	:t9
+	x10	:t10
+	x11	:t11
+	x12	:t12
+	x13	:t13
+	x14	:t14
 
 inline struct Tuple_16 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable t14:`Copyable t15:`Copyable =
-  isa `Any_tuple
-  x0	:t0
-  x1	:t1
-  x2	:t2
-  x3	:t3
-  x4	:t4
-  x5	:t5
-  x6	:t6
-  x7	:t7
-  x8	:t8
-  x9	:t9
-  x10	:t10
-  x11	:t11
-  x12	:t12
-  x13	:t13
-  x14	:t14
-  x15	:t15
+	isa `Any_tuple
+	x0	:t0
+	x1	:t1
+	x2	:t2
+	x3	:t3
+	x4	:t4
+	x5	:t5
+	x6	:t6
+	x7	:t7
+	x8	:t8
+	x9	:t9
+	x10	:t10
+	x11	:t11
+	x12	:t12
+	x13	:t13
+	x14	:t14
+	x15	:t15
 
 intf `Numeric =
-  isa `Copyable `Arithmetic `Ordered `Show
+	isa `Copyable `Arithmetic `Ordered `Show
 
 intf `Integer =
-  isa `Numeric `Bitwise `Has_compare
-  alias this_signed = `Signed_integer
-  alias this_unsigned = `Unsigned_integer
-  met Reinterpret_signed = final.this_signed
-  met Reinterpret_unsigned = final.this_unsigned
+	isa `Numeric `Bitwise `Has_compare
+	alias this_signed = `Signed_integer
+	alias this_unsigned = `Unsigned_integer
+	met Reinterpret_signed = final.this_signed
+	met Reinterpret_unsigned = final.this_unsigned
 
 intf `Signed_integer =
-  isa `Integer
+	isa `Integer
 
 intf `Unsigned_integer =
-  isa `Integer
+	isa `Integer
 
 intf `Native_integer =
-  isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy
-      \ `Integer `Show
+	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy
+			\ `Integer `Show
 
 
 intf `Native_signed_integer =
-  isa `Signed_integer `Native_integer
+	isa `Signed_integer `Native_integer
 
 intf `Native_unsigned_integer =
-  isa `Unsigned_integer `Native_integer
+	isa `Unsigned_integer `Native_integer
 
 intf `Native_anysign_integer =
-  isa `Native_signed_integer `Native_unsigned_integer
+	isa `Native_signed_integer `Native_unsigned_integer
 
 intf `Generalized_boolean =
-  isa `Ordered
-  met Operator_test = Bool
+	isa `Ordered
+	met Operator_test = Bool
 
 intf `Bool_compatible =
-  fun From_bool b:Bool = final
+	fun From_bool b:Bool = final
 
 intf `Native_boolean =
-  isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Return_by_copy `Generalized_boolean
-      \ `Trivial_order `Bool_compatible `Show
+	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Return_by_copy `Generalized_boolean
+			\ `Trivial_order `Bool_compatible `Show
 
 intf `Floating =
-  isa `Numeric `Has_compare
+	isa `Numeric `Has_compare
 
 intf `Native_floating =
-  isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Return_by_copy
-      \ `Floating `Show
+	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Return_by_copy
+			\ `Floating `Show
 
 intf `Enum =
-  isa `Trivial_order `Trivial_equality `Trivial_copy `Return_by_copy `Trivial_dtor `Show
-  alias tag_type = `Integer
-  fun from_tag value:final.tag_type = final
-  met tag = final.tag_type
+	isa `Trivial_order `Trivial_equality `Trivial_copy `Return_by_copy `Trivial_dtor `Show
+	alias tag_type = `Integer
+	fun from_tag value:final.tag_type = final
+	met tag = final.tag_type
 
 intf `Union =
-  alias tag_type = `Integer
-  met tag = final.tag_type
+	alias tag_type = `Integer
+	met tag = final.tag_type
 
 intf `Union_trivial_ctor =
-  isa `Union `Trivial_ctor
-  fun from_tag value:final.tag_type = final
+	isa `Union `Trivial_ctor
+	fun from_tag value:final.tag_type = final
 
 extern inline struct Bool =
-  isa `Native_boolean
+	isa `Native_boolean
 extern Bool met Operator_eq other:@this = Bool
 extern Bool met Operator_ne other:@this = Bool
 extern Bool met Operator_le other:@this = Bool
@@ -555,7 +555,7 @@ extern Bool met Operator_lt other:@this = Bool
 extern Bool met Operator_gt other:@this = Bool
 extern Bool met Operator_ge other:@this = Bool
 Bool fun From_bool b:Bool = this
-  return b
+	return b
 extern Bool met Operator_test = Bool
 extern Bool met To_u8 = U8
 extern Bool met To_u16 = U16
@@ -564,9 +564,9 @@ extern Bool met To_u64 = U64
 extern Bool met Show buf:@#`String_buffer = Void
 
 extern inline struct I8 =
-  isa `Native_signed_integer
-  alias this_signed = this
-  alias this_unsigned = U8
+	isa `Native_signed_integer
+	alias this_signed = this
+	alias this_unsigned = U8
 extern I8 met Operator_eq other:@this = Bool
 extern I8 met Operator_ne other:@this = Bool
 extern I8 met Operator_le other:@this = Bool
@@ -604,9 +604,9 @@ extern inline I8 met As_ssize = Ssize
 extern I8 met Show buf:@#`String_buffer = Void
 
 extern inline struct I16 =
-  isa `Native_signed_integer
-  alias this_signed = this
-  alias this_unsigned = U16
+	isa `Native_signed_integer
+	alias this_signed = this
+	alias this_unsigned = U16
 extern I16 met Operator_eq other:@this = Bool
 extern I16 met Operator_ne other:@this = Bool
 extern I16 met Operator_le other:@this = Bool
@@ -644,9 +644,9 @@ extern inline I16 met As_ssize = Ssize
 extern I16 met Show buf:@#`String_buffer = Void
 
 extern inline struct I32 =
-  isa `Native_signed_integer
-  alias this_signed = this
-  alias this_unsigned = U32
+	isa `Native_signed_integer
+	alias this_signed = this
+	alias this_unsigned = U32
 extern I32 met Operator_eq other:@this = Bool
 extern I32 met Operator_ne other:@this = Bool
 extern I32 met Operator_le other:@this = Bool
@@ -686,9 +686,9 @@ extern inline I32 met To_double = Double
 extern I32 met Show buf:@#`String_buffer = Void
 
 extern inline struct I64 =
-  isa `Native_signed_integer
-  alias this_signed = this
-  alias this_unsigned = U64
+	isa `Native_signed_integer
+	alias this_signed = this
+	alias this_unsigned = U64
 extern I64 met Operator_eq other:@this = Bool
 extern I64 met Operator_ne other:@this = Bool
 extern I64 met Operator_le other:@this = Bool
@@ -728,9 +728,9 @@ extern inline I64 met Trim_double = Double
 extern I64 met Show buf:@#`String_buffer = Void
 
 extern inline struct U8 =
-  isa `Native_unsigned_integer
-  alias this_unsigned = this
-  alias this_signed = I8
+	isa `Native_unsigned_integer
+	alias this_unsigned = this
+	alias this_signed = I8
 extern U8 met Operator_eq other:@this = Bool
 extern U8 met Operator_ne other:@this = Bool
 extern U8 met Operator_le other:@this = Bool
@@ -770,9 +770,9 @@ extern inline U8 met To_double = Double
 extern U8 met Show buf:@#`String_buffer = Void
 
 extern inline struct U16 =
-  isa `Native_unsigned_integer
-  alias this_unsigned = this
-  alias this_signed = I16
+	isa `Native_unsigned_integer
+	alias this_unsigned = this
+	alias this_signed = I16
 extern U16 met Operator_eq other:@this = Bool
 extern U16 met Operator_ne other:@this = Bool
 extern U16 met Operator_le other:@this = Bool
@@ -812,9 +812,9 @@ extern inline U16 met To_double = Double
 extern U16 met Show buf:@#`String_buffer = Void
 
 extern inline struct U32 =
-  isa `Native_unsigned_integer
-  alias this_unsigned = this
-  alias this_signed = I32
+	isa `Native_unsigned_integer
+	alias this_unsigned = this
+	alias this_signed = I32
 extern U32 met Operator_eq other:@this = Bool
 extern U32 met Operator_ne other:@this = Bool
 extern U32 met Operator_le other:@this = Bool
@@ -854,9 +854,9 @@ extern inline U32 met To_double = Double
 extern U32 met Show buf:@#`String_buffer = Void
 
 extern inline struct U64 =
-  isa `Native_unsigned_integer
-  alias this_unsigned = this
-  alias this_signed = I64
+	isa `Native_unsigned_integer
+	alias this_unsigned = this
+	alias this_signed = I64
 extern U64 met Operator_eq other:@this = Bool
 extern U64 met Operator_ne other:@this = Bool
 extern U64 met Operator_le other:@this = Bool
@@ -896,9 +896,9 @@ extern inline U64 met Trim_double = Double
 extern U64 met Show buf:@#`String_buffer = Void
 
 extern inline struct Ssize =
-  isa `Native_signed_integer
-  alias this_signed = this
-  alias this_unsigned = Size
+	isa `Native_signed_integer
+	alias this_signed = this
+	alias this_unsigned = Size
 extern Ssize met Operator_eq other:@this = Bool
 extern Ssize met Operator_ne other:@this = Bool
 extern Ssize met Operator_le other:@this = Bool
@@ -940,9 +940,9 @@ extern Ssize met Show buf:@#`String_buffer = Void
 -- FIXME: Size and Ssize do not have a well-defined bit Size, they therefore
 -- should not be `Bitwise.
 extern inline struct Size =
-  isa `Native_unsigned_integer
-  alias this_unsigned = this
-  alias this_signed = Ssize
+	isa `Native_unsigned_integer
+	alias this_unsigned = this
+	alias this_signed = Ssize
 extern Size met Operator_eq other:@this = Bool
 extern Size met Operator_ne other:@this = Bool
 extern Size met Operator_le other:@this = Bool
@@ -982,7 +982,7 @@ extern inline Size met Trim_double = Double
 extern Size met Show buf:@#`String_buffer = Void
 
 extern inline struct Float =
-  isa `Native_floating
+	isa `Native_floating
 extern Float met Operator_eq other:@this = Bool
 extern Float met Operator_ne other:@this = Bool
 extern Float met Operator_le other:@this = Bool
@@ -1010,7 +1010,7 @@ extern inline Float met As_ssize = Ssize
 extern Float met Show buf:@#`String_buffer = Void
 
 extern inline struct Double =
-  isa `Native_floating
+	isa `Native_floating
 extern Double met Operator_eq other:@this = Bool
 extern Double met Operator_ne other:@this = Bool
 extern Double met Operator_le other:@this = Bool
@@ -1038,40 +1038,40 @@ extern inline Double met As_ssize = Ssize
 extern Double met Show buf:@#`String_buffer = Void
 
 intf `Trivial_array_ctor t:`Copyable =
-  isa `Prevent_dyn (`Array_ctor t)
+	isa `Prevent_dyn (`Array_ctor t)
 
 intf `Array_ctor t:`Copyable =
-  fun From_array c:@(Static_array t) = final
+	fun From_array c:@(Static_array t) = final
 
 extern inline fun Static_array_at_byte dp:@!U8 off:Size = @!U8
 
 opaque struct Static_array t:`Copyable =
-  isa (`Trivial_array_ctor t) `Trivial_copy `Return_by_copy
-  d	:?@!t
-  c	:Size
+	isa (`Trivial_array_ctor t) `Trivial_copy `Return_by_copy
+	d	:?@!t
+	c	:Size
 
 inline Static_array met Count = Size
-  return self.c
+	return self.c
 
 inline Static_array met Bytecount = Size
-  return self.c * (sizeof t)
+	return self.c * (sizeof t)
 
 inline Static_array met All = Index_range
-  return Range 0 self.c
+	return Range 0 self.c
 
 inline Static_array met$ Unsafe_rawdata = @$U8
-  Assert <- self.c != 0
-  return (Cast ?@$t @$U8) self$d
+	Assert <- self.c != 0
+	return (Cast ?@$t @$U8) self$d
 
 inline Static_array met$ Unsafe_data = @$t
-  Assert <- self.c != 0
-  return (Cast ?@$t @$t) self$d
+	Assert <- self.c != 0
+	return (Cast ?@$t @$t) self$d
 
 inline Static_array shallow met$ Operator_at n:Size = @$t
-  Assert <- n < self.c
-  let off = n * (sizeof t)
-  let p = Static_array_at_byte ((Cast @$this @!this) self)!Unsafe_rawdata off
-  return (Cast @!U8 @$t) p
+	Assert <- n < self.c
+	let off = n * (sizeof t)
+	let p = Static_array_at_byte ((Cast @$this @!this) self)!Unsafe_rawdata off
+	return (Cast @!U8 @$t) p
 
 
 extern fun Abort = Void
@@ -1080,87 +1080,87 @@ extern inline fun Likely x:Bool = Bool
 extern inline fun Unlikely x:Bool = Bool
 
 inline (fun t:`Any) Unused x:t = Void
-  noop
+	noop
 
 inline (fun t:`Any) Optional opt:?@t fallback:t = t
-  if opt !== null
-    return opt.
-  else
-    return fallback
+	if opt !== null
+		return opt.
+	else
+		return fallback
 
 inline (fun t:`Any) Optional_ref opt:?@t fallback:@t = @t
-  if opt !== null
-    return (Nonnull_cast t ?@t @t) opt
-  else
-    return fallback
+	if opt !== null
+		return (Nonnull_cast t ?@t @t) opt
+	else
+		return fallback
 
 inline (fun t:`Numeric) Min a:t b:t = t
-  if a <= b
-    return a
-  else
-    return b
+	if a <= b
+		return a
+	else
+		return b
 
 inline (fun t:`Numeric) Max a:t b:t = t
-  if a >= b
-    return a
-  else
-    return b
+	if a >= b
+		return a
+	else
+		return b
 
 
 intf `Error =
-  isa `Copyable `Generalized_boolean `Show
+	isa `Copyable `Generalized_boolean `Show
 
 inline struct Error =
-  isa `Error
-  code	:I32
+	isa `Error
+	code	:I32
 
-  inline let OK = {}:Error
+	inline let OK = {}:Error
 
 Error met Operator_test = Bool
-  return self.code != 0
+	return self.code != 0
 
 Error met Show buf:@#`String_buffer = Void
-  self.code.Show buf
+	self.code.Show buf
 
 (fun e:`Error) drop err:e = Void
-  noop
+	noop
 
 (fun e:`Error) fatal err:e = Void
-  Epr "Fatal: "
-  Esay err
+	Epr "Fatal: "
+	Esay err
 
 
 extern inline struct Valist =
-  isa `Trivial_copy `Trivial_ctor
+	isa `Trivial_copy `Trivial_ctor
 
 intf `no_dyn_iterator r:`Any_any_ref =
-  isa `Prevent_dyn (`Iterator r)
+	isa `Prevent_dyn (`Iterator r)
 
 opaque struct Vararg r:`Any_any_ref =
-  isa (`no_dyn_iterator r)
-  isa `Trivial_copy -- FIXME: remove `Trivial_copy, needed by bootstrap
-  ap	:Valist
-  n	:Size
+	isa (`no_dyn_iterator r)
+	isa `Trivial_copy -- FIXME: remove `Trivial_copy, needed by bootstrap
+	ap	:Valist
+	n	:Size
 
 inline Vararg met Has_next = Bool
-  return self.n > 0
+	return self.n > 0
 
 extern Vararg met! Next = r
 
 inline Vararg met Count_left = Size
-  return self.n
+	return self.n
 
 
 intf `Any_environment =
-  isa `Trivial_ctor
+	isa `Trivial_ctor
 
 -- FIXME? Instead of 'declaring', we could use 'final'.
 intf `Environment declaring:`Any =
-  isa `Any_environment
-  -- Implementation of these mets is generated by the compiler.
-  met Parent = @!declaring
-  met! Install where:@!@!declaring = Void
-  met# Uninstall where:@!@#declaring = Void
+	isa `Any_environment
+	-- Implementation of these mets is generated by the compiler.
+	met Parent = @!declaring
+	met! Install where:@!@!declaring = Void
+	met# Uninstall where:@!@#declaring = Void
 
 --intf `Debugenv =
 --  isa (`Environment this)
@@ -1203,38 +1203,38 @@ from n.unsafe import Cast Nonnull_cast
 from n import Esay Epr
 
 inline struct Codeloc =
-  where		:Static_string
-  expression	:Static_string
+	where		:Static_string
+	expression	:Static_string
 
 fun Assert cond:Bool ?_Ncodeloc:?@Codeloc = Void
-  if not cond
-    if _Ncodeloc !== null
-      Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-    Abort
+	if not cond
+		if _Ncodeloc !== null
+			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+		Abort
 
 fun Unreached = Void
-  Abort
+	Abort
 
 fun Pre__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
-  if not cond
-    if _Ncodeloc !== null
-      Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-    Abort
+	if not cond
+		if _Ncodeloc !== null
+			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+		Abort
 
 fun Post__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
-  if not cond
-    if _Ncodeloc !== null
-      Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-    Abort
+	if not cond
+		if _Ncodeloc !== null
+			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+		Abort
 
 fun Invariant__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
-  if not cond
-    if _Ncodeloc !== null
-      Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-    Abort
+	if not cond
+		if _Ncodeloc !== null
+			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+		Abort
 
 fun Example__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
-  if not cond
-    if _Ncodeloc !== null
-      Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-    Abort
+	if not cond
+		if _Ncodeloc !== null
+			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
+		Abort

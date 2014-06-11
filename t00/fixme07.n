@@ -1,11 +1,11 @@
 from n import *
 
 intf `i =
-  fun Foo = Void
+	fun Foo = Void
 
 struct a =
-  isa `i
-  x:I32
+	isa `i
+	x:I32
 
 a fun `i.Foo = Void
-  return
+	return

@@ -1,6 +1,6 @@
 from n import *
 
 fun Main = I32
-  Say @x -- not yet defined
-  let x = 0
-  return x
+	Say @x -- not yet defined
+	let x = 0
+	return x

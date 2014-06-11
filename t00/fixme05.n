@@ -1,22 +1,22 @@
 from n import *
 
 struct prevent_copy =
-  isa `Not_copyable
-  x	:I32
+	isa `Not_copyable
+	x	:I32
 
 struct nocopy =
-  dummy	:prevent_copy
-  x	:I32
+	dummy	:prevent_copy
+	x	:I32
 
 fun bar = r:nocopy
-  r!x = 0
-  return r -- this is legal but not handled
+	r!x = 0
+	return r -- this is legal but not handled
 
 fun Foo = nocopy
-  let r:nocopy -- should not be legal: declare a named retval
-  such
-    r!x = 0
-  return r
+	let r:nocopy -- should not be legal: declare a named retval
+	such
+		r!x = 0
+	return r
 
 fun Main = I32
-  return Foo.x
+	return Foo.x
