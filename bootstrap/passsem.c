@@ -27,7 +27,6 @@ static error pass_early_constraining(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_block);
     DOWN_STEP(step_stop_already_early_constraining);
-    DOWN_STEP(step_type_destruct_mark);
     ,
     UP_STEP(step_constraint_inference);
     UP_STEP(step_remove_typeconstraints);

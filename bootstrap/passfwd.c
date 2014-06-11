@@ -47,15 +47,26 @@ static error step_export_pre_post_invariant(struct module *mod, struct node *nod
 STEP_NM(step_stop_already_early_typing,
         NM(LET) | NM(ISA) | NM(GENARGS) | NM(FUNARGS) |
         NM(DEFGENARG) | NM(SETGENARG) | NM(DEFFIELD) | NM(DEFCHOICE) |
-        NM(WITHIN));
+        NM(WITHIN) | NM(BIN));
 error step_stop_already_early_typing(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node->which == WITHIN) {
-    *stop = parent_const(node)->which == WITHIN && node->typ != NULL;
-  } else {
-    *stop = node->typ != NULL;
+  if (node->typ == NULL || node->typ == TBI__NOT_TYPEABLE) {
+    return 0;
+  }
+
+  const struct node *par = parent_const(node);
+  switch (node->which) {
+  case BIN:
+    *stop = !!(NM(par->which) & (NM(DEFFUN)|NM(DEFMETHOD))) && subs_first_const(par) == node;
+    break;
+  case WITHIN:
+    *stop = par->which == WITHIN;
+    break;
+  default:
+    *stop = true;
+    break;
   }
 
   return 0;
@@ -789,7 +800,7 @@ static error check_has_matching_member(struct module *mod,
   }
 
   if (m->which != mi->which) {
-    e = mk_except_type(mod, deft,
+    e = mk_except_type(mod, m,
                        "in type '%s', member '%s' implemented from intf '%s'"
                        " is not the right kind of declaration",
                        typ_pretty_name(mod, deft->typ),
@@ -804,7 +815,7 @@ static error check_has_matching_member(struct module *mod,
     // that it is *equal* to deft->typ.
 
     if (!typ_isa(m->typ, mi->typ)) {
-      e = mk_except_type(mod, deft,
+      e = mk_except_type(mod, m,
                          "in type '%s', member '%s' implemented from intf '%s'"
                          " has type '%s' but must be isa '%s'",
                          typ_pretty_name(mod, deft->typ),
@@ -814,8 +825,11 @@ static error check_has_matching_member(struct module *mod,
                          typ_pretty_name(mod, mi->typ));
       THROW(e);
     }
-  } else if (mi->which == DEFFUN || mi->which == DEFMETHOD) {
-    // FIXME check that the prototype is an exact match.
+  } else if (m->which == DEFFUN || m->which == DEFMETHOD) {
+    // FIXME: doesn't support multiple members with the same name,
+    // selecting on the intf (e.g. `A.M and `B.M).
+    // FIXME: require intf specification when disambiguation is necessary.
+    // FIXME: check that the prototype is an exact match.
     // FIXME: handle (lexically) 'final' in mi properly.
   } else {
     assert(false && "Unreached");

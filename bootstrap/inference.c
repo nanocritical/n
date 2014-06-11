@@ -159,7 +159,13 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
   switch (node->which) {
   case BIN:
     if (OP_KIND(node->as.BIN.operator) == OP_BIN_ACC) {
-      mark_subs(mod, node, not_typeable, next(first), last, 1);
+      last->typ = not_typeable;
+
+      const struct node *par = parent_const(node);
+      if (NM(par->which) & (NM(DEFFUN) | NM(DEFMETHOD))
+          && subs_first_const(par) == node) {
+        first->typ = NULL;
+      }
     }
     break;
   case CALL:

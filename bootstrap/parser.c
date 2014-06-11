@@ -1999,7 +1999,8 @@ static error p_deffun(struct node *node, struct module *mod,
 
     add_self_arg(mod, node, funargs);
   } else {
-    if (name->which != IDENT) {
+    if (name->which != IDENT
+        && !(toplevel.scope_name == ID__NONE && name->which == BIN)) {
       THROW_SYNTAX(mod, &tok, "malformed fun name");
     }
   }

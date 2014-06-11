@@ -12,7 +12,7 @@ struct intf_proto_rewrite_state {
 static STEP_NM(step_rewrite_this,
                NM(IDENT));
 static error step_rewrite_this(struct module *mod, struct node *node,
-                                     void *user, bool *stop) {
+                               void *user, bool *stop) {
   struct typ *thi = ((struct intf_proto_rewrite_state *)user)->thi;
   ident id = node_ident(node);
   if (id == ID_THIS) {
@@ -69,10 +69,33 @@ static error step_rewrite_local_idents(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_rewrite_name,
+               NM(DEFFUN) | NM(DEFMETHOD));
+static error step_rewrite_name(struct module *mod, struct node *node,
+                               void *user, bool *stop) {
+  const struct node *proto_parent =
+    ((struct intf_proto_rewrite_state *)user)->proto_parent;
+
+  struct node *first = subs_first(node);
+  assert(first->which == IDENT);
+  const ident name = node_ident(first);
+  node_set_which(first, BIN);
+  first->as.BIN.operator = TDOT;
+  GSTART();
+  G0(i, first, IDENT,
+     i->as.IDENT.name = node_ident(proto_parent));
+  G0(n, first, IDENT,
+     n->as.IDENT.name = name);
+
+  return 0;
+}
+
 static error pass_rewrite_proto(struct module *mod, struct node *root,
                                 void *user, ssize_t shallow_last_up) {
   PASS(DOWN_STEP(step_rewrite_this);
-       DOWN_STEP(step_rewrite_local_idents),,);
+       DOWN_STEP(step_rewrite_local_idents);
+       DOWN_STEP(step_rewrite_name);
+       ,,);
   return 0;
 }
 
@@ -136,8 +159,8 @@ static enum token_type arg_ref_accessor(const struct node *arg) {
   case TREFBANG: return TBANG;
   case TREFSHARP: return TSHARP;
   default:
-    assert(false);
-    return 0;
+                  assert(false);
+                  return 0;
   }
 }
 
@@ -263,8 +286,8 @@ static void gen_on_choices_and_fields_lexicographic(struct module *mod,
   }
 
   G0(ret, par, RETURN,
-    G(zero, NUMBER,
-      zero->as.NUMBER.value = "0"));
+     G(zero, NUMBER,
+       zero->as.NUMBER.value = "0"));
 }
 
 static void gen_by_compare(struct module *mod, struct node *deft,
@@ -278,7 +301,7 @@ static void gen_by_compare(struct module *mod, struct node *deft,
   case ID_OPERATOR_GT: op = TGT; break;
   case ID_OPERATOR_GE: op = TGE; break;
   default:
-    assert(false);
+                       assert(false);
   }
 
   GSTART();
@@ -340,10 +363,10 @@ static void gen_show(struct module *mod, struct node *deft,
 }
 
 static void add_auto_member(struct module *mod,
-                                struct node *deft,
-                                const struct typ *inferred_intf,
-                                const struct node *dintf,
-                                const struct node *mi) {
+                            struct node *deft,
+                            const struct typ *inferred_intf,
+                            const struct node *dintf,
+                            const struct node *mi) {
   if (node_is_extern(deft) && !node_is_inline(deft)) {
     return;
   }
@@ -386,9 +409,8 @@ static void add_auto_member(struct module *mod,
     return;
   }
 
-non_bg:;
-
-  GSTART();
+non_bg:
+  ;GSTART();
   G0(body, m, BLOCK);
 
   switch (node_ident(mi)) {
@@ -426,10 +448,10 @@ non_bg:;
 }
 
 static error add_auto_isa_eachisalist(struct module *mod,
-                                          struct typ *t,
-                                          struct typ *intf,
-                                          bool *stop,
-                                          void *user) {
+                                      struct typ *t,
+                                      struct typ *intf,
+                                      bool *stop,
+                                      void *user) {
   struct node *deft = user;
   const struct node *dintf = typ_definition_const(intf);
 
@@ -442,7 +464,7 @@ static error add_auto_isa_eachisalist(struct module *mod,
 }
 
 static void add_auto_isa(struct module *mod, struct node *deft,
-                             const struct typ *i) {
+                         const struct typ *i) {
   if (!typ_isa(deft->typ, i)) {
     struct node *isalist = subs_at(deft, IDX_ISALIST);
     assert(isalist->which == ISALIST);
@@ -450,7 +472,7 @@ static void add_auto_isa(struct module *mod, struct node *deft,
     GSTART();
     G0(isa, isalist, ISA,
        isa->as.ISA.is_export = node_is_export(deft)
-        && (node_is_inline(deft) || node_is_opaque(deft));
+       && (node_is_inline(deft) || node_is_opaque(deft));
        G(what, DIRECTDEF);
        what->as.DIRECTDEF.typ = CONST_CAST(i));
 
@@ -462,8 +484,8 @@ static void add_auto_isa(struct module *mod, struct node *deft,
 
   if (!(node_is_extern(deft) && !typ_is_trivial(i))) {
     add_auto_isa_eachisalist(mod, CONST_CAST(i),
-                                 CONST_CAST(i),
-                                 NULL, deft);
+                             CONST_CAST(i),
+                             NULL, deft);
   }
 
   const uint32_t filter = (node_is_extern(deft) && !typ_is_trivial(i)) \
@@ -473,9 +495,9 @@ static void add_auto_isa(struct module *mod, struct node *deft,
 }
 
 STEP_NM(step_autointf_enum_union,
-               NM(DEFTYPE));
+        NM(DEFTYPE));
 error step_autointf_enum_union(struct module *mod, struct node *node,
-                                      void *user, bool *stop) {
+                               void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     add_auto_isa(mod, node, TBI_ENUM);
@@ -491,9 +513,9 @@ error step_autointf_enum_union(struct module *mod, struct node *node,
 }
 
 STEP_NM(step_autointf_detect_default_ctor_dtor,
-               NM(DEFTYPE));
+        NM(DEFTYPE));
 error step_autointf_detect_default_ctor_dtor(struct module *mod, struct node *node,
-                                                    void *user, bool *stop) {
+                                             void *user, bool *stop) {
   DSTEP(mod, node);
 
   if (node_is_extern(node)) {
@@ -727,9 +749,9 @@ static error add_environment_builtins_eachisalist(struct module *mod,
 }
 
 STEP_NM(step_autointf_add_environment_builtins,
-               NM(DEFTYPE));
+        NM(DEFTYPE));
 error step_autointf_add_environment_builtins(struct module *mod, struct node *node,
-                                                    void *user, bool *stop) {
+                                             void *user, bool *stop) {
   DSTEP(mod, node);
 
   if (!typ_isa(node->typ, TBI_ANY_ENVIRONMENT)) {
