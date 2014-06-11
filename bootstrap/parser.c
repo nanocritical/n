@@ -1033,7 +1033,6 @@ static error p_expr_post_unary(struct node *node, struct module *mod) {
   error e = scan(&tok, mod);
   EXCEPT(e);
 
-  assert(OP_KIND(tok.t) == OP_UN_DEREF);
   node_set_which(node, UN);
   node->as.UN.operator = tok.t;
 
@@ -1428,7 +1427,7 @@ shifted:
       goto done;
     }
   } else if (IS_OP(tok.t) && OP_IS_UNARY(tok.t)
-             && OP_KIND(tok.t) == OP_UN_DEREF
+             && (OP_KIND(tok.t) == OP_UN_DEREF || OP_KIND(tok.t) == OP_UN_ISNUL)
              && (OP_PREC(tok.t) < OP_PREC(parent_op)
                  || (OP_PREC(tok.t) < OP_PREC(top_parent_op)
                      && OP_PREC(tok.t) == OP_PREC(parent_op)
@@ -1784,7 +1783,7 @@ again:
 
 static error p_defarg(struct node *node, struct module *mod, enum token_type tokt) {
   node_set_which(node, DEFARG);
-  node->as.DEFARG.is_optional = tokt == TQMARK;
+  node->as.DEFARG.is_optional = tokt == TPREQMARK;
   node->as.DEFARG.is_vararg = tokt == TDOTDOTDOT;
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_COLON);
@@ -2008,7 +2007,7 @@ static error p_deffun(struct node *node, struct module *mod,
   bool seen_named = false;
   bool must_be_last = false;
 again:
-  e = scan_oneof(&tok, mod, TASSIGN, TIDENT, TQMARK, TDOTDOTDOT, 0);
+  e = scan_oneof(&tok, mod, TASSIGN, TIDENT, TPREQMARK, TDOTDOTDOT, 0);
   EXCEPT(e);
 
   if (must_be_last && tok.t != TASSIGN) {
@@ -2025,14 +2024,14 @@ again:
     }
     back(mod, &tok);
     // Fallthrough
-  case TQMARK:
+  case TPREQMARK:
   case TDOTDOTDOT:
     {
       struct node *arg = node_new_subnode(mod, funargs);
       e = p_defarg(arg, mod, tok.t);
       EXCEPT(e);
     }
-    seen_named = tok.t == TQMARK;
+    seen_named = tok.t == TPREQMARK;
     must_be_last = tok.t == TDOTDOTDOT;
     goto again;
   default:

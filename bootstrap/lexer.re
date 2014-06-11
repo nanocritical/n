@@ -367,7 +367,7 @@ normal:
   "?@#" { R(TNULREFSHARP); }
   "?@$" { R(TNULREFWILDCARD); }
   "?@" { R(TNULREFDOT); }
-  "?" { R(TQMARK); }
+  "?" { RUNORBIN(1, TPREQMARK, TPOSTQMARK, 0); }
   "[]" { R(TSLICEBRAKETS); }
   "[]!" { R(TMSLICEBRAKETS); }
   "[]$" { R(TWSLICEBRAKETS); }

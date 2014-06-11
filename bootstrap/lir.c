@@ -84,6 +84,53 @@ static void rewrite_bool_op(struct module *mod, struct node *node) {
   }
 }
 
+static void rewrite_ptr_op(struct module *mod, struct node *node) {
+  assert(node->which == BIN);
+  switch (node->as.BIN.operator) {
+  case Telse:
+    {
+      struct node *a = subs_first(node);
+      struct node *b = subs_last(node);
+      node_subs_remove(node, a);
+      node_subs_remove(node, b);
+
+      node_set_which(node, BLOCK);
+      GSTART();
+      G0(let, node, LET,
+         G(defp, DEFPATTERN,
+           G(tmpa, IDENT,
+             tmpa->as.IDENT.name = gensym(mod));
+           node_subs_append(defp, a)));
+      G0(xif, node, IF,
+         G(cond, UN,
+           cond->as.UN.operator = TPOSTQMARK;
+           G(tmpa2, IDENT,
+             tmpa2->as.IDENT.name = node_ident(tmpa)));
+         G(yes, BLOCK,
+           G(da, UN,
+             da->as.UN.operator = TDEREFDOT;
+             G(tmpa3, IDENT,
+               tmpa3->as.IDENT.name = node_ident(tmpa))));
+         G(no, BLOCK,
+           node_subs_append(no, b)));
+    }
+    break;
+  default:
+    break;
+  }
+}
+
+static void rewrite_isnul_op(struct module *mod, struct node *node) {
+  assert(node->which == UN);
+  const ident op = node->as.UN.operator;
+  assert(op == TPOSTQMARK);
+
+  node_set_which(node, BIN);
+  node->as.BIN.operator = TNEPTR;
+  GSTART();
+  G0(nul, node, NUL);
+}
+
 static error find_catch(struct node **r,
                         struct module *mod, struct node *for_error,
                         struct lir_state *st, ident label) {
@@ -455,9 +502,16 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
 
   error e;
   switch (node->which) {
+  case UN:
+    if (OP_KIND(node->as.UN.operator) == OP_UN_ISNUL) {
+      rewrite_isnul_op(mod, node);
+    }
+    break;
   case BIN:
     if (OP_KIND(node->as.BIN.operator) == OP_BIN_SYM_BOOL) {
       rewrite_bool_op(mod, node);
+    } else if (OP_KIND(node->as.BIN.operator) == OP_BIN_SYM_PTR) {
+      rewrite_ptr_op(mod, node);
     }
     break;
   case FUTURE:
