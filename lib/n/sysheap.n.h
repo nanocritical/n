@@ -1,8 +1,8 @@
 #ifdef NLANG_DEFINE_FUNCTIONS
 
-#define NB(x) nlang$builtins$##x
+#define NB(x) n$builtins$##x
 
-static inline NB(U8) *nlang$sysheap$Realloc(NB(U8) *ap, NB(Size) oldbsz, NB(Size) bsz) {
+static inline NB(U8) *n$sysheap$Realloc(NB(U8) *ap, NB(Size) oldbsz, NB(Size) bsz) {
   NB(U8) *r;
   if (ap == NULL) {
     r = calloc(1, bsz);
@@ -19,7 +19,7 @@ static inline NB(U8) *nlang$sysheap$Realloc(NB(U8) *ap, NB(Size) oldbsz, NB(Size
   return r;
 }
 
-static inline void nlang$sysheap$Free(NB(U8) *ap, NB(Size) bsz) {
+static inline void n$sysheap$Free(NB(U8) *ap, NB(Size) bsz) {
   free(ap);
 }
 

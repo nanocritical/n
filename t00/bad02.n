@@ -1,4 +1,4 @@
-from nlang import *
+from n import *
 
 fun foobar x:I32 x:U32 = U64
   return 0

@@ -1,8 +1,8 @@
-from nlang import *
-import nlang.unsafe
+from n import *
+import n.unsafe
 
 fun foo x:@U32 = @I32
-  return (nlang.unsafe.Cast @U32 @I32) x
+  return (n.unsafe.Cast @U32 @I32) x
 
 fun Main = I32
   return (foo 1). - 1

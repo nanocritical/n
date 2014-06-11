@@ -1,4 +1,4 @@
-from nlang.builtins import *
+from n.builtins import *
 
 extern inline (fun u:`Any_any_ref v:`Any_any_ref) Cast a:u = v
 

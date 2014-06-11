@@ -1,4 +1,4 @@
-from nlang import *
+from n import *
 
 struct container t:`Copyable =
   isa `Trivial_ctor

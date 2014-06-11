@@ -1,5 +1,5 @@
-from nlang import *
-from nlang.unsafe import Nonnull_cast
+from n import *
+from n.unsafe import Nonnull_cast
 
 fun Main = I32
   let p = @1

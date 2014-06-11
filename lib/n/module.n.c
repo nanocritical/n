@@ -1,0 +1,13 @@
+#include <unistd.h>
+
+#ifdef NLANG_DEFINE_FUNCTIONS
+
+#define NB(x) n$builtins$##x
+
+static void n$write_buf(NB(I32) fd, const NB(U8) *s, NB(Size) count) {
+  write(fd, s, count);
+}
+
+#undef NB
+
+#endif

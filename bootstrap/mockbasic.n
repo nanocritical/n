@@ -1,2 +1,2 @@
-from nlang.builtins import *
+from n.builtins import *
 -- Used as template module for EXAMPLE_NCC

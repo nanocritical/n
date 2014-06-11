@@ -1,5 +1,5 @@
-from nlang import *
-from nlang.sysheap import Heap Sysheap
+from n import *
+from n.sysheap import Heap Sysheap
 
 --fun refconv p:@I32 = (slice I32) -- @[]I32
 --  return p

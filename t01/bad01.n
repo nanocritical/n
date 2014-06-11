@@ -1,4 +1,4 @@
-from nlang import *
+from n import *
 
 (fun t:`Any) Foo p:t = Void
   noop

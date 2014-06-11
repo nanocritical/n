@@ -1,1 +1,1 @@
-t00/fixme04.n:11:12: type: 'nlang.builtins.I32' type is not a reference
+t00/fixme04.n:11:12: type: 'n.builtins.I32' type is not a reference

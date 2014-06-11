@@ -1,7 +1,7 @@
-from nlang.builtins import *
-from nlang.containers import *
-from nlang.sysheap import Sysheap Heap
-import nlang.unsafe
+from n.builtins import *
+from n.containers import *
+from n.sysheap import Sysheap Heap
+import n.unsafe
 
 --extern struct Array_impl t:`Any N:Size =
 --  export isa `Trivial_ctor `Trivial_dtor `Trivial_copy_but_owned

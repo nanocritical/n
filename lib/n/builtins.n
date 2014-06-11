@@ -1197,10 +1197,10 @@ intf `Environment declaring:`Any =
 -- compiler lack of understanding of definition ordering across modules, in
 -- codegen. As types defined in this module are used everywhere, they really
 -- need to appear first to the C compiler.
-from nlang.chars import `String_buffer `Show Static_string
-from nlang.containers import Index_range Range `Iterator `Random_container
-from nlang.unsafe import Cast Nonnull_cast
-from nlang import Esay Epr
+from n.chars import `String_buffer `Show Static_string
+from n.containers import Index_range Range `Iterator `Random_container
+from n.unsafe import Cast Nonnull_cast
+from n import Esay Epr
 
 inline struct Codeloc =
   where		:Static_string

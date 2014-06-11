@@ -1,4 +1,4 @@
-from nlang.builtins import *
+from n.builtins import *
 
 alias `locus = {`Has_equality `Copyable_but_owned}
 alias `fwd_locus = {`Has_equality `Copyable_but_owned `Ordered}

@@ -1,1 +1,1 @@
-t00/bad17.n:1:48: from scope t00.bad17.doesnotexistatallimprettysure: in scope nlang: unknown identifier 'doesnotexistatallimprettysure'
+t00/bad17.n:1:44: from scope t00.bad17.doesnotexistatallimprettysure: in scope n: unknown identifier 'doesnotexistatallimprettysure'

@@ -1,4 +1,4 @@
-from nlang import *
+from n import *
 
 fun Foo x:I32 = I32
   return 0

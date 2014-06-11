@@ -1,1 +1,1 @@
-from nlang import doesnotexistatallimprettysure
+from n import doesnotexistatallimprettysure

@@ -1,5 +1,5 @@
-from nlang import *
-from nlang.vectors import *
+from n import *
+from n.vectors import *
 
 struct A =
   isa `Trivial_ctor

@@ -1,5 +1,5 @@
-from nlang import *
-from nlang.strings import String
+from n import *
+from n.strings import String
 
 fun Foo s:Static_string = Void
   noop

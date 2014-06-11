@@ -1,5 +1,5 @@
-from nlang import *
-from nlang.sysheap import Heap Sysheap
+from n import *
+from n.sysheap import Heap Sysheap
 
 fun Main = I32
   let p = (Heap.Alloc I32) @!Sysheap

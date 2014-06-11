@@ -1,5 +1,5 @@
-from nlang import *
-from nlang.vectors import *
+from n import *
+from n.vectors import *
 
 -- Passes ordering problem:
 -- For `our to be used in a genarg list, aliases must be typed before genargs

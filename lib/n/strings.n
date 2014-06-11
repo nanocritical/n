@@ -1,7 +1,7 @@
-from nlang import *
-from nlang.vectors import Vector
-from nlang.sysheap import Heap Sysheap
-import nlang.unsafe
+from n import *
+from n.vectors import Vector
+from n.sysheap import Heap Sysheap
+import n.unsafe
 
 opaque struct String =
   isa `Copyable `Show `String_buffer

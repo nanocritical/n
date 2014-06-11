@@ -1,4 +1,4 @@
-from nlang import *
+from n import *
 
 fun noerror = I32
   let x

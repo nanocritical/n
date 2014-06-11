@@ -1,1 +1,1 @@
-t00/bad14.n:13:7: type: 'nlang.strings.String' not equal to type 'nlang.chars.Static_string'
+t00/bad14.n:13:7: type: 'n.strings.String' not equal to type 'n.chars.Static_string'

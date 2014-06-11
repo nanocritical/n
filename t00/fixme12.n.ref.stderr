@@ -2,6 +2,6 @@ t00/fixme12.n.o.c: In function ‘_$Nmain’:
 t00/fixme12.n.o.c:355:1: warning: passing argument 1 of ‘t00$fixme12$bar’ from incompatible pointer type
  t00$fixme12$bar(_Ngensym5);
  ^
-t00/fixme12.n.o.c:291:28: note: expected ‘_$Ngen_nlang$builtins$Nullable_ref$$_$Ngen_nlang$builtins$Nullable_ref$$nlang$builtins$I32_genN$__genN$_’ but argument is of type ‘_$Ngen_nlang$builtins$Ref$$_$Ngen_nlang$builtins$Mutable_ref$$nlang$builtins$I32_genN$__genN$_’
- static nlang$builtins$Void t00$fixme12$bar(_$Ngen_nlang$builtins$Nullable_ref$$_$Ngen_nlang$builtins$Nullable_ref$$nlang$builtins$I32_genN$__genN$_ p) {
-                            ^
+t00/fixme12.n.o.c:291:24: note: expected ‘_$Ngen_n$builtins$Nullable_ref$$_$Ngen_n$builtins$Nullable_ref$$n$builtins$I32_genN$__genN$_’ but argument is of type ‘_$Ngen_n$builtins$Ref$$_$Ngen_n$builtins$Mutable_ref$$n$builtins$I32_genN$__genN$_’
+ static n$builtins$Void t00$fixme12$bar(_$Ngen_n$builtins$Nullable_ref$$_$Ngen_n$builtins$Nullable_ref$$n$builtins$I32_genN$__genN$_ p) {
+                        ^

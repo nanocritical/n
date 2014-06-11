@@ -1,4 +1,4 @@
-from nlang import *
+from n import *
 
 struct prevent_copy =
   isa `Not_copyable

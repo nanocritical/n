@@ -1,4 +1,4 @@
-from nlang import *
+from n import *
 
 fun Main = I32
   let j = 0

@@ -1,4 +1,4 @@
-#define NB(n) nlang$builtins$##n
+#define NB(n) n$builtins$##n
 
 #ifdef NLANG_DEFINE_TYPES
 #include <stdarg.h>
@@ -31,7 +31,7 @@ static inline NB(Void) NB(Slice_memcpy)(NB(U8) *dst, const NB(U8) *src, NB(Size)
 } while (0)
 
 #define NLANG_BUILTINS_VARARG_NEXT(t, va) \
-  ({ nlang$builtins$Assert((va).n > 0, NULL); \
+  ({ n$builtins$Assert((va).n > 0, NULL); \
    (va).n -= 1; \
    va_arg((va).ap.ap, t); })
 
@@ -426,8 +426,8 @@ static inline NB(Ssize) NB(Double$As_ssize)(const NB(Double) *self) {
   return (NB(Ssize)) *self;
 }
 
-#define nlang$builtins$likely(x) __builtin_expect(!!(x), 1)
-#define nlang$builtins$unlikely(x) __builtin_expect(!!(x), 0)
+#define n$builtins$likely(x) __builtin_expect(!!(x), 1)
+#define n$builtins$unlikely(x) __builtin_expect(!!(x), 0)
 
 static inline NB(U8) *NB(Static_array_at_byte)(NB(U8) *p, NB(Size) off) {
   return p + off;

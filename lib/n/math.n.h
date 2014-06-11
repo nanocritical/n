@@ -1,7 +1,7 @@
 #ifdef NLANG_DEFINE_FUNCTIONS
 
-#define NB(n) nlang$builtins$##n
-#define GEN1(t, f) _Ngen_nlang$math$##f##__##t##_genN_
+#define NB(n) n$builtins$##n
+#define GEN1(t, f) _Ngen_n$math$##f##__##t##_genN_
 
 #define proto(name, rt, t) NB(rt) GEN1(NB(t), name)(NB(t) x)
 

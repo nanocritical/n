@@ -1,6 +1,6 @@
-from nlang import *
-import nlang.unsafe
-from nlang.sysheap import Sysheap Heap
+from n import *
+import n.unsafe
+from n.sysheap import Sysheap Heap
 
 opaque struct Vector t:`Copyable =
   isa `Trivial_ctor (`Array_ctor t) `Copyable (`Random_container t)

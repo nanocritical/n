@@ -1,4 +1,4 @@
-from nlang import *
+from n import *
 
 struct holder t:{`Copyable `Trivial_ctor} =
   x	:t

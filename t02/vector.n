@@ -1,5 +1,5 @@
-from nlang import *
-from nlang.vectors import Vector
+from n import *
+from n.vectors import Vector
 
 alias v32 = Vector I32
 

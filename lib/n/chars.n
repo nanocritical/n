@@ -1,7 +1,7 @@
-from nlang.builtins import *
-from nlang.containers import *
-from nlang.memory import *
-import nlang.unsafe
+from n.builtins import *
+from n.containers import *
+from n.memory import *
+import n.unsafe
 
 inline struct Char =
   isa `Static_string_compatible `Show
@@ -50,7 +50,7 @@ opaque struct Static_string =
   bytes	:[]U8
 
 inline Static_string met# Unsafe_wrap bytes:@U8 Count:Size = Void
-  let raw = (nlang.unsafe.Cast @U8 @#U8) bytes
+  let raw = (n.unsafe.Cast @U8 @#U8) bytes
   self.bytes#Unsafe_wrap raw Count
 
 inline Static_string fun Mk bytes:@U8 Count:Size = r:this

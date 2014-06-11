@@ -1,5 +1,5 @@
 if exists("b:current_syntax") | finish | endif
-let b:current_syntax = "nlang"
+let b:current_syntax = "n"
 
 syn keyword nInclude import from
 syn keyword nDecl union fun met shallow intf delegate struct enum atom

@@ -1,4 +1,4 @@
-from nlang import *
+from n import *
 
 intf `i =
   fun Foo = I32

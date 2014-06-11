@@ -1,4 +1,4 @@
-from nlang import *
+from n import *
 
 struct c =
   isa `Trivial_ctor

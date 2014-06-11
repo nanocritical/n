@@ -1,5 +1,5 @@
-from nlang import *
-from nlang.ccompat import Cstring
+from n import *
+from n.ccompat import Cstring
 
 let SEP = '/'
 let DOT = '.'
