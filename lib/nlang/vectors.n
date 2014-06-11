@@ -58,7 +58,7 @@ inline Vector met# Clear = Void
 inline Vector met All = Index_range
   return Range 0 self.Count
 
-inline Vector met# `Copyable.Copy_ctor other:@this = Void
+inline Vector met# Copy_ctor other:@this = Void
   (Heap.Slice_realloc t) @!Sysheap @#self#p other.p.Count
   self.p!Copy other.p
   self!c = other.c

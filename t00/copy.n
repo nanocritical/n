@@ -4,7 +4,7 @@ struct copy =
   isa `Copyable
   x:I32
 
-copy met# `Copyable.copy_ctor other:@this = Void
+copy met# copy_ctor other:@this = Void
   self!x = other.x
 
 fun Foo = copy

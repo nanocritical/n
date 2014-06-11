@@ -62,10 +62,10 @@ opaque struct Index_iterator =
   r:Index_range
   p:Size
 
-Index_iterator met `Iterator.Has_next = Bool
+Index_iterator met Has_next = Bool
   return self.p < self.r.End
 
-Index_iterator met! `Iterator.Next = Size
+Index_iterator met! Next = Size
   let r = self.p
   self!p += 1
   return r

@@ -16,7 +16,7 @@ inline Char fun From_ascii c:U8 = Char
 
 example <- Char.From_ascii 49 == '1':Char
 
-inline Char met `Show.Show buf:@#`String_buffer = Void
+inline Char met Show buf:@#`String_buffer = Void
   buf#Push self.
 
 intf `Static_string_compatible =
@@ -60,21 +60,21 @@ inline Static_string fun Mk bytes:@U8 Count:Size = r:this
 inline Static_string fun From_static_string s:Static_string = this
   return { bytes=s.bytes }
 
-inline Static_string met `Const_string.Count = Size
+inline Static_string met Count = Size
   return self.bytes.Count
 
-inline Static_string met `Const_string.All = Index_range
+inline Static_string met All = Index_range
   return self.bytes.All
 
-inline Static_string met `Const_string.Get_char n:Size = Char
+inline Static_string met Get_char n:Size = Char
   return Char.From_ascii self.bytes.[n].
 
-inline Static_string met `Const_string.Bytes_utf8 = []U8
+inline Static_string met Bytes_utf8 = []U8
   return self.bytes
 
 extern Static_string met Operator_compare other:@this = I32
 
-Static_string met `Show.Show buf:@#`String_buffer = Void
+Static_string met Show buf:@#`String_buffer = Void
   buf#Reserve buf.Count + self.Count
   foreach i in self.All
     buf#Push (self.Get_char i)
