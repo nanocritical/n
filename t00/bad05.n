@@ -1,5 +1,5 @@
 from n import *
 
 struct t =
-	x:U32
+	x	:U32
 	| A

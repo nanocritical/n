@@ -2,13 +2,13 @@ from n import *
 
 struct tt =
 	isa `Trivial_copy
-	x:I32
-	y:I32
+	x	:I32
+	y	:I32
 
 struct t =
 	isa `Trivial_copy
-	x:I32
-	y:tt
+	x	:I32
+	y	:tt
 
 fun Foo x:I32 y:I32 = I32
 	return x

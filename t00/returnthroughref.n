@@ -2,8 +2,8 @@ from n import *
 
 struct t =
 	isa `Trivial_copy
-	x:I32
-	xx:I32
+	x	:I32
+	xx	:I32
 
 fun Foo = t
 	return { x=3 }

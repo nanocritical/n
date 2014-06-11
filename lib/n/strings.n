@@ -5,7 +5,7 @@ import n.unsafe
 
 opaque struct String =
 	isa `Copyable `Show `String_buffer
-	bytes:(Vector U8)
+	bytes	:(Vector U8)
 
 String fun From_static_string literal:Static_string = s:this
 	s.bytes#Append_slice literal.Bytes_utf8

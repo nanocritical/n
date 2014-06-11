@@ -2,4 +2,4 @@ from n import *
 
 enum t =
 	| A
-	x:U32
+	x	:U32

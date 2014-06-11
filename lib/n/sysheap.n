@@ -5,7 +5,7 @@ extern inline fun Realloc p:?@#U8 oldbsz:Size bsz:Size = @#U8
 extern inline fun Free p:?@#U8 sz:Size = Void
 
 opaque struct Heap =
-	dummy:I32
+	dummy	:I32
 
 Heap (met! t:`Any) Alloc = @#t
 	let raw = Realloc null 0 (sizeof t)

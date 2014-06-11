@@ -5,7 +5,7 @@ intf `blah =
 
 struct blah =
 	isa `blah
-	dummy:U8
+	dummy	:U8
 
 blah (met t:`Integer) `blah.decr x:t = t
 	return x - 1

@@ -2,7 +2,7 @@ from n import *
 
 struct c =
 	isa `Trivial_ctor
-	x:@I32
+	x	:@I32
 
 fun Main = I32
 	let x = 0

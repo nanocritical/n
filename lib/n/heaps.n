@@ -5,8 +5,8 @@ intf `Heap_element =
 
 opaque struct Heap t:`Heap_element =
 	isa `Trivial_ctor `Copyable
-	h:(Vector t)
-	c:Size
+	h	:(Vector t)
+	c	:Size
 
 inline Heap met# Reserve Count:Size = Void
 	self.h#Reserve Count

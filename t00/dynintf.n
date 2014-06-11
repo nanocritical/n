@@ -6,7 +6,7 @@ intf `d =
 
 struct d =
 	isa `d
-	x:I32
+	x	:I32
 
 d fun answer = I32
 	return 42
@@ -16,7 +16,7 @@ d met get = I32
 
 struct dc =
 	isa `d
-	dummy:I32
+	dummy	:I32
 
 dc fun answer = I32
 	return 42

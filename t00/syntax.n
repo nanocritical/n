@@ -19,7 +19,7 @@ intf `ia =
 
 struct test =
 	isa `ia
-	t:I32
+	t	:I32
 
 test met Foo x:I32 = I32
 	let y = x

@@ -59,8 +59,8 @@ Index_range met Iter = Index_iterator
 
 opaque struct Index_iterator =
 	isa (`Iterator Size) `Trivial_copy `Trivial_ctor
-	r:Index_range
-	p:Size
+	r	:Index_range
+	p	:Size
 
 Index_iterator met Has_next = Bool
 	return self.p < self.r.End

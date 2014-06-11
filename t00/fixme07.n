@@ -5,7 +5,7 @@ intf `i =
 
 struct a =
 	isa `i
-	x:I32
+	x	:I32
 
 a fun `i.Foo = Void
 	return
