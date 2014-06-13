@@ -138,7 +138,7 @@ static inline NB(Ssize) NB(I32$As_ssize)(const NB(I32) *self) {
   return (NB(Ssize)) *self;
 }
 
-static inline NB(Float) NB(I32$Trim_float)(const NB(I32) *self) {
+static inline NB(Float) NB(I32$Round_float)(const NB(I32) *self) {
   return (NB(Float)) *self;
 }
 
@@ -171,11 +171,11 @@ static inline NB(Ssize) NB(I64$As_ssize)(const NB(I64) *self) {
   return (NB(Ssize)) *self;
 }
 
-static inline NB(Float) NB(I64$Trim_float)(const NB(I64) *self) {
+static inline NB(Float) NB(I64$Round_float)(const NB(I64) *self) {
   return (NB(Float)) *self;
 }
 
-static inline NB(Double) NB(I64$Trim_double)(const NB(I64) *self) {
+static inline NB(Double) NB(I64$Round_double)(const NB(I64) *self) {
   return (NB(Double)) *self;
 }
 
@@ -270,7 +270,7 @@ static inline NB(Size) NB(U32$As_size)(const NB(U32) *self) {
   return (NB(Size)) *self;
 }
 
-static inline NB(Float) NB(U32$Trim_float)(const NB(U32) *self) {
+static inline NB(Float) NB(U32$Round_float)(const NB(U32) *self) {
   return (NB(Float)) *self;
 }
 
@@ -303,11 +303,11 @@ static inline NB(Size) NB(U64$As_size)(const NB(U64) *self) {
   return (NB(Size)) *self;
 }
 
-static inline NB(Float) NB(U64$Trim_float)(const NB(U64) *self) {
+static inline NB(Float) NB(U64$Round_float)(const NB(U64) *self) {
   return (NB(Float)) *self;
 }
 
-static inline NB(Double) NB(U64$Trim_double)(const NB(U64) *self) {
+static inline NB(Double) NB(U64$Round_double)(const NB(U64) *self) {
   return (NB(Double)) *self;
 }
 
@@ -336,11 +336,11 @@ static inline NB(I64) NB(Ssize$Trim_i64)(const NB(Ssize) *self) {
   return (NB(I64)) *self;
 }
 
-static inline NB(Float) NB(Ssize$Trim_float)(const NB(Ssize) *self) {
+static inline NB(Float) NB(Ssize$Round_float)(const NB(Ssize) *self) {
   return (NB(Float)) *self;
 }
 
-static inline NB(Double) NB(Ssize$Trim_double)(const NB(Ssize) *self) {
+static inline NB(Double) NB(Ssize$Round_double)(const NB(Ssize) *self) {
   return (NB(Double)) *self;
 }
 
@@ -368,11 +368,11 @@ static inline NB(U64) NB(Size$Trim_u64)(const NB(Size) *self) {
   return (NB(U64)) *self;
 }
 
-static inline NB(Float) NB(Size$Trim_float)(const NB(Size) *self) {
+static inline NB(Float) NB(Size$Round_float)(const NB(Size) *self) {
   return (NB(Float)) *self;
 }
 
-static inline NB(Double) NB(Size$Trim_double)(const NB(Size) *self) {
+static inline NB(Double) NB(Size$Round_double)(const NB(Size) *self) {
   return (NB(Double)) *self;
 }
 
@@ -418,7 +418,7 @@ static inline NB(I64) NB(Double$To_i64)(const NB(Double) *self) {
   return (NB(I64)) *self;
 }
 
-static inline NB(Float) NB(Double$Trim_float)(const NB(Double) *self) {
+static inline NB(Float) NB(Double$Round_float)(const NB(Double) *self) {
   return (NB(Float)) *self;
 }
 

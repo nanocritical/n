@@ -681,7 +681,7 @@ extern inline I32 met Trim_i8 = I8
 extern inline I32 met Trim_i16 = I16
 extern inline I32 met To_i64 = I64
 extern inline I32 met As_ssize = Ssize
-extern inline I32 met Trim_float = Float
+extern inline I32 met Round_float = Float
 extern inline I32 met To_double = Double
 extern I32 met Show buf:@#`String_buffer
 
@@ -723,8 +723,8 @@ extern inline I64 met Trim_i8 = I8
 extern inline I64 met Trim_i16 = I16
 extern inline I64 met Trim_i32 = I32
 extern inline I64 met As_ssize = Ssize
-extern inline I64 met Trim_float = Float
-extern inline I64 met Trim_double = Double
+extern inline I64 met Round_float = Float
+extern inline I64 met Round_double = Double
 extern I64 met Show buf:@#`String_buffer
 
 extern inline struct U8 =
@@ -849,7 +849,7 @@ extern inline U32 met Trim_u8 = U8
 extern inline U32 met Trim_u16 = U16
 extern inline U32 met To_u64 = U64
 extern inline U32 met As_size = Size
-extern inline U32 met Trim_float = Float
+extern inline U32 met Round_float = Float
 extern inline U32 met To_double = Double
 extern U32 met Show buf:@#`String_buffer
 
@@ -891,8 +891,8 @@ extern inline U64 met Trim_u8 = U8
 extern inline U64 met Trim_u16 = U16
 extern inline U64 met Trim_u32 = U32
 extern inline U64 met As_size = Size
-extern inline U64 met Trim_float = Float
-extern inline U64 met Trim_double = Double
+extern inline U64 met Round_float = Float
+extern inline U64 met Round_double = Double
 extern U64 met Show buf:@#`String_buffer
 
 extern inline struct Ssize =
@@ -933,8 +933,8 @@ extern inline Ssize met Trim_i8 = I8
 extern inline Ssize met Trim_i16 = I16
 extern inline Ssize met Trim_i32 = I32
 extern inline Ssize met Trim_i64 = I64
-extern inline Ssize met Trim_float = Float
-extern inline Ssize met Trim_double = Double
+extern inline Ssize met Round_float = Float
+extern inline Ssize met Round_double = Double
 extern Ssize met Show buf:@#`String_buffer
 
 -- FIXME: Size and Ssize do not have a well-defined bit Size, they therefore
@@ -977,8 +977,8 @@ extern inline Size met Trim_u8 = U8
 extern inline Size met Trim_u16 = U16
 extern inline Size met Trim_u32 = U32
 extern inline Size met Trim_u64 = U64
-extern inline Size met Trim_float = Float
-extern inline Size met Trim_double = Double
+extern inline Size met Round_float = Float
+extern inline Size met Round_double = Double
 extern Size met Show buf:@#`String_buffer
 
 extern inline struct Float =
@@ -1033,7 +1033,7 @@ extern inline Double met Trim_i8 = I8
 extern inline Double met Trim_i16 = I16
 extern inline Double met Trim_i32 = I32
 extern inline Double met To_i64 = I64
-extern inline Double met Trim_float = Float
+extern inline Double met Round_float = Float
 extern inline Double met As_ssize = Ssize
 extern Double met Show buf:@#`String_buffer
 
