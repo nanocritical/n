@@ -2,7 +2,7 @@ from n import *
 import n.unsafe
 
 extern inline fun Realloc p:?@#U8 oldbsz:Size bsz:Size = @#U8
-extern inline fun Free p:?@#U8 sz:Size = Void
+extern inline fun Free p:?@#U8 sz:Size
 
 opaque struct Heap =
 	dummy	:I32
@@ -11,11 +11,11 @@ Heap (met! t:`Any) Alloc = @#t
 	let raw = Realloc null 0 (sizeof t)
 	return (n.unsafe.Cast @#U8 @#t) raw
 
-Heap (met! t:`Any) Free p:?@#t = Void
+Heap (met! t:`Any) Free p:?@#t
 	let raw = (n.unsafe.Cast ?@#t ?@#U8) p
 	return Free raw (sizeof t)
 
-Heap (met! t:`Any) Slice_realloc s:@#[]!t Count:Size = Void
+Heap (met! t:`Any) Slice_realloc s:@#[]!t Count:Size
 	let bsz = Count * (sizeof t)
 	if s.Count == 0
 		s#dat = (n.unsafe.Cast @#U8 ?@#t) (Realloc null 0 bsz)
@@ -26,7 +26,7 @@ Heap (met! t:`Any) Slice_realloc s:@#[]!t Count:Size = Void
 		s#dat = (n.unsafe.Cast @#U8 ?@#t) (Realloc raw old_bsz bsz)
 		s#cnt = Count
 
-Heap (met! t:`Any) Slice_free s:@#[]!t = Void
+Heap (met! t:`Any) Slice_free s:@#[]!t
 	let bsz = s.Bytecount
 	let raw = s#Unsafe_rawdata
 	Free raw bsz

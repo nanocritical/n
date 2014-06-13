@@ -25,7 +25,7 @@ import n.unsafe
 --  Assert <- n < N
 --  return (unsafe.Cast @$U8 @$t) (Slice_at_byte self$Unsafe_rawdata n)
 --
---export Array_impl met# Copy other:[]t = Void
+--export Array_impl met# Copy other:[]t
 --  Assert <- N == other.Count
 --  let dst = self#Unsafe_rawdata
 --  and src = other.Unsafe_rawdata

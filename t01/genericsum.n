@@ -4,7 +4,7 @@ struct container t:`Numeric =
 	isa `Trivial_ctor
 	x	:t
 
-container met! add x:t = Void
+container met! add x:t
 	self!x += x
 
 fun Main = I32

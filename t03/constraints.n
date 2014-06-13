@@ -14,7 +14,7 @@ fun aux e:u = I32
 	| _
 		return 0
 
-fun set1 e:@!u = Void
+fun set1 e:@!u
 	match e.
 	| B
 		e!B.x = 1

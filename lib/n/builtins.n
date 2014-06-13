@@ -20,7 +20,7 @@ intf `Any =
 intf `Prevent_dyn =
 
 intf `Copyable =
-	met# Copy_ctor other:@final = Void
+	met# Copy_ctor other:@final
 intf `Not_copyable =
 intf `Copyable_but_owned =
 	isa `Copyable -- FIXME
@@ -34,11 +34,11 @@ intf `Trivial_copy_but_owned =
 intf `Return_by_copy =
 intf `Not_return_by_copy =
 intf `Default_ctor =
-	met# Ctor = Void
+	met# Ctor
 intf `Non_default_ctor =
 
 intf `Default_dtor =
-	met# Dtor = Void
+	met# Dtor
 intf `Error_dtor =
 	met# Dtor = Error
 
@@ -85,11 +85,11 @@ intf `Arithmetic =
 	met Operator_modulo other:@final = final
 	met Operator_times other:@final = final
 	met Operator_uminus = final
-	met! Operator_assign_plus other:@final = Void
-	met! Operator_assign_minus other:@final = Void
-	met! Operator_assign_divide other:@final = Void
-	met! Operator_assign_modulo other:@final = Void
-	met! Operator_assign_times other:@final = Void
+	met! Operator_assign_plus other:@final
+	met! Operator_assign_minus other:@final
+	met! Operator_assign_divide other:@final
+	met! Operator_assign_modulo other:@final
+	met! Operator_assign_times other:@final
 intf `Bitwise =
 	met Operator_bwor other:@final = final
 	met Operator_bwxor other:@final = final
@@ -97,11 +97,11 @@ intf `Bitwise =
 	met Operator_lshift by:U32 = final
 	met Operator_rshift by:U32 = final
 	met Operator_bwnot = final
-	met! Operator_assign_bwor other:@final = Void
-	met! Operator_assign_bwxor other:@final = Void
-	met! Operator_assign_bwand other:@final = Void
-	met! Operator_assign_lshift by:U32 = Void
-	met! Operator_assign_rshift by:U32 = Void
+	met! Operator_assign_bwor other:@final
+	met! Operator_assign_bwxor other:@final
+	met! Operator_assign_bwand other:@final
+	met! Operator_assign_lshift by:U32
+	met! Operator_assign_rshift by:U32
 
 
 intf `Sum_copy =
@@ -157,7 +157,7 @@ intf `Any_slice t:`Any =
 
 intf `Any_mutable_slice t:`Any =
 	isa (`Any_slice t)
-	met! Copy other:[]t = Void
+	met! Copy other:[]t
 
 -- The body of the methods for Slice and Mutable_slice are actually not used, as
 -- Slice_impl is used in codegen for both Slice and Mutable_slice. The code in
@@ -173,7 +173,7 @@ opaque struct Slice t:`Any =
 
 inline Slice fun create_impl_instance = (Slice_impl t)
 	return {}
-inline Slice met# Unsafe_wrap p:@U8 c:Size = Void
+inline Slice met# Unsafe_wrap p:@U8 c:Size
 	let s = this.create_impl_instance
 	s#Unsafe_wrap p c
 inline Slice met Count = Size
@@ -207,7 +207,7 @@ opaque struct Mutable_slice t:`Any =
 
 inline Mutable_slice fun create_impl_instance = (Slice_impl t)
 	return {}
-inline Mutable_slice met# Unsafe_wrap p:@U8 c:Size = Void
+inline Mutable_slice met# Unsafe_wrap p:@U8 c:Size
 	let s = this.create_impl_instance
 	s#Unsafe_wrap p c
 inline Mutable_slice met Count = Size
@@ -240,7 +240,7 @@ inline Mutable_slice shallow met$ Operator_at n:Size = @$t
 		let _ = s!Operator_at n
 		let p = s#Operator_at n
 		return s$Operator_at n
-inline Mutable_slice met! Copy other:[]t = Void
+inline Mutable_slice met! Copy other:[]t
 	let s = this.create_impl_instance
 	such
 		s!Copy s
@@ -254,14 +254,14 @@ inline Mutable_slice shallow met$ Operator_sub r:Index_range = []$t
 
 
 extern inline fun Slice_at_byte dp:@#U8 off:Size = @#U8
-extern inline fun Slice_memcpy dst:@#U8 src:@U8 Count:Size = Void
+extern inline fun Slice_memcpy dst:@#U8 src:@U8 Count:Size
 
 opaque struct Slice_impl t:`Any =
 	isa (`Any_mutable_slice t)
 	dat	:?@#t
 	cnt	:Size
 
-inline Slice_impl met# Unsafe_wrap p:@U8 c:Size = Void
+inline Slice_impl met# Unsafe_wrap p:@U8 c:Size
 	self#dat = (Cast @U8 @#t) p
 	self#cnt = c
 
@@ -286,7 +286,7 @@ inline Slice_impl shallow met$ Operator_at n:Size = @$t
 	and off = n * (sizeof t)
 	return (Cast @#U8 @$t) <- Slice_at_byte raw off
 
-inline Slice_impl met! Copy other:this = Void
+inline Slice_impl met! Copy other:this
 	Assert <- self.Count == other.Count
 	let dst = self!Unsafe_rawdata
 	and src = other.Unsafe_rawdata
@@ -561,7 +561,7 @@ extern Bool met To_u8 = U8
 extern Bool met To_u16 = U16
 extern Bool met To_u32 = U32
 extern Bool met To_u64 = U64
-extern Bool met Show buf:@#`String_buffer = Void
+extern Bool met Show buf:@#`String_buffer
 
 extern inline struct I8 =
 	isa `Native_signed_integer
@@ -579,29 +579,29 @@ extern I8 met Operator_divide other:@this = this
 extern I8 met Operator_modulo other:@this = this
 extern I8 met Operator_times other:@this = this
 extern I8 met Operator_uminus = this
-extern I8 met! Operator_assign_plus other:@this = Void
-extern I8 met! Operator_assign_minus other:@this = Void
-extern I8 met! Operator_assign_divide other:@this = Void
-extern I8 met! Operator_assign_modulo other:@this = Void
-extern I8 met! Operator_assign_times other:@this = Void
+extern I8 met! Operator_assign_plus other:@this
+extern I8 met! Operator_assign_minus other:@this
+extern I8 met! Operator_assign_divide other:@this
+extern I8 met! Operator_assign_modulo other:@this
+extern I8 met! Operator_assign_times other:@this
 extern I8 met Operator_bwor other:@this = this
 extern I8 met Operator_bwxor other:@this = this
 extern I8 met Operator_bwand other:@this = this
 extern I8 met Operator_lshift by:U32 = this
 extern I8 met Operator_rshift by:U32 = this
 extern I8 met Operator_bwnot = this
-extern I8 met! Operator_assign_bwor other:@this = Void
-extern I8 met! Operator_assign_bwxor other:@this = Void
-extern I8 met! Operator_assign_bwand other:@this = Void
-extern I8 met! Operator_assign_lshift by:U32 = Void
-extern I8 met! Operator_assign_rshift by:U32 = Void
+extern I8 met! Operator_assign_bwor other:@this
+extern I8 met! Operator_assign_bwxor other:@this
+extern I8 met! Operator_assign_bwand other:@this
+extern I8 met! Operator_assign_lshift by:U32
+extern I8 met! Operator_assign_rshift by:U32
 extern inline I8 met Reinterpret_unsigned = U8
 extern inline I8 met Reinterpret_signed = this
 extern inline I8 met To_i16 = I16
 extern inline I8 met To_i32 = I32
 extern inline I8 met To_i64 = I64
 extern inline I8 met As_ssize = Ssize
-extern I8 met Show buf:@#`String_buffer = Void
+extern I8 met Show buf:@#`String_buffer
 
 extern inline struct I16 =
 	isa `Native_signed_integer
@@ -619,29 +619,29 @@ extern I16 met Operator_divide other:@this = this
 extern I16 met Operator_modulo other:@this = this
 extern I16 met Operator_times other:@this = this
 extern I16 met Operator_uminus = this
-extern I16 met! Operator_assign_plus other:@this = Void
-extern I16 met! Operator_assign_minus other:@this = Void
-extern I16 met! Operator_assign_divide other:@this = Void
-extern I16 met! Operator_assign_modulo other:@this = Void
-extern I16 met! Operator_assign_times other:@this = Void
+extern I16 met! Operator_assign_plus other:@this
+extern I16 met! Operator_assign_minus other:@this
+extern I16 met! Operator_assign_divide other:@this
+extern I16 met! Operator_assign_modulo other:@this
+extern I16 met! Operator_assign_times other:@this
 extern I16 met Operator_bwor other:@this = this
 extern I16 met Operator_bwxor other:@this = this
 extern I16 met Operator_bwand other:@this = this
 extern I16 met Operator_lshift by:U32 = this
 extern I16 met Operator_rshift by:U32 = this
 extern I16 met Operator_bwnot = this
-extern I16 met! Operator_assign_bwor other:@this = Void
-extern I16 met! Operator_assign_bwxor other:@this = Void
-extern I16 met! Operator_assign_bwand other:@this = Void
-extern I16 met! Operator_assign_lshift by:U32 = Void
-extern I16 met! Operator_assign_rshift by:U32 = Void
+extern I16 met! Operator_assign_bwor other:@this
+extern I16 met! Operator_assign_bwxor other:@this
+extern I16 met! Operator_assign_bwand other:@this
+extern I16 met! Operator_assign_lshift by:U32
+extern I16 met! Operator_assign_rshift by:U32
 extern inline I16 met Reinterpret_unsigned = U16
 extern inline I16 met Reinterpret_signed = this
 extern inline I16 met Trim_i8 = I8
 extern inline I16 met To_i32 = I32
 extern inline I16 met To_i64 = I64
 extern inline I16 met As_ssize = Ssize
-extern I16 met Show buf:@#`String_buffer = Void
+extern I16 met Show buf:@#`String_buffer
 
 extern inline struct I32 =
 	isa `Native_signed_integer
@@ -659,22 +659,22 @@ extern I32 met Operator_divide other:@this = this
 extern I32 met Operator_modulo other:@this = this
 extern I32 met Operator_times other:@this = this
 extern I32 met Operator_uminus = this
-extern I32 met! Operator_assign_plus other:@this = Void
-extern I32 met! Operator_assign_minus other:@this = Void
-extern I32 met! Operator_assign_divide other:@this = Void
-extern I32 met! Operator_assign_modulo other:@this = Void
-extern I32 met! Operator_assign_times other:@this = Void
+extern I32 met! Operator_assign_plus other:@this
+extern I32 met! Operator_assign_minus other:@this
+extern I32 met! Operator_assign_divide other:@this
+extern I32 met! Operator_assign_modulo other:@this
+extern I32 met! Operator_assign_times other:@this
 extern I32 met Operator_bwor other:@this = this
 extern I32 met Operator_bwxor other:@this = this
 extern I32 met Operator_bwand other:@this = this
 extern I32 met Operator_lshift by:U32 = this
 extern I32 met Operator_rshift by:U32 = this
 extern I32 met Operator_bwnot = this
-extern I32 met! Operator_assign_bwor other:@this = Void
-extern I32 met! Operator_assign_bwxor other:@this = Void
-extern I32 met! Operator_assign_bwand other:@this = Void
-extern I32 met! Operator_assign_lshift by:U32 = Void
-extern I32 met! Operator_assign_rshift by:U32 = Void
+extern I32 met! Operator_assign_bwor other:@this
+extern I32 met! Operator_assign_bwxor other:@this
+extern I32 met! Operator_assign_bwand other:@this
+extern I32 met! Operator_assign_lshift by:U32
+extern I32 met! Operator_assign_rshift by:U32
 extern inline I32 met Reinterpret_unsigned = U32
 extern inline I32 met Reinterpret_signed = this
 extern inline I32 met Trim_i8 = I8
@@ -683,7 +683,7 @@ extern inline I32 met To_i64 = I64
 extern inline I32 met As_ssize = Ssize
 extern inline I32 met Trim_float = Float
 extern inline I32 met To_double = Double
-extern I32 met Show buf:@#`String_buffer = Void
+extern I32 met Show buf:@#`String_buffer
 
 extern inline struct I64 =
 	isa `Native_signed_integer
@@ -701,22 +701,22 @@ extern I64 met Operator_divide other:@this = this
 extern I64 met Operator_modulo other:@this = this
 extern I64 met Operator_times other:@this = this
 extern I64 met Operator_uminus = this
-extern I64 met! Operator_assign_plus other:@this = Void
-extern I64 met! Operator_assign_minus other:@this = Void
-extern I64 met! Operator_assign_divide other:@this = Void
-extern I64 met! Operator_assign_modulo other:@this = Void
-extern I64 met! Operator_assign_times other:@this = Void
+extern I64 met! Operator_assign_plus other:@this
+extern I64 met! Operator_assign_minus other:@this
+extern I64 met! Operator_assign_divide other:@this
+extern I64 met! Operator_assign_modulo other:@this
+extern I64 met! Operator_assign_times other:@this
 extern I64 met Operator_bwor other:@this = this
 extern I64 met Operator_bwxor other:@this = this
 extern I64 met Operator_bwand other:@this = this
 extern I64 met Operator_lshift by:U32 = this
 extern I64 met Operator_rshift by:U32 = this
 extern I64 met Operator_bwnot = this
-extern I64 met! Operator_assign_bwor other:@this = Void
-extern I64 met! Operator_assign_bwxor other:@this = Void
-extern I64 met! Operator_assign_bwand other:@this = Void
-extern I64 met! Operator_assign_lshift by:U32 = Void
-extern I64 met! Operator_assign_rshift by:U32 = Void
+extern I64 met! Operator_assign_bwor other:@this
+extern I64 met! Operator_assign_bwxor other:@this
+extern I64 met! Operator_assign_bwand other:@this
+extern I64 met! Operator_assign_lshift by:U32
+extern I64 met! Operator_assign_rshift by:U32
 extern inline I64 met Reinterpret_unsigned = U64
 extern inline I64 met Reinterpret_signed = this
 extern inline I64 met Trim_i8 = I8
@@ -725,7 +725,7 @@ extern inline I64 met Trim_i32 = I32
 extern inline I64 met As_ssize = Ssize
 extern inline I64 met Trim_float = Float
 extern inline I64 met Trim_double = Double
-extern I64 met Show buf:@#`String_buffer = Void
+extern I64 met Show buf:@#`String_buffer
 
 extern inline struct U8 =
 	isa `Native_unsigned_integer
@@ -749,16 +749,16 @@ extern U8 met Operator_bwand other:@this = this
 extern U8 met Operator_lshift by:U32 = this
 extern U8 met Operator_rshift by:U32 = this
 extern U8 met Operator_bwnot = this
-extern U8 met! Operator_assign_plus other:@this = Void
-extern U8 met! Operator_assign_minus other:@this = Void
-extern U8 met! Operator_assign_divide other:@this = Void
-extern U8 met! Operator_assign_modulo other:@this = Void
-extern U8 met! Operator_assign_times other:@this = Void
-extern U8 met! Operator_assign_bwor other:@this = Void
-extern U8 met! Operator_assign_bwxor other:@this = Void
-extern U8 met! Operator_assign_bwand other:@this = Void
-extern U8 met! Operator_assign_lshift by:U32 = Void
-extern U8 met! Operator_assign_rshift by:U32 = Void
+extern U8 met! Operator_assign_plus other:@this
+extern U8 met! Operator_assign_minus other:@this
+extern U8 met! Operator_assign_divide other:@this
+extern U8 met! Operator_assign_modulo other:@this
+extern U8 met! Operator_assign_times other:@this
+extern U8 met! Operator_assign_bwor other:@this
+extern U8 met! Operator_assign_bwxor other:@this
+extern U8 met! Operator_assign_bwand other:@this
+extern U8 met! Operator_assign_lshift by:U32
+extern U8 met! Operator_assign_rshift by:U32
 extern inline U8 met Reinterpret_unsigned = this
 extern inline U8 met Reinterpret_signed = I8
 extern inline U8 met To_u16 = U16
@@ -767,7 +767,7 @@ extern inline U8 met To_u64 = U64
 extern inline U8 met As_size = Size
 extern inline U8 met To_float = Float
 extern inline U8 met To_double = Double
-extern U8 met Show buf:@#`String_buffer = Void
+extern U8 met Show buf:@#`String_buffer
 
 extern inline struct U16 =
 	isa `Native_unsigned_integer
@@ -785,22 +785,22 @@ extern U16 met Operator_divide other:@this = this
 extern U16 met Operator_modulo other:@this = this
 extern U16 met Operator_times other:@this = this
 extern U16 met Operator_uminus = this
-extern U16 met! Operator_assign_plus other:@this = Void
-extern U16 met! Operator_assign_minus other:@this = Void
-extern U16 met! Operator_assign_divide other:@this = Void
-extern U16 met! Operator_assign_modulo other:@this = Void
-extern U16 met! Operator_assign_times other:@this = Void
+extern U16 met! Operator_assign_plus other:@this
+extern U16 met! Operator_assign_minus other:@this
+extern U16 met! Operator_assign_divide other:@this
+extern U16 met! Operator_assign_modulo other:@this
+extern U16 met! Operator_assign_times other:@this
 extern U16 met Operator_bwor other:@this = this
 extern U16 met Operator_bwxor other:@this = this
 extern U16 met Operator_bwand other:@this = this
 extern U16 met Operator_lshift by:U32 = this
 extern U16 met Operator_rshift by:U32 = this
 extern U16 met Operator_bwnot = this
-extern U16 met! Operator_assign_bwor other:@this = Void
-extern U16 met! Operator_assign_bwxor other:@this = Void
-extern U16 met! Operator_assign_bwand other:@this = Void
-extern U16 met! Operator_assign_lshift by:U32 = Void
-extern U16 met! Operator_assign_rshift by:U32 = Void
+extern U16 met! Operator_assign_bwor other:@this
+extern U16 met! Operator_assign_bwxor other:@this
+extern U16 met! Operator_assign_bwand other:@this
+extern U16 met! Operator_assign_lshift by:U32
+extern U16 met! Operator_assign_rshift by:U32
 extern inline U16 met Reinterpret_unsigned = this
 extern inline U16 met Reinterpret_signed = I16
 extern inline U16 met Trim_u8 = U8
@@ -809,7 +809,7 @@ extern inline U16 met To_u64 = U64
 extern inline U16 met As_size = Size
 extern inline U16 met To_float = Float
 extern inline U16 met To_double = Double
-extern U16 met Show buf:@#`String_buffer = Void
+extern U16 met Show buf:@#`String_buffer
 
 extern inline struct U32 =
 	isa `Native_unsigned_integer
@@ -827,22 +827,22 @@ extern U32 met Operator_divide other:@this = this
 extern U32 met Operator_modulo other:@this = this
 extern U32 met Operator_times other:@this = this
 extern U32 met Operator_uminus = this
-extern U32 met! Operator_assign_plus other:@this = Void
-extern U32 met! Operator_assign_minus other:@this = Void
-extern U32 met! Operator_assign_divide other:@this = Void
-extern U32 met! Operator_assign_modulo other:@this = Void
-extern U32 met! Operator_assign_times other:@this = Void
+extern U32 met! Operator_assign_plus other:@this
+extern U32 met! Operator_assign_minus other:@this
+extern U32 met! Operator_assign_divide other:@this
+extern U32 met! Operator_assign_modulo other:@this
+extern U32 met! Operator_assign_times other:@this
 extern U32 met Operator_bwor other:@this = this
 extern U32 met Operator_bwxor other:@this = this
 extern U32 met Operator_bwand other:@this = this
 extern U32 met Operator_lshift by:U32 = this
 extern U32 met Operator_rshift by:U32 = this
 extern U32 met Operator_bwnot = this
-extern U32 met! Operator_assign_bwor other:@this = Void
-extern U32 met! Operator_assign_bwxor other:@this = Void
-extern U32 met! Operator_assign_bwand other:@this = Void
-extern U32 met! Operator_assign_lshift by:U32 = Void
-extern U32 met! Operator_assign_rshift by:U32 = Void
+extern U32 met! Operator_assign_bwor other:@this
+extern U32 met! Operator_assign_bwxor other:@this
+extern U32 met! Operator_assign_bwand other:@this
+extern U32 met! Operator_assign_lshift by:U32
+extern U32 met! Operator_assign_rshift by:U32
 extern inline U32 met Reinterpret_unsigned = this
 extern inline U32 met Reinterpret_signed = I32
 extern inline U32 met Trim_u8 = U8
@@ -851,7 +851,7 @@ extern inline U32 met To_u64 = U64
 extern inline U32 met As_size = Size
 extern inline U32 met Trim_float = Float
 extern inline U32 met To_double = Double
-extern U32 met Show buf:@#`String_buffer = Void
+extern U32 met Show buf:@#`String_buffer
 
 extern inline struct U64 =
 	isa `Native_unsigned_integer
@@ -869,22 +869,22 @@ extern U64 met Operator_divide other:@this = this
 extern U64 met Operator_modulo other:@this = this
 extern U64 met Operator_times other:@this = this
 extern U64 met Operator_uminus = this
-extern U64 met! Operator_assign_plus other:@this = Void
-extern U64 met! Operator_assign_minus other:@this = Void
-extern U64 met! Operator_assign_divide other:@this = Void
-extern U64 met! Operator_assign_modulo other:@this = Void
-extern U64 met! Operator_assign_times other:@this = Void
+extern U64 met! Operator_assign_plus other:@this
+extern U64 met! Operator_assign_minus other:@this
+extern U64 met! Operator_assign_divide other:@this
+extern U64 met! Operator_assign_modulo other:@this
+extern U64 met! Operator_assign_times other:@this
 extern U64 met Operator_bwor other:@this = this
 extern U64 met Operator_bwxor other:@this = this
 extern U64 met Operator_bwand other:@this = this
 extern U64 met Operator_lshift by:U32 = this
 extern U64 met Operator_rshift by:U32 = this
 extern U64 met Operator_bwnot = this
-extern U64 met! Operator_assign_bwor other:@this = Void
-extern U64 met! Operator_assign_bwxor other:@this = Void
-extern U64 met! Operator_assign_bwand other:@this = Void
-extern U64 met! Operator_assign_lshift by:U32 = Void
-extern U64 met! Operator_assign_rshift by:U32 = Void
+extern U64 met! Operator_assign_bwor other:@this
+extern U64 met! Operator_assign_bwxor other:@this
+extern U64 met! Operator_assign_bwand other:@this
+extern U64 met! Operator_assign_lshift by:U32
+extern U64 met! Operator_assign_rshift by:U32
 extern inline U64 met Reinterpret_unsigned = this
 extern inline U64 met Reinterpret_signed = I64
 extern inline U64 met Trim_u8 = U8
@@ -893,7 +893,7 @@ extern inline U64 met Trim_u32 = U32
 extern inline U64 met As_size = Size
 extern inline U64 met Trim_float = Float
 extern inline U64 met Trim_double = Double
-extern U64 met Show buf:@#`String_buffer = Void
+extern U64 met Show buf:@#`String_buffer
 
 extern inline struct Ssize =
 	isa `Native_signed_integer
@@ -911,22 +911,22 @@ extern Ssize met Operator_divide other:@this = this
 extern Ssize met Operator_modulo other:@this = this
 extern Ssize met Operator_times other:@this = this
 extern Ssize met Operator_uminus = this
-extern Ssize met! Operator_assign_plus other:@this = Void
-extern Ssize met! Operator_assign_minus other:@this = Void
-extern Ssize met! Operator_assign_divide other:@this = Void
-extern Ssize met! Operator_assign_modulo other:@this = Void
-extern Ssize met! Operator_assign_times other:@this = Void
+extern Ssize met! Operator_assign_plus other:@this
+extern Ssize met! Operator_assign_minus other:@this
+extern Ssize met! Operator_assign_divide other:@this
+extern Ssize met! Operator_assign_modulo other:@this
+extern Ssize met! Operator_assign_times other:@this
 extern Ssize met Operator_bwor other:@this = this
 extern Ssize met Operator_bwxor other:@this = this
 extern Ssize met Operator_bwand other:@this = this
 extern Ssize met Operator_lshift by:U32 = this
 extern Ssize met Operator_rshift by:U32 = this
 extern Ssize met Operator_bwnot = this
-extern Ssize met! Operator_assign_bwor other:@this = Void
-extern Ssize met! Operator_assign_bwxor other:@this = Void
-extern Ssize met! Operator_assign_bwand other:@this = Void
-extern Ssize met! Operator_assign_lshift by:U32 = Void
-extern Ssize met! Operator_assign_rshift by:U32 = Void
+extern Ssize met! Operator_assign_bwor other:@this
+extern Ssize met! Operator_assign_bwxor other:@this
+extern Ssize met! Operator_assign_bwand other:@this
+extern Ssize met! Operator_assign_lshift by:U32
+extern Ssize met! Operator_assign_rshift by:U32
 extern inline Ssize met Reinterpret_unsigned = Size
 extern inline Ssize met Reinterpret_signed = this
 extern inline Ssize met Trim_i8 = I8
@@ -935,7 +935,7 @@ extern inline Ssize met Trim_i32 = I32
 extern inline Ssize met Trim_i64 = I64
 extern inline Ssize met Trim_float = Float
 extern inline Ssize met Trim_double = Double
-extern Ssize met Show buf:@#`String_buffer = Void
+extern Ssize met Show buf:@#`String_buffer
 
 -- FIXME: Size and Ssize do not have a well-defined bit Size, they therefore
 -- should not be `Bitwise.
@@ -955,22 +955,22 @@ extern Size met Operator_divide other:@this = this
 extern Size met Operator_modulo other:@this = this
 extern Size met Operator_times other:@this = this
 extern Size met Operator_uminus = this
-extern Size met! Operator_assign_plus other:@this = Void
-extern Size met! Operator_assign_minus other:@this = Void
-extern Size met! Operator_assign_divide other:@this = Void
-extern Size met! Operator_assign_modulo other:@this = Void
-extern Size met! Operator_assign_times other:@this = Void
+extern Size met! Operator_assign_plus other:@this
+extern Size met! Operator_assign_minus other:@this
+extern Size met! Operator_assign_divide other:@this
+extern Size met! Operator_assign_modulo other:@this
+extern Size met! Operator_assign_times other:@this
 extern Size met Operator_bwor other:@this = this
 extern Size met Operator_bwxor other:@this = this
 extern Size met Operator_bwand other:@this = this
 extern Size met Operator_lshift by:U32 = this
 extern Size met Operator_rshift by:U32 = this
 extern Size met Operator_bwnot = this
-extern Size met! Operator_assign_bwor other:@this = Void
-extern Size met! Operator_assign_bwxor other:@this = Void
-extern Size met! Operator_assign_bwand other:@this = Void
-extern Size met! Operator_assign_lshift by:U32 = Void
-extern Size met! Operator_assign_rshift by:U32 = Void
+extern Size met! Operator_assign_bwor other:@this
+extern Size met! Operator_assign_bwxor other:@this
+extern Size met! Operator_assign_bwand other:@this
+extern Size met! Operator_assign_lshift by:U32
+extern Size met! Operator_assign_rshift by:U32
 extern inline Size met Reinterpret_unsigned = this
 extern inline Size met Reinterpret_signed = Ssize
 extern inline Size met Trim_u8 = U8
@@ -979,7 +979,7 @@ extern inline Size met Trim_u32 = U32
 extern inline Size met Trim_u64 = U64
 extern inline Size met Trim_float = Float
 extern inline Size met Trim_double = Double
-extern Size met Show buf:@#`String_buffer = Void
+extern Size met Show buf:@#`String_buffer
 
 extern inline struct Float =
 	isa `Native_floating
@@ -996,18 +996,18 @@ extern Float met Operator_divide other:@this = this
 extern Float met Operator_modulo other:@this = this
 extern Float met Operator_times other:@this = this
 extern Float met Operator_uminus = this
-extern Float met! Operator_assign_plus other:@this = Void
-extern Float met! Operator_assign_minus other:@this = Void
-extern Float met! Operator_assign_divide other:@this = Void
-extern Float met! Operator_assign_modulo other:@this = Void
-extern Float met! Operator_assign_times other:@this = Void
+extern Float met! Operator_assign_plus other:@this
+extern Float met! Operator_assign_minus other:@this
+extern Float met! Operator_assign_divide other:@this
+extern Float met! Operator_assign_modulo other:@this
+extern Float met! Operator_assign_times other:@this
 extern inline Float met Trim_i8 = I8
 extern inline Float met Trim_i16 = I16
 extern inline Float met To_i32 = I32
 extern inline Float met To_i64 = I64
 extern inline Float met To_double = Double
 extern inline Float met As_ssize = Ssize
-extern Float met Show buf:@#`String_buffer = Void
+extern Float met Show buf:@#`String_buffer
 
 extern inline struct Double =
 	isa `Native_floating
@@ -1024,18 +1024,18 @@ extern Double met Operator_divide other:@this = this
 extern Double met Operator_modulo other:@this = this
 extern Double met Operator_times other:@this = this
 extern Double met Operator_uminus = this
-extern Double met! Operator_assign_plus other:@this = Void
-extern Double met! Operator_assign_minus other:@this = Void
-extern Double met! Operator_assign_divide other:@this = Void
-extern Double met! Operator_assign_modulo other:@this = Void
-extern Double met! Operator_assign_times other:@this = Void
+extern Double met! Operator_assign_plus other:@this
+extern Double met! Operator_assign_minus other:@this
+extern Double met! Operator_assign_divide other:@this
+extern Double met! Operator_assign_modulo other:@this
+extern Double met! Operator_assign_times other:@this
 extern inline Double met Trim_i8 = I8
 extern inline Double met Trim_i16 = I16
 extern inline Double met Trim_i32 = I32
 extern inline Double met To_i64 = I64
 extern inline Double met Trim_float = Float
 extern inline Double met As_ssize = Ssize
-extern Double met Show buf:@#`String_buffer = Void
+extern Double met Show buf:@#`String_buffer
 
 intf `Trivial_array_ctor t:`Copyable =
 	isa `Prevent_dyn (`Array_ctor t)
@@ -1074,12 +1074,12 @@ inline Static_array shallow met$ Operator_at n:Size = @$t
 	return (Cast @!U8 @$t) p
 
 
-extern fun Abort = Void
+extern fun Abort
 
 extern inline fun Likely x:Bool = Bool
 extern inline fun Unlikely x:Bool = Bool
 
-inline (fun t:`Any) Unused x:t = Void
+inline (fun t:`Any) Unused x:t
 	noop
 
 inline (fun t:`Any) Optional opt:?@t fallback:t = t
@@ -1119,13 +1119,13 @@ inline struct Error =
 Error met Operator_test = Bool
 	return self.code != 0
 
-Error met Show buf:@#`String_buffer = Void
+Error met Show buf:@#`String_buffer
 	self.code.Show buf
 
-(fun e:`Error) drop err:e = Void
+(fun e:`Error) drop err:e
 	noop
 
-(fun e:`Error) fatal err:e = Void
+(fun e:`Error) fatal err:e
 	Epr "Fatal: "
 	Esay err
 
@@ -1159,19 +1159,19 @@ intf `Environment declaring:`Any =
 	isa `Any_environment
 	-- Implementation of these mets is generated by the compiler.
 	met Parent = @!declaring
-	met! Install where:@!@!declaring = Void
-	met# Uninstall where:@!@#declaring = Void
+	met! Install where:@!@!declaring
+	met# Uninstall where:@!@#declaring
 
 --intf `Debugenv =
 --  isa (`Environment this)
---  met! _Assert cond:Bool ?expr:?@String = Void
---  met! _pre cond:Bool ?expr:?@String = Void
---  met! _post cond:Bool ?expr:?@String = Void
---  met! _invariant cond:Bool ?expr:?@String = Void
---  met! _example cond:Bool ?expr:?@String = Void
+--  met! _Assert cond:Bool ?expr:?@String
+--  met! _pre cond:Bool ?expr:?@String
+--  met! _post cond:Bool ?expr:?@String
+--  met! _invariant cond:Bool ?expr:?@String
+--  met! _example cond:Bool ?expr:?@String
 --
---  met! Pr ?sep:?@String ...v:(vararg @`Showable) = Void
---  met! Say ?sep:?@String ...v:(vararg @`Showable) = Void
+--  met! Pr ?sep:?@String ...v:(vararg @`Showable)
+--  met! Say ?sep:?@String ...v:(vararg @`Showable)
 --
 --struct Debugenv =
 --  export isa `Debugenv
@@ -1206,34 +1206,34 @@ inline struct Codeloc =
 	where		:Static_string
 	expression	:Static_string
 
-fun Assert cond:Bool ?_Ncodeloc:?@Codeloc = Void
+fun Assert cond:Bool ?_Ncodeloc:?@Codeloc
 	if not cond
 		if _Ncodeloc !== null
 			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
 		Abort
 
-fun Unreached = Void
+fun Unreached
 	Abort
 
-fun Pre__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
+fun Pre__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if not cond
 		if _Ncodeloc !== null
 			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
 		Abort
 
-fun Post__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
+fun Post__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if not cond
 		if _Ncodeloc !== null
 			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
 		Abort
 
-fun Invariant__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
+fun Invariant__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if not cond
 		if _Ncodeloc !== null
 			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
 		Abort
 
-fun Example__ cond:Bool ?_Ncodeloc:?@Codeloc = Void
+fun Example__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if not cond
 		if _Ncodeloc !== null
 			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"

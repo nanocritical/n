@@ -2,11 +2,11 @@ from n import *
 
 intf `Example =
 	(met! t:`Any) alloc = @#t
-	(met! t:`Any) Free p:?@#t = Void
+	(met! t:`Any) Free p:?@#t
 
 	-- These 2 work fine when declared with t:`Any, should work here too.
-	(met! t:`Trivial_ctor) slice_realloc s:@#[]!t count:Size = Void
-	(met! t:`Trivial_ctor) slice_free s:@#[]!t = Void
+	(met! t:`Trivial_ctor) slice_realloc s:@#[]!t count:Size
+	(met! t:`Trivial_ctor) slice_free s:@#[]!t
 
 fun Main = I32
 	return 0

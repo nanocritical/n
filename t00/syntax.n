@@ -30,7 +30,7 @@ fun foobar x:I32 = I32
 	post <- x != 0
 	return 0
 
-fun foobar2 = Void
+fun foobar2
 	return
 
 enum enu =

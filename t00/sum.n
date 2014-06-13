@@ -30,7 +30,7 @@ union hun =
 		| BB
 			z	:I64
 
---fun only_a x:en::|A = Void
+--fun only_a x:en::|A
 --  noop
 
 fun Main = I32

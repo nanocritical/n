@@ -8,13 +8,13 @@ opaque struct Heap t:`Heap_element =
 	h	:(Vector t)
 	c	:Size
 
-inline Heap met# Reserve Count:Size = Void
+inline Heap met# Reserve Count:Size
 	self.h#Reserve Count
 
 inline Heap met Count = Size
 	return self.c
 
-inline Heap met# Push x:t = Void
+inline Heap met# Push x:t
 	self!c += 1
 
 inline Heap met# Pop = t

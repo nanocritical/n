@@ -1836,6 +1836,15 @@ static error p_defret(struct node *node, struct module *mod) {
   return 0;
 }
 
+static void insert_void_ret(struct node *node, struct module *mod) {
+  node_set_which(node, DEFARG);
+  GSTART();
+  G0(n, node, IDENT,
+     n->as.IDENT.name = ID_NRETVAL);
+  G0(v, node, IDENT,
+     v->as.IDENT.name = idents_add_string(mod->gctx, "Void", 4));
+}
+
 static void add_self_arg(struct module *mod, struct node *node,
                          struct node *funargs) {
   struct node *arg = mk_node(mod, funargs, DEFARG);
@@ -2008,14 +2017,22 @@ static error p_deffun(struct node *node, struct module *mod,
   bool seen_named = false;
   bool must_be_last = false;
 again:
-  e = scan_oneof(&tok, mod, TASSIGN, TIDENT, TPREQMARK, TDOTDOTDOT, 0);
+  e = scan_oneof(&tok, mod, TASSIGN, TIDENT, TPREQMARK, TDOTDOTDOT,
+                 Twithin, TEOL, TSOB, TEOB, 0);
   EXCEPT(e);
 
-  if (must_be_last && tok.t != TASSIGN) {
+  if (must_be_last
+      && tok.t != TASSIGN && tok.t != TEOL && tok.t != TSOB && tok.t != TEOB) {
     THROW_SYNTAX(mod, &tok, "vararg must be last");
   }
 
   switch (tok.t) {
+  case Twithin:
+  case TEOL:
+  case TSOB:
+  case TEOB:
+    back(mod, &tok);
+    goto no_retval;
   case TASSIGN:
     goto retval;
   case TIDENT:
@@ -2042,7 +2059,12 @@ again:
 retval:
   e = p_defret(node_new_subnode(mod, funargs), mod);
   EXCEPT(e);
+  goto within;
 
+no_retval:
+  insert_void_ret(node_new_subnode(mod, funargs), mod);
+
+within:
   count_args(node);
 
   e = scan(&tok, mod);

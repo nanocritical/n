@@ -1,9 +1,9 @@
 from n import *
 
-(fun t:`Any) Foo p:t = Void
+(fun t:`Any) Foo p:t
 	noop
 
-(fun t:`Integer) bar p:t = Void
+(fun t:`Integer) bar p:t
 	noop
 
 fun Main = I32

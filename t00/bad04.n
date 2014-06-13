@@ -1,6 +1,6 @@
 from n import *
 
-fun foobar = Void
+fun foobar
 	return
-fun foobar = Void
+fun foobar
 	return

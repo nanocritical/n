@@ -30,10 +30,10 @@ String met substring r:Index_range = @`Const_string
 String met Bytes_utf8 = []U8
 	return self.bytes.Storage.[self.bytes.All]
 
-String met! Set_char n:Size c:Char = Void
+String met! Set_char n:Size c:Char
 	self.bytes![n]! = c.Code.Trim_u8
 
-String met! Fill c:Char r:Index_range = Void
+String met! Fill c:Char r:Index_range
 	let with = c.Code.Trim_u8
 	let sb = self.bytes!Storage![r]
 	such
@@ -41,24 +41,24 @@ String met! Fill c:Char r:Index_range = Void
 			let p = sb![i]
 			p! = with
 
-String met# Reserve Count:Size = Void
+String met# Reserve Count:Size
 	self.bytes#Reserve Count
 
-String met# Clear = Void
+String met# Clear
 	self.bytes#Clear
 
-String met# Push c:Char = Void
+String met# Push c:Char
 	self.bytes#Push c.Code.Trim_u8
 
 String met# Pop = Char
 	return Char.From_ascii self.bytes#Pop
 
-String met# Append other:@`Const_string = Void
+String met# Append other:@`Const_string
 	self#Reserve self.Count+other.Count
 	foreach i in other.All
 		self#Push (other.Get_char i)
 
-String met# Copy at:Size other:@`Const_string off:Size Count:Size = Void
+String met# Copy at:Size other:@`Const_string off:Size Count:Size
 	self#Reserve at+Count
 	foreach i in 0 .. Count
 		let left = at + i
@@ -69,10 +69,10 @@ String met# Copy at:Size other:@`Const_string off:Size Count:Size = Void
 		else
 			self#Push c
 
-String met# Copy_ctor other:@this = Void
+String met# Copy_ctor other:@this
 	self!bytes = other.bytes
 
-String met Show buf:@#`String_buffer = Void
+String met Show buf:@#`String_buffer
 	buf#Reserve buf.Count + self.Count
 	foreach i in self.All
 		buf#Push (self.Get_char i)

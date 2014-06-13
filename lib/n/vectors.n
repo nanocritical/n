@@ -31,15 +31,15 @@ inline Vector met Is_empty = Bool
 inline Vector met Capacity = Size
 	return self.p.Count
 
-inline Vector met# Reserve n:Size = Void
+inline Vector met# Reserve n:Size
 	if n > self.Capacity
 		(Heap.Slice_realloc t) @!Sysheap @#self#p n
 
-inline Vector met# Resize n:Size = Void
+inline Vector met# Resize n:Size
 	(Heap.Slice_realloc t) @!Sysheap @#self#p n
 	self!c = n
 
-inline Vector met# Push x:t = Void
+inline Vector met# Push x:t
 	self#Reserve self.c+1
 	let n = self.c
 	self!c += 1
@@ -52,18 +52,18 @@ inline Vector met# Pop = t
 	self!c -= 1
 	return d.
 
-inline Vector met# Clear = Void
+inline Vector met# Clear
 	(Heap.Slice_free t) @!Sysheap @#self#p
 
 inline Vector met All = Index_range
 	return Range 0 self.Count
 
-inline Vector met# Copy_ctor other:@this = Void
+inline Vector met# Copy_ctor other:@this
 	(Heap.Slice_realloc t) @!Sysheap @#self#p other.p.Count
 	self.p!Copy other.p
 	self!c = other.c
 
-inline Vector met# Append_slice other:[]t = Void
+inline Vector met# Append_slice other:[]t
 	(Heap.Slice_realloc t) @!Sysheap @#self#p self.Count+other.Count
 	self.p![self.c ..]!Copy other
 	self!c = other.Count

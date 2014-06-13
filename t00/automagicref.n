@@ -15,13 +15,13 @@ struct B =
 B (met t:`Any r:`Any_ref) implicit p:(r t) = t
 	return p.
 
-fun null_arg p:?@?@I32 = Void
+fun null_arg p:?@?@I32
 	Assert <- p === null
 
-fun null_arg_value p:?@?@I32 = Void
+fun null_arg_value p:?@?@I32
 	Assert <- p !== null and p. === null
 
-fun bar p:?@?@I32 = Void
+fun bar p:?@?@I32
 	noop
 
 struct holder t:{`Copyable `Trivial_ctor} =

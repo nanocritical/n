@@ -1,6 +1,6 @@
 from n import *
 
-fun bar p:?@?@I32 = Void
+fun bar p:?@?@I32
 	noop
 
 fun Main = I32

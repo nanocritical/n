@@ -1,1 +1,2 @@
-t00/bad03.n:3:14: syntax: unexpected token '='
+t00/bad03.n:3:13: syntax: unexpected token '
+	'

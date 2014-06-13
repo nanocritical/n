@@ -7,7 +7,7 @@ struct t =
 t met get = I32
 	return self.x
 
-t met! set x:I32 = Void
+t met! set x:I32
 	self!x = x
 
 fun Main = I32
