@@ -194,7 +194,7 @@ static void print_statement(FILE *out, const struct module *mod,
                             const struct node *node);
 static void print_top(FILE *out, bool header, enum forward fwd,
                       const struct module *mod, const struct node *node,
-                      struct typset *printed);
+                      struct fintypset *printed);
 static void print_defchoice_path(FILE *out,
                                  const struct module *mod,
                                  const struct node *deft,
@@ -1733,7 +1733,7 @@ static void guard_generic(FILE *out, bool header, enum forward fwd,
 
 static void print_deffun(FILE *out, bool header, enum forward fwd,
                          const struct module *mod, const struct node *node,
-                         struct typset *printed) {
+                         struct fintypset *printed) {
   if (fwd == FWD_DECLARE_TYPES || fwd == FWD_DEFINE_TYPES) {
     return;
   }
@@ -1847,7 +1847,7 @@ static void print_delegate(FILE *out, const struct module *mod, const struct nod
 
 static void print_deftype_statement(FILE *out, bool header, enum forward fwd,
                                     const struct module *mod, const struct node *node,
-                                    bool do_static, struct typset *printed) {
+                                    bool do_static, struct fintypset *printed) {
   if (do_static) {
     switch (node->which) {
     case DELEGATE:
@@ -1911,7 +1911,7 @@ static error print_deftype_envparent_eachisalist(struct module *mod,
 }
 
 static void print_deftype_block(FILE *out, bool header, enum forward fwd, const struct module *mod,
-                                const struct node *node, bool do_static, struct typset *printed) {
+                                const struct node *node, bool do_static, struct fintypset *printed) {
   assert(node->which == DEFTYPE && node->as.DEFTYPE.kind == DEFTYPE_STRUCT);
 
   if (!do_static) {
@@ -2172,7 +2172,7 @@ static void print_enumunion_functions(FILE *out, bool header, enum forward fwd,
                                   const struct module *mod,
                                   const struct node *deft,
                                   const struct node *ch,
-                                  struct typset *printed) {
+                                  struct fintypset *printed) {
   if (header && !(node_is_export(deft) && node_is_inline(deft))) {
     return;
   }
@@ -2236,7 +2236,7 @@ static void print_union_types(FILE *out, bool header, enum forward fwd,
 
 static void print_union(FILE *out, bool header, enum forward fwd,
                         const struct module *mod, const struct node *deft,
-                        const struct node *node, struct typset *printed) {
+                        const struct node *node, struct fintypset *printed) {
   switch (fwd) {
   case FWD_DECLARE_TYPES:
     if (node == deft) {
@@ -2278,7 +2278,7 @@ static void print_union(FILE *out, bool header, enum forward fwd,
 
 static void print_enum(FILE *out, bool header, enum forward fwd,
                        const struct module *mod, const struct node *deft,
-                       const struct node *node, struct typset *printed) {
+                       const struct node *node, struct fintypset *printed) {
   if (fwd == FWD_DECLARE_TYPES) {
     if (deft == node) {
       fprintf(out, "typedef ");
@@ -2437,7 +2437,7 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
 
 static void print_deftype(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node,
-                          struct typset *printed) {
+                          struct fintypset *printed) {
   if (header && !node_is_export(node)) {
     return;
   }
@@ -2756,14 +2756,14 @@ static uint32_t track_id(bool header, enum forward fwd) {
   return (!!header << 8) | (uint8_t)fwd;
 }
 
-static bool is_printed(struct typset *printed,
+static bool is_printed(struct fintypset *printed,
                        bool header, enum forward fwd,
                        const struct typ *t) {
   if (typ_equal(t, TBI__NOT_TYPEABLE)) {
     return false;
   }
 
-  uint32_t *at = typset_get(printed, t);
+  uint32_t *at = fintypset_get(printed, t);
 
   if (at != NULL) {
     const uint32_t at_fwd = (*at) & 0xff;
@@ -2777,7 +2777,7 @@ static bool is_printed(struct typset *printed,
 }
 
 static void track_printed(const struct module *mod,
-                          struct typset *printed,
+                          struct fintypset *printed,
                           bool header, enum forward fwd,
                           const struct typ *t) {
   if (typ_equal(t, TBI__NOT_TYPEABLE)) {
@@ -2785,11 +2785,11 @@ static void track_printed(const struct module *mod,
   }
 
   const uint32_t update = track_id(header, fwd);
-  uint32_t *at = typset_get(printed, t);
+  uint32_t *at = fintypset_get(printed, t);
   if (at != NULL) {
     *at = update;
   } else {
-    typset_set(printed, t, update);
+    fintypset_set(printed, t, update);
   }
 }
 
@@ -2808,7 +2808,7 @@ static error print_topdeps_each(struct module *mod, struct node *node,
   }
 
   struct cprinter_state *st = user;
-  struct typset *printed = st->user;
+  struct fintypset *printed = st->user;
   const struct typ *t = intercept_slices(st->mod, _t);
 
   if (st->header && !(topdep_mask & (TOP_IS_EXPORT | TOP_IS_INLINE))) {
@@ -2828,7 +2828,7 @@ static error print_topdeps_each(struct module *mod, struct node *node,
 
 static void print_topdeps(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node,
-                          struct typset *printed) {
+                          struct fintypset *printed) {
   const struct toplevel *toplevel = node_toplevel_const(node);
   if (header && !(toplevel->flags & TOP_IS_EXPORT)) {
     return;
@@ -2850,7 +2850,7 @@ static void print_topdeps(FILE *out, bool header, enum forward fwd,
 
 static void print_top(FILE *out, bool header, enum forward fwd,
                       const struct module *mod, const struct node *node,
-                      struct typset *printed) {
+                      struct fintypset *printed) {
   if ((!typ_is_concrete(node->typ) && node->which != DEFINTF)
       || (!node_is_at_top(node) && !typ_is_concrete(parent_const(node)->typ))) {
     return;
@@ -2910,8 +2910,8 @@ static void print_top(FILE *out, bool header, enum forward fwd,
 static void print_module(FILE *out, bool header, const struct module *mod) {
   fprintf(out, "#include <lib/n/runtime.h>\n");
 
-  struct typset printed;
-  typset_fullinit(&printed);
+  struct fintypset printed;
+  fintypset_fullinit(&printed);
 
   const struct node *top = mod->body;
 
@@ -2976,7 +2976,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
     }
   }
 
-  typset_destroy(&printed);
+  fintypset_destroy(&printed);
 }
 
 static error print_runexamples(FILE *out, const struct module *mod) {

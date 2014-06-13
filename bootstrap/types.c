@@ -44,7 +44,7 @@ struct typ {
 
   struct node *definition;
 
-  struct typset quickisa;
+  struct fintypset quickisa;
 
   struct backlinks backlinks;
   struct users users;
@@ -84,7 +84,7 @@ static uint32_t typ_hash(const struct typ **a) {
   // The 'hash' in a tentative typ is maintained as the typ gets linked to a
   // new typs. So 'hash' can be used in typ_equal(), etc. But it cannot be
   // used in a hash table *IF* elements of the table are re-linked while the
-  // table exists. typset can be used in typ_isalist_foreach() with
+  // table exists. fintypset can be used in typ_isalist_foreach() with
   // tentative types when typs are not actively being linked. E.g.
   // unify_generics() typ_isalist_each(find_instance_of) is fine. So we
   // cannot assert(!typ_is_tentative(*a)) in general.
@@ -99,7 +99,7 @@ static int typ_cmp(const struct typ **a, const struct typ **b) {
   return !typ_equal(*a, *b);
 }
 
-IMPLEMENT_HTABLE_SPARSE(, typset, uint32_t, struct typ *,
+IMPLEMENT_HTABLE_SPARSE(, fintypset, uint32_t, struct typ *,
                         typ_hash, typ_cmp);
 
 static void remove_backlink(struct typ *t, struct typ **loc) {
@@ -218,13 +218,13 @@ static void clear_users(struct typ *t) {
   memset(&t->users, 0, sizeof(t->users));
 }
 
-void typset_fullinit(struct typset *set) {
-  typset_init(set, 0);
-  typset_set_delete_val(set, -1);
+void fintypset_fullinit(struct fintypset *set) {
+  fintypset_init(set, 0);
+  fintypset_set_delete_val(set, -1);
 }
 
 static void quickisa_init(struct typ *t) {
-  typset_fullinit(&t->quickisa);
+  fintypset_fullinit(&t->quickisa);
 }
 
 // Examples of non-concrete types: uninstantiated generics or instances
@@ -441,7 +441,7 @@ void typ_create_update_hash(struct typ *t) {
 static error update_quickisa_isalist_each(struct module *mod,
                                           struct typ *t, struct typ *intf,
                                           bool *stop, void *user) {
-  typset_set(&t->quickisa, intf, true);
+  fintypset_set(&t->quickisa, intf, true);
   return 0;
 }
 
@@ -450,8 +450,8 @@ void typ_create_update_quickisa(struct typ *t) {
     return;
   }
 
-  if (typset_count(&t->quickisa) > 0) {
-    typset_destroy(&t->quickisa);
+  if (fintypset_count(&t->quickisa) > 0) {
+    fintypset_destroy(&t->quickisa);
     quickisa_init(t);
   }
 
@@ -477,7 +477,7 @@ struct typ *typ_create_tentative_functor(struct typ *target) {
   r->definition = target->definition;
   quickisa_init(r);
 
-  typset_copy(&r->quickisa, &target->quickisa);
+  fintypset_copy(&r->quickisa, &target->quickisa);
 
   return r;
 }
@@ -802,7 +802,7 @@ static bool direct_isalist_exported(const struct typ *t, size_t n) {
 
 static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct typ *base,
                                     uint32_t filter, isalist_each iter, void *user,
-                                    bool *stop, struct typset *set) {
+                                    bool *stop, struct fintypset *set) {
   const bool filter_not_exported = filter & ISALIST_FILTEROUT_NOT_EXPORTED;
   const bool filter_exported = filter & ISALIST_FILTEROUT_EXPORTED;
   const bool filter_trivial_isalist = filter & ISALIST_FILTEROUT_TRIVIAL_ISALIST;
@@ -829,7 +829,7 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
 
   for (size_t n = 0; n < direct_isalist_count(base); ++n) {
     struct typ *intf = direct_isalist(base, n);
-    if (typset_get(set, intf) != NULL) {
+    if (fintypset_get(set, intf) != NULL) {
       continue;
     }
 
@@ -857,7 +857,7 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
       filter &= ~ISALIST_FILTEROUT_EXPORTED;
     }
 
-    typset_set(set, intf, true);
+    fintypset_set(set, intf, true);
 
     error e = do_typ_isalist_foreach(mod, t, intf, filter, iter, user, stop, set);
     EXCEPT(e);
@@ -879,12 +879,12 @@ static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
 
 error typ_isalist_foreach(struct module *mod, struct typ *t, uint32_t filter,
                           isalist_each iter, void *user) {
-  struct typset set;
-  typset_fullinit(&set);
+  struct fintypset set;
+  fintypset_fullinit(&set);
 
   bool stop = false;
   error e = do_typ_isalist_foreach(mod, t, t, filter, iter, user, &stop, &set);
-  typset_destroy(&set);
+  fintypset_destroy(&set);
   EXCEPT(e);
 
   return 0;

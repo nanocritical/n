@@ -5,9 +5,9 @@
 
 struct typ;
 
-HTABLE_SPARSE(typset, uint32_t, struct typ *);
-DECLARE_HTABLE_SPARSE(typset, uint32_t, struct typ *);
-void typset_fullinit(struct typset *set);
+HTABLE_SPARSE(fintypset, uint32_t, struct typ *);
+DECLARE_HTABLE_SPARSE(fintypset, uint32_t, struct typ *);
+void fintypset_fullinit(struct fintypset *set);
 
 size_t typ_debug_backlinks_count(const struct typ *t);
 void typ_debug_check_in_backlinks(struct typ **u);

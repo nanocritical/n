@@ -7,7 +7,7 @@ IMPLEMENT_VECTOR(unused__ static, vectyp, struct typ *);
 
 struct topdeps {
   struct vectyp list;
-  struct typset set;
+  struct fintypset set;
 
   struct vecnode tentatives;
 };
@@ -41,12 +41,12 @@ static void record_final(struct module *mod, struct typ *t) {
 
   if (toplevel->topdeps == NULL) {
     toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
-    typset_fullinit(&toplevel->topdeps->set);
+    fintypset_fullinit(&toplevel->topdeps->set);
   }
 
-  uint32_t *value = typset_get(&toplevel->topdeps->set, t);
+  uint32_t *value = fintypset_get(&toplevel->topdeps->set, t);
   if (value == NULL) {
-    typset_set(&toplevel->topdeps->set, t, mask);
+    fintypset_set(&toplevel->topdeps->set, t, mask);
     vectyp_push(&toplevel->topdeps->list, t);
   } else {
     if ((*value & WEAK) && !(mask & WEAK)) {
@@ -68,7 +68,7 @@ static void record_tentative(struct module *mod, struct node *node) {
 
   if (toplevel->topdeps == NULL) {
     toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
-    typset_fullinit(&toplevel->topdeps->set);
+    fintypset_fullinit(&toplevel->topdeps->set);
   }
 
   vecnode_push(&toplevel->topdeps->tentatives, node);
@@ -123,11 +123,11 @@ error topdeps_foreach(struct module *mod, struct node *node,
   }
 
   struct vectyp *list = &toplevel->topdeps->list;
-  struct typset *set = &toplevel->topdeps->set;
+  struct fintypset *set = &toplevel->topdeps->set;
 
   for (size_t n = 0; n < vectyp_count(list); ++n) {
     struct typ *t = *vectyp_get(list, n);
-    const uint32_t mask = *typset_get(set, t);
+    const uint32_t mask = *fintypset_get(set, t);
     error e = each(mod, node, t, mask, user);
     EXCEPT(e);
   }
