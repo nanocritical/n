@@ -1213,6 +1213,7 @@ fun Assert cond:Bool ?_Ncodeloc:?@Codeloc
 		Abort
 
 fun Unreached
+	Esay "Unreached"
 	Abort
 
 fun Pre__ cond:Bool ?_Ncodeloc:?@Codeloc
