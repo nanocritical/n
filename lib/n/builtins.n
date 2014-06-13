@@ -502,7 +502,7 @@ intf `Unsigned_integer =
 
 intf `Native_integer =
 	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy
-			\ `Integer `Show
+		\ `Integer `Show
 
 
 intf `Native_signed_integer =
@@ -523,14 +523,14 @@ intf `Bool_compatible =
 
 intf `Native_boolean =
 	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Return_by_copy `Generalized_boolean
-			\ `Trivial_order `Bool_compatible `Show
+		\ `Trivial_order `Bool_compatible `Show
 
 intf `Floating =
 	isa `Numeric `Has_compare
 
 intf `Native_floating =
 	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Return_by_copy
-			\ `Floating `Show
+		\ `Floating `Show
 
 intf `Enum =
 	isa `Trivial_order `Trivial_equality `Trivial_copy `Return_by_copy `Trivial_dtor `Show

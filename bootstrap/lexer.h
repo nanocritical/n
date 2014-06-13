@@ -297,6 +297,13 @@ struct codeloc {
   int column;
 };
 
+enum block_style {
+  BLOCK_MULTI = 0,
+  BLOCK_MULTI_ESCAPED,
+  BLOCK_SINGLE,
+  BLOCK_SINGLE_ESCAPED,
+};
+
 struct parser {
   const char *data;
   size_t len;
@@ -304,8 +311,7 @@ struct parser {
 
   size_t indent;
   size_t block_depth;
-  size_t no_block_depth;
-  bool block_style[1024];
+  enum block_style block_style[128];
 
   size_t backs_count;
 

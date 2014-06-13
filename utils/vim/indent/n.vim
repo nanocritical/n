@@ -35,7 +35,7 @@ function GetNlangIndent(lnum)
     if prevl > 1 && getline(pprevl) =~ '\\$'
       return indent(prevl)
     else
-      return indent(prevl) + 2 * &sw
+      return indent(prevl) + &sw
     endif
   endif
 

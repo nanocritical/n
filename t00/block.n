@@ -39,4 +39,21 @@ fun Main = I32
 
 	Assert <- (deref block -> 1:U32;;) == 1
 
+	Say
+		\ false
+		\ false
+		\ Foo
+		\ if false
+			false
+		else
+			true
+		\ false
+		\ Foo
+		\ block
+			if true
+				false
+			else
+				true
+		\ false
+
 	return 0

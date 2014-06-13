@@ -15,8 +15,8 @@ static const char *first_eol_back(const char *start, const char *cur) {
   return start;
 }
 
-static error block_down(struct parser *parser, bool oneline) {
-  parser->block_style[parser->block_depth] = oneline;
+static error block_down(struct parser *parser, enum block_style style) {
+  parser->block_style[parser->block_depth] = style;
   parser->block_depth += 1;
   if (parser->block_depth >= ARRAY_SIZE(parser->block_style)) {
     return EINVAL;
@@ -24,15 +24,15 @@ static error block_down(struct parser *parser, bool oneline) {
   return 0;
 }
 
-static void block_up(struct parser *parser, bool oneline) {
+static void block_up(struct parser *parser, enum block_style style) {
   assert(parser->block_depth > 0);
-  assert(parser->block_style[parser->block_depth - 1] == oneline);
+  assert(parser->block_style[parser->block_depth - 1] == style);
 
   // Don't erase value, lexer_back() needs it.
   parser->block_depth -= 1;
 }
 
-static bool block_style(struct parser *parser) {
+static enum block_style block_style(struct parser *parser) {
   return parser->block_style[parser->block_depth - 1];
 }
 
@@ -165,6 +165,7 @@ error lexer_scan(struct token *tok, struct parser *parser) {
   const char *YYMARKER = NULL;
   const char *start;
   char opening;
+  bool escaped;
 
   size_t spaces = 0;
 
@@ -222,6 +223,7 @@ error lexer_scan(struct token *tok, struct parser *parser) {
   parser->tok_was_injected = false;
 
 normal:
+  escaped = false;
   start = YYCURSOR;
 
 /*!re2c
@@ -292,7 +294,7 @@ normal:
   "globalenv" { R(Tglobalenv); }
   "<-" { R(TBARROW); }
   "->" {
-    error e = block_down(parser, true);
+    error e = block_down(parser, BLOCK_SINGLE);
     if (e) {
       ERROR(e, "lexer: too many block levels");
     }
@@ -335,16 +337,16 @@ normal:
   ":" { R(TCOLON); }
   "," { R(TCOMMA); }
   ";;" {
-    if (block_style(parser)) {
+    if (block_style(parser) == BLOCK_SINGLE) {
       parser->indent -= 8;
-      block_up(parser, true);
+      block_up(parser, BLOCK_SINGLE);
       R(TEOB);
     } else {
       ERROR(EINVAL, "lexer: unexpected double-semicolon in multi-line block");
     }
   }
   ";" {
-    if (block_style(parser)) {
+    if (block_style(parser) == BLOCK_SINGLE) {
       R(TEOL);
     } else {
       ERROR(EINVAL, "lexer: unexpected semicolon in multi-line block");
@@ -372,10 +374,10 @@ normal:
   "[]!" { R(TMSLICEBRAKETS); }
   "[]$" { R(TWSLICEBRAKETS); }
   "]" { R(TRSBRA); }
-  "{" { parser->no_block_depth += 1; R(TLCBRA); }
-  "}" { parser->no_block_depth -= 1; R(TRCBRA); }
-  "(" { parser->no_block_depth += 1; R(TLPAR); }
-  ")" { parser->no_block_depth -= 1; R(TRPAR); }
+  "{" { R(TLCBRA); }
+  "}" { R(TRCBRA); }
+  "(" { R(TLPAR); }
+  ")" { R(TRPAR); }
 
   "\n" {
     YYCURSOR -= 1;
@@ -401,7 +403,16 @@ eol:
   }
   "\t" { spaces += 8; goto eol; }
   "\r" { goto eol; }
-  "\n"[ \t]*"\\" { goto normal; }
+  "\r\n"[\t]*"\\" {
+    spaces = 8 * (YYCURSOR - start - 3);
+    escaped = true;
+    goto escaped_eol_any;
+  }
+  "\n"[\t]*"\\" {
+    spaces = 8 * (YYCURSOR - start - 2);
+    escaped = true;
+    goto escaped_eol_any;
+  }
   "\n" { spaces = 0; goto eol; }
   "-" {
     YYFILL(1);
@@ -417,43 +428,104 @@ eol:
 
 eol_any:
   YYCURSOR -= 1;
-  if (parser->no_block_depth > 0) {
-    goto normal;
-  }
 
+escaped_eol_any:
   if (spaces == parser->indent) {
-    if (block_style(parser)) {
+    switch (block_style(parser)) {
+    case BLOCK_MULTI:
+      if (escaped) {
+        goto normal;
+      } else {
+        R(TEOL);
+      }
+      break;
+    case BLOCK_MULTI_ESCAPED:
+      if (!escaped) {
+        ERROR(EINVAL, "once in escape mode, further lines must be escaped");
+      }
+      goto normal;
+    case BLOCK_SINGLE:
+      if (escaped) {
+        ERROR(EINVAL, "escaped lines must be indented");
+      }
       parser->inject_eol_after_eob = true;
-      block_up(parser, true);
+      block_up(parser, BLOCK_SINGLE);
       R(TEOB);
-    } else {
-      R(TEOL);
+      break;
+    case BLOCK_SINGLE_ESCAPED:
+      if (!escaped) {
+        ERROR(EINVAL, "reduce indent to close an escaped line");
+      }
+      goto normal;
     }
-  } else if (spaces == parser->indent + 8) {
+  } else if (spaces > parser->indent) {
+    if (spaces != parser->indent + 8) {
+      ERROR(EINVAL, "cannot increase indentation by more than one tab");
+    }
+
     parser->indent = spaces;
 
-    error e = block_down(parser, false);
+    enum block_style opening;
+    switch (block_style(parser)) {
+    case BLOCK_MULTI:
+    case BLOCK_MULTI_ESCAPED:
+      opening = escaped ? BLOCK_MULTI_ESCAPED : BLOCK_MULTI;
+      break;
+    case BLOCK_SINGLE:
+      if (escaped) {
+        goto normal;
+      } else {
+        ERROR(EINVAL, "in single line mode, further indented lines must be escaped");
+      }
+      break;
+    case BLOCK_SINGLE_ESCAPED:
+      ERROR(EINVAL, "in single line escaped mode, cannot have further indented lines");
+      break;
+    }
+
+    error e = block_down(parser, opening);
     if (e) {
       ERROR(e, "lexer: too many block levels");
     }
 
-    R(TSOB);
+    if (opening == BLOCK_MULTI) {
+      R(TSOB);
+    } else {
+      goto normal;
+    }
   } else if (spaces < parser->indent) {
     assert(spaces % 8 == 0);
 
     parser->indent -= 8;
 
-    if (spaces != parser->indent) {
-      // Closing several blocks at once, return token for the others.
-      YYCURSOR = start;
-      parser->tok_was_injected = true;
+    switch (block_style(parser)) {
+    case BLOCK_MULTI:
+    case BLOCK_SINGLE:
+        if (escaped)__break();
+      if (escaped || spaces != parser->indent) {
+        // Closing several blocks at once, return token for the others.
+        YYCURSOR = start;
+        parser->tok_was_injected = true;
+      }
+
+      // EOB must be followed by an EOL.
+      parser->inject_eol_after_eob = !escaped || spaces != parser->indent;
+      block_up(parser, block_style(parser));
+      R(TEOB);
+      break;
+    case BLOCK_MULTI_ESCAPED:
+      if (spaces != parser->indent) {
+        // Closing several blocks at once, return token for the others.
+        YYCURSOR = start;
+      }
+      block_up(parser, block_style(parser));
+      if (spaces == parser->indent) {
+        R(TEOL);
+      }
+      goto normal;
+    default:
+      break;
     }
-
-    // EOB must be followed by an EOL.
-    parser->inject_eol_after_eob = true;
-
-    block_up(parser, block_style(parser));
-    R(TEOB);
   } else {
     assert(false);
   }
@@ -497,15 +569,7 @@ comment_while_eol:
 }
 
 void lexer_back(struct parser *parser, const struct token *tok) {
-  if (tok->t == TLCBRA) {
-    parser->no_block_depth -= 1;
-  } else if (tok->t == TRCBRA) {
-    parser->no_block_depth += 1;
-  } else if (tok->t == TLPAR) {
-    parser->no_block_depth -= 1;
-  } else if (tok->t == TRPAR) {
-    parser->no_block_depth += 1;
-  } else if (tok->t == TSOB) {
+  if (tok->t == TSOB) {
     parser->indent -= 8;
     parser->block_depth -= 1;
   } else if (tok->t == TEOB) {
@@ -515,7 +579,6 @@ void lexer_back(struct parser *parser, const struct token *tok) {
 
   if (parser->tok_was_injected) {
     parser->inject_eol_after_eob = tok->t == TEOL;
-
     return;
   }
 

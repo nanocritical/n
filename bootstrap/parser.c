@@ -1093,7 +1093,7 @@ again:
   }
 
   // Need to reinject the eol after the last block.
-  mod->parser.inject_eol_after_eob = true;
+  mod->parser.inject_eol_after_eob = eol.t == TEOL;
 
   return 0;
 }

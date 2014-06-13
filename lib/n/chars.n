@@ -46,7 +46,7 @@ intf `String_buffer =
 
 opaque struct Static_string =
 	isa `Trivial_copy `Return_by_copy `Ordered_by_compare `Show
-			\ `Static_string_compatible `Const_string `Trivial_ctor
+		\ `Static_string_compatible `Const_string `Trivial_ctor
 	bytes	:[]U8
 
 inline Static_string met# Unsafe_wrap bytes:@U8 Count:Size = Void

@@ -14,15 +14,16 @@ fun Foo x:I32 y:I32 = I32
 	return x
 
 fun Main = I32
-	let a = {
-		x = 1
-		y = {
-			x = 1
-			y = 0
-		}
-	}:t
 	let b = (Foo
-			(Foo 0
-				1)
-			1)
+		\ (Foo 0
+			\ 1)
+		\ 1)
+
+	let a = {
+		\ x = 1
+		\ y = {
+			\ x = 1
+			\ y = 0
+		\ }
+	\ }:t
 	return b + a.y.x - 1
