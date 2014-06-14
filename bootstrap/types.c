@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 
+static size_t def_generic_arity(const struct typ *t);
+
 #define BACKLINKS_LEN 7 // arbitrary
 #define USERS_LEN 7 // arbitrary
 
@@ -40,11 +42,20 @@ enum typ_flags {
   TYPF__MASK_HASH = 0xffff & ~TYPF_TENTATIVE,
 };
 
+enum rdy_flags {
+  RDY_HASH = 0x1,
+  RDY_GEN = 0x2,
+};
+
 struct typ {
   uint32_t flags;
   uint32_t hash;
 
   struct node *definition;
+
+  uint8_t rdy;
+
+  size_t gen_arity;
 
   struct typset quickisa;
 
@@ -79,7 +90,7 @@ struct typ {
 } while (0)
 
 bool typ_hash_ready(const struct typ *t) {
-  return t->hash != 0;
+  return t->rdy & RDY_HASH;
 }
 
 static uint32_t typ_hash(const struct typ **a) {
@@ -397,7 +408,11 @@ struct typ *typ_create(struct typ *tbi, struct node *definition) {
 void typ_create_update_genargs(struct typ *t) {
   create_update_concrete_flag(t);
 
-  if (typ_generic_arity(t) == 0) {
+  const size_t arity = typ_generic_arity(t);
+  t->gen_arity = arity;
+  t->rdy |= RDY_GEN;
+
+  if (arity == 0) {
     return;
   }
 
@@ -437,6 +452,7 @@ void typ_create_update_hash(struct typ *t) {
 #undef LEN
 
   t->hash = hash32_hsieh(buf, sizeof(buf));
+  t->rdy |= RDY_HASH;
 }
 
 static error update_quickisa_isalist_each(struct module *mod,
@@ -484,8 +500,10 @@ struct typ *typ_create_tentative_functor(struct typ *target) {
 
   struct typ *r = calloc(1, sizeof(struct typ));
   r->flags = target->flags | TYPF_TENTATIVE;
+  r->rdy = target->rdy;
   r->hash = target->hash;
   r->definition = target->definition;
+  r->gen_arity = target->gen_arity;
   quickisa_init(r);
 
   typ_create_update_quickisa(r);
@@ -693,6 +711,14 @@ EXAMPLE_NCC(typ_generic_functor) {
 }
 
 size_t typ_generic_arity(const struct typ *t) {
+  if (t->rdy & RDY_GEN) {
+    return t->gen_arity;
+  } else {
+    return def_generic_arity(t);
+  }
+}
+
+static size_t def_generic_arity(const struct typ *t) {
   const struct node *d = typ_definition_const(t);
   if (node_can_have_genargs(d)) {
     return subs_count(subs_at_const(d, IDX_GENARGS));
