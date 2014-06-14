@@ -1,9 +1,11 @@
 #include "types.h"
 
-#include <stdio.h>
 #include "table.h"
 #include "mock.h"
+#include "typset.h"
 #include "unify.h"
+
+#include <stdio.h>
 
 #define BACKLINKS_LEN 7 // arbitrary
 #define USERS_LEN 7 // arbitrary
@@ -44,7 +46,7 @@ struct typ {
 
   struct node *definition;
 
-  struct fintypset quickisa;
+  struct typset quickisa;
 
   struct backlinks backlinks;
   struct users users;
@@ -224,7 +226,7 @@ void fintypset_fullinit(struct fintypset *set) {
 }
 
 static void quickisa_init(struct typ *t) {
-  fintypset_fullinit(&t->quickisa);
+  typset_init(&t->quickisa);
 }
 
 // Examples of non-concrete types: uninstantiated generics or instances
@@ -388,7 +390,6 @@ struct typ *typ_create(struct typ *tbi, struct node *definition) {
 
   r->definition = definition;
   create_flags(r, tbi);
-  quickisa_init(r);
 
   return r;
 }
@@ -441,21 +442,31 @@ void typ_create_update_hash(struct typ *t) {
 static error update_quickisa_isalist_each(struct module *mod,
                                           struct typ *t, struct typ *intf,
                                           bool *stop, void *user) {
-  fintypset_set(&t->quickisa, intf, true);
+  typset_add(&t->quickisa, intf);
+
+  struct typ *intf0 = typ_generic_functor(intf);
+  if (intf0 != NULL) {
+    typset_add(&t->quickisa, intf0);
+  }
+
   return 0;
 }
 
 void typ_create_update_quickisa(struct typ *t) {
+  quickisa_init(t);
+
   if (typ_is_tentative(t)) {
     return;
   }
 
-  if (fintypset_count(&t->quickisa) > 0) {
-    fintypset_destroy(&t->quickisa);
-    quickisa_init(t);
+  typ_isalist_foreach(NULL, t, 0, update_quickisa_isalist_each, NULL);
+
+  struct typ *t0 = typ_generic_functor(t);
+  if (t0 != NULL) {
+    update_quickisa_isalist_each(NULL, t, t0, NULL, NULL);
   }
 
-  typ_isalist_foreach(NULL, t, 0, update_quickisa_isalist_each, NULL);
+  t->quickisa.ready = true;
 }
 
 bool typ_is_tentative(const struct typ *t) {
@@ -477,7 +488,7 @@ struct typ *typ_create_tentative_functor(struct typ *target) {
   r->definition = target->definition;
   quickisa_init(r);
 
-  fintypset_copy(&r->quickisa, &target->quickisa);
+  typ_create_update_quickisa(r);
 
   return r;
 }
@@ -511,7 +522,6 @@ static void link_generic_arg_update(struct module *trigger_mod,
   // typ_definition(user).
 
   typ_create_update_hash(new_user);
-  typ_create_update_quickisa(new_user);
   create_update_concrete_flag(new_user);
 
   // It is possible that now that 'src' is not tentative, 'user' itself
@@ -1181,6 +1191,24 @@ static bool is_isalist_literal(const struct typ *t) {
   return d->which == DEFINCOMPLETE && d->as.DEFINCOMPLETE.is_isalist_literal;
 }
 
+// Rarely, for certains (a, intf), we don't have enough information in
+// quickisa to answer. We could reduce that frequency further by adding more
+// information in quickisa.
+// There are however cases that are just inherently too numerous to record
+// explicitly, such as
+//  (Ref I32) isa (`Any_ref `Arithmetic)
+// We do record that I32 isa `Arithmetic, though, so the recursive calls to
+// typ_isa() don't generally go very deep.
+//
+// We could also cache the result of typ_isa(). Right now, the overall cost
+// of typ_isa() is negligible.
+static bool can_use_quickisa(const struct typ *a, const struct typ *intf) {
+  return (typ_generic_functor_const(intf) == NULL
+          || typ_is_generic_functor(intf)
+          || typ_is_concrete(intf))
+    && !is_isalist_literal(a) && !is_isalist_literal(intf);
+}
+
 bool typ_isa(const struct typ *a, const struct typ *intf) {
   if (typ_equal(intf, TBI_ANY)) {
     return true;
@@ -1188,6 +1216,10 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
 
   if (typ_equal(a, intf)) {
     return true;
+  }
+
+  if (a->quickisa.ready && can_use_quickisa(a, intf)) {
+    return typset_has(&a->quickisa, intf);
   }
 
   const size_t a_ga = typ_generic_arity(a);

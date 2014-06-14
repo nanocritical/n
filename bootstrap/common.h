@@ -53,12 +53,15 @@
             __builtin_types_compatible_p(__typeof__(x), const struct scope *), \
             (struct scope *) (x), \
             __builtin_choose_expr( \
-              __builtin_types_compatible_p(__typeof__(x), const struct constraint *), \
-              (struct constraint *) (x), \
+              __builtin_types_compatible_p(__typeof__(x), const struct typset *), \
+              (struct typset *) (x), \
               __builtin_choose_expr( \
-                __builtin_types_compatible_p(__typeof__(x), const struct vecancestor *), \
-                (struct vecancestor *) (x), \
-                (x) )))))))
+                __builtin_types_compatible_p(__typeof__(x), const struct constraint *), \
+                (struct constraint *) (x), \
+                __builtin_choose_expr( \
+                  __builtin_types_compatible_p(__typeof__(x), const struct vecancestor *), \
+                  (struct vecancestor *) (x), \
+                  (x) ))))))))
 
 typedef _Bool bool;
 #define true 1
