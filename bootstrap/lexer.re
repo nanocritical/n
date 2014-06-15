@@ -164,7 +164,7 @@ error lexer_scan(struct token *tok, struct parser *parser) {
   const char *YYLIMIT = parser->data + parser->len;
   const char *YYMARKER = NULL;
   const char *start;
-  char opening;
+  char opening = '\0';
   bool escaped;
 
   size_t spaces = 0;
@@ -465,11 +465,11 @@ escaped_eol_any:
 
     parser->indent = spaces;
 
-    enum block_style opening;
+    enum block_style starting = 0;
     switch (block_style(parser)) {
     case BLOCK_MULTI:
     case BLOCK_MULTI_ESCAPED:
-      opening = escaped ? BLOCK_MULTI_ESCAPED : BLOCK_MULTI;
+      starting = escaped ? BLOCK_MULTI_ESCAPED : BLOCK_MULTI;
       break;
     case BLOCK_SINGLE:
       if (escaped) {
@@ -483,12 +483,12 @@ escaped_eol_any:
       break;
     }
 
-    error e = block_down(parser, opening);
+    error e = block_down(parser, starting);
     if (e) {
       ERROR(e, "lexer: too many block levels");
     }
 
-    if (opening == BLOCK_MULTI) {
+    if (starting == BLOCK_MULTI) {
       R(TSOB);
     } else {
       goto normal;
