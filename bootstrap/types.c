@@ -471,10 +471,6 @@ static error update_quickisa_isalist_each(struct module *mod,
 void typ_create_update_quickisa(struct typ *t) {
   quickisa_init(t);
 
-  if (typ_is_tentative(t)) {
-    return;
-  }
-
   typ_isalist_foreach(NULL, t, 0, update_quickisa_isalist_each, NULL);
 
   struct typ *t0 = typ_generic_functor(t);
@@ -492,7 +488,7 @@ bool typ_is_tentative(const struct typ *t) {
 struct typ *typ_create_tentative_functor(struct typ *target) {
   assert(typ_is_generic_functor(target));
   assert(target != NULL);
-  assert(target->hash != 0);
+  assert(typ_hash_ready(target));
 
   if (typ_is_tentative(target)) {
     return target;
@@ -511,36 +507,43 @@ struct typ *typ_create_tentative_functor(struct typ *target) {
   return r;
 }
 
-static void link_generic_arg_update(struct module *trigger_mod,
-                                    struct typ *user, struct typ *dst, struct typ *src) {
+static void link_generic_functor_update(struct module *trigger_mod,
+                                        struct typ *user, struct typ *dst, struct typ *src) {
   assert(typ_is_tentative(user));
-
-  struct typ *new_user = NULL;
 
   if (trigger_mod != NULL) {
     struct typ *user0 = typ_generic_functor(user);
-    if (typ_equal(user0, src)) {
+    if (user0 == src) {
       // 'src' was used by 'user' as generic functor. Linking to the new
       // functor means creating a new instance, and linking 'user' to it.
 
       assert(typ_is_generic_functor(src));
       assert(typ_is_generic_functor(dst));
 
-      new_user = unify_with_new_functor(trigger_mod, NULL, dst, user);
-    } else {
-      new_user = user;
+      struct typ *new_user = unify_with_new_functor(trigger_mod, NULL, dst, user);
+      assert(typ_definition_const(user) == NULL && "must have been zeroed");
+
+      typ_create_update_hash(new_user);
+      create_update_concrete_flag(new_user);
     }
-  } else {
-    assert(!typ_is_generic_functor(src));
-    new_user = user;
   }
+}
+
+static void link_generic_arg_update(struct typ *user, struct typ *dst, struct typ *src) {
+  if (typ_definition_const(user) == NULL) {
+    // Was zeroed in link_generic_functor_update().
+    return;
+  }
+
+  assert(typ_is_tentative(user));
+  assert(!typ_is_generic_functor(src));
 
   // If 'src' was used by 'user' as a generic arg, then the
   // FOREACH_BACKLINK() pass already updated the SETGENARG in
   // typ_definition(user).
 
-  typ_create_update_hash(new_user);
-  create_update_concrete_flag(new_user);
+  typ_create_update_hash(user);
+  create_update_concrete_flag(user);
 
   // It is possible that now that 'src' is not tentative, 'user' itself
   // should loose its tentative status. This will be handled in
@@ -582,9 +585,11 @@ static void link_members(struct typ *dst, struct typ *src) {
 }
 
 static void link_to_final(struct module *mod, struct typ *dst, struct typ *src) {
+  FOREACH_USER(idx, user, src, link_generic_functor_update(mod, user, dst, src));
+
   FOREACH_BACKLINK(idx, back, src, set_typ(back, dst));
 
-  FOREACH_USER(idx, user, src, link_generic_arg_update(mod, user, dst, src));
+  FOREACH_USER(idx, user, src, link_generic_arg_update(user, dst, src));
 
   link_members(dst, src);
 
@@ -615,9 +620,11 @@ static void remove_as_user_of_generic_args(struct typ *t) {
 }
 
 static void link_to_tentative(struct module *mod, struct typ *dst, struct typ *src) {
+  FOREACH_USER(idx, user, src, link_generic_functor_update(mod, user, dst, src));
+
   FOREACH_BACKLINK(idx, back, src, set_typ(back, dst));
 
-  FOREACH_USER(idx, user, src, link_generic_arg_update(mod, user, dst, src));
+  FOREACH_USER(idx, user, src, link_generic_arg_update(user, dst, src));
 
   remove_as_user_of_generic_args(src);
 
