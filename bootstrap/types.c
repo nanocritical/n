@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 static size_t def_generic_arity(const struct typ *t);
+static struct typ *def_generic_arg(struct typ *t, size_t n);
 
 #define BACKLINKS_LEN 7 // arbitrary
 #define USERS_LEN 7 // arbitrary
@@ -56,6 +57,7 @@ struct typ {
   uint8_t rdy;
 
   size_t gen_arity;
+  struct typ **gen_args; // of length 1+gen_arity
 
   struct typset quickisa;
 
@@ -410,24 +412,30 @@ void typ_create_update_genargs(struct typ *t) {
 
   const size_t arity = typ_generic_arity(t);
   t->gen_arity = arity;
-  t->rdy |= RDY_GEN;
 
   if (arity == 0) {
+    t->rdy |= RDY_GEN;
     return;
   }
 
+  t->gen_args = calloc(1 + arity, sizeof(*t->gen_args));
+
   struct typ *t0 = typ_generic_functor(t);
+  set_typ(&t->gen_args[0], t0);
   if (typ_is_tentative(t0)) {
     typ_add_tentative_bit__privileged(&typ_definition(t)->typ);
     add_user(t0, t);
   }
   for (size_t n = 0, count = typ_generic_arity(t); n < count; ++n) {
     struct typ *arg = typ_generic_arg(t, n);
+    set_typ(&t->gen_args[1 + n], arg);
     if (typ_is_tentative(arg)) {
       typ_add_tentative_bit__privileged(&typ_definition(t)->typ);
       add_user(arg, t);
     }
   }
+
+  t->rdy |= RDY_GEN;
 }
 
 void typ_create_update_hash(struct typ *t) {
@@ -500,6 +508,13 @@ struct typ *typ_create_tentative_functor(struct typ *target) {
   r->hash = target->hash;
   r->definition = target->definition;
   r->gen_arity = target->gen_arity;
+  if (target->rdy & RDY_GEN) {
+    r->gen_args = calloc(1 + target->gen_arity, sizeof(*r->gen_args));
+    set_typ(&r->gen_args[0], r);
+    for (size_t n = 0; n < target->gen_arity; ++n) {
+      set_typ(&r->gen_args[1 + n], target->gen_args[1 + n]);
+    }
+  }
   quickisa_init(r);
 
   typ_create_update_quickisa(r);
@@ -697,7 +712,7 @@ bool typ_is_function(const struct typ *t) {
   return def->which == DEFFUN || def->which == DEFMETHOD;
 }
 
-struct typ *typ_generic_functor(struct typ *t) {
+static struct typ *def_generic_functor(struct typ *t) {
   if (typ_generic_arity(t) == 0) {
     return NULL;
   }
@@ -710,19 +725,25 @@ struct typ *typ_generic_functor(struct typ *t) {
   }
 }
 
+struct typ *typ_generic_functor(struct typ *t) {
+  if (t->rdy & RDY_GEN) {
+    struct typ *r;
+    if (t->gen_arity == 0) {
+      r = NULL;
+    } else {
+      r = t->gen_args[0];
+    }
+    return r;
+  } else {
+    return def_generic_functor(t);
+  }
+}
+
 EXAMPLE_NCC(typ_generic_functor) {
 //  struct node *test = mock_deftype(mod, "test");
 //  struct typ ttest = { 0 };
 //  ttest.definition = test;
 //  assert(typ_generic_functor(&ttest) == NULL);
-}
-
-size_t typ_generic_arity(const struct typ *t) {
-  if (t->rdy & RDY_GEN) {
-    return t->gen_arity;
-  } else {
-    return def_generic_arity(t);
-  }
 }
 
 static size_t def_generic_arity(const struct typ *t) {
@@ -731,6 +752,14 @@ static size_t def_generic_arity(const struct typ *t) {
     return subs_count(subs_at_const(d, IDX_GENARGS));
   } else {
     return 0;
+  }
+}
+
+size_t typ_generic_arity(const struct typ *t) {
+  if (t->rdy & RDY_GEN) {
+    return t->gen_arity;
+  } else {
+    return def_generic_arity(t);
   }
 }
 
@@ -760,9 +789,18 @@ size_t typ_generic_first_explicit_arg(const struct typ *t) {
     ->generic->first_explicit_genarg;
 }
 
-struct typ *typ_generic_arg(struct typ *t, size_t n) {
+static struct typ *def_generic_arg(struct typ *t, size_t n) {
   assert(n < typ_generic_arity(t));
   return subs_at_const(subs_at_const(typ_definition_const(t), IDX_GENARGS), n)->typ;
+}
+
+struct typ *typ_generic_arg(struct typ *t, size_t n) {
+  if (t->rdy & RDY_GEN) {
+    assert(n < t->gen_arity);
+    return t->gen_args[1 + n];
+  } else {
+    return def_generic_arg(t, n);
+  }
 }
 
 size_t typ_function_arity(const struct typ *t) {
