@@ -182,7 +182,7 @@ static void print_token(FILE *out, enum token_type t) {
 static void print_expr(FILE *out, const struct module *mod,
                        const struct node *node, uint32_t parent_op);
 static void print_block(FILE *out, const struct module *mod,
-                        const struct node *node, bool no_braces);
+                        const struct node *node);
 static void print_typ(FILE *out, const struct module *mod, const struct typ *typ);
 static void print_typeconstraint(FILE *out, const struct module *mod,
                                  const struct node *node);
@@ -722,14 +722,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     break;
   case BLOCK:
     {
-      const bool atleast2 = subs_count_atleast(node, 2);
-      if (atleast2) {
-        fprintf(out, "({ ");
-      }
-      print_block(out, mod, node, true);
-      if (atleast2) {
-        fprintf(out, "; })");
-      }
+      print_block(out, mod, node);
     }
     break;
   case IF:
@@ -749,14 +742,7 @@ static void print_while(FILE *out, const struct module *mod, const struct node *
   fprintf(out, "while (");
   print_expr(out, mod, subs_first_const(node), T__STATEMENT);
   fprintf(out, ")");
-  print_block(out, mod, subs_at_const(node, 1), false);
-}
-
-static void repeat(FILE *out, const char *s, size_t n) {
-  while (n > 0) {
-    fprintf(out, "%s", s);
-    n -= 1;
-  }
+  print_block(out, mod, subs_at_const(node, 1));
 }
 
 static void print_if(FILE *out, const struct module *mod, const struct node *node) {
@@ -764,12 +750,10 @@ static void print_if(FILE *out, const struct module *mod, const struct node *nod
   const size_t count = subs_count(node);
   const size_t br_count = count / 2 + count % 2;
 
-  fprintf(out, "( (");
-  print_expr(out, mod, n, T__STATEMENT);
-  fprintf(out, ") ? (");
+  print_block(out, mod, n);
+  fprintf(out, " ? ");
   n = next_const(n);
-  print_block(out, mod, n, false);
-  fprintf(out, ")");
+  print_block(out, mod, n);
 
   if (br_count == 1) {
     fprintf(out, " : ({;}) )");
@@ -779,25 +763,21 @@ static void print_if(FILE *out, const struct module *mod, const struct node *nod
   n = next_const(n);
   while (n != NULL && next_const(n) != NULL) {
     fprintf(out, "\n");
-    fprintf(out, " : ( (");
+    fprintf(out, " : ");
     print_expr(out, mod, n, T__STATEMENT);
-    fprintf(out, ") ? (");
+    fprintf(out, " ? ");
     n = next_const(n);
-    print_block(out, mod, n, false);
-    fprintf(out, ")");
+    print_block(out, mod, n);
     n = next_const(n);
   }
 
   if (n != NULL) {
     fprintf(out, "\n");
-    fprintf(out, " : (");
-    print_block(out, mod, n, false);
-    fprintf(out, ")");
+    fprintf(out, " : ");
+    print_block(out, mod, n);
   } else {
     fprintf(out, " : ({;})");
   }
-
-  repeat(out, ")", br_count - 1);
 }
 
 static void print_defchoice_path(FILE *out,
@@ -865,7 +845,7 @@ static void print_match(FILE *out, const struct module *mod,
       fprintf(out, "default:\n");
     }
 
-    print_block(out, mod, block, false);
+    print_block(out, mod, block);
     fprintf(out, "\nbreak;\n");
 
     n = next_const(block);
@@ -878,12 +858,12 @@ static void print_try(FILE *out, const struct module *mod, const struct node *no
   print_statement(out, mod, err);
 
   const struct node *eblock = subs_last_const(node);
-  print_block(out, mod, subs_first_const(eblock), false);
+  print_block(out, mod, subs_first_const(eblock));
 
   fprintf(out, "while (0) {\n");
   FOREACH_SUB_EVERY_CONST(catch, eblock, 1, 1) {
     fprintf(out, "\n%s: {\n", idents_value(mod->gctx, catch->as.CATCH.label));
-    print_block(out, mod, subs_first_const(catch), false);
+    print_block(out, mod, subs_first_const(catch));
     fprintf(out, "\n}\n");
   }
   fprintf(out, "}\n");
@@ -1303,7 +1283,7 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
     print_expr(out, mod, node, T__STATEMENT);
     break;
   case BLOCK:
-    print_block(out, mod, node, false);
+    print_block(out, mod, node);
     break;
   case PHI:
     // noop
@@ -1323,14 +1303,18 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
   }
 }
 
-static void print_block(FILE *out, const struct module *mod, const struct node *node, bool no_braces) {
+static void print_block(FILE *out, const struct module *mod, const struct node *node) {
   assert(node->which == BLOCK);
-  if (!no_braces && !node->as.BLOCK.is_scopeless) {
-    fprintf(out, " {\n");
+  const bool value_braces = !typ_equal(node->typ, TBI_VOID) || parent_const(node)->which == IF;
+  const bool braces = !node->as.BLOCK.is_scopeless;
+
+  if (value_braces) {
+    fprintf(out, "({\n");
+  } else if (braces) {
+    fprintf(out, "{\n");
   }
 
-  if ((no_braces || node->as.BLOCK.is_scopeless)
-      && !subs_count_atleast(node, 2)) {
+  if (node->as.BLOCK.is_scopeless && !subs_count_atleast(node, 2)) {
     print_statement(out, mod, subs_first_const(node));
   } else {
     FOREACH_SUB_CONST(statement, node) {
@@ -1339,8 +1323,10 @@ static void print_block(FILE *out, const struct module *mod, const struct node *
     }
   }
 
-  if (!no_braces && !node->as.BLOCK.is_scopeless) {
-    fprintf(out, "}");
+  if (value_braces) {
+    fprintf(out, "})\n");
+  } else if (braces) {
+    fprintf(out, "}\n");
   }
 }
 
@@ -1809,7 +1795,7 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     }
 
     const struct node *block = subs_last_const(node);
-    print_block(out, mod, block, false);
+    print_block(out, mod, block);
 
     fprintf(out, "\n");
 
