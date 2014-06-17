@@ -839,6 +839,7 @@ bool try_remove_unnecessary_ssa_defname(struct module *mod, struct node *defn) {
 
   struct node *expr = subs_last(defn);
   struct node *user = defn->as.DEFNAME.ssa_user;
+  struct node *paruser = parent(user);
 
   bool remove = false;
 
@@ -853,15 +854,15 @@ bool try_remove_unnecessary_ssa_defname(struct module *mod, struct node *defn) {
      && OP_KIND(expr->as.BIN.operator) == OP_BIN_ACC)
     || (expr->which == UN
         && OP_KIND(expr->as.UN.operator) == OP_UN_DEREF
-        && parent(user)->which == UN
-        && OP_KIND(parent(user)->as.UN.operator) == OP_UN_REFOF)
+        && paruser->which == UN
+        && OP_KIND(paruser->as.UN.operator) == OP_UN_REFOF)
     || (expr->which == UN
         && OP_KIND(expr->as.UN.operator) == OP_UN_DEREF
-        && parent(user)->which == BIN
-        && OP_IS_ASSIGN(parent(user)->as.BIN.operator)
-        && subs_first(parent(user)) == user)
+        && paruser->which == BIN
+        && OP_IS_ASSIGN(paruser->as.BIN.operator)
+        && subs_first(paruser) == user)
     || ((expr->which == INIT || expr->which == CALL)
-        && parent(user)->which == RETURN
+        && paruser->which == RETURN
         && !typ_isa(module_retval_get(mod)->typ, TBI_RETURN_BY_COPY))) {
     remove = true;
   }
