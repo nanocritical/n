@@ -300,7 +300,7 @@ static error passzero0(struct module *mod, struct node *root,
     UP_STEP(step_lir_conversion_up);
     UP_STEP(step_ssa_convert);
     ,
-    UP_STEP(step_pop_state);
+    FINALLY_STEP(step_pop_state);
     );
   return 0;
 }
@@ -317,7 +317,7 @@ static error passzero1(struct module *mod, struct node *root,
     ,
     UP_STEP(step_assign_defchoice_tag_up);
     ,
-    UP_STEP(step_pop_state);
+    FINALLY_STEP(step_pop_state);
     );
   return 0;
 }
