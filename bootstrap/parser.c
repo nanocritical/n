@@ -39,6 +39,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_HAS_NEXT] = "Has_next",
   [ID_NEXT] = "Next",
   [ID_CAST] = "Cast",
+  [ID_NULLABLE] = "nullable",
   [ID_NCODELOC] = "_Ncodeloc",
   [ID_WILDCARD_REF_ARG] = "__wildcard_ref_arg__",
   [ID_WILDCARD_REF_ARG_SELF] = "__wildcard_ref_arg_self__",

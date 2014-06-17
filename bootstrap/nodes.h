@@ -882,6 +882,7 @@ enum predefined_idents {
   ID_HAS_NEXT,
   ID_NEXT,
   ID_CAST,
+  ID_NULLABLE,
   ID_WILDCARD_REF_ARG,
   ID_WILDCARD_REF_ARG_SELF,
   ID_LIKELY,

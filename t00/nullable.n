@@ -7,7 +7,7 @@ fun mk_nullable = ?@I32
 	return r
 
 fun Main = I32
-	let p = mk_nullable
+	let p = nullable @1:I32
 	if not p?
 		return 1
 	if not mk_nullable?

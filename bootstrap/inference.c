@@ -466,6 +466,33 @@ static error try_insert_automagic_deref(struct module *mod,
   return 0;
 }
 
+static error nullable_op(struct module *mod, const struct node *for_error,
+                         enum token_type *r, struct typ *t) {
+  if (typ_isa(t, TBI_ANY_NULLABLE_REF)) {
+    *r = 0;
+    return 0;
+  }
+
+  struct typ *t0 = typ_generic_functor(t);
+  if (t0 == NULL) {
+    error e = mk_except_type(mod, for_error, "Nullable expects a reference, not '%s'",
+                             typ_pretty_name(mod, t));
+    THROW(e);
+  }
+
+  if (typ_equal(t, TBI_MMREF)) {
+    *r = TNULREFSHARP;
+  } else if (typ_isa(t, TBI_ANY_MUTABLE_REF)) {
+    *r = TNULREFBANG;
+  } else if (typ_isa(t, TBI_ANY_REF)) {
+    *r = TNULREFDOT;
+  } else {
+    assert(false);
+  }
+
+  return 0;
+}
+
 static error type_inference_un(struct module *mod, struct node *node) {
   assert(node->which == UN);
   error e;
@@ -474,6 +501,21 @@ static error type_inference_un(struct module *mod, struct node *node) {
 
   struct node *i = NULL;
   switch (OP_KIND(operator)) {
+  case OP_UN_NULLABLE:
+    {
+      enum token_type nop = 0;
+      e = nullable_op(mod, node, &nop, term->typ);
+      EXCEPT(e);
+      if (nop == 0) {
+        set_typ(&node->typ, term->typ);
+      } else {
+        e = reference(&i, mod, node, nop, typ_generic_arg(term->typ, 0));
+        EXCEPT(e);
+        set_typ(&node->typ, i->typ);
+        node->flags |= term->flags & NODE__TRANSITIVE;
+      }
+    }
+    return 0;
   case OP_UN_SLICE:
     if (!(term->flags & NODE_IS_TYPE)) {
       e = mk_except_type(mod, node, "slice specifier must be applied to a type");
@@ -1645,7 +1687,7 @@ static error try_rewrite_operator_sub(struct module *mod, struct node *node) {
   struct node *dfun = typ_definition(typ_generic_arg(self->typ, 0));
   struct node *m = node_get_member(dfun, ID_OPERATOR_SUB);
   if (m == NULL) {
-    error e = mk_except_type(mod, node, "type '%s' does not have 'operator_sub'",
+    error e = mk_except_type(mod, node, "type '%s' does not have 'Operator_sub'",
                              typ_pretty_name(mod, self->typ));
     THROW(e);
   }

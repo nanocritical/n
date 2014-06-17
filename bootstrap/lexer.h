@@ -137,6 +137,13 @@ enum token_type {
   TLPAR,
   TRPAR,
 
+  // We rewrite (Nullable x) as a unary operator in LIR, even though
+  // syntactically it's a function call, because we don't want the
+  // complexity of typing it as a generic function, and we don't want to use
+  // up a precious enum node_which entry. This is purely internal and could
+  // change.
+  T__NULLABLE,
+
   T__CALL,
   T__NOT_STATEMENT,
   T__STATEMENT,
@@ -164,6 +171,7 @@ enum operator_kind {
   OP_UN_SLICE = 0x6,
   OP_UN_RANGE = 0x7,
   OP_UN_ISNUL = 0x8,
+  OP_UN_NULLABLE = 0x9,
   OP_BIN = 0x10,
   OP_BIN_SYM = 0x20,
   OP_BIN_SYM_BOOL = 0x30,
@@ -205,6 +213,7 @@ struct operator {
 
 static const struct operator operators[TOKEN__NUM] = {
   [T__STATEMENT] = OP(0, 0, 0, 0xffff),
+  [T__NULLABLE] = OP(0, OP_UN_NULLABLE, 0, 0xf000),
   [TASSIGN] = OP(OP_ASSIGN, OP_BIN_SYM, ASSOC_NON, 0x140),
   [TPLUS_ASSIGN] = OP(OP_ASSIGN, OP_BIN_SYM_ARITH, ASSOC_NON, 0x140),
   [TMINUS_ASSIGN] = OP(OP_ASSIGN, OP_BIN_SYM_ARITH, ASSOC_NON, 0x140),

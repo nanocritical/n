@@ -345,6 +345,9 @@ static void print_un(FILE *out, const struct module *mod, const struct node *nod
   fprintf(out, "(");
 
   switch (OP_KIND(op)) {
+  case OP_UN_NULLABLE:
+    print_expr(out, mod, term, parent_op);
+    break;
   case OP_UN_REFOF:
     if (node->flags & NODE_IS_TYPE) {
       print_typ(out, mod, node->typ);

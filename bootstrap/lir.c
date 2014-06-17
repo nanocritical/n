@@ -514,6 +514,13 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
       rewrite_ptr_op(mod, node);
     }
     break;
+  case CALL:
+    if (node_ident(subs_first(node)) == ID_NULLABLE) {
+      node_set_which(node, UN);
+      node_subs_remove(node, subs_first(node));
+      node->as.UN.operator = T__NULLABLE;
+    }
+    break;
   case FUTURE:
     break;
   case FOR:

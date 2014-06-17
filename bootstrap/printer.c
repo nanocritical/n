@@ -120,6 +120,7 @@ const char *token_strings[TOKEN__NUM] = {
   [TRCBRA] = "}",
   [TLPAR] = "(",
   [TRPAR] = ")",
+  [T__NULLABLE] = "nullable",
 };
 
 static void print_token(FILE *out, enum token_type t) {
