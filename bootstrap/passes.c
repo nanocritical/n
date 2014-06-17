@@ -156,14 +156,6 @@ error catchup(struct module *mod,
 
   const bool was_upward = mod->state->step_state->upward;
 
-  bool need_new_block_state = mod->state->fun_state != NULL
-      && mod->state->fun_state->block_state != NULL;
-  if (need_new_block_state) {
-    PUSH_STATE(mod->state->fun_state->block_state);
-    mod->state->fun_state->block_state->current_statement
-      = mod->state->fun_state->block_state->prev->current_statement;
-  }
-
   const struct node *par = parent(node);
   const bool need_new_state =
     par->which == MODULE_BODY
@@ -214,10 +206,6 @@ error catchup(struct module *mod,
     POP_STATE(mod->state);
   }
   POP_STATE(mod->stage->state);
-
-  if (need_new_block_state) {
-    POP_STATE(mod->state->fun_state->block_state);
-  }
 
   unmark_excepted(except);
   return 0;
@@ -433,13 +421,8 @@ error step_push_state(struct module *mod, struct node *node,
   DSTEP(mod, node);
 
   if (node->which == BLOCK) {
-    PUSH_STATE(mod->state->fun_state->block_state);
-
-    if (mod->state->fun_state->block_state->prev != NULL) {
-      mod->state->fun_state->block_state->current_statement
-        = mod->state->fun_state->block_state->prev->current_statement;
-    } else {
-      mod->state->fun_state->block_state->current_statement = NULL;
+    if (NM(parent_const(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
+      mod->state->fun_state->in_block = true;
     }
     return 0;
   }
@@ -488,7 +471,9 @@ error step_pop_state(struct module *mod, struct node *node,
   DSTEP(mod, node);
 
   if (node->which == BLOCK) {
-    POP_STATE(mod->state->fun_state->block_state);
+    if (NM(parent_const(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
+      mod->state->fun_state->in_block = false;
+    }
     return 0;
   }
 

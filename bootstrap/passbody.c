@@ -12,17 +12,6 @@
 #include "passzero.h"
 #include "passfwd.h"
 
-STEP_NM(step_record_current_statement,
-        -1);
-error step_record_current_statement(struct module *mod, struct node *node,
-                                    void *user, bool *stop) {
-  DSTEP(mod, node);
-  if (parent(node)->which == BLOCK) {
-    mod->state->fun_state->block_state->current_statement = node;
-  }
-  return 0;
-}
-
 static STEP_NM(step_increment_def_name_passed,
                NM(DEFNAME) | NM(DEFALIAS));
 static error step_increment_def_name_passed(struct module *mod, struct node *node,
@@ -786,7 +775,6 @@ error passbody0(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_already_early_typing);
-    DOWN_STEP(step_record_current_statement);
     DOWN_STEP(step_rewrite_wildcards);
     DOWN_STEP(step_type_destruct_mark);
     DOWN_STEP(step_type_mutability_mark);
@@ -810,7 +798,6 @@ static error passbody1(struct module *mod, struct node *root,
     DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
-    DOWN_STEP(step_record_current_statement);
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_check_no_literals_left);
     ,
@@ -837,7 +824,6 @@ static error passbody2(struct module *mod, struct node *root,
     DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
-    DOWN_STEP(step_record_current_statement);
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_ident_non_local_scope);
     DOWN_STEP(step_branching_down);

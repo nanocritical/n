@@ -54,9 +54,8 @@ static bool is_block_like(struct node *node) {
 }
 
 static void insert_assign(struct module *mod,
-                          struct node *statement_parent,
-                          struct node *defn,
-                          struct node *block) {
+                          struct node *block,
+                          ident var) {
   assert(block->which == BLOCK);
   struct node *last = subs_last(block);
   node_subs_remove(block, last);
@@ -65,7 +64,7 @@ static void insert_assign(struct module *mod,
   assign->codeloc = last->codeloc;
   assign->as.BIN.operator = TASSIGN;
   struct node *name = mk_node(mod, assign, IDENT);
-  name->as.IDENT.name = node_ident(defn);
+  name->as.IDENT.name = var;
   node_subs_append(assign, last);
 
   error e = catchup(mod, NULL, assign, CATCHUP_BEFORE_CURRENT_SAME_TOP);
@@ -73,7 +72,6 @@ static void insert_assign(struct module *mod,
 }
 
 static void defname_replace_block_like_expr(struct module *mod,
-                                            struct node *statement_parent,
                                             struct node *defn) {
   struct node *expr = subs_last(defn);
   if (!is_block_like(expr)) {
@@ -92,25 +90,26 @@ static void defname_replace_block_like_expr(struct module *mod,
   (void) mk_node(mod, defn, INIT);
 
   struct node *let = parent(defn);
-  node_subs_insert_after(statement_parent, let, expr);
+  node_subs_insert_after(parent(let), let, expr);
 
+  const ident name = node_ident(defn);
   switch (expr->which) {
   case BLOCK:
-    insert_assign(mod, statement_parent, defn, expr);
+    insert_assign(mod, expr, name);
     break;
   case IF:
-    insert_assign(mod, statement_parent, defn, subs_at(expr, 1));
-    insert_assign(mod, statement_parent, defn, subs_last(expr));
+    insert_assign(mod, subs_at(expr, 1), name);
+    insert_assign(mod, subs_last(expr), name);
     break;
   case TRY:
-    insert_assign(mod, statement_parent, defn, subs_first(expr));
+    insert_assign(mod, subs_first(expr), name);
     FOREACH_SUB_EVERY(s, expr, 1, 1) {
-      insert_assign(mod, statement_parent, defn, subs_first(s));
+      insert_assign(mod, subs_first(s), name);
     }
     break;
   case MATCH:
     FOREACH_SUB_EVERY(s, expr, 2, 2) {
-      insert_assign(mod, statement_parent, defn, s);
+      insert_assign(mod, s, name);
     }
     break;
   default:
@@ -118,24 +117,26 @@ static void defname_replace_block_like_expr(struct module *mod,
   }
 }
 
-static void ssa_sub(struct module *mod, struct node *statement,
-                    struct node *node, struct node *sub) {
+static struct node *find_current_statement(struct node *node) {
+  if (node->which == BLOCK) {
+    return subs_last(node);
+  }
+  struct node *c = node;
+  while (parent_const(c)->which != BLOCK) {
+    c = parent(c);
+  }
+  return c;
+}
+
+static void ssa_sub(struct module *mod, struct node *node, struct node *sub) {
   assert(parent(sub) == node);
   if ((NM(sub->which) & (NM(IDENT) | NM(CALLNAMEDARG)))
       || is_always_void(sub)) {
     return;
   }
 
+  struct node *statement = find_current_statement(node);
   struct node *statement_parent = parent(statement);
-
-  if (sub == statement) {
-    assert(node->which == BLOCK);
-    if (mod->state->fun_state->block_state->prev != NULL) {
-      mod->state->fun_state->block_state->current_statement
-        = mod->state->fun_state->block_state->prev->current_statement;
-    }
-  }
-
   struct node *before = statement;
 
   struct node *let = mk_node(mod, statement_parent, LET);
@@ -155,7 +156,7 @@ static void ssa_sub(struct module *mod, struct node *statement,
   struct node *new_sub = node_new_subnode(mod, defn);
   node_move_content(new_sub, sub);
 
-  defname_replace_block_like_expr(mod, statement_parent, defn);
+  defname_replace_block_like_expr(mod, defn);
 
   node_set_which(sub, IDENT);
   sub->as.IDENT.name = g;
@@ -168,23 +169,23 @@ static void ssa_sub(struct module *mod, struct node *statement,
 }
 
 STEP_NM(step_ssa_convert,
-        ~(NM(MODULE) | NM(MODULE_BODY) | STEP_NM_DEFS | NM_ALWAYS_VOID));
+        ~(NM(MODULE) | NM(MODULE_BODY) | STEP_NM_DEFS | NM_ALWAYS_VOID
+          | NM_DOESNT_EVER_NEED_SUB));
 error step_ssa_convert(struct module *mod, struct node *node,
                        void *user, bool *stop) {
   DSTEP(mod, node);
   if (mod->state->fun_state == NULL
-      || mod->state->fun_state->block_state == NULL
+      || !mod->state->fun_state->in_block
       || is_always_void(node)) {
     return 0;
   }
 
   struct node *par = parent(node);
-  struct node *statement = mod->state->fun_state->block_state->current_statement;
 
   switch (par->which) {
   case BIN:
     if (OP_IS_ASSIGN(par->as.BIN.operator) && node == subs_last(par)) {
-      ssa_sub(mod, statement, par, node);
+      ssa_sub(mod, par, node);
       break;
     }
     // fallthrough
@@ -199,25 +200,24 @@ error step_ssa_convert(struct module *mod, struct node *node,
   case POST:
   case INVARIANT:
   case THROW:
-    ssa_sub(mod, statement, par, node);
+    ssa_sub(mod, par, node);
     break;
 
   case CALL:
     if (subs_count_atleast(par, 2) && node != subs_first(par)) {
-      ssa_sub(mod, statement, par, node);
+      ssa_sub(mod, par, node);
     }
     break;
 
   case BLOCK:
-    if (node == subs_last(par)) {
-      ssa_sub(mod, node, par, node);
+    if (node == subs_last(par)
+        && !(NM(parent(par)->which) & (NM(DEFFUN) | NM(DEFMETHOD)))) {
+      ssa_sub(mod, par, node);
     }
     break;
   default:
     break;
   }
-  assert(mod->state->fun_state->block_state->current_statement == NULL
-         || parent(mod->state->fun_state->block_state->current_statement)->which == BLOCK);
   return 0;
 }
 

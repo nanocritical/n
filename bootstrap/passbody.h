@@ -10,10 +10,6 @@ error step_type_inference(struct module *mod, struct node *node, void *user, boo
 extern const uint64_t step_type_destruct_mark_filter;
 error step_type_destruct_mark(struct module *mod, struct node *node, void *user, bool *stop);
 
-extern const uint64_t step_record_current_statement_filter;
-error step_record_current_statement(struct module *mod, struct node *node,
-                                    void *user, bool *stop);
-
 extern const uint64_t step_remove_typeconstraints_filter;
 error step_remove_typeconstraints(struct module *mod, struct node *node,
                                   void *user, bool *stop);

@@ -773,12 +773,6 @@ struct top_state {
   bool is_setgenarg;
 };
 
-struct block_state {
-  struct block_state *prev;
-
-  struct node *current_statement;
-};
-
 struct wildcard {
   enum token_type ref;
   enum token_type nulref;
@@ -794,7 +788,7 @@ struct fun_state {
   struct wildcard wildcard;
   struct wildcard self_wildcard;
 
-  struct block_state *block_state;
+  bool in_block;
 };
 
 struct try_state {
