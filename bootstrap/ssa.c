@@ -49,6 +49,31 @@ static bool is_always_void(struct node *node) {
   }
 }
 
+#define NM_DOESNT_EVER_NEED_SUB \
+  ( NM(IDENT) | NM(CALLNAMEDARG) )
+
+#define NM_DOESNT_NEED_SUB \
+  ( NM_DOESNT_EVER_NEED_SUB | NM(NUMBER) | NM(NUL) | NM(BOOL) )
+
+static bool doesnt_need_sub(struct node *node, struct node *sub) {
+  if (!(NM(sub->which) & NM_DOESNT_NEED_SUB)) {
+    return false;
+  }
+
+  if (NM(sub->which) & NM_DOESNT_EVER_NEED_SUB) {
+    return true;
+  }
+
+  switch (node->which) {
+  case UN:
+    return OP_KIND(node->as.UN.operator) != OP_UN_REFOF;
+  case BIN:
+    return OP_KIND(node->as.BIN.operator) != OP_BIN_ACC;
+  default:
+    return false;
+  }
+}
+
 static bool is_block_like(struct node *node) {
   return NM(node->which) & (NM(IF) | NM(TRY) | NM(MATCH) | NM(BLOCK));
 }
@@ -130,7 +155,7 @@ static struct node *find_current_statement(struct node *node) {
 
 static void ssa_sub(struct module *mod, struct node *node, struct node *sub) {
   assert(parent(sub) == node);
-  if ((NM(sub->which) & (NM(IDENT) | NM(CALLNAMEDARG)))
+  if (doesnt_need_sub(node, sub)
       || is_always_void(sub)) {
     return;
   }
@@ -311,15 +336,16 @@ EXAMPLE_NCC_EMPTY(ssa_bin) {
   G0(n, mod->body, DEFFUN,
      G(genargs, GENARGS);
      G(funargs, FUNARGS,
-       G_IDENT(ret, "void"));
+       G_IDENT(retval, "void"));
      G(block, BLOCK,
-       G(add, BIN,
-         add->as.BIN.operator = TPLUS;
-         G(mult, BIN,
-           mult->as.BIN.operator = TMINUS;
-           G(va, IDENT);
-           G(vb, IDENT));
-         G(vc, IDENT))));
+       G(ret, RETURN,
+         G(add, BIN,
+           add->as.BIN.operator = TPLUS;
+           G(mult, BIN,
+             mult->as.BIN.operator = TMINUS;
+             G(va, IDENT);
+             G(vb, IDENT));
+           G(vc, IDENT)))));
   assert(0 == ex_ssa_conversion(mod, n));
   check_structure(n,
                   "DEFFUN",
@@ -339,7 +365,8 @@ EXAMPLE_NCC_EMPTY(ssa_bin) {
                   "    BIN",
                   "     IDENT",
                   "     IDENT",
-                  "  IDENT",
+                  "  RETURN",
+                  "   IDENT",
                   NULL);
 }
 
@@ -348,7 +375,7 @@ EXAMPLE_NCC_EMPTY(ssa_call) {
   G0(n, mod->body, DEFFUN,
      G(genargs, GENARGS);
      G(funargs, FUNARGS,
-       G_IDENT(ret, "void"));
+       G_IDENT(retval, "void"));
      G(block, BLOCK,
        G(call, CALL,
          G(fun, BIN,
@@ -373,16 +400,12 @@ EXAMPLE_NCC_EMPTY(ssa_call) {
                   "    BIN",
                   "     IDENT",
                   "     IDENT",
-                  "  LET",
-                  "   DEFNAME",
+                  "  CALL",
+                  "   BIN",
                   "    IDENT",
-                  "    CALL",
-                  "     BIN",
-                  "      IDENT",
-                  "      IDENT",
-                  "     IDENT",
-                  "     IDENT",
-                  "  IDENT",
+                  "    IDENT",
+                  "   IDENT",
+                  "   IDENT",
                   NULL);
 }
 
@@ -391,7 +414,7 @@ EXAMPLE_NCC_EMPTY(ssa_let_one) {
   G0(n, mod->body, DEFFUN,
      G(genargs, GENARGS);
      G(funargs, FUNARGS,
-       G_IDENT(ret, "void"));
+       G_IDENT(retval, "void"));
      G(block, BLOCK,
        G(let, LET,
          G(defp, DEFPATTERN,
@@ -437,7 +460,7 @@ EXAMPLE_NCC_EMPTY(ssa_let_two) {
   G0(n, mod->body, DEFFUN,
      G(genargs, GENARGS);
      G(funargs, FUNARGS,
-       G_IDENT(ret, "void"));
+       G_IDENT(retval, "void"));
      G(block, BLOCK,
        G(let, CALL,
          G(fun, IDENT);
@@ -457,14 +480,10 @@ EXAMPLE_NCC_EMPTY(ssa_let_two) {
                   "  LET",
                   "   DEFNAME",
                   "    IDENT",
-                  "  LET",
-                  "   DEFNAME",
-                  "    IDENT",
-                  "    CALL",
-                  "     IDENT",
-                  "     IDENT",
-                  "     IDENT",
-                  "  IDENT",
+                  "  CALL",
+                  "   IDENT",
+                  "   IDENT",
+                  "   IDENT",
                   NULL);
 }
 
@@ -473,7 +492,7 @@ EXAMPLE_NCC_EMPTY(ssa_let_three) {
   G0(n, mod->body, DEFFUN,
      G(genargs, GENARGS);
      G(funargs, FUNARGS,
-       G_IDENT(ret, "void"));
+       G_IDENT(retval, "void"));
      G(block, BLOCK,
        G(let, LET,
          G(defp, DEFPATTERN,
@@ -532,7 +551,7 @@ EXAMPLE_NCC_EMPTY(ssa_while) {
   G0(n, mod->body, DEFFUN,
      G(genargs, GENARGS);
      G(funargs, FUNARGS,
-       G_IDENT(ret, "void"));
+       G_IDENT(retval, "void"));
      G(body, BLOCK,
        G(whil, WHILE,
          G(cmp, BIN,
@@ -602,7 +621,7 @@ EXAMPLE_NCC_EMPTY(ssa_if_one) {
   G0(n, mod->body, DEFFUN,
      G(genargs, GENARGS);
      G(funargs, FUNARGS,
-       G_IDENT(ret, "void"));
+       G_IDENT(retval, "void"));
      G(body, BLOCK,
        G(let, LET,
          G(defp, DEFPATTERN,
@@ -655,17 +674,18 @@ EXAMPLE_NCC_EMPTY(ssa_if_two) {
   G0(n, mod->body, DEFFUN,
      G(genargs, GENARGS);
      G(funargs, FUNARGS,
-       G_IDENT(ret, "void"));
+       G_IDENT(retval, "void"));
      G(body, BLOCK,
-       G(ifx, IF,
-         G(acc, BIN,
-           acc->as.BIN.operator = TDOT;
-           G_IDENT(self, "self");
-           G_IDENT(f, "f"));
-         G(ba, BLOCK,
-           G_IDENT(a, "a"));
-         G(bb, BLOCK,
-           G_IDENT(b, "b")))));
+       G(ret, RETURN,
+         G(ifx, IF,
+           G(acc, BIN,
+             acc->as.BIN.operator = TDOT;
+             G_IDENT(self, "self");
+             G_IDENT(f, "f"));
+           G(ba, BLOCK,
+             G_IDENT(a, "a"));
+           G(bb, BLOCK,
+             G_IDENT(b, "b"))))));
   assert(0 == ex_ssa_conversion(mod, n));
   check_structure(n,
                   "DEFFUN",
@@ -694,7 +714,8 @@ EXAMPLE_NCC_EMPTY(ssa_if_two) {
                   "    BIN",
                   "     IDENT",
                   "     IDENT",
-                  "  IDENT",
+                  "  RETURN",
+                  "   IDENT",
                   NULL);
 }
 
@@ -703,15 +724,16 @@ EXAMPLE_NCC_EMPTY(ssa_logical_or) {
   G0(n, mod->body, DEFFUN,
      G(genargs, GENARGS);
      G(funargs, FUNARGS,
-       G_IDENT(ret, "void"));
+       G_IDENT(retval, "void"));
      G(body, BLOCK,
-       G(or, BIN,
-         or->as.BIN.operator = Tor;
-         G(z, BIN,
-           z->as.BIN.operator = TLT;
-           G_IDENT(x, "x");
-           G(y, INIT));
-         G_IDENT(a, "a"))));
+       G(ret, RETURN,
+         G(or, BIN,
+           or->as.BIN.operator = Tor;
+           G(z, BIN,
+             z->as.BIN.operator = TLT;
+             G_IDENT(x, "x");
+             G(y, INIT));
+           G_IDENT(a, "a")))));
   assert(0 == ex_ssa_conversion(mod, n));
   check_structure(n,
                   "DEFFUN",
@@ -748,7 +770,8 @@ EXAMPLE_NCC_EMPTY(ssa_logical_or) {
                   "    BIN",
                   "     IDENT",
                   "     IDENT",
-                  "  IDENT",
+                  "  RETURN",
+                  "   IDENT",
                   NULL);
 }
 

@@ -717,6 +717,7 @@ struct node *defincomplete_create(struct module *mod, const struct node *trigger
 void defincomplete_set_ident(struct module *mod, const struct node *for_error,
                              struct node *dinc, ident name) {
   assert(dinc->which == DEFINCOMPLETE);
+  assert(name != ID__NONE && name != ID_ANONYMOUS);
   dinc->as.DEFINCOMPLETE.ident = name;
   dinc->as.DEFINCOMPLETE.ident_for_error = for_error;
 }

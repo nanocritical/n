@@ -6,6 +6,9 @@ fun Foo = I32
 fun deref p:@U32 = U32
 	return p.
 
+fun named_deref ?p:?@U32 = U32
+	return p else 0
+
 fun Main = I32
 	if true
 		noop
@@ -38,6 +41,7 @@ fun Main = I32
 	Assert <- z2 == 50*99
 
 	Assert <- (deref block -> 1:U32;;) == 1
+	Assert <- (named_deref p=block -> 1:U32;;) == 1
 
 	Say
 		\ false
