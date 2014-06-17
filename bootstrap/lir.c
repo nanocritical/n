@@ -120,6 +120,66 @@ static void rewrite_ptr_op(struct module *mod, struct node *node) {
   }
 }
 
+static void rewrite_opt_acc_op(struct module *mod, struct node *node) {
+  assert(node->which == BIN);
+  enum token_type op = node->as.BIN.operator, accop, refop;
+  switch (op) {
+  case TOPTDOT:
+    accop = TDOT;
+    refop = TREFDOT;
+    break;
+  case TOPTBANG:
+    accop = TBANG;
+    refop = TREFBANG;
+    break;
+  case TOPTSHARP:
+    accop = TSHARP;
+    refop = TREFSHARP;
+    break;
+  case TOPTATDOT:
+    accop = TATDOT;
+    refop = TREFDOT;
+    break;
+  case TOPTATBANG:
+    accop = TATBANG;
+    refop = TREFBANG;
+    break;
+  default:
+    assert(false);
+  }
+
+  struct node *left = subs_first(node);
+  struct node *right = subs_last(node);
+  node_subs_remove(node, left);
+  node_subs_remove(node, right);
+
+  node_set_which(node, BLOCK);
+  GSTART();
+  G0(let, node, LET,
+     G(defp, DEFPATTERN,
+       G(v, IDENT,
+         v->as.IDENT.name = gensym(mod));
+       node_subs_append(defp, left));
+     G(letblock, BLOCK,
+       G(ifisnotnul, IF,
+         G(isnotnul, UN,
+           isnotnul->as.UN.operator = TPOSTQMARK;
+           G(v2, IDENT,
+             v2->as.IDENT.name = node_ident(v)));
+         G(yes, BLOCK,
+           G(nullable, UN,
+             nullable->as.UN.operator = T__NULLABLE;
+             G(ref, UN,
+               ref->as.UN.operator = refop;
+               G(acc, BIN,
+                 acc->as.BIN.operator = accop;
+                 G(v3, IDENT,
+                   v3->as.IDENT.name = node_ident(v));
+                 node_subs_append(acc, right)))));
+         G(no, BLOCK,
+           G(nul, NUL)))));
+}
+
 static void rewrite_isnul_op(struct module *mod, struct node *node) {
   assert(node->which == UN);
   const ident op = node->as.UN.operator;
@@ -512,6 +572,8 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
       rewrite_bool_op(mod, node);
     } else if (OP_KIND(node->as.BIN.operator) == OP_BIN_SYM_PTR) {
       rewrite_ptr_op(mod, node);
+    } else if (OP_KIND(node->as.BIN.operator) == OP_BIN_OPT_ACC) {
+      rewrite_opt_acc_op(mod, node);
     }
     break;
   case CALL:

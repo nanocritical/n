@@ -354,6 +354,13 @@ normal:
   }
   "..." { R(TDOTDOTDOT); }
   ".." { R(TDOTDOT); }
+  "?.[" { R(TOPTATDOT); }
+  "?![" { R(TOPTATBANG); }
+  "?$[" { R(TOPTATWILDCARD); }
+  "?." { RUNORBIN(2, 0, 0, TOPTDOT); }
+  "?!" { RUNORBIN(2, 0, 0, TOPTBANG); }
+  "?#" { RUNORBIN(2, 0, 0, TOPTSHARP); }
+  "?$" { RUNORBIN(2, 0, 0, TOPTWILDCARD); }
   ".[" { R(TATDOT); }
   "![" { R(TATBANG); }
   "$[" { R(TATWILDCARD); }
@@ -501,7 +508,6 @@ escaped_eol_any:
     switch (block_style(parser)) {
     case BLOCK_MULTI:
     case BLOCK_SINGLE:
-        if (escaped)__break();
       if (escaped || spaces != parser->indent) {
         // Closing several blocks at once, return token for the others.
         YYCURSOR = start;

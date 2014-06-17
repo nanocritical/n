@@ -1,12 +1,25 @@
 from n import *
 from n.sysheap import Heap Sysheap
 
+struct a =
+	x	:I32
+
+a met getx = I32
+	return self.x
+
+fun foo v:?@a = I32
+	if v !== null
+		return v.getx
+	else
+		return 0
+
 fun mk_nullable = ?@I32
 	let r = (Heap.Alloc I32) @!Sysheap
 	r! = 1
 	return r
 
 fun Main = I32
+	Assert <- 0 == foo {}
 	let p = nullable @1:I32
 	if not p?
 		return 1
