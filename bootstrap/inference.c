@@ -43,14 +43,16 @@ error step_rewrite_wildcards(struct module *mod, struct node *node,
 
     const bool is_shallow = node_toplevel_const(node)->flags & TOP_IS_SHALLOW;
     if (typ_equal(def->typ, TBI_ANY_REF)
-        || typ_equal(def->typ, TBI_REF)) {
+        || typ_equal(def->typ, TBI_ANY_NULLABLE_REF)
+        || typ_equal(def->typ, TBI_REF)
+        || typ_equal(def->typ, TBI_NREF)) {
       mod->state->fun_state->wildcard.ref = TREFDOT;
       mod->state->fun_state->wildcard.nulref = TNULREFDOT;
       mod->state->fun_state->wildcard.deref = TDEREFDOT;
       mod->state->fun_state->wildcard.acc = TDOT;
 
       mod->state->fun_state->self_wildcard = mod->state->fun_state->wildcard;
-    } else if (typ_equal(def->typ, TBI_MREF)) {
+    } else if (typ_equal(def->typ, TBI_MREF) || typ_equal(def->typ, TBI_NMREF)) {
       mod->state->fun_state->wildcard.ref = is_shallow ? TREFSHARP : TREFBANG;
       mod->state->fun_state->wildcard.nulref = is_shallow ? TNULREFSHARP : TNULREFBANG;
       mod->state->fun_state->wildcard.deref = is_shallow ? TDEREFSHARP : TDEREFBANG;
@@ -60,7 +62,7 @@ error step_rewrite_wildcards(struct module *mod, struct node *node,
       mod->state->fun_state->self_wildcard.nulref = TNULREFBANG;
       mod->state->fun_state->self_wildcard.deref = TDEREFBANG;
       mod->state->fun_state->self_wildcard.acc = TBANG;
-    } else if (typ_equal(def->typ, TBI_MMREF)) {
+    } else if (typ_equal(def->typ, TBI_MMREF) || typ_equal(def->typ, TBI_NMMREF)) {
       mod->state->fun_state->wildcard.ref = TREFSHARP;
       mod->state->fun_state->wildcard.nulref = TNULREFSHARP;
       mod->state->fun_state->wildcard.deref = TDEREFSHARP;
