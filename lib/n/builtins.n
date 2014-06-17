@@ -123,9 +123,9 @@ intf `Any_ref t:`Any =
 intf `Any_mutable_ref t:`Any =
 	isa (`Any_ref t)
 intf `Any_nullable_ref t:`Any =
-	isa `Any_any_ref `Trivial_ctor
+	isa (`Any_ref t) `Trivial_ctor
 intf `Any_nullable_mutable_ref t:`Any =
-	isa (`Any_nullable_ref t)
+	isa (`Any_nullable_ref t) (`Any_mutable_ref t)
 
 extern struct Ref t:`Any =
 	isa (`Any_ref t)

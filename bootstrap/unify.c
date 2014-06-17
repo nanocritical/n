@@ -622,9 +622,11 @@ static error check_reference_compatibility(struct module *mod,
   bool ok = false;
   error e;
   if (typ_equal(target0, TBI_ANY_REF)) {
-    ok = typ_isa(a0, TBI_ANY_REF);
+    ok = typ_isa(a0, TBI_ANY_REF)
+      || typ_isa(a0, TBI_ANY_NULLABLE_REF);;
   } else if (typ_equal(target0, TBI_ANY_MUTABLE_REF)) {
-    ok = typ_isa(a0, TBI_ANY_MUTABLE_REF);
+    ok = typ_isa(a0, TBI_ANY_MUTABLE_REF)
+      || typ_isa(a0, TBI_ANY_NULLABLE_MUTABLE_REF);;
   } else if (typ_equal(target0, TBI_ANY_NULLABLE_REF)) {
     ok = typ_isa(a0, TBI_ANY_REF)
       || typ_isa(a0, TBI_ANY_NULLABLE_REF);
@@ -633,11 +635,14 @@ static error check_reference_compatibility(struct module *mod,
       || typ_isa(a0, TBI_ANY_NULLABLE_MUTABLE_REF);
 
   } else if (typ_equal(target0, TBI_REF)) {
-    ok = typ_isa(a0, TBI_ANY_REF);
+    ok = typ_isa(a0, TBI_ANY_REF)
+      || typ_isa(a0, TBI_ANY_NULLABLE_REF);;
   } else if (typ_equal(target0, TBI_MREF)) {
-    ok = typ_isa(a0, TBI_ANY_MUTABLE_REF);
+    ok = typ_isa(a0, TBI_ANY_MUTABLE_REF)
+      || typ_isa(a0, TBI_ANY_NULLABLE_MUTABLE_REF);;
   } else if (typ_equal(target0, TBI_MMREF)) {
-    ok = typ_equal(a0, TBI_MMREF);
+    ok = typ_equal(a0, TBI_MMREF)
+      || typ_equal(a0, TBI_NMMREF);
   } else if (typ_equal(target0, TBI_NREF)) {
     ok = typ_isa(a0, TBI_ANY_NULLABLE_REF)
       || typ_isa(a0, TBI_ANY_REF);
