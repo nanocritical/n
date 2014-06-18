@@ -611,9 +611,20 @@ static error validate_genarg_types(struct module *mod, struct node *node) {
   size_t n = 0;
   FOREACH_SUB(ga, genargs) {
     if (ga->which == SETGENARG) {
-      error e = typ_check_isa(mod, ga->as.SETGENARG.for_error,
-                              ga->typ, typ_generic_arg_const(t0, n));
-      EXCEPT(e);
+      // The CONST_CAST is fine as the genargs of t0 are not tentative.
+      struct typ *arg = CONST_CAST(typ_generic_arg_const(t0, n));
+      assert(!typ_is_tentative(arg));
+
+      if (typ_is_tentative(ga->typ) && typ_definition(ga->typ)->which == DEFINCOMPLETE) {
+        if (!typ_isa(ga->typ, arg)) {
+          defincomplete_add_isa(mod, ga->as.SETGENARG.for_error,
+                                typ_definition(ga->typ), arg);
+        }
+      } else {
+        error e = typ_check_isa(mod, ga->as.SETGENARG.for_error,
+                                ga->typ, arg);
+        EXCEPT(e);
+      }
     }
     n += 1;
   }
