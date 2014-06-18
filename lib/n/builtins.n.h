@@ -426,8 +426,8 @@ static inline NB(Int) NB(Double$As_int)(const NB(Double) *self) {
   return (NB(Int)) *self;
 }
 
-#define n$builtins$likely(x) __builtin_expect(!!(x), 1)
-#define n$builtins$unlikely(x) __builtin_expect(!!(x), 0)
+#define n$builtins$Likely(x) __builtin_expect(!!(x), 1)
+#define n$builtins$Unlikely(x) __builtin_expect(!!(x), 0)
 
 static inline NB(U8) *NB(Static_array_at_byte)(NB(U8) *p, NB(Uint) off) {
   return p + off;

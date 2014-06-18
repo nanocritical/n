@@ -1194,36 +1194,46 @@ inline struct Codeloc =
 	where		:Static_string
 	expression	:Static_string
 
-fun Assert cond:Bool ?_Ncodeloc:?@Codeloc
-	if not cond
+inline fun Assert cond:Bool ?_Ncodeloc:?@Codeloc
+	if Likely cond
+		return
+	else
 		if _Ncodeloc !== null
 			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
 		Abort
 
-fun Unreached
+inline fun Unreached
 	Esay "Unreached"
 	Abort
 
-fun Pre__ cond:Bool ?_Ncodeloc:?@Codeloc
-	if not cond
+inline fun Pre__ cond:Bool ?_Ncodeloc:?@Codeloc
+	if Likely cond
+		return
+	else
 		if _Ncodeloc !== null
 			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
 		Abort
 
-fun Post__ cond:Bool ?_Ncodeloc:?@Codeloc
-	if not cond
+inline fun Post__ cond:Bool ?_Ncodeloc:?@Codeloc
+	if Likely cond
+		return
+	else
 		if _Ncodeloc !== null
 			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
 		Abort
 
-fun Invariant__ cond:Bool ?_Ncodeloc:?@Codeloc
-	if not cond
+inline fun Invariant__ cond:Bool ?_Ncodeloc:?@Codeloc
+	if Likely cond
+		return
+	else
 		if _Ncodeloc !== null
 			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
 		Abort
 
-fun Example__ cond:Bool ?_Ncodeloc:?@Codeloc
-	if not cond
+inline fun Example__ cond:Bool ?_Ncodeloc:?@Codeloc
+	if Likely cond
+		return
+	else
 		if _Ncodeloc !== null
 			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
 		Abort
