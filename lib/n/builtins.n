@@ -491,8 +491,8 @@ intf `Integer =
 	isa `Numeric `Bitwise `Has_compare
 	alias this_signed = `Signed_integer
 	alias this_unsigned = `Unsigned_integer
-	met Reinterpret_signed = final.this_signed
-	met Reinterpret_unsigned = final.this_unsigned
+	met As_signed = final.this_signed
+	met As_unsigned = final.this_unsigned
 
 intf `Signed_integer =
 	isa `Integer
@@ -595,8 +595,8 @@ extern I8 met! Operator_assign_bwxor other:@this
 extern I8 met! Operator_assign_bwand other:@this
 extern I8 met! Operator_assign_lshift by:U32
 extern I8 met! Operator_assign_rshift by:U32
-extern inline I8 met Reinterpret_unsigned = U8
-extern inline I8 met Reinterpret_signed = this
+extern inline I8 met As_unsigned = U8
+extern inline I8 met As_signed = this
 extern inline I8 met To_i16 = I16
 extern inline I8 met To_i32 = I32
 extern inline I8 met To_i64 = I64
@@ -635,8 +635,8 @@ extern I16 met! Operator_assign_bwxor other:@this
 extern I16 met! Operator_assign_bwand other:@this
 extern I16 met! Operator_assign_lshift by:U32
 extern I16 met! Operator_assign_rshift by:U32
-extern inline I16 met Reinterpret_unsigned = U16
-extern inline I16 met Reinterpret_signed = this
+extern inline I16 met As_unsigned = U16
+extern inline I16 met As_signed = this
 extern inline I16 met Trim_i8 = I8
 extern inline I16 met To_i32 = I32
 extern inline I16 met To_i64 = I64
@@ -675,8 +675,8 @@ extern I32 met! Operator_assign_bwxor other:@this
 extern I32 met! Operator_assign_bwand other:@this
 extern I32 met! Operator_assign_lshift by:U32
 extern I32 met! Operator_assign_rshift by:U32
-extern inline I32 met Reinterpret_unsigned = U32
-extern inline I32 met Reinterpret_signed = this
+extern inline I32 met As_unsigned = U32
+extern inline I32 met As_signed = this
 extern inline I32 met Trim_i8 = I8
 extern inline I32 met Trim_i16 = I16
 extern inline I32 met To_i64 = I64
@@ -717,8 +717,8 @@ extern I64 met! Operator_assign_bwxor other:@this
 extern I64 met! Operator_assign_bwand other:@this
 extern I64 met! Operator_assign_lshift by:U32
 extern I64 met! Operator_assign_rshift by:U32
-extern inline I64 met Reinterpret_unsigned = U64
-extern inline I64 met Reinterpret_signed = this
+extern inline I64 met As_unsigned = U64
+extern inline I64 met As_signed = this
 extern inline I64 met Trim_i8 = I8
 extern inline I64 met Trim_i16 = I16
 extern inline I64 met Trim_i32 = I32
@@ -759,8 +759,8 @@ extern U8 met! Operator_assign_bwxor other:@this
 extern U8 met! Operator_assign_bwand other:@this
 extern U8 met! Operator_assign_lshift by:U32
 extern U8 met! Operator_assign_rshift by:U32
-extern inline U8 met Reinterpret_unsigned = this
-extern inline U8 met Reinterpret_signed = I8
+extern inline U8 met As_unsigned = this
+extern inline U8 met As_signed = I8
 extern inline U8 met To_u16 = U16
 extern inline U8 met To_u32 = U32
 extern inline U8 met To_u64 = U64
@@ -801,8 +801,8 @@ extern U16 met! Operator_assign_bwxor other:@this
 extern U16 met! Operator_assign_bwand other:@this
 extern U16 met! Operator_assign_lshift by:U32
 extern U16 met! Operator_assign_rshift by:U32
-extern inline U16 met Reinterpret_unsigned = this
-extern inline U16 met Reinterpret_signed = I16
+extern inline U16 met As_unsigned = this
+extern inline U16 met As_signed = I16
 extern inline U16 met Trim_u8 = U8
 extern inline U16 met To_u32 = U32
 extern inline U16 met To_u64 = U64
@@ -843,8 +843,8 @@ extern U32 met! Operator_assign_bwxor other:@this
 extern U32 met! Operator_assign_bwand other:@this
 extern U32 met! Operator_assign_lshift by:U32
 extern U32 met! Operator_assign_rshift by:U32
-extern inline U32 met Reinterpret_unsigned = this
-extern inline U32 met Reinterpret_signed = I32
+extern inline U32 met As_unsigned = this
+extern inline U32 met As_signed = I32
 extern inline U32 met Trim_u8 = U8
 extern inline U32 met Trim_u16 = U16
 extern inline U32 met To_u64 = U64
@@ -885,8 +885,8 @@ extern U64 met! Operator_assign_bwxor other:@this
 extern U64 met! Operator_assign_bwand other:@this
 extern U64 met! Operator_assign_lshift by:U32
 extern U64 met! Operator_assign_rshift by:U32
-extern inline U64 met Reinterpret_unsigned = this
-extern inline U64 met Reinterpret_signed = I64
+extern inline U64 met As_unsigned = this
+extern inline U64 met As_signed = I64
 extern inline U64 met Trim_u8 = U8
 extern inline U64 met Trim_u16 = U16
 extern inline U64 met Trim_u32 = U32
@@ -927,8 +927,8 @@ extern Ssize met! Operator_assign_bwxor other:@this
 extern Ssize met! Operator_assign_bwand other:@this
 extern Ssize met! Operator_assign_lshift by:U32
 extern Ssize met! Operator_assign_rshift by:U32
-extern inline Ssize met Reinterpret_unsigned = Size
-extern inline Ssize met Reinterpret_signed = this
+extern inline Ssize met As_unsigned = Size
+extern inline Ssize met As_signed = this
 extern inline Ssize met Trim_i8 = I8
 extern inline Ssize met Trim_i16 = I16
 extern inline Ssize met Trim_i32 = I32
@@ -971,8 +971,8 @@ extern Size met! Operator_assign_bwxor other:@this
 extern Size met! Operator_assign_bwand other:@this
 extern Size met! Operator_assign_lshift by:U32
 extern Size met! Operator_assign_rshift by:U32
-extern inline Size met Reinterpret_unsigned = this
-extern inline Size met Reinterpret_signed = Ssize
+extern inline Size met As_unsigned = this
+extern inline Size met As_signed = Ssize
 extern inline Size met Trim_u8 = U8
 extern inline Size met Trim_u16 = U16
 extern inline Size met Trim_u32 = U32

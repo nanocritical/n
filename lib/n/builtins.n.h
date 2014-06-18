@@ -48,11 +48,11 @@ static inline NB(Void) NB(Slice_memcpy)(NB(U8) *dst, const NB(U8) *src, NB(Size)
   *where = where->vptr->parent(where->obj); \
 } while (0)
 
-static inline NB(U8) NB(I8$Reinterpret_unsigned)(const NB(I8) *self) {
+static inline NB(U8) NB(I8$As_unsigned)(const NB(I8) *self) {
   return (NB(U8)) *self;
 }
 
-static inline NB(I8) NB(I8$Reinterpret_signed)(const NB(I8) *self) {
+static inline NB(I8) NB(I8$As_signed)(const NB(I8) *self) {
   return *self;
 }
 
@@ -81,11 +81,11 @@ static inline NB(Double) NB(I8$To_double)(const NB(I8) *self) {
 }
 
 
-static inline NB(U16) NB(I16$Reinterpret_unsigned)(const NB(I16) *self) {
+static inline NB(U16) NB(I16$As_unsigned)(const NB(I16) *self) {
   return (NB(U16)) *self;
 }
 
-static inline NB(I16) NB(I16$Reinterpret_signed)(const NB(I16) *self) {
+static inline NB(I16) NB(I16$As_signed)(const NB(I16) *self) {
   return *self;
 }
 
@@ -114,11 +114,11 @@ static inline NB(Double) NB(I16$To_double)(const NB(I16) *self) {
 }
 
 
-static inline NB(U32) NB(I32$Reinterpret_unsigned)(const NB(I32) *self) {
+static inline NB(U32) NB(I32$As_unsigned)(const NB(I32) *self) {
   return (NB(U32)) *self;
 }
 
-static inline NB(I32) NB(I32$Reinterpret_signed)(const NB(I32) *self) {
+static inline NB(I32) NB(I32$As_signed)(const NB(I32) *self) {
   return *self;
 }
 
@@ -147,11 +147,11 @@ static inline NB(Double) NB(I32$To_double)(const NB(I32) *self) {
 }
 
 
-static inline NB(U64) NB(I64$Reinterpret_unsigned)(const NB(I64) *self) {
+static inline NB(U64) NB(I64$As_unsigned)(const NB(I64) *self) {
   return (NB(U64)) *self;
 }
 
-static inline NB(I64) NB(I64$Reinterpret_signed)(const NB(I64) *self) {
+static inline NB(I64) NB(I64$As_signed)(const NB(I64) *self) {
   return *self;
 }
 
@@ -180,11 +180,11 @@ static inline NB(Double) NB(I64$Round_double)(const NB(I64) *self) {
 }
 
 
-static inline NB(U8) NB(U8$Reinterpret_unsigned)(const NB(U8) *self) {
+static inline NB(U8) NB(U8$As_unsigned)(const NB(U8) *self) {
   return *self;
 }
 
-static inline NB(I8) NB(U8$Reinterpret_signed)(const NB(U8) *self) {
+static inline NB(I8) NB(U8$As_signed)(const NB(U8) *self) {
   return (NB(I8)) *self;
 }
 
@@ -213,11 +213,11 @@ static inline NB(Double) NB(U8$To_double)(const NB(U8) *self) {
 }
 
 
-static inline NB(U16) NB(U16$Reinterpret_unsigned)(const NB(U16) *self) {
+static inline NB(U16) NB(U16$As_unsigned)(const NB(U16) *self) {
   return *self;
 }
 
-static inline NB(I16) NB(U16$Reinterpret_signed)(const NB(U16) *self) {
+static inline NB(I16) NB(U16$As_signed)(const NB(U16) *self) {
   return (NB(I16)) *self;
 }
 
@@ -246,11 +246,11 @@ static inline NB(Double) NB(U16$To_double)(const NB(U16) *self) {
 }
 
 
-static inline NB(U32) NB(U32$Reinterpret_unsigned)(const NB(U32) *self) {
+static inline NB(U32) NB(U32$As_unsigned)(const NB(U32) *self) {
   return *self;
 }
 
-static inline NB(I32) NB(U32$Reinterpret_signed)(const NB(U32) *self) {
+static inline NB(I32) NB(U32$As_signed)(const NB(U32) *self) {
   return (NB(I32)) *self;
 }
 
@@ -279,11 +279,11 @@ static inline NB(Double) NB(U32$To_double)(const NB(U32) *self) {
 }
 
 
-static inline NB(U64) NB(U64$Reinterpret_unsigned)(const NB(U64) *self) {
+static inline NB(U64) NB(U64$As_unsigned)(const NB(U64) *self) {
   return *self;
 }
 
-static inline NB(I64) NB(U64$Reinterpret_signed)(const NB(U64) *self) {
+static inline NB(I64) NB(U64$As_signed)(const NB(U64) *self) {
   return (NB(I64)) *self;
 }
 
@@ -312,11 +312,11 @@ static inline NB(Double) NB(U64$Round_double)(const NB(U64) *self) {
 }
 
 
-static inline NB(Ssize) NB(Ssize$Reinterpret_signed)(const NB(Ssize) *self) {
+static inline NB(Ssize) NB(Ssize$As_signed)(const NB(Ssize) *self) {
   return *self;
 }
 
-static inline NB(Size) NB(Ssize$Reinterpret_unsigned)(const NB(Ssize) *self) {
+static inline NB(Size) NB(Ssize$As_unsigned)(const NB(Ssize) *self) {
   return (NB(Size)) *self;
 }
 
@@ -344,11 +344,11 @@ static inline NB(Double) NB(Ssize$Round_double)(const NB(Ssize) *self) {
   return (NB(Double)) *self;
 }
 
-static inline NB(Size) NB(Size$Reinterpret_unsigned)(const NB(Size) *self) {
+static inline NB(Size) NB(Size$As_unsigned)(const NB(Size) *self) {
   return *self;
 }
 
-static inline NB(Ssize) NB(Size$Reinterpret_signed)(const NB(Size) *self) {
+static inline NB(Ssize) NB(Size$As_signed)(const NB(Size) *self) {
   return (NB(Ssize)) *self;
 }
 

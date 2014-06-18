@@ -35,7 +35,7 @@ fun Main = I32
 	and z2 = block
 		let tmp = 0:I32
 		such
-			for i in (Range 0 100).Iter -> tmp += i.Trim_u32.Reinterpret_signed
+			for i in (Range 0 100).Iter -> tmp += i.Trim_u32.As_signed
 		tmp
 	Assert <- y2 == 'test'
 	Assert <- z2 == 50*99

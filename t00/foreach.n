@@ -5,4 +5,4 @@ fun Main = I32
 	such
 		foreach i in 0 .. 10
 			j += i
-	return j.Trim_u32.Reinterpret_signed - 45
+	return j.Trim_u32.As_signed - 45
