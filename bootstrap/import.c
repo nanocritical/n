@@ -178,7 +178,8 @@ static struct node *create_import_node_for_ex(struct module *mod,
 
   struct token tok = { 0 };
   tok.t = TIDENT;
-  tok.value = idents_value(mod->gctx, node_ident(ex));
+  tok.value = idents_value(mod->gctx,
+                           ex->which == LET ? node_ident(subs_first(ex)) : node_ident(ex));
   tok.len = strlen(tok.value);
   copy_and_extend_import_path(mod, id, import, &tok);
 
