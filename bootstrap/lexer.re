@@ -400,7 +400,7 @@ normal:
 
   [`a-zA-Z_][a-zA-Z_0-9]* { R(TIDENT); }
 
-  ANY { ERROR(EINVAL, "lexer: illegal char '\\0%hho'", *(YYCURSOR - 1)); }
+  ANY { ERROR(EINVAL, "lexer: illegal char \\0%hho '%c'", *(YYCURSOR - 1), *(YYCURSOR - 1)); }
  */
 
 eol:
