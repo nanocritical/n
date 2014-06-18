@@ -16,8 +16,8 @@ typedef uint8_t n$builtins$U8;
 typedef uint16_t n$builtins$U16;
 typedef uint32_t n$builtins$U32;
 typedef uint64_t n$builtins$U64;
-typedef size_t n$builtins$Size;
-typedef ssize_t n$builtins$Ssize;
+typedef size_t n$builtins$Uint;
+typedef ssize_t n$builtins$Int;
 typedef float n$builtins$Float;
 typedef double n$builtins$Double;
 

@@ -5,17 +5,17 @@ from n.sysheap import Sysheap Heap
 opaque struct Vector t:`Copyable =
 	isa `Trivial_ctor (`Array_ctor t) `Copyable (`Random_container t)
 	p	:[]!t
-	c	:Size
+	c	:Uint
 
 inline Vector fun From_array c:@(Static_array t) = r:this
 	r#Reserve c.Count
 	foreach i in c.All
 		r#Push c.[i].
 
-inline Vector met Count = Size
+inline Vector met Count = Uint
 	return self.c
 
-inline Vector shallow met$ Operator_at n:Size = @$t
+inline Vector shallow met$ Operator_at n:Uint = @$t
 	Assert <- n < self.c
 	return self$p$[n]
 
@@ -28,14 +28,14 @@ inline Vector met$ Last = @$t
 inline Vector met Is_empty = Bool
 	return self.c == 0
 
-inline Vector met Capacity = Size
+inline Vector met Capacity = Uint
 	return self.p.Count
 
-inline Vector met# Reserve n:Size
+inline Vector met# Reserve n:Uint
 	if n > self.Capacity
 		(Heap.Slice_realloc t) @!Sysheap @#self#p n
 
-inline Vector met# Resize n:Size
+inline Vector met# Resize n:Uint
 	(Heap.Slice_realloc t) @!Sysheap @#self#p n
 	self!c = n
 

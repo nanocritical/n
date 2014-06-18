@@ -1358,7 +1358,7 @@ static bool print_call_vararg_proto(FILE *out, const struct node *dfun, size_t n
     return false;
   }
 
-  fprintf(out, "n$builtins$Size _$Nvarargcount, ...");
+  fprintf(out, "n$builtins$Uint _$Nvarargcount, ...");
   return true;
 }
 

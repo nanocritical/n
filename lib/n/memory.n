@@ -3,13 +3,13 @@ from n.containers import *
 from n.sysheap import Sysheap Heap
 import n.unsafe
 
---extern struct Array_impl t:`Any N:Size =
+--extern struct Array_impl t:`Any N:Uint =
 --  export isa `Trivial_ctor `Trivial_dtor `Trivial_copy_but_owned
 --
---export Array_impl fun Count = Size
+--export Array_impl fun Count = Uint
 --  return N
 --
---export Array_impl fun Bytecount = Size
+--export Array_impl fun Bytecount = Uint
 --  return N * (sizeof t)
 --
 --export Array_impl fun All = Index_range
@@ -21,7 +21,7 @@ import n.unsafe
 --export Array_impl met$ Unsafe_data = @$t
 --  return (unsafe.Cast @$this @$t) self
 --
---export Array_impl met$ Operator_at n:Size = @$t
+--export Array_impl met$ Operator_at n:Uint = @$t
 --  Assert <- n < N
 --  return (unsafe.Cast @$U8 @$t) (Slice_at_byte self$Unsafe_rawdata n)
 --

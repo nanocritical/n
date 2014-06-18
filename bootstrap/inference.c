@@ -2238,10 +2238,10 @@ error step_type_inference(struct module *mod, struct node *node,
     set_typ(&node->typ, create_tentative(mod, node, TBI_STATIC_STRING));
     break;
   case SIZEOF:
-    set_typ(&node->typ, TBI_SIZE);
+    set_typ(&node->typ, TBI_UINT);
     break;
   case ALIGNOF:
-    set_typ(&node->typ, TBI_SIZE);
+    set_typ(&node->typ, TBI_UINT);
     break;
   case BIN:
     e = type_inference_bin(mod, node);

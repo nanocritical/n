@@ -5,7 +5,7 @@ from n.chars export *
 
 from n.strings import *
 
-fun write_buf fd:I32 s:@U8 Count:Size
+fun write_buf fd:I32 s:@U8 Count:Uint
 
 fun Vpr v:@!(Vararg @`Show) ?err:?@Bool ?sep:?@String
 	let separator = Optional_ref sep ' '

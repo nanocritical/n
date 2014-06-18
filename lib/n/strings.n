@@ -10,13 +10,13 @@ opaque struct String =
 String fun From_static_string literal:Static_string = s:this
 	s.bytes#Append_slice literal.Bytes_utf8
 
-String met Count = Size
+String met Count = Uint
 	return self.bytes.Count
 
 String met All = Index_range
 	return self.bytes.All
 
-String met Get_char n:Size = Char
+String met Get_char n:Uint = Char
 	return Char.From_ascii self.bytes.[n].
 
 String met substring r:Index_range = @`Const_string
@@ -30,7 +30,7 @@ String met substring r:Index_range = @`Const_string
 String met Bytes_utf8 = []U8
 	return self.bytes.Storage.[self.bytes.All]
 
-String met! Set_char n:Size c:Char
+String met! Set_char n:Uint c:Char
 	self.bytes![n]! = c.Code.Trim_u8
 
 String met! Fill c:Char r:Index_range
@@ -41,7 +41,7 @@ String met! Fill c:Char r:Index_range
 			let p = sb![i]
 			p! = with
 
-String met# Reserve Count:Size
+String met# Reserve Count:Uint
 	self.bytes#Reserve Count
 
 String met# Clear
@@ -58,7 +58,7 @@ String met# Append other:@`Const_string
 	foreach i in other.All
 		self#Push (other.Get_char i)
 
-String met# Copy at:Size other:@`Const_string off:Size Count:Size
+String met# Copy at:Uint other:@`Const_string off:Uint Count:Uint
 	self#Reserve at+Count
 	foreach i in 0 .. Count
 		let left = at + i

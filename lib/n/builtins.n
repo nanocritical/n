@@ -148,11 +148,11 @@ intf `Any_any_slice =
 
 intf `Any_slice t:`Any =
 	isa `Any_any_slice (`Random_container t)
-	met Bytecount = Size
+	met Bytecount = Uint
 	met All = Index_range
 	shallow met$ Unsafe_rawdata = @$U8
 	shallow met$ Unsafe_data = @$t
-	shallow met$ Operator_at n:Size = @$t
+	shallow met$ Operator_at n:Uint = @$t
 	shallow met$ Operator_sub r:Index_range = []$t
 
 intf `Any_mutable_slice t:`Any =
@@ -169,17 +169,17 @@ intf `Any_mutable_slice t:`Any =
 opaque struct Slice t:`Any =
 	isa (`Any_slice t)
 	dat	:?@#t
-	cnt	:Size
+	cnt	:Uint
 
 inline Slice fun create_impl_instance = (Slice_impl t)
 	return {}
-inline Slice met# Unsafe_wrap p:@U8 c:Size
+inline Slice met# Unsafe_wrap p:@U8 c:Uint
 	let s = this.create_impl_instance
 	s#Unsafe_wrap p c
-inline Slice met Count = Size
+inline Slice met Count = Uint
 	let s = this.create_impl_instance
 	return s.Count
-inline Slice met Bytecount = Size
+inline Slice met Bytecount = Uint
 	let s = this.create_impl_instance
 	return s.Bytecount
 inline Slice met All = Index_range
@@ -191,7 +191,7 @@ inline Slice shallow met$ Unsafe_rawdata = @U8
 inline Slice shallow met$ Unsafe_data = @t
 	let s = this.create_impl_instance
 	return s.Unsafe_data
-inline Slice shallow met$ Operator_at n:Size = @t
+inline Slice shallow met$ Operator_at n:Uint = @t
 	let s = this.create_impl_instance
 	return s.Operator_at n
 inline Slice shallow met$ Operator_sub r:Index_range = []t
@@ -203,17 +203,17 @@ inline Slice shallow met$ Operator_sub r:Index_range = []t
 opaque struct Mutable_slice t:`Any =
 	isa (`Any_mutable_slice t)
 	dat	:?@#t
-	cnt	:Size
+	cnt	:Uint
 
 inline Mutable_slice fun create_impl_instance = (Slice_impl t)
 	return {}
-inline Mutable_slice met# Unsafe_wrap p:@U8 c:Size
+inline Mutable_slice met# Unsafe_wrap p:@U8 c:Uint
 	let s = this.create_impl_instance
 	s#Unsafe_wrap p c
-inline Mutable_slice met Count = Size
+inline Mutable_slice met Count = Uint
 	let s = this.create_impl_instance
 	return s.Count
-inline Mutable_slice met Bytecount = Size
+inline Mutable_slice met Bytecount = Uint
 	let s = this.create_impl_instance
 	return s.Bytecount
 inline Mutable_slice met All = Index_range
@@ -233,7 +233,7 @@ inline Mutable_slice shallow met$ Unsafe_data = @$t
 		let _ = s!Unsafe_data
 		let _ = s#Unsafe_data
 		return s$Unsafe_data
-inline Mutable_slice shallow met$ Operator_at n:Size = @$t
+inline Mutable_slice shallow met$ Operator_at n:Uint = @$t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Operator_at n
@@ -253,22 +253,22 @@ inline Mutable_slice shallow met$ Operator_sub r:Index_range = []$t
 		return {}
 
 
-extern inline fun Slice_at_byte dp:@#U8 off:Size = @#U8
-extern inline fun Slice_memcpy dst:@#U8 src:@U8 Count:Size
+extern inline fun Slice_at_byte dp:@#U8 off:Uint = @#U8
+extern inline fun Slice_memcpy dst:@#U8 src:@U8 Count:Uint
 
 opaque struct Slice_impl t:`Any =
 	isa (`Any_mutable_slice t)
 	dat	:?@#t
-	cnt	:Size
+	cnt	:Uint
 
-inline Slice_impl met# Unsafe_wrap p:@U8 c:Size
+inline Slice_impl met# Unsafe_wrap p:@U8 c:Uint
 	self#dat = (Cast @U8 @#t) p
 	self#cnt = c
 
-inline Slice_impl met Count = Size
+inline Slice_impl met Count = Uint
 	return self.cnt
 
-inline Slice_impl met Bytecount = Size
+inline Slice_impl met Bytecount = Uint
 	return (sizeof t) * self.cnt
 
 inline Slice_impl met All = Index_range
@@ -280,7 +280,7 @@ inline Slice_impl shallow met$ Unsafe_rawdata = @$U8
 inline Slice_impl shallow met$ Unsafe_data = @$t
 	return (Nonnull_cast t ?@$t @$t) self$dat
 
-inline Slice_impl shallow met$ Operator_at n:Size = @$t
+inline Slice_impl shallow met$ Operator_at n:Uint = @$t
 	Assert <- n < self.Count
 	let raw = (Cast ?@t @#U8) self.dat
 	and off = n * (sizeof t)
@@ -600,7 +600,7 @@ extern inline I8 met As_signed = this
 extern inline I8 met To_i16 = I16
 extern inline I8 met To_i32 = I32
 extern inline I8 met To_i64 = I64
-extern inline I8 met As_ssize = Ssize
+extern inline I8 met As_int = Int
 extern I8 met Show buf:@#`String_buffer
 
 extern inline struct I16 =
@@ -640,7 +640,7 @@ extern inline I16 met As_signed = this
 extern inline I16 met Trim_i8 = I8
 extern inline I16 met To_i32 = I32
 extern inline I16 met To_i64 = I64
-extern inline I16 met As_ssize = Ssize
+extern inline I16 met As_int = Int
 extern I16 met Show buf:@#`String_buffer
 
 extern inline struct I32 =
@@ -680,7 +680,7 @@ extern inline I32 met As_signed = this
 extern inline I32 met Trim_i8 = I8
 extern inline I32 met Trim_i16 = I16
 extern inline I32 met To_i64 = I64
-extern inline I32 met As_ssize = Ssize
+extern inline I32 met As_int = Int
 extern inline I32 met Round_float = Float
 extern inline I32 met To_double = Double
 extern I32 met Show buf:@#`String_buffer
@@ -722,7 +722,7 @@ extern inline I64 met As_signed = this
 extern inline I64 met Trim_i8 = I8
 extern inline I64 met Trim_i16 = I16
 extern inline I64 met Trim_i32 = I32
-extern inline I64 met As_ssize = Ssize
+extern inline I64 met As_int = Int
 extern inline I64 met Round_float = Float
 extern inline I64 met Round_double = Double
 extern I64 met Show buf:@#`String_buffer
@@ -764,7 +764,7 @@ extern inline U8 met As_signed = I8
 extern inline U8 met To_u16 = U16
 extern inline U8 met To_u32 = U32
 extern inline U8 met To_u64 = U64
-extern inline U8 met As_size = Size
+extern inline U8 met As_uint = Uint
 extern inline U8 met To_float = Float
 extern inline U8 met To_double = Double
 extern U8 met Show buf:@#`String_buffer
@@ -806,7 +806,7 @@ extern inline U16 met As_signed = I16
 extern inline U16 met Trim_u8 = U8
 extern inline U16 met To_u32 = U32
 extern inline U16 met To_u64 = U64
-extern inline U16 met As_size = Size
+extern inline U16 met As_uint = Uint
 extern inline U16 met To_float = Float
 extern inline U16 met To_double = Double
 extern U16 met Show buf:@#`String_buffer
@@ -848,7 +848,7 @@ extern inline U32 met As_signed = I32
 extern inline U32 met Trim_u8 = U8
 extern inline U32 met Trim_u16 = U16
 extern inline U32 met To_u64 = U64
-extern inline U32 met As_size = Size
+extern inline U32 met As_uint = Uint
 extern inline U32 met Round_float = Float
 extern inline U32 met To_double = Double
 extern U32 met Show buf:@#`String_buffer
@@ -890,96 +890,96 @@ extern inline U64 met As_signed = I64
 extern inline U64 met Trim_u8 = U8
 extern inline U64 met Trim_u16 = U16
 extern inline U64 met Trim_u32 = U32
-extern inline U64 met As_size = Size
+extern inline U64 met As_uint = Uint
 extern inline U64 met Round_float = Float
 extern inline U64 met Round_double = Double
 extern U64 met Show buf:@#`String_buffer
 
-extern inline struct Ssize =
+extern inline struct Int =
 	isa `Native_signed_integer
 	alias this_signed = this
-	alias this_unsigned = Size
-extern Ssize met Operator_eq other:@this = Bool
-extern Ssize met Operator_ne other:@this = Bool
-extern Ssize met Operator_le other:@this = Bool
-extern Ssize met Operator_lt other:@this = Bool
-extern Ssize met Operator_gt other:@this = Bool
-extern Ssize met Operator_ge other:@this = Bool
-extern Ssize met Operator_plus other:@this = this
-extern Ssize met Operator_minus other:@this = this
-extern Ssize met Operator_divide other:@this = this
-extern Ssize met Operator_modulo other:@this = this
-extern Ssize met Operator_times other:@this = this
-extern Ssize met Operator_uminus = this
-extern Ssize met! Operator_assign_plus other:@this
-extern Ssize met! Operator_assign_minus other:@this
-extern Ssize met! Operator_assign_divide other:@this
-extern Ssize met! Operator_assign_modulo other:@this
-extern Ssize met! Operator_assign_times other:@this
-extern Ssize met Operator_bwor other:@this = this
-extern Ssize met Operator_bwxor other:@this = this
-extern Ssize met Operator_bwand other:@this = this
-extern Ssize met Operator_lshift by:U32 = this
-extern Ssize met Operator_rshift by:U32 = this
-extern Ssize met Operator_bwnot = this
-extern Ssize met! Operator_assign_bwor other:@this
-extern Ssize met! Operator_assign_bwxor other:@this
-extern Ssize met! Operator_assign_bwand other:@this
-extern Ssize met! Operator_assign_lshift by:U32
-extern Ssize met! Operator_assign_rshift by:U32
-extern inline Ssize met As_unsigned = Size
-extern inline Ssize met As_signed = this
-extern inline Ssize met Trim_i8 = I8
-extern inline Ssize met Trim_i16 = I16
-extern inline Ssize met Trim_i32 = I32
-extern inline Ssize met Trim_i64 = I64
-extern inline Ssize met Round_float = Float
-extern inline Ssize met Round_double = Double
-extern Ssize met Show buf:@#`String_buffer
+	alias this_unsigned = Uint
+extern Int met Operator_eq other:@this = Bool
+extern Int met Operator_ne other:@this = Bool
+extern Int met Operator_le other:@this = Bool
+extern Int met Operator_lt other:@this = Bool
+extern Int met Operator_gt other:@this = Bool
+extern Int met Operator_ge other:@this = Bool
+extern Int met Operator_plus other:@this = this
+extern Int met Operator_minus other:@this = this
+extern Int met Operator_divide other:@this = this
+extern Int met Operator_modulo other:@this = this
+extern Int met Operator_times other:@this = this
+extern Int met Operator_uminus = this
+extern Int met! Operator_assign_plus other:@this
+extern Int met! Operator_assign_minus other:@this
+extern Int met! Operator_assign_divide other:@this
+extern Int met! Operator_assign_modulo other:@this
+extern Int met! Operator_assign_times other:@this
+extern Int met Operator_bwor other:@this = this
+extern Int met Operator_bwxor other:@this = this
+extern Int met Operator_bwand other:@this = this
+extern Int met Operator_lshift by:U32 = this
+extern Int met Operator_rshift by:U32 = this
+extern Int met Operator_bwnot = this
+extern Int met! Operator_assign_bwor other:@this
+extern Int met! Operator_assign_bwxor other:@this
+extern Int met! Operator_assign_bwand other:@this
+extern Int met! Operator_assign_lshift by:U32
+extern Int met! Operator_assign_rshift by:U32
+extern inline Int met As_unsigned = Uint
+extern inline Int met As_signed = this
+extern inline Int met Trim_i8 = I8
+extern inline Int met Trim_i16 = I16
+extern inline Int met Trim_i32 = I32
+extern inline Int met Trim_i64 = I64
+extern inline Int met Round_float = Float
+extern inline Int met Round_double = Double
+extern Int met Show buf:@#`String_buffer
 
--- FIXME: Size and Ssize do not have a well-defined bit Size, they therefore
+-- FIXME: Uint and Int do not have a well-defined bit Uint, they therefore
 -- should not be `Bitwise.
-extern inline struct Size =
+extern inline struct Uint =
 	isa `Native_unsigned_integer
 	alias this_unsigned = this
-	alias this_signed = Ssize
-extern Size met Operator_eq other:@this = Bool
-extern Size met Operator_ne other:@this = Bool
-extern Size met Operator_le other:@this = Bool
-extern Size met Operator_lt other:@this = Bool
-extern Size met Operator_gt other:@this = Bool
-extern Size met Operator_ge other:@this = Bool
-extern Size met Operator_plus other:@this = this
-extern Size met Operator_minus other:@this = this
-extern Size met Operator_divide other:@this = this
-extern Size met Operator_modulo other:@this = this
-extern Size met Operator_times other:@this = this
-extern Size met Operator_uminus = this
-extern Size met! Operator_assign_plus other:@this
-extern Size met! Operator_assign_minus other:@this
-extern Size met! Operator_assign_divide other:@this
-extern Size met! Operator_assign_modulo other:@this
-extern Size met! Operator_assign_times other:@this
-extern Size met Operator_bwor other:@this = this
-extern Size met Operator_bwxor other:@this = this
-extern Size met Operator_bwand other:@this = this
-extern Size met Operator_lshift by:U32 = this
-extern Size met Operator_rshift by:U32 = this
-extern Size met Operator_bwnot = this
-extern Size met! Operator_assign_bwor other:@this
-extern Size met! Operator_assign_bwxor other:@this
-extern Size met! Operator_assign_bwand other:@this
-extern Size met! Operator_assign_lshift by:U32
-extern Size met! Operator_assign_rshift by:U32
-extern inline Size met As_unsigned = this
-extern inline Size met As_signed = Ssize
-extern inline Size met Trim_u8 = U8
-extern inline Size met Trim_u16 = U16
-extern inline Size met Trim_u32 = U32
-extern inline Size met Trim_u64 = U64
-extern inline Size met Round_float = Float
-extern inline Size met Round_double = Double
-extern Size met Show buf:@#`String_buffer
+	alias this_signed = Int
+extern Uint met Operator_eq other:@this = Bool
+extern Uint met Operator_ne other:@this = Bool
+extern Uint met Operator_le other:@this = Bool
+extern Uint met Operator_lt other:@this = Bool
+extern Uint met Operator_gt other:@this = Bool
+extern Uint met Operator_ge other:@this = Bool
+extern Uint met Operator_plus other:@this = this
+extern Uint met Operator_minus other:@this = this
+extern Uint met Operator_divide other:@this = this
+extern Uint met Operator_modulo other:@this = this
+extern Uint met Operator_times other:@this = this
+extern Uint met Operator_uminus = this
+extern Uint met! Operator_assign_plus other:@this
+extern Uint met! Operator_assign_minus other:@this
+extern Uint met! Operator_assign_divide other:@this
+extern Uint met! Operator_assign_modulo other:@this
+extern Uint met! Operator_assign_times other:@this
+extern Uint met Operator_bwor other:@this = this
+extern Uint met Operator_bwxor other:@this = this
+extern Uint met Operator_bwand other:@this = this
+extern Uint met Operator_lshift by:U32 = this
+extern Uint met Operator_rshift by:U32 = this
+extern Uint met Operator_bwnot = this
+extern Uint met! Operator_assign_bwor other:@this
+extern Uint met! Operator_assign_bwxor other:@this
+extern Uint met! Operator_assign_bwand other:@this
+extern Uint met! Operator_assign_lshift by:U32
+extern Uint met! Operator_assign_rshift by:U32
+extern inline Uint met As_unsigned = this
+extern inline Uint met As_signed = Int
+extern inline Uint met Trim_u8 = U8
+extern inline Uint met Trim_u16 = U16
+extern inline Uint met Trim_u32 = U32
+extern inline Uint met Trim_u64 = U64
+extern inline Uint met Round_float = Float
+extern inline Uint met Round_double = Double
+extern Uint met Show buf:@#`String_buffer
 
 extern inline struct Float =
 	isa `Native_floating
@@ -1006,7 +1006,7 @@ extern inline Float met Trim_i16 = I16
 extern inline Float met To_i32 = I32
 extern inline Float met To_i64 = I64
 extern inline Float met To_double = Double
-extern inline Float met As_ssize = Ssize
+extern inline Float met As_int = Int
 extern Float met Show buf:@#`String_buffer
 
 extern inline struct Double =
@@ -1034,7 +1034,7 @@ extern inline Double met Trim_i16 = I16
 extern inline Double met Trim_i32 = I32
 extern inline Double met To_i64 = I64
 extern inline Double met Round_float = Float
-extern inline Double met As_ssize = Ssize
+extern inline Double met As_int = Int
 extern Double met Show buf:@#`String_buffer
 
 intf `Trivial_array_ctor t:`Copyable =
@@ -1043,17 +1043,17 @@ intf `Trivial_array_ctor t:`Copyable =
 intf `Array_ctor t:`Copyable =
 	fun From_array c:@(Static_array t) = final
 
-extern inline fun Static_array_at_byte dp:@!U8 off:Size = @!U8
+extern inline fun Static_array_at_byte dp:@!U8 off:Uint = @!U8
 
 opaque struct Static_array t:`Copyable =
 	isa (`Trivial_array_ctor t) `Trivial_copy `Return_by_copy
 	d	:?@!t
-	c	:Size
+	c	:Uint
 
-inline Static_array met Count = Size
+inline Static_array met Count = Uint
 	return self.c
 
-inline Static_array met Bytecount = Size
+inline Static_array met Bytecount = Uint
 	return self.c * (sizeof t)
 
 inline Static_array met All = Index_range
@@ -1067,7 +1067,7 @@ inline Static_array met$ Unsafe_data = @$t
 	Assert <- self.c != 0
 	return (Cast ?@$t @$t) self$d
 
-inline Static_array shallow met$ Operator_at n:Size = @$t
+inline Static_array shallow met$ Operator_at n:Uint = @$t
 	Assert <- n < self.c
 	let off = n * (sizeof t)
 	let p = Static_array_at_byte ((Cast @$this @!this) self)!Unsafe_rawdata off
@@ -1140,14 +1140,14 @@ opaque struct Vararg r:`Any_any_ref =
 	isa (`no_dyn_iterator r)
 	isa `Trivial_copy -- FIXME: remove `Trivial_copy, needed by bootstrap
 	ap	:Valist
-	n	:Size
+	n	:Uint
 
 inline Vararg met Has_next = Bool
 	return self.n > 0
 
 extern Vararg met! Next = r
 
-inline Vararg met Count_left = Size
+inline Vararg met Count_left = Uint
 	return self.n
 
 

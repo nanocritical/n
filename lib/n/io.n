@@ -220,7 +220,7 @@ extern fun stat_mode st:@stat = Uint
 extern fun stat_nlink st:@stat = Uint
 extern fun stat_uid st:@stat = Uint
 extern fun stat_gid st:@stat = Uint
-extern fun stat_size st:@stat = Uint
+extern fun stat_uint st:@stat = Uint
 extern fun fstatat dirfd:Int path:Cstring buf:@!sysstat flags:Int = Int
 extern fun readlinkat dirfd:Int path:Cstring buf:@!Cstring = Int
 extern struct dir =
@@ -281,7 +281,7 @@ Stat met Uid = Uint
 Stat met Gid = Uint
 				return stat_gid self.st
 Stat met Bytecount = Uint
-				return stat_size self.st
+				return stat_uint self.st
 Stat met Access_time = Time
 				return timespec_time <- stat_atime self.st
 Stat met Mod_time = Time

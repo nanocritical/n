@@ -4,7 +4,7 @@
 
 #define NB(x) n$builtins$##x
 
-static void n$write_buf(NB(I32) fd, const NB(U8) *s, NB(Size) count) {
+static void n$write_buf(NB(I32) fd, const NB(U8) *s, NB(Uint) count) {
   write(fd, s, count);
 }
 

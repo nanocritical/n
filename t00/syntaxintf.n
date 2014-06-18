@@ -3,7 +3,7 @@ from n import *
 intf `Example =
 	(met! t:`Any) alloc = @#t
 	(met! t:`Any) Free p:?@#t
-	(met! t:`Any) slice_realloc s:@#[]!t count:Size
+	(met! t:`Any) slice_realloc s:@#[]!t count:Uint
 	(met! t:`Any) slice_free s:@#[]!t
 
 fun Main = I32

@@ -5,7 +5,7 @@ alias `fwd_locus = {`Has_equality `Copyable_but_owned `Ordered}
 alias `bidir_locus = {`Has_equality `Copyable_but_owned `Ordered}
 
 intf `Random_container t:`Any =
-	met Count = Size
+	met Count = Uint
 
 intf `Iterator t:`Copyable =
 	met Has_next = Bool
@@ -14,8 +14,8 @@ intf `Iterator t:`Copyable =
 inline struct Index_bounds =
 	f	:Bool
 	l	:Bool
-	b	:Size
-	e	:Size
+	b	:Uint
+	e	:Uint
 
 inline Index_bounds (met t:`Any c:(`Random_container t)) Range_of v:@c = Index_range
 	if self.f and self.l
@@ -29,19 +29,19 @@ inline Index_bounds (met t:`Any c:(`Random_container t)) Range_of v:@c = Index_r
 
 inline struct Index_range =
 	isa `Trivial_copy `Trivial_equality `Trivial_ctor `Return_by_copy
-	b	:Size
-	e	:Size
+	b	:Uint
+	e	:Uint
 
-Index_range met Begin = Size
+Index_range met Begin = Uint
 	return self.b
 
-Index_range met End = Size
+Index_range met End = Uint
 	return self.e
 
-Index_range met Count = Size
+Index_range met Count = Uint
 	return self.e - self.b
 
-Index_range met sub begin:Size end:Size = this
+Index_range met sub begin:Uint end:Uint = this
 	let r:this
 	such
 		if begin < self.Begin or end > self.End
@@ -49,7 +49,7 @@ Index_range met sub begin:Size end:Size = this
 		r = {b=begin e=end}
 	return r
 
-Index_range met with_offset offset:Size = this
+Index_range met with_offset offset:Uint = this
 	let r = {b=self.Begin+offset e=self.End+offset}
 	return r
 
@@ -58,17 +58,17 @@ Index_range met Iter = Index_iterator
 
 
 opaque struct Index_iterator =
-	isa (`Iterator Size) `Trivial_copy `Trivial_ctor
+	isa (`Iterator Uint) `Trivial_copy `Trivial_ctor
 	r	:Index_range
-	p	:Size
+	p	:Uint
 
 Index_iterator met Has_next = Bool
 	return self.p < self.r.End
 
-Index_iterator met! Next = Size
+Index_iterator met! Next = Uint
 	let r = self.p
 	self!p += 1
 	return r
 
-fun Range beg:Size end:Size = Index_range
+fun Range beg:Uint end:Uint = Index_range
 	return {b=beg e=end}

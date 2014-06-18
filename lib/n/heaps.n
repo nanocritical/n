@@ -6,12 +6,12 @@ intf `Heap_element =
 opaque struct Heap t:`Heap_element =
 	isa `Trivial_ctor `Copyable
 	h	:(Vector t)
-	c	:Size
+	c	:Uint
 
-inline Heap met# Reserve Count:Size
+inline Heap met# Reserve Count:Uint
 	self.h#Reserve Count
 
-inline Heap met Count = Size
+inline Heap met Count = Uint
 	return self.c
 
 inline Heap met# Push x:t

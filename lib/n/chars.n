@@ -25,48 +25,48 @@ intf `Static_string_compatible =
 intf `Const_string =
 	isa `Static_string_compatible
 -- export `Random_container
-	met Count = Size
+	met Count = Uint
 	met All = Index_range
-	met Get_char n:Size = Char
+	met Get_char n:Uint = Char
 	met Bytes_utf8 = []U8
 
 intf `String =
 	isa `Const_string
-	met! Set_char n:Size c:Char
+	met! Set_char n:Uint c:Char
 	met! Fill c:Char r:Index_range
 
 intf `String_buffer =
 	isa `String
-	met# Reserve Count:Size
+	met# Reserve Count:Uint
 	met# Clear
 	met# Push c:Char
 	met# Pop = Char
 	met# Append other:@`Const_string
-	met# Copy at:Size other:@`Const_string off:Size Count:Size
+	met# Copy at:Uint other:@`Const_string off:Uint Count:Uint
 
 opaque struct Static_string =
 	isa `Trivial_copy `Return_by_copy `Ordered_by_compare `Show
 		\ `Static_string_compatible `Const_string `Trivial_ctor
 	bytes	:[]U8
 
-inline Static_string met# Unsafe_wrap bytes:@U8 Count:Size
+inline Static_string met# Unsafe_wrap bytes:@U8 Count:Uint
 	let raw = (n.unsafe.Cast @U8 @#U8) bytes
 	self.bytes#Unsafe_wrap raw Count
 
-inline Static_string fun Mk bytes:@U8 Count:Size = r:this
+inline Static_string fun Mk bytes:@U8 Count:Uint = r:this
 	r#Unsafe_wrap bytes Count
 	return r
 
 inline Static_string fun From_static_string s:Static_string = this
 	return { bytes=s.bytes }
 
-inline Static_string met Count = Size
+inline Static_string met Count = Uint
 	return self.bytes.Count
 
 inline Static_string met All = Index_range
 	return self.bytes.All
 
-inline Static_string met Get_char n:Size = Char
+inline Static_string met Get_char n:Uint = Char
 	return Char.From_ascii self.bytes.[n].
 
 inline Static_string met Bytes_utf8 = []U8
