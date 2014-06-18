@@ -435,4 +435,10 @@ static inline NB(U8) *NB(Static_array_at_byte)(NB(U8) *p, NB(Size) off) {
 
 #endif
 
+#ifdef NLANG_DECLARE_FUNCTIONS
+
+const NB(Void) *NB(Nonnull_void)(void);
+
+#endif
+
 #undef NB

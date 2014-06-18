@@ -115,6 +115,7 @@ intf `Sum_order =
 extern inline struct Void =
 	isa `Prevent_dyn `Return_by_copy `Trivial_copy `Trivial_ctor
 
+extern fun Nonnull_void = @Void
 
 intf `Any_any_ref =
 	isa `Return_by_copy `Trivial_copy_but_owned
@@ -141,7 +142,6 @@ extern struct Nullable_mutable_ref t:`Any =
 	isa (`Any_nullable_mutable_ref t)
 extern struct Nullable_mercurial_ref t:`Any =
 	isa (`Any_nullable_mutable_ref t)
-
 
 intf `Any_any_slice =
 	isa `Trivial_ctor `Trivial_dtor `Return_by_copy `Trivial_copy_but_owned

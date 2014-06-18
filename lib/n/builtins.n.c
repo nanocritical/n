@@ -5,6 +5,11 @@
 
 #define NB(n) n$builtins$##n
 
+const NB(Void) *NB(Nonnull_void)(void) {
+  static NB(U32) dummy;
+  return &dummy;
+}
+
 static void native_write_buffer(_$Ndyn_n$chars$_$Ni_String_buffer buf, const char *s) {
   for (int i = 0; s[i] != '\0'; ++i) {
     n$chars$_$Ni_String_buffer$Push(buf, n$chars$Char$From_ascii((NB(U8)) s[i]));

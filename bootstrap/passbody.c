@@ -5,6 +5,7 @@
 #include "instantiate.h"
 #include "parser.h"
 #include "phi.h"
+#include "ssa.h"
 #include "inference.h"
 #include "constraints.h"
 #include "topdeps.h"
@@ -801,6 +802,7 @@ static error passbody1(struct module *mod, struct node *root,
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_check_no_literals_left);
     ,
+    UP_STEP(step_insert_nullable_void);
     UP_STEP(step_weak_literal_conversion);
     UP_STEP(step_operator_call_inference);
     UP_STEP(step_ctor_call_inference);

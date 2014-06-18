@@ -19,6 +19,7 @@ fun Main = I32
 	Assert <- not (xx.y?.getx)?
 
 	xx!clear
+	Assert <- not (xx.y?!clear)?
 
 	let v = xx.y?.x
 	if v? and v == 1
