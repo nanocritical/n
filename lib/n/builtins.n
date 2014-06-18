@@ -488,7 +488,7 @@ intf `Numeric =
 	isa `Copyable `Arithmetic `Ordered `Show
 
 intf `Integer =
-	isa `Numeric `Bitwise `Has_compare
+	isa `Numeric `Has_compare
 	alias this_signed = `Signed_integer
 	alias this_unsigned = `Unsigned_integer
 	met As_signed = final.this_signed
@@ -500,19 +500,31 @@ intf `Signed_integer =
 intf `Unsigned_integer =
 	isa `Integer
 
+intf `Sized_integer =
+	isa `Integer `Bitwise
+intf `Signed_sized_integer =
+	isa `Signed_integer `Sized_integer
+intf `Unsigned_sized_integer =
+	isa `Unsigned_integer `Sized_integer
+
 intf `Native_integer =
 	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy
 		\ `Integer `Show
-
-
 intf `Native_signed_integer =
 	isa `Signed_integer `Native_integer
-
 intf `Native_unsigned_integer =
 	isa `Unsigned_integer `Native_integer
-
 intf `Native_anysign_integer =
 	isa `Native_signed_integer `Native_unsigned_integer
+
+intf `Native_sized_integer =
+	isa `Sized_integer `Native_integer
+intf `Native_sized_signed_integer =
+	isa `Signed_integer `Native_sized_integer
+intf `Native_sized_unsigned_integer =
+	isa `Unsigned_integer `Native_sized_integer
+intf `Native_sized_anysign_integer =
+	isa `Native_sized_signed_integer `Native_sized_unsigned_integer
 
 intf `Generalized_boolean =
 	isa `Ordered
@@ -564,7 +576,7 @@ extern Bool met To_u64 = U64
 extern Bool met Show buf:@#`String_buffer
 
 extern inline struct I8 =
-	isa `Native_signed_integer
+	isa `Native_sized_signed_integer
 	alias this_signed = this
 	alias this_unsigned = U8
 extern I8 met Operator_eq other:@this = Bool
@@ -604,7 +616,7 @@ extern inline I8 met As_int = Int
 extern I8 met Show buf:@#`String_buffer
 
 extern inline struct I16 =
-	isa `Native_signed_integer
+	isa `Native_sized_signed_integer
 	alias this_signed = this
 	alias this_unsigned = U16
 extern I16 met Operator_eq other:@this = Bool
@@ -644,7 +656,7 @@ extern inline I16 met As_int = Int
 extern I16 met Show buf:@#`String_buffer
 
 extern inline struct I32 =
-	isa `Native_signed_integer
+	isa `Native_sized_signed_integer
 	alias this_signed = this
 	alias this_unsigned = U32
 extern I32 met Operator_eq other:@this = Bool
@@ -686,7 +698,7 @@ extern inline I32 met To_double = Double
 extern I32 met Show buf:@#`String_buffer
 
 extern inline struct I64 =
-	isa `Native_signed_integer
+	isa `Native_sized_signed_integer
 	alias this_signed = this
 	alias this_unsigned = U64
 extern I64 met Operator_eq other:@this = Bool
@@ -728,7 +740,7 @@ extern inline I64 met Round_double = Double
 extern I64 met Show buf:@#`String_buffer
 
 extern inline struct U8 =
-	isa `Native_unsigned_integer
+	isa `Native_sized_unsigned_integer
 	alias this_unsigned = this
 	alias this_signed = I8
 extern U8 met Operator_eq other:@this = Bool
@@ -770,7 +782,7 @@ extern inline U8 met To_double = Double
 extern U8 met Show buf:@#`String_buffer
 
 extern inline struct U16 =
-	isa `Native_unsigned_integer
+	isa `Native_sized_unsigned_integer
 	alias this_unsigned = this
 	alias this_signed = I16
 extern U16 met Operator_eq other:@this = Bool
@@ -812,7 +824,7 @@ extern inline U16 met To_double = Double
 extern U16 met Show buf:@#`String_buffer
 
 extern inline struct U32 =
-	isa `Native_unsigned_integer
+	isa `Native_sized_unsigned_integer
 	alias this_unsigned = this
 	alias this_signed = I32
 extern U32 met Operator_eq other:@this = Bool
@@ -854,7 +866,7 @@ extern inline U32 met To_double = Double
 extern U32 met Show buf:@#`String_buffer
 
 extern inline struct U64 =
-	isa `Native_unsigned_integer
+	isa `Native_sized_unsigned_integer
 	alias this_unsigned = this
 	alias this_signed = I64
 extern U64 met Operator_eq other:@this = Bool
@@ -916,17 +928,6 @@ extern Int met! Operator_assign_minus other:@this
 extern Int met! Operator_assign_divide other:@this
 extern Int met! Operator_assign_modulo other:@this
 extern Int met! Operator_assign_times other:@this
-extern Int met Operator_bwor other:@this = this
-extern Int met Operator_bwxor other:@this = this
-extern Int met Operator_bwand other:@this = this
-extern Int met Operator_lshift by:U32 = this
-extern Int met Operator_rshift by:U32 = this
-extern Int met Operator_bwnot = this
-extern Int met! Operator_assign_bwor other:@this
-extern Int met! Operator_assign_bwxor other:@this
-extern Int met! Operator_assign_bwand other:@this
-extern Int met! Operator_assign_lshift by:U32
-extern Int met! Operator_assign_rshift by:U32
 extern inline Int met As_unsigned = Uint
 extern inline Int met As_signed = this
 extern inline Int met Trim_i8 = I8
@@ -937,8 +938,6 @@ extern inline Int met Round_float = Float
 extern inline Int met Round_double = Double
 extern Int met Show buf:@#`String_buffer
 
--- FIXME: Uint and Int do not have a well-defined bit Uint, they therefore
--- should not be `Bitwise.
 extern inline struct Uint =
 	isa `Native_unsigned_integer
 	alias this_unsigned = this
@@ -960,17 +959,6 @@ extern Uint met! Operator_assign_minus other:@this
 extern Uint met! Operator_assign_divide other:@this
 extern Uint met! Operator_assign_modulo other:@this
 extern Uint met! Operator_assign_times other:@this
-extern Uint met Operator_bwor other:@this = this
-extern Uint met Operator_bwxor other:@this = this
-extern Uint met Operator_bwand other:@this = this
-extern Uint met Operator_lshift by:U32 = this
-extern Uint met Operator_rshift by:U32 = this
-extern Uint met Operator_bwnot = this
-extern Uint met! Operator_assign_bwor other:@this
-extern Uint met! Operator_assign_bwxor other:@this
-extern Uint met! Operator_assign_bwand other:@this
-extern Uint met! Operator_assign_lshift by:U32
-extern Uint met! Operator_assign_rshift by:U32
 extern inline Uint met As_unsigned = this
 extern inline Uint met As_signed = Int
 extern inline Uint met Trim_u8 = U8

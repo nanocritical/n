@@ -62,7 +62,9 @@ static void native_write_buffer(_$Ndyn_n$chars$_$Ni_String_buffer buf, const cha
   NB(Void) t##$Operator_assign_divide(t *self, const t *other) { *self /= *other; } \
   NB(Void) t##$Operator_assign_modulo(t *self, const t *other) { *self %= *other; } \
   NB(Void) t##$Operator_assign_times(t *self, const t *other) { *self *= *other; } \
-  \
+
+#define define_native_sized_integer(t) \
+  define_native_integer(t) \
   t t##$Operator_bwor(const t *self, const t *other) { return *self | *other; } \
   t t##$Operator_bwxor(const t *self, const t *other) { return *self ^ *other; } \
   t t##$Operator_bwand(const t *self, const t *other) { return *self & *other; } \
@@ -91,14 +93,14 @@ static void native_write_buffer(_$Ndyn_n$chars$_$Ni_String_buffer buf, const cha
   t t##$Operator_uminus(const t *self) { return - *self; }
 
 define_native_boolean(n$builtins$Bool)
-define_native_integer(n$builtins$I8)
-define_native_integer(n$builtins$I16)
-define_native_integer(n$builtins$I32)
-define_native_integer(n$builtins$I64)
-define_native_integer(n$builtins$U8)
-define_native_integer(n$builtins$U16)
-define_native_integer(n$builtins$U32)
-define_native_integer(n$builtins$U64)
+define_native_sized_integer(n$builtins$I8)
+define_native_sized_integer(n$builtins$I16)
+define_native_sized_integer(n$builtins$I32)
+define_native_sized_integer(n$builtins$I64)
+define_native_sized_integer(n$builtins$U8)
+define_native_sized_integer(n$builtins$U16)
+define_native_sized_integer(n$builtins$U32)
+define_native_sized_integer(n$builtins$U64)
 define_native_integer(n$builtins$Uint)
 define_native_integer(n$builtins$Int)
 define_native_floating(n$builtins$Float)
