@@ -981,7 +981,7 @@ static void print_tree_node(FILE *out, const struct module *mod,
   }
 }
 
-error printer_tree(int fd, const struct module *mod, const struct node *root) {
+error pptree(int fd, const struct module *mod, const struct node *root) {
   FILE *out = fdopen(fd, "w");
   if (out == NULL) {
     THROWF(errno, "Invalid output file descriptor '%d'", fd);

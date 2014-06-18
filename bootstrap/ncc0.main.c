@@ -94,7 +94,7 @@ static error generate(struct node *node) {
   }
   free(out_fn);
 
-  e = printer_tree(fd, mod, NULL);
+  e = pptree(fd, mod, NULL);
   EXCEPT(e);
   close(fd);
 

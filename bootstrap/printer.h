@@ -7,7 +7,7 @@
 error printer_scopes(int fd, const struct module *mod, const struct node *root);
 
 error printer_pretty(int fd, const struct module *mod);
-error printer_tree(int fd, const struct module *mod, const struct node *root);
+error pptree(int fd, const struct module *mod, const struct node *root);
 error printer_dot(int fd, const struct module *mod, const struct node *root);
 error printer_c(int fd, const struct module *mod);
 error printer_h(int fd, const struct module *mod);
