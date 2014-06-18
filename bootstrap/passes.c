@@ -409,7 +409,7 @@ unused__
 static void debug_print_tops(struct module *mod) {
   for (ssize_t n = vecnode_count(&debug_tops) - 1; n >= 0; --n) {
     const struct node *top = *vecnode_get(&debug_tops, n);
-    fprintf(stderr, "%s @%p\n", typ_pretty_name(mod, top->typ), top->typ);
+    fprintf(stderr, "%s @%p\n", pptyp(mod, top->typ), top->typ);
   }
 }
 #endif

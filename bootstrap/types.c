@@ -1205,8 +1205,8 @@ error typ_check_equal(const struct module *mod, const struct node *for_error,
   }
 
   error e = 0;
-  char *na = typ_pretty_name(mod, a);
-  char *nb = typ_pretty_name(mod, b);
+  char *na = pptyp(mod, a);
+  char *nb = pptyp(mod, b);
   GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                    "'%s' not equal to type '%s'", na, nb);
 except:
@@ -1380,8 +1380,8 @@ error typ_check_isa(const struct module *mod, const struct node *for_error,
   }
 
   error e = 0;
-  char *na = typ_pretty_name(mod, a);
-  char *nintf = typ_pretty_name(mod, intf);
+  char *na = pptyp(mod, a);
+  char *nintf = pptyp(mod, intf);
   GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                    "'%s' not isa intf '%s'", na, nintf);
 except:
@@ -1444,7 +1444,7 @@ error typ_check_is_reference(const struct module *mod, const struct node *for_er
   }
 
   error e = 0;
-  char *na = typ_pretty_name(mod, a);
+  char *na = pptyp(mod, a);
   GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                    "'%s' type is not a reference", na);
 except:
@@ -1469,13 +1469,13 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
   error e = 0;
   char *na = NULL;
   if (!typ_is_reference(a)) {
-    na = typ_pretty_name(mod, a);
+    na = pptyp(mod, a);
     GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                      "'%s' type is not a reference", na);
   }
 
   if (typ_equal(a, TBI_ANY_ANY_REF)) {
-    na = typ_pretty_name(mod, a);
+    na = pptyp(mod, a);
     GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                      "cannot dereference type '%s'", na);
   }
@@ -1499,7 +1499,7 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
     return 0;
   }
 
-  na = typ_pretty_name(mod, a);
+  na = pptyp(mod, a);
   GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                    "'%s' type cannot be dereferenced with '%s'",
                    na, string_for_ref[operator]);
@@ -1531,7 +1531,7 @@ error typ_check_deref_against_mark(const struct module *mod, const struct node *
   }
 
   error e = 0;
-  char *nt = typ_pretty_name(mod, t);
+  char *nt = pptyp(mod, t);
   GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                    "'%s' type cannot be dereferenced with '%s' in a %s context",
                    nt, token_strings[operator], kind);

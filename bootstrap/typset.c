@@ -93,7 +93,7 @@ error typset_foreach(struct module *mod, struct typset *set,
 
 static error print_each(struct module *mod, struct typ *t,
                         bool *stop, void *user) {
-  fprintf(stderr, "%s\n", typ_pretty_name(mod, t));
+  fprintf(stderr, "%s\n", pptyp(mod, t));
   return 0;
 }
 

@@ -782,7 +782,7 @@ int snprint_defincomplete(char *s, size_t len,
       pos += snprint_codeloc(s+pos, len-pos, mod, isa);
       pos += snprintf(s+pos, len-pos,
                       "with constraint '%s'\n",
-                      typ_pretty_name(mod, isa->typ));
+                      pptyp(mod, isa->typ));
     }
   }
 
@@ -793,7 +793,7 @@ int snprint_defincomplete(char *s, size_t len,
       pos += snprintf(s+pos, len-pos,
                       "with field '%s', constrained by '%s'\n",
                       idents_value(mod->gctx, node_ident(f)),
-                      typ_pretty_name(mod, f->typ));
+                      pptyp(mod, f->typ));
     }
   }
 
@@ -850,7 +850,7 @@ char *typ_name(const struct module *mod, const struct typ *t) {
 
 extern char *stpcpy(char *dest, const char *src);
 
-static char *typ_pretty_name_defincomplete(char *r, const struct module *mod,
+static char *pptyp_defincomplete(char *r, const struct module *mod,
                                            const struct node *d) {
   char *s = r;
   s = stpcpy(s, idents_value(mod->gctx, node_ident(d)));
@@ -863,7 +863,7 @@ static char *typ_pretty_name_defincomplete(char *r, const struct module *mod,
   const struct node *isalist = subs_at_const(d, IDX_ISALIST);
   FOREACH_SUB_CONST(i, isalist) {
     s = stpcpy(s, "isa ");
-    char *n = typ_pretty_name(mod, i->typ);
+    char *n = pptyp(mod, i->typ);
     s = stpcpy(s, n);
     free(n);
     s = stpcpy(s, " ");
@@ -872,7 +872,7 @@ static char *typ_pretty_name_defincomplete(char *r, const struct module *mod,
     if (f->which == DEFFIELD) {
       s = stpcpy(s, idents_value(mod->gctx, node_ident(f)));
       s = stpcpy(s, ":");
-      char *n = typ_pretty_name(mod, f->typ);
+      char *n = pptyp(mod, f->typ);
       s = stpcpy(s, n);
       free(n);
       s = stpcpy(s, " ");
@@ -882,7 +882,7 @@ static char *typ_pretty_name_defincomplete(char *r, const struct module *mod,
   return r;
 }
 
-char *typ_pretty_name(const struct module *mod, const struct typ *t) {
+char *pptyp(const struct module *mod, const struct typ *t) {
   if (t == NULL) {
     return strdup("(null)");
   }
@@ -898,7 +898,7 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
   } else if (d->which == IMPORT) {
     s = stpcpy(s, "<import>");
   } else if (d->which == DEFINCOMPLETE) {
-    s = typ_pretty_name_defincomplete(s, mod, d);
+    s = pptyp_defincomplete(s, mod, d);
   } else if (typ_generic_arity(t) == 0) {
     s = stpcpy(s, typ_name(mod, t));
   } else {
@@ -917,7 +917,7 @@ char *typ_pretty_name(const struct module *mod, const struct typ *t) {
       if (ga == NULL) {
         s = stpcpy(s, " null");
       } else {
-        char *s2 = typ_pretty_name(mod, ga);
+        char *s2 = pptyp(mod, ga);
         s = stpcpy(s, " ");
         s = stpcpy(s, s2);
         free(s2);

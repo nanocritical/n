@@ -71,7 +71,7 @@ static STEP_NM(step_check_no_literals_left,
 static error step_check_no_literals_left(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   if (typ_is_literal(node->typ)) {
-    char *s = typ_pretty_name(mod, node->typ);
+    char *s = pptyp(mod, node->typ);
     error e = mk_except_type(mod, node,
                              "literal of type '%s' did not unify"
                              " to a concrete type", s);

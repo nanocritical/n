@@ -30,8 +30,8 @@ static error do_unify(struct module *mod, uint32_t flags,
 
 static error mk_except_type_unification(struct module *mod, const struct node *for_error,
                                         const struct typ *a, const struct typ *b) {
-  char *sa = typ_pretty_name(mod, a);
-  char *sb = typ_pretty_name(mod, b);
+  char *sa = pptyp(mod, a);
+  char *sb = pptyp(mod, b);
   error e = mk_except_type(mod, for_error,
                            "types '%s' and '%s' cannot be unified", sa, sb);
   free(sb);
@@ -443,7 +443,7 @@ static error unify_with_defunknownident(struct module *mod, const struct node *f
   if (da->which != DEFTYPE
       || (da->as.DEFTYPE.kind != DEFTYPE_ENUM
           && da->as.DEFTYPE.kind != DEFTYPE_UNION)) {
-    char *s = typ_pretty_name(mod, da->typ);
+    char *s = pptyp(mod, da->typ);
     e = mk_except_type(mod, for_error,
                        "ident '%s' cannot be resolved in type '%s'"
                        " (not an enum)",

@@ -65,7 +65,7 @@ static error do_instantiate(struct node **result,
   error e = catchup_instantiation(mod, node_module_owner(gendef),
                                   instance, tentative);
   if (e) {
-    char *n = typ_pretty_name(mod, t);
+    char *n = pptyp(mod, t);
     e = mk_except_type(mod, for_error, "while instantiating generic here '%s'", n);
     free(n);
     THROW(e);

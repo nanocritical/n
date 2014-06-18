@@ -476,7 +476,7 @@ static error nullable_op(struct module *mod, const struct node *for_error,
   struct typ *t0 = typ_generic_functor(t);
   if (t0 == NULL) {
     error e = mk_except_type(mod, for_error, "Nullable expects a reference, not '%s'",
-                             typ_pretty_name(mod, t));
+                             pptyp(mod, t));
     THROW(e);
   }
 
@@ -1688,7 +1688,7 @@ static error try_rewrite_operator_sub(struct module *mod, struct node *node) {
   struct node *m = node_get_member(dfun, ID_OPERATOR_SUB);
   if (m == NULL) {
     error e = mk_except_type(mod, node, "type '%s' does not have 'Operator_sub'",
-                             typ_pretty_name(mod, self->typ));
+                             pptyp(mod, self->typ));
     THROW(e);
   }
 
@@ -1731,7 +1731,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
     if (!node_is_fun(dfun)
         && (!node_can_have_genargs(dfun)
             || !subs_count_atleast(subs_at(dfun, IDX_GENARGS), 1))) {
-      char *n = typ_pretty_name(mod, dfun->typ);
+      char *n = pptyp(mod, dfun->typ);
       e = mk_except_type(mod, fun, "'%s' not a function or a generic", n);
       free(n);
       THROW(e);
@@ -1818,7 +1818,7 @@ static error type_inference_block(struct module *mod, struct node *node) {
       e = mk_except_type(mod, s,
                          "intermediate statements in a block must be of type void"
                          " (except the last one), not '%s'",
-                         typ_pretty_name(mod, s->typ));
+                         pptyp(mod, s->typ));
       THROW(e);
     }
   }
@@ -2334,7 +2334,7 @@ error step_type_inference(struct module *mod, struct node *node,
         e = mk_except_type(mod, node,
                            "vararg argument must have type"
                            " (vararg `any_any_ref), not '%s'",
-                           typ_pretty_name(mod, node->typ));
+                           pptyp(mod, node->typ));
         THROW(e);
       }
     }

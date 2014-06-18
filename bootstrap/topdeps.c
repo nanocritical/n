@@ -141,12 +141,12 @@ static error print_topdeps_each(struct module *mod, struct node *node,
           topdep_mask,
           typ_is_tentative(t),
           node_toplevel_const(typ_definition_const(t))->passing,
-          typ_pretty_name(mod, t), t);
+          pptyp(mod, t), t);
   return 0;
 }
 
 void debug_print_topdeps(const struct module *mod, const struct node *node) {
   fprintf(stderr, "%s :%s @%p\n", scope_name(mod, &node->scope),
-          typ_pretty_name(mod, node->typ), node->typ);
+          pptyp(mod, node->typ), node->typ);
   topdeps_foreach(CONST_CAST(mod), CONST_CAST(node), print_topdeps_each, NULL);
 }

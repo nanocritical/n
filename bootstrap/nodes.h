@@ -1364,7 +1364,7 @@ int snprint_defincomplete(char *s, size_t len,
 // Return value must be freed by caller.
 char *typ_name(const struct module *mod, const struct typ *t);
 // Return value must be freed by caller.
-char *typ_pretty_name(const struct module *mod, const struct typ *t);
+char *pptyp(const struct module *mod, const struct typ *t);
 
 int snprint_codeloc(char *s, size_t len,
                     const struct module *mod, const struct node *node);

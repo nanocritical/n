@@ -793,8 +793,8 @@ static error check_has_matching_member(struct module *mod,
   if (m == NULL) {
     e = mk_except_type(mod, deft,
                        "type '%s' isa '%s' but does not implement member '%s'",
-                       typ_pretty_name(mod, deft->typ),
-                       typ_pretty_name(mod, intf),
+                       pptyp(mod, deft->typ),
+                       pptyp(mod, intf),
                        idents_value(mod->gctx, node_ident(mi)));
     THROW(e);
   }
@@ -803,9 +803,9 @@ static error check_has_matching_member(struct module *mod,
     e = mk_except_type(mod, m,
                        "in type '%s', member '%s' implemented from intf '%s'"
                        " is not the right kind of declaration",
-                       typ_pretty_name(mod, deft->typ),
+                       pptyp(mod, deft->typ),
                        idents_value(mod->gctx, node_ident(m)),
-                       typ_pretty_name(mod, intf));
+                       pptyp(mod, intf));
   }
 
   if (m->which == DEFNAME
@@ -818,11 +818,11 @@ static error check_has_matching_member(struct module *mod,
       e = mk_except_type(mod, m,
                          "in type '%s', member '%s' implemented from intf '%s'"
                          " has type '%s' but must be isa '%s'",
-                         typ_pretty_name(mod, deft->typ),
+                         pptyp(mod, deft->typ),
                          idents_value(mod->gctx, node_ident(m)),
-                         typ_pretty_name(mod, intf),
-                         typ_pretty_name(mod, m->typ),
-                         typ_pretty_name(mod, mi->typ));
+                         pptyp(mod, intf),
+                         pptyp(mod, m->typ),
+                         pptyp(mod, mi->typ));
       THROW(e);
     }
   } else if (m->which == DEFFUN || m->which == DEFMETHOD) {
