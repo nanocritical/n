@@ -311,6 +311,11 @@ normal:
   "*=" { R(TTIMES_ASSIGN); }
   "/=" { R(TDIVIDE_ASSIGN); }
   "%=" { R(TMODULO_ASSIGN); }
+  "ov+=" { R(TOVPLUS_ASSIGN); }
+  "ov-=" { R(TOVMINUS_ASSIGN); }
+  "ov*=" { R(TOVTIMES_ASSIGN); }
+  "ov/=" { R(TOVDIVIDE_ASSIGN); }
+  "ov%=" { R(TOVMODULO_ASSIGN); }
   "bw&=" { R(TBWAND_ASSIGN); }
   "bw|=" { R(TBWOR_ASSIGN); }
   "bw^=" { R(TBWXOR_ASSIGN); }
@@ -329,6 +334,11 @@ normal:
   "/" { R(TDIVIDE); }
   "%" { R(TMODULO); }
   "|" { R(TPATTERNOR); }
+  "ov+" { RUNORBIN(3, TOVUPLUS, 0, TOVPLUS); }
+  "ov-" { RUNORBIN(3, TOVUMINUS, 0, TOVMINUS); }
+  "ov*" { R(TTIMES); }
+  "ov/" { R(TDIVIDE); }
+  "ov%" { R(TMODULO); }
   "bw&" { R(TBWAND); }
   "bw|" { R(TBWOR); }
   "bw^" { R(TBWXOR); }

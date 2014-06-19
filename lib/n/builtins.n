@@ -606,6 +606,17 @@ extern inline I8 met! Operator_assign_minus other:@this
 extern inline I8 met! Operator_assign_divide other:@this
 extern inline I8 met! Operator_assign_modulo other:@this
 extern inline I8 met! Operator_assign_times other:@this
+extern inline I8 met Operator_ovplus other:@this = this
+extern inline I8 met Operator_ovminus other:@this = this
+extern inline I8 met Operator_ovdivide other:@this = this
+extern inline I8 met Operator_ovmodulo other:@this = this
+extern inline I8 met Operator_ovtimes other:@this = this
+extern inline I8 met Operator_ovuminus = this
+extern inline I8 met! Operator_assign_ovplus other:@this
+extern inline I8 met! Operator_assign_ovminus other:@this
+extern inline I8 met! Operator_assign_ovdivide other:@this
+extern inline I8 met! Operator_assign_ovmodulo other:@this
+extern inline I8 met! Operator_assign_ovtimes other:@this
 extern inline I8 met Operator_bwor other:@this = this
 extern inline I8 met Operator_bwxor other:@this = this
 extern inline I8 met Operator_bwand other:@this = this
@@ -658,6 +669,17 @@ extern inline I16 met! Operator_assign_minus other:@this
 extern inline I16 met! Operator_assign_divide other:@this
 extern inline I16 met! Operator_assign_modulo other:@this
 extern inline I16 met! Operator_assign_times other:@this
+extern inline I16 met Operator_ovplus other:@this = this
+extern inline I16 met Operator_ovminus other:@this = this
+extern inline I16 met Operator_ovdivide other:@this = this
+extern inline I16 met Operator_ovmodulo other:@this = this
+extern inline I16 met Operator_ovtimes other:@this = this
+extern inline I16 met Operator_ovuminus = this
+extern inline I16 met! Operator_assign_ovplus other:@this
+extern inline I16 met! Operator_assign_ovminus other:@this
+extern inline I16 met! Operator_assign_ovdivide other:@this
+extern inline I16 met! Operator_assign_ovmodulo other:@this
+extern inline I16 met! Operator_assign_ovtimes other:@this
 extern inline I16 met Operator_bwor other:@this = this
 extern inline I16 met Operator_bwxor other:@this = this
 extern inline I16 met Operator_bwand other:@this = this
@@ -710,6 +732,17 @@ extern inline I32 met! Operator_assign_minus other:@this
 extern inline I32 met! Operator_assign_divide other:@this
 extern inline I32 met! Operator_assign_modulo other:@this
 extern inline I32 met! Operator_assign_times other:@this
+extern inline I32 met Operator_ovplus other:@this = this
+extern inline I32 met Operator_ovminus other:@this = this
+extern inline I32 met Operator_ovdivide other:@this = this
+extern inline I32 met Operator_ovmodulo other:@this = this
+extern inline I32 met Operator_ovtimes other:@this = this
+extern inline I32 met Operator_ovuminus = this
+extern inline I32 met! Operator_assign_ovplus other:@this
+extern inline I32 met! Operator_assign_ovminus other:@this
+extern inline I32 met! Operator_assign_ovdivide other:@this
+extern inline I32 met! Operator_assign_ovmodulo other:@this
+extern inline I32 met! Operator_assign_ovtimes other:@this
 extern inline I32 met Operator_bwor other:@this = this
 extern inline I32 met Operator_bwxor other:@this = this
 extern inline I32 met Operator_bwand other:@this = this
@@ -767,6 +800,17 @@ extern inline I64 met! Operator_assign_minus other:@this
 extern inline I64 met! Operator_assign_divide other:@this
 extern inline I64 met! Operator_assign_modulo other:@this
 extern inline I64 met! Operator_assign_times other:@this
+extern inline I64 met Operator_ovplus other:@this = this
+extern inline I64 met Operator_ovminus other:@this = this
+extern inline I64 met Operator_ovdivide other:@this = this
+extern inline I64 met Operator_ovmodulo other:@this = this
+extern inline I64 met Operator_ovtimes other:@this = this
+extern inline I64 met Operator_ovuminus = this
+extern inline I64 met! Operator_assign_ovplus other:@this
+extern inline I64 met! Operator_assign_ovminus other:@this
+extern inline I64 met! Operator_assign_ovdivide other:@this
+extern inline I64 met! Operator_assign_ovmodulo other:@this
+extern inline I64 met! Operator_assign_ovtimes other:@this
 extern inline I64 met Operator_bwor other:@this = this
 extern inline I64 met Operator_bwxor other:@this = this
 extern inline I64 met Operator_bwand other:@this = this
@@ -821,17 +865,28 @@ extern inline U8 met Operator_divide other:@this = this
 extern inline U8 met Operator_modulo other:@this = this
 extern inline U8 met Operator_times other:@this = this
 extern inline U8 met Operator_uminus = this
+extern inline U8 met! Operator_assign_plus other:@this
+extern inline U8 met! Operator_assign_minus other:@this
+extern inline U8 met! Operator_assign_divide other:@this
+extern inline U8 met! Operator_assign_modulo other:@this
+extern inline U8 met! Operator_assign_times other:@this
+extern inline U8 met Operator_ovplus other:@this = this
+extern inline U8 met Operator_ovminus other:@this = this
+extern inline U8 met Operator_ovdivide other:@this = this
+extern inline U8 met Operator_ovmodulo other:@this = this
+extern inline U8 met Operator_ovtimes other:@this = this
+extern inline U8 met Operator_ovuminus = this
+extern inline U8 met! Operator_assign_ovplus other:@this
+extern inline U8 met! Operator_assign_ovminus other:@this
+extern inline U8 met! Operator_assign_ovdivide other:@this
+extern inline U8 met! Operator_assign_ovmodulo other:@this
+extern inline U8 met! Operator_assign_ovtimes other:@this
 extern inline U8 met Operator_bwor other:@this = this
 extern inline U8 met Operator_bwxor other:@this = this
 extern inline U8 met Operator_bwand other:@this = this
 extern inline U8 met Operator_lshift by:U32 = this
 extern inline U8 met Operator_rshift by:U32 = this
 extern inline U8 met Operator_bwnot = this
-extern inline U8 met! Operator_assign_plus other:@this
-extern inline U8 met! Operator_assign_minus other:@this
-extern inline U8 met! Operator_assign_divide other:@this
-extern inline U8 met! Operator_assign_modulo other:@this
-extern inline U8 met! Operator_assign_times other:@this
 extern inline U8 met! Operator_assign_bwor other:@this
 extern inline U8 met! Operator_assign_bwxor other:@this
 extern inline U8 met! Operator_assign_bwand other:@this
@@ -878,6 +933,17 @@ extern inline U16 met! Operator_assign_minus other:@this
 extern inline U16 met! Operator_assign_divide other:@this
 extern inline U16 met! Operator_assign_modulo other:@this
 extern inline U16 met! Operator_assign_times other:@this
+extern inline U16 met Operator_ovplus other:@this = this
+extern inline U16 met Operator_ovminus other:@this = this
+extern inline U16 met Operator_ovdivide other:@this = this
+extern inline U16 met Operator_ovmodulo other:@this = this
+extern inline U16 met Operator_ovtimes other:@this = this
+extern inline U16 met Operator_ovuminus = this
+extern inline U16 met! Operator_assign_ovplus other:@this
+extern inline U16 met! Operator_assign_ovminus other:@this
+extern inline U16 met! Operator_assign_ovdivide other:@this
+extern inline U16 met! Operator_assign_ovmodulo other:@this
+extern inline U16 met! Operator_assign_ovtimes other:@this
 extern inline U16 met Operator_bwor other:@this = this
 extern inline U16 met Operator_bwxor other:@this = this
 extern inline U16 met Operator_bwand other:@this = this
@@ -930,6 +996,17 @@ extern inline U32 met! Operator_assign_minus other:@this
 extern inline U32 met! Operator_assign_divide other:@this
 extern inline U32 met! Operator_assign_modulo other:@this
 extern inline U32 met! Operator_assign_times other:@this
+extern inline U32 met Operator_ovplus other:@this = this
+extern inline U32 met Operator_ovminus other:@this = this
+extern inline U32 met Operator_ovdivide other:@this = this
+extern inline U32 met Operator_ovmodulo other:@this = this
+extern inline U32 met Operator_ovtimes other:@this = this
+extern inline U32 met Operator_ovuminus = this
+extern inline U32 met! Operator_assign_ovplus other:@this
+extern inline U32 met! Operator_assign_ovminus other:@this
+extern inline U32 met! Operator_assign_ovdivide other:@this
+extern inline U32 met! Operator_assign_ovmodulo other:@this
+extern inline U32 met! Operator_assign_ovtimes other:@this
 extern inline U32 met Operator_bwor other:@this = this
 extern inline U32 met Operator_bwxor other:@this = this
 extern inline U32 met Operator_bwand other:@this = this
@@ -982,6 +1059,17 @@ extern inline U64 met! Operator_assign_minus other:@this
 extern inline U64 met! Operator_assign_divide other:@this
 extern inline U64 met! Operator_assign_modulo other:@this
 extern inline U64 met! Operator_assign_times other:@this
+extern inline U64 met Operator_ovplus other:@this = this
+extern inline U64 met Operator_ovminus other:@this = this
+extern inline U64 met Operator_ovdivide other:@this = this
+extern inline U64 met Operator_ovmodulo other:@this = this
+extern inline U64 met Operator_ovtimes other:@this = this
+extern inline U64 met Operator_ovuminus = this
+extern inline U64 met! Operator_assign_ovplus other:@this
+extern inline U64 met! Operator_assign_ovminus other:@this
+extern inline U64 met! Operator_assign_ovdivide other:@this
+extern inline U64 met! Operator_assign_ovmodulo other:@this
+extern inline U64 met! Operator_assign_ovtimes other:@this
 extern inline U64 met Operator_bwor other:@this = this
 extern inline U64 met Operator_bwxor other:@this = this
 extern inline U64 met Operator_bwand other:@this = this

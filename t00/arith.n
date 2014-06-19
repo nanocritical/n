@@ -2,6 +2,6 @@ from n import *
 
 fun Main = I32
 	let m = 0xffff
-	let y = (m bw| m) + (0 << 1)
+	let y = (m bw| m) ov+ (0 << 1)
 	let x = 2 bw& (m bw| y)
 	return x - 2
