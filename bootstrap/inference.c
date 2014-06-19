@@ -567,7 +567,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
     EXCEPT(e);
     break;
   case OP_UN_BW:
-    set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE));
+    set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE_INTEGER));
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
@@ -649,14 +649,14 @@ static error type_inference_bin_sym(struct module *mod, struct node *node) {
     case TBWXOR_ASSIGN:
     case TRSHIFT_ASSIGN:
     case TLSHIFT_ASSIGN:
-      e = typ_check_isa(mod, node, left->typ, TBI_BITWISE);
+      e = typ_check_isa(mod, node, left->typ, TBI_BITWISE_INTEGER);
       EXCEPT(e);
 
       set_typ(&node->typ, TBI_VOID);
       left->flags |= right->flags & NODE__TRANSITIVE;
       break;
     default:
-      set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE));
+      set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE_INTEGER));
       e = unify(mod, node, node->typ, left->typ);
       EXCEPT(e);
       break;
@@ -1015,7 +1015,7 @@ static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   e = unify(mod, right, right->typ, TBI_U32);
   EXCEPT(e);
 
-  set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE));
+  set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE_INTEGER));
   e = unify(mod, node, left->typ, node->typ);
   EXCEPT(e);
 

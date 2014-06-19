@@ -1,4 +1,4 @@
 from n import *
 
 fun Main = I32
-	return '123'.Count.Trim_u32.As_signed - 3
+	return '123'.Count.Trim_u32.Unsafe_signed - 3

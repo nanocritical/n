@@ -2,14 +2,14 @@ from n import *
 
 fun inferred = Error
 	try
-		throw { code=1 }
+		throw INVAL
 	catch err
 		return err
 
 fun Foo = I32
 	try
-		throw ONE { code=1 }:Error
-		throw ZERO { code=0 }:Error
+		throw ONE INVAL
+		throw ZERO Error.OK
 		return 2
 	catch ZERO _
 		return 0
@@ -18,21 +18,23 @@ fun Foo = I32
 
 fun bar = I32
 	try
-		let except = { code=1 }:Error
+		let except = Error.INVAL
 		return 0
 	catch err
 		try
-			let except ONE = { code=err.code+1 }:Error
-			let except ZERO = { code=0 }:Error
+			Drop err
+			let except ONE = Error.INVAL
+			let except ZERO = Error.OK
 			return 0
-		catch ONE err
-			return err.code - 1
 		catch ZERO _
 			return 0
+		catch ONE err
+			Drop err
+			return 1
 
 fun noerror = I32
 	try
-		let except = { code=0 }:Error
+		let except = Error.OK
 		return 0
 	catch _
 		return 1
@@ -43,7 +45,8 @@ fun Main = I32
 	Assert <- bar == 1
 	Assert <- noerror == 0
 	try
-		throw { code=bar }:Error
+		throw Error.INVAL
 		return 1
 	catch err
-		return err.code - 1
+		Drop err
+		return 0

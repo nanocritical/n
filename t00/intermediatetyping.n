@@ -4,7 +4,7 @@ fun noerror = I32
 	let x
 	such
 		try
-			let except = { code=0 }:Error
+			let except = Error.OK
 			x = 0
 		catch _
 			return 1

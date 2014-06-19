@@ -247,7 +247,7 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   }
 
   const struct typ *l0 = typ_generic_functor_const(left->typ);
-  if (typ_isa(left->typ, TBI_NATIVE_INTEGER)
+  if (typ_isa(left->typ, TBI_NATIVE_BITWISE_INTEGER)
       || typ_isa(left->typ, TBI_NATIVE_BOOLEAN)
       || typ_isa(left->typ, TBI_NATIVE_FLOATING)
       || (l0 != NULL && typ_isa(l0, TBI_ENUM))) {
@@ -257,7 +257,7 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
   struct node *dleft = typ_definition(left->typ);
   if (dleft->which == DEFTYPE
       && dleft->as.DEFTYPE.kind == DEFTYPE_ENUM
-      && typ_isa(dleft->as.DEFTYPE.tag_typ, TBI_NATIVE_INTEGER)) {
+      && typ_isa(dleft->as.DEFTYPE.tag_typ, TBI_NATIVE_BITWISE_INTEGER)) {
     return 0;
   }
 
