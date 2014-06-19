@@ -1762,14 +1762,16 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     return;
   }
 
+  if (fwd != FWD_DECLARE_FUNCTIONS && prototype_only(header, node)) {
+    return;
+  }
+
   guard_generic(out, header, fwd, mod, node, true);
 
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     print_fun_prototype(out, header, fwd, mod, node, false, false, false, NULL);
     fun_nonnull_attribute(out, header, mod, node);
     fprintf(out, ";\n");
-  } else if (prototype_only(header, node)) {
-    // noop
   } else if (node_toplevel_const(node)->builtingen != BG__NOT) {
     print_fun_prototype(out, header, fwd, mod, node, false, false, false, NULL);
     print_deffun_builtingen(out, mod, node);
