@@ -480,6 +480,7 @@ void node_move_content(struct node *dst, struct node *src) {
   dst->next = nxt;
   dst->subs_first = subs_first(&copy);
   dst->subs_last = subs_last(&copy);
+  dst->excepted = 0;
 
   FOREACH_SUB(s, dst) {
     s->parent = dst;

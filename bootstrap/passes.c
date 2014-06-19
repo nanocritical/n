@@ -81,7 +81,10 @@ static void unmark_excepted(const struct node **except) {
   }
 
   for (size_t n = 0; except[n] != NULL; ++n) {
-    ((struct node *) except[n])->excepted -= 1;
+    if (except[n]->excepted > 0) {
+      // Can be 0 after a node_move_content().
+      ((struct node *) except[n])->excepted -= 1;
+    }
   }
 }
 
