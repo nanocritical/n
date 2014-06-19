@@ -54,26 +54,26 @@ syn case ignore
 syn match	nNumbers	display transparent "\<\d\|\.\d" contains=nNumber,nFloat,nOctalError,nOctal
 " Same, but without octal error (for comments)
 syn match	nNumbersCom	display contained transparent "\<\d\|\.\d" contains=nNumber,nFloat,nOctal
-syn match	nNumber		display contained "\d\+\(u\=l\{0,2}\|ll\=u\)\>"
+syn match	nNumber		display contained "\d[[:digit:]_]*\(u\=l\{0,2}\|ll\=u\)\>"
 "hex number
-syn match	nNumber		display contained "0x\x\+\(u\=l\{0,2}\|ll\=u\)\>"
+syn match	nNumber		display contained "0x\x[[:xdigit:]_]*\(u\=l\{0,2}\|ll\=u\)\>"
 " Flag the first zero of an octal number as something special
-syn match	nOctal		display contained "0\o\+\(u\=l\{0,2}\|ll\=u\)\>" contains=nOctalZero
+syn match	nOctal		display contained "0\o[\o_]*\(u\=l\{0,2}\|ll\=u\)\>" contains=nOctalZero
 syn match	nOctalZero	display contained "\<0"
-syn match	nFloat		display contained "\d\+f"
+syn match	nFloat		display contained "\d[[:digit:]_]*f"
 "floating point number, with dot, optional exponent
-syn match	nFloat		display contained "\d\+\.\d*\(e[-+]\=\d\+\)\=[fl]\="
+syn match	nFloat		display contained "\d[[:digit:]_]*\.[[:digit:]_]*\(e[-+]\=\d[[:digit:]_]*\)\=[fl]\="
 "floating point number, starting with a dot, optional exponent
-syn match	nFloat		display contained "\.\d\+\(e[-+]\=\d\+\)\=[fl]\=\>"
+syn match	nFloat		display contained "\.\d[[:digit:]_]*\(e[-+]\=\d[[:digit:]_]*\)\=[fl]\=\>"
 "floating point number, without dot, with exponent
-syn match	nFloat		display contained "\d\+e[-+]\=\d\+[fl]\=\>"
+syn match	nFloat		display contained "\d[[:digit:]_]*e[-+]\=\d[[:digit:]_]*[fl]\=\>"
 "hexadecimal floating point number, optional leading digits, with dot, with exponent
-syn match	nFloat		display contained "0x\x*\.\x\+p[-+]\=\d\+[fl]\=\>"
+syn match	nFloat		display contained "0x\x[[:xdigit:]_]*\.\x[\x_]*p[-+]\=\d[[:digit:]_]*[fl]\=\>"
 "hexadecimal floating point number, with leading digits, optional dot, with exponent
-syn match	nFloat		display contained "0x\x\+\.\=p[-+]\=\d\+[fl]\=\>"
+syn match	nFloat		display contained "0x\x[[:xdigit:]_]*\.\=p[-+]\=\d[[:digit:]_]*[fl]\=\>"
 
 " flag an octal number with wrong digits
-syn match	nOctalError	display contained "0\o*[89]\d*"
+syn match	nOctalError	display contained "0[\o_]*[89][_\d*]"
 syn case match
 
 syn match	nSpecial	display contained "\\\(x\x\+\|\o\{1,3}\|.\|$\)"

@@ -615,8 +615,20 @@ static error p_number(struct node *node, struct module *mod) {
   error e = scan_oneof(&tok, mod, TNUMBER, 0);
   EXCEPT(e);
 
-  char *cpy = calloc(tok.len + 1, sizeof(char));
-  memcpy(cpy, tok.value, tok.len);
+  size_t actual_len = tok.len;
+  for (size_t n = 0; n < tok.len; ++n) {
+    if (tok.value[n] == '_') {
+      actual_len -= 1;
+    }
+  }
+  char *cpy = calloc(actual_len + 1, sizeof(char));
+  for (size_t i = 0, j = 0; j < tok.len; ++j) {
+    if (tok.value[j] == '_') {
+      continue;
+    }
+    cpy[i] = tok.value[j];
+    i += 1;
+  }
 
   node_set_which(node, NUMBER);
   node->as.NUMBER.value = cpy;
