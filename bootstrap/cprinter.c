@@ -512,7 +512,7 @@ static void print_init_array(FILE *out, const struct module *mod, const struct n
   const struct node *el = subs_first_const(node);
   assert(typ_isa(el->typ, TBI_TRIVIAL_COPY) && "not yet supported");
 
-  fprintf(out, "(const ");
+  fprintf(out, " = (const ");
   print_typ(out, mod, node->typ);
   fprintf(out, "){ (");
   print_typ(out, mod, el->typ);
