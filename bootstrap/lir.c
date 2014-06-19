@@ -332,6 +332,10 @@ static error extract_defnames(struct module *mod,
 
       struct node *i = mk_node(mod, let_block, IF);
       i->codeloc = expr->codeloc;
+      if (before != NULL) {
+        node_subs_remove(let_block, i);
+        node_subs_insert_before(let_block, before, i);
+      }
       struct node *test_block = mk_node(mod, i, BLOCK);
       struct node *test = mk_node(mod, test_block, CALL);
       struct node *op = mk_node(mod, test, BIN);
@@ -1040,6 +1044,80 @@ EXAMPLE_NCC_EMPTY(lir_let) {
                     "   IDENT",
                     "   IDENT",
                     " NOOP",
+                    NULL);
+  }
+  {
+    GSTART();
+    G0(n, mod->body, TRY,
+       G(elet, LET,
+         G(edefp, DEFPATTERN,
+           G_IDENT(err, "err"));
+         G(defpb, BLOCK,
+           G(b, BLOCK,
+             G(let, LET,
+               G(d1, DEFPATTERN,
+                 G(n1, EXCEP);
+                 G_IDENT(n2, "OK")));
+             G(ilet, LET,
+               G(id1, DEFPATTERN,
+                 G(in1, EXCEP);
+                 G_IDENT(in2, "INVAL"))));
+           G(c, CATCH,
+             G(cb, BLOCK,
+               G(cn, NOOP))))));
+    assert(0 == ex_lir_conversion(mod, n));
+    check_structure(n,
+                    "TRY",
+                    " NOOP",
+                    " LET",
+                    "  DEFNAME",
+                    "   IDENT",
+                    "   INIT",
+                    " BLOCK",
+                    "  BLOCK",
+                    "   NOOP",
+                    "   LET",
+                    "    DEFNAME",
+                    "     IDENT",
+                    "     IDENT",
+                    "   IF",
+                    "    BLOCK",
+                    "     BLOCK",
+                    "      CALL",
+                    "       BIN",
+                    "        IDENT",
+                    "        IDENT",
+                    "    BLOCK",
+                    "     BLOCK",
+                    "      BIN",
+                    "       IDENT",
+                    "       IDENT",
+                    "      JUMP",
+                    "    BLOCK",
+                    "     NOOP",
+                    "   NOOP",
+                    "   LET",
+                    "    DEFNAME",
+                    "     IDENT",
+                    "     IDENT",
+                    "   IF",
+                    "    BLOCK",
+                    "     BLOCK",
+                    "      CALL",
+                    "       BIN",
+                    "        IDENT",
+                    "        IDENT",
+                    "    BLOCK",
+                    "     BLOCK",
+                    "      BIN",
+                    "       IDENT",
+                    "       IDENT",
+                    "      JUMP",
+                    "    BLOCK",
+                    "     NOOP",
+                    "  CATCH",
+                    "   BLOCK",
+                    "    NOOP",
                     NULL);
   }
 }
