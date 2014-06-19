@@ -1110,12 +1110,12 @@ Error met Operator_test = Bool
 Error met Show buf:@#`String_buffer
 	self.code.Show buf
 
-(fun e:`Error) drop err:e
+(fun e:`Error) Drop err:e
 	noop
 
-(fun e:`Error) fatal err:e
-	Epr "Fatal: "
-	Esay err
+(fun e:`Error) Fatal err:e
+	Esay "Fatal:" err
+	Abort
 
 
 extern inline struct Valist =

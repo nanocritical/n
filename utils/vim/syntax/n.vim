@@ -21,7 +21,7 @@ syn match nDecl "^  isa" contains=nExport
 syn keyword nOperator sizeof alignof nullable
 syn keyword nKeyword noop as attr declare
 syn keyword nKeyword try catch
-syn keyword nException except throw drop fatal
+syn keyword nException except throw Drop Fatal
 syn match nOperator "bw[&|\^~]"
 syn match nOperator "[@&\:+\-\*/%]"
 syn match nOperator "[\:+\-\*/%]\?="
