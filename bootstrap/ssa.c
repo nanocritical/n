@@ -193,6 +193,71 @@ static void ssa_sub(struct module *mod, struct node *node, struct node *sub) {
   INVARIANT_NODE(sub);
 }
 
+// step_ssa_convert() cannot work on excepted nodes. In the operator
+// function rewrite:
+//   0 + 1 -> Operator_plus @0 @1
+// 0 and 1 are excepted. So we need to come after the fact and double check.
+// TODO: see if we can reduce the number of nodes that
+// step_ssa_convert_shallow_catchup() gets called on.
+static void fix_ssa_sub(struct module *mod, struct node *node, struct node *sub) {
+  if (sub->excepted > 0) {
+    ssa_sub(mod, node, sub);
+  }
+}
+
+STEP_NM(step_ssa_convert_shallow_catchup,
+        NM(BIN) | NM(SIZEOF) | NM(ALIGNOF) | NM(UN) | NM(TUPLE) |
+        NM(CALLNAMEDARG) | NM(INIT) | NM(RETURN) | NM(PRE) | NM(POST) |
+        NM(INVARIANT) | NM(THROW) | NM(CALL) | NM(BLOCK));
+error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
+                                       void *user, bool *stop) {
+  DSTEP(mod, node);
+  if (mod->state->fun_state == NULL || !mod->state->fun_state->in_block) {
+    return 0;
+  }
+
+  switch (node->which) {
+  case BIN:
+    if (OP_IS_ASSIGN(node->as.BIN.operator)) {
+      ssa_sub(mod, node, subs_last(node));
+      break;
+    }
+    // fallthrough
+  case SIZEOF:
+  case ALIGNOF:
+  case UN:
+  case TUPLE:
+  case CALLNAMEDARG:
+  case INIT:
+  case RETURN:
+  case PRE:
+  case POST:
+  case INVARIANT:
+  case THROW:
+    FOREACH_SUB(sub, node) {
+      fix_ssa_sub(mod, node, sub);
+    }
+    break;
+
+  case CALL:
+    if (subs_count_atleast(node, 2)) {
+      FOREACH_SUB_EVERY(sub, node, 1, 1) {
+        fix_ssa_sub(mod, node, sub);
+      }
+    }
+    break;
+
+  case BLOCK:
+    if (!(NM(parent(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD)))) {
+      fix_ssa_sub(mod, node, subs_last(node));
+    }
+    break;
+  default:
+    break;
+  }
+  return 0;
+}
+
 STEP_NM(step_ssa_convert,
         ~(NM(MODULE) | NM(MODULE_BODY) | STEP_NM_DEFS | NM_ALWAYS_VOID
           | NM_DOESNT_EVER_NEED_SUB));

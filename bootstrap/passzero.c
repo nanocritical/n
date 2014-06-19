@@ -297,6 +297,7 @@ static error passzero0(struct module *mod, struct node *root,
     DOWN_STEP(step_add_sequence_points);
     ,
     UP_STEP(step_lir_conversion_up);
+    UP_STEP(step_ssa_convert_shallow_catchup);
     UP_STEP(step_ssa_convert);
     ,
     FINALLY_STEP(step_pop_state);
