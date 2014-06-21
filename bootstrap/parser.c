@@ -1305,7 +1305,7 @@ static error p_expr(struct node *node, struct module *mod,
   error e;
   struct token tok = { 0 };
 
-  const bool topmost = top_parent_op == T__STATEMENT;
+  const bool topmost = top_parent_op == T__STATEMENT || top_parent_op == T__NOT_STATEMENT;
   enum token_type parent_op = top_parent_op;
 
   e = scan(&tok, mod);
@@ -1413,7 +1413,7 @@ shifted:
   } else if (tok.t != TBARROW && IS_OP(tok.t) && OP_IS_BINARY(tok.t)) {
     if (tok.t == TCOMMA) {
       if (OP_PREC(tok.t) < OP_PREC(parent_op)
-          || topmost) {
+          || (topmost && OP_PREC(tok.t) <= OP_PREC(top_parent_op))) {
         shift(mod, node);
         e = p_expr_tuple(node, mod);
         EXCEPT(e);
@@ -1426,14 +1426,10 @@ shifted:
                || (OP_PREC(tok.t) < OP_PREC(top_parent_op)
                    && OP_PREC(tok.t) == OP_PREC(parent_op)
                    && OP_ASSOC(tok.t) == ASSOC_LEFT)
-               || topmost) {
+               || (topmost && OP_PREC(tok.t) <= OP_PREC(top_parent_op))) {
       shift(mod, node);
       e = p_expr_binary(node, mod);
       EXCEPT(e);
-
-      if (topmost) {
-        parent_op = tok.t;
-      }
 
       goto shifted;
     } else {
@@ -1449,18 +1445,12 @@ shifted:
     e = p_expr_post_unary(node, mod);
     EXCEPT(e);
 
-    if (topmost) {
-      parent_op = tok.t;
-    }
-
     goto shifted;
-  } else if (OP_PREC(T__CALL) < OP_PREC(parent_op)
-             || topmost) {
+  } else if ((IS_OP(tok.t) && OP_PREC(tok.t) < OP_PREC(parent_op)
+              && OP_PREC(tok.t) < OP_PREC(T__CALL) && OP_PREC(T__CALL) < OP_PREC(parent_op))
+             || (!IS_OP(tok.t) && OP_PREC(T__CALL) < OP_PREC(parent_op))) {
     shift(mod, node);
     e = p_expr_call(node, mod);
-    if (topmost) {
-      parent_op = T__CALL;
-    }
     EXCEPT(e);
 
     goto shifted;

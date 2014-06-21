@@ -1,0 +1,17 @@
+from n import *
+
+fun t = Bool
+	return true
+
+fun foo a:Bool b:Bool = Bool
+	return a and b
+
+fun Main = I32
+	if Likely <- not false
+		return 1
+	if foo true false
+		noop
+	-- Bad:
+	if foo t not true
+		noop
+	return 0
