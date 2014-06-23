@@ -46,6 +46,7 @@ storage void name ## _destroy(struct name *v) { \
   v->count = 0; \
   free(v->large); \
   v->large = NULL; \
+  memset(v->small, 0, VECTOR_SMALL_COUNT(name) * sizeof(type)); \
 } \
 \
 storage size_t name ## _count(const struct name *v) { \
