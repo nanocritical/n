@@ -31,16 +31,13 @@ bool typset_has(const struct typset *_set, const struct typ *_t) {
   struct typ *t = CONST_CAST(_t);
 
   struct vecnode *tentatives = &set->tentatives;
-  for (size_t n = 0; n < vecnode_count(tentatives); ++n) {
+  for (ssize_t n = 0; n < vecnode_count(tentatives); ++n) {
     struct node **p = vecnode_get(tentatives, n);
-    if (*p == NULL) {
-      continue;
-    }
 
     struct typ *s = (*p)->typ;
     if (!typ_is_tentative(s) && typ_hash_ready(s)) {
       add_final(set, s);
-      *p = NULL;
+      n += vecnode_remove_replace_with_last(tentatives, n);
     }
 
     if (typ_equal(t, s)) {
@@ -55,16 +52,12 @@ bool typset_has(const struct typset *_set, const struct typ *_t) {
 error typset_foreach(struct module *mod, struct typset *set,
                      typset_each each, void *user) {
   struct vecnode *tentatives = &set->tentatives;
-  for (size_t n = 0; n < vecnode_count(tentatives); ++n) {
+  for (ssize_t n = 0; n < vecnode_count(tentatives); ++n) {
     struct node **p = vecnode_get(tentatives, n);
-    if (*p == NULL) {
-      continue;
-    }
-
     struct typ *s = (*p)->typ;
     if (!typ_is_tentative(s) && typ_hash_ready(s)) {
       add_final(set, s);
-      *p = NULL;
+      n += vecnode_remove_replace_with_last(tentatives, n);
       continue;
     }
 

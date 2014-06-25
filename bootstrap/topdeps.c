@@ -103,17 +103,13 @@ error topdeps_foreach(struct module *mod, struct node *node,
   // 'st' may be NULL when topdeps_foreach() is called from a non-passing
   // context, e.g. cprinter.
 
-  for (size_t n = 0; n < vecnode_count(tentatives); ++n) {
+  for (ssize_t n = 0; n < vecnode_count(tentatives); ++n) {
     struct node **p = vecnode_get(tentatives, n);
-    if (*p == NULL) {
-      continue;
-    }
-
     if (st != NULL) {
       struct typ *t = (*p)->typ;
       if (!typ_is_tentative(t) && typ_hash_ready(t)) {
         record_final(mod, t);
-        *p = NULL;
+        n += vecnode_remove_replace_with_last(tentatives, n);
         continue;
       }
     }

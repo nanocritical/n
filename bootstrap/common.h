@@ -25,7 +25,7 @@
 #define unused__ __attribute__((__unused__))
 #define pure__ __attribute__((__pure__))
 #define noinline__ __attribute__((noinline))
-#define warn_unused_result__ __attribute__((__warn_unused_result__))
+#define use_result__ __attribute__((__warn_unused_result__))
 #define sentinel__ __attribute__((__sentinel__))
 
 #define likely(x) __builtin_expect(!!(x), 1)

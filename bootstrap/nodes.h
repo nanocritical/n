@@ -124,6 +124,24 @@ IMPLEMENT_VECTOR(static inline, vecbool, bool);
 VECTOR(vecnode, struct node *, 4);
 IMPLEMENT_VECTOR(static inline, vecnode, struct node *);
 
+static inline use_result__ ssize_t vecnode_remove_replace_with_last(struct vecnode *v, ssize_t n) {
+  const size_t count = vecnode_count(v);
+  if (count == 1) {
+    vecnode_destroy(v);
+    return 0;
+  }
+
+  struct node *last = vecnode_pop(v);
+  if (n + 1 == count) {
+    (void) last;
+    return 0;
+  } else {
+    struct node **loc = vecnode_get(v, n);
+    *loc = last;
+    return -1;
+  }
+}
+
 struct generic {
   size_t first_explicit_genarg;
   struct vecnode instances;
