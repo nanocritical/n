@@ -82,13 +82,14 @@ error typset_foreach(struct module *mod, struct typset *set,
   return 0;
 }
 
-static error print_each(struct module *mod, struct typ *t,
+static ERROR print_each(struct module *mod, struct typ *t,
                         bool *stop, void *user) {
   fprintf(stderr, "%s\n", pptyp(mod, t));
   return 0;
 }
 
 void debug_print_typset(const struct module *mod, const struct typset *set) {
-  (void) typset_foreach(CONST_CAST(mod), CONST_CAST(set), print_each, NULL);
+  error never = typset_foreach(CONST_CAST(mod), CONST_CAST(set), print_each, NULL);
+  assert(!never);
 }
 

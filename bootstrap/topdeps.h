@@ -9,7 +9,7 @@ void topdeps_record(struct module *mod, struct typ *t);
 
 typedef error (*topdeps_each)(struct module *mod, struct node *node,
                               struct typ *t, uint32_t topdep_mask, void *user);
-error topdeps_foreach(struct module *mod, struct node *node,
+ERROR topdeps_foreach(struct module *mod, struct node *node,
                       topdeps_each each, void *user);
 
 void debug_print_topdeps(const struct module *mod, const struct node *node);

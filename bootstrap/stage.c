@@ -20,7 +20,7 @@ struct node_op {
 
 static STEP_NM(step_for_all_nodes,
                -1);
-static error step_for_all_nodes(struct module *dummy, struct node *node,
+static ERROR step_for_all_nodes(struct module *dummy, struct node *node,
                                 void *user, bool *stop) {
   struct node_op *op = user;
 
@@ -32,13 +32,13 @@ static error step_for_all_nodes(struct module *dummy, struct node *node,
   return 0;
 }
 
-static error pass_for_all_nodes(struct module *mod, struct node *root,
+static ERROR pass_for_all_nodes(struct module *mod, struct node *root,
                                 void *user, ssize_t shallow_last_up) {
   PASS(DOWN_STEP(step_for_all_nodes),,);
   return 0;
 }
 
-static error for_all_nodes(struct node *root,
+static ERROR for_all_nodes(struct node *root,
                            enum node_which filter, // 0 to get all nodes
                            error (*node_fun)(struct node *node, void *user, bool *stop_descent),
                            void *user) {
@@ -60,7 +60,7 @@ static error for_all_nodes(struct node *root,
   return 0;
 }
 
-static error load_module(struct module **main_mod,
+static ERROR load_module(struct module **main_mod,
                          struct globalctx *gctx,
                          struct stage *stage,
                          const char *prefix, const char *fn) {
@@ -132,7 +132,7 @@ static void import_module_path(char **module_path, size_t *mplen,
 }
 
 
-static error try_import(char **fn, struct module *mod, struct node *import,
+static ERROR try_import(char **fn, struct module *mod, struct node *import,
                         const char *prefix) {
   assert(import->which == IMPORT);
   struct node *import_path = subs_first(import);
@@ -180,7 +180,7 @@ static error try_import(char **fn, struct module *mod, struct node *import,
   return EINVAL;
 }
 
-static error lookup_import(const char **prefix, char **fn,
+static ERROR lookup_import(const char **prefix, char **fn,
                            struct module *mod, struct node *import,
                            const char **prefixes) {
   char *mod_dirname = xdirname(mod->filename);
@@ -219,7 +219,7 @@ struct load_import_state {
   const char **prefixes;
 };
 
-static error load_import(struct node *node, void *user, bool *stop) {
+static ERROR load_import(struct node *node, void *user, bool *stop) {
   *stop = true;
 
   assert(node->which == IMPORT);
@@ -243,7 +243,7 @@ static error load_import(struct node *node, void *user, bool *stop) {
   return 0;
 }
 
-static error load_imports(struct stage *stage, struct node *node) {
+static ERROR load_imports(struct stage *stage, struct node *node) {
   assert(node->which == MODULE);
 
   if (node->as.MODULE.is_placeholder) {
@@ -280,11 +280,11 @@ struct dependencies {
   struct globalctx *gctx;
 };
 
-static error gather_dependencies(struct node *node, struct dependencies *deps);
+static ERROR gather_dependencies(struct node *node, struct dependencies *deps);
 
 static STEP_NM(step_gather_dependencies_in_module,
                NM(IMPORT));
-static error step_gather_dependencies_in_module(struct module *mod, struct node *node,
+static ERROR step_gather_dependencies_in_module(struct module *mod, struct node *node,
                                                 void *user, bool *stop) {
   struct dependencies *deps = user;
 
@@ -312,14 +312,14 @@ static error step_gather_dependencies_in_module(struct module *mod, struct node 
   return 0;
 }
 
-static error pass_gather_dependencies(struct module *mod, struct node *root,
+static ERROR pass_gather_dependencies(struct module *mod, struct node *root,
                                       void *user, ssize_t shallow_last_up) {
   PASS(DOWN_STEP(step_gather_dependencies_in_module);
        DOWN_STEP(step_stop_block),,);
   return 0;
 }
 
-static error gather_dependencies(struct node *node, struct dependencies *deps) {
+static ERROR gather_dependencies(struct node *node, struct dependencies *deps) {
   assert(node->which == MODULE);
 
   if (node->as.MODULE.is_placeholder) {
@@ -341,7 +341,7 @@ static error gather_dependencies(struct node *node, struct dependencies *deps) {
   return 0;
 }
 
-static error calculate_dependencies(struct dependencies *deps) {
+static ERROR calculate_dependencies(struct dependencies *deps) {
   struct modules_set pushed;
   modules_set_init(&pushed, 0);
   modules_set_set_delete_val(&pushed, 0);

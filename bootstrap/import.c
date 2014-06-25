@@ -89,7 +89,7 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
   return NULL;
 }
 
-static error check_import_target_exists(struct module *mod,
+static ERROR check_import_target_exists(struct module *mod,
                                         struct node *module_import_path,
                                         int points_inside_module) {
   struct node *mpath
@@ -119,7 +119,7 @@ static error check_import_target_exists(struct module *mod,
   return 0;
 }
 
-static error import_single_ident(struct scope *scope, struct module *mod,
+static ERROR import_single_ident(struct scope *scope, struct module *mod,
                                  struct node *original_import,
                                  struct node *id, bool define) {
   struct node *id_full_import_path = subs_first(id);
@@ -147,7 +147,7 @@ static error import_single_ident(struct scope *scope, struct module *mod,
   return 0;
 }
 
-static error lexical_import_from_path(struct scope *scope, struct module *mod,
+static ERROR lexical_import_from_path(struct scope *scope, struct module *mod,
                                       struct node *original_import,
                                       struct node *import) {
 
@@ -188,7 +188,7 @@ static struct node *create_import_node_for_ex(struct module *mod,
   return id;
 }
 
-static error lexical_import_path(struct scope *scope, struct module *mod,
+static ERROR lexical_import_path(struct scope *scope, struct module *mod,
                                  struct node *original_import,
                                  struct node *import) {
   error e;

@@ -8,7 +8,7 @@
 
 // Does not itself check that 'args' are valid types for instantiation.
 // This is done in passfwd.c:validate_genarg_types().
-static error do_instantiate(struct node **result,
+static ERROR do_instantiate(struct node **result,
                             struct module *mod,
                             const struct node *for_error, ssize_t for_error_offset,
                             struct typ *t,

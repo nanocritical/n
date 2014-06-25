@@ -311,7 +311,7 @@ error step_ssa_convert(struct module *mod, struct node *node,
   return 0;
 }
 
-static error ex_ssa_conversion(struct module *mod, struct node *root) {
+static ERROR ex_ssa_conversion(struct module *mod, struct node *root) {
   int module_depth = 0;
   mod->stage->state->passing = 0;
   mod->state->furthest_passing = 0;
@@ -842,7 +842,7 @@ EXAMPLE_NCC_EMPTY(ssa_logical_or) {
 
 static STEP_NM(step_remove_ident_from_use_chain,
                NM(IDENT));
-static error step_remove_ident_from_use_chain(struct module *mod, struct node *node,
+static ERROR step_remove_ident_from_use_chain(struct module *mod, struct node *node,
                                               void *user, bool *stop) {
   if (node->as.IDENT.next_use != NULL) {
     assert(node->as.IDENT.next_use->which == IDENT);
@@ -866,7 +866,7 @@ static error step_remove_ident_from_use_chain(struct module *mod, struct node *n
   return 0;
 }
 
-static error pass_remove_expr_from_use_chain(struct module *mod, struct node *root,
+static ERROR pass_remove_expr_from_use_chain(struct module *mod, struct node *root,
                                              void *user, ssize_t shallow_last_up) {
   PASS(
     ,

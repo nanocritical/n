@@ -193,13 +193,13 @@ struct use_isalist_state {
   ident id;
 };
 
-static error do_scope_lookup_ident_immediate(struct node **result,
+static ERROR do_scope_lookup_ident_immediate(struct node **result,
                                              const struct node *for_error,
                                              const struct module *mod,
                                              const struct scope *scope, ident id,
                                              bool allow_isalist, bool failure_ok);
 
-static error use_isalist_scope_lookup(struct module *mod,
+static ERROR use_isalist_scope_lookup(struct module *mod,
                                       struct typ *t, struct typ *intf,
                                       bool *stop, void *user) {
   struct use_isalist_state *st = user;
@@ -220,7 +220,7 @@ static error use_isalist_scope_lookup(struct module *mod,
   return 0;
 }
 
-static error do_scope_lookup_ident_immediate(struct node **result,
+static ERROR do_scope_lookup_ident_immediate(struct node **result,
                                              const struct node *for_error,
                                              const struct module *mod,
                                              const struct scope *scope, ident id,
@@ -298,7 +298,7 @@ error scope_lookup_ident_immediate(struct node **result, const struct node *for_
                                          true, failure_ok);
 }
 
-static error do_scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,
+static ERROR do_scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,
                                               const struct module *mod,
                                               const struct scope *scope, ident id,
                                               bool failure_ok) {
@@ -358,7 +358,7 @@ error scope_lookup_ident_wontimport(struct node **result, const struct node *for
   } \
 } while (0)
 
-static error do_scope_lookup(struct node **result, const struct node *for_error,
+static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
                              const struct module *mod,
                              const struct scope *scope, const struct node *id,
                              bool failure_ok) {

@@ -3,7 +3,7 @@
 
 #include "parser.h"
 
-error stage_load(struct globalctx *gctx,
+ERROR stage_load(struct globalctx *gctx,
                  struct stage *stage, const char *entry_point_fn);
 
 #endif

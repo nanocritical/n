@@ -314,7 +314,7 @@ error step_type_gather_retval(struct module *mod, struct node *node,
 // FIXME: This is O(depth * number_throw_except).
 // Would be O(number_throw_except) if we remembered whether we're in the TRY
 // or in one of the CATCH, when descending.
-static error check_in_try(struct module *mod, struct node *node, const char *which) {
+static ERROR check_in_try(struct module *mod, struct node *node, const char *which) {
   error e;
 
   struct try_state *st = module_excepts_get(mod);
@@ -388,7 +388,7 @@ error reference(struct node **result,
   return 0;
 }
 
-static error check_terms_not_types(struct module *mod, struct node *node) {
+static ERROR check_terms_not_types(struct module *mod, struct node *node) {
   error e;
   int nth = 1;
   FOREACH_SUB_CONST(s, node) {
@@ -413,7 +413,7 @@ static struct node *follow_ssa(struct node *node) {
   return expr;
 }
 
-static error try_insert_automagic_deref(struct module *mod,
+static ERROR try_insert_automagic_deref(struct module *mod,
                                         struct node *node) {
   if (!typ_is_reference(node->typ)) {
     return 0;
@@ -466,7 +466,7 @@ static error try_insert_automagic_deref(struct module *mod,
   return 0;
 }
 
-static error nullable_op(struct module *mod, const struct node *for_error,
+static ERROR nullable_op(struct module *mod, const struct node *for_error,
                          enum token_type *r, struct typ *t) {
   if (typ_isa(t, TBI_ANY_NULLABLE_REF)) {
     *r = 0;
@@ -493,7 +493,7 @@ static error nullable_op(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-static error type_inference_un(struct module *mod, struct node *node) {
+static ERROR type_inference_un(struct module *mod, struct node *node) {
   assert(node->which == UN);
   error e;
   const enum token_type operator = node->as.UN.operator;
@@ -578,7 +578,7 @@ static error type_inference_un(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error type_inference_bin_sym(struct module *mod, struct node *node) {
+static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
   assert(node->which == BIN);
 
   const enum token_type operator = node->as.BIN.operator;
@@ -781,7 +781,7 @@ static void insert_missing_optional_arg(struct module *mod, struct node *node,
   assert(!e);
 }
 
-static error fill_in_optional_args(struct module *mod, struct node *node,
+static ERROR fill_in_optional_args(struct module *mod, struct node *node,
                                    const struct typ *tfun) {
   const struct node *dfun = typ_definition_const(tfun);
   const size_t dmin = node_fun_min_args_count(dfun);
@@ -871,7 +871,7 @@ static error fill_in_optional_args(struct module *mod, struct node *node,
   return 0;
 }
 
-static error rewrite_unary_call(struct module *mod, struct node *node, struct typ *tfun) {
+static ERROR rewrite_unary_call(struct module *mod, struct node *node, struct typ *tfun) {
   struct node *fun = node_new_subnode(mod, node);
   node_subs_remove(node, fun);
   node_move_content(fun, node);
@@ -925,7 +925,7 @@ static void bin_accessor_maybe_defchoice(struct node **parent_scope, struct node
   }
 }
 
-static error type_inference_bin_accessor(struct module *mod, struct node *node) {
+static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) {
   error e;
 
   enum token_type operator = node->as.BIN.operator;
@@ -1003,7 +1003,7 @@ static error type_inference_bin_accessor(struct module *mod, struct node *node) 
   return 0;
 }
 
-static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *node) {
+static ERROR type_inference_bin_rhs_unsigned(struct module *mod, struct node *node) {
   error e;
   struct node *left = subs_first(node);
   struct node *right = subs_last(node);
@@ -1022,7 +1022,7 @@ static error type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   return 0;
 }
 
-static error type_inference_bin_rhs_type(struct module *mod, struct node *node) {
+static ERROR type_inference_bin_rhs_type(struct module *mod, struct node *node) {
   error e;
   struct node *left = subs_first(node);
   struct node *right = subs_last(node);
@@ -1040,7 +1040,7 @@ static error type_inference_bin_rhs_type(struct module *mod, struct node *node) 
   return 0;
 }
 
-static error type_inference_bin(struct module *mod, struct node *node) {
+static ERROR type_inference_bin(struct module *mod, struct node *node) {
   assert(node->which == BIN);
 
   error e;
@@ -1067,7 +1067,7 @@ static error type_inference_bin(struct module *mod, struct node *node) {
   }
 }
 
-static error typ_tuple(struct node **result, struct module *mod, struct node *node) {
+static ERROR typ_tuple(struct node **result, struct module *mod, struct node *node) {
   const size_t arity = subs_count(node);
   struct typ **args = calloc(arity, sizeof(struct typ *));
   size_t n = 0;
@@ -1085,7 +1085,7 @@ static error typ_tuple(struct node **result, struct module *mod, struct node *no
   return 0;
 }
 
-static error type_inference_tuple(struct module *mod, struct node *node) {
+static ERROR type_inference_tuple(struct module *mod, struct node *node) {
   size_t n = 0;
   FOREACH_SUB(s, node) {
     if (n > 0 && (node->flags & NODE_IS_TYPE) != (s->flags & NODE_IS_TYPE)) {
@@ -1127,7 +1127,7 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
   }
 }
 
-static error type_inference_init_array(struct module *mod, struct node *node) {
+static ERROR type_inference_init_array(struct module *mod, struct node *node) {
   set_typ(&node->typ, create_tentative(mod, node, TBI_STATIC_ARRAY));
 
   FOREACH_SUB(s, node) {
@@ -1153,7 +1153,7 @@ static void type_inference_init_isalist_literal(struct module *mod, struct node 
   node->flags |= NODE_IS_TYPE;
 }
 
-static error type_inference_init(struct module *mod, struct node *node) {
+static ERROR type_inference_init(struct module *mod, struct node *node) {
   assert(node->which == INIT);
   if (node->as.INIT.is_array) {
     if (!typ_is_literal(subs_first(node)->typ)
@@ -1169,7 +1169,7 @@ static error type_inference_init(struct module *mod, struct node *node) {
   }
 }
 
-static error type_inference_return(struct module *mod, struct node *node) {
+static ERROR type_inference_return(struct module *mod, struct node *node) {
   assert(node->which == RETURN);
 
   if (subs_count_atleast(node, 1)) {
@@ -1225,7 +1225,7 @@ struct node *expr_ref(struct module *mod, struct node *par,
   return n;
 }
 
-static error rewrite_self(struct module *mod, struct node *node,
+static ERROR rewrite_self(struct module *mod, struct node *node,
                           struct node *fun) {
   assert(fun->which == BIN);
 
@@ -1284,7 +1284,7 @@ static bool compare_ref_depth(const struct typ *target, const struct typ *arg,
   return dtarget == darg + diff;
 }
 
-static error try_insert_const_ref(struct module *mod, struct node *node,
+static ERROR try_insert_const_ref(struct module *mod, struct node *node,
                                   const struct typ *target,
                                   enum token_type target_explicit_ref,
                                   struct node *arg) {
@@ -1342,7 +1342,7 @@ static error try_insert_const_ref(struct module *mod, struct node *node,
   return 0;
 }
 
-static error try_insert_const_deref(struct module *mod, struct node *node,
+static ERROR try_insert_const_deref(struct module *mod, struct node *node,
                                     const struct typ *target,
                                     enum token_type target_explicit_ref,
                                     struct node *arg) {
@@ -1387,7 +1387,7 @@ static enum token_type has_explicit_ref(const struct node *dfun, size_t n) {
   return 0;
 }
 
-static error process_automagic_call_arguments(struct module *mod,
+static ERROR process_automagic_call_arguments(struct module *mod,
                                               struct node *node,
                                               const struct typ *tfun) {
   if (!subs_count_atleast(node, 2)) {
@@ -1445,7 +1445,7 @@ static error process_automagic_call_arguments(struct module *mod,
   return 0;
 }
 
-static error prepare_call_arguments(struct module *mod, struct node *node) {
+static ERROR prepare_call_arguments(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
 
@@ -1514,7 +1514,7 @@ static error prepare_call_arguments(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error explicit_instantiation(struct module *mod, struct node *node) {
+static ERROR explicit_instantiation(struct module *mod, struct node *node) {
   error e;
   struct node *what = subs_first(node);
   if (what->which == BIN && !(subs_first(what)->flags & NODE_IS_TYPE)) {
@@ -1574,7 +1574,7 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error implicit_function_instantiation(struct module *mod, struct node *node) {
+static ERROR implicit_function_instantiation(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
   struct typ *tfun = fun->typ;
@@ -1630,7 +1630,7 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
   return 0;
 }
 
-static error function_instantiation(struct module *mod, struct node *node) {
+static ERROR function_instantiation(struct module *mod, struct node *node) {
   assert(subs_count_atleast(node, 2));
 
   error e;
@@ -1645,7 +1645,7 @@ static error function_instantiation(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error check_consistent_either_types_or_values(struct module *mod,
+static ERROR check_consistent_either_types_or_values(struct module *mod,
                                                      struct node *arg0) {
   uint32_t flags = 0;
   for (struct node *s = arg0; s != NULL; s = next(s)) {
@@ -1659,7 +1659,7 @@ static error check_consistent_either_types_or_values(struct module *mod,
   return 0;
 }
 
-static error type_inference_explicit_unary_call(struct module *mod, struct node *node, struct node *dfun) {
+static ERROR type_inference_explicit_unary_call(struct module *mod, struct node *node, struct node *dfun) {
   const size_t count = subs_count(node);
   if (dfun->which == DEFFUN && count != 1) {
     error e = mk_except_call_args_count(mod, node, dfun, false, count - 1);
@@ -1680,7 +1680,7 @@ static error type_inference_explicit_unary_call(struct module *mod, struct node 
   return 0;
 }
 
-static error try_rewrite_operator_sub(struct module *mod, struct node *node) {
+static ERROR try_rewrite_operator_sub(struct module *mod, struct node *node) {
   if (!subs_count_atleast(node, 3)) {
     return 0;
   }
@@ -1730,7 +1730,7 @@ static error try_rewrite_operator_sub(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error type_inference_call(struct module *mod, struct node *node) {
+static ERROR type_inference_call(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
   struct node *dfun = typ_definition(fun->typ);
@@ -1803,7 +1803,7 @@ static error type_inference_call(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error type_inference_block(struct module *mod, struct node *node) {
+static ERROR type_inference_block(struct module *mod, struct node *node) {
   error e;
 
   struct node *last_typable = subs_last(node);
@@ -1844,7 +1844,7 @@ static error type_inference_block(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error type_inference_if(struct module *mod, struct node *node) {
+static ERROR type_inference_if(struct module *mod, struct node *node) {
   error e;
 
   struct node *cond = subs_first(node);
@@ -1862,7 +1862,7 @@ static error type_inference_if(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error unify_match_pattern(struct module *mod, struct node *expr, struct node *pattern) {
+static ERROR unify_match_pattern(struct module *mod, struct node *expr, struct node *pattern) {
   struct node *d = typ_definition(expr->typ);
   assert(d->which == DEFTYPE);
   const bool enum_or_union = d->as.DEFTYPE.kind == DEFTYPE_ENUM
@@ -1881,7 +1881,7 @@ static error unify_match_pattern(struct module *mod, struct node *expr, struct n
   return 0;
 }
 
-static error type_inference_match(struct module *mod, struct node *node) {
+static ERROR type_inference_match(struct module *mod, struct node *node) {
   error e;
 
   struct node *expr = subs_first(node);
@@ -1909,7 +1909,7 @@ static bool in_a_body_pass(struct module *mod) {
   return mod->stage->state->passing >= PASSZERO_COUNT + PASSFWD_COUNT;
 }
 
-static error type_inference_ident_unknown(struct module *mod, struct node *node) {
+static ERROR type_inference_ident_unknown(struct module *mod, struct node *node) {
   error e;
   if (!in_a_body_pass(mod)) {
     e = mk_except(mod, node, "unknown ident '%s'",
@@ -1930,7 +1930,7 @@ static error type_inference_ident_unknown(struct module *mod, struct node *node)
   return 0;
 }
 
-static error type_inference_ident(struct module *mod, struct node *node) {
+static ERROR type_inference_ident(struct module *mod, struct node *node) {
   if (node_is_name_of_globalenv(node)) {
     set_typ(&node->typ, create_tentative(mod, node, TBI_ANY));
     return 0;
@@ -2001,7 +2001,7 @@ static struct typ* number_literal_typ(struct module *mod, struct node *node) {
   }
 }
 
-static error type_inference_within(struct module *mod, struct node *node) {
+static ERROR type_inference_within(struct module *mod, struct node *node) {
   node->typ = NULL;
 
   error e;
@@ -2056,7 +2056,7 @@ malformed:
   THROW(e);
 }
 
-static error type_inference_try(struct module *mod, struct node *node) {
+static ERROR type_inference_try(struct module *mod, struct node *node) {
   struct node *eblock = subs_last(node);
 
   struct typ *u = NULL;
@@ -2074,7 +2074,7 @@ static error type_inference_try(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error type_inference_defchoice_init(struct module *mod,
+static ERROR type_inference_defchoice_init(struct module *mod,
                                            struct node *node) {
   error e;
   struct node *left = subs_first(node);
@@ -2121,7 +2121,7 @@ static error type_inference_defchoice_init(struct module *mod,
   return 0;
 }
 
-static error type_inference_typeconstraint(struct module *mod, struct node *node) {
+static ERROR type_inference_typeconstraint(struct module *mod, struct node *node) {
   if (node->as.TYPECONSTRAINT.is_constraint) {
     set_typ(&node->typ, subs_first(node)->typ);
     return 0;
@@ -2452,7 +2452,7 @@ static void finalize_weakly_concrete(struct module *mod, struct typ *t) {
   }
 }
 
-static error finalize_generic_instantiation(struct module *mod,
+static ERROR finalize_generic_instantiation(struct module *mod,
                                             const struct node *for_error,
                                             struct typ *t) {
   if (typ_definition_const(t) == NULL) {

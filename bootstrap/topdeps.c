@@ -128,7 +128,7 @@ error topdeps_foreach(struct module *mod, struct node *node,
   return 0;
 }
 
-static error print_topdeps_each(struct module *mod, struct node *node,
+static ERROR print_topdeps_each(struct module *mod, struct node *node,
                                 struct typ *t, uint32_t topdep_mask, void *user) {
   fprintf(stderr, "\t%04x %d %zu %s @%p\n",
           topdep_mask,
@@ -141,5 +141,6 @@ static error print_topdeps_each(struct module *mod, struct node *node,
 void debug_print_topdeps(const struct module *mod, const struct node *node) {
   fprintf(stderr, "%s :%s @%p\n", scope_name(mod, &node->scope),
           pptyp(mod, node->typ), node->typ);
-  topdeps_foreach(CONST_CAST(mod), CONST_CAST(node), print_topdeps_each, NULL);
+  error never = topdeps_foreach(CONST_CAST(mod), CONST_CAST(node), print_topdeps_each, NULL);
+  assert(!never);
 }

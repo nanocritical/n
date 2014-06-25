@@ -13,15 +13,15 @@ int snprint_constraint(char *s, size_t len,
                        const struct module *mod, const struct constraint *c);
 
 extern const uint64_t step_constraint_inference_filter;
-error step_constraint_inference(struct module *mod, struct node *node,
+ERROR step_constraint_inference(struct module *mod, struct node *node,
                                 void *user, bool *stop);
 
 extern const uint64_t step_check_exhaustive_match_filter;
-error step_check_exhaustive_match(struct module *mod, struct node *node,
+ERROR step_check_exhaustive_match(struct module *mod, struct node *node,
                                   void *user, bool *stop);
 
 extern const uint64_t step_stop_generic_functor_filter;
-error step_stop_generic_functor(struct module *mod, struct node *node,
+ERROR step_stop_generic_functor(struct module *mod, struct node *node,
                                 void *user, bool *stop);
 
 #endif

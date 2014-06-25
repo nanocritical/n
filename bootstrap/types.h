@@ -53,25 +53,25 @@ void typ_link_to_existing_final(struct typ *dst, struct typ *src);
 struct typ *typ_lookup_builtin_tuple(struct module *mod, size_t arity);
 
 bool typ_equal(const struct typ *a, const struct typ *b);
-error typ_check_equal(const struct module *mod, const struct node *for_error,
+ERROR typ_check_equal(const struct module *mod, const struct node *for_error,
                       const struct typ *a, const struct typ *b);
 bool typ_has_same_generic_functor(const struct module *mod,
                                   const struct typ *a, const struct typ *b);
 bool typ_isa(const struct typ *a, const struct typ *intf);
-error typ_check_isa(const struct module *mod, const struct node *for_error,
+ERROR typ_check_isa(const struct module *mod, const struct node *for_error,
                     const struct typ *a, const struct typ *intf);
 
 bool typ_is_reference(const struct typ *t);
 bool typ_is_nullable_reference(const struct typ *t);
-error typ_check_is_reference(const struct module *mod, const struct node *for_error,
+ERROR typ_check_is_reference(const struct module *mod, const struct node *for_error,
                              const struct typ *a);
 bool typ_is_slice(const struct typ *t);
 
 bool typ_is_dyn(const struct typ *t);
 bool typ_is_dyn_compatible(const struct typ *t);
-error typ_check_can_deref(const struct module *mod, const struct node *for_error,
+ERROR typ_check_can_deref(const struct module *mod, const struct node *for_error,
                           const struct typ *a, enum token_type operator);
-error typ_check_deref_against_mark(const struct module *mod, const struct node *for_error,
+ERROR typ_check_deref_against_mark(const struct module *mod, const struct node *for_error,
                                    const struct typ *t, enum token_type operator);
 
 bool typ_is_builtin(const struct module *mod, const struct typ *t);
@@ -91,7 +91,7 @@ enum isalist_filter {
 };
 typedef error (*isalist_each)(struct module *mod, struct typ *t, struct typ *intf,
                               bool *stop, void *user);
-error typ_isalist_foreach(struct module *mod, struct typ *t, uint32_t filter,
+ERROR typ_isalist_foreach(struct module *mod, struct typ *t, uint32_t filter,
                           isalist_each iter, void *user);
 
 // const interface

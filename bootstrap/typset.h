@@ -29,7 +29,7 @@ typedef error (*typset_each)(struct module *mod, struct typ *t,
 // - tentative types are first;
 // - final types are always in the same order, with respect to other final
 // types in the typset.
-error typset_foreach(struct module *mod, struct typset *set,
+ERROR typset_foreach(struct module *mod, struct typset *set,
                      typset_each each, void *user);
 
 void debug_print_typset(const struct module *mod, const struct typset *set);

@@ -298,7 +298,7 @@ int parser_column(const struct parser *parser, const struct token *tok) {
   THROW_SYNTAX(mod, tok, "unexpected token '%.*s'", (int)(tok)->len, (tok)->value); \
 } while (0)
 
-static error parse_modpath(struct module *mod, const char *raw_fn) {
+static ERROR parse_modpath(struct module *mod, const char *raw_fn) {
   const char *fn = raw_fn;
   while (fn[0] == '/' || fn[0] == '.') {
     fn += 1;
@@ -501,7 +501,7 @@ void globalctx_init(struct globalctx *gctx) {
   gctx->modules_root.typ = typ_create(NULL, &gctx->modules_root);
 }
 
-static error module_read(struct module *mod, const char *prefix, const char *fn) {
+static ERROR module_read(struct module *mod, const char *prefix, const char *fn) {
   char *fullpath = NULL;
   if (prefix != NULL && strlen(prefix) > 0) {
     fullpath = calloc(strlen(prefix) + 1 + strlen(fn) + 1, sizeof(char));
@@ -543,7 +543,7 @@ static bool eof(struct parser *parser) {
   return parser->codeloc.pos >= parser->len;
 }
 
-static error scan(struct token *tok, struct module *mod) {
+static ERROR scan(struct token *tok, struct module *mod) {
   memset(tok, 0, sizeof(*tok));
 
   error e = lexer_scan(tok, &mod->parser);
@@ -559,7 +559,7 @@ static void back(struct module *mod, const struct token *tok) {
   lexer_back(&mod->parser, tok);
 }
 
-static error scan_expected(struct module *mod, enum token_type t) {
+static ERROR scan_expected(struct module *mod, enum token_type t) {
   struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
@@ -571,7 +571,7 @@ static error scan_expected(struct module *mod, enum token_type t) {
   return 0;
 }
 
-static error scan_oneof(struct token *tok, struct module *mod, ...) {
+static ERROR scan_oneof(struct token *tok, struct module *mod, ...) {
   error e = scan(tok, mod);
   EXCEPT(e);
 
@@ -596,10 +596,10 @@ static error scan_oneof(struct token *tok, struct module *mod, ...) {
 
 }
 
-static error p_expr(struct node *node, struct module *mod, enum token_type parent_op);
-static error p_block(struct node *node, struct module *mod);
+static ERROR p_expr(struct node *node, struct module *mod, enum token_type parent_op);
+static ERROR p_block(struct node *node, struct module *mod);
 
-static error p_ident(struct node *node, struct module *mod) {
+static ERROR p_ident(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   error e = scan_oneof(&tok, mod, TIDENT, 0);
   EXCEPT(e);
@@ -610,7 +610,7 @@ static error p_ident(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_number(struct node *node, struct module *mod) {
+static ERROR p_number(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   error e = scan_oneof(&tok, mod, TNUMBER, 0);
   EXCEPT(e);
@@ -636,7 +636,7 @@ static error p_number(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_bool(struct node *node, struct module *mod) {
+static ERROR p_bool(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   error e = scan_oneof(&tok, mod, Tfalse, Ttrue, 0);
   EXCEPT(e);
@@ -646,7 +646,7 @@ static error p_bool(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_except(struct node *node, struct module *mod) {
+static ERROR p_except(struct node *node, struct module *mod) {
   node_set_which(node, EXCEP);
   struct token tok = { 0 };
   error e = scan(&tok, mod);
@@ -661,7 +661,7 @@ static error p_except(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_string(struct node *node, struct module *mod) {
+static ERROR p_string(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   error e = scan_oneof(&tok, mod, TSTRING, 0);
   EXCEPT(e);
@@ -675,13 +675,13 @@ static error p_string(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_typeexpr(struct node *node, struct module *mod) {
+static ERROR p_typeexpr(struct node *node, struct module *mod) {
   error e = p_expr(node, mod, T__CALL);
   EXCEPT(e);
   return 0;
 }
 
-static error p_deffield(struct node *node, struct module *mod) {
+static ERROR p_deffield(struct node *node, struct module *mod) {
   node_set_which(node, DEFFIELD);
   error e = p_ident(node_new_subnode(mod, node), mod);
   EXCEPT(e);
@@ -694,9 +694,9 @@ static error p_deffield(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_deftype_block(struct node *node, struct module *mod);
+static ERROR p_deftype_block(struct node *node, struct module *mod);
 
-static error p_defchoice(struct node *node, struct module *mod) {
+static ERROR p_defchoice(struct node *node, struct module *mod) {
   node_set_which(node, DEFCHOICE);
   error e = p_ident(node_new_subnode(mod, node), mod);
   EXCEPT(e);
@@ -788,7 +788,7 @@ static void convert_range(struct module *mod, struct node *node) {
   }
 }
 
-static error p_expr_unary(struct node *node, struct module *mod) {
+static ERROR p_expr_unary(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
@@ -823,7 +823,7 @@ static error p_expr_unary(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_expr_init(struct node *node, struct module *mod) {
+static ERROR p_expr_init(struct node *node, struct module *mod) {
   node_set_which(node, INIT);
 
   error e = scan_expected(mod, TLCBRA);
@@ -861,7 +861,7 @@ static error p_expr_init(struct node *node, struct module *mod) {
   }
 }
 
-static error p_expr_tuple(struct node *node, struct module *mod) {
+static ERROR p_expr_tuple(struct node *node, struct module *mod) {
   node_set_which(node, TUPLE);
   error e;
   struct token tok = { 0 };
@@ -888,7 +888,7 @@ static error p_expr_tuple(struct node *node, struct module *mod) {
   }
 }
 
-static error p_expr_call(struct node *node, struct module *mod) {
+static ERROR p_expr_call(struct node *node, struct module *mod) {
   node_set_which(node, CALL);
   error e;
   struct token tok = { 0 };
@@ -960,7 +960,7 @@ static void convert_at(struct module *mod, struct node *node) {
   }
 }
 
-static error p_expr_binary(struct node *node, struct module *mod) {
+static ERROR p_expr_binary(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
@@ -1041,7 +1041,7 @@ static error p_expr_binary(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_expr_post_unary(struct node *node, struct module *mod) {
+static ERROR p_expr_post_unary(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
@@ -1052,7 +1052,7 @@ static error p_expr_post_unary(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_if(struct node *node, struct module *mod) {
+static ERROR p_if(struct node *node, struct module *mod) {
   node_set_which(node, IF);
 
   struct token eol = { 0 };
@@ -1111,7 +1111,7 @@ again:
   return 0;
 }
 
-static error p_for(struct node *node, struct module *mod,
+static ERROR p_for(struct node *node, struct module *mod,
                    enum token_type for_foreach) {
   node_set_which(node, FOR);
   node->as.FOR.is_foreach = for_foreach == Tforeach;
@@ -1134,7 +1134,7 @@ static error p_for(struct node *node, struct module *mod,
   return 0;
 }
 
-static error p_while(struct node *node, struct module *mod) {
+static ERROR p_while(struct node *node, struct module *mod) {
   node_set_which(node, WHILE);
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
@@ -1147,7 +1147,7 @@ static error p_while(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_try(struct node *node, struct module *mod) {
+static ERROR p_try(struct node *node, struct module *mod) {
   node_set_which(node, TRY);
 
   error e = scan_expected(mod, TSOB);
@@ -1239,7 +1239,7 @@ missing_label:
   return 0;
 }
 
-static error p_match(struct node *node, struct module *mod) {
+static ERROR p_match(struct node *node, struct module *mod) {
   node_set_which(node, MATCH);
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
@@ -1298,7 +1298,7 @@ static void shift(struct module *mod, struct node *node) {
   node_subs_append(node, first);
 }
 
-static error p_expr(struct node *node, struct module *mod,
+static ERROR p_expr(struct node *node, struct module *mod,
                     const enum token_type top_parent_op) {
   assert(top_parent_op < TOKEN__NUM && IS_OP(top_parent_op));
 
@@ -1462,7 +1462,7 @@ done:
   return 0;
 }
 
-static error p_return(struct node *node, struct module *mod) {
+static ERROR p_return(struct node *node, struct module *mod) {
   node_set_which(node, RETURN);
 
   struct token tok = { 0 };
@@ -1477,7 +1477,7 @@ static error p_return(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_throw(struct node *node, struct module *mod) {
+static ERROR p_throw(struct node *node, struct module *mod) {
   node_set_which(node, THROW);
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
@@ -1499,7 +1499,7 @@ static error p_throw(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_defpattern(struct node *node, struct module *mod,
+static ERROR p_defpattern(struct node *node, struct module *mod,
                           enum token_type let_alias_globalenv) {
   node_set_which(node, DEFPATTERN);
   node->as.DEFPATTERN.is_alias = let_alias_globalenv == Talias;
@@ -1544,7 +1544,7 @@ static error p_defpattern(struct node *node, struct module *mod,
 
 // When let_and_alias_such_globalenv == Tand, node is previous LET we are
 // appending ourselves to. Same idea with Tsuch.
-static error p_let(struct node *node, struct module *mod, const struct toplevel *toplevel,
+static ERROR p_let(struct node *node, struct module *mod, const struct toplevel *toplevel,
                    enum token_type let_and_alias_such_globalenv) {
   if (let_and_alias_such_globalenv == Tsuch) {
     assert(node->which == LET);
@@ -1581,22 +1581,22 @@ static error p_let(struct node *node, struct module *mod, const struct toplevel 
   return 0;
 }
 
-static error p_break(struct node *node, struct module *mod) {
+static ERROR p_break(struct node *node, struct module *mod) {
   node_set_which(node, BREAK);
   return 0;
 }
 
-static error p_continue(struct node *node, struct module *mod) {
+static ERROR p_continue(struct node *node, struct module *mod) {
   node_set_which(node, CONTINUE);
   return 0;
 }
 
-static error p_noop(struct node *node, struct module *mod) {
+static ERROR p_noop(struct node *node, struct module *mod) {
   node_set_which(node, NOOP);
   return 0;
 }
 
-static error p_pre(struct node *node, struct module *mod) {
+static ERROR p_pre(struct node *node, struct module *mod) {
   node_set_which(node, PRE);
 
   GSTART();
@@ -1610,7 +1610,7 @@ static error p_pre(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_post(struct node *node, struct module *mod) {
+static ERROR p_post(struct node *node, struct module *mod) {
   node_set_which(node, POST);
 
   GSTART();
@@ -1624,7 +1624,7 @@ static error p_post(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_invariant(struct node *node, struct module *mod) {
+static ERROR p_invariant(struct node *node, struct module *mod) {
   node_set_which(node, INVARIANT);
 
   GSTART();
@@ -1638,7 +1638,7 @@ static error p_invariant(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_example(struct node *node, struct module *mod) {
+static ERROR p_example(struct node *node, struct module *mod) {
   node_set_which(node, EXAMPLE);
   node->as.EXAMPLE.name = mod->next_example;
   mod->next_example += 1;
@@ -1654,7 +1654,7 @@ static error p_example(struct node *node, struct module *mod) {
   return 0;
 }
 
-static error p_within(struct node *node, struct module *mod, bool is_list) {
+static ERROR p_within(struct node *node, struct module *mod, bool is_list) {
   node_set_which(node, WITHIN);
 
   struct token tok = { 0 };
@@ -1682,7 +1682,7 @@ static error p_within(struct node *node, struct module *mod, bool is_list) {
   return 0;
 }
 
-static error p_statement(struct node *par, struct module *mod) {
+static ERROR p_statement(struct node *par, struct module *mod) {
   error e;
   struct token tok = { 0 };
 
@@ -1744,7 +1744,7 @@ static error p_statement(struct node *par, struct module *mod) {
   return 0;
 }
 
-static error p_block(struct node *node, struct module *mod) {
+static ERROR p_block(struct node *node, struct module *mod) {
   node_set_which(node, BLOCK);
   error e;
   struct token tok = { 0 };
@@ -1784,7 +1784,7 @@ again:
   goto again;
 }
 
-static error p_defarg(struct node *node, struct module *mod, enum token_type tokt) {
+static ERROR p_defarg(struct node *node, struct module *mod, enum token_type tokt) {
   node_set_which(node, DEFARG);
   node->as.DEFARG.is_optional = tokt == TPREQMARK;
   node->as.DEFARG.is_vararg = tokt == TDOTDOTDOT;
@@ -1802,19 +1802,19 @@ static error p_defarg(struct node *node, struct module *mod, enum token_type tok
 
 static STEP_NM(step_rewrite_into_defarg,
                NM(TYPECONSTRAINT));
-static error step_rewrite_into_defarg(struct module *mod, struct node *node,
+static ERROR step_rewrite_into_defarg(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   node_set_which(node, DEFARG);
   return 0;
 }
 
-static error rewrite_into_defarg(struct module *mod, struct node *root,
+static ERROR rewrite_into_defarg(struct module *mod, struct node *root,
                                  void *user, size_t shallow_last_up) {
   PASS(, UP_STEP(step_rewrite_into_defarg),);
   return 0;
 }
 
-static error p_defret(struct node *node, struct module *mod) {
+static ERROR p_defret(struct node *node, struct module *mod) {
   error e = p_expr(node, mod, T__STATEMENT);
   EXCEPT(e);
 
@@ -1891,7 +1891,7 @@ static void add_self_arg(struct module *mod, struct node *node,
   }
 }
 
-static error p_defmethod_access(struct node *node, struct module *mod) {
+static ERROR p_defmethod_access(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
@@ -1975,7 +1975,7 @@ bool name_is_export(const struct module *mod, const struct node *name) {
   return (c1 >= 'A' && c1 <= 'Z') || (c1 == '`' && c2 >= 'A' && c2 <= 'Z');
 }
 
-static error p_deffun(struct node *node, struct module *mod,
+static ERROR p_deffun(struct node *node, struct module *mod,
                       const struct toplevel *toplevel,
                       enum node_which fun_or_method) {
   error e;
@@ -2095,7 +2095,7 @@ within:
   return 0;
 }
 
-static error p_isalist(struct node *par, struct module *mod) {
+static ERROR p_isalist(struct node *par, struct module *mod) {
   struct node *isalist = subs_at(par, IDX_ISALIST);
 
   error e;
@@ -2124,7 +2124,7 @@ again:
   }
 }
 
-static error p_delegate(struct node *node, struct module *mod,
+static ERROR p_delegate(struct node *node, struct module *mod,
                         struct toplevel *toplevel) {
   node_set_which(node, DELEGATE);
   node->as.DELEGATE.toplevel = *toplevel;
@@ -2149,7 +2149,7 @@ again:
   goto again;
 }
 
-static error p_deftype_statement(struct node *node, struct module *mod,
+static ERROR p_deftype_statement(struct node *node, struct module *mod,
                                  struct node *deft) {
   error e = 0;
   struct token tok = { 0 };
@@ -2201,7 +2201,7 @@ again:
   return 0;
 }
 
-static error p_deftype_block(struct node *node, struct module *mod) {
+static ERROR p_deftype_block(struct node *node, struct module *mod) {
   error e;
   struct token tok = { 0 };
   bool first = true;
@@ -2236,7 +2236,7 @@ again:
   goto again;
 }
 
-static error p_defgenarg(struct node *node, struct module *mod, bool explicit) {
+static ERROR p_defgenarg(struct node *node, struct module *mod, bool explicit) {
   node_set_which(node, DEFGENARG);
   node->as.DEFGENARG.is_explicit = explicit;
   error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_COLON);
@@ -2250,7 +2250,7 @@ static error p_defgenarg(struct node *node, struct module *mod, bool explicit) {
   return 0;
 }
 
-static error p_genargs(struct node *node, struct module *mod,
+static ERROR p_genargs(struct node *node, struct module *mod,
                        enum token_type terminator, bool explicit) {
   node_set_which(node, GENARGS);
 
@@ -2274,7 +2274,7 @@ again:
   return 0;
 }
 
-static error p_deftype(struct node *node, struct module *mod,
+static ERROR p_deftype(struct node *node, struct module *mod,
                        struct node *some_genargs, struct toplevel *toplevel,
                        enum token_type decl_tok) {
   if (some_genargs != NULL) {
@@ -2326,14 +2326,14 @@ done:
   return 0;
 }
 
-static error p_implicit_genargs(struct node *genargs, struct module *mod) {
+static ERROR p_implicit_genargs(struct node *genargs, struct module *mod) {
   error e = p_genargs(genargs, mod, TRPAR, false);
   EXCEPT(e);
 
   return 0;
 }
 
-static error p_defintf_statement(struct node *node, struct module *mod,
+static ERROR p_defintf_statement(struct node *node, struct module *mod,
                                  struct node *intf) {
   error e;
   struct token tok = { 0 }, tok2 = { 0 };
@@ -2406,7 +2406,7 @@ bypass:
   return 0;
 }
 
-static error p_defintf_block(struct node *node, struct module *mod) {
+static ERROR p_defintf_block(struct node *node, struct module *mod) {
   error e;
   struct token tok = { 0 };
   bool first = true;
@@ -2441,7 +2441,7 @@ again:
   goto again;
 }
 
-static error p_defintf(struct node *node, struct module *mod,
+static ERROR p_defintf(struct node *node, struct module *mod,
                        struct node *some_genargs, struct toplevel *toplevel) {
   if (some_genargs != NULL) {
     toplevel->generic->first_explicit_genarg = subs_count(some_genargs);
@@ -2497,7 +2497,7 @@ void copy_and_extend_import_path(struct module *mod, struct node *imported,
   i->as.IDENT.name = idents_add(mod->gctx, tok);
 }
 
-static error p_import(struct node *node, struct module *mod,
+static ERROR p_import(struct node *node, struct module *mod,
                       const struct toplevel *toplevel,
                       bool from) {
   node_set_which(node, IMPORT);
@@ -2555,7 +2555,7 @@ again:
   }
 }
 
-static error p_toplevel(struct module *mod) {
+static ERROR p_toplevel(struct module *mod) {
   if (mod->parser.len == 0) {
     return 0;
   }
@@ -2716,7 +2716,7 @@ static void subnode_count_avg(struct module *mod) {
   fprintf(stderr, "%s: %f\n", mod->filename, (float) sub_count / node_count);
 }
 
-static error module_parse(struct module *mod) {
+static ERROR module_parse(struct module *mod) {
   error e;
   mod->body = mk_node(mod, mod->root, MODULE_BODY);
   scope_init(&mod->body->as.MODULE_BODY.globalenv_scope);
@@ -2760,7 +2760,8 @@ EXAMPLE(parse_modpath) {
     struct stage stage = { 0 };
     struct module m = { 0 };
     module_init(&gctx, &stage, &m);
-    parse_modpath(&m, "test.n");
+    error e = parse_modpath(&m, "test.n");
+    assert(!e);
     assert(m.path_len == 1);
     const char *p = "test";
     assert(m.path[0] == idents_add_string(&gctx, p, strlen(p)));
@@ -2771,7 +2772,8 @@ EXAMPLE(parse_modpath) {
     struct stage stage = { 0 };
     struct module m = { 0 };
     module_init(&gctx, &stage, &m);
-    parse_modpath(&m, "bootstrap/module.n");
+    error e = parse_modpath(&m, "bootstrap/module.n");
+    assert(!e);
     assert(m.path_len == 1);
     const char *p = "bootstrap";
     assert(m.path[0] == idents_add_string(&gctx, p, strlen(p)));
@@ -2782,7 +2784,8 @@ EXAMPLE(parse_modpath) {
     struct stage stage = { 0 };
     struct module m = { 0 };
     module_init(&gctx, &stage, &m);
-    parse_modpath(&m, "bootstrap/test.n");
+    error e = parse_modpath(&m, "bootstrap/test.n");
+    assert(!e);
     assert(m.path_len == 2);
     const char *p1 = "bootstrap";
     const char *p2 = "test";
@@ -2810,7 +2813,7 @@ static struct node *create_module_node(struct node *par, ident basename,
   return m;
 }
 
-static error register_module(struct globalctx *gctx, struct module *to_register,
+static ERROR register_module(struct globalctx *gctx, struct module *to_register,
                              const char *filename) {
   // A number of the calls below need access to global state, but don't care
   // about 'to_register' specifically. This variable makes this distinction

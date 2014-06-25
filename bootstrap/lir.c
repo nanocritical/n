@@ -191,7 +191,7 @@ static void rewrite_isnul_op(struct module *mod, struct node *node) {
   G0(nul, node, NUL);
 }
 
-static error find_catch(struct node **r,
+static ERROR find_catch(struct node **r,
                         struct module *mod, struct node *for_error,
                         struct lir_state *st, ident label) {
   error e;
@@ -259,7 +259,7 @@ static struct node *insert_temporary(struct module *mod, uint32_t flags,
   return repl;
 }
 
-static error extract_defnames(struct module *mod,
+static ERROR extract_defnames(struct module *mod,
                               const struct toplevel *toplevel, uint32_t flags,
                               bool is_alias, bool is_globalenv,
                               struct node *let_block, struct node *before,
@@ -425,7 +425,7 @@ static error extract_defnames(struct module *mod,
   return 0;
 }
 
-static error lir_conversion_defpattern(struct module *mod,
+static ERROR lir_conversion_defpattern(struct module *mod,
                                        const struct toplevel *toplevel, uint32_t flags,
                                        struct node *let_block, struct node *before,
                                        struct node *defp) {
@@ -447,8 +447,9 @@ static error lir_conversion_defpattern(struct module *mod,
   const bool is_alias = defp->as.DEFPATTERN.is_alias;
   const bool is_globalenv = defp->as.DEFPATTERN.is_globalenv;
 
-  extract_defnames(mod, toplevel, flags, is_alias, is_globalenv,
-                   let_block, before, pattern, expr);
+  error e = extract_defnames(mod, toplevel, flags, is_alias, is_globalenv,
+                             let_block, before, pattern, expr);
+  EXCEPT(e);
 
   return 0;
 }
@@ -798,7 +799,7 @@ error step_lir_conversion_up(struct module *mod, struct node *node,
   return 0;
 }
 
-static error ex_lir_conversion(struct module *mod, struct node *root) {
+static ERROR ex_lir_conversion(struct module *mod, struct node *root) {
   void *user = NULL;
   size_t shallow_last_up = -1;
   PASS(

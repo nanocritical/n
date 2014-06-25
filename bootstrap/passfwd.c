@@ -15,7 +15,7 @@
 
 static STEP_NM(step_codeloc_for_generated,
                -1);
-static error step_codeloc_for_generated(struct module *mod, struct node *node,
+static ERROR step_codeloc_for_generated(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   if (node->codeloc.pos == 0) {
     node->codeloc = parent(node)->codeloc;
@@ -26,7 +26,7 @@ static error step_codeloc_for_generated(struct module *mod, struct node *node,
 
 static STEP_NM(step_export_pre_post_invariant,
                NM(PRE) | NM(POST) | NM(INVARIANT));
-static error step_export_pre_post_invariant(struct module *mod, struct node *node,
+static ERROR step_export_pre_post_invariant(struct module *mod, struct node *node,
                                             void *user, bool *stop) {
   const struct node *par = parent_const(node);
   if (par->which == DEFTYPE || par->which == DEFINTF) {
@@ -74,7 +74,7 @@ error step_stop_already_early_typing(struct module *mod, struct node *node,
 
 static STEP_NM(step_down_is_setgenarg,
                NM(SETGENARG));
-static error step_down_is_setgenarg(struct module *mod, struct node *node,
+static ERROR step_down_is_setgenarg(struct module *mod, struct node *node,
                                     void *user, bool *stop) {
   DSTEP(mod, node);
   mod->state->top_state->is_setgenarg = true;
@@ -83,14 +83,14 @@ static error step_down_is_setgenarg(struct module *mod, struct node *node,
 
 static STEP_NM(step_up_is_setgenarg,
                NM(SETGENARG));
-static error step_up_is_setgenarg(struct module *mod, struct node *node,
+static ERROR step_up_is_setgenarg(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
   mod->state->top_state->is_setgenarg = false;
   return 0;
 }
 
-static error pass_early_typing(struct module *mod, struct node *root,
+static ERROR pass_early_typing(struct module *mod, struct node *root,
                                void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_stop_marker_tbi);
@@ -107,7 +107,7 @@ static error pass_early_typing(struct module *mod, struct node *root,
   return 0;
 }
 
-static error early_typing(struct module *mod, struct node *node) {
+static ERROR early_typing(struct module *mod, struct node *node) {
   PUSH_STATE(mod->state->step_state);
   bool tentatively_saved = mod->state->tentatively;
   if (mod->state->prev != NULL) {
@@ -125,7 +125,7 @@ static error early_typing(struct module *mod, struct node *node) {
 
 static STEP_NM(step_type_definitions,
                STEP_NM_DEFS);
-static error step_type_definitions(struct module *mod, struct node *node,
+static ERROR step_type_definitions(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -152,7 +152,7 @@ static error step_type_definitions(struct module *mod, struct node *node,
 
 static STEP_NM(step_detect_not_dyn_intf_down,
                NM(DEFFUN) | NM(DEFMETHOD));
-static error step_detect_not_dyn_intf_down(struct module *mod, struct node *node,
+static ERROR step_detect_not_dyn_intf_down(struct module *mod, struct node *node,
                                            void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -163,7 +163,7 @@ static error step_detect_not_dyn_intf_down(struct module *mod, struct node *node
 
 static STEP_NM(step_detect_not_dyn_intf_up,
                NM(DEFFUN) | NM(DEFMETHOD) | NM(IDENT) | NM(DEFARG));
-static error step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
+static ERROR step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -248,7 +248,7 @@ static struct node *do_move_detached_member(struct module *mod,
 
 static STEP_NM(step_move_detached_members,
                NM(MODULE_BODY));
-static error step_move_detached_members(struct module *mod, struct node *node,
+static ERROR step_move_detached_members(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -269,7 +269,7 @@ static error step_move_detached_members(struct module *mod, struct node *node,
 
 static STEP_NM(step_lexical_import,
                NM(IMPORT));
-static error step_lexical_import(struct module *mod, struct node *node,
+static ERROR step_lexical_import(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
@@ -282,7 +282,7 @@ static error step_lexical_import(struct module *mod, struct node *node,
   return 0;
 }
 
-static error lexical_retval(struct module *mod, struct node *fun, struct node *retval) {
+static ERROR lexical_retval(struct module *mod, struct node *fun, struct node *retval) {
   error e;
 
   switch (retval->which) {
@@ -337,7 +337,7 @@ static STEP_NM(step_lexical_scoping,
                NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(DEFINTF) |
                NM(DEFFIELD) | NM(DEFCHOICE) | NM(DEFALIAS) | NM(DEFNAME) |
                NM(WITHIN));
-static error step_lexical_scoping(struct module *mod, struct node *node,
+static ERROR step_lexical_scoping(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
   struct node *id = NULL;
@@ -477,8 +477,8 @@ static error step_lexical_scoping(struct module *mod, struct node *node,
   return 0;
 }
 
-static error define_builtin_alias(struct module *mod, struct node *node,
-                                  ident name, struct typ *t) {
+static void define_builtin_alias(struct module *mod, struct node *node,
+                                 ident name, struct typ *t) {
   struct node *let = mk_node(mod, node, LET);
   node_subs_remove(node, let);
   node_subs_insert_after(node, subs_at(node, 2), let);
@@ -491,13 +491,13 @@ static error define_builtin_alias(struct module *mod, struct node *node,
   expr->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
   error e = catchup(mod, NULL, let, CATCHUP_BELOW_CURRENT);
-  EXCEPT(e);
-  return 0;
+  assert(!e);
+  return;
 }
 
 static STEP_NM(step_add_builtin_members,
                NM(DEFTYPE) | NM(DEFINTF) | NM(DEFINCOMPLETE));
-static error step_add_builtin_members(struct module *mod, struct node *node,
+static ERROR step_add_builtin_members(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -517,7 +517,7 @@ static error step_add_builtin_members(struct module *mod, struct node *node,
 
 static STEP_NM(step_add_builtin_members_enum_union,
                NM(DEFTYPE));
-static error step_add_builtin_members_enum_union(struct module *mod, struct node *node,
+static ERROR step_add_builtin_members_enum_union(struct module *mod, struct node *node,
                                                  void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -533,7 +533,7 @@ static error step_add_builtin_members_enum_union(struct module *mod, struct node
 
 static STEP_NM(step_type_genargs,
                STEP_NM_DEFS);
-static error step_type_genargs(struct module *mod, struct node *node,
+static ERROR step_type_genargs(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
@@ -551,7 +551,7 @@ static error step_type_genargs(struct module *mod, struct node *node,
 
 static STEP_NM(step_type_aliases,
                NM(LET));
-static error step_type_aliases(struct module *mod, struct node *node,
+static ERROR step_type_aliases(struct module *mod, struct node *node,
                             void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -567,7 +567,7 @@ static error step_type_aliases(struct module *mod, struct node *node,
 
 static STEP_NM(step_type_create_update,
                STEP_NM_DEFS);
-static error step_type_create_update(struct module *mod, struct node *node,
+static ERROR step_type_create_update(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -584,7 +584,7 @@ static error step_type_create_update(struct module *mod, struct node *node,
 
 static STEP_NM(step_type_isalist,
                NM(ISA));
-static error step_type_isalist(struct module *mod, struct node *node,
+static ERROR step_type_isalist(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -596,7 +596,7 @@ static error step_type_isalist(struct module *mod, struct node *node,
 
 static STEP_NM(step_type_update_quickisa,
                STEP_NM_DEFS_NO_FUNS);
-static error step_type_update_quickisa(struct module *mod, struct node *node,
+static ERROR step_type_update_quickisa(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -605,7 +605,7 @@ static error step_type_update_quickisa(struct module *mod, struct node *node,
   return 0;
 }
 
-static error validate_genarg_types(struct module *mod, struct node *node) {
+static ERROR validate_genarg_types(struct module *mod, struct node *node) {
   struct node *genargs = subs_at(node, IDX_GENARGS);
   if (!subs_count_atleast(genargs, 1)) {
     return 0;
@@ -639,7 +639,7 @@ static error validate_genarg_types(struct module *mod, struct node *node) {
 
 static STEP_NM(step_validate_genargs,
                STEP_NM_DEFS);
-static error step_validate_genargs(struct module *mod, struct node *node,
+static ERROR step_validate_genargs(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -653,7 +653,7 @@ static error step_validate_genargs(struct module *mod, struct node *node,
 
 static STEP_NM(step_detect_prevent_dyn,
                STEP_NM_DEFS_NO_FUNS);
-static error step_detect_prevent_dyn(struct module *mod, struct node *node,
+static ERROR step_detect_prevent_dyn(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -668,7 +668,7 @@ static error step_detect_prevent_dyn(struct module *mod, struct node *node,
 
 static STEP_NM(step_type_lets,
                NM(LET));
-static error step_type_lets(struct module *mod, struct node *node,
+static ERROR step_type_lets(struct module *mod, struct node *node,
                             void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -684,7 +684,7 @@ static error step_type_lets(struct module *mod, struct node *node,
 
 static STEP_NM(step_type_deffields,
                NM(DEFCHOICE) | NM(DEFFIELD));
-static error step_type_deffields(struct module *mod, struct node *node,
+static ERROR step_type_deffields(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -696,7 +696,7 @@ static error step_type_deffields(struct module *mod, struct node *node,
 
 static STEP_NM(step_type_defchoices,
                NM(DEFTYPE) | NM(DEFCHOICE));
-static error step_type_defchoices(struct module *mod, struct node *node,
+static ERROR step_type_defchoices(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -740,7 +740,7 @@ static error step_type_defchoices(struct module *mod, struct node *node,
 
 static STEP_NM(step_type_deffuns,
                NM(DEFMETHOD) | NM(DEFFUN) | NM(EXAMPLE));
-static error step_type_deffuns(struct module *mod, struct node *node,
+static ERROR step_type_deffuns(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -752,7 +752,7 @@ static error step_type_deffuns(struct module *mod, struct node *node,
 
 static STEP_NM(step_rewrite_def_return_through_ref,
                NM(DEFFUN) | NM(DEFMETHOD));
-static error step_rewrite_def_return_through_ref(struct module *mod, struct node *node,
+static ERROR step_rewrite_def_return_through_ref(struct module *mod, struct node *node,
                                                  void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -787,7 +787,7 @@ static error step_rewrite_def_return_through_ref(struct module *mod, struct node
   return 0;
 }
 
-static error check_has_matching_member(struct module *mod,
+static ERROR check_has_matching_member(struct module *mod,
                                        struct node *deft,
                                        const struct typ *intf,
                                        const struct node *mi) {
@@ -862,7 +862,7 @@ static error check_has_matching_member(struct module *mod,
   return 0;
 }
 
-static error check_exhaustive_intf_impl_eachisalist(struct module *mod,
+static ERROR check_exhaustive_intf_impl_eachisalist(struct module *mod,
                                                     struct typ *t,
                                                     struct typ *intf,
                                                     bool *stop,
@@ -904,7 +904,7 @@ static error check_exhaustive_intf_impl_eachisalist(struct module *mod,
 
 static STEP_NM(step_check_exhaustive_intf_impl,
                NM(DEFTYPE));
-static error step_check_exhaustive_intf_impl(struct module *mod, struct node *node,
+static ERROR step_check_exhaustive_intf_impl(struct module *mod, struct node *node,
                                              void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -919,7 +919,7 @@ static error step_check_exhaustive_intf_impl(struct module *mod, struct node *no
   return 0;
 }
 
-static error passfwd0(struct module *mod, struct node *root,
+static ERROR passfwd0(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   // scoping_deftypes
   PASS(
@@ -939,7 +939,7 @@ static error passfwd0(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passfwd1(struct module *mod, struct node *root,
+static ERROR passfwd1(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   // imports
   PASS(
@@ -955,7 +955,7 @@ static error passfwd1(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passfwd2(struct module *mod, struct node *root,
+static ERROR passfwd2(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -970,7 +970,7 @@ static error passfwd2(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passfwd3(struct module *mod, struct node *root,
+static ERROR passfwd3(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -986,7 +986,7 @@ static error passfwd3(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passfwd4(struct module *mod, struct node *root,
+static ERROR passfwd4(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1001,7 +1001,7 @@ static error passfwd4(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passfwd5(struct module *mod, struct node *root,
+static ERROR passfwd5(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1018,7 +1018,7 @@ static error passfwd5(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passfwd6(struct module *mod, struct node *root,
+static ERROR passfwd6(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1033,7 +1033,7 @@ static error passfwd6(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passfwd7(struct module *mod, struct node *root,
+static ERROR passfwd7(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1050,7 +1050,7 @@ static error passfwd7(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passfwd8(struct module *mod, struct node *root,
+static ERROR passfwd8(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1068,7 +1068,7 @@ static error passfwd8(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passfwd9(struct module *mod, struct node *root,
+static ERROR passfwd9(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1085,7 +1085,7 @@ static error passfwd9(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passfwd10(struct module *mod, struct node *root,
+static ERROR passfwd10(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);

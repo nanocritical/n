@@ -11,7 +11,7 @@ struct intf_proto_rewrite_state {
 
 static STEP_NM(step_rewrite_this,
                NM(IDENT));
-static error step_rewrite_this(struct module *mod, struct node *node,
+static ERROR step_rewrite_this(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   struct typ *thi = ((struct intf_proto_rewrite_state *)user)->thi;
   ident id = node_ident(node);
@@ -25,7 +25,7 @@ static error step_rewrite_this(struct module *mod, struct node *node,
 
 static STEP_NM(step_rewrite_local_idents,
                NM(DEFARG) | NM(IDENT));
-static error step_rewrite_local_idents(struct module *mod, struct node *node,
+static ERROR step_rewrite_local_idents(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   const struct node *proto_parent =
     ((struct intf_proto_rewrite_state *)user)->proto_parent;
@@ -71,7 +71,7 @@ static error step_rewrite_local_idents(struct module *mod, struct node *node,
 
 static STEP_NM(step_rewrite_name,
                NM(DEFFUN) | NM(DEFMETHOD));
-static error step_rewrite_name(struct module *mod, struct node *node,
+static ERROR step_rewrite_name(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   const struct node *proto_parent =
     ((struct intf_proto_rewrite_state *)user)->proto_parent;
@@ -90,7 +90,7 @@ static error step_rewrite_name(struct module *mod, struct node *node,
   return 0;
 }
 
-static error pass_rewrite_proto(struct module *mod, struct node *root,
+static ERROR pass_rewrite_proto(struct module *mod, struct node *root,
                                 void *user, ssize_t shallow_last_up) {
   PASS(DOWN_STEP(step_rewrite_this);
        DOWN_STEP(step_rewrite_local_idents);
@@ -447,7 +447,7 @@ non_bg:
   define_builtin_catchup(mod, m);
 }
 
-static error add_auto_isa_eachisalist(struct module *mod,
+static ERROR add_auto_isa_eachisalist(struct module *mod,
                                       struct typ *t,
                                       struct typ *intf,
                                       bool *stop,
@@ -483,15 +483,17 @@ static void add_auto_isa(struct module *mod, struct node *deft,
   }
 
   if (!(node_is_extern(deft) && !typ_is_trivial(i))) {
-    add_auto_isa_eachisalist(mod, CONST_CAST(i),
-                             CONST_CAST(i),
-                             NULL, deft);
+    error never = add_auto_isa_eachisalist(mod, CONST_CAST(i),
+                                           CONST_CAST(i),
+                                           NULL, deft);
+    assert(!never);
   }
 
   const uint32_t filter = (node_is_extern(deft) && !typ_is_trivial(i)) \
                           ? ISALIST_FILTEROUT_NONTRIVIAL_ISALIST : 0;
-  typ_isalist_foreach(mod, CONST_CAST(i), filter,
-                      add_auto_isa_eachisalist, deft);
+  error never = typ_isalist_foreach(mod, CONST_CAST(i), filter,
+                                    add_auto_isa_eachisalist, deft);
+  assert(!never);
 }
 
 STEP_NM(step_autointf_enum_union,
@@ -730,7 +732,7 @@ static void define_builtin(struct module *mod, struct node *deft,
   define_builtin_catchup(mod, m);
 }
 
-static error add_environment_builtins_eachisalist(struct module *mod,
+static ERROR add_environment_builtins_eachisalist(struct module *mod,
                                                   struct typ *t,
                                                   struct typ *intf,
                                                   bool *stop,

@@ -15,7 +15,7 @@
 #define CFLAGS "-Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g"
 #define LDFLAGS CFLAGS " -Wl,--gc-sections"
 
-static error sh(const char *cmd) {
+static ERROR sh(const char *cmd) {
   int status = system(cmd);
   if (status == -1) {
     THROWF(errno, "system(3) failed");
@@ -35,7 +35,7 @@ static char *o_filename(const char *filename) {
   return o_fn;
 }
 
-static error cc(const struct module *mod, const char *o_fn,
+static ERROR cc(const struct module *mod, const char *o_fn,
                 const char *c_fn) {
   static const char *fmt = CC " " CFLAGS " -xc %s -c -o %s";
   char *cmd = calloc(strlen(fmt) + strlen(c_fn) + strlen(o_fn) - 4 + 1, sizeof(char));
@@ -66,7 +66,7 @@ static char *file_list(const struct module **modules, size_t count,
   return list;
 }
 
-static error clink(const char *out_fn, const char *inputs, const char *extra) {
+static ERROR clink(const char *out_fn, const char *inputs, const char *extra) {
   static const char fmt[] = CC " " LDFLAGS " %s %s -o %s";
   size_t len = strlen(fmt) + strlen(inputs) + strlen(extra) + strlen(out_fn) - 6;
   char *cmd = calloc(len + 1, sizeof(char));
@@ -78,7 +78,7 @@ static error clink(const char *out_fn, const char *inputs, const char *extra) {
   return 0;
 }
 
-static error generate(struct node *node) {
+static ERROR generate(struct node *node) {
   assert(node->which == MODULE);
   struct module *mod = node->as.MODULE.mod;
 
@@ -141,7 +141,7 @@ static error generate(struct node *node) {
   return 0;
 }
 
-static error compile(struct node *node) {
+static ERROR compile(struct node *node) {
   assert(node->which == MODULE);
   struct module *mod = node->as.MODULE.mod;
 
@@ -161,7 +161,7 @@ static error compile(struct node *node) {
   return 0;
 }
 
-static error run_examples(const struct stage *stage) {
+static ERROR run_examples(const struct stage *stage) {
   static const char *out_fn = "a.out.examples";
   static const char *main_fn = "a.out.examples.c";
 
@@ -202,7 +202,7 @@ static error run_examples(const struct stage *stage) {
   return 0;
 }
 
-static error program_link(const struct stage *stage) {
+static ERROR program_link(const struct stage *stage) {
   const char *out_fn = "a.out";
   const char *main_fn = "a.out.c";
 

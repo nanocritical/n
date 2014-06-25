@@ -14,11 +14,11 @@ enum catchup_for {
   CATCHUP_TENTATIVE_NEW_INSTANCE,
 };
 
-error catchup(struct module *mod,
+ERROR catchup(struct module *mod,
               const struct node **except,
               struct node *node,
               enum catchup_for how);
-error catchup_instantiation(struct module *instantiating_mod,
+ERROR catchup_instantiation(struct module *instantiating_mod,
                             struct module *gendef_mod,
                             struct node *instance,
                             bool tentative);
@@ -33,21 +33,21 @@ typedef error (*a_pass)(struct module *mod, struct node *root,
 #define PASSSEMBODY_COUNT 1
 
 a_pass passes(size_t p);
-error advance(struct module *mod);
+ERROR advance(struct module *mod);
 
 const uint64_t step_stop_marker_tbi_filter;
-error step_stop_marker_tbi(struct module *mod, struct node *node, void *user, bool *stop);
+ERROR step_stop_marker_tbi(struct module *mod, struct node *node, void *user, bool *stop);
 const uint64_t step_stop_block_filter;
-error step_stop_block(struct module *mod, struct node *node, void *user, bool *stop);
+ERROR step_stop_block(struct module *mod, struct node *node, void *user, bool *stop);
 const uint64_t step_stop_funblock_filter;
-error step_stop_funblock(struct module *mod, struct node *node, void *user, bool *stop);
+ERROR step_stop_funblock(struct module *mod, struct node *node, void *user, bool *stop);
 const uint64_t step_stop_tentative_funblock_filter;
-error step_stop_tentative_funblock(struct module *mod, struct node *node, void *user, bool *stop);
+ERROR step_stop_tentative_funblock(struct module *mod, struct node *node, void *user, bool *stop);
 const uint64_t step_push_state_filter;
-error step_push_state(struct module *mod, struct node *node,
+ERROR step_push_state(struct module *mod, struct node *node,
                       void *user, bool *stop);
 const uint64_t step_pop_state_filter;
-error step_pop_state(struct module *mod, struct node *node,
+ERROR step_pop_state(struct module *mod, struct node *node,
                      void *user, bool *stop);
 
 

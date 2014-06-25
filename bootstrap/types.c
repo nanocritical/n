@@ -475,7 +475,7 @@ void typ_create_update_hash(struct typ *t) {
   t->rdy |= RDY_HASH;
 }
 
-static error update_quickisa_isalist_each(struct module *mod,
+static ERROR update_quickisa_isalist_each(struct module *mod,
                                           struct typ *t, struct typ *intf,
                                           bool *stop, void *user) {
   typset_add(&t->quickisa, intf);
@@ -491,11 +491,13 @@ static error update_quickisa_isalist_each(struct module *mod,
 void typ_create_update_quickisa(struct typ *t) {
   quickisa_init(t);
 
-  typ_isalist_foreach(NULL, t, 0, update_quickisa_isalist_each, NULL);
+  error never = typ_isalist_foreach(NULL, t, 0, update_quickisa_isalist_each, NULL);
+  assert(!never);
 
   struct typ *t0 = typ_generic_functor(t);
   if (t0 != NULL) {
-    update_quickisa_isalist_each(NULL, t, t0, NULL, NULL);
+    error never = update_quickisa_isalist_each(NULL, t, t0, NULL, NULL);
+    assert(!never);
   }
 
   t->quickisa.ready = true;
@@ -919,7 +921,7 @@ static bool direct_isalist_exported(const struct typ *t, size_t n) {
   }
 }
 
-static error do_typ_isalist_foreach(struct module *mod, struct typ *t, struct typ *base,
+static ERROR do_typ_isalist_foreach(struct module *mod, struct typ *t, struct typ *base,
                                     uint32_t filter, isalist_each iter, void *user,
                                     bool *stop, struct fintypset *set) {
   const bool filter_not_exported = filter & ISALIST_FILTEROUT_NOT_EXPORTED;

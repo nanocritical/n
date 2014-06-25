@@ -1379,7 +1379,7 @@ void defincomplete_add_field(struct module *mod, const struct node *for_error,
                              struct node *dinc, ident field, struct typ *t);
 void defincomplete_add_isa(struct module *mod, const struct node *for_error,
                            struct node *dinc, struct typ *tisa);
-error defincomplete_catchup(struct module *mod, struct node *dinc);
+ERROR defincomplete_catchup(struct module *mod, struct node *dinc);
 int snprint_defincomplete(char *s, size_t len,
                           const struct module *mod, const struct node *dinc);
 
@@ -1415,11 +1415,11 @@ char *pptyp(const struct module *mod, const struct typ *t);
 
 int snprint_codeloc(char *s, size_t len,
                     const struct module *mod, const struct node *node);
-error mk_except(const struct module *mod, const struct node *node, const char *fmt, ...)
+ERROR mk_except(const struct module *mod, const struct node *node, const char *fmt, ...)
   __attribute__((__format__(__printf__, 3, 4)));
-error mk_except_type(const struct module *mod, const struct node *node, const char *fmt, ...)
+ERROR mk_except_type(const struct module *mod, const struct node *node, const char *fmt, ...)
   __attribute__((__format__(__printf__, 3, 4)));
-error mk_except_call_args_count(const struct module *mod, const struct node *node,
+ERROR mk_except_call_args_count(const struct module *mod, const struct node *node,
                                 const struct node *definition, bool implicit_self, size_t given);
 
 #define GOTO_EXCEPT_TYPE(mod, node, fmt, ...) do { \

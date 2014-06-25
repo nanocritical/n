@@ -7,7 +7,7 @@ int parser_line(const struct parser *parser, const struct token *tok);
 int parser_column(const struct parser *parser, const struct token *tok);
 
 void globalctx_init(struct globalctx *gctx);
-error module_open(struct globalctx *gctx, struct stage *stage, struct module *mod,
+ERROR module_open(struct globalctx *gctx, struct stage *stage, struct module *mod,
                   const char *prefix, const char *fn);
 
 ident gensym(struct module *mod);

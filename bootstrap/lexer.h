@@ -370,7 +370,7 @@ struct token {
   size_t len;
 };
 
-error lexer_scan(struct token *tok, struct parser *parser);
+ERROR lexer_scan(struct token *tok, struct parser *parser);
 void lexer_back(struct parser *parser, const struct token *tok);
 
 #endif

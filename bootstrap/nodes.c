@@ -666,7 +666,8 @@ struct node *node_fun_retval(struct node *def) {
 struct node *node_get_member(struct node *node, ident id) {
   assert(NM(node->which) & (NM(DEFTYPE) | NM(DEFCHOICE) | NM(DEFINTF) | NM(DEFINCOMPLETE)));
   struct node *m = NULL;
-  (void)scope_lookup_ident_immediate(&m, node, NULL, &node->scope, id, true);
+  error null_on_error = scope_lookup_ident_immediate(&m, node, NULL, &node->scope, id, true);
+  (void) null_on_error;
   return m;
 }
 

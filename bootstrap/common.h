@@ -68,6 +68,7 @@ typedef _Bool bool;
 #define false 0
 
 typedef int error;
+#define ERROR use_result__ error
 
 void __break(void);
 

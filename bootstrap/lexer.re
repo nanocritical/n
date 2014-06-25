@@ -15,7 +15,7 @@ static const char *first_eol_back(const char *start, const char *cur) {
   return start;
 }
 
-static error block_down(struct parser *parser, enum block_style style) {
+static ERROR block_down(struct parser *parser, enum block_style style) {
   parser->block_style[parser->block_depth] = style;
   parser->block_depth += 1;
   if (parser->block_depth >= ARRAY_SIZE(parser->block_style)) {

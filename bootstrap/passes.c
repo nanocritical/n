@@ -299,7 +299,7 @@ error step_stop_funblock(struct module *mod, struct node *node,
   return 0;
 }
 
-static error do_do_complete_instantiation(struct module *mod, struct node *node,
+static ERROR do_do_complete_instantiation(struct module *mod, struct node *node,
                                           ssize_t goal) {
   PUSH_STATE(mod->stage->state);
   PUSH_STATE(mod->state->step_state);
@@ -358,7 +358,7 @@ static bool wont_go_further(struct node *node, ssize_t goal) {
     || linked_to_something_else(node);
 }
 
-static error do_complete_instantiation(struct module *mod, struct node *node) {
+static ERROR do_complete_instantiation(struct module *mod, struct node *node) {
   const ssize_t goal = mod->stage->state->passing;
 
   struct toplevel *toplevel = node_toplevel(node);
@@ -386,7 +386,7 @@ static error do_complete_instantiation(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error advance_topdeps_each(struct module *mod, struct node *node,
+static ERROR advance_topdeps_each(struct module *mod, struct node *node,
                                   struct typ *t, uint32_t topdep_mask, void *user) {
   const ssize_t goal = *(ssize_t *) user;
 
@@ -510,7 +510,7 @@ error step_pop_state(struct module *mod, struct node *node,
 
 static STEP_NM(step_test_down,
                -1);
-static error step_test_down(struct module *mod, struct node *node,
+static ERROR step_test_down(struct module *mod, struct node *node,
                             void *user, bool *stop) {
   size_t *u = user;
   *u += 1;
@@ -519,14 +519,14 @@ static error step_test_down(struct module *mod, struct node *node,
 
 static STEP_NM(step_test_up,
                -1);
-static error step_test_up(struct module *mod, struct node *node,
+static ERROR step_test_up(struct module *mod, struct node *node,
                           void *user, bool *stop) {
   size_t *u = user;
   *u -= 1;
   return 0;
 }
 
-static error passtest(struct module *mod, struct node *root,
+static ERROR passtest(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_test_down);
@@ -553,7 +553,7 @@ EXAMPLE_NCC_EMPTY(as_many_up_down) {
 
 static STEP_NM(step_test_stop_deftype_down,
                NM(DEFTYPE));
-static error step_test_stop_deftype_down(struct module *mod, struct node *node,
+static ERROR step_test_stop_deftype_down(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   if (node->which == DEFTYPE) {
     *stop = true;
@@ -563,14 +563,14 @@ static error step_test_stop_deftype_down(struct module *mod, struct node *node,
 
 static STEP_NM(step_test_stop_deftype_up,
                NM(DEFTYPE));
-static error step_test_stop_deftype_up(struct module *mod, struct node *node,
+static ERROR step_test_stop_deftype_up(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   size_t *u = user;
   *u += 1;
   return 0;
 }
 
-static error passtest_stop_deftype(struct module *mod, struct node *root,
+static ERROR passtest_stop_deftype(struct module *mod, struct node *root,
                                    void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_test_stop_deftype_down);

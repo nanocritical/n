@@ -523,7 +523,7 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
   }
 }
 
-static error mk_except_constraint(const struct module *mod,
+static ERROR mk_except_constraint(const struct module *mod,
                                   const struct node *node,
                                   const char *fmt, ...) {
   va_list ap;
@@ -559,7 +559,7 @@ static int constraint_get_single_tag_each(const ident *tag, cbool *value,
   return 0;
 }
 
-static error constraint_get_single_tag(ident *tag,
+static ERROR constraint_get_single_tag(ident *tag,
                                        const struct module *mod,
                                        const struct node *node) {
   error e;
@@ -624,7 +624,7 @@ struct merge_state {
   const struct node *for_error;
 };
 
-static error constraint_check(struct module *mod, const struct node *node,
+static ERROR constraint_check(struct module *mod, const struct node *node,
                               enum constraint_builtins cbi, bool reversed) {
   struct constraint *c = node->constraint;
   if (c->table[cbi] != Y) {
@@ -652,7 +652,7 @@ static int constraint_compatible_assign_tag_each(const ident *tag,
   return 0;
 }
 
-static error constraint_check_compatible_assign(struct module *mod,
+static ERROR constraint_check_compatible_assign(struct module *mod,
                                                 const struct node *ntarget,
                                                 const struct node *nc) {
   struct constraint *target = ntarget->constraint;
@@ -738,7 +738,7 @@ EXAMPLE_NCC_EMPTY(constraint) {
   }
 }
 
-static error constraint_inference_ident(struct module *mod, struct node *node) {
+static ERROR constraint_inference_ident(struct module *mod, struct node *node) {
   const struct node *def = node->as.IDENT.def;
   if (def == NULL
       || (NM(def->which) & ( NM(IMPORT) | NM(MODULE) | NM(MODULE_BODY)))) {
@@ -754,10 +754,10 @@ static error constraint_inference_ident(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error cond_descend_eval(struct module *mod, struct node *cond,
+static ERROR cond_descend_eval(struct module *mod, struct node *cond,
                                struct node *node, bool reversed);
 
-static error cond_descend_eval_bin(struct module *mod, struct node *cond,
+static ERROR cond_descend_eval_bin(struct module *mod, struct node *cond,
                                    struct node *node, bool reversed) {
   struct node *na = subs_first(node);
   struct node *nb = subs_last(node);
@@ -847,7 +847,7 @@ static error cond_descend_eval_bin(struct module *mod, struct node *cond,
   return 0;
 }
 
-static error cond_descend_eval_un(struct module *mod, struct node *cond,
+static ERROR cond_descend_eval_un(struct module *mod, struct node *cond,
                                   struct node *node, bool reversed) {
   error e;
   switch (node->as.UN.operator) {
@@ -862,7 +862,7 @@ static error cond_descend_eval_un(struct module *mod, struct node *cond,
 }
 
 // This assumes SSA form and therefore doesn't need to be recursive.
-static error cond_descend_eval(struct module *mod, struct node *cond,
+static ERROR cond_descend_eval(struct module *mod, struct node *cond,
                                struct node *node, bool reversed) {
   error e;
   switch (node->which) {
@@ -914,7 +914,7 @@ static void merge_branch_assumption(struct module *mod,
   }
 }
 
-static error constraint_inference_phi_conditioned(struct module *mod,
+static ERROR constraint_inference_phi_conditioned(struct module *mod,
                                                   struct node *phi) {
   assert(phi->as.PHI.is_conditioned);
   assert(vecancestor_count(&phi->as.PHI.ancestors) == 1);
@@ -1053,7 +1053,7 @@ static void merge_unanimous_hypotheses(struct module *mod,
   }
 }
 
-static error constraint_inference_phi(struct module *mod, struct node *node) {
+static ERROR constraint_inference_phi(struct module *mod, struct node *node) {
   if (node->as.PHI.is_conditioned) {
     error e = constraint_inference_phi_conditioned(mod, node);
     EXCEPT(e);
@@ -1113,7 +1113,7 @@ static void constraint_defchoice_container(const struct node **container,
   }
 }
 
-static error constraint_inference_bin_acc(struct module *mod,
+static ERROR constraint_inference_bin_acc(struct module *mod,
                                           struct node *node) {
   struct node *base = subs_first(node);
   struct node *name = subs_last(node);
@@ -1178,7 +1178,7 @@ static error constraint_inference_bin_acc(struct module *mod,
   return 0;
 }
 
-static error constraint_inference_bin(struct module *mod,
+static ERROR constraint_inference_bin(struct module *mod,
                                       struct node *node) {
   error e;
   enum token_type op = node->as.BIN.operator;
@@ -1218,7 +1218,7 @@ static error constraint_inference_bin(struct module *mod,
   return 0;
 }
 
-static error constraint_inference_un(struct module *mod,
+static ERROR constraint_inference_un(struct module *mod,
                                      struct node *node) {
   error e;
   switch (OP_KIND(node->as.UN.operator)) {
@@ -1265,13 +1265,13 @@ static error constraint_inference_un(struct module *mod,
   return 0;
 }
 
-static error constraint_inference_tuples(struct module *mod,
+static ERROR constraint_inference_tuples(struct module *mod,
                                          struct node *node) {
   // FIXME
   return 0;
 }
 
-static error constraint_inference_call(struct module *mod,
+static ERROR constraint_inference_call(struct module *mod,
                                        struct node *node) {
   if (node->flags & NODE_IS_TYPE) {
     constraint_copy(mod, node->constraint,
@@ -1312,7 +1312,7 @@ static error constraint_inference_call(struct module *mod,
   return 0;
 }
 
-static error constraint_inference_return(struct module *mod,
+static ERROR constraint_inference_return(struct module *mod,
                                          struct node *node) {
   const struct node *ret = module_retval_get(mod);
   if (!typ_equal(ret->typ, TBI_VOID)) {
@@ -1400,7 +1400,7 @@ static error constraint_inference_return(struct module *mod,
 //  return 0;
 //}
 
-static error constraint_inference_defname(struct module *mod,
+static ERROR constraint_inference_defname(struct module *mod,
                                           struct node *node) {
   assert(node->which == DEFNAME);
 
@@ -1420,19 +1420,19 @@ static error constraint_inference_defname(struct module *mod,
   return 0;
 }
 
-static error constraint_inference_defarg(struct module *mod,
+static ERROR constraint_inference_defarg(struct module *mod,
                                          struct node *node) {
   constraint_copy(mod, node->constraint, subs_last(node)->constraint);
   constraint_set(mod, node->constraint, CBI_INIT, false);
   return 0;
 }
 
-static error constraint_inference_deffield(struct module *mod,
+static ERROR constraint_inference_deffield(struct module *mod,
                                            struct node *node) {
   return 0;
 }
 
-static error constraint_inference_defchoice(struct module *mod,
+static ERROR constraint_inference_defchoice(struct module *mod,
                                             struct node *node) {
   if (!node->as.DEFCHOICE.has_payload) {
     constraint_set(mod, node->constraint, CBI_INIT, false);
@@ -1440,7 +1440,7 @@ static error constraint_inference_defchoice(struct module *mod,
   return 0;
 }
 
-static error constraint_inference_definitions(struct module *mod,
+static ERROR constraint_inference_definitions(struct module *mod,
                                               struct node *node) {
   if (typ_is_reference(node->typ) && !typ_is_nullable_reference(node->typ)) {
     constraint_set(mod, node->constraint, CBI_NONNULL, false);
@@ -1448,7 +1448,7 @@ static error constraint_inference_definitions(struct module *mod,
   return 0;
 }
 
-static error constraint_inference_genarg(struct module *mod,
+static ERROR constraint_inference_genarg(struct module *mod,
                                          struct node *node) {
   if (typ_is_reference(node->typ) && !typ_is_nullable_reference(node->typ)) {
     constraint_set(mod, node->constraint, CBI_NONNULL, false);

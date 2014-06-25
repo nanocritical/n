@@ -21,7 +21,7 @@ error step_stop_already_early_constraining(struct module *mod, struct node *node
   return 0;
 }
 
-static error pass_early_constraining(struct module *mod, struct node *root,
+static ERROR pass_early_constraining(struct module *mod, struct node *root,
                                      void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_stop_marker_tbi);
@@ -35,7 +35,7 @@ static error pass_early_constraining(struct module *mod, struct node *root,
   return 0;
 }
 
-static error early_constraining(struct module *mod, struct node *node) {
+static ERROR early_constraining(struct module *mod, struct node *node) {
   PUSH_STATE(mod->state->step_state);
   bool tentatively_saved = mod->state->tentatively;
   if (mod->state->prev != NULL) {
@@ -53,7 +53,7 @@ static error early_constraining(struct module *mod, struct node *node) {
 
 static STEP_NM(step_constrain_definitions,
                STEP_NM_DEFS_NO_FUNS);
-static error step_constrain_definitions(struct module *mod, struct node *node,
+static ERROR step_constrain_definitions(struct module *mod, struct node *node,
                                         void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -65,7 +65,7 @@ static error step_constrain_definitions(struct module *mod, struct node *node,
 
 static STEP_NM(step_constrain_genargs,
                STEP_NM_DEFS);
-static error step_constrain_genargs(struct module *mod, struct node *node,
+static ERROR step_constrain_genargs(struct module *mod, struct node *node,
                                     void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -78,7 +78,7 @@ static error step_constrain_genargs(struct module *mod, struct node *node,
 
 static STEP_NM(step_constrain_aliases,
                NM(LET));
-static error step_constrain_aliases(struct module *mod, struct node *node,
+static ERROR step_constrain_aliases(struct module *mod, struct node *node,
                                     void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -94,7 +94,7 @@ static error step_constrain_aliases(struct module *mod, struct node *node,
 
 static STEP_NM(step_constrain_isalist,
                NM(ISA));
-static error step_constrain_isalist(struct module *mod, struct node *node,
+static ERROR step_constrain_isalist(struct module *mod, struct node *node,
                                     void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -106,7 +106,7 @@ static error step_constrain_isalist(struct module *mod, struct node *node,
 
 static STEP_NM(step_constrain_lets,
                NM(LET));
-static error step_constrain_lets(struct module *mod, struct node *node,
+static ERROR step_constrain_lets(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -122,7 +122,7 @@ static error step_constrain_lets(struct module *mod, struct node *node,
 
 static STEP_NM(step_constrain_deffields,
                NM(DEFCHOICE) | NM(DEFFIELD));
-static error step_constrain_deffields(struct module *mod, struct node *node,
+static ERROR step_constrain_deffields(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -134,7 +134,7 @@ static error step_constrain_deffields(struct module *mod, struct node *node,
 
 static STEP_NM(step_constrain_deffuns,
                NM(DEFMETHOD) | NM(DEFFUN));
-static error step_constrain_deffuns(struct module *mod, struct node *node,
+static ERROR step_constrain_deffuns(struct module *mod, struct node *node,
                                     void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -144,7 +144,7 @@ static error step_constrain_deffuns(struct module *mod, struct node *node,
   return 0;
 }
 
-static error passsemfwd0(struct module *mod, struct node *root,
+static ERROR passsemfwd0(struct module *mod, struct node *root,
                          void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -158,7 +158,7 @@ static error passsemfwd0(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passsemfwd1(struct module *mod, struct node *root,
+static ERROR passsemfwd1(struct module *mod, struct node *root,
                          void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -172,7 +172,7 @@ static error passsemfwd1(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passsemfwd2(struct module *mod, struct node *root,
+static ERROR passsemfwd2(struct module *mod, struct node *root,
                          void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -186,7 +186,7 @@ static error passsemfwd2(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passsemfwd3(struct module *mod, struct node *root,
+static ERROR passsemfwd3(struct module *mod, struct node *root,
                          void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -200,7 +200,7 @@ static error passsemfwd3(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passsemfwd4(struct module *mod, struct node *root,
+static ERROR passsemfwd4(struct module *mod, struct node *root,
                          void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -214,7 +214,7 @@ static error passsemfwd4(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passsemfwd5(struct module *mod, struct node *root,
+static ERROR passsemfwd5(struct module *mod, struct node *root,
                          void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -228,7 +228,7 @@ static error passsemfwd5(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passsemfwd6(struct module *mod, struct node *root,
+static ERROR passsemfwd6(struct module *mod, struct node *root,
                          void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -252,7 +252,7 @@ a_pass passsemfwd[] = {
   passsemfwd6,
 };
 
-static error passsembody0(struct module *mod, struct node *root,
+static ERROR passsembody0(struct module *mod, struct node *root,
                           void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);

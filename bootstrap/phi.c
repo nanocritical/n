@@ -26,7 +26,7 @@ static struct node *scoped_block_surrounding(struct node *node) {
   return n;
 }
 
-static error branching_block_foreach_scoped_ident(struct module *mod,
+static ERROR branching_block_foreach_scoped_ident(struct module *mod,
                                                   struct node *branching,
                                                   struct node *block,
                                                   scope_each each) {
@@ -110,7 +110,7 @@ static bool local_name_is_scoped(struct module *mod, const struct node *node) {
   }
 }
 
-static error insert_all_possible_conditioned_phi_each(struct module *mod,
+static ERROR insert_all_possible_conditioned_phi_each(struct module *mod,
                                                       struct node *def,
                                                       void *user) {
   struct node *br_block = user;
@@ -129,15 +129,14 @@ static error insert_all_possible_conditioned_phi_each(struct module *mod,
   return 0;
 }
 
-static error insert_all_possible_conditioned_phi(struct module *mod,
-                                                 struct node *block) {
-  error e = branching_block_foreach_scoped_ident(
+static void insert_all_possible_conditioned_phi(struct module *mod,
+                                                struct node *block) {
+  error never = branching_block_foreach_scoped_ident(
     mod, parent(block), block, insert_all_possible_conditioned_phi_each);
-  EXCEPT(e);
-  return 0;
+  assert(!never);
 }
 
-static error init_phi_trackers_for_branching_each(struct module *mod,
+static ERROR init_phi_trackers_for_branching_each(struct module *mod,
                                                   struct node *def,
                                                   void *user) {
   struct node *br_block = user;
@@ -171,7 +170,7 @@ static void init_phi_trackers_for_branching(struct module *mod) {
   assert(!e);
 }
 
-static error uninit_phi_trackers_for_branching_each(struct module *mod,
+static ERROR uninit_phi_trackers_for_branching_each(struct module *mod,
                                                     struct node *def,
                                                     void *user) {
   struct node *br_block = user;
@@ -317,7 +316,7 @@ static void mark_conditioned_phi_chain_used(struct node *node) {
   }
 }
 
-static error track_ident_use(struct module *mod, struct node *node) {
+static ERROR track_ident_use(struct module *mod, struct node *node) {
   assert(node->which == IDENT);
   struct node *def = node->as.IDENT.def;
 

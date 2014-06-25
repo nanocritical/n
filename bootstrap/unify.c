@@ -25,11 +25,11 @@ enum unify_flags {
   } \
 } while (0)
 
-static error do_unify(struct module *mod, uint32_t flags,
+static ERROR do_unify(struct module *mod, uint32_t flags,
                       const struct node *for_error,
                       struct typ *a, struct typ *b);
 
-static error mk_except_type_unification(struct module *mod, const struct node *for_error,
+static ERROR mk_except_type_unification(struct module *mod, const struct node *for_error,
                                         const struct typ *a, const struct typ *b) {
   char *sa = pptyp(mod, a);
   char *sb = pptyp(mod, b);
@@ -40,7 +40,7 @@ static error mk_except_type_unification(struct module *mod, const struct node *f
   THROW(e);
 }
 
-static error unify_two_non_generic(struct module *mod, const struct node *for_error,
+static ERROR unify_two_non_generic(struct module *mod, const struct node *for_error,
                                    struct typ *a, struct typ *b) {
   if (typ_isa(a, b)) {
     // noop
@@ -77,10 +77,10 @@ static bool same_generic_functor(const struct module *mod,
   }
 }
 
-static error unify_with_equal(struct module *mod, const struct node *for_error,
+static ERROR unify_with_equal(struct module *mod, const struct node *for_error,
                               struct typ *a, struct typ *b);
 
-static error unify_same_generic_functor(struct module *mod, const struct node *for_error,
+static ERROR unify_same_generic_functor(struct module *mod, const struct node *for_error,
                                         struct typ *a, struct typ *b) {
   assert(typ_generic_arity(a) != 0 && typ_generic_arity(b) != 0);
 
@@ -112,7 +112,7 @@ struct instance_of {
   struct typ *result;
 };
 
-static error find_instance_of(struct module *mod, struct typ *t,
+static ERROR find_instance_of(struct module *mod, struct typ *t,
                               struct typ *intf, bool *stop, void *user) {
   struct instance_of *r = user;
 
@@ -125,7 +125,7 @@ static error find_instance_of(struct module *mod, struct typ *t,
   return 0;
 }
 
-static error unify_generics(struct module *mod, const struct node *for_error,
+static ERROR unify_generics(struct module *mod, const struct node *for_error,
                             struct typ *a, struct typ *b,
                             bool a_tentative, bool b_tentative) {
   struct typ *a0 = typ_generic_functor(a);
@@ -159,7 +159,8 @@ static error unify_generics(struct module *mod, const struct node *for_error,
       b_in_a = a;
     } else {
       struct instance_of user = { .functor = b0, .result = NULL };
-      typ_isalist_foreach(mod, a, 0, find_instance_of, &user);
+      error never = typ_isalist_foreach(mod, a, 0, find_instance_of, &user);
+      assert(!never);
       assert(user.result != NULL);
       b_in_a = user.result;
     }
@@ -178,7 +179,7 @@ static error unify_generics(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-static error unify_non_generic(struct module *mod, const struct node *for_error,
+static ERROR unify_non_generic(struct module *mod, const struct node *for_error,
                                struct typ *a, struct typ *b,
                                bool a_non_generic, bool b_non_generic) {
   error e;
@@ -227,7 +228,7 @@ static struct typ *nullable(struct module *mod, const struct node *for_error,
   return i->typ;
 }
 
-static error unify_literal(struct module *mod, uint32_t flags,
+static ERROR unify_literal(struct module *mod, uint32_t flags,
                            const struct node *for_error,
                            struct typ *a, struct typ *b,
                            bool a_literal, bool b_literal) {
@@ -306,7 +307,7 @@ static error unify_literal(struct module *mod, uint32_t flags,
   return 0;
 }
 
-static error unify_with_weakly_concrete(bool *success,
+static ERROR unify_with_weakly_concrete(bool *success,
                                         struct module *mod,
                                         const struct node *for_error,
                                         struct typ *a, struct typ *b,
@@ -378,7 +379,7 @@ HTABLE_SPARSE(ident_typ_map, struct typ *, ident);
 IMPLEMENT_HTABLE_SPARSE(unused__ static, ident_typ_map, struct typ *, ident,
                         ident_hash, ident_cmp);
 
-static error unify_two_defincomplete(struct module *mod,
+static ERROR unify_two_defincomplete(struct module *mod,
                                      const struct node *for_error,
                                      struct typ *a, struct typ *b) {
   error e;
@@ -435,7 +436,7 @@ except:
   THROW(e);
 }
 
-static error unify_with_defunknownident(struct module *mod, const struct node *for_error,
+static ERROR unify_with_defunknownident(struct module *mod, const struct node *for_error,
                                         struct node *da, struct node *dinc) {
   assert(dinc->which == DEFINCOMPLETE);
   ident unk = dinc->as.DEFINCOMPLETE.ident;
@@ -539,7 +540,7 @@ error unify_with_defincomplete_entrails(struct module *mod,
   return 0;
 }
 
-static error unify_with_defincomplete(struct module *mod,
+static ERROR unify_with_defincomplete(struct module *mod,
                                       const struct node *for_error,
                                       struct typ *a, struct typ *inc) {
   struct node *dinc = typ_definition(inc);
@@ -551,7 +552,7 @@ static error unify_with_defincomplete(struct module *mod,
   return 0;
 }
 
-static error unify_defincomplete(struct module *mod,
+static ERROR unify_defincomplete(struct module *mod,
                                  const struct node *for_error,
                                  struct typ *a, struct typ *b,
                                  bool a_inc, bool b_inc) {
@@ -573,7 +574,7 @@ static error unify_defincomplete(struct module *mod,
 
   return 0;
 }
-static error unify_with_equal(struct module *mod, const struct node *for_error,
+static ERROR unify_with_equal(struct module *mod, const struct node *for_error,
                               struct typ *a, struct typ *b) {
   if (a == b) {
     return 0;
@@ -609,7 +610,7 @@ static error unify_with_equal(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-static error check_reference_compatibility(struct module *mod,
+static ERROR check_reference_compatibility(struct module *mod,
                                            const struct node *for_error,
                                            const struct typ *a,
                                            const struct typ *target) {
@@ -663,7 +664,7 @@ static error check_reference_compatibility(struct module *mod,
   return 0;
 }
 
-static error unify_dyn(struct module *mod, const struct node *for_error,
+static ERROR unify_dyn(struct module *mod, const struct node *for_error,
                        struct typ *a, struct typ *b,
                        bool a_intf, bool b_intf) {
   if (!b_intf) {
@@ -677,7 +678,7 @@ static error unify_dyn(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-static error unify_reforslice_arg(struct module *mod, uint32_t flags,
+static ERROR unify_reforslice_arg(struct module *mod, uint32_t flags,
                                   const struct node *for_error,
                                   struct typ *a, struct typ *b) {
   struct typ *arg_a = typ_generic_arg(a, 0);
@@ -754,7 +755,7 @@ struct typ *unify_with_new_functor(struct module *mod, const struct node *for_er
   return i->typ;
 }
 
-static error unify_reference_with_refcompat(struct module *mod, uint32_t flags,
+static ERROR unify_reference_with_refcompat(struct module *mod, uint32_t flags,
                                             const struct node *for_error,
                                             struct typ *a, struct typ *b,
                                             bool a_refcompat,
@@ -797,7 +798,7 @@ static error unify_reference_with_refcompat(struct module *mod, uint32_t flags,
   return 0;
 }
 
-static error unify_reference(struct module *mod, uint32_t flags,
+static ERROR unify_reference(struct module *mod, uint32_t flags,
                              const struct node *for_error,
                              struct typ *a, struct typ *b,
                              bool a_ref, bool b_ref) {
@@ -895,7 +896,7 @@ static error unify_reference(struct module *mod, uint32_t flags,
 //  assert(typ_equal(ri32, rintlit));
 //}
 
-static error check_slice_compatibility(struct module *mod,
+static ERROR check_slice_compatibility(struct module *mod,
                                        const struct node *for_error,
                                        const struct typ *a,
                                        const struct typ *target) {
@@ -927,7 +928,7 @@ static error check_slice_compatibility(struct module *mod,
   return 0;
 }
 
-static error unify_slice_with_refcompat(struct module *mod, uint32_t flags,
+static ERROR unify_slice_with_refcompat(struct module *mod, uint32_t flags,
                                         const struct node *for_error,
                                         struct typ *a, struct typ *b,
                                         bool a_refcompat,
@@ -964,7 +965,7 @@ static error unify_slice_with_refcompat(struct module *mod, uint32_t flags,
   return 0;
 }
 
-static error unify_slice(struct module *mod, uint32_t flags,
+static ERROR unify_slice(struct module *mod, uint32_t flags,
                          const struct node *for_error,
                          struct typ *a, struct typ *b,
                          bool a_slice, bool b_slice) {
@@ -1030,20 +1031,18 @@ static error unify_slice(struct module *mod, uint32_t flags,
   return 0;
 }
 
-static error unify_with_any(struct module *mod, const struct node *for_error,
-                            struct typ *a, struct typ *b,
-                            bool a_is_any, bool b_is_any) {
+static void unify_with_any(struct module *mod, const struct node *for_error,
+                           struct typ *a, struct typ *b,
+                           bool a_is_any, bool b_is_any) {
   if (a_is_any) {
     SWAP(a, b);
     SWAP(a_is_any, b_is_any);
   }
 
   typ_link_tentative(a, b);
-
-  return 0;
 }
 
-static error do_unify(struct module *mod, uint32_t flags,
+static ERROR do_unify(struct module *mod, uint32_t flags,
                       const struct node *for_error,
                       struct typ *a, struct typ *b) {
   error e;

@@ -1885,7 +1885,7 @@ struct cprinter_state {
   void *user;
 };
 
-static error print_deftype_envparent_eachisalist(struct module *mod,
+static ERROR print_deftype_envparent_eachisalist(struct module *mod,
                                                  struct typ *t, struct typ *intf,
                                                  bool *stop, void *user) {
   if (typ_generic_arity(intf) == 0
@@ -1948,7 +1948,7 @@ static void print_mkdyn_proto(FILE *out, const struct module *mod,
   fprintf(out, ")");
 }
 
-static error print_mkdyn_proto_eachisalist(struct module *mod, struct typ *t,
+static ERROR print_mkdyn_proto_eachisalist(struct module *mod, struct typ *t,
                                            struct typ *intf,
                                            bool *stop, void *user) {
   struct cprinter_state *st = user;
@@ -1958,7 +1958,7 @@ static error print_mkdyn_proto_eachisalist(struct module *mod, struct typ *t,
   return 0;
 }
 
-static error print_dyn_field_eachisalist(struct module *mod, struct typ *ignored,
+static ERROR print_dyn_field_eachisalist(struct module *mod, struct typ *ignored,
                                          struct typ *intf,
                                          bool *stop, void *user) {
   struct cprinter_state *st = user;
@@ -1989,7 +1989,7 @@ static error print_dyn_field_eachisalist(struct module *mod, struct typ *ignored
   return 0;
 }
 
-static error print_mkdyn_eachisalist(struct module *mod, struct typ *t,
+static ERROR print_mkdyn_eachisalist(struct module *mod, struct typ *t,
                                      struct typ *intf,
                                      bool *stop, void *user) {
   struct cprinter_state *st = user;
@@ -2503,7 +2503,7 @@ done:
   guard_generic(out, header, fwd, mod, node, false);
 }
 
-static error print_defintf_dyntable_field_eachisalist(struct module *mod, struct typ *t,
+static ERROR print_defintf_dyntable_field_eachisalist(struct module *mod, struct typ *t,
                                                       struct typ *intf,
                                                       bool *stop, void *user) {
   struct cprinter_state *st = user;
@@ -2527,7 +2527,7 @@ static error print_defintf_dyntable_field_eachisalist(struct module *mod, struct
   return 0;
 }
 
-static error print_defintf_member_proto_eachisalist(struct module *mod, struct typ *t,
+static ERROR print_defintf_member_proto_eachisalist(struct module *mod, struct typ *t,
                                                     struct typ *intf, void *user) {
   struct cprinter_state *st = user;
 
@@ -2548,7 +2548,7 @@ static error print_defintf_member_proto_eachisalist(struct module *mod, struct t
   return 0;
 }
 
-static error print_defintf_member_eachisalist(struct module *mod, struct typ *t,
+static ERROR print_defintf_member_eachisalist(struct module *mod, struct typ *t,
                                               struct typ *intf, void *user) {
   struct cprinter_state *st = user;
 
@@ -2784,7 +2784,7 @@ static void track_printed(const struct module *mod,
   }
 }
 
-static error print_topdeps_each(struct module *mod, struct node *node,
+static ERROR print_topdeps_each(struct module *mod, struct node *node,
                                 struct typ *_t, uint32_t topdep_mask, void *user) {
   if (topdep_mask & (TOP_IS_FUNCTOR | TOP_IS_PREVENT_DYN)) {
     return 0;
@@ -2970,7 +2970,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
   fintypset_destroy(&printed);
 }
 
-static error print_runexamples(FILE *out, const struct module *mod) {
+static void print_runexamples(FILE *out, const struct module *mod) {
   fprintf(out, "void ");
   print_c_runexamples_name(out, mod);
   fprintf(out, "(void) " ATTR_SECTION_EXAMPLES ";\n");
@@ -2983,7 +2983,6 @@ static error print_runexamples(FILE *out, const struct module *mod) {
     fprintf(out, "_$Nexample%zu();\n", n);
   }
   fprintf(out, "}\n");
-  return 0;
 }
 
 error printer_c(int fd, const struct module *mod) {

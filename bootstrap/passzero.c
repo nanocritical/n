@@ -9,7 +9,7 @@
 
 static STEP_NM(step_do_rewrite_prototype_wildcards,
                NM(UN));
-static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node *node,
+static ERROR step_do_rewrite_prototype_wildcards(struct module *mod, struct node *node,
                                                  void *user, bool *stop) {
   const bool within_self = *((bool *) user);
 
@@ -31,7 +31,7 @@ static error step_do_rewrite_prototype_wildcards(struct module *mod, struct node
   return 0;
 }
 
-static error pass_rewrite_wildcards(struct module *mod, struct node *root,
+static ERROR pass_rewrite_wildcards(struct module *mod, struct node *root,
                                     void *user, ssize_t shallow_last_up) {
   PASS(, UP_STEP(step_do_rewrite_prototype_wildcards), );
   return 0;
@@ -39,7 +39,7 @@ static error pass_rewrite_wildcards(struct module *mod, struct node *root,
 
 static STEP_NM(step_rewrite_prototype_wildcards,
                NM(DEFFUN) | NM(DEFMETHOD));
-static error step_rewrite_prototype_wildcards(struct module *mod, struct node *node,
+static ERROR step_rewrite_prototype_wildcards(struct module *mod, struct node *node,
                                               void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -80,7 +80,7 @@ struct node *create_instance_deepcopy_from_pristine(struct module *mod,
 
 static STEP_NM(step_init_toplevel,
                STEP_NM_HAS_TOPLEVEL);
-static error step_init_toplevel(struct module *mod, struct node *node,
+static ERROR step_init_toplevel(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -92,7 +92,7 @@ static error step_init_toplevel(struct module *mod, struct node *node,
 
 static STEP_NM(step_generics_pristine_copy,
                NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFINCOMPLETE));
-static error step_generics_pristine_copy(struct module *mod, struct node *node,
+static ERROR step_generics_pristine_copy(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -117,7 +117,7 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node,
 
 static STEP_NM(step_detect_prototypes,
                NM(DEFFUN) | NM(DEFMETHOD));
-static error step_detect_prototypes(struct module *mod, struct node *node,
+static ERROR step_detect_prototypes(struct module *mod, struct node *node,
                                     void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -129,7 +129,7 @@ static error step_detect_prototypes(struct module *mod, struct node *node,
   return 0;
 }
 
-static error do_check_deftype_kind(struct module *mod, struct node *deft,
+static ERROR do_check_deftype_kind(struct module *mod, struct node *deft,
                                    struct node *node) {
   error e;
   enum deftype_kind k = deft->as.DEFTYPE.kind;
@@ -160,7 +160,7 @@ static error do_check_deftype_kind(struct module *mod, struct node *deft,
 static STEP_NM(step_check_deftype_kind,
                NM(DEFTYPE));
 // Must be run before builtins are added.
-static error step_check_deftype_kind(struct module *mod, struct node *node,
+static ERROR step_check_deftype_kind(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
   error e = do_check_deftype_kind(mod, node, node);
@@ -236,7 +236,7 @@ static void do_assign_defchoice_tag(struct module *mod,
 
 static STEP_NM(step_assign_defchoice_tag_down,
                NM(DEFCHOICE));
-static error step_assign_defchoice_tag_down(struct module *mod, struct node *node,
+static ERROR step_assign_defchoice_tag_down(struct module *mod, struct node *node,
                                             void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -247,7 +247,7 @@ static error step_assign_defchoice_tag_down(struct module *mod, struct node *nod
 
 static STEP_NM(step_assign_defchoice_tag_up,
                NM(DEFCHOICE));
-static error step_assign_defchoice_tag_up(struct module *mod, struct node *node,
+static ERROR step_assign_defchoice_tag_up(struct module *mod, struct node *node,
                                           void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->as.DEFCHOICE.is_leaf) {
@@ -287,7 +287,7 @@ error step_stop_submodules(struct module *mod, struct node *node,
   return 0;
 }
 
-static error passzero0(struct module *mod, struct node *root,
+static ERROR passzero0(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_init_toplevel);
@@ -306,7 +306,7 @@ static error passzero0(struct module *mod, struct node *root,
   return 0;
 }
 
-static error passzero1(struct module *mod, struct node *root,
+static ERROR passzero1(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);

@@ -15,7 +15,7 @@
 
 static STEP_NM(step_increment_def_name_passed,
                NM(DEFNAME) | NM(DEFALIAS));
-static error step_increment_def_name_passed(struct module *mod, struct node *node,
+static ERROR step_increment_def_name_passed(struct module *mod, struct node *node,
                                             void *user, bool *stop) {
   DSTEP(mod, node);
   switch (node->which) {
@@ -68,7 +68,7 @@ static const ident operator_ident[TOKEN__NUM] = {
 
 static STEP_NM(step_check_no_literals_left,
                NM(NUMBER) | NM(NUL));
-static error step_check_no_literals_left(struct module *mod, struct node *node,
+static ERROR step_check_no_literals_left(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   if (typ_is_literal(node->typ)) {
     char *s = pptyp(mod, node->typ);
@@ -97,7 +97,7 @@ static bool string_literal_has_length_one(const char *s) {
 
 static STEP_NM(step_weak_literal_conversion,
                NM(STRING) | NM(BOOL));
-static error step_weak_literal_conversion(struct module *mod, struct node *node,
+static ERROR step_weak_literal_conversion(struct module *mod, struct node *node,
                                           void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -178,7 +178,7 @@ static enum token_type operator_call_arg_refop(const struct typ *tfun, size_t n)
   }
 }
 
-static error gen_operator_call(struct module *mod, struct node *node,
+static ERROR gen_operator_call(struct module *mod, struct node *node,
                                ident operator_name,
                                struct node *left, struct node *right,
                                enum catchup_for catchup_for) {
@@ -207,7 +207,7 @@ static error gen_operator_call(struct module *mod, struct node *node,
 
 static STEP_NM(step_operator_call_inference,
                NM(UN) | NM(BIN));
-static error step_operator_call_inference(struct module *mod, struct node *node,
+static ERROR step_operator_call_inference(struct module *mod, struct node *node,
                                           void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -280,7 +280,7 @@ static error step_operator_call_inference(struct module *mod, struct node *node,
 static STEP_NM(step_ctor_call_inference,
                NM(RETURN) | NM(BIN) | NM(DEFNAME) | NM(TYPECONSTRAINT) |
                NM(CALL) | NM(INIT));
-static error step_ctor_call_inference(struct module *mod, struct node *node,
+static ERROR step_ctor_call_inference(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
   return 0;
@@ -288,7 +288,7 @@ static error step_ctor_call_inference(struct module *mod, struct node *node,
 
 static STEP_NM(step_array_ctor_call_inference,
                NM(INIT));
-static error step_array_ctor_call_inference(struct module *mod, struct node *node,
+static ERROR step_array_ctor_call_inference(struct module *mod, struct node *node,
                                             void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -329,7 +329,7 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
 
 static STEP_NM(step_dtor_call_inference,
                NM(BLOCK));
-static error step_dtor_call_inference(struct module *mod, struct node *node,
+static ERROR step_dtor_call_inference(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
   // FIXME
@@ -366,7 +366,7 @@ static bool expr_is_return_through_ref(struct node **expr, struct module *mod, s
   }
 }
 
-static error assign_copy_call_inference(struct module *mod, struct node *node) {
+static ERROR assign_copy_call_inference(struct module *mod, struct node *node) {
   struct node *left = subs_first(node);
   struct node *right = subs_at(node, 1);
 
@@ -379,7 +379,7 @@ static error assign_copy_call_inference(struct module *mod, struct node *node) {
   return 0;
 }
 
-static error defname_copy_call_inference(struct module *mod, struct node *node) {
+static ERROR defname_copy_call_inference(struct module *mod, struct node *node) {
   struct node *left = mk_node(mod, node, IDENT);
   left->as.IDENT.name = node_ident(node);
   node_subs_remove(node, left);
@@ -409,7 +409,7 @@ static error defname_copy_call_inference(struct module *mod, struct node *node) 
 
 static STEP_NM(step_copy_call_inference,
                NM(BIN) | NM(DEFNAME));
-static error step_copy_call_inference(struct module *mod, struct node *node,
+static ERROR step_copy_call_inference(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
   struct node *left;
@@ -473,7 +473,7 @@ static bool need_insert_dyn(struct module *mod,
   return typ_is_dyn(intf) && typ_is_dyn_compatible(concrete);
 }
 
-static error insert_dyn(struct node **src,
+static ERROR insert_dyn(struct node **src,
                         struct module *mod, struct node *node,
                         struct typ *target) {
   struct node *d = mk_node(mod, node, DYN);
@@ -492,7 +492,7 @@ static error insert_dyn(struct node **src,
   return 0;
 }
 
-static error try_insert_dyn(struct node **src,
+static ERROR try_insert_dyn(struct node **src,
                             struct module *mod, struct node *node,
                             struct typ *target) {
   if (!need_insert_dyn(mod, target, (*src)->typ)) {
@@ -507,7 +507,7 @@ static error try_insert_dyn(struct node **src,
 static STEP_NM(step_dyn_inference,
                NM(RETURN) | NM(BIN) | NM(DEFNAME) | NM(TYPECONSTRAINT) |
                NM(CALL) | NM(INIT));
-static error step_dyn_inference(struct module *mod, struct node *node,
+static ERROR step_dyn_inference(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
   const struct node *target;
@@ -665,7 +665,7 @@ static const struct node *retval_name(struct module *mod) {
 
 static STEP_NM(step_store_return_through_ref_expr,
                NM(RETURN) | NM(DEFNAME) | NM(BIN));
-static error step_store_return_through_ref_expr(struct module *mod, struct node *node,
+static ERROR step_store_return_through_ref_expr(struct module *mod, struct node *node,
                                                 void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -758,7 +758,7 @@ static  error add_dyn_topdep_each(struct module *mod, struct typ *t, struct typ 
 
 static STEP_NM(step_add_dyn_topdep,
                NM(DEFTYPE));
-static error step_add_dyn_topdep(struct module *mod, struct node *node,
+static ERROR step_add_dyn_topdep(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
 
@@ -766,8 +766,10 @@ static error step_add_dyn_topdep(struct module *mod, struct node *node,
     return 0;
   }
 
-  typ_isalist_foreach(mod, node->typ, ISALIST_FILTEROUT_PREVENT_DYN,
-                      add_dyn_topdep_each, NULL);
+  error never = typ_isalist_foreach(mod, node->typ, ISALIST_FILTEROUT_PREVENT_DYN,
+                                    add_dyn_topdep_each, NULL);
+  assert(!never);
+
   return 0;
 }
 
@@ -795,7 +797,7 @@ error passbody0(struct module *mod, struct node *root,
     return 0;
 }
 
-static error passbody1(struct module *mod, struct node *root,
+static ERROR passbody1(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   // second
   PASS(
@@ -822,7 +824,7 @@ static error passbody1(struct module *mod, struct node *root,
     return 0;
 }
 
-static error passbody2(struct module *mod, struct node *root,
+static ERROR passbody2(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   // second
   PASS(
