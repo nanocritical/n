@@ -458,8 +458,12 @@ void node_move_content(struct node *dst, struct node *src) {
   struct node copy = *src;
   struct node *saved_dst_parent = parent(dst);
 
-  unset_typ(&src->typ);
-  unset_typ(&dst->typ);
+  if (src->typ != NULL) {
+    unset_typ(&src->typ);
+  }
+  if (dst->typ != NULL) {
+    unset_typ(&dst->typ);
+  }
 
   memset(src, 0, sizeof(*src));
 

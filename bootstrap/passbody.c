@@ -151,6 +151,7 @@ static error step_weak_literal_conversion(struct module *mod, struct node *node,
   fun->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
   node_subs_append(node, literal);
+  unset_typ(&literal->typ);
   set_typ(&literal->typ, lit_typ);
 
   const struct node *except[] = { literal, NULL };
@@ -308,6 +309,7 @@ static error step_array_ctor_call_inference(struct module *mod, struct node *nod
   node_set_which(node, CALL);
 
   struct typ *tfun = node_get_member(typ_definition(saved_typ), ID_FROM_ARRAY)->typ;
+  unset_typ(&array->typ);
   set_typ(&array->typ, typ_generic_arg(typ_function_arg(tfun, 0), 0));
 
   GSTART();
@@ -614,6 +616,7 @@ static void block_insert_value_assign(struct module *mod, struct node *block,
   node_subs_replace(block, last, assign);
 
   node_subs_append(assign, last);
+  unset_typ(&block->typ);
   set_typ(&block->typ, TBI_VOID);
 
   const struct node *except[] = { last, NULL };

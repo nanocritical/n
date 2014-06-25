@@ -1704,6 +1704,7 @@ static error try_rewrite_operator_sub(struct module *mod, struct node *node) {
   }
 
   unset_typ(&fun->typ);
+  unset_typ(&fun->as.DIRECTDEF.typ);
   set_typ(&fun->as.DIRECTDEF.typ, m->typ);
 
   error e = catchup(mod, NULL, fun, CATCHUP_BELOW_CURRENT);

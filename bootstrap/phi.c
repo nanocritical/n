@@ -469,6 +469,7 @@ error step_remove_typeconstraints(struct module *mod, struct node *node,
   struct typ *saved = node->typ;
   struct node *sub = subs_first(node);
   node_move_content(node, sub);
+  unset_typ(&node->typ);
   set_typ(&node->typ, saved);
 
   if (node->which == IDENT) {

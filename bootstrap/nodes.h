@@ -538,7 +538,9 @@ static inline void node_set_which(struct node *node, enum node_which which) {
     break;
   }
 
-  unset_typ(&node->typ);
+  if (node->typ != NULL) {
+    unset_typ(&node->typ);
+  }
 
   assert(scope_count(&node->scope) == 0 && "Not handled");
 

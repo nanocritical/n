@@ -135,10 +135,10 @@ size_t typ_debug_backlinks_count(const struct typ *t) {
 }
 
 void unset_typ(struct typ **loc) {
-  if (*loc != NULL) {
-    remove_backlink(*loc, loc);
-    *loc = NULL;
-  }
+  assert(*loc != NULL);
+
+  remove_backlink(*loc, loc);
+  *loc = NULL;
 }
 
 static void add_backlink(struct typ *t, struct typ **loc) {
@@ -162,8 +162,10 @@ static void add_backlink(struct typ *t, struct typ **loc) {
 
 void set_typ(struct typ **loc, struct typ *t) {
   assert(t != NULL);
-
-  unset_typ(loc);
+  assert(*loc == NULL
+         || *loc == TBI__NOT_TYPEABLE
+         || *loc == TBI__CALL_FUNCTION_SLOT
+         || *loc == TBI__MERCURIAL || *loc == TBI__MUTABLE);
 
   *loc = t;
 
@@ -647,7 +649,7 @@ static void link_to_final(struct module *mod, struct typ *dst, struct typ *src) 
 
   FOREACH_USER(idx, user, src, link_generic_functor_update(user, dst, src));
 
-  FOREACH_BACKLINK(idx, back, src, set_typ(back, dst));
+  FOREACH_BACKLINK(idx, back, src, unset_typ(back); set_typ(back, dst));
 
   FOREACH_USER(idx, user, src, link_generic_arg_update(user, dst, src));
 
@@ -674,7 +676,7 @@ static void link_to_tentative(struct module *mod, struct typ *dst, struct typ *s
 
   FOREACH_USER(idx, user, src, link_generic_functor_update(user, dst, src));
 
-  FOREACH_BACKLINK(idx, back, src, set_typ(back, dst));
+  FOREACH_BACKLINK(idx, back, src, unset_typ(back); set_typ(back, dst));
 
   FOREACH_USER(idx, user, src, link_generic_arg_update(user, dst, src));
 
