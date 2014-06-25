@@ -45,12 +45,12 @@ static const ident operator_ident[TOKEN__NUM] = {
   [TBWOR] = ID_OPERATOR_BWOR,
   [TBWXOR] = ID_OPERATOR_BWXOR,
   [TBWAND] = ID_OPERATOR_BWAND,
-  [TLSHIFT] = ID_OPERATOR_LSHIFT,
+  [TOVLSHIFT] = ID_OPERATOR_OVLSHIFT,
   [TRSHIFT] = ID_OPERATOR_RSHIFT,
   [TBWOR_ASSIGN] = ID_OPERATOR_ASSIGN_BWOR,
   [TBWXOR_ASSIGN] = ID_OPERATOR_ASSIGN_BWXOR,
   [TBWAND_ASSIGN] = ID_OPERATOR_ASSIGN_BWAND,
-  [TLSHIFT_ASSIGN] = ID_OPERATOR_ASSIGN_LSHIFT,
+  [TOVLSHIFT_ASSIGN] = ID_OPERATOR_ASSIGN_OVLSHIFT,
   [TRSHIFT_ASSIGN] = ID_OPERATOR_ASSIGN_RSHIFT,
   [TPLUS] = ID_OPERATOR_PLUS,
   [TMINUS] = ID_OPERATOR_MINUS,
@@ -62,6 +62,16 @@ static const ident operator_ident[TOKEN__NUM] = {
   [TDIVIDE_ASSIGN] = ID_OPERATOR_ASSIGN_DIVIDE,
   [TMODULO_ASSIGN] = ID_OPERATOR_ASSIGN_MODULO,
   [TTIMES_ASSIGN] = ID_OPERATOR_ASSIGN_TIMES,
+  [TOVPLUS] = ID_OPERATOR_OVPLUS,
+  [TOVMINUS] = ID_OPERATOR_OVMINUS,
+  [TOVDIVIDE] = ID_OPERATOR_OVDIVIDE,
+  [TOVMODULO] = ID_OPERATOR_OVMODULO,
+  [TOVTIMES] = ID_OPERATOR_OVTIMES,
+  [TOVPLUS_ASSIGN] = ID_OPERATOR_ASSIGN_OVPLUS,
+  [TOVMINUS_ASSIGN] = ID_OPERATOR_ASSIGN_OVMINUS,
+  [TOVDIVIDE_ASSIGN] = ID_OPERATOR_ASSIGN_OVDIVIDE,
+  [TOVMODULO_ASSIGN] = ID_OPERATOR_ASSIGN_OVMODULO,
+  [TOVTIMES_ASSIGN] = ID_OPERATOR_ASSIGN_OVTIMES,
   [TUMINUS] = ID_OPERATOR_UMINUS,
   [TBWNOT] = ID_OPERATOR_BWNOT,
 };
@@ -248,7 +258,8 @@ static ERROR step_operator_call_inference(struct module *mod, struct node *node,
   }
 
   const struct typ *l0 = typ_generic_functor_const(left->typ);
-  if (typ_isa(left->typ, TBI_NATIVE_BITWISE_INTEGER)
+  // FIXME should not let non-sized overflow operations through.
+  if (typ_isa(left->typ, TBI_NATIVE_INTEGER)
       || typ_isa(left->typ, TBI_NATIVE_BOOLEAN)
       || typ_isa(left->typ, TBI_NATIVE_FLOATING)
       || (l0 != NULL && typ_isa(l0, TBI_ENUM))) {
@@ -258,7 +269,8 @@ static ERROR step_operator_call_inference(struct module *mod, struct node *node,
   struct node *dleft = typ_definition(left->typ);
   if (dleft->which == DEFTYPE
       && dleft->as.DEFTYPE.kind == DEFTYPE_ENUM
-      && typ_isa(dleft->as.DEFTYPE.tag_typ, TBI_NATIVE_BITWISE_INTEGER)) {
+      // FIXME should not let non-sized overflow operations through.
+      && typ_isa(dleft->as.DEFTYPE.tag_typ, TBI_NATIVE_INTEGER)) {
     return 0;
   }
 

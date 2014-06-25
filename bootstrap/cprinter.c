@@ -52,7 +52,7 @@ static const char *c_token_strings[TOKEN__NUM] = {
   [TBWOR] = " | ",
   [TBWXOR] = " ^ ",
   [TRSHIFT] = " >> ",
-  [TLSHIFT] = " << ",
+  [TOVLSHIFT] = " << ",
   [Tor] = " || ",
   [Tand] = " && ",
   [Tnot] = "!",
@@ -72,7 +72,7 @@ static const char *c_token_strings[TOKEN__NUM] = {
   [TBWOR_ASSIGN] = " |= ",
   [TBWXOR_ASSIGN] = " ^= ",
   [TRSHIFT_ASSIGN] = " >>= ",
-  [TLSHIFT_ASSIGN] = " <<= ",
+  [TOVLSHIFT_ASSIGN] = " <<= ",
   [TBWNOT] = " ~",
   [TARROW] = " -> ",
   [TCOLON] = ":",
@@ -332,9 +332,12 @@ static void print_bin(FILE *out, const struct module *mod, const struct node *no
   case OP_BIN_SYM:
   case OP_BIN_SYM_BOOL:
   case OP_BIN_SYM_ARITH:
+  case OP_BIN_SYM_INTARITH:
+  case OP_BIN_SYM_OVARITH:
   case OP_BIN_SYM_BW:
   case OP_BIN_SYM_PTR:
   case OP_BIN_BW_RHS_UNSIGNED:
+  case OP_BIN_OVBW_RHS_UNSIGNED:
     print_bin_sym(out, mod, node, parent_op);
     break;
   case OP_BIN_ACC:
@@ -380,6 +383,7 @@ static void print_un(FILE *out, const struct module *mod, const struct node *nod
     break;
   case OP_UN_BOOL:
   case OP_UN_ARITH:
+  case OP_UN_OVARITH:
   case OP_UN_BW:
     print_token(out, op);
     print_expr(out, mod, term, op);

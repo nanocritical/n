@@ -228,6 +228,11 @@ static struct typ *nullable(struct module *mod, const struct node *for_error,
   return i->typ;
 }
 
+static struct typ *as_non_tentative(const struct typ *t) {
+  assert(typ_generic_arity(t) == 0 && "FIXME not supported");
+  return node_toplevel_const(typ_definition_const(t))->generic->our_generic_functor_typ;
+}
+
 static ERROR unify_literal(struct module *mod, uint32_t flags,
                            const struct node *for_error,
                            struct typ *a, struct typ *b,
@@ -283,6 +288,18 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
       // noop
     } else if (typ_is_tentative(a) && typ_isa(b, a)) {
       typ_link_tentative(b, a);
+    } else if (!typ_isa(a, TBI_INTEGER)
+               && typ_is_tentative(a) && typ_definition_const(a)->which == DEFINTF) {
+      struct node *dinc = defincomplete_create(mod, for_error);
+
+      defincomplete_add_isa(mod, for_error, dinc, as_non_tentative(a));
+      defincomplete_add_isa(mod, for_error, dinc, as_non_tentative(b));
+
+      error e = defincomplete_catchup(mod, dinc);
+      assert(!e);
+
+      typ_link_tentative(dinc->typ, a);
+      typ_link_tentative(dinc->typ, b);
     } else {
       e = typ_check_isa(mod, for_error, a, TBI_INTEGER);
       EXCEPT(e);
@@ -294,6 +311,18 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
       // noop
     } else if (typ_is_tentative(a) && typ_isa(b, a)) {
       typ_link_tentative(b, a);
+    } else if (!typ_isa(a, TBI_FLOATING)
+               && typ_is_tentative(a) && typ_definition_const(a)->which == DEFINTF) {
+      struct node *dinc = defincomplete_create(mod, for_error);
+
+      defincomplete_add_isa(mod, for_error, dinc, a);
+      defincomplete_add_isa(mod, for_error, dinc, b);
+
+      error e = defincomplete_catchup(mod, dinc);
+      assert(!e);
+
+      typ_link_tentative(dinc->typ, a);
+      typ_link_tentative(dinc->typ, b);
     } else {
       e = typ_check_isa(mod, for_error, a, TBI_FLOATING);
       EXCEPT(e);

@@ -303,9 +303,9 @@ normal:
     R(TSOB);
   }
   ">>=" { R(TRSHIFT_ASSIGN); }
-  "<<=" { R(TLSHIFT_ASSIGN); }
+  "ov<<=" { R(TOVLSHIFT_ASSIGN); }
   ">>" { R(TRSHIFT); }
-  "<<" { R(TLSHIFT); }
+  "ov<<" { R(TOVLSHIFT); }
   "+=" { R(TPLUS_ASSIGN); }
   "-=" { R(TMINUS_ASSIGN); }
   "*=" { R(TTIMES_ASSIGN); }

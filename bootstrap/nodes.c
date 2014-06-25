@@ -757,7 +757,17 @@ error defincomplete_catchup(struct module *mod, struct node *dinc) {
   dinc->as.DEFINCOMPLETE.is_isalist_literal
     = subs_count_atleast(isalist, 1) && !subs_count_atleast(dinc, IDX_ISALIST + 2);
 
-  const bool is_tentative = !dinc->as.DEFINCOMPLETE.is_isalist_literal;
+  bool is_literal = false;
+  FOREACH_SUB_CONST(isa, isalist) {
+    const struct node *d = subs_first_const(isa);
+    assert(d->which == DIRECTDEF);
+    if (typ_is_literal(d->as.DIRECTDEF.typ)) {
+      is_literal = true;
+      break;
+    }
+  }
+
+  const bool is_tentative = is_literal || !dinc->as.DEFINCOMPLETE.is_isalist_literal;
   error e = catchup_instantiation(mod, mod, dinc, is_tentative);
   EXCEPT(e);
 

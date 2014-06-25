@@ -1198,9 +1198,12 @@ static ERROR constraint_inference_bin(struct module *mod,
     // fallthrough
   case OP_BIN_SYM_BOOL:
   case OP_BIN_SYM_ARITH:
+  case OP_BIN_SYM_INTARITH:
+  case OP_BIN_SYM_OVARITH:
   case OP_BIN_SYM_BW:
   case OP_BIN_SYM_PTR:
   case OP_BIN_BW_RHS_UNSIGNED:
+  case OP_BIN_OVBW_RHS_UNSIGNED:
     e = constraint_check(mod, subs_first(node), CBI_INIT, false);
     EXCEPT(e);
     e = constraint_check(mod, subs_last(node), CBI_INIT, false);
@@ -1253,6 +1256,7 @@ static ERROR constraint_inference_un(struct module *mod,
     return 0;
   case OP_UN_BOOL:
   case OP_UN_ARITH:
+  case OP_UN_OVARITH:
   case OP_UN_BW:
     e = constraint_check(mod, subs_first(node), CBI_INIT, false);
     EXCEPT(e);

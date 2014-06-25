@@ -247,7 +247,7 @@ error step_type_mutability_mark(struct module *mod, struct node *node,
     case TBWOR_ASSIGN:
     case TBWXOR_ASSIGN:
     case TRSHIFT_ASSIGN:
-    case TLSHIFT_ASSIGN:
+    case TOVLSHIFT_ASSIGN:
       first->typ = mutable;
       break;
     default:
@@ -566,8 +566,13 @@ static ERROR type_inference_un(struct module *mod, struct node *node) {
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
+  case OP_UN_OVARITH:
+    set_typ(&node->typ, create_tentative(mod, node, TBI_OVERFLOW_ARITHMETIC));
+    e = unify(mod, node, node->typ, term->typ);
+    EXCEPT(e);
+    break;
   case OP_UN_BW:
-    set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE_INTEGER));
+    set_typ(&node->typ, create_tentative(mod, node, TBI_INTEGER_ARITHMETIC));
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
@@ -629,7 +634,8 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
     case TTIMES_ASSIGN:
     case TDIVIDE_ASSIGN:
     case TMODULO_ASSIGN:
-      e = typ_check_isa(mod, node, left->typ, TBI_ARITHMETIC);
+      e = typ_check_isa(mod, node, left->typ,
+                        operator == TMODULO_ASSIGN ? TBI_INTEGER_ARITHMETIC : TBI_ARITHMETIC);
       EXCEPT(e);
 
       set_typ(&node->typ, TBI_VOID);
@@ -642,21 +648,43 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
       break;
     }
     break;
-  case OP_BIN_SYM_BW:
+  case OP_BIN_SYM_OVARITH:
     switch (operator) {
-    case TBWAND_ASSIGN:
-    case TBWOR_ASSIGN:
-    case TBWXOR_ASSIGN:
-    case TRSHIFT_ASSIGN:
-    case TLSHIFT_ASSIGN:
-      e = typ_check_isa(mod, node, left->typ, TBI_BITWISE_INTEGER);
+    case TOVPLUS_ASSIGN:
+    case TOVMINUS_ASSIGN:
+    case TOVTIMES_ASSIGN:
+    case TOVDIVIDE_ASSIGN:
+    case TOVMODULO_ASSIGN:
+    case TOVLSHIFT_ASSIGN:
+      e = typ_check_isa(mod, node, left->typ, TBI_OVERFLOW_ARITHMETIC);
       EXCEPT(e);
 
       set_typ(&node->typ, TBI_VOID);
       left->flags |= right->flags & NODE__TRANSITIVE;
       break;
     default:
-      set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE_INTEGER));
+      set_typ(&node->typ, create_tentative(mod, node, TBI_OVERFLOW_ARITHMETIC));
+      e = unify(mod, node, node->typ, left->typ);
+      EXCEPT(e);
+      break;
+    }
+    break;
+  case OP_BIN_SYM_BW:
+  case OP_BIN_SYM_INTARITH:
+    switch (operator) {
+    case TMODULO_ASSIGN:
+    case TRSHIFT_ASSIGN:
+    case TBWAND_ASSIGN:
+    case TBWOR_ASSIGN:
+    case TBWXOR_ASSIGN:
+      e = typ_check_isa(mod, node, left->typ, TBI_INTEGER_ARITHMETIC);
+      EXCEPT(e);
+
+      set_typ(&node->typ, TBI_VOID);
+      left->flags |= right->flags & NODE__TRANSITIVE;
+      break;
+    default:
+      set_typ(&node->typ, create_tentative(mod, node, TBI_INTEGER_ARITHMETIC));
       e = unify(mod, node, node->typ, left->typ);
       EXCEPT(e);
       break;
@@ -690,8 +718,11 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
       break;
     }
     break;
-  default:
+  case OP_BIN:
     set_typ(&node->typ, TBI_VOID);
+    break;
+  default:
+    assert(false);
     break;
   }
 
@@ -1015,7 +1046,17 @@ static ERROR type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   e = unify(mod, right, right->typ, TBI_U32);
   EXCEPT(e);
 
-  set_typ(&node->typ, create_tentative(mod, node, TBI_BITWISE_INTEGER));
+  switch (node->as.BIN.operator) {
+  case TRSHIFT:
+    set_typ(&node->typ, create_tentative(mod, node, TBI_INTEGER_ARITHMETIC));
+    break;
+  case TOVLSHIFT:
+    set_typ(&node->typ, create_tentative(mod, node, TBI_OVERFLOW_ARITHMETIC));
+    break;
+  default:
+    assert(false);
+    break;
+  }
   e = unify(mod, node, left->typ, node->typ);
   EXCEPT(e);
 
@@ -1048,12 +1089,15 @@ static ERROR type_inference_bin(struct module *mod, struct node *node) {
   case OP_BIN_SYM:
   case OP_BIN_SYM_BOOL:
   case OP_BIN_SYM_ARITH:
+  case OP_BIN_SYM_INTARITH:
+  case OP_BIN_SYM_OVARITH:
   case OP_BIN_SYM_BW:
   case OP_BIN_SYM_PTR:
     e = check_terms_not_types(mod, node);
     EXCEPT(e);
     return type_inference_bin_sym(mod, node);
   case OP_BIN_BW_RHS_UNSIGNED:
+  case OP_BIN_OVBW_RHS_UNSIGNED:
     e = check_terms_not_types(mod, node);
     EXCEPT(e);
     return type_inference_bin_rhs_unsigned(mod, node);

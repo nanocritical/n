@@ -90,20 +90,30 @@ intf `Arithmetic =
 	met! Operator_assign_times other:@final
 intf `Integer_arithmetic =
 	met Operator_modulo other:@final = final
+	met Operator_rshift by:U32 = final
 	met! Operator_assign_modulo other:@final
-intf `Bitwise_integer =
-	isa `Integer
+	met! Operator_assign_rshift by:U32
 	met Operator_bwor other:@final = final
 	met Operator_bwxor other:@final = final
 	met Operator_bwand other:@final = final
-	met Operator_lshift by:U32 = final
-	met Operator_rshift by:U32 = final
 	met Operator_bwnot = final
 	met! Operator_assign_bwor other:@final
 	met! Operator_assign_bwxor other:@final
 	met! Operator_assign_bwand other:@final
-	met! Operator_assign_lshift by:U32
-	met! Operator_assign_rshift by:U32
+intf `Overflow_arithmetic =
+	met Operator_ovplus other:@this = this
+	met Operator_ovminus other:@this = this
+	met Operator_ovdivide other:@this = this
+	met Operator_ovmodulo other:@this = this
+	met Operator_ovtimes other:@this = this
+	met Operator_ovuminus = this
+	met Operator_ovlshift by:U32 = final
+	met! Operator_assign_ovplus other:@this
+	met! Operator_assign_ovminus other:@this
+	met! Operator_assign_ovdivide other:@this
+	met! Operator_assign_ovmodulo other:@this
+	met! Operator_assign_ovtimes other:@this
+	met! Operator_assign_ovlshift by:U32
 
 intf `Sum_copy =
 	isa `Copyable
@@ -505,11 +515,6 @@ intf `Unsigned_integer =
 	met Unsafe_signed = final.This_signed
 	met Try_signed = Error, final.This_signed
 
-intf `Signed_bitwise_integer =
-	isa `Signed_integer `Bitwise_integer
-intf `Unsigned_bitwise_integer =
-	isa `Unsigned_integer `Bitwise_integer
-
 intf `Native_integer =
 	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy
 		\ `Integer `Show
@@ -517,17 +522,11 @@ intf `Native_signed_integer =
 	isa `Signed_integer `Native_integer
 intf `Native_unsigned_integer =
 	isa `Unsigned_integer `Native_integer
-intf `Native_anysign_integer =
-	isa `Native_signed_integer `Native_unsigned_integer
 
-intf `Native_bitwise_integer =
-	isa `Bitwise_integer `Native_integer
 intf `Native_sized_signed_integer =
-	isa `Signed_integer `Native_bitwise_integer
+	isa `Native_signed_integer
 intf `Native_sized_unsigned_integer =
-	isa `Unsigned_integer `Native_bitwise_integer
-intf `Native_sized_anysign_integer =
-	isa `Native_sized_signed_integer `Native_sized_unsigned_integer
+	isa `Native_unsigned_integer `Overflow_arithmetic
 
 intf `Generalized_boolean =
 	isa `Ordered
@@ -606,27 +605,14 @@ extern inline I8 met! Operator_assign_minus other:@this
 extern inline I8 met! Operator_assign_divide other:@this
 extern inline I8 met! Operator_assign_modulo other:@this
 extern inline I8 met! Operator_assign_times other:@this
-extern inline I8 met Operator_ovplus other:@this = this
-extern inline I8 met Operator_ovminus other:@this = this
-extern inline I8 met Operator_ovdivide other:@this = this
-extern inline I8 met Operator_ovmodulo other:@this = this
-extern inline I8 met Operator_ovtimes other:@this = this
-extern inline I8 met Operator_ovuminus = this
-extern inline I8 met! Operator_assign_ovplus other:@this
-extern inline I8 met! Operator_assign_ovminus other:@this
-extern inline I8 met! Operator_assign_ovdivide other:@this
-extern inline I8 met! Operator_assign_ovmodulo other:@this
-extern inline I8 met! Operator_assign_ovtimes other:@this
 extern inline I8 met Operator_bwor other:@this = this
 extern inline I8 met Operator_bwxor other:@this = this
 extern inline I8 met Operator_bwand other:@this = this
-extern inline I8 met Operator_lshift by:U32 = this
 extern inline I8 met Operator_rshift by:U32 = this
 extern inline I8 met Operator_bwnot = this
 extern inline I8 met! Operator_assign_bwor other:@this
 extern inline I8 met! Operator_assign_bwxor other:@this
 extern inline I8 met! Operator_assign_bwand other:@this
-extern inline I8 met! Operator_assign_lshift by:U32
 extern inline I8 met! Operator_assign_rshift by:U32
 inline I8 met Unsafe_unsigned = U8
 	Assert <- self >= 0
@@ -669,27 +655,14 @@ extern inline I16 met! Operator_assign_minus other:@this
 extern inline I16 met! Operator_assign_divide other:@this
 extern inline I16 met! Operator_assign_modulo other:@this
 extern inline I16 met! Operator_assign_times other:@this
-extern inline I16 met Operator_ovplus other:@this = this
-extern inline I16 met Operator_ovminus other:@this = this
-extern inline I16 met Operator_ovdivide other:@this = this
-extern inline I16 met Operator_ovmodulo other:@this = this
-extern inline I16 met Operator_ovtimes other:@this = this
-extern inline I16 met Operator_ovuminus = this
-extern inline I16 met! Operator_assign_ovplus other:@this
-extern inline I16 met! Operator_assign_ovminus other:@this
-extern inline I16 met! Operator_assign_ovdivide other:@this
-extern inline I16 met! Operator_assign_ovmodulo other:@this
-extern inline I16 met! Operator_assign_ovtimes other:@this
 extern inline I16 met Operator_bwor other:@this = this
 extern inline I16 met Operator_bwxor other:@this = this
 extern inline I16 met Operator_bwand other:@this = this
-extern inline I16 met Operator_lshift by:U32 = this
 extern inline I16 met Operator_rshift by:U32 = this
 extern inline I16 met Operator_bwnot = this
 extern inline I16 met! Operator_assign_bwor other:@this
 extern inline I16 met! Operator_assign_bwxor other:@this
 extern inline I16 met! Operator_assign_bwand other:@this
-extern inline I16 met! Operator_assign_lshift by:U32
 extern inline I16 met! Operator_assign_rshift by:U32
 inline I16 met Unsafe_unsigned = U16
 	Assert <- self >= 0
@@ -732,27 +705,14 @@ extern inline I32 met! Operator_assign_minus other:@this
 extern inline I32 met! Operator_assign_divide other:@this
 extern inline I32 met! Operator_assign_modulo other:@this
 extern inline I32 met! Operator_assign_times other:@this
-extern inline I32 met Operator_ovplus other:@this = this
-extern inline I32 met Operator_ovminus other:@this = this
-extern inline I32 met Operator_ovdivide other:@this = this
-extern inline I32 met Operator_ovmodulo other:@this = this
-extern inline I32 met Operator_ovtimes other:@this = this
-extern inline I32 met Operator_ovuminus = this
-extern inline I32 met! Operator_assign_ovplus other:@this
-extern inline I32 met! Operator_assign_ovminus other:@this
-extern inline I32 met! Operator_assign_ovdivide other:@this
-extern inline I32 met! Operator_assign_ovmodulo other:@this
-extern inline I32 met! Operator_assign_ovtimes other:@this
 extern inline I32 met Operator_bwor other:@this = this
 extern inline I32 met Operator_bwxor other:@this = this
 extern inline I32 met Operator_bwand other:@this = this
-extern inline I32 met Operator_lshift by:U32 = this
 extern inline I32 met Operator_rshift by:U32 = this
 extern inline I32 met Operator_bwnot = this
 extern inline I32 met! Operator_assign_bwor other:@this
 extern inline I32 met! Operator_assign_bwxor other:@this
 extern inline I32 met! Operator_assign_bwand other:@this
-extern inline I32 met! Operator_assign_lshift by:U32
 extern inline I32 met! Operator_assign_rshift by:U32
 inline I32 met Unsafe_unsigned = U32
 	Assert <- self >= 0
@@ -800,27 +760,14 @@ extern inline I64 met! Operator_assign_minus other:@this
 extern inline I64 met! Operator_assign_divide other:@this
 extern inline I64 met! Operator_assign_modulo other:@this
 extern inline I64 met! Operator_assign_times other:@this
-extern inline I64 met Operator_ovplus other:@this = this
-extern inline I64 met Operator_ovminus other:@this = this
-extern inline I64 met Operator_ovdivide other:@this = this
-extern inline I64 met Operator_ovmodulo other:@this = this
-extern inline I64 met Operator_ovtimes other:@this = this
-extern inline I64 met Operator_ovuminus = this
-extern inline I64 met! Operator_assign_ovplus other:@this
-extern inline I64 met! Operator_assign_ovminus other:@this
-extern inline I64 met! Operator_assign_ovdivide other:@this
-extern inline I64 met! Operator_assign_ovmodulo other:@this
-extern inline I64 met! Operator_assign_ovtimes other:@this
 extern inline I64 met Operator_bwor other:@this = this
 extern inline I64 met Operator_bwxor other:@this = this
 extern inline I64 met Operator_bwand other:@this = this
-extern inline I64 met Operator_lshift by:U32 = this
 extern inline I64 met Operator_rshift by:U32 = this
 extern inline I64 met Operator_bwnot = this
 extern inline I64 met! Operator_assign_bwor other:@this
 extern inline I64 met! Operator_assign_bwxor other:@this
 extern inline I64 met! Operator_assign_bwand other:@this
-extern inline I64 met! Operator_assign_lshift by:U32
 extern inline I64 met! Operator_assign_rshift by:U32
 inline I64 met Unsafe_unsigned = U64
 	Assert <- self >= 0
@@ -884,13 +831,13 @@ extern inline U8 met! Operator_assign_ovtimes other:@this
 extern inline U8 met Operator_bwor other:@this = this
 extern inline U8 met Operator_bwxor other:@this = this
 extern inline U8 met Operator_bwand other:@this = this
-extern inline U8 met Operator_lshift by:U32 = this
+extern inline U8 met Operator_ovlshift by:U32 = this
 extern inline U8 met Operator_rshift by:U32 = this
 extern inline U8 met Operator_bwnot = this
 extern inline U8 met! Operator_assign_bwor other:@this
 extern inline U8 met! Operator_assign_bwxor other:@this
 extern inline U8 met! Operator_assign_bwand other:@this
-extern inline U8 met! Operator_assign_lshift by:U32
+extern inline U8 met! Operator_assign_ovlshift by:U32
 extern inline U8 met! Operator_assign_rshift by:U32
 inline U8 met Unsafe_signed = I8
 	Assert <- self <= I8.MAX.Bitwise_unsigned
@@ -947,13 +894,13 @@ extern inline U16 met! Operator_assign_ovtimes other:@this
 extern inline U16 met Operator_bwor other:@this = this
 extern inline U16 met Operator_bwxor other:@this = this
 extern inline U16 met Operator_bwand other:@this = this
-extern inline U16 met Operator_lshift by:U32 = this
+extern inline U16 met Operator_ovlshift by:U32 = this
 extern inline U16 met Operator_rshift by:U32 = this
 extern inline U16 met Operator_bwnot = this
 extern inline U16 met! Operator_assign_bwor other:@this
 extern inline U16 met! Operator_assign_bwxor other:@this
 extern inline U16 met! Operator_assign_bwand other:@this
-extern inline U16 met! Operator_assign_lshift by:U32
+extern inline U16 met! Operator_assign_ovlshift by:U32
 extern inline U16 met! Operator_assign_rshift by:U32
 inline U16 met Unsafe_signed = I16
 	Assert <- self <= I16.MAX.Bitwise_unsigned
@@ -1010,13 +957,13 @@ extern inline U32 met! Operator_assign_ovtimes other:@this
 extern inline U32 met Operator_bwor other:@this = this
 extern inline U32 met Operator_bwxor other:@this = this
 extern inline U32 met Operator_bwand other:@this = this
-extern inline U32 met Operator_lshift by:U32 = this
+extern inline U32 met Operator_ovlshift by:U32 = this
 extern inline U32 met Operator_rshift by:U32 = this
 extern inline U32 met Operator_bwnot = this
 extern inline U32 met! Operator_assign_bwor other:@this
 extern inline U32 met! Operator_assign_bwxor other:@this
 extern inline U32 met! Operator_assign_bwand other:@this
-extern inline U32 met! Operator_assign_lshift by:U32
+extern inline U32 met! Operator_assign_ovlshift by:U32
 extern inline U32 met! Operator_assign_rshift by:U32
 inline U32 met Unsafe_signed = I32
 	Assert <- self <= I32.MAX.Bitwise_unsigned
@@ -1073,13 +1020,13 @@ extern inline U64 met! Operator_assign_ovtimes other:@this
 extern inline U64 met Operator_bwor other:@this = this
 extern inline U64 met Operator_bwxor other:@this = this
 extern inline U64 met Operator_bwand other:@this = this
-extern inline U64 met Operator_lshift by:U32 = this
+extern inline U64 met Operator_ovlshift by:U32 = this
 extern inline U64 met Operator_rshift by:U32 = this
 extern inline U64 met Operator_bwnot = this
 extern inline U64 met! Operator_assign_bwor other:@this
 extern inline U64 met! Operator_assign_bwxor other:@this
 extern inline U64 met! Operator_assign_bwand other:@this
-extern inline U64 met! Operator_assign_lshift by:U32
+extern inline U64 met! Operator_assign_ovlshift by:U32
 extern inline U64 met! Operator_assign_rshift by:U32
 inline U64 met Unsafe_signed = I64
 	Assert <- self <= I64.MAX.Bitwise_unsigned
@@ -1125,11 +1072,21 @@ extern inline Int met Operator_divide other:@this = this
 extern inline Int met Operator_modulo other:@this = this
 extern inline Int met Operator_times other:@this = this
 extern inline Int met Operator_uminus = this
+extern inline Int met Operator_rshift by:U32 = final
 extern inline Int met! Operator_assign_plus other:@this
 extern inline Int met! Operator_assign_minus other:@this
 extern inline Int met! Operator_assign_divide other:@this
 extern inline Int met! Operator_assign_modulo other:@this
 extern inline Int met! Operator_assign_times other:@this
+extern inline Int met! Operator_assign_modulo other:@final
+extern inline Int met! Operator_assign_rshift by:U32
+extern inline Int met Operator_bwor other:@final = final
+extern inline Int met Operator_bwxor other:@final = final
+extern inline Int met Operator_bwand other:@final = final
+extern inline Int met Operator_bwnot = final
+extern inline Int met! Operator_assign_bwor other:@final
+extern inline Int met! Operator_assign_bwxor other:@final
+extern inline Int met! Operator_assign_bwand other:@final
 inline Int met Unsafe_unsigned = Uint
 	Assert <- self >= 0
 	return self.force_unsigned
@@ -1167,11 +1124,20 @@ extern inline Uint met Operator_divide other:@this = this
 extern inline Uint met Operator_modulo other:@this = this
 extern inline Uint met Operator_times other:@this = this
 extern inline Uint met Operator_uminus = this
+extern inline Uint met Operator_rshift by:U32 = final
 extern inline Uint met! Operator_assign_plus other:@this
 extern inline Uint met! Operator_assign_minus other:@this
 extern inline Uint met! Operator_assign_divide other:@this
 extern inline Uint met! Operator_assign_modulo other:@this
 extern inline Uint met! Operator_assign_times other:@this
+extern inline Uint met! Operator_assign_rshift by:U32
+extern inline Uint met Operator_bwor other:@final = final
+extern inline Uint met Operator_bwxor other:@final = final
+extern inline Uint met Operator_bwand other:@final = final
+extern inline Uint met Operator_bwnot = final
+extern inline Uint met! Operator_assign_bwor other:@final
+extern inline Uint met! Operator_assign_bwxor other:@final
+extern inline Uint met! Operator_assign_bwand other:@final
 inline Uint met Unsafe_signed = Int
 	Assert <- self <= Int.MAX.force_unsigned
 	return self.force_signed
