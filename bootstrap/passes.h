@@ -18,9 +18,6 @@ error catchup(struct module *mod,
               const struct node **except,
               struct node *node,
               enum catchup_for how);
-void record_triggered_instantiation(struct module *instantiating_mod,
-                                    struct module *gendef_mod,
-                                    struct node *i);
 error catchup_instantiation(struct module *instantiating_mod,
                             struct module *gendef_mod,
                             struct node *instance,

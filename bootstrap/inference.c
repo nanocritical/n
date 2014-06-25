@@ -380,7 +380,7 @@ error reference(struct node **result,
     break;
   }
 
-  error e = instantiate(result, mod, for_error, 0, f, &typ, 1);
+  error e = instantiate(result, mod, for_error, 0, f, &typ, 1, false);
   EXCEPT(e);
 
   topdeps_record(mod, (*result)->typ);
@@ -1077,7 +1077,7 @@ static error typ_tuple(struct node **result, struct module *mod, struct node *no
   }
 
   error e = instantiate(result, mod, node, 0,
-                        typ_lookup_builtin_tuple(mod, arity), args, arity);
+                        typ_lookup_builtin_tuple(mod, arity), args, arity, false);
   EXCEPT(e);
 
   free(args);
@@ -1554,7 +1554,7 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
   }
 
   struct node *i = NULL;
-  e = instantiate(&i, mod, node, 1, t, args, arity);
+  e = instantiate(&i, mod, node, 1, t, args, arity, false);
   EXCEPT(e);
 
   n = first_explicit;
@@ -1576,7 +1576,8 @@ static error explicit_instantiation(struct module *mod, struct node *node) {
 
 static error implicit_function_instantiation(struct module *mod, struct node *node) {
   error e;
-  struct typ *tfun = subs_first(node)->typ;
+  struct node *fun = subs_first(node);
+  struct typ *tfun = fun->typ;
   const size_t arity = subs_count(node) - 1;
 
   // Already checked in prepare_call_arguments().
@@ -1612,7 +1613,17 @@ static error implicit_function_instantiation(struct module *mod, struct node *no
     n += 1;
   }
 
-  set_typ(&subs_first(node)->typ, i->typ);
+  // We're turning 'fun' into something different: it was a
+  // functor, now it's an instantiated function. We are, in essence,
+  // removing the node and replacing with a different one. We don't actually
+  // bother to do that, but we need to be careful:
+  unset_typ(&fun->typ);
+  set_typ(&fun->typ, i->typ);
+  if (fun->which == DIRECTDEF) {
+    unset_typ(&fun->as.DIRECTDEF.typ);
+    set_typ(&fun->as.DIRECTDEF.typ, i->typ);
+  }
+
   topdeps_record(mod, i->typ);
   set_typ(&node->typ, typ_function_return(i->typ));
 
@@ -1721,8 +1732,7 @@ static error try_rewrite_operator_sub(struct module *mod, struct node *node) {
 static error type_inference_call(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
-  struct typ *tfun = fun->typ;
-  struct node *dfun = typ_definition(tfun);
+  struct node *dfun = typ_definition(fun->typ);
 
   if (!node_is_fun(dfun)
       || (subs_count_atleast(node, 2)
@@ -1773,21 +1783,21 @@ static error type_inference_call(struct module *mod, struct node *node) {
     if (n == first_vararg) {
       break;
     }
-    e = unify_refcompat(mod, arg, typ_function_arg(tfun, n), arg->typ);
+    e = unify_refcompat(mod, arg, typ_function_arg(dfun->typ, n), arg->typ);
     EXCEPT(e);
     n += 1;
   }
 
   if (n == first_vararg) {
-    struct typ *target = typ_generic_arg(typ_function_arg(tfun, n), 0);
-
     FOREACH_SUB_EVERY(arg, node, 1 + n, 1) {
+      struct typ *target = typ_generic_arg(typ_function_arg(dfun->typ, n), 0);
+
       e = unify_refcompat(mod, arg, target, arg->typ);
       EXCEPT(e);
     }
   }
 
-  set_typ(&node->typ, typ_function_return(tfun));
+  set_typ(&node->typ, typ_function_return(dfun->typ));
 
   return 0;
 }
@@ -2441,8 +2451,7 @@ static void finalize_weakly_concrete(struct module *mod, struct typ *t) {
   }
 }
 
-static error finalize_generic_instantiation(size_t *remaining,
-                                            struct module *mod,
+static error finalize_generic_instantiation(struct module *mod,
                                             const struct node *for_error,
                                             struct typ *t) {
   if (typ_definition_const(t) == NULL) {
@@ -2465,10 +2474,7 @@ static error finalize_generic_instantiation(size_t *remaining,
   struct typ *functor = typ_generic_functor(t);
 
   if (typ_is_tentative(t)) {
-    if (typ_is_tentative(functor)) {
-      *remaining += 1;
-      return 0;
-    }
+    assert(!typ_is_tentative(functor));
 
     for (size_t m = 0; m < typ_generic_arity(t); ++m) {
       struct typ *arg = typ_generic_arg(t, m);
@@ -2477,16 +2483,17 @@ static error finalize_generic_instantiation(size_t *remaining,
         continue;
       }
 
-      if (typ_is_tentative(arg)) {
-        *remaining += 1;
-        return 0;
-      }
+      assert(!typ_is_tentative(arg));
     }
+  } else {
+    // While t is already not tentative anymore, the instantiation is still
+    // partial, and needs to be completed (bodypass). It's easier to simply
+    // create a final instance from scratch.
   }
 
   const size_t arity = typ_generic_arity(t);
 
-  struct typ *existing = find_existing_final_for_tentative(mod, t);
+  struct typ *existing = instances_find_existing_final_like(typ_definition(t), t);
   if (existing != NULL) {
     typ_link_to_existing_final(existing, t);
     topdeps_record(mod, existing);
@@ -2501,19 +2508,27 @@ static error finalize_generic_instantiation(size_t *remaining,
   const struct node *instantiating_for_error = node_toplevel_const(typ_definition_const(t))
     ->generic->for_error;
   struct node *i = NULL;
-  error e = instantiate(&i, mod, instantiating_for_error, -1, functor, args, arity);
+  error e = instantiate(&i, mod, instantiating_for_error, -1, functor, args, arity,
+                        true);
   EXCEPT(e);
 
-  typ_declare_final__privileged(i->typ);
+  assert(!typ_is_tentative(i->typ));
+  // SHOULDN'T MEMBERS also be linked already?
+  //typ_declare_final__privileged(i->typ);
   if (NM(i->which) & STEP_NM_DEFS_NO_FUNS) {
     FOREACH_SUB(m, i) {
       if (NM(m->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+        assert(!typ_is_tentative(m->typ));
         typ_declare_final__privileged(m->typ);
       }
     }
   }
 
-  typ_link_to_existing_final(i->typ, t);
+  if (typ_definition_const(t) != NULL) {
+    // Otherwise it's already linked.
+    typ_link_to_existing_final(i->typ, t);
+  }
+
   topdeps_record(mod, i->typ);
 
   free(args);
@@ -2540,15 +2555,71 @@ static void finalize_defincomplete_unification(struct module *mod, struct node *
   assert(!e);
 }
 
-// See bootstrap/types.c for some ideas on how to get rid of this step.
-STEP_NM(step_gather_final_instantiations,
+static __thread struct vectyp scheduleq;
+
+// Called from typ_link_*() operations. Linking is triggered by unify*().
+// unify*() works directly on typs. When a typ is linked, the source is
+// zeroed. In some cases (currently, on link_finalize()), we have to wait
+// until after unify*() is done to proceed.
+//
+// Why only link_finalize()?
+// unify*() respects this invariant: during unification, a tentative typ may
+// be linked to another tentative typ or final typ; once *explicitly* linked
+// to something else (explicitly means passed directly to typ_link_*()) by
+// unify*()), tentative typs are not used again by the current unification.
+// So there is no need to delay further work, they can be linked and zeroed
+// immediately.
+//
+// link_finalize(), on the other hand, operates on tentative typs that have
+// just lost their tentative status but were not directly passed to
+// typ_link_*(). They lost their tentative status as a side effect of some
+// other typ being linked to something final. The current unification
+// invokation has no way of knowing all the typs that may loose their
+// tentative status indirectly. If link_finalize() were to do the link
+// immediately, unify*() would end up using zeroed typs by mistake. Instead,
+// the work is delayed until the current unification is over.
+void schedule_finalization(struct typ *t) {
+  vectyp_push(&scheduleq, t);
+}
+
+void process_finalizations(void) {
+  static __thread bool in_progress;
+  if (in_progress) {
+    return;
+  }
+  in_progress = true;
+
+  // More work may be scheduled as we're iterating.
+  for (size_t n = 0; n < vectyp_count(&scheduleq); ++n) {
+    struct typ *t = *vectyp_get(&scheduleq, n);
+    struct node *d = typ_definition(t);
+    if (d == NULL) {
+      continue;
+    }
+
+    if (d->which == DEFINCOMPLETE) {
+      finalize_defincomplete_unification(d->as.DEFINCOMPLETE.trigger_mod, d);
+    } else {
+      struct generic *generic = node_toplevel(d)->generic;
+      error e = finalize_generic_instantiation(generic->trigger_mod,
+                                               generic->trigger,
+                                               t);
+      assert(!e);
+    }
+  }
+  vectyp_destroy(&scheduleq);
+
+  in_progress = false;
+}
+
+STEP_NM(step_gather_remaining_weakly_concrete,
         NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE));
-error step_gather_final_instantiations(struct module *mod, struct node *node,
-                                       void *user, bool *stop) {
+error step_gather_remaining_weakly_concrete(struct module *mod, struct node *node,
+                                            void *user, bool *stop) {
   DSTEP(mod, node);
 
-  struct toplevel *toplevel = node_toplevel(mod->state->top_state->top);
-  if (vecnode_count(&toplevel->triggered_instantiations) == 0) {
+  struct vecnode *weaks = &mod->state->top_state->triggered_weakly_concrete;
+  if (vecnode_count(weaks) == 0) {
     return 0;
   }
 
@@ -2562,44 +2633,16 @@ error step_gather_final_instantiations(struct module *mod, struct node *node,
     return 0;
   }
 
-  size_t prev_remaining, remaining = 0;
-again:
-  prev_remaining = remaining;
-  remaining = 0;
-
-  for (size_t n = 0; n < vecnode_count(&toplevel->triggered_instantiations); ++n) {
-    struct node *d = *vecnode_get(&toplevel->triggered_instantiations, n);
-    struct typ *t = d->typ;
-    if (d->which == DEFINCOMPLETE) {
-      finalize_defincomplete_unification(mod, d);
-    } else {
-      error e = finalize_generic_instantiation(&remaining, mod, node, t);
-      EXCEPT(e);
-    }
+  for (size_t n = 0; n < vecnode_count(weaks); ++n) {
+    struct node *d = *vecnode_get(weaks, n);
+    struct generic *generic = node_toplevel(d)->generic;
+    error e = finalize_generic_instantiation(generic->trigger_mod,
+                                             generic->trigger,
+                                             d->typ);
+    assert(!e);
   }
 
-  if (remaining > 0) {
-    if (remaining != prev_remaining) {
-      // Need to loop over, as the tentative instances may depend on each
-      // others, and they may appear in an arbitrary order in the vector.
-      // TODO: sort them first so we can avoid this quadratic behavior.
-      goto again;
-    } else {
-      // FIXME: this sometimes is an error (under-constrained generic)
-      // that gets caught in cprinter or gcc. We don't know how to tell
-      // that case apart from a well-constrained generic in a
-      // non-instantiated generic. There is probably a bug somewhere.
-    }
-  }
-
-  if (node->which == DEFINTF) {
-    struct node *isal = subs_at(node, IDX_ISALIST);
-    FOREACH_SUB(isa, isal) {
-      assert(!typ_is_tentative(isa->typ));
-    }
-  }
-
-  vecnode_destroy(&toplevel->triggered_instantiations);
+  vecnode_destroy(weaks);
 
   return 0;
 }

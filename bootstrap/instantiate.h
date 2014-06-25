@@ -9,7 +9,8 @@ struct typ *tentative_generic_arg(struct module *mod, const struct node *for_err
 error instantiate(struct node **result,
                   struct module *mod,
                   const struct node *for_error, size_t for_error_offset,
-                  struct typ *t, struct typ **args, size_t arity);
+                  struct typ *t, struct typ **args, size_t arity,
+                  bool reject_identical);
 
 struct node *instantiate_fully_implicit(struct module *mod,
                                         const struct node *for_error,

@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "passes.h"
 #include "instantiate.h"
+#include "inference.h"
 
 enum unify_flags {
   REFCOMPAT_LEFT = 0x1,
@@ -95,7 +96,7 @@ static error unify_same_generic_functor(struct module *mod, const struct node *f
     struct typ *arga = typ_generic_arg(a, n);
     struct typ *argb = typ_generic_arg(b, n);
 
-    error e = unify(mod, for_error, arga, argb);
+    error e = do_unify(mod, 0, for_error, arga, argb);
     if (e) {
       e = mk_except_type(mod, for_error,
                          "unifying generic argument at position %zu", 1 + n);
@@ -221,7 +222,7 @@ static struct typ *nullable(struct module *mod, const struct node *for_error,
   struct typ *a = typ_generic_arg(t, 0);
 
   struct node *i = NULL;
-  error e = instantiate(&i, mod, for_error, 0, r0, &a, 1);
+  error e = instantiate(&i, mod, for_error, 0, r0, &a, 1, false);
   assert(!e);
   return i->typ;
 }
@@ -602,7 +603,7 @@ static error unify_with_equal(struct module *mod, const struct node *for_error,
       typ_link_tentative(a, b);
     }
   } else {
-    assert(a == b);
+//    assert(a == b);
   }
 
   return 0;
@@ -701,6 +702,35 @@ static error unify_reforslice_arg(struct module *mod, uint32_t flags,
   }
 
   return 0;
+}
+
+void unify_with_new_parent(struct module *mod, const struct node *for_error,
+                           struct typ *p, struct typ *t) {
+  assert(typ_is_tentative(t));
+
+  struct node *dm = node_get_member(typ_definition(p), node_ident(typ_definition(t)));
+  if (dm == NULL) {
+    // FIXME: this may be the member of a weakly concrete that has no match
+    // in the concrete type it's being linked to. We should have prevented
+    // that with proper intf requirements.
+    return;
+  }
+
+  const size_t arity = typ_generic_arity(t);
+  if (arity == 0) {
+    typ_link_tentative(dm->typ, t);
+    return;
+  }
+
+  struct typ **args = calloc(arity, sizeof(struct typ *));
+  for (size_t n = 0; n < arity; ++n) {
+    args[n] = typ_generic_arg(t, n);
+  }
+
+  struct node *i = NULL;
+  error e = instantiate(&i, mod, for_error, -1, dm->typ, args, arity, false);
+  assert(!e);
+  typ_link_tentative(i->typ, t);
 }
 
 struct typ *unify_with_new_functor(struct module *mod, const struct node *for_error,
@@ -1112,7 +1142,10 @@ static error do_unify(struct module *mod, uint32_t flags,
 
 error unify(struct module *mod, const struct node *for_error,
             struct typ *a, struct typ *b) {
-  return do_unify(mod, 0, for_error, a, b);
+  error e = do_unify(mod, 0, for_error, a, b);
+  EXCEPT(e);
+  process_finalizations();
+  return 0;
 }
 
 // Be tolerant of acceptable differences in reference functors.
@@ -1127,6 +1160,7 @@ error unify_refcompat(struct module *mod, const struct node *for_error,
   if (target_ref || b_ref || target_slice || b_slice) {
     e = do_unify(mod, REFCOMPAT_LEFT, for_error, target, b);
     EXCEPT(e);
+    process_finalizations();
     return 0;
   }
 

@@ -704,9 +704,9 @@ struct node *defincomplete_create(struct module *mod, const struct node *trigger
 
   struct node *dinc = node_new_subnode(mod, mod->body);
 
-  record_triggered_instantiation(mod, mod, dinc);
   dinc->codeloc = trigger->codeloc;
   node_set_which(dinc, DEFINCOMPLETE);
+  dinc->as.DEFINCOMPLETE.trigger_mod = mod;
   struct node *dinc_name = mk_node(mod, dinc, IDENT);
   dinc_name->as.IDENT.name = gensym(mod);
   (void)mk_node(mod, dinc, GENARGS);

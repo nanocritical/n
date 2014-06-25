@@ -124,6 +124,7 @@ IMPLEMENT_VECTOR(static inline, vecbool, bool);
 VECTOR(vecnode, struct node *, 4);
 IMPLEMENT_VECTOR(static inline, vecnode, struct node *);
 
+// Loose elements ordering.
 static inline use_result__ ssize_t vecnode_remove_replace_with_last(struct vecnode *v, ssize_t n) {
   const size_t count = vecnode_count(v);
   if (count == 1) {
@@ -142,10 +143,36 @@ static inline use_result__ ssize_t vecnode_remove_replace_with_last(struct vecno
   }
 }
 
+enum instance_which {
+  INST_ENTRY,
+  INST_QUERY_FINAL,
+  INST_QUERY_IDENTICAL,
+};
+
+union instance_as {
+  struct node *ENTRY;
+  struct typ *QUERY;
+};
+
+struct instance {
+  enum instance_which which;
+  union instance_as as;
+};
+
+HTABLE_SPARSE(instanceset, struct node *, struct instance);
+DECLARE_HTABLE_SPARSE(instanceset, struct node *, struct instance);
+
 struct generic {
   size_t first_explicit_genarg;
-  struct vecnode instances;
   struct typ *our_generic_functor_typ;
+  // A generic instance belongs to the module which triggered its
+  // instantiation.
+  struct module *trigger_mod;
+  struct node *trigger;
+
+  struct node *pristine;
+  struct vecnode tentatives;
+  struct instanceset finals;
 
   const struct node *for_error;
 };
@@ -157,8 +184,6 @@ struct toplevel {
 
   struct generic *generic;
   struct topdeps *topdeps;
-
-  struct vecnode triggered_instantiations;
 
   ssize_t passing, passed;
 };
@@ -310,6 +335,7 @@ struct node_defincomplete {
   ident ident;
   const struct node *ident_for_error;
   bool is_isalist_literal;
+  struct module *trigger_mod;
 };
 struct node_defalias {
   uint32_t passed;
@@ -787,6 +813,7 @@ struct top_state {
   struct top_state *prev;
 
   struct node *top;
+  struct vecnode triggered_weakly_concrete;
 
   bool is_setgenarg;
 };

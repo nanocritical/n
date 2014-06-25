@@ -157,7 +157,10 @@ error catchup(struct module *mod,
     assert(false && "Unreached");
   }
 
-  const bool was_upward = mod->state->step_state->upward;
+  const bool was_upward =
+    how != CATCHUP_TENTATIVE_NEW_INSTANCE
+    && how != CATCHUP_NEW_INSTANCE
+    && mod->state->step_state->upward;
 
   const struct node *par = parent(node);
   const bool need_new_state =
@@ -187,8 +190,16 @@ error catchup(struct module *mod,
     error e = pa(mod, node, &module_depth, -1);
     EXCEPT(e);
 
-    if (p == first_fwd_pass() && how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
-      typ_add_tentative_bit__privileged(&node->typ);
+    if (p == first_fwd_pass()) {
+      if (how == CATCHUP_NEW_INSTANCE || how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
+        struct typ *functor = typ_generic_functor(node->typ);
+        if (functor != NULL) {
+          instances_add(typ_definition(functor), node);
+        }
+      }
+      if (how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
+        typ_add_tentative_bit__privileged(&node->typ);
+      }
     }
   }
 
@@ -214,13 +225,6 @@ error catchup(struct module *mod,
   return 0;
 }
 
-void record_triggered_instantiation(struct module *instantiating_mod,
-                                    struct module *gendef_mod,
-                                    struct node *i) {
-  struct toplevel *toplevel = node_toplevel(try_find_triggering_top(instantiating_mod));
-  vecnode_push(&toplevel->triggered_instantiations, i);
-}
-
 error catchup_instantiation(struct module *instantiating_mod,
                             struct module *gendef_mod,
                             struct node *instance,
@@ -229,7 +233,12 @@ error catchup_instantiation(struct module *instantiating_mod,
   if (tentative) {
     how = CATCHUP_TENTATIVE_NEW_INSTANCE;
   }
-  record_triggered_instantiation(instantiating_mod, gendef_mod, instance);
+
+  struct generic *generic = node_toplevel(instance)->generic;
+  if (generic != NULL) {
+    generic->trigger = try_find_triggering_top(instantiating_mod);
+    generic->trigger_mod = instantiating_mod;
+  }
 
   error e = catchup(gendef_mod, NULL, instance, how);
   EXCEPT(e);

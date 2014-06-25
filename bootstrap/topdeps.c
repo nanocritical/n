@@ -2,9 +2,6 @@
 
 #include "types.h"
 
-VECTOR(vectyp, struct typ *, 4);
-IMPLEMENT_VECTOR(unused__ static, vectyp, struct typ *);
-
 struct topdeps {
   struct vectyp list;
   struct fintypset set;

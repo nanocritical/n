@@ -5,6 +5,10 @@
 
 struct typ;
 
+// Can only be used with final typs.
+VECTOR(vectyp, struct typ *, 4);
+IMPLEMENT_VECTOR(static inline, vectyp, struct typ *);
+
 HTABLE_SPARSE(fintypset, uint32_t, struct typ *);
 DECLARE_HTABLE_SPARSE(fintypset, uint32_t, struct typ *);
 void fintypset_fullinit(struct fintypset *set);
@@ -97,6 +101,16 @@ const struct typ *typ_generic_arg_const(const struct typ *t, size_t n);
 const struct typ *typ_function_arg_const(const struct typ *t, size_t n);
 const struct typ *typ_function_return_const(const struct typ *t);
 
+void instances_init(struct node *gendef);
+void instances_add(struct node *gendef, struct node *instance);
+void instances_maintain(struct node *gendef);
+struct typ *instances_find_existing_final_with(struct node *gendef,
+                                               struct typ **args, size_t arity);
+struct typ *instances_find_existing_final_like(struct node *gendef,
+                                               const struct typ *_t);
+struct typ *instances_find_existing_identical(struct node *gendef,
+                                              struct typ *functor,
+                                              struct typ **args, size_t arity);
 extern struct typ *TBI_VOID;
 extern struct typ *TBI_LITERALS_NULL;
 extern struct typ *TBI_LITERALS_INTEGER;

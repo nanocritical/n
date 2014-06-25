@@ -3,6 +3,7 @@
 #include "scope.h"
 #include "lir.h"
 #include "ssa.h"
+#include "types.h"
 
 #include "passbody.h"
 
@@ -58,13 +59,13 @@ static void try_add_generic(struct node *node) {
   struct toplevel *toplevel = node_toplevel(node);
   if (toplevel->generic == NULL) {
     toplevel->generic = calloc(1, sizeof(*toplevel->generic));
+    instances_init(node);
   }
 }
 
-struct node *add_instance_deepcopy_from_pristine(struct module *mod,
-                                                 struct node *node,
-                                                 struct node *pristine,
-                                                 bool tentative) {
+struct node *create_instance_deepcopy_from_pristine(struct module *mod,
+                                                    struct node *node,
+                                                    struct node *pristine) {
   struct node *instance = calloc(1, sizeof(struct node));
   instance->parent = parent(node);
   node_deepcopy(mod, instance, pristine);
@@ -73,9 +74,6 @@ struct node *add_instance_deepcopy_from_pristine(struct module *mod,
 
   try_add_generic(node);
   try_add_generic(instance);
-
-  struct generic *generic = node_toplevel(node)->generic;
-  vecnode_push(&generic->instances, instance);
 
   return instance;
 }
@@ -104,7 +102,10 @@ static error step_generics_pristine_copy(struct module *mod, struct node *node,
   case DEFFUN:
   case DEFMETHOD:
   case DEFINCOMPLETE:
-    (void) add_instance_deepcopy_from_pristine(mod, node, node, false);
+    {
+      struct node *pristine = create_instance_deepcopy_from_pristine(mod, node, node);
+      node_toplevel(node)->generic->pristine = pristine;
+    }
     break;
   default:
     assert(false && "Unreached");

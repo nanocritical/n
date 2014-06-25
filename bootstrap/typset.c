@@ -1,7 +1,5 @@
 #include "typset.h"
 
-IMPLEMENT_VECTOR(, vectyp, struct typ *);
-
 void typset_init(struct typset *set) {
   fintypset_fullinit(&set->set);
 }

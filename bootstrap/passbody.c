@@ -785,7 +785,7 @@ error passbody0(struct module *mod, struct node *root,
     UP_STEP(step_type_inference);
     UP_STEP(step_remove_typeconstraints);
     UP_STEP(step_type_drop_excepts);
-    UP_STEP(step_gather_final_instantiations);
+    UP_STEP(step_gather_remaining_weakly_concrete);
     ,
     FINALLY_STEP(step_pop_state);
     );

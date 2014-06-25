@@ -10,10 +10,6 @@
 // particular updates rules of the weak bits. It may be worth sharing the
 // rest of the logic.
 
-// Can only be used with final typs.
-VECTOR(vectyp, struct typ *, 4);
-DECLARE_VECTOR(vectyp, struct typ *);
-
 struct typset {
   bool ready;
 

@@ -989,27 +989,15 @@ static const struct typ *intercept_slices(const struct module *mod, const struct
       return m->typ;
     }
 
-    const struct toplevel *toplevel = node_toplevel_const(m);
     const size_t arity = typ_generic_arity(mt);
-    for (size_t n = 1, count = vecnode_count(&toplevel->generic->instances);
-         n < count; ++n) {
-      const struct typ *i = (*vecnode_get(&toplevel->generic->instances, n))->typ;
-      if (typ_is_tentative(i)) {
-        continue;
-      }
-
-      size_t a;
-      for (a = 0; a < arity; ++a) {
-        if (!typ_equal(typ_generic_arg_const(i, a), typ_generic_arg_const(t, a))) {
-          break;
-        }
-      }
-      if (a == arity) {
-        return i;
-      }
+    struct typ **args = calloc(arity, sizeof(struct typ *));
+    for (size_t a = 0; a < arity; ++a) {
+      args[a] = typ_generic_arg(CONST_CAST(t), a);
     }
 
-    assert(false);
+    struct typ *r = instances_find_existing_final_with(CONST_CAST(m), args, arity);
+    free(args);
+    return r;
   }
 
   if (!typ_is_slice(t)) {

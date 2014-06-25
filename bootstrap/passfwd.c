@@ -232,9 +232,9 @@ static struct node *do_move_detached_member(struct module *mod,
   node_subs_append(container, node);
 
   struct toplevel *container_toplevel = node_toplevel(container);
-  struct node *container_pristine = *vecnode_get(&container_toplevel->generic->instances, 0);
+  struct node *container_pristine = container_toplevel->generic->pristine;
 
-  struct node *node_pristine = *vecnode_get(&toplevel->generic->instances, 0);
+  struct node *node_pristine = toplevel->generic->pristine;
   struct node *copy = node_new_subnode(mod, container_pristine);
   node_deepcopy(mod, copy, node_pristine);
 
@@ -574,6 +574,11 @@ static error step_type_create_update(struct module *mod, struct node *node,
   typ_create_update_genargs(node->typ);
   typ_create_update_hash(node->typ);
 
+  struct typ *functor = typ_generic_functor(node->typ);
+  if (functor != NULL) {
+    instances_maintain(typ_definition(functor));
+  }
+
   return 0;
 }
 
@@ -741,19 +746,6 @@ static error step_type_deffuns(struct module *mod, struct node *node,
 
   error e = early_typing(mod, node);
   EXCEPT(e);
-
-  return 0;
-}
-
-static STEP_NM(step_mark_members_tentative,
-               NM(DEFMETHOD) | NM(DEFFUN));
-static error step_mark_members_tentative(struct module *mod, struct node *node,
-                                         void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (!node_is_at_top(node) && typ_is_tentative(parent_const(node)->typ)) {
-    typ_add_tentative_bit__privileged(&node->typ);
-  }
 
   return 0;
 }
@@ -1085,7 +1077,6 @@ static error passfwd9(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_funblock);
     ,
     UP_STEP(step_type_deffuns);
-    UP_STEP(step_mark_members_tentative);
     UP_STEP(step_autointf_add_environment_builtins);
     UP_STEP(step_rewrite_def_return_through_ref);
     ,

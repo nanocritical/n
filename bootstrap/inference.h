@@ -31,9 +31,9 @@ const uint64_t step_type_drop_excepts_filter;
 error step_type_drop_excepts(struct module *mod, struct node *node,
                              void *user, bool *stop);
 
-const uint64_t step_gather_final_instantiations_filter;
-error step_gather_final_instantiations(struct module *mod, struct node *node,
-                                       void *user, bool *stop);
+const uint64_t step_gather_remaining_weakly_concrete_filter;
+error step_gather_remaining_weakly_concrete(struct module *mod, struct node *node,
+                                            void *user, bool *stop);
 
 struct node *expr_ref(struct module *mod, struct node *par,
                       enum token_type refop, struct node *node);
@@ -41,5 +41,8 @@ struct node *expr_ref(struct module *mod, struct node *par,
 error reference(struct node **result,
                 struct module *mod, struct node *for_error,
                 enum token_type op, struct typ *typ);
+
+void schedule_finalization(struct typ *t);
+void process_finalizations(void);
 
 #endif

@@ -4,6 +4,7 @@
 #include "mock.h"
 #include "typset.h"
 #include "unify.h"
+#include "inference.h"
 
 #include <stdio.h>
 
@@ -40,7 +41,7 @@ enum typ_flags {
     | TYPF_BUILTIN | TYPF_PSEUDO_BUILTIN
     | TYPF_TRIVIAL | TYPF_REF | TYPF_NREF
     | TYPF_LITERAL | TYPF_WEAKLY_CONCRETE | TYPF_CONCRETE,
-  TYPF__MASK_HASH = 0xffff & ~TYPF_TENTATIVE,
+  TYPF__MASK_HASH = 0xffff & ~(TYPF_TENTATIVE | TYPF_CONCRETE),
 };
 
 enum rdy_flags {
@@ -217,6 +218,9 @@ static void add_user(struct typ *arg, struct typ *user) {
     users = users->more;
   }
 
+  // Do not use set_typ(): that would create ordering problems in
+  // link_to_final()/link_to_tentative() between the processing of regular
+  // backlinks, and users.
   users->users[users->count] = user;
   users->count += 1;
 }
@@ -410,6 +414,14 @@ struct typ *typ_create(struct typ *tbi, struct node *definition) {
 void typ_create_update_genargs(struct typ *t) {
   create_update_concrete_flag(t);
 
+  struct node *dpar = parent(typ_definition(t));
+  if (NM(dpar->which) & (NM(DEFTYPE) | NM(DEFINTF))) {
+    if (typ_is_tentative(dpar->typ)) {
+      typ_add_tentative_bit__privileged(&typ_definition(t)->typ);
+      add_user(dpar->typ, t);
+    }
+  }
+
   const size_t arity = typ_generic_arity(t);
   t->gen_arity = arity;
 
@@ -440,21 +452,19 @@ void typ_create_update_genargs(struct typ *t) {
 
 void typ_create_update_hash(struct typ *t) {
   assert(!typ_hash_ready(t) || typ_is_tentative(t));
-
-  const struct node *d = typ_definition_const(t);
-  const struct node *genargs = subs_at_const(d, IDX_GENARGS);
+  assert(t->rdy & RDY_GEN);
 
 #define LEN 8 // arbitrary, at least 4
   uint32_t buf[LEN] = { 0 };
   buf[0] = t->flags & TYPF__MASK_HASH;
-  buf[1] = node_ident(d);
-  buf[2] = subs_count(genargs);
+  buf[1] = node_ident(typ_definition_const(t));
+  buf[2] = t->gen_arity;
   size_t i = 3;
-  FOREACH_SUB_CONST(ga, genargs) {
+  for (size_t n = 0; n < t->gen_arity; ++n) {
     if (i == LEN) {
       break;
     }
-    buf[i] = node_ident(typ_definition_const(ga->typ));
+    buf[i] = node_ident(typ_definition_const(t->gen_args[1 + n]));
     i += 1;
   }
 #undef LEN
@@ -522,31 +532,75 @@ struct typ *typ_create_tentative_functor(struct typ *target) {
   return r;
 }
 
-static void link_generic_functor_update(struct module *trigger_mod,
-                                        struct typ *user, struct typ *dst, struct typ *src) {
+static bool is_actually_still_tentative(const struct typ *user) {
+  const struct node *dpar = parent_const(typ_definition_const(user));
+  if ((NM(dpar->which) & (NM(DEFTYPE) | NM(DEFINTF))) && typ_is_tentative(dpar->typ)) {
+    return true;
+  }
+  if (typ_generic_arity(user) > 0) {
+    if (typ_is_tentative(typ_generic_functor_const(user))) {
+      return true;
+    }
+    for (size_t n = 0, arity = typ_generic_arity(user); n < arity; ++n) {
+      if (typ_is_tentative(typ_generic_arg_const(user, n))) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+static void link_finalize(struct typ *user) {
+  if (typ_definition_const(user) == NULL) {
+    // Was zeroed in link_generic_functor_update().
+    return;
+  }
+
+  if (typ_is_tentative(user) && is_actually_still_tentative(user)) {
+    return;
+  }
+
+  schedule_finalization(user);
+}
+
+static void link_generic_functor_update(struct typ *user, struct typ *dst, struct typ *src) {
+  if (typ_definition_const(user) == NULL) {
+    return;
+  }
+
   assert(typ_is_tentative(user));
 
-  if (trigger_mod != NULL) {
-    struct typ *user0 = typ_generic_functor(user);
-    if (user0 == src) {
-      // 'src' was used by 'user' as generic functor. Linking to the new
-      // functor means creating a new instance, and linking 'user' to it.
+  struct typ *user0 = typ_generic_functor(user);
+  if (user0 == src) {
+    // 'src' was used by 'user' as generic functor. Linking to the new
+    // functor means creating a new instance, and linking 'user' to it.
 
-      assert(typ_is_generic_functor(src));
-      assert(typ_is_generic_functor(dst));
+    assert(typ_is_generic_functor(src));
+    assert(typ_is_generic_functor(dst));
 
-      struct typ *new_user = unify_with_new_functor(trigger_mod, NULL, dst, user);
-      assert(typ_definition_const(user) == NULL && "must have been zeroed");
-
-      typ_create_update_hash(new_user);
-      create_update_concrete_flag(new_user);
+    struct module *trigger_mod = node_toplevel_const(typ_definition_const(user))
+      ->generic->trigger_mod;
+    const bool need_state = !trigger_mod->state->tentatively
+      && trigger_mod->state->top_state == NULL;
+    if (need_state) {
+      PUSH_STATE(trigger_mod->state);
+      trigger_mod->state->tentatively = true;
     }
+
+    struct typ *new_user = unify_with_new_functor(trigger_mod, NULL, dst, user);
+    assert(typ_definition_const(user) == NULL && "must have been zeroed");
+
+    if (need_state) {
+      POP_STATE(trigger_mod->state);
+    }
+
+    typ_create_update_hash(new_user);
+    create_update_concrete_flag(new_user);
   }
 }
 
 static void link_generic_arg_update(struct typ *user, struct typ *dst, struct typ *src) {
   if (typ_definition_const(user) == NULL) {
-    // Was zeroed in link_generic_functor_update().
     return;
   }
 
@@ -557,56 +611,47 @@ static void link_generic_arg_update(struct typ *user, struct typ *dst, struct ty
   // FOREACH_BACKLINK() pass already updated the SETGENARG in
   // typ_definition(user).
 
+  for (size_t n = 0, arity = typ_generic_arity(user); n < arity; ++n) {
+    struct typ *ga = typ_generic_arg(user, n);
+    if (ga == dst) {
+      // We do have to do it by hand, add_user() doesn't use set_typ().
+      add_user(dst, user);
+    }
+  }
+
   typ_create_update_hash(user);
   create_update_concrete_flag(user);
-
-  // It is possible that now that 'src' is not tentative, 'user' itself
-  // should loose its tentative status. This will be handled in
-  // step_gather_final_instantiations().
-  //
-  // As an alternative to relying on step_gather_final_instantiations(), we
-  // could have unify.c pass a callback to typ_link_tentative() that is run
-  // on all backlinks (that are definitions of tentative generic instances
-  // or are DEFINCOMPLETE).
 }
 
-// It is necessary to link 'src' members that introduce new types (DEFFUN and
-// DEFMETHOD) to their counterparts in 'dst'. This requirement will go away
-// when we don't introduce new types for each new method or function.
-static void link_members(struct typ *dst, struct typ *src) {
-  struct node *dsrc = typ_definition(src);
-  if (!(NM(dsrc->which) & NM(DEFTYPE))) {
+static void link_parent_update(struct typ *user, struct typ *dst, struct typ *src) {
+  if (typ_definition_const(user) == NULL) {
+    return;
+  }
+  if (typ_is_generic_functor(user)) {
     return;
   }
 
-  struct node *ddst = typ_definition(dst);
-  FOREACH_SUB(msrc, dsrc) {
-    if (NM(msrc->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
-      struct node *mdst = node_get_member(ddst, node_ident(msrc));
-      if (mdst != NULL) {
-        if (typ_is_generic_functor(msrc->typ)) {
-          // FIXME: not linking functors. We do not have access to
-          // 'trigger_mod' here. We're not fixing it because this is all
-          // temporary as link_members() will not be needed forever.
-          // Just don't use this code path...
+  assert(typ_is_tentative(user));
 
-          // noop: Unsupported
-        } else {
-          typ_link_tentative(mdst->typ, msrc->typ);
-        }
-      }
-    }
+  struct node *dpar = parent(typ_definition(user));
+  if (dpar->typ == src) {
+    struct module *trigger_mod = node_toplevel_const(typ_definition_const(user))
+      ->generic->trigger_mod;
+
+    unify_with_new_parent(trigger_mod, NULL, dst, user);
   }
 }
 
 static void link_to_final(struct module *mod, struct typ *dst, struct typ *src) {
-  FOREACH_USER(idx, user, src, link_generic_functor_update(mod, user, dst, src));
+  FOREACH_USER(idx, user, src, link_parent_update(user, dst, src));
+
+  FOREACH_USER(idx, user, src, link_generic_functor_update(user, dst, src));
 
   FOREACH_BACKLINK(idx, back, src, set_typ(back, dst));
 
   FOREACH_USER(idx, user, src, link_generic_arg_update(user, dst, src));
 
-  link_members(dst, src);
+  FOREACH_USER(idx, user, src, link_finalize(user));
 
   // Noone should be referring to 'src' anymore; let's make sure.
   memset(src, 0, sizeof(*src));
@@ -625,15 +670,15 @@ static void remove_as_user_of_generic_args(struct typ *t) {
 }
 
 static void link_to_tentative(struct module *mod, struct typ *dst, struct typ *src) {
-  FOREACH_USER(idx, user, src, link_generic_functor_update(mod, user, dst, src));
+  FOREACH_USER(idx, user, src, link_parent_update(user, dst, src));
+
+  FOREACH_USER(idx, user, src, link_generic_functor_update(user, dst, src));
 
   FOREACH_BACKLINK(idx, back, src, set_typ(back, dst));
 
   FOREACH_USER(idx, user, src, link_generic_arg_update(user, dst, src));
 
   remove_as_user_of_generic_args(src);
-
-  link_members(dst, src);
 
   clear_backlinks(src);
   clear_users(src);
@@ -668,14 +713,15 @@ void typ_link_tentative_functor(struct module *mod, struct typ *dst, struct typ 
   }
 
   if (!typ_is_tentative(dst)) {
-    link_to_final(mod, dst, src);
+    link_to_final(NULL, dst, src);
   } else {
-    link_to_tentative(mod, dst, src);
+    link_to_tentative(NULL, dst, src);
   }
 }
 
 void typ_link_to_existing_final(struct typ *dst, struct typ *src) {
   assert(!typ_is_tentative(dst));
+  assert(typ_is_tentative(src));
 
   if (dst == src) {
     return;
@@ -1556,4 +1602,233 @@ bool typ_is_concrete(const struct typ *t) {
 
 bool typ_isa_return_by_copy(const struct typ *t) {
   return typ_isa(t, TBI_RETURN_BY_COPY);
+}
+
+
+static uint32_t instance_hash(const struct instance *i) {
+  switch (i->which) {
+  case INST_ENTRY:
+    return i->as.ENTRY->typ->hash;
+  case INST_QUERY_FINAL:
+  case INST_QUERY_IDENTICAL:
+    return i->as.QUERY->hash;
+  default:
+    assert(false);
+    return 0;
+  }
+}
+
+static int instance_cmp(const struct instance *a, const struct instance *b) {
+  if (a->which == INST_ENTRY && b->which == INST_ENTRY) {
+    return !typ_equal(a->as.ENTRY->typ, b->as.ENTRY->typ);
+  }
+
+  if (a->which == INST_ENTRY) {
+    SWAP(a, b);
+  }
+
+  struct typ *ta = a->as.QUERY;
+  struct typ *tb = b->as.ENTRY->typ;
+
+  switch (a->which) {
+  case INST_ENTRY:
+    assert(false);
+    return 1;
+  case INST_QUERY_FINAL:
+    if (typ_is_tentative(tb)) {
+      return 1;
+    }
+
+    for (size_t n = 0; n < typ_generic_arity(tb); ++n) {
+      const struct typ *ga = typ_generic_arg_const(ta, n);
+      const struct typ *gb = typ_generic_arg_const(tb, n);
+      if (!typ_equal(ga, gb)) {
+        return 1;
+      }
+    }
+    return 0;
+  case INST_QUERY_IDENTICAL:
+    // Use pointer comparison: we're looking for the exact same arguments
+    // (same tentative bit, etc.).
+
+    if (typ_generic_functor_const(ta) != typ_generic_functor_const(tb)) {
+      return 1;
+    }
+    for (size_t n = 0; n < typ_generic_arity(tb); ++n) {
+      const struct typ *ga = typ_generic_arg_const(ta, n);
+      const struct typ *gb = typ_generic_arg_const(tb, n);
+      if (ga != gb) {
+        return 1;
+      }
+    }
+    return 0;
+  }
+
+  return 1;
+}
+
+IMPLEMENT_HTABLE_SPARSE(, instanceset, struct node *, struct instance,
+                        instance_hash, instance_cmp);
+
+void instances_init(struct node *gendef) {
+  struct generic *generic = node_toplevel(gendef)->generic;
+  instanceset_init(&generic->finals, 0);
+}
+
+static void do_instances_add(struct node *gendef, struct node *instance,
+                             bool maintaining_tentatives);
+
+void instances_maintain(struct node *gendef) {
+  struct generic *generic = node_toplevel(gendef)->generic;
+
+  // Maintaining invariant: move finals out.
+  for (ssize_t n = 0; n < vecnode_count(&generic->tentatives); ++n) {
+    struct node **i = vecnode_get(&generic->tentatives, n);
+    if (typ_hash_ready((*i)->typ) && !typ_is_tentative((*i)->typ)) {
+      do_instances_add(gendef, *i, true);
+      n += vecnode_remove_replace_with_last(&generic->tentatives, n);
+    }
+  }
+}
+
+static void do_instances_add(struct node *gendef, struct node *instance,
+                             bool maintaining_tentatives) {
+  struct generic *generic = node_toplevel(gendef)->generic;
+
+  if (!maintaining_tentatives) {
+    instances_maintain(gendef);
+  }
+
+  if (!typ_hash_ready(instance->typ) || typ_is_tentative(instance->typ)) {
+    vecnode_push(&generic->tentatives, instance);
+    return;
+  }
+
+  struct instance i = { 0 };
+  i.which = INST_ENTRY;
+  i.as.ENTRY = instance;
+
+  const bool already = instanceset_set(&generic->finals, i, instance);
+  // When maintaining_tentatives, instance->typ has changed -- it was linked
+  // -- since we last looked, so maybe its actual final value was already in
+  // generic->finals all along.
+  assert(maintaining_tentatives || !already);
+}
+
+void instances_add(struct node *gendef, struct node *instance) {
+  do_instances_add(gendef, instance, false);
+}
+
+static void prepare_query_tmp(struct typ *tmp, struct typ *functor,
+                              struct typ **args, size_t arity) {
+  tmp->definition = typ_definition(functor);
+  tmp->gen_arity = arity;
+  tmp->gen_args = calloc(1 + arity, sizeof(*tmp->gen_args));
+  // Not using set_typ(), 'tmp' doesn't live long enough to see linking.
+  tmp->gen_args[0] = functor;
+  memcpy(tmp->gen_args + 1, args, arity * sizeof(*tmp->gen_args));
+  tmp->rdy = RDY_GEN;
+
+  create_flags(tmp, (functor->flags & TYPF_BUILTIN) ? functor : NULL);
+
+  typ_create_update_hash(tmp);
+}
+
+static bool has_null_arg(struct typ **args, size_t arity) {
+  for (size_t n = 0; n < arity; ++n) {
+    if (args[n] == NULL) {
+      return true;
+    }
+  }
+  return false;
+}
+
+struct typ *instances_find_existing_final_with(struct node *gendef,
+                                               struct typ **args, size_t arity) {
+  if (arity == 0) {
+    return NULL;
+  }
+  if (has_null_arg(args, arity)) {
+    return NULL;
+  }
+
+  struct typ *functor = typ_generic_functor(gendef->typ);
+  assert(arity == typ_generic_arity(gendef->typ));
+
+  if (!typ_hash_ready(functor)) {
+    return NULL;
+  }
+
+  struct generic *generic = node_toplevel(CONST_CAST(gendef))->generic;
+
+  instances_maintain(gendef);
+
+  struct typ tmp = { 0 };
+  prepare_query_tmp(&tmp, functor, args, arity);
+
+  struct instance q = { 0 };
+  q.which = INST_QUERY_FINAL;
+  q.as.QUERY = &tmp;
+
+  struct node **i = instanceset_get(&generic->finals, q);
+  free(tmp.gen_args);
+
+  return i == NULL ? NULL : (*i)->typ;
+}
+
+struct typ *instances_find_existing_final_like(struct node *gendef,
+                                               const struct typ *_t) {
+  struct typ *t = CONST_CAST(_t);
+  if (!typ_hash_ready(t)) {
+    return NULL;
+  }
+
+  struct generic *generic = node_toplevel(CONST_CAST(gendef))->generic;
+
+  instances_maintain(gendef);
+
+  struct instance q = { 0 };
+  q.which = INST_QUERY_FINAL;
+  q.as.QUERY = t;
+
+  struct node **i = instanceset_get(&generic->finals, q);
+  return i == NULL ? NULL : (*i)->typ;
+}
+
+struct typ *instances_find_existing_identical(struct node *gendef,
+                                              struct typ *functor,
+                                              struct typ **args, size_t arity) {
+  if (has_null_arg(args, arity)) {
+    return NULL;
+  }
+
+  struct generic *generic = node_toplevel(CONST_CAST(gendef))->generic;
+
+  struct typ tmp = { 0 };
+  prepare_query_tmp(&tmp, functor, args, arity);
+
+  struct instance q = { 0 };
+  q.which = INST_QUERY_IDENTICAL;
+  q.as.QUERY = &tmp;
+
+  for (ssize_t n = 0; n < vecnode_count(&generic->tentatives); ++n) {
+    struct node **i = vecnode_get(&generic->tentatives, n);
+    if (typ_hash_ready((*i)->typ) && !typ_is_tentative((*i)->typ)) {
+      // Also maintaining invariant: move finals out.
+      do_instances_add(gendef, *i, true);
+      n += vecnode_remove_replace_with_last(&generic->tentatives, n);
+      continue;
+    }
+
+    struct instance f = { 0 };
+    f.which = INST_ENTRY;
+    f.as.ENTRY = *i;
+    if (0 == instance_cmp(&f, &q)) {
+      return (*i)->typ;
+    }
+  }
+
+  struct node **i = instanceset_get(&generic->finals, q);
+  free(tmp.gen_args);
+  return i == NULL ? NULL : (*i)->typ;
 }

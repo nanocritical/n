@@ -474,7 +474,7 @@ static void add_auto_isa(struct module *mod, struct node *deft,
        isa->as.ISA.is_export = node_is_export(deft)
        && (node_is_inline(deft) || node_is_opaque(deft));
        G(what, DIRECTDEF);
-       what->as.DIRECTDEF.typ = CONST_CAST(i));
+       set_typ(&what->as.DIRECTDEF.typ, CONST_CAST(i)));
 
     error e = catchup(mod, NULL, isa, CATCHUP_BELOW_CURRENT);
     assert(!e);
