@@ -169,7 +169,7 @@ error lexer_scan(struct token *tok, struct parser *parser) {
 
   size_t spaces = 0;
 
-#define ERROR(e, fmt, ...) do { \
+#define FAIL(e, fmt, ...) do { \
   __break(); \
   tok->value = start; \
   snprintf(parser->error_message, sizeof(parser->error_message), fmt, ##__VA_ARGS__); \
@@ -178,7 +178,7 @@ error lexer_scan(struct token *tok, struct parser *parser) {
 
 #define YYFILL(n) do { \
   if (YYCURSOR >= YYLIMIT + 1) { \
-    ERROR(EINVAL, "unexpected end-of-file while reading token"); \
+    FAIL(EINVAL, "unexpected end-of-file while reading token"); \
   } \
 } while (0)
 
@@ -195,17 +195,17 @@ error lexer_scan(struct token *tok, struct parser *parser) {
   const bool after = is_space(YYCURSOR); \
   if (before == after) { \
     if (bin == 0) { \
-      ERROR(EINVAL, "not a binary operator"); \
+      FAIL(EINVAL, "not a binary operator"); \
     } \
     R(bin); \
   } else if (before && !after) { \
     if (un_pre == 0) { \
-      ERROR(EINVAL, "not a prefix operator"); \
+      FAIL(EINVAL, "not a prefix operator"); \
     } \
     R(un_pre); \
   } else if (!before && after) { \
     if (un_post == 0) { \
-      ERROR(EINVAL, "not a postfix operator"); \
+      FAIL(EINVAL, "not a postfix operator"); \
     } \
     R(un_post); \
   } \
@@ -296,7 +296,7 @@ normal:
   "->" {
     error e = block_down(parser, BLOCK_SINGLE);
     if (e) {
-      ERROR(e, "lexer: too many block levels");
+      FAIL(e, "lexer: too many block levels");
     }
 
     parser->indent += 8;
@@ -352,14 +352,14 @@ normal:
       block_up(parser, BLOCK_SINGLE);
       R(TEOB);
     } else {
-      ERROR(EINVAL, "lexer: unexpected double-semicolon in multi-line block");
+      FAIL(EINVAL, "lexer: unexpected double-semicolon in multi-line block");
     }
   }
   ";" {
     if (block_style(parser) == BLOCK_SINGLE) {
       R(TEOL);
     } else {
-      ERROR(EINVAL, "lexer: unexpected semicolon in multi-line block");
+      FAIL(EINVAL, "lexer: unexpected semicolon in multi-line block");
     }
   }
   "..." { R(TDOTDOTDOT); }
@@ -403,20 +403,20 @@ normal:
 
   "\\" {
     if (YYCURSOR >= YYLIMIT) {
-      ERROR(EINVAL, "escape character at the EOF");
+      FAIL(EINVAL, "escape character at the EOF");
     }
-    ERROR(EINVAL, "invalid character following '\\'");
+    FAIL(EINVAL, "invalid character following '\\'");
   }
 
   [`a-zA-Z_][a-zA-Z_0-9]* { R(TIDENT); }
 
-  ANY { ERROR(EINVAL, "lexer: illegal char \\0%hho '%c'", *(YYCURSOR - 1), *(YYCURSOR - 1)); }
+  ANY { FAIL(EINVAL, "lexer: illegal char \\0%hho '%c'", *(YYCURSOR - 1), *(YYCURSOR - 1)); }
  */
 
 eol:
 /*!re2c
   " " {
-    ERROR(EINVAL, "indentation must be made of tabs, not spaces");
+    FAIL(EINVAL, "indentation must be made of tabs, not spaces");
   }
   "\t" { spaces += 8; goto eol; }
   "\r" { goto eol; }
@@ -458,12 +458,12 @@ escaped_eol_any:
       break;
     case BLOCK_MULTI_ESCAPED:
       if (!escaped) {
-        ERROR(EINVAL, "once in escape mode, further lines must be escaped");
+        FAIL(EINVAL, "once in escape mode, further lines must be escaped");
       }
       goto normal;
     case BLOCK_SINGLE:
       if (escaped) {
-        ERROR(EINVAL, "escaped lines must be indented");
+        FAIL(EINVAL, "escaped lines must be indented");
       }
       parser->inject_eol_after_eob = true;
       block_up(parser, BLOCK_SINGLE);
@@ -471,13 +471,13 @@ escaped_eol_any:
       break;
     case BLOCK_SINGLE_ESCAPED:
       if (!escaped) {
-        ERROR(EINVAL, "reduce indent to close an escaped line");
+        FAIL(EINVAL, "reduce indent to close an escaped line");
       }
       goto normal;
     }
   } else if (spaces > parser->indent) {
     if (spaces != parser->indent + 8) {
-      ERROR(EINVAL, "cannot increase indentation by more than one tab");
+      FAIL(EINVAL, "cannot increase indentation by more than one tab");
     }
 
     parser->indent = spaces;
@@ -492,17 +492,17 @@ escaped_eol_any:
       if (escaped) {
         goto normal;
       } else {
-        ERROR(EINVAL, "in single line mode, further indented lines must be escaped");
+        FAIL(EINVAL, "in single line mode, further indented lines must be escaped");
       }
       break;
     case BLOCK_SINGLE_ESCAPED:
-      ERROR(EINVAL, "in single line escaped mode, cannot have further indented lines");
+      FAIL(EINVAL, "in single line escaped mode, cannot have further indented lines");
       break;
     }
 
     error e = block_down(parser, starting);
     if (e) {
-      ERROR(e, "lexer: too many block levels");
+      FAIL(e, "lexer: too many block levels");
     }
 
     if (starting == BLOCK_MULTI) {
@@ -550,7 +550,7 @@ string:
 /*!re2c
   [\\] {
     if (YYCURSOR >= YYLIMIT) {
-      ERROR(EINVAL, "non-terminated string");
+      FAIL(EINVAL, "non-terminated string");
     }
     if (*YYCURSOR == opening) {
       YYCURSOR += 1; goto string;
@@ -559,7 +559,7 @@ string:
     }
   }
   [\n] {
-    ERROR(EINVAL, "string literal contains a newline");
+    FAIL(EINVAL, "string literal contains a newline");
   }
   ["'] {
     if (*(YYCURSOR - 1) != opening) {
