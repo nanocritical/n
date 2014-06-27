@@ -781,20 +781,30 @@ static void try_filling_codeloc(struct module *mod, struct node *named,
   node_subs_remove(named, subs_first(named));
   GSTART();
   G0(init, named, INIT,
-     G_IDENT(wheren, "where");
-     G(wheres, STRING);
-     G_IDENT(exprn, "expression");
-     G(exprs, STRING));
+     G_IDENT(filen, "File");
+     G(file, STRING);
+     G_IDENT(linen, "Line");
+     G(line, NUMBER);
+     G_IDENT(coln, "Col");
+     G(col, NUMBER);
+     G_IDENT(exprn, "Expr");
+     G(expr, STRING));
 
   const char *fn = module_component_filename_at(mod, node->codeloc.pos);
-  const size_t len = 64 + strlen(fn);
-  char *buf = calloc(len, sizeof(char));
-  snprintf(buf, len, "\"%s:%d:%d\"", fn,
-           node->codeloc.line, node->codeloc.column);
-  wheres->as.STRING.value = buf;
+  char *vfn = calloc(strlen(fn) + 3, sizeof(char));
+  sprintf(vfn, "\"%s\"", fn);
+  file->as.STRING.value = vfn;
 
-  exprs->as.STRING.value = quote_code(mod->parser.data, node->codeloc.pos,
-                                      codeloc_pos_after(mod, node));
+  char *vl = calloc(16, sizeof(char));
+  snprintf(vl, 16, "%d", node->codeloc.line);
+  line->as.NUMBER.value = vl;
+
+  char *vc = calloc(16, sizeof(char));
+  snprintf(vc, 16, "%d", node->codeloc.column);
+  col->as.NUMBER.value = vc;
+
+  expr->as.STRING.value = quote_code(mod->parser.data, node->codeloc.pos,
+                                     codeloc_pos_after(mod, node));
 }
 
 static void insert_missing_optional_arg(struct module *mod, struct node *node,

@@ -1398,16 +1398,22 @@ from n.unsafe import Cast Nonnull_cast
 from n import Esay Epr
 
 inline struct Codeloc =
-	where		:Static_string
-	expression	:Static_string
+	File	:Static_string
+	Line	:Uint
+	Col	:Uint
+	Expr	:Static_string
+
+fun Failed_at c:?@Codeloc
+	if c !== null
+		Epr sep=':' c.File c.Line c.Col
+		Esay ": failed '" c.Expr "'"
+	Abort
 
 inline fun Assert cond:Bool ?_Ncodeloc:?@Codeloc
 	if Likely cond
 		return
 	else
-		if _Ncodeloc !== null
-			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-		Abort
+		Failed_at _Ncodeloc
 
 inline fun Unreached
 	Esay "Unreached"
@@ -1417,30 +1423,22 @@ inline fun Pre__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if Likely cond
 		return
 	else
-		if _Ncodeloc !== null
-			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-		Abort
+		Failed_at _Ncodeloc
 
 inline fun Post__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if Likely cond
 		return
 	else
-		if _Ncodeloc !== null
-			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-		Abort
+		Failed_at _Ncodeloc
 
 inline fun Invariant__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if Likely cond
 		return
 	else
-		if _Ncodeloc !== null
-			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-		Abort
+		Failed_at _Ncodeloc
 
 inline fun Example__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if Likely cond
 		return
 	else
-		if _Ncodeloc !== null
-			Esay _Ncodeloc.where ": failed '" _Ncodeloc.expression "'"
-		Abort
+		Failed_at _Ncodeloc
