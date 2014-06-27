@@ -1,0 +1,2 @@
+fun Main = I32
+	return 0:U32 -- Error on module_second.n:2:10

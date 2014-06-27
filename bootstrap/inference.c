@@ -786,9 +786,10 @@ static void try_filling_codeloc(struct module *mod, struct node *named,
      G_IDENT(exprn, "expression");
      G(exprs, STRING));
 
-  const size_t len = 64 + strlen(mod->filename);
+  const char *fn = module_component_filename_at(mod, node->codeloc.pos);
+  const size_t len = 64 + strlen(fn);
   char *buf = calloc(len, sizeof(char));
-  snprintf(buf, len, "\"%s:%d:%d\"", mod->filename,
+  snprintf(buf, len, "\"%s:%d:%d\"", fn,
            node->codeloc.line, node->codeloc.column);
   wheres->as.STRING.value = buf;
 

@@ -341,8 +341,7 @@ static const bool expr_terminators[TOKEN__NUM] = {
 struct codeloc {
   size_t pos;
   int line;
-  uint16_t column;
-  uint16_t component;
+  int column;
 };
 
 enum block_style {
@@ -365,6 +364,9 @@ struct parser {
 
   bool tok_was_injected;
   bool inject_eol_after_eob;
+
+  size_t next_component_first_pos;
+  size_t current_component;
 
   char error_message[1024];
 };

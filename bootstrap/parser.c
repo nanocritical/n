@@ -278,12 +278,27 @@ ident idents_add_string(struct globalctx *gctx, const char *name, size_t len) {
   return idents_add(gctx, &tok);
 }
 
-int parser_line(const struct parser *parser, const struct token *tok) {
-  const size_t pos = tok->value != NULL ? tok->value - parser->data : parser->codeloc.pos;
+int parser_line(const struct module *mod, const struct token *tok) {
+  const size_t ccount = vecsize_count(&mod->components_first_pos);
+  size_t c = 0, first_next = -1;
+  if (ccount > 1) {
+    first_next = *vecsize_get(&CONST_CAST(mod)->components_first_pos, 1);
+  }
+
+  const size_t pos = tok->value != NULL
+    ? tok->value - mod->parser.data : mod->parser.codeloc.pos;
   int count = 1;
   for (size_t p = 0; p < pos; ++p) {
-    if (parser->data[p] == '\n') {
+    if (mod->parser.data[p] == '\n') {
       count += 1;
+    }
+
+    if (p > first_next) {
+      c += 1;
+      first_next = c >= ccount ? -1
+        : *vecsize_get(&CONST_CAST(mod)->components_first_pos, c);
+
+      count = 1;
     }
   }
   return count;
@@ -304,7 +319,9 @@ int parser_column(const struct parser *parser, const struct token *tok) {
 
 #define THROW_SYNTAX(mod, tok, fmt, ...) do { \
   THROWF(EINVAL, "%s:%d:%d: syntax: " fmt, \
-         mod->filename, parser_line(&mod->parser, tok), parser_column(&mod->parser, tok), ##__VA_ARGS__); \
+         module_component_filename_at(mod, (tok)->value - (mod)->parser.data), \
+         parser_line(mod, tok), \
+         parser_column(&(mod)->parser, tok), ##__VA_ARGS__); \
 } while (0)
 
 #define UNEXPECTED(mod, tok) do { \
@@ -515,6 +532,18 @@ void globalctx_init(struct globalctx *gctx) {
   gctx->modules_root.typ = typ_create(NULL, &gctx->modules_root);
 }
 
+const char *module_component_filename_at(const struct module *mod, size_t pos) {
+  size_t n, count;
+  for (n = 1, count = vecsize_count(&CONST_CAST(mod)->components_first_pos);
+       n < count; ++n) {
+    if (pos > *vecsize_get(&CONST_CAST(mod)->components_first_pos, n)) {
+      continue;
+    }
+  }
+
+  return *vecstr_get(&CONST_CAST(mod)->components, n - 1);
+}
+
 static char *fullpath(const char *prefix, const char *fn) {
   const size_t lp = prefix == NULL ? 0 : strlen(prefix);
   const size_t lf = strlen(fn);
@@ -537,10 +566,10 @@ static ERROR read_component(int *c, char **data, size_t *len,
 
   char *full = fullpath(path1, path2);
   if (*c == 0) {
-    mod->filename = strdup(full);
-  } else {
-    vecstr_push(&mod->components, strdup(component));
+    mod->filename = full;
   }
+  vecstr_push(&mod->components, full);
+  vecsize_push(&mod->components_first_pos, *len);
   *c += 1;
 
   int fd = open(full, O_RDONLY);
@@ -565,12 +594,15 @@ static ERROR read_component(int *c, char **data, size_t *len,
   *len += st.st_size;
   (*data)[*len] = '\0';
 
+  if (st.st_size != 0 && (*data)[*len - 1] != '\n') {
+    GOTO_THROWF(EINVAL, "File '%s' not terminated by a newline", full);
+  }
+
 except:
   if (fd >= 0 && close(fd) < 0) {
     GOTO_THROWF(errno, "Error closing file '%s'", full);
   }
 
-  free(full);
   return e;
 }
 
@@ -608,6 +640,10 @@ static ERROR module_read(struct module *mod, const char *prefix, const char *fn)
     }
   }
 
+  if (vecsize_count(&mod->components_first_pos) > 1) {
+    mod->parser.next_component_first_pos = *vecsize_get(&mod->components_first_pos, 1);
+  }
+
 except:
   if (dir != NULL) {
     closedir(dir);
@@ -633,6 +669,17 @@ static ERROR scan(struct token *tok, struct module *mod) {
   memset(tok, 0, sizeof(*tok));
 
   error e = lexer_scan(tok, &mod->parser);
+
+  if (mod->parser.codeloc.pos >= mod->parser.next_component_first_pos) {
+    mod->parser.current_component += 1;
+    if (vecsize_count(&mod->components_first_pos) > mod->parser.current_component + 1) {
+      mod->parser.next_component_first_pos = *vecsize_get(&mod->components_first_pos,
+                                                          mod->parser.current_component + 1);
+    } else {
+      mod->parser.next_component_first_pos = mod->parser.len + 1;
+    }
+  }
+
   if (e == EINVAL) {
     THROW_SYNTAX(mod, tok, "%s", mod->parser.error_message);
   } else {
@@ -2833,6 +2880,9 @@ static void module_init(struct globalctx *gctx, struct stage *stage,
   mod->parser.codeloc.pos = 0;
   mod->parser.codeloc.line = 1;
   mod->parser.codeloc.column = 1;
+
+  mod->parser.current_component = 0;
+  mod->parser.next_component_first_pos = -1;
 
   PUSH_STATE(mod->state);
   PUSH_STATE(mod->state->step_state);

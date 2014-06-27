@@ -3,12 +3,13 @@
 
 #include "nodes.h"
 
-int parser_line(const struct parser *parser, const struct token *tok);
+int parser_line(const struct module *mod, const struct token *tok);
 int parser_column(const struct parser *parser, const struct token *tok);
 
 void globalctx_init(struct globalctx *gctx);
 ERROR module_open(struct globalctx *gctx, struct stage *stage, struct module *mod,
                   const char *prefix, const char *fn);
+const char *module_component_filename_at(const struct module *mod, size_t pos);
 
 ident gensym(struct module *mod);
 

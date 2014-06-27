@@ -36,17 +36,26 @@ static enum block_style block_style(struct parser *parser) {
   return parser->block_style[parser->block_depth - 1];
 }
 
-static void update_codeloc_incr(struct parser *parser, size_t new_pos) {
+static bool update_codeloc_incr(struct parser *parser, size_t new_pos) {
+  bool across = false;
   for (ssize_t p = parser->codeloc.pos; p != new_pos; ++p) {
     if (parser->data[p] == '\n') {
       parser->codeloc.line += 1;
       parser->codeloc.column = 1;
+
+      if (parser->codeloc.pos < parser->next_component_first_pos
+          && new_pos >= parser->next_component_first_pos) {
+        parser->codeloc.line = 1;
+        // Module files end with a newline. And not in the middle of a token.
+        across = new_pos > parser->next_component_first_pos;
+      }
     } else {
       parser->codeloc.column += 1;
     }
   }
 
   parser->codeloc.pos = new_pos;
+  return across;
 }
 
 static int column(struct parser *parser, size_t new_pos) {
@@ -89,13 +98,14 @@ static void update_codeloc_decr(struct parser *parser, size_t new_pos) {
   parser->codeloc.pos = new_pos;
 }
 
-static void update_codeloc(struct parser *parser, size_t new_pos) {
+static bool update_codeloc(struct parser *parser, size_t new_pos) {
   if (new_pos == parser->codeloc.pos) {
-    return;
+    return false;
   } else if (new_pos > parser->codeloc.pos) {
-    update_codeloc_incr(parser, new_pos);
+    return update_codeloc_incr(parser, new_pos);
   } else {
     update_codeloc_decr(parser, new_pos);
+    return false;
   }
 }
 
@@ -110,7 +120,8 @@ EXAMPLE(update_codeloc) {
     .value = parser.data + parser.codeloc.pos, \
     .len = 0, \
   }; \
-  assert(parser.codeloc.line == parser_line(&parser, &tok)); \
+  struct module mod = { .parser = parser, 0 }; \
+  assert(parser.codeloc.line == parser_line(&mod, &tok)); \
   assert(parser.codeloc.column == parser_column(&parser, &tok)); \
 } while (0)
 
@@ -183,7 +194,9 @@ error lexer_scan(struct token *tok, struct parser *parser) {
 } while (0)
 
 #define R(type) do { \
-  update_codeloc(parser, YYCURSOR - parser->data); \
+  if (update_codeloc(parser, YYCURSOR - parser->data)) { \
+    FAIL(EINVAL, "token stretches over multiple module component files"); \
+  } \
   tok->t = type; \
   tok->value = start; \
   tok->len = YYCURSOR - start; \
@@ -609,5 +622,6 @@ void lexer_back(struct parser *parser, const struct token *tok) {
   parser->inject_eol_after_eob = false;
 
   assert(tok->len < parser->codeloc.pos);
-  update_codeloc(parser, parser->codeloc.pos - tok->len);
+  bool no = update_codeloc(parser, parser->codeloc.pos - tok->len);
+  assert(!no);
 }

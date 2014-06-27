@@ -7,6 +7,7 @@
 
 #include <stdarg.h>
 
+IMPLEMENT_VECTOR(, vecsize, size_t);
 IMPLEMENT_VECTOR(, vecstr, char *);
 
 EXAMPLE(data_structure_size_stats) {
@@ -954,9 +955,10 @@ int snprint_codeloc(char *s, size_t len,
   }
 
   const struct module *actual_mod = try_node_module_owner_const(mod, node);
+  const char *fn = module_component_filename_at(actual_mod, node->codeloc.pos);
 
   return snprintf(s, len, "%s:%d:%d: ",
-                  actual_mod->filename, node->codeloc.line, node->codeloc.column);
+                  fn, node->codeloc.line, node->codeloc.column);
 }
 
 error mk_except(const struct module *mod, const struct node *node,

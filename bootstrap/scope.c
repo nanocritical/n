@@ -154,7 +154,8 @@ error scope_define_ident(const struct module *mod, struct scope *scope,
     char *scname = scope_name(mod, scope);
     error e = mk_except(try_node_module_owner_const(mod, node), node,
                         "in scope %s: identifier '%s' already defined at %s:%d:%d",
-                        scname, idents_value(mod->gctx, id), existing_mod->filename,
+                        scname, idents_value(mod->gctx, id),
+                        module_component_filename_at(existing_mod, (*existing)->codeloc.pos),
                         (*existing)->codeloc.line, (*existing)->codeloc.column);
     free(scname);
     THROW(e);
