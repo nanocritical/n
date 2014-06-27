@@ -35,6 +35,7 @@ syn keyword nKeyword self this final
 syn keyword Constant null false true
 
 syn region nComment start="--" skip="\\$" end="$" keepend contains=@Spell,nTodo
+syn region nComment start="--(" end=")--" keepend contains=@Spell,nTodo
 syn keyword nTodo contained TODO FIXME XXX
 
 syn region nSemantic start="^\s*#[!~?]" end="$" keepend

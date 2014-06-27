@@ -229,6 +229,7 @@ normal:
 /*!re2c
   ANY = [\000-\377];
 
+  "--(" { goto long_comment; }
   "--" { goto comment; }
   [ \t\r] { goto normal; }
 
@@ -571,6 +572,12 @@ string:
   ANY { goto string; }
  */
 
+long_comment:
+/*!re2c
+  ")--" { goto normal; }
+  ANY { goto long_comment; }
+ */
+
 comment:
 /*!re2c
   "\n" { YYCURSOR -= 1; goto normal; }
@@ -579,6 +586,7 @@ comment:
 
 comment_while_eol:
 /*!re2c
+  "(" { goto long_comment; }
   "\n" { YYCURSOR -= 1; goto eol; }
   ANY { goto comment; }
  */

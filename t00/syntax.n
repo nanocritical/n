@@ -1,3 +1,6 @@
+--(
+	Long comment
+)--
 from n import *
 from n.strings import *
 
