@@ -1,15 +1,16 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdarg.h>
-
 #include "parser.h"
 #include "types.h"
 #include "scope.h"
 #include "passes.h"
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdarg.h>
 
 const char *predefined_idents_strings[ID__NUM] = {
   [ID__NONE] = "<NONE>",
@@ -514,42 +515,114 @@ void globalctx_init(struct globalctx *gctx) {
   gctx->modules_root.typ = typ_create(NULL, &gctx->modules_root);
 }
 
-static ERROR module_read(struct module *mod, const char *prefix, const char *fn) {
-  char *fullpath = NULL;
-  if (prefix != NULL && strlen(prefix) > 0) {
-    fullpath = calloc(strlen(prefix) + 1 + strlen(fn) + 1, sizeof(char));
-    strcpy(fullpath, prefix);
-    fullpath[strlen(prefix)] = '/';
-    strcpy(fullpath + strlen(prefix) + 1, fn);
-  } else {
-    fullpath = calloc(strlen(fn) + 1, sizeof(char));
-    strcpy(fullpath, fn);
+static char *fullpath(const char *prefix, const char *fn) {
+  const size_t lp = prefix == NULL ? 0 : strlen(prefix);
+  const size_t lf = strlen(fn);
+  char *r = calloc(lp + lf + 1, sizeof(char));
+  char *p = r;
+  if (lp > 0) {
+    strcpy(p, prefix);
+    p += lp;
+    p[0] = '/';
+    p += 1;
   }
-  mod->filename = fullpath;
+  strcpy(p, fn);
+  return r;
+}
 
-  int fd = open(fullpath, O_RDONLY);
+static ERROR read_component(int *c, char **data, size_t *len,
+                            struct module *mod, const char *path1, const char *path2,
+                            const char *component) {
+  error e = 0;
+
+  char *full = fullpath(path1, path2);
+  if (*c == 0) {
+    mod->filename = strdup(full);
+  } else {
+    vecstr_push(&mod->components, strdup(component));
+  }
+  *c += 1;
+
+  int fd = open(full, O_RDONLY);
   if (fd < 0) {
-    THROWF(errno, "Cannot open module '%s'", fullpath);
+    GOTO_THROWF(errno, "Cannot open module '%s'", full);
   }
 
   struct stat st = { 0 };
-  error e = fstat(fd, &st);
+  e = fstat(fd, &st);
   if (e < 0) {
-    THROWF(errno, "Cannot stat module '%s'", fullpath);
+    GOTO_THROWF(errno, "Cannot stat module '%s'", full);
   }
 
-  char *data = calloc(st.st_size + 1, sizeof(char));
-  ssize_t count = read(fd, data, st.st_size);
+  *data = realloc(*data, *len + st.st_size + 1);
+  ssize_t count = read(fd, *data + *len, st.st_size);
   if (count < 0) {
-    THROWF(errno, "Error reading module '%s'", fullpath);
+    GOTO_THROWF(errno, "Error reading module '%s'", full);
   } else if (count != (ssize_t) st.st_size) {
-    THROWF(errno, "Reading module '%s': Partial read not supported by parser", fullpath);
+    GOTO_THROWF(errno, "Reading module '%s': Partial read not supported by parser", full);
   }
 
-  mod->parser.data = data;
-  mod->parser.len = st.st_size;
+  *len += st.st_size;
+  (*data)[*len] = '\0';
 
-  return 0;
+except:
+  if (fd >= 0 && close(fd) < 0) {
+    GOTO_THROWF(errno, "Error closing file '%s'", full);
+  }
+
+  free(full);
+  return e;
+}
+
+static ERROR module_read(struct module *mod, const char *prefix, const char *fn) {
+  char *data = NULL;
+  size_t len = 0;
+  char *bn = NULL, *dn = NULL;
+  DIR *dir = NULL;
+
+  int c = 0;
+  error e = read_component(&c, &data, &len, mod, prefix, fn, NULL);
+  GOTO_EXCEPT(e);
+
+  bn = xbasename(mod->filename);
+  size_t common_len = strlen(bn) - 2;
+  dn = xdirname(mod->filename);
+  dir = opendir(dn);
+  if (dir == NULL) {
+    GOTO_THROWF(errno, "Cannot open directory '%s'", dn);
+  }
+
+  struct dirent ent = { 0 }, *r = NULL;
+  while (0 == readdir_r(dir, &ent, &r)) {
+    if (r == NULL) {
+      break;
+    }
+
+    size_t name_len = strlen(r->d_name);
+    if (name_len > common_len + 2
+        && r->d_name[common_len] == '_'
+        && strncmp(bn, r->d_name, common_len) == 0
+        && strcmp(r->d_name + name_len - 2, ".n") == 0) {
+      e = read_component(&c, &data, &len, mod, dn, r->d_name, r->d_name);
+      GOTO_EXCEPT(e);
+    }
+  }
+
+except:
+  if (dir != NULL) {
+    closedir(dir);
+  }
+
+  if (e) {
+    free(data);
+  } else {
+    mod->parser.data = data;
+    mod->parser.len = len;
+  }
+
+  free(dn);
+  free(bn);
+  return e;
 }
 
 static bool eof(struct parser *parser) {

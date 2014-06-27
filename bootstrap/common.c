@@ -60,6 +60,37 @@ EXAMPLE(xdirname) {
   assert(strcmp(xdirname("a/b/c//"), "a/b/c") == 0);
 }
 
+char *xbasename(const char *s) {
+  assert(s != NULL);
+
+  const size_t len = strlen(s);
+  ssize_t n;
+  for (n = len - 1; n >= 0; --n) {
+    if (s[n] == '/') {
+      break;
+    }
+  }
+
+  if (n < 0) {
+    return strdup(s);
+  } else {
+    char *r = calloc(len - n, sizeof(char));
+    memcpy(r, s + n + 1, len - n);
+    return r;
+  }
+}
+
+EXAMPLE(xbasename) {
+  assert(strcmp(xbasename(""), "") == 0);
+  assert(strcmp(xbasename("/"), "") == 0);
+  assert(strcmp(xbasename("///"), "") == 0);
+  assert(strcmp(xbasename("a"), "a") == 0);
+  assert(strcmp(xbasename("a/b"), "b") == 0);
+  assert(strcmp(xbasename("a/b/c/def"), "def") == 0);
+  assert(strcmp(xbasename("a/b/c/"), "") == 0);
+  assert(strcmp(xbasename("a/b/c//"), "") == 0);
+}
+
 void env_init(void) {
   g_env.stderr = stderr;
 }

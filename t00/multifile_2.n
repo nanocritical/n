@@ -1,0 +1,4 @@
+fun Main = I32
+	foo
+	bar
+	return 0

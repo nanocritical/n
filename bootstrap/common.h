@@ -241,6 +241,7 @@ char *strdup(const char *s);
 
 // Must free return value
 char *xdirname(const char *s);
+char *xbasename(const char *s);
 
 #define ENV_BUF_SIZE 1024
 struct env {

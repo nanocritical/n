@@ -341,7 +341,8 @@ static const bool expr_terminators[TOKEN__NUM] = {
 struct codeloc {
   size_t pos;
   int line;
-  int column;
+  uint16_t column;
+  uint16_t component;
 };
 
 enum block_style {

@@ -1165,11 +1165,16 @@ struct mempool {
   uint8_t *end;
 };
 
+VECTOR(vecstr, char *, 0);
+DECLARE_VECTOR(vecstr, char *);
+
 struct module {
   struct globalctx *gctx;
   struct stage *stage;
 
   const char *filename;
+  // Only for extra module files.
+  struct vecstr components;
 
   ident path[MODULE_PATH_MAXLEN];
   size_t path_len;

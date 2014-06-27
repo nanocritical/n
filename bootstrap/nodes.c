@@ -7,6 +7,8 @@
 
 #include <stdarg.h>
 
+IMPLEMENT_VECTOR(, vecstr, char *);
+
 EXAMPLE(data_structure_size_stats) {
   // It is a good idea to keep track of what is responsible for the size of
   // 'union node_as'. In other words, where to look first to shrink 'struct
