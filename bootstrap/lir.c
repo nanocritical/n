@@ -604,8 +604,14 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
     ensure_in_block(mod, subs_first(node));
 
     PUSH_STATE(st->loop_state);
-    st->loop_state->entry = node;
-    st->loop_state->exit = next(node);
+    st->loop_state->entry = subs_first(node);
+    if (next(node) == NULL) {
+      GSTART();
+      G0(noop, parent(node), NOOP);
+      st->loop_state->exit = noop;
+    } else {
+      st->loop_state->exit = next(node);
+    }
     break;
   case BREAK:
     node_set_which(node, JUMP);
@@ -751,7 +757,7 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
     assert(subs_count(node) == 2);
     break;
   case JUMP:
-    assert(node->as.JUMP.to->which == BLOCK);
+    assert(node->as.JUMP.to->which == BLOCK || node->as.JUMP.to->which == NOOP);
     break;
   case IF:
   case WHILE:
