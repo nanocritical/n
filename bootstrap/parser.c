@@ -1126,17 +1126,18 @@ static ERROR p_expr_binary(struct node *node, struct module *mod) {
     EXCEPT(e);
 
     if (peek.t == TDOTDOT) {
-      e = scan(&peek, mod);
+      struct token peek2 = { 0 };
+      e = scan(&peek2, mod);
       EXCEPT(e);
 
-      if (expr_terminators[peek.t]
-          || (IS_OP(peek.t) && OP_PREC(peek.t) > OP_PREC(parent_op))) {
+      if (expr_terminators[peek2.t]
+          || (IS_OP(peek2.t) && OP_PREC(peek2.t) > OP_PREC(parent_op))) {
         node_set_which(node, UN);
         node->as.BIN.operator = TDOTDOT;
         convert_range(mod, node);
         return 0;
       }
-      back(mod, &peek);
+      back(mod, &peek2);
     }
     back(mod, &peek);
   }
@@ -1507,7 +1508,7 @@ static ERROR p_expr(struct node *node, struct module *mod,
     default:
       back(mod, &tok);
       if ((IS_OP(tok.t) && OP_IS_UNARY(tok.t))
-          || tok.t == TMINUS || tok.t == TPLUS) { // Unary versions.
+          || tok.t == TMINUS || tok.t == TPLUS || tok.t == TDOTDOT) { // Unary versions.
         e = p_expr_unary(node, mod);
       } else {
         UNEXPECTED(mod, &tok);
