@@ -55,7 +55,7 @@ inline Vector met# Pop = t
 inline Vector met# Clear
 	(Heap.Slice_free t) @!Sysheap @#self#p
 
-inline Vector met All = Index_range
+inline Vector met All = Range
 	return 0 .. self.Count
 
 inline Vector met# Copy_ctor other:@this

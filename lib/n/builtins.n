@@ -160,11 +160,11 @@ intf `Any_any_slice =
 intf `Any_slice t:`Any =
 	isa `Any_any_slice (`Random_container t)
 	met Bytecount = Uint
-	met All = Index_range
+	met All = Range
 	shallow met$ Unsafe_rawdata = @$U8
 	shallow met$ Unsafe_data = @$t
 	shallow met$ Operator_at n:Uint = @$t
-	shallow met$ Operator_sub r:Index_range = []$t
+	shallow met$ Operator_sub r:Range = []$t
 
 intf `Any_mutable_slice t:`Any =
 	isa (`Any_slice t)
@@ -193,7 +193,7 @@ inline Slice met Count = Uint
 inline Slice met Bytecount = Uint
 	let s = this.create_impl_instance
 	return s.Bytecount
-inline Slice met All = Index_range
+inline Slice met All = Range
 	let s = this.create_impl_instance
 	return s.All
 inline Slice shallow met$ Unsafe_rawdata = @U8
@@ -205,7 +205,7 @@ inline Slice shallow met$ Unsafe_data = @t
 inline Slice shallow met$ Operator_at n:Uint = @t
 	let s = this.create_impl_instance
 	return s.Operator_at n
-inline Slice shallow met$ Operator_sub r:Index_range = []t
+inline Slice shallow met$ Operator_sub r:Range = []t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Operator_sub r
@@ -227,7 +227,7 @@ inline Mutable_slice met Count = Uint
 inline Mutable_slice met Bytecount = Uint
 	let s = this.create_impl_instance
 	return s.Bytecount
-inline Mutable_slice met All = Index_range
+inline Mutable_slice met All = Range
 	let s = this.create_impl_instance
 	return s.All
 inline Mutable_slice shallow met$ Unsafe_rawdata = @$U8
@@ -255,7 +255,7 @@ inline Mutable_slice met! Copy other:[]t
 	let s = this.create_impl_instance
 	such
 		s!Copy s
-inline Mutable_slice shallow met$ Operator_sub r:Index_range = []$t
+inline Mutable_slice shallow met$ Operator_sub r:Range = []$t
 	let s = this.create_impl_instance
 	such
 		let _ = (s.Operator_sub r)
@@ -282,7 +282,7 @@ inline Slice_impl met Count = Uint
 inline Slice_impl met Bytecount = Uint
 	return (sizeof t) * self.cnt
 
-inline Slice_impl met All = Index_range
+inline Slice_impl met All = Range
 	return 0 .. self.cnt
 
 inline Slice_impl shallow met$ Unsafe_rawdata = @$U8
@@ -304,7 +304,7 @@ inline Slice_impl met! Copy other:this
 	and bytecnt = other.cnt * (sizeof t)
 	Slice_memcpy dst src bytecnt
 
-inline Slice_impl shallow met$ Operator_sub r:Index_range = this
+inline Slice_impl shallow met$ Operator_sub r:Range = this
 	Assert <- r.Begin < self.Count
 	Assert <- r.End <= self.Count
 	let raw0 = (Cast @U8 @#U8) self.Unsafe_rawdata
@@ -1254,7 +1254,7 @@ inline Static_array met Count = Uint
 inline Static_array met Bytecount = Uint
 	return self.c * (sizeof t)
 
-inline Static_array met All = Index_range
+inline Static_array met All = Range
 	return 0 .. self.c
 
 inline Static_array met$ Unsafe_rawdata = @$U8
@@ -1393,7 +1393,7 @@ intf `Environment declaring:`Any =
 -- codegen. As types defined in this module are used everywhere, they really
 -- need to appear first to the C compiler.
 from n.chars import `String_buffer `Show Static_string
-from n.containers import Index_range Range `Iterator `Random_container
+from n.containers import Range Range `Iterator `Random_container
 from n.unsafe import Cast Nonnull_cast
 from n import Esay Epr
 

@@ -26,14 +26,14 @@ intf `Const_string =
 	isa `Static_string_compatible
 -- export `Random_container
 	met Count = Uint
-	met All = Index_range
+	met All = Range
 	met Get_char n:Uint = Char
 	met Bytes_utf8 = []U8
 
 intf `String =
 	isa `Const_string
 	met! Set_char n:Uint c:Char
-	met! Fill c:Char r:Index_range
+	met! Fill c:Char r:Range
 
 intf `String_buffer =
 	isa `String
@@ -63,7 +63,7 @@ inline Static_string fun From_static_string s:Static_string = this
 inline Static_string met Count = Uint
 	return self.bytes.Count
 
-inline Static_string met All = Index_range
+inline Static_string met All = Range
 	return self.bytes.All
 
 inline Static_string met Get_char n:Uint = Char

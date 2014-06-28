@@ -12,7 +12,7 @@ import n.unsafe
 --export Array_impl fun Bytecount = Uint
 --  return N * (sizeof t)
 --
---export Array_impl fun All = Index_range
+--export Array_impl fun All = Range
 --  return 0 .. N
 --
 --export Array_impl met$ Unsafe_rawdata = @$U8
@@ -32,7 +32,7 @@ import n.unsafe
 --  and bytecnt = N * (sizeof t)
 --  Slice_memcpy dst src bytecnt
 --
---export Array_impl shallow met$ operator_sub r:Index_range = []$t
+--export Array_impl shallow met$ operator_sub r:Range = []$t
 --  Assert <- r.begin < self.Count
 --  Assert <- r.end <= self.Count
 --  let raw0 = self$Unsafe_rawdata

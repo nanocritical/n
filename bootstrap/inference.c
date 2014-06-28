@@ -1174,10 +1174,10 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
   set_typ(&node->typ, dinc->typ);
 
   if (node->as.INIT.is_range) {
-    e = unify(mod, node, node->typ, TBI_INDEX_RANGE);
+    e = unify(mod, node, node->typ, TBI_RANGE);
     assert(!e);
   } else if (node->as.INIT.is_bounds) {
-    e = unify(mod, node, node->typ, TBI_INDEX_BOUNDS);
+    e = unify(mod, node, node->typ, TBI_BOUNDS);
     assert(!e);
   }
 }
@@ -1744,7 +1744,7 @@ static ERROR try_rewrite_operator_sub(struct module *mod, struct node *node) {
   struct node *self = subs_at(node, 1);
   struct node *arg = subs_at(node, 2);
 
-  if (!(typ_equal(arg->typ, TBI_INDEX_RANGE) || typ_equal(arg->typ, TBI_INDEX_BOUNDS))
+  if (!(typ_equal(arg->typ, TBI_RANGE) || typ_equal(arg->typ, TBI_BOUNDS))
       || node_ident(typ_definition_const(fun->typ)) != ID_OPERATOR_AT) {
     return 0;
   }
@@ -1765,7 +1765,7 @@ static ERROR try_rewrite_operator_sub(struct module *mod, struct node *node) {
   error e = catchup(mod, NULL, fun, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
 
-  if (typ_equal(arg->typ, TBI_INDEX_BOUNDS)) {
+  if (typ_equal(arg->typ, TBI_BOUNDS)) {
     // Magically convert v.[10...] to v.[(10...).Range_of v].
     node_subs_remove(node, arg);
     GSTART();
