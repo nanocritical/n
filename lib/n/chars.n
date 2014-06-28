@@ -80,7 +80,7 @@ Static_string met Show buf:@#`String_buffer
 		buf#Push (self.Get_char i)
 
 example <- '1234'.Count == 4
-example <- '1234'.All == Range 0 4
+example <- '1234'.All == (0 .. 4)
 example <- '1234'.Get_char 3 == '4'.Get_char 0
 example <- '1234'.Get_char 1 == '2':Char
 example <- '1234' == '1234'

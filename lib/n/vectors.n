@@ -56,7 +56,7 @@ inline Vector met# Clear
 	(Heap.Slice_free t) @!Sysheap @#self#p
 
 inline Vector met All = Index_range
-	return Range 0 self.Count
+	return 0 .. self.Count
 
 inline Vector met# Copy_ctor other:@this
 	(Heap.Slice_realloc t) @!Sysheap @#self#p other.p.Count

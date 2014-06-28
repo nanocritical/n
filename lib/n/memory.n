@@ -13,7 +13,7 @@ import n.unsafe
 --  return N * (sizeof t)
 --
 --export Array_impl fun All = Index_range
---  return Range 0 N
+--  return 0 .. N
 --
 --export Array_impl met$ Unsafe_rawdata = @$U8
 --  return (unsafe.Cast @$this @$U8) self

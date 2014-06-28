@@ -283,7 +283,7 @@ inline Slice_impl met Bytecount = Uint
 	return (sizeof t) * self.cnt
 
 inline Slice_impl met All = Index_range
-	return Range 0 self.cnt
+	return 0 .. self.cnt
 
 inline Slice_impl shallow met$ Unsafe_rawdata = @$U8
 	return (Cast ?@$t @$U8) self$dat
@@ -1255,7 +1255,7 @@ inline Static_array met Bytecount = Uint
 	return self.c * (sizeof t)
 
 inline Static_array met All = Index_range
-	return Range 0 self.c
+	return 0 .. self.c
 
 inline Static_array met$ Unsafe_rawdata = @$U8
 	Assert <- self.c != 0
