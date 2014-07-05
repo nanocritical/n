@@ -536,8 +536,8 @@ const char *module_component_filename_at(const struct module *mod, size_t pos) {
   size_t n, count;
   for (n = 1, count = vecsize_count(&CONST_CAST(mod)->components_first_pos);
        n < count; ++n) {
-    if (pos > *vecsize_get(&CONST_CAST(mod)->components_first_pos, n)) {
-      continue;
+    if (pos < *vecsize_get(&CONST_CAST(mod)->components_first_pos, n)) {
+      break;
     }
   }
 
@@ -669,6 +669,11 @@ static ERROR scan(struct token *tok, struct module *mod) {
   memset(tok, 0, sizeof(*tok));
 
   error e = lexer_scan(tok, &mod->parser);
+  if (e == EINVAL) {
+    THROW_SYNTAX(mod, tok, "%s", mod->parser.error_message);
+  } else {
+    EXCEPT(e);
+  }
 
   if (mod->parser.codeloc.pos >= mod->parser.next_component_first_pos) {
     mod->parser.current_component += 1;
@@ -680,11 +685,6 @@ static ERROR scan(struct token *tok, struct module *mod) {
     }
   }
 
-  if (e == EINVAL) {
-    THROW_SYNTAX(mod, tok, "%s", mod->parser.error_message);
-  } else {
-    EXCEPT(e);
-  }
   return 0;
 }
 
