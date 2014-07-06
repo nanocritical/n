@@ -12,11 +12,12 @@ static void pass_import_mark(struct module *mod, struct node *mark) {
 }
 
 // Recursive, depth first; Will modify scope on the way back up.
-static struct node *create_lexical_import_hierarchy(struct scope **scope,
-                                                    struct module *mod,
-                                                    struct node *original_import,
-                                                    struct node *import_path,
-                                                    struct node *import) {
+static ERROR create_lexical_import_hierarchy(struct node **result,
+                                             struct scope **scope,
+                                             struct module *mod,
+                                             struct node *original_import,
+                                             struct node *import_path,
+                                             struct node *import) {
   assert(import == NULL || import->which == IMPORT);
 
   error e;
@@ -28,8 +29,9 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
     mark_ident = import_path;
     break;
   case BIN:
-    (void)create_lexical_import_hierarchy(scope, mod, original_import,
-                                          subs_first(import_path), NULL);
+    e = create_lexical_import_hierarchy(NULL, scope, mod, original_import,
+                                        subs_first(import_path), NULL);
+    assert(!e);
     mark_ident = subs_last(import_path);
     break;
   default:
@@ -39,22 +41,25 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
   // Ascent.
   if (import != NULL) {
     // Back at the top: we're done.
-    struct node *placeholder;
+    struct node *placeholder = NULL;
     ident name = node_ident(mark_ident);
     e = scope_lookup_ident_immediate(&placeholder, mark_ident, mod, *scope,
                                      name, true);
+    assert(!e || placeholder == NULL);
     if (!e) {
       e = mk_except(mod, original_import,
-                    "importing identifier '%s' more than once",
+                    "importing '%s' more than once",
                     idents_value(mod->gctx, name));
-      assert(!e);
+      THROW(e);
     } else if (e == EINVAL) {
       e = scope_define_ident(mod, *scope, name, import);
       assert(!e);
-      return import;
+      *result = import;
+      return 0;
     } else if (e) {
       assert(!e && "Unreached");
-      return NULL;
+      *result = NULL;
+      return e;
     }
   }
 
@@ -86,7 +91,7 @@ static struct node *create_lexical_import_hierarchy(struct scope **scope,
 
   *scope = &mark->scope;
 
-  return NULL;
+  return 0;
 }
 
 static ERROR check_import_target_exists(struct module *mod,
@@ -127,11 +132,13 @@ static ERROR import_single_ident(struct scope *scope, struct module *mod,
   assert(subs_last(id_full_import_path)->which == IDENT);
 
   struct scope *tmp = scope;
-  struct node *id_import_marker = create_lexical_import_hierarchy(
+  struct node *id_import_marker = NULL;
+  error e = create_lexical_import_hierarchy(
+    &id_import_marker,
     &tmp, mod, original_import,
     id_full_import_path, id);
+  EXCEPT(e);
 
-  error e;
   if (define) {
     ident id_name = node_ident(subs_last(id_full_import_path));
     e = scope_define_ident(mod, scope, id_name, id_import_marker);
