@@ -145,6 +145,17 @@ error scope_define_ident(const struct module *mod, struct scope *scope,
   assert(id != ID__NONE);
   struct node **existing = scope_map_get(&scope->map, id);
 
+  if (existing != NULL
+      && (NM((*existing)->which) & (STEP_NM_DEFS | NM(DEFNAME) | NM(DEFALIAS)))
+      && node->which == IMPORT) {
+    // Local definition masks import.
+    return 0;
+  }
+
+  // TODO: support for prototypes may go away, as they're not strictly
+  // necessary with the arbitrary definition ordering handling. But we still
+  // to allow replacing placeholder modules.
+
   // If existing is prototype, we just replace it with full definition.
   // If not, it's an error:
   if (existing != NULL
