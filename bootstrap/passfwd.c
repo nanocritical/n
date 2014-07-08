@@ -320,7 +320,7 @@ static struct scope *find_scope_for_name(struct node *node) {
     return NULL;
   } else if (node->as.DEFNAME.is_globalenv) {
     assert(parent(parent(node))->which == MODULE_BODY);
-    return &parent(parent(node))->as.MODULE_BODY.globalenv_scope;
+    return &parent(parent(node))->as.MODULE_BODY.globalenv_scope->scope;
   } else if (NM(parent(parent(node))->which)
              & (STEP_NM_DEFS_NO_FUNS | NM(MODULE_BODY))) {
     return &parent(parent(node))->scope;

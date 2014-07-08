@@ -2084,9 +2084,13 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
     }
 
     e = scope_lookup_ident_immediate(&def, node, mod,
-                                     &modbody->as.MODULE_BODY.globalenv_scope,
+                                     &modbody->as.MODULE_BODY.globalenv_scope->scope,
                                      node_ident(subs_last_const(node)), false);
-    EXCEPT(e);
+    if (e) {
+      e = mk_except(mod, node, "in within declaration");
+      THROW(e);
+    }
+    return 0;
   } else if (node->which == IDENT) {
     e = scope_lookup(&def, mod, &node->scope, node, false);
     EXCEPT(e);

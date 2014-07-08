@@ -2853,7 +2853,9 @@ static void subnode_count_avg(struct module *mod) {
 static ERROR module_parse(struct module *mod) {
   error e;
   mod->body = mk_node(mod, mod->root, MODULE_BODY);
-  scope_init(&mod->body->as.MODULE_BODY.globalenv_scope);
+  mod->body->as.MODULE_BODY.globalenv_scope = calloc(1, sizeof(struct node));
+  mod->body->as.MODULE_BODY.globalenv_scope->parent = mod->body;
+  scope_init(&mod->body->as.MODULE_BODY.globalenv_scope->scope);
 
   do {
     e = p_toplevel(mod);

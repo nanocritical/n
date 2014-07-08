@@ -423,7 +423,7 @@ struct node_module {
   struct module *mod;
 };
 struct node_module_body {
-  struct scope globalenv_scope;
+  struct node *globalenv_scope;
 };
 
 struct node_directdef {
