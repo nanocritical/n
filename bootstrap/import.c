@@ -219,7 +219,9 @@ static ERROR lexical_import_path(struct scope *scope, struct module *mod,
     if (toplevel == NULL
         || !(toplevel->flags & TOP_IS_EXPORT)
         || toplevel->scope_name != ID__NONE
-        || (toplevel->flags & TOP_IS_SHADOWED)) {
+        || (toplevel->flags & TOP_IS_SHADOWED)
+        || (ex->which == LET && subs_first_const(ex)->which == DEFNAME
+            && subs_first_const(ex)->as.DEFNAME.is_globalenv)) {
       continue;
     }
 
