@@ -36,7 +36,7 @@ error step_rewrite_wildcards(struct module *mod, struct node *node,
     }
     struct node *def = NULL;
     error e = scope_lookup_ident_immediate(&def, node, mod, &node->scope,
-                                           ID_WILDCARD_REF_ARG, true);
+                                           ID_WILDCARD_REF_ARG_SELF, true);
     if (e) {
       break;
     }
