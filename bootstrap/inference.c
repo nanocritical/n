@@ -2090,7 +2090,6 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
       e = mk_except(mod, node, "in within declaration");
       THROW(e);
     }
-    return 0;
   } else if (node->which == IDENT) {
     e = scope_lookup(&def, mod, &node->scope, node, false);
     EXCEPT(e);
@@ -2106,7 +2105,7 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
     goto malformed;
   }
 
-  node->typ = def->typ;
+  set_typ(&node->typ, def->typ);
   node->flags |= def->flags;
   return 0;
 
