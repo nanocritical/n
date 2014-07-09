@@ -246,14 +246,6 @@ normal:
   "--" { goto comment; }
   [ \t\r] { goto normal; }
 
-  "0."[0-9_]+ { R(TNUMBER); }
-  "."[0-9_]+ { R(TNUMBER); }
-  [1-9][0-9_]*"."[0-9]+ { R(TNUMBER); }
-  [1-9][0-9_]* { R(TNUMBER); }
-  "0x" [0-9a-fA-F_][0-9a-fA-F_]* { R(TNUMBER); }
-  "0" [0-7_]+ { R(TNUMBER); }
-  "0" { R(TNUMBER); }
-
   ["'] { opening = *(YYCURSOR-1); goto string; }
 
   "struct" { R(Tstruct); }
@@ -421,6 +413,14 @@ normal:
     }
     FAIL(EINVAL, "invalid character following '\\'");
   }
+
+  "0."[0-9_]+ { R(TNUMBER); }
+  "."[0-9_]+ { R(TNUMBER); }
+  [1-9][0-9_]*"."[0-9]+ { R(TNUMBER); }
+  [1-9][0-9_]* { R(TNUMBER); }
+  "0x" [0-9a-fA-F_][0-9a-fA-F_]* { R(TNUMBER); }
+  "0" [0-7_]+ { R(TNUMBER); }
+  "0" { R(TNUMBER); }
 
   [`a-zA-Z_][a-zA-Z_0-9]* { R(TIDENT); }
 

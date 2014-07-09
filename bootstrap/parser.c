@@ -919,6 +919,8 @@ static void convert_range(struct module *mod, struct node *node) {
     G_IDENT(endn, "e");
     node_subs_append(node, end);
   }
+
+  assert(subs_count(node) % 2 == 0);
 }
 
 static ERROR p_expr_unary(struct node *node, struct module *mod) {
@@ -926,19 +928,23 @@ static ERROR p_expr_unary(struct node *node, struct module *mod) {
   error e = scan(&tok, mod);
   EXCEPT(e);
 
-  uint32_t op;
+  enum token_type op, parent_op;
   switch (tok.t) {
   case TMINUS:
     op = TUMINUS;
+    parent_op = op;
     break;
   case TPLUS:
     op = TUPLUS;
+    parent_op = op;
     break;
   case TDOTDOT:
     op = TBEGDOTDOT;
+    parent_op = T__NOT_STATEMENT;
     break;
   default:
     op = tok.t;
+    parent_op = op;
     break;
   }
 
@@ -946,7 +952,7 @@ static ERROR p_expr_unary(struct node *node, struct module *mod) {
   node->as.UN.operator = op;
   node->as.UN.is_explicit = true;
 
-  e = p_expr(node_new_subnode(mod, node), mod, op);
+  e = p_expr(node_new_subnode(mod, node), mod, parent_op);
   EXCEPT(e);
 
   if (op == TBEGDOTDOT) {
@@ -1070,12 +1076,12 @@ static void convert_at(struct module *mod, struct node *node) {
 
   node_set_which(node, CALL);
 
-  const bool is_range = idx->which == INIT && idx->as.INIT.is_range;
+  const bool sub = idx->which == INIT && (idx->as.INIT.is_range || idx->as.INIT.is_bounds);
 
   GSTART();
   G0(fun, node, BIN,
      node_subs_append(fun, self);
-     G_IDENT(m, is_range ? "Operator_sub" : "Operator_at"));
+     G_IDENT(m, sub ? "Operator_sub" : "Operator_at"));
   node_subs_append(node, idx);
 
   switch (op) {
@@ -1132,9 +1138,10 @@ static ERROR p_expr_binary(struct node *node, struct module *mod) {
 
       if (expr_terminators[peek2.t]
           || (IS_OP(peek2.t) && OP_PREC(peek2.t) > OP_PREC(parent_op))) {
-        node_set_which(node, UN);
-        node->as.BIN.operator = TDOTDOT;
-        convert_range(mod, node);
+        struct node *whole = mk_node(mod, node, UN);
+        whole->as.UN.operator = TDOTDOT;
+        convert_range(mod, whole);
+        convert_at(mod, node);
         return 0;
       }
       back(mod, &peek2);
