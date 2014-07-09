@@ -247,6 +247,7 @@ char *xbasename(const char *s);
 struct env {
   char *stderr_mem;
   FILE *stderr;
+  bool running_example;
 };
 
 struct env g_env;

@@ -103,6 +103,8 @@ void examples_init(const char *name) {
   }
 
   g_env.stderr = fmemopen(g_env.stderr_mem, ENV_BUF_SIZE * sizeof(*g_env.stderr_mem), "w");
+
+  g_env.running_example = true;
 }
 
 void examples_destroy(const char *name) {
@@ -114,6 +116,8 @@ void examples_destroy(const char *name) {
 
   fclose(g_env.stderr);
   g_env.stderr = NULL;
+
+  g_env.running_example = false;
 }
 
 void should_fail(error e) {

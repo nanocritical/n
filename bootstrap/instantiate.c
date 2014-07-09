@@ -176,6 +176,13 @@ struct node *instantiate_fully_implicit(struct module *mod,
   struct node *i = NULL;
   error e = instantiate(&i, mod, for_error, -1,
                         t, args, gen_arity, true);
+  // FIXME: Temporary workaround: it's actually legal for this code to
+  // return an error, because of an error in the N code under consideration.
+  // Some refactoring needs to be done so that we can raise the error
+  // properly. In the meantime, we print it here when needed.
+  if (e && g_env.running_example) {
+    examples_destroy("<FIXME: unknown>");
+  }
   assert(!e);
 
   if (gen_arity == 0) {
