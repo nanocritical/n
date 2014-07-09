@@ -1,3 +1,5 @@
+// vi: ft=c
+
 #include "lexer.h"
 #include "parser.h"
 
