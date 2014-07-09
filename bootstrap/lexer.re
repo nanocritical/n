@@ -624,6 +624,15 @@ void lexer_back(struct parser *parser, const struct token *tok) {
   parser->inject_eol_after_eob = false;
 
   assert(tok->len < parser->codeloc.pos);
-  bool no = update_codeloc(parser, parser->codeloc.pos - tok->len);
+
+  // Cannot use tok->len to compute the new position. When lexer_back() is
+  // called several times in a row, we have to rewind from at least
+  // tok->len, but it could be more as the toke could be separated by
+  // whitespaces that are not accounted for in tok->len. By using
+  // tok->value, we know we go back far enough.
+  const size_t new_pos = tok->value - parser->data;
+  bool no = update_codeloc(parser, new_pos);
   assert(!no);
+
+  assert(parser->data + parser->codeloc.pos == tok->value);
 }
