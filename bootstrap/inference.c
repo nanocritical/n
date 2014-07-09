@@ -990,7 +990,8 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
                                    node_ident(name), container_is_tentative);
   if (container_is_tentative && e == EINVAL) {
     struct node *dinc = defincomplete_create(mod, node);
-    defincomplete_add_field(mod, node, dinc, node_ident(name), TBI_ANY);
+    defincomplete_add_field(mod, node, dinc, node_ident(name),
+                            create_tentative(mod, node, TBI_ANY));
     e = defincomplete_catchup(mod, dinc);
     EXCEPT(e);
 
