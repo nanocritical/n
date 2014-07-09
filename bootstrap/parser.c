@@ -2166,8 +2166,9 @@ again:
   EXCEPT(e);
 
   if (must_be_last
-      && tok.t != TASSIGN && tok.t != TEOL && tok.t != TSOB && tok.t != TEOB) {
-    THROW_SYNTAX(mod, &tok, "vararg must be last");
+      && tok.t != TASSIGN && tok.t != TEOL && tok.t != TSOB && tok.t != TEOB
+      && tok.t != Twithin) {
+    THROW_SYNTAX(mod, &tok, "Vararg must be last");
   }
 
   switch (tok.t) {
