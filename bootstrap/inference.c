@@ -1061,16 +1061,28 @@ static ERROR type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   switch (node->as.BIN.operator) {
   case TRSHIFT:
     set_typ(&node->typ, create_tentative(mod, node, TBI_INTEGER_ARITHMETIC));
+    e = unify(mod, node, left->typ, node->typ);
+    EXCEPT(e);
     break;
   case TOVLSHIFT:
     set_typ(&node->typ, create_tentative(mod, node, TBI_OVERFLOW_ARITHMETIC));
+    e = unify(mod, node, left->typ, node->typ);
+    EXCEPT(e);
+    break;
+  case TRSHIFT_ASSIGN:
+    e = unify(mod, node, left->typ, create_tentative(mod, node, TBI_INTEGER_ARITHMETIC));
+    EXCEPT(e);
+    set_typ(&node->typ, TBI_VOID);
+    break;
+  case TOVLSHIFT_ASSIGN:
+    e = unify(mod, node, left->typ, create_tentative(mod, node, TBI_OVERFLOW_ARITHMETIC));
+    EXCEPT(e);
+    set_typ(&node->typ, TBI_VOID);
     break;
   default:
     assert(false);
     break;
   }
-  e = unify(mod, node, left->typ, node->typ);
-  EXCEPT(e);
 
   return 0;
 }
