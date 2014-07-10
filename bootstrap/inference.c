@@ -2658,10 +2658,10 @@ void schedule_finalization(struct typ *t) {
   vectyp_push(&scheduleq, t);
 }
 
-void process_finalizations(void) {
+error process_finalizations(void) {
   static __thread bool in_progress;
   if (in_progress) {
-    return;
+    return 0;
   }
   in_progress = true;
 
@@ -2680,12 +2680,13 @@ void process_finalizations(void) {
       error e = finalize_generic_instantiation(generic->trigger_mod,
                                                generic->trigger,
                                                t);
-      assert(!e);
+      EXCEPT(e);
     }
   }
   vectyp_destroy(&scheduleq);
 
   in_progress = false;
+  return 0;
 }
 
 STEP_NM(step_gather_remaining_weakly_concrete,

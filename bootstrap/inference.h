@@ -43,6 +43,6 @@ ERROR reference(struct node **result,
                 enum token_type op, struct typ *typ);
 
 void schedule_finalization(struct typ *t);
-void process_finalizations(void);
+ERROR process_finalizations(void);
 
 #endif

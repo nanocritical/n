@@ -1172,7 +1172,8 @@ error unify(struct module *mod, const struct node *for_error,
             struct typ *a, struct typ *b) {
   error e = do_unify(mod, 0, for_error, a, b);
   EXCEPT(e);
-  process_finalizations();
+  e = process_finalizations();
+  EXCEPT(e);
   return 0;
 }
 
@@ -1188,7 +1189,8 @@ error unify_refcompat(struct module *mod, const struct node *for_error,
   if (target_ref || b_ref || target_slice || b_slice) {
     e = do_unify(mod, REFCOMPAT_LEFT, for_error, target, b);
     EXCEPT(e);
-    process_finalizations();
+    e = process_finalizations();
+    EXCEPT(e);
     return 0;
   }
 
