@@ -98,6 +98,8 @@ static struct node *insert_conditioned_phi(struct module *mod,
 // in the statements following its DEFNAME or DEFALIAS within the block.
 static bool local_name_is_scoped(struct module *mod, const struct node *node) {
   switch (node->which) {
+  case WITHIN:
+    return false;
   case DEFARG:
     return true;
   case DEFNAME:

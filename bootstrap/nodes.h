@@ -408,6 +408,7 @@ struct node_example {
 };
 struct node_within {
   struct toplevel toplevel;
+  struct node *globalenv_scope;
 };
 struct node_import {
   struct toplevel toplevel;

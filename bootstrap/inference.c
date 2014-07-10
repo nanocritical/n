@@ -2042,6 +2042,8 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
     node->as.IDENT.non_local_scope = &parent(def)->scope;
   } else if (def->flags & NODE_IS_GLOBAL_LET) {
     node->as.IDENT.non_local_scope = &parent(parent(parent(def)))->scope;
+  } else if (def->which == WITHIN) {
+    node->as.IDENT.non_local_scope = &def->as.WITHIN.globalenv_scope->scope;
   }
 
   if (typ_is_function(def->typ) && node->typ != TBI__CALL_FUNCTION_SLOT) {
@@ -2103,6 +2105,8 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
       e = mk_except(mod, node, "in within declaration");
       THROW(e);
     }
+
+    node->as.WITHIN.globalenv_scope = modbody->as.MODULE_BODY.globalenv_scope;
   } else if (node->which == IDENT) {
     e = scope_lookup(&def, mod, &node->scope, node, false);
     EXCEPT(e);
