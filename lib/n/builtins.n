@@ -154,6 +154,10 @@ extern struct Nullable_mutable_ref t:`Any =
 extern struct Nullable_mercurial_ref t:`Any =
 	isa (`Any_nullable_mutable_ref t)
 
+-- Uses automagicref on function calls.
+(fun t:`Any) Take_ref_if_value__ p:@t = @t
+	return p
+
 intf `Any_any_slice =
 	isa `Trivial_ctor `Trivial_dtor `Return_by_copy `Trivial_copy_but_owned
 

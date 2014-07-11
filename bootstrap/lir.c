@@ -466,13 +466,23 @@ static void lir_conversion_foreach(struct module *mod, struct node *node) {
 
   GSTART();
   G0(let_it, node, LET,
+     G(expr, DEFPATTERN,
+       G(expr_var, IDENT,
+         expr_var->as.IDENT.name = gensym(mod));
+       G(expr_var_call, CALL,
+         G_IDENT(expr_var_fun, "Take_ref_if_value__"))
+         node_subs_append(expr_var_call, orig_expr));
      G(it, DEFPATTERN,
        G(it_var, IDENT,
          it_var->as.IDENT.name = gensym(mod));
        G(it_expr, CALL,
          G(it_expr_iter, BIN,
            it_expr_iter->as.BIN.operator = TDOT;
-           node_subs_append(it_expr_iter, orig_expr);
+           G(it_expr_all, BIN,
+             it_expr_all->as.BIN.operator = TDOT;
+             G(it_expr_self, IDENT,
+               it_expr_self->as.IDENT.name = node_ident(expr_var));
+             G_IDENT(it_expr_all_fun, "All"));
            G_IDENT(it_expr_fun, "Iter"))));
 
      G(let_it_block, BLOCK,
@@ -486,15 +496,26 @@ static void lir_conversion_foreach(struct module *mod, struct node *node) {
                vmm->as.IDENT.name = ID_HAS_NEXT)));
          G(loop_block, BLOCK,
            G(let_var, LET,
-             G(var, DEFPATTERN,
-               node_subs_append(var, orig_var);
+             G(idx, DEFPATTERN,
+               G(idx_var, IDENT,
+                 idx_var->as.IDENT.name = gensym(mod));
                G(g, CALL,
                  G(gm, BIN,
                    gm->as.BIN.operator = TBANG;
                    G(gmi, IDENT,
                      gmi->as.IDENT.name = node_ident(it_var));
                    G(gmm, IDENT,
-                     gmm->as.IDENT.name = ID_NEXT)))))))));
+                     gmm->as.IDENT.name = ID_NEXT))));
+             G(var, DEFPATTERN,
+               node_subs_append(var, orig_var);
+               G(g2, CALL,
+                 G(gm2, BIN,
+                   gm2->as.BIN.operator = TDOT;
+                   G(gmi2, IDENT,
+                     gmi2->as.IDENT.name = node_ident(expr_var));
+                   G_IDENT(gmm2, "Operator_at"));
+                 G(gma2, IDENT,
+                   gma2->as.IDENT.name = node_ident(idx_var)))))))));
 
          node_subs_append(let_var, orig_block);
 }
