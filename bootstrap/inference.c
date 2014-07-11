@@ -937,7 +937,9 @@ static void bin_accessor_maybe_functor(struct module *mod, struct node *par) {
   // through the call to the function 'vector.mk_filled'. We need to have a
   // fully tentative instance of 'vector' so that the unification of '0:u8'
   // with t:`copyable succeeds.
-  if (typ_is_generic_functor(par->typ)) {
+  if ((par->flags & NODE_IS_TYPE)
+      && typ_is_generic_functor(par->typ)
+      && node_ident(par) != ID_THIS) {
     struct node *i = instantiate_fully_implicit(mod, par, par->typ);
     unset_typ(&par->typ);
     set_typ(&par->typ, i->typ);
