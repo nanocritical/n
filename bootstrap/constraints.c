@@ -302,6 +302,8 @@ struct snprint_constraint_state {
   bool do_nos;
   bool has_yess;
   bool has_nos;
+  size_t hyp_depth;
+  size_t hyp_printed;
 };
 
 static int snprint_constraint_tag_each(const ident *tag, cbool *value,
@@ -320,6 +322,19 @@ static int snprint_constraint_tag_each(const ident *tag, cbool *value,
   return 0;
 }
 
+static int do_snprint_constraint(char *s, size_t len,
+                                 const struct module *mod,
+                                 const struct constraint *_c,
+                                 size_t hyp_depth);
+
+static int snprindent(char *s, size_t len, size_t hyp_depth) {
+  size_t pos = snprintf(s, len, "\n");
+  for (size_t n = 0; n < hyp_depth + 1; ++n) {
+    pos += snprintf(s+pos, len-pos, "\t");
+  }
+  return pos;
+}
+
 static int snprint_constraint_under_each(const struct node **_cond,
                                          struct hypothesis *hyp,
                                          void *user) {
@@ -327,40 +342,66 @@ static int snprint_constraint_under_each(const struct node **_cond,
   struct snprint_constraint_state *st = user;
 
   if (hyp->if_true != NULL) {
-    int n = snprintf(st->s, st->len, "(%s => ",
-                     scope_name(st->mod, &cond->scope));
+    int n = 0;
+    if (st->hyp_printed > 0) {
+      n = snprindent(st->s, st->len, st->hyp_depth);
+      st->s += n;
+      st->len -= n;
+      n = snprintf(st->s, st->len, "and ");
+      st->s += n;
+      st->len -= n;
+    }
+
+    n = snprintf(st->s, st->len, "(%s => ",
+                 scope_name(st->mod, &cond->scope));
     st->s += n;
     st->len -= n;
 
-    n = snprint_constraint(st->s, st->len, st->mod, hyp->if_true);
+    n = do_snprint_constraint(st->s, st->len, st->mod, hyp->if_true, st->hyp_depth+1);
     st->s += n;
     st->len -= n;
 
     n = snprintf(st->s, st->len, ")");
     st->s += n;
     st->len -= n;
+
+    st->hyp_printed += 1;
   }
 
   if (hyp->if_false != NULL) {
-    int n = snprintf(st->s, st->len, "(not %s => ",
-                     scope_name(st->mod, &cond->scope));
+    int n = 0;
+    if (st->hyp_printed > 0) {
+      n = snprindent(st->s, st->len, st->hyp_depth);
+      st->s += n;
+      st->len -= n;
+      n = snprintf(st->s, st->len, "and ");
+      st->s += n;
+      st->len -= n;
+    }
+
+    n = snprintf(st->s, st->len, "(not %s => ",
+                 scope_name(st->mod, &cond->scope));
     st->s += n;
     st->len -= n;
 
-    n = snprint_constraint(st->s, st->len, st->mod, hyp->if_false);
+    n = do_snprint_constraint(st->s, st->len, st->mod, hyp->if_false, st->hyp_depth+1);
     st->s += n;
     st->len -= n;
 
     n = snprintf(st->s, st->len, ")");
     st->s += n;
     st->len -= n;
+
+    st->hyp_printed += 1;
   }
 
   return 0;
 }
 
-int snprint_constraint(char *s, size_t len,
-                       const struct module *mod, const struct constraint *_c) {
+static int do_snprint_constraint(char *s, size_t len,
+                                 const struct module *mod,
+                                 const struct constraint *_c,
+                                 size_t hyp_depth) {
   struct constraint *c = CONST_CAST(_c);
   size_t pos = 0;
   pos += snprintf(s+pos, len-pos, "(");
@@ -369,7 +410,8 @@ int snprint_constraint(char *s, size_t len,
   for (size_t cbi = CBI__ANYTAG+1; cbi < CBI__NUM; ++cbi) {
     const cbool v = c->table[cbi];
     if (v != U && !first) {
-      pos += snprintf(s+pos, len-pos, " and ");
+      pos += snprindent(s+pos, len-pos, hyp_depth);
+      pos += snprintf(s+pos, len-pos, "and ");
     }
 
     if (v == Y) {
@@ -383,7 +425,8 @@ int snprint_constraint(char *s, size_t len,
 
   if (c->table[CBI__ANYTAG] == N) {
     if (!first) {
-      pos += snprintf(s+pos, len-pos, " and ");
+      pos += snprindent(s+pos, len-pos, hyp_depth);
+      pos += snprintf(s+pos, len-pos, "and ");
     }
 
     struct snprint_constraint_state st = {
@@ -393,6 +436,8 @@ int snprint_constraint(char *s, size_t len,
       .do_nos = false,
       .has_yess = false,
       .has_nos = false,
+      .hyp_depth = hyp_depth,
+      .hyp_printed = 0,
     };
 
     tagset_foreach(&c->tags, snprint_constraint_tag_each, &st);
@@ -401,7 +446,10 @@ int snprint_constraint(char *s, size_t len,
 
     if (st.has_nos) {
       if (st.has_yess) {
-        int n = snprintf(st.s, st.len, " and not ");
+        int n0 = snprindent(st.s, st.len, hyp_depth);
+        st.s += n0;
+        st.len -= n0;
+        int n = snprintf(st.s, st.len, "and not ");
         st.s += n;
         st.len -= n;
       }
@@ -415,7 +463,8 @@ int snprint_constraint(char *s, size_t len,
 
   if (hypmap_count(&c->under) != 0) {
     if (!first) {
-      pos += snprintf(s+pos, len-pos, " and ");
+      pos += snprindent(s+pos, len-pos, hyp_depth);
+      pos += snprintf(s+pos, len-pos, "and ");
     }
 
     struct snprint_constraint_state st = {
@@ -432,6 +481,19 @@ int snprint_constraint(char *s, size_t len,
 
   pos += snprintf(s+pos, len-pos, ")");
   return pos;
+}
+
+int snprint_constraint(char *s, size_t len,
+                       const struct module *mod,
+                       const struct constraint *_c) {
+  return do_snprint_constraint(s, len, mod, _c, 0);
+}
+
+unused__ static void ppconstraint(struct module *mod, struct constraint *c) {
+  char s[1024] = { 0 };
+  size_t len = ARRAY_SIZE(s);
+  snprint_constraint(s, len, mod, c);
+  fprintf(stderr, "%s\n", s);
 }
 
 EXAMPLE_NCC_EMPTY(snprint_constraint) {
@@ -475,7 +537,7 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
     constraint_set(mod, n->constraint, CBI_INIT, false);
     constraint_set(mod, n->constraint, CBI_NONNULL, true);
     snprint_constraint(s, len, mod, n->constraint);
-    assert(strcmp(s, "(init and not nonnull)") == 0);
+    assert(strcmp(s, "(init\n\tand not nonnull)") == 0);
   }
   {
     struct node *n = mk_node(mod, mod->body, IDENT);
@@ -500,7 +562,7 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
     constraint_set_tag(mod, n->constraint, ID_C, false);
     constraint_set_tag(mod, n->constraint, ID_OTHER, true);
     snprint_constraint(s, len, mod, n->constraint);
-    assert(strcmp(s, "(|c and not |other)") == 0);
+    assert(strcmp(s, "(|c\n\tand not |other)") == 0);
   }
   {
     struct node *let = mk_node(mod, mod->body, LET);
@@ -518,8 +580,8 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
     c->table[CBI_VALID] = N;
 
     snprint_constraint(s, len, mod, na->constraint);
-    assert(strcmp(s, "(init and |c and (bootstrap.mockempty.<let>.Next"
-                  " => (nonnull and not valid)))") == 0);
+    assert(strcmp(s, "(init\n\tand |c\n\tand (bootstrap.mockempty.<let>.Next"
+                  " => (nonnull\n\t\tand not valid)))") == 0);
   }
 }
 
@@ -535,7 +597,7 @@ static ERROR mk_except_constraint(const struct module *mod,
   pos += snprintf(s+pos, len-pos, "constraint: ");
   pos += vsnprintf(s+pos, len-pos, fmt, ap);
   if (node != NULL) {
-    pos += snprintf(s+pos, len-pos, " ");
+    pos += snprintf(s+pos, len-pos, ":\n");
     pos += snprint_constraint(s+pos, len-pos, mod, node->constraint);
   }
 
@@ -1050,6 +1112,20 @@ static void merge_unanimous_hypotheses(struct module *mod,
     c->table[CBI__ANYTAG] = Y;
     a->table[CBI__ANYTAG] = U;
     b->table[CBI__ANYTAG] = U;
+  }
+}
+
+unused__ static void ppanc(const struct module *mod, const struct ancestor *a) {
+  fprintf(stderr, "reversed %d\n", a->reversed);
+  if (a->prev) {
+    fprintf(stderr, "prev: ");
+    fflush(stderr);
+    pptree(2, mod, a->prev);
+  }
+  if (a->cond) {
+    fprintf(stderr, "cond: ");
+    fflush(stderr);
+    pptree(2, mod, a->cond);
   }
 }
 
