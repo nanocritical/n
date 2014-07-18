@@ -959,6 +959,9 @@ static void print_tree_node(FILE *out, const struct module *mod,
             " c"[!!node->as.PHI.is_conditioned],
             idents_value(mod->gctx, node_ident(node)));
     break;
+  case BOOL:
+    fprintf(out, "(%s)", node->as.BOOL.value ? "true" : "false");
+    break;
   case NUMBER:
     fprintf(out, "(%s)", node->as.NUMBER.value);
     break;
