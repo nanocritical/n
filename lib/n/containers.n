@@ -53,11 +53,14 @@ Range met with_offset offset:Uint = this
 	let r = {b=self.Begin+offset e=self.End+offset}
 	return r
 
+Range met All = this
+	return self.
+
 Range met Iter = Index_iterator
 	return { r=self. }
 
 
-opaque struct Index_iterator =
+inline struct Index_iterator =
 	isa (`Iterator Uint) `Trivial_copy `Trivial_ctor
 	r	:Range
 	p	:Uint

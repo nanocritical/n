@@ -398,7 +398,7 @@ static void create_flags(struct typ *t, struct typ *tbi) {
   }
 
   if (tbi == TBI_BOOL
-      || tbi == TBI_STATIC_STRING
+      || tbi == TBI_STRING
       || tbi == TBI_STATIC_ARRAY) {
     t->flags |= TYPF_WEAKLY_CONCRETE;
   }
@@ -1065,8 +1065,7 @@ struct typ *TBI_FLOAT;
 struct typ *TBI_DOUBLE;
 struct typ *TBI_CHAR;
 struct typ *TBI_STRING;
-struct typ *TBI_STATIC_STRING;
-struct typ *TBI_STATIC_STRING_COMPATIBLE;
+struct typ *TBI_STRING_COMPATIBLE;
 struct typ *TBI_STATIC_ARRAY;
 struct typ *TBI_ANY_ANY_REF;
 struct typ *TBI_ANY_REF;

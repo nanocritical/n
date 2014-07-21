@@ -10,22 +10,20 @@ const NB(Void) *NB(Nonnull_void)(void) {
   return &dummy;
 }
 
-static void native_write_buffer(_$Ndyn_n$chars$_$Ni_String_buffer buf, const char *s) {
-  for (int i = 0; s[i] != '\0'; ++i) {
-    n$chars$_$Ni_String_buffer$Push(buf, n$chars$Char$From_ascii((NB(U8)) s[i]));
-  }
+static void native_write_buffer(_$Ndyn_n$chars$_$Ni_State st, const char *s, int cnt) {
+  n$fmt_$Ni_State$Write(st, NLANG_BYTE_SLICE(s, cnt));
 }
 
-void n$builtins$Bool$Show(const NB(Bool) *self, _$Ndyn_n$chars$_$Ni_String_buffer buf) { \
-  native_write_buffer(buf, *self ? "true" : "false"); \
+void n$builtins$Bool$Show(const NB(Bool) *self, _$Ndyn_n$fmt$_$Ni_State st) { \
+  native_write_buffer(st, *self ? "true" : "false"); \
 }
 
 // ln(2^64)/ln(10) = 19.27
 #define define_show_number(t, fmt) \
-  void t##$Show(const t *self, _$Ndyn_n$chars$_$Ni_String_buffer buf) { \
+  void t##$Show(const t *self, _$Ndyn_n$fmt$_$Ni_State st) { \
     char s[32]; \
-    snprintf(s, 32, fmt, *self); \
-    native_write_buffer(buf, s); \
+    const int cnt = snprintf(s, 32, fmt, *self); \
+    native_write_buffer(st, s, cnt); \
   }
 
 define_show_number(n$builtins$I8, "%"PRId8)

@@ -351,8 +351,8 @@ static ERROR unify_with_weakly_concrete(bool *success,
       typ_link_tentative(a, b);
       *success = true;
     }
-  } else if (typ_equal(b, TBI_STATIC_STRING)) {
-    if (typ_isa(a, TBI_STATIC_STRING_COMPATIBLE)) {
+  } else if (typ_equal(b, TBI_STRING)) {
+    if (typ_isa(a, TBI_STRING_COMPATIBLE)) {
       typ_link_tentative(a, b);
       *success = true;
     }

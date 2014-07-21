@@ -9,6 +9,9 @@ error step_add_sequence_points(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   DSTEP(mod, node);
 
+  node->as.BLOCK.block_id = mod->next_gensym;
+  mod->next_gensym += 1;
+
   if (!node->as.BLOCK.is_scopeless && subs_count_atleast(node, 2)) {
     FOREACH_SUB(s, node) {
       struct node *seq_point = mk_node(mod, node, BLOCK);

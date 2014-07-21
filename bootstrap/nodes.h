@@ -251,6 +251,7 @@ struct node_return {
   bool forced_return_through_ref;
 };
 struct node_block {
+  size_t block_id;
   bool is_scopeless;
 };
 struct node_for {
@@ -298,8 +299,10 @@ struct node_phi {
 
   struct vecancestor ancestors;
 
-  bool is_conditioned;
   bool is_used;
+
+  bool is_conditioned;
+  struct node *propagation_of;
 };
 struct node_typeconstraint {
   bool is_constraint;
@@ -982,8 +985,7 @@ enum predefined_idents {
   ID_TBI_DOUBLE,
   ID_TBI_CHAR,
   ID_TBI_STRING,
-  ID_TBI_STATIC_STRING,
-  ID_TBI_STATIC_STRING_COMPATIBLE,
+  ID_TBI_STRING_COMPATIBLE,
   ID_TBI_STATIC_ARRAY,
   ID_TBI_ANY_ANY_REF,
   ID_TBI_ANY_REF,
@@ -1057,7 +1059,7 @@ enum predefined_idents {
   ID_COPY_CTOR,
   ID_C,
   ID_OTHER,
-  ID_FROM_STATIC_STRING,
+  ID_FROM_STRING,
   ID_FROM_BOOL,
   ID_FROM_ARRAY,
   ID_FROM_TAG,

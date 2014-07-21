@@ -1750,7 +1750,7 @@ static ERROR type_inference_explicit_unary_call(struct module *mod, struct node 
   return 0;
 }
 
-static ERROR try_rewrite_operator_sub(struct module *mod, struct node *node) {
+static ERROR try_rewrite_operator_sub_bounds(struct module *mod, struct node *node) {
   if (!subs_count_atleast(node, 3)) {
     return 0;
   }
@@ -1759,8 +1759,8 @@ static ERROR try_rewrite_operator_sub(struct module *mod, struct node *node) {
   struct node *self = subs_at(node, 1);
   struct node *arg = subs_at(node, 2);
 
-  if (!(typ_equal(arg->typ, TBI_RANGE) || typ_equal(arg->typ, TBI_BOUNDS))
-      || node_ident(typ_definition_const(fun->typ)) != ID_OPERATOR_AT) {
+  if (!typ_equal(arg->typ, TBI_BOUNDS)
+      || node_ident(typ_definition_const(fun->typ)) != ID_OPERATOR_SUB) {
     return 0;
   }
 
@@ -1780,22 +1780,20 @@ static ERROR try_rewrite_operator_sub(struct module *mod, struct node *node) {
   error e = catchup(mod, NULL, fun, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
 
-  if (typ_equal(arg->typ, TBI_BOUNDS)) {
-    // Magically convert v.[10...] to v.[(10...).Range_of v].
-    node_subs_remove(node, arg);
-    GSTART();
-    G0(call, node, CALL,
-       G(b, BIN,
-         b->as.BIN.operator = TDOT;
-         node_subs_append(b, arg);
-         G_IDENT(f, "Range_of"));
-       G(vn, IDENT,
-         vn->as.IDENT.name = node_ident(self)));
+  // Magically convert v.[10...] to v.[(10...).Range_of v].
+  node_subs_remove(node, arg);
+  GSTART();
+  G0(call, node, CALL,
+     G(b, BIN,
+       b->as.BIN.operator = TDOT;
+       node_subs_append(b, arg);
+       G_IDENT(f, "Range_of"));
+     G(vn, IDENT,
+       vn->as.IDENT.name = node_ident(self)));
 
-    const struct node *except[] = { arg, NULL };
-    error e = catchup(mod, except, call, CATCHUP_BELOW_CURRENT);
-    EXCEPT(e);
-  }
+  const struct node *except[] = { arg, NULL };
+  e = catchup(mod, except, call, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
 
   return 0;
 }
@@ -1828,7 +1826,7 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
   EXCEPT(e);
 
   // Assumes that operator_at and operator_sub have the same arguments.
-  e = try_rewrite_operator_sub(mod, node);
+  e = try_rewrite_operator_sub_bounds(mod, node);
   EXCEPT(e);
 
   e = check_consistent_either_types_or_values(mod, try_node_subs_at(node, 1));
@@ -2323,7 +2321,7 @@ error step_type_inference(struct module *mod, struct node *node,
     set_typ(&node->typ, create_tentative(mod, node, TBI_BOOL));
     break;
   case STRING:
-    set_typ(&node->typ, create_tentative(mod, node, TBI_STATIC_STRING));
+    set_typ(&node->typ, create_tentative(mod, node, TBI_STRING));
     break;
   case SIZEOF:
     set_typ(&node->typ, TBI_UINT);
@@ -2520,8 +2518,8 @@ static void finalize_weakly_concrete(struct module *mod, struct typ *t) {
   struct typ *concrete = node_toplevel(d)->generic->our_generic_functor_typ;
   if (typ_equal(concrete, TBI_BOOL)) {
     typ_link_tentative(TBI_BOOL, t);
-  } else if (typ_equal(concrete, TBI_STATIC_STRING)) {
-    typ_link_tentative(TBI_STATIC_STRING, t);
+  } else if (typ_equal(concrete, TBI_STRING)) {
+    typ_link_tentative(TBI_STRING, t);
   } else if (typ_equal(concrete, TBI_STATIC_ARRAY)) {
     typ_link_tentative(TBI_STATIC_ARRAY, t);
   } else {

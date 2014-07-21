@@ -1,0 +1,40 @@
+intf `Heap =
+	(met! t:`Any) Alloc = @#t
+	(met! t:`Any) Free p:?@#t
+	(met! t:`Any) Realloc s:@#[]!t Count:Uint
+
+extern inline fun Realloc p:?@#U8 oldbsz:Uint bsz:Uint = @#U8
+extern inline fun Free p:?@#U8 sz:Uint
+
+struct Sysheap =
+	isa `Heap
+	dummy	:U8
+
+Sysheap (met! t:`Any) Alloc = @#t
+	let raw = Realloc null 0 (sizeof t)
+	return (n.unsafe.Cast @#U8 @#t) raw
+
+Sysheap (met! t:`Any) Free p:?@#t
+	let raw = (n.unsafe.Cast ?@#t ?@#U8) p
+	return Free raw (sizeof t)
+
+Sysheap (met! t:`Any) Realloc s:@#[]!t count:Uint
+	if count == 0
+		let bsz = s.Bytecount
+		let raw = s#Unsafe_rawdata
+		Free raw bsz
+		s#cnt = 0
+		s#dat = null
+		return
+
+	let bsz = count * (sizeof t)
+	if s.Count == 0
+		s#dat = (n.unsafe.Cast @#U8 ?@#t) (Realloc null 0 bsz)
+		s#cnt = count
+	else
+		let old_bsz = s.Bytecount
+		let raw = s#Unsafe_rawdata
+		s#dat = (n.unsafe.Cast @#U8 ?@#t) (Realloc raw old_bsz bsz)
+		s#cnt = count
+
+globalenv Heap:@!`Heap

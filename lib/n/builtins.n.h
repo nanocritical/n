@@ -17,9 +17,26 @@ static inline NB(U8) *NB(Slice_at_byte)(NB(U8) *p, NB(Uint) off) {
   return p + off;
 }
 
-static inline NB(Void) NB(Slice_memcpy)(NB(U8) *dst, const NB(U8) *src, NB(Uint) count) {
-  memcpy(dst, src, count);
+static inline NB(Void) NB(Slice_memmove)(NB(U8) *dst, const NB(U8) *src, NB(Uint) count) {
+  memmove(dst, src, count);
 }
+
+static inline NB(Void) NB(Slice_memcmp)(const NB(U8) *a, const NB(U8) *b, NB(Uint) cnt) {
+  return memcmp(a, b, count);
+}
+
+#define NLANG_STRING_LITERAL(s) \
+  n$builtins$String$From_bytes( \
+    (_$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_){ \
+                     .dat = (const n$builtins$U8 *)s, \
+                     .cnt = sizeof(s)-1, \
+                     .cap = sizeof(s) })
+
+#define NLANG_BYTE_SLICE(b, cnt) \
+    ( (_$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_){ \
+                     .dat = (const n$builtins$U8 *)b, \
+                     .cnt = cnt, \
+                     .cap = cnt} )
 
 #define NLANG_BUILTINS_VARARG_START(va) do { \
   va_start((va).ap.ap, _$Nvarargcount); \
@@ -250,6 +267,31 @@ static inline NB(U8) *NB(Static_array_at_byte)(NB(U8) *p, NB(Uint) off) {
 #ifdef NLANG_DECLARE_FUNCTIONS
 
 const NB(Void) *NB(Nonnull_void)(void);
+
+#endif
+
+#ifdef NLANG_DEFINE_FUNCTIONS
+
+static inline NB(U8) *n$sysheap$Realloc(NB(U8) *ap, NB(Uint) oldbsz, NB(Uint) bsz) {
+  NB(U8) *r;
+  if (ap == NULL) {
+    r = calloc(1, bsz);
+    if (r == NULL) {
+      NB(Abort)();
+    }
+  } else {
+    r = realloc(ap, bsz);
+    if (r == NULL) {
+      NB(Abort)();
+    }
+    memset(r + oldbsz, 0, bsz - oldbsz);
+  }
+  return r;
+}
+
+static inline void n$sysheap$Free(NB(U8) *ap, NB(Uint) bsz) {
+  free(ap);
+}
 
 #endif
 

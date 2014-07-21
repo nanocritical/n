@@ -1,0 +1,56 @@
+struct Slicebuf t:`Any =
+	s	:[]!t	--::^Owned
+
+Slicebuf fun With s:[]t = this
+	let r = {}:this such
+		r#Reserve s.Count
+		r#s = r!s!Copy s
+	return r
+
+Slicebuf met$ Buffer = []$t
+	return self$s
+
+Slicebuf met# Clear
+	self!s = self.s.[.. 0]
+	self#auto_shrink
+
+Slicebuf met# Push = @#t
+	let nend = self.s.Count + 1
+	self#Reserve nend
+	self!s = self.s.[.. nend]
+	return self#Last
+
+Slicebuf shallow met$ First = @$t
+	return self$s$First
+
+Slicebuf shallow met$ Last = @$t
+	return self$s$Last
+
+Slicebuf met# Pop
+	Assert <- self.s.Count > 0
+	self!s = self.s.[.. self.s.Count-1]
+	self#auto_shrink
+
+Slicebuf met# Append s:[]t
+	self#Reserve self.s.Count + s.Count
+	self#s = self!s!Append s
+
+Slicebuf met# Copy s:[]t
+	self#Reserve s.Count
+	self#s = self.s!Copy s
+
+Slicebuf met# Reserve cap:Uint within Heap
+	Heap!Realloc @#self#s cap
+	self#auto_shrink
+
+Slicebuf met# auto_shrink within Heap
+	let cap = self.s.Cap
+	and cnt = self.s.Count
+	if cap == 0
+		return
+	let newcap = cap such
+		if cnt == 0
+			newcap = 0
+		elif cnt < cap / 2
+			newcap = cnt
+	Heap!Realloc @#self#s newcap

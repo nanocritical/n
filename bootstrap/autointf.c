@@ -69,32 +69,10 @@ static ERROR step_rewrite_local_idents(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_NM(step_rewrite_name,
-               NM(DEFFUN) | NM(DEFMETHOD));
-static ERROR step_rewrite_name(struct module *mod, struct node *node,
-                               void *user, bool *stop) {
-  const struct node *proto_parent =
-    ((struct intf_proto_rewrite_state *)user)->proto_parent;
-
-  struct node *first = subs_first(node);
-  assert(first->which == IDENT);
-  const ident name = node_ident(first);
-  node_set_which(first, BIN);
-  first->as.BIN.operator = TDOT;
-  GSTART();
-  G0(i, first, IDENT,
-     i->as.IDENT.name = node_ident(proto_parent));
-  G0(n, first, IDENT,
-     n->as.IDENT.name = name);
-
-  return 0;
-}
-
 static ERROR pass_rewrite_proto(struct module *mod, struct node *root,
                                 void *user, ssize_t shallow_last_up) {
   PASS(DOWN_STEP(step_rewrite_this);
        DOWN_STEP(step_rewrite_local_idents);
-       DOWN_STEP(step_rewrite_name);
        ,,);
   return 0;
 }
@@ -337,10 +315,13 @@ static void gen_show_choices(struct module *mod, struct node *deft,
        G(append, CALL,
          G(fun, BIN,
            fun->as.BIN.operator = TSHARP;
-           G_IDENT(buf, "buf");
-           G_IDENT(app, "Append"));
-         G(s, STRING,
-           s->as.STRING.value = v)));
+           G_IDENT(st, "st");
+           G_IDENT(app, "Write"));
+         G(b, BIN,
+           b->as.BIN.operator = TDOT;
+           G(s, STRING,
+             s->as.STRING.value = v);
+           G_IDENT(bytes, "Bytes"))));
     return;
   }
 

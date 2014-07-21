@@ -116,7 +116,7 @@ static ERROR step_weak_literal_conversion(struct module *mod, struct node *node,
 
   switch (node->which) {
   case STRING:
-    if (typ_equal(node->typ, TBI_STATIC_STRING)) {
+    if (typ_equal(node->typ, TBI_STRING)) {
       return 0;
     }
 
@@ -131,8 +131,8 @@ static ERROR step_weak_literal_conversion(struct module *mod, struct node *node,
       return 0;
     }
 
-    id = ID_FROM_STATIC_STRING;
-    lit_typ = TBI_STATIC_STRING;
+    id = ID_FROM_STRING;
+    lit_typ = TBI_STRING;
     break;
   case BOOL:
     if (typ_equal(node->typ, TBI_BOOL)) {

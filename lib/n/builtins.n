@@ -179,18 +179,25 @@ intf `Any_mutable_slice t:`Any =
 -- these functions has only one purpose: triggering the instantiation of the
 -- corresponding Slice_impl methods.
 -- We will need a better solution down the road, as the code in these bogus
--- methods is All sorts of wrong and is bound to be rejected by the compiler.
+-- methods is All sorts of wrong and is bound to be rejected by the compiler
+-- as its bullshit detector improves.
+--
+-- In reality, it doesn't actually make sense to share the implementations
+-- of Slice and Mutable_slice: Slice does not need to carry around a cap
+-- field. It's just easier for now as it lets us avoid generating conversion
+-- operations between kinds of slices.
 
 opaque struct Slice t:`Any =
 	isa (`Any_slice t)
 	dat	:?@#t
 	cnt	:Uint
+	cap	:Uint -- will go away
 
 inline Slice fun create_impl_instance = (Slice_impl t)
 	return {}
-inline Slice met# Unsafe_wrap p:@U8 c:Uint
+inline Slice met# Unsafe_wrap p:@U8 c:Uint cap:Uint
 	let s = this.create_impl_instance
-	s#Unsafe_wrap p c
+	s#Unsafe_wrap p c cap
 inline Slice met Count = Uint
 	let s = this.create_impl_instance
 	return s.Count
@@ -200,34 +207,49 @@ inline Slice met Bytecount = Uint
 inline Slice met All = Range
 	let s = this.create_impl_instance
 	return s.All
-inline Slice shallow met$ Unsafe_rawdata = @U8
+inline Slice shallow met Unsafe_rawdata = @U8
 	let s = this.create_impl_instance
 	return s.Unsafe_rawdata
-inline Slice shallow met$ Unsafe_data = @t
+inline Slice shallow met Unsafe_data = @t
 	let s = this.create_impl_instance
 	return s.Unsafe_data
-inline Slice shallow met$ Operator_at n:Uint = @t
+inline Slice shallow met Operator_at n:Uint = @t
 	let s = this.create_impl_instance
 	return s.Operator_at n
-inline Slice shallow met$ Operator_sub r:Range = []t
+inline Slice shallow met Operator_sub r:Range = []t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Operator_sub r
 	return {}
+inline Slice shallow met Recapped cap:Uint = this
+	let s = this.create_impl_instance
+	such
+		let _ = s.Recapped cap
+	return {}
+inline Slice shallow met First = @t
+	let s = this.create_impl_instance
+	return s.First
+inline Slice shallow met Last = @t
+	let s = this.create_impl_instance
+	return s.Last
 
 opaque struct Mutable_slice t:`Any =
 	isa (`Any_mutable_slice t)
 	dat	:?@#t
 	cnt	:Uint
+	cap	:Uint
 
 inline Mutable_slice fun create_impl_instance = (Slice_impl t)
 	return {}
-inline Mutable_slice met# Unsafe_wrap p:@U8 c:Uint
+inline Mutable_slice met# Unsafe_wrap p:@U8 c:Uint cap:Uint
 	let s = this.create_impl_instance
-	s#Unsafe_wrap p c
+	s#Unsafe_wrap p c cap
 inline Mutable_slice met Count = Uint
 	let s = this.create_impl_instance
 	return s.Count
+inline Mutable_slice met Cap = Uint
+	let s = this.create_impl_instance
+	return s.Cap
 inline Mutable_slice met Bytecount = Uint
 	let s = this.create_impl_instance
 	return s.Bytecount
@@ -255,10 +277,20 @@ inline Mutable_slice shallow met$ Operator_at n:Uint = @$t
 		let _ = s!Operator_at n
 		let p = s#Operator_at n
 		return s$Operator_at n
-inline Mutable_slice met! Copy other:[]t
+inline Mutable_slice met! Exact_copy other:[]t
 	let s = this.create_impl_instance
 	such
-		s!Copy s
+		s!Exact_copy s
+inline Mutable_slice met! Copy other:[]t = this
+	let s = this.create_impl_instance
+	such
+		let _ = s!Copy s
+		return {}
+inline Mutable_slice met! Append other:[]t = this
+	let s = this.create_impl_instance
+	such
+		let _ = s!Append s
+		return {}
 inline Mutable_slice shallow met$ Operator_sub r:Range = []$t
 	let s = this.create_impl_instance
 	such
@@ -266,25 +298,56 @@ inline Mutable_slice shallow met$ Operator_sub r:Range = []$t
 		let _ = (s!Operator_sub r)
 		let _ = (s#Operator_sub r)
 		return {}
-
+inline Mutable_slice shallow met$ Recapped cap:Uint = this
+	let s = this.create_impl_instance
+	such
+		let _ = (s.Recapped cap)
+		let _ = (s!Recapped cap)
+		return {}
+inline Mutable_slice shallow met$ First = @$t
+	let s = this.create_impl_instance
+	such
+		let _ = s.First
+		let _ = s!First
+		let p = s#First
+		return p
+inline Mutable_slice shallow met$ Last = @$t
+	let s = this.create_impl_instance
+	such
+		let _ = s.Last
+		let _ = s!Last
+		let p = s#Last
+		return p
 
 extern inline fun Slice_at_byte dp:@#U8 off:Uint = @#U8
-extern inline fun Slice_memcpy dst:@#U8 src:@U8 Count:Uint
+extern inline fun Slice_memmove dst:@#U8 src:@U8 cnt:Uint
+extern inline fun Slice_memcmp a:@U8 b:@U8 cnt:Uint = Int
+
+inline fun Bytes_compare a:[]U8 b:[]U8 = Int
+	return Slice_memcmp a.Unsafe_data b.Unsafe_data (Min a.Count b.Count)
 
 opaque struct Slice_impl t:`Any =
 	isa (`Any_mutable_slice t)
 	dat	:?@#t
 	cnt	:Uint
+	cap	:Uint
 
-inline Slice_impl met# Unsafe_wrap p:@U8 c:Uint
+inline Slice_impl met# Unsafe_wrap p:@U8 cnt:Uint cap:Uint
 	self#dat = (Cast @U8 @#t) p
-	self#cnt = c
+	self#cnt = cnt
+	self#cap = cap
 
 inline Slice_impl met Count = Uint
 	return self.cnt
 
+inline Slice_impl met Cap = Uint
+	return self.cap
+
 inline Slice_impl met Bytecount = Uint
 	return (sizeof t) * self.cnt
+
+inline Slice_impl met Bytecap = Uint
+	return (sizeof t) * self.cap
 
 inline Slice_impl met All = Range
 	return 0 .. self.cnt
@@ -296,25 +359,48 @@ inline Slice_impl shallow met$ Unsafe_data = @$t
 	return (Nonnull_cast t ?@$t @$t) self$dat
 
 inline Slice_impl shallow met$ Operator_at n:Uint = @$t
-	Assert <- n < self.Count
+	Assert <- n < self.cnt
 	let raw = (Cast ?@t @#U8) self.dat
 	and off = n * (sizeof t)
 	return (Cast @#U8 @$t) <- Slice_at_byte raw off
 
-inline Slice_impl met! Copy other:this
-	Assert <- self.Count == other.Count
+-- Mutable_slice are immutable in Count and Cap...
+inline Slice_impl met! Exact_copy other:this
+	Assert <- self.cnt == other.cnt
 	let dst = self!Unsafe_rawdata
 	and src = other.Unsafe_rawdata
 	and bytecnt = other.cnt * (sizeof t)
-	Slice_memcpy dst src bytecnt
+	Slice_memmove dst src bytecnt
+
+-- Copy what it can, and return a slice to the result.
+inline Slice_impl met! Copy other:this = this
+	let cnt = Min self.cap other.cnt
+	let r = self![.. cnt] such
+		r!Exact_copy other
+	return r
+
+inline Slice_impl met! Append other:this = this
+	let newcnt = self.cnt + other.cnt
+	Assert <- newcnt < self.cap
+	let _ = self.[self.cnt .. newcnt]!Copy other
+	return self![.. newcnt]
 
 inline Slice_impl shallow met$ Operator_sub r:Range = this
-	Assert <- r.Begin < self.Count
-	Assert <- r.End <= self.Count
+	Assert <- r.Begin < self.cnt
+	Assert <- r.End <= self.cnt
 	let raw0 = (Cast @U8 @#U8) self.Unsafe_rawdata
 	let raw = Slice_at_byte raw0 r.Begin
-	return {dat=((Cast @#U8 @#t) raw) cnt=r.Count}
+	return {dat=((Cast @#U8 @#t) raw) cnt=r.Count cap=self.cap}
 
+inline Slice_impl shallow met$ Recapped cap:Uint = this
+	Assert <- cap <= self.cap
+	return {dat=self.dat cnt=(Min self.Count self.cap) cap=self.cap}
+
+inline Slice_impl shallow met$ First = @$t
+	return self$[0]
+
+inline Slice_impl shallow met$ Last = @$t
+	return self$[self.Count - 1]
 
 intf `Any_tuple =
 	isa `Copyable
@@ -582,7 +668,7 @@ extern Bool met To_u8 = U8
 extern Bool met To_u16 = U16
 extern Bool met To_u32 = U32
 extern Bool met To_u64 = U64
-extern Bool met Show buf:@#`String_buffer
+extern Bool met Show st:@#n.fmt.`State
 
 extern inline struct I8 =
 	isa `Native_sized_signed_integer
@@ -632,7 +718,7 @@ extern inline I8 met To_i64 = I64
 extern inline I8 met To_int = Int
 extern inline I8 met Exact_float = Float
 extern inline I8 met Exact_double = Double
-extern I8 met Show buf:@#`String_buffer
+extern I8 met Show st:@#n.fmt.`State
 
 extern inline struct I16 =
 	isa `Native_sized_signed_integer
@@ -682,7 +768,7 @@ extern inline I16 met To_i64 = I64
 extern inline I16 met To_int = Int
 extern inline I16 met Exact_float = Float
 extern inline I16 met Exact_double = Double
-extern I16 met Show buf:@#`String_buffer
+extern I16 met Show st:@#n.fmt.`State
 
 extern inline struct I32 =
 	isa `Native_sized_signed_integer
@@ -732,7 +818,7 @@ extern inline I32 met To_i64 = I64
 extern inline I32 met To_int = Int
 extern inline I32 met Round_float = Float
 extern inline I32 met Exact_double = Double
-extern I32 met Show buf:@#`String_buffer
+extern I32 met Show st:@#n.fmt.`State
 
 ---- TODO Integer conversions to floats must be extended with:
 -- met Try_exact_float = Error_range, Float
@@ -794,7 +880,7 @@ inline I64 met Try_int = Error_range, Int
 	return OK, 0
 extern inline I64 met Round_float = Float
 extern inline I64 met Round_double = Double
-extern I64 met Show buf:@#`String_buffer
+extern I64 met Show st:@#n.fmt.`State
 
 extern inline struct U8 =
 	isa `Native_sized_unsigned_integer
@@ -857,7 +943,7 @@ extern inline U8 met To_u64 = U64
 extern inline U8 met To_uint = Uint
 extern inline U8 met Exact_float = Float
 extern inline U8 met Exact_double = Double
-extern U8 met Show buf:@#`String_buffer
+extern U8 met Show st:@#n.fmt.`State
 
 extern inline struct U16 =
 	isa `Native_sized_unsigned_integer
@@ -920,7 +1006,7 @@ extern inline U16 met To_u64 = U64
 extern inline U16 met To_uint = Uint
 extern inline U16 met Exact_float = Float
 extern inline U16 met Exact_double = Double
-extern U16 met Show buf:@#`String_buffer
+extern U16 met Show st:@#n.fmt.`State
 
 extern inline struct U32 =
 	isa `Native_sized_unsigned_integer
@@ -983,7 +1069,7 @@ extern inline U32 met To_u64 = U64
 extern inline U32 met To_uint = Uint
 extern inline U32 met Round_float = Float
 extern inline U32 met Exact_double = Double
-extern U32 met Show buf:@#`String_buffer
+extern U32 met Show st:@#n.fmt.`State
 
 extern inline struct U64 =
 	isa `Native_sized_unsigned_integer
@@ -1053,7 +1139,7 @@ inline U64 met Try_uint = Error_range, Uint
 	return RANGE, 0
 extern inline U64 met Round_float = Float
 extern inline U64 met Round_double = Double
-extern U64 met Show buf:@#`String_buffer
+extern U64 met Show st:@#n.fmt.`State
 
 extern inline struct Int =
 	isa `Native_signed_integer
@@ -1105,7 +1191,7 @@ extern inline Int met Trim_i32 = I32
 extern inline Int met To_i64 = I64
 extern inline Int met Round_float = Float
 extern inline Int met Round_double = Double
-extern Int met Show buf:@#`String_buffer
+extern Int met Show st:@#n.fmt.`State
 
 extern inline struct Uint =
 	isa `Native_unsigned_integer
@@ -1156,7 +1242,7 @@ extern inline Uint met Trim_u32 = U32
 extern inline Uint met To_u64 = U64
 extern inline Uint met Round_float = Float
 extern inline Uint met Round_double = Double
-extern Uint met Show buf:@#`String_buffer
+extern Uint met Show st:@#n.fmt.`State
 
 extern inline struct Float =
 	isa `Native_floating
@@ -1197,7 +1283,7 @@ inline Float met Try_round_uint = Error_range, Uint
 	if Likely <- self >= Uint.MIN.Round_float and self <= Uint.MAX.Round_float
 		return OK, self.force_round_uint
 	return RANGE, 0
-extern Float met Show buf:@#`String_buffer
+extern Float met Show st:@#n.fmt.`State
 
 extern inline struct Double =
 	isa `Native_floating
@@ -1237,7 +1323,7 @@ inline Double met Try_round_uint = Error_range, Uint
 	if Likely <- self >= Uint.MIN.Round_double and self <= Uint.MAX.Round_double
 		return OK, self.force_round_uint
 	return RANGE, 0
-extern Double met Show buf:@#`String_buffer
+extern Double met Show st:@#n.fmt.`State
 
 intf `Trivial_array_ctor t:`Copyable =
 	isa `Prevent_dyn (`Array_ctor t)
@@ -1317,6 +1403,7 @@ inline enum Error =
 	| OK = 0
 	| INVAL
 	| RANGE
+	| EOF
 
 Error met Operator_test = Bool
 	return self != OK
@@ -1396,16 +1483,16 @@ intf `Environment declaring:`Any =
 -- compiler lack of understanding of definition ordering across modules, in
 -- codegen. As types defined in this module are used everywhere, they really
 -- need to appear first to the C compiler.
-from n.chars import `String_buffer `Show Static_string
-from n.containers import Range Range `Iterator `Random_container
+from n.containers import Range `Iterator `Random_container
 from n.unsafe import Cast Nonnull_cast
 from n import Esay Epr
+import n.fmt
 
 inline struct Codeloc =
-	File	:Static_string
+	File	:String
 	Line	:Uint
 	Col	:Uint
-	Expr	:Static_string
+	Expr	:String
 
 fun Failed_at c:?@Codeloc
 	if c !== null

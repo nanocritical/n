@@ -948,6 +948,12 @@ static void print_tree_node(FILE *out, const struct module *mod,
 
   fprintf(out, "%s", node_which_strings[node->which]);
   switch (node->which) {
+  case BLOCK:
+    fprintf(out, "(0x%zx)", node->as.BLOCK.block_id);
+    break;
+  case JUMP:
+    fprintf(out, "(0x%zx)", node->as.JUMP.to->as.BLOCK.block_id);
+    break;
   case IDENT:
   case CALLNAMEDARG:
   case DEFNAME:
@@ -955,9 +961,15 @@ static void print_tree_node(FILE *out, const struct module *mod,
     fprintf(out, "(%s)", idents_value(mod->gctx, node_ident(node)));
     break;
   case PHI:
-    fprintf(out, "%c(%s)",
-            " c"[!!node->as.PHI.is_conditioned],
-            idents_value(mod->gctx, node_ident(node)));
+    {
+      char m = ' ';
+      if (node->as.PHI.is_conditioned) {
+        m = 'c';
+      } else if (node->as.PHI.propagation_of != NULL) {
+        m = 'p';
+      }
+      fprintf(out, "%c(%s)", m, idents_value(mod->gctx, node_ident(node)));
+    }
     break;
   case BOOL:
     fprintf(out, "(%s)", node->as.BOOL.value ? "true" : "false");

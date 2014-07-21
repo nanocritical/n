@@ -1,21 +1,17 @@
 from n.builtins export *
 from n.containers export *
-from n.memory export *
-from n.chars export *
-
-from n.strings import *
+import n.fmt
 
 fun write_buf fd:I32 s:@U8 Count:Uint
 
 fun Vpr v:@!(Vararg @`Show) ?err:?@Bool ?sep:?@String
 	let separator = Optional_ref sep ' '
-	let s = {}:String
-	such
+	and st = {}:n.fmt.Show_string such
 		for x in v!
-			x.Show @#s
+			x.Show @#st
 			if v.Count_left > 0
-				separator.Show @#s
-	let b = s.Bytes_utf8
+				separator.Show @#st
+	let b = st.Value.Bytes
 	let fd = 1 such
 		if Optional err false
 			fd = 2
@@ -26,7 +22,7 @@ fun Pr ?err:?@Bool ?sep:?@String ...v:(Vararg @`Show)
 
 fun Vsay v:@!(Vararg @`Show) ?err:?@Bool ?sep:?@String
 	Vpr v err=err sep=sep
-	let eol = '\n':Char
+	let eol = '\n':Rune
 	let fd = 1 such
 		if Optional err false
 			fd = 2

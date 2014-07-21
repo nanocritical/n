@@ -1,0 +1,76 @@
+from n.builtins import *
+import n.io
+import n.bytes
+
+intf `State =
+	isa n.io.`Writer
+	met# Write b:[]U8 = Error
+	met Width = Bool, Uint
+	met Precision = Bool, Uint
+	met Flag c:Rune = Bool
+
+inline struct Show_writer =
+	isa `State
+	w	:@#n.io.`Writer
+
+Show_writer met# Init w:@#n.io.`Writer
+	self#w = w
+
+Show_writer met Width = Bool, Uint
+	return false, 0
+
+Show_writer met Precision = Bool, Uint
+	return false, 0
+
+Show_writer met Flag c:Rune = Bool
+	return false
+
+Show_writer met# Write b:[]U8 = Error, []U8
+	return self#w#Write b
+
+inline struct Show_buf =
+	isa `State
+	st	:Show_writer
+	buf	:@#Stringbuf
+	w	:n.bytes.Stringbuf_writer
+	--delegate st `State
+
+Show_buf met# Init buf:@#Stringbuf
+	self#buf = buf
+	self#w = {}:n.bytes.Stringbuf_writer
+	self#st#Init @#self#w
+
+Show_buf met Width = Bool, Uint
+	return self.st.Width
+
+Show_buf met Precision = Bool, Uint
+	return self.st.Precision
+
+Show_buf met Flag c:Rune = Bool
+	return self.st.Flag c
+
+Show_buf met# Write b:[]U8 = Error, []U8
+	return self#st#Write b
+
+inline struct Show_string =
+	isa `State
+	buf	:Stringbuf
+	st	:Show_buf
+
+Show_string met# ctor
+	self#st#Init @#self#buf
+
+Show_string met Width = Bool, Uint
+	return self.st.Width
+
+Show_string met Precision = Bool, Uint
+	return self.st.Precision
+
+Show_string met Flag c:Rune = Bool
+	return self.st.Flag c
+
+Show_string met# Write b:[]U8 = Error, []U8
+	return self#st#Write b
+
+Show_string met Value = String
+	return self.buf.Str

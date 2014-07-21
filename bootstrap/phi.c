@@ -78,9 +78,8 @@ static struct node *insert_conditioned_phi(struct module *mod,
     assert(false);
   }
 
-  struct ancestor ancestor = { .prev = pre_branch_use, 0 };
+  struct ancestor ancestor = { .prev = pre_branch_use, .cond = NULL };
   if (br_st->prev != NULL) {
-    ancestor.cond = br_st->prev->cond;
     ancestor.reversed = br_st->prev->reversed;
   }
   vecancestor_push(&phi->as.PHI.ancestors, ancestor);
