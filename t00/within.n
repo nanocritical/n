@@ -1,22 +1,21 @@
 from n import *
-from n.strings import *
 
 globalenv e2:@!`env2
 
 intf `env2 =
-	isa (`Environment @this)
-	met say2 s:@string
+	isa (`Environment @`env2)
+	met say2 s:@String
 
 struct myenv2 =
 	isa `env2
 	dummy	:U32
 
-myenv2 met say2 s:@string
+myenv2 met say2 s:@String
 	Say 'saying2:' s
 
 intf `env1 =
-	isa (`Environment @this)
-	met Say s:@string
+	isa (`Environment @`env1)
+	met Say s:@String
 
 struct myenv1 =
 	isa `env1
@@ -24,13 +23,13 @@ struct myenv1 =
 globalenv e1:@!`env1
 within e1
 
-myenv1 met Say s:@string
+myenv1 met Say s:@String
 	Say 'saying:' s
 
 fun do = I32 within e2
 	let mye2 = {}:myenv2
 	such
-		mye2!install @!e2
+		mye2!Install @!e2
 	e2.say2 'module'
 	e1.Say 'function'
 	return 0
@@ -38,5 +37,5 @@ fun do = I32 within e2
 fun Main = I32
 	let mye1 = {}:myenv1
 	such
-		mye1!install @!e1
+		mye1!Install @!e1
 	return do

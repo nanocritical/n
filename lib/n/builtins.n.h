@@ -7,34 +7,22 @@ struct NB(Valist) {
   va_list ap;
 };
 
-#define NLANG_BUILTINS_DEFINE_ENVPARENT(envt) envt _$Nenvparent_##envt
+#define NLANG_BUILTINS_DEFINE_ENVPARENT(envt) _$Ndyn_##envt _$Nenvparent_##envt
 
 #endif
 
-#ifdef NLANG_DEFINE_FUNCTIONS
-
-static inline NB(U8) *NB(Slice_at_byte)(NB(U8) *p, NB(Uint) off) {
-  return p + off;
-}
-
-static inline NB(Void) NB(Slice_memmove)(NB(U8) *dst, const NB(U8) *src, NB(Uint) count) {
-  memmove(dst, src, count);
-}
-
-static inline NB(Void) NB(Slice_memcmp)(const NB(U8) *a, const NB(U8) *b, NB(Uint) cnt) {
-  return memcmp(a, b, count);
-}
+#ifdef NLANG_DECLARE_FUNCTIONS
 
 #define NLANG_STRING_LITERAL(s) \
   n$builtins$String$From_bytes( \
     (_$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_){ \
-                     .dat = (const n$builtins$U8 *)s, \
+                     .dat = (n$builtins$U8 *)s, \
                      .cnt = sizeof(s)-1, \
                      .cap = sizeof(s) })
 
 #define NLANG_BYTE_SLICE(b, cnt) \
     ( (_$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_){ \
-                     .dat = (const n$builtins$U8 *)b, \
+                     .dat = (n$builtins$U8 *)b, \
                      .cnt = cnt, \
                      .cap = cnt} )
 
@@ -58,13 +46,28 @@ static inline NB(Void) NB(Slice_memcmp)(const NB(U8) *a, const NB(U8) *b, NB(Uin
 
 #define NLANG_BUILTINS_BG_ENVIRONMENT_INSTALL(envt) do { \
   self->_$Nenvparent_##envt = *where; \
-  *where = THIS(_$Nmkdyn__##envt)(self); \
+  *where = THIS($_$Nmkdyn__##envt)(self); \
 } while (0)
 
 #define NLANG_BUILTINS_BG_ENVIRONMENT_UNINSTALL(envt) do { \
-  *where = where->vptr->parent(where->obj); \
+  *where = where->vptr->Parent(where->obj); \
 } while (0)
 
+#endif
+
+#ifdef NLANG_DEFINE_FUNCTIONS
+
+static inline NB(U8) *NB(Slice_at_byte)(NB(U8) *p, NB(Uint) off) {
+  return p + off;
+}
+
+static inline NB(Void) NB(Slice_memmove)(NB(U8) *dst, const NB(U8) *src, NB(Uint) cnt) {
+  memmove(dst, src, cnt);
+}
+
+static inline NB(Int) NB(Slice_memcmp)(const NB(U8) *a, const NB(U8) *b, NB(Uint) cnt) {
+  return memcmp(a, b, cnt);
+}
 
 #define define_native_boolean(t) \
   static inline NB(Bool) t##$Operator_eq(const t *self, const t *other) { return *self == *other; } \
@@ -272,10 +275,21 @@ const NB(Void) *NB(Nonnull_void)(void);
 
 #ifdef NLANG_DEFINE_FUNCTIONS
 
-static inline NB(U8) *n$sysheap$Realloc(NB(U8) *ap, NB(Uint) oldbsz, NB(Uint) bsz) {
+static inline NB(U8) *n$builtins$Internal_realloc0(NB(U8) *ap, NB(Uint) old_bsz, NB(Uint) bsz) {
+  if (old_bsz == bsz) {
+    return ap;
+  }
+
+  if (bsz == 0) {
+    free(ap);
+    return NULL;
+  }
+
   NB(U8) *r;
   if (ap == NULL) {
-    r = calloc(1, bsz);
+    // Use calloc(3) in the hope that on occasion it is able to obtain
+    // memory already zeroed.
+    r = calloc(bsz, 1);
     if (r == NULL) {
       NB(Abort)();
     }
@@ -284,12 +298,12 @@ static inline NB(U8) *n$sysheap$Realloc(NB(U8) *ap, NB(Uint) oldbsz, NB(Uint) bs
     if (r == NULL) {
       NB(Abort)();
     }
-    memset(r + oldbsz, 0, bsz - oldbsz);
+    memset(r + old_bsz, 0, bsz - old_bsz);
   }
   return r;
 }
 
-static inline void n$sysheap$Free(NB(U8) *ap, NB(Uint) bsz) {
+static inline void n$builtins$Internal_free(NB(U8) *ap, NB(Uint) bsz) {
   free(ap);
 }
 

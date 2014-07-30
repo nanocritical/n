@@ -28,6 +28,9 @@ fun diff x:I32 ...v:(Vararg @I32) = I32
 			d -= i.
 	return x + d
 
+(fun t:`Any) unarygen ?p:?@t = I32
+	return 0
+
 fun Main = I32
 	if opts a=1 != 1
 		return 1
@@ -41,4 +44,6 @@ fun Main = I32
 	Assert <- 1 == diff 0 -1
 	Assert <- 1 == diff 0 (-1)
 
-	return opts a=0
+	let x = unarygen I32
+
+	return x + (opts a=0)

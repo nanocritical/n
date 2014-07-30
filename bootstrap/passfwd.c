@@ -919,6 +919,38 @@ static ERROR step_check_exhaustive_intf_impl(struct module *mod, struct node *no
   return 0;
 }
 
+static STEP_NM(step_detect_inline_import,
+               NM(DEFFIELD) | NM(DEFCHOICE));
+static ERROR step_detect_inline_import(struct module *mod, struct node *node,
+                                       void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  struct node *p = parent(node);
+  while (!node_is_at_top(p)) {
+    p = parent(p);
+  }
+  if (p->which != DEFTYPE
+      || (!typ_is_generic_functor(p->typ) && typ_generic_arity(p->typ) > 0)) {
+    // Generic instances live in gendef_mod, yet may use types visible in
+    // instantiating_mod but not visible in gendef_mod.
+    return 0;
+  }
+
+  if (typ_is_reference(node->typ)) {
+    return 0;
+  }
+
+  const struct module *owner = node_module_owner_const(typ_definition_const(node->typ));
+  if (owner == mod) {
+    return 0;
+  }
+
+  struct node *import = module_find_import(mod, owner);
+  node_toplevel(import)->flags |= TOP_IS_INLINE;
+
+  return 0;
+}
+
 static ERROR passfwd0(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   // scoping_deftypes
@@ -1044,6 +1076,7 @@ static ERROR passfwd7(struct module *mod, struct node *root,
     UP_STEP(step_type_deffields);
     UP_STEP(step_type_defchoices);
     UP_STEP(step_add_builtin_members_enum_union);
+    UP_STEP(step_detect_inline_import);
     ,
     FINALLY_STEP(step_pop_state);
     );

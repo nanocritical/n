@@ -172,6 +172,21 @@ const char *node_which_strings[] = {
   [DIRECTDEF] = "DIRECTDEF",
 };
 
+static uint32_t module_ptr_hash(const struct module **mod) {
+  return hash32_hsieh(*mod, sizeof(*mod));
+}
+
+static int module_ptr_cmp(const struct module **a, const struct module **b) {
+  return *a != *b;
+}
+
+IMPLEMENT_HTABLE_SPARSE(, importmap, struct node *, struct module *,
+                        module_ptr_hash, module_ptr_cmp);
+
+struct node *module_find_import(const struct module *mod, const struct module *other) {
+  return *importmap_get(&CONST_CAST(mod)->importmap, other);
+}
+
 static struct node *do_node_module_owner(struct node *node) {
   assert(node->which != ROOT_OF_ALL);
   if (node->which == MODULE) {

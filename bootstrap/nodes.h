@@ -122,6 +122,8 @@ enum toplevel_flags {
   TOP_IS_PREVENT_DYN = 0x80,
   TOP_IS_SHALLOW = 0x100,
   TOP_IS_FUNCTOR = 0x200,
+
+  TOP__TOPDEP_INLINE_STRUCT = 0x400,
 };
 
 VECTOR(vecbool, bool, 4);
@@ -359,6 +361,7 @@ struct node_defname {
   const struct node *member_isa;
 
   struct phi_tracker_state *phi_state;
+  struct node *first_use;
 };
 struct node_defpattern {
   bool is_alias;
@@ -371,6 +374,7 @@ struct node_defarg {
   bool is_explicit;
 
   struct phi_tracker_state *phi_state;
+  struct node *first_use;
 };
 struct node_defgenarg {
   bool is_explicit;
@@ -986,7 +990,6 @@ enum predefined_idents {
   ID_TBI_CHAR,
   ID_TBI_STRING,
   ID_TBI_STRING_COMPATIBLE,
-  ID_TBI_STATIC_ARRAY,
   ID_TBI_ANY_ANY_REF,
   ID_TBI_ANY_REF,
   ID_TBI_ANY_MUTABLE_REF,
@@ -1165,6 +1168,8 @@ struct stage {
   struct module *entry_point;
 
   struct stage_state *state;
+
+  const struct module *printing_mod;
 };
 
 struct mempool {
@@ -1173,6 +1178,9 @@ struct mempool {
   uint8_t *free;
   uint8_t *end;
 };
+
+HTABLE_SPARSE(importmap, struct node *, struct module *);
+DECLARE_HTABLE_SPARSE(importmap, struct node *, struct module *);
 
 struct module {
   struct globalctx *gctx;
@@ -1201,10 +1209,14 @@ struct module {
   struct module_state *state;
 
   struct mempool *mempool;
+
+  bool is_builtins;
+  struct importmap importmap;
 };
 
 void *mempool_calloc(struct module *mod, size_t nmemb, size_t size);
 
+struct node *module_find_import(const struct module *mod, const struct module *other);
 void module_retval_set(struct module *mod, const struct node *retval);
 const struct node *module_retval_get(struct module *mod);
 void module_excepts_open_try(struct module *mod, struct node *tryy);

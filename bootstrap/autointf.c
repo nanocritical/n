@@ -311,17 +311,21 @@ static void gen_show_choices(struct module *mod, struct node *deft,
     GSTART();
     G0(pat, par, IDENT,
        pat->as.IDENT.name = node_ident(node));
-    G0(yes, par, BLOCK,
-       G(append, CALL,
-         G(fun, BIN,
-           fun->as.BIN.operator = TSHARP;
-           G_IDENT(st, "st");
-           G_IDENT(app, "Write"));
-         G(b, BIN,
-           b->as.BIN.operator = TDOT;
-           G(s, STRING,
-             s->as.STRING.value = v);
-           G_IDENT(bytes, "Bytes"))));
+    G0(bl, par, BLOCK,
+       G(ignlet, LET,
+         G(igndefp, DEFPATTERN,
+           G(ign, IDENT,
+             ign->as.IDENT.name = ID_OTHERWISE);
+           G(append, CALL,
+             G(fun, BIN,
+               fun->as.BIN.operator = TSHARP;
+               G_IDENT(st, "st");
+               G_IDENT(app, "Write"));
+             G(b, BIN,
+               b->as.BIN.operator = TDOT;
+               G(s, STRING,
+                 s->as.STRING.value = v);
+               G_IDENT(bytes, "Bytes"))))));
     return;
   }
 

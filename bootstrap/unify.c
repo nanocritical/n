@@ -356,7 +356,7 @@ static ERROR unify_with_weakly_concrete(bool *success,
       typ_link_tentative(a, b);
       *success = true;
     }
-  } else if (same_generic_functor(mod, b, TBI_STATIC_ARRAY)) {
+  } else if (same_generic_functor(mod, b, TBI_SLICE)) {
     if (typ_isa(a, TBI_ARRAY_CTOR)) {
       typ_link_tentative(typ_generic_arg(a, 0), typ_generic_arg(b, 0));
       typ_link_tentative(a, b);

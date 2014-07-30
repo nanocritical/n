@@ -39,6 +39,11 @@ static ERROR branching_block_foreach_scoped_ident(struct module *mod,
     EXCEPT(e);
   }
 
+  struct node *cond = subs_last(subs_first(branching));
+  assert(cond->which == IDENT);
+  e = each(mod, cond->as.IDENT.def, block);
+  EXCEPT(e);
+
   struct node *top_block = subs_last(fun);
   struct node *b = branching;
   do {
@@ -283,10 +288,8 @@ error step_branching_block_down(struct module *mod, struct node *node,
   return 0;
 }
 
-STEP_NM(step_branching_block_down_phi,
-        NM(BLOCK));
-error step_branching_block_down_phi(struct module *mod, struct node *node,
-                                    void *user, bool *stop) {
+static ERROR do_step_branching_block_down_phi(struct module *mod, struct node *node,
+                                              void *user, bool *stop, bool do_insert) {
   DSTEP(mod, node);
 
   const struct node *par = parent_const(node);
@@ -301,9 +304,26 @@ error step_branching_block_down_phi(struct module *mod, struct node *node,
   }
 
   init_phi_trackers_for_branching(mod);
-  insert_all_possible_conditioned_phi(mod, node);
+
+  if (do_insert) {
+    insert_all_possible_conditioned_phi(mod, node);
+  }
 
   return 0;
+}
+
+STEP_NM(step_branching_block_down_phi_insert,
+        NM(BLOCK));
+error step_branching_block_down_phi_insert(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
+  return do_step_branching_block_down_phi(mod, node, user, stop, true);
+}
+
+STEP_NM(step_branching_block_down_phi,
+        NM(BLOCK));
+error step_branching_block_down_phi(struct module *mod, struct node *node,
+                                    void *user, bool *stop) {
+  return do_step_branching_block_down_phi(mod, node, user, stop, false);
 }
 
 static void mark_conditioned_phi_chain_used(struct node *node) {
@@ -363,8 +383,23 @@ static ERROR track_ident_use(struct module *mod, struct node *node) {
   node->as.IDENT.prev_use = OR_ELSE(phi_st->last, def);
   assert(node->as.IDENT.prev_use != node);
 
-  if (phi_st->last != NULL && phi_st->last->which == IDENT) {
-    phi_st->last->as.IDENT.next_use = node;
+  if (phi_st->last != NULL) {
+    switch (phi_st->last->which) {
+    case IDENT:
+      phi_st->last->as.IDENT.next_use = node;
+      break;
+    case DEFARG:
+      phi_st->last->as.DEFARG.first_use = node;
+      break;
+    case DEFNAME:
+      phi_st->last->as.DEFNAME.first_use = node;
+      break;
+    case PHI:
+      // noop
+      break;
+    default:
+      assert(false);
+    }
   }
 
   mark_conditioned_phi_chain_used(node->as.IDENT.prev_use);
@@ -427,10 +462,8 @@ static void phi_insertion(struct module *mod, struct node *br_block) {
   }
 }
 
-STEP_NM(step_branching_block_up_phi,
-        NM(BLOCK));
-error step_branching_block_up_phi(struct module *mod, struct node *node,
-                                  void *user, bool *stop) {
+static ERROR do_step_branching_block_up_phi(struct module *mod, struct node *node,
+                                            void *user, bool *stop, bool do_insert) {
   DSTEP(mod, node);
 
   const struct node *par = parent_const(node);
@@ -444,9 +477,27 @@ error step_branching_block_up_phi(struct module *mod, struct node *node,
     return 0;
   }
 
-  phi_insertion(mod, node);
+  if (do_insert) {
+    phi_insertion(mod, node);
+  }
+
   uninit_phi_trackers_for_branching(mod);
+
   return 0;
+}
+
+STEP_NM(step_branching_block_up_phi_insert,
+        NM(BLOCK));
+error step_branching_block_up_phi_insert(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
+  return do_step_branching_block_up_phi(mod, node, user, stop, true);
+}
+
+STEP_NM(step_branching_block_up_phi,
+        NM(BLOCK));
+error step_branching_block_up_phi(struct module *mod, struct node *node,
+                                  void *user, bool *stop) {
+  return do_step_branching_block_up_phi(mod, node, user, stop, false);
 }
 
 STEP_NM(step_branching_up,

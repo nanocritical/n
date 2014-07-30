@@ -906,10 +906,8 @@ static void remove_unnecessary_ssa_defname(struct module *mod, struct node *defn
   defn->as.DEFNAME.ssa_user = NULL;
   node_subs_remove(defn, expr);
 
-  struct typ *typ_copy = expr->typ;
   node_move_content(user, expr);
   unset_typ(&user->typ);
-  set_typ(&user->typ, typ_copy);
   node_set_which(defn, NOOP);
   node_subs_remove(defn, subs_first(defn));
 }

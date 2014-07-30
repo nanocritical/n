@@ -1,0 +1,26 @@
+from n.builtins import *
+
+import n.io
+
+inline struct Bytes_reader =
+	isa n.io.`Reader
+	b	:[]U8
+	pos	:Uint
+
+Bytes_reader met# Init b:[]U8
+	self!b = b
+
+Bytes_reader met# Read b:[]!U8 = Error, []!U8
+	if self.pos == b.Count
+		return EOF, {}
+
+	let left = self.b.[self.pos ..]
+	let r = b![.. Min b.Cap left.Count]
+	such
+		r = r!Copy left
+	self!pos += r.Count
+
+	if self.pos == b.Count
+		return EOF, r
+	else
+		return OK, r

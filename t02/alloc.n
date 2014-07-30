@@ -1,7 +1,6 @@
 from n import *
-from n.sysheap import Heap Sysheap
 
 fun Main = I32
-	let p = (Heap.Alloc I32) @!Sysheap
+	let p = Alloc I32
 	p! = 1
 	return p. - 1

@@ -4,5 +4,5 @@ let b:did_ftplugin = 1
 setlocal include='\s*\(from\|import\|export\)'
 setlocal includeexpr=substitute(v:fname,'\\.','/','g')
 setlocal suffixesadd=.n
-setlocal comments=:--
+setlocal comments=:--\ 
 setlocal commentstring=--%s

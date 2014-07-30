@@ -263,9 +263,12 @@ static ERROR passsembody0(struct module *mod, struct node *root,
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_branching_down);
     DOWN_STEP(step_branching_block_down);
+    DOWN_STEP(step_branching_block_down_phi);
     ,
     UP_STEP(step_constraint_inference);
     UP_STEP(step_check_exhaustive_match);
+
+    UP_STEP(step_branching_block_up_phi);
     UP_STEP(step_branching_up);
     ,
     FINALLY_STEP(step_pop_state);

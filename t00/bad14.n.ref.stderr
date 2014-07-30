@@ -1,1 +1,0 @@
-t00/bad14.n:13:6: type: 'n.strings.String' not equal to type 'n.chars.Static_string'

@@ -11,6 +11,12 @@ ERROR step_branching_down(struct module *mod, struct node *node,
 const uint64_t step_branching_block_down_filter;
 ERROR step_branching_block_down(struct module *mod, struct node *node,
                                 void *user, bool *stop);
+const uint64_t step_branching_block_down_phi_insert_filter;
+ERROR step_branching_block_down_phi_insert(struct module *mod, struct node *node,
+                                    void *user, bool *stop);
+const uint64_t step_branching_block_up_phi_insert_filter;
+ERROR step_branching_block_up_phi_insert(struct module *mod, struct node *node,
+                                  void *user, bool *stop);
 const uint64_t step_branching_block_down_phi_filter;
 ERROR step_branching_block_down_phi(struct module *mod, struct node *node,
                                     void *user, bool *stop);

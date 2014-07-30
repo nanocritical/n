@@ -2,7 +2,6 @@
 	Long comment
 )--
 from n import *
-from n.strings import *
 
 fun Main = I32
 	let x = 1:I32

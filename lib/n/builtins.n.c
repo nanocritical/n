@@ -4,18 +4,29 @@
 #ifdef NLANG_DEFINE_FUNCTIONS
 
 #define NB(n) n$builtins$##n
+#define NBDYN(t) _$Ndyn_n$builtins$_$Ni_##t
+
+static NB(Sysheap) sysheap;
+
+void _$Nprelude(int *argc, char ***argv, char ***env) {
+  NB(Sysheap$Install)(&sysheap, &NB(Heap));
+}
+
+void _$Npostlude(int *ret) {
+  NB(Sysheap$Uninstall)(&sysheap, &NB(Heap));
+}
 
 const NB(Void) *NB(Nonnull_void)(void) {
   static NB(U32) dummy;
   return &dummy;
 }
 
-static void native_write_buffer(_$Ndyn_n$chars$_$Ni_State st, const char *s, int cnt) {
-  n$fmt_$Ni_State$Write(st, NLANG_BYTE_SLICE(s, cnt));
+static void native_write_buffer(_$Ndyn_n$fmt$_$Ni_State st, const char *s, int cnt) {
+  st.vptr->Write(st.obj, NLANG_BYTE_SLICE(s, cnt));
 }
 
-void n$builtins$Bool$Show(const NB(Bool) *self, _$Ndyn_n$fmt$_$Ni_State st) { \
-  native_write_buffer(st, *self ? "true" : "false"); \
+void n$builtins$Bool$Show(const NB(Bool) *self, _$Ndyn_n$fmt$_$Ni_State st) {
+  native_write_buffer(st, *self ? "true" : "false", *self ? 4 : 5);
 }
 
 // ln(2^64)/ln(10) = 19.27

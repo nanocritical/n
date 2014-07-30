@@ -1,49 +1,59 @@
-struct Slicebuf t:`Any =
+inline struct Slicebuf t:`Any =
+	isa `Trivial_array_ctor `Trivial_ctor `Copyable (`Random_container t)
 	s	:[]!t	--::^Owned
 
-Slicebuf fun With s:[]t = this
+inline Slicebuf fun With s:[]t = this
 	let r = {}:this such
 		r#Reserve s.Count
 		r#s = r!s!Copy s
 	return r
 
-Slicebuf met$ Buffer = []$t
+inline Slicebuf fun From_array c:[]t = r:this
+	return this.With c
+
+inline Slicebuf met Count = Uint
+	return self.s.Count
+
+inline Slicebuf met All = Range
+	return self.s.All
+
+inline Slicebuf met$ Buffer = []$t
 	return self$s
 
-Slicebuf met# Clear
+inline Slicebuf met# Clear
 	self!s = self.s.[.. 0]
-	self#auto_shrink
+	self#Auto_shrink
 
-Slicebuf met# Push = @#t
+inline Slicebuf met# Push = @#t
 	let nend = self.s.Count + 1
 	self#Reserve nend
 	self!s = self.s.[.. nend]
 	return self#Last
 
-Slicebuf shallow met$ First = @$t
+inline Slicebuf shallow met$ First = @$t
 	return self$s$First
 
-Slicebuf shallow met$ Last = @$t
+inline Slicebuf shallow met$ Last = @$t
 	return self$s$Last
 
-Slicebuf met# Pop
+inline Slicebuf met# Pop
 	Assert <- self.s.Count > 0
 	self!s = self.s.[.. self.s.Count-1]
-	self#auto_shrink
+	self#Auto_shrink
 
-Slicebuf met# Append s:[]t
+inline Slicebuf met# Append s:[]t
 	self#Reserve self.s.Count + s.Count
 	self#s = self!s!Append s
 
-Slicebuf met# Copy s:[]t
+inline Slicebuf met# Copy s:[]t
 	self#Reserve s.Count
 	self#s = self.s!Copy s
 
-Slicebuf met# Reserve cap:Uint within Heap
-	Heap!Realloc @#self#s cap
-	self#auto_shrink
+inline Slicebuf met# Reserve cap:Uint
+	Realloc @#self#s cap
 
-Slicebuf met# auto_shrink within Heap
+-- FIXME: unexport.
+inline Slicebuf met# Auto_shrink
 	let cap = self.s.Cap
 	and cnt = self.s.Count
 	if cap == 0
@@ -53,4 +63,4 @@ Slicebuf met# auto_shrink within Heap
 			newcap = 0
 		elif cnt < cap / 2
 			newcap = cnt
-	Heap!Realloc @#self#s newcap
+	Realloc @#self#s newcap

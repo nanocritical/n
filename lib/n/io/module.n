@@ -1,9 +1,9 @@
-from n import *
+from n.builtins import *
 
 intf `Reader =
 	-- Returns a slice of b with the content read.
 	met# Read b:[]!U8 = Error, []!U8
 
 intf `Writer =
-	-- Returns a slice of b with the content not yet written.
+	-- Returns a slice of b with the content not yet written, if any.
 	met# Write b:[]U8 = Error, []U8

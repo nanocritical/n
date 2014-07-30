@@ -85,7 +85,6 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_CHAR] = "Char",
   [ID_TBI_STRING] = "String",
   [ID_TBI_STRING_COMPATIBLE] = "`String_compatible",
-  [ID_TBI_STATIC_ARRAY] = "Static_array",
   [ID_TBI_ANY_ANY_REF] = "`Any_any_ref",
   [ID_TBI_ANY_REF] = "`Any_ref",
   [ID_TBI_ANY_MUTABLE_REF] = "`Any_mutable_ref",
@@ -416,7 +415,6 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_CHAR = gctx->builtin_typs_by_name[ID_TBI_CHAR];
   TBI_STRING = gctx->builtin_typs_by_name[ID_TBI_STRING];
   TBI_STRING_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_STRING_COMPATIBLE];
-  TBI_STATIC_ARRAY = gctx->builtin_typs_by_name[ID_TBI_STATIC_ARRAY];
   TBI_ANY_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_ANY_REF];
   TBI_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_REF];
   TBI_ANY_MUTABLE_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_MUTABLE_REF];
@@ -2194,6 +2192,10 @@ again:
     }
     seen_named = tok.t == TPREQMARK;
     must_be_last = tok.t == TDOTDOTDOT;
+
+    if (tok.t == TDOTDOTDOT && parent(node)->which == DEFINTF) {
+      THROW_SYNTAX(mod, &tok, "interface members cannot use vararg");
+    }
     goto again;
   default:
     assert(false);
@@ -2896,6 +2898,8 @@ static void module_init(struct globalctx *gctx, struct stage *stage,
   PUSH_STATE(mod->state);
   PUSH_STATE(mod->state->step_state);
   PUSH_STATE(mod->mempool);
+
+  importmap_init(&mod->importmap, 0);
 }
 
 EXAMPLE(parse_modpath) {
@@ -3020,6 +3024,8 @@ static ERROR register_module(struct globalctx *gctx, struct module *to_register,
 error module_open(struct globalctx *gctx, struct stage *stage,
                   struct module *mod, const char *prefix, const char *fn) {
   module_init(gctx, stage, mod);
+
+  mod->is_builtins = strcmp("n/builtins.n", fn) == 0;
 
   error e = parse_modpath(mod, fn);
   EXCEPT(e);

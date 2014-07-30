@@ -1,17 +1,19 @@
 from n.builtins export *
 from n.containers export *
-import n.fmt
+from n export fmt
 
 fun write_buf fd:I32 s:@U8 Count:Uint
 
 fun Vpr v:@!(Vararg @`Show) ?err:?@Bool ?sep:?@String
-	let separator = Optional_ref sep ' '
-	and st = {}:n.fmt.Show_string such
+	let separator = Optional_ref sep " "
+	and buf = {}:Stringbuf
+	and st = {}:n.fmt.State such
+		st#Init @#buf
 		for x in v!
 			x.Show @#st
 			if v.Count_left > 0
 				separator.Show @#st
-	let b = st.Value.Bytes
+	let b = buf.Bytes
 	let fd = 1 such
 		if Optional err false
 			fd = 2

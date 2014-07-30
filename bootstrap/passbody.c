@@ -847,12 +847,12 @@ static ERROR passbody2(struct module *mod, struct node *root,
     DOWN_STEP(step_ident_non_local_scope);
     DOWN_STEP(step_branching_down);
     DOWN_STEP(step_branching_block_down);
-    DOWN_STEP(step_branching_block_down_phi);
+    DOWN_STEP(step_branching_block_down_phi_insert);
     ,
     UP_STEP(step_track_ident_use);
     UP_STEP(step_increment_def_name_passed);
 
-    UP_STEP(step_branching_block_up_phi);
+    UP_STEP(step_branching_block_up_phi_insert);
     UP_STEP(step_branching_up);
     ,
     FINALLY_STEP(step_pop_state);

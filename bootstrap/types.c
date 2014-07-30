@@ -163,6 +163,7 @@ static void add_backlink(struct typ *t, struct typ **loc) {
 void set_typ(struct typ **loc, struct typ *t) {
   assert(t != NULL);
   assert(*loc == NULL
+         || *loc == t
          || *loc == TBI__NOT_TYPEABLE
          || *loc == TBI__CALL_FUNCTION_SLOT
          || *loc == TBI__MERCURIAL || *loc == TBI__MUTABLE);
@@ -399,7 +400,7 @@ static void create_flags(struct typ *t, struct typ *tbi) {
 
   if (tbi == TBI_BOOL
       || tbi == TBI_STRING
-      || tbi == TBI_STATIC_ARRAY) {
+      || tbi == TBI_SLICE) {
     t->flags |= TYPF_WEAKLY_CONCRETE;
   }
 }

@@ -3,6 +3,7 @@
 #include "passes.h"
 #include "types.h"
 #include "parser.h"
+#include "phi.h"
 #include <stdarg.h>
 
 typedef int8_t cbool;
@@ -128,35 +129,48 @@ struct constraint {
 
   struct hypmap under;
 
-  struct vecnode users;
-  struct vecsize users_cnt;
+  struct vecnode *users; // only for DEFNAME and DEFARG constraints
 };
 
-static void add_user(struct constraint *c, struct node *node) {
-  for (size_t n = 0, count = vecnode_count(&c->users); n < count; ++n) {
-    struct node *u = *vecnode_get(&c->users, n);
-    if (u == node) {
-      *vecsize_get(&c->users_cnt, n) += 1;
-      return;
-    }
+static struct node *block_value_statement(struct node *node) {
+  assert(node->which == BLOCK);
+  struct node *s = subs_last(node);
+  while (typ_equal(s->typ, TBI__NOT_TYPEABLE)) {
+    s = prev(s);
   }
-
-  vecnode_push(&c->users, node);
-  vecsize_push(&c->users_cnt, 1);
+  return s;
 }
 
-static void remove_user(struct constraint *c, struct node *node) {
-  for (size_t n = 0, count = vecnode_count(&c->users); n < count; ++n) {
-    struct node *u = *vecnode_get(&c->users, n);
-    if (u == node) {
-      size_t *cnt = vecsize_get(&c->users_cnt, n);
-      assert(*cnt > 0);
-      *cnt -= 1;
+static struct node *ident_expr_def(struct node *node) {
+  switch (node->which) {
+  case DEFNAME:
+    return node;
+  case IDENT:
+    return node->as.IDENT.def;
+  case BLOCK:
+    return ident_expr_def(block_value_statement(node));
+  case PHI:
+    return node->as.PHI.def;
+  default:
+    return NULL;
+  }
+}
+
+static void add_user(struct node *node, struct node *user) {
+  struct node *def = ident_expr_def(node);
+  if (def == NULL) {
+    return;
+  }
+
+  struct constraint *dc = def->constraint;
+  for (size_t n = 0, count = vecnode_count(dc->users); n < count; ++n) {
+    struct node *u = *vecnode_get(dc->users, n);
+    if (u == user) {
       return;
     }
   }
 
-  assert(false && "was not a user");
+  vecnode_push(dc->users, node);
 }
 
 void constraint_invariant(const struct constraint *c) {
@@ -176,30 +190,11 @@ static struct constraint *new_constraint(struct module *mod) {
   return c;
 }
 
-static struct node *cond_def(struct node *cond) {
-  switch (cond->which) {
-  case DEFNAME:
-    return cond;
-  case IDENT:
-    return cond->as.IDENT.def;
-  case BLOCK:
-    {
-      struct node *s = subs_last(cond);
-      while (typ_equal(s->typ, TBI__NOT_TYPEABLE)) {
-        s = prev(s);
-      }
-      return cond_def(s);
-    }
-  default:
-    assert(false);
-    return NULL;
-  }
-}
-
-static struct constraint *do_assuming(struct module *mod, struct constraint *c,
+static struct constraint *do_assuming(struct module *mod, struct node *node,
                                       struct node *cond, bool reversed,
                                       bool create) {
-  cond = cond_def(cond);
+  struct constraint *c = node->constraint;
+  cond = ident_expr_def(cond);
   assert(NM(cond->which) & (NM(DEFNAME) | NM(DEFARG)));
 
   struct hypothesis *existing = hypmap_get(&c->under, cond);
@@ -211,11 +206,12 @@ static struct constraint *do_assuming(struct module *mod, struct constraint *c,
     struct hypothesis hyp = { 0 };
     if (reversed) {
       hyp.if_false = new_constraint(mod);
+      add_user(cond, node);
     } else {
       hyp.if_true = new_constraint(mod);
+      add_user(cond, node);
     }
     hypmap_set(&c->under, cond, hyp);
-    add_user(c, cond);
 
     return reversed ? hyp.if_false : hyp.if_true;
 
@@ -234,14 +230,14 @@ static struct constraint *do_assuming(struct module *mod, struct constraint *c,
   }
 }
 
-static struct constraint *assuming(struct module *mod, struct constraint *c,
+static struct constraint *assuming(struct module *mod, struct node *node,
                                    struct node *cond, bool reversed) {
-  return do_assuming(mod, c, cond, reversed, true);
+  return do_assuming(mod, node, cond, reversed, true);
 }
 
-static struct constraint *try_assuming(struct module *mod, struct constraint *c,
+static struct constraint *try_assuming(struct module *mod, struct node *node,
                                        struct node *cond, bool reversed) {
-  return do_assuming(mod, c, cond, reversed, false);
+  return do_assuming(mod, node, cond, reversed, false);
 }
 
 static int merge_hypothesis_each(const struct node **cond,
@@ -281,13 +277,14 @@ static void constraint_unset(struct module *mod, struct constraint *c,
   c->table[cbi] = U;
 }
 
-static void constraint_set_rel(struct module *mod, struct constraint *c,
+static void constraint_set_rel(struct module *mod, struct node *node,
                                enum constraint2_builtins cbi2,
-                               struct node *node, bool reversed) {
+                               struct node *other, bool reversed) {
+  struct constraint *c = node->constraint;
   struct vecrel *rels = &c->rels[cbi2];
   for (size_t n = 0, count = vecrel_count(rels); n < count; ++n) {
     struct relation *r = vecrel_get(rels, n);
-    if (r->cbi2 != cbi2 || r->node != node) {
+    if (r->cbi2 != cbi2 || r->node != other) {
       continue;
     }
 
@@ -297,28 +294,25 @@ static void constraint_set_rel(struct module *mod, struct constraint *c,
 
   struct relation r = {
     .cbi2 = cbi2,
-    .node = node,
+    .node = other,
     .value = reversed ? N : Y,
   };
   vecrel_push(rels, r);
-
-  if (cbi2 == CBI2_EQ) {
-    add_user(c, node);
-  }
+  add_user(other, node);
 }
 
 static void constraint_unset_rel(struct module *mod, struct constraint *c,
                                  enum constraint2_builtins cbi2,
-                                 struct node *node) {
+                                 struct node *other) {
   struct vecrel *rels = &c->rels[cbi2];
   for (ssize_t n = 0, count = vecrel_count(rels); n < count; ++n) {
     const struct relation *r = vecrel_get(rels, n);
-    if (r->cbi2 != cbi2 || r->node != node) {
+    if (r->cbi2 != cbi2 || r->node != other) {
       continue;
     }
 
     n += vecrel_remove_replace_with_last(rels, n);
-    remove_user(c, node);
+    // Not removing user.
     return;
   }
 }
@@ -721,6 +715,8 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
   {
     struct node *let = mk_node(mod, mod->body, LET);
     struct node *d = mk_node(mod, let, DEFNAME);
+    d->constraint = new_constraint(mod);
+    d->constraint->users = calloc(1, sizeof(*d->constraint->users));
     struct node *name = mk_node(mod, d, IDENT);
     name->as.IDENT.name = ID_NEXT;
 
@@ -729,7 +725,7 @@ EXAMPLE_NCC_EMPTY(snprint_constraint) {
     na->constraint->table[CBI_INIT] = Y;
     constraint_set_tag(mod, na->constraint, ID_C, true);
 
-    struct constraint *c = assuming(mod, na->constraint, d, false);
+    struct constraint *c = assuming(mod, na, d, false);
     c->table[CBI_NONNULL] = Y;
     c->table[CBI_VALID] = N;
 
@@ -954,24 +950,8 @@ EXAMPLE_NCC_EMPTY(constraint) {
   }
 }
 
-static ERROR constraint_inference_ident(struct module *mod, struct node *node) {
-  const struct node *def = node->as.IDENT.def;
-  if (def == NULL
-      || (NM(def->which) & ( NM(IMPORT) | NM(MODULE) | NM(MODULE_BODY)))) {
-    // noop
-  } else {
-    constraint_copy(mod, node->constraint, def->constraint);
-  }
-
-  struct node *prev_use = node->as.IDENT.prev_use;
-  if (prev_use != NULL) {
-    constraint_copy(mod, node->constraint, prev_use->constraint);
-  }
-  return 0;
-}
-
 static ERROR reevaluate_wrt(struct module *mod,
-                            struct constraint *c, struct node *node) {
+                            struct constraint *c, const struct node *node) {
   const cbool t = node->constraint->table[CBI_EQTRUE];
   if (t == U) {
     return 0;
@@ -1005,6 +985,27 @@ static ERROR reevaluate_wrt(struct module *mod,
   return 0;
 }
 
+static ERROR constraint_inference_ident(struct module *mod, struct node *node) {
+  const struct node *def = node->as.IDENT.def;
+  if (def == NULL
+      || (NM(def->which) & ( NM(IMPORT) | NM(MODULE) | NM(MODULE_BODY)))) {
+    // noop
+  } else {
+    constraint_copy(mod, node->constraint, def->constraint);
+
+    if (NM(def->which) & (NM(DEFNAME) | NM(DEFARG))) {
+      error e = reevaluate_wrt(mod, node->constraint, def);
+      EXCEPT(e);
+    }
+  }
+
+  struct node *prev_use = node->as.IDENT.prev_use;
+  if (prev_use != NULL) {
+    constraint_copy(mod, node->constraint, prev_use->constraint);
+  }
+  return 0;
+}
+
 static int absurd_hypothesis_each(const struct node **cond,
                                   struct hypothesis *hyp, void *user) {
   struct node *node = user;
@@ -1028,9 +1029,7 @@ static int absurd_hypothesis_each(const struct node **cond,
     }
   }
 
-  if (hyp->if_true == NULL && hyp->if_false == NULL) {
-    remove_user((*cond)->constraint, node);
-  }
+  // Not removing user.
 
   return 0;
 }
@@ -1105,9 +1104,9 @@ static ERROR cond_descend_eval_bin(struct module *mod, struct node *cond,
 
   assert(op == TEQPTR || op == TNEPTR);
   if (subs_last(node)->which == IDENT && subs_first(node)->which == IDENT) {
-    constraint_set_rel(mod, subs_first(node)->constraint, CBI2_EQ,
+    constraint_set_rel(mod, subs_first(node), CBI2_EQ,
                        subs_last(node), operand_reversed);
-    constraint_set_rel(mod, subs_first(node)->constraint, CBI2_EQ,
+    constraint_set_rel(mod, subs_first(node), CBI2_EQ,
                        subs_last(node), operand_reversed);
   }
 
@@ -1117,7 +1116,7 @@ static ERROR cond_descend_eval_bin(struct module *mod, struct node *cond,
   }
 
   if (a->table[CBI_NONNULL] == U) {
-    struct constraint *ca = assuming(mod, a, cond, reversed);
+    struct constraint *ca = assuming(mod, na, cond, reversed);
     switch (ca->table[CBI_NONNULL]) {
     case U:
       if (b->table[CBI_NONNULL] == Y) {
@@ -1175,7 +1174,7 @@ static ERROR cond_descend_eval(struct module *mod, struct node *cond,
     break;
   case IDENT:
     {
-      struct constraint *c = assuming(mod, node->constraint, cond, reversed);
+      struct constraint *c = assuming(mod, node, cond, reversed);
       c->table[CBI_EQTRUE] = reversed ? N : Y;
     }
     break;
@@ -1206,7 +1205,7 @@ static void merge_branch_cond_assumption(struct module *mod,
                                          bool reversed) {
   assert(phi->which == PHI);
   struct constraint *c = phi->constraint;
-  struct constraint *a = try_assuming(mod, c, cond, reversed);
+  struct constraint *a = try_assuming(mod, phi, cond, reversed);
   if (a != NULL) {
     constraint_merge_hypothesis(c, a);
   }
@@ -1309,7 +1308,7 @@ static int unset_redundant_hypothesis_tag_each(const ident *tag, cbool *value,
 static void merge_unanimous_hypotheses(struct module *mod,
                                        struct constraint *c,
                                        struct node *cond) {
-  cond = cond_def(cond);
+  cond = ident_expr_def(cond);
 
   struct hypothesis *hyp = hypmap_get(&c->under, cond);
   if (hyp == NULL) {
@@ -1390,7 +1389,7 @@ static ERROR constraint_inference_phi(struct module *mod, struct node *node) {
        n < count; ++n) {
     const struct ancestor *ancestor = vecancestor_get(&node->as.PHI.ancestors, n);
     if (ancestor->cond != NULL) {
-      struct constraint *a = assuming(mod, c, ancestor->cond, ancestor->reversed);
+      struct constraint *a = assuming(mod, node, ancestor->cond, ancestor->reversed);
       constraint_copy(mod, a, ancestor->prev->constraint);
     } else {
       constraint_copy(mod, c, ancestor->prev->constraint);
@@ -1408,6 +1407,32 @@ static ERROR constraint_inference_phi(struct module *mod, struct node *node) {
   return 0;
 }
 
+static void insert_in_use_chain(struct node *phip, struct node *def) {
+  struct phi_tracker_state *st = get_phi_tracker(def);
+  struct node *prev = st->last;
+  if (prev == NULL) {
+    prev = def;
+  } else {
+    assert(prev->which == IDENT);
+    struct node *next = prev->as.IDENT.next_use;
+    next->as.IDENT.prev_use = phip;
+    prev->as.IDENT.next_use = phip;
+
+    for (size_t n = 0, count = vecancestor_count(&next->as.PHI.ancestors);
+         n < count; ++n) {
+      vecancestor_push(&phip->as.PHI.ancestors,
+                       *vecancestor_get(&next->as.PHI.ancestors, n));
+    }
+    vecancestor_destroy(&next->as.PHI.ancestors);
+
+    struct ancestor ancestor = { .prev = phip, 0 };
+    vecancestor_push(&next->as.PHI.ancestors, ancestor);
+  }
+
+  struct ancestor ancestor = { .prev = prev, 0 };
+  vecancestor_push(&phip->as.PHI.ancestors, ancestor);
+}
+
 static void propagate(struct module *mod, struct node *node) {
   struct constraint *c = node->constraint;
   if (c->table[CBI_EQTRUE] == U) {
@@ -1416,15 +1441,19 @@ static void propagate(struct module *mod, struct node *node) {
 
   struct node *after = node;
 
-  for (size_t n = 0, count = vecnode_count(&c->users); n < count; ++n) {
-    struct node *u = *vecnode_get(&c->users, n);
-    size_t cnt = *vecsize_get(&c->users_cnt, n);
-    if (cnt == 0) {
-      continue;
-    }
+  struct constraint *dc = ident_expr_def(node)->constraint;
+  for (size_t n = 0, count = vecnode_count(dc->users); n < count; ++n) {
+    __break();
+    struct node *u = *vecnode_get(dc->users, n);
 
+    struct node *def = ident_expr_def(u);
     struct node *phip = mk_node(mod, parent(node), PHI);
+    phip->as.PHI.def = def;
     phip->as.PHI.propagation_of = node;
+    phip->as.PHI.is_used = true;
+    phip->typ = TBI__NOT_TYPEABLE;
+
+    insert_in_use_chain(phip, def);
 
     node_subs_remove(parent(node), phip);
     node_subs_insert_after(parent(node), after, phip);
@@ -1536,8 +1565,8 @@ static void constraint_inference_assign_like(struct module *mod, struct node *no
 
   switch (src->which) {
   case IDENT:
-    constraint_set_rel(mod, dst->constraint, CBI2_EQ, src, false);
-    constraint_set_rel(mod, src->constraint, CBI2_EQ, dst, false);
+    constraint_set_rel(mod, dst, CBI2_EQ, src, false);
+    constraint_set_rel(mod, src, CBI2_EQ, dst, false);
     break;
   case BOOL:
     constraint_set(mod, dst->constraint, CBI_EQTRUE, !src->as.BOOL.value);
@@ -1781,6 +1810,8 @@ static ERROR constraint_inference_defname(struct module *mod,
                                           struct node *node) {
   assert(node->which == DEFNAME);
 
+  node->constraint->users = calloc(1, sizeof(*node->constraint->users));
+
   constraint_copy(mod, node->constraint, subs_last(node)->constraint);
   if (typ_isa(node->typ, TBI_DEFAULT_CTOR)) {
     constraint_set(mod, node->constraint, CBI_INIT, false);
@@ -1801,6 +1832,7 @@ static ERROR constraint_inference_defname(struct module *mod,
 
 static ERROR constraint_inference_defarg(struct module *mod,
                                          struct node *node) {
+  node->constraint->users = calloc(1, sizeof(*node->constraint->users));
   constraint_copy(mod, node->constraint, subs_last(node)->constraint);
   constraint_set(mod, node->constraint, CBI_INIT, false);
   return 0;
@@ -1835,6 +1867,33 @@ static ERROR constraint_inference_genarg(struct module *mod,
   return 0;
 }
 
+static ERROR evaluate(struct module *mod, struct node *node) {
+  struct constraint *c = node->constraint;
+  for (size_t n = 0, count = vecrel_count(&c->rels[CBI2_EQ]); n < count; ++n) {
+    struct relation *rel = vecrel_get(&c->rels[CBI2_EQ], n);
+    if (rel->value == U) {
+      continue;
+    }
+    struct constraint *o = rel->node->constraint;
+    if (o->table[CBI_EQTRUE] == U) {
+      continue;
+    }
+
+    const cbool cv = c->table[CBI_EQTRUE];
+    const cbool ov = o->table[CBI_EQTRUE];
+    if (cv == U) {
+      c->table[CBI_EQTRUE] = ov;
+    } else if (cv != ov) {
+      error e = mk_except_constraint(mod, node, "constrained to be EQ to '%s'"
+                                     " which is %sEQTRUE, but is:",
+                                     scope_name(mod, &rel->node->scope),
+                                     ov == N ? "not " : "");
+      THROW(e);
+    }
+  }
+  return 0;
+}
+
 static bool within_tentative_context(struct module *mod) {
   const struct node *top = mod->state->top_state->top;
   return typ_is_tentative(top->typ)
@@ -1844,6 +1903,9 @@ static bool within_tentative_context(struct module *mod) {
 STEP_NM(step_constraint_inference, -1);
 error step_constraint_inference(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
+  // FIXME: improve and reenable.
+  return 0;
+
   DSTEP(mod, node);
   error e;
 
@@ -2002,6 +2064,9 @@ error step_constraint_inference(struct module *mod, struct node *node,
     break;
   }
 
+  e = evaluate(mod, node);
+  EXCEPT(e);
+
   reason_by_absurd(node);
 
   propagate(mod, node);
@@ -2031,6 +2096,9 @@ STEP_NM(step_check_exhaustive_match,
         NM(MATCH));
 error step_check_exhaustive_match(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
+  // FIXME: improve and reenable.
+  return 0;
+
   struct node *expr = subs_first(node);
   struct node *dexpr = typ_definition(expr->typ);
   const bool enum_or_union = dexpr->as.DEFTYPE.kind == DEFTYPE_ENUM

@@ -203,9 +203,7 @@ static ERROR lexical_import_path(struct scope *scope, struct module *mod,
   e = scope_lookup_module(&target, mod, subs_first(import), false);
   EXCEPT(e);
 
-  bool need_expose_all = original_import->as.IMPORT.is_all
-    || target->which == MODULE;
-
+  bool need_expose_all = target->which == MODULE;
   if (!need_expose_all) {
     e = import_single_ident(scope, mod, original_import, import, false);
     EXCEPT(e);
@@ -213,6 +211,12 @@ static ERROR lexical_import_path(struct scope *scope, struct module *mod,
   }
 
   struct module *target_mod = target->as.MODULE.mod;
+  bool keep_existing = importmap_set(&mod->importmap, target_mod, original_import);
+  (void) keep_existing;
+  if (target_mod->is_builtins) {
+    node_toplevel(original_import)->flags |= TOP_IS_INLINE;
+  }
+
   struct node *target_body = target_mod->body;
   FOREACH_SUB(ex, target_body) {
     const struct toplevel *toplevel = node_toplevel_const(ex);

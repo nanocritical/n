@@ -1,4 +1,8 @@
--- In this file, imports go at the end of the file.
+from n.containers import Range `Iterator `Random_container
+from n.unsafe import Cast Nonnull_cast
+from n import Esay Epr
+import n.fmt
+import n.io
 
 extern intf `__literal_null__ =
 	isa `Any_nullable_ref
@@ -188,7 +192,7 @@ intf `Any_mutable_slice t:`Any =
 -- operations between kinds of slices.
 
 opaque struct Slice t:`Any =
-	isa (`Any_slice t)
+	isa (`Any_slice t) `Trivial_array_ctor
 	dat	:?@#t
 	cnt	:Uint
 	cap	:Uint -- will go away
@@ -207,29 +211,32 @@ inline Slice met Bytecount = Uint
 inline Slice met All = Range
 	let s = this.create_impl_instance
 	return s.All
-inline Slice shallow met Unsafe_rawdata = @U8
+
+-- These are shallow wildcard methods because their prototype must match
+-- exactly those found in Slice_impl.
+inline Slice shallow met$ Unsafe_rawdata = @U8
 	let s = this.create_impl_instance
 	return s.Unsafe_rawdata
-inline Slice shallow met Unsafe_data = @t
+inline Slice shallow met$ Unsafe_data = @t
 	let s = this.create_impl_instance
 	return s.Unsafe_data
-inline Slice shallow met Operator_at n:Uint = @t
+inline Slice shallow met$ Operator_at n:Uint = @t
 	let s = this.create_impl_instance
 	return s.Operator_at n
-inline Slice shallow met Operator_sub r:Range = []t
+inline Slice shallow met$ Operator_sub r:Range = []t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Operator_sub r
 	return {}
-inline Slice shallow met Recapped cap:Uint = this
+inline Slice shallow met$ Recapped cap:Uint = this
 	let s = this.create_impl_instance
 	such
 		let _ = s.Recapped cap
 	return {}
-inline Slice shallow met First = @t
+inline Slice shallow met$ First = @t
 	let s = this.create_impl_instance
 	return s.First
-inline Slice shallow met Last = @t
+inline Slice shallow met$ Last = @t
 	let s = this.create_impl_instance
 	return s.Last
 
@@ -277,10 +284,11 @@ inline Mutable_slice shallow met$ Operator_at n:Uint = @$t
 		let _ = s!Operator_at n
 		let p = s#Operator_at n
 		return s$Operator_at n
-inline Mutable_slice met! Exact_copy other:[]t
+inline Mutable_slice met! Full_copy other:[]t = this
 	let s = this.create_impl_instance
 	such
-		s!Exact_copy s
+		let _ = s!Full_copy s
+		return {}
 inline Mutable_slice met! Copy other:[]t = this
 	let s = this.create_impl_instance
 	such
@@ -358,49 +366,53 @@ inline Slice_impl shallow met$ Unsafe_rawdata = @$U8
 inline Slice_impl shallow met$ Unsafe_data = @$t
 	return (Nonnull_cast t ?@$t @$t) self$dat
 
-inline Slice_impl shallow met$ Operator_at n:Uint = @$t
+inline Slice_impl shallow met$ Operator_at n:Uint = r:@$t
 	Assert <- n < self.cnt
 	let raw = (Cast ?@t @#U8) self.dat
 	and off = n * (sizeof t)
 	return (Cast @#U8 @$t) <- Slice_at_byte raw off
 
--- Mutable_slice are immutable in Count and Cap...
-inline Slice_impl met! Exact_copy other:this
-	Assert <- self.cnt == other.cnt
+inline Slice_impl met! Full_copy other:this = this
+	Assert <- self.cap >= other.cnt
 	let dst = self!Unsafe_rawdata
 	and src = other.Unsafe_rawdata
 	and bytecnt = other.cnt * (sizeof t)
 	Slice_memmove dst src bytecnt
+	return {dat=((Cast @#U8 @#t) dst) cnt=other.cnt cap=self.cap}
 
 -- Copy what it can, and return a slice to the result.
 inline Slice_impl met! Copy other:this = this
 	let cnt = Min self.cap other.cnt
-	let r = self![.. cnt] such
-		r!Exact_copy other
-	return r
+	return self!Full_copy other.[.. cnt]
 
+-- Append what it can, and return a slice to the result.
 inline Slice_impl met! Append other:this = this
 	let newcnt = self.cnt + other.cnt
-	Assert <- newcnt < self.cap
+	Assert <- newcnt <= self.cap
 	let _ = self.[self.cnt .. newcnt]!Copy other
-	return self![.. newcnt]
+	return {dat=self.Unsafe_data cnt=newcnt cap=self.cap}
 
 inline Slice_impl shallow met$ Operator_sub r:Range = this
-	Assert <- r.Begin < self.cnt
-	Assert <- r.End <= self.cnt
+	Assert <- r.Begin < self.cap
+	Assert <- r.End <= self.cap
+	let newcap = self.cap - r.Begin
+	let el_cnt = 0 such
+		if r.Begin < self.cnt
+			el_cnt = Min r.Count self.cnt-r.Begin
+
 	let raw0 = (Cast @U8 @#U8) self.Unsafe_rawdata
 	let raw = Slice_at_byte raw0 r.Begin
-	return {dat=((Cast @#U8 @#t) raw) cnt=r.Count cap=self.cap}
+	return {dat=((Cast @#U8 @#t) raw) cnt=el_cnt cap=newcap}
 
 inline Slice_impl shallow met$ Recapped cap:Uint = this
 	Assert <- cap <= self.cap
-	return {dat=self.dat cnt=(Min self.Count self.cap) cap=self.cap}
+	return {dat=self.dat cnt=(Min self.Count self.cap) cap=cap}
 
 inline Slice_impl shallow met$ First = @$t
 	return self$[0]
 
 inline Slice_impl shallow met$ Last = @$t
-	return self$[self.Count - 1]
+	return self$[self.cnt - 1]
 
 intf `Any_tuple =
 	isa `Copyable
@@ -1325,41 +1337,75 @@ inline Double met Try_round_uint = Error_range, Uint
 	return RANGE, 0
 extern Double met Show st:@#n.fmt.`State
 
+inline struct Bounds =
+	f	:Bool
+	l	:Bool
+	b	:Uint
+	e	:Uint
+
+inline Bounds (met t:`Any c:(`Random_container t)) Range_of v:@c = Range
+	if self.f and self.l
+		return {b=0 e=v.Count}
+	elif self.f
+		return {b=0 e=self.e}
+	elif self.l
+		return {b=self.b e=v.Count}
+	else
+		return {b=0 e=v.Count}
+
+inline struct Range =
+	isa `Trivial_copy `Trivial_equality `Trivial_ctor `Return_by_copy
+	b	:Uint
+	e	:Uint
+
+Range met Begin = Uint
+	return self.b
+
+Range met End = Uint
+	return self.e
+
+Range met Count = Uint
+	return self.e - self.b
+
+Range met sub begin:Uint end:Uint = this
+	let r:this
+	such
+		if begin < self.Begin or end > self.End
+			Abort
+		r = {b=begin e=end}
+	return r
+
+Range met with_offset offset:Uint = this
+	let r = {b=self.Begin+offset e=self.End+offset}
+	return r
+
+Range met All = this
+	return self.
+
+Range met Operator_at p:Uint = Uint
+	return self.b + p
+
+Range met Iter = Index_iterator
+	return { r=self. }
+
+inline struct Index_iterator =
+	isa (`Iterator Uint) `Trivial_copy `Trivial_ctor
+	r	:Range
+	p	:Uint
+
+Index_iterator met Has_next = Bool
+	return self.p < self.r.End
+
+Index_iterator met! Next = Uint
+	let r = self.p
+	self!p += 1
+	return r
+
 intf `Trivial_array_ctor t:`Copyable =
 	isa `Prevent_dyn (`Array_ctor t)
 
 intf `Array_ctor t:`Copyable =
-	fun From_array c:@(Static_array t) = final
-
-extern inline fun Static_array_at_byte dp:@!U8 off:Uint = @!U8
-
-opaque struct Static_array t:`Copyable =
-	isa (`Trivial_array_ctor t) `Trivial_copy `Return_by_copy
-	d	:?@!t
-	c	:Uint
-
-inline Static_array met Count = Uint
-	return self.c
-
-inline Static_array met Bytecount = Uint
-	return self.c * (sizeof t)
-
-inline Static_array met All = Range
-	return 0 .. self.c
-
-inline Static_array met$ Unsafe_rawdata = @$U8
-	Assert <- self.c != 0
-	return (Cast ?@$t @$U8) self$d
-
-inline Static_array met$ Unsafe_data = @$t
-	Assert <- self.c != 0
-	return (Cast ?@$t @$t) self$d
-
-inline Static_array shallow met$ Operator_at n:Uint = @$t
-	Assert <- n < self.c
-	let off = n * (sizeof t)
-	let p = Static_array_at_byte ((Cast @$this @!this) self)!Unsafe_rawdata off
-	return (Cast @!U8 @$t) p
+	fun From_array c:[]t = final
 
 
 extern fun Abort
@@ -1438,15 +1484,14 @@ inline Vararg met Count_left = Uint
 
 
 intf `Any_environment =
-	isa `Trivial_ctor
 
 -- FIXME? Instead of 'declaring', we could use 'final'.
 intf `Environment declaring:`Any =
 	isa `Any_environment
-	-- Implementation of these mets is generated by the compiler.
+	-- Implementation of these methods is generated by the compiler.
 	met Parent = @!declaring
 	met! Install where:@!@!declaring
-	met# Uninstall where:@!@#declaring
+	met# Uninstall where:@!@!declaring
 
 --intf `Debugenv =
 --  isa (`Environment this)
@@ -1478,15 +1523,6 @@ intf `Environment declaring:`Any =
 --
 --atom has_tag tag x =
 --  x ==| tag
-
--- We place the imports at the end of this file for the benefit of the bootstrap
--- compiler lack of understanding of definition ordering across modules, in
--- codegen. As types defined in this module are used everywhere, they really
--- need to appear first to the C compiler.
-from n.containers import Range `Iterator `Random_container
-from n.unsafe import Cast Nonnull_cast
-from n import Esay Epr
-import n.fmt
 
 inline struct Codeloc =
 	File	:String

@@ -150,7 +150,6 @@ extern struct typ *TBI_DOUBLE;
 extern struct typ *TBI_CHAR;
 extern struct typ *TBI_STRING;
 extern struct typ *TBI_STRING_COMPATIBLE;
-extern struct typ *TBI_STATIC_ARRAY;
 extern struct typ *TBI_ANY_ANY_REF;
 extern struct typ *TBI_ANY_REF;
 extern struct typ *TBI_ANY_MUTABLE_REF;

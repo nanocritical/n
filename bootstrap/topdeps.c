@@ -26,6 +26,19 @@ static void record_final(struct module *mod, struct typ *t) {
 
   uint32_t mask = toplevel->flags & TO_KEEP;
 
+  switch (top->which) {
+  case DEFTYPE:
+    mask |= TOP__TOPDEP_INLINE_STRUCT;
+    break;
+  case LET:
+    if (subs_first_const(top)->which == DEFNAME) {
+      mask |= TOP__TOPDEP_INLINE_STRUCT;
+    }
+    break;
+  default:
+    break;
+  }
+
   if (!node_is_at_top(top)) {
     top = parent(top);
     toplevel = node_toplevel(top);
@@ -73,7 +86,8 @@ static void record_tentative(struct module *mod, struct node *node) {
 
 void topdeps_record(struct module *mod, struct typ *t) {
   struct top_state *st = mod->state->top_state;
-  if (st == NULL) {
+  if (st == NULL
+      || typ_definition(t)->which == MODULE) {
     return;
   }
 

@@ -405,6 +405,10 @@ static struct node *follow_ssa(struct node *node) {
   struct node *expr = node;
   if (expr->which == IDENT) {
     struct node *def = expr->as.IDENT.def;
+    if (def == NULL) {
+      return NULL;
+    }
+
     if (def->which == DEFNAME
         && def->as.DEFNAME.ssa_user == expr) {
       expr = subs_last(def);
@@ -420,7 +424,8 @@ static ERROR try_insert_automagic_deref(struct module *mod,
   }
 
   struct node *expr = follow_ssa(node);
-  if (expr->which == UN
+  if (expr != NULL
+      && expr->which == UN
       && expr->as.UN.operator == TREFDOT
       && expr->as.UN.is_explicit) {
     error e = mk_except_type(mod, expr, "explicit '@' operators are not"
@@ -1198,7 +1203,7 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
 }
 
 static ERROR type_inference_init_array(struct module *mod, struct node *node) {
-  set_typ(&node->typ, create_tentative(mod, node, TBI_STATIC_ARRAY));
+  set_typ(&node->typ, create_tentative(mod, node, TBI_SLICE));
 
   FOREACH_SUB(s, node) {
     error e = unify(mod, s, s->typ,
@@ -1388,7 +1393,8 @@ static ERROR try_insert_const_ref(struct module *mod, struct node *node,
         EXCEPT(e);
       }
     } else if (compare_ref_depth(target, real_arg->typ, 0)) {
-      if (expr_arg->which == UN
+      if (expr_arg != NULL
+          && expr_arg->which == UN
           && expr_arg->as.UN.operator == TREFDOT
           && expr_arg->as.UN.is_explicit
           && !typ_equal(subs_first(expr_arg)->typ, TBI_LITERALS_NULL)) {
@@ -1630,7 +1636,8 @@ static ERROR explicit_instantiation(struct module *mod, struct node *node) {
   n = first_explicit;
   FOREACH_SUB_EVERY(s, node, 1, 1) {
     if (typ_generic_arity(typ_generic_arg(i->typ, n)) > 0) {
-      assert(typ_is_tentative(typ_generic_functor(typ_generic_arg(i->typ, n))) == typ_is_tentative(typ_generic_functor(s->typ)));
+      assert(typ_is_tentative(typ_generic_functor(typ_generic_arg(i->typ, n)))
+             == typ_is_tentative(typ_generic_functor(s->typ)));
     }
     n += 1;
   }
@@ -1703,14 +1710,8 @@ static ERROR implicit_function_instantiation(struct module *mod, struct node *no
 static ERROR function_instantiation(struct module *mod, struct node *node) {
   assert(subs_count_atleast(node, 2));
 
-  error e;
-  if (subs_at(node, 1)->flags & NODE_IS_TYPE) {
-    e = explicit_instantiation(mod, node);
-    EXCEPT(e);
-  } else {
-    e = implicit_function_instantiation(mod, node);
-    EXCEPT(e);
-  }
+  error e = implicit_function_instantiation(mod, node);
+  EXCEPT(e);
 
   return 0;
 }
@@ -1806,6 +1807,7 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
   if (!node_is_fun(dfun)
       || (subs_count_atleast(node, 2)
           && (subs_at(node, 1)->flags & NODE_IS_TYPE))) {
+    // Uninstantiated generic, called on types.
 
     if (!node_is_fun(dfun)
         && (!node_can_have_genargs(dfun)
@@ -1818,6 +1820,21 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
 
     e = explicit_instantiation(mod, node);
     EXCEPT(e);
+
+    const struct node *i = typ_definition_const(node->typ);
+    if (node_is_fun(i) && node_fun_min_args_count(i) == 0
+        && parent_const(node)->which != CALL) {
+      // Combined explicit instantiation and unary call:
+      //   let p = Alloc I32
+      struct node *moved = node_new_subnode(mod, node);
+      node_subs_remove(node, moved);
+      node_move_content(moved, node);
+      node_subs_append(node, moved);
+      node->which = CALL;
+
+      e = type_inference_call(mod, node);
+      EXCEPT(e);
+    }
 
     return 0;
   }
@@ -1836,6 +1853,8 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
 
   if (subs_count_atleast(subs_at(dfun, IDX_GENARGS), 1)
       && node_toplevel_const(dfun)->generic->our_generic_functor_typ == NULL) {
+    // Uninstantiated generic, called on values.
+
     e = function_instantiation(mod, node);
     EXCEPT(e);
 
@@ -2223,6 +2242,21 @@ static ERROR type_inference_typeconstraint(struct module *mod, struct node *node
   return 0;
 }
 
+static ERROR check_void_body(struct module *mod, const struct node *node) {
+  if (!node_has_tail_block(node)) {
+    return 0;
+  }
+  const struct node *body = subs_last_const(node);
+  if (body->typ != NULL && !typ_equal(body->typ, TBI_VOID)) {
+    error e = mk_except_type(mod, body,
+                             "the body of a function must be a block of type"
+                             " Void (use return), not '%s'",
+                             pptyp(mod, body->typ));
+    THROW(e);
+  }
+  return 0;
+}
+
 STEP_NM(step_type_inference,
         -1);
 error step_type_inference(struct module *mod, struct node *node,
@@ -2235,10 +2269,13 @@ error step_type_inference(struct module *mod, struct node *node,
   }
 
   switch (node->which) {
-  case DEFINTF:
-  case DEFTYPE:
   case DEFFUN:
   case DEFMETHOD:
+    e = check_void_body(mod, node);
+    EXCEPT(e);
+    // Fallthrough
+  case DEFINTF:
+  case DEFTYPE:
   case DEFINCOMPLETE:
     assert(node->typ != NULL);
     // Already typed.
@@ -2520,8 +2557,8 @@ static void finalize_weakly_concrete(struct module *mod, struct typ *t) {
     typ_link_tentative(TBI_BOOL, t);
   } else if (typ_equal(concrete, TBI_STRING)) {
     typ_link_tentative(TBI_STRING, t);
-  } else if (typ_equal(concrete, TBI_STATIC_ARRAY)) {
-    typ_link_tentative(TBI_STATIC_ARRAY, t);
+  } else if (typ_equal(concrete, TBI_SLICE)) {
+    typ_link_tentative(TBI_SLICE, t);
   } else {
     assert(false);
   }

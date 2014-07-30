@@ -23,13 +23,12 @@ intf `String =
 --	met Split ?sep:?@String ?max:?@Uint = []String
 
 intf `Stringbuf =
-	isa `String `Copyable
+	isa `String `Copyable n.io.`Writer
 	met# Clear
 	met# Push c:Rune
 	met# Pop = Rune
 	met# Append b:[]U8
 	met# Copy b:[]U8
-	met# Cat ?sep:?@String ...s:(Vararg @String)
 
 intf `Show =
 	met Show st:@#n.fmt.`State
@@ -71,7 +70,7 @@ inline Rune met Show st:@#n.fmt.`State
 	--let s = {}:[4]U8 ...
 	self.Code.Show st
 
-struct String =
+inline struct String =
 	isa `String `Return_by_copy `Show
 	bytes	:[]U8
 
@@ -79,7 +78,7 @@ inline String fun From_string s:String = this
 	return s
 
 inline String fun From_bytes b:[]U8 = this--::(^Captures s)
-	return {bytes=b.[..]} -- cap b.Count]}
+	return {bytes=b} -- cap b.Count]}
 
 inline String met Bytes = []U8
 	return self.bytes
@@ -105,13 +104,13 @@ inline String met Operator_gt other:@this = Bool
 inline String met Operator_ge other:@this = Bool
 	return self.Operator_compare other >= 0
 
-String met Show st:@#n.fmt.`State
-	st#Write self.bytes
+inline String met Show st:@#n.fmt.`State
+	let _ = st#Write self.bytes
 
 -- Prime base used in the Rabin-Karp algorithm.
 let _PRIME_RK = 16777619
 
-fun hash b:[]U8 = U32, U32
+fun Hash b:[]U8 = U32, U32
 	let hash = 0 such
 		foreach x in b
 			hash = hash*_PRIME_RK + x.To_u32
@@ -125,11 +124,11 @@ fun hash b:[]U8 = U32, U32
 			i >>= 1
 	return hash, pow
 
-String met Hash32 = U32
-	let h, _ = hash self.bytes
+inline String met Hash32 = U32
+	let h, _ = Hash self.bytes
 	return h
 
-String met Begins_with s:String = Bool
+inline String met Begins_with s:String = Bool
 	if s.bytes.Count > self.bytes.Count
 		return false
 	let a = self.bytes
@@ -145,7 +144,7 @@ String met Begins_with s:String = Bool
 			i += cnt
 	return true
 
-String met Ends_with s:String = Bool
+inline String met Ends_with s:String = Bool
 	if s.bytes.Count > self.bytes.Count
 		return false
 	let a = self.bytes
@@ -178,7 +177,7 @@ example <- '1234' == '1234'
 example <- '1234'.Bytes.Count == 4
 example <- '1234'.Bytes.[0] == 49
 
-struct Stringbuf =
+inline struct Stringbuf =
 	isa `Stringbuf
 	bytes	:[]!U8	--::^Owned
 
@@ -225,42 +224,41 @@ inline Stringbuf met Operator_ge other:@this = Bool
 	return self.Operator_compare other >= 0
 
 inline Stringbuf met Show st:@#n.fmt.`State
-	st#Write self.bytes
+	let _ = st#Write self.bytes
 
-Stringbuf met Hash32 = U32
-	let h, _ = hash self.bytes
+inline Stringbuf met Hash32 = U32
+	let h, _ = Hash self.bytes
 	return h
 
-Stringbuf met# Clear
+inline Stringbuf met# Clear
 	self!bytes = self.bytes.[.. 0]
-	self#auto_shrink
+	self#Auto_shrink
 
-Stringbuf met# Push r:Rune
+inline Stringbuf met# Push r:Rune
 	let nend = self.bytes.Count + 1
 	self#Reserve nend
 	self!bytes = self.bytes.[.. nend]
 	self!bytes![nend - 1]! = r.Code.Trim_u8
 
-Stringbuf met# Pop = Rune
+inline Stringbuf met# Pop = Rune
 	Assert <- self.Bytes.Count > 0
 	let r = (self.bytes.Last).
 	self!bytes = self.bytes.[.. self.bytes.Count-1]
-	self#auto_shrink
+	self#Auto_shrink
 	return Rune.From_ascii r
 
-Stringbuf met# Append b:[]U8
+inline Stringbuf met# Append b:[]U8
 	self#Reserve self.bytes.Count + b.Count
 	self#bytes = self!bytes!Append b
 
-Stringbuf met# Copy b:[]U8
+inline Stringbuf met# Copy b:[]U8
 	self#Reserve b.Count
 	self#bytes = self.bytes!Copy b
 
-Stringbuf met# Reserve cap:Uint within Heap
-	Heap!Realloc @#self#bytes cap
-	self#auto_shrink
+inline Stringbuf met# Reserve cap:Uint within Heap
+	Realloc @#self#bytes cap
 
-Stringbuf met# auto_shrink within Heap
+inline Stringbuf met# Auto_shrink within Heap
 	let cap = self.bytes.Cap
 	and cnt = self.bytes.Count
 	if cap == 0
@@ -270,12 +268,16 @@ Stringbuf met# auto_shrink within Heap
 			newcap = 0
 		elif cnt < cap / 2
 			newcap = cnt
-	Heap!Realloc @#self#bytes newcap
+	Realloc @#self#bytes newcap
 
-Stringbuf met# Cat ?sep:?@String ...v:(Vararg @String)
+inline Stringbuf met# Cat ?sep:?@String ...v:(Vararg @String)
 	let first = true such
 		for s in v
 			if not first and sep?
 				self#Append sep.Bytes
 			first = false
 			self#Append s.Bytes
+
+inline Stringbuf met# Write b:[]U8 = Error, []U8
+	self#Append b
+	return OK, {}

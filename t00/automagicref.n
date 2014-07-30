@@ -1,5 +1,4 @@
 from n import *
-from n.vectors import *
 
 struct A =
 	isa `Trivial_ctor
@@ -87,7 +86,7 @@ fun Main = I32
 	Assert <- 1 + 2 == p3
 	Assert <- n + 2 == p3
 
-	let v = {1 2}:(Vector I32)
+	let v = {1 2}:(Slicebuf I32)
 	let r = @v.All
 	foreach x in r
 		Say x
