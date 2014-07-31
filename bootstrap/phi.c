@@ -32,11 +32,12 @@ static ERROR branching_block_foreach_scoped_ident(struct module *mod,
                                                   scope_each each) {
   error e;
   struct node *fun = mod->state->top_state->top;
-  assert(fun->which == DEFFUN || fun->which == DEFMETHOD);
-  struct node *funargs = subs_at(fun, IDX_FUNARGS);
-  FOREACH_SUB(arg, funargs) {
-    e = each(mod, arg, block);
-    EXCEPT(e);
+  if (NM(fun->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+    struct node *funargs = subs_at(fun, IDX_FUNARGS);
+    FOREACH_SUB(arg, funargs) {
+      e = each(mod, arg, block);
+      EXCEPT(e);
+    }
   }
 
   struct node *cond = subs_last(subs_first(branching));

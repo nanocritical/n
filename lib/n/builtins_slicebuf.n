@@ -36,6 +36,12 @@ inline Slicebuf shallow met$ First = @$t
 inline Slicebuf shallow met$ Last = @$t
 	return self$s$Last
 
+inline Slicebuf shallow met$ Operator_at n:Uint = r:@$t
+	return self$s$Operator_at n
+
+inline Slicebuf shallow met$ Operator_sub r:Range = []$t
+	return self$s$Operator_sub r
+
 inline Slicebuf met# Pop
 	Assert <- self.s.Count > 0
 	self!s = self.s.[.. self.s.Count-1]

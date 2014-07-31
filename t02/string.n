@@ -1,5 +1,4 @@
 from n import *
-from n.strings import *
 
 fun foo = String
 	return 'test'

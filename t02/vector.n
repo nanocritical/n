@@ -1,7 +1,6 @@
 from n import *
-from n.vectors import Vector
 
-alias v32 = Vector I32
+alias v32 = Slicebuf I32
 
 fun foo = v32
 	return {1 0 2}
@@ -9,10 +8,11 @@ fun foo = v32
 fun Main = I32
 	let v = {}:v32
 	such
-		v#Push 0
-		v#Push 1
-		Assert <- v#Pop == 1
-		v#Push 1
+		(v#Push)! = 0
+		(v#Push)! = 1
+		Assert <- v.Last == 1
+		v#Pop
+		(v#Push)! = 1
 		for i in v.All.Iter
 			Assert <- v.[i]. == i.Trim_u32.Unsafe_signed
 	let w = foo

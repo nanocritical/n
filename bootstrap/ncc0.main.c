@@ -177,13 +177,20 @@ static ERROR run_examples(const struct stage *stage) {
     fprintf(run, "(void);\n");
   }
 
-  fprintf(run, "int main(void) {\n");
+  fprintf(run, "int _$Nmain();\n"
+          "void _$Nprelude(int *argc, char ***argv, char ***env);\n"
+          "void _$Npostlude(int *ret);\n");
+  fprintf(run, "int main(int argc, char **argv, char **env) {\n"
+          "_$Nprelude(&argc, &argv, &env);\n");
   for (size_t n = 0; n < stage->sorted_count; ++n) {
     const struct module *mod = stage->sorted[n];
     print_c_runexamples_name(run, mod);
     fprintf(run, "();\n");
   }
-    fprintf(run, "}\n");
+  fprintf(run, "int ret = 0;\n"
+          "_$Npostlude(&ret);\n"
+          "return ret;\n"
+          "}\n");
   fclose(run);
 
   char *inputs = file_list((const struct module **)stage->sorted,

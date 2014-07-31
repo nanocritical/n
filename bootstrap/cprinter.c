@@ -1460,186 +1460,89 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
   fprintf(out, ")");
 }
 
-static const struct node *parent_in_tuple(const struct node *n) {
-  const struct node *p = parent_const(n);
-  if (p->which == DEFARG) {
-    return parent_in_tuple(p);
-  } else if (p->which == TUPLE) {
-    return n;
+static void print_rtr_helpers_start(FILE *out, const struct module *mod,
+                                    const struct node *retval, bool bycopy) {
+  const struct node *first = subs_first_const(retval);
+  const struct node *last = subs_last_const(retval);
+  if (bycopy) {
+    fprintf(out, "__attribute__((__unused__)) ");
+    print_defarg(out, mod, retval, false);
+    fprintf(out, " = { 0 };\n");
   } else {
-    return NULL;
+    fprintf(out, "#define ");
+    print_expr(out, mod, first, T__STATEMENT);
+    fprintf(out, " (*_$Nrtr_");
+    print_expr(out, mod, first, T__STATEMENT);
+    fprintf(out, ")\n");
+  }
+
+  if (last->which == TUPLE && subs_first_const(last)->which == DEFARG) {
+    size_t n = 0;
+    FOREACH_SUB_CONST(x, last) {
+      assert(x->which == DEFARG && "FIXME(catch in parser): either all named ");
+
+      fprintf(out, "#define ");
+      print_expr(out, mod, subs_first_const(x), T__STATEMENT);
+      fprintf(out, " ((");
+      print_expr(out, mod, first, T__STATEMENT);
+      fprintf(out, ").x%zu)\n", n);
+      n += 1;
+    }
   }
 }
 
-static void print_rtr_helpers_tuple_accessor(FILE *out, const struct module *mod,
-                                             const struct node *retval) {
-  if (retval->which == DEFARG) {
-    print_rtr_helpers_tuple_accessor(out, mod, subs_at_const(retval, 1));
+static void print_rtr_helpers_end(FILE *out, const struct module *mod,
+                                  const struct node *retval, bool bycopy) {
+  const struct node *first = subs_first_const(retval);
+  const struct node *last = subs_last_const(retval);
+  if (bycopy) {
+    fprintf(out, "return ");
+    print_expr(out, mod, first, T__STATEMENT);
+    fprintf(out, ";\n");
+  } else {
+    fprintf(out, "#undef ");
+    print_expr(out, mod, first, T__STATEMENT);
+    fprintf(out, "\n");
+  }
+
+  if (last->which == TUPLE && subs_first_const(last)->which == DEFARG) {
+    FOREACH_SUB_CONST(x, last) {
+      fprintf(out, "#undef ");
+      print_expr(out, mod, subs_first_const(x), T__STATEMENT);
+      fprintf(out, "\n");
+    }
+  }
+}
+
+// Possible forms
+//   DEFARG
+//    IDENT
+//    type
+//
+//  DEFARG
+//   TUPLE
+//    TYPE
+//    TYPE
+//
+//  TUPLE
+//   DEFARG
+//    IDENT
+//    type
+//   DEFARG
+//    IDENT
+//    type
+static void print_rtr_helpers(FILE *out, const struct module *mod,
+                              const struct node *retval, bool start) {
+  if (typ_equal(retval->typ, TBI_VOID)) {
     return;
   }
 
-  const struct node *p = parent_in_tuple(retval);
-
-  if (parent_in_tuple(p) != NULL) {
-    print_rtr_helpers_tuple_accessor(out, mod, p);
-  }
-
-  size_t where = 0;
-  bool found = false;
-  FOREACH_SUB_CONST(s, parent_const(p)) {
-    if (s == p) {
-      found = true;
-      break;
-    }
-    where += 1;
-  }
-  assert(!found);
-
-  fprintf(out, ".x%zu", where);
-}
-
-static void print_rtr_helpers_fully_named_tuple(FILE *out,
-                                                const struct module *mod,
-                                                const struct node *retval) {
-  if (retval->which == DEFARG) {
-    print_expr(out, mod, subs_first_const(retval), TCOMMA);
-  } else if (retval->which == TUPLE) {
-    fprintf(out, "(");
-    print_typ(out, mod, retval->typ);
-    fprintf(out, "){");
-
-    size_t n = 0;
-    FOREACH_SUB_CONST(r, retval) {
-      if (n++ > 0) {
-        fprintf(out, ", ");
-      }
-
-      print_rtr_helpers_fully_named_tuple(out, mod, r);
-    }
-    fprintf(out, "}");
-  } else {
-    assert(false && "in a function returning a tuple,"
-           " either all return values are named, or none are");
-  }
-}
-
-static void print_rtr_helpers_single_start(FILE *out, const struct module *mod,
-                                           const struct node *retval) {
-  assert(NM(retval->which) & (NM(DEFARG) | NM(TUPLE)));
-  const bool named_retval = retval->which == DEFARG
-    && !typ_equal(retval->typ, TBI_VOID);
   const bool bycopy = typ_isa(retval->typ, TBI_RETURN_BY_COPY);
-
-  if (named_retval) {
-    if (bycopy) {
-      fprintf(out, "__attribute__((__unused__)) ");
-      print_defarg(out, mod, retval, false);
-      fprintf(out, " = { 0 };\n");
-    } else {
-      fprintf(out, "#define ");
-      print_expr(out, mod, subs_first_const(retval), T__STATEMENT);
-      fprintf(out, " (*_$Nrtr_");
-      print_expr(out, mod, subs_first_const(retval), T__STATEMENT);
-      if (parent_tuple) {
-        print_rtr_helpers_tuple_accessor(out, mod, retval);
-      }
-      fprintf(out, ")\n");
-    }
-  }
-}
-
-static void print_rtr_helpers_single_end(FILE *out, const struct module *mod,
-                                         const struct node *retval) {
-  if (named_retval) {
-    if (bycopy) {
-      fprintf(out, "return ");
-      print_expr(out, mod, subs_first_const(retval), T__STATEMENT);
-      fprintf(out, ";\n");
-    } else {
-      fprintf(out, "#undef ");
-      print_expr(out, mod, subs_first_const(retval), T__STATEMENT);
-      fprintf(out, "\n");
-    }
-  } else {
-    if (bycopy && is_tuple && subs_first_const(retval)->which == DEFARG) {
-      fprintf(out, "return ");
-      print_rtr_helpers_fully_named_tuple(out, mod, retval);
-      fprintf(out, ";\n");
-    }
-  }
-}
-
-static void print_rtr_helpers_tuple_start(FILE *out, const struct module *mod,
-                                          const struct node *retval) {
-  assert(NM(retval->which) & (NM(DEFARG) | NM(TUPLE)));
-  const bool named_retval = retval->which == DEFARG
-    && !typ_equal(retval->typ, TBI_VOID);
-  const bool bycopy = typ_isa(retval->typ, TBI_RETURN_BY_COPY);
-
-  const bool parent_tuple = parent_const(retval)->which == TUPLE;
-  const bool is_tuple = retval->which == TUPLE
-    || (named_retval && subs_last_const(retval)->which == TUPLE);
-
   if (start) {
-    if (named_retval) {
-      if (bycopy) {
-        fprintf(out, "__attribute__((__unused__)) ");
-        print_defarg(out, mod, retval, false);
-        fprintf(out, " = { 0 };\n");
-      } else {
-        fprintf(out, "#define ");
-        print_expr(out, mod, subs_first_const(retval), T__STATEMENT);
-        fprintf(out, " (*_$Nrtr_");
-        print_expr(out, mod, subs_first_const(retval), T__STATEMENT);
-        if (parent_tuple) {
-          print_rtr_helpers_tuple_accessor(out, mod, retval);
-        }
-        fprintf(out, ")\n");
-      }
-    }
+    print_rtr_helpers_start(out, mod, retval, bycopy);
   } else {
-    if (named_retval) {
-      if (bycopy) {
-        fprintf(out, "return ");
-        print_expr(out, mod, subs_first_const(retval), T__STATEMENT);
-        fprintf(out, ";\n");
-      } else {
-        fprintf(out, "#undef ");
-        print_expr(out, mod, subs_first_const(retval), T__STATEMENT);
-        fprintf(out, "\n");
-      }
-    } else {
-      if (bycopy && is_tuple && subs_first_const(retval)->which == DEFARG) {
-        fprintf(out, "return ");
-        print_rtr_helpers_fully_named_tuple(out, mod, retval);
-        fprintf(out, ";\n");
-      }
-    }
+    print_rtr_helpers_end(out, mod, retval, bycopy);
   }
-
-  if (is_tuple) {
-    if (!start && bycopy) {
-      return;
-    }
-
-    if (named_retval) {
-      print_rtr_helpers(out, mod, subs_last_const(retval), start);
-    }
-  }
-}
-
-static void print_rtr_helpers_tuple_end(FILE *out, const struct module *mod,
-                                        const struct node *retval) {
-  ...
-}
-
-static void print_rtr_helpers(FILE *out, const struct module *mod,
-                              const struct node *retval, bool start) {
-  assert(NM(retval->which) & (NM(DEFARG) | NM(TUPLE)));
-  const bool named_retval = retval->which == DEFARG
-    && !typ_equal(retval->typ, TBI_VOID);
-  
-  
 }
 
 static void rtr_helpers(FILE *out, const struct module *mod,

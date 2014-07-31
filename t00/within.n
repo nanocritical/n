@@ -3,7 +3,7 @@ from n import *
 globalenv e2:@!`env2
 
 intf `env2 =
-	isa (`Environment @`env2)
+	isa (`Environment `env2)
 	met say2 s:@String
 
 struct myenv2 =
@@ -14,7 +14,7 @@ myenv2 met say2 s:@String
 	Say 'saying2:' s
 
 intf `env1 =
-	isa (`Environment @`env1)
+	isa (`Environment `env1)
 	met Say s:@String
 
 struct myenv1 =

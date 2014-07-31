@@ -1,4 +1,4 @@
-from n.containers import Range `Iterator `Random_container
+from n.containers import `Iterator `Random_container
 from n.unsafe import Cast Nonnull_cast
 from n import Esay Epr
 import n.fmt
@@ -64,12 +64,22 @@ intf `Has_equality =
 	isa `Has_compare `Matchable
 	met Operator_eq other:@final = Bool
 	met Operator_ne other:@final = Bool
+
+--	fun exgen n:Uint = final
+--	example
+--		let a, b = final.exgen 0, final.exgen 0
+--		a == b and b == a
+--	example
+--		let a, b = final.exgen 0, final.exgen 1
+--		a != b and b != a
+
 intf `Not_has_equality =
 intf `Equality_by_compare =
 	-- Compiler generates Operator_{eq,ne}.
 	isa `Has_compare `Has_equality
 intf `Trivial_equality =
 	isa `Trivial_compare `Equality_by_compare
+
 intf `Ordered =
 	isa `Has_equality `Has_compare
 	met Operator_le other:@final = Bool
@@ -205,6 +215,9 @@ inline Slice met# Unsafe_wrap p:@U8 c:Uint cap:Uint
 inline Slice met Count = Uint
 	let s = this.create_impl_instance
 	return s.Count
+inline Slice met Cap = Uint
+	let s = this.create_impl_instance
+	return s.Cap
 inline Slice met Bytecount = Uint
 	let s = this.create_impl_instance
 	return s.Bytecount
@@ -241,7 +254,7 @@ inline Slice shallow met$ Last = @t
 	return s.Last
 
 opaque struct Mutable_slice t:`Any =
-	isa (`Any_mutable_slice t)
+	isa (`Any_mutable_slice t) `Trivial_array_ctor
 	dat	:?@#t
 	cnt	:Uint
 	cap	:Uint
@@ -393,7 +406,7 @@ inline Slice_impl met! Append other:this = this
 	return {dat=self.Unsafe_data cnt=newcnt cap=self.cap}
 
 inline Slice_impl shallow met$ Operator_sub r:Range = this
-	Assert <- r.Begin < self.cap
+	Assert <- r.Begin <= self.cap
 	Assert <- r.End <= self.cap
 	let newcap = self.cap - r.Begin
 	let el_cnt = 0 such
@@ -401,18 +414,86 @@ inline Slice_impl shallow met$ Operator_sub r:Range = this
 			el_cnt = Min r.Count self.cnt-r.Begin
 
 	let raw0 = (Cast @U8 @#U8) self.Unsafe_rawdata
-	let raw = Slice_at_byte raw0 r.Begin
+	and off = r.Begin * (sizeof t)
+	let raw = Slice_at_byte raw0 off
 	return {dat=((Cast @#U8 @#t) raw) cnt=el_cnt cap=newcap}
 
 inline Slice_impl shallow met$ Recapped cap:Uint = this
 	Assert <- cap <= self.cap
-	return {dat=self.dat cnt=(Min self.Count self.cap) cap=cap}
+	return {dat=self.dat cnt=(Min self.Count cap) cap=cap}
 
 inline Slice_impl shallow met$ First = @$t
 	return self$[0]
 
 inline Slice_impl shallow met$ Last = @$t
 	return self$[self.cnt - 1]
+
+example
+	let a = { 0:Uint 1 2 3 4 5 6 7 }
+	Assert <- a.Count == 8
+	Assert <- a.All == 0 .. 8
+	Assert <- a.Unsafe_rawdata === (Cast @Uint @U8) a.Unsafe_data
+	foreach i in a.All
+		Assert <- a.[i] == i
+	Assert <- a.First == 0
+	Assert <- a.Last == 7
+	Assert <- a.[..].All == a.All
+	Assert <- a.[7 ..].Count == 1
+	Assert <- a.[7 ..].Cap == 1
+	Assert <- a.[7 .. 7].Count == 0
+	Assert <- a.[7 .. 7].Cap == 1
+	-- OK to create slice of cap 0:
+	Assert <- a.[8 .. ].Count == 0
+	let b = a.[4 ..]
+	foreach i in b.All
+		Assert <- b.[i] == a.[4 + i]
+	let c = a.[0 .. 4]
+	Assert <- c.Cap == a.Cap
+	let d = c.Recapped 8
+	Assert <- d.Cap == a.Cap
+	Assert <- d.Count == c.Count
+	true
+
+example
+	let ref = { 0:Uint 1 2 3 4 5 6 7 }
+	let a = { 0 1 2 3 4 5 6 7 }:[]!Uint such
+		let b = a![4 ..]
+		foreach i in b.All
+			b![i]! = 0
+
+		let suma = 0
+		and sumb = 0 such
+			foreach x in a.[4 ..]
+				suma += x.
+			foreach x in b
+				sumb += x.
+		Assert <- suma == sumb
+
+	let c = { 8 8 8 8 8 8 8 8 }:[]!Uint such
+		let d = c!Full_copy ref
+		Assert <- d.Count == ref.Count
+		Assert <- d.Count == c.Count
+		foreach i in c.All
+			Assert <- c.[i] == ref.[i]
+			Assert <- d.[i] == ref.[i]
+
+	let e = { 8 8 8 8 8 8 8 8 }:[]!Uint such
+		let f = e![4 ..] such
+			let g = f!Copy ref.[4 ..]
+			Assert <- g.Count == 4
+			foreach i in g.All
+				Assert <- g.[i] == ref.[4 + i]
+		let h = e![.. 4] such
+			let m = h!Copy ref
+			Assert <- m.Count > h.Count
+			Assert <- m.Count == ref.Count
+			foreach i in m.All
+				if i < h.Count
+					Assert <- h.[i] == ref.[i]
+				Assert <- m.[i] == ref.[i]
+			let n = h!Full_copy ref
+			Assert <- n.Count == m.Count
+	true
 
 intf `Any_tuple =
 	isa `Copyable

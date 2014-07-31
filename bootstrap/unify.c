@@ -1132,14 +1132,6 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
     return 0;
   }
 
-  const bool a_slice = typ_is_slice(a);
-  const bool b_slice = typ_is_slice(b);
-  if (a_slice && b_slice) {
-    e = unify_slice(mod, flags, for_error, a, b, a_slice, b_slice);
-    EXCEPT(e);
-    return 0;
-  }
-
   const bool a_weakly_concrete = typ_is_weakly_concrete(a);
   const bool b_weakly_concrete = typ_is_weakly_concrete(b);
   if (a_weakly_concrete || b_weakly_concrete) {
@@ -1152,6 +1144,14 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
     if (success) {
       return 0;
     }
+  }
+
+  const bool a_slice = typ_is_slice(a);
+  const bool b_slice = typ_is_slice(b);
+  if (a_slice && b_slice) {
+    e = unify_slice(mod, flags, for_error, a, b, a_slice, b_slice);
+    EXCEPT(e);
+    return 0;
   }
 
   const bool a_non_generic = typ_generic_arity(a) == 0;
