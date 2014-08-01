@@ -618,7 +618,8 @@ void lexer_back(struct parser *parser, const struct token *tok) {
     parser->indent += 8;
   }
 
-  if (parser->tok_was_injected) {
+  const bool possible_injection = tok->t == TEOL || tok->t == TEOB;
+  if (possible_injection && parser->tok_was_injected) {
     parser->inject_eol_after_eob = tok->t == TEOL;
     return;
   }
