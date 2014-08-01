@@ -80,6 +80,9 @@ inline String fun From_string s:String = this
 inline String fun From_bytes b:[]U8 = this--::(^Captures s)
 	return {bytes=b} -- cap b.Count]}
 
+inline String met All = Range
+	return self.bytes.All
+
 inline String met Bytes = []U8
 	return self.bytes
 
@@ -197,6 +200,9 @@ inline Stringbuf fun From_bytes s:[]U8 = this
 
 inline Stringbuf met Bytes = []U8
 	return self.bytes
+
+inline Stringbuf met All = Range
+	return self.bytes.All
 
 inline Stringbuf met Str = String
 	return String.From_bytes self.bytes
