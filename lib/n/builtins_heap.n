@@ -33,4 +33,4 @@ globalenv Heap:@!`Heap
 	and old_bytecount = s#Bytecount
 	and bytecount = count * (sizeof t)
 	let raw = Heap!Realloc_raw old_raw old_bytecount bytecount
-	s# = {dat=((n.unsafe.Cast @#U8 @#t) raw) cnt=s.cnt cap=bytecount}
+	s# = {dat=((n.unsafe.Cast @#U8 @#t) raw) cnt=s.cnt cap=count}
