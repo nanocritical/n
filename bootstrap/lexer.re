@@ -331,6 +331,8 @@ normal:
   "!=" { R(TNE); }
   "===" { R(TEQPTR); }
   "!==" { R(TNEPTR); }
+  "==|" { R(TEQMATCH); }
+  "!=|" { R(TNEMATCH); }
   "<=" { R(TLE); }
   "<" { R(TLT); }
   ">=" { R(TGE); }

@@ -1175,6 +1175,14 @@ static ERROR p_expr_binary(struct node *node, struct module *mod) {
     EXCEPT(e);
   }
 
+  if (node->which == BIN
+      && (node->as.BIN.operator == TEQMATCH || node->as.BIN.operator == TNEMATCH)) {
+    if (subs_last_const(node)->which != IDENT) {
+      THROW_SYNTAX(mod, &tok, "malformed right term for match operator '%s',"
+                   " must be an identifier", token_strings[node->as.BIN.operator]);
+    }
+  }
+
   return 0;
 }
 

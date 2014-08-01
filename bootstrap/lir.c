@@ -597,12 +597,15 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
     }
     break;
   case BIN:
-    if (OP_KIND(node->as.BIN.operator) == OP_BIN_SYM_BOOL) {
-      rewrite_bool_op(mod, node);
-    } else if (OP_KIND(node->as.BIN.operator) == OP_BIN_SYM_PTR) {
-      rewrite_ptr_op(mod, node);
-    } else if (OP_KIND(node->as.BIN.operator) == OP_BIN_OPT_ACC) {
-      rewrite_opt_acc_op(mod, node);
+    {
+      enum token_type op = node->as.BIN.operator;
+      if (OP_KIND(op) == OP_BIN_SYM_BOOL) {
+        rewrite_bool_op(mod, node);
+      } else if (OP_KIND(op) == OP_BIN_SYM_PTR) {
+        rewrite_ptr_op(mod, node);
+      } else if (OP_KIND(op) == OP_BIN_OPT_ACC) {
+        rewrite_opt_acc_op(mod, node);
+      }
     }
     break;
   case CALL:

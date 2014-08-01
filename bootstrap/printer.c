@@ -56,6 +56,8 @@ const char *token_strings[TOKEN__NUM] = {
   [TNE] = " != ",
   [TEQPTR] = " === ",
   [TNEPTR] = " !== ",
+  [TEQMATCH] = " ==| ",
+  [TNEMATCH] = " !=| ",
   [TLE] = " <= ",
   [TLT] = " < ",
   [TGT] = " > ",

@@ -244,6 +244,17 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
           || (right->which == CALL
               && !typ_isa(right->typ, TBI_RETURN_BY_COPY)))) {
     print_expr(out, mod, right, T__STATEMENT);
+  } else if (op == TEQMATCH || op == TNEMATCH) {
+    const char *cop = op == TEQMATCH ? "==" : "!=";
+
+    fprintf(out, "(");
+    print_expr(out, mod, left, T__STATEMENT);
+    fprintf(out, ").%s %s ", idents_value(mod->gctx, ID_TAG), cop);
+
+    const struct node *d = typ_definition_const(left->typ);
+    const struct node *ch = node_get_member_const(d, node_ident(right));
+    print_defchoice_path(out, mod, d, ch);
+    fprintf(out, "$%s", idents_value(mod->gctx, ID_TAG));
   } else {
     print_expr(out, mod, left, op);
     print_token(out, op);

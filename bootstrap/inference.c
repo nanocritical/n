@@ -623,6 +623,8 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
     EXCEPT(e);
 
     left->flags |= right->flags & NODE__ASSIGN_TRANSITIVE;
+  } else if (operator == TEQMATCH || operator == TNEMATCH) {
+    // noop
   } else {
     e = unify(mod, node, left->typ, right->typ);
     EXCEPT(e);
@@ -717,6 +719,27 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
       } else {
         set_typ(&node->typ, TBI_BOOL);
       }
+      break;
+    case TEQMATCH:
+    case TNEMATCH:
+      {
+        const struct node *d = typ_definition_const(left->typ);
+        if (d->which != DEFTYPE || d->as.DEFTYPE.kind != DEFTYPE_UNION) {
+          e = mk_except_type(mod, left, "match operator must be used on a union,"
+                             " not on type '%s'", pptyp(mod, left->typ));
+          THROW(e);
+        }
+        const struct node *f = node_get_member_const(d, node_ident(right));
+        if (f == NULL) {
+          e = mk_except_type(mod, right, "unknown ident '%s' in match"
+                             " operator pattern",
+                             idents_value(mod->gctx, node_ident(right)));
+          THROW(e);
+        }
+      }
+      e = unify(mod, right, right->typ, left->typ);
+      EXCEPT(e);
+      set_typ(&node->typ, TBI_BOOL);
       break;
     default:
       set_typ(&node->typ, TBI_VOID);
