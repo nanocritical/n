@@ -171,6 +171,7 @@ extern struct typ *TBI_VARARG;
 extern struct typ *TBI_ARITHMETIC;
 extern struct typ *TBI_INTEGER_ARITHMETIC;
 extern struct typ *TBI_OVERFLOW_ARITHMETIC;
+extern struct typ *TBI_INTEGER_LITERAL_COMPATIBLE;
 extern struct typ *TBI_INTEGER;
 extern struct typ *TBI_UNSIGNED_INTEGER;
 extern struct typ *TBI_NATIVE_INTEGER;

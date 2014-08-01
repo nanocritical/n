@@ -106,6 +106,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_ARITHMETIC] = "`Arithmetic",
   [ID_TBI_INTEGER_ARITHMETIC] = "`Integer_arithmetic",
   [ID_TBI_OVERFLOW_ARITHMETIC] = "`Overflow_arithmetic",
+  [ID_TBI_INTEGER_LITERAL_COMPATIBLE] = "`Integer_literal_compatible",
   [ID_TBI_INTEGER] = "`Integer",
   [ID_TBI_UNSIGNED_INTEGER] = "`Unsigned_integer",
   [ID_TBI_NATIVE_INTEGER] = "`Native_integer",
@@ -436,6 +437,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_ARITHMETIC = gctx->builtin_typs_by_name[ID_TBI_ARITHMETIC];
   TBI_INTEGER_ARITHMETIC = gctx->builtin_typs_by_name[ID_TBI_INTEGER_ARITHMETIC];
   TBI_OVERFLOW_ARITHMETIC = gctx->builtin_typs_by_name[ID_TBI_OVERFLOW_ARITHMETIC];
+  TBI_INTEGER_LITERAL_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_INTEGER_LITERAL_COMPATIBLE];
   TBI_INTEGER = gctx->builtin_typs_by_name[ID_TBI_INTEGER];
   TBI_UNSIGNED_INTEGER = gctx->builtin_typs_by_name[ID_TBI_UNSIGNED_INTEGER];
   TBI_NATIVE_INTEGER = gctx->builtin_typs_by_name[ID_TBI_NATIVE_INTEGER];

@@ -1089,6 +1089,7 @@ struct typ *TBI_VARARG;
 struct typ *TBI_ARITHMETIC;
 struct typ *TBI_INTEGER_ARITHMETIC;
 struct typ *TBI_OVERFLOW_ARITHMETIC;
+struct typ *TBI_INTEGER_LITERAL_COMPATIBLE;
 struct typ *TBI_INTEGER;
 struct typ *TBI_UNSIGNED_INTEGER;
 struct typ *TBI_NATIVE_INTEGER;

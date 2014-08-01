@@ -284,11 +284,12 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
       typ_link_tentative(a, b);
     }
   } else if (typ_equal(b, TBI_LITERALS_INTEGER)) {
-    if (!typ_is_tentative(a) && typ_isa(TBI_INTEGER, a) && !typ_equal(a, TBI_INTEGER)) {
+    if (!typ_is_tentative(a) && typ_isa(TBI_INTEGER_LITERAL_COMPATIBLE, a)
+        && !typ_equal(a, TBI_INTEGER_LITERAL_COMPATIBLE)) {
       // noop
     } else if (typ_is_tentative(a) && typ_isa(b, a)) {
       typ_link_tentative(b, a);
-    } else if (!typ_isa(a, TBI_INTEGER)
+    } else if (!typ_isa(a, TBI_INTEGER_LITERAL_COMPATIBLE)
                && typ_is_tentative(a) && typ_definition_const(a)->which == DEFINTF) {
       struct node *dinc = defincomplete_create(mod, for_error);
 
@@ -301,7 +302,7 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
       typ_link_tentative(dinc->typ, a);
       typ_link_tentative(dinc->typ, b);
     } else {
-      e = typ_check_isa(mod, for_error, a, TBI_INTEGER);
+      e = typ_check_isa(mod, for_error, a, TBI_INTEGER_LITERAL_COMPATIBLE);
       EXCEPT(e);
 
       typ_link_tentative(a, b);

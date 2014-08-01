@@ -681,8 +681,11 @@ inline struct Tuple_16 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`C
 intf `Numeric =
 	isa `Copyable `Arithmetic `Ordered `Show
 
+intf `Integer_literal_compatible =
+	isa `Numeric
+
 intf `Integer =
-	isa `Numeric `Integer_arithmetic `Has_compare
+	isa `Numeric `Integer_arithmetic `Has_compare `Integer_literal_compatible
 	fun MIN = this
 	fun MAX = this
 
@@ -723,7 +726,7 @@ intf `Native_boolean =
 		\ `Trivial_order `Bool_compatible `Show
 
 intf `Floating =
-	isa `Numeric `Has_compare
+	isa `Numeric `Has_compare `Integer_literal_compatible
 
 intf `Native_floating =
 	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy

@@ -5,5 +5,11 @@ fun Main = I32
 	let g = f + 10.2 * .2
 	if g < 0.1:Float
 		return 1
+	elif g < 1
+		return 2
+	elif g < 1 + 2.0
+		return 3
+	elif g < 1 + 3
+		return 4
 	else
 		return 0
