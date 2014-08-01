@@ -1813,7 +1813,7 @@ static ERROR constraint_inference_defname(struct module *mod,
   node->constraint->users = calloc(1, sizeof(*node->constraint->users));
 
   constraint_copy(mod, node->constraint, subs_last(node)->constraint);
-  if (typ_isa(node->typ, TBI_DEFAULT_CTOR)) {
+  if (typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
     constraint_set(mod, node->constraint, CBI_INIT, false);
   }
 
@@ -1949,6 +1949,23 @@ error step_constraint_inference(struct module *mod, struct node *node,
     }
     if (node->as.INIT.for_tag != ID__NONE) {
       constraint_set_tag(mod, node->constraint, node->as.INIT.for_tag, false);
+
+      const struct node *d = typ_definition_const(node->typ);
+      if (d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+        constraint_set(mod, node->constraint, CBI_INIT, false);
+      } else if (d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_UNION) {
+        const struct node *ch = node_get_member_const(node, node->as.INIT.for_tag);
+        const struct node *ext = node_defchoice_external_payload(ch);
+        if (ext != NULL && typ_isa(ext->typ, TBI_TRIVIAL_CTOR)) {
+          constraint_set(mod, node->constraint, CBI_INIT, false);
+        }
+        // If the payload is inline (i.e. not external), we don't currently
+        // have a way to determine that this particular payload, for this
+        // tag, is trivial to build. We rely on whether the whole node->typ
+        // is TBI_TRIVIAL_CTOR.
+      } else {
+        assert(false);
+      }
     }
     break;
   case BIN:
