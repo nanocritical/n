@@ -568,6 +568,18 @@ static void print_tag_init(FILE *out, const struct module *mod,
   }
 
   const ident tag = node->as.INIT.for_tag;
+  if (tag == ID__NONE) {
+    // We rely on constraints to catch the cases where this would create a
+    // badly initialized enum/union. But in a case like:
+    //  let what such
+    //    if ...
+    //      what = A
+    //    else
+    //      what = B
+    // This is overall well-formed.
+    return;
+  }
+
   const struct node *ch = node_get_member_const(d, tag);
 
   if (!is_inline) {
