@@ -17,7 +17,7 @@ inline Slicebuf met Count = Uint
 inline Slicebuf met All = Range
 	return self.s.All
 
-inline Slicebuf met$ Buffer = []$t
+inline Slicebuf met$ Buf = []$t
 	return self$s
 
 inline Slicebuf met# Clear
