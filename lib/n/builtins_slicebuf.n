@@ -27,7 +27,7 @@ inline Slicebuf met# Clear
 inline Slicebuf met# Push = @#t
 	let nend = self.s.Count + 1
 	self#Reserve nend
-	self!s = self.s.[.. nend]
+	self!s = self!s![.. nend]
 	return self#Last
 
 inline Slicebuf shallow met$ First = @$t

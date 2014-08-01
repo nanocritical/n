@@ -409,14 +409,11 @@ inline Slice_impl shallow met$ Operator_sub r:Range = this
 	Assert <- r.Begin <= self.cap
 	Assert <- r.End <= self.cap
 	let newcap = self.cap - r.Begin
-	let el_cnt = 0 such
-		if r.Begin < self.cnt
-			el_cnt = Min r.Count self.cnt-r.Begin
 
 	let raw0 = (Cast @U8 @#U8) self.Unsafe_rawdata
 	and off = r.Begin * (sizeof t)
 	let raw = Slice_at_byte raw0 off
-	return {dat=((Cast @#U8 @#t) raw) cnt=el_cnt cap=newcap}
+	return {dat=((Cast @#U8 @#t) raw) cnt=r.Count cap=newcap}
 
 inline Slice_impl shallow met$ Recapped cap:Uint = this
 	Assert <- cap <= self.cap
@@ -493,6 +490,12 @@ example block
 				Assert <- m.[i] == ref.[i]
 			let n = h!Full_copy ref
 			Assert <- n.Count == m.Count
+	let o = { 8 8 8 8 8 8 8 8 }:[]!Uint such
+		o = o#Copy ref
+	let p = o.[0 .. 0]
+	Assert <- p.Count == 0
+	let q = p.[0 .. 8]
+	Assert <- q.Count == 8
 	true
 
 intf `Any_tuple =
