@@ -39,7 +39,12 @@ static void record_final(struct module *mod, struct typ *t) {
     break;
   }
 
-  if (!node_is_at_top(top)) {
+  // Attribute the dependency to the parent type (if any), unless 'top' is a
+  // generic function.
+  if (!node_is_at_top(top)
+      && (!(NM(top->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
+          || typ_generic_arity(top->typ) == 0
+          || typ_is_generic_functor(top->typ))) {
     top = parent(top);
     toplevel = node_toplevel(top);
     mask |= toplevel->flags & TO_KEEP;

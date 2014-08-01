@@ -286,7 +286,8 @@ static void create_update_concrete_flag(struct typ *t) {
         // Too early to tell
         break;
       }
-      if (typ_is_generic_functor(arg)) {
+      if (typ_is_generic_functor(arg)
+          && typ_definition_const(arg)->which != DEFINTF) {
         continue;
       }
       if (!typ_is_concrete(arg)) {
