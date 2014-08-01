@@ -30,6 +30,16 @@ union hun =
 		| BB
 			z	:I64
 
+struct a =
+	isa `Trivial_copy
+	x	:I32
+
+union ext =
+	| A -> a
+	| B
+	| C -> a, a
+	| D -> U32
+
 --fun only_a x:en::|A
 --  noop
 
@@ -51,4 +61,11 @@ fun Main = I32
 	let u = {}:un.A
 	Assert <- u ==| A
 	Assert <- u !=| B
+
+	let v = {}:un.B
+	Assert <- v.B.x == 0
+
+	let x = {}:ext.A
+	Assert <- x.A.x == 0
+
 	return 0

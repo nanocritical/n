@@ -2304,6 +2304,7 @@ static ERROR p_deftype_statement(struct node *node, struct module *mod,
   error e = 0;
   struct token tok = { 0 };
   struct toplevel toplevel = { 0 };
+  const bool defchoice_parent = parent_const(node)->which == DEFCHOICE;
 
 again:
   e = scan(&tok, mod);
@@ -2337,6 +2338,17 @@ again:
     e = p_invariant(node, mod);
     break;
   case TIDENT:
+    if (defchoice_parent) {
+      struct token nxt = { 0 };
+      e = scan(&nxt, mod);
+      EXCEPT(e);
+      back(mod, &nxt);
+      if (nxt.t != TCOLON) {
+        back(mod, &tok);
+        e = p_expr(node, mod, T__STATEMENT);
+        break;
+      }
+    }
     back(mod, &tok);
     e = p_deffield(node, mod);
     break;

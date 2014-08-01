@@ -681,6 +681,20 @@ struct node *node_fun_retval(struct node *def) {
   return CONST_CAST(node_fun_retval_const(def));
 }
 
+const struct node *node_defchoice_external_payload(const struct node *node) {
+  assert(node->which == DEFCHOICE);
+  if (subs_count(node) != IDX_CH_FIRST_PAYLOAD+1) {
+    return NULL;
+  }
+
+  const struct node *p = subs_at_const(node, IDX_CH_FIRST_PAYLOAD);
+  if (NM(p->which) & (NM(DEFFIELD) | NM(DEFCHOICE))) {
+    return NULL;
+  }
+
+  return p;
+}
+
 struct node *node_get_member(struct node *node, ident id) {
   assert(NM(node->which) & (NM(DEFTYPE) | NM(DEFCHOICE) | NM(DEFINTF) | NM(DEFINCOMPLETE)));
   struct node *m = NULL;

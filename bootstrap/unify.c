@@ -501,9 +501,13 @@ static bool has_variant_with_field(struct module *mod,
       continue;
     }
 
+    const struct scope *sc = &dc->scope;
+    const struct node *ext = node_defchoice_external_payload(dc);
+    if (ext != NULL) {
+      sc = &typ_definition_const(ext->typ)->scope;
+    }
     struct node *r = NULL;
-    error e = scope_lookup_ident_immediate(&r, for_error, mod, &dc->scope,
-                                           f, true);
+    error e = scope_lookup_ident_immediate(&r, for_error, mod, sc, f, true);
     if (!e) {
       return true;
     }

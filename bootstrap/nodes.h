@@ -1332,6 +1332,7 @@ size_t node_fun_max_args_count(const struct node *def);
 ssize_t node_fun_first_vararg(const struct node *def);
 struct node *node_fun_retval(struct node *def);
 const struct node *node_fun_retval_const(const struct node *def);
+const struct node *node_defchoice_external_payload(const struct node *node);
 size_t node_branching_exhaustive_branch_count(struct node *node);
 
 #define STEP_NM_DEFS_NO_FUNS \

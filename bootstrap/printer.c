@@ -715,7 +715,11 @@ static void print_defchoice(FILE *out, const struct module *mod, int indent,
     FOREACH_SUB_EVERY_CONST(s, node, IDX_CH_FIRST_PAYLOAD, 1) {
       fprintf(out, "\n");
       spaces(out, indent+2);
-      print_deftype_statement(out, mod, indent+2, s);
+      if (NM(node->which) | (NM(DEFFIELD) | NM(DEFCHOICE))) {
+        print_deftype_statement(out, mod, indent+2, s);
+      } else {
+        print_expr(out, mod, node_defchoice_external_payload(node), T__STATEMENT);
+      }
     }
   }
   return;
@@ -761,8 +765,13 @@ static void print_deftype_statement(FILE *out, const struct module *mod, int ind
     print_defmethod(out, mod, 0, node);
     break;
   default:
-    fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
-    assert(false);
+    if (parent_const(node)->which == DEFCHOICE
+        && node_defchoice_external_payload(parent_const(node)) == node) {
+      print_expr(out,mod, node, T__STATEMENT);
+    } else {
+      fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
+      assert(false);
+    }
   }
 }
 

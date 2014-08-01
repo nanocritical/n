@@ -993,7 +993,8 @@ static void bin_accessor_maybe_defchoice(struct node **parent_scope, struct node
     assert(!e);
     assert(defchoice->which == DEFCHOICE);
 
-    *parent_scope = defchoice;
+    const struct node *ext = node_defchoice_external_payload(defchoice);
+    *parent_scope = ext != NULL ? typ_definition(ext->typ) : defchoice;
   }
 }
 
@@ -2219,14 +2220,24 @@ static ERROR type_inference_defchoice_init(struct module *mod,
     const struct node *d = dleaf;
     struct node *field = NULL;
     while (true) {
-      e = scope_lookup_ident_immediate(&field, name, mod, &d->scope,
+      const struct scope *sc = &d->scope;
+      if (d->which == DEFCHOICE) {
+        const struct node *ext = node_defchoice_external_payload(d);
+        if (ext != NULL) {
+          sc = &typ_definition_const(ext->typ)->scope;
+        }
+      }
+
+      e = scope_lookup_ident_immediate(&field, name, mod, sc,
                                        node_ident(name), true);
       if (!e) {
         break;
       }
 
       if (d->which == DEFTYPE) {
-        assert(false && "field names were checked by unify_with_defincomplete()");
+        e = mk_except_type(mod, name, "field '%s' not found",
+                           idents_value(mod->gctx, node_ident(name)));
+        THROW(e);
       }
 
       d = parent_const(d);

@@ -2040,6 +2040,20 @@ static void print_defchoice_payload(FILE *out,
                                     const struct module *mod,
                                     const struct node *deft,
                                     const struct node *ch) {
+  if (ch->which == DEFCHOICE) {
+    const struct node *ext = node_defchoice_external_payload(ch);
+    if (ext != NULL) {
+      if (fwd == FWD_DECLARE_TYPES) {
+        fprintf(out, "typedef ");
+        print_typ(out, mod, ext->typ);
+        fprintf(out, " ");
+        print_defchoice_path(out, mod, deft, ch);
+        fprintf(out, ";\n");
+      }
+      return;
+    }
+  }
+
   fprintf(out, "struct ");
   print_defchoice_path(out, mod, deft, ch);
 
