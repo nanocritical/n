@@ -34,6 +34,10 @@ char *xdirname(const char *s) {
       }
     }
 
+    if (n < 0) {
+      return strdup(".");
+    }
+
     while (n > 1 && s[n-1] == '/') {
       n -= 1;
     }
@@ -50,10 +54,10 @@ char *xdirname(const char *s) {
 
 EXAMPLE(xdirname) {
   assert(strcmp(xdirname(NULL), ".") == 0);
-  assert(strcmp(xdirname(""), "") == 0);
+  assert(strcmp(xdirname(""), ".") == 0);
   assert(strcmp(xdirname("/"), "/") == 0);
   assert(strcmp(xdirname("///"), "/") == 0);
-  assert(strcmp(xdirname("a"), "a") == 0);
+  assert(strcmp(xdirname("a"), ".") == 0);
   assert(strcmp(xdirname("a/b"), "a") == 0);
   assert(strcmp(xdirname("a/b/c/d"), "a/b/c") == 0);
   assert(strcmp(xdirname("a/b/c/"), "a/b/c") == 0);
