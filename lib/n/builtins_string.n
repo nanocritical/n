@@ -261,8 +261,10 @@ inline Stringbuf met# Copy b:[]U8
 	self#Reserve b.Count
 	self#bytes = self.bytes!Copy b
 
-inline Stringbuf met# Reserve cap:Uint within Heap
-	Realloc @#self#bytes cap
+inline Stringbuf met# Reserve atleast:Uint within Heap
+	if self.bytes.cap >= atleast
+		return
+	Realloc @#self#bytes atleast
 
 inline Stringbuf met# Auto_shrink within Heap
 	let cap = self.bytes.Cap

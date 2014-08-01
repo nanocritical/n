@@ -55,8 +55,10 @@ inline Slicebuf met# Copy s:[]t
 	self#Reserve s.Count
 	self#s = self.s!Copy s
 
-inline Slicebuf met# Reserve cap:Uint
-	Realloc @#self#s cap
+inline Slicebuf met# Reserve atleast:Uint
+	if self.s.cap >= atleast
+		return
+	Realloc @#self#s atleast
 
 -- FIXME: unexport.
 inline Slicebuf met# Auto_shrink
