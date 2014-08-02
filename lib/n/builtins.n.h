@@ -14,17 +14,15 @@ struct NB(Valist) {
 #ifdef NLANG_DECLARE_FUNCTIONS
 
 #define NLANG_STRING_LITERAL(s) \
-  n$builtins$String$From_bytes( \
-    (_$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_){ \
-                     .dat = (n$builtins$U8 *)s, \
-                     .cnt = sizeof(s)-1, \
-                     .cap = sizeof(s) })
+{ .bytes = { \
+  .dat = (n$builtins$U8 *)s, \
+  .cnt = sizeof(s)-1, \
+  .cap = sizeof(s) } }
 
 #define NLANG_BYTE_SLICE(b, cnt) \
-    ( (_$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_){ \
-                     .dat = (n$builtins$U8 *)b, \
-                     .cnt = cnt, \
-                     .cap = cnt} )
+{ .dat = (n$builtins$U8 *)b, \
+  .cnt = cnt, \
+  .cap = cnt }
 
 #define NLANG_BUILTINS_VARARG_START(va) do { \
   va_start((va).ap.ap, _$Nvarargcount); \

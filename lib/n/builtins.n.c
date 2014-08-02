@@ -22,7 +22,9 @@ const NB(Void) *NB(Nonnull_void)(void) {
 }
 
 static void native_write_buffer(_$Ndyn_n$fmt$_$Ni_State st, const char *s, int cnt) {
-  st.vptr->Write(st.obj, NLANG_BYTE_SLICE(s, cnt));
+  const _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ bytes =
+    NLANG_BYTE_SLICE(s, cnt);
+  st.vptr->Write(st.obj, bytes);
 }
 
 void n$builtins$Bool$Show(const NB(Bool) *self, _$Ndyn_n$fmt$_$Ni_State st) {
