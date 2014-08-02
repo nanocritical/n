@@ -695,13 +695,13 @@ intf `Integer =
 intf `Signed_integer =
 	isa `Integer
 	alias This_unsigned = `Unsigned_integer
-	met Unsafe_unsigned = final.This_unsigned
+	met Unsigned = final.This_unsigned
 	met Try_unsigned = Error, final.This_unsigned
 
 intf `Unsigned_integer =
 	isa `Integer
 	alias This_signed = `Signed_integer
-	met Unsafe_signed = final.This_signed
+	met Signed = final.This_signed
 	met Try_signed = Error, final.This_signed
 
 intf `Native_integer =
@@ -803,7 +803,7 @@ extern inline I8 met! Operator_assign_bwor other:@this
 extern inline I8 met! Operator_assign_bwxor other:@this
 extern inline I8 met! Operator_assign_bwand other:@this
 extern inline I8 met! Operator_assign_rshift by:U32
-inline I8 met Unsafe_unsigned = U8
+inline I8 met Unsigned = U8
 	Assert <- self >= 0
 	return self.Bitwise_unsigned
 inline I8 met Try_unsigned = Error_range, U8
@@ -853,7 +853,7 @@ extern inline I16 met! Operator_assign_bwor other:@this
 extern inline I16 met! Operator_assign_bwxor other:@this
 extern inline I16 met! Operator_assign_bwand other:@this
 extern inline I16 met! Operator_assign_rshift by:U32
-inline I16 met Unsafe_unsigned = U16
+inline I16 met Unsigned = U16
 	Assert <- self >= 0
 	return self.Bitwise_unsigned
 inline I16 met Try_unsigned = Error_range, U16
@@ -903,7 +903,7 @@ extern inline I32 met! Operator_assign_bwor other:@this
 extern inline I32 met! Operator_assign_bwxor other:@this
 extern inline I32 met! Operator_assign_bwand other:@this
 extern inline I32 met! Operator_assign_rshift by:U32
-inline I32 met Unsafe_unsigned = U32
+inline I32 met Unsigned = U32
 	Assert <- self >= 0
 	return self.Bitwise_unsigned
 inline I32 met Try_unsigned = Error_range, U32
@@ -958,7 +958,7 @@ extern inline I64 met! Operator_assign_bwor other:@this
 extern inline I64 met! Operator_assign_bwxor other:@this
 extern inline I64 met! Operator_assign_bwand other:@this
 extern inline I64 met! Operator_assign_rshift by:U32
-inline I64 met Unsafe_unsigned = U64
+inline I64 met Unsigned = U64
 	Assert <- self >= 0
 	return self.Bitwise_unsigned
 inline I64 met Try_unsigned = Error_range, U64
@@ -1028,7 +1028,7 @@ extern inline U8 met! Operator_assign_bwxor other:@this
 extern inline U8 met! Operator_assign_bwand other:@this
 extern inline U8 met! Operator_assign_ovlshift by:U32
 extern inline U8 met! Operator_assign_rshift by:U32
-inline U8 met Unsafe_signed = I8
+inline U8 met Signed = I8
 	Assert <- self <= I8.MAX.Bitwise_unsigned
 	return self.Bitwise_signed
 inline U8 met Try_signed = Error_range, I8
@@ -1091,7 +1091,7 @@ extern inline U16 met! Operator_assign_bwxor other:@this
 extern inline U16 met! Operator_assign_bwand other:@this
 extern inline U16 met! Operator_assign_ovlshift by:U32
 extern inline U16 met! Operator_assign_rshift by:U32
-inline U16 met Unsafe_signed = I16
+inline U16 met Signed = I16
 	Assert <- self <= I16.MAX.Bitwise_unsigned
 	return self.Bitwise_signed
 inline U16 met Try_signed = Error_range, I16
@@ -1154,7 +1154,7 @@ extern inline U32 met! Operator_assign_bwxor other:@this
 extern inline U32 met! Operator_assign_bwand other:@this
 extern inline U32 met! Operator_assign_ovlshift by:U32
 extern inline U32 met! Operator_assign_rshift by:U32
-inline U32 met Unsafe_signed = I32
+inline U32 met Signed = I32
 	Assert <- self <= I32.MAX.Bitwise_unsigned
 	return self.Bitwise_signed
 inline U32 met Try_signed = Error_range, I32
@@ -1217,7 +1217,7 @@ extern inline U64 met! Operator_assign_bwxor other:@this
 extern inline U64 met! Operator_assign_bwand other:@this
 extern inline U64 met! Operator_assign_ovlshift by:U32
 extern inline U64 met! Operator_assign_rshift by:U32
-inline U64 met Unsafe_signed = I64
+inline U64 met Signed = I64
 	Assert <- self <= I64.MAX.Bitwise_unsigned
 	return self.Bitwise_signed
 inline U64 met Try_signed = Error_range, I64
@@ -1276,7 +1276,7 @@ extern inline Int met Operator_bwnot = final
 extern inline Int met! Operator_assign_bwor other:@final
 extern inline Int met! Operator_assign_bwxor other:@final
 extern inline Int met! Operator_assign_bwand other:@final
-inline Int met Unsafe_unsigned = Uint
+inline Int met Unsigned = Uint
 	Assert <- self >= 0
 	return self.force_unsigned
 inline Int met Try_unsigned = Error_range, Uint
@@ -1327,7 +1327,7 @@ extern inline Uint met Operator_bwnot = final
 extern inline Uint met! Operator_assign_bwor other:@final
 extern inline Uint met! Operator_assign_bwxor other:@final
 extern inline Uint met! Operator_assign_bwand other:@final
-inline Uint met Unsafe_signed = Int
+inline Uint met Signed = Int
 	Assert <- self <= Int.MAX.force_unsigned
 	return self.force_signed
 inline Uint met Try_signed = Error_range, Int
