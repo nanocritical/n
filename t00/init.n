@@ -5,7 +5,7 @@ struct nocopy =
 	x	:I32
 	y	:I32
 
-example block
+example
 	let a = {}:nocopy such
 		a!x = 1
 		a!y = 2
@@ -18,7 +18,7 @@ example block
 		b = {y=3}
 	b.x == 0 and b.y == 3
 
-example block
+example
 	let a = {}:tt such
 		a!x = 1
 		a!y = 2

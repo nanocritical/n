@@ -1751,7 +1751,9 @@ static ERROR p_pre(struct node *node, struct module *mod) {
     G(call, CALL,
       G(name, IDENT,
         name->as.IDENT.name = ID_PRE)));
-  error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
+  error e = scan_expected(mod, TSOB);
+  EXCEPT(e);
+  e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
   EXCEPT(e);
 
   return 0;
@@ -1765,7 +1767,9 @@ static ERROR p_post(struct node *node, struct module *mod) {
     G(call, CALL,
       G(name, IDENT,
         name->as.IDENT.name = ID_POST)));
-  error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
+  error e = scan_expected(mod, TSOB);
+  EXCEPT(e);
+  e = p_block(node_new_subnode(mod, call), mod);
   EXCEPT(e);
 
   return 0;
@@ -1779,7 +1783,9 @@ static ERROR p_invariant(struct node *node, struct module *mod) {
     G(call, CALL,
       G(name, IDENT,
         name->as.IDENT.name = ID_INVARIANT)));
-  error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
+  error e = scan_expected(mod, TSOB);
+  EXCEPT(e);
+  e = p_block(node_new_subnode(mod, call), mod);
   EXCEPT(e);
 
   return 0;
@@ -1795,7 +1801,9 @@ static ERROR p_example(struct node *node, struct module *mod) {
     G(call, CALL,
       G(name, IDENT,
         name->as.IDENT.name = ID_EXAMPLE)));
-  error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
+  error e = scan_expected(mod, TSOB);
+  EXCEPT(e);
+  e = p_block(node_new_subnode(mod, call), mod);
   EXCEPT(e);
 
   return 0;

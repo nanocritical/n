@@ -64,7 +64,7 @@ inline Rune met Encode z:[]!U8 = Uint
 inline Rune met Hash32 = U32
 	return self.Code
 
-example <- Rune.From_ascii 49 == '1':Rune
+example -> Rune.From_ascii 49 == '1':Rune
 
 inline Rune met Show st:@#n.fmt.`State
 	--let s = {}:[4]U8 ...
@@ -172,13 +172,13 @@ String met Strip_left any:String = String
 String met Strip_right any:String = String
 String met Split ?sep:?@String ?max:?@Uint = []String
 
-example <- '1234'.Bytes.Count == 4
-example <- '1234'.Bytes.All == 0 .. 4
-example <- '1234'.Bytes.[3] == '4'.[0]
-example <- '1234'.Bytes.[1].To_u32 == ('2':Rune).Code
-example <- '1234' == '1234'
-example <- '1234'.Bytes.Count == 4
-example <- '1234'.Bytes.[0] == 49
+example -> '1234'.Bytes.Count == 4
+example -> '1234'.Bytes.All == 0 .. 4
+example -> '1234'.Bytes.[3] == '4'.[0]
+example -> '1234'.Bytes.[1].To_u32 == ('2':Rune).Code
+example -> '1234' == '1234'
+example -> '1234'.Bytes.Count == 4
+example -> '1234'.Bytes.[0] == 49
 
 inline struct Stringbuf =
 	isa `Stringbuf
