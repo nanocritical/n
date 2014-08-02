@@ -175,7 +175,7 @@ static void print_scope_last_name(FILE *out, const struct module *mod,
 
 static void print_scope_name(FILE *out, const struct module *mod,
                              const struct scope *scope) {
-  if (parent_const(parent_const(scope_node_const(scope)))) {
+  if (parent_const(parent_const(scope_node_const(scope))) != NULL) {
     print_scope_name(out, mod, &parent_const(scope_node_const(scope))->scope);
     if (node_ident(scope_node_const(scope)) != ID_ANONYMOUS) {
       fprintf(out, "$");
@@ -1131,7 +1131,32 @@ static void print_typ_data(FILE *out, const struct module *mod, const struct typ
   }
 }
 
+static void print_import_path(FILE *out, const struct module *mod,
+                              const struct node *node) {
+  switch (node->which) {
+  case IMPORT:
+    print_import_path(out, mod, subs_first_const(node));
+    break;
+  case BIN:
+    print_import_path(out, mod, subs_first_const(node));
+    fprintf(out, "$");
+    print_import_path(out, mod, subs_last_const(node));
+    break;
+  case IDENT:
+    print_ident(out, mod, node);
+    break;
+  default:
+    assert(false);
+  }
+}
+
 static void print_typ(FILE *out, const struct module *mod, const struct typ *typ) {
+  const struct node *d = typ_definition_const(typ);
+  if (d->which == IMPORT) {
+    print_import_path(out, mod, d);
+    return;
+  }
+
   if (typ_is_function(typ)) {
     print_typ_function(out, mod, typ);
   } else {
