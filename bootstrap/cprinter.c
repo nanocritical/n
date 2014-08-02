@@ -977,14 +977,12 @@ static bool prototype_only(bool header, const struct node *node) {
 static void print_generic_linkage(FILE *out, bool header, enum forward fwd,
                                   const struct node *at_top,
                                   const struct node *node) {
-  if (header) {
-    if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
-      if (node_is_inline(node)) {
-        fprintf(out, "static inline ");
-      } else {
-        if (fwd == FWD_DECLARE_FUNCTIONS) {
-          fprintf(out, "__attribute__((__weak__)) ");
-        }
+  if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+    if (node_is_inline(node)) {
+      fprintf(out, "static inline ");
+    } else {
+      if (fwd == FWD_DECLARE_FUNCTIONS) {
+        fprintf(out, "__attribute__((__weak__)) ");
       }
     }
   }
