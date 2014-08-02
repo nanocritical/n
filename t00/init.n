@@ -1,5 +1,37 @@
 from n import *
 
+struct nocopy =
+	isa `Not_return_by_copy
+	x	:I32
+	y	:I32
+
+example block
+	let a = {}:nocopy such
+		a!x = 1
+		a!y = 2
+		a = {x=3}
+	Assert <- a.x == 3 and a.y == 0
+
+	let b = {}:nocopy such
+		b!x = 1
+		b!y = 2
+		b = {y=3}
+	b.x == 0 and b.y == 3
+
+example block
+	let a = {}:tt such
+		a!x = 1
+		a!y = 2
+		a = {x=3}
+	Assert <- a.x == 3 and a.y == 0
+
+	let b = {}:tt such
+		b!x = 1
+		b!y = 2
+		b = {y=3}
+	b.x == 0 and b.y == 3
+
+
 struct tt =
 	isa `Trivial_copy
 	x	:I32
