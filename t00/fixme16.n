@@ -1,0 +1,11 @@
+from n import *
+
+struct a =
+	x	:I32
+
+fun foo s:[]a = Void
+
+fun Main = I32
+	let s = { {x=0} }
+	foo s
+	return 0
