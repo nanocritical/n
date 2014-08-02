@@ -14,7 +14,7 @@ fun Main = I32
 		v#Pop
 		(v#Push)! = 1
 		for i in v.All.Iter
-			Assert <- v.[i]. == i.Trim_u32.Unsafe_signed
+			Assert <- v.[i]. == i.Trim_u32.Signed
 	let w = foo
 	Assert <- w.[0]. == 1
 	Assert <- w.[1]. == 0

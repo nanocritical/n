@@ -114,6 +114,14 @@ inline String met Operator_ge other:@this = Bool
 inline String met Show st:@#n.fmt.`State
 	let _ = st#Write self.bytes
 
+example -> 'a' < 'b'
+example -> 'b' > 'a'
+example -> 'a' == 'a'
+example -> 'a' < 'aa'
+example -> 'b' > 'aa'
+example -> 'aa' > 'a'
+example -> 'aa' < 'b'
+
 -- Prime base used in the Rabin-Karp algorithm.
 let _PRIME_RK = 16777619
 

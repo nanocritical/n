@@ -345,7 +345,11 @@ extern inline fun Slice_memmove dst:@#U8 src:@U8 cnt:Uint
 extern inline fun Slice_memcmp a:@U8 b:@U8 cnt:Uint = Int
 
 inline fun Bytes_compare a:[]U8 b:[]U8 = Int
-	return Slice_memcmp a.Unsafe_data b.Unsafe_data (Min a.Count b.Count)
+	let acnt, bcnt = a.Count, b.Count
+	let c = Slice_memcmp a.Unsafe_data b.Unsafe_data (Min acnt bcnt)
+	if c == 0
+		return acnt.Signed - bcnt.Signed
+	return c
 
 opaque struct Slice_impl t:`Any =
 	isa (`Any_mutable_slice t)
