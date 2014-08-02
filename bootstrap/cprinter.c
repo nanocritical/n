@@ -234,15 +234,16 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
   const struct node *right = subs_last_const(node);
   if (op == TASSIGN && typ_equal(left->typ, TBI_VOID)) {
     assert(ident_is_spurious_ssa_var(left));
+
     if (right->which == IDENT) {
       assert(ident_is_spurious_ssa_var(right));
     } else {
       print_expr(out, mod, right, T__STATEMENT);
     }
   } else if (OP_IS_ASSIGN(op)
-      && (right->which == INIT
-          || (right->which == CALL
-              && !typ_isa(right->typ, TBI_RETURN_BY_COPY)))) {
+             && (right->which == INIT
+                 || (right->which == CALL
+                     && !typ_isa(right->typ, TBI_RETURN_BY_COPY)))) {
     print_expr(out, mod, right, T__STATEMENT);
   } else if (op == TEQMATCH || op == TNEMATCH) {
     const char *cop = op == TEQMATCH ? "==" : "!=";
@@ -256,9 +257,16 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
     print_defchoice_path(out, mod, d, ch);
     fprintf(out, "$%s", idents_value(mod->gctx, ID_TAG));
   } else {
+    const bool is_assign = OP_IS_ASSIGN(op);
+    if (is_assign) {
+      fprintf(out, "(void) ( ");
+    }
     print_expr(out, mod, left, op);
     print_token(out, op);
     print_expr(out, mod, right, op);
+    if (is_assign) {
+      fprintf(out, " )");
+    }
   }
 }
 
