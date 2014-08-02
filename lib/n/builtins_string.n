@@ -6,6 +6,7 @@ intf `String_compatible =
 
 intf `String =
 	isa `String_compatible `Ordered `Hashable32 `Trivial_copy_but_owned
+		\ (`Random_container U8)
 	fun From_bytes s:[]U8 = final--::(^Captures s)
 	met Bytes = []U8
 	met Operator_at n:Uint = U8
@@ -85,6 +86,9 @@ inline String met All = Range
 
 inline String met Bytes = []U8
 	return self.bytes
+
+inline String met Count = Uint
+	return self.bytes.Count
 
 inline String met Operator_at n:Uint = U8
 	return self.bytes.[n].
@@ -206,6 +210,9 @@ inline Stringbuf met All = Range
 
 inline Stringbuf met Str = String
 	return String.From_bytes self.bytes
+
+inline Stringbuf met Count = Uint
+	return self.bytes.Count
 
 inline Stringbuf met Operator_at n:Uint = U8
 	return self.bytes.[n].

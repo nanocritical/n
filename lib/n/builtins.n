@@ -1475,6 +1475,9 @@ Range met Operator_at p:Uint = Uint
 Range met Iter = Index_iterator
 	return { r=self. }
 
+Range met Reverse_iter = Reverse_index_iterator
+	return { it=self.Iter }
+
 inline struct Index_iterator =
 	isa (`Iterator Uint) `Trivial_copy `Trivial_ctor
 	r	:Range
@@ -1484,9 +1487,28 @@ Index_iterator met Has_next = Bool
 	return self.p < self.r.End
 
 Index_iterator met! Next = Uint
-	let r = self.p
+	let nxt = self.p
 	self!p += 1
-	return r
+	return nxt
+
+inline struct Reverse_index_iterator =
+	isa (`Iterator Uint) `Trivial_copy `Trivial_ctor
+	it	:Index_iterator
+
+Reverse_index_iterator met Has_next = Bool
+	return self.it.Has_next
+
+Reverse_index_iterator met! Next = Uint
+	return self.it.r.End - 1 - self!it!Next
+
+example
+	let r = {b=0 e=8}:Range
+	Assert <- r.Count == 8
+	let j = 7 such
+		for i in r.Reverse_iter
+			Assert <- i == j
+			j -= 1
+	true
 
 intf `Trivial_array_ctor t:`Copyable =
 	isa `Prevent_dyn (`Array_ctor t)

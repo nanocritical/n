@@ -1,0 +1,40 @@
+from n import *
+
+-- TODO Unicode...
+
+fun Trim_front s:String cut:String = String
+	foreach i in s.All
+		let c = s.[i]
+		let found = false such
+			foreach x in cut
+				if c == x
+					found = true
+		if not found
+			return s.[i ..]
+	return s
+
+fun Trim_back s:String cut:String = String
+	for i in s.All.Reverse_iter
+		let c = s.[i]
+		let found = false such
+			foreach x in cut
+				if c == x
+					found = true
+					break
+		if not found
+			return s.[.. i+1]
+	return s
+
+fun Trim s:String cut:String = String
+	let a = Trim_front s cut
+	let b = Trim_back a cut
+	return b
+
+fun Trim_spaces s:String = String
+	return Trim s " \n\t\r"
+
+example -> Trim_spaces "test" != "test "
+example -> Trim_spaces "a b" == "a b"
+example -> Trim_spaces " a b " == "a b"
+example -> Trim_spaces "\n a b" == "a b"
+example -> Trim_spaces "a\nb\n" == "a\nb"

@@ -164,6 +164,7 @@ static ERROR unify_generics(struct module *mod, const struct node *for_error,
       assert(user.result != NULL);
       b_in_a = user.result;
     }
+
     assert(b_in_a != b && "FIXME What does that mean?");
 
     assert(!typ_is_tentative(a0) && "FIXME handle it");
@@ -193,9 +194,36 @@ static ERROR unify_non_generic(struct module *mod, const struct node *for_error,
   if (!typ_is_tentative(b)) {
     SWAP(a, b);
   }
+  if (!typ_is_tentative(b)) {
+    e = mk_except_type_unification(mod, for_error, a, b);
+    THROW(e);
+  }
 
   e = typ_check_isa(mod, for_error, a, b);
   EXCEPT(e);
+
+  if (typ_equal(a, b)) {
+    e = unify_with_equal(mod, for_error, a, b);
+    EXCEPT(e);
+    return 0;
+  }
+
+  struct typ *b0 = typ_generic_functor(b);
+  bool b_genf = typ_is_generic_functor(b);
+  if (!b_genf) {
+    struct typ *b_in_a = NULL;
+
+    struct instance_of user = { .functor = b0, .result = NULL };
+    error never = typ_isalist_foreach(mod, a, 0, find_instance_of, &user);
+    assert(!never);
+    assert(user.result != NULL);
+    b_in_a = user.result;
+
+    assert(b_in_a != b && "FIXME What does that mean?");
+
+    e = unify_same_generic_functor(mod, for_error, b_in_a, b);
+    EXCEPT(e);
+  }
 
   typ_link_tentative(a, b);
 
