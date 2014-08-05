@@ -1429,52 +1429,41 @@ inline Double met Try_round_uint = Error_range, Uint
 extern Double met Show st:@#n.fmt.`State
 
 inline struct Bounds =
-	f	:Bool
-	l	:Bool
-	b	:Uint
-	e	:Uint
+	First	:Bool
+	Last	:Bool
+	Begin	:Uint
+	End	:Uint
 
 inline Bounds (met t:`Any c:(`Random_container t)) Range_of v:@c = Range
-	if self.f and self.l
-		return {b=0 e=v.Count}
-	elif self.f
-		return {b=0 e=self.e}
-	elif self.l
-		return {b=self.b e=v.Count}
+	if self.First and self.Last
+		return {Begin=0 End=v.Count}
+	elif self.First
+		return {Begin=0 End=self.End}
+	elif self.Last
+		return {Begin=self.Begin End=v.Count}
 	else
-		return {b=0 e=v.Count}
+		return {Begin=0 End=v.Count}
 
 inline struct Range =
 	isa `Trivial_copy `Trivial_equality `Trivial_ctor `Return_by_copy
-	b	:Uint
-	e	:Uint
-
-Range met Begin = Uint
-	return self.b
-
-Range met End = Uint
-	return self.e
+	Begin	:Uint
+	End	:Uint
 
 Range met Count = Uint
-	return self.e - self.b
+	return self.End - self.Begin
 
-Range met sub begin:Uint end:Uint = this
-	let r:this
-	such
-		if begin < self.Begin or end > self.End
-			Abort
-		r = {b=begin e=end}
-	return r
-
-Range met with_offset offset:Uint = this
-	let r = {b=self.Begin+offset e=self.End+offset}
-	return r
+Range met With_offset offset:Uint = this
+	return {Begin=self.Begin+offset End=self.End+offset}
 
 Range met All = this
 	return self.
 
 Range met Operator_at p:Uint = Uint
-	return self.b + p
+	return self.Begin + p
+
+Range met Operator_sub begin:Uint end:Uint = this
+	Assert <- begin >= self.Begin and end <= self.End
+	return {Begin=begin End=end}
 
 Range met Iter = Index_iterator
 	return { r=self. }
@@ -1506,7 +1495,7 @@ Reverse_index_iterator met! Next = Uint
 	return self.it.r.End - 1 - self!it!Next
 
 example
-	let r = {b=0 e=8}:Range
+	let r = {Begin=0 End=8}:Range
 	Assert <- r.Count == 8
 	let j = 7 such
 		for i in r.Reverse_iter

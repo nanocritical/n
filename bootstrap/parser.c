@@ -900,21 +900,21 @@ static void convert_range(struct module *mod, struct node *node) {
 
   gparent = node;
   if (beg == NULL) {
-    G_IDENT(firstn, "f");
+    G_IDENT(firstn, "First");
     G(first, BOOL,
       first->as.BOOL.value = true);
   }
   if (end == NULL) {
-    G_IDENT(lastn, "l");
+    G_IDENT(lastn, "Last");
     G(last, BOOL,
       last->as.BOOL.value = true);
   }
   if (beg != NULL) {
-    G_IDENT(begn, "b");
+    G_IDENT(begn, "Begin");
     node_subs_append(node, beg);
   }
   if (end != NULL) {
-    G_IDENT(endn, "e");
+    G_IDENT(endn, "End");
     node_subs_append(node, end);
   }
 
