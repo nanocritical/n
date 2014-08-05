@@ -274,8 +274,11 @@ error step_ssa_convert(struct module *mod, struct node *node,
 
   switch (par->which) {
   case BIN:
-    if (OP_IS_ASSIGN(par->as.BIN.operator) && node == subs_last(par)) {
-      ssa_sub(mod, par, node);
+    if (OP_IS_ASSIGN(par->as.BIN.operator)) {
+      if (node == subs_last(par)
+          || (node == subs_first(par) && node->which != TUPLE)) {
+        ssa_sub(mod, par, node);
+      }
       break;
     }
     // fallthrough
@@ -471,6 +474,98 @@ EXAMPLE_NCC_EMPTY(ssa_call) {
                   "    IDENT",
                   "   IDENT",
                   "   IDENT",
+                  NULL);
+}
+
+EXAMPLE_NCC_EMPTY(ssa_call_tuple) {
+  GSTART();
+  G0(n, mod->body, DEFFUN,
+     G(genargs, GENARGS);
+     G(funargs, FUNARGS,
+       G_IDENT(retval, "void"));
+     G(block, BLOCK,
+       G(let, LET,
+         G(defp, DEFPATTERN,
+           G(tu, TUPLE,
+             G_IDENT(x1, "x");
+             G_IDENT(y1, "y"))
+           G(call, CALL,
+             G(vc, IDENT))))));
+  assert(0 == ex_ssa_conversion(mod, n));
+  check_structure(n,
+                  "DEFFUN",
+                  " GENARGS",
+                  " FUNARGS",
+                  "  IDENT",
+                  " BLOCK",
+                  "  NOOP",
+                  "  LET",
+                  "   DEFNAME",
+                  "    IDENT",
+                  "    CALL",
+                  "     IDENT",
+                  "  LET",
+                  "   DEFNAME",
+                  "    IDENT",
+                  "    BIN",
+                  "     IDENT",
+                  "     IDENT",
+                  "  LET",
+                  "   DEFNAME",
+                  "    IDENT",
+                  "    BIN",
+                  "     IDENT",
+                  "     IDENT",
+                  NULL);
+}
+
+EXAMPLE_NCC_EMPTY(ssa_call_tuple_assign) {
+  GSTART();
+  G0(n, mod->body, DEFFUN,
+     G(genargs, GENARGS);
+     G(funargs, FUNARGS,
+       G_IDENT(retval, "void"));
+     G(block, BLOCK,
+       G(let, LET,
+         G(defp, DEFPATTERN,
+           G(tu1, TUPLE,
+             G_IDENT(x1, "x");
+             G_IDENT(y1, "y")));
+         G(such, BLOCK,
+           G(ass, BIN,
+             ass->as.BIN.operator = TASSIGN;
+             G(tu2, TUPLE,
+               G_IDENT(x2, "x");
+               G_IDENT(y2, "y"))
+             G(call, CALL,
+               G(vc, IDENT)))))));
+  assert(0 == ex_ssa_conversion(mod, n));
+  check_structure(n,
+                  "DEFFUN",
+                  " GENARGS",
+                  " FUNARGS",
+                  "  IDENT",
+                  " BLOCK",
+                  "  NOOP",
+                  "  LET",
+                  "   DEFNAME",
+                  "    IDENT",
+                  "    INIT",
+                  "  LET",
+                  "   DEFNAME",
+                  "    IDENT",
+                  "    INIT",
+                  "  BLOCK",
+                  "   LET",
+                  "    DEFNAME",
+                  "     IDENT",
+                  "     CALL",
+                  "      IDENT",
+                  "   BIN",
+                  "    TUPLE",
+                  "     IDENT",
+                  "     IDENT",
+                  "    IDENT",
                   NULL);
 }
 
