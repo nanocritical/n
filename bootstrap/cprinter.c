@@ -2008,6 +2008,10 @@ static ERROR print_dyn_field_eachisalist(struct module *mod, struct typ *ignored
     st->printed += 1;
     const struct node *thisf = node_get_member_const(typ_definition_const(t),
                                                      node_ident(f));
+    if (!typ_is_concrete(thisf->typ)) {
+      return 0;
+    }
+
     fprintf(st->out, ".%s = (", idents_value(mod->gctx, node_ident(thisf)));
     print_fun_prototype(st->out, st->header, st->fwd, mod, f, true, false, true, NULL);
     fprintf(st->out, ")");
