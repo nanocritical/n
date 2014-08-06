@@ -296,7 +296,7 @@ static void gen_by_compare(struct module *mod, struct node *deft,
          G_IDENT(other, "other"))));
 }
 
-static void gen_show_choices(struct module *mod, struct node *deft,
+static void gen_enum_show_choices(struct module *mod, struct node *deft,
                              struct node *par, const struct node *node) {
   assert(NM(node->which) & (NM(DEFCHOICE) | NM(DEFTYPE)));
 
@@ -334,17 +334,17 @@ static void gen_show_choices(struct module *mod, struct node *deft,
       continue;
     }
 
-    gen_show_choices(mod, deft, par, ch);
+    gen_enum_show_choices(mod, deft, par, ch);
   }
 }
 
-static void gen_show(struct module *mod, struct node *deft,
+static void gen_enum_show(struct module *mod, struct node *deft,
                      struct node *m, struct node *body) {
   GSTART();
   G0(match, body, MATCH,
      G_IDENT(self, "self"));
 
-  gen_show_choices(mod, deft, match, deft);
+  gen_enum_show_choices(mod, deft, match, deft);
 }
 
 static void add_auto_member(struct module *mod,
@@ -424,7 +424,7 @@ non_bg:
     node_toplevel(m)->builtingen = BG_ENUM_TAG;
     break;
   case ID_SHOW:
-    gen_show(mod, deft, m, body);
+    gen_enum_show(mod, deft, m, body);
     break;
   default:
     assert(false);
