@@ -4,15 +4,17 @@ inline struct Slicebuf t:`Any =
 
 inline Slicebuf fun With s:[]t = this
 	let r = {}:this such
-		r#Reserve s.Count
-		r#s = r!s!Copy s
+		r#Copy s
 	return r
 
 inline Slicebuf fun From_array c:[]t = r:this
 	return this.With c
 
+inline Slicebuf met Cap = Uint
+	return self.s.cap
+
 inline Slicebuf met Count = Uint
-	return self.s.Count
+	return self.s.cnt
 
 inline Slicebuf met All = Range
 	return self.s.All
@@ -26,7 +28,7 @@ inline Slicebuf met# Clear
 
 inline Slicebuf met# Push = @#t
 	let nend = self.s.Count + 1
-	self#Reserve nend
+	self#Auto_grow nend
 	self!s = self!s![.. nend]
 	return self#Last
 
@@ -48,12 +50,62 @@ inline Slicebuf met# Pop
 	self#Auto_shrink
 
 inline Slicebuf met# Append s:[]t
-	self#Reserve self.s.Count + s.Count
+	self#Auto_grow self.s.Count + s.Count
 	self#s = self!s!Append s
 
 inline Slicebuf met# Copy s:[]t
 	self#Reserve s.Count
 	self#s = self.s!Copy s
+	self#Auto_shrink
+
+-- The automatic growth of Slicebuf et al. slows down when the buffer is large.
+inline fun growth_factor_shift n:Uint = Uint
+	if n <= 256
+		return 0
+	elif n <= 16_384
+		return 1
+	elif n <= 65_536
+		return 2
+	else
+		return 3
+
+fun Buffer_auto_grown_size cap:Uint atleast:Uint = ret:Uint
+	--post ret >= atleast
+	if cap >= atleast
+		return cap
+
+	let shift = growth_factor_shift cap
+	let min_newcap = cap + (cap >> shift)
+	if atleast < min_newcap
+		return min_newcap
+	else
+		return atleast
+
+fun Buffer_auto_shrunk_size cap:Uint count:Uint = ret:Uint
+	--pre count <= cap
+	--post ret >= count
+	if cap <= 16
+		return cap
+
+	let shift = growth_factor_shift count
+	let max_newcap = cap - (cap >> (shift+1))
+	if count <= max_newcap
+		return max_newcap
+	else
+		return cap
+
+example -> 16 == Buffer_auto_shrunk_size 16 0
+example -> 9 == Buffer_auto_shrunk_size 17 0
+example -> 128 == Buffer_auto_grown_size 128 127
+example -> 128 == Buffer_auto_grown_size 128 128
+example -> 256 == Buffer_auto_grown_size 128 129
+example -> 256 == Buffer_auto_shrunk_size 256 255
+example -> 256 == Buffer_auto_shrunk_size 256 129
+example -> 128 == Buffer_auto_shrunk_size 256 128
+example -> 256 == Buffer_auto_grown_size 256 155
+example -> 256 == Buffer_auto_grown_size 256 256
+example -> 512 == Buffer_auto_grown_size 256 257
+example -> 385 == Buffer_auto_grown_size 257 258
 
 inline Slicebuf met# Reserve atleast:Uint
 	if self.s.cap >= atleast
@@ -61,14 +113,44 @@ inline Slicebuf met# Reserve atleast:Uint
 	Realloc @#self#s atleast
 
 -- FIXME: unexport.
-inline Slicebuf met# Auto_shrink
-	let cap = self.s.Cap
-	and cnt = self.s.Count
-	if cap == 0
+inline Slicebuf met# Auto_grow atleast:Uint
+	let cap = self.s.cap
+	if cap >= atleast
 		return
-	let newcap = cap such
-		if cnt == 0
-			newcap = 0
-		elif cnt < cap / 2
-			newcap = cnt
+	let newcap = Buffer_auto_grown_size cap atleast
 	Realloc @#self#s newcap
+
+-- FIXME: unexport.
+inline Slicebuf met# Auto_shrink
+	let cap = self.s.cap
+	let newcap = Buffer_auto_shrunk_size cap self.s.cnt
+	if newcap == cap
+		return
+	Realloc @#self#s newcap
+
+example
+	let v = {}:(Slicebuf Uint) such
+		Assert <- v.Count == 0
+		foreach i in 0 .. 63
+			(v#Push)! = i
+		Assert <- v.Cap == 64
+		v#Reserve 112
+		Assert <- v.Count == 63
+		Assert <- v.Cap == 112 -- Reserve allocates exactly what you ask.
+		let r = v.Count .. v.Cap
+		Assert <- r.Count == 112-63
+		foreach i in r
+			(v#Push)! = i
+			Assert <- v.Cap == 112
+		Assert <- v.Count == 112
+		Assert <- v.Cap == 112
+		(v#Push)! = 1
+		Assert <- v.Cap == 224
+		foreach _ in 0 .. (v.Count - 113)
+			v#Pop
+		Assert <- v.Count == 113
+		Assert <- v.Cap == 224
+		v#Pop
+		Assert <- v.Count == 112
+		Assert <- v.Cap == 112
+	true
