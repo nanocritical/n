@@ -194,6 +194,71 @@ static void rewrite_isnul_op(struct module *mod, struct node *node) {
   G0(nul, node, NUL);
 }
 
+static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
+  assert(node->which == BIN);
+  struct node *left = subs_first(node);
+  assert(left->which == TUPLE);
+  struct node *right = subs_last(node);
+
+  if (right->which == TUPLE) {
+    if (subs_count(left) != subs_count(right)) {
+      error e = mk_except(mod, node, "mismatched tuple sizes in assignment");
+      THROW(e);
+    }
+
+    node_subs_remove(node, left);
+    node_subs_remove(node, right);
+    node_set_which(node, BLOCK);
+    GSTART();
+
+    struct node *l, *r;
+    while ((l = subs_first(left)) != NULL && (r = subs_first(right)) != NULL) {
+      node_subs_remove(left, l);
+      node_subs_remove(right, r);
+
+      G0(ass, node, BIN,
+         ass->as.BIN.operator = TASSIGN;
+         node_subs_append(ass, l);
+         node_subs_append(ass, r));
+    }
+  } else {
+    node_subs_remove(node, left);
+    node_subs_remove(node, right);
+    node_set_which(node, BLOCK);
+    GSTART();
+
+    G0(let, node, LET,
+       G(defp, DEFPATTERN,
+         G(tmp, IDENT,
+           tmp->as.IDENT.name = gensym(mod));
+         node_subs_append(defp, right)));
+
+    size_t n = 0;
+    struct node *l;
+    while ((l = subs_first(left)) != NULL) {
+      node_subs_remove(left, l);
+
+      char buf[8] = { 0 };
+      snprintf(buf, ARRAY_SIZE(buf), "x%zu", n);
+      const ident x = idents_add_string(mod->gctx, buf, strlen(buf));
+
+      G0(ass, node, BIN,
+         ass->as.BIN.operator = TASSIGN;
+         node_subs_append(ass, l);
+         G(r, BIN,
+           r->as.BIN.operator = TDOT;
+           G(ntmp, IDENT,
+             ntmp->as.IDENT.name = node_ident(tmp));
+           G(nx, IDENT,
+             nx->as.IDENT.name = x)));
+
+      n += 1;
+    }
+  }
+
+  return 0;
+}
+
 static ERROR find_catch(struct node **r,
                         struct module *mod, struct node *for_error,
                         struct lir_state *st, ident label) {
@@ -599,12 +664,21 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
   case BIN:
     {
       enum token_type op = node->as.BIN.operator;
-      if (OP_KIND(op) == OP_BIN_SYM_BOOL) {
+      switch (OP_KIND(op)) {
+      case OP_BIN_SYM_BOOL:
         rewrite_bool_op(mod, node);
-      } else if (OP_KIND(op) == OP_BIN_SYM_PTR) {
+        break;
+      case OP_BIN_SYM_PTR:
         rewrite_ptr_op(mod, node);
-      } else if (OP_KIND(op) == OP_BIN_OPT_ACC) {
+        break;
+      case OP_BIN_OPT_ACC:
         rewrite_opt_acc_op(mod, node);
+        break;
+      default:
+        if (op == TASSIGN && subs_first_const(node)->which == TUPLE) {
+          e = rewrite_tuple_assign(mod, node);
+          EXCEPT(e);
+        }
       }
     }
     break;
