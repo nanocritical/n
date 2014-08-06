@@ -80,7 +80,8 @@ static bool same_generic_functor(const struct module *mod,
 static ERROR unify_with_equal(struct module *mod, const struct node *for_error,
                               struct typ *a, struct typ *b);
 
-static ERROR unify_same_generic_functor(struct module *mod, const struct node *for_error,
+static ERROR unify_same_generic_functor(struct module *mod, uint32_t flags,
+                                        const struct node *for_error,
                                         struct typ *a, struct typ *b) {
   assert(typ_generic_arity(a) != 0 && typ_generic_arity(b) != 0);
 
@@ -96,7 +97,7 @@ static ERROR unify_same_generic_functor(struct module *mod, const struct node *f
     struct typ *arga = typ_generic_arg(a, n);
     struct typ *argb = typ_generic_arg(b, n);
 
-    error e = do_unify(mod, 0, for_error, arga, argb);
+    error e = do_unify(mod, flags, for_error, arga, argb);
     if (e) {
       e = mk_except_type(mod, for_error,
                          "unifying generic argument at position %zu", 1 + n);
@@ -125,7 +126,8 @@ static ERROR find_instance_of(struct module *mod, struct typ *t,
   return 0;
 }
 
-static ERROR unify_generics(struct module *mod, const struct node *for_error,
+static ERROR unify_generics(struct module *mod, uint32_t flags,
+                            const struct node *for_error,
                             struct typ *a, struct typ *b,
                             bool a_tentative, bool b_tentative) {
   struct typ *a0 = typ_generic_functor(a);
@@ -169,7 +171,7 @@ static ERROR unify_generics(struct module *mod, const struct node *for_error,
 
     assert(!typ_is_tentative(a0) && "FIXME handle it");
 
-    e = unify_same_generic_functor(mod, for_error, b_in_a, b);
+    e = unify_same_generic_functor(mod, flags, for_error, b_in_a, b);
     EXCEPT(e);
   }
 
@@ -221,7 +223,7 @@ static ERROR unify_non_generic(struct module *mod, const struct node *for_error,
 
     assert(b_in_a != b && "FIXME What does that mean?");
 
-    e = unify_same_generic_functor(mod, for_error, b_in_a, b);
+    e = unify_same_generic_functor(mod, 0, for_error, b_in_a, b);
     EXCEPT(e);
   }
 
@@ -1195,7 +1197,7 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
     return 0;
   }
 
-  e = unify_generics(mod, for_error, a, b, a_tentative, b_tentative);
+  e = unify_generics(mod, flags, for_error, a, b, a_tentative, b_tentative);
   EXCEPT(e);
 
   return 0;
@@ -1210,16 +1212,25 @@ error unify(struct module *mod, const struct node *for_error,
   return 0;
 }
 
+static bool needs_refcompat(const struct typ *t) {
+  if (typ_isa(t, TBI_ANY_TUPLE)) {
+    for (size_t n = 0, arity = typ_generic_arity(t); n < arity; ++n) {
+      if (needs_refcompat(typ_generic_arg_const(t, n))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  return typ_is_reference(t) || typ_is_slice(t);
+}
+
 // Be tolerant of acceptable differences in reference functors.
 error unify_refcompat(struct module *mod, const struct node *for_error,
                       struct typ *target, struct typ *b) {
   error e;
 
-  const bool target_ref = typ_is_reference(target);
-  const bool b_ref = typ_is_reference(b);
-  const bool target_slice = typ_is_slice(target);
-  const bool b_slice = typ_is_slice(b);
-  if (target_ref || b_ref || target_slice || b_slice) {
+  if (needs_refcompat(target) || needs_refcompat(b)) {
     e = do_unify(mod, REFCOMPAT_LEFT, for_error, target, b);
     EXCEPT(e);
     e = process_finalizations();
