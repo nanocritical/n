@@ -94,13 +94,13 @@ static inline NB(Int) NB(Slice_memcmp)(const NB(U8) *a, const NB(U8) *b, NB(Uint
   static inline t t##$Operator_modulo(const t *self, const t *other) { return *self % *other; } \
   static inline t t##$Operator_times(const t *self, const t *other) { return *self * *other; } \
   static inline t t##$Operator_uminus(const t *self) { return - *self; } \
-  static inline t t##$Operator_rshift(const t *self, const NB(U32) by) { return *self >> by; } \
+  static inline t t##$Operator_rshift(const t *self, const NB(Uint) by) { return *self >> by; } \
   static inline NB(Void) t##$Operator_assign_plus(t *self, const t *other) { *self += *other; } \
   static inline NB(Void) t##$Operator_assign_minus(t *self, const t *other) { *self -= *other; } \
   static inline NB(Void) t##$Operator_assign_divide(t *self, const t *other) { *self /= *other; } \
   static inline NB(Void) t##$Operator_assign_modulo(t *self, const t *other) { *self %= *other; } \
   static inline NB(Void) t##$Operator_assign_times(t *self, const t *other) { *self *= *other; } \
-  static inline NB(Void) t##$Operator_assign_rshift(t *self, const NB(U32) by) { *self >>= by; } \
+  static inline NB(Void) t##$Operator_assign_rshift(t *self, const NB(Uint) by) { *self >>= by; } \
   \
   static inline t t##$Operator_bwor(const t *self, const t *other) { return *self | *other; } \
   static inline t t##$Operator_bwxor(const t *self, const t *other) { return *self ^ *other; } \
@@ -118,13 +118,13 @@ static inline NB(Int) NB(Slice_memcmp)(const NB(U8) *a, const NB(U8) *b, NB(Uint
   static inline t t##$Operator_ovmodulo(const t *self, const t *other) { return *self % *other; } \
   static inline t t##$Operator_ovtimes(const t *self, const t *other) { return *self * *other; } \
   static inline t t##$Operator_ovuminus(const t *self) { return - *self; } \
-  static inline t t##$Operator_ovlshift(const t *self, const NB(U32) by) { return *self << by; } \
+  static inline t t##$Operator_ovlshift(const t *self, const NB(Uint) by) { return *self << by; } \
   static inline NB(Void) t##$Operator_assign_ovplus(t *self, const t *other) { *self += *other; } \
   static inline NB(Void) t##$Operator_assign_ovminus(t *self, const t *other) { *self -= *other; } \
   static inline NB(Void) t##$Operator_assign_ovdivide(t *self, const t *other) { *self /= *other; } \
   static inline NB(Void) t##$Operator_assign_ovmodulo(t *self, const t *other) { *self %= *other; } \
   static inline NB(Void) t##$Operator_assign_ovtimes(t *self, const t *other) { *self *= *other; } \
-  static inline NB(Void) t##$Operator_assign_ovlshift(t *self, const NB(U32) by) { *self <<= by; } \
+  static inline NB(Void) t##$Operator_assign_ovlshift(t *self, const NB(Uint) by) { *self <<= by; } \
 
 #define define_native_sized_signed_integer(t, uns) \
   define_native_sized_integer(t) \

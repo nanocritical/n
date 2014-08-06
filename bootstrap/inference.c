@@ -1086,7 +1086,7 @@ static ERROR type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   EXCEPT(e);
   right = subs_last(node);
 
-  e = unify(mod, right, right->typ, TBI_U32);
+  e = unify(mod, right, right->typ, TBI_UINT);
   EXCEPT(e);
 
   switch (node->as.BIN.operator) {
