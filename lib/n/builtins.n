@@ -1450,7 +1450,11 @@ inline struct Range =
 	End	:Uint
 
 Range met Count = Uint
+	if self.Begin >= self.End
+		return 0
 	return self.End - self.Begin
+
+example -> ({Begin=1 End=0}:Range).Count == 0
 
 Range met With_offset offset:Uint = this
 	return {Begin=self.Begin+offset End=self.End+offset}
@@ -1459,14 +1463,14 @@ Range met All = this
 	return self.
 
 Range met Operator_at p:Uint = Uint
-	return self.Begin + p
+	return p
 
 Range met Operator_sub begin:Uint end:Uint = this
 	Assert <- begin >= self.Begin and end <= self.End
 	return {Begin=begin End=end}
 
 Range met Iter = Index_iterator
-	return { r=self. }
+	return { r=self. p=self.Begin }
 
 Range met Reverse_iter = Reverse_index_iterator
 	return { it=self.Iter }
@@ -1501,6 +1505,15 @@ example
 		for i in r.Reverse_iter
 			Assert <- i == j
 			j -= 1
+	true
+
+example
+	let r = {Begin=10 End=20}:Range
+	Assert <- r.Count == 10
+	let n = 0 such
+		foreach i in r
+			Assert <- n == i - r.Begin
+			n += 1
 	true
 
 intf `Trivial_array_ctor t:`Copyable =
