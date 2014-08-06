@@ -485,11 +485,11 @@ static ERROR nullable_op(struct module *mod, const struct node *for_error,
     THROW(e);
   }
 
-  if (typ_equal(t, TBI_MMREF)) {
+  if (typ_equal(t0, TBI_MMREF)) {
     *r = TNULREFSHARP;
-  } else if (typ_isa(t, TBI_ANY_MUTABLE_REF)) {
+  } else if (typ_isa(t0, TBI_ANY_MUTABLE_REF)) {
     *r = TNULREFBANG;
-  } else if (typ_isa(t, TBI_ANY_REF)) {
+  } else if (typ_isa(t0, TBI_ANY_REF)) {
     *r = TNULREFDOT;
   } else {
     assert(false);

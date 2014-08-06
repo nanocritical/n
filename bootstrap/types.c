@@ -1533,7 +1533,8 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
     ok = typ_isa(a, TBI_ANY_MUTABLE_REF);
     break;
   case TDEREFSHARP:
-    ok = typ_has_same_generic_functor(mod, a, TBI_MMREF);
+    ok = typ_has_same_generic_functor(mod, a, TBI_MMREF)
+      || typ_has_same_generic_functor(mod, a, TBI_NMMREF);
     break;
   default:
     assert(false);
