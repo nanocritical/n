@@ -503,7 +503,11 @@ void name ## _copy(struct name *hta, const struct name *htb)
   ( ((ht)->flag & HTABLE_HAS_DELETE) \
     && memcmp(&val, &(ht)->delete_val, sizeof(val)) == 0 )
 
-/* Quadratic open addressing (see Knuth TAOCP 6.4 exercise 20) */
+/* Quadratic open addressing (see Knuth TAOCP 6.4 exercise 20)
+ *
+ * The table must have at least one empty spot to make sure that, if the
+ * table is full, the quadratic probing will eventually stop.
+ */
 #define __htable_idx(ht, hash, n) \
   ( ((hash) + (n)*((n)+1)/2) % (ht)->table.size )
 
@@ -549,6 +553,7 @@ void name ## _copy(struct name *hta, const struct name *htb)
   *(ht) = htmp; \
 } while (0)
 
+/* Must make sure to leave at least one empty spot. See open addressing */
 #define HTABLE_SHRINK__(name, ht) /* TODO not implemented */
 
 #define HTABLE_SET__(name, ht, hk, n, b) \
@@ -662,7 +667,9 @@ storage void name ## _rehash(struct name *hta, const struct name *htb)\
 storage void name ## _copy(struct name *hta, const struct name *htb)\
 { \
   name ## _destroy(hta); \
-  name ## _init(hta, name ## _count(htb)); \
+  /* By taking the size of htb's underlying table, we ensure that hta is \
+   * not created TOOFULL */ \
+  name ## _init(hta, htb->table.size - 1); \
   name ## _rehash(hta, htb); \
 }
 
