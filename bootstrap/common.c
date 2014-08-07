@@ -10,6 +10,17 @@ void __break(void) {
   dummy += 1;
 }
 
+EXAMPLE(log2_ceil) {
+  assert(log2_ceil(0) == 0);
+  assert(log2_ceil(1) == 0);
+  assert(log2_ceil(2) == 1);
+  assert(log2_ceil(4) == 2);
+  assert(log2_ceil(0xfff) == 12);
+  assert(log2_ceil(0x1000) == 12);
+  assert(log2_ceil(0x7ff) == 11);
+  assert(log2_ceil(0x800) == 11);
+}
+
 char *strdup(const char *s) {
   char *r = calloc(strlen(s) + 1, sizeof(char));
   strcpy(r, s);
