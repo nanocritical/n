@@ -1981,6 +1981,9 @@ static ERROR print_mkdyn_proto_eachisalist(struct module *mod, struct typ *t,
                                            struct typ *intf,
                                            bool *stop, void *user) {
   struct cprinter_state *st = user;
+  if (typ_is_reference(intf)) {
+    return 0;
+  }
 
   print_mkdyn_proto(st->out, mod, typ_definition_const(t), intf);
   fprintf(st->out, ";\n");
@@ -1992,6 +1995,9 @@ static ERROR print_dyn_field_eachisalist(struct module *mod, struct typ *ignored
                                          bool *stop, void *user) {
   struct cprinter_state *st = user;
   struct typ *t = st->user;
+  if (typ_is_reference(intf)) {
+    return 0;
+  }
 
   const struct node *dintf = typ_definition_const(intf);
   FOREACH_SUB_CONST(f, dintf) {
@@ -2026,6 +2032,9 @@ static ERROR print_mkdyn_eachisalist(struct module *mod, struct typ *t,
                                      struct typ *intf,
                                      bool *stop, void *user) {
   struct cprinter_state *st = user;
+  if (typ_is_reference(intf)) {
+    return 0;
+  }
 
   print_mkdyn_proto(st->out, mod, typ_definition_const(t), intf);
   fprintf(st->out, " {\n");
