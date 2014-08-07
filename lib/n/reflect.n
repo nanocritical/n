@@ -1,0 +1,103 @@
+from n import *
+import n.unsafe
+import n.math
+
+struct Type =
+	Typename	:String
+	typename_hash32	:U32
+
+alias refdyntable = n.unsafe.Voidref
+
+struct entry =
+	typename_hash32	:U32
+	typename	:String
+	dyntable	:refdyntable
+
+struct Dynisa =
+	hashmap	:[]!U16
+	entries	:[]!entry
+	-- invariant -> hashmap.Count > entries.Count -- For open-addressing to work.
+
+Dynisa met hashmap_addr hash:U32 nth:Uint = Uint
+	-- Quadratic open addressing
+	return (hash.To_uint + (nth * (nth+1)/2)) % self.hashmap.Count
+
+Dynisa met find_entry rintf:@Type create:Bool = ?@entry, Uint
+	let hash = rintf.typename_hash32
+	let nth, addr such
+		while true
+			addr = self.hashmap_addr hash nth
+			let pos = self.hashmap.[addr]
+			if pos == 0
+				if create
+					break
+				else
+					return null, 0
+
+			let e = self.entries.[pos.To_uint - 1]
+			if e.typename_hash32 != hash
+				nth += 1
+				continue
+
+			if e.typename == rintf.Typename
+				return e, 0
+
+			nth +=1
+
+	return null, addr
+
+-- Implementations are encouraged to fill the table statically, at compile
+-- time. The code below is given for reference. Implementations may also use
+-- 'Check'.
+
+Dynisa met# Init count:Uint
+	let overcount = (n.math.Roundup_pow2 2*count.To_u64).Unsafe_uint
+	Realloc @#self#hashmap overcount
+	self!hashmap = self!hashmap![.. self.hashmap.Cap]
+	Realloc @#self#entries count
+
+Dynisa met! Add_entry rintf:@Type dyntable:refdyntable
+	let e, addr = self.find_entry rintf true
+	Assert <- e === null
+
+	self!entries = self!entries![.. self.entries.Count+1]
+	let pos = self.entries.Count
+	Assert <- pos < U16.MAX.To_uint
+	self!hashmap![addr]! = pos.Trim_u16
+	let new = self!entries![pos - 1] such
+		new!typename_hash32 = rintf.typename_hash32
+		new!typename = rintf.Typename
+		new!dyntable = dyntable
+
+Dynisa met Get_dyntable rintf:@Type = ?@refdyntable
+	let e, _ = self.find_entry rintf false
+	return e?.dyntable
+
+fun init_type typename:String = Type
+	return {Typename=typename typename_hash32=typename.Hash32}
+
+Dynisa met Check
+	foreach ee in self.entries
+		let rintf = init_type ee.typename
+		let e, addr = self.find_entry rintf false
+		Assert <- e !== null and addr == 0
+		Assert <- e.typename == ee.typename and e.typename_hash32 == ee.typename_hash32
+
+	let bogus = init_type "`I do not exist!"
+	let e, addr = self.find_entry bogus false
+	Assert <- e === null and addr == 0
+
+example
+	let list = {"`Any" "`Shower" "`Formatter" "`Scanner"}
+	let di = {}:Dynisa such
+		di#Init list.Count
+		foreach t in list
+			let r = init_type t
+			let fakedyntable = (n.unsafe.Cast @U8 refdyntable) t.Bytes.Unsafe_rawdata
+			di#Add_entry r fakedyntable
+
+			let e, addr = di.find_entry r false
+			Assert <- e !== null and addr == 0
+			Assert <- e.dyntable.To_uintptr == fakedyntable.To_uintptr
+	di.Check
+	true

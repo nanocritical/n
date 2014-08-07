@@ -1,0 +1,7 @@
+from n import *
+
+import n.reflect
+
+fun Main = I32
+	-- Just run examples in lib.
+	return 0
