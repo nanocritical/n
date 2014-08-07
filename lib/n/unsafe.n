@@ -6,6 +6,7 @@ inline (fun t:`Any nr:(`Any_nullable_ref t) r:(`Any_ref t)) Nonnull_cast a:nr = 
 	Assert <- a !== null
 	return (Cast nr r) a
 
-extern inline struct Voidref = -- FIXME implement
-extern inline struct Voidmref = -- FIXME implement
-extern inline struct Voidmmref = -- FIXME implement
+extern inline struct Voidref =
+	isa `Any_any_ref
+extern inline Voidref fun From_uintptr p:Uintptr = Voidref
+extern inline Voidref met To_uintptr = Uintptr

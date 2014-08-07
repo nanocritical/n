@@ -1,21 +1,23 @@
+#define NB(t) n$builtins$##t
+#define NU(t) n$unsafe$##t
+
 #ifdef NLANG_DECLARE_TYPES
-struct n$unsafe$voidref;
-struct n$unsafe$voidmref;
-struct n$unsafe$voidmmref;
-#endif
 
-#ifdef NLANG_DEFINE_TYPES
-
-struct n$unsafe$voidref {
-  const void *p;
-};
-
-struct n$unsafe$voidmref {
-  void *p;
-};
-
-struct n$unsafe$voidmmref {
-  void *p;
-};
+typedef const void *NU(Voidref);
 
 #endif
+
+#ifdef NLANG_DECLARE_FUNCTIONS
+
+static inline NU(Voidref) NU(Voidref$From_uintptr)(NB(Uintptr) p) {
+  return (NU(Voidref)) (uintptr_t) p;
+}
+
+static inline NB(Uintptr) NU(Voidref$To_uintptr)(const NU(Voidref) *self) {
+  return (uintptr_t) *self;
+}
+
+#endif
+
+#undef NU
+#undef NB

@@ -145,6 +145,8 @@ extern struct typ *TBI_I64;
 extern struct typ *TBI_U64;
 extern struct typ *TBI_UINT;
 extern struct typ *TBI_INT;
+extern struct typ *TBI_UINTPTR;
+extern struct typ *TBI_INTPTR;
 extern struct typ *TBI_FLOAT;
 extern struct typ *TBI_DOUBLE;
 extern struct typ *TBI_CHAR;
@@ -161,6 +163,7 @@ extern struct typ *TBI_MMREF; // @#
 extern struct typ *TBI_NREF; // ?@
 extern struct typ *TBI_NMREF; // ?@!
 extern struct typ *TBI_NMMREF; // ?@#
+extern struct typ *TBI_VOIDREF;
 extern struct typ *TBI_ANY_ANY_SLICE;
 extern struct typ *TBI_ANY_SLICE;
 extern struct typ *TBI_ANY_MUTABLE_SLICE;

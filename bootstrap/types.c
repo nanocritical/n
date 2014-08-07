@@ -1063,6 +1063,8 @@ struct typ *TBI_I64;
 struct typ *TBI_U64;
 struct typ *TBI_UINT;
 struct typ *TBI_INT;
+struct typ *TBI_UINTPTR;
+struct typ *TBI_INTPTR;
 struct typ *TBI_FLOAT;
 struct typ *TBI_DOUBLE;
 struct typ *TBI_CHAR;
@@ -1080,6 +1082,7 @@ struct typ *TBI_MMREF; // @#
 struct typ *TBI_NREF; // ?@
 struct typ *TBI_NMREF; // ?@!
 struct typ *TBI_NMMREF; // ?@#
+struct typ *TBI_VOIDREF;
 struct typ *TBI_ANY_ANY_SLICE;
 struct typ *TBI_ANY_SLICE;
 struct typ *TBI_ANY_MUTABLE_SLICE;

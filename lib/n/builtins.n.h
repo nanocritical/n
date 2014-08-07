@@ -164,6 +164,8 @@ define_native_sized_unsigned_integer(n$builtins$U32, NB(I32))
 define_native_sized_unsigned_integer(n$builtins$U64, NB(I64))
 define_native_integer(n$builtins$Uint)
 define_native_integer(n$builtins$Int)
+define_native_integer(n$builtins$Uintptr)
+define_native_integer(n$builtins$Intptr)
 define_native_floating(n$builtins$Float)
 define_native_floating(n$builtins$Double)
 
@@ -190,6 +192,7 @@ static inline NB(Float) NB(I32$Round_float)(const NB(I32) *self) { return (NB(Fl
 static inline NB(Double) NB(I32$Exact_double)(const NB(I32) *self) { return (NB(Double)) *self; }
 
 static inline NB(Int) NB(I64$force_int)(const NB(I64) *self) { return (NB(Int)) *self; }
+static inline NB(Intptr) NB(I64$force_intptr)(const NB(I64) *self) { return (NB(Intptr)) *self; }
 static inline NB(I8) NB(I64$Trim_i8)(const NB(I64) *self) { return (NB(I8)) *self; }
 static inline NB(I16) NB(I64$Trim_i16)(const NB(I64) *self) { return (NB(I16)) *self; }
 static inline NB(I32) NB(I64$Trim_i32)(const NB(I64) *self) { return (NB(I32)) *self; }
@@ -218,6 +221,7 @@ static inline NB(Float) NB(U32$Round_float)(const NB(U32) *self) { return (NB(Fl
 static inline NB(Double) NB(U32$Exact_double)(const NB(U32) *self) { return (NB(Double)) *self; }
 
 static inline NB(Uint) NB(U64$force_uint)(const NB(U64) *self) { return (NB(Uint)) *self; }
+static inline NB(Uintptr) NB(U64$force_uintptr)(const NB(U64) *self) { return (NB(Uintptr)) *self; }
 static inline NB(U8) NB(U64$Trim_u8)(const NB(U64) *self) { return (NB(U8)) *self; }
 static inline NB(U16) NB(U64$Trim_u16)(const NB(U64) *self) { return (NB(U16)) *self; }
 static inline NB(U32) NB(U64$Trim_u32)(const NB(U64) *self) { return (NB(U32)) *self; }
@@ -239,6 +243,12 @@ static inline NB(U32) NB(Uint$Trim_u32)(const NB(Uint) *self) { return (NB(U32))
 static inline NB(U64) NB(Uint$To_u64)(const NB(Uint) *self) { return (NB(U64)) *self; }
 static inline NB(Float) NB(Uint$Round_float)(const NB(Uint) *self) { return (NB(Float)) *self; }
 static inline NB(Double) NB(Uint$Round_double)(const NB(Uint) *self) { return (NB(Double)) *self; }
+
+static inline NB(Uintptr) NB(Intptr$force_unsigned)(const NB(Intptr) *self) { return (NB(Uintptr)) *self; }
+static inline NB(I64) NB(Intptr$To_i64)(const NB(Intptr) *self) { return (NB(I64)) *self; }
+
+static inline NB(Intptr) NB(Uintptr$force_signed)(const NB(Uintptr) *self) { return (NB(Intptr)) *self; }
+static inline NB(U64) NB(Uintptr$To_u64)(const NB(Uintptr) *self) { return (NB(U64)) *self; }
 
 static inline NB(I8) NB(Float$Trim_i8)(const NB(Float) *self) { return (NB(I8)) *self; }
 static inline NB(I16) NB(Float$Trim_i16)(const NB(Float) *self) { return (NB(I16)) *self; }

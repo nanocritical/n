@@ -49,6 +49,8 @@ define_show_number(n$builtins$U32, "%"PRIu32)
 define_show_number(n$builtins$U64, "%"PRIu64)
 define_show_number(n$builtins$Uint, "%zu")
 define_show_number(n$builtins$Int, "%zd")
+define_show_number(n$builtins$Uintptr, "%"PRIxPTR)
+define_show_number(n$builtins$Intptr, "%"PRIxPTR)
 define_show_number(n$builtins$Float, "%f")
 define_show_number(n$builtins$Double, "%f")
 

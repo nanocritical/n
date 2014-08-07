@@ -974,6 +974,7 @@ extern inline I64 met Trim_i8 = I8
 extern inline I64 met Trim_i16 = I16
 extern inline I64 met Trim_i32 = I32
 extern inline I64 met force_int = Int
+extern inline I64 met force_intptr = Intptr
 inline I64 met Unsafe_int = Int
 	Assert <- self >= Int.MIN.To_i64 and self <= Int.MAX.To_i64
 	return self.force_int
@@ -1233,6 +1234,7 @@ extern inline U64 met Trim_u8 = U8
 extern inline U64 met Trim_u16 = U16
 extern inline U64 met Trim_u32 = U32
 extern inline U64 met force_uint = Uint
+extern inline U64 met force_uintptr = Uintptr
 inline U64 met Unsafe_uint = Uint
 	Assert <- self <= Uint.MAX.To_u64
 	return self.force_uint
@@ -1346,6 +1348,98 @@ extern inline Uint met To_u64 = U64
 extern inline Uint met Round_float = Float
 extern inline Uint met Round_double = Double
 extern Uint met Show st:@#n.fmt.`State
+
+extern inline struct Intptr =
+	isa `Native_signed_integer
+	alias This_unsigned = Uintptr
+	alias This_signed = this
+	alias impl = I64
+inline Intptr fun MIN = this
+	return impl.MIN.force_intptr
+inline Intptr fun MAX = this
+	return impl.MAX.force_intptr
+extern inline Intptr met Operator_eq other:@this = Bool
+extern inline Intptr met Operator_ne other:@this = Bool
+extern inline Intptr met Operator_le other:@this = Bool
+extern inline Intptr met Operator_lt other:@this = Bool
+extern inline Intptr met Operator_gt other:@this = Bool
+extern inline Intptr met Operator_ge other:@this = Bool
+extern inline Intptr met Operator_plus other:@this = this
+extern inline Intptr met Operator_minus other:@this = this
+extern inline Intptr met Operator_divide other:@this = this
+extern inline Intptr met Operator_modulo other:@this = this
+extern inline Intptr met Operator_times other:@this = this
+extern inline Intptr met Operator_uminus = this
+extern inline Intptr met Operator_rshift by:Uint = final
+extern inline Intptr met! Operator_assign_plus other:@this
+extern inline Intptr met! Operator_assign_minus other:@this
+extern inline Intptr met! Operator_assign_divide other:@this
+extern inline Intptr met! Operator_assign_modulo other:@this
+extern inline Intptr met! Operator_assign_times other:@this
+extern inline Intptr met! Operator_assign_rshift by:Uint
+extern inline Intptr met Operator_bwor other:@final = final
+extern inline Intptr met Operator_bwxor other:@final = final
+extern inline Intptr met Operator_bwand other:@final = final
+extern inline Intptr met Operator_bwnot = final
+extern inline Intptr met! Operator_assign_bwor other:@final
+extern inline Intptr met! Operator_assign_bwxor other:@final
+extern inline Intptr met! Operator_assign_bwand other:@final
+inline Intptr met Unsigned = Uintptr
+	Assert <- self >= 0
+	return self.force_unsigned
+inline Intptr met Try_unsigned = Error_range, Uintptr
+	if Likely <- self >= 0
+		return OK, self.force_unsigned
+	return RANGE, 0
+extern inline Intptr met force_unsigned = Uintptr
+extern inline Intptr met To_i64 = I64
+extern Intptr met Show st:@#n.fmt.`State
+
+extern inline struct Uintptr =
+	isa `Native_unsigned_integer
+	alias This_unsigned = this
+	alias This_signed = Intptr
+	alias impl = U64
+inline Uintptr fun MIN = this
+	return impl.MIN.force_uintptr
+inline Uintptr fun MAX = this
+	return impl.MAX.force_uintptr
+extern inline Uintptr met Operator_eq other:@this = Bool
+extern inline Uintptr met Operator_ne other:@this = Bool
+extern inline Uintptr met Operator_le other:@this = Bool
+extern inline Uintptr met Operator_lt other:@this = Bool
+extern inline Uintptr met Operator_gt other:@this = Bool
+extern inline Uintptr met Operator_ge other:@this = Bool
+extern inline Uintptr met Operator_plus other:@this = this
+extern inline Uintptr met Operator_minus other:@this = this
+extern inline Uintptr met Operator_divide other:@this = this
+extern inline Uintptr met Operator_modulo other:@this = this
+extern inline Uintptr met Operator_times other:@this = this
+extern inline Uintptr met Operator_uminus = this
+extern inline Uintptr met Operator_rshift by:Uint = final
+extern inline Uintptr met! Operator_assign_plus other:@this
+extern inline Uintptr met! Operator_assign_minus other:@this
+extern inline Uintptr met! Operator_assign_divide other:@this
+extern inline Uintptr met! Operator_assign_modulo other:@this
+extern inline Uintptr met! Operator_assign_times other:@this
+extern inline Uintptr met! Operator_assign_rshift by:Uint
+extern inline Uintptr met Operator_bwor other:@final = final
+extern inline Uintptr met Operator_bwxor other:@final = final
+extern inline Uintptr met Operator_bwand other:@final = final
+extern inline Uintptr met Operator_bwnot = final
+extern inline Uintptr met! Operator_assign_bwor other:@final
+extern inline Uintptr met! Operator_assign_bwxor other:@final
+extern inline Uintptr met! Operator_assign_bwand other:@final
+inline Uintptr met Signed = Intptr
+	Assert <- self <= Intptr.MAX.force_unsigned
+	return self.force_signed
+inline Uintptr met Try_signed = Error_range, Intptr
+	if Likely <- self <= Intptr.MAX.force_unsigned
+		return OK, self.force_signed
+	return RANGE, 0
+extern inline Uintptr met force_signed = Intptr
+extern inline Uintptr met To_u64 = U64
+extern Uintptr met Show st:@#n.fmt.`State
 
 extern inline struct Float =
 	isa `Native_floating
