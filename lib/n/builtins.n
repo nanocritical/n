@@ -169,7 +169,7 @@ extern struct Nullable_mercurial_ref t:`Any =
 	isa (`Any_nullable_mutable_ref t)
 
 -- Uses automagicref on function calls.
-(fun t:`Any) Take_ref_if_value__ p:@t = @t
+inline (fun t:`Any) Take_ref_if_value__ p:@t = @t
 	return p
 
 intf `Any_any_slice =
@@ -1543,30 +1543,30 @@ inline struct Range =
 	Begin	:Uint
 	End	:Uint
 
-Range met Count = Uint
+inline Range met Count = Uint
 	if self.Begin >= self.End
 		return 0
 	return self.End - self.Begin
 
 example -> ({Begin=1 End=0}:Range).Count == 0
 
-Range met With_offset offset:Uint = this
+inline Range met With_offset offset:Uint = this
 	return {Begin=self.Begin+offset End=self.End+offset}
 
-Range met All = this
+inline Range met All = this
 	return self.
 
-Range met Operator_at p:Uint = Uint
+inline Range met Operator_at p:Uint = Uint
 	return p
 
-Range met Operator_sub begin:Uint end:Uint = this
+inline Range met Operator_sub begin:Uint end:Uint = this
 	Assert <- begin >= self.Begin and end <= self.End
 	return {Begin=begin End=end}
 
-Range met Iter = Index_iterator
+inline Range met Iter = Index_iterator
 	return { r=self. p=self.Begin }
 
-Range met Reverse_iter = Reverse_index_iterator
+inline Range met Reverse_iter = Reverse_index_iterator
 	return { it=self.Iter }
 
 inline struct Index_iterator =
@@ -1574,10 +1574,10 @@ inline struct Index_iterator =
 	r	:Range
 	p	:Uint
 
-Index_iterator met Has_next = Bool
+inline Index_iterator met Has_next = Bool
 	return self.p < self.r.End
 
-Index_iterator met! Next = Uint
+inline Index_iterator met! Next = Uint
 	let nxt = self.p
 	self!p += 1
 	return nxt
@@ -1586,10 +1586,10 @@ inline struct Reverse_index_iterator =
 	isa (`Iterator Uint) `Trivial_copy `Trivial_ctor
 	it	:Index_iterator
 
-Reverse_index_iterator met Has_next = Bool
+inline Reverse_index_iterator met Has_next = Bool
 	return self.it.Has_next
 
-Reverse_index_iterator met! Next = Uint
+inline Reverse_index_iterator met! Next = Uint
 	return self.it.r.End - 1 - self!it!Next
 
 example
