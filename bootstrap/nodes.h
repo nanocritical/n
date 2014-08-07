@@ -362,6 +362,8 @@ struct node_defname {
 
   struct phi_tracker_state *phi_state;
   struct node *first_use;
+
+  bool may_be_unused;
 };
 struct node_defpattern {
   bool is_alias;

@@ -1118,6 +1118,39 @@ static ERROR type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   return 0;
 }
 
+static ERROR type_inference_bin_isa(struct module *mod, struct node *node) {
+  error e;
+  struct node *left = subs_first(node);
+  struct node *right = subs_last(node);
+  if (typ_is_dyn(left->typ)) {
+    if (typ_is_dyn(right->typ) && typ_definition_const(right->typ)->which != DEFINTF) {
+      e = mk_except_type(mod, right, "when used with a dyn, the right side"
+                         " of 'isa' must be a intf, not '%s'",
+                         pptyp(mod, right->typ));
+      THROW(e);
+    }
+  } else {
+    node_subs_remove(node, left);
+    node_subs_remove(node, right);
+
+    if (!(node->flags & NODE_IS_TYPE)) {
+      if (left->which == IDENT && left->as.IDENT.def->which == DEFNAME) {
+        left->as.IDENT.def->as.DEFNAME.may_be_unused = true;
+      } else {
+        // By SSA, left is side-effect free. If it's not an IDENT (e.g. a
+        // field bin acc), we can ignore it.
+      }
+    }
+
+    node_set_which(node, BOOL);
+    node->as.BOOL.value = typ_isa(left->typ, right->typ);
+
+    e = catchup(mod, NULL, node, CATCHUP_REWRITING_CURRENT);
+    EXCEPT(e);
+  }
+  return 0;
+}
+
 static ERROR type_inference_bin_rhs_type(struct module *mod, struct node *node) {
   error e;
   struct node *left = subs_first(node);
@@ -1128,10 +1161,15 @@ static ERROR type_inference_bin_rhs_type(struct module *mod, struct node *node) 
     THROW(e);
   }
 
-  e = unify(mod, node, left->typ, right->typ);
-  EXCEPT(e);
+  if (node->as.BIN.operator == Tisa) {
+    e = type_inference_bin_isa(mod, node);
+    EXCEPT(e);
+  } else {
+    e = unify(mod, node, left->typ, right->typ);
+    EXCEPT(e);
 
-  set_typ(&node->typ, left->typ);
+    set_typ(&node->typ, left->typ);
+  }
 
   return 0;
 }

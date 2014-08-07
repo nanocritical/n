@@ -1448,20 +1448,6 @@ bool typ_is_slice(const struct typ *t) {
   return t->flags & TYPF_SLICE;
 }
 
-static bool dyn_concrete(const struct typ *t) {
-  const size_t arity = typ_generic_arity(t);
-  if (arity == 0) {
-    return true;
-  }
-
-  for (size_t n = 0; n < arity; ++n) {
-    if (typ_definition_const(typ_generic_arg_const(t, n))->which == DEFINTF) {
-      return false;
-    }
-  }
-  return true;
-}
-
 bool typ_is_dyn(const struct typ *t) {
   if (typ_is_tentative(t)
       || !typ_is_reference(t)
@@ -1470,7 +1456,7 @@ bool typ_is_dyn(const struct typ *t) {
   }
 
   const struct typ *a = typ_generic_arg_const(t, 0);
-  return typ_definition_const(a)->which == DEFINTF && dyn_concrete(a);
+  return typ_definition_const(a)->which == DEFINTF;
 }
 
 bool typ_is_dyn_compatible(const struct typ *t) {
@@ -1480,7 +1466,7 @@ bool typ_is_dyn_compatible(const struct typ *t) {
   }
 
   const struct typ *a = typ_generic_arg_const(t, 0);
-  return typ_definition_const(a)->which != DEFINTF && dyn_concrete(a);
+  return typ_definition_const(a)->which != DEFINTF;
 }
 
 error typ_check_is_reference(const struct module *mod, const struct node *for_error,

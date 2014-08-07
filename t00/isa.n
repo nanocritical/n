@@ -1,0 +1,11 @@
+from n import *
+
+fun static
+	Assert <- 0:I32 isa I32
+	Assert <- not "" isa `Numeric
+	Assert <- 0:U32 isa `Native_unsigned_integer
+	Assert <- 0:U32 isa `Native_sized_unsigned_integer
+
+fun Main = I32
+	static
+	return 0

@@ -346,6 +346,11 @@ static void print_bin_acc(FILE *out, const struct module *mod,
   }
 }
 
+static void print_bin_isa(FILE *out, const struct module *mod, const struct node *node) {
+  const struct node *left = subs_first_const(node);
+  const struct node *right = subs_last_const(node);
+}
+
 static void print_bin(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.BIN.operator;
 
@@ -370,7 +375,11 @@ static void print_bin(FILE *out, const struct module *mod, const struct node *no
     print_bin_acc(out, mod, node, parent_op);
     break;
   case OP_BIN_RHS_TYPE:
-    print_typeconstraint(out, mod, node);
+    if (op == Tisa) {
+      print_bin_isa(out, mod, node);
+    } else {
+      print_typeconstraint(out, mod, node);
+    }
     break;
   }
 
@@ -1108,9 +1117,7 @@ static void print_typ_data(FILE *out, const struct module *mod, const struct typ
   if (typ_is_generic_functor(typ)) {
     print_typ_name(out, mod, typ);
     return;
-  } else if (typ_is_reference(typ)
-             && !typ_equal(typ, TBI_ANY_ANY_REF)
-             && typ_definition_const(typ_generic_arg_const(typ, 0))->which == DEFINTF) {
+  } else if (typ_is_dyn(typ)) {
     fprintf(out, "_$Ndyn_");
     print_typ(out, mod, typ_generic_arg_const(typ, 0));
     return;
@@ -1232,6 +1239,10 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
   if (!is_void) {
     if (node->flags & NODE_IS_GLOBAL_LET) {
       print_linkage(out, header, fwd, par, node);
+    }
+
+    if (node->as.DEFNAME.may_be_unused) {
+      fprintf(out, "__attribute__((__unused__)) ");
     }
 
     print_typ(out, mod, node->typ);
@@ -2426,8 +2437,7 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
   guard_generic(out, header, fwd, mod, node, true);
 
   const char *prefix = "";
-  if (typ_is_reference(d->typ)
-      && typ_definition_const(typ_generic_arg_const(d->typ, 0))->which == DEFINTF) {
+  if (typ_is_dyn(d->typ)) {
     const struct node *dd = typ_definition_const(typ_generic_arg_const(d->typ, 0));
     fprintf(out, "struct _$Ndyn_");
     print_deftype_name(out, mod, dd);
