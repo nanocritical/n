@@ -51,9 +51,14 @@ Dynisa met find_entry rintf:@Type create:Bool = ?@entry, Uint
 -- 'Check'.
 
 Dynisa met# Init count:Uint
-	let overcount = (n.math.Roundup_pow2 2*count.To_u64).Unsafe_uint
-	Realloc @#self#hashmap overcount
+	-- With quadratic probing, the table size must be a power of 2, and not
+	-- too full.
+	let table_size = n.math.Roundup_pow2 count.To_u64 such
+		if 3*table_size < 4*count.To_u64
+			table_size *= 2
+	Realloc @#self#hashmap table_size.Unsafe_uint
 	self!hashmap = self!hashmap![.. self.hashmap.Cap]
+
 	Realloc @#self#entries count
 
 Dynisa met! Add_entry rintf:@Type dyntable:refdyntable
@@ -88,7 +93,9 @@ Dynisa met Check
 	Assert <- e === null and addr == 0
 
 example
-	let list = {"`Any" "`Shower" "`Formatter" "`Scanner"}
+	let list = {"`Any" "`Shower" "`Formatter" "`Scanner"
+		\ "`Trivial_ctor" "`Trivial_dtor" "`Return_by_copy"
+		\ "`Trivial_copy"}
 	let di = {}:Dynisa such
 		di#Init list.Count
 		foreach t in list
