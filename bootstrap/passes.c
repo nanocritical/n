@@ -427,12 +427,15 @@ static void debug_print_tops(struct module *mod) {
 #endif
 
 STEP_NM(step_push_state,
-        STEP_NM_HAS_TOPLEVEL | NM(BLOCK));
+        STEP_NM_HAS_TOPLEVEL | NM(BLOCK) | NM(DEFFIELD));
 error step_push_state(struct module *mod, struct node *node,
                       void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node->which == BLOCK) {
+  if (node->which == DEFFIELD) {
+    mod->state->top_state->exportable = node;
+    return 0;
+  } else if (node->which == BLOCK) {
     if (NM(parent_const(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
       mod->state->fun_state->in_block = true;
     }
@@ -452,6 +455,7 @@ error step_push_state(struct module *mod, struct node *node,
 //  vecnode_push(&debug_tops, node);
   PUSH_STATE(mod->state->top_state);
   mod->state->top_state->top = node;
+  mod->state->top_state->exportable = node;
 
   if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
     PUSH_STATE(mod->state->fun_state);
@@ -477,12 +481,15 @@ error step_push_state(struct module *mod, struct node *node,
 }
 
 STEP_NM(step_pop_state,
-        STEP_NM_HAS_TOPLEVEL | NM(BLOCK));
+        STEP_NM_HAS_TOPLEVEL | NM(BLOCK) | NM(DEFFIELD));
 error step_pop_state(struct module *mod, struct node *node,
                      void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node->which == BLOCK) {
+  if (node->which == DEFFIELD) {
+    mod->state->top_state->exportable = NULL;
+    return 0;
+  } else if (node->which == BLOCK) {
     if (NM(parent_const(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
       mod->state->fun_state->in_block = false;
     }

@@ -2122,7 +2122,6 @@ bool name_is_export(const struct module *mod, const struct node *name) {
   if (name->which == BIN) {
     name = subs_last_const(name);
   }
-  assert(name->which == IDENT);
 
   const char *v = idents_value(mod->gctx, node_ident(name));
   int c1 = v[0];

@@ -2951,14 +2951,14 @@ static void print_top(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  print_topdeps(out, header, fwd, mod, node, printed);
-
 #if 1
   fprintf(out, "/*\n");
     stderr=out;
     debug_print_topdeps(mod, node);
   fprintf(out, "\n*/\n");
 #endif
+
+  print_topdeps(out, header, fwd, mod, node, printed);
 
   switch (node->which) {
   case DEFMETHOD:

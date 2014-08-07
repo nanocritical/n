@@ -1,6 +1,7 @@
 #include "topdeps.h"
 
 #include "types.h"
+#include "parser.h"
 
 struct topdeps {
   struct vectyp list;
@@ -11,6 +12,7 @@ struct topdeps {
 
 static void record_final(struct module *mod, struct typ *t) {
   struct top_state *st = mod->state->top_state;
+  struct fun_state *fun_st = mod->state->fun_state;
 
   if (typ_is_pseudo_builtin(t)
       || (st->top->typ != NULL && typ_equal(st->top->typ, t))) {
@@ -25,6 +27,20 @@ static void record_final(struct module *mod, struct typ *t) {
   static const uint32_t WEAK = TOP_IS_FUNCTOR;
 
   uint32_t mask = toplevel->flags & TO_KEEP;
+
+  if (st->exportable != NULL && st->exportable != top) {
+    // For DEFFIELDs.
+    if (!name_is_export(mod, st->exportable)) {
+      mask &= ~TOP_IS_EXPORT;
+    }
+  }
+  if (fun_st != NULL) {
+    if (fun_st->in_block) {
+      if (!(mask & TOP_IS_EXPORT) || !(mask & TOP_IS_INLINE)) {
+        mask &= ~(TOP_IS_EXPORT | TOP_IS_INLINE);
+      }
+    }
+  }
 
   switch (top->which) {
   case DEFTYPE:
@@ -45,9 +61,18 @@ static void record_final(struct module *mod, struct typ *t) {
       && (!(NM(top->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
           || typ_generic_arity(top->typ) == 0
           || typ_is_generic_functor(top->typ))) {
+    const uint32_t member_mask = mask;
+
     top = parent(top);
     toplevel = node_toplevel(top);
     mask |= toplevel->flags & TO_KEEP;
+
+    if (!(member_mask & TOP_IS_EXPORT) || !(toplevel->flags & TOP_IS_EXPORT)) {
+      mask &= ~TOP_IS_EXPORT;
+    }
+    if (!(member_mask & TOP_IS_INLINE) || !(toplevel->flags & TOP_IS_INLINE)) {
+      mask &= ~TOP_IS_INLINE;
+    }
   }
 
   if (top->typ != NULL && typ_equal(top->typ, t)) {

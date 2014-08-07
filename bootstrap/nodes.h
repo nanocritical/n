@@ -829,6 +829,7 @@ struct top_state {
   struct top_state *prev;
 
   struct node *top;
+  struct node *exportable;
   struct vecnode triggered_weakly_concrete;
 
   bool is_setgenarg;
@@ -1268,7 +1269,7 @@ static inline ident node_ident(const struct node *node) {
   case INVARIANT:
     return ID_INVARIANT;
   case EXAMPLE:
-    return ID_EXAMPLE;
+    return ID_ANONYMOUS;
   case DEFFUN:
   case DEFMETHOD:
     if (subs_first_const(node)->which == IDENT) {
