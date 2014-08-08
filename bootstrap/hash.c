@@ -37,6 +37,7 @@
  */
 
 #include "hash.h"
+#include "common.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -107,4 +108,20 @@ uint32_t hash32_hsieh(const void *vdata, size_t ulen) {
   hash += hash >> 6;
 
   return hash;
+}
+
+#define M0 (2860486313)
+#define M1 (3267000013)
+
+uint32_t hash32_n(const void *data, size_t len) {
+  uint32_t hash = M0;
+  for (const uint8_t *d = data, *end = d + len; d != end; d += 1) {
+    hash = (hash ^ *d) * M1;
+  }
+  return hash;
+}
+
+EXAMPLE(hash32_n) {
+  assert(hash32_n("", 0) == M0);
+  assert(hash32_n("abc", 3) == 2407100781);
 }

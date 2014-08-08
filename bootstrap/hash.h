@@ -23,4 +23,6 @@
 #define hash32 hash32_hsieh
 uint32_t hash32_hsieh(const void *data, size_t len);
 
+uint32_t hash32_n(const void *data, size_t len);
+
 #endif

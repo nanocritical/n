@@ -122,26 +122,20 @@ example -> 'b' > 'aa'
 example -> 'aa' > 'a'
 example -> 'aa' < 'b'
 
--- Prime base used in the Rabin-Karp algorithm.
-let _PRIME_RK = 16777619
+let _M0 = 2860486313:U32
+let _M1 = 3267000013:U32
 
-fun Hash b:[]U8 = U32, U32
-	let hash = 0 such
+fun Hash b:[]U8 = U32
+	let hash = _M0 such
 		foreach x in b
-			hash = hash*_PRIME_RK + x.To_u32
-	let pow = 1
-	and sq = _PRIME_RK
-	and i = b.Count such
-		while i != 0
-			if i bw& 1 != 0
-				pow ov*= sq
-			sq ov*= sq
-			i >>= 1
-	return hash, pow
+			hash = (hash bw^ x.To_u32) ov* _M1
+	return hash
+
+example -> Hash "".Bytes == _M0
+example -> Hash "abc".Bytes == 2407100781
 
 inline String met Hash32 = U32
-	let h, _ = Hash self.bytes
-	return h
+	return Hash self.bytes
 
 inline String met Begins_with s:String = Bool
 	if s.bytes.Count > self.bytes.Count
@@ -251,8 +245,7 @@ inline Stringbuf met Show st:@#n.fmt.`State
 	let _ = st#Write self.bytes
 
 inline Stringbuf met Hash32 = U32
-	let h, _ = Hash self.bytes
-	return h
+	return Hash self.bytes
 
 inline Stringbuf met# Clear
 	self!bytes = self.bytes.[.. 0]
