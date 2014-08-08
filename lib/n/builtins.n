@@ -3,6 +3,7 @@ from n.unsafe import Cast Nonnull_cast
 from n import Esay Epr
 import n.fmt
 import n.io
+import n.reflect
 
 extern intf `__literal_null__ =
 	isa `Any_nullable_ref

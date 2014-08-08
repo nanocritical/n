@@ -1123,55 +1123,51 @@ static ERROR type_inference_bin_isa(struct module *mod, struct node *node) {
   struct node *left = subs_first(node);
   struct node *right = subs_last(node);
   if (typ_is_dyn(left->typ)) {
-    if (typ_is_dyn(right->typ) && typ_definition_const(right->typ)->which != DEFINTF) {
-      e = mk_except_type(mod, right, "when used with a dyn, the right side"
-                         " of 'isa' must be a intf, not '%s'",
-                         pptyp(mod, right->typ));
-      THROW(e);
-    }
-  } else {
-    node_subs_remove(node, left);
-    node_subs_remove(node, right);
-
-    if (!(node->flags & NODE_IS_TYPE)) {
-      if (left->which == IDENT && left->as.IDENT.def->which == DEFNAME) {
-        left->as.IDENT.def->as.DEFNAME.may_be_unused = true;
-      } else {
-        // By SSA, left is side-effect free. If it's not an IDENT (e.g. a
-        // field bin acc), we can ignore it.
-      }
-    }
-
-    const bool isa = typ_isa(left->typ, right->typ);
-
-    if (parent(node)->which == BLOCK && nparent(node, 2)->which == IF) {
-      // ssa.c does not replace the result of 'isa' in this case:
-      //   if a isa b
-      // to allow for implementation selection in generics.
-      struct node *par = parent(node);
-      struct node *xif = parent(par);
-      assert(subs_first(xif) == par && "We should be in the condition block");
-
-      struct node *to_disable = subs_at(xif, isa ? 2 : 1);
-      assert(to_disable->which == BLOCK);
-
-      struct node *s = subs_first(to_disable);
-      while (s != NULL) {
-        struct node *nxt = next(s);
-        node_subs_remove(to_disable, s);
-        s = nxt;
-      }
-
-      fprintf(stderr, "%d\n", isa);
-      (void) mk_node(mod, to_disable, INIT);
-    }
-
-    node_set_which(node, BOOL);
-    node->as.BOOL.value = isa;
-
-    e = catchup(mod, NULL, node, CATCHUP_REWRITING_CURRENT);
-    EXCEPT(e);
+    set_typ(&node->typ, TBI_BOOL);
+    return 0;
   }
+
+  node_subs_remove(node, left);
+  node_subs_remove(node, right);
+
+  if (!(node->flags & NODE_IS_TYPE)) {
+    if (left->which == IDENT && left->as.IDENT.def->which == DEFNAME) {
+      left->as.IDENT.def->as.DEFNAME.may_be_unused = true;
+    } else {
+      // By SSA, left is side-effect free. If it's not an IDENT (e.g. a
+      // field bin acc), we can ignore it.
+    }
+  }
+
+  const bool isa = typ_isa(left->typ, right->typ);
+
+  if (parent(node)->which == BLOCK && nparent(node, 2)->which == IF) {
+    // ssa.c does not replace the result of 'isa' in this case:
+    //   if a isa b
+    // to allow for implementation selection in generics.
+    struct node *par = parent(node);
+    struct node *xif = parent(par);
+    assert(subs_first(xif) == par && "We should be in the condition block");
+
+    struct node *to_disable = subs_at(xif, isa ? 2 : 1);
+    assert(to_disable->which == BLOCK);
+
+    struct node *s = subs_first(to_disable);
+    while (s != NULL) {
+      struct node *nxt = next(s);
+      node_subs_remove(to_disable, s);
+      s = nxt;
+    }
+
+    (void) mk_node(mod, to_disable, INIT);
+  }
+
+  node_set_which(node, BOOL);
+  node->as.BOOL.value = isa;
+
+  e = catchup(mod, NULL, node, CATCHUP_REWRITING_CURRENT);
+  EXCEPT(e);
+
   return 0;
 }
 

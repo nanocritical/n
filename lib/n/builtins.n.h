@@ -48,7 +48,7 @@ struct NB(Valist) {
 } while (0)
 
 #define NLANG_BUILTINS_BG_ENVIRONMENT_UNINSTALL(envt) do { \
-  *where = where->vptr->Parent(where->obj); \
+  *where = where->dyntable->Parent(where->obj); \
 } while (0)
 
 #endif

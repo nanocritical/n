@@ -19,6 +19,7 @@ struct typ;
 struct constraint;
 struct constraint_resolve_state;
 struct topdeps;
+struct Type;
 
 #define NM(which) ( (uint64_t)1LL << (which) )
 #define STEP_NM(step, m) const uint64_t step##_filter = (m)
@@ -331,6 +332,8 @@ struct node_deftype {
   enum deftype_kind kind;
   struct typ *tag_typ;
   struct node *default_choice;
+
+  struct __Type *reflect_type;
 };
 struct node_defmethod {
   struct toplevel toplevel;
@@ -340,6 +343,8 @@ struct node_defmethod {
 };
 struct node_defintf {
   struct toplevel toplevel;
+
+  struct __Type *reflect_type;
 };
 struct node_defincomplete {
   struct toplevel toplevel;

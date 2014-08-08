@@ -8,6 +8,7 @@
 #include "import.h"
 #include "instantiate.h"
 #include "autointf.h"
+#include "reflect.h"
 
 #include "passes.h"
 #include "passzero.h"
@@ -951,6 +952,26 @@ static ERROR step_detect_inline_import(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_build_reflect_type,
+               NM(DEFTYPE) | NM(DEFINTF));
+static ERROR step_build_reflect_type(struct module *mod, struct node *node,
+                                     void *user, bool *stop) {
+  DSTEP(mod, node);
+  switch (node->which) {
+  case DEFTYPE:
+    node->as.DEFTYPE.reflect_type = calloc(1, sizeof(*node->as.DEFTYPE.reflect_type));
+    reflect_fill_type(node->as.DEFTYPE.reflect_type, mod, node->typ);
+    break;
+  case DEFINTF:
+    node->as.DEFINTF.reflect_type = calloc(1, sizeof(*node->as.DEFINTF.reflect_type));
+    reflect_fill_type(node->as.DEFINTF.reflect_type, mod, node->typ);
+    break;
+  default:
+    assert(false);
+  }
+  return 0;
+}
+
 static ERROR passfwd0(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   // scoping_deftypes
@@ -1127,6 +1148,7 @@ static ERROR passfwd10(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_funblock);
     ,
     UP_STEP(step_check_exhaustive_intf_impl);
+    UP_STEP(step_build_reflect_type);
     ,
     FINALLY_STEP(step_pop_state);
     );

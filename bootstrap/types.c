@@ -1002,10 +1002,23 @@ static ERROR do_typ_isalist_foreach(struct module *mod, struct typ *t, struct ty
 
 error typ_isalist_foreach(struct module *mod, struct typ *t, uint32_t filter,
                           isalist_each iter, void *user) {
+  bool stop = false;
   struct fintypset set;
   fintypset_fullinit(&set);
 
-  bool stop = false;
+  const bool is_export = node_toplevel_const(typ_definition_const(t))->flags & TOP_IS_EXPORT;
+  const bool filter_exported = filter & ISALIST_FILTEROUT_EXPORTED;
+  const bool filter_not_exported = filter & ISALIST_FILTEROUT_NOT_EXPORTED;
+  if (!(filter_exported && is_export) && !(filter_not_exported && !is_export)) {
+    error e = iter(mod, t, TBI_ANY, &stop, user);
+    EXCEPT(e);
+
+    if (stop) {
+      return 0;
+    }
+    fintypset_set(&set, TBI_ANY, true);
+  }
+
   error e = do_typ_isalist_foreach(mod, t, t, filter, iter, user, &stop, &set);
   fintypset_destroy(&set);
   EXCEPT(e);

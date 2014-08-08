@@ -13,6 +13,7 @@ SRC = bootstrap
 DEPS = .deps
 
 override CFLAGS += -std=c99 -Wall -pthread -O$(O) -ggdb $(if $P,-pg,) \
+	  -I. \
 	  -Wmissing-prototypes -Wpointer-arith \
 	  -Wmissing-declarations -Wno-format-zero-length -Wbad-function-cast \
 	  -Wcast-align -Wwrite-strings -Wno-missing-braces -Wstrict-prototypes \

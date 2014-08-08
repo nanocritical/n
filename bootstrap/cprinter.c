@@ -8,6 +8,7 @@
 #include "topdeps.h"
 #include "scope.h"
 #include "constraints.h"
+#include "reflect.h"
 
 enum forward {
   FWD_DECLARE_TYPES,
@@ -349,6 +350,12 @@ static void print_bin_acc(FILE *out, const struct module *mod,
 static void print_bin_isa(FILE *out, const struct module *mod, const struct node *node) {
   const struct node *left = subs_first_const(node);
   const struct node *right = subs_last_const(node);
+
+  fprintf(out, "n$reflect$Isa((");
+  print_expr(out, mod, left, T__STATEMENT);
+  fprintf(out, ").dyntable, (void *)&");
+  print_typ(out, mod, right->typ);
+  fprintf(out, "$Reflect_type)");
 }
 
 static void print_bin(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
@@ -2052,13 +2059,21 @@ static ERROR print_mkdyn_eachisalist(struct module *mod, struct typ *t,
   fprintf(st->out, "static const struct _$Ndyntable_");
   print_typ(st->out, mod, intf);
   fprintf(st->out, " dyntable = {\n");
+  fprintf(st->out, ".type = &");
+  print_typ(st->out, mod, t);
+  fprintf(st->out, "$Reflect_type,\n");
 
   struct cprinter_state st2 = *st;
   st2.printed = 0;
   st2.user = (void *)t;
 
-  const uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN
-    | (st->header ? ISALIST_FILTEROUT_NOT_EXPORTED : ISALIST_FILTEROUT_EXPORTED);
+
+  uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN;
+  const bool is_gen = typ_generic_arity(t) > 0;
+  if (!is_gen) {
+    filter |= st->header ? ISALIST_FILTEROUT_NOT_EXPORTED : ISALIST_FILTEROUT_EXPORTED;
+  }
+
   error e = typ_isalist_foreach((struct module *)mod, intf, filter,
                                 print_dyn_field_eachisalist,
                                 &st2);
@@ -2074,7 +2089,7 @@ static ERROR print_mkdyn_eachisalist(struct module *mod, struct typ *t,
 
   fprintf(st->out, "return (_$Ndyn_");
   print_typ(st->out, mod, intf);
-  fprintf(st->out, "){ .vptr = &dyntable, .obj = obj };\n");
+  fprintf(st->out, "){ .dyntable = &dyntable, .obj = obj };\n");
 
   fprintf(st->out, "}\n");
   return 0;
@@ -2082,8 +2097,18 @@ static ERROR print_mkdyn_eachisalist(struct module *mod, struct typ *t,
 
 static void print_mkdyn(FILE *out, bool header, enum forward fwd,
                         const struct module *mod, const struct node *node) {
-  const uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN
-    | (header ? ISALIST_FILTEROUT_NOT_EXPORTED : ISALIST_FILTEROUT_EXPORTED);
+  if (typ_generic_functor_const(node->typ) == TBI_SLICE_IMPL) {
+    return;
+  }
+  if (typ_isa(node->typ, TBI_ANY_TUPLE)) {
+    return;
+  }
+
+  uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN;
+  const bool is_gen = typ_generic_arity(node->typ) > 0;
+  if (!is_gen) {
+    filter |= header ? ISALIST_FILTEROUT_NOT_EXPORTED : ISALIST_FILTEROUT_EXPORTED;
+  }
 
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,
@@ -2100,6 +2125,93 @@ static void print_mkdyn(FILE *out, bool header, enum forward fwd,
                                   &st);
     assert(!e);
   }
+}
+
+static void print_reflect_type(FILE *out, bool header, enum forward fwd,
+                               const struct module *mod, const struct node *node) {
+  if (typ_is_reference(node->typ)) {
+    return;
+  }
+  if (typ_generic_functor_const(node->typ) == TBI_SLICE_IMPL) {
+    return;
+  }
+  if (typ_isa(node->typ, TBI_ANY_TUPLE)) {
+    return;
+  }
+
+  if (header && fwd == FWD_DECLARE_TYPES) {
+    fprintf(out, "extern const struct __Type ");
+    print_typ(out, mod, node->typ);
+    fprintf(out, "$Reflect_type;\n");
+    return;
+  } else if (header || fwd != FWD_DEFINE_FUNCTIONS) {
+    return;
+  }
+
+  if (node->which == DEFINTF) {
+    struct __Type *type = node->as.DEFINTF.reflect_type;
+    fprintf(out, "__attribute__((__weak__)) ");
+    fprintf(out, "const struct __Type ");
+    print_typ(out, mod, node->typ);
+    fprintf(out, "$Reflect_type = {\n");
+    fprintf(out, ".typename_hash32 = 0x%x,\n", type->typename_hash32);
+    fprintf(out, ".Typename = NLANG_STRING_LITERAL(\"%.*s\"),\n",
+            (int)type->Typename.bytes.cnt, type->Typename.bytes.dat);
+    fprintf(out, "0 };\n");
+    return;
+  }
+
+  struct __Type *type = node->as.DEFTYPE.reflect_type;
+  fprintf(out, "uint16_t ");
+  print_typ(out, mod, node->typ);
+  fprintf(out, "$Reflect_type__hashmap[] = {\n");
+  for (size_t n = 0; n < type->dynisalist.hashmap.cnt; n += 10) {
+    for (size_t i = n; i < n + 10 && i < type->dynisalist.hashmap.cnt; ++i) {
+      fprintf(out, "0x%hx,", type->dynisalist.hashmap.dat[i]);
+    }
+    fprintf(out, "\n");
+  }
+  fprintf(out, "};\n");
+
+  fprintf(out, "struct __entry ");
+  print_typ(out, mod, node->typ);
+  fprintf(out, "$Reflect_type__entries[] = {\n");
+  for (size_t n = 0; n < type->dynisalist.entries.cnt; ++n) {
+    struct __entry *e = &type->dynisalist.entries.dat[n];
+    fprintf(out, "{ .typename_hash32 = 0x%x, .Typename = NLANG_STRING_LITERAL(\"%.*s\"), ",
+            e->typename_hash32, (int)e->Typename.bytes.cnt, e->Typename.bytes.dat);
+
+    const struct typ *intf = e->mkdyn;
+    print_typ(out, mod, node->typ);
+    fprintf(out, "$_$Nmkdyn__");
+    print_typ(out, mod, intf);
+    fprintf(out, " },\n");
+  }
+  fprintf(out, "};\n");
+
+  fprintf(out, "const struct __Type ");
+  print_typ(out, mod, node->typ);
+  fprintf(out, "$Reflect_type = {\n");
+  fprintf(out, ".typename_hash32 = 0x%x,\n", type->typename_hash32);
+  fprintf(out, ".Typename = NLANG_STRING_LITERAL(\"%.*s\"),\n",
+          (int)type->Typename.bytes.cnt, type->Typename.bytes.dat);
+  fprintf(out, ".dynisalist = {\n");
+
+  fprintf(out, ".hashmap = {\n");
+  fprintf(out, ".dat = ");
+  print_typ(out, mod, node->typ);
+  fprintf(out, "$Reflect_type__hashmap,\n");
+  fprintf(out, ".cnt = %zu,\n.cap = %zu,\n},",
+          type->dynisalist.hashmap.cnt, type->dynisalist.hashmap.cap);
+
+  fprintf(out, ".entries = {\n");
+  fprintf(out, ".dat = ");
+  print_typ(out, mod, node->typ);
+  fprintf(out, "$Reflect_type__entries,\n");
+  fprintf(out, ".cnt = %zu,\n.cap = %zu,\n},",
+          type->dynisalist.entries.cnt, type->dynisalist.entries.cap);
+
+  fprintf(out, "},\n};\n");
 }
 
 static void print_defchoice_payload(FILE *out,
@@ -2304,6 +2416,8 @@ static void print_union(FILE *out, bool header, enum forward fwd,
       print_deftype_name(out, mod, deft);
       fprintf(out, "$%s" , idents_value(mod->gctx, ID_TAG_TYPE));
       fprintf(out, ";\n");
+
+      print_reflect_type(out, header, fwd, mod, deft);
     }
 
     // fallthrough
@@ -2325,6 +2439,7 @@ static void print_union(FILE *out, bool header, enum forward fwd,
 
     if (node == deft) {
       print_enumunion_functions(out, header, fwd, mod, deft, node, printed);
+      print_reflect_type(out, header, fwd, mod, deft);
       print_mkdyn(out, header, fwd, mod, deft);
     }
     break;
@@ -2344,6 +2459,8 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
       fprintf(out, " ");
       print_deftype_name(out, mod, node);
       fprintf(out, ";\n");
+
+      print_reflect_type(out, header, fwd, mod, node);
     }
     return;
   }
@@ -2408,6 +2525,7 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
   if (fwd == FWD_DECLARE_FUNCTIONS || fwd == FWD_DEFINE_FUNCTIONS) {
     if (deft == node) {
       print_enumunion_functions(out, header, fwd, mod, deft, node, printed);
+      print_reflect_type(out, header, fwd, mod, node);
       print_mkdyn(out, header, fwd, mod, node);
     }
   }
@@ -2568,6 +2686,7 @@ static void print_deftype(FILE *out, bool header, enum forward fwd,
     print_deftype_block(out, header, fwd, mod, node, true, printed);
   }
 
+  print_reflect_type(out, header, fwd, mod, node);
   print_mkdyn(out, header, fwd, mod, node);
 
 done:
@@ -2643,7 +2762,7 @@ static ERROR print_defintf_member_eachisalist(struct module *mod, struct typ *t,
         && !typ_equal(node_fun_retval_const(d)->typ, TBI_VOID)) {
       fprintf(st->out, "return ");
     }
-    fprintf(st->out, "self.vptr->%s(", idents_value(mod->gctx, node_ident(d)));
+    fprintf(st->out, "self.dyntable->%s(", idents_value(mod->gctx, node_ident(d)));
     bool need_comma = false;
     if (d->which == DEFMETHOD) {
       need_comma = true;
@@ -2735,6 +2854,9 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
       print_deftype_name(out, mod, node);
       fprintf(out, " {\n");
 
+      // Must be first: see lib/n/reflect.n.h
+      fprintf(out, "const void *type;\n");
+
       struct cprinter_state st = {
         .out = out, .header = header, .fwd = fwd,
         .mod = NULL, .printed = 0, .user = NULL,
@@ -2763,7 +2885,7 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
       fprintf(out, " {\n");
       fprintf(out, "const struct _$Ndyntable_");
       print_deftype_name(out, mod, node);
-      fprintf(out, " *vptr;\n");
+      fprintf(out, " *dyntable;\n");
       fprintf(out, "void *obj;\n");
       fprintf(out, "};\n");
     }
@@ -2780,6 +2902,8 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
                                                node->typ, &st);
     assert(!e);
   }
+
+  print_reflect_type(out, header, fwd, mod, node);
 
   guard_generic(out, header, fwd, mod, node, false);
 }

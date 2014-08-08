@@ -3,26 +3,48 @@ import n.unsafe
 import n.math
 
 struct Type =
-	Typename	:String
 	typename_hash32	:U32
+	Typename	:String
+	dynisalist	:Dynisalist
 
+alias refmkdyn = n.unsafe.Voidref
 alias refdyntable = n.unsafe.Voidref
+
+extern inline fun get_type_from_dyntable mkdyn:refmkdyn = @Type
+
+-- For codegen use:
+fun Get_mkdyn_for dyntable:refdyntable i:@Type = refmkdyn
+	let t = get_type_from_dyntable dyntable
+
+	-- FIXME: for dyncast, allow casting to the concrete type of t, in
+	-- which case we don't have mkdyn...
+
+	let e, _ = t.dynisalist.find_entry i false
+	return e?.mkdyn else (n.unsafe.Voidref.From_uintptr 0)
+
+-- For codegen use:
+fun Isa dyntable:refdyntable i:@Type = Bool
+	let t = get_type_from_dyntable dyntable
+	if t === i
+		return true
+	let e, _ = t.dynisalist.find_entry i false
+	return e?
 
 struct entry =
 	typename_hash32	:U32
 	typename	:String
-	dyntable	:refdyntable
+	mkdyn		:refmkdyn
 
-struct Dynisa =
+struct Dynisalist =
 	hashmap	:[]!U16
 	entries	:[]!entry
 	-- invariant -> hashmap.Count > entries.Count -- For open-addressing to work.
 
-Dynisa met hashmap_addr hash:U32 nth:Uint = Uint
+Dynisalist met hashmap_addr hash:U32 nth:Uint = Uint
 	-- Quadratic open addressing
 	return (hash.To_uint + (nth * (nth+1)/2)) % self.hashmap.Count
 
-Dynisa met find_entry rintf:@Type create:Bool = ?@entry, Uint
+Dynisalist met find_entry rintf:@Type create:Bool = ?@entry, Uint
 	let hash = rintf.typename_hash32
 	let nth, addr such
 		while true
@@ -50,7 +72,7 @@ Dynisa met find_entry rintf:@Type create:Bool = ?@entry, Uint
 -- time. The code below is given for reference. Implementations may also use
 -- 'Check'.
 
-Dynisa met# Init count:Uint
+Dynisalist met# Init count:Uint
 	-- With quadratic probing, the table size must be a power of 2, and not
 	-- too full.
 	let table_size = n.math.Roundup_pow2 count.To_u64 such
@@ -61,7 +83,7 @@ Dynisa met# Init count:Uint
 
 	Realloc @#self#entries count
 
-Dynisa met! Add_entry rintf:@Type dyntable:refdyntable
+Dynisalist met! Add_entry rintf:@Type mkdyn:refmkdyn
 	let e, addr = self.find_entry rintf true
 	Assert <- e === null
 
@@ -72,39 +94,39 @@ Dynisa met! Add_entry rintf:@Type dyntable:refdyntable
 	let new = self!entries![pos - 1] such
 		new!typename_hash32 = rintf.typename_hash32
 		new!typename = rintf.Typename
-		new!dyntable = dyntable
-
-Dynisa met Get_dyntable rintf:@Type = ?@refdyntable
-	let e, _ = self.find_entry rintf false
-	return e?.dyntable
+		new!mkdyn = mkdyn
 
 fun init_type typename:String = Type
 	return {Typename=typename typename_hash32=typename.Hash32}
 
-Dynisa met Check
+Dynisalist met Check
 	foreach ee in self.entries
 		let rintf = init_type ee.typename
 		let e, addr = self.find_entry rintf false
-		Assert <- e !== null and addr == 0
+		Assert <- e? and addr == 0
 		Assert <- e.typename == ee.typename and e.typename_hash32 == ee.typename_hash32
 
 	let bogus = init_type "`I do not exist!"
 	let e, addr = self.find_entry bogus false
 	Assert <- e === null and addr == 0
 
+Type met Check
+	Assert <- self.typename_hash32 == self.Typename.Hash32
+	self.dynisalist.Check
+
 example
 	let list = {"`Any" "`Shower" "`Formatter" "`Scanner"
 		\ "`Trivial_ctor" "`Trivial_dtor" "`Return_by_copy"
 		\ "`Trivial_copy"}
-	let di = {}:Dynisa such
-		di#Init list.Count
+	let my = init_type "my" such
+		my#dynisalist#Init list.Count
 		foreach t in list
 			let r = init_type t
-			let fakedyntable = (n.unsafe.Cast @U8 refdyntable) t.Bytes.Unsafe_rawdata
-			di#Add_entry r fakedyntable
+			let fakemkdyn = (n.unsafe.Cast @U8 refmkdyn) t.Bytes.Unsafe_rawdata
+			my#dynisalist#Add_entry r fakemkdyn
 
-			let e, addr = di.find_entry r false
-			Assert <- e !== null and addr == 0
-			Assert <- e.dyntable.To_uintptr == fakedyntable.To_uintptr
-	di.Check
+			let e, addr = my.dynisalist.find_entry r false
+			Assert <- e? and addr == 0
+			Assert <- e.mkdyn.To_uintptr == fakemkdyn.To_uintptr
+	my.Check
 	true
