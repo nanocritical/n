@@ -1142,8 +1142,32 @@ static ERROR type_inference_bin_isa(struct module *mod, struct node *node) {
       }
     }
 
+    const bool isa = typ_isa(left->typ, right->typ);
+
+    if (parent(node)->which == BLOCK && nparent(node, 2)->which == IF) {
+      // ssa.c does not replace the result of 'isa' in this case:
+      //   if a isa b
+      // to allow for implementation selection in generics.
+      struct node *par = parent(node);
+      struct node *xif = parent(par);
+      assert(subs_first(xif) == par && "We should be in the condition block");
+
+      struct node *to_disable = subs_at(xif, isa ? 2 : 1);
+      assert(to_disable->which == BLOCK);
+
+      struct node *s = subs_first(to_disable);
+      while (s != NULL) {
+        struct node *nxt = next(s);
+        node_subs_remove(to_disable, s);
+        s = nxt;
+      }
+
+      fprintf(stderr, "%d\n", isa);
+      (void) mk_node(mod, to_disable, INIT);
+    }
+
     node_set_which(node, BOOL);
-    node->as.BOOL.value = typ_isa(left->typ, right->typ);
+    node->as.BOOL.value = isa;
 
     e = catchup(mod, NULL, node, CATCHUP_REWRITING_CURRENT);
     EXCEPT(e);

@@ -6,6 +6,27 @@ fun static
 	Assert <- 0:U32 isa `Native_unsigned_integer
 	Assert <- 0:U32 isa `Native_sized_unsigned_integer
 
+(fun t:`Any) positive x:t = Bool
+	if t isa `Numeric
+		return x >= 0
+	else
+		return false
+
+(fun t:`Any) positive2 x:t = Bool
+	if x isa `Numeric
+		return x >= 0
+	else
+		return false
+
 fun Main = I32
 	static
+
+	Assert <- positive 0:Uint
+	Assert <- not <- positive -1:Int
+	Assert <- not <- positive "":String
+
+	Assert <- positive2 0:Uint
+	Assert <- not <- positive2 -1:Int
+	Assert <- not <- positive2 "":String
+
 	return 0

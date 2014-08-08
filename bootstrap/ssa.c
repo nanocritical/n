@@ -221,6 +221,8 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
     if (OP_IS_ASSIGN(node->as.BIN.operator)) {
       ssa_sub(mod, node, subs_last(node));
       break;
+    } else if (node->as.BIN.operator == Tisa) {
+      break;
     }
     // fallthrough
   case SIZEOF:
@@ -248,7 +250,14 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
     break;
 
   case BLOCK:
-    if (!(NM(parent(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD)))) {
+    if (NM(parent(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+      break;
+    } else if (subs_last(node)->which == BIN
+               && subs_last(node)->as.BIN.operator == Tisa
+               && parent_const(node)->which == IF
+               && subs_first_const(parent_const(node)) == node) {
+      break;
+    } else {
       fix_ssa_sub(mod, node, subs_last(node));
     }
     break;
@@ -303,9 +312,17 @@ error step_ssa_convert(struct module *mod, struct node *node,
     break;
 
   case BLOCK:
-    if (node == subs_last(par)
-        && !(NM(parent(par)->which) & (NM(DEFFUN) | NM(DEFMETHOD)))) {
-      ssa_sub(mod, par, node);
+    if (node == subs_last(par)) {
+      if (NM(parent(par)->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+        break;
+      } else if (node->which == BIN
+                 && node->as.BIN.operator == Tisa
+                 && parent_const(par)->which == IF
+                 && subs_first_const(parent_const(par)) == par) {
+        break;
+      } else {
+        ssa_sub(mod, par, node);
+      }
     }
     break;
   default:
