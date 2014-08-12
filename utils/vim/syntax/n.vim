@@ -17,7 +17,7 @@ syn keyword nConditional if elif else match
 syn keyword nRepeat while for pfor foreach pforeach
 syn keyword nKeyword let block lambda async such
 syn keyword nStatement return continue break unreached
-syn keyword nOperator in and or not isa
+syn keyword nOperator in and or not isa Dyncast
 syn match nDecl "^  isa" contains=nExport
 syn keyword nOperator sizeof alignof nullable
 syn keyword nKeyword noop as attr declare

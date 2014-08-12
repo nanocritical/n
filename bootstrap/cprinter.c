@@ -503,6 +503,18 @@ static void print_call(FILE *out, const struct module *mod,
     print_expr(out, mod, subs_at_const(node, 1), T__CALL);
     fprintf(out, ")");
     return;
+  } else if (node_ident(dfun) == ID_DYNCAST) {
+    const struct typ *i = typ_generic_arg_const(tfun, 0);
+    fprintf(out, "NLANG_MKDYN(_$Ndyn_");
+    print_typ(out, mod, i);
+    fprintf(out, ", n$reflect$Get_dyntable_for((");
+    print_expr(out, mod, subs_at_const(node, 1), T__CALL);
+    fprintf(out, ").dyntable, (void *)&");
+    print_typ(out, mod, i);
+    fprintf(out, "$Reflect_type), (");
+    print_expr(out, mod, subs_at_const(node, 1), T__CALL);
+    fprintf(out, ").obj)");
+    return;
   } else if (node_ident(dfun) == ID_NEXT && typ_isa(parentd->typ, TBI_VARARG)) {
     const struct node *self = subs_at_const(node, 1);
     fprintf(out, "NLANG_BUILTINS_VARARG_NEXT(");

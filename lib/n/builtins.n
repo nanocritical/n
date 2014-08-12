@@ -1618,6 +1618,9 @@ intf `Array_ctor t:`Copyable =
 	fun From_array c:[]t = final
 
 
+extern inline (fun$ i:`Any j:`Any) Dyncast x:@$j = @$i
+
+
 extern fun Abort
 
 extern inline fun Likely x:Bool = Bool
@@ -1649,7 +1652,6 @@ inline (fun t:`Numeric) Max a:t b:t = t
 		return a
 	else
 		return b
-
 
 intf `Error =
 	isa `Generalized_boolean `Show

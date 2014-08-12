@@ -39,4 +39,7 @@ fun Main = I32
 	Assert <- dany isa `Native_unsigned_integer
 	Assert <- not <- dany isa `Native_sized_unsigned_integer
 
+	Say ((Dyncast `Show) dany)
+	Say (Dyncast dany)
+
 	return 0
