@@ -1,0 +1,11 @@
+from n import *
+
+struct c =
+	x	:I32
+
+c shallow met$ sget = @$I32
+	return @$ self$x
+
+fun Main = I32
+	let x = { x=0 }:c
+	return (x!sget).

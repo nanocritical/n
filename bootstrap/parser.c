@@ -2043,6 +2043,19 @@ static void add_self_arg(struct module *mod, struct node *node,
   }
 }
 
+static void add_fun_wildcard_genarg(struct module *mod, struct node *node) {
+  if (node->as.DEFFUN.access == TREFWILDCARD) {
+    struct node *genargs = subs_at(node, IDX_GENARGS);
+
+    GSTART();
+    G0(ga, genargs, DEFGENARG,
+       G(gan, IDENT,
+         gan->as.IDENT.name = ID_WILDCARD_REF_ARG);
+       G(gat, IDENT,
+         gat->as.IDENT.name = ID_TBI_ANY_REF));
+  }
+}
+
 static ERROR p_defmethod_access(struct node *node, struct module *mod) {
   struct token tok = { 0 };
   error e = scan(&tok, mod);
@@ -2065,6 +2078,30 @@ static ERROR p_defmethod_access(struct node *node, struct module *mod) {
     // In 't (method@ u:`any) foobar x:@u = void', p_defmethod_access() is
     // called twice (once for when parsing the genargs, once in p_deffun).
     if (node->as.DEFMETHOD.access == 0) {
+      UNEXPECTED(mod, &tok);
+    }
+    back(mod, &tok);
+    break;
+  }
+
+  return 0;
+}
+
+static ERROR p_deffun_access(struct node *node, struct module *mod) {
+  struct token tok = { 0 };
+  error e = scan(&tok, mod);
+  EXCEPT(e);
+  switch (tok.t) {
+  case TDEREFWILDCARD:
+    node->as.DEFFUN.access = TREFWILDCARD;
+    break;
+  case TIDENT:
+    back(mod, &tok);
+    break;
+  default:
+    // In 't (fun@ u:`any) foobar x:@u = void', p_deffun_access() is
+    // called twice (once for when parsing the genargs, once in p_deffun).
+    if (node->as.DEFFUN.access == 0) {
       UNEXPECTED(mod, &tok);
     }
     back(mod, &tok);
@@ -2136,6 +2173,8 @@ static ERROR p_deffun(struct node *node, struct module *mod,
   switch (node->which) {
   case DEFFUN:
     node->as.DEFFUN.toplevel = *toplevel;
+    e = p_deffun_access(node, mod);
+    EXCEPT(e);
     break;
   case DEFMETHOD:
     node->as.DEFMETHOD.toplevel = *toplevel;
@@ -2166,6 +2205,8 @@ static ERROR p_deffun(struct node *node, struct module *mod,
         && !(toplevel->scope_name == ID__NONE && name->which == BIN)) {
       THROW_SYNTAX(mod, &tok, "malformed fun name");
     }
+
+    add_fun_wildcard_genarg(mod, node);
   }
 
   bool seen_named = false;
@@ -2522,7 +2563,10 @@ bypass:
   case TLPAR:
     e = scan_oneof(&tok2, mod, Tfun, Tmethod, 0);
     EXCEPT(e);
-    if (tok2.t == Tmethod) {
+    if (tok2.t == Tfun) {
+      e = p_deffun_access(node, mod);
+      EXCEPT(e);
+    } else if (tok2.t == Tmethod) {
       e = p_defmethod_access(node, mod);
       EXCEPT(e);
     }
@@ -2760,7 +2804,10 @@ bypass:
     e = scan_oneof(&tok2, mod, Tstruct, Tenum, Tunion, Tintf, Tfun, Tmethod, 0);
     EXCEPT(e);
     node = NEW(mod, node);
-    if (tok2.t == Tmethod) {
+    if (tok2.t == Tfun) {
+      e = p_deffun_access(node, mod);
+      EXCEPT(e);
+    } else if (tok2.t == Tmethod) {
       e = p_defmethod_access(node, mod);
       EXCEPT(e);
     }

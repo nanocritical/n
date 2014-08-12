@@ -46,7 +46,7 @@ static ERROR step_rewrite_prototype_wildcards(struct module *mod, struct node *n
   struct node *funargs = subs_at(node, IDX_FUNARGS);
   FOREACH_SUB(arg, funargs) {
     PUSH_STATE(mod->state->step_state);
-    bool within_self = prev_const(arg) == NULL;
+    bool within_self = node->which == DEFMETHOD && prev_const(arg) == NULL;
     error e = pass_rewrite_wildcards(mod, arg, &within_self, -1);
     EXCEPT(e);
     POP_STATE(mod->state->step_state);
