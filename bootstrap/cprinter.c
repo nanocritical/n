@@ -257,6 +257,22 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
     const struct node *ch = node_get_member_const(d, node_ident(right));
     print_defchoice_path(out, mod, d, ch);
     fprintf(out, "$%s", idents_value(mod->gctx, ID_TAG));
+  } else if (op == TEQPTR || op == TNEPTR) {
+    if (typ_is_dyn(left->typ) && left->which != NUL) {
+      fprintf(out, "(");
+      print_expr(out, mod, left, op);
+      fprintf(out, ").obj");
+    } else {
+      print_expr(out, mod, left, op);
+    }
+    print_token(out, op);
+    if (typ_is_dyn(right->typ) && right->which != NUL) {
+      fprintf(out, "(");
+      print_expr(out, mod, right, op);
+      fprintf(out, ").obj");
+    } else {
+      print_expr(out, mod, right, op);
+    }
   } else {
     const bool is_assign = OP_IS_ASSIGN(op);
     if (is_assign) {

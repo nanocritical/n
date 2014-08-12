@@ -4,12 +4,15 @@ from n export fmt
 
 fun write_buf fd:I32 s:@U8 Count:Uint
 
-fun Vpr v:@!(Vararg @`Show) ?err:?@Bool ?sep:?@String
+fun Vpr v:@!(Vararg ?@`Show) ?err:?@Bool ?sep:?@String
 	let separator = Optional_ref sep " "
 	and buf = {}:Stringbuf
 	and st = {}:n.fmt.State such
 		st#Init @#buf
 		for x in v!
+			if x === null
+				"(null)".Show @#st
+				continue
 			x.Show @#st
 			if v.Count_left > 0
 				separator.Show @#st
@@ -19,10 +22,10 @@ fun Vpr v:@!(Vararg @`Show) ?err:?@Bool ?sep:?@String
 			fd = 2
 	write_buf fd b.Unsafe_data b.Bytecount
 
-fun Pr ?err:?@Bool ?sep:?@String ...v:(Vararg @`Show)
+fun Pr ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
 	Vpr @!v err=err sep=sep
 
-fun Vsay v:@!(Vararg @`Show) ?err:?@Bool ?sep:?@String
+fun Vsay v:@!(Vararg ?@`Show) ?err:?@Bool ?sep:?@String
 	Vpr v err=err sep=sep
 	let eol = '\n':Rune
 	let fd = 1 such
@@ -30,13 +33,13 @@ fun Vsay v:@!(Vararg @`Show) ?err:?@Bool ?sep:?@String
 			fd = 2
 	write_buf fd eol.Code.Trim_u8 1
 
-fun Say ?err:?@Bool ?sep:?@String ...v:(Vararg @`Show)
+fun Say ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
 	Vsay @!v err=err sep=sep
 
-fun Epr ?sep:?@String ...v:(Vararg @`Show)
+fun Epr ?sep:?@String ...v:(Vararg ?@`Show)
 	Vpr @!v err=true sep=sep
 
-fun Esay ?sep:?@String ...v:(Vararg @`Show)
+fun Esay ?sep:?@String ...v:(Vararg ?@`Show)
 	Vsay @!v err=true sep=sep
 
 inline (fun t:`Any r:(`Any_ref t)) Just_const p:r = @t

@@ -6,4 +6,5 @@ fun Main = I32
 	Say true
 	Say 1:U32
 	Say 1.0:Float
+	Say null:?@U8
 	return 0
