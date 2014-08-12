@@ -28,7 +28,7 @@ struct __String {
 struct __entry {
   uint32_t typename_hash32;
   struct __String Typename;
-  const void *mkdyn; // In the compiler, used to store a struct typ * to the intf.
+  const void *dyntable; // In the compiler, used to store a struct typ * to the intf.
 };
 
 struct __Slice_entry {

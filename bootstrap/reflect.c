@@ -51,7 +51,7 @@ static void Dynisalist_Init(struct __Dynisalist *self, size_t count) {
 }
 
 static void Dynisalist_Add_entry(struct __Dynisalist *self, struct __Type *rintf,
-                                 void *mkdyn) {
+                                 void *dyntable) {
   const size_t addr = Dynisalist_find_entry(self, rintf);
   self->entries.cnt += 1;
   const size_t pos = self->entries.cnt;
@@ -59,7 +59,7 @@ static void Dynisalist_Add_entry(struct __Dynisalist *self, struct __Type *rintf
   struct __entry *e = &self->entries.dat[pos - 1];
   e->typename_hash32 = rintf->typename_hash32;
   e->Typename = rintf->Typename;
-  e->mkdyn = mkdyn;
+  e->dyntable = dyntable;
 }
 
 static struct __Type mk_minimal_type(const struct module *mod, const struct typ *t) {

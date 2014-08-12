@@ -3,37 +3,41 @@ import n.unsafe
 import n.math
 
 struct Type =
+	isa `Has_equality
 	typename_hash32	:U32
 	Typename	:String
 	dynisalist	:Dynisalist
 
-alias refmkdyn = n.unsafe.Voidref
 alias refdyntable = n.unsafe.Voidref
 
-extern inline fun get_type_from_dyntable mkdyn:refmkdyn = @Type
+extern inline fun get_type_from_dyntable dyntable:refdyntable = @Type
+
+Type met Operator_eq other:@Type = Bool
+	return self.typename_hash32 == other.typename_hash32
+		\ and self.Typename == other.Typename
+
+Type met Operator_ne other:@Type = Bool
+	return not self == other
 
 -- For codegen use:
-fun Get_mkdyn_for dyntable:refdyntable i:@Type = refmkdyn
+fun Get_dyntable_for dyntable:refdyntable i:@Type = refdyntable
 	let t = get_type_from_dyntable dyntable
-
-	-- FIXME: for dyncast, allow casting to the concrete type of t, in
-	-- which case we don't have mkdyn...
-
 	let e, _ = t.dynisalist.find_entry i false
-	return e?.mkdyn else (n.unsafe.Voidref.From_uintptr 0)
+	return e?.dyntable else (n.unsafe.Voidref.From_uintptr 0)
 
 -- For codegen use:
 fun Isa dyntable:refdyntable i:@Type = Bool
 	let t = get_type_from_dyntable dyntable
-	if t === i
+	if t == i
 		return true
 	let e, _ = t.dynisalist.find_entry i false
 	return e?
 
 struct entry =
+	isa `Trivial_equality
 	typename_hash32	:U32
 	typename	:String
-	mkdyn		:refmkdyn
+	dyntable	:refdyntable
 
 struct Dynisalist =
 	hashmap	:[]!U16
@@ -83,7 +87,7 @@ Dynisalist met# Init count:Uint
 
 	Realloc @#self#entries count
 
-Dynisalist met! Add_entry rintf:@Type mkdyn:refmkdyn
+Dynisalist met! Add_entry rintf:@Type dyntable:refdyntable
 	let e, addr = self.find_entry rintf true
 	Assert <- e === null
 
@@ -94,7 +98,7 @@ Dynisalist met! Add_entry rintf:@Type mkdyn:refmkdyn
 	let new = self!entries![pos - 1] such
 		new!typename_hash32 = rintf.typename_hash32
 		new!typename = rintf.Typename
-		new!mkdyn = mkdyn
+		new!dyntable = dyntable
 
 fun init_type typename:String = Type
 	return {Typename=typename typename_hash32=typename.Hash32}
@@ -104,7 +108,7 @@ Dynisalist met Check
 		let rintf = init_type ee.typename
 		let e, addr = self.find_entry rintf false
 		Assert <- e? and addr == 0
-		Assert <- e.typename == ee.typename and e.typename_hash32 == ee.typename_hash32
+		Assert <- e == ee
 
 	let bogus = init_type "`I do not exist!"
 	let e, addr = self.find_entry bogus false
@@ -122,11 +126,11 @@ example
 		my#dynisalist#Init list.Count
 		foreach t in list
 			let r = init_type t
-			let fakemkdyn = (n.unsafe.Cast @U8 refmkdyn) t.Bytes.Unsafe_rawdata
-			my#dynisalist#Add_entry r fakemkdyn
+			let fakedyntable = (n.unsafe.Cast @U8 refdyntable) t.Bytes.Unsafe_rawdata
+			my#dynisalist#Add_entry r fakedyntable
 
 			let e, addr = my.dynisalist.find_entry r false
 			Assert <- e? and addr == 0
-			Assert <- e.mkdyn.To_uintptr == fakemkdyn.To_uintptr
+			Assert <- e.dyntable.To_uintptr == fakedyntable.To_uintptr
 	my.Check
 	true

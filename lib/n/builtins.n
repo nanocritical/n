@@ -62,7 +62,7 @@ intf `Has_compare =
 intf `Trivial_compare =
 	isa `Has_compare
 intf `Has_equality =
-	isa `Has_compare `Matchable
+	isa `Matchable
 	met Operator_eq other:@final = Bool
 	met Operator_ne other:@final = Bool
 

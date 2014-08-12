@@ -38,13 +38,16 @@ struct NB(Valist) {
    (va).n -= 1; \
    va_arg((va).ap.ap, t); })
 
+#define NLANG_MKDYN(dyn_type, _dyntable, _obj) \
+  (dyn_type){ .dyntable = (_dyntable), .obj = (_obj) }
+
 #define NLANG_BUILTINS_BG_ENVIRONMENT_PARENT(envt) do { \
   return self->_$Nenvparent_##envt; \
 } while (0)
 
 #define NLANG_BUILTINS_BG_ENVIRONMENT_INSTALL(envt) do { \
   self->_$Nenvparent_##envt = *where; \
-  *where = THIS($_$Nmkdyn__##envt)(self); \
+  *where = NLANG_MKDYN(_$Ndyn_##envt, &THIS($Dyntable__##envt), self); \
 } while (0)
 
 #define NLANG_BUILTINS_BG_ENVIRONMENT_UNINSTALL(envt) do { \

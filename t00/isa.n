@@ -32,7 +32,7 @@ fun Main = I32
 	Assert <- not <- positive2 -1:Int
 	Assert <- not <- positive2 "":String
 
-	let dany = mkdyn_any 0:Uint
+	let dany = mkdyn_any 13:Uint
 	Assert <- dany isa Uint
 	Assert <- not <- dany isa I32
 	Assert <- dany isa `Numeric
