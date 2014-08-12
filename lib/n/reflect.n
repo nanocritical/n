@@ -13,6 +13,8 @@ alias refdyntable = n.unsafe.Voidref
 extern inline fun get_type_from_dyntable dyntable:refdyntable = @Type
 
 Type met Operator_eq other:@Type = Bool
+	if self === other
+		return true
 	return self.typename_hash32 == other.typename_hash32
 		\ and self.Typename == other.Typename
 

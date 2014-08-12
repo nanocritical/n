@@ -99,16 +99,28 @@ inline String met Operator_sub r:Range = String
 inline String met Operator_compare other:@this = Int
 	return Bytes_compare self.bytes other.bytes
 inline String met Operator_eq other:@this = Bool
+	if self === other
+		return true
 	return self.Operator_compare other == 0
 inline String met Operator_ne other:@this = Bool
+	if self === other
+		return false
 	return self.Operator_compare other != 0
 inline String met Operator_le other:@this = Bool
+	if self === other
+		return true
 	return self.Operator_compare other <= 0
 inline String met Operator_lt other:@this = Bool
+	if self === other
+		return false
 	return self.Operator_compare other < 0
 inline String met Operator_gt other:@this = Bool
+	if self === other
+		return false
 	return self.Operator_compare other > 0
 inline String met Operator_ge other:@this = Bool
+	if self === other
+		return true
 	return self.Operator_compare other >= 0
 
 inline String met Show st:@#n.fmt.`State
@@ -229,16 +241,28 @@ inline Stringbuf met Operator_compare other:@this = Int
 	return Bytes_compare self.bytes other.bytes
 
 inline Stringbuf met Operator_eq other:@this = Bool
+	if self === other
+		return true
 	return self.Operator_compare other == 0
 inline Stringbuf met Operator_ne other:@this = Bool
+	if self === other
+		return false
 	return self.Operator_compare other != 0
 inline Stringbuf met Operator_le other:@this = Bool
+	if self === other
+		return true
 	return self.Operator_compare other <= 0
 inline Stringbuf met Operator_lt other:@this = Bool
+	if self === other
+		return false
 	return self.Operator_compare other < 0
 inline Stringbuf met Operator_gt other:@this = Bool
+	if self === other
+		return false
 	return self.Operator_compare other > 0
 inline Stringbuf met Operator_ge other:@this = Bool
+	if self === other
+		return true
 	return self.Operator_compare other >= 0
 
 inline Stringbuf met Show st:@#n.fmt.`State
