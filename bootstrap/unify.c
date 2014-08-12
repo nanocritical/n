@@ -142,6 +142,7 @@ static ERROR unify_generics(struct module *mod, uint32_t flags,
     SWAP(a, b);
     SWAP(a0, b0);
     SWAP(a_genf, b_genf);
+    SWAP(a_tentative, b_tentative);
   } else if (typ_definition(a)->which == DEFINTF
              && typ_definition(b)->which == DEFINTF) {
     struct node *dinc = defincomplete_create(mod, for_error);
@@ -177,7 +178,9 @@ static ERROR unify_generics(struct module *mod, uint32_t flags,
 
   // FIXME: there are holes here: 2nd order generics, etc.
 
-  typ_link_tentative(a, b);
+  if (b_tentative) {
+    typ_link_tentative(a, b);
+  }
 
   return 0;
 }
