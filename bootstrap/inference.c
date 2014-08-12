@@ -1701,7 +1701,7 @@ static ERROR explicit_instantiation(struct module *mod, struct node *node) {
   const size_t arity = typ_generic_arity(t);
   const size_t first_explicit = typ_generic_first_explicit_arg(t);
   const size_t explicit_arity = arity - first_explicit;
-  if (given_arity != explicit_arity) {
+  if (given_arity > explicit_arity) {
     e = mk_except_type(mod, node,
                        "invalid number of explicit generic arguments:"
                        " %zu expected, but %zu given",
@@ -1717,6 +1717,10 @@ static ERROR explicit_instantiation(struct module *mod, struct node *node) {
   FOREACH_SUB_EVERY(s, node, 1, 1) {
     args[n] = s->typ;
     n += 1;
+  }
+  // Ommitted generic arguments.
+  for (; n < arity; ++n) {
+    args[n] = tentative_generic_arg(mod, node, t, n);
   }
 
   struct node *i = NULL;

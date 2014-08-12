@@ -55,6 +55,7 @@ static ERROR do_instantiate(struct node **result,
 
     if (for_error != NULL) {
       ga->as.SETGENARG.for_error = for_error_offset >= 0
+        && for_error_offset+n < subs_count(for_error)
         ? subs_at_const(for_error, for_error_offset+n)
         : for_error;
     }

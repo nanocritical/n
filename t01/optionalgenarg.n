@@ -1,0 +1,10 @@
+from n import *
+
+(fun t:`Any u:`Any) foo x:t y:u
+	noop
+
+fun Main = I32
+	foo 0:Uint 0:Int
+	(foo Uint) 0 0:Int
+	(foo Uint Int) 0 0
+	return 0
