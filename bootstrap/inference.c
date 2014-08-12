@@ -712,6 +712,14 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
     case TGE:
     case TEQ:
     case TNE:
+      if (operator == TEQ || operator == TNE) {
+        e = typ_check_isa(mod, left, left->typ, TBI_HAS_EQUALITY);
+        EXCEPT(e);
+      } else {
+        e = typ_check_isa(mod, left, left->typ, TBI_ORDERED);
+        EXCEPT(e);
+      }
+
       if (typ_equal(left->typ, TBI_BOOL)) {
         // We want to propagate the link status of the terms when used as a
         // weakly concrete.
