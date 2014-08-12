@@ -2030,15 +2030,6 @@ static void add_self_arg(struct module *mod, struct node *node,
        G(gat, IDENT,
          gat->as.IDENT.name = ID_TBI_ANY_REF));
 
-    if (subs_count_atleast(genargs, 3)) {
-      node_subs_remove(genargs, gas);
-      node_subs_remove(genargs, ga);
-
-      struct node *first = subs_first(genargs);
-      node_subs_insert_before(genargs, first, ga);
-      node_subs_insert_before(genargs, first, gas);
-    }
-
     G0(argt, arg, CALL,
        G(ref, IDENT,
          ref->as.IDENT.name = ID_WILDCARD_REF_ARG_SELF);

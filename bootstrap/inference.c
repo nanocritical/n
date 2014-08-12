@@ -1741,6 +1741,18 @@ static ERROR explicit_instantiation(struct module *mod, struct node *node) {
   return 0;
 }
 
+static size_t find_first_wildcard_genarg(const struct node *genargs) {
+  size_t n = 0;
+  FOREACH_SUB_CONST(g, genargs) {
+    const ident name = node_ident(g);
+    if (name == ID_WILDCARD_REF_ARG_SELF || name == ID_WILDCARD_REF_ARG) {
+      return n;
+    }
+    n += 1;
+  }
+  assert(false);
+}
+
 static ERROR implicit_function_instantiation(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
@@ -1751,29 +1763,31 @@ static ERROR implicit_function_instantiation(struct module *mod, struct node *no
   assert(arity == typ_function_arity(tfun));
 
   struct node *i = instantiate_fully_implicit(mod, node, tfun);
+  const struct node *genargs = subs_at_const(i, IDX_GENARGS);
 
   size_t n = 0;
   FOREACH_SUB_EVERY(s, node, 1, 1) {
     e = unify_refcompat(mod, s, typ_function_arg(i->typ, n), s->typ);
     EXCEPT(e);
 
-    if (n == 0) {
-      const struct node *genargs = subs_at_const(i, IDX_GENARGS);
-      if (i->which == DEFMETHOD
-          && subs_count_atleast(genargs, 2)
-          && node_ident(subs_first_const(genargs)) == ID_WILDCARD_REF_ARG_SELF) {
-        const struct node *wildcard = subs_at_const(genargs, 1);
+    if (n == 0 /* self */ && i->which == DEFMETHOD
+        && i->as.DEFMETHOD.access == TREFWILDCARD) {
+      // This code enforces the relationship between the 2 wildcard generic
+      // arguments, for wildcard methods.
+      const size_t w = find_first_wildcard_genarg(genargs);
+      assert(node_ident(subs_at_const(genargs, w)) == ID_WILDCARD_REF_ARG_SELF);
+      const struct node *wildcard = subs_at_const(genargs, n+1);
+      assert(node_ident(wildcard) == ID_WILDCARD_REF_ARG);
 
-        if ((node_toplevel_const(i)->flags & TOP_IS_SHALLOW)
-            && typ_equal(typ_generic_functor(s->typ), TBI_MREF)) {
-          e = unify(mod, s, wildcard->typ, TBI_MMREF);
-          EXCEPT(e);
-        } else {
-          assert(typ_is_reference(s->typ));
+      if ((node_toplevel_const(i)->flags & TOP_IS_SHALLOW)
+          && typ_equal(typ_generic_functor(s->typ), TBI_MREF)) {
+        e = unify(mod, s, wildcard->typ, TBI_MMREF);
+        EXCEPT(e);
+      } else {
+        assert(typ_is_reference(s->typ));
 
-          e = unify(mod, s, wildcard->typ, typ_generic_functor(s->typ));
-          EXCEPT(e);
-        }
+        e = unify(mod, s, wildcard->typ, typ_generic_functor(s->typ));
+        EXCEPT(e);
       }
     }
 
