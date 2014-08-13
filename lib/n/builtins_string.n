@@ -6,7 +6,7 @@ intf `String_compatible =
 
 intf `String =
 	isa `String_compatible `Ordered `Hashable32 `Trivial_copy_but_owned
-		\ (`Random_container U8)
+		\ (`Random_container U8) `Show
 	fun From_bytes s:[]U8 = final--::(^Captures s)
 	met Bytes = []U8
 	met Operator_at n:Uint = U8
@@ -72,7 +72,7 @@ inline Rune met Show st:@#n.fmt.`State
 	self.Code.Show st
 
 inline struct String =
-	isa `String `Return_by_copy `Show
+	isa `String `Return_by_copy
 	bytes	:[]U8
 
 inline String fun From_string s:String = this
