@@ -1591,14 +1591,16 @@ inline Reverse_index_iterator met Has_next = Bool
 	return self.it.Has_next
 
 inline Reverse_index_iterator met! Next = Uint
-	return self.it.r.End - 1 - self!it!Next
+	let nxt = self!it!Next
+	return self.it.r.End - 1 - nxt + self.it.r.Begin
 
 example
-	let r = {Begin=0 End=8}:Range
+	let r = {Begin=2 End=10}:Range
 	Assert <- r.Count == 8
 	let j = 7 such
 		for i in r.Reverse_iter
-			Assert <- i == j
+			Assert <- i >= r.Begin and i < r.End
+			Assert <- j == i - r.Begin
 			j -= 1
 	true
 
@@ -1607,6 +1609,7 @@ example
 	Assert <- r.Count == 10
 	let n = 0 such
 		foreach i in r
+			Assert <- i >= r.Begin and i < r.End
 			Assert <- n == i - r.Begin
 			n += 1
 	true
