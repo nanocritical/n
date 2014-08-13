@@ -322,15 +322,13 @@ static ERROR step_array_ctor_call_inference(struct module *mod, struct node *nod
 
   struct typ *tfun = node_get_member(typ_definition(saved_typ), ID_FROM_ARRAY)->typ;
   unset_typ(&array->typ);
-  set_typ(&array->typ, typ_generic_arg(typ_function_arg(tfun, 0), 0));
+  set_typ(&array->typ, typ_function_arg(tfun, 0));
 
   GSTART();
   G0(fun, node, DIRECTDEF,
      set_typ(&fun->as.DIRECTDEF.typ, tfun);
      fun->as.DIRECTDEF.flags = NODE_IS_TYPE);
-  G0(ref_array, node, UN,
-     ref_array->as.UN.operator = TREFDOT;
-     node_subs_append(ref_array, array));
+  node_subs_append(node, array);
 
   const struct node *except[] = { array, NULL };
   error e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);

@@ -203,7 +203,7 @@ intf `Any_mutable_slice t:`Any =
 -- operations between kinds of slices.
 
 opaque struct Slice t:`Any =
-	isa (`Any_slice t) `Trivial_array_ctor
+	isa (`Any_slice t) `Trivial_array_ctor -- FIXME missing genarg
 	dat	:?@#t
 	cnt	:Uint
 	cap	:Uint -- will go away
@@ -255,7 +255,7 @@ inline Slice shallow met$ Last = @t
 	return s.Last
 
 opaque struct Mutable_slice t:`Any =
-	isa (`Any_mutable_slice t) `Trivial_array_ctor
+	isa (`Any_mutable_slice t) `Trivial_array_ctor -- FIXME missing genarg
 	dat	:?@#t
 	cnt	:Uint
 	cap	:Uint
@@ -390,7 +390,13 @@ inline Slice_impl shallow met$ Operator_at n:Uint = r:@$t
 	and off = n * (sizeof t)
 	return (Cast @#U8 @$t) <- Slice_at_byte raw off
 
+---- FIXME: the copy operations are only available if the t is `Copyable or
+-- `Trivial_copy. We would like that distinction to be static.
+
 inline Slice_impl met! Full_copy other:this = this
+	if not t isa `Trivial_copy
+		Assert false
+
 	Assert <- self.cap >= other.cnt
 	let dst = self!Unsafe_rawdata
 	and src = other.Unsafe_rawdata

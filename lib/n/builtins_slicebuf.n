@@ -1,14 +1,6 @@
 inline struct Slicebuf t:`Any =
-	isa `Trivial_array_ctor `Trivial_ctor `Copyable (`Random_container t)
+	isa `Trivial_ctor `Copyable (`Random_container t)
 	s	:[]!t	--::^Owned
-
-inline Slicebuf fun With s:[]t = this
-	let r = {}:this such
-		r#Copy s
-	return r
-
-inline Slicebuf fun From_array c:[]t = r:this
-	return this.With c
 
 inline Slicebuf met Cap = Uint
 	return self.s.cap
