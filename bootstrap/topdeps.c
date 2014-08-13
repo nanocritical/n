@@ -42,17 +42,19 @@ static void record_final(struct module *mod, struct typ *t) {
     }
   }
 
-  switch (top->which) {
-  case DEFTYPE:
-    mask |= TOP__TOPDEP_INLINE_STRUCT;
-    break;
-  case LET:
-    if (subs_first_const(top)->which == DEFNAME) {
+  if (!typ_is_reference(t)) {
+    switch (top->which) {
+    case DEFTYPE:
       mask |= TOP__TOPDEP_INLINE_STRUCT;
+      break;
+    case LET:
+      if (subs_first_const(top)->which == DEFNAME) {
+        mask |= TOP__TOPDEP_INLINE_STRUCT;
+      }
+      break;
+    default:
+      break;
     }
-    break;
-  default:
-    break;
   }
 
   // Attribute the dependency to the parent type (if any), unless 'top' is a
