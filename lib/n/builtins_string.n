@@ -317,14 +317,28 @@ inline Stringbuf met# Auto_shrink
 		return
 	Realloc @#self#bytes newcap
 
-inline Stringbuf met# Cat ?sep:?@String ...v:(Vararg @String)
-	let first = true such
-		for s in v
-			if not first and sep?
-				self#Append sep.Bytes
-			first = false
-			self#Append s.Bytes
-
 inline Stringbuf met# Write b:[]U8 = Error, []U8
 	self#Append b
 	return OK, {}
+
+inline Stringbuf met# Vpr v:@!(Vararg ?@`Show) ?sep:?@String
+	let separator = Optional_ref sep " "
+	and st = {}:n.fmt.State such
+		st#Init self
+		for x in v!
+			if x === null
+				"(null)".Show @#st
+				continue
+			x.Show @#st
+			if v.Count_left > 0
+				separator.Show @#st
+
+inline Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
+	self#Vpr @!v sep=sep
+
+inline Stringbuf met# Vsay v:@!(Vararg ?@`Show) ?sep:?@String
+	self#Vpr v sep=sep
+	self#Append "\n".Bytes
+
+inline Stringbuf met# Say ?sep:?@String ...v:(Vararg ?@`Show)
+	self#Vsay @!v sep=sep
