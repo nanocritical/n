@@ -2180,7 +2180,7 @@ static void print_reflect_type(FILE *out, bool header, enum forward fwd,
   }
 
   struct __Type *type = node->as.DEFTYPE.reflect_type;
-  fprintf(out, "uint16_t ");
+  fprintf(out, "static uint16_t ");
   print_typ(out, mod, node->typ);
   fprintf(out, "$Reflect_type__hashmap[] = {\n");
   for (size_t n = 0; n < type->dynisalist.hashmap.cnt; n += 10) {
@@ -2191,7 +2191,7 @@ static void print_reflect_type(FILE *out, bool header, enum forward fwd,
   }
   fprintf(out, "};\n");
 
-  fprintf(out, "struct __entry ");
+  fprintf(out, "static struct __entry ");
   print_typ(out, mod, node->typ);
   fprintf(out, "$Reflect_type__entries[] = {\n");
   for (size_t n = 0; n < type->dynisalist.entries.cnt; ++n) {
@@ -2208,6 +2208,7 @@ static void print_reflect_type(FILE *out, bool header, enum forward fwd,
   }
   fprintf(out, "};\n");
 
+    fprintf(out, "__attribute__((__weak__)) ");
   fprintf(out, "const struct __Type ");
   print_typ(out, mod, node->typ);
   fprintf(out, "$Reflect_type = {\n");
