@@ -10,8 +10,11 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#define CC "gcc"
-//#define CC "clang"
+#if 1
+# define CC "gcc"
+#else
+# define CC "clang"
+#endif
 #define CFLAGS "-Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g"
 #define LDFLAGS CFLAGS " -Wl,--gc-sections"
 
@@ -35,8 +38,24 @@ static char *o_filename(const char *filename) {
   return o_fn;
 }
 
+static ERROR clang_cleanup(const char *c_fn) {
+  static const char *fmt = "perl -i -e 'undef $/; $_=<>; s/(;[\\s\\n]*)*;/;/mg; print' %s";
+  char *cmd = calloc(strlen(fmt) + strlen(c_fn) + 1, sizeof(char));
+  sprintf(cmd, fmt, c_fn);
+
+  error e = sh(cmd);
+  free(cmd);
+  EXCEPT(e);
+  return 0;
+}
+
 static ERROR cc(const struct module *mod, const char *o_fn,
                 const char *c_fn) {
+  if (strcmp(CC, "clang") == 0) {
+    error e = clang_cleanup(c_fn);
+    EXCEPT(e);
+  }
+
   static const char *fmt = CC " " CFLAGS " -xc %s -c -o %s";
   char *cmd = calloc(strlen(fmt) + strlen(c_fn) + strlen(o_fn) - 4 + 1, sizeof(char));
   sprintf(cmd, fmt, c_fn, o_fn);
