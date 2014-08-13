@@ -328,8 +328,8 @@ inline Stringbuf met# Vpr v:@!(Vararg ?@`Show) ?sep:?@String
 		for x in v!
 			if x === null
 				"(null)".Show @#st
-				continue
-			x.Show @#st
+			else
+				x.Show @#st
 			if v.Count_left > 0
 				separator.Show @#st
 
