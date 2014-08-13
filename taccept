@@ -6,10 +6,10 @@ if [ -z "$list" ]; then
 fi
 
 for t in $list; do
-	for all in stderr stdout tree pretty c; do
+	for all in status stderr stdout tree pretty c; do
 		if [ -f $t.o.$all ]; then
 			cp -p $t.o.$all $t.ref.$all
-			if [[ "$all" =~ ^(stderr|stdout)$ ]]; then
+			if [[ "$all" =~ ^(status|stderr|stdout)$ ]]; then
 				git add $t.ref.$all
 			fi
 		else

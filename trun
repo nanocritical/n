@@ -10,7 +10,7 @@ fi
 
 list=$*
 if [ -z "$list" ]; then
-	list=${WD}t[0-9][0-9]/*.n
+	list=$(find ${WD}t[0-9][0-9] -name \*.n |grep -v '_')
 fi
 
 ret=0
@@ -21,46 +21,41 @@ function build_and_run() {
 }
 
 function pretty_status() {
-	if (( $ret == 0 )); then
+	if (( $1 == 0 )); then
 		echo exit 0
-	elif (( $ret <= 128 )); then
-		echo exit $ret
+	elif (( $1 <= 128 )); then
+		echo exit $1
 	else
-		echo signal $(($ret - 128))
+		echo signal $(($1 - 128))
 	fi
 }
 
 for t in $list; do
-	rm -f $t.o.{stderr,stdout}
-	# Assume that having a .ref.stderr file means the test should fail.
-	if [ -f $t.ref.stderr ]; then
+	rm -f $t.o.{stderr,stdout,status}
+	if [ -f $t.ref.status ]; then
 		build_and_run $t
 		ret=$?
 		if (( $ret == 0 )); then
 			if cmp $t.o.stderr $t.ref.stderr && test -s $t.o.stderr; then
-				# Exit code is 0, but stderr is not empty and
-				# matches the reference. That's a success.
-				echo -n
-			else
-				echo "FAILED $t: did not fail ($(pretty_status $ret))"
-				if ! [ -s $t.o.stderr ]; then
-					# Remove empty.
-					rm $t.o.stderr
-				fi
+				echo "FAILED $t: did not fail" \
+					"(expected $(pretty_status $(cat $t.ref.status)))"
 			fi
+		else
+			echo $ret > $t.o.status
 		fi
 	else
 		build_and_run $t
 		ret=$?
 		if (( $ret != 0 )); then
+			echo $ret > $t.o.status
 			echo "FAILED $t: did not succeed ($(pretty_status $ret))"
-		fi
-		if ! [ -s $t.o.stderr ]; then
-			# Remove empty.
-			rm $t.o.stderr
 		fi
 	fi
 
+	if ! [ -s $t.o.stderr ]; then
+		# Remove empty.
+		rm $t.o.stderr
+	fi
 	if ! [ -s $t.o.stdout ]; then
 		# Remove empty.
 		rm -f $t.o.stdout

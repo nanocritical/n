@@ -1,2 +1,2 @@
 fun Main = I32
-	return 0:U32 -- We want an error on module_second.n:2:10
+	return 0:U32 -- We want an error on multifile2_second.n:2:10

@@ -14,7 +14,7 @@ fi
 ret=0
 
 if [ -z "$TDIFF_WHAT" ]; then
-	TDIFF_WHAT="stderr stdout tree pretty c"
+	TDIFF_WHAT="status stderr stdout tree pretty c"
 fi
 
 for t in $list; do
