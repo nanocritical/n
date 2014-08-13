@@ -1,7 +1,7 @@
 t00/fixme12.n.o.c: In function ‘_$Nmain’:
-t00/fixme12.n.o.c:348:1: warning: passing argument 1 of ‘t00$fixme12$bar’ from incompatible pointer type
- t00$fixme12$bar(_Ngensym5);
+t00/fixme12.n.o.c:430:1: warning: passing argument 1 of ‘t00$fixme12$bar’ from incompatible pointer type
+ t00$fixme12$bar(_Ngensym8);
  ^
-t00/fixme12.n.o.c:285:24: note: expected ‘_$Ngen_n$builtins$Nullable_ref$$_$Ngen_n$builtins$Nullable_ref$$n$builtins$I32_genN$__genN$_’ but argument is of type ‘_$Ngen_n$builtins$Ref$$_$Ngen_n$builtins$Mutable_ref$$n$builtins$I32_genN$__genN$_’
+t00/fixme12.n.o.c:367:24: note: expected ‘_$Ngen_n$builtins$Nullable_ref$$_$Ngen_n$builtins$Nullable_ref$$n$builtins$I32_genN$__genN$_’ but argument is of type ‘_$Ngen_n$builtins$Ref$$_$Ngen_n$builtins$Mutable_ref$$n$builtins$I32_genN$__genN$_’
  static n$builtins$Void t00$fixme12$bar(_$Ngen_n$builtins$Nullable_ref$$_$Ngen_n$builtins$Nullable_ref$$n$builtins$I32_genN$__genN$_ p) {
                         ^

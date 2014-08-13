@@ -1,0 +1,9 @@
+t00/fixme13.n.o.c: In function ‘_$Nmain’:
+t00/fixme13.n.o.c:196:1: error: unknown type name ‘_$Ngen_n$builtins$_$Ni_Any_ref$$n$builtins$I32_genN$_’
+ _$Ngen_n$builtins$_$Ni_Any_ref$$n$builtins$I32_genN$_ _Ngensym3 = _$Ngen_n$unsafe$Nonnull_cast$$n$builtins$I32$$_$Ngen_n$builtins$_$Ni_Any_nullable_ref$$n$builtins$I32_genN$_$$_$Ngen_n$builtins$_$Ni_Any_ref$$n$builtins$I32_genN$__genN$_(p);
+ ^
+t00/fixme13.n.o.c:196:1: warning: implicit declaration of function ‘_$Ngen_n$unsafe$Nonnull_cast$$n$builtins$I32$$_$Ngen_n$builtins$_$Ni_Any_nullable_ref$$n$builtins$I32_genN$_$$_$Ngen_n$builtins$_$Ni_Any_ref$$n$builtins$I32_genN$__genN$_’ [-Wimplicit-function-declaration]
+t00/fixme13.n.o.c:198:30: error: invalid type argument of unary ‘*’ (have ‘int’)
+ n$builtins$I32 _Ngensym4 = ((*_Ngensym3));
+                              ^
+command exited with 1: gcc -Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g -xc t00/fixme13.n.o.c -c -o t00/fixme13.n.o
