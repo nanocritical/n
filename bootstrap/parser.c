@@ -338,7 +338,6 @@ static ERROR parse_modpath(struct module *mod, const char *raw_fn) {
   }
 
   mod->path_len = 0;
-  bool must_be_last = false;
   for (size_t n = 0, last = 0, p = 0; fn[p] != '\0'; ++p) {
     if (fn[p] == '_') {
       THROWF(EINVAL, "module path element cannot contain '_' in '%s'", fn);
@@ -350,17 +349,18 @@ static ERROR parse_modpath(struct module *mod, const char *raw_fn) {
       tok.value = fn + last;
       tok.len = p - last;
 
-      if (strncmp(tok.value, "module", tok.len) == 0) {
-        must_be_last = true;
+      const ident id = idents_add(mod->gctx, &tok);
+      if (strncmp(fn + p, ".n", 2) == 0 && fn[p+2] == '\0' && id == mod->path[n-1]) {
+        // Case c/b/a/a.n
       } else {
-        mod->path[n] = idents_add(mod->gctx, &tok);
+        mod->path[n] = id;
         mod->path_len += 1;
+      }
 
-        last = p + 1;
-        n += 1;
-        if (n >= ARRAY_SIZE(mod->path)) {
-          THROWF(EINVAL, "module path '%s' has too many elements", fn);
-        }
+      last = p + 1;
+      n += 1;
+      if (fn[p+1] != '\0' && n >= ARRAY_SIZE(mod->path)) {
+        THROWF(EINVAL, "module path '%s' has too many elements", fn);
       }
 
       if (fn[p] == '.') {
@@ -370,11 +370,6 @@ static ERROR parse_modpath(struct module *mod, const char *raw_fn) {
         while (fn[p] != '/' && fn[p+1] != '\0') {
           p += 1;
         }
-      }
-
-      if (must_be_last && fn[p+1] != '\0') {
-        THROWF(EINVAL, "module path '%s' contains the"
-                " element 'module' in an illegal position", fn);
       }
     }
   }
@@ -2995,7 +2990,7 @@ EXAMPLE(parse_modpath) {
     struct stage stage = { 0 };
     struct module m = { 0 };
     module_init(&gctx, &stage, &m);
-    error e = parse_modpath(&m, "bootstrap/module.n");
+    error e = parse_modpath(&m, "bootstrap/bootstrap.n");
     assert(!e);
     assert(m.path_len == 1);
     const char *p = "bootstrap";

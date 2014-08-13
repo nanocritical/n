@@ -161,19 +161,24 @@ static ERROR try_import(char **fn, struct module *mod, struct node *import,
   }
   free(file);
 
-  char *dir = calloc(len + 1 + strlen(DIR_MODULE_NAME) + 1, sizeof(char));
+  char *modname = xbasename(base);
+
+  char *dir = calloc(len + 1 + strlen(modname) + 2 + 1, sizeof(char));
   strcpy(dir, base);
   strcpy(dir + len, "/");
-  strcpy(dir + len + 1, DIR_MODULE_NAME);
+  strcpy(dir + len + 1, modname);
+  strcpy(dir + len + 1 + strlen(modname), ".n");
   memset(&st, 0, sizeof(st));
   ret = stat(dir, &st);
   if (ret == 0 && S_ISREG(st.st_mode)) {
     prefix_len += prefix_len > 0 ? 1 : 0;
     *fn = strdup(dir + prefix_len);
+    free(modname);
     free(dir);
     free(base);
     return 0;
   }
+  free(modname);
   free(dir);
   free(base);
 
