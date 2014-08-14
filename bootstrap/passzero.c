@@ -65,12 +65,17 @@ static void try_add_generic(struct node *node) {
 
 struct node *create_instance_deepcopy_from_pristine(struct module *mod,
                                                     struct node *node,
-                                                    struct node *pristine) {
+                                                    struct node *pristine,
+                                                    bool tentative) {
   BEGTIMEIT(TIMEIT_CREATE_INSTANCE_DEEPCOPY);
 
   struct node *instance = calloc(1, sizeof(struct node));
   instance->parent = parent(node);
-  node_deepcopy(mod, instance, pristine);
+  if (tentative) {
+    node_deepcopy_tentative(mod, instance, pristine);
+  } else {
+    node_deepcopy(mod, instance, pristine);
+  }
   instance->flags |= NODE__DETACHED;
   node_toplevel(instance)->scope_name = 0;
 
@@ -112,7 +117,8 @@ static ERROR step_generics_pristine_copy(struct module *mod, struct node *node,
   case DEFMETHOD:
   case DEFINCOMPLETE:
     {
-      struct node *pristine = create_instance_deepcopy_from_pristine(mod, node, node);
+      struct node *pristine = create_instance_deepcopy_from_pristine(mod, node,
+                                                                     node, false);
       node_toplevel(node)->generic->pristine = pristine;
     }
     break;

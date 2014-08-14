@@ -36,7 +36,7 @@ static ERROR do_instantiate(struct node **result,
 
   struct node *pristine = node_toplevel(gendef)->generic->pristine;
   struct node *instance = create_instance_deepcopy_from_pristine(mod, gendef,
-                                                                 pristine);
+                                                                 pristine, tentative);
   node_toplevel(instance)->generic->for_error = for_error;
 
   // Do not use set_typ()! With second-order generics, we actually do not

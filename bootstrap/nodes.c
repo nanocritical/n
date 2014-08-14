@@ -848,8 +848,8 @@ int snprint_defincomplete(char *s, size_t len,
   return pos;
 }
 
-void node_deepcopy(struct module *mod, struct node *dst,
-                   const struct node *src) {
+static void do_node_deepcopy(struct module *mod, struct node *dst,
+                             const struct node *src, bool tentative) {
   INVARIANT_NODE(src);
 
   struct node *par = dst->parent;
@@ -876,9 +876,23 @@ void node_deepcopy(struct module *mod, struct node *dst,
   }
 
   FOREACH_SUB_CONST(s, src) {
+    if (tentative && s->which == BLOCK) {
+      continue;
+    }
+
     struct node *cpy = node_new_subnode(mod, dst);
-    node_deepcopy(mod, cpy, s);
+    do_node_deepcopy(mod, cpy, s, tentative);
   }
+}
+
+void node_deepcopy(struct module *mod, struct node *dst,
+                   const struct node *src) {
+  do_node_deepcopy(mod, dst, src, false);
+}
+
+void node_deepcopy_tentative(struct module *mod, struct node *dst,
+                             const struct node *src) {
+  do_node_deepcopy(mod, dst, src, true);
 }
 
 char *typ_name(const struct module *mod, const struct typ *t) {

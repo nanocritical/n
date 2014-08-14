@@ -1421,6 +1421,8 @@ const struct node *node_get_member_const(const struct node *node, ident id);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src);
+void node_deepcopy_tentative(struct module *mod, struct node *dst,
+                             const struct node *src);
 
 struct node *defincomplete_create(struct module *mod, const struct node *trigger);
 void defincomplete_set_ident(struct module *mod, const struct node *for_error,
