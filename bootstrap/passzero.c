@@ -96,6 +96,12 @@ static ERROR step_generics_pristine_copy(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   DSTEP(mod, node);
 
+  const bool is_instance = node_toplevel(node)->generic != NULL
+    && node_toplevel(node)->generic->our_generic_functor_typ != NULL;
+  if (is_instance) {
+    return 0;
+  }
+
   switch (node->which) {
   case DEFTYPE:
   case DEFINTF:
