@@ -1112,6 +1112,7 @@ static void unify_with_any(struct module *mod, const struct node *for_error,
 static ERROR do_unify(struct module *mod, uint32_t flags,
                       const struct node *for_error,
                       struct typ *a, struct typ *b) {
+  BEGTIMEIT(TIMEIT_UNIFY);
   error e;
 
   bool a_tentative = typ_is_tentative(a);
@@ -1121,7 +1122,7 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
       && !a_tentative && !b_tentative) {
     e = typ_check_equal(mod, for_error, a, b);
     EXCEPT(e);
-    return 0;
+    goto ok;
   }
 
   if (a_tentative && !b_tentative) {
@@ -1133,14 +1134,14 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
   if (typ_equal(a, b)) {
     e = unify_with_equal(mod, for_error, a, b);
     EXCEPT(e);
-    return 0;
+    goto ok;
   }
 
   const bool a_is_any = typ_equal(a, TBI_ANY);
   const bool b_is_any = typ_equal(b, TBI_ANY);
   if (a_is_any || b_is_any) {
     unify_with_any(mod, for_error, a, b, a_is_any, b_is_any);
-    return 0;
+    goto ok;
   }
 
   const struct node *da = typ_definition_const(a);
@@ -1151,7 +1152,7 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
   if (a_inc || b_inc) {
     e = unify_defincomplete(mod, for_error, a, b, a_inc, b_inc);
     EXCEPT(e);
-    return 0;
+    goto ok;
   }
 
   const bool a_literal = typ_is_literal(a);
@@ -1159,7 +1160,7 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
   if (a_literal || b_literal) {
     e = unify_literal(mod, flags, for_error, a, b, a_literal, b_literal);
     EXCEPT(e);
-    return 0;
+    goto ok;
   }
 
   const bool a_ref = typ_is_reference(a);
@@ -1167,7 +1168,7 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
   if (a_ref || b_ref) {
     e = unify_reference(mod, flags, for_error, a, b, a_ref, b_ref);
     EXCEPT(e);
-    return 0;
+    goto ok;
   }
 
   const bool a_weakly_concrete = typ_is_weakly_concrete(a);
@@ -1180,7 +1181,7 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
     EXCEPT(e);
 
     if (success) {
-      return 0;
+      goto ok;
     }
   }
 
@@ -1189,7 +1190,7 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
   if (a_slice && b_slice) {
     e = unify_slice(mod, flags, for_error, a, b, a_slice, b_slice);
     EXCEPT(e);
-    return 0;
+    goto ok;
   }
 
   const bool a_non_generic = typ_generic_arity(a) == 0;
@@ -1197,12 +1198,14 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
   if (a_non_generic || b_non_generic) {
     e = unify_non_generic(mod, for_error, a, b, a_non_generic, b_non_generic);
     EXCEPT(e);
-    return 0;
+    goto ok;
   }
 
   e = unify_generics(mod, flags, for_error, a, b, a_tentative, b_tentative);
   EXCEPT(e);
 
+ok:
+  ENDTIMEIT(true, TIMEIT_UNIFY);
   return 0;
 }
 

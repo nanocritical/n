@@ -66,6 +66,8 @@ static void try_add_generic(struct node *node) {
 struct node *create_instance_deepcopy_from_pristine(struct module *mod,
                                                     struct node *node,
                                                     struct node *pristine) {
+  BEGTIMEIT(TIMEIT_CREATE_INSTANCE_DEEPCOPY);
+
   struct node *instance = calloc(1, sizeof(struct node));
   instance->parent = parent(node);
   node_deepcopy(mod, instance, pristine);
@@ -75,6 +77,7 @@ struct node *create_instance_deepcopy_from_pristine(struct module *mod,
   try_add_generic(node);
   try_add_generic(instance);
 
+  ENDTIMEIT(true, TIMEIT_CREATE_INSTANCE_DEEPCOPY);
   return instance;
 }
 

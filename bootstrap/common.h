@@ -310,4 +310,47 @@ struct node;
 
 void check_structure(struct node *node, ...) sentinel__;
 
+enum timeits {
+  TIMEIT_MAIN,
+  TIMEIT_PARSER,
+  TIMEIT_CREATE_INSTANCE_DEEPCOPY,
+  TIMEIT_INSTANTIATE_TOTAL,
+  TIMEIT_INSTANTIATE,
+  TIMEIT_INSTANTIATE_INTF,
+  TIMEIT_INSTANTIATE_REF,
+  TIMEIT_INSTANTIATE_TENTATIVE,
+  TIMEIT_INSTANTIATE_TENTATIVE_INTF,
+  TIMEIT_INSTANTIATE_TENTATIVE_REF,
+  TIMEIT_TYPE_INFERENCE,
+  TIMEIT_TYPE_INFERENCE_PREBODYPASS,
+  TIMEIT_TYPE_INFERENCE_IN_FUNS_BLOCK,
+  TIMEIT_UNIFY,
+  TIMEIT_GENERATE,
+  TIMEIT_GENERATE_C,
+  TIMEIT__NUM,
+};
+
+struct timeit {
+  size_t depth;
+  size_t count;
+  double time;
+};
+
+extern struct timeit timeits[TIMEIT__NUM];
+
+double time(void);
+void timeit_print(void);
+
+#define BEGTIMEIT(what) \
+  double timeit_##what = timeits[what].depth != 0 ? 0 : time(); \
+  timeits[what].depth += 1
+
+#define ENDTIMEIT(cond, what) \
+  if (cond) { \
+    timeits[what].count += 1; \
+    if (timeits[what].depth == 1) { timeits[what].time += time() - timeit_##what; } \
+    else { (void) timeit_##what; } \
+  } \
+  timeits[what].depth -= 1
+
 #endif

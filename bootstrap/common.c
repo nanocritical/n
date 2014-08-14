@@ -4,6 +4,7 @@
 #include "stage.h"
 
 #include <stdarg.h>
+#include <sys/time.h>
 
 void __break(void) {
   static volatile int dummy;
@@ -341,3 +342,37 @@ EXAMPLE_NCC_EMPTY(check_structure) {
                   "   IDENT",
                   " DEFTYPE", NULL);
 }
+
+double time(void) {
+  struct timeval tv = { 0 };
+  int ret = gettimeofday(&tv, NULL);
+  assert(ret == 0);
+  return tv.tv_sec + tv.tv_usec * 1e-6;
+}
+
+struct timeit timeits[TIMEIT__NUM];
+
+static const char *timeits_name[TIMEIT__NUM] = {
+  [TIMEIT_MAIN] = "main",
+  [TIMEIT_PARSER] = "parser",
+  [TIMEIT_CREATE_INSTANCE_DEEPCOPY] = "create_instance_deepcopy",
+  [TIMEIT_INSTANTIATE_TOTAL] = "instantiate_total",
+  [TIMEIT_INSTANTIATE] = "instantiate",
+  [TIMEIT_INSTANTIATE_INTF] = "instantiate_intf",
+  [TIMEIT_INSTANTIATE_REF] = "instantiate_ref",
+  [TIMEIT_INSTANTIATE_TENTATIVE] = "instantiate_tentative",
+  [TIMEIT_INSTANTIATE_TENTATIVE_INTF] = "instantiate_tentative_intf",
+  [TIMEIT_INSTANTIATE_TENTATIVE_REF] = "instantiate_tentative_ref",
+  [TIMEIT_TYPE_INFERENCE] = "type_inference",
+  [TIMEIT_TYPE_INFERENCE_PREBODYPASS] = "type_inference_prebodypass",
+  [TIMEIT_TYPE_INFERENCE_IN_FUNS_BLOCK] = "type_inference_in_funs_block",
+  [TIMEIT_UNIFY] = "unify",
+  [TIMEIT_GENERATE] = "generate",
+  [TIMEIT_GENERATE_C] = "generate_c",
+};
+
+void timeit_print(void) {
+  for (size_t n = 0; n < TIMEIT__NUM; ++n) {
+    fprintf(stderr, "%8zu\t%.3f\t%s\n", timeits[n].count, timeits[n].time, timeits_name[n]);
+  }
+};

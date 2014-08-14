@@ -3105,7 +3105,7 @@ static void print_top(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-#if 1
+#if 0
   fprintf(out, "/*\n");
     stderr=out;
     debug_print_topdeps(mod, node);

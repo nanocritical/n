@@ -14,6 +14,14 @@ static ERROR do_instantiate(struct node **result,
                             struct typ *t,
                             struct typ **args, size_t arity,
                             bool tentative) {
+  BEGTIMEIT(TIMEIT_INSTANTIATE_TOTAL);
+  BEGTIMEIT(TIMEIT_INSTANTIATE);
+  BEGTIMEIT(TIMEIT_INSTANTIATE_INTF);
+  BEGTIMEIT(TIMEIT_INSTANTIATE_REF);
+  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE);
+  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_INTF);
+  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_REF);
+
   assert(arity == 0 || (typ_is_generic_functor(t) && arity == typ_generic_arity(t)));
 
   struct node *gendef = typ_definition(t);
@@ -73,6 +81,14 @@ static ERROR do_instantiate(struct node **result,
   }
 
   *result = instance;
+
+  ENDTIMEIT(tentative && typ_is_reference(instance->typ), TIMEIT_INSTANTIATE_TENTATIVE_REF);
+  ENDTIMEIT(tentative && instance->which == DEFINTF, TIMEIT_INSTANTIATE_TENTATIVE_INTF);
+  ENDTIMEIT(tentative, TIMEIT_INSTANTIATE_TENTATIVE);
+  ENDTIMEIT(!tentative && typ_is_reference(instance->typ), TIMEIT_INSTANTIATE_REF);
+  ENDTIMEIT(!tentative && instance->which == DEFINTF, TIMEIT_INSTANTIATE_INTF);
+  ENDTIMEIT(!tentative, TIMEIT_INSTANTIATE);
+  ENDTIMEIT(true, TIMEIT_INSTANTIATE_TOTAL);
 
   return 0;
 }

@@ -98,6 +98,8 @@ static ERROR clink(const char *out_fn, const char *inputs, const char *extra) {
 }
 
 static ERROR generate(struct node *node) {
+  BEGTIMEIT(TIMEIT_GENERATE);
+
   assert(node->which == MODULE);
   struct module *mod = node->as.MODULE.mod;
 
@@ -138,8 +140,11 @@ static ERROR generate(struct node *node) {
     THROWF(errno, "Cannot open output file '%s'", c_fn);
   }
 
+  BEGTIMEIT(TIMEIT_GENERATE_C);
   e = printer_c(fd, mod);
   EXCEPT(e);
+  ENDTIMEIT(true, TIMEIT_GENERATE_C);
+
   close(fd);
 
   char *h_fn = calloc(strlen(fn) + sizeof(".o.h"), sizeof(char));
@@ -157,6 +162,7 @@ static ERROR generate(struct node *node) {
   free(c_fn);
   free(h_fn);
 
+  ENDTIMEIT(true, TIMEIT_GENERATE);
   return 0;
 }
 
@@ -259,6 +265,8 @@ static ERROR program_link(const struct stage *stage) {
 int main(int argc, char **argv) {
   env_init();
 
+  BEGTIMEIT(TIMEIT_MAIN);
+
   if (argc != 2) {
     fprintf(g_env.stderr, "Usage: %s <main.n>\n", argv[0]);
     exit(1);
@@ -282,6 +290,10 @@ int main(int argc, char **argv) {
     e = generate(mod->root);
     EXCEPT(e);
   }
+
+  ENDTIMEIT(true, TIMEIT_MAIN);
+
+  timeit_print();
 
   if (!opt_compile) {
     return 0;

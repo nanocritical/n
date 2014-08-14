@@ -2429,6 +2429,10 @@ error step_type_inference(struct module *mod, struct node *node,
   //       || typ_definition_const(node->typ)->which == MODULE
   //       || typ_definition_const(node->typ)->which == ROOT_OF_ALL);
 
+  BEGTIMEIT(TIMEIT_TYPE_INFERENCE);
+  BEGTIMEIT(TIMEIT_TYPE_INFERENCE_PREBODYPASS);
+  BEGTIMEIT(TIMEIT_TYPE_INFERENCE_IN_FUNS_BLOCK);
+
   switch (node->which) {
   case NUL:
     set_typ(&node->typ, create_tentative(mod, node, TBI_LITERALS_NULL));
@@ -2649,6 +2653,11 @@ error step_type_inference(struct module *mod, struct node *node,
   if (node->typ != NULL) {
     topdeps_record(mod, node->typ);
   }
+
+  ENDTIMEIT(mod->state->fun_state != NULL && mod->state->fun_state->in_block, TIMEIT_TYPE_INFERENCE_IN_FUNS_BLOCK);
+  ENDTIMEIT(mod->stage->state->passing < PASSZERO_COUNT + PASSFWD_COUNT,
+            TIMEIT_TYPE_INFERENCE_PREBODYPASS);
+  ENDTIMEIT(true, TIMEIT_TYPE_INFERENCE);
 
   assert(node->typ != NULL
          || (node->which == IDENT

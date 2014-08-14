@@ -3092,6 +3092,7 @@ static ERROR register_module(struct globalctx *gctx, struct module *to_register,
 
 error module_open(struct globalctx *gctx, struct stage *stage,
                   struct module *mod, const char *prefix, const char *fn) {
+  BEGTIMEIT(TIMEIT_PARSER);
   module_init(gctx, stage, mod);
 
   mod->is_builtins = strcmp("n/builtins.n", fn) == 0;
@@ -3114,6 +3115,7 @@ error module_open(struct globalctx *gctx, struct stage *stage,
   e = module_parse(mod);
   EXCEPT(e);
 
+  ENDTIMEIT(true, TIMEIT_PARSER);
   return 0;
 }
 
