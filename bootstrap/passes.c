@@ -182,6 +182,10 @@ error catchup(struct module *mod,
   }
 
   for (ssize_t p = 0; p <= goal; ++p) {
+    BEGTIMEIT(TIMEIT_PRE_PASSBODY);
+    BEGTIMEIT(TIMEIT_PASSBODY);
+    BEGTIMEIT(TIMEIT_PASSSEM);
+
     a_pass pa = passes(p);
     mod->stage->state->passing = p;
     mod->state->furthest_passing = max(ssize_t, mod->state->furthest_passing, p);
@@ -201,6 +205,11 @@ error catchup(struct module *mod,
         typ_add_tentative_bit__privileged(&node->typ);
       }
     }
+
+    bool other;
+    ENDTIMEIT((other = p < PASSZERO_COUNT + PASSFWD_COUNT), TIMEIT_PRE_PASSBODY);
+    ENDTIMEIT(!other && (other = p < PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT), TIMEIT_PASSBODY);
+    ENDTIMEIT(!other, TIMEIT_PASSSEM);
   }
 
   if (was_upward && how == CATCHUP_REWRITING_CURRENT) {

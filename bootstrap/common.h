@@ -313,7 +313,11 @@ void check_structure(struct node *node, ...) sentinel__;
 enum timeits {
   TIMEIT_MAIN,
   TIMEIT_PARSER,
+  TIMEIT_PRE_PASSBODY,
+  TIMEIT_PASSBODY,
+  TIMEIT_PASSSEM,
   TIMEIT_CREATE_INSTANCE_DEEPCOPY,
+  TIMEIT_INSTANTIATE_DEEPCOPY,
   TIMEIT_INSTANTIATE_TOTAL,
   TIMEIT_INSTANTIATE,
   TIMEIT_INSTANTIATE_INTF,
@@ -349,8 +353,8 @@ void timeit_print(void);
   if (cond) { \
     timeits[what].count += 1; \
     if (timeits[what].depth == 1) { timeits[what].time += time() - timeit_##what; } \
-    else { (void) timeit_##what; } \
   } \
+  (void) timeit_##what; \
   timeits[what].depth -= 1
 
 #endif

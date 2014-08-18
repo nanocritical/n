@@ -400,6 +400,8 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
   e = calculate_dependencies(&deps);
   EXCEPT(e);
 
+  BEGTIMEIT(TIMEIT_PRE_PASSBODY);
+
   size_t p;
   for (p = PASSZERO_COUNT; p < PASSZERO_COUNT + PASSFWD_COUNT; ++p) {
     stage->state->passing = p;
@@ -415,6 +417,9 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
       POP_STATE(mod->state->step_state);
     }
   }
+
+  ENDTIMEIT(true, TIMEIT_PRE_PASSBODY);
+  BEGTIMEIT(TIMEIT_PASSBODY);
 
   for (size_t n = 0; n < stage->sorted_count; ++n) {
     struct module *mod = stage->sorted[n];
@@ -432,6 +437,9 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
 
     POP_STATE(mod->state->step_state);
   }
+
+  ENDTIMEIT(true, TIMEIT_PASSBODY);
+  BEGTIMEIT(TIMEIT_PASSSEM);
 
   p = PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT;
   for (; p < PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT + PASSSEMFWD_COUNT; ++p) {
@@ -463,6 +471,8 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
 
     POP_STATE(mod->state->step_state);
   }
+
+  ENDTIMEIT(true, TIMEIT_PASSSEM);
 
   return 0;
 }
