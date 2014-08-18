@@ -344,7 +344,7 @@ struct timeit {
 extern struct timeit timeits[TIMEIT__NUM];
 
 double time(void);
-void timeit_print(void);
+void timeit_print(FILE *out);
 
 #define BEGTIMEIT(what) \
   double timeit_##what = timeits[what].depth != 0 ? 0 : time(); \

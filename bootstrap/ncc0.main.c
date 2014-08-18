@@ -293,7 +293,12 @@ int main(int argc, char **argv) {
 
   ENDTIMEIT(true, TIMEIT_MAIN);
 
-  timeit_print();
+  timeit_print(g_env.stderr);
+  fprintf(g_env.stderr, "\n"
+          "%.0f k nodes (approx)\n"
+          "%.0f k nodes / sec (approx)\n",
+          timeits[TIMEIT_TYPE_INFERENCE].count * .001,
+          timeits[TIMEIT_TYPE_INFERENCE].count * .001 / timeits[TIMEIT_MAIN].time);
 
   if (!opt_compile) {
     return 0;
