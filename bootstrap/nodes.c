@@ -173,11 +173,11 @@ const char *node_which_strings[] = {
 };
 
 static uint32_t module_ptr_hash(const struct module **mod) {
-  return hash32_hsieh(*mod, sizeof(*mod));
+  return hash32_hsieh(mod, sizeof(*mod));
 }
 
 static int module_ptr_cmp(const struct module **a, const struct module **b) {
-  return *a != *b;
+  return memcmp(a, b, sizeof(*a));
 }
 
 IMPLEMENT_HTABLE_SPARSE(, importmap, struct node *, struct module *,
