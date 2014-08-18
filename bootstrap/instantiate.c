@@ -21,6 +21,7 @@ static ERROR do_instantiate(struct node **result,
   BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE);
   BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_INTF);
   BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_REF);
+  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_WEAKLY_CONCRETE);
 
   assert(arity == 0 || (typ_is_generic_functor(t) && arity == typ_generic_arity(t)));
 
@@ -82,9 +83,11 @@ static ERROR do_instantiate(struct node **result,
 
   *result = instance;
 
+  ENDTIMEIT(typ_is_weakly_concrete(instance->typ), TIMEIT_INSTANTIATE_TENTATIVE_WEAKLY_CONCRETE);
   ENDTIMEIT(tentative && typ_is_reference(instance->typ), TIMEIT_INSTANTIATE_TENTATIVE_REF);
   ENDTIMEIT(tentative && instance->which == DEFINTF, TIMEIT_INSTANTIATE_TENTATIVE_INTF);
   ENDTIMEIT(tentative, TIMEIT_INSTANTIATE_TENTATIVE);
+
   ENDTIMEIT(!tentative && typ_is_reference(instance->typ), TIMEIT_INSTANTIATE_REF);
   ENDTIMEIT(!tentative && instance->which == DEFINTF, TIMEIT_INSTANTIATE_INTF);
   ENDTIMEIT(!tentative, TIMEIT_INSTANTIATE);
