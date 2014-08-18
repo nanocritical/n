@@ -416,6 +416,8 @@ struct typ *typ_create(struct typ *tbi, struct node *definition) {
 }
 
 void typ_create_update_genargs(struct typ *t) {
+  assert(!(t->rdy & RDY_GEN));
+
   create_update_concrete_flag(t);
 
   struct node *dpar = parent(typ_definition(t));
