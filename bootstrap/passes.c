@@ -136,6 +136,7 @@ error catchup(struct module *mod,
         goal = mod->stage->state->passing;
       }
     }
+    goal = min(size_t, last_pass_with_tentative_body(), goal);
   } else if (how == CATCHUP_BEFORE_CURRENT_SAME_TOP) {
     assert(mod->stage->state->passing == 0 && "Unsupported");
 
