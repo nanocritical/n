@@ -757,6 +757,10 @@ struct node *typ_definition_nooverlay(struct typ *t) {
   return t->definition;
 }
 
+const struct node *typ_definition_nooverlay_const(const struct typ *t) {
+  return t->definition;
+}
+
 bool typ_is_function(const struct typ *t) {
   const struct node *def = typ_definition_const(t);
   return def->which == DEFFUN || def->which == DEFMETHOD;

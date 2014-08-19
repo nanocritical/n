@@ -1486,10 +1486,10 @@ static void constraint_defchoice_container(const struct node **container,
 
   ident common = ID__NONE;
   if (constraint_has_common_root_tag(&common, mod, par)) {
-    *container = node_get_member_const(typ_definition_const(par->typ),
+    *container = node_get_member_const(typ_definition_nooverlay_const(par->typ),
                                        common);
   } else {
-    *container = typ_definition_const(par->typ);
+    *container = typ_definition_nooverlay_const(par->typ);
   }
 }
 
@@ -1509,9 +1509,9 @@ static ERROR constraint_inference_bin_acc(struct module *mod,
   if (base->flags & NODE_IS_DEFCHOICE) {
     constraint_defchoice_container(&container, mod, node);
   } else if (typ_is_reference(base->typ)) {
-    container = typ_definition(typ_generic_arg(base->typ, 0));
+    container = typ_definition_nooverlay_const(typ_generic_arg(base->typ, 0));
   } else {
-    container = typ_definition_const(base->typ);
+    container = typ_definition_nooverlay_const(base->typ);
   }
   e = scope_lookup_ident_immediate(&field, name, mod, &container->scope,
                                    node_ident(name), false);
@@ -1681,14 +1681,14 @@ static ERROR constraint_inference_call(struct module *mod,
                                        struct node *node) {
   if (node->flags & NODE_IS_TYPE) {
     constraint_copy(mod, node->constraint,
-                    typ_definition_const(node->typ)->constraint);
+                    typ_definition_nooverlay_const(node->typ)->constraint);
     return 0;
   }
 
   error e;
   const struct node *fun = subs_first(node);
   const struct typ *tfun = fun->typ;
-  const struct node *dfun = typ_definition_const(tfun);
+  const struct node *dfun = typ_definition_nooverlay_const(tfun);
 
   const struct node *funargs = subs_at_const(dfun, IDX_FUNARGS);
   const ssize_t first_vararg = node_fun_first_vararg(dfun);
@@ -2032,7 +2032,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
     break;
   case DIRECTDEF:
     {
-      struct node *def = typ_definition(node->as.DIRECTDEF.typ);
+      const struct node *def = typ_definition_nooverlay_const(node->as.DIRECTDEF.typ);
       constraint_copy(mod, node->constraint, def->constraint);
     }
     break;

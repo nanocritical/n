@@ -25,6 +25,7 @@ bool typ_hash_ready(const struct typ *t);
 
 struct node *typ_definition(/*struct typ_overlay *olay,*/ struct typ *t);
 struct node *typ_definition_nooverlay(struct typ *t);
+const struct node *typ_definition_nooverlay_const(const struct typ *t);
 
 enum node_which typ_definition_which(const struct typ *t);
 enum deftype_kind typ_definition_deftype_kind(const struct typ *t);
