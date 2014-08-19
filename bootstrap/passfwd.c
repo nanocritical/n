@@ -621,7 +621,7 @@ static ERROR validate_genarg_types(struct module *mod, struct node *node) {
       struct typ *arg = CONST_CAST(typ_generic_arg_const(t0, n));
       assert(!typ_is_tentative(arg));
 
-      if (typ_is_tentative(ga->typ) && typ_definition(ga->typ)->which == DEFINCOMPLETE) {
+      if (typ_is_tentative(ga->typ) && typ_definition_which(ga->typ) == DEFINCOMPLETE) {
         if (!typ_isa(ga->typ, arg)) {
           defincomplete_add_isa(mod, ga->as.SETGENARG.for_error,
                                 typ_definition(ga->typ), arg);
@@ -730,7 +730,7 @@ static ERROR step_type_defchoices(struct module *mod, struct node *node,
     ch->flags |= NODE_IS_DEFCHOICE;
   }
 
-  if (typ_definition_const(node->as.DEFTYPE.tag_typ)->which == DEFINTF
+  if (typ_definition_which(node->as.DEFTYPE.tag_typ) == DEFINTF
       || typ_equal(node->as.DEFTYPE.tag_typ, TBI_LITERALS_INTEGER)) {
     e = unify(mod, node, node->as.DEFTYPE.tag_typ, TBI_U32);
     EXCEPT(e);
@@ -941,7 +941,7 @@ static ERROR step_detect_inline_import(struct module *mod, struct node *node,
     return 0;
   }
 
-  const struct module *owner = node_module_owner_const(typ_definition_const(node->typ));
+  const struct module *owner = typ_module_owner(node->typ);
   if (owner == mod) {
     return 0;
   }

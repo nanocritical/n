@@ -155,9 +155,9 @@ static ERROR step_weak_literal_conversion(struct module *mod, struct node *node,
   node_set_which(node, CALL);
 
   struct node *fun = mk_node(mod, node, DIRECTDEF);
-  struct node *fund = node_get_member(typ_definition(saved_typ), id);
-  assert(fund != NULL);
-  set_typ(&fun->as.DIRECTDEF.typ, fund->typ);
+  struct typ *funt = typ_member(saved_typ, id);
+  assert(funt != NULL);
+  set_typ(&fun->as.DIRECTDEF.typ, funt);
   fun->as.DIRECTDEF.flags = NODE_IS_TYPE;
 
   node_subs_append(node, literal);
@@ -192,8 +192,7 @@ static ERROR gen_operator_call(struct module *mod, struct node *node,
                                ident operator_name,
                                struct node *left, struct node *right,
                                enum catchup_for catchup_for) {
-  struct typ *tfun = node_get_member(typ_definition(left->typ),
-                                     operator_name)->typ;
+  struct typ *tfun = typ_member(left->typ, operator_name);
 
   node_set_which(node, CALL);
   struct node *fun = mk_node(mod, node, DIRECTDEF);
@@ -266,11 +265,10 @@ static ERROR step_operator_call_inference(struct module *mod, struct node *node,
     return 0;
   }
 
-  struct node *dleft = typ_definition(left->typ);
-  if (dleft->which == DEFTYPE
-      && dleft->as.DEFTYPE.kind == DEFTYPE_ENUM
+  if (typ_definition_which(left->typ) == DEFTYPE
+      && typ_definition_deftype_kind(left->typ) == DEFTYPE_ENUM
       // FIXME should not let non-sized overflow operations through.
-      && typ_isa(dleft->as.DEFTYPE.tag_typ, TBI_NATIVE_INTEGER)) {
+      && typ_isa(typ_definition_tag_type(left->typ), TBI_NATIVE_INTEGER)) {
     return 0;
   }
 
@@ -320,7 +318,7 @@ static ERROR step_array_ctor_call_inference(struct module *mod, struct node *nod
 
   node_set_which(node, CALL);
 
-  struct typ *tfun = node_get_member(typ_definition(saved_typ), ID_FROM_ARRAY)->typ;
+  struct typ *tfun = typ_member(saved_typ, ID_FROM_ARRAY);
   unset_typ(&array->typ);
   set_typ(&array->typ, typ_function_arg(tfun, 0));
 

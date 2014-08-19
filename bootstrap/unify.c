@@ -46,8 +46,8 @@ static ERROR unify_two_non_generic(struct module *mod, const struct node *for_er
     // noop
   } else if (typ_isa(b, a)) {
     SWAP(a, b);
-  } else if (typ_definition(a)->which == DEFINTF
-             && typ_definition(b)->which == DEFINTF) {
+  } else if (typ_definition_which(a) == DEFINTF
+             && typ_definition_which(b) == DEFINTF) {
     struct node *dinc = defincomplete_create(mod, for_error);
 
     defincomplete_add_isa(mod, for_error, dinc, a);
@@ -143,8 +143,8 @@ static ERROR unify_generics(struct module *mod, uint32_t flags,
     SWAP(a0, b0);
     SWAP(a_genf, b_genf);
     SWAP(a_tentative, b_tentative);
-  } else if (typ_definition(a)->which == DEFINTF
-             && typ_definition(b)->which == DEFINTF) {
+  } else if (typ_definition_which(a) == DEFINTF
+             && typ_definition_which(b) == DEFINTF) {
     struct node *dinc = defincomplete_create(mod, for_error);
     defincomplete_add_isa(mod, for_error, dinc, a);
     defincomplete_add_isa(mod, for_error, dinc, b);
@@ -323,7 +323,7 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
     } else if (typ_is_tentative(a) && typ_isa(b, a)) {
       typ_link_tentative(b, a);
     } else if (!typ_isa(a, TBI_INTEGER_LITERAL_COMPATIBLE)
-               && typ_is_tentative(a) && typ_definition_const(a)->which == DEFINTF) {
+               && typ_is_tentative(a) && typ_definition_which(a) == DEFINTF) {
       struct node *dinc = defincomplete_create(mod, for_error);
 
       defincomplete_add_isa(mod, for_error, dinc, as_non_tentative(a));
@@ -346,7 +346,7 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
     } else if (typ_is_tentative(a) && typ_isa(b, a)) {
       typ_link_tentative(b, a);
     } else if (!typ_isa(a, TBI_FLOATING)
-               && typ_is_tentative(a) && typ_definition_const(a)->which == DEFINTF) {
+               && typ_is_tentative(a) && typ_definition_which(a) == DEFINTF) {
       struct node *dinc = defincomplete_create(mod, for_error);
 
       defincomplete_add_isa(mod, for_error, dinc, a);
@@ -750,8 +750,8 @@ static ERROR unify_reforslice_arg(struct module *mod, uint32_t flags,
                                   struct typ *a, struct typ *b) {
   struct typ *arg_a = typ_generic_arg(a, 0);
   struct typ *arg_b = typ_generic_arg(b, 0);
-  const bool arg_a_intf = typ_definition_const(arg_a)->which == DEFINTF;
-  const bool arg_b_intf = typ_definition_const(arg_b)->which == DEFINTF;
+  const bool arg_a_intf = typ_definition_which(arg_a) == DEFINTF;
+  const bool arg_b_intf = typ_definition_which(arg_b) == DEFINTF;
   const bool arg_a_tentative = typ_is_tentative(arg_a);
   const bool arg_b_tentative = typ_is_tentative(arg_b);
   const bool arg_a_weak = typ_is_weakly_concrete(arg_a);
@@ -776,8 +776,8 @@ void unify_with_new_parent(struct module *mod, const struct node *for_error,
                            struct typ *p, struct typ *t) {
   assert(typ_is_tentative(t));
 
-  struct node *dm = node_get_member(typ_definition(p), node_ident(typ_definition(t)));
-  if (dm == NULL) {
+  struct typ *tm = typ_member(p, typ_definition_ident(t));
+  if (tm == NULL) {
     // FIXME: this may be the member of a weakly concrete that has no match
     // in the concrete type it's being linked to. We should have prevented
     // that with proper intf requirements.
@@ -786,7 +786,7 @@ void unify_with_new_parent(struct module *mod, const struct node *for_error,
 
   const size_t arity = typ_generic_arity(t);
   if (arity == 0) {
-    typ_link_tentative(dm->typ, t);
+    typ_link_tentative(tm, t);
     return;
   }
 
@@ -796,7 +796,7 @@ void unify_with_new_parent(struct module *mod, const struct node *for_error,
   }
 
   struct node *i = NULL;
-  error e = instantiate(&i, mod, for_error, -1, dm->typ, args, arity, false);
+  error e = instantiate(&i, mod, for_error, -1, tm, args, arity, false);
   assert(!e);
   typ_link_tentative(i->typ, t);
 }
@@ -854,10 +854,10 @@ static ERROR unify_reference_with_refcompat(struct module *mod, uint32_t flags,
 
   struct typ *a0 = typ_generic_functor(a);
   struct typ *b0 = typ_generic_functor(b);
-  if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)
+  if (typ_definition_which(b0) == DEFINTF && typ_is_tentative(b0)
       && typ_isa(a0, b0)) {
     typ_link_tentative_functor(mod, a0, b0);
-  } else if (typ_definition_const(a0)->which == DEFINTF && typ_is_tentative(a0)
+  } else if (typ_definition_which(a0) == DEFINTF && typ_is_tentative(a0)
              && typ_isa(b0, a0)) {
     typ_link_tentative_functor(mod, b0, a0);
   }
@@ -924,7 +924,7 @@ static ERROR unify_reference(struct module *mod, uint32_t flags,
   e = unify_reforslice_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
 
-  if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
+  if (typ_definition_which(b0) == DEFINTF && typ_is_tentative(b0)) {
     typ_link_tentative_functor(mod, a0, b0);
   }
 
@@ -1024,7 +1024,7 @@ static ERROR unify_slice_with_refcompat(struct module *mod, uint32_t flags,
   EXCEPT(e);
 
   struct typ *b0 = typ_generic_functor(b);
-  if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
+  if (typ_definition_which(b0) == DEFINTF && typ_is_tentative(b0)) {
     struct typ *a0 = typ_generic_functor(a);
     typ_link_tentative_functor(mod, a0, b0);
   }
@@ -1091,7 +1091,7 @@ static ERROR unify_slice(struct module *mod, uint32_t flags,
   e = unify_reforslice_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
 
-  if (typ_definition_const(b0)->which == DEFINTF && typ_is_tentative(b0)) {
+  if (typ_definition_which(b0) == DEFINTF && typ_is_tentative(b0)) {
     typ_link_tentative_functor(mod, a0, b0);
   }
 
@@ -1144,11 +1144,8 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
     goto ok;
   }
 
-  const struct node *da = typ_definition_const(a);
-  const struct node *db = typ_definition_const(b);
-
-  const bool a_inc = da->which == DEFINCOMPLETE;
-  const bool b_inc = db->which == DEFINCOMPLETE;
+  const bool a_inc = typ_definition_which(a) == DEFINCOMPLETE;
+  const bool b_inc = typ_definition_which(b) == DEFINCOMPLETE;
   if (a_inc || b_inc) {
     e = unify_defincomplete(mod, for_error, a, b, a_inc, b_inc);
     EXCEPT(e);

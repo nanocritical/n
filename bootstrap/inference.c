@@ -731,14 +731,13 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
     case TEQMATCH:
     case TNEMATCH:
       {
-        const struct node *d = typ_definition_const(left->typ);
-        if (d->which != DEFTYPE || d->as.DEFTYPE.kind != DEFTYPE_UNION) {
+        if (typ_definition_which(left->typ) != DEFTYPE
+            || typ_definition_deftype_kind(left->typ) != DEFTYPE_UNION) {
           e = mk_except_type(mod, left, "match operator must be used on a union,"
                              " not on type '%s'", pptyp(mod, left->typ));
           THROW(e);
         }
-        const struct node *f = node_get_member_const(d, node_ident(right));
-        if (f == NULL) {
+        if (typ_member(left->typ, node_ident(right)) == NULL) {
           e = mk_except_type(mod, right, "unknown ident '%s' in match"
                              " operator pattern",
                              idents_value(mod->gctx, node_ident(right)));
@@ -1051,7 +1050,7 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
   }
 
   if (typ_is_function(field->typ) && mark != TBI__CALL_FUNCTION_SLOT) {
-    const bool is_method = typ_definition_const(field->typ)->which == DEFMETHOD;
+    const bool is_method = typ_definition_which(field->typ) == DEFMETHOD;
     if (node_fun_min_args_count(field) != (is_method ? 1 : 0)) {
       e = mk_except_call_args_count(mod, node, field, is_method, 0);
       THROW(e);
@@ -1322,7 +1321,7 @@ static ERROR type_inference_init(struct module *mod, struct node *node) {
   assert(node->which == INIT);
   if (node->as.INIT.is_array) {
     if (!typ_is_literal(subs_first(node)->typ)
-        && typ_definition(subs_first(node)->typ)->which == DEFINTF) {
+        && typ_definition_which(subs_first(node)->typ) == DEFINTF) {
       type_inference_init_isalist_literal(mod, node);
       return 0;
     } else {
@@ -1869,7 +1868,7 @@ static ERROR try_rewrite_operator_sub_bounds(struct module *mod, struct node *no
   struct node *arg = subs_at(node, 2);
 
   if (!typ_equal(arg->typ, TBI_BOUNDS)
-      || node_ident(typ_definition_const(fun->typ)) != ID_OPERATOR_SUB) {
+      || typ_definition_ident(fun->typ) != ID_OPERATOR_SUB) {
     return 0;
   }
 
@@ -1910,17 +1909,14 @@ static ERROR try_rewrite_operator_sub_bounds(struct module *mod, struct node *no
 static ERROR type_inference_call(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
-  struct node *dfun = typ_definition(fun->typ);
+  struct typ *tfun = fun->typ;
 
-  if (!node_is_fun(dfun)
-      || (subs_count_atleast(node, 2)
-          && (subs_at(node, 1)->flags & NODE_IS_TYPE))) {
+  if (!typ_is_function(tfun)
+      || (subs_count_atleast(node, 2) && (subs_at(node, 1)->flags & NODE_IS_TYPE))) {
     // Uninstantiated generic, called on types.
 
-    if (!node_is_fun(dfun)
-        && (!node_can_have_genargs(dfun)
-            || !subs_count_atleast(subs_at(dfun, IDX_GENARGS), 1))) {
-      char *n = pptyp(mod, dfun->typ);
+    if (!typ_is_function(tfun) && typ_generic_arity(tfun) == 0) {
+      char *n = pptyp(mod, tfun);
       e = mk_except_type(mod, fun, "'%s' not a function or a generic", n);
       free(n);
       THROW(e);
@@ -1959,6 +1955,7 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
 
   node->flags |= NODE_IS_TEMPORARY;
 
+  struct node *dfun = typ_definition(tfun);
   if (subs_count_atleast(subs_at(dfun, IDX_GENARGS), 1)
       && node_toplevel_const(dfun)->generic->our_generic_functor_typ == NULL) {
     // Uninstantiated generic, called on values.
@@ -1979,21 +1976,21 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
     if (n == first_vararg) {
       break;
     }
-    e = unify_refcompat(mod, arg, typ_function_arg(dfun->typ, n), arg->typ);
+    e = unify_refcompat(mod, arg, typ_function_arg(tfun, n), arg->typ);
     EXCEPT(e);
     n += 1;
   }
 
   if (n == first_vararg) {
     FOREACH_SUB_EVERY(arg, node, 1 + n, 1) {
-      struct typ *target = typ_generic_arg(typ_function_arg(dfun->typ, n), 0);
+      struct typ *target = typ_generic_arg(typ_function_arg(tfun, n), 0);
 
       e = unify_refcompat(mod, arg, target, arg->typ);
       EXCEPT(e);
     }
   }
 
-  set_typ(&node->typ, typ_function_return(dfun->typ));
+  set_typ(&node->typ, typ_function_return(tfun));
 
   return 0;
 }

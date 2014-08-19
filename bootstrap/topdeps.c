@@ -119,7 +119,7 @@ static void record_tentative(struct module *mod, struct node *node) {
 void topdeps_record(struct module *mod, struct typ *t) {
   struct top_state *st = mod->state->top_state;
   if (st == NULL
-      || typ_definition(t)->which == MODULE) {
+      || typ_definition_which(t) == MODULE) {
     return;
   }
 

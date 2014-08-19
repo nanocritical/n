@@ -1460,11 +1460,6 @@ int snprint_defincomplete(char *s, size_t len,
      } \
      __VA_ARGS__)
 
-// Return value must be freed by caller.
-char *typ_name(const struct module *mod, const struct typ *t);
-// Return value must be freed by caller.
-char *pptyp(const struct module *mod, const struct typ *t);
-
 int snprint_codeloc(char *s, size_t len,
                     const struct module *mod, const struct node *node);
 ERROR mk_except(const struct module *mod, const struct node *node, const char *fmt, ...)

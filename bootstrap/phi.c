@@ -537,7 +537,7 @@ STEP_NM(step_ident_non_local_scope,
 error step_ident_non_local_scope(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   struct scope *non_local_scope = node->as.IDENT.non_local_scope;
-  const struct node *d = typ_definition_const(node->typ);
+  const struct node *d = typ_definition_nooverlay(node->typ);
 
   if (non_local_scope != NULL
       && scope_node(non_local_scope)->which == DEFINCOMPLETE

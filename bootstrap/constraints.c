@@ -1950,10 +1950,11 @@ error step_constraint_inference(struct module *mod, struct node *node,
     if (node->as.INIT.for_tag != ID__NONE) {
       constraint_set_tag(mod, node->constraint, node->as.INIT.for_tag, false);
 
-      const struct node *d = typ_definition_const(node->typ);
-      if (d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+      if (typ_definition_which(node->typ) == DEFTYPE
+          && typ_definition_deftype_kind(node->typ) == DEFTYPE_ENUM) {
         constraint_set(mod, node->constraint, CBI_INIT, false);
-      } else if (d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_UNION) {
+      } else if (typ_definition_which(node->typ) == DEFTYPE
+                 && typ_definition_deftype_kind(node->typ) == DEFTYPE_UNION) {
         const struct node *ch = node_get_member_const(node, node->as.INIT.for_tag);
         const struct node *ext = node_defchoice_external_payload(ch);
         if (ext != NULL && typ_isa(ext->typ, TBI_TRIVIAL_CTOR)) {
@@ -2117,9 +2118,8 @@ error step_check_exhaustive_match(struct module *mod, struct node *node,
   return 0;
 
   struct node *expr = subs_first(node);
-  struct node *dexpr = typ_definition(expr->typ);
-  const bool enum_or_union = dexpr->as.DEFTYPE.kind == DEFTYPE_ENUM
-    || dexpr->as.DEFTYPE.kind == DEFTYPE_UNION;
+  enum deftype_kind kind = typ_definition_deftype_kind(expr->typ);
+  const bool enum_or_union = kind == DEFTYPE_ENUM || kind == DEFTYPE_UNION;
 
   if (!enum_or_union) {
     return 0;

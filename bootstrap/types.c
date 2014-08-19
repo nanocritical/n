@@ -5,6 +5,7 @@
 #include "typset.h"
 #include "unify.h"
 #include "inference.h"
+#include "parser.h"
 
 #include <stdio.h>
 
@@ -751,10 +752,46 @@ struct node *typ_definition(struct typ *t) {
   return t->definition;
 }
 
+struct node *typ_definition_nooverlay(struct typ *t) {
+  return t->definition;
+}
+
 bool typ_is_function(const struct typ *t) {
   const struct node *def = typ_definition_const(t);
   return def->which == DEFFUN || def->which == DEFMETHOD;
 }
+
+enum node_which typ_definition_which(const struct typ *t) {
+  return typ_definition_const(t)->which;
+}
+
+enum deftype_kind typ_definition_deftype_kind(const struct typ *t) {
+  const struct node *d = typ_definition_const(t);
+  assert(d->which == DEFTYPE);
+  return d->as.DEFTYPE.kind;
+}
+
+struct typ *typ_definition_tag_type(const struct typ *t) {
+  const struct node *d = typ_definition_const(t);
+  assert(d->which == DEFTYPE);
+  return d->as.DEFTYPE.tag_typ;
+}
+
+ident typ_definition_ident(const struct typ *t) {
+  return node_ident(typ_definition_const(t));
+}
+
+struct module *typ_module_owner(const struct typ *t) {
+  return node_module_owner(typ_definition(CONST_CAST(t)));
+}
+
+struct typ *typ_member(struct typ *t, ident name) {
+  struct node *d = typ_definition(t);
+  struct node *m = node_get_member(d, name);
+  return m != NULL ? m->typ : NULL;
+}
+
+struct typ *typ_member_resolve_accessor(const struct node *node);
 
 static struct typ *def_generic_functor(struct typ *t) {
   if (typ_generic_arity(t) == 0) {
@@ -1843,4 +1880,100 @@ struct typ *instances_find_existing_identical(struct node *gendef,
   struct node **i = instanceset_get(&generic->finals, q);
   free(tmp.gen_args);
   return i == NULL ? NULL : (*i)->typ;
+}
+
+char *typ_name(const struct module *mod, const struct typ *t) {
+  if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
+    return typ_name(mod, typ_generic_functor_const(t));
+  } else if (typ_definition_const(t) != NULL) {
+    return scope_name(mod, &typ_definition_const(t)->scope);
+  } else {
+    for (size_t n = ID_TBI__FIRST; n < ID_TBI__LAST; ++n) {
+      if (mod->gctx->builtin_typs_by_name[n] == t) {
+        return strdup(predefined_idents_strings[n]);
+      }
+    }
+  }
+  return NULL;
+}
+
+extern char *stpcpy(char *dest, const char *src);
+
+static char *pptyp_defincomplete(char *r, const struct module *mod,
+                                           const struct node *d) {
+  char *s = r;
+  s = stpcpy(s, idents_value(mod->gctx, node_ident(d)));
+  s = stpcpy(s, "{");
+  if (d->as.DEFINCOMPLETE.ident != ID__NONE) {
+    s = stpcpy(s, "\"");
+    s = stpcpy(s, idents_value(mod->gctx, d->as.DEFINCOMPLETE.ident));
+    s = stpcpy(s, "\" ");
+  }
+  const struct node *isalist = subs_at_const(d, IDX_ISALIST);
+  FOREACH_SUB_CONST(i, isalist) {
+    s = stpcpy(s, "isa ");
+    char *n = pptyp(mod, i->typ);
+    s = stpcpy(s, n);
+    free(n);
+    s = stpcpy(s, " ");
+  }
+  FOREACH_SUB_CONST(f, d) {
+    if (f->which == DEFFIELD) {
+      s = stpcpy(s, idents_value(mod->gctx, node_ident(f)));
+      s = stpcpy(s, ":");
+      char *n = pptyp(mod, f->typ);
+      s = stpcpy(s, n);
+      free(n);
+      s = stpcpy(s, " ");
+    }
+  }
+  s = stpcpy(s, "}");
+  return r;
+}
+
+char *pptyp(const struct module *mod, const struct typ *t) {
+  if (t == NULL) {
+    return strdup("(null)");
+  }
+
+  char *r = calloc(2048, sizeof(char));
+  char *s = r;
+
+  s = stpcpy(s, typ_is_tentative(t) ? "*" : "");
+
+  const struct node *d = typ_definition_const(t);
+  if (d == NULL) {
+    s = stpcpy(s, "<ZEROED>");
+  } else if (d->which == IMPORT) {
+    s = stpcpy(s, "<import>");
+  } else if (d->which == DEFINCOMPLETE) {
+    s = pptyp_defincomplete(s, mod, d);
+  } else if (typ_generic_arity(t) == 0) {
+    s = stpcpy(s, typ_name(mod, t));
+  } else {
+    s = stpcpy(s, "(");
+    if (typ_is_generic_functor(t)) {
+      s = stpcpy(s, "functor ");
+      s = stpcpy(s, typ_name(mod, t));
+    } else {
+      const struct typ *f = typ_generic_functor_const(t);
+      s = stpcpy(s, typ_is_tentative(f) ? "*" : "");
+      s = stpcpy(s, typ_name(mod, f));
+    }
+
+    for (size_t n = 0; n < typ_generic_arity(t); ++n) {
+      const struct typ *ga = typ_generic_arg_const(t, n);
+      if (ga == NULL) {
+        s = stpcpy(s, " null");
+      } else {
+        char *s2 = pptyp(mod, ga);
+        s = stpcpy(s, " ");
+        s = stpcpy(s, s2);
+        free(s2);
+      }
+    }
+    s = stpcpy(s, ")");
+  }
+
+  return r;
 }

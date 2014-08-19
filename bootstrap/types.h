@@ -23,7 +23,25 @@ void typ_create_update_quickisa(struct typ *t);
 
 bool typ_hash_ready(const struct typ *t);
 
-struct node *typ_definition(struct typ *t);
+struct node *typ_definition(/*struct typ_overlay *olay,*/ struct typ *t);
+struct node *typ_definition_nooverlay(struct typ *t);
+
+enum node_which typ_definition_which(const struct typ *t);
+enum deftype_kind typ_definition_deftype_kind(const struct typ *t);
+struct typ *typ_definition_tag_type(const struct typ *t);
+ident typ_definition_ident(const struct typ *t);
+struct module *typ_module_owner(const struct typ *t);
+
+struct typ *typ_member(struct typ *t, ident name);
+struct typ *typ_member_resolve_accessor(const struct node *node);
+
+struct typ_iterator;
+struct typ_iterator *typ_definition_members(const struct typ *t, ...) sentinel__;
+struct typ_iterator *typ_definition_one_member(const struct typ *t, ident name);
+bool tit_next(struct typ_iterator *tit);
+enum node_which tit_which(const struct typ_iterator *tit);
+ident tit_name(const struct typ_iterator *tit);
+struct typ *tit_typ(const struct typ_iterator *tit);
 
 bool typ_is_generic_functor(const struct typ *t);
 struct typ *typ_generic_functor(struct typ *t);
@@ -33,7 +51,11 @@ struct typ *typ_generic_arg(struct typ *t, size_t n);
 
 bool typ_is_function(const struct typ *t);
 size_t typ_function_arity(const struct typ *t);
+size_t typ_function_min_arity(const struct typ *t);
+size_t typ_function_max_arity(const struct typ *t);
+size_t typ_function_first_vararg(const struct typ *t);
 struct typ *typ_function_arg(struct typ *t, size_t n);
+bool typ_function_arg_has_explicit_ref(struct typ *t, size_t n);
 struct typ *typ_function_return(struct typ *t);
 
 void unset_typ(struct typ **loc);
@@ -111,6 +133,12 @@ struct typ *instances_find_existing_final_like(struct node *gendef,
 struct typ *instances_find_existing_identical(struct node *gendef,
                                               struct typ *functor,
                                               struct typ **args, size_t arity);
+
+// Return value must be freed by caller.
+char *typ_name(const struct module *mod, const struct typ *t);
+// Return value must be freed by caller.
+char *pptyp(const struct module *mod, const struct typ *t);
+
 extern struct typ *TBI_VOID;
 extern struct typ *TBI_LITERALS_NULL;
 extern struct typ *TBI_LITERALS_INTEGER;
