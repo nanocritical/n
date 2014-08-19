@@ -35,13 +35,16 @@ struct module *typ_module_owner(const struct typ *t);
 struct typ *typ_member(struct typ *t, ident name);
 struct typ *typ_member_resolve_accessor(const struct node *node);
 
-struct typ_iterator;
-struct typ_iterator *typ_definition_members(const struct typ *t, ...) sentinel__;
-struct typ_iterator *typ_definition_one_member(const struct typ *t, ident name);
-bool tit_next(struct typ_iterator *tit);
-enum node_which tit_which(const struct typ_iterator *tit);
-ident tit_name(const struct typ_iterator *tit);
-struct typ *tit_typ(const struct typ_iterator *tit);
+struct tit;
+// End with 0.
+struct tit *typ_definition_members(const struct typ *t, ...);
+struct tit *typ_definition_one_member(const struct typ *t, ident name);
+// Frees the iterator when end is reached.
+bool tit_next(struct tit *tit);
+enum node_which tit_which(const struct tit *tit);
+ident tit_ident(const struct tit *tit);
+struct typ *tit_typ(const struct tit *tit);
+struct node *tit_node_ignore_any_overlay(const struct tit *tit);
 
 bool typ_is_generic_functor(const struct typ *t);
 struct typ *typ_generic_functor(struct typ *t);

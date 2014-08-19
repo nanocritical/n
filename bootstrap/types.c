@@ -8,6 +8,7 @@
 #include "parser.h"
 
 #include <stdio.h>
+#include <stdarg.h>
 
 static size_t def_generic_arity(const struct typ *t);
 static struct typ *def_generic_arg(struct typ *t, size_t n);
@@ -793,6 +794,105 @@ struct typ *typ_member(struct typ *t, ident name) {
 
 struct typ *typ_member_resolve_accessor(const struct node *node);
 
+struct tit {
+  struct node *definition;
+  struct node *pos;
+  uint64_t node_filter;
+  bool just_one;
+};
+
+bool tit_next(struct tit *tit) {
+  struct node *pos = tit->pos;
+  if (pos == NULL) {
+    // We're being called on a brand new tit.
+    pos = subs_first(tit->definition);
+  }
+
+  tit->pos = NULL;
+
+  if (tit->just_one) {
+    goto done;
+  }
+
+  if (pos->which == DEFCHOICE) {
+    struct node *f = subs_first(pos);
+    if (f != NULL) {
+      tit->pos = f;
+      goto done;
+    }
+  }
+
+  struct node *n = next(pos);
+  if (n != NULL) {
+    tit->pos = n;
+    goto done;
+  }
+
+  struct node *p = parent(pos);
+  if (p->which == DEFCHOICE) {
+    tit->pos = next(p);
+    goto done;
+  }
+
+done:
+  if (tit->pos == NULL) {
+    free(tit);
+    return false;
+  }
+
+  if (tit->node_filter != 0 && (tit->node_filter & NM(tit->pos->which))) {
+    return true;
+  }
+
+  return tit_next(tit);
+}
+
+struct tit *typ_definition_one_member(const struct typ *t, ident name) {
+  struct tit *tit = calloc(1, sizeof(struct tit));
+  tit->definition = typ_definition(CONST_CAST(t));
+  tit->just_one = true;
+
+  error e = scope_lookup_ident_immediate(&tit->pos, tit->definition,
+                                         typ_module_owner(t),
+                                         &tit->definition->scope,
+                                         name, true);
+  if (e) {
+    free(tit);
+    return NULL;
+  }
+
+  return tit;
+}
+
+struct tit *typ_definition_members(const struct typ *t, ...) {
+  struct tit *tit = calloc(1, sizeof(struct tit));
+  tit->definition = typ_definition(CONST_CAST(t));
+
+  va_list ap;
+  va_start(ap, t);
+
+  uint64_t f = 0;
+  enum node_which n;
+  while ((n = va_arg(ap, enum node_which)) != 0) {
+    f |= NM(n);
+  }
+  tit->node_filter = f;
+
+  return tit;
+}
+
+enum node_which tit_which(const struct tit *tit) {
+  return tit->pos->which;
+}
+
+ident tit_ident(const struct tit *tit) {
+  return node_ident(tit->pos);
+}
+
+struct typ *tit_typ(const struct tit *tit) {
+  return tit->pos->typ;
+}
+
 static struct typ *def_generic_functor(struct typ *t) {
   if (typ_generic_arity(t) == 0) {
     return NULL;
@@ -804,6 +904,10 @@ static struct typ *def_generic_functor(struct typ *t) {
   } else {
     return t;
   }
+}
+
+struct node *tit_node_ignore_any_overlay(const struct tit *tit) {
+  return tit->pos;
 }
 
 struct typ *typ_generic_functor(struct typ *t) {

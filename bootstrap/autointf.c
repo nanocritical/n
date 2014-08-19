@@ -6,14 +6,14 @@
 
 struct intf_proto_rewrite_state {
   struct typ *thi;
-  const struct node *proto_parent;
+  const struct typ *proto_parent;
 };
 
 static STEP_NM(step_rewrite_this,
                NM(IDENT));
 static ERROR step_rewrite_this(struct module *mod, struct node *node,
                                void *user, bool *stop) {
-  struct typ *thi = ((struct intf_proto_rewrite_state *)user)->thi;
+  struct typ *thi = user;
   ident id = node_ident(node);
   if (id == ID_THIS) {
     node_set_which(node, DIRECTDEF);
@@ -27,8 +27,7 @@ static STEP_NM(step_rewrite_local_idents,
                NM(DEFARG) | NM(IDENT));
 static ERROR step_rewrite_local_idents(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
-  const struct node *proto_parent =
-    ((struct intf_proto_rewrite_state *)user)->proto_parent;
+  const struct typ *proto_parent = user;
   if (proto_parent == NULL) {
     return 0;
   }
@@ -50,22 +49,19 @@ static ERROR step_rewrite_local_idents(struct module *mod, struct node *node,
     return 0;
   }
 
-  struct node *d = NULL;
-  error e = scope_lookup_ident_immediate(&d, node, mod, &proto_parent->scope,
-                                         id, true);
-  if (e == EINVAL) {
+  struct tit *m = typ_definition_one_member(proto_parent, id);
+  if (m == NULL) {
     return 0;
-  } else if (e) {
-    assert(false);
   }
 
-  if (NM(d->which) & (NM(DEFMETHOD) | NM(DEFFUN))) {
+  if (NM(tit_which(m)) & (NM(DEFMETHOD) | NM(DEFFUN))) {
     return 0;
   }
 
   node_set_which(node, DIRECTDEF);
-  set_typ(&node->as.DIRECTDEF.typ, d->typ);
+  set_typ(&node->as.DIRECTDEF.typ, tit_typ(m));
 
+  tit_next(m);
   return 0;
 }
 
@@ -78,18 +74,12 @@ static ERROR pass_rewrite_proto(struct module *mod, struct node *root,
 }
 
 static void intf_proto_deepcopy(struct module *mod,
-                                struct node *dst, const struct node *src,
-                                struct typ *thi,
-                                const struct node *proto_parent) {
-  node_deepcopy(mod, dst, src);
-
-  struct intf_proto_rewrite_state st = {
-    .thi = thi,
-    .proto_parent = proto_parent,
-  };
+                                struct node *dst, const struct tit *src,
+                                const struct typ *thi) {
+  node_deepcopy(mod, dst, tit_node_ignore_any_overlay(src));
 
   PUSH_STATE(mod->state->step_state);
-  error e = pass_rewrite_proto(mod, dst, &st, -1);
+  error e = pass_rewrite_proto(mod, dst, (void *)thi, -1);
   assert(!e);
   POP_STATE(mod->state->step_state);
 
@@ -100,10 +90,10 @@ static void intf_proto_deepcopy(struct module *mod,
 }
 
 static struct node *define_builtin_start(struct module *mod, struct node *deft,
-                                         const struct node *dintf,
-                                         const struct node *mi) {
+                                         const struct typ *intf,
+                                         const struct tit *mi) {
   struct node *d = node_new_subnode(mod, deft);
-  intf_proto_deepcopy(mod, d, mi, parent_const(mi)->typ, dintf);
+  intf_proto_deepcopy(mod, d, mi, intf);
   d->codeloc = deft->codeloc;
 
   struct toplevel *toplevel = node_toplevel(d);
@@ -350,18 +340,18 @@ static void gen_enum_show(struct module *mod, struct node *deft,
 static void add_auto_member(struct module *mod,
                             struct node *deft,
                             const struct typ *inferred_intf,
-                            const struct node *dintf,
-                            const struct node *mi) {
+                            const struct typ *intf,
+                            const struct tit *mi) {
   if (node_is_extern(deft) && !node_is_inline(deft)) {
     return;
   }
 
-  struct node *existing = node_get_member(deft, node_ident(mi));
+  struct node *existing = node_get_member(deft, tit_ident(mi));
   if (existing != NULL) {
     return;
   }
 
-  struct node *m = define_builtin_start(mod, deft, dintf, mi);
+  struct node *m = define_builtin_start(mod, deft, intf, mi);
 
   if (deft->which == DEFINCOMPLETE) {
     assert(deft->as.DEFINCOMPLETE.is_isalist_literal);
@@ -372,7 +362,7 @@ static void add_auto_member(struct module *mod,
   if (typ_is_trivial(inferred_intf)) {
     enum builtingen bg = BG__NOT;
 
-    switch (node_ident(mi)) {
+    switch (tit_ident(mi)) {
     case ID_CTOR:
       bg = BG_TRIVIAL_CTOR_CTOR;
       break;
@@ -398,7 +388,7 @@ non_bg:
   ;GSTART();
   G0(body, m, BLOCK);
 
-  switch (node_ident(mi)) {
+  switch (tit_ident(mi)) {
   case ID_CTOR:
   case ID_DTOR:
   case ID_COPY_CTOR:
@@ -438,13 +428,12 @@ static ERROR add_auto_isa_eachisalist(struct module *mod,
                                       bool *stop,
                                       void *user) {
   struct node *deft = user;
-  const struct node *dintf = typ_definition_const(intf);
-
-  FOREACH_SUB_CONST(mi, dintf) {
-    if (NM(mi->which) & (NM(DEFMETHOD) | NM(DEFFUN))) {
-      add_auto_member(mod, deft, t, dintf, mi);
-    }
+  __break();
+  struct tit *mi = typ_definition_members(intf, DEFMETHOD, DEFFUN, 0);
+  while (tit_next(mi)) {
+    add_auto_member(mod, deft, t, intf, mi);
   }
+
   return 0;
 }
 
@@ -709,12 +698,13 @@ error step_autointf_isalist_literal_protos(struct module *mod, struct node *node
 }
 
 static void define_builtin(struct module *mod, struct node *deft,
-                           const struct node *proto_parent,
+                           const struct typ *intf,
                            ident name, enum builtingen bg) {
-  struct node *m = define_builtin_start(mod, deft, proto_parent,
-                                        node_get_member_const(proto_parent, name));
+  struct tit *mi = typ_definition_one_member(intf, name);
+  struct node *m = define_builtin_start(mod, deft, intf, mi);
   node_toplevel(m)->builtingen = bg;
   define_builtin_catchup(mod, m);
+  tit_next(mi);
 }
 
 static ERROR add_environment_builtins_eachisalist(struct module *mod,
@@ -728,10 +718,9 @@ static ERROR add_environment_builtins_eachisalist(struct module *mod,
     return 0;
   }
 
-  const struct node *dintf = typ_definition_const(intf);
-  define_builtin(mod, deft, dintf, ID_PARENT, BG_ENVIRONMENT_PARENT);
-  define_builtin(mod, deft, dintf, ID_INSTALL, BG_ENVIRONMENT_INSTALL);
-  define_builtin(mod, deft, dintf, ID_UNINSTALL, BG_ENVIRONMENT_UNINSTALL);
+  define_builtin(mod, deft, intf, ID_PARENT, BG_ENVIRONMENT_PARENT);
+  define_builtin(mod, deft, intf, ID_INSTALL, BG_ENVIRONMENT_INSTALL);
+  define_builtin(mod, deft, intf, ID_UNINSTALL, BG_ENVIRONMENT_UNINSTALL);
   return 0;
 }
 
