@@ -2626,7 +2626,7 @@ error step_type_drop_excepts(struct module *mod, struct node *node,
 }
 
 static void finalize_weakly_concrete(struct module *mod, struct typ *t) {
-  struct typ *concrete = typ_concrete(t);
+  struct typ *concrete = typ_as_non_tentative(t);
   if (typ_equal(concrete, TBI_BOOL)) {
     typ_link_tentative(TBI_BOOL, t);
   } else if (typ_equal(concrete, TBI_STRING)) {

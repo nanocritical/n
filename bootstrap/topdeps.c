@@ -179,7 +179,7 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
   fprintf(stderr, "\t%04x %d %zu %s @%p\n",
           topdep_mask,
           typ_is_tentative(t),
-          node_toplevel_const(typ_definition_const(t))->passing,
+          node_toplevel_const(typ_definition_ignore_any_overlay_const(t))->passing,
           pptyp(mod, t), t);
   return 0;
 }

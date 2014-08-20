@@ -262,8 +262,7 @@ static struct typ *nullable(struct module *mod, const struct node *for_error,
 }
 
 static struct typ *as_non_tentative(const struct typ *t) {
-  assert(typ_generic_arity(t) == 0 && "FIXME not supported");
-  return node_toplevel_const(typ_definition_const(t))->generic->our_generic_functor_typ;
+  return typ_as_non_tentative(t);;
 }
 
 static ERROR unify_literal(struct module *mod, uint32_t flags,
@@ -448,8 +447,8 @@ static ERROR unify_two_defincomplete(struct module *mod,
   error e;
   const char *reason;
 
-  struct node *da = typ_definition(a);
-  struct node *db = typ_definition(b);
+  struct node *da = typ_definition_nooverlay(a);
+  struct node *db = typ_definition_nooverlay(b);
   if (da->as.DEFINCOMPLETE.ident != ID__NONE
       && db->as.DEFINCOMPLETE.ident != ID__NONE) {
     reason = "conflicting idents";
@@ -500,27 +499,31 @@ except:
 }
 
 static ERROR unify_with_defunknownident(struct module *mod, const struct node *for_error,
-                                        struct node *da, struct node *dinc) {
+                                        const struct typ *a, struct node *dinc) {
   assert(dinc->which == DEFINCOMPLETE);
   ident unk = dinc->as.DEFINCOMPLETE.ident;
 
   error e;
-  if (da->which != DEFTYPE
-      || (da->as.DEFTYPE.kind != DEFTYPE_ENUM
-          && da->as.DEFTYPE.kind != DEFTYPE_UNION)) {
-    char *s = pptyp(mod, da->typ);
+  if (typ_definition_which(a) != DEFTYPE
+      || (typ_definition_deftype_kind(a) != DEFTYPE_ENUM
+          && typ_definition_deftype_kind(a) != DEFTYPE_UNION)) {
+    char *s = pptyp(mod, a);
     e = mk_except_type(mod, for_error,
-                       "ident '%s' cannot be resolved in type '%s'"
-                       " (not an enum)",
-                       idents_value(mod->gctx, unk), s);
+                       "type '%s' is not an enum or union: cannot resolve ident '%s'",
+                       s, idents_value(mod->gctx, unk));
     free(s);
     THROW(e);
   }
 
-  struct node *r = NULL;
-  e = scope_lookup_ident_immediate(&r, for_error, mod, &da->scope,
-                                   unk, false);
-  EXCEPT(e);
+  struct tit *exists = typ_definition_one_member(a, unk);
+  if (exists == NULL) {
+    char *s = pptyp(mod, a);
+    e = mk_except_type(mod, for_error, "cannot resolve ident '%s'"
+                       " in enum or union type '%s'",
+                       idents_value(mod->gctx, unk), s);
+    free(s);
+    THROW(e);
+  }
 
   // Will typ_link_tentative() in unify_with_defincomplete().
 
@@ -529,28 +532,22 @@ static ERROR unify_with_defunknownident(struct module *mod, const struct node *f
 
 static bool has_variant_with_field(struct module *mod,
                                    const struct node *for_error,
-                                   const struct node *d, ident f) {
-  FOREACH_SUB_CONST(dc, d) {
-    if (dc->which != DEFCHOICE) {
+                                   const struct typ *t, ident name) {
+  struct tit *dc = typ_definition_members(t, DEFCHOICE, 0);
+  while (tit_next(dc)) {
+    if (!tit_defchoice_is_leaf(dc)) {
       continue;
     }
 
-    const struct scope *sc = &dc->scope;
-    const struct node *ext = node_defchoice_external_payload(dc);
-    if (ext != NULL) {
-      sc = &typ_definition_const(ext->typ)->scope;
-    }
-    struct node *r = NULL;
-    error e = scope_lookup_ident_immediate(&r, for_error, mod, sc, f, true);
-    if (!e) {
-      return true;
-    }
-
-    if (has_variant_with_field(mod, for_error, dc, f)) {
+    struct tit *f = tit_defchoice_lookup_field(dc, name);
+    if (f != NULL) {
+      tit_next(f);
+      tit_next(dc);
       return true;
     }
   }
 
+  tit_next(dc);
   return false;
 }
 
@@ -561,21 +558,21 @@ error unify_with_defincomplete_entrails(struct module *mod,
                                         struct typ *inc) {
   error e;
 
-  struct node *dinc = typ_definition(inc);
-  struct node *da = typ_definition(a);
+  struct node *dinc = typ_definition_nooverlay(inc);
   if (dinc->as.DEFINCOMPLETE.ident != ID__NONE) {
-    e = unify_with_defunknownident(mod, for_error, da, dinc);
+    e = unify_with_defunknownident(mod, for_error, a, dinc);
     EXCEPT(e);
   }
 
-  const bool is_union = da->which == DEFTYPE && da->as.DEFTYPE.kind == DEFTYPE_UNION;
+  const bool is_union = typ_definition_which(a) == DEFTYPE
+    && typ_definition_deftype_kind(a) == DEFTYPE_UNION;
   if (is_union) {
     FOREACH_SUB_CONST(f, dinc) {
       if (f->which != DEFFIELD) {
         continue;
       }
 
-      if (!has_variant_with_field(mod, for_error, da, node_ident(f))) {
+      if (!has_variant_with_field(mod, for_error, a, node_ident(f))) {
         e = mk_except_type(mod, for_error, "cannot resolve field '%s' "
                            "in any variant of the union",
                            idents_value(mod->gctx, node_ident(f)));
@@ -596,13 +593,10 @@ error unify_with_defincomplete_entrails(struct module *mod,
       continue;
     }
 
-    ident f_name = node_ident(f);
-    struct node *d = NULL;
-    e = scope_lookup_ident_immediate(&d, for_error, mod, &da->scope, f_name, false);
+    struct tit *af = typ_definition_one_member(a, node_ident(f));
+    e = unify_refcompat(mod, for_error, tit_typ(af), f->typ);
     EXCEPT(e);
-
-    e = unify_refcompat(mod, for_error, d->typ, f->typ);
-    EXCEPT(e);
+    tit_next(af);
   }
 
   return 0;

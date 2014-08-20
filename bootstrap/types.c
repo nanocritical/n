@@ -765,6 +765,14 @@ const struct node *typ_definition_nooverlay_const(const struct typ *t) {
   return t->definition;
 }
 
+struct node *typ_definition_ignore_any_overlay(struct typ *t) {
+  return t->definition;
+}
+
+const struct node *typ_definition_ignore_any_overlay_const(const struct typ *t) {
+  return t->definition;
+}
+
 const struct node *typ_for_error(const struct typ *t) {
   return node_toplevel_const(t->definition)->generic->for_error;
 }
@@ -1062,11 +1070,8 @@ struct typ *typ_generic_arg(struct typ *t, size_t n) {
   }
 }
 
-struct typ *typ_concrete(const struct typ *t) {
-  if (!typ_is_weakly_concrete(t)) {
-    return NULL;
-  }
-
+struct typ *typ_as_non_tentative(const struct typ *t) {
+  assert(typ_generic_arity(t) == 0 && "FIXME not supported");
   const struct toplevel *toplevel = node_toplevel_const(typ_definition_const(t));
   return toplevel->generic->our_generic_functor_typ;
 }

@@ -218,7 +218,7 @@ static ERROR use_isalist_scope_lookup(struct module *mod,
 
   struct node *result = NULL;
   error e = do_scope_lookup_ident_immediate(&result, st->for_error, mod,
-                                            &typ_definition_const(intf)->scope,
+                                            &typ_definition_ignore_any_overlay_const(intf)->scope,
                                             st->id, false, true);
 
   if (!e) {
@@ -407,7 +407,7 @@ static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
 
     break;
   case DIRECTDEF:
-    r = typ_definition(id->as.DIRECTDEF.typ);
+    r = typ_definition_ignore_any_overlay(id->as.DIRECTDEF.typ);
     break;
   default:
     assert(false);

@@ -28,6 +28,8 @@ bool typ_was_zeroed(const struct typ *t);
 struct node *typ_definition(/*struct typ_overlay *olay,*/ struct typ *t);
 struct node *typ_definition_nooverlay(struct typ *t);
 const struct node *typ_definition_nooverlay_const(const struct typ *t);
+struct node *typ_definition_ignore_any_overlay(struct typ *t);
+const struct node *typ_definition_ignore_any_overlay_const(const struct typ *t);
 
 const struct node *typ_for_error(const struct typ *t);
 
@@ -64,7 +66,7 @@ size_t typ_generic_arity(const struct typ *t);
 size_t typ_generic_first_explicit_arg(const struct typ *t);
 struct typ *typ_generic_arg(struct typ *t, size_t n);
 
-struct typ *typ_concrete(const struct typ *t);
+struct typ *typ_as_non_tentative(const struct typ *t);
 
 bool typ_is_function(const struct typ *t);
 size_t typ_function_arity(const struct typ *t);
