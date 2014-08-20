@@ -317,7 +317,7 @@ struct node_deffun {
   struct toplevel toplevel;
   enum token_type access;
   ssize_t min_args, max_args, first_vararg;
-  const struct node *member_isa;
+  const struct typ *member_from_intf;
 };
 
 enum deftype_kind {
@@ -340,7 +340,7 @@ struct node_defmethod {
   struct toplevel toplevel;
   enum token_type access;
   ssize_t min_args, max_args, first_vararg;
-  const struct node *member_isa;
+  const struct typ *member_from_intf;
 };
 struct node_defintf {
   struct toplevel toplevel;
@@ -357,14 +357,14 @@ struct node_defincomplete {
 struct node_defalias {
   uint32_t passed;
 
-  const struct node *member_isa;
+  const struct typ *member_from_intf;
 };
 struct node_defname {
   struct node *ssa_user;
   bool is_globalenv;
   uint32_t passed;
 
-  const struct node *member_isa;
+  const struct typ *member_from_intf;
 
   struct phi_tracker_state *phi_state;
   struct node *first_use;
@@ -394,7 +394,7 @@ struct node_let {
   struct toplevel toplevel;
 };
 struct node_deffield {
-  const struct node *member_isa;
+  const struct typ *member_from_intf;
 };
 struct node_defchoice {
   bool is_leaf;

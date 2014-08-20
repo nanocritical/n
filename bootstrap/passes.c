@@ -358,7 +358,7 @@ static bool linked_to_something_else(struct node *node) {
     (NM(node->which) & STEP_NM_DEFS)
     && node->typ != NULL
     && typ_hash_ready(node->typ) // i.e. we're far along enough in passfwd
-    && typ_definition_const(node->typ) != node;
+    && typ_definition_nooverlay_const(node->typ) != node;
 }
 
 static bool wont_go_further(struct node *node, ssize_t goal) {
@@ -400,7 +400,7 @@ static ERROR advance_topdeps_each(struct module *mod, struct node *node,
                                   struct typ *t, uint32_t topdep_mask, void *user) {
   const ssize_t goal = *(ssize_t *) user;
 
-  struct node *d = typ_definition(t);
+  struct node *d = typ_definition_nooverlay(t);
   if (wont_go_further(d, goal)) {
     return 0;
   }

@@ -51,7 +51,9 @@ enum node_which tit_which(const struct tit *tit);
 ident tit_ident(const struct tit *tit);
 struct typ *tit_typ(const struct tit *tit);
 struct node *tit_node_ignore_any_overlay(const struct tit *tit);
+const struct node *tit_for_error(const struct tit *tit);
 
+struct tit *tit_let_def(const struct tit *tit);
 bool tit_defchoice_is_leaf(const struct tit *tit);
 bool tit_defchoice_is_external_payload(const struct tit *tit);
 struct tit *tit_defchoice_lookup_field(const struct tit *tit, ident name);
@@ -141,7 +143,7 @@ const struct typ *typ_function_return_const(const struct typ *t);
 
 void instances_init(struct node *gendef);
 void instances_add(struct typ *genf, struct node *instance);
-void instances_maintain(struct node *gendef);
+void instances_maintain(struct typ *genf);
 struct typ *instances_find_existing_final_with(struct typ *genf,
                                                struct typ **args, size_t arity);
 struct typ *instances_find_existing_final_like(const struct typ *_t);

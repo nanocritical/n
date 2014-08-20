@@ -577,7 +577,7 @@ static ERROR step_type_create_update(struct module *mod, struct node *node,
 
   struct typ *functor = typ_generic_functor(node->typ);
   if (functor != NULL) {
-    instances_maintain(typ_definition(functor));
+    instances_maintain(functor);
   }
 
   return 0;
@@ -624,7 +624,7 @@ static ERROR validate_genarg_types(struct module *mod, struct node *node) {
       if (typ_is_tentative(ga->typ) && typ_definition_which(ga->typ) == DEFINCOMPLETE) {
         if (!typ_isa(ga->typ, arg)) {
           defincomplete_add_isa(mod, ga->as.SETGENARG.for_error,
-                                typ_definition(ga->typ), arg);
+                                typ_definition_nooverlay(ga->typ), arg);
         }
       } else {
         error e = typ_check_isa(mod, ga->as.SETGENARG.for_error,
@@ -789,47 +789,50 @@ static ERROR step_rewrite_def_return_through_ref(struct module *mod, struct node
 }
 
 static ERROR check_has_matching_member(struct module *mod,
-                                       struct node *deft,
+                                       const struct node *for_error,
+                                       struct typ *t,
                                        const struct typ *intf,
-                                       const struct node *mi) {
+                                       const struct tit *mi) {
   error e;
-  struct node *m = node_get_member(deft, node_ident(mi));
+  struct node *deft = typ_definition_nooverlay(t);
+  struct node *m = node_get_member(deft, tit_ident(mi));
   if (m == NULL) {
-    e = mk_except_type(mod, deft,
+    e = mk_except_type(mod, for_error,
                        "type '%s' isa '%s' but does not implement member '%s'",
-                       pptyp(mod, deft->typ),
+                       pptyp(mod, t),
                        pptyp(mod, intf),
-                       idents_value(mod->gctx, node_ident(mi)));
+                       idents_value(mod->gctx, tit_ident(mi)));
     THROW(e);
   }
 
-  if (m->which != mi->which) {
+  enum node_which mwhich = m->which;
+  if (mwhich != tit_which(mi)) {
     e = mk_except_type(mod, m,
                        "in type '%s', member '%s' implemented from intf '%s'"
                        " is not the right kind of declaration",
-                       pptyp(mod, deft->typ),
+                       pptyp(mod, t),
                        idents_value(mod->gctx, node_ident(m)),
                        pptyp(mod, intf));
   }
 
-  if (m->which == DEFNAME
-      || m->which == DEFALIAS
-      || m->which == DEFFIELD) {
+  if (mwhich == DEFNAME
+      || mwhich == DEFALIAS
+      || mwhich == DEFFIELD) {
     // FIXME: if the type of mi is (lexically) 'final', we need to check
-    // that it is *equal* to deft->typ.
+    // that it is *equal* to t.
 
-    if (!typ_isa(m->typ, mi->typ)) {
+    if (!typ_isa(m->typ, tit_typ(mi))) {
       e = mk_except_type(mod, m,
                          "in type '%s', member '%s' implemented from intf '%s'"
                          " has type '%s' but must be isa '%s'",
-                         pptyp(mod, deft->typ),
+                         pptyp(mod, t),
                          idents_value(mod->gctx, node_ident(m)),
                          pptyp(mod, intf),
                          pptyp(mod, m->typ),
-                         pptyp(mod, mi->typ));
+                         pptyp(mod, tit_typ(mi)));
       THROW(e);
     }
-  } else if (m->which == DEFFUN || m->which == DEFMETHOD) {
+  } else if (mwhich == DEFFUN || mwhich == DEFMETHOD) {
     // FIXME: doesn't support multiple members with the same name,
     // selecting on the intf (e.g. `A.M and `B.M).
     // FIXME: require intf specification when disambiguation is necessary.
@@ -839,21 +842,21 @@ static ERROR check_has_matching_member(struct module *mod,
     assert(false && "Unreached");
   }
 
-  switch (m->which) {
+  switch (mwhich) {
   case DEFALIAS:
-    m->as.DEFALIAS.member_isa = mi;
+    m->as.DEFALIAS.member_from_intf = intf;
     break;
   case DEFNAME:
-    m->as.DEFNAME.member_isa = mi;
+    m->as.DEFNAME.member_from_intf = intf;
     break;
   case DEFFIELD:
-    m->as.DEFFIELD.member_isa = mi;
+    m->as.DEFFIELD.member_from_intf = intf;
     break;
   case DEFFUN:
-    m->as.DEFFUN.member_isa = mi;
+    m->as.DEFFUN.member_from_intf = intf;
     break;
   case DEFMETHOD:
-    m->as.DEFMETHOD.member_isa = mi;
+    m->as.DEFMETHOD.member_from_intf = intf;
     break;
   default:
     assert(false && "Unreached");
@@ -868,9 +871,7 @@ static ERROR check_exhaustive_intf_impl_eachisalist(struct module *mod,
                                                     struct typ *intf,
                                                     bool *stop,
                                                     void *user) {
-  (void) user;
-  struct node *deft = typ_definition(t);
-  const struct node *dintf = typ_definition_const(intf);
+  const struct node *for_error = user;
   error e = 0;
 
   if (typ_isa(t, TBI_ANY_TUPLE) && typ_equal(intf, TBI_COPYABLE)) {
@@ -879,23 +880,23 @@ static ERROR check_exhaustive_intf_impl_eachisalist(struct module *mod,
     return 0;
   }
 
-  FOREACH_SUB_EVERY_CONST(mi, dintf, IDX_ISALIST + 1, 1) {
-    if (mi->which == NOOP) {
+  struct tit *mi = typ_definition_members(intf, LET, DEFNAME, DEFALIAS, DEFFUN, DEFMETHOD, 0);
+  while (tit_next(mi)) {
+    if (tit_which(mi) == NOOP) {
       // noop
-    } else if (mi->which == LET) {
-      FOREACH_SUB_CONST(d, mi) {
-        assert(NM(d->which) & (NM(DEFNAME) | NM(DEFALIAS)));
-
-        ident id = node_ident(d);
-        if (id == ID_FINAL || id == ID_THIS) {
-          continue;
-        }
-
-        e = check_has_matching_member(mod, deft, intf, d);
-        EXCEPT(e);
+    } else if (tit_which(mi) == LET) {
+      struct tit *d = tit_let_def(mi);
+      ident id = tit_ident(d);
+      if (id == ID_FINAL || id == ID_THIS) {
+        continue;
       }
+
+      e = check_has_matching_member(mod, for_error, t, intf, d);
+      EXCEPT(e);
+
+      tit_next(d);
     } else {
-      e = check_has_matching_member(mod, deft, intf, mi);
+      e = check_has_matching_member(mod, for_error, t, intf, mi);
       EXCEPT(e);
     }
   }
@@ -914,7 +915,7 @@ static ERROR step_check_exhaustive_intf_impl(struct module *mod, struct node *no
   }
 
   error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTEROUT_TRIVIAL_ISALIST,
-                                check_exhaustive_intf_impl_eachisalist, NULL);
+                                check_exhaustive_intf_impl_eachisalist, node);
   EXCEPT(e);
 
   return 0;

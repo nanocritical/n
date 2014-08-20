@@ -1702,7 +1702,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     fprintf(out, "NLANG_BUILTINS_BG_ENVIRONMENT_PARENT(");
     print_typ(out, mod,
               typ_generic_arg_const(
-                parent_const(node->as.DEFMETHOD.member_isa)->typ, 0));
+                node->as.DEFMETHOD.member_from_intf, 0));
     fprintf(out, ");\n");
     break;
   case BG_ENVIRONMENT_INSTALL:

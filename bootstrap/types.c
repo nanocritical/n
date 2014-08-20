@@ -908,6 +908,16 @@ struct typ *tit_typ(const struct tit *tit) {
   return tit->pos->typ;
 }
 
+struct tit *tit_let_def(const struct tit *tit) {
+  assert(tit->pos->which == LET);
+  struct tit *r = calloc(1, sizeof(struct tit));
+  r->definition = tit->definition;
+  r->just_one = true;
+  r->pos = subs_first(tit->pos);
+  assert(NM(r->pos->which) & (NM(DEFNAME) | NM(DEFALIAS)));
+  return r;
+}
+
 bool tit_defchoice_is_leaf(const struct tit *tit) {
   assert(tit->pos->which == DEFCHOICE);
   return tit->pos->as.DEFCHOICE.is_leaf;
@@ -968,6 +978,10 @@ static struct typ *def_generic_functor(struct typ *t) {
 
 struct node *tit_node_ignore_any_overlay(const struct tit *tit) {
   return tit->pos;
+}
+
+const struct node *tit_for_error(const struct tit *tit) {
+  return tit_node_ignore_any_overlay(tit);
 }
 
 struct typ *typ_generic_functor(struct typ *t) {
@@ -1930,7 +1944,8 @@ void instances_init(struct node *gendef) {
 static void do_instances_add(struct node *gendef, struct node *instance,
                              bool maintaining_tentatives);
 
-void instances_maintain(struct node *gendef) {
+void instances_maintain(struct typ *genf) {
+  struct node *gendef = typ_definition(genf);
   struct generic *generic = node_toplevel(gendef)->generic;
 
   // Maintaining invariant: move finals out.
@@ -1948,7 +1963,7 @@ static void do_instances_add(struct node *gendef, struct node *instance,
   struct generic *generic = node_toplevel(gendef)->generic;
 
   if (!maintaining_tentatives) {
-    instances_maintain(gendef);
+    instances_maintain(gendef->typ);
   }
 
   if (!typ_hash_ready(instance->typ) || typ_is_tentative(instance->typ)) {
@@ -2015,7 +2030,7 @@ struct typ *instances_find_existing_final_with(struct typ *genf,
 
   struct generic *generic = node_toplevel(CONST_CAST(gendef))->generic;
 
-  instances_maintain(gendef);
+  instances_maintain(genf);
 
   struct typ tmp = { 0 };
   prepare_query_tmp(&tmp, functor, args, arity);
@@ -2039,7 +2054,7 @@ struct typ *instances_find_existing_final_like(const struct typ *_t) {
   struct node *gendef = typ_definition(t);
   struct generic *generic = node_toplevel(CONST_CAST(gendef))->generic;
 
-  instances_maintain(gendef);
+  instances_maintain(t);
 
   struct instance q = { 0 };
   q.which = INST_QUERY_FINAL;
