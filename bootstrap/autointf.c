@@ -428,7 +428,6 @@ static ERROR add_auto_isa_eachisalist(struct module *mod,
                                       bool *stop,
                                       void *user) {
   struct node *deft = user;
-  __break();
   struct tit *mi = typ_definition_members(intf, DEFMETHOD, DEFFUN, 0);
   while (tit_next(mi)) {
     add_auto_member(mod, deft, t, intf, mi);

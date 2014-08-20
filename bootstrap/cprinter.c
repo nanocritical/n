@@ -1086,7 +1086,7 @@ static const struct typ *intercept_slices(const struct module *mod, const struct
       args[a] = typ_generic_arg(CONST_CAST(t), a);
     }
 
-    struct typ *r = instances_find_existing_final_with(CONST_CAST(m), args, arity);
+    struct typ *r = instances_find_existing_final_with(CONST_CAST(m)->typ, args, arity);
     assert(r);
     free(args);
     return r;

@@ -946,14 +946,14 @@ except:
 }
 
 error mk_except_call_args_count(const struct module *mod, const struct node *node,
-                                const struct node *definition, bool implicit_self,
+                                const struct typ *tfun, bool implicit_self,
                                 size_t given) {
   const size_t minus = implicit_self ? 1 : 0;
   error e = mk_except_type(mod, node,
                            "invalid number of arguments:"
                            " between %zu and %zu expected, but %zu given",
-                           node_fun_min_args_count(definition) - minus,
-                           node_fun_max_args_count(definition) - minus,
+                           typ_function_min_arity(tfun) - minus,
+                           typ_function_max_arity(tfun) - minus,
                            given);
   THROW(e);
 }

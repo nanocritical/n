@@ -1467,7 +1467,7 @@ ERROR mk_except(const struct module *mod, const struct node *node, const char *f
 ERROR mk_except_type(const struct module *mod, const struct node *node, const char *fmt, ...)
   __attribute__((__format__(__printf__, 3, 4)));
 ERROR mk_except_call_args_count(const struct module *mod, const struct node *node,
-                                const struct node *definition, bool implicit_self, size_t given);
+                                const struct typ *tfun, bool implicit_self, size_t given);
 
 #define GOTO_EXCEPT_TYPE(mod, node, fmt, ...) do { \
   e = mk_except_type(mod, node, fmt, ##__VA_ARGS__); \

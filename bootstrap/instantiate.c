@@ -150,8 +150,7 @@ error instantiate(struct node **result,
   assert(arity == typ_generic_arity(t));
 
   if (!reject_identical) {
-    struct typ *r = instances_find_existing_identical(typ_definition(t),
-                                                      t, args, arity);
+    struct typ *r = instances_find_existing_identical(t, args, arity);
     if (r != NULL) {
       if (result != NULL) {
         *result = typ_definition(r);
@@ -163,8 +162,7 @@ error instantiate(struct node **result,
   const bool tentative = instantiation_is_tentative(mod, t, args, arity);
 
   if (!tentative) {
-    struct typ *r = instances_find_existing_final_with(typ_definition(t),
-                                                       args, arity);
+    struct typ *r = instances_find_existing_final_with(t, args, arity);
     if (r != NULL) {
       if (result != NULL) {
         *result = typ_definition(r);

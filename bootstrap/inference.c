@@ -860,27 +860,23 @@ static void insert_missing_optional_arg(struct module *mod, struct node *node,
 
 static ERROR fill_in_optional_args(struct module *mod, struct node *node,
                                    const struct typ *tfun) {
-  const struct node *dfun = typ_definition_const(tfun);
-  const size_t dmin = node_fun_min_args_count(dfun);
-  const size_t dmax = node_fun_max_args_count(dfun);
+  const size_t tmin = typ_function_min_arity(tfun);
+  const size_t tmax = typ_function_max_arity(tfun);
 
-  if (dmin == dmax) {
+  if (tmin == tmax) {
     return 0;
   }
 
-  const struct node *funargs = subs_at_const(dfun, IDX_FUNARGS);
-  const struct node *darg = subs_first_const(funargs);
-  struct node *arg = next(subs_first(node));
-
-  ssize_t n, code_pos = 0;
   error e;
-  for (n = 0; n < dmin; ++n, ++code_pos) {
+  struct node *arg = next(subs_first(node));
+  ssize_t n = 0, code_pos = 0;
+  for (; n < tmin; ++n, ++code_pos) {
     if (arg == NULL) {
       e = mk_except(mod, arg, "missing positional argument '%s' at position %zd",
-                    idents_value(mod->gctx, node_ident(darg)), code_pos);
+                    idents_value(mod->gctx, node_ident(arg)), code_pos);
       THROW(e);
     } else if (arg->which == CALLNAMEDARG) {
-      if (node_ident(arg) != node_ident(darg)) {
+      if (node_ident(arg) != typ_function_arg_ident(tfun, n)) {
         e = mk_except(mod, arg, "named argument '%s' has bad name"
                       " or appears out of order at position %zd",
                       idents_value(mod->gctx, node_ident(arg)), code_pos);
@@ -888,14 +884,15 @@ static ERROR fill_in_optional_args(struct module *mod, struct node *node,
       }
     }
 
-    darg = next_const(darg);
     arg = next(arg);
   }
 
-  const ssize_t first_vararg = node_fun_first_vararg(dfun);
-  for (n = dmin; n < dmax && (first_vararg == - 1 || n < first_vararg); ++n) {
+  const ssize_t first_vararg = typ_function_first_vararg(tfun);
+  for (n = tmin; n < tmax && (first_vararg == - 1 || n < first_vararg); ++n) {
+    const ident targ_name = typ_function_arg_ident(tfun, n);
+
     if (arg == NULL) {
-      insert_missing_optional_arg(mod, node, subs_last(node), node_ident(darg));
+      insert_missing_optional_arg(mod, node, subs_last(node), targ_name);
 
     } else if (arg->which != CALLNAMEDARG) {
       // Assume this is the first vararg
@@ -906,18 +903,17 @@ static ERROR fill_in_optional_args(struct module *mod, struct node *node,
         THROW(e);
       }
 
-      insert_missing_optional_arg(mod, node, prev(arg), node_ident(darg));
+      insert_missing_optional_arg(mod, node, prev(arg), targ_name);
 
     } else if (arg->which == CALLNAMEDARG) {
       const ident name = node_ident(arg);
 
-      while (node_ident(darg) != name) {
-        insert_missing_optional_arg(mod, node, prev(arg), node_ident(darg));
+      while (typ_function_arg_ident(tfun, n) != name) {
+        insert_missing_optional_arg(mod, node, prev(arg),
+                                    typ_function_arg_ident(tfun, n));
 
-        darg = next_const(darg);
         n += 1;
-        if ((first_vararg != -1 && n >= first_vararg)
-            || next_const(darg) == NULL) {
+        if ((first_vararg != -1 && n >= first_vararg) || n == tmax) {
           e = mk_except(mod, arg, "named argument '%s' has bad name"
                         " or appears out of order at position %zd",
                         idents_value(mod->gctx, name), code_pos);
@@ -928,8 +924,6 @@ static ERROR fill_in_optional_args(struct module *mod, struct node *node,
       arg = next(arg);
       code_pos += 1;
     }
-
-    darg = next_const(darg);
   }
 
   assert(arg == NULL || first_vararg >= 0);
@@ -1052,7 +1046,7 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
   if (typ_is_function(field->typ) && mark != TBI__CALL_FUNCTION_SLOT) {
     const bool is_method = typ_definition_which(field->typ) == DEFMETHOD;
     if (node_fun_min_args_count(field) != (is_method ? 1 : 0)) {
-      e = mk_except_call_args_count(mod, node, field, is_method, 0);
+      e = mk_except_call_args_count(mod, node, field->typ, is_method, 0);
       THROW(e);
     }
 
@@ -1543,15 +1537,6 @@ static ERROR try_insert_const_deref(struct module *mod, struct node *node,
   return 0;
 }
 
-static enum token_type has_explicit_ref(const struct node *dfun, size_t n) {
-  const struct node *funargs = subs_at_const(dfun, IDX_FUNARGS);
-  const struct node *darg = subs_at_const(funargs, n);
-  if (subs_last_const(darg)->which == UN) {
-    return subs_last_const(darg)->as.UN.operator;
-  }
-  return 0;
-}
-
 static ERROR process_automagic_call_arguments(struct module *mod,
                                               struct node *node,
                                               const struct typ *tfun) {
@@ -1559,8 +1544,7 @@ static ERROR process_automagic_call_arguments(struct module *mod,
     return 0;
   }
 
-  const struct node *dfun = typ_definition_const(tfun);
-  const ssize_t first_vararg = node_fun_first_vararg(dfun);
+  const ssize_t first_vararg = typ_function_first_vararg(tfun);
 
   error e;
   ssize_t n = 0;
@@ -1575,8 +1559,7 @@ static ERROR process_automagic_call_arguments(struct module *mod,
     struct node *arg = nxt;
     nxt = next(nxt);
 
-    const enum token_type explicit_ref = has_explicit_ref(dfun, n);
-
+    const enum token_type explicit_ref = typ_function_arg_explicit_ref(tfun, n);
     e = try_insert_const_ref(mod, node,
                              typ_function_arg_const(tfun, n),
                              explicit_ref, arg);
@@ -1613,17 +1596,16 @@ static ERROR process_automagic_call_arguments(struct module *mod,
 static ERROR prepare_call_arguments(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
-
-  const struct node *dfun = typ_definition_const(fun->typ);
-  const size_t dmin = node_fun_min_args_count(dfun);
-  const size_t dmax = node_fun_max_args_count(dfun);
+  struct typ *tfun = fun->typ;
+  const size_t tmin = typ_function_min_arity(tfun);
+  const size_t tmax = typ_function_max_arity(tfun);
 
   const size_t args = subs_count(node) - 1;
 
-  switch (dfun->which) {
+  switch (typ_definition_which(tfun)) {
   case DEFFUN:
-    if (args < dmin || args > dmax) {
-      e = mk_except_call_args_count(mod, node, dfun, false, args);
+    if (args < tmin || args > tmax) {
+      e = mk_except_call_args_count(mod, node, tfun, false, args);
       THROW(e);
     }
     break;
@@ -1631,19 +1613,19 @@ static ERROR prepare_call_arguments(struct module *mod, struct node *node) {
     if (fun->which == BIN) {
       if ((subs_first(fun)->flags & NODE_IS_TYPE)) {
         // Form (type.method self ...).
-        if (args < dmin || args > dmax) {
-          e = mk_except_call_args_count(mod, node, dfun, false, args);
+        if (args < tmin || args > tmax) {
+          e = mk_except_call_args_count(mod, node, tfun, false, args);
           THROW(e);
         }
       } else {
         // Form (self.method ...); rewrite as (type.method self ...).
-        if (args+1 < dmin || args+1 > dmax) {
-          e = mk_except_call_args_count(mod, node, dfun, true, args);
+        if (args+1 < tmin || args+1 > tmax) {
+          e = mk_except_call_args_count(mod, node, tfun, true, args);
           THROW(e);
         }
 
         struct node *m = mk_node(mod, node, DIRECTDEF);
-        set_typ(&m->as.DIRECTDEF.typ, fun->typ);
+        set_typ(&m->as.DIRECTDEF.typ, tfun);
         m->as.DIRECTDEF.flags = NODE_IS_TYPE;
         node_subs_remove(node, m);
         node_subs_replace(node, fun, m);
@@ -1658,8 +1640,8 @@ static ERROR prepare_call_arguments(struct module *mod, struct node *node) {
       assert(fun->which == CALL || fun->which == DIRECTDEF);
       // Generic method instantiation: (type.method u32 i32) self
       // or DIRECTDEF.
-      if (args < dmin || args > dmax) {
-        e = mk_except_call_args_count(mod, node, dfun, false, args);
+      if (args < tmin || args > tmax) {
+        e = mk_except_call_args_count(mod, node, tfun, false, args);
         THROW(e);
       }
     } else {
@@ -1670,10 +1652,10 @@ static ERROR prepare_call_arguments(struct module *mod, struct node *node) {
     assert(false);
   }
 
-  e = fill_in_optional_args(mod, node, fun->typ);
+  e = fill_in_optional_args(mod, node, tfun);
   EXCEPT(e);
 
-  e = process_automagic_call_arguments(mod, node, fun->typ);
+  e = process_automagic_call_arguments(mod, node, tfun);
   EXCEPT(e);
 
   return 0;
@@ -1837,23 +1819,24 @@ static ERROR check_consistent_either_types_or_values(struct module *mod,
   return 0;
 }
 
-static ERROR type_inference_explicit_unary_call(struct module *mod, struct node *node, struct node *dfun) {
+static ERROR type_inference_explicit_unary_call(struct module *mod, struct node *node,
+                                                struct typ *tfun) {
   const size_t count = subs_count(node);
-  if (dfun->which == DEFFUN && count != 1) {
-    error e = mk_except_call_args_count(mod, node, dfun, false, count - 1);
+  if (typ_definition_which(tfun) == DEFFUN && count != 1) {
+    error e = mk_except_call_args_count(mod, node, tfun, false, count - 1);
     THROW(e);
-  } else if (dfun->which == DEFMETHOD && count != 2) {
-    error e = mk_except_call_args_count(mod, node, dfun, false, count - 1);
+  } else if (typ_definition_which(tfun)== DEFMETHOD && count != 2) {
+    error e = mk_except_call_args_count(mod, node, tfun, false, count - 1);
     THROW(e);
   }
 
-  if (dfun->which == DEFMETHOD) {
+  if (typ_definition_which(tfun) == DEFMETHOD) {
     struct node *self = subs_at(node, 1);
-    error e = unify(mod, self, typ_function_arg(dfun->typ, 0), self->typ);
+    error e = unify(mod, self, typ_function_arg(tfun, 0), self->typ);
     EXCEPT(e);
   }
 
-  set_typ(&node->typ, typ_function_return(dfun->typ));
+  set_typ(&node->typ, typ_function_return(tfun));
 
   return 0;
 }
@@ -1873,17 +1856,19 @@ static ERROR try_rewrite_operator_sub_bounds(struct module *mod, struct node *no
   }
 
   assert(typ_is_reference(self->typ));
-  struct node *dfun = typ_definition(typ_generic_arg(self->typ, 0));
-  struct node *m = node_get_member(dfun, ID_OPERATOR_SUB);
+  struct tit *m = typ_definition_one_member(typ_generic_arg(self->typ, 0),
+                                            ID_OPERATOR_SUB);
   if (m == NULL) {
-    error e = mk_except_type(mod, node, "type '%s' does not have 'Operator_sub'",
-                             pptyp(mod, self->typ));
+    error e = mk_except_type(mod, node, "type '%s' does not have '%s'",
+                             pptyp(mod, self->typ),
+                             idents_value(mod->gctx, ID_OPERATOR_SUB));
     THROW(e);
   }
 
   unset_typ(&fun->typ);
   unset_typ(&fun->as.DIRECTDEF.typ);
-  set_typ(&fun->as.DIRECTDEF.typ, m->typ);
+  set_typ(&fun->as.DIRECTDEF.typ, tit_typ(m));
+  tit_next(m);
 
   error e = catchup(mod, NULL, fun, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
@@ -1909,14 +1894,13 @@ static ERROR try_rewrite_operator_sub_bounds(struct module *mod, struct node *no
 static ERROR type_inference_call(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
-  struct typ *tfun = fun->typ;
 
-  if (!typ_is_function(tfun)
+  if (!typ_is_function(fun->typ)
       || (subs_count_atleast(node, 2) && (subs_at(node, 1)->flags & NODE_IS_TYPE))) {
     // Uninstantiated generic, called on types.
 
-    if (!typ_is_function(tfun) && typ_generic_arity(tfun) == 0) {
-      char *n = pptyp(mod, tfun);
+    if (!typ_is_function(fun->typ) && typ_generic_arity(fun->typ) == 0) {
+      char *n = pptyp(mod, fun->typ);
       e = mk_except_type(mod, fun, "'%s' not a function or a generic", n);
       free(n);
       THROW(e);
@@ -1925,8 +1909,7 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
     e = explicit_instantiation(mod, node);
     EXCEPT(e);
 
-    const struct node *i = typ_definition_const(node->typ);
-    if (node_is_fun(i) && node_fun_min_args_count(i) == 0
+    if (typ_is_function(node->typ) && typ_function_min_arity(node->typ) == 0
         && parent_const(node)->which != CALL) {
       // Combined explicit instantiation and unary call:
       //   let p = Alloc I32
@@ -1955,9 +1938,7 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
 
   node->flags |= NODE_IS_TEMPORARY;
 
-  struct node *dfun = typ_definition(tfun);
-  if (subs_count_atleast(subs_at(dfun, IDX_GENARGS), 1)
-      && node_toplevel_const(dfun)->generic->our_generic_functor_typ == NULL) {
+  if (typ_is_generic_functor(fun->typ)) {
     // Uninstantiated generic, called on values.
 
     e = function_instantiation(mod, node);
@@ -1966,31 +1947,31 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
     return 0;
   }
 
-  if (node_fun_max_args_count(dfun) == 0) {
-    return type_inference_explicit_unary_call(mod, node, dfun);
+  if (typ_function_max_arity(fun->typ) == 0) {
+    return type_inference_explicit_unary_call(mod, node, fun->typ);
   }
 
-  const ssize_t first_vararg = node_fun_first_vararg(dfun);
+  const ssize_t first_vararg = typ_function_first_vararg(fun->typ);
   ssize_t n = 0;
   FOREACH_SUB_EVERY(arg, node, 1, 1) {
     if (n == first_vararg) {
       break;
     }
-    e = unify_refcompat(mod, arg, typ_function_arg(tfun, n), arg->typ);
+    e = unify_refcompat(mod, arg, typ_function_arg(fun->typ, n), arg->typ);
     EXCEPT(e);
     n += 1;
   }
 
   if (n == first_vararg) {
     FOREACH_SUB_EVERY(arg, node, 1 + n, 1) {
-      struct typ *target = typ_generic_arg(typ_function_arg(tfun, n), 0);
+      struct typ *target = typ_generic_arg(typ_function_arg(fun->typ, n), 0);
 
       e = unify_refcompat(mod, arg, target, arg->typ);
       EXCEPT(e);
     }
   }
 
-  set_typ(&node->typ, typ_function_return(tfun));
+  set_typ(&node->typ, typ_function_return(fun->typ));
 
   return 0;
 }
@@ -2055,10 +2036,8 @@ static ERROR type_inference_if(struct module *mod, struct node *node) {
 }
 
 static ERROR unify_match_pattern(struct module *mod, struct node *expr, struct node *pattern) {
-  struct node *d = typ_definition(expr->typ);
-  assert(d->which == DEFTYPE);
-  const bool enum_or_union = d->as.DEFTYPE.kind == DEFTYPE_ENUM
-    || d->as.DEFTYPE.kind == DEFTYPE_UNION;
+  const enum deftype_kind kind = typ_definition_deftype_kind(expr->typ);
+  const bool enum_or_union = kind == DEFTYPE_ENUM || kind == DEFTYPE_UNION;
 
   error e;
   if (!enum_or_union) {
@@ -2171,8 +2150,8 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
   }
 
   if (typ_is_function(def->typ) && node->typ != TBI__CALL_FUNCTION_SLOT) {
-    if (node_fun_min_args_count(typ_definition(def->typ)) != 0) {
-      e = mk_except_call_args_count(mod, node, typ_definition(def->typ), false, 0);
+    if (typ_function_min_arity(def->typ) != 0) {
+      e = mk_except_call_args_count(mod, node, def->typ, false, 0);
       THROW(e);
     }
 
@@ -2209,7 +2188,7 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
       e = type_inference_within(mod, ffirst);
       EXCEPT(e);
 
-      modbody = typ_definition_const(ffirst->typ);
+      modbody = typ_definition_nooverlay_const(ffirst->typ);
 
       if (modbody->which != MODULE_BODY) {
         e = mk_except(mod, node, "invalid within expression,"
@@ -2239,7 +2218,7 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
     EXCEPT(e);
 
     e = scope_lookup_ident_immediate(&def, node,
-                                     mod, &typ_definition(first->typ)->scope,
+                                     mod, &typ_definition_nooverlay(first->typ)->scope,
                                      node_ident(subs_last_const(node)), false);
     EXCEPT(e);
   } else {
@@ -2273,60 +2252,40 @@ static ERROR type_inference_try(struct module *mod, struct node *node) {
   return 0;
 }
 
-static ERROR type_inference_defchoice_init(struct module *mod,
+static ERROR type_inference_typeconstraint_defchoice_init(struct module *mod,
                                            struct node *node) {
   error e;
   struct node *left = subs_first(node);
   struct node *right = subs_last(node);
-  struct node *dleft = typ_definition(left->typ);
-  struct node *dright = typ_definition(right->typ);
 
   assert(left->which == INIT);
-  assert(dleft->which == DEFINCOMPLETE);
+  assert(typ_definition_which(left->typ) == DEFINCOMPLETE);
 
   assert(right->flags & NODE_IS_DEFCHOICE);
   assert(right->which == BIN);
-  const struct node *dleaf = node_get_member_const(dright,
-                                                   node_ident(subs_last(right)));
-  assert(dleaf->which == DEFCHOICE);
-  if (!dleaf->as.DEFCHOICE.is_leaf) {
+  struct tit *leaf = typ_definition_one_member(right->typ, node_ident(subs_last(right)));
+  assert(tit_which(leaf) == DEFCHOICE);
+  if (!tit_defchoice_is_leaf(leaf)) {
     e = mk_except_type(mod, subs_last(right),
                        "only union leaf variants can be initialized");
     THROW(e);
   }
 
-  left->as.INIT.for_tag = node_ident(dleaf);
+  left->as.INIT.for_tag = tit_ident(leaf);
 
   FOREACH_SUB_EVERY(name, left, 0, 2) {
-    const struct node *d = dleaf;
-    struct node *field = NULL;
-    while (true) {
-      const struct scope *sc = &d->scope;
-      if (d->which == DEFCHOICE) {
-        const struct node *ext = node_defchoice_external_payload(d);
-        if (ext != NULL) {
-          sc = &typ_definition_const(ext->typ)->scope;
-        }
-      }
-
-      e = scope_lookup_ident_immediate(&field, name, mod, sc,
-                                       node_ident(name), true);
-      if (!e) {
-        break;
-      }
-
-      if (d->which == DEFTYPE) {
-        e = mk_except_type(mod, name, "field '%s' not found",
-                           idents_value(mod->gctx, node_ident(name)));
-        THROW(e);
-      }
-
-      d = parent_const(d);
+    struct tit *f = tit_defchoice_lookup_field(leaf, node_ident(name));
+    if (f == NULL) {
+      e = mk_except_type(mod, name, "field '%s' not found",
+                         idents_value(mod->gctx, node_ident(name)));
+      THROW(e);
     }
 
-    typ_link_tentative(field->typ, next(name)->typ);
+    typ_link_tentative(tit_typ(f), next(name)->typ);
+    tit_next(f);
   }
 
+  tit_next(leaf);
   return 0;
 }
 
@@ -2339,7 +2298,7 @@ static ERROR type_inference_typeconstraint(struct module *mod, struct node *node
   error e;
   if (subs_first(node)->which == INIT
       && subs_last(node)->flags & NODE_IS_DEFCHOICE) {
-    e = type_inference_defchoice_init(mod, node);
+    e = type_inference_typeconstraint_defchoice_init(mod, node);
     EXCEPT(e);
   }
 
@@ -2412,19 +2371,12 @@ error step_type_inference(struct module *mod, struct node *node,
       || node->typ == TBI__MERCURIAL
       || node->typ == TBI__CALL_FUNCTION_SLOT
       || node->which == DEFNAME
-      || typ_definition_const(node->typ)->which == MODULE
-      || typ_definition_const(node->typ)->which == ROOT_OF_ALL) {
+      || typ_definition_which(node->typ) == MODULE
+      || typ_definition_which(node->typ) == ROOT_OF_ALL) {
     // noop
   } else {
     return 0;
   }
-  //assert(node->typ == NULL
-  //       || node->typ == TBI__MUTABLE
-  //       || node->typ == TBI__MERCURIAL
-  //       || node->typ == TBI__CALL_FUNCTION_SLOT
-  //       || node->which == DEFNAME
-  //       || typ_definition_const(node->typ)->which == MODULE
-  //       || typ_definition_const(node->typ)->which == ROOT_OF_ALL);
 
   BEGTIMEIT(TIMEIT_TYPE_INFERENCE);
   BEGTIMEIT(TIMEIT_TYPE_INFERENCE_PREBODYPASS);
@@ -2674,9 +2626,7 @@ error step_type_drop_excepts(struct module *mod, struct node *node,
 }
 
 static void finalize_weakly_concrete(struct module *mod, struct typ *t) {
-  assert(typ_is_weakly_concrete(t));
-  struct node *d = typ_definition(t);
-  struct typ *concrete = node_toplevel(d)->generic->our_generic_functor_typ;
+  struct typ *concrete = typ_concrete(t);
   if (typ_equal(concrete, TBI_BOOL)) {
     typ_link_tentative(TBI_BOOL, t);
   } else if (typ_equal(concrete, TBI_STRING)) {
@@ -2688,10 +2638,10 @@ static void finalize_weakly_concrete(struct module *mod, struct typ *t) {
   }
 }
 
-static ERROR finalize_generic_instantiation(struct module *mod,
-                                            const struct node *for_error,
-                                            struct typ *t) {
-  if (typ_definition_const(t) == NULL) {
+static ERROR finalize_generic_instantiation(struct typ *t) {
+  struct module *mod = typ_module_owner(t);
+
+  if (typ_was_zeroed(t)) {
     // 't' was cleared in link_to_final()
     return 0;
   }
@@ -2730,7 +2680,7 @@ static ERROR finalize_generic_instantiation(struct module *mod,
 
   const size_t arity = typ_generic_arity(t);
 
-  struct typ *existing = instances_find_existing_final_like(typ_definition(t), t);
+  struct typ *existing = instances_find_existing_final_like(t);
   if (existing != NULL) {
     typ_link_to_existing_final(existing, t);
     topdeps_record(mod, existing);
@@ -2742,10 +2692,8 @@ static ERROR finalize_generic_instantiation(struct module *mod,
     args[m] = typ_generic_arg(t, m);
   }
 
-  const struct node *instantiating_for_error = node_toplevel_const(typ_definition_const(t))
-    ->generic->for_error;
   struct node *i = NULL;
-  error e = instantiate(&i, mod, instantiating_for_error, -1, functor, args, arity,
+  error e = instantiate(&i, mod, typ_for_error(t), -1, functor, args, arity,
                         true);
   EXCEPT(e);
 
@@ -2761,7 +2709,7 @@ static ERROR finalize_generic_instantiation(struct module *mod,
     }
   }
 
-  if (typ_definition_const(t) != NULL) {
+  if (!typ_was_zeroed(t)) {
     // Otherwise it's already linked.
     typ_link_to_existing_final(i->typ, t);
   }
@@ -2786,9 +2734,9 @@ static ERROR finalize_generic_instantiation(struct module *mod,
 // different DEFINCOMPLETE behind 'e.typ').
 //
 // So we fix it after the fact.
-static void finalize_defincomplete_unification(struct module *mod, struct node *dinc) {
-  error e = unify_with_defincomplete_entrails(mod, dinc, dinc->typ,
-                                              dinc->typ, dinc);
+static void finalize_defincomplete_unification(struct typ *inc) {
+  error e = unify_with_defincomplete_entrails(typ_module_owner(inc),
+                                              typ_for_error(inc), inc, inc);
   assert(!e);
 }
 
@@ -2829,18 +2777,14 @@ error process_finalizations(void) {
   // More work may be scheduled as we're iterating.
   for (size_t n = 0; n < vectyp_count(&scheduleq); ++n) {
     struct typ *t = *vectyp_get(&scheduleq, n);
-    struct node *d = typ_definition(t);
-    if (d == NULL) {
+    if (typ_was_zeroed(t)) {
       continue;
     }
 
-    if (d->which == DEFINCOMPLETE) {
-      finalize_defincomplete_unification(d->as.DEFINCOMPLETE.trigger_mod, d);
+    if (typ_definition_which(t) == DEFINCOMPLETE) {
+      finalize_defincomplete_unification(t);
     } else {
-      struct generic *generic = node_toplevel(d)->generic;
-      error e = finalize_generic_instantiation(generic->trigger_mod,
-                                               generic->trigger,
-                                               t);
+      error e = finalize_generic_instantiation(t);
       EXCEPT(e);
     }
   }
@@ -2873,10 +2817,7 @@ error step_gather_remaining_weakly_concrete(struct module *mod, struct node *nod
 
   for (size_t n = 0; n < vecnode_count(weaks); ++n) {
     struct node *d = *vecnode_get(weaks, n);
-    struct generic *generic = node_toplevel(d)->generic;
-    error e = finalize_generic_instantiation(generic->trigger_mod,
-                                             generic->trigger,
-                                             d->typ);
+    error e = finalize_generic_instantiation(d->typ);
     assert(!e);
   }
 

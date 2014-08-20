@@ -23,15 +23,20 @@ void typ_create_update_quickisa(struct typ *t);
 
 bool typ_hash_ready(const struct typ *t);
 
+bool typ_was_zeroed(const struct typ *t);
+
 struct node *typ_definition(/*struct typ_overlay *olay,*/ struct typ *t);
 struct node *typ_definition_nooverlay(struct typ *t);
 const struct node *typ_definition_nooverlay_const(const struct typ *t);
+
+const struct node *typ_for_error(const struct typ *t);
 
 enum node_which typ_definition_which(const struct typ *t);
 enum deftype_kind typ_definition_deftype_kind(const struct typ *t);
 struct typ *typ_definition_tag_type(const struct typ *t);
 ident typ_definition_ident(const struct typ *t);
 struct module *typ_module_owner(const struct typ *t);
+struct module *typ_defincomplete_trigger_mod(const struct typ *t);
 
 struct typ *typ_member(struct typ *t, ident name);
 struct typ *typ_member_resolve_accessor(const struct node *node);
@@ -47,19 +52,26 @@ ident tit_ident(const struct tit *tit);
 struct typ *tit_typ(const struct tit *tit);
 struct node *tit_node_ignore_any_overlay(const struct tit *tit);
 
+bool tit_defchoice_is_leaf(const struct tit *tit);
+bool tit_defchoice_is_external_payload(const struct tit *tit);
+struct tit *tit_defchoice_lookup_field(const struct tit *tit, ident name);
+
 bool typ_is_generic_functor(const struct typ *t);
 struct typ *typ_generic_functor(struct typ *t);
 size_t typ_generic_arity(const struct typ *t);
 size_t typ_generic_first_explicit_arg(const struct typ *t);
 struct typ *typ_generic_arg(struct typ *t, size_t n);
 
+struct typ *typ_concrete(const struct typ *t);
+
 bool typ_is_function(const struct typ *t);
 size_t typ_function_arity(const struct typ *t);
 size_t typ_function_min_arity(const struct typ *t);
 size_t typ_function_max_arity(const struct typ *t);
-size_t typ_function_first_vararg(const struct typ *t);
+ssize_t typ_function_first_vararg(const struct typ *t);
 struct typ *typ_function_arg(struct typ *t, size_t n);
-bool typ_function_arg_has_explicit_ref(struct typ *t, size_t n);
+ident typ_function_arg_ident(const struct typ *t, size_t n);
+enum token_type typ_function_arg_explicit_ref(const struct typ *t, size_t n);
 struct typ *typ_function_return(struct typ *t);
 
 void unset_typ(struct typ **loc);
@@ -128,14 +140,12 @@ const struct typ *typ_function_arg_const(const struct typ *t, size_t n);
 const struct typ *typ_function_return_const(const struct typ *t);
 
 void instances_init(struct node *gendef);
-void instances_add(struct node *gendef, struct node *instance);
+void instances_add(struct typ *genf, struct node *instance);
 void instances_maintain(struct node *gendef);
-struct typ *instances_find_existing_final_with(struct node *gendef,
+struct typ *instances_find_existing_final_with(struct typ *genf,
                                                struct typ **args, size_t arity);
-struct typ *instances_find_existing_final_like(struct node *gendef,
-                                               const struct typ *_t);
-struct typ *instances_find_existing_identical(struct node *gendef,
-                                              struct typ *functor,
+struct typ *instances_find_existing_final_like(const struct typ *_t);
+struct typ *instances_find_existing_identical(struct typ *functor,
                                               struct typ **args, size_t arity);
 
 // Return value must be freed by caller.

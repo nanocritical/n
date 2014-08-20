@@ -199,7 +199,7 @@ error catchup(struct module *mod,
       if (how == CATCHUP_NEW_INSTANCE || how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
         struct typ *functor = typ_generic_functor(node->typ);
         if (functor != NULL) {
-          instances_add(typ_definition(functor), node);
+          instances_add(functor, node);
         }
       }
       if (how == CATCHUP_TENTATIVE_NEW_INSTANCE) {

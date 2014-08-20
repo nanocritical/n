@@ -11,8 +11,7 @@ ERROR unify_refcompat(struct module *mod, const struct node *for_error,
 
 ERROR unify_with_defincomplete_entrails(struct module *mod,
                                         const struct node *for_error,
-                                        struct typ *a,
-                                        struct typ *inc, struct node *dinc);
+                                        struct typ *a, struct typ *inc);
 
 void unify_with_new_parent(struct module *mod, const struct node *for_error,
                            struct typ *p, struct typ *t);

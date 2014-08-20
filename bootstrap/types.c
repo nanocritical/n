@@ -408,6 +408,10 @@ static void create_flags(struct typ *t, struct typ *tbi) {
   }
 }
 
+bool typ_was_zeroed(const struct typ *t) {
+  return t->definition == NULL;
+}
+
 struct typ *typ_create(struct typ *tbi, struct node *definition) {
   struct typ *r = tbi != NULL ? tbi : calloc(1, sizeof(struct typ));
 
@@ -761,6 +765,10 @@ const struct node *typ_definition_nooverlay_const(const struct typ *t) {
   return t->definition;
 }
 
+const struct node *typ_for_error(const struct typ *t) {
+  return node_toplevel_const(t->definition)->generic->for_error;
+}
+
 bool typ_is_function(const struct typ *t) {
   const struct node *def = typ_definition_const(t);
   return def->which == DEFFUN || def->which == DEFMETHOD;
@@ -787,7 +795,10 @@ ident typ_definition_ident(const struct typ *t) {
 }
 
 struct module *typ_module_owner(const struct typ *t) {
-  return node_module_owner(typ_definition(CONST_CAST(t)));
+  if (t->definition->which == DEFINCOMPLETE) {
+    return t->definition->as.DEFINCOMPLETE.trigger_mod;
+  }
+  return node_module_owner(CONST_CAST(t)->definition);
 }
 
 struct typ *typ_member(struct typ *t, ident name) {
@@ -897,6 +908,51 @@ struct typ *tit_typ(const struct tit *tit) {
   return tit->pos->typ;
 }
 
+bool tit_defchoice_is_leaf(const struct tit *tit) {
+  assert(tit->pos->which == DEFCHOICE);
+  return tit->pos->as.DEFCHOICE.is_leaf;
+}
+
+bool tit_defchoice_is_external_payload(const struct tit *tit) {
+  assert(tit->pos->which == DEFCHOICE);
+  return node_defchoice_external_payload(tit->pos) != NULL;
+}
+
+struct tit *tit_defchoice_lookup_field(const struct tit *variant, ident name) {
+  const struct node *d = variant->pos;
+  assert(d->which == DEFCHOICE);
+
+  struct node *field = NULL;
+  while (true) {
+    const struct scope *sc = &d->scope;
+    if (d->which == DEFCHOICE) {
+      const struct node *ext = node_defchoice_external_payload(d);
+      if (ext != NULL) {
+        sc = &typ_definition_const(ext->typ)->scope;
+      }
+    }
+
+    error e = scope_lookup_ident_immediate(&field, NULL, NULL, sc,
+                                           name, true);
+    if (!e) {
+      break;
+    }
+
+    if (d->which == DEFTYPE) {
+      return NULL;
+    }
+
+    d = parent_const(d);
+  }
+
+  struct tit *r = calloc(1, sizeof(struct tit));
+  r->definition = variant->definition;
+  r->just_one = true;
+  r->pos = field;
+  return r;
+}
+
+
 static struct typ *def_generic_functor(struct typ *t) {
   if (typ_generic_arity(t) == 0) {
     return NULL;
@@ -992,15 +1048,54 @@ struct typ *typ_generic_arg(struct typ *t, size_t n) {
   }
 }
 
+struct typ *typ_concrete(const struct typ *t) {
+  if (!typ_is_weakly_concrete(t)) {
+    return NULL;
+  }
+
+  const struct toplevel *toplevel = node_toplevel_const(typ_definition_const(t));
+  return toplevel->generic->our_generic_functor_typ;
+}
+
 size_t typ_function_arity(const struct typ *t) {
-  assert(typ_definition_const(t)->which == DEFFUN
-         || typ_definition_const(t)->which == DEFMETHOD);
+  assert(typ_is_function(t));
   return node_fun_all_args_count(typ_definition_const(t));
+}
+
+size_t typ_function_min_arity(const struct typ *t) {
+  assert(typ_is_function(t));
+  return node_fun_min_args_count(typ_definition_const(t));
+}
+
+size_t typ_function_max_arity(const struct typ *t) {
+  assert(typ_is_function(t));
+  return node_fun_max_args_count(typ_definition_const(t));
+}
+
+ssize_t typ_function_first_vararg(const struct typ *t) {
+  assert(typ_is_function(t));
+  return node_fun_first_vararg(typ_definition_const(t));
 }
 
 struct typ *typ_function_arg(struct typ *t, size_t n) {
   assert(n < typ_function_arity(t));
   return subs_at_const(subs_at_const(typ_definition_const(t), IDX_FUNARGS), n)->typ;
+}
+
+ident typ_function_arg_ident(const struct typ *t, size_t n) {
+  assert(n < typ_function_arity(t));
+  return node_ident(subs_at_const(subs_at_const(typ_definition_const(t), IDX_FUNARGS), n));
+}
+
+enum token_type typ_function_arg_explicit_ref(const struct typ *t, size_t n) {
+  assert(n < typ_function_arity(t));
+  const struct node *dfun = t->definition;
+  const struct node *funargs = subs_at_const(dfun, IDX_FUNARGS);
+  const struct node *darg = subs_at_const(funargs, n);
+  if (subs_last_const(darg)->which == UN) {
+    return subs_last_const(darg)->as.UN.operator;
+  }
+  return 0;
 }
 
 struct typ *typ_function_return(struct typ *t) {
@@ -1872,7 +1967,8 @@ static void do_instances_add(struct node *gendef, struct node *instance,
   assert(maintaining_tentatives || !already);
 }
 
-void instances_add(struct node *gendef, struct node *instance) {
+void instances_add(struct typ *genf, struct node *instance) {
+  struct node *gendef = typ_definition(genf);
   do_instances_add(gendef, instance, false);
 }
 
@@ -1900,7 +1996,7 @@ static bool has_null_arg(struct typ **args, size_t arity) {
   return false;
 }
 
-struct typ *instances_find_existing_final_with(struct node *gendef,
+struct typ *instances_find_existing_final_with(struct typ *genf,
                                                struct typ **args, size_t arity) {
   if (arity == 0) {
     return NULL;
@@ -1909,6 +2005,7 @@ struct typ *instances_find_existing_final_with(struct node *gendef,
     return NULL;
   }
 
+  struct node *gendef = typ_definition(genf);
   struct typ *functor = typ_generic_functor(gendef->typ);
   assert(arity == typ_generic_arity(gendef->typ));
 
@@ -1933,13 +2030,13 @@ struct typ *instances_find_existing_final_with(struct node *gendef,
   return i == NULL ? NULL : (*i)->typ;
 }
 
-struct typ *instances_find_existing_final_like(struct node *gendef,
-                                               const struct typ *_t) {
+struct typ *instances_find_existing_final_like(const struct typ *_t) {
   struct typ *t = CONST_CAST(_t);
   if (!typ_hash_ready(t)) {
     return NULL;
   }
 
+  struct node *gendef = typ_definition(t);
   struct generic *generic = node_toplevel(CONST_CAST(gendef))->generic;
 
   instances_maintain(gendef);
@@ -1952,13 +2049,13 @@ struct typ *instances_find_existing_final_like(struct node *gendef,
   return i == NULL ? NULL : (*i)->typ;
 }
 
-struct typ *instances_find_existing_identical(struct node *gendef,
-                                              struct typ *functor,
+struct typ *instances_find_existing_identical(struct typ *functor,
                                               struct typ **args, size_t arity) {
   if (has_null_arg(args, arity)) {
     return NULL;
   }
 
+  struct node *gendef = typ_definition(functor);
   struct generic *generic = node_toplevel(CONST_CAST(gendef))->generic;
 
   struct typ tmp = { 0 };

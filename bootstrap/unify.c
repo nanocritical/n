@@ -558,9 +558,10 @@ static bool has_variant_with_field(struct module *mod,
 error unify_with_defincomplete_entrails(struct module *mod,
                                         const struct node *for_error,
                                         struct typ *a,
-                                        struct typ *inc, struct node *dinc) {
+                                        struct typ *inc) {
   error e;
 
+  struct node *dinc = typ_definition(inc);
   struct node *da = typ_definition(a);
   if (dinc->as.DEFINCOMPLETE.ident != ID__NONE) {
     e = unify_with_defunknownident(mod, for_error, da, dinc);
@@ -610,8 +611,7 @@ error unify_with_defincomplete_entrails(struct module *mod,
 static ERROR unify_with_defincomplete(struct module *mod,
                                       const struct node *for_error,
                                       struct typ *a, struct typ *inc) {
-  struct node *dinc = typ_definition(inc);
-  error e = unify_with_defincomplete_entrails(mod, for_error, a, inc, dinc);
+  error e = unify_with_defincomplete_entrails(mod, for_error, a, inc);
   EXCEPT(e);
 
   typ_link_tentative(a, inc);
