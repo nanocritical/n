@@ -30,7 +30,6 @@ struct node *typ_definition_nooverlay(struct typ *t);
 const struct node *typ_definition_nooverlay_const(const struct typ *t);
 struct node *typ_definition_ignore_any_overlay(struct typ *t);
 const struct node *typ_definition_ignore_any_overlay_const(const struct typ *t);
-
 const struct node *typ_for_error(const struct typ *t);
 
 enum node_which typ_definition_which(const struct typ *t);
@@ -41,17 +40,21 @@ struct module *typ_module_owner(const struct typ *t);
 struct module *typ_defincomplete_trigger_mod(const struct typ *t);
 
 struct typ *typ_member(struct typ *t, ident name);
-struct typ *typ_member_resolve_accessor(const struct node *node);
 
 struct tit;
 // End with 0.
 struct tit *typ_definition_members(const struct typ *t, ...);
 struct tit *typ_definition_one_member(const struct typ *t, ident name);
+struct tit *typ_resolve_accessor__has_effect(error *e, struct module *mod,
+                                             struct node *node);
+
 // Frees the iterator when end is reached.
 bool tit_next(struct tit *tit);
 enum node_which tit_which(const struct tit *tit);
 ident tit_ident(const struct tit *tit);
 struct typ *tit_typ(const struct tit *tit);
+struct typ *tit_parent_definition_typ(const struct tit *tit);
+uint32_t tit_node_flags(const struct tit *tit);
 struct node *tit_node_ignore_any_overlay(const struct tit *tit);
 const struct node *tit_for_error(const struct tit *tit);
 

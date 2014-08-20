@@ -5,6 +5,7 @@
 #include "typset.h"
 #include "unify.h"
 #include "inference.h"
+#include "instantiate.h"
 #include "parser.h"
 
 #include <stdio.h>
@@ -815,8 +816,6 @@ struct typ *typ_member(struct typ *t, ident name) {
   return m != NULL ? m->typ : NULL;
 }
 
-struct typ *typ_member_resolve_accessor(const struct node *node);
-
 struct tit {
   struct node *definition;
   struct node *pos;
@@ -860,6 +859,7 @@ bool tit_next(struct tit *tit) {
 done:
   if (tit->pos == NULL) {
     free(tit);
+    memset(tit, 0, sizeof(*tit));
     return false;
   }
 
@@ -904,6 +904,81 @@ struct tit *typ_definition_members(const struct typ *t, ...) {
   return tit;
 }
 
+static void bin_accessor_maybe_functor(struct module *mod, struct node *par) {
+  // Something like the (hypothetical): vector.mk_filled 100 0:u8
+  // 'vector' is a generic functor, and the instantiation will be done
+  // through the call to the function 'vector.mk_filled'. We need to have a
+  // fully tentative instance of 'vector' so that the unification of '0:u8'
+  // with t:`copyable succeeds.
+  if ((par->flags & NODE_IS_TYPE)
+      && typ_is_generic_functor(par->typ)
+      && node_ident(par) != ID_THIS) {
+
+    // TODO: Ideally, we shouldn't be setting any 'typ' from within types.c. This
+    // should be coded in inference.c.
+    struct node *i = instantiate_fully_implicit(mod, par, par->typ);
+    unset_typ(&par->typ);
+    set_typ(&par->typ, i->typ);
+  }
+}
+
+static bool bin_accessor_maybe_ref(struct node **parent_scope,
+                                   struct module *mod, struct node *par) {
+  if (typ_is_reference(par->typ)) {
+    *parent_scope = typ_definition(typ_generic_arg(par->typ, 0));
+    return true;
+  }
+  return false;
+}
+
+static void bin_accessor_maybe_defchoice(struct node **parent_scope, struct node *for_error,
+                                         struct module *mod, struct node *par) {
+  if (par->flags & NODE_IS_DEFCHOICE) {
+    struct node *defchoice = NULL;
+    error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
+                                           &typ_definition(par->typ)->scope,
+                                           node_ident(subs_last(par)), false);
+    assert(!e);
+    assert(defchoice->which == DEFCHOICE);
+
+    const struct node *ext = node_defchoice_external_payload(defchoice);
+    *parent_scope = ext != NULL ? typ_definition(ext->typ) : defchoice;
+  }
+}
+
+struct tit *typ_resolve_accessor__has_effect(error *e,
+                                             struct module *mod,
+                                             struct node *node) {
+  assert(node->which == BIN && OP_KIND(node->as.BIN.operator) == OP_BIN_ACC);
+
+  struct node *left = subs_first(node);
+  bin_accessor_maybe_functor(mod, left);
+
+  struct node *dcontainer = typ_definition(left->typ);
+  if (!bin_accessor_maybe_ref(&dcontainer, mod, left)) {
+    bin_accessor_maybe_defchoice(&dcontainer, node, mod, left);
+  }
+  struct scope *container_scope = &dcontainer->scope;
+  const bool container_is_tentative = typ_is_tentative(scope_node(container_scope)->typ);
+
+  struct node *name = subs_last(node);
+  struct node *field = NULL;
+  *e = scope_lookup_ident_immediate(&field, name, mod, container_scope,
+                                    node_ident(name), container_is_tentative);
+
+  if (field->which == IMPORT && !field->as.IMPORT.intermediate_mark) {
+    error none = scope_lookup(&field, mod, &mod->gctx->modules_root.scope,
+                              subs_first(field), false);
+    assert(!none);
+  }
+
+  struct tit *r = calloc(1, sizeof(struct tit));
+  r->definition = dcontainer;
+  r->just_one = true;
+  r->pos = field;
+  return r;
+}
+
 enum node_which tit_which(const struct tit *tit) {
   return tit->pos->which;
 }
@@ -914,6 +989,22 @@ ident tit_ident(const struct tit *tit) {
 
 struct typ *tit_typ(const struct tit *tit) {
   return tit->pos->typ;
+}
+
+struct typ *tit_parent_definition_typ(const struct tit *tit) {
+  struct node *p = tit->pos;
+  if (NM(p->which) & (NM(MODULE) | NM(MODULE_BODY) | NM(IMPORT))) {
+    return parent(p)->typ;
+  }
+
+  while (!node_is_at_top(p)) {
+    p = parent(p);
+  }
+  return p->typ;
+}
+
+uint32_t tit_node_flags(const struct tit *tit) {
+  return tit->pos->flags;
 }
 
 struct tit *tit_let_def(const struct tit *tit) {

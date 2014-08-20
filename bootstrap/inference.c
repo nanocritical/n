@@ -960,67 +960,18 @@ static ERROR rewrite_unary_call(struct module *mod, struct node *node, struct ty
   return 0;
 }
 
-static void bin_accessor_maybe_functor(struct module *mod, struct node *par) {
-  // Something like the (hypothetical): vector.mk_filled 100 0:u8
-  // 'vector' is a generic functor, and the instantiation will be done
-  // through the call to the function 'vector.mk_filled'. We need to have a
-  // fully tentative instance of 'vector' so that the unification of '0:u8'
-  // with t:`copyable succeeds.
-  if ((par->flags & NODE_IS_TYPE)
-      && typ_is_generic_functor(par->typ)
-      && node_ident(par) != ID_THIS) {
-    struct node *i = instantiate_fully_implicit(mod, par, par->typ);
-    unset_typ(&par->typ);
-    set_typ(&par->typ, i->typ);
-  }
-}
-
-static bool bin_accessor_maybe_ref(struct node **parent_scope,
-                                   struct module *mod, struct node *par) {
-  if (typ_is_reference(par->typ)) {
-    *parent_scope = typ_definition(typ_generic_arg(par->typ, 0));
-    return true;
-  }
-  return false;
-}
-
-static void bin_accessor_maybe_defchoice(struct node **parent_scope, struct node *for_error,
-                                         struct module *mod, struct node *par) {
-  if (par->flags & NODE_IS_DEFCHOICE) {
-    struct node *defchoice = NULL;
-    error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
-                                           &typ_definition(par->typ)->scope,
-                                           node_ident(subs_last(par)), false);
-    assert(!e);
-    assert(defchoice->which == DEFCHOICE);
-
-    const struct node *ext = node_defchoice_external_payload(defchoice);
-    *parent_scope = ext != NULL ? typ_definition(ext->typ) : defchoice;
-  }
-}
-
 static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) {
-  error e;
-
   enum token_type operator = node->as.BIN.operator;
   const struct typ *mark = node->typ;
 
-  struct node *left = subs_first(node);
-  bin_accessor_maybe_functor(mod, left);
+  error e = 0;
+  struct tit *field = typ_resolve_accessor__has_effect(&e, mod, node);
 
-  struct node *dcontainer = typ_definition(left->typ);
-  if (!bin_accessor_maybe_ref(&dcontainer, mod, left)) {
-    bin_accessor_maybe_defchoice(&dcontainer, node, mod, left);
-  }
-  struct scope *container_scope = &dcontainer->scope;
-
-  const bool container_is_tentative = typ_is_tentative(scope_node(container_scope)->typ);
-
-  struct node *name = subs_last(node);
-  struct node *field = NULL;
-  e = scope_lookup_ident_immediate(&field, name, mod, container_scope,
-                                   node_ident(name), container_is_tentative);
+  const bool container_is_tentative = typ_is_tentative(tit_parent_definition_typ(field));
   if (container_is_tentative && e == EINVAL) {
+    struct node *left = subs_first(node);
+    struct node *name = subs_last(node);
+
     struct node *dinc = defincomplete_create(mod, node);
     defincomplete_add_field(mod, node, dinc, node_ident(name),
                             create_tentative(mod, node, TBI_ANY));
@@ -1030,41 +981,34 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
     e = unify(mod, node, left->typ, dinc->typ);
     EXCEPT(e);
 
-    e = scope_lookup_ident_immediate(&field, name, mod, &dinc->scope,
-                                     node_ident(name), false);
-    EXCEPT(e);
+    tit_next(field);
+    field = typ_definition_one_member(dinc->typ, node_ident(name));
   } else {
     EXCEPT(e);
   }
 
-  if (field->which == IMPORT && !field->as.IMPORT.intermediate_mark) {
-    e = scope_lookup(&field, mod, &mod->gctx->modules_root.scope,
-                     subs_first(field), false);
-    assert(!e);
-  }
-
-  if (typ_is_function(field->typ) && mark != TBI__CALL_FUNCTION_SLOT) {
-    const bool is_method = typ_definition_which(field->typ) == DEFMETHOD;
-    if (node_fun_min_args_count(field) != (is_method ? 1 : 0)) {
-      e = mk_except_call_args_count(mod, node, field->typ, is_method, 0);
+  struct typ *tfield = tit_typ(field);
+  if (typ_is_function(tfield) && mark != TBI__CALL_FUNCTION_SLOT) {
+    const bool is_method = typ_definition_which(tfield) == DEFMETHOD;
+    if (typ_function_min_arity(tfield) != (is_method ? 1 : 0)) {
+      e = mk_except_call_args_count(mod, node, tfield, is_method, 0);
       THROW(e);
     }
 
-    e = rewrite_unary_call(mod, node, field->typ);
+    e = rewrite_unary_call(mod, node, tfield);
     EXCEPT(e);
   } else {
-    if (operator == TWILDCARD && typ_is_reference(field->typ)) {
-      assert(typ_is_reference(field->typ));
+    if (operator == TWILDCARD && typ_is_reference(tfield)) {
+      assert(typ_is_reference(tfield));
       struct node *i = NULL;
-      e = reference(&i, mod, node, TREFWILDCARD,
-                    typ_generic_arg(field->typ, 0));
+      e = reference(&i, mod, node, TREFWILDCARD, typ_generic_arg(tfield, 0));
       assert(!e);
       set_typ(&node->typ, i->typ);
     } else {
-      set_typ(&node->typ, field->typ);
+      set_typ(&node->typ, tfield);
     }
-    assert(field->which != BIN || field->flags != 0);
-    node->flags = field->flags;
+    assert(tit_which(field) != BIN || tit_node_flags(field) != 0);
+    node->flags = tit_node_flags(field);
   }
 
   if (!(node->flags & NODE_IS_TYPE)) {
@@ -1075,6 +1019,7 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
     }
   }
 
+  tit_next(field);
   return 0;
 }
 
