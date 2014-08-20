@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 export TDIFF_WHAT="stderr stdout"
+unset NCC_TIMEIT
 
 wd=$(dirname $0)
 WD="$wd/"
