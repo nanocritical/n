@@ -562,20 +562,20 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
       return 0;
     }
 
-#define GET_TYP(target) \
-    ( (target)->as.DEFARG.is_vararg \
-      ? typ_generic_arg((target)->typ, 0) : (target)->typ)
-
-    const struct node *funargs = subs_at_const(
-      typ_definition_const(subs_first_const(node)->typ), IDX_FUNARGS);
-    const struct node *target = subs_first_const(funargs);
-
+    const struct node *fun = subs_first_const(node);
+    const ssize_t first_vararg = typ_function_first_vararg(fun->typ);
+    size_t n = 0;
     FOREACH_SUB_EVERY(src, node, 1, 1) {
-      e = try_insert_dyn(&src, mod, node, GET_TYP(target));
+      struct typ *target = typ_function_arg(fun->typ, n);
+      if (n == first_vararg) {
+        target = typ_generic_arg(target, 0);
+      }
+
+      e = try_insert_dyn(&src, mod, node, target);
       EXCEPT(e);
 
-      if (!target->as.DEFARG.is_vararg) {
-        target = next_const(target);
+      if (n != first_vararg) {
+        n += 1;
       }
     }
 
