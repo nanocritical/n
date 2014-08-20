@@ -547,7 +547,7 @@ const char *module_component_filename_at(const struct module *mod, size_t pos) {
 static char *fullpath(const char *prefix, const char *fn) {
   const size_t lp = prefix == NULL ? 0 : strlen(prefix);
   const size_t lf = strlen(fn);
-  char *r = calloc(lp + lf + 1, sizeof(char));
+  char *r = calloc(lp + lf + 2, sizeof(char));
   char *p = r;
   if (lp > 0) {
     strcpy(p, prefix);
