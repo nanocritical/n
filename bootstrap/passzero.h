@@ -10,7 +10,6 @@ ERROR step_stop_submodules(struct module *mod, struct node *node, void *user, bo
 
 struct node *create_instance_deepcopy_from_pristine(struct module *mod,
                                                     struct node *node,
-                                                    struct node *pristine,
-                                                    bool tentative);
+                                                    struct node *pristine);
 
 #endif

@@ -20,6 +20,7 @@ struct typ *typ_create(struct typ *tbi, struct node *definition);
 void typ_create_update_hash(struct typ *t);
 void typ_create_update_genargs(struct typ *t);
 void typ_create_update_quickisa(struct typ *t);
+struct typ *typ_create_defgenarg(struct typ *t);
 
 bool typ_hash_ready(const struct typ *t);
 
@@ -35,6 +36,7 @@ const struct node *typ_for_error(const struct typ *t);
 enum node_which typ_definition_which(const struct typ *t);
 enum deftype_kind typ_definition_deftype_kind(const struct typ *t);
 struct typ *typ_definition_tag_type(const struct typ *t);
+enum token_type typ_definition_defmethod_access(const struct typ *t);
 ident typ_definition_ident(const struct typ *t);
 struct module *typ_module_owner(const struct typ *t);
 struct module *typ_defincomplete_trigger_mod(const struct typ *t);
@@ -83,6 +85,7 @@ struct typ *typ_function_return(struct typ *t);
 
 void unset_typ(struct typ **loc);
 void set_typ(struct typ **loc, struct typ *t);
+void set_typ_defgenarg(struct typ **loc, struct typ *t);
 
 // Don't call these; they're privileged.
 void typ_add_tentative_bit__privileged(struct typ **loc);
@@ -90,6 +93,7 @@ void typ_declare_final__privileged(struct typ *t);
 
 bool typ_is_tentative(const struct typ *t);
 struct typ *typ_create_tentative_functor(struct typ *target);
+struct typ *typ_create_tentative(struct typ *t, struct typ **args, size_t arity);
 
 void typ_link_tentative(struct typ *dst, struct typ *src);
 void typ_link_tentative_functor(struct module *mod, struct typ *dst, struct typ *src);

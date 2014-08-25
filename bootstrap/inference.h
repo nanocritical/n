@@ -38,7 +38,7 @@ ERROR step_gather_remaining_weakly_concrete(struct module *mod, struct node *nod
 struct node *expr_ref(struct module *mod, struct node *par,
                       enum token_type refop, struct node *node);
 
-ERROR reference(struct node **result,
+ERROR reference(struct typ **result,
                 struct module *mod, struct node *for_error,
                 enum token_type op, struct typ *typ);
 

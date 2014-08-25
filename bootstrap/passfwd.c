@@ -511,7 +511,7 @@ static ERROR step_add_builtin_members(struct module *mod, struct node *node,
   }
 
   define_builtin_alias(mod, node, ID_THIS, node->typ);
-  define_builtin_alias(mod, node, ID_FINAL, node->typ);
+  define_builtin_alias(mod, node, ID_FINAL, typ_create_genarg(node->typ));
 
   return 0;
 }
@@ -572,6 +572,14 @@ static ERROR step_type_create_update(struct module *mod, struct node *node,
                                      void *user, bool *stop) {
   DSTEP(mod, node);
 
+  struct node *genargs = subs_at(node, IDX_GENARGS);
+  FOREACH_SUB(ga, genargs) {
+    if (ga->which == DEFGENARG) {
+      typ_create_update_genargs(ga->typ);
+      typ_create_update_hash(ga->typ);
+    }
+  }
+
   typ_create_update_genargs(node->typ);
   typ_create_update_hash(node->typ);
 
@@ -600,6 +608,13 @@ static STEP_NM(step_type_update_quickisa,
 static ERROR step_type_update_quickisa(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
+
+  struct node *genargs = subs_at(node, IDX_GENARGS);
+  FOREACH_SUB(ga, genargs) {
+    if (ga->which == DEFGENARG) {
+      typ_create_update_quickisa(ga->typ);
+    }
+  }
 
   typ_create_update_quickisa(node->typ);
 
@@ -712,7 +727,7 @@ static ERROR step_type_defchoices(struct module *mod, struct node *node,
   }
 
   set_typ(&node->as.DEFTYPE.tag_typ,
-          instantiate_fully_implicit(mod, node, TBI_LITERALS_INTEGER)->typ);
+          instantiate_fully_implicit(mod, node, TBI_LITERALS_INTEGER));
 
   error e;
   FOREACH_SUB(ch, node) {

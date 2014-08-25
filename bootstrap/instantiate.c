@@ -8,24 +8,19 @@
 
 // Does not itself check that 'args' are valid types for instantiation.
 // This is done in passfwd.c:validate_genarg_types().
-static ERROR do_instantiate(struct node **result,
+static ERROR do_instantiate(struct typ **result,
                             struct module *mod,
                             const struct node *for_error, ssize_t for_error_offset,
                             struct typ *t,
-                            struct typ **args, size_t arity,
-                            bool tentative) {
+                            struct typ **args, size_t arity) {
   BEGTIMEIT(TIMEIT_INSTANTIATE_TOTAL);
   BEGTIMEIT(TIMEIT_INSTANTIATE);
   BEGTIMEIT(TIMEIT_INSTANTIATE_INTF);
   BEGTIMEIT(TIMEIT_INSTANTIATE_REF);
-  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE);
-  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_INTF);
-  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_REF);
-  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_WEAKLY_CONCRETE);
 
   assert(arity == 0 || (typ_is_generic_functor(t) && arity == typ_generic_arity(t)));
 
-  struct node *gendef = typ_definition(t);
+  struct node *gendef = typ_definition_nooverlay(t);
   if (node_toplevel(gendef)->generic->pristine == NULL) {
     if (for_error == NULL) {
       assert(false && "Not supposed to fail when for_error is NULL");
@@ -36,8 +31,7 @@ static ERROR do_instantiate(struct node **result,
   }
 
   struct node *pristine = node_toplevel(gendef)->generic->pristine;
-  struct node *instance = create_instance_deepcopy_from_pristine(mod, gendef,
-                                                                 pristine, tentative);
+  struct node *instance = create_instance_deepcopy_from_pristine(mod, gendef, pristine);
   node_toplevel(instance)->generic->for_error = for_error;
 
   // Do not use set_typ()! With second-order generics, we actually do not
@@ -73,7 +67,7 @@ static ERROR do_instantiate(struct node **result,
   }
 
   error e = catchup_instantiation(mod, node_module_owner(gendef),
-                                  instance, tentative);
+                                  instance, false);
   if (e) {
     char *n = pptyp(mod, t);
     e = mk_except_type(mod, for_error, "while instantiating generic here '%s'", n);
@@ -81,37 +75,47 @@ static ERROR do_instantiate(struct node **result,
     THROW(e);
   }
 
-  *result = instance;
+  *result = instance->typ;
 
-  ENDTIMEIT(typ_is_weakly_concrete(instance->typ), TIMEIT_INSTANTIATE_TENTATIVE_WEAKLY_CONCRETE);
-  ENDTIMEIT(tentative && typ_is_reference(instance->typ), TIMEIT_INSTANTIATE_TENTATIVE_REF);
-  ENDTIMEIT(tentative && instance->which == DEFINTF, TIMEIT_INSTANTIATE_TENTATIVE_INTF);
-  ENDTIMEIT(tentative, TIMEIT_INSTANTIATE_TENTATIVE);
-
-  ENDTIMEIT(!tentative && typ_is_reference(instance->typ), TIMEIT_INSTANTIATE_REF);
-  ENDTIMEIT(!tentative && instance->which == DEFINTF, TIMEIT_INSTANTIATE_INTF);
-  ENDTIMEIT(!tentative, TIMEIT_INSTANTIATE);
+  ENDTIMEIT(typ_is_reference(instance->typ), TIMEIT_INSTANTIATE_REF);
+  ENDTIMEIT(instance->which == DEFINTF, TIMEIT_INSTANTIATE_INTF);
+  ENDTIMEIT(true, TIMEIT_INSTANTIATE);
   ENDTIMEIT(true, TIMEIT_INSTANTIATE_TOTAL);
 
   return 0;
 }
 
-struct typ *tentative_generic_arg(struct module *mod, const struct node *for_error,
-                                  struct typ *t, size_t n) {
-  struct typ *ga = typ_generic_arg(t, n);
-  const size_t arity = typ_generic_arity(ga);
+static ERROR do_instantiate_tentative(struct typ **result,
+                                      struct module *mod,
+                                      const struct node *for_error, ssize_t for_error_offset,
+                                      struct typ *t,
+                                      struct typ **args, size_t arity) {
+  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE);
+  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_INTF);
+  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_REF);
+  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_WEAKLY_CONCRETE);
 
-  if (arity == 0) {
-    assert(!typ_is_tentative(ga));
-    return instantiate_fully_implicit(mod, for_error, ga)->typ;
-  } else if (typ_is_generic_functor(ga)) {
-    return typ_create_tentative_functor(ga);
+  for (size_t n = 0; n < arity; ++n) {
+    if (args[n] == NULL) {
+      continue;
+    }
+
+    const struct node *fe = for_error_offset >= 0
+      && for_error_offset+n < subs_count(for_error)
+      ? subs_at_const(for_error, for_error_offset+n)
+      : for_error;
+
+    error e = typ_check_isa(mod, fe, args[n], typ_generic_arg_const(t, n));
+    EXCEPT(e);
   }
 
-  // Otherwise, the generic argument is declared as c:(`container t), where
-  // t is another generic argument. The typ will be created by the type
-  // inference step.
-  return NULL;
+  *result = typ_create_tentative(t, args, arity);
+
+  ENDTIMEIT(typ_is_weakly_concrete(*result), TIMEIT_INSTANTIATE_TENTATIVE_WEAKLY_CONCRETE);
+  ENDTIMEIT(typ_is_reference(*result), TIMEIT_INSTANTIATE_TENTATIVE_REF);
+  ENDTIMEIT(typ_definition_which(*result) == DEFINTF, TIMEIT_INSTANTIATE_TENTATIVE_INTF);
+  ENDTIMEIT(true, TIMEIT_INSTANTIATE_TENTATIVE);
+  return 0;
 }
 
 static bool instantiation_is_tentative(const struct module *mod,
@@ -142,9 +146,9 @@ static bool instantiation_is_tentative(const struct module *mod,
   }
 }
 
-error instantiate(struct node **result,
+error instantiate(struct typ **result,
                   struct module *mod,
-                  const struct node *for_error, size_t for_error_offset,
+                  const struct node *for_error, ssize_t for_error_offset,
                   struct typ *t, struct typ **args, size_t arity,
                   bool reject_identical) {
   assert(arity == typ_generic_arity(t));
@@ -153,7 +157,7 @@ error instantiate(struct node **result,
     struct typ *r = instances_find_existing_identical(t, args, arity);
     if (r != NULL) {
       if (result != NULL) {
-        *result = typ_definition(r);
+        *result = r;
       }
       return 0;
     }
@@ -165,22 +169,46 @@ error instantiate(struct node **result,
     struct typ *r = instances_find_existing_final_with(t, args, arity);
     if (r != NULL) {
       if (result != NULL) {
-        *result = typ_definition(r);
+        *result = r;
       }
       return 0;
     }
   }
 
-  error e = do_instantiate(result, mod, for_error, for_error_offset,
-                           t, args, arity, tentative);
-  EXCEPT(e);
+  if (tentative) {
+    error e = do_instantiate_tentative(result, mod, for_error, for_error_offset,
+                                       t, args, arity);
+    EXCEPT(e);
+  } else {
+    error e = do_instantiate(result, mod, for_error, for_error_offset,
+                             t, args, arity);
+    EXCEPT(e);
+  }
 
   return 0;
 }
 
-struct node *instantiate_fully_implicit(struct module *mod,
-                                        const struct node *for_error,
-                                        struct typ *t) {
+struct typ *tentative_generic_arg(struct module *mod, const struct node *for_error,
+                                  struct typ *t, size_t n) {
+  struct typ *ga = typ_generic_arg(t, n);
+  const size_t arity = typ_generic_arity(ga);
+
+  if (arity == 0) {
+    assert(!typ_is_tentative(ga));
+    return instantiate_fully_implicit(mod, for_error, ga);
+  } else if (typ_is_generic_functor(ga)) {
+    return typ_create_tentative_functor(ga);
+  }
+
+  // Otherwise, the generic argument is declared as c:(`container t), where
+  // t is another generic argument. The typ will be created by the type
+  // inference step.
+  return NULL;
+}
+
+struct typ *instantiate_fully_implicit(struct module *mod,
+                                       const struct node *for_error,
+                                       struct typ *t) {
   assert(typ_is_generic_functor(t) || typ_generic_arity(t) == 0);
 
   const size_t gen_arity = typ_generic_arity(t);
@@ -191,7 +219,7 @@ struct node *instantiate_fully_implicit(struct module *mod,
     assert(args[n] == NULL || typ_is_tentative(args[n]));
   }
 
-  struct node *i = NULL;
+  struct typ *i = NULL;
   error e = instantiate(&i, mod, for_error, -1,
                         t, args, gen_arity, true);
   // FIXME: Temporary workaround: it's actually legal for this code to
@@ -204,15 +232,15 @@ struct node *instantiate_fully_implicit(struct module *mod,
   assert(!e);
 
   if (gen_arity == 0) {
-    assert(typ_is_tentative(i->typ));
-    if (typ_is_weakly_concrete(i->typ) && mod->state->top_state != NULL) {
-      vecnode_push(&mod->state->top_state->triggered_weakly_concrete, i);
+    assert(typ_is_tentative(i));
+    if (typ_is_weakly_concrete(i) && mod->state->top_state != NULL) {
+      vecnode_push(&mod->state->top_state->triggered_weakly_concrete, typ_definition(i));
     }
   } else {
-    assert(typ_is_tentative(typ_generic_functor(i->typ)) == typ_is_tentative(t));
+    assert(typ_is_tentative(typ_generic_functor(i)) == typ_is_tentative(t));
   }
   for (size_t n = 0; n < gen_arity; ++n) {
-    assert(typ_is_tentative(typ_generic_arg(i->typ, n)));
+    assert(typ_is_tentative(typ_generic_arg(i, n)));
   }
 
   free(args);
