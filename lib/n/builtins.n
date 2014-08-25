@@ -11,6 +11,7 @@ extern intf `__literal_integer__ =
 	isa `Integer
 extern intf `__literal_floating__ =
 	isa `Floating
+extern intf `__literal_slice__ t:`Any_ =
 
 extern struct __internal_not_typeable__ =
 extern struct __call_function_slot__ =
@@ -203,7 +204,7 @@ intf `Any_mutable_slice t:`Any =
 -- operations between kinds of slices.
 
 opaque struct Slice t:`Any =
-	isa (`Any_slice t) `Trivial_array_ctor -- FIXME missing genarg
+	isa (`Any_slice t) -- FIXME missing genarg
 	dat	:?@#t
 	cnt	:Uint
 	cap	:Uint -- will go away
@@ -255,7 +256,7 @@ inline Slice shallow met$ Last = @t
 	return s.Last
 
 opaque struct Mutable_slice t:`Any =
-	isa (`Any_mutable_slice t) `Trivial_array_ctor -- FIXME missing genarg
+	isa (`Any_mutable_slice t) -- FIXME missing genarg
 	dat	:?@#t
 	cnt	:Uint
 	cap	:Uint
@@ -1620,11 +1621,8 @@ example
 			n += 1
 	true
 
-intf `Trivial_array_ctor t:`Copyable =
-	isa `Prevent_dyn (`Array_ctor t)
-
-intf `Array_ctor t:`Copyable =
-	fun From_array c:[]t = final
+intf `Slice_compatible t:`Any =
+	fun From_slice c:[]t = final
 
 
 extern inline (fun$ i:`Any j:`Any) Dyncast x:@$j = @$i

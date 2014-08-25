@@ -105,73 +105,6 @@ static bool string_literal_has_length_one(const char *s) {
   }
 }
 
-static STEP_NM(step_weak_literal_conversion,
-               NM(STRING) | NM(BOOL));
-static ERROR step_weak_literal_conversion(struct module *mod, struct node *node,
-                                          void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  ident id;
-  struct typ *lit_typ;
-
-  switch (node->which) {
-  case STRING:
-    if (typ_equal(node->typ, TBI_STRING)) {
-      return 0;
-    }
-
-    if (typ_equal(node->typ, TBI_CHAR)) {
-      if (!string_literal_has_length_one(node->as.STRING.value)) {
-        error e = mk_except_type(mod, node,
-                                 "string literal '%s' does not have length 1,"
-                                 " cannot coerce to char",
-                                 node->as.STRING.value);
-        THROW(e);
-      }
-      return 0;
-    }
-
-    id = ID_FROM_STRING;
-    lit_typ = TBI_STRING;
-    break;
-  case BOOL:
-    if (typ_equal(node->typ, TBI_BOOL)) {
-      return 0;
-    }
-    id = ID_FROM_BOOL;
-    lit_typ = TBI_BOOL;
-    break;
-  default:
-    assert(false && "Unreached");
-    return 0;
-  }
-
-  struct typ *saved_typ = node->typ;
-
-  struct node *literal = node_new_subnode(mod, node);
-  node_subs_remove(node, literal);
-  node_move_content(literal, node);
-
-  node_set_which(node, CALL);
-
-  struct node *fun = mk_node(mod, node, DIRECTDEF);
-  struct typ *funt = typ_member(saved_typ, id);
-  assert(funt != NULL);
-  set_typ(&fun->as.DIRECTDEF.typ, funt);
-  fun->as.DIRECTDEF.flags = NODE_IS_TYPE;
-
-  node_subs_append(node, literal);
-  unset_typ(&literal->typ);
-  set_typ(&literal->typ, lit_typ);
-
-  const struct node *except[] = { literal, NULL };
-  error e = catchup(mod, except, node,
-                    CATCHUP_REWRITING_CURRENT);
-  EXCEPT(e);
-
-  return 0;
-}
-
 static enum token_type operator_call_arg_refop(const struct typ *tfun, size_t n) {
   const struct typ *arg0 = typ_generic_functor_const(typ_function_arg_const(tfun, n));
   assert(arg0 != NULL && typ_is_reference(arg0));
@@ -798,7 +731,6 @@ error passbody0(struct module *mod, struct node *root,
     UP_STEP(step_type_inference);
     UP_STEP(step_remove_typeconstraints);
     UP_STEP(step_type_drop_excepts);
-    UP_STEP(step_gather_remaining_weakly_concrete);
     ,
     FINALLY_STEP(step_pop_state);
     );
@@ -816,7 +748,6 @@ static ERROR passbody1(struct module *mod, struct node *root,
     DOWN_STEP(step_check_no_literals_left);
     ,
     UP_STEP(step_insert_nullable_void);
-    UP_STEP(step_weak_literal_conversion);
     UP_STEP(step_operator_call_inference);
     UP_STEP(step_ctor_call_inference);
     UP_STEP(step_array_ctor_call_inference);

@@ -720,13 +720,7 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
         EXCEPT(e);
       }
 
-      if (typ_equal(left->typ, TBI_BOOL)) {
-        // We want to propagate the link status of the terms when used as a
-        // weakly concrete.
-        set_typ(&node->typ, left->typ);
-      } else {
-        set_typ(&node->typ, TBI_BOOL);
-      }
+      set_typ(&node->typ, TBI_BOOL);
       break;
     case TEQMATCH:
     case TNEMATCH:
@@ -1231,7 +1225,7 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
 }
 
 static ERROR type_inference_init_array(struct module *mod, struct node *node) {
-  set_typ(&node->typ, create_tentative(mod, node, TBI_SLICE));
+  set_typ(&node->typ, create_tentative(mod, node, TBI_LITERALS_SLICE));
 
   FOREACH_SUB(s, node) {
     error e = unify(mod, s, s->typ,
@@ -2371,10 +2365,10 @@ error step_type_inference(struct module *mod, struct node *node,
     set_typ(&node->typ, create_tentative(mod, node, number_literal_typ(mod, node)));
     break;
   case BOOL:
-    set_typ(&node->typ, create_tentative(mod, node, TBI_BOOL));
+    set_typ(&node->typ, TBI_BOOL);
     break;
   case STRING:
-    set_typ(&node->typ, create_tentative(mod, node, TBI_STRING));
+    set_typ(&node->typ, TBI_STRING);
     break;
   case SIZEOF:
     set_typ(&node->typ, TBI_UINT);
@@ -2568,19 +2562,6 @@ error step_type_drop_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
-static void finalize_weakly_concrete(struct module *mod, struct typ *t) {
-  struct typ *concrete = typ_as_non_tentative(t);
-  if (typ_equal(concrete, TBI_BOOL)) {
-    typ_link_tentative(TBI_BOOL, t);
-  } else if (typ_equal(concrete, TBI_STRING)) {
-    typ_link_tentative(TBI_STRING, t);
-  } else if (typ_equal(concrete, TBI_SLICE)) {
-    typ_link_tentative(TBI_SLICE, t);
-  } else {
-    assert(false);
-  }
-}
-
 static ERROR finalize_generic_instantiation(struct typ *t) {
   struct module *mod = typ_module_owner(t);
 
@@ -2591,9 +2572,6 @@ static ERROR finalize_generic_instantiation(struct typ *t) {
 
   if (typ_generic_arity(t) == 0) {
     // For instance, a DEFINCOMPLETE that unified to a non-generic.
-    if (typ_is_weakly_concrete(t)) {
-      finalize_weakly_concrete(mod, t);
-    }
     return 0;
   }
 
@@ -2608,11 +2586,6 @@ static ERROR finalize_generic_instantiation(struct typ *t) {
 
     for (size_t m = 0; m < typ_generic_arity(t); ++m) {
       struct typ *arg = typ_generic_arg(t, m);
-      if (typ_is_weakly_concrete(arg)) {
-        finalize_weakly_concrete(mod, arg);
-        continue;
-      }
-
       assert(!typ_is_tentative(arg));
     }
   } else {
@@ -2735,37 +2708,5 @@ error process_finalizations(void) {
   vectyp_destroy(&scheduleq);
 
   in_progress = false;
-  return 0;
-}
-
-STEP_NM(step_gather_remaining_weakly_concrete,
-        NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE));
-error step_gather_remaining_weakly_concrete(struct module *mod, struct node *node,
-                                            void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  struct vecnode *weaks = &mod->state->top_state->triggered_weakly_concrete;
-  if (vecnode_count(weaks) == 0) {
-    return 0;
-  }
-
-  if (typ_is_tentative(node->typ)) {
-    return 0;
-  }
-
-  const struct node *par = parent_const(node);
-  if (par->which != MODULE_BODY
-      && typ_is_generic_functor(par->typ)) {
-    return 0;
-  }
-
-  for (size_t n = 0; n < vecnode_count(weaks); ++n) {
-    struct node *d = *vecnode_get(weaks, n);
-    error e = finalize_generic_instantiation(d->typ);
-    assert(!e);
-  }
-
-  vecnode_destroy(weaks);
-
   return 0;
 }

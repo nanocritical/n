@@ -838,7 +838,6 @@ struct top_state {
 
   struct node *top;
   struct node *exportable;
-  struct vecnode triggered_weakly_concrete;
 
   bool is_setgenarg;
 };
@@ -966,6 +965,7 @@ enum predefined_idents {
   ID_TBI_LITERALS_NULL,
   ID_TBI_LITERALS_INTEGER,
   ID_TBI_LITERALS_FLOATING,
+  ID_TBI_LITERALS_SLICE,
   ID_TBI_ANY_TUPLE,
   ID_TBI_TUPLE_2,
   ID_TBI_TUPLE_3,
@@ -984,7 +984,6 @@ enum predefined_idents {
   ID_TBI_TUPLE_16,
   ID_TBI_ANY,
   ID_TBI_BOOL,
-  ID_TBI_BOOL_COMPATIBLE,
   ID_TBI_I8,
   ID_TBI_U8,
   ID_TBI_I16,
@@ -1001,7 +1000,6 @@ enum predefined_idents {
   ID_TBI_DOUBLE,
   ID_TBI_CHAR,
   ID_TBI_STRING,
-  ID_TBI_STRING_COMPATIBLE,
   ID_TBI_ANY_ANY_REF,
   ID_TBI_ANY_REF,
   ID_TBI_ANY_MUTABLE_REF,
@@ -1020,6 +1018,7 @@ enum predefined_idents {
   ID_TBI_SLICE,
   ID_TBI_MSLICE,
   ID_TBI_SLICE_IMPL,
+  ID_TBI_SLICE_COMPATIBLE,
   ID_TBI_VARARG,
   ID_TBI_ARITHMETIC,
   ID_TBI_INTEGER_ARITHMETIC,
@@ -1044,11 +1043,9 @@ enum predefined_idents {
   ID_TBI_DEFAULT_CTOR,
   ID_TBI_NON_DEFAULT_CTOR,
   ID_TBI_DEFAULT_DTOR,
-  ID_TBI_ARRAY_CTOR,
   ID_TBI_TRIVIAL_COPY,
   ID_TBI_TRIVIAL_COPY_BUT_OWNED,
   ID_TBI_TRIVIAL_CTOR,
-  ID_TBI_TRIVIAL_ARRAY_CTOR,
   ID_TBI_TRIVIAL_DTOR,
   ID_TBI_TRIVIAL_COMPARE,
   ID_TBI_TRIVIAL_EQUALITY,

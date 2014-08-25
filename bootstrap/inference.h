@@ -31,10 +31,6 @@ const uint64_t step_type_drop_excepts_filter;
 ERROR step_type_drop_excepts(struct module *mod, struct node *node,
                              void *user, bool *stop);
 
-const uint64_t step_gather_remaining_weakly_concrete_filter;
-ERROR step_gather_remaining_weakly_concrete(struct module *mod, struct node *node,
-                                            void *user, bool *stop);
-
 struct node *expr_ref(struct module *mod, struct node *par,
                       enum token_type refop, struct node *node);
 

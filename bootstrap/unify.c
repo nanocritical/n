@@ -140,6 +140,7 @@ static ERROR unify_generics(struct module *mod, uint32_t flags,
     // noop
   } else if (a_tentative && typ_isa(b0, a0)) {
     SWAP(a, b);
+    SWAP_FLAGS(flags);
     SWAP(a0, b0);
     SWAP(a_genf, b_genf);
     SWAP(a_tentative, b_tentative);
@@ -198,6 +199,7 @@ static ERROR unify_non_generic(struct module *mod, const struct node *for_error,
 
   if (!typ_is_tentative(b)) {
     SWAP(a, b);
+    SWAP(a_non_generic, b_non_generic);
   }
   if (!typ_is_tentative(b)) {
     e = mk_except_type_unification(mod, for_error, a, b);
@@ -255,14 +257,40 @@ static struct typ *nullable(struct module *mod, const struct node *for_error,
 
   struct typ *a = typ_generic_arg(t, 0);
 
-  struct node *i = NULL;
+  struct typ *i = NULL;
   error e = instantiate(&i, mod, for_error, 0, r0, &a, 1, false);
   assert(!e);
-  return i->typ;
+  return i;
 }
 
 static struct typ *as_non_tentative(const struct typ *t) {
   return typ_as_non_tentative(t);;
+}
+
+static ERROR unify_literal_slice(struct module *mod, uint32_t flags,
+                                 const struct node *for_error,
+                                 struct typ *a, struct typ *b,
+                                 bool a_literal_slice, bool b_literal_slice) {
+  error e;
+  if (a_literal_slice && b_literal_slice) {
+    goto finish;
+  }
+
+  if (a_literal_slice) {
+    SWAP(a, b);
+    SWAP(a_literal_slice, b_literal_slice);
+    SWAP_FLAGS(flags);
+  }
+
+  e = typ_check_isa(mod, for_error, a, TBI_ARRAY_CTOR);
+  EXCEPT(e);
+
+finish:
+  e = unify_reforslice_arg(mod, flags, for_error, a, b);
+  EXCEPT(e);
+
+  typ_link_tentative(a, b);
+  return 0;
 }
 
 static ERROR unify_literal(struct module *mod, uint32_t flags,
@@ -297,6 +325,8 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
 
   if (a_literal) {
     SWAP(a, b);
+    SWAP(a_literal, b_literal);
+    SWAP_FLAGS(flags);
   }
 
   if (typ_equal(b, TBI_LITERALS_NULL)) {
@@ -364,37 +394,6 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
     }
   } else {
     assert(false);
-  }
-
-  return 0;
-}
-
-static ERROR unify_with_weakly_concrete(bool *success,
-                                        struct module *mod,
-                                        const struct node *for_error,
-                                        struct typ *a, struct typ *b,
-                                        bool a_weakly_concrete,
-                                        bool b_weakly_concrete) {
-  if (a_weakly_concrete && !b_weakly_concrete) {
-    SWAP(a, b);
-  }
-
-  if (typ_equal(b, TBI_BOOL)) {
-    if (typ_isa(a, TBI_BOOL_COMPATIBLE)) {
-      typ_link_tentative(a, b);
-      *success = true;
-    }
-  } else if (typ_equal(b, TBI_STRING)) {
-    if (typ_isa(a, TBI_STRING_COMPATIBLE)) {
-      typ_link_tentative(a, b);
-      *success = true;
-    }
-  } else if (same_generic_functor(mod, b, TBI_SLICE)) {
-    if (typ_isa(a, TBI_ARRAY_CTOR)) {
-      typ_link_tentative(typ_generic_arg(a, 0), typ_generic_arg(b, 0));
-      typ_link_tentative(a, b);
-      *success = true;
-    }
   }
 
   return 0;
@@ -748,14 +747,10 @@ static ERROR unify_reforslice_arg(struct module *mod, uint32_t flags,
   const bool arg_b_intf = typ_definition_which(arg_b) == DEFINTF;
   const bool arg_a_tentative = typ_is_tentative(arg_a);
   const bool arg_b_tentative = typ_is_tentative(arg_b);
-  const bool arg_a_weak = typ_is_weakly_concrete(arg_a);
-  const bool arg_b_weak = typ_is_weakly_concrete(arg_b);
 
   error e;
   if ((arg_a_intf || arg_b_intf)
-      && ((!arg_a_tentative && !arg_b_tentative)
-          || (!arg_a_tentative && arg_b_weak)
-          || (!arg_b_tentative && arg_a_weak))) {
+      && (!arg_a_tentative && !arg_b_tentative)) {
     e = unify_dyn(mod, for_error, arg_a, arg_b, arg_a_intf, arg_b_intf);
     EXCEPT(e);
   } else {
@@ -772,9 +767,6 @@ void unify_with_new_parent(struct module *mod, const struct node *for_error,
 
   struct typ *tm = typ_member(p, typ_definition_ident(t));
   if (tm == NULL) {
-    // FIXME: this may be the member of a weakly concrete that has no match
-    // in the concrete type it's being linked to. We should have prevented
-    // that with proper intf requirements.
     return;
   }
 
@@ -789,10 +781,11 @@ void unify_with_new_parent(struct module *mod, const struct node *for_error,
     args[n] = typ_generic_arg(t, n);
   }
 
-  struct node *i = NULL;
+  struct typ *i = NULL;
   error e = instantiate(&i, mod, for_error, -1, tm, args, arity, false);
   assert(!e);
-  typ_link_tentative(i->typ, t);
+  free(args);
+  typ_link_tentative(i, t);
 }
 
 struct typ *unify_with_new_functor(struct module *mod, const struct node *for_error,
@@ -805,15 +798,15 @@ struct typ *unify_with_new_functor(struct module *mod, const struct node *for_er
   assert(typ_is_tentative(t));
   assert(typ_is_tentative(t0));
 
-  struct node *i = instantiate_fully_implicit(mod, for_error, f);
+  struct typ *i = instantiate_fully_implicit(mod, for_error, f);
 
   for (size_t n = 0, arity = typ_generic_arity(t); n < arity; ++n) {
-    typ_link_tentative(typ_generic_arg(t, n), typ_generic_arg(i->typ, n));
+    typ_link_tentative(typ_generic_arg(t, n), typ_generic_arg(i, n));
   }
 
-  typ_link_tentative(i->typ, t);
+  typ_link_tentative(i, t);
 
-  return i->typ;
+  return i;
 }
 
 static ERROR unify_reference_with_refcompat(struct module *mod, uint32_t flags,
@@ -1146,6 +1139,14 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
     goto ok;
   }
 
+  const bool a_literal_slice = typ_isa(a, TBI_LITERALS_SLICE);
+  const bool b_literal_slice = typ_isa(b, TBI_LITERALS_SLICE);
+  if (a_literal_slice || b_literal_slice) {
+    e = unify_literal_slice(mod, flags, for_error, a, b, a_literal_slice, b_literal_slice);
+    EXCEPT(e);
+    goto ok;
+  }
+
   const bool a_literal = typ_is_literal(a);
   const bool b_literal = typ_is_literal(b);
   if (a_literal || b_literal) {
@@ -1160,20 +1161,6 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
     e = unify_reference(mod, flags, for_error, a, b, a_ref, b_ref);
     EXCEPT(e);
     goto ok;
-  }
-
-  const bool a_weakly_concrete = typ_is_weakly_concrete(a);
-  const bool b_weakly_concrete = typ_is_weakly_concrete(b);
-  if (a_weakly_concrete || b_weakly_concrete) {
-    bool success = false;
-    e = unify_with_weakly_concrete(&success,
-                                   mod, for_error, a, b,
-                                   a_weakly_concrete, b_weakly_concrete);
-    EXCEPT(e);
-
-    if (success) {
-      goto ok;
-    }
   }
 
   const bool a_slice = typ_is_slice(a);

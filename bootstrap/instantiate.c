@@ -93,7 +93,6 @@ static ERROR do_instantiate_tentative(struct typ **result,
   BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE);
   BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_INTF);
   BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_REF);
-  BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_WEAKLY_CONCRETE);
 
   for (size_t n = 0; n < arity; ++n) {
     if (args[n] == NULL) {
@@ -111,7 +110,6 @@ static ERROR do_instantiate_tentative(struct typ **result,
 
   *result = typ_create_tentative(t, args, arity);
 
-  ENDTIMEIT(typ_is_weakly_concrete(*result), TIMEIT_INSTANTIATE_TENTATIVE_WEAKLY_CONCRETE);
   ENDTIMEIT(typ_is_reference(*result), TIMEIT_INSTANTIATE_TENTATIVE_REF);
   ENDTIMEIT(typ_definition_which(*result) == DEFINTF, TIMEIT_INSTANTIATE_TENTATIVE_INTF);
   ENDTIMEIT(true, TIMEIT_INSTANTIATE_TENTATIVE);
@@ -233,9 +231,6 @@ struct typ *instantiate_fully_implicit(struct module *mod,
 
   if (gen_arity == 0) {
     assert(typ_is_tentative(i));
-    if (typ_is_weakly_concrete(i) && mod->state->top_state != NULL) {
-      vecnode_push(&mod->state->top_state->triggered_weakly_concrete, typ_definition(i));
-    }
   } else {
     assert(typ_is_tentative(typ_generic_functor(i)) == typ_is_tentative(t));
   }

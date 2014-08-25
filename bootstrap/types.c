@@ -38,13 +38,12 @@ enum typ_flags {
   TYPF_NREF = 0x20,
   TYPF_SLICE = 0x40,
   TYPF_LITERAL = 0x80,
-  TYPF_WEAKLY_CONCRETE = 0x100,
   TYPF_CONCRETE = 0x200,
   TYPF_GENARG = 0x400,
   TYPF__INHERIT_FROM_FUNCTOR = TYPF_TENTATIVE
     | TYPF_BUILTIN | TYPF_PSEUDO_BUILTIN
     | TYPF_TRIVIAL | TYPF_REF | TYPF_NREF
-    | TYPF_LITERAL | TYPF_WEAKLY_CONCRETE | TYPF_CONCRETE,
+    | TYPF_LITERAL | TYPF_CONCRETE,
   TYPF__MASK_HASH = 0xffff & ~(TYPF_TENTATIVE | TYPF_CONCRETE | TYPF_GENARG),
 };
 
@@ -452,12 +451,6 @@ static void create_flags(struct typ *t, struct typ *tbi) {
       || tbi == TBI_LITERALS_INTEGER
       || tbi == TBI_LITERALS_FLOATING) {
     t->flags |= TYPF_LITERAL;
-  }
-
-  if (tbi == TBI_BOOL
-      || tbi == TBI_STRING
-      || tbi == TBI_SLICE) {
-    t->flags |= TYPF_WEAKLY_CONCRETE;
   }
 }
 
@@ -994,7 +987,19 @@ struct tit *typ_definition_members(const struct typ *t, ...) {
   return tit;
 }
 
-static void bin_accessor_maybe_functor(struct module *mod, struct node *par) {
+// TODO: Ideally, we shouldn't be setting any 'typ' from within types.c. This
+// should be coded in inference.c. The next 2 functions have that kind of
+// side effect, however.
+//
+
+static void bin_accessor_maybe_literal_slice__has_effect(struct module *mod, struct node *par) {
+  if (typ_isa(par->typ, TBI_LITERALS_SLICE)) {
+    error ok = unify(mod, par, typ_generic_arg(par->typ, 0), TBI_SLICE);
+    assert(!ok);
+  }
+}
+
+static void bin_accessor_maybe_functor__has_effect(struct module *mod, struct node *par) {
   // Something like the (hypothetical): vector.mk_filled 100 0:u8
   // 'vector' is a generic functor, and the instantiation will be done
   // through the call to the function 'vector.mk_filled'. We need to have a
@@ -1004,8 +1009,6 @@ static void bin_accessor_maybe_functor(struct module *mod, struct node *par) {
       && typ_is_generic_functor(par->typ)
       && node_ident(par) != ID_THIS) {
 
-    // TODO: Ideally, we shouldn't be setting any 'typ' from within types.c. This
-    // should be coded in inference.c.
     struct typ *i = instantiate_fully_implicit(mod, par, par->typ);
     unset_typ(&par->typ);
     set_typ(&par->typ, i);
@@ -1042,7 +1045,8 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
   assert(node->which == BIN && OP_KIND(node->as.BIN.operator) == OP_BIN_ACC);
 
   struct node *left = subs_first(node);
-  bin_accessor_maybe_functor(mod, left);
+  bin_accessor_maybe_literal_slice__has_effect(mod, left);
+  bin_accessor_maybe_functor__has_effect(mod, left);
 
   struct node *dcontainer = typ_definition(left->typ);
   if (!bin_accessor_maybe_ref(&dcontainer, mod, left)) {
@@ -1488,6 +1492,7 @@ struct typ *TBI_VOID;
 struct typ *TBI_LITERALS_NULL;
 struct typ *TBI_LITERALS_INTEGER;
 struct typ *TBI_LITERALS_FLOATING;
+struct typ *TBI_LITERALS_SLICE;
 struct typ *TBI_ANY_TUPLE;
 struct typ *TBI_TUPLE_2;
 struct typ *TBI_TUPLE_3;
@@ -1543,6 +1548,7 @@ struct typ *TBI_ANY_MUTABLE_SLICE;
 struct typ *TBI_SLICE;
 struct typ *TBI_MSLICE;
 struct typ *TBI_SLICE_IMPL;
+struct typ *TBI_SLICE_COMPATIBLE;
 struct typ *TBI_VARARG;
 struct typ *TBI_ARITHMETIC;
 struct typ *TBI_INTEGER_ARITHMETIC;
@@ -2041,10 +2047,6 @@ bool typ_is_trivial(const struct typ *t) {
 
 bool typ_is_literal(const struct typ *t) {
   return t->flags & TYPF_LITERAL;
-}
-
-bool typ_is_weakly_concrete(const struct typ *t) {
-  return (t->flags & TYPF_WEAKLY_CONCRETE) && typ_is_tentative(t);
 }
 
 bool typ_is_concrete(const struct typ *t) {
