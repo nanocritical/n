@@ -4,6 +4,12 @@ void typset_init(struct typset *set) {
   fintypset_fullinit(&set->set);
 }
 
+void typset_destroy(struct typset *set) {
+  vectyp_destroy(&set->list);
+  fintypset_destroy(&set->set);
+  vectyploc_destroy(&set->tentatives);
+}
+
 static void add_final(struct typset *set, struct typ *t) {
   uint32_t *value = fintypset_get(&set->set, t);
   if (value == NULL) {

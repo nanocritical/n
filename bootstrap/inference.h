@@ -3,10 +3,6 @@
 
 #include "nodes.h"
 
-const uint64_t step_rewrite_wildcards_filter;
-ERROR step_rewrite_wildcards(struct module *mod, struct node *node,
-                             void *user, bool *stop);
-
 const uint64_t step_type_destruct_mark_filter;
 ERROR step_type_destruct_mark(struct module *mod, struct node *node,
                               void *user, bool *stop);

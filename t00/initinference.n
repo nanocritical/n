@@ -4,6 +4,7 @@ struct a =
 	x	:I32
 
 fun foo s:[]a = Void
+	noop
 
 fun Main = I32
 	let s = { {x=0} }

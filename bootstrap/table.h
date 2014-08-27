@@ -509,7 +509,7 @@ void name ## _copy(struct name *hta, const struct name *htb)
  * table is full, the quadratic probing will eventually stop.
  */
 #define __htable_idx(ht, hash, n) \
-  ( ((hash) + (n)*((n)+1)/2) % (ht)->table.size )
+  ( ((hash) + ((n) * ((n)+1)) / 2) % (ht)->table.size )
 
 #define HTABLE_GET__(name, ht, hash, n) \
   name ## _table___get(&((ht)->table), __htable_idx(ht, hash, n))

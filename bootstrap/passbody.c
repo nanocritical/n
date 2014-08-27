@@ -226,7 +226,7 @@ static ERROR step_array_ctor_call_inference(struct module *mod, struct node *nod
     return 0;
   }
 
-  if (typ_isa(node->typ, TBI_TRIVIAL_ARRAY_CTOR)) {
+  if (typ_isa(node->typ, TBI_ANY_SLICE)) {
     return 0;
   }
 
@@ -238,7 +238,7 @@ static ERROR step_array_ctor_call_inference(struct module *mod, struct node *nod
 
   node_set_which(node, CALL);
 
-  struct typ *tfun = typ_member(saved_typ, ID_FROM_ARRAY);
+  struct typ *tfun = typ_member(saved_typ, ID_FROM_SLICE);
   unset_typ(&array->typ);
   set_typ(&array->typ, typ_function_arg(tfun, 0));
 
@@ -709,7 +709,6 @@ error passbody0(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_already_early_typing);
-    DOWN_STEP(step_rewrite_wildcards);
     DOWN_STEP(step_type_destruct_mark);
     DOWN_STEP(step_type_mutability_mark);
     DOWN_STEP(step_type_gather_retval);

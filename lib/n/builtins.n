@@ -701,8 +701,8 @@ intf `Integer_literal_compatible =
 
 intf `Integer =
 	isa `Numeric `Integer_arithmetic `Has_compare `Integer_literal_compatible
-	fun MIN = this
-	fun MAX = this
+	fun MIN = final
+	fun MAX = final
 
 intf `Signed_integer =
 	isa `Integer

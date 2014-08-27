@@ -133,6 +133,9 @@ IMPLEMENT_VECTOR(static inline, vecbool, bool);
 VECTOR(vecnode, struct node *, 4);
 IMPLEMENT_VECTOR(static inline, vecnode, struct node *);
 
+VECTOR(vectyploc, struct typ **, 4);
+IMPLEMENT_VECTOR(static inline, vectyploc, struct typ **);
+
 // Loose elements ordering.
 static inline use_result__ ssize_t vecnode_remove_replace_with_last(struct vecnode *v, ssize_t n) {
   const size_t count = vecnode_count(v);
@@ -159,7 +162,7 @@ enum instance_which {
 };
 
 union instance_as {
-  struct node *ENTRY;
+  struct typ **ENTRY;
   struct typ *QUERY;
 };
 
@@ -168,8 +171,8 @@ struct instance {
   union instance_as as;
 };
 
-HTABLE_SPARSE(instanceset, struct node *, struct instance);
-DECLARE_HTABLE_SPARSE(instanceset, struct node *, struct instance);
+HTABLE_SPARSE(instanceset, struct typ **, struct instance);
+DECLARE_HTABLE_SPARSE(instanceset, struct typ **, struct instance);
 
 struct generic {
   size_t first_explicit_genarg;
@@ -180,7 +183,9 @@ struct generic {
   struct node *trigger;
 
   struct node *pristine;
-  struct vecnode tentatives;
+  struct vectyploc genargs;
+
+  struct vectyploc finals_nohash;
   struct instanceset finals;
 
   const struct node *for_error;
@@ -386,6 +391,7 @@ struct node_defarg {
 };
 struct node_defgenarg {
   bool is_explicit;
+  bool has_dependent_spec;
 };
 struct node_setgenarg {
   const struct node *for_error;
@@ -840,13 +846,8 @@ struct top_state {
   struct node *exportable;
 
   bool is_setgenarg;
-};
 
-struct wildcard {
-  enum token_type ref;
-  enum token_type nulref;
-  enum token_type deref;
-  enum token_type acc;
+  struct vectyploc tentatives;
 };
 
 struct fun_state {
@@ -854,8 +855,6 @@ struct fun_state {
 
   bool fun_uses_final;
   const struct node *retval;
-  struct wildcard wildcard;
-  struct wildcard self_wildcard;
 
   bool in_block;
 };
@@ -1073,9 +1072,7 @@ enum predefined_idents {
   ID_COPY_CTOR,
   ID_C,
   ID_OTHER,
-  ID_FROM_STRING,
-  ID_FROM_BOOL,
-  ID_FROM_ARRAY,
+  ID_FROM_SLICE,
   ID_FROM_TAG,
   ID_NRETVAL,
   ID_OPERATOR_OR,

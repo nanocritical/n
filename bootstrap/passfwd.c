@@ -46,7 +46,7 @@ static ERROR step_export_pre_post_invariant(struct module *mod, struct node *nod
 }
 
 STEP_NM(step_stop_already_early_typing,
-        NM(LET) | NM(ISA) | NM(GENARGS) | NM(FUNARGS) |
+        NM(MODULE_BODY) | NM(LET) | NM(ISA) | NM(GENARGS) | NM(FUNARGS) |
         NM(DEFGENARG) | NM(SETGENARG) | NM(DEFFIELD) | NM(DEFCHOICE) |
         NM(WITHIN) | NM(BIN));
 error step_stop_already_early_typing(struct module *mod, struct node *node,
@@ -125,13 +125,17 @@ static ERROR early_typing(struct module *mod, struct node *node) {
 }
 
 static STEP_NM(step_type_definitions,
-               STEP_NM_DEFS);
+               STEP_NM_DEFS | NM(MODULE_BODY));
 static ERROR step_type_definitions(struct module *mod, struct node *node,
                                    void *user, bool *stop) {
   DSTEP(mod, node);
 
-  ident id = node_ident(subs_first(node));
+  if (node->which == MODULE_BODY) {
+    node->typ = TBI__NOT_TYPEABLE;
+    return 0;
+  }
 
+  ident id = node_ident(subs_first(node));
   const struct toplevel *toplevel = node_toplevel_const(node);
 
   if (toplevel->generic != NULL
@@ -139,9 +143,8 @@ static ERROR step_type_definitions(struct module *mod, struct node *node,
     set_typ(&node->typ, typ_create(NULL, node));
   } else if (mod->path[0] == ID_NLANG
              && (id >= ID_TBI__FIRST && id <= ID_TBI__LAST)) {
-    // FIXME Effectively reserving these idents for builtin types, but
-    // that's a temporary trick to avoid having to look up the current
-    // module path.
+    // Effectively reserving these idents for builtin types with n.*
+    // modules.
     set_typ(&node->typ, typ_create(mod->gctx->builtin_typs_by_name[id], node));
   } else {
     set_typ(&node->typ, typ_create(NULL, node));
@@ -512,7 +515,8 @@ static ERROR step_add_builtin_members(struct module *mod, struct node *node,
 
   define_builtin_alias(mod, node, ID_THIS, node->typ);
   define_builtin_alias(mod, node, ID_FINAL,
-                       node->which == DEFINTF ? typ_create_genarg(node->typ) : node->typ);
+                       (NM(node->which) & (NM(DEFINTF) | NM(DEFINCOMPLETE)))
+                       ? typ_create_genarg(node->typ) : node->typ);
 
   return 0;
 }
@@ -554,7 +558,7 @@ static ERROR step_type_genargs(struct module *mod, struct node *node,
 static STEP_NM(step_type_aliases,
                NM(LET));
 static ERROR step_type_aliases(struct module *mod, struct node *node,
-                            void *user, bool *stop) {
+                               void *user, bool *stop) {
   DSTEP(mod, node);
 
   struct node *par = parent(node);
@@ -562,14 +566,40 @@ static ERROR step_type_aliases(struct module *mod, struct node *node,
       && subs_first(node)->which == DEFALIAS) {
     error e = early_typing(mod, node);
     EXCEPT(e);
-  }
 
-  if (node->which == DEFINTF) {
-    typ_create_update_genargs(node_get_member(node, ID_FINAL)->typ);
-    typ_create_update_hash(node_get_member(node, ID_FINAL)->typ);
+    if (par->which == DEFINTF) {
+      if (subs_first_const(node)->which == DEFALIAS) {
+        typ_create_genarg_update_genargs(mod, subs_first(node)->typ);
+        typ_create_update_hash(subs_first(node)->typ);
+      }
+    }
   }
 
   return 0;
+}
+
+static void defgenarg_detect_dependent_spec(struct node *node, size_t nth,
+                                            const struct typ *t) {
+  assert(node->which == DEFGENARG);
+  if (nth == 0) {
+    return;
+  }
+
+  const struct node *par = nparent_const(node, 2);
+  for (size_t n = 0, arity = typ_generic_arity(par->typ); n < arity && n < nth; ++n) {
+    if (t == typ_generic_arg_const(par->typ, n)) {
+      node->as.DEFGENARG.has_dependent_spec = true;
+      return;
+    }
+  }
+
+  if (!typ_is_generic_functor(t) && typ_generic_arity(t) > 0) {
+    defgenarg_detect_dependent_spec(node, nth, typ_generic_functor_const(t));
+  }
+
+  for (size_t n = 0, arity = typ_generic_arity(t); n < arity; ++n) {
+    defgenarg_detect_dependent_spec(node, nth, typ_generic_arg_const(t, n));
+  }
 }
 
 static STEP_NM(step_type_create_update,
@@ -579,11 +609,15 @@ static ERROR step_type_create_update(struct module *mod, struct node *node,
   DSTEP(mod, node);
 
   struct node *genargs = subs_at(node, IDX_GENARGS);
+  size_t nth = 0;
   FOREACH_SUB(ga, genargs) {
     if (ga->which == DEFGENARG) {
-      typ_create_update_genargs(ga->typ);
+      typ_create_genarg_update_genargs(mod, ga->typ);
       typ_create_update_hash(ga->typ);
+
+      defgenarg_detect_dependent_spec(ga, nth, ga->typ);
     }
+    nth += 1;
   }
 
   typ_create_update_genargs(node->typ);
@@ -591,7 +625,7 @@ static ERROR step_type_create_update(struct module *mod, struct node *node,
 
   struct typ *functor = typ_generic_functor(node->typ);
   if (functor != NULL) {
-    instances_maintain(functor);
+    instances_maintain(mod, functor);
   }
 
   return 0;
@@ -622,9 +656,23 @@ static ERROR step_type_update_quickisa(struct module *mod, struct node *node,
     }
   }
 
+  struct node *isalist = subs_at(node, IDX_ISALIST);
+  FOREACH_SUB(isa, isalist) {
+    if (typ_is_genarg(isa->typ)) {
+      typ_create_genarg_update_genargs(mod, isa->typ);
+      typ_create_update_hash(isa->typ);
+      typ_create_update_quickisa(isa->typ);
+    }
+  }
+
   typ_create_update_quickisa(node->typ);
+
   if (node->which == DEFINTF) {
-    typ_create_update_quickisa(node_get_member(node, ID_FINAL)->typ);
+    FOREACH_SUB(m, node) {
+      if (m->which == LET && subs_first(m)->which == DEFALIAS) {
+        typ_create_update_quickisa(subs_first(m)->typ);
+      }
+    }
   }
 
   return 0;

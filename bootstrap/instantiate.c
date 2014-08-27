@@ -20,7 +20,7 @@ static ERROR do_instantiate(struct typ **result,
 
   assert(arity == 0 || (typ_is_generic_functor(t) && arity == typ_generic_arity(t)));
 
-  struct node *gendef = typ_definition_nooverlay(t);
+  struct node *gendef = typ_definition_ignore_any_overlay(t);
   if (node_toplevel(gendef)->generic->pristine == NULL) {
     if (for_error == NULL) {
       assert(false && "Not supposed to fail when for_error is NULL");
@@ -94,7 +94,7 @@ static ERROR do_instantiate_tentative(struct typ **result,
   BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_INTF);
   BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_REF);
 
-  *result = typ_create_tentative(t, args, arity);
+  *result = typ_create_tentative(mod, t, args, arity);
 
   ENDTIMEIT(typ_is_reference(*result), TIMEIT_INSTANTIATE_TENTATIVE_REF);
   ENDTIMEIT(typ_definition_which(*result) == DEFINTF, TIMEIT_INSTANTIATE_TENTATIVE_INTF);
@@ -102,15 +102,15 @@ static ERROR do_instantiate_tentative(struct typ **result,
   return 0;
 }
 
-static bool instantiation_is_tentative(const struct module *mod,
-                                       struct typ *t, struct typ **args,
-                                       size_t arity) {
+static bool instantiation_is_genarg_or_tentative(const struct module *mod,
+                                                 struct typ *t, struct typ **args,
+                                                 size_t arity) {
   if (mod->state->tentatively || mod->state->top_state != NULL) {
     if (arity == 0) {
       return true;
     }
 
-    if (typ_is_tentative(t)) {
+    if (typ_is_genarg(t) || typ_is_tentative(t)) {
       return true;
     }
 
@@ -118,7 +118,7 @@ static bool instantiation_is_tentative(const struct module *mod,
       if (args[n] == NULL) {
         return true;
       }
-      if (typ_is_tentative(args[n])) {
+      if (typ_is_genarg(args[n]) || typ_is_tentative(args[n])) {
         return true;
       }
     }
@@ -138,7 +138,7 @@ error instantiate(struct typ **result,
   assert(arity == typ_generic_arity(t));
 
   if (!reject_identical) {
-    struct typ *r = instances_find_existing_identical(t, args, arity);
+    struct typ *r = instances_find_existing_identical(mod, t, args, arity);
     if (r != NULL) {
       if (result != NULL) {
         *result = r;
@@ -147,9 +147,14 @@ error instantiate(struct typ **result,
     }
   }
 
-  const bool tentative = instantiation_is_tentative(mod, t, args, arity);
+  const bool tentative = instantiation_is_genarg_or_tentative(mod, t, args, arity);
 
-  if (!tentative) {
+  bool genarg = typ_is_genarg(t);
+  for (size_t n = 0; n < arity; ++n) {
+    genarg |= args[n] == NULL ? false : typ_is_genarg(args[n]);
+  }
+
+  if (!tentative && !genarg) {
     struct typ *r = instances_find_existing_final_with(t, args, arity);
     if (r != NULL) {
       if (result != NULL) {
@@ -181,18 +186,23 @@ struct typ *tentative_generic_arg(struct module *mod, const struct node *for_err
     assert(!typ_is_tentative(ga));
     return instantiate_fully_implicit(mod, for_error, ga);
   } else if (typ_is_generic_functor(ga)) {
-    return typ_create_tentative_functor(ga);
+    return typ_create_tentative_functor(mod, ga);
   }
 
   // Otherwise, the generic argument is declared as c:(`container t), where
-  // t is another generic argument. The typ will be created by the type
-  // inference step.
+  // t is another generic argument. The typ will be created by the genarg
+  // mapping in typ_create_tentative.
   return NULL;
 }
 
 struct typ *instantiate_fully_implicit(struct module *mod,
                                        const struct node *for_error,
                                        struct typ *t) {
+  if (typ_generic_arity(t) == 0) {
+    assert(typ_definition_which(t) == DEFINTF || typ_is_isalist_literal(t));
+    return typ_create_tentative(mod, t, NULL, 0);
+  }
+
   assert(typ_is_generic_functor(t) || typ_generic_arity(t) == 0);
 
   const size_t gen_arity = typ_generic_arity(t);
@@ -221,7 +231,8 @@ struct typ *instantiate_fully_implicit(struct module *mod,
     assert(typ_is_tentative(typ_generic_functor(i)) == typ_is_tentative(t));
   }
   for (size_t n = 0; n < gen_arity; ++n) {
-    assert(typ_is_tentative(typ_generic_arg(i, n)));
+    assert(typ_is_tentative(typ_generic_arg(i, n))
+           && "FIXME: some generics cannot be instiated fully implicitly, e.g. Nonnull_cast");
   }
 
   free(args);

@@ -537,22 +537,22 @@ STEP_NM(step_ident_non_local_scope,
 error step_ident_non_local_scope(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   struct scope *non_local_scope = node->as.IDENT.non_local_scope;
-  const struct node *d = typ_definition_nooverlay(node->typ);
-
   if (non_local_scope != NULL
-      && scope_node(non_local_scope)->which == DEFINCOMPLETE
-      && d->which == DEFTYPE
-      && (d->as.DEFTYPE.kind == DEFTYPE_ENUM || d->as.DEFTYPE.kind == DEFTYPE_UNION)) {
-    struct node *def = NULL;
-    error e = scope_lookup_ident_immediate(&def, node, mod, &d->scope,
-                                           node_ident(node), false);
-    assert(!e);
+      && scope_node(non_local_scope)->which == DEFINCOMPLETE) {
+    const struct node *d = typ_definition_ignore_any_overlay(node->typ);
+    if (d->which == DEFTYPE
+        && (d->as.DEFTYPE.kind == DEFTYPE_ENUM || d->as.DEFTYPE.kind == DEFTYPE_UNION)) {
+      struct node *def = NULL;
+      error e = scope_lookup_ident_immediate(&def, node, mod, &d->scope,
+                                             node_ident(node), false);
+      assert(!e);
 
-    node->as.IDENT.def = def;
-    node->as.IDENT.non_local_scope = &parent(def)->scope;
+      node->as.IDENT.def = def;
+      node->as.IDENT.non_local_scope = &parent(def)->scope;
 
-    e = track_ident_use(mod, node);
-    assert(!e);
+      e = track_ident_use(mod, node);
+      assert(!e);
+    }
   }
   return 0;
 }

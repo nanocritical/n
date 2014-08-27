@@ -91,10 +91,12 @@ static void record_final(struct module *mod, struct typ *t) {
     fintypset_set(&toplevel->topdeps->set, t, mask);
     vectyp_push(&toplevel->topdeps->list, t);
   } else {
-    if ((*value & WEAK) && !(mask & WEAK)) {
-      *value = (*value & ~WEAK) | mask;
-    } else {
+    // A weak flag can only be set by the initial add. Otherwise, it can
+    // only be unset.
+    if ((*value & WEAK) && (mask & WEAK)) {
       *value |= mask;
+    } else {
+      *value = (*value & ~WEAK) | (mask & ~WEAK);
     }
   }
 }
@@ -103,7 +105,9 @@ static void record_tentative(struct module *mod, struct typ **loc) {
   struct top_state *st = mod->state->top_state;
   struct node *top = st->top;
   if (typ_is_pseudo_builtin(*loc)
-      || (!typ_is_tentative(*loc) && typ_definition_nooverlay(*loc) == top)) {
+      || (!typ_is_tentative(*loc)
+          && !typ_is_genarg(*loc)
+          && typ_definition_nooverlay(*loc) == top)) {
     return;
   }
   struct toplevel *toplevel = node_toplevel(top);
@@ -174,6 +178,10 @@ error topdeps_foreach(struct module *mod, struct node *node,
 
 static ERROR print_topdeps_each(struct module *mod, struct node *node,
                                 struct typ *t, uint32_t topdep_mask, void *user) {
+  if (typ_was_zeroed(t)) {
+    return 0;
+  }
+
   fprintf(stderr, "\t%04x %d %zu %s @%p\n",
           topdep_mask,
           typ_is_tentative(t),

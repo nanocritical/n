@@ -1,2 +1,0 @@
-t01/fixme02.n:7:16: type: 'n.builtins.__mercurial__' type cannot be dereferenced with '!' in a mercurial context
-t01/fixme02.n:11:11: type: while instantiating generic here

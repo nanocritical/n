@@ -8,6 +8,10 @@
 #include "instantiate.h"
 #include "inference.h"
 
+static bool tentative_or_genarg(const struct typ *a) {
+  return typ_is_genarg(a) || typ_is_tentative(a);
+}
+
 enum unify_flags {
   REFCOMPAT_LEFT = 0x1,
   REFCOMPAT_RIGHT = 0x2,
@@ -162,16 +166,24 @@ static ERROR unify_generics(struct module *mod, uint32_t flags,
 
     assert(b_in_a != b && "FIXME What does that mean?");
 
-    assert(!typ_is_tentative(a0) && "FIXME handle it");
+    assert(!tentative_or_genarg(a0) && "FIXME handle it");
 
     e = unify_same_generic_functor(mod, flags, for_error, b_in_a, b);
     EXCEPT(e);
+
+    if (typ_was_zeroed(b)) {
+      return 0;
+    }
   }
 
   // FIXME: there are holes here: 2nd order generics, etc.
 
   if (b_tentative) {
-    typ_link_tentative(a, b);
+    if (typ_is_generic_functor(b)) {
+      typ_link_tentative_functor(mod, a, b);
+    } else {
+      typ_link_tentative(a, b);
+    }
   }
 
   return 0;
@@ -188,11 +200,11 @@ static ERROR unify_non_generic(struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  if (!typ_is_tentative(b)) {
+  if (!tentative_or_genarg(b)) {
     SWAP(a, b);
     SWAP(a_non_generic, b_non_generic);
   }
-  if (!typ_is_tentative(b)) {
+  if (!tentative_or_genarg(b)) {
     e = mk_except_type_unification(mod, for_error, a, b);
     THROW(e);
   }
@@ -254,10 +266,6 @@ static struct typ *nullable(struct module *mod, const struct node *for_error,
   return i;
 }
 
-static struct typ *as_non_tentative(const struct typ *t) {
-  return typ_as_non_tentative(t);;
-}
-
 static ERROR unify_reforslice_arg(struct module *mod, uint32_t flags,
                                   const struct node *for_error,
                                   struct typ *a, struct typ *b);
@@ -277,8 +285,12 @@ static ERROR unify_literal_slice(struct module *mod, uint32_t flags,
     SWAP_FLAGS(flags);
   }
 
-  e = typ_check_isa(mod, for_error, a, TBI_ARRAY_CTOR);
-  EXCEPT(e);
+  if (typ_isa(a, TBI_ANY_SLICE)) {
+    // noop
+  } else {
+    e = typ_check_isa(mod, for_error, a, TBI_SLICE_COMPATIBLE);
+    EXCEPT(e);
+  }
 
 finish:
   e = unify_reforslice_arg(mod, flags, for_error, a, b);
@@ -341,17 +353,17 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
       typ_link_tentative(a, b);
     }
   } else if (typ_equal(b, TBI_LITERALS_INTEGER)) {
-    if (!typ_is_tentative(a) && typ_isa(TBI_INTEGER_LITERAL_COMPATIBLE, a)
+    if (!tentative_or_genarg(a) && typ_isa(TBI_INTEGER_LITERAL_COMPATIBLE, a)
         && !typ_equal(a, TBI_INTEGER_LITERAL_COMPATIBLE)) {
       // noop
-    } else if (typ_is_tentative(a) && typ_isa(b, a)) {
+    } else if (!typ_is_genarg(a) && tentative_or_genarg(a) && typ_isa(b, a)) {
       typ_link_tentative(b, a);
     } else if (!typ_isa(a, TBI_INTEGER_LITERAL_COMPATIBLE)
-               && typ_is_tentative(a) && typ_definition_which(a) == DEFINTF) {
+               && tentative_or_genarg(a) && typ_definition_which(a) == DEFINTF) {
       struct node *dinc = defincomplete_create(mod, for_error);
 
-      defincomplete_add_isa(mod, for_error, dinc, as_non_tentative(a));
-      defincomplete_add_isa(mod, for_error, dinc, as_non_tentative(b));
+      defincomplete_add_isa(mod, for_error, dinc, typ_as_non_tentative(a));
+      defincomplete_add_isa(mod, for_error, dinc, typ_as_non_tentative(b));
 
       error e = defincomplete_catchup(mod, dinc);
       assert(!e);
@@ -365,12 +377,12 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
       typ_link_tentative(a, b);
     }
   } else if (typ_equal(b, TBI_LITERALS_FLOATING) && !typ_equal(a, TBI_FLOATING)) {
-    if (!typ_is_tentative(a) && typ_isa(TBI_FLOATING, a)) {
+    if (!tentative_or_genarg(a) && typ_isa(TBI_FLOATING, a)) {
       // noop
-    } else if (typ_is_tentative(a) && typ_isa(b, a)) {
+    } else if (!typ_is_genarg(a) && tentative_or_genarg(a) && typ_isa(b, a)) {
       typ_link_tentative(b, a);
     } else if (!typ_isa(a, TBI_FLOATING)
-               && typ_is_tentative(a) && typ_definition_which(a) == DEFINTF) {
+               && tentative_or_genarg(a) && typ_definition_which(a) == DEFINTF) {
       struct node *dinc = defincomplete_create(mod, for_error);
 
       defincomplete_add_isa(mod, for_error, dinc, a);
@@ -552,7 +564,7 @@ error unify_with_defincomplete_entrails(struct module *mod,
                                         struct typ *inc) {
   error e;
 
-  struct node *dinc = typ_definition_nooverlay(inc);
+  struct node *dinc = typ_definition_ignore_any_overlay(inc);
   if (dinc->as.DEFINCOMPLETE.ident != ID__NONE) {
     e = unify_with_defunknownident(mod, for_error, a, dinc);
     EXCEPT(e);
@@ -638,7 +650,7 @@ static ERROR unify_with_equal(struct module *mod, const struct node *for_error,
   error e = typ_check_equal(mod, for_error, a, b);
   EXCEPT(e);
 
-  if (!typ_is_tentative(b)) {
+  if (!tentative_or_genarg(b)) {
     SWAP(b, a);
   }
 
@@ -652,7 +664,7 @@ static ERROR unify_with_equal(struct module *mod, const struct node *for_error,
     assert(!e);
   }
 
-  if (typ_is_tentative(b)) {
+  if (tentative_or_genarg(b)) {
     if (typ_is_generic_functor(b)) {
       typ_link_tentative_functor(mod, a, b);
     } else {
@@ -669,10 +681,6 @@ static ERROR check_reference_compatibility(struct module *mod,
                                            const struct node *for_error,
                                            const struct typ *a,
                                            const struct typ *target) {
-  if (typ_equal(target, TBI_ANY_ANY_REF)) {
-    return 0;
-  }
-
   const struct typ *a0 = typ_generic_functor_const(a);
   const struct typ *target0 = typ_generic_functor_const(target);
 
@@ -736,15 +744,23 @@ static ERROR unify_dyn(struct module *mod, const struct node *for_error,
 static ERROR unify_reforslice_arg(struct module *mod, uint32_t flags,
                                   const struct node *for_error,
                                   struct typ *a, struct typ *b) {
+  if (typ_is_generic_functor(a) || typ_is_generic_functor(b)) {
+    return 0;
+  }
+
   struct typ *arg_a = typ_generic_arg(a, 0);
   struct typ *arg_b = typ_generic_arg(b, 0);
+  const bool no_functors = !typ_is_generic_functor(arg_a)
+    && !typ_is_generic_functor(arg_b);
   const bool arg_a_intf = typ_definition_which(arg_a) == DEFINTF;
   const bool arg_b_intf = typ_definition_which(arg_b) == DEFINTF;
+  // Not tentative_or_genarg(), if a genarg, we want to use unify_dyn().
   const bool arg_a_tentative = typ_is_tentative(arg_a);
   const bool arg_b_tentative = typ_is_tentative(arg_b);
 
   error e;
-  if ((arg_a_intf || arg_b_intf)
+  if (no_functors
+      && (arg_a_intf || arg_b_intf)
       && (!arg_a_tentative && !arg_b_tentative)) {
     e = unify_dyn(mod, for_error, arg_a, arg_b, arg_a_intf, arg_b_intf);
     EXCEPT(e);
@@ -758,7 +774,7 @@ static ERROR unify_reforslice_arg(struct module *mod, uint32_t flags,
 
 void unify_with_new_parent(struct module *mod, const struct node *for_error,
                            struct typ *p, struct typ *t) {
-  assert(typ_is_tentative(t));
+  assert(tentative_or_genarg(t));
 
   struct typ *tm = typ_member(p, typ_definition_ident(t));
   if (tm == NULL) {
@@ -790,15 +806,19 @@ struct typ *unify_with_new_functor(struct module *mod, const struct node *for_er
   assert(typ_generic_arity(t) == typ_generic_arity(f));
 
   struct typ *t0 = typ_generic_functor(t);
-  assert(typ_is_tentative(t));
-  assert(typ_is_tentative(t0));
+  assert(tentative_or_genarg(t));
+  assert(tentative_or_genarg(t0));
 
-  struct typ *i = instantiate_fully_implicit(mod, for_error, f);
-
-  for (size_t n = 0, arity = typ_generic_arity(t); n < arity; ++n) {
-    typ_link_tentative(typ_generic_arg(t, n), typ_generic_arg(i, n));
+  const size_t arity = typ_generic_arity(f);
+  struct typ **args = calloc(arity, sizeof(struct typ *));
+  for (size_t n = 0; n < arity; ++n) {
+    args[n] = typ_generic_arg(t, n);
   }
 
+  struct typ *i = NULL;
+  error e = instantiate(&i, mod, for_error, -1, f, args, arity, false);
+  assert(!e);
+  free(args);
   typ_link_tentative(i, t);
 
   return i;
@@ -817,13 +837,13 @@ static ERROR unify_reference_with_refcompat(struct module *mod, uint32_t flags,
     SWAP_FLAGS(flags);
   }
 
-  error e = check_reference_compatibility(mod, for_error, a, b);
-  EXCEPT(e);
-
-  if (typ_equal(b, TBI_ANY_ANY_REF)) {
+  if (typ_equal(a, TBI_ANY_ANY_REF) || typ_equal(b, TBI_ANY_ANY_REF)) {
     typ_link_tentative(a, b);
     return 0;
   }
+
+  error e = check_reference_compatibility(mod, for_error, a, b);
+  EXCEPT(e);
 
   if (typ_equal(a, b)) {
     e = unify_with_equal(mod, for_error, a, b);
@@ -836,10 +856,10 @@ static ERROR unify_reference_with_refcompat(struct module *mod, uint32_t flags,
 
   struct typ *a0 = typ_generic_functor(a);
   struct typ *b0 = typ_generic_functor(b);
-  if (typ_definition_which(b0) == DEFINTF && typ_is_tentative(b0)
+  if (typ_definition_which(b0) == DEFINTF && tentative_or_genarg(b0)
       && typ_isa(a0, b0)) {
     typ_link_tentative_functor(mod, a0, b0);
-  } else if (typ_definition_which(a0) == DEFINTF && typ_is_tentative(a0)
+  } else if (typ_definition_which(a0) == DEFINTF && tentative_or_genarg(a0)
              && typ_isa(b0, a0)) {
     typ_link_tentative_functor(mod, b0, a0);
   }
@@ -859,7 +879,7 @@ static ERROR unify_reference(struct module *mod, uint32_t flags,
     SWAP_FLAGS(flags);
   }
 
-  if (!b_ref && typ_is_tentative(b) && typ_isa(a, b)) {
+  if (!b_ref && tentative_or_genarg(b) && typ_isa(a, b)) {
     typ_link_tentative(a, b);
     return 0;
   }
@@ -906,7 +926,7 @@ static ERROR unify_reference(struct module *mod, uint32_t flags,
   e = unify_reforslice_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
 
-  if (typ_definition_which(b0) == DEFINTF && typ_is_tentative(b0)) {
+  if (typ_definition_which(b0) == DEFINTF && tentative_or_genarg(b0)) {
     typ_link_tentative_functor(mod, a0, b0);
   }
 
@@ -930,17 +950,17 @@ static ERROR unify_reference(struct module *mod, uint32_t flags,
 //  struct typ *rintlit = typ_create(NULL);
 //  error e = typ_ref(&rintlit, mod, for_error, TREFDOT, intlit->typ);
 //  assert(!e);
-//  assert(typ_is_tentative(rintlit));
+//  assert(tentative_or_genarg(rintlit));
 //
 //  struct typ *drintlit = typ_generic_arg(rintlit, 0);
 //  assert(typ_equal(drintlit, TBI_LITERALS_INTEGER));
-//  assert(typ_is_tentative(drintlit));
+//  assert(tentative_or_genarg(drintlit));
 //
 //  struct typ *i32 = TBI_I32;
 //  struct typ *ri32 = typ_create(NULL);
 //  e = typ_ref(&ri32, mod, for_error, TREFDOT, i32);
 //  assert(!e);
-//  assert(typ_is_tentative(ri32));
+//  assert(tentative_or_genarg(ri32));
 //
 //  assert(typ_equal(ri32, rintlit));
 //}
@@ -1006,7 +1026,7 @@ static ERROR unify_slice_with_refcompat(struct module *mod, uint32_t flags,
   EXCEPT(e);
 
   struct typ *b0 = typ_generic_functor(b);
-  if (typ_definition_which(b0) == DEFINTF && typ_is_tentative(b0)) {
+  if (typ_definition_which(b0) == DEFINTF && tentative_or_genarg(b0)) {
     struct typ *a0 = typ_generic_functor(a);
     typ_link_tentative_functor(mod, a0, b0);
   }
@@ -1026,7 +1046,7 @@ static ERROR unify_slice(struct module *mod, uint32_t flags,
     SWAP_FLAGS(flags);
   }
 
-  if (!b_slice && typ_is_tentative(b) && typ_isa(a, b)) {
+  if (!b_slice && tentative_or_genarg(b) && typ_isa(a, b)) {
     typ_link_tentative(a, b);
     return 0;
   }
@@ -1073,7 +1093,7 @@ static ERROR unify_slice(struct module *mod, uint32_t flags,
   e = unify_reforslice_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
 
-  if (typ_definition_which(b0) == DEFINTF && typ_is_tentative(b0)) {
+  if (typ_definition_which(b0) == DEFINTF && tentative_or_genarg(b0)) {
     typ_link_tentative_functor(mod, a0, b0);
   }
 
@@ -1097,8 +1117,8 @@ static ERROR do_unify(struct module *mod, uint32_t flags,
   BEGTIMEIT(TIMEIT_UNIFY);
   error e;
 
-  bool a_tentative = typ_is_tentative(a);
-  bool b_tentative = typ_is_tentative(b);
+  bool a_tentative = tentative_or_genarg(a);
+  bool b_tentative = tentative_or_genarg(b);
 
   if (!(flags & (REFCOMPAT_LEFT | REFCOMPAT_RIGHT))
       && !a_tentative && !b_tentative) {

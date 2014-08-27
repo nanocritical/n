@@ -199,7 +199,7 @@ error catchup(struct module *mod,
       if (how == CATCHUP_NEW_INSTANCE || how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
         struct typ *functor = typ_generic_functor(node->typ);
         if (functor != NULL) {
-          instances_add(functor, node);
+          instances_add(mod, functor, typ_permanent_loc(node->typ));
         }
       }
       if (how == CATCHUP_TENTATIVE_NEW_INSTANCE) {
@@ -342,10 +342,9 @@ static ERROR do_do_complete_instantiation(struct module *mod, struct node *node,
   return 0;
 }
 
-static bool wont_go_further(struct node *node, ssize_t goal) {
-  return goal > last_body_pass()
-          && node->which == DEFINCOMPLETE
-          && !node->as.DEFINCOMPLETE.is_isalist_literal;
+static bool wont_go_further(const struct node *d, ssize_t goal) {
+  return goal > last_pass_with_tentative_body()
+    && d->which == DEFINCOMPLETE;
 }
 
 static ERROR do_complete_instantiation(struct module *mod, struct node *node) {
@@ -356,10 +355,6 @@ static ERROR do_complete_instantiation(struct module *mod, struct node *node) {
   if (node_is_at_top(node)) {
     FOREACH_SUB(s, node) {
       if (NM(s->which) & STEP_NM_HAS_TOPLEVEL) {
-        if (wont_go_further(s, goal)) {
-          continue;
-        }
-
         const ssize_t p = node_toplevel_const(s)->passed;
         if (p + 1 == toplevel->passed) {
           error e = do_do_complete_instantiation(mod, s, p + 1);
@@ -380,11 +375,11 @@ static ERROR advance_topdeps_each(struct module *mod, struct node *node,
                                   struct typ *t, uint32_t topdep_mask, void *user) {
   const ssize_t goal = *(ssize_t *) user;
 
-  if (typ_was_zeroed(t) || typ_is_tentative(t)) {
+  if (typ_was_zeroed(t) || typ_is_tentative(t) || typ_is_genarg(t)) {
     return 0;
   }
 
-  struct node *d = typ_definition_nooverlay(t);
+  struct node *d = typ_definition_ignore_any_overlay(t);
   if (wont_go_further(d, goal)) {
     return 0;
   }
@@ -425,18 +420,23 @@ STEP_NM(step_push_state,
 error step_push_state(struct module *mod, struct node *node,
                       void *user, bool *stop) {
   DSTEP(mod, node);
+  ssize_t goal = mod->stage->state->passing;
 
-  if (node->which == DEFFIELD) {
+  switch (node->which) {
+  case DEFFIELD:
+    assert(mod->state);
+    assert(mod->state->top_state);
     mod->state->top_state->exportable = node;
     return 0;
-  } else if (node->which == BLOCK) {
+  case BLOCK:
     if (NM(parent_const(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
       mod->state->fun_state->in_block = true;
     }
     return 0;
+  default:
+    break;
   }
 
-  ssize_t goal = mod->stage->state->passing;
   struct toplevel *toplevel = node_toplevel(node);
 
   if (node->which == LET
@@ -479,15 +479,24 @@ STEP_NM(step_pop_state,
 error step_pop_state(struct module *mod, struct node *node,
                      void *user, bool *stop) {
   DSTEP(mod, node);
+  ssize_t goal = mod->stage->state->passing;
 
-  if (node->which == DEFFIELD) {
+  switch (node->which) {
+  case DEFFIELD:
     mod->state->top_state->exportable = NULL;
     return 0;
-  } else if (node->which == BLOCK) {
+  case BLOCK:
     if (NM(parent_const(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
       mod->state->fun_state->in_block = false;
     }
     return 0;
+  case DEFINCOMPLETE:
+    if (goal > last_pass_with_tentative_body()) {
+      return 0;
+    }
+    break;
+  default:
+    break;
   }
 
   struct toplevel *toplevel = node_toplevel(node);
@@ -503,6 +512,7 @@ error step_pop_state(struct module *mod, struct node *node,
     POP_STATE(mod->state->fun_state);
   }
 
+  vectyploc_destroy(&mod->state->top_state->tentatives);
   POP_STATE(mod->state->top_state);
 //  assert(node == vecnode_pop(&debug_tops));
 

@@ -8,8 +8,6 @@ struct typ;
 // Can only be used with final typs.
 VECTOR(vectyp, struct typ *, 4);
 IMPLEMENT_VECTOR(static inline, vectyp, struct typ *);
-VECTOR(vectyploc, struct typ **, 4);
-IMPLEMENT_VECTOR(static inline, vectyploc, struct typ **);
 
 // Loose elements ordering.
 static inline use_result__ ssize_t vectyploc_remove_replace_with_last(struct vectyploc *v, ssize_t n) {
@@ -42,6 +40,7 @@ void typ_create_update_hash(struct typ *t);
 void typ_create_update_genargs(struct typ *t);
 void typ_create_update_quickisa(struct typ *t);
 struct typ *typ_create_genarg(struct typ *t);
+void typ_create_genarg_update_genargs(struct module *trigger_mod, struct typ *t);
 
 bool typ_hash_ready(const struct typ *t);
 
@@ -60,6 +59,8 @@ enum deftype_kind typ_definition_deftype_kind(const struct typ *t);
 struct typ *typ_definition_tag_type(const struct typ *t);
 enum token_type typ_definition_defmethod_access(const struct typ *t);
 struct typ *typ_definition_defmethod_self_wildcard_functor(const struct typ *t);
+struct typ *typ_definition_defmethod_wildcard_functor(const struct typ *t);
+struct typ *typ_definition_deffun_wildcard_functor(const struct typ *t);
 ident typ_definition_ident(const struct typ *t);
 struct module *typ_module_owner(const struct typ *t);
 struct module *typ_defincomplete_trigger_mod(const struct typ *t);
@@ -68,6 +69,7 @@ struct typ *typ_member(struct typ *t, ident name);
 
 struct tit;
 // End with 0.
+struct tit *typ_definition_parent(const struct typ *t);
 struct tit *typ_definition_members(const struct typ *t, ...);
 struct tit *typ_definition_one_member(const struct typ *t, ident name);
 struct tit *typ_resolve_accessor__has_effect(error *e, struct module *mod,
@@ -93,6 +95,8 @@ struct typ *typ_generic_functor(struct typ *t);
 size_t typ_generic_arity(const struct typ *t);
 size_t typ_generic_first_explicit_arg(const struct typ *t);
 struct typ *typ_generic_arg(struct typ *t, size_t n);
+bool typ_generic_arg_has_dependent_spec(const struct typ *t, size_t n);
+bool typ_is_isalist_literal(const struct typ *t);
 
 struct typ *typ_as_non_tentative(const struct typ *t);
 
@@ -114,9 +118,11 @@ void set_typ_defgenarg(struct typ **loc, struct typ *t);
 void typ_add_tentative_bit__privileged(struct typ **loc);
 void typ_declare_final__privileged(struct typ *t);
 
+bool typ_is_genarg(const struct typ *t);
 bool typ_is_tentative(const struct typ *t);
-struct typ *typ_create_tentative_functor(struct typ *target);
-struct typ *typ_create_tentative(struct typ *t, struct typ **args, size_t arity);
+struct typ *typ_create_tentative_functor(struct module *trigger_mod, struct typ *target);
+struct typ *typ_create_tentative(struct module *trigger_mod,
+                                 struct typ *t, struct typ **args, size_t arity);
 
 void typ_link_tentative(struct typ *dst, struct typ *src);
 void typ_link_tentative_functor(struct module *mod, struct typ *dst, struct typ *src);
@@ -172,18 +178,23 @@ const struct typ *typ_function_arg_const(const struct typ *t, size_t n);
 const struct typ *typ_function_return_const(const struct typ *t);
 
 void instances_init(struct node *gendef);
-void instances_add(struct typ *genf, struct node *instance);
-void instances_maintain(struct typ *genf);
+void instances_add(struct module *mod, struct typ *genf, struct typ **instance);
+void instances_maintain(struct module *mod, struct typ *genf);
 struct typ *instances_find_existing_final_with(struct typ *genf,
                                                struct typ **args, size_t arity);
 struct typ *instances_find_existing_final_like(const struct typ *_t);
-struct typ *instances_find_existing_identical(struct typ *functor,
+struct typ *instances_find_existing_identical(struct module *mod, struct typ *functor,
                                               struct typ **args, size_t arity);
 
 // Return value must be freed by caller.
 char *typ_name(const struct module *mod, const struct typ *t);
 // Return value must be freed by caller.
 char *pptyp(const struct module *mod, const struct typ *t);
+void ppoverlay(struct typ *t);
+void ppisalist(const struct typ *t);
+void pptypptrs(const struct typ *t);
+void ppusers(const struct typ *t);
+void ppvectyploc(struct vectyploc *v);
 
 extern struct typ *TBI_VOID;
 extern struct typ *TBI_LITERALS_NULL;

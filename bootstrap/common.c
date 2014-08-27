@@ -367,6 +367,7 @@ static const char *timeits_name[TIMEIT__NUM] = {
   [TIMEIT_INSTANTIATE_TENTATIVE] = "instantiate_tentative",
   [TIMEIT_INSTANTIATE_TENTATIVE_INTF] = "instantiate_tentative_intf",
   [TIMEIT_INSTANTIATE_TENTATIVE_REF] = "instantiate_tentative_ref",
+  [TIMEIT_INSTANTIATE_FIND_EXISTING_IDENTICAL] = "instantiate_find_existing_identical",
   [TIMEIT_TYPE_INFERENCE] = "type_inference",
   [TIMEIT_TYPE_INFERENCE_PREBODYPASS] = "type_inference_prebodypass",
   [TIMEIT_TYPE_INFERENCE_IN_FUNS_BLOCK] = "type_inference_in_funs_block",

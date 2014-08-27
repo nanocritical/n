@@ -14,105 +14,6 @@ static struct typ *create_tentative(struct module *mod, const struct node *for_e
   return instantiate_fully_implicit(mod, for_error, functor);
 }
 
-STEP_NM(step_rewrite_wildcards,
-        NM(DEFMETHOD) | NM(UN) | NM(BIN));
-error step_rewrite_wildcards(struct module *mod, struct node *node,
-                             void *user, bool *stop) {
-  DSTEP(mod, node);
-
-#define SET_UNLESS_ZERO(dst, src) if (src != 0) { dst = src; }
-
-  bool is_self = false;
-
-#define GET_WILDCARD(kind) \
-  ( (is_self) ? mod->state->fun_state->self_wildcard.kind \
-    : mod->state->fun_state->wildcard.kind )
-
-  // FIXME: handle DEFFUN like in t02/fixme01.n
-  switch (node->which) {
-  case DEFMETHOD:
-    if (!subs_count_atleast(subs_at_const(node, IDX_GENARGS), 1)) {
-      break;
-    }
-    struct node *def = NULL;
-    error e = scope_lookup_ident_immediate(&def, node, mod, &node->scope,
-                                           ID_WILDCARD_REF_ARG_SELF, true);
-    if (e) {
-      break;
-    }
-
-    const bool is_shallow = node_toplevel_const(node)->flags & TOP_IS_SHALLOW;
-    if (typ_equal(def->typ, TBI_ANY_REF)
-        || typ_equal(def->typ, TBI_ANY_NULLABLE_REF)
-        || typ_equal(def->typ, TBI_REF)
-        || typ_equal(def->typ, TBI_NREF)) {
-      mod->state->fun_state->wildcard.ref = TREFDOT;
-      mod->state->fun_state->wildcard.nulref = TNULREFDOT;
-      mod->state->fun_state->wildcard.deref = TDEREFDOT;
-      mod->state->fun_state->wildcard.acc = TDOT;
-
-      mod->state->fun_state->self_wildcard = mod->state->fun_state->wildcard;
-    } else if (typ_equal(def->typ, TBI_MREF) || typ_equal(def->typ, TBI_NMREF)) {
-      mod->state->fun_state->wildcard.ref = is_shallow ? TREFSHARP : TREFBANG;
-      mod->state->fun_state->wildcard.nulref = is_shallow ? TNULREFSHARP : TNULREFBANG;
-      mod->state->fun_state->wildcard.deref = is_shallow ? TDEREFSHARP : TDEREFBANG;
-      mod->state->fun_state->wildcard.acc = is_shallow ? TSHARP : TBANG;
-
-      mod->state->fun_state->self_wildcard.ref = TREFBANG;
-      mod->state->fun_state->self_wildcard.nulref = TNULREFBANG;
-      mod->state->fun_state->self_wildcard.deref = TDEREFBANG;
-      mod->state->fun_state->self_wildcard.acc = TBANG;
-    } else if (typ_equal(def->typ, TBI_MMREF) || typ_equal(def->typ, TBI_NMMREF)) {
-      mod->state->fun_state->wildcard.ref = TREFSHARP;
-      mod->state->fun_state->wildcard.nulref = TNULREFSHARP;
-      mod->state->fun_state->wildcard.deref = TDEREFSHARP;
-      mod->state->fun_state->wildcard.acc = TSHARP;
-
-      mod->state->fun_state->self_wildcard = mod->state->fun_state->wildcard;
-    } else {
-      assert(false);
-    }
-    break;
-
-  case UN:
-    is_self = node_ident(subs_first_const(node)) == ID_SELF;
-
-    switch (node->as.UN.operator) {
-    case TREFWILDCARD:
-      SET_UNLESS_ZERO(node->as.UN.operator, GET_WILDCARD(ref));
-      break;
-    case TNULREFWILDCARD:
-      SET_UNLESS_ZERO(node->as.UN.operator, GET_WILDCARD(nulref));
-      break;
-    case TDEREFWILDCARD:
-      SET_UNLESS_ZERO(node->as.UN.operator, GET_WILDCARD(deref));
-      break;
-    default:
-      break;
-    }
-    break;
-  case BIN:
-    is_self = node_ident(subs_first_const(node)) == ID_SELF;
-
-    switch (node->as.BIN.operator) {
-    case TWILDCARD:
-      SET_UNLESS_ZERO(node->as.BIN.operator, GET_WILDCARD(acc));
-      break;
-    default:
-      break;
-    }
-    break;
-  default:
-    assert(false && "Unreached");
-    break;
-  }
-
-#undef GET_WILDCARD
-#undef SET_UNLESS_ZERO
-
-  return 0;
-}
-
 static void mark_subs(struct module *mod, struct node *node, struct typ *mark,
                       struct node *first, struct node *last, size_t incr) {
   if (first == NULL) {
@@ -144,7 +45,7 @@ STEP_NM(step_type_destruct_mark,
         NM(BIN) | NM(CALL) | NM(INIT) | NM(DEFALIAS) | NM(DEFNAME) |
         NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(DEFINTF) | NM(DEFINCOMPLETE) |
         NM(DEFFIELD) | NM(DEFARG) | NM(DEFGENARG) | NM(SETGENARG) |
-        NM(MODULE_BODY) | NM(DEFCHOICE) | NM(WITHIN) | NM(THROW));
+        NM(DEFCHOICE) | NM(WITHIN) | NM(THROW));
 error step_type_destruct_mark(struct module *mod, struct node *node,
                               void *user, bool *stop) {
   DSTEP(mod, node);
@@ -205,9 +106,6 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
   case SETGENARG:
     first->typ = not_typeable;
     break;
-  case MODULE_BODY:
-    node->typ = not_typeable;
-    break;
   case DEFCHOICE:
     first->typ = not_typeable;
     break;
@@ -229,9 +127,6 @@ STEP_NM(step_type_mutability_mark,
 error step_type_mutability_mark(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
-  struct typ *mutable = TBI__MUTABLE;
-  struct typ *mercurial = TBI__MERCURIAL;
-
   struct node *first = subs_first(node);
 
   switch (node->which) {
@@ -248,7 +143,7 @@ error step_type_mutability_mark(struct module *mod, struct node *node,
     case TBWXOR_ASSIGN:
     case TRSHIFT_ASSIGN:
     case TOVLSHIFT_ASSIGN:
-      first->typ = mutable;
+      first->typ = TBI__MUTABLE;
       break;
     default:
       break;
@@ -262,6 +157,7 @@ error step_type_mutability_mark(struct module *mod, struct node *node,
     // Below, we're interested in catching cases like: @#(self!p)
 
     switch (node->as.UN.operator) {
+    case TREFWILDCARD:
     case TREFDOT:
       // no-op
       break;
@@ -273,10 +169,9 @@ error step_type_mutability_mark(struct module *mod, struct node *node,
           EXCEPT(e);
         }
       } else {
-        first->typ = mutable;
+        first->typ = TBI__MUTABLE;
       }
       break;
-    case TREFWILDCARD:
     case TREFSHARP:
       if (first->typ != NULL) {
         if (first->which == BIN && !(first->flags & NODE_IS_TYPE)) {
@@ -285,7 +180,7 @@ error step_type_mutability_mark(struct module *mod, struct node *node,
           EXCEPT(e);
         }
       } else {
-        first->typ = mercurial;
+        first->typ = TBI__MERCURIAL;
       }
       break;
     default:
@@ -362,28 +257,168 @@ error step_type_gather_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
+static error reference_functor(struct typ **result,
+                               struct module *mod, struct node *for_error,
+                               struct typ *functor, struct typ *typ) {
+  error e = instantiate(result, mod, for_error, 0, functor, &typ, 1, false);
+  EXCEPT(e);
+
+  topdeps_record(mod, *result);
+
+  return 0;
+}
+
 error reference(struct typ **result,
                 struct module *mod, struct node *for_error,
                 enum token_type op, struct typ *typ) {
   struct typ *f = mod->gctx->builtin_typs_for_refop[op];
-  switch (op) {
-  case TREFWILDCARD:
-  case TNULREFWILDCARD:
-    // FIXME: when op is a wildcard (not substituted -- i.e. in the
-    // uninstantiated generic), we will not catch all possible
-    // incompatibilities. They will get caught when the function is
-    // instantiated on an actual reference, but we're supposed to catch
-    // everything prior to that.
-    f = typ_create_tentative_functor(f);
-    break;
-  default:
-    break;
+  error e = reference_functor(result, mod, for_error, f, typ);
+  EXCEPT(e);
+  return 0;
+}
+
+static struct typ *nullable_functor(struct typ *t) {
+  struct typ *t0 = typ_generic_functor(t);
+  if (typ_isa(t0, TBI_ANY_NULLABLE_REF)) {
+    return t0;
   }
 
-  error e = instantiate(result, mod, for_error, 0, f, &typ, 1, false);
-  EXCEPT(e);
+  if (typ_equal(t0, TBI_ANY_REF)) {
+    return TBI_ANY_NULLABLE_REF;
+  } else if (typ_equal(t0, TBI_ANY_MUTABLE_REF)) {
+    return TBI_ANY_NULLABLE_MUTABLE_REF;
+  } else if (typ_equal(t0, TBI_REF)) {
+    return TBI_NREF;
+  } else if (typ_isa(t0, TBI_NREF)) {
+    return TBI_NMREF;
+  } else if (typ_isa(t0, TBI_MMREF)) {
+    return TBI_NMMREF;
+  } else {
+    assert(false);
+    return NULL;
+  }
+}
 
-  topdeps_record(mod, *result);
+struct wildcards {
+  enum token_type ref;
+  enum token_type nulref;
+  enum token_type deref;
+  enum token_type acc;
+};
+
+static void fill_wildcards(struct wildcards *w, struct typ *r0) {
+  if (typ_equal(r0, TBI_REF)
+      || typ_equal(r0, TBI_NREF)
+      || typ_equal(r0, TBI_ANY_REF)
+      || typ_equal(r0, TBI_ANY_NULLABLE_REF)) {
+    w->ref = TREFDOT;
+    w->nulref = TNULREFDOT;
+    w->deref = TDEREFDOT;
+    w->acc = TDOT;
+  } else if (typ_equal(r0, TBI_MREF) || typ_equal(r0, TBI_NMREF)) {
+    w->ref = TREFBANG;
+    w->nulref = TNULREFBANG;
+    w->deref = TDEREFBANG;
+    w->acc = TBANG;
+  } else if (typ_equal(r0, TBI_MMREF)
+             || typ_equal(r0, TBI_NMMREF)) {
+    w->ref = TREFSHARP;
+    w->nulref = TNULREFSHARP;
+    w->deref = TDEREFSHARP;
+    w->acc = TSHARP;
+  } else {
+    assert(false);
+  }
+}
+
+static error try_wildcard_op(struct typ **r0, enum token_type *rop,
+                             struct module *mod, struct node *node) {
+  error e;
+  struct typ *w0 = NULL, *self0 = NULL;
+  struct wildcards w = { 0 }, selfw = { 0 };
+
+  struct node *top = mod->state->top_state->top;
+
+  struct wildcards *ww = NULL;
+  if (top->which == DEFFUN) {
+    w0 = typ_definition_deffun_wildcard_functor(top->typ);
+    if (w0 == NULL) {
+      goto not_wildcard_fun;
+    }
+
+    fill_wildcards(&w, w0);
+
+    *r0 = w0;
+    ww = &w;
+  } else if (top->which == DEFMETHOD) {
+    w0 = typ_definition_defmethod_wildcard_functor(top->typ);
+    if (w0 == NULL) {
+      goto not_wildcard_fun;
+    }
+    self0 = typ_definition_defmethod_self_wildcard_functor(top->typ);
+
+    fill_wildcards(&w, w0);
+    fill_wildcards(&selfw, self0);
+
+    if (node_ident(subs_first_const(node)) == ID_SELF) {
+      *r0 = self0;
+      ww = &selfw;
+    } else {
+      *r0 = w0;
+      ww = &w;
+    }
+  }
+
+  bool reject_wildcard = false;
+  if (false) {
+not_wildcard_fun:
+    reject_wildcard = true;
+  }
+
+  bool is_wildcard = true;
+  switch (node->which) {
+  case UN:
+    switch (node->as.UN.operator) {
+    case TREFWILDCARD:
+      *rop = ww->ref;
+      break;
+    case TNULREFWILDCARD:
+      *rop = ww->nulref;
+      *r0 = nullable_functor(*r0);
+      break;
+    case TDEREFWILDCARD:
+      *rop = ww->deref;
+      break;
+    default:
+      *r0 = mod->gctx->builtin_typs_for_refop[node->as.UN.operator];
+      *rop = node->as.UN.operator;
+      is_wildcard = false;
+      break;
+    }
+    break;
+  case BIN:
+    switch (node->as.BIN.operator) {
+    case TWILDCARD:
+      *rop = ww->acc;
+      break;
+    default:
+      *r0 = mod->gctx->builtin_typs_for_refop[node->as.BIN.operator];
+      *rop = node->as.BIN.operator;
+      is_wildcard = false;
+      break;
+    }
+    break;
+  default:
+    assert(false);
+  }
+
+  if (reject_wildcard && is_wildcard
+      && (!(NM(top->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
+          || typ_generic_arity(node->typ) == 0)) {
+    e = mk_except_type(mod, node, "cannot use wildcards outside"
+                       " of a wildcard function or method");
+    THROW(e);
+  }
 
   return 0;
 }
@@ -471,8 +506,9 @@ static ERROR try_insert_automagic_deref(struct module *mod,
   return 0;
 }
 
-static ERROR nullable_op(struct module *mod, const struct node *for_error,
-                         enum token_type *r, struct typ *t) {
+static ERROR nullable_op(enum token_type *r,
+                         struct module *mod, const struct node *for_error,
+                         struct typ *t) {
   if (typ_isa(t, TBI_ANY_NULLABLE_REF)) {
     *r = 0;
     return 0;
@@ -501,15 +537,19 @@ static ERROR nullable_op(struct module *mod, const struct node *for_error,
 static ERROR type_inference_un(struct module *mod, struct node *node) {
   assert(node->which == UN);
   error e;
-  const enum token_type operator = node->as.UN.operator;
-  struct node *term = subs_first(node);
 
+  enum token_type rop = 0;
+  struct typ *rfunctor = NULL;
+  e = try_wildcard_op(&rfunctor, &rop, mod, node);
+  EXCEPT(e);
+
+  struct node *term = subs_first(node);
   struct typ *i = NULL;
-  switch (OP_KIND(operator)) {
+  switch (OP_KIND(rop)) {
   case OP_UN_NULLABLE:
     {
       enum token_type nop = 0;
-      e = nullable_op(mod, node, &nop, term->typ);
+      e = nullable_op(&nop, mod, node, term->typ);
       EXCEPT(e);
       if (nop == 0) {
         set_typ(&node->typ, term->typ);
@@ -531,20 +571,19 @@ static ERROR type_inference_un(struct module *mod, struct node *node) {
     // FIXME: it's not OK to take a mutable reference of:
     //   fun foo p:@t = void
     //     let mut = @!(p.)
-    e = reference(&i, mod, node, operator, term->typ);
+    e = reference_functor(&i, mod, node, rfunctor, term->typ);
     EXCEPT(e);
     set_typ(&node->typ, i);
     node->flags |= term->flags & NODE__TRANSITIVE;
     return 0;
   case OP_UN_DEREF:
-    e = typ_check_can_deref(mod, term, term->typ, operator);
+    e = typ_check_can_deref(mod, term, term->typ, rop);
     EXCEPT(e);
-    e = typ_check_deref_against_mark(mod, node, node->typ, operator);
+    e = typ_check_deref_against_mark(mod, node, node->typ, rop);
     EXCEPT(e);
     set_typ(&node->typ, typ_generic_arg(term->typ, 0));
     node->flags |= term->flags & NODE__TRANSITIVE;
     return 0;
-
   case OP_UN_BOOL:
   case OP_UN_ARITH:
   case OP_UN_BW:
@@ -560,7 +599,7 @@ static ERROR type_inference_un(struct module *mod, struct node *node) {
   EXCEPT(e);
   term = subs_first(node);
 
-  switch (OP_KIND(operator)) {
+  switch (OP_KIND(rop)) {
   case OP_UN_BOOL:
     set_typ(&node->typ, TBI_BOOL);
     e = unify(mod, node, node->typ, term->typ);
@@ -955,10 +994,14 @@ static ERROR rewrite_unary_call(struct module *mod, struct node *node, struct ty
 }
 
 static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) {
-  enum token_type operator = node->as.BIN.operator;
   const struct typ *mark = node->typ;
 
-  error e = 0;
+  enum token_type rop = 0;
+  struct typ *rfunctor = NULL;
+  error e = try_wildcard_op(&rfunctor, &rop, mod, node);
+  EXCEPT(e);
+  node->as.BIN.operator = rop;
+
   struct tit *field = typ_resolve_accessor__has_effect(&e, mod, node);
 
   const bool container_is_tentative = typ_is_tentative(tit_parent_definition_typ(field));
@@ -982,6 +1025,7 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
   }
 
   struct typ *tfield = tit_typ(field);
+
   if (typ_is_function(tfield) && mark != TBI__CALL_FUNCTION_SLOT) {
     const bool is_method = typ_definition_which(tfield) == DEFMETHOD;
     if (typ_function_min_arity(tfield) != (is_method ? 1 : 0)) {
@@ -992,23 +1036,14 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
     e = rewrite_unary_call(mod, node, tfield);
     EXCEPT(e);
   } else {
-    if (operator == TWILDCARD && typ_is_reference(tfield)) {
-      assert(typ_is_reference(tfield));
-      struct typ *i = NULL;
-      e = reference(&i, mod, node, TREFWILDCARD, typ_generic_arg(tfield, 0));
-      assert(!e);
-      set_typ(&node->typ, i);
-    } else {
-      set_typ(&node->typ, tfield);
-    }
-    assert(tit_which(field) != BIN || tit_node_flags(field) != 0);
+    set_typ(&node->typ, tfield);
     node->flags = tit_node_flags(field);
   }
 
   if (!(node->flags & NODE_IS_TYPE)) {
     if (!(node->flags & NODE_IS_TEMPORARY)
         && !(subs_first(node)->flags & NODE_IS_DEFCHOICE)) {
-      e = typ_check_deref_against_mark(mod, node, mark, operator);
+      e = typ_check_deref_against_mark(mod, node, mark, rop);
       EXCEPT(e);
     }
   }
@@ -1323,18 +1358,18 @@ struct node *expr_ref(struct module *mod, struct node *par,
 }
 
 static ERROR rewrite_self(struct module *mod, struct node *node,
-                          struct node *fun) {
-  assert(fun->which == BIN);
+                          struct node *old_fun) {
+  assert(old_fun->which == BIN);
 
-  struct node *old_self = subs_first(fun);
+  struct node *old_self = subs_first(old_fun);
   struct node *self;
   if (typ_is_reference(old_self->typ)) {
-    node_subs_remove(fun, old_self);
+    node_subs_remove(old_fun, old_self);
     node_subs_insert_after(node, subs_first(node), old_self);
     self = old_self;
   } else {
-    node_subs_remove(fun, old_self);
-    enum token_type access = refop_for_accop[fun->as.BIN.operator];
+    node_subs_remove(old_fun, old_self);
+    enum token_type access = refop_for_accop[old_fun->as.BIN.operator];
     struct node *s = expr_ref(mod, node, access, old_self);
     node_subs_remove(node, s);
     node_subs_insert_after(node, subs_first(node), s);
@@ -1346,8 +1381,8 @@ static ERROR rewrite_self(struct module *mod, struct node *node,
   EXCEPT(e);
 
   if (typ_is_reference(self->typ)) {
-    e = typ_check_can_deref(mod, fun, self->typ,
-                            derefop_for_accop[fun->as.BIN.operator]);
+    e = typ_check_can_deref(mod, old_fun, self->typ,
+                            derefop_for_accop[old_fun->as.BIN.operator]);
     EXCEPT(e);
   }
 
@@ -1568,6 +1603,8 @@ static ERROR prepare_call_arguments(struct module *mod, struct node *node) {
         m->as.DIRECTDEF.flags = NODE_IS_TYPE;
         node_subs_remove(node, m);
         node_subs_replace(node, fun, m);
+        e = catchup(mod, NULL, m, CATCHUP_BELOW_CURRENT);
+        EXCEPT(e);
 
         e = rewrite_self(mod, node, fun);
         EXCEPT(e);
@@ -1613,7 +1650,7 @@ static ERROR explicit_instantiation(struct module *mod, struct node *node) {
 
   struct typ *t = what->typ;
   if (mod->state->top_state->is_setgenarg) {
-    t = typ_create_tentative_functor(t);
+    t = typ_create_tentative_functor(mod, t);
   }
 
   const size_t given_arity = subs_count(node) - 1;
@@ -1647,15 +1684,6 @@ static ERROR explicit_instantiation(struct module *mod, struct node *node) {
   e = instantiate(&i, mod, node, 1, t, args, arity, false);
   EXCEPT(e);
 
-  n = first_explicit;
-  FOREACH_SUB_EVERY(s, node, 1, 1) {
-    if (typ_generic_arity(typ_generic_arg(i, n)) > 0) {
-      assert(typ_is_tentative(typ_generic_functor(typ_generic_arg(i, n)))
-             == typ_is_tentative(typ_generic_functor(s->typ)));
-    }
-    n += 1;
-  }
-
   free(args);
 
   set_typ(&node->typ, i);
@@ -1674,27 +1702,29 @@ static ERROR implicit_function_instantiation(struct module *mod, struct node *no
   // Already checked in prepare_call_arguments().
   assert(arity == typ_function_arity(tfun));
 
-  struct typ *i = instantiate_fully_implicit(mod, node, tfun);
+  struct typ **i = typ_permanent_loc(instantiate_fully_implicit(mod, node, tfun));
 
   size_t n = 0;
   FOREACH_SUB_EVERY(s, node, 1, 1) {
-    e = unify_refcompat(mod, s, typ_function_arg(i, n), s->typ);
+    e = unify_refcompat(mod, s, typ_function_arg(*i, n), s->typ);
     EXCEPT(e);
 
-    if (n == 0 /* self */ && typ_definition_which(i) == DEFMETHOD
-        && typ_definition_defmethod_access(i) == TREFWILDCARD) {
+    if (n == 0 /* self */
+        && typ_definition_which(*i) == DEFMETHOD
+        && typ_definition_defmethod_access(*i) == TREFWILDCARD) {
       // This code enforces the relationship between the 2 wildcard generic
       // arguments, for wildcard methods.
 
-      struct typ *wildcard = typ_definition_defmethod_self_wildcard_functor(i);
-      if ((typ_toplevel_flags(i) & TOP_IS_SHALLOW)
+      struct typ *self_wildcard = typ_definition_defmethod_self_wildcard_functor(*i);
+      struct typ *wildcard = typ_definition_defmethod_wildcard_functor(*i);
+      if ((typ_toplevel_flags(*i) & TOP_IS_SHALLOW)
           && typ_equal(typ_generic_functor(s->typ), TBI_MREF)) {
         e = unify(mod, s, wildcard, TBI_MMREF);
         EXCEPT(e);
       } else {
         assert(typ_is_reference(s->typ));
 
-        e = unify(mod, s, wildcard, typ_generic_functor(s->typ));
+        e = unify(mod, s, wildcard, self_wildcard);
         EXCEPT(e);
       }
     }
@@ -1707,14 +1737,14 @@ static ERROR implicit_function_instantiation(struct module *mod, struct node *no
   // removing the node and replacing with a different one. We don't actually
   // bother to do that, but we need to be careful:
   unset_typ(&fun->typ);
-  set_typ(&fun->typ, i);
+  set_typ(&fun->typ, *i);
   if (fun->which == DIRECTDEF) {
     unset_typ(&fun->as.DIRECTDEF.typ);
-    set_typ(&fun->as.DIRECTDEF.typ, i);
+    set_typ(&fun->as.DIRECTDEF.typ, *i);
   }
 
-  topdeps_record(mod, i);
-  set_typ(&node->typ, typ_function_return(i));
+  topdeps_record(mod, *i);
+  set_typ(&node->typ, typ_function_return(*i));
 
   return 0;
 }
@@ -2335,7 +2365,7 @@ error step_type_inference(struct module *mod, struct node *node,
     }
     break;
   case DEFALIAS:
-    if (node_ident(node) == ID_FINAL && nparent(node, 2)->which == DEFINTF) {
+    if (nparent(node, 2)->which == DEFINTF) {
       set_typ(&node->typ, typ_create_genarg(subs_last(node)->typ));
     } else {
       set_typ(&node->typ, subs_last(node)->typ);
@@ -2518,6 +2548,9 @@ error step_type_inference(struct module *mod, struct node *node,
       } while (par->which == DEFCHOICE);
       set_typ(&node->typ, par->typ);
     }
+    break;
+  case MODULE_BODY:
+    node->typ = TBI__NOT_TYPEABLE;
     break;
   default:
     break;

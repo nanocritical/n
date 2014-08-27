@@ -8,7 +8,7 @@
 #include "constraints.h"
 #include "scope.h"
 
-#define DEF(t) typ_definition_nooverlay_const(t)
+#define DEF(t) typ_definition_ignore_any_overlay_const(t)
 
 const char *token_strings[TOKEN__NUM] = {
   [Timport] = "import",

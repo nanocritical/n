@@ -20,6 +20,7 @@ struct typset {
 };
 
 void typset_init(struct typset *set);
+void typset_destroy(struct typset *set);
 bool typset_has(const struct typset *set, const struct typ *t);
 void typset_add(struct typset *set, struct typ *t);
 

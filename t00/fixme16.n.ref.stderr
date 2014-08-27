@@ -1,1 +1,0 @@
-t00/fixme16.n:9:15: type: literal of type '*n.builtins.`__literal_integer__' did not unify to a concrete type

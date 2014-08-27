@@ -10,7 +10,7 @@
 #include "constraints.h"
 #include "reflect.h"
 
-#define DEF(t) typ_definition_nooverlay_const(t)
+#define DEF(t) typ_definition_ignore_any_overlay_const(t)
 
 enum forward {
   FWD_DECLARE_TYPES,
@@ -495,6 +495,7 @@ static void print_call(FILE *out, const struct module *mod,
                        const struct node *node, uint32_t parent_op) {
   const struct node *fun = subs_first_const(node);
   const struct typ *tfun = fun->typ;
+  assert(typ_is_concrete(tfun));
   const struct node *dfun = DEF(tfun);
   const struct node *parentd = parent_const(dfun);
 
@@ -1837,6 +1838,7 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
 
   const ident id = node_ident(node);
   if (id == ID_CAST
+      || id == ID_DYNCAST
       || id == ID_LIKELY
       || id == ID_UNLIKELY) {
     return;
@@ -3031,8 +3033,10 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
   if (topdep_mask & (TOP_IS_FUNCTOR | TOP_IS_PREVENT_DYN)) {
     return 0;
   }
+
   if ((!typ_is_concrete(node->typ) && node->which != DEFINTF)
       || (!node_is_at_top(node) && !typ_is_concrete(parent_const(node)->typ))
+      || typ_was_zeroed(_t)
       || (typ_is_reference(_t) && DEF(_t)->which == DEFINTF)
       || typ_is_generic_functor(_t)
       || (typ_generic_arity(_t) == 0 && !is_in_topmost_module(_t))
@@ -3042,7 +3046,9 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
 
   const struct typ *t = intercept_slices(st->mod, _t);
 
-  if (st->header && !(topdep_mask & (TOP_IS_EXPORT | TOP_IS_INLINE))) {
+  if (st->header
+      && ((typ_is_function(t) && !(topdep_mask & TOP_IS_INLINE))
+          || (!(topdep_mask & TOP_IS_INLINE) && !(topdep_mask & TOP_IS_EXPORT)))) {
     return 0;
   }
 
@@ -3114,6 +3120,9 @@ static void print_top(FILE *out, bool header, enum forward fwd,
   fprintf(out, "\n*/\n");
 #endif
 
+  static __thread size_t prevent_infinite;
+  assert(++prevent_infinite < 1000 && "FIXME When force==true, see t00/fixme10");
+
   print_topdeps(out, header, fwd, mod, node, printed);
 
   switch (node->which) {
@@ -3155,6 +3164,8 @@ static void print_top(FILE *out, bool header, enum forward fwd,
     fprintf(g_env.stderr, "Unsupported node: %d\n", node->which);
     assert(false);
   }
+
+  --prevent_infinite;
 }
 
 static void print_module(FILE *out, bool header, const struct module *mod) {
