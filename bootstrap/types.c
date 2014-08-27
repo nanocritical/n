@@ -87,12 +87,12 @@ struct typ {
   struct users users;
 };
 
-static struct node *typ_definition(struct typ *t) {
+static struct node *definition(struct typ *t) {
   return t->definition;
 }
 
-static const struct node *typ_definition_const(const struct typ *t) {
-  return typ_definition(CONST_CAST(t));
+static const struct node *definition_const(const struct typ *t) {
+  return definition(CONST_CAST(t));
 }
 
 #define FOREACH_BACKLINK(idx, back, t, what) do { \
@@ -121,7 +121,7 @@ static const struct node *typ_definition_const(const struct typ *t) {
   } while (users != NULL); \
 } while (0)
 
-static bool typ_is_genarg(const struct typ *t) {
+static bool is_genarg(const struct typ *t) {
   return t->flags & TYPF_GENARG;
 }
 
@@ -131,13 +131,13 @@ static void overlay_init(struct typ *t) {
 }
 
 static void overlay_map(struct typ *t, struct typ **dst, struct typ *src) {
-  assert(typ_is_genarg(src));
+  assert(is_genarg(src));
   const bool no = typ2loc_set(&t->overlay->map, src, dst);
   assert(!no);
 }
 
 static struct typ *overlay_translate(struct typ *t, struct typ *src) {
-  if (!typ_is_genarg(src)) {
+  if (!is_genarg(src)) {
     return src;
   }
 
@@ -315,13 +315,13 @@ static void create_update_concrete_flag(struct typ *t) {
   if (typ_is_generic_functor(t)) {
     t->flags &= ~TYPF_CONCRETE;
   } else if (typ_generic_arity(t) == 0) {
-    if (typ_definition_const(t)->which == DEFINTF) {
+    if (definition_const(t)->which == DEFINTF) {
       t->flags &= ~TYPF_CONCRETE;
     } else {
       t->flags |= TYPF_CONCRETE;
     }
   } else if (typ_is_reference(t)) {
-    if (typ_definition_const(t)->which == DEFINTF) {
+    if (definition_const(t)->which == DEFINTF) {
       t->flags &= ~TYPF_CONCRETE;
     } else {
       const struct typ *arg = typ_generic_arg_const(t, 0);
@@ -346,7 +346,7 @@ static void create_update_concrete_flag(struct typ *t) {
         break;
       }
       if (typ_is_generic_functor(arg)
-          && typ_definition_const(arg)->which != DEFINTF) {
+          && definition_const(arg)->which != DEFINTF) {
         continue;
       }
       if (!typ_is_concrete(arg)) {
@@ -358,7 +358,7 @@ static void create_update_concrete_flag(struct typ *t) {
 }
 
 static void create_flags(struct typ *t, struct typ *tbi) {
-  const struct node *d = typ_definition_const(t);
+  const struct node *d = definition_const(t);
   if (d == NULL) {
     // This is very early in the global init.
     return;
@@ -478,10 +478,10 @@ void typ_create_update_genargs(struct typ *t) {
 
   create_update_concrete_flag(t);
 
-  struct node *dpar = parent(typ_definition(t));
+  struct node *dpar = parent(definition(t));
   if (NM(dpar->which) & (NM(DEFTYPE) | NM(DEFINTF))) {
     if (typ_is_tentative(dpar->typ)) {
-      typ_add_tentative_bit__privileged(&typ_definition(t)->typ);
+      typ_add_tentative_bit__privileged(&definition(t)->typ);
       add_user(dpar->typ, t);
     }
   }
@@ -500,14 +500,14 @@ void typ_create_update_genargs(struct typ *t) {
   struct typ *t0 = typ_generic_functor(t);
   set_typ(&t->gen0, t0);
   if (typ_is_tentative(t0)) {
-    typ_add_tentative_bit__privileged(&typ_definition(t)->typ);
+    typ_add_tentative_bit__privileged(&definition(t)->typ);
     add_user(t0, t);
   }
   for (size_t n = 0, count = typ_generic_arity(t); n < count; ++n) {
     struct typ *arg = typ_generic_arg(t, n);
     set_typ(&t->gen_args[n], arg);
     if (typ_is_tentative(arg)) {
-      typ_add_tentative_bit__privileged(&typ_definition(t)->typ);
+      typ_add_tentative_bit__privileged(&definition(t)->typ);
       add_user(arg, t);
     }
   }
@@ -522,14 +522,14 @@ void typ_create_update_hash(struct typ *t) {
 #define LEN 8 // arbitrary, at least 4
   uint32_t buf[LEN] = { 0 };
   buf[0] = t->flags & TYPF__MASK_HASH;
-  buf[1] = node_ident(typ_definition_const(t));
+  buf[1] = node_ident(definition_const(t));
   buf[2] = t->gen_arity;
   size_t i = 3;
   for (size_t n = 0; n < t->gen_arity; ++n) {
     if (i == LEN) {
       break;
     }
-    buf[i] = node_ident(typ_definition_const(t->gen_args[n]));
+    buf[i] = node_ident(definition_const(t->gen_args[n]));
     i += 1;
   }
 #undef LEN
@@ -599,7 +599,7 @@ struct typ *typ_create_tentative_functor(struct typ *t) {
   r->gen_args = calloc(t->gen_arity, sizeof(*r->gen_args));
   struct typ *final = typ_definition_which(t) == DEFINTF ? typ_member(t, ID_FINAL) : t;
   set_typ(&r->gen0, r /* tentative functors are their own functor */);
-  if (typ_is_genarg(final)) {
+  if (is_genarg(final)) {
     overlay_map(r, &r->gen0, final);
   }
   for (size_t n = 0; n < t->gen_arity; ++n) {
@@ -629,7 +629,7 @@ struct typ *typ_create_tentative(struct typ *t, struct typ **args, size_t arity)
   r->gen_args = calloc(t->gen_arity, sizeof(*r->gen_args));
   struct typ *final = typ_definition_which(t) == DEFINTF ? typ_member(t, ID_FINAL) : t;
   set_typ(&r->gen0, final);
-  if (typ_is_genarg(final)) {
+  if (is_genarg(final)) {
     overlay_map(r, &r->gen0, final);
   }
   for (size_t n = 0; n < t->gen_arity; ++n) {
@@ -643,7 +643,7 @@ struct typ *typ_create_tentative(struct typ *t, struct typ **args, size_t arity)
 }
 
 static bool is_actually_still_tentative(const struct typ *user) {
-  const struct node *dpar = parent_const(typ_definition_const(user));
+  const struct node *dpar = parent_const(definition_const(user));
   if ((NM(dpar->which) & (NM(DEFTYPE) | NM(DEFINTF))) && typ_is_tentative(dpar->typ)) {
     return true;
   }
@@ -688,7 +688,7 @@ static void link_generic_functor_update(struct typ *user, struct typ *dst, struc
     assert(typ_is_generic_functor(src));
     assert(typ_is_generic_functor(dst));
 
-    struct module *trigger_mod = node_toplevel_const(typ_definition_const(user))
+    struct module *trigger_mod = node_toplevel_const(definition_const(user))
       ->generic->trigger_mod;
     const bool need_state = !trigger_mod->state->tentatively
       && trigger_mod->state->top_state == NULL;
@@ -719,7 +719,7 @@ static void link_generic_arg_update(struct typ *user, struct typ *dst, struct ty
 
   // If 'src' was used by 'user' as a generic arg, then the
   // FOREACH_BACKLINK() pass already updated the SETGENARG in
-  // typ_definition(user).
+  // definition(user).
 
   for (size_t n = 0, arity = typ_generic_arity(user); n < arity; ++n) {
     struct typ *ga = typ_generic_arg(user, n);
@@ -743,9 +743,9 @@ static void link_parent_update(struct typ *user, struct typ *dst, struct typ *sr
 
   assert(typ_is_tentative(user));
 
-  struct node *dpar = parent(typ_definition(user));
+  struct node *dpar = parent(definition(user));
   if (dpar->typ == src) {
-    struct module *trigger_mod = node_toplevel_const(typ_definition_const(user))
+    struct module *trigger_mod = node_toplevel_const(definition_const(user))
       ->generic->trigger_mod;
 
     unify_with_new_parent(trigger_mod, NULL, dst, user);
@@ -881,44 +881,44 @@ const struct node *typ_for_error(const struct typ *t) {
 }
 
 bool typ_is_function(const struct typ *t) {
-  const struct node *def = typ_definition_const(t);
+  const struct node *def = definition_const(t);
   return def->which == DEFFUN || def->which == DEFMETHOD;
 }
 
 uint32_t typ_toplevel_flags(const struct typ *t) {
-  return node_toplevel_const(typ_definition_const(t))->flags;
+  return node_toplevel_const(definition_const(t))->flags;
 }
 
 enum node_which typ_definition_which(const struct typ *t) {
-  return typ_definition_const(t)->which;
+  return definition_const(t)->which;
 }
 
 enum deftype_kind typ_definition_deftype_kind(const struct typ *t) {
-  const struct node *d = typ_definition_const(t);
+  const struct node *d = definition_const(t);
   assert(d->which == DEFTYPE);
   return d->as.DEFTYPE.kind;
 }
 
 struct typ *typ_definition_tag_type(const struct typ *t) {
-  const struct node *d = typ_definition_const(t);
+  const struct node *d = definition_const(t);
   assert(d->which == DEFTYPE);
   return d->as.DEFTYPE.tag_typ;
 }
 
 enum token_type typ_definition_defmethod_access(const struct typ *t) {
-  const struct node *d = typ_definition_const(t);
+  const struct node *d = definition_const(t);
   assert(d->which == DEFMETHOD);
   return d->as.DEFMETHOD.access;
 }
 
 struct typ *typ_definition_defmethod_self_wildcard_functor(const struct typ *t) {
   assert(t->definition->which == DEFMETHOD);
-  const struct node *genargs = subs_at_const(typ_definition_const(t), IDX_GENARGS);
+  const struct node *genargs = subs_at_const(definition_const(t), IDX_GENARGS);
   return subs_at_const(genargs, t->definition->as.DEFMETHOD.first_wildcard_genarg)->typ;
 }
 
 ident typ_definition_ident(const struct typ *t) {
-  return node_ident(typ_definition_const(t));
+  return node_ident(definition_const(t));
 }
 
 struct module *typ_module_owner(const struct typ *t) {
@@ -929,7 +929,7 @@ struct module *typ_module_owner(const struct typ *t) {
 }
 
 struct typ *typ_member(struct typ *t, ident name) {
-  struct node *d = typ_definition(t);
+  struct node *d = definition(t);
   struct node *m = node_get_member(d, name);
   return m != NULL ? m->typ : NULL;
 }
@@ -990,7 +990,7 @@ done:
 
 struct tit *typ_definition_one_member(const struct typ *t, ident name) {
   struct tit *tit = calloc(1, sizeof(struct tit));
-  tit->definition = typ_definition(CONST_CAST(t));
+  tit->definition = definition(CONST_CAST(t));
   tit->just_one = true;
 
   error e = scope_lookup_ident_immediate(&tit->pos, tit->definition,
@@ -1007,7 +1007,7 @@ struct tit *typ_definition_one_member(const struct typ *t, ident name) {
 
 struct tit *typ_definition_members(const struct typ *t, ...) {
   struct tit *tit = calloc(1, sizeof(struct tit));
-  tit->definition = typ_definition(CONST_CAST(t));
+  tit->definition = definition(CONST_CAST(t));
 
   va_list ap;
   va_start(ap, t);
@@ -1053,7 +1053,7 @@ static void bin_accessor_maybe_functor__has_effect(struct module *mod, struct no
 static bool bin_accessor_maybe_ref(struct node **parent_scope,
                                    struct module *mod, struct node *par) {
   if (typ_is_reference(par->typ)) {
-    *parent_scope = typ_definition(typ_generic_arg(par->typ, 0));
+    *parent_scope = definition(typ_generic_arg(par->typ, 0));
     return true;
   }
   return false;
@@ -1064,13 +1064,13 @@ static void bin_accessor_maybe_defchoice(struct node **parent_scope, struct node
   if (par->flags & NODE_IS_DEFCHOICE) {
     struct node *defchoice = NULL;
     error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
-                                           &typ_definition(par->typ)->scope,
+                                           &definition(par->typ)->scope,
                                            node_ident(subs_last(par)), false);
     assert(!e);
     assert(defchoice->which == DEFCHOICE);
 
     const struct node *ext = node_defchoice_external_payload(defchoice);
-    *parent_scope = ext != NULL ? typ_definition(ext->typ) : defchoice;
+    *parent_scope = ext != NULL ? definition(ext->typ) : defchoice;
   }
 }
 
@@ -1083,7 +1083,7 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
   bin_accessor_maybe_literal_slice__has_effect(mod, left);
   bin_accessor_maybe_functor__has_effect(mod, left);
 
-  struct node *dcontainer = typ_definition(left->typ);
+  struct node *dcontainer = definition(left->typ);
   if (!bin_accessor_maybe_ref(&dcontainer, mod, left)) {
     bin_accessor_maybe_defchoice(&dcontainer, node, mod, left);
   }
@@ -1166,7 +1166,7 @@ struct tit *tit_defchoice_lookup_field(const struct tit *variant, ident name) {
     if (d->which == DEFCHOICE) {
       const struct node *ext = node_defchoice_external_payload(d);
       if (ext != NULL) {
-        sc = &typ_definition_const(ext->typ)->scope;
+        sc = &definition_const(ext->typ)->scope;
       }
     }
 
@@ -1196,7 +1196,7 @@ static struct typ *def_generic_functor(struct typ *t) {
     return NULL;
   }
 
-  const struct toplevel *toplevel = node_toplevel_const(typ_definition_const(t));
+  const struct toplevel *toplevel = node_toplevel_const(definition_const(t));
   if (toplevel->generic->our_generic_functor_typ != NULL) {
     return toplevel->generic->our_generic_functor_typ;
   } else {
@@ -1233,7 +1233,7 @@ EXAMPLE_NCC(typ_generic_functor) {
 }
 
 static size_t def_generic_arity(const struct typ *t) {
-  const struct node *d = typ_definition_const(t);
+  const struct node *d = definition_const(t);
   if (node_can_have_genargs(d)) {
     return subs_count(subs_at_const(d, IDX_GENARGS));
   } else {
@@ -1271,13 +1271,13 @@ EXAMPLE_NCC(typ_generic_arity) {
 }
 
 size_t typ_generic_first_explicit_arg(const struct typ *t) {
-  return node_toplevel_const(typ_definition_const(t))
+  return node_toplevel_const(definition_const(t))
     ->generic->first_explicit_genarg;
 }
 
 static struct typ *def_generic_arg(struct typ *t, size_t n) {
   assert(n < typ_generic_arity(t));
-  return subs_at_const(subs_at_const(typ_definition_const(t), IDX_GENARGS), n)->typ;
+  return subs_at_const(subs_at_const(definition_const(t), IDX_GENARGS), n)->typ;
 }
 
 struct typ *typ_generic_arg(struct typ *t, size_t n) {
@@ -1291,38 +1291,38 @@ struct typ *typ_generic_arg(struct typ *t, size_t n) {
 
 struct typ *typ_as_non_tentative(const struct typ *t) {
   assert(typ_generic_arity(t) == 0 && "FIXME not supported");
-  const struct toplevel *toplevel = node_toplevel_const(typ_definition_const(t));
+  const struct toplevel *toplevel = node_toplevel_const(definition_const(t));
   return toplevel->generic->our_generic_functor_typ;
 }
 
 size_t typ_function_arity(const struct typ *t) {
   assert(typ_is_function(t));
-  return node_fun_all_args_count(typ_definition_const(t));
+  return node_fun_all_args_count(definition_const(t));
 }
 
 size_t typ_function_min_arity(const struct typ *t) {
   assert(typ_is_function(t));
-  return node_fun_min_args_count(typ_definition_const(t));
+  return node_fun_min_args_count(definition_const(t));
 }
 
 size_t typ_function_max_arity(const struct typ *t) {
   assert(typ_is_function(t));
-  return node_fun_max_args_count(typ_definition_const(t));
+  return node_fun_max_args_count(definition_const(t));
 }
 
 ssize_t typ_function_first_vararg(const struct typ *t) {
   assert(typ_is_function(t));
-  return node_fun_first_vararg(typ_definition_const(t));
+  return node_fun_first_vararg(definition_const(t));
 }
 
 struct typ *typ_function_arg(struct typ *t, size_t n) {
   assert(n < typ_function_arity(t));
-  return subs_at_const(subs_at_const(typ_definition_const(t), IDX_FUNARGS), n)->typ;
+  return subs_at_const(subs_at_const(definition_const(t), IDX_FUNARGS), n)->typ;
 }
 
 ident typ_function_arg_ident(const struct typ *t, size_t n) {
   assert(n < typ_function_arity(t));
-  return node_ident(subs_at_const(subs_at_const(typ_definition_const(t), IDX_FUNARGS), n));
+  return node_ident(subs_at_const(subs_at_const(definition_const(t), IDX_FUNARGS), n));
 }
 
 enum token_type typ_function_arg_explicit_ref(const struct typ *t, size_t n) {
@@ -1337,9 +1337,9 @@ enum token_type typ_function_arg_explicit_ref(const struct typ *t, size_t n) {
 }
 
 struct typ *typ_function_return(struct typ *t) {
-  assert(typ_definition_const(t)->which == DEFFUN
-         || typ_definition_const(t)->which == DEFMETHOD);
-  return node_fun_retval_const(typ_definition_const(t))->typ;
+  assert(definition_const(t)->which == DEFFUN
+         || definition_const(t)->which == DEFMETHOD);
+  return node_fun_retval_const(definition_const(t))->typ;
 }
 
 const struct typ *typ_generic_functor_const(const struct typ *t) {
@@ -1359,7 +1359,7 @@ const struct typ *typ_function_return_const(const struct typ *t) {
 }
 
 static size_t direct_isalist_count(const struct typ *t) {
-  const struct node *def = typ_definition_const(t);
+  const struct node *def = definition_const(t);
   switch (def->which) {
   case DEFTYPE:
   case DEFINTF:
@@ -1371,7 +1371,7 @@ static size_t direct_isalist_count(const struct typ *t) {
 }
 
 static struct typ *direct_isalist(struct typ *t, size_t n) {
-  const struct node *def = typ_definition_const(t);
+  const struct node *def = definition_const(t);
   switch (def->which) {
   case DEFTYPE:
   case DEFINTF:
@@ -1388,7 +1388,7 @@ static const struct typ *direct_isalist_const(const struct typ *t, size_t n) {
 }
 
 static bool direct_isalist_exported(const struct typ *t, size_t n) {
-  const struct node *def = typ_definition_const(t);
+  const struct node *def = definition_const(t);
   switch (def->which) {
   case DEFTYPE:
   case DEFINTF:
@@ -1482,7 +1482,7 @@ error typ_isalist_foreach(struct module *mod, struct typ *t, uint32_t filter,
   struct fintypset set;
   fintypset_fullinit(&set);
 
-  const bool is_export = node_toplevel_const(typ_definition_const(t))->flags & TOP_IS_EXPORT;
+  const bool is_export = node_toplevel_const(definition_const(t))->flags & TOP_IS_EXPORT;
   const bool filter_exported = filter & ISALIST_FILTEROUT_EXPORTED;
   const bool filter_not_exported = filter & ISALIST_FILTEROUT_NOT_EXPORTED;
   if (!(filter_exported && is_export) && !(filter_not_exported && !is_export)) {
@@ -1630,8 +1630,8 @@ struct typ *TBI__MUTABLE;
 struct typ *TBI__MERCURIAL;
 
 static bool __typ_equal(const struct typ *a, const struct typ *b) {
-  const struct node *da = typ_definition_const(a);
-  const struct node *db = typ_definition_const(b);
+  const struct node *da = definition_const(a);
+  const struct node *db = definition_const(b);
   if (da == db) {
     return true;
   }
@@ -1645,10 +1645,10 @@ static bool __typ_equal(const struct typ *a, const struct typ *b) {
     }
 
     if (a_tentative) {
-      da = typ_definition_const(node_toplevel_const(da)->generic->our_generic_functor_typ);
+      da = definition_const(node_toplevel_const(da)->generic->our_generic_functor_typ);
     }
     if (b_tentative) {
-      db = typ_definition_const(node_toplevel_const(db)->generic->our_generic_functor_typ);
+      db = definition_const(node_toplevel_const(db)->generic->our_generic_functor_typ);
     }
     return da == db;
   } else {
@@ -1795,7 +1795,7 @@ bool typ_is_generic_functor(const struct typ *t) {
 }
 
 static bool is_isalist_literal(const struct typ *t) {
-  const struct node *d = typ_definition_const(t);
+  const struct node *d = definition_const(t);
   return d->which == DEFINCOMPLETE && d->as.DEFINCOMPLETE.is_isalist_literal;
 }
 
@@ -1900,9 +1900,9 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
     }
   }
 
-  if (typ_is_reference(a) && typ_definition_const(a)->which != DEFINTF) {
+  if (typ_is_reference(a) && definition_const(a)->which != DEFINTF) {
     const struct typ *arg = typ_generic_arg_const(a, 0);
-    if (typ_definition_const(arg)->which == DEFINTF) {
+    if (definition_const(arg)->which == DEFINTF) {
       return typ_isa(arg, intf);
     }
   }
@@ -1947,7 +1947,7 @@ bool typ_is_dyn(const struct typ *t) {
   }
 
   const struct typ *a = typ_generic_arg_const(t, 0);
-  return typ_definition_const(a)->which == DEFINTF;
+  return definition_const(a)->which == DEFINTF;
 }
 
 bool typ_is_dyn_compatible(const struct typ *t) {
@@ -1957,7 +1957,7 @@ bool typ_is_dyn_compatible(const struct typ *t) {
   }
 
   const struct typ *a = typ_generic_arg_const(t, 0);
-  return typ_definition_const(a)->which != DEFINTF;
+  return definition_const(a)->which != DEFINTF;
 }
 
 error typ_check_is_reference(const struct module *mod, const struct node *for_error,
@@ -2163,7 +2163,7 @@ static void do_instances_add(struct node *gendef, struct node *instance,
                              bool maintaining_tentatives);
 
 void instances_maintain(struct typ *genf) {
-  struct node *gendef = typ_definition(genf);
+  struct node *gendef = definition(genf);
   struct generic *generic = node_toplevel(gendef)->generic;
 
   // Maintaining invariant: move finals out.
@@ -2201,13 +2201,13 @@ static void do_instances_add(struct node *gendef, struct node *instance,
 }
 
 void instances_add(struct typ *genf, struct node *instance) {
-  struct node *gendef = typ_definition(genf);
+  struct node *gendef = definition(genf);
   do_instances_add(gendef, instance, false);
 }
 
 static void prepare_query_tmp(struct typ *tmp, struct typ *functor,
                               struct typ **args, size_t arity) {
-  tmp->definition = typ_definition(functor);
+  tmp->definition = definition(functor);
   tmp->gen_arity = arity;
   tmp->gen_args = calloc(arity, sizeof(*tmp->gen_args));
   // Not using set_typ(), 'tmp' doesn't live long enough to see linking.
@@ -2238,7 +2238,7 @@ struct typ *instances_find_existing_final_with(struct typ *genf,
     return NULL;
   }
 
-  struct node *gendef = typ_definition(genf);
+  struct node *gendef = definition(genf);
   struct typ *functor = typ_generic_functor(gendef->typ);
   assert(arity == typ_generic_arity(gendef->typ));
 
@@ -2270,7 +2270,7 @@ struct typ *instances_find_existing_final_like(const struct typ *_t) {
     return NULL;
   }
 
-  struct node *gendef = typ_definition(t);
+  struct node *gendef = definition(t);
   struct generic *generic = node_toplevel(CONST_CAST(gendef))->generic;
 
   instances_maintain(t);
@@ -2289,7 +2289,7 @@ struct typ *instances_find_existing_identical(struct typ *functor,
     return NULL;
   }
 
-  struct node *gendef = typ_definition(functor);
+  struct node *gendef = definition(functor);
   struct generic *generic = node_toplevel(CONST_CAST(gendef))->generic;
 
   struct typ tmp = { 0 };
@@ -2330,8 +2330,8 @@ out:
 char *typ_name(const struct module *mod, const struct typ *t) {
   if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
     return typ_name(mod, typ_generic_functor_const(t));
-  } else if (typ_definition_const(t) != NULL) {
-    return scope_name(mod, &typ_definition_const(t)->scope);
+  } else if (definition_const(t) != NULL) {
+    return scope_name(mod, &definition_const(t)->scope);
   } else {
     for (size_t n = ID_TBI__FIRST; n < ID_TBI__LAST; ++n) {
       if (mod->gctx->builtin_typs_by_name[n] == t) {
@@ -2390,7 +2390,7 @@ char *pptyp(const struct module *mod, const struct typ *t) {
 
   s = stpcpy(s, typ_is_tentative(t) ? "*" : "");
 
-  const struct node *d = typ_definition_const(t);
+  const struct node *d = definition_const(t);
   if (d == NULL) {
     s = stpcpy(s, "<ZEROED>");
   } else if (d->which == IMPORT) {
