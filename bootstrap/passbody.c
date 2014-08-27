@@ -92,19 +92,6 @@ static ERROR step_check_no_literals_left(struct module *mod, struct node *node,
   return 0;
 }
 
-static bool string_literal_has_length_one(const char *s) {
-  const size_t len = strlen(s);
-  if (s == NULL) {
-    return false;
-  } else if (len <= 2) {
-    return false;
-  } else if (s[1] == '\\') {
-    return len == 4;
-  } else {
-    return len == 3;
-  }
-}
-
 static enum token_type operator_call_arg_refop(const struct typ *tfun, size_t n) {
   const struct typ *arg0 = typ_generic_functor_const(typ_function_arg_const(tfun, n));
   assert(arg0 != NULL && typ_is_reference(arg0));
@@ -682,18 +669,18 @@ static ERROR step_store_return_through_ref_expr(struct module *mod, struct node 
 
 static  error add_dyn_topdep_each(struct module *mod, struct typ *t, struct typ *intf,
                                   bool *stop, void *user) {
-  struct node *r = NULL;
+  struct typ *r = NULL;
   error e = reference(&r, mod, NULL, TREFDOT, intf);
   assert(!e);
-  topdeps_record(mod, r->typ);
+  topdeps_record(mod, r);
 
   e = reference(&r, mod, NULL, TREFBANG, intf);
   assert(!e);
-  topdeps_record(mod, r->typ);
+  topdeps_record(mod, r);
 
   e = reference(&r, mod, NULL, TREFSHARP, intf);
   assert(!e);
-  topdeps_record(mod, r->typ);
+  topdeps_record(mod, r);
   return 0;
 }
 

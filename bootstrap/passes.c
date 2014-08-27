@@ -241,6 +241,7 @@ error catchup_instantiation(struct module *instantiating_mod,
                             bool tentative) {
   enum catchup_for how = CATCHUP_NEW_INSTANCE;
   if (tentative) {
+    // FIXME Deprecate.
     how = CATCHUP_TENTATIVE_NEW_INSTANCE;
   }
 
@@ -341,31 +342,10 @@ static ERROR do_do_complete_instantiation(struct module *mod, struct node *node,
   return 0;
 }
 
-static bool is_tentative_function(struct node *node) {
-  switch (node->which) {
-  case DEFFUN:
-  case DEFMETHOD:
-  case EXAMPLE:
-    return typ_is_tentative(node->typ)
-      || (!node_is_at_top(node) && typ_is_tentative(parent(node)->typ));
-  default:
-    return false;
-  }
-}
-
-static bool linked_to_something_else(struct node *node) {
-  return
-    (NM(node->which) & STEP_NM_DEFS)
-    && node->typ != NULL
-    && typ_hash_ready(node->typ) // i.e. we're far along enough in passfwd
-    && typ_definition_nooverlay_const(node->typ) != node;
-}
-
 static bool wont_go_further(struct node *node, ssize_t goal) {
-  return (goal > last_body_pass() && node->which == DEFINCOMPLETE
-          && !node->as.DEFINCOMPLETE.is_isalist_literal)
-    || (goal > last_pass_with_tentative_body() && is_tentative_function(node))
-    || linked_to_something_else(node);
+  return goal > last_body_pass()
+          && node->which == DEFINCOMPLETE
+          && !node->as.DEFINCOMPLETE.is_isalist_literal;
 }
 
 static ERROR do_complete_instantiation(struct module *mod, struct node *node) {
@@ -399,6 +379,10 @@ static ERROR do_complete_instantiation(struct module *mod, struct node *node) {
 static ERROR advance_topdeps_each(struct module *mod, struct node *node,
                                   struct typ *t, uint32_t topdep_mask, void *user) {
   const ssize_t goal = *(ssize_t *) user;
+
+  if (typ_was_zeroed(t) || typ_is_tentative(t)) {
+    return 0;
+  }
 
   struct node *d = typ_definition_nooverlay(t);
   if (wont_go_further(d, goal)) {

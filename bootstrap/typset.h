@@ -16,7 +16,7 @@ struct typset {
   struct vectyp list;
   struct fintypset set;
 
-  struct vecnode tentatives;
+  struct vectyploc tentatives;
 };
 
 void typset_init(struct typset *set);

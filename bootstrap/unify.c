@@ -68,15 +68,6 @@ static ERROR unify_two_non_generic(struct module *mod, const struct node *for_er
   return 0;
 }
 
-static bool same_generic_functor(const struct module *mod,
-                                 const struct typ *a, const struct typ *b) {
-  if (typ_generic_arity(a) > 0 && typ_generic_arity(b) > 0) {
-    return typ_equal(typ_generic_functor_const(a), typ_generic_functor_const(b));
-  } else {
-    return false;
-  }
-}
-
 static ERROR unify_with_equal(struct module *mod, const struct node *for_error,
                               struct typ *a, struct typ *b);
 
@@ -266,6 +257,10 @@ static struct typ *nullable(struct module *mod, const struct node *for_error,
 static struct typ *as_non_tentative(const struct typ *t) {
   return typ_as_non_tentative(t);;
 }
+
+static ERROR unify_reforslice_arg(struct module *mod, uint32_t flags,
+                                  const struct node *for_error,
+                                  struct typ *a, struct typ *b);
 
 static ERROR unify_literal_slice(struct module *mod, uint32_t flags,
                                  const struct node *for_error,

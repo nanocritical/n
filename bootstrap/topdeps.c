@@ -7,7 +7,7 @@ struct topdeps {
   struct vectyp list;
   struct fintypset set;
 
-  struct vecnode tentatives;
+  struct vectyploc tentatives;
 };
 
 static void record_final(struct module *mod, struct typ *t) {
@@ -99,21 +99,20 @@ static void record_final(struct module *mod, struct typ *t) {
   }
 }
 
-static void record_tentative(struct module *mod, struct node *node) {
+static void record_tentative(struct module *mod, struct typ **loc) {
   struct top_state *st = mod->state->top_state;
   struct node *top = st->top;
-  if (typ_is_pseudo_builtin(node->typ)
-      || top == node) {
+  if (typ_is_pseudo_builtin(*loc)
+      || (!typ_is_tentative(*loc) && typ_definition_nooverlay(*loc) == top)) {
     return;
   }
   struct toplevel *toplevel = node_toplevel(top);
-
   if (toplevel->topdeps == NULL) {
     toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
     fintypset_fullinit(&toplevel->topdeps->set);
   }
 
-  vecnode_push(&toplevel->topdeps->tentatives, node);
+  vectyploc_push(&toplevel->topdeps->tentatives, loc);
 }
 
 void topdeps_record(struct module *mod, struct typ *t) {
@@ -124,7 +123,7 @@ void topdeps_record(struct module *mod, struct typ *t) {
   }
 
   if (typ_is_tentative(t) || !typ_hash_ready(t)) {
-    record_tentative(mod, typ_definition(t));
+    record_tentative(mod, typ_permanent_loc(t));
   } else {
     record_final(mod, t);
   }
@@ -140,24 +139,23 @@ error topdeps_foreach(struct module *mod, struct node *node,
   // Need to work when entries are being added to the topdeps while we are
   // iterating over it, so we have to get the current count every time.
 
-  struct vecnode *tentatives = &toplevel->topdeps->tentatives;
+  struct vectyploc *tentatives = &toplevel->topdeps->tentatives;
 
   struct top_state *st = mod->state->top_state;
   // 'st' may be NULL when topdeps_foreach() is called from a non-passing
   // context, e.g. cprinter.
 
-  for (ssize_t n = 0; n < vecnode_count(tentatives); ++n) {
-    struct node **p = vecnode_get(tentatives, n);
+  for (ssize_t n = 0; n < vectyploc_count(tentatives); ++n) {
+    struct typ *t = **vectyploc_get(tentatives, n);
     if (st != NULL) {
-      struct typ *t = (*p)->typ;
       if (!typ_is_tentative(t) && typ_hash_ready(t)) {
         record_final(mod, t);
-        n += vecnode_remove_replace_with_last(tentatives, n);
+        n += vectyploc_remove_replace_with_last(tentatives, n);
         continue;
       }
     }
 
-    error e = each(mod, node, (*p)->typ, 0, user);
+    error e = each(mod, node, t, 0, user);
     EXCEPT(e);
   }
 

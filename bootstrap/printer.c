@@ -8,6 +8,8 @@
 #include "constraints.h"
 #include "scope.h"
 
+#define DEF(t) typ_definition_nooverlay_const(t)
+
 const char *token_strings[TOKEN__NUM] = {
   [Timport] = "import",
   [Texport] = "export",
@@ -354,7 +356,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     break;
   case DIRECTDEF:
     fprintf(out, "%s",
-            scope_name(mod, &typ_definition_const(node->as.DIRECTDEF.typ)->scope));
+            scope_name(mod, &DEF(node->as.DIRECTDEF.typ)->scope));
     break;
   case DYN:
     print_expr(out, mod, subs_first_const(node), parent_op);
@@ -1078,7 +1080,7 @@ static void print_dot_node(FILE *out, const struct module *mod,
   }
 
   if (node->typ != NULL) {
-    const struct node *def = typ_definition_const(node->typ);
+    const struct node *def = DEF(node->typ);
     if (def->which == IMPORT) {
       fprintf(out, " :<import>");
     } else {

@@ -339,7 +339,7 @@ struct node_deftype {
 struct node_defmethod {
   struct toplevel toplevel;
   enum token_type access;
-  ssize_t min_args, max_args, first_vararg;
+  ssize_t min_args, max_args, first_vararg, first_wildcard_genarg;
   const struct typ *member_from_intf;
 };
 struct node_defintf {

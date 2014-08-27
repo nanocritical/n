@@ -10,6 +10,8 @@
 #include "constraints.h"
 #include "reflect.h"
 
+#define DEF(t) typ_definition_nooverlay_const(t)
+
 enum forward {
   FWD_DECLARE_TYPES,
   FWD_DEFINE_DYNS,
@@ -195,7 +197,7 @@ static void print_token(FILE *out, enum token_type t) {
 }
 
 static bool is_in_topmost_module(const struct typ *t) {
-  const struct module *mod = node_module_owner_const(typ_definition_const(t));
+  const struct module *mod = node_module_owner_const(DEF(t));
   return mod->stage->printing_mod == mod;
 }
 
@@ -253,7 +255,7 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
     print_expr(out, mod, left, T__STATEMENT);
     fprintf(out, ").%s %s ", idents_value(mod->gctx, ID_TAG), cop);
 
-    const struct node *d = typ_definition_const(left->typ);
+    const struct node *d = DEF(left->typ);
     const struct node *ch = node_get_member_const(d, node_ident(right));
     print_defchoice_path(out, mod, d, ch);
     fprintf(out, "$%s", idents_value(mod->gctx, ID_TAG));
@@ -289,7 +291,7 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
 
 static void print_union_access_path(FILE *out, const struct module *mod,
                                     const struct typ *t, ident tag) {
-  const struct node *d = typ_definition_const(t);
+  const struct node *d = DEF(t);
   const struct node *defch = node_get_member_const(d, tag);
 
   struct node *field = NULL;
@@ -339,7 +341,7 @@ static void print_bin_acc(FILE *out, const struct module *mod,
   const struct node *name = subs_last_const(node);
   const char *name_s = idents_value(mod->gctx, node_ident(name));
 
-  const struct node *d = typ_definition_const(node->typ);
+  const struct node *d = DEF(node->typ);
   const bool is_enum = d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_ENUM;
 
   if ((is_enum && (node->flags & NODE_IS_DEFCHOICE))
@@ -493,7 +495,7 @@ static void print_call(FILE *out, const struct module *mod,
                        const struct node *node, uint32_t parent_op) {
   const struct node *fun = subs_first_const(node);
   const struct typ *tfun = fun->typ;
-  const struct node *dfun = typ_definition_const(tfun);
+  const struct node *dfun = DEF(tfun);
   const struct node *parentd = parent_const(dfun);
 
   if (node_ident(dfun) == ID_CAST) {
@@ -614,7 +616,7 @@ static void print_init_array(FILE *out, const struct module *mod, const struct n
 static void print_tag_init(FILE *out, const struct module *mod,
                            const struct node *node, bool is_inline) {
   assert(node->which == INIT);
-  const struct node *d = typ_definition_const(node->typ);
+  const struct node *d = DEF(node->typ);
   if (d->which != DEFTYPE || d->as.DEFTYPE.kind != DEFTYPE_UNION) {
     return;
   }
@@ -908,7 +910,7 @@ static void print_match_label(FILE *out, const struct module *mod,
   if (id->which == BIN) {
     id = subs_last_const(id);
   }
-  const struct node *deft = typ_definition_const(label->typ);
+  const struct node *deft = DEF(label->typ);
   const struct node *ch = node_get_member_const(deft, node_ident(id));
 
   assert(ch->which == DEFCHOICE);
@@ -930,7 +932,7 @@ static void print_match_label(FILE *out, const struct module *mod,
 static void print_match(FILE *out, const struct module *mod,
                         const struct node *node) {
   const struct node *expr = subs_first_const(node);
-  const struct node *dexpr = typ_definition_const(expr->typ);
+  const struct node *dexpr = DEF(expr->typ);
   fprintf(out, "switch (");
   print_expr(out, mod, expr, T__STATEMENT);
   if (dexpr->which == DEFTYPE && dexpr->as.DEFTYPE.kind == DEFTYPE_UNION) {
@@ -1060,7 +1062,7 @@ static void print_linkage(FILE *out, bool header, enum forward fwd,
 }
 
 static const struct typ *intercept_slices(const struct module *mod, const struct typ *t) {
-  const struct node *d = typ_definition_const(t);
+  const struct node *d = DEF(t);
 
   if (node_is_at_top(d) && typ_generic_arity(t) == 0) {
     return t;
@@ -1073,7 +1075,7 @@ static const struct typ *intercept_slices(const struct module *mod, const struct
       return t;
     }
 
-    const struct node *m = node_get_member_const(typ_definition_const(pt),
+    const struct node *m = node_get_member_const(DEF(pt),
                                                  node_ident(d));
     const struct typ *mt = m->typ;
     if (typ_generic_arity(mt) == 0) {
@@ -1119,12 +1121,12 @@ static void print_typ_name(FILE *out, const struct module *mod,
 
   t = intercept_slices(mod, t);
 
-  const struct scope *scope = &typ_definition_const(t)->scope;
+  const struct scope *scope = &DEF(t)->scope;
   print_scope_name(out, mod, scope);
 }
 
 static void print_typ_function(FILE *out, const struct module *mod, const struct typ *typ) {
-  const struct node *def = typ_definition_const(typ);
+  const struct node *def = DEF(typ);
 
   if (typ_generic_arity(typ) > 0) {
     fprintf(out, "_$Ngen_");
@@ -1196,7 +1198,7 @@ static void print_import_path(FILE *out, const struct module *mod,
 }
 
 static void print_typ(FILE *out, const struct module *mod, const struct typ *typ) {
-  const struct node *d = typ_definition_const(typ);
+  const struct node *d = DEF(typ);
   if (d->which == IMPORT) {
     print_import_path(out, mod, d);
     return;
@@ -1459,7 +1461,7 @@ static void print_typeconstraint(FILE *out, const struct module *mod, const stru
 static void print_defarg(FILE *out, const struct module *mod, const struct node *node,
                          bool return_through_ref) {
   if (return_through_ref) {
-    if (typ_definition_const(node->typ)->which == DEFINTF) {
+    if (DEF(node->typ)->which == DEFINTF) {
       fprintf(out, "_$Ndyn_");
     }
   }
@@ -2039,7 +2041,7 @@ static ERROR print_dyntable_field_eachisalist(struct module *mod, struct typ *ig
     return 0;
   }
 
-  const struct node *dintf = typ_definition_const(intf);
+  const struct node *dintf = DEF(intf);
   FOREACH_SUB_CONST(f, dintf) {
     if (f->which != DEFFUN && f->which != DEFMETHOD) {
       continue;
@@ -2047,12 +2049,12 @@ static ERROR print_dyntable_field_eachisalist(struct module *mod, struct typ *ig
     if (node_toplevel_const(f)->flags & TOP_IS_NOT_DYN) {
       continue;
     }
-    if (subs_count_atleast(subs_at_const(typ_definition_const(f->typ), IDX_GENARGS), 1)) {
+    if (subs_count_atleast(subs_at_const(DEF(f->typ), IDX_GENARGS), 1)) {
       continue;
     }
 
     st->printed += 1;
-    const struct node *thisf = node_get_member_const(typ_definition_const(t),
+    const struct node *thisf = node_get_member_const(DEF(t),
                                                      node_ident(f));
     if (!typ_is_concrete(thisf->typ)) {
       return 0;
@@ -2559,7 +2561,7 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
   }
 
   const struct typ *r = typ_generic_functor_const(node->typ);
-  const struct node *d = typ_definition_const(typ_generic_arg_const(node->typ, 0));
+  const struct node *d = DEF(typ_generic_arg_const(node->typ, 0));
 
   if (header && !node_is_export(d)) {
     return;
@@ -2576,7 +2578,7 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
 
   const char *prefix = "";
   if (typ_is_dyn(d->typ)) {
-    const struct node *dd = typ_definition_const(typ_generic_arg_const(d->typ, 0));
+    const struct node *dd = DEF(typ_generic_arg_const(d->typ, 0));
     fprintf(out, "struct _$Ndyn_");
     print_deftype_name(out, mod, dd);
     fprintf(out, ";\n");
@@ -2718,7 +2720,7 @@ static ERROR print_defintf_dyntable_field_eachisalist(struct module *mod, struct
                                                       bool *stop, void *user) {
   struct cprinter_state *st = user;
 
-  const struct node *dintf = typ_definition_const(intf);
+  const struct node *dintf = DEF(intf);
   FOREACH_SUB_CONST(d, dintf) {
     if (d->which != DEFFUN && d->which != DEFMETHOD) {
       continue;
@@ -2726,7 +2728,7 @@ static ERROR print_defintf_dyntable_field_eachisalist(struct module *mod, struct
     if (node_toplevel_const(d)->flags & TOP_IS_NOT_DYN) {
       continue;
     }
-    if (subs_count_atleast(subs_at_const(typ_definition_const(d->typ), IDX_GENARGS), 1)) {
+    if (subs_count_atleast(subs_at_const(DEF(d->typ), IDX_GENARGS), 1)) {
       continue;
     }
     print_fun_prototype(st->out, st->header, st->fwd, mod, d, true, true, true, NULL);
@@ -2741,7 +2743,7 @@ static ERROR print_defintf_member_proto_eachisalist(struct module *mod, struct t
                                                     struct typ *intf, void *user) {
   struct cprinter_state *st = user;
 
-  const struct node *dintf = typ_definition_const(intf);
+  const struct node *dintf = DEF(intf);
   FOREACH_SUB_CONST(d, dintf) {
     if (d->which != DEFFUN && d->which != DEFMETHOD) {
       continue;
@@ -2749,7 +2751,7 @@ static ERROR print_defintf_member_proto_eachisalist(struct module *mod, struct t
     if (node_toplevel_const(d)->flags & TOP_IS_NOT_DYN) {
       continue;
     }
-    if (subs_count_atleast(subs_at_const(typ_definition_const(d->typ), IDX_GENARGS), 1)) {
+    if (subs_count_atleast(subs_at_const(DEF(d->typ), IDX_GENARGS), 1)) {
       continue;
     }
     print_fun_prototype(st->out, st->header, st->fwd, mod, d, false, false, false, t);
@@ -2762,7 +2764,7 @@ static ERROR print_defintf_member_eachisalist(struct module *mod, struct typ *t,
                                               struct typ *intf, void *user) {
   struct cprinter_state *st = user;
 
-  const struct node *dintf = typ_definition_const(intf);
+  const struct node *dintf = DEF(intf);
   FOREACH_SUB_CONST(d, dintf) {
     if (d->which != DEFFUN && d->which != DEFMETHOD) {
       continue;
@@ -2770,7 +2772,7 @@ static ERROR print_defintf_member_eachisalist(struct module *mod, struct typ *t,
     if (node_toplevel_const(d)->flags & TOP_IS_NOT_DYN) {
       continue;
     }
-    if (subs_count_atleast(subs_at_const(typ_definition_const(d->typ), IDX_GENARGS), 1)) {
+    if (subs_count_atleast(subs_at_const(DEF(d->typ), IDX_GENARGS), 1)) {
       continue;
     }
 
@@ -3031,7 +3033,7 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
   }
   if ((!typ_is_concrete(node->typ) && node->which != DEFINTF)
       || (!node_is_at_top(node) && !typ_is_concrete(parent_const(node)->typ))
-      || (typ_is_reference(_t) && typ_definition_const(_t)->which == DEFINTF)
+      || (typ_is_reference(_t) && DEF(_t)->which == DEFINTF)
       || typ_is_generic_functor(_t)
       || (typ_generic_arity(_t) == 0 && !is_in_topmost_module(_t))
       || typ_is_tentative(_t)) {
@@ -3048,7 +3050,7 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
     return 0;
   }
 
-  const struct node *d = typ_definition_const(t);
+  const struct node *d = DEF(t);
   const struct module *dmod = node_module_owner_const(d);
   print_top(st->out, st->header, st->fwd, dmod, d, printed,
             st->fwd == FWD_DEFINE_TYPES
@@ -3101,7 +3103,7 @@ static void print_top(FILE *out, bool header, enum forward fwd,
   }
 
   if (!node_is_at_top(node)
-      && node_ident(parent_const(node)) == node_ident(typ_definition_const(TBI_SLICE))) {
+      && node_ident(parent_const(node)) == node_ident(DEF(TBI_SLICE))) {
     return;
   }
 

@@ -94,20 +94,6 @@ static ERROR do_instantiate_tentative(struct typ **result,
   BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_INTF);
   BEGTIMEIT(TIMEIT_INSTANTIATE_TENTATIVE_REF);
 
-  for (size_t n = 0; n < arity; ++n) {
-    if (args[n] == NULL) {
-      continue;
-    }
-
-    const struct node *fe = for_error_offset >= 0
-      && for_error_offset+n < subs_count(for_error)
-      ? subs_at_const(for_error, for_error_offset+n)
-      : for_error;
-
-    error e = typ_check_isa(mod, fe, args[n], typ_generic_arg_const(t, n));
-    EXCEPT(e);
-  }
-
   *result = typ_create_tentative(t, args, arity);
 
   ENDTIMEIT(typ_is_reference(*result), TIMEIT_INSTANTIATE_TENTATIVE_REF);

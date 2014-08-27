@@ -60,12 +60,12 @@ static int typ_ptr_cmp(const struct typ **a, const struct typ **b) {
   return memcmp(a, b, sizeof(*a));
 }
 
-HTABLE_SPARSE(typ2typ, struct typ *, struct typ *);
-IMPLEMENT_HTABLE_SPARSE(unused__ static, typ2typ, struct typ *, struct typ *,
+HTABLE_SPARSE(typ2loc, struct typ **, struct typ *);
+IMPLEMENT_HTABLE_SPARSE(unused__ static, typ2loc, struct typ **, struct typ *,
                         typ_ptr_hash, typ_ptr_cmp);
 
 struct overlay {
-  struct typ2typ map;
+  struct typ2loc map;
 };
 
 struct typ {
@@ -77,14 +77,23 @@ struct typ {
 
   uint8_t rdy;
 
+  struct typ *gen0;
   size_t gen_arity;
-  struct typ **gen_args; // of length 1+gen_arity
+  struct typ **gen_args; // of length gen_arity (generics)
 
   struct typset quickisa;
 
   struct backlinks backlinks;
   struct users users;
 };
+
+static struct node *typ_definition(struct typ *t) {
+  return t->definition;
+}
+
+static const struct node *typ_definition_const(const struct typ *t) {
+  return typ_definition(CONST_CAST(t));
+}
 
 #define FOREACH_BACKLINK(idx, back, t, what) do { \
   struct backlinks *backlinks = &t->backlinks; \
@@ -118,17 +127,13 @@ static bool typ_is_genarg(const struct typ *t) {
 
 static void overlay_init(struct typ *t) {
   t->overlay = calloc(1, sizeof(*t->overlay));
-  typ2typ_init(&t->overlay->map, 0);
+  typ2loc_init(&t->overlay->map, 0);
 }
 
-static void overlay_map(struct typ *t, struct typ *dst, struct typ *src) {
+static void overlay_map(struct typ *t, struct typ **dst, struct typ *src) {
   assert(typ_is_genarg(src));
-  struct typ **existing = typ2typ_get(&t->overlay->map, src);
-  if (existing != NULL) {
-    *existing = dst;
-  } else {
-    typ2typ_set(&t->overlay->map, src, dst);
-  }
+  const bool no = typ2loc_set(&t->overlay->map, src, dst);
+  assert(!no);
 }
 
 static struct typ *overlay_translate(struct typ *t, struct typ *src) {
@@ -136,9 +141,9 @@ static struct typ *overlay_translate(struct typ *t, struct typ *src) {
     return src;
   }
 
-  struct typ **existing = typ2typ_get(&t->overlay->map, src);
+  struct typ ***existing = typ2loc_get(&t->overlay->map, src);
   if (existing != NULL) {
-    return *existing;
+    return **existing;
   } else {
     return src;
   }
@@ -462,6 +467,7 @@ struct typ *typ_create(struct typ *tbi, struct node *definition) {
   struct typ *r = tbi != NULL ? tbi : calloc(1, sizeof(struct typ));
 
   r->definition = definition;
+  set_typ(&r->gen0, r);
   create_flags(r, tbi);
 
   return r;
@@ -488,17 +494,18 @@ void typ_create_update_genargs(struct typ *t) {
     return;
   }
 
-  t->gen_args = calloc(1 + arity, sizeof(*t->gen_args));
+  t->gen_args = calloc(arity, sizeof(*t->gen_args));
 
+  unset_typ(&t->gen0);
   struct typ *t0 = typ_generic_functor(t);
-  set_typ(&t->gen_args[0], t0);
+  set_typ(&t->gen0, t0);
   if (typ_is_tentative(t0)) {
     typ_add_tentative_bit__privileged(&typ_definition(t)->typ);
     add_user(t0, t);
   }
   for (size_t n = 0, count = typ_generic_arity(t); n < count; ++n) {
     struct typ *arg = typ_generic_arg(t, n);
-    set_typ(&t->gen_args[1 + n], arg);
+    set_typ(&t->gen_args[n], arg);
     if (typ_is_tentative(arg)) {
       typ_add_tentative_bit__privileged(&typ_definition(t)->typ);
       add_user(arg, t);
@@ -522,7 +529,7 @@ void typ_create_update_hash(struct typ *t) {
     if (i == LEN) {
       break;
     }
-    buf[i] = node_ident(typ_definition_const(t->gen_args[1 + n]));
+    buf[i] = node_ident(typ_definition_const(t->gen_args[n]));
     i += 1;
   }
 #undef LEN
@@ -567,10 +574,12 @@ struct typ *typ_create_genarg(struct typ *t) {
   struct typ *r = calloc(1, sizeof(struct typ));
   r->flags = t->flags | TYPF_GENARG;
   r->definition = t->definition;
+  set_typ(&r->gen0, r);
   return r;
 }
 
 struct typ *typ_create_tentative_functor(struct typ *t) {
+  assert(NM(typ_definition_which(t)) & (NM(DEFINTF) | NM(DEFINCOMPLETE)));
   assert(typ_is_generic_functor(t));
   assert(typ_hash_ready(t));
 
@@ -583,13 +592,19 @@ struct typ *typ_create_tentative_functor(struct typ *t) {
   r->rdy = t->rdy;
   r->hash = t->hash;
   r->definition = t->definition;
+
+  assert(t->rdy & RDY_GEN);
   r->gen_arity = t->gen_arity;
-  if (t->rdy & RDY_GEN) {
-    r->gen_args = calloc(1 + t->gen_arity, sizeof(*r->gen_args));
-    set_typ(&r->gen_args[0], r);
-    for (size_t n = 0; n < t->gen_arity; ++n) {
-      set_typ(&r->gen_args[1 + n], t->gen_args[1 + n]);
-    }
+  overlay_init(r);
+  r->gen_args = calloc(t->gen_arity, sizeof(*r->gen_args));
+  struct typ *final = typ_definition_which(t) == DEFINTF ? typ_member(t, ID_FINAL) : t;
+  set_typ(&r->gen0, r /* tentative functors are their own functor */);
+  if (typ_is_genarg(final)) {
+    overlay_map(r, &r->gen0, final);
+  }
+  for (size_t n = 0; n < t->gen_arity; ++n) {
+    set_typ(&r->gen_args[n], t->gen_args[n]);
+    overlay_map(r, &r->gen_args[n], t->gen_args[n]);
   }
 
   typ_create_update_quickisa(r);
@@ -607,14 +622,19 @@ struct typ *typ_create_tentative(struct typ *t, struct typ **args, size_t arity)
   assert(t->rdy & RDY_HASH);
   r->hash = t->hash;
   r->definition = t->definition;
-  r->gen_arity = t->gen_arity;
+
   assert(t->rdy & RDY_GEN);
-  r->gen_args = calloc(1 + t->gen_arity, sizeof(*r->gen_args));
-  set_typ(&r->gen_args[0], r);
-  overlay_map(r, r, t);
+  r->gen_arity = t->gen_arity;
+  overlay_init(r);
+  r->gen_args = calloc(t->gen_arity, sizeof(*r->gen_args));
+  struct typ *final = typ_definition_which(t) == DEFINTF ? typ_member(t, ID_FINAL) : t;
+  set_typ(&r->gen0, final);
+  if (typ_is_genarg(final)) {
+    overlay_map(r, &r->gen0, final);
+  }
   for (size_t n = 0; n < t->gen_arity; ++n) {
-    set_typ(&r->gen_args[1 + n], t->gen_args[1 + n]);
-    overlay_map(r, args[n], t->gen_args[1+n]);
+    set_typ(&r->gen_args[n], args[n]);
+    overlay_map(r, &r->gen_args[n], t->gen_args[n]);
   }
 
   typ_create_update_quickisa(r);
@@ -743,8 +763,10 @@ static void link_to_final(struct module *mod, struct typ *dst, struct typ *src) 
 
   FOREACH_USER(idx, user, src, link_finalize(user));
 
-  // Noone should be referring to 'src' anymore; let's make sure.
+  // Noone should be referring to 'src' anymore, except gen0; let's make sure.
+  struct typ *gen0 = src->gen0;
   memset(src, 0, sizeof(*src));
+  src->gen0 = gen0;
 }
 
 // When linking src to a tentative dst, and when src is a generic, each of
@@ -773,8 +795,10 @@ static void link_to_tentative(struct module *mod, struct typ *dst, struct typ *s
   clear_backlinks(src);
   clear_users(src);
 
-  // Noone should be referring to 'src' anymore; let's make sure.
+  // Noone should be referring to 'src' anymore, except gen0; let's make sure.
+  struct typ *gen0 = src->gen0;
   memset(src, 0, sizeof(*src));
+  src->gen0 = gen0;
 }
 
 void typ_link_tentative(struct typ *dst, struct typ *src) {
@@ -829,8 +853,9 @@ void typ_debug_check_in_backlinks(struct typ **u) {
   FOREACH_BACKLINK(idx, b, t, if (b != NULL) { r |= b == u; });
 }
 
-struct node *typ_definition(struct typ *t) {
-  return t->definition;
+struct typ **typ_permanent_loc(struct typ *t) {
+  assert(t->overlay != NULL || !typ_hash_ready(t) || t->definition->which == DEFINCOMPLETE);
+  return &t->gen0;
 }
 
 struct node *typ_definition_nooverlay(struct typ *t) {
@@ -860,6 +885,10 @@ bool typ_is_function(const struct typ *t) {
   return def->which == DEFFUN || def->which == DEFMETHOD;
 }
 
+uint32_t typ_toplevel_flags(const struct typ *t) {
+  return node_toplevel_const(typ_definition_const(t))->flags;
+}
+
 enum node_which typ_definition_which(const struct typ *t) {
   return typ_definition_const(t)->which;
 }
@@ -880,6 +909,12 @@ enum token_type typ_definition_defmethod_access(const struct typ *t) {
   const struct node *d = typ_definition_const(t);
   assert(d->which == DEFMETHOD);
   return d->as.DEFMETHOD.access;
+}
+
+struct typ *typ_definition_defmethod_self_wildcard_functor(const struct typ *t) {
+  assert(t->definition->which == DEFMETHOD);
+  const struct node *genargs = subs_at_const(typ_definition_const(t), IDX_GENARGS);
+  return subs_at_const(genargs, t->definition->as.DEFMETHOD.first_wildcard_genarg)->typ;
 }
 
 ident typ_definition_ident(const struct typ *t) {
@@ -1182,9 +1217,9 @@ struct typ *typ_generic_functor(struct typ *t) {
     if (t->gen_arity == 0) {
       return NULL;
     } else {
-      return t->gen_args[0];
+      return t->gen0;
     }
-    return t->gen_args[0];
+    return t->gen0;
   } else {
     return def_generic_functor(t);
   }
@@ -1248,7 +1283,7 @@ static struct typ *def_generic_arg(struct typ *t, size_t n) {
 struct typ *typ_generic_arg(struct typ *t, size_t n) {
   if (t->rdy & RDY_GEN) {
     assert(n < t->gen_arity);
-    return t->gen_args[1 + n];
+    return t->gen_args[n];
   } else {
     return def_generic_arg(t, n);
   }
@@ -1305,10 +1340,6 @@ struct typ *typ_function_return(struct typ *t) {
   assert(typ_definition_const(t)->which == DEFFUN
          || typ_definition_const(t)->which == DEFMETHOD);
   return node_fun_retval_const(typ_definition_const(t))->typ;
-}
-
-const struct node *typ_definition_const(const struct typ *t) {
-  return typ_definition(CONST_CAST(t));
 }
 
 const struct typ *typ_generic_functor_const(const struct typ *t) {
@@ -2178,10 +2209,10 @@ static void prepare_query_tmp(struct typ *tmp, struct typ *functor,
                               struct typ **args, size_t arity) {
   tmp->definition = typ_definition(functor);
   tmp->gen_arity = arity;
-  tmp->gen_args = calloc(1 + arity, sizeof(*tmp->gen_args));
+  tmp->gen_args = calloc(arity, sizeof(*tmp->gen_args));
   // Not using set_typ(), 'tmp' doesn't live long enough to see linking.
-  tmp->gen_args[0] = functor;
-  memcpy(tmp->gen_args + 1, args, arity * sizeof(*tmp->gen_args));
+  set_typ(&tmp->gen0, functor);
+  memcpy(tmp->gen_args, args, arity * sizeof(*tmp->gen_args));
   tmp->rdy = RDY_GEN;
 
   create_flags(tmp, (functor->flags & TYPF_BUILTIN) ? functor : NULL);
@@ -2228,6 +2259,7 @@ struct typ *instances_find_existing_final_with(struct typ *genf,
 
   struct node **i = instanceset_get(&generic->finals, q);
   free(tmp.gen_args);
+  unset_typ(&tmp.gen0);
 
   return i == NULL ? NULL : (*i)->typ;
 }
@@ -2267,6 +2299,7 @@ struct typ *instances_find_existing_identical(struct typ *functor,
   q.which = INST_QUERY_IDENTICAL;
   q.as.QUERY = &tmp;
 
+  struct typ *ret = NULL;
   for (ssize_t n = 0; n < vecnode_count(&generic->tentatives); ++n) {
     struct node **i = vecnode_get(&generic->tentatives, n);
     if (typ_hash_ready((*i)->typ) && !typ_is_tentative((*i)->typ)) {
@@ -2280,13 +2313,18 @@ struct typ *instances_find_existing_identical(struct typ *functor,
     f.which = INST_ENTRY;
     f.as.ENTRY = *i;
     if (0 == instance_cmp(&f, &q)) {
-      return (*i)->typ;
+      ret = (*i)->typ;
+      goto out;
     }
   }
 
   struct node **i = instanceset_get(&generic->finals, q);
+  ret =  i == NULL ? NULL : (*i)->typ;
+
+out:
   free(tmp.gen_args);
-  return i == NULL ? NULL : (*i)->typ;
+  unset_typ(&tmp.gen0);
+  return ret;
 }
 
 char *typ_name(const struct module *mod, const struct typ *t) {

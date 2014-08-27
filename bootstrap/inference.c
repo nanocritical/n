@@ -1665,18 +1665,6 @@ static ERROR explicit_instantiation(struct module *mod, struct node *node) {
   return 0;
 }
 
-static size_t find_first_wildcard_genarg(const struct node *genargs) {
-  size_t n = 0;
-  FOREACH_SUB_CONST(g, genargs) {
-    const ident name = node_ident(g);
-    if (name == ID_WILDCARD_REF_ARG_SELF || name == ID_WILDCARD_REF_ARG) {
-      return n;
-    }
-    n += 1;
-  }
-  assert(false);
-}
-
 static ERROR implicit_function_instantiation(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
@@ -1687,7 +1675,6 @@ static ERROR implicit_function_instantiation(struct module *mod, struct node *no
   assert(arity == typ_function_arity(tfun));
 
   struct typ *i = instantiate_fully_implicit(mod, node, tfun);
-  const struct node *genargs = subs_at_const(typ_definition_const(i), IDX_GENARGS);
 
   size_t n = 0;
   FOREACH_SUB_EVERY(s, node, 1, 1) {
@@ -1698,19 +1685,16 @@ static ERROR implicit_function_instantiation(struct module *mod, struct node *no
         && typ_definition_defmethod_access(i) == TREFWILDCARD) {
       // This code enforces the relationship between the 2 wildcard generic
       // arguments, for wildcard methods.
-      const size_t w = find_first_wildcard_genarg(genargs);
-      assert(node_ident(subs_at_const(genargs, w)) == ID_WILDCARD_REF_ARG_SELF);
-      const struct node *wildcard = subs_at_const(genargs, n+1);
-      assert(node_ident(wildcard) == ID_WILDCARD_REF_ARG);
 
-      if ((node_toplevel_const(typ_definition(i))->flags & TOP_IS_SHALLOW)
+      struct typ *wildcard = typ_definition_defmethod_self_wildcard_functor(i);
+      if ((typ_toplevel_flags(i) & TOP_IS_SHALLOW)
           && typ_equal(typ_generic_functor(s->typ), TBI_MREF)) {
-        e = unify(mod, s, wildcard->typ, TBI_MMREF);
+        e = unify(mod, s, wildcard, TBI_MMREF);
         EXCEPT(e);
       } else {
         assert(typ_is_reference(s->typ));
 
-        e = unify(mod, s, wildcard->typ, typ_generic_functor(s->typ));
+        e = unify(mod, s, wildcard, typ_generic_functor(s->typ));
         EXCEPT(e);
       }
     }
@@ -2351,7 +2335,11 @@ error step_type_inference(struct module *mod, struct node *node,
     }
     break;
   case DEFALIAS:
-    set_typ(&node->typ, subs_last(node)->typ);
+    if (node_ident(node) == ID_FINAL && nparent(node, 2)->which == DEFINTF) {
+      set_typ(&node->typ, typ_create_genarg(subs_last(node)->typ));
+    } else {
+      set_typ(&node->typ, subs_last(node)->typ);
+    }
     node->flags |= subs_last(node)->flags & NODE__TRANSITIVE;
     if (!(node->flags & NODE_IS_TYPE)) {
       e = mk_except(mod, node, "alias cannot be used with a value (use let)");
@@ -2614,18 +2602,6 @@ static ERROR finalize_generic_instantiation(struct typ *t) {
   EXCEPT(e);
 
   assert(!typ_is_tentative(i));
-  // SHOULDN'T MEMBERS also be linked already?
-  //typ_declare_final__privileged(i->typ);
-  if (NM(typ_definition_which(i)) & STEP_NM_DEFS_NO_FUNS) {
-    struct node *di = typ_definition(i);
-    FOREACH_SUB(m, di) {
-      if (NM(m->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
-        assert(!typ_is_tentative(m->typ));
-        typ_declare_final__privileged(m->typ);
-      }
-    }
-  }
-
   if (!typ_was_zeroed(t)) {
     // Otherwise it's already linked.
     typ_link_to_existing_final(i, t);

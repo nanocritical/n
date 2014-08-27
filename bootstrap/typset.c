@@ -12,13 +12,13 @@ static void add_final(struct typset *set, struct typ *t) {
   }
 }
 
-static void add_tentative(struct typset *set, struct node *def) {
-  vecnode_push(&set->tentatives, def);
+static void add_tentative(struct typset *set, struct typ **loc) {
+  vectyploc_push(&set->tentatives, loc);
 }
 
 void typset_add(struct typset *set, struct typ *t) {
   if (typ_is_tentative(t) || !typ_hash_ready(t)) {
-    add_tentative(set, typ_definition(t));
+    add_tentative(set, typ_permanent_loc(t));
   } else {
     add_final(set, t);
   }
@@ -28,14 +28,12 @@ bool typset_has(const struct typset *_set, const struct typ *_t) {
   struct typset *set = CONST_CAST(_set);
   struct typ *t = CONST_CAST(_t);
 
-  struct vecnode *tentatives = &set->tentatives;
-  for (ssize_t n = 0; n < vecnode_count(tentatives); ++n) {
-    struct node **p = vecnode_get(tentatives, n);
-
-    struct typ *s = (*p)->typ;
+  struct vectyploc *tentatives = &set->tentatives;
+  for (ssize_t n = 0; n < vectyploc_count(tentatives); ++n) {
+    struct typ *s = **vectyploc_get(tentatives, n);
     if (!typ_is_tentative(s) && typ_hash_ready(s)) {
       add_final(set, s);
-      n += vecnode_remove_replace_with_last(tentatives, n);
+      n += vectyploc_remove_replace_with_last(tentatives, n);
     }
 
     if (typ_equal(t, s)) {
@@ -49,13 +47,12 @@ bool typset_has(const struct typset *_set, const struct typ *_t) {
 
 error typset_foreach(struct module *mod, struct typset *set,
                      typset_each each, void *user) {
-  struct vecnode *tentatives = &set->tentatives;
-  for (ssize_t n = 0; n < vecnode_count(tentatives); ++n) {
-    struct node **p = vecnode_get(tentatives, n);
-    struct typ *s = (*p)->typ;
+  struct vectyploc *tentatives = &set->tentatives;
+  for (ssize_t n = 0; n < vectyploc_count(tentatives); ++n) {
+    struct typ *s = **vectyploc_get(tentatives, n);
     if (!typ_is_tentative(s) && typ_hash_ready(s)) {
       add_final(set, s);
-      n += vecnode_remove_replace_with_last(tentatives, n);
+      n += vectyploc_remove_replace_with_last(tentatives, n);
       continue;
     }
 

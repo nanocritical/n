@@ -71,7 +71,6 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_TUPLE_15] = "Tuple_15",
   [ID_TBI_TUPLE_16] = "Tuple_16",
   [ID_TBI_BOOL] = "Bool",
-  [ID_TBI_BOOL_COMPATIBLE] = "`Bool_compatible",
   [ID_TBI_I8] = "I8",
   [ID_TBI_U8] = "U8",
   [ID_TBI_I16] = "I16",
@@ -88,7 +87,6 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_DOUBLE] = "Double",
   [ID_TBI_CHAR] = "Char",
   [ID_TBI_STRING] = "String",
-  [ID_TBI_STRING_COMPATIBLE] = "`String_compatible",
   [ID_TBI_ANY_ANY_REF] = "`Any_any_ref",
   [ID_TBI_ANY_REF] = "`Any_ref",
   [ID_TBI_ANY_MUTABLE_REF] = "`Any_mutable_ref",
@@ -400,7 +398,6 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_TUPLE_16 = gctx->builtin_typs_by_name[ID_TBI_TUPLE_16];
   TBI_ANY = gctx->builtin_typs_by_name[ID_TBI_ANY];
   TBI_BOOL = gctx->builtin_typs_by_name[ID_TBI_BOOL];
-  TBI_BOOL_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_BOOL_COMPATIBLE];
   TBI_I8 = gctx->builtin_typs_by_name[ID_TBI_I8];
   TBI_U8 = gctx->builtin_typs_by_name[ID_TBI_U8];
   TBI_I16 = gctx->builtin_typs_by_name[ID_TBI_I16];
@@ -417,7 +414,6 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_DOUBLE = gctx->builtin_typs_by_name[ID_TBI_DOUBLE];
   TBI_CHAR = gctx->builtin_typs_by_name[ID_TBI_CHAR];
   TBI_STRING = gctx->builtin_typs_by_name[ID_TBI_STRING];
-  TBI_STRING_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_STRING_COMPATIBLE];
   TBI_ANY_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_ANY_REF];
   TBI_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_REF];
   TBI_ANY_MUTABLE_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_MUTABLE_REF];
@@ -2013,7 +2009,7 @@ static void add_self_arg(struct module *mod, struct node *node,
 
   if (node->as.DEFMETHOD.access == TREFWILDCARD) {
     struct node *genargs = subs_at(node, IDX_GENARGS);
-
+    node->as.DEFMETHOD.first_wildcard_genarg = subs_count(genargs);
     GSTART();
     G0(gas, genargs, DEFGENARG,
        G(gasn, IDENT,
@@ -2042,7 +2038,6 @@ static void add_self_arg(struct module *mod, struct node *node,
 static void add_fun_wildcard_genarg(struct module *mod, struct node *node) {
   if (node->as.DEFFUN.access == TREFWILDCARD) {
     struct node *genargs = subs_at(node, IDX_GENARGS);
-
     GSTART();
     G0(ga, genargs, DEFGENARG,
        G(gan, IDENT,

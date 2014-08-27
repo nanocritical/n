@@ -8,6 +8,27 @@ struct typ;
 // Can only be used with final typs.
 VECTOR(vectyp, struct typ *, 4);
 IMPLEMENT_VECTOR(static inline, vectyp, struct typ *);
+VECTOR(vectyploc, struct typ **, 4);
+IMPLEMENT_VECTOR(static inline, vectyploc, struct typ **);
+
+// Loose elements ordering.
+static inline use_result__ ssize_t vectyploc_remove_replace_with_last(struct vectyploc *v, ssize_t n) {
+  const size_t count = vectyploc_count(v);
+  if (count == 1) {
+    vectyploc_destroy(v);
+    return 0;
+  }
+
+  struct typ **last = vectyploc_pop(v);
+  if (n + 1 == count) {
+    (void) last;
+    return 0;
+  } else {
+    struct typ ***loc = vectyploc_get(v, n);
+    *loc = last;
+    return -1;
+  }
+}
 
 HTABLE_SPARSE(fintypset, uint32_t, struct typ *);
 DECLARE_HTABLE_SPARSE(fintypset, uint32_t, struct typ *);
@@ -20,23 +41,25 @@ struct typ *typ_create(struct typ *tbi, struct node *definition);
 void typ_create_update_hash(struct typ *t);
 void typ_create_update_genargs(struct typ *t);
 void typ_create_update_quickisa(struct typ *t);
-struct typ *typ_create_defgenarg(struct typ *t);
+struct typ *typ_create_genarg(struct typ *t);
 
 bool typ_hash_ready(const struct typ *t);
 
 bool typ_was_zeroed(const struct typ *t);
 
-struct node *typ_definition(/*struct typ_overlay *olay,*/ struct typ *t);
+struct typ **typ_permanent_loc(struct typ *t);
 struct node *typ_definition_nooverlay(struct typ *t);
 const struct node *typ_definition_nooverlay_const(const struct typ *t);
 struct node *typ_definition_ignore_any_overlay(struct typ *t);
 const struct node *typ_definition_ignore_any_overlay_const(const struct typ *t);
 const struct node *typ_for_error(const struct typ *t);
 
+uint32_t typ_toplevel_flags(const struct typ *t);
 enum node_which typ_definition_which(const struct typ *t);
 enum deftype_kind typ_definition_deftype_kind(const struct typ *t);
 struct typ *typ_definition_tag_type(const struct typ *t);
 enum token_type typ_definition_defmethod_access(const struct typ *t);
+struct typ *typ_definition_defmethod_self_wildcard_functor(const struct typ *t);
 ident typ_definition_ident(const struct typ *t);
 struct module *typ_module_owner(const struct typ *t);
 struct module *typ_defincomplete_trigger_mod(const struct typ *t);
@@ -143,7 +166,6 @@ ERROR typ_isalist_foreach(struct module *mod, struct typ *t, uint32_t filter,
                           isalist_each iter, void *user);
 
 // const interface
-const struct node *typ_definition_const(const struct typ *t);
 const struct typ *typ_generic_functor_const(const struct typ *t);
 const struct typ *typ_generic_arg_const(const struct typ *t, size_t n);
 const struct typ *typ_function_arg_const(const struct typ *t, size_t n);

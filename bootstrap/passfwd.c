@@ -511,7 +511,8 @@ static ERROR step_add_builtin_members(struct module *mod, struct node *node,
   }
 
   define_builtin_alias(mod, node, ID_THIS, node->typ);
-  define_builtin_alias(mod, node, ID_FINAL, typ_create_genarg(node->typ));
+  define_builtin_alias(mod, node, ID_FINAL,
+                       node->which == DEFINTF ? typ_create_genarg(node->typ) : node->typ);
 
   return 0;
 }
@@ -561,6 +562,11 @@ static ERROR step_type_aliases(struct module *mod, struct node *node,
       && subs_first(node)->which == DEFALIAS) {
     error e = early_typing(mod, node);
     EXCEPT(e);
+  }
+
+  if (node->which == DEFINTF) {
+    typ_create_update_genargs(node_get_member(node, ID_FINAL)->typ);
+    typ_create_update_hash(node_get_member(node, ID_FINAL)->typ);
   }
 
   return 0;
@@ -617,6 +623,9 @@ static ERROR step_type_update_quickisa(struct module *mod, struct node *node,
   }
 
   typ_create_update_quickisa(node->typ);
+  if (node->which == DEFINTF) {
+    typ_create_update_quickisa(node_get_member(node, ID_FINAL)->typ);
+  }
 
   return 0;
 }

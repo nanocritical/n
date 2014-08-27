@@ -4,6 +4,7 @@
 #include "types.h"
 #include "parser.h"
 #include "phi.h"
+#include "printer.h"
 #include <stdarg.h>
 
 typedef int8_t cbool;
