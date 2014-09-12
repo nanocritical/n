@@ -369,7 +369,7 @@ static void print_bin_isa(FILE *out, const struct module *mod, const struct node
   const struct node *left = subs_first_const(node);
   const struct node *right = subs_last_const(node);
 
-  fprintf(out, "n$reflect$Isa((");
+  fprintf(out, "n$reflect$Isa((void *)(");
   print_expr(out, mod, left, T__STATEMENT);
   fprintf(out, ").dyntable, (void *)&");
   print_typ(out, mod, right->typ);
@@ -510,7 +510,7 @@ static void print_call(FILE *out, const struct module *mod,
     const struct typ *i = typ_generic_arg_const(tfun, 0);
     fprintf(out, "NLANG_MKDYN(_$Ndyn_");
     print_typ(out, mod, i);
-    fprintf(out, ", n$reflect$Get_dyntable_for((");
+    fprintf(out, ", n$reflect$Get_dyntable_for((void *)(");
     print_expr(out, mod, subs_at_const(node, 1), T__CALL);
     fprintf(out, ").dyntable, (void *)&");
     print_typ(out, mod, i);
@@ -1160,6 +1160,10 @@ static void print_typ_data(FILE *out, const struct module *mod, const struct typ
     return;
   } else if (typ_is_dyn(typ)) {
     fprintf(out, "_$Ndyn_");
+    print_typ(out, mod, typ_generic_arg_const(typ, 0));
+    return;
+  } else if (typ_is_reference(typ)) {
+    fprintf(out, "_$Nref_");
     print_typ(out, mod, typ_generic_arg_const(typ, 0));
     return;
   }
@@ -2562,7 +2566,6 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  const struct typ *r = typ_generic_functor_const(node->typ);
   const struct node *d = DEF(typ_generic_arg_const(node->typ, 0));
 
   if (header && !node_is_export(d)) {
@@ -2605,33 +2608,11 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
     fprintf(out, ";\n");
   }
 
-  if (typ_equal(r, TBI_REF)) {
-    fprintf(out, "typedef const %s", prefix);
-    print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_n$builtins$Ref$$");
-  } else if (typ_equal(r, TBI_NREF)) {
-    fprintf(out, "typedef const %s", prefix);
-    print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_n$builtins$Nullable_ref$$");
-  } else if (typ_equal(r, TBI_MREF)) {
-    fprintf(out, "typedef %s", prefix);
-    print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_n$builtins$Mutable_ref$$");
-  } else if (typ_equal(r, TBI_MMREF)) {
-    fprintf(out, "typedef %s", prefix);
-    print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_n$builtins$Mercurial_ref$$");
-  } else if (typ_equal(r, TBI_NMREF)) {
-    fprintf(out, "typedef %s", prefix);
-    print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_n$builtins$Nullable_mutable_ref$$");
-  } else if (typ_equal(r, TBI_NMMREF)) {
-    fprintf(out, "typedef %s", prefix);
-    print_deftype_name(out, mod, d);
-    fprintf(out, "* _$Ngen_n$builtins$Nullable_mercurial_ref$$");
-  }
+  fprintf(out, "typedef %s", prefix);
   print_deftype_name(out, mod, d);
-  fprintf(out, "_genN$_;\n");
+  fprintf(out, "* _$Nref_");
+  print_deftype_name(out, mod, d);
+  fprintf(out, ";\n");
 
   guard_generic(out, header, fwd, mod, node, false);
 }
