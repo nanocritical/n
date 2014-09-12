@@ -516,7 +516,7 @@ static ERROR step_add_builtin_members(struct module *mod, struct node *node,
   define_builtin_alias(mod, node, ID_THIS, node->typ);
   define_builtin_alias(mod, node, ID_FINAL,
                        (NM(node->which) & (NM(DEFINTF) | NM(DEFINCOMPLETE)))
-                       ? typ_create_genarg(node->typ) : node->typ);
+                       ? typ_create_ungenarg(node->typ) : node->typ);
 
   return 0;
 }
@@ -569,7 +569,7 @@ static ERROR step_type_aliases(struct module *mod, struct node *node,
 
     if (par->which == DEFINTF) {
       if (subs_first_const(node)->which == DEFALIAS) {
-        typ_create_genarg_update_genargs(mod, subs_first(node)->typ);
+        typ_create_ungenarg_update_genargs(mod, subs_first(node)->typ);
         typ_create_update_hash(subs_first(node)->typ);
       }
     }
@@ -612,7 +612,7 @@ static ERROR step_type_create_update(struct module *mod, struct node *node,
   size_t nth = 0;
   FOREACH_SUB(ga, genargs) {
     if (ga->which == DEFGENARG) {
-      typ_create_genarg_update_genargs(mod, ga->typ);
+      typ_create_ungenarg_update_genargs(mod, ga->typ);
       typ_create_update_hash(ga->typ);
 
       defgenarg_detect_dependent_spec(ga, nth, ga->typ);
@@ -658,8 +658,8 @@ static ERROR step_type_update_quickisa(struct module *mod, struct node *node,
 
   struct node *isalist = subs_at(node, IDX_ISALIST);
   FOREACH_SUB(isa, isalist) {
-    if (typ_is_genarg(isa->typ)) {
-      typ_create_genarg_update_genargs(mod, isa->typ);
+    if (typ_is_ungenarg(isa->typ)) {
+      typ_create_ungenarg_update_genargs(mod, isa->typ);
       typ_create_update_hash(isa->typ);
       typ_create_update_quickisa(isa->typ);
     }

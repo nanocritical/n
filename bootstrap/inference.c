@@ -2366,7 +2366,7 @@ error step_type_inference(struct module *mod, struct node *node,
     break;
   case DEFALIAS:
     if (nparent(node, 2)->which == DEFINTF) {
-      set_typ(&node->typ, typ_create_genarg(subs_last(node)->typ));
+      set_typ(&node->typ, typ_create_ungenarg(subs_last(node)->typ));
     } else {
       set_typ(&node->typ, subs_last(node)->typ);
     }
@@ -2491,7 +2491,7 @@ error step_type_inference(struct module *mod, struct node *node,
     }
     break;
   case DEFGENARG:
-    node->typ = typ_create_genarg(subs_at(node, 1)->typ);
+    node->typ = typ_create_ungenarg(subs_at(node, 1)->typ);
     node->flags |= NODE_IS_TYPE;
     node_toplevel(nparent(node, 2))->flags |= TOP_IS_FUNCTOR;
     break;

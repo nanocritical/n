@@ -125,7 +125,7 @@ static const struct node *definition_const(const struct typ *t) {
   } while (users != NULL); \
 } while (0)
 
-bool typ_is_genarg(const struct typ *t) {
+bool typ_is_ungenarg(const struct typ *t) {
   return t->flags & TYPF_GENARG;
 }
 
@@ -298,7 +298,7 @@ static void add_user(struct typ *arg, struct typ *user) {
     return;
   }
 
-  if ((!typ_is_genarg(arg) || !typ_is_genarg(user)) && !typ_is_tentative(arg)) {
+  if ((!typ_is_ungenarg(arg) || !typ_is_ungenarg(user)) && !typ_is_tentative(arg)) {
     return;
   }
 
@@ -344,7 +344,7 @@ static void quickisa_init(struct typ *t) {
 // within an instantiated generic which are instantiated over non-tentative
 // interfaces.
 static void create_update_concrete_flag(struct typ *t) {
-  if (typ_is_genarg(t)) {
+  if (typ_is_ungenarg(t)) {
     t->flags &= ~TYPF_CONCRETE;
     return;
   }
@@ -508,9 +508,9 @@ struct typ *typ_create(struct typ *tbi, struct node *definition) {
 }
 
 // Only for passfwd.
-struct typ *typ_create_genarg(struct typ *t) {
-  if (typ_is_genarg(t)) {
-    // Already prepared by instantiate() in tentative/genarg mode.
+struct typ *typ_create_ungenarg(struct typ *t) {
+  if (typ_is_ungenarg(t)) {
+    // Already prepared by instantiate() in tentative/ungenarg mode.
     return t;
   }
 
@@ -534,7 +534,7 @@ void typ_create_update_genargs(struct typ *t) {
     if (typ_is_tentative(dpar->typ)) {
       typ_add_tentative_bit__privileged(&t);
     }
-    if (typ_is_genarg(dpar->typ)) {
+    if (typ_is_ungenarg(dpar->typ)) {
       t->flags |= TYPF_GENARG;
     }
     add_user(dpar->typ, t);
@@ -558,7 +558,7 @@ void typ_create_update_genargs(struct typ *t) {
   if (typ_is_tentative(t0)) {
     typ_add_tentative_bit__privileged(&t);
   }
-  if (typ_is_genarg(t0)) {
+  if (typ_is_ungenarg(t0)) {
     t->flags |= TYPF_GENARG;
   }
   add_user(t0, t);
@@ -569,7 +569,7 @@ void typ_create_update_genargs(struct typ *t) {
     if (typ_is_tentative(arg)) {
       typ_add_tentative_bit__privileged(&t);
     }
-    if (typ_is_genarg(arg) && !typ_is_generic_functor(t)) {
+    if (typ_is_ungenarg(arg) && !typ_is_generic_functor(t)) {
       t->flags |= TYPF_GENARG;
     }
     add_user(arg, t);
@@ -579,7 +579,7 @@ void typ_create_update_genargs(struct typ *t) {
 }
 
 void typ_create_update_hash(struct typ *t) {
-  if (typ_hash_ready(t) && typ_is_genarg(t)) {
+  if (typ_hash_ready(t) && typ_is_ungenarg(t)) {
     return;
   }
   assert(t->rdy & RDY_GEN);
@@ -647,7 +647,7 @@ HTABLE_SPARSE(typptrset, uint32_t, struct typ *);
 IMPLEMENT_HTABLE_SPARSE(unused__ static, typptrset, uint32_t, struct typ *,
                         typ_ptr_hash, typ_ptr_cmp);
 
-static bool track_genarg(struct typptrset *set, struct typ *t) {
+static bool track_ungenarg(struct typptrset *set, struct typ *t) {
   uint32_t *v = typptrset_get(set, t);
   if (v != NULL && *v > 0) {
     return true;
@@ -662,16 +662,16 @@ static bool track_genarg(struct typptrset *set, struct typ *t) {
 static struct typ *do_typ_create_tentative(struct module *trigger_mod,
                                            struct typ *t, struct typ **args, size_t arity,
                                            struct typptrset *set, bool reject_identical);
-static void map_genarg_users(struct module *trigger_mod,
+static void map_ungenarg_users(struct module *trigger_mod,
                              struct typ *t, struct typ *src, struct typptrset *set);
 
-static void map_genarg_user(struct module *trigger_mod,
+static void map_ungenarg_user(struct module *trigger_mod,
                             struct typ *t, struct typ *user, struct typptrset *set) {
   if (typ_generic_arity(user) == 0) {
     return;
   }
 
-  if (track_genarg(set, user)) {
+  if (track_ungenarg(set, user)) {
     return;
   }
 
@@ -703,18 +703,18 @@ static void map_genarg_user(struct module *trigger_mod,
   overlay_map(t, typ_permanent_loc(i), user);
   free(args);
 
-  map_genarg_users(trigger_mod, t, user, set);
+  map_ungenarg_users(trigger_mod, t, user, set);
 }
 
-static void map_genarg_users(struct module *trigger_mod,
+static void map_ungenarg_users(struct module *trigger_mod,
                              struct typ *t, struct typ *src, struct typptrset *set) {
-  if (!typ_is_genarg(src)) {
+  if (!typ_is_ungenarg(src)) {
     return;
   }
-  FOREACH_USER(idx, user, src, map_genarg_user(trigger_mod, t, user, set));
+  FOREACH_USER(idx, user, src, map_ungenarg_user(trigger_mod, t, user, set));
 }
 
-static void map_genarg(struct typ *t, struct typ **dst, struct typ *src) {
+static void map_ungenarg(struct typ *t, struct typ **dst, struct typ *src) {
   overlay_map(t, dst, src);
 }
 
@@ -729,11 +729,11 @@ static void map_children(struct module *trigger_mod, struct typ *par) {
       mm = typ_create_tentative(trigger_mod, m, NULL, 0);
     }
 
-    map_genarg(par, &mm->perm, m);
+    map_ungenarg(par, &mm->perm, m);
     add_user(par, mm);
 
     typ2loc_rehash(&mm->overlay->map, &par->overlay->map);
-    map_genarg(mm, &par->perm, tit_parent_definition_typ(tit));
+    map_ungenarg(mm, &par->perm, tit_parent_definition_typ(tit));
   }
 }
 
@@ -758,19 +758,19 @@ struct typ *typ_create_tentative_functor(struct module *trigger_mod, struct typ 
   r->gen_args = calloc(t->gen_arity, sizeof(*r->gen_args));
   struct typ *final = typ_definition_which(t) == DEFINTF ? typ_member(t, ID_FINAL) : t;
   set_typ(&r->gen0, r /* tentative functors are their own functor */);
-  if (typ_is_genarg(final)) {
-    map_genarg(r, &r->gen0, final);
+  if (typ_is_ungenarg(final)) {
+    map_ungenarg(r, &r->gen0, final);
   }
 
   for (size_t n = 0; n < t->gen_arity; ++n) {
     set_typ(&r->gen_args[n], t->gen_args[n]);
-    map_genarg(r, &r->gen_args[n], t->gen_args[n]);
+    map_ungenarg(r, &r->gen_args[n], t->gen_args[n]);
   }
 
   struct typptrset set = { 0 };
   typptrset_init(&set, 0);
   for (size_t n = 0; n < t->gen_arity; ++n) {
-    map_genarg_users(trigger_mod, r, t->gen_args[n], &set);
+    map_ungenarg_users(trigger_mod, r, t->gen_args[n], &set);
   }
   typptrset_destroy(&set);
 
@@ -782,12 +782,12 @@ struct typ *typ_create_tentative_functor(struct module *trigger_mod, struct typ 
   return r;
 }
 
-static void do_typ_create_genarg_update_genargs(struct module *trigger_mod,
+static void do_typ_create_ungenarg_update_genargs(struct module *trigger_mod,
                                                 struct typ *r, struct typptrset *set) {
-  const bool not_ready_genarg = r->gen_args == NULL && typ_is_genarg(r);
+  const bool not_ready_ungenarg = r->gen_args == NULL && typ_is_ungenarg(r);
 
   struct typ *t = r->gen0;
-  if (not_ready_genarg) {
+  if (not_ready_ungenarg) {
     t = r->definition->typ;
   } else if (r->gen_arity == 0) {
     goto children;
@@ -795,8 +795,8 @@ static void do_typ_create_genarg_update_genargs(struct module *trigger_mod,
 
   assert(t->rdy & RDY_GEN);
 
-  if (not_ready_genarg) {
-    // They were not set in typ_create_genarg(), as the info was not yet
+  if (not_ready_ungenarg) {
+    // They were not set in typ_create_ungenarg(), as the info was not yet
     // available.
     r->gen_arity = t->gen_arity;
     r->gen_args = calloc(r->gen_arity, sizeof(struct typ *));
@@ -809,34 +809,21 @@ static void do_typ_create_genarg_update_genargs(struct module *trigger_mod,
 
   assert(t->gen_arity == r->gen_arity);
 
-//  if (t != r && typ_is_generic_functor(t) && !typ_is_function(t)) {
-//    overlay_map(r, &r->perm, t);
-//
-//    struct typ *final = typ_member(t, ID_FINAL);
-//    if (final != t) {
-//      overlay_map(r, &r->perm, final);
-//    }
-//    struct typ *thi = typ_member(t, ID_THIS);
-//    if (thi != t) {
-//      overlay_map(r, &r->perm, thi);
-//    }
-//  }
-
   for (size_t n = 0; n < r->gen_arity; ++n) {
     if (r->gen_args[n] != NULL) {
-      map_genarg(r, &r->gen_args[n], t->gen_args[n]);
+      map_ungenarg(r, &r->gen_args[n], t->gen_args[n]);
     }
   }
 
-  bool no = track_genarg(set, r);
+  bool no = track_ungenarg(set, r);
   assert(!no);
   for (size_t n = 0; n < t->gen_arity; ++n) {
     if (r->gen_args[n] == NULL) {
-      // We find it in the overlay, put there by map_genarg() in a previous
+      // We find it in the overlay, put there by map_ungenarg() in a previous
       // iteration of this loop.
       set_typ(&r->gen_args[n], olay(r, typ_generic_arg(t, n)));
     }
-    map_genarg_users(trigger_mod, r, t->gen_args[n], set);
+    map_ungenarg_users(trigger_mod, r, t->gen_args[n], set);
   }
 
   add_user(r->gen0, r);
@@ -850,27 +837,27 @@ children:
   r->rdy |= RDY_GEN;
 }
 
-void typ_create_genarg_update_genargs(struct module *trigger_mod, struct typ *r) {
+void typ_create_ungenarg_update_genargs(struct module *trigger_mod, struct typ *r) {
   struct typptrset set = { 0 };
   typptrset_init(&set, 0);
-  do_typ_create_genarg_update_genargs(trigger_mod, r, &set);
+  do_typ_create_ungenarg_update_genargs(trigger_mod, r, &set);
   typptrset_destroy(&set);
 }
 
-static void is_it_genarg_or_tentative(bool *is_genarg, bool *is_tentative,
+static void is_it_ungenarg_or_tentative(bool *is_ungenarg, bool *is_tentative,
                                    struct typ *t, struct typ **args, size_t arity) {
-  *is_genarg = typ_is_genarg(t);
+  *is_ungenarg = typ_is_ungenarg(t);
   for (size_t n = 0; n < arity; ++n) {
-    *is_genarg |= args[n] != NULL ? typ_is_genarg(args[n]) : false;
+    *is_ungenarg |= args[n] != NULL ? typ_is_ungenarg(args[n]) : false;
   }
 
-  *is_tentative = typ_generic_arity(t) == 0 || !*is_genarg;
+  *is_tentative = typ_generic_arity(t) == 0 || !*is_ungenarg;
   *is_tentative |= typ_is_tentative(t);
   for (size_t n = 0; n < arity; ++n) {
     *is_tentative |= args[n] != NULL ? typ_is_tentative(args[n]) : false;
   }
 
-  *is_genarg &= !*is_tentative;
+  *is_ungenarg &= !*is_tentative;
 }
 
 static struct typ *do_typ_create_tentative(struct module *trigger_mod,
@@ -886,17 +873,17 @@ static struct typ *do_typ_create_tentative(struct module *trigger_mod,
     }
   }
 
-  bool is_genarg = false, is_tentative = false;
-  is_it_genarg_or_tentative(&is_genarg, &is_tentative, t, args, arity);
+  bool is_ungenarg = false, is_tentative = false;
+  is_it_ungenarg_or_tentative(&is_ungenarg, &is_tentative, t, args, arity);
 
   r = calloc(1, sizeof(struct typ));
   r->flags = t->flags & ~TYPF_GENARG;
-  r->flags |= is_genarg ? TYPF_GENARG : 0;
+  r->flags |= is_ungenarg ? TYPF_GENARG : 0;
   r->flags |= is_tentative ? TYPF_TENTATIVE : 0;
   r->definition = definition(t);
   set_typ(&r->perm, r);
 
-  struct typ *final = is_genarg ? t
+  struct typ *final = is_ungenarg ? t
     : (NM(typ_definition_which(t)) & (NM(DEFINTF) | NM(DEFINCOMPLETE))) ? typ_member(t, ID_FINAL) : t;
   set_typ(&r->gen0, final);
 
@@ -912,21 +899,21 @@ static struct typ *do_typ_create_tentative(struct module *trigger_mod,
 
   instances_add(trigger_mod, t, typ_permanent_loc(r));
 
-  if (is_genarg && !(t->rdy & RDY_GEN)) {
+  if (is_ungenarg && !(t->rdy & RDY_GEN)) {
     // For genarg, there are updates in passfwd.
     return r;
   }
 
-  do_typ_create_genarg_update_genargs(trigger_mod, r, set);
+  do_typ_create_ungenarg_update_genargs(trigger_mod, r, set);
 
-  if (is_genarg && !(t->rdy & RDY_HASH)) {
+  if (is_ungenarg && !(t->rdy & RDY_HASH)) {
     // For genarg, there are updates in passfwd.
     return r;
   }
 
   typ_create_update_hash(r);
 
-  if (is_genarg && !t->quickisa.ready) {
+  if (is_ungenarg && !t->quickisa.ready) {
     // For genarg, there are updates in passfwd.
     return r;
   }
@@ -1115,7 +1102,7 @@ static void link_to_tentative(struct module *mod, struct typ *dst, struct typ *s
 }
 
 void typ_link_tentative(struct typ *dst, struct typ *src) {
-  if (typ_is_genarg(src)) {
+  if (typ_is_ungenarg(src)) {
     return;
   }
 
@@ -1134,7 +1121,7 @@ void typ_link_tentative(struct typ *dst, struct typ *src) {
 }
 
 void typ_link_tentative_functor(struct module *mod, struct typ *dst, struct typ *src) {
-  if (typ_is_genarg(src)) {
+  if (typ_is_ungenarg(src)) {
     return;
   }
 
@@ -2483,7 +2470,7 @@ static uint32_t instance_hash(const struct instance *i) {
 
 static int instance_cmp(const struct instance *a, const struct instance *b) {
   if (a->which == INST_ENTRY && b->which == INST_ENTRY
-      && !typ_is_genarg(*a->as.ENTRY) && !typ_is_genarg(*b->as.ENTRY)) {
+      && !typ_is_ungenarg(*a->as.ENTRY) && !typ_is_ungenarg(*b->as.ENTRY)) {
     return !typ_equal(*a->as.ENTRY, *b->as.ENTRY);
   }
 
@@ -2533,7 +2520,7 @@ static int instance_cmp(const struct instance *a, const struct instance *b) {
   return 1;
 }
 
-static struct vectyploc *get_genargs(struct module *mod) {
+static struct vectyploc *get_ungenargs(struct module *mod) {
   if (mod == NULL
       || mod->state == NULL
       || mod->state->top_state == NULL) {
@@ -2544,7 +2531,7 @@ static struct vectyploc *get_genargs(struct module *mod) {
     top = parent(top);
   }
   struct generic *generic = node_toplevel(top)->generic;
-  return generic == NULL ? NULL : &generic->genargs;
+  return generic == NULL ? NULL : &generic->ungenargs;
 }
 
 static struct vectyploc *get_tentatives(struct module *mod) {
@@ -2603,10 +2590,10 @@ static void do_instances_add(struct module *mod, struct node *gendef,
     instances_maintain(mod, gendef->typ);
   }
 
-  struct vectyploc *genargs = get_genargs(mod);
+  struct vectyploc *ungenargs = get_ungenargs(mod);
 
-  if (genargs != NULL && typ_is_genarg(*instance)) {
-    vectyploc_push(get_genargs(mod), instance);
+  if (ungenargs != NULL && typ_is_ungenarg(*instance)) {
+    vectyploc_push(get_ungenargs(mod), instance);
     return;
   }
 
@@ -2642,7 +2629,7 @@ void instances_add(struct module *mod, struct typ *genf, struct typ **instance) 
 
 static void prepare_query_tmp(struct typ *tmp, struct typ *functor,
                               struct typ **args, size_t arity,
-                              bool is_genarg, bool tentative) {
+                              bool is_ungenarg, bool tentative) {
   tmp->definition = definition(functor);
   tmp->gen_arity = arity;
   tmp->gen_args = calloc(arity, sizeof(*tmp->gen_args));
@@ -2652,7 +2639,7 @@ static void prepare_query_tmp(struct typ *tmp, struct typ *functor,
   tmp->rdy = RDY_GEN;
 
   create_flags(tmp, (functor->flags & TYPF_BUILTIN) ? functor : NULL);
-  tmp->flags |= is_genarg ? TYPF_GENARG : 0;
+  tmp->flags |= is_ungenarg ? TYPF_GENARG : 0;
   tmp->flags |= tentative ? TYPF_TENTATIVE : 0;
 
   typ_create_update_hash(tmp);
@@ -2728,8 +2715,8 @@ struct typ *instances_find_existing_identical(struct module *mod,
     return NULL;
   }
 
-  bool is_genarg = false, is_tentative = false;
-  is_it_genarg_or_tentative(&is_genarg, &is_tentative, functor, args, arity);
+  bool is_ungenarg = false, is_tentative = false;
+  is_it_ungenarg_or_tentative(&is_ungenarg, &is_tentative, functor, args, arity);
 
   BEGTIMEIT(TIMEIT_INSTANTIATE_FIND_EXISTING_IDENTICAL);
 
@@ -2737,30 +2724,30 @@ struct typ *instances_find_existing_identical(struct module *mod,
   struct generic *generic = node_toplevel(CONST_CAST(gendef))->generic;
 
   struct typ tmp = { 0 };
-  prepare_query_tmp(&tmp, functor, args, arity, is_genarg, is_tentative);
+  prepare_query_tmp(&tmp, functor, args, arity, is_ungenarg, is_tentative);
 
   struct instance q = { 0 };
   q.which = INST_QUERY_IDENTICAL;
   q.as.QUERY = &tmp;
 
-  struct vectyploc *genargs = get_genargs(mod);
+  struct vectyploc *ungenargs = get_ungenargs(mod);
   struct vectyploc *tentatives = get_tentatives(mod);
 
 #if 0
-  fprintf(stderr, "nohash:%zu finals:%u genargs:%zu tentatives:%zu ::: %s\n",
+  fprintf(stderr, "nohash:%zu finals:%u ungenargs:%zu tentatives:%zu ::: %s\n",
           vectyploc_count(&generic->finals_nohash),
           instanceset_count(&generic->finals),
-          genargs ? vectyploc_count(genargs) : 0,
+          ungenargs ? vectyploc_count(ungenargs) : 0,
           tentatives ? vectyploc_count(tentatives) : 0,
           pptyp(NULL, &tmp));
 #endif
 
   struct typ *ret = NULL;
   for (ssize_t n = 0;
-       genargs != NULL && is_genarg
-       && n < vectyploc_count(genargs);
+       ungenargs != NULL && is_ungenarg
+       && n < vectyploc_count(ungenargs);
        ++n) {
-    struct typ ***i = vectyploc_get(genargs, n);
+    struct typ ***i = vectyploc_get(ungenargs, n);
 
     struct instance f = { 0 };
     f.which = INST_ENTRY;
@@ -2863,7 +2850,7 @@ char *pptyp(const struct module *mod, const struct typ *t) {
   char *r = calloc(2048, sizeof(char));
   char *s = r;
 
-  s = stpcpy(s, typ_is_tentative(t) ? "*" : typ_is_genarg(t) ? "+" : "");
+  s = stpcpy(s, typ_is_tentative(t) ? "*" : typ_is_ungenarg(t) ? "+" : "");
 
   const struct node *d = definition_const(t);
   if (d == NULL) {

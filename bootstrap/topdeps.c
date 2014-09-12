@@ -106,7 +106,7 @@ static void record_tentative(struct module *mod, struct typ **loc) {
   struct node *top = st->top;
   if (typ_is_pseudo_builtin(*loc)
       || (!typ_is_tentative(*loc)
-          && !typ_is_genarg(*loc)
+          && !typ_is_ungenarg(*loc)
           && typ_definition_nooverlay(*loc) == top)) {
     return;
   }

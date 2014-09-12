@@ -375,7 +375,7 @@ static ERROR advance_topdeps_each(struct module *mod, struct node *node,
                                   struct typ *t, uint32_t topdep_mask, void *user) {
   const ssize_t goal = *(ssize_t *) user;
 
-  if (typ_was_zeroed(t) || typ_is_tentative(t) || typ_is_genarg(t)) {
+  if (typ_was_zeroed(t) || typ_is_tentative(t) || typ_is_ungenarg(t)) {
     return 0;
   }
 

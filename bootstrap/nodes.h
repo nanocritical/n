@@ -183,7 +183,7 @@ struct generic {
   struct node *trigger;
 
   struct node *pristine;
-  struct vectyploc genargs;
+  struct vectyploc ungenargs;
 
   struct vectyploc finals_nohash;
   struct instanceset finals;

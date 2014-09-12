@@ -102,15 +102,15 @@ static ERROR do_instantiate_tentative(struct typ **result,
   return 0;
 }
 
-static bool instantiation_is_genarg_or_tentative(const struct module *mod,
-                                                 struct typ *t, struct typ **args,
-                                                 size_t arity) {
+static bool instantiation_is_ungenarg_or_tentative(const struct module *mod,
+                                                   struct typ *t, struct typ **args,
+                                                   size_t arity) {
   if (mod->state->tentatively || mod->state->top_state != NULL) {
     if (arity == 0) {
       return true;
     }
 
-    if (typ_is_genarg(t) || typ_is_tentative(t)) {
+    if (typ_is_ungenarg(t) || typ_is_tentative(t)) {
       return true;
     }
 
@@ -118,7 +118,7 @@ static bool instantiation_is_genarg_or_tentative(const struct module *mod,
       if (args[n] == NULL) {
         return true;
       }
-      if (typ_is_genarg(args[n]) || typ_is_tentative(args[n])) {
+      if (typ_is_ungenarg(args[n]) || typ_is_tentative(args[n])) {
         return true;
       }
     }
@@ -147,14 +147,14 @@ error instantiate(struct typ **result,
     }
   }
 
-  const bool tentative = instantiation_is_genarg_or_tentative(mod, t, args, arity);
+  const bool tentative = instantiation_is_ungenarg_or_tentative(mod, t, args, arity);
 
-  bool genarg = typ_is_genarg(t);
+  bool is_ungenarg = typ_is_ungenarg(t);
   for (size_t n = 0; n < arity; ++n) {
-    genarg |= args[n] == NULL ? false : typ_is_genarg(args[n]);
+    is_ungenarg |= args[n] == NULL ? false : typ_is_ungenarg(args[n]);
   }
 
-  if (!tentative && !genarg) {
+  if (!tentative && !is_ungenarg) {
     struct typ *r = instances_find_existing_final_with(t, args, arity);
     if (r != NULL) {
       if (result != NULL) {
@@ -190,7 +190,7 @@ struct typ *tentative_generic_arg(struct module *mod, const struct node *for_err
   }
 
   // Otherwise, the generic argument is declared as c:(`container t), where
-  // t is another generic argument. The typ will be created by the genarg
+  // t is another generic argument. The typ will be created by the ungenarg
   // mapping in typ_create_tentative.
   return NULL;
 }

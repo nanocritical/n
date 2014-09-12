@@ -39,8 +39,8 @@ struct typ *typ_create(struct typ *tbi, struct node *definition);
 void typ_create_update_hash(struct typ *t);
 void typ_create_update_genargs(struct typ *t);
 void typ_create_update_quickisa(struct typ *t);
-struct typ *typ_create_genarg(struct typ *t);
-void typ_create_genarg_update_genargs(struct module *trigger_mod, struct typ *t);
+struct typ *typ_create_ungenarg(struct typ *t);
+void typ_create_ungenarg_update_genargs(struct module *trigger_mod, struct typ *t);
 
 bool typ_hash_ready(const struct typ *t);
 
@@ -118,7 +118,7 @@ void set_typ_defgenarg(struct typ **loc, struct typ *t);
 void typ_add_tentative_bit__privileged(struct typ **loc);
 void typ_declare_final__privileged(struct typ *t);
 
-bool typ_is_genarg(const struct typ *t);
+bool typ_is_ungenarg(const struct typ *t);
 bool typ_is_tentative(const struct typ *t);
 struct typ *typ_create_tentative_functor(struct module *trigger_mod, struct typ *target);
 struct typ *typ_create_tentative(struct module *trigger_mod,
