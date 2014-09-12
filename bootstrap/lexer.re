@@ -26,6 +26,16 @@ static ERROR block_down(struct parser *parser, enum block_style style) {
   return 0;
 }
 
+error lexer_open_implicit_single_block(struct parser *parser) {
+  error e = block_down(parser, BLOCK_SINGLE);
+  if (e) {
+    EXCEPTF(e, "lexer: too many block levels");
+  }
+
+  parser->indent += 8;
+  return 0;
+}
+
 static void block_up(struct parser *parser, enum block_style style) {
   assert(parser->block_depth > 0);
   assert(parser->block_style[parser->block_depth - 1] == style);

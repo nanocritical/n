@@ -1195,6 +1195,14 @@ static ERROR p_expr_post_unary(struct node *node, struct module *mod) {
   return 0;
 }
 
+static ERROR peek_sob(struct module *mod) {
+  struct token tok = { 0 };
+  error e = scan_oneof(&tok, mod, TSOB, 0);
+  EXCEPT(e);
+  back(mod, &tok);
+  return 0;
+}
+
 static ERROR p_if(struct node *node, struct module *mod) {
   node_set_which(node, IF);
 
@@ -1202,7 +1210,7 @@ static ERROR p_if(struct node *node, struct module *mod) {
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
-  e = scan_expected(mod, TSOB);
+  e = peek_sob(mod);
   EXCEPT(e);
   e = p_block(node_new_subnode(mod, node), mod);
   EXCEPT(e);
@@ -1222,7 +1230,7 @@ again:
   case Telif:
     e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
     EXCEPT(e);
-    e = scan_expected(mod, TSOB);
+    e = peek_sob(mod);
     EXCEPT(e);
     e = p_block(node_new_subnode(mod, node), mod);
     EXCEPT(e);
@@ -1233,8 +1241,6 @@ again:
     }
     goto again;
   case Telse:
-    e = scan_expected(mod, TSOB);
-    EXCEPT(e);
     e = p_block(node_new_subnode(mod, node), mod);
     EXCEPT(e);
     e = scan(&eol, mod);
@@ -1268,7 +1274,7 @@ static ERROR p_for(struct node *node, struct module *mod,
   e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
 
-  e = scan_expected(mod, TSOB);
+  e = peek_sob(mod);
   EXCEPT(e);
 
   e = p_block(node_new_subnode(mod, node), mod);
@@ -1282,7 +1288,7 @@ static ERROR p_while(struct node *node, struct module *mod) {
 
   error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
-  e = scan_expected(mod, TSOB);
+  e = peek_sob(mod);
   EXCEPT(e);
   e = p_block(node_new_subnode(mod, node), mod);
   EXCEPT(e);
@@ -1293,9 +1299,7 @@ static ERROR p_while(struct node *node, struct module *mod) {
 static ERROR p_try(struct node *node, struct module *mod) {
   node_set_which(node, TRY);
 
-  error e = scan_expected(mod, TSOB);
-  EXCEPT(e);
-
+  error e;
   struct node *elet = mk_node(mod, node, LET);
   struct node *edefp = mk_node(mod, elet, DEFPATTERN);
   struct node *eident = mk_node(mod, edefp, IDENT);
@@ -1367,7 +1371,7 @@ again:
   struct node *expr = mk_node(mod, defp, IDENT);
   expr->as.IDENT.name = node_ident(eident);
 
-  e = scan_expected(mod, TSOB);
+  e = peek_sob(mod);
   EXCEPT(e);
   e = p_block(node_new_subnode(mod, block), mod);
   EXCEPT(e);
@@ -1402,7 +1406,7 @@ again:
 
   e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
   EXCEPT(e);
-  e = scan_expected(mod, TSOB);
+  e = peek_sob(mod);
   EXCEPT(e);
   e = p_block(node_new_subnode(mod, node), mod);
   EXCEPT(e);
@@ -1501,8 +1505,6 @@ static ERROR p_expr(struct node *node, struct module *mod,
       e = p_expr_init(node, mod);
       break;
     case Tblock:
-      e = scan_expected(mod, TSOB);
-      EXCEPT(e);
       e = p_block(node, mod);
       break;
     case Tif:
@@ -1693,15 +1695,7 @@ static ERROR p_let(struct node *node, struct module *mod, const struct toplevel 
     assert(node->which == LET);
     assert(toplevel == NULL);
 
-    struct token tok = { 0 };
-    error e = scan(&tok, mod);
-    EXCEPT(e);
-
-    if (tok.t != TSOB) {
-      UNEXPECTED(mod, &tok);
-    }
-
-    e = p_block(node_new_subnode(mod, node), mod);
+    error e = p_block(node_new_subnode(mod, node), mod);
     EXCEPT(e);
 
     return 0;
@@ -1747,9 +1741,7 @@ static ERROR p_pre(struct node *node, struct module *mod) {
     G(call, CALL,
       G(name, IDENT,
         name->as.IDENT.name = ID_PRE)));
-  error e = scan_expected(mod, TSOB);
-  EXCEPT(e);
-  e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
+  error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
   EXCEPT(e);
 
   return 0;
@@ -1763,9 +1755,7 @@ static ERROR p_post(struct node *node, struct module *mod) {
     G(call, CALL,
       G(name, IDENT,
         name->as.IDENT.name = ID_POST)));
-  error e = scan_expected(mod, TSOB);
-  EXCEPT(e);
-  e = p_block(node_new_subnode(mod, call), mod);
+  error e = p_block(node_new_subnode(mod, call), mod);
   EXCEPT(e);
 
   return 0;
@@ -1779,9 +1769,7 @@ static ERROR p_invariant(struct node *node, struct module *mod) {
     G(call, CALL,
       G(name, IDENT,
         name->as.IDENT.name = ID_INVARIANT)));
-  error e = scan_expected(mod, TSOB);
-  EXCEPT(e);
-  e = p_block(node_new_subnode(mod, call), mod);
+  error e = p_block(node_new_subnode(mod, call), mod);
   EXCEPT(e);
 
   return 0;
@@ -1797,9 +1785,7 @@ static ERROR p_example(struct node *node, struct module *mod) {
     G(call, CALL,
       G(name, IDENT,
         name->as.IDENT.name = ID_EXAMPLE)));
-  error e = scan_expected(mod, TSOB);
-  EXCEPT(e);
-  e = p_block(node_new_subnode(mod, call), mod);
+  error e = p_block(node_new_subnode(mod, call), mod);
   EXCEPT(e);
 
   return 0;
@@ -1897,9 +1883,17 @@ static ERROR p_statement(struct node *par, struct module *mod) {
 
 static ERROR p_block(struct node *node, struct module *mod) {
   node_set_which(node, BLOCK);
-  error e;
   struct token tok = { 0 };
   bool first = true;
+
+  error e = scan(&tok, mod);
+  EXCEPT(e);
+
+  if (tok.t != TSOB) {
+    back(mod, &tok);
+    e = lexer_open_implicit_single_block(&mod->parser);
+    EXCEPT(e);
+  }
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -2268,9 +2262,9 @@ within:
 
   e = scan_oneof(&tok, mod, TEOL, TSOB, TEOB, 0);
   EXCEPT(e);
+  back(mod, &tok);
 
   if (tok.t == TEOL || tok.t == TEOB) {
-    back(mod, &tok);
     node_toplevel(node)->flags |= TOP_IS_PROTOTYPE;
     return 0;
   }

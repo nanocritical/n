@@ -369,8 +369,6 @@ struct parser {
   size_t block_depth;
   enum block_style block_style[128];
 
-  size_t backs_count;
-
   bool tok_was_injected;
   bool inject_eol_after_eob;
 
@@ -388,5 +386,7 @@ struct token {
 
 ERROR lexer_scan(struct token *tok, struct parser *parser);
 void lexer_back(struct parser *parser, const struct token *tok);
+
+ERROR lexer_open_implicit_single_block(struct parser *parser);
 
 #endif
