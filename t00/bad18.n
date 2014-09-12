@@ -1,5 +1,5 @@
 from n import *
 
 fun Main = I32
-	Say @'Hello' @'World!' sep=@', '
+	Prn @'Hello' @'World!' sep=@', '
 	return 0

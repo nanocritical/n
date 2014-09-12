@@ -29,9 +29,9 @@ fun Main = I32
 	| _ -> noop
 
 	let f = {}:u.B
-	Say f.B.x
+	Prn f.B.x
 	set1 @!f
-	Say f.B.x
+	Prn f.B.x
 
 	let e = {x=1}:u.B
 	match e

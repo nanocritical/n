@@ -4,18 +4,18 @@ globalenv e2:@!`env2
 
 intf `env2 =
 	isa (`Environment `env2)
-	met say2 s:@String
+	met prn2 s:@String
 
 struct myenv2 =
 	isa `env2
 	dummy	:U32
 
-myenv2 met say2 s:@String
-	Say 'saying2:' s
+myenv2 met prn2 s:@String
+	Prn 'saying2:' s
 
 intf `env1 =
 	isa (`Environment `env1)
-	met Say s:@String
+	met Prn s:@String
 
 struct myenv1 =
 	isa `env1
@@ -23,15 +23,15 @@ struct myenv1 =
 globalenv e1:@!`env1
 within e1
 
-myenv1 met Say s:@String
-	Say 'saying:' s
+myenv1 met Prn s:@String
+	Prn 'saying:' s
 
 fun do = I32 within e2
 	let mye2 = {}:myenv2
 	such
 		mye2!Install @!e2
-	e2.say2 'module'
-	e1.Say 'function'
+	e2.prn2 'module'
+	e1.Prn 'function'
 	return 0
 
 fun Main = I32

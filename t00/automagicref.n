@@ -89,7 +89,7 @@ fun Main = I32
 	let v = {1 2:Uint}
 	let r = @v.All
 	foreach x in r
-		Say x
+		Prn x
 
 	--let e = @en.A
 	--match e

@@ -336,9 +336,9 @@ inline Stringbuf met# Vpr v:@!(Vararg ?@`Show) ?sep:?@String
 inline Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
 	self#Vpr @!v sep=sep
 
-inline Stringbuf met# Vsay v:@!(Vararg ?@`Show) ?sep:?@String
+inline Stringbuf met# Vprn v:@!(Vararg ?@`Show) ?sep:?@String
 	self#Vpr v sep=sep
 	self#Append "\n".Bytes
 
-inline Stringbuf met# Say ?sep:?@String ...v:(Vararg ?@`Show)
-	self#Vsay @!v sep=sep
+inline Stringbuf met# Prn ?sep:?@String ...v:(Vararg ?@`Show)
+	self#Vprn @!v sep=sep

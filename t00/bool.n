@@ -2,22 +2,22 @@ from n import *
 
 fun Main = I32
 	if false and true
-		Esay 'no'
+		Eprn 'no'
 	if true and false
-		Esay 'no'
+		Eprn 'no'
 	if false and false
-		Esay 'no'
+		Eprn 'no'
 	if true and true
-		Esay 'yes'
+		Eprn 'yes'
 
 	if false or true
-		Esay 'yes'
+		Eprn 'yes'
 	if true or false
-		Esay 'yes'
+		Eprn 'yes'
 	if false or false
-		Esay 'no'
+		Eprn 'no'
 	if true or true
-		Esay 'yes'
+		Eprn 'yes'
 
 	let x = false
 	and y = true

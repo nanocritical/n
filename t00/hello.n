@@ -1,10 +1,10 @@
 from n import *
 
 fun Main = I32
-	Say 'Hello, World!'
-	Say sep=', ' 'Hello' 'World!'
-	Say true
-	Say 1:U32
-	Say 1.0:Float
-	Say null:?@U8
+	Prn 'Hello, World!'
+	Prn sep=', ' 'Hello' 'World!'
+	Prn true
+	Prn 1:U32
+	Prn 1.0:Float
+	Prn null:?@U8
 	return 0

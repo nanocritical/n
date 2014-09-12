@@ -1,6 +1,6 @@
 from n.containers import `Iterator `Random_container
 from n.unsafe import Cast Nonnull_cast
-from n import Esay Epr
+from n import Eprn Epr
 import n.fmt
 import n.io
 import n.reflect
@@ -1677,7 +1677,7 @@ Error met Operator_test = Bool
 	noop
 
 (fun e:`Error) Fatal err:e
-	Esay "Fatal:" err
+	Eprn "Fatal:" err
 	Abort
 
 
@@ -1721,7 +1721,7 @@ intf `Environment declaring:`Any =
 --  met! _example cond:Bool ?expr:?@String
 --
 --  met! Pr ?sep:?@String ...v:(vararg @`Showable)
---  met! Say ?sep:?@String ...v:(vararg @`Showable)
+--  met! Prn ?sep:?@String ...v:(vararg @`Showable)
 --
 --struct Debugenv =
 --  export isa `Debugenv
@@ -1752,7 +1752,7 @@ inline struct Codeloc =
 fun Failed_at c:?@Codeloc
 	if c !== null
 		Epr sep=':' c.File c.Line c.Col
-		Esay ": failed '" c.Expr "'"
+		Eprn ": failed '" c.Expr "'"
 	Abort
 
 inline fun Assert cond:Bool ?_Ncodeloc:?@Codeloc
@@ -1762,7 +1762,7 @@ inline fun Assert cond:Bool ?_Ncodeloc:?@Codeloc
 		Failed_at _Ncodeloc
 
 inline fun Unreached
-	Esay "Unreached"
+	Eprn "Unreached"
 	Abort
 
 inline fun Pre__ cond:Bool ?_Ncodeloc:?@Codeloc

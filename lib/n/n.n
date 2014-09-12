@@ -16,23 +16,23 @@ fun Vpr v:@!(Vararg ?@`Show) ?err:?@Bool ?sep:?@String
 fun Pr ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
 	Vpr @!v err=err sep=sep
 
-fun Vsay v:@!(Vararg ?@`Show) ?err:?@Bool ?sep:?@String
+fun Vprn v:@!(Vararg ?@`Show) ?err:?@Bool ?sep:?@String
 	let buf = {}:Stringbuf such
-		buf#Vsay v sep=sep
+		buf#Vprn v sep=sep
 	let b = buf.Bytes
 	let fd = 1 such
 		if Optional err false
 			fd = 2
 	write_buf fd b.Unsafe_data b.Bytecount
 
-fun Say ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
-	Vsay @!v err=err sep=sep
+fun Prn ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
+	Vprn @!v err=err sep=sep
 
 fun Epr ?sep:?@String ...v:(Vararg ?@`Show)
 	Vpr @!v err=true sep=sep
 
-fun Esay ?sep:?@String ...v:(Vararg ?@`Show)
-	Vsay @!v err=true sep=sep
+fun Eprn ?sep:?@String ...v:(Vararg ?@`Show)
+	Vprn @!v err=true sep=sep
 
 inline (fun t:`Any r:(`Any_ref t)) Just_const p:r = @t
 	return p

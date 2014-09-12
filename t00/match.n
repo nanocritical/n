@@ -11,8 +11,8 @@ fun Foo n:enu = I32
 
 fun bar n:enu = I32
 	match n
-	| A -> Say n; return 0
-	| _ -> Say n; return 1
+	| A -> Prn n; return 0
+	| _ -> Prn n; return 1
 
 struct t =
 	x	:enu

@@ -6,6 +6,6 @@ fun foo = String
 	return 'test'
 
 fun Main = I32
-	Say 'test'
-	Say foo
+	Prn 'test'
+	Prn foo
 	return 0

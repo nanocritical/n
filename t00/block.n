@@ -43,7 +43,7 @@ fun Main = I32
 	Assert <- (deref block -> 1:U32;;) == 1
 	Assert <- (named_deref p=block -> 1:U32;;) == 1
 
-	Say
+	Prn
 		\ false
 		\ false
 		\ Foo
