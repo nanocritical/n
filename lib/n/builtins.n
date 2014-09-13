@@ -461,7 +461,6 @@ example
 	let d = c.Recapped 8
 	assert d.Cap == a.Cap
 	assert d.Count == c.Count
-	true
 
 example
 	let ref = { 0:Uint 1 2 3 4 5 6 7 }
@@ -508,7 +507,6 @@ example
 	assert p.Count == 0
 	let q = p.[0 .. 8]
 	assert q.Count == 8
-	true
 
 intf `Any_tuple =
 	isa `Copyable
@@ -1556,7 +1554,7 @@ inline Range met Count = Uint
 		return 0
 	return self.End - self.Begin
 
-example -> ({Begin=1 End=0}:Range).Count == 0
+example assert ({Begin=1 End=0}:Range).Count == 0
 
 inline Range met With_offset offset:Uint = this
 	return {Begin=self.Begin+offset End=self.End+offset}
@@ -1609,7 +1607,6 @@ example
 			assert i >= r.Begin and i < r.End
 			assert j == i - r.Begin
 			j -= 1
-	true
 
 example
 	let r = {Begin=10 End=20}:Range
@@ -1619,7 +1616,6 @@ example
 			assert i >= r.Begin and i < r.End
 			assert n == i - r.Begin
 			n += 1
-	true
 
 intf `Slice_compatible t:`Any =
 	fun From_slice c:[]t = final
@@ -1778,12 +1774,6 @@ inline fun Post__ cond:Bool ?_Ncodeloc:?@Codeloc
 		Failed_at _Ncodeloc
 
 inline fun Invariant__ cond:Bool ?_Ncodeloc:?@Codeloc
-	if Likely cond
-		return
-	else
-		Failed_at _Ncodeloc
-
-inline fun Example__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if Likely cond
 		return
 	else

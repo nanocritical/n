@@ -86,18 +86,18 @@ fun Buffer_auto_shrunk_size cap:Uint count:Uint = ret:Uint
 	else
 		return cap
 
-example -> 16 == Buffer_auto_shrunk_size 16 0
-example -> 9 == Buffer_auto_shrunk_size 17 0
-example -> 128 == Buffer_auto_grown_size 128 127
-example -> 128 == Buffer_auto_grown_size 128 128
-example -> 256 == Buffer_auto_grown_size 128 129
-example -> 256 == Buffer_auto_shrunk_size 256 255
-example -> 256 == Buffer_auto_shrunk_size 256 129
-example -> 128 == Buffer_auto_shrunk_size 256 128
-example -> 256 == Buffer_auto_grown_size 256 155
-example -> 256 == Buffer_auto_grown_size 256 256
-example -> 512 == Buffer_auto_grown_size 256 257
-example -> 385 == Buffer_auto_grown_size 257 258
+example assert 16 == Buffer_auto_shrunk_size 16 0
+example assert 9 == Buffer_auto_shrunk_size 17 0
+example assert 128 == Buffer_auto_grown_size 128 127
+example assert 128 == Buffer_auto_grown_size 128 128
+example assert 256 == Buffer_auto_grown_size 128 129
+example assert 256 == Buffer_auto_shrunk_size 256 255
+example assert 256 == Buffer_auto_shrunk_size 256 129
+example assert 128 == Buffer_auto_shrunk_size 256 128
+example assert 256 == Buffer_auto_grown_size 256 155
+example assert 256 == Buffer_auto_grown_size 256 256
+example assert 512 == Buffer_auto_grown_size 256 257
+example assert 385 == Buffer_auto_grown_size 257 258
 
 inline Slicebuf met# Reserve atleast:Uint
 	if self.s.cap >= atleast
@@ -145,4 +145,3 @@ example
 		v#Pop
 		assert v.Count == 112
 		assert v.Cap == 112
-	true

@@ -16,7 +16,7 @@ example
 		b!x = 1
 		b!y = 2
 		b = {y=3}
-	b.x == 0 and b.y == 3
+	assert b.x == 0 and b.y == 3
 
 example
 	let a = {}:tt such
@@ -29,7 +29,7 @@ example
 		b!x = 1
 		b!y = 2
 		b = {y=3}
-	b.x == 0 and b.y == 3
+	assert b.x == 0 and b.y == 3
 
 
 struct tt =

@@ -3,60 +3,60 @@ from n import *
 -- Returns one plus the index of the least significant 1-bit of x, or
 -- if x is zero, returns zero.
 extern inline (fun t:`Native_sized_unsigned_integer) Bit_ffs x:t = Uint
-example -> 0 == Bit_ffs 0:U32
-example -> 1 == Bit_ffs 1:U32
-example -> 1 == Bit_ffs 0xffffffff:U32
-example -> 32 == Bit_ffs 0x80000000:U32
-example -> 0 == Bit_ffs 0:U64
-example -> 1 == Bit_ffs 1:U64
-example -> 1 == Bit_ffs 0xffffffff:U64
-example -> 32 == Bit_ffs 0x80000000:U64
-example -> 9 == Bit_ffs 0x100:U16
-example -> 1 == Bit_ffs 1:U16
+example assert 0 == Bit_ffs 0:U32
+example assert 1 == Bit_ffs 1:U32
+example assert 1 == Bit_ffs 0xffffffff:U32
+example assert 32 == Bit_ffs 0x80000000:U32
+example assert 0 == Bit_ffs 0:U64
+example assert 1 == Bit_ffs 1:U64
+example assert 1 == Bit_ffs 0xffffffff:U64
+example assert 32 == Bit_ffs 0x80000000:U64
+example assert 9 == Bit_ffs 0x100:U16
+example assert 1 == Bit_ffs 1:U16
 
 -- Returns one plus the index of the most significant 1-bit of x, or
 -- if x is zero, returns zero.
 extern inline (fun t:`Native_sized_unsigned_integer) Bit_fls x:t = Uint
-example -> 0 == Bit_fls 0:U32
-example -> 1 == Bit_fls 1:U32
-example -> 32 == Bit_fls 0xffffffff:U32
-example -> 32 == Bit_fls 0x80000000:U32
-example -> 0 == Bit_fls 0:U64
-example -> 1 == Bit_fls 1:U64
-example -> 32 == Bit_fls 0xffffffff:U64
-example -> 32 == Bit_fls 0x80000000:U64
-example -> 9 == Bit_fls 0x100:U16
-example -> 1 == Bit_fls 1:U16
+example assert 0 == Bit_fls 0:U32
+example assert 1 == Bit_fls 1:U32
+example assert 32 == Bit_fls 0xffffffff:U32
+example assert 32 == Bit_fls 0x80000000:U32
+example assert 0 == Bit_fls 0:U64
+example assert 1 == Bit_fls 1:U64
+example assert 32 == Bit_fls 0xffffffff:U64
+example assert 32 == Bit_fls 0x80000000:U64
+example assert 9 == Bit_fls 0x100:U16
+example assert 1 == Bit_fls 1:U16
 
 -- Returns the number of leading 0-bits in x, starting at the most
 -- significant bit position. If x is 0, the result is 8*(sizeof t),
 -- arbitrarily.
 extern inline (fun t:`Native_sized_unsigned_integer) Bit_clz x:t = Uint
-example -> 0 == Bit_clz 0xff:U8
-example -> 7 == Bit_clz 1:U8
-example -> 28 == Bit_clz 0xf00000000:U64
+example assert 0 == Bit_clz 0xff:U8
+example assert 7 == Bit_clz 1:U8
+example assert 28 == Bit_clz 0xf00000000:U64
 
 -- Returns the number of trailing 0-bits in x, starting at the least
 -- significant bit position. If x is 0, the result is 8*(sizeof t),
 -- arbitrarily.
 extern inline (fun t:`Native_sized_unsigned_integer) Bit_ctz x:t = Uint
-example -> 0 == Bit_ctz 0xff:U8
-example -> 0 == Bit_ctz 1:U8
-example -> 32 == Bit_ctz 0xf00000000:U64
+example assert 0 == Bit_ctz 0xff:U8
+example assert 0 == Bit_ctz 1:U8
+example assert 32 == Bit_ctz 0xf00000000:U64
 
 extern inline (fun t:`Native_sized_unsigned_integer) Bit_popcount x:t = Uint
-example -> 0 == Bit_popcount 0:U8
-example -> 0 == Bit_popcount 0:U16
-example -> 8 == Bit_popcount 0xff:U8
-example -> 16 == Bit_popcount 0xffff:U16
-example -> 16 == Bit_popcount 0xffff:U64
+example assert 0 == Bit_popcount 0:U8
+example assert 0 == Bit_popcount 0:U16
+example assert 8 == Bit_popcount 0xff:U8
+example assert 16 == Bit_popcount 0xffff:U16
+example assert 16 == Bit_popcount 0xffff:U64
 
 extern inline (fun t:`Native_sized_unsigned_integer) Bit_parity x:t = Bool
 
-example -> not (Bit_parity 0:U32)
-example -> Bit_parity 1:U8
-example -> not (Bit_parity 0xffffffff:U32)
-example -> Bit_parity 0xfffffff7:U32
+example assert not (Bit_parity 0:U32)
+example assert Bit_parity 1:U8
+example assert not (Bit_parity 0xffffffff:U32)
+example assert Bit_parity 0xfffffff7:U32
 
 inline (fun t:`Native_sized_unsigned_integer) Log2_ceil x:t = Uint
 	if Likely <- x > 1
@@ -64,13 +64,13 @@ inline (fun t:`Native_sized_unsigned_integer) Log2_ceil x:t = Uint
 	else
 		return 0
 
-example -> 0 == Log2_ceil 0:U16
-example -> 0 == Log2_ceil 1:U16
-example -> 1 == Log2_ceil 2:U16
-example -> 12 == Log2_ceil 0xfff:U16
-example -> 12 == Log2_ceil 0x1000:U16
-example -> 11 == Log2_ceil 0x7ff:U16
-example -> 11 == Log2_ceil 0x800:U16
+example assert 0 == Log2_ceil 0:U16
+example assert 0 == Log2_ceil 1:U16
+example assert 1 == Log2_ceil 2:U16
+example assert 12 == Log2_ceil 0xfff:U16
+example assert 12 == Log2_ceil 0x1000:U16
+example assert 11 == Log2_ceil 0x7ff:U16
+example assert 11 == Log2_ceil 0x800:U16
 
 inline (fun t:`Native_sized_unsigned_integer) Div_ceil a:t b:t = t
 	if Likely <- a != 0
@@ -78,10 +78,10 @@ inline (fun t:`Native_sized_unsigned_integer) Div_ceil a:t b:t = t
 	else
 		return 0
 
-example -> 0 == (Div_ceil U32) 0 1
-example -> 1 == (Div_ceil U32) 1 2
-example -> 1 == (Div_ceil U32) 1 3
-example -> 1 == (Div_ceil U32) 1 1000
+example assert 0 == (Div_ceil U32) 0 1
+example assert 1 == (Div_ceil U32) 1 2
+example assert 1 == (Div_ceil U32) 1 3
+example assert 1 == (Div_ceil U32) 1 1000
 
 inline (fun t:`Native_sized_unsigned_integer) Roundup_pow2 x:t = t
 	if Likely <- x > 1
@@ -89,36 +89,36 @@ inline (fun t:`Native_sized_unsigned_integer) Roundup_pow2 x:t = t
 	else
 		return 1
 
-example -> 1 == Roundup_pow2 0:U8
-example -> 4 == Roundup_pow2 3:U8
-example -> 1 == Roundup_pow2 0:U64
-example -> 1 == Roundup_pow2 1:U64
-example -> 2 == Roundup_pow2 2:U64
-example -> 4 == Roundup_pow2 3:U64
-example -> 0x10000 == Roundup_pow2 0xffff:U64
-example -> 0 == Roundup_pow2 0xffff:U16
+example assert 1 == Roundup_pow2 0:U8
+example assert 4 == Roundup_pow2 3:U8
+example assert 1 == Roundup_pow2 0:U64
+example assert 1 == Roundup_pow2 1:U64
+example assert 2 == Roundup_pow2 2:U64
+example assert 4 == Roundup_pow2 3:U64
+example assert 0x10000 == Roundup_pow2 0xffff:U64
+example assert 0 == Roundup_pow2 0xffff:U16
 
 inline (fun t:`Native_sized_unsigned_integer) Roundup_mult_of_pow2 x:t pow2:t = t
 	return (x + pow2 - 1) bw& bw~(pow2 - 1)
 
-example -> 0 == Roundup_mult_of_pow2 0:U8 16:U8
-example -> 16 == Roundup_mult_of_pow2 1:U8 16:U8
-example -> 32 == Roundup_mult_of_pow2 17:U8 16:U8
-example -> 0x1000 == Roundup_mult_of_pow2 17:U16 4096:U16
-example -> 0x2000 == Roundup_mult_of_pow2 0x1001:U16 4096:U16
-example -> 0xf000 == Roundup_mult_of_pow2 0xe001:U16 4096:U16
-example -> 0 == Roundup_mult_of_pow2 0xf001:U16 4096:U16
+example assert 0 == Roundup_mult_of_pow2 0:U8 16:U8
+example assert 16 == Roundup_mult_of_pow2 1:U8 16:U8
+example assert 32 == Roundup_mult_of_pow2 17:U8 16:U8
+example assert 0x1000 == Roundup_mult_of_pow2 17:U16 4096:U16
+example assert 0x2000 == Roundup_mult_of_pow2 0x1001:U16 4096:U16
+example assert 0xf000 == Roundup_mult_of_pow2 0xe001:U16 4096:U16
+example assert 0 == Roundup_mult_of_pow2 0xf001:U16 4096:U16
 
 inline (fun t:`Native_sized_unsigned_integer) Rounddown_mult_of_pow2 x:t pow2:t = t
 	return x bw& bw~(pow2 - 1)
 
-example -> 0 == Rounddown_mult_of_pow2 0:U8 16:U8
-example -> 0 == Rounddown_mult_of_pow2 1:U8 16:U8
-example -> 16 == Rounddown_mult_of_pow2 17:U8 16:U8
-example -> 0 == Rounddown_mult_of_pow2 17:U16 4096:U16
-example -> 0x1000 == Rounddown_mult_of_pow2 0x1001:U16 4096:U16
-example -> 0xe000 == Rounddown_mult_of_pow2 0xe001:U16 4096:U16
-example -> 0xf000 == Rounddown_mult_of_pow2 0xf001:U16 4096:U16
+example assert 0 == Rounddown_mult_of_pow2 0:U8 16:U8
+example assert 0 == Rounddown_mult_of_pow2 1:U8 16:U8
+example assert 16 == Rounddown_mult_of_pow2 17:U8 16:U8
+example assert 0 == Rounddown_mult_of_pow2 17:U16 4096:U16
+example assert 0x1000 == Rounddown_mult_of_pow2 0x1001:U16 4096:U16
+example assert 0xe000 == Rounddown_mult_of_pow2 0xe001:U16 4096:U16
+example assert 0xf000 == Rounddown_mult_of_pow2 0xf001:U16 4096:U16
 
 inline (fun t:`Native_sized_unsigned_integer) Roundup_mult x:t mult:t = t
 	let rem = x % mult
@@ -127,7 +127,7 @@ inline (fun t:`Native_sized_unsigned_integer) Roundup_mult x:t mult:t = t
 	else
 		return x
 
-example -> 0 == Roundup_mult 0:U8 16:U8
-example -> 15 == Roundup_mult 1:U8 15:U8
-example -> 17 == Roundup_mult 17:U8 17:U8
-example -> 34 == Roundup_mult 18:U8 17:U8
+example assert 0 == Roundup_mult 0:U8 16:U8
+example assert 15 == Roundup_mult 1:U8 15:U8
+example assert 17 == Roundup_mult 17:U8 17:U8
+example assert 34 == Roundup_mult 18:U8 17:U8

@@ -1795,12 +1795,7 @@ static ERROR p_example(struct node *node, struct module *mod) {
   node->as.EXAMPLE.name = mod->next_example;
   mod->next_example += 1;
 
-  GSTART();
-  G0(block, node, BLOCK,
-    G(call, CALL,
-      G(name, IDENT,
-        name->as.IDENT.name = ID_EXAMPLE)));
-  error e = p_block(node_new_subnode(mod, call), mod);
+  error e = p_block(node_new_subnode(mod, node), mod);
   EXCEPT(e);
 
   return 0;

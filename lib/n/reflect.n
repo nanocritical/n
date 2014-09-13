@@ -135,4 +135,3 @@ example
 			assert e? and addr == 0
 			assert e.dyntable.To_uintptr == fakedyntable.To_uintptr
 	my.Check
-	true

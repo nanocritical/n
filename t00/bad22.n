@@ -1,3 +1,3 @@
 from n import *
 
-example -> false
+example assert false
