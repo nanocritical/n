@@ -21,6 +21,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_MATCH] = "<match>",
   [ID_TRY] = "<try_catch>",
   [ID_LET] = "<let>",
+  [ID_ASSERT] = "Assert__",
   [ID_PRE] = "Pre__",
   [ID_POST] = "Post__",
   [ID_INVARIANT] = "Invariant__",
@@ -1733,6 +1734,20 @@ static ERROR p_noop(struct node *node, struct module *mod) {
   return 0;
 }
 
+static ERROR p_assert(struct node *node, struct module *mod) {
+  node_set_which(node, ASSERT);
+
+  GSTART();
+  G0(block, node, BLOCK,
+    G(call, CALL,
+      G(name, IDENT,
+        name->as.IDENT.name = ID_ASSERT)));
+  error e = p_block(node_new_subnode(mod, call), mod);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static ERROR p_pre(struct node *node, struct module *mod) {
   node_set_which(node, PRE);
 
@@ -1741,7 +1756,7 @@ static ERROR p_pre(struct node *node, struct module *mod) {
     G(call, CALL,
       G(name, IDENT,
         name->as.IDENT.name = ID_PRE)));
-  error e = p_expr(node_new_subnode(mod, call), mod, T__CALL);
+  error e = p_block(node_new_subnode(mod, call), mod);
   EXCEPT(e);
 
   return 0;
@@ -1859,6 +1874,9 @@ static ERROR p_statement(struct node *par, struct module *mod) {
     break;
   case Tnoop:
     e = p_noop(NEW, mod);
+    break;
+  case Tassert:
+    e = p_assert(NEW, mod);
     break;
   case Tpre:
     e = p_pre(NEW, mod);

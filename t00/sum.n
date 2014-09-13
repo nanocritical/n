@@ -59,13 +59,13 @@ fun Main = I32
 	| _ -> return 1
 
 	let u = {}:un.A
-	Assert <- u ==| A
-	Assert <- u !=| B
+	assert u ==| A
+	assert u !=| B
 
 	let v = {}:un.B
-	Assert <- v.B.x == 0
+	assert v.B.x == 0
 
 	let x = {}:ext.A
-	Assert <- x.A.x == 0
+	assert x.A.x == 0
 
 	return 0

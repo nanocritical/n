@@ -37,7 +37,7 @@ inline Slicebuf shallow met$ Operator_sub r:Range = []$t
 	return self$s$Operator_sub r
 
 inline Slicebuf met# Pop
-	Assert <- self.s.Count > 0
+	assert self.s.Count > 0
 	self!s = self.s.[.. self.s.Count-1]
 	self#Auto_shrink
 
@@ -122,27 +122,27 @@ inline Slicebuf met# Auto_shrink
 
 example
 	let v = {}:(Slicebuf Uint) such
-		Assert <- v.Count == 0
+		assert v.Count == 0
 		foreach i in 0 .. 63
 			(v#Push)! = i
-		Assert <- v.Cap == 64
+		assert v.Cap == 64
 		v#Reserve 112
-		Assert <- v.Count == 63
-		Assert <- v.Cap == 112 -- Reserve allocates exactly what you ask.
+		assert v.Count == 63
+		assert v.Cap == 112 -- Reserve allocates exactly what you ask.
 		let r = v.Count .. v.Cap
-		Assert <- r.Count == 112-63
+		assert r.Count == 112-63
 		foreach i in r
 			(v#Push)! = i
-			Assert <- v.Cap == 112
-		Assert <- v.Count == 112
-		Assert <- v.Cap == 112
+			assert v.Cap == 112
+		assert v.Count == 112
+		assert v.Cap == 112
 		(v#Push)! = 1
-		Assert <- v.Cap == 224
+		assert v.Cap == 224
 		foreach _ in 0 .. (v.Count - 113)
 			v#Pop
-		Assert <- v.Count == 113
-		Assert <- v.Cap == 224
+		assert v.Count == 113
+		assert v.Cap == 224
 		v#Pop
-		Assert <- v.Count == 112
-		Assert <- v.Cap == 112
+		assert v.Count == 112
+		assert v.Cap == 112
 	true

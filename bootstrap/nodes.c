@@ -158,6 +158,7 @@ const char *node_which_strings[] = {
   [DEFFIELD] = "DEFFIELD",
   [DEFCHOICE] = "DEFCHOICE",
   [DELEGATE] = "DELEGATE",
+  [ASSERT] = "ASSERT",
   [PRE] = "PRE",
   [POST] = "POST",
   [INVARIANT] = "INVARIANT",

@@ -9,7 +9,7 @@ syn keyword nExport export
 syn keyword nSemantic unique shared pshared
 syn keyword nSemantic capturedby capturedbyret owned ownedby protected protect protecting prop claim logic
 
-syn keyword nAssert Assert pre post invariant Pre Post Invariant
+syn keyword nAssert assert pre post invariant
 syn keyword nDecl example alias within globalenv
 syn keyword nDecl contract honors _honors
 

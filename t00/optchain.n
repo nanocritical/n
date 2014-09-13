@@ -13,13 +13,13 @@ a met$ getx = @$I32
 fun Main = I32
 	let xx = {x=1}:a
 	-- FIXME: operator precedence, parentheses shouldn't be needed.
-	Assert <- (xx.y?.x)? == (xx.y)?
+	assert (xx.y?.x)? == (xx.y)?
 
-	Assert <- (nullable xx.getx)?
-	Assert <- not (xx.y?.getx)?
+	assert (nullable xx.getx)?
+	assert not (xx.y?.getx)?
 
 	xx!clear
-	Assert <- not (xx.y?!clear)?
+	assert not (xx.y?!clear)?
 
 	let v = xx.y?.x
 	if v? and v == 1

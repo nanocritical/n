@@ -386,7 +386,7 @@ inline Slice_impl shallow met$ Unsafe_data = @$t
 	return (Nonnull_cast t ?@$t @$t) self$dat
 
 inline Slice_impl shallow met$ Operator_at n:Uint = r:@$t
-	Assert <- n < self.cnt
+	assert n < self.cnt
 	let raw = (Cast ?@t @#U8) self.dat
 	and off = n * (sizeof t)
 	return (Cast @#U8 @$t) <- Slice_at_byte raw off
@@ -396,9 +396,9 @@ inline Slice_impl shallow met$ Operator_at n:Uint = r:@$t
 
 inline Slice_impl met! Full_copy other:this = this
 	if not t isa `Trivial_copy
-		Assert false
+		assert false
 
-	Assert <- self.cap >= other.cnt
+	assert self.cap >= other.cnt
 	let dst = self!Unsafe_rawdata
 	and src = other.Unsafe_rawdata
 	and bytecnt = other.cnt * (sizeof t)
@@ -413,13 +413,13 @@ inline Slice_impl met! Copy other:this = this
 -- Append what it can, and return a slice to the result.
 inline Slice_impl met! Append other:this = this
 	let newcnt = self.cnt + other.cnt
-	Assert <- newcnt <= self.cap
+	assert newcnt <= self.cap
 	let _ = self.[self.cnt .. newcnt]!Copy other
 	return {dat=self.Unsafe_data cnt=newcnt cap=self.cap}
 
 inline Slice_impl shallow met$ Operator_sub r:Range = this
-	Assert <- r.Begin <= self.cap
-	Assert <- r.End <= self.cap
+	assert r.Begin <= self.cap
+	assert r.End <= self.cap
 	let newcap = self.cap - r.Begin
 
 	let raw0 = (Cast @U8 @#U8) self.Unsafe_rawdata
@@ -428,7 +428,7 @@ inline Slice_impl shallow met$ Operator_sub r:Range = this
 	return {dat=((Cast @#U8 @#t) raw) cnt=r.Count cap=newcap}
 
 inline Slice_impl shallow met$ Recapped cap:Uint = this
-	Assert <- cap <= self.cap
+	assert cap <= self.cap
 	return {dat=self.dat cnt=(Min self.Count cap) cap=cap}
 
 inline Slice_impl shallow met$ First = @$t
@@ -439,28 +439,28 @@ inline Slice_impl shallow met$ Last = @$t
 
 example
 	let a = { 0:Uint 1 2 3 4 5 6 7 }
-	Assert <- a.Count == 8
-	Assert <- a.All == 0 .. 8
-	Assert <- a.Unsafe_rawdata === (Cast @Uint @U8) a.Unsafe_data
+	assert a.Count == 8
+	assert a.All == 0 .. 8
+	assert a.Unsafe_rawdata === (Cast @Uint @U8) a.Unsafe_data
 	foreach i in a.All
-		Assert <- a.[i] == i
-	Assert <- a.First == 0
-	Assert <- a.Last == 7
-	Assert <- a.[..].All == a.All
-	Assert <- a.[7 ..].Count == 1
-	Assert <- a.[7 ..].Cap == 1
-	Assert <- a.[7 .. 7].Count == 0
-	Assert <- a.[7 .. 7].Cap == 1
+		assert a.[i] == i
+	assert a.First == 0
+	assert a.Last == 7
+	assert a.[..].All == a.All
+	assert a.[7 ..].Count == 1
+	assert a.[7 ..].Cap == 1
+	assert a.[7 .. 7].Count == 0
+	assert a.[7 .. 7].Cap == 1
 	-- OK to create slice of cap 0:
-	Assert <- a.[8 .. ].Count == 0
+	assert a.[8 .. ].Count == 0
 	let b = a.[4 ..]
 	foreach i in b.All
-		Assert <- b.[i] == a.[4 + i]
+		assert b.[i] == a.[4 + i]
 	let c = a.[0 .. 4]
-	Assert <- c.Cap == a.Cap
+	assert c.Cap == a.Cap
 	let d = c.Recapped 8
-	Assert <- d.Cap == a.Cap
-	Assert <- d.Count == c.Count
+	assert d.Cap == a.Cap
+	assert d.Count == c.Count
 	true
 
 example
@@ -476,38 +476,38 @@ example
 				suma += x.
 			foreach x in b
 				sumb += x.
-		Assert <- suma == sumb
+		assert suma == sumb
 
 	let c = { 8 8 8 8 8 8 8 8 }:[]!Uint such
 		let d = c!Full_copy ref
-		Assert <- d.Count == ref.Count
-		Assert <- d.Count == c.Count
+		assert d.Count == ref.Count
+		assert d.Count == c.Count
 		foreach i in c.All
-			Assert <- c.[i] == ref.[i]
-			Assert <- d.[i] == ref.[i]
+			assert c.[i] == ref.[i]
+			assert d.[i] == ref.[i]
 
 	let e = { 8 8 8 8 8 8 8 8 }:[]!Uint such
 		let f = e![4 ..] such
 			let g = f!Copy ref.[4 ..]
-			Assert <- g.Count == 4
+			assert g.Count == 4
 			foreach i in g.All
-				Assert <- g.[i] == ref.[4 + i]
+				assert g.[i] == ref.[4 + i]
 		let h = e![.. 4] such
 			let m = h!Copy ref
-			Assert <- m.Count > h.Count
-			Assert <- m.Count == ref.Count
+			assert m.Count > h.Count
+			assert m.Count == ref.Count
 			foreach i in m.All
 				if i < h.Count
-					Assert <- h.[i] == ref.[i]
-				Assert <- m.[i] == ref.[i]
+					assert h.[i] == ref.[i]
+				assert m.[i] == ref.[i]
 			let n = h!Full_copy ref
-			Assert <- n.Count == m.Count
+			assert n.Count == m.Count
 	let o = { 8 8 8 8 8 8 8 8 }:[]!Uint such
 		o = o#Copy ref
 	let p = o.[0 .. 0]
-	Assert <- p.Count == 0
+	assert p.Count == 0
 	let q = p.[0 .. 8]
-	Assert <- q.Count == 8
+	assert q.Count == 8
 	true
 
 intf `Any_tuple =
@@ -816,7 +816,7 @@ extern inline I8 met! Operator_assign_bwxor other:@this
 extern inline I8 met! Operator_assign_bwand other:@this
 extern inline I8 met! Operator_assign_rshift by:Uint
 inline I8 met Unsigned = U8
-	Assert <- self >= 0
+	assert self >= 0
 	return self.Bitwise_unsigned
 inline I8 met Try_unsigned = Error_range, U8
 	if Likely <- self >= 0
@@ -866,7 +866,7 @@ extern inline I16 met! Operator_assign_bwxor other:@this
 extern inline I16 met! Operator_assign_bwand other:@this
 extern inline I16 met! Operator_assign_rshift by:Uint
 inline I16 met Unsigned = U16
-	Assert <- self >= 0
+	assert self >= 0
 	return self.Bitwise_unsigned
 inline I16 met Try_unsigned = Error_range, U16
 	if Likely <- self >= 0
@@ -916,7 +916,7 @@ extern inline I32 met! Operator_assign_bwxor other:@this
 extern inline I32 met! Operator_assign_bwand other:@this
 extern inline I32 met! Operator_assign_rshift by:Uint
 inline I32 met Unsigned = U32
-	Assert <- self >= 0
+	assert self >= 0
 	return self.Bitwise_unsigned
 inline I32 met Try_unsigned = Error_range, U32
 	if Likely <- self >= 0
@@ -971,7 +971,7 @@ extern inline I64 met! Operator_assign_bwxor other:@this
 extern inline I64 met! Operator_assign_bwand other:@this
 extern inline I64 met! Operator_assign_rshift by:Uint
 inline I64 met Unsigned = U64
-	Assert <- self >= 0
+	assert self >= 0
 	return self.Bitwise_unsigned
 inline I64 met Try_unsigned = Error_range, U64
 	if Likely <- self >= 0
@@ -984,7 +984,7 @@ extern inline I64 met Trim_i32 = I32
 extern inline I64 met force_int = Int
 extern inline I64 met force_intptr = Intptr
 inline I64 met To_int = Int
-	Assert <- self >= Int.MIN.To_i64 and self <= Int.MAX.To_i64
+	assert self >= Int.MIN.To_i64 and self <= Int.MAX.To_i64
 	return self.force_int
 inline I64 met Try_int = Error_range, Int
 	if Likely <- self >= Int.MIN.To_i64 and self <= Int.MAX.To_i64
@@ -1042,7 +1042,7 @@ extern inline U8 met! Operator_assign_bwand other:@this
 extern inline U8 met! Operator_assign_ovlshift by:Uint
 extern inline U8 met! Operator_assign_rshift by:Uint
 inline U8 met Signed = I8
-	Assert <- self <= I8.MAX.Bitwise_unsigned
+	assert self <= I8.MAX.Bitwise_unsigned
 	return self.Bitwise_signed
 inline U8 met Try_signed = Error_range, I8
 	if Likely <- self <= I8.MAX.Bitwise_unsigned
@@ -1105,7 +1105,7 @@ extern inline U16 met! Operator_assign_bwand other:@this
 extern inline U16 met! Operator_assign_ovlshift by:Uint
 extern inline U16 met! Operator_assign_rshift by:Uint
 inline U16 met Signed = I16
-	Assert <- self <= I16.MAX.Bitwise_unsigned
+	assert self <= I16.MAX.Bitwise_unsigned
 	return self.Bitwise_signed
 inline U16 met Try_signed = Error_range, I16
 	if Likely <- self <= I16.MAX.Bitwise_unsigned
@@ -1168,7 +1168,7 @@ extern inline U32 met! Operator_assign_bwand other:@this
 extern inline U32 met! Operator_assign_ovlshift by:Uint
 extern inline U32 met! Operator_assign_rshift by:Uint
 inline U32 met Signed = I32
-	Assert <- self <= I32.MAX.Bitwise_unsigned
+	assert self <= I32.MAX.Bitwise_unsigned
 	return self.Bitwise_signed
 inline U32 met Try_signed = Error_range, I32
 	if Likely <- self <= I32.MAX.Bitwise_unsigned
@@ -1231,7 +1231,7 @@ extern inline U64 met! Operator_assign_bwand other:@this
 extern inline U64 met! Operator_assign_ovlshift by:Uint
 extern inline U64 met! Operator_assign_rshift by:Uint
 inline U64 met Signed = I64
-	Assert <- self <= I64.MAX.Bitwise_unsigned
+	assert self <= I64.MAX.Bitwise_unsigned
 	return self.Bitwise_signed
 inline U64 met Try_signed = Error_range, I64
 	if Likely <- self <= I64.MAX.Bitwise_unsigned
@@ -1244,7 +1244,7 @@ extern inline U64 met Trim_u32 = U32
 extern inline U64 met force_uint = Uint
 extern inline U64 met force_uintptr = Uintptr
 inline U64 met To_uint = Uint
-	Assert <- self <= Uint.MAX.To_u64
+	assert self <= Uint.MAX.To_u64
 	return self.force_uint
 inline U64 met Try_uint = Error_range, Uint
 	if Likely <- self <= Uint.MAX.To_u64
@@ -1291,7 +1291,7 @@ extern inline Int met! Operator_assign_bwor other:@final
 extern inline Int met! Operator_assign_bwxor other:@final
 extern inline Int met! Operator_assign_bwand other:@final
 inline Int met Unsigned = Uint
-	Assert <- self >= 0
+	assert self >= 0
 	return self.force_unsigned
 inline Int met Try_unsigned = Error_range, Uint
 	if Likely <- self >= 0
@@ -1342,7 +1342,7 @@ extern inline Uint met! Operator_assign_bwor other:@final
 extern inline Uint met! Operator_assign_bwxor other:@final
 extern inline Uint met! Operator_assign_bwand other:@final
 inline Uint met Signed = Int
-	Assert <- self <= Int.MAX.force_unsigned
+	assert self <= Int.MAX.force_unsigned
 	return self.force_signed
 inline Uint met Try_signed = Error_range, Int
 	if Likely <- self <= Int.MAX.force_unsigned
@@ -1393,7 +1393,7 @@ extern inline Intptr met! Operator_assign_bwor other:@final
 extern inline Intptr met! Operator_assign_bwxor other:@final
 extern inline Intptr met! Operator_assign_bwand other:@final
 inline Intptr met Unsigned = Uintptr
-	Assert <- self >= 0
+	assert self >= 0
 	return self.force_unsigned
 inline Intptr met Try_unsigned = Error_range, Uintptr
 	if Likely <- self >= 0
@@ -1439,7 +1439,7 @@ extern inline Uintptr met! Operator_assign_bwor other:@final
 extern inline Uintptr met! Operator_assign_bwxor other:@final
 extern inline Uintptr met! Operator_assign_bwand other:@final
 inline Uintptr met Signed = Intptr
-	Assert <- self <= Intptr.MAX.force_unsigned
+	assert self <= Intptr.MAX.force_unsigned
 	return self.force_signed
 inline Uintptr met Try_signed = Error_range, Intptr
 	if Likely <- self <= Intptr.MAX.force_unsigned
@@ -1475,14 +1475,14 @@ extern inline Float met Exact_double = Double
 extern inline Float met force_round_int = Int
 extern inline Float met force_round_uint = Uint
 inline Float met Round_int = Int
-	Assert <- self >= Int.MIN.Round_float and self <= Int.MAX.Round_float
+	assert self >= Int.MIN.Round_float and self <= Int.MAX.Round_float
 	return self.force_round_int
 inline Float met Try_round_int = Error_range, Int
 	if Likely <- self >= Int.MIN.Round_float and self <= Int.MAX.Round_float
 		return OK, self.force_round_int
 	return RANGE, 0
 inline Float met Round_uint = Uint
-	Assert <- self >= Uint.MIN.Round_float and self <= Uint.MAX.Round_float
+	assert self >= Uint.MIN.Round_float and self <= Uint.MAX.Round_float
 	return self.force_round_uint
 inline Float met Try_round_uint = Error_range, Uint
 	if Likely <- self >= Uint.MIN.Round_float and self <= Uint.MAX.Round_float
@@ -1515,14 +1515,14 @@ extern inline Double met Round_float = Float
 extern inline Double met force_round_int = Int
 extern inline Double met force_round_uint = Uint
 inline Double met Round_int = Int
-	Assert <- self >= Int.MIN.Round_double and self <= Int.MAX.Round_double
+	assert self >= Int.MIN.Round_double and self <= Int.MAX.Round_double
 	return self.force_round_int
 inline Double met Try_round_int = Error_range, Int
 	if Likely <- self >= Int.MIN.Round_double and self <= Int.MAX.Round_double
 		return OK, self.force_round_int
 	return RANGE, 0
 inline Double met Round_uint = Uint
-	Assert <- self >= Uint.MIN.Round_double and self <= Uint.MAX.Round_double
+	assert self >= Uint.MIN.Round_double and self <= Uint.MAX.Round_double
 	return self.force_round_uint
 inline Double met Try_round_uint = Error_range, Uint
 	if Likely <- self >= Uint.MIN.Round_double and self <= Uint.MAX.Round_double
@@ -1568,7 +1568,7 @@ inline Range met Operator_at p:Uint = Uint
 	return p
 
 inline Range met Operator_sub begin:Uint end:Uint = this
-	Assert <- begin >= self.Begin and end <= self.End
+	assert begin >= self.Begin and end <= self.End
 	return {Begin=begin End=end}
 
 inline Range met Iter = Index_iterator
@@ -1603,21 +1603,21 @@ inline Reverse_index_iterator met! Next = Uint
 
 example
 	let r = {Begin=2 End=10}:Range
-	Assert <- r.Count == 8
+	assert r.Count == 8
 	let j = 7 such
 		for i in r.Reverse_iter
-			Assert <- i >= r.Begin and i < r.End
-			Assert <- j == i - r.Begin
+			assert i >= r.Begin and i < r.End
+			assert j == i - r.Begin
 			j -= 1
 	true
 
 example
 	let r = {Begin=10 End=20}:Range
-	Assert <- r.Count == 10
+	assert r.Count == 10
 	let n = 0 such
 		foreach i in r
-			Assert <- i >= r.Begin and i < r.End
-			Assert <- n == i - r.Begin
+			assert i >= r.Begin and i < r.End
+			assert n == i - r.Begin
 			n += 1
 	true
 
@@ -1755,7 +1755,7 @@ fun Failed_at c:?@Codeloc
 		Eprn ": failed '" c.Expr "'"
 	Abort
 
-inline fun Assert cond:Bool ?_Ncodeloc:?@Codeloc
+inline fun Assert__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if Likely cond
 		return
 	else

@@ -10,7 +10,7 @@ example
 		a!x = 1
 		a!y = 2
 		a = {x=3}
-	Assert <- a.x == 3 and a.y == 0
+	assert a.x == 3 and a.y == 0
 
 	let b = {}:nocopy such
 		b!x = 1
@@ -23,7 +23,7 @@ example
 		a!x = 1
 		a!y = 2
 		a = {x=3}
-	Assert <- a.x == 3 and a.y == 0
+	assert a.x == 3 and a.y == 0
 
 	let b = {}:tt such
 		b!x = 1

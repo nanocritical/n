@@ -835,6 +835,10 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   case IF:
   case TRY:
   case MATCH:
+  case ASSERT:
+  case PRE:
+  case POST:
+  case INVARIANT:
     fprintf(out, "({ ");
     print_statement(out, mod, node);
     fprintf(out, "; })");
@@ -976,16 +980,20 @@ static void print_try(FILE *out, const struct module *mod, const struct node *no
   fprintf(out, "}\n");
 }
 
+static void print_assert(FILE *out, const struct module *mod, const struct node *node) {
+  print_block(out, mod, subs_first_const(node));
+}
+
 static void print_pre(FILE *out, const struct module *mod, const struct node *node) {
-  // noop
+  print_block(out, mod, subs_first_const(node));
 }
 
 static void print_post(FILE *out, const struct module *mod, const struct node *node) {
-  // noop
+  print_block(out, mod, subs_first_const(node));
 }
 
 static void print_invariant(FILE *out, const struct module *mod, const struct node *node) {
-  // noop
+  print_block(out, mod, subs_first_const(node));
 }
 
 #define ATTR_SECTION_EXAMPLES "__attribute__((section(\".text.n.examples\")))"
@@ -1383,6 +1391,9 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
     break;
   case TRY:
     print_try(out, mod, node);
+    break;
+  case ASSERT:
+    print_assert(out, mod, node);
     break;
   case PRE:
     print_pre(out, mod, node);

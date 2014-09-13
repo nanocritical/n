@@ -37,12 +37,12 @@ fun Main = I32
 	if opts a=1 != opts
 		return 1
 
-	Assert <- 10 == var 0 b=1 2 3 4
-	Assert <- 10 == onlyvar 0 1 2 3 4
+	assert 10 == var 0 b=1 2 3 4
+	assert 10 == onlyvar 0 1 2 3 4
 
-	Assert <- -1 == diff 0 - 1
-	Assert <- 1 == diff 0 -1
-	Assert <- 1 == diff 0 (-1)
+	assert -1 == diff 0 - 1
+	assert 1 == diff 0 -1
+	assert 1 == diff 0 (-1)
 
 	let x = unarygen I32
 

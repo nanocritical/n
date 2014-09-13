@@ -18,7 +18,7 @@ fun mk_nullable = ?@I32
 	return r
 
 fun Main = I32
-	Assert <- 0 == foo {}
+	assert 0 == foo {}
 	let p = nullable @1:I32
 	if not p?
 		return 1

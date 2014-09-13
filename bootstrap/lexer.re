@@ -302,6 +302,7 @@ normal:
   "isa" { R(Tisa); }
   "null" { R(Tnull); }
   "noop" { R(Tnoop); }
+  "assert" { R(Tassert); }
   "pre" { R(Tpre); }
   "post" { R(Tpost); }
   "invariant" { R(Tinvariant); }

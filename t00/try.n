@@ -40,10 +40,10 @@ fun noerror = I32
 		return 1
 
 fun Main = I32
-	Assert <- inferred != Error.OK
-	Assert <- Foo == 1
-	Assert <- bar == 1
-	Assert <- noerror == 0
+	assert inferred != Error.OK
+	assert Foo == 1
+	assert bar == 1
+	assert noerror == 0
 	try
 		throw Error.INVAL
 		return 1

@@ -2510,6 +2510,7 @@ error step_type_inference(struct module *mod, struct node *node,
     set_typ(&node->typ, TBI_VOID);
     break;
   case EXAMPLE:
+  case ASSERT:
   case PRE:
   case POST:
   case INVARIANT:

@@ -91,11 +91,11 @@ Dynisalist met# Init count:Uint
 
 Dynisalist met! Add_entry rintf:@Type dyntable:refdyntable
 	let e, addr = self.find_entry rintf true
-	Assert <- e === null
+	assert e === null
 
 	self!entries = self!entries![.. self.entries.Count+1]
 	let pos = self.entries.Count
-	Assert <- pos < U16.MAX.To_uint
+	assert pos < U16.MAX.To_uint
 	self!hashmap![addr]! = pos.Trim_u16
 	let new = self!entries![pos - 1] such
 		new!typename_hash32 = rintf.typename_hash32
@@ -109,15 +109,15 @@ Dynisalist met Check
 	foreach ee in self.entries
 		let rintf = init_type ee.typename
 		let e, addr = self.find_entry rintf false
-		Assert <- e? and addr == 0
-		Assert <- e == ee
+		assert e? and addr == 0
+		assert e == ee
 
 	let bogus = init_type "`I do not exist!"
 	let e, addr = self.find_entry bogus false
-	Assert <- e === null and addr == 0
+	assert e === null and addr == 0
 
 Type met Check
-	Assert <- self.typename_hash32 == self.Typename.Hash32
+	assert self.typename_hash32 == self.Typename.Hash32
 	self.dynisalist.Check
 
 example
@@ -132,7 +132,7 @@ example
 			my#dynisalist#Add_entry r fakedyntable
 
 			let e, addr = my.dynisalist.find_entry r false
-			Assert <- e? and addr == 0
-			Assert <- e.dyntable.To_uintptr == fakedyntable.To_uintptr
+			assert e? and addr == 0
+			assert e.dyntable.To_uintptr == fakedyntable.To_uintptr
 	my.Check
 	true

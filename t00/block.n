@@ -22,21 +22,21 @@ fun Main = I32
 	else
 		noop
 	block
-		Assert true
+		assert true
 	let x = block
 		1
-	Assert <- x == 1:U32
+	assert x == 1:U32
 
-	Assert <- Foo == 0
+	assert Foo == 0
 
 	let x1 = block -> 0;; + 1
-	Assert <- x1 == x
+	assert x1 == x
 	let x2 = block -> 1;; + block -> 2
-	Assert <- x2 == 3:U32
+	assert x2 == 3:U32
 
 	let y1 = if x > 0 -> 'test';; else -> 'Error'
 	and z1 = if y1 == 'test' -> 0;; else -> 1:U32
-	Assert <- z1 == 0
+	assert z1 == 0
 
 	let aa = if x > 0 -> ('test')
 	else -> 'Error'
@@ -53,17 +53,17 @@ fun Main = I32
 		such
 			for i in (0 .. 100).Iter -> tmp += i.Trim_u32.Signed
 		tmp
-	Assert <- y2 == 'test'
-	Assert <- z2 == 50*99
+	assert y2 == 'test'
+	assert z2 == 50*99
 
-	Assert <- (deref block -> 1:U32;;) == 1
-	Assert <- (named_deref p=block -> 1:U32;;) == 1
+	assert (deref block -> 1:U32;;) == 1
+	assert (named_deref p=block -> 1:U32;;) == 1
 
-	Assert <- (deref block -> nothing; 1:U32;;) == 1
-	Assert <- (named_deref p=block -> nothing; 1:U32;;) == 1
+	assert (deref block -> nothing; 1:U32;;) == 1
+	assert (named_deref p=block -> nothing; 1:U32;;) == 1
 
-	Assert <- (deref block nothing; 1:U32;;) == 1
-	Assert <- (named_deref p=block nothing; 1:U32;;) == 1
+	assert (deref block nothing; 1:U32;;) == 1
+	assert (named_deref p=block nothing; 1:U32;;) == 1
 
 	Prn
 		\ false

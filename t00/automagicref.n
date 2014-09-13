@@ -15,10 +15,10 @@ B (met t:`Any r:`Any_ref) implicit p:(r t) = t
 	return p.
 
 fun null_arg p:?@?@I32
-	Assert <- p === null
+	assert p === null
 
 fun null_arg_value p:?@?@I32
-	Assert <- p !== null and p. === null
+	assert p !== null and p. === null
 
 fun bar p:?@?@I32
 	noop
@@ -41,10 +41,10 @@ fun Main = I32
 	let pb = @b
 
 	let x = a == b
-	Assert x
-	Assert <- pa == b
-	Assert <- a == pb
-	Assert <- pa == pb
+	assert x
+	assert pa == b
+	assert a == pb
+	assert pa == pb
 
 	block
 		let p1 = @1
@@ -64,27 +64,27 @@ fun Main = I32
 		let x = {}
 		bar @x
 
-		--Assert <- 1 == a.explicit @1:I32
-		Assert <- 1 == a.explicit 1:I32
-		Assert <- p1 !== @(a.explicit 1:I32)
+		--assert 1 == a.explicit @1:I32
+		assert 1 == a.explicit 1:I32
+		assert p1 !== @(a.explicit 1:I32)
 
 		let b = {}:B
-		Assert <- 1 == b.implicit @1:I32
-		-- Assert <- 1 == b.implicit 1:I32 -- invalid
-		Assert <- @1 !== b.implicit @@1:I32
+		assert 1 == b.implicit @1:I32
+		-- assert 1 == b.implicit 1:I32 -- invalid
+		assert @1 !== b.implicit @@1:I32
 
-		Assert <- 1 == (B.implicit I32 Ref) b @1:I32
-		-- Assert <- 1 == (B.implicit I32 @I32) b 1:I32 -- invalid
-		-- Assert <- @1 !== (B.implicit @I32 @@I32) b @1:I32 -- invalid
-		Assert <- @1 !== (B.implicit @I32 Ref) b @@1:I32
+		assert 1 == (B.implicit I32 Ref) b @1:I32
+		-- assert 1 == (B.implicit I32 @I32) b 1:I32 -- invalid
+		-- assert @1 !== (B.implicit @I32 @@I32) b @1:I32 -- invalid
+		assert @1 !== (B.implicit @I32 Ref) b @@1:I32
 
 	let n = @1
 	let m = @2
 	let p3 = @3
-	Assert <- n + m == 3:I32
-	Assert <- n + m == p3
-	Assert <- 1 + 2 == p3
-	Assert <- n + 2 == p3
+	assert n + m == 3:I32
+	assert n + m == p3
+	assert 1 + 2 == p3
+	assert n + 2 == p3
 
 	let v = {1 2:Uint}
 	let r = @v.All

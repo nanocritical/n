@@ -31,14 +31,14 @@ fun Main = I32
 	let _ = h1.x
 	let _ = hh.x
 
-	Assert <- 1 == p0 + p1
-	Assert <- 1 == p0. + p1
-	Assert <- 1 == p0 + p1.
-	Assert <- 1 == p0. + p1.
-	Assert <- 1 == (id p0) + p1
-	Assert <- 1 == (id p0). + p1
+	assert 1 == p0 + p1
+	assert 1 == p0. + p1
+	assert 1 == p0 + p1.
+	assert 1 == p0. + p1.
+	assert 1 == (id p0) + p1
+	assert 1 == (id p0). + p1
 
 	let pu3 = @3
-	Assert <- 8 == 1:U64 ov<< pu3
+	assert 8 == 1:U64 ov<< pu3
 
 	return x + xx + p0 + p1 + y + yy + h.x + hhh.x - 7 -- + h1.x + hh.x - 2

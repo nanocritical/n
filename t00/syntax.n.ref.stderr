@@ -1,1 +1,1 @@
-t00/syntax.n:31:6: syntax: unexpected token '<-'
+ncc0: bootstrap/cprinter.c:1447: print_block: Assertion `node->which == BLOCK' failed.

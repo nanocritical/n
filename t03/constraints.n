@@ -36,6 +36,6 @@ fun Main = I32
 	let e = {x=1}:u.B
 	match e
 	| B
-		Assert <- e.B.x != 0
+		assert e.B.x != 0
 
 	return (aux e) - 1

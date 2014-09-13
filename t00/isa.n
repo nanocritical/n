@@ -1,10 +1,10 @@
 from n import *
 
 fun static
-	Assert <- 0:I32 isa I32
-	Assert <- not "" isa `Numeric
-	Assert <- 0:U32 isa `Native_unsigned_integer
-	Assert <- 0:U32 isa `Native_sized_unsigned_integer
+	assert 0:I32 isa I32
+	assert not "" isa `Numeric
+	assert 0:U32 isa `Native_unsigned_integer
+	assert 0:U32 isa `Native_sized_unsigned_integer
 
 (fun t:`Any) positive x:t = Bool
 	if t isa `Numeric
@@ -24,20 +24,20 @@ fun static
 fun Main = I32
 	static
 
-	Assert <- positive 0:Uint
-	Assert <- not <- positive -1:Int
-	Assert <- not <- positive "":String
+	assert positive 0:Uint
+	assert not <- positive -1:Int
+	assert not <- positive "":String
 
-	Assert <- positive2 0:Uint
-	Assert <- not <- positive2 -1:Int
-	Assert <- not <- positive2 "":String
+	assert positive2 0:Uint
+	assert not <- positive2 -1:Int
+	assert not <- positive2 "":String
 
 	let dany = mkdyn_any 13:Uint
-	Assert <- dany isa Uint
-	Assert <- not <- dany isa I32
-	Assert <- dany isa `Numeric
-	Assert <- dany isa `Native_unsigned_integer
-	Assert <- not <- dany isa `Native_sized_unsigned_integer
+	assert dany isa Uint
+	assert not <- dany isa I32
+	assert dany isa `Numeric
+	assert dany isa `Native_unsigned_integer
+	assert not <- dany isa `Native_sized_unsigned_integer
 
 	Prn ((Dyncast `Show) dany)
 	Prn (Dyncast dany)

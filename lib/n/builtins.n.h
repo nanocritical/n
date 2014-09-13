@@ -34,7 +34,7 @@ struct NB(Valist) {
 } while (0)
 
 #define NLANG_BUILTINS_VARARG_NEXT(t, va) \
-  ({ n$builtins$Assert((va).n > 0, NULL); \
+  ({ n$builtins$Assert__((va).n > 0, NULL); \
    (va).n -= 1; \
    va_arg((va).ap.ap, t); })
 

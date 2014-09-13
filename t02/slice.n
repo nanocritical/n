@@ -19,16 +19,16 @@ from n import *
 fun Main = I32
 --  block
 --    let s = refconv 1
---    Assert <- s.count == 1
---    Assert <- (s.at 0). == 1
+--    assert s.count == 1
+--    assert (s.at 0). == 1
 --
 --  block
 --    let x = 42
 --    let s = mrefconv @!x
---    Assert <- s.count == 1
---    Assert <- (s.at 0). == 42
+--    assert s.count == 1
+--    assert (s.at 0). == 42
 --    (s.at 0)! = 41
---    Assert <- (s.at 0). == 41
+--    assert (s.at 0). == 41
 --
 --  block
 --    let a = {0:I32 1 2}
