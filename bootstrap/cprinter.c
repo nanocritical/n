@@ -1249,33 +1249,10 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
     }
   }
 
-  const struct node *name = subs_first_const(node);
   const struct node *expr = subs_last_const(node);
-  const ident id = node_ident(name);
   const struct node *par = parent_const(node);
 
   assert(node->which == DEFNAME);
-  if (fwd == FWD_DECLARE_TYPES) {
-    if ((node->flags & NODE_IS_TYPE)) {
-      const struct node *pp = par;
-      if (pp->which == DEFTYPE) {
-        if (id != ID_THIS) {
-          fprintf(out, "typedef ");
-          print_typ(out, mod, node->typ);
-          fprintf(out, " ");
-          print_typ(out, mod, pp->typ);
-          fprintf(out, "$");
-          print_expr(out, mod, name, T__STATEMENT);
-          fprintf(out, ";\n");
-        }
-      }
-    }
-    return;
-  }
-
-  if (node->flags & NODE_IS_TYPE) {
-    return;
-  }
 
   if (node_ident(node) == ID_OTHERWISE) {
     if (expr != NULL) {
