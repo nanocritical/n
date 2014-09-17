@@ -1152,7 +1152,10 @@ static ERROR passfwd6(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
     ,
-    UP_STEP(step_type_lets);
+    UP_STEP(step_type_deffields);
+    UP_STEP(step_type_defchoices);
+    UP_STEP(step_add_builtin_members_enum_union);
+    UP_STEP(step_detect_inline_import);
     ,
     FINALLY_STEP(step_pop_state);
     );
@@ -1167,10 +1170,7 @@ static ERROR passfwd7(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
     ,
-    UP_STEP(step_type_deffields);
-    UP_STEP(step_type_defchoices);
-    UP_STEP(step_add_builtin_members_enum_union);
-    UP_STEP(step_detect_inline_import);
+    UP_STEP(step_type_lets);
     ,
     FINALLY_STEP(step_pop_state);
     );

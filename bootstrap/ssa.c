@@ -186,8 +186,7 @@ static void ssa_sub(struct module *mod, struct node *node, struct node *sub) {
   node_set_which(sub, IDENT);
   sub->as.IDENT.name = g;
 
-  error e;
-  e = catchup(mod, NULL, let, CATCHUP_BEFORE_CURRENT_SAME_TOP);
+  error e = catchup(mod, NULL, let, CATCHUP_BEFORE_CURRENT_SAME_TOP);
   assert(!e);
 
   INVARIANT_NODE(sub);
@@ -267,15 +266,64 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
   return 0;
 }
 
+static ERROR ssa_convert_global(struct module *mod, struct node *node) {
+  struct node *par = parent(node);
+  switch (par->which) {
+  case UN:
+    break;
+  default:
+    return 0;
+  }
+
+  if (doesnt_need_sub(par, node)) {
+    return 0;
+  }
+
+  struct node *top = par, *pretop = par;
+  while (parent_const(top) != mod->body) {
+    pretop = top;
+    top = parent(top);
+  }
+
+  if (top->which != LET && pretop->which != LET) {
+    return 0;
+  }
+
+  struct node *where = pretop->which == LET ? pretop : top;
+  struct node *parwhere = parent(where);
+
+  GSTART();
+  G0(let, parwhere, LET,
+    G(defn, DEFNAME,
+      G(name, IDENT,
+        name->as.IDENT.name = gensym(mod));
+      G(dst, 0,
+        node_move_content(dst, node))));
+
+  node_subs_remove(parwhere, let);
+  node_subs_insert_before(parwhere, where, let);
+
+  node_set_which(node, IDENT);
+  node->as.IDENT.name = node_ident(name);
+
+  error e = catchup(mod, NULL, let, CATCHUP_BEFORE_CURRENT_SAME_TOP);
+  assert(!e);
+
+  INVARIANT_NODE(sub);
+
+  return 0;
+}
+
 STEP_NM(step_ssa_convert,
         ~(NM(MODULE) | NM(MODULE_BODY) | STEP_NM_DEFS | NM_ALWAYS_VOID
           | NM_DOESNT_EVER_NEED_SUB));
 error step_ssa_convert(struct module *mod, struct node *node,
                        void *user, bool *stop) {
   DSTEP(mod, node);
-  if (mod->state->fun_state == NULL
-      || !mod->state->fun_state->in_block
-      || is_always_void(node)) {
+  if (mod->state->fun_state == NULL) {
+    return ssa_convert_global(mod, node);
+  } else if (!mod->state->fun_state->in_block
+             || is_always_void(node)) {
     return 0;
   }
 
@@ -336,6 +384,30 @@ static ERROR ex_ssa_conversion(struct module *mod, struct node *root) {
   mod->stage->state->passing = 0;
   mod->state->furthest_passing = 0;
   return passzero[0](mod, root, &module_depth, -1);
+}
+
+EXAMPLE_NCC_EMPTY(ssa_global_let) {
+  GSTART();
+  G0(let, mod->body, LET,
+     G(defn, DEFNAME,
+       G_IDENT(name, "foo");
+       G(un, UN,
+         un->as.UN.operator = TREFDOT;
+         G(bar, STRING,
+           bar->as.STRING.value = "bar"))));
+  assert(0 == ex_ssa_conversion(mod, let));
+  check_structure(parent(let),
+                  "MODULE_BODY",
+                  " LET",
+                  "  DEFNAME",
+                  "   IDENT",
+                  "   STRING",
+                  " LET",
+                  "  DEFNAME",
+                  "   IDENT",
+                  "   UN",
+                  "    IDENT",
+                  NULL);
 }
 
 EXAMPLE_NCC_EMPTY(ssa_return) {
