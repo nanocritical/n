@@ -343,6 +343,15 @@ static ERROR track_ident_use(struct module *mod, struct node *node) {
   struct node *def = node->as.IDENT.def;
 
   switch (def->which) {
+  case DEFNAME:
+    if (parent_const(parent_const(def))->which == MODULE_BODY) {
+      return 0;
+    }
+    if (NM(nparent_const(def, 2)->which) & (NM(DEFTYPE) | NM(DEFCHOICE))) {
+      // fallthrough
+    } else {
+      break;
+    }
   case WITHIN:
     // FIXME: WITHIN should probably also have its own phi_tracker and be
     // handled like DEFNAME and DEFARG below.
@@ -360,11 +369,6 @@ static ERROR track_ident_use(struct module *mod, struct node *node) {
   case IMPORT:
     return 0;
 
-  case DEFNAME:
-    if (parent_const(parent_const(def))->which == MODULE_BODY) {
-      return 0;
-    }
-    break;
   case DEFARG:
     break;
 
@@ -540,15 +544,19 @@ error step_ident_non_local_scope(struct module *mod, struct node *node,
   if (non_local_scope != NULL
       && scope_node(non_local_scope)->which == DEFINCOMPLETE) {
     const struct node *d = typ_definition_ignore_any_overlay(node->typ);
-    if (d->which == DEFTYPE
-        && (d->as.DEFTYPE.kind == DEFTYPE_ENUM || d->as.DEFTYPE.kind == DEFTYPE_UNION)) {
+    if (d->which == DEFTYPE) {
       struct node *def = NULL;
       error e = scope_lookup_ident_immediate(&def, node, mod, &d->scope,
                                              node_ident(node), false);
       assert(!e);
 
+      struct node *par = parent(def);
+      if (par->which == LET) {
+        par = parent(par);
+      }
+
       node->as.IDENT.def = def;
-      node->as.IDENT.non_local_scope = &parent(def)->scope;
+      node->as.IDENT.non_local_scope = &par->scope;
 
       e = track_ident_use(mod, node);
       assert(!e);

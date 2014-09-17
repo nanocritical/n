@@ -510,22 +510,21 @@ static ERROR unify_with_defunknownident(struct module *mod, const struct node *f
   ident unk = dinc->as.DEFINCOMPLETE.ident;
 
   error e;
-  if (typ_definition_which(a) != DEFTYPE
-      || (typ_definition_deftype_kind(a) != DEFTYPE_ENUM
-          && typ_definition_deftype_kind(a) != DEFTYPE_UNION)) {
+  if (typ_definition_which(a) != DEFTYPE) {
     char *s = pptyp(mod, a);
     e = mk_except_type(mod, for_error,
-                       "type '%s' is not an enum or union: cannot resolve ident '%s'",
+                       "type '%s' is not a struct, enum, or union: cannot resolve ident '%s'",
                        s, idents_value(mod->gctx, unk));
     free(s);
     THROW(e);
   }
 
   struct tit *exists = typ_definition_one_member(a, unk);
-  if (exists == NULL) {
+  if (exists == NULL
+      || !(NM(tit_which(exists)) & (NM(DEFCHOICE) | NM(DEFNAME)))) {
     char *s = pptyp(mod, a);
     e = mk_except_type(mod, for_error, "cannot resolve ident '%s'"
-                       " in enum or union type '%s'",
+                       " in type '%s'",
                        idents_value(mod->gctx, unk), s);
     free(s);
     THROW(e);

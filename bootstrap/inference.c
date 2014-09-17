@@ -2047,7 +2047,7 @@ static ERROR type_inference_ident_unknown(struct module *mod, struct node *node)
   EXCEPT(e);
 
   // Special marker, so we can rewrite it with the final enum or sum scope
-  // in step_check_no_unknown_ident_left().
+  // in step_ident_non_local_scope().
   node->as.IDENT.non_local_scope = &unk->scope;
 
   set_typ(&node->typ, unk->typ);
