@@ -759,7 +759,7 @@ intf `Union_trivial_ctor =
 	isa `Union `Trivial_ctor
 	fun from_tag value:final.tag_type = final
 
-alias Error_range = Error -- FIXME ::|OK|RANGE
+alias Error_range = Error -- FIXME ::|OK|INVAL_RANGE
 
 extern inline struct Bool =
 	isa `Native_boolean
@@ -819,7 +819,7 @@ inline I8 met Unsigned = U8
 inline I8 met Try_unsigned = Error_range, U8
 	if Likely <- self >= 0
 		return OK, self.Bitwise_unsigned
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline I8 met Bitwise_unsigned = U8
 extern inline I8 met To_i16 = I16
 extern inline I8 met To_i32 = I32
@@ -869,7 +869,7 @@ inline I16 met Unsigned = U16
 inline I16 met Try_unsigned = Error_range, U16
 	if Likely <- self >= 0
 		return OK, self.Bitwise_unsigned
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline I16 met Bitwise_unsigned = U16
 extern inline I16 met Trim_i8 = I8
 extern inline I16 met To_i32 = I32
@@ -919,7 +919,7 @@ inline I32 met Unsigned = U32
 inline I32 met Try_unsigned = Error_range, U32
 	if Likely <- self >= 0
 		return OK, self.Bitwise_unsigned
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline I32 met Bitwise_unsigned = U32
 extern inline I32 met Trim_i8 = I8
 extern inline I32 met Trim_i16 = I16
@@ -974,7 +974,7 @@ inline I64 met Unsigned = U64
 inline I64 met Try_unsigned = Error_range, U64
 	if Likely <- self >= 0
 		return OK, self.Bitwise_unsigned
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline I64 met Bitwise_unsigned = U64
 extern inline I64 met Trim_i8 = I8
 extern inline I64 met Trim_i16 = I16
@@ -1045,7 +1045,7 @@ inline U8 met Signed = I8
 inline U8 met Try_signed = Error_range, I8
 	if Likely <- self <= I8.MAX.Bitwise_unsigned
 		return OK, self.Bitwise_signed
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline U8 met Bitwise_signed = I8
 extern inline U8 met To_u16 = U16
 extern inline U8 met To_u32 = U32
@@ -1108,7 +1108,7 @@ inline U16 met Signed = I16
 inline U16 met Try_signed = Error_range, I16
 	if Likely <- self <= I16.MAX.Bitwise_unsigned
 		return OK, self.Bitwise_signed
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline U16 met Bitwise_signed = I16
 extern inline U16 met Trim_u8 = U8
 extern inline U16 met To_u32 = U32
@@ -1171,7 +1171,7 @@ inline U32 met Signed = I32
 inline U32 met Try_signed = Error_range, I32
 	if Likely <- self <= I32.MAX.Bitwise_unsigned
 		return OK, self.Bitwise_signed
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline U32 met Bitwise_signed = I32
 extern inline U32 met Trim_u8 = U8
 extern inline U32 met Trim_u16 = U16
@@ -1234,7 +1234,7 @@ inline U64 met Signed = I64
 inline U64 met Try_signed = Error_range, I64
 	if Likely <- self <= I64.MAX.Bitwise_unsigned
 		return OK, self.Bitwise_signed
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline U64 met Bitwise_signed = I64
 extern inline U64 met Trim_u8 = U8
 extern inline U64 met Trim_u16 = U16
@@ -1247,7 +1247,7 @@ inline U64 met To_uint = Uint
 inline U64 met Try_uint = Error_range, Uint
 	if Likely <- self <= Uint.MAX.To_u64
 		return OK, self.force_uint
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline U64 met Round_float = Float
 extern inline U64 met Round_double = Double
 extern U64 met Show st:@#n.fmt.`State
@@ -1294,7 +1294,7 @@ inline Int met Unsigned = Uint
 inline Int met Try_unsigned = Error_range, Uint
 	if Likely <- self >= 0
 		return OK, self.force_unsigned
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline Int met force_unsigned = Uint
 extern inline Int met Trim_i8 = I8
 extern inline Int met Trim_i16 = I16
@@ -1345,7 +1345,7 @@ inline Uint met Signed = Int
 inline Uint met Try_signed = Error_range, Int
 	if Likely <- self <= Int.MAX.force_unsigned
 		return OK, self.force_signed
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline Uint met force_signed = Int
 extern inline Uint met Trim_u8 = U8
 extern inline Uint met Trim_u16 = U16
@@ -1396,7 +1396,7 @@ inline Intptr met Unsigned = Uintptr
 inline Intptr met Try_unsigned = Error_range, Uintptr
 	if Likely <- self >= 0
 		return OK, self.force_unsigned
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline Intptr met force_unsigned = Uintptr
 extern inline Intptr met To_i64 = I64
 extern Intptr met Show st:@#n.fmt.`State
@@ -1442,7 +1442,7 @@ inline Uintptr met Signed = Intptr
 inline Uintptr met Try_signed = Error_range, Intptr
 	if Likely <- self <= Intptr.MAX.force_unsigned
 		return OK, self.force_signed
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern inline Uintptr met force_signed = Intptr
 extern inline Uintptr met To_u64 = U64
 extern Uintptr met Show st:@#n.fmt.`State
@@ -1478,14 +1478,14 @@ inline Float met Round_int = Int
 inline Float met Try_round_int = Error_range, Int
 	if Likely <- self >= Int.MIN.Round_float and self <= Int.MAX.Round_float
 		return OK, self.force_round_int
-	return RANGE, 0
+	return INVAL_RANGE, 0
 inline Float met Round_uint = Uint
 	assert self >= Uint.MIN.Round_float and self <= Uint.MAX.Round_float
 	return self.force_round_uint
 inline Float met Try_round_uint = Error_range, Uint
 	if Likely <- self >= Uint.MIN.Round_float and self <= Uint.MAX.Round_float
 		return OK, self.force_round_uint
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern Float met Show st:@#n.fmt.`State
 
 extern inline struct Double =
@@ -1518,14 +1518,14 @@ inline Double met Round_int = Int
 inline Double met Try_round_int = Error_range, Int
 	if Likely <- self >= Int.MIN.Round_double and self <= Int.MAX.Round_double
 		return OK, self.force_round_int
-	return RANGE, 0
+	return INVAL_RANGE, 0
 inline Double met Round_uint = Uint
 	assert self >= Uint.MIN.Round_double and self <= Uint.MAX.Round_double
 	return self.force_round_uint
 inline Double met Try_round_uint = Error_range, Uint
 	if Likely <- self >= Uint.MIN.Round_double and self <= Uint.MAX.Round_double
 		return OK, self.force_round_uint
-	return RANGE, 0
+	return INVAL_RANGE, 0
 extern Double met Show st:@#n.fmt.`State
 
 inline struct Bounds =
@@ -1656,18 +1656,24 @@ inline (fun t:`Numeric) Max a:t b:t = t
 	else
 		return b
 
+
 intf `Error =
 	isa `Generalized_boolean `Show
 
-inline enum Error =
-	isa `Error
-	| OK = 0
-	| INVAL
-	| RANGE
-	| EOF
+inline struct Error =
+	isa `Error `Trivial_order
+	Msg	:?@String
+
+	let OK = {}:this
+	let INVAL = {Msg=@"Invalid value"}:this
+	let INVAL_RANGE = {Msg=@"Invalid value range"}:this
+	let EOF = {Msg=@"End of file"}:this
 
 Error met Operator_test = Bool
-	return self != OK
+	return (self.Msg)?
+
+Error met Show st:@#n.fmt.`State
+	self.Msg.Show st
 
 (fun e:`Error) Drop err:e
 	noop
