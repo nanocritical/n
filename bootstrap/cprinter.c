@@ -370,8 +370,16 @@ static void print_bin_isa(FILE *out, const struct module *mod, const struct node
   const struct node *right = subs_last_const(node);
 
   fprintf(out, "n$reflect$Isa((void *)(");
-  print_expr(out, mod, left, T__STATEMENT);
-  fprintf(out, ").dyntable, (void *)&");
+  if (left->flags & NODE_IS_TYPE) {
+    const struct typ *t = typ_is_dyn(left->typ) ? typ_generic_arg(left->typ, 0) : left->typ;
+    fprintf(out, "&");
+    print_typ(out, mod, t);
+    fprintf(out, "$Reflect_type)");
+  } else {
+    print_expr(out, mod, left, T__STATEMENT);
+    fprintf(out, ").dyntable");
+  }
+  fprintf(out, ", (void *)&");
   print_typ(out, mod, right->typ);
   fprintf(out, "$Reflect_type)");
 }
