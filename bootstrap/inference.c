@@ -1011,6 +1011,7 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
   node->as.BIN.operator = rop;
 
   struct tit *field = typ_resolve_accessor__has_effect(&e, mod, node);
+  EXCEPT(e);
 
   const bool container_is_tentative = typ_is_tentative(tit_parent_definition_typ(field));
   if (container_is_tentative && e == EINVAL) {

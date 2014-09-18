@@ -1435,6 +1435,9 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
   struct node *field = NULL;
   *e = scope_lookup_ident_immediate(&field, name, mod, container_scope,
                                     node_ident(name), container_is_tentative);
+  if (*e) {
+    return NULL;
+  }
 
   if (field->which == IMPORT && !field->as.IMPORT.intermediate_mark) {
     error none = scope_lookup(&field, mod, &mod->gctx->modules_root.scope,
