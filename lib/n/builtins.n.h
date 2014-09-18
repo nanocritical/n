@@ -24,19 +24,47 @@ struct NB(Valist) {
   .cnt = cnt, \
   .cap = cnt }
 
+#define NLANG_BUILTINS_VARARG_SLICE_CNT(va) \
+  ( ( (_$Nref__$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_) (va).s )->cnt )
+#define NLANG_BUILTINS_VARARG_SLICE_NTH(va, t, n) \
+  ({ \
+   __attribute__((__unused__)) static t __dummy; \
+   (void *) &( ( (_$Nref__$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_) \
+                  (va).s )->dat[(n) * sizeof(*__dummy)] ); })
+
 #define NLANG_BUILTINS_VARARG_START(va) do { \
   va_start((va).ap.ap, _$Nvarargcount); \
-  (va).n = _$Nvarargcount; \
+  if (_$Nvarargcount != -1) { \
+    (va).n = n$builtins$Int$Unsigned(&_$Nvarargcount); \
+  } else { \
+    (va).s = (n$builtins$Uintptr) va_arg((va).ap.ap, void *); \
+    (va).n = NLANG_BUILTINS_VARARG_SLICE_CNT(va); \
+    va_end((va).ap.ap); \
+  } \
 } while (0)
 
 #define NLANG_BUILTINS_VARARG_END(va) do { \
-  va_end((va).ap.ap); \
+  if (_$Nvarargcount != -1) { \
+    va_end((va).ap.ap); \
+  } \
 } while (0)
 
 #define NLANG_BUILTINS_VARARG_NEXT(t, va) \
-  ({ n$builtins$Assert__((va).n > 0, NULL); \
+  ({ n$builtins$Assert__((va).n != 0, NULL); \
+   ((va).s == 0) ? ({ \
+    (va).n -= 1; \
+    va_arg((va).ap.ap, t); \
+   }) : ({ \
+    NLANG_BUILTINS_VARARG_SLICE_NTH(va, t, \
+                                    NLANG_BUILTINS_VARARG_SLICE_CNT(va) - (va).n--); \
+   }); })
+
+// FIXME: dyn slices support is missing
+#define NLANG_BUILTINS_VARARG_NEXT_DYN(t, va) \
+  ({ n$builtins$Assert__((va).n != 0, NULL); \
    (va).n -= 1; \
-   va_arg((va).ap.ap, t); })
+   va_arg((va).ap.ap, t); \
+   })
 
 #define NLANG_MKDYN(dyn_type, _dyntable, _obj) \
   (dyn_type){ .dyntable = (void *)(_dyntable), .obj = (_obj) }

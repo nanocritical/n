@@ -908,7 +908,7 @@ static ERROR fill_in_optional_args(struct module *mod, struct node *node,
       e = mk_except(mod, arg, "missing positional argument '%s' at position %zd",
                     idents_value(mod->gctx, node_ident(arg)), code_pos);
       THROW(e);
-    } else if (arg->which == CALLNAMEDARG) {
+    } else if (arg->which == CALLNAMEDARG && !arg->as.CALLNAMEDARG.is_slice_vararg) {
       if (node_ident(arg) != typ_function_arg_ident(tfun, n)) {
         e = mk_except(mod, arg, "named argument '%s' has bad name"
                       " or appears out of order at position %zd",
@@ -927,7 +927,7 @@ static ERROR fill_in_optional_args(struct module *mod, struct node *node,
     if (arg == NULL) {
       insert_missing_optional_arg(mod, node, subs_last(node), targ_name);
 
-    } else if (arg->which != CALLNAMEDARG) {
+    } else if (arg->which != CALLNAMEDARG || arg->as.CALLNAMEDARG.is_slice_vararg) {
       // Assume this is the first vararg
 
       if (first_vararg == -1) {
@@ -938,7 +938,7 @@ static ERROR fill_in_optional_args(struct module *mod, struct node *node,
 
       insert_missing_optional_arg(mod, node, prev(arg), targ_name);
 
-    } else if (arg->which == CALLNAMEDARG) {
+    } else if (arg->which == CALLNAMEDARG && !arg->as.CALLNAMEDARG.is_slice_vararg) {
       const ident name = node_ident(arg);
 
       while (typ_function_arg_ident(tfun, n) != name) {
@@ -961,13 +961,21 @@ static ERROR fill_in_optional_args(struct module *mod, struct node *node,
 
   assert(arg == NULL || first_vararg >= 0);
   while (arg != NULL) {
-    if (arg->which == CALLNAMEDARG) {
+    if (arg->which == CALLNAMEDARG && !arg->as.CALLNAMEDARG.is_slice_vararg) {
       const ident name = node_ident(arg);
       e = mk_except(mod, arg, "excess named argument '%s'"
                     " or appears out of order at position %zd",
                     idents_value(mod->gctx, name), code_pos);
       THROW(e);
+    } else if (arg->which == CALLNAMEDARG && arg->as.CALLNAMEDARG.is_slice_vararg) {
+      if (next(arg) != NULL) {
+        e = mk_except(mod, next(arg), "excess argument appearing after a slice"
+                      " is passed as vararg, at position %zd", code_pos);
+        THROW(e);
+      }
+      break;
     }
+
     arg = next(arg);
     code_pos += 1;
   }
@@ -1918,6 +1926,19 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
   if (n == first_vararg) {
     FOREACH_SUB_EVERY(arg, node, 1 + n, 1) {
       struct typ *target = typ_generic_arg(typ_function_arg(fun->typ, n), 0);
+
+      if (arg->which == CALLNAMEDARG && arg->as.CALLNAMEDARG.is_slice_vararg) {
+        struct typ *target_arg = typ_generic_arg(target, 0);
+        assert(typ_definition_which(target_arg) != DEFINTF && "Unsupported: needs dyn slice support");
+
+        struct typ *slice_target = NULL;
+        e = instantiate(&slice_target, mod, arg, -1, TBI_SLICE, &target_arg, 1, false);
+        EXCEPT(e);
+
+        e = unify_refcompat(mod, arg, slice_target, typ_generic_arg(arg->typ, 0));
+        EXCEPT(e);
+        break;
+      }
 
       e = unify_refcompat(mod, arg, target, arg->typ);
       EXCEPT(e);

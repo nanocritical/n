@@ -1039,6 +1039,20 @@ static ERROR p_expr_call(struct node *node, struct module *mod) {
     }
 
     struct node *tentative = node_new_subnode(mod, node);
+    bool reject_named = false;
+    if (tok.t == TDOTDOTDOT) {
+      e = scan_expected(mod, TDOTDOTDOT);
+      EXCEPT(e);
+
+      node_set_which(tentative, CALLNAMEDARG);
+      tentative->as.CALLNAMEDARG.is_slice_vararg = true;
+
+      reject_named = true;
+      tentative = mk_node(mod, tentative, UN);
+      tentative->as.UN.operator = TREFDOT;
+      tentative = node_new_subnode(mod, tentative);
+    }
+
     e = p_expr(tentative, mod, T__CALL);
     EXCEPT(e);
 
@@ -1047,6 +1061,10 @@ static ERROR p_expr_call(struct node *node, struct module *mod) {
       EXCEPT(e);
 
       if (tok.t == TASSIGN) {
+        if (reject_named) {
+          UNEXPECTED(mod, &tok);
+        }
+
         const ident name = node_ident(tentative);
         node_set_which(tentative, CALLNAMEDARG);
         tentative->as.CALLNAMEDARG.name = name;

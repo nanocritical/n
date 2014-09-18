@@ -483,18 +483,20 @@ static void print_tuple(FILE *out, const struct module *mod, const struct node *
 }
 
 static void print_call_vararg_count(FILE *out, const struct node *dfun,
-                                    const struct node *node, size_t n) {
+                                    const struct node *node, const struct node *arg,
+                                    size_t n) {
   const ssize_t first_vararg = node_fun_first_vararg(dfun);
   if (n != first_vararg) {
     return;
   }
 
-  const size_t count = subs_count(node) - 1 - first_vararg;
-  if (count == 0) {
-    fprintf(out, ", ");
+  ssize_t count = subs_count(node) - 1 - first_vararg;
+  if (count == 1 && arg->which == CALLNAMEDARG && arg->as.CALLNAMEDARG.is_slice_vararg) {
+    count = -1;
   }
-  fprintf(out, "%zu", count);
-  if (count > 0) {
+  fprintf(out, "%zd", count);
+
+  if (count != 0) {
     fprintf(out, ", ");
   }
 }
@@ -528,7 +530,11 @@ static void print_call(FILE *out, const struct module *mod,
     return;
   } else if (node_ident(dfun) == ID_NEXT && typ_isa(parentd->typ, TBI_VARARG)) {
     const struct node *self = subs_at_const(node, 1);
-    fprintf(out, "NLANG_BUILTINS_VARARG_NEXT(");
+    if (typ_is_dyn(typ_generic_arg(parentd->typ, 0))) {
+      fprintf(out, "NLANG_BUILTINS_VARARG_NEXT_DYN(");
+    } else {
+      fprintf(out, "NLANG_BUILTINS_VARARG_NEXT(");
+    }
     print_typ(out, mod, typ_generic_arg_const(parentd->typ, 0));
     fprintf(out, ", ");
     if (typ_is_reference(self->typ)) {
@@ -555,7 +561,7 @@ static void print_call(FILE *out, const struct module *mod,
       fprintf(out, ", ");
     }
 
-    print_call_vararg_count(out, dfun, node, n - 1);
+    print_call_vararg_count(out, dfun, node, arg, n - 1);
 
     if (n == 1
         && dfun->which == DEFMETHOD
@@ -1480,7 +1486,7 @@ static bool print_call_vararg_proto(FILE *out, const struct node *dfun, size_t n
     return false;
   }
 
-  fprintf(out, "n$builtins$Uint _$Nvarargcount, ...");
+  fprintf(out, "n$builtins$Int _$Nvarargcount, ...");
   return true;
 }
 

@@ -266,7 +266,6 @@ static const struct operator operators[TOKEN__NUM] = {
   [T__NOT_STATEMENT] = OP(0, OP_BIN, ASSOC_NON, 0x135),
   [TCOMMA] = OP(0, OP_BIN, ASSOC_LEFT, 0x130),
   [T__NOT_COMMA] = OP(0, OP_BIN, ASSOC_NON, 0x129),
-  [TDOTDOTDOT] = OP(0, OP_BIN, ASSOC_NON, 0x126),
   [Telse] = OP(0, OP_BIN_SYM_PTR, ASSOC_LEFT, 0x121),
   [Tor] = OP(0, OP_BIN_SYM_BOOL, ASSOC_LEFT, 0x120),
   [Tand] = OP(0, OP_BIN_SYM_BOOL, ASSOC_LEFT, 0x110),

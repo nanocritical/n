@@ -1694,6 +1694,7 @@ opaque struct Vararg r:`Any_any_ref =
 	isa `Trivial_copy -- FIXME: remove `Trivial_copy, needed by bootstrap
 	ap	:Valist
 	n	:Uint
+	s	:Uintptr -- To hold the pointer to the slice, when used.
 
 inline Vararg met Has_next = Bool
 	return self.n > 0

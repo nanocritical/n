@@ -244,6 +244,7 @@ struct node_call {
 };
 struct node_callnamedarg {
   ident name;
+  bool is_slice_vararg;
 };
 struct node_future {};
 struct node_lambda {};
