@@ -5,7 +5,7 @@ intf `String_compatible =
 	fun From_string s:String = final
 
 intf `String =
-	isa `String_compatible `Ordered `Hashable32 `Trivial_copy_but_owned
+	isa `String_compatible `Ordered `Hashable32 `Copyable
 		\ (`Random_container U8) `Show
 	fun From_bytes s:[]U8 = final--::(^Captures s)
 	met Bytes = []U8
@@ -24,7 +24,7 @@ intf `String =
 --	met Split ?sep:?@String ?max:?@Uint = []String
 
 intf `Stringbuf =
-	isa `String `Copyable n.io.`Writer
+	isa `String n.io.`Writer
 	met# Clear
 	met# Push c:Rune
 	met# Pop = Rune
@@ -72,7 +72,7 @@ inline Rune met Show st:@#n.fmt.`State
 	self.Code.Show st
 
 inline struct String =
-	isa `String `Return_by_copy
+	isa `String `Return_by_copy `Trivial_copy_but_owned
 	bytes	:[]U8
 
 inline String fun From_string s:String = this
