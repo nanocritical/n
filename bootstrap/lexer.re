@@ -271,6 +271,7 @@ normal:
   "intf" { R(Tintf); }
   "inline" { R(Tinline); }
   "let" { R(Tlet); }
+  "var" { R(Tlet); }
   "such" { R(Tsuch); }
   "alias" { R(Talias); }
   "if" { R(Tif); }
