@@ -18,6 +18,15 @@ inline Slicebuf met# Clear
 	self!s = self.s.[.. 0]
 	self#Auto_shrink
 
+inline Slicebuf met# Resize cnt:Uint
+	assert cnt <= self.Count or t isa `Trivial_ctor
+	if cnt <= self.Cap
+		self!s = self.s.[.. cnt]
+		self#Auto_shrink
+	else
+		self#Reserve cnt
+		self!s = self.s.[.. cnt]
+
 inline Slicebuf met# Push = @#t
 	let nend = self.s.Count + 1
 	self#Auto_grow nend

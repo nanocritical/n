@@ -275,6 +275,14 @@ inline Stringbuf met# Clear
 	self!bytes = self.bytes.[.. 0]
 	self#Auto_shrink
 
+inline Stringbuf met# Resize cnt:Uint
+	if cnt <= self.Cap
+		self!bytes = self.bytes.[.. cnt]
+		self#Auto_shrink
+	else
+		self#Reserve cnt
+		self!bytes = self.bytes.[.. cnt]
+
 inline Stringbuf met# Push r:Rune
 	let nend = self.bytes.Count + 1
 	self#Reserve nend
