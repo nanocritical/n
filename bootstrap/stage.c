@@ -331,11 +331,11 @@ static ERROR gather_dependencies(struct node *node, struct dependencies *deps) {
     return 0;
   }
 
+  struct module *mod = node->as.MODULE.mod;
   deps->tmp_count += 1;
   deps->tmp = realloc(deps->tmp, deps->tmp_count * sizeof(*deps->tmp));
-  deps->tmp[deps->tmp_count - 1] = node_module_owner(node);
+  deps->tmp[deps->tmp_count - 1] = mod;
 
-  struct module *mod = node_module_owner(node);
   PUSH_STATE(mod->state);
   PUSH_STATE(mod->state->step_state);
   error e = pass_gather_dependencies(mod, mod->body, deps, -1);
@@ -347,21 +347,25 @@ static ERROR gather_dependencies(struct node *node, struct dependencies *deps) {
 }
 
 static ERROR calculate_dependencies(struct dependencies *deps) {
+  assert(deps->tmp_count > 0);
+
   struct modules_set pushed;
   modules_set_init(&pushed, 0);
   modules_set_set_delete_val(&pushed, 0);
 
-  for (ssize_t n = deps->tmp_count - 1; n >= 0; --n) {
+  struct stage *stage = deps->tmp[0]->stage;
+  stage->sorted = calloc(deps->tmp_count, sizeof(*stage->sorted));
+
+  for (ssize_t n = deps->tmp_count - 1, s = 0; n >= 0; --n) {
     struct module *m = deps->tmp[n];
     int already = modules_set_set(&pushed, m, 1);
     if (already) {
       continue;
     }
 
-    struct stage *stage = m->stage;
+    stage->sorted[s] = m;
+    s += 1;
     stage->sorted_count += 1;
-    stage->sorted = realloc(stage->sorted, stage->sorted_count * sizeof(*stage->sorted));
-    stage->sorted[stage->sorted_count - 1] = m;
   }
 
   modules_set_destroy(&pushed);
@@ -369,6 +373,8 @@ static ERROR calculate_dependencies(struct dependencies *deps) {
   free(deps->tmp);
   deps->tmp = NULL;
   deps->tmp_count = 0;
+
+  stage->sorted = realloc(stage->sorted, stage->sorted_count * sizeof(*stage->sorted));
 
   return 0;
 }
