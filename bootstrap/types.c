@@ -517,7 +517,9 @@ struct typ *typ_create_ungenarg(struct typ *t) {
   struct typ *r = calloc(1, sizeof(struct typ));
   r->definition = definition(t);
   r->flags = t->flags | TYPF_GENARG;
-  set_typ(&r->gen0, typ_is_generic_functor(t) ? r : t);
+  // Store 't' to here remember it. Properly set later in
+  // do_typ_create_ungenarg_update_genargs().
+  set_typ(&r->gen0, t);
   set_typ(&r->perm, r);
   return r;
 }
@@ -788,7 +790,7 @@ static void do_typ_create_ungenarg_update_genargs(struct module *trigger_mod,
 
   struct typ *t = r->gen0;
   if (not_ready_ungenarg) {
-    t = r->definition->typ;
+    // noop
   } else if (r->gen_arity == 0) {
     goto children;
   }
@@ -798,6 +800,15 @@ static void do_typ_create_ungenarg_update_genargs(struct module *trigger_mod,
   if (not_ready_ungenarg) {
     // They were not set in typ_create_ungenarg(), as the info was not yet
     // available.
+    unset_typ(&r->gen0);
+    if (typ_is_generic_functor(t)) {
+      set_typ(&r->gen0, r);
+    } else if (typ_generic_arity(t) > 0) {
+      set_typ(&r->gen0, typ_generic_functor(t));
+    } else {
+      set_typ(&r->gen0, t);
+    }
+
     r->gen_arity = t->gen_arity;
     r->gen_args = calloc(r->gen_arity, sizeof(struct typ *));
     for (size_t n = 0; n < r->gen_arity; ++n) {
