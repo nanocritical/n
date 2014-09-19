@@ -110,6 +110,8 @@ static void update_codeloc_decr(struct parser *parser, size_t new_pos) {
   parser->codeloc.pos = new_pos;
 }
 
+// Returns true if we just moved to a new module component file since the
+// last update.
 static bool update_codeloc(struct parser *parser, size_t new_pos) {
   if (new_pos == parser->codeloc.pos) {
     return false;
@@ -206,9 +208,7 @@ error lexer_scan(struct token *tok, struct parser *parser) {
 } while (0)
 
 #define R(type) do { \
-  if (update_codeloc(parser, YYCURSOR - parser->data)) { \
-    FAIL(EINVAL, "token stretches over multiple module component files"); \
-  } \
+  update_codeloc(parser, YYCURSOR - parser->data); \
   tok->t = type; \
   tok->value = start; \
   tok->len = YYCURSOR - start; \
