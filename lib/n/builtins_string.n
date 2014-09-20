@@ -1,3 +1,6 @@
+-- See LICENSE for details. Partially derived from go/src/pkg/strings
+-- Copyright 2009 The Go Authors. All rights reserved.
+
 intf `Hashable32 =
 	met Hash32 = U32
 
@@ -181,7 +184,74 @@ inline String met Ends_with s:String = Bool
 			i += cnt
 	return true
 
-String met Index s:String = Bool, Uint
+extern String met Index_byte sep:U8 = Int
+extern String met Last_index_byte sep:U8 = Int
+
+example assert "abcdef".Index_byte "a".[0] == 0
+example assert "abcdef".Index_byte "f".[0] == 5
+example assert "abcdef".Index_byte "z".[0] == -1
+example assert "abcdef".Index_byte "\0".[0] == -1
+example assert "abcdef".Last_index_byte "z".[0] == -1
+example assert "abcdef".Last_index_byte "\0".[0] == -1
+example assert "abccba".Last_index_byte "a".[0] == 5
+example assert "abccba".Last_index_byte "c".[0] == 3
+example assert "abccba".Index_byte "c".[0] == 2
+
+-- Prime base used in the Rabin-Karp algorithm.
+let rk_prime = 16777619:U32
+
+fun rk_hash b:[]U8 = U32, U32
+	let hash = 0 such
+		foreach x in b
+			hash = hash ov* rk_prime ov+ x.To_u32
+	let pow = 1
+	and sq = rk_prime
+	and i = b.Count such
+		while i != 0
+			if i bw& 1 != 0
+				pow ov*= sq
+			sq ov*= sq
+			i >>= 1
+	return hash, pow
+
+String met Index sep:String = Int
+	let cnt = self.Count
+	let n = sep.Count
+	if n == 0
+		return 0
+	elif n == 1
+		return self.Index_byte sep.[0]
+	elif n == cnt
+		if self == sep
+			return 0
+		return -1
+	elif n > cnt
+		return -1
+
+	let hashsep, pow = rk_hash sep.Bytes
+	let h = 0 such
+		foreach i in 0 .. n
+			h = h ov* rk_prime ov+ self.[i].To_u32
+		if h == hashsep and self.[.. n] == sep
+			return 0
+		foreach i in n .. cnt
+			h ov*= rk_prime
+			h ov+= self.[i].To_u32
+			h ov-= pow ov* self.[i-n].To_u32
+			i += 1
+			if h == hashsep and self.[i-n .. i] == sep
+				return (i - n).Signed
+	return -1
+
+example assert "abcdef".Index "" == 0
+example assert "abcdef".Index "b" == 1
+example assert "abcdef".Index "abcdef" == 0
+example assert "abcdef".Index "abcdez" == -1
+example assert "abcdef".Index "abcdefg" == -1
+example assert "abcdef".Index "z" == -1
+example assert "abcdef".Index "abc" == 0
+example assert "abcdef".Index "def" == 3
+
 String met Index_all s:String = Bool, []Uint
 String met Find s:String = Bool, String
 String met Find_all s:String = Bool, []String

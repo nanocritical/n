@@ -63,6 +63,28 @@ void NB(Abort)(void) {
   abort();
 }
 
+extern void *memchr(const void *s, int c, size_t n);
+extern void *memrchr(const void *s, int c, size_t n);
+
+NB(Int) NB(String$Index_byte)(NB(String) *self, NB(U8) sep) {
+  void *r = memchr(self->bytes.dat, sep, self->bytes.cnt);
+  if (r == NULL) {
+    return -1;
+  } else {
+    return (uintptr_t)r - (uintptr_t)self->bytes.dat;
+  }
+}
+
+NB(Int) NB(String$Last_index_byte)(NB(String) *self, NB(U8) sep) {
+  void *r = memrchr(self->bytes.dat, sep, self->bytes.cnt);
+  if (r == NULL) {
+    return -1;
+  } else {
+    return (uintptr_t)r - (uintptr_t)self->bytes.dat;
+  }
+}
+
+#undef NBDYN
 #undef NB
 
 #endif
