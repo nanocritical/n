@@ -1010,11 +1010,13 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
   EXCEPT(e);
   node->as.BIN.operator = rop;
 
-  struct tit *field = typ_resolve_accessor__has_effect(&e, mod, node);
-  EXCEPT(e);
+  bool container_is_tentative = false;
+  struct tit *field = typ_resolve_accessor__has_effect(&e, &container_is_tentative,
+                                                       mod, node);
+  // e handled below.
 
-  const bool container_is_tentative = typ_is_tentative(tit_parent_definition_typ(field));
   if (container_is_tentative && e == EINVAL) {
+    assert(field == NULL);
     struct node *left = subs_first(node);
     struct node *name = subs_last(node);
 
@@ -1027,7 +1029,6 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
     e = unify(mod, node, left->typ, dinc->typ);
     EXCEPT(e);
 
-    tit_next(field);
     field = typ_definition_one_member(dinc->typ, node_ident(name));
   } else {
     EXCEPT(e);

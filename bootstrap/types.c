@@ -1474,6 +1474,7 @@ static void bin_accessor_maybe_defchoice(struct node **parent_scope, struct node
 }
 
 struct tit *typ_resolve_accessor__has_effect(error *e,
+                                             bool *container_is_tentative,
                                              struct module *mod,
                                              struct node *node) {
   assert(node->which == BIN && OP_KIND(node->as.BIN.operator) == OP_BIN_ACC);
@@ -1488,12 +1489,12 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
     bin_accessor_maybe_defchoice(&dcontainer, node, mod, left);
   }
   struct scope *container_scope = &dcontainer->scope;
-  const bool container_is_tentative = typ_is_tentative(scope_node(container_scope)->typ);
+  *container_is_tentative = typ_is_tentative(scope_node(container_scope)->typ);
 
   struct node *name = subs_last(node);
   struct node *field = NULL;
   *e = scope_lookup_ident_immediate(&field, name, mod, container_scope,
-                                    node_ident(name), container_is_tentative);
+                                    node_ident(name), *container_is_tentative);
   if (*e) {
     return NULL;
   }

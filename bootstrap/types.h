@@ -72,7 +72,9 @@ struct tit;
 struct tit *typ_definition_parent(const struct typ *t);
 struct tit *typ_definition_members(const struct typ *t, ...);
 struct tit *typ_definition_one_member(const struct typ *t, ident name);
-struct tit *typ_resolve_accessor__has_effect(error *e, struct module *mod,
+struct tit *typ_resolve_accessor__has_effect(error *e,
+                                             bool *container_is_tentative,
+                                             struct module *mod,
                                              struct node *node);
 
 // Frees the iterator when end is reached.
