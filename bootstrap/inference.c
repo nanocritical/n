@@ -2408,7 +2408,7 @@ error step_type_inference(struct module *mod, struct node *node,
     set_typ(&node->typ, TBI_BOOL);
     break;
   case STRING:
-    set_typ(&node->typ, TBI_STRING);
+    set_typ(&node->typ, create_tentative(mod, node, TBI_LITERALS_STRING));
     break;
   case SIZEOF:
     set_typ(&node->typ, TBI_UINT);

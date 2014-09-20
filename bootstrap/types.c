@@ -477,6 +477,7 @@ static void create_flags(struct typ *t, struct typ *tbi) {
   if (tbi == TBI_LITERALS_NULL
       || tbi == TBI_LITERALS_INTEGER
       || tbi == TBI_LITERALS_FLOATING
+      || tbi == TBI_LITERALS_STRING
       || tbi == TBI__NOT_TYPEABLE
       || tbi == TBI__CALL_FUNCTION_SLOT
       || tbi == TBI__MUTABLE
@@ -503,7 +504,8 @@ static void create_flags(struct typ *t, struct typ *tbi) {
 
   if (tbi == TBI_LITERALS_NULL
       || tbi == TBI_LITERALS_INTEGER
-      || tbi == TBI_LITERALS_FLOATING) {
+      || tbi == TBI_LITERALS_FLOATING
+      || tbi == TBI_LITERALS_STRING) {
     t->flags |= TYPF_LITERAL;
   }
 }
@@ -1412,9 +1414,16 @@ struct tit *typ_definition_members(const struct typ *t, ...) {
 }
 
 // TODO: Ideally, we shouldn't be setting any 'typ' from within types.c. This
-// should be coded in inference.c. The next 2 functions have that kind of
-// side effect, however.
+// should be coded in inference.c. The next few functions have that kind of
+// side effect "__has_effect", however.
 //
+
+static void bin_accessor_maybe_literal_string__has_effect(struct module *mod, struct node *par) {
+  if (typ_isa(par->typ, TBI_LITERALS_STRING)) {
+    error ok = unify(mod, par, par->typ, TBI_STRING);
+    assert(!ok);
+  }
+}
 
 static void bin_accessor_maybe_literal_slice__has_effect(struct module *mod, struct node *par) {
   if (typ_isa(par->typ, TBI_LITERALS_SLICE)) {
@@ -1470,6 +1479,7 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
   assert(node->which == BIN && OP_KIND(node->as.BIN.operator) == OP_BIN_ACC);
 
   struct node *left = subs_first(node);
+  bin_accessor_maybe_literal_string__has_effect(mod, left);
   bin_accessor_maybe_literal_slice__has_effect(mod, left);
   bin_accessor_maybe_functor__has_effect(mod, left);
 
@@ -1933,6 +1943,7 @@ struct typ *TBI_LITERALS_NULL;
 struct typ *TBI_LITERALS_INTEGER;
 struct typ *TBI_LITERALS_FLOATING;
 struct typ *TBI_LITERALS_SLICE;
+struct typ *TBI_LITERALS_STRING;
 struct typ *TBI_ANY_TUPLE;
 struct typ *TBI_TUPLE_2;
 struct typ *TBI_TUPLE_3;
@@ -1966,7 +1977,7 @@ struct typ *TBI_UINTPTR;
 struct typ *TBI_INTPTR;
 struct typ *TBI_FLOAT;
 struct typ *TBI_DOUBLE;
-struct typ *TBI_CHAR;
+struct typ *TBI_RUNE;
 struct typ *TBI_STRING;
 struct typ *TBI_STRING_COMPATIBLE;
 struct typ *TBI_STATIC_ARRAY;

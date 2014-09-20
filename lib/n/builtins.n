@@ -12,6 +12,8 @@ extern intf `__literal_integer__ =
 extern intf `__literal_floating__ =
 	isa `Floating
 extern intf `__literal_slice__ t:`Any =
+extern intf `__literal_string__ =
+	isa `String
 
 extern struct __internal_not_typeable__ =
 extern struct __call_function_slot__ =

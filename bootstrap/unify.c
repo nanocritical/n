@@ -399,6 +399,37 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
 
       typ_link_tentative(a, b);
     }
+  } else if (typ_equal(b, TBI_LITERALS_STRING) && !typ_equal(a, TBI_STRING_COMPATIBLE)) {
+    if (!tentative_or_ungenarg(a) && typ_isa(TBI_STRING_COMPATIBLE, a)) {
+      // noop
+    } else if (!typ_is_ungenarg(a) && tentative_or_ungenarg(a) && typ_isa(b, a)) {
+      typ_link_tentative(b, a);
+    } else if (!typ_isa(a, TBI_STRING_COMPATIBLE) && typ_definition_which(a) == DEFINTF) {
+      if (typ_is_tentative(a)) {
+        struct node *dinc = defincomplete_create(mod, for_error);
+
+        defincomplete_add_isa(mod, for_error, dinc, a);
+        defincomplete_add_isa(mod, for_error, dinc, b);
+
+        error e = defincomplete_catchup(mod, dinc);
+        assert(!e);
+
+        typ_link_tentative(dinc->typ, a);
+        typ_link_tentative(dinc->typ, b);
+      } else if (typ_is_ungenarg(a)) {
+        // Force b to become a String. Then try again.
+        typ_link_tentative(TBI_STRING, b);
+        e = typ_check_isa(mod, for_error, TBI_STRING, a);
+        EXCEPT(e);
+      } else {
+        typ_link_tentative(TBI_STRING, b);
+      }
+    } else {
+      e = typ_check_isa(mod, for_error, a, TBI_STRING_COMPATIBLE);
+      EXCEPT(e);
+
+      typ_link_tentative(a, b);
+    }
   } else {
     assert(false);
   }

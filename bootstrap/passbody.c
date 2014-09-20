@@ -9,6 +9,7 @@
 #include "inference.h"
 #include "constraints.h"
 #include "topdeps.h"
+#include "unify.h"
 
 #include "passzero.h"
 #include "passfwd.h"
@@ -249,6 +250,70 @@ static ERROR step_array_ctor_call_inference(struct module *mod, struct node *nod
   node_subs_append(node, array);
 
   const struct node *except[] = { array, NULL };
+  error e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static bool string_literal_has_length_one(const char *s) {
+  const size_t len = strlen(s);
+  if (s == NULL) {
+    return false;
+  } else if (len <= 2) {
+    return false;
+  } else if (s[1] == '\\') {
+    return len == 4;
+  } else {
+    return len == 3;
+  }
+}
+
+static STEP_NM(step_from_string_call_inference,
+               NM(STRING));
+static ERROR step_from_string_call_inference(struct module *mod, struct node *node,
+                                            void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (typ_equal(node->typ, TBI_LITERALS_STRING)) {
+    error e = unify(mod, node, node->typ, TBI_STRING);
+    EXCEPT(e);
+    return 0;
+  }
+
+  if (typ_equal(node->typ, TBI_STRING)) {
+    return 0;
+  }
+
+  if (typ_equal(node->typ, TBI_RUNE)) {
+    if (!string_literal_has_length_one(node->as.STRING.value)) {
+      error e = mk_except_type(mod, node,
+                               "string literal %s does not have length 1,"
+                               " cannot coerce to Rune",
+                               node->as.STRING.value);
+      THROW(e);
+    }
+  }
+
+  struct typ *saved_typ = node->typ;
+
+  struct node *s = node_new_subnode(mod, node);
+  node_subs_remove(node, s);
+  node_move_content(s, node);
+
+  node_set_which(node, CALL);
+
+  struct typ *tfun = typ_member(saved_typ, ID_FROM_STRING);
+  unset_typ(&s->typ);
+  set_typ(&s->typ, typ_function_arg(tfun, 0));
+
+  GSTART();
+  G0(fun, node, DIRECTDEF,
+     set_typ(&fun->as.DIRECTDEF.typ, tfun);
+     fun->as.DIRECTDEF.flags = NODE_IS_TYPE);
+  node_subs_append(node, s);
+
+  const struct node *except[] = { s, NULL };
   error e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
@@ -737,6 +802,7 @@ static ERROR passbody1(struct module *mod, struct node *root,
     UP_STEP(step_operator_call_inference);
     UP_STEP(step_ctor_call_inference);
     UP_STEP(step_array_ctor_call_inference);
+    UP_STEP(step_from_string_call_inference);
     UP_STEP(step_dtor_call_inference);
     UP_STEP(step_copy_call_inference);
     UP_STEP(step_dyn_inference);

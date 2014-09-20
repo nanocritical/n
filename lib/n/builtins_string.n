@@ -65,7 +65,7 @@ inline Rune met Encode z:[]!U8 = Uint
 inline Rune met Hash32 = U32
 	return self.Code
 
-example assert Rune.From_ascii 49 == (Rune.From_string '1')
+example assert Rune.From_ascii 49 == '1'
 
 inline Rune met Show st:@#n.fmt.`State
 	--let s = {}:[4]U8 ...
@@ -193,7 +193,7 @@ String met Split ?sep:?@String ?max:?@Uint = []String
 example assert '1234'.Bytes.Count == 4
 example assert '1234'.Bytes.All == 0 .. 4
 example assert '1234'.Bytes.[3] == '4'.[0]
-example assert '1234'.Bytes.[1].To_u32 == (Rune.From_string '2').Code
+example assert '1234'.Bytes.[1].To_u32 == ('2':Rune).Code
 example assert '1234' == '1234'
 example assert '1234'.Bytes.Count == 4
 example assert '1234'.Bytes.[0] == 49

@@ -799,8 +799,6 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
       char *s = escape_string(node->as.STRING.value);
       if (typ_equal(node->typ, TBI_STRING)) {
         fprintf(out, "NLANG_STRING_LITERAL(\"%s\")", s);
-      } else if (typ_equal(node->typ, TBI_CHAR)) {
-        fprintf(out, "n$chars$Char$From_ascii('%s')", s);
       } else {
         assert(false);
       }
