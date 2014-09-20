@@ -160,6 +160,8 @@ void ppoverlay(struct typ *t) {
   assert(!ret);
 }
 
+static struct typ *olay(const struct typ *t, struct typ *src);
+
 static struct typ *overlay_translate(const struct typ *t, struct typ *src) {
   if (src == NULL) {
     return NULL;
@@ -169,7 +171,20 @@ static struct typ *overlay_translate(const struct typ *t, struct typ *src) {
   if (existing != NULL) {
     return **existing;
   } else {
-    return src;
+    if (parent_const(t->definition)->typ == src) {
+      // Already trying to translate the parent typ. Prevent recursion:
+      return src;
+    }
+
+    struct tit *par = typ_definition_parent(t);
+    if (par != NULL) {
+      struct typ *p = tit_typ(par);
+      tit_next(par);
+      assert(p!=t);
+      return olay(p, src);
+    } else {
+      return src;
+    }
   }
 }
 
@@ -665,10 +680,10 @@ static struct typ *do_typ_create_tentative(struct module *trigger_mod,
                                            struct typ *t, struct typ **args, size_t arity,
                                            struct typptrset *set, bool reject_identical);
 static void map_ungenarg_users(struct module *trigger_mod,
-                             struct typ *t, struct typ *src, struct typptrset *set);
+                               struct typ *t, struct typ *src, struct typptrset *set);
 
 static void map_ungenarg_user(struct module *trigger_mod,
-                            struct typ *t, struct typ *user, struct typptrset *set) {
+                              struct typ *t, struct typ *user, struct typptrset *set) {
   if (typ_generic_arity(user) == 0) {
     return;
   }
@@ -682,6 +697,11 @@ static void map_ungenarg_user(struct module *trigger_mod,
 
   struct typ **args = calloc(arity, sizeof(struct typ *));
   struct typ *i0 = olay(t, user0);
+  if (!typ_is_generic_functor(i0)) {
+    // Already mapped to an instance.
+    return;
+  }
+
   bool diff = i0 != user0;
   for (size_t n = 0; n < arity; ++n) {
     struct typ *ga = typ_generic_arg(user, n);
@@ -709,7 +729,7 @@ static void map_ungenarg_user(struct module *trigger_mod,
 }
 
 static void map_ungenarg_users(struct module *trigger_mod,
-                             struct typ *t, struct typ *src, struct typptrset *set) {
+                               struct typ *t, struct typ *src, struct typptrset *set) {
   if (!typ_is_ungenarg(src)) {
     return;
   }
@@ -734,7 +754,6 @@ static void map_children(struct module *trigger_mod, struct typ *par) {
     map_ungenarg(par, &mm->perm, m);
     add_user(par, mm);
 
-    typ2loc_rehash(&mm->overlay->map, &par->overlay->map);
     map_ungenarg(mm, &par->perm, tit_parent_definition_typ(tit));
   }
 }
@@ -785,7 +804,7 @@ struct typ *typ_create_tentative_functor(struct module *trigger_mod, struct typ 
 }
 
 static void do_typ_create_ungenarg_update_genargs(struct module *trigger_mod,
-                                                struct typ *r, struct typptrset *set) {
+                                                  struct typ *r, struct typptrset *set) {
   const bool not_ready_ungenarg = r->gen_args == NULL && typ_is_ungenarg(r);
 
   struct typ *t = r->gen0;
@@ -823,6 +842,25 @@ static void do_typ_create_ungenarg_update_genargs(struct module *trigger_mod,
   for (size_t n = 0; n < r->gen_arity; ++n) {
     if (r->gen_args[n] != NULL) {
       map_ungenarg(r, &r->gen_args[n], t->gen_args[n]);
+    }
+  }
+
+  // The call map_children() at the very end handle the case where the
+  // DEFTYPE/DEFINTF is the one being create as tentative. But if a
+  // DEFMETHOD is created as tentative (because it is itself also a
+  // generic), we need to add ourself as user of par, and map in our overlay
+  // the users of par's genargs.
+  struct tit *titpar = typ_definition_parent(r);
+  if (titpar != NULL) {
+    struct typ *par = tit_typ(titpar);
+    tit_next(titpar);
+
+    add_user(par, r);
+
+    if (typ_generic_arity(par) > 0) {
+      for (size_t n = 0, arity = typ_generic_arity(par); n < arity; ++n) {
+        map_ungenarg_users(trigger_mod, r, typ_generic_functor(par)->gen_args[n], set);
+      }
     }
   }
 
