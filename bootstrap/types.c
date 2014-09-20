@@ -1495,7 +1495,7 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
   }
 
   struct tit *r = calloc(1, sizeof(struct tit));
-  r->t = left->typ;
+  r->t = typ_is_reference(left->typ) ? typ_generic_arg(left->typ, 0) : left->typ;
   r->definition = dcontainer;
   r->just_one = true;
   r->pos = field;
