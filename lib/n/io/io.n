@@ -1,9 +1,15 @@
-from n.builtins import *
+-- See LICENSE for details. Originally derived from go/src/pkg/io
+-- Copyright 2009 The Go Authors. All rights reserved.
 
-intf `Reader =
+from n import *
+
+let EOF = {Msg=@"EOF"}:Error
+let Short_write = {Msg=@"short write"}:Error
+let Short_buffer = {Msg=@"short buffer"}:Error
+let Unexpected_EOF = {Msg=@"unexpected EOF"}:Error
+
+intf `Reader t:`Copyable =
 	-- Returns a slice of b with the content read.
-	met# Read b:[]!U8 = []!U8, Error
+	met# Read b:[]!t = []!t, Error
 
-intf `Writer =
-	-- Returns a slice of b with the content not yet written, if any.
-	met# Write b:[]U8 = []U8, Error
+alias `Writer = `Io_writer

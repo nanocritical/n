@@ -1,0 +1,32 @@
+-- Aliases are defined in the modules n.io and n.fmt, but we need the
+-- definitions early because we use them in this module, to avoid circular
+-- dependency.
+
+intf `Io_writer t:`Copyable =
+	-- Returns a slice of b with the content not yet written, if any.
+	met# Write b:[]t = []t, Error
+
+intf `Fmt_state =
+	isa (`Io_writer U8)
+	met Width = Bool, Uint
+	met Precision = Bool, Uint
+	met Flag c:Rune = Bool
+
+inline struct Fmt_state =
+	isa `Fmt_state
+	w	:@#(`Io_writer U8)
+
+Fmt_state met# Init w:@#(`Io_writer U8)
+	self#w = w
+
+Fmt_state met Width = Bool, Uint
+	return false, 0
+
+Fmt_state met Precision = Bool, Uint
+	return false, 0
+
+Fmt_state met Flag c:Rune = Bool
+	return false
+
+Fmt_state met# Write b:[]U8 = []U8, Error
+	return self#w#Write b

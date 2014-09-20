@@ -1,28 +1,5 @@
-from n.builtins import *
+from n import *
 import n.io
-import n.bytes
 
-intf `State =
-	isa n.io.`Writer
-	met Width = Bool, Uint
-	met Precision = Bool, Uint
-	met Flag c:Rune = Bool
-
-inline struct State =
-	isa `State
-	w	:@#n.io.`Writer
-
-State met# Init w:@#n.io.`Writer
-	self#w = w
-
-State met Width = Bool, Uint
-	return false, 0
-
-State met Precision = Bool, Uint
-	return false, 0
-
-State met Flag c:Rune = Bool
-	return false
-
-State met# Write b:[]U8 = []U8, Error
-	return self#w#Write b
+alias `State = `Fmt_state
+alias State = Fmt_state

@@ -24,7 +24,7 @@ intf `String =
 --	met Split ?sep:?@String ?max:?@Uint = []String
 
 intf `Stringbuf =
-	isa `String n.io.`Writer
+	isa `String (`Io_writer U8)
 	met# Clear
 	met# Push c:Rune
 	met# Pop = Rune
@@ -32,7 +32,7 @@ intf `Stringbuf =
 	met# Copy b:[]U8
 
 intf `Show =
-	met Show st:@#n.fmt.`State
+	met Show st:@#`Fmt_state
 
 inline struct Rune =
 	isa `String_compatible `Show `Hashable32
@@ -67,7 +67,7 @@ inline Rune met Hash32 = U32
 
 example assert Rune.From_ascii 49 == '1'
 
-inline Rune met Show st:@#n.fmt.`State
+inline Rune met Show st:@#`Fmt_state
 	--let s = {}:[4]U8 ...
 	self.Code.Show st
 
@@ -123,7 +123,7 @@ inline String met Operator_ge other:@this = Bool
 		return true
 	return self.Operator_compare other >= 0
 
-inline String met Show st:@#n.fmt.`State
+inline String met Show st:@#`Fmt_state
 	let _ = st#Write self.bytes
 
 example assert 'a' < 'b'
@@ -265,7 +265,7 @@ inline Stringbuf met Operator_ge other:@this = Bool
 		return true
 	return self.Operator_compare other >= 0
 
-inline Stringbuf met Show st:@#n.fmt.`State
+inline Stringbuf met Show st:@#`Fmt_state
 	let _ = st#Write self.bytes
 
 inline Stringbuf met Hash32 = U32
@@ -331,7 +331,7 @@ inline Stringbuf met# Write b:[]U8 = Error, []U8
 
 inline Stringbuf met# Vpr v:@!(Vararg ?@`Show) ?sep:?@String
 	let separator = Optional_ref sep " "
-	and st = {}:n.fmt.State such
+	and st = {}:Fmt_state such
 		st#Init self
 		for x in v!
 			if x === null

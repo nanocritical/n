@@ -1,5 +1,4 @@
 from n.builtins import *
-
 import n.io
 
 inline struct Bytes_reader =

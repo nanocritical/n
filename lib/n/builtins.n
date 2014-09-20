@@ -1,8 +1,6 @@
 from n.containers import `Iterator `Random_container
 from n.unsafe import Cast Nonnull_cast
 from n import Eprn Epr
-import n.fmt
-import n.io
 import n.reflect
 
 extern intf `__literal_null__ =
@@ -350,7 +348,7 @@ extern inline fun Slice_memcmp a:@U8 b:@U8 cnt:Uint = Int
 
 inline fun Bytes_compare a:[]U8 b:[]U8 = Int
 	let acnt, bcnt = a.Count, b.Count
-	let c = Slice_memcmp a.Unsafe_data b.Unsafe_data (Min acnt bcnt)
+	let c = Slice_memcmp a.Unsafe_rawdata b.Unsafe_rawdata (Min acnt bcnt)
 	if c == 0
 		return acnt.Signed - bcnt.Signed
 	return c
@@ -394,7 +392,8 @@ inline Slice_impl shallow met$ Operator_at n:Uint = r:@$t
 	return (Cast @#U8 @$t) <- Slice_at_byte raw off
 
 ---- FIXME: the copy operations are only available if the t is `Copyable or
--- `Trivial_copy. We would like that distinction to be static.
+-- `Trivial_copy. We would like that detection to be static. And we would want
+-- to allow method arguments whose type require `Copyable, say.
 
 inline Slice_impl met! Full_copy other:this = this
 	if not t isa `Trivial_copy
@@ -414,6 +413,8 @@ inline Slice_impl met! Copy other:this = this
 
 -- Append what it can, and return a slice to the result.
 inline Slice_impl met! Append other:this = this
+	if other.cnt == 0
+		return self.
 	let newcnt = self.cnt + other.cnt
 	assert newcnt <= self.cap
 	let _ = self.[self.cnt .. newcnt]!Copy other
@@ -709,6 +710,7 @@ intf `Signed_integer =
 	alias This_unsigned = `Unsigned_integer
 	met Unsigned = final.This_unsigned
 	met Try_unsigned = Error, final.This_unsigned
+	met Abs = final.This_unsigned
 
 intf `Unsigned_integer =
 	isa `Integer
@@ -779,7 +781,7 @@ extern Bool met To_u8 = U8
 extern Bool met To_u16 = U16
 extern Bool met To_u32 = U32
 extern Bool met To_u64 = U64
-extern Bool met Show st:@#n.fmt.`State
+extern Bool met Show st:@#`Fmt_state
 
 extern inline struct I8 =
 	isa `Native_sized_signed_integer
@@ -815,6 +817,11 @@ extern inline I8 met! Operator_assign_bwor other:@this
 extern inline I8 met! Operator_assign_bwxor other:@this
 extern inline I8 met! Operator_assign_bwand other:@this
 extern inline I8 met! Operator_assign_rshift by:Uint
+inline I8 met Abs = this
+	if self >= 0
+		return self.
+	else
+		return -self.
 inline I8 met Unsigned = U8
 	assert self >= 0
 	return self.Bitwise_unsigned
@@ -829,7 +836,7 @@ extern inline I8 met To_i64 = I64
 extern inline I8 met To_int = Int
 extern inline I8 met Exact_float = Float
 extern inline I8 met Exact_double = Double
-extern I8 met Show st:@#n.fmt.`State
+extern I8 met Show st:@#`Fmt_state
 
 extern inline struct I16 =
 	isa `Native_sized_signed_integer
@@ -865,6 +872,11 @@ extern inline I16 met! Operator_assign_bwor other:@this
 extern inline I16 met! Operator_assign_bwxor other:@this
 extern inline I16 met! Operator_assign_bwand other:@this
 extern inline I16 met! Operator_assign_rshift by:Uint
+inline I16 met Abs = this
+	if self >= 0
+		return self.
+	else
+		return -self.
 inline I16 met Unsigned = U16
 	assert self >= 0
 	return self.Bitwise_unsigned
@@ -879,7 +891,7 @@ extern inline I16 met To_i64 = I64
 extern inline I16 met To_int = Int
 extern inline I16 met Exact_float = Float
 extern inline I16 met Exact_double = Double
-extern I16 met Show st:@#n.fmt.`State
+extern I16 met Show st:@#`Fmt_state
 
 extern inline struct I32 =
 	isa `Native_sized_signed_integer
@@ -915,6 +927,11 @@ extern inline I32 met! Operator_assign_bwor other:@this
 extern inline I32 met! Operator_assign_bwxor other:@this
 extern inline I32 met! Operator_assign_bwand other:@this
 extern inline I32 met! Operator_assign_rshift by:Uint
+inline I32 met Abs = this
+	if self >= 0
+		return self.
+	else
+		return -self.
 inline I32 met Unsigned = U32
 	assert self >= 0
 	return self.Bitwise_unsigned
@@ -929,7 +946,7 @@ extern inline I32 met To_i64 = I64
 extern inline I32 met To_int = Int
 extern inline I32 met Round_float = Float
 extern inline I32 met Exact_double = Double
-extern I32 met Show st:@#n.fmt.`State
+extern I32 met Show st:@#`Fmt_state
 
 ---- TODO Integer conversions to floats must be extended with:
 -- met Try_exact_float = Error_range, Float
@@ -970,6 +987,11 @@ extern inline I64 met! Operator_assign_bwor other:@this
 extern inline I64 met! Operator_assign_bwxor other:@this
 extern inline I64 met! Operator_assign_bwand other:@this
 extern inline I64 met! Operator_assign_rshift by:Uint
+inline I64 met Abs = this
+	if self >= 0
+		return self.
+	else
+		return -self.
 inline I64 met Unsigned = U64
 	assert self >= 0
 	return self.Bitwise_unsigned
@@ -992,7 +1014,7 @@ inline I64 met Try_int = Error_range, Int
 	return OK, 0
 extern inline I64 met Round_float = Float
 extern inline I64 met Round_double = Double
-extern I64 met Show st:@#n.fmt.`State
+extern I64 met Show st:@#`Fmt_state
 
 extern inline struct U8 =
 	isa `Native_sized_unsigned_integer
@@ -1055,7 +1077,7 @@ extern inline U8 met To_u64 = U64
 extern inline U8 met To_uint = Uint
 extern inline U8 met Exact_float = Float
 extern inline U8 met Exact_double = Double
-extern U8 met Show st:@#n.fmt.`State
+extern U8 met Show st:@#`Fmt_state
 
 extern inline struct U16 =
 	isa `Native_sized_unsigned_integer
@@ -1118,7 +1140,7 @@ extern inline U16 met To_u64 = U64
 extern inline U16 met To_uint = Uint
 extern inline U16 met Exact_float = Float
 extern inline U16 met Exact_double = Double
-extern U16 met Show st:@#n.fmt.`State
+extern U16 met Show st:@#`Fmt_state
 
 extern inline struct U32 =
 	isa `Native_sized_unsigned_integer
@@ -1181,7 +1203,7 @@ extern inline U32 met To_u64 = U64
 extern inline U32 met To_uint = Uint
 extern inline U32 met Round_float = Float
 extern inline U32 met Exact_double = Double
-extern U32 met Show st:@#n.fmt.`State
+extern U32 met Show st:@#`Fmt_state
 
 extern inline struct U64 =
 	isa `Native_sized_unsigned_integer
@@ -1252,7 +1274,7 @@ inline U64 met Try_uint = Error_range, Uint
 	return INVAL_RANGE, 0
 extern inline U64 met Round_float = Float
 extern inline U64 met Round_double = Double
-extern U64 met Show st:@#n.fmt.`State
+extern U64 met Show st:@#`Fmt_state
 
 extern inline struct Int =
 	isa `Native_signed_integer
@@ -1290,6 +1312,11 @@ extern inline Int met Operator_bwnot = final
 extern inline Int met! Operator_assign_bwor other:@final
 extern inline Int met! Operator_assign_bwxor other:@final
 extern inline Int met! Operator_assign_bwand other:@final
+inline Int met Abs = this
+	if self >= 0
+		return self.
+	else
+		return -self.
 inline Int met Unsigned = Uint
 	assert self >= 0
 	return self.force_unsigned
@@ -1304,7 +1331,7 @@ extern inline Int met Trim_i32 = I32
 extern inline Int met To_i64 = I64
 extern inline Int met Round_float = Float
 extern inline Int met Round_double = Double
-extern Int met Show st:@#n.fmt.`State
+extern Int met Show st:@#`Fmt_state
 
 extern inline struct Uint =
 	isa `Native_unsigned_integer
@@ -1355,7 +1382,7 @@ extern inline Uint met Trim_u32 = U32
 extern inline Uint met To_u64 = U64
 extern inline Uint met Round_float = Float
 extern inline Uint met Round_double = Double
-extern Uint met Show st:@#n.fmt.`State
+extern Uint met Show st:@#`Fmt_state
 
 extern inline struct Intptr =
 	isa `Native_signed_integer
@@ -1392,6 +1419,11 @@ extern inline Intptr met Operator_bwnot = final
 extern inline Intptr met! Operator_assign_bwor other:@final
 extern inline Intptr met! Operator_assign_bwxor other:@final
 extern inline Intptr met! Operator_assign_bwand other:@final
+inline Intptr met Abs = this
+	if self >= 0
+		return self.
+	else
+		return -self.
 inline Intptr met Unsigned = Uintptr
 	assert self >= 0
 	return self.force_unsigned
@@ -1401,7 +1433,7 @@ inline Intptr met Try_unsigned = Error_range, Uintptr
 	return INVAL_RANGE, 0
 extern inline Intptr met force_unsigned = Uintptr
 extern inline Intptr met To_i64 = I64
-extern Intptr met Show st:@#n.fmt.`State
+extern Intptr met Show st:@#`Fmt_state
 
 extern inline struct Uintptr =
 	isa `Native_unsigned_integer
@@ -1447,7 +1479,7 @@ inline Uintptr met Try_signed = Error_range, Intptr
 	return INVAL_RANGE, 0
 extern inline Uintptr met force_signed = Intptr
 extern inline Uintptr met To_u64 = U64
-extern Uintptr met Show st:@#n.fmt.`State
+extern Uintptr met Show st:@#`Fmt_state
 
 extern inline struct Float =
 	isa `Native_floating
@@ -1488,7 +1520,7 @@ inline Float met Try_round_uint = Error_range, Uint
 	if Likely <- self >= Uint.MIN.Round_float and self <= Uint.MAX.Round_float
 		return OK, self.force_round_uint
 	return INVAL_RANGE, 0
-extern Float met Show st:@#n.fmt.`State
+extern Float met Show st:@#`Fmt_state
 
 extern inline struct Double =
 	isa `Native_floating
@@ -1528,7 +1560,7 @@ inline Double met Try_round_uint = Error_range, Uint
 	if Likely <- self >= Uint.MIN.Round_double and self <= Uint.MAX.Round_double
 		return OK, self.force_round_uint
 	return INVAL_RANGE, 0
-extern Double met Show st:@#n.fmt.`State
+extern Double met Show st:@#`Fmt_state
 
 inline struct Bounds =
 	First	:Bool
@@ -1667,14 +1699,13 @@ inline struct Error =
 	Msg	:?@String
 
 	let OK = {}:this
-	let INVAL = {Msg=@"Invalid value"}:this
-	let INVAL_RANGE = {Msg=@"Invalid value range"}:this
-	let EOF = {Msg=@"End of file"}:this
+	let INVAL = {Msg=@"invalid value"}:this
+	let INVAL_RANGE = {Msg=@"invalid value range"}:this
 
 Error met Operator_test = Bool
 	return (self.Msg)?
 
-Error met Show st:@#n.fmt.`State
+Error met Show st:@#`Fmt_state
 	self.Msg.Show st
 
 (fun e:`Error) Drop err:e

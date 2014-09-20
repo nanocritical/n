@@ -1,0 +1,147 @@
+-- See LICENSE for details. Originally derived from go/src/pkg/path
+-- Copyright 2009 The Go Authors. All rights reserved.
+
+from n import *
+
+inline struct Path =
+	isa `String
+	buf	:Stringbuf
+
+Path met# Init name:String
+	self#buf#Append name.Bytes
+
+Path met Str = String
+	return self.buf.Str
+
+Path met Cap = Uint
+	return self.buf.Cap
+
+Path met Count = Uint
+	return self.buf.Count
+
+Path met Hash32 = U32
+	return self.buf.Hash32
+
+Path fun From_string s:String = this
+	let r = {}:this such r#buf#Append s.Bytes
+	return r
+
+Path fun From_bytes s:[]U8 = this
+	let r = {}:this such r#buf#Append s
+	return r
+
+Path met Bytes = []U8
+	return self.buf.Bytes
+
+Path met$ Operator_at n:Uint = @$U8
+	return self$buf$[n]
+
+Path met$ Operator_sub r:Range = []$U8
+	return self$buf$Operator_sub r
+
+Path met Operator_compare other:@this = Int
+	return self.buf.Operator_compare other.buf
+
+Path met Operator_eq other:@this = Bool
+	if self === other
+		return true
+	return self.Operator_compare other == 0
+Path met Operator_ne other:@this = Bool
+	if self === other
+		return false
+	return self.Operator_compare other != 0
+Path met Operator_le other:@this = Bool
+	if self === other
+		return true
+	return self.Operator_compare other <= 0
+Path met Operator_lt other:@this = Bool
+	if self === other
+		return false
+	return self.Operator_compare other < 0
+Path met Operator_gt other:@this = Bool
+	if self === other
+		return false
+	return self.Operator_compare other > 0
+Path met Operator_ge other:@this = Bool
+	if self === other
+		return true
+	return self.Operator_compare other >= 0
+
+Path met Show st:@#`Fmt_state
+	let _ = st#Write self.Bytes
+
+Path met# Clean
+	if self.buf == ""
+		self#buf = "."
+		return
+
+	let SLASH = "/".[0]
+	and DOT = ".".[0]
+
+	-- Processing is in place, as Clean can only shorten the path.
+	let path = @!self!buf
+	and n = self.Count
+	and rooted = self.buf.[0] == SLASH
+	and w, r, dotdot = 0, 0, 0
+	such
+		if rooted
+			w, r, dotdot = 1, 1, 1
+
+		while r < n
+			if path.[r] == SLASH
+				r += 1
+			elif path.[r] == DOT and (r+1 == n or path.[r+1] == SLASH)
+				r += 1
+			elif path.[r] == DOT and path.[r+1] == DOT and (r+2 == n or path.[r+2] == SLASH)
+				-- .. element: remove to last /
+				r += 2
+				if w > dotdot
+					-- can backtrack
+					w -= 1
+					while w > dotdot and path.[w] != SLASH
+						w -= 1
+				elif not rooted
+					-- cannot backtrack, but not rooted, so append .. element
+					if w > 0
+						path![w]! = SLASH
+						w += 1
+					path![w]! = DOT
+					w += 1
+					path![w]! = DOT
+					w += 1
+					dotdot = w
+			else
+				-- real path element.
+				-- add slash if needed
+				if (rooted and w != 1) or (not rooted and w != 0)
+					path![w]! = SLASH
+					w += 1
+				while r < n and path.[r] != SLASH
+					path![w]! = path.[r].
+					w += 1
+					r += 1
+	self#buf#Resize w
+
+example -> let p = "a/c":Path such p#Clean; assert p == "a/c"
+example -> let p = "a//c":Path such p#Clean; assert p == "a/c"
+example -> let p = "a/c/.":Path such p#Clean; assert p == "a/c"
+example -> let p = "a/c/b/..":Path such p#Clean; assert p == "a/c"
+example -> let p = "/../a/c":Path such p#Clean; assert p == "/a/c"
+example -> let p = "/../a/b/../././/c":Path such p#Clean; assert p == "/a/c"
+
+Path met# Join v:@(Vararg @`String)
+--	foreach p in v
+--		if p != ""
+--			self#buf#Clear
+--			self#buf#Join sep="/"
+--			return self#Clean
+--
+--example assert "a/b/c" == Join "a" "b" "c"
+
+Path met Split = Path, Path
+--	let i = self.buf.Str.Last_index "/"
+
+Path met Ext = Path
+Path met Base = Path
+Path met Dir = Path
+Path met Is_abs = Path

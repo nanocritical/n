@@ -21,19 +21,19 @@ NB(Void) *NB(Nonnull_void)(void) {
   return &dummy;
 }
 
-static void native_write_buffer(_$Ndyn_n$fmt$_$Ni_State st, char *s, int cnt) {
+static void native_write_buffer(_$Ndyn_n$builtins$_$Ni_Fmt_state st, char *s, int cnt) {
   const _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ bytes =
     NLANG_BYTE_SLICE(s, cnt);
   st.dyntable->Write(st.obj, bytes);
 }
 
-void n$builtins$Bool$Show(NB(Bool) *self, _$Ndyn_n$fmt$_$Ni_State st) {
+void n$builtins$Bool$Show(NB(Bool) *self, _$Ndyn_n$builtins$_$Ni_Fmt_state st) {
   native_write_buffer(st, *self ? "true" : "false", *self ? 4 : 5);
 }
 
 // ln(2^64)/ln(10) = 19.27
 #define define_show_number(t, fmt) \
-  void t##$Show(t *self, _$Ndyn_n$fmt$_$Ni_State st) { \
+  void t##$Show(t *self, _$Ndyn_n$builtins$_$Ni_Fmt_state st) { \
     char s[32]; \
     const int cnt = snprintf(s, 32, fmt, *self); \
     native_write_buffer(st, s, cnt); \
