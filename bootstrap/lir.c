@@ -239,7 +239,7 @@ static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
       node_subs_remove(left, l);
 
       char buf[8] = { 0 };
-      snprintf(buf, ARRAY_SIZE(buf), "x%zu", n);
+      snprintf(buf, ARRAY_SIZE(buf), "X%zu", n);
       const ident x = idents_add_string(mod->gctx, buf, strlen(buf));
 
       G0(ass, node, BIN,
@@ -451,7 +451,7 @@ static ERROR extract_defnames(struct module *mod,
           name->as.IDENT.name = node_ident(expr);
           struct node *field = mk_node(mod, ex, IDENT);
           char s[8] = { 0 };
-          snprintf(s, ARRAY_SIZE(s), "x%zu", n);
+          snprintf(s, ARRAY_SIZE(s), "X%zu", n);
           field->as.IDENT.name = idents_add_string(mod->gctx, s, strlen(s));
 
           e = extract_defnames(mod, toplevel, flags, is_alias, is_globalenv,

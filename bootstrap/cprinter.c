@@ -1633,7 +1633,7 @@ static void print_rtr_helpers_start(FILE *out, const struct module *mod,
       print_expr(out, mod, subs_first_const(x), T__STATEMENT);
       fprintf(out, " ((");
       print_expr(out, mod, first, T__STATEMENT);
-      fprintf(out, ").x%zu)\n", n);
+      fprintf(out, ").X%zu)\n", n);
       n += 1;
     }
   }

@@ -516,183 +516,183 @@ intf `Any_tuple =
 
 inline struct Tuple_2 t0:`Copyable t1:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
+	X0	:t0
+	X1	:t1
 
 inline struct Tuple_3 t0:`Copyable t1:`Copyable t2:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
+	X0	:t0
+	X1	:t1
+	X2	:t2
 
 inline struct Tuple_4 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
 
 inline struct Tuple_5 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
 
 inline struct Tuple_6 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
-	x5	:t5
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
 
 inline struct Tuple_7 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
-	x5	:t5
-	x6	:t6
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
 
 inline struct Tuple_8 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
-	x5	:t5
-	x6	:t6
-	x7	:t7
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
 
 inline struct Tuple_9 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
-	x5	:t5
-	x6	:t6
-	x7	:t7
-	x8	:t8
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
 
 inline struct Tuple_10 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
-	x5	:t5
-	x6	:t6
-	x7	:t7
-	x8	:t8
-	x9	:t9
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
 
 inline struct Tuple_11 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
-	x5	:t5
-	x6	:t6
-	x7	:t7
-	x8	:t8
-	x9	:t9
-	x10	:t10
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
 
 inline struct Tuple_12 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
-	x5	:t5
-	x6	:t6
-	x7	:t7
-	x8	:t8
-	x9	:t9
-	x10	:t10
-	x11	:t11
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
+	X11	:t11
 
 inline struct Tuple_13 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
-	x5	:t5
-	x6	:t6
-	x7	:t7
-	x8	:t8
-	x9	:t9
-	x10	:t10
-	x11	:t11
-	x12	:t12
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
+	X11	:t11
+	X12	:t12
 
 inline struct Tuple_14 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
-	x5	:t5
-	x6	:t6
-	x7	:t7
-	x8	:t8
-	x9	:t9
-	x10	:t10
-	x11	:t11
-	x12	:t12
-	x13	:t13
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
+	X11	:t11
+	X12	:t12
+	X13	:t13
 
 inline struct Tuple_15 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable t14:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
-	x5	:t5
-	x6	:t6
-	x7	:t7
-	x8	:t8
-	x9	:t9
-	x10	:t10
-	x11	:t11
-	x12	:t12
-	x13	:t13
-	x14	:t14
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
+	X11	:t11
+	X12	:t12
+	X13	:t13
+	X14	:t14
 
 inline struct Tuple_16 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable t14:`Copyable t15:`Copyable =
 	isa `Any_tuple
-	x0	:t0
-	x1	:t1
-	x2	:t2
-	x3	:t3
-	x4	:t4
-	x5	:t5
-	x6	:t6
-	x7	:t7
-	x8	:t8
-	x9	:t9
-	x10	:t10
-	x11	:t11
-	x12	:t12
-	x13	:t13
-	x14	:t14
-	x15	:t15
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
+	X11	:t11
+	X12	:t12
+	X13	:t13
+	X14	:t14
+	X15	:t15
 
 intf `Numeric =
 	isa `Copyable `Arithmetic `Ordered `Show
