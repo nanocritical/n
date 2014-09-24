@@ -8,36 +8,33 @@ inline struct Path =
 	buf	:Stringbuf
 
 Path met# Init name:String
-	self#buf#Append name.Bytes
+	self#buf#Cat name
 
 Path met Str = String
 	return self.buf.Str
-
-Path met Cap = Uint
-	return self.buf.Cap
-
-Path met Count = Uint
-	return self.buf.Count
 
 Path met Hash32 = U32
 	return self.buf.Hash32
 
 Path fun From_string s:String = this
-	let r = {}:this such r#buf#Append s.Bytes
+	let r = {}:this such r#buf#Cat s
 	return r
 
 Path fun From_bytes s:[]U8 = this
-	let r = {}:this such r#buf#Append s
+	let r = {}:this such _, _ = r#buf#Write s
 	return r
+
+Path met Count = Uint
+	return self.buf.Count
+
+Path met Operator_at n:Uint = U8
+	return self.buf.[n].
+
+Path met Operator_sub r:Range = []U8
+	return self.buf.Operator_sub r
 
 Path met Bytes = []U8
 	return self.buf.Bytes
-
-Path met$ Operator_at n:Uint = @$U8
-	return self$buf$[n]
-
-Path met$ Operator_sub r:Range = []$U8
-	return self$buf$Operator_sub r
 
 Path met Operator_compare other:@this = Int
 	return self.buf.Operator_compare other.buf
@@ -80,7 +77,7 @@ Path met# Clean
 
 	-- Processing is in place, as Clean can only shorten the path.
 	let path = @!self!buf
-	and n = self.Count
+	and n = path.Count
 	and rooted = self.buf.[0] == SLASH
 	and w, r, dotdot = 0, 0, 0
 	such
@@ -128,20 +125,56 @@ example -> let p = "a/c/.":Path such p#Clean; assert p == "a/c"
 example -> let p = "a/c/b/..":Path such p#Clean; assert p == "a/c"
 example -> let p = "/../a/c":Path such p#Clean; assert p == "/a/c"
 example -> let p = "/../a/b/../././/c":Path such p#Clean; assert p == "/a/c"
-
-Path met# Join v:@(Vararg @`String)
---	foreach p in v
---		if p != ""
---			self#buf#Clear
---			self#buf#Join sep="/"
---			return self#Clean
---
---example assert "a/b/c" == Join "a" "b" "c"
+example -> let p = "///":Path such p#Clean; assert p == "/"
 
 Path met Split = Path, Path
---	let i = self.buf.Str.Last_index "/"
+	let path = self.buf.Str
+	let i = path.Last_index_byte "/".[0]
+	let enddir = (i + 1).Unsigned
+	return Path.From_string path.[.. enddir], Path.From_string path.[enddir ..]
+
+Path met# Join ...v:(Vararg @`String)
+	self#buf#Cat sep="/" ...v
+	self#Clean
+	return
+
+example let p = "":Path such p#Join "a" "b" "c"; assert p == "a/b/c"
+example let p = "/":Path such p#Join "a" "b" "c"; assert p == "/a/b/c"
+example let p = "":Path such p#Join "a" "b" "/c"; assert p == "a/b/c"
 
 Path met Ext = Path
+	let path = self.buf.Str
+	for i in path.All.Reverse_iter
+		if path.[i] == ".".[0]
+			return Path.From_string path.[i ..]
+	return ""
+
 Path met Base = Path
+	let path = self.Str
+	if path == ""
+		return "."
+	let SLASH = "/".[0]
+	for i in path.All.Reverse_iter
+		if path.[i] != SLASH
+			path = path.[.. i+1]
+			break
+	let i = path.Last_index_byte SLASH
+	if i >= 0
+		path = path.[i.Unsigned+1 ..]
+	if path == ""
+		return "/"
+	return Path.From_string path
+
+Path met Is_abs = Bool
+	let path = self.buf.Str
+	return path.Count > 0 and path.[0] == "/".[0]
+
 Path met Dir = Path
-Path met Is_abs = Path
+	let dir, _ = self.Split
+	dir#Clean
+	let last = dir.Str.Count - 1
+	if last > 0 and dir.Str.[last] == "/".[0]
+		_ = dir#buf#Pop
+	if dir.Str == ""
+		return "."
+	return dir

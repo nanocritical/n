@@ -379,6 +379,14 @@ inline Stringbuf met# Reserve atleast:Uint
 		return
 	Realloc @#self#bytes atleast
 
+inline Stringbuf met# Cat ?sep:?@String ...v:(Vararg @`String)
+	let sepcnt = sep?.Count else 0
+	for b in v
+		self#Reserve self.bytes.Count + sepcnt + b.Count
+		self#bytes = self!bytes!Append b.Bytes
+		if sep?
+			self#bytes = self!bytes!Append sep.Bytes
+
 -- FIXME: unexport.
 inline Stringbuf met# Auto_grow atleast:Uint
 	let cap = self.bytes.cap
@@ -395,9 +403,10 @@ inline Stringbuf met# Auto_shrink
 		return
 	Realloc @#self#bytes newcap
 
-inline Stringbuf met# Write b:[]U8 = Error, []U8
-	self#Append b
-	return OK, {}
+inline Stringbuf met# Write b:[]U8 = []U8, Error --[]U8::|{}, Error::|OK
+	self#Reserve self.Count + b.Count
+	self#bytes = self#bytes#Append b
+	return {}, OK
 
 inline Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
 	let separator = Optional_ref sep " "
