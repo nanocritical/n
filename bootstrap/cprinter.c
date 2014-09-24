@@ -280,8 +280,10 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
     if (is_assign) {
       fprintf(out, "(void) ( ");
     }
-    print_expr(out, mod, left, op);
-    print_token(out, op);
+    if (node_ident(left) != ID_OTHERWISE) {
+      print_expr(out, mod, left, op);
+      print_token(out, op);
+    }
     print_expr(out, mod, right, op);
     if (is_assign) {
       fprintf(out, " )");
