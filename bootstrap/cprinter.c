@@ -2882,7 +2882,6 @@ static void print_import(FILE *out, bool header, enum forward fwd,
                && (node_toplevel_const(node)->flags & TOP_IS_INLINE)) {
       return;
     }
-    fprintf(out, "// inline: %d\n", !!(node_toplevel_const(node)->flags & TOP_IS_INLINE));
   }
 
   print_include(out, target->as.MODULE.mod->filename, ".o.h");
@@ -3174,6 +3173,23 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
     if (header) {
       fprintf(out, "\n#endif\n");
       fprintf(out, "#endif // %s\n", forward_guards[fwd]);
+
+      if (fwd == FWD_DEFINE_TYPES) {
+        // When fwd==FWD_DEFINE_TYPES, to support more dependency orders,
+        // print_import() will skip modules to which the importer has no
+        // inline dependency. The module must be imported under
+        // FWD_DEFINE_TYPES at some point, though (at least for the benefit
+        // of the function definitions in itself). So we import it here if
+        // it hadn't been done before.
+        fprintf(out, "\n#ifdef %s\n", forward_guards[FWD_DEFINE_FUNCTIONS]);
+        fprintf(out, "# undef %s\n", forward_guards[FWD_DEFINE_FUNCTIONS]);
+        fprintf(out, "# ifndef %s__", forward_guards[fwd]);
+        print_scope_name(out, mod, &mod->root->scope);
+        fprintf(out, "\n#  define %s\n", forward_guards[fwd]);
+        print_include(out, mod->filename, ".o.h");
+        fprintf(out, "\n#  undef %s\n# endif\n", forward_guards[fwd]);
+        fprintf(out, "# define %s\n#endif\n\n", forward_guards[FWD_DEFINE_FUNCTIONS]);
+      }
     } else {
       fprintf(out, "#undef %s\n", forward_guards[fwd]);
     }
