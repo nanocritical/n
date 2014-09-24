@@ -19,7 +19,7 @@ struct dc =
 	dummy	:I32
 
 dc fun answer = I32
-	return 42
+	return 43
 
 dc met get = I32
 	return 42
@@ -39,7 +39,9 @@ fun bar pv:@d = I32
 
 fun Main = I32
 	let xd = { x=42 }:d
+	assert rfoo xd == 42
 	let xdc = { }:dc
+	assert rfoo xdc == 43
 	if foo xd != foo xdc
 		return 1
 	let pxd = @xd

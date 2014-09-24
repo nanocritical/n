@@ -503,6 +503,34 @@ static void print_call_vararg_count(FILE *out, const struct node *dfun,
   }
 }
 
+static const struct node *call_dyn_expr(const struct node *node) {
+  const struct node *fun = subs_first_const(node);
+  const struct typ *tfun = fun->typ;
+  if (typ_definition_which(tfun) == DEFFUN) {
+    return subs_first_const(subs_first_const(node));
+  } else {
+    return subs_at_const(node, 1);
+  }
+}
+
+static void print_call_fun(FILE *out, const struct module *mod,
+                           const struct node *node) {
+  const struct node *fun = subs_first_const(node);
+  const struct typ *tfun = fun->typ;
+  struct tit *it = typ_definition_parent(tfun);
+  if (tit_which(it) != DEFINTF) {
+    // Normal case.
+    tit_next(it);
+    print_typ(out, mod, tfun);
+    return;
+  }
+
+  // Dyn case.
+  tit_next(it);
+  print_expr(out, mod, call_dyn_expr(node), T__CALL);
+  fprintf(out, ".dyntable->%s", idents_value(mod->gctx, typ_definition_ident(tfun)));
+}
+
 static void print_call(FILE *out, const struct module *mod,
                        const struct node *node, uint32_t parent_op) {
   const struct node *fun = subs_first_const(node);
@@ -548,33 +576,27 @@ static void print_call(FILE *out, const struct module *mod,
     return;
   }
 
-  print_typ(out, mod, tfun);
+  print_call_fun(out, mod, node);
   fprintf(out, "(");
 
+  size_t n = 1;
   bool force_comma = false;
-  if (dfun->which == DEFFUN && parentd->which == DEFINTF) {
-    print_expr(out, mod, subs_first_const(fun), T__CALL);
-    force_comma = true;
+
+  if (parentd->which == DEFINTF) {
+    if (dfun->which == DEFMETHOD) {
+      print_expr(out, mod, call_dyn_expr(node), T__CALL);
+      fprintf(out, ".obj");
+      n = 2;
+    }
   }
 
-  size_t n = 1;
-  FOREACH_SUB_EVERY_CONST(arg, node, 1, 1) {
+  FOREACH_SUB_EVERY_CONST(arg, node, n, 1) {
     if (force_comma || n > 1) {
       fprintf(out, ", ");
     }
 
     print_call_vararg_count(out, dfun, node, arg, n - 1);
 
-    if (n == 1
-        && dfun->which == DEFMETHOD
-        && parentd->which == DEFINTF) {
-      assert(typ_is_reference(arg->typ));
-      if (!typ_equal(parentd->typ, typ_generic_arg_const(arg->typ, 0))) {
-        fprintf(out, "*(_$Ndyn_");
-        print_typ(out, mod, parentd->typ);
-        fprintf(out, " *)&");
-      }
-    }
     print_expr(out, mod, arg, T__CALL);
     n += 1;
   }
@@ -2724,86 +2746,6 @@ static ERROR print_defintf_dyntable_field_eachisalist(struct module *mod, struct
   return 0;
 }
 
-static ERROR print_defintf_member_proto_eachisalist(struct module *mod, struct typ *t,
-                                                    struct typ *intf, void *user) {
-  struct cprinter_state *st = user;
-
-  const struct node *dintf = DEF(intf);
-  FOREACH_SUB_CONST(d, dintf) {
-    if (d->which != DEFFUN && d->which != DEFMETHOD) {
-      continue;
-    }
-    if (node_toplevel_const(d)->flags & TOP_IS_NOT_DYN) {
-      continue;
-    }
-    if (subs_count_atleast(subs_at_const(DEF(d->typ), IDX_GENARGS), 1)) {
-      continue;
-    }
-    print_fun_prototype(st->out, st->header, st->fwd, mod, d, false, false, false, t);
-    fprintf(st->out, ";\n");
-  }
-  return 0;
-}
-
-static ERROR print_defintf_member_eachisalist(struct module *mod, struct typ *t,
-                                              struct typ *intf, void *user) {
-  struct cprinter_state *st = user;
-
-  const struct node *dintf = DEF(intf);
-  FOREACH_SUB_CONST(d, dintf) {
-    if (d->which != DEFFUN && d->which != DEFMETHOD) {
-      continue;
-    }
-    if (node_toplevel_const(d)->flags & TOP_IS_NOT_DYN) {
-      continue;
-    }
-    if (subs_count_atleast(subs_at_const(DEF(d->typ), IDX_GENARGS), 1)) {
-      continue;
-    }
-
-    print_fun_prototype(st->out, st->header, st->fwd, mod, d, false, false, false, t);
-    fprintf(st->out, " {\n");
-
-    const bool retval_throughref = !typ_isa_return_by_copy(node_fun_retval_const(d)->typ);
-    if (!retval_throughref
-        && !typ_equal(node_fun_retval_const(d)->typ, TBI_VOID)) {
-      fprintf(st->out, "return ");
-    }
-    fprintf(st->out, "self.dyntable->%s(", idents_value(mod->gctx, node_ident(d)));
-    bool need_comma = false;
-    if (d->which == DEFMETHOD) {
-      need_comma = true;
-      fprintf(st->out, "self.obj");
-    }
-
-    const struct node *funargs = subs_at_const(d, IDX_FUNARGS);
-    FOREACH_SUB_EVERY_CONST(arg, funargs, d->which == DEFMETHOD ? 1 : 0, 1) {
-      if (next_const(arg) == NULL) {
-        break;
-      }
-      if (need_comma) {
-        fprintf(st->out, ", ");
-      }
-      fprintf(st->out, "%s",
-              idents_value(mod->gctx, node_ident(arg)));
-
-      need_comma = true;
-    }
-
-    if (retval_throughref) {
-      if (need_comma) {
-        fprintf(st->out, ", ");
-      }
-
-      fprintf(st->out, "_$Nrtr_");
-      print_expr(st->out, mod, subs_first_const(node_fun_retval_const(d)), T__STATEMENT);
-    }
-
-    fprintf(st->out, ");\n}\n");
-  }
-  return 0;
-}
-
 static void print_defintf(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node) {
   if (typ_is_generic_functor(node->typ)) {
@@ -2896,18 +2838,6 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
       fprintf(out, "void *obj;\n");
       fprintf(out, "};\n");
     }
-  } else if (fwd == FWD_DECLARE_FUNCTIONS) {
-    struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,
-      .mod = NULL, .printed = 0, .user = NULL };
-    error e = print_defintf_member_proto_eachisalist((struct module *)mod, node->typ,
-                                                     node->typ, &st);
-    assert(!e);
-  } else if (fwd == FWD_DEFINE_FUNCTIONS && !header) {
-    struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,
-      .mod = NULL, .printed = 0, .user = NULL };
-    error e = print_defintf_member_eachisalist((struct module *)mod, node->typ,
-                                               node->typ, &st);
-    assert(!e);
   }
 
   print_reflect_type(out, header, fwd, mod, node);
