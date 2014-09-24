@@ -119,19 +119,24 @@ Path met# Clean
 					r += 1
 	self#buf#Resize w
 
-example -> let p = "a/c":Path such p#Clean; assert p == "a/c"
-example -> let p = "a//c":Path such p#Clean; assert p == "a/c"
-example -> let p = "a/c/.":Path such p#Clean; assert p == "a/c"
-example -> let p = "a/c/b/..":Path such p#Clean; assert p == "a/c"
-example -> let p = "/../a/c":Path such p#Clean; assert p == "/a/c"
-example -> let p = "/../a/b/../././/c":Path such p#Clean; assert p == "/a/c"
-example -> let p = "///":Path such p#Clean; assert p == "/"
+example let p = "a/c":Path such p#Clean; assert p == "a/c"
+example let p = "a//c":Path such p#Clean; assert p == "a/c"
+example let p = "a/c/.":Path such p#Clean; assert p == "a/c"
+example let p = "a/c/b/..":Path such p#Clean; assert p == "a/c"
+example let p = "/../a/c":Path such p#Clean; assert p == "/a/c"
+example let p = "/../a/b/../././/c":Path such p#Clean; assert p == "/a/c"
+example let p = "///":Path such p#Clean; assert p == "/"
 
 Path met Split = Path, Path
 	let path = self.buf.Str
 	let i = path.Last_index_byte "/".[0]
 	let enddir = (i + 1).Unsigned
 	return Path.From_string path.[.. enddir], Path.From_string path.[enddir ..]
+
+example let p = "a/b":Path such let d, b = p.Split; assert d == "a/" and b == "b"
+example let p = "/b":Path such let d, b = p.Split; assert d == "/" and b == "b"
+example let p = "/":Path such let d, b = p.Split; assert d == "/" and b == ""
+example let p = "":Path such let d, b = p.Split; assert d == "" and b == ""
 
 Path met# Join ...v:(Vararg @`String)
 	self#buf#Cat sep="/" ...v
@@ -149,32 +154,15 @@ Path met Ext = Path
 			return Path.From_string path.[i ..]
 	return ""
 
-Path met Base = Path
-	let path = self.Str
-	if path == ""
-		return "."
-	let SLASH = "/".[0]
-	for i in path.All.Reverse_iter
-		if path.[i] != SLASH
-			path = path.[.. i+1]
-			break
-	let i = path.Last_index_byte SLASH
-	if i >= 0
-		path = path.[i.Unsigned+1 ..]
-	if path == ""
-		return "/"
-	return Path.From_string path
+example let p = "test.jpg":Path such p.Ext == ".jpg"
+example let p = "test.png.jpg":Path such p.Ext == ".jpg"
+example let p = "test.png.":Path such p.Ext == "."
+example let p = ".":Path such p.Ext == "."
+example let p = "t":Path such p.Ext == "t"
+example let p = "":Path such p.Ext == ""
 
 Path met Is_abs = Bool
-	let path = self.buf.Str
-	return path.Count > 0 and path.[0] == "/".[0]
+	return self.Count > 0 and self.[0] == "/".[0]
 
-Path met Dir = Path
-	let dir, _ = self.Split
-	dir#Clean
-	let last = dir.Str.Count - 1
-	if last > 0 and dir.Str.[last] == "/".[0]
-		_ = dir#buf#Pop
-	if dir.Str == ""
-		return "."
-	return dir
+example let p = "/a":Path such assert p.Is_abs
+example let p = "":Path such assert not p.Is_abs
