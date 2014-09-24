@@ -1719,7 +1719,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
   case BG_TRIVIAL_DTOR_DTOR:
     break;
   case BG_TRIVIAL_COPY_COPY_CTOR:
-    fprintf(out, "memcpy(self, other, sizeof(*self));\n");
+    fprintf(out, "memmove(self, other, sizeof(*self));\n");
     break;
   case BG_TRIVIAL_COMPARE_OPERATOR_COMPARE:
     fprintf(out, "return memcmp(self, other, sizeof(*self));\n");
