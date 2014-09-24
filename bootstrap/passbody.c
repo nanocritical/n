@@ -285,7 +285,12 @@ static ERROR step_from_string_call_inference(struct module *mod, struct node *no
     return 0;
   }
 
-  if (typ_equal(node->typ, TBI_RUNE)) {
+  struct typ *saved_typ = node->typ;
+  if (typ_definition_which(saved_typ) == DEFINTF) {
+    assert(0);
+  }
+
+  if (typ_equal(saved_typ, TBI_RUNE)) {
     if (!string_literal_has_length_one(node->as.STRING.value)) {
       error e = mk_except_type(mod, node,
                                "string literal %s does not have length 1,"
@@ -294,8 +299,6 @@ static ERROR step_from_string_call_inference(struct module *mod, struct node *no
       THROW(e);
     }
   }
-
-  struct typ *saved_typ = node->typ;
 
   struct node *s = node_new_subnode(mod, node);
   node_subs_remove(node, s);
