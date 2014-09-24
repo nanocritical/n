@@ -969,8 +969,9 @@ static ERROR fill_in_optional_args(struct module *mod, struct node *node,
       THROW(e);
     } else if (arg->which == CALLNAMEDARG && arg->as.CALLNAMEDARG.is_slice_vararg) {
       if (next(arg) != NULL) {
-        e = mk_except(mod, next(arg), "excess argument appearing after a slice"
-                      " is passed as vararg, at position %zd", code_pos);
+        e = mk_except(mod, next(arg), "excess argument appearing after a"
+                      " slice or Vararg is passed as vararg,"
+                      " at position %zd", code_pos);
         THROW(e);
       }
       break;
@@ -1854,6 +1855,15 @@ static ERROR try_rewrite_operator_sub_bounds(struct module *mod, struct node *no
   return 0;
 }
 
+static bool is_vararg_passdown(struct typ *arg) {
+  if (!typ_is_reference(arg)) {
+    return false;
+  }
+  struct typ *va = typ_generic_arg(arg, 0);
+  return typ_generic_arity(va) > 0
+    && typ_equal(typ_generic_functor(va), TBI_VARARG);
+}
+
 static ERROR type_inference_call(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
@@ -1930,15 +1940,20 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
       struct typ *target = typ_generic_arg(typ_function_arg(fun->typ, n), 0);
 
       if (arg->which == CALLNAMEDARG && arg->as.CALLNAMEDARG.is_slice_vararg) {
-        struct typ *target_arg = typ_generic_arg(target, 0);
-        assert(typ_definition_which(target_arg) != DEFINTF && "Unsupported: needs dyn slice support");
+        if (is_vararg_passdown(arg->typ)) {
+          e = unify_refcompat(mod, arg, target, typ_generic_arg(typ_generic_arg(arg->typ, 0), 0));
+          EXCEPT(e);
+        } else {
+          struct typ *target_arg = typ_generic_arg(target, 0);
+          assert(typ_definition_which(target_arg) != DEFINTF && "Unsupported: needs dyn slice support");
 
-        struct typ *slice_target = NULL;
-        e = instantiate(&slice_target, mod, arg, -1, TBI_SLICE, &target_arg, 1, false);
-        EXCEPT(e);
+          struct typ *slice_target = NULL;
+          e = instantiate(&slice_target, mod, arg, -1, TBI_SLICE, &target_arg, 1, false);
+          EXCEPT(e);
 
-        e = unify_refcompat(mod, arg, slice_target, typ_generic_arg(arg->typ, 0));
-        EXCEPT(e);
+          e = unify_refcompat(mod, arg, slice_target, typ_generic_arg(arg->typ, 0));
+          EXCEPT(e);
+        }
         break;
       }
 

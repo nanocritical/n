@@ -399,11 +399,11 @@ inline Stringbuf met# Write b:[]U8 = Error, []U8
 	self#Append b
 	return OK, {}
 
-inline Stringbuf met# Vpr v:@!(Vararg ?@`Show) ?sep:?@String
+inline Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
 	let separator = Optional_ref sep " "
 	and st = {}:Fmt_state such
 		st#Init self
-		for x in v!
+		for x in v
 			if x === null
 				"(null)".Show @#st
 			else
@@ -411,12 +411,6 @@ inline Stringbuf met# Vpr v:@!(Vararg ?@`Show) ?sep:?@String
 			if v.Count_left > 0
 				separator.Show @#st
 
-inline Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
-	self#Vpr @!v sep=sep
-
-inline Stringbuf met# Vprn v:@!(Vararg ?@`Show) ?sep:?@String
-	self#Vpr v sep=sep
-	self#Append "\n".Bytes
-
 inline Stringbuf met# Prn ?sep:?@String ...v:(Vararg ?@`Show)
-	self#Vprn @!v sep=sep
+	self#Pr sep=sep ...v
+	self#Append "\n".Bytes

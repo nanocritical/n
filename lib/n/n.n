@@ -3,21 +3,9 @@ from n.containers export *
 
 fun write_buf fd:I32 s:@U8 Count:Uint
 
-fun Vpr v:@!(Vararg ?@`Show) ?err:?@Bool ?sep:?@String
-	let buf = {}:Stringbuf such
-		buf#Vpr v sep=sep
-	let b = buf.Bytes
-	let fd = 1 such
-		if Optional err false
-			fd = 2
-	write_buf fd b.Unsafe_data b.Bytecount
-
 fun Pr ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
-	Vpr @!v err=err sep=sep
-
-fun Vprn v:@!(Vararg ?@`Show) ?err:?@Bool ?sep:?@String
 	let buf = {}:Stringbuf such
-		buf#Vprn v sep=sep
+		buf#Pr sep=sep ...v
 	let b = buf.Bytes
 	let fd = 1 such
 		if Optional err false
@@ -25,13 +13,19 @@ fun Vprn v:@!(Vararg ?@`Show) ?err:?@Bool ?sep:?@String
 	write_buf fd b.Unsafe_data b.Bytecount
 
 fun Prn ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
-	Vprn @!v err=err sep=sep
+	let buf = {}:Stringbuf such
+		buf#Prn sep=sep ...v
+	let b = buf.Bytes
+	let fd = 1 such
+		if Optional err false
+			fd = 2
+	write_buf fd b.Unsafe_data b.Bytecount
 
 fun Epr ?sep:?@String ...v:(Vararg ?@`Show)
-	Vpr @!v err=true sep=sep
+	Pr err=true sep=sep ...v
 
 fun Eprn ?sep:?@String ...v:(Vararg ?@`Show)
-	Vprn @!v err=true sep=sep
+	Prn err=true sep=sep ...v
 
 inline (fun t:`Any r:(`Any_ref t)) Just_const p:r = @t
 	return p

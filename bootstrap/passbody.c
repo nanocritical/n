@@ -552,10 +552,14 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
 
     const struct node *fun = subs_first_const(node);
     const ssize_t first_vararg = typ_function_first_vararg(fun->typ);
+
     size_t n = 0;
     FOREACH_SUB_EVERY(src, node, 1, 1) {
       struct typ *target = typ_function_arg(fun->typ, n);
       if (n == first_vararg) {
+        if (src->which == CALLNAMEDARG && src->as.CALLNAMEDARG.is_slice_vararg) {
+          break;
+        }
         target = typ_generic_arg(target, 0);
       }
 

@@ -492,11 +492,24 @@ static void print_call_vararg_count(FILE *out, const struct node *dfun,
     return;
   }
 
-  ssize_t count = subs_count(node) - 1 - first_vararg;
+  const ssize_t count = subs_count(node) - 1 - first_vararg;
   if (count == 1 && arg->which == CALLNAMEDARG && arg->as.CALLNAMEDARG.is_slice_vararg) {
-    count = -1;
+    bool passdown = false;
+    if (typ_is_reference(arg->typ)) {
+      const struct typ *va = typ_generic_arg_const(arg->typ, 0);
+      if (typ_generic_arity(va) > 0
+          && typ_equal(typ_generic_functor_const(va), TBI_VARARG)) {
+        passdown = true;
+        fprintf(out, "NLANG_BUILTINS_VACOUNT_VARARGREF");
+      }
+    }
+
+    if (!passdown) {
+      fprintf(out, "NLANG_BUILTINS_VACOUNT_SLICE");
+    }
+  } else {
+    fprintf(out, "%zd", count);
   }
-  fprintf(out, "%zd", count);
 
   if (count != 0) {
     fprintf(out, ", ");
@@ -576,6 +589,8 @@ static void print_call(FILE *out, const struct module *mod,
     return;
   }
 
+  const ssize_t first_vararg = node_fun_first_vararg(dfun);
+
   print_call_fun(out, mod, node);
   fprintf(out, "(");
 
@@ -601,7 +616,6 @@ static void print_call(FILE *out, const struct module *mod,
     n += 1;
   }
 
-  const ssize_t first_vararg = node_fun_first_vararg(dfun);
   if ((ssize_t)subs_count(node) - 1 <= first_vararg) {
     if (n > 1) {
       fprintf(out, ", ");
@@ -1508,7 +1522,7 @@ static bool print_call_vararg_proto(FILE *out, const struct node *dfun, size_t n
     return false;
   }
 
-  fprintf(out, "n$builtins$Int _$Nvarargcount, ...");
+  fprintf(out, "n$builtins$Int _$Nvacount, ...");
   return true;
 }
 

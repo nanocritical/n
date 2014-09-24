@@ -1716,8 +1716,10 @@ Error met Show st:@#`Fmt_state
 	Abort
 
 
-extern inline struct Valist =
+extern inline struct Varargint =
 	isa `Trivial_copy `Trivial_ctor
+
+extern inline Varargint met Count_left = Uint
 
 intf `no_dyn_iterator r:`Any_any_ref =
 	isa `Prevent_dyn (`Iterator r)
@@ -1725,17 +1727,15 @@ intf `no_dyn_iterator r:`Any_any_ref =
 opaque struct Vararg r:`Any_any_ref =
 	isa (`no_dyn_iterator r)
 	isa `Trivial_copy -- FIXME: remove `Trivial_copy, needed by bootstrap
-	ap	:Valist
-	n	:Uint
-	s	:Uintptr -- To hold the pointer to the slice, when used.
+	ap	:Varargint
 
 inline Vararg met Has_next = Bool
-	return self.n > 0
+	return self.Count_left > 0
 
 extern Vararg met! Next = r
 
 inline Vararg met Count_left = Uint
-	return self.n
+	return self.ap.Count_left
 
 
 intf `Any_environment =

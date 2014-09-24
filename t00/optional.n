@@ -31,6 +31,17 @@ fun diff x:I32 ...v:(Vararg @I32) = I32
 (fun t:`Any) unarygen ?p:?@t = I32
 	return 0
 
+fun relay ...v:(Vararg @I32)
+	for x in v
+		Pr x
+	Prn
+
+fun relay2 ...v:(Vararg @I32)
+	relay ...v
+
+fun relay3 ...v:(Vararg @I32)
+	relay2 ...v
+
 fun Main = I32
 	if opts a=1 != 1
 		return 1
@@ -53,6 +64,13 @@ fun Main = I32
 	assert -1 == diff 0 - 1
 	assert 1 == diff 0 -1
 	assert 1 == diff 0 (-1)
+
+	relay 1 2 3
+	relay ...{4 5 6}
+	relay2 1 2 3
+	relay2 ...{4 5 6}
+	relay3 1 2 3
+	relay3 ...{4 5 6}
 
 	let x = unarygen I32
 

@@ -3,8 +3,16 @@
 #ifdef NLANG_DEFINE_TYPES
 #include <stdarg.h>
 
-struct NB(Valist) {
-  va_list ap;
+union NB(Varargintunion) {
+  NB(Varargint) *ref;
+  va_list valist;
+  _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ *s;
+};
+
+struct NB(Varargint) {
+  NB(Int) n; // Must be first, see Count_left below.
+  NB(I32) vacount;
+  union NB(Varargintunion) u;
 };
 
 #define NLANG_BUILTINS_DEFINE_ENVPARENT(envt) _$Ndyn_##envt _$Nenvparent_##envt
@@ -24,47 +32,65 @@ struct NB(Valist) {
   .cnt = cnt, \
   .cap = cnt }
 
-#define NLANG_BUILTINS_VARARG_SLICE_CNT(va) \
-  ( ( (_$Nref__$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_) (va).s )->cnt )
-#define NLANG_BUILTINS_VARARG_SLICE_NTH(va, t, n) \
+#define NLANG_BUILTINS_VARARG_SLICE_CNT(ap) ( (ap)->u.s->cnt )
+#define NLANG_BUILTINS_VARARG_SLICE_NTH(ap, t, nth) \
   ({ \
+   n$builtins$Assert__((ap)->n != 0, NULL); \
    __attribute__((__unused__)) static t __dummy; \
-   (void *) &( ( (_$Nref__$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_) \
-                  (va).s )->dat[(n) * sizeof(*__dummy)] ); })
+   (void *) &(ap)->u.s->dat[(nth) * sizeof(*__dummy)]; })
+
+#define NLANG_BUILTINS_VACOUNT_SLICE (-1)
+#define NLANG_BUILTINS_VACOUNT_VARARGREF (-2)
 
 #define NLANG_BUILTINS_VARARG_START(va) do { \
-  va_start((va).ap.ap, _$Nvarargcount); \
-  if (_$Nvarargcount != -1) { \
-    (va).n = n$builtins$Int$Unsigned(&_$Nvarargcount); \
+  va_start((va).ap.u.valist, _$Nvacount); \
+  (va).ap.vacount = _$Nvacount; \
+  if (_$Nvacount >= 0) { \
+    (va).ap.n = _$Nvacount; \
+  } else if (_$Nvacount == NLANG_BUILTINS_VACOUNT_SLICE) { \
+    (va).ap.u.s = va_arg((va).ap.u.valist, void *); \
+    (va).ap.n = NLANG_BUILTINS_VARARG_SLICE_CNT(&(va).ap); \
+    va_end((va).ap.u.valist); \
   } else { \
-    (va).s = (n$builtins$Uintptr) va_arg((va).ap.ap, void *); \
-    (va).n = NLANG_BUILTINS_VARARG_SLICE_CNT(va); \
-    va_end((va).ap.ap); \
+    n$builtins$Varargint *ref = va_arg((va).ap.u.valist, n$builtins$Varargint *); \
+    va_end((va).ap.u.valist); \
+    if (ref->vacount == NLANG_BUILTINS_VACOUNT_VARARGREF) { \
+      ref = ref->u.ref; \
+    } \
+    (va).ap.u.ref = ref; \
   } \
 } while (0)
+
+#define NLANG_BUILTINS_VARARG_AP(va) \
+  (((va).ap.vacount == NLANG_BUILTINS_VACOUNT_VARARGREF) \
+   ? (va).ap.u.ref : &(va).ap)
 
 #define NLANG_BUILTINS_VARARG_END(va) do { \
-  if (_$Nvarargcount != -1) { \
-    va_end((va).ap.ap); \
+  n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
+  if (ap->vacount >= 0) { \
+    va_end(ap->u.valist); \
   } \
 } while (0)
 
+#define NLANG_BUILTINS_VARARG_NEXT_(t, ap) \
+  ({ \
+   n$builtins$Assert__((ap)->n != 0, NULL); \
+   (ap)->n -= 1; \
+   va_arg((ap)->u.valist, t); \
+   })
+
 #define NLANG_BUILTINS_VARARG_NEXT(t, va) \
-  ({ n$builtins$Assert__((va).n != 0, NULL); \
-   ((va).s == 0) ? ({ \
-    (va).n -= 1; \
-    va_arg((va).ap.ap, t); \
-   }) : ({ \
-    NLANG_BUILTINS_VARARG_SLICE_NTH(va, t, \
-                                    NLANG_BUILTINS_VARARG_SLICE_CNT(va) - (va).n--); \
-   }); })
+  ({ \
+   n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
+   (ap->vacount == NLANG_BUILTINS_VACOUNT_SLICE) ? \
+   NLANG_BUILTINS_VARARG_SLICE_NTH(ap, t, \
+                                   NLANG_BUILTINS_VARARG_SLICE_CNT(ap) \
+                                   - ap->n--) \
+   : NLANG_BUILTINS_VARARG_NEXT_(t, ap); })
 
 // FIXME: dyn slices support is missing
 #define NLANG_BUILTINS_VARARG_NEXT_DYN(t, va) \
-  ({ n$builtins$Assert__((va).n != 0, NULL); \
-   (va).n -= 1; \
-   va_arg((va).ap.ap, t); \
-   })
+  NLANG_BUILTINS_VARARG_NEXT_(t, NLANG_BUILTINS_VARARG_AP(va))
 
 #define NLANG_MKDYN(dyn_type, _dyntable, _obj) \
   (dyn_type){ .dyntable = (void *)(_dyntable), .obj = (_obj) }
@@ -85,6 +111,14 @@ struct NB(Valist) {
 #endif
 
 #ifdef NLANG_DEFINE_FUNCTIONS
+
+static inline NB(Uint) NB(Varargint$Count_left)(NB(Varargint) *self) {
+  if (self->vacount == NLANG_BUILTINS_VACOUNT_VARARGREF) {
+    return self->u.ref->n;
+  } else {
+    return self->n;
+  }
+}
 
 static inline NB(U8) *NB(Slice_at_byte)(NB(U8) *p, NB(Uint) off) {
   return p + off;
