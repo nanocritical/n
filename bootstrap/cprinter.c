@@ -1154,10 +1154,17 @@ static void print_linkage(FILE *out, bool header, enum forward fwd,
 
   const struct toplevel *toplevel = node_toplevel_const(at_top);
   const uint32_t flags = toplevel->flags;
-  if ((NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
-      && (flags & TOP_IS_EXTERN)
-      && (flags & TOP_IS_INLINE)) {
-    fprintf(out, "static inline ");
+  if ((NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD)))) {
+    if (((flags & TOP_IS_EXPORT) && (flags & TOP_IS_INLINE))
+        || ((flags & TOP_IS_EXTERN) && (flags & TOP_IS_INLINE))) {
+      fprintf(out, "static inline ");
+    } else if ((flags & TOP_IS_EXTERN) && (flags & TOP_IS_EXPORT)) {
+        fprintf(out, "extern ");
+    } else if (flags & TOP_IS_EXPORT) {
+      // noop
+    } else {
+      fprintf(out, "static ");
+    }
   } else if (flags & TOP_IS_EXTERN) {
     fprintf(out, "extern ");
   } else if ((flags & TOP_IS_INLINE) && node->which != DEFNAME) {
@@ -1331,8 +1338,11 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
     return;
   }
 
+  const struct node *expr = subs_last_const(node);
+  const struct node *par = parent_const(node);
+
   if (node->flags & NODE_IS_GLOBAL_LET) {
-    if (header && !node_is_export(parent_const(node))) {
+    if (header && !node_is_export(par)) {
       return;
     } else if (header && fwd == FWD_DEFINE_FUNCTIONS) {
       // Even if it is inline, the value is set in the .c
@@ -1341,13 +1351,12 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
       // the header (using a #define).
       return;
     } else if (!header && fwd == FWD_DECLARE_FUNCTIONS
-               && node_is_export(parent_const(node))) {
+               && node_is_export(par)) {
+      return;
+    } else if (!header && node_is_extern(par)) {
       return;
     }
   }
-
-  const struct node *expr = subs_last_const(node);
-  const struct node *par = parent_const(node);
 
   assert(node->which == DEFNAME);
 
@@ -1366,6 +1375,7 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
   if (!is_void) {
     if (node->flags & NODE_IS_GLOBAL_LET) {
       print_linkage(out, header, fwd, par, node);
+      fprintf(out, "const ");
     }
 
     if (node->as.DEFNAME.may_be_unused) {
@@ -1379,11 +1389,12 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
       print_scope_name(out, mod, &parent_const(parent_const(node))->scope);
       fprintf(out, "$");
     }
-
     print_expr(out, mod, subs_first_const(node), T__STATEMENT);
   }
 
-  if (fwd == FWD_DEFINE_FUNCTIONS && (!header || node_is_inline(node))) {
+  if (fwd == FWD_DEFINE_FUNCTIONS
+      && (!header || node_is_inline(node))
+      && !(node_toplevel_const(par)->flags & TOP_IS_EXTERN)) {
     if (expr != NULL) {
       if (expr->which == BLOCK && !subs_count_atleast(expr, 2)) {
         expr = subs_first_const(expr);
