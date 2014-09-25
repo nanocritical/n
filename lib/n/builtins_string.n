@@ -29,8 +29,8 @@ intf `String =
 intf `Stringbuf =
 	isa `String (`Io_writer U8)
 	met# Clear
-	met# Push c:Rune
-	met# Pop = Rune
+	met# Push c:U8
+	met# Pop = U8
 	met# Append b:[]U8
 	met# Copy b:[]U8
 
@@ -353,18 +353,18 @@ inline Stringbuf met# Resize cnt:Uint
 		self#Reserve cnt
 		self!bytes = self.bytes.[.. cnt]
 
-inline Stringbuf met# Push r:Rune
+inline Stringbuf met# Push c:U8
 	let nend = self.bytes.Count + 1
 	self#Reserve nend
 	self!bytes = self.bytes.[.. nend]
-	self!bytes![nend - 1]! = r.Code.Trim_u8
+	self!bytes![nend - 1]! = c
 
-inline Stringbuf met# Pop = Rune
+inline Stringbuf met# Pop = U8
 	assert self.Bytes.Count > 0
-	let r = (self.bytes.Last).
+	let c = (self.bytes.Last).
 	self!bytes = self.bytes.[.. self.bytes.Count-1]
 	self#Auto_shrink
-	return Rune.From_ascii r
+	return c
 
 inline Stringbuf met# Append b:[]U8
 	self#Reserve self.bytes.Count + b.Count

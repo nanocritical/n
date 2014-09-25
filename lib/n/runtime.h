@@ -1,6 +1,9 @@
 #ifndef NLANG_RUNTIME_H__
 #define NLANG_RUNTIME_H__
 
+// Feature macros:
+#define _GNU_SOURCE
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>

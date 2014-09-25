@@ -1699,6 +1699,7 @@ inline struct Error =
 	Msg	:?@String
 
 	let OK = {}:this
+	let UNKNOWN = {Msg=@"Unknown error"}:this
 	let INVAL = {Msg=@"invalid value"}:this
 	let INVAL_RANGE = {Msg=@"invalid value range"}:this
 
@@ -1706,7 +1707,11 @@ Error met Operator_test = Bool
 	return (self.Msg)?
 
 Error met Show st:@#`Fmt_state
-	self.Msg.Show st
+	if (self.Msg)?
+		"Error: ".Show st
+		self.Msg.Show st
+	else
+		"Success".Show st
 
 (fun e:`Error) Drop err:e
 	noop

@@ -9,7 +9,8 @@ let Short_buffer = {Msg=@"short buffer"}:Error
 let Unexpected_EOF = {Msg=@"unexpected EOF"}:Error
 
 intf `Reader t:`Copyable =
-	-- Returns a slice of b with the content read.
+	-- Returns a slice of b with the same origin, extended to include the
+	-- content just read.
 	met# Read b:[]!t = []!t, Error
 
 alias `Writer = `Io_writer

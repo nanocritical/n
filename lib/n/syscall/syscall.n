@@ -1,0 +1,535 @@
+from n import *
+import n.cstring
+
+extern let _EPERM:I32
+extern let _ENOENT:I32
+extern let _ESRCH:I32
+extern let _EINTR:I32
+extern let _EIO:I32
+extern let _ENXIO:I32
+extern let _E2BIG:I32
+extern let _ENOEXEC:I32
+extern let _EBADF:I32
+extern let _ECHILD:I32
+extern let _EAGAIN:I32
+extern let _ENOMEM:I32
+extern let _EACCES:I32
+extern let _EFAULT:I32
+extern let _ENOTBLK:I32
+extern let _EBUSY:I32
+extern let _EEXIST:I32
+extern let _EXDEV:I32
+extern let _ENODEV:I32
+extern let _ENOTDIR:I32
+extern let _EISDIR:I32
+extern let _EINVAL:I32
+extern let _ENFILE:I32
+extern let _EMFILE:I32
+extern let _ENOTTY:I32
+extern let _ETXTBSY:I32
+extern let _EFBIG:I32
+extern let _ENOSPC:I32
+extern let _ESPIPE:I32
+extern let _EROFS:I32
+extern let _EMLINK:I32
+extern let _EPIPE:I32
+extern let _EDOM:I32
+extern let _ERANGE:I32
+extern let _EDEADLK:I32
+extern let _ENAMETOOLONG:I32
+extern let _ENOLCK:I32
+extern let _ENOSYS:I32
+extern let _ENOTEMPTY:I32
+extern let _ELOOP:I32
+extern let _EWOULDBLOCK:I32
+extern let _ENOMSG:I32
+extern let _EIDRM:I32
+extern let _ECHRNG:I32
+extern let _EL2NSYNC:I32
+extern let _EL3HLT:I32
+extern let _EL3RST:I32
+extern let _ELNRNG:I32
+extern let _EUNATCH:I32
+extern let _ENOCSI:I32
+extern let _EL2HLT:I32
+extern let _EBADE:I32
+extern let _EBADR:I32
+extern let _EXFULL:I32
+extern let _ENOANO:I32
+extern let _EBADRQC:I32
+extern let _EBADSLT:I32
+extern let _EDEADLOCK:I32
+extern let _EBFONT:I32
+extern let _ENOSTR:I32
+extern let _ENODATA:I32
+extern let _ETIME:I32
+extern let _ENOSR:I32
+extern let _ENONET:I32
+extern let _ENOPKG:I32
+extern let _EREMOTE:I32
+extern let _ENOLINK:I32
+extern let _EADV:I32
+extern let _ESRMNT:I32
+extern let _ECOMM:I32
+extern let _EPROTO:I32
+extern let _EMULTIHOP:I32
+extern let _EDOTDOT:I32
+extern let _EBADMSG:I32
+extern let _EOVERFLOW:I32
+extern let _ENOTUNIQ:I32
+extern let _EBADFD:I32
+extern let _EREMCHG:I32
+extern let _ELIBACC:I32
+extern let _ELIBBAD:I32
+extern let _ELIBSCN:I32
+extern let _ELIBMAX:I32
+extern let _ELIBEXEC:I32
+extern let _EILSEQ:I32
+extern let _ERESTART:I32
+extern let _ESTRPIPE:I32
+extern let _EUSERS:I32
+extern let _ENOTSOCK:I32
+extern let _EDESTADDRREQ:I32
+extern let _EMSGSIZE:I32
+extern let _EPROTOTYPE:I32
+extern let _ENOPROTOOPT:I32
+extern let _EPROTONOSUPPORT:I32
+extern let _ESOCKTNOSUPPORT:I32
+extern let _EOPNOTSUPP:I32
+extern let _EPFNOSUPPORT:I32
+extern let _EAFNOSUPPORT:I32
+extern let _EADDRINUSE:I32
+extern let _EADDRNOTAVAIL:I32
+extern let _ENETDOWN:I32
+extern let _ENETUNREACH:I32
+extern let _ENETRESET:I32
+extern let _ECONNABORTED:I32
+extern let _ECONNRESET:I32
+extern let _ENOBUFS:I32
+extern let _EISCONN:I32
+extern let _ENOTCONN:I32
+extern let _ESHUTDOWN:I32
+extern let _ETOOMANYREFS:I32
+extern let _ETIMEDOUT:I32
+extern let _ECONNREFUSED:I32
+extern let _EHOSTDOWN:I32
+extern let _EHOSTUNREACH:I32
+extern let _EALREADY:I32
+extern let _EINPROGRESS:I32
+extern let _ESTALE:I32
+extern let _EUCLEAN:I32
+extern let _ENOTNAM:I32
+extern let _ENAVAIL:I32
+extern let _EISNAM:I32
+extern let _EREMOTEIO:I32
+extern let _EDQUOT:I32
+extern let _ENOMEDIUM:I32
+extern let _EMEDIUMTYPE:I32
+extern let _ECANCELED:I32
+extern let _ENOKEY:I32
+extern let _EKEYEXPIRED:I32
+extern let _EKEYREVOKED:I32
+extern let _EKEYREJECTED:I32
+extern let _EOWNERDEAD:I32
+extern let _ENOTRECOVERABLE:I32
+extern let _ERFKILL:I32
+extern let _EHWPOISON:I32
+
+let EPERM = {Msg=@"Operation not permitted"}:Error
+let ENOENT = {Msg=@"No such file or directory"}:Error
+let ESRCH = {Msg=@"No such process"}:Error
+let EINTR = {Msg=@"Interrupted system call"}:Error
+let EIO = {Msg=@"I/O error"}:Error
+let ENXIO = {Msg=@"No such device or address"}:Error
+let E2BIG = {Msg=@"Argument list too long"}:Error
+let ENOEXEC = {Msg=@"Exec format error"}:Error
+let EBADF = {Msg=@"Bad file number"}:Error
+let ECHILD = {Msg=@"No child processes"}:Error
+let EAGAIN = {Msg=@"Try again"}:Error
+let ENOMEM = {Msg=@"Out of memory"}:Error
+let EACCES = {Msg=@"Permission denied"}:Error
+let EFAULT = {Msg=@"Bad address"}:Error
+let ENOTBLK = {Msg=@"Block device required"}:Error
+let EBUSY = {Msg=@"Device or resource busy"}:Error
+let EEXIST = {Msg=@"File exists"}:Error
+let EXDEV = {Msg=@"Cross-device link"}:Error
+let ENODEV = {Msg=@"No such device"}:Error
+let ENOTDIR = {Msg=@"Not a directory"}:Error
+let EISDIR = {Msg=@"Is a directory"}:Error
+let EINVAL = {Msg=@"Invalid argument"}:Error
+let ENFILE = {Msg=@"File table overflow"}:Error
+let EMFILE = {Msg=@"Too many open files"}:Error
+let ENOTTY = {Msg=@"Not a typewriter"}:Error
+let ETXTBSY = {Msg=@"Text file busy"}:Error
+let EFBIG = {Msg=@"File too large"}:Error
+let ENOSPC = {Msg=@"No space left on device"}:Error
+let ESPIPE = {Msg=@"Illegal seek"}:Error
+let EROFS = {Msg=@"Read-only file system"}:Error
+let EMLINK = {Msg=@"Too many links"}:Error
+let EPIPE = {Msg=@"Broken pipe"}:Error
+let EDOM = {Msg=@"Math argument out of domain of func"}:Error
+let ERANGE = {Msg=@"Math result not representable"}:Error
+let EDEADLK = {Msg=@"Resource deadlock would occur"}:Error
+let ENAMETOOLONG = {Msg=@"File name too long"}:Error
+let ENOLCK = {Msg=@"No record locks available"}:Error
+let ENOSYS = {Msg=@"Function not implemented"}:Error
+let ENOTEMPTY = {Msg=@"Directory not empty"}:Error
+let ELOOP = {Msg=@"Too many symbolic links encountered"}:Error
+let EWOULDBLOCK = {Msg=@"Operation would block"}:Error
+let ENOMSG = {Msg=@"No message of desired type"}:Error
+let EIDRM = {Msg=@"Identifier removed"}:Error
+let ECHRNG = {Msg=@"Channel number out of range"}:Error
+let EL2NSYNC = {Msg=@"Level 2 not synchronized"}:Error
+let EL3HLT = {Msg=@"Level 3 halted"}:Error
+let EL3RST = {Msg=@"Level 3 reset"}:Error
+let ELNRNG = {Msg=@"Link number out of range"}:Error
+let EUNATCH = {Msg=@"Protocol driver not attached"}:Error
+let ENOCSI = {Msg=@"No CSI structure available"}:Error
+let EL2HLT = {Msg=@"Level 2 halted"}:Error
+let EBADE = {Msg=@"Invalid exchange"}:Error
+let EBADR = {Msg=@"Invalid request descriptor"}:Error
+let EXFULL = {Msg=@"Exchange full"}:Error
+let ENOANO = {Msg=@"No anode"}:Error
+let EBADRQC = {Msg=@"Invalid request code"}:Error
+let EBADSLT = {Msg=@"Invalid slot"}:Error
+let EDEADLOCK = {Msg=@"Resource deadlock would occur"}:Error
+let EBFONT = {Msg=@"Bad font file format"}:Error
+let ENOSTR = {Msg=@"Device not a stream"}:Error
+let ENODATA = {Msg=@"No data available"}:Error
+let ETIME = {Msg=@"Timer expired"}:Error
+let ENOSR = {Msg=@"Out of streams resources"}:Error
+let ENONET = {Msg=@"Machine is not on the network"}:Error
+let ENOPKG = {Msg=@"Package not installed"}:Error
+let EREMOTE = {Msg=@"Object is remote"}:Error
+let ENOLINK = {Msg=@"Link has been severed"}:Error
+let EADV = {Msg=@"Advertise error"}:Error
+let ESRMNT = {Msg=@"Srmount error"}:Error
+let ECOMM = {Msg=@"Communication error on send"}:Error
+let EPROTO = {Msg=@"Protocol error"}:Error
+let EMULTIHOP = {Msg=@"Multihop attempted"}:Error
+let EDOTDOT = {Msg=@"RFS specific error"}:Error
+let EBADMSG = {Msg=@"Not a data message"}:Error
+let EOVERFLOW = {Msg=@"Value too large for defined data type"}:Error
+let ENOTUNIQ = {Msg=@"Name not unique on network"}:Error
+let EBADFD = {Msg=@"File descriptor in bad state"}:Error
+let EREMCHG = {Msg=@"Remote address changed"}:Error
+let ELIBACC = {Msg=@"Can not access a needed shared library"}:Error
+let ELIBBAD = {Msg=@"Accessing a corrupted shared library"}:Error
+let ELIBSCN = {Msg=@".lib section in a.out corrupted"}:Error
+let ELIBMAX = {Msg=@"Attempting to link in too many shared libraries"}:Error
+let ELIBEXEC = {Msg=@"Cannot exec a shared library directly"}:Error
+let EILSEQ = {Msg=@"Illegal byte sequence"}:Error
+let ERESTART = {Msg=@"Interrupted system call should be restarted"}:Error
+let ESTRPIPE = {Msg=@"Streams pipe error"}:Error
+let EUSERS = {Msg=@"Too many users"}:Error
+let ENOTSOCK = {Msg=@"Socket operation on non-socket"}:Error
+let EDESTADDRREQ = {Msg=@"Destination address required"}:Error
+let EMSGSIZE = {Msg=@"Message too long"}:Error
+let EPROTOTYPE = {Msg=@"Protocol wrong type for socket"}:Error
+let ENOPROTOOPT = {Msg=@"Protocol not available"}:Error
+let EPROTONOSUPPORT = {Msg=@"Protocol not supported"}:Error
+let ESOCKTNOSUPPORT = {Msg=@"Socket type not supported"}:Error
+let EOPNOTSUPP = {Msg=@"Operation not supported on transport endpoint"}:Error
+let EPFNOSUPPORT = {Msg=@"Protocol family not supported"}:Error
+let EAFNOSUPPORT = {Msg=@"Address family not supported by protocol"}:Error
+let EADDRINUSE = {Msg=@"Address already in use"}:Error
+let EADDRNOTAVAIL = {Msg=@"Cannot assign requested address"}:Error
+let ENETDOWN = {Msg=@"Network is down"}:Error
+let ENETUNREACH = {Msg=@"Network is unreachable"}:Error
+let ENETRESET = {Msg=@"Network dropped connection because of reset"}:Error
+let ECONNABORTED = {Msg=@"Software caused connection abort"}:Error
+let ECONNRESET = {Msg=@"Connection reset by peer"}:Error
+let ENOBUFS = {Msg=@"No buffer space available"}:Error
+let EISCONN = {Msg=@"Transport endpoint is already connected"}:Error
+let ENOTCONN = {Msg=@"Transport endpoint is not connected"}:Error
+let ESHUTDOWN = {Msg=@"Cannot send after transport endpoint shutdown"}:Error
+let ETOOMANYREFS = {Msg=@"Too many references: cannot splice"}:Error
+let ETIMEDOUT = {Msg=@"Connection timed out"}:Error
+let ECONNREFUSED = {Msg=@"Connection refused"}:Error
+let EHOSTDOWN = {Msg=@"Host is down"}:Error
+let EHOSTUNREACH = {Msg=@"No route to host"}:Error
+let EALREADY = {Msg=@"Operation already in progress"}:Error
+let EINPROGRESS = {Msg=@"Operation now in progress"}:Error
+let ESTALE = {Msg=@"Stale file handle"}:Error
+let EUCLEAN = {Msg=@"Structure needs cleaning"}:Error
+let ENOTNAM = {Msg=@"Not a XENIX named type file"}:Error
+let ENAVAIL = {Msg=@"No XENIX semaphores available"}:Error
+let EISNAM = {Msg=@"Is a named type file"}:Error
+let EREMOTEIO = {Msg=@"Remote I/O error"}:Error
+let EDQUOT = {Msg=@"Quota exceeded"}:Error
+let ENOMEDIUM = {Msg=@"No medium found"}:Error
+let EMEDIUMTYPE = {Msg=@"Wrong medium type"}:Error
+let ECANCELED = {Msg=@"Operation Canceled"}:Error
+let ENOKEY = {Msg=@"Required key not available"}:Error
+let EKEYEXPIRED = {Msg=@"Key has expired"}:Error
+let EKEYREVOKED = {Msg=@"Key has been revoked"}:Error
+let EKEYREJECTED = {Msg=@"Key was rejected by service"}:Error
+let EOWNERDEAD = {Msg=@"Owner died"}:Error
+let ENOTRECOVERABLE = {Msg=@"State not recoverable"}:Error
+let ERFKILL = {Msg=@"Operation not possible due to RF-kill"}:Error
+let EHWPOISON = {Msg=@"Memory page has hardware error"}:Error
+
+fun convert_error code:I32 = Error
+	match code
+	| 0 -> return OK
+	| _EPERM -> return EPERM
+	| _ENOENT -> return ENOENT
+	| _ESRCH -> return ESRCH
+	| _EINTR -> return EINTR
+	| _EIO -> return EIO
+	| _ENXIO -> return ENXIO
+	| _E2BIG -> return E2BIG
+	| _ENOEXEC -> return ENOEXEC
+	| _EBADF -> return EBADF
+	| _ECHILD -> return ECHILD
+	| _EAGAIN -> return EAGAIN
+	| _ENOMEM -> return ENOMEM
+	| _EACCES -> return EACCES
+	| _EFAULT -> return EFAULT
+	| _ENOTBLK -> return ENOTBLK
+	| _EBUSY -> return EBUSY
+	| _EEXIST -> return EEXIST
+	| _EXDEV -> return EXDEV
+	| _ENODEV -> return ENODEV
+	| _ENOTDIR -> return ENOTDIR
+	| _EISDIR -> return EISDIR
+	| _EINVAL -> return EINVAL
+	| _ENFILE -> return ENFILE
+	| _EMFILE -> return EMFILE
+	| _ENOTTY -> return ENOTTY
+	| _ETXTBSY -> return ETXTBSY
+	| _EFBIG -> return EFBIG
+	| _ENOSPC -> return ENOSPC
+	| _ESPIPE -> return ESPIPE
+	| _EROFS -> return EROFS
+	| _EMLINK -> return EMLINK
+	| _EPIPE -> return EPIPE
+	| _EDOM -> return EDOM
+	| _ERANGE -> return ERANGE
+	| _EDEADLK -> return EDEADLK
+	| _ENAMETOOLONG -> return ENAMETOOLONG
+	| _ENOLCK -> return ENOLCK
+	| _ENOSYS -> return ENOSYS
+	| _ENOTEMPTY -> return ENOTEMPTY
+	| _ELOOP -> return ELOOP
+	| _EWOULDBLOCK -> return EWOULDBLOCK
+	| _ENOMSG -> return ENOMSG
+	| _EIDRM -> return EIDRM
+	| _ECHRNG -> return ECHRNG
+	| _EL2NSYNC -> return EL2NSYNC
+	| _EL3HLT -> return EL3HLT
+	| _EL3RST -> return EL3RST
+	| _ELNRNG -> return ELNRNG
+	| _EUNATCH -> return EUNATCH
+	| _ENOCSI -> return ENOCSI
+	| _EL2HLT -> return EL2HLT
+	| _EBADE -> return EBADE
+	| _EBADR -> return EBADR
+	| _EXFULL -> return EXFULL
+	| _ENOANO -> return ENOANO
+	| _EBADRQC -> return EBADRQC
+	| _EBADSLT -> return EBADSLT
+	| _EDEADLOCK -> return EDEADLOCK
+	| _EBFONT -> return EBFONT
+	| _ENOSTR -> return ENOSTR
+	| _ENODATA -> return ENODATA
+	| _ETIME -> return ETIME
+	| _ENOSR -> return ENOSR
+	| _ENONET -> return ENONET
+	| _ENOPKG -> return ENOPKG
+	| _EREMOTE -> return EREMOTE
+	| _ENOLINK -> return ENOLINK
+	| _EADV -> return EADV
+	| _ESRMNT -> return ESRMNT
+	| _ECOMM -> return ECOMM
+	| _EPROTO -> return EPROTO
+	| _EMULTIHOP -> return EMULTIHOP
+	| _EDOTDOT -> return EDOTDOT
+	| _EBADMSG -> return EBADMSG
+	| _EOVERFLOW -> return EOVERFLOW
+	| _ENOTUNIQ -> return ENOTUNIQ
+	| _EBADFD -> return EBADFD
+	| _EREMCHG -> return EREMCHG
+	| _ELIBACC -> return ELIBACC
+	| _ELIBBAD -> return ELIBBAD
+	| _ELIBSCN -> return ELIBSCN
+	| _ELIBMAX -> return ELIBMAX
+	| _ELIBEXEC -> return ELIBEXEC
+	| _EILSEQ -> return EILSEQ
+	| _ERESTART -> return ERESTART
+	| _ESTRPIPE -> return ESTRPIPE
+	| _EUSERS -> return EUSERS
+	| _ENOTSOCK -> return ENOTSOCK
+	| _EDESTADDRREQ -> return EDESTADDRREQ
+	| _EMSGSIZE -> return EMSGSIZE
+	| _EPROTOTYPE -> return EPROTOTYPE
+	| _ENOPROTOOPT -> return ENOPROTOOPT
+	| _EPROTONOSUPPORT -> return EPROTONOSUPPORT
+	| _ESOCKTNOSUPPORT -> return ESOCKTNOSUPPORT
+	| _EOPNOTSUPP -> return EOPNOTSUPP
+	| _EPFNOSUPPORT -> return EPFNOSUPPORT
+	| _EAFNOSUPPORT -> return EAFNOSUPPORT
+	| _EADDRINUSE -> return EADDRINUSE
+	| _EADDRNOTAVAIL -> return EADDRNOTAVAIL
+	| _ENETDOWN -> return ENETDOWN
+	| _ENETUNREACH -> return ENETUNREACH
+	| _ENETRESET -> return ENETRESET
+	| _ECONNABORTED -> return ECONNABORTED
+	| _ECONNRESET -> return ECONNRESET
+	| _ENOBUFS -> return ENOBUFS
+	| _EISCONN -> return EISCONN
+	| _ENOTCONN -> return ENOTCONN
+	| _ESHUTDOWN -> return ESHUTDOWN
+	| _ETOOMANYREFS -> return ETOOMANYREFS
+	| _ETIMEDOUT -> return ETIMEDOUT
+	| _ECONNREFUSED -> return ECONNREFUSED
+	| _EHOSTDOWN -> return EHOSTDOWN
+	| _EHOSTUNREACH -> return EHOSTUNREACH
+	| _EALREADY -> return EALREADY
+	| _EINPROGRESS -> return EINPROGRESS
+	| _ESTALE -> return ESTALE
+	| _EUCLEAN -> return EUCLEAN
+	| _ENOTNAM -> return ENOTNAM
+	| _ENAVAIL -> return ENAVAIL
+	| _EISNAM -> return EISNAM
+	| _EREMOTEIO -> return EREMOTEIO
+	| _EDQUOT -> return EDQUOT
+	| _ENOMEDIUM -> return ENOMEDIUM
+	| _EMEDIUMTYPE -> return EMEDIUMTYPE
+	| _ECANCELED -> return ECANCELED
+	| _ENOKEY -> return ENOKEY
+	| _EKEYEXPIRED -> return EKEYEXPIRED
+	| _EKEYREVOKED -> return EKEYREVOKED
+	| _EKEYREJECTED -> return EKEYREJECTED
+	| _EOWNERDEAD -> return EOWNERDEAD
+	| _ENOTRECOVERABLE -> return ENOTRECOVERABLE
+	| _ERFKILL -> return ERFKILL
+	| _EHWPOISON -> return EHWPOISON
+	| _ -> return UNKNOWN
+
+alias Open_flags = U32
+extern let O_RDONLY:Open_flags
+extern let O_WRONLY:Open_flags
+extern let O_RDWR:Open_flags
+extern let O_APPEND:Open_flags
+extern let O_ASYNC:Open_flags
+extern let O_CLOEXEC:Open_flags
+extern let O_CREAT:Open_flags
+extern let O_DIRECT:Open_flags
+extern let O_DIRECTORY:Open_flags
+extern let O_DSYNC:Open_flags
+extern let O_EXCL:Open_flags
+extern let O_LARGEFILE:Open_flags
+extern let O_NOATIME:Open_flags
+extern let O_NOCTTY:Open_flags
+extern let O_NOFOLLOW:Open_flags
+extern let O_NONBLOCK:Open_flags
+extern let O_NDELAY:Open_flags
+extern let O_PATH:Open_flags
+extern let O_SYNC:Open_flags
+extern let O_TMPFILE:Open_flags
+extern let O_TRUNC:Open_flags
+
+alias Mode = U32
+let S_IRWXU = 00700:Mode
+let S_IRUSR = 00400:Mode
+let S_IWUSR = 00200:Mode
+let S_IXUSR = 00100:Mode
+let S_IRWXG = 00070:Mode
+let S_IRGRP = 00040:Mode
+let S_IWGRP = 00020:Mode
+let S_IXGRP = 00010:Mode
+let S_IRWXO = 00007:Mode
+let S_IROTH = 00004:Mode
+let S_IWOTH = 00002:Mode
+let S_IXOTH = 00001:Mode
+
+extern let SEEK_SET:Int
+extern let SEEK_CUR:Int
+extern let SEEK_END:Int
+extern let SEEK_DATA:Int
+extern let SEEK_HOLE:Int
+
+extern fun errno = I32
+extern fun close fd:Int = Int
+extern fun open pathname:@U8 flags:Open_flags mode:Mode = Int
+extern fun openat dirfd:Int pathname:@U8 flags:Open_flags mode:Mode = Int
+extern fun mkfifoat dirfd:Int pathname:@U8 mode:Mode = Int
+extern fun write fd:Int buf:@U8 count:Uint = Int
+extern fun read fd:Int buf:@!U8 count:Uint = Int
+extern fun lseek fd:Int off:Int whence:Int = Int
+
+fun Close fd:Int = Error
+	let ret = close fd
+	if ret == 0
+		return OK
+	else
+		return convert_error errno
+
+fun Open pathname:String flags:Open_flags mode:Mode = Int, Error
+	let fd = open (n.cstring.Mk pathname).Rawdata flags mode
+	if fd >= 0
+		return fd, OK
+	return -1, convert_error errno
+
+fun Openat dirfd:Int pathname:String flags:Open_flags mode:Mode = Int, Error
+	let fd = openat dirfd (n.cstring.Mk pathname).Rawdata flags mode
+	if fd >= 0
+		return fd, OK
+	return fd, convert_error errno
+
+fun Mkfifoat dirfd:Int pathname:String mode:Mode = Int, Error
+	let fd = mkfifoat dirfd (n.cstring.Mk pathname).Rawdata mode
+	if fd >= 0
+		return fd, OK
+	return fd, convert_error errno
+
+fun Write fd:Int b:[]U8 = []U8, Error
+	let cnt = write fd b.Unsafe_rawdata b.Count
+	if cnt >= 0
+		return b.[cnt.Unsigned ..], OK
+	return b, convert_error errno
+
+fun Read fd:Int b:[]!U8 = []!U8, Error
+	let dst = b![b.Count .. b.Cap]
+	let cnt = read fd dst!Unsafe_rawdata dst.Count
+	if cnt >= 0
+		return b![.. b.Count+cnt.Unsigned], OK
+	return b, convert_error errno
+
+fun Lseek fd:Int off:Int whence:Int = Error, Uint
+	let r = lseek fd off whence
+	if r >= 0
+		return OK, r.Unsigned
+	return convert_error errno, 0
+
+--fun Getcwd buf:@#Stringbuf = Error
+--	buf#Reserve 4*1024
+--	let p = 
+
+example
+	let fn = "syscalltest"
+	let fd, e = Open fn (O_CREAT bw| O_RDWR) 0666
+	assert e == OK
+	assert fd >= 0
+
+	let s = "test"
+	let left, e2 = Write fd s.Bytes
+	assert e2 == OK
+	assert left.Count == 0
+
+	let e3, roff = Lseek fd 0 SEEK_SET
+	assert e3 == OK
+	assert roff == 0
+
+	let buf = {0 0 0 0 0}:[]!U8 such
+		buf = buf![.. 0]
+		let rd, e3 = Read fd buf
+		assert e3 == OK
+		assert rd.Count == 4
+
+		let srd = String.From_bytes rd
+		assert srd == s
+
+	let e4 = Close fd
+	assert e4 == OK

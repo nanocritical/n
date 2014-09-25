@@ -122,6 +122,7 @@ Path met# Clean
 example let p = "a/c":Path such p#Clean; assert p == "a/c"
 example let p = "a//c":Path such p#Clean; assert p == "a/c"
 example let p = "a/c/.":Path such p#Clean; assert p == "a/c"
+example let p = "a/c/":Path such p#Clean; assert p == "a/c"
 example let p = "a/c/b/..":Path such p#Clean; assert p == "a/c"
 example let p = "/../a/c":Path such p#Clean; assert p == "/a/c"
 example let p = "/../a/b/../././/c":Path such p#Clean; assert p == "/a/c"
