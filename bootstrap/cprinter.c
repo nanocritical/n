@@ -1002,9 +1002,38 @@ static void print_match_label(FILE *out, const struct module *mod,
   }
 }
 
+static void print_match_expr(FILE *out, const struct module *mod,
+                             const struct node *node) {
+  const struct node *expr = subs_first_const(node);
+
+  fprintf(out, "if (0) {\n");
+  const struct node *n = next_const(expr);
+  while (n != NULL) {
+    const struct node *p = n;
+    const struct node *block = next_const(n);
+
+    if (next_const(block) == NULL) {
+      fprintf(out, "} else {");
+    } else {
+      fprintf(out, "} else if (");
+      print_expr(out, mod, p, T__CALL);
+      fprintf(out, ") {");
+    }
+
+    print_block(out, mod, block);
+    n = next_const(block);
+  }
+  fprintf(out, "}");
+}
+
 static void print_match(FILE *out, const struct module *mod,
                         const struct node *node) {
   const struct node *expr = subs_first_const(node);
+  if (typ_definition_deftype_kind(expr->typ) == DEFTYPE_STRUCT) {
+    print_match_expr(out, mod, node);
+    return;
+  }
+
   const struct node *dexpr = DEF(expr->typ);
   fprintf(out, "switch (");
   print_expr(out, mod, expr, T__STATEMENT);

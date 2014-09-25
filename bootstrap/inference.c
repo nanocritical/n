@@ -2027,17 +2027,7 @@ static ERROR type_inference_if(struct module *mod, struct node *node) {
 }
 
 static ERROR unify_match_pattern(struct module *mod, struct node *expr, struct node *pattern) {
-  const enum deftype_kind kind = typ_definition_deftype_kind(expr->typ);
-  const bool enum_or_union = kind == DEFTYPE_ENUM || kind == DEFTYPE_UNION;
-
-  error e;
-  if (!enum_or_union) {
-    e = mk_except_type(mod, expr,
-                       "must match over an enum or sum type (FIXME: for now)");
-    THROW(e);
-  }
-
-  e = unify(mod, pattern, pattern->typ, expr->typ);
+  error e = unify(mod, pattern, pattern->typ, expr->typ);
   EXCEPT(e);
 
   return 0;
