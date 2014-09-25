@@ -1,0 +1,45 @@
+from n import *
+
+inline union Cstring =
+	| ORIG -> String
+	| BUF -> Stringbuf
+
+Cstring met Count = Uint
+	match self
+	| ORIG -> return self.ORIG.Count
+	| BUF -> return self.BUF.Count
+
+Cstring met Rawdata = @U8
+	match self
+	| ORIG -> return self.ORIG.Bytes.Unsafe_rawdata
+	| BUF -> return self.BUF.Bytes.Unsafe_rawdata
+
+fun Mk s:String = Cstring
+	let b = s.Bytes
+	if b.Last == 0
+		return s:Cstring.ORIG
+	if b.Cap > b.Count
+		let ext = b.[.. s.Count+1]
+		if ext.Last == 0
+			return s:Cstring.ORIG
+	let r = {}:Cstring.BUF such
+		r#BUF#Append s.Bytes
+		r#BUF#Push 0
+	return r
+
+extern fun strlen cs:@U8 = Uint
+
+example
+	let A = ('a':Rune).Code.Trim_u8
+	let x = {A A+1 A+2}:[]U8
+	let cx = Mk <- String.From_bytes x
+	assert strlen cx.Rawdata == 3
+
+example
+	let A = ('a':Rune).Code.Trim_u8
+	let x = {A A+1 A+2 0}:[]U8
+	x = x.[.. 3]
+	assert x.Count == 3
+	assert x.Cap == 4
+	let cx = Mk <- String.From_bytes x
+	assert strlen cx.Rawdata == 3
