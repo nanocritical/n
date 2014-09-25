@@ -355,7 +355,11 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
   } else if (typ_equal(b, TBI_LITERALS_INTEGER)) {
     if (tentative_or_ungenarg(a)) {
       if (typ_isa(b, a)) {
-        typ_link_tentative(b, a);
+        if (typ_is_ungenarg(a)) {
+          typ_link_tentative(a, b);
+        } else {
+          typ_link_tentative(b, a);
+        }
       } else if (typ_is_tentative(a) && typ_definition_which(a) == DEFINTF) {
         struct node *dinc = defincomplete_create(mod, for_error);
 
@@ -386,7 +390,11 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
   } else if (typ_equal(b, TBI_LITERALS_FLOATING)) {
     if (tentative_or_ungenarg(a)) {
       if (typ_isa(b, a)) {
-        typ_link_tentative(b, a);
+        if (typ_is_ungenarg(a)) {
+          typ_link_tentative(a, b);
+        } else {
+          typ_link_tentative(b, a);
+        }
       } else if (typ_is_tentative(a) && typ_definition_which(a) == DEFINTF) {
         struct node *dinc = defincomplete_create(mod, for_error);
 
@@ -419,7 +427,11 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
   } else if (typ_equal(b, TBI_LITERALS_STRING)) {
     if (tentative_or_ungenarg(a)) {
       if (typ_isa(b, a)) {
-        typ_link_tentative(b, a);
+        if (typ_is_ungenarg(a)) {
+          typ_link_tentative(a, b);
+        } else {
+          typ_link_tentative(b, a);
+        }
       } else if (typ_is_tentative(a) && typ_definition_which(a) == DEFINTF) {
         struct node *dinc = defincomplete_create(mod, for_error);
 
