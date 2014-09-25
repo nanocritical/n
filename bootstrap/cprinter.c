@@ -1375,7 +1375,6 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
   if (!is_void) {
     if (node->flags & NODE_IS_GLOBAL_LET) {
       print_linkage(out, header, fwd, par, node);
-      fprintf(out, "const ");
     }
 
     if (node->as.DEFNAME.may_be_unused) {
