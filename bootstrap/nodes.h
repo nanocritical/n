@@ -252,6 +252,7 @@ struct node_init {
   bool is_array;
   bool is_range;
   bool is_bounds;
+  bool is_defchoice_external_payload_constraint;
   struct node *defchoice;
   ident for_tag;
   const struct node *target_expr;
@@ -513,8 +514,9 @@ union node_as {
 enum node_flags {
   NODE_IS_TYPE = 0x1,
   NODE_IS_DEFCHOICE = 0x2,
-  NODE_IS_TEMPORARY = 0x4,
-  NODE_IS_GLOBAL_LET = 0x8,
+  NODE_IS_DEFCHOICE_HAS_EXTERNAL_PAYLOAD = 0x4,
+  NODE_IS_TEMPORARY = 0x8,
+  NODE_IS_GLOBAL_LET = 0x10,
   NODE__TRANSITIVE = NODE_IS_TYPE,
   NODE__ASSIGN_TRANSITIVE = NODE_IS_DEFCHOICE,
   NODE__DETACHED = 0x10,

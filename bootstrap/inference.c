@@ -2244,7 +2244,7 @@ static ERROR type_inference_try(struct module *mod, struct node *node) {
 }
 
 static ERROR type_inference_typeconstraint_defchoice_init(struct module *mod,
-                                           struct node *node) {
+                                                          struct node *node) {
   error e;
   struct node *left = subs_first(node);
   struct node *right = subs_last(node);
@@ -2254,13 +2254,19 @@ static ERROR type_inference_typeconstraint_defchoice_init(struct module *mod,
 
   assert(right->flags & NODE_IS_DEFCHOICE);
   assert(right->which == BIN);
-  struct tit *leaf = typ_definition_one_member(right->typ, node_ident(subs_last(right)));
+  struct tit *leaf = typ_definition_one_member(subs_first(right)->typ, node_ident(subs_last(right)));
   assert(tit_which(leaf) == DEFCHOICE);
   if (!tit_defchoice_is_leaf(leaf)) {
     e = mk_except_type(mod, subs_last(right),
                        "only union leaf variants can be initialized");
     THROW(e);
   }
+
+  // With an initializer, 'un.A' is of type 'un', unlike for an accessor
+  // (with external payload). So here we fix the typing of 'right' as bin
+  // acc.
+  unset_typ(&right->typ);
+  set_typ(&right->typ, subs_first(right)->typ);
 
   left->as.INIT.for_tag = tit_ident(leaf);
 
@@ -2280,6 +2286,38 @@ static ERROR type_inference_typeconstraint_defchoice_init(struct module *mod,
   return 0;
 }
 
+static ERROR type_inference_typeconstraint_defchoice_convert(struct module *mod,
+                                                             struct node *node) {
+  error e;
+  struct node *left = subs_first(node);
+  struct node *right = subs_last(node);
+
+  assert(right->which == BIN);
+  struct tit *leaf = typ_definition_one_member(subs_first(right)->typ, node_ident(subs_last(right)));
+  assert(tit_which(leaf) == DEFCHOICE);
+  if (!tit_defchoice_is_leaf(leaf)
+      || !(right->flags & NODE_IS_DEFCHOICE_HAS_EXTERNAL_PAYLOAD)) {
+    e = mk_except_type(mod, subs_last(right),
+                       "only union leaf variants with external payload"
+                       " can constraint a value");
+    THROW(e);
+  }
+
+  e = unify(mod, subs_first(node),
+            left->typ, right->typ);
+  EXCEPT(e);
+
+  node_set_which(node, INIT);
+  node->as.INIT.is_defchoice_external_payload_constraint = true;
+  node->as.INIT.for_tag = tit_ident(leaf);
+
+  node_subs_remove(node, right);
+  set_typ(&node->typ, subs_first(right)->typ);
+  node->flags |= subs_last(node)->flags;
+
+  return 0;
+}
+
 static ERROR type_inference_typeconstraint(struct module *mod, struct node *node) {
   if (node->as.TYPECONSTRAINT.is_constraint) {
     set_typ(&node->typ, subs_first(node)->typ);
@@ -2291,6 +2329,10 @@ static ERROR type_inference_typeconstraint(struct module *mod, struct node *node
       && subs_last(node)->flags & NODE_IS_DEFCHOICE) {
     e = type_inference_typeconstraint_defchoice_init(mod, node);
     EXCEPT(e);
+  } else if (subs_last(node)->flags & NODE_IS_DEFCHOICE) {
+    e = type_inference_typeconstraint_defchoice_convert(mod, node);
+    EXCEPT(e);
+    return 0;
   }
 
   set_typ(&node->typ, subs_first(node)->typ);

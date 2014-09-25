@@ -1458,9 +1458,10 @@ static bool bin_accessor_maybe_ref(struct node **parent_scope,
   return false;
 }
 
-static void bin_accessor_maybe_defchoice(struct node **parent_scope, struct node *for_error,
-                                         struct module *mod, struct node *par) {
-  if (par->flags & NODE_IS_DEFCHOICE) {
+static void bin_accessor_maybe_defchoice_field(struct node **parent_scope, struct node *for_error,
+                                               struct module *mod, struct node *par) {
+  if ((par->flags & NODE_IS_DEFCHOICE)
+      && !(par->flags & NODE_IS_DEFCHOICE_HAS_EXTERNAL_PAYLOAD)) {
     struct node *defchoice = NULL;
     error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
                                            &definition(par->typ)->scope,
@@ -1486,7 +1487,7 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
 
   struct node *dcontainer = definition(left->typ);
   if (!bin_accessor_maybe_ref(&dcontainer, mod, left)) {
-    bin_accessor_maybe_defchoice(&dcontainer, node, mod, left);
+    bin_accessor_maybe_defchoice_field(&dcontainer, node, mod, left);
   }
   struct scope *container_scope = &dcontainer->scope;
   *container_is_tentative = typ_is_tentative(scope_node(container_scope)->typ);
@@ -1522,7 +1523,14 @@ ident tit_ident(const struct tit *tit) {
 }
 
 struct typ *tit_typ(const struct tit *tit) {
-  return olay(tit->t, tit->pos->typ);
+  struct typ *r = tit->pos->typ;
+  if (tit->pos->which == DEFCHOICE) {
+    const struct node *ext = node_defchoice_external_payload(tit->pos);
+    if (ext != NULL) {
+      r = ext->typ;
+    }
+  }
+  return olay(tit->t, r);
 }
 
 struct typ *tit_parent_definition_typ(const struct tit *tit) {

@@ -43,6 +43,9 @@ union ext =
 --fun only_a x:en::|A
 --  noop
 
+let gx = {}:ext.A
+-- FIXME missing support for initializing non-trivial global union values
+
 fun Main = I32
 	let e = en.A
 --  only_a e
@@ -67,5 +70,16 @@ fun Main = I32
 
 	let x = {}:ext.A
 	assert x.A.x == 0
+	assert gx.A.x == 0
+
+	let y = {}:ext.D such
+		y!D = 1
+	assert y.D == 1
+
+	let z = 2:ext.D
+	assert z.D == 2
+
+	let zz = z.D:ext.D
+	assert zz.D == 2
 
 	return 0

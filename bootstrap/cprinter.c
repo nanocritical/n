@@ -293,6 +293,10 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
 
 static void print_union_access_path(FILE *out, const struct module *mod,
                                     const struct typ *t, ident tag) {
+  if (typ_is_reference(t)) {
+    t = typ_generic_arg_const(t, 0);
+  }
+
   const struct node *d = DEF(t);
   const struct node *defch = node_get_member_const(d, tag);
 
@@ -360,7 +364,7 @@ static void print_bin_acc(FILE *out, const struct module *mod,
     print_expr(out, mod, base, op);
     fprintf(out, "%s", deref);
     if (node->flags & NODE_IS_DEFCHOICE) {
-      print_union_access_path(out, mod, node->typ, node_ident(name));
+      print_union_access_path(out, mod, base->typ, node_ident(name));
     } else {
       fprintf(out, "%s", name_s);
     }
@@ -707,7 +711,8 @@ static void print_init_toplevel(FILE *out, const struct module *mod,
     return;
   }
 
-  // FIXME: unions unsupported
+  // FIXME: unions unsupported (except trivial init)
+  assert(subs_count(node) == 0 || node->as.INIT.for_tag == ID__NONE);
 
   fprintf(out, " = {\n");
   print_tag_init(out, mod, node, true);
@@ -750,6 +755,19 @@ static void print_init(FILE *out, const struct module *mod,
   }
 
   print_tag_init(out, mod, node, false);
+
+  // FIXME: hierarchical unions unsupported
+
+  if (node->as.INIT.is_defchoice_external_payload_constraint) {
+    print_expr(out, mod, node->as.INIT.target_expr, TDOT);
+    fprintf(out, ".");
+    const ident tag = node->as.INIT.for_tag;
+    print_union_access_path(out, mod, node->typ, tag);
+    fprintf(out, " = ");
+    print_expr(out, mod, subs_first_const(node), T__NOT_STATEMENT);
+    fprintf(out, ";\n");
+    return;
+  }
 
   FOREACH_SUB_EVERY_CONST(s, node, 0, 2) {
     print_expr(out, mod, node->as.INIT.target_expr, TDOT);

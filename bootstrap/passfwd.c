@@ -800,6 +800,9 @@ static ERROR step_type_defchoices(struct module *mod, struct node *node,
     EXCEPT(e);
 
     ch->flags |= NODE_IS_DEFCHOICE;
+    if (node_defchoice_external_payload(ch) != NULL) {
+      ch->flags |= NODE_IS_DEFCHOICE_HAS_EXTERNAL_PAYLOAD;
+    }
   }
 
   if (typ_definition_which(node->as.DEFTYPE.tag_typ) == DEFINTF
