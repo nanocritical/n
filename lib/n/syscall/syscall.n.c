@@ -171,36 +171,52 @@ NB(Int) SY(SEEK_END) = SEEK_END;
 NB(Int) SY(SEEK_DATA) = SEEK_DATA;
 NB(Int) SY(SEEK_HOLE) = SEEK_HOLE;
 
+static __thread int _$Nlatestsyscallerrno;
+
 static NB(I32) SY(errno)(void) {
-  return errno;
+  return _$Nlatestsyscallerrno;
 }
 
 static NB(Int) SY(close)(NB(Int) fd) {
-  return close(fd);
+  int ret = close(fd);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
 }
 
 static NB(Int) SY(open)(NB(U8) *pathname, NB(U32) flags, NB(U32) mode) {
-  return open((char *) pathname, flags, mode);
+  int ret = open((char *) pathname, flags, mode);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
 }
 
 static NB(Int) SY(openat)(NB(Int) dirfd, NB(U8) *pathname, NB(U32) flags, NB(U32) mode) {
-  return openat(dirfd, (char *) pathname, flags, mode);
+  int ret = openat(dirfd, (char *) pathname, flags, mode);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
 }
 
 static NB(Int) SY(mkfifoat)(NB(Int) dirfd, NB(U8) *pathname, NB(U32) mode) {
-  return mkfifoat(dirfd, (char *) pathname, mode);
+  int ret = mkfifoat(dirfd, (char *) pathname, mode);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
 }
 
 static NB(Int) SY(write)(NB(Int) fd, NB(U8) *buf, NB(Uint) count) {
-  return write(fd, buf, count);
+  int ret = write(fd, buf, count);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
 }
 
 static NB(Int) SY(read)(NB(Int) fd, NB(U8) *buf, NB(Uint) count) {
-  return read(fd, buf, count);
+  int ret = read(fd, buf, count);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
 }
 
 static NB(Int) SY(lseek)(NB(Int) fd, NB(Int) off, NB(Int) whence) {
-  return lseek(fd, off, whence);
+  int ret = lseek(fd, off, whence);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
 }
 
 #endif
