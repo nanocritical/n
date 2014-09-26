@@ -1163,7 +1163,7 @@ static void print_linkage(FILE *out, bool header, enum forward fwd,
     } else if (flags & TOP_IS_EXPORT) {
       // noop
     } else {
-      fprintf(out, "static ");
+      fprintf(out, "__attribute__((__unused__)) static ");
     }
   } else if (flags & TOP_IS_EXTERN) {
     fprintf(out, "extern ");
