@@ -177,6 +177,12 @@ static NB(I32) SY(errno)(void) {
   return _$Nlatestsyscallerrno;
 }
 
+static NB(Int) SY(unlink)(NB(U8) *pathname) {
+  int ret = unlink((char *) pathname);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
 static NB(Int) SY(close)(NB(Int) fd) {
   int ret = close(fd);
   _$Nlatestsyscallerrno = errno;

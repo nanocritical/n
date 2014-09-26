@@ -451,6 +451,7 @@ extern let SEEK_DATA:Int
 extern let SEEK_HOLE:Int
 
 extern fun errno = I32
+extern fun unlink pathname:@U8 = Int
 extern fun close fd:Int = Int
 extern fun open pathname:@U8 flags:Open_flags mode:Mode = Int
 extern fun openat dirfd:Int pathname:@U8 flags:Open_flags mode:Mode = Int
@@ -465,6 +466,12 @@ fun Close fd:Int = Error
 		return OK
 	else
 		return convert_error errno
+
+fun Unlink pathname:String = Error
+	let ret = unlink (n.cstring.Mk pathname).Rawdata
+	if ret >= 0
+		return OK
+	return convert_error errno
 
 fun Open pathname:String flags:Open_flags mode:Mode = Int, Error
 	let fd = open (n.cstring.Mk pathname).Rawdata flags mode
@@ -512,6 +519,9 @@ example
 	let fd, e = Open fn (O_CREAT bw| O_RDWR) 0666
 	assert e == OK
 	assert fd >= 0
+
+	let e5 = Unlink fn
+	assert e5 == OK
 
 	let s = "test"
 	let left, e2 = Write fd s.Bytes
