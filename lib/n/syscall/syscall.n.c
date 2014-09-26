@@ -171,6 +171,11 @@ NB(Int) SY(SEEK_END) = SEEK_END;
 NB(Int) SY(SEEK_DATA) = SEEK_DATA;
 NB(Int) SY(SEEK_HOLE) = SEEK_HOLE;
 
+// Some of these functions should explicitly set errno to 0 before
+// performing the underlying call (e.g. sysconf), as -1 can be a valid
+// return value and on its own -1 is not sufficient to determine whether an
+// error occured.
+
 static __thread int _$Nlatestsyscallerrno;
 
 static NB(I32) SY(errno)(void) {
@@ -221,6 +226,13 @@ static NB(Int) SY(read)(NB(Int) fd, NB(U8) *buf, NB(Uint) count) {
 
 static NB(Int) SY(lseek)(NB(Int) fd, NB(Int) off, NB(Int) whence) {
   int ret = lseek(fd, off, whence);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(sysconf)(NB(Int) name) {
+  errno = 0;
+  long ret = sysconf(name);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }

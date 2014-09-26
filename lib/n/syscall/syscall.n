@@ -459,6 +459,7 @@ extern fun mkfifoat dirfd:Int pathname:@U8 mode:Mode = Int
 extern fun write fd:Int buf:@U8 count:Uint = Int
 extern fun read fd:Int buf:@!U8 count:Uint = Int
 extern fun lseek fd:Int off:Int whence:Int = Int
+extern fun sysconf name:Int = Int
 
 fun Close fd:Int = Error
 	let ret = close fd
@@ -510,12 +511,16 @@ fun Lseek fd:Int off:Int whence:Int = Error, Uint
 		return OK, r.Unsigned
 	return convert_error errno, 0
 
+fun Sysconf name:Int = Error, Int
+	let r = sysconf name
+	return convert_error errno, r
+
 --fun Getcwd buf:@#Stringbuf = Error
 --	buf#Reserve 4*1024
 --	let p = 
 
 example
-	let fn = "syscalltest"
+	let fn = ".test_syscall"
 	let fd, e = Open fn (O_CREAT bw| O_RDWR) 0666
 	assert e == OK
 	assert fd >= 0
