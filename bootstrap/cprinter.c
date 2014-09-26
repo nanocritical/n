@@ -1906,6 +1906,9 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
   if (fwd != FWD_DECLARE_FUNCTIONS && fwd != FWD_DEFINE_FUNCTIONS) {
     return;
   }
+  if (parent_const(node)->which == DEFINTF) {
+    return;
+  }
   if (node_is_extern(node) && fwd == FWD_DEFINE_FUNCTIONS) {
     return;
   }
