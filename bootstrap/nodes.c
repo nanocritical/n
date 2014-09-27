@@ -185,7 +185,8 @@ IMPLEMENT_HTABLE_SPARSE(, importmap, struct node *, struct module *,
                         module_ptr_hash, module_ptr_cmp);
 
 struct node *module_find_import(const struct module *mod, const struct module *other) {
-  return *importmap_get(&CONST_CAST(mod)->importmap, other);
+  struct node **r = importmap_get(&CONST_CAST(mod)->importmap, other);
+  return r == NULL ? NULL : *r;
 }
 
 static struct node *do_node_module_owner(struct node *node) {

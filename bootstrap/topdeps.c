@@ -14,8 +14,14 @@ static void record_final(struct module *mod, struct typ *t) {
   struct top_state *st = mod->state->top_state;
   struct fun_state *fun_st = mod->state->fun_state;
 
+  struct node *topmost = st->top;
+  while (!node_is_at_top(topmost)) {
+    topmost = parent(topmost);
+  }
+
   if (typ_is_pseudo_builtin(t)
-      || (st->top->typ != NULL && typ_equal(st->top->typ, t))) {
+      || (st->top->typ != NULL && typ_equal(st->top->typ, t))
+      || (topmost->typ != NULL && typ_equal(topmost->typ, t))) {
     return;
   }
 
@@ -28,8 +34,7 @@ static void record_final(struct module *mod, struct typ *t) {
 
   uint32_t mask = toplevel->flags & TO_KEEP;
 
-  if (st->exportable != NULL && st->exportable != top) {
-    // For DEFFIELDs.
+  if (st->exportable != NULL && st->exportable->which == DEFFIELD) {
     if (!name_is_export(mod, st->exportable)) {
       mask &= ~TOP_IS_EXPORT;
     }
@@ -45,7 +50,9 @@ static void record_final(struct module *mod, struct typ *t) {
   if (!typ_is_reference(t)) {
     switch (top->which) {
     case DEFTYPE:
-      mask |= TOP__TOPDEP_INLINE_STRUCT;
+      if (st->exportable != NULL && st->exportable->which == DEFFIELD) {
+        mask |= TOP__TOPDEP_INLINE_STRUCT;
+      }
       break;
     case LET:
       if (subs_first_const(top)->which == DEFNAME) {
@@ -54,6 +61,24 @@ static void record_final(struct module *mod, struct typ *t) {
       break;
     default:
       break;
+    }
+  }
+
+  if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
+    // Inherit the inline struct dependencies from a generic
+    struct tit *tit = typ_definition_members(t, DEFFIELD, 0);
+    while (tit_next(tit)) {
+      struct typ *fieldt = tit_typ(tit);
+      if (fieldt == NULL) {
+        continue;
+      }
+      struct module *owner = typ_module_owner(fieldt);
+      if (owner != mod) {
+        struct node *import = module_find_import(mod, owner);
+        if (import != NULL) {
+          node_toplevel(import)->flags |= TOP_IS_INLINE;
+        }
+      }
     }
   }
 
