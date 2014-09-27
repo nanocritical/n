@@ -88,13 +88,13 @@ static ERROR load_module(struct module **main_mod,
   return 0;
 }
 
-static void import_filename(char **fn, size_t *len,
-                            struct module *mod, struct node *import) {
+static void import_moddir(char **moddir, size_t *len,
+                          struct module *mod, struct node *import) {
   struct node *to_append = NULL;
 
   switch (import->which) {
   case BIN:
-    import_filename(fn, len, mod, subs_first(import));
+    import_moddir(moddir, len, mod, subs_first(import));
     to_append = subs_at(import, 1);
     break;
   case IDENT:
@@ -109,20 +109,20 @@ static void import_filename(char **fn, size_t *len,
   const size_t applen = strlen(app);
 
   if (*len == 0) {
-    *fn = realloc(*fn, applen + 1);
-    strcpy(*fn, app);
+    *moddir = realloc(*moddir, applen + 1);
+    strcpy(*moddir, app);
     *len += applen;
   } else {
-    *fn = realloc(*fn, *len + 1 + applen + 1);
-    (*fn)[*len] = '/';
-    strcpy(*fn + *len + 1, app);
+    *moddir = realloc(*moddir, *len + 1 + applen + 1);
+    (*moddir)[*len] = '/';
+    strcpy(*moddir + *len + 1, app);
     *len += applen + 1;
   }
 }
 
 static void import_module_path(char **module_path, size_t *mplen,
                                struct module *mod, struct node *import) {
-  import_filename(module_path, mplen, mod, import);
+  import_moddir(module_path, mplen, mod, import);
   char *mp = *module_path;
   for (size_t n = 0; mp[n] != '\0'; ++n) {
     if (mp[n] == '/') {
@@ -141,30 +141,28 @@ static ERROR try_import(char **fn, struct module *mod, struct node *import,
 
   size_t prefix_len = strlen(prefix);
   size_t len = prefix_len;
-  char *base = calloc(len + 1, sizeof(char));
-  strcpy(base, prefix);
+  char *moddir = calloc(len + 1, sizeof(char));
+  strcpy(moddir, prefix);
 
-  import_filename(&base, &len, mod, import_path);
+  import_moddir(&moddir, &len, mod, import_path);
 
   struct stat st = { 0 };
-
   char *file = calloc(len + 2 + 1, sizeof(char));
-  strcpy(file, base);
+  strcpy(file, moddir);
   strcpy(file + len, ".n");
   int ret = stat(file, &st);
   if (ret == 0 && S_ISREG(st.st_mode)) {
     prefix_len += prefix_len > 0 ? 1 : 0;
     *fn = strdup(file + prefix_len);
     free(file);
-    free(base);
+    free(moddir);
     return 0;
   }
   free(file);
 
-  char *modname = xbasename(base);
-
-  char *dir = calloc(len + 1 + strlen(modname) + 2 + 1, sizeof(char));
-  strcpy(dir, base);
+  char *modname = xbasename(moddir);
+  char *dir = calloc(len + 1 + strlen(moddir) + 2 + 1, sizeof(char));
+  strcpy(dir, moddir);
   strcpy(dir + len, "/");
   strcpy(dir + len + 1, modname);
   strcpy(dir + len + 1 + strlen(modname), ".n");
@@ -175,12 +173,12 @@ static ERROR try_import(char **fn, struct module *mod, struct node *import,
     *fn = strdup(dir + prefix_len);
     free(modname);
     free(dir);
-    free(base);
+    free(moddir);
     return 0;
   }
   free(modname);
   free(dir);
-  free(base);
+  free(moddir);
 
   return EINVAL;
 }
@@ -208,7 +206,7 @@ static ERROR lookup_import(const char **prefix, char **fn,
   struct node *import_path = subs_first(import);
   import_module_path(&module_path, &module_path_len, mod, import_path);
 
-  fprintf(g_env.stderr, "After looking up in the directories:\n");
+  fprintf(g_env.stderr, "Using the path prefixes:\n");
   for (size_t n = 0; prefixes[n] != NULL; ++n) {
     fprintf(g_env.stderr, "\t'%s'\n", prefixes[n]);
   }

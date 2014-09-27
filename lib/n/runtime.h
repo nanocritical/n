@@ -26,6 +26,6 @@ typedef ssize_t n$builtins$Int;
 typedef float n$builtins$Float;
 typedef double n$builtins$Double;
 
-#include <lib/n/reflect.h>
+#include <lib/n/reflect/reflect.h>
 
 #endif

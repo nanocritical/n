@@ -1,7 +1,8 @@
+#include <stdarg.h>
+
 #define NB(n) n$builtins$##n
 
 #ifdef NLANG_DEFINE_TYPES
-#include <stdarg.h>
 
 union NB(Varargintunion) {
   NB(Varargint) *ref;

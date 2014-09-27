@@ -1,4 +1,0 @@
-from n import *
-
-fun foo
-	noop

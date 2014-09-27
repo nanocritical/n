@@ -156,7 +156,7 @@ static void module_prepare_empty_mocks(struct module **mod) {
   globalctx_init(gctx);
 
   struct stage *stage = calloc(1, sizeof(struct stage));
-  error e = stage_load(gctx, stage, "bootstrap/mockempty.n");
+  error e = stage_load(gctx, stage, "bootstrap/mockempty/mockempty.n");
   assert(!e);
 
   *mod = stage->entry_point;
@@ -177,7 +177,7 @@ static void module_prepare_mocks(struct module **mod) {
   globalctx_init(gctx);
 
   struct stage *stage = calloc(1, sizeof(struct stage));
-  error e = stage_load(gctx, stage, "bootstrap/mockbasic.n");
+  error e = stage_load(gctx, stage, "bootstrap/mockbasic/mockbasic.n");
   if (e && g_env.stderr != stderr) {
     fflush(g_env.stderr);
     fprintf(stderr, "%s", g_env.stderr_mem);

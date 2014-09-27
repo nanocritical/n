@@ -1203,6 +1203,7 @@ struct module {
   struct stage *stage;
 
   const char *filename;
+  bool has_single_file;
   struct vecstr components;
   struct vecsize components_first_pos;
 

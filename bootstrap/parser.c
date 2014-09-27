@@ -339,10 +339,6 @@ static ERROR parse_modpath(struct module *mod, const char *raw_fn) {
 
   mod->path_len = 0;
   for (size_t n = 0, last = 0, p = 0; fn[p] != '\0'; ++p) {
-    if (fn[p] == '_') {
-      THROWF(EINVAL, "module path element cannot contain '_' in '%s'", fn);
-    }
-
     if (fn[p] == '/' || fn[p] == '.' || fn[p + 1] == '\0') {
       struct token tok = { 0 };
       tok.t = TIDENT;
@@ -350,9 +346,13 @@ static ERROR parse_modpath(struct module *mod, const char *raw_fn) {
       tok.len = p - last;
 
       const ident id = idents_add(mod->gctx, &tok);
-      if (strncmp(fn + p, ".n", 2) == 0 && fn[p+2] == '\0' && id == mod->path[n-1]) {
-        // Case c/b/a/a.n
+      const bool is_last = strchr(fn + p, '/') == NULL;
+      if (is_last && id == mod->path[n-1]) {
+        // Last (repeated) part of the path: case c/b/a/a.n
+        // noop
       } else {
+        // is_last => non repeated last part of the path: case c/b/a.n
+        mod->has_single_file = is_last;
         mod->path[n] = id;
         mod->path_len += 1;
       }
@@ -616,8 +616,11 @@ static ERROR module_read(struct module *mod, const char *prefix, const char *fn)
   error e = read_component(&c, &data, &len, mod, prefix, fn, NULL);
   GOTO_EXCEPT(e);
 
+  if (mod->has_single_file) {
+    goto except;
+  }
+
   bn = xbasename(mod->filename);
-  size_t common_len = strlen(bn) - 2;
   dn = xdirname(mod->filename);
   dir = opendir(dn);
   if (dir == NULL) {
@@ -630,11 +633,12 @@ static ERROR module_read(struct module *mod, const char *prefix, const char *fn)
       break;
     }
 
+    if (strcmp(r->d_name, bn) == 0) {
+      continue;
+    }
+
     size_t name_len = strlen(r->d_name);
-    if (name_len > common_len + 2
-        && r->d_name[common_len] == '_'
-        && strncmp(bn, r->d_name, common_len) == 0
-        && strcmp(r->d_name + name_len - 2, ".n") == 0) {
+    if (strcmp(r->d_name + name_len - 2, ".n") == 0) {
       e = read_component(&c, &data, &len, mod, dn, r->d_name, r->d_name);
       GOTO_EXCEPT(e);
     }
@@ -3001,35 +3005,25 @@ EXAMPLE(parse_modpath) {
     struct stage stage = { 0 };
     struct module m = { 0 };
     module_init(&gctx, &stage, &m);
-    error e = parse_modpath(&m, "test.n");
-    assert(!e);
-    assert(m.path_len == 1);
-    const char *p = "test";
-    assert(m.path[0] == idents_add_string(&gctx, p, strlen(p)));
-  }
-  {
-    struct globalctx gctx = { 0 };
-    globalctx_init(&gctx);
-    struct stage stage = { 0 };
-    struct module m = { 0 };
-    module_init(&gctx, &stage, &m);
-    error e = parse_modpath(&m, "bootstrap/bootstrap.n");
-    assert(!e);
-    assert(m.path_len == 1);
-    const char *p = "bootstrap";
-    assert(m.path[0] == idents_add_string(&gctx, p, strlen(p)));
-  }
-  {
-    struct globalctx gctx = { 0 };
-    globalctx_init(&gctx);
-    struct stage stage = { 0 };
-    struct module m = { 0 };
-    module_init(&gctx, &stage, &m);
     error e = parse_modpath(&m, "bootstrap/test.n");
     assert(!e);
     assert(m.path_len == 2);
     const char *p1 = "bootstrap";
     const char *p2 = "test";
+    assert(m.path[0] == idents_add_string(&gctx, p1, strlen(p1)));
+    assert(m.path[1] == idents_add_string(&gctx, p2, strlen(p2)));
+  }
+  {
+    struct globalctx gctx = { 0 };
+    globalctx_init(&gctx);
+    struct stage stage = { 0 };
+    struct module m = { 0 };
+    module_init(&gctx, &stage, &m);
+    error e = parse_modpath(&m, "test/bootstrap/bootstrap.n");
+    assert(!e);
+    assert(m.path_len == 2);
+    const char *p1 = "test";
+    const char *p2 = "bootstrap";
     assert(m.path[0] == idents_add_string(&gctx, p1, strlen(p1)));
     assert(m.path[1] == idents_add_string(&gctx, p2, strlen(p2)));
   }
