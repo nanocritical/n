@@ -3020,9 +3020,7 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
     return 0;
   }
 
-  if ((!typ_is_concrete(node->typ) && node->which != DEFINTF)
-      || (!node_is_at_top(node) && !typ_is_concrete(parent_const(node)->typ))
-      || typ_was_zeroed(_t)
+  if (typ_was_zeroed(_t)
       || (typ_is_reference(_t) && DEF(_t)->which == DEFINTF)
       || typ_is_generic_functor(_t)
       || (typ_generic_arity(_t) == 0 && !is_in_topmost_module(_t))
@@ -3054,6 +3052,11 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
 static void print_topdeps(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node,
                           struct fintypset *printed) {
+  if ((!typ_is_concrete(node->typ) && node->which != DEFINTF)
+      || (!node_is_at_top(node) && !typ_is_concrete(parent_const(node)->typ))) {
+    return;
+  }
+
   const struct toplevel *toplevel = node_toplevel_const(node);
   if (header && !(toplevel->flags & TOP_IS_EXPORT)) {
     return;
