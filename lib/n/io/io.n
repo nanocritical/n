@@ -3,10 +3,10 @@
 
 from n import *
 
-let EOF = {Msg=@"EOF"}:Error
-let Short_write = {Msg=@"short write"}:Error
-let Short_buffer = {Msg=@"short buffer"}:Error
-let Unexpected_EOF = {Msg=@"unexpected EOF"}:Error
+let EOF = {Why=@"EOF"}:Error
+let SHORT_WRITE = {Why=@"Short write"}:Error
+let SHORT_BUFFER = {Why=@"Short buffer"}:Error
+let UNEXPECTED_EOF = {Why=@"Unexpected EOF"}:Error
 
 intf `Reader t:`Copyable =
 	-- Returns a slice of b with the same origin, extended to include the

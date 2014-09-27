@@ -135,139 +135,139 @@ extern let _ENOTRECOVERABLE:I32
 extern let _ERFKILL:I32
 extern let _EHWPOISON:I32
 
-let EPERM = {Msg=@"Operation not permitted"}:Error
-let ENOENT = {Msg=@"No such file or directory"}:Error
-let ESRCH = {Msg=@"No such process"}:Error
-let EINTR = {Msg=@"Interrupted system call"}:Error
-let EIO = {Msg=@"I/O error"}:Error
-let ENXIO = {Msg=@"No such device or address"}:Error
-let E2BIG = {Msg=@"Argument list too long"}:Error
-let ENOEXEC = {Msg=@"Exec format error"}:Error
-let EBADF = {Msg=@"Bad file number"}:Error
-let ECHILD = {Msg=@"No child processes"}:Error
-let EAGAIN = {Msg=@"Try again"}:Error
-let ENOMEM = {Msg=@"Out of memory"}:Error
-let EACCES = {Msg=@"Permission denied"}:Error
-let EFAULT = {Msg=@"Bad address"}:Error
-let ENOTBLK = {Msg=@"Block device required"}:Error
-let EBUSY = {Msg=@"Device or resource busy"}:Error
-let EEXIST = {Msg=@"File exists"}:Error
-let EXDEV = {Msg=@"Cross-device link"}:Error
-let ENODEV = {Msg=@"No such device"}:Error
-let ENOTDIR = {Msg=@"Not a directory"}:Error
-let EISDIR = {Msg=@"Is a directory"}:Error
-let EINVAL = {Msg=@"Invalid argument"}:Error
-let ENFILE = {Msg=@"File table overflow"}:Error
-let EMFILE = {Msg=@"Too many open files"}:Error
-let ENOTTY = {Msg=@"Not a typewriter"}:Error
-let ETXTBSY = {Msg=@"Text file busy"}:Error
-let EFBIG = {Msg=@"File too large"}:Error
-let ENOSPC = {Msg=@"No space left on device"}:Error
-let ESPIPE = {Msg=@"Illegal seek"}:Error
-let EROFS = {Msg=@"Read-only file system"}:Error
-let EMLINK = {Msg=@"Too many links"}:Error
-let EPIPE = {Msg=@"Broken pipe"}:Error
-let EDOM = {Msg=@"Math argument out of domain of func"}:Error
-let ERANGE = {Msg=@"Math result not representable"}:Error
-let EDEADLK = {Msg=@"Resource deadlock would occur"}:Error
-let ENAMETOOLONG = {Msg=@"File name too long"}:Error
-let ENOLCK = {Msg=@"No record locks available"}:Error
-let ENOSYS = {Msg=@"Function not implemented"}:Error
-let ENOTEMPTY = {Msg=@"Directory not empty"}:Error
-let ELOOP = {Msg=@"Too many symbolic links encountered"}:Error
-let EWOULDBLOCK = {Msg=@"Operation would block"}:Error
-let ENOMSG = {Msg=@"No message of desired type"}:Error
-let EIDRM = {Msg=@"Identifier removed"}:Error
-let ECHRNG = {Msg=@"Channel number out of range"}:Error
-let EL2NSYNC = {Msg=@"Level 2 not synchronized"}:Error
-let EL3HLT = {Msg=@"Level 3 halted"}:Error
-let EL3RST = {Msg=@"Level 3 reset"}:Error
-let ELNRNG = {Msg=@"Link number out of range"}:Error
-let EUNATCH = {Msg=@"Protocol driver not attached"}:Error
-let ENOCSI = {Msg=@"No CSI structure available"}:Error
-let EL2HLT = {Msg=@"Level 2 halted"}:Error
-let EBADE = {Msg=@"Invalid exchange"}:Error
-let EBADR = {Msg=@"Invalid request descriptor"}:Error
-let EXFULL = {Msg=@"Exchange full"}:Error
-let ENOANO = {Msg=@"No anode"}:Error
-let EBADRQC = {Msg=@"Invalid request code"}:Error
-let EBADSLT = {Msg=@"Invalid slot"}:Error
-let EDEADLOCK = {Msg=@"Resource deadlock would occur"}:Error
-let EBFONT = {Msg=@"Bad font file format"}:Error
-let ENOSTR = {Msg=@"Device not a stream"}:Error
-let ENODATA = {Msg=@"No data available"}:Error
-let ETIME = {Msg=@"Timer expired"}:Error
-let ENOSR = {Msg=@"Out of streams resources"}:Error
-let ENONET = {Msg=@"Machine is not on the network"}:Error
-let ENOPKG = {Msg=@"Package not installed"}:Error
-let EREMOTE = {Msg=@"Object is remote"}:Error
-let ENOLINK = {Msg=@"Link has been severed"}:Error
-let EADV = {Msg=@"Advertise error"}:Error
-let ESRMNT = {Msg=@"Srmount error"}:Error
-let ECOMM = {Msg=@"Communication error on send"}:Error
-let EPROTO = {Msg=@"Protocol error"}:Error
-let EMULTIHOP = {Msg=@"Multihop attempted"}:Error
-let EDOTDOT = {Msg=@"RFS specific error"}:Error
-let EBADMSG = {Msg=@"Not a data message"}:Error
-let EOVERFLOW = {Msg=@"Value too large for defined data type"}:Error
-let ENOTUNIQ = {Msg=@"Name not unique on network"}:Error
-let EBADFD = {Msg=@"File descriptor in bad state"}:Error
-let EREMCHG = {Msg=@"Remote address changed"}:Error
-let ELIBACC = {Msg=@"Can not access a needed shared library"}:Error
-let ELIBBAD = {Msg=@"Accessing a corrupted shared library"}:Error
-let ELIBSCN = {Msg=@".lib section in a.out corrupted"}:Error
-let ELIBMAX = {Msg=@"Attempting to link in too many shared libraries"}:Error
-let ELIBEXEC = {Msg=@"Cannot exec a shared library directly"}:Error
-let EILSEQ = {Msg=@"Illegal byte sequence"}:Error
-let ERESTART = {Msg=@"Interrupted system call should be restarted"}:Error
-let ESTRPIPE = {Msg=@"Streams pipe error"}:Error
-let EUSERS = {Msg=@"Too many users"}:Error
-let ENOTSOCK = {Msg=@"Socket operation on non-socket"}:Error
-let EDESTADDRREQ = {Msg=@"Destination address required"}:Error
-let EMSGSIZE = {Msg=@"Message too long"}:Error
-let EPROTOTYPE = {Msg=@"Protocol wrong type for socket"}:Error
-let ENOPROTOOPT = {Msg=@"Protocol not available"}:Error
-let EPROTONOSUPPORT = {Msg=@"Protocol not supported"}:Error
-let ESOCKTNOSUPPORT = {Msg=@"Socket type not supported"}:Error
-let EOPNOTSUPP = {Msg=@"Operation not supported on transport endpoint"}:Error
-let EPFNOSUPPORT = {Msg=@"Protocol family not supported"}:Error
-let EAFNOSUPPORT = {Msg=@"Address family not supported by protocol"}:Error
-let EADDRINUSE = {Msg=@"Address already in use"}:Error
-let EADDRNOTAVAIL = {Msg=@"Cannot assign requested address"}:Error
-let ENETDOWN = {Msg=@"Network is down"}:Error
-let ENETUNREACH = {Msg=@"Network is unreachable"}:Error
-let ENETRESET = {Msg=@"Network dropped connection because of reset"}:Error
-let ECONNABORTED = {Msg=@"Software caused connection abort"}:Error
-let ECONNRESET = {Msg=@"Connection reset by peer"}:Error
-let ENOBUFS = {Msg=@"No buffer space available"}:Error
-let EISCONN = {Msg=@"Transport endpoint is already connected"}:Error
-let ENOTCONN = {Msg=@"Transport endpoint is not connected"}:Error
-let ESHUTDOWN = {Msg=@"Cannot send after transport endpoint shutdown"}:Error
-let ETOOMANYREFS = {Msg=@"Too many references: cannot splice"}:Error
-let ETIMEDOUT = {Msg=@"Connection timed out"}:Error
-let ECONNREFUSED = {Msg=@"Connection refused"}:Error
-let EHOSTDOWN = {Msg=@"Host is down"}:Error
-let EHOSTUNREACH = {Msg=@"No route to host"}:Error
-let EALREADY = {Msg=@"Operation already in progress"}:Error
-let EINPROGRESS = {Msg=@"Operation now in progress"}:Error
-let ESTALE = {Msg=@"Stale file handle"}:Error
-let EUCLEAN = {Msg=@"Structure needs cleaning"}:Error
-let ENOTNAM = {Msg=@"Not a XENIX named type file"}:Error
-let ENAVAIL = {Msg=@"No XENIX semaphores available"}:Error
-let EISNAM = {Msg=@"Is a named type file"}:Error
-let EREMOTEIO = {Msg=@"Remote I/O error"}:Error
-let EDQUOT = {Msg=@"Quota exceeded"}:Error
-let ENOMEDIUM = {Msg=@"No medium found"}:Error
-let EMEDIUMTYPE = {Msg=@"Wrong medium type"}:Error
-let ECANCELED = {Msg=@"Operation Canceled"}:Error
-let ENOKEY = {Msg=@"Required key not available"}:Error
-let EKEYEXPIRED = {Msg=@"Key has expired"}:Error
-let EKEYREVOKED = {Msg=@"Key has been revoked"}:Error
-let EKEYREJECTED = {Msg=@"Key was rejected by service"}:Error
-let EOWNERDEAD = {Msg=@"Owner died"}:Error
-let ENOTRECOVERABLE = {Msg=@"State not recoverable"}:Error
-let ERFKILL = {Msg=@"Operation not possible due to RF-kill"}:Error
-let EHWPOISON = {Msg=@"Memory page has hardware error"}:Error
+let EPERM = {Why=@"Operation not permitted"}:Error
+let ENOENT = {Why=@"No such file or directory"}:Error
+let ESRCH = {Why=@"No such process"}:Error
+let EINTR = {Why=@"Interrupted system call"}:Error
+let EIO = {Why=@"I/O error"}:Error
+let ENXIO = {Why=@"No such device or address"}:Error
+let E2BIG = {Why=@"Argument list too long"}:Error
+let ENOEXEC = {Why=@"Exec format error"}:Error
+let EBADF = {Why=@"Bad file number"}:Error
+let ECHILD = {Why=@"No child processes"}:Error
+let EAGAIN = {Why=@"Try again"}:Error
+let ENOMEM = {Why=@"Out of memory"}:Error
+let EACCES = {Why=@"Permission denied"}:Error
+let EFAULT = {Why=@"Bad address"}:Error
+let ENOTBLK = {Why=@"Block device required"}:Error
+let EBUSY = {Why=@"Device or resource busy"}:Error
+let EEXIST = {Why=@"File exists"}:Error
+let EXDEV = {Why=@"Cross-device link"}:Error
+let ENODEV = {Why=@"No such device"}:Error
+let ENOTDIR = {Why=@"Not a directory"}:Error
+let EISDIR = {Why=@"Is a directory"}:Error
+let EINVAL = {Why=@"Invalid argument"}:Error
+let ENFILE = {Why=@"File table overflow"}:Error
+let EMFILE = {Why=@"Too many open files"}:Error
+let ENOTTY = {Why=@"Not a typewriter"}:Error
+let ETXTBSY = {Why=@"Text file busy"}:Error
+let EFBIG = {Why=@"File too large"}:Error
+let ENOSPC = {Why=@"No space left on device"}:Error
+let ESPIPE = {Why=@"Illegal seek"}:Error
+let EROFS = {Why=@"Read-only file system"}:Error
+let EMLINK = {Why=@"Too many links"}:Error
+let EPIPE = {Why=@"Broken pipe"}:Error
+let EDOM = {Why=@"Math argument out of domain of func"}:Error
+let ERANGE = {Why=@"Math result not representable"}:Error
+let EDEADLK = {Why=@"Resource deadlock would occur"}:Error
+let ENAMETOOLONG = {Why=@"File name too long"}:Error
+let ENOLCK = {Why=@"No record locks available"}:Error
+let ENOSYS = {Why=@"Function not implemented"}:Error
+let ENOTEMPTY = {Why=@"Directory not empty"}:Error
+let ELOOP = {Why=@"Too many symbolic links encountered"}:Error
+let EWOULDBLOCK = {Why=@"Operation would block"}:Error
+let ENOMSG = {Why=@"No message of desired type"}:Error
+let EIDRM = {Why=@"Identifier removed"}:Error
+let ECHRNG = {Why=@"Channel number out of range"}:Error
+let EL2NSYNC = {Why=@"Level 2 not synchronized"}:Error
+let EL3HLT = {Why=@"Level 3 halted"}:Error
+let EL3RST = {Why=@"Level 3 reset"}:Error
+let ELNRNG = {Why=@"Link number out of range"}:Error
+let EUNATCH = {Why=@"Protocol driver not attached"}:Error
+let ENOCSI = {Why=@"No CSI structure available"}:Error
+let EL2HLT = {Why=@"Level 2 halted"}:Error
+let EBADE = {Why=@"Invalid exchange"}:Error
+let EBADR = {Why=@"Invalid request descriptor"}:Error
+let EXFULL = {Why=@"Exchange full"}:Error
+let ENOANO = {Why=@"No anode"}:Error
+let EBADRQC = {Why=@"Invalid request code"}:Error
+let EBADSLT = {Why=@"Invalid slot"}:Error
+let EDEADLOCK = {Why=@"Resource deadlock would occur"}:Error
+let EBFONT = {Why=@"Bad font file format"}:Error
+let ENOSTR = {Why=@"Device not a stream"}:Error
+let ENODATA = {Why=@"No data available"}:Error
+let ETIME = {Why=@"Timer expired"}:Error
+let ENOSR = {Why=@"Out of streams resources"}:Error
+let ENONET = {Why=@"Machine is not on the network"}:Error
+let ENOPKG = {Why=@"Package not installed"}:Error
+let EREMOTE = {Why=@"Object is remote"}:Error
+let ENOLINK = {Why=@"Link has been severed"}:Error
+let EADV = {Why=@"Advertise error"}:Error
+let ESRMNT = {Why=@"Srmount error"}:Error
+let ECOMM = {Why=@"Communication error on send"}:Error
+let EPROTO = {Why=@"Protocol error"}:Error
+let EMULTIHOP = {Why=@"Multihop attempted"}:Error
+let EDOTDOT = {Why=@"RFS specific error"}:Error
+let EBADMSG = {Why=@"Not a data message"}:Error
+let EOVERFLOW = {Why=@"Value too large for defined data type"}:Error
+let ENOTUNIQ = {Why=@"Name not unique on network"}:Error
+let EBADFD = {Why=@"File descriptor in bad state"}:Error
+let EREMCHG = {Why=@"Remote address changed"}:Error
+let ELIBACC = {Why=@"Can not access a needed shared library"}:Error
+let ELIBBAD = {Why=@"Accessing a corrupted shared library"}:Error
+let ELIBSCN = {Why=@".lib section in a.out corrupted"}:Error
+let ELIBMAX = {Why=@"Attempting to link in too many shared libraries"}:Error
+let ELIBEXEC = {Why=@"Cannot exec a shared library directly"}:Error
+let EILSEQ = {Why=@"Illegal byte sequence"}:Error
+let ERESTART = {Why=@"Interrupted system call should be restarted"}:Error
+let ESTRPIPE = {Why=@"Streams pipe error"}:Error
+let EUSERS = {Why=@"Too many users"}:Error
+let ENOTSOCK = {Why=@"Socket operation on non-socket"}:Error
+let EDESTADDRREQ = {Why=@"Destination address required"}:Error
+let EMSGSIZE = {Why=@"Message too long"}:Error
+let EPROTOTYPE = {Why=@"Protocol wrong type for socket"}:Error
+let ENOPROTOOPT = {Why=@"Protocol not available"}:Error
+let EPROTONOSUPPORT = {Why=@"Protocol not supported"}:Error
+let ESOCKTNOSUPPORT = {Why=@"Socket type not supported"}:Error
+let EOPNOTSUPP = {Why=@"Operation not supported on transport endpoint"}:Error
+let EPFNOSUPPORT = {Why=@"Protocol family not supported"}:Error
+let EAFNOSUPPORT = {Why=@"Address family not supported by protocol"}:Error
+let EADDRINUSE = {Why=@"Address already in use"}:Error
+let EADDRNOTAVAIL = {Why=@"Cannot assign requested address"}:Error
+let ENETDOWN = {Why=@"Network is down"}:Error
+let ENETUNREACH = {Why=@"Network is unreachable"}:Error
+let ENETRESET = {Why=@"Network dropped connection because of reset"}:Error
+let ECONNABORTED = {Why=@"Software caused connection abort"}:Error
+let ECONNRESET = {Why=@"Connection reset by peer"}:Error
+let ENOBUFS = {Why=@"No buffer space available"}:Error
+let EISCONN = {Why=@"Transport endpoint is already connected"}:Error
+let ENOTCONN = {Why=@"Transport endpoint is not connected"}:Error
+let ESHUTDOWN = {Why=@"Cannot send after transport endpoint shutdown"}:Error
+let ETOOMANYREFS = {Why=@"Too many references: cannot splice"}:Error
+let ETIMEDOUT = {Why=@"Connection timed out"}:Error
+let ECONNREFUSED = {Why=@"Connection refused"}:Error
+let EHOSTDOWN = {Why=@"Host is down"}:Error
+let EHOSTUNREACH = {Why=@"No route to host"}:Error
+let EALREADY = {Why=@"Operation already in progress"}:Error
+let EINPROGRESS = {Why=@"Operation now in progress"}:Error
+let ESTALE = {Why=@"Stale file handle"}:Error
+let EUCLEAN = {Why=@"Structure needs cleaning"}:Error
+let ENOTNAM = {Why=@"Not a XENIX named type file"}:Error
+let ENAVAIL = {Why=@"No XENIX semaphores available"}:Error
+let EISNAM = {Why=@"Is a named type file"}:Error
+let EREMOTEIO = {Why=@"Remote I/O error"}:Error
+let EDQUOT = {Why=@"Quota exceeded"}:Error
+let ENOMEDIUM = {Why=@"No medium found"}:Error
+let EMEDIUMTYPE = {Why=@"Wrong medium type"}:Error
+let ECANCELED = {Why=@"Operation Canceled"}:Error
+let ENOKEY = {Why=@"Required key not available"}:Error
+let EKEYEXPIRED = {Why=@"Key has expired"}:Error
+let EKEYREVOKED = {Why=@"Key has been revoked"}:Error
+let EKEYREJECTED = {Why=@"Key was rejected by service"}:Error
+let EOWNERDEAD = {Why=@"Owner died"}:Error
+let ENOTRECOVERABLE = {Why=@"State not recoverable"}:Error
+let ERFKILL = {Why=@"Operation not possible due to RF-kill"}:Error
+let EHWPOISON = {Why=@"Memory page has hardware error"}:Error
 
 fun convert_error code:I32 = Error
 	match code

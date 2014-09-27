@@ -1690,33 +1690,29 @@ inline (fun t:`Numeric) Max a:t b:t = t
 	else
 		return b
 
-
-intf `Error =
-	isa `Generalized_boolean `Show
-
 inline struct Error =
-	isa `Error `Trivial_order
-	Msg	:?@String
+	isa `Generalized_boolean `Trivial_order `Show
+	Why	:?@String -- FIXME Make it ?@`Show
 
 	let OK = {}:this
-	let UNKNOWN = {Msg=@"Unknown error"}:this
-	let INVAL = {Msg=@"invalid value"}:this
-	let INVAL_RANGE = {Msg=@"invalid value range"}:this
+	let UNKNOWN = {Why=@"Unknown error"}:this
+	let INVAL = {Why=@"invalid value"}:this
+	let INVAL_RANGE = {Why=@"invalid value range"}:this
 
 Error met Operator_test = Bool
-	return (self.Msg)?
+	return (self.Why)?
 
 Error met Show st:@#`Fmt_state
-	if (self.Msg)?
+	if (self.Why)?
 		"Error: ".Show st
-		self.Msg.Show st
+		self.Why.Show st
 	else
 		"Success".Show st
 
-(fun e:`Error) Drop err:e
+fun Drop err:Error
 	noop
 
-(fun e:`Error) Fatal err:e
+fun Fatal err:Error
 	Eprn "Fatal:" err
 	Abort
 
