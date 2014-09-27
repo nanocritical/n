@@ -1,3 +1,0 @@
-t00/fixme05.n.o.c:493:13: warning: ‘t00$fixme05$bar’ defined but not used [-Wunused-function]
- static void t00$fixme05$bar(t00$fixme05$nocopy *_$Nrtr_r) {
-             ^
