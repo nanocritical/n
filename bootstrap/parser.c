@@ -364,9 +364,6 @@ static ERROR parse_modpath(struct module *mod, const char *raw_fn) {
       }
 
       if (fn[p] == '.') {
-        // Skip anything after a dot (allows for things like versioning to
-        // be present in filenames or dirnames after the dot, without
-        // changing the module name).
         while (fn[p] != '/' && fn[p+1] != '\0') {
           p += 1;
         }
