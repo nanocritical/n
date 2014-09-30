@@ -1,0 +1,4 @@
+/tmp/ccJRXz4q.o: In function `main':
+/home/e/nc/n.dev/a.out.c:6: undefined reference to `_$Nmain'
+collect2: error: ld returned 1 exit status
+command exited with 1: gcc -Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g -Wl,--gc-sections  lib/n/math/math.n.o lib/n/reflect/reflect.n.o lib/n/unsafe/unsafe.n.o lib/n/containers/containers.n.o lib/n/builtins/builtins.n.o lib/n/n.n.o t00/relative.n.o a.out.c -o a.out

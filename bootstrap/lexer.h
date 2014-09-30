@@ -118,6 +118,7 @@ enum token_type {
   TDCOLON,
   TCOMMA,
   TSEMICOLON,
+  TPREDOT,
   TDOT,
   TBANG,
   TSHARP,

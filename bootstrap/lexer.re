@@ -396,7 +396,7 @@ normal:
   ".[" { R(TATDOT); }
   "![" { R(TATBANG); }
   "$[" { R(TATWILDCARD); }
-  "." { RUNORBIN(1, 0, TDEREFDOT, TDOT); }
+  "." { RUNORBIN(1, TPREDOT, TDEREFDOT, TDOT); }
   "!" { RUNORBIN(1, 0, TDEREFBANG, TBANG); }
   "#" { RUNORBIN(1, 0, TDEREFSHARP, TSHARP); }
   "$" { RUNORBIN(1, 0, TDEREFWILDCARD, TWILDCARD); }

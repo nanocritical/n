@@ -1,0 +1,6 @@
+from n import *
+import .relative
+
+fun Main = I32
+	assert relative.X == 42
+	return 0

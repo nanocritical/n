@@ -1,0 +1,4 @@
+-- For the benefit of t00/import.n
+from n import *
+
+let X = 42:Uint

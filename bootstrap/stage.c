@@ -186,9 +186,15 @@ static ERROR try_import(char **fn, struct module *mod, struct node *import,
 static ERROR lookup_import(const char **prefix, char **fn,
                            struct module *mod, struct node *import,
                            const char **prefixes) {
-  char *mod_dirname = xdirname(mod->filename);
-  error e = try_import(fn, mod, import, mod_dirname);
-  if (!e) {
+  assert(import->which == IMPORT);
+
+  if (import->as.IMPORT.is_relative) {
+    char *mod_dirname = xdirname(mod->filename);
+    error e = try_import(fn, mod, import, mod_dirname);
+    if (e) {
+      e = mk_except(mod, import, "relative import not found");
+      THROW(e);
+    }
     *prefix = strdup(mod_dirname);
     return 0;
   }
@@ -206,12 +212,12 @@ static ERROR lookup_import(const char **prefix, char **fn,
   struct node *import_path = subs_first(import);
   import_module_path(&module_path, &module_path_len, mod, import_path);
 
-  fprintf(g_env.stderr, "Using the path prefixes:\n");
+  fprintf(g_env.stderr, "Using the path prefixes (relative to current directory):\n");
   for (size_t n = 0; prefixes[n] != NULL; ++n) {
     fprintf(g_env.stderr, "\t'%s'\n", prefixes[n]);
   }
 
-  e = mk_except(mod, import, "module '%s' not found", module_path);
+  error e = mk_except(mod, import, "module '%s' not found", module_path);
   free(module_path);
   EXCEPT(e);
   return 0;

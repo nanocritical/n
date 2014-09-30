@@ -2738,7 +2738,16 @@ static ERROR p_import(struct node *node, struct module *mod,
   node_set_which(node, IMPORT);
   node->as.IMPORT.toplevel = *toplevel;
 
-  error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
+  struct token tok = { 0 };
+  error e = scan(&tok, mod);
+  EXCEPT(e);
+  if (tok.t == TPREDOT) {
+    node->as.IMPORT.is_relative = true;
+  } else {
+    back(mod, &tok);
+  }
+
+  e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
   EXCEPT(e);
 
   if (!from) {
@@ -2748,7 +2757,6 @@ static ERROR p_import(struct node *node, struct module *mod,
   int import_export_count = 0;
   int inline_count = 0;
   int ident_count = 0;
-  struct token tok = { 0 };
 again:
   e = scan(&tok, mod);
   EXCEPT(e);
