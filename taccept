@@ -2,7 +2,7 @@
 
 list=$*
 if [ -z "$list" ]; then
-	list=t[0-9][0-9]/*.n
+	list=$(find ${WD}t[0-9][0-9] -name \*.n)
 fi
 
 for t in $list; do

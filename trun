@@ -11,7 +11,7 @@ fi
 
 list=$*
 if [ -z "$list" ]; then
-	list=$(find ${WD}t[0-9][0-9] -name \*.n |grep -v '_')
+	list=$(find ${WD}t[0-9][0-9] -name \*.n)
 fi
 
 ret=0
