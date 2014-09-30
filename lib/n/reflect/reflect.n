@@ -8,7 +8,7 @@ struct Type =
 	Typename	:String
 	dynisalist	:Dynisalist
 
-alias refdyntable = n.unsafe.Voidref
+alias refdyntable = unsafe.Voidref
 
 extern inline fun get_type_from_dyntable dyntable:refdyntable = @Type
 
@@ -25,7 +25,7 @@ Type met Operator_ne other:@Type = Bool
 fun Get_dyntable_for dyntable:refdyntable i:@Type = refdyntable
 	let t = get_type_from_dyntable dyntable
 	let e, _ = t.dynisalist.find_entry i false
-	return e?.dyntable else (n.unsafe.Voidref.From_uintptr 0)
+	return e?.dyntable else (unsafe.Voidref.From_uintptr 0)
 
 -- For codegen use:
 fun Isa dyntable:refdyntable i:@Type = Bool
@@ -81,7 +81,7 @@ Dynisalist met find_entry rintf:@Type create:Bool = ?@entry, Uint
 Dynisalist met# Init count:Uint
 	-- With quadratic probing, the table size must be a power of 2, and not
 	-- too full.
-	let table_size = n.math.Roundup_pow2 count.To_u64 such
+	let table_size = math.Roundup_pow2 count.To_u64 such
 		if 3*table_size < 4*count.To_u64
 			table_size *= 2
 	Realloc @#self#hashmap table_size.To_uint
@@ -128,7 +128,7 @@ example
 		my#dynisalist#Init list.Count
 		foreach t in list
 			let r = init_type t
-			let fakedyntable = (n.unsafe.Cast @U8 refdyntable) t.Bytes.Unsafe_rawdata
+			let fakedyntable = (unsafe.Cast @U8 refdyntable) t.Bytes.Unsafe_rawdata
 			my#dynisalist#Add_entry r fakedyntable
 
 			let e, addr = my.dynisalist.find_entry r false

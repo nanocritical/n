@@ -158,9 +158,6 @@ EXAMPLE(escape_string) {
                 escape_string("\"t00/automagicref.n:76:10\"")) == 0);
 }
 
-static void print_scope_name(FILE *out, const struct module *mod,
-                             const struct scope *scope);
-
 static void print_scope_last_name(FILE *out, const struct module *mod,
                                   const struct scope *scope) {
   const ident id = node_ident(scope_node_const(scope));
@@ -350,7 +347,9 @@ static void print_bin_acc(FILE *out, const struct module *mod,
   const struct node *d = DEF(node->typ);
   const bool is_enum = d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_ENUM;
 
-  if ((is_enum && (node->flags & NODE_IS_DEFCHOICE))
+  if (node->flags & NODE_IS_TYPE) {
+    print_typ(out, mod, node->typ);
+  } else if ((is_enum && (node->flags & NODE_IS_DEFCHOICE))
       || (node->flags & NODE_IS_GLOBAL_LET)) {
     print_typ(out, mod, base->typ);
     fprintf(out, "$%s", name_s);
@@ -1295,32 +1294,7 @@ static void print_typ_data(FILE *out, const struct module *mod, const struct typ
   }
 }
 
-static void print_import_path(FILE *out, const struct module *mod,
-                              const struct node *node) {
-  switch (node->which) {
-  case IMPORT:
-    print_import_path(out, mod, subs_first_const(node));
-    break;
-  case BIN:
-    print_import_path(out, mod, subs_first_const(node));
-    fprintf(out, "$");
-    print_import_path(out, mod, subs_last_const(node));
-    break;
-  case IDENT:
-    print_ident(out, mod, node);
-    break;
-  default:
-    assert(false);
-  }
-}
-
 static void print_typ(FILE *out, const struct module *mod, const struct typ *typ) {
-  const struct node *d = DEF(typ);
-  if (d->which == IMPORT) {
-    print_import_path(out, mod, d);
-    return;
-  }
-
   if (typ_is_function(typ)) {
     print_typ_function(out, mod, typ);
   } else {

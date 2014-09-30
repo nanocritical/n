@@ -469,25 +469,25 @@ fun Close fd:Int = Error
 		return convert_error errno
 
 fun Unlink pathname:String = Error
-	let ret = unlink (n.cstring.Mk pathname).Rawdata
+	let ret = unlink (cstring.Mk pathname).Rawdata
 	if ret >= 0
 		return OK
 	return convert_error errno
 
 fun Open pathname:String flags:Open_flags mode:Mode = Int, Error
-	let fd = open (n.cstring.Mk pathname).Rawdata flags mode
+	let fd = open (cstring.Mk pathname).Rawdata flags mode
 	if fd >= 0
 		return fd, OK
 	return -1, convert_error errno
 
 fun Openat dirfd:Int pathname:String flags:Open_flags mode:Mode = Int, Error
-	let fd = openat dirfd (n.cstring.Mk pathname).Rawdata flags mode
+	let fd = openat dirfd (cstring.Mk pathname).Rawdata flags mode
 	if fd >= 0
 		return fd, OK
 	return fd, convert_error errno
 
 fun Mkfifoat dirfd:Int pathname:String mode:Mode = Int, Error
-	let fd = mkfifoat dirfd (n.cstring.Mk pathname).Rawdata mode
+	let fd = mkfifoat dirfd (cstring.Mk pathname).Rawdata mode
 	if fd >= 0
 		return fd, OK
 	return fd, convert_error errno

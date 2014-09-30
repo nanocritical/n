@@ -367,6 +367,7 @@ static ERROR track_ident_use(struct module *mod, struct node *node) {
     assert(node->as.IDENT.prev_use != node);
     return 0;
   case IMPORT:
+  case MODULE:
     return 0;
 
   case DEFARG:

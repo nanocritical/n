@@ -1182,15 +1182,12 @@ error step_insert_nullable_void(struct module *mod, struct node *node,
   node_subs_insert_before(statement_parent, statement, term);
 
   GSTART();
-  G0(x1, node, BIN,
-     x1->as.BIN.operator = TDOT;
-     G(x2, BIN,
-       x2->as.BIN.operator = TDOT;
-       G_IDENT(n, "n");
-       G_IDENT(b, "builtins"));
-     G_IDENT(N, "Nonnull_void"));
+  G0(x, node, IDENT,
+     x->as.IDENT.name = idents_add_string(mod->gctx,
+                                          "Nonnull_void",
+                                          strlen("Nonnull_void")));
 
-  error e = catchup(mod, NULL, x1, CATCHUP_BELOW_CURRENT);
+  error e = catchup(mod, NULL, x, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
 
   return 0;

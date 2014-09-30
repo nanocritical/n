@@ -23,14 +23,14 @@ Sysheap met! Realloc_raw raw:@#U8 old_bytecount:Uint bytecount:Uint = @#U8
 globalenv Heap:@!`Heap
 
 (fun t:`Any) Alloc = @#t within Heap
-	return (n.unsafe.Cast @#U8 @#t) <- Heap!Alloc_raw (sizeof t)
+	return (Cast @#U8 @#t) <- Heap!Alloc_raw (sizeof t)
 
 (fun t:`Any) Free p:@#t within Heap
-	Heap!Free_raw ((n.unsafe.Cast @#t @#U8) p) (sizeof t)
+	Heap!Free_raw ((Cast @#t @#U8) p) (sizeof t)
 
 (fun t:`Any) Realloc s:@#[]!t count:Uint within Heap
 	let old_raw = s#Unsafe_rawdata
 	and old_bytecount = s#Bytecount
 	and bytecount = count * (sizeof t)
 	let raw = Heap!Realloc_raw old_raw old_bytecount bytecount
-	s# = {dat=((n.unsafe.Cast @#U8 @#t) raw) cnt=s.cnt cap=count}
+	s# = {dat=((Cast @#U8 @#t) raw) cnt=s.cnt cap=count}
