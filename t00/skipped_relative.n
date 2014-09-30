@@ -1,4 +1,5 @@
 -- For the benefit of t00/import.n
+-- Has no main, not meant to be run directly.
 from n import *
 
 let X = 42:Uint

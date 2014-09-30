@@ -1,6 +1,6 @@
 from n import *
-import .relative
+import .skipped_relative
 
 fun Main = I32
-	assert relative.X == 42
+	assert skipped_relative.X == 42
 	return 0

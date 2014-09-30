@@ -11,8 +11,9 @@ fi
 
 list=$*
 if [ -z "$list" ]; then
-	list=$(find ${WD}t[0-9][0-9] -name \*.n)
+	list=$(find ${WD}t[0-9][0-9] -name \*.n |sort -u)
 fi
+list=$(echo $list |perl -pe 's/\S*?\W?skipped_\S+//g')
 
 ret=0
 
