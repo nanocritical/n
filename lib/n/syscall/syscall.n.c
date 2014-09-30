@@ -213,19 +213,31 @@ static NB(Int) SY(mkfifoat)(NB(Int) dirfd, NB(U8) *pathname, NB(U32) mode) {
 }
 
 static NB(Int) SY(write)(NB(Int) fd, NB(U8) *buf, NB(Uint) count) {
-  int ret = write(fd, buf, count);
+  ssize_t ret = write(fd, buf, count);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(pwrite)(NB(Int) fd, NB(U8) *buf, NB(Uint) count, NB(Uint) off) {
+  ssize_t ret = pwrite(fd, buf, count, off);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
 static NB(Int) SY(read)(NB(Int) fd, NB(U8) *buf, NB(Uint) count) {
-  int ret = read(fd, buf, count);
+  ssize_t ret = read(fd, buf, count);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(pread)(NB(Int) fd, NB(U8) *buf, NB(Uint) count, NB(Uint) off) {
+  ssize_t ret = pread(fd, buf, count, off);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
 static NB(Int) SY(lseek)(NB(Int) fd, NB(Int) off, NB(Int) whence) {
-  int ret = lseek(fd, off, whence);
+  off_t ret = lseek(fd, off, whence);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }

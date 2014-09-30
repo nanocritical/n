@@ -457,7 +457,9 @@ extern fun open pathname:@U8 flags:Open_flags mode:Mode = Int
 extern fun openat dirfd:Int pathname:@U8 flags:Open_flags mode:Mode = Int
 extern fun mkfifoat dirfd:Int pathname:@U8 mode:Mode = Int
 extern fun write fd:Int buf:@U8 count:Uint = Int
+extern fun pwrite fd:Int buf:@U8 count:Uint off:Uint = Int
 extern fun read fd:Int buf:@!U8 count:Uint = Int
+extern fun pread fd:Int buf:@!U8 count:Uint off:Uint = Int
 extern fun lseek fd:Int off:Int whence:Int = Int
 extern fun sysconf name:Int = Int
 
@@ -498,9 +500,22 @@ fun Write fd:Int b:[]U8 = []U8, Error
 		return b.[cnt.Unsigned ..], OK
 	return b, convert_error errno
 
+fun Pwrite fd:Int b:[]U8 off:Uint = []U8, Error
+	let cnt = pwrite fd b.Unsafe_rawdata b.Count off
+	if cnt >= 0
+		return b.[cnt.Unsigned ..], OK
+	return b, convert_error errno
+
 fun Read fd:Int b:[]!U8 = []!U8, Error
 	let dst = b![b.Count .. b.Cap]
 	let cnt = read fd dst!Unsafe_rawdata dst.Count
+	if cnt >= 0
+		return b![.. b.Count+cnt.Unsigned], OK
+	return b, convert_error errno
+
+fun Pread fd:Int b:[]!U8 off:Uint = []!U8, Error
+	let dst = b![b.Count .. b.Cap]
+	let cnt = pread fd dst!Unsafe_rawdata dst.Count off
 	if cnt >= 0
 		return b![.. b.Count+cnt.Unsigned], OK
 	return b, convert_error errno
