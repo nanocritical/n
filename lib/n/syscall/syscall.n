@@ -536,7 +536,7 @@ fun Sysconf name:Int = Error, Int
 
 example
 	let fn = ".test_syscall"
-	let fd, e = Open fn (O_CREAT bw| O_RDWR) 0666
+	let fd, e = Open fn (O_CREAT | O_RDWR) 0666
 	assert e == OK
 	assert fd >= 0
 

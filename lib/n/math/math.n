@@ -99,7 +99,7 @@ example assert 0x10000 == Roundup_pow2 0xffff:U64
 example assert 0 == Roundup_pow2 0xffff:U16
 
 inline (fun t:`Native_sized_unsigned_integer) Roundup_mult_of_pow2 x:t pow2:t = t
-	return (x + pow2 - 1) bw& bw~(pow2 - 1)
+	return (x + pow2 - 1) & ~(pow2 - 1)
 
 example assert 0 == Roundup_mult_of_pow2 0:U8 16:U8
 example assert 16 == Roundup_mult_of_pow2 1:U8 16:U8
@@ -110,7 +110,7 @@ example assert 0xf000 == Roundup_mult_of_pow2 0xe001:U16 4096:U16
 example assert 0 == Roundup_mult_of_pow2 0xf001:U16 4096:U16
 
 inline (fun t:`Native_sized_unsigned_integer) Rounddown_mult_of_pow2 x:t pow2:t = t
-	return x bw& bw~(pow2 - 1)
+	return x & ~(pow2 - 1)
 
 example assert 0 == Rounddown_mult_of_pow2 0:U8 16:U8
 example assert 0 == Rounddown_mult_of_pow2 1:U8 16:U8

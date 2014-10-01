@@ -87,7 +87,6 @@ enum token_type {
   TOVTIMES,
   TOVDIVIDE,
   TOVMODULO,
-  TPATTERNOR,
   TBWAND,
   TBWOR,
   TBWXOR,

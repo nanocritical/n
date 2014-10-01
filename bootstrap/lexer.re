@@ -336,9 +336,9 @@ normal:
   "ov*=" { R(TOVTIMES_ASSIGN); }
   "ov/=" { R(TOVDIVIDE_ASSIGN); }
   "ov%=" { R(TOVMODULO_ASSIGN); }
-  "bw&=" { R(TBWAND_ASSIGN); }
-  "bw|=" { R(TBWOR_ASSIGN); }
-  "bw^=" { R(TBWXOR_ASSIGN); }
+  "&=" { R(TBWAND_ASSIGN); }
+  "|=" { R(TBWOR_ASSIGN); }
+  "^=" { R(TBWXOR_ASSIGN); }
   "==" { R(TEQ); }
   "!=" { R(TNE); }
   "===" { R(TEQPTR); }
@@ -355,16 +355,15 @@ normal:
   "*" { R(TTIMES); }
   "/" { R(TDIVIDE); }
   "%" { R(TMODULO); }
-  "|" { R(TPATTERNOR); }
   "ov+" { RUNORBIN(3, TOVUPLUS, 0, TOVPLUS); }
   "ov-" { RUNORBIN(3, TOVUMINUS, 0, TOVMINUS); }
   "ov*" { R(TTIMES); }
   "ov/" { R(TDIVIDE); }
   "ov%" { R(TMODULO); }
-  "bw&" { R(TBWAND); }
-  "bw|" { R(TBWOR); }
-  "bw^" { R(TBWXOR); }
-  "bw~" { R(TBWNOT); }
+  "&" { R(TBWAND); }
+  "|" { R(TBWOR); }
+  "^" { R(TBWXOR); }
+  "~" { R(TBWNOT); }
   "::" { R(TDCOLON); }
   ":" { R(TCOLON); }
   "," { R(TCOMMA); }

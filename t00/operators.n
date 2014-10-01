@@ -4,5 +4,5 @@ fun Main = I32
 	let x = 0:I32
 	and y = 1
 	such
-		x bw^= y
-	return x bw^ 1
+		x ^= y
+	return x ^ 1
