@@ -529,11 +529,6 @@ error step_remove_typeconstraints(struct module *mod, struct node *node,
   unset_typ(&node->typ);
   set_typ(&node->typ, saved);
 
-  if (node->which == IDENT) {
-    error e = track_ident_use(mod, node);
-    EXCEPT(e);
-  }
-
   return 0;
 }
 

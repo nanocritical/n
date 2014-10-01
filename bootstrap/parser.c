@@ -151,6 +151,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_ENVIRONMENT] = "`Environment",
   [ID_TBI_ANY_ENVIRONMENT] = "`Any_environment",
   [ID_TBI_PREVENT_DYN] = "`Prevent_dyn",
+  [ID_TBI_ERROR] = "Error",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_TBI__CALL_FUNCTION_SLOT] = "__call_function_slot__",
   [ID_TBI__MUTABLE] = "__mutable__",
@@ -476,6 +477,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ENVIRONMENT];
   TBI_ANY_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ANY_ENVIRONMENT];
   TBI_PREVENT_DYN = gctx->builtin_typs_by_name[ID_TBI_PREVENT_DYN];
+  TBI_ERROR = gctx->builtin_typs_by_name[ID_TBI_ERROR];
   TBI__NOT_TYPEABLE = gctx->builtin_typs_by_name[ID_TBI__NOT_TYPEABLE];
   TBI__CALL_FUNCTION_SLOT = gctx->builtin_typs_by_name[ID_TBI__CALL_FUNCTION_SLOT];
   TBI__MUTABLE = gctx->builtin_typs_by_name[ID_TBI__MUTABLE];

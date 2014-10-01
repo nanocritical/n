@@ -2,6 +2,7 @@
 
 #include "passes.h"
 #include "parser.h"
+#include "types.h"
 
 STEP_NM(step_add_sequence_points,
         NM(BLOCK));
@@ -262,32 +263,36 @@ static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
 static ERROR rewrite_excep(struct module *mod, struct lir_state *st,
                            struct node *par, struct node *before,
                            struct node *excep, struct node *expr) {
-  struct node *i = mk_node(mod, par, IF);
-  i->codeloc = expr->codeloc;
+  GSTART();
+  G0(i, par, IF,
+     i->codeloc = expr->codeloc);
   if (before != NULL) {
     node_subs_remove(par, i);
     node_subs_insert_before(par, before, i);
   }
 
-  struct node *test_block = mk_node(mod, i, BLOCK);
-  struct node *test = mk_node(mod, test_block, CALL);
-  struct node *op = mk_node(mod, test, BIN);
-  op->as.BIN.operator = TDOT;
-  node_subs_append(op, expr);
-  struct node *op_name = mk_node(mod, op, IDENT);
-  op_name->as.IDENT.name = ID_OPERATOR_TEST;
+  G0(test_block, i, BLOCK,
+     G(test, CALL,
+       G(op, BIN,
+         op->as.BIN.operator = TDOT;
+         G(constraint, TYPECONSTRAINT,
+           node_subs_append(constraint, expr);
+           G(error, DIRECTDEF,
+             set_typ(&error->as.DIRECTDEF.typ, TBI_ERROR)));
+         G(op_name, IDENT,
+           op_name->as.IDENT.name = ID_OPERATOR_TEST))));
 
-  struct node *yes = mk_node(mod, i, BLOCK);
+  G0(yes, i, BLOCK);
   if (st->try_state == NULL) {
     // Then except is a conditional return.
-    struct node *th = mk_node(mod, yes, RETURN);
-    struct node *e = mk_node(mod, th, IDENT);
-    e->as.IDENT.name = node_ident(expr);
+    G0(th, yes, RETURN,
+       G(e, IDENT,
+         e->as.IDENT.name = node_ident(expr)));
   } else {
-    struct node *th = mk_node(mod, yes, THROW);
-    th->as.THROW.label = excep->as.EXCEP.label;
-    struct node *e = mk_node(mod, th, IDENT);
-    e->as.IDENT.name = node_ident(expr);
+    G0(th, yes, THROW,
+       th->as.THROW.label = excep->as.EXCEP.label;
+       G(e, IDENT,
+         e->as.IDENT.name = node_ident(expr)));
   }
   return 0;
 }
@@ -1236,7 +1241,9 @@ EXAMPLE_NCC_EMPTY(lir_let) {
                     "     BLOCK",
                     "      CALL",
                     "       BIN",
-                    "        IDENT",
+                    "        TYPECONSTRAINT",
+                    "         IDENT",
+                    "         DIRECTDEF",
                     "        IDENT",
                     "    BLOCK",
                     "     BLOCK",
@@ -1256,7 +1263,9 @@ EXAMPLE_NCC_EMPTY(lir_let) {
                     "     BLOCK",
                     "      CALL",
                     "       BIN",
-                    "        IDENT",
+                    "        TYPECONSTRAINT",
+                    "         IDENT",
+                    "         DIRECTDEF",
                     "        IDENT",
                     "    BLOCK",
                     "     BLOCK",
