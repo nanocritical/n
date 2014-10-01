@@ -35,6 +35,7 @@ fun bar = I32
 fun noerror = I32
 	try
 		let except = Error.OK
+		except = Error.OK
 		return 0
 	catch _
 		return 1

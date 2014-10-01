@@ -259,6 +259,32 @@ static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
   return 0;
 }
 
+static ERROR rewrite_excep(struct module *mod,
+                           struct node *par, struct node *before,
+                           struct node *excep, struct node *expr) {
+  struct node *i = mk_node(mod, par, IF);
+  i->codeloc = expr->codeloc;
+  if (before != NULL) {
+    node_subs_remove(par, i);
+    node_subs_insert_before(par, before, i);
+  }
+
+  struct node *test_block = mk_node(mod, i, BLOCK);
+  struct node *test = mk_node(mod, test_block, CALL);
+  struct node *op = mk_node(mod, test, BIN);
+  op->as.BIN.operator = TDOT;
+  node_subs_append(op, expr);
+  struct node *op_name = mk_node(mod, op, IDENT);
+  op_name->as.IDENT.name = ID_OPERATOR_TEST;
+
+  struct node *yes = mk_node(mod, i, BLOCK);
+  struct node *th = mk_node(mod, yes, THROW);
+  th->as.THROW.label = excep->as.EXCEP.label;
+  struct node *e = mk_node(mod, th, IDENT);
+  e->as.IDENT.name = node_ident(expr);
+  return 0;
+}
+
 static ERROR find_catch(struct node **r,
                         struct module *mod, struct node *for_error,
                         struct lir_state *st, ident label) {
@@ -398,25 +424,8 @@ static ERROR extract_defnames(struct module *mod,
         THROW(e);
       }
 
-      struct node *i = mk_node(mod, let_block, IF);
-      i->codeloc = expr->codeloc;
-      if (before != NULL) {
-        node_subs_remove(let_block, i);
-        node_subs_insert_before(let_block, before, i);
-      }
-      struct node *test_block = mk_node(mod, i, BLOCK);
-      struct node *test = mk_node(mod, test_block, CALL);
-      struct node *op = mk_node(mod, test, BIN);
-      op->as.BIN.operator = TDOT;
-      node_subs_append(op, expr);
-      struct node *op_name = mk_node(mod, op, IDENT);
-      op_name->as.IDENT.name = ID_OPERATOR_TEST;
-
-      struct node *yes = mk_node(mod, i, BLOCK);
-      struct node *th = mk_node(mod, yes, THROW);
-      th->as.THROW.label = pattern->as.EXCEP.label;
-      struct node *e = mk_node(mod, th, IDENT);
-      e->as.IDENT.name = node_ident(expr);
+      e = rewrite_excep(mod, let_block, before, pattern, expr);
+      EXCEPT(e);
       return 0;
     }
     break;
@@ -663,6 +672,7 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
     break;
   case BIN:
     {
+      const struct node *left = subs_first_const(node);
       enum token_type op = node->as.BIN.operator;
       switch (OP_KIND(op)) {
       case OP_BIN_SYM_BOOL:
@@ -675,8 +685,33 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
         rewrite_opt_acc_op(mod, node);
         break;
       default:
-        if (op == TASSIGN && subs_first_const(node)->which == TUPLE) {
+        if (op == TASSIGN && left->which == TUPLE) {
           e = rewrite_tuple_assign(mod, node);
+          EXCEPT(e);
+        } else if (op == TASSIGN && left->which == EXCEP) {
+          struct node *excep = subs_first(node);
+          struct node *expr = subs_last(node);
+          node_subs_remove(node, excep);
+          node_subs_remove(node, expr);
+
+          node_set_which(node, LET);
+          GSTART();
+          G0(defn, node, DEFNAME,
+             G(tmp, IDENT,
+               tmp->as.IDENT.name = gensym(mod))
+             node_subs_append(defn, expr));
+
+          struct node *before = next(node);
+          G0(block, parent(node), BLOCK);
+          if (before != NULL) {
+            node_subs_remove(parent(node), block);
+            node_subs_insert_before(parent(node), before, block);
+          }
+
+          G0(tmp2, node, IDENT, tmp2->as.IDENT.name = node_ident(tmp));
+          node_subs_remove(node, tmp2);
+
+          e = rewrite_excep(mod, block, NULL, excep, tmp2);
           EXCEPT(e);
         }
       }
