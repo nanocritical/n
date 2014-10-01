@@ -1,6 +1,7 @@
 from n import *
 
 fun inferred = Error
+	except = Error.UNKNOWN
 	try
 		throw INVAL
 	catch err
@@ -41,6 +42,7 @@ fun noerror = I32
 		return 1
 
 fun Main = I32
+	assert inferred == Error.UNKNOWN
 	assert inferred != Error.OK
 	assert Foo == 1
 	assert bar == 1

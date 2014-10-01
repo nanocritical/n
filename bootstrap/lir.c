@@ -259,7 +259,7 @@ static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
   return 0;
 }
 
-static ERROR rewrite_excep(struct module *mod,
+static ERROR rewrite_excep(struct module *mod, struct lir_state *st,
                            struct node *par, struct node *before,
                            struct node *excep, struct node *expr) {
   struct node *i = mk_node(mod, par, IF);
@@ -278,10 +278,17 @@ static ERROR rewrite_excep(struct module *mod,
   op_name->as.IDENT.name = ID_OPERATOR_TEST;
 
   struct node *yes = mk_node(mod, i, BLOCK);
-  struct node *th = mk_node(mod, yes, THROW);
-  th->as.THROW.label = excep->as.EXCEP.label;
-  struct node *e = mk_node(mod, th, IDENT);
-  e->as.IDENT.name = node_ident(expr);
+  if (st->try_state == NULL) {
+    // Then except is a conditional return.
+    struct node *th = mk_node(mod, yes, RETURN);
+    struct node *e = mk_node(mod, th, IDENT);
+    e->as.IDENT.name = node_ident(expr);
+  } else {
+    struct node *th = mk_node(mod, yes, THROW);
+    th->as.THROW.label = excep->as.EXCEP.label;
+    struct node *e = mk_node(mod, th, IDENT);
+    e->as.IDENT.name = node_ident(expr);
+  }
   return 0;
 }
 
@@ -289,6 +296,7 @@ static ERROR find_catch(struct node **r,
                         struct module *mod, struct node *for_error,
                         struct lir_state *st, ident label) {
   error e;
+
   if (st->try_state == NULL) {
     e = mk_except(mod, for_error, "missing surrounding try block");
     THROW(e);
@@ -353,7 +361,7 @@ static struct node *insert_temporary(struct module *mod, uint32_t flags,
   return repl;
 }
 
-static ERROR extract_defnames(struct module *mod,
+static ERROR extract_defnames(struct module *mod, struct lir_state *st,
                               const struct toplevel *toplevel, uint32_t flags,
                               bool is_alias, bool is_globalenv,
                               struct node *let_block, struct node *before,
@@ -424,7 +432,7 @@ static ERROR extract_defnames(struct module *mod,
         THROW(e);
       }
 
-      e = rewrite_excep(mod, let_block, before, pattern, expr);
+      e = rewrite_excep(mod, st, let_block, before, pattern, expr);
       EXCEPT(e);
       return 0;
     }
@@ -441,11 +449,11 @@ static ERROR extract_defnames(struct module *mod,
         node_subs_remove(pattern, t);
 
         if (expr == NULL) {
-          e = extract_defnames(mod, toplevel, flags, is_alias, is_globalenv,
+          e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv,
                                let_block, before, t, NULL);
           EXCEPT(e);
         } else if (expr->which == TUPLE) {
-          e = extract_defnames(mod, toplevel, flags, is_alias, is_globalenv,
+          e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv,
                                let_block, before, t, subs_at(expr, n));
           EXCEPT(e);
         } else {
@@ -463,7 +471,7 @@ static ERROR extract_defnames(struct module *mod,
           snprintf(s, ARRAY_SIZE(s), "X%zu", n);
           field->as.IDENT.name = idents_add_string(mod->gctx, s, strlen(s));
 
-          e = extract_defnames(mod, toplevel, flags, is_alias, is_globalenv,
+          e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv,
                                let_block, before, t, ex);
           EXCEPT(e);
         }
@@ -488,7 +496,7 @@ static ERROR extract_defnames(struct module *mod,
       }
       node_subs_append(c, t);
 
-      e = extract_defnames(mod, toplevel, flags, is_alias, is_globalenv,
+      e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv,
                            let_block, before, n, c);
       EXCEPT(e);
     }
@@ -502,7 +510,7 @@ static ERROR extract_defnames(struct module *mod,
   return 0;
 }
 
-static ERROR lir_conversion_defpattern(struct module *mod,
+static ERROR lir_conversion_defpattern(struct module *mod, struct lir_state *st,
                                        const struct toplevel *toplevel, uint32_t flags,
                                        struct node *let_block, struct node *before,
                                        struct node *defp) {
@@ -524,7 +532,7 @@ static ERROR lir_conversion_defpattern(struct module *mod,
   const bool is_alias = defp->as.DEFPATTERN.is_alias;
   const bool is_globalenv = defp->as.DEFPATTERN.is_globalenv;
 
-  error e = extract_defnames(mod, toplevel, flags, is_alias, is_globalenv,
+  error e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv,
                              let_block, before, pattern, expr);
   EXCEPT(e);
 
@@ -711,7 +719,7 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
           G0(tmp2, node, IDENT, tmp2->as.IDENT.name = node_ident(tmp));
           node_subs_remove(node, tmp2);
 
-          e = rewrite_excep(mod, block, NULL, excep, tmp2);
+          e = rewrite_excep(mod, st, block, NULL, excep, tmp2);
           EXCEPT(e);
         }
       }
@@ -843,7 +851,7 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
         struct node *nxt = next(defp); // record next before removing defp.
 
         if (defp->which == DEFPATTERN) {
-          e = lir_conversion_defpattern(mod, &toplevel, node->flags,
+          e = lir_conversion_defpattern(mod, st, &toplevel, node->flags,
                                         par, before, defp);
           EXCEPT(e);
         }
