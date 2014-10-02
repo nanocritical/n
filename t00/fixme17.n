@@ -1,0 +1,10 @@
+from n import *
+
+struct a =
+	_x	:I32
+
+fun Main = I32
+	let b = {}:a
+	-- Weird parsing bug: (CALL b . x) because of tolerance to _ in
+	-- floating point numbers...
+	return b._x
