@@ -469,12 +469,56 @@ static void add_auto_isa(struct module *mod, struct node *deft,
   assert(!never);
 }
 
+static size_t count_defchoices(const struct node *node) {
+  size_t count = 0;
+  FOREACH_SUB_CONST(d, node) {
+    if (d->which == DEFCHOICE) {
+      if (d->as.DEFCHOICE.is_leaf) {
+        count += 1;
+      } else {
+        count += count_defchoices(d);
+      }
+    }
+  }
+  return count;
+}
+
+static void add_enum_allbw(struct module *mod, struct node *node) {
+  const size_t count = count_defchoices(node);
+  if (count > 64) {
+    // FIXME
+    return;
+  }
+
+  const uint64_t bwall = (1 << count) - 1;
+
+  char value[32] = { 0 };
+  snprintf(value, ARRAY_SIZE(value), "0x%"PRIu64, bwall);
+
+  GSTART();
+  G0(let, node, LET,
+     let->flags |= NODE_IS_GLOBAL_LET;
+     G(defn, DEFNAME,
+       defn->flags |= NODE_IS_GLOBAL_LET;
+       G_IDENT(valn, "BWALL");
+       G(valc, TYPECONSTRAINT,
+         G(val, NUMBER,
+           val->as.NUMBER.value = strdup(value));
+         G(valt, DIRECTDEF,
+           set_typ(&valt->as.DIRECTDEF.typ, TBI_U64)))));
+
+  error e = catchup(mod, NULL, let, CATCHUP_BELOW_CURRENT);
+  assert(!e);
+}
+
 STEP_NM(step_autointf_enum_union,
         NM(DEFTYPE));
 error step_autointf_enum_union(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+    add_enum_allbw(mod, node);
+
     add_auto_isa(mod, node, TBI_ENUM);
 
     if (node->as.DEFTYPE.default_choice != NULL) {

@@ -1036,7 +1036,7 @@ static void print_match(FILE *out, const struct module *mod,
   fprintf(out, "switch (");
   print_expr(out, mod, expr, T__STATEMENT);
   if (dexpr->which == DEFTYPE && dexpr->as.DEFTYPE.kind == DEFTYPE_UNION) {
-    fprintf(out, ".tag");
+    fprintf(out, ".%s", idents_value(mod->gctx, ID_TAG));
   }
   fprintf(out, ") {\n");
 
@@ -1766,7 +1766,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     } else {
       fprintf(out, "return (");
       print_typ(out, mod, par->typ);
-      fprintf(out, "){ .tag = value };\n");
+      fprintf(out, "){ .%s = value };\n", idents_value(mod->gctx, ID_TAG));
     }
     break;
   case BG_ENUM_TAG:
@@ -1774,7 +1774,7 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     if (par->as.DEFTYPE.kind == DEFTYPE_ENUM) {
       fprintf(out, "return *self;\n");
     } else {
-      fprintf(out, "return self->tag;\n");
+      fprintf(out, "return self->%s;\n", idents_value(mod->gctx, ID_TAG));
     }
     break;
   case BG_ENVIRONMENT_PARENT:
