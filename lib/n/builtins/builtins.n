@@ -82,12 +82,14 @@ intf `Equality_by_compare =
 intf `Trivial_equality =
 	isa `Trivial_compare `Equality_by_compare
 
-intf `Ordered =
-	isa `Has_equality `Has_compare
+intf `Partially_ordered =
+	isa `Has_equality
 	met Operator_le other:@final = Bool
 	met Operator_lt other:@final = Bool
 	met Operator_gt other:@final = Bool
 	met Operator_ge other:@final = Bool
+intf `Ordered =
+	isa `Has_equality `Has_compare `Partially_ordered
 intf `Not_ordered =
 intf `Ordered_by_compare =
 	-- Compiler generates Operator_{le,lt,gt,ge}.
