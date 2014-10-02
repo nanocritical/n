@@ -104,11 +104,7 @@ intf `Arithmetic =
 	met! Operator_assign_minus other:@final
 	met! Operator_assign_divide other:@final
 	met! Operator_assign_times other:@final
-intf `Integer_arithmetic =
-	met Operator_modulo other:@final = final
-	met Operator_rshift by:Uint = final
-	met! Operator_assign_modulo other:@final
-	met! Operator_assign_rshift by:Uint
+intf `Has_bitwise_operators =
 	met Operator_bwor other:@final = final
 	met Operator_bwxor other:@final = final
 	met Operator_bwand other:@final = final
@@ -116,6 +112,12 @@ intf `Integer_arithmetic =
 	met! Operator_assign_bwor other:@final
 	met! Operator_assign_bwxor other:@final
 	met! Operator_assign_bwand other:@final
+intf `Integer_arithmetic =
+	isa `Has_bitwise_operators
+	met Operator_modulo other:@final = final
+	met Operator_rshift by:Uint = final
+	met! Operator_assign_modulo other:@final
+	met! Operator_assign_rshift by:Uint
 intf `Overflow_arithmetic =
 	met Operator_ovplus other:@this = this
 	met Operator_ovminus other:@this = this

@@ -262,6 +262,7 @@ extern struct typ *TBI_SLICE_IMPL;
 extern struct typ *TBI_SLICE_COMPATIBLE;
 extern struct typ *TBI_VARARG;
 extern struct typ *TBI_ARITHMETIC;
+extern struct typ *TBI_HAS_BITWISE_OPERATORS;
 extern struct typ *TBI_INTEGER_ARITHMETIC;
 extern struct typ *TBI_OVERFLOW_ARITHMETIC;
 extern struct typ *TBI_INTEGER_LITERAL_COMPATIBLE;
