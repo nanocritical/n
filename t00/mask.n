@@ -1,0 +1,31 @@
+from n import *
+
+enum en =
+	| A
+	| B
+	| C
+
+enum en0 =
+	| A = 0
+	| B
+	| C
+
+fun tests
+	let m = {A B C}:(Mask en)
+	assert m.Count == 3
+--	assert A in M
+--	assert B in M
+--	assert C in M
+	assert {A B C} == m
+	assert ~{} == m
+
+	assert {B C} < m
+	assert {B C} <= m
+	assert m > {A C}
+	assert m >= {A C}
+
+	assert {A}:(Mask en) & {B} == {}:(Mask en)
+	assert ({A}:(Mask en) | {B}).Count == 2
+
+fun Main = I32
+	tests

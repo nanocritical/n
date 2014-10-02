@@ -4,10 +4,11 @@
 #define CONFIG_MEMPOOL_JUST_MALLOC 0
 #define CONFIG_VECTOR_BOUND_CHECKS 1
 
+#define  __USE_POSIX 1 // for SSIZE_MAX
 #define _XOPEN_SOURCE 700 // fmemopen(3)
 
 #include <stdint.h>
-#define  __USE_POSIX 1 // for SSIZE_MAX
+#include <inttypes.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>

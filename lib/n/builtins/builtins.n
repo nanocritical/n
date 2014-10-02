@@ -2,6 +2,7 @@ from n.containers import `Iterator `Random_container
 from n.unsafe import Cast Nonnull_cast
 from n import Eprn Epr
 import n.reflect
+import n.math
 
 extern intf `__literal_null__ =
 	isa `Any_nullable_ref
@@ -757,17 +758,19 @@ intf `Native_floating =
 
 intf `Enum =
 	isa `Trivial_order `Trivial_equality `Trivial_copy `Return_by_copy `Trivial_dtor `Show
-	alias tag_type = `Integer
-	fun from_tag value:final.tag_type = final
-	met tag = final.tag_type
+	alias Tag_type = `Unsigned_integer
+	-- Generated for use by Mask.
+	let BWALL:U64
+	fun From_tag value:final.Tag_type = final
+	met Tag = final.Tag_type
 
 intf `Union =
-	alias tag_type = `Integer
-	met tag = final.tag_type
+	alias Tag_type = `Integer
+	met Tag = final.Tag_type
 
 intf `Union_trivial_ctor =
 	isa `Union `Trivial_ctor
-	fun from_tag value:final.tag_type = final
+	fun From_tag value:final.Tag_type = final
 
 alias Error_range = Error -- FIXME ::|OK|INVAL_RANGE
 

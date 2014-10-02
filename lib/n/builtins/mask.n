@@ -1,0 +1,86 @@
+-- FIXME Use as little space as possible, and allow for enums with more than 64
+-- elements. Over a certain threshold, we could switch to a non-bitmap
+-- implementation. But should we, really? If you have a huge enum, use
+-- something else than Mask maybe.
+inline struct Mask T:`Enum =
+	isa (`Set T) `Show
+	bits	:U64
+	let ALL = {bits=(T.BWALL)}:this
+
+inline Mask fun From_slice c:[]T = this
+	let r = {}:this such
+		foreach x in c
+			r!bits |= (this.Internal_mask_value x.Tag.U64)
+	return r
+inline Mask fun From_bits bits:U64 = this
+	let r = {}:this such
+		r!bits = bits
+	return r
+inline Mask fun Internal_mask_value x:U64 = U64
+	if T isa `Trivial_ctor
+		-- as 0 is a valid value
+		return 1 ov<< x.To_uint
+	else
+		-- as values start from 1
+		return 1 ov<< (x.To_uint - 1)
+inline Mask met Bits = U64
+	return self.bits
+inline Mask met Count = Uint
+	return math.Bit_popcount self.bits
+inline Mask met Operator_in x:@T = Bool
+	return self.bits & (this.Internal_mask_value x.Tag.U64) != 0
+inline Mask met Operator_bwor other:@this = this
+	return {bits=self.bits | other.bits}
+inline Mask met Operator_bwxor other:@this = this
+	return {bits=self.bits ^ other.bits}
+inline Mask met Operator_bwand other:@this = this
+	return {bits=self.bits & other.bits}
+inline Mask met Operator_bwnot = this
+	return this.ALL & {bits=~self.bits}
+inline Mask met! Operator_assign_bwor other:@this
+	self!bits |= other.bits
+inline Mask met! Operator_assign_bwxor other:@this
+	self!bits ^= other.bits
+inline Mask met! Operator_assign_bwand other:@this
+	self!bits &= other.bits
+inline Mask met Operator_eq other:@this = Bool
+	return self.bits == other.bits
+inline Mask met Operator_ne other:@this = Bool
+	return self.bits != other.bits
+inline Mask met Operator_le other:@this = Bool
+	return (self.bits & other.bits) == self.bits
+inline Mask met Operator_lt other:@this = Bool
+	return self <= other and self != other
+inline Mask met Operator_gt other:@this = Bool
+	return self >= other and self != other
+inline Mask met Operator_ge other:@this = Bool
+	return (self.bits & other.bits) == other.bits
+inline Mask met Iter = r:(Mask_iterator this.T)
+	r!Init self
+
+Mask met Show st:@#`Fmt_state
+	"{".Show st
+	let it = self.Iter
+	for e in it
+		e.Show st
+		if it.Has_next
+			" ".Show st
+	"}".Show st
+
+inline struct Mask_iterator T:`Enum =
+	m	:(Mask T)
+	ffs	:Uint
+
+inline Mask_iterator met! Init m:@(Mask T)
+	self!m = m.
+	self!ffs = math.Bit_ffs self.m.Bits
+
+inline Mask_iterator met Has_next = Bool
+	return self.ffs != 0
+
+inline Mask_iterator met! Next = T
+	let val = if T isa `Trivial_ctor -> self.ffs-1;; else self.ffs
+	let r = T.From_tag <- (Force_convert T.Tag_type) val
+	self!m &= ~{r}
+	self!ffs = math.Bit_ffs self.m.Bits
+	return r
