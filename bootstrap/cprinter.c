@@ -350,11 +350,10 @@ static void print_bin_acc(FILE *out, const struct module *mod,
   if (node->flags & NODE_IS_TYPE) {
     print_typ(out, mod, node->typ);
   } else if ((is_enum && (node->flags & NODE_IS_DEFCHOICE))
-      || (node->flags & NODE_IS_GLOBAL_LET)) {
+             || (node->flags & NODE_IS_GLOBAL_LET)
+             || (base->flags & NODE_IS_TYPE)) {
     print_typ(out, mod, base->typ);
     fprintf(out, "$%s", name_s);
-  } else if (node->flags & NODE_IS_TYPE) {
-    print_typ(out, mod, node->typ);
   } else {
     const char *deref = ".";
     if (typ_is_reference(base->typ)) {
@@ -1359,7 +1358,12 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
     fprintf(out, " ");
 
     if (node->flags & NODE_IS_GLOBAL_LET) {
-      print_scope_name(out, mod, &parent_const(parent_const(node))->scope);
+      const struct node *let = parent_const(node);
+      if (node_is_at_top(let)) {
+        print_scope_name(out, mod, &parent_const(parent_const(node))->scope);
+      } else {
+        print_typ(out, mod, parent_const(let)->typ);
+      }
       fprintf(out, "$");
     }
     print_expr(out, mod, subs_first_const(node), T__STATEMENT);
@@ -2531,9 +2535,12 @@ static void print_union(FILE *out, bool header, enum forward fwd,
     break;
   case FWD_DECLARE_FUNCTIONS:
   case FWD_DEFINE_FUNCTIONS:
-    FOREACH_SUB_CONST(ch, node) {
-      if (ch->which == DEFCHOICE) {
-        print_union(out, header, fwd, mod, deft, ch, printed);
+    FOREACH_SUB_CONST(s, node) {
+      if (s->which == LET) {
+        print_defname(out, header, fwd, mod, subs_first_const(s));
+      }
+      if (s->which == DEFCHOICE) {
+        print_union(out, header, fwd, mod, deft, s, printed);
       }
     }
 
@@ -2624,6 +2631,11 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
 
   if (fwd == FWD_DECLARE_FUNCTIONS || fwd == FWD_DEFINE_FUNCTIONS) {
     if (deft == node) {
+      FOREACH_SUB_CONST(s, node) {
+        if (s->which == LET) {
+          print_defname(out, header, fwd, mod, subs_first_const(s));
+        }
+      }
       print_enumunion_functions(out, header, fwd, mod, deft, node, printed);
       print_reflect_type(out, header, fwd, mod, node);
       print_dyntable(out, header, fwd, mod, node);

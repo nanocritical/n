@@ -1735,6 +1735,8 @@ static ERROR p_let(struct node *node, struct module *mod, const struct toplevel 
     if (toplevel != NULL) {
       node->as.LET.toplevel = *toplevel;
       node->flags |= NODE_IS_GLOBAL_LET;
+    } else if (node_is_at_top(parent_const(node))) {
+      node->flags |= NODE_IS_GLOBAL_LET;
     }
   }
 
