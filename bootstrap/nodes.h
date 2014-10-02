@@ -7,10 +7,10 @@
 #include "table.h"
 #include "lexer.h"
 
-VECTOR(vecsize, size_t, 0);
+VECTOR(vecsize, size_t, 1);
 DECLARE_VECTOR(vecsize, size_t);
 
-VECTOR(vecstr, char *, 0);
+VECTOR(vecstr, char *, 1);
 DECLARE_VECTOR(vecstr, char *);
 
 #define MODULE_PATH_MAXLEN 16

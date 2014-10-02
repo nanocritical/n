@@ -13,6 +13,7 @@
 # define VECTOR_ASSERT(c)
 #endif
 
+// TODO: Use a union
 // The size of the 'large' storage is roundup_pow2(v->count).
 #define VECTOR(name, type, small_count) \
   struct name { \

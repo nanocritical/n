@@ -95,7 +95,7 @@ struct relation {
   cbool value;
 };
 
-VECTOR(vecrel, struct relation, 0);
+VECTOR(vecrel, struct relation, 1);
 IMPLEMENT_VECTOR(unused__ static, vecrel, struct relation);
 
 static inline use_result__ ssize_t vecrel_remove_replace_with_last(struct vecrel *v, ssize_t n) {
