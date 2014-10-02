@@ -469,12 +469,19 @@ static struct typ *merge_defincomplete(struct module *mod, const struct node *fo
                                        const struct node *a, const struct node *b) {
   struct node *dinc = defincomplete_create(mod, for_error);
 
-  if (a->as.DEFINCOMPLETE.ident != ID__NONE) {
-    defincomplete_set_ident(mod, a->as.DEFINCOMPLETE.ident_for_error,
-                            dinc, a->as.DEFINCOMPLETE.ident);
-  } else if (b->as.DEFINCOMPLETE.ident != ID__NONE) {
-    defincomplete_set_ident(mod, b->as.DEFINCOMPLETE.ident_for_error,
-                            dinc, b->as.DEFINCOMPLETE.ident);
+  {
+    struct node *ma = CONST_CAST(a);
+    struct node *mb = CONST_CAST(b);
+    for (size_t n = 0, count = vecident_count(&ma->as.DEFINCOMPLETE.idents);
+         n < count; ++n) {
+      defincomplete_set_ident(mod, *vecnode_get(ma->as.DEFINCOMPLETE.idents_for_error, n),
+                              dinc, *vecident_get(&ma->as.DEFINCOMPLETE.idents, n));
+    }
+    for (size_t n = 0, count = vecident_count(&mb->as.DEFINCOMPLETE.idents);
+         n < count; ++n) {
+      defincomplete_set_ident(mod, *vecnode_get(mb->as.DEFINCOMPLETE.idents_for_error, n),
+                              dinc, *vecident_get(&mb->as.DEFINCOMPLETE.idents, n));
+    }
   }
 
   const struct node *a_isalist = subs_at_const(a, IDX_ISALIST);
@@ -514,11 +521,6 @@ static ERROR unify_two_defincomplete(struct module *mod,
 
   struct node *da = typ_definition_nooverlay(a);
   struct node *db = typ_definition_nooverlay(b);
-  if (da->as.DEFINCOMPLETE.ident != ID__NONE
-      && db->as.DEFINCOMPLETE.ident != ID__NONE) {
-    reason = "conflicting idents";
-    goto except;
-  }
 
   struct ident_typ_map map;
   ident_typ_map_init(&map, 0);
@@ -566,27 +568,31 @@ except:
 static ERROR unify_with_defunknownident(struct module *mod, const struct node *for_error,
                                         const struct typ *a, struct node *dinc) {
   assert(dinc->which == DEFINCOMPLETE);
-  ident unk = dinc->as.DEFINCOMPLETE.ident;
 
   error e;
   if (typ_definition_which(a) != DEFTYPE) {
     char *s = pptyp(mod, a);
     e = mk_except_type(mod, for_error,
                        "type '%s' is not a struct, enum, or union: cannot resolve ident '%s'",
-                       s, idents_value(mod->gctx, unk));
+                       s, idents_value(mod->gctx,
+                                       *vecident_get(&dinc->as.DEFINCOMPLETE.idents, 0)));
     free(s);
     THROW(e);
   }
 
-  struct tit *exists = typ_definition_one_member(a, unk);
-  if (exists == NULL
-      || !(NM(tit_which(exists)) & (NM(DEFCHOICE) | NM(DEFNAME)))) {
-    char *s = pptyp(mod, a);
-    e = mk_except_type(mod, for_error, "cannot resolve ident '%s'"
-                       " in type '%s'",
-                       idents_value(mod->gctx, unk), s);
-    free(s);
-    THROW(e);
+  for (size_t n = 0, count = vecident_count(&dinc->as.DEFINCOMPLETE.idents);
+       n < count; ++n) {
+    ident unk = *vecident_get(&dinc->as.DEFINCOMPLETE.idents, n);
+    struct tit *exists = typ_definition_one_member(a, unk);
+    if (exists == NULL
+        || !(NM(tit_which(exists)) & (NM(DEFCHOICE) | NM(DEFNAME)))) {
+      char *s = pptyp(mod, a);
+      e = mk_except_type(mod, for_error, "cannot resolve ident '%s'"
+                         " in type '%s'",
+                         idents_value(mod->gctx, unk), s);
+      free(s);
+      THROW(e);
+    }
   }
 
   // Will typ_link_tentative() in unify_with_defincomplete().
@@ -623,7 +629,7 @@ error unify_with_defincomplete_entrails(struct module *mod,
   error e;
 
   struct node *dinc = typ_definition_ignore_any_overlay(inc);
-  if (dinc->as.DEFINCOMPLETE.ident != ID__NONE) {
+  if (vecident_count(&dinc->as.DEFINCOMPLETE.idents) > 0) {
     e = unify_with_defunknownident(mod, for_error, a, dinc);
     EXCEPT(e);
   }

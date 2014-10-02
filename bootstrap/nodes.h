@@ -131,6 +131,9 @@ enum toplevel_flags {
 VECTOR(vecbool, bool, 4);
 IMPLEMENT_VECTOR(static inline, vecbool, bool);
 
+VECTOR(vecident, ident, 1);
+IMPLEMENT_VECTOR(static inline, vecident, ident);
+
 VECTOR(vecnode, struct node *, 4);
 IMPLEMENT_VECTOR(static inline, vecnode, struct node *);
 
@@ -357,8 +360,8 @@ struct node_defintf {
 };
 struct node_defincomplete {
   struct toplevel toplevel;
-  ident ident;
-  const struct node *ident_for_error;
+  struct vecident idents;
+  struct vecnode *idents_for_error;
   bool is_isalist_literal;
   struct module *trigger_mod;
 };

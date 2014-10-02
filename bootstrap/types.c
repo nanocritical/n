@@ -2885,14 +2885,18 @@ char *typ_name(const struct module *mod, const struct typ *t) {
 extern char *stpcpy(char *dest, const char *src);
 
 static char *pptyp_defincomplete(char *r, const struct module *mod,
-                                           const struct node *d) {
+                                 const struct node *d) {
   char *s = r;
   s = stpcpy(s, idents_value(mod->gctx, node_ident(d)));
   s = stpcpy(s, "{");
-  if (d->as.DEFINCOMPLETE.ident != ID__NONE) {
-    s = stpcpy(s, "\"");
-    s = stpcpy(s, idents_value(mod->gctx, d->as.DEFINCOMPLETE.ident));
-    s = stpcpy(s, "\" ");
+  if (vecident_count(&d->as.DEFINCOMPLETE.idents) > 0) {
+    struct node *md = CONST_CAST(d);
+    for (size_t n = 0, count = vecident_count(&md->as.DEFINCOMPLETE.idents); n < count; ++n) {
+      s = stpcpy(s, "\"");
+      s = stpcpy(s, idents_value(mod->gctx,
+                                 *vecident_get(&md->as.DEFINCOMPLETE.idents, n)));
+      s = stpcpy(s, "\" ");
+    }
   }
   const struct node *isalist = subs_at_const(d, IDX_ISALIST);
   FOREACH_SUB_CONST(i, isalist) {

@@ -758,8 +758,12 @@ void defincomplete_set_ident(struct module *mod, const struct node *for_error,
                              struct node *dinc, ident name) {
   assert(dinc->which == DEFINCOMPLETE);
   assert(name != ID__NONE && name != ID_ANONYMOUS);
-  dinc->as.DEFINCOMPLETE.ident = name;
-  dinc->as.DEFINCOMPLETE.ident_for_error = for_error;
+  vecident_push(&dinc->as.DEFINCOMPLETE.idents, name);
+  if (dinc->as.DEFINCOMPLETE.idents_for_error == NULL) {
+    dinc->as.DEFINCOMPLETE.idents_for_error
+      = calloc(1, sizeof(*dinc->as.DEFINCOMPLETE.idents_for_error));
+  }
+  vecnode_push(dinc->as.DEFINCOMPLETE.idents_for_error, CONST_CAST(for_error));
 }
 
 void defincomplete_add_field(struct module *mod, const struct node *for_error,
@@ -816,13 +820,16 @@ int snprint_defincomplete(char *s, size_t len,
   pos += snprint_codeloc(s+pos, len-pos, mod, dinc);
   pos += snprintf(s+pos, len-pos, "\n");
 
-  const ident name = dinc->as.DEFINCOMPLETE.ident;
-  if (name != ID__NONE) {
+  struct node *mdinc = CONST_CAST(dinc);
+  for (size_t n = 0, count = vecident_count(&mdinc->as.DEFINCOMPLETE.idents);
+       n < count; ++n) {
     pos += snprintf(s+pos, len-pos, "  ");
-    pos += snprint_codeloc(s+pos, len-pos, mod, dinc->as.DEFINCOMPLETE.ident_for_error);
+    pos += snprint_codeloc(s+pos, len-pos, mod,
+                           *vecnode_get(mdinc->as.DEFINCOMPLETE.idents_for_error, n));
     pos += snprintf(s+pos, len-pos,
                     "for ident '%s'\n",
-                    idents_value(mod->gctx, dinc->as.DEFINCOMPLETE.ident));
+                    idents_value(mod->gctx,
+                                 *vecident_get(&mdinc->as.DEFINCOMPLETE.idents, n)));
   }
 
   const struct node *isalist = subs_at_const(dinc, IDX_ISALIST);
