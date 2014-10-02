@@ -715,12 +715,14 @@ intf `Signed_integer =
 	met Unsigned = final.This_unsigned
 	met Try_unsigned = Error, final.This_unsigned
 	met Abs = final.This_unsigned
+	met To_i64 = I64
 
 intf `Unsigned_integer =
 	isa `Integer
 	alias This_signed = `Signed_integer
 	met Signed = final.This_signed
 	met Try_signed = Error, final.This_signed
+	met To_u64 = U64
 
 intf `Native_integer =
 	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy
@@ -1007,6 +1009,8 @@ extern inline I64 met Bitwise_unsigned = U64
 extern inline I64 met Trim_i8 = I8
 extern inline I64 met Trim_i16 = I16
 extern inline I64 met Trim_i32 = I32
+inline I64 met To_i64 = I64
+	return self.
 extern inline I64 met force_int = Int
 extern inline I64 met force_intptr = Intptr
 inline I64 met To_int = Int
@@ -1267,6 +1271,8 @@ extern inline U64 met Bitwise_signed = I64
 extern inline U64 met Trim_u8 = U8
 extern inline U64 met Trim_u16 = U16
 extern inline U64 met Trim_u32 = U32
+inline U64 met To_u64 = U64
+	return self.
 extern inline U64 met force_uint = Uint
 extern inline U64 met force_uintptr = Uintptr
 inline U64 met To_uint = Uint
