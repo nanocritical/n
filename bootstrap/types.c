@@ -1560,6 +1560,11 @@ struct tit *tit_let_def(const struct tit *tit) {
   return r;
 }
 
+struct node *tit_defname_expr(const struct tit *tit) {
+  assert(tit->pos->which == DEFNAME);
+  return subs_last(tit->pos);
+}
+
 bool tit_defchoice_is_leaf(const struct tit *tit) {
   assert(tit->pos->which == DEFCHOICE);
   return tit->pos->as.DEFCHOICE.is_leaf;

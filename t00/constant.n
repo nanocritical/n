@@ -1,0 +1,55 @@
+from n import *
+
+struct a1 =
+	let A = {}:I32
+struct a2 =
+	x	:I32
+	let A = {x=42}:this
+struct b =
+	let B = 1:I32
+struct c =
+	let C = "test"
+struct d =
+	let D = null:?@I32
+struct e =
+	let E = sizeof U32
+struct f =
+	let F = alignof U32
+struct g =
+	let G = true
+
+struct aa1 =
+	let AA = a1.A
+let AAA1 = aa1.AA
+struct aa2 =
+	let AA = a2.A
+	let X = a2.A.x
+let AAA2 = aa2.AA.x
+struct bb =
+	let BB = b.B
+let BBB = bb.BB
+struct cc =
+	let CC = c.C
+let CCC = cc.CC
+struct dd =
+	let DD = d.D
+let DDD = dd.DD
+struct ee =
+	let EE = e.E
+let EEE = ee.EE
+struct ff =
+	let FF = f.F
+let FFF = ff.FF
+struct gg =
+	let GG = g.G
+let GGG = gg.GG
+
+fun Main = I32
+	assert AAA1 == a1.A
+	assert AAA2 == a2.A.x
+	assert BBB == b.B
+	assert CCC == c.C
+	assert DDD === d.D
+	assert EEE == e.E
+	assert FFF == f.F
+	assert GGG == g.G

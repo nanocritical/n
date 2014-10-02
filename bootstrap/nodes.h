@@ -851,6 +851,7 @@ struct top_state {
   struct node *exportable;
 
   bool is_setgenarg;
+  bool is_global_constant_expr;
 
   struct vectyploc tentatives;
 };

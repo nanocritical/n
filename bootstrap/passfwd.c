@@ -863,6 +863,186 @@ static ERROR step_rewrite_def_return_through_ref(struct module *mod, struct node
   return 0;
 }
 
+static STEP_NM(step_global_constant_detect,
+               NM(LET));
+static ERROR step_global_constant_detect(struct module *mod, struct node *node,
+                                          void *user, bool *stop) {
+  DSTEP(mod, node);
+  struct top_state *st = mod->state->top_state;
+  st->is_global_constant_expr |= !!(node->flags & NODE_IS_GLOBAL_LET);
+  return 0;
+}
+
+static void replace_sub(struct module *mod, struct node *par,
+                        struct node *expr, struct node *target) {
+  struct node *repl = NULL;
+  if (target == NULL) {
+    repl = mk_node(mod, par, INIT);
+  } else {
+    repl = node_new_subnode(mod, par);
+    node_deepcopy(mod, repl, target);
+  }
+
+  error e = catchup(mod, NULL, repl, CATCHUP_BELOW_CURRENT);
+  assert(!e);
+
+  e = early_typing(mod, repl);
+  assert(!e);
+
+  e = unify(mod, expr, repl->typ, expr->typ);
+  assert(!e);
+
+  node_subs_remove(par, repl);
+  node_subs_replace(par, expr, repl);
+}
+
+static ERROR propagate(struct module *mod, struct node *par, struct node *expr) {
+  if (expr->flags & NODE_IS_TYPE) {
+    return 0;
+  }
+
+  static const uint64_t NM_ALWAYS_CONSTANT
+    = NM(STRING) | NM(NUMBER) | NM(BOOL) | NM(NUL) | NM(SIZEOF) | NM(ALIGNOF);
+  if (NM(expr->which) & NM_ALWAYS_CONSTANT) {
+    return 0;
+  }
+
+  static const uint64_t NM_NEVER_CONSTANT
+    = NM(CALL) | NM(FOR) | NM(WHILE) | NM(TRY) | NM(CATCH) | NM(THROW) | NM(JUMP);
+  if (NM(expr->which) & NM_NEVER_CONSTANT) {
+    goto fail;
+  }
+
+  error e;
+  switch (expr->which) {
+  case IDENT:
+    assert(expr->as.IDENT.def != NULL);
+    replace_sub(mod, par, expr, expr->as.IDENT.def);
+    break;
+  case UN:
+    if (OP_KIND(expr->as.UN.operator) == OP_UN_REFOF) {
+      return 0;
+    }
+    e = propagate(mod, expr, subs_first(expr));
+    EXCEPT(e);
+    break;
+  case BIN:
+    {
+      struct node *left = subs_first(expr);
+      struct node *right = subs_last(expr);
+      switch (OP_KIND(expr->as.BIN.operator)) {
+      case OP_BIN_ACC:
+        right = NULL;
+        break;
+      case OP_BIN_SYM:
+      case OP_BIN_SYM_BOOL:
+      case OP_BIN_SYM_ARITH:
+      case OP_BIN_SYM_INTARITH:
+      case OP_BIN_SYM_OVARITH:
+      case OP_BIN_SYM_BW:
+      case OP_BIN_SYM_PTR:
+      case OP_BIN_BW_RHS_UNSIGNED:
+      case OP_BIN_OVBW_RHS_UNSIGNED:
+        // noop
+        break;
+      case OP_BIN_RHS_TYPE:
+        right = NULL;
+        break;
+      default:
+        assert(false);
+      }
+
+      if (left != NULL) {
+        e = propagate(mod, expr, left);
+        EXCEPT(e);
+      }
+      if (right != NULL) {
+        e = propagate(mod, expr, right);
+        EXCEPT(e);
+      }
+
+      if (OP_KIND(expr->as.BIN.operator) == OP_BIN_ACC) {
+        // Reload them after propagate() may have changed them.
+        left = subs_first(expr);
+        right = subs_last(expr);
+
+        struct node *target = NULL;
+        const ident name = node_ident(right);
+        if (left->flags & NODE_IS_TYPE) {
+          struct tit *defn = typ_definition_one_member(left->typ, name);
+          target = tit_defname_expr(defn);
+          tit_next(defn);
+        } else if (left->which == INIT) {
+          FOREACH_SUB(n, left) {
+            if (node_ident(n) == name) {
+              target = next(n);
+            }
+          }
+        } else {
+          __break();
+          goto fail;
+        }
+
+        replace_sub(mod, par, expr, target);
+      }
+    }
+    break;
+  case INIT:
+    FOREACH_SUB_EVERY(ex, expr, 1, 2) {
+      e = propagate(mod, expr, ex);
+      EXCEPT(e);
+    }
+    break;
+  case TUPLE:
+    FOREACH_SUB(ex, expr) {
+      e = propagate(mod, expr, ex);
+      EXCEPT(e);
+    }
+    break;
+  case BLOCK:
+    if (subs_count(expr) != 1) {
+      goto fail;
+    }
+    e = propagate(mod, expr, subs_first(expr));
+    EXCEPT(e);
+    break;
+  case IF:
+    FOREACH_SUB(ex, expr) {
+      e = propagate(mod, expr, ex);
+      EXCEPT(e);
+    }
+  default:
+    goto fail;
+  }
+
+  return 0;
+
+fail:
+  e = mk_except(mod, expr, "global let must be defined using a"
+                " global constant expression");
+  THROW(e);
+}
+
+static STEP_NM(step_global_constant_substitution,
+               NM(LET) | NM(DEFNAME));
+static ERROR step_global_constant_substitution(struct module *mod, struct node *node,
+                                               void *user, bool *stop) {
+  DSTEP(mod, node);
+  struct top_state *st = mod->state->top_state;
+  if (!st->is_global_constant_expr) {
+    return 0;
+  }
+  if (node->which == LET) {
+    st->is_global_constant_expr = false;
+    return 0;
+  }
+
+  assert(node->which == DEFNAME);
+  error e = propagate(mod, node, subs_last(node));
+  EXCEPT(e);
+  return 0;
+}
+
 static ERROR check_has_matching_member(struct module *mod,
                                        const struct node *for_error,
                                        struct typ *t,
@@ -1222,7 +1402,9 @@ static ERROR passfwd10(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
+    DOWN_STEP(step_global_constant_detect);
     ,
+    UP_STEP(step_global_constant_substitution);
     UP_STEP(step_check_exhaustive_intf_impl);
     UP_STEP(step_build_reflect_type);
     ,
