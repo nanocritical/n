@@ -218,17 +218,14 @@ static ERROR unify_non_generic(struct module *mod, const struct node *for_error,
     return 0;
   }
 
-  struct typ *b0 = typ_generic_functor(b);
-  bool b_genf = typ_is_generic_functor(b);
-  if (!b_genf) {
-    struct typ *b_in_a = NULL;
-
+  if (!typ_is_generic_functor(b) && typ_generic_arity(b) > 0) {
+    struct typ *b0 = typ_generic_functor(b);
     struct instance_of user = { .functor = b0, .result = NULL };
     error never = typ_isalist_foreach(mod, a, 0, find_instance_of, &user);
     assert(!never);
     assert(user.result != NULL);
-    b_in_a = user.result;
 
+    struct typ *b_in_a = user.result;
     assert(b_in_a != b && "FIXME What does that mean?");
 
     e = unify_same_generic_functor(mod, 0, for_error, b_in_a, b);
