@@ -409,7 +409,7 @@ inline Stringbuf met# Write b:[]U8 = []U8, Error --[]U8::|{}, Error::|OK
 	return {}, OK
 
 inline Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
-	let separator = Optional_ref sep " "
+	let separator = sep else " "
 	and st = {}:Fmt_state such
 		st#Init self
 		for x in v

@@ -8,7 +8,7 @@ fun Pr ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
 		buf#Pr sep=sep ...v
 	let b = buf.Bytes
 	let fd = 1 such
-		if Optional err false
+		if err else false
 			fd = 2
 	write_buf fd b.Unsafe_data b.Bytecount
 
@@ -17,7 +17,7 @@ fun Prn ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
 		buf#Prn sep=sep ...v
 	let b = buf.Bytes
 	let fd = 1 such
-		if Optional err false
+		if err else false
 			fd = 2
 	write_buf fd b.Unsafe_data b.Bytecount
 
