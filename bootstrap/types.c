@@ -419,12 +419,12 @@ static void create_flags(struct typ *t, struct typ *tbi) {
     functor = toplevel->generic->our_generic_functor_typ;
   }
 
-  if (t == TBI_LITERALS_NULL
+  if (t == TBI_LITERALS_NIL
       || t == TBI_ANY_ANY_REF) {
     t->flags |= TYPF_REF;
   }
 
-  if (t == TBI_LITERALS_NULL) {
+  if (t == TBI_LITERALS_NIL) {
     t->flags |= TYPF_NREF;
   }
 
@@ -474,7 +474,7 @@ static void create_flags(struct typ *t, struct typ *tbi) {
 
   t->flags |= TYPF_BUILTIN;
 
-  if (tbi == TBI_LITERALS_NULL
+  if (tbi == TBI_LITERALS_NIL
       || tbi == TBI_LITERALS_INTEGER
       || tbi == TBI_LITERALS_FLOATING
       || tbi == TBI_LITERALS_STRING
@@ -502,7 +502,7 @@ static void create_flags(struct typ *t, struct typ *tbi) {
     t->flags |= TYPF_TRIVIAL;
   }
 
-  if (tbi == TBI_LITERALS_NULL
+  if (tbi == TBI_LITERALS_NIL
       || tbi == TBI_LITERALS_INTEGER
       || tbi == TBI_LITERALS_FLOATING
       || tbi == TBI_LITERALS_STRING) {
@@ -1953,7 +1953,7 @@ EXAMPLE_NCC(direct_isalist_foreach) {
 }
 
 struct typ *TBI_VOID;
-struct typ *TBI_LITERALS_NULL;
+struct typ *TBI_LITERALS_NIL;
 struct typ *TBI_LITERALS_INTEGER;
 struct typ *TBI_LITERALS_FLOATING;
 struct typ *TBI_LITERALS_SLICE;

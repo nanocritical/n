@@ -413,10 +413,10 @@ inline Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
 	and st = {}:Fmt_state such
 		st#Init self
 		for x in v
-			if x === null
-				"(null)".Show @#st
-			else
+			if x?
 				x.Show @#st
+			else
+				"(nil)".Show @#st
 			if v.Count_left > 0
 				separator.Show @#st
 

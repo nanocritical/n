@@ -53,7 +53,7 @@ static bool is_always_void(struct node *node) {
   ( NM(IDENT) | NM(CALLNAMEDARG) )
 
 #define NM_DOESNT_NEED_SUB \
-  ( NM_DOESNT_EVER_NEED_SUB | NM(NUMBER) | NM(NUL) | NM(BOOL) )
+  ( NM_DOESNT_EVER_NEED_SUB | NM(NUMBER) | NM(NIL) | NM(BOOL) )
 
 static bool doesnt_need_sub(struct node *node, struct node *sub) {
   if (!(NM(sub->which) & NM_DOESNT_NEED_SUB)) {

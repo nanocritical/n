@@ -109,7 +109,7 @@ noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
 
 const char *node_which_strings[] = {
   [0] = "(none)",
-  [NUL] = "NUL",
+  [NIL] = "NIL",
   [IDENT] = "IDENT",
   [NUMBER] = "NUMBER",
   [BOOL] = "BOOL",
@@ -329,7 +329,7 @@ bool node_is_rvalue(const struct node *node) {
   case BOOL:
   case STRING:
   case NUMBER:
-  case NUL:
+  case NIL:
   case TUPLE:
   case INIT:
   case CALL:
@@ -429,7 +429,7 @@ void node_invariant(const struct node *node) {
   case NUMBER:
   case STRING:
   case BOOL:
-  case NUL:
+  case NIL:
     assert(!subs_count_atleast(node, 1));
     break;
   case IF:

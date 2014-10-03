@@ -3,7 +3,7 @@ from n.builtins import *
 extern inline (fun u:`Any_any_ref v:`Any_any_ref) Cast a:u = v
 
 inline (fun t:`Any nr:(`Any_nullable_ref t) r:(`Any_ref t)) Nonnull_cast a:nr = r
-	assert a !== null
+	assert a?
 	return (Cast nr r) a
 
 extern inline struct Voidref =

@@ -333,7 +333,7 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
     SWAP_FLAGS(flags);
   }
 
-  if (typ_equal(b, TBI_LITERALS_NULL)) {
+  if (typ_equal(b, TBI_LITERALS_NIL)) {
     if (typ_generic_functor(a) != NULL && (flags & REFCOMPAT_LEFT)) {
       e = do_unify(mod, flags & ~REFCOMPAT_LEFT, for_error, a, b);
       EXCEPT(e);

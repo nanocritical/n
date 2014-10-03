@@ -14,11 +14,11 @@ struct B =
 B (met t:`Any r:`Any_ref) implicit p:(r t) = t
 	return p.
 
-fun null_arg p:?@?@I32
-	assert p === null
+fun nil_arg p:?@?@I32
+	assert p === nil
 
-fun null_arg_value p:?@?@I32
-	assert p !== null and p. === null
+fun nil_arg_value p:?@?@I32
+	assert p !== nil and p. === nil
 
 fun bar p:?@?@I32
 	noop
@@ -52,10 +52,10 @@ fun Main = I32
 
 		-- We can't accept both.
 		-- Well, we can. They just don't mean the same thing. The second form is
-		-- taking the address of a temporary variable that contains null. It shouldn't
+		-- taking the address of a temporary variable that contains nil. It shouldn't
 		-- compile without further typing specification.
-		null_arg null
-		null_arg_value @null
+		nil_arg nil
+		nil_arg_value @nil
 
 		-- With @@ there is capture of the inner reference, so there should be a @
 		-- somewhere, no? Are we making captures very visible in the code? Is that

@@ -301,7 +301,7 @@ normal:
   "false" { R(Tfalse); }
   "true" { R(Ttrue); }
   "isa" { R(Tisa); }
-  "null" { R(Tnull); }
+  "nil" { R(Tnil); }
   "noop" { R(Tnoop); }
   "assert" { R(Tassert); }
   "pre" { R(Tpre); }

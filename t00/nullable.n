@@ -7,7 +7,7 @@ a met getx = I32
 	return self.x
 
 fun foo v:?@a = I32
-	if v !== null
+	if v?
 		return v.getx
 	else
 		return 0

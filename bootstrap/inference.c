@@ -895,7 +895,7 @@ static void insert_missing_optional_arg(struct module *mod, struct node *node,
   GSTART();
   G0(named, node, CALLNAMEDARG,
      named->as.CALLNAMEDARG.name = name;
-     G(nul, NUL));
+     G(nil, NIL));
   node_subs_remove(node, named);
   node_subs_insert_after(node, after_this, named);
 
@@ -1418,7 +1418,7 @@ static bool compare_ref_depth(const struct typ *target, const struct typ *arg,
                               int diff) {
   assert(!typ_equal(target, TBI_ANY_ANY_REF));
 
-  if (typ_equal(arg, TBI_LITERALS_NULL)) {
+  if (typ_equal(arg, TBI_LITERALS_NIL)) {
     return diff != 1;
   }
 
@@ -1433,7 +1433,7 @@ static bool compare_ref_depth(const struct typ *target, const struct typ *arg,
     darg += 1;
     arg = typ_generic_arg_const(arg, 0);
 
-    if (typ_equal(arg, TBI_LITERALS_NULL)) {
+    if (typ_equal(arg, TBI_LITERALS_NIL)) {
       return diff != 1;
     }
   }
@@ -1479,7 +1479,7 @@ static ERROR try_insert_const_ref(struct module *mod, struct node *node,
           && expr_arg->which == UN
           && expr_arg->as.UN.operator == TREFDOT
           && expr_arg->as.UN.is_explicit
-          && !typ_equal(subs_first(expr_arg)->typ, TBI_LITERALS_NULL)) {
+          && !typ_equal(subs_first(expr_arg)->typ, TBI_LITERALS_NIL)) {
         error e = mk_except_type(mod, expr_arg, "explicit '@' operators are not"
                                  " allowed for unqualified const references");
         THROW(e);
@@ -2420,8 +2420,8 @@ error step_type_inference(struct module *mod, struct node *node,
   BEGTIMEIT(TIMEIT_TYPE_INFERENCE_IN_FUNS_BLOCK);
 
   switch (node->which) {
-  case NUL:
-    set_typ(&node->typ, create_tentative(mod, node, TBI_LITERALS_NULL));
+  case NIL:
+    set_typ(&node->typ, create_tentative(mod, node, TBI_LITERALS_NIL));
     break;
   case IDENT:
     e = type_inference_ident(mod, node);

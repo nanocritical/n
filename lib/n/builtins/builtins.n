@@ -4,7 +4,7 @@ from n import Eprn Epr
 import n.reflect
 import n.math
 
-extern intf `__literal_null__ =
+extern intf `__literal_nil__ =
 	isa `Any_nullable_ref
 extern intf `__literal_integer__ =
 	isa `Integer
@@ -1791,7 +1791,7 @@ inline struct Codeloc =
 	Expr	:String
 
 fun Failed_at c:?@Codeloc
-	if c !== null
+	if c?
 		Epr sep=':' c.File c.Line c.Col
 		Eprn ": failed '" c.Expr "'"
 	Abort

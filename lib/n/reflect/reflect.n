@@ -60,7 +60,7 @@ Dynisalist met find_entry rintf:@Type create:Bool = ?@entry, Uint
 				if create
 					break
 				else
-					return null, 0
+					return nil, 0
 
 			let e = self.entries.[pos.To_uint - 1]
 			if e.typename_hash32 != hash
@@ -72,7 +72,7 @@ Dynisalist met find_entry rintf:@Type create:Bool = ?@entry, Uint
 
 			nth +=1
 
-	return null, addr
+	return nil, addr
 
 -- Implementations are encouraged to fill the table statically, at compile
 -- time. The code below is given for reference. Implementations may also use
@@ -91,7 +91,7 @@ Dynisalist met# Init count:Uint
 
 Dynisalist met! Add_entry rintf:@Type dyntable:refdyntable
 	let e, addr = self.find_entry rintf true
-	assert e === null
+	assert not e?
 
 	self!entries = self!entries![.. self.entries.Count+1]
 	let pos = self.entries.Count
@@ -114,7 +114,7 @@ Dynisalist met Check
 
 	let bogus = init_type "`I do not exist!"
 	let e, addr = self.find_entry bogus false
-	assert e === null and addr == 0
+	assert not e? and addr == 0
 
 Type met Check
 	assert self.typename_hash32 == self.Typename.Hash32

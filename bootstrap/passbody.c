@@ -78,7 +78,7 @@ static const ident operator_ident[TOKEN__NUM] = {
 };
 
 static STEP_NM(step_check_no_literals_left,
-               NM(NUMBER) | NM(NUL));
+               NM(NUMBER) | NM(NIL));
 static ERROR step_check_no_literals_left(struct module *mod, struct node *node,
                                          void *user, bool *stop) {
   if (typ_is_literal(node->typ)) {
