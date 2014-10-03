@@ -1679,18 +1679,6 @@ extern inline fun Unlikely x:Bool = Bool
 inline (fun t:`Any) Unused x:t
 	noop
 
-inline (fun t:`Any) Optional opt:?@t fallback:t = t
-	if opt !== null
-		return opt.
-	else
-		return fallback
-
-inline (fun t:`Any) Optional_ref opt:?@t fallback:@t = @t
-	if opt !== null
-		return (Nonnull_cast t ?@t @t) opt
-	else
-		return fallback
-
 inline (fun t:`Numeric) Min a:t b:t = t
 	if a <= b
 		return a
