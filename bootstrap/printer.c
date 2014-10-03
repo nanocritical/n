@@ -46,7 +46,7 @@ const char *token_strings[TOKEN__NUM] = {
   [Tfalse] = "false",
   [Ttrue] = "true",
   [Tisa] = " isa ",
-  [Tnull] = "null",
+  [Tnil] = "nil",
   [Tnoop] = "noop",
   [Tassert] = "assert",
   [Tpre] = "pre",
@@ -302,8 +302,8 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
   const char *val = NULL;
 
   switch (node->which) {
-  case NUL:
-    fprintf(out, "null");
+  case NIL:
+    fprintf(out, "nil");
     break;
   case IDENT:
     val = idents_value(mod->gctx, node->as.IDENT.name);
@@ -643,7 +643,7 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
   case NUMBER:
   case STRING:
   case BOOL:
-  case NUL:
+  case NIL:
   case BIN:
   case UN:
   case CALL:

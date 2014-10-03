@@ -12,7 +12,7 @@ struct Sysheap =
 	dummy	:U8
 
 Sysheap met! Alloc_raw bytecount:Uint = @#U8
-	return Internal_realloc0 null 0 bytecount
+	return Internal_realloc0 nil 0 bytecount
 
 Sysheap met! Free_raw raw:?@#U8 bytecount:Uint
 	return Internal_free raw bytecount

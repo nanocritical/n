@@ -50,7 +50,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_UNLIKELY] = "Unlikely",
   [ID_NLANG] = "n",
   [ID_TBI_VOID] = "Void",
-  [ID_TBI_LITERALS_NULL] = "`__literal_null__",
+  [ID_TBI_LITERALS_NIL] = "`__literal_nil__",
   [ID_TBI_LITERALS_INTEGER] = "`__literal_integer__",
   [ID_TBI_LITERALS_FLOATING] = "`__literal_floating__",
   [ID_TBI_LITERALS_SLICE] = "`__literal_slice__",
@@ -377,7 +377,7 @@ static ERROR parse_modpath(struct module *mod, const char *raw_fn) {
 
 static void init_tbis(struct globalctx *gctx) {
   TBI_VOID = gctx->builtin_typs_by_name[ID_TBI_VOID];
-  TBI_LITERALS_NULL = gctx->builtin_typs_by_name[ID_TBI_LITERALS_NULL];
+  TBI_LITERALS_NIL = gctx->builtin_typs_by_name[ID_TBI_LITERALS_NIL];
   TBI_LITERALS_INTEGER = gctx->builtin_typs_by_name[ID_TBI_LITERALS_INTEGER];
   TBI_LITERALS_FLOATING = gctx->builtin_typs_by_name[ID_TBI_LITERALS_FLOATING];
   TBI_LITERALS_SLICE = gctx->builtin_typs_by_name[ID_TBI_LITERALS_SLICE];
@@ -1498,8 +1498,8 @@ static ERROR p_expr(struct node *node, struct module *mod,
   } else {
 
     switch (tok.t) {
-    case Tnull:
-      node_set_which(node, NUL);
+    case Tnil:
+      node_set_which(node, NIL);
       break;
     case Tsizeof:
       node_set_which(node, SIZEOF);
@@ -1610,7 +1610,7 @@ shifted:
       goto done;
     }
   } else if (IS_OP(tok.t) && OP_IS_UNARY(tok.t)
-             && (OP_KIND(tok.t) == OP_UN_DEREF || OP_KIND(tok.t) == OP_UN_ISNUL)
+             && (OP_KIND(tok.t) == OP_UN_DEREF || OP_KIND(tok.t) == OP_UN_ISNIL)
              && (OP_PREC(tok.t) < OP_PREC(parent_op)
                  || (OP_PREC(tok.t) < OP_PREC(top_parent_op)
                      && OP_PREC(tok.t) == OP_PREC(parent_op)

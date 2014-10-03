@@ -1925,7 +1925,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
   node->constraint = new_constraint(mod);
 
   switch (node->which) {
-  case NUL:
+  case NIL:
     constraint_set(mod, node->constraint, CBI_INIT, false);
     constraint_set(mod, node->constraint, CBI_NONNULL, true);
     break;

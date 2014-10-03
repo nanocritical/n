@@ -10,7 +10,7 @@ fun bar x:?@I32 a:Bool = I32
 	let c
 	such
 		if a
-			c = x !== null
+			c = x?
 		else
 			c = false
 	if c

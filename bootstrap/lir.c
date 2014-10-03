@@ -165,14 +165,14 @@ static void rewrite_opt_acc_op(struct module *mod, struct node *node) {
          v->as.IDENT.name = gensym(mod));
        node_subs_append(defp, left));
      G(letblock, BLOCK,
-       G(ifisnotnul, IF,
-         G(isnotnul, UN,
-           isnotnul->as.UN.operator = TPOSTQMARK;
+       G(ifisnotnil, IF,
+         G(isnotnil, UN,
+           isnotnil->as.UN.operator = TPOSTQMARK;
            G(v2, IDENT,
              v2->as.IDENT.name = node_ident(v)));
          G(yes, BLOCK,
-           G(nullable, UN,
-             nullable->as.UN.operator = T__NULLABLE;
+           G(nillable, UN,
+             nillable->as.UN.operator = T__NULLABLE;
              G(ref, UN,
                ref->as.UN.operator = refop;
                G(acc, BIN,
@@ -181,10 +181,10 @@ static void rewrite_opt_acc_op(struct module *mod, struct node *node) {
                    v3->as.IDENT.name = node_ident(v));
                  node_subs_append(acc, right)))));
          G(no, BLOCK,
-           G(nul, NUL)))));
+           G(nil, NIL)))));
 }
 
-static void rewrite_isnul_op(struct module *mod, struct node *node) {
+static void rewrite_isnil_op(struct module *mod, struct node *node) {
   assert(node->which == UN);
   const ident op = node->as.UN.operator;
   assert(op == TPOSTQMARK);
@@ -192,7 +192,7 @@ static void rewrite_isnul_op(struct module *mod, struct node *node) {
   node_set_which(node, BIN);
   node->as.BIN.operator = TNEPTR;
   GSTART();
-  G0(nul, node, NUL);
+  G0(nil, node, NIL);
 }
 
 static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
@@ -679,8 +679,8 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
   error e;
   switch (node->which) {
   case UN:
-    if (OP_KIND(node->as.UN.operator) == OP_UN_ISNUL) {
-      rewrite_isnul_op(mod, node);
+    if (OP_KIND(node->as.UN.operator) == OP_UN_ISNIL) {
+      rewrite_isnil_op(mod, node);
     }
     break;
   case BIN:

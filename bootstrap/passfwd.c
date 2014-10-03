@@ -902,7 +902,7 @@ static ERROR propagate(struct module *mod, struct node *par, struct node *expr) 
   }
 
   static const uint64_t NM_ALWAYS_CONSTANT
-    = NM(STRING) | NM(NUMBER) | NM(BOOL) | NM(NUL) | NM(SIZEOF) | NM(ALIGNOF);
+    = NM(STRING) | NM(NUMBER) | NM(BOOL) | NM(NIL) | NM(SIZEOF) | NM(ALIGNOF);
   if (NM(expr->which) & NM_ALWAYS_CONSTANT) {
     return 0;
   }

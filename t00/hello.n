@@ -6,5 +6,5 @@ fun Main = I32
 	Prn true
 	Prn 1:U32
 	Prn 1.0:Float
-	Prn null:?@U8
+	Prn nil:?@U8
 	return 0

@@ -25,7 +25,7 @@ struct Type;
 #define STEP_NM(step, m) const uint64_t step##_filter = (m)
 
 enum node_which {
-  NUL = 1,
+  NIL = 1,
   IDENT,
   NUMBER,
   BOOL,
@@ -212,7 +212,7 @@ struct phi_tracker_state {
   struct node *last;
 };
 
-struct node_nul {};
+struct node_nil {};
 struct node_ident {
   ident name;
 
@@ -461,7 +461,7 @@ struct node_directdef {
 };
 
 union node_as {
-  struct node_nul NUL;
+  struct node_nil NIL;
   struct node_ident IDENT;
   struct node_number NUMBER;
   struct node_bool BOOL;
@@ -971,7 +971,7 @@ enum predefined_idents {
 
   ID_TBI_VOID,
   ID_TBI__FIRST = ID_TBI_VOID,
-  ID_TBI_LITERALS_NULL,
+  ID_TBI_LITERALS_NIL,
   ID_TBI_LITERALS_INTEGER,
   ID_TBI_LITERALS_FLOATING,
   ID_TBI_LITERALS_SLICE,

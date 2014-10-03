@@ -257,7 +257,7 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
     print_defchoice_path(out, mod, d, ch);
     fprintf(out, "$%s", idents_value(mod->gctx, ID_TAG));
   } else if (op == TEQPTR || op == TNEPTR) {
-    if (typ_is_dyn(left->typ) && left->which != NUL) {
+    if (typ_is_dyn(left->typ) && left->which != NIL) {
       fprintf(out, "(");
       print_expr(out, mod, left, op);
       fprintf(out, ").obj");
@@ -265,7 +265,7 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
       print_expr(out, mod, left, op);
     }
     print_token(out, op);
-    if (typ_is_dyn(right->typ) && right->which != NUL) {
+    if (typ_is_dyn(right->typ) && right->which != NIL) {
       fprintf(out, "(");
       print_expr(out, mod, right, op);
       fprintf(out, ").obj");
@@ -830,7 +830,7 @@ static void print_dyn(FILE *out, const struct module *mod, const struct node *no
 
 static void print_expr(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   switch (node->which) {
-  case NUL:
+  case NIL:
     fprintf(out, "NULL");
     break;
   case IDENT:
@@ -1474,7 +1474,7 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
   case NUMBER:
   case BOOL:
   case STRING:
-  case NUL:
+  case NIL:
   case BIN:
   case UN:
   case CALL:

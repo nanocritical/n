@@ -15,7 +15,7 @@ fun Main = I32
 
 	let p0 = @0:I32
 	let p1 = @1:I32
-	let np1 = null
+	let np1 = nil
 	such
 		np1 = p1
 	let y = (Max I32) p0 p1

@@ -200,7 +200,7 @@ void ppusers(const struct typ *t);
 void ppvectyploc(struct vectyploc *v);
 
 extern struct typ *TBI_VOID;
-extern struct typ *TBI_LITERALS_NULL;
+extern struct typ *TBI_LITERALS_NIL;
 extern struct typ *TBI_LITERALS_INTEGER;
 extern struct typ *TBI_LITERALS_FLOATING;
 extern struct typ *TBI_LITERALS_SLICE;
