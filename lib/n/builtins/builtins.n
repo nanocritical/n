@@ -167,13 +167,16 @@ extern struct Mutable_ref t:`Any =
 extern struct Mercurial_ref t:`Any =
 	isa (`Any_mutable_ref t)
 
--- FIXME: to replace with semantic constraint
 extern struct Nullable_ref t:`Any =
 	isa (`Any_nullable_ref t)
 extern struct Nullable_mutable_ref t:`Any =
 	isa (`Any_nullable_mutable_ref t)
 extern struct Nullable_mercurial_ref t:`Any =
 	isa (`Any_nullable_mutable_ref t)
+
+extern struct Optional t:`Any =
+	isa `Return_by_copy
+	-- Copy, Ctor, Dtor interfaces are copied over from t in autointf.
 
 -- Uses automagicref on function calls.
 inline (fun t:`Any) Take_ref_if_value__ p:@t = @t
