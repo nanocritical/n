@@ -178,9 +178,30 @@ EXAMPLE(update_codeloc) {
 #undef CHECK
 }
 
-static bool is_space(const char *cursor) {
+static bool is_pre_space(const char *cursor) {
   const int c = cursor[0];
-  return c == ' ' || c == '\t' || c == '\n';
+  static const bool lut[256] = {
+    [' '] = true,
+    ['\t'] = true,
+    ['\n'] = true,
+    [':'] = true,
+    ['('] = true,
+    ['['] = true,
+  };
+  return lut[c];
+}
+
+static bool is_post_space(const char *cursor) {
+  const int c = cursor[0];
+  static const bool lut[256] = {
+    [' '] = true,
+    ['\t'] = true,
+    ['\n'] = true,
+    [':'] = true,
+    [')'] = true,
+    [']'] = true,
+  };
+  return lut[c];
 }
 
 error lexer_scan(struct token *tok, struct parser *parser) {
@@ -216,8 +237,8 @@ error lexer_scan(struct token *tok, struct parser *parser) {
 } while (0)
 
 #define RUNORBIN(token_len, un_pre, un_post, bin) do { \
-  const bool before = is_space(YYCURSOR - token_len - 1); \
-  const bool after = is_space(YYCURSOR); \
+  const bool before = is_pre_space(YYCURSOR - token_len - 1); \
+  const bool after = is_post_space(YYCURSOR); \
   if (before == after) { \
     if (bin == 0) { \
       FAIL(EINVAL, "not a binary operator"); \
