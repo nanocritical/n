@@ -1387,6 +1387,7 @@ static ERROR passfwd9(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_funblock);
     ,
     UP_STEP(step_type_deffuns);
+    UP_STEP(step_autointf_inherit);
     UP_STEP(step_autointf_add_environment_builtins);
     UP_STEP(step_rewrite_def_return_through_ref);
     ,

@@ -305,6 +305,7 @@ extern struct typ *TBI_ITERATOR;
 extern struct typ *TBI_ENVIRONMENT;
 extern struct typ *TBI_ANY_ENVIRONMENT;
 extern struct typ *TBI_PREVENT_DYN;
+extern struct typ *TBI_INHERIT;
 extern struct typ *TBI_ERROR;
 extern struct typ *TBI__NOT_TYPEABLE;
 extern struct typ *TBI__CALL_FUNCTION_SLOT;
