@@ -37,12 +37,13 @@ enum typ_flags {
   TYPF_REF = 0x10,
   TYPF_NREF = 0x20,
   TYPF_SLICE = 0x40,
-  TYPF_LITERAL = 0x80,
+  TYPF_OPTIONAL = 0x80,
+  TYPF_LITERAL = 0x100,
   TYPF_CONCRETE = 0x200,
   TYPF_GENARG = 0x400,
   TYPF__INHERIT_FROM_FUNCTOR = TYPF_TENTATIVE
     | TYPF_BUILTIN | TYPF_PSEUDO_BUILTIN
-    | TYPF_TRIVIAL | TYPF_REF | TYPF_NREF
+    | TYPF_TRIVIAL | TYPF_REF | TYPF_NREF | TYPF_OPTIONAL
     | TYPF_LITERAL | TYPF_CONCRETE | TYPF_GENARG,
   TYPF__INHERIT_FROM_GENARG = TYPF_TENTATIVE | TYPF_GENARG,
   TYPF__MASK_HASH = 0xffff & ~(TYPF_TENTATIVE | TYPF_CONCRETE | TYPF_GENARG),
@@ -425,7 +426,7 @@ static void create_flags(struct typ *t, struct typ *tbi) {
   }
 
   if (t == TBI_LITERALS_NIL) {
-    t->flags |= TYPF_NREF;
+    t->flags |= TYPF_NREF | TYPF_OPTIONAL;
   }
 
   const struct typ *maybe_ref = tbi;
@@ -462,6 +463,10 @@ static void create_flags(struct typ *t, struct typ *tbi) {
       || maybe_ref == TBI_SLICE
       || maybe_ref == TBI_MSLICE) {
     t->flags |= TYPF_SLICE;
+  }
+
+  if (maybe_ref == TBI_OPTIONAL) {
+    t->flags |= TYPF_OPTIONAL;
   }
 
   if (d->which == IMPORT) {
@@ -2014,6 +2019,7 @@ struct typ *TBI_SLICE;
 struct typ *TBI_MSLICE;
 struct typ *TBI_SLICE_IMPL;
 struct typ *TBI_SLICE_COMPATIBLE;
+struct typ *TBI_OPTIONAL;
 struct typ *TBI_VARARG;
 struct typ *TBI_ARITHMETIC;
 struct typ *TBI_HAS_BITWISE_OPERATORS;
@@ -2383,6 +2389,10 @@ bool typ_is_nullable_reference(const struct typ *t) {
 
 bool typ_is_slice(const struct typ *t) {
   return t->flags & TYPF_SLICE;
+}
+
+bool typ_is_optional(const struct typ *t) {
+  return t->flags & TYPF_OPTIONAL;
 }
 
 bool typ_is_dyn(const struct typ *t) {

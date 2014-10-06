@@ -477,7 +477,7 @@ static void add_auto_isa(struct module *mod, struct node *deft,
     typ_create_update_quickisa(deft->typ);
   }
 
-  if (deft->which != DEFTYPE) {
+  if (deft->which == DEFINTF) {
     return;
   }
 

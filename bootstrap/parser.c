@@ -109,6 +109,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_MSLICE] = "Mutable_slice",
   [ID_TBI_SLICE_IMPL] = "Slice_impl",
   [ID_TBI_SLICE_COMPATIBLE] = "`Slice_compatible",
+  [ID_TBI_OPTIONAL] = "Optional",
   [ID_TBI_VARARG] = "Vararg",
   [ID_TBI_ARITHMETIC] = "`Arithmetic",
   [ID_TBI_HAS_BITWISE_OPERATORS] = "`Has_bitwise_operators",
@@ -437,6 +438,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_MSLICE = gctx->builtin_typs_by_name[ID_TBI_MSLICE];
   TBI_SLICE_IMPL = gctx->builtin_typs_by_name[ID_TBI_SLICE_IMPL];
   TBI_SLICE_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_SLICE_COMPATIBLE];
+  TBI_OPTIONAL = gctx->builtin_typs_by_name[ID_TBI_OPTIONAL];
   TBI_VARARG = gctx->builtin_typs_by_name[ID_TBI_VARARG];
   TBI_ARITHMETIC = gctx->builtin_typs_by_name[ID_TBI_ARITHMETIC];
   TBI_HAS_BITWISE_OPERATORS = gctx->builtin_typs_by_name[ID_TBI_HAS_BITWISE_OPERATORS];
@@ -1612,7 +1614,7 @@ shifted:
       goto done;
     }
   } else if (IS_OP(tok.t) && OP_IS_UNARY(tok.t)
-             && (OP_KIND(tok.t) == OP_UN_DEREF || OP_KIND(tok.t) == OP_UN_ISNIL)
+             && (OP_KIND(tok.t) == OP_UN_DEREF || tok.t == TPOSTQMARK)
              && (OP_PREC(tok.t) < OP_PREC(parent_op)
                  || (OP_PREC(tok.t) < OP_PREC(top_parent_op)
                      && OP_PREC(tok.t) == OP_PREC(parent_op)

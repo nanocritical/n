@@ -112,7 +112,7 @@ static void rewrite_ptr_op(struct module *mod, struct node *node) {
              tmpa2->as.IDENT.name = node_ident(tmpa)));
          G(yes, BLOCK,
            G(da, UN,
-             da->as.UN.operator = TDEREFDOT;
+             da->as.UN.operator = T__DEOPT_DEREFDOT;
              G(tmpa3, IDENT,
                tmpa3->as.IDENT.name = node_ident(tmpa))));
          G(no, BLOCK,
@@ -182,17 +182,6 @@ static void rewrite_opt_acc_op(struct module *mod, struct node *node) {
                  node_subs_append(acc, right)))));
          G(no, BLOCK,
            G(nil, NIL)))));
-}
-
-static void rewrite_isnil_op(struct module *mod, struct node *node) {
-  assert(node->which == UN);
-  const ident op = node->as.UN.operator;
-  assert(op == TPOSTQMARK);
-
-  node_set_which(node, BIN);
-  node->as.BIN.operator = TNEPTR;
-  GSTART();
-  G0(nil, node, NIL);
 }
 
 static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
@@ -679,9 +668,6 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
   error e;
   switch (node->which) {
   case UN:
-    if (OP_KIND(node->as.UN.operator) == OP_UN_ISNIL) {
-      rewrite_isnil_op(mod, node);
-    }
     break;
   case BIN:
     {

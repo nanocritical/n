@@ -189,6 +189,9 @@ struct node *module_find_import(const struct module *mod, const struct module *o
 }
 
 static struct node *do_node_module_owner(struct node *node) {
+  if (node == NULL) {
+    return NULL;
+  }
   assert(node->which != ROOT_OF_ALL);
   if (node->which == MODULE) {
     return node;

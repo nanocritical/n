@@ -432,8 +432,47 @@ static void print_un(FILE *out, const struct module *mod, const struct node *nod
   fprintf(out, "(");
 
   switch (OP_KIND(op)) {
-  case OP_UN_NULLABLE:
-    print_expr(out, mod, term, parent_op);
+  case OP_UN_PRIMITIVES:
+    switch (op) {
+    case T__NULLABLE:
+      print_expr(out, mod, term, parent_op);
+      break;
+    default:
+      assert(false);
+    }
+    break;
+  case OP_UN_OPT:
+    switch (op) {
+    case TPOSTQMARK:
+      if (typ_is_dyn(term->typ)) {
+        fprintf(out, "(");
+        print_expr(out, mod, term, parent_op);
+        fprintf(out, ").obj != NULL");
+      } else if (typ_is_reference(term->typ)) {
+        fprintf(out, "(");
+        print_expr(out, mod, term, parent_op);
+        fprintf(out, ") != NULL");
+      } else {
+        fprintf(out, "(");
+        print_expr(out, mod, term, parent_op);
+        fprintf(out, ").Nonnil");
+      }
+      break;
+    case T__DEOPT:
+      fprintf(out, "(");
+      print_expr(out, mod, term, parent_op);
+      fprintf(out, ").X");
+      break;
+    case TPREQMARK:
+      fprintf(out, "(");
+      print_typ(out, mod, node->typ);
+      fprintf(out, "){ .X = (");
+      print_expr(out, mod, term, parent_op);
+      fprintf(out, "), .Nonnil = 1 }");
+      break;
+    default:
+      assert(false);
+    }
     break;
   case OP_UN_REFOF:
     if (node->flags & NODE_IS_TYPE) {
@@ -702,6 +741,39 @@ static void print_tag_init(FILE *out, const struct module *mod,
   }
 }
 
+static void print_init_expr(FILE *out, const struct module *mod,
+                            const struct node *node, ident f,
+                            const struct node *expr) {
+  const struct typ *tf = NULL;
+  if (node->which == INIT && node->as.INIT.for_tag != ID__NONE) {
+    struct tit *it = typ_definition_one_member(node->typ, node->as.INIT.for_tag);
+    struct tit *fit = tit_defchoice_lookup_field(it, f);
+    tf = tit_typ(fit);
+    tit_next(fit);
+    tit_next(it);
+  } else {
+    tf = typ_member(node->typ, f);
+  }
+  const bool wrap = typ_is_optional(tf) && !typ_is_optional(expr->typ);
+  const bool unwrap = !wrap && !typ_is_optional(tf) && typ_is_optional(expr->typ);
+
+  if (wrap) {
+    fprintf(out, "(");
+    print_typ(out, mod, tf);
+    fprintf(out, "){ .X = (");
+  } else if (unwrap) {
+    fprintf(out, "(");
+  }
+
+  print_expr(out, mod, expr, T__NOT_STATEMENT);
+
+  if (wrap) {
+    fprintf(out, "), .Nonnil = 1 }");
+  } else if (unwrap) {
+    fprintf(out, ").X");
+  }
+}
+
 static void print_init_toplevel(FILE *out, const struct module *mod,
                                 const struct node *node) {
   if (!subs_count_atleast(node, 1)) {
@@ -718,7 +790,7 @@ static void print_init_toplevel(FILE *out, const struct module *mod,
     fprintf(out, ".");
     fprintf(out, "%s", idents_value(mod->gctx, node_ident(s)));
     fprintf(out, " = ");
-    print_expr(out, mod, next_const(s), T__NOT_STATEMENT);
+    print_init_expr(out, mod, node, node_ident(s), next_const(s)); 
     fprintf(out, ",\n");
   }
   fprintf(out, " }\n");
@@ -773,7 +845,7 @@ static void print_init(FILE *out, const struct module *mod,
     print_union_init_access_path(out, mod, node);
     fprintf(out, "%s", idents_value(mod->gctx, node_ident(s)));
     fprintf(out, " = ");
-    print_expr(out, mod, next_const(s), T__NOT_STATEMENT);
+    print_init_expr(out, mod, node, node_ident(s), next_const(s)); 
     fprintf(out, ";\n");
   }
 }
@@ -831,7 +903,13 @@ static void print_dyn(FILE *out, const struct module *mod, const struct node *no
 static void print_expr(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   switch (node->which) {
   case NIL:
-    fprintf(out, "NULL");
+    if (typ_is_reference(node->typ)) {
+      fprintf(out, "NULL");
+    } else {
+      fprintf(out, "(");
+      print_typ(out, mod, node->typ);
+      fprintf(out, "){ 0 }");
+    }
     break;
   case IDENT:
     print_ident(out, mod, node);

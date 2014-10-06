@@ -145,6 +145,7 @@ const char *token_strings[TOKEN__NUM] = {
   [TLPAR] = "(",
   [TRPAR] = ")",
   [T__NULLABLE] = "nullable",
+  [T__DEOPT] = "<deopt>",
 };
 
 static void print_token(FILE *out, enum token_type t) {
