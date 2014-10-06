@@ -40,7 +40,6 @@ enum node_which {
   INIT,
   RETURN,
   BLOCK,
-  FUTURE,
   LAMBDA,
   FOR,
   WHILE,
@@ -91,7 +90,7 @@ enum node_which {
 };
 
 #define NMASK_HIR_ONLY \
-  ( NM(FUTURE) | NM(FOR) | NM(BREAK) \
+  ( NM(FOR) | NM(BREAK) \
     | NM(EXCEP) | NM(THROW) \
     | NM(DEFPATTERN) )
 
@@ -249,7 +248,6 @@ struct node_callnamedarg {
   ident name;
   bool is_slice_vararg;
 };
-struct node_future {};
 struct node_lambda {};
 struct node_init {
   bool is_array;
@@ -471,7 +469,6 @@ union node_as {
   struct node_tuple TUPLE;
   struct node_call CALL;
   struct node_callnamedarg CALLNAMEDARG;
-  struct node_future FUTURE;
   struct node_init INIT;
   struct node_return RETURN;
   struct node_block BLOCK;

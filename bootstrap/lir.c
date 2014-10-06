@@ -737,8 +737,6 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
       node->as.UN.operator = T__NULLABLE;
     }
     break;
-  case FUTURE:
-    break;
   case FOR:
     if (node->as.FOR.is_foreach) {
       lir_conversion_foreach(mod, node);
