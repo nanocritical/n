@@ -124,7 +124,6 @@ const char *node_which_strings[] = {
   [INIT] = "INIT",
   [RETURN] = "RETURN",
   [BLOCK] = "BLOCK",
-  [FUTURE] = "FUTURE",
   [LAMBDA] = "LAMBDA",
   [FOR] = "FOR",
   [WHILE] = "WHILE",
