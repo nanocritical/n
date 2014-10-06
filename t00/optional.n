@@ -1,0 +1,43 @@
+from n import *
+
+struct a =
+	x	:?I32
+
+struct b =
+	x	:I32
+
+fun foo = ?I32
+	return 42
+
+fun bar = ?I32
+	return nil
+
+fun fool ?x:?I32 = I32
+	return x else 0
+
+fun bark x:I32
+	assert x == 42
+
+fun Main = I32
+	let a0 = foo
+	assert a0?
+	assert a0 == 42
+	let a1 = bar
+	assert not a1?
+
+	bark a0
+
+	let a2 = {}:a
+	assert not (a2.x)?
+
+	let a3:I32 such a3 = a0
+	let a4:?I32 such a4 = 1
+
+	let a5 = {x=1}:a
+	assert (a5.x)?
+	assert a5.x == 1
+	let a6 = {x=a0}:b
+	assert a6.x == 42
+
+	assert 1 == fool x=1
+	assert 0 == fool

@@ -1631,8 +1631,10 @@ static ERROR constraint_inference_un(struct module *mod,
   case OP_UN_SLICE:
     constraint_set(mod, node->constraint, CBI_INIT, false);
     return 0;
-  case OP_UN_NULLABLE:
-    constraint_copy(mod, node->constraint, subs_first(node)->constraint);
+  case OP_UN_PRIMITIVES:
+    if (node->as.UN.operator == T__NULLABLE) {
+      constraint_copy(mod, node->constraint, subs_first(node)->constraint);
+    }
     return 0;
   case OP_UN_REFOF:
     switch (node->as.UN.operator) {

@@ -257,14 +257,26 @@ error step_type_gather_excepts(struct module *mod, struct node *node,
   return 0;
 }
 
-static error reference_functor(struct typ **result,
+static ERROR optional(struct typ **result,
+                      struct module *mod, struct node *for_error,
+                      struct typ *typ) {
+  if (typ_equal(typ, TBI_LITERALS_NIL)) {
+    return 0;
+  }
+  error e = instantiate(result, mod, for_error, 0, TBI_OPTIONAL, &typ, 1, false);
+  EXCEPT(e);
+
+  topdeps_record(mod, *result);
+  return 0;
+}
+
+static ERROR reference_functor(struct typ **result,
                                struct module *mod, struct node *for_error,
                                struct typ *functor, struct typ *typ) {
   error e = instantiate(result, mod, for_error, 0, functor, &typ, 1, false);
   EXCEPT(e);
 
   topdeps_record(mod, *result);
-
   return 0;
 }
 
@@ -331,7 +343,7 @@ static void fill_wildcards(struct wildcards *w, struct typ *r0) {
   }
 }
 
-static error try_wildcard_op(struct typ **r0, enum token_type *rop,
+static ERROR try_wildcard_op(struct typ **r0, enum token_type *rop,
                              struct module *mod, struct node *node) {
   error e;
   struct typ *w0 = NULL, *self0 = NULL;
@@ -423,6 +435,38 @@ not_wildcard_fun:
   return 0;
 }
 
+static ERROR wrap_arg_unary_op(struct node **r, struct module *mod,
+                               enum token_type op) {
+  struct node *arg = *r;
+  const bool is_named = arg->which == CALLNAMEDARG;
+  struct node *real_arg = is_named ? subs_first(arg) : arg;
+
+  struct node *before = prev(real_arg);
+  struct node *par = parent(real_arg);
+  node_subs_remove(par, real_arg);
+  struct node *deref_arg = mk_node(mod, par, UN);
+  deref_arg->as.UN.operator = op;
+  node_subs_append(deref_arg, real_arg);
+  node_subs_remove(par, deref_arg);
+  node_subs_insert_after(par, before, deref_arg);
+
+  if (is_named) {
+    unset_typ(&arg->typ);
+  }
+
+  const struct node *except[] = { real_arg, NULL };
+  error e = catchup(mod, except,
+                    is_named ? arg : deref_arg,
+                    CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+
+  if (!is_named) {
+    // arg was changed
+    *r = deref_arg;
+  }
+  return 0;
+}
+
 static ERROR check_terms_not_types(struct module *mod, struct node *node) {
   error e;
   int nth = 1;
@@ -452,12 +496,10 @@ static struct node *follow_ssa(struct node *node) {
   return expr;
 }
 
-static ERROR try_insert_automagic_deref(struct module *mod,
-                                        struct node *node) {
-  if (!typ_is_reference(node->typ)) {
-    return 0;
-  }
-
+static ERROR insert_automagic_de(struct node **r,
+                                 struct module *mod,
+                                 enum token_type op) {
+  struct node *node = *r;
   struct node *expr = follow_ssa(node);
   if (expr != NULL
       && expr->which == UN
@@ -480,7 +522,7 @@ static ERROR try_insert_automagic_deref(struct module *mod,
   struct node *par = parent(target);
   struct node *deref = mk_node(mod, par, UN);
   deref->codeloc = target->codeloc;
-  deref->as.UN.operator = TDEREFDOT;
+  deref->as.UN.operator = op;
 
   node_subs_remove(par, deref);
   node_subs_replace(par, target, deref);
@@ -503,6 +545,26 @@ static ERROR try_insert_automagic_deref(struct module *mod,
     }
   }
 
+  *r = deref;
+  return 0;
+}
+
+// May modifies node. Get the new one after calling this (same location in
+// the tree).
+static ERROR try_insert_automagic_de(struct module *mod,
+                                     struct node *node) {
+  if (typ_is_optional(node->typ)) {
+    error e = insert_automagic_de(&node, mod, T__DEOPT);
+    EXCEPT(e);
+  }
+  if (typ_is_reference(node->typ)) {
+    error e = insert_automagic_de(&node, mod, TDEREFDOT);
+    EXCEPT(e);
+  }
+  if (typ_is_optional(node->typ)) {
+    error e = insert_automagic_de(&node, mod, T__DEOPT);
+    EXCEPT(e);
+  }
   return 0;
 }
 
@@ -545,20 +607,28 @@ static ERROR type_inference_un(struct module *mod, struct node *node) {
 
   struct node *term = subs_first(node);
   struct typ *i = NULL;
+
+rewrote_op:
   switch (OP_KIND(rop)) {
-  case OP_UN_NULLABLE:
-    {
-      enum token_type nop = 0;
-      e = nullable_op(&nop, mod, node, term->typ);
-      EXCEPT(e);
-      if (nop == 0) {
-        set_typ(&node->typ, term->typ);
-      } else {
-        e = reference(&i, mod, node, nop, typ_generic_arg(term->typ, 0));
+  case OP_UN_PRIMITIVES:
+    switch (rop) {
+    case T__NULLABLE:
+      {
+        enum token_type nop = 0;
+        e = nullable_op(&nop, mod, node, term->typ);
         EXCEPT(e);
-        set_typ(&node->typ, i);
-        node->flags |= term->flags & NODE__TRANSITIVE;
+        if (nop == 0) {
+          set_typ(&node->typ, term->typ);
+        } else {
+          e = reference(&i, mod, node, nop, typ_generic_arg(term->typ, 0));
+          EXCEPT(e);
+          set_typ(&node->typ, i);
+          node->flags |= term->flags & NODE__TRANSITIVE;
+        }
       }
+      break;
+    default:
+      assert(false);
     }
     return 0;
   case OP_UN_SLICE:
@@ -584,6 +654,35 @@ static ERROR type_inference_un(struct module *mod, struct node *node) {
     set_typ(&node->typ, typ_generic_arg(term->typ, 0));
     node->flags |= term->flags & NODE__TRANSITIVE;
     return 0;
+  case OP_UN_OPT:
+    switch (rop) {
+    case TPOSTQMARK:
+      set_typ(&node->typ, TBI_BOOL);
+      break;
+    case TPREQMARK:
+      e = optional(&i, mod, node, term->typ);
+      EXCEPT(e);
+      set_typ(&node->typ, i);
+      node->flags |= term->flags & NODE__TRANSITIVE;
+      break;
+    case T__DEOPT_DEREFDOT:
+      if (typ_is_reference(term->typ)) {
+        rop = TDEREFDOT;
+        node->as.UN.operator = rop;
+        goto rewrote_op;
+      }
+      rop = T__DEOPT;
+      node->as.UN.operator = rop;
+      // fallthrough
+    case T__DEOPT:
+      assert(typ_is_optional(term->typ));
+      set_typ(&node->typ, typ_generic_arg(term->typ, 0));
+      node->flags |= term->flags & NODE__TRANSITIVE;
+      break;
+    default:
+      assert(false);
+    }
+    return 0;
   case OP_UN_BOOL:
   case OP_UN_ARITH:
   case OP_UN_BW:
@@ -595,8 +694,9 @@ static ERROR type_inference_un(struct module *mod, struct node *node) {
   e = check_terms_not_types(mod, node);
   EXCEPT(e);
 
-  e = try_insert_automagic_deref(mod, term);
+  e = try_insert_automagic_de(mod, term);
   EXCEPT(e);
+  // may have been modified, get the new one
   term = subs_first(node);
 
   switch (OP_KIND(rop)) {
@@ -637,9 +737,9 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
   error e;
 
   if (!OP_IS_ASSIGN(operator) && OP_KIND(operator) != OP_BIN_SYM_PTR) {
-    e = try_insert_automagic_deref(mod, left);
+    e = try_insert_automagic_de(mod, left);
     EXCEPT(e);
-    e = try_insert_automagic_deref(mod, right);
+    e = try_insert_automagic_de(mod, right);
     EXCEPT(e);
 
     left = subs_first(node);
@@ -656,6 +756,24 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
         e = mk_except(mod, node, "cannot assign an expression of type 'void'");
         THROW(e);
       }
+    }
+
+    const bool lisnil = typ_equal(left->typ, TBI_LITERALS_NIL);
+    const bool lisdefinc = typ_definition_which(left->typ) == DEFINCOMPLETE;
+    const bool lisref = typ_is_reference(left->typ);
+    const bool lisopt = typ_is_optional(left->typ);
+    const bool risnil = typ_equal(right->typ, TBI_LITERALS_NIL);
+    const bool risref = typ_is_reference(right->typ);
+    const bool risopt = typ_is_optional(right->typ);
+    if (!lisdefinc && !lisref && !lisopt && !risnil && (risref || risopt)) {
+      e = try_insert_automagic_de(mod, right);
+      EXCEPT(e);
+      right = subs_last(node);
+    }
+    if (!lisnil && lisopt && !risopt) {
+      e = wrap_arg_unary_op(&right, mod, TPREQMARK);
+      EXCEPT(e);
+      right = subs_last(node);
     }
 
     e = unify_refcompat(mod, node, left->typ, right->typ);
@@ -1082,7 +1200,7 @@ static ERROR type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   struct node *left = subs_first(node);
   struct node *right = subs_last(node);
 
-  e = try_insert_automagic_deref(mod, right);
+  e = try_insert_automagic_de(mod, right);
   EXCEPT(e);
   right = subs_last(node);
 
@@ -1330,8 +1448,18 @@ static ERROR type_inference_return(struct module *mod, struct node *node) {
   assert(node->which == RETURN);
 
   if (subs_count_atleast(node, 1)) {
+    struct typ *ret = module_retval_get(mod)->typ;
     struct node *arg = subs_first(node);
-    error e = unify_refcompat(mod, arg, module_retval_get(mod)->typ, arg->typ);
+
+    if (typ_is_optional(ret) && !typ_is_optional(arg->typ)) {
+      error e = wrap_arg_unary_op(&arg, mod, TPREQMARK);
+      EXCEPT(e);
+    } else if (!typ_is_optional(ret) && typ_is_optional(arg->typ)) {
+      error e = wrap_arg_unary_op(&arg, mod, T__DEOPT);
+      EXCEPT(e);
+    }
+
+    error e = unify_refcompat(mod, arg, ret, arg->typ);
     EXCEPT(e);
   }
 
@@ -1441,14 +1569,10 @@ static bool compare_ref_depth(const struct typ *target, const struct typ *arg,
   return dtarget == darg + diff;
 }
 
-static ERROR try_insert_const_ref(struct module *mod, struct node *node,
-                                  const struct typ *target,
-                                  enum token_type target_explicit_ref,
-                                  struct node *arg) {
-  if (!typ_is_reference(target)) {
-    return 0;
-  }
-
+static ERROR try_insert_automagic_arg_ref(struct module *mod, struct node *node,
+                                          const struct typ *target,
+                                          enum token_type target_explicit_ref,
+                                          struct node *arg) {
   const bool is_named = arg->which == CALLNAMEDARG;
   struct node *real_arg = is_named ? subs_first(arg) : arg;
   struct node *expr_arg = follow_ssa(real_arg);
@@ -1500,39 +1624,52 @@ static ERROR try_insert_const_ref(struct module *mod, struct node *node,
   return 0;
 }
 
-static ERROR try_insert_const_deref(struct module *mod, struct node *node,
-                                    const struct typ *target,
-                                    enum token_type target_explicit_ref,
-                                    struct node *arg) {
-  if (typ_is_reference(target)) {
+static ERROR try_insert_automagic_arg(struct module *mod, struct node *node,
+                                      const struct typ *target,
+                                      enum token_type target_explicit_ref,
+                                      struct node *arg) {
+  if (typ_equal(arg->typ, TBI_LITERALS_NIL)) {
     return 0;
   }
 
-  const bool is_named = arg->which == CALLNAMEDARG;
-  struct node *real_arg = is_named ? subs_first(arg) : arg;
-
-  if (target_explicit_ref == 0 && typ_isa(arg->typ, TBI_ANY_REF)) {
-    struct node *before = prev(real_arg);
-
-    struct node *par = parent(real_arg);
-    node_subs_remove(par, real_arg);
-    struct node *deref_arg = mk_node(mod, par, UN);
-    deref_arg->as.UN.operator = TDEREFDOT;
-    node_subs_append(deref_arg, real_arg);
-    node_subs_remove(par, deref_arg);
-    node_subs_insert_after(par, before, deref_arg);
-
-    if (is_named) {
-      unset_typ(&arg->typ);
-    }
-
-    const struct node *except[] = { real_arg, NULL };
-    error e = catchup(mod, except,
-                      is_named ? arg : deref_arg,
-                      CATCHUP_BELOW_CURRENT);
+  if (typ_is_reference(target)) {
+    error e = try_insert_automagic_arg_ref(mod, node, target, target_explicit_ref, arg);
+    EXCEPT(e);
+  } else if (typ_is_optional(target)) {
+    struct node *r = arg;
+    error e = wrap_arg_unary_op(&r, mod, TPREQMARK);
     EXCEPT(e);
   }
+  return 0;
+}
 
+static ERROR try_insert_automagic_arg_de(struct module *mod,
+                                         const struct typ *target,
+                                         enum token_type target_explicit_ref,
+                                         struct node *arg) {
+  if (target_explicit_ref != 0 || typ_is_reference(target)) {
+    return 0;
+  }
+
+  // target can be either t or ?t
+  // arg can be any of: ?t, @t, @?t
+  // Don't deref more than once.
+  struct node *r = arg;
+  if (!typ_is_optional(target) && typ_is_optional(r->typ)) {
+    error e = wrap_arg_unary_op(&r, mod, T__DEOPT);
+    EXCEPT(e);
+    arg = r;
+  }
+  if (!typ_is_reference(target) && typ_is_reference(r->typ)) {
+    error e = wrap_arg_unary_op(&r, mod, TDEREFDOT);
+    EXCEPT(e);
+    arg = r;
+  }
+  if (!typ_is_optional(target) && typ_is_optional(r->typ)) {
+    error e = wrap_arg_unary_op(&r, mod, T__DEOPT);
+    EXCEPT(e);
+    arg = r;
+  }
   return 0;
 }
 
@@ -1554,19 +1691,18 @@ static ERROR process_automagic_call_arguments(struct module *mod,
       break;
     }
 
-    // We record 'nxt' now as try_insert_const_{,de}ref() may move 'arg'.
+    // We record 'nxt' now as try_insert_automagic_arg{,_de}() may move 'arg'.
     struct node *arg = nxt;
     nxt = next(nxt);
 
     const enum token_type explicit_ref = typ_function_arg_explicit_ref(tfun, n);
-    e = try_insert_const_ref(mod, node,
-                             typ_function_arg_const(tfun, n),
-                             explicit_ref, arg);
+    e = try_insert_automagic_arg(mod, node,
+                                 typ_function_arg_const(tfun, n),
+                                 explicit_ref, arg);
     EXCEPT(e);
 
-    e = try_insert_const_deref(mod, node,
-                               typ_function_arg_const(tfun, n),
-                               explicit_ref, arg);
+    e = try_insert_automagic_arg_de(mod, typ_function_arg_const(tfun, n),
+                                    explicit_ref, arg);
     EXCEPT(e);
 
     n += 1;
@@ -1580,11 +1716,11 @@ static ERROR process_automagic_call_arguments(struct module *mod,
     struct node *nxt = last == NULL
       ? next(subs_first(node)) : next(last);
     while (nxt != NULL) {
-      // We record 'nxt' now as try_insert_const_ref() may move 'arg'.
+      // We record 'nxt' now as try_insert_automagic_arg() may move 'arg'.
       struct node *arg = nxt;
       nxt = next(nxt);
 
-      e = try_insert_const_ref(mod, node, target, TREFDOT, arg);
+      e = try_insert_automagic_arg(mod, node, target, TREFDOT, arg);
       EXCEPT(e);
     }
   }
@@ -2051,7 +2187,7 @@ static ERROR type_inference_match(struct module *mod, struct node *node) {
   error e;
 
   struct node *expr = subs_first(node);
-  e = try_insert_automagic_deref(mod, expr);
+  e = try_insert_automagic_de(mod, expr);
   EXCEPT(e);
   expr = subs_first(node);
 
@@ -2562,13 +2698,19 @@ error step_type_inference(struct module *mod, struct node *node,
 
     set_typ(&node->typ, subs_at(node, 1)->typ);
     if (node->as.DEFARG.is_optional) {
-      e = typ_check_isa(mod, node, node->typ, TBI_ANY_NULLABLE_REF);
-      EXCEPT(e);
+      if (!typ_is_nullable_reference(node->typ) && !typ_is_optional(node->typ)) {
+        e = mk_except_type(mod, node, "optional argument '%s' must be an optional"
+                           " value or a nullable reference, not '%s'",
+                           idents_value(mod->gctx, node_ident(node)),
+                           pptyp(mod, node->typ));
+        THROW(e);
+      }
     } else if (node->as.DEFARG.is_vararg) {
       if (!typ_has_same_generic_functor(mod, node->typ, TBI_VARARG)) {
         e = mk_except_type(mod, node,
-                           "vararg argument must have type"
+                           "vararg argument '%s' must have type"
                            " (vararg `any_any_ref), not '%s'",
+                           idents_value(mod->gctx, node_ident(node)),
                            pptyp(mod, node->typ));
         THROW(e);
       }

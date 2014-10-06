@@ -21,7 +21,7 @@ fun Main = I32
 	let y = (Max I32) p0 p1
 	let yy = Max p0 p1
 
-	let h = (holder.mk p1):(holder I32)
+	let h = (holder I32).mk p1
 	let h1 = ((holder ?@I32).mk p1):(holder ?@I32)
 	let hh = (holder.mk @np1):(holder ?@I32)
 	let hhh = (holder.mk 1:I32):(holder I32)

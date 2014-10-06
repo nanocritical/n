@@ -237,8 +237,8 @@ static ERROR unify_non_generic(struct module *mod, const struct node *for_error,
   return 0;
 }
 
-static struct typ *nullable(struct module *mod, const struct node *for_error,
-                            struct typ *t) {
+static struct typ *ensure_nullable(struct module *mod, const struct node *for_error,
+                                   struct typ *t) {
   if (typ_isa(t, TBI_ANY_NULLABLE_REF)) {
     return t;
   }
@@ -339,15 +339,28 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
       EXCEPT(e);
       return 0;
     } else if (flags & REFCOMPAT_RIGHT) {
-      e = typ_check_isa(mod, for_error, a, TBI_ANY_REF);
-      EXCEPT(e);
-
-      typ_link_tentative(nullable(mod, for_error, a), b);
+      // E.g. let b = nil such b = a
+      if (typ_is_reference(a)) {
+        // Preference given to nullable ref over optional ref.
+        typ_link_tentative(ensure_nullable(mod, for_error, a), b);
+      } else if (typ_is_optional(a)) {
+        typ_link_tentative(a, b);
+      } else {
+        e = mk_except_type_unification(mod, for_error, a, b);
+        THROW(e);
+      }
     } else {
-      e = typ_check_isa(mod, for_error, a, TBI_ANY_NULLABLE_REF);
-      EXCEPT(e);
-
-      typ_link_tentative(a, b);
+      if (typ_is_reference(a)) {
+        // Preference given to nullable ref over optional ref.
+        // E.g. (@U32, nil) should unify to (Nullable_ref U32) ?@U32, not to
+        // (Optional U32).
+        typ_link_tentative(ensure_nullable(mod, for_error, a), b);
+      } else if (typ_is_optional(a)) {
+        typ_link_tentative(a, b);
+      } else {
+        e = mk_except_type_unification(mod, for_error, a, b);
+        THROW(e);
+      }
     }
   } else if (typ_equal(b, TBI_LITERALS_INTEGER)) {
     if (tentative_or_ungenarg(a)) {
@@ -664,7 +677,21 @@ error unify_with_defincomplete_entrails(struct module *mod,
     }
 
     struct tit *af = typ_definition_one_member(a, node_ident(f));
-    e = unify_refcompat(mod, for_error, tit_typ(af), f->typ);
+
+    struct typ *target = tit_typ(af);
+    struct typ *value = f->typ;
+    const bool target_isopt = typ_is_optional(target);
+    const bool value_isopt = typ_is_optional(value);
+
+    // Automagic opt and deopt. The conversions operations are inserted in
+    // passbody1.
+    if (target_isopt && !value_isopt) {
+      target = typ_generic_arg(target, 0);
+    } else if (!target_isopt && value_isopt) {
+      value = typ_generic_arg(value, 0);
+    }
+
+    e = unify_refcompat(mod, for_error, target, value);
     EXCEPT(e);
     tit_next(af);
   }
