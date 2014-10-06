@@ -2059,6 +2059,7 @@ struct typ *TBI_ITERATOR;
 struct typ *TBI_ENVIRONMENT;
 struct typ *TBI_ANY_ENVIRONMENT;
 struct typ *TBI_PREVENT_DYN;
+struct typ *TBI_INHERIT;
 struct typ *TBI_ERROR;
 struct typ *TBI__NOT_TYPEABLE;
 struct typ *TBI__CALL_FUNCTION_SLOT;

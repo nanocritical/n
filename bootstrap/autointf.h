@@ -12,6 +12,9 @@ ERROR step_autointf_infer_intfs(struct module *mod, struct node *node,
 const uint64_t step_autointf_isalist_literal_protos_filter;
 ERROR step_autointf_isalist_literal_protos(struct module *mod, struct node *node,
                                            void *user, bool *stop);
+const uint64_t step_autointf_inherit_filter;
+ERROR step_autointf_inherit(struct module *mod, struct node *node,
+                            void *user, bool *stop);
 const uint64_t step_autointf_add_environment_builtins_filter;
 ERROR step_autointf_add_environment_builtins(struct module *mod, struct node *node,
                                              void *user, bool *stop);

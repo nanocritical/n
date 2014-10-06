@@ -268,8 +268,7 @@ static void gen_by_compare(struct module *mod, struct node *deft,
   case ID_OPERATOR_LT: op = TLT; break;
   case ID_OPERATOR_GT: op = TGT; break;
   case ID_OPERATOR_GE: op = TGE; break;
-  default:
-                       assert(false);
+  default: assert(false);
   }
 
   GSTART();
@@ -422,15 +421,38 @@ non_bg:
   define_builtin_catchup(mod, m);
 }
 
+static bool need_auto_member(struct typ *intf, struct tit *mi) {
+  switch (tit_ident(mi)) {
+  case ID_CTOR:
+  case ID_DTOR:
+  case ID_COPY_CTOR:
+  case ID_OPERATOR_COMPARE:
+  case ID_OPERATOR_EQ:
+  case ID_OPERATOR_NE:
+  case ID_OPERATOR_LE:
+  case ID_OPERATOR_LT:
+  case ID_OPERATOR_GT:
+  case ID_OPERATOR_GE:
+  case ID_FROM_TAG:
+  case ID_TAG:
+  case ID_SHOW:
+    return true;
+  default:
+    return false;
+  }
+}
+
 static ERROR add_auto_isa_eachisalist(struct module *mod,
-                                      struct typ *t,
+                                      struct typ *inferred_intf,
                                       struct typ *intf,
                                       bool *stop,
                                       void *user) {
   struct node *deft = user;
   struct tit *mi = typ_definition_members(intf, DEFMETHOD, DEFFUN, 0);
   while (tit_next(mi)) {
-    add_auto_member(mod, deft, t, intf, mi);
+    if (need_auto_member(intf, mi)) {
+      add_auto_member(mod, deft, inferred_intf, intf, mi);
+    }
   }
 
   return 0;
@@ -453,6 +475,10 @@ static void add_auto_isa(struct module *mod, struct node *deft,
     assert(!e);
 
     typ_create_update_quickisa(deft->typ);
+  }
+
+  if (deft->which != DEFTYPE) {
+    return;
   }
 
   if (!(node_is_extern(deft) && !typ_is_trivial(i))) {
@@ -737,6 +763,28 @@ error step_autointf_isalist_literal_protos(struct module *mod, struct node *node
     add_auto_isa(mod, node, isa->typ);
   }
 
+  return 0;
+}
+
+STEP_NM(step_autointf_inherit,
+        NM(DEFTYPE) | NM(DEFINTF));
+error step_autointf_inherit(struct module *mod, struct node *node,
+                            void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  struct node *isalist = subs_at(node, IDX_ISALIST);
+  FOREACH_SUB(isa, isalist) {
+    struct typ *i0 = typ_generic_functor(isa->typ);
+    if (i0 == NULL || !typ_equal(i0, TBI_INHERIT)) {
+      continue;
+    }
+
+    struct typ *what = typ_generic_arg(isa->typ, 0);
+    struct typ *t = typ_generic_arg(isa->typ, 1);
+    if (typ_isa(t, what)) {
+      add_auto_isa(mod, node, what);
+    }
+  }
   return 0;
 }
 
