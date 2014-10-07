@@ -10,3 +10,12 @@ intf `Random_container t:`Any =
 intf `Iterator t:`Copyable =
 	met Has_next = Bool
 	met! Next = t
+
+intf `Collection t:`Any =
+	met Count = Uint
+	met Operator_in x:@t = Bool
+
+intf `Set t:`Any =
+	isa (`Collection t)
+		\ (`Slice_compatible t)
+		\ `Has_bitwise_operators `Partially_ordered

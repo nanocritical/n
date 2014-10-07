@@ -2061,6 +2061,7 @@ struct typ *TBI_UNION;
 struct typ *TBI_UNION_TRIVIAL_CTOR;
 struct typ *TBI_RANGE;
 struct typ *TBI_BOUNDS;
+struct typ *TBI_COLLECTION;
 struct typ *TBI_ITERATOR;
 struct typ *TBI_ENVIRONMENT;
 struct typ *TBI_ANY_ENVIRONMENT;

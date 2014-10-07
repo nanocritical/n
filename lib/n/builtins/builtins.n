@@ -1,4 +1,4 @@
-from n.containers import `Iterator `Random_container
+from n.containers import `Iterator `Random_container `Collection `Set
 from n.unsafe import Cast Nonnull_cast
 from n import Eprn Epr
 import n.reflect
@@ -1608,6 +1608,7 @@ inline Bounds (met t:`Any c:(`Random_container t)) Range_of v:@c = Range
 
 inline struct Range =
 	isa `Trivial_copy `Trivial_equality `Trivial_ctor `Return_by_copy
+		\ (`Collection Uint)
 	Begin	:Uint
 	End	:Uint
 
@@ -1617,6 +1618,9 @@ inline Range met Count = Uint
 	return self.End - self.Begin
 
 example assert ({Begin=1 End=0}:Range).Count == 0
+
+inline Range met Operator_in x:@Uint = Bool
+	return x >= self.Begin and x < self.End
 
 inline Range met With_offset offset:Uint = this
 	return {Begin=self.Begin+offset End=self.End+offset}

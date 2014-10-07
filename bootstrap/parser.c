@@ -149,6 +149,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_UNION_TRIVIAL_CTOR] = "`Union_trivial_ctor",
   [ID_TBI_RANGE] = "Range",
   [ID_TBI_BOUNDS] = "Bounds",
+  [ID_TBI_COLLECTION] = "`Collection",
   [ID_TBI_ITERATOR] = "`Iterator",
   [ID_TBI_ENVIRONMENT] = "`Environment",
   [ID_TBI_ANY_ENVIRONMENT] = "`Any_environment",
@@ -478,6 +479,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_UNION_TRIVIAL_CTOR = gctx->builtin_typs_by_name[ID_TBI_UNION_TRIVIAL_CTOR];
   TBI_RANGE = gctx->builtin_typs_by_name[ID_TBI_RANGE];
   TBI_BOUNDS = gctx->builtin_typs_by_name[ID_TBI_BOUNDS];
+  TBI_COLLECTION = gctx->builtin_typs_by_name[ID_TBI_COLLECTION];
   TBI_ITERATOR = gctx->builtin_typs_by_name[ID_TBI_ITERATOR];
   TBI_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ENVIRONMENT];
   TBI_ANY_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ANY_ENVIRONMENT];
@@ -1298,7 +1300,7 @@ static ERROR p_for(struct node *node, struct module *mod,
   node_set_which(node, FOR);
   node->as.FOR.is_foreach = for_foreach == Tforeach;
 
-  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);
+  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_IN);
   EXCEPT(e);
 
   e = scan_expected(mod, Tin);

@@ -13,9 +13,9 @@ enum en0 =
 fun tests
 	let m = {A B C}:(Mask en)
 	assert m.Count == 3
---	assert A in M
---	assert B in M
---	assert C in M
+	assert A in m
+	assert B in m
+	assert C in m
 	assert {A B C} == m
 	assert ~{} == m
 

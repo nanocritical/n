@@ -1316,7 +1316,8 @@ static ERROR type_inference_bin(struct module *mod, struct node *node) {
   assert(node->which == BIN);
 
   error e;
-  switch (OP_KIND(node->as.BIN.operator)) {
+  enum token_type op = node->as.BIN.operator;
+  switch (OP_KIND(op)) {
   case OP_BIN_SYM:
   case OP_BIN_SYM_BOOL:
   case OP_BIN_SYM_ARITH:
