@@ -173,6 +173,7 @@ enum token_type {
   T__STATEMENT,
   T__NOT_COLON,
   T__NOT_COMMA,
+  T__NOT_IN,
 
   TOKEN__NUM,
 };
@@ -265,8 +266,9 @@ static const struct operator operators[TOKEN__NUM] = {
   [Tpost] = OP(0, OP_UN_PRIMITIVES, ASSOC_NON, 0x137),
   [Tpre] = OP(0, OP_UN_PRIMITIVES, ASSOC_NON, 0x137),
   [Tassert] = OP(0, OP_UN_PRIMITIVES, ASSOC_NON, 0x137),
-  [Tin] = OP(0, OP_BIN_SYM, ASSOC_NON, 0x136),
   [T__NOT_STATEMENT] = OP(0, OP_BIN, ASSOC_NON, 0x135),
+  [Tin] = OP(0, OP_BIN, ASSOC_NON, 0x132),
+  [T__NOT_IN] = OP(0, OP_BIN, ASSOC_NON, 0x131),
   [TCOMMA] = OP(0, OP_BIN, ASSOC_LEFT, 0x130),
   [T__NOT_COMMA] = OP(0, OP_BIN, ASSOC_NON, 0x129),
   [Telse] = OP(0, OP_BIN_SYM_PTR, ASSOC_LEFT, 0x121),

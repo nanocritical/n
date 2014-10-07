@@ -10,6 +10,8 @@
 #include "constraints.h"
 #include "reflect.h"
 
+#define UNUSED "__attribute__((__unused__))"
+
 #define DEF(t) typ_definition_ignore_any_overlay_const(t)
 
 enum forward {
@@ -1239,7 +1241,7 @@ static void print_linkage(FILE *out, bool header, enum forward fwd,
     } else if (flags & TOP_IS_EXPORT) {
       // noop
     } else {
-      fprintf(out, "__attribute__((__unused__)) static ");
+      fprintf(out, UNUSED " static ");
     }
   } else if (flags & TOP_IS_EXTERN) {
     fprintf(out, "extern ");
@@ -1429,7 +1431,7 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
     }
 
     if (node->as.DEFNAME.may_be_unused) {
-      fprintf(out, "__attribute__((__unused__)) ");
+      fprintf(out, UNUSED " ");
     }
 
     print_typ(out, mod, node->typ);
@@ -1726,7 +1728,7 @@ static void print_rtr_helpers_start(FILE *out, const struct module *mod,
   const struct node *first = subs_first_const(retval);
   const struct node *last = subs_last_const(retval);
   if (bycopy) {
-    fprintf(out, "__attribute__((__unused__)) ");
+    fprintf(out, UNUSED " ");
     print_defarg(out, mod, retval, false);
     fprintf(out, " = { 0 };\n");
   } else {
@@ -2470,7 +2472,7 @@ static void print_defchoice_leaf(FILE *out,
   print_expr(out, mod, subs_at_const(ch, IDX_CH_TAG_FIRST), T__NOT_STATEMENT);
   fprintf(out, ")\n");
 
-  fprintf(out, "static const ");
+  fprintf(out, UNUSED "static ");
   print_deftype_name(out, mod, deft);
   fprintf(out, "$%s", idents_value(mod->gctx, ID_TAG_TYPE));
   fprintf(out, " ");
@@ -2495,7 +2497,7 @@ static void print_defchoice(FILE *out,
   print_expr(out, mod, subs_at_const(ch, IDX_CH_TAG_FIRST), T__NOT_STATEMENT);
   fprintf(out, ")\n");
 
-  fprintf(out, "static const ");
+  fprintf(out, UNUSED "static ");
   print_deftype_name(out, mod, deft);
   fprintf(out, "$%s", idents_value(mod->gctx, ID_TAG_TYPE));
   fprintf(out, " ");
@@ -2510,7 +2512,7 @@ static void print_defchoice(FILE *out,
   print_expr(out, mod, subs_at_const(ch, IDX_CH_TAG_FIRST), T__NOT_STATEMENT);
   fprintf(out, ")\n");
 
-  fprintf(out, "static const ");
+  fprintf(out, UNUSED "static ");
   print_deftype_name(out, mod, deft);
   fprintf(out, "$%s", idents_value(mod->gctx, ID_TAG_TYPE));
   fprintf(out, " ");
@@ -2666,7 +2668,7 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
         print_expr(out, mod, subs_at_const(s, IDX_CH_TAG_FIRST), T__NOT_STATEMENT);
         fprintf(out, ")\n");
 
-        fprintf(out, "static const ");
+        fprintf(out, UNUSED "static ");
         print_deftype_name(out, mod, node);
         fprintf(out, " ");
         print_defchoice_path(out, mod, deft, s);
@@ -2680,7 +2682,7 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
         print_expr(out, mod, subs_at_const(s, IDX_CH_TAG_FIRST), T__NOT_STATEMENT);
         fprintf(out, ")\n");
 
-        fprintf(out, "static const ");
+        fprintf(out, UNUSED "static ");
         print_deftype_name(out, mod, node);
         fprintf(out, " ");
         print_defchoice_path(out, mod, deft, s);
@@ -2694,7 +2696,7 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
         print_expr(out, mod, subs_at_const(s, IDX_CH_TAG_LAST), T__NOT_STATEMENT);
         fprintf(out, ")\n");
 
-        fprintf(out, "static const ");
+        fprintf(out, UNUSED "static ");
         print_deftype_name(out, mod, node);
         fprintf(out, " ");
         print_defchoice_path(out, mod, deft, s);
