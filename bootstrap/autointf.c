@@ -458,8 +458,8 @@ static ERROR add_auto_isa_eachisalist(struct module *mod,
   return 0;
 }
 
-static void add_auto_isa(struct module *mod, struct node *deft,
-                         const struct typ *i) {
+static void add_auto_isa_isalist(struct module *mod, struct node *deft,
+                                 const struct typ *i) {
   if (!typ_isa(deft->typ, i)) {
     struct node *isalist = subs_at(deft, IDX_ISALIST);
     assert(isalist->which == ISALIST);
@@ -476,6 +476,11 @@ static void add_auto_isa(struct module *mod, struct node *deft,
 
     typ_create_update_quickisa(deft->typ);
   }
+}
+
+static void add_auto_isa(struct module *mod, struct node *deft,
+                         const struct typ *i) {
+  add_auto_isa_isalist(mod, deft, i);
 
   if (deft->which == DEFINTF) {
     return;
@@ -509,7 +514,7 @@ static size_t count_defchoices(const struct node *node) {
   return count;
 }
 
-static void add_enum_allbw(struct module *mod, struct node *node) {
+static void add_enum_bwall(struct module *mod, struct node *node) {
   const size_t count = count_defchoices(node);
   if (count > 64) {
     // FIXME
@@ -537,14 +542,27 @@ static void add_enum_allbw(struct module *mod, struct node *node) {
   assert(!e);
 }
 
+STEP_NM(step_autointf_enum_union_isalist,
+        NM(DEFTYPE));
+error step_autointf_enum_union_isalist(struct module *mod, struct node *node,
+                                       void *user, bool *stop) {
+  DSTEP(mod, node);
+  if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+    add_enum_bwall(mod, node);
+    add_auto_isa_isalist(mod, node, TBI_ENUM);
+  } else if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
+    add_auto_isa_isalist(mod, node, TBI_UNION);
+  }
+
+  return 0;
+}
+
 STEP_NM(step_autointf_enum_union,
         NM(DEFTYPE));
 error step_autointf_enum_union(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-    add_enum_allbw(mod, node);
-
     add_auto_isa(mod, node, TBI_ENUM);
 
     if (node->as.DEFTYPE.default_choice != NULL) {
