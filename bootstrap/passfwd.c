@@ -1304,6 +1304,7 @@ static ERROR passfwd4(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_funblock);
     ,
     UP_STEP(step_type_aliases);
+    UP_STEP(step_autointf_enum_union_isalist);
     ,
     FINALLY_STEP(step_pop_state);
     );
