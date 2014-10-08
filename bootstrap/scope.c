@@ -238,7 +238,7 @@ static ERROR do_scope_lookup_ident_immediate(struct node **result,
                                              const struct scope *scope, ident id,
                                              bool allow_isalist, bool failure_ok) {
   const bool use_isalist = allow_isalist
-    && scope_node_const(scope)->which == DEFINTF
+    && (NM(scope_node_const(scope)->which) & (NM(DEFINTF) | NM(DEFINCOMPLETE)))
     && scope_node_const(scope)->typ != NULL;
 
   assert(id != ID__NONE);
