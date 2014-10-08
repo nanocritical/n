@@ -1432,7 +1432,7 @@ static void type_inference_init_isalist_literal(struct module *mod, struct node 
 static ERROR type_inference_init(struct module *mod, struct node *node) {
   assert(node->which == INIT);
   if (node->as.INIT.is_array) {
-    if (!typ_is_literal(subs_first(node)->typ)
+    if ((subs_first(node)->flags & NODE_IS_TYPE)
         && typ_definition_which(subs_first(node)->typ) == DEFINTF) {
       type_inference_init_isalist_literal(mod, node);
       return 0;
