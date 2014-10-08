@@ -510,7 +510,8 @@ static void create_flags(struct typ *t, struct typ *tbi) {
   if (tbi == TBI_LITERALS_NIL
       || tbi == TBI_LITERALS_INTEGER
       || tbi == TBI_LITERALS_FLOATING
-      || tbi == TBI_LITERALS_STRING) {
+      || tbi == TBI_LITERALS_STRING
+      || tbi == TBI_LITERALS_SLICE) {
     t->flags |= TYPF_LITERAL;
   }
 }
@@ -1729,8 +1730,24 @@ bool typ_generic_arg_has_dependent_spec(const struct typ *t, size_t n) {
 }
 
 struct typ *typ_as_non_tentative(const struct typ *t) {
-  assert(typ_generic_arity(t) == 0 && "FIXME not supported");
-  return definition_const(t)->typ;
+  const size_t arity = typ_generic_arity(t);
+  if (arity == 0) {
+    return definition_const(t)->typ;
+  } else if (typ_is_generic_functor(t)) {
+    return definition_const(t)->typ;
+  } else {
+    struct typ **args = calloc(arity, sizeof(struct typ *));
+    for (size_t n = 0; n < arity; ++n) {
+      args[n] = typ_as_non_tentative(typ_generic_arg_const(t, n));
+    }
+    struct typ *i = NULL;
+    error e = instantiate(&i, typ_module_owner(t), typ_for_error(t), -1,
+                          typ_as_non_tentative(typ_generic_functor_const(t)),
+                          args, arity, false);
+    assert(!e);
+    free(args);
+    return i;
+  }
 }
 
 size_t typ_function_arity(const struct typ *t) {

@@ -782,7 +782,9 @@ void defincomplete_add_field(struct module *mod, const struct node *for_error,
 
 void defincomplete_add_isa(struct module *mod, const struct node *for_error,
                            struct node *dinc, struct typ *tisa) {
-  assert(!typ_is_tentative(tisa));
+  assert(!typ_is_tentative(tisa) && "as tisa would typically be immediately"
+         " linked to dinc->typ, creating an infinite loop. First create"
+         " a typ_as_non_tentative() version of tisa.");
   struct node *isalist = subs_at(dinc, IDX_ISALIST);
   struct node *isa = mk_node(mod, isalist, ISA);
   isa->as.ISA.is_export = true;
@@ -810,6 +812,7 @@ error defincomplete_catchup(struct module *mod, struct node *dinc) {
   const bool is_tentative = is_literal || !dinc->as.DEFINCOMPLETE.is_isalist_literal;
   error e = catchup_instantiation(mod, mod, dinc, is_tentative);
   EXCEPT(e);
+  assert(!is_tentative || typ_is_tentative(dinc->typ));
 
   return 0;
 }
