@@ -283,10 +283,21 @@ static ERROR unify_literal_slice(struct module *mod, uint32_t flags,
   }
 
   if (typ_isa(a, TBI_ANY_SLICE)) {
-    // noop
-  } else {
-    e = typ_check_isa(mod, for_error, a, TBI_SLICE_COMPATIBLE);
+    goto finish;
+  } else if (typ_isa(a, TBI_SLICE_COMPATIBLE)) {
+    goto finish;
+  } else if (tentative_or_ungenarg(a) && typ_definition_which(a) == DEFINTF) {
+    struct node *dinc = defincomplete_create(mod, for_error);
+    defincomplete_add_isa(mod, for_error, dinc, typ_as_non_tentative(a));
+    defincomplete_add_isa(mod, for_error, dinc, typ_as_non_tentative(b));
+    error e = defincomplete_catchup(mod, dinc);
     EXCEPT(e);
+    typ_link_tentative(dinc->typ, a);
+    typ_link_tentative(dinc->typ, b);
+    return 0;
+  } else {
+    e = mk_except_type_unification(mod, for_error, a, b);
+    THROW(e);
   }
 
 finish:
