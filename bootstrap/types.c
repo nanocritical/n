@@ -3020,9 +3020,8 @@ void pptypptrs(const struct typ *t) {
     for (size_t n = 0, arity = typ_generic_arity(t); n < arity; ++n) {
       fprintf(stderr, "%p", typ_generic_arg_const(t, n));
     }
-    fprintf(stderr, ")");
   }
-  fprintf(stderr, "\n");
+  fprintf(stderr, ")\n");
 }
 
 void ppusers(const struct typ *t) {
@@ -3031,6 +3030,14 @@ void ppusers(const struct typ *t) {
     fprintf(stderr, "\t%s ", pptyp(NULL, user));
     pptypptrs(user);
   });
+}
+
+void ppvectyp(struct vectyp *v) {
+  for (size_t n = 0, arity = vectyp_count(v); n < arity; ++n) {
+    struct typ **t = vectyp_get(v, n);
+    fprintf(stderr, "%s ", pptyp(NULL, *t));
+    pptypptrs(*t);
+  }
 }
 
 void ppvectyploc(struct vectyploc *v) {
