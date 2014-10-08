@@ -56,7 +56,8 @@ static bool update_codeloc_incr(struct parser *parser, size_t new_pos) {
       parser->codeloc.column = 1;
 
       if (parser->codeloc.pos < parser->next_component_first_pos
-          && new_pos >= parser->next_component_first_pos) {
+          && (p == parser->next_component_first_pos - 1
+              || p == parser->next_component_first_pos)) {
         parser->codeloc.line = 1;
         // Module files end with a newline. And not in the middle of a token.
         across = new_pos > parser->next_component_first_pos;
