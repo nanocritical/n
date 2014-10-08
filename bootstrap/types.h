@@ -198,6 +198,7 @@ void ppoverlay(struct typ *t);
 void ppisalist(const struct typ *t);
 void pptypptrs(const struct typ *t);
 void ppusers(const struct typ *t);
+void ppvectyp(struct vectyp *v);
 void ppvectyploc(struct vectyploc *v);
 
 extern struct typ *TBI_VOID;
