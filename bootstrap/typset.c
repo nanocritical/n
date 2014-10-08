@@ -13,8 +13,10 @@ void typset_destroy(struct typset *set) {
 static void add_final(struct typset *set, struct typ *t) {
   uint32_t *value = fintypset_get(&set->set, t);
   if (value == NULL) {
-    fintypset_set(&set->set, t, 1);
-    vectyp_push(&set->list, t);
+    const bool already = fintypset_set(&set->set, t, 1);
+    if (!already) {
+      vectyp_push(&set->list, t);
+    }
   }
 }
 
