@@ -23,9 +23,13 @@ fun tests
 	assert {B C} <= m
 	assert m > {A C}
 	assert m >= {A C}
+	assert ~{A}:(Mask en) == {B C}
 
 	assert {A}:(Mask en) & {B} == {}:(Mask en)
 	assert ({A}:(Mask en) | {B}).Count == 2
+
+	Prn m
+	Prn {B C}:(Mask en)
 
 fun Main = I32
 	tests
