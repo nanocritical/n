@@ -2376,13 +2376,6 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
     }
   }
 
-  if (typ_is_reference(a) && definition_const(a)->which != DEFINTF) {
-    const struct typ *arg = typ_generic_arg_const(a, 0);
-    if (definition_const(arg)->which == DEFINTF) {
-      return typ_isa(arg, intf);
-    }
-  }
-
   return false;
 }
 
