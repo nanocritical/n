@@ -524,6 +524,7 @@ struct typ *typ_create(struct typ *tbi, struct node *definition) {
   struct typ *r = tbi != NULL ? tbi : calloc(1, sizeof(struct typ));
 
   r->definition = definition;
+  quickisa_init(r);
   set_typ(&r->perm, r);
   create_flags(r, tbi);
 
@@ -538,6 +539,7 @@ struct typ *typ_create_ungenarg(struct typ *t) {
   }
 
   struct typ *r = calloc(1, sizeof(struct typ));
+  quickisa_init(r);
   r->definition = definition(t);
   r->flags = t->flags | TYPF_GENARG;
   // Store 't' to here remember it. Properly set later in
@@ -642,8 +644,6 @@ static ERROR update_quickisa_isalist_each(struct module *mod,
 }
 
 void typ_create_update_quickisa(struct typ *t) {
-  quickisa_init(t);
-
   error never = typ_isalist_foreach(NULL, t, 0, update_quickisa_isalist_each, NULL);
   assert(!never);
 
@@ -775,6 +775,7 @@ struct typ *typ_create_tentative_functor(struct module *trigger_mod, struct typ 
   }
 
   struct typ *r = calloc(1, sizeof(struct typ));
+  quickisa_init(r);
   r->flags = (t->flags & ~TYPF_GENARG) | TYPF_TENTATIVE;
   r->rdy = t->rdy;
   r->hash = t->hash;
@@ -934,6 +935,7 @@ static struct typ *do_typ_create_tentative(struct module *trigger_mod,
   is_it_ungenarg_or_tentative(&is_ungenarg, &is_tentative, t, args, arity);
 
   r = calloc(1, sizeof(struct typ));
+  quickisa_init(r);
   r->flags = t->flags & ~TYPF_GENARG;
   r->flags |= is_ungenarg ? TYPF_GENARG : 0;
   r->flags |= is_tentative ? TYPF_TENTATIVE : 0;
