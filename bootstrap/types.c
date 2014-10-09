@@ -2310,7 +2310,9 @@ static bool can_use_quickisa(const struct typ *a, const struct typ *intf) {
   return (typ_generic_functor_const(intf) == NULL
           || typ_is_generic_functor(intf)
           || typ_is_concrete(intf))
-    && !typ_is_isalist_literal(a) && !typ_is_isalist_literal(intf);
+    && !(a->flags & TYPF_TUPLE)
+    && !typ_is_isalist_literal(a)
+    && !typ_is_isalist_literal(intf);
 }
 
 static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
