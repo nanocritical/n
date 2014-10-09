@@ -41,10 +41,11 @@ enum typ_flags {
   TYPF_LITERAL = 0x100,
   TYPF_CONCRETE = 0x200,
   TYPF_GENARG = 0x400,
+  TYPF_TUPLE = 0x800,
   TYPF__INHERIT_FROM_FUNCTOR = TYPF_TENTATIVE
     | TYPF_BUILTIN | TYPF_PSEUDO_BUILTIN
     | TYPF_TRIVIAL | TYPF_REF | TYPF_NREF | TYPF_OPTIONAL
-    | TYPF_LITERAL | TYPF_CONCRETE | TYPF_GENARG,
+    | TYPF_LITERAL | TYPF_CONCRETE | TYPF_GENARG | TYPF_TUPLE,
   TYPF__INHERIT_FROM_GENARG = TYPF_TENTATIVE | TYPF_GENARG,
   TYPF__MASK_HASH = 0xffff & ~(TYPF_TENTATIVE | TYPF_CONCRETE | TYPF_GENARG),
 };
@@ -513,6 +514,24 @@ static void create_flags(struct typ *t, struct typ *tbi) {
       || tbi == TBI_LITERALS_STRING
       || tbi == TBI_LITERALS_SLICE) {
     t->flags |= TYPF_LITERAL;
+  }
+
+  if (tbi == TBI_TUPLE_2
+      || tbi == TBI_TUPLE_3
+      || tbi == TBI_TUPLE_4
+      || tbi == TBI_TUPLE_5
+      || tbi == TBI_TUPLE_6
+      || tbi == TBI_TUPLE_7
+      || tbi == TBI_TUPLE_8
+      || tbi == TBI_TUPLE_9
+      || tbi == TBI_TUPLE_10
+      || tbi == TBI_TUPLE_11
+      || tbi == TBI_TUPLE_12
+      || tbi == TBI_TUPLE_13
+      || tbi == TBI_TUPLE_14
+      || tbi == TBI_TUPLE_15
+      || tbi == TBI_TUPLE_16) {
+    t->flags |= TYPF_TUPLE;
   }
 }
 
