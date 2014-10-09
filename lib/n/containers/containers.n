@@ -1,7 +1,7 @@
 from n.builtins import *
 
 alias `locus = {`Has_equality `Copyable_but_owned}
-alias `fwd_locus = {`Has_equality `Copyable_but_owned `Ordered}
+alias `fwd_locus = {`Has_equality `Copyable_but_owned `Partially_ordered}
 alias `bidir_locus = {`Has_equality `Copyable_but_owned `Ordered}
 
 intf `Random_container t:`Any =
@@ -10,6 +10,27 @@ intf `Random_container t:`Any =
 intf `Iterator t:`Copyable =
 	met Has_next = Bool
 	met! Next = t
+
+-- We don't reach for more generality. We could have a concept of abstract
+-- sets that have no finite cardinality, are not iterable, etc. (e.g.
+-- geometric surface/shape). But we want very concrete containers (after all
+-- they contain language-level elements).
+-- Abstract types can be provided by others.
+
+--intf `Locus =
+--	isa `Has_equality `Copyable_but_owned `Partially_ordered
+--	alias Range = `Locus_range
+--	alias Iterator = (`Iterator this)
+--
+--intf `Iterable loc:`Locus =
+--	met All = loc.Range
+--
+--intf `Locus_range loc:`Locus =
+--	met Iter = loc.Iterator
+--
+--intf `Iterator loc:`Locus =
+--	met Has_next = Bool
+--	met! Next = loc
 
 intf `Collection t:`Any =
 	met Count = Uint
