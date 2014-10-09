@@ -16,20 +16,20 @@ inline Slicebuf met$ Buf = []$t
 
 inline Slicebuf met# Clear
 	self!s = self.s.[.. 0]
-	self#Auto_shrink
+	self#Internal_auto_shrink
 
 inline Slicebuf met# Resize cnt:Uint
 	assert cnt <= self.Count or t isa `Trivial_ctor
 	if cnt <= self.Cap
 		self!s = self.s.[.. cnt]
-		self#Auto_shrink
+		self#Internal_auto_shrink
 	else
 		self#Reserve cnt
 		self!s = self.s.[.. cnt]
 
 inline Slicebuf met# Push = @#t
 	let nend = self.s.Count + 1
-	self#Auto_grow nend
+	self#Internal_auto_grow nend
 	self!s = self!s![.. nend]
 	return self#Last
 
@@ -48,16 +48,16 @@ inline Slicebuf shallow met$ Operator_sub r:Range = []$t
 inline Slicebuf met# Pop
 	assert self.s.Count > 0
 	self!s = self.s.[.. self.s.Count-1]
-	self#Auto_shrink
+	self#Internal_auto_shrink
 
 inline Slicebuf met# Append s:[]t
-	self#Auto_grow self.s.Count + s.Count
+	self#Internal_auto_grow self.s.Count + s.Count
 	self#s = self!s!Append s
 
 inline Slicebuf met# Copy s:[]t
 	self#Reserve s.Count
 	self#s = self.s!Copy s
-	self#Auto_shrink
+	self#Internal_auto_shrink
 
 -- The automatic growth of Slicebuf et al. slows down when the buffer is large.
 inline fun growth_factor_shift n:Uint = Uint
@@ -114,7 +114,7 @@ inline Slicebuf met# Reserve atleast:Uint
 	Realloc @#self#s atleast
 
 -- FIXME: unexport.
-inline Slicebuf met# Auto_grow atleast:Uint
+inline Slicebuf met# Internal_auto_grow atleast:Uint
 	let cap = self.s.cap
 	if cap >= atleast
 		return
@@ -122,7 +122,7 @@ inline Slicebuf met# Auto_grow atleast:Uint
 	Realloc @#self#s newcap
 
 -- FIXME: unexport.
-inline Slicebuf met# Auto_shrink
+inline Slicebuf met# Internal_auto_shrink
 	let cap = self.s.cap
 	let newcap = Buffer_auto_shrunk_size cap self.s.cnt
 	if newcap == cap

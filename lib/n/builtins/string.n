@@ -343,12 +343,12 @@ inline Stringbuf met Hash32 = U32
 
 inline Stringbuf met# Clear
 	self!bytes = self.bytes.[.. 0]
-	self#Auto_shrink
+	self#Internal_auto_shrink
 
 inline Stringbuf met# Resize cnt:Uint
 	if cnt <= self.Cap
 		self!bytes = self.bytes.[.. cnt]
-		self#Auto_shrink
+		self#Internal_auto_shrink
 	else
 		self#Reserve cnt
 		self!bytes = self.bytes.[.. cnt]
@@ -363,7 +363,7 @@ inline Stringbuf met# Pop = U8
 	assert self.Bytes.Count > 0
 	let c = (self.bytes.Last).
 	self!bytes = self.bytes.[.. self.bytes.Count-1]
-	self#Auto_shrink
+	self#Internal_auto_shrink
 	return c
 
 inline Stringbuf met# Append b:[]U8
@@ -388,7 +388,7 @@ inline Stringbuf met# Cat ?sep:?@String ...v:(Vararg @`String)
 			self#bytes = self!bytes!Append sep.Bytes
 
 -- FIXME: unexport.
-inline Stringbuf met# Auto_grow atleast:Uint
+inline Stringbuf met# Internal_auto_grow atleast:Uint
 	let cap = self.bytes.cap
 	if cap >= atleast
 		return
@@ -396,7 +396,7 @@ inline Stringbuf met# Auto_grow atleast:Uint
 	Realloc @#self#bytes newcap
 
 -- FIXME: unexport.
-inline Stringbuf met# Auto_shrink
+inline Stringbuf met# Internal_auto_shrink
 	let cap = self.bytes.cap
 	let newcap = Buffer_auto_shrunk_size cap self.bytes.cnt
 	if newcap == cap
