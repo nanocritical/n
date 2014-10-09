@@ -315,7 +315,9 @@ static void add_user(struct typ *arg, struct typ *user) {
     return;
   }
 
-  if ((!typ_is_ungenarg(arg) || !typ_is_ungenarg(user)) && !typ_is_tentative(arg)) {
+  if (((!typ_is_generic_functor(arg) && !typ_is_ungenarg(arg))
+       || !typ_is_ungenarg(user))
+      && !typ_is_tentative(arg)) {
     return;
   }
 
