@@ -730,6 +730,14 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
       }
     }
     break;
+  case DEFNAME:
+    {
+      struct node *expr = subs_last(node);
+      if (NM(expr->which) & (NM(IF) | NM(WHILE) | NM(FOR)
+                             | NM(MATCH) | NM(TRY) | NM(LET))) {
+        ensure_in_block(mod, expr);
+      }
+    }
   case CALL:
     if (node_ident(subs_first(node)) == ID_NULLABLE) {
       node_set_which(node, UN);
