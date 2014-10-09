@@ -633,6 +633,11 @@ void typ_create_update_hash(struct typ *t) {
 static ERROR update_quickisa_isalist_each(struct module *mod,
                                           struct typ *t, struct typ *intf,
                                           bool *stop, void *user) {
+
+  if (typset_has(&t->quickisa, intf)) {
+    return 0;
+  }
+
   typset_add(&t->quickisa, intf);
 
   struct typ *intf0 = typ_generic_functor(intf);
