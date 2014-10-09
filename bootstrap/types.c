@@ -2287,7 +2287,8 @@ static bool can_use_quickisa(const struct typ *a, const struct typ *intf) {
     && !typ_is_isalist_literal(a) && !typ_is_isalist_literal(intf);
 }
 
-bool typ_isa(const struct typ *a, const struct typ *intf) {
+static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
+                      const struct typ *a, const struct typ *intf) {
   if (typ_equal(intf, TBI_ANY)) {
     return true;
   }
@@ -2297,7 +2298,12 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
   }
 
   if (a->quickisa.ready && can_use_quickisa(a, intf)) {
+#if CONFIG_DEBUG_QUICKISA
+    *quickisa_used = true;
+    *quickisa_ret = typset_has(&a->quickisa, intf);
+#else
     return typset_has(&a->quickisa, intf);
+#endif
   }
 
   const size_t a_ga = typ_generic_arity(a);
@@ -2378,6 +2384,17 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
   }
 
   return false;
+}
+
+bool typ_isa(const struct typ *a, const struct typ *intf) {
+#if CONFIG_DEBUG_QUICKISA
+  bool quickisa_used = false, quickisa_ret = false;
+  const bool ret = __typ_isa(&quickisa_used, &quickisa_ret, a, intf);
+  assert(!quickisa_used || quickisa_ret == ret);
+  return ret;
+#else
+  return __typ_isa(NULL, NULL, a, intf);
+#endif
 }
 
 error typ_check_isa(const struct module *mod, const struct node *for_error,
