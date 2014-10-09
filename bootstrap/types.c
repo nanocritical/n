@@ -664,6 +664,14 @@ static ERROR update_quickisa_isalist_each(struct module *mod,
     typset_add(&t->quickisa, intf0);
   }
 
+  if (typ_is_generic_functor(t)) {
+    FOREACH_USER(idx, user, t, {
+      if (typ_generic_functor_const(user) == t) {
+        typ_create_update_quickisa(user);
+      }
+    });
+  }
+
   return 0;
 }
 
