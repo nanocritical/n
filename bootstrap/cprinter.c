@@ -2641,11 +2641,19 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
                        const struct node *node, struct fintypset *printed) {
   if (fwd == FWD_DECLARE_TYPES) {
     if (deft == node) {
-      fprintf(out, "typedef ");
+      // Need guard because it's not legal to have multiple identical typedefs.
+      fprintf(out, "#ifndef HAS_ENUM_");
+      print_typ(out, mod, node->typ);
+      fprintf(out, "\n#define HAS_ENUM_");
+      print_typ(out, mod, node->typ);
+      fprintf(out, "\ntypedef ");
       print_typ(out, mod, node->as.DEFTYPE.tag_typ);
       fprintf(out, " ");
       print_deftype_name(out, mod, node);
       fprintf(out, ";\n");
+      fprintf(out, "#endif // HAS_ENUM_");
+      print_typ(out, mod, node->typ);
+      fprintf(out, "\n");
 
       print_reflect_type(out, header, fwd, mod, node);
     }
@@ -2757,9 +2765,7 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
     print_deftype_name(out, mod, dd);
     fprintf(out, ";\n");
   } else if (d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-    if (is_in_topmost_module(d->typ)) {
-      print_enum(out, false, FWD_DECLARE_TYPES, mod, d, d, NULL);
-    }
+    print_enum(out, false, FWD_DECLARE_TYPES, mod, d, d, NULL);
   } else if (!(typ_is_builtin(mod, d->typ) && node_is_extern(d))) {
     prefix = "struct ";
     fprintf(out, "struct ");
