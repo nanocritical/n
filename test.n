@@ -1,3 +1,0 @@
-struct nullable r:any_ref =
-  | NULL
-  | SOME of r
