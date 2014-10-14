@@ -17,10 +17,10 @@ syn keyword nConditional if elif else match
 syn keyword nRepeat while for pfor foreach pforeach
 syn keyword nKeyword var let block lambda async such
 syn keyword nStatement return continue break unreached
-syn keyword nOperator in and or not isa Dyncast
+syn keyword nConditional and or
 syn match nDecl "^  isa" contains=nExport
-syn keyword nOperator sizeof alignof nullable
-syn keyword nKeyword noop as attr declare
+syn keyword nOperator sizeof alignof nullable isa Dyncast not in
+syn keyword nKeyword noop as declare
 syn keyword nKeyword try catch
 syn keyword nException except throw Drop Fatal
 syn match nOperator "bw[&|\^~]"
