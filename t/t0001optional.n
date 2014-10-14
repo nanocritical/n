@@ -1,9 +1,0 @@
-from nlang import *
-
-fun opts ?a:?@i32 = i32
-  return (optional a 1)
-
-fun main = i32
-  if opts != 1
-    return 1
-  return opts a=@0:i32

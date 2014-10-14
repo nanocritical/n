@@ -1,4 +1,0 @@
-from nlang.prelude import *
-
-fun main = i32
-  return 0
