@@ -917,8 +917,11 @@ static ERROR propagate(struct module *mod, struct node *par, struct node *expr) 
   error e;
   switch (expr->which) {
   case IDENT:
-    assert(expr->as.IDENT.def != NULL);
-    replace_sub(mod, par, expr, expr->as.IDENT.def);
+    {
+      struct node *def = expr->as.IDENT.def;
+      assert(def != NULL && def->which == DEFNAME);
+      replace_sub(mod, par, expr, subs_last(def));
+    }
     break;
   case UN:
     if (OP_KIND(expr->as.UN.operator) == OP_UN_REFOF) {
