@@ -858,6 +858,10 @@ extern inline I8 met I16 = I16
 extern inline I8 met I32 = I32
 extern inline I8 met I64 = I64
 extern inline I8 met Int = Int
+extern inline I8 met U16 = U16
+extern inline I8 met U32 = U32
+extern inline I8 met U64 = U64
+extern inline I8 met Uint = Uint
 extern inline I8 met Exact_float = Float
 extern inline I8 met Exact_double = Double
 extern I8 met Show st:@#`Fmt_state
@@ -913,6 +917,9 @@ extern inline I16 met Trim_i8 = I8
 extern inline I16 met I32 = I32
 extern inline I16 met I64 = I64
 extern inline I16 met Int = Int
+extern inline I16 met U32 = U32
+extern inline I16 met U64 = U64
+extern inline I16 met Uint = Uint
 extern inline I16 met Exact_float = Float
 extern inline I16 met Exact_double = Double
 extern I16 met Show st:@#`Fmt_state
@@ -968,6 +975,8 @@ extern inline I32 met Trim_i8 = I8
 extern inline I32 met Trim_i16 = I16
 extern inline I32 met I64 = I64
 extern inline I32 met Int = Int
+extern inline I32 met U64 = U64
+extern inline I32 met Uint = Uint
 extern inline I32 met Round_float = Float
 extern inline I32 met Exact_double = Double
 extern I32 met Show st:@#`Fmt_state
@@ -1101,6 +1110,10 @@ extern inline U8 met U16 = U16
 extern inline U8 met U32 = U32
 extern inline U8 met U64 = U64
 extern inline U8 met Uint = Uint
+extern inline U8 met I16 = I16
+extern inline U8 met I32 = I32
+extern inline U8 met I64 = I64
+extern inline U8 met Int = Int
 extern inline U8 met Exact_float = Float
 extern inline U8 met Exact_double = Double
 extern U8 met Show st:@#`Fmt_state
@@ -1164,6 +1177,9 @@ extern inline U16 met Trim_u8 = U8
 extern inline U16 met U32 = U32
 extern inline U16 met U64 = U64
 extern inline U16 met Uint = Uint
+extern inline U16 met I32 = I32
+extern inline U16 met I64 = I64
+extern inline U16 met Int = Int
 extern inline U16 met Exact_float = Float
 extern inline U16 met Exact_double = Double
 extern U16 met Show st:@#`Fmt_state
@@ -1227,6 +1243,8 @@ extern inline U32 met Trim_u8 = U8
 extern inline U32 met Trim_u16 = U16
 extern inline U32 met U64 = U64
 extern inline U32 met Uint = Uint
+extern inline U32 met I64 = I64
+extern inline U32 met Int = Int
 extern inline U32 met Round_float = Float
 extern inline U32 met Exact_double = Double
 extern U32 met Show st:@#`Fmt_state

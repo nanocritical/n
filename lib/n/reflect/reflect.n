@@ -48,7 +48,7 @@ struct Dynisalist =
 
 Dynisalist met hashmap_addr hash:U32 nth:Uint = Uint
 	-- Quadratic open addressing
-	return (hash.To_uint + (nth * (nth+1)/2)) % self.hashmap.Count
+	return (hash.Uint + (nth * (nth+1)/2)) % self.hashmap.Count
 
 Dynisalist met find_entry rintf:@Type create:Bool = ?@entry, Uint
 	let hash = rintf.typename_hash32
@@ -62,7 +62,7 @@ Dynisalist met find_entry rintf:@Type create:Bool = ?@entry, Uint
 				else
 					return nil, 0
 
-			let e = self.entries.[pos.To_uint - 1]
+			let e = self.entries.[pos.Uint - 1]
 			if e.typename_hash32 != hash
 				nth += 1
 				continue
@@ -81,10 +81,10 @@ Dynisalist met find_entry rintf:@Type create:Bool = ?@entry, Uint
 Dynisalist met# Init count:Uint
 	-- With quadratic probing, the table size must be a power of 2, and not
 	-- too full.
-	let table_size = math.Roundup_pow2 count.To_u64 such
-		if 3*table_size < 4*count.To_u64
+	let table_size = math.Roundup_pow2 count.U64 such
+		if 3*table_size < 4*count.U64
 			table_size *= 2
-	Realloc @#self#hashmap table_size.To_uint
+	Realloc @#self#hashmap table_size.Uint
 	self!hashmap = self!hashmap![.. self.hashmap.Cap]
 
 	Realloc @#self#entries count
@@ -95,7 +95,7 @@ Dynisalist met! Add_entry rintf:@Type dyntable:refdyntable
 
 	self!entries = self!entries![.. self.entries.Count+1]
 	let pos = self.entries.Count
-	assert pos < U16.MAX.To_uint
+	assert pos < U16.MAX.Uint
 	self!hashmap![addr]! = pos.Trim_u16
 	let new = self!entries![pos - 1] such
 		new!typename_hash32 = rintf.typename_hash32
@@ -133,5 +133,5 @@ example
 
 			let e, addr = my.dynisalist.find_entry r false
 			assert e? and addr == 0
-			assert e.dyntable.To_uintptr == fakedyntable.To_uintptr
+			assert e.dyntable.Uintptr == fakedyntable.Uintptr
 	my.Check
