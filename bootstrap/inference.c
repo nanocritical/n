@@ -2252,12 +2252,6 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
     return 0;
   }
 
-  if (def->which == DEFFIELD) {
-    e = mk_except(mod, node,
-                  "fields identifiers must be accessed through 'self'");
-    THROW(e);
-  }
-
   if (def->which == CATCH) {
     // 'node' is a throw or except label.
     return 0;

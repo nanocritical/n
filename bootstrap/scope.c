@@ -203,13 +203,15 @@ struct use_isalist_state {
   struct node *result;
   const struct node *for_error;
   ident id;
+  bool is_bin_acc;
 };
 
 static ERROR do_scope_lookup_ident_immediate(struct node **result,
                                              const struct node *for_error,
                                              const struct module *mod,
                                              const struct scope *scope, ident id,
-                                             bool allow_isalist, bool failure_ok);
+                                             bool allow_isalist, bool failure_ok,
+                                             bool is_bin_acc);
 
 static ERROR use_isalist_scope_lookup(struct module *mod,
                                       struct typ *t, struct typ *intf,
@@ -219,7 +221,7 @@ static ERROR use_isalist_scope_lookup(struct module *mod,
   struct node *result = NULL;
   error e = do_scope_lookup_ident_immediate(&result, st->for_error, mod,
                                             &typ_definition_ignore_any_overlay_const(intf)->scope,
-                                            st->id, false, true);
+                                            st->id, false, true, st->is_bin_acc);
 
   if (!e) {
     if (result->which == DEFFUN || result->which == DEFMETHOD
@@ -236,7 +238,8 @@ static ERROR do_scope_lookup_ident_immediate(struct node **result,
                                              const struct node *for_error,
                                              const struct module *mod,
                                              const struct scope *scope, ident id,
-                                             bool allow_isalist, bool failure_ok) {
+                                             bool allow_isalist, bool failure_ok,
+                                             bool is_bin_acc) {
   const bool use_isalist = allow_isalist
     && (NM(scope_node_const(scope)->which) & (NM(DEFINTF) | NM(DEFINCOMPLETE)))
     && scope_node_const(scope)->typ != NULL;
@@ -244,15 +247,26 @@ static ERROR do_scope_lookup_ident_immediate(struct node **result,
   assert(id != ID__NONE);
   struct node **r = scope_map_get((struct scope_map *)&scope->map, id);
   if (r != NULL) {
+    if (!is_bin_acc) {
+      if (NM((*r)->which) & (NM(DEFFIELD) | NM(DEFMETHOD) | NM(DEFFUN))) {
+        if (NM(parent_const(*r)->which) & (NM(DEFTYPE) | NM(DEFINTF))) {
+          r = NULL;
+          goto not_found;
+        }
+      }
+    }
+
     *result = *r;
     return 0;
   }
 
+not_found:
   if (scope_node_const(scope)->which == MODULE
       && subs_count_atleast(scope_node_const(scope), 1)) {
     const struct node *body = subs_first_const(scope_node_const(scope));
     error e = do_scope_lookup_ident_immediate(result, for_error, mod, &body->scope,
-                                              id, allow_isalist, failure_ok);
+                                              id, allow_isalist, failure_ok,
+                                              is_bin_acc);
     if (!e) {
       return 0;
     } else if (failure_ok) {
@@ -274,6 +288,7 @@ static ERROR do_scope_lookup_ident_immediate(struct node **result,
       .result = NULL,
       .for_error = for_error,
       .id = id,
+      .is_bin_acc = is_bin_acc,
     };
 
     error e = typ_isalist_foreach((struct module *) mod, par->typ, filter,
@@ -307,7 +322,7 @@ error scope_lookup_ident_immediate(struct node **result, const struct node *for_
                                    const struct scope *scope, ident id,
                                    bool failure_ok) {
   return do_scope_lookup_ident_immediate(result, for_error, mod, scope, id,
-                                         true, failure_ok);
+                                         true, failure_ok, true);
 }
 
 static ERROR do_scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,
@@ -319,7 +334,7 @@ static ERROR do_scope_lookup_ident_wontimport(struct node **result, const struct
   error e;
 
 skip:
-  e = do_scope_lookup_ident_immediate(result, for_error, mod, scope, id, false, true);
+  e = do_scope_lookup_ident_immediate(result, for_error, mod, scope, id, false, true, false);
   if (!e) {
     if (scope_node_const(scope)->which == DEFTYPE
         && ((*result)->which == DEFFUN || (*result)->which == DEFMETHOD)) {
@@ -402,7 +417,8 @@ static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
     EXCEPT_UNLESS(e, failure_ok);
 
     e = do_scope_lookup_ident_immediate(&r, for_error, mod, &par->scope,
-                                        node_ident(name), false, failure_ok);
+                                        node_ident(name), false, failure_ok,
+                                        true);
     EXCEPT_UNLESS(e, failure_ok);
 
     break;

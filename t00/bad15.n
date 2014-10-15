@@ -6,6 +6,6 @@ struct a =
 a met Foo = I32
 	return x -- lexical lookup should fail
 
-extern fun Main = I32
+fun Main = I32
 	let y = {}:a
 	return y.Foo
