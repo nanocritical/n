@@ -142,7 +142,8 @@ static ERROR step_type_definitions(struct module *mod, struct node *node,
       && toplevel->generic->our_generic_functor_typ != NULL) {
     set_typ(&node->typ, typ_create(NULL, node));
   } else if (mod->path[0] == ID_NLANG
-             && (id >= ID_TBI__FIRST && id <= ID_TBI__LAST)) {
+             && (id >= ID_TBI__FIRST && id <= ID_TBI__LAST)
+             && (NM(node->which) & (NM(DEFTYPE) | NM(DEFINTF)))) {
     // Effectively reserving these idents for builtin types with n.*
     // modules.
     set_typ(&node->typ, typ_create(mod->gctx->builtin_typs_by_name[id], node));
