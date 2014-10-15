@@ -235,25 +235,29 @@ define_native_integer(n$builtins$Intptr)
 define_native_floating(n$builtins$Float)
 define_native_floating(n$builtins$Double)
 
+static inline NB(U8) NB(Bool$U8)(NB(Bool) *self) { return (NB(U8)) *self; }
+static inline NB(U16) NB(Bool$U16)(NB(Bool) *self) { return (NB(U16)) *self; }
+static inline NB(U32) NB(Bool$U32)(NB(Bool) *self) { return (NB(U32)) *self; }
+static inline NB(U64) NB(Bool$U64)(NB(Bool) *self) { return (NB(U64)) *self; }
 
-static inline NB(I16) NB(I8$To_i16)(NB(I8) *self) { return (NB(I16)) *self; }
-static inline NB(I32) NB(I8$To_i32)(NB(I8) *self) { return (NB(I32)) *self; }
-static inline NB(I64) NB(I8$To_i64)(NB(I8) *self) { return (NB(I64)) *self; }
-static inline NB(Int) NB(I8$To_int)(NB(I8) *self) { return (NB(Int)) *self; }
+static inline NB(I16) NB(I8$I16)(NB(I8) *self) { return (NB(I16)) *self; }
+static inline NB(I32) NB(I8$I32)(NB(I8) *self) { return (NB(I32)) *self; }
+static inline NB(I64) NB(I8$I64)(NB(I8) *self) { return (NB(I64)) *self; }
+static inline NB(Int) NB(I8$Int)(NB(I8) *self) { return (NB(Int)) *self; }
 static inline NB(Float) NB(I8$Exact_float)(NB(I8) *self) { return (NB(Float)) *self; }
 static inline NB(Double) NB(I8$Exact_double)(NB(I8) *self) { return (NB(Double)) *self; }
 
 static inline NB(I8) NB(I16$Trim_i8)(NB(I16) *self) { return (NB(I8)) *self; }
-static inline NB(I32) NB(I16$To_i32)(NB(I16) *self) { return (NB(I32)) *self; }
-static inline NB(I64) NB(I16$To_i64)(NB(I16) *self) { return (NB(I64)) *self; }
-static inline NB(Int) NB(I16$To_int)(NB(I16) *self) { return (NB(Int)) *self; }
+static inline NB(I32) NB(I16$I32)(NB(I16) *self) { return (NB(I32)) *self; }
+static inline NB(I64) NB(I16$I64)(NB(I16) *self) { return (NB(I64)) *self; }
+static inline NB(Int) NB(I16$Int)(NB(I16) *self) { return (NB(Int)) *self; }
 static inline NB(Float) NB(I16$Exact_float)(NB(I16) *self) { return (NB(Float)) *self; }
 static inline NB(Double) NB(I16$Exact_double)(NB(I16) *self) { return (NB(Double)) *self; }
 
 static inline NB(I8) NB(I32$Trim_i8)(NB(I32) *self) { return (NB(I8)) *self; }
 static inline NB(I16) NB(I32$Trim_i16)(NB(I32) *self) { return (NB(I16)) *self; }
-static inline NB(I64) NB(I32$To_i64)(NB(I32) *self) { return (NB(I64)) *self; }
-static inline NB(Int) NB(I32$To_int)(NB(I32) *self) { return (NB(Int)) *self; }
+static inline NB(I64) NB(I32$I64)(NB(I32) *self) { return (NB(I64)) *self; }
+static inline NB(Int) NB(I32$Int)(NB(I32) *self) { return (NB(Int)) *self; }
 static inline NB(Float) NB(I32$Round_float)(NB(I32) *self) { return (NB(Float)) *self; }
 static inline NB(Double) NB(I32$Exact_double)(NB(I32) *self) { return (NB(Double)) *self; }
 
@@ -265,24 +269,33 @@ static inline NB(I32) NB(I64$Trim_i32)(NB(I64) *self) { return (NB(I32)) *self; 
 static inline NB(Float) NB(I64$Round_float)(NB(I64) *self) { return (NB(Float)) *self; }
 static inline NB(Double) NB(I64$Round_double)(NB(I64) *self) { return (NB(Double)) *self; }
 
-static inline NB(U16) NB(U8$To_u16)(NB(U8) *self) { return (NB(U16)) *self; }
-static inline NB(U32) NB(U8$To_u32)(NB(U8) *self) { return (NB(U32)) *self; }
-static inline NB(U64) NB(U8$To_u64)(NB(U8) *self) { return (NB(U64)) *self; }
-static inline NB(Uint) NB(U8$To_uint)(NB(U8) *self) { return (NB(Uint)) *self; }
+static inline NB(U16) NB(U8$U16)(NB(U8) *self) { return (NB(U16)) *self; }
+static inline NB(I16) NB(U8$I16)(NB(U8) *self) { return (NB(I16)) *self; }
+static inline NB(U32) NB(U8$U32)(NB(U8) *self) { return (NB(U32)) *self; }
+static inline NB(I32) NB(U8$I32)(NB(U8) *self) { return (NB(I32)) *self; }
+static inline NB(U64) NB(U8$U64)(NB(U8) *self) { return (NB(U64)) *self; }
+static inline NB(I64) NB(U8$I64)(NB(U8) *self) { return (NB(I64)) *self; }
+static inline NB(Uint) NB(U8$Uint)(NB(U8) *self) { return (NB(Uint)) *self; }
+static inline NB(Int) NB(U8$Int)(NB(U8) *self) { return (NB(Int)) *self; }
 static inline NB(Float) NB(U8$Exact_float)(NB(U8) *self) { return (NB(Float)) *self; }
 static inline NB(Double) NB(U8$Exact_double)(NB(U8) *self) { return (NB(Double)) *self; }
 
 static inline NB(U8) NB(U16$Trim_u8)(NB(U16) *self) { return (NB(U8)) *self; }
-static inline NB(U32) NB(U16$To_u32)(NB(U16) *self) { return (NB(U32)) *self; }
-static inline NB(U64) NB(U16$To_u64)(NB(U16) *self) { return (NB(U64)) *self; }
-static inline NB(Uint) NB(U16$To_uint)(NB(U16) *self) { return (NB(Uint)) *self; }
+static inline NB(U32) NB(U16$U32)(NB(U16) *self) { return (NB(U32)) *self; }
+static inline NB(I32) NB(U16$I32)(NB(U16) *self) { return (NB(I32)) *self; }
+static inline NB(U64) NB(U16$U64)(NB(U16) *self) { return (NB(U64)) *self; }
+static inline NB(I64) NB(U16$I64)(NB(U16) *self) { return (NB(I64)) *self; }
+static inline NB(Uint) NB(U16$Uint)(NB(U16) *self) { return (NB(Uint)) *self; }
+static inline NB(Int) NB(U16$Int)(NB(U16) *self) { return (NB(Int)) *self; }
 static inline NB(Float) NB(U16$Exact_float)(NB(U16) *self) { return (NB(Float)) *self; }
 static inline NB(Double) NB(U16$Exact_double)(NB(U16) *self) { return (NB(Double)) *self; }
 
 static inline NB(U8) NB(U32$Trim_u8)(NB(U32) *self) { return (NB(U8)) *self; }
 static inline NB(U16) NB(U32$Trim_u16)(NB(U32) *self) { return (NB(U16)) *self; }
-static inline NB(U64) NB(U32$To_u64)(NB(U32) *self) { return (NB(U64)) *self; }
-static inline NB(Uint) NB(U32$To_uint)(NB(U32) *self) { return (NB(Uint)) *self; }
+static inline NB(U64) NB(U32$U64)(NB(U32) *self) { return (NB(U64)) *self; }
+static inline NB(I64) NB(U32$I64)(NB(U32) *self) { return (NB(I64)) *self; }
+static inline NB(Uint) NB(U32$Uint)(NB(U32) *self) { return (NB(Uint)) *self; }
+static inline NB(Int) NB(U32$Int)(NB(U32) *self) { return (NB(Int)) *self; }
 static inline NB(Float) NB(U32$Round_float)(NB(U32) *self) { return (NB(Float)) *self; }
 static inline NB(Double) NB(U32$Exact_double)(NB(U32) *self) { return (NB(Double)) *self; }
 
@@ -298,7 +311,7 @@ static inline NB(Uint) NB(Int$force_unsigned)(NB(Int) *self) { return (NB(Uint))
 static inline NB(I8) NB(Int$Trim_i8)(NB(Int) *self) { return (NB(I8)) *self; }
 static inline NB(I16) NB(Int$Trim_i16)(NB(Int) *self) { return (NB(I16)) *self; }
 static inline NB(I32) NB(Int$Trim_i32)(NB(Int) *self) { return (NB(I32)) *self; }
-static inline NB(I64) NB(Int$To_i64)(NB(Int) *self) { return (NB(I64)) *self; }
+static inline NB(I64) NB(Int$I64)(NB(Int) *self) { return (NB(I64)) *self; }
 static inline NB(Float) NB(Int$Round_float)(NB(Int) *self) { return (NB(Float)) *self; }
 static inline NB(Double) NB(Int$Round_double)(NB(Int) *self) { return (NB(Double)) *self; }
 
@@ -306,20 +319,20 @@ static inline NB(Int) NB(Uint$force_signed)(NB(Uint) *self) { return (NB(Int)) *
 static inline NB(U8) NB(Uint$Trim_u8)(NB(Uint) *self) { return (NB(U8)) *self; }
 static inline NB(U16) NB(Uint$Trim_u16)(NB(Uint) *self) { return (NB(U16)) *self; }
 static inline NB(U32) NB(Uint$Trim_u32)(NB(Uint) *self) { return (NB(U32)) *self; }
-static inline NB(U64) NB(Uint$To_u64)(NB(Uint) *self) { return (NB(U64)) *self; }
+static inline NB(U64) NB(Uint$U64)(NB(Uint) *self) { return (NB(U64)) *self; }
 static inline NB(Float) NB(Uint$Round_float)(NB(Uint) *self) { return (NB(Float)) *self; }
 static inline NB(Double) NB(Uint$Round_double)(NB(Uint) *self) { return (NB(Double)) *self; }
 
 static inline NB(Uintptr) NB(Intptr$force_unsigned)(NB(Intptr) *self) { return (NB(Uintptr)) *self; }
-static inline NB(I64) NB(Intptr$To_i64)(NB(Intptr) *self) { return (NB(I64)) *self; }
+static inline NB(I64) NB(Intptr$I64)(NB(Intptr) *self) { return (NB(I64)) *self; }
 
 static inline NB(Intptr) NB(Uintptr$force_signed)(NB(Uintptr) *self) { return (NB(Intptr)) *self; }
-static inline NB(U64) NB(Uintptr$To_u64)(NB(Uintptr) *self) { return (NB(U64)) *self; }
+static inline NB(U64) NB(Uintptr$U64)(NB(Uintptr) *self) { return (NB(U64)) *self; }
 
 static inline NB(I8) NB(Float$Trim_i8)(NB(Float) *self) { return (NB(I8)) *self; }
 static inline NB(I16) NB(Float$Trim_i16)(NB(Float) *self) { return (NB(I16)) *self; }
-static inline NB(I32) NB(Float$To_i32)(NB(Float) *self) { return (NB(I32)) *self; }
-static inline NB(I64) NB(Float$To_i64)(NB(Float) *self) { return (NB(I64)) *self; }
+static inline NB(I32) NB(Float$I32)(NB(Float) *self) { return (NB(I32)) *self; }
+static inline NB(I64) NB(Float$I64)(NB(Float) *self) { return (NB(I64)) *self; }
 static inline NB(Double) NB(Float$Exact_double)(NB(Float) *self) { return (NB(Double)) *self; }
 static inline NB(Int) NB(Float$force_round_int)(NB(Float) *self) { return (NB(Int)) *self; }
 static inline NB(Uint) NB(Float$force_round_uint)(NB(Float) *self) { return (NB(Uint)) *self; }
@@ -327,7 +340,7 @@ static inline NB(Uint) NB(Float$force_round_uint)(NB(Float) *self) { return (NB(
 static inline NB(I8) NB(Double$Trim_i8)(NB(Double) *self) { return (NB(I8)) *self; }
 static inline NB(I16) NB(Double$Trim_i16)(NB(Double) *self) { return (NB(I16)) *self; }
 static inline NB(I32) NB(Double$Trim_i32)(NB(Double) *self) { return (NB(I32)) *self; }
-static inline NB(I64) NB(Double$To_i64)(NB(Double) *self) { return (NB(I64)) *self; }
+static inline NB(I64) NB(Double$I64)(NB(Double) *self) { return (NB(I64)) *self; }
 static inline NB(Float) NB(Double$Round_float)(NB(Double) *self) { return (NB(Float)) *self; }
 static inline NB(Int) NB(Double$force_round_int)(NB(Double) *self) { return (NB(Int)) *self; }
 static inline NB(Uint) NB(Double$force_round_uint)(NB(Double) *self) { return (NB(Uint)) *self; }

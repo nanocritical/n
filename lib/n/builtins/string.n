@@ -48,15 +48,15 @@ inline Rune fun From_string s:String = this
 inline Rune fun Decode b:[]U8 = this, Uint
 	assert b.Count >= 1
 	-- FIXME: utf8
-	return { Code=b.First.To_u32 }, 1
+	return { Code=b.First.U32 }, 1
 
 inline Rune fun Decode_last b:[]U8 = this, Uint
 	assert b.Count >= 1
 	-- FIXME: utf8
-	return { Code=b.Last.To_u32 }, 1
+	return { Code=b.Last.U32 }, 1
 
 inline Rune fun From_ascii c:U8 = Rune
-	return { Code=c.To_u32 }
+	return { Code=c.U32 }
 
 inline Rune met Encode z:[]!U8 = Uint
 	assert z.Cap >= 1
@@ -143,7 +143,7 @@ let _M1 = 3267000013:U32
 fun Hash b:[]U8 = U32
 	let hash = _M0 such
 		foreach x in b
-			hash = (hash ^ x.To_u32) ov* _M1
+			hash = (hash ^ x.U32) ov* _M1
 	return hash
 
 example assert Hash "".Bytes == _M0
@@ -203,7 +203,7 @@ let rk_prime = 16777619:U32
 fun rk_hash b:[]U8 = U32, U32
 	let hash = 0 such
 		foreach x in b
-			hash = hash ov* rk_prime ov+ x.To_u32
+			hash = hash ov* rk_prime ov+ x.U32
 	let pow = 1
 	and sq = rk_prime
 	and i = b.Count such
@@ -231,13 +231,13 @@ String met Index sep:String = Int
 	let hashsep, pow = rk_hash sep.Bytes
 	let h = 0 such
 		foreach i in 0 .. n
-			h = h ov* rk_prime ov+ self.[i].To_u32
+			h = h ov* rk_prime ov+ self.[i].U32
 		if h == hashsep and self.[.. n] == sep
 			return 0
 		foreach i in n .. cnt
 			h ov*= rk_prime
-			h ov+= self.[i].To_u32
-			h ov-= pow ov* self.[i-n].To_u32
+			h ov+= self.[i].U32
+			h ov-= pow ov* self.[i-n].U32
 			i += 1
 			if h == hashsep and self.[i-n .. i] == sep
 				return (i - n).Signed
@@ -263,7 +263,7 @@ String met Split ?sep:?@String ?max:?@Uint = []String
 example assert '1234'.Bytes.Count == 4
 example assert '1234'.Bytes.All == 0 .. 4
 example assert '1234'.Bytes.[3] == '4'.[0]
-example assert '1234'.Bytes.[1].To_u32 == ('2':Rune).Code
+example assert '1234'.Bytes.[1].U32 == ('2':Rune).Code
 example assert '1234' == '1234'
 example assert '1234'.Bytes.Count == 4
 example assert '1234'.Bytes.[0] == 49

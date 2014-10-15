@@ -139,8 +139,8 @@ example let p = "/b":Path such let d, b = p.Split; assert d == "/" and b == "b"
 example let p = "/":Path such let d, b = p.Split; assert d == "/" and b == ""
 example let p = "":Path such let d, b = p.Split; assert d == "" and b == ""
 
-Path met# Join ...v:(Vararg @`String)
-	self#buf#Cat sep="/" ...v
+Path met# Join ...v:(Vararg @`Show)
+	self#buf#Pr sep="/" ...v
 	self#Clean
 	return
 

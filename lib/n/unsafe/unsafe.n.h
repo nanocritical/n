@@ -13,7 +13,7 @@ static inline NU(Voidref) NU(Voidref$From_uintptr)(NB(Uintptr) p) {
   return (NU(Voidref)) (uintptr_t) p;
 }
 
-static inline NB(Uintptr) NU(Voidref$To_uintptr)(NU(Voidref) *self) {
+static inline NB(Uintptr) NU(Voidref$Uintptr)(NU(Voidref) *self) {
   return (uintptr_t) *self;
 }
 
