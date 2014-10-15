@@ -852,8 +852,13 @@ static void do_typ_create_ungenarg_update_genargs(struct module *trigger_mod,
 
   struct typ *t = r->gen0;
   if (not_ready_ungenarg) {
-    // noop
+    if (typ_generic_arity(r) == 0) {
+      goto nothing_to_do;
+    }
   } else if (r->gen_arity == 0) {
+    if (!typ_is_tentative(r)) {
+      goto nothing_to_do;
+    }
     goto children;
   }
 
@@ -926,6 +931,7 @@ static void do_typ_create_ungenarg_update_genargs(struct module *trigger_mod,
 children:
   map_children(trigger_mod, r);
 
+nothing_to_do:
   r->rdy |= RDY_GEN;
 }
 
