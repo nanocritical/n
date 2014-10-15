@@ -1,0 +1,142 @@
+-- Static assert when conversion cannot be guaranteed to be safe
+(fun to:`Integer t:`Integer) Safe_convert x:t = to
+
+(fun to:`Integer t:`Integer) Try_convert x:t = Error, to
+
+-- Asserts on range error.
+(fun to:`Integer t:`Integer) Convert x:t = to
+
+-- For destructive conversions, uses bitwise signed/unsigned conversion,
+-- followed by 0-extension or trim. Use Try_convert or Convert for range
+-- checked conversions.
+(fun to:`Integer t:`Integer) Force_convert x:t = to
+	if t isa U8
+		if to isa U8
+			return x
+		if to isa U16
+			return x.U16
+		if to isa U32
+			return x.U32
+		if to isa U64
+			return x.U64
+		if to isa Uint
+			return x.Uint
+		if to isa Uintptr
+			return x.U64.force_uintptr
+		if to isa I8
+			return x.Bitwise_signed
+		if to isa I16
+			return x.U16.Bitwise_signed
+		if to isa I32
+			return x.U32.Bitwise_signed
+		if to isa I64
+			return x.U64.Bitwise_signed
+		if to isa Int
+			return x.Uint.Signed
+		if to isa Intptr
+			return x.U64.Bitwise_signed.force_uintptr
+	if t isa U16
+		if to isa U8
+			return x.Trim_u8
+		if to isa U16
+			return x
+		if to isa U32
+			return x.U32
+		if to isa U64
+			return x.U64
+		if to isa Uint
+			return x.Uint
+		if to isa Uintptr
+			return x.U64.force_uintptr
+		if to isa I8
+			return x.Trim_u8.Bitwise_signed
+		if to isa I16
+			return x.Bitwise_signed
+		if to isa I32
+			return x.U32.Bitwise_signed
+		if to isa I64
+			return x.U64.Bitwise_signed
+		if to isa Int
+			return x.Uint.Signed
+		if to isa Intptr
+			return x.U64.Bitwise_signed.force_uintptr
+	if t isa U32
+		if to isa U8
+			return x.Trim_u8
+		if to isa U16
+			return x.Trim_u16
+		if to isa U32
+			return x
+		if to isa U64
+			return x.U64
+		if to isa Uint
+			return x.Uint
+		if to isa Uintptr
+			return x.U64.force_uintptr
+		if to isa I8
+			return x.Trim_u8.Bitwise_signed
+		if to isa I16
+			return x.Trim_u16.Bitwise_signed
+		if to isa I32
+			return x.Bitwise_signed
+		if to isa I64
+			return x.U64.Bitwise_signed
+		if to isa Int
+			return x.Uint.Signed
+		if to isa Intptr
+			return x.U64.Bitwise_signed.force_uintptr
+	if t isa U64
+		if to isa U8
+			return x.Trim_u8
+		if to isa U16
+			return x.Trim_u16
+		if to isa U32
+			return x.Trim_u32
+		if to isa U64
+			return x
+		if to isa Uint
+			return x.Uint
+		if to isa Uintptr
+			return x.U64.force_uintptr
+		if to isa I8
+			return x.Trim_u8.Bitwise_signed
+		if to isa I16
+			return x.Trim_u16.Bitwise_signed
+		if to isa I32
+			return x.Trim_u32.Bitwise_signed
+		if to isa I64
+			return x.Bitwise_signed
+		if to isa Int
+			return x.Uint.Signed
+		if to isa Intptr
+			return x.U64.Bitwise_signed.force_uintptr
+	if t isa Uint
+		if to isa U8
+			return x.Trim_u8
+		if to isa U16
+			return x.Trim_u16
+		if to isa U32
+			return x.Trim_u32
+		if to isa U64
+			return x.U64
+		if to isa Uint
+			return x
+		if to isa Uintptr
+			return x.U64.force_uintptr
+		if to isa I8
+			return x.Trim_u8.Bitwise_signed
+		if to isa I16
+			return x.Trim_u16.Bitwise_signed
+		if to isa I32
+			return x.Trim_u32.Bitwise_signed
+		if to isa I64
+			return x.U64.Bitwise_signed
+		if to isa Int
+			return x.Signed
+		if to isa Intptr
+			return x.U64.Bitwise_signed.force_uintptr
+	assert false
+	return 0
+
+example (Force_convert I8) 0:U8 == 0
+example (Force_convert I8) 0xffff:U16 = -127
