@@ -332,7 +332,8 @@ static struct scope *find_scope_for_name(struct node *node) {
     struct node *p = node;
     do {
       p = parent(p);
-    } while (p->which != BLOCK || p->as.BLOCK.is_scopeless);
+    } while ((p->which != BLOCK || p->as.BLOCK.is_scopeless)
+             && p->which != MODULE_BODY);
     return &p->scope;
   }
 }
