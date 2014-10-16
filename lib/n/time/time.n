@@ -1,0 +1,314 @@
+-- See LICENSE for details. Originally derived from go/src/pkg/time
+-- Copyright 2009 The Go Authors. All rights reserved.
+from n import *
+import n.fmt
+
+inline struct Time =
+	isa `Ordered
+	sec	:Int
+	nsec	:U32
+	-- No location field. Operations that depend on it would take it as an
+	-- argument..
+
+inline enum Month =
+	| JAN
+	| FEB
+	| MAR
+	| APR
+	| JUN
+	| JUL
+	| AUG
+	| SEP
+	| OCT
+	| NOV
+	| DEC
+
+inline enum Weekday =
+	| SUN
+	| MON
+	| TUE
+	| WED
+	| THU
+	| FRI
+	| SAT
+
+inline struct Duration =
+	isa `Ordered
+	sec	:Int
+	nsec	:U32
+
+inline Time met Operator_eq other:@this = Bool
+	return self.sec == other.sec and self.nsec == other.nsec
+
+inline Time met Operator_ne other:@this = Bool
+	return not self == other
+
+inline Time met Operator_le other:@this = Bool
+	return self.sec < other.sec or self.nsec <= other.nsec
+
+inline Time met Operator_lt other:@this = Bool
+	return self.sec < other.sec or self.nsec < other.nsec
+
+inline Time met Operator_ge other:@this = Bool
+	return self.sec > other.sec or self.nsec >= other.nsec
+
+inline Time met Operator_gt other:@this = Bool
+	return self.sec > other.sec or self.nsec > other.nsec
+
+inline Time met Is_zero = Bool
+	return self.sec == 0 and self.nsec == 0
+
+let onebillion = 1_000_000_000:Int
+
+Time fun Mk sec:Int nsec:Int = this
+	if nsec < 0 or nsec >= onebillion
+		let n = nsec / onebillion
+		sec += n
+		nsec -= n * onebillion
+		if nsec < 0
+			nsec += onebillion
+			sec -= 1
+	return {sec=sec nsec=nsec.Unsigned.Trim_u32}
+
+example
+	let t = {sec=1 nsec=500_000_000}:Time
+	let s = Time.Mk 0 1*onebillion + onebillion/2
+	assert t == s
+
+example
+	-- Careful: nsec is always positive and *adds* to a negative sec.
+	-- t is -2.5s from internal_year
+	let t = {sec=-3 nsec=500_000_000}:Time
+	let s = Time.Mk -1 -onebillion - onebillion/2
+	assert t == s
+
+example
+	let t = Time.Mk -1 1*onebillion
+	assert t.Is_zero
+
+Time fun From_unix sec:Int nsec:Int = this
+	if nsec < 0 or nsec >= onebillion
+		let n = nsec / onebillion
+		sec += n
+		nsec -= n * onebillion
+		if nsec < 0
+			nsec += onebillion
+			sec -= 1
+	return {sec=sec+off_unix_to_internal nsec=nsec.Unsigned.Trim_u32}
+
+Time met As_unix_sec = sec:Int
+	return self.sec + off_internal_to_unix
+
+Time met As_unix_nanosec = nsec:I64
+	let s = self.sec.I64 + off_internal_to_unix.I64
+	assert s.Abs < nsec.MAX / onebillion.I64
+	nsec = s * onebillion.I64 + self.nsec.I64
+
+example
+	let t1 = {}:Time
+	assert t1.Is_zero
+	let t2 = Time.From_unix off_internal_to_unix 0
+	assert t2.sec == 0
+	assert t2.nsec == 0
+	assert t1 == t2
+	assert t2.As_unix_sec.I64 == off_internal_to_unix.I64
+
+example
+	let t = Time.From_unix 0 0
+	assert not t.Is_zero
+	assert t.sec == off_unix_to_internal
+	assert t.As_unix_sec == 0
+	assert t.As_unix_nanosec == 0
+
+
+-- Add returns the time self+d
+Time met Add d:Duration = Time
+	return Time.Mk self.sec+d.sec self.nsec.Int+d.nsec.Int
+
+-- Sub returns the duration self-u.
+-- To compute t-d for a duration d, use (t.Add -d)
+Time met Sub u:Time = Duration
+	return Duration.Mk self.sec-u.sec self.nsec.Int-u.nsec.Int
+
+let absolute_zero_year = -292_277_022_399:Int
+let internal_year = 1:Int
+let unix_year = 1970:Int
+
+let seconds_per_minute = 60:Int
+let seconds_per_hour = 60 * seconds_per_minute
+let seconds_per_day = 24 * seconds_per_hour
+let seconds_per_week = 7 * seconds_per_day
+let days_per_400_years = 365*400 + 97:Int
+let days_per_100_years = 365*100 + 24:Int
+let days_per_4_years = 365*4 + 1:Int
+
+let off_absolute_to_internal =
+	\ (((absolute_zero_year - internal_year) * 365)
+	\  + ((absolute_zero_year - internal_year) / 4)
+	\  - (3*(absolute_zero_year - internal_year) / 400))
+	\ * seconds_per_day
+let off_internal_to_absolute = - off_absolute_to_internal
+let off_unix_to_internal = (1969*365 + 1969/4 - 1969/100 + 1969/400) * seconds_per_day
+let off_internal_to_unix = -off_unix_to_internal
+
+example
+	-- In Go: (absoluteZeroYear - internalYear) * 365.2425 * secondsPerDay
+	assert off_absolute_to_internal	== -9223371966579724800
+
+fun Test_print_global_constants
+	Prn absolute_zero_year
+	Prn internal_year
+	Prn unix_year
+	Prn seconds_per_day
+	Prn off_absolute_to_internal
+	Prn off_internal_to_absolute
+	Prn off_unix_to_internal
+	Prn off_internal_to_unix
+
+--(
+Time met date full:Bool = year:Int, month:Month, day:Int, yday:Int
+	return abs_date self.abs full
+
+-- abs_date is like date but operates on an absolute time
+fun abs_date abs:Uint64 full:Bool = year:Int, month:Month, day:Int, yday:Int
+	-- Split into time and day.
+	var d = abs / seconds_per_day
+
+	-- Account for 400 year cycles
+	var n = d / days_per_400_years
+	var y = 400 * n
+	d -= days_per_400_years * n
+
+	-- Cut off 100-year cycles.
+	-- The last cycle has one extra leap year, so on the last day
+	-- of that year, day / days_per_100_years will be 4 instead of 3.
+	-- Cut it back down to 3 by substracting n>>2
+	n = d / days_per_4_years
+	y += 4 * n
+	d -= days_per_4_years * n
+
+	-- Cut off years within a 4-year cycle.
+	-- The last year is a leap year, so on the last day of that year,
+	-- day / 365 will be 4 instead of 3. Cut it back down to 3
+	-- by substracting n/4.
+	n = d / 365
+	n -= n / 4
+	y += n
+	d -= 365 * n
+
+	year = y.To_int + absolute_zero_year
+	yday = d.To_int
+
+	if not full
+		return year, month, day, yday
+
+	day = yday
+	if is_leap year
+		-- Leap year
+		if day > 31+29-1
+			-- After leap day; pretend it wasn't there.
+			day -= 1
+		elif day == 31+29-1
+			-- Leap day.
+			month = FEB
+			day = 29
+			return year, month, day, yday
+
+	-- Estimate month on assumption that every month has 31 days.
+	-- The estimate may be too low by at most one month, so adjust.
+	var nth_month = day/31
+	let end = days_before.[nth_month+1]
+	let begin such
+		if day >= end
+			nth_month += 1
+			begin = end
+		else
+			begin = days_before.[nth_month]
+
+	month = Month.From_zero nth_month
+	day = day - begin + 1
+
+-- days_before[m] counts the number of days in a non-leap year
+-- before month m begins.  There is an entry for m=12, counting
+-- the number of days before January of next year (365).
+let days_before = {
+	0:Int
+	31
+	31 + 28
+	31 + 28 + 31
+	31 + 28 + 31 + 30
+	31 + 28 + 31 + 30 + 31
+	31 + 28 + 31 + 30 + 31 + 30
+	31 + 28 + 31 + 30 + 31 + 30 + 31
+	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31
+	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30
+	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31
+	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30
+	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31
+}
+)--
+
+fun is_leap year:Int = Bool
+	return year%4 == 0 and (year%100 != 0 or year%400 == 0)
+
+inline Duration met Operator_eq other:@this = Bool
+	return self.sec == other.sec and self.nsec == other.nsec
+
+inline Duration met Operator_ne other:@this = Bool
+	return not self == other
+
+inline Duration met Operator_le other:@this = Bool
+	return self.sec < other.sec or self.nsec <= other.nsec
+
+inline Duration met Operator_lt other:@this = Bool
+	return self.sec < other.sec or self.nsec < other.nsec
+
+inline Duration met Operator_ge other:@this = Bool
+	return self.sec > other.sec or self.nsec >= other.nsec
+
+inline Duration met Operator_gt other:@this = Bool
+	return self.sec > other.sec or self.nsec > other.nsec
+
+inline Duration met Is_zero = Bool
+	return self.sec == 0 and self.nsec == 0
+
+Duration fun Mk sec:Int nsec:Int = this
+	if nsec < 0 or nsec >= onebillion
+		let n = nsec / onebillion
+		sec += n
+		nsec -= n * onebillion
+		if nsec < 0
+			nsec += onebillion
+			sec -= 1
+	return {sec=sec nsec=nsec.Unsigned.Trim_u32}
+
+inline Duration met Sec = sec:Int
+	return self.sec
+
+Duration met Nanosec = nsec:I64
+	let s = self.sec.I64
+	assert s.Abs < nsec.MAX / onebillion.I64
+	nsec = s * onebillion.I64 + self.nsec.I64
+
+Duration met Add other:this = this
+	return this.Mk self.sec+other.sec self.nsec.Int+other.nsec.Int
+
+Duration met Sub other:this = this
+	return this.Mk self.sec-other.sec self.nsec.Int-other.nsec.Int
+
+Duration met Mult n:Int = this
+	return this.Mk n*self.sec n*self.nsec.Int
+
+Duration met Div n:Int = this
+	let s = self.sec / n
+	let srem = self.sec % n
+	let ns = self.nsec.Int / n + (srem*onebillion) / n
+	return this.Mk s ns
+
+Duration met Show st:@#fmt.`State
+	if self.Is_zero
+		"0".Show st
+		return
+	self.sec.Show st
+	"s".Show st
+	self.nsec.Show st

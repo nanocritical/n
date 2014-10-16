@@ -1,0 +1,6 @@
+from n import *
+import n.time
+
+fun Main = I32
+	time.Test_print_global_constants
+	return 0
