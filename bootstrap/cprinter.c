@@ -917,10 +917,11 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     print_ident(out, mod, node);
     break;
   case NUMBER:
-    fprintf(out, "(");
-    print_typ(out, mod, node->typ);
-    fprintf(out, ")");
-    fprintf(out, "%s", node->as.NUMBER.value);
+    if (typ_isa(node->typ, TBI_FLOATING)) {
+      fprintf(out, "%s", node->as.NUMBER.value);
+    } else {
+      fprintf(out, "%sLL", node->as.NUMBER.value);
+    }
     break;
   case BOOL:
     fprintf(out, "(");
