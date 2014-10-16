@@ -823,9 +823,9 @@ extern inline struct I8 =
 	alias This_signed = this
 	alias This_unsigned = U8
 inline I8 fun MIN = this
-	return -0x7f
+	return -0x80
 inline I8 fun MAX = this
-	return 0x80
+	return 0x7f
 extern inline I8 met Operator_eq other:@this = Bool
 extern inline I8 met Operator_ne other:@this = Bool
 extern inline I8 met Operator_le other:@this = Bool
@@ -882,9 +882,9 @@ extern inline struct I16 =
 	alias This_signed = this
 	alias This_unsigned = U16
 inline I16 fun MIN = this
-	return -0x7fff
+	return -0x8000
 inline I16 fun MAX = this
-	return 0x8000
+	return 0x7fff
 extern inline I16 met Operator_eq other:@this = Bool
 extern inline I16 met Operator_ne other:@this = Bool
 extern inline I16 met Operator_le other:@this = Bool
@@ -940,9 +940,9 @@ extern inline struct I32 =
 	alias This_signed = this
 	alias This_unsigned = U32
 inline I32 fun MIN = this
-	return -0x7fffffff
+	return -0x80000000
 inline I32 fun MAX = this
-	return 0x80000000
+	return 0x7fffffff
 extern inline I32 met Operator_eq other:@this = Bool
 extern inline I32 met Operator_ne other:@this = Bool
 extern inline I32 met Operator_le other:@this = Bool
@@ -1002,9 +1002,9 @@ extern inline struct I64 =
 	alias This_signed = this
 	alias This_unsigned = U64
 inline I64 fun MIN = this
-	return -0x7fffffffffffffff
+	return -0x8000000000000000
 inline I64 fun MAX = this
-	return 0x8000000000000000
+	return 0x7fffffffffffffff
 extern inline I64 met Operator_eq other:@this = Bool
 extern inline I64 met Operator_ne other:@this = Bool
 extern inline I64 met Operator_le other:@this = Bool
