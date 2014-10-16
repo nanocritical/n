@@ -267,6 +267,10 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
 }
 
 static ERROR ssa_convert_global(struct module *mod, struct node *node) {
+  if (mod->state->top_state->is_propagating_constant) {
+    return 0;
+  }
+
   struct node *par = parent(node);
   switch (par->which) {
   case UN:

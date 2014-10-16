@@ -865,16 +865,6 @@ static ERROR step_rewrite_def_return_through_ref(struct module *mod, struct node
   return 0;
 }
 
-static STEP_NM(step_global_constant_detect,
-               NM(LET));
-static ERROR step_global_constant_detect(struct module *mod, struct node *node,
-                                          void *user, bool *stop) {
-  DSTEP(mod, node);
-  struct top_state *st = mod->state->top_state;
-  st->is_global_constant_expr |= !!(node->flags & NODE_IS_GLOBAL_LET);
-  return 0;
-}
-
 static void replace_sub(struct module *mod, struct node *par,
                         struct node *expr, struct node *target) {
   struct node *repl = NULL;
@@ -1029,22 +1019,21 @@ fail:
 }
 
 static STEP_NM(step_global_constant_substitution,
-               NM(LET) | NM(DEFNAME));
+               NM(DEFNAME));
 static ERROR step_global_constant_substitution(struct module *mod, struct node *node,
                                                void *user, bool *stop) {
   DSTEP(mod, node);
-  struct top_state *st = mod->state->top_state;
-  if (!st->is_global_constant_expr) {
-    return 0;
-  }
-  if (node->which == LET) {
-    st->is_global_constant_expr = false;
+  if (!(parent_const(node)->flags & NODE_IS_GLOBAL_LET)) {
     return 0;
   }
 
-  assert(node->which == DEFNAME);
+  mod->state->top_state->is_propagating_constant = true;
   error e = propagate(mod, node, subs_last(node));
   EXCEPT(e);
+  mod->state->top_state->is_propagating_constant = false;
+
+  node->as.DEFNAME.is_global_constant = true;
+
   return 0;
 }
 
@@ -1409,7 +1398,6 @@ static ERROR passfwd10(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
-    DOWN_STEP(step_global_constant_detect);
     ,
     UP_STEP(step_global_constant_substitution);
     UP_STEP(step_check_exhaustive_intf_impl);

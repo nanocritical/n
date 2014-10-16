@@ -371,6 +371,7 @@ struct node_defalias {
 struct node_defname {
   struct node *ssa_user;
   bool is_globalenv;
+  bool is_global_constant;
   uint32_t passed;
 
   const struct typ *member_from_intf;
@@ -851,7 +852,8 @@ struct top_state {
   struct node *exportable;
 
   bool is_setgenarg;
-  bool is_global_constant_expr;
+
+  bool is_propagating_constant;
 
   struct vectyploc tentatives;
 };
