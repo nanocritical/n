@@ -18,14 +18,24 @@ if [ -z "$TDIFF_WHAT" ]; then
 	TDIFF_WHAT="status stderr stdout tree pretty c"
 fi
 
+if [ -f "$t.ref.go" ] && [ -f "$t.ref.stdout" ]; then
+	echo "Invalid test $t: cannot have both $t.ref.go and $t.ref.stdout"
+fi
+
 for t in $list; do
 	for all in $TDIFF_WHAT; do
 		if [ -f $t.ref.$all ] || [ -f $t.o.$all ]; then
-			if ! cmp -s $t.ref.$all $t.o.$all; then
+			ref=$t.ref.$all
+			if [ "$all" = "stdout" ] && [ -f $t.ref.go ]; then
+				ref=$t.o.ref.go
+				go run $t.ref.go > $ref
+			fi
+
+			if ! cmp -s $ref $t.o.$all; then
 				ret=1
 				need_hr=1
-				echo "FAILED $t: different output '$all'"
-				diff -Nu $t.ref.$all $t.o.$all
+				echo "FAILED $t: different output '$all' from '$ref'"
+				diff -Nu $ref $t.o.$all
 			fi
 		fi
 	done
