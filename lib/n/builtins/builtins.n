@@ -717,11 +717,11 @@ inline struct Tuple_16 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`C
 intf `Numeric =
 	isa `Copyable `Arithmetic `Ordered `Show
 
-intf `Integer_literal_compatible =
-	isa `Numeric
+intf `Number_literal_compatible =
+	fun From_number_literal v:String = final
 
 intf `Integer =
-	isa `Numeric `Integer_arithmetic `Has_compare `Integer_literal_compatible
+	isa `Numeric `Integer_arithmetic `Has_compare `Number_literal_compatible
 	fun MIN = final
 	fun MAX = final
 
@@ -765,7 +765,7 @@ intf `Native_boolean =
 		\ `Trivial_order `Bool_compatible `Show
 
 intf `Floating =
-	isa `Numeric `Has_compare `Integer_literal_compatible
+	isa `Numeric `Has_compare `Number_literal_compatible
 	fun MIN = final
 	fun MAX = final
 	fun EPSILON = this
@@ -826,6 +826,7 @@ inline I8 fun MIN = this
 	return -0x80
 inline I8 fun MAX = this
 	return 0x7f
+extern I8 fun From_number_literal v:String = this
 extern inline I8 met Operator_eq other:@this = Bool
 extern inline I8 met Operator_ne other:@this = Bool
 extern inline I8 met Operator_le other:@this = Bool
@@ -885,6 +886,7 @@ inline I16 fun MIN = this
 	return -0x8000
 inline I16 fun MAX = this
 	return 0x7fff
+extern I16 fun From_number_literal v:String = this
 extern inline I16 met Operator_eq other:@this = Bool
 extern inline I16 met Operator_ne other:@this = Bool
 extern inline I16 met Operator_le other:@this = Bool
@@ -943,6 +945,7 @@ inline I32 fun MIN = this
 	return -0x80000000
 inline I32 fun MAX = this
 	return 0x7fffffff
+extern I32 fun From_number_literal v:String = this
 extern inline I32 met Operator_eq other:@this = Bool
 extern inline I32 met Operator_ne other:@this = Bool
 extern inline I32 met Operator_le other:@this = Bool
@@ -1005,6 +1008,7 @@ inline I64 fun MIN = this
 	return -0x8000000000000000
 inline I64 fun MAX = this
 	return 0x7fffffffffffffff
+extern I64 fun From_number_literal v:String = this
 extern inline I64 met Operator_eq other:@this = Bool
 extern inline I64 met Operator_ne other:@this = Bool
 extern inline I64 met Operator_le other:@this = Bool
@@ -1070,6 +1074,7 @@ inline U8 fun MIN = this
 	return 0
 inline U8 fun MAX = this
 	return 0xff
+extern U8 fun From_number_literal v:String = this
 extern inline U8 met Operator_eq other:@this = Bool
 extern inline U8 met Operator_ne other:@this = Bool
 extern inline U8 met Operator_le other:@this = Bool
@@ -1137,6 +1142,7 @@ inline U16 fun MIN = this
 	return 0
 inline U16 fun MAX = this
 	return 0xffff
+extern U16 fun From_number_literal v:String = this
 extern inline U16 met Operator_eq other:@this = Bool
 extern inline U16 met Operator_ne other:@this = Bool
 extern inline U16 met Operator_le other:@this = Bool
@@ -1203,6 +1209,7 @@ inline U32 fun MIN = this
 	return 0
 inline U32 fun MAX = this
 	return 0xffffffff
+extern U32 fun From_number_literal v:String = this
 extern inline U32 met Operator_eq other:@this = Bool
 extern inline U32 met Operator_ne other:@this = Bool
 extern inline U32 met Operator_le other:@this = Bool
@@ -1268,6 +1275,7 @@ inline U64 fun MIN = this
 	return 0
 inline U64 fun MAX = this
 	return 0xffffffffffffffff
+extern U64 fun From_number_literal v:String = this
 extern inline U64 met Operator_eq other:@this = Bool
 extern inline U64 met Operator_ne other:@this = Bool
 extern inline U64 met Operator_le other:@this = Bool
@@ -1346,6 +1354,7 @@ inline Int fun MIN = this
 	return this.impl.MIN.force_int
 inline Int fun MAX = this
 	return this.impl.MAX.force_int
+extern Int fun From_number_literal v:String = this
 extern inline Int met Operator_eq other:@this = Bool
 extern inline Int met Operator_ne other:@this = Bool
 extern inline Int met Operator_le other:@this = Bool
@@ -1403,6 +1412,7 @@ inline Uint fun MIN = this
 	return impl.MIN.force_uint
 inline Uint fun MAX = this
 	return impl.MAX.force_uint
+extern Uint fun From_number_literal v:String = this
 extern inline Uint met Operator_eq other:@this = Bool
 extern inline Uint met Operator_ne other:@this = Bool
 extern inline Uint met Operator_le other:@this = Bool
@@ -1454,6 +1464,7 @@ inline Intptr fun MIN = this
 	return impl.MIN.force_intptr
 inline Intptr fun MAX = this
 	return impl.MAX.force_intptr
+extern Intptr fun From_number_literal v:String = this
 extern inline Intptr met Operator_eq other:@this = Bool
 extern inline Intptr met Operator_ne other:@this = Bool
 extern inline Intptr met Operator_le other:@this = Bool
@@ -1505,6 +1516,7 @@ inline Uintptr fun MIN = this
 	return impl.MIN.force_uintptr
 inline Uintptr fun MAX = this
 	return impl.MAX.force_uintptr
+extern Uintptr fun From_number_literal v:String = this
 extern inline Uintptr met Operator_eq other:@this = Bool
 extern inline Uintptr met Operator_ne other:@this = Bool
 extern inline Uintptr met Operator_le other:@this = Bool
@@ -1544,6 +1556,7 @@ extern Uintptr met Show st:@#`Fmt_state
 
 extern inline struct Float =
 	isa `Native_floating
+extern Float fun From_number_literal v:String = this
 extern inline Float fun MIN = this
 extern inline Float fun MAX = this
 extern inline Float fun EPSILON = this
@@ -1580,6 +1593,7 @@ extern Float met Show st:@#`Fmt_state
 
 extern inline struct Double =
 	isa `Native_floating
+extern Double fun From_number_literal v:String = this
 extern inline Double fun MIN = this
 extern inline Double fun MAX = this
 extern inline Double fun EPSILON = this

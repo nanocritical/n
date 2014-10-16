@@ -393,7 +393,7 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
         typ_link_tentative(dinc->typ, a);
         typ_link_tentative(dinc->typ, b);
       } else {
-        e = typ_check_isa(mod, for_error, a, TBI_INTEGER_LITERAL_COMPATIBLE);
+        e = typ_check_isa(mod, for_error, a, TBI_NUMBER_LITERAL_COMPATIBLE);
         EXCEPT(e);
 
         typ_link_tentative(a, b);
@@ -401,7 +401,7 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
     } else if (typ_isa(b, a)) {
       // noop
     } else {
-      e = typ_check_isa(mod, for_error, a, TBI_INTEGER_LITERAL_COMPATIBLE);
+      e = typ_check_isa(mod, for_error, a, TBI_NUMBER_LITERAL_COMPATIBLE);
       EXCEPT(e);
 
       if (typ_definition_which(a) != DEFINTF) {

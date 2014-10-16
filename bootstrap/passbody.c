@@ -323,6 +323,38 @@ static ERROR step_from_string_call_inference(struct module *mod, struct node *no
   return 0;
 }
 
+static STEP_NM(step_from_number_literal_call_inference,
+               NM(NUMBER));
+static ERROR step_from_number_literal_call_inference(struct module *mod, struct node *node,
+                                                     void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (typ_isa(node->typ, TBI_NATIVE_INTEGER) || typ_isa(node->typ, TBI_FLOATING)) {
+    return 0;
+  }
+
+  struct typ *saved_typ = node->typ;
+  struct node *s = mk_node(mod, node, STRING);
+  node_subs_remove(node, s);
+  // Steal it:
+  s->as.STRING.value = node->as.NUMBER.value;
+
+  node_set_which(node, CALL);
+
+  struct typ *tfun = typ_member(saved_typ, ID_FROM_NUMBER_LITERAL);
+  GSTART();
+  G0(fun, node, DIRECTDEF,
+     set_typ(&fun->as.DIRECTDEF.typ, tfun);
+     fun->as.DIRECTDEF.flags = NODE_IS_TYPE);
+  node_subs_append(node, s);
+
+  error e = catchup(mod, NULL, node, CATCHUP_REWRITING_CURRENT);
+  EXCEPT(e);
+
+  return 0;
+}
+
+
 static STEP_NM(step_dtor_call_inference,
                NM(BLOCK));
 static ERROR step_dtor_call_inference(struct module *mod, struct node *node,
@@ -810,6 +842,7 @@ static ERROR passbody1(struct module *mod, struct node *root,
     UP_STEP(step_ctor_call_inference);
     UP_STEP(step_array_ctor_call_inference);
     UP_STEP(step_from_string_call_inference);
+    UP_STEP(step_from_number_literal_call_inference);
     UP_STEP(step_dtor_call_inference);
     UP_STEP(step_copy_call_inference);
     UP_STEP(step_dyn_inference);

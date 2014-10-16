@@ -21,6 +21,69 @@ NB(Void) *NB(Nonnull_void)(void) {
   return &dummy;
 }
 
+#define strto(t, nptr) \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, int8_t *), \
+    strtol(nptr, NULL, 0), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, int16_t *), \
+    strtol(nptr, NULL, 0), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, int *), \
+    strtol(nptr, NULL, 0), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, long int *), \
+    strtol(nptr, NULL, 0), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, long long int *), \
+    strtoll(nptr, NULL, 0), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, uint8_t *), \
+    strtol(nptr, NULL, 0), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, uint16_t *), \
+    strtol(nptr, NULL, 0), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, unsigned int *), \
+    strtol(nptr, NULL, 0), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, unsigned long int *), \
+    strtoul(nptr, NULL, 0), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, unsigned long long int *), \
+    strtoull(nptr, NULL, 0), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, float *), \
+    strtof(nptr, NULL), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, double *), \
+    strtod(nptr, NULL), \
+  __builtin_choose_expr( \
+    __builtin_types_compatible_p(t *, long double *), \
+    strtold(nptr, NULL), \
+    0)))))))))))))
+
+#define define_from_number_literal(t) \
+  t t##$From_number_literal(NB(String) v) { \
+    return strto(t, (char *) v.bytes.dat); \
+  }
+
+define_from_number_literal(n$builtins$I8)
+define_from_number_literal(n$builtins$I16)
+define_from_number_literal(n$builtins$I32)
+define_from_number_literal(n$builtins$I64)
+define_from_number_literal(n$builtins$U8)
+define_from_number_literal(n$builtins$U16)
+define_from_number_literal(n$builtins$U32)
+define_from_number_literal(n$builtins$U64)
+define_from_number_literal(n$builtins$Uint)
+define_from_number_literal(n$builtins$Int)
+define_from_number_literal(n$builtins$Uintptr)
+define_from_number_literal(n$builtins$Intptr)
+define_from_number_literal(n$builtins$Float)
+define_from_number_literal(n$builtins$Double)
+
+
 static void native_write_buffer(_$Ndyn_n$builtins$_$Ni_Fmt_state st, char *s, int cnt) {
   const _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ bytes =
     NLANG_BYTE_SLICE(s, cnt);

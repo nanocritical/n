@@ -268,7 +268,7 @@ extern struct typ *TBI_ARITHMETIC;
 extern struct typ *TBI_HAS_BITWISE_OPERATORS;
 extern struct typ *TBI_INTEGER_ARITHMETIC;
 extern struct typ *TBI_OVERFLOW_ARITHMETIC;
-extern struct typ *TBI_INTEGER_LITERAL_COMPATIBLE;
+extern struct typ *TBI_NUMBER_LITERAL_COMPATIBLE;
 extern struct typ *TBI_INTEGER;
 extern struct typ *TBI_UNSIGNED_INTEGER;
 extern struct typ *TBI_NATIVE_INTEGER;
