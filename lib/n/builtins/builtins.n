@@ -766,6 +766,17 @@ intf `Native_boolean =
 
 intf `Floating =
 	isa `Numeric `Has_compare `Integer_literal_compatible
+	fun MIN = final
+	fun MAX = final
+	fun EPSILON = this
+	fun SMALLEST_POSITIVE_NORMAL = this
+	fun RADIX = Uint
+	fun MANTISSA_WIDTH = Uint
+	fun MAX_DECIMAL_DIGIT_EXACT = Uint
+	fun MIN_EXP = Int
+	fun MAX_EXP = Int
+	fun MIN_10_EXP = Int
+	fun MAX_10_EXP = Int
 
 intf `Native_floating =
 	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy
@@ -1529,6 +1540,17 @@ extern Uintptr met Show st:@#`Fmt_state
 
 extern inline struct Float =
 	isa `Native_floating
+extern inline Float fun MIN = this
+extern inline Float fun MAX = this
+extern inline Float fun EPSILON = this
+extern inline Float fun SMALLEST_POSITIVE_NORMAL = this
+extern inline Float fun RADIX = Uint
+extern inline Float fun MANTISSA_WIDTH = Uint
+extern inline Float fun MAX_DECIMAL_DIGIT_EXACT = Uint
+extern inline Float fun MIN_EXP = Int
+extern inline Float fun MAX_EXP = Int
+extern inline Float fun MIN_10_EXP = Int
+extern inline Float fun MAX_10_EXP = Int
 extern inline Float met Operator_eq other:@this = Bool
 extern inline Float met Operator_ne other:@this = Bool
 extern inline Float met Operator_le other:@this = Bool
@@ -1544,32 +1566,27 @@ extern inline Float met! Operator_assign_plus other:@this
 extern inline Float met! Operator_assign_minus other:@this
 extern inline Float met! Operator_assign_divide other:@this
 extern inline Float met! Operator_assign_times other:@this
-extern inline Float met Trim_i8 = I8
-extern inline Float met Trim_i16 = I16
-extern inline Float met I32 = I32
-extern inline Float met I64 = I64
--- Exact_double is exact except for INF.
-extern inline Float met Exact_double = Double
-extern inline Float met force_round_int = Int
-extern inline Float met force_round_uint = Uint
-inline Float met Round_int = Int
-	assert self >= Int.MIN.Round_float and self <= Int.MAX.Round_float
-	return self.force_round_int
-inline Float met Try_round_int = Error_range, Int
-	if Likely <- self >= Int.MIN.Round_float and self <= Int.MAX.Round_float
-		return OK, self.force_round_int
-	return INVAL_RANGE, 0
-inline Float met Round_uint = Uint
-	assert self >= Uint.MIN.Round_float and self <= Uint.MAX.Round_float
-	return self.force_round_uint
-inline Float met Try_round_uint = Error_range, Uint
-	if Likely <- self >= Uint.MIN.Round_float and self <= Uint.MAX.Round_float
-		return OK, self.force_round_uint
-	return INVAL_RANGE, 0
+extern inline Float met Round0_i8 = I8
+extern inline Float met Round0_i16 = I16
+extern inline Float met Round0_i32 = I32
+extern inline Float met Round0_i64 = I64
+extern inline Float met Double = Double
+extern inline Float met Round0_int = Int
 extern Float met Show st:@#`Fmt_state
 
 extern inline struct Double =
 	isa `Native_floating
+extern inline Double fun MIN = this
+extern inline Double fun MAX = this
+extern inline Double fun EPSILON = this
+extern inline Double fun SMALLEST_POSITIVE_NORMAL = this
+extern inline Double fun RADIX = Uint
+extern inline Double fun MANTISSA_WIDTH = Uint
+extern inline Double fun MAX_DECIMAL_DIGIT_EXACT = Uint
+extern inline Double fun MIN_EXP = Int
+extern inline Double fun MAX_EXP = Int
+extern inline Double fun MIN_10_EXP = Int
+extern inline Double fun MAX_10_EXP = Int
 extern inline Double met Operator_eq other:@this = Bool
 extern inline Double met Operator_ne other:@this = Bool
 extern inline Double met Operator_le other:@this = Bool
@@ -1585,27 +1602,15 @@ extern inline Double met! Operator_assign_plus other:@this
 extern inline Double met! Operator_assign_minus other:@this
 extern inline Double met! Operator_assign_divide other:@this
 extern inline Double met! Operator_assign_times other:@this
-extern inline Double met Trim_i8 = I8
-extern inline Double met Trim_i16 = I16
-extern inline Double met Trim_i32 = I32
-extern inline Double met I64 = I64
+extern inline Double met Round0_i8 = I8
+extern inline Double met Round0_i16 = I16
+extern inline Double met Round0_i32 = I32
+extern inline Double met Round0_i64 = I64
+extern inline Double met Round0_int = Int
+-- FIXME Rounding mode is dependent on FP context. Should we provide
+-- different alternatives, enforce round-to-nearest (the x86 default)?
+-- Have a clear name to a fixed default?
 extern inline Double met Round_float = Float
-extern inline Double met force_round_int = Int
-extern inline Double met force_round_uint = Uint
-inline Double met Round_int = Int
-	assert self >= Int.MIN.Round_double and self <= Int.MAX.Round_double
-	return self.force_round_int
-inline Double met Try_round_int = Error_range, Int
-	if Likely <- self >= Int.MIN.Round_double and self <= Int.MAX.Round_double
-		return OK, self.force_round_int
-	return INVAL_RANGE, 0
-inline Double met Round_uint = Uint
-	assert self >= Uint.MIN.Round_double and self <= Uint.MAX.Round_double
-	return self.force_round_uint
-inline Double met Try_round_uint = Error_range, Uint
-	if Likely <- self >= Uint.MIN.Round_double and self <= Uint.MAX.Round_double
-		return OK, self.force_round_uint
-	return INVAL_RANGE, 0
 extern Double met Show st:@#`Fmt_state
 
 inline struct Bounds =

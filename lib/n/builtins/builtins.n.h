@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <float.h>
 
 #define NB(n) n$builtins$##n
 
@@ -344,21 +345,41 @@ static inline NB(I64) NB(Intptr$I64)(NB(Intptr) *self) { return (NB(I64)) *self;
 static inline NB(Intptr) NB(Uintptr$force_signed)(NB(Uintptr) *self) { return (NB(Intptr)) *self; }
 static inline NB(U64) NB(Uintptr$U64)(NB(Uintptr) *self) { return (NB(U64)) *self; }
 
-static inline NB(I8) NB(Float$Trim_i8)(NB(Float) *self) { return (NB(I8)) *self; }
-static inline NB(I16) NB(Float$Trim_i16)(NB(Float) *self) { return (NB(I16)) *self; }
-static inline NB(I32) NB(Float$I32)(NB(Float) *self) { return (NB(I32)) *self; }
-static inline NB(I64) NB(Float$I64)(NB(Float) *self) { return (NB(I64)) *self; }
-static inline NB(Double) NB(Float$Exact_double)(NB(Float) *self) { return (NB(Double)) *self; }
-static inline NB(Int) NB(Float$force_round_int)(NB(Float) *self) { return (NB(Int)) *self; }
-static inline NB(Uint) NB(Float$force_round_uint)(NB(Float) *self) { return (NB(Uint)) *self; }
+static inline NB(I8) NB(Float$Round0_i8)(NB(Float) *self) { return (NB(I8)) *self; }
+static inline NB(I16) NB(Float$Round0_i16)(NB(Float) *self) { return (NB(I16)) *self; }
+static inline NB(I32) NB(Float$Round0_i32)(NB(Float) *self) { return (NB(I32)) *self; }
+static inline NB(I64) NB(Float$Round0_i64)(NB(Float) *self) { return (NB(I64)) *self; }
+static inline NB(Double) NB(Float$Double)(NB(Float) *self) { return (NB(Double)) *self; }
+static inline NB(Int) NB(Float$Round0_int)(NB(Float) *self) { return (NB(Int)) *self; }
+static inline NB(Float) NB(Float$MIN)(void) { return -FLT_MAX; }
+static inline NB(Float) NB(Float$MAX)(void) { return FLT_MAX; }
+static inline NB(Float) NB(Float$EPSILON)(void) { return FLT_EPSILON; }
+static inline NB(Float) NB(Float$SMALLEST_POSITIVE_NORMAL)(void) { return FLT_MIN; }
+static inline NB(Uint) NB(Float$RADIX)(void) { return FLT_RADIX; }
+static inline NB(Uint) NB(Float$MANTISSA_WIDTH)(void) { return FLT_MANT_DIG; }
+static inline NB(Uint) NB(Float$MAX_DECIMAL_DIGIT_EXACT)(void) { return FLT_DIG; }
+static inline NB(Int) NB(Float$MIN_EXP)(void) { return FLT_MIN_EXP; }
+static inline NB(Int) NB(Float$MAX_EXP)(void) { return FLT_MAX_EXP; }
+static inline NB(Int) NB(Float$MIN_10_EXP)(void) { return FLT_MIN_10_EXP; }
+static inline NB(Int) NB(Float$MAX_10_EXP)(void) { return FLT_MAX_10_EXP; }
 
-static inline NB(I8) NB(Double$Trim_i8)(NB(Double) *self) { return (NB(I8)) *self; }
-static inline NB(I16) NB(Double$Trim_i16)(NB(Double) *self) { return (NB(I16)) *self; }
-static inline NB(I32) NB(Double$Trim_i32)(NB(Double) *self) { return (NB(I32)) *self; }
-static inline NB(I64) NB(Double$I64)(NB(Double) *self) { return (NB(I64)) *self; }
+static inline NB(I8) NB(Double$Round0_i8)(NB(Double) *self) { return (NB(I8)) *self; }
+static inline NB(I16) NB(Double$Round0_i16)(NB(Double) *self) { return (NB(I16)) *self; }
+static inline NB(I32) NB(Double$Round0_i32)(NB(Double) *self) { return (NB(I32)) *self; }
+static inline NB(I64) NB(Double$Round0_i64)(NB(Double) *self) { return (NB(I64)) *self; }
 static inline NB(Float) NB(Double$Round_float)(NB(Double) *self) { return (NB(Float)) *self; }
-static inline NB(Int) NB(Double$force_round_int)(NB(Double) *self) { return (NB(Int)) *self; }
-static inline NB(Uint) NB(Double$force_round_uint)(NB(Double) *self) { return (NB(Uint)) *self; }
+static inline NB(Int) NB(Double$Round0_int)(NB(Double) *self) { return (NB(Int)) *self; }
+static inline NB(Double) NB(Double$MIN)(void) { return -DBL_MAX; }
+static inline NB(Double) NB(Double$MAX)(void) { return DBL_MAX; }
+static inline NB(Double) NB(Double$EPSILON)(void) { return DBL_EPSILON; }
+static inline NB(Double) NB(Double$SMALLEST_POSITIVE_NORMAL)(void) { return DBL_MIN; }
+static inline NB(Uint) NB(Double$RADIX)(void) { return FLT_RADIX; }
+static inline NB(Uint) NB(Double$MANTISSA_WIDTH)(void) { return DBL_MANT_DIG; }
+static inline NB(Uint) NB(Double$MAX_DECIMAL_DIGIT_EXACT)(void) { return DBL_DIG; }
+static inline NB(Int) NB(Double$MIN_EXP)(void) { return DBL_MIN_EXP; }
+static inline NB(Int) NB(Double$MAX_EXP)(void) { return DBL_MAX_EXP; }
+static inline NB(Int) NB(Double$MIN_10_EXP)(void) { return DBL_MIN_10_EXP; }
+static inline NB(Int) NB(Double$MAX_10_EXP)(void) { return DBL_MAX_10_EXP; }
 
 #define n$builtins$Likely(x) __builtin_expect(!!(x), 1)
 #define n$builtins$Unlikely(x) __builtin_expect(!!(x), 0)
