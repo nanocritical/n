@@ -1333,6 +1333,10 @@ extern inline U64 met Round_float = Float
 extern inline U64 met Round_double = Double
 extern U64 met Show st:@#`Fmt_state
 
+-- There are no Bitwise_ operations for Int and Uint. Their width is not
+-- specified and users are supposed to use explicit conversion through sized
+-- types.
+
 extern inline struct Int =
 	isa `Native_signed_integer
 	alias This_signed = this
