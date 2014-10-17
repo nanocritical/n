@@ -10,8 +10,8 @@ inline struct Path =
 Path met# Init name:String
 	self#buf#Cat name
 
-Path met Str = String
-	return self.buf.Str
+Path met String = String
+	return self.buf.String
 
 Path met Hash32 = U32
 	return self.buf.Hash32
@@ -129,7 +129,7 @@ example let p = "/../a/b/../././/c":Path such p#Clean; assert p == "/a/c"
 example let p = "///":Path such p#Clean; assert p == "/"
 
 Path met Split = Path, Path
-	let path = self.buf.Str
+	let path = self.buf.String
 	let i = path.Last_index_byte "/".[0]
 	let enddir = (i + 1).Unsigned
 	return Path.From_string path.[.. enddir], Path.From_string path.[enddir ..]
@@ -149,7 +149,7 @@ example let p = "/":Path such p#Join "a" "b" "c"; assert p == "/a/b/c"
 example let p = "":Path such p#Join "a" "b" "/c"; assert p == "a/b/c"
 
 Path met Ext = Path
-	let path = self.buf.Str
+	let path = self.buf.String
 	for i in path.All.Reverse_iter
 		if path.[i] == ".".[0]
 			return Path.From_string path.[i ..]

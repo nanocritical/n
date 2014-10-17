@@ -292,7 +292,7 @@ inline Stringbuf met Bytes = []U8
 inline Stringbuf met All = Range
 	return self.bytes.All
 
-inline Stringbuf met Str = String
+inline Stringbuf met String = String
 	return String.From_bytes self.bytes
 
 inline Stringbuf met Cap = Uint
