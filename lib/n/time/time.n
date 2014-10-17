@@ -32,10 +32,19 @@ inline enum Weekday =
 	| FRI
 	| SAT
 
-inline struct Duration =
-	isa `Ordered
-	sec	:Int
-	nsec	:U32
+newtype Duration = I64
+
+let onebillion = 1_000_000_000:Int
+
+Time fun Mk sec:Int nsec:Int = this
+	if nsec < 0 or nsec >= onebillion
+		let n = nsec / onebillion
+		sec += n
+		nsec -= n * onebillion
+		if nsec < 0
+			nsec += onebillion
+			sec -= 1
+	return {sec=sec nsec=nsec.Unsigned.Trim_u32}
 
 inline Time met Operator_eq other:@this = Bool
 	return self.sec == other.sec and self.nsec == other.nsec
@@ -57,18 +66,6 @@ inline Time met Operator_gt other:@this = Bool
 
 inline Time met Is_zero = Bool
 	return self.sec == 0 and self.nsec == 0
-
-let onebillion = 1_000_000_000:Int
-
-Time fun Mk sec:Int nsec:Int = this
-	if nsec < 0 or nsec >= onebillion
-		let n = nsec / onebillion
-		sec += n
-		nsec -= n * onebillion
-		if nsec < 0
-			nsec += onebillion
-			sec -= 1
-	return {sec=sec nsec=nsec.Unsigned.Trim_u32}
 
 example
 	let t = {sec=1 nsec=500_000_000}:Time
@@ -122,13 +119,29 @@ example
 
 
 -- Add returns the time self+d
-Time met Add d:Duration = Time
-	return Time.Mk self.sec+d.sec self.nsec.Int+d.nsec.Int
+Time met Add d:Duration = r:Time
+	r!sec = self.sec + (d.I64 / onebillion.I64).To_int
+	let nsec = self.nsec.Signed + (d.I64 % onebillion.I64).Trim_i32
+	if nsec >= onebillion.Trim_i32
+		r!sec += 1
+		nsec -= onebillion.Trim_i32
+	elif nsec < 0
+		r!sec -= 1
+		nsec += onebillion.Trim_i32
+	r!nsec = nsec.Unsigned
 
 -- Sub returns the duration self-u.
 -- To compute t-d for a duration d, use (t.Add -d)
 Time met Sub u:Time = Duration
-	return Duration.Mk self.sec-u.sec self.nsec.Int-u.nsec.Int
+	let d = Duration.From_i64
+		\ ((self.sec-u.sec)*onebillion).I64 + (self.nsec.Signed-u.nsec.Signed).I64
+	-- Check for overflow or underflow.
+	if u.Add(d) == self
+		return d -- d is correct
+	elif self < u
+		return Duration.MIN
+	else
+		return Duration.MAX
 
 let absolute_zero_year = -292_277_022_399:Int
 let internal_year = 1:Int
@@ -251,64 +264,16 @@ let days_before = {
 fun is_leap year:Int = Bool
 	return year%4 == 0 and (year%100 != 0 or year%400 == 0)
 
-inline Duration met Operator_eq other:@this = Bool
-	return self.sec == other.sec and self.nsec == other.nsec
-
-inline Duration met Operator_ne other:@this = Bool
-	return not self == other
-
-inline Duration met Operator_le other:@this = Bool
-	return self.sec < other.sec or self.nsec <= other.nsec
-
-inline Duration met Operator_lt other:@this = Bool
-	return self.sec < other.sec or self.nsec < other.nsec
-
-inline Duration met Operator_ge other:@this = Bool
-	return self.sec > other.sec or self.nsec >= other.nsec
-
-inline Duration met Operator_gt other:@this = Bool
-	return self.sec > other.sec or self.nsec > other.nsec
-
-inline Duration met Is_zero = Bool
-	return self.sec == 0 and self.nsec == 0
-
-Duration fun Mk sec:Int nsec:Int = this
-	if nsec < 0 or nsec >= onebillion
-		let n = nsec / onebillion
-		sec += n
-		nsec -= n * onebillion
-		if nsec < 0
-			nsec += onebillion
-			sec -= 1
-	return {sec=sec nsec=nsec.Unsigned.Trim_u32}
-
 inline Duration met Sec = sec:Int
-	return self.sec
+	return (self.I64 / onebillion.I64).To_int
 
-Duration met Nanosec = nsec:I64
-	let s = self.sec.I64
-	assert s.Abs < nsec.MAX / onebillion.I64
-	nsec = s * onebillion.I64 + self.nsec.I64
-
-Duration met Add other:this = this
-	return this.Mk self.sec+other.sec self.nsec.Int+other.nsec.Int
-
-Duration met Sub other:this = this
-	return this.Mk self.sec-other.sec self.nsec.Int-other.nsec.Int
-
-Duration met Mult n:Int = this
-	return this.Mk n*self.sec n*self.nsec.Int
-
-Duration met Div n:Int = this
-	let s = self.sec / n
-	let srem = self.sec % n
-	let ns = self.nsec.Int / n + (srem*onebillion) / n
-	return this.Mk s ns
+inline Duration met Nanosec = I64
+	return self.I64
 
 Duration met Show st:@#fmt.`State
-	if self.Is_zero
+	if self == 0
 		"0".Show st
 		return
-	self.sec.Show st
+	self.Sec.Show st
 	"s".Show st
-	self.nsec.Show st
+	(self.I64 % onebillion.I64).Show st
