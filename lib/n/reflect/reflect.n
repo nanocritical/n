@@ -84,7 +84,7 @@ Dynisalist met# Init count:Uint
 	let table_size = math.Roundup_pow2 count.U64 such
 		if 3*table_size < 4*count.U64
 			table_size *= 2
-	Realloc @#self#hashmap table_size.Uint
+	Realloc @#self#hashmap table_size.To_uint
 	self!hashmap = self!hashmap![.. self.hashmap.Cap]
 
 	Realloc @#self#entries count

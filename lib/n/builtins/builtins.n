@@ -1055,7 +1055,7 @@ inline I64 met I64 = I64
 	return self.
 extern inline I64 met force_int = Int
 extern inline I64 met force_intptr = Intptr
-inline I64 met Int = Int
+inline I64 met To_int = Int
 	assert self >= Int.MIN.I64 and self <= Int.MAX.I64
 	return self.force_int
 inline I64 met Try_int = Error_range, Int
@@ -1330,7 +1330,7 @@ inline U64 met U64 = U64
 	return self.
 extern inline U64 met force_uint = Uint
 extern inline U64 met force_uintptr = Uintptr
-inline U64 met Uint = Uint
+inline U64 met To_uint = Uint
 	assert self <= Uint.MAX.U64
 	return self.force_uint
 inline U64 met Try_uint = Error_range, Uint
