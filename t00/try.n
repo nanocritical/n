@@ -2,6 +2,7 @@ from n import *
 
 fun inferred = Error
 	except = UNKNOWN
+	let except, _ = UNKNOWN, 0:I32
 	try
 		throw INVAL
 	catch err
