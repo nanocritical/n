@@ -595,6 +595,18 @@ static void print_call(FILE *out, const struct module *mod,
   const struct node *dfun = DEF(tfun);
   const struct node *parentd = parent_const(dfun);
 
+  if (((dfun->which == DEFFUN && dfun->as.DEFFUN.is_newtype_converter)
+       || (dfun->which == DEFMETHOD && dfun->as.DEFMETHOD.is_newtype_converter))
+      && parentd->which == DEFTYPE && parentd->as.DEFTYPE.newtype_expr != NULL) {
+    const struct node *arg = subs_at_const(node, 1);
+    if (typ_is_reference(arg->typ)) {
+      fprintf(out, "*");
+    }
+    fprintf(out, "(");
+    print_expr(out, mod, subs_at_const(node, 1), T__CALL);
+    fprintf(out, ")");
+    return;
+  }
   if (node_ident(dfun) == ID_CAST) {
     fprintf(out, "(");
     print_typ(out, mod, node->typ);
@@ -1313,7 +1325,12 @@ static void print_typ_name(FILE *out, const struct module *mod,
 
   t = intercept_slices(mod, t);
 
-  const struct scope *scope = &DEF(t)->scope;
+  const struct node *d = DEF(t);
+  if (d->which == DEFTYPE && d->as.DEFTYPE.newtype_expr != NULL) {
+    d = DEF(d->as.DEFTYPE.newtype_expr->typ);
+  }
+
+  const struct scope *scope = &d->scope;
   print_scope_name(out, mod, scope);
 }
 
@@ -1962,10 +1979,11 @@ static void guard_generic(FILE *out, bool header, enum forward fwd,
 static void print_deffun(FILE *out, bool header, enum forward fwd,
                          const struct module *mod, const struct node *node,
                          struct fintypset *printed) {
+  const struct node *par = parent_const(node);
   if (fwd != FWD_DECLARE_FUNCTIONS && fwd != FWD_DEFINE_FUNCTIONS) {
     return;
   }
-  if (parent_const(node)->which == DEFINTF) {
+  if (par->which == DEFINTF) {
     return;
   }
   if (node_is_extern(node) && fwd == FWD_DEFINE_FUNCTIONS) {
@@ -1975,13 +1993,17 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     return;
   }
   if (node_ident(node) == ID_NEXT
-      && typ_generic_functor_const(parent_const(node)->typ) != NULL
-      && typ_equal(typ_generic_functor_const(parent_const(node)->typ), TBI_VARARG)) {
+      && typ_generic_functor_const(par->typ) != NULL
+      && typ_equal(typ_generic_functor_const(par->typ), TBI_VARARG)) {
     // This is a builtin and does not have a real function prototype.
     return;
   }
+  if (((node->which == DEFFUN && node->as.DEFFUN.is_newtype_ignore)
+       || (node->which == DEFMETHOD && node->as.DEFMETHOD.is_newtype_ignore))
+      && par->which == DEFTYPE && par->as.DEFTYPE.newtype_expr != NULL) {
+    return;
+  }
 
-  const struct node *par = parent_const(node);
   const bool is_gen = typ_generic_arity(node->typ) > 0
     || typ_generic_arity(par->typ) > 0;
   if (!is_gen) {
@@ -2767,6 +2789,12 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
     fprintf(out, ";\n");
   } else if (d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     print_enum(out, false, FWD_DECLARE_TYPES, mod, d, d, NULL);
+  } else if (d->as.DEFTYPE.newtype_expr != NULL) {
+    fprintf(out, "typedef ");
+    print_typ(out, mod, d->as.DEFTYPE.newtype_expr->typ);
+    fprintf(out, " ");
+    print_deftype_name(out, mod, d);
+    fprintf(out, ";\n");
   } else if (!(typ_is_builtin(mod, d->typ) && node_is_extern(d))) {
     prefix = "struct ";
     fprintf(out, "struct ");
@@ -2812,6 +2840,10 @@ static void print_deftype(FILE *out, bool header, enum forward fwd,
     return;
   }
   if (fwd == FWD_DEFINE_DYNS) {
+    return;
+  }
+
+  if (node->as.DEFTYPE.newtype_expr != NULL) {
     return;
   }
 

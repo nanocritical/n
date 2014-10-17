@@ -18,6 +18,7 @@ const char *idents_value(const struct globalctx *gctx, ident id);
 ident idents_add(struct globalctx *gctx, const struct token *tok);
 ident idents_add_string(struct globalctx *gctx, const char *name, size_t len);
 
+void deffun_count_args(struct node *def);
 bool name_is_export(const struct module *mod, const struct node *name);
 
 void copy_and_extend_import_path(struct module *mod, struct node *imported,

@@ -325,6 +325,8 @@ struct node_dyn {
 struct node_deffun {
   struct toplevel toplevel;
   enum token_type access;
+  bool is_newtype_converter;
+  bool is_newtype_ignore;
   ssize_t min_args, max_args, first_vararg;
   const struct typ *member_from_intf;
 };
@@ -343,11 +345,15 @@ struct node_deftype {
   struct typ *tag_typ;
   struct node *default_choice;
 
+  struct node *newtype_expr;
+
   struct __Type *reflect_type;
 };
 struct node_defmethod {
   struct toplevel toplevel;
   enum token_type access;
+  bool is_newtype_converter;
+  bool is_newtype_ignore;
   ssize_t min_args, max_args, first_vararg, first_wildcard_genarg;
   const struct typ *member_from_intf;
 };
@@ -1434,8 +1440,8 @@ const struct node *node_get_member_const(const struct node *node, ident id);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);
 void node_deepcopy(struct module *mod, struct node *dst,
                    const struct node *src);
-void node_deepcopy_tentative(struct module *mod, struct node *dst,
-                             const struct node *src);
+void node_deepcopy_omit_tail_block(struct module *mod, struct node *dst,
+                                   const struct node *src);
 
 struct node *defincomplete_create(struct module *mod, const struct node *trigger);
 void defincomplete_set_ident(struct module *mod, const struct node *for_error,

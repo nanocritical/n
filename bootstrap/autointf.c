@@ -3,6 +3,7 @@
 #include "types.h"
 #include "passes.h"
 #include "parser.h"
+#include <ctype.h>
 
 struct intf_proto_rewrite_state {
   struct typ *thi;
@@ -76,7 +77,7 @@ static ERROR pass_rewrite_proto(struct module *mod, struct node *root,
 static void intf_proto_deepcopy(struct module *mod,
                                 struct node *dst, const struct tit *src,
                                 const struct typ *thi) {
-  node_deepcopy(mod, dst, tit_node_ignore_any_overlay(src));
+  node_deepcopy_omit_tail_block(mod, dst, tit_node_ignore_any_overlay(src));
 
   PUSH_STATE(mod->state->step_state);
   error e = pass_rewrite_proto(mod, dst, (void *)thi, -1);
@@ -440,6 +441,112 @@ static bool need_auto_member(struct typ *intf, struct tit *mi) {
   default:
     return false;
   }
+}
+
+STEP_NM(step_autointf_newtype,
+        NM(DEFTYPE));
+error step_autointf_newtype(struct module *mod, struct node *node,
+                            void *user, bool *stop) {
+  struct node *nt = node->as.DEFTYPE.newtype_expr;
+  if (nt == NULL) {
+    return 0;
+  }
+
+  struct typ *t = nt->typ;
+  if (typ_definition_which(t) != DEFTYPE) {
+    error e = mk_except_type(mod, node, "newtype argument must be a"
+                             " struct, enum, or union, not '%s'", pptyp(mod, t));
+    THROW(e);
+  }
+
+  struct tit *ms = typ_definition_members(t, DEFFUN, DEFMETHOD, LET, 0);
+  while (tit_next(ms)) {
+    ident name = tit_ident(ms);;
+    if (tit_which(ms) == LET) {
+      struct tit *def = tit_let_def(ms);
+      name = tit_ident(def);
+      tit_next(def);
+    }
+
+    if (name == ID_THIS || name == ID_FINAL) {
+      continue;
+    }
+
+    struct node *existing = node_get_member(node, name);
+    if (existing != NULL) {
+      continue;
+    }
+
+    struct node *m = define_builtin_start(mod, node, node->typ, ms);
+    if (m->which == DEFFUN) {
+      m->as.DEFFUN.is_newtype_ignore = true;
+    } else if (m->which == DEFMETHOD) {
+      m->as.DEFMETHOD.is_newtype_ignore = true;
+    }
+    define_builtin_catchup(mod, m);
+  }
+
+  const ident namet = typ_definition_ident(t);
+  const char *namet_s = idents_value(mod->gctx, namet);
+
+  char *n = calloc(sizeof("From_") + strlen(namet_s), 1);
+  sprintf(n, "%crom_%s", "fF"[!!isupper(namet_s[0])], namet_s);
+  n[sizeof("From_")-1] = tolower(n[sizeof("From_")-1]);
+  const ident from_name = idents_add_string(mod->gctx, n, strlen(n));
+  free(n);
+  const ident to_name = namet;
+
+  GSTART();
+  if (node_get_member(node, from_name) == NULL) {
+    G0(from, node, DEFFUN,
+       from->as.DEFFUN.is_newtype_converter = true;
+       from->as.DEFFUN.is_newtype_ignore = true;
+       G(id, IDENT,
+         id->as.IDENT.name = from_name);
+       G(ga, GENARGS);
+       G(args, FUNARGS,
+         G(arg, DEFARG,
+           G_IDENT(narg, "x");
+           G(targ, DIRECTDEF,
+             set_typ(&targ->as.DIRECTDEF.typ, t)));
+         G(ret, DEFARG,
+           G(nret, IDENT,
+             nret->as.IDENT.name = ID_NRETVAL);
+           G(tret, IDENT,
+             tret->as.IDENT.name = ID_THIS);
+           ret->as.DEFARG.is_retval = true));
+       G(w, WITHIN));
+    deffun_count_args(from);
+    define_builtin_catchup(mod, from);
+  }
+
+  if (node_get_member(node, to_name) == NULL) {
+    G0(to, node, DEFMETHOD,
+       to->as.DEFMETHOD.is_newtype_converter = true;
+       to->as.DEFMETHOD.is_newtype_ignore = true;
+       G(id, IDENT,
+         id->as.IDENT.name = to_name);
+       G(ga, GENARGS);
+       G(args, FUNARGS,
+         G(self, DEFARG,
+           G(nself, IDENT,
+             nself->as.IDENT.name = ID_SELF);
+           G(rself, UN,
+             rself->as.UN.operator = TREFDOT;
+             G(tself, IDENT,
+               tself->as.IDENT.name = ID_THIS)));
+         G(ret, DEFARG,
+           G(nret, IDENT,
+             nret->as.IDENT.name = ID_NRETVAL);
+           G(tret, DIRECTDEF,
+             set_typ(&tret->as.DIRECTDEF.typ, t));
+           ret->as.DEFARG.is_retval = true));
+       G(w, WITHIN));
+    deffun_count_args(to);
+    define_builtin_catchup(mod, to);
+  }
+
+  return 0;
 }
 
 static ERROR add_auto_isa_eachisalist(struct module *mod,

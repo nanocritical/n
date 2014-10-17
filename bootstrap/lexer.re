@@ -291,6 +291,7 @@ normal:
   "met" { R(Tmethod); }
   "shallow" { R(Tshallow); }
   "intf" { R(Tintf); }
+  "newtype" { R(Tnewtype); }
   "inline" { R(Tinline); }
   "let" { R(Tlet); }
   "var" { R(Tlet); }

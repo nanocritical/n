@@ -2144,7 +2144,7 @@ static ERROR p_deffun_access(struct node *node, struct module *mod) {
   return 0;
 }
 
-static void count_args(struct node *def) {
+void deffun_count_args(struct node *def) {
   ssize_t *min, *max, *first_va;
   switch(def->which) {
   case DEFFUN:
@@ -2298,7 +2298,7 @@ no_retval:
   insert_void_ret(node_new_subnode(mod, funargs), mod);
 
 within:
-  count_args(node);
+  deffun_count_args(node);
 
   e = scan(&tok, mod);
   EXCEPT(e);
@@ -2527,6 +2527,7 @@ static ERROR p_deftype(struct node *node, struct module *mod,
   node->as.DEFTYPE.toplevel = *toplevel;
   switch (decl_tok) {
   case Tstruct:
+  case Tnewtype:
     node->as.DEFTYPE.kind = DEFTYPE_STRUCT;
     break;
   case Tenum:
@@ -2551,6 +2552,14 @@ static ERROR p_deftype(struct node *node, struct module *mod,
   EXCEPT(e);
 
   (void)mk_node(mod, node, ISALIST);
+
+  if (decl_tok == Tnewtype) {
+    e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
+    EXCEPT(e);
+    node->as.DEFTYPE.newtype_expr = subs_last(node);
+    node_subs_remove(node, subs_last(node));
+    goto done;
+  }
 
   struct token tok = { 0 };
   e = scan_oneof(&tok, mod, TEOL, TSOB, 0);
@@ -2861,6 +2870,7 @@ bypass:
   case Tstruct:
   case Tenum:
   case Tunion:
+  case Tnewtype:
     node = NEW(mod, node);
     if (!subs_count_atleast(node, 1)) {
       (void)node_new_subnode(mod, node);

@@ -19,6 +19,7 @@ enum token_type {
   Tmethod,
   Tshallow,
   Tintf,
+  Tnewtype,
   Tinline,
   Tlet,
   Tsuch,

@@ -2,7 +2,7 @@ if exists("b:current_syntax") | finish | endif
 let b:current_syntax = "n"
 
 syn keyword nInclude import from
-syn keyword nDecl union struct enum atom intf
+syn keyword nDecl union struct enum atom intf newtype
 syn keyword nFunction fun met shallow delegate
 syn keyword nStorageClass inline extern opaque
 syn keyword nExport export

@@ -1,5 +1,8 @@
 #include "nodes.h"
 
+const uint64_t step_autointf_newtype_filter;
+ERROR step_autointf_newtype(struct module *mod, struct node *node,
+                            void *user, bool *stop);
 const uint64_t step_autointf_enum_union_isalist_filter;
 ERROR step_autointf_enum_union_isalist(struct module *mod, struct node *node,
                                        void *user, bool *stop);

@@ -196,7 +196,6 @@ static ERROR step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
       // count.  By setting it to false, we could be loosing track of uses
       // before the declaration of 'self', but that would have to be in a
       // generic argument specification, meaning that TOP_IS_NOT_DYN anyway.
-      assert(mod->state->fun_state->fun_uses_final);
       mod->state->fun_state->fun_uses_final = false;
     }
     break;
@@ -539,10 +538,35 @@ static ERROR step_add_builtin_members_enum_union(struct module *mod, struct node
   return 0;
 }
 
+static STEP_NM(step_type_newtype_expr,
+               NM(DEFTYPE));
+static ERROR step_type_newtype_expr(struct module *mod, struct node *node,
+                                    void *user, bool *stop) {
+  struct node *nt = node->as.DEFTYPE.newtype_expr;
+  if (nt == NULL) {
+    return 0;
+  }
+
+  // Temporarily put it in the tree to allow for scope resolution.
+  node_subs_append(node, nt);
+  error e = early_typing(mod, subs_last(node));
+  EXCEPT(e);
+  node_subs_remove(node, subs_last(node));
+
+  struct node *isalist = subs_at(node, IDX_ISALIST);
+  struct node *orig_isalist = subs_at(typ_definition_ignore_any_overlay(nt->typ),
+                                      IDX_ISALIST);
+  FOREACH_SUB(oisa, orig_isalist) {
+    node_deepcopy(mod, node_new_subnode(mod, isalist), oisa);
+  }
+
+  return 0;
+}
+
 static STEP_NM(step_type_genargs,
                STEP_NM_DEFS);
 static ERROR step_type_genargs(struct module *mod, struct node *node,
-                                         void *user, bool *stop) {
+                               void *user, bool *stop) {
   DSTEP(mod, node);
   error e;
 
@@ -1281,6 +1305,8 @@ static ERROR passfwd3(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
+    DOWN_STEP(step_type_newtype_expr);
+    DOWN_STEP(step_autointf_newtype);
     ,
     UP_STEP(step_type_isalist);
     ,
