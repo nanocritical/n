@@ -407,7 +407,7 @@ fun convert_error code:I32 = Error
 	| _EHWPOISON -> return EHWPOISON
 	| _ -> return UNKNOWN
 
-alias Open_flags = U32
+alias Open_flags = I32
 extern let O_RDONLY:Open_flags
 extern let O_WRONLY:Open_flags
 extern let O_RDWR:Open_flags
@@ -431,6 +431,9 @@ extern let O_TMPFILE:Open_flags
 extern let O_TRUNC:Open_flags
 
 alias Mode = U32
+let S_ISUID = 04000:Mode
+let S_ISGID = 02000:Mode
+let S_ISVTX = 01000:Mode
 let S_IRWXU = 00700:Mode
 let S_IRUSR = 00400:Mode
 let S_IWUSR = 00200:Mode
@@ -444,6 +447,9 @@ let S_IROTH = 00004:Mode
 let S_IWOTH = 00002:Mode
 let S_IXOTH = 00001:Mode
 
+extern let AT_FDCWD:Int
+extern let AT_SYMLINK_FOLLOW:I32
+
 extern let SEEK_SET:Int
 extern let SEEK_CUR:Int
 extern let SEEK_END:Int
@@ -456,6 +462,7 @@ extern fun close fd:Int = Int
 extern fun open pathname:@U8 flags:Open_flags mode:Mode = Int
 extern fun openat dirfd:Int pathname:@U8 flags:Open_flags mode:Mode = Int
 extern fun mkfifoat dirfd:Int pathname:@U8 mode:Mode = Int
+extern fun linkat olddirfd:Int oldpath:@U8 newdirfd:Int newpath:@U8 flags:I32 = Int
 extern fun write fd:Int buf:@U8 count:Uint = Int
 extern fun pwrite fd:Int buf:@U8 count:Uint off:Uint = Int
 extern fun read fd:Int buf:@!U8 count:Uint = Int
@@ -493,6 +500,13 @@ fun Mkfifoat dirfd:Int pathname:String mode:Mode = Int, Error
 	if fd >= 0
 		return fd, OK
 	return fd, convert_error errno
+
+fun Linkat olddirfd:Int oldpath:String newdirfd:Int newpath:String flags:I32 = Error
+	let ret = linkat olddirfd (cstring.Mk oldpath).Rawdata
+		\ newdirfd (cstring.Mk newpath).Rawdata flags
+	if ret >= 0
+		return OK
+	return convert_error errno
 
 fun Write fd:Int b:[]U8 = []U8, Error
 	let cnt = write fd b.Unsafe_rawdata b.Count

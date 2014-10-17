@@ -143,27 +143,30 @@ static NB(I32) SY(_ENOTRECOVERABLE) = ENOTRECOVERABLE;
 static NB(I32) SY(_ERFKILL) = ERFKILL;
 static NB(I32) SY(_EHWPOISON) = EHWPOISON;
 
-NB(U32) SY(O_RDONLY) = O_RDONLY;
-NB(U32) SY(O_WRONLY) = O_WRONLY;
-NB(U32) SY(O_RDWR) = O_RDWR;
-NB(U32) SY(O_APPEND) = O_APPEND;
-NB(U32) SY(O_ASYNC) = O_ASYNC;
-NB(U32) SY(O_CLOEXEC) = O_CLOEXEC;
-NB(U32) SY(O_CREAT) = O_CREAT;
-NB(U32) SY(O_DIRECT) = O_DIRECT;
-NB(U32) SY(O_DIRECTORY) = O_DIRECTORY;
-NB(U32) SY(O_DSYNC) = O_DSYNC;
-NB(U32) SY(O_EXCL) = O_EXCL;
-NB(U32) SY(O_LARGEFILE) = O_LARGEFILE;
-NB(U32) SY(O_NOATIME) = O_NOATIME;
-NB(U32) SY(O_NOCTTY) = O_NOCTTY;
-NB(U32) SY(O_NOFOLLOW) = O_NOFOLLOW;
-NB(U32) SY(O_NONBLOCK) = O_NONBLOCK;
-NB(U32) SY(O_NDELAY) = O_NDELAY;
-NB(U32) SY(O_PATH) = O_PATH;
-NB(U32) SY(O_SYNC) = O_SYNC;
-NB(U32) SY(O_TMPFILE) = O_TMPFILE;
-NB(U32) SY(O_TRUNC) = O_TRUNC;
+NB(I32) SY(O_RDONLY) = O_RDONLY;
+NB(I32) SY(O_WRONLY) = O_WRONLY;
+NB(I32) SY(O_RDWR) = O_RDWR;
+NB(I32) SY(O_APPEND) = O_APPEND;
+NB(I32) SY(O_ASYNC) = O_ASYNC;
+NB(I32) SY(O_CLOEXEC) = O_CLOEXEC;
+NB(I32) SY(O_CREAT) = O_CREAT;
+NB(I32) SY(O_DIRECT) = O_DIRECT;
+NB(I32) SY(O_DIRECTORY) = O_DIRECTORY;
+NB(I32) SY(O_DSYNC) = O_DSYNC;
+NB(I32) SY(O_EXCL) = O_EXCL;
+NB(I32) SY(O_LARGEFILE) = O_LARGEFILE;
+NB(I32) SY(O_NOATIME) = O_NOATIME;
+NB(I32) SY(O_NOCTTY) = O_NOCTTY;
+NB(I32) SY(O_NOFOLLOW) = O_NOFOLLOW;
+NB(I32) SY(O_NONBLOCK) = O_NONBLOCK;
+NB(I32) SY(O_NDELAY) = O_NDELAY;
+NB(I32) SY(O_PATH) = O_PATH;
+NB(I32) SY(O_SYNC) = O_SYNC;
+NB(I32) SY(O_TMPFILE) = O_TMPFILE;
+NB(I32) SY(O_TRUNC) = O_TRUNC;
+
+NB(Int) SY(AT_FDCWD) = AT_FDCWD;
+NB(I32) SY(AT_SYMLINK_FOLLOW) = AT_SYMLINK_FOLLOW;
 
 NB(Int) SY(SEEK_SET) = SEEK_SET;
 NB(Int) SY(SEEK_CUR) = SEEK_CUR;
@@ -194,13 +197,13 @@ static NB(Int) SY(close)(NB(Int) fd) {
   return ret;
 }
 
-static NB(Int) SY(open)(NB(U8) *pathname, NB(U32) flags, NB(U32) mode) {
+static NB(Int) SY(open)(NB(U8) *pathname, NB(I32) flags, NB(U32) mode) {
   int ret = open((char *) pathname, flags, mode);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(openat)(NB(Int) dirfd, NB(U8) *pathname, NB(U32) flags, NB(U32) mode) {
+static NB(Int) SY(openat)(NB(Int) dirfd, NB(U8) *pathname, NB(I32) flags, NB(U32) mode) {
   int ret = openat(dirfd, (char *) pathname, flags, mode);
   _$Nlatestsyscallerrno = errno;
   return ret;
@@ -208,6 +211,13 @@ static NB(Int) SY(openat)(NB(Int) dirfd, NB(U8) *pathname, NB(U32) flags, NB(U32
 
 static NB(Int) SY(mkfifoat)(NB(Int) dirfd, NB(U8) *pathname, NB(U32) mode) {
   int ret = mkfifoat(dirfd, (char *) pathname, mode);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(linkat)(NB(Int) olddirfd, NB(U8) *oldpath,
+                          NB(Int) newdirfd, NB(U8) *newpath, NB(I32) flags) {
+  int ret = linkat(olddirfd, (char *) oldpath, newdirfd, (char *) newpath, flags);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
