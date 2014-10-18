@@ -1350,7 +1350,7 @@ static ERROR p_try(struct node *node, struct module *mod) {
 
   bool first = true;
   bool has_label = false;
-  struct token tok = { 0 }, label = { 0 };
+  struct token tok = { 0 }, label = { 0 }, last_eol = { 0 };
   struct node *catch;
 
 again:
@@ -1367,6 +1367,9 @@ again:
     }
 
     back(mod, &tok);
+    if (!first) {
+      back(mod, &last_eol);
+    }
     return 0;
   }
 
@@ -1411,8 +1414,12 @@ again:
   EXCEPT(e);
   e = p_block(node_new_subnode(mod, block), mod);
   EXCEPT(e);
-  e = scan_expected(mod, TEOL);
+
+  e = scan(&last_eol, mod);
   EXCEPT(e);
+  if (last_eol.t != TEOL) {
+    UNEXPECTED(mod, &last_eol);
+  }
 
   first = false;
   goto again;
