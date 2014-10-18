@@ -13,7 +13,7 @@ syn keyword nAssert assert pre post invariant
 syn keyword nDecl example alias within globalenv
 syn keyword nDecl contract honors _honors
 
-syn keyword nConditional if elif else match
+syn keyword nConditional if elif else match try catch
 syn keyword nRepeat while for pfor foreach pforeach
 syn keyword nKeyword var let block lambda async such
 syn keyword nStatement return continue break unreached
@@ -21,7 +21,6 @@ syn keyword nConditional and or
 syn match nDecl "^  isa" contains=nExport
 syn keyword nOperator sizeof alignof nullable isa Dyncast not in
 syn keyword nKeyword noop as declare
-syn keyword nKeyword try catch
 syn keyword nException except throw Drop Fatal
 syn match nOperator "bw[&|\^~]"
 syn match nOperator "ov+"
