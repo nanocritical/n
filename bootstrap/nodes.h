@@ -402,6 +402,7 @@ struct node_defarg {
 };
 struct node_defgenarg {
   bool is_explicit;
+  // Whether the spec of a genarg is expressed in terms of previous genargs.
   bool has_dependent_spec;
 };
 struct node_setgenarg {
