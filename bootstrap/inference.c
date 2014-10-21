@@ -675,7 +675,11 @@ rewrote_op:
       node->as.UN.operator = rop;
       // fallthrough
     case T__DEOPT:
-      assert(typ_is_optional(term->typ));
+      if (!typ_is_optional(term->typ)) {
+        e = mk_except_type(mod, term, "postfix '?' must be used on reference"
+                           " or optional type");
+        THROW(e);
+      }
       set_typ(&node->typ, typ_generic_arg(term->typ, 0));
       node->flags |= term->flags & NODE__TRANSITIVE;
       break;
