@@ -637,7 +637,6 @@ static void add_enum_bwall(struct module *mod, struct node *node) {
   G0(let, node, LET,
      let->flags |= NODE_IS_GLOBAL_LET;
      G(defn, DEFNAME,
-       defn->flags |= NODE_IS_GLOBAL_LET;
        G_IDENT(valn, "BWALL");
        G(valc, TYPECONSTRAINT,
          G(val, NUMBER,

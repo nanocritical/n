@@ -1260,7 +1260,7 @@ static void print_linkage(FILE *out, bool header, enum forward fwd,
     fprintf(out, "extern ");
   } else if ((flags & TOP_IS_INLINE) && node->which != DEFNAME) {
     fprintf(out, "static inline ");
-  } else if (node_is_at_top(node) && !(flags & TOP_IS_EXPORT)) {
+  } else if (node_is_at_top(at_top) && !(flags & TOP_IS_EXPORT)) {
     fprintf(out, "static ");
   }
 }

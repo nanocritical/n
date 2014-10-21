@@ -298,6 +298,7 @@ static ERROR ssa_convert_global(struct module *mod, struct node *node) {
 
   GSTART();
   G0(let, parwhere, LET,
+     let->flags |= NODE_IS_GLOBAL_LET;
     G(defn, DEFNAME,
       G(name, IDENT,
         name->as.IDENT.name = gensym(mod));

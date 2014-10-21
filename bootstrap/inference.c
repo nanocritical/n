@@ -2270,12 +2270,8 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
   }
 
   node->as.IDENT.def = def;
-  if (parent_const(def)->which == MODULE_BODY
-      || parent_const(def)->which == DEFTYPE
-      || parent_const(def)->which == DEFINTF) {
-    node->as.IDENT.non_local_scope = &parent(def)->scope;
-  } else if (def->flags & NODE_IS_GLOBAL_LET) {
-    node->as.IDENT.non_local_scope = &parent(parent(parent(def)))->scope;
+  if (def->flags & NODE_IS_GLOBAL_LET) {
+    node->as.IDENT.non_local_scope = &nparent(def, 2)->scope;
   } else if (def->which == WITHIN) {
     node->as.IDENT.non_local_scope = &def->as.WITHIN.globalenv_scope->scope;
   }
@@ -2357,7 +2353,7 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
   }
 
   set_typ(&node->typ, def->typ);
-  node->flags |= def->flags;
+  node->flags |= def->flags & NODE__TRANSITIVE;
   return 0;
 
 malformed:
@@ -2568,6 +2564,7 @@ error step_type_inference(struct module *mod, struct node *node,
 
     set_typ(&node->typ, subs_last(node)->typ);
     node->flags |= subs_last(node)->flags & NODE__TRANSITIVE;
+    node->flags |= parent_const(node)->flags & NODE_IS_GLOBAL_LET;
 
     if (try_remove_unnecessary_ssa_defname(mod, node)) {
       set_typ(&node->typ, TBI_VOID);

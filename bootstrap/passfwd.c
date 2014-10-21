@@ -935,6 +935,7 @@ static ERROR propagate(struct module *mod, struct node *par, struct node *expr) 
     {
       struct node *def = expr->as.IDENT.def;
       assert(def != NULL && def->which == DEFNAME);
+      def->as.DEFNAME.may_be_unused = true;
       replace_sub(mod, par, expr, subs_last(def));
     }
     break;

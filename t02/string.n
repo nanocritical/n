@@ -6,6 +6,7 @@ fun foo = String
 	return 'test'
 
 fun Main = I32
+	Prn constant
 	Prn 'test'
 	Prn foo
 	return 0
