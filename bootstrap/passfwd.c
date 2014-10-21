@@ -1309,7 +1309,6 @@ static ERROR passfwd3(struct module *mod, struct node *root,
     DOWN_STEP(step_type_newtype_expr);
     DOWN_STEP(step_autointf_newtype);
     ,
-    UP_STEP(step_type_isalist);
     ,
     FINALLY_STEP(step_pop_state);
     );
@@ -1325,7 +1324,7 @@ static ERROR passfwd4(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_funblock);
     ,
     UP_STEP(step_type_aliases);
-    UP_STEP(step_autointf_enum_union_isalist);
+    UP_STEP(step_type_isalist);
     ,
     FINALLY_STEP(step_pop_state);
     );
@@ -1339,8 +1338,27 @@ static ERROR passfwd5(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
+    ,
+    UP_STEP(step_autointf_enum_union_isalist);
+    ,
+    FINALLY_STEP(step_pop_state);
+    );
+  return 0;
+}
+
+ssize_t ready_for_quickisa_pass(void) {
+  return PASSZERO_COUNT + 6; // i.e. passfwd5
+}
+
+static ERROR passfwd6(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  PASS(
+    DOWN_STEP(step_push_state);
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_stop_marker_tbi);
+    DOWN_STEP(step_stop_funblock);
     DOWN_STEP(step_validate_genargs);
-    DOWN_STEP(step_type_update_quickisa);
+    DOWN_STEP(step_type_update_quickisa); // see ready_for_quickisa_pass()
     ,
     UP_STEP(step_detect_prevent_dyn);
     ,
@@ -1349,7 +1367,7 @@ static ERROR passfwd5(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd6(struct module *mod, struct node *root,
+static ERROR passfwd7(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1367,7 +1385,7 @@ static ERROR passfwd6(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd7(struct module *mod, struct node *root,
+static ERROR passfwd8(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1382,7 +1400,7 @@ static ERROR passfwd7(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd8(struct module *mod, struct node *root,
+static ERROR passfwd9(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1400,8 +1418,8 @@ static ERROR passfwd8(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd9(struct module *mod, struct node *root,
-                      void *user, ssize_t shallow_last_up) {
+static ERROR passfwd10(struct module *mod, struct node *root,
+                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
@@ -1418,7 +1436,7 @@ static ERROR passfwd9(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd10(struct module *mod, struct node *root,
+static ERROR passfwd11(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1447,4 +1465,5 @@ a_pass passfwd[] = {
   passfwd8,
   passfwd9,
   passfwd10,
+  passfwd11,
 };

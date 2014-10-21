@@ -7,6 +7,7 @@
 #include "inference.h"
 #include "instantiate.h"
 #include "parser.h"
+#include "passfwd.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -678,6 +679,11 @@ static ERROR update_quickisa_isalist_each(struct module *mod,
 }
 
 void typ_create_update_quickisa(struct typ *t) {
+  if (node_toplevel_const(typ_definition_ignore_any_overlay_const(t))->passed
+      <= ready_for_quickisa_pass()) {
+    return;
+  }
+
   error never = typ_isalist_foreach(NULL, t, 0, update_quickisa_isalist_each, NULL);
   assert(!never);
 

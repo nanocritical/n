@@ -27,7 +27,7 @@ typedef error (*a_pass)(struct module *mod, struct node *root,
                         void *user, ssize_t shallow_last_up);
 
 #define PASSZERO_COUNT 2
-#define PASSFWD_COUNT 11
+#define PASSFWD_COUNT 12
 #define PASSBODY_COUNT 3
 #define PASSSEMFWD_COUNT 7
 #define PASSSEMBODY_COUNT 1
