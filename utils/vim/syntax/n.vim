@@ -50,6 +50,7 @@ set iskeyword+=`
 
 syn match nSpaceError display excludenl "\s\+$"
 syn match nSpaceError display "^\t*\ \+"me=e-1
+syn match nSpaceError display "^ \+\t*"me=e-1
 
 "integer number, or floating point number without a dot and with "f".
 syn case ignore
