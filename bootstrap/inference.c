@@ -1368,11 +1368,12 @@ static ERROR typ_tuple(struct typ **result, struct module *mod, struct node *nod
 static ERROR type_inference_tuple(struct module *mod, struct node *node) {
   size_t n = 0;
   FOREACH_SUB(s, node) {
-    if (n > 0 && (node->flags & NODE_IS_TYPE) != (s->flags & NODE_IS_TYPE)) {
+    const uint32_t s_flags = (s->which == DEFARG ? subs_last(s) : s)->flags;
+    if (n > 0 && (node->flags & NODE_IS_TYPE) != (s_flags & NODE_IS_TYPE)) {
       error e = mk_except_type(mod, s, "tuple combines values and types");
       THROW(e);
     }
-    node->flags |= (s->flags & NODE__TRANSITIVE);
+    node->flags |= (s_flags & NODE__TRANSITIVE);
     n += 1;
   }
 
