@@ -286,8 +286,8 @@ static ERROR step_from_string_call_inference(struct module *mod, struct node *no
   }
 
   struct typ *saved_typ = node->typ;
-  if (typ_definition_which(saved_typ) == DEFINTF) {
-    assert(0);
+  if (typ_definition_which(saved_typ) == DEFINTF && typ_is_ungenarg(saved_typ)) {
+    return 0;
   }
 
   if (typ_equal(saved_typ, TBI_RUNE)) {
@@ -332,8 +332,11 @@ static ERROR step_from_number_literal_call_inference(struct module *mod, struct 
   if (typ_isa(node->typ, TBI_NATIVE_INTEGER) || typ_isa(node->typ, TBI_FLOATING)) {
     return 0;
   }
-
   struct typ *saved_typ = node->typ;
+  if (typ_definition_which(saved_typ) == DEFINTF && typ_is_ungenarg(saved_typ)) {
+    return 0;
+  }
+
   struct node *s = mk_node(mod, node, STRING);
   node_subs_remove(node, s);
   // Steal it:
@@ -342,6 +345,9 @@ static ERROR step_from_number_literal_call_inference(struct module *mod, struct 
   node_set_which(node, CALL);
 
   struct typ *tfun = typ_member(saved_typ, ID_FROM_NUMBER_LITERAL);
+  fprintf(stderr, "%s\n%s\n\n",pptyp(0,saved_typ),
+          pptyp(0,tfun));
+  __break();
   GSTART();
   G0(fun, node, DIRECTDEF,
      set_typ(&fun->as.DIRECTDEF.typ, tfun);
