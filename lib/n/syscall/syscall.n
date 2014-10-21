@@ -431,6 +431,14 @@ extern let O_TMPFILE:Open_flags
 extern let O_TRUNC:Open_flags
 
 alias Mode = U32
+let S_IFMT = 0170000:Mode
+let S_IFSOCK = 0140000:Mode
+let S_IFLNK = 0120000:Mode
+let S_IFREG = 0100000:Mode
+let S_IFBLK = 0060000:Mode
+let S_IFDIR = 0040000:Mode
+let S_IFCHR = 0020000:Mode
+let S_IFIFO = 0010000:Mode
 let S_ISUID = 04000:Mode
 let S_ISGID = 02000:Mode
 let S_ISVTX = 01000:Mode
@@ -449,12 +457,30 @@ let S_IXOTH = 00001:Mode
 
 extern let AT_FDCWD:Int
 extern let AT_SYMLINK_FOLLOW:I32
+extern let AT_SYMLINK_NOFOLLOW:I32
+extern let AT_EMPTY_PATH:I32
+extern let AT_REMOVEDIR:I32
 
-extern let SEEK_SET:Int
-extern let SEEK_CUR:Int
-extern let SEEK_END:Int
-extern let SEEK_DATA:Int
-extern let SEEK_HOLE:Int
+-- Requires Linux >= 3.15
+extern let RENAME_NOREPLACE:U32
+extern let RENAME_EXCHANGE:U32
+
+extern let SEEK_SET:I32
+extern let SEEK_CUR:I32
+extern let SEEK_END:I32
+extern let SEEK_DATA:I32
+extern let SEEK_HOLE:I32
+
+extern let XATTR_CREATE:I32
+extern let XATTR_REPLACE:I32
+
+inline struct Stat_t =
+	Size		:Uint
+	Mtime_sec	:Int
+	Mtime_nsec	:U32
+	Mode		:U32
+	Owner		:U32
+	Group		:U32
 
 extern fun errno = I32
 extern fun unlink pathname:@U8 = Int
@@ -463,12 +489,26 @@ extern fun open pathname:@U8 flags:Open_flags mode:Mode = Int
 extern fun openat dirfd:Int pathname:@U8 flags:Open_flags mode:Mode = Int
 extern fun mkfifoat dirfd:Int pathname:@U8 mode:Mode = Int
 extern fun linkat olddirfd:Int oldpath:@U8 newdirfd:Int newpath:@U8 flags:I32 = Int
+extern fun unlinkat dirfd:Int pathname:@U8 flags:I32 = Int
+extern fun mkdirat dirfd:Int pathname:@U8 mode:Mode = Int
+extern fun fchdir fd:Int = Int
+extern fun symlinkat target:@U8 newdirfd:Int linkpath:@U8 = Int
+extern fun readlinkat dirfd:Int pathname:@U8 buf:@!U8 bufsiz:Uint = Int
+extern fun renameat olddirfd:Int oldpath:@U8 newdirfd:Int newpath:@U8 flags:U32 = Int
 extern fun write fd:Int buf:@U8 count:Uint = Int
 extern fun pwrite fd:Int buf:@U8 count:Uint off:Uint = Int
 extern fun read fd:Int buf:@!U8 count:Uint = Int
 extern fun pread fd:Int buf:@!U8 count:Uint off:Uint = Int
-extern fun lseek fd:Int off:Int whence:Int = Int
+extern fun lseek fd:Int off:Int whence:I32 = Int
 extern fun sysconf name:Int = Int
+extern fun fstatat dirfd:Int pathname:@U8 buf:@!Stat_t flags:I32 = Int
+extern fun fdatasync fd:Int = Int
+extern fun fsync fd:Int = Int
+extern fun ftruncate fd:Int size:Uint = Int
+extern fun fchown fd:Int uid:Int gid:Int = Int
+extern fun fsetxattr fd:Int name:@U8 value:@U8 size:Uint flags:I32 = Int
+extern fun fgetxattr fd:Int name:@U8 value:@!U8 size:Uint = Int
+extern fun flistxattr fd:Int list:@!U8 size:Uint = Int
 
 fun Close fd:Int = Error
 	let ret = close fd
@@ -483,26 +523,69 @@ fun Unlink pathname:String = Error
 		return OK
 	return convert_error errno
 
-fun Open pathname:String flags:Open_flags mode:Mode = Int, Error
+fun Open pathname:String flags:Open_flags mode:Mode = Error, Int
 	let fd = open (cstring.Mk pathname).Rawdata flags mode
 	if fd >= 0
-		return fd, OK
-	return -1, convert_error errno
+		return OK, fd
+	return convert_error errno, -1
 
-fun Openat dirfd:Int pathname:String flags:Open_flags mode:Mode = Int, Error
+fun Openat dirfd:Int pathname:String flags:Open_flags mode:Mode = Error, Int
 	let fd = openat dirfd (cstring.Mk pathname).Rawdata flags mode
 	if fd >= 0
-		return fd, OK
-	return fd, convert_error errno
+		return OK, fd
+	return convert_error errno, -1
 
-fun Mkfifoat dirfd:Int pathname:String mode:Mode = Int, Error
+fun Mkfifoat dirfd:Int pathname:String mode:Mode = Error, Int
 	let fd = mkfifoat dirfd (cstring.Mk pathname).Rawdata mode
 	if fd >= 0
-		return fd, OK
-	return fd, convert_error errno
+		return OK, fd
+	return convert_error errno, fd
 
 fun Linkat olddirfd:Int oldpath:String newdirfd:Int newpath:String flags:I32 = Error
 	let ret = linkat olddirfd (cstring.Mk oldpath).Rawdata
+		\ newdirfd (cstring.Mk newpath).Rawdata flags
+	if ret >= 0
+		return OK
+	return convert_error errno
+
+fun Unlinkat dirfd:Int pathname:String flags:I32 = Error
+	let ret = unlinkat dirfd (cstring.Mk pathname).Rawdata flags
+	if ret >= 0
+		return OK
+	return convert_error errno
+
+fun Fchdir fd:Int = Error
+	let ret = fchdir fd
+	if ret >= 0
+		return OK
+	return convert_error errno
+
+fun Mkdirat dirfd:Int pathname:String mode:Mode = Error
+	let ret = mkdirat dirfd (cstring.Mk pathname).Rawdata mode
+	if ret >= 0
+		return OK
+	return convert_error errno
+
+fun Symlinkat target:String newdirfd:Int linkpath:String = Error
+	let ret = symlinkat (cstring.Mk target).Rawdata
+		\ newdirfd (cstring.Mk linkpath).Rawdata
+	if ret >= 0
+		return OK
+	return convert_error errno
+
+fun Readlinkat dirfd:Int pathname:String buf:[]!U8 = Error, []U8
+	let dst = buf![buf.Count .. buf.Cap]
+	let ret = readlinkat dirfd (cstring.Mk pathname).Rawdata
+		\ dst!Unsafe_rawdata dst.Count
+	if ret >= 0
+		return OK, buf.[.. ret.Unsigned]
+	return convert_error errno, {}
+
+fun Renameat olddirfd:Int oldpath:String newdirfd:Int newpath:String flags:U32 = Error
+	if flags != 0
+		-- renameat2(2) isn't yet part of our minimum kernel version requirement.
+		return ENOSYS
+	let ret = renameat olddirfd (cstring.Mk oldpath).Rawdata
 		\ newdirfd (cstring.Mk newpath).Rawdata flags
 	if ret >= 0
 		return OK
@@ -534,7 +617,7 @@ fun Pread fd:Int b:[]!U8 off:Uint = []!U8, Error
 		return b![.. b.Count+cnt.Unsigned], OK
 	return b, convert_error errno
 
-fun Lseek fd:Int off:Int whence:Int = Error, Uint
+fun Lseek fd:Int off:Int whence:I32 = Error, Uint
 	let r = lseek fd off whence
 	if r >= 0
 		return OK, r.Unsigned
@@ -544,13 +627,57 @@ fun Sysconf name:Int = Error, Int
 	let r = sysconf name
 	return convert_error errno, r
 
---fun Getcwd buf:@#Stringbuf = Error
---	buf#Reserve 4*1024
---	let p = 
+fun Fstatat dirfd:Int pathname:String buf:@!Stat_t flags:I32 = Error
+	let r = fstatat dirfd (cstring.Mk pathname).Rawdata buf flags
+	if r >= 0
+		return OK
+	return convert_error errno
+
+fun Fdatasync fd:Int = Error
+	let r = fdatasync fd
+	if r >= 0
+		return OK
+	return convert_error errno
+
+fun Fsync fd:Int = Error
+	let r = fsync fd
+	if r >= 0
+		return OK
+	return convert_error errno
+
+fun Ftruncate fd:Int size:Uint = Error
+	let r = ftruncate fd size
+	if r >= 0
+		return OK
+	return convert_error errno
+
+fun Fchown fd:Int uid:Int gid:Int = Error
+	let r = fchown fd uid gid
+	if r >= 0
+		return OK
+	return convert_error errno
+
+fun Fsetxattr fd:Int name:String value:String flags:I32 = Error
+	let r = fsetxattr fd (cstring.Mk name).Rawdata (cstring.Mk value).Rawdata value.Count flags
+	if r >= 0
+		return OK
+	return convert_error errno
+
+fun Fgetxattr fd:Int name:String value:[]!U8 flags:I32 = Error, Int
+	let r = fgetxattr fd (cstring.Mk name).Rawdata value!Unsafe_rawdata value.Count
+	if r >= 0
+		return OK, r
+	return convert_error errno, 0
+
+fun Flistxattr fd:Int list:[]!U8 = Error, Int
+	let r = flistxattr fd list!Unsafe_rawdata list.Count
+	if r >= 0
+		return OK, r
+	return convert_error errno, 0
 
 example
 	let fn = ".test_syscall"
-	let fd, e = Open fn (O_CREAT | O_RDWR) 0666
+	let e, fd = Open fn (O_CREAT | O_RDWR) 0666
 	assert e == OK
 	assert fd >= 0
 

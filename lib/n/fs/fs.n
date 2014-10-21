@@ -1,0 +1,280 @@
+from n import *
+import n.syscall
+import n.path
+import n.io
+import n.time
+
+-- TODO
+-- * Do not return syscall errors directly, define our own.
+
+-- O_PATH is used by this implementation, but we recommend using it only on
+-- directories. Support on files is limited to a few limited cases on Linux.
+-- O_TMPFILE and /proc are used by Open_file when creating files with
+-- permissions beyond access mode bits.
+
+globalenv Fs:@!`Fs
+
+fun Open_file p:path.Path ?at:?@File ?attr:?@Openattr = Error, @!File within Fs
+fun Path_handle p:path.Path ?at:?@File ?attr:?@Openattr = Error, @!File within Fs
+fun Open_dir p:path.Path ?at:?@File ?attr:?@Openattr = Error, @!File within Fs
+fun Create_temporary ?at:?@File ?attr:?@Openattr
+	\ ?named:?Bool ?prefix:?String ?postfix:?String = Error, @!File within Fs
+
+intf `Fs =
+	isa (`Environment `Fs)
+
+	met Wd = @!File
+	met! Pushdir dir:@!File = Error
+	met! Popdir = Error
+
+	met! Global_chdir dir:@File = Error
+
+	met! Mkdir p:path.Path ?attr:?@Openattr ?recursive:?Bool = Error
+	met! Rmdir p:path.Path ?recursive:?Bool ?even_not_empty:?Bool = Error
+
+	met! Open_file p:path.Path ?at:?@File ?attr:?@Openattr = Error, @!File
+
+	-- Act on a file. Called by File.
+	met! File_close f:@!File = Error
+	met! File_stat f:@File = Error, Stat
+	met File_readlink f:@File = Error, path.Path
+	met! File_datasync f:@!File = Error
+	met! File_sync f:@!File = Error
+	met! File_truncate f:@!File size:Uint = Error
+	met! File_chown f:@!File owner:Int group:Int = Error
+	met File_list_xattr f:@!File buf:@!Stringbuf = Error, list:(Slicebuf String)
+		\ -- ::(x in list => x::(Owned buf))
+	met File_get_xattr f:@!File buf:@!Stringbuf name:String = Error, Uint
+	met! File_set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
+	met! File_remove_xattr f:@!File name:String = Error
+
+	met! File_read f:@!File b:[]!U8 = []!U8, Error
+	met! File_read_at f:@!File b:[]!U8 off:Uint = []!U8, Error
+	met! File_write f:@!File b:[]U8 = []U8, Error
+	met! File_write_at f:@!File b:[]U8 off:Uint = []U8, Error
+	met! File_mmap f:@!File offset:Uint size:Uint prot:Protmask ?shared:?Bool = Error, @!Mmap
+
+	-- Act on a Path.
+	-- 'at' defaults to Wd.
+	met! Symlink target:path.Path p:path.Path ?at:?@File = Error
+	met! Link newpath:path.Path oldpath:path.Path ?newat:?@File ?oldat:?@File ?follow:?Bool = Error
+	met! Unlink p:path.Path ?at:?@File = Error
+	met! Rename newpath:path.Path oldpath:path.Path ?newat:?@File ?oldat:?@File = Error
+	met Stat p:path.Path ?at:?@File ?nofollow:?Bool = Error, Stat
+	met! Readlink p:path.Path ?at:?@File = Error, path.Path
+
+struct Linux_fs =
+	isa `Fs
+	init		:Bool
+	dirstack	:(Slicebuf @!File)
+
+Linux_fs met! Init = Error
+	assert not self.init
+	try
+		let except, cwd = self!Open_file "." attr={Flags={PATH}}
+		self!dirstack#Push! = cwd
+		self!init = true
+		return OK
+	catch err
+		return err
+
+Linux_fs met Wd = @!File
+	assert self.init
+	assert self.dirstack.Count > 0
+	return self.dirstack.Last.
+
+Linux_fs met! Pushdir dir:@!File = Error
+	assert self.init
+	let except, st = dir.Stat
+	if not st.Is_dir
+		return syscall.ENOTDIR
+	self!dirstack#Push! = dir
+	return OK
+
+Linux_fs met! Popdir = Error
+	assert self.init
+	if self.dirstack.Count == 0
+		return INVAL
+	self!dirstack#Pop
+	return OK
+
+Linux_fs met! Global_chdir dir:@File = Error
+	assert self.init
+	except = syscall.Fchdir dir.Fd
+	return OK
+
+fun allows_immediate attr:?@Openattr = Bool
+	return not attr?
+		\ or PATH in attr.Flags
+		\ or not (attr.Owner? or attr.Group? or attr.Xattr.Count > 0)
+
+-- There is a race between the creation of the directory and the setting of the
+-- attributes in permissions (to the exception of the Accessmask). There is no
+-- equivalent to O_TMPFILE for directories.
+Linux_fs met! Mkdir p:path.Path ?attr:?@Openattr ?recursive:?Bool = Error
+	assert not (recursive else false) -- FIXME Add support.
+	assert allows_immediate attr -- FIXME Add support.
+	except = syscall.Mkdirat self.Wd.Fd p.String attr?.sys_open_mode
+	return OK
+
+Linux_fs met! Rmdir p:path.Path ?recursive:?Bool ?even_non_empty:?Bool = Error
+	assert not (recursive else false) -- FIXME Add support.
+	assert not (even_non_empty else false) -- FIXME Add support.
+	except = syscall.Unlinkat self.Wd.Fd p.String syscall.AT_REMOVEDIR
+	return OK
+
+Linux_fs met! Open_file p:path.Path ?at:?@File ?attr:?@Openattr = Error, @!File
+	let flags = attr?.sys_open_flags else 0
+	let mode = attr?.sys_open_mode else 0
+	let atfd = at?.Fd else self.Wd.Fd
+	var fd = -1
+	try
+		if allows_immediate attr
+			except OPEN, fd = syscall.Openat atfd p.String flags mode
+		else
+			except OPEN, fd = syscall.Openat atfd p.String flags mode
+
+			if attr?.Owner? or attr?.Group?
+				except CLOSE = syscall.Fchown fd
+					\ (attr?.Owner else -1)
+					\ (attr?.Group else -1)
+
+			if (attr?.Xattr?.Count else 0) > 0
+				foreach key, val in attr.Xattr
+					except CLOSE = syscall.Fsetxattr fd key.String val.String
+						\ syscall.XATTR_REPLACE
+
+			let fdpath = {}:path.Path such
+				fdpath#Join "/proc/self/fd" fd
+			except CLOSE = syscall.Linkat -1 fdpath.String
+				\ atfd p.String
+				\ syscall.AT_SYMLINK_FOLLOW
+	catch OPEN err
+		return err, nil
+	catch CLOSE err
+		Drop <- syscall.Close fd
+		return err, nil
+
+	let f = Alloc File such
+		f!fs = self
+		f!fd = fd
+		f!pathname = p.Base
+	return OK, f
+
+Linux_fs met! File_close f:@!File = Error
+	return syscall.Close f.Fd
+
+Linux_fs met! File_stat f:@File = Error, st:Stat
+	let flags = syscall.AT_SYMLINK_NOFOLLOW | syscall.AT_EMPTY_PATH
+	try
+		let sys = {}:syscall.Stat_t such
+			except = syscall.Fstatat f.Fd "" @!sys flags
+		let st = sys_stat_from_sys sys
+		return OK, st
+	catch err
+		return err, {}
+
+Linux_fs met File_readlink f:@File = Error, path.Path
+	try
+		var buf = {}:Stringbuf such
+			buf#Resize 256
+		while true
+			let except, b = syscall.Readlinkat f.Fd "" buf![..]
+			if b.Count < buf.Count
+				return OK, path.Mk (String.From_bytes b)
+
+			buf#Resize 2*buf.Count
+	catch err
+		return err, {}
+
+Linux_fs met! File_datasync f:@!File = Error
+	return syscall.Fdatasync f.Fd
+
+Linux_fs met! File_sync f:@!File = Error
+	return syscall.Fsync f.Fd
+
+Linux_fs met! File_truncate f:@!File size:Uint = Error
+	return syscall.Ftruncate f.Fd size
+
+Linux_fs met! File_chown f:@!File owner:Int group:Int = Error
+	return syscall.Fchown f.Fd owner group
+
+Linux_fs met File_list_xattr f:@!File buf:@!Stringbuf = Error, list:(Slicebuf String)
+	-- ::(x in list => x::(Owned buf))
+	return syscall.ENOSYS, {}
+
+Linux_fs met File_get_xattr f:@!File buf:@!Stringbuf name:String = Error, Uint
+	return syscall.ENOSYS, 0
+
+Linux_fs met! File_set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
+	return syscall.ENOSYS
+
+Linux_fs met! File_remove_xattr f:@!File name:String = Error
+	return syscall.ENOSYS
+
+Linux_fs met! File_read f:@!File b:[]!U8 = []!U8, Error
+	return syscall.Read f.Fd b
+
+Linux_fs met! File_read_at f:@!File b:[]!U8 off:Uint = []!U8, Error
+	return syscall.Pread f.Fd b off
+
+Linux_fs met! File_write f:@!File b:[]U8 = []U8, Error
+	return syscall.Write f.Fd b
+
+Linux_fs met! File_write_at f:@!File b:[]U8 off:Uint = []U8, Error
+	return syscall.Pwrite f.Fd b off
+
+Linux_fs met! File_mmap f:@!File offset:Uint size:Uint prot:Protmask ?shared:?Bool = Error, @!Mmap
+	return syscall.ENOSYS, {}
+
+Linux_fs met! Symlink target:path.Path p:path.Path ?at:?@File = Error
+	except = syscall.Symlinkat target.String (at?.Fd else self.Wd.Fd) p.String
+
+Linux_fs met! Link newpath:path.Path oldpath:path.Path ?newat:?@File ?oldat:?@File ?follow:?Bool = Error
+	let flags = 0 such
+		if (follow else false)
+			flags |= syscall.AT_SYMLINK_FOLLOW
+	except = syscall.Linkat
+		\ (oldat?.Fd else self.Wd.Fd)
+		\ oldpath.String
+		\ (newat?.Fd else self.Wd.Fd)
+		\ newpath.String
+		\ flags
+
+Linux_fs met! Unlink p:path.Path ?at:?@File = Error
+	except = syscall.Unlinkat (at?.Fd else self.Wd.Fd) p.String 0
+
+Linux_fs met! Rename newpath:path.Path oldpath:path.Path ?newat:?@File ?oldat:?@File = Error
+	except = syscall.Renameat
+		\ (oldat?.Fd else self.Wd.Fd)
+		\ oldpath.String
+		\ (newat?.Fd else self.Wd.Fd)
+		\ newpath.String
+		\ 0
+
+Linux_fs met Stat p:path.Path ?at:?@File ?nofollow:?Bool = Error, Stat
+	let flags = 0 such
+		if (nofollow else false)
+			flags |= syscall.AT_SYMLINK_NOFOLLOW
+	try
+		let sys = {}:syscall.Stat_t such
+			except = syscall.Fstatat (at?.Fd else self.Wd.Fd)
+				\ p.String @!sys flags
+		let st = sys_stat_from_sys sys
+		return OK, st
+	catch err
+		return err, {}
+
+Linux_fs met! Readlink p:path.Path ?at:?@File = Error, path.Path
+	let dirfd = at?.Fd else self.Wd.Fd
+	try
+		var buf = {}:Stringbuf such
+			buf#Resize 256
+		while true
+			let except, b = syscall.Readlinkat dirfd p.String buf![..]
+			if b.Count < buf.Count
+				return OK, path.Mk (String.From_bytes b)
+
+			buf#Resize 2*buf.Count
+	catch err
+		return err, {}

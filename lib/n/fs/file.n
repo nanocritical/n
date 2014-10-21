@@ -1,0 +1,133 @@
+inline enum Openbits =
+	| PATH
+	| READ
+	| WRITE
+	| CREATE
+	| APPEND
+	| EXCLUSIVE
+	| TEMPORARY
+	| DIRECTORY
+	| NOFOLLOW
+
+alias Openmask = (Mask Openbits)
+
+inline struct Openattr =
+	Flags	:Openmask
+	Access	:Accessmask
+	Owner	:?Uid
+	Group	:?Gid
+	Xattr	:(Slicebuf (Stringbuf, Stringbuf))
+
+Openattr met sys_open_flags = r:syscall.Open_flags
+	r = syscall.O_CLOEXEC
+	if READ in self.Flags and WRITE in self.Flags
+		r |= syscall.O_RDWR
+	elif READ in self.Flags
+		r |= syscall.O_RDONLY
+	elif WRITE in self.Flags
+		r |= syscall.O_WRONLY
+
+	if CREATE in self.Flags
+		r |= syscall.O_CREAT
+	if APPEND in self.Flags
+		r |= syscall.O_APPEND
+
+	if EXCLUSIVE in self.Flags
+		r |= syscall.O_EXCL
+	if TEMPORARY in self.Flags
+		r |= syscall.O_TMPFILE
+	if DIRECTORY in self.Flags
+		r |= syscall.O_DIRECTORY
+	if NOFOLLOW in self.Flags
+		r |= syscall.O_NOFOLLOW
+
+Openattr met sys_open_mode = syscall.Mode
+	if {CREATE TEMPORARY} & self.Flags == {}
+		return 0
+	return sys_mode_from_accessmask self.Access
+
+-- File operations as implemented here assume a recent Linux kernel (>= 3.11).
+-- First, we rely on *at() syscalls. Secondly, when complex attr are passed
+-- to Open (e.g. SELinux attributes) we rely on O_TMPFILE to first create a
+-- hidden file (an inode with no name), change its owner/group/xattr, then give
+-- it a name with linkat(). This prevents other processes from opening the file
+-- before its permissions are fully set up.
+-- On older Linux, or on systems without equivalent support, such facility
+-- cannot be implemented as safely, but this module will do its best.
+inline struct File =
+	isa (io.`Reader U8) (io.`Writer U8) -- (io.`Reader_at U8) (io.`Writer_at U8)
+	fs		:@!`Fs
+	fd		:?Int
+	hidden		:Bool
+	pathname	:path.Path
+
+File met Fd = Int
+	return self?.fd else -1
+
+File met Pathname = path.Path
+	return self.pathname
+
+File met! Close = Error
+	return syscall.Close self.Fd
+
+File met Stat = Error, Stat
+	return self.fs!File_stat self
+
+File met Readlink = Error, path.Path
+	return self.fs!File_readlink self
+
+File met! Datasync = Error
+	return self!fs!File_datasync self
+
+File met! Sync = Error
+	return self!fs!File_sync self
+
+File met! Truncate size:Uint = Error
+	return self.fs!File_truncate self size
+
+File met! Chown f:@!File owner:Int group:Int = Error
+	return syscall.ENOSYS
+
+File met List_xattr f:@!File buf:@!Stringbuf = Error, list:(Slicebuf String)
+	-- ::(x in list => x::(Owned buf))
+	return syscall.ENOSYS, {}
+
+File met Get_xattr f:@!File buf:@!(Slicebuf U8) name:String = Error, Uint
+	return syscall.ENOSYS, {}
+
+File met! Set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
+	return syscall.ENOSYS
+
+File met! Remove_xattr f:@!File name:String = Error
+	return syscall.ENOSYS
+
+File met! Readdir buf:@#(Slicebuf Stat) ?max:?Uint = Error
+	return syscall.ENOSYS
+
+File met! Read b:[]!U8 = []!U8, Error
+	return syscall.Read self.Fd b
+
+File met! Read_at b:[]!U8 off:Uint = []!U8, Error
+	return syscall.Pread self.Fd b off
+
+File met! Write b:[]U8 = []U8, Error
+	return syscall.Write self.Fd b
+
+File met! Write_at b:[]U8 off:Uint = []U8, Error
+	return syscall.Pwrite self.Fd b off
+
+enum Protbits =
+	| NONE = 0
+	| EXEC
+	| READ
+	| WRITE
+
+alias Protmask = (Mask Protbits)
+
+struct Mmap =
+	file	:?@File
+	map	:[]!U8
+	shared	:Bool
+	prot	:Protmask
+
+File met! Mmap offset:Uint size:Uint prot:Protmask ?shared:?Bool = Error, @!Mmap

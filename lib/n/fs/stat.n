@@ -1,0 +1,93 @@
+inline enum Types =
+	| FILE
+	| DIR
+	| SYMLINK
+	| NAMEDPIPE
+	| SOCKET
+	| DEVICE
+	| CHARDEVICE
+
+inline enum Accessbits =
+	| UR
+	| UW
+	| UX
+	| GR
+	| GW
+	| GX
+	| OR
+	| OW
+	| OX
+	| SUID
+	| SGID
+	| STICKY
+
+alias Accessmask = (Mask Accessbits)
+
+alias Uid = Int
+alias Gid = Int
+
+inline struct Stat =
+	Size		:Uint
+	Mod_time	:time.Time
+	Type		:Types
+	Access		:Accessmask
+	Owner		:Uid
+	Group		:Uid
+	Sys		:?@`Any
+
+Stat met Is_file = Bool
+	return FILE == self.Type
+
+Stat met Is_dir = Bool
+	return DIR == self.Type
+
+Stat met Is_symlink = Bool
+	return SYMLINK == self.Type
+
+fun sys_mode_from_accessmask m:Accessmask = r:syscall.Mode
+	for e in m.Iter
+		match e
+		| UR -> r |= syscall.S_IRUSR
+		| UW -> r |= syscall.S_IWUSR
+		| UX -> r |= syscall.S_IXUSR
+		| GR -> r |= syscall.S_IRGRP
+		| GW -> r |= syscall.S_IWGRP
+		| GX -> r |= syscall.S_IXGRP
+		| OR -> r |= syscall.S_IROTH
+		| OW -> r |= syscall.S_IWOTH
+		| OX -> r |= syscall.S_IXOTH
+		| SUID -> r |= syscall.S_ISUID
+		| SGID -> r |= syscall.S_ISGID
+		| STICKY -> r |= syscall.S_ISVTX
+
+fun sys_accessmask_from_mode m:syscall.Mode = r:Accessmask
+	if m & syscall.S_IRUSR != 0 -> r |= {UR}
+	if m & syscall.S_IWUSR != 0 -> r |= {UW}
+	if m & syscall.S_IXUSR != 0 -> r |= {UX}
+	if m & syscall.S_IRGRP != 0 -> r |= {GR}
+	if m & syscall.S_IWGRP != 0 -> r |= {GW}
+	if m & syscall.S_IXGRP != 0 -> r |= {GX}
+	if m & syscall.S_IROTH != 0 -> r |= {OR}
+	if m & syscall.S_IWOTH != 0 -> r |= {OW}
+	if m & syscall.S_IXOTH != 0 -> r |= {OX}
+	if m & syscall.S_ISUID != 0 -> r |= {SUID}
+	if m & syscall.S_ISGID != 0 -> r |= {SGID}
+	if m & syscall.S_ISVTX != 0 -> r |= {STICKY}
+
+fun sys_type_from_mode m:syscall.Mode = Types
+	let bits = m & syscall.S_IFMT
+	if bits == syscall.S_IFSOCK -> return SOCKET
+	if bits == syscall.S_IFLNK -> return SYMLINK
+	if bits == syscall.S_IFREG -> return FILE
+	if bits == syscall.S_IFBLK -> return DEVICE
+	if bits == syscall.S_IFDIR -> return DIR
+	if bits == syscall.S_IFCHR -> return CHARDEVICE
+	if bits == syscall.S_IFIFO -> return NAMEDPIPE
+
+fun sys_stat_from_sys sys:@syscall.Stat_t = st:Stat
+	st!Size = sys.Size
+	st!Mod_time = time.Time.Mk sys.Mtime_sec sys.Mtime_nsec.Int
+	st!Type = sys_type_from_mode sys.Mode
+	st!Access = sys_accessmask_from_mode sys.Mode
+	st!Owner = sys.Owner.Uint.Signed
+	st!Group = sys.Group.Uint.Signed

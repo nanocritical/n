@@ -1,7 +1,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/xattr.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <errno.h>
 
 #define NB(t) n$builtins$##t
@@ -167,12 +169,18 @@ NB(I32) SY(O_TRUNC) = O_TRUNC;
 
 NB(Int) SY(AT_FDCWD) = AT_FDCWD;
 NB(I32) SY(AT_SYMLINK_FOLLOW) = AT_SYMLINK_FOLLOW;
+NB(I32) SY(AT_SYMLINK_NOFOLLOW) = AT_SYMLINK_NOFOLLOW;
+NB(I32) SY(AT_EMPTY_PATH) = AT_EMPTY_PATH;
+NB(I32) SY(AT_REMOVEDIR) = AT_REMOVEDIR;
 
-NB(Int) SY(SEEK_SET) = SEEK_SET;
-NB(Int) SY(SEEK_CUR) = SEEK_CUR;
-NB(Int) SY(SEEK_END) = SEEK_END;
-NB(Int) SY(SEEK_DATA) = SEEK_DATA;
-NB(Int) SY(SEEK_HOLE) = SEEK_HOLE;
+NB(I32) SY(SEEK_SET) = SEEK_SET;
+NB(I32) SY(SEEK_CUR) = SEEK_CUR;
+NB(I32) SY(SEEK_END) = SEEK_END;
+NB(I32) SY(SEEK_DATA) = SEEK_DATA;
+NB(I32) SY(SEEK_HOLE) = SEEK_HOLE;
+
+NB(I32) SY(XATTR_CREATE) = XATTR_CREATE;
+NB(I32) SY(XATTR_REPLACE) = XATTR_REPLACE;
 
 // Some of these functions should explicitly set errno to 0 before
 // performing the underlying call (e.g. sysconf), as -1 can be a valid
@@ -222,6 +230,44 @@ static NB(Int) SY(linkat)(NB(Int) olddirfd, NB(U8) *oldpath,
   return ret;
 }
 
+static NB(Int) SY(unlinkat)(NB(Int) dirfd, NB(U8) *pathname, NB(I32) flags) {
+  int ret = unlinkat(dirfd, (char *) pathname, flags);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(mkdirat)(NB(Int) dirfd, NB(U8) *pathname, SY(Mode) mode) {
+  int ret = mkdirat(dirfd, (char *) pathname, mode);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(fchdir)(NB(Int) fd) {
+  int ret = fchdir(fd);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(symlinkat)(NB(U8) *target, NB(Int) newdirfd, NB(U8) *linkpath) {
+  int ret = symlinkat((char *) target, newdirfd, (char *) linkpath);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(readlinkat)(NB(Int) dirfd, NB(U8) *pathname, NB(U8) *buf, NB(Uint) bufsiz) {
+  ssize_t ret = readlinkat(dirfd, (char *) pathname, (char *) buf, bufsiz);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(renameat)(NB(Int) olddirfd, NB(U8) *oldpath,
+                            NB(Int) newdirfd, NB(U8) *newpath, NB(U32) flags) {
+  (void) flags;
+  int ret = renameat(olddirfd, (char *) oldpath, newdirfd, (char *) newpath);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
 static NB(Int) SY(write)(NB(Int) fd, NB(U8) *buf, NB(Uint) count) {
   ssize_t ret = write(fd, buf, count);
   _$Nlatestsyscallerrno = errno;
@@ -246,7 +292,7 @@ static NB(Int) SY(pread)(NB(Int) fd, NB(U8) *buf, NB(Uint) count, NB(Uint) off) 
   return ret;
 }
 
-static NB(Int) SY(lseek)(NB(Int) fd, NB(Int) off, NB(Int) whence) {
+static NB(Int) SY(lseek)(NB(Int) fd, NB(Int) off, NB(I32) whence) {
   off_t ret = lseek(fd, off, whence);
   _$Nlatestsyscallerrno = errno;
   return ret;
@@ -255,6 +301,73 @@ static NB(Int) SY(lseek)(NB(Int) fd, NB(Int) off, NB(Int) whence) {
 static NB(Int) SY(sysconf)(NB(Int) name) {
   errno = 0;
   long ret = sysconf(name);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(fstatat)(NB(Int) dirfd, NB(U8) *pathname, SY(Stat_t) *buf, NB(I32) flags) {
+  errno = 0;
+  struct stat st = { 0 };
+  int ret = fstatat(dirfd, (char *) pathname, &st, flags);
+  _$Nlatestsyscallerrno = errno;
+
+  if (ret >= 0) {
+    buf->Size = st.st_size;
+    buf->Mtime_sec = st.st_mtim.tv_sec;
+    buf->Mtime_nsec = st.st_mtim.tv_nsec;
+    buf->Mode = st.st_mode;
+    buf->Owner = st.st_uid;
+    buf->Group = st.st_gid;
+  }
+
+  return ret;
+}
+
+static NB(Int) SY(fdatasync)(NB(Int) fd) {
+  errno = 0;
+  int ret = fdatasync(fd);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(fsync)(NB(Int) fd) {
+  errno = 0;
+  int ret = fsync(fd);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(ftruncate)(NB(Int) fd, NB(Uint) size) {
+  errno = 0;
+  int ret = ftruncate(fd, size);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(fchown)(NB(Int) fd, NB(Int) uid, NB(Int) gid) {
+  errno = 0;
+  int ret = fchown(fd, uid, gid);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(fsetxattr)(NB(Int) fd, NB(U8) *name, NB(U8) *value, NB(Uint) size, NB(I32) flags) {
+  errno = 0;
+  ssize_t ret = fsetxattr(fd, (char *) name, (char *) value, size, flags);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(fgetxattr)(NB(Int) fd, NB(U8) *name, NB(U8) *value, NB(Uint) size) {
+  errno = 0;
+  ssize_t ret = fgetxattr(fd, (char *) name, (char *) value, size);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(flistxattr)(NB(Int) fd, NB(U8) *list, NB(Uint) size) {
+  errno = 0;
+  ssize_t ret = flistxattr(fd, (char *) list, size);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
