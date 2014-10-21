@@ -1401,7 +1401,18 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
 
 static void print_defname(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node) {
+  const struct node *par = parent_const(node);
   if (node->which == DEFALIAS) {
+    if (fwd == FWD_DECLARE_FUNCTIONS
+        && typ_definition_which(node->typ) == DEFTYPE && node_is_at_top(par)) {
+      // Only defined for the benefit of C code written manually that
+      // interacts with N.
+      fprintf(out, "typedef ");
+      print_typ(out, mod, node->typ);
+      fprintf(out, " ");
+      print_scope_name(out, mod, &parent_const(par)->scope);
+      fprintf(out, "$%s;\n", idents_value(mod->gctx, node_ident(node)));
+    }
     return;
   }
 
@@ -1410,7 +1421,6 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
   }
 
   const struct node *expr = subs_last_const(node);
-  const struct node *par = parent_const(node);
 
   if (node->flags & NODE_IS_GLOBAL_LET) {
     if (header && !node_is_export(par)) {
@@ -2629,9 +2639,12 @@ static void print_union(FILE *out, bool header, enum forward fwd,
 
     // fallthrough
   case FWD_DEFINE_TYPES:
-    FOREACH_SUB_CONST(ch, node) {
-      if (ch->which == DEFCHOICE) {
-        print_union(out, header, fwd, mod, deft, ch, printed);
+    FOREACH_SUB_CONST(s, node) {
+      if (s->which == LET) {
+        print_defname(out, header, fwd, mod, subs_first_const(s));
+      }
+      if (s->which == DEFCHOICE) {
+        print_union(out, header, fwd, mod, deft, s, printed);
       }
     }
     print_union_types(out, header, fwd, mod, deft, node);
