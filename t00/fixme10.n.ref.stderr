@@ -1,1 +1,1 @@
-ncc0: bootstrap/cprinter.c:3179: print_top: Assertion `++prevent_infinite < 1000 && "FIXME When force==true, see t00/fixme10"' failed.
+ncc0: bootstrap/cprinter.c:3231: print_top: Assertion `++prevent_infinite < 1000 && "FIXME When force==true, see t00/fixme10"' failed.
