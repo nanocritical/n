@@ -868,14 +868,10 @@ static void print_deftype_name(FILE *out, const struct module *mod, const struct
   print_typ(out, mod, node->typ);
 }
 
-static void print_deffun_name(FILE *out, const struct module *mod, const struct node *node,
-                              const struct typ *intf_final_typ) {
+static void print_deffun_name(FILE *out, const struct module *mod, const struct node *node) {
   const ident id = node_ident(node);
   if (id == ID_MAIN) {
     fprintf(out, "_$Nmain");
-  } else if (intf_final_typ != NULL) {
-    print_typ(out, mod, intf_final_typ);
-    fprintf(out, "$%s", idents_value(mod->gctx, node_ident(node)));
   } else {
     print_typ(out, mod, node->typ);
   }
@@ -1650,8 +1646,11 @@ static void print_defarg(FILE *out, const struct module *mod, const struct node 
     if (DEF(node->typ)->which == DEFINTF) {
       fprintf(out, "_$Ndyn_");
     }
+    print_typ(out, mod, node->typ);
+  } else {
+    print_typ(out, mod, node->typ);
   }
-  print_typ(out, mod, node->typ);
+
   fprintf(out, " ");
   if (return_through_ref) {
     fprintf(out, "*_$Nrtr_");
@@ -1672,13 +1671,15 @@ static bool print_call_vararg_proto(FILE *out, const struct node *dfun, size_t n
 static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
                                 const struct module *mod,
                                 const struct node *node,
-                                bool as_fun_pointer, bool named_fun_pointer,
-                                bool as_dyn_fun_pointer,
-                                const struct typ *intf_final_typ) {
-  assert(!as_fun_pointer || (named_fun_pointer || as_dyn_fun_pointer));
+                                bool as_fun_pointer,
+                                bool as_dyn_fun_pointer) {
+  const struct node *proto = node;
+  if (as_dyn_fun_pointer && node_member_from_intf(node)) {
+    proto = DEF(typ_member(node_member_from_intf(node), node_ident(node)));
+  }
 
-  const size_t args_count = c_fun_args_count(node);
-  const struct node *retval = node_fun_retval_const(node);
+  const size_t args_count = c_fun_args_count(proto);
+  const struct node *retval = node_fun_retval_const(proto);
   const bool retval_throughref = !typ_isa_return_by_copy(retval->typ);
 
   if (!as_fun_pointer) {
@@ -1694,27 +1695,20 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
   fprintf(out, " ");
   if (as_fun_pointer) {
     fprintf(out, "(*");
-    if (named_fun_pointer) {
-      fprintf(out, "%s", idents_value(mod->gctx, node_ident(node)));
-    }
+    fprintf(out, "%s", idents_value(mod->gctx, node_ident(node)));
     fprintf(out, ")");
   } else {
-    print_deffun_name(out, mod, node, intf_final_typ);
+    print_deffun_name(out, mod, node);
+    if (as_dyn_fun_pointer) {
+      fprintf(out, "__$Ndynwrapper");
+    }
   }
   fprintf(out, "(");
 
   bool no_args_at_all = true;
   bool force_comma = false;
 
-  if (node->which == DEFFUN && intf_final_typ != NULL) {
-    fprintf(out, "_$Ndyn_");
-    print_typ(out, mod, intf_final_typ);
-    fprintf(out, " self");
-    no_args_at_all = false;
-    force_comma = true;
-  }
-
-  const struct node *funargs = subs_at_const(node, IDX_FUNARGS);
+  const struct node *funargs = subs_at_const(proto, IDX_FUNARGS);
   size_t n;
   for (n = 0; n < args_count; ++n) {
     no_args_at_all = false;
@@ -1722,11 +1716,11 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
       fprintf(out, ", ");
     }
 
-    if (print_call_vararg_proto(out, node, n)) {
+    if (print_call_vararg_proto(out, proto, n)) {
       break;
     }
 
-    if (n == 0 && node->which == DEFMETHOD && as_dyn_fun_pointer) {
+    if (n == 0 && proto->which == DEFMETHOD && as_dyn_fun_pointer) {
       fprintf(out, "void *self");
       continue;
     }
@@ -1986,6 +1980,96 @@ static void guard_generic(FILE *out, bool header, enum forward fwd,
   }
 }
 
+// Method pointer stored in dyntable must be polymorph in self. We cannot
+// simply cast the actual function pointer to the same prototype with the
+// type of self as void *, as it is not supported by emscripten.
+// Instead, we create a wrapper with the same name as the method and the
+// suffix __$Ndynwrapper, which is only used in the dyntable.
+static void print_deffun_dynwrapper(FILE *out, bool header, enum forward fwd,
+                                          const struct module *mod, const struct node *node) {
+  if (fwd != FWD_DECLARE_FUNCTIONS && fwd != FWD_DEFINE_FUNCTIONS) {
+    return;
+  }
+  if (node_toplevel_const(node)->flags & TOP_IS_NOT_DYN) {
+    return;
+  }
+
+  const struct typ *from_intf = node_member_from_intf(node);
+  if (from_intf == NULL) {
+    return;
+  }
+  const struct node *from = DEF(typ_member(from_intf, node_ident(node)));
+  if (node_toplevel_const(from)->flags & TOP_IS_NOT_DYN) {
+    return;
+  }
+
+  print_fun_prototype(out, header, fwd, mod, node, false, true);
+  if (fwd == FWD_DECLARE_FUNCTIONS) {
+    fprintf(out, ";\n");
+    return;
+  }
+
+  const struct node *retval = node_fun_retval_const(node);
+  const bool retval_throughref = !typ_isa_return_by_copy(retval->typ);
+  const bool from_retval_throughref = !typ_isa_return_by_copy(typ_function_return_const(from->typ));
+
+  fprintf(out, " { ");
+
+  const struct node *funargs = subs_at_const(from, IDX_FUNARGS);
+
+  const ssize_t first_vararg = node_fun_first_vararg(node);
+  ident id_ap = ID__NONE;
+  if (first_vararg >= 0) {
+    const struct node *ap = subs_at_const(funargs, first_vararg);
+    id_ap = node_ident(ap);
+    print_typ(out, mod, ap->typ);
+    fprintf(out, " %s = { 0 };\nNLANG_BUILTINS_VARARG_START(%s);\n",
+            idents_value(mod->gctx, id_ap),
+            idents_value(mod->gctx, id_ap));
+  }
+
+  if (!typ_equal(retval->typ, TBI_VOID)) {
+    if (!from_retval_throughref) {
+      fprintf(out, "return ");
+    } else {
+      fprintf(out, "*%s = ", idents_value(mod->gctx, node_ident(node_fun_retval_const(from))));
+    }
+  }
+  print_typ(out, mod, node->typ);
+  fprintf(out, "(");
+
+  size_t n = 0;
+  FOREACH_SUB_CONST(arg, funargs) {
+    if (next_const(arg) == NULL) {
+      break;
+    }
+    if (n > 0) {
+      fprintf(out, ", ");
+    }
+    if (n == typ_function_first_vararg(node->typ)) {
+      fprintf(out, "NLANG_BUILTINS_VACOUNT_VARARGREF, ");
+    }
+    print_ident(out, mod, subs_first_const(arg));
+    n += 1;
+  }
+
+  if (retval_throughref) {
+    if (n > 0) {
+      fprintf(out, ", ");
+    }
+    print_ident(out, mod, subs_first_const(retval));
+  }
+
+  fprintf(out, ");\n");
+
+  if (first_vararg >= 0) {
+    fprintf(out, "NLANG_BUILTINS_VARARG_END(%s);\n",
+            idents_value(mod->gctx, id_ap));
+  }
+
+  fprintf(out, "}\n");
+}
+
 static void print_deffun(FILE *out, bool header, enum forward fwd,
                          const struct module *mod, const struct node *node,
                          struct fintypset *printed) {
@@ -1996,10 +2080,9 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
   if (par->which == DEFINTF) {
     return;
   }
-  if (node_is_extern(node) && fwd == FWD_DEFINE_FUNCTIONS) {
-    return;
-  }
-  if (header && !node_is_export(node)) {
+  if (((node->which == DEFFUN && node->as.DEFFUN.is_newtype_ignore)
+       || (node->which == DEFMETHOD && node->as.DEFMETHOD.is_newtype_ignore))
+      && par->which == DEFTYPE && par->as.DEFTYPE.newtype_expr != NULL) {
     return;
   }
   if (node_ident(node) == ID_NEXT
@@ -2008,9 +2091,7 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     // This is a builtin and does not have a real function prototype.
     return;
   }
-  if (((node->which == DEFFUN && node->as.DEFFUN.is_newtype_ignore)
-       || (node->which == DEFMETHOD && node->as.DEFMETHOD.is_newtype_ignore))
-      && par->which == DEFTYPE && par->as.DEFTYPE.newtype_expr != NULL) {
+  if (header && !node_is_export(node)) {
     return;
   }
 
@@ -2037,21 +2118,30 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  if (fwd != FWD_DECLARE_FUNCTIONS && prototype_only(header, node)) {
-    return;
+  if (fwd == FWD_DEFINE_FUNCTIONS) {
+    // (header && !(node_is_export(node) && node_is_inline(node)))
+    //  || node_is_prototype(node);
+    if (node_is_extern(node)) {
+      if (header == node_is_inline(node)) {
+        print_deffun_dynwrapper(out, header, fwd, mod, node);
+      }
+      return;
+    } else if (prototype_only(header, node)) {
+      return;
+    }
   }
 
   guard_generic(out, header, fwd, mod, node, true);
 
   if (fwd == FWD_DECLARE_FUNCTIONS) {
-    print_fun_prototype(out, header, fwd, mod, node, false, false, false, NULL);
+    print_fun_prototype(out, header, fwd, mod, node, false, false);
     fun_nonnull_attribute(out, header, mod, node);
     fprintf(out, ";\n");
   } else if (node_toplevel_const(node)->builtingen != BG__NOT) {
-    print_fun_prototype(out, header, fwd, mod, node, false, false, false, NULL);
+    print_fun_prototype(out, header, fwd, mod, node, false, false);
     print_deffun_builtingen(out, mod, node);
   } else {
-    print_fun_prototype(out, header, fwd, mod, node, false, false, false, NULL);
+    print_fun_prototype(out, header, fwd, mod, node, false, false);
 
     fprintf(out, " {\n");
     if (par->which == DEFTYPE) {
@@ -2091,6 +2181,8 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     }
     fprintf(out, "}\n");
   }
+
+  print_deffun_dynwrapper(out, header, fwd, mod, node);
 
   guard_generic(out, header, fwd, mod, node, false);
 }
@@ -2255,11 +2347,9 @@ static ERROR print_dyntable_field_eachisalist(struct module *mod, struct typ *ig
       return 0;
     }
 
-    fprintf(st->out, ".%s = (", idents_value(mod->gctx, node_ident(thisf)));
-    print_fun_prototype(st->out, st->header, st->fwd, mod, f, true, false, true, NULL);
-    fprintf(st->out, ")");
+    fprintf(st->out, ".%s = ", idents_value(mod->gctx, node_ident(thisf)));
     print_typ(st->out, mod, thisf->typ);
-    fprintf(st->out, ",\n");
+    fprintf(st->out, "%s,\n", f->which == DEFMETHOD ? "__$Ndynwrapper" : "");
   }
 
   return 0;
@@ -2930,7 +3020,7 @@ static ERROR print_defintf_dyntable_field_eachisalist(struct module *mod, struct
     if (subs_count_atleast(subs_at_const(DEF(d->typ), IDX_GENARGS), 1)) {
       continue;
     }
-    print_fun_prototype(st->out, st->header, st->fwd, mod, d, true, true, true, NULL);
+    print_fun_prototype(st->out, st->header, st->fwd, mod, d, true, true);
     fprintf(st->out, ";\n");
     st->printed += 1;
   }

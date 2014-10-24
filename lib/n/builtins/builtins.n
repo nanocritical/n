@@ -122,18 +122,18 @@ intf `Integer_arithmetic =
 	met! Operator_assign_modulo other:@final
 	met! Operator_assign_rshift by:Uint
 intf `Overflow_arithmetic =
-	met Operator_ovplus other:@this = this
-	met Operator_ovminus other:@this = this
-	met Operator_ovdivide other:@this = this
-	met Operator_ovmodulo other:@this = this
-	met Operator_ovtimes other:@this = this
-	met Operator_ovuminus = this
+	met Operator_ovplus other:@final = final
+	met Operator_ovminus other:@final = final
+	met Operator_ovdivide other:@final = final
+	met Operator_ovmodulo other:@final = final
+	met Operator_ovtimes other:@final = final
+	met Operator_ovuminus = final
 	met Operator_ovlshift by:Uint = final
-	met! Operator_assign_ovplus other:@this
-	met! Operator_assign_ovminus other:@this
-	met! Operator_assign_ovdivide other:@this
-	met! Operator_assign_ovmodulo other:@this
-	met! Operator_assign_ovtimes other:@this
+	met! Operator_assign_ovplus other:@final
+	met! Operator_assign_ovminus other:@final
+	met! Operator_assign_ovdivide other:@final
+	met! Operator_assign_ovmodulo other:@final
+	met! Operator_assign_ovtimes other:@final
 	met! Operator_assign_ovlshift by:Uint
 
 intf `Sum_copy =
@@ -208,7 +208,7 @@ intf `Any_slice t:`Any =
 
 intf `Any_mutable_slice t:`Any =
 	isa (`Any_slice t)
-	met! Copy other:[]t
+	met! Copy other:[]t = final
 
 -- The body of the methods for Slice and Mutable_slice are actually not used, as
 -- Slice_impl is used in codegen for both Slice and Mutable_slice. The code in
@@ -768,8 +768,8 @@ intf `Floating =
 	isa `Numeric `Has_compare `Number_literal_compatible
 	fun MIN = final
 	fun MAX = final
-	fun EPSILON = this
-	fun SMALLEST_POSITIVE_NORMAL = this
+	fun EPSILON = final
+	fun SMALLEST_POSITIVE_NORMAL = final
 	fun RADIX = Uint
 	fun MANTISSA_WIDTH = Uint
 	fun MAX_DECIMAL_DIGIT_EXACT = Uint

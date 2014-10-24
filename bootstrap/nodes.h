@@ -1436,6 +1436,24 @@ static inline struct toplevel *node_toplevel(struct node *node) {
   return CONST_CAST(node_toplevel_const(node));
 }
 
+static inline const struct typ *node_member_from_intf(const struct node *node) {
+  switch (node->which) {
+  case DEFFUN:
+    return node->as.DEFFUN.member_from_intf;
+  case DEFMETHOD:
+    return node->as.DEFMETHOD.member_from_intf;
+  case DEFALIAS:
+    return node->as.DEFALIAS.member_from_intf;
+  case DEFNAME:
+    return node->as.DEFNAME.member_from_intf;
+  case DEFFIELD:
+    return node->as.DEFFIELD.member_from_intf;
+  default:
+    assert(false);
+    return NULL;
+  }
+}
+
 struct node *node_get_member(struct node *node, ident id);
 const struct node *node_get_member_const(const struct node *node, ident id);
 struct node *mk_node(struct module *mod, struct node *parent, enum node_which kind);

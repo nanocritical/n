@@ -1187,8 +1187,11 @@ static ERROR step_check_exhaustive_intf_impl(struct module *mod, struct node *no
   if (typ_is_pseudo_builtin(node->typ)) {
     return 0;
   }
+  if (typ_is_reference(node->typ) || typ_equal(node->typ, TBI_VOID)) {
+    return 0;
+  }
 
-  error e = typ_isalist_foreach(mod, node->typ, ISALIST_FILTEROUT_TRIVIAL_ISALIST,
+  error e = typ_isalist_foreach(mod, node->typ, 0,
                                 check_exhaustive_intf_impl_eachisalist, node);
   EXCEPT(e);
 
