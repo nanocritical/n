@@ -10,11 +10,13 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#if 1
-# define CC "gcc"
-#else
-# define CC "clang"
-#endif
+struct opt {
+  bool compile;
+  const char *compiler;
+};
+
+static struct opt g_opt;
+
 #define CFLAGS "-Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g"
 #define LDFLAGS CFLAGS " -Wl,--gc-sections"
 
@@ -49,16 +51,16 @@ static ERROR clang_cleanup(const char *c_fn) {
   return 0;
 }
 
-static ERROR cc(const struct module *mod, const char *o_fn,
-                const char *c_fn) {
-  if (strcmp(CC, "clang") == 0) {
+static ERROR cc(const char *o_fn, const char *c_fn) {
+  if (strcmp(g_opt.compiler, "clang") == 0 || strcmp(g_opt.compiler, "emcc") == 0) {
     error e = clang_cleanup(c_fn);
     EXCEPT(e);
   }
 
-  static const char *fmt = CC " " CFLAGS " -xc %s -c -o %s";
-  char *cmd = calloc(strlen(fmt) + strlen(c_fn) + strlen(o_fn) - 4 + 1, sizeof(char));
-  sprintf(cmd, fmt, c_fn, o_fn);
+  static const char *fmt = "%s " CFLAGS " -xc %s -c -o %s";
+  char *cmd = calloc(strlen(fmt) + strlen(g_opt.compiler)
+                     + strlen(c_fn) + strlen(o_fn) - 4 + 1, sizeof(char));
+  sprintf(cmd, fmt, g_opt.compiler, c_fn, o_fn);
 
   error e = sh(cmd);
   free(cmd);
@@ -86,10 +88,15 @@ static char *file_list(const struct module **modules, size_t count,
 }
 
 static ERROR clink(const char *out_fn, const char *inputs, const char *extra) {
-  static const char fmt[] = CC " " LDFLAGS " %s %s -o %s";
-  size_t len = strlen(fmt) + strlen(inputs) + strlen(extra) + strlen(out_fn) - 6;
+  static const char fmt[] = "%s " LDFLAGS " %s %s -o %s%s";
+  const char *ext = "";
+  if (strcmp(g_opt.compiler, "emcc") == 0) {
+    ext = ".js";
+  }
+  size_t len = strlen(fmt) + strlen(g_opt.compiler)
+    + strlen(inputs) + strlen(extra) + strlen(out_fn) + strlen(ext) - 6;
   char *cmd = calloc(len + 1, sizeof(char));
-  sprintf(cmd, fmt, inputs, extra, out_fn);
+  sprintf(cmd, fmt, g_opt.compiler, inputs, extra, out_fn, ext);
 
   error e = sh(cmd);
   free(cmd);
@@ -177,7 +184,7 @@ static ERROR compile(struct node *node) {
   sprintf(c_fn, "%s.o.c", fn);
 
   char *o_fn = o_filename(mod->filename);
-  e = cc(mod, o_fn, c_fn);
+  e = cc(o_fn, c_fn);
   EXCEPT(e);
 
   free(o_fn);
@@ -202,8 +209,7 @@ static ERROR run_examples(const struct stage *stage) {
     fprintf(run, "(void);\n");
   }
 
-  fprintf(run, "int _$Nmain();\n"
-          "void _$Nprelude(int *argc, char ***argv, char ***env);\n"
+  fprintf(run, "void _$Nprelude(int *argc, char ***argv, char ***env);\n"
           "void _$Npostlude(int *ret);\n");
   fprintf(run, "int main(int argc, char **argv, char **env) {\n"
           "_$Nprelude(&argc, &argv, &env);\n");
@@ -224,9 +230,15 @@ static ERROR run_examples(const struct stage *stage) {
   free(inputs);
   EXCEPT(e);
 
-  static const char *fmt = "./%s";
-  char *cmd = calloc(strlen(fmt) + strlen(main_fn) - 2 + 1, sizeof(char));
-  sprintf(cmd, fmt, out_fn);
+  static const char *fmt = "%s ./%s%s";
+  const char *runner = "";
+  const char *ext = "";
+  if (strcmp(g_opt.compiler, "emcc") == 0) {
+    runner = "d8";
+    ext = ".js";
+  }
+  char *cmd = calloc(strlen(fmt) + strlen(runner) + strlen(main_fn) + strlen(ext) - 4 + 1, sizeof(char));
+  sprintf(cmd, fmt, runner, out_fn, ext);
   e = sh(cmd);
   free(cmd);
   EXCEPTF(e, "examples failed");
@@ -242,12 +254,12 @@ static ERROR program_link(const struct stage *stage) {
   if (run == NULL) {
     THROWF(errno, "Cannot open output file '%s'", main_fn);
   }
-  fprintf(run, "int _$Nmain();\n"
+  fprintf(run, "int _$Nmain(void);\n"
           "void _$Nprelude(int *argc, char ***argv, char ***env);\n"
           "void _$Npostlude(int *ret);\n");
   fprintf(run, "int main(int argc, char **argv, char **env) {\n"
           "_$Nprelude(&argc, &argv, &env);\n"
-          "int ret = _$Nmain(argc, argv, env);\n"
+          "int ret = _$Nmain();\n"
           "_$Npostlude(&ret);\n"
           "return ret;\n"
           "}\n");
@@ -272,9 +284,13 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  bool opt_compile = true;
-  if (getenv("NCC_GEN_ONLY")) {
-    opt_compile = false;
+  g_opt.compile = true;
+  g_opt.compiler = "gcc";
+  if (getenv("NCC_COMPILE")) {
+    g_opt.compile = atoi(getenv("NCC_COMPILE")) != 0;
+  }
+  if (getenv("NCC_COMPILER")) {
+    g_opt.compiler = strdup(getenv("NCC_COMPILER"));
   }
 
   struct globalctx gctx;
@@ -302,7 +318,7 @@ int main(int argc, char **argv) {
             timeits[TIMEIT_TYPE_INFERENCE].count * .001 / timeits[TIMEIT_MAIN].time);
   }
 
-  if (!opt_compile) {
+  if (!g_opt.compile) {
     return 0;
   }
 
