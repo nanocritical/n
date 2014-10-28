@@ -3,6 +3,8 @@
 
 #include "passes.h"
 
+void try_add_generic(struct node *node);
+
 a_pass passzero[PASSZERO_COUNT];
 
 extern const uint64_t step_stop_submodules_filter;

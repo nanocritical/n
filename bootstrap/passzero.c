@@ -55,7 +55,7 @@ static ERROR step_rewrite_prototype_wildcards(struct module *mod, struct node *n
   return 0;
 }
 
-static void try_add_generic(struct node *node) {
+void try_add_generic(struct node *node) {
   struct toplevel *toplevel = node_toplevel(node);
   if (toplevel->generic == NULL) {
     toplevel->generic = calloc(1, sizeof(*toplevel->generic));

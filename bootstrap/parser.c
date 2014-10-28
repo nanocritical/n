@@ -2,6 +2,7 @@
 #include "types.h"
 #include "scope.h"
 #include "passes.h"
+#include "passzero.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -2526,12 +2527,14 @@ again:
 static ERROR p_deftype(struct node *node, struct module *mod,
                        struct node *some_genargs, struct toplevel *toplevel,
                        enum token_type decl_tok) {
+  node_set_which(node, DEFTYPE);
+
+  node->as.DEFTYPE.toplevel = *toplevel;
   if (some_genargs != NULL) {
-    toplevel->generic->first_explicit_genarg = subs_count(some_genargs);
+    try_add_generic(node);
+    node_toplevel(node)->generic->first_explicit_genarg = subs_count(some_genargs);
   }
 
-  node_set_which(node, DEFTYPE);
-  node->as.DEFTYPE.toplevel = *toplevel;
   switch (decl_tok) {
   case Tstruct:
   case Tnewtype:
@@ -2704,12 +2707,13 @@ again:
 
 static ERROR p_defintf(struct node *node, struct module *mod,
                        struct node *some_genargs, struct toplevel *toplevel) {
-  if (some_genargs != NULL) {
-    toplevel->generic->first_explicit_genarg = subs_count(some_genargs);
-  }
-
   node_set_which(node, DEFINTF);
+
   node->as.DEFINTF.toplevel = *toplevel;
+  if (some_genargs != NULL) {
+    try_add_generic(node);
+    node_toplevel(node)->generic->first_explicit_genarg = subs_count(some_genargs);
+  }
 
   struct token tok = { 0 };
   error e = p_ident(subs_first(node), mod);
