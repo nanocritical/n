@@ -1395,6 +1395,20 @@ static void print_typ(FILE *out, const struct module *mod, const struct typ *typ
   }
 }
 
+static void print_defname_name(FILE *out, const struct module *mod,
+                               const struct node *node) {
+  if (node->flags & NODE_IS_GLOBAL_LET) {
+    const struct node *let = parent_const(node);
+    if (node_is_at_top(let)) {
+      print_scope_name(out, mod, &parent_const(parent_const(node))->scope);
+    } else {
+      print_typ(out, mod, parent_const(let)->typ);
+    }
+    fprintf(out, "$");
+  }
+  print_expr(out, mod, subs_first_const(node), T__STATEMENT);
+}
+
 static void print_defname(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node) {
   const struct node *par = parent_const(node);
@@ -1460,17 +1474,7 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
 
     print_typ(out, mod, node->typ);
     fprintf(out, " ");
-
-    if (node->flags & NODE_IS_GLOBAL_LET) {
-      const struct node *let = parent_const(node);
-      if (node_is_at_top(let)) {
-        print_scope_name(out, mod, &parent_const(parent_const(node))->scope);
-      } else {
-        print_typ(out, mod, parent_const(let)->typ);
-      }
-      fprintf(out, "$");
-    }
-    print_expr(out, mod, subs_first_const(node), T__STATEMENT);
+    print_defname_name(out, mod, node);
   }
 
   if (fwd == FWD_DEFINE_FUNCTIONS
