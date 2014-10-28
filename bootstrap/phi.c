@@ -341,6 +341,11 @@ static void mark_conditioned_phi_chain_used(struct node *node) {
 static ERROR track_ident_use(struct module *mod, struct node *node) {
   assert(node->which == IDENT);
   struct node *def = node->as.IDENT.def;
+  if (def == NULL) {
+    error e = mk_except(mod, node, "undefined identifier '%s'",
+                        idents_value(mod->gctx, node_ident(node)));
+    THROW(e);
+  }
 
   switch (def->which) {
   case DEFNAME:
