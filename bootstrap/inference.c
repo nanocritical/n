@@ -2040,6 +2040,91 @@ static bool is_vararg_passdown(struct typ *arg) {
     && typ_equal(typ_generic_functor(va), TBI_VARARG);
 }
 
+static ERROR append_globalenv_refs(struct module *mod, struct node *node,
+                                   struct node *globalenv, struct node *within) {
+  assert(globalenv->which == DEFNAME);
+  assert(within->which == WITHIN);
+
+  GSTART();
+  G0(r, node, UN,
+     r->as.UN.operator = TREFSHARP;
+     G(path_header, 0));
+  G0(r2, node, UN,
+     r2->as.UN.operator = TREFSHARP;
+     G(path, 0));
+
+  struct node *p = subs_first(within);
+  node_deepcopy(mod, path_header, p);
+  node_deepcopy(mod, path, p);
+
+  // Build the path to get to the globalenv header, using 'p', as it gets
+  // us to the globalenv itself.
+  const ident header = globalenv->as.DEFNAME.globalenv_header_name;
+  switch (path_header->which) {
+  case IDENT:
+    path_header->as.IDENT.name = header;
+    break;
+  case BIN:
+    subs_last(path_header)->as.IDENT.name = header;
+    break;
+  default:
+    assert(false);;
+  }
+  return 0;
+}
+
+static ERROR try_rewrite_globalenv_call(bool *yes,
+                                        struct module *mod, struct node *node) {
+  error e;
+  struct node *fun = subs_first(node);
+  const ident name = node_ident(fun);
+  ident internal_name = ID__NONE;
+  size_t arity = 1;
+  switch (name) {
+  case ID_TBI_GLOBALENV_INSTALLED: internal_name = ID_INTERNAL_GLOBALENV_INSTALLED; break;
+  case ID_TBI_GLOBALENV_PARENT: internal_name = ID_INTERNAL_GLOBALENV_PARENT; break;
+  case ID_TBI_GLOBALENV_INSTALL: internal_name = ID_INTERNAL_GLOBALENV_INSTALL; arity = 2; break;
+  case ID_TBI_GLOBALENV_UNINSTALL: internal_name = ID_INTERNAL_GLOBALENV_UNINSTALL; arity = 2; break;
+  default: *yes = false; return 0;
+  }
+
+  struct node *genv = subs_at(node, 1);
+  if (genv->which != IDENT || genv->as.IDENT.def == NULL
+      || genv->as.IDENT.def->which != WITHIN) {
+    e = mk_except(mod, node, "function '%s' must be used on a globalenv"
+                  " in a local within declaration",
+                  idents_value(mod->gctx, name));
+  }
+  struct node *within = genv->as.IDENT.def;
+
+  GSTART();
+  G0(new_fun, node, IDENT,
+     new_fun->as.IDENT.name = internal_name;
+     new_fun->typ = TBI__CALL_FUNCTION_SLOT);
+  node_subs_remove(node, new_fun);
+  node_subs_replace(node, fun, new_fun);
+
+  struct node *globalenv = NULL;
+  e = scope_lookup_ident_immediate(&globalenv, node, mod,
+                                   genv->as.IDENT.non_local_scope,
+                                   node_ident(genv), false);
+  EXCEPT(e);
+
+  assert(globalenv->which == DEFNAME);
+  e = append_globalenv_refs(mod, node, globalenv, within);
+  EXCEPT(e);
+
+  const struct node *except[] = { genv, NULL, NULL };
+  if (arity == 2) {
+    except[1] = subs_at(node, 2);
+  }
+  e = catchup(mod, except, node, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+
+  *yes = true;
+  return 0;
+}
+
 static ERROR type_inference_call(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
@@ -2084,6 +2169,13 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
 
   e = check_consistent_either_types_or_values(mod, try_node_subs_at(node, 1));
   EXCEPT(e);
+
+  bool done = false;
+  e = try_rewrite_globalenv_call(&done, mod, node);
+  EXCEPT(e);
+  if (done) {
+    return 0;
+  }
 
   node->flags |= NODE_IS_TEMPORARY;
 

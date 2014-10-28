@@ -355,6 +355,40 @@ static struct node *insert_temporary(struct module *mod, uint32_t flags,
   return repl;
 }
 
+static ident create_globalenv_header(struct module *mod, uint32_t flags,
+                                     const struct toplevel *toplevel,
+                                     struct node *next_let,
+                                     struct node *id, struct node *expr) {
+  static const char POSTFIX[] = "_$Nenvheader";
+  const char *base = idents_value(mod->gctx, node_ident(id));
+  char *s = calloc(strlen(base) + ARRAY_SIZE(POSTFIX), sizeof(char));
+  sprintf(s, "%s%s", base, POSTFIX);
+  const ident name = idents_add_string(mod->gctx, s, strlen(s));
+  free(s);
+
+  struct node *let_block = parent(next_let);
+  GSTART();
+  G0(let, let_block, LET,
+     let->codeloc = id->codeloc;
+     let->as.LET.toplevel = *toplevel;
+     let->flags = flags;
+     G(defn, DEFNAME,
+       defn->flags = flags;
+       G(n, IDENT,
+         n->as.IDENT.name = name);
+       G(typc, TYPECONSTRAINT,
+         G(exprh, INIT);
+         G(rienvh, UN,
+           rienvh->as.UN.operator = TREFSHARP;
+           G(ienvh, CALL,
+             G_IDENT(envh, "Envheader");
+             G(rexpr, 0,
+               node_deepcopy(mod, rexpr, subs_last(expr))))))));
+  node_subs_remove(let_block, let);
+  node_subs_insert_before(let_block, next_let, let);
+  return name;
+}
+
 static ERROR extract_defnames(struct module *mod, struct lir_state *st,
                               const struct toplevel *toplevel, uint32_t flags,
                               bool is_alias, bool is_globalenv,
@@ -402,9 +436,16 @@ static ERROR extract_defnames(struct module *mod, struct lir_state *st,
           node_subs_append(def, expr);
         }
       } else {
+        ident globalenv_header_name = ID__NONE;
+        if (is_globalenv){
+          globalenv_header_name = create_globalenv_header(mod, flags, toplevel,
+                                                          let, pattern, expr);
+        }
+
         def = mk_node(mod, let, DEFNAME);
         def->flags = flags;
         def->as.DEFNAME.is_globalenv = is_globalenv;
+        def->as.DEFNAME.globalenv_header_name = globalenv_header_name;
         node_subs_append(def, pattern);
         if (expr == NULL) {
           expr = mk_node(mod, def, INIT);

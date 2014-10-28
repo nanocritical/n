@@ -1871,7 +1871,6 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
 
   rtr_helpers(out, mod, node, true);
 
-  const struct node *funargs = NULL;
   const enum builtingen bg = node_toplevel_const(node)->builtingen;
   switch (bg) {
   case BG_TRIVIAL_CTOR_CTOR:
@@ -1901,25 +1900,6 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     } else {
       fprintf(out, "return self->%s;\n", idents_value(mod->gctx, ID_TAG));
     }
-    break;
-  case BG_ENVIRONMENT_PARENT:
-    assert(node->which == DEFMETHOD);
-    fprintf(out, "NLANG_BUILTINS_BG_ENVIRONMENT_PARENT(");
-    print_typ(out, mod,
-              typ_generic_arg_const(
-                node->as.DEFMETHOD.member_from_intf, 0));
-    fprintf(out, ");\n");
-    break;
-  case BG_ENVIRONMENT_INSTALL:
-  case BG_ENVIRONMENT_UNINSTALL:
-    funargs = subs_at_const(node, IDX_FUNARGS);
-    fprintf(out, "NLANG_BUILTINS_BG_ENVIRONMENT_%sINSTALL(",
-            bg == BG_ENVIRONMENT_UNINSTALL ? "UN" : "");
-    print_typ(out, mod,
-              typ_generic_arg_const(
-                typ_generic_arg_const(
-                  subs_at_const(funargs, 1)->typ, 0), 0));
-    fprintf(out, ");\n");
     break;
   case BG__NOT:
   case BG__NUM:
@@ -2274,22 +2254,6 @@ struct cprinter_state {
   size_t printed;
   void *user;
 };
-
-static ERROR print_deftype_envparent_eachisalist(struct module *mod,
-                                                 struct typ *t, struct typ *intf,
-                                                 bool *stop, void *user) {
-  if (typ_generic_arity(intf) == 0
-      || !typ_equal(typ_generic_functor_const(intf), TBI_ENVIRONMENT)) {
-    return 0;
-  }
-
-  struct cprinter_state *st = user;
-  fprintf(st->out, "NLANG_BUILTINS_DEFINE_ENVPARENT(");
-  print_typ(st->out, st->mod, typ_generic_arg_const(intf, 0));
-  fprintf(st->out, ");\n");
-
-  return 0;
-}
 
 static void print_deftype_block(FILE *out, bool header, enum forward fwd, const struct module *mod,
                                 const struct node *node, bool do_static, struct fintypset *printed) {

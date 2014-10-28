@@ -1,5 +1,4 @@
 intf `Heap =
-	isa (`Environment `Heap)
 	met! Alloc_raw bytecount:Uint = @#U8
 	met! Free_raw p:?@#U8 bytecount:Uint
 	met! Realloc_raw s:@#U8 old_bytecount:Uint bytecount:Uint = @#U8
@@ -21,6 +20,9 @@ Sysheap met! Realloc_raw raw:@#U8 old_bytecount:Uint bytecount:Uint = @#U8
 	return Internal_realloc0 raw old_bytecount bytecount
 
 globalenv Heap:@!`Heap
+
+fun Sysheap_install sysheader:@#(Envheader @!`Heap) within Heap
+	Globalenv_install Heap sysheader
 
 (fun t:`Any) Alloc = @#t within Heap
 	return (Cast @#U8 @#t) <- Heap!Alloc_raw (sizeof t)

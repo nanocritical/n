@@ -7,13 +7,18 @@
 #define NBDYN(t) _$Ndyn_n$builtins$_$Ni_##t
 
 static NB(Sysheap) sysheap;
+static struct _$Ngen_n$builtins$Envheader$$n$builtins$_$Ni_Heap$$_$Ndyn_n$builtins$_$Ni_Heap_genN$_ sysheader;
 
 void _$Nprelude(int *argc, char ***argv, char ***env) {
-  NB(Sysheap$Install)(&sysheap, &NB(Heap));
+  sysheader.Env = NLANG_MKDYN(_$Ndyn_n$builtins$_$Ni_Heap,
+                              &n$builtins$Sysheap$Dyntable__n$builtins$_$Ni_Heap,
+                              (void *)&sysheap);
+  sysheader.Parent = NULL;
+
+  NB(Sysheap_install)(&sysheader);
 }
 
 void _$Npostlude(int *ret) {
-  NB(Sysheap$Uninstall)(&sysheap, &NB(Heap));
 }
 
 NB(Void) *NB(Nonnull_void)(void) {

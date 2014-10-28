@@ -17,8 +17,6 @@ struct NB(Varargint) {
   union NB(Varargintunion) u;
 };
 
-#define NLANG_BUILTINS_DEFINE_ENVPARENT(envt) _$Ndyn_##envt _$Nenvparent_##envt
-
 #endif
 
 #ifdef NLANG_DECLARE_FUNCTIONS
@@ -96,19 +94,6 @@ struct NB(Varargint) {
 
 #define NLANG_MKDYN(dyn_type, _dyntable, _obj) \
   (dyn_type){ .dyntable = (void *)(_dyntable), .obj = (_obj) }
-
-#define NLANG_BUILTINS_BG_ENVIRONMENT_PARENT(envt) do { \
-  return self->_$Nenvparent_##envt; \
-} while (0)
-
-#define NLANG_BUILTINS_BG_ENVIRONMENT_INSTALL(envt) do { \
-  self->_$Nenvparent_##envt = *where; \
-  *where = NLANG_MKDYN(_$Ndyn_##envt, &THIS($Dyntable__##envt), self); \
-} while (0)
-
-#define NLANG_BUILTINS_BG_ENVIRONMENT_UNINSTALL(envt) do { \
-  *where = where->dyntable->Parent(where->obj); \
-} while (0)
 
 #endif
 

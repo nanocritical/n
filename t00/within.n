@@ -1,41 +1,66 @@
 from n import *
 
-globalenv e2:@!`env2
+globalenv f:@!`f
 
-intf `env2 =
-	isa (`Environment `env2)
-	met prn2 s:@String
+intf `f =
+	met prn s:@String
 
-struct myenv2 =
-	isa `env2
+struct myf =
+	isa `f
 	dummy	:U32
 
-myenv2 met prn2 s:@String
-	Prn 'saying2:' s
+myf met prn s:@String
+	Prn 'saying2:' self.dummy s
 
-intf `env1 =
-	isa (`Environment `env1)
+intf `e =
 	met Prn s:@String
 
-struct myenv1 =
-	isa `env1
+struct mye =
+	isa `e
 
-globalenv e1:@!`env1
-within e1
+globalenv e:@!`e
+within e
 
-myenv1 met Prn s:@String
+mye met Prn s:@String
 	Prn 'saying:' s
 
-fun do = I32 within e2
-	let mye2 = {}:myenv2
-	such
-		mye2!Install @!e2
-	e2.prn2 'module'
-	e1.Prn 'function'
+fun do = I32 within f
+	let f1 = Alloc myf
+	let header = Alloc (Envheader @!`f)
+	header#Env = f1
+	Globalenv_install f header
+
+	f.prn 'module'
+	e.Prn 'function'
+
+	block
+		let f2 = Alloc myf
+		f2!dummy = 42
+		let header = Alloc (Envheader @!`f)
+		header#Env = f2
+		Globalenv_install f header
+		assert f1 === (Dyncast myf) (Globalenv_parent f)
+		f.prn 'module2'
+		Globalenv_uninstall f
+
+	f.prn 'module3'
+
+--	let f3 = Alloc myf
+--	f3!dummy = 43
+--	within f = f3
+--		f.prn 'module'
+--	within f = f2
+--		f.prn 'module'
+--	within f = f1
+--		f.prn 'module'
+--
+--	f.prn 'module4'
+
 	return 0
 
 fun Main = I32
-	let mye1 = {}:myenv1
-	such
-		mye1!Install @!e1
+	let e1 = Alloc mye
+	let header = Alloc (Envheader @!`e)
+	header#Env = e1
+	Globalenv_install e header
 	return do

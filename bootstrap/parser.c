@@ -152,11 +152,13 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_BOUNDS] = "Bounds",
   [ID_TBI_COLLECTION] = "`Collection",
   [ID_TBI_ITERATOR] = "`Iterator",
-  [ID_TBI_ENVIRONMENT] = "`Environment",
-  [ID_TBI_ANY_ENVIRONMENT] = "`Any_environment",
   [ID_TBI_PREVENT_DYN] = "`Prevent_dyn",
   [ID_TBI_INHERIT] = "`Inherit",
   [ID_TBI_ERROR] = "Error",
+  [ID_TBI_GLOBALENV_INSTALLED] = "Globalenv_installed",
+  [ID_TBI_GLOBALENV_PARENT] = "Globalenv_parent",
+  [ID_TBI_GLOBALENV_INSTALL] = "Globalenv_install",
+  [ID_TBI_GLOBALENV_UNINSTALL] = "Globalenv_uninstall",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_TBI__CALL_FUNCTION_SLOT] = "__call_function_slot__",
   [ID_TBI__MUTABLE] = "__mutable__",
@@ -218,10 +220,11 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_OPERATOR_OVUMINUS] = "Operator_ovuminus",
   [ID_OPERATOR_AT] = "Operator_at",
   [ID_OPERATOR_SUB] = "Operator_sub",
-  [ID_PARENT] = "Parent",
-  [ID_INSTALL] = "Install",
-  [ID_UNINSTALL] = "Uninstall",
   [ID_SHOW] = "Show",
+  [ID_INTERNAL_GLOBALENV_INSTALLED] = "Internal_globalenv_installed",
+  [ID_INTERNAL_GLOBALENV_PARENT] = "Internal_globalenv_parent",
+  [ID_INTERNAL_GLOBALENV_INSTALL] = "Internal_globalenv_install",
+  [ID_INTERNAL_GLOBALENV_UNINSTALL] = "Internal_globalenv_uninstall",
 };
 
 static uint32_t token_hash(const struct token *tok) {
@@ -483,11 +486,13 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_BOUNDS = gctx->builtin_typs_by_name[ID_TBI_BOUNDS];
   TBI_COLLECTION = gctx->builtin_typs_by_name[ID_TBI_COLLECTION];
   TBI_ITERATOR = gctx->builtin_typs_by_name[ID_TBI_ITERATOR];
-  TBI_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ENVIRONMENT];
-  TBI_ANY_ENVIRONMENT = gctx->builtin_typs_by_name[ID_TBI_ANY_ENVIRONMENT];
   TBI_PREVENT_DYN = gctx->builtin_typs_by_name[ID_TBI_PREVENT_DYN];
   TBI_INHERIT = gctx->builtin_typs_by_name[ID_TBI_INHERIT];
   TBI_ERROR = gctx->builtin_typs_by_name[ID_TBI_ERROR];
+  TBI_GLOBALENV_INSTALLED = gctx->builtin_typs_by_name[ID_TBI_GLOBALENV_INSTALLED];
+  TBI_GLOBALENV_PARENT = gctx->builtin_typs_by_name[ID_TBI_GLOBALENV_PARENT];
+  TBI_GLOBALENV_INSTALL = gctx->builtin_typs_by_name[ID_TBI_GLOBALENV_INSTALL];
+  TBI_GLOBALENV_UNINSTALL = gctx->builtin_typs_by_name[ID_TBI_GLOBALENV_UNINSTALL];
   TBI__NOT_TYPEABLE = gctx->builtin_typs_by_name[ID_TBI__NOT_TYPEABLE];
   TBI__CALL_FUNCTION_SLOT = gctx->builtin_typs_by_name[ID_TBI__CALL_FUNCTION_SLOT];
   TBI__MUTABLE = gctx->builtin_typs_by_name[ID_TBI__MUTABLE];
