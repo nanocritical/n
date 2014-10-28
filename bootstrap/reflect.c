@@ -108,12 +108,22 @@ void reflect_fill_type(struct __Type *type,
     .type = type,
   };
 
+  if (typ_definition_which(t) == DEFTYPE) {
+    st.count += 1; // for 't' itself.
+  }
+
   const bool zero = typ_isalist_foreach(CONST_CAST(mod), CONST_CAST(t),
                                         ISALIST_FILTEROUT_PREVENT_DYN,
                                         count_isa_each, &st);
   assert(!zero);
 
   Dynisalist_Init(&type->dynisalist, st.count);
+
+  if (typ_definition_which(t) == DEFTYPE) {
+    const bool zero = add_entry_each(CONST_CAST(mod), CONST_CAST(t),
+                                      CONST_CAST(t), NULL, &st);
+    assert(!zero);
+  }
 
   const bool zero2 = typ_isalist_foreach(CONST_CAST(mod), CONST_CAST(t),
                                          ISALIST_FILTEROUT_PREVENT_DYN,

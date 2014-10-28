@@ -595,6 +595,7 @@ static void print_call(FILE *out, const struct module *mod,
   const struct node *dfun = DEF(tfun);
   const struct node *parentd = parent_const(dfun);
 
+  const ident name = node_ident(dfun);
   if (((dfun->which == DEFFUN && dfun->as.DEFFUN.is_newtype_converter)
        || (dfun->which == DEFMETHOD && dfun->as.DEFMETHOD.is_newtype_converter))
       && parentd->which == DEFTYPE && parentd->as.DEFTYPE.newtype_expr != NULL) {
@@ -607,26 +608,40 @@ static void print_call(FILE *out, const struct module *mod,
     fprintf(out, ")");
     return;
   }
-  if (node_ident(dfun) == ID_CAST) {
+  if (name == ID_CAST) {
     fprintf(out, "(");
     print_typ(out, mod, node->typ);
     fprintf(out, ")(");
     print_expr(out, mod, subs_at_const(node, 1), T__CALL);
     fprintf(out, ")");
     return;
-  } else if (node_ident(dfun) == ID_DYNCAST) {
+  } else if (name == ID_DYNCAST) {
     const struct typ *i = typ_generic_arg_const(tfun, 0);
-    fprintf(out, "NLANG_MKDYN(_$Ndyn_");
-    print_typ(out, mod, i);
-    fprintf(out, ", n$reflect$Get_dyntable_for((void *)(");
-    print_expr(out, mod, subs_at_const(node, 1), T__CALL);
-    fprintf(out, ").dyntable, (void *)&");
-    print_typ(out, mod, i);
-    fprintf(out, "$Reflect_type), (");
-    print_expr(out, mod, subs_at_const(node, 1), T__CALL);
-    fprintf(out, ").obj)");
+    if (typ_definition_which(i) == DEFINTF) {
+      // Result is dyn.
+      fprintf(out, "NLANG_MKDYN(_$Ndyn_");
+      print_typ(out, mod, i);
+      fprintf(out, ", n$reflect$Get_dyntable_for((void *)(");
+      print_expr(out, mod, subs_at_const(node, 1), T__CALL);
+      fprintf(out, ").dyntable, (void *)&");
+      print_typ(out, mod, i);
+      fprintf(out, "$Reflect_type), (");
+      print_expr(out, mod, subs_at_const(node, 1), T__CALL);
+      fprintf(out, ").obj)");
+    } else {
+      // Result is DEFTYPE.
+      fprintf(out, "(n$reflect$Get_dyntable_for((void *)(");
+      print_expr(out, mod, subs_at_const(node, 1), T__CALL);
+      fprintf(out, ").dyntable, (void *)&");
+      print_typ(out, mod, i);
+      fprintf(out, "$Reflect_type) != NULL ? (");
+      print_typ(out, mod, i);
+      fprintf(out, " *)(");
+      print_expr(out, mod, subs_at_const(node, 1), T__CALL);
+      fprintf(out, ").obj : NULL)");
+    }
     return;
-  } else if (node_ident(dfun) == ID_NEXT && typ_isa(parentd->typ, TBI_VARARG)) {
+  } else if (name == ID_NEXT && typ_isa(parentd->typ, TBI_VARARG)) {
     const struct node *self = subs_at_const(node, 1);
     if (typ_is_dyn(typ_generic_arg(parentd->typ, 0))) {
       fprintf(out, "NLANG_BUILTINS_VARARG_NEXT_DYN(");
@@ -913,7 +928,11 @@ static void print_dyn(FILE *out, const struct module *mod, const struct node *no
 static void print_expr(FILE *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   switch (node->which) {
   case NIL:
-    if (typ_is_reference(node->typ)) {
+    if (typ_is_dyn(node->typ)) {
+      fprintf(out, "(");
+      print_typ(out, mod, node->typ);
+      fprintf(out, "){ NULL, NULL }");
+    } else if (typ_is_reference(node->typ)) {
       fprintf(out, "NULL");
     } else {
       fprintf(out, "(");
@@ -1679,7 +1698,7 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
                                 bool as_dyn_fun_pointer) {
   const struct node *proto = node;
   if (as_dyn_fun_pointer && node_member_from_intf(node)) {
-    proto = DEF(typ_member(node_member_from_intf(node), node_ident(node)));
+    proto = DEF(typ_member(CONST_CAST(node_member_from_intf(node)), node_ident(node)));
   }
 
   const size_t args_count = c_fun_args_count(proto);
@@ -2002,7 +2021,7 @@ static void print_deffun_dynwrapper(FILE *out, bool header, enum forward fwd,
   if (from_intf == NULL) {
     return;
   }
-  const struct node *from = DEF(typ_member(from_intf, node_ident(node)));
+  const struct node *from = DEF(typ_member(CONST_CAST(from_intf), node_ident(node)));
   if (node_toplevel_const(from)->flags & TOP_IS_NOT_DYN) {
     return;
   }
@@ -2289,19 +2308,100 @@ static void print_deftype_block(FILE *out, bool header, enum forward fwd, const 
     }
   }
 
-  if (!do_static && typ_isa(node->typ, TBI_ENVIRONMENT)) {
-    struct cprinter_state st = {
-      .out = out, .header = header, .fwd = fwd,
-      .mod = mod, .printed = 0, .user = NULL,
-    };
-    error e = typ_isalist_foreach((struct module *)mod, node->typ, 0,
-                                  print_deftype_envparent_eachisalist,
-                                  &st);
-    assert(!e);
-  }
-
   if (!do_static) {
     fprintf(out, "}\n");
+  }
+}
+
+static ERROR print_defintf_dyntable_field_eachisalist(struct module *mod, struct typ *t,
+                                                      struct typ *intf,
+                                                      bool *stop, void *user) {
+  struct cprinter_state *st = user;
+
+  const struct node *dintf = DEF(intf);
+  FOREACH_SUB_CONST(d, dintf) {
+    if (d->which != DEFFUN && d->which != DEFMETHOD) {
+      continue;
+    }
+    if (node_toplevel_const(d)->flags & TOP_IS_NOT_DYN) {
+      continue;
+    }
+    if (subs_count_atleast(subs_at_const(DEF(d->typ), IDX_GENARGS), 1)) {
+      continue;
+    }
+    print_fun_prototype(st->out, st->header, st->fwd, mod, d, true, true);
+    fprintf(st->out, ";\n");
+    st->printed += 1;
+  }
+
+  return 0;
+}
+
+static void print_dyntable_type(FILE *out, bool header, enum forward fwd,
+                                const struct module *mod, const struct node *node) {
+  if (fwd == FWD_DECLARE_TYPES) {
+    fprintf(out, "struct _$Ndyntable_");
+    print_deftype_name(out, mod, node);
+    fprintf(out, ";\n");
+
+    if (node->which == DEFINTF) {
+      fprintf(out, "struct _$Ndyn_");
+      print_deftype_name(out, mod, node);
+      fprintf(out, ";\n");
+      fprintf(out, "typedef struct _$Ndyn_");
+      print_deftype_name(out, mod, node);
+      fprintf(out, " _$Ndyn_");
+      print_deftype_name(out, mod, node);
+      fprintf(out, ";\n");
+    }
+
+  } else if (fwd == FWD_DEFINE_DYNS
+             && (typ_generic_arity(node->typ) > 0
+                 || header == node_is_export(node))) {
+    fprintf(out, "struct _$Ndyntable_");
+    print_deftype_name(out, mod, node);
+    fprintf(out, " {\n");
+
+    // Must be first: see lib/n/reflect.n.h
+    fprintf(out, "const void *type;\n");
+
+    struct cprinter_state st = {
+      .out = out, .header = header, .fwd = fwd,
+      .mod = NULL, .printed = 0, .user = NULL,
+    };
+
+    if (node->which == DEFINTF) {
+      error e = typ_isalist_foreach(CONST_CAST(mod), node->typ,
+                                    ISALIST_FILTEROUT_PREVENT_DYN,
+                                    // filter is 0 because all members of an
+                                    // intf inherit the exported status from
+                                    // the intf itself.
+                                    print_defintf_dyntable_field_eachisalist,
+                                    &st);
+      assert(!e);
+      e = print_defintf_dyntable_field_eachisalist(CONST_CAST(mod), node->typ,
+                                                   node->typ, NULL, &st);
+      assert(!e);
+    }
+
+    if (st.printed == 0) {
+      // Needed if all the members of the intf are *themselves* generics,
+      // that form is indeed legal. Or if we printing the empty dyntable
+      // of a DEFTYPE.
+      fprintf(out, "n$builtins$U8 _$Nfiller;\n");
+    }
+    fprintf(out, "};\n");
+
+    if (node->which == DEFINTF) {
+      fprintf(out, "struct _$Ndyn_");
+      print_deftype_name(out, mod, node);
+      fprintf(out, " {\n");
+      fprintf(out, "const struct _$Ndyntable_");
+      print_deftype_name(out, mod, node);
+      fprintf(out, " *dyntable;\n");
+      fprintf(out, "void *obj;\n");
+      fprintf(out, "};\n");
+    }
   }
 }
 
@@ -2313,7 +2413,7 @@ static ERROR print_dyntable_proto_eachisalist(struct module *mod, struct typ *t,
     return 0;
   }
 
-  fprintf(st->out, "static const struct _$Ndyntable_");
+  fprintf(st->out, "extern const struct _$Ndyntable_");
   print_typ(st->out, mod, intf);
   fprintf(st->out, " ");
   print_typ(st->out, mod, t);
@@ -2367,7 +2467,7 @@ static ERROR print_dyntable_eachisalist(struct module *mod, struct typ *t,
     return 0;
   }
 
-  fprintf(st->out, "static const struct _$Ndyntable_");
+  fprintf(st->out, "const struct _$Ndyntable_");
   print_typ(st->out, mod, intf);
   fprintf(st->out, " ");
   print_typ(st->out, mod, t);
@@ -2382,21 +2482,20 @@ static ERROR print_dyntable_eachisalist(struct module *mod, struct typ *t,
   st2.printed = 0;
   st2.user = (void *)t;
 
-
-  uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN;
-  const bool is_gen = typ_generic_arity(t) > 0;
-  if (!is_gen) {
-    filter |= st->header ? ISALIST_FILTEROUT_NOT_EXPORTED : ISALIST_FILTEROUT_EXPORTED;
+  if (typ_definition_which(intf) == DEFTYPE) {
+    goto skip;
   }
 
-  error e = typ_isalist_foreach((struct module *)mod, intf, filter,
+  const uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN;
+  error e = typ_isalist_foreach(CONST_CAST(mod), intf, filter,
                                 print_dyntable_field_eachisalist,
                                 &st2);
   assert(!e);
-  e = print_dyntable_field_eachisalist((struct module *)mod,
+  e = print_dyntable_field_eachisalist(CONST_CAST(mod),
                                        NULL, intf, NULL, &st2);
   assert(!e);
 
+skip:
   if (st2.printed == 0) {
     fprintf(st->out, "0,\n");
   }
@@ -2413,25 +2512,24 @@ static void print_dyntable(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN;
-  const bool is_gen = typ_generic_arity(node->typ) > 0;
-  if (!is_gen) {
-    filter |= header ? ISALIST_FILTEROUT_NOT_EXPORTED : ISALIST_FILTEROUT_EXPORTED;
-  }
-
+  const uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN;
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,
       .mod = NULL, .printed = 0, .user = NULL };
-    error e = typ_isalist_foreach((struct module *)mod, node->typ, filter,
-                                  print_dyntable_proto_eachisalist,
-                                  &st);
+    error e = print_dyntable_proto_eachisalist(CONST_CAST(mod), node->typ, node->typ, NULL, &st);
     assert(!e);
-  } else if (fwd == FWD_DEFINE_FUNCTIONS) {
+    e = typ_isalist_foreach(CONST_CAST(mod), node->typ, filter,
+                            print_dyntable_proto_eachisalist,
+                            &st);
+    assert(!e);
+  } else if (!header && fwd == FWD_DEFINE_FUNCTIONS) {
     struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,
       .mod = NULL, .printed = 0, .user = NULL };
-    error e = typ_isalist_foreach((struct module *)mod, node->typ, filter,
-                                  print_dyntable_eachisalist,
-                                  &st);
+    error e = print_dyntable_eachisalist(CONST_CAST(mod), node->typ, node->typ, NULL, &st);
+    assert(!e);
+    e = typ_isalist_foreach(CONST_CAST(mod), node->typ, filter,
+                            print_dyntable_eachisalist,
+                            &st);
     assert(!e);
   }
 }
@@ -2946,17 +3044,20 @@ static void print_deftype(FILE *out, bool header, enum forward fwd,
     print_deftype_reference(out, header, fwd, mod, node);
     return;
   }
-  if (fwd == FWD_DEFINE_DYNS) {
-    return;
-  }
 
   if (node->as.DEFTYPE.newtype_expr != NULL) {
     return;
   }
 
+  if (fwd == FWD_DEFINE_TYPES && (node_is_extern(node) || prototype_only(header, node))) {
+    return;
+  }
+
   guard_generic(out, header, fwd, mod, node, true);
 
-  if (fwd == FWD_DEFINE_TYPES && node_is_extern(node)) {
+  print_dyntable_type(out, header, fwd, mod, node);
+
+  if (fwd == FWD_DEFINE_DYNS) {
     goto done;
   }
 
@@ -3008,30 +3109,6 @@ done:
   guard_generic(out, header, fwd, mod, node, false);
 }
 
-static ERROR print_defintf_dyntable_field_eachisalist(struct module *mod, struct typ *t,
-                                                      struct typ *intf,
-                                                      bool *stop, void *user) {
-  struct cprinter_state *st = user;
-
-  const struct node *dintf = DEF(intf);
-  FOREACH_SUB_CONST(d, dintf) {
-    if (d->which != DEFFUN && d->which != DEFMETHOD) {
-      continue;
-    }
-    if (node_toplevel_const(d)->flags & TOP_IS_NOT_DYN) {
-      continue;
-    }
-    if (subs_count_atleast(subs_at_const(DEF(d->typ), IDX_GENARGS), 1)) {
-      continue;
-    }
-    print_fun_prototype(st->out, st->header, st->fwd, mod, d, true, true);
-    fprintf(st->out, ";\n");
-    st->printed += 1;
-  }
-
-  return 0;
-}
-
 static void print_defintf(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node) {
   if (typ_is_generic_functor(node->typ)) {
@@ -3069,63 +3146,7 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
 
   guard_generic(out, header, fwd, mod, node, true);
 
-  if (fwd == FWD_DECLARE_TYPES) {
-    fprintf(out, "struct _$Ndyntable_");
-    print_deftype_name(out, mod, node);
-    fprintf(out, ";\n");
-
-    fprintf(out, "struct _$Ndyn_");
-    print_deftype_name(out, mod, node);
-    fprintf(out, ";\n");
-    fprintf(out, "typedef struct _$Ndyn_");
-    print_deftype_name(out, mod, node);
-    fprintf(out, " _$Ndyn_");
-    print_deftype_name(out, mod, node);
-    fprintf(out, ";\n");
-
-  } else if (fwd == FWD_DEFINE_DYNS) {
-    if (!prototype_only(header, node)) {
-      fprintf(out, "struct _$Ndyntable_");
-      print_deftype_name(out, mod, node);
-      fprintf(out, " {\n");
-
-      // Must be first: see lib/n/reflect.n.h
-      fprintf(out, "const void *type;\n");
-
-      struct cprinter_state st = {
-        .out = out, .header = header, .fwd = fwd,
-        .mod = NULL, .printed = 0, .user = NULL,
-      };
-      error e = typ_isalist_foreach((struct module *)mod, node->typ,
-                                    ISALIST_FILTEROUT_PREVENT_DYN,
-                                    // filter is 0 because all members of an
-                                    // intf inherit the exported status from
-                                    // the intf itself.
-                                    print_defintf_dyntable_field_eachisalist,
-                                    &st);
-      assert(!e);
-      e = print_defintf_dyntable_field_eachisalist((struct module *)mod, node->typ,
-                                                   node->typ, NULL, &st);
-      assert(!e);
-
-      if (st.printed == 0) {
-        // Needed if all the members of the intf are *themselves* generics,
-        // that form is indeed legal.
-        fprintf(out, "n$builtins$U8 _$Nfiller;\n");
-      }
-      fprintf(out, "};\n");
-
-      fprintf(out, "struct _$Ndyn_");
-      print_deftype_name(out, mod, node);
-      fprintf(out, " {\n");
-      fprintf(out, "const struct _$Ndyntable_");
-      print_deftype_name(out, mod, node);
-      fprintf(out, " *dyntable;\n");
-      fprintf(out, "void *obj;\n");
-      fprintf(out, "};\n");
-    }
-  }
-
+  print_dyntable_type(out, header, fwd, mod, node);
   print_reflect_type(out, header, fwd, mod, node);
 
   guard_generic(out, header, fwd, mod, node, false);
