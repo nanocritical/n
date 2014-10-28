@@ -786,6 +786,8 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
     left->flags |= right->flags & NODE__ASSIGN_TRANSITIVE;
   } else if (operator == TEQMATCH || operator == TNEMATCH) {
     // noop
+  } else if (OP_KIND(operator) == OP_BIN_SYM_PTR) {
+    // noop, see below
   } else {
     e = unify(mod, node, left->typ, right->typ);
     EXCEPT(e);
@@ -877,6 +879,15 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
     EXCEPT(e);
     e = typ_check_isa(mod, node, right->typ, TBI_ANY_ANY_REF);
     EXCEPT(e);
+    if (typ_generic_arity(left->typ) > 0 && typ_generic_arity(right->typ) > 0) {
+      // The kind of reference doesn't matter.
+      // dyn should be Dyncast to a concrete type first. (At least, for now.)
+      e = unify(mod, node, typ_generic_arg(left->typ, 0), typ_generic_arg(right->typ, 0));
+      EXCEPT(e);
+    } else {
+      e = unify(mod, node, left->typ, right->typ);
+      EXCEPT(e);
+    }
     set_typ(&node->typ, TBI_BOOL);
     break;
   case OP_BIN_SYM:
