@@ -304,6 +304,7 @@ static ERROR ssa_convert_global(struct module *mod, struct node *node) {
         name->as.IDENT.name = gensym(mod));
       G(dst, 0,
         node_move_content(dst, node))));
+  defn->as.DEFNAME.ssa_user = node;
 
   node_subs_remove(parwhere, let);
   node_subs_insert_before(parwhere, where, let);
@@ -1091,16 +1092,16 @@ static void remove_unnecessary_ssa_defname(struct module *mod, struct node *defn
 
   struct node *let = parent(defn);
   assert(!subs_count_atleast(let, 2));
-  assert(parent(let)->which == BLOCK);
 
   struct node *expr = subs_last(defn);
   struct node *user = defn->as.DEFNAME.ssa_user;
 
-  struct node *block = let;
-  do {
+  struct node *block = parent(let);
+  assert(NM(block->which) & (NM(BLOCK) | NM(MODULE_BODY)));
+  while (block->which == BLOCK && block->as.BLOCK.is_scopeless) {
     block = parent(block);
     assert(block->which == BLOCK);
-  } while (block->as.BLOCK.is_scopeless);
+  }
   scope_undefine_ssa_var(&block->scope, node_ident(defn));
 
   remove_expr_from_use_chain(mod, expr);

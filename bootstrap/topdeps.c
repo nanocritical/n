@@ -20,6 +20,8 @@ static void record_final(struct module *mod, struct typ *t) {
   }
 
   if (typ_is_pseudo_builtin(t)
+      // when a try_remove_unnecessary_ssa_defname() is used on a global let:
+      || topmost->which == NOOP
       || (st->top->typ != NULL && typ_equal(st->top->typ, t))
       || (topmost->typ != NULL && typ_equal(topmost->typ, t))) {
     return;

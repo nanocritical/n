@@ -475,7 +475,7 @@ error step_push_state(struct module *mod, struct node *node,
 }
 
 STEP_NM(step_pop_state,
-        STEP_NM_HAS_TOPLEVEL | NM(BLOCK) | NM(DEFFIELD));
+        STEP_NM_HAS_TOPLEVEL | NM(BLOCK) | NM(DEFFIELD) | NM(NOOP));
 error step_pop_state(struct module *mod, struct node *node,
                      void *user, bool *stop) {
   DSTEP(mod, node);
@@ -495,12 +495,23 @@ error step_pop_state(struct module *mod, struct node *node,
       return 0;
     }
     break;
+  case NOOP:
+    if (parent_const(node) == NULL
+        || parent_const(node)->which != MODULE_BODY
+        || mod->state->top_state == NULL) {
+      return 0;
+    }
+    // This is a global let that was removed by
+    // try_remove_unnecessary_ssa_defname().
+    break;
   default:
     break;
   }
 
   struct toplevel *toplevel = node_toplevel(node);
-  toplevel->passed = toplevel->passing;
+  if (toplevel != NULL) {
+    toplevel->passed = toplevel->passing;
+  }
 
   if (node->which == LET
       && !node_is_at_top(node)
