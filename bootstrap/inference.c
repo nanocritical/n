@@ -1844,28 +1844,37 @@ static ERROR explicit_instantiation(struct module *mod, struct node *node) {
     THROW(e);
   }
 
-  struct typ **args = calloc(arity, sizeof(struct typ *));
-  size_t n;
-  for (n = 0; n < first_explicit; ++n) {
-    args[n] = tentative_generic_arg(mod, node, t, n);
-  }
-  FOREACH_SUB_EVERY(s, node, 1, 1) {
-    args[n] = s->typ;
-    n += 1;
-  }
-  // Ommitted generic arguments.
-  for (; n < arity; ++n) {
-    args[n] = tentative_generic_arg(mod, node, t, n);
-  }
-
   struct typ *i = NULL;
-  e = instantiate(&i, mod, node, 1, t, args, arity, false);
-  EXCEPT(e);
+  if (first_explicit == 0) {
+    struct typ **args = calloc(arity, sizeof(struct typ *));
+    size_t n = 0;
+    FOREACH_SUB_EVERY(s, node, 1, 1) {
+      args[n] = s->typ;
+      n += 1;
+    }
+    // Ommitted generic arguments.
+    for (; n < arity; ++n) {
+      args[n] = tentative_generic_arg(mod, node, t, n);
+    }
 
-  free(args);
+    e = instantiate(&i, mod, node, 1, t, args, arity, false);
+    EXCEPT(e);
 
-  set_typ(&node->typ, i);
-  topdeps_record(mod, i);
+    free(args);
+    set_typ(&node->typ, i);
+  } else {
+    i = instantiate_fully_implicit(mod, node, t);
+    set_typ(&node->typ, i);
+
+    size_t n = first_explicit;
+    FOREACH_SUB_EVERY(s, node, 1, 1) {
+      e = unify(mod, s, typ_generic_arg(node->typ, n), s->typ);
+      EXCEPT(e);
+      n += 1;
+    }
+  }
+
+  topdeps_record(mod, node->typ);
   node->flags |= NODE_IS_TYPE;
 
   return 0;
