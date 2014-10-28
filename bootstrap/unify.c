@@ -252,7 +252,7 @@ static struct typ *ensure_nullable(struct module *mod, const struct node *for_er
   } else if (typ_equal(t0, TBI_MMREF)) {
     r0 = TBI_NMMREF;
   } else {
-    assert(false);
+    r0 = TBI_ANY_REF;
   }
 
   struct typ *a = typ_generic_arg(t, 0);
@@ -1036,7 +1036,10 @@ static ERROR unify_reference(struct module *mod, uint32_t flags,
   e = unify_reforslice_arg(mod, flags, for_error, a, b);
   EXCEPT(e);
 
-  if (typ_definition_which(b0) == DEFINTF && tentative_or_ungenarg(b0)) {
+  if (!typ_is_generic_functor(b) && typ_is_tentative(b)) {
+    typ_link_tentative(a, b);
+  } else if (typ_definition_which(b0) == DEFINTF
+             && tentative_or_ungenarg(b) && tentative_or_ungenarg(b0)) {
     typ_link_tentative_functor(mod, a0, b0);
   }
 
