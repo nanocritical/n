@@ -50,7 +50,7 @@ static bool is_always_void(struct node *node) {
 }
 
 #define NM_DOESNT_EVER_NEED_SUB \
-  ( NM(IDENT) | NM(CALLNAMEDARG) )
+  ( NM(IDENT) | NM(CALLNAMEDARG) | NM(CATCH) )
 
 #define NM_DOESNT_NEED_SUB \
   ( NM_DOESNT_EVER_NEED_SUB | NM(NUMBER) | NM(NIL) | NM(BOOL) )
