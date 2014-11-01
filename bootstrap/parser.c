@@ -2013,6 +2013,7 @@ static STEP_NM(step_rewrite_into_defarg,
 static ERROR step_rewrite_into_defarg(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   node_set_which(node, DEFARG);
+  node->as.DEFARG.is_retval = true;
   return 0;
 }
 
@@ -2028,6 +2029,7 @@ static ERROR p_defret(struct node *node, struct module *mod) {
 
   if (node->which == TYPECONSTRAINT) {
     node_set_which(node, DEFARG);
+    node->as.DEFARG.is_retval = true;
   } else if (node->which == TUPLE) {
     e = rewrite_into_defarg(mod, node, NULL, -1);
     EXCEPT(e);
@@ -2036,6 +2038,7 @@ static ERROR p_defret(struct node *node, struct module *mod) {
   if (node->which != DEFARG) {
     struct node *par = parent(node);
     struct node *defarg = mk_node(mod, par, DEFARG);
+    defarg->as.DEFARG.is_retval = true;
     node_subs_remove(par, defarg);
     node_subs_replace(par, node, defarg);
 

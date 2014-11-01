@@ -1784,16 +1784,16 @@ static void print_rtr_helpers_start(FILE *out, const struct module *mod,
     fprintf(out, ")\n");
   }
 
-  if (last->which == TUPLE && subs_first_const(last)->which == DEFARG) {
+  if (last->which == TUPLE) {
     size_t n = 0;
     FOREACH_SUB_CONST(x, last) {
-      assert(x->which == DEFARG && "FIXME(catch in parser): either all named ");
-
-      fprintf(out, "#define ");
-      print_expr(out, mod, subs_first_const(x), T__STATEMENT);
-      fprintf(out, " ((");
-      print_expr(out, mod, first, T__STATEMENT);
-      fprintf(out, ").X%zu)\n", n);
+      if (x->which == DEFARG) {
+        fprintf(out, "#define ");
+        print_expr(out, mod, subs_first_const(x), T__STATEMENT);
+        fprintf(out, " ((");
+        print_expr(out, mod, first, T__STATEMENT);
+        fprintf(out, ").X%zu)\n", n);
+      }
       n += 1;
     }
   }
@@ -1813,11 +1813,13 @@ static void print_rtr_helpers_end(FILE *out, const struct module *mod,
     fprintf(out, "\n");
   }
 
-  if (last->which == TUPLE && subs_first_const(last)->which == DEFARG) {
+  if (last->which == TUPLE) {
     FOREACH_SUB_CONST(x, last) {
-      fprintf(out, "#undef ");
-      print_expr(out, mod, subs_first_const(x), T__STATEMENT);
-      fprintf(out, "\n");
+      if (x->which == DEFARG) {
+        fprintf(out, "#undef ");
+        print_expr(out, mod, subs_first_const(x), T__STATEMENT);
+        fprintf(out, "\n");
+      }
     }
   }
 }
