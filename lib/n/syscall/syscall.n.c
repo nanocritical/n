@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/xattr.h>
+#include <sys/syscall.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -212,7 +213,9 @@ static NB(Int) SY(open)(NB(U8) *pathname, NB(I32) flags, NB(U32) mode) {
 }
 
 static NB(Int) SY(openat)(NB(Int) dirfd, NB(U8) *pathname, NB(I32) flags, NB(U32) mode) {
-  int ret = openat(dirfd, (char *) pathname, flags, mode);
+  // openat() wrapper is borked on glibc < 2.21, see
+  // https://sourceware.org/bugzilla/show_bug.cgi?id=17523
+  int ret = syscall(SYS_openat, dirfd, (char *) pathname, flags, mode);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
