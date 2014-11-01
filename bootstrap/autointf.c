@@ -631,7 +631,7 @@ static void add_enum_bwall(struct module *mod, struct node *node) {
   const uint64_t bwall = (1 << count) - 1;
 
   char value[32] = { 0 };
-  snprintf(value, ARRAY_SIZE(value), "0x%"PRIu64, bwall);
+  snprintf(value, ARRAY_SIZE(value), "0x%"PRIx64, bwall);
 
   GSTART();
   G0(let, node, LET,
