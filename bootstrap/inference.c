@@ -1653,9 +1653,11 @@ static ERROR try_insert_automagic_arg(struct module *mod, struct node *node,
     error e = try_insert_automagic_arg_ref(mod, node, target, target_explicit_ref, arg);
     EXCEPT(e);
   } else if (typ_is_optional(target)) {
-    struct node *r = arg;
-    error e = wrap_arg_unary_op(&r, mod, TPREQMARK);
-    EXCEPT(e);
+    if (!typ_is_optional(arg->typ)) {
+      struct node *r = arg;
+      error e = wrap_arg_unary_op(&r, mod, TPREQMARK);
+      EXCEPT(e);
+    }
   }
   return 0;
 }
