@@ -20,7 +20,7 @@ syn keyword nStatement return continue break unreached
 syn keyword nConditional and or
 syn match nDecl "^  isa" contains=nExport
 syn keyword nOperator sizeof alignof nullable isa Dyncast not in
-syn keyword nKeyword noop as declare
+syn keyword nKeyword noop as declare new
 syn keyword nException except throw Drop Fatal
 syn match nOperator "bw[&|\^~]"
 syn match nOperator "ov+"
