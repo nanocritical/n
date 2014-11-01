@@ -8,9 +8,9 @@ let SHORT_WRITE = {Why=@"Short write"}:Error
 let SHORT_BUFFER = {Why=@"Short buffer"}:Error
 let UNEXPECTED_EOF = {Why=@"Unexpected EOF"}:Error
 
-intf `Reader t:`Copyable =
+intf `Reader =
 	-- Returns a slice of b with the same origin, extended to include the
 	-- content just read.
-	met# Read b:[]!t = []!t, Error
+	met# Read b:[]!U8 = []!U8, Error
 
 alias `Writer = `Io_writer

@@ -27,7 +27,7 @@ intf `String =
 --	met Split ?sep:?@String ?max:?@Uint = []String
 
 intf `Stringbuf =
-	isa `String (`Io_writer U8)
+	isa `String `Io_writer
 	met# Clear
 	met# Push c:U8
 	met# Pop = U8

@@ -55,7 +55,7 @@ Openattr met sys_open_mode = syscall.Mode
 -- On older Linux, or on systems without equivalent support, such facility
 -- cannot be implemented as safely, but this module will do its best.
 inline struct File =
-	isa (io.`Reader U8) (io.`Writer U8) -- (io.`Reader_at U8) (io.`Writer_at U8)
+	isa `Not_copyable io.`Reader io.`Writer -- io.`Reader_at io.`Writer_at
 	fs		:@!`Fs
 	fd		:?Int
 	hidden		:Bool

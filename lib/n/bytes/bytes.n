@@ -1,8 +1,8 @@
-from n.builtins import *
+from n import *
 import n.io
 
 inline struct Bytes_reader =
-	isa n.io.`Reader
+	isa io.`Reader
 	b	:[]U8
 	pos	:Uint
 
