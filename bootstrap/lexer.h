@@ -367,9 +367,7 @@ struct codeloc {
 
 enum block_style {
   BLOCK_MULTI = 0,
-  BLOCK_MULTI_ESCAPED,
   BLOCK_SINGLE,
-  BLOCK_SINGLE_ESCAPED,
 };
 
 struct parser {
