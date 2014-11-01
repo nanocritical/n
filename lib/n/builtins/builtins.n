@@ -1752,7 +1752,10 @@ inline (fun t:`Numeric) Max a:t b:t = t
 		return b
 
 inline struct Error =
-	isa `Generalized_boolean `Trivial_order `Show
+	-- FIXME Two different errors with the same string literal may compare
+	-- as equal if the compiler merges the literals. This won't be a
+	-- problem once @ are refcounted, there will be no merging then.
+	isa `Trivial_order `Show
 	Why	:?@String -- FIXME Make it ?@`Show
 
 	let OK = {}:this
@@ -1760,11 +1763,11 @@ inline struct Error =
 	let INVAL = {Why=@"invalid value"}:this
 	let INVAL_RANGE = {Why=@"invalid value range"}:this
 
-Error met Operator_test = Bool
-	return (self.Why)?
+inline Error met Operator_test = Bool
+	return self.Why?
 
 Error met Show st:@#`Fmt_state
-	if (self.Why)?
+	if self.Why?
 		"Error: ".Show st
 		self.Why.Show st
 	else
