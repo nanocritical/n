@@ -6,9 +6,9 @@
 #ifdef NLANG_DEFINE_TYPES
 
 union NB(Varargintunion) {
-  NB(Varargint) *ref;
+  struct NB(Varargint) *ref;
   va_list valist;
-  _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ *s;
+  struct _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ *s;
 };
 
 struct NB(Varargint) {
@@ -52,7 +52,7 @@ struct NB(Varargint) {
     (va).ap.n = NLANG_BUILTINS_VARARG_SLICE_CNT(&(va).ap); \
     va_end((va).ap.u.valist); \
   } else { \
-    n$builtins$Varargint *ref = va_arg((va).ap.u.valist, n$builtins$Varargint *); \
+    struct n$builtins$Varargint *ref = va_arg((va).ap.u.valist, struct n$builtins$Varargint *); \
     va_end((va).ap.u.valist); \
     if (ref->vacount == NLANG_BUILTINS_VACOUNT_VARARGREF) { \
       ref = ref->u.ref; \
@@ -66,7 +66,7 @@ struct NB(Varargint) {
    ? (va).ap.u.ref : &(va).ap)
 
 #define NLANG_BUILTINS_VARARG_END(va) do { \
-  n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
+  struct n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
   if (ap->vacount >= 0) { \
     va_end(ap->u.valist); \
   } \
@@ -81,7 +81,7 @@ struct NB(Varargint) {
 
 #define NLANG_BUILTINS_VARARG_NEXT(t, va) \
   ({ \
-   n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
+   struct n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
    (ap->vacount == NLANG_BUILTINS_VACOUNT_SLICE) ? \
    NLANG_BUILTINS_VARARG_SLICE_NTH(ap, t, \
                                    NLANG_BUILTINS_VARARG_SLICE_CNT(ap) \
@@ -99,7 +99,7 @@ struct NB(Varargint) {
 
 #ifdef NLANG_DEFINE_FUNCTIONS
 
-static inline NB(Uint) NB(Varargint$Count_left)(NB(Varargint) *self) {
+static inline NB(Uint) NB(Varargint$Count_left)(struct NB(Varargint) *self) {
   if (self->vacount == NLANG_BUILTINS_VACOUNT_VARARGREF) {
     return self->u.ref->n;
   } else {

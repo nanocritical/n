@@ -119,6 +119,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NUMBER_LITERAL_COMPATIBLE] = "`Number_literal_compatible",
   [ID_TBI_INTEGER] = "`Integer",
   [ID_TBI_UNSIGNED_INTEGER] = "`Unsigned_integer",
+  [ID_TBI_NATIVE] = "`Native",
   [ID_TBI_NATIVE_INTEGER] = "`Native_integer",
   [ID_TBI_NATIVE_SIZED_UNSIGNED_INTEGER] = "`Native_sized_unsigned_integer",
   [ID_TBI_GENERALIZED_BOOLEAN] = "`Generalized_boolean",
@@ -453,6 +454,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_NUMBER_LITERAL_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_NUMBER_LITERAL_COMPATIBLE];
   TBI_INTEGER = gctx->builtin_typs_by_name[ID_TBI_INTEGER];
   TBI_UNSIGNED_INTEGER = gctx->builtin_typs_by_name[ID_TBI_UNSIGNED_INTEGER];
+  TBI_NATIVE = gctx->builtin_typs_by_name[ID_TBI_NATIVE];
   TBI_NATIVE_INTEGER = gctx->builtin_typs_by_name[ID_TBI_NATIVE_INTEGER];
   TBI_NATIVE_SIZED_UNSIGNED_INTEGER = gctx->builtin_typs_by_name[ID_TBI_NATIVE_SIZED_UNSIGNED_INTEGER];
   TBI_GENERALIZED_BOOLEAN = gctx->builtin_typs_by_name[ID_TBI_GENERALIZED_BOOLEAN];

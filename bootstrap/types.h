@@ -271,6 +271,7 @@ extern struct typ *TBI_OVERFLOW_ARITHMETIC;
 extern struct typ *TBI_NUMBER_LITERAL_COMPATIBLE;
 extern struct typ *TBI_INTEGER;
 extern struct typ *TBI_UNSIGNED_INTEGER;
+extern struct typ *TBI_NATIVE;
 extern struct typ *TBI_NATIVE_INTEGER;
 extern struct typ *TBI_NATIVE_SIZED_UNSIGNED_INTEGER;
 extern struct typ *TBI_GENERALIZED_BOOLEAN;

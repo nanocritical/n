@@ -21,7 +21,7 @@ Sysheap met! Realloc_raw raw:@#U8 old_bytecount:Uint bytecount:Uint = @#U8
 
 globalenv Heap:@!`Heap
 
-fun Sysheap_install sysheader:@#(Envheader @!`Heap) within Heap
+fun Install_sys_heap sysheader:@#(Envheader @!`Heap) within Heap
 	Globalenv_install Heap sysheader
 
 (fun t:`Any) Alloc = @#t within Heap

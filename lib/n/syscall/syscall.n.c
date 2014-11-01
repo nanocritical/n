@@ -308,7 +308,7 @@ static NB(Int) SY(sysconf)(NB(Int) name) {
   return ret;
 }
 
-static NB(Int) SY(fstatat)(NB(Int) dirfd, NB(U8) *pathname, SY(Stat_t) *buf, NB(I32) flags) {
+static NB(Int) SY(fstatat)(NB(Int) dirfd, NB(U8) *pathname, struct SY(Stat_t) *buf, NB(I32) flags) {
   errno = 0;
   struct stat st = { 0 };
   int ret = fstatat(dirfd, (char *) pathname, &st, flags);

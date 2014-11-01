@@ -4,6 +4,7 @@
 from n import *
 
 let EOF = {Why=@"EOF"}:Error
+let SHORT_READ = {Why=@"Short read"}:Error
 let SHORT_WRITE = {Why=@"Short write"}:Error
 let SHORT_BUFFER = {Why=@"Short buffer"}:Error
 let UNEXPECTED_EOF = {Why=@"Unexpected EOF"}:Error
@@ -14,3 +15,20 @@ intf `Reader =
 	met# Read b:[]!U8 = []!U8, Error
 
 alias `Writer = `Io_writer
+
+fun Read_at_least b:[]!U8 r:@#`Reader min_count:Uint = []!U8, err:Error
+	if b.Available < min_count
+		return b, SHORT_BUFFER
+	let orig = b.Count
+	while b.Count-orig < min_count and err == OK
+		b, err = r#Read b
+
+	let rd = b.Count-orig
+	if rd >= min_count
+		err = OK
+	elif rd > 0 and err == EOF
+		err = UNEXPECTED_EOF
+	return b, err
+
+fun Read_full buf:[]!U8 r:@#`Reader = []!U8, Error
+	return Read_at_least buf r buf.Available

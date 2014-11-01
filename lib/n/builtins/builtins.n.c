@@ -6,16 +6,21 @@
 #define NB(n) n$builtins$##n
 #define NBDYN(t) _$Ndyn_n$builtins$_$Ni_##t
 
-static NB(Sysheap) sysheap;
-static struct _$Ngen_n$builtins$Envheader$$n$builtins$_$Ni_Heap$$_$Ndyn_n$builtins$_$Ni_Heap_genN$_ sysheader;
+static struct NB(Sysheap) sys_heap;
+static struct _$Ngen_n$builtins$Envheader$$n$builtins$_$Ni_Heap$$_$Ndyn_n$builtins$_$Ni_Heap_genN$_ sys_heap_header;
+
+extern void n$fs$Install_sys(void);
+extern void n$crypto$rand$Install_sys(void);
 
 void _$Nprelude(int *argc, char ***argv, char ***env) {
-  sysheader.Env = NLANG_MKDYN(_$Ndyn_n$builtins$_$Ni_Heap,
-                              &n$builtins$Sysheap$Dyntable__n$builtins$_$Ni_Heap,
-                              (void *)&sysheap);
-  sysheader.Parent = NULL;
+  sys_heap_header.Env = NLANG_MKDYN(struct _$Ndyn_n$builtins$_$Ni_Heap,
+                                    &n$builtins$Sysheap$Dyntable__n$builtins$_$Ni_Heap,
+                                    (void *)&sys_heap);
+  sys_heap_header.Parent = NULL;
+  NB(Install_sys_heap)(&sys_heap_header);
 
-  NB(Sysheap_install)(&sysheader);
+  n$fs$Install_sys();
+  n$crypto$rand$Install_sys();
 }
 
 void _$Npostlude(int *ret) {
@@ -69,7 +74,7 @@ NB(Void) *NB(Nonnull_void)(void) {
     0)))))))))))))
 
 #define define_from_number_literal(t) \
-  t t##$From_number_literal(NB(String) v) { \
+  t t##$From_number_literal(struct NB(String) v) { \
     return strto(t, (char *) v.bytes.dat); \
   }
 
@@ -89,19 +94,19 @@ define_from_number_literal(n$builtins$Float)
 define_from_number_literal(n$builtins$Double)
 
 
-static void native_write_buffer(_$Ndyn_n$builtins$_$Ni_Fmt_state st, char *s, int cnt) {
-  const _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ bytes =
+static void native_write_buffer(struct _$Ndyn_n$builtins$_$Ni_Fmt_state st, char *s, int cnt) {
+  const struct _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ bytes =
     NLANG_BYTE_SLICE(s, cnt);
   st.dyntable->Write(st.obj, bytes);
 }
 
-void n$builtins$Bool$Show(NB(Bool) *self, _$Ndyn_n$builtins$_$Ni_Fmt_state st) {
+void n$builtins$Bool$Show(NB(Bool) *self, struct _$Ndyn_n$builtins$_$Ni_Fmt_state st) {
   native_write_buffer(st, *self ? "true" : "false", *self ? 4 : 5);
 }
 
 // ln(2^64)/ln(10) = 19.27
 #define define_show_number(t, fmt) \
-  void t##$Show(t *self, _$Ndyn_n$builtins$_$Ni_Fmt_state st) { \
+  void t##$Show(t *self, struct _$Ndyn_n$builtins$_$Ni_Fmt_state st) { \
     char s[32]; \
     const int cnt = snprintf(s, 32, fmt, *self); \
     native_write_buffer(st, s, cnt); \
@@ -134,7 +139,7 @@ void NB(Abort)(void) {
 extern void *memchr(const void *s, int c, size_t n);
 extern void *memrchr(const void *s, int c, size_t n);
 
-NB(Int) NB(String$Index_byte)(NB(String) *self, NB(U8) sep) {
+NB(Int) NB(String$Index_byte)(struct NB(String) *self, NB(U8) sep) {
   void *r = memchr(self->bytes.dat, sep, self->bytes.cnt);
   if (r == NULL) {
     return -1;
@@ -143,7 +148,7 @@ NB(Int) NB(String$Index_byte)(NB(String) *self, NB(U8) sep) {
   }
 }
 
-NB(Int) NB(String$Last_index_byte)(NB(String) *self, NB(U8) sep) {
+NB(Int) NB(String$Last_index_byte)(struct NB(String) *self, NB(U8) sep) {
   void *r = memrchr(self->bytes.dat, sep, self->bytes.cnt);
   if (r == NULL) {
     return -1;

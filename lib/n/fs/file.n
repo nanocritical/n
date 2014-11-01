@@ -1,51 +1,3 @@
-inline enum Openbits =
-	| PATH
-	| READ
-	| WRITE
-	| CREATE
-	| APPEND
-	| EXCLUSIVE
-	| TEMPORARY
-	| DIRECTORY
-	| NOFOLLOW
-
-alias Openmask = (Mask Openbits)
-
-inline struct Openattr =
-	Flags	:Openmask
-	Access	:Accessmask
-	Owner	:?Uid
-	Group	:?Gid
-	Xattr	:(Slicebuf (Stringbuf, Stringbuf))
-
-Openattr met sys_open_flags = r:syscall.Open_flags
-	r = syscall.O_CLOEXEC
-	if READ in self.Flags and WRITE in self.Flags
-		r |= syscall.O_RDWR
-	elif READ in self.Flags
-		r |= syscall.O_RDONLY
-	elif WRITE in self.Flags
-		r |= syscall.O_WRONLY
-
-	if CREATE in self.Flags
-		r |= syscall.O_CREAT
-	if APPEND in self.Flags
-		r |= syscall.O_APPEND
-
-	if EXCLUSIVE in self.Flags
-		r |= syscall.O_EXCL
-	if TEMPORARY in self.Flags
-		r |= syscall.O_TMPFILE
-	if DIRECTORY in self.Flags
-		r |= syscall.O_DIRECTORY
-	if NOFOLLOW in self.Flags
-		r |= syscall.O_NOFOLLOW
-
-Openattr met sys_open_mode = syscall.Mode
-	if {CREATE TEMPORARY} & self.Flags == {}
-		return 0
-	return sys_mode_from_accessmask self.Access
-
 -- File operations as implemented here assume a recent Linux kernel (>= 3.11).
 -- First, we rely on *at() syscalls. Secondly, when complex attr are passed
 -- to Open (e.g. SELinux attributes) we rely on O_TMPFILE to first create a
@@ -56,16 +8,16 @@ Openattr met sys_open_mode = syscall.Mode
 -- cannot be implemented as safely, but this module will do its best.
 inline struct File =
 	isa `Not_copyable io.`Reader io.`Writer -- io.`Reader_at io.`Writer_at
-	fs		:@!`Fs
-	fd		:?Int
-	hidden		:Bool
-	pathname	:path.Path
+	fs	:@!`Fs
+	fd	:?Int
+	hidden	:Bool
+	name	:path.Path
 
 File met Fd = Int
 	return self?.fd else -1
 
 File met Pathname = path.Path
-	return self.pathname
+	return self.name
 
 File met! Close = Error
 	return syscall.Close self.Fd

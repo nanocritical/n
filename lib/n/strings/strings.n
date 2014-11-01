@@ -1,6 +1,8 @@
 from n import *
 
 -- TODO Unicode...
+-- TODO Rename Trimmed or Sub_trimmed as they're strings and share the
+-- memory?
 
 fun Trim_front s:String cut:String = String
 	foreach i in s.All

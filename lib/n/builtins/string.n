@@ -13,7 +13,7 @@ intf `String =
 	fun From_bytes s:[]U8 = final--::(^Captures s)
 	met Bytes = []U8
 	met Operator_at n:Uint = U8
-	met Operator_sub r:Range = String
+	met$ Operator_sub r:Range = []$U8
 
 --	met Begins_with s:String = Bool
 --	met Ends_with s:String = Bool
@@ -96,8 +96,8 @@ inline String met Count = Uint
 inline String met Operator_at n:Uint = U8
 	return self.bytes.[n].
 
-inline String met Operator_sub r:Range = String
-	return String.From_bytes <- self.bytes.Operator_sub r
+inline String met Operator_sub r:Range = []U8
+	return self.bytes.Operator_sub r
 
 inline String met Operator_compare other:@this = Int
 	return Bytes_compare self.bytes other.bytes
@@ -232,14 +232,14 @@ String met Index sep:String = Int
 	let h = 0 such
 		foreach i in 0 .. n
 			h = h ov* rk_prime ov+ self.[i].U32
-		if h == hashsep and self.[.. n] == sep
+		if h == hashsep and (String.From_bytes self.[.. n]) == sep
 			return 0
 		foreach i in n .. cnt
 			h ov*= rk_prime
 			h ov+= self.[i].U32
 			h ov-= pow ov* self.[i-n].U32
 			i += 1
-			if h == hashsep and self.[i-n .. i] == sep
+			if h == hashsep and (String.From_bytes self.[i-n .. i]) == sep
 				return (i - n).Signed
 	return -1
 
@@ -379,7 +379,7 @@ inline Stringbuf met# Reserve atleast:Uint
 		return
 	Realloc @#self#bytes atleast
 
-inline Stringbuf met# Cat ?sep:?@String ...v:(Vararg @`String)
+Stringbuf met# Cat ?sep:?@String ...v:(Vararg @`String)
 	let sepcnt = sep?.Count else 0
 	for b in v
 		self#Reserve self.bytes.Count + sepcnt + b.Count
@@ -408,7 +408,7 @@ inline Stringbuf met# Write b:[]U8 = []U8, Error --[]U8::|{}, Error::|OK
 	self#bytes = self#bytes#Append b
 	return {}, OK
 
-inline Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
+Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
 	let separator = sep else " "
 	and st = {}:Fmt_state such
 		st#Init self
@@ -420,6 +420,6 @@ inline Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
 			if v.Count_left > 0
 				separator.Show @#st
 
-inline Stringbuf met# Prn ?sep:?@String ...v:(Vararg ?@`Show)
+Stringbuf met# Prn ?sep:?@String ...v:(Vararg ?@`Show)
 	self#Pr sep=sep ...v
 	self#Append "\n".Bytes

@@ -240,6 +240,9 @@ inline Slice met Count = Uint
 inline Slice met Cap = Uint
 	let s = this.create_impl_instance
 	return s.Cap
+inline Slice met Available = Uint
+	let s = this.create_impl_instance
+	return s.Available
 inline Slice met Bytecount = Uint
 	let s = this.create_impl_instance
 	return s.Bytecount
@@ -292,6 +295,9 @@ inline Mutable_slice met Count = Uint
 inline Mutable_slice met Cap = Uint
 	let s = this.create_impl_instance
 	return s.Cap
+inline Mutable_slice met Available = Uint
+	let s = this.create_impl_instance
+	return s.Available
 inline Mutable_slice met Bytecount = Uint
 	let s = this.create_impl_instance
 	return s.Bytecount
@@ -390,6 +396,9 @@ inline Slice_impl met Count = Uint
 inline Slice_impl met Cap = Uint
 	return self.cap
 
+inline Slice_impl met Available = Uint
+	return self.Cap - self.Count
+
 inline Slice_impl met Bytecount = Uint
 	return (sizeof t) * self.cnt
 
@@ -416,8 +425,7 @@ inline Slice_impl shallow met$ Operator_at n:Uint = r:@$t
 -- to allow method arguments whose type require `Copyable, say.
 
 inline Slice_impl met! Full_copy other:this = this
-	if not t isa `Trivial_copy
-		assert false
+	assert t isa `Trivial_copy
 
 	assert self.cap >= other.cnt
 	let dst = self!Unsafe_rawdata
@@ -740,9 +748,11 @@ intf `Unsigned_integer =
 	met Try_signed = Error, final.This_signed
 	met U64 = U64
 
-intf `Native_integer =
+intf `Native =
 	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy
-		\ `Integer `Show
+
+intf `Native_integer =
+	isa `Native `Integer `Show
 intf `Native_signed_integer =
 	isa `Signed_integer `Native_integer
 intf `Native_unsigned_integer =
@@ -761,8 +771,7 @@ intf `Bool_compatible =
 	fun From_bool b:Bool = final
 
 intf `Native_boolean =
-	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Return_by_copy `Generalized_boolean
-		\ `Trivial_order `Bool_compatible `Show
+	isa `Native `Generalized_boolean `Bool_compatible `Show
 
 intf `Floating =
 	isa `Numeric `Has_compare `Number_literal_compatible
@@ -779,8 +788,7 @@ intf `Floating =
 	fun MAX_10_EXP = Int
 
 intf `Native_floating =
-	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy
-		\ `Floating `Show
+	isa `Native `Floating `Show
 
 intf `Enum =
 	isa `Trivial_order `Trivial_equality `Trivial_copy `Return_by_copy `Trivial_dtor `Show
