@@ -657,6 +657,11 @@ rewrote_op:
   case OP_UN_OPT:
     switch (rop) {
     case TPOSTQMARK:
+      if (!typ_is_optional(term->typ) && !typ_is_nullable_reference(term->typ)) {
+        e = mk_except_type(mod, term, "postfix '?' must be used on reference"
+                           " or optional type");
+        THROW(e);
+      }
       set_typ(&node->typ, TBI_BOOL);
       break;
     case TPREQMARK:

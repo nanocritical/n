@@ -14,7 +14,7 @@ inline struct File =
 	name	:path.Path
 
 File met Fd = Int
-	return self?.fd else -1
+	return self.fd else -1
 
 File met Pathname = path.Path
 	return self.name
