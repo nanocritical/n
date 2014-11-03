@@ -495,11 +495,9 @@ eol:
 
 escaped_eol_any:
   escaped = true;
-  spaces -= 8; // the escape makes one tab insignificant
-  if (spaces == parser->indent) {
+  spaces -= 8; // the escape makes extra tabs insignificant
+  if (spaces >= parser->indent) {
     goto normal;
-  } else if (spaces > parser->indent) {
-    FAIL(EINVAL, "cannot increase indentation by more than one tab");
   } else if (spaces < parser->indent) {
     if (spaces == parser->indent - 8) {
       // consume the escape char
