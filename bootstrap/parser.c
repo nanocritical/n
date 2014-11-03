@@ -1897,10 +1897,14 @@ static ERROR p_statement(struct node *par, struct module *mod) {
   case Tthrow:
     e = p_throw(NEW, mod);
     break;
-  case Tlet:
   case Tand:
   case Tsuch:
+    if (subs_last(par)->which != LET) {
+      UNEXPECTED(mod, &tok);
+    }
+    // fallthrough
   case Talias:
+  case Tlet:
     e = p_let((tok.t == Tlet || tok.t == Talias)
               ? NEW
               : subs_last(par),
