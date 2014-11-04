@@ -193,12 +193,12 @@ Path met Ext = Path
 			return Path.From_bytes path.[i ..]
 	return ""
 
-example let p = "test.jpg":Path such p.Ext == ".jpg"
-example let p = "test.png.jpg":Path such p.Ext == ".jpg"
-example let p = "test.png.":Path such p.Ext == "."
-example let p = ".":Path such p.Ext == "."
-example let p = "t":Path such p.Ext == "t"
-example let p = "":Path such p.Ext == ""
+example let p = "test.jpg":Path such assert p.Ext == ".jpg"
+example let p = "test.png.jpg":Path such assert p.Ext == ".jpg"
+example let p = "test.png.":Path such assert p.Ext == "."
+example let p = ".":Path such assert p.Ext == "."
+example let p = "t":Path such assert p.Ext == ""
+example let p = "":Path such assert p.Ext == ""
 
 Path met Is_abs = Bool
 	return self.Count > 0 and self.[0] == "/".[0]

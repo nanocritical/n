@@ -32,9 +32,9 @@
 		if to isa I64
 			return x.U64.Bitwise_signed
 		if to isa Int
-			return x.Uint.Signed
+			return x.U64.Bitwise_signed.force_int
 		if to isa Intptr
-			return x.U64.Bitwise_signed.force_uintptr
+			return x.U64.Bitwise_signed.force_intptr
 	if t isa U16
 		if to isa U8
 			return x.Trim_u8
@@ -47,7 +47,7 @@
 		if to isa Uint
 			return x.Uint
 		if to isa Uintptr
-			return x.U64.force_uintptr
+			return x.U64.force_intptr
 		if to isa I8
 			return x.Trim_u8.Bitwise_signed
 		if to isa I16
@@ -57,9 +57,9 @@
 		if to isa I64
 			return x.U64.Bitwise_signed
 		if to isa Int
-			return x.Uint.Signed
+			return x.U64.Bitwise_signed.force_int
 		if to isa Intptr
-			return x.U64.Bitwise_signed.force_uintptr
+			return x.U64.Bitwise_signed.force_intptr
 	if t isa U32
 		if to isa U8
 			return x.Trim_u8
@@ -72,7 +72,7 @@
 		if to isa Uint
 			return x.Uint
 		if to isa Uintptr
-			return x.U64.force_uintptr
+			return x.U64.force_intptr
 		if to isa I8
 			return x.Trim_u8.Bitwise_signed
 		if to isa I16
@@ -82,9 +82,9 @@
 		if to isa I64
 			return x.U64.Bitwise_signed
 		if to isa Int
-			return x.Uint.Signed
+			return x.U64.Bitwise_signed.force_int
 		if to isa Intptr
-			return x.U64.Bitwise_signed.force_uintptr
+			return x.U64.Bitwise_signed.force_intptr
 	if t isa U64
 		if to isa U8
 			return x.Trim_u8
@@ -95,9 +95,9 @@
 		if to isa U64
 			return x
 		if to isa Uint
-			return x.Uint
+			return x.force_uint
 		if to isa Uintptr
-			return x.U64.force_uintptr
+			return x.force_intptr
 		if to isa I8
 			return x.Trim_u8.Bitwise_signed
 		if to isa I16
@@ -107,9 +107,9 @@
 		if to isa I64
 			return x.Bitwise_signed
 		if to isa Int
-			return x.Uint.Signed
+			return x.Bitwise_signed.force_int
 		if to isa Intptr
-			return x.U64.Bitwise_signed.force_uintptr
+			return x.U64.Bitwise_signed.force_intptr
 	if t isa Uint
 		if to isa U8
 			return x.Trim_u8
@@ -132,11 +132,137 @@
 		if to isa I64
 			return x.U64.Bitwise_signed
 		if to isa Int
-			return x.Signed
+			return x.U64.Bitwise_signed.force_int
 		if to isa Intptr
-			return x.U64.Bitwise_signed.force_uintptr
+			return x.U64.Bitwise_signed.force_intptr
+	if t isa I8
+		if to isa U8
+			return x.Bitwise_unsigned
+		if to isa U16
+			return x.I16.Bitwise_unsigned
+		if to isa U32
+			return x.I32.Bitwise_unsigned
+		if to isa U64
+			return x.I64.Bitwise_unsigned
+		if to isa Uint
+			return x.Int.Bitwise_unsigned
+		if to isa Uintptr
+			return x.I64.Bitwise_unsigned.force_uintptr
+		if to isa I8
+			return x
+		if to isa I16
+			return x.I16
+		if to isa I32
+			return x.I32
+		if to isa I64
+			return x.I64
+		if to isa Int
+			return x.Int
+		if to isa Intptr
+			return x.I64.force_intptr
+	if t isa I16
+		if to isa U8
+			return x.Trim_i8.Bitwise_unsigned
+		if to isa U16
+			return x.Bitwise_unsigned
+		if to isa U32
+			return x.I32.Bitwise_unsigned
+		if to isa U64
+			return x.I64.Bitwise_unsigned
+		if to isa Uint
+			return x.Int.Bitwise_unsigned
+		if to isa Uintptr
+			return x.I64.Bitwise_unsigned.force_uintptr
+		if to isa I8
+			return x.Trim_i8
+		if to isa I16
+			return x
+		if to isa I32
+			return x.I32
+		if to isa I64
+			return x.I64
+		if to isa Int
+			return x.Int
+		if to isa Intptr
+			return x.I64.force_intptr
+	if t isa I32
+		if to isa U8
+			return x.Trim_i8.Bitwise_unsigned
+		if to isa U16
+			return x.Trim_i16.Bitwise_unsigned
+		if to isa U32
+			return x.Bitwise_unsigned
+		if to isa U64
+			return x.I64.Bitwise_unsigned
+		if to isa Uint
+			return x.Int.Bitwise_unsigned
+		if to isa Uintptr
+			return x.I64.Bitwise_unsigned.force_uintptr
+		if to isa I8
+			return x.Trim_i8
+		if to isa I16
+			return x.Trim_i16
+		if to isa I32
+			return x
+		if to isa I64
+			return x.I64
+		if to isa Int
+			return x.Int
+		if to isa Intptr
+			return x.I64.force_intptr
+	if t isa I64
+		if to isa U8
+			return x.Trim_i8.Bitwise_unsigned
+		if to isa U16
+			return x.Trim_i16.Bitwise_unsigned
+		if to isa U32
+			return x.Trim_i32.Bitwise_unsigned
+		if to isa U64
+			return x.Bitwise_unsigned
+		if to isa Uint
+			return x.Bitwise_unsigned.force_uint
+		if to isa Uintptr
+			return x.Bitwise_unsigned.force_uintptr
+		if to isa I8
+			return x.Trim_i8
+		if to isa I16
+			return x.Trim_i16
+		if to isa I32
+			return x.Trim_i32
+		if to isa I64
+			return x
+		if to isa Int
+			return x.force_int
+		if to isa Intptr
+			return x.force_intptr
+	if t isa Int
+		if to isa U8
+			return x.Trim_i8.Bitwise_unsigned
+		if to isa U16
+			return x.Trim_i16.Bitwise_unsigned
+		if to isa U32
+			return x.Trim_i32.Bitwise_unsigned
+		if to isa U64
+			return x.I64.Bitwise_unsigned
+		if to isa Uint
+			return x.Int.Bitwise_unsigned
+		if to isa Uintptr
+			return x.I64.Bitwise_unsigned.force_uintptr
+		if to isa I8
+			return x.Trim_i8
+		if to isa I16
+			return x.Trim_i16
+		if to isa I32
+			return x.Trim_i32
+		if to isa I64
+			return x.I64
+		if to isa Int
+			return x
+		if to isa Intptr
+			return x.I64.force_intptr
 	assert false
 	return 0
 
-example (Force_convert I8) 0:U8 == 0
-example (Force_convert I8) 0xffff:U16 = -127
+example assert (Force_convert I8) 0:U8 == 0
+example assert (Force_convert I8) 0xffff:U16 == -1
+example assert (Force_convert I8) 0xff80:U16 == -128
