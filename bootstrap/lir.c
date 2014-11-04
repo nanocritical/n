@@ -931,8 +931,6 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
     break;
   case INVARIANT:
     break;
-  case EXAMPLE:
-    break;
   default:
     break;
   }

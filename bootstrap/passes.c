@@ -300,7 +300,6 @@ error step_stop_funblock(struct module *mod, struct node *node,
   switch (parent(node)->which) {
   case DEFFUN:
   case DEFMETHOD:
-  case EXAMPLE:
     *stop = true;
     break;
   default:
@@ -429,7 +428,7 @@ error step_push_state(struct module *mod, struct node *node,
     mod->state->top_state->exportable = node;
     return 0;
   case BLOCK:
-    if (NM(parent_const(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
+    if (NM(parent_const(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
       mod->state->fun_state->in_block = true;
     }
     return 0;
@@ -451,7 +450,7 @@ error step_push_state(struct module *mod, struct node *node,
   mod->state->top_state->top = node;
   mod->state->top_state->exportable = node;
 
-  if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
+  if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
     PUSH_STATE(mod->state->fun_state);
   }
 
@@ -486,7 +485,7 @@ error step_pop_state(struct module *mod, struct node *node,
     mod->state->top_state->exportable = NULL;
     return 0;
   case BLOCK:
-    if (NM(parent_const(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
+    if (NM(parent_const(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
       mod->state->fun_state->in_block = false;
     }
     return 0;
@@ -519,7 +518,7 @@ error step_pop_state(struct module *mod, struct node *node,
     return 0;
   }
 
-  if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(EXAMPLE))) {
+  if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
     POP_STATE(mod->state->fun_state);
   }
 

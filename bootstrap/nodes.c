@@ -161,7 +161,6 @@ const char *node_which_strings[] = {
   [PRE] = "PRE",
   [POST] = "POST",
   [INVARIANT] = "INVARIANT",
-  [EXAMPLE] = "EXAMPLE",
   [WITHIN] = "WITHIN",
   [ISALIST] = "ISALIST",
   [ISA] = "ISA",
@@ -626,7 +625,7 @@ bool node_has_tail_block(const struct node *node) {
 }
 
 bool node_is_fun(const struct node *node) {
-  return node->which == DEFFUN || node->which == DEFMETHOD || node->which == EXAMPLE;
+  return node->which == DEFFUN || node->which == DEFMETHOD;
 }
 
 size_t node_fun_all_args_count(const struct node *def) {
@@ -639,8 +638,6 @@ size_t node_fun_min_args_count(const struct node *def) {
     return def->as.DEFFUN.min_args;
   case DEFMETHOD:
     return def->as.DEFMETHOD.min_args;
-  case EXAMPLE:
-    return 0;
   default:
     assert(false);
     return -1;
@@ -653,8 +650,6 @@ size_t node_fun_max_args_count(const struct node *def) {
     return def->as.DEFFUN.max_args;
   case DEFMETHOD:
     return def->as.DEFMETHOD.max_args;
-  case EXAMPLE:
-    return 0;
   default:
     assert(false);
     return -1;
@@ -667,8 +662,6 @@ ssize_t node_fun_first_vararg(const struct node *def) {
     return def->as.DEFFUN.first_vararg;
   case DEFMETHOD:
     return def->as.DEFMETHOD.first_vararg;
-  case EXAMPLE:
-    return 0;
   default:
     assert(false);
     return -1;
@@ -676,7 +669,7 @@ ssize_t node_fun_first_vararg(const struct node *def) {
 }
 
 const struct node *node_fun_retval_const(const struct node *def) {
-  assert(def->which == DEFFUN || def->which == DEFMETHOD || def->which == EXAMPLE);
+  assert(def->which == DEFFUN || def->which == DEFMETHOD);
   const struct node *funargs = subs_at_const(def, IDX_FUNARGS);
   return subs_last_const(funargs);
 }

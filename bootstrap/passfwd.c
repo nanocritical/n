@@ -841,7 +841,7 @@ static ERROR step_type_defchoices(struct module *mod, struct node *node,
 }
 
 static STEP_NM(step_type_deffuns,
-               NM(DEFMETHOD) | NM(DEFFUN) | NM(EXAMPLE));
+               NM(DEFMETHOD) | NM(DEFFUN));
 static ERROR step_type_deffuns(struct module *mod, struct node *node,
                                void *user, bool *stop) {
   DSTEP(mod, node);

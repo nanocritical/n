@@ -1843,12 +1843,34 @@ static ERROR p_invariant(struct node *node, struct module *mod) {
 }
 
 static ERROR p_example(struct node *node, struct module *mod) {
-  node_set_which(node, EXAMPLE);
-  node->as.EXAMPLE.name = mod->next_example;
+  node_set_which(node, DEFFUN);
+  node->as.DEFFUN.example = 1 + mod->next_example;
   mod->next_example += 1;
 
-  error e = p_block(node_new_subnode(mod, node), mod);
+  static const char base[] = "__Nexample";
+  char sname[ARRAY_SIZE(base) + 16] = { 0 };
+  sprintf(sname, "%s%zx", base, node->as.DEFFUN.example);
+  const ident name = idents_add_string(mod->gctx, sname, strlen(sname));
+
+  GSTART();
+  G0(id, node, IDENT,
+     id->as.IDENT.name = name);
+  G0(genargs, node, GENARGS);
+  G0(funargs, node, FUNARGS,
+     G(retv, DEFARG,
+       G(reti, IDENT,
+         reti->as.IDENT.name = ID_NRETVAL)
+       G(rett, DIRECTDEF,
+         set_typ(&rett->as.DIRECTDEF.typ, TBI_ERROR))));
+  G0(within, node, WITHIN);
+
+  G0(block, node, BLOCK);
+  error e = p_block(node_new_subnode(mod, block), mod);
   EXCEPT(e);
+  G0(ret, block, RETURN,
+     G_IDENT(ok, "OK"));
+
+  deffun_count_args(node);
 
   return 0;
 }

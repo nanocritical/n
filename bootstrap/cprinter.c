@@ -12,6 +12,7 @@
 
 #define UNUSED "__attribute__((__unused__))"
 #define WEAK "__attribute__((__weak__))"
+#define SECTION_EXAMPLES "__attribute__((section(\".text.n.examples\")))"
 
 #define DEF(t) typ_definition_ignore_any_overlay_const(t)
 
@@ -1203,31 +1204,6 @@ static void print_invariant(FILE *out, const struct module *mod, const struct no
   print_block(out, mod, subs_first_const(node));
 }
 
-#define ATTR_SECTION_EXAMPLES "__attribute__((section(\".text.n.examples\")))"
-
-static void print_example(FILE *out, bool header, enum forward fwd,
-                          const struct module *mod, const struct node *node) {
-  if (header) {
-    return;
-  }
-
-  if (fwd == FWD_DECLARE_FUNCTIONS
-      || fwd == FWD_DEFINE_FUNCTIONS) {
-    fprintf(out, "void ");
-    print_scope_name(out, mod, &mod->root->scope);
-    fprintf(out, "_$Nexample%zu(void) ", node->as.EXAMPLE.name);
-
-    if (fwd == FWD_DECLARE_FUNCTIONS) {
-      fprintf(out, ATTR_SECTION_EXAMPLES ";");
-    } else if (fwd == FWD_DEFINE_FUNCTIONS) {
-      fprintf(out, "{\n");
-      const struct node *block = subs_first_const(node);
-      print_expr(out, mod, block, T__STATEMENT);
-      fprintf(out, ";\n}");
-    }
-  }
-}
-
 static bool prototype_only(bool header, const struct node *node) {
   if (node->which == DEFINTF) {
     return (header && !node_is_export(node))
@@ -2180,6 +2156,9 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
   guard_generic(out, header, fwd, mod, node, true);
 
   if (fwd == FWD_DECLARE_FUNCTIONS) {
+    if (node->which == DEFFUN && node->as.DEFFUN.example > 0) {
+      fprintf(out, SECTION_EXAMPLES "\n");
+    }
     print_fun_prototype(out, header, fwd, mod, node, false, false);
     fun_nonnull_attribute(out, header, mod, node);
     fprintf(out, ";\n");
@@ -3308,7 +3287,7 @@ static void print_top(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  if (NM(node->which) & (NM(EXAMPLE) | NM(LET))) {
+  if (node->which == LET) {
     // not tracked
   } else {
     if (!force && is_printed(printed, header, fwd, node->typ, 0)) {
@@ -3359,9 +3338,6 @@ static void print_top(FILE *out, bool header, enum forward fwd,
         track_printed(mod, printed, header, fwd, node->typ, true);
       }
     }
-    break;
-  case EXAMPLE:
-    print_example(out, header, fwd, mod, node);
     break;
   case IMPORT:
     print_import(out, header, fwd, mod, node, force);
@@ -3484,14 +3460,14 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
 static void print_runexamples(FILE *out, const struct module *mod) {
   fprintf(out, "void ");
   print_c_runexamples_name(out, mod);
-  fprintf(out, "(void) " ATTR_SECTION_EXAMPLES ";\n");
+  fprintf(out, "(void) " SECTION_EXAMPLES ";\n");
 
   fprintf(out, "void ");
   print_c_runexamples_name(out, mod);
   fprintf(out, "(void) {\n");
   for (size_t n = 0; n < mod->next_example; ++n) {
     print_scope_name(out, mod, &mod->root->scope);
-    fprintf(out, "_$Nexample%zu();\n", n);
+    fprintf(out, "$__Nexample%zx();\n", 1 + n);
   }
   fprintf(out, "}\n");
 }

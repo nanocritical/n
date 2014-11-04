@@ -77,7 +77,6 @@ enum node_which {
   PRE,
   POST,
   INVARIANT,
-  EXAMPLE,
   WITHIN,
   ISALIST,
   ISA,
@@ -326,6 +325,7 @@ struct node_deffun {
   bool is_newtype_ignore;
   ssize_t min_args, max_args, first_vararg;
   const struct typ *member_from_intf;
+  size_t example;
 };
 
 enum deftype_kind {
@@ -434,10 +434,6 @@ struct node_post {
 struct node_invariant {
   struct toplevel toplevel;
 };
-struct node_example {
-  struct toplevel toplevel;
-  size_t name;
-};
 struct node_within {
   struct toplevel toplevel;
   struct node *globalenv_scope;
@@ -510,7 +506,6 @@ union node_as {
   struct node_pre PRE;
   struct node_post POST;
   struct node_invariant INVARIANT;
-  struct node_example EXAMPLE;
   struct node_within WITHIN;
   struct node_isa ISA;
   struct node_import IMPORT;
@@ -1303,8 +1298,6 @@ static inline ident node_ident(const struct node *node) {
     return ID_POST;
   case INVARIANT:
     return ID_INVARIANT;
-  case EXAMPLE:
-    return ID_ANONYMOUS;
   case DEFFUN:
   case DEFMETHOD:
     if (subs_first_const(node)->which == IDENT) {
@@ -1380,7 +1373,7 @@ size_t node_branching_exhaustive_branch_count(struct node *node);
 
 #define STEP_NM_HAS_TOPLEVEL \
   (STEP_NM_DEFS | NM(LET) | NM(INVARIANT) | NM(DELEGATE) \
-   | NM(IMPORT) | NM(EXAMPLE) | NM(WITHIN))
+   | NM(IMPORT) | NM(WITHIN))
 
 #define STEP_NM_BRANCHING \
   (NM(IF) | NM(FOR) | NM(WHILE) | NM(MATCH) | NM(TRY))
@@ -1418,9 +1411,6 @@ static inline const struct toplevel *node_toplevel_const(const struct node *node
     break;
   case INVARIANT:
     toplevel = &node->as.INVARIANT.toplevel;
-    break;
-  case EXAMPLE:
-    toplevel = &node->as.EXAMPLE.toplevel;
     break;
   case WITHIN:
     toplevel = &node->as.WITHIN.toplevel;

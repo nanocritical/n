@@ -2071,7 +2071,6 @@ error step_constraint_inference(struct module *mod, struct node *node,
   case PRE:
   case POST:
   case INVARIANT:
-  case EXAMPLE:
   case ISALIST:
   case ISA:
   case IMPORT:

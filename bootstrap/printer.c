@@ -485,7 +485,7 @@ static void print_invariant(FILE *out, const struct module *mod, int indent, con
 
 static void print_example(FILE *out, const struct module *mod, int indent, const struct node *node) {
   fprintf(out, "example ");
-  print_expr(out, mod, subs_first_const(node), T__STATEMENT);
+  print_expr(out, mod, subs_last_const(node), T__STATEMENT);
 }
 
 static void print_within(FILE *out, const struct module *mod, const struct node *node) {
@@ -625,9 +625,6 @@ static void print_statement(FILE *out, const struct module *mod, int indent, con
   case INVARIANT:
     print_invariant(out, mod, indent, node);
     break;
-  case EXAMPLE:
-    print_example(out, mod, indent, node);
-    break;
   case LET:
     print_let(out, mod, indent, node);
     break;
@@ -684,6 +681,11 @@ static void print_typeconstraint(FILE *out, const struct module *mod, const stru
 }
 
 static void print_deffun(FILE *out, const struct module *mod, int indent, const struct node *node) {
+  if (node->which == DEFFUN && node->as.DEFFUN.example > 0) {
+    print_example(out, mod, indent, node);
+    return;
+  }
+
   const struct node *name = subs_first_const(node);
   const struct node *retval = node_fun_retval_const(node);
 
@@ -936,9 +938,6 @@ static void print_module(FILE *out, const struct module *mod) {
       break;
     case IMPORT:
       print_import(out, mod, 0, node);
-      break;
-    case EXAMPLE:
-      print_example(out, mod, 0, node);
       break;
     case WITHIN:
       print_within(out, mod, node);
