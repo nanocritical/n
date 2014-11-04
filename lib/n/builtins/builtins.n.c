@@ -132,7 +132,7 @@ define_show_number(n$builtins$Double, "%f")
 #undef define_native_boolean
 #undef define_native_integer
 
-void NB(Abort)(void) {
+void NB(abort)(void) {
   abort();
 }
 

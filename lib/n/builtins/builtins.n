@@ -1739,8 +1739,6 @@ intf `Slice_compatible t:`Any =
 extern inline (fun$ i:`Any j:`Any) Dyncast x:@$j = @$i
 
 
-extern fun Abort
-
 extern inline fun Likely x:Bool = Bool
 extern inline fun Unlikely x:Bool = Bool
 
@@ -1876,39 +1874,49 @@ inline struct Codeloc =
 	Col	:Uint
 	Expr	:String
 
-fun Failed_at c:?@Codeloc
+fun Message_at msg:String c:?@Codeloc
 	if c?
 		Epr sep=':' c.File c.Line c.Col
-		Eprn ": failed '" c.Expr "'"
-	Abort
+		Eprn ":" msg "'" c.Expr "'"
+	else
+		Eprn msg
+
+extern fun abort
+
+fun Abort
+	abort
 
 inline fun Assert__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if Likely cond
 		return
 	else
-		Failed_at _Ncodeloc
+		Message_at "assert failed" _Ncodeloc
+		Abort
 
-inline fun Unreached
-	Eprn "Unreached"
+inline fun Unreached ?_Ncodeloc:?@Codeloc
+	Message_at "unreached" _Ncodeloc
 	Abort
 
 inline fun Pre__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if Likely cond
 		return
 	else
-		Failed_at _Ncodeloc
+		Message_at "pre failed" _Ncodeloc
+		Abort
 
 inline fun Post__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if Likely cond
 		return
 	else
-		Failed_at _Ncodeloc
+		Message_at "post failed" _Ncodeloc
+		Abort
 
 inline fun Invariant__ cond:Bool ?_Ncodeloc:?@Codeloc
 	if Likely cond
 		return
 	else
-		Failed_at _Ncodeloc
+		Message_at "invariant failed" _Ncodeloc
+		Abort
 
 fun Break
 	return
