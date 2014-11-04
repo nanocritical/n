@@ -3,3 +3,11 @@ import n.fs
 
 fun Main = I32
 	return 0
+
+example
+	let except, f = fs.Temporary named=true
+	_, except = f#Write "test".Bytes
+
+example
+	let except, f = fs.Temporary
+	_, except = f#Write "test".Bytes

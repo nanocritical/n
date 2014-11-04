@@ -105,7 +105,7 @@ fun make_random_name name:@#path.Path prefix:?String postfix:?String
 
 	name#Cat (postfix else "")
 
-fun Create_temporary ?at:?@File
+fun Temporary ?at:?@File
 	\ ?flags:?Openflags
 	\ ?attr:?@Openattr
 	\ ?named:?Bool
@@ -140,19 +140,6 @@ fun Create_temporary ?at:?@File
 			f |= {HIDDEN}
 			f &= ~{CREATE EXCLUSIVE}:Openflags
 			return Fs!Open_file "." at=dir flags=f attr=att
-
-example
-	try
-		let except, f = Create_temporary named=true
-		_, except = f#Write "test".Bytes
-	catch err
-		Fatal err
-example
-	try
-		let except, f = Create_temporary
-		_, except = f#Write "test".Bytes
-	catch err
-		Fatal err
 
 globalenv Fs:@!`Fs
 
