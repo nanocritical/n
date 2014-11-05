@@ -275,6 +275,7 @@ static ERROR rewrite_excep(struct module *mod, struct lir_state *st,
   if (st->try_state == NULL) {
     // Then except is a conditional return.
     G0(th, yes, RETURN,
+       th->as.RETURN.is_flexible_except = true;
        G(e, IDENT,
          e->as.IDENT.name = node_ident(expr)));
   } else {

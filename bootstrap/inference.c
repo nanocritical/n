@@ -1466,22 +1466,74 @@ static ERROR type_inference_init(struct module *mod, struct node *node) {
   }
 }
 
+static ERROR flexible_except_return(struct module *mod, struct node *node,
+                                   struct typ *ret, struct node *arg) {
+  static const char *fmt = "'except' without a surrounding try/catch must be"
+    " used in a function that returns either 'Error' or a tuple that starts"
+    " with Error, not '%s'";
+
+  error e;
+  if (!typ_isa(ret, TBI_ANY_TUPLE)) {
+    if (!typ_equal(ret, TBI_ERROR)) {
+      e = mk_except_type(mod, arg, fmt, pptyp(mod, ret));
+      THROW(e);
+    }
+    return 0;
+  }
+
+  const size_t arity = typ_generic_arity(ret);
+  if (arity == 0) {
+    e = mk_except_type(mod, arg, fmt, pptyp(mod, ret));
+    THROW(e);
+  }
+
+  struct typ *fst = typ_generic_arg(ret, 0);
+  if (!typ_equal(fst, TBI_ERROR)) {
+    e = mk_except_type(mod, arg, fmt, pptyp(mod, ret));
+    THROW(e);
+  }
+
+  GSTART();
+  G0(narg, node, TUPLE,
+     node_subs_remove(node, arg);
+     node_subs_append(narg, arg));
+  for (size_t n = 1; n < arity; ++n) {
+    const struct typ *t = typ_generic_arg(ret, n);
+    // TODO We could actually be more lenient here, but with the constraints
+    // disabled, let's be stricter.
+    e = typ_check_isa(mod, node, t, TBI_DEFAULT_CTOR);
+    EXCEPT(e);
+
+    G0(init, narg, INIT);
+  }
+  const struct node *except[] = { arg, NULL };
+  e = catchup(mod, except, narg, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+  return 0;
+}
+
 static ERROR type_inference_return(struct module *mod, struct node *node) {
   assert(node->which == RETURN);
 
+  error e;
   if (subs_count_atleast(node, 1)) {
     struct typ *ret = module_retval_get(mod)->typ;
     struct node *arg = subs_first(node);
 
-    if (typ_is_optional(ret) && !typ_is_optional(arg->typ)) {
-      error e = wrap_arg_unary_op(&arg, mod, TPREQMARK);
+    if (node->as.RETURN.is_flexible_except) {
+      e = flexible_except_return(mod, node, ret, arg);
+      EXCEPT(e);
+      // Was just modified:
+      arg = subs_first(node);
+    } else if (typ_is_optional(ret) && !typ_is_optional(arg->typ)) {
+      e = wrap_arg_unary_op(&arg, mod, TPREQMARK);
       EXCEPT(e);
     } else if (!typ_is_optional(ret) && typ_is_optional(arg->typ)) {
-      error e = wrap_arg_unary_op(&arg, mod, T__DEOPT);
+      e = wrap_arg_unary_op(&arg, mod, T__DEOPT);
       EXCEPT(e);
     }
 
-    error e = unify_refcompat(mod, arg, ret, arg->typ);
+    e = unify_refcompat(mod, arg, ret, arg->typ);
     EXCEPT(e);
   }
 

@@ -42,12 +42,19 @@ fun noerror = I32
 	catch _
 		return 1
 
+fun no_catch1 = Error
+	except = INVAL
+fun no_catch2 = Error, I32
+	except = INVAL
+
 fun Main = I32
 	assert inferred == Error.UNKNOWN
 	assert inferred != Error.OK
 	assert Foo == 1
 	assert bar == 1
 	assert noerror == 0
+	assert no_catch1 != OK
+	assert no_catch2.X0 != OK
 	try
 		throw Error.INVAL
 		return 1
