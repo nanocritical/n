@@ -2778,6 +2778,9 @@ static void print_union_types(FILE *out, bool header, enum forward fwd,
       fprintf(out, " {\n");
       FOREACH_SUB_CONST(m, ch) {
         if (m->which == DEFCHOICE) {
+          if (node_defchoice_external_payload(m) == NULL) {
+            fprintf(out, "struct ");
+          }
           print_defchoice_path(out, mod, deft, m);
           fprintf(out, " %s;\n",
                   idents_value(mod->gctx, node_ident(m)));
