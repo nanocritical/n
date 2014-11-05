@@ -2639,7 +2639,7 @@ static ERROR check_void_body(struct module *mod, const struct node *node) {
   if (body->typ != NULL && !typ_equal(body->typ, TBI_VOID)) {
     error e = mk_except_type(mod, body,
                              "the body of a function must be a block of type"
-                             " Void (use return), not '%s'",
+                             " Void (tip: use return), not '%s'",
                              pptyp(mod, body->typ));
     THROW(e);
   }
