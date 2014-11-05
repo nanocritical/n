@@ -35,8 +35,8 @@ fun Trim s:String cut:String = String
 fun Trim_spaces s:String = String
 	return Trim s " \n\t\r"
 
-example assert Trim_spaces "test" != "test "
-example assert Trim_spaces "a b" == "a b"
-example assert Trim_spaces " a b " == "a b"
-example assert Trim_spaces "\n a b" == "a b"
-example assert Trim_spaces "a\nb\n" == "a\nb"
+example -> assert Trim_spaces "test" != "test "
+example -> assert Trim_spaces "a b" == "a b"
+example -> assert Trim_spaces " a b " == "a b"
+example -> assert Trim_spaces "\n a b" == "a b"
+example -> assert Trim_spaces "a\nb\n" == "a\nb"

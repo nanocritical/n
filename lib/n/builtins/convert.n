@@ -263,6 +263,6 @@
 	assert false
 	return 0
 
-example assert (Force_convert I8) 0:U8 == 0
-example assert (Force_convert I8) 0xffff:U16 == -1
-example assert (Force_convert I8) 0xff80:U16 == -128
+example -> assert (Force_convert I8) 0:U8 == 0
+example -> assert (Force_convert I8) 0xffff:U16 == -1
+example -> assert (Force_convert I8) 0xff80:U16 == -128

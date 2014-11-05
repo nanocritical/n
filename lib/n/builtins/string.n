@@ -68,7 +68,7 @@ inline Rune met Encode z:[]!U8 = Uint
 inline Rune met Hash32 = U32
 	return self.Code
 
-example assert Rune.From_ascii 49 == '1'
+example -> assert Rune.From_ascii 49 == '1'
 
 inline Rune met Show st:@#`Fmt_state
 	--let s = {}:[4]U8 ...
@@ -129,13 +129,13 @@ inline String met Operator_ge other:@this = Bool
 inline String met Show st:@#`Fmt_state
 	let _ = st#Write self.bytes
 
-example assert 'a' < 'b'
-example assert 'b' > 'a'
-example assert 'a' == 'a'
-example assert 'a' < 'aa'
-example assert 'b' > 'aa'
-example assert 'aa' > 'a'
-example assert 'aa' < 'b'
+example -> assert 'a' < 'b'
+example -> assert 'b' > 'a'
+example -> assert 'a' == 'a'
+example -> assert 'a' < 'aa'
+example -> assert 'b' > 'aa'
+example -> assert 'aa' > 'a'
+example -> assert 'aa' < 'b'
 
 let _M0 = 2860486313:U32
 let _M1 = 3267000013:U32
@@ -146,8 +146,8 @@ fun Hash b:[]U8 = U32
 			hash = (hash ^ x.U32) ov* _M1
 	return hash
 
-example assert Hash "".Bytes == _M0
-example assert Hash "abc".Bytes == 2407100781
+example -> assert Hash "".Bytes == _M0
+example -> assert Hash "abc".Bytes == 2407100781
 
 inline String met Hash32 = U32
 	return Hash self.bytes
@@ -187,15 +187,15 @@ inline String met Ends_with s:String = Bool
 extern String met Index_byte sep:U8 = Int
 extern String met Last_index_byte sep:U8 = Int
 
-example assert "abcdef".Index_byte "a".[0] == 0
-example assert "abcdef".Index_byte "f".[0] == 5
-example assert "abcdef".Index_byte "z".[0] == -1
-example assert "abcdef".Index_byte "\0".[0] == -1
-example assert "abcdef".Last_index_byte "z".[0] == -1
-example assert "abcdef".Last_index_byte "\0".[0] == -1
-example assert "abccba".Last_index_byte "a".[0] == 5
-example assert "abccba".Last_index_byte "c".[0] == 3
-example assert "abccba".Index_byte "c".[0] == 2
+example -> assert "abcdef".Index_byte "a".[0] == 0
+example -> assert "abcdef".Index_byte "f".[0] == 5
+example -> assert "abcdef".Index_byte "z".[0] == -1
+example -> assert "abcdef".Index_byte "\0".[0] == -1
+example -> assert "abcdef".Last_index_byte "z".[0] == -1
+example -> assert "abcdef".Last_index_byte "\0".[0] == -1
+example -> assert "abccba".Last_index_byte "a".[0] == 5
+example -> assert "abccba".Last_index_byte "c".[0] == 3
+example -> assert "abccba".Index_byte "c".[0] == 2
 
 -- Prime base used in the Rabin-Karp algorithm.
 let rk_prime = 16777619:U32
@@ -243,14 +243,14 @@ String met Index sep:String = Int
 				return (i - n).Signed
 	return -1
 
-example assert "abcdef".Index "" == 0
-example assert "abcdef".Index "b" == 1
-example assert "abcdef".Index "abcdef" == 0
-example assert "abcdef".Index "abcdez" == -1
-example assert "abcdef".Index "abcdefg" == -1
-example assert "abcdef".Index "z" == -1
-example assert "abcdef".Index "abc" == 0
-example assert "abcdef".Index "def" == 3
+example -> assert "abcdef".Index "" == 0
+example -> assert "abcdef".Index "b" == 1
+example -> assert "abcdef".Index "abcdef" == 0
+example -> assert "abcdef".Index "abcdez" == -1
+example -> assert "abcdef".Index "abcdefg" == -1
+example -> assert "abcdef".Index "z" == -1
+example -> assert "abcdef".Index "abc" == 0
+example -> assert "abcdef".Index "def" == 3
 
 String met Index_all s:String = Bool, []Uint
 String met Find s:String = Bool, String
@@ -260,13 +260,13 @@ String met Strip_left any:String = String
 String met Strip_right any:String = String
 String met Split ?sep:?@String ?max:?@Uint = []String
 
-example assert '1234'.Bytes.Count == 4
-example assert '1234'.Bytes.All == 0 .. 4
-example assert '1234'.Bytes.[3] == '4'.[0]
-example assert '1234'.Bytes.[1].U32 == ('2':Rune).Code
-example assert '1234' == '1234'
-example assert '1234'.Bytes.Count == 4
-example assert '1234'.Bytes.[0] == 49
+example -> assert '1234'.Bytes.Count == 4
+example -> assert '1234'.Bytes.All == 0 .. 4
+example -> assert '1234'.Bytes.[3] == '4'.[0]
+example -> assert '1234'.Bytes.[1].U32 == ('2':Rune).Code
+example -> assert '1234' == '1234'
+example -> assert '1234'.Bytes.Count == 4
+example -> assert '1234'.Bytes.[0] == 49
 
 inline struct Stringbuf =
 	isa `Stringbuf

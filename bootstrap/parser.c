@@ -1847,10 +1847,25 @@ static ERROR p_example(struct node *node, struct module *mod) {
   node->as.DEFFUN.example = 1 + mod->next_example;
   mod->next_example += 1;
 
-  static const char base[] = "__Nexample";
-  char sname[ARRAY_SIZE(base) + 16] = { 0 };
-  sprintf(sname, "%s%zx", base, node->as.DEFFUN.example);
-  const ident name = idents_add_string(mod->gctx, sname, strlen(sname));
+  struct token tok = { 0 };
+  error e = scan(&tok, mod);
+  EXCEPT(e);
+
+  ident name = ID__NONE;
+  if (tok.t == TSOB) {
+    back(mod, &tok);
+  } else if (tok.t == TIDENT) {
+    name = idents_add(mod->gctx, &tok);
+  } else {
+    UNEXPECTED(mod, &tok);
+  }
+
+  if (name == ID__NONE) {
+    static const char base[] = "__Nexample";
+    char sname[ARRAY_SIZE(base) + 16] = { 0 };
+    sprintf(sname, "%s%zx", base, node->as.DEFFUN.example);
+    name = idents_add_string(mod->gctx, sname, strlen(sname));
+  }
 
   GSTART();
   G0(id, node, IDENT,
@@ -1865,7 +1880,7 @@ static ERROR p_example(struct node *node, struct module *mod) {
   G0(within, node, WITHIN);
 
   G0(block, node, BLOCK);
-  error e = p_block(node_new_subnode(mod, block), mod);
+  e = p_block(node_new_subnode(mod, block), mod);
   EXCEPT(e);
   G0(ret, block, RETURN,
      G_IDENT(ok, "OK"));

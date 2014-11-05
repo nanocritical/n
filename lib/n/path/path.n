@@ -146,14 +146,14 @@ Path met# Clean
 					r += 1
 	self#buf#Resize w
 
-example let p = "a/c":Path such p#Clean; assert p == "a/c"
-example let p = "a//c":Path such p#Clean; assert p == "a/c"
-example let p = "a/c/.":Path such p#Clean; assert p == "a/c"
-example let p = "a/c/":Path such p#Clean; assert p == "a/c"
-example let p = "a/c/b/..":Path such p#Clean; assert p == "a/c"
-example let p = "/../a/c":Path such p#Clean; assert p == "/a/c"
-example let p = "/../a/b/../././/c":Path such p#Clean; assert p == "/a/c"
-example let p = "///":Path such p#Clean; assert p == "/"
+example -> let p = "a/c":Path such p#Clean; assert p == "a/c"
+example -> let p = "a//c":Path such p#Clean; assert p == "a/c"
+example -> let p = "a/c/.":Path such p#Clean; assert p == "a/c"
+example -> let p = "a/c/":Path such p#Clean; assert p == "a/c"
+example -> let p = "a/c/b/..":Path such p#Clean; assert p == "a/c"
+example -> let p = "/../a/c":Path such p#Clean; assert p == "/a/c"
+example -> let p = "/../a/b/../././/c":Path such p#Clean; assert p == "/a/c"
+example -> let p = "///":Path such p#Clean; assert p == "/"
 
 Path met Split = Path, Path
 	let path = self.buf.String
@@ -161,10 +161,10 @@ Path met Split = Path, Path
 	let enddir = (i + 1).Unsigned
 	return Path.From_bytes path.[.. enddir], Path.From_bytes path.[enddir ..]
 
-example let p = "a/b":Path such let d, b = p.Split; assert d == "a/" and b == "b"
-example let p = "/b":Path such let d, b = p.Split; assert d == "/" and b == "b"
-example let p = "/":Path such let d, b = p.Split; assert d == "/" and b == ""
-example let p = "":Path such let d, b = p.Split; assert d == "" and b == ""
+example -> let p = "a/b":Path such let d, b = p.Split; assert d == "a/" and b == "b"
+example -> let p = "/b":Path such let d, b = p.Split; assert d == "/" and b == "b"
+example -> let p = "/":Path such let d, b = p.Split; assert d == "/" and b == ""
+example -> let p = "":Path such let d, b = p.Split; assert d == "" and b == ""
 
 Path met Base = Path
 	let path = self.buf.String
@@ -172,19 +172,19 @@ Path met Base = Path
 	let enddir = (i + 1).Unsigned
 	return Path.From_bytes path.[enddir ..]
 
-example let p = "a/b":Path such let b = p.Base; assert b == "b"
-example let p = "/b":Path such let b = p.Base; assert b == "b"
-example let p = "/":Path such let b = p.Base; assert b == "" -- go says "/"
-example let p = "":Path such let b = p.Base; assert b == "" -- go says "."
+example -> let p = "a/b":Path such let b = p.Base; assert b == "b"
+example -> let p = "/b":Path such let b = p.Base; assert b == "b"
+example -> let p = "/":Path such let b = p.Base; assert b == "" -- go says "/"
+example -> let p = "":Path such let b = p.Base; assert b == "" -- go says "."
 
 Path met# Join ...v:(Vararg @`Show)
 	self#buf#Pr sep="/" ...v
 	self#Clean
 	return
 
-example let p = "":Path such p#Join "a" "b" "c"; assert p == "a/b/c"
-example let p = "/":Path such p#Join "a" "b" "c"; assert p == "/a/b/c"
-example let p = "":Path such p#Join "a" "b" "/c"; assert p == "a/b/c"
+example -> let p = "":Path such p#Join "a" "b" "c"; assert p == "a/b/c"
+example -> let p = "/":Path such p#Join "a" "b" "c"; assert p == "/a/b/c"
+example -> let p = "":Path such p#Join "a" "b" "/c"; assert p == "a/b/c"
 
 Path met Ext = Path
 	let path = self.buf.String
@@ -193,15 +193,15 @@ Path met Ext = Path
 			return Path.From_bytes path.[i ..]
 	return ""
 
-example let p = "test.jpg":Path such assert p.Ext == ".jpg"
-example let p = "test.png.jpg":Path such assert p.Ext == ".jpg"
-example let p = "test.png.":Path such assert p.Ext == "."
-example let p = ".":Path such assert p.Ext == "."
-example let p = "t":Path such assert p.Ext == ""
-example let p = "":Path such assert p.Ext == ""
+example -> let p = "test.jpg":Path such assert p.Ext == ".jpg"
+example -> let p = "test.png.jpg":Path such assert p.Ext == ".jpg"
+example -> let p = "test.png.":Path such assert p.Ext == "."
+example -> let p = ".":Path such assert p.Ext == "."
+example -> let p = "t":Path such assert p.Ext == ""
+example -> let p = "":Path such assert p.Ext == ""
 
 Path met Is_abs = Bool
 	return self.Count > 0 and self.[0] == "/".[0]
 
-example let p = "/a":Path such assert p.Is_abs
-example let p = "":Path such assert not p.Is_abs
+example -> let p = "/a":Path such assert p.Is_abs
+example -> let p = "":Path such assert not p.Is_abs

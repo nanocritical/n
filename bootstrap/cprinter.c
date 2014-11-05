@@ -3465,9 +3465,15 @@ static void print_runexamples(FILE *out, const struct module *mod) {
   fprintf(out, "void ");
   print_c_runexamples_name(out, mod);
   fprintf(out, "(void) {\n");
-  for (size_t n = 0; n < mod->next_example; ++n) {
-    print_scope_name(out, mod, &mod->root->scope);
-    fprintf(out, "$__Nexample%zx();\n", 1 + n);
+
+  FOREACH_SUB_CONST(ex, mod->body) {
+    if (ex->which != DEFFUN
+        || ex->as.DEFFUN.example == 0) {
+      continue;
+    }
+
+    print_scope_name(out, mod, &ex->scope);
+    fprintf(out, "();\n");
   }
   fprintf(out, "}\n");
 }

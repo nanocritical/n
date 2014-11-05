@@ -1666,7 +1666,7 @@ inline Range met Count = Uint
 		return 0
 	return self.End - self.Begin
 
-example assert ({Begin=1 End=0}:Range).Count == 0
+example -> assert ({Begin=1 End=0}:Range).Count == 0
 
 inline Range met Operator_in x:@Uint = Bool
 	return x >= self.Begin and x < self.End
