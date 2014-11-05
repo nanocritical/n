@@ -736,9 +736,55 @@ rewrote_op:
   return 0;
 }
 
+static ERROR unfold_op_assign(struct module *mod, struct node *node) {
+  assert(node->which == BIN);
+  const enum token_type op = node->as.BIN.operator;
+  assert(OP_IS_ASSIGN(op));
+
+  enum token_type nop;
+  switch (op) {
+  case TPLUS_ASSIGN: nop = TPLUS; break;
+  case TMINUS_ASSIGN: nop = TMINUS; break;
+  case TTIMES_ASSIGN: nop = TTIMES; break;
+  case TDIVIDE_ASSIGN: nop = TDIVIDE; break;
+  case TMODULO_ASSIGN: nop = TMODULO; break;
+  case TOVPLUS_ASSIGN: nop = TOVPLUS; break;
+  case TOVMINUS_ASSIGN: nop = TOVMINUS; break;
+  case TOVTIMES_ASSIGN: nop = TOVTIMES; break;
+  case TOVDIVIDE_ASSIGN: nop = TOVDIVIDE; break;
+  case TOVMODULO_ASSIGN: nop = TOVMODULO; break;
+  case TBWAND_ASSIGN: nop = TBWAND; break;
+  case TBWOR_ASSIGN: nop = TBWOR; break;
+  case TBWXOR_ASSIGN: nop = TBWXOR; break;
+  case TRSHIFT_ASSIGN: nop = TRSHIFT; break;
+  case TOVLSHIFT_ASSIGN: nop = TOVLSHIFT; break;
+  default: assert(false);
+  }
+
+  node->as.BIN.operator = TASSIGN;
+
+  struct node *src = subs_first(node);
+  struct node *arg = subs_last(node);
+  node_subs_remove(node, src);
+  node_subs_remove(node, arg);
+
+  struct node *dst = node_new_subnode(mod, node);
+  node_deepcopy(mod, dst, src);
+
+  struct node *expr = mk_node(mod, node, BIN);
+  expr->as.BIN.operator = nop;
+  node_subs_append(expr, src);
+  node_subs_append(expr, arg);
+
+  const struct node *except[] = { src, arg, NULL };
+  error e = catchup(mod, except, node, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+  return 0;
+}
+
+
 static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
   assert(node->which == BIN);
-
   const enum token_type operator = node->as.BIN.operator;
 
   struct node *left = subs_first(node);
@@ -908,11 +954,13 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
   if (arith != NULL) {
     assert(arith_assign != NULL);
     if (OP_IS_ASSIGN(operator)) {
-      e = typ_check_isa(mod, node, left->typ, arith_assign);
-      EXCEPT(e);
-
-      set_typ(&node->typ, TBI_VOID);
-      left->flags |= right->flags & NODE__TRANSITIVE;
+      if (typ_isa(left->typ, arith_assign)) {
+        set_typ(&node->typ, TBI_VOID);
+        left->flags |= right->flags & NODE__TRANSITIVE;
+      } else {
+        e = unfold_op_assign(mod, node);
+        EXCEPT(e);
+      }
     } else {
       set_typ(&node->typ, create_tentative(mod, node, arith));
       e = unify(mod, node, node->typ, left->typ);
