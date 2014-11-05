@@ -1,2 +1,4 @@
-saying2: module
+saying2: 0 module
 saying: function
+saying2: 42 module2
+saying2: 0 module3
