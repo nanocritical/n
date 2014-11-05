@@ -3,21 +3,25 @@
 
 #ifdef NLANG_DEFINE_FUNCTIONS
 
+#include "lib/n/mem/mem.n.o.h"
+
 #define NB(n) n$builtins$##n
 #define NBDYN(t) _$Ndyn_n$builtins$_$Ni_##t
 
-static struct NB(Sysheap) sys_heap;
-static struct _$Ngen_n$builtins$Envheader$$n$builtins$_$Ni_Heap$$_$Ndyn_n$builtins$_$Ni_Heap_genN$_ sys_heap_header;
+#define heap_header _$Ngen_n$builtins$Envheader$$n$builtins$_$Ni_Heap$$_$Ndyn_n$builtins$_$Ni_Heap_genN$_
+
+static struct n$mem$Sysheap sysheap;
+static struct heap_header sysheap_header;
 
 extern void n$fs$Install_sys(void);
 extern void n$crypto$rand$Install_sys(void);
 
 void _$Nprelude(int *argc, char ***argv, char ***env) {
-  sys_heap_header.Env = NLANG_MKDYN(struct _$Ndyn_n$builtins$_$Ni_Heap,
-                                    &n$builtins$Sysheap$Dyntable__n$builtins$_$Ni_Heap,
-                                    (void *)&sys_heap);
-  sys_heap_header.Parent = NULL;
-  NB(Install_sys_heap)(&sys_heap_header);
+  sysheap_header.Env = NLANG_MKDYN(struct _$Ndyn_n$builtins$_$Ni_Heap,
+                                    &n$mem$Sysheap$Dyntable__n$builtins$_$Ni_Heap,
+                                    (void *)&sysheap);
+  sysheap_header.Parent = NULL;
+  n$builtins$Install_sysheap(&sysheap_header);
 
   n$fs$Install_sys();
   n$crypto$rand$Install_sys();

@@ -1,0 +1,16 @@
+from n import *
+
+extern inline fun Internal_realloc0 p:?@#U8 old_bytecount:Uint bytecount:Uint = @#U8
+extern inline fun Internal_free p:?@#U8 bytecount:Uint
+
+inline struct Sysheap =
+	isa `Heap
+
+Sysheap met! Alloc_raw bytecount:Uint = @#U8
+	return Internal_realloc0 nil 0 bytecount
+
+Sysheap met! Free_raw raw:?@#U8 bytecount:Uint
+	return Internal_free raw bytecount
+
+Sysheap met! Realloc_raw raw:@#U8 old_bytecount:Uint bytecount:Uint = @#U8
+	return Internal_realloc0 raw old_bytecount bytecount

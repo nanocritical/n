@@ -381,40 +381,4 @@ NB(Void) *NB(Nonnull_void)(void);
 
 #endif
 
-#ifdef NLANG_DEFINE_FUNCTIONS
-
-static inline NB(U8) *n$builtins$Internal_realloc0(NB(U8) *ap, NB(Uint) old_bsz, NB(Uint) bsz) {
-  if (old_bsz == bsz) {
-    return ap;
-  }
-
-  if (bsz == 0) {
-    free(ap);
-    return NULL;
-  }
-
-  NB(U8) *r;
-  if (ap == NULL) {
-    // Use calloc(3) in the hope that on occasion it is able to obtain
-    // memory already zeroed.
-    r = calloc(bsz, 1);
-    if (r == NULL) {
-      NB(Abort)();
-    }
-  } else {
-    r = realloc(ap, bsz);
-    if (r == NULL) {
-      NB(Abort)();
-    }
-    memset(r + old_bsz, 0, bsz - old_bsz);
-  }
-  return r;
-}
-
-static inline void n$builtins$Internal_free(NB(U8) *ap, NB(Uint) bsz) {
-  free(ap);
-}
-
-#endif
-
 #undef NB

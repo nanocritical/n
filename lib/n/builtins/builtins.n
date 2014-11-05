@@ -3,6 +3,7 @@ from n.unsafe import Cast Nonnull_cast
 from n import Eprn Epr
 import n.reflect
 import n.math
+import n.mem
 
 extern intf `__literal_nil__ =
 	isa `Any_nullable_ref
