@@ -164,12 +164,15 @@ static ERROR step_operator_call_inference(struct module *mod, struct node *node,
   case OP_BIN_SYM_PTR:
     return 0;
   case OP_UN_BOOL:
-  case OP_UN_ARITH:
+  case OP_UN_ADDARITH:
   case OP_UN_BW:
   case OP_BIN:
   case OP_BIN_SYM:
   case OP_BIN_SYM_BOOL:
+  case OP_BIN_SYM_ADDARITH:
   case OP_BIN_SYM_ARITH:
+  case OP_BIN_SYM_INTARITH:
+  case OP_BIN_SYM_OVARITH:
   case OP_BIN_SYM_BW:
   case OP_BIN_BW_RHS_UNSIGNED:
     break;

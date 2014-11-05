@@ -693,7 +693,7 @@ rewrote_op:
     }
     return 0;
   case OP_UN_BOOL:
-  case OP_UN_ARITH:
+  case OP_UN_ADDARITH:
   case OP_UN_BW:
     break;
   default:
@@ -714,8 +714,8 @@ rewrote_op:
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
-  case OP_UN_ARITH:
-    set_typ(&node->typ, create_tentative(mod, node, TBI_ARITHMETIC));
+  case OP_UN_ADDARITH:
+    set_typ(&node->typ, create_tentative(mod, node, TBI_ADDITIVE_ARITHMETIC));
     e = unify(mod, node, node->typ, term->typ);
     EXCEPT(e);
     break;
@@ -798,51 +798,27 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
     EXCEPT(e);
   }
 
+  struct typ *arith = NULL, *arith_assign = NULL;
   switch (OP_KIND(operator)) {
-  case OP_BIN_SYM_BOOL:
-    set_typ(&node->typ, left->typ);
+  case OP_BIN_SYM_ADDARITH:
+    arith = TBI_ADDITIVE_ARITHMETIC;
+    arith_assign = TBI_ADDITIVE_ARITHMETIC_ASSIGN;
     break;
   case OP_BIN_SYM_ARITH:
-    switch (operator) {
-    case TPLUS_ASSIGN:
-    case TMINUS_ASSIGN:
-    case TTIMES_ASSIGN:
-    case TDIVIDE_ASSIGN:
-    case TMODULO_ASSIGN:
-      e = typ_check_isa(mod, node, left->typ,
-                        operator == TMODULO_ASSIGN ? TBI_INTEGER_ARITHMETIC : TBI_ARITHMETIC);
-      EXCEPT(e);
-
-      set_typ(&node->typ, TBI_VOID);
-      left->flags |= right->flags & NODE__TRANSITIVE;
-      break;
-    default:
-      set_typ(&node->typ, create_tentative(mod, node, TBI_ARITHMETIC));
-      e = unify(mod, node, node->typ, left->typ);
-      EXCEPT(e);
-      break;
-    }
+    arith = TBI_ARITHMETIC;
+    arith_assign = TBI_ARITHMETIC_ASSIGN;
     break;
   case OP_BIN_SYM_OVARITH:
-    switch (operator) {
-    case TOVPLUS_ASSIGN:
-    case TOVMINUS_ASSIGN:
-    case TOVTIMES_ASSIGN:
-    case TOVDIVIDE_ASSIGN:
-    case TOVMODULO_ASSIGN:
-    case TOVLSHIFT_ASSIGN:
-      e = typ_check_isa(mod, node, left->typ, TBI_OVERFLOW_ARITHMETIC);
-      EXCEPT(e);
+    arith = TBI_OVERFLOW_ARITHMETIC;
+    arith_assign = TBI_OVERFLOW_ARITHMETIC;
+    break;
+  case OP_BIN_SYM_INTARITH:
+    arith = TBI_INTEGER_ARITHMETIC;
+    arith_assign = TBI_INTEGER_ARITHMETIC;
+    break;
 
-      set_typ(&node->typ, TBI_VOID);
-      left->flags |= right->flags & NODE__TRANSITIVE;
-      break;
-    default:
-      set_typ(&node->typ, create_tentative(mod, node, TBI_OVERFLOW_ARITHMETIC));
-      e = unify(mod, node, node->typ, left->typ);
-      EXCEPT(e);
-      break;
-    }
+  case OP_BIN_SYM_BOOL:
+    set_typ(&node->typ, left->typ);
     break;
   case OP_BIN_SYM_BW:
     switch (operator) {
@@ -857,23 +833,6 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
       break;
     default:
       set_typ(&node->typ, create_tentative(mod, node, TBI_HAS_BITWISE_OPERATORS));
-      e = unify(mod, node, node->typ, left->typ);
-      EXCEPT(e);
-      break;
-    }
-    break;
-  case OP_BIN_SYM_INTARITH:
-    switch (operator) {
-    case TMODULO_ASSIGN:
-    case TRSHIFT_ASSIGN:
-      e = typ_check_isa(mod, node, left->typ, TBI_INTEGER_ARITHMETIC);
-      EXCEPT(e);
-
-      set_typ(&node->typ, TBI_VOID);
-      left->flags |= right->flags & NODE__TRANSITIVE;
-      break;
-    default:
-      set_typ(&node->typ, create_tentative(mod, node, TBI_INTEGER_ARITHMETIC));
       e = unify(mod, node, node->typ, left->typ);
       EXCEPT(e);
       break;
@@ -944,6 +903,21 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
   default:
     assert(false);
     break;
+  }
+
+  if (arith != NULL) {
+    assert(arith_assign != NULL);
+    if (OP_IS_ASSIGN(operator)) {
+      e = typ_check_isa(mod, node, left->typ, arith_assign);
+      EXCEPT(e);
+
+      set_typ(&node->typ, TBI_VOID);
+      left->flags |= right->flags & NODE__TRANSITIVE;
+    } else {
+      set_typ(&node->typ, create_tentative(mod, node, arith));
+      e = unify(mod, node, node->typ, left->typ);
+      EXCEPT(e);
+    }
   }
 
   return 0;
@@ -1340,6 +1314,7 @@ static ERROR type_inference_bin(struct module *mod, struct node *node) {
   switch (OP_KIND(op)) {
   case OP_BIN_SYM:
   case OP_BIN_SYM_BOOL:
+  case OP_BIN_SYM_ADDARITH:
   case OP_BIN_SYM_ARITH:
   case OP_BIN_SYM_INTARITH:
   case OP_BIN_SYM_OVARITH:

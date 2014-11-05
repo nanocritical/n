@@ -1600,6 +1600,7 @@ static ERROR constraint_inference_bin(struct module *mod,
     }
     // fallthrough
   case OP_BIN_SYM_BOOL:
+  case OP_BIN_SYM_ADDARITH:
   case OP_BIN_SYM_ARITH:
   case OP_BIN_SYM_INTARITH:
   case OP_BIN_SYM_OVARITH:
@@ -1660,7 +1661,7 @@ static ERROR constraint_inference_un(struct module *mod,
     }
     return 0;
   case OP_UN_BOOL:
-  case OP_UN_ARITH:
+  case OP_UN_ADDARITH:
   case OP_UN_OVARITH:
   case OP_UN_BW:
     e = constraint_check(mod, subs_first(node), CBI_INIT, false);

@@ -956,6 +956,7 @@ static ERROR propagate(struct module *mod, struct node *par, struct node *expr) 
         break;
       case OP_BIN_SYM:
       case OP_BIN_SYM_BOOL:
+      case OP_BIN_SYM_ADDARITH:
       case OP_BIN_SYM_ARITH:
       case OP_BIN_SYM_INTARITH:
       case OP_BIN_SYM_OVARITH:

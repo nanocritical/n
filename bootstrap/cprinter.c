@@ -404,6 +404,7 @@ static void print_bin(FILE *out, const struct module *mod, const struct node *no
   case OP_BIN:
   case OP_BIN_SYM:
   case OP_BIN_SYM_BOOL:
+  case OP_BIN_SYM_ADDARITH:
   case OP_BIN_SYM_ARITH:
   case OP_BIN_SYM_INTARITH:
   case OP_BIN_SYM_OVARITH:
@@ -498,7 +499,7 @@ static void print_un(FILE *out, const struct module *mod, const struct node *nod
     }
     break;
   case OP_UN_BOOL:
-  case OP_UN_ARITH:
+  case OP_UN_ADDARITH:
   case OP_UN_OVARITH:
   case OP_UN_BW:
     print_token(out, op);

@@ -98,14 +98,20 @@ intf `Ordered_by_compare =
 	isa `Has_compare `Ordered
 intf `Trivial_order =
 	isa `Trivial_compare `Ordered_by_compare
-intf `Arithmetic =
+intf `Additive_arithmetic =
 	met Operator_plus other:@final = final
 	met Operator_minus other:@final = final
-	met Operator_divide other:@final = final
-	met Operator_times other:@final = final
 	met Operator_uminus = final
+intf `Additive_arithmetic_assign =
+	isa `Additive_arithmetic
 	met! Operator_assign_plus other:@final
 	met! Operator_assign_minus other:@final
+intf `Arithmetic =
+	isa `Additive_arithmetic
+	met Operator_divide other:@final = final
+	met Operator_times other:@final = final
+intf `Arithmetic_assign =
+	isa `Arithmetic `Additive_arithmetic_assign
 	met! Operator_assign_divide other:@final
 	met! Operator_assign_times other:@final
 intf `Has_bitwise_operators =
@@ -113,6 +119,8 @@ intf `Has_bitwise_operators =
 	met Operator_bwxor other:@final = final
 	met Operator_bwand other:@final = final
 	met Operator_bwnot = final
+intf `Has_bitwise_operators_assign =
+	isa `Has_bitwise_operators
 	met! Operator_assign_bwor other:@final
 	met! Operator_assign_bwxor other:@final
 	met! Operator_assign_bwand other:@final
@@ -724,7 +732,7 @@ inline struct Tuple_16 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`C
 	X15	:t15
 
 intf `Numeric =
-	isa `Copyable `Arithmetic `Ordered `Show
+	isa `Copyable `Arithmetic_assign `Ordered `Show
 
 intf `Number_literal_compatible =
 	fun From_number_literal v:String = final

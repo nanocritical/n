@@ -112,8 +112,12 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_SLICE_COMPATIBLE] = "`Slice_compatible",
   [ID_TBI_OPTIONAL] = "Optional",
   [ID_TBI_VARARG] = "Vararg",
+  [ID_TBI_ADDITIVE_ARITHMETIC] = "`Additive_arithmetic",
+  [ID_TBI_ADDITIVE_ARITHMETIC_ASSIGN] = "`Additive_arithmetic_assign",
   [ID_TBI_ARITHMETIC] = "`Arithmetic",
+  [ID_TBI_ARITHMETIC_ASSIGN] = "`Arithmetic_assign",
   [ID_TBI_HAS_BITWISE_OPERATORS] = "`Has_bitwise_operators",
+  [ID_TBI_HAS_BITWISE_OPERATORS_ASSIGN] = "`Has_bitwise_operators_assign",
   [ID_TBI_INTEGER_ARITHMETIC] = "`Integer_arithmetic",
   [ID_TBI_OVERFLOW_ARITHMETIC] = "`Overflow_arithmetic",
   [ID_TBI_NUMBER_LITERAL_COMPATIBLE] = "`Number_literal_compatible",
@@ -447,8 +451,12 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_SLICE_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_SLICE_COMPATIBLE];
   TBI_OPTIONAL = gctx->builtin_typs_by_name[ID_TBI_OPTIONAL];
   TBI_VARARG = gctx->builtin_typs_by_name[ID_TBI_VARARG];
+  TBI_ADDITIVE_ARITHMETIC = gctx->builtin_typs_by_name[ID_TBI_ADDITIVE_ARITHMETIC];
+  TBI_ADDITIVE_ARITHMETIC_ASSIGN = gctx->builtin_typs_by_name[ID_TBI_ADDITIVE_ARITHMETIC_ASSIGN];
   TBI_ARITHMETIC = gctx->builtin_typs_by_name[ID_TBI_ARITHMETIC];
+  TBI_ARITHMETIC_ASSIGN = gctx->builtin_typs_by_name[ID_TBI_ARITHMETIC_ASSIGN];
   TBI_HAS_BITWISE_OPERATORS = gctx->builtin_typs_by_name[ID_TBI_HAS_BITWISE_OPERATORS];
+  TBI_HAS_BITWISE_OPERATORS_ASSIGN = gctx->builtin_typs_by_name[ID_TBI_HAS_BITWISE_OPERATORS_ASSIGN];
   TBI_INTEGER_ARITHMETIC = gctx->builtin_typs_by_name[ID_TBI_INTEGER_ARITHMETIC];
   TBI_OVERFLOW_ARITHMETIC = gctx->builtin_typs_by_name[ID_TBI_OVERFLOW_ARITHMETIC];
   TBI_NUMBER_LITERAL_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_NUMBER_LITERAL_COMPATIBLE];
@@ -1467,12 +1475,20 @@ again:
 }
 
 static bool mixing_arith_and_bw(enum token_type a, enum token_type b) {
-  return (OP_KIND(a) == OP_BIN_SYM_ARITH
-          && (OP_KIND(b) == OP_BIN_SYM_BW
-              || OP_KIND(b) == OP_BIN_BW_RHS_UNSIGNED))
-    || (OP_KIND(b) == OP_BIN_SYM_ARITH
-          && (OP_KIND(a) == OP_BIN_SYM_BW
-              || OP_KIND(a) == OP_BIN_BW_RHS_UNSIGNED));
+  const bool a_is_arith =
+    OP_KIND(a) == OP_BIN_SYM_ADDARITH
+    || OP_KIND(a) == OP_BIN_SYM_ARITH
+    || OP_KIND(a) == OP_BIN_SYM_INTARITH
+    || OP_KIND(a) == OP_BIN_SYM_OVARITH;
+  const bool b_is_arith =
+    OP_KIND(b) == OP_BIN_SYM_ADDARITH
+    || OP_KIND(b) == OP_BIN_SYM_ARITH
+    || OP_KIND(b) == OP_BIN_SYM_INTARITH
+    || OP_KIND(b) == OP_BIN_SYM_OVARITH;
+  return (a_is_arith && (OP_KIND(b) == OP_BIN_SYM_BW
+                         || OP_KIND(b) == OP_BIN_BW_RHS_UNSIGNED))
+    || (b_is_arith && (OP_KIND(a) == OP_BIN_SYM_BW
+                       || OP_KIND(a) == OP_BIN_BW_RHS_UNSIGNED));
 }
 
 EXAMPLE(mixing_arith_and_bw) {
