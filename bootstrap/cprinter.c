@@ -3138,11 +3138,10 @@ static void print_import(FILE *out, bool header, enum forward fwd,
   }
 
   if (fwd == FWD_DEFINE_TYPES) {
-    if (!non_inline_deps
-        && !(node_toplevel_const(node)->flags & TOP_IS_INLINE)) {
+    const bool is_inline = !!(node_toplevel_const(node)->flags & TOP_IS_INLINE);
+    if (!non_inline_deps && !is_inline) {
       return;
-    } else if (non_inline_deps
-               && (node_toplevel_const(node)->flags & TOP_IS_INLINE)) {
+    } else if (non_inline_deps && is_inline) {
       return;
     }
   }
