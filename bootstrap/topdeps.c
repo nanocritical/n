@@ -36,7 +36,10 @@ static void record_final(struct module *mod, struct typ *t) {
 
   uint32_t mask = toplevel->flags & TO_KEEP;
 
-  if (st->exportable != NULL && st->exportable->which == DEFFIELD) {
+  const bool within_exportable_field = st->exportable != NULL
+    && st->exportable->which == DEFFIELD;
+
+  if (within_exportable_field) {
     if (!name_is_export(mod, st->exportable)) {
       mask &= ~TOP_IS_EXPORT;
     }
@@ -52,7 +55,7 @@ static void record_final(struct module *mod, struct typ *t) {
   if (!typ_is_reference(t)) {
     switch (top->which) {
     case DEFTYPE:
-      if (st->exportable != NULL && st->exportable->which == DEFFIELD) {
+      if (within_exportable_field) {
         mask |= TOP__TOPDEP_INLINE_STRUCT;
       }
       break;
