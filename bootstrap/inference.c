@@ -791,14 +791,21 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
   struct node *right = subs_last(node);
   error e;
 
-  if (!OP_IS_ASSIGN(operator) && OP_KIND(operator) != OP_BIN_SYM_PTR) {
-    e = try_insert_automagic_de(mod, left);
-    EXCEPT(e);
-    e = try_insert_automagic_de(mod, right);
-    EXCEPT(e);
+  if (OP_KIND(operator) != OP_BIN_SYM_PTR) {
+    if (!OP_IS_ASSIGN(operator)) {
+      e = try_insert_automagic_de(mod, left);
+      EXCEPT(e);
+      e = try_insert_automagic_de(mod, right);
+      EXCEPT(e);
 
-    left = subs_first(node);
-    right = subs_last(node);
+      left = subs_first(node);
+      right = subs_last(node);
+    } else if (operator != TASSIGN) {
+      e = try_insert_automagic_de(mod, right);
+      EXCEPT(e);
+
+      right = subs_last(node);
+    }
   }
 
   if (operator == TASSIGN) {
