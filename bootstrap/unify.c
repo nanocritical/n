@@ -835,17 +835,10 @@ static ERROR check_reference_compatibility(struct module *mod,
   return 0;
 }
 
-static ERROR unify_dyn(struct module *mod, const struct node *for_error,
-                       struct typ *a, struct typ *b,
-                       bool a_intf, bool b_intf) {
-  if (!b_intf) {
-    SWAP(a, b);
-    SWAP(a_intf, b_intf);
-  }
-
-  error e = typ_check_isa(mod, for_error, a, b);
+static ERROR unify_dyn_arg(struct module *mod, const struct node *for_error,
+                           struct typ *a, struct typ *dyn) {
+  error e = typ_check_isa(mod, for_error, a, dyn);
   EXCEPT(e);
-
   return 0;
 }
 
@@ -858,19 +851,17 @@ static ERROR unify_reforslice_arg(struct module *mod, uint32_t flags,
 
   struct typ *arg_a = typ_generic_arg(a, 0);
   struct typ *arg_b = typ_generic_arg(b, 0);
-  const bool no_functors = !typ_is_generic_functor(arg_a)
-    && !typ_is_generic_functor(arg_b);
-  const bool arg_a_intf = typ_definition_which(arg_a) == DEFINTF;
-  const bool arg_b_intf = typ_definition_which(arg_b) == DEFINTF;
   // Not tentative_or_ungenarg(), if a genarg, we want to use unify_dyn().
   const bool arg_a_tentative = typ_is_tentative(arg_a);
   const bool arg_b_tentative = typ_is_tentative(arg_b);
+  const bool no_tentatives = !arg_a_tentative && !arg_b_tentative;
 
   error e;
-  if (no_functors
-      && (arg_a_intf || arg_b_intf)
-      && (!arg_a_tentative && !arg_b_tentative)) {
-    e = unify_dyn(mod, for_error, arg_a, arg_b, arg_a_intf, arg_b_intf);
+  if (no_tentatives && typ_is_dyn(b)) {
+    e = unify_dyn_arg(mod, for_error, arg_a, arg_b);
+    EXCEPT(e);
+  } else if (no_tentatives && typ_is_dyn(a)) {
+    e = unify_dyn_arg(mod, for_error, arg_b, arg_a);
     EXCEPT(e);
   } else {
     e = do_unify(mod, flags, for_error, arg_a, arg_b);
