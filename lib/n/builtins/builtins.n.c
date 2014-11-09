@@ -3,8 +3,6 @@
 
 #ifdef NLANG_DEFINE_FUNCTIONS
 
-#include "lib/n/mem/mem.n.o.h"
-
 #define NB(n) n$builtins$##n
 #define NBDYN(t) _$Ndyn_n$builtins$_$Ni_##t
 
