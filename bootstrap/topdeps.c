@@ -69,8 +69,9 @@ static void record_final(struct module *mod, struct typ *t) {
     }
   }
 
-  if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
-    // Inherit the inline struct dependencies from a generic
+  if (!(top->typ != NULL && typ_is_reference(top->typ))
+      && typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
+    // Inherit the inline struct dependencies from fields of a generic.
     struct tit *tit = typ_definition_members(t, DEFFIELD, 0);
     while (tit_next(tit)) {
       struct typ *fieldt = tit_typ(tit);
