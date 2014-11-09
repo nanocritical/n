@@ -889,6 +889,19 @@ static ERROR step_rewrite_def_return_through_ref(struct module *mod, struct node
   return 0;
 }
 
+static STEP_NM(step_update_map_children,
+               NM(DEFTYPE) | NM(DEFINTF));
+static ERROR step_update_map_children(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (typ_is_generic_functor(node->typ)) {
+    typ_create_update_map_children(mod, node->typ);
+  }
+
+  return 0;
+}
+
 static void replace_sub(struct module *mod, struct node *par,
                         struct node *expr, struct node *target) {
   struct node *repl = NULL;
@@ -1446,6 +1459,7 @@ static ERROR passfwd11(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
+    DOWN_STEP(step_update_map_children);
     ,
     UP_STEP(step_global_constant_substitution);
     UP_STEP(step_check_exhaustive_intf_impl);

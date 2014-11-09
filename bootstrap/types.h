@@ -39,6 +39,7 @@ struct typ *typ_create(struct typ *tbi, struct node *definition);
 void typ_create_update_hash(struct typ *t);
 void typ_create_update_genargs(struct typ *t);
 void typ_create_update_quickisa(struct typ *t);
+void typ_create_update_map_children(struct module *mod, struct typ *par);
 struct typ *typ_create_ungenarg(struct typ *t);
 void typ_create_ungenarg_update_genargs(struct module *trigger_mod, struct typ *t);
 
