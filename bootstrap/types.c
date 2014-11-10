@@ -1585,7 +1585,7 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
     return NULL;
   }
 
-  if (field->which == IMPORT && !field->as.IMPORT.intermediate_mark) {
+  if (field->which == IMPORT) {
     error none = scope_lookup(&field, mod, &mod->gctx->modules_root.scope,
                               subs_first(field), false);
     assert(!none);

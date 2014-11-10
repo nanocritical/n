@@ -431,12 +431,9 @@ static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
   }
 
   if (r->which == IMPORT) {
-    struct node *mark = r;
-    if (!mark->as.IMPORT.intermediate_mark) {
-      e = do_scope_lookup(&r, for_error, mod, &mod->gctx->modules_root.scope,
-                          subs_first(r), failure_ok);
-      EXCEPT_UNLESS(e, failure_ok);
-    }
+    e = do_scope_lookup(&r, for_error, mod, &mod->gctx->modules_root.scope,
+                        subs_first(r), failure_ok);
+    EXCEPT_UNLESS(e, failure_ok);
   }
 
   *result = r;

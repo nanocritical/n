@@ -447,7 +447,6 @@ struct node_import {
   struct toplevel toplevel;
   bool is_all;
   bool is_relative;
-  bool intermediate_mark;
 };
 
 struct module;
