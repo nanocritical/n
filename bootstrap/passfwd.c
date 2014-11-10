@@ -235,16 +235,19 @@ static struct node *do_move_detached_member(struct module *mod,
   node_subs_remove(par, node);
   node_subs_append(container, node);
 
-  struct toplevel *container_toplevel = node_toplevel(container);
-  struct node *container_pristine = container_toplevel->generic->pristine;
-
-  struct node *node_pristine = toplevel->generic->pristine;
-  struct node *copy = node_new_subnode(mod, container_pristine);
-  node_deepcopy(mod, copy, node_pristine);
-
   if (demands_inline(node) || demands_inline(parent_const(node))) {
     node_toplevel(node)->flags |= TOP_IS_INLINE;
-    node_toplevel(node_pristine)->flags |= TOP_IS_INLINE;
+  }
+
+  struct toplevel *container_toplevel = node_toplevel(container);
+  if (container_toplevel->generic != NULL) {
+    struct node *container_pristine = container_toplevel->generic->pristine;
+
+    struct node *node_pristine = toplevel->generic->pristine;
+    struct node *copy = node_new_subnode(mod, container_pristine);
+    node_deepcopy(mod, copy, node_pristine);
+
+    node_toplevel(node_pristine)->flags |= node_toplevel(node)->flags & TOP_IS_INLINE;
   }
 
   return nxt;
@@ -339,7 +342,7 @@ static struct scope *find_scope_for_name(struct node *node) {
 }
 
 static STEP_NM(step_lexical_scoping,
-               NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(DEFINTF) |
+               NM(DEFTYPE) | NM(DEFINTF) |
                NM(DEFFIELD) | NM(DEFCHOICE) | NM(DEFALIAS) | NM(DEFNAME) |
                NM(WITHIN));
 static ERROR step_lexical_scoping(struct module *mod, struct node *node,
@@ -352,34 +355,6 @@ static ERROR step_lexical_scoping(struct module *mod, struct node *node,
   struct node *par = parent(node);
 
   switch (node->which) {
-  case DEFFUN:
-  case DEFMETHOD:
-    id = subs_first(node);
-    if (id->which != IDENT) {
-      assert(id->which == BIN);
-      id = subs_last(id);
-    }
-
-    toplevel = node_toplevel_const(node);
-    if (toplevel->generic != NULL
-        && toplevel->generic->our_generic_functor_typ != NULL) {
-      // See comment below for DEFTYPE/DEFINTF. To get the same instance
-      // than the current function, you have to explicitly instantiate it
-      // (as there is no 'thisfun').
-      sc = NULL;
-    } else if (toplevel->scope_name != 0) {
-      struct node *container = NULL;
-      error e = scope_lookup_ident_wontimport(&container, node, mod,
-                                              &parent(node)->scope,
-                                              toplevel->scope_name, false);
-      EXCEPT(e);
-      assert(container->which == DEFTYPE);
-
-      sc = &container->scope;
-    } else {
-      sc = &par->scope;
-    }
-    break;
   case DEFTYPE:
   case DEFINTF:
     toplevel = node_toplevel_const(node);
@@ -453,6 +428,65 @@ static ERROR step_lexical_scoping(struct module *mod, struct node *node,
       EXCEPT(e);
     }
     break;
+  default:
+    break;
+  }
+
+  return 0;
+}
+
+static STEP_NM(step_lexical_scoping_functions,
+               NM(DEFFUN) | NM(DEFMETHOD));
+static ERROR step_lexical_scoping_functions(struct module *mod, struct node *node,
+                                          void *user, bool *stop) {
+  DSTEP(mod, node);
+  struct node *id = NULL;
+  struct scope *sc = NULL;
+  const struct toplevel *toplevel = NULL;
+  error e;
+  struct node *par = parent(node);
+
+  switch (node->which) {
+  case DEFFUN:
+  case DEFMETHOD:
+    id = subs_first(node);
+    if (id->which != IDENT) {
+      assert(id->which == BIN);
+      id = subs_last(id);
+    }
+
+    toplevel = node_toplevel_const(node);
+    if (toplevel->generic != NULL
+        && toplevel->generic->our_generic_functor_typ != NULL) {
+      // See comment below for DEFTYPE/DEFINTF. To get the same instance
+      // than the current function, you have to explicitly instantiate it
+      // (as there is no 'thisfun').
+      sc = NULL;
+    } else if (toplevel->scope_name != 0) {
+      struct node *container = NULL;
+      error e = scope_lookup_ident_wontimport(&container, node, mod,
+                                              &parent(node)->scope,
+                                              toplevel->scope_name, false);
+      EXCEPT(e);
+      assert(container->which == DEFTYPE);
+
+      sc = &container->scope;
+    } else {
+      sc = &par->scope;
+    }
+    break;
+  default:
+    assert(false && "Unreached");
+    return 0;
+  }
+
+  if (sc != NULL) {
+    e = scope_define(mod, sc, id, node);
+    EXCEPT(e);
+  }
+
+  struct node *genargs = NULL;
+  switch (node->which) {
   case DEFFUN:
   case DEFMETHOD:
     genargs = subs_at(node, IDX_GENARGS);
@@ -1277,7 +1311,6 @@ static ERROR passfwd0(struct module *mod, struct node *root,
     ,
     UP_STEP(step_detect_not_dyn_intf_up);
     UP_STEP(step_type_definitions);
-    UP_STEP(step_move_detached_members);
     ,
     FINALLY_STEP(step_pop_state);
     );
@@ -1285,6 +1318,21 @@ static ERROR passfwd0(struct module *mod, struct node *root,
 }
 
 static ERROR passfwd1(struct module *mod, struct node *root,
+                      void *user, ssize_t shallow_last_up) {
+  // scoping_deftypes
+  PASS(
+    DOWN_STEP(step_push_state);
+    DOWN_STEP(step_stop_submodules);
+    DOWN_STEP(step_lexical_scoping_functions);
+    ,
+    UP_STEP(step_move_detached_members);
+    ,
+    FINALLY_STEP(step_pop_state);
+    );
+  return 0;
+}
+
+static ERROR passfwd2(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   // imports
   PASS(
@@ -1300,7 +1348,7 @@ static ERROR passfwd1(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd2(struct module *mod, struct node *root,
+static ERROR passfwd3(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1315,7 +1363,7 @@ static ERROR passfwd2(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd3(struct module *mod, struct node *root,
+static ERROR passfwd4(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1332,7 +1380,7 @@ static ERROR passfwd3(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd4(struct module *mod, struct node *root,
+static ERROR passfwd5(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1348,7 +1396,7 @@ static ERROR passfwd4(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd5(struct module *mod, struct node *root,
+static ERROR passfwd6(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1367,7 +1415,7 @@ ssize_t ready_for_quickisa_pass(void) {
   return PASSZERO_COUNT + 6; // i.e. passfwd5
 }
 
-static ERROR passfwd6(struct module *mod, struct node *root,
+static ERROR passfwd7(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1384,7 +1432,7 @@ static ERROR passfwd6(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd7(struct module *mod, struct node *root,
+static ERROR passfwd8(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1402,7 +1450,7 @@ static ERROR passfwd7(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd8(struct module *mod, struct node *root,
+static ERROR passfwd9(struct module *mod, struct node *root,
                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1417,8 +1465,8 @@ static ERROR passfwd8(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd9(struct module *mod, struct node *root,
-                      void *user, ssize_t shallow_last_up) {
+static ERROR passfwd10(struct module *mod, struct node *root,
+                       void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
@@ -1435,7 +1483,7 @@ static ERROR passfwd9(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd10(struct module *mod, struct node *root,
+static ERROR passfwd11(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1452,7 +1500,7 @@ static ERROR passfwd10(struct module *mod, struct node *root,
   return 0;
 }
 
-static ERROR passfwd11(struct module *mod, struct node *root,
+static ERROR passfwd12(struct module *mod, struct node *root,
                        void *user, ssize_t shallow_last_up) {
   PASS(
     DOWN_STEP(step_push_state);
@@ -1483,4 +1531,5 @@ a_pass passfwd[] = {
   passfwd9,
   passfwd10,
   passfwd11,
+  passfwd12,
 };
