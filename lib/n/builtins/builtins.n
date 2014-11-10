@@ -4,6 +4,7 @@ from n import Eprn Epr
 import n.reflect
 import n.math
 import n.mem
+import n.io
 
 extern intf `__literal_nil__ =
 	isa `Any_nullable_ref

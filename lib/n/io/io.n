@@ -14,7 +14,10 @@ intf `Reader =
 	-- content just read.
 	met# Read b:[]!U8 = []!U8, Error
 
-alias `Writer = `Io_writer
+intf `Writer =
+	-- Returns a slice of b with the content not yet written, if any.
+	met# Write b:[]U8 = []U8, Error
+
 
 fun Read_at_least b:[]!U8 r:@#`Reader min_count:Uint = []!U8, err:Error
 	if b.Available < min_count

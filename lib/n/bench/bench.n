@@ -1,0 +1,40 @@
+from n import *
+
+-- Needs to work for both something that is actively updated, and
+-- something that is polled (like a clock).
+
+intf `Observable =
+	met! Save_measurements = Restorer
+
+intf `Measure =
+	isa `Default_ctor `Additive_arithmetic `Copyable `Has_equality -- `Writer_to
+
+intf `Observable_of m:`Measure =
+	isa `Observable
+	met Measure = m
+
+intf `Has_restore =
+	met! restore
+
+inline struct Restorer =
+	target	:@!`Has_restore
+
+Restorer met# Dtor
+	self!target!restore
+
+-- Suitable when the 'Curent' measure will be updated in-place (push model).
+inline struct Stack m:`Measure =
+	isa `Has_restore
+	Current	:m
+	impl	:(Slicebuf m)
+
+Stack met! Save = Restorer
+	self!impl#Push# = self.Current
+	self!Current = {}
+	return {target=self}
+
+Stack met! restore
+	assert self.impl.Count > 0
+	let p = self.impl.Last
+	self!Current += p.
+	self!impl#Pop

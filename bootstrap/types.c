@@ -1591,6 +1591,17 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
     assert(!none);
   }
 
+  if (field->typ == NULL && field->which == DEFALIAS) {
+    // Assume we're in passfwd that does both step_type_aliases and
+    // step_type_isalist, and that we're trying to use an alias in an
+    // isalist before it's been typed. Since we're not doing fully
+    // dependency-driven passes, we opportunistically type this alias.
+    *e = step_type_aliases(node_module_owner(field), parent(field), NULL, NULL);
+    if (*e) {
+      return NULL;
+    }
+  }
+
   struct tit *r = calloc(1, sizeof(struct tit));
   r->t = typ_is_reference(left->typ) ? typ_generic_arg(left->typ, 0) : left->typ;
   r->definition = dcontainer;

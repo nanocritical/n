@@ -2,21 +2,17 @@
 -- definitions early because we use them in this module, to avoid circular
 -- dependency.
 
-intf `Io_writer =
-	-- Returns a slice of b with the content not yet written, if any.
-	met# Write b:[]U8 = []U8, Error
-
 intf `Fmt_state =
-	isa `Io_writer
+	isa io.`Writer
 	met Width = Bool, Uint
 	met Precision = Bool, Uint
 	met Flag c:Rune = Bool
 
 inline struct Fmt_state =
 	isa `Fmt_state
-	w	:@#`Io_writer
+	w	:@#io.`Writer
 
-Fmt_state met# Init w:@#`Io_writer
+Fmt_state met# Init w:@#io.`Writer
 	self#w = w
 
 Fmt_state met Width = Bool, Uint

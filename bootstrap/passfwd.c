@@ -581,10 +581,10 @@ static ERROR step_type_genargs(struct module *mod, struct node *node,
   return 0;
 }
 
-static STEP_NM(step_type_aliases,
-               NM(LET));
-static ERROR step_type_aliases(struct module *mod, struct node *node,
-                               void *user, bool *stop) {
+STEP_NM(step_type_aliases,
+        NM(LET));
+error step_type_aliases(struct module *mod, struct node *node,
+                        void *user, bool *stop) {
   DSTEP(mod, node);
 
   struct node *par = parent(node);
