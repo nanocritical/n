@@ -616,7 +616,20 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
 
     return 0;
   case INIT:
-    // FIXME: support missing
+    if (node->as.INIT.is_array) {
+      // FIXME: not supported
+      return 0;
+    }
+    if (node->as.INIT.is_defchoice_external_payload_constraint) {
+      return 0;
+    }
+    FOREACH_SUB_EVERY(name, node, 0, 2) {
+      src = next(name);
+      struct tit *target = typ_definition_one_member(node->typ, node_ident(name));
+      e = try_insert_dyn(&src, mod, node, tit_typ(target));
+      EXCEPT(e);
+      tit_next(target);
+    }
     return 0;
   default:
     assert(false && "Unreached");
