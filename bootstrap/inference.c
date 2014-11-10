@@ -2503,6 +2503,7 @@ static struct typ* number_literal_typ(struct module *mod, struct node *node) {
 }
 
 static ERROR type_inference_within(struct module *mod, struct node *node) {
+  // The subtree below 'node' has been marked TBI__NOT_TYPEABLE.
   node->typ = NULL;
 
   error e;
@@ -2511,29 +2512,44 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
 
   if (node->which == WITHIN) {
     const struct node *modbody = NULL;
+    struct node *name = NULL;
     if (first->which == BIN) {
       struct node *ffirst = subs_first(first);
       e = type_inference_within(mod, ffirst);
       EXCEPT(e);
 
-      modbody = typ_definition_nooverlay_const(ffirst->typ);
-
-      if (modbody->which != MODULE_BODY) {
+      const struct node *nmod = typ_definition_nooverlay_const(ffirst->typ);
+      if (nmod->which != MODULE) {
         e = mk_except(mod, node, "invalid within expression,"
-                      " must point to a globalenv declaration");
+                      " must point to a globalenv declaration, inside a moduel");
         THROW(e);
       }
+      modbody = nmod->as.MODULE.mod->body;
+      name = subs_last(first);;
     } else if (first->which == IDENT) {
       modbody = node_module_owner_const(node)->body;
+      name = first;
     } else {
       goto malformed;
     }
 
     e = scope_lookup_ident_immediate(&def, node, mod,
                                      &modbody->as.MODULE_BODY.globalenv_scope->scope,
-                                     node_ident(subs_last_const(node)), false);
+                                     node_ident(name), false);
     if (e) {
       e = mk_except(mod, node, "in within declaration");
+      THROW(e);
+    }
+
+    while (def->which == IMPORT) {
+      e = scope_lookup_import_globalenv(&def, mod, def, false);
+      EXCEPT(e);
+    }
+    modbody = node_module_owner_const(def)->body;
+
+    if (def->which != DEFNAME || !def->as.DEFNAME.is_globalenv) {
+      e = mk_except(mod, node, "invalid within expression,"
+                    " must point to a globalenv declaration");
       THROW(e);
     }
 
@@ -2541,14 +2557,7 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
   } else if (node->which == IDENT) {
     e = scope_lookup(&def, mod, &node->scope, node, false);
     EXCEPT(e);
-  } else if (node->which == BIN) {
-    e = type_inference_within(mod, first);
-    EXCEPT(e);
-
-    e = scope_lookup_ident_immediate(&def, node,
-                                     mod, &typ_definition_nooverlay(first->typ)->scope,
-                                     node_ident(subs_last_const(node)), false);
-    EXCEPT(e);
+    node->as.IDENT.def = def;
   } else {
     goto malformed;
   }

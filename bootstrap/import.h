@@ -3,7 +3,7 @@
 
 #include "nodes.h"
 
-ERROR lexical_import(struct scope *scope, struct module *mod,
-                     struct node *original_import, struct node *import);
+ERROR lexical_import(struct module *mod, struct node *original_import,
+                     struct node *import);
 
 #endif

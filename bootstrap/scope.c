@@ -432,7 +432,7 @@ static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
 
   if (r->which == IMPORT) {
     e = do_scope_lookup(&r, for_error, mod, &mod->gctx->modules_root.scope,
-                        subs_first(r), failure_ok);
+                        subs_first_const(r), failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
   }
 
@@ -443,6 +443,23 @@ except:
   free(escname);
   free(scname);
   return e;
+}
+
+ERROR scope_lookup_import_globalenv(struct node **result, const struct module *mod,
+                                    const struct node *import, bool failure_ok) {
+  const struct node *path = subs_first_const(import);
+  assert(path->which == BIN);
+  error e = do_scope_lookup(result, import, mod, &mod->gctx->modules_root.scope,
+                            subs_first_const(path), failure_ok);
+  EXCEPT(e);
+
+  assert((*result)->which == MODULE);
+  e = scope_lookup_ident_immediate(result, import, mod,
+                                   &(*result)->as.MODULE.mod->body->as.MODULE_BODY.globalenv_scope->scope,
+                                   node_ident(subs_last_const(path)), failure_ok);
+  EXCEPT(e);
+  assert((*result)->which == DEFNAME && (*result)->as.DEFNAME.is_globalenv);
+  return 0;
 }
 
 error scope_lookup(struct node **result, const struct module *mod,

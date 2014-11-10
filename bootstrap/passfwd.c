@@ -279,7 +279,7 @@ static ERROR step_lexical_import(struct module *mod, struct node *node,
   error e;
 
   if (node_is_at_top(node)) {
-    e = lexical_import(&mod->body->scope, mod, node, node);
+    e = lexical_import(mod, node, node);
     EXCEPT(e);
   }
 

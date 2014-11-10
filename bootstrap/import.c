@@ -11,7 +11,7 @@ static void pass_import_mark(struct module *mod, struct node *mark) {
   mark->flags = NODE_IS_TYPE;
 }
 
-static ERROR check_import_target_exists(struct module *mod,
+static ERROR check_import_target_exists(bool *is_globalenv, struct module *mod,
                                         struct node *module_import_path,
                                         bool points_inside_module) {
   struct node *mpath
@@ -21,7 +21,7 @@ static ERROR check_import_target_exists(struct module *mod,
   error e = scope_lookup_module(&def, mod, mpath, true);
 
   if (e == EINVAL && !points_inside_module /* really, the caller doesn't know */) {
-    e = check_import_target_exists(mod, module_import_path, true);
+    e = check_import_target_exists(is_globalenv, mod, module_import_path, true);
     EXCEPT(e);
     return 0;
   } else if (e) {
@@ -31,23 +31,40 @@ static ERROR check_import_target_exists(struct module *mod,
   }
 
   if (points_inside_module) {
-    // We don't use target, but we check that it exists.
+    const bool could_be_globalenv = def->which == MODULE;
     struct node *target = NULL;
     struct node *id = subs_last(module_import_path);
     e = scope_lookup_ident_immediate(&target, id,
                                      mod, &def->scope,
-                                     node_ident(id), false);
-    EXCEPT(e);
+                                     node_ident(id), could_be_globalenv);
+
+    if (e && could_be_globalenv) {
+      e = scope_lookup_ident_immediate(&target, id,
+                                       mod, &def->as.MODULE.mod->body->as.MODULE_BODY.globalenv_scope->scope,
+                                       node_ident(id), true);
+
+      if (e) {
+        // Give up: repeat bound-to-fail call to get error message right.
+        e = scope_lookup_ident_immediate(&target, id,
+                                         mod, &def->scope,
+                                         node_ident(id), false);
+        THROW(e);
+      } else {
+        *is_globalenv = true;
+      }
+    } else if (e) {
+      THROW(e);
+    }
   }
 
   return 0;
 }
 
 static ERROR import_single_ident(struct module *mod, struct node *original_import,
-                                 struct scope *scope, struct node *import,
-                                 bool inside_module) {
+                                 struct node *import, bool inside_module) {
   struct node *import_path = subs_first(import);
-  error e = check_import_target_exists(mod, import_path, inside_module);
+  bool is_globalenv = false;
+  error e = check_import_target_exists(&is_globalenv, mod, import_path, inside_module);
   EXCEPT(e);
 
   struct node *name = NULL;
@@ -60,6 +77,11 @@ static ERROR import_single_ident(struct module *mod, struct node *original_impor
     break;
   default:
     assert(false);
+  }
+
+  struct scope *scope = &mod->body->scope;
+  if (is_globalenv) {
+    scope = &mod->body->as.MODULE_BODY.globalenv_scope->scope;
   }
 
   e = scope_define_ident(mod, scope, node_ident(name), import);
@@ -78,7 +100,7 @@ static ERROR lookup_target_mod(struct module **target_mod,
   return 0;
 }
 
-static ERROR lexical_import_from_path(struct scope *scope, struct module *mod,
+static ERROR lexical_import_from_path(struct module *mod,
                                       struct node *original_import,
                                       struct node *import) {
   struct module *target_mod = NULL;
@@ -91,7 +113,7 @@ static ERROR lexical_import_from_path(struct scope *scope, struct module *mod,
   // 'import == original_import'.
   struct node *last = subs_last(import);
   FOREACH_SUB_EVERY(id_import, import, 1, 1) {
-    e = import_single_ident(mod, original_import, scope, id_import, true);
+    e = import_single_ident(mod, original_import, id_import, true);
     EXCEPT(e);
 
     if (id_import == last) {
@@ -121,7 +143,7 @@ static struct node *create_import_mark_for_ex(struct module *mod,
   return import_id;
 }
 
-static ERROR lexical_import_path(struct scope *scope, struct module *mod,
+static ERROR lexical_import_path(struct module *mod,
                                  struct node *original_import,
                                  struct node *import) {
   struct module *target_mod = NULL;
@@ -135,7 +157,7 @@ static ERROR lexical_import_path(struct scope *scope, struct module *mod,
   }
 
   if (!original_import->as.IMPORT.is_all) {
-    e = import_single_ident(mod, original_import, scope, import, false);
+    e = import_single_ident(mod, original_import, import, false);
     return 0;
   }
 
@@ -145,14 +167,12 @@ static ERROR lexical_import_path(struct scope *scope, struct module *mod,
     if (toplevel == NULL
         || !(toplevel->flags & TOP_IS_EXPORT)
         || toplevel->scope_name != ID__NONE
-        || (toplevel->flags & TOP_IS_SHADOWED)
-        || (ex->which == LET && subs_first_const(ex)->which == DEFNAME
-            && subs_first_const(ex)->as.DEFNAME.is_globalenv)) {
+        || (toplevel->flags & TOP_IS_SHADOWED)) {
       continue;
     }
 
     if (ex->which == IMPORT) {
-      e = lexical_import(scope, mod, original_import, ex);
+      e = lexical_import(mod, original_import, ex);
       EXCEPT(e);
 
       continue;
@@ -160,14 +180,14 @@ static ERROR lexical_import_path(struct scope *scope, struct module *mod,
 
     struct node *id_import = create_import_mark_for_ex(mod, original_import,
                                                        import, ex);
-    e = import_single_ident(mod, original_import, scope, id_import, true);
+    e = import_single_ident(mod, original_import, id_import, true);
     EXCEPT(e);
   }
 
   return 0;
 }
 
-error lexical_import(struct scope *scope, struct module *mod,
+error lexical_import(struct module *mod,
                      struct node *original_import, struct node *import) {
   assert(import->which == IMPORT);
   error e;
@@ -175,18 +195,18 @@ error lexical_import(struct scope *scope, struct module *mod,
   if (import->as.IMPORT.is_all) {
     // from <path> (import|export) *
     // Exposes all the identifiers defined in module at 'path'.
-    e = lexical_import_path(scope, mod, original_import, import);
+    e = lexical_import_path(mod, original_import, import);
     EXCEPT(e);
   } else if (next(subs_first(import)) == NULL) {
     // (import|export) <path>
     // Exposes the module at 'path' under the name subs_last(path).
-    e = lexical_import_path(scope, mod, original_import, import);
+    e = lexical_import_path(mod, original_import, import);
     EXCEPT(e);
   } else {
     // from <path> (import|export) <a> <b> <c> ...
     // Exposes the identifiers at 'path.a', 'path.b', 'path.c' under the
     // names 'a', 'b' and 'c'.
-    e = lexical_import_from_path(scope, mod, original_import, import);
+    e = lexical_import_from_path(mod, original_import, import);
     EXCEPT(e);
   }
 
