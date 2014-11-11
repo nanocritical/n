@@ -4,7 +4,9 @@ from n import Eprn Epr
 import n.reflect
 import n.math
 import n.mem
+import n.time
 import n.io
+import n.fs
 import n.bench
 
 extern intf `__literal_nil__ =

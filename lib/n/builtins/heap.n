@@ -39,7 +39,7 @@ Heap_stats met Operator_minus other:@this = r:this
 	r!Freed = self.Freed - other.Freed
 	r!Maintain
 
-Heap_stats met Operator_uminus other:@this = r:this
+Heap_stats met Operator_uminus = r:this
 	r!Allocated = - self.Allocated
 	r!Freed = - self.Freed
 	r!Maintain

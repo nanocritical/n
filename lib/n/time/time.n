@@ -2,6 +2,8 @@
 -- Copyright 2009 The Go Authors. All rights reserved.
 from n import *
 import n.fmt
+import n.syscall
+import n.bench
 
 inline struct Time =
 	isa `Ordered

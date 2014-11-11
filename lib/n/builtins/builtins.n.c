@@ -11,16 +11,18 @@
 static struct n$mem$Sysheap sysheap;
 static struct heap_header sysheap_header;
 
+extern void n$time$Install_sys(void);
 extern void n$fs$Install_sys(void);
 extern void n$crypto$rand$Install_sys(void);
 
 void _$Nprelude(int *argc, char ***argv, char ***env) {
   sysheap_header.Env = NLANG_MKDYN(struct _$Ndyn_n$builtins$_$Ni_Heap,
-                                    &n$mem$Sysheap$Dyntable__n$builtins$_$Ni_Heap,
-                                    (void *)&sysheap);
+                                   &n$mem$Sysheap$Dyntable__n$builtins$_$Ni_Heap,
+                                   (void *)&sysheap);
   sysheap_header.Parent = NULL;
   n$builtins$Install_sysheap(&sysheap_header);
 
+  n$time$Install_sys();
   n$fs$Install_sys();
   n$crypto$rand$Install_sys();
 }

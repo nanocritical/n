@@ -23,7 +23,7 @@ Stats met Operator_minus other:@this = r:this
 	r!Closed = self.Closed - other.Closed
 	r!Maintain
 
-Stats met Operator_uminus other:@this = r:this
+Stats met Operator_uminus = r:this
 	r!Opened = - self.Opened
 	r!Closed = - self.Closed
 	r!Maintain

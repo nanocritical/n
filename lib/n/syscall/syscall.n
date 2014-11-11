@@ -474,6 +474,15 @@ extern let SEEK_HOLE:I32
 extern let XATTR_CREATE:I32
 extern let XATTR_REPLACE:I32
 
+extern let CLOCK_REALTIME:I32
+extern let CLOCK_REALTIME_COARSE:I32
+extern let CLOCK_MONOTONIC:I32
+extern let CLOCK_MONOTONIC_COARSE:I32
+extern let CLOCK_MONOTONIC_RAW:I32
+extern let CLOCK_BOOTTIME:I32
+extern let CLOCK_PROCESS_CPUTIME_ID:I32
+extern let CLOCK_THREAD_CPUTIME_ID:I32
+
 inline struct Stat_t =
 	Size		:Uint
 	Mtime_sec	:Int
@@ -509,6 +518,8 @@ extern fun fchown fd:Int uid:Int gid:Int = Int
 extern fun fsetxattr fd:Int name:@U8 value:@U8 size:Uint flags:I32 = Int
 extern fun fgetxattr fd:Int name:@U8 value:@!U8 size:Uint = Int
 extern fun flistxattr fd:Int list:@!U8 size:Uint = Int
+extern fun clock_getres clk_id:I32 s:@!Int ns:@!Int = Int
+extern fun clock_gettime clk_id:I32 s:@!Int ns:@!Int = Int
 
 fun Close fd:Int = Error
 	let ret = close fd
@@ -704,3 +715,17 @@ example
 
 	let e4 = Close fd
 	assert e4 == OK
+
+fun Clock_getres clk_id:I32 = Error, Int, Int
+	let s, ns such
+		let r = clock_getres clk_id @!s @!ns
+		if r >= 0
+			return OK, s, ns
+	return convert_error errno, 0, 0
+
+fun Clock_gettime clk_id:I32 = Error, Int, Int
+	let s, ns such
+		let r = clock_gettime clk_id @!s @!ns
+		if r >= 0
+			return OK, s, ns
+	return convert_error errno, 0, 0

@@ -1,6 +1,7 @@
 from n import *
 import n.fs
 import n.bench
+import n.time
 
 fun Main = I32
 	return 0
@@ -12,7 +13,8 @@ example named ex:@!bench.Example
 	assert ex.Fs.Opened == 2
 
 example anonymous ex:@!bench.Example
-	ex!Benchmark FS
+	ex!Benchmark FS CLOCK
 	let except, f = fs.Temporary
 	_, except = f#Write "test".Bytes
-	assert ex.Fs.Opened == 1
+	assert ex.Fs.Opened == 2
+	assert ex.Clock.Runtime < 100*time.US

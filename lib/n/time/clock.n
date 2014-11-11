@@ -1,0 +1,93 @@
+intf `Clock =
+	isa (bench.`Observable_of Stats)
+	met Now = Time
+	met Runtime = Duration
+	met Runtime_cpu = Duration
+	met Runtime_cpu_thread = Duration
+
+globalenv Clock:@!`Clock
+
+fun Install_sys within Clock
+	let c = Alloc Sysclock such
+		c!Init
+	let header = Alloc (Envheader @!`Clock)
+	header#Env = c
+	Globalenv_install Clock header
+
+inline struct Stats =
+	isa bench.`Measure
+	Runtime			:Duration
+	Runtime_cpu		:Duration
+	Runtime_cpu_thread	:Duration
+
+Stats met Operator_plus other:@this = r:this
+	r!Runtime = self.Runtime + other.Runtime
+	r!Runtime_cpu = self.Runtime_cpu + other.Runtime_cpu
+	r!Runtime_cpu_thread = self.Runtime_cpu_thread + other.Runtime_cpu_thread
+
+Stats met Operator_minus other:@this = r:this
+	r!Runtime = self.Runtime - other.Runtime
+	r!Runtime_cpu = self.Runtime_cpu - other.Runtime_cpu
+	r!Runtime_cpu_thread = self.Runtime_cpu_thread - other.Runtime_cpu_thread
+
+Stats met Operator_uminus = r:this
+	r!Runtime = - self.Runtime
+	r!Runtime_cpu = - self.Runtime_cpu
+	r!Runtime_cpu_thread = - self.Runtime_cpu_thread
+
+struct Sysclock =
+	isa `Clock bench.`Has_restore
+	stack			:(Slicebuf Stats)
+	zero			:Stats
+
+fun measure clockid:I32 = Int, Int
+	let err, s, ns = syscall.Clock_gettime clockid
+	if err != OK
+		Fatal err
+	return s, ns
+
+fun as_duration p:(Int, Int) = Duration
+	return (Duration.From_i64 p.X0.I64) * S + (Duration.From_i64 p.X1.I64) * NS
+
+Sysclock met! Init
+	-- CLOCK_PROCESS_CPUTIME_ID just started with the program but
+	-- CLOCK_MONOTONIC has been running for a long time and cannot be used
+	-- directly. We want the clocks to line up and have a similar zero.
+	-- This new zero hides some runtime (observed at 500us).
+	self!Runtime = as_duration <- measure syscall.CLOCK_MONOTONIC
+	self!Runtime_cpu = as_duration <- measure syscall.CLOCK_PROCESS_CPUTIME_ID
+	self!Runtime_cpu_thread = self.Runtime_cpu -- only one thread at this point
+
+Sysclock met Now = Time
+	let now_s, now_ns = measure syscall.CLOCK_REALTIME
+	return Time.From_unix now_s now_ns
+
+Sysclock met Runtime = Duration
+	let d = as_duration <- measure syscall.CLOCK_MONOTONIC
+	return d - self.zero.Runtime
+
+Sysclock met Runtime_cpu = Duration
+	let d = as_duration <- measure syscall.CLOCK_PROCESS_CPUTIME_ID
+	return d - self.zero.Runtime_cpu
+
+Sysclock met Runtime_cpu_thread = Duration
+	let d= as_duration <- measure syscall.CLOCK_THREAD_CPUTIME_ID
+	return d - self.zero.Runtime_cpu_thread
+
+fun measure_all_absolute = r:Stats
+	r!Runtime = as_duration <- measure syscall.CLOCK_MONOTONIC
+	r!Runtime_cpu = as_duration <- measure syscall.CLOCK_PROCESS_CPUTIME_ID
+	r!Runtime_cpu_thread = as_duration <- measure syscall.CLOCK_THREAD_CPUTIME_ID
+
+Sysclock met! Save_measurements = bench.Restorer
+	self!stack#Push! = self.zero
+	self!zero = measure_all_absolute
+	return {target=self}
+
+Sysclock met! restore_measurements
+	assert self.stack.Count > 0
+	self!zero = self.stack.Last
+	self!stack#Pop
+
+Sysclock met Measure = Stats
+	return measure_all_absolute - self.zero

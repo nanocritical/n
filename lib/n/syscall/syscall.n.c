@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
+#include <time.h>
 
 #define NB(t) n$builtins$##t
 #define SY(t) n$syscall$##t
@@ -182,6 +183,15 @@ NB(I32) SY(SEEK_HOLE) = SEEK_HOLE;
 
 NB(I32) SY(XATTR_CREATE) = XATTR_CREATE;
 NB(I32) SY(XATTR_REPLACE) = XATTR_REPLACE;
+
+NB(I32) SY(CLOCK_REALTIME) = CLOCK_REALTIME;
+NB(I32) SY(CLOCK_REALTIME_COARSE) = CLOCK_REALTIME_COARSE;
+NB(I32) SY(CLOCK_MONOTONIC) = CLOCK_MONOTONIC;
+NB(I32) SY(CLOCK_MONOTONIC_COARSE) = CLOCK_MONOTONIC_COARSE;
+NB(I32) SY(CLOCK_MONOTONIC_RAW) = CLOCK_MONOTONIC_RAW;
+NB(I32) SY(CLOCK_BOOTTIME) = CLOCK_BOOTTIME;
+NB(I32) SY(CLOCK_PROCESS_CPUTIME_ID) = CLOCK_PROCESS_CPUTIME_ID;
+NB(I32) SY(CLOCK_THREAD_CPUTIME_ID) = CLOCK_THREAD_CPUTIME_ID;
 
 // Some of these functions should explicitly set errno to 0 before
 // performing the underlying call (e.g. sysconf), as -1 can be a valid
@@ -372,6 +382,22 @@ static NB(Int) SY(flistxattr)(NB(Int) fd, NB(U8) *list, NB(Uint) size) {
   errno = 0;
   ssize_t ret = flistxattr(fd, (char *) list, size);
   _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(clock_getres)(NB(I32) clk_id, NB(Int) *s, NB(Int) *ns) {
+  struct timespec res = { 0 };
+  int ret = clock_getres((clockid_t) clk_id, &res);
+  *s = res.tv_sec;
+  *ns = res.tv_nsec;
+  return ret;
+}
+
+static NB(Int) SY(clock_gettime)(NB(I32) clk_id, NB(Int) *s, NB(Int) *ns) {
+  struct timespec res = { 0 };
+  int ret = clock_gettime((clockid_t) clk_id, &res);
+  *s = res.tv_sec;
+  *ns = res.tv_nsec;
   return ret;
 }
 
