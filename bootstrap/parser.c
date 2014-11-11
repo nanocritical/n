@@ -1858,54 +1858,6 @@ static ERROR p_invariant(struct node *node, struct module *mod) {
   return 0;
 }
 
-static ERROR p_example(struct node *node, struct module *mod) {
-  node_set_which(node, DEFFUN);
-  node->as.DEFFUN.example = 1 + mod->next_example;
-  mod->next_example += 1;
-
-  struct token tok = { 0 };
-  error e = scan(&tok, mod);
-  EXCEPT(e);
-
-  ident name = ID__NONE;
-  if (tok.t == TSOB) {
-    back(mod, &tok);
-  } else if (tok.t == TIDENT) {
-    name = idents_add(mod->gctx, &tok);
-  } else {
-    UNEXPECTED(mod, &tok);
-  }
-
-  if (name == ID__NONE) {
-    static const char base[] = "__Nexample";
-    char sname[ARRAY_SIZE(base) + 16] = { 0 };
-    sprintf(sname, "%s%zx", base, node->as.DEFFUN.example);
-    name = idents_add_string(mod->gctx, sname, strlen(sname));
-  }
-
-  GSTART();
-  G0(id, node, IDENT,
-     id->as.IDENT.name = name);
-  G0(genargs, node, GENARGS);
-  G0(funargs, node, FUNARGS,
-     G(retv, DEFARG,
-       G(reti, IDENT,
-         reti->as.IDENT.name = ID_NRETVAL)
-       G(rett, DIRECTDEF,
-         set_typ(&rett->as.DIRECTDEF.typ, TBI_ERROR))));
-  G0(within, node, WITHIN);
-
-  G0(block, node, BLOCK);
-  e = p_block(node_new_subnode(mod, block), mod);
-  EXCEPT(e);
-  G0(ret, block, RETURN,
-     G_IDENT(ok, "OK"));
-
-  deffun_count_args(node);
-
-  return 0;
-}
-
 static ERROR p_within(struct node *node, struct module *mod, bool is_list) {
   node_set_which(node, WITHIN);
 
@@ -2396,6 +2348,66 @@ within:
 
   e = p_block(node_new_subnode(mod, node), mod);
   EXCEPT(e);
+
+  return 0;
+}
+
+static ERROR p_example(struct node *node, struct module *mod) {
+  node_set_which(node, DEFFUN);
+  node->as.DEFFUN.example = 1 + mod->next_example;
+  mod->next_example += 1;
+
+  struct token tok = { 0 };
+  error e = scan(&tok, mod);
+  EXCEPT(e);
+
+  ident name = ID__NONE;
+  if (tok.t == TSOB) {
+    back(mod, &tok);
+  } else if (tok.t == TIDENT) {
+    name = idents_add(mod->gctx, &tok);
+  } else {
+    UNEXPECTED(mod, &tok);
+  }
+
+  GSTART();
+  G0(id, node, IDENT);
+  G0(genargs, node, GENARGS);
+  G0(funargs, node, FUNARGS);
+  G0(within, node, WITHIN);
+  G0(block, node, BLOCK);
+
+  if (name == ID__NONE) {
+    static const char base[] = "__Nexample";
+    char sname[ARRAY_SIZE(base) + 16] = { 0 };
+    sprintf(sname, "%s%zx", base, node->as.DEFFUN.example);
+    name = idents_add_string(mod->gctx, sname, strlen(sname));
+  } else {
+    e = scan(&tok, mod);
+    EXCEPT(e);
+    back(mod, &tok);
+
+    if (tok.t == TIDENT) {
+      struct node *arg = node_new_subnode(mod, funargs);
+      e = p_defarg(arg, mod, tok.t);
+      EXCEPT(e);
+    }
+  }
+
+  id->as.IDENT.name = name;
+
+  G0(retv, funargs, DEFARG,
+    G(reti, IDENT,
+      reti->as.IDENT.name = ID_NRETVAL)
+    G(rett, DIRECTDEF,
+      set_typ(&rett->as.DIRECTDEF.typ, TBI_ERROR)));
+
+  e = p_block(node_new_subnode(mod, block), mod);
+  EXCEPT(e);
+  G0(ret, block, RETURN,
+     G_IDENT(ok, "OK"));
+
+  deffun_count_args(node);
 
   return 0;
 }

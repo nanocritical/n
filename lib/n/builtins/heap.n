@@ -1,4 +1,5 @@
 intf `Heap =
+	isa (bench.`Observable_of Heap_stats)
 	met! Alloc_raw bytecount:Uint = @#U8
 	met! Free_raw p:?@#U8 bytecount:Uint
 	met! Realloc_raw s:@#U8 old_bytecount:Uint bytecount:Uint = @#U8
@@ -20,3 +21,31 @@ fun Install_sysheap sysheader:@#(Envheader @!`Heap) within Heap
 	and bytecount = count * (sizeof t)
 	let raw = Heap!Realloc_raw old_raw old_bytecount bytecount
 	s# = {dat=((Cast @#U8 @#t) raw) cnt=s.cnt cap=count}
+
+
+inline struct Heap_stats =
+	isa bench.`Measure
+	Allocated	:Int
+	Freed		:Int
+	Max_size	:Int
+
+Heap_stats met Operator_plus other:@this = r:this
+	r!Allocated = self.Allocated + other.Allocated
+	r!Freed = self.Freed + other.Freed
+	r!Maintain
+
+Heap_stats met Operator_minus other:@this = r:this
+	r!Allocated = self.Allocated - other.Allocated
+	r!Freed = self.Freed - other.Freed
+	r!Maintain
+
+Heap_stats met Operator_uminus other:@this = r:this
+	r!Allocated = - self.Allocated
+	r!Freed = - self.Freed
+	r!Maintain
+
+Heap_stats met Size = Int
+	return self.Allocated - self.Freed
+
+Heap_stats met! Maintain
+	self!Max_size = Max self!Max_size self.Size

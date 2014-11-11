@@ -1,16 +1,31 @@
 from n import *
+import n.bench
 
 extern inline fun Internal_realloc0 p:?@#U8 old_bytecount:Uint bytecount:Uint = @#U8
 extern inline fun Internal_free p:?@#U8 bytecount:Uint
 
 inline struct Sysheap =
 	isa `Heap
+	stats	:(bench.Stack Heap_stats)
 
 Sysheap met! Alloc_raw bytecount:Uint = @#U8
+	self!stats!Current!Allocated += bytecount.Signed
+	self!stats!Current!Maintain
 	return Internal_realloc0 nil 0 bytecount
 
 Sysheap met! Free_raw raw:?@#U8 bytecount:Uint
+	self!stats!Current!Freed += bytecount.Signed
+	self!stats!Current!Maintain
 	return Internal_free raw bytecount
 
 Sysheap met! Realloc_raw raw:@#U8 old_bytecount:Uint bytecount:Uint = @#U8
+	self!stats!Current!Allocated += bytecount.Signed
+	self!stats!Current!Freed += old_bytecount.Signed
+	self!stats!Current!Maintain
 	return Internal_realloc0 raw old_bytecount bytecount
+
+Sysheap met! Save_measurements = bench.Restorer
+	return self!stats!Save
+
+Sysheap met Measure = Heap_stats
+	return self.stats.Current

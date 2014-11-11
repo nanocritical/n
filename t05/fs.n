@@ -1,13 +1,18 @@
 from n import *
 import n.fs
+import n.bench
 
 fun Main = I32
 	return 0
 
-example
+example named ex:@!bench.Example
+	ex!Benchmark FS
 	let except, f = fs.Temporary named=true
 	_, except = f#Write "test".Bytes
+	assert ex.Fs.Opened == 2
 
-example
+example anonymous ex:@!bench.Example
+	ex!Benchmark FS
 	let except, f = fs.Temporary
 	_, except = f#Write "test".Bytes
+	assert ex.Fs.Opened == 1

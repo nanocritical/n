@@ -1,7 +1,57 @@
 from n import *
 
--- Needs to work for both something that is actively updated, and
--- something that is polled (like a clock).
+import n.time
+import n.mem
+import n.fs
+
+inline enum Standard_measures =
+	| TIME
+	| NET
+	| HEAP
+	| FS
+
+inline struct Example =
+	active_measures	:(Mask Standard_measures)
+	-- Use an Enummap
+	heap_restorer	:Restorer
+	fs_restorer	:Restorer
+
+	let KB = 1024:Int
+	let MB = 1024*this.KB
+	let GB = 1024*this.MB
+	let TB = 1024*this.GB
+	let PB = 1024*this.TB
+
+Example met! Benchmark ...v:(Vararg @Standard_measures) within Heap fs.Fs
+	for m in v
+		self!active_measures |= {(m.)}
+		match m
+		| TIME -> noop
+		| NET -> noop
+		| HEAP
+			self!heap_restorer = Heap!Save_measurements
+		| FS
+			self!fs_restorer = Fs!Save_measurements
+
+Example met# Dtor
+	for m in self.active_measures.Iter
+		match m
+		| TIME -> noop
+		| NET -> noop
+		| HEAP
+			self!heap_restorer#Dtor
+		| FS
+			self!fs_restorer#Dtor
+
+-- Example met Time = time.Stats within Clock
+-- Example met Net = time.Stats within Net
+
+Example met Heap = Heap_stats within Heap
+	return Heap.Measure
+
+Example met Fs = fs.Stats within fs.Fs
+	return Fs.Measure
+
 
 intf `Observable =
 	met! Save_measurements = Restorer
@@ -16,13 +66,14 @@ intf `Observable_of m:`Measure =
 intf `Has_restore =
 	met! restore
 
+
 inline struct Restorer =
 	target	:@!`Has_restore
 
 Restorer met# Dtor
 	self!target!restore
 
--- Suitable when the 'Curent' measure will be updated in-place (push model).
+-- Suitable when the 'Current' measure will be updated in-place (push model).
 inline struct Stack m:`Measure =
 	isa `Has_restore
 	Current	:m

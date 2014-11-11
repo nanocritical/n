@@ -5,6 +5,7 @@ import n.reflect
 import n.math
 import n.mem
 import n.io
+import n.bench
 
 extern intf `__literal_nil__ =
 	isa `Any_nullable_ref

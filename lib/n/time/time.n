@@ -34,6 +34,13 @@ inline enum Weekday =
 
 newtype Duration = I64
 
+let NS = 1:Duration
+let US = 1000 * NS
+let MS = 1000 * US
+let S = 1000 * MS
+let M = 60 * S
+let H = 60 * M
+
 let onebillion = 1_000_000_000:Int
 
 Time fun Mk sec:Int nsec:Int = this

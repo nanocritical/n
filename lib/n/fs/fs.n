@@ -4,6 +4,36 @@ import n.path
 import n.io
 import n.time
 import n.crypto.rand
+import n.fs
+import n.bench
+
+inline struct Stats =
+	isa bench.`Measure
+	Opened		:Int
+	Closed		:Int
+	Max_open	:Int
+
+Stats met Operator_plus other:@this = r:this
+	r!Opened = self.Opened + other.Opened
+	r!Closed = self.Closed + other.Closed
+	r!Maintain
+
+Stats met Operator_minus other:@this = r:this
+	r!Opened = self.Opened - other.Opened
+	r!Closed = self.Closed - other.Closed
+	r!Maintain
+
+Stats met Operator_uminus other:@this = r:this
+	r!Opened = - self.Opened
+	r!Closed = - self.Closed
+	r!Maintain
+
+Stats met Open = Int
+	return self.Opened - self.Closed
+
+Stats met! Maintain
+	self!Max_open = Max self!Max_open self.Open
+
 
 -- TODO
 -- * Do not return syscall errors directly, define our own.
@@ -154,6 +184,8 @@ fun Install_sys within Fs
 
 
 intf `Fs =
+	isa (bench.`Observable_of Stats)
+
 	met Wd = @!File
 	met! Pushdir dir:@!File = Error
 	met! Popdir = Error
@@ -198,6 +230,7 @@ struct Linux_fs =
 	isa `Fs
 	init		:Bool
 	dirstack	:(Slicebuf @!File)
+	stats		:(bench.Stack Stats)
 
 Linux_fs met! Init = Error
 	assert not self.init
@@ -299,10 +332,19 @@ Linux_fs met! Open_file name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Open
 		file!fs = self
 		file!fd = fd
 		file!name = name.Base
+
+	self!stats!Current!Opened += 1
+	self!stats!Current!Maintain
+
 	return OK, file
 
 Linux_fs met! File_close f:@!File = Error
-	return syscall.Close f.Fd
+	let fd = f.Fd
+	except = syscall.Close fd
+	f!fd = nil
+	self!stats!Current!Closed += 1
+	self!stats!Current!Maintain
+	return OK
 
 Linux_fs met! File_stat f:@File = Error, st:Stat
 	let flags = syscall.AT_SYMLINK_NOFOLLOW | syscall.AT_EMPTY_PATH
@@ -419,3 +461,9 @@ Linux_fs met! Readlink name:path.Path ?at:?@File = Error, path.Path
 			buf#Resize 2*buf.Count
 	catch err
 		return err, {}
+
+Linux_fs met! Save_measurements = bench.Restorer
+	return self!stats!Save
+
+Linux_fs met Measure = Stats
+	return self.stats.Current
