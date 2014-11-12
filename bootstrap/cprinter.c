@@ -901,6 +901,12 @@ static void print_deffield_name(FILE *out, const struct module *mod, const struc
   fprintf(out, "%s", idents_value(mod->gctx, id));
 }
 
+static void print_ident_locally_shadowed(FILE *out, const struct node *def) {
+  if (def != NULL && def->which == DEFNAME && def->as.DEFNAME.locally_shadowed != 0) {
+    fprintf(out, "$%zu", def->as.DEFNAME.locally_shadowed);
+  }
+}
+
 static void print_ident(FILE *out, const struct module *mod, const struct node *node) {
   assert(node->which == IDENT);
   assert(node_ident(node) != ID_ANONYMOUS);
@@ -911,6 +917,8 @@ static void print_ident(FILE *out, const struct module *mod, const struct node *
   }
 
   print_scope_last_name(out, mod, &node->scope);
+
+  print_ident_locally_shadowed(out, node->as.IDENT.def);
 }
 
 static void print_dyn(FILE *out, const struct module *mod, const struct node *node) {
@@ -1419,6 +1427,7 @@ static void print_defname_name(FILE *out, const struct module *mod,
     fprintf(out, "$");
   }
   print_expr(out, mod, subs_first_const(node), T__STATEMENT);
+  print_ident_locally_shadowed(out, node);
 }
 
 static void forward_declare(FILE *out, const struct module *mod,

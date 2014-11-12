@@ -390,6 +390,7 @@ struct node_defname {
   struct node *first_use;
 
   bool may_be_unused;
+  size_t locally_shadowed;
 };
 struct node_defpattern {
   bool is_alias;
@@ -1243,6 +1244,7 @@ struct module {
   size_t next_pre;
   size_t next_post;
   size_t next_invariant;
+  size_t next_locally_shadowed;
 
   bool done;
 
@@ -1268,7 +1270,6 @@ const struct module *try_node_module_owner_const(const struct module *mod,
                                                  const struct node *node);
 struct module *node_module_owner(struct node *node);
 const struct module *node_module_owner_const(const struct node *node);
-struct node *node_toplevel_owner(struct node *node);
 struct node *node_statement_owner(struct node *node);
 
 static inline ident node_ident(const struct node *node) {

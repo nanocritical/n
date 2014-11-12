@@ -35,6 +35,9 @@ ERROR scope_lookup_ident_immediate(struct node **result, const struct node *for_
 ERROR scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, const struct node *id,
                    bool failure_ok);
+ERROR scope_statement_lookup(struct node **result, struct module *mod,
+                             const struct scope *scope, const struct node *id,
+                             bool failure_ok);
 ERROR scope_lookup_module(struct node **result, const struct module *mod,
                           const struct node *id, bool failure_ok);
 ERROR scope_lookup_import_globalenv(struct node **result, const struct module *mod,

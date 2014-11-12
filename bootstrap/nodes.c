@@ -226,16 +226,10 @@ const struct module *try_node_module_owner_const(const struct module *mod,
   }
 }
 
-struct node *node_toplevel_owner(struct node *node) {
-  if (node_toplevel(node) != NULL) {
-    return node;
-  } else {
-    return node_toplevel_owner(parent(node));
-  }
-}
-
 struct node *node_statement_owner(struct node *node) {
-  if (node_is_statement(node)) {
+  if (node->which == MODULE_BODY) {
+    return NULL;
+  } else if (node_is_statement(node)) {
     return node;
   } else {
     return node_statement_owner(parent(node));

@@ -388,7 +388,7 @@ error scope_lookup_ident_wontimport(struct node **result, const struct node *for
 static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
                              const struct module *mod,
                              const struct scope *scope, const struct node *id,
-                             bool failure_ok) {
+                             bool failure_ok, bool statement_rules) {
   error e;
   char *scname = NULL;
   char *escname = NULL;
@@ -399,6 +399,34 @@ static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
     e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scope,
                                          node_ident(id), failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
+
+    if (statement_rules
+        && r->which == DEFNAME && !(r->flags & NODE_IS_GLOBAL_LET)
+        && mod->state->fun_state != NULL && mod->state->fun_state->in_block) {
+      if (r->as.DEFNAME.passed < mod->stage->state->passing) {
+        // Definition not yet passed, so it's not in scope yet. Look in the
+        // surrounding scope.
+        if (r->as.DEFNAME.locally_shadowed == 0) {
+          r->as.DEFNAME.locally_shadowed = 1 + mod->next_locally_shadowed;
+          // Coming from scope_statement_lookup, where 'mod' is not const.
+          CONST_CAST(mod)->next_locally_shadowed += 1;
+        }
+
+        struct node *r_statement = node_statement_owner(r);
+        if (r_statement != NULL) {
+          struct node *block = parent(r_statement);
+          while (block->which == BLOCK && block->as.BLOCK.is_scopeless) {
+            block = parent(block);
+          }
+
+          struct scope *surrounding_scope = &parent(block)->scope;
+          e = do_scope_lookup(&r, for_error, mod,
+                              surrounding_scope, id,
+                              failure_ok, statement_rules);
+          EXCEPT_UNLESS(e, failure_ok);
+        }
+      }
+    }
 
     break;
   case BIN:
@@ -413,7 +441,7 @@ static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
       GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
     }
 
-    e = do_scope_lookup(&par, for_error, mod, scope, base, failure_ok);
+    e = do_scope_lookup(&par, for_error, mod, scope, base, failure_ok, statement_rules);
     EXCEPT_UNLESS(e, failure_ok);
 
     e = do_scope_lookup_ident_immediate(&r, for_error, mod, &par->scope,
@@ -432,7 +460,7 @@ static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
 
   if (r->which == IMPORT) {
     e = do_scope_lookup(&r, for_error, mod, &mod->gctx->modules_root.scope,
-                        subs_first_const(r), failure_ok);
+                        subs_first_const(r), failure_ok, false);
     EXCEPT_UNLESS(e, failure_ok);
   }
 
@@ -450,7 +478,7 @@ ERROR scope_lookup_import_globalenv(struct node **result, const struct module *m
   const struct node *path = subs_first_const(import);
   assert(path->which == BIN);
   error e = do_scope_lookup(result, import, mod, &mod->gctx->modules_root.scope,
-                            subs_first_const(path), failure_ok);
+                            subs_first_const(path), failure_ok, false);
   EXCEPT(e);
 
   assert((*result)->which == MODULE);
@@ -465,7 +493,13 @@ ERROR scope_lookup_import_globalenv(struct node **result, const struct module *m
 error scope_lookup(struct node **result, const struct module *mod,
                    const struct scope *scope, const struct node *id,
                    bool failure_ok) {
-  return do_scope_lookup(result, id, mod, scope, id, failure_ok);
+  return do_scope_lookup(result, id, mod, scope, id, failure_ok, false);
+}
+
+error scope_statement_lookup(struct node **result, struct module *mod,
+                             const struct scope *scope, const struct node *id,
+                             bool failure_ok) {
+  return do_scope_lookup(result, id, mod, scope, id, failure_ok, true);
 }
 
 error scope_lookup_module(struct node **result, const struct module *mod,
@@ -488,11 +522,11 @@ error scope_lookup_module(struct node **result, const struct module *mod,
     }
     const struct node *base = subs_first_const(id);
     const struct node *name = subs_last_const(id);
-    e = do_scope_lookup(&par, for_error, mod, scope, base, true);
+    e = do_scope_lookup(&par, for_error, mod, scope, base, true, false);
     if (e) {
       break;
     }
-    e = do_scope_lookup(&r, for_error, mod, &par->scope, name, true);
+    e = do_scope_lookup(&r, for_error, mod, &par->scope, name, true, false);
     if (e) {
       break;
     }

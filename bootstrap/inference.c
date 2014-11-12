@@ -2451,7 +2451,7 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
   }
 
   struct node *def = NULL;
-  error e = scope_lookup(&def, mod, &node->scope, node, true);
+  error e = scope_statement_lookup(&def, mod, &node->scope, node, true);
   if (e == EINVAL) {
     e = type_inference_ident_unknown(mod, node);
     EXCEPT(e);

@@ -843,6 +843,7 @@ error passbody0(struct module *mod, struct node *root,
     UP_STEP(step_type_inference);
     UP_STEP(step_remove_typeconstraints);
     UP_STEP(step_type_drop_excepts);
+    UP_STEP(step_increment_def_name_passed);
     ,
     FINALLY_STEP(step_pop_state);
     );
