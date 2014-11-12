@@ -1086,8 +1086,10 @@ static ERROR fill_in_optional_args(struct module *mod, struct node *node,
   ssize_t n = 0, code_pos = 0;
   for (; n < tmin; ++n, ++code_pos) {
     if (arg == NULL) {
-      e = mk_except(mod, arg, "missing positional argument '%s' at position %zd",
-                    idents_value(mod->gctx, node_ident(arg)), code_pos);
+      const struct node *dfun = typ_definition_ignore_any_overlay_const(tfun);
+      const struct node *darg = subs_at_const(subs_at_const(dfun, IDX_FUNARGS), n);
+      e = mk_except(mod, node, "missing positional argument '%s' at position %zd",
+                    idents_value(mod->gctx, node_ident(darg)), code_pos);
       THROW(e);
     } else if (arg->which == CALLNAMEDARG && !arg->as.CALLNAMEDARG.is_slice_vararg) {
       if (node_ident(arg) != typ_function_arg_ident(tfun, n)) {
