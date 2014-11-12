@@ -1175,11 +1175,8 @@ static ERROR rewrite_unary_call(struct module *mod, struct node *node, struct ty
   node_set_which(node, CALL);
   set_typ(&fun->typ, tfun);
 
-  error e = fill_in_optional_args(mod, node, tfun);
-  assert(!e);
-
   const struct node *except[] = { fun, NULL };
-  e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
+  error e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
 
   return 0;
