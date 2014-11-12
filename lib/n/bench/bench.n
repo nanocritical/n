@@ -49,14 +49,17 @@ Example met# Dtor
 			noop
 
 Example met Clock = time.Stats within time.Clock
+	assert CLOCK in self.active_measures
 	return Clock.Measure
 
 -- Example met Net = net.Stats within Net
 
 Example met Heap = Heap_stats within Heap
+	assert HEAP in self.active_measures
 	return Heap.Measure
 
 Example met Fs = fs.Stats within fs.Fs
+	assert FS in self.active_measures
 	return Fs.Measure
 
 
