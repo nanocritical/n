@@ -1528,12 +1528,8 @@ static ERROR flexible_except_return(struct module *mod, struct node *node,
      node_subs_remove(node, arg);
      node_subs_append(narg, arg));
   for (size_t n = 1; n < arity; ++n) {
-    const struct typ *t = typ_generic_arg(ret, n);
-    // TODO We could actually be more lenient here, but with the constraints
-    // disabled, let's be stricter.
-    e = typ_check_isa(mod, node, t, TBI_DEFAULT_CTOR);
-    EXCEPT(e);
-
+    // TODO We are being lenient here, and risk creating uninitialized
+    // values. Constraints should be enforcing this.
     G0(init, narg, INIT);
   }
   const struct node *except[] = { arg, NULL };
