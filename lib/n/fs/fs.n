@@ -99,9 +99,9 @@ fun Open name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openattr = Error, @
 
 fun Create ?name:?path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openattr = Error, @#File within Fs
 	flags = (flags else {}) | {CREATE WRITE TRUNCATE}
-	let att = attr else {} such
-		att!Access |= {UR UW GR GW OR OW}
-	return Fs!Open_file name at=at flags=flags attr=att
+	let attr = attr else {} such
+		attr!Access |= {UR UW GR GW OR OW}
+	return Fs!Open_file name at=at flags=flags attr=attr
 
 fun Open_dir name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openattr = Error, @#File within Fs
 	flags = (flags else {}) | {DIRECTORY}
@@ -149,16 +149,16 @@ fun Temporary ?at:?@File
 		catch err
 			return err, nil
 
-	let f = flags else {}
-	and att = attr else {}
+	let flags = flags else {}
+	and attr = attr else {}
 	and name = {}:path.Path such
-		f |= {READ WRITE CREATE EXCLUSIVE}
-		att!Access |= {UR UW}
+		flags |= {READ WRITE CREATE EXCLUSIVE}
+		attr!Access |= {UR UW}
 
 		if named else false
 			while true
 				make_random_name @#name prefix postfix
-				let err, file = Fs!Open_file name at=dir flags=f attr=att
+				let err, file = Fs!Open_file name at=dir flags=flags attr=attr
 				if err == OK
 					return OK, file
 				if err == syscall.EEXIST
@@ -167,9 +167,9 @@ fun Temporary ?at:?@File
 				else
 					return err, nil
 		else
-			f |= {HIDDEN}
-			f &= ~{CREATE EXCLUSIVE}:Openflags
-			return Fs!Open_file "." at=dir flags=f attr=att
+			flags |= {HIDDEN}
+			flags &= ~{CREATE EXCLUSIVE}:Openflags
+			return Fs!Open_file "." at=dir flags=flags attr=attr
 
 globalenv Fs:@!`Fs
 
@@ -292,27 +292,27 @@ Linux_fs met! Rmdir name:path.Path ?recursive:?Bool ?even_non_empty:?Bool = Erro
 	return OK
 
 Linux_fs met! Open_file name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openattr = Error, @#File
-	let f = flags else {}
-	let att = attr else {}
-	let mode = att.sys_open_mode such
-		if mode == 0 and HIDDEN in f
+	let flags = flags else {}
+	let attr = attr else {}
+	let mode = attr.sys_open_mode such
+		if mode == 0 and HIDDEN in flags
 			-- Workaround pre-3.18 kernel bug
 			mode = 0600
-	let sys_flags = sys_open_flags f
+	let sys_flags = sys_open_flags flags
 	let atfd = at?.Fd else self.Wd.Fd
 	var fd = -1
 	try
-		if allows_immediate f att
+		if allows_immediate flags attr
 			except OPEN, fd = syscall.Openat atfd name.String sys_flags mode
 		else
 			except OPEN, fd = syscall.Openat atfd name.String sys_flags mode
 
-			if att.Owner? or att.Group?
+			if attr.Owner? or attr.Group?
 				except CLOSE = syscall.Fchown fd
-					\ (att.Owner else -1)
-					\ (att.Group else -1)
+					\ (attr.Owner else -1)
+					\ (attr.Group else -1)
 
-			if att.Xattr.Count > 0
+			if attr.Xattr.Count > 0
 				foreach key, val in attr.Xattr
 					except CLOSE = syscall.Fsetxattr fd key.String val.String
 						\ syscall.XATTR_REPLACE
