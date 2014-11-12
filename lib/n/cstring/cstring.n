@@ -1,4 +1,5 @@
 from n import *
+import n.syscall
 
 inline union Cstring =
 	| ORIG -> String
@@ -14,6 +15,17 @@ Cstring met Rawdata = @U8
 	| ORIG -> return self.ORIG.Bytes.Unsafe_rawdata
 	| BUF -> return self.BUF.Bytes.Unsafe_rawdata
 
+Cstring met String = String
+	match self
+	| ORIG -> return self.ORIG
+	| BUF -> return self.BUF.String
+
+fun Wrap_raw_cstring raw:@U8 = Cstring
+	let len = syscall.Strlen raw
+	let b = {}:[]U8 such b#Unsafe_wrap raw len len
+	let r = String.From_bytes b
+	return r:Cstring.ORIG
+
 fun Mk s:String = Cstring
 	let b = s.Bytes
 	if b.Count > 0 and b.Last == 0
@@ -27,23 +39,21 @@ fun Mk s:String = Cstring
 		r#BUF#Push 0
 	return r
 
-extern fun strlen cs:@U8 = Uint
-
 example
 	let x = {}:[]U8
 	let cx = Mk <- String.From_bytes x
-	assert strlen cx.Rawdata == 0
+	assert syscall.Strlen cx.Rawdata == 0
 
 example
 	let x = {0}:[]U8
 	let cx = Mk <- String.From_bytes x
-	assert strlen cx.Rawdata == 0
+	assert syscall.Strlen cx.Rawdata == 0
 
 example
 	let A = ('a':Rune).Code.Trim_u8
 	let x = {A A+1 A+2}:[]U8
 	let cx = Mk <- String.From_bytes x
-	assert strlen cx.Rawdata == 3
+	assert syscall.Strlen cx.Rawdata == 3
 
 example
 	let A = ('a':Rune).Code.Trim_u8
@@ -52,4 +62,4 @@ example
 	assert x.Count == 3
 	assert x.Cap == 4
 	let cx = Mk <- String.From_bytes x
-	assert strlen cx.Rawdata == 3
+	assert syscall.Strlen cx.Rawdata == 3

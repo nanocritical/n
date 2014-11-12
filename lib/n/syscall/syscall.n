@@ -520,6 +520,9 @@ extern fun fgetxattr fd:Int name:@U8 value:@!U8 size:Uint = Int
 extern fun flistxattr fd:Int list:@!U8 size:Uint = Int
 extern fun clock_getres clk_id:I32 s:@!Int ns:@!Int = Int
 extern fun clock_gettime clk_id:I32 s:@!Int ns:@!Int = Int
+extern fun Strlen cs:@U8 = Uint
+extern fun getenv name:@U8 = ?@U8
+extern fun setenv name:@U8 value:@U8 overwrite:I32 = Int
 
 fun Close fd:Int = Error
 	let ret = close fd
@@ -729,3 +732,16 @@ fun Clock_gettime clk_id:I32 = Error, Int, Int
 		if r >= 0
 			return OK, s, ns
 	return convert_error errno, 0, 0
+
+fun Getenv name:String = Error, r:Stringbuf
+	let ret = getenv (cstring.Mk name).Rawdata
+	if ret?
+		r#Cat (cstring.Wrap_raw_cstring ret).String
+		return OK, r
+	return INVAL, r
+
+fun Setenv name:String value:String = Error
+	let ret = setenv (cstring.Mk name).Rawdata (cstring.Mk value).Rawdata 1
+	if ret >= 0
+		return OK
+	return convert_error errno

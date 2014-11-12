@@ -401,6 +401,18 @@ static NB(Int) SY(clock_gettime)(NB(I32) clk_id, NB(Int) *s, NB(Int) *ns) {
   return ret;
 }
 
+NB(Uint) SY(Strlen)(NB(U8) *s) {
+  return strlen((char *) s);
+}
+
+static NB(U8) *SY(getenv)(NB(U8) *name) {
+  return (NB(U8) *) secure_getenv((char *) name);
+}
+
+static NB(Int) SY(setenv)(NB(U8) *name, NB(U8) *value, NB(I32) overwrite) {
+  return setenv((char *) name, (char *) value, overwrite);
+}
+
 #endif
 
 #undef SY
