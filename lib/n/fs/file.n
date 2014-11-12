@@ -67,19 +67,3 @@ File met! Write b:[]U8 = []U8, Error
 
 File met! Write_at b:[]U8 off:Uint = []U8, Error
 	return syscall.Pwrite self.Fd b off
-
-enum Protbits =
-	| NONE = 0
-	| EXEC
-	| READ
-	| WRITE
-
-alias Protmask = (Mask Protbits)
-
-struct Mmap =
-	file	:?@File
-	map	:[]!U8
-	shared	:Bool
-	prot	:Protmask
-
-File met! Mmap offset:Uint size:Uint prot:Protmask ?shared:?Bool = Error, @!Mmap

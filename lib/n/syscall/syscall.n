@@ -491,6 +491,19 @@ inline struct Stat_t =
 	Owner		:U32
 	Group		:U32
 
+alias Mmap_prot = I32
+extern let PROT_EXEC:Mmap_prot
+extern let PROT_READ:Mmap_prot
+extern let PROT_WRITE:Mmap_prot
+extern let PROT_NONE:Mmap_prot
+
+alias Mmap_flags = I32
+extern let MAP_SHARED:Mmap_flags
+extern let MAP_PRIVATE:Mmap_flags
+extern let MAP_ANONYMOUS:Mmap_flags
+
+extern let MAP_FAILED:?@U8
+
 extern fun errno = I32
 extern fun unlink pathname:@U8 = Int
 extern fun close fd:Int = Int
@@ -523,6 +536,8 @@ extern fun clock_gettime clk_id:I32 s:@!Int ns:@!Int = Int
 extern fun Strlen cs:@U8 = Uint
 extern fun getenv name:@U8 = ?@U8
 extern fun setenv name:@U8 value:@U8 overwrite:I32 = Int
+extern fun mmap addr:Uintptr length:Uint prot:Mmap_prot flags:Mmap_flags fd:Int offset:Uint = ?@#U8
+extern fun munmap addr:@#U8 length:Uint = Int
 
 fun Close fd:Int = Error
 	let ret = close fd
@@ -742,6 +757,18 @@ fun Getenv name:String = Error, r:Stringbuf
 
 fun Setenv name:String value:String = Error
 	let ret = setenv (cstring.Mk name).Rawdata (cstring.Mk value).Rawdata 1
+	if ret >= 0
+		return OK
+	return convert_error errno
+
+fun Mmap addr:Uintptr length:Uint prot:Mmap_prot flags:Mmap_flags fd:Int offset:Uint = Error, @#U8
+	let ret = mmap addr length prot flags fd offset
+	if ret === MAP_FAILED
+		return convert_error errno, nil
+	return OK, ret
+
+fun Munmap addr:@#U8 length:Uint = Error
+	let ret = munmap addr length
 	if ret >= 0
 		return OK
 	return convert_error errno

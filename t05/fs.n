@@ -12,6 +12,10 @@ example named ex:@!bench.Example
 	_, except = f#Write "test".Bytes
 	assert ex.Fs.Opened == 2
 
+	let except, m = f!Mmap
+	let s = String.From_bytes m.Bytes
+	assert s == "test"
+
 example anonymous ex:@!bench.Example
 	ex!Benchmark FS CLOCK
 	let except, f = fs.Temporary

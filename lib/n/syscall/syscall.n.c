@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <sys/xattr.h>
 #include <sys/syscall.h>
+#include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -192,6 +193,17 @@ NB(I32) SY(CLOCK_MONOTONIC_RAW) = CLOCK_MONOTONIC_RAW;
 NB(I32) SY(CLOCK_BOOTTIME) = CLOCK_BOOTTIME;
 NB(I32) SY(CLOCK_PROCESS_CPUTIME_ID) = CLOCK_PROCESS_CPUTIME_ID;
 NB(I32) SY(CLOCK_THREAD_CPUTIME_ID) = CLOCK_THREAD_CPUTIME_ID;
+
+NB(I32) SY(PROT_EXEC) = PROT_EXEC;
+NB(I32) SY(PROT_READ) = PROT_READ;
+NB(I32) SY(PROT_WRITE) = PROT_WRITE;
+NB(I32) SY(PROT_NONE) = PROT_NONE;
+
+NB(I32) SY(MAP_SHARED) = MAP_SHARED;
+NB(I32) SY(MAP_PRIVATE) = MAP_PRIVATE;
+NB(I32) SY(MAP_ANONYMOUS) = MAP_ANONYMOUS;
+
+NB(U8) *SY(MAP_FAILED) = MAP_FAILED;
 
 // Some of these functions should explicitly set errno to 0 before
 // performing the underlying call (e.g. sysconf), as -1 can be a valid
@@ -411,6 +423,15 @@ static NB(U8) *SY(getenv)(NB(U8) *name) {
 
 static NB(Int) SY(setenv)(NB(U8) *name, NB(U8) *value, NB(I32) overwrite) {
   return setenv((char *) name, (char *) value, overwrite);
+}
+
+static NB(U8) *SY(mmap)(NB(Uintptr) addr, NB(Uint) length, NB(I32) prot, NB(I32) flags,
+                        NB(Int) fd, NB(Uint) offset) {
+  return mmap((void *) addr, length, prot, flags, fd, offset);
+}
+
+static NB(Int) SY(munmap)(NB(U8) *addr, NB(Uint) length) {
+  return munmap((void *) addr, length);
 }
 
 #endif

@@ -1,0 +1,42 @@
+enum Protbits =
+	| READ
+	| WRITE
+	| EXEC
+
+alias Protmask = (Mask Protbits)
+
+fun sys_mmap_prot prot:?Protmask = r:syscall.Mmap_prot
+	let prot = prot else {}
+	if READ in prot
+		r |= syscall.PROT_READ
+	if WRITE in prot
+		r |= syscall.PROT_WRITE
+	if EXEC in prot
+		r |= syscall.PROT_EXEC
+
+fun sys_mmap_flags shared:?Bool = r:syscall.Mmap_flags
+	if shared else false
+		r |= syscall.MAP_SHARED
+	else
+		r |= syscall.MAP_PRIVATE
+
+inline struct Mmap =
+	isa `Not_copyable
+	file	:?@!File
+	range	:Range
+	bytes	:[]!U8
+	shared	:Bool
+	prot	:Protmask
+
+-- 'prot' defaults to READ.
+File met! Mmap ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, @!Mmap
+	return self.fs!File_mmap self offset=offset size=size prot=prot shared=shared
+
+Mmap met# Unmap
+	self.file!fs!Munmap self
+
+Mmap met# Dtor
+	self#Unmap
+
+inline Mmap met$ Bytes = []$U8
+	return self$bytes
