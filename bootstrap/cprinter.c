@@ -12,6 +12,8 @@
 
 #define UNUSED "__attribute__((__unused__))"
 #define WEAK "__attribute__((__weak__))"
+#define ALWAYS_INLINE
+// "__attribute__((__always_inline__))\n"
 #define SECTION_EXAMPLES "__attribute__((section(\".text.n.examples\")))"
 
 #define DEF(t) typ_definition_ignore_any_overlay_const(t)
@@ -1229,7 +1231,7 @@ static void print_generic_linkage(FILE *out, bool header, enum forward fwd,
                                   const struct node *node) {
   if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
     if (node_is_inline(node)) {
-      fprintf(out, "static inline ");
+      fprintf(out, ALWAYS_INLINE " static inline ");
     } else {
       if (fwd == FWD_DECLARE_FUNCTIONS) {
         fprintf(out, WEAK " ");
@@ -1252,7 +1254,7 @@ static void print_linkage(FILE *out, bool header, enum forward fwd,
   if ((NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD)))) {
     if (((flags & TOP_IS_EXPORT) && (flags & TOP_IS_INLINE))
         || ((flags & TOP_IS_EXTERN) && (flags & TOP_IS_INLINE))) {
-      fprintf(out, "static inline ");
+      fprintf(out, ALWAYS_INLINE " static inline ");
     } else if ((flags & TOP_IS_EXTERN) && (flags & TOP_IS_EXPORT)) {
         fprintf(out, "extern ");
     } else if (flags & TOP_IS_EXPORT) {
@@ -1263,7 +1265,7 @@ static void print_linkage(FILE *out, bool header, enum forward fwd,
   } else if (flags & TOP_IS_EXTERN) {
     fprintf(out, "extern ");
   } else if ((flags & TOP_IS_INLINE) && node->which != DEFNAME) {
-    fprintf(out, "static inline ");
+    fprintf(out, ALWAYS_INLINE " static inline ");
   } else if (node_is_at_top(at_top) && !(flags & TOP_IS_EXPORT)) {
     fprintf(out, "static ");
   }
