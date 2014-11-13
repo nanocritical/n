@@ -870,6 +870,8 @@ static ERROR passbody1(struct module *mod, struct node *root,
     UP_STEP(step_copy_call_inference);
     UP_STEP(step_dyn_inference);
 
+    UP_STEP(step_local_constant_substitution);
+
     UP_STEP(step_store_return_through_ref_expr);
     UP_STEP(step_add_dyn_topdep);
     ,

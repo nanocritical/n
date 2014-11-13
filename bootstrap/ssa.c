@@ -211,6 +211,10 @@ STEP_NM(step_ssa_convert_shallow_catchup,
 error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
+  if (mod->state->top_state->is_propagating_constant) {
+    return 0;
+  }
+
   if (mod->state->fun_state == NULL || !mod->state->fun_state->in_block) {
     return 0;
   }
@@ -267,10 +271,6 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
 }
 
 static ERROR ssa_convert_global(struct module *mod, struct node *node) {
-  if (mod->state->top_state->is_propagating_constant) {
-    return 0;
-  }
-
   struct node *par = parent(node);
   switch (par->which) {
   case UN:
@@ -325,6 +325,10 @@ STEP_NM(step_ssa_convert,
           | NM_DOESNT_EVER_NEED_SUB));
 error step_ssa_convert(struct module *mod, struct node *node,
                        void *user, bool *stop) {
+  if (mod->state->top_state->is_propagating_constant) {
+    return 0;
+  }
+
   DSTEP(mod, node);
   if (mod->state->fun_state == NULL) {
     return ssa_convert_global(mod, node);

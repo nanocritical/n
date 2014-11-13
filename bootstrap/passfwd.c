@@ -937,29 +937,52 @@ static ERROR step_update_map_children(struct module *mod, struct node *node,
 }
 
 static void replace_sub(struct module *mod, struct node *par,
-                        struct node *expr, struct node *target) {
-  struct node *repl = NULL;
-  if (target == NULL) {
-    repl = mk_node(mod, par, INIT);
-  } else {
-    repl = node_new_subnode(mod, par);
-    node_deepcopy(mod, repl, target);
+                        struct node *expr, struct node *target, bool global) {
+  if (global) {
+    struct node *repl = NULL;
+    if (target == NULL) {
+      repl = mk_node(mod, par, INIT);
+    } else {
+      repl = node_new_subnode(mod, par);
+      node_deepcopy(mod, repl, target);
+    }
+
+    error e = catchup(mod, NULL, repl, CATCHUP_BELOW_CURRENT);
+    assert(!e);
+
+    if (global) {
+      e = early_typing(mod, repl);
+      assert(!e);
+
+      e = unify(mod, expr, repl->typ, expr->typ);
+      assert(!e);
+    }
+
+    node_subs_remove(par, repl);
+    node_subs_replace(par, expr, repl);
+    return;
   }
 
-  error e = catchup(mod, NULL, repl, CATCHUP_BELOW_CURRENT);
+  struct node *tc = mk_node(mod, par, TYPECONSTRAINT);
+  struct node *repl = NULL;
+  if (target == NULL) {
+    repl = mk_node(mod, tc, INIT);
+  } else {
+    repl = node_new_subnode(mod, tc);
+    node_deepcopy(mod, repl, target);
+  }
+  struct node *dd = mk_node(mod, tc, DIRECTDEF);
+  set_typ(&dd->as.DIRECTDEF.typ, expr->typ);
+
+  error e = catchup(mod, NULL, tc, CATCHUP_BELOW_CURRENT);
   assert(!e);
 
-  e = early_typing(mod, repl);
-  assert(!e);
-
-  e = unify(mod, expr, repl->typ, expr->typ);
-  assert(!e);
-
-  node_subs_remove(par, repl);
-  node_subs_replace(par, expr, repl);
+  node_subs_remove(par, tc);
+  node_subs_replace(par, expr, tc);
 }
 
-static ERROR propagate(struct module *mod, struct node *par, struct node *expr) {
+static ERROR propagate(struct module *mod, struct node *par, struct node *expr,
+                       bool global) {
   if (expr->flags & NODE_IS_TYPE) {
     return 0;
   }
@@ -973,7 +996,7 @@ static ERROR propagate(struct module *mod, struct node *par, struct node *expr) 
   static const uint64_t NM_NEVER_CONSTANT
     = NM(CALL) | NM(FOR) | NM(WHILE) | NM(TRY) | NM(CATCH) | NM(THROW) | NM(JUMP);
   if (NM(expr->which) & NM_NEVER_CONSTANT) {
-    goto fail;
+    goto cannot;
   }
 
   error e;
@@ -982,15 +1005,17 @@ static ERROR propagate(struct module *mod, struct node *par, struct node *expr) 
     {
       struct node *def = expr->as.IDENT.def;
       assert(def != NULL && def->which == DEFNAME);
-      def->as.DEFNAME.may_be_unused = true;
-      replace_sub(mod, par, expr, subs_last(def));
+      if (global || (subs_last_const(def)->flags & NODE_IS_LOCAL_STATIC_CONSTANT)) {
+        def->as.DEFNAME.may_be_unused = true;
+        replace_sub(mod, par, expr, subs_last(def), global);
+      }
     }
     break;
   case UN:
     if (OP_KIND(expr->as.UN.operator) == OP_UN_REFOF) {
       return 0;
     }
-    e = propagate(mod, expr, subs_first(expr));
+    e = propagate(mod, expr, subs_first(expr), global);
     EXCEPT(e);
     break;
   case BIN:
@@ -1021,11 +1046,11 @@ static ERROR propagate(struct module *mod, struct node *par, struct node *expr) 
       }
 
       if (left != NULL) {
-        e = propagate(mod, expr, left);
+        e = propagate(mod, expr, left, global);
         EXCEPT(e);
       }
       if (right != NULL) {
-        e = propagate(mod, expr, right);
+        e = propagate(mod, expr, right, global);
         EXCEPT(e);
       }
 
@@ -1047,48 +1072,77 @@ static ERROR propagate(struct module *mod, struct node *par, struct node *expr) 
             }
           }
         } else {
-          __break();
-          goto fail;
+          goto cannot;
         }
 
-        replace_sub(mod, par, expr, target);
+        replace_sub(mod, par, expr, target, global);
       }
     }
     break;
   case INIT:
-    FOREACH_SUB_EVERY(ex, expr, 1, 2) {
-      e = propagate(mod, expr, ex);
-      EXCEPT(e);
+    if (expr->as.INIT.is_array) {
+      FOREACH_SUB(ex, expr) {
+        struct node *nxt = next(ex);
+        e = propagate(mod, expr, ex, global);
+        EXCEPT(e);
+        if (nxt != NULL) {
+          ex = prev(nxt);
+        }
+      }
+    } else {
+      FOREACH_SUB_EVERY(ex, expr, 1, 2) {
+        struct node *nxt = next(ex);
+        e = propagate(mod, expr, ex, global);
+        EXCEPT(e);
+        if (nxt != NULL) {
+          ex = prev(nxt);
+        }
+      }
     }
     break;
   case TUPLE:
     FOREACH_SUB(ex, expr) {
-      e = propagate(mod, expr, ex);
+      struct node *nxt = next(ex);
+      e = propagate(mod, expr, ex, global);
       EXCEPT(e);
+      if (nxt != NULL) {
+        ex = prev(nxt);
+      }
     }
     break;
   case BLOCK:
     if (subs_count(expr) != 1) {
-      goto fail;
+      goto cannot;
     }
-    e = propagate(mod, expr, subs_first(expr));
+    e = propagate(mod, expr, subs_first(expr), global);
     EXCEPT(e);
     break;
   case IF:
     FOREACH_SUB(ex, expr) {
-      e = propagate(mod, expr, ex);
+      struct node *nxt = next(ex);
+      e = propagate(mod, expr, ex, global);
       EXCEPT(e);
+      if (nxt != NULL) {
+        ex = prev(nxt);
+      }
     }
+  case TYPECONSTRAINT:
+    e = propagate(mod, expr, subs_first(expr), global);
+    EXCEPT(e);
+    break;
   default:
-    goto fail;
+    goto cannot;
   }
 
   return 0;
 
-fail:
-  e = mk_except(mod, expr, "global let must be defined using a"
-                " global constant expression");
-  THROW(e);
+cannot:
+  if (global) {
+    e = mk_except(mod, expr, "global let must be defined using a"
+                  " global constant expression");
+    THROW(e);
+  }
+  return 0;
 }
 
 static STEP_NM(step_global_constant_substitution,
@@ -1096,16 +1150,39 @@ static STEP_NM(step_global_constant_substitution,
 static ERROR step_global_constant_substitution(struct module *mod, struct node *node,
                                                void *user, bool *stop) {
   DSTEP(mod, node);
+  if (mod->state->top_state->is_propagating_constant) {
+    return 0;
+  }
+
   if (!(parent_const(node)->flags & NODE_IS_GLOBAL_LET)) {
     return 0;
   }
 
   mod->state->top_state->is_propagating_constant = true;
-  error e = propagate(mod, node, subs_last(node));
+  error e = propagate(mod, node, subs_last(node), true);
   EXCEPT(e);
   mod->state->top_state->is_propagating_constant = false;
 
-  node->as.DEFNAME.is_global_constant = true;
+  return 0;
+}
+
+STEP_NM(step_local_constant_substitution,
+        NM(DEFNAME));
+error step_local_constant_substitution(struct module *mod, struct node *node,
+                                       void *user, bool *stop) {
+  DSTEP(mod, node);
+  if (mod->state->top_state->is_propagating_constant) {
+    return 0;
+  }
+
+  if (!(subs_last_const(node)->flags & NODE_IS_LOCAL_STATIC_CONSTANT)) {
+    return 0;
+  }
+
+  mod->state->top_state->is_propagating_constant = true;
+  error e = propagate(mod, node, subs_last(node), false);
+  EXCEPT(e);
+  mod->state->top_state->is_propagating_constant = false;
 
   return 0;
 }

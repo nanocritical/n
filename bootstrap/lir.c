@@ -709,6 +709,12 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
 
   error e;
   switch (node->which) {
+  case STRING:
+    node->flags |= NODE_IS_LOCAL_STATIC_CONSTANT;
+    break;
+  case TYPECONSTRAINT:
+    node->flags |= subs_first_const(node)->flags & NODE_IS_LOCAL_STATIC_CONSTANT;
+    break;
   case UN:
     break;
   case BIN:

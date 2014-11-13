@@ -841,13 +841,10 @@ static void print_init(FILE *out, const struct module *mod,
   const struct node *par = parent_const(node);
   const struct node *context = parent_const(parent_const(par));
   if (par->which == DEFNAME) {
-    switch (context->which) {
-    case MODULE_BODY:
-    case DEFTYPE:
+    if ((node->flags & NODE_IS_LOCAL_STATIC_CONSTANT)
+        || (NM(context->which) & (NM(MODULE_BODY) | NM(DEFTYPE)))) {
       print_init_toplevel(out, mod, node);
       return;
-    default:
-      break;
     }
   }
 
@@ -1468,6 +1465,7 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
     return;
   }
 
+  const struct node *expr = subs_last_const(node);
   const struct node *par = parent_const(let);
   const bool in_gen = !node_is_at_top(let) && typ_generic_arity(par->typ) > 0;
   if (node->flags & NODE_IS_GLOBAL_LET) {
@@ -1487,10 +1485,9 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
         return;
       }
     }
+  } else if (expr->flags & NODE_IS_LOCAL_STATIC_CONSTANT) {
+    fprintf(out, " static ");
   }
-
-  assert(node->which == DEFNAME);
-  const struct node *expr = subs_last_const(node);
 
   if (node_ident(node) == ID_OTHERWISE) {
     if (expr != NULL) {
@@ -1967,7 +1964,7 @@ static bool do_fun_nonnull_attribute(FILE *out, const struct typ *tfun) {
     }
   }
   if (out != NULL) {
-    fprintf(out, ")))");
+    fprintf(out, ")))\n");
   }
 
   return count > 0;
@@ -2020,7 +2017,7 @@ static void guard_generic(FILE *out, bool header, enum forward fwd,
 // Instead, we create a wrapper with the same name as the method and the
 // suffix __$Ndynwrapper, which is only used in the dyntable.
 static void print_deffun_dynwrapper(FILE *out, bool header, enum forward fwd,
-                                          const struct module *mod, const struct node *node) {
+                                    const struct module *mod, const struct node *node) {
   if (fwd != FWD_DECLARE_FUNCTIONS && fwd != FWD_DEFINE_FUNCTIONS) {
     return;
   }
@@ -2171,8 +2168,8 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     if (node->which == DEFFUN && node->as.DEFFUN.example > 0) {
       fprintf(out, SECTION_EXAMPLES "\n");
     }
-    print_fun_prototype(out, header, fwd, mod, node, false, false);
     fun_nonnull_attribute(out, header, mod, node);
+    print_fun_prototype(out, header, fwd, mod, node, false, false);
     fprintf(out, ";\n");
   } else if (node_toplevel_const(node)->builtingen != BG__NOT) {
     print_fun_prototype(out, header, fwd, mod, node, false, false);

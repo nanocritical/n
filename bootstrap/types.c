@@ -2180,6 +2180,7 @@ struct typ *TBI_GLOBALENV_INSTALLED;
 struct typ *TBI_GLOBALENV_PARENT;
 struct typ *TBI_GLOBALENV_INSTALL;
 struct typ *TBI_GLOBALENV_UNINSTALL;
+struct typ *TBI_CODELOC;
 struct typ *TBI__NOT_TYPEABLE;
 struct typ *TBI__CALL_FUNCTION_SLOT;
 struct typ *TBI__MUTABLE;

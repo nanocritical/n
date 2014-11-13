@@ -164,6 +164,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_GLOBALENV_PARENT] = "Globalenv_parent",
   [ID_TBI_GLOBALENV_INSTALL] = "Globalenv_install",
   [ID_TBI_GLOBALENV_UNINSTALL] = "Globalenv_uninstall",
+  [ID_TBI_CODELOC] = "Codeloc",
   [ID_TBI__NOT_TYPEABLE] = "__internal_not_typeable__",
   [ID_TBI__CALL_FUNCTION_SLOT] = "__call_function_slot__",
   [ID_TBI__MUTABLE] = "__mutable__",
@@ -503,6 +504,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_GLOBALENV_PARENT = gctx->builtin_typs_by_name[ID_TBI_GLOBALENV_PARENT];
   TBI_GLOBALENV_INSTALL = gctx->builtin_typs_by_name[ID_TBI_GLOBALENV_INSTALL];
   TBI_GLOBALENV_UNINSTALL = gctx->builtin_typs_by_name[ID_TBI_GLOBALENV_UNINSTALL];
+  TBI_CODELOC = gctx->builtin_typs_by_name[ID_TBI_CODELOC];
   TBI__NOT_TYPEABLE = gctx->builtin_typs_by_name[ID_TBI__NOT_TYPEABLE];
   TBI__CALL_FUNCTION_SLOT = gctx->builtin_typs_by_name[ID_TBI__CALL_FUNCTION_SLOT];
   TBI__MUTABLE = gctx->builtin_typs_by_name[ID_TBI__MUTABLE];

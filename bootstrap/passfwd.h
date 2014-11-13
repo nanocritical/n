@@ -15,4 +15,9 @@ ssize_t ready_for_quickisa_pass(void);
 extern const uint64_t step_type_aliases_filter;
 error step_type_aliases(struct module *mod, struct node *node,
                         void *user, bool *stop);
+
+extern const uint64_t step_local_constant_substitution_filter;
+error step_local_constant_substitution(struct module *mod, struct node *node,
+                                       void *user, bool *stop);
+
 #endif

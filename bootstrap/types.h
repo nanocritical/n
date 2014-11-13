@@ -321,6 +321,7 @@ extern struct typ *TBI_GLOBALENV_INSTALLED;
 extern struct typ *TBI_GLOBALENV_PARENT;
 extern struct typ *TBI_GLOBALENV_INSTALL;
 extern struct typ *TBI_GLOBALENV_UNINSTALL;
+extern struct typ *TBI_CODELOC;
 extern struct typ *TBI__NOT_TYPEABLE;
 extern struct typ *TBI__CALL_FUNCTION_SLOT;
 extern struct typ *TBI__MUTABLE;

@@ -1029,15 +1029,23 @@ static void try_filling_codeloc(struct module *mod, struct node *named,
 
   node_subs_remove(named, subs_first(named));
   GSTART();
-  G0(init, named, INIT,
-     G_IDENT(filen, "File");
-     G(file, STRING);
-     G_IDENT(linen, "Line");
-     G(line, NUMBER);
-     G_IDENT(coln, "Col");
-     G(col, NUMBER);
-     G_IDENT(exprn, "Expr");
-     G(expr, STRING));
+  G0(tc, named, TYPECONSTRAINT,
+    G(init, INIT,
+      init->flags |= NODE_IS_LOCAL_STATIC_CONSTANT;
+      G_IDENT(filen, "File");
+      G(file, STRING,
+        file->flags |= NODE_IS_LOCAL_STATIC_CONSTANT);
+      G_IDENT(linen, "Line");
+      G(line, NUMBER,
+        line->flags |= NODE_IS_LOCAL_STATIC_CONSTANT);
+      G_IDENT(coln, "Col");
+      G(col, NUMBER,
+        col->flags |= NODE_IS_LOCAL_STATIC_CONSTANT);
+      G_IDENT(exprn, "Expr");
+      G(expr, STRING,
+        expr->flags |= NODE_IS_LOCAL_STATIC_CONSTANT));
+    G(t, DIRECTDEF,
+      set_typ(&t->as.DIRECTDEF.typ, TBI_CODELOC)));
 
   const char *fn = module_component_filename_at(mod, node->codeloc.pos);
   char *vfn = calloc(strlen(fn) + 3, sizeof(char));

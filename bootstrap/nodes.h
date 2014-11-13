@@ -380,7 +380,6 @@ struct node_defname {
   struct node *ssa_user;
   bool is_globalenv;
   ident globalenv_header_name;
-  bool is_global_constant;
 
   uint32_t passed;
 
@@ -525,6 +524,7 @@ enum node_flags {
   NODE_IS_DEFCHOICE_HAS_EXTERNAL_PAYLOAD = 0x4,
   NODE_IS_TEMPORARY = 0x8,
   NODE_IS_GLOBAL_LET = 0x10,
+  NODE_IS_LOCAL_STATIC_CONSTANT = 0x20,
   NODE__TRANSITIVE = NODE_IS_TYPE,
   NODE__ASSIGN_TRANSITIVE = NODE_IS_DEFCHOICE,
   NODE__DETACHED = 0x10,
@@ -1089,6 +1089,7 @@ enum predefined_idents {
   ID_TBI_GLOBALENV_PARENT,
   ID_TBI_GLOBALENV_INSTALL,
   ID_TBI_GLOBALENV_UNINSTALL,
+  ID_TBI_CODELOC,
   ID_TBI__NOT_TYPEABLE,
   ID_TBI__FIRST_MARKER = ID_TBI__NOT_TYPEABLE,
   ID_TBI__CALL_FUNCTION_SLOT,
