@@ -980,7 +980,7 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
 
 static size_t codeloc_pos_after(struct module *mod, struct node *node) {
   struct node *n = node;
-  while (next(n) == NULL || next(n)->codeloc.pos == node->codeloc.pos) {
+  while (next(n) == NULL || next(n)->codeloc.line <= node->codeloc.line + 1) {
     if (parent(n) == NULL) {
       break;
     }
