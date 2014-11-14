@@ -794,12 +794,10 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
     break;
   case BREAK:
     node_set_which(node, JUMP);
-    node->as.JUMP.to = st->loop_state->exit;
     node->as.JUMP.is_break = true;
     break;
   case CONTINUE:
     node_set_which(node, JUMP);
-    node->as.JUMP.to = st->loop_state->entry;
     node->as.JUMP.is_continue = true;
     break;
   case IF:
@@ -863,7 +861,6 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
            error->as.IDENT.name = st->try_state->error);
          node_subs_append(assign, expr));
       G0(j, node, JUMP,
-         j->as.JUMP.to = subs_first(c);
          j->as.JUMP.label = c->as.CATCH.label);
     }
     break;
@@ -932,9 +929,6 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
   switch (node->which) {
   case DEFNAME:
     assert(subs_count(node) == 2);
-    break;
-  case JUMP:
-    assert(node->as.JUMP.to->which == BLOCK || node->as.JUMP.to->which == NOOP);
     break;
   case IF:
   case WHILE:

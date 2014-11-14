@@ -292,7 +292,6 @@ struct node_throw {
   ident label;
 };
 struct node_jump {
-  struct node *to;
   bool is_break;
   bool is_continue;
   ident label;

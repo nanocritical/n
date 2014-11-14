@@ -981,7 +981,13 @@ static void print_tree_node(FILE *out, const struct module *mod,
     fprintf(out, "(0x%zx)", node->as.BLOCK.block_id);
     break;
   case JUMP:
-    fprintf(out, "(0x%zx)", node->as.JUMP.to->as.BLOCK.block_id);
+    if (node->as.JUMP.is_break) {
+      fprintf(out, "(break)");
+    } else if (node->as.JUMP.is_continue) {
+      fprintf(out, "(continue)");
+    } else {
+      fprintf(out, "(catch %s)", idents_value(mod->gctx, node->as.JUMP.label));
+    }
     break;
   case IDENT:
   case CALLNAMEDARG:
