@@ -12,6 +12,10 @@ default:: examples.run ncc0
 SRC = bootstrap
 DEPS = .deps
 
+ifneq ($(shell ccache --version 2> /dev/null),)
+	override CC := ccache $(CC)
+endif
+
 override CFLAGS += -std=c99 -Wall -pthread -O$(O) -ggdb $(if $P,-pg,) \
 	  -I. \
 	  -Wmissing-prototypes -Wpointer-arith \
@@ -38,14 +42,14 @@ $(examples-generated-sources): $(call objects-for-sources,$(sources)) $(examples
 
 examples-sources := $(sources)
 examples: $(call objects-for-sources,$(examples-sources)) $(examples-generated-sources)
-	$Qgcc -g $(CFLAGS) -o $@ $^
+	$Q$(CC) -g $(CFLAGS) -o $@ $^
 
 examples.run: examples
 	$Q./$<
 
 ncc0-sources := bootstrap/ncc0.main.c $(sources)
 ncc0: $(call objects-for-sources,$(ncc0-sources))
-	$Qgcc -g $(CFLAGS) -o $@ $^
+	$Q$(CC) -g $(CFLAGS) -o $@ $^
 
 $(DEPS)/ $(DEPS):
 	$Qmkdir -p $(DEPS)
@@ -58,4 +62,4 @@ include $(shell find $(DEPS) -name \*.d 2> /dev/null)
 
 %.o: %.c $(DEPS) $(deps-dir-for-target)
 	$Qmkdir -p $(call deps-dir-for-target,$@)
-	$Qgcc -c $(CFLAGS) $(call deps-options,$@,$<) -o $@ $<
+	$Q$(CC) -c $(CFLAGS) $(call deps-options,$@,$<) -o $@ $<
