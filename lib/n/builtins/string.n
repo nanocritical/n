@@ -45,10 +45,10 @@ inline Rune fun From_string s:String = this
 	let r, _ = Rune.Decode s.bytes
 	return r
 
-inline Rune fun Decode b:[]U8 = this, Uint
+inline Rune fun Decode b:[]U8 = this, []U8
 	assert b.Count >= 1
 	-- FIXME: utf8
-	return { Code=b.First.U32 }, 1
+	return { Code=b.First.U32 }, b.[1 ..]
 
 inline Rune fun Decode_last b:[]U8 = this, Uint
 	assert b.Count >= 1
@@ -58,12 +58,11 @@ inline Rune fun Decode_last b:[]U8 = this, Uint
 inline Rune fun From_ascii c:U8 = Rune
 	return { Code=c.U32 }
 
-inline Rune met Encode z:[]!U8 = Uint
+inline Rune met Encode z:[]!U8 = []!U8
 	assert z.Cap >= 1
-	z = z.[.. 1]
 	z![0]! = self.Code.Trim_u8
 	-- FIXME: utf8
-	return 1
+	return z![1 ..]
 
 inline Rune met Hash32 = U32
 	return self.Code
@@ -156,16 +155,14 @@ inline String met Begins_with s:String = Bool
 	if s.bytes.Count > self.bytes.Count
 		return false
 	let a = self.bytes
-	and b = s.bytes
-	and i = 0 such
-		while i < b.Count
-			let ra, cnt = Rune.Decode a
-			let rb, _ = Rune.Decode b
+	and b = s.bytes such
+		while b.Count > 0
+			let ra, na = Rune.Decode a
+			let rb, nb = Rune.Decode b
 			if ra != rb
 				return false
-			a = a.[cnt ..]
-			b = b.[cnt ..]
-			i += cnt
+			a = na
+			b = nb
 	return true
 
 inline String met Ends_with s:String = Bool
