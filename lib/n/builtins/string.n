@@ -128,6 +128,9 @@ inline String met Operator_ge other:@this = Bool
 inline String met Substring r:Range = this
 	return this.From_bytes <- self.Operator_sub r
 
+inline String met Cut_at i:Uint = this, this
+	return self.Substring 0 .. i, self.Substring i .. self.Count
+
 inline String met Show st:@#`Fmt_state
 	let _ = st#Write self.bytes
 
