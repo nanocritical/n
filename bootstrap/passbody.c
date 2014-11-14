@@ -616,21 +616,41 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
 
     return 0;
   case INIT:
-    if (node->as.INIT.is_array) {
-      // FIXME: not supported
+    if (typ_is_isalist_literal(node->typ)) {
+      return 0;
+    } else if (node->as.INIT.is_array) {
+      assert(typ_isa(node->typ, TBI_ANY_SLICE) && "we're after step_array_ctor_call_inference");
+      struct typ *target = typ_generic_arg(node->typ, 0);
+      FOREACH_SUB(el, node) {
+        src = el;
+        e = try_insert_dyn(&src, mod, node, target);
+        EXCEPT(e);
+      }
+      return 0;
+    } else if (node->as.INIT.is_defchoice_external_payload_constraint) {
+      return 0;
+    } else if (node->as.INIT.for_tag != ID__NONE) {
+      struct tit *leaf = typ_definition_one_member(node->typ,
+                                                   node->as.INIT.for_tag);
+      FOREACH_SUB_EVERY(name, node, 0, 2) {
+        src = next(name);
+        struct tit *target = tit_defchoice_lookup_field(leaf, node_ident(name));
+        e = try_insert_dyn(&src, mod, node, tit_typ(target));
+        EXCEPT(e);
+        tit_next(target);
+      }
+      tit_next(leaf);
+      return 0;
+    } else {
+      FOREACH_SUB_EVERY(name, node, 0, 2) {
+        src = next(name);
+        struct tit *target = typ_definition_one_member(node->typ, node_ident(name));
+        e = try_insert_dyn(&src, mod, node, tit_typ(target));
+        EXCEPT(e);
+        tit_next(target);
+      }
       return 0;
     }
-    if (node->as.INIT.is_defchoice_external_payload_constraint) {
-      return 0;
-    }
-    FOREACH_SUB_EVERY(name, node, 0, 2) {
-      src = next(name);
-      struct tit *target = typ_definition_one_member(node->typ, node_ident(name));
-      e = try_insert_dyn(&src, mod, node, tit_typ(target));
-      EXCEPT(e);
-      tit_next(target);
-    }
-    return 0;
   default:
     assert(false && "Unreached");
     return 0;
