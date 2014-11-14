@@ -125,6 +125,9 @@ inline String met Operator_ge other:@this = Bool
 		return true
 	return self.Operator_compare other >= 0
 
+inline String met Substring r:Range = this
+	return this.From_bytes <- self.Operator_sub r
+
 inline String met Show st:@#`Fmt_state
 	let _ = st#Write self.bytes
 
@@ -293,6 +296,9 @@ inline Stringbuf met All = Range
 
 inline Stringbuf met String = String
 	return String.From_bytes self.bytes
+
+inline Stringbuf met Substring r:Range = String
+	return String.From_bytes <- self.Operator_sub r
 
 inline Stringbuf met Cap = Uint
 	return self.bytes.cap
