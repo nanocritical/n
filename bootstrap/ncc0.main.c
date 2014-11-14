@@ -13,6 +13,7 @@
 struct opt {
   bool verbose;
   bool compile;
+  const char *ccache;
   const char *compiler;
   const char *cflags;
 };
@@ -63,10 +64,11 @@ static ERROR cc(const char *o_fn, const char *c_fn) {
     EXCEPT(e);
   }
 
-  static const char *fmt = "%s " CFLAGS " %s -xc %s -c -o %s";
-  char *cmd = calloc(strlen(fmt) + strlen(g_opt.compiler) + strlen(g_opt.cflags)
-                     + strlen(c_fn) + strlen(o_fn) - 5 + 1, sizeof(char));
-  sprintf(cmd, fmt, g_opt.compiler, g_opt.cflags, c_fn, o_fn);
+  static const char *fmt = "%s %s " CFLAGS " %s -xc %s -c -o %s";
+  char *cmd = calloc(strlen(fmt) + strlen(g_opt.ccache)
+                     + strlen(g_opt.compiler) + strlen(g_opt.cflags)
+                     + strlen(c_fn) + strlen(o_fn) + 1, sizeof(char));
+  sprintf(cmd, fmt, g_opt.ccache, g_opt.compiler, g_opt.cflags, c_fn, o_fn);
 
   error e = sh(cmd);
   free(cmd);
@@ -94,15 +96,17 @@ static char *file_list(const struct module **modules, size_t count,
 }
 
 static ERROR clink(const char *out_fn, const char *inputs, const char *extra) {
-  static const char fmt[] = "%s " LDFLAGS " %s %s %s -o %s%s";
+  static const char fmt[] = "%s %s " LDFLAGS " %s %s %s -o %s%s";
   const char *ext = "";
   if (strcmp(g_opt.compiler, "emcc") == 0) {
     ext = ".js";
   }
-  size_t len = strlen(fmt) + strlen(g_opt.compiler) + strlen(g_opt.cflags)
-    + strlen(inputs) + strlen(extra) + strlen(out_fn) + strlen(ext) - 7;
+  size_t len = strlen(fmt) + strlen(g_opt.ccache)
+    + strlen(g_opt.compiler) + strlen(g_opt.cflags)
+    + strlen(inputs) + strlen(extra) + strlen(out_fn) + strlen(ext);
   char *cmd = calloc(len + 1, sizeof(char));
-  sprintf(cmd, fmt, g_opt.compiler, g_opt.cflags, inputs, extra, out_fn, ext);
+  sprintf(cmd, fmt, g_opt.ccache, g_opt.compiler,
+          g_opt.cflags, inputs, extra, out_fn, ext);
 
   error e = sh(cmd);
   free(cmd);
@@ -243,7 +247,7 @@ static ERROR run_examples(const struct stage *stage) {
     runner = "d8";
     ext = ".js";
   }
-  char *cmd = calloc(strlen(fmt) + strlen(runner) + strlen(main_fn) + strlen(ext) - 4 + 1, sizeof(char));
+  char *cmd = calloc(strlen(fmt) + strlen(runner) + strlen(main_fn) + strlen(ext) + 1, sizeof(char));
   sprintf(cmd, fmt, runner, out_fn, ext);
   e = sh(cmd);
   free(cmd);
@@ -293,6 +297,7 @@ int main(int argc, char **argv) {
   g_opt.verbose = false;
   g_opt.compile = true;
   g_opt.compiler = "gcc";
+  g_opt.ccache = "ccache";
   g_opt.cflags = "";
 
   if (getenv("NCC_VERBOSE")) {
@@ -306,6 +311,11 @@ int main(int argc, char **argv) {
   }
   if (getenv("NCC_CFLAGS")) {
     g_opt.cflags = strdup(getenv("NCC_CFLAGS"));
+  }
+
+  int status = system("ccache --version &> /dev/null");
+  if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    g_opt.ccache = "";
   }
 
   struct globalctx gctx;
