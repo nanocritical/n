@@ -273,16 +273,154 @@ let days_before = {
 fun is_leap year:Int = Bool
 	return year%4 == 0 and (year%100 != 0 or year%400 == 0)
 
+-- Truncates to 0.
 inline Duration met Sec = sec:Int
-	return (self.I64 / onebillion.I64).To_int
+	return (self / S).I64.To_int
 
+-- Truncates to 0.
+inline Duration met Millisec = Int
+	return (self / MS).To_int
+
+-- Truncates to 0.
+inline Duration met Microsec = Int
+	return (self / US).To_int
+
+-- Truncates to 0.
 inline Duration met Nanosec = I64
 	return self.I64
+
+fun show_frac st:@#fmt.`State prec:Uint v:I64
+	assert prec > 0 and prec < 10
+	if v == 0
+		return
+
+	var buf = {}:Stringbuf
+	buf#Resize prec+1
+
+	let _ = (".":Rune).Encode buf![..]
+
+	let ZERO = ("0":Rune).Code.Trim_u8
+	let w = v
+	and leading_zeros = 0
+	and trim_by = Uint.MAX such
+		foreach i in 0 .. prec
+			let d = w % 10
+			if d != 0
+				buf![prec - i]! = ZERO + d.I64.Unsigned.Trim_u8
+				trim_by = Min trim_by i
+			elif w != 0 and trim_by < Uint.MAX
+				buf![prec - i]! = ZERO
+			if w == 0
+				buf![1 + leading_zeros]! = ZERO
+				leading_zeros += 1
+			w /= 10
+	buf#Resize buf.Count-trim_by
+	buf.Show st
+	buf#Clear
+
+example
+	var buf = {}:Stringbuf
+	var vst = {}:Fmt_state
+	var st = @#vst
+	st#Init @#buf
+
+	show_frac st 3 0
+	assert buf.String == ""
+	buf#Clear
+
+	show_frac st 3 1
+	assert buf.String == ".001"
+	buf#Clear
+
+	show_frac st 6 100
+	assert buf.String == ".0001"
+	buf#Clear
+
+	show_frac st 3 999
+	assert buf.String == ".999"
+	buf#Clear
+
+	show_frac st 6 999
+	assert buf.String == ".000999"
+	buf#Clear
 
 Duration met Show st:@#fmt.`State
 	if self == 0
 		"0".Show st
 		return
-	self.Sec.Show st
-	"s".Show st
-	(self.I64 % onebillion.I64).Show st
+	elif self.I64 == I64.MIN
+		-- Special case to avoid underflow on I64. Going to U64
+		-- makes everything painful below.
+		"-2562047h47m16.854775808s".Show st
+		return
+
+	let v = self.I64
+	and neg = v < 0 such
+		if neg
+			"-".Show st
+			v = -v
+
+	if v < S.I64
+		if v < US.I64
+			v.I64.Show st
+			"ns".Show st
+		elif v < MS.I64
+			(v / US.I64).I64.Show st
+			show_frac st 3 (v % US.I64)
+			"us".Show st
+		else
+			(v / MS.I64).I64.Show st
+			show_frac st 6 (v % MS.I64)
+			"ms".Show st
+
+	elif v < 60 * S.I64
+		let sec = v / S.I64
+		sec.Show st
+		show_frac st 9 (v % S.I64)
+		"s".Show st
+
+	elif v < 3600 * S.I64
+		let sec = v / S.I64
+		let min = sec / 60
+		min.Show st
+		"m".Show st
+		(sec % 60).Show st
+		show_frac st 9 (v % S.I64)
+		"s".Show st
+
+	else
+		let sec = v / S.I64
+		let min = sec / 60
+		let hour = min / 60
+		hour.Show st
+		"h".Show st
+		(min % 60).Show st
+		"m".Show st
+		(sec % 60).Show st
+		show_frac st 9 (v % S.I64)
+		"s".Show st
+
+example
+	var buf = {}:Stringbuf
+	var vst = {}:Fmt_state
+	var st = @#vst
+	st#Init @#buf
+
+	let samples = {
+		\ ("0", 0)
+		\ ("1ns", 1 * NS)
+		\ ("1.1us", 1100 * NS)
+		\ ("2.2ms", 2200 * US)
+		\ ("3.3s", 3300 * MS)
+		\ ("4m5s", 4*M + 5*S)
+		\ ("4m5.001s", 4*M + 5001*MS)
+		\ ("5h6m7.001s", 5*H + 6*M + 7001*MS)
+		\ ("8m0.000000001s", 8*M + 1*NS)
+		\ ("2562047h47m16.854775807s", Duration.MAX)
+		\ ("-2562047h47m16.854775807s", Duration.MIN+1)
+		\ ("-2562047h47m16.854775808s", Duration.MIN) }:[](String, Duration)
+
+	foreach s, v in samples
+		v.Show st
+		assert buf.String == s
+		buf#Clear
