@@ -4,30 +4,6 @@
 #include "parser.h"
 #include "types.h"
 
-STEP_NM(step_add_sequence_points,
-        NM(BLOCK));
-error step_add_sequence_points(struct module *mod, struct node *node,
-                               void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  node->as.BLOCK.block_id = mod->next_gensym;
-  mod->next_gensym += 1;
-
-  if (!node->as.BLOCK.is_scopeless && subs_count_atleast(node, 2)) {
-    FOREACH_SUB(s, node) {
-      struct node *seq_point = mk_node(mod, node, BLOCK);
-      seq_point->codeloc = s->codeloc;
-      seq_point->as.BLOCK.is_scopeless = true;
-      node_subs_remove(node, seq_point);
-      node_subs_insert_after(node, s, seq_point);
-      node_subs_remove(node, s);
-      node_subs_append(seq_point, s);
-    }
-  }
-
-  return 0;
-}
-
 struct lir_loop_state {
   struct lir_loop_state *prev;
 

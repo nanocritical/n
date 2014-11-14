@@ -3,9 +3,6 @@
 
 #include "nodes.h"
 
-extern const uint64_t step_add_sequence_points_filter;
-ERROR step_add_sequence_points(struct module *mod, struct node *node,
-                               void *user, bool *stop);
 extern const uint64_t step_lir_conversion_down_filter;
 ERROR step_lir_conversion_down(struct module *mod, struct node *node,
                                void *user, bool *stop);
