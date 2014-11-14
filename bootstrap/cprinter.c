@@ -1330,7 +1330,7 @@ static void print_typ_name(FILE *out, const struct module *mod,
   t = intercept_slices(mod, t);
 
   const struct node *d = DEF(t);
-  if (!newtype_override && d->which == DEFTYPE && d->as.DEFTYPE.newtype_expr != NULL) {
+  while (!newtype_override && d->which == DEFTYPE && d->as.DEFTYPE.newtype_expr != NULL) {
     d = DEF(d->as.DEFTYPE.newtype_expr->typ);
   }
 
