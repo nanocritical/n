@@ -205,6 +205,7 @@ static bool is_in_topmost_module(const struct typ *t) {
 }
 
 static void bare_print_typ(FILE *out, const struct module *mod, const struct typ *typ);
+static void bare_print_typ_actual(FILE *out, const struct module *mod, const struct typ *typ);
 static void print_expr(FILE *out, const struct module *mod,
                        const struct node *node, uint32_t parent_op);
 static void print_block(FILE *out, const struct module *mod,
@@ -384,14 +385,14 @@ static void print_bin_isa(FILE *out, const struct module *mod, const struct node
   if (left->flags & NODE_IS_TYPE) {
     const struct typ *t = typ_is_dyn(left->typ) ? typ_generic_arg(left->typ, 0) : left->typ;
     fprintf(out, "&");
-    bare_print_typ(out, mod, t);
+    bare_print_typ_actual(out, mod, t);
     fprintf(out, "$Reflect_type)");
   } else {
     print_expr(out, mod, left, T__STATEMENT);
     fprintf(out, ").dyntable");
   }
   fprintf(out, ", (void *)&");
-  bare_print_typ(out, mod, right->typ);
+  bare_print_typ_actual(out, mod, right->typ);
   fprintf(out, "$Reflect_type)");
 }
 
@@ -630,7 +631,7 @@ static void print_call(FILE *out, const struct module *mod,
       fprintf(out, ", n$reflect$Get_dyntable_for((void *)(");
       print_expr(out, mod, subs_at_const(node, 1), T__CALL);
       fprintf(out, ").dyntable, (void *)&");
-      bare_print_typ(out, mod, i);
+      bare_print_typ_actual(out, mod, i);
       fprintf(out, "$Reflect_type), (");
       print_expr(out, mod, subs_at_const(node, 1), T__CALL);
       fprintf(out, ").obj)");
@@ -639,7 +640,7 @@ static void print_call(FILE *out, const struct module *mod,
       fprintf(out, "(n$reflect$Get_dyntable_for((void *)(");
       print_expr(out, mod, subs_at_const(node, 1), T__CALL);
       fprintf(out, ").dyntable, (void *)&");
-      bare_print_typ(out, mod, i);
+      bare_print_typ_actual(out, mod, i);
       fprintf(out, "$Reflect_type) != NULL ? (");
       print_typ(out, mod, i);
       fprintf(out, " *)(");
@@ -883,7 +884,7 @@ static void print_init(FILE *out, const struct module *mod,
 }
 
 static void print_deftype_name(FILE *out, const struct module *mod, const struct node *node) {
-  bare_print_typ(out, mod, node->typ);
+  bare_print_typ_actual(out, mod, node->typ);
 }
 
 static void print_deffun_name(FILE *out, const struct module *mod, const struct node *node) {
@@ -928,9 +929,9 @@ static void print_dyn(FILE *out, const struct module *mod, const struct node *no
   fprintf(out, "NLANG_MKDYN(struct _$Ndyn_");
   bare_print_typ(out, mod, intf);
   fprintf(out, ", &");
-  bare_print_typ(out, mod, concrete);
+  bare_print_typ_actual(out, mod, concrete);
   fprintf(out, "$Dyntable__");
-  bare_print_typ(out, mod, intf);
+  bare_print_typ_actual(out, mod, intf);
   fprintf(out, ", (void *)");
   print_expr(out, mod, arg, T__CALL);
   fprintf(out, ")");
@@ -1320,21 +1321,39 @@ static const struct typ *intercept_slices(const struct module *mod, const struct
 }
 
 static void print_typ_name(FILE *out, const struct module *mod,
-                           const struct typ *t) {
+                           const struct typ *t, bool newtype_override) {
   if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
-    print_typ_name(out, mod, typ_generic_functor_const(t));
+    print_typ_name(out, mod, typ_generic_functor_const(t), newtype_override);
     return;
   }
 
   t = intercept_slices(mod, t);
 
   const struct node *d = DEF(t);
-  if (d->which == DEFTYPE && d->as.DEFTYPE.newtype_expr != NULL) {
+  if (!newtype_override && d->which == DEFTYPE && d->as.DEFTYPE.newtype_expr != NULL) {
     d = DEF(d->as.DEFTYPE.newtype_expr->typ);
   }
 
   const struct scope *scope = &d->scope;
   print_scope_name(out, mod, scope);
+}
+
+static bool fun_is_newtype_pretend_wrapper(const struct node *node) {
+  return (node->which == DEFFUN && node->as.DEFFUN.is_newtype_pretend_wrapper)
+          || (node->which == DEFMETHOD && node->as.DEFMETHOD.is_newtype_pretend_wrapper);
+}
+
+static bool newtype_has_local_override(const struct module *mod, const struct typ *typ) {
+  const struct node *def = DEF(typ);
+  const struct node *par = parent_const(def);
+  if (par->which == DEFTYPE && par->as.DEFTYPE.newtype_expr != NULL) {
+    struct node *existing = NULL;
+    error ignore = scope_lookup_ident_immediate(
+      &existing, NULL, mod, &par->scope, node_ident(def), true);
+    (void) ignore;
+    return existing != NULL && !fun_is_newtype_pretend_wrapper(existing);
+  }
+  return false;
 }
 
 static void print_typ_function(FILE *out, const struct module *mod, const struct typ *typ) {
@@ -1345,11 +1364,16 @@ static void print_typ_function(FILE *out, const struct module *mod, const struct
   }
 
   if (node_is_at_top(def)) {
-    print_typ_name(out, mod, typ);
+    print_typ_name(out, mod, typ, false);
   } else {
     const struct node *par = parent_const(def);
-    const struct typ *tparent = par->typ;
-    bare_print_typ(out, mod, tparent);
+    const bool newtype_override = newtype_has_local_override(mod, typ);
+    if (newtype_override) {
+      print_typ_name(out, mod, par->typ, newtype_override);
+    } else {
+      bare_print_typ(out, mod, par->typ);
+    }
+
     if (par->which == DEFCHOICE) {
       fprintf(out, "$%s", idents_value(mod->gctx, node_ident(par)));
     }
@@ -1365,17 +1389,18 @@ static void print_typ_function(FILE *out, const struct module *mod, const struct
   }
 }
 
-static void print_typ_data(FILE *out, const struct module *mod, const struct typ *typ) {
+static void print_typ_data(FILE *out, const struct module *mod, const struct typ *typ,
+                           bool newtype_override) {
   if (typ_is_generic_functor(typ)) {
-    print_typ_name(out, mod, typ);
+    print_typ_name(out, mod, typ, false);
     return;
   } else if (typ_is_dyn(typ)) {
     fprintf(out, "_$Ndyn_");
-    bare_print_typ(out, mod, typ_generic_arg_const(typ, 0));
+    print_typ_data(out, mod, typ_generic_arg_const(typ, 0), newtype_override);
     return;
   } else if (typ_is_reference(typ)) {
     fprintf(out, "_$Nref_");
-    bare_print_typ(out, mod, typ_generic_arg_const(typ, 0));
+    print_typ_data(out, mod, typ_generic_arg_const(typ, 0), newtype_override);
     return;
   }
 
@@ -1383,7 +1408,7 @@ static void print_typ_data(FILE *out, const struct module *mod, const struct typ
     fprintf(out, "_$Ngen_");
   }
 
-  print_typ_name(out, mod, typ);
+  print_typ_name(out, mod, typ, newtype_override);
 
   if (typ_generic_arity(typ) > 0) {
     for (size_t n = 0; n < typ_generic_arity(typ); ++n) {
@@ -1394,11 +1419,19 @@ static void print_typ_data(FILE *out, const struct module *mod, const struct typ
   }
 }
 
+static void bare_print_typ_actual(FILE *out, const struct module *mod, const struct typ *typ) {
+  if (typ_is_function(typ)) {
+    print_typ_function(out, mod, typ);
+  } else {
+    print_typ_data(out, mod, typ, true);
+  }
+}
+
 static void bare_print_typ(FILE *out, const struct module *mod, const struct typ *typ) {
   if (typ_is_function(typ)) {
     print_typ_function(out, mod, typ);
   } else {
-    print_typ_data(out, mod, typ);
+    print_typ_data(out, mod, typ, false);
   }
 }
 
@@ -2000,13 +2033,13 @@ static void guard_generic(FILE *out, bool header, enum forward fwd,
 
   if (begin) {
     fprintf(out, "#ifndef HAS%x_%s", fwd, prefix);
-    bare_print_typ(out, mod, t);
+    bare_print_typ_actual(out, mod, t);
     fprintf(out, "\n#define HAS%x_%s", fwd, prefix);
-    bare_print_typ(out, mod, t);
+    bare_print_typ_actual(out, mod, t);
     fprintf(out, "\n");
   } else {
     fprintf(out, "#endif // HAS%x_%s", fwd, prefix);
-    bare_print_typ(out, mod, t);
+    bare_print_typ_actual(out, mod, t);
     fprintf(out, "\n");
   }
 }
@@ -2111,9 +2144,7 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
   if (par->which == DEFINTF) {
     return;
   }
-  if (((node->which == DEFFUN && node->as.DEFFUN.is_newtype_ignore)
-       || (node->which == DEFMETHOD && node->as.DEFMETHOD.is_newtype_ignore))
-      && par->which == DEFTYPE && par->as.DEFTYPE.newtype_expr != NULL) {
+  if (fun_is_newtype_pretend_wrapper(node)) {
     return;
   }
   if (node_ident(node) == ID_NEXT
@@ -2336,7 +2367,7 @@ static void print_dyntable_type(FILE *out, bool header, enum forward fwd,
                                 const struct module *mod, const struct node *node) {
   if (fwd == FWD_DECLARE_TYPES) {
     fprintf(out, "struct _$Ndyntable_");
-    print_deftype_name(out, mod, node);
+    bare_print_typ(out, mod, node->typ);
     fprintf(out, ";\n");
 
     if (node->which == DEFINTF) {
@@ -2349,7 +2380,7 @@ static void print_dyntable_type(FILE *out, bool header, enum forward fwd,
              && (typ_generic_arity(node->typ) > 0
                  || header == node_is_export(node))) {
     fprintf(out, "struct _$Ndyntable_");
-    print_deftype_name(out, mod, node);
+    bare_print_typ(out, mod, node->typ);
     fprintf(out, " {\n");
 
     // Must be first: see lib/n/reflect.n.h
@@ -2387,7 +2418,7 @@ static void print_dyntable_type(FILE *out, bool header, enum forward fwd,
       print_deftype_name(out, mod, node);
       fprintf(out, " {\n");
       fprintf(out, "const struct _$Ndyntable_");
-      print_deftype_name(out, mod, node);
+      bare_print_typ(out, mod, node->typ);
       fprintf(out, " *dyntable;\n");
       fprintf(out, "void *obj;\n");
       fprintf(out, "};\n");
@@ -2406,9 +2437,9 @@ static ERROR print_dyntable_proto_eachisalist(struct module *mod, struct typ *t,
   fprintf(st->out, WEAK "extern const struct _$Ndyntable_");
   bare_print_typ(st->out, mod, intf);
   fprintf(st->out, " ");
-  bare_print_typ(st->out, mod, t);
+  bare_print_typ_actual(st->out, mod, t);
   fprintf(st->out, "$Dyntable__");
-  bare_print_typ(st->out, mod, intf);
+  bare_print_typ_actual(st->out, mod, intf);
   fprintf(st->out, ";\n");
   return 0;
 }
@@ -2460,12 +2491,12 @@ static ERROR print_dyntable_eachisalist(struct module *mod, struct typ *t,
   fprintf(st->out, WEAK "const struct _$Ndyntable_");
   bare_print_typ(st->out, mod, intf);
   fprintf(st->out, " ");
-  bare_print_typ(st->out, mod, t);
+  bare_print_typ_actual(st->out, mod, t);
   fprintf(st->out, "$Dyntable__");
-  bare_print_typ(st->out, mod, intf);
+  bare_print_typ_actual(st->out, mod, intf);
   fprintf(st->out, " = {\n");
   fprintf(st->out, ".type = &");
-  bare_print_typ(st->out, mod, t);
+  bare_print_typ_actual(st->out, mod, t);
   fprintf(st->out, "$Reflect_type,\n");
 
   struct cprinter_state st2 = *st;
@@ -2538,7 +2569,7 @@ static void print_reflect_type(FILE *out, bool header, enum forward fwd,
 
   if (header && fwd == FWD_DECLARE_TYPES) {
     fprintf(out, WEAK "extern const struct __Type ");
-    bare_print_typ(out, mod, node->typ);
+    bare_print_typ_actual(out, mod, node->typ);
     fprintf(out, "$Reflect_type;\n");
     return;
   } else if (header || fwd != FWD_DEFINE_FUNCTIONS) {
@@ -2548,7 +2579,7 @@ static void print_reflect_type(FILE *out, bool header, enum forward fwd,
   if (node->which == DEFINTF) {
     struct __Type *type = node->as.DEFINTF.reflect_type;
     fprintf(out, WEAK " const struct __Type ");
-    bare_print_typ(out, mod, node->typ);
+    bare_print_typ_actual(out, mod, node->typ);
     fprintf(out, "$Reflect_type = {\n");
     fprintf(out, ".typename_hash32 = 0x%x,\n", type->typename_hash32);
     fprintf(out, ".Typename = NLANG_STRING_LITERAL(\"%.*s\"),\n",
@@ -2559,7 +2590,7 @@ static void print_reflect_type(FILE *out, bool header, enum forward fwd,
 
   struct __Type *type = node->as.DEFTYPE.reflect_type;
   fprintf(out, "static uint16_t ");
-  bare_print_typ(out, mod, node->typ);
+  bare_print_typ_actual(out, mod, node->typ);
   fprintf(out, "$Reflect_type__hashmap[] = {\n");
   for (size_t n = 0; n < type->dynisalist.hashmap.cnt; n += 10) {
     for (size_t i = n; i < n + 10 && i < type->dynisalist.hashmap.cnt; ++i) {
@@ -2570,7 +2601,7 @@ static void print_reflect_type(FILE *out, bool header, enum forward fwd,
   fprintf(out, "};\n");
 
   fprintf(out, "static struct __entry ");
-  bare_print_typ(out, mod, node->typ);
+  bare_print_typ_actual(out, mod, node->typ);
   fprintf(out, "$Reflect_type__entries[] = {\n");
   for (size_t n = 0; n < type->dynisalist.entries.cnt; ++n) {
     struct __entry *e = &type->dynisalist.entries.dat[n];
@@ -2579,15 +2610,15 @@ static void print_reflect_type(FILE *out, bool header, enum forward fwd,
 
     const struct typ *intf = e->dyntable;
     fprintf(out, "&");
-    bare_print_typ(out, mod, node->typ);
+    bare_print_typ_actual(out, mod, node->typ);
     fprintf(out, "$Dyntable__");
-    bare_print_typ(out, mod, intf);
+    bare_print_typ_actual(out, mod, intf);
     fprintf(out, " },\n");
   }
   fprintf(out, "};\n");
 
   fprintf(out, WEAK " const struct __Type ");
-  bare_print_typ(out, mod, node->typ);
+  bare_print_typ_actual(out, mod, node->typ);
   fprintf(out, "$Reflect_type = {\n");
   fprintf(out, ".typename_hash32 = 0x%x,\n", type->typename_hash32);
   fprintf(out, ".Typename = NLANG_STRING_LITERAL(\"%.*s\"),\n",
@@ -2596,14 +2627,14 @@ static void print_reflect_type(FILE *out, bool header, enum forward fwd,
 
   fprintf(out, ".hashmap = {\n");
   fprintf(out, ".dat = ");
-  bare_print_typ(out, mod, node->typ);
+  bare_print_typ_actual(out, mod, node->typ);
   fprintf(out, "$Reflect_type__hashmap,\n");
   fprintf(out, ".cnt = %zu,\n.cap = %zu,\n},",
           type->dynisalist.hashmap.cnt, type->dynisalist.hashmap.cap);
 
   fprintf(out, ".entries = {\n");
   fprintf(out, ".dat = ");
-  bare_print_typ(out, mod, node->typ);
+  bare_print_typ_actual(out, mod, node->typ);
   fprintf(out, "$Reflect_type__entries,\n");
   fprintf(out, ".cnt = %zu,\n.cap = %zu,\n},",
           type->dynisalist.entries.cnt, type->dynisalist.entries.cap);
@@ -3028,7 +3059,8 @@ static void print_deftype(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  if (node->as.DEFTYPE.newtype_expr != NULL) {
+  if ((fwd != FWD_DECLARE_FUNCTIONS && fwd != FWD_DEFINE_FUNCTIONS)
+      && node->as.DEFTYPE.newtype_expr != NULL) {
     return;
   }
 

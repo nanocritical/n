@@ -479,9 +479,9 @@ error step_autointf_newtype(struct module *mod, struct node *node,
 
     struct node *m = define_builtin_start(mod, node, node->typ, ms);
     if (m->which == DEFFUN) {
-      m->as.DEFFUN.is_newtype_ignore = true;
+      m->as.DEFFUN.is_newtype_pretend_wrapper = true;
     } else if (m->which == DEFMETHOD) {
-      m->as.DEFMETHOD.is_newtype_ignore = true;
+      m->as.DEFMETHOD.is_newtype_pretend_wrapper = true;
     }
     define_builtin_catchup(mod, m);
   }
@@ -500,7 +500,7 @@ error step_autointf_newtype(struct module *mod, struct node *node,
   if (node_get_member(node, from_name) == NULL) {
     G0(from, node, DEFFUN,
        from->as.DEFFUN.is_newtype_converter = true;
-       from->as.DEFFUN.is_newtype_ignore = true;
+       from->as.DEFFUN.is_newtype_pretend_wrapper = true;
        G(id, IDENT,
          id->as.IDENT.name = from_name);
        G(ga, GENARGS);
@@ -523,7 +523,7 @@ error step_autointf_newtype(struct module *mod, struct node *node,
   if (node_get_member(node, to_name) == NULL) {
     G0(to, node, DEFMETHOD,
        to->as.DEFMETHOD.is_newtype_converter = true;
-       to->as.DEFMETHOD.is_newtype_ignore = true;
+       to->as.DEFMETHOD.is_newtype_pretend_wrapper = true;
        G(id, IDENT,
          id->as.IDENT.name = to_name);
        G(ga, GENARGS);

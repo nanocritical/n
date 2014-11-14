@@ -327,7 +327,7 @@ struct node_deffun {
   struct toplevel toplevel;
   enum token_type access;
   bool is_newtype_converter;
-  bool is_newtype_ignore;
+  bool is_newtype_pretend_wrapper;
   ssize_t min_args, max_args, first_vararg;
   const struct typ *member_from_intf;
   size_t example;
@@ -355,7 +355,7 @@ struct node_defmethod {
   struct toplevel toplevel;
   enum token_type access;
   bool is_newtype_converter;
-  bool is_newtype_ignore;
+  bool is_newtype_pretend_wrapper;
   ssize_t min_args, max_args, first_vararg, first_wildcard_genarg;
   const struct typ *member_from_intf;
 };
