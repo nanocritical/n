@@ -148,6 +148,7 @@ bool typ_is_nullable_reference(const struct typ *t);
 ERROR typ_check_is_reference(const struct module *mod, const struct node *for_error,
                              const struct typ *a);
 bool typ_is_slice(const struct typ *t);
+bool typ_is_tuple(const struct typ *t);
 bool typ_is_optional(const struct typ *t);
 
 bool typ_is_dyn(const struct typ *t);

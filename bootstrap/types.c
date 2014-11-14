@@ -2517,6 +2517,10 @@ bool typ_is_slice(const struct typ *t) {
   return t->flags & TYPF_SLICE;
 }
 
+bool typ_is_tuple(const struct typ *t) {
+  return t->flags & TYPF_TUPLE;
+}
+
 bool typ_is_optional(const struct typ *t) {
   return t->flags & TYPF_OPTIONAL;
 }

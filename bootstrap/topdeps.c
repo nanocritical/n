@@ -69,7 +69,12 @@ static void record_final(struct module *mod, struct typ *t) {
     }
   }
 
-  if (!(top->typ != NULL && typ_is_reference(top->typ))
+  // This may prove to be too restrictive, but we want to make sure that
+  // builtins appears first in generated code.
+  const bool is_dependency_on_builtins = top->typ != NULL
+    && strncmp(node_module_owner_const(top)->filename, "lib/n/builtins/",
+               sizeof("lib/n/builtins/")-1) == 0;
+  if (!is_dependency_on_builtins
       && typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
     // Inherit the inline struct dependencies from fields of a generic.
     struct tit *tit = typ_definition_members(t, DEFFIELD, 0);
