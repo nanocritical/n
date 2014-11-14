@@ -214,7 +214,9 @@ fun rk_hash b:[]U8 = U32, U32
 			i >>= 1
 	return hash, pow
 
-String met Index sep:String = Int
+extern String met Index sep:String = Int
+
+String met Alt_index sep:String = Int
 	let cnt = self.Count
 	let n = sep.Count
 	if n == 0
