@@ -621,31 +621,53 @@ static size_t count_defchoices(const struct node *node) {
   return count;
 }
 
-static void add_enum_bwall(struct module *mod, struct node *node) {
+static void add_enum_constants(struct module *mod, struct node *node) {
   const size_t count = count_defchoices(node);
+
+  {
+    char value[32] = { 0 };
+    snprintf(value, ARRAY_SIZE(value), "0x%"PRIx64, count);
+
+    GSTART();
+    G0(let, node, LET,
+       let->flags |= NODE_IS_GLOBAL_LET;
+       G(defn, DEFNAME,
+         G_IDENT(valn, "COUNT");
+         G(valc, TYPECONSTRAINT,
+           G(val, NUMBER,
+             val->as.NUMBER.value = strdup(value));
+           G(valt, DIRECTDEF,
+             set_typ(&valt->as.DIRECTDEF.typ, TBI_UINT)))));
+
+    error e = catchup(mod, NULL, let, CATCHUP_BELOW_CURRENT);
+    assert(!e);
+  }
+
   if (count > 64) {
     // FIXME
     return;
   }
 
-  const uint64_t bwall = (1 << count) - 1;
+  {
+    const uint64_t bwall = (1 << count) - 1;
 
-  char value[32] = { 0 };
-  snprintf(value, ARRAY_SIZE(value), "0x%"PRIx64, bwall);
+    char value[32] = { 0 };
+    snprintf(value, ARRAY_SIZE(value), "0x%"PRIx64, bwall);
 
-  GSTART();
-  G0(let, node, LET,
-     let->flags |= NODE_IS_GLOBAL_LET;
-     G(defn, DEFNAME,
-       G_IDENT(valn, "BWALL");
-       G(valc, TYPECONSTRAINT,
-         G(val, NUMBER,
-           val->as.NUMBER.value = strdup(value));
-         G(valt, DIRECTDEF,
-           set_typ(&valt->as.DIRECTDEF.typ, TBI_U64)))));
+    GSTART();
+    G0(let, node, LET,
+       let->flags |= NODE_IS_GLOBAL_LET;
+       G(defn, DEFNAME,
+         G_IDENT(valn, "BWALL");
+         G(valc, TYPECONSTRAINT,
+           G(val, NUMBER,
+             val->as.NUMBER.value = strdup(value));
+           G(valt, DIRECTDEF,
+             set_typ(&valt->as.DIRECTDEF.typ, TBI_U64)))));
 
-  error e = catchup(mod, NULL, let, CATCHUP_BELOW_CURRENT);
-  assert(!e);
+    error e = catchup(mod, NULL, let, CATCHUP_BELOW_CURRENT);
+    assert(!e);
+  }
 }
 
 STEP_NM(step_autointf_enum_union_isalist,
@@ -654,7 +676,7 @@ error step_autointf_enum_union_isalist(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
   if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-    add_enum_bwall(mod, node);
+    add_enum_constants(mod, node);
     add_auto_isa_isalist(mod, node, TBI_ENUM);
   } else if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
     add_auto_isa_isalist(mod, node, TBI_UNION);
