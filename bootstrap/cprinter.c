@@ -111,19 +111,23 @@ static const char *c_token_strings[TOKEN__NUM] = {
 };
 
 static char *escape_string(const char *s) {
-  char *r = calloc(2 * strlen(s) + 1, sizeof(char));
+  const size_t len = strlen(s);
+  char *r = calloc(2 * len + 1, sizeof(char));
+  if (len == 0) {
+    return r;
+  }
+  assert(len != 1 && "string should be quoted");
 
   char delim = s[0];
   assert(delim == '\'' || delim == '"');
 
-  if (s[1] == delim) {
-    r[0] = '\0';
+  if (s[2] == '\0' && s[1] == delim) {
     return r;
   }
 
   char *v = r;
   for (const char *p = s + 1; p[1] != '\0'; ++p, ++v) {
-    if (p[0] == delim) {
+    if (p[1] == '\0' && p[0] == delim) {
       v[0] = '\0';
     } else if (p[0] == '"') {
       v[0] = '\\';
@@ -154,6 +158,7 @@ EXAMPLE(escape_string) {
   assert(strcmp("abc", escape_string("\"abc\"")) == 0);
   assert(strcmp("ab'c", escape_string("\"ab'c\"")) == 0);
   assert(strcmp("abc", escape_string("'abc'")) == 0);
+  assert(strcmp(" \\\"abc", escape_string("\" \"abc\"")) == 0);
   assert(strcmp("", escape_string("\"\"")) == 0);
   assert(strcmp("", escape_string("''")) == 0);
   assert(strcmp("'", escape_string("'\\''")) == 0);
