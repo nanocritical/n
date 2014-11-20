@@ -759,6 +759,17 @@ static ERROR scan_oneof(struct token *tok, struct module *mod, ...) {
 
 }
 
+bool name_is_export(const struct module *mod, const struct node *name) {
+  if (name->which == BIN) {
+    name = subs_last_const(name);
+  }
+
+  const char *v = idents_value(mod->gctx, node_ident(name));
+  int c1 = v[0];
+  int c2 = v[1];
+  return (c1 >= 'A' && c1 <= 'Z') || (c1 == '`' && c2 >= 'A' && c2 <= 'Z');
+}
+
 static ERROR p_expr(struct node *node, struct module *mod, enum token_type parent_op);
 static ERROR p_block(struct node *node, struct module *mod);
 
@@ -2214,17 +2225,6 @@ void deffun_count_args(struct node *def) {
   }
 }
 
-bool name_is_export(const struct module *mod, const struct node *name) {
-  if (name->which == BIN) {
-    name = subs_last_const(name);
-  }
-
-  const char *v = idents_value(mod->gctx, node_ident(name));
-  int c1 = v[0];
-  int c2 = v[1];
-  return (c1 >= 'A' && c1 <= 'Z') || (c1 == '`' && c2 >= 'A' && c2 <= 'Z');
-}
-
 static ERROR p_deffun(struct node *node, struct module *mod,
                       const struct toplevel *toplevel,
                       enum node_which fun_or_method) {
@@ -2250,10 +2250,6 @@ static ERROR p_deffun(struct node *node, struct module *mod,
   struct node *name = subs_first(node);
   e = p_expr(name, mod, T__CALL);
   EXCEPT(e);
-
-  if (name_is_export(mod, name)) {
-    node_toplevel(node)->flags |= TOP_IS_EXPORT;
-  }
 
   struct node *funargs = mk_node(mod, node, FUNARGS);
   if (fun_or_method == DEFMETHOD) {
@@ -2607,10 +2603,6 @@ static ERROR p_deftype(struct node *node, struct module *mod,
   error e = p_ident(subs_first(node), mod);
   EXCEPT(e);
 
-  if (name_is_export(mod, subs_first_const(node))) {
-    node_toplevel(node)->flags |= TOP_IS_EXPORT;
-  }
-
   e = p_genargs(subs_at(node, IDX_GENARGS), mod, TASSIGN, true);
   EXCEPT(e);
 
@@ -2771,10 +2763,6 @@ static ERROR p_defintf(struct node *node, struct module *mod,
   struct token tok = { 0 };
   error e = p_ident(subs_first(node), mod);
   EXCEPT(e);
-
-  if (name_is_export(mod, subs_first_const(node))) {
-    node_toplevel(node)->flags |= TOP_IS_EXPORT;
-  }
 
   if (idents_value(mod->gctx, node_ident(subs_first(node)))[0] != '`') {
     e = mk_except(mod, subs_first(node), "intf name doesn't start with '`'");

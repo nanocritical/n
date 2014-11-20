@@ -4,6 +4,7 @@
 #include "lir.h"
 #include "ssa.h"
 #include "types.h"
+#include "parser.h"
 
 #include "passbody.h"
 
@@ -90,6 +91,11 @@ static ERROR step_init_toplevel(struct module *mod, struct node *node,
   struct toplevel *toplevel = node_toplevel(node);
   toplevel->passing = -1;
   toplevel->passed = -1;
+
+  if (name_is_export(mod, subs_first(node))) {
+    toplevel->flags |= TOP_IS_EXPORT;
+  }
+
   return 0;
 }
 

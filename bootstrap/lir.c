@@ -430,9 +430,6 @@ static ERROR extract_defnames(struct module *mod, struct lir_state *st,
           node_subs_append(def, expr);
         }
       }
-      if (name_is_export(mod, subs_first_const(def))) {
-        node_toplevel(let)->flags |= TOP_IS_EXPORT;
-      }
       return 0;
     }
     break;

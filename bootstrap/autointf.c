@@ -99,7 +99,7 @@ static struct node *define_builtin_start(struct module *mod, struct node *deft,
 
   struct toplevel *toplevel = node_toplevel(d);
   toplevel->flags &= ~TOP_IS_PROTOTYPE;
-  toplevel->flags |= node_toplevel(deft)->flags & (TOP_IS_EXPORT | TOP_IS_INLINE);
+  toplevel->flags |= node_toplevel(deft)->flags & (TOP_IS_INLINE);
 
   return d;
 }

@@ -2751,14 +2751,10 @@ static void print_defchoice(FILE *out,
 }
 
 static void print_enumunion_functions(FILE *out, bool header, enum forward fwd,
-                                  const struct module *mod,
-                                  const struct node *deft,
-                                  const struct node *ch,
-                                  struct fintypset *printed) {
-  if (header && !(node_is_export(deft) && node_is_inline(deft))) {
-    return;
-  }
-
+                                      const struct module *mod,
+                                      const struct node *deft,
+                                      const struct node *ch,
+                                      struct fintypset *printed) {
   FOREACH_SUB_CONST(m, ch) {
     switch (m->which) {
     case DEFFUN:
@@ -2889,7 +2885,6 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
 
       print_reflect_type(out, header, fwd, mod, node);
     }
-    return;
   }
 
   if (fwd == FWD_DEFINE_TYPES) {
