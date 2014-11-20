@@ -2942,9 +2942,6 @@ error step_type_inference(struct module *mod, struct node *node,
   case LET:
     set_typ(&node->typ, TBI_VOID);
     break;
-  case DELEGATE:
-    set_typ(&node->typ, TBI_VOID);
-    break;
   case ASSERT:
   case PRE:
   case POST:

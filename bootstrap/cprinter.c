@@ -2258,26 +2258,11 @@ static void print_deffield(FILE *out, const struct module *mod, const struct nod
   print_deffield_name(out, mod, node);
 }
 
-static void print_delegate(FILE *out, const struct module *mod, const struct node *node) {
-  fprintf(out, "delegate ");
-  print_expr(out, mod, subs_first_const(node), T__CALL);
-
-  FOREACH_SUB_EVERY_CONST(s, node, 1, 1) {
-    fprintf(out, " ");
-    print_expr(out, mod, s, T__CALL);
-  }
-}
-
 static void print_deftype_statement(FILE *out, bool header, enum forward fwd,
                                     const struct module *mod, const struct node *node,
                                     bool do_static, struct fintypset *printed) {
   if (do_static) {
     switch (node->which) {
-    case DELEGATE:
-      if (fwd == FWD_DEFINE_TYPES) {
-        print_delegate(out, mod, node);
-      }
-      break;
     case INVARIANT:
       if (fwd == FWD_DEFINE_FUNCTIONS) {
         print_invariant(out, mod, node);

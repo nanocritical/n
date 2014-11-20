@@ -2068,7 +2068,6 @@ error step_constraint_inference(struct module *mod, struct node *node,
   case FUNARGS:
   case GENARGS:
   case LET:
-  case DELEGATE:
   case PRE:
   case POST:
   case INVARIANT:

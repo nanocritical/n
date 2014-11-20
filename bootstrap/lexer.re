@@ -316,7 +316,6 @@ normal:
   "import" { R(Timport); }
   "export" { R(Texport); }
   "from" { R(Tfrom); }
-  "delegate" { R(Tdelegate); }
   "declare" { R(Tdeclare); }
   "and" { R(Tand); }
   "or" { R(Tor); }

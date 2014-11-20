@@ -40,7 +40,6 @@ enum token_type {
   Texcept,
   Tthrow,
   Tblock,
-  Tdelegate,
   Tdeclare,
   Tand,
   Tor,

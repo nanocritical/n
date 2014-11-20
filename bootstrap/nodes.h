@@ -72,7 +72,6 @@ enum node_which {
   LET,
   DEFFIELD,
   DEFCHOICE,
-  DELEGATE,
   ASSERT,
   PRE,
   POST,
@@ -439,7 +438,6 @@ struct node_invariant {
   struct toplevel toplevel;
 };
 struct node_within {
-  struct toplevel toplevel;
   struct node *globalenv_scope;
 };
 struct node_import {
@@ -505,7 +503,6 @@ union node_as {
   struct node_let LET;
   struct node_deffield DEFFIELD;
   struct node_defchoice DEFCHOICE;
-  struct node_delegate DELEGATE;
   struct node_pre PRE;
   struct node_post POST;
   struct node_invariant INVARIANT;
@@ -1381,8 +1378,7 @@ size_t node_branching_exhaustive_branch_count(struct node *node);
    (STEP_NM_DEFS_NO_FUNS | NM(DEFFUN) | NM(DEFMETHOD))
 
 #define STEP_NM_HAS_TOPLEVEL \
-  (STEP_NM_DEFS | NM(LET) | NM(INVARIANT) | NM(DELEGATE) \
-   | NM(IMPORT) | NM(WITHIN))
+  (STEP_NM_DEFS | NM(LET) | NM(INVARIANT) | NM(IMPORT))
 
 #define STEP_NM_BRANCHING \
   (NM(IF) | NM(FOR) | NM(WHILE) | NM(MATCH) | NM(TRY))
@@ -1409,9 +1405,6 @@ static inline const struct toplevel *node_toplevel_const(const struct node *node
   case LET:
     toplevel = &node->as.LET.toplevel;
     break;
-  case DELEGATE:
-    toplevel = &node->as.DELEGATE.toplevel;
-    break;
   case PRE:
     toplevel = &node->as.PRE.toplevel;
     break;
@@ -1420,9 +1413,6 @@ static inline const struct toplevel *node_toplevel_const(const struct node *node
     break;
   case INVARIANT:
     toplevel = &node->as.INVARIANT.toplevel;
-    break;
-  case WITHIN:
-    toplevel = &node->as.WITHIN.toplevel;
     break;
   case IMPORT:
     toplevel = &node->as.IMPORT.toplevel;

@@ -38,7 +38,6 @@ const char *token_strings[TOKEN__NUM] = {
   [Tcatch] = "catch",
   [Texcept] = "except",
   [Tblock] = "block",
-  [Tdelegate] = "delegate",
   [Tdeclare] = "declare",
   [Tand] = " and ",
   [Tor] = " or ",
@@ -746,25 +745,12 @@ static void print_defchoice(FILE *out, const struct module *mod, int indent,
   return;
 }
 
-static void print_delegate(FILE *out, const struct module *mod, const struct node *node) {
-  fprintf(out, "delegate ");
-  print_expr(out, mod, subs_first_const(node), T__CALL);
-
-  FOREACH_SUB_EVERY_CONST(s, node, 1, 1) {
-    fprintf(out, " ");
-    print_expr(out, mod, s, T__CALL);
-  }
-}
-
 static void print_defmethod(FILE *out, const struct module *mod, int indent, const struct node *node);
 
 static void print_deftype_statement(FILE *out, const struct module *mod, int indent, const struct node *node) {
   switch (node->which) {
   case LET:
     print_let(out, mod, indent, node);
-    break;
-  case DELEGATE:
-    print_delegate(out, mod, node);
     break;
   case INVARIANT:
     print_invariant(out, mod, indent, node);

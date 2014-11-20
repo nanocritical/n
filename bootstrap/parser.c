@@ -2443,31 +2443,6 @@ again:
   }
 }
 
-static ERROR p_delegate(struct node *node, struct module *mod,
-                        struct toplevel *toplevel) {
-  node_set_which(node, DELEGATE);
-  node->as.DELEGATE.toplevel = *toplevel;
-
-  error e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
-  EXCEPT(e);
-
-  struct token tok = { 0 };
-
-again:
-  e = scan(&tok, mod);
-  EXCEPT(e);
-  back(mod, &tok);
-
-  if (tok.t == TEOL) {
-    return 0;
-  }
-
-  e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
-  EXCEPT(e);
-
-  goto again;
-}
-
 static ERROR p_deftype_statement(struct node *node, struct module *mod,
                                  struct node *deft) {
   error e = 0;
@@ -2499,9 +2474,6 @@ again:
   case Tisa:
     node_subs_remove(deft, node);
     e = p_isalist(deft, mod);
-    break;
-  case Tdelegate:
-    e = p_delegate(node, mod, &toplevel);
     break;
   case Tinvariant:
     e = p_invariant(node, mod);
