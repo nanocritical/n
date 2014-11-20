@@ -978,47 +978,25 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
   return 0;
 }
 
-static size_t codeloc_pos_after(struct module *mod, struct node *node) {
-  struct node *n = node;
-  while (next(n) == NULL || next(n)->codeloc.line <= node->codeloc.line + 1) {
-    if (parent(n) == NULL) {
-      break;
-    }
-    n = parent(n);
-  }
-
-  n = next(n);
-  if (n == NULL) {
-    return mod->parser.len;
-  } else {
-    return n->codeloc.pos;
-  }
-}
-
-static char *quote_code(const char *data, size_t start, size_t end) {
+static char *quote_code(const char *data, size_t start) {
   int len = 0;
-  for (size_t n = start; n < end; ++n) {
-    switch (data[n]) {
-    case '\n':
+  for (size_t n = start; true; ++n, ++len) {
+    if (data[n] == '\n') {
       goto done;
-    case '"':
-      len += 1;
-      break;
     }
-    len += 1;
   }
 
-done:
-  ;char *r = calloc(2 + len + 1, sizeof(char));
+done:;
+  char *r = calloc(2 + len + 1, sizeof(char));
   sprintf(r, "\"%.*s\"", len, data + start);
   return r;
 }
 
 EXAMPLE(quote_code) {
   const char *code = "abcd\nefgh";
-  assert(strcmp("\"abcd\"", quote_code(code, 0, 9)) == 0);
-  assert(strcmp("\"efgh\"", quote_code(code, 5, 9)) == 0);
-  assert(strcmp("\"d\"", quote_code(code, 3, 5)) == 0);
+  assert(strcmp("\"abcd\"", quote_code(code, 0)) == 0);
+  assert(strcmp("\"efgh\"", quote_code(code, 5)) == 0);
+  assert(strcmp("\"d\"", quote_code(code, 3)) == 0);
 }
 
 static void try_filling_codeloc(struct module *mod, struct node *named,
@@ -1060,8 +1038,7 @@ static void try_filling_codeloc(struct module *mod, struct node *named,
   snprintf(vc, 16, "%d", node->codeloc.column);
   col->as.NUMBER.value = vc;
 
-  expr->as.STRING.value = quote_code(mod->parser.data, node->codeloc.pos,
-                                     codeloc_pos_after(mod, node));
+  expr->as.STRING.value = quote_code(mod->parser.data, node->codeloc.pos);
 }
 
 static void insert_missing_optional_arg(struct module *mod, struct node *node,
