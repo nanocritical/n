@@ -11,7 +11,7 @@ inline enum Standard_measures =
 	| NET
 
 inline struct Example =
-	active_measures	:(Mask Standard_measures)
+	active_measures	:(Enumset Standard_measures)
 	-- Use an Enummap
 	clock_restorer	:Restorer
 	heap_restorer	:Restorer

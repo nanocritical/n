@@ -807,9 +807,11 @@ intf `Native_floating =
 intf `Enum =
 	isa `Trivial_order `Trivial_equality `Trivial_copy `Return_by_copy `Trivial_dtor `Show
 	alias Tag_type = `Unsigned_integer
-	-- Generated for use by Mask.
+
+	-- Generated for use by Enumset/Enummap.
 	let COUNT:Uint
 	let BWALL:U64
+
 	fun From_tag value:final.Tag_type = final
 	met Tag = final.Tag_type
 

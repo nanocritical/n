@@ -55,7 +55,7 @@ inline enum Openbits =
 	| DIRECTORY
 	| NOFOLLOW
 
-alias Openflags = (Mask Openbits)
+alias Openflags = (Enumset Openbits)
 
 fun sys_open_flags flags:?Openflags = r:syscall.Open_flags
 	r = syscall.O_CLOEXEC

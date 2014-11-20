@@ -11,7 +11,7 @@ enum en0 =
 	| C
 
 fun tests
-	let m = {A B C}:(Mask en)
+	let m = {A B C}:(Enumset en)
 	assert m.Count == 3
 	assert A in m
 	assert B in m
@@ -23,13 +23,13 @@ fun tests
 	assert {B C} <= m
 	assert m > {A C}
 	assert m >= {A C}
-	assert ~{A}:(Mask en) == {B C}
+	assert ~{A}:(Enumset en) == {B C}
 
-	assert {A}:(Mask en) & {B} == {}:(Mask en)
-	assert ({A}:(Mask en) | {B}).Count == 2
+	assert {A}:(Enumset en) & {B} == {}:(Enumset en)
+	assert ({A}:(Enumset en) | {B}).Count == 2
 
 	Prn m
-	Prn {B C}:(Mask en)
+	Prn {B C}:(Enumset en)
 
 fun Main = I32
 	tests

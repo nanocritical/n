@@ -21,7 +21,7 @@ inline enum Accessbits =
 	| SGID
 	| STICKY
 
-alias Accessmask = (Mask Accessbits)
+alias Accessmask = (Enumset Accessbits)
 
 alias Uid = Int
 alias Gid = Int

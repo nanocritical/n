@@ -3,7 +3,7 @@ enum Protbits =
 	| WRITE
 	| EXEC
 
-alias Protmask = (Mask Protbits)
+alias Protmask = (Enumset Protbits)
 
 fun sys_mmap_prot prot:?Protmask = r:syscall.Mmap_prot
 	let prot = prot else {}
