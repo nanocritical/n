@@ -14,6 +14,8 @@ intf `String =
 	met Bytes = []U8
 	met Operator_at n:Uint = U8
 	met$ Operator_sub r:Range = []$U8
+	met First = U8
+	met Last = U8
 
 --	met Begins_with s:String = Bool
 --	met Ends_with s:String = Bool
@@ -94,6 +96,12 @@ inline String met Count = Uint
 
 inline String met Operator_at n:Uint = U8
 	return self.bytes.[n].
+
+inline String met First = U8
+	return self.[0]
+
+inline String met Last = U8
+	return self.[self.Count-1]
 
 inline String met Operator_sub r:Range = []U8
 	return self.bytes.Operator_sub r
@@ -308,6 +316,12 @@ inline Stringbuf met Cap = Uint
 
 inline Stringbuf met Count = Uint
 	return self.bytes.cnt
+
+inline Stringbuf met First = U8
+	return self.[0].
+
+inline Stringbuf met Last = U8
+	return self.[self.Count-1].
 
 inline Stringbuf met$ Operator_at n:Uint = @$U8
 	return self$bytes$[n]

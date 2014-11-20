@@ -30,6 +30,12 @@ Path fun From_bytes s:[]U8 = this
 Path met Count = Uint
 	return self.buf.Count
 
+Path met First = U8
+	return self.buf.First
+
+Path met Last = U8
+	return self.buf.Last
+
 Path met Operator_at n:Uint = U8
 	return self.buf.[n].
 
