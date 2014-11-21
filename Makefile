@@ -60,6 +60,6 @@ include $(shell find $(DEPS) -name \*.d 2> /dev/null)
 %.generated.c: %.re
 	$Qre2c -b -o $@ $<
 
-%.o: %.c $(DEPS) $(deps-dir-for-target)
+%.o: %.c $(DEPS)
 	$Qmkdir -p $(call deps-dir-for-target,$@)
 	$Q$(CC) -c $(CFLAGS) $(call deps-options,$@,$<) -o $@ $<
