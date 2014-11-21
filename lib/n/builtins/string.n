@@ -225,9 +225,33 @@ fun rk_hash b:[]U8 = U32, U32
 			i >>= 1
 	return hash, pow
 
-extern String met Index sep:String = Int
+extern String met memmem_index sep:String = Int
 
-String met Alt_index sep:String = Int
+String met naive_index sep:String = Int
+	let n = sep.Count
+	if n == 0
+		return 0
+	let sep_first = sep.First
+	if n == 1
+		return self.Index_byte sep_first
+
+	let sep_second = sep.[1]
+	let sep_allbut2 = sep.Substring 2 .. sep.Count
+	var data = self.
+	var i, j
+	while true
+		j = data.Index_byte sep_first
+		if j == -1
+			break
+		i += j
+		data = data.Substring j.Unsigned .. data.Count
+		if data.[1] == sep_second and (data.Substring 2 .. n) == sep_allbut2
+			return i
+		data = data.Substring 1 .. data.Count
+		i += 1
+	return -1
+
+String met rk_index sep:String = Int
 	let cnt = self.Count
 	let n = sep.Count
 	if n == 0
@@ -255,6 +279,65 @@ String met Alt_index sep:String = Int
 			if h == hashsep and (String.From_bytes self.[i-n .. i]) == sep
 				return (i - n).Signed
 	return -1
+
+fun bm_init_bad_shift bad:@#(Slicebuf Uint) sep:String
+	bad#Resize 256
+	let m = sep.Count
+	foreach i in bad.All
+		bad![i]! = m
+	foreach i in 0 .. m-1
+		bad![sep.[i].Uint]! = m - 1 - i
+
+-- Tuned Boyer-Moore
+-- Chapter 20, Handbook of Exact String-Matching Algorithms
+-- Christian Charras, Thierry Lecroq
+String met tunedbm_index sep:String = Int
+	let m = sep.Count
+	let n = self.Count
+
+	let sep_allbutlast = sep.Substring 0 .. sep.Count-1
+	let sep_last = sep.Last.Uint
+	let bad = {}:(Slicebuf Uint)
+	and shift such
+		bm_init_bad_shift @#bad sep
+		shift = bad.[sep_last].
+		bad![sep_last]! = 0
+
+	var j = m - 1
+	while j < n
+		let k = bad.[self.[j].Uint] such
+			while k != 0
+				j += k
+				if j >= n
+					break
+				k = bad.[self.[j].Uint]
+
+		let possible = j - (m-1)
+		if j < n and (self.Substring possible .. j) == sep_allbutlast
+			return possible.Signed
+
+		j += shift
+
+	return -1
+
+enum String_index_impl =
+	| NAIVE
+	| MEMMEM
+	| RK
+	| TUNEDBM
+
+String met Index_selectimpl impl:String_index_impl sep:String = Int
+	match impl
+	| NAIVE -> return self.naive_index sep
+	| MEMMEM -> return self.memmem_index sep
+	| RK -> return self.rk_index sep
+	| TUNEDBM -> return self.tunedbm_index sep
+
+String met Index sep:String = Int
+	if sep.Count < 32
+		return self.Index_selectimpl NAIVE sep
+	else
+		return self.Index_selectimpl MEMMEM sep
 
 example -> assert "abcdef".Index "" == 0
 example -> assert "abcdef".Index "b" == 1

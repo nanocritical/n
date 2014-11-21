@@ -4,56 +4,59 @@ import n.fs
 import n.path
 import n.time
 
-intf `Comparison =
+intf `Comparison impl:`Enum =
 	met Name = String
-	met! N ex:@!bench.Example repeat:Uint = time.Duration
-	met! C ex:@!bench.Example repeat:Uint = time.Duration
-	met Check
+	met! Run ex:@!bench.Example repeat:Uint i:impl = Error
+	met Check = Error
 
-fun Compare ex:@!bench.Example repeat:Uint c:@!`Comparison
-	-- Warm once.
-	let _ = c!N ex 1
-	let nd = c!N ex repeat
-	let _ = c!C ex 1
-	let cd = c!C ex repeat
-	c.Check
+(fun impl:`Enum) Compare ex:@!bench.Example repeat:Uint c:@!(`Comparison impl)
+	Eprn c.Name
 
-	Prn c.Name
-	Prn "n" nd
-	Prn "c" cd
-	Prn
+	for i in (Enumset impl).ALL.Iter
+		-- Warm once.
+		let _ = c!Run ex 1 i
+
+		ex!Benchmark CLOCK
+		let err = c!Run ex repeat i
+		let time = ex.Clock.Runtime
+		if err != OK
+			Eprn i "Error"
+			Eprn err
+		else
+			Eprn i time
+
+	let err = c.Check
+	if err != OK
+		Eprn "Error: inconsistent results"
+	Eprn
 
 struct index =
-	isa `Comparison
+	isa (`Comparison String_index_impl)
 	name	:String
 	haystack:String
 	needle	:String
-	r_n	:Int
-	r_c	:Int
+	r	:(Slicebuf Int)
+
+index met# Init
+	self!r#Resize String_index_impl.COUNT
 
 index met Name = String
 	return self.name
 
-index met Check
-	assert self.r_n == self.r_c
+index met Check = Error
+	let x0 = self.r.[0]
+	foreach x in self.r
+		if x != x0
+			return INVAL
+	return OK
 
-index met! N ex:@!bench.Example repeat:Uint = time.Duration
-	ex!Benchmark CLOCK
+index met! Run ex:@!bench.Example repeat:Uint impl:String_index_impl = Error
 	foreach _ in 0 .. repeat
-		self!r_n = self.haystack.Index self.needle
-	return ex.Clock.Runtime_cpu
-
-extern fun c_index_memmem data:@U8 len:Uint pattern:@U8 pattern_len:Uint = Int
-
-index met! C ex:@!bench.Example repeat:Uint = time.Duration
-	ex!Benchmark CLOCK
-	foreach _ in 0 .. repeat
-		self!r_c = c_index_memmem self.haystack.Bytes.Unsafe_data self.haystack.Count
-			\ self.needle.Bytes.Unsafe_data self.needle.Count
-	return ex.Clock.Runtime_cpu
+		self!r![impl.Tag.Uint-1]! = self.haystack.Index_selectimpl impl self.needle
+	return OK
 
 fun dict = Error, @fs.Mmap
-	let except, f = fs.Open (path.Mk "/usr/share/dict/words")
+	let except, f = fs.Open (path.Mk "/tmp/1g")
 	let except, m = f!Mmap
 	return OK, m
 
@@ -62,18 +65,28 @@ fun Main = I32
 	let words such
 		try
 			let except, m = dict
-			words = m.Bytes
+			words = m.String
 		catch err
 			Fatal err
-	let repeat = 100
+	let repeat = 1
 
-	let index_yes_short = {name="index.yes.short" haystack=(String.From_bytes words) needle="Linux"}:index
+	let index_yes_worstnaive = {name="index.yes.worstnaive"
+		\ haystack="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" needle ="aab"}:index
+	index_yes_worstnaive#Init
+	Compare @!ex 10*repeat @!index_yes_worstnaive
+
+	let index_yes_short = {name="index.yes.short"
+		\ haystack=words needle="Linux"}:index
+	index_yes_short#Init
+	let index_no_short = {name="index.no.short"
+		\ haystack=words needle="Ginux"}:index
+	index_no_short#Init
+	let index_no_long = {name="index.no.long"
+		\ haystack=words needle="Linuxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}:index
+	index_no_long#Init
+
 	Compare @!ex repeat @!index_yes_short
-
-	let index_no_short = {name="index.no.short" haystack=(String.From_bytes words) needle="Ginux"}:index
 	Compare @!ex repeat @!index_no_short
-
-	let index_no_long = {name="index.no.long" haystack=(String.From_bytes words) needle="Linuxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}:index
 	Compare @!ex repeat @!index_no_long
 
 	return 0

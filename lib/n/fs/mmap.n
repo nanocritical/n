@@ -40,3 +40,6 @@ Mmap met# Dtor
 
 inline Mmap met$ Bytes = []$U8
 	return self$bytes
+
+inline Mmap met String = String
+	return String.From_bytes self.bytes

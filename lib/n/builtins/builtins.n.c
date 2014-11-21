@@ -165,7 +165,7 @@ NB(Int) NB(String$Last_index_byte)(struct NB(String) *self, NB(U8) sep) {
 
 extern void *memmem(const void *, size_t, const void *, size_t);
 
-NB(Int) NB(String$Index)(struct NB(String) *self, struct NB(String) sep) {
+NB(Int) NB(String$memmem_index)(struct NB(String) *self, struct NB(String) sep) {
   void *r = memmem(self->bytes.dat, self->bytes.cnt, sep.bytes.dat, sep.bytes.cnt);
   if (r == NULL) {
     return -1;
