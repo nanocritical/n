@@ -1,4 +1,4 @@
-MAKEFLAGS := -j2 -r -R --warn-undefined-variables
+MAKEFLAGS := -j4 -r -R --warn-undefined-variables
 .SUFFIXES:
 
 V ?=
