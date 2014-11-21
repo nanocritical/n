@@ -11,6 +11,7 @@ default:: examples.run ncc0
 
 SRC = bootstrap
 DEPS = .deps
+CC ?= gcc
 
 ifneq ($(shell ccache --version 2> /dev/null),)
 	override CC := ccache $(CC)
