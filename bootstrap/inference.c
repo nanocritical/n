@@ -379,6 +379,8 @@ static ERROR try_wildcard_op(struct typ **r0, enum token_type *rop,
       *r0 = w0;
       ww = &w;
     }
+  } else {
+    goto not_wildcard_fun;
   }
 
   bool reject_wildcard = false;
@@ -392,14 +394,20 @@ not_wildcard_fun:
   case UN:
     switch (node->as.UN.operator) {
     case TREFWILDCARD:
-      *rop = ww->ref;
+      if (!reject_wildcard) {
+        *rop = ww->ref;
+      }
       break;
     case TNULREFWILDCARD:
-      *rop = ww->nulref;
-      *r0 = nullable_functor(*r0);
+      if (!reject_wildcard) {
+        *rop = ww->nulref;
+        *r0 = nullable_functor(*r0);
+      }
       break;
     case TDEREFWILDCARD:
-      *rop = ww->deref;
+      if (!reject_wildcard) {
+        *rop = ww->deref;
+      }
       break;
     default:
       *r0 = mod->gctx->builtin_typs_for_refop[node->as.UN.operator];
@@ -411,7 +419,9 @@ not_wildcard_fun:
   case BIN:
     switch (node->as.BIN.operator) {
     case TWILDCARD:
-      *rop = ww->acc;
+      if (!reject_wildcard) {
+        *rop = ww->acc;
+      }
       break;
     default:
       *r0 = mod->gctx->builtin_typs_for_refop[node->as.BIN.operator];
@@ -424,9 +434,7 @@ not_wildcard_fun:
     assert(false);
   }
 
-  if (reject_wildcard && is_wildcard
-      && (!(NM(top->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
-          || typ_generic_arity(node->typ) == 0)) {
+  if (reject_wildcard && is_wildcard) {
     e = mk_except_type(mod, node, "cannot use wildcards outside"
                        " of a wildcard function or method");
     THROW(e);
