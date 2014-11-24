@@ -175,7 +175,7 @@ fun Temporary ?at:?@File
 globalenv Fs:@!`Fs
 
 fun Install_sys within Fs
-	let fs = Alloc linux_fs
+	let fs = Alloc linux
 	let err = fs!Init
 	if err != OK
 		Fatal err
@@ -228,13 +228,13 @@ intf `Fs =
 	met Stat name:path.Path ?at:?@File ?nofollow:?Bool = Error, Stat
 	met! Readlink name:path.Path ?at:?@File = Error, path.Path
 
-struct linux_fs =
+struct linux =
 	isa `Fs
 	init		:Bool
 	dirstack	:(Slicebuf @!File)
 	stats		:(bench.Stack Stats)
 
-linux_fs met! Init = Error
+linux met! Init = Error
 	assert not self.init
 	self!init = true
 	try
@@ -248,12 +248,12 @@ linux_fs met! Init = Error
 		self!init = false
 		return err
 
-linux_fs met Wd = @!File
+linux met Wd = @!File
 	assert self.init
 	assert self.dirstack.Count > 0
 	return self.dirstack.Last.
 
-linux_fs met! Pushdir dir:@!File = Error
+linux met! Pushdir dir:@!File = Error
 	assert self.init
 	let except, st = dir.Stat
 	if not st.Is_dir
@@ -261,14 +261,14 @@ linux_fs met! Pushdir dir:@!File = Error
 	self!dirstack#Push! = dir
 	return OK
 
-linux_fs met! Popdir = Error
+linux met! Popdir = Error
 	assert self.init
 	if self.dirstack.Count == 0
 		return INVAL
 	self!dirstack#Pop
 	return OK
 
-linux_fs met! Global_chdir dir:@File = Error
+linux met! Global_chdir dir:@File = Error
 	assert self.init
 	except = syscall.Fchdir dir.Fd
 	return OK
@@ -281,19 +281,19 @@ fun allows_immediate flags:?Openflags attr:?@Openattr = Bool
 -- There is a race between the creation of the directory and the setting of the
 -- attributes in permissions (to the exception of the Accessmask). There is no
 -- equivalent to O_TMPFILE for directories.
-linux_fs met! Mkdir name:path.Path ?attr:?@Openattr ?recursive:?Bool = Error
+linux met! Mkdir name:path.Path ?attr:?@Openattr ?recursive:?Bool = Error
 	assert not (recursive else false) -- FIXME Add support.
 	assert allows_immediate {} attr -- FIXME Add support.
 	except = syscall.Mkdirat self.Wd.Fd name.String attr?.sys_open_mode
 	return OK
 
-linux_fs met! Rmdir name:path.Path ?recursive:?Bool ?even_non_empty:?Bool = Error
+linux met! Rmdir name:path.Path ?recursive:?Bool ?even_non_empty:?Bool = Error
 	assert not (recursive else false) -- FIXME Add support.
 	assert not (even_non_empty else false) -- FIXME Add support.
 	except = syscall.Unlinkat self.Wd.Fd name.String syscall.AT_REMOVEDIR
 	return OK
 
-linux_fs met! Open_file name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openattr = Error, @#File
+linux met! Open_file name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openattr = Error, @#File
 	let flags = flags else {}
 	let attr = attr else {}
 	let mode = attr.sys_open_mode such
@@ -340,7 +340,7 @@ linux_fs met! Open_file name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Open
 
 	return OK, file
 
-linux_fs met! File_close f:@!File = Error
+linux met! File_close f:@!File = Error
 	let fd = f.Fd
 	except = syscall.Close fd
 	f!fd = nil
@@ -348,7 +348,7 @@ linux_fs met! File_close f:@!File = Error
 	self!stats!Current!Maintain
 	return OK
 
-linux_fs met! File_stat f:@File = Error, st:Stat
+linux met! File_stat f:@File = Error, st:Stat
 	let flags = syscall.AT_SYMLINK_NOFOLLOW | syscall.AT_EMPTY_PATH
 	try
 		let sys = {}:syscall.Stat_t such
@@ -358,7 +358,7 @@ linux_fs met! File_stat f:@File = Error, st:Stat
 	catch err
 		return err, {}
 
-linux_fs met File_readlink f:@File = Error, path.Path
+linux met File_readlink f:@File = Error, path.Path
 	try
 		var buf = {}:Stringbuf such
 			buf#Resize 256
@@ -371,47 +371,47 @@ linux_fs met File_readlink f:@File = Error, path.Path
 	catch err
 		return err, {}
 
-linux_fs met! File_datasync f:@!File = Error
+linux met! File_datasync f:@!File = Error
 	return syscall.Fdatasync f.Fd
 
-linux_fs met! File_sync f:@!File = Error
+linux met! File_sync f:@!File = Error
 	return syscall.Fsync f.Fd
 
-linux_fs met! File_truncate f:@!File size:Uint = Error
+linux met! File_truncate f:@!File size:Uint = Error
 	return syscall.Ftruncate f.Fd size
 
-linux_fs met! File_chown f:@!File owner:Int group:Int = Error
+linux met! File_chown f:@!File owner:Int group:Int = Error
 	return syscall.Fchown f.Fd owner group
 
-linux_fs met File_list_xattr f:@!File buf:@!Stringbuf = Error, list:(Slicebuf String)
+linux met File_list_xattr f:@!File buf:@!Stringbuf = Error, list:(Slicebuf String)
 	-- ::(x in list => x::(Owned buf))
 	return syscall.ENOSYS, {}
 
-linux_fs met File_get_xattr f:@!File buf:@!Stringbuf name:String = Error, Uint
+linux met File_get_xattr f:@!File buf:@!Stringbuf name:String = Error, Uint
 	return syscall.ENOSYS, 0
 
-linux_fs met! File_set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
+linux met! File_set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
 	return syscall.ENOSYS
 
-linux_fs met! File_remove_xattr f:@!File name:String = Error
+linux met! File_remove_xattr f:@!File name:String = Error
 	return syscall.ENOSYS
 
-linux_fs met! File_read f:@!File b:[]!U8 = []!U8, Error
+linux met! File_read f:@!File b:[]!U8 = []!U8, Error
 	return syscall.Read f.Fd b
 
-linux_fs met! File_read_at f:@!File b:[]!U8 off:Uint = []!U8, Error
+linux met! File_read_at f:@!File b:[]!U8 off:Uint = []!U8, Error
 	return syscall.Pread f.Fd b off
 
-linux_fs met! File_write f:@!File b:[]U8 = []U8, Error
+linux met! File_write f:@!File b:[]U8 = []U8, Error
 	return syscall.Write f.Fd b
 
-linux_fs met! File_write_at f:@!File b:[]U8 off:Uint = []U8, Error
+linux met! File_write_at f:@!File b:[]U8 off:Uint = []U8, Error
 	return syscall.Pwrite f.Fd b off
 
-linux_fs met! Symlink target:path.Path name:path.Path ?at:?@File = Error
+linux met! Symlink target:path.Path name:path.Path ?at:?@File = Error
 	except = syscall.Symlinkat target.String (at?.Fd else self.Wd.Fd) name.String
 
-linux_fs met! Link newpath:path.Path oldpath:path.Path
+linux met! Link newpath:path.Path oldpath:path.Path
 	\ ?newat:?@File ?oldat:?@File ?follow:?Bool = Error
 	let flags = 0 such
 		if follow else false
@@ -423,10 +423,10 @@ linux_fs met! Link newpath:path.Path oldpath:path.Path
 		\ newpath.String
 		\ flags
 
-linux_fs met! Unlink name:path.Path ?at:?@File = Error
+linux met! Unlink name:path.Path ?at:?@File = Error
 	except = syscall.Unlinkat (at?.Fd else self.Wd.Fd) name.String 0
 
-linux_fs met! Rename newpath:path.Path oldpath:path.Path ?newat:?@File ?oldat:?@File = Error
+linux met! Rename newpath:path.Path oldpath:path.Path ?newat:?@File ?oldat:?@File = Error
 	except = syscall.Renameat
 		\ (oldat?.Fd else self.Wd.Fd)
 		\ oldpath.String
@@ -434,7 +434,7 @@ linux_fs met! Rename newpath:path.Path oldpath:path.Path ?newat:?@File ?oldat:?@
 		\ newpath.String
 		\ 0
 
-linux_fs met Stat name:path.Path ?at:?@File ?nofollow:?Bool = Error, Stat
+linux met Stat name:path.Path ?at:?@File ?nofollow:?Bool = Error, Stat
 	let flags = 0 such
 		if nofollow else false
 			flags |= syscall.AT_SYMLINK_NOFOLLOW
@@ -447,7 +447,7 @@ linux_fs met Stat name:path.Path ?at:?@File ?nofollow:?Bool = Error, Stat
 	catch err
 		return err, {}
 
-linux_fs met! Readlink name:path.Path ?at:?@File = Error, path.Path
+linux met! Readlink name:path.Path ?at:?@File = Error, path.Path
 	let dirfd = at?.Fd else self.Wd.Fd
 	try
 		var buf = {}:Stringbuf such
@@ -461,13 +461,13 @@ linux_fs met! Readlink name:path.Path ?at:?@File = Error, path.Path
 	catch err
 		return err, {}
 
-linux_fs met! Save_measurements = bench.Restorer
+linux met! Save_measurements = bench.Restorer
 	return self!stats!Save
 
-linux_fs met Measure = Stats
+linux met Measure = Stats
 	return self.stats.Current
 
-linux_fs met! File_mmap f:@!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, ?@!Mmap
+linux met! File_mmap f:@!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, ?@!Mmap
 	let offset = offset else 0
 	let size = size else block
 		let except, st = f.Stat
@@ -487,7 +487,7 @@ linux_fs met! File_mmap f:@!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shar
 		m!prot = prot
 	return OK, m
 
-linux_fs met! Munmap m:@#Mmap
+linux met! Munmap m:@#Mmap
 	let err = syscall.Munmap m#bytes#Unsafe_data m.bytes.Count
 	if err != OK
 		Fatal err
