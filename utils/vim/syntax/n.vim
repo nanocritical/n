@@ -3,8 +3,10 @@ let b:current_syntax = "n"
 setlocal nomodeline
 
 syn keyword nInclude import from
+syn match nFunLine "\((\(fun\|met\).*)\|\(fun\|met\)[$!#]\?\)\s\+\w\+" contains=nIntf,nDeclFun,nFun
+syn match nFun "\w\+" contained
+syn keyword nDeclFun fun met contained
 syn keyword nDecl union struct enum atom intf newtype
-syn keyword nFunction fun met shallow delegate
 syn keyword nStorageClass inline extern opaque
 syn keyword nExport export
 syn keyword nSemantic unique shared pshared
@@ -87,6 +89,7 @@ syn match	nFormat		display "%%" contained
 syn region	nString		start=+L\="+ skip=+\\\\\|\\"+ end=+"+ contains=nSpecial,nFormat,@Spell
 syn region	nString		start=+L\='+ skip=+\\\\\|\\'+ end=+'+ contains=nSpecial,nFormat,@Spell
 
+hi def link nDeclFun nDecl
 hi def link nDecl Structure
 hi def link nAssert Assert
 hi def link nInclude Include
@@ -112,5 +115,5 @@ hi def link nSpecial SpecialChar
 hi def link nNullable Constness
 hi def link nWildcard Special
 hi def link nIntf Type
-hi def link nFunction Function
+hi def link nFun Function
 hi def link nExport Export
