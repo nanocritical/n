@@ -25,11 +25,10 @@ syn match nDecl "^  isa" contains=nExport
 syn keyword nOperator sizeof alignof nullable isa Dyncast not in
 syn keyword nKeyword noop as declare new
 syn keyword nException except throw Drop Fatal
-syn match nOperator "bw[&|\^~]"
-syn match nOperator "ov+"
+syn match nOperator ":"
 syn match nOperator "\(ov<<\|>>\|<=\|>=\|<\|>\|===\|!==\|==|\|!=|\|==\|!=\||\)"
-syn match nOperator "\(@\|&\|\(ov\)\?[\:+\-\*/%]\)"
-syn match nOperator "\(ov\)\?[\:+\-\*/%]\?="
+syn match nOperator "\(@\|&\|\(ov\)\?[+\-\*/%&|\^~]\)"
+syn match nOperator "\(ov\)\?[\:+\-\*/%&|\^~]\?="
 
 syn match nSemantic "::"
 
