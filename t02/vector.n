@@ -1,6 +1,6 @@
 from n import *
 
-alias v32 = Slicebuf I32
+alias v32 = Buf I32
 
 fun foo = v32
 	let w = {1 0 2}:(Slice I32)

@@ -7,7 +7,7 @@ newtype m = meters
 m met Positive = Bool
 	return self > 0
 
--- newtype v t:`Copyable = Slicebuf t
+-- newtype v t:`Copyable = Buf t
 
 fun Main = I32
 	let x = 1.3:meters

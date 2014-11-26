@@ -87,7 +87,7 @@ Restorer met# Dtor
 inline struct Stack m:`Measure =
 	isa `Has_restore
 	Current	:m
-	impl	:(Slicebuf m)
+	impl	:(Buf m)
 
 Stack met! Save = Restorer
 	self!impl#Push# = self.Current

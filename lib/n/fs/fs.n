@@ -87,7 +87,7 @@ inline struct Openattr =
 	Access	:Accessmask
 	Owner	:?Uid
 	Group	:?Gid
-	Xattr	:(Slicebuf (Stringbuf, Stringbuf))
+	Xattr	:(Buf (Stringbuf, Stringbuf))
 
 Openattr met sys_open_mode = syscall.Mode
 	return sys_mode_from_accessmask self.Access
@@ -206,7 +206,7 @@ intf `Fs =
 	met! File_sync f:@!File = Error
 	met! File_truncate f:@!File size:Uint = Error
 	met! File_chown f:@!File owner:Int group:Int = Error
-	met File_list_xattr f:@!File buf:@!Stringbuf = Error, list:(Slicebuf String)
+	met File_list_xattr f:@!File buf:@!Stringbuf = Error, list:(Buf String)
 		\ -- ::(x in list => x::(Owned buf))
 	met File_get_xattr f:@!File buf:@!Stringbuf name:String = Error, Uint
 	met! File_set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
@@ -231,7 +231,7 @@ intf `Fs =
 struct linux =
 	isa `Fs
 	init		:Bool
-	dirstack	:(Slicebuf @!File)
+	dirstack	:(Buf @!File)
 	stats		:(bench.Stack Stats)
 
 linux met! Init = Error
@@ -383,7 +383,7 @@ linux met! File_truncate f:@!File size:Uint = Error
 linux met! File_chown f:@!File owner:Int group:Int = Error
 	return syscall.Fchown f.Fd owner group
 
-linux met File_list_xattr f:@!File buf:@!Stringbuf = Error, list:(Slicebuf String)
+linux met File_list_xattr f:@!File buf:@!Stringbuf = Error, list:(Buf String)
 	-- ::(x in list => x::(Owned buf))
 	return syscall.ENOSYS, {}
 

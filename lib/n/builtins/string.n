@@ -280,7 +280,7 @@ String met rk_index sep:String = Int
 				return (i - n).Signed
 	return -1
 
-fun bm_init_bad_shift bad:@#(Slicebuf Uint) sep:String
+fun bm_init_bad_shift bad:@#(Buf Uint) sep:String
 	bad#Resize 256
 	let m = sep.Count
 	foreach i in bad.All
@@ -297,7 +297,7 @@ String met tunedbm_index sep:String = Int
 
 	let sep_allbutlast = sep.Substring 0 .. sep.Count-1
 	let sep_last = sep.Last.Uint
-	let bad = {}:(Slicebuf Uint)
+	let bad = {}:(Buf Uint)
 	and shift such
 		bm_init_bad_shift @#bad sep
 		shift = bad.[sep_last].

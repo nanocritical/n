@@ -40,11 +40,11 @@ File met! Truncate size:Uint = Error
 File met! Chown f:@!File owner:Int group:Int = Error
 	return syscall.ENOSYS
 
-File met List_xattr f:@!File buf:@!Stringbuf = Error, list:(Slicebuf String)
+File met List_xattr f:@!File buf:@!Stringbuf = Error, list:(Buf String)
 	-- ::(x in list => x::(Owned buf))
 	return syscall.ENOSYS, {}
 
-File met Get_xattr f:@!File buf:@!(Slicebuf U8) name:String = Error, Uint
+File met Get_xattr f:@!File buf:@!(Buf U8) name:String = Error, Uint
 	return syscall.ENOSYS, {}
 
 File met! Set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
@@ -53,7 +53,7 @@ File met! Set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
 File met! Remove_xattr f:@!File name:String = Error
 	return syscall.ENOSYS
 
-File met! Readdir buf:@#(Slicebuf Stat) ?max:?Uint = Error
+File met! Readdir buf:@#(Buf Stat) ?max:?Uint = Error
 	return syscall.ENOSYS
 
 File met! Read b:[]!U8 = []!U8, Error

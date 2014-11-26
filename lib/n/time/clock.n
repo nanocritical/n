@@ -37,7 +37,7 @@ Stats met Operator_uminus = r:this
 
 struct Sysclock =
 	isa `Clock bench.`Has_restore
-	stack			:(Slicebuf Stats)
+	stack			:(Buf Stats)
 	zero			:Stats
 
 fun measure clockid:I32 = Int, Int

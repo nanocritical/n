@@ -35,7 +35,7 @@ struct index =
 	name	:String
 	haystack:String
 	needle	:String
-	r	:(Slicebuf Int)
+	r	:(Buf Int)
 
 index met# Init
 	self!r#Resize String_index_impl.COUNT
