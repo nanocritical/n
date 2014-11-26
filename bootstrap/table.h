@@ -10,8 +10,6 @@
 
 /*
  * TODO:
- * - Do not use function pointers for cmp() and hash(), make them arguments
- *   to the implementation macro.
  * - Rename macros all uppercase.
  * - Define FOREACH_name(key, val, table) macro.
  */
