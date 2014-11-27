@@ -14,6 +14,12 @@ inline Buf met All = Range
 inline Buf met$ Slice = []$t
 	return self$s
 
+inline Buf met# Zero
+	assert t isa `Trivial_ctor
+	let raw = self!s!Unsafe_rawdata
+	and bytecnt = self.Count * (sizeof t)
+	Slice_memset raw 0 bytecnt
+
 inline Buf met# Clear
 	self!s = self.s.[.. 0]
 	self#Internal_auto_shrink

@@ -385,6 +385,7 @@ inline Mutable_slice shallow met$ Last = @$t
 extern inline fun Slice_at_byte dp:@#U8 off:Uint = @#U8
 extern inline fun Slice_memmove dst:@#U8 src:@U8 cnt:Uint
 extern inline fun Slice_memcmp a:@U8 b:@U8 cnt:Uint = Int
+extern inline fun Slice_memset a:@#U8 c:U8 cnt:Uint
 
 inline fun Bytes_compare a:[]U8 b:[]U8 = Int
 	let acnt, bcnt = a.Count, b.Count

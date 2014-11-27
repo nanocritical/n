@@ -119,6 +119,10 @@ static inline NB(Int) NB(Slice_memcmp)(NB(U8) *a, NB(U8) *b, NB(Uint) cnt) {
   return memcmp(a, b, cnt);
 }
 
+static inline NB(Void) NB(Slice_memset)(NB(U8) *a, NB(U8) c, NB(Uint) cnt) {
+  memset(a, c, cnt);
+}
+
 #define define_native_boolean(t) \
   static inline NB(Bool) t##$Operator_eq(t *self, t *other) { return *self == *other; } \
   static inline NB(Bool) t##$Operator_ne(t *self, t *other) { return *self != *other; } \
