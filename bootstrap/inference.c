@@ -1425,7 +1425,7 @@ static ERROR type_inference_tuple(struct module *mod, struct node *node) {
   return 0;
 }
 
-static void type_inference_init_named(struct module *mod, struct node *node) {
+static ERROR type_inference_init_named(struct module *mod, struct node *node) {
   struct node *dinc = defincomplete_create(mod, node);
 
   FOREACH_SUB_EVERY(s, node, 0, 2) {
@@ -1435,16 +1435,17 @@ static void type_inference_init_named(struct module *mod, struct node *node) {
   }
 
   error e = defincomplete_catchup(mod, dinc);
-  assert(!e);
+  EXCEPT(e);
   set_typ(&node->typ, dinc->typ);
 
   if (node->as.INIT.is_range) {
     e = unify(mod, node, node->typ, TBI_RANGE);
-    assert(!e);
+    EXCEPT(e);
   } else if (node->as.INIT.is_bounds) {
     e = unify(mod, node, node->typ, TBI_BOUNDS);
-    assert(!e);
+    EXCEPT(e);
   }
+  return 0;
 }
 
 static ERROR type_inference_init_array(struct module *mod, struct node *node) {
@@ -1459,7 +1460,7 @@ static ERROR type_inference_init_array(struct module *mod, struct node *node) {
   return 0;
 }
 
-static void type_inference_init_isalist_literal(struct module *mod, struct node *node) {
+static ERROR type_inference_init_isalist_literal(struct module *mod, struct node *node) {
   struct node *dinc = defincomplete_create(mod, node);
 
   FOREACH_SUB(s, node) {
@@ -1467,26 +1468,30 @@ static void type_inference_init_isalist_literal(struct module *mod, struct node 
   }
 
   error e = defincomplete_catchup(mod, dinc);
-  assert(!e);
+  EXCEPT(e);
   set_typ(&node->typ, dinc->typ);
 
   node->flags |= NODE_IS_TYPE;
+  return 0;
 }
 
 static ERROR type_inference_init(struct module *mod, struct node *node) {
   assert(node->which == INIT);
+  error e;
   if (node->as.INIT.is_array) {
     if ((subs_first(node)->flags & NODE_IS_TYPE)
         && typ_definition_which(subs_first(node)->typ) == DEFINTF) {
-      type_inference_init_isalist_literal(mod, node);
-      return 0;
+      e = type_inference_init_isalist_literal(mod, node);
+      EXCEPT(e);
     } else {
-      return type_inference_init_array(mod, node);
+      e = type_inference_init_array(mod, node);
+      EXCEPT(e);
     }
   } else {
-    type_inference_init_named(mod, node);
-    return 0;
+    e = type_inference_init_named(mod, node);
+    EXCEPT(e);
   }
+  return 0;
 }
 
 static ERROR flexible_except_return(struct module *mod, struct node *node,
