@@ -1587,7 +1587,8 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
     assert(!none);
   }
 
-  if (field->typ == NULL && field->which == DEFALIAS) {
+  if (field->typ == NULL && field->which == DEFALIAS
+      && (node_is_at_top(parent_const(field)) || node_is_at_top(nparent_const(field, 2)))) {
     // Assume we're in passfwd that does both step_type_aliases and
     // step_type_isalist, and that we're trying to use an alias in an
     // isalist before it's been typed. Since we're not doing fully

@@ -8,6 +8,7 @@
 #include "parser.h"
 #include "instantiate.h"
 #include "topdeps.h"
+#include "passfwd.h"
 
 static struct typ *create_tentative(struct module *mod, const struct node *for_error,
                                     struct typ *functor) {
@@ -2452,10 +2453,16 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
   }
 
   if (def->typ == NULL) {
-    e = mk_except(mod, node,
-                  "identifier '%s' used before its definition",
-                  idents_value(mod->gctx, node_ident(node)));
-    THROW(e);
+    if (def->which == DEFALIAS && node_is_at_top(parent_const(def))) {
+      // Opportunistically type this alias
+      e = step_type_aliases(node_module_owner(def), parent(def), NULL, NULL);
+      EXCEPT(e);
+    } else {
+      e = mk_except(mod, node,
+                    "identifier '%s' used before its definition",
+                    idents_value(mod->gctx, node_ident(node)));
+      THROW(e);
+    }
   }
 
   node->as.IDENT.def = def;
