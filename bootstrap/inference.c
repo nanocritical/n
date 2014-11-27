@@ -1552,6 +1552,8 @@ static ERROR type_inference_return(struct module *mod, struct node *node) {
     } else if (typ_is_optional(ret) && !typ_is_optional(arg->typ)) {
       e = wrap_arg_unary_op(&arg, mod, TPREQMARK);
       EXCEPT(e);
+    } else if (typ_is_nullable_reference(ret) && typ_is_nullable_reference(arg->typ)) {
+      // noop
     } else if (!typ_is_optional(ret) && typ_is_optional(arg->typ)) {
       e = wrap_arg_unary_op(&arg, mod, T__DEOPT);
       EXCEPT(e);
