@@ -153,11 +153,11 @@ static struct node *find_current_statement(struct node *node) {
   return c;
 }
 
-static void ssa_sub(struct module *mod, struct node *node, struct node *sub) {
+static ERROR ssa_sub(struct module *mod, struct node *node, struct node *sub) {
   assert(parent(sub) == node);
   if (doesnt_need_sub(node, sub)
       || is_always_void(sub)) {
-    return;
+    return 0;
   }
 
   struct node *statement = find_current_statement(node);
@@ -187,9 +187,10 @@ static void ssa_sub(struct module *mod, struct node *node, struct node *sub) {
   sub->as.IDENT.name = g;
 
   error e = catchup(mod, NULL, let, CATCHUP_BEFORE_CURRENT_SAME_TOP);
-  assert(!e);
+  EXCEPT(e);
 
   INVARIANT_NODE(sub);
+  return 0;
 }
 
 // step_ssa_convert() cannot work on excepted nodes. In the operator
@@ -198,10 +199,12 @@ static void ssa_sub(struct module *mod, struct node *node, struct node *sub) {
 // 0 and 1 are excepted. So we need to come after the fact and double check.
 // TODO: see if we can reduce the number of nodes that
 // step_ssa_convert_shallow_catchup() gets called on.
-static void fix_ssa_sub(struct module *mod, struct node *node, struct node *sub) {
+static ERROR fix_ssa_sub(struct module *mod, struct node *node, struct node *sub) {
   if (sub->excepted > 0) {
-    ssa_sub(mod, node, sub);
+    error e = ssa_sub(mod, node, sub);
+    EXCEPT(e);
   }
+  return 0;
 }
 
 STEP_NM(step_ssa_convert_shallow_catchup,
@@ -219,10 +222,12 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
     return 0;
   }
 
+  error e;
   switch (node->which) {
   case BIN:
     if (OP_IS_ASSIGN(node->as.BIN.operator)) {
-      ssa_sub(mod, node, subs_last(node));
+      e = ssa_sub(mod, node, subs_last(node));
+      EXCEPT(e);
       break;
     } else if (node->as.BIN.operator == Tisa) {
       break;
@@ -240,14 +245,16 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
   case INVARIANT:
   case THROW:
     FOREACH_SUB(sub, node) {
-      fix_ssa_sub(mod, node, sub);
+      e = fix_ssa_sub(mod, node, sub);
+      EXCEPT(e);
     }
     break;
 
   case CALL:
     if (subs_count_atleast(node, 2)) {
       FOREACH_SUB_EVERY(sub, node, 1, 1) {
-        fix_ssa_sub(mod, node, sub);
+        e = fix_ssa_sub(mod, node, sub);
+        EXCEPT(e);
       }
     }
     break;
@@ -261,7 +268,8 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
                && subs_first_const(parent_const(node)) == node) {
       break;
     } else {
-      fix_ssa_sub(mod, node, subs_last(node));
+      e = fix_ssa_sub(mod, node, subs_last(node));
+      EXCEPT(e);
     }
     break;
   default:
@@ -339,12 +347,14 @@ error step_ssa_convert(struct module *mod, struct node *node,
 
   struct node *par = parent(node);
 
+  error e;
   switch (par->which) {
   case BIN:
     if (OP_IS_ASSIGN(par->as.BIN.operator)) {
       if (node == subs_last(par)
           || (node == subs_first(par) && node->which != TUPLE)) {
-        ssa_sub(mod, par, node);
+        e = ssa_sub(mod, par, node);
+        EXCEPT(e);
       }
       break;
     }
@@ -360,12 +370,14 @@ error step_ssa_convert(struct module *mod, struct node *node,
   case POST:
   case INVARIANT:
   case THROW:
-    ssa_sub(mod, par, node);
+    e = ssa_sub(mod, par, node);
+    EXCEPT(e);
     break;
 
   case CALL:
     if (subs_count_atleast(par, 2) && node != subs_first(par)) {
-      ssa_sub(mod, par, node);
+      e = ssa_sub(mod, par, node);
+      EXCEPT(e);
     }
     break;
 
@@ -379,7 +391,8 @@ error step_ssa_convert(struct module *mod, struct node *node,
                  && subs_first_const(parent_const(par)) == par) {
         break;
       } else {
-        ssa_sub(mod, par, node);
+        e = ssa_sub(mod, par, node);
+        EXCEPT(e);
       }
     }
     break;
