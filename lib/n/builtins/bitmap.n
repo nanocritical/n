@@ -1,0 +1,197 @@
+inline struct Bitmap =
+	alias Word = U32
+	let BITS_PER_WORD = 32
+	b	:(Buf U32)
+	count	:Uint
+
+fun Bitmap_wordmask n:Uint = U32
+	return 1 ov<< n
+
+fun Bitmap_split n:Uint = word:Uint, mask:U32
+	word = n / Bitmap.BITS_PER_WORD
+	mask = Bitmap_wordmask n%Bitmap.BITS_PER_WORD
+
+inline Bitmap met$ Words = []$U32
+	return self$b$Slice
+
+inline Bitmap met Count = Uint
+	return self.count
+
+inline Bitmap met Iter = r:Bitmap_iterator
+	r#Internal_init self
+
+inline Bitmap met# Resize bits:Uint
+	self!count = bits
+	self#b#Resize <- math.Div_ceil bits this.BITS_PER_WORD
+
+inline Bitmap met# Clear
+	self#b#Clear
+
+inline Bitmap met Operator_at n:Uint = Bool
+	assert n < self.count
+	let word, mask = Bitmap_split n
+	return self.b.[word] & mask != 0
+
+inline Bitmap met! Set n:Uint
+	assert n < self.count
+	let word, mask = Bitmap_split n
+	self!b![word]! |= mask
+
+inline Bitmap met! Toggle n:Uint
+	assert n < self.count
+	let word, mask = Bitmap_split n
+	self!b![word]! ^= mask
+
+inline Bitmap met! Unset n:Uint
+	assert n < self.count
+	let word, mask = Bitmap_split n
+	self!b![word]! &= ~mask
+
+inline Bitmap met! Zero
+	self!b#Zero
+
+Bitmap met Popcount = r:Uint
+	foreach w in self.b
+		r += math.Bit_popcount w
+
+-- Returns nil if not bit are set.
+Bitmap met Ffs = ?Uint
+	var i = 0
+	foreach w in self.b
+		if w != 0
+			return i*Bitmap.BITS_PER_WORD + (math.Bit_ffs w) - 1
+		i += 1
+	return nil
+
+-- Returns nil if not bit are set.
+Bitmap met Ffs_from n:Uint = ?Uint
+	assert n < self.count
+	let word, first_mask = Bitmap_split n
+	foreach i in word .. self.b.Count
+		let w = self.b.[i]. such
+			if i == word
+				w &= ~(first_mask - 1)
+		if w != 0
+			return i*Bitmap.BITS_PER_WORD + (math.Bit_ffs w) - 1
+		i += 1
+	return nil
+
+example
+	let b = {}:Bitmap such
+		b#Resize 13
+		b!Set 1
+		b!Set 12
+	assert b.[1] and b.[12]
+	assert b.Ffs == 1
+	assert b.Ffs_from 0 == 1
+	assert b.Ffs_from 1 == 1
+	assert b.Ffs_from 2 == 12
+	assert b.Ffs_from 12 == 12
+
+-- Returns nil if not bit are set.
+Bitmap met Fls = ?Uint
+	var i = 0
+	foreach w in self.b
+		if w != 0
+			return i + (math.Bit_fls w) - 1
+		i += 1
+	return nil
+
+-- TODO
+-- Bitmap met! Or other:@this
+-- Bitmap met! Xor other:@this
+-- Bitmap met! And other:@this
+-- Bitmap met! Not
+-- Region operations.
+
+-- Iterate over the set positions.
+inline struct Bitmap_iterator =
+	isa (`Iterator Uint)
+	b	:@Bitmap
+	first	:Uint
+	masked	:U32
+
+inline Bitmap_iterator met! Internal_init b:@Bitmap
+	self!b = b
+	let ffs = self.b.Ffs
+	if ffs?
+		self!first = ffs
+		self!masked = self.b.Words.[(Bitmap_split self.first).X0]
+
+example
+	let b = {}:Bitmap
+	let it = b.Iter
+	assert not it.Has_next
+
+example
+	let b = {}:Bitmap such b#Resize 2; b!Set 1
+	let it = b.Iter
+	assert it.masked == 0x2
+	assert it.first == 1
+	assert it.Has_next
+	assert it!Next == 1
+	assert not it.Has_next
+
+example
+	var b = {}:Bitmap
+	b#Resize 31
+	b!Set 30
+	let it = b.Iter
+	assert it.masked == 0x40000000
+	assert it.first == 30
+	assert it.Has_next
+	assert it!Next == 30
+	assert not it.Has_next
+	b#Resize 32
+	b!Set 31
+	let it2 = b.Iter
+	assert it2.masked == 0xc0000000
+	assert it2.first == 30
+	assert it2.Has_next
+	assert it2!Next == 30
+	assert it2.masked == 0x80000000
+	assert it2.Has_next
+	assert it2!Next == 31
+	assert not it.Has_next
+
+inline Bitmap_iterator met Has_next = Bool
+	return self.masked != 0
+
+inline Bitmap_iterator met! Next = r:Uint
+	assert self.masked != 0
+	r = self.first
+	let word, mask = Bitmap_split r
+
+	self!masked &= ~mask
+
+	if self.masked != 0
+		self!first = word*Bitmap.BITS_PER_WORD + (math.Bit_ffs self.masked) - 1
+		return r
+
+	let v = self.b.Words
+	let nxt_word, _ = Bitmap_split self.first
+	foreach i in nxt_word+1 .. v.Count
+		let w = v.[i]
+		if w != 0
+			self!first = i*Bitmap.BITS_PER_WORD + (math.Bit_ffs w) - 1
+			self!masked = w
+			return r
+
+example
+	var b = {}:Bitmap
+	b#Resize 100
+	for _ in b.Iter
+		assert false
+	b!Set 0
+	b!Set 96
+	b!Set 99
+	let count:Uint such
+		for _ in b.Iter
+			count += 1
+	assert count == 3
+	assert b.Popcount == 3
+	b!Unset 0
+	assert b.Popcount == 2
+	b!Zero
+	assert b.Count == 100
+	assert b.Popcount == 0
