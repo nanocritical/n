@@ -349,6 +349,10 @@ inline Mutable_slice met! Copy other:[]t = this
 	such
 		let _ = s!Copy s
 		return {}
+inline Mutable_slice met! Exact_copy other:this
+	let s = this.create_impl_instance
+	such
+		s!Exact_copy s
 inline Mutable_slice met! Append other:[]t = this
 	let s = this.create_impl_instance
 	such
@@ -453,6 +457,14 @@ inline Slice_impl met! Full_copy other:this = this
 inline Slice_impl met! Copy other:this = this
 	let cnt = Min self.cap other.cnt
 	return self!Full_copy other.[.. cnt]
+
+inline Slice_impl met! Exact_copy other:this
+	assert t isa `Trivial_copy
+	assert self.cnt == other.cnt
+	let dst = self!Unsafe_rawdata
+	and src = other.Unsafe_rawdata
+	and bytecnt = other.cnt * (sizeof t)
+	Slice_memmove dst src bytecnt
 
 -- Append what it can, and return a slice to the result.
 inline Slice_impl met! Append other:this = this

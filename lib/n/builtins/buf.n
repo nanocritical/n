@@ -25,7 +25,7 @@ inline Buf met# Clear
 	self#Internal_auto_shrink
 
 inline Buf met# Resize cnt:Uint
-	assert cnt <= self.Count or t isa `Trivial_ctor
+	assert t isa `Trivial_ctor or cnt <= self.Count
 	if cnt <= self.Cap
 		self!s = self.s.[.. cnt]
 		self#Internal_auto_shrink

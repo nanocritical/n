@@ -39,6 +39,9 @@ fun Main = I32
 	assert dany isa `Native_unsigned_integer
 	assert not <- dany isa `Native_sized_unsigned_integer
 
+	assert Uint isa `Trivial_ctor
+	assert Uint isa `Trivial_copy
+
 	Prn ((Dyncast `Show) dany)
 	Prn (Dyncast dany)
 
