@@ -10,7 +10,7 @@ struct Type =
 
 alias refdyntable = unsafe.Voidref
 
-extern inline fun get_type_from_dyntable dyntable:refdyntable = @Type
+extern inline fun Get_type_from_dyntable dyntable:refdyntable = @Type
 
 Type met Operator_eq other:@Type = Bool
 	if self === other
@@ -23,13 +23,13 @@ Type met Operator_ne other:@Type = Bool
 
 -- For codegen use:
 fun Get_dyntable_for dyntable:refdyntable i:@Type = refdyntable
-	let t = get_type_from_dyntable dyntable
+	let t = Get_type_from_dyntable dyntable
 	let e, _ = t.dynisalist.find_entry i false
 	return e?.dyntable else (unsafe.Voidref.From_uintptr 0)
 
 -- For codegen use:
 fun Isa dyntable:refdyntable i:@Type = Bool
-	let t = get_type_from_dyntable dyntable
+	let t = Get_type_from_dyntable dyntable
 	if t == i
 		return true
 	let e, _ = t.dynisalist.find_entry i false

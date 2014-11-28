@@ -1839,7 +1839,7 @@ inline Vararg met Count_left = Uint
 	return self.ap.Count_left
 
 
-(struct t:`Any) Envheader r:(`Any_ref t) =
+inline (struct t:`Any) Envheader r:(`Any_ref t) =
 	Env	:r
 	Parent	:?@#this
 

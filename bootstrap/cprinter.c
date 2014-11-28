@@ -35,6 +35,49 @@ static const char *forward_guards[FORWARD__NUM] = {
   [FWD_DEFINE_FUNCTIONS] = "NLANG_DEFINE_FUNCTIONS",
 };
 
+static bool skip(bool header, enum forward fwd, const struct node *node) {
+  const bool function = node_is_fun(node);
+
+  const bool gen = typ_generic_arity(node->typ) > 0
+    || (function && typ_generic_arity(parent_const(node)->typ) > 0);
+  const bool hinline = node_is_inline(node) && node_is_export(node); // TODO remove rhs
+  const bool hvisible = node_is_export(node); // TODO add in: || hinline;
+
+  const enum forward decl = function ? FWD_DECLARE_FUNCTIONS : FWD_DECLARE_TYPES;
+  const enum forward def = function ? FWD_DEFINE_FUNCTIONS : FWD_DEFINE_TYPES;
+  const enum forward dyn = !function ? FWD_DEFINE_DYNS : FORWARD__NUM /* means never */;
+
+  if (gen && node->which != DEFINTF) {
+    // Delegate decision to print_topdeps().
+    return false;
+  }
+
+  if (fwd == decl) {
+    return (!header && hvisible) || (header && !hvisible);
+  } else if (fwd == def) {
+    return (!header && hinline) || (header && !hinline);
+  } else if (fwd == dyn) {
+    return (!header && hinline) || (header && !hvisible);
+  } else if (node->which == DEFTYPE && (fwd == FWD_DECLARE_FUNCTIONS || fwd == FWD_DEFINE_FUNCTIONS)) {
+    return header && !hvisible;
+  } else {
+    return true;
+  }
+}
+#define X(node) assert(skip(header, fwd, node))
+#define Y(node) assert(!skip(header, fwd, node))
+
+static bool prototype_only(bool header, const struct node *node) {
+  if (node->which == DEFINTF) {
+    return (header && !node_is_export(node))
+      || node_is_prototype(node);
+  } else {
+    return
+      (header && !(node_is_export(node) && node_is_inline(node)))
+      || node_is_prototype(node);
+  }
+}
+
 static const char *c_token_strings[TOKEN__NUM] = {
   [TASSIGN] = " = ",
   [TEQ] = " == ",
@@ -1218,17 +1261,6 @@ static void print_invariant(FILE *out, const struct module *mod, const struct no
   print_block(out, mod, subs_first_const(node));
 }
 
-static bool prototype_only(bool header, const struct node *node) {
-  if (node->which == DEFINTF) {
-    return (header && !node_is_export(node))
-      || node_is_prototype(node);
-  } else {
-    return
-      (header && !(node_is_export(node) && node_is_inline(node)))
-      || node_is_prototype(node);
-  }
-}
-
 static void print_generic_linkage(FILE *out, bool header, enum forward fwd,
                                   const struct node *at_top,
                                   const struct node *node) {
@@ -2159,6 +2191,10 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     return;
   }
   if (header && !node_is_export(node)) {
+    if (!(typ_generic_arity(node->typ)>0)
+        && !(typ_generic_arity(parent_const(node)->typ))) {
+      X(node);
+    }
     return;
   }
 
@@ -2166,13 +2202,13 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     || typ_generic_arity(par->typ) > 0;
   if (!is_gen) {
     if (header && !node_is_export(node)) {
-      return;
+      X(node);return;
     }
     if (!header) {
       if (node_is_export(node) && fwd == FWD_DECLARE_FUNCTIONS) {
-        return;
+        X(node);return;
       } else if (node_is_export(node) && node_is_inline(node) && fwd == FWD_DEFINE_FUNCTIONS) {
-        return;
+        X(node);return;
       }
     }
   }
@@ -2192,11 +2228,20 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
       if (header == node_is_inline(node)) {
         print_deffun_dynwrapper(out, header, fwd, mod, node);
       }
+      if (!node_is_extern(node)) {
+        X(node);
+      }
       return;
     } else if (prototype_only(header, node)) {
+      if (!(typ_generic_arity(node->typ)>0)
+          && !(typ_generic_arity(parent_const(node)->typ))
+          && !(node_is_prototype(node))) {
+        X(node);
+      }
       return;
     }
   }
+  Y(node);
 
   guard_generic(out, header, fwd, mod, node, true);
 
@@ -2780,9 +2825,9 @@ static void print_union_types(FILE *out, bool header, enum forward fwd,
                               const struct node *ch) {
   if (fwd == FWD_DECLARE_TYPES) {
     if (header && !node_is_export(deft)) {
-      return;
+      X(deft);return;
     } else if (!header && node_is_export(deft)) {
-      return;
+      X(deft);return;
     }
 
     if (ch != deft) {
@@ -2790,11 +2835,12 @@ static void print_union_types(FILE *out, bool header, enum forward fwd,
     }
   } else if (fwd == FWD_DEFINE_TYPES) {
     if (header && !(node_is_export(deft) && node_is_inline(deft))) {
-      return;
+      X(deft);return;
     } else if (!header && (node_is_export(deft) && node_is_inline(deft))) {
-      return;
+      X(deft);return;
     }
   }
+  Y(deft);
 
   if (ch->which != DEFCHOICE || !ch->as.DEFCHOICE.is_leaf) {
     fprintf(out, "union ");
@@ -3024,14 +3070,14 @@ static void print_deftype(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node,
                           struct fintypset *printed) {
   if (header && !node_is_export(node)) {
-    return;
+    X(node);return;
   }
   const bool is_gen = typ_generic_arity(node->typ) > 0;
   if (!is_gen && !header) {
     if (node_is_export(node) && fwd == FWD_DECLARE_TYPES) {
-      return;
+      X(node);return;
     } else if (node_is_export(node) && node_is_inline(node) && fwd == FWD_DEFINE_TYPES) {
-      return;
+      X(node);return;
     }
   }
 
@@ -3050,7 +3096,14 @@ static void print_deftype(FILE *out, bool header, enum forward fwd,
   }
 
   if (fwd == FWD_DEFINE_TYPES && (node_is_extern(node) || prototype_only(header, node))) {
+    if (!node_is_extern(node)) {
+      X(node);
+    }
     return;
+  }
+  if (!(!header && fwd == FWD_DEFINE_TYPES && node_is_export(node))
+      && !(!header && fwd == FWD_DEFINE_DYNS && node_is_export(node) && node_is_inline(node))) {
+    Y(node);
   }
 
   guard_generic(out, header, fwd, mod, node, true);
@@ -3116,19 +3169,25 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
   }
 
   if (header && !node_is_export(node)) {
-    return;
+    X(node);return;
   }
   if (header && fwd == FWD_DEFINE_FUNCTIONS) {
-    return;
+    X(node);return;
   }
 
   const bool is_gen = typ_generic_arity(node->typ) > 0;
   if (!is_gen && !header) {
     if (node_is_export(node) && fwd == FWD_DECLARE_TYPES) {
-      return;
+      X(node);return;
     } else if (node_is_export(node) && node_is_inline(node) && fwd == FWD_DEFINE_DYNS) {
-      return;
+      X(node);return;
     }
+  }
+  if (!(fwd == FWD_DEFINE_TYPES && node_is_export(node))
+      && !(fwd == FWD_DECLARE_FUNCTIONS)
+      && !(fwd == FWD_DEFINE_FUNCTIONS)
+      && !(!header && fwd == FWD_DECLARE_TYPES && node_is_export(node))) {
+    Y(node);
   }
 
   if (typ_is_pseudo_builtin(node->typ)) {
