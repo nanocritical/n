@@ -12,20 +12,28 @@ static STEP_NM(step_do_rewrite_prototype_wildcards,
                NM(UN));
 static ERROR step_do_rewrite_prototype_wildcards(struct module *mod, struct node *node,
                                                  void *user, bool *stop) {
+  DSTEP(mod, node);
   const bool within_self = *((bool *) user);
 
-  DSTEP(mod, node);
-  if (node->as.UN.operator == TREFWILDCARD
-      || node->as.UN.operator == TNULREFWILDCARD) {
-    // FIXME The proper solution is to use
-    //   (intf t:Any) `nullable r:(`ref t) = (`any_ref t)
-    // instead of `nullable_ref, `nullable_mutable_ref, and `nullable_mercurial_ref.
-    // and use (`nullable __wildcard_ref_arg__) here.
-    assert(node->as.UN.operator != TNULREFWILDCARD && "FIXME: Unsupported");
-
+  const enum token_type op = node->as.UN.operator;
+  if (op == TREFWILDCARD || op == TNULREFWILDCARD) {
     node_set_which(node, CALL);
     struct node *d = mk_node(mod, node, IDENT);
-    d->as.IDENT.name = within_self ? ID_WILDCARD_REF_ARG_SELF : ID_WILDCARD_REF_ARG;
+    if (within_self) {
+      assert(op != TNULREFWILDCARD);
+      d->as.IDENT.name = ID_WILDCARD_REF_ARG_SELF;
+    } else if (op == TREFWILDCARD) {
+      d->as.IDENT.name = ID_WILDCARD_REF_ARG;
+    } else if (op == TNULREFWILDCARD) {
+      // FIXME The proper solution is to use
+      //   (intf t:Any) `nullable r:(`ref t) = (`any_ref t)
+      // instead of `nullable_ref, `nullable_mutable_ref, and `nullable_mercurial_ref.
+      // and use (`nullable __wildcard_ref_arg__) here.
+      d->as.IDENT.name = ID_WILDCARD_REF_ARG_NULLABLE;
+    } else {
+      assert(false);
+    }
+
     node_subs_remove(node, d);
     node_subs_insert_before(node, subs_first(node), d);
   }

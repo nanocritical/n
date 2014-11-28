@@ -1368,13 +1368,37 @@ struct typ *typ_definition_defmethod_wildcard_functor(const struct typ *t) {
   return olay(t, subs_at_const(genargs, t->definition->as.DEFMETHOD.first_wildcard_genarg+1)->typ);
 }
 
-struct typ *typ_definition_deffun_wildcard_functor(const struct typ *t) {
-  assert(t->definition->which == DEFFUN);
-  if (t->definition->as.DEFFUN.access != TWILDCARD) {
+struct typ *typ_definition_defmethod_nullable_wildcard_functor(const struct typ *t) {
+  assert(t->definition->which == DEFMETHOD);
+  if (typ_definition_defmethod_access(t) != TREFWILDCARD) {
     return NULL;
   }
   const struct node *genargs = subs_at_const(definition_const(t), IDX_GENARGS);
-  return olay(t, subs_last_const(genargs)->typ);
+  return olay(t, subs_at_const(genargs, t->definition->as.DEFMETHOD.first_wildcard_genarg+2)->typ);
+}
+
+enum token_type typ_definition_deffun_access(const struct typ *t) {
+  const struct node *d = definition_const(t);
+  assert(d->which == DEFFUN);
+  return d->as.DEFFUN.access;
+}
+
+struct typ *typ_definition_deffun_wildcard_functor(const struct typ *t) {
+  assert(t->definition->which == DEFFUN);
+  if (typ_definition_deffun_access(t) != TREFWILDCARD) {
+    return NULL;
+  }
+  const struct node *genargs = subs_at_const(definition_const(t), IDX_GENARGS);
+  return olay(t, subs_at_const(genargs, t->definition->as.DEFFUN.first_wildcard_genarg)->typ);
+}
+
+struct typ *typ_definition_deffun_nullable_wildcard_functor(const struct typ *t) {
+  assert(t->definition->which == DEFFUN);
+  if (typ_definition_deffun_access(t) != TREFWILDCARD) {
+    return NULL;
+  }
+  const struct node *genargs = subs_at_const(definition_const(t), IDX_GENARGS);
+  return olay(t, subs_at_const(genargs, t->definition->as.DEFFUN.first_wildcard_genarg+1)->typ);
 }
 
 ident typ_definition_ident(const struct typ *t) {

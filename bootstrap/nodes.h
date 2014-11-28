@@ -326,7 +326,7 @@ struct node_deffun {
   enum token_type access;
   bool is_newtype_converter;
   bool is_newtype_pretend_wrapper;
-  ssize_t min_args, max_args, first_vararg;
+  ssize_t min_args, max_args, first_vararg, first_wildcard_genarg;
   const struct typ *member_from_intf;
   size_t example;
 };
@@ -965,6 +965,7 @@ enum predefined_idents {
   ID_NULLABLE,
   ID_WILDCARD_REF_ARG,
   ID_WILDCARD_REF_ARG_SELF,
+  ID_WILDCARD_REF_ARG_NULLABLE,
   ID_LIKELY,
   ID_UNLIKELY,
   ID_NLANG,

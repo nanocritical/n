@@ -14,7 +14,7 @@ EXAMPLE(data_structure_size_stats) {
   // It is a good idea to keep track of what is responsible for the size of
   // 'union node_as'. In other words, where to look first to shrink 'struct
   // node'.
-  assert(sizeof(struct node_defmethod) == sizeof(union node_as));
+  assert(sizeof(struct node_deffun) == sizeof(union node_as));
 
   // If not, we'll need to store step masks differently.
   assert(NODE__NUM <= 64);

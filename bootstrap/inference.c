@@ -291,7 +291,7 @@ error reference(struct typ **result,
 }
 
 static struct typ *nullable_functor(struct typ *t) {
-  struct typ *t0 = typ_generic_functor(t);
+  struct typ *t0 = typ_is_generic_functor(t) ? t : typ_generic_functor(t);
   if (typ_isa(t0, TBI_ANY_NULLABLE_REF)) {
     return t0;
   }
@@ -302,7 +302,7 @@ static struct typ *nullable_functor(struct typ *t) {
     return TBI_ANY_NULLABLE_MUTABLE_REF;
   } else if (typ_equal(t0, TBI_REF)) {
     return TBI_NREF;
-  } else if (typ_isa(t0, TBI_NREF)) {
+  } else if (typ_isa(t0, TBI_MREF)) {
     return TBI_NMREF;
   } else if (typ_isa(t0, TBI_MMREF)) {
     return TBI_NMMREF;
@@ -1965,6 +1965,61 @@ static ERROR explicit_instantiation(struct module *mod, struct node *node) {
   return 0;
 }
 
+static ERROR link_wildcard_generics(struct module *mod, struct typ *i,
+                                    struct node *call) {
+  error e;
+  if (typ_definition_which(i) == DEFMETHOD
+      && typ_definition_defmethod_access(i) == TREFWILDCARD) {
+    struct typ *self = subs_at(call, 1)->typ;
+    struct typ *self0 = typ_generic_functor(self);
+
+    struct typ *wildcard = typ_definition_defmethod_wildcard_functor(i);
+    struct typ *self_wildcard = typ_definition_defmethod_self_wildcard_functor(i);
+    struct typ *nullable_wildcard = typ_definition_defmethod_nullable_wildcard_functor(i);
+
+    if ((typ_toplevel_flags(i) & TOP_IS_SHALLOW) && typ_equal(self0, TBI_MREF)) {
+      e = unify(mod, call, wildcard, TBI_MMREF);
+      EXCEPT(e);
+      // Update after the link.
+      wildcard = typ_definition_defmethod_wildcard_functor(i);
+      e = unify(mod, call, nullable_wildcard, TBI_NMMREF);
+      EXCEPT(e);
+    } else {
+      e = unify(mod, call, wildcard, self_wildcard);
+      EXCEPT(e);
+      // Update after the link.
+      wildcard = typ_definition_defmethod_wildcard_functor(i);
+      e = unify(mod, call, nullable_wildcard, nullable_functor(wildcard));
+      EXCEPT(e);
+    }
+  } else if (typ_definition_which(i) == DEFFUN
+             && typ_definition_deffun_access(i) == TREFWILDCARD) {
+    struct typ *wildcard = typ_definition_deffun_wildcard_functor(i);
+    struct typ *nullable_wildcard = typ_definition_deffun_nullable_wildcard_functor(i);
+
+    if (!typ_is_tentative(wildcard)) {
+      if (typ_definition_which(wildcard) == DEFINTF) {
+        e = unify(mod, call, nullable_wildcard, nullable_functor(wildcard));
+        EXCEPT(e);
+      } else {
+        assert(typ_is_ungenarg(wildcard));
+        // There is nothing we can do to link these 2
+      }
+    } else if (!typ_is_tentative(nullable_wildcard)) {
+      if (typ_definition_which(nullable_wildcard) == DEFINTF) {
+        e = unify(mod, call, wildcard, nullable_functor(nullable_wildcard));
+        EXCEPT(e);
+      } else {
+        assert(typ_is_ungenarg(nullable_wildcard));
+        // There is nothing we can do to link these 2
+      }
+    } else {
+      assert(false && "FIXME: can this happen?");
+    }
+  }
+  return 0;
+}
+
 static ERROR implicit_function_instantiation(struct module *mod, struct node *node) {
   error e;
   struct node *fun = subs_first(node);
@@ -1981,28 +2036,11 @@ static ERROR implicit_function_instantiation(struct module *mod, struct node *no
     e = unify_refcompat(mod, s, typ_function_arg(*i, n), s->typ);
     EXCEPT(e);
 
-    if (n == 0 /* self */
-        && typ_definition_which(*i) == DEFMETHOD
-        && typ_definition_defmethod_access(*i) == TREFWILDCARD) {
-      // This code enforces the relationship between the 2 wildcard generic
-      // arguments, for wildcard methods.
-
-      struct typ *self_wildcard = typ_definition_defmethod_self_wildcard_functor(*i);
-      struct typ *wildcard = typ_definition_defmethod_wildcard_functor(*i);
-      if ((typ_toplevel_flags(*i) & TOP_IS_SHALLOW)
-          && typ_equal(typ_generic_functor(s->typ), TBI_MREF)) {
-        e = unify(mod, s, wildcard, TBI_MMREF);
-        EXCEPT(e);
-      } else {
-        assert(typ_is_reference(s->typ));
-
-        e = unify(mod, s, wildcard, self_wildcard);
-        EXCEPT(e);
-      }
-    }
-
     n += 1;
   }
+
+  e = link_wildcard_generics(mod, *i, node);
+  EXCEPT(e);
 
   // We're turning 'fun' into something different: it was a
   // functor, now it's an instantiated function. We are, in essence,

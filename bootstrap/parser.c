@@ -47,6 +47,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_NCODELOC] = "_Ncodeloc",
   [ID_WILDCARD_REF_ARG] = "__wildcard_ref_arg__",
   [ID_WILDCARD_REF_ARG_SELF] = "__wildcard_ref_arg_self__",
+  [ID_WILDCARD_REF_ARG_NULLABLE] = "__wildcard_ref_arg_nullable__",
   [ID_LIKELY] = "Likely",
   [ID_UNLIKELY] = "Unlikely",
   [ID_NLANG] = "n",
@@ -2094,15 +2095,20 @@ static void add_self_arg(struct module *mod, struct node *node,
     node->as.DEFMETHOD.first_wildcard_genarg = subs_count(genargs);
     GSTART();
     G0(gas, genargs, DEFGENARG,
-       G(gasn, IDENT,
-         gasn->as.IDENT.name = ID_WILDCARD_REF_ARG_SELF);
+       G(gasid, IDENT,
+         gasid->as.IDENT.name = ID_WILDCARD_REF_ARG_SELF);
        G(gast, IDENT,
          gast->as.IDENT.name = ID_TBI_ANY_REF));
     G0(ga, genargs, DEFGENARG,
-       G(gan, IDENT,
-         gan->as.IDENT.name = ID_WILDCARD_REF_ARG);
+       G(gaid, IDENT,
+         gaid->as.IDENT.name = ID_WILDCARD_REF_ARG);
        G(gat, IDENT,
          gat->as.IDENT.name = ID_TBI_ANY_REF));
+    G0(gan, genargs, DEFGENARG,
+       G(ganid, IDENT,
+         ganid->as.IDENT.name = ID_WILDCARD_REF_ARG_NULLABLE);
+       G(gant, IDENT,
+         gant->as.IDENT.name = ID_TBI_ANY_NULLABLE_REF));
 
     G0(argt, arg, CALL,
        G(ref, IDENT,
@@ -2120,12 +2126,18 @@ static void add_self_arg(struct module *mod, struct node *node,
 static void add_fun_wildcard_genarg(struct module *mod, struct node *node) {
   if (node->as.DEFFUN.access == TREFWILDCARD) {
     struct node *genargs = subs_at(node, IDX_GENARGS);
+    node->as.DEFFUN.first_wildcard_genarg = subs_count(genargs);
     GSTART();
     G0(ga, genargs, DEFGENARG,
-       G(gan, IDENT,
-         gan->as.IDENT.name = ID_WILDCARD_REF_ARG);
+       G(gaid, IDENT,
+         gaid->as.IDENT.name = ID_WILDCARD_REF_ARG);
        G(gat, IDENT,
          gat->as.IDENT.name = ID_TBI_ANY_REF));
+    G0(gan, genargs, DEFGENARG,
+       G(ganid, IDENT,
+         ganid->as.IDENT.name = ID_WILDCARD_REF_ARG_NULLABLE);
+       G(gant, IDENT,
+         gant->as.IDENT.name = ID_TBI_ANY_NULLABLE_REF));
   }
 }
 
