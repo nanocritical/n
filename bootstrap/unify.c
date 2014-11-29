@@ -209,8 +209,15 @@ static ERROR unify_non_generic(struct module *mod, const struct node *for_error,
     THROW(e);
   }
 
-  e = typ_check_isa(mod, for_error, a, b);
-  EXCEPT(e);
+  if (!typ_isa(a, b)) {
+    SWAP(a, b);
+    SWAP(a_non_generic, b_non_generic);
+
+    if (!typ_isa(a, b)) {
+      e = mk_except_type_unification(mod, for_error, a, b);
+      THROW(e);
+    }
+  }
 
   if (typ_equal(a, b)) {
     e = unify_with_equal(mod, for_error, a, b);
