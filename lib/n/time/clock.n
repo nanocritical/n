@@ -84,7 +84,7 @@ Sysclock met! Save_measurements = bench.Restorer
 	self!zero = measure_all_absolute
 	return {target=self}
 
-Sysclock met! restore_measurements
+Sysclock met! Restore_measurements
 	assert self.stack.Count > 0
 	self!zero = self.stack.Last
 	self!stack#Pop

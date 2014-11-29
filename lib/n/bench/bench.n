@@ -74,14 +74,14 @@ intf `Observable_of m:`Measure =
 	met Measure = m
 
 intf `Has_restore =
-	met! restore_measurements
+	met! Restore_measurements
 
 
 inline struct Restorer =
 	target	:@!`Has_restore
 
 Restorer met# Dtor
-	self!target!restore_measurements
+	self!target!Restore_measurements
 
 -- Suitable when the 'Current' measure will be updated in-place (push model).
 inline struct Stack m:`Measure =
@@ -89,12 +89,12 @@ inline struct Stack m:`Measure =
 	Current	:m
 	impl	:(Buf m)
 
-Stack met! Save = Restorer
+inline Stack met! Save = Restorer
 	self!impl#Push# = self.Current
 	self!Current = {}
 	return {target=self}
 
-Stack met! restore_measurements
+inline Stack met! Restore_measurements
 	assert self.impl.Count > 0
 	let p = self.impl.Last
 	self!Current += p.

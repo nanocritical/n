@@ -64,19 +64,6 @@ static bool skip(bool header, enum forward fwd, const struct node *node) {
     return true;
   }
 }
-#define X(node) assert(skip(header, fwd, node))
-#define Y(node) assert(!skip(header, fwd, node))
-
-static bool prototype_only(bool header, const struct node *node) {
-  if (node->which == DEFINTF) {
-    return (header && !node_is_export(node))
-      || node_is_prototype(node);
-  } else {
-    return
-      (header && !(node_is_export(node) && node_is_inline(node)))
-      || node_is_prototype(node);
-  }
-}
 
 static const char *c_token_strings[TOKEN__NUM] = {
   [TASSIGN] = " = ",
@@ -2190,28 +2177,6 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     // This is a builtin and does not have a real function prototype.
     return;
   }
-  if (header && !node_is_export(node)) {
-    if (!(typ_generic_arity(node->typ)>0)
-        && !(typ_generic_arity(parent_const(node)->typ))) {
-      X(node);
-    }
-    return;
-  }
-
-  const bool is_gen = typ_generic_arity(node->typ) > 0
-    || typ_generic_arity(par->typ) > 0;
-  if (!is_gen) {
-    if (header && !node_is_export(node)) {
-      X(node);return;
-    }
-    if (!header) {
-      if (node_is_export(node) && fwd == FWD_DECLARE_FUNCTIONS) {
-        X(node);return;
-      } else if (node_is_export(node) && node_is_inline(node) && fwd == FWD_DEFINE_FUNCTIONS) {
-        X(node);return;
-      }
-    }
-  }
 
   const ident id = node_ident(node);
   if (id == ID_CAST
@@ -2222,26 +2187,19 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
   }
 
   if (fwd == FWD_DEFINE_FUNCTIONS) {
-    // (header && !(node_is_export(node) && node_is_inline(node)))
-    //  || node_is_prototype(node);
     if (node_is_extern(node)) {
       if (header == node_is_inline(node)) {
         print_deffun_dynwrapper(out, header, fwd, mod, node);
       }
-      if (!node_is_extern(node)) {
-        X(node);
-      }
       return;
-    } else if (prototype_only(header, node)) {
-      if (!(typ_generic_arity(node->typ)>0)
-          && !(typ_generic_arity(parent_const(node)->typ))
-          && !(node_is_prototype(node))) {
-        X(node);
-      }
+    } else if (node_is_prototype(node)) {
       return;
     }
   }
-  Y(node);
+
+  if (skip(header, fwd, node)) {
+    return;
+  }
 
   guard_generic(out, header, fwd, mod, node, true);
 
@@ -2823,24 +2781,15 @@ static void print_enumunion_functions(FILE *out, bool header, enum forward fwd,
 static void print_union_types(FILE *out, bool header, enum forward fwd,
                               const struct module *mod, const struct node *deft,
                               const struct node *ch) {
-  if (fwd == FWD_DECLARE_TYPES) {
-    if (header && !node_is_export(deft)) {
-      X(deft);return;
-    } else if (!header && node_is_export(deft)) {
-      X(deft);return;
-    }
+if (skip(header, fwd, deft)) {
+    return;
+  }
 
+  if (fwd == FWD_DECLARE_TYPES) {
     if (ch != deft) {
       print_defchoice(out, mod, deft, ch);
     }
-  } else if (fwd == FWD_DEFINE_TYPES) {
-    if (header && !(node_is_export(deft) && node_is_inline(deft))) {
-      X(deft);return;
-    } else if (!header && (node_is_export(deft) && node_is_inline(deft))) {
-      X(deft);return;
-    }
   }
-  Y(deft);
 
   if (ch->which != DEFCHOICE || !ch->as.DEFCHOICE.is_leaf) {
     fprintf(out, "union ");
@@ -2869,6 +2818,10 @@ static void print_union_types(FILE *out, bool header, enum forward fwd,
 static void print_union(FILE *out, bool header, enum forward fwd,
                         const struct module *mod, const struct node *deft,
                         const struct node *node, struct fintypset *printed) {
+  if (deft->which == DEFTYPE && skip(header, fwd, deft)) {
+    return;
+  }
+
   switch (fwd) {
   case FWD_DECLARE_TYPES:
     if (node == deft) {
@@ -2924,6 +2877,10 @@ static void print_union(FILE *out, bool header, enum forward fwd,
 static void print_enum(FILE *out, bool header, enum forward fwd,
                        const struct module *mod, const struct node *deft,
                        const struct node *node, struct fintypset *printed) {
+  if (deft->which == DEFTYPE && skip(header, fwd, deft)) {
+    return;
+  }
+
   if (fwd == FWD_DECLARE_TYPES) {
     if (deft == node) {
       fprintf(out, "#ifndef ");
@@ -2939,9 +2896,6 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
   }
 
   if (fwd == FWD_DEFINE_TYPES) {
-    if (prototype_only(header, node)) {
-      return;
-    }
     FOREACH_SUB_CONST(s, node) {
       if (s->which != DEFCHOICE) {
         continue;
@@ -3069,18 +3023,6 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
 static void print_deftype(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node,
                           struct fintypset *printed) {
-  if (header && !node_is_export(node)) {
-    X(node);return;
-  }
-  const bool is_gen = typ_generic_arity(node->typ) > 0;
-  if (!is_gen && !header) {
-    if (node_is_export(node) && fwd == FWD_DECLARE_TYPES) {
-      X(node);return;
-    } else if (node_is_export(node) && node_is_inline(node) && fwd == FWD_DEFINE_TYPES) {
-      X(node);return;
-    }
-  }
-
   if (typ_is_pseudo_builtin(node->typ)) {
     return;
   }
@@ -3095,15 +3037,12 @@ static void print_deftype(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  if (fwd == FWD_DEFINE_TYPES && (node_is_extern(node) || prototype_only(header, node))) {
-    if (!node_is_extern(node)) {
-      X(node);
-    }
+  if (node_is_extern(node) && fwd == FWD_DEFINE_TYPES) {
     return;
   }
-  if (!(!header && fwd == FWD_DEFINE_TYPES && node_is_export(node))
-      && !(!header && fwd == FWD_DEFINE_DYNS && node_is_export(node) && node_is_inline(node))) {
-    Y(node);
+
+  if (skip(header, fwd, node)) {
+    return;
   }
 
   guard_generic(out, header, fwd, mod, node, true);
@@ -3139,12 +3078,10 @@ static void print_deftype(FILE *out, bool header, enum forward fwd,
     } else {
       print_deftype_block(out, header, fwd, mod, node, true, printed);
 
-      if (!prototype_only(header, node)) {
-        fprintf(out, "struct ");
-        print_deftype_name(out, mod, node);
-        print_deftype_block(out, header, fwd, mod, node, false, printed);
-        fprintf(out, ";\n");
-      }
+      fprintf(out, "struct ");
+      print_deftype_name(out, mod, node);
+      print_deftype_block(out, header, fwd, mod, node, false, printed);
+      fprintf(out, ";\n");
     }
   } else if (fwd == FWD_DECLARE_FUNCTIONS || fwd == FWD_DEFINE_FUNCTIONS) {
     print_deftype_block(out, header, fwd, mod, node, true, printed);
@@ -3168,33 +3105,15 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  if (header && !node_is_export(node)) {
-    X(node);return;
-  }
-  if (header && fwd == FWD_DEFINE_FUNCTIONS) {
-    X(node);return;
-  }
-
-  const bool is_gen = typ_generic_arity(node->typ) > 0;
-  if (!is_gen && !header) {
-    if (node_is_export(node) && fwd == FWD_DECLARE_TYPES) {
-      X(node);return;
-    } else if (node_is_export(node) && node_is_inline(node) && fwd == FWD_DEFINE_DYNS) {
-      X(node);return;
-    }
-  }
-  if (!(fwd == FWD_DEFINE_TYPES && node_is_export(node))
-      && !(fwd == FWD_DECLARE_FUNCTIONS)
-      && !(fwd == FWD_DEFINE_FUNCTIONS)
-      && !(!header && fwd == FWD_DECLARE_TYPES && node_is_export(node))) {
-    Y(node);
-  }
-
   if (typ_is_pseudo_builtin(node->typ)) {
     return;
   }
 
   if (typ_is_reference(node->typ)) {
+    return;
+  }
+
+  if (skip(header, fwd, node)) {
     return;
   }
 
