@@ -112,9 +112,12 @@ inline struct Hashmap K: `Hashmap_key T:`Copyable =
 	table	:(sptable (unit K T))
 	count	:Uint
 
+Hashmap met# init ?size:?Uint
+	self#table#ctor (size else sp_min_size)
+
 Hashmap met# ensure_init
 	if self.table.size < sp_min_size
-		self#table#ctor sp_min_size
+		self#init
 
 Hashmap met# Dtor
 	self#table#Dtor
@@ -153,7 +156,7 @@ Hashmap met# may_grow
 		return
 	assert false
 
-Hashmap met# Store key:K = @#T
+Hashmap met# store key:K trying:Bool = ?@#T
 	self#ensure_init
 
 	let hash = key.Hash32
@@ -170,7 +173,10 @@ Hashmap met# Store key:K = @#T
 		if u.hash != hash
 			continue
 		if u.key == key
-			return @#u#val
+			if trying
+				return nil
+			else
+				return @#u#val
 
 	-- Need to create a spot.
 	self#may_grow
@@ -181,8 +187,16 @@ Hashmap met# Store key:K = @#T
 	u#key = key
 	return @#u#val
 
+Hashmap met# Store key:K = @#T
+	let loc = self#store key false
+	assert loc?
+	return loc
+
+Hashmap met# Try_store key:K = ?@#T
+	return self#store key true
+
 example
-	let m = {}:(Hashmap String Uint)
+	var m = {}:(Hashmap String Uint)
 	assert m.Count == 0
 	assert not m.["42"]?
 
@@ -190,6 +204,11 @@ example
 	assert m.Count == 1
 	assert m.["42"] == 42
 
+	assert m#Try_store "42" === nil
+	assert m.Count == 1
+	assert m.["42"] == 42
+
+	-- Overwrite
 	(m#Store "42")# = 43
 	assert m.Count == 1
 	assert m.["42"] == 43
@@ -204,7 +223,7 @@ example collision
 	let b = 0x1_0000_0000:U64
 	assert a.Hash32 == b.Hash32
 
-	let m = {}:(Hashmap U64 Uint)
+	var m = {}:(Hashmap U64 Uint)
 	(m#Store a)# = 42
 	assert m.[a] == 42
 	(m#Store b)# = 43
