@@ -37,15 +37,16 @@ static const char *forward_guards[FORWARD__NUM] = {
 
 static bool skip(bool header, enum forward fwd, const struct node *node) {
   const bool function = node_is_fun(node);
+  const bool let = node->which == LET;
 
   const bool gen = typ_generic_arity(node->typ) > 0
     || (function && typ_generic_arity(parent_const(node)->typ) > 0);
-  const bool hinline = node_is_inline(node) && node_is_export(node); // TODO remove rhs
-  const bool hvisible = node_is_export(node); // TODO add in: || hinline;
+  const bool hinline = node_is_inline(node);
+  const bool hvisible = node_is_export(node) || hinline;
 
-  const enum forward decl = function ? FWD_DECLARE_FUNCTIONS : FWD_DECLARE_TYPES;
-  const enum forward def = function ? FWD_DEFINE_FUNCTIONS : FWD_DEFINE_TYPES;
-  const enum forward dyn = !function ? FWD_DEFINE_DYNS : FORWARD__NUM /* means never */;
+  const enum forward decl = (function || let) ? FWD_DECLARE_FUNCTIONS : FWD_DECLARE_TYPES;
+  const enum forward def = (function || let) ? FWD_DEFINE_FUNCTIONS : FWD_DEFINE_TYPES;
+  const enum forward dyn = (function || let) ? FORWARD__NUM /* means never */ : FWD_DEFINE_DYNS;
 
   if (gen && node->which != DEFINTF) {
     // Delegate decision to print_topdeps().
@@ -1278,7 +1279,7 @@ static void print_linkage(FILE *out, bool header, enum forward fwd,
         || ((flags & TOP_IS_EXTERN) && (flags & TOP_IS_INLINE))) {
       fprintf(out, ALWAYS_INLINE " static inline ");
     } else if ((flags & TOP_IS_EXTERN) && (flags & TOP_IS_EXPORT)) {
-        fprintf(out, "extern ");
+      fprintf(out, "extern ");
     } else if (flags & TOP_IS_EXPORT) {
       // noop
     } else {
@@ -1288,7 +1289,7 @@ static void print_linkage(FILE *out, bool header, enum forward fwd,
     fprintf(out, "extern ");
   } else if ((flags & TOP_IS_INLINE) && node->which != DEFNAME) {
     fprintf(out, ALWAYS_INLINE " static inline ");
-  } else if (node_is_at_top(at_top) && !(flags & TOP_IS_EXPORT)) {
+  } else if (!header && node_is_at_top(at_top) && !(flags & TOP_IS_EXPORT)) {
     fprintf(out, "static ");
   }
 }
@@ -1523,24 +1524,9 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
   }
 
   const struct node *expr = subs_last_const(node);
-  const struct node *par = parent_const(let);
-  const bool in_gen = !node_is_at_top(let) && typ_generic_arity(par->typ) > 0;
   if (node->flags & NODE_IS_GLOBAL_LET) {
-    if (!in_gen) {
-      if (header && !node_is_export(let)) {
-        return;
-      } else if (header && fwd == FWD_DEFINE_FUNCTIONS) {
-        // Even if it is inline, the value is set in the .c
-        // This is a lost optimization opportunity for the C compiler, but
-        // we're not sure of the implications of making the value visible in
-        // the header (using a #define).
-        return;
-      } else if (!header && fwd == FWD_DECLARE_FUNCTIONS
-                 && node_is_export(let)) {
-        return;
-      } else if (!header && node_is_extern(let)) {
-        return;
-      }
+    if (skip(header, fwd, let)) {
+      return;
     }
   } else if (expr->flags & NODE_IS_LOCAL_STATIC_CONSTANT) {
     fprintf(out, " static ");
@@ -1557,15 +1543,20 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
     return;
   }
 
+  const struct node *par = parent_const(let);
+  const bool in_gen = !node_is_at_top(let) && typ_generic_arity(par->typ) > 0;
   const bool will_define = fwd == FWD_DEFINE_FUNCTIONS
-    && (!header || in_gen || node_is_inline(node))
+    && (!header || in_gen || node_is_export(let) || node_is_inline(let))
     && !(node_toplevel_const(let)->flags & TOP_IS_EXTERN);
 
   const bool is_void = typ_equal(node->typ, TBI_VOID);
   if (!is_void) {
     if (node->flags & NODE_IS_GLOBAL_LET) {
-      if (node_is_export(let) && in_gen) {
+      if (header) {
         fprintf(out, WEAK " ");
+        if (!will_define && !(node_toplevel_const(let)->flags & TOP_IS_EXTERN)) {
+          fprintf(out, "extern ");
+        }
       }
       print_linkage(out, header, fwd, let, node);
     }
@@ -3263,7 +3254,7 @@ static void print_topdeps(FILE *out, bool header, enum forward fwd,
   }
 
   const struct toplevel *toplevel = node_toplevel_const(node);
-  if (header && !(toplevel->flags & TOP_IS_EXPORT)) {
+  if (header && !(toplevel->flags & (TOP_IS_EXPORT | TOP_IS_INLINE))) {
     return;
   }
 

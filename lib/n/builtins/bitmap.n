@@ -18,7 +18,7 @@ inline Bitmap met Count = Uint
 	return self.count
 
 inline Bitmap met Iter = r:Bitmap_iterator
-	r#Internal_init self
+	r#init self
 
 inline Bitmap met# Resize bits:Uint
 	self!count = bits
@@ -111,7 +111,7 @@ inline struct Bitmap_iterator =
 	first	:Uint
 	masked	:U32
 
-inline Bitmap_iterator met! Internal_init b:@Bitmap
+inline Bitmap_iterator met! init b:@Bitmap
 	self!b = b
 	let ffs = self.b.Ffs
 	if ffs?

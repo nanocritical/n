@@ -46,7 +46,7 @@ static void record_final(struct module *mod, struct typ *t) {
   }
   if (fun_st != NULL) {
     if (fun_st->in_block) {
-      if (!(mask & TOP_IS_EXPORT) || !(mask & TOP_IS_INLINE)) {
+      if (!(mask & TOP_IS_INLINE)) {
         mask &= ~(TOP_IS_EXPORT | TOP_IS_INLINE);
       }
     }
