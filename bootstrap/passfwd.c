@@ -207,7 +207,19 @@ static ERROR step_detect_not_dyn_intf_up(struct module *mod, struct node *node,
 }
 
 static bool demands_inline(const struct node *node) {
-  return subs_count_atleast(subs_at_const(node, IDX_GENARGS), 1);
+  return node_can_have_genargs(node)
+    && subs_count_atleast(subs_at_const(node, IDX_GENARGS), 1);
+}
+
+static STEP_NM(step_mark_generic_inline,
+               NM(DEFFUN) | NM(DEFMETHOD));
+static ERROR step_mark_generic_inline(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
+  DSTEP(mod, node);
+  if (demands_inline(node) || demands_inline(parent_const(node))) {
+    node_toplevel(node)->flags |= TOP_IS_INLINE;
+  }
+  return 0;
 }
 
 static struct node *do_move_detached_member(struct module *mod,
@@ -234,10 +246,6 @@ static struct node *do_move_detached_member(struct module *mod,
 
   node_subs_remove(par, node);
   node_subs_append(container, node);
-
-  if (demands_inline(node) || demands_inline(parent_const(node))) {
-    node_toplevel(node)->flags |= TOP_IS_INLINE;
-  }
 
   struct toplevel *container_toplevel = node_toplevel(container);
   if (container_toplevel->generic != NULL) {
@@ -1402,6 +1410,7 @@ static ERROR passfwd1(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_lexical_scoping_functions);
     ,
+    UP_STEP(step_mark_generic_inline);
     UP_STEP(step_move_detached_members);
     ,
     FINALLY_STEP(step_pop_state);
