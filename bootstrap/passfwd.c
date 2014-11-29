@@ -1508,7 +1508,6 @@ static ERROR passfwd7(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
-    DOWN_STEP(step_validate_genargs);
     DOWN_STEP(step_type_update_quickisa); // see ready_for_quickisa_pass()
     ,
     UP_STEP(step_detect_prevent_dyn);
@@ -1576,6 +1575,8 @@ static ERROR passfwd11(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_submodules);
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_stop_funblock);
+    // Wait until after step_autointf_*
+    DOWN_STEP(step_validate_genargs);
     ,
     UP_STEP(step_type_deffuns);
     UP_STEP(step_autointf_inherit);
