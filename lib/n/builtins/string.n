@@ -1,9 +1,6 @@
 -- See LICENSE for details. Partially derived from go/src/pkg/strings
 -- Copyright 2009 The Go Authors. All rights reserved.
 
-intf `Hashable32 =
-	met Hash32 = U32
-
 intf `String_compatible =
 	fun From_string s:String = final
 

@@ -1,0 +1,200 @@
+intf `Hashable32 =
+	met Hash32 = U32
+
+alias `Hashmap_key = {`Hashable32 `Copyable `Has_equality}
+
+inline struct sptable T:`Copyable =
+	count	:Uint
+	groups	:(Buf ?@#(Buf T))
+	bitmap	:Bitmap
+
+inline let sp_m = Bitmap.BITS_PER_WORD
+inline let sp_min_size = Bitmap.BITS_PER_WORD
+
+inline fun sp_num_groups size:Uint = Uint
+	return math.Div_ceil size sp_m
+
+inline sptable met# ctor size:Uint
+	self!count = 0
+	self!bitmap#Resize <- Max size sp_min_size
+	self!groups#Resize (sp_num_groups self.bitmap.Count)
+
+inline sptable met# Dtor
+	foreach g in self.groups
+		Free g.
+
+inline sptable met size = Uint
+	return self.bitmap.Count
+
+inline fun maskout_after mask:U32 = U32
+	return mask - 1
+
+example
+	assert maskout_after (1 ov<< 31) == 0x7fffffff
+	assert maskout_after (1 ov<< 1) == 0x1
+	assert maskout_after (1 ov<< 0) == 0x0
+
+inline sptable shallow met$ get n:Uint = ?@$T
+	assert n < self.size
+	if not self.bitmap.[n]
+		return nil
+
+	let word, mask = Bitmap_split n
+	let w = self.bitmap.Words.[word].
+	let before_w = w & (maskout_after mask)
+	let count_before = math.Bit_popcount before_w
+	let gr = self.groups.[word].
+	return gr$[count_before]
+
+inline sptable met# set n:Uint = @#T
+	assert n < self.size
+	if self.bitmap.[n]
+		return self!get n
+
+	let word, mask = Bitmap_split n
+	let w = self.bitmap.Words.[word].
+	let before_w = w & (maskout_after mask)
+	let count_before = math.Bit_popcount before_w
+	let count_after = (math.Bit_popcount w) - count_before
+	let old_count = count_before + count_after
+
+	let gr = self.groups.[word]. such
+		if not gr?
+			gr = Alloc (Buf T)
+			self.groups![word]! = gr
+	assert old_count == gr.Count
+	gr#Resize gr.Count+1
+
+	let src_after = gr![count_before .. old_count]
+	let dst_after = gr![count_before+1 ..]
+	dst_after!Exact_copy src_after
+
+	self!bitmap!Set n
+	self!count += 1
+	return gr![count_before]
+
+example
+	var t = {}:(sptable Uint)
+	t#ctor 100
+	(t#set 0)# = 42
+	assert t#get 1 === nil
+	assert (t#get 0). == 42
+	assert t.count == 1
+	(t#set 7)# = 44
+	assert t.count == 2
+	assert (t#get 7). == 44
+	(t#set 3)# = 43
+	assert t.count == 3
+	assert (t#get 3). == 43
+	(t#set 99)# = 45
+	assert t.count == 4
+	assert (t#get 0). == 42
+	assert (t#get 3). == 43
+	assert (t#get 7). == 44
+	assert (t#get 99). == 45
+
+example
+	var t = {}:(sptable Uint)
+	t#ctor sp_m+1
+	(t#set sp_m-1)# = 42
+	(t#set sp_m)# = 43
+	assert t#get 1 === nil
+	assert (t#get sp_m). == 43
+	assert (t#get sp_m-1). == 42
+	assert t.count == 2
+
+inline struct unit K:`Hashmap_key T:`Copyable =
+	hash	:?U32
+	key	:K
+	val	:T
+
+inline struct Hashmap K: `Hashmap_key T:`Copyable =
+	table	:(sptable (unit K T))
+	count	:Uint
+
+Hashmap met# ensure_init
+	if self.table.size < sp_min_size
+		self#table#ctor sp_min_size
+
+Hashmap met# Dtor
+	self#table#Dtor
+
+Hashmap met Count = Uint
+	return self.table.count
+
+-- Quadratic open addressing (see Knuth TAOCP 6.4 exercise 20)
+--
+-- The table must have at least one empty spot to make sure that, if the
+-- table is full, the quadratic eventually stops.
+Hashmap met index hash:U32 nth:Uint = Uint
+	return ((hash.Uint + (nth * (nth+1))) / 2) % self.table.size
+
+Hashmap shallow met$ Operator_at key:K = ?@$T
+	if self.Count == 0
+		return nil
+
+	let hash = key.Hash32
+	var nth
+	while true
+		let u = self.table$get <- self.index hash nth
+		nth += 1
+		if not u?
+			return nil
+		if not u.hash?
+			-- Deleted
+			continue
+		if u.hash != hash
+			continue
+		if u.key == key
+			return @$u$val
+
+Hashmap met# may_grow
+	if (self.count * 32) / self.table.size <= 24
+		return
+	assert false
+
+Hashmap met# Store key:K = @#T
+	self#ensure_init
+
+	let hash = key.Hash32
+	var nth, idx
+	while true
+		idx = self.index hash nth
+		let u = self#table#get idx
+		nth += 1
+		if not u?
+			break
+		if not u.hash?
+			-- Deleted
+			continue
+		if u.hash != hash
+			continue
+		if u.key == key
+			return @#u#val
+
+	-- Need to create a spot.
+	self#may_grow
+
+	self!count += 1
+	let u = self#table#set idx
+	u#hash = hash
+	u#key = key
+	return @#u#val
+
+example
+	let m = {}:(Hashmap String Uint)
+	assert m.Count == 0
+	assert not m.["42"]?
+
+	(m#Store "42")# = 42
+	assert m.Count == 1
+	assert m.["42"] == 42
+
+	(m#Store "42")# = 43
+	assert m.Count == 1
+	assert m.["42"] == 43
+
+	(m#Store "44")# = 44
+	assert m.Count == 2
+	assert m.["42"] == 43
+	assert m.["44"] == 44
