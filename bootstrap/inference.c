@@ -1241,9 +1241,11 @@ static ERROR type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
   error e;
   struct node *left = subs_first(node);
   struct node *right = subs_last(node);
-
+  e = try_insert_automagic_de(mod, left);
+  EXCEPT(e);
   e = try_insert_automagic_de(mod, right);
   EXCEPT(e);
+  left = subs_first(node);
   right = subs_last(node);
 
   e = unify(mod, right, right->typ, TBI_UINT);
@@ -1543,6 +1545,9 @@ static ERROR type_inference_return(struct module *mod, struct node *node) {
   if (subs_count_atleast(node, 1)) {
     struct typ *ret = module_retval_get(mod)->typ;
     struct node *arg = subs_first(node);
+
+    // Do not automatically deref. This is considered confusing. At least
+    // until we have escape analysis.
 
     if (node->as.RETURN.is_flexible_except) {
       e = flexible_except_return(mod, node, ret, arg);
