@@ -198,3 +198,15 @@ example
 	assert m.Count == 2
 	assert m.["42"] == 43
 	assert m.["44"] == 44
+
+example collision
+	let a = 31:U64
+	let b = 0x1_0000_0000:U64
+	assert a.Hash32 == b.Hash32
+
+	let m = {}:(Hashmap U64 Uint)
+	(m#Store a)# = 42
+	assert m.[a] == 42
+	(m#Store b)# = 43
+	assert m.[b] == 43
+	assert m.[a] == 42

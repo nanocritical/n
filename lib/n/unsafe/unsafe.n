@@ -10,3 +10,5 @@ extern inline struct Voidref =
 	isa `Any_any_ref `Native
 extern inline Voidref fun From_uintptr p:Uintptr = Voidref
 extern inline Voidref met Uintptr = Uintptr
+inline Voidref met Hash32 = U32
+	return self.Uintptr.Hash32

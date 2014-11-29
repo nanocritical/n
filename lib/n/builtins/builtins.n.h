@@ -340,6 +340,7 @@ static inline NB(I32) NB(Float$Round0_i32)(NB(Float) *self) { return (NB(I32)) *
 static inline NB(I64) NB(Float$Round0_i64)(NB(Float) *self) { return (NB(I64)) *self; }
 static inline NB(Double) NB(Float$Double)(NB(Float) *self) { return (NB(Double)) *self; }
 static inline NB(Int) NB(Float$Round0_int)(NB(Float) *self) { return (NB(Int)) *self; }
+static inline NB(U32) NB(Float$Bitwise_u32)(NB(Float) *self) { return *(NB(U32) *) self; }
 static inline NB(Float) NB(Float$MIN)(void) { return -FLT_MAX; }
 static inline NB(Float) NB(Float$MAX)(void) { return FLT_MAX; }
 static inline NB(Float) NB(Float$EPSILON)(void) { return FLT_EPSILON; }
@@ -358,6 +359,7 @@ static inline NB(I32) NB(Double$Round0_i32)(NB(Double) *self) { return (NB(I32))
 static inline NB(I64) NB(Double$Round0_i64)(NB(Double) *self) { return (NB(I64)) *self; }
 static inline NB(Float) NB(Double$Round_float)(NB(Double) *self) { return (NB(Float)) *self; }
 static inline NB(Int) NB(Double$Round0_int)(NB(Double) *self) { return (NB(Int)) *self; }
+static inline NB(U64) NB(Double$Bitwise_u64)(NB(Double) *self) { return *(NB(U64) *) self; }
 static inline NB(Double) NB(Double$MIN)(void) { return -DBL_MAX; }
 static inline NB(Double) NB(Double$MAX)(void) { return DBL_MAX; }
 static inline NB(Double) NB(Double$EPSILON)(void) { return DBL_EPSILON; }

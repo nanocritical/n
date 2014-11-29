@@ -776,7 +776,7 @@ intf `Unsigned_integer =
 	met U64 = U64
 
 intf `Native =
-	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy
+	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy `Hashable32
 
 intf `Native_integer =
 	isa `Native `Integer `Show
@@ -855,6 +855,8 @@ extern inline Bool met U16 = U16
 extern inline Bool met U32 = U32
 extern inline Bool met U64 = U64
 extern Bool met Show st:@#`Fmt_state
+inline Bool met Hash32 = U32
+	return self.U32
 
 extern inline struct I8 =
 	isa `Native_sized_signed_integer
@@ -915,6 +917,8 @@ extern inline I8 met Uint = Uint
 extern inline I8 met Exact_float = Float
 extern inline I8 met Exact_double = Double
 extern I8 met Show st:@#`Fmt_state
+inline I8 met Hash32 = U32
+	return self.Bitwise_unsigned.Hash32
 
 extern inline struct I16 =
 	isa `Native_sized_signed_integer
@@ -974,6 +978,8 @@ extern inline I16 met Uint = Uint
 extern inline I16 met Exact_float = Float
 extern inline I16 met Exact_double = Double
 extern I16 met Show st:@#`Fmt_state
+inline I16 met Hash32 = U32
+	return self.Bitwise_unsigned.Hash32
 
 extern inline struct I32 =
 	isa `Native_sized_signed_integer
@@ -1032,6 +1038,8 @@ extern inline I32 met Uint = Uint
 extern inline I32 met Round_float = Float
 extern inline I32 met Exact_double = Double
 extern I32 met Show st:@#`Fmt_state
+inline I32 met Hash32 = U32
+	return self.Bitwise_unsigned.Hash32
 
 ---- TODO Integer conversions to floats must be extended with:
 -- met Try_exact_float = Error_range, Float
@@ -1103,6 +1111,8 @@ inline I64 met Try_int = Error_range, Int
 extern inline I64 met Round_float = Float
 extern inline I64 met Round_double = Double
 extern I64 met Show st:@#`Fmt_state
+inline I64 met Hash32 = U32
+	return self.Bitwise_unsigned.Hash32
 
 extern inline struct U8 =
 	isa `Native_sized_unsigned_integer
@@ -1171,6 +1181,8 @@ extern inline U8 met Int = Int
 extern inline U8 met Exact_float = Float
 extern inline U8 met Exact_double = Double
 extern U8 met Show st:@#`Fmt_state
+inline U8 met Hash32 = U32
+	return self.U32
 
 extern inline struct U16 =
 	isa `Native_sized_unsigned_integer
@@ -1238,6 +1250,8 @@ extern inline U16 met Int = Int
 extern inline U16 met Exact_float = Float
 extern inline U16 met Exact_double = Double
 extern U16 met Show st:@#`Fmt_state
+inline U16 met Hash32 = U32
+	return self.U32
 
 extern inline struct U32 =
 	isa `Native_sized_unsigned_integer
@@ -1304,6 +1318,8 @@ extern inline U32 met Int = Int
 extern inline U32 met Round_float = Float
 extern inline U32 met Exact_double = Double
 extern U32 met Show st:@#`Fmt_state
+inline U32 met Hash32 = U32
+	return self.
 
 extern inline struct U64 =
 	isa `Native_sized_unsigned_integer
@@ -1378,6 +1394,11 @@ inline U64 met Try_uint = Error_range, Uint
 extern inline U64 met Round_float = Float
 extern inline U64 met Round_double = Double
 extern U64 met Show st:@#`Fmt_state
+inline U64 met Hash32 = U32
+	let lo = self.Trim_u32
+	and hi = (self >> 32).Trim_u32
+	-- So that small numbers less than 1<<32 hash to themselves.
+	return 31 ov* hi ov+ lo
 
 -- There are no Bitwise_ operations for Int and Uint. Their width is not
 -- specified and users are supposed to use explicit conversion through sized
@@ -1440,6 +1461,8 @@ extern inline Int met I64 = I64
 extern inline Int met Round_float = Float
 extern inline Int met Round_double = Double
 extern Int met Show st:@#`Fmt_state
+inline Int met Hash32 = U32
+	return self.I64.Hash32
 
 extern inline struct Uint =
 	isa `Native_unsigned_integer
@@ -1492,6 +1515,8 @@ extern inline Uint met U64 = U64
 extern inline Uint met Round_float = Float
 extern inline Uint met Round_double = Double
 extern Uint met Show st:@#`Fmt_state
+inline Uint met Hash32 = U32
+	return self.U64.Hash32
 
 extern inline struct Intptr =
 	isa `Native_signed_integer
@@ -1544,6 +1569,8 @@ inline Intptr met Try_unsigned = Error_range, Uintptr
 extern inline Intptr met force_unsigned = Uintptr
 extern inline Intptr met I64 = I64
 extern Intptr met Show st:@#`Fmt_state
+inline Intptr met Hash32 = U32
+	return self.I64.Hash32
 
 extern inline struct Uintptr =
 	isa `Native_unsigned_integer
@@ -1591,6 +1618,8 @@ inline Uintptr met Try_signed = Error_range, Intptr
 extern inline Uintptr met force_signed = Intptr
 extern inline Uintptr met U64 = U64
 extern Uintptr met Show st:@#`Fmt_state
+inline Uintptr met Hash32 = U32
+	return self.U64.Hash32
 
 extern inline struct Float =
 	isa `Native_floating
@@ -1628,6 +1657,9 @@ extern inline Float met Round0_i64 = I64
 extern inline Float met Double = Double
 extern inline Float met Round0_int = Int
 extern Float met Show st:@#`Fmt_state
+extern inline Float met Bitwise_u32 = U32
+inline Float met Hash32 = U32
+	return self.Bitwise_u32.Hash32
 
 extern inline struct Double =
 	isa `Native_floating
@@ -1668,6 +1700,9 @@ extern inline Double met Round0_int = Int
 -- Have a clear name to a fixed default?
 extern inline Double met Round_float = Float
 extern Double met Show st:@#`Fmt_state
+extern inline Double met Bitwise_u64 = U64
+inline Double met Hash32 = U32
+	return self.Bitwise_u64.Hash32
 
 inline struct Bounds =
 	First	:Bool
