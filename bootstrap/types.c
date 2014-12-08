@@ -141,10 +141,61 @@ static void overlay_init(struct typ *t, struct module *trigger_mod, struct typ *
   t->overlay->trigger_mod = trigger_mod;
 }
 
+static bool needs_map(const struct typ *t, struct typ *src) {
+  const size_t arity = typ_generic_arity(src);
+  if (arity > 0) {
+    if (typ_is_generic_functor(src)) {
+      goto bottom;
+    }
+
+    if (needs_map(t, typ_generic_functor(src))) {
+      return true;
+    }
+
+    for (size_t n = 0; n < arity; ++n) {
+      struct typ *ga = typ_generic_arg(src, n);
+      if (needs_map(t, ga)) {
+        return true;
+      }
+    }
+  }
+
+bottom:;
+  struct typ *par = parent_const(definition_const(src))->typ;
+  if (par == definition_const(t)->typ) {
+    return true;
+  } else if (par == parent_const(definition_const(t))->typ) {
+    return true;
+  } else if (src == parent_const(definition_const(t))->typ) {
+    return true;
+  } else {
+    const size_t parity = typ_generic_arity(par);
+    for (size_t n = 0; n < parity; ++n) {
+      struct typ *pga = typ_generic_arg(par, n);
+      if (par != src && needs_map(t, pga)) {
+        return true;
+      }
+    }
+  }
+
+  if (!typ_is_ungenarg(src)) {
+    return false;
+  }
+
+  const size_t tarity = typ_generic_arity(t);
+  for (size_t n = 0; n < tarity; ++n) {
+    if (needs_map(typ_generic_arg_const(t, n), src)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static void overlay_map(struct typ *t, struct typ **dst, struct typ *src) {
   if (*dst == src) {
     return;
   }
+  assert(needs_map(t, src));
   const bool ignore = typ2loc_set(&t->overlay->map, src, dst);
   (void) ignore;
 }
