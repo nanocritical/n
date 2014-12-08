@@ -3035,8 +3035,9 @@ out:
 }
 
 char *typ_name(const struct module *mod, const struct typ *t) {
-  if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t)) {
-    return typ_name(mod, typ_generic_functor_const(t));
+  const struct typ *t0 = typ_generic_functor_const(t);
+  if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t) && t0 != t) {
+    return typ_name(mod, t0);
   } else if (definition_const(t) != NULL) {
     return scope_name(mod, &definition_const(t)->scope);
   } else {
