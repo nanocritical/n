@@ -713,19 +713,6 @@ static ERROR update_quickisa_isalist_each(struct module *mod,
 
   typset_add(&t->quickisa, intf);
 
-  struct typ *intf0 = typ_generic_functor(intf);
-  if (intf0 != NULL) {
-    typset_add(&t->quickisa, intf0);
-  }
-
-  if (typ_is_generic_functor(t)) {
-    FOREACH_USER(idx, user, t, {
-      if (typ_generic_functor_const(user) == t) {
-        typ_create_update_quickisa(user);
-      }
-    });
-  }
-
   return 0;
 }
 
@@ -2453,9 +2440,12 @@ bool typ_is_isalist_literal(const struct typ *t) {
 // We could also cache the result of typ_isa(). Right now, the overall cost
 // of typ_isa() is negligible.
 static bool can_use_quickisa(const struct typ *a, const struct typ *intf) {
+  const bool intf_is_functor = typ_is_generic_functor(intf);
   return (typ_generic_functor_const(intf) == NULL
-          || typ_is_generic_functor(intf)
+          || intf_is_functor
           || typ_is_concrete(intf))
+    && typ_is_ungenarg(a) == typ_is_ungenarg(intf)
+    && typ_is_generic_functor(a) == intf_is_functor
     && !(a->flags & TYPF_TUPLE)
     && !typ_is_isalist_literal(a)
     && !typ_is_isalist_literal(intf);
@@ -2481,10 +2471,11 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
   }
 
   const size_t a_ga = typ_generic_arity(a);
+  const struct typ *a0 = a_ga > 0 ? typ_generic_functor_const(a) : NULL;
   if (a_ga > 0
       && !typ_is_generic_functor(a)
       && typ_is_generic_functor(intf)) {
-    if (typ_isa(typ_generic_functor_const(a), intf)) {
+    if (typ_isa(a0, intf)) {
       return true;
     }
   }
@@ -2506,8 +2497,7 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
 
   if (a_ga > 0
       && a_ga == typ_generic_arity(intf)
-      && typ_equal(typ_generic_functor_const(a),
-                   typ_generic_functor_const(intf))) {
+      && typ_equal(a0, typ_generic_functor_const(intf))) {
     size_t n = 0;
     for (n = 0; n < a_ga; ++n) {
       if (!typ_isa(typ_generic_arg_const(a, n),
