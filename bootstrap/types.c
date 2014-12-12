@@ -92,6 +92,8 @@ struct typ {
 
   struct backlinks backlinks;
   struct users users;
+
+  struct module *trigger_mod;
 };
 
 static struct node *definition(struct typ *t) {
@@ -892,6 +894,7 @@ static struct typ *do_typ_create_tentative_functor(struct module *trigger_mod,
   r->hash = t->hash;
   r->definition = definition(t);
   set_typ(&r->perm, r);
+  r->trigger_mod = trigger_mod;
 
   assert(t->rdy & RDY_GEN);
   r->gen_arity = t->gen_arity;
@@ -1055,6 +1058,7 @@ static struct typ *do_typ_create_tentative(struct module *trigger_mod,
   r->flags |= is_tentative ? TYPF_TENTATIVE : 0;
   r->definition = definition(t);
   set_typ(&r->perm, r);
+  r->trigger_mod = trigger_mod;
 
   struct typ *final = is_ungenarg ? t
     : (NM(typ_definition_which(t)) & (NM(DEFINTF) | NM(DEFINCOMPLETE))) ? typ_member(t, ID_FINAL) : t;
@@ -1457,6 +1461,8 @@ ident typ_definition_ident(const struct typ *t) {
 struct module *typ_module_owner(const struct typ *t) {
   if (t->definition->which == DEFINCOMPLETE) {
     return t->definition->as.DEFINCOMPLETE.trigger_mod;
+  } else if (t->trigger_mod != NULL) {
+    return t->trigger_mod;
   }
   return node_module_owner(CONST_CAST(t)->definition);
 }
