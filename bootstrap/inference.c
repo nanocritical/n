@@ -1982,11 +1982,14 @@ static ERROR link_wildcard_generics(struct module *mod, struct typ *i,
     struct typ *self_wildcard = typ_definition_defmethod_self_wildcard_functor(i);
     struct typ *nullable_wildcard = typ_definition_defmethod_nullable_wildcard_functor(i);
 
+    e = unify(mod, call, self_wildcard, self0);
+    EXCEPT(e);
+    // Update after the link.
+    self_wildcard = typ_definition_defmethod_self_wildcard_functor(i);
+
     if ((typ_toplevel_flags(i) & TOP_IS_SHALLOW) && typ_equal(self0, TBI_MREF)) {
       e = unify(mod, call, wildcard, TBI_MMREF);
       EXCEPT(e);
-      // Update after the link.
-      wildcard = typ_definition_defmethod_wildcard_functor(i);
       e = unify(mod, call, nullable_wildcard, TBI_NMMREF);
       EXCEPT(e);
     } else {
