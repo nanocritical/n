@@ -57,6 +57,7 @@ const struct node *typ_for_error(const struct typ *t);
 uint32_t typ_toplevel_flags(const struct typ *t);
 enum node_which typ_definition_which(const struct typ *t);
 enum deftype_kind typ_definition_deftype_kind(const struct typ *t);
+bool typ_definition_is_member(const struct typ *t);
 struct typ *typ_definition_tag_type(const struct typ *t);
 enum token_type typ_definition_deffun_access(const struct typ *t);
 enum token_type typ_definition_defmethod_access(const struct typ *t);
@@ -67,9 +68,8 @@ struct typ *typ_definition_deffun_wildcard_functor(const struct typ *t);
 struct typ *typ_definition_deffun_nullable_wildcard_functor(const struct typ *t);
 ident typ_definition_ident(const struct typ *t);
 struct module *typ_module_owner(const struct typ *t);
-struct module *typ_defincomplete_trigger_mod(const struct typ *t);
 
-struct typ *typ_member(struct typ *t, ident name);
+struct typ *typ_member(const struct typ *t, ident name);
 
 struct tit;
 // End with 0.

@@ -143,72 +143,10 @@ static void overlay_init(struct typ *t, struct module *trigger_mod, struct typ *
   t->overlay->trigger_mod = trigger_mod;
 }
 
-static bool needs_map_test(const struct typ *t, const struct typ *src) {
-  const struct typ *ot = definition_const(t)->typ;
-  const struct typ *osrc = definition_const(src)->typ;
-  return ot != TBI__NOT_TYPEABLE && (ot == osrc || typ_isa(t, src));
-}
-
-static bool needs_map(const struct typ *t, const struct typ *src) {
-  const size_t arity = typ_generic_arity(src);
-  if (arity > 0) {
-    const struct typ *src0 = typ_generic_functor_const(src);
-    if (typ_is_generic_functor(src)) {
-      goto bottom;
-    }
-
-    if (src0 != src && needs_map(t, src0)) {
-      return true;
-    }
-
-    for (size_t n = 0; n < arity; ++n) {
-      const struct typ *ga = typ_generic_arg_const(src, n);
-      if (needs_map(t, ga)) {
-        return true;
-      }
-    }
-  }
-
-bottom:;
-  const struct typ *parsrc = parent_const(definition_const(src))->typ;
-  const struct typ *part = parent_const(definition_const(t))->typ;
-  if (needs_map_test(definition_const(t)->typ, src)) {
-    return true;
-  } else if (needs_map_test(parsrc, t)) {
-    return true;
-  } else if (needs_map_test(parsrc, part)) {
-    return true;
-  } else if (needs_map_test(src, part)) {
-    return true;
-  } else {
-    const size_t parity = typ_generic_arity(parsrc);
-    for (size_t n = 0; n < parity; ++n) {
-      const struct typ *pga = typ_generic_arg_const(parsrc, n);
-      if (parsrc != src && needs_map(t, pga)) {
-        return true;
-      }
-    }
-  }
-
-  if (!typ_is_ungenarg(src)) {
-    return false;
-  }
-
-  const size_t tarity = typ_generic_arity(t);
-  for (size_t n = 0; n < tarity; ++n) {
-    const struct typ *ga = typ_generic_arg_const(t, n);
-    if (needs_map(ga, src)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 static void overlay_map(struct typ *t, struct typ **dst, struct typ *src) {
   if (*dst == src) {
     return;
   }
-  assert(typ_module_owner(t)->state->furthest_passing < 8 || needs_map(t, src));
   const bool ignore = typ2loc_set(&t->overlay->map, src, dst);
   (void) ignore;
 }
@@ -227,36 +165,145 @@ void ppoverlay(struct typ *t) {
   assert(!ret);
 }
 
-static struct typ *olay(const struct typ *t, struct typ *src);
+static struct typ *do_typ_create_tentative_functor(struct module *trigger_mod, struct typ *t);
+static struct typ *do_typ_create_tentative(struct module *trigger_mod,
+                                           struct typ *t, struct typ **args, size_t arity,
+                                           bool reject_identical);
 
-static struct typ *overlay_translate(const struct typ *t, struct typ *src) {
+static struct typ *olay(const struct typ *t, struct typ *src);
+static void add_user(struct typ *arg, struct typ *user);
+
+static struct typ *unmapped(const struct typ *t) {
+  return t->definition->typ;
+}
+
+// This is a recursive procedure, and quite subtle.
+//
+// FIXME: Should we be inserting a mapping for final->t, when
+// typ_isa(t, result)?
+static struct typ *translate(struct typ *t, struct typ *src) {
+  // Easy cases.
   if (src == NULL) {
     return NULL;
+  }
+
+  if (!typ_is_ungenarg(src)
+      && !typ_is_generic_functor(src)
+      && !typ_definition_is_member(src)) {
+    return src;
   }
 
   struct typ ***existing = typ2loc_get(&CONST_CAST(t)->overlay->map, src);
   if (existing != NULL) {
     return **existing;
-  } else {
-    if (parent_const(t->definition)->typ == src) {
-      // Already trying to translate the parent typ. Prevent recursion:
-      return src;
+  }
+
+  struct typ *ut = unmapped(t);
+  struct typ *usrc = unmapped(src);
+  struct typ *upar = unmapped(parent_const(src->definition)->typ);
+  struct typ *upart = unmapped(parent_const(t->definition)->typ);
+
+  // If the type of a parent is not typeable, we tried to take the type of
+  // the parent of a top node, that's MODULE_BODY. We don't want that.
+  const bool ignore_upar = upar == TBI__NOT_TYPEABLE;
+  const bool ignore_upart = upart == TBI__NOT_TYPEABLE;
+
+  if (!ignore_upart && upart == src) {
+    // Already trying to translate the parent typ. Prevent recursion:
+    return src;
+  }
+
+  // Is 'src' an ungenarg over genarg that are themselves part of the
+  // overlay of 't'?
+  const size_t arity = typ_generic_arity(src);
+  if (arity > 0 && !typ_is_generic_functor(src)) {
+    bool diff = false;
+
+    struct typ *src0 = typ_generic_functor(src);
+    struct typ *msrc0 = olay(t, src0);
+    const bool src_is_ungenarg_member = msrc0 == src;
+    assert(!src_is_ungenarg_member);
+    diff |= msrc0 != src0;
+
+    struct typ **args = calloc(arity, sizeof(struct typ *));
+    for (size_t n = 0; n < arity; ++n) {
+      struct typ *ga = typ_generic_arg(src, n);
+      struct typ *mga = olay(t, ga);
+      if (mga != ga) {
+        args[n] = mga;
+        diff |= true;
+      } else if (typ_generic_arg_has_dependent_spec(src, n)) {
+        args[n] = NULL;
+      } else {
+        args[n] = ga;
+      }
     }
 
-    struct tit *par = typ_definition_parent(t);
-    if (par != NULL) {
-      struct typ *p = tit_typ(par);
-      tit_next(par);
-      return olay(p, src);
+    if (diff) {
+      // We take the functor of 'msrc0', as it may be "ungenarg functor".
+      struct typ *msrc = do_typ_create_tentative(t->trigger_mod, typ_generic_functor(msrc0),
+                                                 args, arity, false);
+      free(args);
+      overlay_map(t, typ_permanent_loc(msrc), src);
+      return msrc;
     } else {
-      return src;
+      free(args);
     }
   }
+
+  // Is 'src' a child of 't'?
+  if (!ignore_upar && upar == ut) {
+    struct typ *msrc;
+    if (typ_is_generic_functor(src)) {
+      msrc = do_typ_create_tentative_functor(t->trigger_mod, src);
+    } else {
+      msrc = do_typ_create_tentative(t->trigger_mod, src, NULL, 0, true);
+    }
+
+    // 'msrc' needs a mapping to its parent.
+    overlay_map(msrc, typ_permanent_loc(t), ut);
+    // ... and mappings for its parent's genargs,
+    const size_t t_arity = typ_generic_arity(t);
+    for (size_t m = 0; m < t_arity; ++m) {
+      struct typ *ga = typ_generic_arg(t, m);
+      overlay_map(msrc, typ_permanent_loc(ga), typ_generic_arg(ut, m));
+    }
+    // ... and 'msrc' is a user of its parent.
+    add_user(t, msrc);
+
+    overlay_map(t, typ_permanent_loc(msrc), src);
+    return msrc;
+  }
+
+  // Is 'src' the parent of 't'?
+  if (!ignore_upart && usrc == upart) {
+    // In that case, we may be looking up the genarg +(functor t +`Any ...)
+    // but only the unmapped src may exist in the mapping.
+    struct typ *msrc = olay(t, usrc);
+    assert(msrc != usrc && "this mapping should already exist");
+    overlay_map(t, typ_permanent_loc(msrc), src);
+    return msrc;
+  }
+
+  // Does the parent of 'src' itself need to be mapped?
+  struct tit *par = typ_definition_parent(src);
+  const struct typ *mpar = olay(t, tit_typ(par));
+  if (mpar != tit_typ(par)) {
+    tit_next(par);
+    struct typ *msrc = typ_member(mpar, typ_definition_ident(src));
+    overlay_map(t, typ_permanent_loc(msrc), src);
+    return msrc;
+  }
+  tit_next(par);
+
+  return src;
 }
 
 static struct typ *olay(const struct typ *t, struct typ *src) {
-  if (t->overlay != NULL) {
-    return overlay_translate(t, src);
+  if (t->overlay != NULL && typ2loc_count(&t->overlay->map) != 0) {
+    // This is a pretty major constness violation. But in principle,
+    // translate has no "negatively visible" effect. Hrm.
+    return translate(CONST_CAST(t), src);
   } else {
     return src;
   }
@@ -759,127 +806,8 @@ static struct module *trigger_mod_for(const struct typ *t) {
   }
 }
 
-HTABLE_SPARSE(typptrset, uint32_t, struct typ *);
-IMPLEMENT_HTABLE_SPARSE(unused__ static, typptrset, uint32_t, struct typ *,
-                        typ_ptr_hash, typ_ptr_cmp);
-
-static bool track_ungenarg(struct typptrset *set, struct typ *t) {
-  uint32_t *v = typptrset_get(set, t);
-  if (v != NULL && *v > 0) {
-    return true;
-  } else if (v != NULL) {
-    *v += 1;
-  } else {
-    typptrset_set(set, t, 1);
-  }
-  return false;
-}
-
-static struct typ *do_typ_create_tentative_functor(struct module *trigger_mod, struct typ *t,
-                                                   struct typptrset *set);
-static struct typ *do_typ_create_tentative(struct module *trigger_mod,
-                                           struct typ *t, struct typ **args, size_t arity,
-                                           struct typptrset *set, bool reject_identical);
-static void map_ungenarg_users(struct module *trigger_mod,
-                               struct typ *t, struct typ *src, struct typptrset *set);
-
-static void map_ungenarg_user(struct module *trigger_mod,
-                              struct typ *t, struct typ *user, struct typptrset *set) {
-  if (typ_generic_arity(user) == 0) {
-    return;
-  }
-
-  if (track_ungenarg(set, user)) {
-    return;
-  }
-
-  struct typ *user0 = typ_generic_functor(user);
-  const size_t arity = typ_generic_arity(user);
-
-  struct typ **args = calloc(arity, sizeof(struct typ *));
-  struct typ *i0 = olay(t, user0);
-  if (!typ_is_generic_functor(i0)) {
-    // Already mapped to an instance.
-    return;
-  }
-
-  bool diff = i0 != user0;
-  for (size_t n = 0; n < arity; ++n) {
-    struct typ *ga = typ_generic_arg(user, n);
-    struct typ *mga = olay(t, ga);
-    if (mga != ga) {
-      args[n] = mga;
-      diff |= true;
-    } else if (typ_generic_arg_has_dependent_spec(user, n)) {
-      args[n] = NULL;
-    } else {
-      args[n] = ga;
-    }
-  }
-
-  if (!diff) {
-    free(args);
-    return;
-  }
-
-  struct typ *i = do_typ_create_tentative(trigger_mod, i0, args, arity, set, false);
-  overlay_map(t, typ_permanent_loc(i), user);
-  free(args);
-
-  map_ungenarg_users(trigger_mod, t, user, set);
-}
-
-static void map_ungenarg_users(struct module *trigger_mod,
-                               struct typ *t, struct typ *src,
-                               struct typptrset *set) {
-  if (!typ_is_ungenarg(src)) {
-    return;
-  }
-  FOREACH_USER(idx, user, src, map_ungenarg_user(trigger_mod, t, user, set));
-}
-
-static void map_ungenarg(struct typ *t, struct typ **dst, struct typ *src) {
-  overlay_map(t, dst, src);
-}
-
-static void map_children(struct module *trigger_mod, struct typ *par,
-                         struct typptrset *set) {
-  struct tit *tit = typ_definition_members(par, DEFMETHOD, DEFFUN, 0);
-  while (tit_next(tit)) {
-    struct typ *m = tit_typ(tit);
-    struct typ *mm;
-    if (typ_is_generic_functor(m)) {
-      mm = do_typ_create_tentative_functor(trigger_mod, m, set);
-    } else {
-      mm = do_typ_create_tentative(trigger_mod, m, NULL, 0, set, true);
-    }
-
-    map_ungenarg(par, &mm->perm, m);
-    add_user(par, mm);
-
-    map_ungenarg(mm, &par->perm, tit_parent_definition_typ(tit));
-  }
-}
-
-void typ_create_update_map_children(struct module *mod, struct typ *par) {
-  struct typptrset set = { 0 };
-  typptrset_init(&set, 0);
-  FOREACH_USER(idx, user, par, {
-    if (typ_generic_functor(user) != par) {
-      continue;
-    }
-
-    for (size_t n = 0, arity = typ_generic_arity(par); n < arity; ++n) {
-      struct typ *ga = typ_generic_arg(par, n);
-      map_ungenarg_users(mod, user, ga, &set);
-    }
-  });
-  typptrset_destroy(&set);
-}
-
 static struct typ *do_typ_create_tentative_functor(struct module *trigger_mod,
-                                                   struct typ *t,
-                                                   struct typptrset *set) {
+                                                   struct typ *t) {
   assert(typ_is_generic_functor(t));
   assert(typ_hash_ready(t));
 
@@ -903,29 +831,22 @@ static struct typ *do_typ_create_tentative_functor(struct module *trigger_mod,
   struct typ *final = typ_definition_which(t) == DEFINTF ? typ_member(t, ID_FINAL) : t;
   set_typ(&r->gen0, r /* tentative functors are their own functor */);
   if (typ_is_ungenarg(final)) {
-    map_ungenarg(r, &r->gen0, final);
+    overlay_map(r, &r->gen0, final);
   }
 
   for (size_t n = 0; n < t->gen_arity; ++n) {
     set_typ(&r->gen_args[n], t->gen_args[n]);
-    map_ungenarg(r, &r->gen_args[n], t->gen_args[n]);
-  }
-
-  for (size_t n = 0; n < t->gen_arity; ++n) {
-    map_ungenarg_users(trigger_mod, r, t->gen_args[n], set);
+    overlay_map(r, &r->gen_args[n], t->gen_args[n]);
   }
 
   typ_create_update_quickisa(r);
-
-  map_children(trigger_mod, r, set);
 
   assert(typ_is_generic_functor(r));
   return r;
 }
 
 static void do_typ_create_ungenarg_update_genargs(struct module *trigger_mod,
-                                                  struct typ *r,
-                                                  struct typptrset *set) {
+                                                  struct typ *r) {
   const bool not_ready_ungenarg = r->gen_args == NULL && typ_is_ungenarg(r);
 
   struct typ *t = r->gen0;
@@ -934,10 +855,7 @@ static void do_typ_create_ungenarg_update_genargs(struct module *trigger_mod,
       goto nothing_to_do;
     }
   } else if (r->gen_arity == 0) {
-    if (!typ_is_tentative(r)) {
-      goto nothing_to_do;
-    }
-    goto children;
+    goto nothing_to_do;
   }
 
   assert(t->rdy & RDY_GEN);
@@ -967,37 +885,23 @@ static void do_typ_create_ungenarg_update_genargs(struct module *trigger_mod,
 
   for (size_t n = 0; n < r->gen_arity; ++n) {
     if (r->gen_args[n] != NULL) {
-      map_ungenarg(r, &r->gen_args[n], t->gen_args[n]);
+      overlay_map(r, &r->gen_args[n], t->gen_args[n]);
     }
   }
 
-  // The call to map_children() at the very end handles the case where the
-  // DEFTYPE/DEFINTF is the one being created as tentative. But if a
-  // member DEFFUN or DEFMETHOD is created as tentative (because it is
-  // itself also a generic), we need to add ourself as user of par, and map
-  // in our overlay the users of par's genargs.
   struct tit *titpar = typ_definition_parent(r);
   if (titpar != NULL) {
     struct typ *par = tit_typ(titpar);
     tit_next(titpar);
     add_user(par, r);
-
-    if (typ_generic_arity(par) > 0) {
-      for (size_t n = 0, arity = typ_generic_arity(par); n < arity; ++n) {
-        map_ungenarg_users(trigger_mod, r, typ_generic_functor(par)->gen_args[n], set);
-      }
-    }
   }
 
-  bool no = track_ungenarg(set, r);
-  assert(!no);
   for (size_t n = 0; n < t->gen_arity; ++n) {
     if (r->gen_args[n] == NULL) {
-      // We find it in the overlay, put there by map_ungenarg() in a previous
+      // We find it in the overlay, put there by translate() in a previous
       // iteration of this loop.
       set_typ(&r->gen_args[n], olay(r, typ_generic_arg(t, n)));
     }
-    map_ungenarg_users(trigger_mod, r, t->gen_args[n], set);
   }
 
   add_user(r->gen0, r);
@@ -1005,18 +909,12 @@ static void do_typ_create_ungenarg_update_genargs(struct module *trigger_mod,
     add_user(r->gen_args[n], r);
   }
 
-children:
-  map_children(trigger_mod, r, set);
-
 nothing_to_do:
   r->rdy |= RDY_GEN;
 }
 
 void typ_create_ungenarg_update_genargs(struct module *trigger_mod, struct typ *r) {
-  struct typptrset set = { 0 };
-  typptrset_init(&set, 0);
-  do_typ_create_ungenarg_update_genargs(trigger_mod, r, &set);
-  typptrset_destroy(&set);
+  do_typ_create_ungenarg_update_genargs(trigger_mod, r);
 }
 
 static void is_it_ungenarg_or_tentative(bool *is_ungenarg, bool *is_tentative,
@@ -1037,7 +935,7 @@ static void is_it_ungenarg_or_tentative(bool *is_ungenarg, bool *is_tentative,
 
 static struct typ *do_typ_create_tentative(struct module *trigger_mod,
                                            struct typ *t, struct typ **args, size_t arity,
-                                           struct typptrset *set, bool reject_identical) {
+                                           bool reject_identical) {
   assert(typ_is_generic_functor(t) || typ_generic_arity(t) == 0);
 
   struct typ *r = NULL;
@@ -1081,7 +979,7 @@ static struct typ *do_typ_create_tentative(struct module *trigger_mod,
     return r;
   }
 
-  do_typ_create_ungenarg_update_genargs(trigger_mod, r, set);
+  do_typ_create_ungenarg_update_genargs(trigger_mod, r);
 
   if (is_ungenarg && !(t->rdy & RDY_HASH)) {
     // For genarg, there are updates in passfwd.
@@ -1101,19 +999,13 @@ static struct typ *do_typ_create_tentative(struct module *trigger_mod,
 }
 
 struct typ *typ_create_tentative_functor(struct module *trigger_mod, struct typ *t) {
-  struct typptrset set = { 0 };
-  typptrset_init(&set, 0);
-  struct typ *r = do_typ_create_tentative_functor(trigger_mod, t, &set);
-  typptrset_destroy(&set);
+  struct typ *r = do_typ_create_tentative_functor(trigger_mod, t);
   return r;
 }
 
 struct typ *typ_create_tentative(struct module *trigger_mod,
                                  struct typ *t, struct typ **args, size_t arity) {
-  struct typptrset set = { 0 };
-  typptrset_init(&set, 0);
-  struct typ *r = do_typ_create_tentative(trigger_mod, t, args, arity, &set, true);
-  typptrset_destroy(&set);
+  struct typ *r = do_typ_create_tentative(trigger_mod, t, args, arity, true);
   return r;
 }
 
@@ -1391,6 +1283,12 @@ enum deftype_kind typ_definition_deftype_kind(const struct typ *t) {
   return d->as.DEFTYPE.kind;
 }
 
+bool typ_definition_is_member(const struct typ *t) {
+  const struct node *d = definition_const(t);
+  return (NM(d->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
+    && !node_is_at_top(d);
+}
+
 struct typ *typ_definition_tag_type(const struct typ *t) {
   const struct node *d = definition_const(t);
   assert(d->which == DEFTYPE);
@@ -1467,9 +1365,9 @@ struct module *typ_module_owner(const struct typ *t) {
   return node_module_owner(CONST_CAST(t)->definition);
 }
 
-struct typ *typ_member(struct typ *t, ident name) {
-  struct node *d = definition(t);
-  struct node *m = node_get_member(d, name);
+struct typ *typ_member(const struct typ *t, ident name) {
+  const struct node *d = definition_const(t);
+  const struct node *m = node_get_member_const(d, name);
   return m != NULL ? olay(t, m->typ) : NULL;
 }
 
