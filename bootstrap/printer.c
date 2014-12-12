@@ -955,8 +955,14 @@ error printer_pretty(int fd, const struct module *mod) {
   return 0;
 }
 
+bool ppptr = false;
+
 static void print_tree_node(FILE *out, const struct module *mod,
                             const struct node *node, int depth) {
+  if (ppptr) {
+    fprintf(out, "%p\t", node);
+  }
+
   for (int i = 0; i < depth; ++i) {
     fprintf(out, " ");
   }
