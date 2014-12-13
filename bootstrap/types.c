@@ -12,6 +12,45 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+struct statit_typs {
+  uint32_t count;
+  uint32_t tentatives; // counts created, including those linked to final
+  uint32_t ungenargs;
+  uint32_t total_users;
+  uint32_t max_users; // doesn't account for removed users
+  uint32_t total_backlinks;
+  uint32_t max_backlinks; // doesn't account for removed backlinks
+
+  uint32_t equal_calls;
+  uint32_t equal_slow_calls;
+  uint32_t isa_calls;
+  uint32_t quickisa_calls;
+};
+
+struct statit_typs statit_typs;
+
+void print_statit_typs(void) {
+  printf("\nstatit_typs\n");
+  printf("\t%u	count\n", statit_typs.count);
+  printf("\t%u	tentatives\n", statit_typs.tentatives);
+  printf("\t%u	ungenargs\n", statit_typs.ungenargs);
+  printf("\n");
+  printf("\t%u	total_users\n", statit_typs.total_users);
+  printf("\t%.3f	total_users/count\n", (double)statit_typs.total_users / statit_typs.count);
+  printf("\t%u	max_users\n", statit_typs.max_users);
+  printf("\t%u	total_backlinks\n", statit_typs.total_backlinks);
+  printf("\t%.3f	total_users/count\n", (double)statit_typs.total_backlinks / statit_typs.count);
+  printf("\t%u	max_backlinks\n", statit_typs.max_backlinks);
+  printf("\n");
+  printf("\t%u	equal_calls\n", statit_typs.equal_calls);
+  printf("\t%u	equal_slow_calls\n", statit_typs.equal_slow_calls);
+  printf("\t%.3f	equal_slow_calls/equal_calls\n", (double)statit_typs.equal_slow_calls / statit_typs.equal_calls);
+  printf("\n");
+  printf("\t%u	isa_calls\n", statit_typs.isa_calls);
+  printf("\t%u	quickisa_calls\n", statit_typs.quickisa_calls);
+  printf("\t%.3f	quickisa_calls/isa_calls\n", (double)statit_typs.quickisa_calls / statit_typs.isa_calls);
+}
+
 static size_t def_generic_arity(const struct typ *t);
 static struct typ *def_generic_arg(struct typ *t, size_t n);
 
@@ -363,10 +402,13 @@ static void add_backlink(struct typ *t, struct typ **loc) {
     return;
   }
 
+  STATIT_DECL uint32_t cnt = 0;
   struct backlinks *backlinks = &t->backlinks;
   while (backlinks->more != NULL) {
+    STATIT cnt += BACKLINKS_LEN;
     backlinks = backlinks->more;
   }
+  STATIT cnt += backlinks->count;
 
   if (backlinks->count == BACKLINKS_LEN) {
     backlinks->more = calloc(1, sizeof(*backlinks->more));
@@ -375,6 +417,11 @@ static void add_backlink(struct typ *t, struct typ **loc) {
 
   backlinks->links[backlinks->count] = loc;
   backlinks->count += 1;
+
+  STATIT {
+    statit_typs.total_backlinks += 1;
+    statit_typs.max_backlinks = max(uint32_t, statit_typs.max_backlinks, cnt + 1);
+  }
 }
 
 void set_typ(struct typ **loc, struct typ *t) {
@@ -394,6 +441,7 @@ void typ_add_tentative_bit__privileged(struct typ **loc) {
   if (!typ_is_tentative(*loc)) {
     (*loc)->flags |= TYPF_TENTATIVE;
     add_backlink(*loc, loc);
+    STATIT statit_typs.tentatives += 1;
   }
 }
 
@@ -433,10 +481,13 @@ static void add_user(struct typ *arg, struct typ *user) {
     return;
   }
 
+  STATIT_DECL uint32_t cnt = 0;
   struct users *users = &arg->users;
   while (users->more != NULL) {
+    STATIT cnt += users->count;
     users = users->more;
   }
+  STATIT cnt += users->count;
 
   if (users->count == USERS_LEN) {
     users->more = calloc(1, sizeof(*users->more));
@@ -448,6 +499,11 @@ static void add_user(struct typ *arg, struct typ *user) {
   // backlinks, and users.
   users->users[users->count] = user;
   users->count += 1;
+
+  STATIT {
+    statit_typs.total_users += 1;
+    statit_typs.max_users = max(int, statit_typs.max_users, cnt + 1);
+  }
 }
 
 static void clear_users(struct typ *t) {
@@ -661,6 +717,7 @@ struct typ *typ_create(struct typ *tbi, struct node *definition) {
   set_typ(&r->perm, r);
   create_flags(r, tbi);
 
+  STATIT statit_typs.count += 1;
   return r;
 }
 
@@ -679,6 +736,11 @@ struct typ *typ_create_ungenarg(struct typ *t) {
   // do_typ_create_ungenarg_update_genargs().
   set_typ(&r->gen0, t);
   set_typ(&r->perm, r);
+
+  STATIT {
+    statit_typs.count += 1;
+    statit_typs.ungenargs += 1;
+  }
   return r;
 }
 
@@ -772,7 +834,6 @@ static ERROR update_quickisa_isalist_each(struct module *mod,
   }
 
   typset_add(&t->quickisa, intf);
-
   return 0;
 }
 
@@ -842,6 +903,11 @@ static struct typ *do_typ_create_tentative_functor(struct module *trigger_mod,
   typ_create_update_quickisa(r);
 
   assert(typ_is_generic_functor(r));
+
+  STATIT {
+    statit_typs.count += 1;
+    statit_typs.tentatives += 1;
+  }
   return r;
 }
 
@@ -957,6 +1023,16 @@ static struct typ *do_typ_create_tentative(struct module *trigger_mod,
   r->definition = definition(t);
   set_typ(&r->perm, r);
   r->trigger_mod = trigger_mod;
+
+  STATIT {
+    statit_typs.count += 1;
+    if (typ_is_ungenarg(r)) {
+      statit_typs.ungenargs += 1;
+    }
+    if (typ_is_tentative(r)) {
+      statit_typs.tentatives += 1;
+    }
+  }
 
   struct typ *final = is_ungenarg ? t
     : (NM(typ_definition_which(t)) & (NM(DEFINTF) | NM(DEFINCOMPLETE))) ? typ_member(t, ID_FINAL) : t;
@@ -2165,6 +2241,8 @@ struct typ *TBI__MUTABLE;
 struct typ *TBI__MERCURIAL;
 
 static bool __typ_equal(const struct typ *a, const struct typ *b) {
+  STATIT statit_typs.equal_slow_calls += 1;
+
   const struct node *da = definition_const(a);
   const struct node *db = definition_const(b);
   if (da != db) {
@@ -2212,6 +2290,8 @@ static bool __typ_equal(const struct typ *a, const struct typ *b) {
 }
 
 bool typ_equal(const struct typ *a, const struct typ *b) {
+  STATIT statit_typs.equal_calls += 1;
+
   if (a == b) {
     return true;
   }
@@ -2368,6 +2448,8 @@ static bool can_use_quickisa(const struct typ *a, const struct typ *intf) {
 
 static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
                       const struct typ *a, const struct typ *intf) {
+  STATIT statit_typs.isa_calls += 1;
+
   if (typ_equal(intf, TBI_ANY)) {
     return true;
   }
@@ -2377,6 +2459,7 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
   }
 
   if (a->quickisa.ready && can_use_quickisa(a, intf)) {
+    STATIT statit_typs.quickisa_calls += 1;
 #if CONFIG_DEBUG_QUICKISA
     *quickisa_used = true;
     *quickisa_ret = typset_has(&a->quickisa, intf);

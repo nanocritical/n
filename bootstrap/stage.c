@@ -484,5 +484,9 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
 
   ENDTIMEIT(true, TIMEIT_PASSSEM);
 
+  STATIT {
+    print_statit_typs();
+  }
+
   return 0;
 }

@@ -3,6 +3,8 @@
 
 #include "nodes.h"
 
+void print_statit_typs(void);
+
 struct typ;
 
 // Can only be used with final typs.
