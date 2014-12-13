@@ -4,6 +4,9 @@
 #define CONFIG_MEMPOOL_JUST_MALLOC 0
 #define CONFIG_VECTOR_BOUND_CHECKS 1
 #define CONFIG_DEBUG_QUICKISA 0
+#ifndef CONFIG_STATIT
+# define CONFIG_STATIT 0
+#endif
 
 #define  __USE_POSIX 1 // for SSIZE_MAX
 #define _XOPEN_SOURCE 700 // fmemopen(3)
@@ -359,5 +362,13 @@ void timeit_print(FILE *out);
   } \
   (void) timeit_##what; \
   timeits[what].depth -= 1
+
+#if CONFIG_STATIT
+# define STATIT if (true)
+# define STATIT_DECL
+#else
+# define STATIT if (false)
+# define STATIT_DECL unused__
+#endif
 
 #endif

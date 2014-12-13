@@ -6,6 +6,7 @@ Q = $(if $V,,@)
 O ?= 0
 P ?=
 I ?=
+S ?=
 
 default:: examples.run ncc0
 
@@ -22,7 +23,8 @@ override CFLAGS += -std=c99 -Wall -pthread -O$(O) -ggdb $(if $P,-pg,) \
 	  -Wmissing-prototypes -Wpointer-arith \
 	  -Wmissing-declarations -Wno-format-zero-length -Wbad-function-cast \
 	  -Wcast-align -Wwrite-strings -Wno-missing-braces -Wstrict-prototypes \
-	  -Wmaybe-uninitialized -Wuninitialized $(if $I,-DINVARIANTS=$I,)
+	  -Wmaybe-uninitialized -Wuninitialized $(if $I,-DINVARIANTS=$I,) \
+	  $(if $S,-DCONFIG_STATIT=$S,)
 
 deps-dir-for-target = $(dir $(DEPS)/$1)
 deps-options = -MMD -MF $(DEPS)/$2.d -MT $1
