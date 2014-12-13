@@ -384,7 +384,7 @@ size_t typ_debug_backlinks_count(const struct typ *t) {
   size_t c = 0;
   while (backlinks->more != NULL) {
     backlinks = backlinks->more;
-    c += 7;
+    c += BACKLINKS_LEN;
   }
 
   return c + backlinks->count;
