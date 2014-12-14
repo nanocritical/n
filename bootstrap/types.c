@@ -850,7 +850,6 @@ void typ_create_update_hash(struct typ *t) {
 static ERROR update_quickisa_isalist_each(struct module *mod,
                                           struct typ *t, struct typ *intf,
                                           bool *stop, void *user) {
-
   if (typset_has(&t->quickisa, intf)) {
     return 0;
   }
@@ -864,7 +863,10 @@ static ERROR update_quickisa_isalist_each(struct module *mod,
 
   if (typ_is_generic_functor(t)) {
     FOREACH_USER(idx, user, t, {
-      if (typ_generic_functor_const(user) == t) {
+      if (typ_is_ungenarg(user) && typ_generic_functor_const(user) == t) {
+        // Only an ungenarg 'user' of 't' would have been instantiated early
+        // enough to require update after autointf updates 't'; such an
+        // update will happen after this current call.
         typ_create_update_quickisa(user);
       }
     });
