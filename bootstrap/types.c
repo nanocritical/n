@@ -875,7 +875,7 @@ static ERROR update_quickisa_isalist_each(struct module *mod,
 
 void typ_create_update_quickisa(struct typ *t) {
   if (node_toplevel_const(typ_definition_ignore_any_overlay_const(t))->passed
-      <= ready_for_quickisa_pass()) {
+      < ready_for_quickisa_pass()) {
     return;
   }
 

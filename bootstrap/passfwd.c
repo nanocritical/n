@@ -1485,7 +1485,7 @@ static ERROR passfwd6(struct module *mod, struct node *root,
 }
 
 ssize_t ready_for_quickisa_pass(void) {
-  return PASSZERO_COUNT + 6; // i.e. passfwd5
+  return PASSZERO_COUNT + 6; // i.e. passfwd6
 }
 
 static ERROR passfwd7(struct module *mod, struct node *root,
