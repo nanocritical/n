@@ -3237,7 +3237,8 @@ char *pptyp(const struct module *mod, const struct typ *t) {
 
 static ERROR ppisalist_each(struct module *mod, struct typ *t, struct typ *intf,
                             bool *stop, void *user) {
-  fprintf(stderr, "\t%s\n", pptyp(mod, intf));
+  fprintf(stderr, "\t%s ", pptyp(mod, intf));
+  pptypptrs(intf);
   return 0;
 }
 
