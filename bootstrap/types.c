@@ -2503,12 +2503,12 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
 
   if (a->quickisa.ready && can_use_quickisa(a, intf)) {
     STATIT statit_typs.quickisa_calls += 1;
+    const bool ret = typset_has(&a->quickisa, intf);
 #if CONFIG_DEBUG_QUICKISA
     *quickisa_used = true;
-    *quickisa_ret = typset_has(&a->quickisa, intf);
-#else
-    return typset_has(&a->quickisa, intf);
+    *quickisa_ret = ret;
 #endif
+    return ret;
   }
 
   STATIT {
@@ -2518,10 +2518,11 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
   }
 
   const size_t a_ga = typ_generic_arity(a);
+  const struct typ *a0 = a_ga > 0 ? typ_generic_functor_const(a) : NULL;
   if (a_ga > 0
       && !typ_is_generic_functor(a)
       && typ_is_generic_functor(intf)) {
-    if (REASON(0), rec_typ_isa(typ_generic_functor_const(a), intf)) {
+    if (REASON(0), rec_typ_isa(a0, intf)) {
       return true;
     }
   }
@@ -2543,8 +2544,7 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
 
   if (a_ga > 0
       && a_ga == typ_generic_arity(intf)
-      && typ_equal(typ_generic_functor_const(a),
-                   typ_generic_functor_const(intf))) {
+      && typ_equal(a0, typ_generic_functor_const(intf))) {
     size_t n = 0;
     for (n = 0; n < a_ga; ++n) {
       if (!(REASON(3), rec_typ_isa(typ_generic_arg_const(a, n),
