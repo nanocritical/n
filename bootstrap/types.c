@@ -662,7 +662,7 @@ static void create_flags(struct typ *t, struct typ *tbi) {
     t->flags |= TYPF_OPTIONAL;
   }
 
-  if (d->which == IMPORT) {
+  if (d->which == IMPORT || d->which == MODULE) {
     t->flags |= TYPF_PSEUDO_BUILTIN;
   }
 
