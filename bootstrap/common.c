@@ -377,6 +377,7 @@ static const char *timeits_name[TIMEIT__NUM] = {
 };
 
 void timeit_print(FILE *out) {
+  fprintf(out, "\ntimeit\n");
   for (size_t n = 0; n < TIMEIT__NUM; ++n) {
     fprintf(out, "%8zu\t%.3f\t%s\n", timeits[n].count, timeits[n].time, timeits_name[n]);
   }

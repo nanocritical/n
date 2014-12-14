@@ -7,6 +7,15 @@
 #include "table.h"
 #include "lexer.h"
 
+struct statit_mempool {
+  size_t size;
+  size_t count_by_type[2];
+  size_t size_by_type[2];
+};
+
+extern struct statit_mempool statit_mempool;
+void print_statit_mempool(void);
+
 VECTOR(vecsize, size_t, 1);
 DECLARE_VECTOR(vecsize, size_t);
 

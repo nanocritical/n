@@ -7,6 +7,18 @@
 
 #include <stdarg.h>
 
+struct statit_mempool statit_mempool = { 0 };
+
+void print_statit_mempool(void) {
+  printf("\nstatit_mempool\n");
+  printf("\t%zu	size\n", statit_mempool.size);
+  printf("\n");
+  for (size_t n = 0; n < ARRAY_SIZE(statit_mempool.size_by_type); ++n) {
+    printf("\t%zu	count_by_type.%zu\n", statit_mempool.count_by_type[n], n);
+    printf("\t%zu	size_by_type.%zu\n", statit_mempool.size_by_type[n], n);
+  }
+}
+
 IMPLEMENT_VECTOR(, vecsize, size_t);
 IMPLEMENT_VECTOR(, vecstr, char *);
 
@@ -85,6 +97,8 @@ noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
 }
 #else
 noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
+  STATIT statit_mempool.size += nmemb * size;
+
   struct mempool *mempool = mod->mempool;
 
   const size_t sz = nmemb * size;
@@ -508,6 +522,11 @@ void node_move_content(struct node *dst, struct node *src) {
 }
 
 struct node *node_new_subnode(struct module *mod, struct node *node) {
+  STATIT {
+    statit_mempool.count_by_type[0] += 1;
+    statit_mempool.size_by_type[0] += sizeof(struct node);
+  }
+
   struct node *r = mempool_calloc(mod, 1, sizeof(struct node));
   node_subs_append(node, r);
 

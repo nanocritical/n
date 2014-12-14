@@ -23,11 +23,15 @@ struct statit_typs {
 
   uint32_t equal_calls;
   uint32_t equal_slow_calls;
+  uint32_t top_isa_calls;
   uint32_t isa_calls;
   uint32_t quickisa_calls;
+
+  uint32_t rec_isa_because[8];
+  uint32_t not_quickisa_because[8];
 };
 
-struct statit_typs statit_typs;
+struct statit_typs statit_typs = { 0 };
 
 void print_statit_typs(void) {
   printf("\nstatit_typs\n");
@@ -39,16 +43,25 @@ void print_statit_typs(void) {
   printf("\t%.3f	total_users/count\n", (double)statit_typs.total_users / statit_typs.count);
   printf("\t%u	max_users\n", statit_typs.max_users);
   printf("\t%u	total_backlinks\n", statit_typs.total_backlinks);
-  printf("\t%.3f	total_users/count\n", (double)statit_typs.total_backlinks / statit_typs.count);
+  printf("\t%.3f	total_backlinks/count\n", (double)statit_typs.total_backlinks / statit_typs.count);
   printf("\t%u	max_backlinks\n", statit_typs.max_backlinks);
   printf("\n");
   printf("\t%u	equal_calls\n", statit_typs.equal_calls);
   printf("\t%u	equal_slow_calls\n", statit_typs.equal_slow_calls);
   printf("\t%.3f	equal_slow_calls/equal_calls\n", (double)statit_typs.equal_slow_calls / statit_typs.equal_calls);
   printf("\n");
+  printf("\t%u	top_isa_calls\n", statit_typs.top_isa_calls);
   printf("\t%u	isa_calls\n", statit_typs.isa_calls);
   printf("\t%u	quickisa_calls\n", statit_typs.quickisa_calls);
   printf("\t%.3f	quickisa_calls/isa_calls\n", (double)statit_typs.quickisa_calls / statit_typs.isa_calls);
+  printf("\n");
+  for (size_t n = 0; n < ARRAY_SIZE(statit_typs.rec_isa_because); ++n) {
+    printf("\t%u	rec_isa_because.%zu\n", statit_typs.rec_isa_because[n], n);
+  }
+  printf("\n");
+  for (size_t n = 0; n < ARRAY_SIZE(statit_typs.not_quickisa_because); ++n) {
+    printf("\t%u	not_quickisa_because.%zu\n", statit_typs.not_quickisa_because[n], n);
+  }
 }
 
 static size_t def_generic_arity(const struct typ *t);
@@ -2471,8 +2484,13 @@ static bool can_use_quickisa(const struct typ *a, const struct typ *intf) {
 #undef REASON
 }
 
+static bool rec_typ_isa(const struct typ *a, const struct typ *intf);
+
 static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
                       const struct typ *a, const struct typ *intf) {
+
+#define REASON(n) ({ STATIT statit_typs.rec_isa_because[n] += 1; })
+
   STATIT statit_typs.isa_calls += 1;
 
   if (typ_equal(intf, TBI_ANY)) {
@@ -2493,22 +2511,28 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
 #endif
   }
 
+  STATIT {
+    if (!a->quickisa.ready) {
+      statit_typs.not_quickisa_because[0] += 1;
+    }
+  }
+
   const size_t a_ga = typ_generic_arity(a);
   if (a_ga > 0
       && !typ_is_generic_functor(a)
       && typ_is_generic_functor(intf)) {
-    if (typ_isa(typ_generic_functor_const(a), intf)) {
+    if (REASON(0), rec_typ_isa(typ_generic_functor_const(a), intf)) {
       return true;
     }
   }
 
   if (a_ga > 0
       && !typ_equal(intf, TBI_ANY_TUPLE)
-      && typ_isa(a, TBI_ANY_TUPLE)) {
+      && (REASON(1), rec_typ_isa(a, TBI_ANY_TUPLE))) {
     // FIXME: only valid for certain builtin interfaces (copy, trivial...)
     size_t n;
     for (n = 0; n < a_ga; ++n) {
-      if (!typ_isa(typ_generic_arg_const(a, n), intf)) {
+      if (!(REASON(2), rec_typ_isa(typ_generic_arg_const(a, n), intf))) {
         break;
       }
     }
@@ -2523,8 +2547,8 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
                    typ_generic_functor_const(intf))) {
     size_t n = 0;
     for (n = 0; n < a_ga; ++n) {
-      if (!typ_isa(typ_generic_arg_const(a, n),
-                   typ_generic_arg_const(intf, n))) {
+      if (!(REASON(3), rec_typ_isa(typ_generic_arg_const(a, n),
+                                   typ_generic_arg_const(intf, n)))) {
         break;
       }
     }
@@ -2541,7 +2565,7 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
 
   if (typ_is_isalist_literal(a)) {
     for (size_t n = 0; n < direct_isalist_count(a); ++n) {
-      if (typ_isa(direct_isalist_const(a, n), intf)) {
+      if ((REASON(4), rec_typ_isa(direct_isalist_const(a, n), intf))) {
         return true;
       }
     }
@@ -2550,7 +2574,7 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
 
   if (typ_is_isalist_literal(intf)) {
     for (size_t n = 0; n < direct_isalist_count(intf); ++n) {
-      if (!typ_isa(a, direct_isalist_const(intf, n))) {
+      if (!(REASON(5), rec_typ_isa(a, direct_isalist_const(intf, n)))) {
         return false;
       }
     }
@@ -2558,15 +2582,17 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
   }
 
   for (size_t n = 0; n < direct_isalist_count(a); ++n) {
-    if (typ_isa(direct_isalist_const(a, n), intf)) {
+    if ((REASON(6), rec_typ_isa(direct_isalist_const(a, n), intf))) {
       return true;
     }
   }
 
   return false;
+
+#undef REASON
 }
 
-bool typ_isa(const struct typ *a, const struct typ *intf) {
+static bool rec_typ_isa(const struct typ *a, const struct typ *intf) {
 #if CONFIG_DEBUG_QUICKISA
   bool quickisa_used = false, quickisa_ret = false;
   const bool ret = __typ_isa(&quickisa_used, &quickisa_ret, a, intf);
@@ -2575,6 +2601,12 @@ bool typ_isa(const struct typ *a, const struct typ *intf) {
 #else
   return __typ_isa(NULL, NULL, a, intf);
 #endif
+}
+
+bool typ_isa(const struct typ *a, const struct typ *intf) {
+  STATIT statit_typs.top_isa_calls += 1;
+  STATIT statit_typs.isa_calls += 1;
+  return rec_typ_isa(a, intf);
 }
 
 error typ_check_isa(const struct module *mod, const struct node *for_error,
