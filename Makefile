@@ -18,8 +18,12 @@ ifneq ($(shell ccache --version 2> /dev/null),)
 	override CC := ccache $(CC)
 endif
 
+# Because of a GCC bug that sometimes fails to interpret stored cpp output
+# differently. See 6e2acd44a444a95d2f2bc9f8e5dfaae21559db79 in n.git.
+export CCACHE_RUN_SECOND_CPP
+
 override CFLAGS += -std=c99 -Wall -pthread -O$(O) -ggdb $(if $P,-pg,) \
-	  -I. \
+	  -iquote. \
 	  -Wmissing-prototypes -Wpointer-arith \
 	  -Wmissing-declarations -Wno-format-zero-length -Wbad-function-cast \
 	  -Wcast-align -Wwrite-strings -Wno-missing-braces -Wstrict-prototypes \
