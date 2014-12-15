@@ -27,8 +27,8 @@ struct statit_typs {
   uint32_t isa_calls;
   uint32_t quickisa_calls;
 
-  uint32_t rec_isa_because[8];
-  uint32_t not_quickisa_because[8];
+  uint32_t rec_isa_because[7];
+  uint32_t not_quickisa_because[5];
 };
 
 struct statit_typs statit_typs = { 0 };
@@ -2476,12 +2476,12 @@ static bool can_use_quickisa(const struct typ *a, const struct typ *intf) {
 
 #define REASON(n) ({ STATIT statit_typs.not_quickisa_because[n] += 1; false; })
 
-  return ((typ_generic_functor_const(intf) == NULL
-          || typ_is_generic_functor(intf)
-          || typ_is_concrete(intf)) || REASON(1))
-    && (!(a->flags & TYPF_TUPLE) || REASON(4))
-    && (!typ_is_isalist_literal(a) || REASON(5))
-    && (!typ_is_isalist_literal(intf) || REASON(6));
+  return (!(a->flags & TYPF_TUPLE) || REASON(1))
+    && ((typ_generic_functor_const(intf) == NULL
+         || typ_is_generic_functor(intf)
+         || typ_is_concrete(intf)) || REASON(2))
+    && (!typ_is_isalist_literal(a) || REASON(3))
+    && (!typ_is_isalist_literal(intf) || REASON(4));
 
 #undef REASON
 }
