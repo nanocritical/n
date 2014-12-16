@@ -181,7 +181,10 @@ void constraint_invariant(const struct constraint *c) {
 }
 
 static struct constraint *new_constraint(struct module *mod) {
-  STATIT statit_mempool.size_by_type[1] += sizeof(struct constraint);
+  STATIT {
+    statit_mempool.count_by_type[1] += 1;
+    statit_mempool.size_by_type[1] += sizeof(struct constraint);
+  }
   struct constraint *c = mempool_calloc(mod, 1, sizeof(struct constraint));
 
   tagset_init(&c->tags, 0);
