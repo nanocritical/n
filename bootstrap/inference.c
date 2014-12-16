@@ -312,6 +312,28 @@ static struct typ *nullable_functor(struct typ *t) {
   }
 }
 
+static struct typ *nonnullable_functor(struct typ *t) {
+  struct typ *t0 = typ_is_generic_functor(t) ? t : typ_generic_functor(t);
+  if (!typ_isa(t0, TBI_ANY_NULLABLE_REF)) {
+    return t0;
+  }
+
+  if (typ_equal(t0, TBI_ANY_NULLABLE_REF)) {
+    return TBI_ANY_REF;
+  } else if (typ_equal(t0, TBI_ANY_NULLABLE_MUTABLE_REF)) {
+    return TBI_ANY_MUTABLE_REF;
+  } else if (typ_equal(t0, TBI_NREF)) {
+    return TBI_REF;
+  } else if (typ_isa(t0, TBI_NMREF)) {
+    return TBI_MREF;
+  } else if (typ_isa(t0, TBI_NMMREF)) {
+    return TBI_MMREF;
+  } else {
+    assert(false);
+    return NULL;
+  }
+}
+
 struct wildcards {
   enum token_type ref;
   enum token_type nulref;
@@ -2006,21 +2028,11 @@ static ERROR link_wildcard_generics(struct module *mod, struct typ *i,
     struct typ *nullable_wildcard = typ_definition_deffun_nullable_wildcard_functor(i);
 
     if (!typ_is_tentative(wildcard)) {
-      if (typ_definition_which(wildcard) == DEFINTF) {
-        e = unify(mod, call, nullable_wildcard, nullable_functor(wildcard));
-        EXCEPT(e);
-      } else {
-        assert(typ_is_ungenarg(wildcard));
-        // There is nothing we can do to link these 2
-      }
+      e = unify(mod, call, nullable_wildcard, nullable_functor(wildcard));
+      EXCEPT(e);
     } else if (!typ_is_tentative(nullable_wildcard)) {
-      if (typ_definition_which(nullable_wildcard) == DEFINTF) {
-        e = unify(mod, call, wildcard, nullable_functor(nullable_wildcard));
-        EXCEPT(e);
-      } else {
-        assert(typ_is_ungenarg(nullable_wildcard));
-        // There is nothing we can do to link these 2
-      }
+      e = unify(mod, call, wildcard, nonnullable_functor(nullable_wildcard));
+      EXCEPT(e);
     } else {
       assert(false && "FIXME: can this happen?");
     }

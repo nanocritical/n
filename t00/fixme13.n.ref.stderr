@@ -1,1 +1,0 @@
-ncc0: bootstrap/instantiate.c:235: instantiate_fully_implicit: Assertion `typ_is_tentative(typ_generic_arg(i, n)) && "FIXME: some generics cannot be instiated fully implicitly, e.g. Nonnull_cast"' failed.

@@ -962,14 +962,18 @@ static ERROR unify_reference_with_refcompat(struct module *mod, uint32_t flags,
 
   struct typ *a0 = typ_generic_functor(a);
   struct typ *b0 = typ_generic_functor(b);
-  if (typ_definition_which(b0) == DEFINTF && typ_is_tentative(b0)
-      && typ_isa(a0, b0)) {
+  if (typ_definition_which(b0) == DEFINTF && typ_is_tentative(b0)) {
+    e = typ_check_isa(mod, for_error, a0, b0);
+    EXCEPT(e);
     typ_link_tentative_functor(mod, a0, b0);
-  } else if (typ_definition_which(a0) == DEFINTF && typ_is_tentative(a0)
-             && typ_isa(b0, a0)) {
+  } else if (typ_definition_which(a0) == DEFINTF && typ_is_tentative(a0)) {
+    e = typ_check_isa(mod, for_error, b0, a0);
+    EXCEPT(e);
     typ_link_tentative_functor(mod, b0, a0);
   } else if (typ_is_tentative(b)) {
     typ_link_tentative(a, b);
+  } else {
+    // refcompat: not symmetric, so noop.
   }
 
   return 0;

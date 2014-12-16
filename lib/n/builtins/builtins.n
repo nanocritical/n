@@ -431,7 +431,7 @@ inline Slice_impl shallow met$ Unsafe_rawdata = @$U8
 	return (Cast ?@$t @$U8) self$dat
 
 inline Slice_impl shallow met$ Unsafe_data = @$t
-	return (Nonnull_cast t ?@$t @$t) self$dat
+	return Nonnull_cast self$dat
 
 inline Slice_impl shallow met$ Operator_at n:Uint = r:@$t
 	assert n < self.cnt
