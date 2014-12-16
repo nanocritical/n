@@ -160,8 +160,8 @@ static void spaces(FILE *out, int indent) {
 
 static void do_printer_scopes(FILE *out, const struct module *mod, const struct node *root, int indent) {
   spaces(out, indent);
-  char *n = scope_name(mod, &root->scope);
-  char *l = scope_definitions_name_list(mod, &root->scope);
+  char *n = scope_name(mod, root);
+  char *l = scope_definitions_name_list(mod, root);
   fprintf(out, "%s:%s %s\n", n, node_which_strings[root->which], l);
   free(l);
   free(n);
@@ -362,7 +362,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     break;
   case DIRECTDEF:
     fprintf(out, "%s",
-            scope_name(mod, &DEF(node->as.DIRECTDEF.typ)->scope));
+            scope_name(mod, DEF(node->as.DIRECTDEF.typ)));
     break;
   case DYN:
     print_expr(out, mod, subs_first_const(node), parent_op);

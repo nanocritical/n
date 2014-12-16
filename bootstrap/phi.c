@@ -50,8 +50,10 @@ static ERROR branching_block_foreach_scoped_ident(struct module *mod,
   do {
     b = scoped_block_surrounding(b);
 
-    e = scope_foreach(mod, &b->scope, each, block);
-    EXCEPT(e);
+    if (node_has_own_scope(b)) {
+      e = scope_foreach(mod, node_scope(b), each, block);
+      EXCEPT(e);
+    }
   } while (b != top_block);
 
   return 0;
@@ -383,7 +385,7 @@ static ERROR track_ident_use(struct module *mod, struct node *node) {
     return 0;
   }
 
-  if (node->as.IDENT.non_local_scope == NULL && !local_name_is_scoped(mod, def)) {
+  if (node->as.IDENT.non_local_scoper == NULL && !local_name_is_scoped(mod, def)) {
     error e = mk_except(mod, node, "identifier '%s' used before its definition",
                         idents_value(mod->gctx, node_ident(node)));
     THROW(e);
@@ -541,13 +543,13 @@ STEP_NM(step_ident_non_local_scope,
         NM(IDENT));
 error step_ident_non_local_scope(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
-  struct scope *non_local_scope = node->as.IDENT.non_local_scope;
-  if (non_local_scope != NULL
-      && scope_node(non_local_scope)->which == DEFINCOMPLETE) {
+  struct node *non_local_scoper = node->as.IDENT.non_local_scoper;
+  if (non_local_scoper != NULL
+      && non_local_scoper->which == DEFINCOMPLETE) {
     const struct node *d = typ_definition_ignore_any_overlay(node->typ);
     if (d->which == DEFTYPE) {
       struct node *def = NULL;
-      error e = scope_lookup_ident_immediate(&def, node, mod, &d->scope,
+      error e = scope_lookup_ident_immediate(&def, node, mod, d,
                                              node_ident(node), false);
       assert(!e);
 
@@ -557,7 +559,7 @@ error step_ident_non_local_scope(struct module *mod, struct node *node,
       }
 
       node->as.IDENT.def = def;
-      node->as.IDENT.non_local_scope = &par->scope;
+      node->as.IDENT.non_local_scoper = par;
 
       e = track_ident_use(mod, node);
       assert(!e);

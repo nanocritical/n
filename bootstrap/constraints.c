@@ -475,7 +475,7 @@ static int snprint_constraint_under_each(const struct node **_cond,
     }
 
     n = snprintf(st->s, st->len, "(%s => ",
-                 scope_name(st->mod, &cond->scope));
+                 scope_name(st->mod, cond));
     st->s += n;
     st->len -= n;
 
@@ -502,7 +502,7 @@ static int snprint_constraint_under_each(const struct node **_cond,
     }
 
     n = snprintf(st->s, st->len, "(not %s => ",
-                 scope_name(st->mod, &cond->scope));
+                 scope_name(st->mod, cond));
     st->s += n;
     st->len -= n;
 
@@ -525,7 +525,7 @@ static int snprint_constraint_rel(char *s, size_t len, const struct module *mod,
   size_t pos = 0;
   pos += snprintf(s+pos, len-pos, "%s %s",
                   constraint2_builtins_strings[rel->cbi2],
-                  scope_name(mod, &rel->node->scope));
+                  scope_name(mod, rel->node));
   return pos;
 }
 
@@ -1515,7 +1515,7 @@ static ERROR constraint_inference_bin_acc(struct module *mod,
   } else {
     container = typ_definition_nooverlay_const(base->typ);
   }
-  e = scope_lookup_ident_immediate(&field, name, mod, &container->scope,
+  e = scope_lookup_ident_immediate(&field, name, mod, container,
                                    node_ident(name), false);
   EXCEPT(e);
   if (NM(field->which) & ( NM(IMPORT) | NM(MODULE) | NM(MODULE_BODY) )) {
@@ -1891,7 +1891,7 @@ static ERROR evaluate(struct module *mod, struct node *node) {
     } else if (cv != ov) {
       error e = mk_except_constraint(mod, node, "constrained to be EQ to '%s'"
                                      " which is %sEQTRUE, but is:",
-                                     scope_name(mod, &rel->node->scope),
+                                     scope_name(mod, rel->node),
                                      ov == N ? "not " : "");
       THROW(e);
     }

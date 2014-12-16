@@ -6,7 +6,7 @@
 #include "parser.h"
 
 struct node *scope_node(struct scope *sc) {
-  return container_of(sc, struct node, scope);
+  return sc->node;
 }
 
 const struct node *scope_node_const(const struct scope *sc) {
@@ -14,8 +14,11 @@ const struct node *scope_node_const(const struct scope *sc) {
 }
 
 static const struct scope *scope_parent(const struct scope *sc) {
-  return parent_const(scope_node_const(sc)) == NULL ? NULL
-    : &parent_const(scope_node_const(sc))->scope;
+  const struct node *par = parent_const(scope_node_const(sc));
+  while (par != NULL && par->__scope == NULL) {
+    par = parent_const(par);
+  }
+  return par == NULL ? NULL : par->__scope;
 }
 
 uint32_t ident_hash(const ident *a) {
@@ -31,41 +34,54 @@ int ident_cmp(const ident *a, const ident *b) {
 IMPLEMENT_HTABLE_SPARSE(unused__ static, scope_map, struct node *, ident,
                         ident_hash, ident_cmp);
 
-void scope_init(struct scope *scope) {
-  scope_map_init(&scope->map, 0);
-  scope_map_set_delete_val(&scope->map, NULL);
+void scope_init(struct node *scoper) {
+  scope_destroy(scoper);
+  assert(scoper->__scope == NULL);
+  scoper->__scope = calloc(1, sizeof(struct scope));
+  scoper->__scope->node = scoper;
+  scope_map_init(&scoper->__scope->map, 0);
+  scope_map_set_delete_val(&scoper->__scope->map, NULL);
+}
+
+void scope_destroy(struct node *scoper) {
+  if (scoper->__scope != NULL) {
+    scope_map_destroy(&scoper->__scope->map);
+    scoper->__scope->node = NULL;
+    free(scoper->__scope);
+    scoper->__scope = NULL;
+  }
 }
 
 // Return value must be freed by caller.
-char *scope_name(const struct module *mod, const struct scope *scope) {
-  if (scope_parent(scope) == NULL) {
-    const char *name = idents_value(mod->gctx, node_ident(scope_node_const(scope)));
+char *scope_name(const struct module *mod, const struct node *scoper) {
+  if (parent_const(scoper) == NULL) {
+    const char *name = idents_value(mod->gctx, node_ident(scoper));
     char *r = calloc(strlen(name) + 1, sizeof(char));
     strcpy(r, name);
     return r;
   }
 
   ssize_t len = 0;
-  const struct scope *root = scope;
-  while (scope_parent(root) != NULL) {
-    ident id = node_ident(scope_node_const(root));
+  const struct node *root = scoper;
+  while (parent_const(root) != NULL) {
+    ident id = node_ident(root);
     if (id != ID_ANONYMOUS) {
       const char *name = idents_value(mod->gctx, id);
       size_t name_len = strlen(name);
       len += name_len + 1;
     }
-    root = scope_parent(root);
+    root = parent_const(root);
   }
   len = max(size_t, 1, len) - 1;
 
   char *r = calloc(len + 1, sizeof(char));
-  root = scope;
-  while (scope_parent(root) != NULL) {
-    ident id = node_ident(scope_node_const(root));
+  root = scoper;
+  while (parent_const(root) != NULL) {
+    ident id = node_ident(root);
     if (id != ID_ANONYMOUS) {
       const char *name = idents_value(mod->gctx, id);
       size_t name_len = strlen(name);
-      if (scope_parent(scope_parent(root)) == NULL) {
+      if (parent_const(parent_const(root)) == NULL) {
         memcpy(r, name, name_len);
       } else {
         len -= name_len + 1;
@@ -78,7 +94,7 @@ char *scope_name(const struct module *mod, const struct scope *scope) {
         }
       }
     }
-    root = scope_parent(root);
+    root = parent_const(root);
   }
 
   return r;
@@ -115,14 +131,14 @@ static int scope_definitions_name_list_iter(const ident *key,
 }
 
 char *scope_definitions_name_list(const struct module *mod,
-                                  const struct scope *scope) {
+                                  const struct node *scoper) {
   struct scope_definitions_name_list_data d = {
     .mod = mod,
     .s = NULL,
     .len = 0,
   };
 
-  scope_map_foreach((struct scope_map *)&scope->map,
+  scope_map_foreach((struct scope_map *)&node_scope(scoper)->map,
                     scope_definitions_name_list_iter, &d);
 
   return d.s;
@@ -140,8 +156,14 @@ void scope_undefine_ssa_var(struct scope *scope, ident id) {
   *existing = NULL;
 }
 
-error scope_define_ident(const struct module *mod, struct scope *scope,
+error scope_define_ident(const struct module *mod, struct node *scoper,
                          ident id, struct node *node) {
+  if (scoper->__scope == NULL) {
+    goto doesnt_exist;
+  }
+
+  struct scope *scope = node_scope(scoper);
+
   assert(id != ID__NONE);
   struct node **existing = scope_map_get(&scope->map, id);
 
@@ -162,7 +184,7 @@ error scope_define_ident(const struct module *mod, struct scope *scope,
       && (!node_is_prototype(*existing)
           || node->which != (*existing)->which)) {
     const struct module *existing_mod = try_node_module_owner_const(mod, *existing);
-    char *scname = scope_name(mod, scope);
+    char *scname = scope_name(mod, scoper);
     error e = mk_except(try_node_module_owner_const(mod, node), node,
                         "in scope %s: identifier '%s' already defined at %s:%d:%d",
                         scname, idents_value(mod->gctx, id),
@@ -179,22 +201,23 @@ error scope_define_ident(const struct module *mod, struct scope *scope,
     }
     *existing = node;
   } else {
-    if (scope->map.table.size == 0) {
+doesnt_exist:
+    if (scoper->__scope == NULL || scoper->__scope->map.table.size == 0) {
       // Lazy initialize scope. It is a property of the underlying sptable
       // that when its size is 0, it has not be initialized.
-      scope_init(scope);
+      scope_init(scoper);
     }
 
-    scope_map_set(&scope->map, id, node);
+    scope_map_set(&scoper->__scope->map, id, node);
   }
 
   return 0;
 }
 
-error scope_define(const struct module *mod, struct scope *scope,
+error scope_define(const struct module *mod, struct node *scoper,
                    struct node *id, struct node *node) {
   assert(id->which == IDENT);
-  error e = scope_define_ident(mod, scope, node_ident(id), node);
+  error e = scope_define_ident(mod, scoper, node_ident(id), node);
   EXCEPT(e);
   return 0;
 }
@@ -209,7 +232,7 @@ struct use_isalist_state {
 static ERROR do_scope_lookup_ident_immediate(struct node **result,
                                              const struct node *for_error,
                                              const struct module *mod,
-                                             const struct scope *scope, ident id,
+                                             const struct node *scoper, ident id,
                                              bool allow_isalist, bool failure_ok,
                                              bool is_bin_acc);
 
@@ -220,7 +243,7 @@ static ERROR use_isalist_scope_lookup(struct module *mod,
 
   struct node *result = NULL;
   error e = do_scope_lookup_ident_immediate(&result, st->for_error, mod,
-                                            &typ_definition_ignore_any_overlay_const(intf)->scope,
+                                            typ_definition_ignore_any_overlay_const(intf),
                                             st->id, false, true, st->is_bin_acc);
 
   if (!e) {
@@ -237,12 +260,17 @@ static ERROR use_isalist_scope_lookup(struct module *mod,
 static ERROR do_scope_lookup_ident_immediate(struct node **result,
                                              const struct node *for_error,
                                              const struct module *mod,
-                                             const struct scope *scope, ident id,
+                                             const struct node *scoper, ident id,
                                              bool allow_isalist, bool failure_ok,
                                              bool is_bin_acc) {
+  const struct scope *scope = node_scope(scoper);
+  if (scope == NULL) {
+    goto failed;
+  }
+
   const bool use_isalist = allow_isalist
-    && (NM(scope_node_const(scope)->which) & (NM(DEFINTF) | NM(DEFINCOMPLETE)))
-    && scope_node_const(scope)->typ != NULL;
+    && (NM(scoper->which) & (NM(DEFINTF) | NM(DEFINCOMPLETE)))
+    && scoper->typ != NULL;
 
   assert(id != ID__NONE);
   struct node **r = scope_map_get((struct scope_map *)&scope->map, id);
@@ -261,11 +289,11 @@ static ERROR do_scope_lookup_ident_immediate(struct node **result,
   }
 
 not_found:
-  if (scope_node_const(scope)->which == MODULE
-      && subs_count_atleast(scope_node_const(scope), 1)) {
-    const struct node *body = subs_first_const(scope_node_const(scope));
-    error e = do_scope_lookup_ident_immediate(result, for_error, mod, &body->scope,
-                                              id, allow_isalist, failure_ok,
+  if (scoper->which == MODULE
+      && subs_count_atleast(scoper, 1)) {
+    const struct node *body = subs_first_const(scoper);
+    error e = do_scope_lookup_ident_immediate(result, for_error, mod, body,
+                                            id, allow_isalist, failure_ok,
                                               is_bin_acc);
     if (!e) {
       return 0;
@@ -277,7 +305,7 @@ not_found:
   }
 
   if (use_isalist) {
-    const struct node *par = scope_node_const(scope);
+    const struct node *par = scoper;
     // FIXME: We should statically detect when this search would return
     // different results depending on order. And we should force the caller
     // to specificy which intf is being called if it's ambiguous.
@@ -301,11 +329,12 @@ not_found:
     }
   }
 
+failed:
   if (failure_ok) {
     return EINVAL;
   } else {
-    char *scname = scope_name(mod, scope);
-    char *escname = scope_name(mod, &for_error->scope);
+    char *scname = scope_name(mod, scoper);
+    char *escname = scope_name(mod, for_error);
     error e = mk_except(try_node_module_owner_const(mod, for_error), for_error,
                         "from scope %s: in scope %s: unknown identifier '%s'",
                         escname, scname, idents_value(mod->gctx, id));
@@ -319,24 +348,26 @@ not_found:
 
 error scope_lookup_ident_immediate(struct node **result, const struct node *for_error,
                                    const struct module *mod,
-                                   const struct scope *scope, ident id,
+                                   const struct node *scoper, ident id,
                                    bool failure_ok) {
-  return do_scope_lookup_ident_immediate(result, for_error, mod, scope, id,
+  return do_scope_lookup_ident_immediate(result, for_error, mod, scoper, id,
                                          true, failure_ok, true);
 }
 
 static ERROR do_scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,
                                               const struct module *mod,
-                                              const struct scope *scope, ident id,
+                                              const struct node *scoper, ident id,
                                               bool failure_ok) {
+  const struct scope *scope = node_scope(scoper);
+
   char *scname = NULL;
   char *escname = NULL;
   error e;
 
 skip:
-  e = do_scope_lookup_ident_immediate(result, for_error, mod, scope, id, false, true, false);
+  e = do_scope_lookup_ident_immediate(result, for_error, mod, scoper, id, false, true, false);
   if (!e) {
-    if (scope_node_const(scope)->which == DEFTYPE
+    if (scoper->which == DEFTYPE
         && ((*result)->which == DEFFUN || (*result)->which == DEFMETHOD)) {
       // Skip scope: id is a bare identifier, cannot reference functions or
       // methods in the scope of a DEFTYPE. Must use the form 'this.name'.
@@ -349,12 +380,13 @@ skip:
   // Will not go up in modules_root past a MODULE_BODY node as there is no
   // permission to access these scopes unless descending from
   // gctx->modules_root.
-  if (scope_parent(scope) == NULL || scope_node_const(scope)->which == MODULE_BODY) {
+  if (scope_parent(scope) == NULL
+      || (scope != NULL && scoper->which == MODULE_BODY)) {
     if (failure_ok) {
       return e;
     } else {
-      scname = scope_name(mod, scope);
-      escname = scope_name(mod, &for_error->scope);
+      scname = scope_name(mod, scoper);
+      escname = scope_name(mod, for_error);
       e = mk_except(try_node_module_owner_const(mod, for_error), for_error,
                     "from scope %s: in scope %s: unknown identifier '%s'",
                     escname, scname, idents_value(mod->gctx, id));
@@ -364,15 +396,15 @@ skip:
     }
   }
 
-  e = do_scope_lookup_ident_wontimport(result, for_error, mod, scope_parent(scope),
+  e = do_scope_lookup_ident_wontimport(result, for_error, mod, scope_node_const(scope_parent(scope)),
                                        id, failure_ok);
   return e;
 }
 
 error scope_lookup_ident_wontimport(struct node **result, const struct node *for_error,
                                     const struct module *mod,
-                                    const struct scope *scope, ident id, bool failure_ok) {
-  return do_scope_lookup_ident_wontimport(result, for_error, mod, scope, id, failure_ok);
+                                    const struct node *scoper, ident id, bool failure_ok) {
+  return do_scope_lookup_ident_wontimport(result, for_error, mod, scoper, id, failure_ok);
 }
 
 #define EXCEPT_UNLESS(e, failure_ok) do { \
@@ -387,7 +419,7 @@ error scope_lookup_ident_wontimport(struct node **result, const struct node *for
 
 static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
                              const struct module *mod,
-                             const struct scope *scope, const struct node *id,
+                             const struct node *scoper, const struct node *id,
                              bool failure_ok, bool statement_rules) {
   error e;
   char *scname = NULL;
@@ -396,7 +428,7 @@ static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scope,
+    e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scoper,
                                          node_ident(id), failure_ok);
     EXCEPT_UNLESS(e, failure_ok);
 
@@ -419,9 +451,8 @@ static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
             block = parent(block);
           }
 
-          struct scope *surrounding_scope = &parent(block)->scope;
           e = do_scope_lookup(&r, for_error, mod,
-                              surrounding_scope, id,
+                              parent(block), id,
                               failure_ok, statement_rules);
           EXCEPT_UNLESS(e, failure_ok);
         }
@@ -441,10 +472,10 @@ static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
       GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, id), id, "malformed name");
     }
 
-    e = do_scope_lookup(&par, for_error, mod, scope, base, failure_ok, statement_rules);
+    e = do_scope_lookup(&par, for_error, mod, scoper, base, failure_ok, statement_rules);
     EXCEPT_UNLESS(e, failure_ok);
 
-    e = do_scope_lookup_ident_immediate(&r, for_error, mod, &par->scope,
+    e = do_scope_lookup_ident_immediate(&r, for_error, mod, par,
                                         node_ident(name), false, failure_ok,
                                         true);
     EXCEPT_UNLESS(e, failure_ok);
@@ -459,7 +490,7 @@ static ERROR do_scope_lookup(struct node **result, const struct node *for_error,
   }
 
   if (r->which == IMPORT) {
-    e = do_scope_lookup(&r, for_error, mod, &mod->gctx->modules_root.scope,
+    e = do_scope_lookup(&r, for_error, mod, &mod->gctx->modules_root,
                         subs_first_const(r), failure_ok, false);
     EXCEPT_UNLESS(e, failure_ok);
   }
@@ -477,13 +508,13 @@ ERROR scope_lookup_import_globalenv(struct node **result, const struct module *m
                                     const struct node *import, bool failure_ok) {
   const struct node *path = subs_first_const(import);
   assert(path->which == BIN);
-  error e = do_scope_lookup(result, import, mod, &mod->gctx->modules_root.scope,
+  error e = do_scope_lookup(result, import, mod, &mod->gctx->modules_root,
                             subs_first_const(path), failure_ok, false);
   EXCEPT(e);
 
   assert((*result)->which == MODULE);
   e = scope_lookup_ident_immediate(result, import, mod,
-                                   &(*result)->as.MODULE.mod->body->as.MODULE_BODY.globalenv_scope->scope,
+                                   (*result)->as.MODULE.mod->body->as.MODULE_BODY.globalenv_scoper,
                                    node_ident(subs_last_const(path)), failure_ok);
   EXCEPT(e);
   assert((*result)->which == DEFNAME && (*result)->as.DEFNAME.is_globalenv);
@@ -491,27 +522,27 @@ ERROR scope_lookup_import_globalenv(struct node **result, const struct module *m
 }
 
 error scope_lookup(struct node **result, const struct module *mod,
-                   const struct scope *scope, const struct node *id,
+                   const struct node *scoper, const struct node *id,
                    bool failure_ok) {
-  return do_scope_lookup(result, id, mod, scope, id, failure_ok, false);
+  return do_scope_lookup(result, id, mod, scoper, id, failure_ok, false);
 }
 
 error scope_statement_lookup(struct node **result, struct module *mod,
-                             const struct scope *scope, const struct node *id,
+                             const struct node *scoper, const struct node *id,
                              bool failure_ok) {
-  return do_scope_lookup(result, id, mod, scope, id, failure_ok, true);
+  return do_scope_lookup(result, id, mod, scoper, id, failure_ok, true);
 }
 
 error scope_lookup_module(struct node **result, const struct module *mod,
                           const struct node *id, bool failure_ok) {
   error e = 0;
   struct node *par = NULL, *r = NULL;
-  struct scope *scope = &mod->gctx->modules_root.scope;
+  struct node *scoper = &mod->gctx->modules_root;
   const struct node *for_error = id;
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scope,
+    e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scoper,
                                          node_ident(id), true);
     break;
   case BIN:
@@ -522,11 +553,11 @@ error scope_lookup_module(struct node **result, const struct module *mod,
     }
     const struct node *base = subs_first_const(id);
     const struct node *name = subs_last_const(id);
-    e = do_scope_lookup(&par, for_error, mod, scope, base, true, false);
+    e = do_scope_lookup(&par, for_error, mod, scoper, base, true, false);
     if (e) {
       break;
     }
-    e = do_scope_lookup(&r, for_error, mod, &par->scope, name, true, false);
+    e = do_scope_lookup(&r, for_error, mod, par, name, true, false);
     if (e) {
       break;
     }
@@ -581,6 +612,10 @@ static int scope_foreach_each(const ident *key, struct node **val, void *user) {
 
 error scope_foreach(struct module *mod, struct scope *scope,
                     scope_each each, void *user) {
+  if (scope == NULL) {
+    return 0;
+  }
+
   struct scope_foreach_state st = {
     .mod = mod,
     .each = each,

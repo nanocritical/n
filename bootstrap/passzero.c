@@ -1,6 +1,5 @@
 #include "passzero.h"
 
-#include "scope.h"
 #include "lir.h"
 #include "ssa.h"
 #include "types.h"

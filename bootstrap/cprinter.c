@@ -201,8 +201,8 @@ EXAMPLE(escape_string) {
 }
 
 static void print_scope_last_name(FILE *out, const struct module *mod,
-                                  const struct scope *scope) {
-  const ident id = node_ident(scope_node_const(scope));
+                                  const struct node *scoper) {
+  const ident id = node_ident(scoper);
   const char *name = idents_value(mod->gctx, id);
   if (id == ID_ANONYMOUS) {
     return;
@@ -216,15 +216,15 @@ static void print_scope_last_name(FILE *out, const struct module *mod,
 }
 
 static void print_scope_name(FILE *out, const struct module *mod,
-                             const struct scope *scope) {
-  if (parent_const(parent_const(scope_node_const(scope))) != NULL) {
-    print_scope_name(out, mod, &parent_const(scope_node_const(scope))->scope);
-    if (node_ident(scope_node_const(scope)) != ID_ANONYMOUS) {
+                             const struct node *scoper) {
+  if (parent_const(parent_const(scoper)) != NULL) {
+    print_scope_name(out, mod, parent_const(scoper));
+    if (node_ident(scoper) != ID_ANONYMOUS) {
       fprintf(out, "$");
     }
   }
 
-  print_scope_last_name(out, mod, scope);
+  print_scope_last_name(out, mod, scoper);
 }
 
 static size_t c_fun_args_count(const struct node *node) {
@@ -343,7 +343,7 @@ static void print_union_access_path(FILE *out, const struct module *mod,
 
   struct node *field = NULL;
   while (true) {
-    error e = scope_lookup_ident_immediate(&field, NULL, mod, &defch->scope,
+    error e = scope_lookup_ident_immediate(&field, NULL, mod, defch,
                                            tag, true);
     if (!e) {
       break;
@@ -947,12 +947,12 @@ static void print_ident(FILE *out, const struct module *mod, const struct node *
   assert(node->which == IDENT);
   assert(node_ident(node) != ID_ANONYMOUS);
 
-  if (node->as.IDENT.non_local_scope != NULL) {
-    print_scope_name(out, mod, node->as.IDENT.non_local_scope);
+  if (node->as.IDENT.non_local_scoper != NULL) {
+    print_scope_name(out, mod, node->as.IDENT.non_local_scoper);
     fprintf(out, "$");
   }
 
-  print_scope_last_name(out, mod, &node->scope);
+  print_scope_last_name(out, mod, node);
 
   print_ident_locally_shadowed(out, node->as.IDENT.def);
 }
@@ -1359,8 +1359,7 @@ static void print_typ_name(FILE *out, const struct module *mod,
     d = DEF(d->as.DEFTYPE.newtype_expr->typ);
   }
 
-  const struct scope *scope = &d->scope;
-  print_scope_name(out, mod, scope);
+  print_scope_name(out, mod, d);
 }
 
 static bool fun_is_newtype_pretend_wrapper(const struct node *node) {
@@ -1374,7 +1373,7 @@ static bool newtype_has_local_override(const struct module *mod, const struct ty
   if (par->which == DEFTYPE && par->as.DEFTYPE.newtype_expr != NULL) {
     struct node *existing = NULL;
     error ignore = scope_lookup_ident_immediate(
-      &existing, NULL, mod, &par->scope, node_ident(def), true);
+      &existing, NULL, mod, par, node_ident(def), true);
     (void) ignore;
     return existing != NULL && !fun_is_newtype_pretend_wrapper(existing);
   }
@@ -1477,7 +1476,7 @@ static void print_defname_name(FILE *out, const struct module *mod,
   if (node->flags & NODE_IS_GLOBAL_LET) {
     const struct node *let = parent_const(node);
     if (node_is_at_top(let)) {
-      print_scope_name(out, mod, &parent_const(parent_const(node))->scope);
+      print_scope_name(out, mod, parent_const(parent_const(node)));
     } else {
       bare_print_typ(out, mod, parent_const(let)->typ);
     }
@@ -1507,10 +1506,10 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
       // interacts with N.
       forward_declare(out, mod, node->typ);
       fprintf(out, "#ifndef ");
-      print_scope_name(out, mod, &parent_const(let)->scope);
+      print_scope_name(out, mod, parent_const(let));
       fprintf(out, "$%s", idents_value(mod->gctx, node_ident(node)));
       fprintf(out, "\n#define ");
-      print_scope_name(out, mod, &parent_const(let)->scope);
+      print_scope_name(out, mod, parent_const(let));
       fprintf(out, "$%s", idents_value(mod->gctx, node_ident(node)));
       fprintf(out, " ");
       print_typ(out, mod, node->typ);
@@ -3124,7 +3123,7 @@ static void print_import(FILE *out, bool header, enum forward fwd,
                          const struct module *mod, const struct node *node,
                          bool non_inline_deps) {
   struct node *target = NULL;
-  error e = scope_lookup(&target, mod, &mod->gctx->modules_root.scope,
+  error e = scope_lookup(&target, mod, &mod->gctx->modules_root,
                          subs_first_const(node), false);
   assert(!e);
   if (target->which != MODULE) {
@@ -3377,9 +3376,9 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
     if (header) {
       fprintf(out, "#ifdef %s\n", forward_guards[fwd]);
       fprintf(out, "#ifndef %s__", forward_guards[fwd]);
-      print_scope_name(out, mod, &mod->root->scope);
+      print_scope_name(out, mod, mod->root);
       fprintf(out, "\n#define %s__", forward_guards[fwd]);
-      print_scope_name(out, mod, &mod->root->scope);
+      print_scope_name(out, mod, mod->root);
       fprintf(out, "\n\n");
     } else {
       fprintf(out, "#define %s\n", forward_guards[fwd]);
@@ -3440,7 +3439,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
         fprintf(out, "\n#ifdef %s\n", forward_guards[FWD_DEFINE_FUNCTIONS]);
         fprintf(out, "# undef %s\n", forward_guards[FWD_DEFINE_FUNCTIONS]);
         fprintf(out, "# ifndef %s__", forward_guards[fwd]);
-        print_scope_name(out, mod, &mod->root->scope);
+        print_scope_name(out, mod, mod->root);
         fprintf(out, "\n#  define %s\n", forward_guards[fwd]);
         print_include(out, mod->filename, ".o.h");
         fprintf(out, "\n#  undef %s\n# endif\n", forward_guards[fwd]);
@@ -3473,11 +3472,11 @@ static void print_runexamples(FILE *out, const struct module *mod) {
 
     const size_t arity = typ_function_arity(ex->typ);
     if (arity == 0) {
-      print_scope_name(out, mod, &ex->scope);
+      print_scope_name(out, mod, ex);
       fprintf(out, "();\n");
     } else if (arity == 1) {
       fprintf(out, "NLANG_EXAMPLE_PRE;\n");
-      print_scope_name(out, mod, &ex->scope);
+      print_scope_name(out, mod, ex);
       fprintf(out, "(&ex);\n");
       fprintf(out, "NLANG_EXAMPLE_POST;\n");
     } else {
@@ -3515,6 +3514,6 @@ error printer_h(int fd, const struct module *mod) {
 }
 
 void print_c_runexamples_name(FILE *out, const struct module *mod) {
-  print_scope_name(out, mod, &mod->root->scope);
+  print_scope_name(out, mod, mod->root);
   fprintf(out, "_$Nrunexamples");
 }

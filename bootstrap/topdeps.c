@@ -227,7 +227,7 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
 }
 
 void debug_print_topdeps(const struct module *mod, const struct node *node) {
-  fprintf(stderr, "%s :%s @%p\n", scope_name(mod, &node->scope),
+  fprintf(stderr, "%s :%s @%p\n", scope_name(mod, node),
           pptyp(mod, node->typ), node->typ);
   error never = topdeps_foreach(CONST_CAST(mod), CONST_CAST(node), print_topdeps_each, NULL);
   assert(!never);

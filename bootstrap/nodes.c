@@ -3,6 +3,7 @@
 #include "parser.h"
 #include "passes.h"
 #include "types.h"
+#include "scope.h"
 #include "topdeps.h"
 
 #include <stdarg.h>
@@ -414,6 +415,8 @@ void node_invariant(const struct node *node) {
 
   assert(node->which < NODE__NUM);
 
+  assert(node->__scope == NULL || node->__scope->node == node);
+
   ssize_t n = 0;
   const struct node *p = NULL;
   FOREACH_SUB_CONST(s, node) {
@@ -511,6 +514,9 @@ void node_move_content(struct node *dst, struct node *src) {
   struct node *nxt = next(dst);
 
   *dst = copy;
+  if (dst->__scope != NULL) {
+    dst->__scope->node = dst;
+  }
   dst->parent = saved_dst_parent;
 
   dst->prev = prv;
@@ -712,7 +718,7 @@ const struct node *node_defchoice_external_payload(const struct node *node) {
 struct node *node_get_member(struct node *node, ident id) {
   assert(NM(node->which) & (NM(DEFTYPE) | NM(DEFCHOICE) | NM(DEFINTF) | NM(DEFINCOMPLETE)));
   struct node *m = NULL;
-  error null_on_error = scope_lookup_ident_immediate(&m, node, NULL, &node->scope, id, true);
+  error null_on_error = scope_lookup_ident_immediate(&m, node, NULL, node, id, true);
   (void) null_on_error;
   return m;
 }
@@ -874,15 +880,18 @@ int snprint_defincomplete(char *s, size_t len,
 
 static void do_node_deepcopy(struct module *mod, struct node *dst,
                              const struct node *src, bool omit_tail_block) {
+  assert(dst != src);
   INVARIANT_NODE(src);
 
   struct node *par = dst->parent;
   struct node *prev = dst->prev;
   struct node *next = dst->next;
+  if (dst->__scope != NULL) {
+    scope_destroy(dst);
+  }
 
   node_set_which(dst, src->which);
   *dst = *src;
-  memset(&dst->scope, 0, sizeof(dst->scope));
   dst->parent = par;
   dst->prev = prev;
   dst->next = next;
@@ -892,6 +901,7 @@ static void do_node_deepcopy(struct module *mod, struct node *dst,
   dst->typ = NULL;
   dst->constraint = NULL;
   dst->excepted = 0;
+  dst->__scope = NULL;
 
   struct toplevel *dtoplevel = node_toplevel(dst);
   if (dtoplevel != NULL) {

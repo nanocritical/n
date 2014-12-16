@@ -1118,7 +1118,7 @@ static void remove_unnecessary_ssa_defname(struct module *mod, struct node *defn
     block = parent(block);
     assert(block->which == BLOCK);
   }
-  scope_undefine_ssa_var(&block->scope, node_ident(defn));
+  scope_undefine_ssa_var(node_scope(block), node_ident(defn));
 
   remove_expr_from_use_chain(mod, expr);
 

@@ -5,6 +5,7 @@
 #include "passes.h"
 #include "table.h"
 #include "scope.h"
+#include "types.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

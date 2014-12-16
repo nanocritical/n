@@ -1557,7 +1557,7 @@ struct tit *typ_definition_one_member(const struct typ *t, ident name) {
 
   error e = scope_lookup_ident_immediate(&tit->pos, tit->definition,
                                          typ_module_owner(t),
-                                         &tit->definition->scope,
+                                         tit->definition,
                                          name, true);
   if (e) {
     free(tit);
@@ -1636,7 +1636,7 @@ static void bin_accessor_maybe_defchoice_field(struct node **parent_scope, struc
       && !(par->flags & NODE_IS_DEFCHOICE_HAS_EXTERNAL_PAYLOAD)) {
     struct node *defchoice = NULL;
     error e = scope_lookup_ident_immediate(&defchoice, for_error, mod,
-                                           &definition(par->typ)->scope,
+                                           definition(par->typ),
                                            node_ident(subs_last(par)), false);
     assert(!e);
     assert(defchoice->which == DEFCHOICE);
@@ -1661,19 +1661,18 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
   if (!bin_accessor_maybe_ref(&dcontainer, mod, left)) {
     bin_accessor_maybe_defchoice_field(&dcontainer, node, mod, left);
   }
-  struct scope *container_scope = &dcontainer->scope;
-  *container_is_tentative = typ_is_tentative(scope_node(container_scope)->typ);
+  *container_is_tentative = typ_is_tentative(dcontainer->typ);
 
   struct node *name = subs_last(node);
   struct node *field = NULL;
-  *e = scope_lookup_ident_immediate(&field, name, mod, container_scope,
+  *e = scope_lookup_ident_immediate(&field, name, mod, dcontainer,
                                     node_ident(name), *container_is_tentative);
   if (*e) {
     return NULL;
   }
 
   if (field->which == IMPORT) {
-    error none = scope_lookup(&field, mod, &mod->gctx->modules_root.scope,
+    error none = scope_lookup(&field, mod, &mod->gctx->modules_root,
                               subs_first(field), false);
     assert(!none);
   }
@@ -1768,16 +1767,16 @@ struct tit *tit_defchoice_lookup_field(const struct tit *variant, ident name) {
   while (true) {
     container = variant->t;
 
-    const struct scope *sc = &d->scope;
+    const struct node *scoper = d;
     if (d->which == DEFCHOICE) {
       const struct node *ext = node_defchoice_external_payload(d);
       if (ext != NULL) {
         container = olay(variant->t, ext->typ);
-        sc = &definition_const(ext->typ)->scope;
+        scoper = definition_const(ext->typ);
       }
     }
 
-    error e = scope_lookup_ident_immediate(&field, NULL, NULL, sc,
+    error e = scope_lookup_ident_immediate(&field, NULL, NULL, scoper,
                                            name, true);
     if (!e) {
       break;
@@ -3137,7 +3136,7 @@ char *typ_name(const struct module *mod, const struct typ *t) {
   if (typ_generic_arity(t) > 0 && !typ_is_generic_functor(t) && t0 != t) {
     return typ_name(mod, t0);
   } else if (definition_const(t) != NULL) {
-    return scope_name(mod, &definition_const(t)->scope);
+    return scope_name(mod, definition_const(t));
   } else {
     for (size_t n = ID_TBI__FIRST; n < ID_TBI__LAST; ++n) {
       if (mod->gctx->builtin_typs_by_name[n] == t) {

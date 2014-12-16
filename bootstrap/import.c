@@ -35,18 +35,18 @@ static ERROR check_import_target_exists(bool *is_globalenv, struct module *mod,
     struct node *target = NULL;
     struct node *id = subs_last(module_import_path);
     e = scope_lookup_ident_immediate(&target, id,
-                                     mod, &def->scope,
+                                     mod, def,
                                      node_ident(id), could_be_globalenv);
 
     if (e && could_be_globalenv) {
       e = scope_lookup_ident_immediate(&target, id,
-                                       mod, &def->as.MODULE.mod->body->as.MODULE_BODY.globalenv_scope->scope,
+                                       mod, def->as.MODULE.mod->body->as.MODULE_BODY.globalenv_scoper,
                                        node_ident(id), true);
 
       if (e) {
         // Give up: repeat bound-to-fail call to get error message right.
         e = scope_lookup_ident_immediate(&target, id,
-                                         mod, &def->scope,
+                                         mod, def,
                                          node_ident(id), false);
         THROW(e);
       } else {
@@ -79,12 +79,12 @@ static ERROR import_single_ident(struct module *mod, struct node *original_impor
     assert(false);
   }
 
-  struct scope *scope = &mod->body->scope;
+  struct node *scoper = mod->body;
   if (is_globalenv) {
-    scope = &mod->body->as.MODULE_BODY.globalenv_scope->scope;
+    scoper = mod->body->as.MODULE_BODY.globalenv_scoper;
   }
 
-  e = scope_define_ident(mod, scope, node_ident(name), import);
+  e = scope_define_ident(mod, scoper, node_ident(name), import);
   assert(!e);
   return 0;
 }

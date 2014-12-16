@@ -219,7 +219,7 @@ struct node_nil {};
 struct node_ident {
   ident name;
 
-  struct scope *non_local_scope;
+  struct node *non_local_scoper;
 
   struct node *def;
   struct node *prev_use;
@@ -447,7 +447,7 @@ struct node_invariant {
   struct toplevel toplevel;
 };
 struct node_within {
-  struct node *globalenv_scope;
+  struct node *globalenv_scoper;
 };
 struct node_import {
   struct toplevel toplevel;
@@ -463,7 +463,7 @@ struct node_module {
   struct module *mod;
 };
 struct node_module_body {
-  struct node *globalenv_scope;
+  struct node *globalenv_scoper;
 };
 
 struct node_directdef {
@@ -548,7 +548,7 @@ struct node {
   struct node *subs_last;
 
   struct typ *typ;
-  struct scope scope;
+  struct scope *__scope; // Don't use directly, see node_scope().
   struct constraint *constraint;
 
   union node_as as;
@@ -587,7 +587,7 @@ static inline void node_set_which(struct node *node, enum node_which which) {
     unset_typ(&node->typ);
   }
 
-  assert(scope_count(&node->scope) == 0 && "Not handled");
+  assert((node->__scope == NULL || scope_count(node->__scope) == 0) && "Not handled");
 
   memset(&node->as, 0, sizeof(node->as));
   node->which = which;
@@ -1351,6 +1351,17 @@ static inline const struct node *parent_const(const struct node *node) {
 
 struct node *nparent(struct node *node, size_t nth);
 const struct node *nparent_const(const struct node *node, size_t nth);
+
+static inline bool node_has_own_scope(const struct node *node) {
+  return node->__scope != NULL;
+}
+
+static inline struct scope *node_scope(const struct node *node) {
+  while (node != NULL && node->__scope == NULL) {
+    node = parent_const(node);
+  }
+  return node != NULL ? node->__scope : NULL;
+}
 
 bool node_is_prototype(const struct node *node);
 bool node_is_inline(const struct node *node);

@@ -554,7 +554,7 @@ void globalctx_init(struct globalctx *gctx) {
 
   init_tbis(gctx);
 
-  scope_init(&gctx->modules_root.scope);
+  scope_init(&gctx->modules_root);
   node_set_which(&gctx->modules_root, ROOT_OF_ALL);
   gctx->modules_root.typ = typ_create(NULL, &gctx->modules_root);
 }
@@ -3049,9 +3049,9 @@ static void subnode_count_avg(struct module *mod) {
 static ERROR module_parse(struct module *mod) {
   error e;
   mod->body = mk_node(mod, mod->root, MODULE_BODY);
-  mod->body->as.MODULE_BODY.globalenv_scope = calloc(1, sizeof(struct node));
-  mod->body->as.MODULE_BODY.globalenv_scope->parent = mod->body;
-  scope_init(&mod->body->as.MODULE_BODY.globalenv_scope->scope);
+  mod->body->as.MODULE_BODY.globalenv_scoper = calloc(1, sizeof(struct node));
+  mod->body->as.MODULE_BODY.globalenv_scoper->parent = mod->body;
+  scope_init(mod->body->as.MODULE_BODY.globalenv_scoper);
 
   do {
     e = p_toplevel(mod);
@@ -3129,7 +3129,7 @@ static struct node *create_module_node(struct node *par, ident basename,
   m->as.MODULE.name = basename;
   m->as.MODULE.is_placeholder = is_placeholder;
   m->as.MODULE.mod = is_placeholder ? NULL : non_placeholder_mod;
-  scope_init(&m->scope);
+  scope_init(m);
   m->typ = typ_create(NULL, m);
   m->flags = NODE_IS_TYPE;
 
@@ -3153,17 +3153,17 @@ static ERROR register_module(struct globalctx *gctx, struct module *to_register,
   for (size_t p = 0; p <= last; ++p) {
     ident i = to_register->path[p];
     struct node *m = NULL;
-    error e = scope_lookup_ident_wontimport(&m, par, some_module, &par->scope,
+    error e = scope_lookup_ident_wontimport(&m, par, some_module, par,
                                             i, true);
     if (e == EINVAL) {
       m = create_module_node(par, i, p != last, to_register);
 
-      e = scope_define_ident(some_module, &par->scope, i, m);
+      e = scope_define_ident(some_module, par, i, m);
       EXCEPT(e);
 
     } else if (e) {
       // Repeat bound-to-fail lookup to get the error message right.
-      e = scope_lookup_ident_wontimport(&m, par, some_module, &par->scope,
+      e = scope_lookup_ident_wontimport(&m, par, some_module, par,
                                         i, false);
       THROW(e);
     } else {
@@ -3178,14 +3178,14 @@ static ERROR register_module(struct globalctx *gctx, struct module *to_register,
 
           FOREACH_SUB(to_save, m) {
             assert(to_save->which == MODULE);
-            e = scope_define_ident(some_module, &to_register->root->scope,
+            e = scope_define_ident(some_module, to_register->root,
                                    node_ident(to_save), to_save);
             EXCEPT(e);
           }
 
           // scope_define_ident() knows to accept to overwrite because it
           // was a placeholder.
-          e = scope_define_ident(some_module, &par->scope, i, to_register->root);
+          e = scope_define_ident(some_module, par, i, to_register->root);
           EXCEPT(e);
         }
 

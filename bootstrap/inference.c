@@ -2249,7 +2249,7 @@ static ERROR try_rewrite_globalenv_call(bool *yes,
 
   struct node *globalenv = NULL;
   e = scope_lookup_ident_immediate(&globalenv, node, mod,
-                                   genv->as.IDENT.non_local_scope,
+                                   genv->as.IDENT.non_local_scoper,
                                    node_ident(genv), false);
   EXCEPT(e);
 
@@ -2487,7 +2487,7 @@ static ERROR type_inference_ident_unknown(struct module *mod, struct node *node)
 
   // Special marker, so we can rewrite it with the final enum or sum scope
   // in step_ident_non_local_scope().
-  node->as.IDENT.non_local_scope = &unk->scope;
+  node->as.IDENT.non_local_scoper = unk;
 
   set_typ(&node->typ, unk->typ);
   return 0;
@@ -2505,7 +2505,7 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
   }
 
   struct node *def = NULL;
-  error e = scope_statement_lookup(&def, mod, &node->scope, node, true);
+  error e = scope_statement_lookup(&def, mod, node, node, true);
   if (e == EINVAL) {
     e = type_inference_ident_unknown(mod, node);
     EXCEPT(e);
@@ -2532,9 +2532,9 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
 
   node->as.IDENT.def = def;
   if (def->flags & NODE_IS_GLOBAL_LET) {
-    node->as.IDENT.non_local_scope = &nparent(def, 2)->scope;
+    node->as.IDENT.non_local_scoper = nparent(def, 2);
   } else if (def->which == WITHIN) {
-    node->as.IDENT.non_local_scope = &def->as.WITHIN.globalenv_scope->scope;
+    node->as.IDENT.non_local_scoper = def->as.WITHIN.globalenv_scoper;
   }
 
   if (typ_is_function(def->typ) && node->typ != TBI__CALL_FUNCTION_SLOT) {
@@ -2594,7 +2594,7 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
     }
 
     e = scope_lookup_ident_immediate(&def, node, mod,
-                                     &modbody->as.MODULE_BODY.globalenv_scope->scope,
+                                     modbody->as.MODULE_BODY.globalenv_scoper,
                                      node_ident(name), false);
     if (e) {
       e = mk_except(mod, node, "in within declaration");
@@ -2613,9 +2613,9 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
       THROW(e);
     }
 
-    node->as.WITHIN.globalenv_scope = modbody->as.MODULE_BODY.globalenv_scope;
+    node->as.WITHIN.globalenv_scoper = modbody->as.MODULE_BODY.globalenv_scoper;
   } else if (node->which == IDENT) {
-    e = scope_lookup(&def, mod, &node->scope, node, false);
+    e = scope_lookup(&def, mod, node, node, false);
     EXCEPT(e);
     node->as.IDENT.def = def;
   } else {

@@ -2,7 +2,6 @@
 
 #include "table.h"
 #include "types.h"
-#include "scope.h"
 #include "parser.h"
 #include "passes.h"
 #include "instantiate.h"

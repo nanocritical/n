@@ -237,7 +237,7 @@ static struct node *do_move_detached_member(struct module *mod,
 
   struct node *container = NULL;
   error e = scope_lookup_ident_wontimport(&container, node, mod,
-                                          &parent(node)->scope,
+                                          parent(node),
                                           toplevel->scope_name, false);
   assert(!e);
   assert(container->which == DEFTYPE);
@@ -307,7 +307,7 @@ static ERROR lexical_retval(struct module *mod, struct node *fun, struct node *r
   case CALL:
     break;
   case DEFARG:
-    e = scope_define(mod, &fun->scope, subs_first(retval), retval);
+    e = scope_define(mod, fun, subs_first(retval), retval);
     EXCEPT(e);
     if (subs_last(retval)->which == TUPLE) {
       e = lexical_retval(mod, fun, subs_last(retval));
@@ -328,24 +328,24 @@ static ERROR lexical_retval(struct module *mod, struct node *fun, struct node *r
   return 0;
 }
 
-static struct scope *find_scope_for_name(struct node *node) {
+static struct node *find_scoper_for_name(struct node *node) {
   assert(node->which == DEFNAME || node->which == DEFALIAS);
 
   if (node_ident(node) == ID_OTHERWISE) {
     return NULL;
   } else if (node->as.DEFNAME.is_globalenv) {
     assert(parent(parent(node))->which == MODULE_BODY);
-    return &parent(parent(node))->as.MODULE_BODY.globalenv_scope->scope;
+    return parent(parent(node))->as.MODULE_BODY.globalenv_scoper;
   } else if (NM(parent(parent(node))->which)
              & (STEP_NM_DEFS_NO_FUNS | NM(MODULE_BODY))) {
-    return &parent(parent(node))->scope;
+    return parent(parent(node));
   } else {
     struct node *p = node;
     do {
       p = parent(p);
     } while ((p->which != BLOCK || p->as.BLOCK.is_scopeless)
              && p->which != MODULE_BODY);
-    return &p->scope;
+    return p;
   }
 }
 
@@ -357,7 +357,7 @@ static ERROR step_lexical_scoping(struct module *mod, struct node *node,
                                   void *user, bool *stop) {
   DSTEP(mod, node);
   struct node *id = NULL;
-  struct scope *sc = NULL;
+  struct node *scoper = NULL;
   const struct toplevel *toplevel = NULL;
   error e;
   struct node *par = parent(node);
@@ -372,15 +372,15 @@ static ERROR step_lexical_scoping(struct module *mod, struct node *node,
       // name to point to the generic functor (e.g. in '(vector u8)', allow
       // 'vector' to be used in '(vector u16)'. To get the current instance,
       // use this or final.
-      sc = NULL;
+      scoper = NULL;
     } else {
       id = subs_first(node);
-      sc = &parent(node)->scope;
+      scoper = parent(node);
     }
     break;
   case DEFFIELD:
     id = subs_first(node);
-    sc = &parent(node)->scope;
+    scoper = parent(node);
     break;
   case DEFCHOICE:
     id = subs_first(node);
@@ -388,12 +388,12 @@ static ERROR step_lexical_scoping(struct module *mod, struct node *node,
     while (p->which == DEFCHOICE) {
       p = parent(p);
     }
-    sc = &p->scope;
+    scoper = p;
     break;
   case DEFNAME:
   case DEFALIAS:
     id = subs_first(node);
-    sc = find_scope_for_name(node);
+    scoper = find_scoper_for_name(node);
     break;
   case WITHIN:
     if (subs_count_atleast(node, 1)
@@ -408,10 +408,10 @@ static ERROR step_lexical_scoping(struct module *mod, struct node *node,
 
       struct node *pparent = parent(par);
       if (pparent->which == MODULE_BODY) {
-        sc = &pparent->scope;
+        scoper = pparent;
       } else {
         assert(pparent->which == DEFFUN || pparent->which == DEFMETHOD);
-        sc = &subs_last(parent(par))->scope;
+        scoper = subs_last(parent(par));
       }
     }
     break;
@@ -420,8 +420,8 @@ static ERROR step_lexical_scoping(struct module *mod, struct node *node,
     return 0;
   }
 
-  if (sc != NULL) {
-    e = scope_define(mod, sc, id, node);
+  if (scoper != NULL) {
+    e = scope_define(mod, scoper, id, node);
     EXCEPT(e);
   }
 
@@ -432,7 +432,7 @@ static ERROR step_lexical_scoping(struct module *mod, struct node *node,
     genargs = subs_at(node, IDX_GENARGS);
     FOREACH_SUB(ga, genargs) {
       assert(ga->which == DEFGENARG || ga->which == SETGENARG);
-      e = scope_define(mod, &node->scope, subs_first(ga), ga);
+      e = scope_define(mod, node, subs_first(ga), ga);
       EXCEPT(e);
     }
     break;
@@ -449,7 +449,7 @@ static ERROR step_lexical_scoping_functions(struct module *mod, struct node *nod
                                           void *user, bool *stop) {
   DSTEP(mod, node);
   struct node *id = NULL;
-  struct scope *sc = NULL;
+  struct node *scoper = NULL;
   const struct toplevel *toplevel = NULL;
   error e;
   struct node *par = parent(node);
@@ -469,18 +469,18 @@ static ERROR step_lexical_scoping_functions(struct module *mod, struct node *nod
       // See comment below for DEFTYPE/DEFINTF. To get the same instance
       // than the current function, you have to explicitly instantiate it
       // (as there is no 'thisfun').
-      sc = NULL;
+      scoper = NULL;
     } else if (toplevel->scope_name != 0) {
       struct node *container = NULL;
       error e = scope_lookup_ident_wontimport(&container, node, mod,
-                                              &parent(node)->scope,
+                                              parent(node),
                                               toplevel->scope_name, false);
       EXCEPT(e);
       assert(container->which == DEFTYPE);
 
-      sc = &container->scope;
+      scoper = container;
     } else {
-      sc = &par->scope;
+      scoper = par;
     }
     break;
   default:
@@ -488,8 +488,8 @@ static ERROR step_lexical_scoping_functions(struct module *mod, struct node *nod
     return 0;
   }
 
-  if (sc != NULL) {
-    e = scope_define(mod, sc, id, node);
+  if (scoper != NULL) {
+    e = scope_define(mod, scoper, id, node);
     EXCEPT(e);
   }
 
@@ -500,7 +500,7 @@ static ERROR step_lexical_scoping_functions(struct module *mod, struct node *nod
     genargs = subs_at(node, IDX_GENARGS);
     FOREACH_SUB(ga, genargs) {
       assert(ga->which == DEFGENARG || ga->which == SETGENARG);
-      e = scope_define(mod, &node->scope, subs_first(ga), ga);
+      e = scope_define(mod, node, subs_first(ga), ga);
       EXCEPT(e);
     }
 
@@ -510,7 +510,7 @@ static ERROR step_lexical_scoping_functions(struct module *mod, struct node *nod
         break;
       }
       assert(arg->which == DEFARG);
-      e = scope_define(mod, &node->scope, subs_first(arg), arg);
+      e = scope_define(mod, node, subs_first(arg), arg);
       EXCEPT(e);
     }
 
