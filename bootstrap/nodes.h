@@ -1264,6 +1264,7 @@ struct module {
 };
 
 void *mempool_calloc(struct module *mod, size_t nmemb, size_t size);
+void mempool_free(struct module *mod, void *p);
 
 struct node *module_find_import(const struct module *mod, const struct module *other);
 void module_retval_set(struct module *mod, const struct node *retval);

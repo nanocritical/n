@@ -121,6 +121,11 @@ noinline__ void *mempool_calloc(struct module *mod, size_t nmemb, size_t size) {
 }
 #endif
 
+noinline__ void mempool_free(struct module *mod, void *p) {
+  // noop. Function only here so we can start keeping track of where frees
+  // should happen.
+}
+
 const char *node_which_strings[] = {
   [0] = "(none)",
   [NIL] = "NIL",
