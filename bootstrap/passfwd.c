@@ -212,7 +212,7 @@ static bool demands_inline(const struct node *node) {
 }
 
 static STEP_NM(step_mark_generic_inline,
-               NM(DEFFUN) | NM(DEFMETHOD));
+               NM(DEFFUN) | NM(DEFMETHOD) | NM(LET));
 static ERROR step_mark_generic_inline(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
