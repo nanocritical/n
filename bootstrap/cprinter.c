@@ -3286,7 +3286,7 @@ static void print_top(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  if (NM(node->which) & (NM(NOOP) | NM(DEFINCOMPLETE))) {
+  if (NM(node->which) & (NM(NOOP) | NM(DEFINCOMPLETE) | NM(WITHIN))) {
     return;
   }
 
