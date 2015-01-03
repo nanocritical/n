@@ -5,7 +5,7 @@
 
 #define NB(x) n$builtins$##x
 
-NB(U8) *n$mem$internal_realloc0(NB(U8) *ap, NB(Uint) old_bsz, NB(Uint) bsz) {
+NB(U8) *n$mem$_realloc0(NB(U8) *ap, NB(Uint) old_bsz, NB(Uint) bsz) {
   if (old_bsz == bsz) {
     return ap;
   }

@@ -3,7 +3,7 @@ intf `Hashable32 =
 
 alias `Hashmap_key = {`Hashable32 `Copyable `Has_equality}
 
-inline struct sptable T:`Copyable =
+struct sptable T:`Copyable =
 	count	:Uint
 	groups	:(Buf ?@#(Buf T))
 	bitmap	:Bitmap
@@ -11,22 +11,22 @@ inline struct sptable T:`Copyable =
 inline let sp_m = Bitmap.BITS_PER_WORD
 inline let sp_min_size = Bitmap.BITS_PER_WORD
 
-inline fun sp_num_groups size:Uint = Uint
+fun sp_num_groups size:Uint = Uint
 	return math.Div_ceil size sp_m
 
-inline sptable met# ctor size:Uint
+sptable met# ctor size:Uint
 	self!count = 0
 	self!bitmap#Resize <- Max size sp_min_size
 	self!groups#Resize (sp_num_groups self.bitmap.Count)
 
-inline sptable met# Dtor
+sptable met# Dtor
 	foreach g in self.groups
 		Free g.
 
-inline sptable met size = Uint
+sptable met size = Uint
 	return self.bitmap.Count
 
-inline fun maskout_after mask:U32 = U32
+fun maskout_after mask:U32 = U32
 	return mask - 1
 
 example
@@ -34,7 +34,7 @@ example
 	assert maskout_after (1 ov<< 1) == 0x1
 	assert maskout_after (1 ov<< 0) == 0x0
 
-inline sptable shallow met$ get n:Uint = ?@$T
+sptable shallow met$ get n:Uint = ?@$T
 	assert n < self.size
 	if not self.bitmap.[n]
 		return nil
@@ -46,7 +46,7 @@ inline sptable shallow met$ get n:Uint = ?@$T
 	let gr = self.groups.[word].
 	return gr$[count_before]
 
-inline sptable met# set n:Uint = @#T
+sptable met# set n:Uint = @#T
 	assert n < self.size
 	if self.bitmap.[n]
 		return self!get n
@@ -103,12 +103,12 @@ example
 	assert (t#get sp_m-1). == 42
 	assert t.count == 2
 
-inline struct unit K:`Hashmap_key T:`Copyable =
+struct unit K:`Hashmap_key T:`Copyable =
 	hash	:?U32
 	key	:K
 	val	:T
 
-inline struct Hashmap K: `Hashmap_key T:`Copyable =
+struct Hashmap K: `Hashmap_key T:`Copyable =
 	table	:(sptable (unit K T))
 	count	:Uint
 

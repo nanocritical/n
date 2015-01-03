@@ -3,21 +3,21 @@ from n import *
 intf `Heap_element =
 	isa `Copyable `Ordered
 
-opaque struct Heap t:`Heap_element =
+inline struct Heap t:`Heap_element =
 	isa `Trivial_ctor `Copyable
 	h	:(Vector t)
 	c	:Uint
 
-inline Heap met# Reserve Count:Uint
+Heap met# Reserve Count:Uint
 	self.h#Reserve Count
 
 inline Heap met Count = Uint
 	return self.c
 
-inline Heap met# Push x:t
+Heap met# Push x:t
 	self!c += 1
 
-inline Heap met# Pop = t
+Heap met# Pop = t
 	self!c -= 1
 
 inline Heap met first = t

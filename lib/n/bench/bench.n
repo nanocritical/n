@@ -89,12 +89,12 @@ inline struct Stack m:`Measure =
 	Current	:m
 	impl	:(Buf m)
 
-inline Stack met! Save = Restorer
+Stack met! Save = Restorer
 	self!impl#Push# = self.Current
 	self!Current = {}
 	return {target=self}
 
-inline Stack met! Restore_measurements
+Stack met! Restore_measurements
 	assert self.impl.Count > 0
 	let p = self.impl.Last
 	self!Current += p.

@@ -66,7 +66,7 @@ inline Buf met# Copy s:[]t
 	self#auto_shrink
 
 -- The automatic growth of Buf et al. slows down when the buffer is large.
-inline fun growth_factor_shift n:Uint = Uint
+fun growth_factor_shift n:Uint = Uint
 	if n <= 256
 		return 0
 	elif n <= 16_384
@@ -119,14 +119,14 @@ inline Buf met# Reserve atleast:Uint
 		return
 	Realloc @#self#s atleast
 
-inline Buf met# auto_grow atleast:Uint
+Buf met# auto_grow atleast:Uint
 	let cap = self.s.cap
 	if cap >= atleast
 		return
 	let newcap = Buffer_auto_grown_size cap atleast
 	Realloc @#self#s newcap
 
-inline Buf met# auto_shrink
+Buf met# auto_shrink
 	let cap = self.s.cap
 	let newcap = Buffer_auto_shrunk_size cap self.s.cnt
 	if newcap == cap

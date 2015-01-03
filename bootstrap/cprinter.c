@@ -3218,7 +3218,8 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
   if (typ_was_zeroed(_t)
       || (typ_is_reference(_t) && DEF(_t)->which == DEFINTF)
       || typ_is_generic_functor(_t)
-      || (typ_generic_arity(_t) == 0 && !is_in_topmost_module(_t))
+      || (typ_generic_arity(_t) == 0 && !is_in_topmost_module(_t)
+          && (typ_toplevel_flags(_t) & TOP_IS_EXPORT))
       || typ_is_tentative(_t)) {
     return 0;
   }
