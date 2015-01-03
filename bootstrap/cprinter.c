@@ -1249,48 +1249,37 @@ static void print_invariant(FILE *out, const struct module *mod, const struct no
   print_block(out, mod, subs_first_const(node));
 }
 
-static void print_generic_linkage(FILE *out, bool header, enum forward fwd,
-                                  const struct node *at_top,
-                                  const struct node *node) {
-  if (NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
-    if (node_is_inline(node)) {
-      fprintf(out, ALWAYS_INLINE " static inline ");
-    } else {
-      if (fwd == FWD_DECLARE_FUNCTIONS) {
-        fprintf(out, WEAK " ");
-      }
+static void print_generic_fun_linkage(FILE *out, bool header, enum forward fwd,
+                                      const struct node *node) {
+  if (node_is_inline(node)) {
+    fprintf(out, ALWAYS_INLINE " static inline ");
+  } else {
+    if (fwd == FWD_DECLARE_FUNCTIONS) {
+      fprintf(out, WEAK " ");
     }
   }
 }
 
-static void print_linkage(FILE *out, bool header, enum forward fwd,
-                          const struct node *at_top,
-                          const struct node *node) {
+static void print_fun_linkage(FILE *out, bool header, enum forward fwd,
+                              const struct node *node) {
   if (typ_generic_arity(node->typ) > 0
       || (!node_is_at_top(node) && typ_generic_arity(parent_const(node)->typ) > 0)) {
-    print_generic_linkage(out, header, fwd, at_top, node);
+    print_generic_fun_linkage(out, header, fwd, node);
     return;
   }
 
-  const struct toplevel *toplevel = node_toplevel_const(at_top);
+  const struct toplevel *toplevel = node_toplevel_const(node);
   const uint32_t flags = toplevel->flags;
-  if ((NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD)))) {
-    if (((flags & TOP_IS_EXPORT) && (flags & TOP_IS_INLINE))
-        || ((flags & TOP_IS_EXTERN) && (flags & TOP_IS_INLINE))) {
-      fprintf(out, ALWAYS_INLINE " static inline ");
-    } else if ((flags & TOP_IS_EXTERN) && (flags & TOP_IS_EXPORT)) {
-      fprintf(out, "extern ");
-    } else if (flags & TOP_IS_EXPORT) {
-      // noop
-    } else {
-      fprintf(out, UNUSED " static ");
-    }
-  } else if (flags & TOP_IS_EXTERN) {
-    fprintf(out, "extern ");
-  } else if ((flags & TOP_IS_INLINE) && node->which != DEFNAME) {
+
+  if (((flags & TOP_IS_EXPORT) && (flags & TOP_IS_INLINE))
+      || ((flags & TOP_IS_EXTERN) && (flags & TOP_IS_INLINE))) {
     fprintf(out, ALWAYS_INLINE " static inline ");
-  } else if (!header && node_is_at_top(at_top) && !(flags & TOP_IS_EXPORT)) {
-    fprintf(out, "static ");
+  } else if ((flags & TOP_IS_EXTERN) && (flags & TOP_IS_EXPORT)) {
+    fprintf(out, "extern ");
+  } else if (flags & TOP_IS_EXPORT) {
+    // noop
+  } else {
+    fprintf(out, UNUSED " static ");
   }
 }
 
@@ -1496,6 +1485,31 @@ static void forward_declare(FILE *out, const struct module *mod,
   fprintf(out, ";\n");
 }
 
+static void print_defname_linkage(FILE *out, bool header, enum forward fwd,
+                                  const struct node *let,
+                                  const struct node *node,
+                                  bool will_define) {
+  if (!(node->flags & NODE_IS_GLOBAL_LET)) {
+    return;
+  }
+
+  const struct node *at_top = node_is_at_top(let) ? let : parent_const(let);
+  const struct toplevel *toplevel = node_toplevel_const(at_top);
+  const uint32_t flags = toplevel->flags;
+
+  if (header) {
+    fprintf(out, WEAK " ");
+  }
+
+  if (flags & TOP_IS_EXTERN) {
+    fprintf(out, "extern ");
+  } else if (header && !will_define) {
+    fprintf(out, "extern ");
+  } else if (!header && !(flags & TOP_IS_EXPORT)) {
+    fprintf(out, UNUSED " static ");
+  }
+}
+
 static void print_defname(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node) {
   const struct node *let = parent_const(node);
@@ -1550,15 +1564,7 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
 
   const bool is_void = typ_equal(node->typ, TBI_VOID);
   if (!is_void) {
-    if (node->flags & NODE_IS_GLOBAL_LET) {
-      if (header) {
-        fprintf(out, WEAK " ");
-        if (!will_define && !(node_toplevel_const(let)->flags & TOP_IS_EXTERN)) {
-          fprintf(out, "extern ");
-        }
-      }
-      print_linkage(out, header, fwd, let, node);
-    }
+    print_defname_linkage(out, header, fwd, let, node, will_define);
 
     if (node->as.DEFNAME.may_be_unused) {
       fprintf(out, UNUSED " ");
@@ -1779,7 +1785,7 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
   const bool retval_throughref = !typ_isa_return_by_copy(retval->typ);
 
   if (!as_fun_pointer) {
-    print_linkage(out, header, fwd, node, node);
+    print_fun_linkage(out, header, fwd, node);
   }
 
   if (retval_throughref) {
