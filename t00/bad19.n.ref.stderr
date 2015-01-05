@@ -1,1 +1,1 @@
-t00/bad19.n:4:7: identifier 'x' used before its definition
+t00/bad19.n:4:6: type: explicit '@' operators are not allowed for unqualified const references

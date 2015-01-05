@@ -1,1 +1,1 @@
-ncc0: bootstrap/cprinter.c:1693: print_block: Assertion `node->which == BLOCK' failed.
+ncc0: bootstrap/cprinter.c:1714: print_block: Assertion `node->which == BLOCK' failed.
