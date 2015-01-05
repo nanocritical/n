@@ -40,7 +40,7 @@ static bool skip(bool header, enum forward fwd, const struct node *node) {
   const bool let = node->which == LET;
 
   const bool gen = typ_generic_arity(node->typ) > 0
-    || (function && typ_generic_arity(parent_const(node)->typ) > 0);
+    || ((function || let) && typ_generic_arity(parent_const(node)->typ) > 0);
   const bool hinline = node_is_inline(node);
   const bool hvisible = node_is_export(node) || hinline;
 
@@ -2778,7 +2778,7 @@ static void print_enumunion_functions(FILE *out, bool header, enum forward fwd,
 static void print_union_types(FILE *out, bool header, enum forward fwd,
                               const struct module *mod, const struct node *deft,
                               const struct node *ch) {
-if (skip(header, fwd, deft)) {
+  if (skip(header, fwd, deft)) {
     return;
   }
 
