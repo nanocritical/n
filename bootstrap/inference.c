@@ -302,9 +302,9 @@ static struct typ *nullable_functor(struct typ *t) {
     return TBI_ANY_NULLABLE_MUTABLE_REF;
   } else if (typ_equal(t0, TBI_REF)) {
     return TBI_NREF;
-  } else if (typ_isa(t0, TBI_MREF)) {
+  } else if (typ_equal(t0, TBI_MREF)) {
     return TBI_NMREF;
-  } else if (typ_isa(t0, TBI_MMREF)) {
+  } else if (typ_equal(t0, TBI_MMREF)) {
     return TBI_NMMREF;
   } else {
     assert(false);
@@ -324,9 +324,9 @@ static struct typ *nonnullable_functor(struct typ *t) {
     return TBI_ANY_MUTABLE_REF;
   } else if (typ_equal(t0, TBI_NREF)) {
     return TBI_REF;
-  } else if (typ_isa(t0, TBI_NMREF)) {
+  } else if (typ_equal(t0, TBI_NMREF)) {
     return TBI_MREF;
-  } else if (typ_isa(t0, TBI_NMMREF)) {
+  } else if (typ_equal(t0, TBI_NMMREF)) {
     return TBI_MMREF;
   } else {
     assert(false);
@@ -2373,7 +2373,11 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
     }
   }
 
-  set_typ(&node->typ, typ_function_return(fun->typ));
+  struct typ **ft = typ_permanent_loc(fun->typ);
+  e = link_wildcard_generics(mod, *ft, node);
+  EXCEPT(e);
+
+  set_typ(&node->typ, typ_function_return(*ft));
 
   return 0;
 }
