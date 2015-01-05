@@ -59,7 +59,8 @@ static bool skip(bool header, enum forward fwd, const struct node *node) {
     return (!header && hinline) || (header && !hinline);
   } else if (fwd == dyn) {
     return (!header && hinline) || (header && !hvisible);
-  } else if (node->which == DEFTYPE && (fwd == FWD_DECLARE_FUNCTIONS || fwd == FWD_DEFINE_FUNCTIONS)) {
+  } else if ((NM(node->which) & (NM(DEFTYPE) | NM(DEFINTF)))
+             && (fwd == FWD_DECLARE_FUNCTIONS || fwd == FWD_DEFINE_FUNCTIONS)) {
     return header && !hvisible;
   } else {
     return true;
@@ -3110,6 +3111,11 @@ static void print_defintf(FILE *out, bool header, enum forward fwd,
   }
 
   if (skip(header, fwd, node)) {
+    return;
+  }
+
+  if (header && typ_generic_arity(node->typ) == 0
+      && fwd == FWD_DEFINE_FUNCTIONS) {
     return;
   }
 
