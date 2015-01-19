@@ -542,8 +542,8 @@ error scope_lookup_module(struct node **result, const struct module *mod,
 
   switch (id->which) {
   case IDENT:
-    e = do_scope_lookup_ident_wontimport(&r, for_error, mod, scoper,
-                                         node_ident(id), true);
+    e = scope_lookup_ident_immediate(&r, for_error, mod, scoper,
+                                     node_ident(id), true);
     break;
   case BIN:
     if (id->as.BIN.operator != TDOT) {

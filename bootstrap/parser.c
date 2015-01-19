@@ -3153,7 +3153,7 @@ static ERROR register_module(struct globalctx *gctx, struct module *to_register,
   for (size_t p = 0; p <= last; ++p) {
     ident i = to_register->path[p];
     struct node *m = NULL;
-    error e = scope_lookup_ident_wontimport(&m, par, some_module, par,
+    error e = scope_lookup_ident_immediate(&m, par, some_module, par,
                                             i, true);
     if (e == EINVAL) {
       m = create_module_node(par, i, p != last, to_register);
@@ -3163,7 +3163,7 @@ static ERROR register_module(struct globalctx *gctx, struct module *to_register,
 
     } else if (e) {
       // Repeat bound-to-fail lookup to get the error message right.
-      e = scope_lookup_ident_wontimport(&m, par, some_module, par,
+      e = scope_lookup_ident_immediate(&m, par, some_module, par,
                                         i, false);
       THROW(e);
     } else {

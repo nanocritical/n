@@ -236,9 +236,9 @@ static struct node *do_move_detached_member(struct module *mod,
   }
 
   struct node *container = NULL;
-  error e = scope_lookup_ident_wontimport(&container, node, mod,
-                                          parent(node),
-                                          toplevel->scope_name, false);
+  error e = scope_lookup_ident_immediate(&container, node, mod,
+                                         parent(node),
+                                         toplevel->scope_name, false);
   assert(!e);
   assert(container->which == DEFTYPE);
 
@@ -472,9 +472,9 @@ static ERROR step_lexical_scoping_functions(struct module *mod, struct node *nod
       scoper = NULL;
     } else if (toplevel->scope_name != 0) {
       struct node *container = NULL;
-      error e = scope_lookup_ident_wontimport(&container, node, mod,
-                                              parent(node),
-                                              toplevel->scope_name, false);
+      error e = scope_lookup_ident_immediate(&container, node, mod,
+                                             parent(node),
+                                             toplevel->scope_name, false);
       EXCEPT(e);
       assert(container->which == DEFTYPE);
 
