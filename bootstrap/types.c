@@ -25,6 +25,8 @@ struct statit_typs {
   uint32_t equal_slow_calls;
   uint32_t top_isa_calls;
   uint32_t isa_calls;
+  uint32_t isa_calls_ref_a;
+  uint32_t isa_calls_ref_intf;
   uint32_t quickisa_calls;
 
   uint32_t rec_isa_because[7];
@@ -52,6 +54,8 @@ void print_statit_typs(void) {
   printf("\n");
   printf("\t%u	top_isa_calls\n", statit_typs.top_isa_calls);
   printf("\t%u	isa_calls\n", statit_typs.isa_calls);
+  printf("\t%u	isa_calls_ref_a\n", statit_typs.isa_calls_ref_a);
+  printf("\t%u	isa_calls_ref_intf\n", statit_typs.isa_calls_ref_intf);
   printf("\t%u	quickisa_calls\n", statit_typs.quickisa_calls);
   printf("\t%.3f	quickisa_calls/isa_calls\n", (double)statit_typs.quickisa_calls / statit_typs.isa_calls);
   printf("\n");
@@ -2500,6 +2504,15 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
 
   if (typ_equal(a, intf)) {
     return true;
+  }
+
+  STATIT {
+    if (typ_is_reference(a)) {
+      statit_typs.isa_calls_ref_a += 1;
+    }
+    if (typ_is_reference(intf)) {
+      statit_typs.isa_calls_ref_intf += 1;
+    }
   }
 
   if (a->quickisa.ready && can_use_quickisa(a, intf)) {
