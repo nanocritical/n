@@ -31,16 +31,17 @@ static ERROR check_import_target_exists(bool *is_globalenv, struct module *mod,
   }
 
   if (points_inside_module) {
-    const bool could_be_globalenv = def->which == MODULE;
+    const struct node *body = def->as.MODULE.mod->body;
     struct node *target = NULL;
     struct node *id = subs_last(module_import_path);
     e = scope_lookup_ident_immediate(&target, id,
-                                     mod, def,
-                                     node_ident(id), could_be_globalenv);
+                                     mod, body,
+                                     node_ident(id), true);
 
-    if (e && could_be_globalenv) {
+    if (e) {
+      // Could be globalenv.
       e = scope_lookup_ident_immediate(&target, id,
-                                       mod, def->as.MODULE.mod->body->as.MODULE_BODY.globalenv_scoper,
+                                       mod, body->as.MODULE_BODY.globalenv_scoper,
                                        node_ident(id), true);
 
       if (e) {
@@ -61,11 +62,19 @@ static ERROR check_import_target_exists(bool *is_globalenv, struct module *mod,
 }
 
 static ERROR import_single_ident(struct module *mod, struct node *original_import,
-                                 struct node *import, bool inside_module) {
+                                 struct node *import, bool inside_module,
+                                 const struct node *known_target) {
   struct node *import_path = subs_first(import);
   bool is_globalenv = false;
-  error e = check_import_target_exists(&is_globalenv, mod, import_path, inside_module);
-  EXCEPT(e);
+
+  error e;
+  if (known_target != NULL && known_target->which == LET) {
+    const struct node *defn = subs_first_const(known_target);
+    is_globalenv = defn->which == DEFNAME && defn->as.DEFNAME.is_globalenv;
+  } else {
+    e = check_import_target_exists(&is_globalenv, mod, import_path, inside_module);
+    EXCEPT(e);
+  }
 
   struct node *name = NULL;
   switch (import_path->which) {
@@ -113,7 +122,7 @@ static ERROR lexical_import_from_path(struct module *mod,
   // 'import == original_import'.
   struct node *last = subs_last(import);
   FOREACH_SUB_EVERY(id_import, import, 1, 1) {
-    e = import_single_ident(mod, original_import, id_import, true);
+    e = import_single_ident(mod, original_import, id_import, true, NULL);
     EXCEPT(e);
 
     if (id_import == last) {
@@ -157,7 +166,7 @@ static ERROR lexical_import_path(struct module *mod,
   }
 
   if (!original_import->as.IMPORT.is_all) {
-    e = import_single_ident(mod, original_import, import, false);
+    e = import_single_ident(mod, original_import, import, false, NULL);
     return 0;
   }
 
@@ -180,7 +189,7 @@ static ERROR lexical_import_path(struct module *mod,
 
     struct node *id_import = create_import_mark_for_ex(mod, original_import,
                                                        import, ex);
-    e = import_single_ident(mod, original_import, id_import, true);
+    e = import_single_ident(mod, original_import, id_import, true, ex);
     EXCEPT(e);
   }
 
