@@ -312,6 +312,10 @@ int main(int argc, char **argv) {
   if (getenv("NCC_CFLAGS")) {
     g_opt.cflags = strdup(getenv("NCC_CFLAGS"));
   }
+  timeit_enable = false;
+  if (getenv("NCC_TIMEIT")) {
+    timeit_enable = true;
+  }
 
   int status = system("ccache --version &> /dev/null");
   if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
@@ -334,7 +338,7 @@ int main(int argc, char **argv) {
 
   ENDTIMEIT(true, TIMEIT_MAIN);
 
-  if (getenv("NCC_TIMEIT")) {
+  if (timeit_enable) {
     timeit_print(g_env.stderr);
     fprintf(g_env.stderr, "\n"
             "%.0f k nodes (approx)\n"

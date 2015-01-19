@@ -346,22 +346,28 @@ struct timeit {
   double time;
 };
 
+extern bool timeit_enable;
 extern struct timeit timeits[TIMEIT__NUM];
 
 double time(void);
 void timeit_print(FILE *out);
 
 #define BEGTIMEIT(what) \
-  double timeit_##what = timeits[what].depth != 0 ? 0 : time(); \
-  timeits[what].depth += 1
+  unused__ double timeit_##what = 0; \
+  if (timeit_enable) { \
+    timeit_##what = timeits[what].depth != 0 ? 0 : time(); \
+    timeits[what].depth += 1; \
+  }
 
 #define ENDTIMEIT(cond, what) \
-  if (cond) { \
-    timeits[what].count += 1; \
-    if (timeits[what].depth == 1) { timeits[what].time += time() - timeit_##what; } \
-  } \
-  (void) timeit_##what; \
-  timeits[what].depth -= 1
+  if (timeit_enable) { \
+    if (cond) { \
+      timeits[what].count += 1; \
+      if (timeits[what].depth == 1) { timeits[what].time += time() - timeit_##what; } \
+    } \
+    (void) timeit_##what; \
+    timeits[what].depth -= 1; \
+  }
 
 #if CONFIG_STATIT
 # define STATIT if (true)

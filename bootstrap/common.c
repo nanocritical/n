@@ -376,6 +376,8 @@ static const char *timeits_name[TIMEIT__NUM] = {
   [TIMEIT_GENERATE_C] = "generate_c",
 };
 
+bool timeit_enable;
+
 void timeit_print(FILE *out) {
   fprintf(out, "\ntimeit\n");
   for (size_t n = 0; n < TIMEIT__NUM; ++n) {
