@@ -694,8 +694,8 @@ error unify_with_defincomplete_entrails(struct module *mod,
     }
 
     struct tit *af = typ_definition_one_member(a, node_ident(f));
-    if (af == NULL) {
-      e = mk_except_type(mod, for_error, "field '%s' not found in '%s'",
+    if (af == NULL || tit_which(af) != DEFFIELD) {
+      e = mk_except_type(mod, for_error, "field '%s' not found in '%s' or not a field",
                          idents_value(mod->gctx, node_ident(f)),
                          pptyp(mod, a));
       THROW(e);
