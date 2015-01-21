@@ -163,7 +163,7 @@ Hashmap met# Dtor
 	self#table#Dtor
 
 Hashmap met Count = Uint
-	return self.table.count
+	return self.count
 
 -- Quadratic open addressing (see Knuth TAOCP 6.4 exercise 20)
 --
@@ -172,24 +172,31 @@ Hashmap met Count = Uint
 Hashmap met index hash:U32 nth:Uint = Uint
 	return ((hash.Uint + (nth * (nth+1))) / 2) % self.table.size
 
-Hashmap shallow met$ Operator_at key:K = ?@$T
-	if self.Count == 0
-		return nil
+Hashmap shallow met$ get_unit key:K trying:Bool = ?@$this.unit_type, idx:Uint, hash:U32
+	if trying and self.Count == 0
+		return nil, 0, 0
 
-	let hash = key.Hash32
+	hash = key.Hash32
 	var nth
 	while true
-		let u = self.table$get <- self.index hash nth
+		idx = self.index hash nth
+		let u = self.table$get idx
 		nth += 1
 		if not u?
-			return nil
+			return nil, idx, hash
 		if not u.hash?
 			-- Deleted
 			continue
 		if u.hash != hash
 			continue
 		if u.key == key
-			return @$u$val
+			return u, idx, hash
+
+Hashmap shallow met$ Operator_at key:K = ?@$T
+	let u, _, _ = self$get_unit key true
+	if u?
+		return @$u$val
+	return nil
 
 Hashmap met# may_grow
 	if (self.count * 32) / self.table.size <= 24
@@ -198,34 +205,20 @@ Hashmap met# may_grow
 
 Hashmap met# store key:K trying:Bool = ?@#T
 	self#ensure_init
-
-	let hash = key.Hash32
-	var nth, idx
-	while true
-		idx = self.index hash nth
-		let u = self#table#get idx
-		nth += 1
-		if not u?
-			break
-		if not u.hash?
-			-- Deleted
-			continue
-		if u.hash != hash
-			continue
-		if u.key == key
-			if trying
-				return nil
-			else
-				return @#u#val
+	let u, idx, hash = self!get_unit key false
+	if u?
+		if trying
+			return nil
+		return @#u#val
 
 	-- Need to create a spot.
 	self#may_grow
 
 	self!count += 1
-	let u = self#table#set idx
-	u#hash = hash
-	u#key = key
-	return @#u#val
+	let nu = self#table#set idx
+	nu#hash = hash
+	nu#key = key
+	return @#nu#val
 
 Hashmap met# Store key:K = @#T
 	let loc = self#store key false
@@ -235,7 +228,24 @@ Hashmap met# Store key:K = @#T
 Hashmap met# Try_store key:K = ?@#T
 	return self#store key true
 
-example
+Hashmap met# Try_delete key:K = did:Bool
+	if self.Count == 0
+		return false
+
+	let u, _, _ = self!get_unit key true
+	if u?
+		u!hash = nil
+		u!key = {}
+		u!val = {}
+		self!count -= 1
+		return true
+
+	return false
+
+Hashmap met# Delete key:K
+	assert self#Try_delete key
+
+example hashmap_basic
 	var m = {}:(Hashmap String Uint)
 	assert m.Count == 0
 	assert not m.["42"]?
@@ -253,6 +263,11 @@ example
 	assert m.Count == 1
 	assert m.["42"] == 43
 
+	m#Delete "42"
+	assert not m#Try_delete "42"
+	(m#Try_store "42")# = 43
+	assert m.["42"] == 43
+
 	(m#Store "44")# = 44
 	assert m.Count == 2
 	assert m.["42"] == 43
@@ -266,7 +281,7 @@ example
 		else
 			assert false
 
-example collision
+example hashmap_collision
 	let a = 31:U64
 	let b = 0x1_0000_0000:U64
 	assert a.Hash32 == b.Hash32
@@ -291,5 +306,7 @@ Hashmap_iter met Has_next = Bool
 	return self.iter.Has_next
 
 Hashmap_iter met! Next = K, RT
-	let _, u = self!iter!Next
-	return u.key, @#u#val
+	while true
+		let _, u = self!iter!Next
+		if u.hash?
+			return u.key, @#u#val
