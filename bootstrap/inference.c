@@ -468,6 +468,22 @@ not_wildcard_fun:
 
 static ERROR wrap_arg_unary_op(struct node **r, struct module *mod,
                                enum token_type op) {
+  error e;
+  switch (op) {
+  case TDEREFDOT:
+  case TDEREFBANG:
+  case TDEREFSHARP:
+  case TDEREFWILDCARD:
+  case T__DEOPT:
+    if (typ_equal((*r)->typ, TBI_LITERALS_NIL)) {
+      e = mk_except_type(mod, *r, "cannot convert nil literal to value");
+      THROW(e);
+    }
+    break;
+  default:
+    break;
+  }
+
   struct node *arg = *r;
   const bool is_named = arg->which == CALLNAMEDARG;
   struct node *real_arg = is_named ? subs_first(arg) : arg;
@@ -486,9 +502,9 @@ static ERROR wrap_arg_unary_op(struct node **r, struct module *mod,
   }
 
   const struct node *except[] = { real_arg, NULL };
-  error e = catchup(mod, except,
-                    is_named ? arg : deref_arg,
-                    CATCHUP_BELOW_CURRENT);
+  e = catchup(mod, except,
+              is_named ? arg : deref_arg,
+              CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
 
   if (!is_named) {
