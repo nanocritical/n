@@ -34,6 +34,8 @@ ERROR reference(struct typ **result,
                 struct module *mod, struct node *for_error,
                 enum token_type op, struct typ *typ);
 
+ERROR try_insert_automagic_de(struct module *mod, struct node *node);
+
 void schedule_finalization(struct typ *t);
 ERROR process_finalizations(void);
 

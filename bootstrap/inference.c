@@ -582,8 +582,7 @@ static ERROR insert_automagic_de(struct node **r,
 
 // May modifies node. Get the new one after calling this (same location in
 // the tree).
-static ERROR try_insert_automagic_de(struct module *mod,
-                                     struct node *node) {
+error try_insert_automagic_de(struct module *mod, struct node *node) {
   if (typ_is_optional(node->typ)) {
     error e = insert_automagic_de(&node, mod, T__DEOPT);
     EXCEPT(e);

@@ -817,34 +817,7 @@ static void print_tag_init(FILE *out, const struct module *mod,
 static void print_init_expr(FILE *out, const struct module *mod,
                             const struct node *node, ident f,
                             const struct node *expr) {
-  const struct typ *tf = NULL;
-  if (node->which == INIT && node->as.INIT.for_tag != ID__NONE) {
-    struct tit *it = typ_definition_one_member(node->typ, node->as.INIT.for_tag);
-    struct tit *fit = tit_defchoice_lookup_field(it, f);
-    tf = tit_typ(fit);
-    tit_next(fit);
-    tit_next(it);
-  } else {
-    tf = typ_member(node->typ, f);
-  }
-  const bool wrap = typ_is_optional(tf) && !typ_is_optional(expr->typ);
-  const bool unwrap = !wrap && !typ_is_optional(tf) && typ_is_optional(expr->typ);
-
-  if (wrap) {
-    fprintf(out, "(");
-    print_typ(out, mod, tf);
-    fprintf(out, "){ .X = (");
-  } else if (unwrap) {
-    fprintf(out, "(");
-  }
-
   print_expr(out, mod, expr, T__NOT_STATEMENT);
-
-  if (wrap) {
-    fprintf(out, "), .Nonnil = 1 }");
-  } else if (unwrap) {
-    fprintf(out, ").X");
-  }
 }
 
 static void print_init_toplevel(FILE *out, const struct module *mod,

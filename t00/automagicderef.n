@@ -9,6 +9,13 @@ holder fun mk x:t = this --::(nonnull x => nonnull self.x)
 fun id x:@I32 = @I32
 	return x
 
+struct wants_values =
+	x	:I32
+	y	:String
+
+fun foo w:wants_values = I32
+	return w.x
+
 fun Main = I32
 	let x = (Max I32) 0 1:I32
 	let xx = Max 0 1:I32
@@ -40,5 +47,17 @@ fun Main = I32
 
 	let pu3 = @3
 	assert 8 == 1:U64 ov<< pu3
+
+	block
+		let x = @42:I32
+		let y = @"test"
+		let w = {x=x y=y}
+		assert foo w == 42
+
+	block
+		let x = ?42:I32
+		let y = ?"test"
+		let w = {x=x y=y}
+		assert foo w == 42
 
 	return x + xx + p0 + p1 + y + yy + h.x + hhh.x - 7 -- + h1.x + hh.x - 2

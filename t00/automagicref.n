@@ -29,6 +29,13 @@ struct holder t:{`Copyable `Trivial_ctor} =
 holder fun create x:t = this
 	return {x=x}
 
+struct wants_opts =
+	x	:?I32
+	y	:?String
+
+fun foo w:wants_opts = I32
+	return w.x
+
 fun Main = I32
 	let h = holder.create 1:I32
 	let hh = (holder ?@I32).create @1:I32
@@ -99,5 +106,11 @@ fun Main = I32
 	--match e
 	--| @A -> noop -- invalid
 	--| B -> noop
+
+	block
+		let x = 42:I32
+		let y = "test"
+		let w = {x=x y=y}
+		assert foo w == 42
 
 	return 0

@@ -93,6 +93,58 @@ static ERROR step_check_no_literals_left(struct module *mod, struct node *node,
   return 0;
 }
 
+// Finish the job from unify_with_defincomplete_entrails().
+static STEP_NM(step_init_insert_automagic,
+               NM(INIT));
+static ERROR step_init_insert_automagic(struct module *mod, struct node *node,
+                                        void *user, bool *stop) {
+  if (node->as.INIT.is_array
+      || node->as.INIT.is_range
+      || node->as.INIT.is_bounds
+      || node->as.INIT.is_defchoice_external_payload_constraint) {
+    return 0;
+  }
+
+  error e;
+  struct node *nxt = subs_first(node);
+  while (nxt != NULL) {
+    struct node *f = nxt;
+    struct node *expr = next(f);
+    nxt = next(expr); // Save now, we may move expr.
+
+    struct tit *tf = typ_definition_one_member(node->typ, node_ident(f));
+    struct typ *target = tit_typ(tf);
+    struct typ *value = expr->typ;
+    const bool target_isopt = typ_is_optional(target);
+    const bool target_isref = typ_is_reference(target);
+    const bool value_isopt = typ_is_optional(value);
+    const bool value_isref = typ_is_reference(value);
+
+    // Symmetric to unify_with_defincomplete_entrails().
+    if (!target_isref && value_isref) {
+      e = try_insert_automagic_de(mod, expr);
+      EXCEPT(e);
+    }
+    if (!target_isopt && value_isopt) {
+      e = try_insert_automagic_de(mod, expr);
+      EXCEPT(e);
+    } else if (target_isopt && !value_isopt) {
+      struct node *n = mk_node(mod, node, UN);
+      n->as.UN.operator = TPREQMARK;
+      node_subs_remove(node, n);
+      node_subs_replace(node, expr, n);
+      node_subs_append(n, expr);
+
+      const struct node *except[] = { expr, NULL };
+      e = catchup(mod, except, n, CATCHUP_BELOW_CURRENT);
+      EXCEPT(e);
+    }
+
+    tit_next(tf);
+  }
+  return 0;
+}
+
 static enum token_type operator_call_arg_refop(const struct typ *tfun, size_t n) {
   const struct typ *arg0 = typ_generic_functor_const(typ_function_arg_const(tfun, n));
   assert(arg0 != NULL && typ_is_reference(arg0));
@@ -881,6 +933,7 @@ static ERROR passbody1(struct module *mod, struct node *root,
     DOWN_STEP(step_check_no_literals_left);
     ,
     UP_STEP(step_insert_nullable_void);
+    UP_STEP(step_init_insert_automagic);
     UP_STEP(step_operator_call_inference);
     UP_STEP(step_ctor_call_inference);
     UP_STEP(step_array_ctor_call_inference);

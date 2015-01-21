@@ -704,14 +704,19 @@ error unify_with_defincomplete_entrails(struct module *mod,
     struct typ *target = tit_typ(af);
     struct typ *value = f->typ;
     const bool target_isopt = typ_is_optional(target);
+    const bool target_isref = typ_is_reference(target);
     const bool value_isopt = typ_is_optional(value);
+    const bool value_isref = typ_is_reference(value);
 
-    // Automagic opt and deopt. The conversions operations are inserted in
-    // passbody1.
-    if (target_isopt && !value_isopt) {
-      target = typ_generic_arg(target, 0);
-    } else if (!target_isopt && value_isopt) {
+    // Automagic opt and deopt/deref (no automagic ref!). The conversions
+    // operations are inserted in passbody1, step_init_insert_automagic().
+    if (!target_isref && value_isref) {
       value = typ_generic_arg(value, 0);
+    }
+    if (!target_isopt && value_isopt) {
+      value = typ_generic_arg(value, 0);
+    } else if (target_isopt && !value_isopt) {
+      target = typ_generic_arg(target, 0);
     }
 
     e = unify_refcompat(mod, for_error, target, value);
