@@ -73,7 +73,38 @@ sptable met# set n:Uint = @#T
 	self!count += 1
 	return gr![count_before]
 
-example
+sptable met! iter = (sptable_iter T)
+	return {table=self ng=self.groups.Count g=0 w=self.bitmap.Words.First}
+
+struct sptable_iter T:`Copyable =
+	isa (`Iterator (Uint, @#T))
+	table	:@(sptable T)	--::(owns self)
+	ng	:Uint
+	g	:Uint
+	w	:U32
+	w_nth	:U32
+
+sptable_iter met Has_next = Bool
+	if self.w != 0
+		return true
+	if self.g >= self.ng-1
+		return false
+	return (self.table.bitmap.Ffs_from (self.g+1)*Bitmap.BITS_PER_WORD)?
+
+sptable_iter met! Next = Uint, @#T
+	while self.w == 0 and self.g < self.ng
+		self!g += 1
+		self!w = self.table.bitmap.Words.[self.g]
+		self!w_nth = 0
+
+	let nxt = (math.Bit_ffs self.w) - 1
+	self!w &= ~(1:U32 ov<< nxt)
+	let w_nth = self.w_nth
+	self!w_nth += 1
+	let gr = self.table.groups.[self.g].
+	return self.g*Bitmap.BITS_PER_WORD + nxt, gr![w_nth.Uint]
+
+example sptable_basic
 	var t = {}:(sptable Uint)
 	t#ctor 100
 	(t#set 0)# = 42
@@ -93,7 +124,15 @@ example
 	assert (t#get 7). == 44
 	assert (t#get 99). == 45
 
-example
+	for i, e in t!iter
+		match i
+		| 0 -> assert e == 42
+		| 3 -> assert e == 43
+		| 7 -> assert e == 44
+		| 99 -> assert e == 45
+		| _ -> assert false
+
+example sptable_group_boundary
 	var t = {}:(sptable Uint)
 	t#ctor sp_m+1
 	(t#set sp_m-1)# = 42
@@ -109,7 +148,8 @@ struct unit K:`Hashmap_key T:`Copyable =
 	val	:T
 
 struct Hashmap K: `Hashmap_key T:`Copyable =
-	table	:(sptable (unit K T))
+	alias unit_type = (unit K T)
+	table	:(sptable unit_type)
 	count	:Uint
 
 Hashmap met# init ?size:?Uint
@@ -218,6 +258,14 @@ example
 	assert m.["42"] == 43
 	assert m.["44"] == 44
 
+	for k, v in m.Iter
+		if k == "42"
+			assert v == 43
+		elif k == "44"
+			assert v == 44
+		else
+			assert false
+
 example collision
 	let a = 31:U64
 	let b = 0x1_0000_0000:U64
@@ -229,3 +277,19 @@ example collision
 	(m#Store b)# = 43
 	assert m.[b] == 43
 	assert m.[a] == 42
+
+Hashmap shallow met$ Iter = (Hashmap_iter this @$T)
+	-- To avoid this cast, we would have to make sptable_iter more complex.
+	let mself = (Cast @this @!this) self
+	return {iter=mself!table!iter}
+
+(struct K:`Hashmap_key T:`Copyable) Hashmap_iter H:(Hashmap K T) RT:`Any_any_ref =
+	isa (`Iterator (K, RT)) `Trivial_copy `Trivial_ctor
+	iter	:(sptable_iter H.unit_type)
+
+Hashmap_iter met Has_next = Bool
+	return self.iter.Has_next
+
+Hashmap_iter met! Next = K, RT
+	let _, u = self!iter!Next
+	return u.key, @#u#val
