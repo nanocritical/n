@@ -926,6 +926,16 @@ static void print_ident(FILE *out, const struct module *mod, const struct node *
     fprintf(out, "$");
   }
 
+  const struct node *def = node->as.IDENT.def;
+  if (def != NULL && def->which == DEFARG && def->as.DEFARG.is_retval
+      && parent_const(def)->which == TUPLE
+      && node_ident(def) != ID_NRETVAL) {
+    // Named return values in tuples are accessed through a macro, which
+    // name starts with _nretval_, to avoid conflicts with anything in a
+    // subscope.
+    fprintf(out, "%s_", idents_value(mod->gctx, ID_NRETVAL));
+  }
+
   print_scope_last_name(out, mod, node);
 
   print_ident_locally_shadowed(out, node->as.IDENT.def);
@@ -1841,7 +1851,7 @@ static void print_rtr_helpers_start(FILE *out, const struct module *mod,
     size_t n = 0;
     FOREACH_SUB_CONST(x, last) {
       if (x->which == DEFARG) {
-        fprintf(out, "#define ");
+        fprintf(out, "#define _nretval_");
         print_expr(out, mod, subs_first_const(x), T__STATEMENT);
         fprintf(out, " ((");
         print_expr(out, mod, first, T__STATEMENT);
