@@ -4,6 +4,11 @@ struct container t:`Copyable =
 	isa `Trivial_ctor
 	x	:t
 
+(struct t:`Copyable) iter_container c:(container t) =
+	x	:@c
+
 fun Main = I32
-	let v = { x=1 }:(container I32)
+	let v = {x=1}:(container I32)
+	let it = {x=@v}:(iter_container (container I32))
+	let _ = it
 	return v.x - 1
