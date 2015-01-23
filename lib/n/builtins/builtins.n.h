@@ -93,7 +93,7 @@ struct NB(Varargint) {
   NLANG_BUILTINS_VARARG_NEXT_(t, NLANG_BUILTINS_VARARG_AP(va))
 
 #define NLANG_MKDYN(dyn_type, _dyntable, _obj) \
-  (dyn_type){ .dyntable = (void *)(_dyntable), .obj = (_obj) }
+  (dyn_type){ .obj = (_obj), .dyntable = (void *)(_dyntable) }
 
 #endif
 

@@ -2390,10 +2390,12 @@ static void print_dyntable_type(FILE *out, bool header, enum forward fwd,
       fprintf(out, "struct _$Ndyn_");
       print_deftype_name(out, mod, node);
       fprintf(out, " {\n");
+      // 'obj' comes first so that a dyn can be brutally cast to the
+      // underlying pointer.
+      fprintf(out, "void *obj;\n");
       fprintf(out, "const struct _$Ndyntable_");
       bare_print_typ(out, mod, node->typ);
       fprintf(out, " *dyntable;\n");
-      fprintf(out, "void *obj;\n");
       fprintf(out, "};\n");
     }
   }
