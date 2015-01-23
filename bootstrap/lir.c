@@ -744,9 +744,7 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
              m->as.BIN.operator = TDOT;
              node_subs_append(m, co);
              G_IDENT(f, "Operator_in"));
-          G0(arg, node, UN,
-             arg->as.UN.operator = TREFDOT,
-             node_subs_append(arg, el));
+          node_subs_append(node, el);
         }
       }
     }
