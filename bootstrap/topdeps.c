@@ -3,18 +3,51 @@
 #include "types.h"
 #include "parser.h"
 
+// If the typ is tentative, we cannot record it yet, as its hash will
+// change. We need to keep a snapshot of the context when the topdep was
+// first recorded.
+struct snapshot {
+  struct typ **loc;
+
+  struct node *top;
+  struct node *exportable;
+  bool in_fun_in_block;
+};
+
+VECTOR(vecsnapshot, struct snapshot, 4);
+IMPLEMENT_VECTOR(unused__ static, vecsnapshot, struct snapshot);
+
+// Loose elements ordering.
+static inline use_result__ ssize_t vecsnapshot_remove_replace_with_last(struct vecsnapshot *v, ssize_t n) {
+  const size_t count = vecsnapshot_count(v);
+  if (count == 1) {
+    vecsnapshot_destroy(v);
+    return 0;
+  }
+
+  struct snapshot last = vecsnapshot_pop(v);
+  if (n + 1 == count) {
+    (void) last;
+    return 0;
+  } else {
+    struct snapshot *snap = vecsnapshot_get(v, n);
+    *snap = last;
+    return -1;
+  }
+}
+
 struct topdeps {
   struct vectyp list;
   struct fintypset set;
 
-  struct vectyploc tentatives;
+  struct vecsnapshot tentatives;
 };
 
-static void record_final(struct module *mod, struct typ *t) {
-  struct top_state *st = mod->state->top_state;
-  struct fun_state *fun_st = mod->state->fun_state;
+static void record_final(struct module *mod, struct snapshot *snap) {
+  struct typ *t = *snap->loc;
+  struct node *top = snap->top;
 
-  struct node *topmost = st->top;
+  struct node *topmost = top;
   while (!node_is_at_top(topmost)) {
     topmost = parent(topmost);
   }
@@ -22,12 +55,11 @@ static void record_final(struct module *mod, struct typ *t) {
   if (typ_is_pseudo_builtin(t)
       // when a try_remove_unnecessary_ssa_defname() is used on a global let:
       || topmost->which == NOOP
-      || (st->top->typ != NULL && typ_equal(st->top->typ, t))
+      || (top->typ != NULL && typ_equal(top->typ, t))
       || (topmost->typ != NULL && typ_equal(topmost->typ, t))) {
     return;
   }
 
-  struct node *top = st->top;
   struct toplevel *toplevel = node_toplevel(top);
 
   static const uint32_t TO_KEEP = TOP_IS_EXPORT | TOP_IS_INLINE
@@ -36,19 +68,17 @@ static void record_final(struct module *mod, struct typ *t) {
 
   uint32_t mask = toplevel->flags & TO_KEEP;
 
-  const bool within_exportable_field = st->exportable != NULL
-    && st->exportable->which == DEFFIELD;
-
+  const bool within_exportable_field = snap->exportable != NULL
+    && snap->exportable->which == DEFFIELD;
   if (within_exportable_field) {
-    if (!name_is_export(mod, st->exportable)) {
+    if (!name_is_export(mod, snap->exportable)) {
       mask &= ~TOP_IS_EXPORT;
     }
   }
-  if (fun_st != NULL) {
-    if (fun_st->in_block) {
-      if (!(mask & TOP_IS_INLINE)) {
-        mask &= ~(TOP_IS_EXPORT | TOP_IS_INLINE);
-      }
+
+  if (snap->in_fun_in_block) {
+    if (!(mask & TOP_IS_INLINE)) {
+      mask &= ~(TOP_IS_EXPORT | TOP_IS_INLINE);
     }
   }
 
@@ -137,22 +167,22 @@ static void record_final(struct module *mod, struct typ *t) {
   }
 }
 
-static void record_tentative(struct module *mod, struct typ **loc) {
-  struct top_state *st = mod->state->top_state;
-  struct node *top = st->top;
+static void record_tentative(struct module *mod, struct snapshot *snap) {
+  struct typ **loc = snap->loc;
   if (typ_is_pseudo_builtin(*loc)
       || (!typ_is_tentative(*loc)
           && !typ_is_ungenarg(*loc)
-          && typ_definition_nooverlay(*loc) == top)) {
+          && typ_definition_nooverlay(*loc) == snap->top)) {
     return;
   }
-  struct toplevel *toplevel = node_toplevel(top);
+
+  struct toplevel *toplevel = node_toplevel(snap->top);
   if (toplevel->topdeps == NULL) {
     toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
     fintypset_fullinit(&toplevel->topdeps->set);
   }
 
-  vectyploc_push(&toplevel->topdeps->tentatives, loc);
+  vecsnapshot_push(&toplevel->topdeps->tentatives, *snap);
 }
 
 void topdeps_record(struct module *mod, struct typ *t) {
@@ -162,10 +192,18 @@ void topdeps_record(struct module *mod, struct typ *t) {
     return;
   }
 
+  struct fun_state *fun_st = mod->state->fun_state;
+  struct snapshot snap = {
+    .loc = typ_permanent_loc(t),
+    .top = st->top,
+    .exportable = st->exportable,
+    .in_fun_in_block = fun_st != NULL && fun_st->in_block,
+  };
+
   if (typ_is_tentative(t) || !typ_hash_ready(t)) {
-    record_tentative(mod, typ_permanent_loc(t));
+    record_tentative(mod, &snap);
   } else {
-    record_final(mod, t);
+    record_final(mod, &snap);
   }
 }
 
@@ -179,18 +217,19 @@ error topdeps_foreach(struct module *mod, struct node *node,
   // Need to work when entries are being added to the topdeps while we are
   // iterating over it, so we have to get the current count every time.
 
-  struct vectyploc *tentatives = &toplevel->topdeps->tentatives;
+  struct vecsnapshot *tentatives = &toplevel->topdeps->tentatives;
 
   struct top_state *st = mod->state->top_state;
   // 'st' may be NULL when topdeps_foreach() is called from a non-passing
   // context, e.g. cprinter.
 
-  for (ssize_t n = 0; n < vectyploc_count(tentatives); ++n) {
-    struct typ *t = **vectyploc_get(tentatives, n);
+  for (ssize_t n = 0; n < vecsnapshot_count(tentatives); ++n) {
+    struct snapshot *snap = vecsnapshot_get(tentatives, n);
+    struct typ *t = *snap->loc;
     if (st != NULL) {
       if (!typ_is_tentative(t) && typ_hash_ready(t)) {
-        record_final(mod, t);
-        n += vectyploc_remove_replace_with_last(tentatives, n);
+        record_final(mod, snap);
+        n += vecsnapshot_remove_replace_with_last(tentatives, n);
         continue;
       }
     }
