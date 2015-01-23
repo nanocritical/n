@@ -1,5 +1,83 @@
 from n import *
 
+example hashmap_basic
+	var m = {}:(Hashmap String Uint)
+	assert m.Count == 0
+	assert not m.["42"]?
+
+	(m#Store "42")# = 42
+	assert m.Count == 1
+	assert m.["42"] == 42
+
+	assert m#Try_store "42" === nil
+	assert m.Count == 1
+	assert m.["42"] == 42
+
+	-- Overwrite
+	(m#Store "42")# = 43
+	assert m.Count == 1
+	assert m.["42"] == 43
+
+	m#Delete "42"
+	assert not m#Try_delete "42"
+	(m#Try_store "42")# = 43
+	assert m.["42"] == 43
+
+	(m#Store "44")# = 44
+	assert m.Count == 2
+	assert m.["42"] == 43
+	assert m.["44"] == 44
+
+	for k, v in m.Iter
+		if k == "42"
+			assert v == 43
+		elif k == "44"
+			assert v == 44
+		else
+			assert false
+
+example hashmap_collision
+	let a = 31:U64
+	let b = 0x1_0000_0000:U64
+	assert a.Hash32 == b.Hash32
+
+	var m = {}:(Hashmap U64 Uint)
+	(m#Store a)# = 42
+	assert m.[a] == 42
+	(m#Store b)# = 43
+	assert m.[b] == 43
+	assert m.[a] == 42
+
+example hashmap_growth
+	let sp_m = Bitmap.BITS_PER_WORD
+	let two_third = 24
+
+	var m = {}:(Hashmap String Uint)
+	foreach i in 0 .. two_third
+		let buf = {}:Stringbuf such
+			buf#Pr i
+			(m#Store buf.String)# = i
+			buf#Clear
+		assert m.Count == i + 1
+	assert m.table.size == sp_m
+	foreach i in 0 .. two_third
+		let buf = {}:Stringbuf such
+			buf#Pr i
+			assert m.[buf.String] == i
+			buf#Clear
+	foreach i in two_third .. sp_m
+		let buf = {}:Stringbuf such
+			buf#Pr i
+			(m#Store buf.String)# = i
+			buf#Clear
+		assert m.Count == i + 1
+	assert m.table.size == 2*sp_m
+	foreach i in two_third .. sp_m
+		let buf = {}:Stringbuf such
+			buf#Pr i
+			assert m.[buf.String] == i
+			buf#Clear
+
 fun Main = I32
 	let m = {("42", 42) ("43", 43)}:(Hashmap String Uint)
 	Prn m

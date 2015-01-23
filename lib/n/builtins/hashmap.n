@@ -207,21 +207,33 @@ Hashmap shallow met$ Operator_at key:K = ?@$T
 		return @$u$val
 	return nil
 
-Hashmap met# may_grow
+Hashmap met# may_grow = Bool
+	-- 3/4 full?
 	if (self.count * 32) / self.table.size <= 24
-		return
-	assert false
+		return false
+
+	-- Grow.
+	let tmp = {}:this such
+		tmp#init size=2*self.table.size
+		let partial = tmp#Try_ingest self
+		assert not partial
+	self#Dtor
+	self# = tmp
+	assert (self.count * 32) / self.table.size <= 24
+	return true
 
 Hashmap met# store key:K trying:Bool = ?@#T
 	self#ensure_init
-	let u, idx, hash = self!get_unit key false
+	var u, idx, hash = self!get_unit key false
 	if u?
 		if trying
 			return nil
 		return @#u#val
 
 	-- Need to create a spot.
-	self#may_grow
+	if self#may_grow
+		-- The table has changed, we need to recompute idx.
+		_, idx, _ = self!get_unit key false
 
 	self!count += 1
 	let nu = self#table#set idx
@@ -236,6 +248,19 @@ Hashmap met# Store key:K = @#T
 
 Hashmap met# Try_store key:K = ?@#T
 	return self#store key true
+
+-- Return true if some keys from 'other' were already in 'self'.
+Hashmap met# Try_ingest other:@this = partial:Bool
+	for pos in other.table.bitmap.Iter
+		let u = other#table#get pos
+		if not u.hash?
+			continue
+		let loc = self#Try_store u.key
+		if not loc?
+			partial = true
+			continue
+		loc# = u.val
+	return partial
 
 Hashmap met# Try_delete key:K = did:Bool
 	if self.Count == 0
@@ -253,54 +278,6 @@ Hashmap met# Try_delete key:K = did:Bool
 
 Hashmap met# Delete key:K
 	assert self#Try_delete key
-
-example hashmap_basic
-	var m = {}:(Hashmap String Uint)
-	assert m.Count == 0
-	assert not m.["42"]?
-
-	(m#Store "42")# = 42
-	assert m.Count == 1
-	assert m.["42"] == 42
-
-	assert m#Try_store "42" === nil
-	assert m.Count == 1
-	assert m.["42"] == 42
-
-	-- Overwrite
-	(m#Store "42")# = 43
-	assert m.Count == 1
-	assert m.["42"] == 43
-
-	m#Delete "42"
-	assert not m#Try_delete "42"
-	(m#Try_store "42")# = 43
-	assert m.["42"] == 43
-
-	(m#Store "44")# = 44
-	assert m.Count == 2
-	assert m.["42"] == 43
-	assert m.["44"] == 44
-
-	for k, v in m.Iter
-		if k == "42"
-			assert v == 43
-		elif k == "44"
-			assert v == 44
-		else
-			assert false
-
-example hashmap_collision
-	let a = 31:U64
-	let b = 0x1_0000_0000:U64
-	assert a.Hash32 == b.Hash32
-
-	var m = {}:(Hashmap U64 Uint)
-	(m#Store a)# = 42
-	assert m.[a] == 42
-	(m#Store b)# = 43
-	assert m.[b] == 43
-	assert m.[a] == 42
 
 Hashmap shallow met$ Iter = (Hashmap_iter this @$T)
 	-- To avoid this cast, we would have to make sptable_iter more complex.
