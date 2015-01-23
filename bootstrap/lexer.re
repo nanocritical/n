@@ -188,6 +188,7 @@ static bool is_pre_space(const char *cursor) {
     [':'] = true,
     ['('] = true,
     ['['] = true,
+    ['{'] = true,
   };
   return lut[c];
 }
@@ -201,6 +202,7 @@ static bool is_post_space(const char *cursor) {
     [':'] = true,
     [')'] = true,
     [']'] = true,
+    ['}'] = true,
   };
   return lut[c];
 }
