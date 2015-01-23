@@ -687,9 +687,6 @@ static void create_flags(struct typ *t, struct typ *tbi) {
     t->flags |= TYPF_PSEUDO_BUILTIN;
   }
 
-  if (functor != NULL && typ_equal(functor, TBI_TRIVIAL_ARRAY_CTOR)) {
-    t->flags |= TYPF_TRIVIAL;
-  }
   if (t->flags & TYPF_REF) {
     t->flags |= TYPF_TRIVIAL;
   }
@@ -699,8 +696,7 @@ static void create_flags(struct typ *t, struct typ *tbi) {
       || tbi == TBI_TRIVIAL_COMPARE
       || tbi == TBI_TRIVIAL_EQUALITY
       || tbi == TBI_TRIVIAL_ORDER
-      || tbi == TBI_TRIVIAL_DTOR
-      || tbi == TBI_TRIVIAL_ARRAY_CTOR) {
+      || tbi == TBI_TRIVIAL_DTOR) {
     t->flags |= TYPF_TRIVIAL;
   }
 
@@ -2252,7 +2248,6 @@ struct typ *TBI_ARRAY_CTOR;
 struct typ *TBI_TRIVIAL_COPY;
 struct typ *TBI_TRIVIAL_COPY_BUT_OWNED;
 struct typ *TBI_TRIVIAL_CTOR;
-struct typ *TBI_TRIVIAL_ARRAY_CTOR;
 struct typ *TBI_TRIVIAL_DTOR;
 struct typ *TBI_TRIVIAL_COMPARE;
 struct typ *TBI_TRIVIAL_EQUALITY;

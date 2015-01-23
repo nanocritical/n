@@ -304,7 +304,6 @@ extern struct typ *TBI_ARRAY_CTOR;
 extern struct typ *TBI_TRIVIAL_COPY;
 extern struct typ *TBI_TRIVIAL_COPY_BUT_OWNED;
 extern struct typ *TBI_TRIVIAL_CTOR;
-extern struct typ *TBI_TRIVIAL_ARRAY_CTOR;
 extern struct typ *TBI_TRIVIAL_DTOR;
 extern struct typ *TBI_TRIVIAL_COMPARE;
 extern struct typ *TBI_TRIVIAL_EQUALITY;
