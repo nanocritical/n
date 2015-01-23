@@ -2518,7 +2518,7 @@ static void print_dyntable(FILE *out, bool header, enum forward fwd,
                             print_dyntable_proto_eachisalist,
                             &st);
     assert(!e);
-  } else if (!header && fwd == FWD_DEFINE_FUNCTIONS) {
+  } else if ((!header || typ_generic_arity(node->typ) > 0) && fwd == FWD_DEFINE_FUNCTIONS) {
     struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,
       .mod = NULL, .printed = 0, .user = NULL };
     error e = print_dyntable_eachisalist(CONST_CAST(mod), node->typ, node->typ, NULL, &st);
@@ -2547,7 +2547,7 @@ static void print_reflect_type(FILE *out, bool header, enum forward fwd,
     bare_print_typ_actual(out, mod, node->typ);
     fprintf(out, "$Reflect_type;\n");
     return;
-  } else if (header || fwd != FWD_DEFINE_FUNCTIONS) {
+  } else if ((header && typ_generic_arity(node->typ) == 0) || fwd != FWD_DEFINE_FUNCTIONS) {
     return;
   }
 
