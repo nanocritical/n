@@ -321,3 +321,115 @@ Hashmap_iter met! Next = K, RT
 		let _, u = self!iter!Next
 		if u.hash?
 			return u.key, @#u#val
+
+struct Hashset T:`Hashmap_key =
+	isa (`Set T) `Show
+	map	:(Hashmap T Bool)
+
+-- Ignore duplicated elements.
+Hashset fun From_slice c:[]T = r:this
+	foreach i in c.All
+		let x = c.[i]
+		let p = r!map#Try_store x
+		if p?
+			p# = true
+Hashset met# Dtor
+	self#map#Dtor
+
+Hashset met Count = Uint
+	return self.map.Count
+
+Hashset met Operator_in x:@T = Bool
+	return self.map.[x] else false
+
+Hashset met# Add x:@T = added:Bool
+	let p = self!map#Try_store x
+	if p?
+		p# = true
+		return true
+	return false
+
+Hashset met# Add_all other:@this = added_all:Bool
+	added_all = true
+	for x in other.Iter
+		added_all = self!Add x and added_all
+
+Hashset met# Remove x:@T = removed:Bool
+	return self!map#Try_delete x
+
+Hashset met# Remove_all other:@this = removed_all:Bool
+	removed_all = true
+	for x in other.Iter
+		removed_all = self!Remove x and removed_all
+
+Hashset met# Intersect other:@this
+	-- We cannot call self#Remove while iterating.
+	-- We just set the mapping to false, which is valid.
+	-- TODO(e): rehash the set if the size has changed a lot.
+	for x, v in self.map!Iter
+		if not x in other
+			v# = false
+
+Hashset met# Symmetric_difference other:@this
+	for x in other.Iter
+		if x in self
+			let _ = self.Remove x
+		else
+			let _ = self.Add x
+
+Hashset met Operator_eq other:@this = Bool
+	if self.Count != other.Count
+		return false
+
+	for x in other.Iter
+		if not x in self
+			return false
+	return true
+
+Hashset met Operator_ne other:@this = Bool
+	return not self == other
+
+Hashset met Operator_le other:@this = Bool
+	if self.Count > other.Count
+		return false
+	for x in self.Iter
+		if not x in other
+			return false
+	return true
+
+Hashset met Operator_lt other:@this = Bool
+	if self.Count >= other.Count
+		return false
+	return self <= other
+
+Hashset met Operator_gt other:@this = Bool
+	return self <= other
+
+Hashset met Operator_ge other:@this = Bool
+	return self < other
+
+Hashset met Show st:@#`Fmt_state
+	"{".Show st
+	var i = 0:Uint
+	for x in self.Iter
+		if i > 0
+			" ".Show st
+		if x isa `Show
+			x.Show st
+		else
+			show_ptr st x
+		i += 1
+	"}".Show st
+
+Hashset met Iter = (Hashset_iter T)
+	return {iter=self.map.Iter}
+
+struct Hashset_iter T:`Hashmap_key =
+	isa (`Iterator T) `Trivial_copy `Trivial_ctor
+	iter	:(Hashmap_iter (Hashmap T Bool) @Bool)
+
+Hashset_iter met Has_next = Bool
+	return self.iter.Has_next
+
+Hashset_iter met! Next = T
+	return self!iter!Next.X0

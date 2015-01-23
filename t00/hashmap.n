@@ -78,7 +78,20 @@ example hashmap_growth
 			assert m.[buf.String] == i
 			buf#Clear
 
+example hashset
+	var s = {0 1 2 3 4}:(Hashset Uint)
+	var t = {0 1 2}:(Hashset Uint)
+	assert s#Remove_all t
+	assert s.Count == 2
+	assert not 0 in s
+	assert not 1 in s
+	assert not 2 in s
+	assert 3 in s
+	assert 4 in s
+
 fun Main = I32
 	let m = {("42", 42) ("43", 43)}:(Hashmap String Uint)
 	Prn m
+	let s = {0 1 2 3 4}:(Hashset Uint)
+	Prn s
 	return 0

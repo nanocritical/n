@@ -3,7 +3,7 @@
 -- implementation. But should we, really? If you have a huge enum, use
 -- something else than Enumset maybe.
 inline struct Enumset T:`Enum =
-	isa (`Set T) `Show
+	isa (`Universal_set T) `Show
 	bits	:U64
 	let ALL = {bits=(T.BWALL)}:this
 
@@ -57,6 +57,23 @@ Enumset met Operator_ge other:@this = Bool
 	return (self.bits & other.bits) == other.bits
 Enumset met Iter = r:(Enumset_iterator this.T)
 	r!Internal_init self
+
+Enumset met! Add x:@T = added:Bool
+	added = x in self
+	self! |= {x.}
+Enumset met! Add_all other:@this = added_all:Bool
+	added_all = (self & other) == {}
+	self! |= other
+Enumset met! Remove x:@T = removed:Bool
+	removed = x in self
+	self! &= ~{x.}
+Enumset met! Remove_all other:@this = removed_all:Bool
+	removed_all = (self & other) == self
+	self! &= ~other
+Enumset met! Intersect other:@this
+	self! &= other
+Enumset met! Symmetric_difference other:@this
+	self! ^= other
 
 Enumset met Show st:@#`Fmt_state
 	"{".Show st

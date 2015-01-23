@@ -32,11 +32,23 @@ intf `Iterator t:`Copyable =
 --	met Has_next = Bool
 --	met! Next = loc
 
-intf `Collection t:`Any =
+intf `Collection T:`Any =
 	met Count = Uint
-	met Operator_in x:@t = Bool
+	met Operator_in x:@T = Bool
 
-intf `Set t:`Any =
-	isa (`Collection t)
-		\ (`Slice_compatible t)
-		\ `Has_bitwise_operators `Partially_ordered
+intf `Set T:`Any =
+	isa (`Collection T)
+		\ (`Slice_compatible T)
+		\ `Partially_ordered
+	met! Add x:@T = added:Bool
+	met! Add_all other:@final = added_all:Bool
+	met! Remove x:@T = removed:Bool
+	met! Remove_all other:@final = removed_all:Bool
+	met! Intersect other:@final
+	met! Symmetric_difference other:@final
+
+-- The universe, the set of all possible elements, is constructible.
+-- Then we can have a "not" operation.
+intf `Universal_set T:`Any =
+	isa (`Set T) `Has_bitwise_operators
+	let ALL:final

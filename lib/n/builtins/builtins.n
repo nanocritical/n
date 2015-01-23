@@ -1,4 +1,4 @@
-from n.containers import `Iterator `Random_container `Collection `Set
+from n.containers import `Iterator `Random_container `Collection `Set `Universal_set
 from n.unsafe import Cast Nonnull_cast Voidref
 from n import Eprn Epr
 import n.reflect
