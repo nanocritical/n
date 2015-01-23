@@ -1331,7 +1331,7 @@ static ERROR type_inference_bin_isa(struct module *mod, struct node *node) {
   node_subs_remove(node, right);
 
   if (!(node->flags & NODE_IS_TYPE)) {
-    if (left->which == IDENT && left->as.IDENT.def->which == DEFNAME) {
+    if (left->which == IDENT && left->as.IDENT.def != NULL && left->as.IDENT.def->which == DEFNAME) {
       left->as.IDENT.def->as.DEFNAME.may_be_unused = true;
     } else {
       // By SSA, left is side-effect free. If it's not an IDENT (e.g. a
