@@ -172,13 +172,16 @@ static ERROR unify_generics(struct module *mod, uint32_t flags,
 
     if (typ_was_zeroed(b)) {
       return 0;
+    } else if (typ_equal(a0, b0) && a_genf) {
+      // Nothing further to do.
+      return 0;
     }
   }
 
   // FIXME: there are holes here: 2nd order generics, etc.
 
   if (b_tentative) {
-    if (typ_is_generic_functor(b)) {
+    if (b_genf) {
       typ_link_tentative_functor(mod, a, b);
     } else {
       typ_link_tentative(a, b);
