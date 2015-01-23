@@ -279,6 +279,8 @@ static ERROR unify_literal_slice(struct module *mod, uint32_t flags,
                                  bool a_literal_slice, bool b_literal_slice) {
   error e;
   if (a_literal_slice && b_literal_slice) {
+    e = unify_reforslice_arg(mod, flags, for_error, a, b);
+    EXCEPT(e);
     goto finish;
   }
 
@@ -289,9 +291,14 @@ static ERROR unify_literal_slice(struct module *mod, uint32_t flags,
   }
 
   if (typ_isa(a, TBI_ANY_SLICE)) {
-    goto finish;
+    e = unify_reforslice_arg(mod, flags, for_error, a, b);
+    EXCEPT(e);
   } else if (typ_isa(a, TBI_SLICE_COMPATIBLE)) {
-    goto finish;
+    struct tit *from_slice = typ_definition_one_member(a, ID_FROM_SLICE);
+    struct typ *arg = typ_function_arg(tit_typ(from_slice), 0);
+    e = unify_reforslice_arg(mod, flags, for_error, arg, b);
+    EXCEPT(e);
+    tit_next(from_slice);
   } else if (tentative_or_ungenarg(a) && typ_definition_which(a) == DEFINTF) {
     struct node *dinc = defincomplete_create(mod, for_error);
     defincomplete_add_isa(mod, for_error, dinc, typ_as_non_tentative(a));
@@ -307,9 +314,6 @@ static ERROR unify_literal_slice(struct module *mod, uint32_t flags,
   }
 
 finish:
-  e = unify_reforslice_arg(mod, flags, for_error, a, b);
-  EXCEPT(e);
-
   typ_link_tentative(a, b);
   return 0;
 }
