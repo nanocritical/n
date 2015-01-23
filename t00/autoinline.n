@@ -1,0 +1,15 @@
+from n import *
+
+-- builtins/hashmap.n is a nice mix of exported generic, non-exported generic,
+-- exported and non-exported methods and functions, as well as global
+-- constants.
+
+fun Main = I32
+	var m = {}:(Hashmap String Uint)
+	assert m.Count == 0
+	assert not m.["42"]?
+
+	(m#Store "42")# = 42
+	assert m.Count == 1
+	assert m.["42"] == 42
+	return 0
