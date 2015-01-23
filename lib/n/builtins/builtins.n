@@ -1560,7 +1560,7 @@ inline Bounds (met t:`Any c:(`Random_container t)) Range_of v:@c = Range
 
 inline struct Range =
 	isa `Trivial_copy `Trivial_equality `Trivial_ctor `Return_by_copy
-		\ (`Collection Uint)
+		\ (`Collection Uint) `Show
 	Begin	:Uint
 	End	:Uint
 
@@ -1592,6 +1592,13 @@ inline Range met Iter = Index_iterator
 
 inline Range met Reverse_iter = Reverse_index_iterator
 	return { it=self.Iter }
+
+Range met Show st:@#`Fmt_state
+	"[".Show st
+	self.Begin.Show st
+	" .. ".Show st
+	self.End.Show st
+	"]".Show st
 
 inline struct Index_iterator =
 	isa (`Iterator Uint) `Trivial_copy `Trivial_ctor
