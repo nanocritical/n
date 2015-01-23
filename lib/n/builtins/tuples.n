@@ -1,0 +1,476 @@
+inline struct Any_or_ptr =
+	any	:@`Any
+	ptr	:Uintptr
+
+(fun t:`Any) mk_any_or_ptr x:@t = Any_or_ptr
+	if t isa `Any_ref
+		return {any=nil ptr=((Cast @t Voidref) x).Uintptr}
+	else
+		return {any=x ptr=((Cast @t Voidref) x).Uintptr}
+
+intf `Any_tuple =
+	isa `Copyable `Show
+	met All = Range
+	-- Don't return a Tuple_2 to avoid recursion in ncc0.
+	shallow met$ Get n:Uint = Any_or_ptr
+
+inline struct Tuple_2 t0:`Copyable t1:`Copyable =
+	isa `Any_tuple
+	let Count = 2:Uint
+	X0	:t0
+	X1	:t1
+
+inline struct Tuple_3 t0:`Copyable t1:`Copyable t2:`Copyable =
+	isa `Any_tuple
+	let Count = 3:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+
+inline struct Tuple_4 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable =
+	isa `Any_tuple
+	let Count = 4:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+
+inline struct Tuple_5 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable =
+	isa `Any_tuple
+	let Count = 5:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+
+inline struct Tuple_6 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable =
+	isa `Any_tuple
+	let Count = 6:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+
+inline struct Tuple_7 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable =
+	isa `Any_tuple
+	let Count = 7:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+
+inline struct Tuple_8 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable =
+	isa `Any_tuple
+	let Count = 8:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+
+inline struct Tuple_9 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable =
+	isa `Any_tuple
+	let Count = 9:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+
+inline struct Tuple_10 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable =
+	isa `Any_tuple
+	let Count = 10:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+
+inline struct Tuple_11 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable =
+	isa `Any_tuple
+	let Count = 11:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
+
+inline struct Tuple_12 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable =
+	isa `Any_tuple
+	let Count = 12:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
+	X11	:t11
+
+inline struct Tuple_13 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable =
+	isa `Any_tuple
+	let Count = 13:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
+	X11	:t11
+	X12	:t12
+
+inline struct Tuple_14 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable =
+	isa `Any_tuple
+	let Count = 14:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
+	X11	:t11
+	X12	:t12
+	X13	:t13
+
+inline struct Tuple_15 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable t14:`Copyable =
+	isa `Any_tuple
+	let Count = 15:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
+	X11	:t11
+	X12	:t12
+	X13	:t13
+	X14	:t14
+
+inline struct Tuple_16 t0:`Copyable t1:`Copyable t2:`Copyable t3:`Copyable t4:`Copyable t5:`Copyable t6:`Copyable t7:`Copyable t8:`Copyable t9:`Copyable t10:`Copyable t11:`Copyable t12:`Copyable t13:`Copyable t14:`Copyable t15:`Copyable =
+	isa `Any_tuple
+	let Count = 16:Uint
+	X0	:t0
+	X1	:t1
+	X2	:t2
+	X3	:t3
+	X4	:t4
+	X5	:t5
+	X6	:t6
+	X7	:t7
+	X8	:t8
+	X9	:t9
+	X10	:t10
+	X11	:t11
+	X12	:t12
+	X13	:t13
+	X14	:t14
+	X15	:t15
+
+Tuple_2 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_2 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| _ -> assert false
+Tuple_2 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_3 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_3 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| _ -> assert false
+Tuple_3 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_4 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_4 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| _ -> assert false
+Tuple_4 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_5 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_5 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| _ -> assert false
+Tuple_5 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_6 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_6 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| 5 -> return mk_any_or_ptr self.X5
+	| _ -> assert false
+Tuple_6 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_7 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_7 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| 5 -> return mk_any_or_ptr self.X5
+	| 6 -> return mk_any_or_ptr self.X6
+	| _ -> assert false
+Tuple_7 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_8 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_8 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| 5 -> return mk_any_or_ptr self.X5
+	| 6 -> return mk_any_or_ptr self.X6
+	| 7 -> return mk_any_or_ptr self.X7
+	| _ -> assert false
+Tuple_8 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_9 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_9 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| 5 -> return mk_any_or_ptr self.X5
+	| 6 -> return mk_any_or_ptr self.X6
+	| 7 -> return mk_any_or_ptr self.X7
+	| 8 -> return mk_any_or_ptr self.X8
+	| _ -> assert false
+Tuple_9 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_10 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_10 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| 5 -> return mk_any_or_ptr self.X5
+	| 6 -> return mk_any_or_ptr self.X6
+	| 7 -> return mk_any_or_ptr self.X7
+	| 8 -> return mk_any_or_ptr self.X8
+	| 9 -> return mk_any_or_ptr self.X9
+	| _ -> assert false
+Tuple_10 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_11 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_11 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| 5 -> return mk_any_or_ptr self.X5
+	| 6 -> return mk_any_or_ptr self.X6
+	| 7 -> return mk_any_or_ptr self.X7
+	| 8 -> return mk_any_or_ptr self.X8
+	| 9 -> return mk_any_or_ptr self.X9
+	| 10 -> return mk_any_or_ptr self.X10
+	| _ -> assert false
+Tuple_11 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_12 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_12 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| 5 -> return mk_any_or_ptr self.X5
+	| 6 -> return mk_any_or_ptr self.X6
+	| 7 -> return mk_any_or_ptr self.X7
+	| 8 -> return mk_any_or_ptr self.X8
+	| 9 -> return mk_any_or_ptr self.X9
+	| 10 -> return mk_any_or_ptr self.X10
+	| 11 -> return mk_any_or_ptr self.X11
+	| _ -> assert false
+Tuple_12 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_13 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_13 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| 5 -> return mk_any_or_ptr self.X5
+	| 6 -> return mk_any_or_ptr self.X6
+	| 7 -> return mk_any_or_ptr self.X7
+	| 8 -> return mk_any_or_ptr self.X8
+	| 9 -> return mk_any_or_ptr self.X9
+	| 10 -> return mk_any_or_ptr self.X10
+	| 11 -> return mk_any_or_ptr self.X11
+	| 12 -> return mk_any_or_ptr self.X12
+	| _ -> assert false
+Tuple_13 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_14 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_14 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| 5 -> return mk_any_or_ptr self.X5
+	| 6 -> return mk_any_or_ptr self.X6
+	| 7 -> return mk_any_or_ptr self.X7
+	| 8 -> return mk_any_or_ptr self.X8
+	| 9 -> return mk_any_or_ptr self.X9
+	| 10 -> return mk_any_or_ptr self.X10
+	| 11 -> return mk_any_or_ptr self.X11
+	| 12 -> return mk_any_or_ptr self.X12
+	| 13 -> return mk_any_or_ptr self.X13
+	| _ -> assert false
+Tuple_14 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_15 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_15 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| 5 -> return mk_any_or_ptr self.X5
+	| 6 -> return mk_any_or_ptr self.X6
+	| 7 -> return mk_any_or_ptr self.X7
+	| 8 -> return mk_any_or_ptr self.X8
+	| 9 -> return mk_any_or_ptr self.X9
+	| 10 -> return mk_any_or_ptr self.X10
+	| 11 -> return mk_any_or_ptr self.X11
+	| 12 -> return mk_any_or_ptr self.X12
+	| 13 -> return mk_any_or_ptr self.X13
+	| 14 -> return mk_any_or_ptr self.X14
+	| _ -> assert false
+Tuple_15 met Show st:@#`Fmt_state
+	show_tuple st self
+
+Tuple_16 met All = Range
+	return {Begin=0 End=this.Count}
+Tuple_16 shallow met$ Get n:Uint = Any_or_ptr
+	match n
+	| 0 -> return mk_any_or_ptr self.X0
+	| 1 -> return mk_any_or_ptr self.X1
+	| 2 -> return mk_any_or_ptr self.X2
+	| 3 -> return mk_any_or_ptr self.X3
+	| 4 -> return mk_any_or_ptr self.X4
+	| 5 -> return mk_any_or_ptr self.X5
+	| 6 -> return mk_any_or_ptr self.X6
+	| 7 -> return mk_any_or_ptr self.X7
+	| 8 -> return mk_any_or_ptr self.X8
+	| 9 -> return mk_any_or_ptr self.X9
+	| 10 -> return mk_any_or_ptr self.X10
+	| 11 -> return mk_any_or_ptr self.X11
+	| 12 -> return mk_any_or_ptr self.X12
+	| 13 -> return mk_any_or_ptr self.X13
+	| 14 -> return mk_any_or_ptr self.X14
+	| 15 -> return mk_any_or_ptr self.X15
+	| _ -> assert false
+Tuple_16 met Show st:@#`Fmt_state
+	show_tuple st self
+
+(fun t:`Any_tuple) show_tuple st:@#`Fmt_state x:t
+	foreach i in x.All
+		if i != 0
+			", ".Show st
+		let ap = x.Get i
+		let show = (Dyncast `Show) ap.any
+		if show?
+			show.Show st
+		else
+			ap.ptr.Show st

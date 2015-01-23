@@ -2501,13 +2501,6 @@ skip:
 
 static void print_dyntable(FILE *out, bool header, enum forward fwd,
                            const struct module *mod, const struct node *node) {
-  if (typ_generic_functor_const(node->typ) == TBI_SLICE_IMPL) {
-    return;
-  }
-  if (typ_isa(node->typ, TBI_ANY_TUPLE)) {
-    return;
-  }
-
   const uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN;
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,
@@ -2533,12 +2526,6 @@ static void print_dyntable(FILE *out, bool header, enum forward fwd,
 static void print_reflect_type(FILE *out, bool header, enum forward fwd,
                                const struct module *mod, const struct node *node) {
   if (typ_is_reference(node->typ)) {
-    return;
-  }
-  if (typ_generic_functor_const(node->typ) == TBI_SLICE_IMPL) {
-    return;
-  }
-  if (typ_isa(node->typ, TBI_ANY_TUPLE)) {
     return;
   }
 
