@@ -866,6 +866,7 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
       }
     }
 
+    const bool lisotherwise = node_ident(left) == ID_OTHERWISE;
     const bool lisnil = typ_equal(left->typ, TBI_LITERALS_NIL);
     const bool lisdefinc = typ_definition_which(left->typ) == DEFINCOMPLETE;
     const bool lisref = typ_is_reference(left->typ);
@@ -873,12 +874,12 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
     const bool risnil = typ_equal(right->typ, TBI_LITERALS_NIL);
     const bool risref = typ_is_reference(right->typ);
     const bool risopt = typ_is_optional(right->typ);
-    if (!lisdefinc && !lisref && !lisopt && !risnil && (risref || risopt)) {
+    if (!lisotherwise && !lisdefinc && !lisref && !lisopt && !risnil && (risref || risopt)) {
       e = try_insert_automagic_de(mod, right);
       EXCEPT(e);
       right = subs_last(node);
     }
-    if (!lisnil && lisopt && !risopt) {
+    if (!lisotherwise && !lisnil && lisopt && !risopt) {
       e = wrap_arg_unary_op(&right, mod, TPREQMARK);
       EXCEPT(e);
       right = subs_last(node);
