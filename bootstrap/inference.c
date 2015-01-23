@@ -966,7 +966,7 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
         e = typ_check_isa(mod, left, left->typ, TBI_HAS_EQUALITY);
         EXCEPT(e);
       } else {
-        e = typ_check_isa(mod, left, left->typ, TBI_ORDERED);
+        e = typ_check_isa(mod, left, left->typ, TBI_PARTIALLY_ORDERED);
         EXCEPT(e);
       }
 

@@ -135,6 +135,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NOT_HAS_EQUALITY] = "`Not_has_equality",
   [ID_TBI_ORDERED] = "`Ordered",
   [ID_TBI_NOT_ORDERED] = "`Not_ordered",
+  [ID_TBI_PARTIALLY_ORDERED] = "`Partially_ordered",
   [ID_TBI_EQUALITY_BY_COMPARE] = "`Equality_by_compare",
   [ID_TBI_ORDERED_BY_COMPARE] = "`Ordered_by_compare",
   [ID_TBI_COPYABLE] = "`Copyable",
@@ -475,6 +476,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_NOT_HAS_EQUALITY = gctx->builtin_typs_by_name[ID_TBI_NOT_HAS_EQUALITY];
   TBI_ORDERED = gctx->builtin_typs_by_name[ID_TBI_ORDERED];
   TBI_NOT_ORDERED = gctx->builtin_typs_by_name[ID_TBI_NOT_ORDERED];
+  TBI_PARTIALLY_ORDERED = gctx->builtin_typs_by_name[ID_TBI_PARTIALLY_ORDERED];
   TBI_EQUALITY_BY_COMPARE = gctx->builtin_typs_by_name[ID_TBI_EQUALITY_BY_COMPARE];
   TBI_ORDERED_BY_COMPARE = gctx->builtin_typs_by_name[ID_TBI_ORDERED_BY_COMPARE];
   TBI_COPYABLE = gctx->builtin_typs_by_name[ID_TBI_COPYABLE];

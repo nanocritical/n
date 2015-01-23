@@ -293,6 +293,7 @@ extern struct typ *TBI_HAS_EQUALITY;
 extern struct typ *TBI_NOT_HAS_EQUALITY;
 extern struct typ *TBI_ORDERED;
 extern struct typ *TBI_NOT_ORDERED;
+extern struct typ *TBI_PARTIALLY_ORDERED;
 extern struct typ *TBI_EQUALITY_BY_COMPARE;
 extern struct typ *TBI_ORDERED_BY_COMPARE;
 extern struct typ *TBI_COPYABLE;

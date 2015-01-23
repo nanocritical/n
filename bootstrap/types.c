@@ -2237,6 +2237,7 @@ struct typ *TBI_HAS_EQUALITY;
 struct typ *TBI_NOT_HAS_EQUALITY;
 struct typ *TBI_ORDERED;
 struct typ *TBI_NOT_ORDERED;
+struct typ *TBI_PARTIALLY_ORDERED;
 struct typ *TBI_EQUALITY_BY_COMPARE;
 struct typ *TBI_ORDERED_BY_COMPARE;
 struct typ *TBI_COPYABLE;

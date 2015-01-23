@@ -96,7 +96,7 @@ intf `Partially_ordered =
 	met Operator_gt other:@final = Bool
 	met Operator_ge other:@final = Bool
 intf `Ordered =
-	isa `Has_equality `Has_compare `Partially_ordered
+	isa `Has_compare `Partially_ordered
 intf `Not_ordered =
 intf `Ordered_by_compare =
 	-- Compiler generates Operator_{le,lt,gt,ge}.
