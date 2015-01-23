@@ -705,7 +705,7 @@ rewrote_op:
     case TPOSTQMARK:
       if (!typ_is_optional(term->typ) && !typ_is_nullable_reference(term->typ)) {
         e = mk_except_type(mod, term, "postfix '?' must be used on reference"
-                           " or optional type");
+                           " or optional type, not '%s'", pptyp(mod, term->typ));
         THROW(e);
       }
       set_typ(&node->typ, TBI_BOOL);
@@ -1954,6 +1954,12 @@ static ERROR explicit_instantiation(struct module *mod, struct node *node) {
   }
 
   struct typ *t = what->typ;
+  if (!typ_is_function(t) && !typ_is_generic_functor(t)) {
+    e = mk_except_type(mod, what,
+                       "explicit generic instantion must use a functor");
+    THROW(e);
+  }
+
   if (mod->state->top_state->is_setgenarg) {
     t = typ_create_tentative_functor(mod, t);
   }
