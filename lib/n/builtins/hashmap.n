@@ -323,7 +323,7 @@ Hashmap met Show st:@#`Fmt_state
 			k.Show st
 		else
 			show_ptr st k
-		",".Show st
+		", ".Show st
 		if v. isa `Show
 			v.Show st
 		else
