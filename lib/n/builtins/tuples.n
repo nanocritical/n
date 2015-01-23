@@ -473,4 +473,6 @@ Tuple_16 met Show st:@#`Fmt_state
 		if show?
 			show.Show st
 		else
+			"<".Show st
 			ap.ptr.Show st
+			">".Show st

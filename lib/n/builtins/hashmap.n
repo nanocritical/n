@@ -148,9 +148,18 @@ struct unit K:`Hashmap_key T:`Copyable =
 	val	:T
 
 struct Hashmap K: `Hashmap_key T:`Copyable =
+	isa `Show (`Slice_compatible (K, T))
 	alias unit_type = (unit K T)
 	table	:(sptable unit_type)
 	count	:Uint
+
+-- Ignore duplicated keys.
+Hashmap fun From_slice c:[](K, T) = r:this
+	foreach i in c.All
+		let k, v = c.[i]
+		let p = (r#Try_store k)
+		if p?
+			p# = v
 
 Hashmap met# init ?size:?Uint
 	self#table#ctor (size else sp_min_size)
@@ -297,6 +306,31 @@ Hashmap shallow met$ Iter = (Hashmap_iter this @$T)
 	-- To avoid this cast, we would have to make sptable_iter more complex.
 	let mself = (Cast @this @!this) self
 	return {iter=mself!table!iter}
+
+(fun t:`Any) show_ptr st:@#`Fmt_state x:@t
+	"<".Show st
+	((Cast @t Voidref) x).Uintptr.Show st
+	">".Show st
+
+Hashmap met Show st:@#`Fmt_state
+	"{".Show st
+	var i = 0:Uint
+	for k, v in self.Iter
+		if i > 0
+			", ".Show st
+		"(".Show st
+		if k isa `Show
+			k.Show st
+		else
+			show_ptr st k
+		",".Show st
+		if v. isa `Show
+			v.Show st
+		else
+			show_ptr st v
+		")".Show st
+		i += 1
+	"}".Show st
 
 (struct K:`Hashmap_key T:`Copyable) Hashmap_iter H:(Hashmap K T) RT:`Any_any_ref =
 	isa (`Iterator (K, RT)) `Trivial_copy `Trivial_ctor
