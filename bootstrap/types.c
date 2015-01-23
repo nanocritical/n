@@ -336,7 +336,7 @@ static struct typ *translate(struct typ *t, struct typ *src) {
     // In that case, we may be looking up the genarg +(functor t +`Any ...)
     // but only the unmapped src may exist in the mapping.
     struct typ *msrc = olay(t, usrc);
-    assert(msrc != usrc && "this mapping should already exist");
+    assert((!typ_is_generic_functor(src) || msrc != usrc) && "this mapping should already exist");
     overlay_map(t, typ_permanent_loc(msrc), src);
     return msrc;
   }
