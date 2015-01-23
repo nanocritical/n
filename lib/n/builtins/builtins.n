@@ -1801,7 +1801,7 @@ intf `Slice_compatible t:`Any =
 	fun From_slice c:[]t = final
 
 
-extern inline (fun$ i:`Any j:`Any) Dyncast x:@$j = @$i
+extern inline (fun$ i:`Any j:`Any) Dyncast x:@$j = ?@$i
 
 
 extern inline fun Likely x:Bool = Bool
