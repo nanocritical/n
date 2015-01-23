@@ -1478,10 +1478,11 @@ static void print_defname_linkage(FILE *out, bool header, enum forward fwd,
   }
 
   const struct node *at_top = node_is_at_top(let) ? let : parent_const(let);
+  const bool in_gen = typ_generic_arity(at_top->typ) > 0;
   const struct toplevel *toplevel = node_toplevel_const(at_top);
   const uint32_t flags = toplevel->flags;
 
-  if (header) {
+  if (header || in_gen) {
     fprintf(out, WEAK " ");
   }
 
