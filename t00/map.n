@@ -1,7 +1,7 @@
 from n import *
 
 example hashmap_basic
-	var m = {}:(Hashmap Stringbuf Uint)
+	var m = {}:(Map Stringbuf Uint)
 	assert m.Count == 0
 	assert not m.["42"]?
 
@@ -44,7 +44,7 @@ example hashmap_collision
 	let b = 0x1_0000_0000:U64
 	assert a.Hash32 == b.Hash32
 
-	var m = {}:(Hashmap U64 Uint)
+	var m = {}:(Map U64 Uint)
 	(m#Store a)# = 42
 	assert m.[a] == 42
 	(m#Store b)# = 43
@@ -55,7 +55,7 @@ example hashmap_growth
 	let sp_m = Bitmap.BITS_PER_WORD
 	let two_third = 24
 
-	var m = {}:(Hashmap Stringbuf Uint)
+	var m = {}:(Map Stringbuf Uint)
 	foreach i in 0 .. two_third
 		let buf = {}:Stringbuf such
 			buf#Pr i
@@ -82,10 +82,10 @@ example hashmap_growth
 			buf#Clear
 
 example hashset
-	var s = {0 1 2 3 4}:(Hashset Uint)
+	var s = {0 1 2 3 4}:(Set Uint)
 	var scopy = s
 	assert s == scopy
-	var t = {0 1 2}:(Hashset Uint)
+	var t = {0 1 2}:(Set Uint)
 	assert t < s
 	assert t <= s
 	assert s#Remove_all t
@@ -106,8 +106,8 @@ example hashset
 	assert s == scopy
 
 fun Main = I32
-	let m = {("42", 42) ("43", 43)}:(Hashmap Stringbuf Uint)
+	let m = {("42", 42) ("43", 43)}:(Map Stringbuf Uint)
 	Prn m
-	let s = {0 1 2 3 4}:(Hashset Uint)
+	let s = {0 1 2 3 4}:(Set Uint)
 	Prn s
 	return 0

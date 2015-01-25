@@ -1,7 +1,7 @@
 intf `Hashable32 =
 	met Hash32 = U32
 
-alias `Hashmap_key = {`Hashable32 `Copyable `Has_equality}
+alias `Map_key = {`Hashable32 `Copyable `Has_equality}
 
 struct sptable T:`Copyable =
 	count	:Uint
@@ -144,53 +144,53 @@ example sptable_group_boundary
 	assert (t#get sp_m-1). == 42
 	assert t.count == 2
 
-struct unit K:`Hashmap_key T:`Copyable =
+struct unit K:`Map_key T:`Copyable =
 	hash	:?U32
 	key	:K
 	val	:T
 
-struct Hashmap K:`Hashmap_key T:`Copyable =
+struct Map K:`Map_key T:`Copyable =
 	isa `Show (`Slice_compatible (K, T)) `Copyable (`Collection K)
 	alias unit_type = (unit K T)
 	table	:(sptable unit_type)
 	count	:Uint
 
 -- Ignore duplicated keys.
-Hashmap fun From_slice c:[](K, T) = r:this
+Map fun From_slice c:[](K, T) = r:this
 	foreach i in c.All
 		let k, v = c.[i]
 		let p = (r#Try_store k)
 		if p?
 			p# = v
 
-Hashmap met# init ?size:?Uint
+Map met# init ?size:?Uint
 	self#table#init (size else sp_min_size)
 
-Hashmap met# ensure_init
+Map met# ensure_init
 	if self.table.size < sp_min_size
 		self#init
 
-Hashmap met# Dtor
+Map met# Dtor
 	self#Clear
 
-Hashmap met# Clear
+Map met# Clear
 	self#table#Dtor
 
-Hashmap met# Copy_ctor other:@this
+Map met# Copy_ctor other:@this
 	self#Clear
 	assert self#Ingest other
 
-Hashmap met Count = Uint
+Map met Count = Uint
 	return self.count
 
 -- Quadratic open addressing (see Knuth TAOCP 6.4 exercise 20)
 --
 -- The table must have at least one empty spot to make sure that, if the
 -- table is full, the quadratic eventually stops.
-Hashmap met index hash:U32 nth:Uint = Uint
+Map met index hash:U32 nth:Uint = Uint
 	return ((hash.Uint + (nth * (nth+1))) / 2) % self.table.size
 
-Hashmap shallow met$ get_unit key:K trying:Bool = ?@$this.unit_type, idx:Uint, hash:U32
+Map shallow met$ get_unit key:K trying:Bool = ?@$this.unit_type, idx:Uint, hash:U32
 	if trying and self.Count == 0
 		return nil, 0, 0
 
@@ -210,16 +210,16 @@ Hashmap shallow met$ get_unit key:K trying:Bool = ?@$this.unit_type, idx:Uint, h
 		if u.key == key
 			return u, idx, hash
 
-Hashmap met Operator_in key:@K = Bool
+Map met Operator_in key:@K = Bool
 	return self.[key]?
 
-Hashmap shallow met$ Operator_at key:K = ?@$T
+Map shallow met$ Operator_at key:K = ?@$T
 	let u, _, _ = self$get_unit key true
 	if u?
 		return @$u$val
 	return nil
 
-Hashmap met# may_grow = Bool
+Map met# may_grow = Bool
 	-- 3/4 full?
 	if (self.count * 32) / self.table.size <= 24
 		return false
@@ -234,7 +234,7 @@ Hashmap met# may_grow = Bool
 	assert (self.count * 32) / self.table.size <= 24
 	return true
 
-Hashmap met# store key:K trying:Bool = ?@#T
+Map met# store key:K trying:Bool = ?@#T
 	self#ensure_init
 	var u, idx, hash = self!get_unit key false
 	if u?
@@ -253,16 +253,16 @@ Hashmap met# store key:K trying:Bool = ?@#T
 	nu#key = key
 	return @#nu#val
 
-Hashmap met# Store key:K = @#T
+Map met# Store key:K = @#T
 	let loc = self#store key false
 	assert loc?
 	return loc
 
-Hashmap met# Try_store key:K = ?@#T
+Map met# Try_store key:K = ?@#T
 	return self#store key true
 
 -- Return true if some keys from 'other' were already in 'self'.
-Hashmap met# Ingest other:@this = ingested_all:Bool
+Map met# Ingest other:@this = ingested_all:Bool
 	Eprn "ingest start" self.Count
 	ingested_all = true
 	for pos in other.table.bitmap.Iter
@@ -279,7 +279,7 @@ Hashmap met# Ingest other:@this = ingested_all:Bool
 	Eprn "ingest end"
 	return ingested_all
 
-Hashmap met# Try_delete key:K = did:Bool
+Map met# Try_delete key:K = did:Bool
 	if self.Count == 0
 		return false
 
@@ -293,10 +293,10 @@ Hashmap met# Try_delete key:K = did:Bool
 
 	return false
 
-Hashmap met# Delete key:K
+Map met# Delete key:K
 	assert self#Try_delete key
 
-Hashmap shallow met$ Iter = (Hashmap_iter this @$T)
+Map shallow met$ Iter = (Map_iter this @$T)
 	-- To avoid this cast, we would have to make sptable_iter more complex.
 	let mself = (Cast @this @!this) self
 	return {iter=mself!table!iter}
@@ -306,7 +306,7 @@ Hashmap shallow met$ Iter = (Hashmap_iter this @$T)
 	((Cast @t Voidref) x).Uintptr.Show st
 	">".Show st
 
-Hashmap met Show st:@#`Fmt_state
+Map met Show st:@#`Fmt_state
 	"{".Show st
 	var i = 0:Uint
 	for k, v in self.Iter
@@ -326,65 +326,65 @@ Hashmap met Show st:@#`Fmt_state
 		i += 1
 	"}".Show st
 
-(struct K:`Hashmap_key T:`Copyable) Hashmap_iter H:(Hashmap K T) RT:`Any_any_ref =
+(struct K:`Map_key T:`Copyable) Map_iter H:(Map K T) RT:`Any_any_ref =
 	isa (`Iterator (K, RT)) `Trivial_copy `Trivial_ctor
 	iter	:(sptable_iter H.unit_type)
 
-Hashmap_iter met Has_next = Bool
+Map_iter met Has_next = Bool
 	return self.iter.Has_next
 
-Hashmap_iter met! Next = K, RT
+Map_iter met! Next = K, RT
 	while true
 		let _, u = self!iter!Next
 		if u.hash?
 			return u.key, @#u#val
 
-struct Hashset T:`Hashmap_key =
+struct Set T:`Map_key =
 	isa (`Set T) `Show `Copyable
-	map	:(Hashmap T Bool)
+	map	:(Map T Bool)
 
 -- Ignore duplicated elements.
-Hashset fun From_slice c:[]T = r:this
+Set fun From_slice c:[]T = r:this
 	foreach i in c.All
 		let x = c.[i]
 		let p = r!map#Try_store x
 		if p?
 			p# = true
 
-Hashset met# Clear
+Set met# Clear
 	self#map#Dtor
 
-Hashset met# Copy_ctor other:@this
+Set met# Copy_ctor other:@this
 	self#Clear
 	assert self#Add_all other
 
-Hashset met Count = Uint
+Set met Count = Uint
 	return self.map.Count
 
-Hashset met Operator_in x:@T = Bool
+Set met Operator_in x:@T = Bool
 	return self.map.[x] else false
 
-Hashset met# Add x:@T = added:Bool
+Set met# Add x:@T = added:Bool
 	let p = self!map#Try_store x
 	if p?
 		p# = true
 		return true
 	return false
 
-Hashset met# Add_all other:@this = added_all:Bool
+Set met# Add_all other:@this = added_all:Bool
 	added_all = true
 	for x in other.Iter
 		added_all = self!Add x and added_all
 
-Hashset met# Remove x:@T = removed:Bool
+Set met# Remove x:@T = removed:Bool
 	return self!map#Try_delete x
 
-Hashset met# Remove_all other:@this = removed_all:Bool
+Set met# Remove_all other:@this = removed_all:Bool
 	removed_all = true
 	for x in other.Iter
 		removed_all = self!Remove x and removed_all
 
-Hashset met# Intersect other:@this
+Set met# Intersect other:@this
 	-- We cannot call self#Remove while iterating.
 	-- We just set the mapping to false, which is valid.
 	-- TODO(e): rehash the set if the size has changed a lot.
@@ -392,14 +392,14 @@ Hashset met# Intersect other:@this
 		if not x in other
 			v# = false
 
-Hashset met# Symmetric_difference other:@this
+Set met# Symmetric_difference other:@this
 	for x in other.Iter
 		if x in self
 			let _ = self.Remove x
 		else
 			let _ = self.Add x
 
-Hashset met Operator_eq other:@this = Bool
+Set met Operator_eq other:@this = Bool
 	if self.Count != other.Count
 		return false
 
@@ -408,10 +408,10 @@ Hashset met Operator_eq other:@this = Bool
 			return false
 	return true
 
-Hashset met Operator_ne other:@this = Bool
+Set met Operator_ne other:@this = Bool
 	return not self == other
 
-Hashset met Operator_le other:@this = Bool
+Set met Operator_le other:@this = Bool
 	if self.Count > other.Count
 		return false
 	for x in self.Iter
@@ -419,18 +419,18 @@ Hashset met Operator_le other:@this = Bool
 			return false
 	return true
 
-Hashset met Operator_lt other:@this = Bool
+Set met Operator_lt other:@this = Bool
 	if self.Count >= other.Count
 		return false
 	return self <= other
 
-Hashset met Operator_gt other:@this = Bool
+Set met Operator_gt other:@this = Bool
 	return self <= other
 
-Hashset met Operator_ge other:@this = Bool
+Set met Operator_ge other:@this = Bool
 	return self < other
 
-Hashset met Show st:@#`Fmt_state
+Set met Show st:@#`Fmt_state
 	"{".Show st
 	var i = 0:Uint
 	for x in self.Iter
@@ -443,15 +443,15 @@ Hashset met Show st:@#`Fmt_state
 		i += 1
 	"}".Show st
 
-Hashset met Iter = (Hashset_iter T)
+Set met Iter = (Set_iter T)
 	return {iter=self.map.Iter}
 
-struct Hashset_iter T:`Hashmap_key =
+struct Set_iter T:`Map_key =
 	isa (`Iterator T) `Trivial_copy `Trivial_ctor
-	iter	:(Hashmap_iter (Hashmap T Bool) @Bool)
+	iter	:(Map_iter (Map T Bool) @Bool)
 
-Hashset_iter met Has_next = Bool
+Set_iter met Has_next = Bool
 	return self.iter.Has_next
 
-Hashset_iter met! Next = T
+Set_iter met! Next = T
 	return self!iter!Next.X0
