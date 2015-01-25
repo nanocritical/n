@@ -14,14 +14,16 @@ inline let sp_min_size = Bitmap.BITS_PER_WORD
 fun sp_num_groups size:Uint = Uint
 	return math.Div_ceil size sp_m
 
-sptable met# ctor size:Uint
+sptable met# init size:Uint
 	self!count = 0
 	self!bitmap#Resize <- Max size sp_min_size
 	self!groups#Resize (sp_num_groups self.bitmap.Count)
 
 sptable met# Dtor
-	foreach g in self.groups
+	foreach g in self!groups
 		Free g.
+	self#groups#Dtor
+	self#bitmap#Dtor
 
 sptable met size = Uint
 	return self.bitmap.Count
@@ -106,7 +108,7 @@ sptable_iter met! Next = Uint, @#T
 
 example sptable_basic
 	var t = {}:(sptable Uint)
-	t#ctor 100
+	t#init 100
 	(t#set 0)# = 42
 	assert t#get 1 === nil
 	assert (t#get 0). == 42
@@ -134,7 +136,7 @@ example sptable_basic
 
 example sptable_group_boundary
 	var t = {}:(sptable Uint)
-	t#ctor sp_m+1
+	t#init sp_m+1
 	(t#set sp_m-1)# = 42
 	(t#set sp_m)# = 43
 	assert t#get 1 === nil
@@ -147,8 +149,8 @@ struct unit K:`Hashmap_key T:`Copyable =
 	key	:K
 	val	:T
 
-struct Hashmap K: `Hashmap_key T:`Copyable =
-	isa `Show (`Slice_compatible (K, T))
+struct Hashmap K:`Hashmap_key T:`Copyable =
+	isa `Show (`Slice_compatible (K, T)) `Copyable (`Collection K)
 	alias unit_type = (unit K T)
 	table	:(sptable unit_type)
 	count	:Uint
@@ -162,14 +164,21 @@ Hashmap fun From_slice c:[](K, T) = r:this
 			p# = v
 
 Hashmap met# init ?size:?Uint
-	self#table#ctor (size else sp_min_size)
+	self#table#init (size else sp_min_size)
 
 Hashmap met# ensure_init
 	if self.table.size < sp_min_size
 		self#init
 
 Hashmap met# Dtor
+	self#Clear
+
+Hashmap met# Clear
 	self#table#Dtor
+
+Hashmap met# Copy_ctor other:@this
+	self#Clear
+	assert self#Ingest other
 
 Hashmap met Count = Uint
 	return self.count
@@ -201,6 +210,9 @@ Hashmap shallow met$ get_unit key:K trying:Bool = ?@$this.unit_type, idx:Uint, h
 		if u.key == key
 			return u, idx, hash
 
+Hashmap met Operator_in key:@K = Bool
+	return self.[key]?
+
 Hashmap shallow met$ Operator_at key:K = ?@$T
 	let u, _, _ = self$get_unit key true
 	if u?
@@ -213,12 +225,12 @@ Hashmap met# may_grow = Bool
 		return false
 
 	-- Grow.
-	let tmp = {}:this such
-		tmp#init size=2*self.table.size
-		let partial = tmp#Try_ingest self
-		assert not partial
+	-- FIXME(e): use a Move.
+	let tmp = self.
 	self#Dtor
-	self# = tmp
+	self#init size=2*tmp.table.size
+	let all = self#Ingest tmp
+	assert all
 	assert (self.count * 32) / self.table.size <= 24
 	return true
 
@@ -250,17 +262,22 @@ Hashmap met# Try_store key:K = ?@#T
 	return self#store key true
 
 -- Return true if some keys from 'other' were already in 'self'.
-Hashmap met# Try_ingest other:@this = partial:Bool
+Hashmap met# Ingest other:@this = ingested_all:Bool
+	Eprn "ingest start" self.Count
+	ingested_all = true
 	for pos in other.table.bitmap.Iter
 		let u = other#table#get pos
 		if not u.hash?
 			continue
 		let loc = self#Try_store u.key
 		if not loc?
-			partial = true
+			if K isa `Show
+				Eprn "not ingested" u.key
+			ingested_all = false
 			continue
 		loc# = u.val
-	return partial
+	Eprn "ingest end"
+	return ingested_all
 
 Hashmap met# Try_delete key:K = did:Bool
 	if self.Count == 0
@@ -323,7 +340,7 @@ Hashmap_iter met! Next = K, RT
 			return u.key, @#u#val
 
 struct Hashset T:`Hashmap_key =
-	isa (`Set T) `Show
+	isa (`Set T) `Show `Copyable
 	map	:(Hashmap T Bool)
 
 -- Ignore duplicated elements.
@@ -333,8 +350,13 @@ Hashset fun From_slice c:[]T = r:this
 		let p = r!map#Try_store x
 		if p?
 			p# = true
-Hashset met# Dtor
+
+Hashset met# Clear
 	self#map#Dtor
+
+Hashset met# Copy_ctor other:@this
+	self#Clear
+	assert self#Add_all other
 
 Hashset met Count = Uint
 	return self.map.Count

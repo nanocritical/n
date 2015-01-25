@@ -1,7 +1,7 @@
 from n import *
 
 example hashmap_basic
-	var m = {}:(Hashmap String Uint)
+	var m = {}:(Hashmap Stringbuf Uint)
 	assert m.Count == 0
 	assert not m.["42"]?
 
@@ -36,6 +36,9 @@ example hashmap_basic
 		else
 			assert false
 
+	var mcopy = m
+	assert mcopy.Count == m.Count
+
 example hashmap_collision
 	let a = 31:U64
 	let b = 0x1_0000_0000:U64
@@ -52,35 +55,39 @@ example hashmap_growth
 	let sp_m = Bitmap.BITS_PER_WORD
 	let two_third = 24
 
-	var m = {}:(Hashmap String Uint)
+	var m = {}:(Hashmap Stringbuf Uint)
 	foreach i in 0 .. two_third
 		let buf = {}:Stringbuf such
 			buf#Pr i
-			(m#Store buf.String)# = i
+			(m#Store buf)# = i
 			buf#Clear
 		assert m.Count == i + 1
 	assert m.table.size == sp_m
 	foreach i in 0 .. two_third
 		let buf = {}:Stringbuf such
 			buf#Pr i
-			assert m.[buf.String] == i
+			assert m.[buf] == i
 			buf#Clear
 	foreach i in two_third .. sp_m
 		let buf = {}:Stringbuf such
 			buf#Pr i
-			(m#Store buf.String)# = i
+			(m#Store buf)# = i
 			buf#Clear
 		assert m.Count == i + 1
 	assert m.table.size == 2*sp_m
 	foreach i in two_third .. sp_m
 		let buf = {}:Stringbuf such
 			buf#Pr i
-			assert m.[buf.String] == i
+			assert m.[buf] == i
 			buf#Clear
 
 example hashset
 	var s = {0 1 2 3 4}:(Hashset Uint)
+	var scopy = s
+	assert s == scopy
 	var t = {0 1 2}:(Hashset Uint)
+	assert t < s
+	assert t <= s
 	assert s#Remove_all t
 	assert s.Count == 2
 	assert not 0 in s
@@ -88,9 +95,18 @@ example hashset
 	assert not 2 in s
 	assert 3 in s
 	assert 4 in s
+	assert s#Add_all t
+	assert 0 in s
+	assert 1 in s
+	assert 2 in s
+	assert 3 in s
+	assert 4 in s
+	assert s.Count == 5
+	assert not s#Add_all t
+	assert s == scopy
 
 fun Main = I32
-	let m = {("42", 42) ("43", 43)}:(Hashmap String Uint)
+	let m = {("42", 42) ("43", 43)}:(Hashmap Stringbuf Uint)
 	Prn m
 	let s = {0 1 2 3 4}:(Hashset Uint)
 	Prn s

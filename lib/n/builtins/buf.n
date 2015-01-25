@@ -2,6 +2,12 @@ inline struct Buf t:`Any =
 	isa `Trivial_ctor `Copyable (`Random_container t) `Show
 	s	:[]!t	--::^Owned
 
+inline Buf met# Dtor
+	Realloc @#self#s 0
+
+inline Buf met# Copy_ctor other:@this
+	self#Copy other.Slice
+
 inline Buf met Cap = Uint
 	return self.s.cap
 

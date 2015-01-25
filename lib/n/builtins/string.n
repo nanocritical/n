@@ -370,6 +370,9 @@ inline Stringbuf fun From_string s:String = this
 		r#Append s.Bytes
 	return r
 
+inline Stringbuf met# Dtor
+	Realloc @#self#bytes 0
+
 inline Stringbuf met# Copy_ctor other:Stringbuf
 	self#Copy other.bytes
 
