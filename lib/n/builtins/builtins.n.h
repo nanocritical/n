@@ -5,6 +5,11 @@
 
 #ifdef NLANG_DEFINE_TYPES
 
+struct n$builtins$cleaner {
+  void *p;
+  size_t sz;
+};
+
 union NB(Varargintunion) {
   struct NB(Varargint) *ref;
   va_list valist;
@@ -20,6 +25,12 @@ struct NB(Varargint) {
 #endif
 
 #ifdef NLANG_DECLARE_FUNCTIONS
+
+#define NLANG_CLEANUP_ZERO(x) \
+  __attribute__((__cleanup__(n$builtins$clean_zero))) \
+  struct n$builtins$cleaner __Ncleaner_##x = { .p = (x), .sz = sizeof(*(x)) }
+
+static inline void n$builtins$clean_zero(struct n$builtins$cleaner *c);
 
 #define NLANG_STRING_LITERAL(s) \
 { .bytes = { \
@@ -98,6 +109,10 @@ struct NB(Varargint) {
 #endif
 
 #ifdef NLANG_DEFINE_FUNCTIONS
+
+static inline void n$builtins$clean_zero(struct n$builtins$cleaner *c) {
+  memset(c->p, 0, c->sz);
+}
 
 static inline NB(Uint) NB(Varargint$Count_left)(struct NB(Varargint) *self) {
   if (self->vacount == NLANG_BUILTINS_VACOUNT_VARARGREF) {

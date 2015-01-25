@@ -155,6 +155,20 @@ static void like_arg(struct module *mod, struct node *call,
   }
 }
 
+static const struct typ *corresponding_trivial(ident m) {
+  switch (m) {
+  case ID_CTOR:
+    return TBI_TRIVIAL_CTOR;
+  case ID_DTOR:
+    return TBI_TRIVIAL_DTOR;
+  case ID_COPY_CTOR:
+    return TBI_TRIVIAL_COPY;
+  default:
+    assert(false);
+    return NULL;
+  }
+}
+
 static void gen_on_choices_and_fields(struct module *mod,
                                       struct node *deft,
                                       struct node *ch,
@@ -174,6 +188,10 @@ static void gen_on_choices_and_fields(struct module *mod,
   size_t n = 0;
   FOREACH_SUB_CONST(f, deft) {
     if (f->which != DEFFIELD) {
+      continue;
+    }
+
+    if (typ_isa(f->typ, corresponding_trivial(node_ident(m)))) {
       continue;
     }
 
@@ -731,13 +749,13 @@ error step_autointf_detect_default_ctor_dtor(struct module *mod, struct node *no
 }
 
 struct inferred {
-  bool default_ctor, copyable, return_by_copy, equality_by_compare, ordered_by_compare;
+  bool default_ctor, default_dtor, copyable, return_by_copy, equality_by_compare, ordered_by_compare;
   bool trivial_ctor, trivial_dtor, trivial_copy_but_owned,
        trivial_copy, trivial_compare, trivial_equality, trivial_order;
 };
 
 static void infer(struct inferred *inferred, const struct node *node) {
-  if (NM(node->which) & (NM(DEFTYPE) | NM(DEFCHOICE))) {
+  if (node->which == DEFCHOICE) {
     FOREACH_SUB_CONST(f, node) {
       if (!(NM(f->which) & (NM(DEFFIELD) | NM(DEFCHOICE)))) {
         continue;
@@ -748,42 +766,71 @@ static void infer(struct inferred *inferred, const struct node *node) {
     return;
   }
 
-  if (inferred->default_ctor && !typ_isa(node->typ, TBI_DEFAULT_CTOR)) {
-    inferred->trivial_ctor = inferred->default_ctor = false;
+  if (inferred->default_ctor) {
+    inferred->trivial_ctor &= inferred->default_ctor &= typ_isa(node->typ, TBI_DEFAULT_CTOR);
   }
-  if (inferred->copyable && !typ_isa(node->typ, TBI_COPYABLE)) {
-    inferred->trivial_copy = inferred->copyable = false;
+  if (inferred->default_dtor) {
+    inferred->trivial_dtor &= inferred->default_dtor &= typ_isa(node->typ, TBI_DEFAULT_DTOR);
   }
-  if (inferred->equality_by_compare && !typ_isa(node->typ, TBI_EQUALITY_BY_COMPARE)) {
-    inferred->equality_by_compare = false;
+  if (inferred->copyable) {
+    inferred->trivial_copy &= inferred->copyable &= typ_isa(node->typ, TBI_COPYABLE);
   }
-  if (inferred->ordered_by_compare && !typ_isa(node->typ, TBI_ORDERED_BY_COMPARE)) {
-    inferred->ordered_by_compare = false;
+  if (inferred->equality_by_compare) {
+    inferred->equality_by_compare &= typ_isa(node->typ, TBI_EQUALITY_BY_COMPARE);
   }
-  if (inferred->return_by_copy && !typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
-    inferred->return_by_copy = false;
+  if (inferred->ordered_by_compare) {
+    inferred->ordered_by_compare &= typ_isa(node->typ, TBI_ORDERED_BY_COMPARE);
+  }
+  if (inferred->return_by_copy) {
+    inferred->return_by_copy &= typ_isa(node->typ, TBI_RETURN_BY_COPY);
   }
 
-  if (inferred->trivial_ctor && !typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
-    inferred->trivial_ctor = false;
+  if (inferred->trivial_ctor) {
+    inferred->trivial_ctor &= typ_isa(node->typ, TBI_TRIVIAL_CTOR);
   }
-  if (inferred->trivial_dtor && !typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
-    inferred->trivial_dtor = false;
+  if (inferred->trivial_dtor) {
+    inferred->trivial_dtor &= typ_isa(node->typ, TBI_TRIVIAL_DTOR);
   }
-  if (inferred->trivial_copy_but_owned && !typ_isa(node->typ, TBI_TRIVIAL_COPY_BUT_OWNED)) {
-    inferred->trivial_copy_but_owned = false;
+  if (inferred->trivial_copy_but_owned) {
+    inferred->trivial_copy_but_owned &= typ_isa(node->typ, TBI_TRIVIAL_COPY_BUT_OWNED);
   }
-  if (inferred->trivial_copy && !typ_isa(node->typ, TBI_TRIVIAL_COPY)) {
-    inferred->trivial_copy = false;
+  if (inferred->trivial_copy) {
+    inferred->trivial_copy &= typ_isa(node->typ, TBI_TRIVIAL_COPY);
   }
-  if (inferred->trivial_compare && !typ_isa(node->typ, TBI_TRIVIAL_COMPARE)) {
-    inferred->trivial_order = inferred->trivial_equality = inferred->trivial_compare = false;
+  if (inferred->trivial_compare) {
+    inferred->trivial_order &= inferred->trivial_equality &= inferred->trivial_compare &= typ_isa(node->typ, TBI_TRIVIAL_COMPARE);
   }
-  if (inferred->trivial_equality && !typ_isa(node->typ, TBI_TRIVIAL_EQUALITY)) {
-    inferred->trivial_equality = false;
+  if (inferred->trivial_equality) {
+    inferred->trivial_equality &= typ_isa(node->typ, TBI_TRIVIAL_EQUALITY);
   }
-  if (inferred->trivial_order && !typ_isa(node->typ, TBI_TRIVIAL_ORDER)) {
-    inferred->trivial_order = false;
+  if (inferred->trivial_order) {
+    inferred->trivial_order &= typ_isa(node->typ, TBI_TRIVIAL_ORDER);
+  }
+}
+
+static void infer_top(struct inferred *inferred, const struct node *node) {
+  inferred->trivial_ctor =
+    NULL == node_get_member_const(node, ID_CTOR);
+  inferred->trivial_copy =
+    NULL == node_get_member_const(node, ID_COPY_CTOR);
+  inferred->trivial_dtor =
+    NULL == node_get_member_const(node, ID_DTOR);
+  inferred->trivial_order = inferred->trivial_equality = inferred->trivial_compare =
+    NULL == node_get_member_const(node, ID_OPERATOR_LE)
+    && NULL == node_get_member_const(node, ID_OPERATOR_LT)
+    && NULL == node_get_member_const(node, ID_OPERATOR_GT)
+    && NULL == node_get_member_const(node, ID_OPERATOR_GE)
+    && NULL == node_get_member_const(node, ID_OPERATOR_COMPARE);
+  inferred->trivial_equality =
+    NULL == node_get_member_const(node, ID_OPERATOR_EQ)
+    && NULL == node_get_member_const(node, ID_OPERATOR_NE);
+
+  FOREACH_SUB_CONST(f, node) {
+    if (!(NM(f->which) & (NM(DEFFIELD) | NM(DEFCHOICE)))) {
+      continue;
+    }
+
+    infer(inferred, f);
   }
 }
 
@@ -826,6 +873,8 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
   }
   if (immediate_isa(node, TBI_DEFAULT_DTOR)) {
     inferred.trivial_dtor = false;
+  } else if (immediate_isa(node, TBI_ERROR_DTOR)) {
+    inferred.trivial_dtor = inferred.default_dtor = false;
   }
   if (immediate_isa(node, TBI_NOT_COPYABLE)) {
     inferred.return_by_copy = inferred.trivial_copy
@@ -849,7 +898,7 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
     inferred.return_by_copy = false;
   }
 
-  infer(&inferred, node);
+  infer_top(&inferred, node);
 
 skip:
   if (inferred.trivial_ctor || typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
@@ -860,9 +909,13 @@ skip:
     } else {
       add_auto_isa(mod, node, TBI_TRIVIAL_CTOR);
     }
+  } else if (inferred.default_ctor || typ_isa(node->typ, TBI_DEFAULT_CTOR)) {
+    add_auto_isa(mod, node, TBI_DEFAULT_CTOR);
   }
   if (inferred.trivial_dtor || typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
     add_auto_isa(mod, node, TBI_TRIVIAL_DTOR);
+  } else if (inferred.default_dtor || typ_isa(node->typ, TBI_DEFAULT_DTOR)) {
+    add_auto_isa(mod, node, TBI_DEFAULT_DTOR);
   }
   if (inferred.trivial_copy_but_owned || typ_isa(node->typ, TBI_TRIVIAL_COPY_BUT_OWNED)) {
     add_auto_isa(mod, node, TBI_TRIVIAL_COPY_BUT_OWNED);

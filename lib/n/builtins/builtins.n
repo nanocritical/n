@@ -164,7 +164,7 @@ extern inline struct Void =
 extern fun Nonnull_void = @Void
 
 intf `Any_any_ref =
-	isa `Return_by_copy `Trivial_copy_but_owned
+	isa `Return_by_copy `Trivial_copy_but_owned `Trivial_dtor
 intf `Any_ref t:`Any =
 	isa `Any_any_ref
 intf `Any_mutable_ref t:`Any =
@@ -1698,7 +1698,7 @@ fun Fatal err:Error
 
 
 extern inline struct Varargint =
-	isa `Trivial_copy `Trivial_ctor
+	isa `Trivial_copy `Trivial_ctor `Trivial_dtor
 
 extern inline Varargint met Count_left = Uint
 

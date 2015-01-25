@@ -2203,6 +2203,9 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
       print_typ(out, mod, par->typ);
       fprintf(out, "##x\n");
     }
+    if (node->which == DEFMETHOD && node_ident(node) == ID_DTOR) {
+      fprintf(out, "NLANG_CLEANUP_ZERO(self);\n");
+    }
 
     rtr_helpers(out, mod, node, true);
 

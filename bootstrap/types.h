@@ -301,6 +301,7 @@ extern struct typ *TBI_NOT_COPYABLE;
 extern struct typ *TBI_DEFAULT_CTOR;
 extern struct typ *TBI_NON_DEFAULT_CTOR;
 extern struct typ *TBI_DEFAULT_DTOR;
+extern struct typ *TBI_ERROR_DTOR;
 extern struct typ *TBI_ARRAY_CTOR;
 extern struct typ *TBI_TRIVIAL_COPY;
 extern struct typ *TBI_TRIVIAL_COPY_BUT_OWNED;

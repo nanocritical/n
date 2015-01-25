@@ -143,6 +143,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_DEFAULT_CTOR] = "`Default_ctor",
   [ID_TBI_NON_DEFAULT_CTOR] = "`Non_default_ctor",
   [ID_TBI_DEFAULT_DTOR] = "`Default_dtor",
+  [ID_TBI_ERROR_DTOR] = "`Error_dtor",
   [ID_TBI_TRIVIAL_COPY] = "`Trivial_copy",
   [ID_TBI_TRIVIAL_COPY_BUT_OWNED] = "`Trivial_copy_but_owned",
   [ID_TBI_TRIVIAL_CTOR] = "`Trivial_ctor",
@@ -484,6 +485,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_DEFAULT_CTOR = gctx->builtin_typs_by_name[ID_TBI_DEFAULT_CTOR];
   TBI_NON_DEFAULT_CTOR = gctx->builtin_typs_by_name[ID_TBI_NON_DEFAULT_CTOR];
   TBI_DEFAULT_DTOR = gctx->builtin_typs_by_name[ID_TBI_DEFAULT_DTOR];
+  TBI_ERROR_DTOR = gctx->builtin_typs_by_name[ID_TBI_ERROR_DTOR];
   TBI_TRIVIAL_COPY = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_COPY];
   TBI_TRIVIAL_COPY_BUT_OWNED = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_COPY_BUT_OWNED];
   TBI_TRIVIAL_CTOR = gctx->builtin_typs_by_name[ID_TBI_TRIVIAL_CTOR];

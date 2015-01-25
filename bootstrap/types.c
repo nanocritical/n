@@ -2245,6 +2245,7 @@ struct typ *TBI_NOT_COPYABLE;
 struct typ *TBI_DEFAULT_CTOR;
 struct typ *TBI_NON_DEFAULT_CTOR;
 struct typ *TBI_DEFAULT_DTOR;
+struct typ *TBI_ERROR_DTOR;
 struct typ *TBI_ARRAY_CTOR;
 struct typ *TBI_TRIVIAL_COPY;
 struct typ *TBI_TRIVIAL_COPY_BUT_OWNED;
