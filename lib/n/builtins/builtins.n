@@ -41,7 +41,7 @@ intf `Copyable_but_owned =
 -- And there should be a copy_slice operation over `Trivial_copy. That's kinda
 -- the point.
 intf `Trivial_copy =
-	isa `Copyable
+	isa `Copyable `Trivial_dtor
 intf `Trivial_copy_but_owned =
 	isa `Trivial_copy -- FIXME
 intf `Return_by_copy =
