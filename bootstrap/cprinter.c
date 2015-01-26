@@ -2083,9 +2083,11 @@ static void print_deffun_dynwrapper(FILE *out, bool header, enum forward fwd,
   const bool retval_throughref = !typ_isa_return_by_copy(retval->typ);
   const bool from_retval_throughref = !typ_isa_return_by_copy(typ_function_return_const(from->typ));
 
-  fprintf(out, " { ");
+  fprintf(out, " {\n");
 
   const struct node *funargs = subs_at_const(from, IDX_FUNARGS);
+
+  rtr_helpers(out, mod, node, true);
 
   const ssize_t first_vararg = node_fun_first_vararg(node);
   ident id_ap = ID__NONE;
@@ -2101,8 +2103,6 @@ static void print_deffun_dynwrapper(FILE *out, bool header, enum forward fwd,
   if (!typ_equal(retval->typ, TBI_VOID)) {
     if (!from_retval_throughref) {
       fprintf(out, "return ");
-    } else {
-      fprintf(out, "*%s = ", idents_value(mod->gctx, node_ident(node_fun_retval_const(from))));
     }
   }
   print_typ(out, mod, node->typ);
@@ -2125,7 +2125,7 @@ static void print_deffun_dynwrapper(FILE *out, bool header, enum forward fwd,
 
   if (retval_throughref) {
     if (n > 0) {
-      fprintf(out, ", ");
+      fprintf(out, ", &");
     }
     print_ident(out, mod, subs_first_const(retval));
   }
@@ -2136,6 +2136,8 @@ static void print_deffun_dynwrapper(FILE *out, bool header, enum forward fwd,
     fprintf(out, "NLANG_BUILTINS_VARARG_END(%s);\n",
             idents_value(mod->gctx, id_ap));
   }
+
+  rtr_helpers(out, mod, node, false);
 
   fprintf(out, "}\n");
 }
