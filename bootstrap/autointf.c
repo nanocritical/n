@@ -811,7 +811,7 @@ static void infer(struct inferred *inferred, const struct node *node) {
 static void infer_top(struct inferred *inferred, const struct node *node) {
   inferred->trivial_ctor =
     NULL == node_get_member_const(node, ID_CTOR);
-  inferred->trivial_copy =
+  inferred->trivial_copy = inferred->trivial_copy_but_owned =
     NULL == node_get_member_const(node, ID_COPY_CTOR);
   inferred->trivial_dtor =
     NULL == node_get_member_const(node, ID_DTOR);
