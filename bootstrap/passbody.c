@@ -400,9 +400,6 @@ static ERROR step_from_number_literal_call_inference(struct module *mod, struct 
   node_set_which(node, CALL);
 
   struct typ *tfun = typ_member(saved_typ, ID_FROM_NUMBER_LITERAL);
-  fprintf(stderr, "%s\n%s\n\n",pptyp(0,saved_typ),
-          pptyp(0,tfun));
-  __break();
   GSTART();
   G0(fun, node, DIRECTDEF,
      set_typ(&fun->as.DIRECTDEF.typ, tfun);
@@ -496,17 +493,94 @@ static ERROR defname_copy_call_inference(struct module *mod, struct node *node) 
   return 0;
 }
 
+static ERROR arg_copy_call_inference(struct module *mod, struct node *node,
+                                     struct node *expr) {
+  const ident g = gensym(mod);
+  GSTART();
+  G0(narg, node, IDENT,
+     narg->as.IDENT.name = g);
+  node_subs_remove(node, narg);
+  node_subs_replace(node, expr, narg);
+
+  // We rely on the Copy_ctor insertion on the DEFNAME newly created.
+
+  struct node *stat = find_current_statement(node);
+  struct node *par = parent(stat);
+  G0(let, par, LET,
+     G(defn, DEFNAME,
+       defn->flags |= NODE_IS_TEMPORARY;
+       G(defni, IDENT,
+         defni->as.IDENT.name = g);
+       node_subs_append(defn, expr)));
+  node_subs_remove(par, let);
+  node_subs_insert_before(par, stat, let);
+
+  const struct node *except[] = { expr, NULL };
+  error e = catchup(mod, except, let, CATCHUP_BEFORE_CURRENT_SAME_TOP);
+  EXCEPT(e);
+
+  e = catchup(mod, NULL, narg, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+
+  return 0;
+}
+
+static ERROR try_replace_with_copy(struct module *mod, struct node *node,
+                                   struct node *expr) {
+  error e = typ_check_isa(mod, expr, expr->typ, TBI_COPYABLE);
+  EXCEPT(e);
+
+  if ((expr->flags & NODE_IS_TEMPORARY)) {
+    // It's OK to trivial copy temporaries: it's a move.
+    return 0;
+  }
+
+  if (typ_isa(expr->typ, TBI_TRIVIAL_COPY)) {
+    return 0;
+  }
+
+  if (expr_is_return_through_ref(NULL, mod, expr)) {
+    return 0;
+  }
+
+  switch (node->which) {
+  case BIN:
+    e = assign_copy_call_inference(mod, node);
+    EXCEPT(e);
+    break;
+  case DEFNAME:
+    e = defname_copy_call_inference(mod, node);
+    EXCEPT(e);
+    break;
+  case CALL:
+  case INIT:
+    e = arg_copy_call_inference(mod, node, expr);
+    EXCEPT(e);
+    break;
+  default:
+    assert(false);
+  }
+  return 0;
+}
+
 static STEP_NM(step_copy_call_inference,
-               NM(BIN) | NM(DEFNAME));
+               NM(BIN) | NM(DEFNAME) | NM(CALL) | NM(INIT));
 static ERROR step_copy_call_inference(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
-  struct node *left;
-  struct node *right;
+  if (mod->state->fun_state == NULL || !mod->state->fun_state->in_block) {
+    return 0;
+  }
+  if (node->flags & NODE_IS_TYPE) {
+    return 0;
+  }
+
+  struct node *right, *nxt;
+  size_t every;
+  error e;
   switch (node->which) {
   case BIN:
     if (node->as.BIN.operator == TASSIGN) {
-      left = subs_first(node);
       right = subs_last(node);
       break;
     }
@@ -515,10 +589,39 @@ static ERROR step_copy_call_inference(struct module *mod, struct node *node,
     if (node->as.DEFNAME.ssa_user != NULL) {
       return 0;
     }
-    left = node;
     right = subs_last(node);
     if (right != NULL && right->which != INIT) {
       break;
+    }
+    return 0;
+  case CALL:
+    nxt = next(subs_first(node));
+    while (nxt != NULL) {
+      struct node *arg = nxt;
+      nxt = next(nxt);
+      e = try_replace_with_copy(mod, node, arg);
+      EXCEPT(e);
+    }
+    return 0;
+  case INIT:
+    if (node->as.INIT.is_array) {
+      nxt = subs_first(node);
+      every = 1;
+    } else {
+      nxt = subs_first(node);
+      if (nxt != NULL) {
+        nxt = next(nxt);
+      }
+      every = 2;
+    }
+    while (nxt != NULL) {
+      struct node *arg = nxt;
+      nxt = next(nxt);
+      if (every == 2 && nxt != NULL) {
+        nxt = next(nxt);
+      }
+      e = try_replace_with_copy(mod, node, arg);
+      EXCEPT(e);
     }
     return 0;
   default:
@@ -526,32 +629,7 @@ static ERROR step_copy_call_inference(struct module *mod, struct node *node,
     return 0;
   }
 
-  if ((right->flags & NODE_IS_TEMPORARY)) {
-    // It's OK to trivial copy temporaries: it's a move.
-    return 0;
-  }
-
-  if (typ_isa(left->typ, TBI_TRIVIAL_COPY)) {
-    return 0;
-  }
-
-  if (expr_is_return_through_ref(NULL, mod, right)) {
-    return 0;
-  }
-
-  error e = typ_check_isa(mod, right, right->typ, TBI_COPYABLE);
-  EXCEPT(e);
-
-  switch (node->which) {
-  case BIN:
-    e = assign_copy_call_inference(mod, node);
-    break;
-  case DEFNAME:
-    e = defname_copy_call_inference(mod, node);
-    break;
-  default:
-    assert(false);
-  }
+  e = try_replace_with_copy(mod, node, right);
   EXCEPT(e);
   return 0;
 }

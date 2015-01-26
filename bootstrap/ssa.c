@@ -142,7 +142,7 @@ static void defname_replace_block_like_expr(struct module *mod,
   }
 }
 
-static struct node *find_current_statement(struct node *node) {
+struct node *find_current_statement(struct node *node) {
   if (node->which == BLOCK) {
     return subs_last(node);
   }

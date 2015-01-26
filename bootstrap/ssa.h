@@ -17,4 +17,6 @@ ERROR step_insert_nullable_void(struct module *mod, struct node *node,
 
 bool try_remove_unnecessary_ssa_defname(struct module *mod, struct node *defn);
 
+struct node *find_current_statement(struct node *node);
+
 #endif
