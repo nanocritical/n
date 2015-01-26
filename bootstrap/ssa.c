@@ -1,3 +1,5 @@
+// Not at all SSA form.
+
 #include "ssa.h"
 
 #include "types.h"
@@ -1060,6 +1062,49 @@ EXAMPLE_NCC_EMPTY(ssa_logical_or) {
                   "  RETURN",
                   "   IDENT",
                   NULL);
+}
+
+STEP_NM(step_defname_replace_block_like_expr,
+        NM(DEFNAME));
+error step_defname_replace_block_like_expr(struct module *mod, struct node *node,
+                                           void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (mod->state->fun_state == NULL || !mod->state->fun_state->in_block) {
+    return 0;
+  }
+
+  struct node *expr = subs_last(node);
+  if (!is_block_like(expr)) {
+    return 0;
+  }
+
+  if (is_always_void(expr)) {
+    return 0;
+  }
+
+  const ident g = gensym(mod);
+  node_subs_remove(node, expr);
+
+  struct node *stat = find_current_statement(node);
+  struct node *par = parent(stat);
+  GSTART();
+  G0(let, par, LET,
+     G(defn, DEFNAME,
+       G(defni, IDENT,
+         defni->as.IDENT.name = g);
+       node_subs_append(defn, expr)));
+  node_subs_remove(par, let);
+  node_subs_insert_before(par, stat, let);
+
+  defname_replace_block_like_expr(mod, defn);
+
+  G0(sub, node, IDENT,
+     sub->as.IDENT.name = g);
+  error e = catchup(mod, NULL, sub, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+
+  return 0;
 }
 
 static STEP_NM(step_remove_ident_from_use_chain,

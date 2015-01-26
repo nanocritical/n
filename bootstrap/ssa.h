@@ -11,6 +11,10 @@ extern const uint64_t step_ssa_convert_filter;
 ERROR step_ssa_convert(struct module *mod, struct node *node,
                        void *user, bool *stop);
 
+extern const uint64_t step_defname_replace_block_like_expr_filter;
+ERROR step_defname_replace_block_like_expr(struct module *mod, struct node *node,
+                                           void *user, bool *stop);
+
 extern const uint64_t step_insert_nullable_void_filter;
 ERROR step_insert_nullable_void(struct module *mod, struct node *node,
                                 void *user, bool *stop);

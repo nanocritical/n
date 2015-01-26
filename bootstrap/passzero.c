@@ -321,6 +321,7 @@ static ERROR passzero0(struct module *mod, struct node *root,
     UP_STEP(step_lir_conversion_up);
     UP_STEP(step_ssa_convert_shallow_catchup);
     UP_STEP(step_ssa_convert);
+    UP_STEP(step_defname_replace_block_like_expr);
     ,
     FINALLY_STEP(step_pop_state);
     );
