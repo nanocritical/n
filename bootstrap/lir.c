@@ -153,8 +153,10 @@ static void rewrite_opt_acc_op(struct module *mod, struct node *node) {
                ref->as.UN.operator = refop;
                G(acc, BIN,
                  acc->as.BIN.operator = accop;
-                 G(v3, IDENT,
-                   v3->as.IDENT.name = node_ident(v));
+                 G(nonnillable, UN,
+                   nonnillable->as.UN.operator = T__NONNULLABLE;
+                   G(v3, IDENT,
+                     v3->as.IDENT.name = node_ident(v)));
                  node_subs_append(acc, right)))));
          G(no, BLOCK,
            G(nil, NIL)))));

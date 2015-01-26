@@ -481,6 +481,7 @@ static void print_un(FILE *out, const struct module *mod, const struct node *nod
   case OP_UN_PRIMITIVES:
     switch (op) {
     case T__NULLABLE:
+    case T__NONNULLABLE:
       print_expr(out, mod, term, parent_op);
       break;
     default:

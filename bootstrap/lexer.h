@@ -165,6 +165,7 @@ enum token_type {
   // up a precious enum node_which entry. This is purely internal and could
   // change.
   T__NULLABLE,
+  T__NONNULLABLE,
   T__DEOPT,
   T__DEOPT_DEREFDOT,
 
@@ -245,6 +246,7 @@ struct operator {
 static const struct operator operators[TOKEN__NUM] = {
   [T__STATEMENT] = OP(0, 0, 0, 0xffff),
   [T__NULLABLE] = OP(0, OP_UN_PRIMITIVES, 0, 0xf000),
+  [T__NONNULLABLE] = OP(0, OP_UN_PRIMITIVES, 0, 0xf000),
   [T__DEOPT] = OP(0, OP_UN_OPT, 0, 0xf000),
   [T__DEOPT_DEREFDOT] = OP(0, OP_UN_OPT, 0, 0xf000),
   [TASSIGN] = OP(OP_ASSIGN, OP_BIN_SYM, ASSOC_NON, 0x140),

@@ -623,7 +623,7 @@ static ERROR nullable_op(enum token_type *r,
   }
 
   struct typ *t0 = typ_generic_functor(t);
-  if (t0 == NULL) {
+  if (t0 == NULL || !typ_is_reference(t)) {
     error e = mk_except_type(mod, for_error, "Nullable expects a reference, not '%s'",
                              pptyp(mod, t));
     THROW(e);
@@ -635,6 +635,34 @@ static ERROR nullable_op(enum token_type *r,
     *r = TNULREFBANG;
   } else if (typ_isa(t0, TBI_ANY_REF)) {
     *r = TNULREFDOT;
+  } else {
+    assert(false);
+  }
+
+  return 0;
+}
+
+static ERROR nonnullable_op(enum token_type *r,
+                            struct module *mod, const struct node *for_error,
+                            struct typ *t) {
+  if (!typ_isa(t, TBI_ANY_NULLABLE_REF)) {
+    *r = 0;
+    return 0;
+  }
+
+  struct typ *t0 = typ_generic_functor(t);
+  if (t0 == NULL || !typ_is_reference(t)) {
+    error e = mk_except_type(mod, for_error, "nonnullable expects a reference, not '%s'",
+                             pptyp(mod, t));
+    THROW(e);
+  }
+
+  if (typ_equal(t0, TBI_NMMREF)) {
+    *r = TREFSHARP;
+  } else if (typ_isa(t0, TBI_ANY_NULLABLE_MUTABLE_REF)) {
+    *r = TREFBANG;
+  } else if (typ_isa(t0, TBI_ANY_NULLABLE_REF)) {
+    *r = TREFDOT;
   } else {
     assert(false);
   }
@@ -662,6 +690,21 @@ rewrote_op:
       {
         enum token_type nop = 0;
         e = nullable_op(&nop, mod, node, term->typ);
+        EXCEPT(e);
+        if (nop == 0) {
+          set_typ(&node->typ, term->typ);
+        } else {
+          e = reference(&i, mod, node, nop, typ_generic_arg(term->typ, 0));
+          EXCEPT(e);
+          set_typ(&node->typ, i);
+          node->flags |= term->flags & NODE__TRANSITIVE;
+        }
+      }
+      break;
+    case T__NONNULLABLE:
+      {
+        enum token_type nop = 0;
+        e = nonnullable_op(&nop, mod, node, term->typ);
         EXCEPT(e);
         if (nop == 0) {
           set_typ(&node->typ, term->typ);

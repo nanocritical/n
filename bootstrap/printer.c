@@ -144,6 +144,7 @@ const char *token_strings[TOKEN__NUM] = {
   [TLPAR] = "(",
   [TRPAR] = ")",
   [T__NULLABLE] = "nullable",
+  [T__NONNULLABLE] = "nonnullable",
   [T__DEOPT] = "<deopt>",
 };
 
