@@ -64,7 +64,7 @@ static ERROR cc(const char *o_fn, const char *c_fn) {
     EXCEPT(e);
   }
 
-  static const char *fmt = "%s %s " CFLAGS " %s -xc %s -c -o %s";
+  static const char *fmt = "%s %s " CFLAGS " %s %s -c -o %s";
   char *cmd = calloc(strlen(fmt) + strlen(g_opt.ccache)
                      + strlen(g_opt.compiler) + strlen(g_opt.cflags)
                      + strlen(c_fn) + strlen(o_fn) + 1, sizeof(char));
