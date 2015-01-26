@@ -1593,6 +1593,14 @@ inline Range met Iter = Index_iterator
 inline Range met Reverse_iter = Reverse_index_iterator
 	return { it=self.Iter }
 
+inline Range met First count:Uint = Range
+	return {Begin=self.Begin
+		\ End=(self.Begin + (Min self.Count count))}
+
+inline Range met Last count:Uint = Range
+	return {Begin=(self.End - (Min self.Count count))
+		\ End=self.End}
+
 Range met Show st:@#`Fmt_state
 	"[".Show st
 	self.Begin.Show st
