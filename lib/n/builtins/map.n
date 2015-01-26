@@ -76,7 +76,10 @@ sptable met# set n:Uint = @#T
 	return gr![count_before]
 
 sptable met! iter = (sptable_iter T)
-	return {table=self ng=self.groups.Count g=0 w=self.bitmap.Words.First}
+	let w = 0:U32 such
+		if self.bitmap.Count > 0
+			w = self.bitmap.Words.First
+	return {table=self ng=self.groups.Count g=0 w=w}
 
 struct sptable_iter T:`Copyable =
 	isa (`Iterator (Uint, @#T))
@@ -89,7 +92,7 @@ struct sptable_iter T:`Copyable =
 sptable_iter met Has_next = Bool
 	if self.w != 0
 		return true
-	if self.g >= self.ng-1
+	if self.g+1 >= self.ng
 		return false
 	return (self.table.bitmap.Ffs_from (self.g+1)*Bitmap.BITS_PER_WORD)?
 
@@ -175,9 +178,10 @@ Map met# Dtor
 
 Map met# Clear
 	self#table#Dtor
+	self!count = 0
 
 Map met# Copy_ctor other:@this
-	self#Clear
+	self#Dtor
 	assert self#Ingest other
 
 Map met Count = Uint
@@ -226,7 +230,8 @@ Map met# may_grow = Bool
 
 	-- Grow.
 	-- FIXME(e): use a Move.
-	let tmp = self.
+	let tmp = {}:this --self.
+	tmp#Copy_ctor self
 	self#Dtor
 	self#init size=2*tmp.table.size
 	let all = self#Ingest tmp
@@ -263,7 +268,6 @@ Map met# Try_store key:K = ?@#T
 
 -- Return true if some keys from 'other' were already in 'self'.
 Map met# Ingest other:@this = ingested_all:Bool
-	Eprn "ingest start" self.Count
 	ingested_all = true
 	for pos in other.table.bitmap.Iter
 		let u = other#table#get pos
@@ -271,12 +275,9 @@ Map met# Ingest other:@this = ingested_all:Bool
 			continue
 		let loc = self#Try_store u.key
 		if not loc?
-			if K isa `Show
-				Eprn "not ingested" u.key
 			ingested_all = false
 			continue
 		loc# = u.val
-	Eprn "ingest end"
 	return ingested_all
 
 Map met# Try_delete key:K = did:Bool
