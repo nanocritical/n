@@ -194,7 +194,7 @@ Map met Count = Uint
 Map met index hash:U32 nth:Uint = Uint
 	return ((hash.Uint + (nth * (nth+1))) / 2) % self.table.size
 
-Map shallow met$ get_unit key:K trying:Bool = ?@$this.unit_type, idx:Uint, hash:U32
+Map shallow met$ get_unit key:@K trying:Bool = ?@$this.unit_type, idx:Uint, hash:U32
 	if trying and self.Count == 0
 		return nil, 0, 0
 
@@ -217,7 +217,7 @@ Map shallow met$ get_unit key:K trying:Bool = ?@$this.unit_type, idx:Uint, hash:
 Map met Operator_in key:@K = Bool
 	return self.[key]?
 
-Map shallow met$ Operator_at key:K = ?@$T
+Map shallow met$ Operator_at key:@K = ?@$T
 	let u, _, _ = self$get_unit key true
 	if u?
 		return @$u$val
@@ -239,7 +239,7 @@ Map met# may_grow = Bool
 	assert (self.count * 32) / self.table.size <= 24
 	return true
 
-Map met# store key:K trying:Bool = ?@#T
+Map met# store key:@K trying:Bool = ?@#T
 	self#ensure_init
 	var u, idx, hash = self!get_unit key false
 	if u?
@@ -258,12 +258,12 @@ Map met# store key:K trying:Bool = ?@#T
 	nu#key = key
 	return @#nu#val
 
-Map met# Store key:K = @#T
+Map met# Store key:@K = @#T
 	let loc = self#store key false
 	assert loc?
 	return loc
 
-Map met# Try_store key:K = ?@#T
+Map met# Try_store key:@K = ?@#T
 	return self#store key true
 
 -- Return true if some keys from 'other' were already in 'self'.
@@ -280,7 +280,7 @@ Map met# Ingest other:@this = ingested_all:Bool
 		loc# = u.val
 	return ingested_all
 
-Map met# Try_delete key:K = did:Bool
+Map met# Try_delete key:@K = did:Bool
 	if self.Count == 0
 		return false
 
@@ -294,7 +294,7 @@ Map met# Try_delete key:K = did:Bool
 
 	return false
 
-Map met# Delete key:K
+Map met# Delete key:@K
 	assert self#Try_delete key
 
 Map shallow met$ Iter = (Map_iter this @$T)
