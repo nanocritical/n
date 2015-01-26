@@ -391,9 +391,12 @@ static ERROR advance_topdeps_each(struct module *mod, struct node *node,
   }
 
   error e = do_complete_instantiation(node_module_owner(d), d);
+  const struct node *for_error = node_toplevel_const(d)->generic->for_error;
   if (e) {
-    e = mk_except_type(mod, node_toplevel_const(d)->generic->for_error,
-                       "while instantiating generic here");
+    if (for_error != NULL) {
+      e = mk_except_type(mod, for_error,
+                         "while instantiating generic here");
+    }
     THROW(e);
   }
 
