@@ -161,8 +161,6 @@ static const struct typ *corresponding_trivial(ident m) {
     return TBI_TRIVIAL_CTOR;
   case ID_DTOR:
     return TBI_TRIVIAL_DTOR;
-  case ID_COPY_CTOR:
-    return TBI_TRIVIAL_COPY;
   default:
     assert(false);
     return NULL;
@@ -184,6 +182,8 @@ static void gen_on_choices_and_fields(struct module *mod,
     assert(ch == NULL);
   }
 
+  // FIXME(e): For dtor must proceed backwards.
+
   const struct node *funargs = subs_at_const(m, IDX_FUNARGS);
   size_t n = 0;
   FOREACH_SUB_CONST(f, deft) {
@@ -191,22 +191,41 @@ static void gen_on_choices_and_fields(struct module *mod,
       continue;
     }
 
+    const struct node *arg_self = subs_first_const(funargs);
+
+    if (node_ident(m) == ID_COPY_CTOR) {
+      const struct node *arg_other = next_const(arg_self);
+      G0(assign, body, BIN,
+         assign->as.BIN.operator = TASSIGN;
+         G(acc, BIN,
+           acc->as.BIN.operator = TSHARP;
+           G(self, IDENT,
+             self->as.IDENT.name = node_ident(arg_self));
+           G(nf, IDENT,
+             nf->as.IDENT.name = node_ident(f)));
+         G(acco, BIN,
+           acco->as.BIN.operator = TDOT;
+           G(other, IDENT,
+             other->as.IDENT.name = node_ident(arg_other));
+           G(no, IDENT,
+             no->as.IDENT.name = node_ident(f))));
+      continue;
+    }
+
     if (typ_isa(f->typ, corresponding_trivial(node_ident(m)))) {
       continue;
     }
 
-    const struct node *arg_self = subs_first_const(funargs);
-    G0(call, body, CALL,
-       G(fun, BIN,
-         fun->as.BIN.operator = TDOT;
-         like_arg(mod, fun, arg_self, node_ident(f));
-         G(name, IDENT,
-           name->as.IDENT.name = node_ident(m))));
-
-    if (subs_count_atleast(funargs, 3)) {
-      const struct node *arg_other = next_const(arg_self);
-      like_arg(mod, call, arg_other, node_ident(f));
-    }
+    G0(fun, body, BIN,
+       fun->as.BIN.operator = TSHARP;
+       G(acc, BIN,
+         acc->as.BIN.operator = TSHARP;
+         G(self, IDENT,
+           self->as.IDENT.name = node_ident(arg_self));
+         G(nf, IDENT,
+           nf->as.IDENT.name = node_ident(f)));
+       G(name, IDENT,
+         name->as.IDENT.name = node_ident(m)));
 
     n += 1;
   }
