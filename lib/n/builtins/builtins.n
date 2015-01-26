@@ -45,6 +45,7 @@ intf `Trivial_copy =
 intf `Trivial_copy_but_owned =
 	isa `Trivial_copy -- FIXME
 intf `Return_by_copy =
+	isa `Trivial_copy
 intf `Not_return_by_copy =
 intf `Default_ctor =
 	met# Ctor
@@ -447,19 +448,32 @@ inline Slice_impl shallow met$ Operator_at n:Uint = r:@$t
 	and off = n * (sizeof t)
 	return (Cast @#U8 @$t) <- Slice_at_byte raw off
 
----- FIXME: the copy operations are only available if the t is `Copyable or
--- `Trivial_copy. We would like that detection to be static. And we would want
+---- FIXME: the copy operations are only available if the t is `Copyable. We
+-- would like that detection to be static. And we would want
 -- to allow method arguments whose type require `Copyable, say.
 
-inline Slice_impl met! Full_copy other:this = this
-	assert t isa `Trivial_copy
-
+inline Slice_impl met! Full_copy other:this = r:this
+	assert t isa `Copyable
 	assert self.cap >= other.cnt
 	let dst = self!Unsafe_rawdata
-	and src = other.Unsafe_rawdata
-	and bytecnt = other.cnt * (sizeof t)
-	Slice_memmove dst src bytecnt
-	return {dat=((Cast @#U8 @#t) dst) cnt=other.cnt cap=self.cap}
+	r = {dat=((Cast @#U8 @#t) dst) cnt=other.cnt cap=self.cap}
+	if t isa `Trivial_copy
+		let src = other.Unsafe_rawdata
+		and bytecnt = other.cnt * (sizeof t)
+		Slice_memmove dst src bytecnt
+	else
+		let p_dst = ((Cast @#U8 Voidref) dst).Uintptr
+		let p_src = ((Cast @U8 Voidref) other.Unsafe_rawdata).Uintptr
+		let bytecnt = other.cnt * (sizeof t)
+		if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
+			foreach i in r.All
+				if t isa `Copyable
+					r![i]#Copy_ctor other.[i]
+		else
+			for i in r.All.Reverse_iter
+				if t isa `Copyable
+					r![i]#Copy_ctor other.[i]
+	return r
 
 -- Copy what it can, and return a slice to the result.
 inline Slice_impl met! Copy other:this = this
@@ -467,12 +481,8 @@ inline Slice_impl met! Copy other:this = this
 	return self!Full_copy other.[.. cnt]
 
 inline Slice_impl met! Exact_copy other:this
-	assert t isa `Trivial_copy
 	assert self.cnt == other.cnt
-	let dst = self!Unsafe_rawdata
-	and src = other.Unsafe_rawdata
-	and bytecnt = other.cnt * (sizeof t)
-	Slice_memmove dst src bytecnt
+	let _ = self!Full_copy other
 
 -- Append what it can, and return a slice to the result.
 inline Slice_impl met! Append other:this = this
@@ -513,7 +523,9 @@ inline Slice_impl met Show st:@#`Fmt_state
 			x.Show st
 		else
 			let px = ((Cast @t Voidref) x).Uintptr
+			"<".Show st
 			px.Show st
+			">".Show st
 	"}".Show st
 
 example
@@ -1296,6 +1308,8 @@ extern inline Int met Trim_i8 = I8
 extern inline Int met Trim_i16 = I16
 extern inline Int met Trim_i32 = I32
 extern inline Int met I64 = I64
+inline Int met Intptr = Intptr
+	return self.I64.force_intptr
 extern inline Int met Round_float = Float
 extern inline Int met Round_double = Double
 extern Int met Show st:@#`Fmt_state
@@ -1350,6 +1364,8 @@ extern inline Uint met Trim_u8 = U8
 extern inline Uint met Trim_u16 = U16
 extern inline Uint met Trim_u32 = U32
 extern inline Uint met U64 = U64
+inline Uint met Uintptr = Uintptr
+	return self.U64.force_uintptr
 extern inline Uint met Round_float = Float
 extern inline Uint met Round_double = Double
 extern Uint met Show st:@#`Fmt_state

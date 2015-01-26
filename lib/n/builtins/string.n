@@ -373,7 +373,7 @@ inline Stringbuf fun From_string s:String = this
 inline Stringbuf met# Dtor
 	Realloc @#self#bytes 0
 
-inline Stringbuf met# Copy_ctor other:Stringbuf
+inline Stringbuf met# Copy_ctor other:@this
 	self#Copy other.bytes
 
 inline Stringbuf fun From_bytes s:[]U8 = this

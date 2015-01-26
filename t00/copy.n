@@ -10,7 +10,7 @@ copy met# copy_ctor other:@this
 fun Foo = copy
 	return { x=0 }
 
-fun Main = I32
+fun basic = I32
 	let w = Foo
 	let y = { x=-1 }:copy
 	let z:copy
@@ -18,3 +18,47 @@ fun Main = I32
 		z = y
 	let zz = z
 	return w.x + z.x + zz.x + 2
+
+fun mk s:Stringbuf = Stringbuf
+	return s
+
+fun check_diff s:Stringbuf raw:@U8 ?opt:?@Stringbuf ?opt_raw:?@U8
+	assert s.Bytes.Unsafe_rawdata !== raw
+	assert (opt?.Bytes?.Unsafe_rawdata else nil) === opt_raw
+
+fun do_noop
+	noop
+
+fun Main = I32
+	assert basic == 0
+
+	let a = "a":Stringbuf
+
+	let b = a
+	assert b.Bytes.Unsafe_rawdata !== a.Bytes.Unsafe_rawdata
+
+	check_diff a a.Bytes.Unsafe_rawdata opt=b opt_raw=b.Bytes.Unsafe_rawdata
+
+	let c = mk a
+	assert c.Bytes.Unsafe_rawdata !== a.Bytes.Unsafe_rawdata
+
+	let d = { a b c }
+	assert d.[0].Bytes.Unsafe_rawdata !== a.Bytes.Unsafe_rawdata
+	assert d.[1].Bytes.Unsafe_rawdata !== b.Bytes.Unsafe_rawdata
+	assert d.[2].Bytes.Unsafe_rawdata !== c.Bytes.Unsafe_rawdata
+
+	let e = block
+		block
+			do_noop
+			do_noop
+			a
+	assert e.Bytes.Unsafe_rawdata !== a.Bytes.Unsafe_rawdata
+
+	var f
+	f = block
+		do_noop
+		do_noop
+		a
+	assert f.Bytes.Unsafe_rawdata !== a.Bytes.Unsafe_rawdata
+
+	return 0
