@@ -28,7 +28,9 @@ NB(U8) *n$mem$_realloc0(NB(U8) *ap, NB(Uint) old_bsz, NB(Uint) bsz) {
     if (r == NULL) {
       NB(Abort)();
     }
-    memset(r + old_bsz, 0, bsz - old_bsz);
+    if (bsz > old_bsz) {
+      memset(r + old_bsz, 0, bsz - old_bsz);
+    }
   }
   return r;
 }
