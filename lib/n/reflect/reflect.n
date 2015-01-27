@@ -89,6 +89,10 @@ Dynisalist met# Init count:Uint
 
 	Realloc @#self#entries count
 
+Dynisalist met# Dtor
+	Realloc @#self#entries 0
+	Realloc @#self#hashmap 0
+
 Dynisalist met! Add_entry rintf:@Type dyntable:refdyntable
 	let e, addr = self.find_entry rintf true
 	assert not e?
