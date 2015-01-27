@@ -21,30 +21,30 @@ fun Install_sysheap sysheader:@#(Envheader @!`Heap) within Heap
 		assert false
 	Heap!Free_raw ((Cast @#t @#U8) p) (sizeof t)
 
-(fun t:`Any) Realloc s:@#[]!t count:Uint within Heap
+(fun t:`Any) Realloc s:@#[]!t cap:Uint within Heap
 	let old_raw = s#Unsafe_rawdata
-	and old_bytecount = s#Bytecount
-	and bytecount = count * (sizeof t)
+	and old_bytecap = s#Bytecap
+	and bytecap = cap * (sizeof t)
 
 	if t isa `Trivial_copy
-		let raw = Heap!Realloc_raw old_raw old_bytecount bytecount
-		s# = {dat=((Cast @#U8 @#t) raw) cnt=s.cnt cap=count}
-	elif old_bytecount == 0
-		let raw = Heap!Realloc_raw old_raw old_bytecount bytecount
-		s# = {dat=((Cast @#U8 @#t) raw) cnt=s.cnt cap=count}
-	elif bytecount == 0
+		let raw = Heap!Realloc_raw old_raw old_bytecap bytecap
+		s# = {dat=((Cast @#U8 @#t) raw) cnt=s.cnt cap=cap}
+	elif old_bytecap == 0
+		let raw = Heap!Realloc_raw old_raw old_bytecap bytecap
+		s# = {dat=((Cast @#U8 @#t) raw) cnt=s.cnt cap=cap}
+	elif bytecap == 0
 		foreach i in s.All
 			if t isa `Default_dtor
 				s![i]#Dtor
-		let raw = Heap!Realloc_raw old_raw old_bytecount bytecount
-		s# = {dat=((Cast @#U8 @#t) raw) cnt=s.cnt cap=count}
+		let raw = Heap!Realloc_raw old_raw old_bytecap bytecap
+		s# = {dat=((Cast @#U8 @#t) raw) cnt=s.cnt cap=cap}
 	elif t isa `Copyable
 		let old = s.
-		let raw = Heap!Realloc_raw nil 0 bytecount
-		s# = {dat=((Cast @#U8 @#t) raw) cnt=s.cnt cap=count}
+		let raw = Heap!Realloc_raw nil 0 bytecap
+		s# = {dat=((Cast @#U8 @#t) raw) cnt=s.cnt cap=cap}
 		foreach i in old.All
 			s![i]#Copy_ctor old.[i]
-		let _ = Heap!Realloc_raw old_raw old_bytecount 0
+		let _ = Heap!Realloc_raw old_raw old_bytecap 0
 	else
 		assert false
 

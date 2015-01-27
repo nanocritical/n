@@ -215,6 +215,8 @@ intf `Any_any_slice =
 intf `Any_slice t:`Any =
 	isa `Any_any_slice (`Random_container t)
 	met Bytecount = Uint
+	met Cap = Uint
+	met Bytecap = Uint
 	met All = Range
 	shallow met$ Unsafe_rawdata = @$U8
 	shallow met$ Unsafe_data = @$t
@@ -261,6 +263,9 @@ inline Slice met Available = Uint
 inline Slice met Bytecount = Uint
 	let s = this.create_impl_instance
 	return s.Bytecount
+inline Slice met Bytecap = Uint
+	let s = this.create_impl_instance
+	return s.Bytecap
 inline Slice met All = Range
 	let s = this.create_impl_instance
 	return s.All
@@ -320,6 +325,9 @@ inline Mutable_slice met Available = Uint
 inline Mutable_slice met Bytecount = Uint
 	let s = this.create_impl_instance
 	return s.Bytecount
+inline Mutable_slice met Bytecap = Uint
+	let s = this.create_impl_instance
+	return s.Bytecap
 inline Mutable_slice met All = Range
 	let s = this.create_impl_instance
 	return s.All
