@@ -901,17 +901,25 @@ static ERROR step_store_return_through_ref_expr(struct module *mod, struct node 
       }
     } else if (!typ_isa(expr->typ, TBI_RETURN_BY_COPY)
                && typ_isa(expr->typ, TBI_COPYABLE)) {
-      // FIXME need to insert copy_ctor
+      struct node *par = parent(node);
+      node_subs_remove(node, expr);
 
-      if (expr->which == IDENT
-          && node_ident(retval_name(mod)) == node_ident(expr)) {
+      const ident name = node_ident(retval_name(mod));
+      if (expr->which == IDENT && name == node_ident(expr)) {
         // noop
-      } else if (is_block_like(expr)) {
-        block_like_insert_value_assign(mod, expr, NULL, node_ident(retval_name(mod)));
-
-        node->as.RETURN.return_through_ref_expr = retval_name(mod);
       } else {
-        node->as.RETURN.return_through_ref_expr = retval_name(mod);
+        GSTART();
+        G0(ass, par, BIN,
+           ass->as.BIN.operator = TASSIGN;
+           G(n, IDENT,
+             n->as.IDENT.name = name);
+           node_subs_append(ass, expr));
+        node_subs_remove(par, ass);
+        node_subs_insert_before(par, node, ass);
+
+        const struct node *except[] = { expr, NULL };
+        error e = catchup(mod, except, ass, CATCHUP_BEFORE_CURRENT_SAME_TOP);
+        EXCEPT(e);
       }
     }
     return 0;

@@ -1594,13 +1594,8 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
 static void print_return(FILE *out, const struct module *mod, const struct node *node) {
   if (subs_count_atleast(node, 1)) {
     const struct node *expr = subs_first_const(node);
-    if (node->as.RETURN.return_through_ref_expr != NULL) {
-      print_expr(out, mod, node->as.RETURN.return_through_ref_expr, T__STATEMENT);
-      fprintf(out, " = ");
-      print_expr(out, mod, expr, T__STATEMENT);
-      fprintf(out, ";\nreturn");
-    } else if (!node->as.RETURN.forced_return_through_ref
-               && typ_isa(expr->typ, TBI_RETURN_BY_COPY)) {
+    if (!node->as.RETURN.forced_return_through_ref
+        && typ_isa(expr->typ, TBI_RETURN_BY_COPY)) {
       fprintf(out, "return ");
       print_expr(out, mod, expr, T__STATEMENT);
     } else {

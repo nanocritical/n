@@ -263,7 +263,6 @@ struct node_init {
   const struct node *target_expr;
 };
 struct node_return {
-  const struct node *return_through_ref_expr;
   bool forced_return_through_ref;
   // When an except is turned into a return error (LIR), the return is smart
   // enough to handle a return type of Error, or any tuple that starts with
