@@ -789,7 +789,8 @@ static void infer(struct inferred *inferred, const struct node *node) {
     inferred->trivial_ctor &= inferred->default_ctor &= typ_isa(node->typ, TBI_DEFAULT_CTOR);
   }
   if (inferred->default_dtor) {
-    inferred->trivial_dtor &= inferred->default_dtor &= typ_isa(node->typ, TBI_DEFAULT_DTOR);
+    inferred->trivial_copy &= inferred->trivial_copy_but_owned &=
+      inferred->trivial_dtor &= inferred->default_dtor &= typ_isa(node->typ, TBI_DEFAULT_DTOR);
   }
   if (inferred->copyable) {
     inferred->trivial_copy &= inferred->copyable &= typ_isa(node->typ, TBI_COPYABLE);
@@ -808,7 +809,8 @@ static void infer(struct inferred *inferred, const struct node *node) {
     inferred->trivial_ctor &= typ_isa(node->typ, TBI_TRIVIAL_CTOR);
   }
   if (inferred->trivial_dtor) {
-    inferred->trivial_dtor &= typ_isa(node->typ, TBI_TRIVIAL_DTOR);
+    inferred->trivial_copy &= inferred->trivial_copy_but_owned &=
+      inferred->trivial_dtor &= typ_isa(node->typ, TBI_TRIVIAL_DTOR);
   }
   if (inferred->trivial_copy_but_owned) {
     inferred->trivial_copy_but_owned &= typ_isa(node->typ, TBI_TRIVIAL_COPY_BUT_OWNED);
@@ -832,7 +834,8 @@ static void infer_top(struct inferred *inferred, const struct node *node) {
     NULL == node_get_member_const(node, ID_CTOR);
   inferred->trivial_copy = inferred->trivial_copy_but_owned =
     NULL == node_get_member_const(node, ID_COPY_CTOR);
-  inferred->trivial_dtor =
+  inferred->trivial_copy &= inferred->trivial_copy_but_owned &=
+    inferred->trivial_dtor =
     NULL == node_get_member_const(node, ID_DTOR);
   inferred->trivial_order = inferred->trivial_equality = inferred->trivial_compare =
     NULL == node_get_member_const(node, ID_OPERATOR_LE)
