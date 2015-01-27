@@ -358,10 +358,10 @@ int main(int argc, char **argv) {
     EXCEPT(e);
   }
 
-  e = run_examples(&stage);
+  e = program_link(&stage);
   EXCEPT(e);
 
-  e = program_link(&stage);
+  e = run_examples(&stage);
   EXCEPT(e);
 
   return 0;
