@@ -12,7 +12,10 @@ fun Install_sysheap sysheader:@#(Envheader @!`Heap) within Heap
 (fun t:`Any) Alloc = @#t within Heap
 	return (Cast @#U8 @#t) <- Heap!Alloc_raw (sizeof t)
 
-(fun t:`Any) Free p:@#t within Heap
+(fun t:`Any) Free p:?@#t within Heap
+	if not p?
+		return
+
 	if t isa `Trivial_dtor
 		noop
 	elif t isa `Default_dtor
