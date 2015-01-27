@@ -137,6 +137,54 @@ static ERROR step_generics_pristine_copy(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_enforce_identity_check,
+               NM(DEFMETHOD));
+static ERROR step_enforce_identity_check(struct module *mod, struct node *node,
+                                        void *user, bool *stop) {
+  DSTEP(mod, node);
+  const ident name = node_ident(node);
+  bool has_ret = false, ret_val = false;
+  switch (name) {
+  case ID_COPY_CTOR:
+    has_ret = false;
+    break;
+  case ID_OPERATOR_EQ:
+    has_ret = true;
+    ret_val = true;
+    break;
+  case ID_OPERATOR_NE:
+    has_ret = true;
+    ret_val = false;
+    break;
+  default:
+    return 0;
+  }
+
+  if (!node_has_tail_block(node)) {
+    return 0;
+  }
+
+  struct node *funargs = subs_at(node, IDX_FUNARGS);
+  struct node *block = subs_last(node);
+  GSTART();
+  G0(xif, block, IF,
+     G(eq, BIN,
+       eq->as.BIN.operator = TEQPTR;
+       G(nself, IDENT,
+         nself->as.IDENT.name = ID_SELF);
+       G(nother, IDENT,
+         nother->as.IDENT.name = node_ident(subs_at(funargs, 1))));
+     G(b, BLOCK,
+       G(ret, RETURN,
+         if (has_ret) {
+           G(retv, BOOL,
+             retv->as.BOOL.value = ret_val);
+         })));
+  node_subs_remove(block, xif);
+  node_subs_prepend(block, xif);
+  return 0;
+}
+
 static STEP_NM(step_detect_prototypes,
                NM(DEFFUN) | NM(DEFMETHOD));
 static ERROR step_detect_prototypes(struct module *mod, struct node *node,
@@ -314,6 +362,7 @@ static ERROR passzero0(struct module *mod, struct node *root,
   PASS(
     DOWN_STEP(step_init_toplevel);
     DOWN_STEP(step_generics_pristine_copy);
+    DOWN_STEP(step_enforce_identity_check);
     DOWN_STEP(step_lir_conversion_down);
     DOWN_STEP(step_push_state);
     DOWN_STEP(step_stop_submodules);
