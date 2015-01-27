@@ -1268,12 +1268,6 @@ static ERROR check_exhaustive_intf_impl_eachisalist(struct module *mod,
   const struct node *for_error = user;
   error e = 0;
 
-  if (typ_isa(t, TBI_ANY_TUPLE) && typ_equal(intf, TBI_COPYABLE)) {
-    // FIXME: once we generate copy_ctor in the non-trivial_copy case,
-    // remove this.
-    return 0;
-  }
-
   struct tit *mi = typ_definition_members(intf, LET, DEFNAME, DEFALIAS, DEFFUN, DEFMETHOD, 0);
   while (tit_next(mi)) {
     if (tit_which(mi) == NOOP) {
