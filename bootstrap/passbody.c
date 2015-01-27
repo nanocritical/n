@@ -554,6 +554,7 @@ static ERROR try_replace_with_copy(struct module *mod, struct node *node,
     break;
   case CALL:
   case INIT:
+  case TUPLE:
     e = arg_copy_call_inference(mod, node, expr);
     EXCEPT(e);
     break;
@@ -564,7 +565,7 @@ static ERROR try_replace_with_copy(struct module *mod, struct node *node,
 }
 
 static STEP_NM(step_copy_call_inference,
-               NM(BIN) | NM(DEFNAME) | NM(CALL) | NM(INIT));
+               NM(BIN) | NM(DEFNAME) | NM(CALL) | NM(INIT) | NM(TUPLE));
 static ERROR step_copy_call_inference(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
@@ -596,6 +597,15 @@ static ERROR step_copy_call_inference(struct module *mod, struct node *node,
     return 0;
   case CALL:
     nxt = next(subs_first(node));
+    while (nxt != NULL) {
+      struct node *arg = nxt;
+      nxt = next(nxt);
+      e = try_replace_with_copy(mod, node, arg);
+      EXCEPT(e);
+    }
+    return 0;
+  case TUPLE:
+    nxt = subs_first(node);
     while (nxt != NULL) {
       struct node *arg = nxt;
       nxt = next(nxt);
