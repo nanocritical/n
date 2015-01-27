@@ -19,13 +19,11 @@ Path met String = String
 Path met Hash32 = U32
 	return self.buf.Hash32
 
-Path fun From_string s:String = this
-	let r = {}:this such r#buf#Cat s
-	return r
+Path fun From_string s:String = r:this
+	r#buf#Cat s
 
-Path fun From_bytes s:[]U8 = this
-	let r = {}:this such _, _ = r#buf#Write s
-	return r
+Path fun From_bytes s:[]U8 = r:this
+	_, _ = r#buf#Write s
 
 Path met Count = Uint
 	return self.buf.Count
