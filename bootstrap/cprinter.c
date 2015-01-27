@@ -1495,6 +1495,26 @@ static void print_defname_linkage(FILE *out, bool header, enum forward fwd,
   }
 }
 
+static void print_defname_cleanup(FILE *out, const struct module *mod,
+                                  const struct node *node) {
+  if (node->flags & NODE_IS_GLOBAL_LET) {
+    return;
+  } else if (subs_last_const(node)->flags & NODE_IS_LOCAL_STATIC_CONSTANT) {
+    return;
+  } else if (typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
+    // Includes references.
+    return;
+  } else if (node->as.DEFNAME.is_stolen_by_move) {
+    return;
+  }
+
+  fprintf(out, " __attribute__((__cleanup__(");
+  struct tit *it = typ_definition_one_member(node->typ, ID_DTOR);
+  print_typ(out, mod, tit_typ(it));
+  tit_next(it);
+  fprintf(out, "))) ");
+}
+
 static void print_defname(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node) {
   const struct node *let = parent_const(node);
@@ -1529,6 +1549,8 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
   } else if (expr->flags & NODE_IS_LOCAL_STATIC_CONSTANT) {
     fprintf(out, " static ");
   }
+
+  print_defname_cleanup(out, mod, node);
 
   if (node_ident(node) == ID_OTHERWISE) {
     if (expr != NULL) {

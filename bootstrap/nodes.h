@@ -396,6 +396,11 @@ struct node_defname {
 
   bool may_be_unused;
   size_t locally_shadowed;
+
+  // FIXME(e): only sensible for `Trivial_move. Therefore not at all
+  // sensible at this point. We cannot use C literal assignments for INIT
+  // and TUPLE when non `Trivial_copy.
+  bool is_stolen_by_move;
 };
 struct node_defpattern {
   bool is_alias;
