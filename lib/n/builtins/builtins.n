@@ -1583,8 +1583,7 @@ inline Bounds (met t:`Any c:(`Random_container t)) Range_of v:@c = Range
 		return {Begin=0 End=v.Count}
 
 inline struct Range =
-	isa `Trivial_copy `Trivial_equality `Trivial_ctor `Return_by_copy
-		\ (`Collection Uint) `Show
+	isa  `Return_by_copy (`Collection Uint) `Show
 	Begin	:Uint
 	End	:Uint
 
@@ -1633,7 +1632,7 @@ Range met Show st:@#`Fmt_state
 	"]".Show st
 
 inline struct Index_iterator =
-	isa (`Iterator Uint) `Trivial_copy `Trivial_ctor
+	isa (`Iterator Uint)
 	r	:Range
 	p	:Uint
 

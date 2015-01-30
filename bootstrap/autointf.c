@@ -167,71 +167,84 @@ static const struct typ *corresponding_trivial(ident m) {
   }
 }
 
-static void gen_on_choices_and_fields(struct module *mod,
-                                      struct node *deft,
-                                      struct node *ch,
-                                      struct node *m,
-                                      struct node *body) {
+static void gen_on_field(struct module *mod, struct node *m,
+                         struct node *body, struct node *f) {
   GSTART();
-  assert(deft->which == DEFTYPE);
-  if (deft->as.DEFTYPE.kind == DEFTYPE_UNION) {
-    // FIXME: unsupported
-    G0(noop, body, NOOP);
-    return;
-  } else {
-    assert(ch == NULL);
-  }
-
-  // FIXME(e): For dtor must proceed backwards.
-
   const struct node *funargs = subs_at_const(m, IDX_FUNARGS);
-  size_t n = 0;
-  FOREACH_SUB_CONST(f, deft) {
-    if (f->which != DEFFIELD) {
-      continue;
-    }
+  const struct node *arg_self = subs_first_const(funargs);
 
-    const struct node *arg_self = subs_first_const(funargs);
-
-    if (node_ident(m) == ID_COPY_CTOR) {
-      const struct node *arg_other = next_const(arg_self);
-      G0(assign, body, BIN,
-         assign->as.BIN.operator = TASSIGN;
-         G(acc, BIN,
-           acc->as.BIN.operator = TSHARP;
-           G(self, IDENT,
-             self->as.IDENT.name = node_ident(arg_self));
-           G(nf, IDENT,
-             nf->as.IDENT.name = node_ident(f)));
-         G(acco, BIN,
-           acco->as.BIN.operator = TDOT;
-           G(other, IDENT,
-             other->as.IDENT.name = node_ident(arg_other));
-           G(no, IDENT,
-             no->as.IDENT.name = node_ident(f))));
-      continue;
-    }
-
-    if (typ_isa(f->typ, corresponding_trivial(node_ident(m)))) {
-      continue;
-    }
-
-    G0(fun, body, BIN,
-       fun->as.BIN.operator = TSHARP;
+  if (node_ident(m) == ID_COPY_CTOR) {
+    const struct node *arg_other = next_const(arg_self);
+    G0(assign, body, BIN,
+       assign->as.BIN.operator = TASSIGN;
        G(acc, BIN,
          acc->as.BIN.operator = TSHARP;
          G(self, IDENT,
            self->as.IDENT.name = node_ident(arg_self));
          G(nf, IDENT,
            nf->as.IDENT.name = node_ident(f)));
-       G(name, IDENT,
-         name->as.IDENT.name = node_ident(m)));
-
-    n += 1;
+       G(acco, BIN,
+         acco->as.BIN.operator = TDOT;
+         G(other, IDENT,
+           other->as.IDENT.name = node_ident(arg_other));
+         G(no, IDENT,
+           no->as.IDENT.name = node_ident(f))));
+    return;
   }
 
-  if (n == 0) {
-    G0(noop, body, NOOP);
+  if (typ_isa(f->typ, corresponding_trivial(node_ident(m)))) {
+    return;
+  }
+
+  G0(fun, body, BIN,
+     fun->as.BIN.operator = TSHARP;
+     G(acc, BIN,
+       acc->as.BIN.operator = TSHARP;
+       G(self, IDENT,
+         self->as.IDENT.name = node_ident(arg_self));
+       G(nf, IDENT,
+         nf->as.IDENT.name = node_ident(f)));
+     G(name, IDENT,
+       name->as.IDENT.name = node_ident(m)));
+}
+
+static void gen_on_choices_and_fields(struct module *mod,
+                                      struct node *node,
+                                      struct node *m,
+                                      struct node *body) {
+  GSTART();
+
+  // TODO(e): Doesn't handle hiearchical unions.
+
+  if (node->which == DEFFIELD) {
+    gen_on_field(mod, m, body, node);
+    return;
+  } else if (node->which == DEFTYPE) {
+    G0(noop, body, NOOP); // Ensure not empty.
+
+    if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
+      G0(match, body, MATCH,
+         G(self, IDENT,
+           self->as.IDENT.name = ID_SELF));
+      body = match;
+    }
+  } else if (node->which == DEFCHOICE) {
+    G0(pattern, body, IDENT,
+       pattern->as.IDENT.name = node_ident(node));
+    G0(block, body, BLOCK);
+    body = block;
+
+    const struct node *ext = node_defchoice_external_payload(node);
+    if (ext != NULL) {
+      gen_on_field(mod, m, body, node);
+      return;
+    }
+  }
+
+  FOREACH_SUB(f, node) {
+    if (NM(f->which) & (NM(DEFFIELD) | NM(DEFCHOICE))) {
+      gen_on_choices_and_fields(mod, f, m, body);
+    }
   }
 }
 
@@ -396,7 +409,7 @@ static void add_auto_member(struct module *mod,
     return;
   }
 
-  if (typ_is_trivial(inferred_intf)) {
+  if (typ_is_trivial(inferred_intf) || typ_equal(inferred_intf, TBI_ENUM)) {
     enum builtingen bg = BG__NOT;
 
     switch (tit_ident(mi)) {
@@ -429,7 +442,7 @@ non_bg:
   case ID_CTOR:
   case ID_DTOR:
   case ID_COPY_CTOR:
-    gen_on_choices_and_fields(mod, deft, NULL, m, body);
+    gen_on_choices_and_fields(mod, deft, m, body);
     break;
   case ID_OPERATOR_COMPARE:
     gen_on_choices_and_fields_lexicographic(mod, deft, NULL, m, body);
@@ -637,8 +650,11 @@ static void add_auto_isa(struct module *mod, struct node *deft,
     assert(!never);
   }
 
-  const uint32_t filter = (node_is_extern(deft) && !typ_is_trivial(i)) \
-                          ? ISALIST_FILTEROUT_NONTRIVIAL_ISALIST : 0;
+  const bool non_trivial_on_extern = !typ_is_trivial(i) && node_is_extern(deft);
+
+  const uint32_t filter = non_trivial_on_extern
+                          ? ISALIST_FILTEROUT_NONTRIVIAL_ISALIST
+                          : 0;
   error never = typ_isalist_foreach(mod, CONST_CAST(i), filter,
                                     add_auto_isa_eachisalist, deft);
   assert(!never);
@@ -775,21 +791,26 @@ struct inferred {
 
 static void infer(struct inferred *inferred, const struct node *node) {
   if (node->which == DEFCHOICE) {
-    FOREACH_SUB_CONST(f, node) {
-      if (!(NM(f->which) & (NM(DEFFIELD) | NM(DEFCHOICE)))) {
-        continue;
-      }
+    const struct node *ext = node_defchoice_external_payload(node);
+    if (ext == NULL) {
+      FOREACH_SUB_CONST(f, node) {
+        if (!(NM(f->which) & (NM(DEFFIELD) | NM(DEFCHOICE)))) {
+          continue;
+        }
 
-      infer(inferred, f);
+        infer(inferred, f);
+      }
+      return;
     }
-    return;
+
+    node = ext;
   }
 
   if (inferred->default_ctor) {
     inferred->trivial_ctor &= inferred->default_ctor &= typ_isa(node->typ, TBI_DEFAULT_CTOR);
   }
   if (inferred->default_dtor) {
-    inferred->trivial_copy &= inferred->trivial_copy_but_owned &=
+    inferred->trivial_copy_but_owned &= inferred->trivial_copy &=
       inferred->trivial_dtor &= inferred->default_dtor &= typ_isa(node->typ, TBI_DEFAULT_DTOR);
   }
   if (inferred->copyable) {
@@ -809,7 +830,7 @@ static void infer(struct inferred *inferred, const struct node *node) {
     inferred->trivial_ctor &= typ_isa(node->typ, TBI_TRIVIAL_CTOR);
   }
   if (inferred->trivial_dtor) {
-    inferred->trivial_copy &= inferred->trivial_copy_but_owned &=
+    inferred->trivial_copy_but_owned &= inferred->trivial_copy &=
       inferred->trivial_dtor &= typ_isa(node->typ, TBI_TRIVIAL_DTOR);
   }
   if (inferred->trivial_copy_but_owned) {
@@ -819,7 +840,8 @@ static void infer(struct inferred *inferred, const struct node *node) {
     inferred->trivial_copy &= typ_isa(node->typ, TBI_TRIVIAL_COPY);
   }
   if (inferred->trivial_compare) {
-    inferred->trivial_order &= inferred->trivial_equality &= inferred->trivial_compare &= typ_isa(node->typ, TBI_TRIVIAL_COMPARE);
+    inferred->trivial_order &= inferred->trivial_equality &= inferred->trivial_compare &=
+      typ_isa(node->typ, TBI_TRIVIAL_COMPARE);
   }
   if (inferred->trivial_equality) {
     inferred->trivial_equality &= typ_isa(node->typ, TBI_TRIVIAL_EQUALITY);
@@ -878,7 +900,7 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
   }
 
   struct inferred inferred = {
-    true, true, true, true, true,
+    true, true, true, true, true, true,
     true, true, true, true, true, true, true,
   };
 

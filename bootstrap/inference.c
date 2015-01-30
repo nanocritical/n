@@ -80,7 +80,7 @@ error step_type_destruct_mark(struct module *mod, struct node *node,
     }
     break;
   case INIT:
-    if (!node->as.INIT.is_array) {
+    if (!node->as.INIT.is_array && !node->as.INIT.is_defchoice_external_payload_constraint) {
       mark_subs(mod, node, TBI__NOT_TYPEABLE, first, last, 2);
     }
     break;
@@ -1511,10 +1511,15 @@ static ERROR type_inference_tuple(struct module *mod, struct node *node) {
 static ERROR type_inference_init_named(struct module *mod, struct node *node) {
   struct node *dinc = defincomplete_create(mod, node);
 
-  FOREACH_SUB_EVERY(s, node, 0, 2) {
-    const struct node *left = s;
-    const struct node *right = next(s);
-    defincomplete_add_field(mod, s, dinc, node_ident(left), right->typ);
+  if (node->as.INIT.is_defchoice_external_payload_constraint) {
+    struct node *v = subs_first(node);
+    defincomplete_add_field(mod, v, dinc, node->as.INIT.for_tag, v->typ);
+  } else {
+    FOREACH_SUB_EVERY(s, node, 0, 2) {
+      const struct node *left = s;
+      const struct node *right = next(s);
+      defincomplete_add_field(mod, s, dinc, node_ident(left), right->typ);
+    }
   }
 
   error e = defincomplete_catchup(mod, dinc);

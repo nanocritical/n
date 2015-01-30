@@ -26,7 +26,7 @@ fun Wrap_raw_cstring raw:@U8 = Cstring
 	let r = String.From_bytes b
 	return r:Cstring.ORIG
 
-fun Mk s:String = Cstring
+fun Mk s:String = r:Cstring
 	let b = s.Bytes
 	if b.Count > 0 and b.Last == 0
 		return s:Cstring.ORIG
@@ -34,10 +34,9 @@ fun Mk s:String = Cstring
 		let ext = b.[.. s.Count+1]
 		if ext.Last == 0
 			return s:Cstring.ORIG
-	let r = {}:Cstring.BUF such
-		r#BUF#Append s.Bytes
-		r#BUF#Push 0
-	return r
+	r = {}:Cstring.BUF
+	r#BUF#Append s.Bytes
+	r#BUF#Push 0
 
 example
 	let x = {}:[]U8
