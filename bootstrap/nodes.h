@@ -99,7 +99,7 @@ enum node_which {
 #define NMASK_HIR_ONLY \
   ( NM(FOR) | NM(BREAK) \
     | NM(EXCEP) | NM(THROW) \
-    | NM(DEFPATTERN) )
+    | NM(DEFPATTERN) | NM(MATCH) )
 
 #define NMASK_LIR_ONLY ( NM(JUMP) )
 
@@ -236,6 +236,7 @@ struct node_string {
 };
 struct node_bin {
   enum token_type operator;
+  bool is_generated;
 };
 struct node_un {
   enum token_type operator;

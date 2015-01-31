@@ -290,17 +290,6 @@ static void print_bin_sym(FILE *out, const struct module *mod, const struct node
                  || (right->which == CALL
                      && !typ_isa(right->typ, TBI_RETURN_BY_COPY)))) {
     print_expr(out, mod, right, T__STATEMENT);
-  } else if (op == TEQMATCH || op == TNEMATCH) {
-    const char *cop = op == TEQMATCH ? "==" : "!=";
-
-    fprintf(out, "(");
-    print_expr(out, mod, left, T__STATEMENT);
-    fprintf(out, ").%s %s ", idents_value(mod->gctx, ID_TAG), cop);
-
-    const struct node *d = DEF(left->typ);
-    const struct node *ch = node_get_member_const(d, node_ident(right));
-    print_defchoice_path(out, mod, d, ch);
-    fprintf(out, "$%s", idents_value(mod->gctx, ID_TAG));
   } else if (op == TEQPTR || op == TNEPTR) {
     if (typ_is_dyn(left->typ) && left->which != NIL) {
       fprintf(out, "(");
@@ -1040,7 +1029,6 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     break;
   case IF:
   case TRY:
-  case MATCH:
   case ASSERT:
   case PRE:
   case POST:
@@ -1109,96 +1097,6 @@ static void print_defchoice_path(FILE *out,
 
   fprintf(out, "$");
   print_deffield_name(out, mod, ch);
-}
-
-static void print_match_label(FILE *out, const struct module *mod,
-                              const struct node *label) {
-  if (node_ident(label) == ID_OTHERWISE) {
-    return;
-  }
-
-  const struct node *id = label;
-  if (id->which == BIN) {
-    id = subs_last_const(id);
-  }
-  const struct node *deft = DEF(label->typ);
-  const struct node *ch = node_get_member_const(deft, node_ident(id));
-
-  assert(ch->which == DEFCHOICE);
-  if (ch->as.DEFCHOICE.is_leaf) {
-    fprintf(out, "case ");
-    print_defchoice_path(out, mod, deft, ch);
-    fprintf(out, "$%s_label__", idents_value(mod->gctx, ID_TAG));
-    fprintf(out, ":\n");
-    return;
-  }
-
-  FOREACH_SUB_CONST(s, ch) {
-    if (s->which == DEFCHOICE) {
-      print_match_label(out, mod, s);
-    }
-  }
-}
-
-static void print_match_expr(FILE *out, const struct module *mod,
-                             const struct node *node) {
-  const struct node *expr = subs_first_const(node);
-
-  fprintf(out, "if (0) {\n");
-  const struct node *n = next_const(expr);
-  while (n != NULL) {
-    const struct node *p = n;
-    const struct node *block = next_const(n);
-
-    if (next_const(block) == NULL) {
-      fprintf(out, "} else {");
-    } else {
-      fprintf(out, "} else if ((");
-      print_expr(out, mod, expr, T__CALL);
-      fprintf(out, " == ");
-      print_expr(out, mod, p, T__CALL);
-      fprintf(out, ")) {");
-    }
-
-    print_block(out, mod, block);
-    n = next_const(block);
-  }
-  fprintf(out, "}");
-}
-
-static void print_match(FILE *out, const struct module *mod,
-                        const struct node *node) {
-  const struct node *expr = subs_first_const(node);
-  if (typ_definition_deftype_kind(expr->typ) == DEFTYPE_STRUCT) {
-    print_match_expr(out, mod, node);
-    return;
-  }
-
-  const struct node *dexpr = DEF(expr->typ);
-  fprintf(out, "switch (");
-  print_expr(out, mod, expr, T__STATEMENT);
-  if (dexpr->which == DEFTYPE && dexpr->as.DEFTYPE.kind == DEFTYPE_UNION) {
-    fprintf(out, ".%s", idents_value(mod->gctx, ID_TAG));
-  }
-  fprintf(out, ") {\n");
-
-  const struct node *n = next_const(expr);
-  while (n != NULL) {
-    const struct node *p = n;
-    const struct node *block = next_const(n);
-
-    print_match_label(out, mod, p);
-
-    if (next_const(block) == NULL) {
-      fprintf(out, "default:\n");
-    }
-
-    print_block(out, mod, block);
-    fprintf(out, "break;\n");
-
-    n = next_const(block);
-  }
-  fprintf(out, "}");
 }
 
 static void print_try(FILE *out, const struct module *mod, const struct node *node) {
@@ -1653,9 +1551,6 @@ static void print_statement(FILE *out, const struct module *mod, const struct no
     break;
   case IF:
     print_if(out, mod, node);
-    break;
-  case MATCH:
-    print_match(out, mod, node);
     break;
   case TRY:
     print_try(out, mod, node);
@@ -2248,6 +2143,12 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
     if (first_vararg >= 0) {
       fprintf(out, "NLANG_BUILTINS_VARARG_END(%s);\n",
               idents_value(mod->gctx, id_ap));
+    }
+
+    if (node_ident(node) == ID_COPY_CTOR
+        && par->which == DEFTYPE
+        && par->as.DEFTYPE.kind == DEFTYPE_UNION) {
+      fprintf(out, "self->Tag = other->Tag;\n");
     }
 
     rtr_helpers(out, mod, node, false);

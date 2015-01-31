@@ -659,6 +659,61 @@ static void lir_conversion_for(struct module *mod, struct node *node) {
          node_subs_append(let_var, orig_block);
 }
 
+static ERROR lir_conversion_match(struct module *mod, struct node *node) {
+  error e;
+  struct node *block = subs_first(node);
+  node_subs_remove(node, block);
+
+  node_set_which(node, BLOCK);
+  const ident g = gensym(mod);
+
+  GSTART();
+  G0(let, node, LET,
+     G(defn, DEFNAME,
+       G(exprtmp, IDENT,
+         exprtmp->as.IDENT.name = g);
+       node_subs_append(defn, block)));
+  node_subs_remove(node, let);
+
+  G0(ifblock, node, BLOCK,
+     G(xif, IF));
+  node_subs_remove(node, ifblock);
+
+  struct node *nxt = subs_first(node);
+  while (nxt != NULL) {
+    struct node *pattern = nxt;
+    nxt = next(nxt);
+    struct node *yes_match = nxt;
+
+    if (node_ident(pattern) == ID_OTHERWISE) {
+      if (next(yes_match) != NULL) {
+        e = mk_except(mod, pattern, "match pattern '_' must be last");
+        THROW(e);
+      }
+      node_subs_remove(node, pattern);
+    } else {
+      G0(cond, xif, BIN,
+         cond->as.BIN.operator = TEQMATCH;
+         cond->as.BIN.is_generated = true;
+         G(newexpr, IDENT,
+           newexpr->as.IDENT.name = g);
+         node_subs_remove(node, pattern);
+         node_subs_append(cond, pattern));
+    }
+
+    if (nxt != NULL) {
+      nxt = next(nxt);
+    }
+
+    node_subs_remove(node, yes_match);
+    node_subs_append(xif, yes_match);
+  }
+
+  node_subs_append(node, let);
+  node_subs_append(node, ifblock);
+  return 0;
+}
+
 static void ensure_in_block(struct module *mod, struct node *x) {
   struct node *node = parent(x);
 
@@ -775,6 +830,8 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
     break;
   case MATCH:
     ensure_in_block(mod, subs_first(node));
+    e = lir_conversion_match(mod, node);
+    EXCEPT(e);
     break;
   case WHILE:
     ensure_in_block(mod, subs_first(node));

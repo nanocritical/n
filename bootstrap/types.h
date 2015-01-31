@@ -97,6 +97,7 @@ struct tit *tit_let_def(const struct tit *tit);
 struct node *tit_defname_expr(const struct tit *tit);
 bool tit_defchoice_is_leaf(const struct tit *tit);
 bool tit_defchoice_is_external_payload(const struct tit *tit);
+const struct node *tit_defchoice_tag_expr(const struct tit *tit);
 struct tit *tit_defchoice_lookup_field(const struct tit *tit, ident name);
 
 bool typ_is_generic_functor(const struct typ *t);

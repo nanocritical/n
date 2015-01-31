@@ -1758,6 +1758,10 @@ bool tit_defchoice_is_external_payload(const struct tit *tit) {
   return node_defchoice_external_payload(tit->pos) != NULL;
 }
 
+const struct node *tit_defchoice_tag_expr(const struct tit *tit) {
+  return subs_at_const(tit->pos, IDX_CH_TAG_FIRST);
+}
+
 struct tit *tit_defchoice_lookup_field(const struct tit *variant, ident name) {
   const struct node *d = variant->pos;
   assert(d->which == DEFCHOICE);

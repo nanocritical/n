@@ -873,15 +873,18 @@ static ERROR unfold_op_assign(struct module *mod, struct node *node) {
 
 
 static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
+again:;
   assert(node->which == BIN);
-  const enum token_type operator = node->as.BIN.operator;
+  enum token_type operator = node->as.BIN.operator;
 
   struct node *left = subs_first(node);
   struct node *right = subs_last(node);
   error e;
 
   if (OP_KIND(operator) != OP_BIN_SYM_PTR) {
-    if (!OP_IS_ASSIGN(operator)) {
+    if (operator == TEQMATCH || operator == TNEMATCH) {
+      // noop
+    } else if (!OP_IS_ASSIGN(operator)) {
       e = try_insert_automagic_de(mod, left);
       EXCEPT(e);
       e = try_insert_automagic_de(mod, right);
@@ -1018,22 +1021,72 @@ static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
     case TEQMATCH:
     case TNEMATCH:
       {
-        if (typ_definition_which(left->typ) != DEFTYPE
-            || typ_definition_deftype_kind(left->typ) != DEFTYPE_UNION) {
+        struct typ *texpr = left->typ;
+        if (typ_is_reference(texpr)) {
+          texpr = typ_generic_arg(texpr, 0);
+        }
+
+        if (operator == TEQMATCH) {
+          node->as.BIN.operator = TEQ;
+        } else if (operator == TNEMATCH) {
+          node->as.BIN.operator = TNE;
+        }
+
+        if (operator == TEQMATCH && node->as.BIN.is_generated
+            && (typ_definition_which(texpr) == DEFTYPE
+                && typ_definition_deftype_kind(texpr) == DEFTYPE_STRUCT)) {
+          // Introduced by LIR from a MATCH.
+          goto again;
+        }
+
+        if (operator == TEQMATCH
+            && (typ_definition_which(texpr) == DEFTYPE
+                && typ_definition_deftype_kind(texpr) == DEFTYPE_ENUM)) {
+          goto again;
+        }
+
+        if (typ_definition_which(texpr) != DEFTYPE
+            || typ_definition_deftype_kind(texpr) != DEFTYPE_UNION) {
           e = mk_except_type(mod, left, "match operator must be used on a union,"
-                             " not on type '%s'", pptyp(mod, left->typ));
+                             " not on type '%s'", pptyp(mod, texpr));
           THROW(e);
         }
-        if (typ_member(left->typ, node_ident(right)) == NULL) {
+
+        if (typ_member(texpr, node_ident(right)) == NULL) {
           e = mk_except_type(mod, right, "unknown ident '%s' in match"
                              " operator pattern",
                              idents_value(mod->gctx, node_ident(right)));
           THROW(e);
         }
+
+        e = unify(mod, right, right->typ, texpr);
+        EXCEPT(e);
+
+        GSTART();
+        G0(acc, node, BIN,
+           acc->as.BIN.operator = TDOT;
+           node_subs_remove(node, acc);
+           node_subs_replace(node, left, acc);
+           node_subs_append(acc, left);
+           G(tag, IDENT,
+             tag->as.IDENT.name = ID_TAG));
+
+        const struct node *except[] = { left, NULL };
+        e = catchup(mod, except, acc, CATCHUP_BELOW_CURRENT);
+        EXCEPT(e);
+        left = acc;
+
+        struct tit *ttag = typ_definition_one_member(texpr, node_ident(right));
+        const struct node *tag_expr = tit_defchoice_tag_expr(ttag);
+        tit_next(ttag);
+        node_deepcopy(mod, right, tag_expr);
+        e = catchup(mod, NULL, right, CATCHUP_BELOW_CURRENT);
+        EXCEPT(e);
+
+        e = unify(mod, right, left->typ, right->typ);
+        EXCEPT(e);
+        set_typ(&node->typ, TBI_BOOL);
       }
-      e = unify(mod, right, right->typ, left->typ);
-      EXCEPT(e);
-      set_typ(&node->typ, TBI_BOOL);
       break;
     default:
       set_typ(&node->typ, TBI_VOID);
@@ -2511,37 +2564,6 @@ static ERROR type_inference_if(struct module *mod, struct node *node) {
   return 0;
 }
 
-static ERROR unify_match_pattern(struct module *mod, struct node *expr, struct node *pattern) {
-  error e = unify(mod, pattern, pattern->typ, expr->typ);
-  EXCEPT(e);
-
-  return 0;
-}
-
-static ERROR type_inference_match(struct module *mod, struct node *node) {
-  error e;
-
-  struct node *expr = subs_first(node);
-  e = try_insert_automagic_de(mod, expr);
-  EXCEPT(e);
-  expr = subs_first(node);
-
-  FOREACH_SUB_EVERY(s, node, 1, 2) {
-    e = unify_match_pattern(mod, expr, s);
-    EXCEPT(e);
-  }
-
-  set_typ(&node->typ, subs_at(node, 2)->typ);
-  if (subs_count_atleast(node, 4)) {
-    FOREACH_SUB_EVERY(s, node, 4, 2) {
-      e = unify(mod, s, s->typ, node->typ);
-      EXCEPT(e);
-    }
-  }
-
-  return 0;
-}
-
 static bool in_a_body_pass(struct module *mod) {
   return mod->stage->state->passing >= PASSZERO_COUNT + PASSFWD_COUNT;
 }
@@ -2609,6 +2631,8 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
     node->as.IDENT.non_local_scoper = nparent(def, 2);
   } else if (def->which == WITHIN) {
     node->as.IDENT.non_local_scoper = def->as.WITHIN.globalenv_scoper;
+  } else if (def->which == DEFCHOICE) {
+    node->as.IDENT.non_local_scoper = typ_definition_ignore_any_overlay(def->typ);
   }
 
   if (typ_is_function(def->typ) && node->typ != TBI__CALL_FUNCTION_SLOT) {
@@ -3016,10 +3040,6 @@ error step_type_inference(struct module *mod, struct node *node,
     EXCEPT(e);
     struct node *block = subs_at(node, 1);
     e = typ_check_equal(mod, block, block->typ, TBI_VOID);
-    EXCEPT(e);
-    break;
-  case MATCH:
-    e = type_inference_match(mod, node);
     EXCEPT(e);
     break;
   case TRY:
