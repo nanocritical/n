@@ -297,7 +297,7 @@ fun show_frac st:@#fmt.`State prec:Uint v:I64
 	var buf = {}:Stringbuf
 	buf#Resize prec+1
 
-	let _ = (".":Rune).Encode buf![..]
+	let _ = (".":Rune).Encode buf!Bytes![..]
 
 	let ZERO = ("0":Rune).Code.Trim_u8
 	let w = v

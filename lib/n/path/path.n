@@ -38,7 +38,7 @@ Path met Operator_at n:Uint = U8
 	return self.buf.[n].
 
 Path met$ Operator_sub r:Range = []$U8
-	return self$buf$Operator_sub r
+	return self$buf$Bytes$Operator_sub r
 
 Path met Bytes = []U8
 	return self.buf.Bytes
@@ -163,7 +163,7 @@ Path met Split = Path, Path
 	let path = self.buf.String
 	let i = path.Last_index_byte "/".[0]
 	let enddir = (i + 1).Unsigned
-	return Path.From_bytes path.[.. enddir], Path.From_bytes path.[enddir ..]
+	return Path.From_string path.[.. enddir], Path.From_string path.[enddir ..]
 
 example -> let p = "a/b":Path such let d, b = p.Split; assert d == "a/" and b == "b"
 example -> let p = "/b":Path such let d, b = p.Split; assert d == "/" and b == "b"
@@ -174,7 +174,7 @@ Path met Base = Path
 	let path = self.buf.String
 	let i = path.Last_index_byte "/".[0]
 	let enddir = (i + 1).Unsigned
-	return Path.From_bytes path.[enddir ..]
+	return Path.From_string path.[enddir ..]
 
 example -> let p = "a/b":Path such let b = p.Base; assert b == "b"
 example -> let p = "/b":Path such let b = p.Base; assert b == "b"
@@ -194,7 +194,7 @@ Path met Ext = Path
 	let path = self.buf.String
 	for i in path.All.Reverse_iter
 		if path.[i] == ".".[0]
-			return Path.From_bytes path.[i ..]
+			return Path.From_string path.[i ..]
 	return ""
 
 example -> let p = "test.jpg":Path such assert p.Ext == ".jpg"

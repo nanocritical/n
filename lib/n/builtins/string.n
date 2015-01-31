@@ -10,7 +10,7 @@ intf `String =
 	fun From_bytes s:[]U8 = final--::(^Captures s)
 	met Bytes = []U8
 	met Operator_at n:Uint = U8
-	met$ Operator_sub r:Range = []$U8
+	met Operator_sub r:Range = String
 	met First = U8
 	met Last = U8
 
@@ -100,8 +100,8 @@ inline String met First = U8
 inline String met Last = U8
 	return self.[self.Count-1]
 
-inline String met Operator_sub r:Range = []U8
-	return self.bytes.Operator_sub r
+inline String met Operator_sub r:Range = String
+	return this.From_bytes <- self.bytes.Operator_sub r
 
 inline String met Operator_compare other:@this = Int
 	return Bytes_compare self.bytes other.bytes
@@ -130,11 +130,8 @@ inline String met Operator_ge other:@this = Bool
 		return true
 	return self.Operator_compare other >= 0
 
-inline String met Substring r:Range = this
-	return this.From_bytes <- self.Operator_sub r
-
 inline String met Cut_at i:Uint = this, this
-	return self.Substring 0 .. i, self.Substring i .. self.Count
+	return self.[.. i], self.[i ..]
 
 inline String met Show st:@#`Fmt_state
 	let _ = st#Write self.bytes
@@ -233,7 +230,7 @@ String met naive_index sep:String = Int
 		return self.Index_byte sep_first
 
 	let sep_second = sep.[1]
-	let sep_allbut2 = sep.Substring 2 .. sep.Count
+	let sep_allbut2 = sep.[2 ..]
 	var data = self.
 	var i, j
 	while true
@@ -241,10 +238,10 @@ String met naive_index sep:String = Int
 		if j == -1
 			break
 		i += j
-		data = data.Substring j.Unsigned .. data.Count
-		if data.[1] == sep_second and (data.Substring 2 .. n) == sep_allbut2
+		data = data.[j.Unsigned ..]
+		if data.[1] == sep_second and (data.[2 .. n]) == sep_allbut2
 			return i
-		data = data.Substring 1 .. data.Count
+		data = data.[1 ..]
 		i += 1
 	return -1
 
@@ -266,14 +263,14 @@ String met rk_index sep:String = Int
 	let h = 0 such
 		foreach i in 0 .. n
 			h = h ov* rk_prime ov+ self.[i].U32
-		if h == hashsep and (String.From_bytes self.[.. n]) == sep
+		if h == hashsep and self.[.. n] == sep
 			return 0
 		foreach i in n .. cnt
 			h ov*= rk_prime
 			h ov+= self.[i].U32
 			h ov-= pow ov* self.[i-n].U32
 			i += 1
-			if h == hashsep and (String.From_bytes self.[i-n .. i]) == sep
+			if h == hashsep and self.[i-n .. i] == sep
 				return (i - n).Signed
 	return -1
 
@@ -292,7 +289,7 @@ String met tunedbm_index sep:String = Int
 	let m = sep.Count
 	let n = self.Count
 
-	let sep_allbutlast = sep.Substring 0 .. sep.Count-1
+	let sep_allbutlast = sep.[.. sep.Count-1]
 	let sep_last = sep.Last.Uint
 	let bad = {}:(Buf Uint)
 	and shift such
@@ -310,7 +307,7 @@ String met tunedbm_index sep:String = Int
 				k = bad.[self.[j].Uint]
 
 		let possible = j - (m-1)
-		if j < n and (self.Substring possible .. j) == sep_allbutlast
+		if j < n and (self.[possible .. j]) == sep_allbutlast
 			return possible.Signed
 
 		j += shift
@@ -382,17 +379,14 @@ inline Stringbuf fun From_bytes s:[]U8 = this
 		r#bytes = r!bytes!Copy s
 	return r
 
-inline Stringbuf met Bytes = []U8
-	return self.bytes
+inline Stringbuf met$ Bytes = []$U8
+	return self$bytes
 
 inline Stringbuf met All = Range
 	return self.bytes.All
 
 inline Stringbuf met String = String
 	return String.From_bytes self.bytes
-
-inline Stringbuf met Substring r:Range = String
-	return String.From_bytes <- self.Operator_sub r
 
 inline Stringbuf met Cap = Uint
 	return self.bytes.cap
@@ -409,8 +403,8 @@ inline Stringbuf met Last = U8
 inline Stringbuf met$ Operator_at n:Uint = @$U8
 	return self$bytes$[n]
 
-inline Stringbuf met$ Operator_sub r:Range = []$U8
-	return self$bytes$Operator_sub r
+inline Stringbuf met Operator_sub r:Range = String
+	return String.From_bytes <- self.bytes.Operator_sub r
 
 inline Stringbuf met Operator_compare other:@this = Int
 	return Bytes_compare self.bytes other.bytes

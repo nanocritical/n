@@ -363,7 +363,7 @@ linux met File_readlink f:@File = Error, path.Path
 		var buf = {}:Stringbuf such
 			buf#Resize 256
 		while true
-			let except, b = syscall.Readlinkat f.Fd "" buf![..]
+			let except, b = syscall.Readlinkat f.Fd "" buf!Bytes![..]
 			if b.Count < buf.Count
 				return OK, path.Mk (String.From_bytes b)
 
@@ -453,7 +453,7 @@ linux met! Readlink name:path.Path ?at:?@File = Error, path.Path
 		var buf = {}:Stringbuf such
 			buf#Resize 256
 		while true
-			let except, b = syscall.Readlinkat dirfd name.String buf![..]
+			let except, b = syscall.Readlinkat dirfd name.String buf!Bytes![..]
 			if b.Count < buf.Count
 				return OK, path.Mk (String.From_bytes b)
 
