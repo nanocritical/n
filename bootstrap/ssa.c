@@ -1185,8 +1185,48 @@ static bool needed_as_rvalue(struct node *user) {
     || (NM(par->which) & (NM(IF) | NM(WHILE) | NM(MATCH)));
 }
 
+static void try_bypass_refof_deref_pair(struct module *mod, struct node *defn) {
+  struct node *expr = subs_last(defn);
+  if (expr->which != UN || OP_KIND(expr->as.UN.operator) != OP_UN_REFOF) {
+    return;
+  }
+
+  struct node *term = subs_first(expr);
+  if (term->which != IDENT) {
+    return;
+  }
+  struct node *termdef = term->as.IDENT.def;
+  if (termdef == NULL || termdef->which != DEFNAME || termdef->as.DEFNAME.ssa_user != term) {
+    return;
+  }
+
+  struct node *termdefexpr = subs_last(termdef);
+  if (termdefexpr->which != UN || OP_KIND(termdefexpr->as.UN.operator) != OP_UN_DEREF) {
+    return;
+  }
+
+  struct node *termdefexprterm = subs_first(termdefexpr);
+  if (termdefexprterm->which != IDENT) {
+    return;
+  }
+
+  remove_unnecessary_ssa_defname(mod, termdef);
+
+  expr = subs_last(defn);
+  term = subs_first(expr);
+  struct node *subterm = subs_first(term);
+  node_subs_remove(term, subterm);
+  node_subs_replace(defn, expr, subterm);
+
+  node_set_which(expr, NOOP);
+  node_set_which(term, NOOP);
+}
+
 bool try_remove_unnecessary_ssa_defname(struct module *mod, struct node *defn) {
   assert(defn->which == DEFNAME);
+
+  try_bypass_refof_deref_pair(mod, defn);
+
   if (defn->as.DEFNAME.ssa_user == NULL) {
     return false;
   }
