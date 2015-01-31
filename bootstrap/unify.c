@@ -689,6 +689,9 @@ error unify_with_defincomplete_entrails(struct module *mod,
       }
     }
 
+    // The rest is handled in
+    // type_inference_typeconstraint_defchoice_init().
+
     return 0;
   }
 
@@ -715,7 +718,7 @@ error unify_with_defincomplete_entrails(struct module *mod,
     const bool value_isopt = typ_is_optional(value);
     const bool value_isref = typ_is_reference(value);
 
-    // Automagic opt and deopt/deref (no automagic ref!). The conversions
+    // Automagic opt and deopt/deref (no automagic ref!). The conversion
     // operations are inserted in passbody1, step_init_insert_automagic().
     if (!target_isref && value_isref) {
       value = typ_generic_arg(value, 0);

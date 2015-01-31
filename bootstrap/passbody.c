@@ -101,7 +101,9 @@ static ERROR step_init_insert_automagic(struct module *mod, struct node *node,
   if (node->as.INIT.is_array
       || node->as.INIT.is_range
       || node->as.INIT.is_bounds
-      || node->as.INIT.is_defchoice_external_payload_constraint) {
+      || node->as.INIT.is_defchoice_external_payload_constraint
+      // Already handled in type_inference_typeconstraint_defchoice_init.
+      || node->as.INIT.for_tag != ID__NONE) {
     return 0;
   }
 

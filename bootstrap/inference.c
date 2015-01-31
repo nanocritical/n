@@ -2774,7 +2774,12 @@ static ERROR type_inference_typeconstraint_defchoice_init(struct module *mod,
 
   left->as.INIT.for_tag = tit_ident(leaf);
 
-  FOREACH_SUB_EVERY(name, left, 0, 2) {
+  struct node *nxt = subs_first(left);
+  while (nxt != NULL) {
+    struct node *name = nxt;
+    nxt = next(nxt);
+    struct node *value = nxt;
+
     struct tit *f = tit_defchoice_lookup_field(leaf, node_ident(name));
     if (f == NULL) {
       e = mk_except_type(mod, name, "field '%s' not found",
@@ -2782,8 +2787,18 @@ static ERROR type_inference_typeconstraint_defchoice_init(struct module *mod,
       THROW(e);
     }
 
-    typ_link_tentative(tit_typ(f), next(name)->typ);
+    e = try_insert_automagic_de(mod, value);
+    EXCEPT(e);
+    value = next(name);
+
+    e = unify(mod, value, tit_typ(f), value->typ);
+    EXCEPT(e);
+
     tit_next(f);
+
+    if (nxt != NULL) {
+      nxt = next(nxt);
+    }
   }
 
   tit_next(leaf);
