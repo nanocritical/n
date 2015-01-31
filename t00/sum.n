@@ -5,6 +5,7 @@ enum en =
 	| B = 3:U32
 	| C
 
+--( Support disabled
 enum hen =
 	| A
 	| B
@@ -12,14 +13,16 @@ enum hen =
 		| BB
 		| BC
 	| C
+)--
 
 union un =
 	| A
 	| B
 		x	:U32
-	| C = 2:U8
+	| C = 3:U8
 		x	:en
 
+--( Support disabled
 union hun =
 	| A
 	| B
@@ -29,6 +32,7 @@ union hun =
 			z	:U32
 		| BB
 			z	:I64
+)--
 
 struct a =
 	isa `Trivial_copy
@@ -53,13 +57,13 @@ fun Main = I32
 	| A -> noop
 	| _ -> return 1
 
-	let f = hen.BA
+	--(let f = hen.BA
 	match f
 	| B -> noop
 	| _ -> return 1
 	match f
 	| BA -> noop
-	| _ -> return 1
+	| _ -> return 1)--
 
 	let u = {}:un.A
 	assert u ==| A

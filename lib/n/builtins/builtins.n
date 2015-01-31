@@ -97,13 +97,13 @@ intf `Partially_ordered =
 	met Operator_gt other:@final = Bool
 	met Operator_ge other:@final = Bool
 intf `Ordered =
-	isa `Has_compare `Partially_ordered
+	isa `Partially_ordered
 intf `Not_ordered =
 intf `Ordered_by_compare =
 	-- Compiler generates Operator_{le,lt,gt,ge}.
 	isa `Has_compare `Ordered
 intf `Trivial_order =
-	isa `Trivial_compare `Ordered_by_compare
+	isa `Trivial_compare `Ordered
 intf `Additive_arithmetic =
 	met Operator_plus other:@final = final
 	met Operator_minus other:@final = final
@@ -1702,7 +1702,7 @@ inline struct Error =
 	-- FIXME Two different errors with the same string literal may compare
 	-- as equal if the compiler merges the literals. This won't be a
 	-- problem once @ are refcounted, there will be no merging then.
-	isa `Trivial_order `Show
+	isa `Has_equality `Show
 	Why	:?@String -- FIXME Make it ?@`Show
 
 	let OK = {}:this
@@ -1712,6 +1712,12 @@ inline struct Error =
 
 inline Error met Operator_test = Bool
 	return self.Why?
+
+inline Error met Operator_eq other:@this = Bool
+	return self.Why === other.Why
+
+inline Error met Operator_ne other:@this = Bool
+	return not self == other
 
 Error met Show st:@#`Fmt_state
 	if self.Why?

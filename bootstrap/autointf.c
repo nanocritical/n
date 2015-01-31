@@ -109,12 +109,6 @@ static void define_builtin_catchup(struct module *mod, struct node *d) {
   assert(!e);
 }
 
-static bool arg_is_ref(const struct node *arg) {
-  assert(arg->which == DEFARG);
-  const struct node *tspec = subs_last_const(arg);
-  return tspec->which == UN;
-}
-
 static enum token_type arg_ref_operator(const struct node *arg) {
   assert(arg->which == DEFARG);
   const struct node *tspec = subs_last_const(arg);
@@ -133,37 +127,44 @@ static enum token_type arg_ref_accessor(const struct node *arg) {
   }
 }
 
-static void like_arg(struct module *mod, struct node *call,
-                     const struct node *arg, ident f) {
-  GSTART();
-  if (arg_is_ref(arg)) {
-    G0(r, call, UN,
-       r->as.UN.operator = arg_ref_operator(arg);
-       G(b, BIN,
-         b->as.BIN.operator = arg_ref_accessor(arg);
-         G(base, IDENT,
-           base->as.IDENT.name = node_ident(arg));
-         G(a, IDENT,
-           a->as.IDENT.name = f)));
-  } else {
-    G0(b, call, BIN,
-       b->as.BIN.operator = arg_ref_accessor(arg);
-       G(base, IDENT,
-         base->as.IDENT.name = node_ident(arg));
-       G(a, IDENT,
-         a->as.IDENT.name = f));
-  }
-}
-
 static const struct typ *corresponding_trivial(ident m) {
   switch (m) {
   case ID_CTOR:
     return TBI_TRIVIAL_CTOR;
   case ID_DTOR:
     return TBI_TRIVIAL_DTOR;
+  case ID_OPERATOR_EQ:
+  case ID_OPERATOR_NE:
+    return TBI_TRIVIAL_EQUALITY;
   default:
     assert(false);
     return NULL;
+  }
+}
+
+static void like_arg(struct module *mod, struct node *par,
+                     const struct node *arg, const struct node *f) {
+  GSTART();
+
+  const struct node *parf = parent_const(f);
+  if (parf->which == DEFCHOICE) {
+    G0(b, par, BIN,
+       b->as.BIN.operator = arg_ref_accessor(arg);
+       G(b2, BIN,
+         b2->as.BIN.operator = arg_ref_accessor(arg);
+         G(base, IDENT,
+           base->as.IDENT.name = node_ident(arg));
+         G(a2, IDENT,
+           a2->as.IDENT.name = node_ident(parf)));
+       G(a, IDENT,
+         a->as.IDENT.name = node_ident(f)));
+  } else {
+    G0(b, par, BIN,
+       b->as.BIN.operator = arg_ref_accessor(arg);
+       G(base, IDENT,
+         base->as.IDENT.name = node_ident(arg));
+       G(a, IDENT,
+         a->as.IDENT.name = node_ident(f)));
   }
 }
 
@@ -177,18 +178,8 @@ static void gen_on_field(struct module *mod, struct node *m,
     const struct node *arg_other = next_const(arg_self);
     G0(assign, body, BIN,
        assign->as.BIN.operator = TASSIGN;
-       G(acc, BIN,
-         acc->as.BIN.operator = TSHARP;
-         G(self, IDENT,
-           self->as.IDENT.name = node_ident(arg_self));
-         G(nf, IDENT,
-           nf->as.IDENT.name = node_ident(f)));
-       G(acco, BIN,
-         acco->as.BIN.operator = TDOT;
-         G(other, IDENT,
-           other->as.IDENT.name = node_ident(arg_other));
-         G(no, IDENT,
-           no->as.IDENT.name = node_ident(f))));
+       like_arg(mod, assign, arg_self, f);
+       like_arg(mod, assign, arg_other, f));
     return;
   }
 
@@ -196,16 +187,30 @@ static void gen_on_field(struct module *mod, struct node *m,
     return;
   }
 
-  G0(fun, body, BIN,
-     fun->as.BIN.operator = TSHARP;
-     G(acc, BIN,
-       acc->as.BIN.operator = TSHARP;
-       G(self, IDENT,
-         self->as.IDENT.name = node_ident(arg_self));
-       G(nf, IDENT,
-         nf->as.IDENT.name = node_ident(f)));
-     G(name, IDENT,
-       name->as.IDENT.name = node_ident(m)));
+  G0(call, body, CALL,
+     G(fun, BIN,
+       fun->as.BIN.operator = arg_ref_accessor(arg_self);
+       like_arg(mod, fun, arg_self, f);
+       G(name, IDENT,
+         name->as.IDENT.name = node_ident(m))));
+
+  if (subs_count_atleast(funargs, 3)) {
+    G0(xif, body, IF,
+       node_subs_remove(body, xif);
+       node_subs_replace(body, call, xif);
+       G(not, UN,
+         not->as.UN.operator = Tnot;
+         node_subs_append(not, call));
+       G(yes, BLOCK,
+         G(ret, RETURN,
+           G(fal, BOOL,
+             fal->as.BOOL.value = false)));
+       G(no, BLOCK,
+         G(noop, NOOP)));
+
+    const struct node *arg_other = next_const(arg_self);
+    like_arg(mod, call, arg_other, f);
+  }
 }
 
 static void gen_on_choices_and_fields(struct module *mod,
@@ -216,22 +221,73 @@ static void gen_on_choices_and_fields(struct module *mod,
 
   // TODO(e): Doesn't handle hiearchical unions.
 
+  const struct node *funargs = subs_at_const(m, IDX_FUNARGS);
+  const size_t arity = subs_count(funargs);
+  bool need_otherwise = false, need_true = false;
+
   if (node->which == DEFFIELD) {
     gen_on_field(mod, m, body, node);
     return;
   } else if (node->which == DEFTYPE) {
     G0(noop, body, NOOP); // Ensure not empty.
 
-    if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
-      G0(match, body, MATCH,
-         G(self, IDENT,
-           self->as.IDENT.name = ID_SELF));
-      body = match;
+    if (node->as.DEFTYPE.kind == DEFTYPE_UNION
+        || node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+      switch (node_ident(m)) {
+      case ID_OPERATOR_EQ:
+      case ID_OPERATOR_NE:
+        {
+          G0(xiftag, body, IF,
+             G(cmp, BIN,
+               cmp->as.BIN.operator = TNE;
+               G(accself, BIN,
+                 accself->as.BIN.operator = TDOT;
+                 G_IDENT(s, "self");
+                 G(stag, IDENT,
+                   stag->as.IDENT.name = ID_TAG));
+               G(accother, BIN,
+                 accother->as.BIN.operator = TDOT;
+                 G_IDENT(o, "other");
+                 G(otag, IDENT,
+                   otag->as.IDENT.name = ID_TAG)));
+             G(yestag, BLOCK,
+               G(ret, RETURN,
+                 G(fal, BOOL,
+                   fal->as.BOOL.value = false)));
+             G(notag, BLOCK,
+               G(noop, NOOP)));
+          need_otherwise = true;
+          need_true = true;
+        }
+        break;
+      }
+
+      if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+        G0(ret, body, RETURN,
+           G(tr, BOOL,
+             tr->as.BOOL.value = true));
+        return;
+      }
+
+      if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
+        G0(match, body, MATCH,
+           G(self, IDENT,
+             self->as.IDENT.name = arity >= 3 ? ID_OTHER : ID_SELF));
+        body = match;
+      }
+    } else {
+      switch (node_ident(m)) {
+      case ID_OPERATOR_EQ:
+      case ID_OPERATOR_NE:
+        need_true = true;
+        break;
+      }
     }
   } else if (node->which == DEFCHOICE) {
     G0(pattern, body, IDENT,
        pattern->as.IDENT.name = node_ident(node));
-    G0(block, body, BLOCK);
+    G0(block, body, BLOCK,
+       G(noop, NOOP));
     body = block;
 
     const struct node *ext = node_defchoice_external_payload(node);
@@ -246,6 +302,19 @@ static void gen_on_choices_and_fields(struct module *mod,
       gen_on_choices_and_fields(mod, f, m, body);
     }
   }
+
+  if (need_otherwise) {
+    G0(oth, body, IDENT,
+       oth->as.IDENT.name = ID_OTHERWISE);
+  }
+  if (need_true) {
+    G0(bret, body, BLOCK,
+       G(ret, RETURN,
+         G(tr, BOOL,
+           tr->as.BOOL.value = true)));
+  }
+
+  // For unions, the tag copy is inserted by cprinter.
 }
 
 static void gen_on_choices_and_fields_lexicographic(struct module *mod,
@@ -279,12 +348,12 @@ static void gen_on_choices_and_fields_lexicographic(struct module *mod,
          G(call, CALL,
            G(fun, BIN,
              fun->as.BIN.operator = TDOT;
-             like_arg(mod, fun, arg_self, node_ident(f));
+             like_arg(mod, fun, arg_self, f);
              G(name, IDENT,
                name->as.IDENT.name = node_ident(m))))));
     if (subs_count_atleast(funargs, 3)) {
       const struct node *arg_other = next_const(arg_self);
-      like_arg(mod, call, arg_other, node_ident(f));
+      like_arg(mod, call, arg_other, f);
     }
 
     G0(cond, par, IF,
@@ -442,13 +511,13 @@ non_bg:
   case ID_CTOR:
   case ID_DTOR:
   case ID_COPY_CTOR:
+  case ID_OPERATOR_EQ:
+  case ID_OPERATOR_NE:
     gen_on_choices_and_fields(mod, deft, m, body);
     break;
   case ID_OPERATOR_COMPARE:
     gen_on_choices_and_fields_lexicographic(mod, deft, NULL, m, body);
     break;
-  case ID_OPERATOR_EQ:
-  case ID_OPERATOR_NE:
   case ID_OPERATOR_LE:
   case ID_OPERATOR_LT:
   case ID_OPERATOR_GT:
@@ -787,6 +856,7 @@ struct inferred {
   bool default_ctor, default_dtor, copyable, return_by_copy, equality_by_compare, ordered_by_compare;
   bool trivial_ctor, trivial_dtor, trivial_copy_but_owned,
        trivial_copy, trivial_compare, trivial_equality, trivial_order;
+  bool has_equality;
 };
 
 static void infer(struct inferred *inferred, const struct node *node) {
@@ -815,6 +885,9 @@ static void infer(struct inferred *inferred, const struct node *node) {
   }
   if (inferred->copyable) {
     inferred->trivial_copy &= inferred->copyable &= typ_isa(node->typ, TBI_COPYABLE);
+  }
+  if (inferred->has_equality) {
+    inferred->trivial_equality &= inferred->has_equality &= typ_isa(node->typ, TBI_HAS_EQUALITY);
   }
   if (inferred->equality_by_compare) {
     inferred->equality_by_compare &= typ_isa(node->typ, TBI_EQUALITY_BY_COMPARE);
@@ -902,6 +975,7 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
   struct inferred inferred = {
     true, true, true, true, true, true,
     true, true, true, true, true, true, true,
+    true,
   };
 
   if (node_is_extern(node)) {
@@ -927,7 +1001,7 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
     inferred.trivial_copy = false;
   }
   if (immediate_isa(node, TBI_NOT_HAS_EQUALITY)) {
-    inferred.equality_by_compare = inferred.trivial_equality = false;
+    inferred.equality_by_compare = inferred.trivial_equality = inferred.has_equality = false;
   } else if (immediate_isa(node, TBI_HAS_EQUALITY)
              || immediate_isa(node, TBI_EQUALITY_BY_COMPARE)) {
     inferred.trivial_equality = false;
@@ -984,6 +1058,8 @@ skip:
     add_auto_isa(mod, node, TBI_TRIVIAL_EQUALITY);
   } else if (inferred.equality_by_compare) {
     add_auto_isa(mod, node, TBI_EQUALITY_BY_COMPARE);
+  } else if (inferred.has_equality) {
+    add_auto_isa(mod, node, TBI_HAS_EQUALITY);
   }
   if (inferred.return_by_copy) {
     add_auto_isa(mod, node, TBI_RETURN_BY_COPY);
