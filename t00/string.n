@@ -1,4 +1,5 @@
 from n import *
 
 fun Main = I32
+	assert '0' == 48:U8
 	return '123'.Bytes.Count.Trim_u32.Signed - 3

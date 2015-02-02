@@ -973,7 +973,7 @@ inline I64 met Hash32 = U32
 	return self.Bitwise_unsigned.Hash32
 
 extern inline struct U8 =
-	isa `Native_sized_unsigned_integer
+	isa `Native_sized_unsigned_integer `String_compatible
 	alias This_unsigned = this
 	alias This_signed = I8
 inline U8 fun MIN = this
@@ -981,6 +981,9 @@ inline U8 fun MIN = this
 inline U8 fun MAX = this
 	return 0xff
 extern U8 fun From_number_literal v:String = this
+inline U8 fun From_string s:String = this
+	assert s.Count == 1
+	return s.[0]
 extern inline U8 met Operator_eq other:@this = Bool
 extern inline U8 met Operator_ne other:@this = Bool
 extern inline U8 met Operator_le other:@this = Bool
