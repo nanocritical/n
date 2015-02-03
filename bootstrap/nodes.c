@@ -938,8 +938,29 @@ int snprint_codeloc(char *s, size_t len,
   const struct module *actual_mod = try_node_module_owner_const(mod, node);
   const char *fn = module_component_filename_at(actual_mod, node->codeloc.pos);
 
-  return snprintf(s, len, "%s:%d:%d: ",
-                  fn, node->codeloc.line, node->codeloc.column);
+  const struct node *fun = node;
+  while (fun != NULL && !(NM(fun->which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(MODULE_BODY)))) {
+    fun = parent_const(fun);
+  }
+
+  const char *par_name = "", *post_par_name = "";
+  const char *fun_name = "", *pre_name = "", *post_fun_name = "";
+  if (fun != NULL && (NM(fun->which) & (NM(DEFFUN) | NM(DEFMETHOD)))) {
+    fun_name = idents_value(mod->gctx, node_ident(fun));
+    pre_name = " ";
+    post_fun_name = ":";
+
+    if (!node_is_at_top(node)) {
+      par_name = idents_value(mod->gctx, node_ident(parent_const(fun)));
+      post_par_name = ".";
+    }
+  }
+
+  return snprintf(s, len, "%s:%d:%d:%s%s%s%s%s ",
+                  fn, node->codeloc.line, node->codeloc.column,
+                  pre_name,
+                  par_name, post_par_name,
+                  fun_name, post_fun_name);
 }
 
 error mk_except(const struct module *mod, const struct node *node,
