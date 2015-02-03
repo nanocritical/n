@@ -546,6 +546,11 @@ static struct node *follow_ssa(struct node *node) {
 static ERROR insert_automagic_de(struct node **r,
                                  struct module *mod,
                                  enum token_type op) {
+  if (typ_equal((*r)->typ, TBI_LITERALS_NIL)) {
+    error e = mk_except_type(mod, *r, "cannot convert nil literal to value");
+    THROW(e);
+  }
+
   struct node *node = *r;
   struct node *expr = follow_ssa(node);
   if (expr != NULL
