@@ -58,7 +58,7 @@ static ERROR clang_cleanup(const char *c_fn) {
   return 0;
 }
 
-static ERROR cc(const char *o_fn, const char *c_fn) {
+static ERROR cc(FILE *script, const char *o_fn, const char *c_fn) {
   if (strcmp(g_opt.compiler, "clang") == 0 || strcmp(g_opt.compiler, "emcc") == 0) {
     error e = clang_cleanup(c_fn);
     EXCEPT(e);
@@ -70,9 +70,13 @@ static ERROR cc(const char *o_fn, const char *c_fn) {
                      + strlen(c_fn) + strlen(o_fn) + 1, sizeof(char));
   sprintf(cmd, fmt, g_opt.ccache, g_opt.compiler, g_opt.cflags, c_fn, o_fn);
 
-  error e = sh(cmd);
+  fprintf(script, "%s\n", cmd);
+
+  if (g_opt.verbose) {
+    fprintf(stdout, "%s\n", cmd);
+  }
+
   free(cmd);
-  EXCEPT(e);
   return 0;
 }
 
@@ -183,7 +187,7 @@ static ERROR generate(struct node *node) {
   return 0;
 }
 
-static ERROR compile(struct node *node) {
+static ERROR compile(FILE *script, struct node *node) {
   assert(node->which == MODULE);
   struct module *mod = node->as.MODULE.mod;
 
@@ -194,7 +198,7 @@ static ERROR compile(struct node *node) {
   sprintf(c_fn, "%s.o.c", fn);
 
   char *o_fn = o_filename(mod->filename);
-  e = cc(o_fn, c_fn);
+  e = cc(script, o_fn, c_fn);
   EXCEPT(e);
 
   free(o_fn);
@@ -351,12 +355,22 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  char template[] = "/tmp/nccXXXXXX";
+  FILE *script = fdopen(mkstemp(template), "w");
   for (size_t n = 0; n < stage.sorted_count; ++n) {
     const struct module *mod = stage.sorted[n];
 
-    e = compile(mod->root);
+    e = compile(script, mod->root);
     EXCEPT(e);
   }
+  fclose(script);
+
+  const char *fmt = "cat %s |parallel";
+  char *cmd = calloc(strlen(fmt) + strlen(template) + 1, sizeof(char));
+  sprintf(cmd, fmt, template);
+  e = sh(cmd);
+  free(cmd);
+  EXCEPT(e);
 
   e = program_link(&stage);
   EXCEPT(e);
