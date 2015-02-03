@@ -272,7 +272,7 @@ static void gen_on_choices_and_fields(struct module *mod,
         {
           G0(xiftag, body, IF,
              G(cmp, BIN,
-               cmp->as.BIN.operator = TNE;
+               cmp->as.BIN.operator = node_ident(m) == ID_OPERATOR_EQ ? TNE : TEQ;
                G(accself, BIN,
                  accself->as.BIN.operator = TDOT;
                  G_IDENT(s, "self");
