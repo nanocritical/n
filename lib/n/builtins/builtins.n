@@ -379,7 +379,7 @@ inline Mutable_slice met! Copy other:[]t = this
 	such
 		let _ = s!Copy s
 		return {}
-inline Mutable_slice met! Exact_copy other:this
+inline Mutable_slice met! Exact_copy other:[]t
 	let s = this.create_impl_instance
 	such
 		s!Exact_copy s
