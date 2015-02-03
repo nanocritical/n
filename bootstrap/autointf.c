@@ -176,6 +176,18 @@ static void gen_on_field(struct module *mod, struct node *m,
 
   if (node_ident(m) == ID_COPY_CTOR) {
     const struct node *arg_other = next_const(arg_self);
+
+    if (typ_is_optional(f->typ)) {
+      G0(xif, body, IF,
+         G(checkother, UN,
+           checkother->as.BIN.operator = TPOSTQMARK;
+           like_arg(mod, checkother, arg_other, f));
+         G(block, BLOCK);
+         G(noblock, BLOCK,
+           G(noop, NOOP)));
+      body = block;
+    }
+
     G0(assign, body, BIN,
        assign->as.BIN.operator = TASSIGN;
        like_arg(mod, assign, arg_self, f);
@@ -187,30 +199,51 @@ static void gen_on_field(struct module *mod, struct node *m,
     return;
   }
 
-  G0(call, body, CALL,
-     G(fun, BIN,
-       fun->as.BIN.operator = arg_ref_accessor(arg_self);
-       like_arg(mod, fun, arg_self, f);
-       G(name, IDENT,
-         name->as.IDENT.name = node_ident(m))));
-
-  if (subs_count_atleast(funargs, 3)) {
-    G0(xif, body, IF,
-       node_subs_remove(body, xif);
-       node_subs_replace(body, call, xif);
-       G(not, UN,
-         not->as.UN.operator = Tnot;
-         node_subs_append(not, call));
-       G(yes, BLOCK,
-         G(ret, RETURN,
-           G(fal, BOOL,
-             fal->as.BOOL.value = false)));
-       G(no, BLOCK,
-         G(noop, NOOP)));
-
-    const struct node *arg_other = next_const(arg_self);
-    like_arg(mod, call, arg_other, f);
+  if (node_ident(m) == ID_CTOR || node_ident(m) == ID_DTOR) {
+    G0(call, body, CALL,
+       G(fun, BIN,
+         fun->as.BIN.operator = arg_ref_accessor(arg_self);
+         like_arg(mod, fun, arg_self, f);
+         G(name, IDENT,
+           name->as.IDENT.name = node_ident(m))));
+    return;
   }
+
+  assert(node_ident(m) == ID_OPERATOR_EQ || node_ident(m) == ID_OPERATOR_NE);
+  const struct node *arg_other = next_const(arg_self);
+
+  assert(!typ_is_reference(f->typ));
+
+  G0(xif, body, IF,
+     G(cond, BLOCK);
+     G(yes, BLOCK,
+       G(ret, RETURN,
+         G(fal, BOOL,
+           fal->as.BOOL.value = false)));
+     G(no, BLOCK,
+       G(noop, NOOP)));
+  body = cond;
+
+  if (typ_is_optional(f->typ)) {
+    const struct node *arg_other = next_const(arg_self);
+    G0(checkand2, body, BIN,
+       checkand2->as.BIN.operator = Tand;
+       G(checkand, BIN,
+         checkand->as.BIN.operator = Tand;
+         G(checkother, UN,
+           checkother->as.BIN.operator = TPOSTQMARK;
+           like_arg(mod, checkother, arg_other, f));
+         G(checkself, UN,
+           checkself->as.BIN.operator = TPOSTQMARK;
+           like_arg(mod, checkself, arg_self, f)));
+       G(block, BLOCK));
+    body = block;
+  }
+
+  G0(cmp, body, BIN,
+     cmp->as.BIN.operator = node_ident(m) == ID_OPERATOR_EQ ? TNE : TEQ;
+     like_arg(mod, cmp, arg_self, f);
+     like_arg(mod, cmp, arg_other, f));
 }
 
 static void gen_on_choices_and_fields(struct module *mod,
