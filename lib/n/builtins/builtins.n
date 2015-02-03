@@ -214,6 +214,7 @@ intf `Any_any_slice =
 
 intf `Any_slice t:`Any =
 	isa `Any_any_slice (`Random_container t)
+		\ `Has_equality -- FIXME(e): use `Inherit
 	met Bytecount = Uint
 	met Cap = Uint
 	met Bytecap = Uint
@@ -306,6 +307,12 @@ inline Slice met Show st:@#`Fmt_state
 	let s = this.create_impl_instance
 	such
 		s.Show st
+inline Slice met Operator_eq other:@this = Bool
+	let s = this.create_impl_instance
+	return s == s
+inline Slice met Operator_ne other:@this = Bool
+	let s = this.create_impl_instance
+	return s != s
 
 opaque struct Mutable_slice t:`Any =
 	isa (`Any_mutable_slice t) -- FIXME missing genarg
@@ -412,6 +419,12 @@ inline Mutable_slice met Show st:@#`Fmt_state
 	let s = this.create_impl_instance
 	such
 		s.Show st
+inline Mutable_slice met Operator_eq other:@this = Bool
+	let s = this.create_impl_instance
+	return s == s
+inline Mutable_slice met Operator_ne other:@this = Bool
+	let s = this.create_impl_instance
+	return s != s
 
 extern inline fun Slice_at_byte dp:@#U8 off:Uint = @#U8
 extern inline fun Slice_memmove dst:@#U8 src:@U8 cnt:Uint
@@ -551,6 +564,27 @@ inline Slice_impl met Show st:@#`Fmt_state
 			px.Show st
 			">".Show st
 	"}".Show st
+
+inline Slice_impl met Operator_eq other:@this = Bool
+	if t isa `Trivial_equality
+		return 0 == Bytes_compare self.Rawbytes other.Rawbytes
+	elif t isa `Has_equality
+		if self.Count != other.Count
+			return false
+		foreach i in self.All
+			if self.[i] != other.[i]
+				return false
+		return true
+	else
+		assert false
+		return false
+
+inline Slice_impl met Operator_ne other:@this = Bool
+	if t isa `Has_equality
+		return not self == other
+	else
+		assert false
+		return false
 
 example
 	let a = { 0:Uint 1 2 3 4 5 6 7 }
