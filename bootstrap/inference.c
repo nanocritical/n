@@ -657,7 +657,7 @@ static ERROR nonnullable_op(enum token_type *r,
 
   struct typ *t0 = typ_generic_functor(t);
   if (t0 == NULL || !typ_is_reference(t)) {
-    error e = mk_except_type(mod, for_error, "nonnullable expects a reference, not '%s'",
+    error e = mk_except_type(mod, for_error, "nonnullable expects a reference or an optional value, not '%s'",
                              pptyp(mod, t));
     THROW(e);
   }
@@ -693,6 +693,12 @@ rewrote_op:
     switch (rop) {
     case T__NULLABLE:
       {
+        if (!typ_is_reference(term->typ)) {
+          rop = TPREQMARK;
+          node->as.UN.operator = rop;
+          goto rewrote_op;
+        }
+
         enum token_type nop = 0;
         e = nullable_op(&nop, mod, node, term->typ);
         EXCEPT(e);
@@ -708,6 +714,12 @@ rewrote_op:
       break;
     case T__NONNULLABLE:
       {
+        if (typ_is_optional(term->typ)) {
+          rop = T__DEOPT;
+          node->as.UN.operator = rop;
+          goto rewrote_op;
+        }
+
         enum token_type nop = 0;
         e = nonnullable_op(&nop, mod, node, term->typ);
         EXCEPT(e);

@@ -102,27 +102,22 @@ static void rewrite_ptr_op(struct module *mod, struct node *node) {
 
 static void rewrite_opt_acc_op(struct module *mod, struct node *node) {
   assert(node->which == BIN);
-  enum token_type op = node->as.BIN.operator, accop, refop;
+  enum token_type op = node->as.BIN.operator, accop;
   switch (op) {
   case TOPTDOT:
     accop = TDOT;
-    refop = TREFDOT;
     break;
   case TOPTBANG:
     accop = TBANG;
-    refop = TREFBANG;
     break;
   case TOPTSHARP:
     accop = TSHARP;
-    refop = TREFSHARP;
     break;
   case TOPTATDOT:
     accop = TATDOT;
-    refop = TREFDOT;
     break;
   case TOPTATBANG:
     accop = TATBANG;
-    refop = TREFBANG;
     break;
   default:
     assert(false);
@@ -149,15 +144,13 @@ static void rewrite_opt_acc_op(struct module *mod, struct node *node) {
          G(yes, BLOCK,
            G(nillable, UN,
              nillable->as.UN.operator = T__NULLABLE;
-             G(ref, UN,
-               ref->as.UN.operator = refop;
-               G(acc, BIN,
-                 acc->as.BIN.operator = accop;
-                 G(nonnillable, UN,
-                   nonnillable->as.UN.operator = T__NONNULLABLE;
-                   G(v3, IDENT,
-                     v3->as.IDENT.name = node_ident(v)));
-                 node_subs_append(acc, right)))));
+             G(acc, BIN,
+               acc->as.BIN.operator = accop;
+               G(nonnillable, UN,
+                 nonnillable->as.UN.operator = T__NONNULLABLE;
+                 G(v3, IDENT,
+                   v3->as.IDENT.name = node_ident(v)));
+               node_subs_append(acc, right))));
          G(no, BLOCK,
            G(nil, NIL)))));
 }
