@@ -1,5 +1,6 @@
 #include <inttypes.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #ifdef NLANG_DEFINE_FUNCTIONS
 
@@ -171,6 +172,14 @@ NB(Int) NB(String$memmem_index)(struct NB(String) *self, struct NB(String) sep) 
     return -1;
   }
   return (uintptr_t)r - (uintptr_t)self->bytes.dat;
+}
+
+NB(U8) NB(Byte_to_lower)(NB(U8) c) {
+  return tolower(c);
+}
+
+NB(U8) NB(Byte_to_upper)(NB(U8) c) {
+  return toupper(c);
 }
 
 #undef NBDYN

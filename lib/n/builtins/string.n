@@ -40,6 +40,9 @@ inline struct Rune =
 	isa `String_compatible `Show `Hashable32
 	Code	:U32
 
+	let ERROR = {Code=0xfffd}:Rune
+	let ERROR_STRING = "\xef\xbf\xbd"
+
 inline Rune fun From_string s:String = this
 	let r, _ = Rune.Decode s.bytes
 	return r
@@ -57,7 +60,17 @@ inline Rune fun Decode_last b:[]U8 = this, Uint
 inline Rune fun From_ascii c:U8 = Rune
 	return { Code=c.U32 }
 
+inline Rune met Bytecount = Uint
+	return 1
+
 inline Rune met Encode z:[]!U8 = []!U8
+	if self == ERROR
+		assert z.Cap >= 3
+		z![0]! = ERROR_STRING.[0]
+		z![1]! = ERROR_STRING.[1]
+		z![2]! = ERROR_STRING.[2]
+		return z![3 ..]
+
 	assert z.Cap >= 1
 	z![0]! = self.Code.Trim_u8
 	-- FIXME: utf8
@@ -66,11 +79,18 @@ inline Rune met Encode z:[]!U8 = []!U8
 inline Rune met Hash32 = U32
 	return self.Code
 
+Rune met Buf = r:Stringbuf
+	r#Resize self.Bytecount
+	_ = self.Encode r!Bytes
+
 example -> assert Rune.From_ascii 49 == '1'
 
 inline Rune met Show st:@#`Fmt_state
 	--let s = {}:[4]U8 ...
 	self.Code.Show st
+
+extern fun Byte_to_lower c:U8 = U8
+extern fun Byte_to_upper c:U8 = U8
 
 inline struct String =
 	isa `String `Return_by_copy `Trivial_copy_but_owned
@@ -139,6 +159,9 @@ inline String met Cut_at i:Uint = this, this
 inline String met Show st:@#`Fmt_state
 	let _ = st#Write self.bytes
 
+String met Buf = Stringbuf
+	return Stringbuf.From_string self
+
 example -> assert 'a' < 'b'
 example -> assert 'b' > 'a'
 example -> assert 'a' == 'a'
@@ -146,6 +169,49 @@ example -> assert 'a' < 'aa'
 example -> assert 'b' > 'aa'
 example -> assert 'aa' > 'a'
 example -> assert 'aa' < 'b'
+
+example -> assert '1234'.Bytes.Count == 4
+example -> assert '1234'.Bytes.All == 0 .. 4
+example -> assert '1234'.Bytes.[3] == '4'.[0]
+example -> assert '1234'.Bytes.[1].U32 == ('2':Rune).Code
+example -> assert '1234' == '1234'
+example -> assert '1234'.Bytes.Count == 4
+example -> assert '1234'.Bytes.[0] == 49
+
+String met Iter = String_iterator
+	return {s=self}
+
+String met Iter_bytes = String_bytes_iterator
+	return {s=self}
+
+inline struct String_iterator =
+	isa (`Iterator (Uint, Rune))
+	s	:String
+	p	:Uint
+
+inline String_iterator met Has_next = Bool
+	return self.p < self.s.Count
+
+inline String_iterator met! Next = Uint, Rune
+	assert self.Has_next
+	let i = self.p
+	self!p += 1
+	return i, Rune.From_ascii <- self.s.[i]
+
+inline struct String_bytes_iterator =
+	isa (`Iterator (Uint, U8))
+	s	:String
+	p	:Uint
+
+inline String_bytes_iterator met Has_next = Bool
+	return self.p < self.s.Count
+
+inline String_bytes_iterator met! Next = Uint, U8
+	assert self.Has_next
+	let i = self.p
+	self!p += 1
+	return i, self.s.[i]
+
 
 let _M0 = 2860486313:U32
 let _M1 = 3267000013:U32
@@ -231,6 +297,8 @@ String met naive_index sep:String = Int
 	let sep_first = sep.First
 	if n == 1
 		return self.Index_byte sep_first
+	if n > self.Count
+		return -1
 
 	let sep_second = sep.[1]
 	let sep_allbut2 = sep.[2 ..]
@@ -345,21 +413,132 @@ example -> assert "abcdef".Index "z" == -1
 example -> assert "abcdef".Index "abc" == 0
 example -> assert "abcdef".Index "def" == 3
 
+String met Last_index sep:String = Int
+	let n = sep.Count
+	if n == 0
+		return self.Count.Signed
+	let sep_last = sep.Last
+	if n == 1
+		return self.Last_index_byte sep_last
+	if n > self.Count
+		return -1
+
+	let sep_second = sep.[sep.Count-2]
+	let sep_allbut2 = sep.[.. sep.Count-2]
+	var data = self.
+	while true
+		let i = data.Last_index_byte sep_last
+		if i+1 < sep.Count.Signed
+			break
+		let possible_beg = i.Unsigned + 1 - n
+		if data.[i.Unsigned-1] == sep_second and data.[possible_beg .. i.Unsigned-1] == sep_allbut2
+			return possible_beg.Signed
+		data = data.[.. i.Unsigned]
+	return -1
+
+example -> assert "abcdef".Last_index "" == 6
+example -> assert "abcdef".Last_index "a" == 0
+example -> assert "abcdef".Last_index "b" == 1
+example -> assert "abcdef".Last_index "abcdef" == 0
+example -> assert "abcdef".Last_index "bcdef" == 1
+example -> assert "abcdef".Last_index "abcdez" == -1
+example -> assert "abcdef".Last_index "abcdefg" == -1
+example -> assert "abcdef".Last_index "z" == -1
+example -> assert "abcdef".Last_index "abc" == 0
+example -> assert "abcdef".Last_index "def" == 3
+
+String met Index_any chars:String = Int
+	if chars.Count == 0
+		return -1
+	for i, c in self.Iter
+		for _, m in chars.Iter
+			if c == m
+				return i.Signed
+	return -1
+
+String met Last_index_any chars:String = Int
+	if chars.Count == 0
+		return -1
+	var b = self.Bytes
+	var i = self.Count
+	while i > 0
+		let r, size = Rune.Decode_last b.[.. i]
+		i -= size
+		for _, m in chars.Iter
+			if r == m
+				return i.Signed
+	return -1
+
 String met Index_all s:String = Bool, []Uint
 String met Find s:String = Bool, String
 String met Find_all s:String = Bool, []String
-String met Strip any:String = String
-String met Strip_left any:String = String
-String met Strip_right any:String = String
-String met Split ?sep:?@String ?max:?@Uint = []String
 
-example -> assert '1234'.Bytes.Count == 4
-example -> assert '1234'.Bytes.All == 0 .. 4
-example -> assert '1234'.Bytes.[3] == '4'.[0]
-example -> assert '1234'.Bytes.[1].U32 == ('2':Rune).Code
-example -> assert '1234' == '1234'
-example -> assert '1234'.Bytes.Count == 4
-example -> assert '1234'.Bytes.[0] == 49
+-- FIXME(e): unicode
+String met Strip any:String = String
+	return (self.Strip_left any).Strip_right any
+
+-- FIXME(e): unicode
+String met Strip_left any:String = String
+	foreach i in self.All
+		if any.Index_byte self.[i] == -1
+			return self.[i ..]
+	return ""
+
+-- FIXME(e): unicode
+String met Strip_right any:String = String
+	for i in self.All.Reverse_iter
+		if any.Index_byte self.[i] == -1
+			return self.[.. i+1]
+	return ""
+
+example -> assert "\t\nabc\t\n".Strip "\n\t" == "abc"
+example -> assert "\t\nabc\t\n".Strip_right "\n\t" == "\t\nabc"
+example -> assert "\t\nabc\t\n".Strip_left "\n\t" == "abc\t\n"
+
+String met To_lower = r:Stringbuf
+	r#Reserve self.Count
+	foreach i in self.All
+		r#Push <- Byte_to_lower self.[i]
+
+String met To_upper = r:Stringbuf
+	r#Reserve self.Count
+	foreach i in self.All
+		r#Push <- Byte_to_upper self.[i]
+
+-- FIXME(e): Unicode
+fun explode s:String ?max:?Uint = ret:(Buf String)
+	ret#Reserve s.Count
+	for i, r in s.Iter
+		if r == Rune.ERROR
+			ret#Push# = Rune.ERROR_STRING
+		else
+			ret#Push# = s.[i .. i+r.Bytecount]
+
+String met Split sep:String ?max:?Uint ?after_sep:?Bool = r:(Buf String)
+	let sep_save = 0 such
+		if after_sep else false
+			sep_save = sep.Count
+	if sep == ""
+		return explode self max=max
+	if sep.Count > self.Count
+		r#Push# = self
+		return r
+
+	var data = self.[..]
+	while true
+		let i = data.Index sep
+		if i == -1
+			r#Push# = data
+			break
+		r#Push# = data.[.. i.Unsigned+sep_save]
+		data = data.[i.Unsigned+sep.Count ..]
+	return r
+
+example -> assert "0 1 2".Split " " == {"0" "1" "2"}
+example -> assert "0 1 2".Split " " max=nil after_sep=true == {"0 " "1 " "2"}
+example -> assert "0 1 2".Split "," == {"0 1 2"}
+example -> assert "0 1 2".Split " 1 " == {"0" "2"}
+
 
 inline struct Stringbuf =
 	isa `Stringbuf
@@ -490,8 +669,18 @@ Stringbuf met# Cat ?sep:?@String ...v:(Vararg @`String)
 	for b in v
 		self#Reserve self.bytes.Count + sepcnt + b.Count
 		self#bytes = self!bytes!Append b.Bytes
-		if sep?
+		if sep? and v.Count_left > 0
 			self#bytes = self!bytes!Append sep.Bytes
+
+Stringbuf met# Cat_all ?sep:?@String ...v:(Vararg @[]String)
+	var n = 0:Uint
+	for b in v
+		foreach i in b.All
+			if sep? and n > 0
+				self#Cat sep
+			let s = b.[i]
+			self#Cat s
+			n += 1
 
 inline Stringbuf met# auto_grow atleast:Uint
 	let cap = self.bytes.cap
@@ -527,3 +716,32 @@ Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
 Stringbuf met# Prn ?sep:?@String ...v:(Vararg ?@`Show)
 	self#Pr sep=sep ...v
 	self#Append "\n".Bytes
+
+Stringbuf met Begins_with s:String = Bool
+	return self.String.Begins_with s
+Stringbuf met Ends_with s:String = Bool
+	return self.String.Ends_with s
+Stringbuf met Index_byte sep:U8 = Int
+	return self.String.Index_byte sep
+Stringbuf met Last_index_byte sep:U8 = Int
+	return self.String.Last_index_byte sep
+Stringbuf met Index s:String = Int
+	return self.String.Index s
+Stringbuf met Last_index s:String = Int
+	return self.String.Last_index s
+Stringbuf met Index_any chars:String = Int
+	return self.String.Index_any chars
+Stringbuf met Last_index_any chars:String = Int
+	return self.String.Last_index_any chars
+Stringbuf met Strip any:String = this
+	return (self.String.Strip any).Buf
+Stringbuf met Strip_left any:String = this
+	return (self.String.Strip_left any).Buf
+Stringbuf met Strip_right any:String = this
+	return (self.String.Strip_right any).Buf
+Stringbuf met To_lower = r:this
+	return self.String.To_lower
+Stringbuf met To_upper = this
+	return self.String.To_upper
+Stringbuf met Split sep:String ?max:?Uint ?after_sep:?Bool = (Buf String)
+	return self.String.Split sep max=max after_sep=after_sep
