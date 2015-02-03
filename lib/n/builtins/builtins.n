@@ -271,6 +271,9 @@ inline Slice met Bytecap = Uint
 inline Slice met All = Range
 	let s = this.create_impl_instance
 	return s.All
+inline Slice met Rawbytes = []U8
+	let s = this.create_impl_instance
+	return s.Rawbytes
 
 -- These are shallow wildcard methods because their prototype must match
 -- exactly those found in Slice_impl.
@@ -335,6 +338,9 @@ inline Mutable_slice met Bytecap = Uint
 inline Mutable_slice met All = Range
 	let s = this.create_impl_instance
 	return s.All
+inline Mutable_slice met$ Rawbytes = []$U8
+	let s = this.create_impl_instance
+	return s$Rawbytes
 inline Mutable_slice shallow met$ Unsafe_rawdata = @$U8
 	let s = this.create_impl_instance
 	such
@@ -450,6 +456,9 @@ inline Slice_impl met Bytecap = Uint
 
 inline Slice_impl met All = Range
 	return 0 .. self.cnt
+
+inline Slice_impl met$ Rawbytes = []$U8
+	return {dat=((Cast ?@$t @#U8) self$dat) cnt=self.Bytecount cap=self.Bytecap}
 
 inline Slice_impl shallow met$ Unsafe_rawdata = @$U8
 	return (Cast ?@$t @$U8) self$dat
