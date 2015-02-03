@@ -3133,10 +3133,10 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
   }
 
   const struct typ *t = intercept_slices(st->mod, _t);
-
   if (st->header
       && ((typ_is_function(t) && !(topdep_mask & TOP_IS_INLINE))
-          || (!(topdep_mask & TOP_IS_INLINE) && !(topdep_mask & TOP_IS_EXPORT)))) {
+          || (topdep_mask & (TOP_IS_INLINE | TOP_IS_EXPORT)) == 0)
+      && !(!is_in_topmost_module(node->typ) && (topdep_mask & TOP__TOPDEP_INLINE_STRUCT))) {
     return 0;
   }
 
@@ -3155,14 +3155,14 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
 
 static void print_topdeps(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node,
-                          struct fintypset *printed) {
+                          struct fintypset *printed, bool force) {
   if ((!typ_is_concrete(node->typ) && node->which != DEFINTF)
       || (!node_is_at_top(node) && !typ_is_concrete(parent_const(node)->typ))) {
     return;
   }
 
   const struct toplevel *toplevel = node_toplevel_const(node);
-  if (header && !(toplevel->flags & (TOP_IS_EXPORT | TOP_IS_INLINE))) {
+  if (!force && header && !(toplevel->flags & (TOP_IS_EXPORT | TOP_IS_INLINE))) {
     return;
   }
 
@@ -3216,7 +3216,7 @@ static void print_top(FILE *out, bool header, enum forward fwd,
   static __thread size_t prevent_infinite;
   assert(++prevent_infinite < 1000 && "FIXME When force==true, see t00/fixme10");
 
-  print_topdeps(out, header, fwd, mod, node, printed);
+  print_topdeps(out, header, fwd, mod, node, printed, force);
 
   switch (node->which) {
   case DEFMETHOD:
