@@ -746,6 +746,8 @@ static ERROR step_type_update_quickisa(struct module *mod, struct node *node,
   return 0;
 }
 
+// FIXME(e): won't work if the required interface is obtained through an
+// `Inherit, because the step_autointf_inherit happens later.
 static ERROR validate_genarg_types(struct module *mod, struct node *node) {
   struct node *genargs = subs_at(node, IDX_GENARGS);
   if (!subs_count_atleast(genargs, 1)) {
