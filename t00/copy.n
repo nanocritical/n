@@ -24,7 +24,7 @@ fun mk s:Stringbuf = Stringbuf
 
 fun check_diff s:Stringbuf raw:@U8 ?opt:?@Stringbuf ?opt_raw:?@U8
 	assert s.Bytes.Unsafe_rawdata !== raw
-	assert (opt?.Bytes?.Unsafe_rawdata else nil) === opt_raw
+	assert opt?.Bytes?.Unsafe_rawdata === opt_raw
 
 fun do_noop
 	noop
