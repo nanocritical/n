@@ -76,6 +76,9 @@ inline struct String =
 	isa `String `Return_by_copy `Trivial_copy_but_owned
 	bytes	:[]U8
 
+inline String fun From_slice c:[]U8 = this
+	return {bytes=c}
+
 inline String fun From_string s:String = this
 	return s
 
@@ -361,6 +364,10 @@ example -> assert '1234'.Bytes.[0] == 49
 inline struct Stringbuf =
 	isa `Stringbuf
 	bytes	:[]!U8	--::^Owned
+
+inline Stringbuf fun From_slice c:[]U8 = r:this
+	r#Resize c.Count
+	r#Bytes!Exact_copy c
 
 inline Stringbuf fun From_string s:String = this
 	let r = {}:this such

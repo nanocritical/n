@@ -10,6 +10,10 @@ inline struct Path =
 	isa `String
 	buf	:Stringbuf
 
+Path fun From_slice name:[]U8 = r:this
+	r#buf#Resize name.Count
+	r!buf!Bytes!Exact_copy name
+
 Path met# Init name:String
 	self#buf#Cat name
 

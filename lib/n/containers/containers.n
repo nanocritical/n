@@ -4,12 +4,13 @@ alias `locus = {`Has_equality `Copyable_but_owned}
 alias `fwd_locus = {`Has_equality `Copyable_but_owned `Partially_ordered}
 alias `bidir_locus = {`Has_equality `Copyable_but_owned `Ordered}
 
-intf `Random_container t:`Any =
+intf `Random_container T:`Any =
+	isa (`Slice_compatible T)
 	met Count = Uint
 
-intf `Iterator t:`Copyable =
+intf `Iterator T:`Copyable =
 	met Has_next = Bool
-	met! Next = t
+	met! Next = T
 
 -- We don't reach for more generality. We could have a concept of abstract
 -- sets that have no finite cardinality, are not iterable, etc. (e.g.

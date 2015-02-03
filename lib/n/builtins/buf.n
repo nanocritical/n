@@ -2,6 +2,10 @@ inline struct Buf t:`Any =
 	isa `Trivial_ctor `Copyable (`Random_container t) `Show
 	s	:[]!t	--::^Owned
 
+inline Buf fun From_slice c:[]t = r:this
+	r#Resize c.Count
+	r#Slice!Exact_copy c
+
 inline Buf met# Dtor
 	Realloc @#self#s 0
 

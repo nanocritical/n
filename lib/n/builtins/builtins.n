@@ -248,6 +248,8 @@ opaque struct Slice t:`Any =
 
 inline Slice fun create_impl_instance = (Slice_impl t)
 	return {}
+inline Slice fun From_slice c:[]t = this
+	return {}
 inline Slice met# Unsafe_wrap p:@U8 c:Uint cap:Uint
 	let s = this.create_impl_instance
 	s#Unsafe_wrap p c cap
@@ -309,6 +311,8 @@ opaque struct Mutable_slice t:`Any =
 	cap	:Uint
 
 inline Mutable_slice fun create_impl_instance = (Slice_impl t)
+	return {}
+inline Mutable_slice fun From_slice c:[]t = this
 	return {}
 inline Mutable_slice met# Unsafe_wrap p:@U8 c:Uint cap:Uint
 	let s = this.create_impl_instance
@@ -420,6 +424,9 @@ opaque struct Slice_impl t:`Any =
 	dat	:?@#t
 	cnt	:Uint
 	cap	:Uint
+
+inline Slice_impl fun From_slice c:[]t = this
+	return {dat=c.dat cnt=c.cnt cap=c.cap}
 
 inline Slice_impl met# Unsafe_wrap p:@U8 cnt:Uint cap:Uint
 	self#dat = (Cast @U8 @#t) p
