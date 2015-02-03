@@ -66,10 +66,19 @@ static ERROR step_rewrite_local_idents(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_rewrite_codeloc,
+               -1);
+static ERROR step_rewrite_codeloc(struct module *mod, struct node *node,
+                                  void *user, bool *stop) {
+  node->codeloc = parent_const(node)->codeloc;
+  return 0;
+}
+
 static ERROR pass_rewrite_proto(struct module *mod, struct node *root,
                                 void *user, ssize_t shallow_last_up) {
   PASS(DOWN_STEP(step_rewrite_this);
        DOWN_STEP(step_rewrite_local_idents);
+       DOWN_STEP(step_rewrite_codeloc);
        ,,);
   return 0;
 }
