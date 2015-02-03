@@ -5,7 +5,7 @@ import n.fs
 
 fun write_buf fd:I32 s:@U8 Count:Uint
 
-fun Pr ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
+fun Pr ?err:?Bool ?sep:?@String ...v:(Vararg ?@`Show)
 	let buf = {}:Stringbuf such
 		buf#Pr sep=sep ...v
 	let b = buf.Bytes
@@ -14,7 +14,7 @@ fun Pr ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
 			fd = 2
 	write_buf fd b.Unsafe_data b.Bytecount
 
-fun Prn ?err:?@Bool ?sep:?@String ...v:(Vararg ?@`Show)
+fun Prn ?err:?Bool ?sep:?@String ...v:(Vararg ?@`Show)
 	let buf = {}:Stringbuf such
 		buf#Prn sep=sep ...v
 	let b = buf.Bytes
