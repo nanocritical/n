@@ -890,7 +890,7 @@ static ERROR unfold_op_assign(struct module *mod, struct node *node) {
 
 
 static ERROR type_inference_bin_sym(struct module *mod, struct node *node) {
-again:;
+again:
   assert(node->which == BIN);
   enum token_type operator = node->as.BIN.operator;
 
@@ -1830,12 +1830,12 @@ static bool compare_ref_depth(const struct typ *target, const struct typ *arg,
   return dtarget == darg + diff;
 }
 
-static ERROR try_insert_automagic_arg_ref(struct module *mod, struct node *node,
+static ERROR try_insert_automagic_arg_ref(bool *did_ref, struct node **arg,
+                                          struct module *mod, struct node *node,
                                           const struct typ *target,
-                                          enum token_type target_explicit_ref,
-                                          struct node *arg) {
-  const bool is_named = arg->which == CALLNAMEDARG;
-  struct node *real_arg = is_named ? subs_first(arg) : arg;
+                                          enum token_type target_explicit_ref) {
+  const bool is_named = (*arg)->which == CALLNAMEDARG;
+  struct node *real_arg = is_named ? subs_first(*arg) : (*arg);
   struct node *expr_arg = follow_ssa(real_arg);
 
   if (target_explicit_ref == TREFDOT || target_explicit_ref == TNULREFDOT) {
@@ -1850,14 +1850,16 @@ static ERROR try_insert_automagic_arg_ref(struct module *mod, struct node *node,
         node_subs_insert_after(par, before, ref_arg);
 
         if (is_named) {
-          unset_typ(&arg->typ);
+          unset_typ(&(*arg)->typ);
+        } else {
+          *arg = ref_arg;
         }
 
         const struct node *except[] = { real_arg, NULL };
-        error e = catchup(mod, except,
-                          is_named ? arg : ref_arg,
-                          CATCHUP_BELOW_CURRENT);
+        error e = catchup(mod, except, *arg, CATCHUP_BELOW_CURRENT);
         EXCEPT(e);
+
+        *did_ref = true;
       }
     } else if (compare_ref_depth(target, real_arg->typ, 0)) {
       if (expr_arg != NULL
@@ -1885,53 +1887,51 @@ static ERROR try_insert_automagic_arg_ref(struct module *mod, struct node *node,
   return 0;
 }
 
-static ERROR try_insert_automagic_arg(struct module *mod, struct node *node,
+static ERROR try_insert_automagic_arg(bool *did_ref, struct node **arg,
+                                      struct module *mod, struct node *node,
                                       const struct typ *target,
-                                      enum token_type target_explicit_ref,
-                                      struct node *arg) {
-  if (typ_equal(arg->typ, TBI_LITERALS_NIL)) {
+                                      enum token_type target_explicit_ref) {
+  if (typ_equal((*arg)->typ, TBI_LITERALS_NIL)) {
     return 0;
   }
 
-  if (typ_is_reference(target)) {
-    error e = try_insert_automagic_arg_ref(mod, node, target, target_explicit_ref, arg);
+  if (typ_is_reference(target) && !typ_is_optional((*arg)->typ)) {
+    error e = try_insert_automagic_arg_ref(did_ref, arg, mod, node, target, target_explicit_ref);
     EXCEPT(e);
-  } else if (typ_is_optional(target)) {
-    if (!typ_is_optional(arg->typ)) {
-      struct node *r = arg;
-      error e = wrap_arg_unary_op(&r, mod, TPREQMARK);
-      EXCEPT(e);
-    }
+  } else if (typ_is_optional(target) && !typ_is_optional((*arg)->typ)) {
+    error e = wrap_arg_unary_op(arg, mod, TPREQMARK);
+    EXCEPT(e);
   }
   return 0;
 }
 
-static ERROR try_insert_automagic_arg_de(struct module *mod,
+static ERROR try_insert_automagic_arg_de(struct node **arg,
+                                         struct module *mod,
                                          const struct typ *target,
-                                         enum token_type target_explicit_ref,
-                                         struct node *arg) {
-  if (target_explicit_ref != 0 || typ_is_reference(target)) {
-    return 0;
+                                         enum token_type target_explicit_ref) {
+  if (!typ_is_optional((*arg)->typ)) {
+    if (target_explicit_ref != 0 || typ_is_reference(target)) {
+      return 0;
+    }
   }
 
   // target can be either t or ?t
   // arg can be any of: ?t, @t, @?t
   // Don't deref more than once.
-  struct node *r = arg;
-  if (!typ_is_optional(target) && typ_is_optional(r->typ)) {
-    error e = wrap_arg_unary_op(&r, mod, T__DEOPT);
+  bool is_nil = typ_equal((*arg)->typ, TBI_LITERALS_NIL);
+  if (!typ_is_optional(target) && !is_nil && typ_is_optional((*arg)->typ)) {
+    error e = wrap_arg_unary_op(arg, mod, T__DEOPT);
     EXCEPT(e);
-    arg = r;
   }
-  if (!typ_is_reference(target) && typ_is_reference(r->typ)) {
-    error e = wrap_arg_unary_op(&r, mod, TDEREFDOT);
+  is_nil = typ_equal((*arg)->typ, TBI_LITERALS_NIL);
+  if (!typ_is_reference(target) && !is_nil && typ_is_reference((*arg)->typ)) {
+    error e = wrap_arg_unary_op(arg, mod, TDEREFDOT);
     EXCEPT(e);
-    arg = r;
   }
-  if (!typ_is_optional(target) && typ_is_optional(r->typ)) {
-    error e = wrap_arg_unary_op(&r, mod, T__DEOPT);
+  is_nil = typ_equal((*arg)->typ, TBI_LITERALS_NIL);
+  if (!typ_is_optional(target) && !is_nil && typ_is_optional((*arg)->typ)) {
+    error e = wrap_arg_unary_op(arg, mod, T__DEOPT);
     EXCEPT(e);
-    arg = r;
   }
   return 0;
 }
@@ -1959,14 +1959,22 @@ static ERROR process_automagic_call_arguments(struct module *mod,
     nxt = next(nxt);
 
     const enum token_type explicit_ref = typ_function_arg_explicit_ref(tfun, n);
-    e = try_insert_automagic_arg(mod, node,
+    bool did_ref = false;
+    e = try_insert_automagic_arg(&did_ref, &arg, mod, node,
                                  typ_function_arg_const(tfun, n),
-                                 explicit_ref, arg);
+                                 explicit_ref);
     EXCEPT(e);
 
-    e = try_insert_automagic_arg_de(mod, typ_function_arg_const(tfun, n),
-                                    explicit_ref, arg);
+    e = try_insert_automagic_arg_de(&arg, mod, typ_function_arg_const(tfun, n),
+                                    explicit_ref);
     EXCEPT(e);
+
+    if (!did_ref) {
+      e = try_insert_automagic_arg(&did_ref, &arg, mod, node,
+                                   typ_function_arg_const(tfun, n),
+                                   explicit_ref);
+      EXCEPT(e);
+    }
 
     n += 1;
     last = arg;
@@ -1983,7 +1991,14 @@ static ERROR process_automagic_call_arguments(struct module *mod,
       struct node *arg = nxt;
       nxt = next(nxt);
 
-      e = try_insert_automagic_arg(mod, node, target, TREFDOT, arg);
+      bool did_ref = false;
+      e = try_insert_automagic_arg(&did_ref, &arg, mod, node, target, TREFDOT);
+      EXCEPT(e);
+
+      e = try_insert_automagic_arg_de(&arg, mod, target, TREFDOT);
+      EXCEPT(e);
+
+      e = try_insert_automagic_arg(&did_ref, &arg, mod, node, target, TREFDOT);
       EXCEPT(e);
     }
   }
