@@ -2821,9 +2821,12 @@ void copy_and_extend_import_path(struct module *mod, struct node *imported,
 
 static ERROR p_import(struct node *node, struct module *mod,
                       const struct toplevel *toplevel,
-                      bool from) {
+                      enum token_type tokt) {
   node_set_which(node, IMPORT);
   node->as.IMPORT.toplevel = *toplevel;
+  if (tokt == Texport) {
+    node->as.IMPORT.toplevel.flags |= TOP_IS_EXPORT;
+  }
 
   struct token tok = { 0 };
   error e = scan(&tok, mod);
@@ -2837,7 +2840,7 @@ static ERROR p_import(struct node *node, struct module *mod,
   e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
   EXCEPT(e);
 
-  if (!from) {
+  if (tokt != Tfrom) {
     return 0;
   }
 
@@ -2856,7 +2859,7 @@ again:
     node->as.IMPORT.toplevel.flags |= TOP_IS_INLINE;
     goto again;
   } else if (tok.t == Timport || tok.t == Texport) {
-    if (!from || import_export_count > 0 || ident_count > 0) {
+    if (tokt != Tfrom || import_export_count > 0 || ident_count > 0) {
       UNEXPECTED(mod, &tok);
     }
     import_export_count += 1;
@@ -2999,7 +3002,8 @@ bypass:
     goto again;
   case Tfrom:
   case Timport:
-    e = p_import(NEW(mod, node), mod, &toplevel, tok.t == Tfrom);
+  case Texport:
+    e = p_import(NEW(mod, node), mod, &toplevel, tok.t);
     break;
   case Texample:
     e = p_example(NEW(mod, node), mod);
