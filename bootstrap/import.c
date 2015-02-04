@@ -47,7 +47,7 @@ static ERROR check_import_target_exists(bool *is_globalenv, struct module *mod,
       if (e) {
         // Give up: repeat bound-to-fail call to get error message right.
         e = scope_lookup_ident_immediate(&target, id,
-                                         mod, def,
+                                         mod, body,
                                          node_ident(id), false);
         THROW(e);
       } else {
