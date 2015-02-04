@@ -1,27 +1,68 @@
-from n.builtins import *
+from n import *
+import n
 import n.io
 
 intf `State =
 	isa io.`Writer
-	met Width = Bool, Uint
-	met Precision = Bool, Uint
+	met Width = ?Uint
+	met Precision = ?Uint
 	met Flag c:Rune = Bool
 
 inline struct State =
 	isa `State
-	w	:@#io.`Writer
+	W	:@#io.`Writer
 
 State met# Init w:@#io.`Writer
-	self#w = w
+	self#W = w
 
-State met Width = Bool, Uint
-	return false, 0
+State met Width = ?Uint
+	return nil
 
-State met Precision = Bool, Uint
-	return false, 0
+State met Precision = ?Uint
+	return nil
 
 State met Flag c:Rune = Bool
 	return false
 
 State met# Write b:[]U8 = []U8, Error
-	return self#w#Write b
+	return self#W#Write b
+
+fun first_verb s:String = before:String, verb:String, after:String
+	let i = s.Index_byte "%"
+	if i == -1
+		return s, "", ""
+
+	before, after = s.Cut_at i.Unsigned
+	if after.Count < 2
+		return s, "", ""
+
+	return before, after.[.. 2], after.[2 ..]
+
+fun F w:@#io.`Writer fmt:String ...v:(Vararg ?@`Show)
+	let st = {W=w}:State
+	try
+		while true
+			let before, verb, after = first_verb fmt
+			_, except = io.Write_full w before.Bytes
+			if verb.Count == 0
+				break
+			if verb.[1] == "%"
+				_, except = io.Write_full w "%".Bytes
+			else
+				if not v.Has_next
+					break
+				let s = v!Next
+				s.Show @#st
+			fmt = after
+	catch _
+		noop
+
+fun Prf fmt:String ?err:?Bool ...v:(Vararg ?@`Show)
+	var buf = @#{}:Stringbuf
+	F buf fmt ...v
+	n.Pr err=err buf
+
+fun Pr w:@#io.`Writer ?sep:?@String ...v:(Vararg ?@`Show)
+fun Prn w:@#io.`Writer ?sep:?@String ...v:(Vararg ?@`Show)
+fun Cat w:@#io.`Writer ?sep:?@String ...v:(Vararg @`String)
+fun Cat_all w:@#io.`Writer ?sep:?@String ...v:(Vararg @[]String)

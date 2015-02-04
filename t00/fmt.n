@@ -1,0 +1,11 @@
+from n import *
+import n.fmt
+
+fun Main = I32
+	var buf = @#{}:Stringbuf
+
+	fmt.F buf "%%"
+	Prn buf
+	buf#Clear
+
+	fmt.Prf "%v\n" 1:Uint

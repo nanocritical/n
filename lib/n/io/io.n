@@ -33,5 +33,17 @@ fun Read_at_least b:[]!U8 r:@#`Reader min_count:Uint = []!U8, err:Error
 		err = UNEXPECTED_EOF
 	return b, err
 
-fun Read_full buf:[]!U8 r:@#`Reader = []!U8, Error
-	return Read_at_least buf r buf.Available
+fun Read_full b:[]!U8 r:@#`Reader = []!U8, Error
+	return Read_at_least b r b.Available
+
+fun Write_at_least w:@#`Writer b:[]U8 min_count:Uint = []U8, err:Error
+	let target = b.Count - (Min b.Count min_count)
+	while b.Count > target and err == OK
+		b, err = w#Write b
+
+	if b.Count <= target
+		err = OK
+	return b, err
+
+fun Write_full w:@#`Writer b:[]U8 = []U8, Error
+	return Write_at_least w b b.Available
