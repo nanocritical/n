@@ -1,0 +1,519 @@
+-- See LICENSE for details. Originally derived from go/src/pkg/net/url
+-- Copyright 2009 The Go Authors. All rights reserved.
+
+-- Package url parses URLs and implements query escaping.
+-- See RFC 3986.
+
+from n import *
+
+let Error_invalid_escape = {Why=@"invalid URL escape"}
+let Error_missing_protocol_scheme = {Why=@"missing protocol scheme"}
+let Error_parse_url = {Why=@"URL parse error"}
+let Error_parse_empty_url = {Why=@"URL parse error: empty URL"}
+let Error_parse_invalid_uri_for_request = {Why=@"URL parse error: invalid URI for request"}
+let Error_parse_hexadecimal_escape_in_host = {Why=@"URL parse error: hexadecimal escape in host"}
+
+fun ishex c:U8 = Bool
+	if '0' <= c and c <= '9'
+		return true
+	if 'a' <= c and c <= 'f'
+		return true
+	if 'A' <= c and c <= 'F'
+		return true
+	return false
+
+fun unhex c:U8 = U8
+	if '0' <= c and c <= '9'
+		return c - '0'
+	if 'a' <= c and c <= 'f'
+		return c - 'a' + 10
+	if 'A' <= c and c <= 'F'
+		return c - 'A' + 10
+	return 0
+
+enum encoding =
+	| ENCODE_PATH
+	| ENCODE_USER_PASSWORD
+	| ENCODE_QUERY_COMPONENT
+	| ENCODE_FRAGMENT
+
+-- Return true if the specified character should be escaped when
+-- appearing in a URL string, according to RFC 3986.
+-- When 'all' is true the full range of reserved characters are matched.
+fun should_escape c:U8 mode:encoding = Bool
+	-- 2.3 Unreserved characters (alphanum)
+	if ('A' <= c and c <= 'Z') or ('a' <= c and c <= 'z') or ('0' <= c and c <= '9')
+		return false
+
+	if c == '-' or c == '_' or c == '.' or c == '~' -- 2.3 Unreserved characters (mark)
+		return false
+
+	if c == '$' or c == '&' or c == '+' or c == ',' or c == '/' or c == ':' or c == ';' or c == '=' or c == '?' or c == '@' -- 2.2 Reserved characters (reserved)
+		-- Different sections of the URL allow a few of
+		-- the reserved characters to appear unescaped.
+		match mode
+		| ENCODE_PATH -- 3.3
+			-- The RFC allows : @ & = + $ but saves / ; , for assigning
+			-- meaning to individual path segments. This package
+			-- only manipulates the path as a whole, so we allow those
+			-- last two as well. That leaves only ? to escape.
+			return c == '?'
+
+		| ENCODE_USER_PASSWORD -- 3.2.2
+			-- The RFC allows ; : & = + $ , in userinfo, so we must escape only @ and /.
+			-- The parsing of userinfo treats : as special so we must escape that too.
+			return c == '@' or c == '/' or c == ':'
+
+		| ENCODE_QUERY_COMPONENT -- 3.4
+			-- The RFC reserves (so we must escape) everything.
+			return true
+
+		| ENCODE_FRAGMENT -- 4.1
+			-- The RFC text is silent but the grammar allows
+			-- everything, so escape nothing.
+			return false
+
+	-- Everything else must be escaped.
+	return true
+
+
+-- Query_unescape does the inverse transformation of Query_escape, converting
+-- %AB into the byte 0xAB and '+' into ' ' (space). It returns an error if
+-- any % is not followed by two hexadecimal digits.
+fun Query_unescape s:String = Error, Stringbuf
+	return unescape s ENCODE_QUERY_COMPONENT
+
+-- unescape unescapes a string; the mode specifies
+-- which section of the URL string is being unescaped.
+fun unescape s:String mode:encoding = Error, ret:Stringbuf
+	-- Count %, check that they're well-formed.
+	var n = 0
+	var has_plus = false
+	foreach i in s.All
+		if s.[i] == '%'
+			n += 1
+			if i+2 >= s.Count or not ishex s.[i+1] or not ishex s.[i+2]
+				s = s.[i ..]
+				if s.Count > 3
+					s = s.[0 .. 3]
+				return Error_invalid_escape, ""
+			i += 3
+		elif s.[i] == '+'
+			has_plus = mode == ENCODE_QUERY_COMPONENT
+			i += 1
+		else
+			i += 1
+
+	if n == 0 and not has_plus
+		ret#Cat s
+		return OK, ret
+
+	ret#Resize s.Count - 2*n
+	var j = 0
+	foreach i in s.All
+		if s.[i] == '%'
+			ret![j]! = ((unhex s.[i+1])ov<<4) | (unhex s.[i+2])
+			j += 1
+			i += 3
+		elif s.[i] == '+'
+			if mode == ENCODE_QUERY_COMPONENT
+				ret![j]! = ' '
+			else
+				ret![j]! = '+'
+			j += 1
+			i += 1
+		else
+			ret![j]! = s.[i]
+			j += 1
+			i += 1
+	return OK, ret
+
+-- Query_escape escapes the string so it can be safely placed
+-- inside a URL query.
+fun Query_escape s:String = Stringbuf
+	return escape s ENCODE_QUERY_COMPONENT
+
+fun escape s:String mode:encoding = ret:Stringbuf
+	var space_count, hex_count = 0:Uint, 0:Uint
+	foreach i in s.All
+		let c = s.[i]
+		if should_escape c mode
+			if c == ' ' and mode == ENCODE_QUERY_COMPONENT
+				space_count += 1
+			else
+				hex_count += 1
+
+	if space_count == 0 and hex_count == 0
+		ret#Cat s
+		return ret
+
+	ret#Resize s.Count+2*hex_count
+	var j = 0
+	foreach i in s.All
+		let c = s.[i]
+		if c == ' ' and mode == ENCODE_QUERY_COMPONENT
+			ret![j]! = '+'
+			j += 1
+		elif should_escape c mode
+			ret![j]! = '%'
+			ret![j+1]! = "0123456789ABCDEF".[c.Uint >> 4]
+			ret![j+2]! = "0123456789ABCDEF".[c.Uint & 15]
+			j += 3
+		else
+			ret![j]! = s.[i]
+			j += 1
+	return ret
+
+-- A URL represents a parsed URL (technically, a URI reference).
+-- The general form represented is:
+--
+--	scheme://[userinfo@]host/path.[?query][#fragment]
+--
+-- URLs that do not start with a slash after the scheme are interpreted as:
+--
+--	scheme:opaque.[?query][#fragment]
+--
+-- Note that the Path field is stored in decoded form: /%47%6f%2f becomes /Go/.
+-- A consequence is that it is impossible to tell which slashes in the Path were
+-- slashes in the raw URL and which were %2f. This distinction is rarely important,
+-- but when it is a client must use other routines to parse the raw URL or construct
+-- the parsed URL. For example, an HTTP server can consult req.Request_uri, and
+-- an HTTP client can use URLHost: "example.com", Opaque: "//example.com/Go%2f"
+-- instead of URLHost: "example.com", Path: "/Go/".
+inline struct Url =
+	Scheme   	:Stringbuf
+	Opaque   	:Stringbuf -- encoded opaque data
+	Userinfo	:?Stringbuf -- not set, empty, username only, username:password
+	Host     	:Stringbuf -- host or host:port
+	Path     	:Stringbuf
+	Raw_query	:Stringbuf -- encoded query values, without '?'
+	Fragment 	:Stringbuf -- fragment for references, without '#'
+
+-- Maybe rawurl is of the form scheme:path.
+-- (Scheme must be [a-z_a-Z][a-z_a-Z0-9+-.]*)
+-- If so, return scheme, path; else return "", rawurl.
+fun getscheme rawurl:String = Error, String, String
+	foreach i in rawurl.All
+		let c = rawurl.[i]
+		if ('a' <= c and c <= 'z') or ('A' <= c and c <= 'Z')
+			noop
+		elif ('0' <= c and c <= '9') or (c == '+' or c == '-' or c == '.')
+			if i == 0
+				return OK, "", rawurl
+		elif c == ':'
+			if i == 0
+				return Error_missing_protocol_scheme, "", ""
+			return OK, rawurl.[0 .. i], rawurl.[i+1 ..]
+		else
+			-- we have encountered an invalid character,
+			-- so there is no valid scheme
+			return OK, "", rawurl
+	return OK, "", rawurl
+
+-- Maybe s is of the form t c u.
+-- If so, return t, c u (or t, u if cutc == true).
+-- If not, return s, "".
+fun split s:String c:String cutc:Bool = String, String
+	let i = s.Index c
+	if i < 0
+		return s, ""
+	if cutc
+		return s.[.. i.Unsigned], s.[i.Unsigned+c.Count ..]
+	return s.Cut_at i.Unsigned
+
+-- Parse parses rawurl into a URL structure.
+-- The rawurl may be relative or absolute.
+fun Parse rawurl:String = err:Error, url:Url
+	-- Cut off #frag
+	let u, frag = split rawurl "#" true
+	except, url = parse u false
+
+	if frag == ""
+		return OK, url
+
+	err, url!Fragment = unescape frag ENCODE_FRAGMENT
+	if err != OK
+		return Error_parse_url, {}
+	return OK, url
+
+-- Parse_request_uri parses rawurl into a URL structure.  It assumes that
+-- rawurl was received in an HTTP request, so the rawurl is interpreted
+-- only as an absolute URI or an absolute path.
+-- The string rawurl is assumed not to have a #fragment suffix.
+-- (Web browsers strip #fragment before sending the URL to a web server.)
+fun Parse_request_uri rawurl:String = Error, Url
+	return parse rawurl true
+
+-- parse parses a URL from a string in one of two contexts.  If
+-- via_request is true, the URL is assumed to have arrived via an HTTP request,
+-- in which case only absolute URLs or path-absolute relative URLs are allowed.
+-- If via_request is false, all forms of relative URLs are allowed.
+fun parse rawurl:String via_request:Bool = Error, url:Url
+	if rawurl == "" and via_request
+		return Error_parse_empty_url, {}
+	if rawurl == "*"
+		url!Path = "*"
+		return
+
+	-- Split off possible leading "http:", "mailto:", etc.
+	-- Cannot contain escaped characters.
+	var rest, scheme
+	except, scheme, rest = getscheme rawurl
+	url!Scheme = scheme.Buf.To_lower
+
+	let rawq such
+		rest, rawq = split rest "?" true
+	url!Raw_query = rawq.Buf
+
+	if not rest.Begins_with "/"
+		if url.Scheme != ""
+			-- We consider rootless paths per RFC 3986 as opaque.
+			url!Opaque = rest.Buf
+			return OK, url
+
+		if via_request
+			return Error_parse_invalid_uri_for_request, {}
+
+	if (url.Scheme != "" or not via_request) and not rest.Begins_with "///" and rest.Begins_with "//"
+		var authority
+		authority, rest = split rest.[2 ..] "/" false
+		except, url!Userinfo, url!Host = parse_authority authority
+
+		if url.Host.Index "%" >= 0
+			return Error_parse_hexadecimal_escape_in_host, {}
+
+	except, url!Path = unescape rest ENCODE_PATH
+	return OK, url
+
+example authority
+	assert parse_authority "/abc" == (OK, nil, "/abc")
+	assert parse_authority "@/abc" == (OK, ?"", "/abc")
+	assert parse_authority "u@/abc" == (OK, ?"u", "/abc")
+	assert parse_authority "u:p@/abc" == (OK, ?"u:p", "/abc")
+
+fun parse_authority authority:String = Error, userinfo:?Stringbuf, host:Stringbuf
+	let i = authority.Last_index "@"
+	if i < 0
+		return OK, nil, authority.Buf
+
+	userinfo, host = authority.[.. i.Unsigned].Buf, authority.[i.Unsigned+1 ..].Buf
+	except, userinfo = unescape userinfo?.String ENCODE_USER_PASSWORD
+
+-- String reassembles the URL into a valid URL string.
+Url met String = buf:Stringbuf
+	if self.Scheme != ""
+		buf#Cat self.Scheme ":"
+
+	if self.Opaque != ""
+		buf#Cat self.Opaque
+	else
+		if self.Scheme != "" or self.Host != "" or self.Userinfo?
+			buf#Cat "//"
+			if self.Userinfo?
+				buf#Cat self.Userinfo "@"
+
+			if self.Host != ""
+				buf#Cat self.Host
+
+		if self.Path != "" and self.Path.[0] != '/' and self.Host != ""
+			buf#Cat "/"
+
+		buf#Cat <- escape self.Path.String ENCODE_PATH
+
+	if self.Raw_query != ""
+		buf#Cat "?" self.Raw_query
+
+	if self.Fragment != ""
+		buf#Cat <- escape self.Fragment.String ENCODE_FRAGMENT
+
+	return buf
+
+-- Values maps a string key to a list of values.
+-- It is typically used for query parameters and form values.
+-- Unlike in the http.Header map, the keys in a Values map
+-- are case-sensitive.
+inline struct Values =
+	Map	:(Map Stringbuf (Buf Stringbuf))
+
+-- Get gets the first value associated with the given key.
+-- If there are no values associated with the key, Get returns
+-- the empty string. To access multiple values, use the map
+-- directly.
+Values met Get key:String = Stringbuf
+	let vs = self.Map.[key.Buf]
+	if vs.Count == 0
+		return ""
+	return vs.[0].
+
+-- Set sets the key to value. It replaces any existing
+-- values.
+Values met Set key:String value:String
+	let p = self#Map#Store key.Buf
+	p#Clear
+	p#Push# = value.Buf
+
+-- Add adds the key to value. It appends to any existing
+-- values associated with key.
+Values met Add key:String value:String
+	let p = self#Map#Store key.Buf
+	p#Push# = value.Buf
+
+-- Del deletes the values associated with key.
+Values met Del key:String
+	let _ = self#Map#Try_delete key.Buf
+
+-- Parse_query parses the URL-encoded query string and returns
+-- a map listing the values specified for each key.
+-- Parse_query always returns a non-nil map containing all the
+-- valid query parameters found; err describes the first decoding error
+-- encountered, if any.
+fun Parse_query query:String = m:Values, first_err:Error
+	while query != ""
+		var err
+		var key = query
+		let i = key.Index_any "&;"
+		if i >= 0
+			key, query = key.[.. i.Unsigned], key.[i.Unsigned+1 ..]
+		else
+			query = ""
+
+		if key == ""
+			continue
+
+		var value = ""
+		let j = key.Index "="
+		if j >= 0
+			key, value = key.[.. j.Unsigned], key.[j.Unsigned+1 ..]
+
+		var bkey
+		err, bkey = Query_unescape key
+		if err != OK
+			if first_err == OK
+				first_err = err
+			continue
+
+		var bvalue
+		err, bvalue = Query_unescape value
+		if err != OK
+			if first_err == OK
+				first_err = err
+			continue
+
+		(m#Map#Store bkey)#Push# = bvalue
+	return m, first_err
+
+-- Encode encodes the values into ``URL encoded'' form
+-- ("bar=baz&foo=quux") sorted by key.
+-- FIXME: not sorted
+Values met Encode = buf:Stringbuf
+	for k, vs in self.Map.Iter
+		let prefix = Query_escape k.String
+		foreach i in vs.All
+			let v = vs.[i]
+			if buf.Count > 0
+				buf#Cat "&"
+
+			buf#Cat prefix
+			buf#Cat "="
+			buf#Cat <- Query_escape v.String
+
+	return buf
+
+-- resolve_path applies special path segments from refs and applies
+-- them to base, per RFC 3986.
+fun resolve_path base:String ref:String = r:Stringbuf
+	var full
+	if ref == ""
+		full = base.Buf
+	elif ref.[0] != '/'
+		let i = base.Last_index "/"
+		full#Cat base.[.. i.Unsigned+1] ref
+	else
+		full = ref.Buf
+
+	if full == ""
+		return ""
+
+	let dst = {}:(Buf String)
+	let src = full.Split "/"
+	foreach i in src.All
+		let elem = src.[i]
+		if elem == "."
+			noop
+		elif elem == ".."
+			if dst.Count > 0
+				dst#Resize dst.Count-1
+		else
+			dst#Push# = elem
+
+	let last = src.Last
+	if last == "." or last == ".."
+		-- Add final slash to the joined path.
+		dst#Push# = ""
+
+	r#Cat "/"
+	r#Cat_all sep="/" dst.Slice
+	r = r#Strip_left "//"
+
+-- Is_abs returns true if the URL is absolute.
+Url met Is_abs = Bool
+	return self.Scheme != ""
+
+-- Parse parses a URL in the context of the receiver.  The provided URL
+-- may be relative or absolute.  Parse returns nil, err on parse
+-- failure, otherwise its return value is the same as Resolve_reference.
+Url met Parse ref:String = Error, Url
+	let except, refurl = Parse ref
+	return OK, self.Resolve_reference refurl
+
+-- Resolve_reference resolves a URI reference to an absolute URI from
+-- an absolute base URI, per RFC 3986 Section 5.2.  The URI reference
+-- may be relative or absolute.  Resolve_reference always returns a new
+-- URL instance, even if the returned URL is identical to either the
+-- base or reference. If ref is an absolute URL, then Resolve_reference
+-- ignores base and returns a copy of ref.
+Url met Resolve_reference ref:@Url = Url
+	var url = ref.
+	if ref.Scheme == ""
+		url!Scheme = self.Scheme
+
+	if ref.Scheme != "" or ref.Host != "" or ref.Userinfo?
+		-- The "absolute_uri" or "net_path" cases.
+		url!Path = resolve_path ref.Path.String ""
+		return url
+
+	if ref.Opaque != ""
+		url!Userinfo = nil
+		url!Host = ""
+		url!Path = ""
+		return url
+
+	if ref.Path == ""
+		if ref.Raw_query == ""
+			url!Raw_query = self.Raw_query
+			if ref.Fragment == ""
+				url!Fragment = self.Fragment
+
+	-- The "abs_path" or "rel_path" cases.
+	url!Host = self.Host
+	url!Userinfo = self.Userinfo
+	url!Path = resolve_path self.Path.String ref.Path.String
+	return url
+
+-- Query parses Raw_query and returns the corresponding values.
+Url met Query = Values
+	let v, _ = Parse_query self.Raw_query.String
+	return v
+
+-- Request_uri returns the encoded path?query or opaque?query
+-- string that would be used in an HTTP request for self.
+Url met Request_uri = result:Stringbuf
+	if self.Opaque == ""
+		result = escape self.Path.String ENCODE_PATH
+		if result == ""
+			result = "/"
+	else
+		if self.Opaque.Begins_with "//"
+			result#Cat self.Scheme ":" result
+	if self.Raw_query != ""
+		result#Cat "?" self.Raw_query
