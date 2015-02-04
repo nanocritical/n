@@ -169,5 +169,5 @@ example
 		assert v.Count == 112
 		assert v.Cap == 112
 
-Buf met Show st:@#`Fmt_state
+Buf met Show st:@#fmt.`State
 	return self.s.Show st

@@ -101,19 +101,19 @@ define_from_number_literal(n$builtins$Float)
 define_from_number_literal(n$builtins$Double)
 
 
-static void native_write_buffer(struct _$Ndyn_n$builtins$_$Ni_Fmt_state st, char *s, int cnt) {
+static void native_write_buffer(struct _$Ndyn_n$fmt$_$Ni_State st, char *s, int cnt) {
   const struct _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ bytes =
     NLANG_BYTE_SLICE(s, cnt);
   st.dyntable->Write(st.obj, bytes);
 }
 
-void n$builtins$Bool$Show(NB(Bool) *self, struct _$Ndyn_n$builtins$_$Ni_Fmt_state st) {
+void n$builtins$Bool$Show(NB(Bool) *self, struct _$Ndyn_n$fmt$_$Ni_State st) {
   native_write_buffer(st, *self ? "true" : "false", *self ? 4 : 5);
 }
 
 // ln(2^64)/ln(10) = 19.27
 #define define_show_number(t, fmt) \
-  void t##$Show(t *self, struct _$Ndyn_n$builtins$_$Ni_Fmt_state st) { \
+  void t##$Show(t *self, struct _$Ndyn_n$fmt$_$Ni_State st) { \
     char s[32]; \
     const int cnt = snprintf(s, 32, fmt, *self); \
     native_write_buffer(st, s, cnt); \

@@ -2,6 +2,7 @@
 -- Copyright 2009 The Go Authors. All rights reserved.
 
 from n import *
+import n.fmt
 
 fun Mk name:String = r:Path
 	r#Init name
@@ -75,7 +76,7 @@ Path met Operator_ge other:@this = Bool
 		return true
 	return self.Operator_compare other >= 0
 
-Path met Show st:@#`Fmt_state
+Path met Show st:@#fmt.`State
 	let _ = st#Write self.Bytes
 
 Path met# Clear

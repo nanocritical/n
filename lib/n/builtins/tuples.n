@@ -216,7 +216,7 @@ Tuple_2 shallow met$ Get n:Uint = Any_or_ptr
 	| 0 -> return mk_any_or_ptr self.X0
 	| 1 -> return mk_any_or_ptr self.X1
 	| _ -> assert false
-Tuple_2 met Show st:@#`Fmt_state
+Tuple_2 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_3 met All = Range
@@ -227,7 +227,7 @@ Tuple_3 shallow met$ Get n:Uint = Any_or_ptr
 	| 1 -> return mk_any_or_ptr self.X1
 	| 2 -> return mk_any_or_ptr self.X2
 	| _ -> assert false
-Tuple_3 met Show st:@#`Fmt_state
+Tuple_3 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_4 met All = Range
@@ -239,7 +239,7 @@ Tuple_4 shallow met$ Get n:Uint = Any_or_ptr
 	| 2 -> return mk_any_or_ptr self.X2
 	| 3 -> return mk_any_or_ptr self.X3
 	| _ -> assert false
-Tuple_4 met Show st:@#`Fmt_state
+Tuple_4 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_5 met All = Range
@@ -252,7 +252,7 @@ Tuple_5 shallow met$ Get n:Uint = Any_or_ptr
 	| 3 -> return mk_any_or_ptr self.X3
 	| 4 -> return mk_any_or_ptr self.X4
 	| _ -> assert false
-Tuple_5 met Show st:@#`Fmt_state
+Tuple_5 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_6 met All = Range
@@ -266,7 +266,7 @@ Tuple_6 shallow met$ Get n:Uint = Any_or_ptr
 	| 4 -> return mk_any_or_ptr self.X4
 	| 5 -> return mk_any_or_ptr self.X5
 	| _ -> assert false
-Tuple_6 met Show st:@#`Fmt_state
+Tuple_6 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_7 met All = Range
@@ -281,7 +281,7 @@ Tuple_7 shallow met$ Get n:Uint = Any_or_ptr
 	| 5 -> return mk_any_or_ptr self.X5
 	| 6 -> return mk_any_or_ptr self.X6
 	| _ -> assert false
-Tuple_7 met Show st:@#`Fmt_state
+Tuple_7 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_8 met All = Range
@@ -297,7 +297,7 @@ Tuple_8 shallow met$ Get n:Uint = Any_or_ptr
 	| 6 -> return mk_any_or_ptr self.X6
 	| 7 -> return mk_any_or_ptr self.X7
 	| _ -> assert false
-Tuple_8 met Show st:@#`Fmt_state
+Tuple_8 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_9 met All = Range
@@ -314,7 +314,7 @@ Tuple_9 shallow met$ Get n:Uint = Any_or_ptr
 	| 7 -> return mk_any_or_ptr self.X7
 	| 8 -> return mk_any_or_ptr self.X8
 	| _ -> assert false
-Tuple_9 met Show st:@#`Fmt_state
+Tuple_9 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_10 met All = Range
@@ -332,7 +332,7 @@ Tuple_10 shallow met$ Get n:Uint = Any_or_ptr
 	| 8 -> return mk_any_or_ptr self.X8
 	| 9 -> return mk_any_or_ptr self.X9
 	| _ -> assert false
-Tuple_10 met Show st:@#`Fmt_state
+Tuple_10 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_11 met All = Range
@@ -351,7 +351,7 @@ Tuple_11 shallow met$ Get n:Uint = Any_or_ptr
 	| 9 -> return mk_any_or_ptr self.X9
 	| 10 -> return mk_any_or_ptr self.X10
 	| _ -> assert false
-Tuple_11 met Show st:@#`Fmt_state
+Tuple_11 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_12 met All = Range
@@ -371,7 +371,7 @@ Tuple_12 shallow met$ Get n:Uint = Any_or_ptr
 	| 10 -> return mk_any_or_ptr self.X10
 	| 11 -> return mk_any_or_ptr self.X11
 	| _ -> assert false
-Tuple_12 met Show st:@#`Fmt_state
+Tuple_12 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_13 met All = Range
@@ -392,7 +392,7 @@ Tuple_13 shallow met$ Get n:Uint = Any_or_ptr
 	| 11 -> return mk_any_or_ptr self.X11
 	| 12 -> return mk_any_or_ptr self.X12
 	| _ -> assert false
-Tuple_13 met Show st:@#`Fmt_state
+Tuple_13 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_14 met All = Range
@@ -414,7 +414,7 @@ Tuple_14 shallow met$ Get n:Uint = Any_or_ptr
 	| 12 -> return mk_any_or_ptr self.X12
 	| 13 -> return mk_any_or_ptr self.X13
 	| _ -> assert false
-Tuple_14 met Show st:@#`Fmt_state
+Tuple_14 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_15 met All = Range
@@ -437,7 +437,7 @@ Tuple_15 shallow met$ Get n:Uint = Any_or_ptr
 	| 13 -> return mk_any_or_ptr self.X13
 	| 14 -> return mk_any_or_ptr self.X14
 	| _ -> assert false
-Tuple_15 met Show st:@#`Fmt_state
+Tuple_15 met Show st:@#fmt.`State
 	show_tuple st self
 
 Tuple_16 met All = Range
@@ -461,10 +461,10 @@ Tuple_16 shallow met$ Get n:Uint = Any_or_ptr
 	| 14 -> return mk_any_or_ptr self.X14
 	| 15 -> return mk_any_or_ptr self.X15
 	| _ -> assert false
-Tuple_16 met Show st:@#`Fmt_state
+Tuple_16 met Show st:@#fmt.`State
 	show_tuple st self
 
-(fun t:`Any_tuple) show_tuple st:@#`Fmt_state x:t
+(fun t:`Any_tuple) show_tuple st:@#fmt.`State x:t
 	foreach i in x.All
 		if i != 0
 			", ".Show st

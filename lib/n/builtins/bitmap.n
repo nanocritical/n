@@ -98,7 +98,7 @@ Bitmap met Fls = ?Uint
 		i += 1
 	return nil
 
-Bitmap met Show st:@#`Fmt_state
+Bitmap met Show st:@#fmt.`State
 	"{".Show st
 	var i = 0:Uint
 	for x in self.Iter

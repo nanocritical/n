@@ -302,12 +302,12 @@ Map shallow met$ Iter = (Map_iter this @$T)
 	let mself = (Cast @this @!this) self
 	return {iter=mself!table!iter}
 
-(fun t:`Any) show_ptr st:@#`Fmt_state x:@t
+(fun t:`Any) show_ptr st:@#fmt.`State x:@t
 	"<".Show st
 	((Cast @t Voidref) x).Uintptr.Show st
 	">".Show st
 
-Map met Show st:@#`Fmt_state
+Map met Show st:@#fmt.`State
 	"{".Show st
 	var i = 0:Uint
 	for k, v in self.Iter
@@ -431,7 +431,7 @@ Set met Operator_gt other:@this = Bool
 Set met Operator_ge other:@this = Bool
 	return self < other
 
-Set met Show st:@#`Fmt_state
+Set met Show st:@#fmt.`State
 	"{".Show st
 	var i = 0:Uint
 	for x in self.Iter

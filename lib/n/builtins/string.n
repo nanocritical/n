@@ -33,6 +33,11 @@ intf `Stringbuf =
 	met# Append b:[]U8
 	met# Copy b:[]U8
 
+-- Show is autointf generated method in many types. Therefore the prototype of
+-- Show must use type names visibile to everybody, and others may not have
+-- imported 'fmt'.
+alias `Fmt_state = fmt.`State
+
 intf `Show =
 	met Show st:@#`Fmt_state
 
@@ -85,7 +90,7 @@ Rune met Buf = r:Stringbuf
 
 example -> assert Rune.From_ascii 49 == '1'
 
-inline Rune met Show st:@#`Fmt_state
+inline Rune met Show st:@#fmt.`State
 	--let s = {}:[4]U8 ...
 	self.Code.Show st
 
@@ -156,7 +161,7 @@ inline String met Operator_ge other:@this = Bool
 inline String met Cut_at i:Uint = this, this
 	return self.[.. i], self.[i ..]
 
-inline String met Show st:@#`Fmt_state
+inline String met Show st:@#fmt.`State
 	let _ = st#Write self.bytes
 
 String met Buf = Stringbuf
@@ -620,7 +625,7 @@ inline Stringbuf met Operator_ge other:@this = Bool
 		return true
 	return self.Operator_compare other >= 0
 
-inline Stringbuf met Show st:@#`Fmt_state
+inline Stringbuf met Show st:@#fmt.`State
 	let _ = st#Write self.bytes
 
 inline Stringbuf met Hash32 = U32
@@ -703,7 +708,7 @@ inline Stringbuf met# Write b:[]U8 = []U8, Error --[]U8::|{}, Error::|OK
 
 Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
 	let separator = sep else " "
-	and st = {}:Fmt_state such
+	and st = {}:fmt.State such
 		st#Init self
 		for x in v
 			if x?

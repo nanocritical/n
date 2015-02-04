@@ -320,7 +320,7 @@ fun show_frac st:@#fmt.`State prec:Uint v:I64
 
 example
 	var buf = {}:Stringbuf
-	var vst = {}:Fmt_state
+	var vst = {}:fmt.State
 	var st = @#vst
 	st#Init @#buf
 
@@ -402,7 +402,7 @@ Duration met Show st:@#fmt.`State
 
 example
 	var buf = {}:Stringbuf
-	var vst = {}:Fmt_state
+	var vst = {}:fmt.State
 	var st = @#vst
 	st#Init @#buf
 
