@@ -72,7 +72,7 @@ storage void name ## _resize__(struct name *v, size_t new_count, \
       if (new_count > VECTOR_SMALL_COUNT(name)) { \
         v->large = calloc(roundup_pow2(new_count), sizeof(type)); \
         if (!skip_copy) { \
-          memcpy(v->large, v->small, new_count * sizeof(type)); \
+          memcpy(v->large, v->small, v->count * sizeof(type)); \
         } \
         memset(v->small, 0, VECTOR_SMALL_COUNT(name) * sizeof(type)); \
       } \
