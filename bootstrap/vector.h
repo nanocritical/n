@@ -78,9 +78,10 @@ storage void name ## _resize__(struct name *v, size_t new_count, \
       } \
     } else { \
       const size_t grown_size = roundup_pow2(new_count); \
-      if (grown_size > roundup_pow2(v->count)) { \
+      const size_t cur_size = roundup_pow2(v->count); \
+      if (grown_size > cur_size) { \
         v->large = realloc(v->large, grown_size * sizeof(type)); \
-        memset(v->large + v->count, 0, (new_count - v->count) * sizeof(type)); \
+        memset(v->large + cur_size, 0, (grown_size - cur_size) * sizeof(type)); \
       } \
     } \
     \
