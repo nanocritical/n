@@ -15,6 +15,7 @@ enum hen =
 	| C
 )--
 
+--( Support disabled
 union un =
 	| A
 	| B
@@ -22,7 +23,6 @@ union un =
 	| C = 3:U8
 		x	:en
 
---( Support disabled
 union hun =
 	| A
 	| B
@@ -65,12 +65,12 @@ fun Main = I32
 	| BA -> noop
 	| _ -> return 1)--
 
-	let u = {}:un.A
+	--(let u = {}:un.A
 	assert u ==| A
 	assert u !=| B
 
 	let v = {}:un.B
-	assert v.B.x == 0
+	assert v.B.x == 0)--
 
 	let x = {}:ext.A
 	assert x.A.x == 0

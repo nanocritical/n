@@ -265,7 +265,7 @@ static void gen_on_choices_and_fields(struct module *mod,
 
   const struct node *funargs = subs_at_const(m, IDX_FUNARGS);
   const size_t arity = subs_count(funargs);
-  bool need_otherwise = false, need_true = false;
+  bool need_true = false;
 
   if (node->which == DEFFIELD) {
     gen_on_field(mod, m, body, node);
@@ -298,7 +298,6 @@ static void gen_on_choices_and_fields(struct module *mod,
                    fal->as.BOOL.value = false)));
              G(notag, BLOCK,
                G(noop, NOOP)));
-          need_otherwise = true;
           need_true = true;
         }
         break;
@@ -336,19 +335,32 @@ static void gen_on_choices_and_fields(struct module *mod,
     if (ext != NULL) {
       gen_on_field(mod, m, body, node);
       return;
+    } else if (subs_count(node) > IDX_CH_FIRST_PAYLOAD) {
+      assert(false && "FIXME(e): Unsupported");
     }
   }
 
+  bool has_defchoices = false;
   FOREACH_SUB(f, node) {
-    if (NM(f->which) & (NM(DEFFIELD) | NM(DEFCHOICE))) {
+    if (NM(f->which) & NM(DEFCHOICE)) {
+      gen_on_choices_and_fields(mod, f, m, body);
+      has_defchoices = true;
+    }
+  }
+  if (has_defchoices) {
+    G0(oth, body, IDENT,
+       oth->as.IDENT.name = ID_OTHERWISE);
+    G0(noopb, body, BLOCK,
+       G(noop, NOOP));
+    body = parent(body);
+  }
+
+  FOREACH_SUB(f, node) {
+    if (NM(f->which) & NM(DEFFIELD)) {
       gen_on_choices_and_fields(mod, f, m, body);
     }
   }
 
-  if (need_otherwise) {
-    G0(oth, body, IDENT,
-       oth->as.IDENT.name = ID_OTHERWISE);
-  }
   if (need_true) {
     G0(bret, body, BLOCK,
        G(ret, RETURN,
