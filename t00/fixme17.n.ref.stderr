@@ -1,1 +1,1 @@
-t00/fixme17.n:10:9: type: 't00.fixme17.a' not a function or a generic
+t00/fixme17.n:10:9: <anonymous>.Main: type: 't00.fixme17.a' not a function or a generic

@@ -1,1 +1,1 @@
-t00/bad15.n:7:9: type: cannot resolve ident 'x' in type 'n.builtins.I32'
+t00/bad15.n:7:9: a.Foo: type: cannot resolve ident 'x' in type 'n.builtins.I32'

@@ -1,2 +1,2 @@
-t01/bad01.n:19:7: type: 'n.builtins.Bool' not isa intf '+n.builtins.`Integer'
-t01/bad01.n:19:7: type: while instantiating generic here '(functor t01.bad01.bar +n.builtins.`Integer)'
+t01/bad01.n:19:7: <anonymous>.Main: type: 'n.builtins.Bool' not isa intf '+n.builtins.`Integer'
+t01/bad01.n:19:7: <anonymous>.Main: type: while instantiating generic here '(functor t01.bad01.bar +n.builtins.`Integer)'

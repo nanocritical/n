@@ -1,1 +1,1 @@
-t00/bad19.n:4:6: type: explicit '@' operators are not allowed for unqualified const references
+t00/bad19.n:4:6: <anonymous>.Main: type: explicit '@' operators are not allowed for unqualified const references

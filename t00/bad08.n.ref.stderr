@@ -1,1 +1,1 @@
-t00/bad08.n:14:5: type: invalid number of arguments: between 1 and 1 expected, but 2 given
+t00/bad08.n:14:5: <anonymous>.Main: type: invalid number of arguments: between 1 and 1 expected, but 2 given

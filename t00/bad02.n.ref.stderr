@@ -1,1 +1,1 @@
-t00/bad02.n:3:18: in scope t00.bad02.foobar: identifier 'x' already defined at t00/bad02.n:3:12
+t00/bad02.n:3:18: <anonymous>.foobar: in scope t00.bad02.foobar: identifier 'x' already defined at t00/bad02.n:3:12
