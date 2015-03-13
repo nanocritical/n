@@ -142,11 +142,7 @@ static const struct typ *corresponding_trivial(ident m) {
     return TBI_TRIVIAL_CTOR;
   case ID_DTOR:
     return TBI_TRIVIAL_DTOR;
-  case ID_OPERATOR_EQ:
-  case ID_OPERATOR_NE:
-    return TBI_TRIVIAL_EQUALITY;
   default:
-    assert(false);
     return NULL;
   }
 }
@@ -204,7 +200,8 @@ static void gen_on_field(struct module *mod, struct node *m,
     return;
   }
 
-  if (typ_isa(f->typ, corresponding_trivial(node_ident(m)))) {
+  const struct typ *trivial = corresponding_trivial(node_ident(m));
+  if (trivial != NULL && typ_isa(f->typ, trivial)) {
     return;
   }
 
