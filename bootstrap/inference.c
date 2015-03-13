@@ -675,6 +675,28 @@ static ERROR nonnullable_op(enum token_type *r,
   return 0;
 }
 
+static void try_insert_nonnullable_void(struct module *mod, struct node *node) {
+  struct node *term = subs_first(node);
+  if (!typ_equal(term->typ, TBI_VOID)) {
+    return;
+  }
+
+  struct node *statement = find_current_statement(node);
+  struct node *statement_parent = parent(statement);
+
+  node_subs_remove(node, term);
+  node_subs_insert_before(statement_parent, statement, term);
+
+  GSTART();
+  G0(x, node, IDENT,
+     x->as.IDENT.name = idents_add_string(mod->gctx,
+                                          "Nonnull_void",
+                                          strlen("Nonnull_void")));
+
+  error e = catchup(mod, NULL, x, CATCHUP_BELOW_CURRENT);
+  assert(!e);
+}
+
 static ERROR type_inference_un(struct module *mod, struct node *node) {
   assert(node->which == UN);
   error e;
@@ -771,6 +793,9 @@ rewrote_op:
       set_typ(&node->typ, TBI_BOOL);
       break;
     case TPREQMARK:
+      try_insert_nonnullable_void(mod, node);
+      term = subs_first(node); // may have been just modified
+
       e = optional(&i, mod, node, term->typ);
       EXCEPT(e);
       set_typ(&node->typ, i);

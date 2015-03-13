@@ -1033,7 +1033,6 @@ static ERROR passbody1(struct module *mod, struct node *root,
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_check_no_literals_left);
     ,
-    UP_STEP(step_insert_nullable_void);
     UP_STEP(step_init_insert_automagic);
     UP_STEP(step_operator_call_inference);
     UP_STEP(step_ctor_call_inference);

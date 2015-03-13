@@ -1266,36 +1266,3 @@ bool try_remove_unnecessary_ssa_defname(struct module *mod, struct node *defn) {
   }
   return remove;
 }
-
-STEP_NM(step_insert_nullable_void,
-        NM(UN));
-error step_insert_nullable_void(struct module *mod, struct node *node,
-                                void *user, bool *stop) {
-  DSTEP(mod, node);
-
-  if (OP_KIND(node->as.UN.operator) != OP_UN_REFOF
-      || node->as.UN.is_explicit) {
-    return 0;
-  }
-  struct node *term = subs_first(node);
-  if (!typ_equal(term->typ, TBI_VOID)) {
-    return 0;
-  }
-
-  struct node *statement = find_current_statement(node);
-  struct node *statement_parent = parent(statement);
-
-  node_subs_remove(node, term);
-  node_subs_insert_before(statement_parent, statement, term);
-
-  GSTART();
-  G0(x, node, IDENT,
-     x->as.IDENT.name = idents_add_string(mod->gctx,
-                                          "Nonnull_void",
-                                          strlen("Nonnull_void")));
-
-  error e = catchup(mod, NULL, x, CATCHUP_BELOW_CURRENT);
-  EXCEPT(e);
-
-  return 0;
-}
