@@ -1,32 +1,32 @@
 from n import *
 
-globalenv f:@!`f
+globalenv f:!`f
 
 intf `f =
-	met prn s:@String
+	met prn s:*String
 
 struct myf =
 	isa `f
 	dummy	:U32
 
-myf met prn s:@String
+myf met prn s:*String
 	Prn 'saying2:' self.dummy s
 
 intf `e =
-	met Prn s:@String
+	met Prn s:*String
 
 struct mye =
 	isa `e
 
-globalenv e:@!`e
+globalenv e:!`e
 within e
 
-mye met Prn s:@String
+mye met Prn s:*String
 	Prn 'saying:' s
 
 fun do = I32 within f
 	let f1 = Alloc myf
-	let header = Alloc (Envheader @!`f)
+	let header = Alloc (Envheader !`f)
 	header#Env = f1
 	Globalenv_install f header
 
@@ -36,7 +36,7 @@ fun do = I32 within f
 	block
 		let f2 = Alloc myf
 		f2!dummy = 42
-		let header = Alloc (Envheader @!`f)
+		let header = Alloc (Envheader !`f)
 		header#Env = f2
 		Globalenv_install f header
 		assert f1 === (Dyncast myf) (Globalenv_parent f)
@@ -60,7 +60,7 @@ fun do = I32 within f
 
 fun Main = I32
 	let e1 = Alloc mye
-	let header = Alloc (Envheader @!`e)
+	let header = Alloc (Envheader !`e)
 	header#Env = e1
 	Globalenv_install e header
 	return do

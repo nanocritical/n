@@ -13,12 +13,12 @@ inline struct Stats =
 	Closed		:Int
 	Max_open	:Int
 
-Stats met Operator_plus other:@this = r:this
+Stats met Operator_plus other:*this = r:this
 	r!Opened = self.Opened + other.Opened
 	r!Closed = self.Closed + other.Closed
 	r!Maintain
 
-Stats met Operator_minus other:@this = r:this
+Stats met Operator_minus other:*this = r:this
 	r!Opened = self.Opened - other.Opened
 	r!Closed = self.Closed - other.Closed
 	r!Maintain
@@ -39,7 +39,7 @@ Stats met! Maintain
 -- * Do not return syscall errors directly, define our own.
 
 -- O_PATH is used by this implementation, but we recommend using it only on
--- directories. Support on files is limited to a few limited cases on Linux.
+-- directories* Support on files is limited to a few limited cases on Linux.
 -- O_TMPFILE and /proc are used by Open_file when creating files with
 -- permissions beyond access mode bits.
 
@@ -92,19 +92,19 @@ inline struct Openattr =
 Openattr met sys_open_mode = syscall.Mode
 	return sys_mode_from_accessmask self.Access
 
-fun Path_handle name:path.Path ?at:?@File = Error, @#File within Fs
+fun Path_handle name:path.Path ?at:?*File = Error, #File within Fs
 	return Fs!Open_file name at=at flags={PATH}
 
-fun Open name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openattr = Error, @#File within Fs
+fun Open name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File within Fs
 	return Fs!Open_file name at=at flags=(flags else {READ}) attr=attr
 
-fun Create ?name:?path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openattr = Error, @#File within Fs
+fun Create ?name:?path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File within Fs
 	flags = (flags else {}) | {CREATE WRITE TRUNCATE}
 	let attr = attr else {} such
 		attr!Access |= {UR UW GR GW OR OW}
 	return Fs!Open_file name at=at flags=flags attr=attr
 
-fun Open_dir name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openattr = Error, @#File within Fs
+fun Open_dir name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File within Fs
 	flags = (flags else {}) | {DIRECTORY}
 	return Fs!Open_file name at=at attr=attr
 
@@ -118,7 +118,7 @@ fun letter32_from_rand_byte b:U8 = U8
 	else
 		return zero - 26 + c
 
-fun make_random_name name:@#path.Path prefix:?String postfix:?String
+fun make_random_name name:#path.Path prefix:?String postfix:?String
 	name#Clear
 	name#Cat (prefix else "tmp")
 
@@ -136,13 +136,13 @@ fun make_random_name name:@#path.Path prefix:?String postfix:?String
 
 	name#Cat (postfix else "")
 
-fun Temporary ?at:?@File
+fun Temporary ?at:?*File
 	\ ?flags:?Openflags
-	\ ?attr:?@Openattr
+	\ ?attr:?*Openattr
 	\ ?named:?Bool
 	\ ?prefix:?String
 	\ ?postfix:?String
-	\ = Error, @#File within Fs
+	\ = Error, #File within Fs
 	let dir = at
 	if not dir?
 		try
@@ -158,7 +158,7 @@ fun Temporary ?at:?@File
 
 		if named else false
 			while true
-				make_random_name @#name prefix postfix
+				make_random_name #name prefix postfix
 				let err, file = Fs!Open_file name at=dir flags=flags attr=attr
 				if err == OK
 					return OK, file
@@ -172,14 +172,14 @@ fun Temporary ?at:?@File
 			flags &= ~{CREATE EXCLUSIVE}:Openflags
 			return Fs!Open_file "." at=dir flags=flags attr=attr
 
-globalenv Fs:@!`Fs
+globalenv Fs:!`Fs
 
 fun Install_sys within Fs
 	let fs = Alloc linux
 	let err = fs!Init
 	if err != OK
 		Fatal err
-	let header = Alloc (Envheader @!`Fs)
+	let header = Alloc (Envheader !`Fs)
 	header#Env = fs
 	Globalenv_install Fs header
 
@@ -187,51 +187,51 @@ fun Install_sys within Fs
 intf `Fs =
 	isa (bench.`Observable_of Stats)
 
-	met Wd = @!File
-	met! Pushdir dir:@!File = Error
+	met Wd = !File
+	met! Pushdir dir:!File = Error
 	met! Popdir = Error
 
-	met! Global_chdir dir:@File = Error
+	met! Global_chdir dir:*File = Error
 
-	met! Mkdir name:path.Path ?attr:?@Openattr ?recursive:?Bool = Error
+	met! Mkdir name:path.Path ?attr:?*Openattr ?recursive:?Bool = Error
 	met! Rmdir name:path.Path ?recursive:?Bool ?even_not_empty:?Bool = Error
 
-	met! Open_file name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openattr = Error, @#File
+	met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File
 
-	-- Act on a file. Called by File.
-	met! File_close f:@!File = Error
-	met! File_stat f:@File = Error, Stat
-	met File_readlink f:@File = Error, path.Path
-	met! File_datasync f:@!File = Error
-	met! File_sync f:@!File = Error
-	met! File_truncate f:@!File size:Uint = Error
-	met! File_chown f:@!File owner:Int group:Int = Error
-	met File_list_xattr f:@!File buf:@!Stringbuf = Error, list:(Buf String)
+	-- Act on a file* Called by File.
+	met! File_close f:!File = Error
+	met! File_stat f:*File = Error, Stat
+	met File_readlink f:*File = Error, path.Path
+	met! File_datasync f:!File = Error
+	met! File_sync f:!File = Error
+	met! File_truncate f:!File size:Uint = Error
+	met! File_chown f:!File owner:Int group:Int = Error
+	met File_list_xattr f:!File buf:!Stringbuf = Error, list:(Buf String)
 		\ -- ::(x in list => x::(Owned buf))
-	met File_get_xattr f:@!File buf:@!Stringbuf name:String = Error, Uint
-	met! File_set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
-	met! File_remove_xattr f:@!File name:String = Error
+	met File_get_xattr f:!File buf:!Stringbuf name:String = Error, Uint
+	met! File_set_xattr f:!File name:String value:[]U8 ?create_only:?Bool = Error
+	met! File_remove_xattr f:!File name:String = Error
 
-	met! File_read f:@!File b:[]!U8 = []!U8, Error
-	met! File_read_at f:@!File b:[]!U8 off:Uint = []!U8, Error
-	met! File_write f:@!File b:[]U8 = []U8, Error
-	met! File_write_at f:@!File b:[]U8 off:Uint = []U8, Error
-	met! File_mmap f:@!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, @!Mmap
-	met! Munmap m:@#Mmap
+	met! File_read f:!File b:[!]U8 = [!]U8, Error
+	met! File_read_at f:!File b:[!]U8 off:Uint = [!]U8, Error
+	met! File_write f:!File b:[]U8 = []U8, Error
+	met! File_write_at f:!File b:[]U8 off:Uint = []U8, Error
+	met! File_mmap f:!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, !Mmap
+	met! Munmap m:#Mmap
 
 	-- Act on a Path.
 	-- 'at' defaults to Wd.
-	met! Symlink target:path.Path name:path.Path ?at:?@File = Error
-	met! Link newpath:path.Path oldpath:path.Path ?newat:?@File ?oldat:?@File ?follow:?Bool = Error
-	met! Unlink name:path.Path ?at:?@File = Error
-	met! Rename newpath:path.Path oldpath:path.Path ?newat:?@File ?oldat:?@File = Error
-	met Stat name:path.Path ?at:?@File ?nofollow:?Bool = Error, Stat
-	met! Readlink name:path.Path ?at:?@File = Error, path.Path
+	met! Symlink target:path.Path name:path.Path ?at:?*File = Error
+	met! Link newpath:path.Path oldpath:path.Path ?newat:?*File ?oldat:?*File ?follow:?Bool = Error
+	met! Unlink name:path.Path ?at:?*File = Error
+	met! Rename newpath:path.Path oldpath:path.Path ?newat:?*File ?oldat:?*File = Error
+	met Stat name:path.Path ?at:?*File ?nofollow:?Bool = Error, Stat
+	met! Readlink name:path.Path ?at:?*File = Error, path.Path
 
 struct linux =
 	isa `Fs
 	init		:Bool
-	dirstack	:(Buf @!File)
+	dirstack	:(Buf !File)
 	stats		:(bench.Stack Stats)
 
 linux met! Init = Error
@@ -248,12 +248,12 @@ linux met! Init = Error
 		self!init = false
 		return err
 
-linux met Wd = @!File
+linux met Wd = !File
 	assert self.init
 	assert self.dirstack.Count > 0
-	return self.dirstack.Last.
+	return self.dirstack.Last*
 
-linux met! Pushdir dir:@!File = Error
+linux met! Pushdir dir:!File = Error
 	assert self.init
 	let except, st = dir.Stat
 	if not st.Is_dir
@@ -268,20 +268,20 @@ linux met! Popdir = Error
 	self!dirstack#Pop
 	return OK
 
-linux met! Global_chdir dir:@File = Error
+linux met! Global_chdir dir:*File = Error
 	assert self.init
 	except = syscall.Fchdir dir.Fd
 	return OK
 
-fun allows_immediate flags:?Openflags attr:?@Openattr = Bool
+fun allows_immediate flags:?Openflags attr:?*Openattr = Bool
 	return PATH in (flags else {})
 		\ or not attr?
 		\ or not (attr.Owner? or attr.Group? or attr.Xattr.Count > 0)
 
 -- There is a race between the creation of the directory and the setting of the
--- attributes in permissions (to the exception of the Accessmask). There is no
+-- attributes in permissions (to the exception of the Accessmask)* There is no
 -- equivalent to O_TMPFILE for directories.
-linux met! Mkdir name:path.Path ?attr:?@Openattr ?recursive:?Bool = Error
+linux met! Mkdir name:path.Path ?attr:?*Openattr ?recursive:?Bool = Error
 	assert not (recursive else false) -- FIXME Add support.
 	assert allows_immediate {} attr -- FIXME Add support.
 	except = syscall.Mkdirat self.Wd.Fd name.String attr?.sys_open_mode
@@ -293,7 +293,7 @@ linux met! Rmdir name:path.Path ?recursive:?Bool ?even_non_empty:?Bool = Error
 	except = syscall.Unlinkat self.Wd.Fd name.String syscall.AT_REMOVEDIR
 	return OK
 
-linux met! Open_file name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openattr = Error, @#File
+linux met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File
 	let flags = flags else {}
 	let attr = attr else {}
 	let mode = attr.sys_open_mode such
@@ -340,7 +340,7 @@ linux met! Open_file name:path.Path ?at:?@File ?flags:?Openflags ?attr:?@Openatt
 
 	return OK, file
 
-linux met! File_close f:@!File = Error
+linux met! File_close f:!File = Error
 	let fd = f.Fd
 	except = syscall.Close fd
 	f!fd = nil
@@ -348,17 +348,17 @@ linux met! File_close f:@!File = Error
 	self!stats!Current!Maintain
 	return OK
 
-linux met! File_stat f:@File = Error, st:Stat
+linux met! File_stat f:*File = Error, st:Stat
 	let flags = syscall.AT_SYMLINK_NOFOLLOW | syscall.AT_EMPTY_PATH
 	try
 		let sys = {}:syscall.Stat_t such
-			except = syscall.Fstatat f.Fd "" @!sys flags
+			except = syscall.Fstatat f.Fd "" !sys flags
 		st = sys_stat_from_sys sys
 		return OK, st
 	catch err
 		return err, {}
 
-linux met File_readlink f:@File = Error, path.Path
+linux met File_readlink f:*File = Error, path.Path
 	try
 		var buf = {}:Stringbuf such
 			buf#Resize 256
@@ -371,48 +371,48 @@ linux met File_readlink f:@File = Error, path.Path
 	catch err
 		return err, {}
 
-linux met! File_datasync f:@!File = Error
+linux met! File_datasync f:!File = Error
 	return syscall.Fdatasync f.Fd
 
-linux met! File_sync f:@!File = Error
+linux met! File_sync f:!File = Error
 	return syscall.Fsync f.Fd
 
-linux met! File_truncate f:@!File size:Uint = Error
+linux met! File_truncate f:!File size:Uint = Error
 	return syscall.Ftruncate f.Fd size
 
-linux met! File_chown f:@!File owner:Int group:Int = Error
+linux met! File_chown f:!File owner:Int group:Int = Error
 	return syscall.Fchown f.Fd owner group
 
-linux met File_list_xattr f:@!File buf:@!Stringbuf = Error, list:(Buf String)
+linux met File_list_xattr f:!File buf:!Stringbuf = Error, list:(Buf String)
 	-- ::(x in list => x::(Owned buf))
 	return syscall.ENOSYS, {}
 
-linux met File_get_xattr f:@!File buf:@!Stringbuf name:String = Error, Uint
+linux met File_get_xattr f:!File buf:!Stringbuf name:String = Error, Uint
 	return syscall.ENOSYS, 0
 
-linux met! File_set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
+linux met! File_set_xattr f:!File name:String value:[]U8 ?create_only:?Bool = Error
 	return syscall.ENOSYS
 
-linux met! File_remove_xattr f:@!File name:String = Error
+linux met! File_remove_xattr f:!File name:String = Error
 	return syscall.ENOSYS
 
-linux met! File_read f:@!File b:[]!U8 = []!U8, Error
+linux met! File_read f:!File b:[!]U8 = [!]U8, Error
 	return syscall.Read f.Fd b
 
-linux met! File_read_at f:@!File b:[]!U8 off:Uint = []!U8, Error
+linux met! File_read_at f:!File b:[!]U8 off:Uint = [!]U8, Error
 	return syscall.Pread f.Fd b off
 
-linux met! File_write f:@!File b:[]U8 = []U8, Error
+linux met! File_write f:!File b:[]U8 = []U8, Error
 	return syscall.Write f.Fd b
 
-linux met! File_write_at f:@!File b:[]U8 off:Uint = []U8, Error
+linux met! File_write_at f:!File b:[]U8 off:Uint = []U8, Error
 	return syscall.Pwrite f.Fd b off
 
-linux met! Symlink target:path.Path name:path.Path ?at:?@File = Error
+linux met! Symlink target:path.Path name:path.Path ?at:?*File = Error
 	except = syscall.Symlinkat target.String (at?.Fd else self.Wd.Fd) name.String
 
 linux met! Link newpath:path.Path oldpath:path.Path
-	\ ?newat:?@File ?oldat:?@File ?follow:?Bool = Error
+	\ ?newat:?*File ?oldat:?*File ?follow:?Bool = Error
 	let flags = 0 such
 		if follow else false
 			flags |= syscall.AT_SYMLINK_FOLLOW
@@ -423,10 +423,10 @@ linux met! Link newpath:path.Path oldpath:path.Path
 		\ newpath.String
 		\ flags
 
-linux met! Unlink name:path.Path ?at:?@File = Error
+linux met! Unlink name:path.Path ?at:?*File = Error
 	except = syscall.Unlinkat (at?.Fd else self.Wd.Fd) name.String 0
 
-linux met! Rename newpath:path.Path oldpath:path.Path ?newat:?@File ?oldat:?@File = Error
+linux met! Rename newpath:path.Path oldpath:path.Path ?newat:?*File ?oldat:?*File = Error
 	except = syscall.Renameat
 		\ (oldat?.Fd else self.Wd.Fd)
 		\ oldpath.String
@@ -434,20 +434,20 @@ linux met! Rename newpath:path.Path oldpath:path.Path ?newat:?@File ?oldat:?@Fil
 		\ newpath.String
 		\ 0
 
-linux met Stat name:path.Path ?at:?@File ?nofollow:?Bool = Error, Stat
+linux met Stat name:path.Path ?at:?*File ?nofollow:?Bool = Error, Stat
 	let flags = 0 such
 		if nofollow else false
 			flags |= syscall.AT_SYMLINK_NOFOLLOW
 	try
 		let sys = {}:syscall.Stat_t such
 			except = syscall.Fstatat (at?.Fd else self.Wd.Fd)
-				\ name.String @!sys flags
+				\ name.String !sys flags
 		let st = sys_stat_from_sys sys
 		return OK, st
 	catch err
 		return err, {}
 
-linux met! Readlink name:path.Path ?at:?@File = Error, path.Path
+linux met! Readlink name:path.Path ?at:?*File = Error, path.Path
 	let dirfd = at?.Fd else self.Wd.Fd
 	try
 		var buf = {}:Stringbuf such
@@ -467,7 +467,7 @@ linux met! Save_measurements = bench.Restorer
 linux met Measure = Stats
 	return self.stats.Current
 
-linux met! File_mmap f:@!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, ?@!Mmap
+linux met! File_mmap f:!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, ?!Mmap
 	let offset = offset else 0
 	let size = size else block
 		let except, st = f.Stat
@@ -487,7 +487,7 @@ linux met! File_mmap f:@!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:
 		m!prot = prot
 	return OK, m
 
-linux met! Munmap m:@#Mmap
+linux met! Munmap m:#Mmap
 	let err = syscall.Munmap m#bytes#Unsafe_data m.bytes.Count
 	if err != OK
 		Fatal err

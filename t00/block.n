@@ -4,10 +4,10 @@ fun Foo = I32
 	let _ = block -> (id I32) 0
 	return block -> 0
 
-fun deref p:@U32 = U32
-	return p.
+fun deref p:*U32 = U32
+	return p*
 
-fun named_deref ?p:?@U32 = U32
+fun named_deref ?p:?*U32 = U32
 	return p else 0
 
 (fun t:`Any) id x:t = t

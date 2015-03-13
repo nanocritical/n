@@ -2,9 +2,9 @@ from n.builtins import *
 
 extern inline (fun u:`Any_any_ref v:`Any_any_ref) Cast a:u = v
 
-inline (fun$ t:`Any) Nonnull_cast a:?@$t = @$t
+inline (fun$ t:`Any) Nonnull_cast a:?$t = $t
 	assert a?
-	return (Cast ?@$t @$t) a
+	return (Cast ?$t $t) a
 
 extern inline struct Voidref =
 	isa `Any_any_ref `Native

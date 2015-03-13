@@ -1,5 +1,5 @@
--- See LICENSE for details. Partially derived from go/src/pkg/strings
--- Copyright 2009 The Go Authors. All rights reserved.
+-- See LICENSE for details* Partially derived from go/src/pkg/strings
+-- Copyright 2009 The Go Authors* All rights reserved.
 
 intf `String_compatible =
 	fun From_string s:String = final
@@ -23,7 +23,7 @@ intf `String =
 --	met Strip any:String = String
 --	met Strip_left any:String = String
 --	met Strip_right any:String = String
---	met Split ?sep:?@String ?max:?@Uint = []String
+--	met Split ?sep:?*String ?max:?*Uint = []String
 
 intf `Stringbuf =
 	isa `String io.`Writer
@@ -33,13 +33,13 @@ intf `Stringbuf =
 	met# Append b:[]U8
 	met# Copy b:[]U8
 
--- Show is autointf generated method in many types. Therefore the prototype of
+-- Show is autointf generated method in many types* Therefore the prototype of
 -- Show must use type names visibile to everybody, and others may not have
 -- imported 'fmt'.
 alias `Fmt_state = fmt.`State
 
 intf `Show =
-	met Show st:@#`Fmt_state
+	met Show st:#`Fmt_state
 
 inline struct Rune =
 	isa `String_compatible `Show `Hashable32
@@ -68,7 +68,7 @@ inline Rune fun From_ascii c:U8 = Rune
 inline Rune met Bytecount = Uint
 	return 1
 
-inline Rune met Encode z:[]!U8 = []!U8
+inline Rune met Encode z:[!]U8 = [!]U8
 	if self == ERROR
 		assert z.Cap >= 3
 		z![0]! = ERROR_STRING.[0]
@@ -90,7 +90,7 @@ Rune met Buf = r:Stringbuf
 
 example -> assert Rune.From_ascii 49 == '1'
 
-inline Rune met Show st:@#fmt.`State
+inline Rune met Show st:#fmt.`State
 	--let s = {}:[4]U8 ...
 	self.Code.Show st
 
@@ -120,7 +120,7 @@ inline String met Count = Uint
 	return self.bytes.Count
 
 inline String met Operator_at n:Uint = U8
-	return self.bytes.[n].
+	return self.bytes.[n]*
 
 inline String met First = U8
 	return self.[0]
@@ -131,29 +131,29 @@ inline String met Last = U8
 inline String met Operator_sub r:Range = String
 	return this.From_bytes <- self.bytes.Operator_sub r
 
-inline String met Operator_compare other:@this = Int
+inline String met Operator_compare other:*this = Int
 	return Bytes_compare self.bytes other.bytes
-inline String met Operator_eq other:@this = Bool
+inline String met Operator_eq other:*this = Bool
 	if self === other
 		return true
 	return self.Operator_compare other == 0
-inline String met Operator_ne other:@this = Bool
+inline String met Operator_ne other:*this = Bool
 	if self === other
 		return false
 	return self.Operator_compare other != 0
-inline String met Operator_le other:@this = Bool
+inline String met Operator_le other:*this = Bool
 	if self === other
 		return true
 	return self.Operator_compare other <= 0
-inline String met Operator_lt other:@this = Bool
+inline String met Operator_lt other:*this = Bool
 	if self === other
 		return false
 	return self.Operator_compare other < 0
-inline String met Operator_gt other:@this = Bool
+inline String met Operator_gt other:*this = Bool
 	if self === other
 		return false
 	return self.Operator_compare other > 0
-inline String met Operator_ge other:@this = Bool
+inline String met Operator_ge other:*this = Bool
 	if self === other
 		return true
 	return self.Operator_compare other >= 0
@@ -161,7 +161,7 @@ inline String met Operator_ge other:@this = Bool
 inline String met Cut_at i:Uint = this, this
 	return self.[.. i], self.[i ..]
 
-inline String met Show st:@#fmt.`State
+inline String met Show st:#fmt.`State
 	let _ = st#Write self.bytes
 
 String met Buf = Stringbuf
@@ -307,7 +307,7 @@ String met naive_index sep:String = Int
 
 	let sep_second = sep.[1]
 	let sep_allbut2 = sep.[2 ..]
-	var data = self.
+	var data = self*
 	var i, j
 	while true
 		j = data.Index_byte sep_first
@@ -350,7 +350,7 @@ String met rk_index sep:String = Int
 				return (i - n).Signed
 	return -1
 
-fun bm_init_bad_shift bad:@#(Buf Uint) sep:String
+fun bm_init_bad_shift bad:#(Buf Uint) sep:String
 	bad#Resize 256
 	let m = sep.Count
 	foreach i in bad.All
@@ -369,8 +369,8 @@ String met tunedbm_index sep:String = Int
 	let sep_last = sep.Last.Uint
 	let bad = {}:(Buf Uint)
 	and shift such
-		bm_init_bad_shift @#bad sep
-		shift = bad.[sep_last].
+		bm_init_bad_shift #bad sep
+		shift = bad.[sep_last]*
 		bad![sep_last]! = 0
 
 	var j = m - 1
@@ -430,7 +430,7 @@ String met Last_index sep:String = Int
 
 	let sep_second = sep.[sep.Count-2]
 	let sep_allbut2 = sep.[.. sep.Count-2]
-	var data = self.
+	var data = self*
 	while true
 		let i = data.Last_index_byte sep_last
 		if i+1 < sep.Count.Signed
@@ -547,7 +547,7 @@ example -> assert "0 1 2".Split " 1 " == {"0" "2"}
 
 inline struct Stringbuf =
 	isa `Stringbuf
-	bytes	:[]!U8	--::^Owned
+	bytes	:[!]U8	--::^Owned
 
 inline Stringbuf fun From_slice c:[]U8 = r:this
 	r#Resize c.Count
@@ -559,9 +559,9 @@ inline Stringbuf fun From_string s:String = this
 	return r
 
 inline Stringbuf met# Dtor
-	Realloc @#self#bytes 0
+	Realloc #self#bytes 0
 
-inline Stringbuf met# Copy_ctor other:@this
+inline Stringbuf met# Copy_ctor other:*this
 	self#Copy other.bytes
 
 inline Stringbuf fun From_bytes s:[]U8 = this
@@ -570,7 +570,7 @@ inline Stringbuf fun From_bytes s:[]U8 = this
 		r#bytes = r!bytes!Copy s
 	return r
 
-inline Stringbuf met$ Bytes = []$U8
+inline Stringbuf met$ Bytes = [$]U8
 	return self$bytes
 
 inline Stringbuf met All = Range
@@ -586,46 +586,46 @@ inline Stringbuf met Count = Uint
 	return self.bytes.cnt
 
 inline Stringbuf met First = U8
-	return self.[0].
+	return self.[0]*
 
 inline Stringbuf met Last = U8
-	return self.[self.Count-1].
+	return self.[self.Count-1]*
 
-inline Stringbuf met$ Operator_at n:Uint = @$U8
+inline Stringbuf met$ Operator_at n:Uint = $U8
 	return self$bytes$[n]
 
 inline Stringbuf met Operator_sub r:Range = String
 	return String.From_bytes <- self.bytes.Operator_sub r
 
-inline Stringbuf met Operator_compare other:@this = Int
+inline Stringbuf met Operator_compare other:*this = Int
 	return Bytes_compare self.bytes other.bytes
 
-inline Stringbuf met Operator_eq other:@this = Bool
+inline Stringbuf met Operator_eq other:*this = Bool
 	if self === other
 		return true
 	return self.Operator_compare other == 0
-inline Stringbuf met Operator_ne other:@this = Bool
+inline Stringbuf met Operator_ne other:*this = Bool
 	if self === other
 		return false
 	return self.Operator_compare other != 0
-inline Stringbuf met Operator_le other:@this = Bool
+inline Stringbuf met Operator_le other:*this = Bool
 	if self === other
 		return true
 	return self.Operator_compare other <= 0
-inline Stringbuf met Operator_lt other:@this = Bool
+inline Stringbuf met Operator_lt other:*this = Bool
 	if self === other
 		return false
 	return self.Operator_compare other < 0
-inline Stringbuf met Operator_gt other:@this = Bool
+inline Stringbuf met Operator_gt other:*this = Bool
 	if self === other
 		return false
 	return self.Operator_compare other > 0
-inline Stringbuf met Operator_ge other:@this = Bool
+inline Stringbuf met Operator_ge other:*this = Bool
 	if self === other
 		return true
 	return self.Operator_compare other >= 0
 
-inline Stringbuf met Show st:@#fmt.`State
+inline Stringbuf met Show st:#fmt.`State
 	let _ = st#Write self.bytes
 
 inline Stringbuf met Hash32 = U32
@@ -651,7 +651,7 @@ inline Stringbuf met# Push c:U8
 
 inline Stringbuf met# Pop = U8
 	assert self.Bytes.Count > 0
-	let c = (self.bytes.Last).
+	let c = (self.bytes.Last)*
 	self!bytes = self.bytes.[.. self.bytes.Count-1]
 	self#auto_shrink
 	return c
@@ -667,9 +667,9 @@ inline Stringbuf met# Copy b:[]U8
 inline Stringbuf met# Reserve atleast:Uint
 	if self.bytes.cap >= atleast
 		return
-	Realloc @#self#bytes atleast
+	Realloc #self#bytes atleast
 
-Stringbuf met# Cat ?sep:?@String ...v:(Vararg @`String)
+Stringbuf met# Cat ?sep:?*String ...v:(Vararg *`String)
 	let sepcnt = sep?.Count else 0
 	for b in v
 		self#Reserve self.bytes.Count + sepcnt + b.Count
@@ -677,7 +677,7 @@ Stringbuf met# Cat ?sep:?@String ...v:(Vararg @`String)
 		if sep? and v.Count_left > 0
 			self#bytes = self!bytes!Append sep.Bytes
 
-Stringbuf met# Cat_all ?sep:?@String ...v:(Vararg @[]String)
+Stringbuf met# Cat_all ?sep:?*String ...v:(Vararg *[]String)
 	var n = 0:Uint
 	for b in v
 		foreach i in b.All
@@ -692,33 +692,33 @@ inline Stringbuf met# auto_grow atleast:Uint
 	if cap >= atleast
 		return
 	let newcap = Buffer_auto_grown_size cap atleast
-	Realloc @#self#bytes newcap
+	Realloc #self#bytes newcap
 
 inline Stringbuf met# auto_shrink
 	let cap = self.bytes.cap
 	let newcap = Buffer_auto_shrunk_size cap self.bytes.cnt
 	if newcap == cap
 		return
-	Realloc @#self#bytes newcap
+	Realloc #self#bytes newcap
 
 inline Stringbuf met# Write b:[]U8 = []U8, Error --[]U8::|{}, Error::|OK
 	self#Reserve self.Count + b.Count
 	self#bytes = self#bytes#Append b
 	return {}, OK
 
-Stringbuf met# Pr ?sep:?@String ...v:(Vararg ?@`Show)
+Stringbuf met# Pr ?sep:?*String ...v:(Vararg ?*`Show)
 	let separator = sep else " "
 	and st = {}:fmt.State such
 		st#Init self
 		for x in v
 			if x?
-				x.Show @#st
+				x.Show #st
 			else
-				"(nil)".Show @#st
+				"(nil)".Show #st
 			if v.Count_left > 0
-				separator.Show @#st
+				separator.Show #st
 
-Stringbuf met# Prn ?sep:?@String ...v:(Vararg ?@`Show)
+Stringbuf met# Prn ?sep:?*String ...v:(Vararg ?*`Show)
 	self#Pr sep=sep ...v
 	self#Append "\n".Bytes
 

@@ -12,9 +12,9 @@ intf `Iterator T:`Copyable =
 	met Has_next = Bool
 	met! Next = T
 
--- We don't reach for more generality. We could have a concept of abstract
--- sets that have no finite cardinality, are not iterable, etc. (e.g.
--- geometric surface/shape). But we want very concrete containers (after all
+-- We don't reach for more generality* We could have a concept of abstract
+-- sets that have no finite cardinality, are not iterable, etc* (e.g.
+-- geometric surface/shape)* But we want very concrete containers (after all
 -- they contain language-level elements).
 -- Abstract types can be provided by others.
 
@@ -35,18 +35,18 @@ intf `Iterator T:`Copyable =
 
 intf `Collection T:`Any =
 	met Count = Uint
-	met Operator_in x:@T = Bool
+	met Operator_in x:*T = Bool
 
 intf `Set T:`Any =
 	isa (`Collection T)
 		\ (`Slice_compatible T)
 		\ `Partially_ordered
-	met! Add x:@T = added:Bool
-	met! Add_all other:@final = added_all:Bool
-	met! Remove x:@T = removed:Bool
-	met! Remove_all other:@final = removed_all:Bool
-	met! Intersect other:@final
-	met! Symmetric_difference other:@final
+	met! Add x:*T = added:Bool
+	met! Add_all other:*final = added_all:Bool
+	met! Remove x:*T = removed:Bool
+	met! Remove_all other:*final = removed_all:Bool
+	met! Intersect other:*final
+	met! Symmetric_difference other:*final
 
 -- The universe, the set of all possible elements, is constructible.
 -- Then we can have a "not" operation.

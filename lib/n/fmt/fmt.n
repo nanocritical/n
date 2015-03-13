@@ -10,9 +10,9 @@ intf `State =
 
 inline struct State =
 	isa `State
-	W	:@#io.`Writer
+	W	:#io.`Writer
 
-State met# Init w:@#io.`Writer
+State met# Init w:#io.`Writer
 	self#W = w
 
 State met Width = ?Uint
@@ -38,7 +38,7 @@ fun first_verb s:String = before:String, verb:String, after:String
 
 	return before, after.[.. 2], after.[2 ..]
 
-fun F w:@#io.`Writer fmt:String ...v:(Vararg ?@`Show)
+fun F w:#io.`Writer fmt:String ...v:(Vararg ?*`Show)
 	let st = {W=w}:State
 	try
 		while true
@@ -52,17 +52,17 @@ fun F w:@#io.`Writer fmt:String ...v:(Vararg ?@`Show)
 				if not v.Has_next
 					break
 				let s = v!Next
-				s.Show @#st
+				s.Show #st
 			fmt = after
 	catch _
 		noop
 
-fun Prf fmt:String ?err:?Bool ...v:(Vararg ?@`Show)
-	var buf = @#{}:Stringbuf
+fun Prf fmt:String ?err:?Bool ...v:(Vararg ?*`Show)
+	var buf = #{}:Stringbuf
 	F buf fmt ...v
 	n.Pr err=err buf
 
-fun Pr w:@#io.`Writer ?sep:?@String ...v:(Vararg ?@`Show)
-fun Prn w:@#io.`Writer ?sep:?@String ...v:(Vararg ?@`Show)
-fun Cat w:@#io.`Writer ?sep:?@String ...v:(Vararg @`String)
-fun Cat_all w:@#io.`Writer ?sep:?@String ...v:(Vararg @[]String)
+fun Pr w:#io.`Writer ?sep:?*String ...v:(Vararg ?*`Show)
+fun Prn w:#io.`Writer ?sep:?*String ...v:(Vararg ?*`Show)
+fun Cat w:#io.`Writer ?sep:?*String ...v:(Vararg *`String)
+fun Cat_all w:#io.`Writer ?sep:?*String ...v:(Vararg *[]String)

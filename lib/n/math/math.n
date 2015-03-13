@@ -29,7 +29,7 @@ example -> assert 9 == Bit_fls 0x100:U16
 example -> assert 1 == Bit_fls 1:U16
 
 -- Returns the number of leading 0-bits in x, starting at the most
--- significant bit position. If x is 0, the result is 8*(sizeof t),
+-- significant bit position* If x is 0, the result is 8*(sizeof t),
 -- arbitrarily.
 extern inline (fun t:`Native_sized_unsigned_integer) Bit_clz x:t = Uint
 example -> assert 0 == Bit_clz 0xff:U8
@@ -37,7 +37,7 @@ example -> assert 7 == Bit_clz 1:U8
 example -> assert 28 == Bit_clz 0xf00000000:U64
 
 -- Returns the number of trailing 0-bits in x, starting at the least
--- significant bit position. If x is 0, the result is 8*(sizeof t),
+-- significant bit position* If x is 0, the result is 8*(sizeof t),
 -- arbitrarily.
 extern inline (fun t:`Native_sized_unsigned_integer) Bit_ctz x:t = Uint
 example -> assert 0 == Bit_ctz 0xff:U8

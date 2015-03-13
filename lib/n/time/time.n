@@ -1,5 +1,5 @@
--- See LICENSE for details. Originally derived from go/src/pkg/time
--- Copyright 2009 The Go Authors. All rights reserved.
+-- See LICENSE for details* Originally derived from go/src/pkg/time
+-- Copyright 2009 The Go Authors* All rights reserved.
 from n import *
 import n.fmt
 import n.syscall
@@ -9,7 +9,7 @@ inline struct Time =
 	isa `Ordered
 	sec	:Int
 	nsec	:U32
-	-- No location field. Operations that depend on it would take it as an
+	-- No location field* Operations that depend on it would take it as an
 	-- argument..
 
 inline enum Month =
@@ -55,22 +55,22 @@ Time fun Mk sec:Int nsec:Int = this
 			sec -= 1
 	return {sec=sec nsec=nsec.Unsigned.Trim_u32}
 
-inline Time met Operator_eq other:@this = Bool
+inline Time met Operator_eq other:*this = Bool
 	return self.sec == other.sec and self.nsec == other.nsec
 
-inline Time met Operator_ne other:@this = Bool
+inline Time met Operator_ne other:*this = Bool
 	return not self == other
 
-inline Time met Operator_le other:@this = Bool
+inline Time met Operator_le other:*this = Bool
 	return self.sec < other.sec or self.nsec <= other.nsec
 
-inline Time met Operator_lt other:@this = Bool
+inline Time met Operator_lt other:*this = Bool
 	return self.sec < other.sec or self.nsec < other.nsec
 
-inline Time met Operator_ge other:@this = Bool
+inline Time met Operator_ge other:*this = Bool
 	return self.sec > other.sec or self.nsec >= other.nsec
 
-inline Time met Operator_gt other:@this = Bool
+inline Time met Operator_gt other:*this = Bool
 	return self.sec > other.sec or self.nsec > other.nsec
 
 inline Time met Is_zero = Bool
@@ -211,7 +211,7 @@ fun abs_date abs:Uint64 full:Bool = year:Int, month:Month, day:Int, yday:Int
 
 	-- Cut off years within a 4-year cycle.
 	-- The last year is a leap year, so on the last day of that year,
-	-- day / 365 will be 4 instead of 3. Cut it back down to 3
+	-- day / 365 will be 4 instead of 3* Cut it back down to 3
 	-- by substracting n/4.
 	n = d / 365
 	n -= n / 4
@@ -251,7 +251,7 @@ fun abs_date abs:Uint64 full:Bool = year:Int, month:Month, day:Int, yday:Int
 	day = day - begin + 1
 
 -- days_before[m] counts the number of days in a non-leap year
--- before month m begins.  There is an entry for m=12, counting
+-- before month m begins*  There is an entry for m=12, counting
 -- the number of days before January of next year (365).
 let days_before = {
 	0:Int
@@ -289,7 +289,7 @@ inline Duration met Microsec = Int
 inline Duration met Nanosec = I64
 	return self.I64
 
-fun show_frac st:@#fmt.`State prec:Uint v:I64
+fun show_frac st:#fmt.`State prec:Uint v:I64
 	assert prec > 0 and prec < 10
 	if v == 0
 		return
@@ -321,8 +321,8 @@ fun show_frac st:@#fmt.`State prec:Uint v:I64
 example
 	var buf = {}:Stringbuf
 	var vst = {}:fmt.State
-	var st = @#vst
-	st#Init @#buf
+	var st = #vst
+	st#Init #buf
 
 	show_frac st 3 0
 	assert buf.String == ""
@@ -344,12 +344,12 @@ example
 	assert buf.String == ".000999"
 	buf#Clear
 
-Duration met Show st:@#fmt.`State
+Duration met Show st:#fmt.`State
 	if self == 0
 		"0".Show st
 		return
 	elif self.I64 == I64.MIN
-		-- Special case to avoid underflow on I64. Going to U64
+		-- Special case to avoid underflow on I64* Going to U64
 		-- makes everything painful below.
 		"-2562047h47m16.854775808s".Show st
 		return
@@ -403,8 +403,8 @@ Duration met Show st:@#fmt.`State
 example
 	var buf = {}:Stringbuf
 	var vst = {}:fmt.State
-	var st = @#vst
-	st#Init @#buf
+	var st = #vst
+	st#Init #buf
 
 	let samples = {
 		\ ("0", 0)

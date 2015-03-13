@@ -1,15 +1,15 @@
 inline struct Buf t:`Any =
 	isa `Trivial_ctor `Copyable (`Random_container t) `Show
-	s	:[]!t	--::^Owned
+	s	:[!]t	--::^Owned
 
 inline Buf fun From_slice c:[]t = r:this
 	r#Resize c.Count
 	r#Slice!Exact_copy c
 
 inline Buf met# Dtor
-	Realloc @#self#s 0
+	Realloc #self#s 0
 
-inline Buf met# Copy_ctor other:@this
+inline Buf met# Copy_ctor other:*this
 	self#Copy other.Slice
 
 inline Buf met Cap = Uint
@@ -21,7 +21,7 @@ inline Buf met Count = Uint
 inline Buf met All = Range
 	return self.s.All
 
-inline Buf met$ Slice = []$t
+inline Buf met$ Slice = [$]t
 	return self$s
 
 inline Buf met# Zero
@@ -43,22 +43,22 @@ inline Buf met# Resize cnt:Uint
 		self#Reserve cnt
 		self!s = self.s.[.. cnt]
 
-inline Buf met# Push = @#t
+inline Buf met# Push = #t
 	let nend = self.s.Count + 1
 	self#auto_grow nend
 	self!s = self!s![.. nend]
 	return self#Last
 
-inline Buf shallow met$ First = @$t
+inline Buf shallow met$ First = $t
 	return self$s$First
 
-inline Buf shallow met$ Last = @$t
+inline Buf shallow met$ Last = $t
 	return self$s$Last
 
-inline Buf shallow met$ Operator_at n:Uint = r:@$t
+inline Buf shallow met$ Operator_at n:Uint = r:$t
 	return self$s$Operator_at n
 
-inline Buf shallow met$ Operator_sub r:Range = []$t
+inline Buf shallow met$ Operator_sub r:Range = [$]t
 	return self$s$Operator_sub r
 
 inline Buf met# Pop
@@ -75,7 +75,7 @@ inline Buf met# Copy s:[]t
 	self#s = self.s!Copy s
 	self#auto_shrink
 
--- The automatic growth of Buf et al. slows down when the buffer is large.
+-- The automatic growth of Buf et al* slows down when the buffer is large.
 fun growth_factor_shift n:Uint = Uint
 	if n <= 256
 		return 0
@@ -127,21 +127,21 @@ example -> assert 385 == Buffer_auto_grown_size 257 258
 inline Buf met# Reserve atleast:Uint
 	if self.s.cap >= atleast
 		return
-	Realloc @#self#s atleast
+	Realloc #self#s atleast
 
 Buf met# auto_grow atleast:Uint
 	let cap = self.s.cap
 	if cap >= atleast
 		return
 	let newcap = Buffer_auto_grown_size cap atleast
-	Realloc @#self#s newcap
+	Realloc #self#s newcap
 
 Buf met# auto_shrink
 	let cap = self.s.cap
 	let newcap = Buffer_auto_shrunk_size cap self.s.cnt
 	if newcap == cap
 		return
-	Realloc @#self#s newcap
+	Realloc #self#s newcap
 
 example
 	let v = {}:(Buf Uint) such
@@ -169,5 +169,5 @@ example
 		assert v.Count == 112
 		assert v.Cap == 112
 
-Buf met Show st:@#fmt.`State
+Buf met Show st:#fmt.`State
 	return self.s.Show st

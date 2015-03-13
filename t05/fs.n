@@ -6,7 +6,7 @@ import n.time
 fun Main = I32
 	return 0
 
-example named ex:@!bench.Example
+example named ex:!bench.Example
 	ex!Benchmark FS
 	let except, f = fs.Temporary named=true
 	_, except = f#Write "test".Bytes
@@ -16,7 +16,7 @@ example named ex:@!bench.Example
 	let s = String.From_bytes m.Bytes
 	assert s == "test"
 
-example anonymous ex:@!bench.Example
+example anonymous ex:!bench.Example
 	ex!Benchmark FS CLOCK
 	let except, f = fs.Temporary
 	_, except = f#Write "test".Bytes

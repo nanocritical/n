@@ -1,5 +1,5 @@
--- See LICENSE for details. Originally derived from go/src/pkg/path
--- Copyright 2009 The Go Authors. All rights reserved.
+-- See LICENSE for details* Originally derived from go/src/pkg/path
+-- Copyright 2009 The Go Authors* All rights reserved.
 
 from n import *
 import n.fmt
@@ -40,43 +40,43 @@ Path met Last = U8
 	return self.buf.Last
 
 Path met Operator_at n:Uint = U8
-	return self.buf.[n].
+	return self.buf.[n]*
 
-Path met$ Operator_sub r:Range = []$U8
+Path met$ Operator_sub r:Range = [$]U8
 	return self$buf$Bytes$Operator_sub r
 
 Path met Bytes = []U8
 	return self.buf.Bytes
 
-Path met Operator_compare other:@this = Int
+Path met Operator_compare other:*this = Int
 	return self.buf.Operator_compare other.buf
 
-Path met Operator_eq other:@this = Bool
+Path met Operator_eq other:*this = Bool
 	if self === other
 		return true
 	return self.Operator_compare other == 0
-Path met Operator_ne other:@this = Bool
+Path met Operator_ne other:*this = Bool
 	if self === other
 		return false
 	return self.Operator_compare other != 0
-Path met Operator_le other:@this = Bool
+Path met Operator_le other:*this = Bool
 	if self === other
 		return true
 	return self.Operator_compare other <= 0
-Path met Operator_lt other:@this = Bool
+Path met Operator_lt other:*this = Bool
 	if self === other
 		return false
 	return self.Operator_compare other < 0
-Path met Operator_gt other:@this = Bool
+Path met Operator_gt other:*this = Bool
 	if self === other
 		return false
 	return self.Operator_compare other > 0
-Path met Operator_ge other:@this = Bool
+Path met Operator_ge other:*this = Bool
 	if self === other
 		return true
 	return self.Operator_compare other >= 0
 
-Path met Show st:@#fmt.`State
+Path met Show st:#fmt.`State
 	let _ = st#Write self.Bytes
 
 Path met# Clear
@@ -100,7 +100,7 @@ Path met# Copy b:[]U8
 Path met# Reserve atleast:Uint
 	self#buf#Reserve atleast
 
-Path met# Cat ?sep:?@String ...v:(Vararg @`String)
+Path met# Cat ?sep:?*String ...v:(Vararg *`String)
 	self#buf#Cat sep=sep ...v
 
 Path met# Clean
@@ -112,7 +112,7 @@ Path met# Clean
 	and DOT = ".".[0]
 
 	-- Processing is in place, as Clean can only shorten the path.
-	let path = @!self!buf
+	let path = !self!buf
 	and n = path.Count
 	and rooted = self.buf.[0] == SLASH
 	and w, r, dotdot = 0, 0, 0
@@ -150,7 +150,7 @@ Path met# Clean
 					path![w]! = SLASH
 					w += 1
 				while r < n and path.[r] != SLASH
-					path![w]! = path.[r].
+					path![w]! = path.[r]*
 					w += 1
 					r += 1
 	self#buf#Resize w
@@ -186,7 +186,7 @@ example -> let p = "/b":Path such let b = p.Base; assert b == "b"
 example -> let p = "/":Path such let b = p.Base; assert b == "" -- go says "/"
 example -> let p = "":Path such let b = p.Base; assert b == "" -- go says "."
 
-Path met# Join ...v:(Vararg @`Show)
+Path met# Join ...v:(Vararg *`Show)
 	self#buf#Pr sep="/" ...v
 	self#Clean
 	return

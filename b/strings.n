@@ -6,10 +6,10 @@ import n.time
 
 intf `Comparison impl:`Enum =
 	met Name = String
-	met! Run ex:@!bench.Example repeat:Uint i:impl = Error
+	met! Run ex:!bench.Example repeat:Uint i:impl = Error
 	met Check = Error
 
-(fun impl:`Enum) Compare ex:@!bench.Example repeat:Uint c:@!(`Comparison impl)
+(fun impl:`Enum) Compare ex:!bench.Example repeat:Uint c:!(`Comparison impl)
 	Eprn c.Name
 
 	for i in (Enumset impl).ALL.Iter
@@ -50,12 +50,12 @@ index met Check = Error
 			return INVAL
 	return OK
 
-index met! Run ex:@!bench.Example repeat:Uint impl:String_index_impl = Error
+index met! Run ex:!bench.Example repeat:Uint impl:String_index_impl = Error
 	foreach _ in 0 .. repeat
 		self!r![impl.Tag.Uint-1]! = self.haystack.Index_selectimpl impl self.needle
 	return OK
 
-fun dict = Error, @fs.Mmap
+fun dict = Error, *fs.Mmap
 	let except, f = fs.Open (path.Mk "/tmp/1g")
 	let except, m = f!Mmap
 	return OK, m
@@ -73,7 +73,7 @@ fun Main = I32
 	let index_yes_worstnaive = {name="index.yes.worstnaive"
 		\ haystack="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" needle ="aab"}:index
 	index_yes_worstnaive#Init
-	Compare @!ex 10*repeat @!index_yes_worstnaive
+	Compare !ex 10*repeat !index_yes_worstnaive
 
 	let index_yes_short = {name="index.yes.short"
 		\ haystack=words needle="Linux"}:index
@@ -85,8 +85,8 @@ fun Main = I32
 		\ haystack=words needle="Linuxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}:index
 	index_no_long#Init
 
-	Compare @!ex repeat @!index_yes_short
-	Compare @!ex repeat @!index_no_short
-	Compare @!ex repeat @!index_no_long
+	Compare !ex repeat !index_yes_short
+	Compare !ex repeat !index_no_short
+	Compare !ex repeat !index_no_long
 
 	return 0

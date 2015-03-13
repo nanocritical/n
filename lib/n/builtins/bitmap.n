@@ -12,7 +12,7 @@ fun Bitmap_split n:Uint = word:Uint, mask:U32
 	word = n / Bitmap.BITS_PER_WORD
 	mask = Bitmap_wordmask n%Bitmap.BITS_PER_WORD
 
-inline Bitmap met$ Words = []$U32
+inline Bitmap met$ Words = [$]U32
 	return self$b$Slice
 
 inline Bitmap met Count = Uint
@@ -69,7 +69,7 @@ Bitmap met Ffs_from n:Uint = ?Uint
 	assert n < self.count
 	let word, first_mask = Bitmap_split n
 	foreach i in word .. self.b.Count
-		let w = self.b.[i]. such
+		let w = self.b.[i]* such
 			if i == word
 				w &= ~(first_mask - 1)
 		if w != 0
@@ -98,7 +98,7 @@ Bitmap met Fls = ?Uint
 		i += 1
 	return nil
 
-Bitmap met Show st:@#fmt.`State
+Bitmap met Show st:#fmt.`State
 	"{".Show st
 	var i = 0:Uint
 	for x in self.Iter
@@ -109,20 +109,20 @@ Bitmap met Show st:@#fmt.`State
 	"}".Show st
 
 -- TODO
--- Bitmap met! Or other:@this
--- Bitmap met! Xor other:@this
--- Bitmap met! And other:@this
+-- Bitmap met! Or other:*this
+-- Bitmap met! Xor other:*this
+-- Bitmap met! And other:*this
 -- Bitmap met! Not
 -- Region operations.
 
 -- Iterate over the set positions.
 inline struct Bitmap_iterator =
 	isa (`Iterator Uint)
-	b	:@Bitmap
+	b	:*Bitmap
 	first	:Uint
 	masked	:U32
 
-inline Bitmap_iterator met! init b:@Bitmap
+inline Bitmap_iterator met! init b:*Bitmap
 	self!b = b
 	let ffs = self.b.Ffs
 	if ffs?

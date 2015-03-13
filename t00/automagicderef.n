@@ -6,7 +6,7 @@ struct holder t:{`Copyable `Trivial_ctor} =
 holder fun mk x:t = this --::(nonnull x => nonnull self.x)
 	return {x=x}
 
-fun id x:@I32 = @I32
+fun id x:*I32 = *I32
 	return x
 
 struct wants_values =
@@ -20,8 +20,8 @@ fun Main = I32
 	let x = (Max I32) 0 1:I32
 	let xx = Max 0 1:I32
 
-	let p0 = @0:I32
-	let p1 = @1:I32
+	let p0 = *0:I32
+	let p1 = *1:I32
 	let np1 = nil
 	such
 		np1 = p1
@@ -29,8 +29,8 @@ fun Main = I32
 	let yy = Max p0 p1
 
 	let h = (holder I32).mk p1
-	let h1 = ((holder ?@I32).mk p1):(holder ?@I32)
-	let hh = (holder.mk @np1):(holder ?@I32)
+	let h1 = ((holder ?*I32).mk p1):(holder ?*I32)
+	let hh = (holder.mk *np1):(holder ?*I32)
 	let hhh = (holder.mk 1:I32):(holder I32)
 
 	-- FIXME: need support for ::nonnull on mk to use h1.x and hh.x in the return
@@ -39,18 +39,18 @@ fun Main = I32
 	let _ = hh.x
 
 	assert 1 == p0 + p1
-	assert 1 == p0. + p1
-	assert 1 == p0 + p1.
-	assert 1 == p0. + p1.
+	assert 1 == p0* + p1
+	assert 1 == p0 + p1*
+	assert 1 == p0* + p1*
 	assert 1 == (id p0) + p1
-	assert 1 == (id p0). + p1
+	assert 1 == (id p0)* + p1
 
-	let pu3 = @3
+	let pu3 = *3
 	assert 8 == 1:U64 ov<< pu3
 
 	block
-		let x = @42:I32
-		let y = @"test"
+		let x = *42:I32
+		let y = *"test"
 		let w = {x=x y=y}
 		assert foo w == 42
 

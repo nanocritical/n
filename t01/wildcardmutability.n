@@ -3,16 +3,16 @@ from n import *
 struct c =
 	x	:I32
 
-c met$ get = @$I32
-	return @$self$x
+c met$ get = $I32
+	return $self$x
 
-fun wants_mercurial x:@#I32 = I32
-	return x.
+fun wants_mercurial x:#I32 = I32
+	return x*
 
-fun$ id x:@$I32 = @$I32
+fun$ id x:$I32 = $I32
 	return x
 
 fun Main = I32
 	let x = { x=0 }:c
 	let mm = 0 such
-		return (x.get). + (wants_mercurial x#get) + (wants_mercurial (id @#mm))
+		return (x.get)* + (wants_mercurial x#get) + (wants_mercurial (id #mm))

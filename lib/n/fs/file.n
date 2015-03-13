@@ -1,14 +1,14 @@
 -- File operations as implemented here assume a recent Linux kernel (>= 3.11).
--- First, we rely on *at() syscalls. Secondly, when complex attr are passed
--- to Open (e.g. SELinux attributes) we rely on O_TMPFILE to first create a
+-- First, we rely on *at() syscalls* Secondly, when complex attr are passed
+-- to Open (e.g* SELinux attributes) we rely on O_TMPFILE to first create a
 -- hidden file (an inode with no name), change its owner/group/xattr, then give
--- it a name with linkat(). This prevents other processes from opening the file
+-- it a name with linkat()* This prevents other processes from opening the file
 -- before its permissions are fully set up.
 -- On older Linux, or on systems without equivalent support, such facility
 -- cannot be implemented as safely, but this module will do its best.
 inline struct File =
 	isa `Not_copyable io.`Reader io.`Writer -- io.`Reader_at io.`Writer_at
-	fs	:@!`Fs
+	fs	:!`Fs
 	fd	:?Int
 	hidden	:Bool
 	name	:path.Path
@@ -37,29 +37,29 @@ File met! Sync = Error
 File met! Truncate size:Uint = Error
 	return self.fs!File_truncate self size
 
-File met! Chown f:@!File owner:Int group:Int = Error
+File met! Chown f:!File owner:Int group:Int = Error
 	return syscall.ENOSYS
 
-File met List_xattr f:@!File buf:@!Stringbuf = Error, list:(Buf String)
+File met List_xattr f:!File buf:!Stringbuf = Error, list:(Buf String)
 	-- ::(x in list => x::(Owned buf))
 	return syscall.ENOSYS, {}
 
-File met Get_xattr f:@!File buf:@!(Buf U8) name:String = Error, Uint
+File met Get_xattr f:!File buf:!(Buf U8) name:String = Error, Uint
 	return syscall.ENOSYS, {}
 
-File met! Set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
+File met! Set_xattr f:!File name:String value:[]U8 ?create_only:?Bool = Error
 	return syscall.ENOSYS
 
-File met! Remove_xattr f:@!File name:String = Error
+File met! Remove_xattr f:!File name:String = Error
 	return syscall.ENOSYS
 
-File met! Readdir buf:@#(Buf Stat) ?max:?Uint = Error
+File met! Readdir buf:#(Buf Stat) ?max:?Uint = Error
 	return syscall.ENOSYS
 
-File met! Read b:[]!U8 = []!U8, Error
+File met! Read b:[!]U8 = [!]U8, Error
 	return syscall.Read self.Fd b
 
-File met! Read_at b:[]!U8 off:Uint = []!U8, Error
+File met! Read_at b:[!]U8 off:Uint = [!]U8, Error
 	return syscall.Pread self.Fd b off
 
 File met! Write b:[]U8 = []U8, Error

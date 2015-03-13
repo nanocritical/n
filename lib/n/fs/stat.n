@@ -33,7 +33,7 @@ inline struct Stat =
 	Access		:Accessmask
 	Owner		:Uid
 	Group		:Uid
-	Sys		:?@`Any
+	Sys		:?*`Any
 
 Stat met Is_file = Bool
 	return FILE == self.Type
@@ -84,7 +84,7 @@ fun sys_type_from_mode m:syscall.Mode = Types
 	if bits == syscall.S_IFCHR -> return CHARDEVICE
 	if bits == syscall.S_IFIFO -> return NAMEDPIPE
 
-fun sys_stat_from_sys sys:@syscall.Stat_t = st:Stat
+fun sys_stat_from_sys sys:*syscall.Stat_t = st:Stat
 	st!Size = sys.Size
 	st!Mod_time = time.Time.Mk sys.Mtime_sec sys.Mtime_nsec.Int
 	st!Type = sys_type_from_mode sys.Mode

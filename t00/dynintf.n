@@ -24,17 +24,17 @@ dc fun answer = I32
 dc met get = I32
 	return 42
 
-fun foo v:@`d = I32
+fun foo v:*`d = I32
 	return v.get
 
 example
 	let x = { x=42 }:d
 	assert 42 == foo x
 
-fun rfoo pv:@`d = I32
+fun rfoo pv:*`d = I32
 	return pv.answer
 
-fun bar pv:@d = I32
+fun bar pv:*d = I32
 	return foo pv
 
 fun Main = I32
@@ -44,7 +44,7 @@ fun Main = I32
 	assert rfoo xdc == 43
 	if foo xd != foo xdc
 		return 1
-	let pxd = @xd
+	let pxd = *xd
 	if bar pxd != rfoo pxd
 		return 1
 	return 0

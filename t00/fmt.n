@@ -2,7 +2,7 @@ from n import *
 import n.fmt
 
 fun Main = I32
-	var buf = @#{}:Stringbuf
+	var buf = #{}:Stringbuf
 
 	fmt.F buf "%%"
 	Prn buf

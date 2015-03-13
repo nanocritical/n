@@ -4,23 +4,23 @@ struct A =
 	isa `Trivial_ctor
 	dummy	:I32
 
-A (met t:`Any) explicit p:@t = t
-	return p.
+A (met t:`Any) explicit p:*t = t
+	return p*
 
 struct B =
 	isa `Trivial_ctor
 	dummy	:I32
 
 B (met t:`Any r:`Any_ref) implicit p:(r t) = t
-	return p.
+	return p*
 
-fun nil_arg p:?@?@I32
+fun nil_arg p:?*?*I32
 	assert p === nil
 
-fun nil_arg_value p:?@?@I32
-	assert p !== nil and p. === nil
+fun nil_arg_value p:?*?*I32
+	assert p !== nil and p* === nil
 
-fun bar p:?@?@I32
+fun bar p:?*?*I32
 	noop
 
 struct holder t:{`Copyable `Trivial_ctor} =
@@ -38,14 +38,14 @@ fun foo w:wants_opts = I32
 
 fun Main = I32
 	let h = holder.create 1:I32
-	let hh = (holder ?@I32).create @1:I32
+	let hh = (holder ?*I32).create *1:I32
 	let _ = h.x
 	let _ = hh.x
 
 	let a = 'test'
 	and b = 'test'
-	let pa = @a
-	let pb = @b
+	let pa = *a
+	let pb = *b
 
 	let x = a == b
 	assert x
@@ -54,57 +54,57 @@ fun Main = I32
 	assert pa == pb
 
 	block
-		let p1 = @1
+		let p1 = *1
 		let a = {}:A
 
 		-- We can't accept both.
-		-- Well, we can. They just don't mean the same thing. The second form is
-		-- taking the address of a temporary variable that contains nil. It shouldn't
+		-- Well, we can* They just don't mean the same thing* The second form is
+		-- taking the address of a temporary variable that contains nil* It shouldn't
 		-- compile without further typing specification.
 		nil_arg nil
-		nil_arg_value @nil
+		nil_arg_value *nil
 
-		-- With @@ there is capture of the inner reference, so there should be a @
+		-- With ** there is capture of the inner reference, so there should be a *
 		-- somewhere, no? Are we making captures very visible in the code? Is that
 		-- necessary as they are otherwise being tracked?
 
 		let x = {}
-		bar @x
+		bar *x
 
-		--assert 1 == a.explicit @1:I32
+		--assert 1 == a.explicit *1:I32
 		assert 1 == a.explicit 1:I32
-		assert p1 !== @(a.explicit 1:I32)
+		assert p1 !== *(a.explicit 1:I32)
 
 		let b = {}:B
-		assert 1 == b.implicit @1:I32
+		assert 1 == b.implicit *1:I32
 		-- assert 1 == b.implicit 1:I32 -- invalid
-		assert @1 !== b.implicit @@1:I32
+		assert *1 !== b.implicit **1:I32
 
-		assert 1 == (B.implicit I32 Ref) b @1:I32
-		-- assert 1 == (B.implicit I32 @I32) b 1:I32 -- invalid
-		-- assert @1 !== (B.implicit @I32 @@I32) b @1:I32 -- invalid
-		assert @1 !== (B.implicit @I32 Ref) b @@1:I32
+		assert 1 == (B.implicit I32 Ref) b *1:I32
+		-- assert 1 == (B.implicit I32 *I32) b 1:I32 -- invalid
+		-- assert *1 !== (B.implicit *I32 **I32) b *1:I32 -- invalid
+		assert *1 !== (B.implicit *I32 Ref) b **1:I32
 
-	let n = @1
-	let m = @2
-	let p3 = @3
+	let n = *1
+	let m = *2
+	let p3 = *3
 	assert n + m == 3:I32
 	assert n + m == p3
 	assert 1 + 2 == p3
 	assert n + 2 == p3
 
 	let v = {1 2:Uint}
-	let r = @v.All
+	let r = *v.All
 	foreach x in r
 		Prn x
 
-	--let e = @en.A
+	--let e = *en.A
 	--match e
 	--| A -> noop
 	--| B -> noop
 
 	--match e
-	--| @A -> noop -- invalid
+	--| *A -> noop -- invalid
 	--| B -> noop
 
 	block

@@ -17,7 +17,7 @@ fun bar n:enu = I32
 struct t =
 	x	:enu
 
-fun bor xt:@t = Bool
+fun bor xt:*t = Bool
 	return xt.x == A
 
 fun Main = I32

@@ -34,12 +34,12 @@ intf `Any =
 intf `Prevent_dyn =
 
 intf `Copyable =
-	met# Copy_ctor other:@final
+	met# Copy_ctor other:*final
 intf `Not_copyable =
 intf `Copyable_but_owned =
 	isa `Copyable -- FIXME
--- FIXME: `Trivial_copy should have other:@this, as it only needs `Any.sizeof.
--- And there should be a copy_slice operation over `Trivial_copy. That's kinda
+-- FIXME: `Trivial_copy should have other:*this, as it only needs `Any.sizeof.
+-- And there should be a copy_slice operation over `Trivial_copy* That's kinda
 -- the point.
 intf `Trivial_copy =
 	isa `Copyable `Trivial_dtor
@@ -68,13 +68,13 @@ intf `Has_compare =
 	-- order, or maybe not an order, or maybe not even an equality.
 	-- `Equality_by_compare and `Ordered_by_compare must be used to indicate what
 	-- this relation actually is.
-	met Operator_compare other:@final = I32
+	met Operator_compare other:*final = I32
 intf `Trivial_compare =
 	isa `Has_compare
 intf `Has_equality =
 	isa `Matchable
-	met Operator_eq other:@final = Bool
-	met Operator_ne other:@final = Bool
+	met Operator_eq other:*final = Bool
+	met Operator_ne other:*final = Bool
 
 --	fun exgen n:Uint = final
 --	example
@@ -93,10 +93,10 @@ intf `Trivial_equality =
 
 intf `Partially_ordered =
 	isa `Has_equality
-	met Operator_le other:@final = Bool
-	met Operator_lt other:@final = Bool
-	met Operator_gt other:@final = Bool
-	met Operator_ge other:@final = Bool
+	met Operator_le other:*final = Bool
+	met Operator_lt other:*final = Bool
+	met Operator_gt other:*final = Bool
+	met Operator_ge other:*final = Bool
 intf `Ordered =
 	isa `Partially_ordered
 intf `Not_ordered =
@@ -106,50 +106,50 @@ intf `Ordered_by_compare =
 intf `Trivial_order =
 	isa `Trivial_compare `Ordered
 intf `Additive_arithmetic =
-	met Operator_plus other:@final = final
-	met Operator_minus other:@final = final
+	met Operator_plus other:*final = final
+	met Operator_minus other:*final = final
 	met Operator_uminus = final
 intf `Additive_arithmetic_assign =
 	isa `Additive_arithmetic
-	met! Operator_assign_plus other:@final
-	met! Operator_assign_minus other:@final
+	met! Operator_assign_plus other:*final
+	met! Operator_assign_minus other:*final
 intf `Arithmetic =
 	isa `Additive_arithmetic
-	met Operator_divide other:@final = final
-	met Operator_times other:@final = final
+	met Operator_divide other:*final = final
+	met Operator_times other:*final = final
 intf `Arithmetic_assign =
 	isa `Arithmetic `Additive_arithmetic_assign
-	met! Operator_assign_divide other:@final
-	met! Operator_assign_times other:@final
+	met! Operator_assign_divide other:*final
+	met! Operator_assign_times other:*final
 intf `Has_bitwise_operators =
-	met Operator_bwor other:@final = final
-	met Operator_bwxor other:@final = final
-	met Operator_bwand other:@final = final
+	met Operator_bwor other:*final = final
+	met Operator_bwxor other:*final = final
+	met Operator_bwand other:*final = final
 	met Operator_bwnot = final
 intf `Has_bitwise_operators_assign =
 	isa `Has_bitwise_operators
-	met! Operator_assign_bwor other:@final
-	met! Operator_assign_bwxor other:@final
-	met! Operator_assign_bwand other:@final
+	met! Operator_assign_bwor other:*final
+	met! Operator_assign_bwxor other:*final
+	met! Operator_assign_bwand other:*final
 intf `Integer_arithmetic =
 	isa `Has_bitwise_operators
-	met Operator_modulo other:@final = final
+	met Operator_modulo other:*final = final
 	met Operator_rshift by:Uint = final
-	met! Operator_assign_modulo other:@final
+	met! Operator_assign_modulo other:*final
 	met! Operator_assign_rshift by:Uint
 intf `Overflow_arithmetic =
-	met Operator_ovplus other:@final = final
-	met Operator_ovminus other:@final = final
-	met Operator_ovdivide other:@final = final
-	met Operator_ovmodulo other:@final = final
-	met Operator_ovtimes other:@final = final
+	met Operator_ovplus other:*final = final
+	met Operator_ovminus other:*final = final
+	met Operator_ovdivide other:*final = final
+	met Operator_ovmodulo other:*final = final
+	met Operator_ovtimes other:*final = final
 	met Operator_ovuminus = final
 	met Operator_ovlshift by:Uint = final
-	met! Operator_assign_ovplus other:@final
-	met! Operator_assign_ovminus other:@final
-	met! Operator_assign_ovdivide other:@final
-	met! Operator_assign_ovmodulo other:@final
-	met! Operator_assign_ovtimes other:@final
+	met! Operator_assign_ovplus other:*final
+	met! Operator_assign_ovminus other:*final
+	met! Operator_assign_ovdivide other:*final
+	met! Operator_assign_ovmodulo other:*final
+	met! Operator_assign_ovtimes other:*final
 	met! Operator_assign_ovlshift by:Uint
 
 intf `Sum_copy =
@@ -163,7 +163,7 @@ intf `Sum_order =
 extern inline struct Void =
 	isa `Prevent_dyn `Return_by_copy `Trivial_copy `Trivial_ctor
 
-extern fun Nonnull_void = @Void
+extern fun Nonnull_void = *Void
 
 intf `Any_any_ref =
 	isa `Return_by_copy `Trivial_copy_but_owned `Trivial_dtor
@@ -190,7 +190,7 @@ extern struct Nullable_mutable_ref t:`Any =
 extern struct Nullable_mercurial_ref t:`Any =
 	isa (`Any_nullable_mutable_ref t)
 
--- Builtin primitive. Turned into 'what' if 't isa what'. Otherwise,
+-- Builtin primitive* Turned into 'what' if 't isa what'* Otherwise,
 -- turned into `Any.
 intf `Inherit what:`Any t:`Any =
 
@@ -207,7 +207,7 @@ inline struct Optional t:`Copyable =
 	Nonnil	:Bool
 
 -- Uses automagicref on function calls.
-inline (fun t:`Any) Take_ref_if_value__ p:@t = @t
+inline (fun t:`Any) Take_ref_if_value__ p:*t = *t
 	return p
 
 intf `Any_any_slice =
@@ -220,17 +220,17 @@ intf `Any_slice t:`Any =
 	met Cap = Uint
 	met Bytecap = Uint
 	met All = Range
-	shallow met$ Unsafe_rawdata = @$U8
-	shallow met$ Unsafe_data = @$t
-	shallow met$ Operator_at n:Uint = @$t
-	shallow met$ Operator_sub r:Range = []$t
+	shallow met$ Unsafe_rawdata = $U8
+	shallow met$ Unsafe_data = $t
+	shallow met$ Operator_at n:Uint = $t
+	shallow met$ Operator_sub r:Range = [$]t
 
 intf `Any_mutable_slice t:`Any =
 	isa (`Any_slice t)
 	met! Copy other:[]t = final
 
 -- The body of the methods for Slice and Mutable_slice are actually not used, as
--- Slice_impl is used in codegen for both Slice and Mutable_slice. The code in
+-- Slice_impl is used in codegen for both Slice and Mutable_slice* The code in
 -- these functions has only one purpose: triggering the instantiation of the
 -- corresponding Slice_impl methods.
 -- We will need a better solution down the road, as the code in these bogus
@@ -239,12 +239,12 @@ intf `Any_mutable_slice t:`Any =
 --
 -- In reality, it doesn't actually make sense to share the implementations
 -- of Slice and Mutable_slice: Slice does not need to carry around a cap
--- field. It's just easier for now as it lets us avoid generating conversion
+-- field* It's just easier for now as it lets us avoid generating conversion
 -- operations between kinds of slices.
 
 opaque struct Slice t:`Any =
 	isa (`Any_slice t) -- FIXME missing genarg
-	dat	:?@#t
+	dat	:?#t
 	cnt	:Uint
 	cap	:Uint -- will go away
 
@@ -252,7 +252,7 @@ inline Slice fun create_impl_instance = (Slice_impl t)
 	return {}
 inline Slice fun From_slice c:[]t = this
 	return {}
-inline Slice met# Unsafe_wrap p:@U8 c:Uint cap:Uint
+inline Slice met# Unsafe_wrap p:*U8 c:Uint cap:Uint
 	let s = this.create_impl_instance
 	s#Unsafe_wrap p c cap
 inline Slice met Count = Uint
@@ -279,13 +279,13 @@ inline Slice met Rawbytes = []U8
 
 -- These are shallow wildcard methods because their prototype must match
 -- exactly those found in Slice_impl.
-inline Slice shallow met$ Unsafe_rawdata = @U8
+inline Slice shallow met$ Unsafe_rawdata = *U8
 	let s = this.create_impl_instance
 	return s.Unsafe_rawdata
-inline Slice shallow met$ Unsafe_data = @t
+inline Slice shallow met$ Unsafe_data = *t
 	let s = this.create_impl_instance
 	return s.Unsafe_data
-inline Slice shallow met$ Operator_at n:Uint = @t
+inline Slice shallow met$ Operator_at n:Uint = *t
 	let s = this.create_impl_instance
 	return s.Operator_at n
 inline Slice shallow met$ Operator_sub r:Range = []t
@@ -298,26 +298,26 @@ inline Slice shallow met$ Recapped cap:Uint = this
 	such
 		let _ = s.Recapped cap
 	return {}
-inline Slice shallow met$ First = @t
+inline Slice shallow met$ First = *t
 	let s = this.create_impl_instance
 	return s.First
-inline Slice shallow met$ Last = @t
+inline Slice shallow met$ Last = *t
 	let s = this.create_impl_instance
 	return s.Last
-inline Slice met Show st:@#fmt.`State
+inline Slice met Show st:#fmt.`State
 	let s = this.create_impl_instance
 	such
 		s.Show st
-inline Slice met Operator_eq other:@this = Bool
+inline Slice met Operator_eq other:*this = Bool
 	let s = this.create_impl_instance
 	return s == s
-inline Slice met Operator_ne other:@this = Bool
+inline Slice met Operator_ne other:*this = Bool
 	let s = this.create_impl_instance
 	return s != s
 
 opaque struct Mutable_slice t:`Any =
 	isa (`Any_mutable_slice t) -- FIXME missing genarg
-	dat	:?@#t
+	dat	:?#t
 	cnt	:Uint
 	cap	:Uint
 
@@ -325,7 +325,7 @@ inline Mutable_slice fun create_impl_instance = (Slice_impl t)
 	return {}
 inline Mutable_slice fun From_slice c:[]t = this
 	return {}
-inline Mutable_slice met# Unsafe_wrap p:@U8 c:Uint cap:Uint
+inline Mutable_slice met# Unsafe_wrap p:*U8 c:Uint cap:Uint
 	let s = this.create_impl_instance
 	s#Unsafe_wrap p c cap
 inline Mutable_slice met Count = Uint
@@ -346,24 +346,24 @@ inline Mutable_slice met Bytecap = Uint
 inline Mutable_slice met All = Range
 	let s = this.create_impl_instance
 	return s.All
-inline Mutable_slice met$ Rawbytes = []$U8
+inline Mutable_slice met$ Rawbytes = [$]U8
 	let s = this.create_impl_instance
 	return s$Rawbytes
-inline Mutable_slice shallow met$ Unsafe_rawdata = @$U8
+inline Mutable_slice shallow met$ Unsafe_rawdata = $U8
 	let s = this.create_impl_instance
 	such
 		let _ = s.Unsafe_rawdata
 		let _ = s!Unsafe_rawdata
 		let _ = s#Unsafe_rawdata
 		return s$Unsafe_rawdata
-inline Mutable_slice shallow met$ Unsafe_data = @$t
+inline Mutable_slice shallow met$ Unsafe_data = $t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Unsafe_data
 		let _ = s!Unsafe_data
 		let _ = s#Unsafe_data
 		return s$Unsafe_data
-inline Mutable_slice shallow met$ Operator_at n:Uint = @$t
+inline Mutable_slice shallow met$ Operator_at n:Uint = $t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Operator_at n
@@ -389,7 +389,7 @@ inline Mutable_slice met! Append other:[]t = this
 	such
 		let _ = s!Append s
 		return {}
-inline Mutable_slice shallow met$ Operator_sub r:Range = []$t
+inline Mutable_slice shallow met$ Operator_sub r:Range = [$]t
 	let s = this.create_impl_instance
 	such
 		let _ = (s.Operator_sub r)
@@ -402,35 +402,35 @@ inline Mutable_slice shallow met$ Recapped cap:Uint = this
 		let _ = (s.Recapped cap)
 		let _ = (s!Recapped cap)
 		return {}
-inline Mutable_slice shallow met$ First = @$t
+inline Mutable_slice shallow met$ First = $t
 	let s = this.create_impl_instance
 	such
 		let _ = s.First
 		let _ = s!First
 		let p = s#First
 		return p
-inline Mutable_slice shallow met$ Last = @$t
+inline Mutable_slice shallow met$ Last = $t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Last
 		let _ = s!Last
 		let p = s#Last
 		return p
-inline Mutable_slice met Show st:@#fmt.`State
+inline Mutable_slice met Show st:#fmt.`State
 	let s = this.create_impl_instance
 	such
 		s.Show st
-inline Mutable_slice met Operator_eq other:@this = Bool
+inline Mutable_slice met Operator_eq other:*this = Bool
 	let s = this.create_impl_instance
 	return s == s
-inline Mutable_slice met Operator_ne other:@this = Bool
+inline Mutable_slice met Operator_ne other:*this = Bool
 	let s = this.create_impl_instance
 	return s != s
 
-extern inline fun Slice_at_byte dp:@#U8 off:Uint = @#U8
-extern inline fun Slice_memmove dst:@#U8 src:@U8 cnt:Uint
-extern inline fun Slice_memcmp a:@U8 b:@U8 cnt:Uint = Int
-extern inline fun Slice_memset a:@#U8 c:U8 cnt:Uint
+extern inline fun Slice_at_byte dp:#U8 off:Uint = #U8
+extern inline fun Slice_memmove dst:#U8 src:*U8 cnt:Uint
+extern inline fun Slice_memcmp a:*U8 b:*U8 cnt:Uint = Int
+extern inline fun Slice_memset a:#U8 c:U8 cnt:Uint
 
 inline fun Bytes_compare a:[]U8 b:[]U8 = Int
 	let acnt, bcnt = a.Count, b.Count
@@ -441,15 +441,15 @@ inline fun Bytes_compare a:[]U8 b:[]U8 = Int
 
 opaque struct Slice_impl t:`Any =
 	isa (`Any_mutable_slice t)
-	dat	:?@#t
+	dat	:?#t
 	cnt	:Uint
 	cap	:Uint
 
 inline Slice_impl fun From_slice c:[]t = this
 	return {dat=c.dat cnt=c.cnt cap=c.cap}
 
-inline Slice_impl met# Unsafe_wrap p:@U8 cnt:Uint cap:Uint
-	self#dat = (Cast @U8 @#t) p
+inline Slice_impl met# Unsafe_wrap p:*U8 cnt:Uint cap:Uint
+	self#dat = (Cast *U8 #t) p
 	self#cnt = cnt
 	self#cap = cap
 
@@ -471,37 +471,37 @@ inline Slice_impl met Bytecap = Uint
 inline Slice_impl met All = Range
 	return 0 .. self.cnt
 
-inline Slice_impl met$ Rawbytes = []$U8
-	return {dat=((Cast ?@$t @#U8) self$dat) cnt=self.Bytecount cap=self.Bytecap}
+inline Slice_impl met$ Rawbytes = [$]U8
+	return {dat=((Cast ?$t #U8) self$dat) cnt=self.Bytecount cap=self.Bytecap}
 
-inline Slice_impl shallow met$ Unsafe_rawdata = @$U8
-	return (Cast ?@$t @$U8) self$dat
+inline Slice_impl shallow met$ Unsafe_rawdata = $U8
+	return (Cast ?$t $U8) self$dat
 
-inline Slice_impl shallow met$ Unsafe_data = @$t
+inline Slice_impl shallow met$ Unsafe_data = $t
 	return Nonnull_cast self$dat
 
-inline Slice_impl shallow met$ Operator_at n:Uint = r:@$t
+inline Slice_impl shallow met$ Operator_at n:Uint = r:$t
 	assert n < self.cnt
-	let raw = (Cast ?@t @#U8) self.dat
+	let raw = (Cast ?*t #U8) self.dat
 	and off = n * (sizeof t)
-	return (Cast @#U8 @$t) <- Slice_at_byte raw off
+	return (Cast #U8 $t) <- Slice_at_byte raw off
 
----- FIXME: the copy operations are only available if the t is `Copyable. We
--- would like that detection to be static. And we would want
+---- FIXME: the copy operations are only available if the t is `Copyable* We
+-- would like that detection to be static* And we would want
 -- to allow method arguments whose type require `Copyable, say.
 
 inline Slice_impl met! Full_copy other:this = r:this
 	assert t isa `Copyable
 	assert self.cap >= other.cnt
 	let dst = self!Unsafe_rawdata
-	r = {dat=((Cast @#U8 @#t) dst) cnt=other.cnt cap=self.cap}
+	r = {dat=((Cast #U8 #t) dst) cnt=other.cnt cap=self.cap}
 	if t isa `Trivial_copy
 		let src = other.Unsafe_rawdata
 		and bytecnt = other.cnt * (sizeof t)
 		Slice_memmove dst src bytecnt
 	else
-		let p_dst = ((Cast @#U8 Voidref) dst).Uintptr
-		let p_src = ((Cast @U8 Voidref) other.Unsafe_rawdata).Uintptr
+		let p_dst = ((Cast #U8 Voidref) dst).Uintptr
+		let p_src = ((Cast *U8 Voidref) other.Unsafe_rawdata).Uintptr
 		let bytecnt = other.cnt * (sizeof t)
 		if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
 			foreach i in r.All
@@ -525,7 +525,7 @@ inline Slice_impl met! Exact_copy other:this
 -- Append what it can, and return a slice to the result.
 inline Slice_impl met! Append other:this = this
 	if other.cnt == 0
-		return self.
+		return self*
 	let newcnt = self.cnt + other.cnt
 	assert newcnt <= self.cap
 	let _ = self.[self.cnt .. newcnt]!Copy other
@@ -536,37 +536,37 @@ inline Slice_impl shallow met$ Operator_sub r:Range = this
 	assert r.End <= self.cap
 	let newcap = self.cap - r.Begin
 
-	let raw0 = (Cast @U8 @#U8) self.Unsafe_rawdata
+	let raw0 = (Cast *U8 #U8) self.Unsafe_rawdata
 	and off = r.Begin * (sizeof t)
 	let raw = Slice_at_byte raw0 off
-	return {dat=((Cast @#U8 @#t) raw) cnt=r.Count cap=newcap}
+	return {dat=((Cast #U8 #t) raw) cnt=r.Count cap=newcap}
 
 inline Slice_impl shallow met$ Recapped cap:Uint = this
 	assert cap <= self.cap
 	return {dat=self.dat cnt=(Min self.Count cap) cap=cap}
 
-inline Slice_impl shallow met$ First = @$t
+inline Slice_impl shallow met$ First = $t
 	return self$[0]
 
-inline Slice_impl shallow met$ Last = @$t
+inline Slice_impl shallow met$ Last = $t
 	return self$[self.cnt - 1]
 
-inline Slice_impl met Show st:@#fmt.`State
+inline Slice_impl met Show st:#fmt.`State
 	"{".Show st
 	foreach i in self.All
 		if i != 0
 			" ".Show st
 		let x = self.[i]
-		if x. isa `Show
+		if x* isa `Show
 			x.Show st
 		else
-			let px = ((Cast @t Voidref) x).Uintptr
+			let px = ((Cast *t Voidref) x).Uintptr
 			"<".Show st
 			px.Show st
 			">".Show st
 	"}".Show st
 
-inline Slice_impl met Operator_eq other:@this = Bool
+inline Slice_impl met Operator_eq other:*this = Bool
 	if t isa `Trivial_equality
 		return 0 == Bytes_compare self.Rawbytes other.Rawbytes
 	elif t isa `Has_equality
@@ -580,7 +580,7 @@ inline Slice_impl met Operator_eq other:@this = Bool
 		assert false
 		return false
 
-inline Slice_impl met Operator_ne other:@this = Bool
+inline Slice_impl met Operator_ne other:*this = Bool
 	if t isa `Has_equality
 		return not self == other
 	else
@@ -591,7 +591,7 @@ example
 	let a = { 0:Uint 1 2 3 4 5 6 7 }
 	assert a.Count == 8
 	assert a.All == 0 .. 8
-	assert a.Unsafe_rawdata === (Cast @Uint @U8) a.Unsafe_data
+	assert a.Unsafe_rawdata === (Cast *Uint *U8) a.Unsafe_data
 	foreach i in a.All
 		assert a.[i] == i
 	assert a.First == 0
@@ -602,7 +602,7 @@ example
 	assert a.[7 .. 7].Count == 0
 	assert a.[7 .. 7].Cap == 1
 	-- OK to create slice of cap 0:
-	assert a.[8 .. ].Count == 0
+	assert a.[8 ..].Count == 0
 	let b = a.[4 ..]
 	foreach i in b.All
 		assert b.[i] == a.[4 + i]
@@ -614,7 +614,7 @@ example
 
 example
 	let ref = { 0:Uint 1 2 3 4 5 6 7 }
-	let a = { 0 1 2 3 4 5 6 7 }:[]!Uint such
+	let a = { 0 1 2 3 4 5 6 7 }:[!]Uint such
 		let b = a![4 ..]
 		foreach i in b.All
 			b![i]! = 0
@@ -622,12 +622,12 @@ example
 		let suma = 0
 		and sumb = 0 such
 			foreach x in a.[4 ..]
-				suma += x.
+				suma += x*
 			foreach x in b
-				sumb += x.
+				sumb += x*
 		assert suma == sumb
 
-	let c = { 8 8 8 8 8 8 8 8 }:[]!Uint such
+	let c = { 8 8 8 8 8 8 8 8 }:[!]Uint such
 		let d = c!Full_copy ref
 		assert d.Count == ref.Count
 		assert d.Count == c.Count
@@ -635,7 +635,7 @@ example
 			assert c.[i] == ref.[i]
 			assert d.[i] == ref.[i]
 
-	let e = { 8 8 8 8 8 8 8 8 }:[]!Uint such
+	let e = { 8 8 8 8 8 8 8 8 }:[!]Uint such
 		let f = e![4 ..] such
 			let g = f!Copy ref.[4 ..]
 			assert g.Count == 4
@@ -651,7 +651,7 @@ example
 				assert m.[i] == ref.[i]
 			let n = h!Full_copy ref
 			assert n.Count == m.Count
-	let o = { 8 8 8 8 8 8 8 8 }:[]!Uint such
+	let o = { 8 8 8 8 8 8 8 8 }:[!]Uint such
 		o = o#Copy ref
 	let p = o.[0 .. 0]
 	assert p.Count == 0
@@ -749,12 +749,12 @@ alias Error_range = Error -- FIXME ::|OK|INVAL_RANGE
 
 extern inline struct Bool =
 	isa `Native_boolean
-extern inline Bool met Operator_eq other:@this = Bool
-extern inline Bool met Operator_ne other:@this = Bool
-extern inline Bool met Operator_le other:@this = Bool
-extern inline Bool met Operator_lt other:@this = Bool
-extern inline Bool met Operator_gt other:@this = Bool
-extern inline Bool met Operator_ge other:@this = Bool
+extern inline Bool met Operator_eq other:*this = Bool
+extern inline Bool met Operator_ne other:*this = Bool
+extern inline Bool met Operator_le other:*this = Bool
+extern inline Bool met Operator_lt other:*this = Bool
+extern inline Bool met Operator_gt other:*this = Bool
+extern inline Bool met Operator_ge other:*this = Bool
 Bool fun From_bool b:Bool = this
 	return b
 extern inline Bool met Operator_test = Bool
@@ -763,7 +763,7 @@ extern inline Bool met U8 = U8
 extern inline Bool met U16 = U16
 extern inline Bool met U32 = U32
 extern inline Bool met U64 = U64
-extern Bool met Show st:@#fmt.`State
+extern Bool met Show st:#fmt.`State
 inline Bool met Hash32 = U32
 	return self.U32
 
@@ -776,37 +776,37 @@ inline I8 fun MIN = this
 inline I8 fun MAX = this
 	return 0x7f
 extern I8 fun From_number_literal v:String = this
-extern inline I8 met Operator_eq other:@this = Bool
-extern inline I8 met Operator_ne other:@this = Bool
-extern inline I8 met Operator_le other:@this = Bool
-extern inline I8 met Operator_lt other:@this = Bool
-extern inline I8 met Operator_gt other:@this = Bool
-extern inline I8 met Operator_ge other:@this = Bool
-extern inline I8 met Operator_plus other:@this = this
-extern inline I8 met Operator_minus other:@this = this
-extern inline I8 met Operator_divide other:@this = this
-extern inline I8 met Operator_modulo other:@this = this
-extern inline I8 met Operator_times other:@this = this
+extern inline I8 met Operator_eq other:*this = Bool
+extern inline I8 met Operator_ne other:*this = Bool
+extern inline I8 met Operator_le other:*this = Bool
+extern inline I8 met Operator_lt other:*this = Bool
+extern inline I8 met Operator_gt other:*this = Bool
+extern inline I8 met Operator_ge other:*this = Bool
+extern inline I8 met Operator_plus other:*this = this
+extern inline I8 met Operator_minus other:*this = this
+extern inline I8 met Operator_divide other:*this = this
+extern inline I8 met Operator_modulo other:*this = this
+extern inline I8 met Operator_times other:*this = this
 extern inline I8 met Operator_uminus = this
-extern inline I8 met! Operator_assign_plus other:@this
-extern inline I8 met! Operator_assign_minus other:@this
-extern inline I8 met! Operator_assign_divide other:@this
-extern inline I8 met! Operator_assign_modulo other:@this
-extern inline I8 met! Operator_assign_times other:@this
-extern inline I8 met Operator_bwor other:@this = this
-extern inline I8 met Operator_bwxor other:@this = this
-extern inline I8 met Operator_bwand other:@this = this
+extern inline I8 met! Operator_assign_plus other:*this
+extern inline I8 met! Operator_assign_minus other:*this
+extern inline I8 met! Operator_assign_divide other:*this
+extern inline I8 met! Operator_assign_modulo other:*this
+extern inline I8 met! Operator_assign_times other:*this
+extern inline I8 met Operator_bwor other:*this = this
+extern inline I8 met Operator_bwxor other:*this = this
+extern inline I8 met Operator_bwand other:*this = this
 extern inline I8 met Operator_rshift by:Uint = this
 extern inline I8 met Operator_bwnot = this
-extern inline I8 met! Operator_assign_bwor other:@this
-extern inline I8 met! Operator_assign_bwxor other:@this
-extern inline I8 met! Operator_assign_bwand other:@this
+extern inline I8 met! Operator_assign_bwor other:*this
+extern inline I8 met! Operator_assign_bwxor other:*this
+extern inline I8 met! Operator_assign_bwand other:*this
 extern inline I8 met! Operator_assign_rshift by:Uint
 inline I8 met Abs = this
 	if self >= 0
-		return self.
+		return self*
 	else
-		return -self.
+		return -self*
 inline I8 met Unsigned = U8
 	assert self >= 0
 	return self.Bitwise_unsigned
@@ -825,7 +825,7 @@ extern inline I8 met U64 = U64
 extern inline I8 met Uint = Uint
 extern inline I8 met Exact_float = Float
 extern inline I8 met Exact_double = Double
-extern I8 met Show st:@#fmt.`State
+extern I8 met Show st:#fmt.`State
 inline I8 met Hash32 = U32
 	return self.Bitwise_unsigned.Hash32
 
@@ -838,37 +838,37 @@ inline I16 fun MIN = this
 inline I16 fun MAX = this
 	return 0x7fff
 extern I16 fun From_number_literal v:String = this
-extern inline I16 met Operator_eq other:@this = Bool
-extern inline I16 met Operator_ne other:@this = Bool
-extern inline I16 met Operator_le other:@this = Bool
-extern inline I16 met Operator_lt other:@this = Bool
-extern inline I16 met Operator_gt other:@this = Bool
-extern inline I16 met Operator_ge other:@this = Bool
-extern inline I16 met Operator_plus other:@this = this
-extern inline I16 met Operator_minus other:@this = this
-extern inline I16 met Operator_divide other:@this = this
-extern inline I16 met Operator_modulo other:@this = this
-extern inline I16 met Operator_times other:@this = this
+extern inline I16 met Operator_eq other:*this = Bool
+extern inline I16 met Operator_ne other:*this = Bool
+extern inline I16 met Operator_le other:*this = Bool
+extern inline I16 met Operator_lt other:*this = Bool
+extern inline I16 met Operator_gt other:*this = Bool
+extern inline I16 met Operator_ge other:*this = Bool
+extern inline I16 met Operator_plus other:*this = this
+extern inline I16 met Operator_minus other:*this = this
+extern inline I16 met Operator_divide other:*this = this
+extern inline I16 met Operator_modulo other:*this = this
+extern inline I16 met Operator_times other:*this = this
 extern inline I16 met Operator_uminus = this
-extern inline I16 met! Operator_assign_plus other:@this
-extern inline I16 met! Operator_assign_minus other:@this
-extern inline I16 met! Operator_assign_divide other:@this
-extern inline I16 met! Operator_assign_modulo other:@this
-extern inline I16 met! Operator_assign_times other:@this
-extern inline I16 met Operator_bwor other:@this = this
-extern inline I16 met Operator_bwxor other:@this = this
-extern inline I16 met Operator_bwand other:@this = this
+extern inline I16 met! Operator_assign_plus other:*this
+extern inline I16 met! Operator_assign_minus other:*this
+extern inline I16 met! Operator_assign_divide other:*this
+extern inline I16 met! Operator_assign_modulo other:*this
+extern inline I16 met! Operator_assign_times other:*this
+extern inline I16 met Operator_bwor other:*this = this
+extern inline I16 met Operator_bwxor other:*this = this
+extern inline I16 met Operator_bwand other:*this = this
 extern inline I16 met Operator_rshift by:Uint = this
 extern inline I16 met Operator_bwnot = this
-extern inline I16 met! Operator_assign_bwor other:@this
-extern inline I16 met! Operator_assign_bwxor other:@this
-extern inline I16 met! Operator_assign_bwand other:@this
+extern inline I16 met! Operator_assign_bwor other:*this
+extern inline I16 met! Operator_assign_bwxor other:*this
+extern inline I16 met! Operator_assign_bwand other:*this
 extern inline I16 met! Operator_assign_rshift by:Uint
 inline I16 met Abs = this
 	if self >= 0
-		return self.
+		return self*
 	else
-		return -self.
+		return -self*
 inline I16 met Unsigned = U16
 	assert self >= 0
 	return self.Bitwise_unsigned
@@ -886,7 +886,7 @@ extern inline I16 met U64 = U64
 extern inline I16 met Uint = Uint
 extern inline I16 met Exact_float = Float
 extern inline I16 met Exact_double = Double
-extern I16 met Show st:@#fmt.`State
+extern I16 met Show st:#fmt.`State
 inline I16 met Hash32 = U32
 	return self.Bitwise_unsigned.Hash32
 
@@ -899,37 +899,37 @@ inline I32 fun MIN = this
 inline I32 fun MAX = this
 	return 0x7fffffff
 extern I32 fun From_number_literal v:String = this
-extern inline I32 met Operator_eq other:@this = Bool
-extern inline I32 met Operator_ne other:@this = Bool
-extern inline I32 met Operator_le other:@this = Bool
-extern inline I32 met Operator_lt other:@this = Bool
-extern inline I32 met Operator_gt other:@this = Bool
-extern inline I32 met Operator_ge other:@this = Bool
-extern inline I32 met Operator_plus other:@this = this
-extern inline I32 met Operator_minus other:@this = this
-extern inline I32 met Operator_divide other:@this = this
-extern inline I32 met Operator_modulo other:@this = this
-extern inline I32 met Operator_times other:@this = this
+extern inline I32 met Operator_eq other:*this = Bool
+extern inline I32 met Operator_ne other:*this = Bool
+extern inline I32 met Operator_le other:*this = Bool
+extern inline I32 met Operator_lt other:*this = Bool
+extern inline I32 met Operator_gt other:*this = Bool
+extern inline I32 met Operator_ge other:*this = Bool
+extern inline I32 met Operator_plus other:*this = this
+extern inline I32 met Operator_minus other:*this = this
+extern inline I32 met Operator_divide other:*this = this
+extern inline I32 met Operator_modulo other:*this = this
+extern inline I32 met Operator_times other:*this = this
 extern inline I32 met Operator_uminus = this
-extern inline I32 met! Operator_assign_plus other:@this
-extern inline I32 met! Operator_assign_minus other:@this
-extern inline I32 met! Operator_assign_divide other:@this
-extern inline I32 met! Operator_assign_modulo other:@this
-extern inline I32 met! Operator_assign_times other:@this
-extern inline I32 met Operator_bwor other:@this = this
-extern inline I32 met Operator_bwxor other:@this = this
-extern inline I32 met Operator_bwand other:@this = this
+extern inline I32 met! Operator_assign_plus other:*this
+extern inline I32 met! Operator_assign_minus other:*this
+extern inline I32 met! Operator_assign_divide other:*this
+extern inline I32 met! Operator_assign_modulo other:*this
+extern inline I32 met! Operator_assign_times other:*this
+extern inline I32 met Operator_bwor other:*this = this
+extern inline I32 met Operator_bwxor other:*this = this
+extern inline I32 met Operator_bwand other:*this = this
 extern inline I32 met Operator_rshift by:Uint = this
 extern inline I32 met Operator_bwnot = this
-extern inline I32 met! Operator_assign_bwor other:@this
-extern inline I32 met! Operator_assign_bwxor other:@this
-extern inline I32 met! Operator_assign_bwand other:@this
+extern inline I32 met! Operator_assign_bwor other:*this
+extern inline I32 met! Operator_assign_bwxor other:*this
+extern inline I32 met! Operator_assign_bwand other:*this
 extern inline I32 met! Operator_assign_rshift by:Uint
 inline I32 met Abs = this
 	if self >= 0
-		return self.
+		return self*
 	else
-		return -self.
+		return -self*
 inline I32 met Unsigned = U32
 	assert self >= 0
 	return self.Bitwise_unsigned
@@ -946,7 +946,7 @@ extern inline I32 met U64 = U64
 extern inline I32 met Uint = Uint
 extern inline I32 met Round_float = Float
 extern inline I32 met Exact_double = Double
-extern I32 met Show st:@#fmt.`State
+extern I32 met Show st:#fmt.`State
 inline I32 met Hash32 = U32
 	return self.Bitwise_unsigned.Hash32
 
@@ -964,37 +964,37 @@ inline I64 fun MIN = this
 inline I64 fun MAX = this
 	return 0x7fffffffffffffff
 extern I64 fun From_number_literal v:String = this
-extern inline I64 met Operator_eq other:@this = Bool
-extern inline I64 met Operator_ne other:@this = Bool
-extern inline I64 met Operator_le other:@this = Bool
-extern inline I64 met Operator_lt other:@this = Bool
-extern inline I64 met Operator_gt other:@this = Bool
-extern inline I64 met Operator_ge other:@this = Bool
-extern inline I64 met Operator_plus other:@this = this
-extern inline I64 met Operator_minus other:@this = this
-extern inline I64 met Operator_divide other:@this = this
-extern inline I64 met Operator_modulo other:@this = this
-extern inline I64 met Operator_times other:@this = this
+extern inline I64 met Operator_eq other:*this = Bool
+extern inline I64 met Operator_ne other:*this = Bool
+extern inline I64 met Operator_le other:*this = Bool
+extern inline I64 met Operator_lt other:*this = Bool
+extern inline I64 met Operator_gt other:*this = Bool
+extern inline I64 met Operator_ge other:*this = Bool
+extern inline I64 met Operator_plus other:*this = this
+extern inline I64 met Operator_minus other:*this = this
+extern inline I64 met Operator_divide other:*this = this
+extern inline I64 met Operator_modulo other:*this = this
+extern inline I64 met Operator_times other:*this = this
 extern inline I64 met Operator_uminus = this
-extern inline I64 met! Operator_assign_plus other:@this
-extern inline I64 met! Operator_assign_minus other:@this
-extern inline I64 met! Operator_assign_divide other:@this
-extern inline I64 met! Operator_assign_modulo other:@this
-extern inline I64 met! Operator_assign_times other:@this
-extern inline I64 met Operator_bwor other:@this = this
-extern inline I64 met Operator_bwxor other:@this = this
-extern inline I64 met Operator_bwand other:@this = this
+extern inline I64 met! Operator_assign_plus other:*this
+extern inline I64 met! Operator_assign_minus other:*this
+extern inline I64 met! Operator_assign_divide other:*this
+extern inline I64 met! Operator_assign_modulo other:*this
+extern inline I64 met! Operator_assign_times other:*this
+extern inline I64 met Operator_bwor other:*this = this
+extern inline I64 met Operator_bwxor other:*this = this
+extern inline I64 met Operator_bwand other:*this = this
 extern inline I64 met Operator_rshift by:Uint = this
 extern inline I64 met Operator_bwnot = this
-extern inline I64 met! Operator_assign_bwor other:@this
-extern inline I64 met! Operator_assign_bwxor other:@this
-extern inline I64 met! Operator_assign_bwand other:@this
+extern inline I64 met! Operator_assign_bwor other:*this
+extern inline I64 met! Operator_assign_bwxor other:*this
+extern inline I64 met! Operator_assign_bwand other:*this
 extern inline I64 met! Operator_assign_rshift by:Uint
 inline I64 met Abs = this
 	if self >= 0
-		return self.
+		return self*
 	else
-		return -self.
+		return -self*
 inline I64 met Unsigned = U64
 	assert self >= 0
 	return self.Bitwise_unsigned
@@ -1007,7 +1007,7 @@ extern inline I64 met Trim_i8 = I8
 extern inline I64 met Trim_i16 = I16
 extern inline I64 met Trim_i32 = I32
 inline I64 met I64 = I64
-	return self.
+	return self*
 extern inline I64 met force_int = Int
 extern inline I64 met force_intptr = Intptr
 inline I64 met To_int = Int
@@ -1019,7 +1019,7 @@ inline I64 met Try_int = Error_range, Int
 	return OK, 0
 extern inline I64 met Round_float = Float
 extern inline I64 met Round_double = Double
-extern I64 met Show st:@#fmt.`State
+extern I64 met Show st:#fmt.`State
 inline I64 met Hash32 = U32
 	return self.Bitwise_unsigned.Hash32
 
@@ -1035,43 +1035,43 @@ extern U8 fun From_number_literal v:String = this
 inline U8 fun From_string s:String = this
 	assert s.Count == 1
 	return s.[0]
-extern inline U8 met Operator_eq other:@this = Bool
-extern inline U8 met Operator_ne other:@this = Bool
-extern inline U8 met Operator_le other:@this = Bool
-extern inline U8 met Operator_lt other:@this = Bool
-extern inline U8 met Operator_gt other:@this = Bool
-extern inline U8 met Operator_ge other:@this = Bool
-extern inline U8 met Operator_plus other:@this = this
-extern inline U8 met Operator_minus other:@this = this
-extern inline U8 met Operator_divide other:@this = this
-extern inline U8 met Operator_modulo other:@this = this
-extern inline U8 met Operator_times other:@this = this
+extern inline U8 met Operator_eq other:*this = Bool
+extern inline U8 met Operator_ne other:*this = Bool
+extern inline U8 met Operator_le other:*this = Bool
+extern inline U8 met Operator_lt other:*this = Bool
+extern inline U8 met Operator_gt other:*this = Bool
+extern inline U8 met Operator_ge other:*this = Bool
+extern inline U8 met Operator_plus other:*this = this
+extern inline U8 met Operator_minus other:*this = this
+extern inline U8 met Operator_divide other:*this = this
+extern inline U8 met Operator_modulo other:*this = this
+extern inline U8 met Operator_times other:*this = this
 extern inline U8 met Operator_uminus = this
-extern inline U8 met! Operator_assign_plus other:@this
-extern inline U8 met! Operator_assign_minus other:@this
-extern inline U8 met! Operator_assign_divide other:@this
-extern inline U8 met! Operator_assign_modulo other:@this
-extern inline U8 met! Operator_assign_times other:@this
-extern inline U8 met Operator_ovplus other:@this = this
-extern inline U8 met Operator_ovminus other:@this = this
-extern inline U8 met Operator_ovdivide other:@this = this
-extern inline U8 met Operator_ovmodulo other:@this = this
-extern inline U8 met Operator_ovtimes other:@this = this
+extern inline U8 met! Operator_assign_plus other:*this
+extern inline U8 met! Operator_assign_minus other:*this
+extern inline U8 met! Operator_assign_divide other:*this
+extern inline U8 met! Operator_assign_modulo other:*this
+extern inline U8 met! Operator_assign_times other:*this
+extern inline U8 met Operator_ovplus other:*this = this
+extern inline U8 met Operator_ovminus other:*this = this
+extern inline U8 met Operator_ovdivide other:*this = this
+extern inline U8 met Operator_ovmodulo other:*this = this
+extern inline U8 met Operator_ovtimes other:*this = this
 extern inline U8 met Operator_ovuminus = this
-extern inline U8 met! Operator_assign_ovplus other:@this
-extern inline U8 met! Operator_assign_ovminus other:@this
-extern inline U8 met! Operator_assign_ovdivide other:@this
-extern inline U8 met! Operator_assign_ovmodulo other:@this
-extern inline U8 met! Operator_assign_ovtimes other:@this
-extern inline U8 met Operator_bwor other:@this = this
-extern inline U8 met Operator_bwxor other:@this = this
-extern inline U8 met Operator_bwand other:@this = this
+extern inline U8 met! Operator_assign_ovplus other:*this
+extern inline U8 met! Operator_assign_ovminus other:*this
+extern inline U8 met! Operator_assign_ovdivide other:*this
+extern inline U8 met! Operator_assign_ovmodulo other:*this
+extern inline U8 met! Operator_assign_ovtimes other:*this
+extern inline U8 met Operator_bwor other:*this = this
+extern inline U8 met Operator_bwxor other:*this = this
+extern inline U8 met Operator_bwand other:*this = this
 extern inline U8 met Operator_ovlshift by:Uint = this
 extern inline U8 met Operator_rshift by:Uint = this
 extern inline U8 met Operator_bwnot = this
-extern inline U8 met! Operator_assign_bwor other:@this
-extern inline U8 met! Operator_assign_bwxor other:@this
-extern inline U8 met! Operator_assign_bwand other:@this
+extern inline U8 met! Operator_assign_bwor other:*this
+extern inline U8 met! Operator_assign_bwxor other:*this
+extern inline U8 met! Operator_assign_bwand other:*this
 extern inline U8 met! Operator_assign_ovlshift by:Uint
 extern inline U8 met! Operator_assign_rshift by:Uint
 inline U8 met Signed = I8
@@ -1092,7 +1092,7 @@ extern inline U8 met I64 = I64
 extern inline U8 met Int = Int
 extern inline U8 met Exact_float = Float
 extern inline U8 met Exact_double = Double
-extern U8 met Show st:@#fmt.`State
+extern U8 met Show st:#fmt.`State
 inline U8 met Hash32 = U32
 	return self.U32
 
@@ -1105,43 +1105,43 @@ inline U16 fun MIN = this
 inline U16 fun MAX = this
 	return 0xffff
 extern U16 fun From_number_literal v:String = this
-extern inline U16 met Operator_eq other:@this = Bool
-extern inline U16 met Operator_ne other:@this = Bool
-extern inline U16 met Operator_le other:@this = Bool
-extern inline U16 met Operator_lt other:@this = Bool
-extern inline U16 met Operator_gt other:@this = Bool
-extern inline U16 met Operator_ge other:@this = Bool
-extern inline U16 met Operator_plus other:@this = this
-extern inline U16 met Operator_minus other:@this = this
-extern inline U16 met Operator_divide other:@this = this
-extern inline U16 met Operator_modulo other:@this = this
-extern inline U16 met Operator_times other:@this = this
+extern inline U16 met Operator_eq other:*this = Bool
+extern inline U16 met Operator_ne other:*this = Bool
+extern inline U16 met Operator_le other:*this = Bool
+extern inline U16 met Operator_lt other:*this = Bool
+extern inline U16 met Operator_gt other:*this = Bool
+extern inline U16 met Operator_ge other:*this = Bool
+extern inline U16 met Operator_plus other:*this = this
+extern inline U16 met Operator_minus other:*this = this
+extern inline U16 met Operator_divide other:*this = this
+extern inline U16 met Operator_modulo other:*this = this
+extern inline U16 met Operator_times other:*this = this
 extern inline U16 met Operator_uminus = this
-extern inline U16 met! Operator_assign_plus other:@this
-extern inline U16 met! Operator_assign_minus other:@this
-extern inline U16 met! Operator_assign_divide other:@this
-extern inline U16 met! Operator_assign_modulo other:@this
-extern inline U16 met! Operator_assign_times other:@this
-extern inline U16 met Operator_ovplus other:@this = this
-extern inline U16 met Operator_ovminus other:@this = this
-extern inline U16 met Operator_ovdivide other:@this = this
-extern inline U16 met Operator_ovmodulo other:@this = this
-extern inline U16 met Operator_ovtimes other:@this = this
+extern inline U16 met! Operator_assign_plus other:*this
+extern inline U16 met! Operator_assign_minus other:*this
+extern inline U16 met! Operator_assign_divide other:*this
+extern inline U16 met! Operator_assign_modulo other:*this
+extern inline U16 met! Operator_assign_times other:*this
+extern inline U16 met Operator_ovplus other:*this = this
+extern inline U16 met Operator_ovminus other:*this = this
+extern inline U16 met Operator_ovdivide other:*this = this
+extern inline U16 met Operator_ovmodulo other:*this = this
+extern inline U16 met Operator_ovtimes other:*this = this
 extern inline U16 met Operator_ovuminus = this
-extern inline U16 met! Operator_assign_ovplus other:@this
-extern inline U16 met! Operator_assign_ovminus other:@this
-extern inline U16 met! Operator_assign_ovdivide other:@this
-extern inline U16 met! Operator_assign_ovmodulo other:@this
-extern inline U16 met! Operator_assign_ovtimes other:@this
-extern inline U16 met Operator_bwor other:@this = this
-extern inline U16 met Operator_bwxor other:@this = this
-extern inline U16 met Operator_bwand other:@this = this
+extern inline U16 met! Operator_assign_ovplus other:*this
+extern inline U16 met! Operator_assign_ovminus other:*this
+extern inline U16 met! Operator_assign_ovdivide other:*this
+extern inline U16 met! Operator_assign_ovmodulo other:*this
+extern inline U16 met! Operator_assign_ovtimes other:*this
+extern inline U16 met Operator_bwor other:*this = this
+extern inline U16 met Operator_bwxor other:*this = this
+extern inline U16 met Operator_bwand other:*this = this
 extern inline U16 met Operator_ovlshift by:Uint = this
 extern inline U16 met Operator_rshift by:Uint = this
 extern inline U16 met Operator_bwnot = this
-extern inline U16 met! Operator_assign_bwor other:@this
-extern inline U16 met! Operator_assign_bwxor other:@this
-extern inline U16 met! Operator_assign_bwand other:@this
+extern inline U16 met! Operator_assign_bwor other:*this
+extern inline U16 met! Operator_assign_bwxor other:*this
+extern inline U16 met! Operator_assign_bwand other:*this
 extern inline U16 met! Operator_assign_ovlshift by:Uint
 extern inline U16 met! Operator_assign_rshift by:Uint
 inline U16 met Signed = I16
@@ -1161,7 +1161,7 @@ extern inline U16 met I64 = I64
 extern inline U16 met Int = Int
 extern inline U16 met Exact_float = Float
 extern inline U16 met Exact_double = Double
-extern U16 met Show st:@#fmt.`State
+extern U16 met Show st:#fmt.`State
 inline U16 met Hash32 = U32
 	return self.U32
 
@@ -1174,43 +1174,43 @@ inline U32 fun MIN = this
 inline U32 fun MAX = this
 	return 0xffffffff
 extern U32 fun From_number_literal v:String = this
-extern inline U32 met Operator_eq other:@this = Bool
-extern inline U32 met Operator_ne other:@this = Bool
-extern inline U32 met Operator_le other:@this = Bool
-extern inline U32 met Operator_lt other:@this = Bool
-extern inline U32 met Operator_gt other:@this = Bool
-extern inline U32 met Operator_ge other:@this = Bool
-extern inline U32 met Operator_plus other:@this = this
-extern inline U32 met Operator_minus other:@this = this
-extern inline U32 met Operator_divide other:@this = this
-extern inline U32 met Operator_modulo other:@this = this
-extern inline U32 met Operator_times other:@this = this
+extern inline U32 met Operator_eq other:*this = Bool
+extern inline U32 met Operator_ne other:*this = Bool
+extern inline U32 met Operator_le other:*this = Bool
+extern inline U32 met Operator_lt other:*this = Bool
+extern inline U32 met Operator_gt other:*this = Bool
+extern inline U32 met Operator_ge other:*this = Bool
+extern inline U32 met Operator_plus other:*this = this
+extern inline U32 met Operator_minus other:*this = this
+extern inline U32 met Operator_divide other:*this = this
+extern inline U32 met Operator_modulo other:*this = this
+extern inline U32 met Operator_times other:*this = this
 extern inline U32 met Operator_uminus = this
-extern inline U32 met! Operator_assign_plus other:@this
-extern inline U32 met! Operator_assign_minus other:@this
-extern inline U32 met! Operator_assign_divide other:@this
-extern inline U32 met! Operator_assign_modulo other:@this
-extern inline U32 met! Operator_assign_times other:@this
-extern inline U32 met Operator_ovplus other:@this = this
-extern inline U32 met Operator_ovminus other:@this = this
-extern inline U32 met Operator_ovdivide other:@this = this
-extern inline U32 met Operator_ovmodulo other:@this = this
-extern inline U32 met Operator_ovtimes other:@this = this
+extern inline U32 met! Operator_assign_plus other:*this
+extern inline U32 met! Operator_assign_minus other:*this
+extern inline U32 met! Operator_assign_divide other:*this
+extern inline U32 met! Operator_assign_modulo other:*this
+extern inline U32 met! Operator_assign_times other:*this
+extern inline U32 met Operator_ovplus other:*this = this
+extern inline U32 met Operator_ovminus other:*this = this
+extern inline U32 met Operator_ovdivide other:*this = this
+extern inline U32 met Operator_ovmodulo other:*this = this
+extern inline U32 met Operator_ovtimes other:*this = this
 extern inline U32 met Operator_ovuminus = this
-extern inline U32 met! Operator_assign_ovplus other:@this
-extern inline U32 met! Operator_assign_ovminus other:@this
-extern inline U32 met! Operator_assign_ovdivide other:@this
-extern inline U32 met! Operator_assign_ovmodulo other:@this
-extern inline U32 met! Operator_assign_ovtimes other:@this
-extern inline U32 met Operator_bwor other:@this = this
-extern inline U32 met Operator_bwxor other:@this = this
-extern inline U32 met Operator_bwand other:@this = this
+extern inline U32 met! Operator_assign_ovplus other:*this
+extern inline U32 met! Operator_assign_ovminus other:*this
+extern inline U32 met! Operator_assign_ovdivide other:*this
+extern inline U32 met! Operator_assign_ovmodulo other:*this
+extern inline U32 met! Operator_assign_ovtimes other:*this
+extern inline U32 met Operator_bwor other:*this = this
+extern inline U32 met Operator_bwxor other:*this = this
+extern inline U32 met Operator_bwand other:*this = this
 extern inline U32 met Operator_ovlshift by:Uint = this
 extern inline U32 met Operator_rshift by:Uint = this
 extern inline U32 met Operator_bwnot = this
-extern inline U32 met! Operator_assign_bwor other:@this
-extern inline U32 met! Operator_assign_bwxor other:@this
-extern inline U32 met! Operator_assign_bwand other:@this
+extern inline U32 met! Operator_assign_bwor other:*this
+extern inline U32 met! Operator_assign_bwxor other:*this
+extern inline U32 met! Operator_assign_bwand other:*this
 extern inline U32 met! Operator_assign_ovlshift by:Uint
 extern inline U32 met! Operator_assign_rshift by:Uint
 inline U32 met Signed = I32
@@ -1229,9 +1229,9 @@ extern inline U32 met I64 = I64
 extern inline U32 met Int = Int
 extern inline U32 met Round_float = Float
 extern inline U32 met Exact_double = Double
-extern U32 met Show st:@#fmt.`State
+extern U32 met Show st:#fmt.`State
 inline U32 met Hash32 = U32
-	return self.
+	return self*
 
 extern inline struct U64 =
 	isa `Native_sized_unsigned_integer
@@ -1242,43 +1242,43 @@ inline U64 fun MIN = this
 inline U64 fun MAX = this
 	return 0xffffffffffffffff
 extern U64 fun From_number_literal v:String = this
-extern inline U64 met Operator_eq other:@this = Bool
-extern inline U64 met Operator_ne other:@this = Bool
-extern inline U64 met Operator_le other:@this = Bool
-extern inline U64 met Operator_lt other:@this = Bool
-extern inline U64 met Operator_gt other:@this = Bool
-extern inline U64 met Operator_ge other:@this = Bool
-extern inline U64 met Operator_plus other:@this = this
-extern inline U64 met Operator_minus other:@this = this
-extern inline U64 met Operator_divide other:@this = this
-extern inline U64 met Operator_modulo other:@this = this
-extern inline U64 met Operator_times other:@this = this
+extern inline U64 met Operator_eq other:*this = Bool
+extern inline U64 met Operator_ne other:*this = Bool
+extern inline U64 met Operator_le other:*this = Bool
+extern inline U64 met Operator_lt other:*this = Bool
+extern inline U64 met Operator_gt other:*this = Bool
+extern inline U64 met Operator_ge other:*this = Bool
+extern inline U64 met Operator_plus other:*this = this
+extern inline U64 met Operator_minus other:*this = this
+extern inline U64 met Operator_divide other:*this = this
+extern inline U64 met Operator_modulo other:*this = this
+extern inline U64 met Operator_times other:*this = this
 extern inline U64 met Operator_uminus = this
-extern inline U64 met! Operator_assign_plus other:@this
-extern inline U64 met! Operator_assign_minus other:@this
-extern inline U64 met! Operator_assign_divide other:@this
-extern inline U64 met! Operator_assign_modulo other:@this
-extern inline U64 met! Operator_assign_times other:@this
-extern inline U64 met Operator_ovplus other:@this = this
-extern inline U64 met Operator_ovminus other:@this = this
-extern inline U64 met Operator_ovdivide other:@this = this
-extern inline U64 met Operator_ovmodulo other:@this = this
-extern inline U64 met Operator_ovtimes other:@this = this
+extern inline U64 met! Operator_assign_plus other:*this
+extern inline U64 met! Operator_assign_minus other:*this
+extern inline U64 met! Operator_assign_divide other:*this
+extern inline U64 met! Operator_assign_modulo other:*this
+extern inline U64 met! Operator_assign_times other:*this
+extern inline U64 met Operator_ovplus other:*this = this
+extern inline U64 met Operator_ovminus other:*this = this
+extern inline U64 met Operator_ovdivide other:*this = this
+extern inline U64 met Operator_ovmodulo other:*this = this
+extern inline U64 met Operator_ovtimes other:*this = this
 extern inline U64 met Operator_ovuminus = this
-extern inline U64 met! Operator_assign_ovplus other:@this
-extern inline U64 met! Operator_assign_ovminus other:@this
-extern inline U64 met! Operator_assign_ovdivide other:@this
-extern inline U64 met! Operator_assign_ovmodulo other:@this
-extern inline U64 met! Operator_assign_ovtimes other:@this
-extern inline U64 met Operator_bwor other:@this = this
-extern inline U64 met Operator_bwxor other:@this = this
-extern inline U64 met Operator_bwand other:@this = this
+extern inline U64 met! Operator_assign_ovplus other:*this
+extern inline U64 met! Operator_assign_ovminus other:*this
+extern inline U64 met! Operator_assign_ovdivide other:*this
+extern inline U64 met! Operator_assign_ovmodulo other:*this
+extern inline U64 met! Operator_assign_ovtimes other:*this
+extern inline U64 met Operator_bwor other:*this = this
+extern inline U64 met Operator_bwxor other:*this = this
+extern inline U64 met Operator_bwand other:*this = this
 extern inline U64 met Operator_ovlshift by:Uint = this
 extern inline U64 met Operator_rshift by:Uint = this
 extern inline U64 met Operator_bwnot = this
-extern inline U64 met! Operator_assign_bwor other:@this
-extern inline U64 met! Operator_assign_bwxor other:@this
-extern inline U64 met! Operator_assign_bwand other:@this
+extern inline U64 met! Operator_assign_bwor other:*this
+extern inline U64 met! Operator_assign_bwxor other:*this
+extern inline U64 met! Operator_assign_bwand other:*this
 extern inline U64 met! Operator_assign_ovlshift by:Uint
 extern inline U64 met! Operator_assign_rshift by:Uint
 inline U64 met Signed = I64
@@ -1293,7 +1293,7 @@ extern inline U64 met Trim_u8 = U8
 extern inline U64 met Trim_u16 = U16
 extern inline U64 met Trim_u32 = U32
 inline U64 met U64 = U64
-	return self.
+	return self*
 extern inline U64 met force_uint = Uint
 extern inline U64 met force_uintptr = Uintptr
 inline U64 met To_uint = Uint
@@ -1305,14 +1305,14 @@ inline U64 met Try_uint = Error_range, Uint
 	return INVAL_RANGE, 0
 extern inline U64 met Round_float = Float
 extern inline U64 met Round_double = Double
-extern U64 met Show st:@#fmt.`State
+extern U64 met Show st:#fmt.`State
 inline U64 met Hash32 = U32
 	let lo = self.Trim_u32
 	and hi = (self >> 32).Trim_u32
 	-- So that small numbers less than 1<<32 hash to themselves.
 	return 31 ov* hi ov+ lo
 
--- There are no Bitwise_ operations for Int and Uint. Their width is not
+-- There are no Bitwise_ operations for Int and Uint* Their width is not
 -- specified and users are supposed to use explicit conversion through sized
 -- types.
 
@@ -1326,38 +1326,38 @@ inline Int fun MIN = this
 inline Int fun MAX = this
 	return this.impl.MAX.force_int
 extern Int fun From_number_literal v:String = this
-extern inline Int met Operator_eq other:@this = Bool
-extern inline Int met Operator_ne other:@this = Bool
-extern inline Int met Operator_le other:@this = Bool
-extern inline Int met Operator_lt other:@this = Bool
-extern inline Int met Operator_gt other:@this = Bool
-extern inline Int met Operator_ge other:@this = Bool
-extern inline Int met Operator_plus other:@this = this
-extern inline Int met Operator_minus other:@this = this
-extern inline Int met Operator_divide other:@this = this
-extern inline Int met Operator_modulo other:@this = this
-extern inline Int met Operator_times other:@this = this
+extern inline Int met Operator_eq other:*this = Bool
+extern inline Int met Operator_ne other:*this = Bool
+extern inline Int met Operator_le other:*this = Bool
+extern inline Int met Operator_lt other:*this = Bool
+extern inline Int met Operator_gt other:*this = Bool
+extern inline Int met Operator_ge other:*this = Bool
+extern inline Int met Operator_plus other:*this = this
+extern inline Int met Operator_minus other:*this = this
+extern inline Int met Operator_divide other:*this = this
+extern inline Int met Operator_modulo other:*this = this
+extern inline Int met Operator_times other:*this = this
 extern inline Int met Operator_uminus = this
 extern inline Int met Operator_rshift by:Uint = final
-extern inline Int met! Operator_assign_plus other:@this
-extern inline Int met! Operator_assign_minus other:@this
-extern inline Int met! Operator_assign_divide other:@this
-extern inline Int met! Operator_assign_modulo other:@this
-extern inline Int met! Operator_assign_times other:@this
-extern inline Int met! Operator_assign_modulo other:@final
+extern inline Int met! Operator_assign_plus other:*this
+extern inline Int met! Operator_assign_minus other:*this
+extern inline Int met! Operator_assign_divide other:*this
+extern inline Int met! Operator_assign_modulo other:*this
+extern inline Int met! Operator_assign_times other:*this
+extern inline Int met! Operator_assign_modulo other:*final
 extern inline Int met! Operator_assign_rshift by:Uint
-extern inline Int met Operator_bwor other:@final = final
-extern inline Int met Operator_bwxor other:@final = final
-extern inline Int met Operator_bwand other:@final = final
+extern inline Int met Operator_bwor other:*final = final
+extern inline Int met Operator_bwxor other:*final = final
+extern inline Int met Operator_bwand other:*final = final
 extern inline Int met Operator_bwnot = final
-extern inline Int met! Operator_assign_bwor other:@final
-extern inline Int met! Operator_assign_bwxor other:@final
-extern inline Int met! Operator_assign_bwand other:@final
+extern inline Int met! Operator_assign_bwor other:*final
+extern inline Int met! Operator_assign_bwxor other:*final
+extern inline Int met! Operator_assign_bwand other:*final
 inline Int met Abs = this
 	if self >= 0
-		return self.
+		return self*
 	else
-		return -self.
+		return -self*
 inline Int met Unsigned = Uint
 	assert self >= 0
 	return self.force_unsigned
@@ -1374,7 +1374,7 @@ inline Int met Intptr = Intptr
 	return self.I64.force_intptr
 extern inline Int met Round_float = Float
 extern inline Int met Round_double = Double
-extern Int met Show st:@#fmt.`State
+extern Int met Show st:#fmt.`State
 inline Int met Hash32 = U32
 	return self.I64.Hash32
 
@@ -1388,32 +1388,32 @@ inline Uint fun MIN = this
 inline Uint fun MAX = this
 	return impl.MAX.force_uint
 extern Uint fun From_number_literal v:String = this
-extern inline Uint met Operator_eq other:@this = Bool
-extern inline Uint met Operator_ne other:@this = Bool
-extern inline Uint met Operator_le other:@this = Bool
-extern inline Uint met Operator_lt other:@this = Bool
-extern inline Uint met Operator_gt other:@this = Bool
-extern inline Uint met Operator_ge other:@this = Bool
-extern inline Uint met Operator_plus other:@this = this
-extern inline Uint met Operator_minus other:@this = this
-extern inline Uint met Operator_divide other:@this = this
-extern inline Uint met Operator_modulo other:@this = this
-extern inline Uint met Operator_times other:@this = this
+extern inline Uint met Operator_eq other:*this = Bool
+extern inline Uint met Operator_ne other:*this = Bool
+extern inline Uint met Operator_le other:*this = Bool
+extern inline Uint met Operator_lt other:*this = Bool
+extern inline Uint met Operator_gt other:*this = Bool
+extern inline Uint met Operator_ge other:*this = Bool
+extern inline Uint met Operator_plus other:*this = this
+extern inline Uint met Operator_minus other:*this = this
+extern inline Uint met Operator_divide other:*this = this
+extern inline Uint met Operator_modulo other:*this = this
+extern inline Uint met Operator_times other:*this = this
 extern inline Uint met Operator_uminus = this
 extern inline Uint met Operator_rshift by:Uint = final
-extern inline Uint met! Operator_assign_plus other:@this
-extern inline Uint met! Operator_assign_minus other:@this
-extern inline Uint met! Operator_assign_divide other:@this
-extern inline Uint met! Operator_assign_modulo other:@this
-extern inline Uint met! Operator_assign_times other:@this
+extern inline Uint met! Operator_assign_plus other:*this
+extern inline Uint met! Operator_assign_minus other:*this
+extern inline Uint met! Operator_assign_divide other:*this
+extern inline Uint met! Operator_assign_modulo other:*this
+extern inline Uint met! Operator_assign_times other:*this
 extern inline Uint met! Operator_assign_rshift by:Uint
-extern inline Uint met Operator_bwor other:@final = final
-extern inline Uint met Operator_bwxor other:@final = final
-extern inline Uint met Operator_bwand other:@final = final
+extern inline Uint met Operator_bwor other:*final = final
+extern inline Uint met Operator_bwxor other:*final = final
+extern inline Uint met Operator_bwand other:*final = final
 extern inline Uint met Operator_bwnot = final
-extern inline Uint met! Operator_assign_bwor other:@final
-extern inline Uint met! Operator_assign_bwxor other:@final
-extern inline Uint met! Operator_assign_bwand other:@final
+extern inline Uint met! Operator_assign_bwor other:*final
+extern inline Uint met! Operator_assign_bwxor other:*final
+extern inline Uint met! Operator_assign_bwand other:*final
 inline Uint met Signed = Int
 	assert self <= Int.MAX.force_unsigned
 	return self.force_signed
@@ -1430,7 +1430,7 @@ inline Uint met Uintptr = Uintptr
 	return self.U64.force_uintptr
 extern inline Uint met Round_float = Float
 extern inline Uint met Round_double = Double
-extern Uint met Show st:@#fmt.`State
+extern Uint met Show st:#fmt.`State
 inline Uint met Hash32 = U32
 	return self.U64.Hash32
 
@@ -1444,37 +1444,37 @@ inline Intptr fun MIN = this
 inline Intptr fun MAX = this
 	return impl.MAX.force_intptr
 extern Intptr fun From_number_literal v:String = this
-extern inline Intptr met Operator_eq other:@this = Bool
-extern inline Intptr met Operator_ne other:@this = Bool
-extern inline Intptr met Operator_le other:@this = Bool
-extern inline Intptr met Operator_lt other:@this = Bool
-extern inline Intptr met Operator_gt other:@this = Bool
-extern inline Intptr met Operator_ge other:@this = Bool
-extern inline Intptr met Operator_plus other:@this = this
-extern inline Intptr met Operator_minus other:@this = this
-extern inline Intptr met Operator_divide other:@this = this
-extern inline Intptr met Operator_modulo other:@this = this
-extern inline Intptr met Operator_times other:@this = this
+extern inline Intptr met Operator_eq other:*this = Bool
+extern inline Intptr met Operator_ne other:*this = Bool
+extern inline Intptr met Operator_le other:*this = Bool
+extern inline Intptr met Operator_lt other:*this = Bool
+extern inline Intptr met Operator_gt other:*this = Bool
+extern inline Intptr met Operator_ge other:*this = Bool
+extern inline Intptr met Operator_plus other:*this = this
+extern inline Intptr met Operator_minus other:*this = this
+extern inline Intptr met Operator_divide other:*this = this
+extern inline Intptr met Operator_modulo other:*this = this
+extern inline Intptr met Operator_times other:*this = this
 extern inline Intptr met Operator_uminus = this
 extern inline Intptr met Operator_rshift by:Uint = final
-extern inline Intptr met! Operator_assign_plus other:@this
-extern inline Intptr met! Operator_assign_minus other:@this
-extern inline Intptr met! Operator_assign_divide other:@this
-extern inline Intptr met! Operator_assign_modulo other:@this
-extern inline Intptr met! Operator_assign_times other:@this
+extern inline Intptr met! Operator_assign_plus other:*this
+extern inline Intptr met! Operator_assign_minus other:*this
+extern inline Intptr met! Operator_assign_divide other:*this
+extern inline Intptr met! Operator_assign_modulo other:*this
+extern inline Intptr met! Operator_assign_times other:*this
 extern inline Intptr met! Operator_assign_rshift by:Uint
-extern inline Intptr met Operator_bwor other:@final = final
-extern inline Intptr met Operator_bwxor other:@final = final
-extern inline Intptr met Operator_bwand other:@final = final
+extern inline Intptr met Operator_bwor other:*final = final
+extern inline Intptr met Operator_bwxor other:*final = final
+extern inline Intptr met Operator_bwand other:*final = final
 extern inline Intptr met Operator_bwnot = final
-extern inline Intptr met! Operator_assign_bwor other:@final
-extern inline Intptr met! Operator_assign_bwxor other:@final
-extern inline Intptr met! Operator_assign_bwand other:@final
+extern inline Intptr met! Operator_assign_bwor other:*final
+extern inline Intptr met! Operator_assign_bwxor other:*final
+extern inline Intptr met! Operator_assign_bwand other:*final
 inline Intptr met Abs = this
 	if self >= 0
-		return self.
+		return self*
 	else
-		return -self.
+		return -self*
 inline Intptr met Unsigned = Uintptr
 	assert self >= 0
 	return self.force_unsigned
@@ -1484,7 +1484,7 @@ inline Intptr met Try_unsigned = Error_range, Uintptr
 	return INVAL_RANGE, 0
 extern inline Intptr met force_unsigned = Uintptr
 extern inline Intptr met I64 = I64
-extern Intptr met Show st:@#fmt.`State
+extern Intptr met Show st:#fmt.`State
 inline Intptr met Hash32 = U32
 	return self.I64.Hash32
 
@@ -1498,32 +1498,32 @@ inline Uintptr fun MIN = this
 inline Uintptr fun MAX = this
 	return impl.MAX.force_uintptr
 extern Uintptr fun From_number_literal v:String = this
-extern inline Uintptr met Operator_eq other:@this = Bool
-extern inline Uintptr met Operator_ne other:@this = Bool
-extern inline Uintptr met Operator_le other:@this = Bool
-extern inline Uintptr met Operator_lt other:@this = Bool
-extern inline Uintptr met Operator_gt other:@this = Bool
-extern inline Uintptr met Operator_ge other:@this = Bool
-extern inline Uintptr met Operator_plus other:@this = this
-extern inline Uintptr met Operator_minus other:@this = this
-extern inline Uintptr met Operator_divide other:@this = this
-extern inline Uintptr met Operator_modulo other:@this = this
-extern inline Uintptr met Operator_times other:@this = this
+extern inline Uintptr met Operator_eq other:*this = Bool
+extern inline Uintptr met Operator_ne other:*this = Bool
+extern inline Uintptr met Operator_le other:*this = Bool
+extern inline Uintptr met Operator_lt other:*this = Bool
+extern inline Uintptr met Operator_gt other:*this = Bool
+extern inline Uintptr met Operator_ge other:*this = Bool
+extern inline Uintptr met Operator_plus other:*this = this
+extern inline Uintptr met Operator_minus other:*this = this
+extern inline Uintptr met Operator_divide other:*this = this
+extern inline Uintptr met Operator_modulo other:*this = this
+extern inline Uintptr met Operator_times other:*this = this
 extern inline Uintptr met Operator_uminus = this
 extern inline Uintptr met Operator_rshift by:Uint = final
-extern inline Uintptr met! Operator_assign_plus other:@this
-extern inline Uintptr met! Operator_assign_minus other:@this
-extern inline Uintptr met! Operator_assign_divide other:@this
-extern inline Uintptr met! Operator_assign_modulo other:@this
-extern inline Uintptr met! Operator_assign_times other:@this
+extern inline Uintptr met! Operator_assign_plus other:*this
+extern inline Uintptr met! Operator_assign_minus other:*this
+extern inline Uintptr met! Operator_assign_divide other:*this
+extern inline Uintptr met! Operator_assign_modulo other:*this
+extern inline Uintptr met! Operator_assign_times other:*this
 extern inline Uintptr met! Operator_assign_rshift by:Uint
-extern inline Uintptr met Operator_bwor other:@final = final
-extern inline Uintptr met Operator_bwxor other:@final = final
-extern inline Uintptr met Operator_bwand other:@final = final
+extern inline Uintptr met Operator_bwor other:*final = final
+extern inline Uintptr met Operator_bwxor other:*final = final
+extern inline Uintptr met Operator_bwand other:*final = final
 extern inline Uintptr met Operator_bwnot = final
-extern inline Uintptr met! Operator_assign_bwor other:@final
-extern inline Uintptr met! Operator_assign_bwxor other:@final
-extern inline Uintptr met! Operator_assign_bwand other:@final
+extern inline Uintptr met! Operator_assign_bwor other:*final
+extern inline Uintptr met! Operator_assign_bwxor other:*final
+extern inline Uintptr met! Operator_assign_bwand other:*final
 inline Uintptr met Signed = Intptr
 	assert self <= Intptr.MAX.force_unsigned
 	return self.force_signed
@@ -1533,7 +1533,7 @@ inline Uintptr met Try_signed = Error_range, Intptr
 	return INVAL_RANGE, 0
 extern inline Uintptr met force_signed = Intptr
 extern inline Uintptr met U64 = U64
-extern Uintptr met Show st:@#fmt.`State
+extern Uintptr met Show st:#fmt.`State
 inline Uintptr met Hash32 = U32
 	return self.U64.Hash32
 
@@ -1551,28 +1551,28 @@ extern inline Float fun MIN_EXP = Int
 extern inline Float fun MAX_EXP = Int
 extern inline Float fun MIN_10_EXP = Int
 extern inline Float fun MAX_10_EXP = Int
-extern inline Float met Operator_eq other:@this = Bool
-extern inline Float met Operator_ne other:@this = Bool
-extern inline Float met Operator_le other:@this = Bool
-extern inline Float met Operator_lt other:@this = Bool
-extern inline Float met Operator_gt other:@this = Bool
-extern inline Float met Operator_ge other:@this = Bool
-extern inline Float met Operator_plus other:@this = this
-extern inline Float met Operator_minus other:@this = this
-extern inline Float met Operator_divide other:@this = this
-extern inline Float met Operator_times other:@this = this
+extern inline Float met Operator_eq other:*this = Bool
+extern inline Float met Operator_ne other:*this = Bool
+extern inline Float met Operator_le other:*this = Bool
+extern inline Float met Operator_lt other:*this = Bool
+extern inline Float met Operator_gt other:*this = Bool
+extern inline Float met Operator_ge other:*this = Bool
+extern inline Float met Operator_plus other:*this = this
+extern inline Float met Operator_minus other:*this = this
+extern inline Float met Operator_divide other:*this = this
+extern inline Float met Operator_times other:*this = this
 extern inline Float met Operator_uminus = this
-extern inline Float met! Operator_assign_plus other:@this
-extern inline Float met! Operator_assign_minus other:@this
-extern inline Float met! Operator_assign_divide other:@this
-extern inline Float met! Operator_assign_times other:@this
+extern inline Float met! Operator_assign_plus other:*this
+extern inline Float met! Operator_assign_minus other:*this
+extern inline Float met! Operator_assign_divide other:*this
+extern inline Float met! Operator_assign_times other:*this
 extern inline Float met Round0_i8 = I8
 extern inline Float met Round0_i16 = I16
 extern inline Float met Round0_i32 = I32
 extern inline Float met Round0_i64 = I64
 extern inline Float met Double = Double
 extern inline Float met Round0_int = Int
-extern Float met Show st:@#fmt.`State
+extern Float met Show st:#fmt.`State
 extern inline Float met Bitwise_u32 = U32
 inline Float met Hash32 = U32
 	return self.Bitwise_u32.Hash32
@@ -1591,31 +1591,31 @@ extern inline Double fun MIN_EXP = Int
 extern inline Double fun MAX_EXP = Int
 extern inline Double fun MIN_10_EXP = Int
 extern inline Double fun MAX_10_EXP = Int
-extern inline Double met Operator_eq other:@this = Bool
-extern inline Double met Operator_ne other:@this = Bool
-extern inline Double met Operator_le other:@this = Bool
-extern inline Double met Operator_lt other:@this = Bool
-extern inline Double met Operator_gt other:@this = Bool
-extern inline Double met Operator_ge other:@this = Bool
-extern inline Double met Operator_plus other:@this = this
-extern inline Double met Operator_minus other:@this = this
-extern inline Double met Operator_divide other:@this = this
-extern inline Double met Operator_times other:@this = this
+extern inline Double met Operator_eq other:*this = Bool
+extern inline Double met Operator_ne other:*this = Bool
+extern inline Double met Operator_le other:*this = Bool
+extern inline Double met Operator_lt other:*this = Bool
+extern inline Double met Operator_gt other:*this = Bool
+extern inline Double met Operator_ge other:*this = Bool
+extern inline Double met Operator_plus other:*this = this
+extern inline Double met Operator_minus other:*this = this
+extern inline Double met Operator_divide other:*this = this
+extern inline Double met Operator_times other:*this = this
 extern inline Double met Operator_uminus = this
-extern inline Double met! Operator_assign_plus other:@this
-extern inline Double met! Operator_assign_minus other:@this
-extern inline Double met! Operator_assign_divide other:@this
-extern inline Double met! Operator_assign_times other:@this
+extern inline Double met! Operator_assign_plus other:*this
+extern inline Double met! Operator_assign_minus other:*this
+extern inline Double met! Operator_assign_divide other:*this
+extern inline Double met! Operator_assign_times other:*this
 extern inline Double met Round0_i8 = I8
 extern inline Double met Round0_i16 = I16
 extern inline Double met Round0_i32 = I32
 extern inline Double met Round0_i64 = I64
 extern inline Double met Round0_int = Int
--- FIXME Rounding mode is dependent on FP context. Should we provide
+-- FIXME Rounding mode is dependent on FP context* Should we provide
 -- different alternatives, enforce round-to-nearest (the x86 default)?
 -- Have a clear name to a fixed default?
 extern inline Double met Round_float = Float
-extern Double met Show st:@#fmt.`State
+extern Double met Show st:#fmt.`State
 extern inline Double met Bitwise_u64 = U64
 inline Double met Hash32 = U32
 	return self.Bitwise_u64.Hash32
@@ -1626,7 +1626,7 @@ inline struct Bounds =
 	Begin	:Uint
 	End	:Uint
 
-inline Bounds (met t:`Any c:(`Random_container t)) Range_of v:@c = Range
+inline Bounds (met t:`Any c:(`Random_container t)) Range_of v:*c = Range
 	if self.First and self.Last
 		return {Begin=0 End=v.Count}
 	elif self.First
@@ -1648,14 +1648,14 @@ inline Range met Count = Uint
 
 example -> assert ({Begin=1 End=0}:Range).Count == 0
 
-inline Range met Operator_in x:@Uint = Bool
+inline Range met Operator_in x:*Uint = Bool
 	return x >= self.Begin and x < self.End
 
 inline Range met With_offset offset:Uint = this
 	return {Begin=self.Begin+offset End=self.End+offset}
 
 inline Range met All = this
-	return self.
+	return self*
 
 inline Range met Operator_at p:Uint = Uint
 	return p
@@ -1665,7 +1665,7 @@ inline Range met Operator_sub begin:Uint end:Uint = this
 	return {Begin=begin End=end}
 
 inline Range met Iter = Index_iterator
-	return { r=self. p=self.Begin }
+	return { r=self* p=self.Begin }
 
 inline Range met Reverse_iter = Reverse_index_iterator
 	return { it=self.Iter }
@@ -1678,7 +1678,7 @@ inline Range met Last count:Uint = Range
 	return {Begin=(self.End - (Min self.Count count))
 		\ End=self.End}
 
-Range met Show st:@#fmt.`State
+Range met Show st:#fmt.`State
 	"[".Show st
 	self.Begin.Show st
 	" .. ".Show st
@@ -1731,7 +1731,7 @@ intf `Slice_compatible t:`Any =
 	fun From_slice c:[]t = final
 
 
-extern inline (fun$ i:`Any j:`Any) Dyncast x:@$j = ?@$i
+extern inline (fun$ i:`Any j:`Any) Dyncast x:$j = ?$i
 
 
 extern inline fun Likely x:Bool = Bool
@@ -1754,26 +1754,26 @@ inline (fun t:`Numeric) Max a:t b:t = t
 
 inline struct Error =
 	-- FIXME Two different errors with the same string literal may compare
-	-- as equal if the compiler merges the literals. This won't be a
-	-- problem once @ are refcounted, there will be no merging then.
+	-- as equal if the compiler merges the literals* This won't be a
+	-- problem once * are refcounted, there will be no merging then.
 	isa `Has_equality `Show
-	Why	:?@String -- FIXME Make it ?@`Show
+	Why	:?*String -- FIXME Make it ?*`Show
 
 	let OK = {}:this
-	let UNKNOWN = {Why=@"Unknown error"}:this
-	let INVAL = {Why=@"invalid value"}:this
-	let INVAL_RANGE = {Why=@"invalid value range"}:this
+	let UNKNOWN = {Why=*"Unknown error"}:this
+	let INVAL = {Why=*"invalid value"}:this
+	let INVAL_RANGE = {Why=*"invalid value range"}:this
 
 inline Error met Operator_test = Bool
 	return self.Why?
 
-inline Error met Operator_eq other:@this = Bool
+inline Error met Operator_eq other:*this = Bool
 	return self.Why === other.Why
 
-inline Error met Operator_ne other:@this = Bool
+inline Error met Operator_ne other:*this = Bool
 	return not self == other
 
-Error met Show st:@#fmt.`State
+Error met Show st:#fmt.`State
 	if self.Why?
 		"Error: ".Show st
 		self.Why.Show st
@@ -1812,20 +1812,20 @@ inline Vararg met Count_left = Uint
 
 inline (struct t:`Any) Envheader r:(`Any_ref t) =
 	Env	:r
-	Parent	:?@#this
+	Parent	:?#this
 
-(fun t:`Any r:(`Any_ref t)) Internal_globalenv_installed env:r where:@!?@#(Envheader r) where_env:?@#r = Bool
-	return where_env. !== nil
+(fun t:`Any r:(`Any_ref t)) Internal_globalenv_installed env:r where:!?#(Envheader r) where_env:?#r = Bool
+	return where_env* !== nil
 
-(fun t:`Any r:(`Any_ref t)) Internal_globalenv_parent env:r where:@!?@#(Envheader r) where_env:?@#r = r
+(fun t:`Any r:(`Any_ref t)) Internal_globalenv_parent env:r where:!?#(Envheader r) where_env:?#r = r
 	return (where!)#Parent#Env
 
-(fun t:`Any r:(`Any_ref t)) Internal_globalenv_install env:r header:@#(Envheader r) where:@!?@#(Envheader r) where_env:?@#r
+(fun t:`Any r:(`Any_ref t)) Internal_globalenv_install env:r header:#(Envheader r) where:!?#(Envheader r) where_env:?#r
 	header#Parent = where!
 	where! = header
 	where_env! = header#Env
 
-(fun t:`Any r:(`Any_ref t)) Internal_globalenv_uninstall env:r where:@!?@#(Envheader r) where_env:?@#r
+(fun t:`Any r:(`Any_ref t)) Internal_globalenv_uninstall env:r where:!?#(Envheader r) where_env:?#r
 	where! = (where!)#Parent
 	if (where!)?
 		where_env! = (where!)#Env
@@ -1840,14 +1840,14 @@ extern (fun t:`Any_any_ref) Globalenv_uninstall env:t
 
 --intf `Debugenv =
 --  isa (`Environment this)
---  met! _Assert cond:Bool ?expr:?@String
---  met! _pre cond:Bool ?expr:?@String
---  met! _post cond:Bool ?expr:?@String
---  met! _invariant cond:Bool ?expr:?@String
---  met! _example cond:Bool ?expr:?@String
+--  met! _Assert cond:Bool ?expr:?*String
+--  met! _pre cond:Bool ?expr:?*String
+--  met! _post cond:Bool ?expr:?*String
+--  met! _invariant cond:Bool ?expr:?*String
+--  met! _example cond:Bool ?expr:?*String
 --
---  met! Pr ?sep:?@String ...v:(vararg @`Showable)
---  met! Prn ?sep:?@String ...v:(vararg @`Showable)
+--  met! Pr ?sep:?*String ...v:(vararg *`Showable)
+--  met! Prn ?sep:?*String ...v:(vararg *`Showable)
 --
 --struct Debugenv =
 --  export isa `Debugenv
@@ -1875,7 +1875,7 @@ inline struct Codeloc =
 	Col	:Uint
 	Expr	:String
 
-fun Message_at msg:String c:?@Codeloc
+fun Message_at msg:String c:?*Codeloc
 	if c?
 		Epr sep=':' c.File c.Line c.Col
 		Eprn ":" msg "'" c.Expr "'"
@@ -1887,32 +1887,32 @@ extern fun abort
 fun Abort
 	abort
 
-inline fun Assert__ cond:Bool ?_Ncodeloc:?@Codeloc
+inline fun Assert__ cond:Bool ?_Ncodeloc:?*Codeloc
 	if Likely cond
 		return
 	else
 		Message_at "assert failed" _Ncodeloc
 		Abort
 
-inline fun Unreached ?_Ncodeloc:?@Codeloc
+inline fun Unreached ?_Ncodeloc:?*Codeloc
 	Message_at "unreached" _Ncodeloc
 	Abort
 
-inline fun Pre__ cond:Bool ?_Ncodeloc:?@Codeloc
+inline fun Pre__ cond:Bool ?_Ncodeloc:?*Codeloc
 	if Likely cond
 		return
 	else
 		Message_at "pre failed" _Ncodeloc
 		Abort
 
-inline fun Post__ cond:Bool ?_Ncodeloc:?@Codeloc
+inline fun Post__ cond:Bool ?_Ncodeloc:?*Codeloc
 	if Likely cond
 		return
 	else
 		Message_at "post failed" _Ncodeloc
 		Abort
 
-inline fun Invariant__ cond:Bool ?_Ncodeloc:?@Codeloc
+inline fun Invariant__ cond:Bool ?_Ncodeloc:?*Codeloc
 	if Likely cond
 		return
 	else

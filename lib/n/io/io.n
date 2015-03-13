@@ -1,25 +1,25 @@
--- See LICENSE for details. Originally derived from go/src/pkg/io
--- Copyright 2009 The Go Authors. All rights reserved.
+-- See LICENSE for details* Originally derived from go/src/pkg/io
+-- Copyright 2009 The Go Authors* All rights reserved.
 
 from n import *
 
-let EOF = {Why=@"EOF"}:Error
-let SHORT_READ = {Why=@"Short read"}:Error
-let SHORT_WRITE = {Why=@"Short write"}:Error
-let SHORT_BUFFER = {Why=@"Short buffer"}:Error
-let UNEXPECTED_EOF = {Why=@"Unexpected EOF"}:Error
+let EOF = {Why=*"EOF"}:Error
+let SHORT_READ = {Why=*"Short read"}:Error
+let SHORT_WRITE = {Why=*"Short write"}:Error
+let SHORT_BUFFER = {Why=*"Short buffer"}:Error
+let UNEXPECTED_EOF = {Why=*"Unexpected EOF"}:Error
 
 intf `Reader =
 	-- Returns a slice of b with the same origin, extended to include the
 	-- content just read.
-	met# Read b:[]!U8 = []!U8, Error
+	met# Read b:[!]U8 = [!]U8, Error
 
 intf `Writer =
 	-- Returns a slice of b with the content not yet written, if any.
 	met# Write b:[]U8 = []U8, Error
 
 
-fun Read_at_least b:[]!U8 r:@#`Reader min_count:Uint = []!U8, err:Error
+fun Read_at_least b:[!]U8 r:#`Reader min_count:Uint = [!]U8, err:Error
 	if b.Available < min_count
 		return b, SHORT_BUFFER
 	let orig = b.Count
@@ -33,10 +33,10 @@ fun Read_at_least b:[]!U8 r:@#`Reader min_count:Uint = []!U8, err:Error
 		err = UNEXPECTED_EOF
 	return b, err
 
-fun Read_full b:[]!U8 r:@#`Reader = []!U8, Error
+fun Read_full b:[!]U8 r:#`Reader = [!]U8, Error
 	return Read_at_least b r b.Available
 
-fun Write_at_least w:@#`Writer b:[]U8 min_count:Uint = []U8, err:Error
+fun Write_at_least w:#`Writer b:[]U8 min_count:Uint = []U8, err:Error
 	let target = b.Count - (Min b.Count min_count)
 	while b.Count > target and err == OK
 		b, err = w#Write b
@@ -45,5 +45,5 @@ fun Write_at_least w:@#`Writer b:[]U8 min_count:Uint = []U8, err:Error
 		err = OK
 	return b, err
 
-fun Write_full w:@#`Writer b:[]U8 = []U8, Error
+fun Write_full w:#`Writer b:[]U8 = []U8, Error
 	return Write_at_least w b b.Available

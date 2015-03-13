@@ -1,45 +1,45 @@
 from n import *
 
-fun opts ?a:?@I32 = I32
+fun opts ?a:?*I32 = I32
 	return a else 1
 
-fun chained v:@!(Vararg @I32) = I32
+fun chained v:!(Vararg *I32) = I32
 	let s = 0
 	such
 		for i in v!
-			s += i.
+			s += i*
 	return s
 
-fun fvar a:I32 ?b:?@I32 ...v:(Vararg @I32) = I32
-	let s = chained @!v
+fun fvar a:I32 ?b:?*I32 ...v:(Vararg *I32) = I32
+	let s = chained !v
 	return a + (b else 0) + s
 
-fun onlyvar ...v:(Vararg @I32) = I32
+fun onlyvar ...v:(Vararg *I32) = I32
 	let s = 0
 	such
 		for i in v
-			s += i.
+			s += i*
 	return s
 
-fun diff x:I32 ...v:(Vararg @I32) = I32
+fun diff x:I32 ...v:(Vararg *I32) = I32
 	let d = 0
 	such
 		for i in v
-			d -= i.
+			d -= i*
 	return x + d
 
-(fun t:`Any) unarygen ?p:?@t = I32
+(fun t:`Any) unarygen ?p:?*t = I32
 	return 0
 
-fun relay ...v:(Vararg @I32)
+fun relay ...v:(Vararg *I32)
 	for x in v
 		Pr x
 	Prn
 
-fun relay2 ...v:(Vararg @I32)
+fun relay2 ...v:(Vararg *I32)
 	relay ...v
 
-fun relay3 ...v:(Vararg @I32)
+fun relay3 ...v:(Vararg *I32)
 	relay2 ...v
 
 fun Main = I32
@@ -56,8 +56,8 @@ fun Main = I32
 	assert 10 == onlyvar ...s
 	assert 10 == onlyvar ...{0 1 2 3 4}
 
-	let big = {}:[]!I32 such
-		Realloc @#big 10_000
+	let big = {}:[!]I32 such
+		Realloc #big 10_000
 		big = big.[.. big.Cap]
 	assert 0 == onlyvar ...big
 

@@ -9,7 +9,7 @@ inline struct Bytes_reader =
 Bytes_reader met# Init b:[]U8
 	self!b = b
 
-Bytes_reader met# Read b:[]!U8 = []U8, Error
+Bytes_reader met# Read b:[!]U8 = []U8, Error
 	if self.pos == b.Count
 		return {}, EOF
 

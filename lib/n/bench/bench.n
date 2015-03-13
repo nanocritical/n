@@ -23,9 +23,9 @@ inline struct Example =
 	let TB = 1024*this.GB
 	let PB = 1024*this.TB
 
-Example met! Benchmark ...v:(Vararg @Standard_measures) within Heap fs.Fs time.Clock
+Example met! Benchmark ...v:(Vararg *Standard_measures) within Heap fs.Fs time.Clock
 	for m in v
-		self!active_measures |= {(m.)}
+		self!active_measures |= {(m*)}
 		match m
 		| CLOCK
 			let r = Clock!Save_measurements
@@ -86,9 +86,9 @@ intf `Has_restore =
 inline struct Restorer =
 	-- `disabled` allows us to pass Restorer by value without always
 	-- triggering the dtor on temporary values, and thus restoring the
-	-- context too early. TODO(e): use move= when available.
+	-- context too early* TODO(e): use move= when available.
 	disabled:Bool
-	target	:@!`Has_restore
+	target	:!`Has_restore
 
 Restorer met# Dtor
 	if not self.disabled
@@ -108,5 +108,5 @@ Stack met! Save = Restorer
 Stack met! Restore_measurements
 	assert self.impl.Count > 0
 	let p = self.impl.Last
-	self!Current += p.
+	self!Current += p*
 	self!impl#Pop

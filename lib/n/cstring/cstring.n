@@ -10,7 +10,7 @@ Cstring met Count = Uint
 	| ORIG -> return self.ORIG.Count
 	| BUF -> return self.BUF.Count
 
-Cstring met Rawdata = @U8
+Cstring met Rawdata = *U8
 	match self
 	| ORIG -> return self.ORIG.Bytes.Unsafe_rawdata
 	| BUF -> return self.BUF.Bytes.Unsafe_rawdata
@@ -20,7 +20,7 @@ Cstring met String = String
 	| ORIG -> return self.ORIG
 	| BUF -> return self.BUF.String
 
-fun Wrap_raw_cstring raw:@U8 = Cstring
+fun Wrap_raw_cstring raw:*U8 = Cstring
 	let len = syscall.Strlen raw
 	let b = {}:[]U8 such b#Unsafe_wrap raw len len
 	let r = String.From_bytes b

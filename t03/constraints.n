@@ -14,8 +14,8 @@ fun aux e:u = I32
 	| _
 		return 0
 
-fun set1 e:@!u
-	match e.
+fun set1 e:!u
+	match e*
 	| B
 		e!B.x = 1
 	| _
@@ -30,7 +30,7 @@ fun Main = I32
 
 	let f = {}:u.B
 	Prn f.B.x
-	set1 @!f
+	set1 !f
 	Prn f.B.x
 
 	let e = {x=1}:u.B

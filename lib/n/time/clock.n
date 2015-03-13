@@ -5,12 +5,12 @@ intf `Clock =
 	met Runtime_cpu = Duration
 	met Runtime_cpu_thread = Duration
 
-globalenv Clock:@!`Clock
+globalenv Clock:!`Clock
 
 fun Install_sys within Clock
 	let c = Alloc Sysclock such
 		c!Init
-	let header = Alloc (Envheader @!`Clock)
+	let header = Alloc (Envheader !`Clock)
 	header#Env = c
 	Globalenv_install Clock header
 
@@ -20,12 +20,12 @@ inline struct Stats =
 	Runtime_cpu		:Duration
 	Runtime_cpu_thread	:Duration
 
-Stats met Operator_plus other:@this = r:this
+Stats met Operator_plus other:*this = r:this
 	r!Runtime = self.Runtime + other.Runtime
 	r!Runtime_cpu = self.Runtime_cpu + other.Runtime_cpu
 	r!Runtime_cpu_thread = self.Runtime_cpu_thread + other.Runtime_cpu_thread
 
-Stats met Operator_minus other:@this = r:this
+Stats met Operator_minus other:*this = r:this
 	r!Runtime = self.Runtime - other.Runtime
 	r!Runtime_cpu = self.Runtime_cpu - other.Runtime_cpu
 	r!Runtime_cpu_thread = self.Runtime_cpu_thread - other.Runtime_cpu_thread
@@ -52,7 +52,7 @@ fun as_duration p:(Int, Int) = Duration
 Sysclock met! Init
 	-- CLOCK_PROCESS_CPUTIME_ID just started with the program but
 	-- CLOCK_MONOTONIC has been running for a long time and cannot be used
-	-- directly. We want the clocks to line up and have a similar zero.
+	-- directly* We want the clocks to line up and have a similar zero.
 	-- This new zero hides some runtime (observed at 500us).
 	self!zero!Runtime = as_duration <- measure syscall.CLOCK_MONOTONIC
 	self!zero!Runtime_cpu = as_duration <- measure syscall.CLOCK_PROCESS_CPUTIME_ID

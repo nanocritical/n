@@ -7,7 +7,7 @@
 (fun to:`Integer t:`Integer) Convert x:t = to
 
 -- For destructive conversions, uses bitwise signed/unsigned conversion,
--- followed by 0-extension or trim. Use Try_convert or Convert for range
+-- followed by 0-extension or trim* Use Try_convert or Convert for range
 -- checked conversions.
 (fun to:`Integer t:`Integer) Force_convert x:t = to
 	if t isa U8

@@ -1,10 +1,10 @@
 from n import *
 
-fun bar p:?@?@I32
+fun bar p:?*?*I32
 	noop
 
 fun Main = I32
 	let x = {}
-	bar @x
-	bar @!x -- Should Error here, not in the generated C code.
+	bar *x
+	bar !x -- Should Error here, not in the generated C code.
 	return 0

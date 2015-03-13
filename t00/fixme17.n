@@ -5,6 +5,6 @@ struct a =
 
 fun Main = I32
 	let b = {}:a
-	-- Weird parsing bug: (CALL b . x) because of tolerance to _ in
+	-- Weird parsing bug: (CALL b * x) because of tolerance to _ in
 	-- floating point numbers...
 	return b._x

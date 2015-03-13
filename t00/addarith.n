@@ -4,22 +4,22 @@ struct a =
 	isa `Additive_arithmetic
 	x	:I32
 
-a met Operator_plus other:@this = this
+a met Operator_plus other:*this = this
 	return {x=self.x+other.x}
 
-a met Operator_minus other:@this = this
+a met Operator_minus other:*this = this
 	return {x=self.x-other.x}
 
 a met Operator_uminus = this
 	return {x=-self.x}
 
-fun decr x:@!a
+fun decr x:!a
 	x! -= {x=1}
 
 fun Main = I32
 	let x = {x=42}:a
 	let y = {x=1}:a such
 		y += x
-		decr @!y
+		decr !y
 	assert y.x == 42
 	return 0

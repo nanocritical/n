@@ -18,7 +18,7 @@ fun static
 	else
 		return false
 
-(fun t:`Any) mkdyn_any x:@t = @`Any
+(fun t:`Any) mkdyn_any x:*t = *`Any
 	return x
 
 fun Main = I32

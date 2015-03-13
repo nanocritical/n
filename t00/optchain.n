@@ -2,13 +2,13 @@ from n import *
 
 struct a =
 	x	:I32
-	y	:?@!a
+	y	:?!a
 
 a met! clear
 	self!x = 0
 
-a met$ getx = @$I32
-	return @$self$x
+a met$ getx = $I32
+	return $self$x
 
 fun Main = I32
 	let xx = {x=1}:a
@@ -25,7 +25,7 @@ fun Main = I32
 	if v? and v == 1
 		return 1
 
-	xx!y = @!{x=1}:a
+	xx!y = !{x=1}:a
 	let w = xx.y?.x
 	if w? and w == 1
 		return 0

@@ -10,25 +10,25 @@ struct Type =
 
 alias refdyntable = unsafe.Voidref
 
-extern inline fun get_type_from_dyntable dyntable:refdyntable = @Type
+extern inline fun get_type_from_dyntable dyntable:refdyntable = *Type
 
-Type met Operator_eq other:@Type = Bool
+Type met Operator_eq other:*Type = Bool
 	if self === other
 		return true
 	return self.typename_hash32 == other.typename_hash32
 		\ and self.Typename == other.Typename
 
-Type met Operator_ne other:@Type = Bool
+Type met Operator_ne other:*Type = Bool
 	return not self == other
 
 -- For codegen use:
-fun Get_dyntable_for dyntable:refdyntable i:@Type = refdyntable
+fun Get_dyntable_for dyntable:refdyntable i:*Type = refdyntable
 	let t = get_type_from_dyntable dyntable
 	let e, _ = t.dynisalist.find_entry i false
 	return e?.dyntable else (unsafe.Voidref.From_uintptr 0)
 
 -- For codegen use:
-fun Isa dyntable:refdyntable i:@Type = Bool
+fun Isa dyntable:refdyntable i:*Type = Bool
 	let t = get_type_from_dyntable dyntable
 	if t == i
 		return true
@@ -42,15 +42,15 @@ struct entry =
 	dyntable	:refdyntable
 
 struct Dynisalist =
-	hashmap	:[]!U16
-	entries	:[]!entry
+	hashmap	:[!]U16
+	entries	:[!]entry
 	-- invariant -> hashmap.Count > entries.Count -- For open-addressing to work.
 
 Dynisalist met hashmap_addr hash:U32 nth:Uint = Uint
 	-- Quadratic open addressing
 	return (hash.Uint + (nth * (nth+1)/2)) % self.hashmap.Count
 
-Dynisalist met find_entry rintf:@Type create:Bool = ?@entry, Uint
+Dynisalist met find_entry rintf:*Type create:Bool = ?*entry, Uint
 	let hash = rintf.typename_hash32
 	let nth, addr such
 		while true
@@ -75,7 +75,7 @@ Dynisalist met find_entry rintf:@Type create:Bool = ?@entry, Uint
 	return nil, addr
 
 -- Implementations are encouraged to fill the table statically, at compile
--- time. The code below is given for reference. Implementations may also use
+-- time* The code below is given for reference* Implementations may also use
 -- 'Check'.
 
 Dynisalist met# Init count:Uint
@@ -84,16 +84,16 @@ Dynisalist met# Init count:Uint
 	let table_size = math.Roundup_pow2 count.U64 such
 		if 3*table_size < 4*count.U64
 			table_size *= 2
-	Realloc @#self#hashmap table_size.To_uint
+	Realloc #self#hashmap table_size.To_uint
 	self!hashmap = self!hashmap![.. self.hashmap.Cap]
 
-	Realloc @#self#entries count
+	Realloc #self#entries count
 
 Dynisalist met# Dtor
-	Realloc @#self#entries 0
-	Realloc @#self#hashmap 0
+	Realloc #self#entries 0
+	Realloc #self#hashmap 0
 
-Dynisalist met! Add_entry rintf:@Type dyntable:refdyntable
+Dynisalist met! Add_entry rintf:*Type dyntable:refdyntable
 	let e, addr = self.find_entry rintf true
 	assert not e?
 
@@ -132,7 +132,7 @@ example
 		my#dynisalist#Init list.Count
 		foreach t in list
 			let r = init_type t
-			let fakedyntable = (unsafe.Cast @U8 refdyntable) t.Bytes.Unsafe_rawdata
+			let fakedyntable = (unsafe.Cast *U8 refdyntable) t.Bytes.Unsafe_rawdata
 			my#dynisalist#Add_entry r fakedyntable
 
 			let e, addr = my.dynisalist.find_entry r false

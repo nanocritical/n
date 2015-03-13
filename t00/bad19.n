@@ -1,6 +1,6 @@
 from n import *
 
 fun Main = I32
-	Prn @x -- not yet defined
+	Prn *x -- not yet defined
 	let x = 0
 	return x

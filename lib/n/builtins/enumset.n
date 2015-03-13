@@ -1,6 +1,6 @@
 -- FIXME Use as little space as possible, and allow for enums with more than 64
--- elements. Over a certain threshold, we could switch to a non-bitmap
--- implementation. But should we, really? If you have a huge enum, use
+-- elements* Over a certain threshold, we could switch to a non-bitmap
+-- implementation* But should we, really? If you have a huge enum, use
 -- something else than Enumset maybe.
 inline struct Enumset T:`Enum =
 	isa (`Universal_set T) `Show
@@ -27,55 +27,55 @@ Enumset met Bits = U64
 	return self.bits
 Enumset met Count = Uint
 	return math.Bit_popcount self.bits
-Enumset met Operator_in x:@T = Bool
+Enumset met Operator_in x:*T = Bool
 	return self.bits & (this.Internal_mask_value x.Tag.U64) != 0
-Enumset met Operator_bwor other:@this = this
+Enumset met Operator_bwor other:*this = this
 	return {bits=self.bits | other.bits}
-Enumset met Operator_bwxor other:@this = this
+Enumset met Operator_bwxor other:*this = this
 	return {bits=self.bits ^ other.bits}
-Enumset met Operator_bwand other:@this = this
+Enumset met Operator_bwand other:*this = this
 	return {bits=self.bits & other.bits}
 Enumset met Operator_bwnot = this
 	return this.ALL & {bits=~self.bits}
-Enumset met! Operator_assign_bwor other:@this
+Enumset met! Operator_assign_bwor other:*this
 	self!bits |= other.bits
-Enumset met! Operator_assign_bwxor other:@this
+Enumset met! Operator_assign_bwxor other:*this
 	self!bits ^= other.bits
-Enumset met! Operator_assign_bwand other:@this
+Enumset met! Operator_assign_bwand other:*this
 	self!bits &= other.bits
-Enumset met Operator_eq other:@this = Bool
+Enumset met Operator_eq other:*this = Bool
 	return self.bits == other.bits
-Enumset met Operator_ne other:@this = Bool
+Enumset met Operator_ne other:*this = Bool
 	return self.bits != other.bits
-Enumset met Operator_le other:@this = Bool
+Enumset met Operator_le other:*this = Bool
 	return (self.bits & other.bits) == self.bits
-Enumset met Operator_lt other:@this = Bool
+Enumset met Operator_lt other:*this = Bool
 	return self <= other and self != other
-Enumset met Operator_gt other:@this = Bool
+Enumset met Operator_gt other:*this = Bool
 	return self >= other and self != other
-Enumset met Operator_ge other:@this = Bool
+Enumset met Operator_ge other:*this = Bool
 	return (self.bits & other.bits) == other.bits
 Enumset met Iter = r:(Enumset_iterator this.T)
 	r!Internal_init self
 
-Enumset met! Add x:@T = added:Bool
+Enumset met! Add x:*T = added:Bool
 	added = x in self
-	self! |= {x.}
-Enumset met! Add_all other:@this = added_all:Bool
+	self! |= {x*}
+Enumset met! Add_all other:*this = added_all:Bool
 	added_all = (self & other) == {}
 	self! |= other
-Enumset met! Remove x:@T = removed:Bool
+Enumset met! Remove x:*T = removed:Bool
 	removed = x in self
-	self! &= ~{x.}
-Enumset met! Remove_all other:@this = removed_all:Bool
+	self! &= ~{x*}
+Enumset met! Remove_all other:*this = removed_all:Bool
 	removed_all = (self & other) == self
 	self! &= ~other
-Enumset met! Intersect other:@this
+Enumset met! Intersect other:*this
 	self! &= other
-Enumset met! Symmetric_difference other:@this
+Enumset met! Symmetric_difference other:*this
 	self! ^= other
 
-Enumset met Show st:@#fmt.`State
+Enumset met Show st:#fmt.`State
 	"{".Show st
 	let it = self.Iter
 	for e in it
@@ -89,8 +89,8 @@ inline struct Enumset_iterator T:`Enum =
 	m	:(Enumset T)
 	ffs	:Uint
 
-Enumset_iterator met! Internal_init m:@(Enumset T)
-	self!m = m.
+Enumset_iterator met! Internal_init m:*(Enumset T)
+	self!m = m*
 	self!ffs = math.Bit_ffs self.m.Bits
 
 Enumset_iterator met Has_next = Bool
