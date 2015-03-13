@@ -2,22 +2,20 @@ from n import *
 
 union u =
 	| A = 0
-	| B
-		x	:I32
-	| C
-		x	:U32
+	| B -> I32
+	| C -> U32
 
 fun aux e:u = I32
 	match e
 	| B
-		return e.B.x
+		return e.B
 	| _
 		return 0
 
 fun set1 e:!u
 	match e*
 	| B
-		e!B.x = 1
+		e!B = 1
 	| _
 		noop
 
@@ -29,13 +27,13 @@ fun Main = I32
 	| _ -> noop
 
 	let f = {}:u.B
-	Prn f.B.x
+	Prn f.B
 	set1 !f
-	Prn f.B.x
+	Prn f.B
 
-	let e = {x=1}:u.B
+	let e = 1:u.B
 	match e
 	| B
-		assert e.B.x != 0
+		assert e.B != 0
 
 	return (aux e) - 1
