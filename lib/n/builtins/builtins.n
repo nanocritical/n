@@ -685,7 +685,7 @@ intf `Unsigned_integer =
 	met U64 = U64
 
 intf `Native =
-	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_order `Return_by_copy `Hashable32
+	isa `Trivial_ctor `Trivial_dtor `Trivial_copy `Trivial_equality `Trivial_order `Return_by_copy `Hashable32
 
 intf `Native_integer =
 	isa `Native `Integer `Show
