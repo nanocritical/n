@@ -179,8 +179,7 @@ EXAMPLE(update_codeloc) {
 #undef CHECK
 }
 
-static bool is_pre_space(const char *cursor) {
-  const int c = cursor[0];
+static bool is_pre_space(bool *deep, const char *data, const char *cursor) {
   static const bool lut[256] = {
     [' '] = true,
     ['\t'] = true,
@@ -189,12 +188,34 @@ static bool is_pre_space(const char *cursor) {
     ['('] = true,
     ['['] = true,
     ['{'] = true,
+    ['='] = true,
   };
-  return lut[c];
+  static const bool lut_deeper[256] = {
+    ['*'] = true,
+    ['!'] = true,
+    ['#'] = true,
+    ['$'] = true,
+    ['?'] = true,
+    [']'] = true,
+  };
+
+  int c = cursor[0];
+  if (lut[c]) {
+    return true;
+  }
+
+  while (cursor != data && lut_deeper[c]) {
+    cursor -= 1;
+    c = cursor[0];
+    if (lut[c]) {
+      *deep = true;
+      return false;
+    }
+  }
+  return false;
 }
 
-static bool is_post_space(const char *cursor) {
-  const int c = cursor[0];
+static bool is_post_space(bool *deep, const char *limit, const char *cursor) {
   static const bool lut[256] = {
     [' '] = true,
     ['\t'] = true,
@@ -203,8 +224,30 @@ static bool is_post_space(const char *cursor) {
     [')'] = true,
     [']'] = true,
     ['}'] = true,
+    ['='] = true,
   };
-  return lut[c];
+  static const bool lut_deeper[256] = {
+    ['*'] = true,
+    ['!'] = true,
+    ['#'] = true,
+    ['$'] = true,
+    ['?'] = true,
+  };
+
+  int c = cursor[0];
+  if (lut[c]) {
+    return true;
+  }
+
+  while (cursor != limit && lut_deeper[c]) {
+    cursor += 1;
+    c = cursor[0];
+    if (lut[c]) {
+      *deep = true;
+      return false;
+    }
+  }
+  return false;
 }
 
 error lexer_scan(struct token *tok, struct parser *parser) {
@@ -240,23 +283,37 @@ error lexer_scan(struct token *tok, struct parser *parser) {
 } while (0)
 
 #define RUNORBIN(token_len, un_pre, un_post, bin) do { \
-  const bool before = is_pre_space(YYCURSOR - token_len - 1); \
-  const bool after = is_post_space(YYCURSOR); \
-  if (before == after) { \
+  bool before_deep = false, after_deep = false; \
+  const bool before = is_pre_space(&before_deep, parser->data, YYCURSOR - token_len - 1); \
+  const bool after = is_post_space(&after_deep, YYLIMIT, YYCURSOR); \
+  if (before == after && !before_deep && !after_deep) { \
     if (bin == 0) { \
       FAIL(EINVAL, "not a binary operator"); \
     } \
     R(bin); \
-  } else if (before && !after) { \
+  } else if ((before || before_deep) && !after) { \
     if (un_pre == 0) { \
       FAIL(EINVAL, "not a prefix operator"); \
     } \
     R(un_pre); \
-  } else if (!before && after) { \
+  } else if (!before && (after || after_deep)) { \
     if (un_post == 0) { \
       FAIL(EINVAL, "not a postfix operator"); \
     } \
     R(un_post); \
+  } else { \
+    assert(false); \
+  } \
+} while (0)
+
+#define RATUNORBIN(token_len, bin, pre_un) do { \
+  bool before_deep = false; \
+  const bool before = is_pre_space(&before_deep, parser->data, YYCURSOR - token_len - 1); \
+  if (before) { \
+    YYCURSOR -= 1; \
+    R(pre_un); \
+  } else { \
+    R(bin); \
   } \
 } while (0)
 
@@ -376,7 +433,6 @@ normal:
   "=" { R(TASSIGN); }
   "+" { RUNORBIN(1, TUPLUS, 0, TPLUS); }
   "-" { RUNORBIN(1, TUMINUS, 0, TMINUS); }
-  "*" { R(TTIMES); }
   "/" { R(TDIVIDE); }
   "%" { R(TMODULO); }
   "ov+" { RUNORBIN(3, TOVUPLUS, 0, TOVPLUS); }
@@ -409,32 +465,27 @@ normal:
   }
   "..." { R(TDOTDOTDOT); }
   ".." { R(TDOTDOT); }
+
   "?.[" { R(TOPTATDOT); }
-  "?![" { R(TOPTATBANG); }
-  "?$[" { R(TOPTATWILDCARD); }
-  "?." { RUNORBIN(2, 0, 0, TOPTDOT); }
-  "?!" { RUNORBIN(2, 0, 0, TOPTBANG); }
-  "?#" { RUNORBIN(2, 0, 0, TOPTSHARP); }
-  "?$" { RUNORBIN(2, 0, 0, TOPTWILDCARD); }
+  "?![" { RATUNORBIN(3, TOPTATBANG, TNULREFBANG); }
+  "?$[" { RATUNORBIN(3, TOPTATWILDCARD, TNULREFWILDCARD); }
   ".[" { R(TATDOT); }
-  "![" { R(TATBANG); }
-  "$[" { R(TATWILDCARD); }
-  "." { RUNORBIN(1, TPREDOT, TDEREFDOT, TDOT); }
-  "!" { RUNORBIN(1, 0, TDEREFBANG, TBANG); }
-  "#" { RUNORBIN(1, 0, TDEREFSHARP, TSHARP); }
-  "$" { RUNORBIN(1, 0, TDEREFWILDCARD, TWILDCARD); }
-  "@!" { R(TREFBANG); }
-  "@#" { R(TREFSHARP); }
-  "@$" { R(TREFWILDCARD); }
-  "@" { R(TREFDOT); }
-  "?@!" { R(TNULREFBANG); }
-  "?@#" { R(TNULREFSHARP); }
-  "?@$" { R(TNULREFWILDCARD); }
-  "?@" { R(TNULREFDOT); }
+  "![" { RATUNORBIN(2, TATBANG, TREFBANG); }
+  "$[" { RATUNORBIN(2, TATWILDCARD, TREFWILDCARD); }
+  "?*" { R(TNULREFDOT); }
+  "?." { R(TOPTDOT); }
+  "?!" { RUNORBIN(2, TNULREFBANG, 0, TOPTBANG); }
+  "?#" { RUNORBIN(2, TNULREFSHARP, 0, TOPTSHARP); }
+  "?$" { RUNORBIN(2, TNULREFWILDCARD, 0, TOPTWILDCARD); }
+  "*" { RUNORBIN(1, TREFDOT, TDEREFDOT, TTIMES); }
+  "." { RUNORBIN(1, TPREDOT, 0, TDOT); }
+  "!" { RUNORBIN(1, TREFBANG, TDEREFBANG, TBANG); }
+  "#" { RUNORBIN(1, TREFSHARP, TDEREFSHARP, TSHARP); }
+  "$" { RUNORBIN(1, TREFWILDCARD, TDEREFWILDCARD, TWILDCARD); }
   "?" { RUNORBIN(1, TPREQMARK, TPOSTQMARK, 0); }
   "[]" { R(TSLICEBRAKETS); }
-  "[]!" { R(TMSLICEBRAKETS); }
-  "[]$" { R(TWSLICEBRAKETS); }
+  "[!]" { R(TMSLICEBRAKETS); }
+  "[$]" { R(TWSLICEBRAKETS); }
   "]" { R(TRSBRA); }
   "{" { R(TLCBRA); }
   "}" { R(TRCBRA); }
