@@ -75,7 +75,7 @@ Enumset met! Intersect other:*this
 Enumset met! Symmetric_difference other:*this
 	self! ^= other
 
-Enumset met Show st:#fmt.`State
+Enumset met Show st:#`Fmt_state
 	"{".Show st
 	let it = self.Iter
 	for e in it

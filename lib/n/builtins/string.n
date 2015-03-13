@@ -90,7 +90,7 @@ Rune met Buf = r:Stringbuf
 
 example -> assert Rune.From_ascii 49 == '1'
 
-inline Rune met Show st:#fmt.`State
+inline Rune met Show st:#`Fmt_state
 	--let s = {}:[4]U8 ...
 	self.Code.Show st
 
@@ -161,7 +161,7 @@ inline String met Operator_ge other:*this = Bool
 inline String met Cut_at i:Uint = this, this
 	return self.[.. i], self.[i ..]
 
-inline String met Show st:#fmt.`State
+inline String met Show st:#`Fmt_state
 	let _ = st#Write self.bytes
 
 String met Buf = Stringbuf
@@ -625,7 +625,7 @@ inline Stringbuf met Operator_ge other:*this = Bool
 		return true
 	return self.Operator_compare other >= 0
 
-inline Stringbuf met Show st:#fmt.`State
+inline Stringbuf met Show st:#`Fmt_state
 	let _ = st#Write self.bytes
 
 inline Stringbuf met Hash32 = U32

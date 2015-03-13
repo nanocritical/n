@@ -304,7 +304,7 @@ inline Slice shallow met$ First = *t
 inline Slice shallow met$ Last = *t
 	let s = this.create_impl_instance
 	return s.Last
-inline Slice met Show st:#fmt.`State
+inline Slice met Show st:#`Fmt_state
 	let s = this.create_impl_instance
 	such
 		s.Show st
@@ -416,7 +416,7 @@ inline Mutable_slice shallow met$ Last = $t
 		let _ = s!Last
 		let p = s#Last
 		return p
-inline Mutable_slice met Show st:#fmt.`State
+inline Mutable_slice met Show st:#`Fmt_state
 	let s = this.create_impl_instance
 	such
 		s.Show st
@@ -551,7 +551,7 @@ inline Slice_impl shallow met$ First = $t
 inline Slice_impl shallow met$ Last = $t
 	return self$[self.cnt - 1]
 
-inline Slice_impl met Show st:#fmt.`State
+inline Slice_impl met Show st:#`Fmt_state
 	"{".Show st
 	foreach i in self.All
 		if i != 0
@@ -763,7 +763,7 @@ extern inline Bool met U8 = U8
 extern inline Bool met U16 = U16
 extern inline Bool met U32 = U32
 extern inline Bool met U64 = U64
-extern Bool met Show st:#fmt.`State
+extern Bool met Show st:#`Fmt_state
 inline Bool met Hash32 = U32
 	return self.U32
 
@@ -825,7 +825,7 @@ extern inline I8 met U64 = U64
 extern inline I8 met Uint = Uint
 extern inline I8 met Exact_float = Float
 extern inline I8 met Exact_double = Double
-extern I8 met Show st:#fmt.`State
+extern I8 met Show st:#`Fmt_state
 inline I8 met Hash32 = U32
 	return self.Bitwise_unsigned.Hash32
 
@@ -886,7 +886,7 @@ extern inline I16 met U64 = U64
 extern inline I16 met Uint = Uint
 extern inline I16 met Exact_float = Float
 extern inline I16 met Exact_double = Double
-extern I16 met Show st:#fmt.`State
+extern I16 met Show st:#`Fmt_state
 inline I16 met Hash32 = U32
 	return self.Bitwise_unsigned.Hash32
 
@@ -946,7 +946,7 @@ extern inline I32 met U64 = U64
 extern inline I32 met Uint = Uint
 extern inline I32 met Round_float = Float
 extern inline I32 met Exact_double = Double
-extern I32 met Show st:#fmt.`State
+extern I32 met Show st:#`Fmt_state
 inline I32 met Hash32 = U32
 	return self.Bitwise_unsigned.Hash32
 
@@ -1019,7 +1019,7 @@ inline I64 met Try_int = Error_range, Int
 	return OK, 0
 extern inline I64 met Round_float = Float
 extern inline I64 met Round_double = Double
-extern I64 met Show st:#fmt.`State
+extern I64 met Show st:#`Fmt_state
 inline I64 met Hash32 = U32
 	return self.Bitwise_unsigned.Hash32
 
@@ -1092,7 +1092,7 @@ extern inline U8 met I64 = I64
 extern inline U8 met Int = Int
 extern inline U8 met Exact_float = Float
 extern inline U8 met Exact_double = Double
-extern U8 met Show st:#fmt.`State
+extern U8 met Show st:#`Fmt_state
 inline U8 met Hash32 = U32
 	return self.U32
 
@@ -1161,7 +1161,7 @@ extern inline U16 met I64 = I64
 extern inline U16 met Int = Int
 extern inline U16 met Exact_float = Float
 extern inline U16 met Exact_double = Double
-extern U16 met Show st:#fmt.`State
+extern U16 met Show st:#`Fmt_state
 inline U16 met Hash32 = U32
 	return self.U32
 
@@ -1229,7 +1229,7 @@ extern inline U32 met I64 = I64
 extern inline U32 met Int = Int
 extern inline U32 met Round_float = Float
 extern inline U32 met Exact_double = Double
-extern U32 met Show st:#fmt.`State
+extern U32 met Show st:#`Fmt_state
 inline U32 met Hash32 = U32
 	return self*
 
@@ -1305,7 +1305,7 @@ inline U64 met Try_uint = Error_range, Uint
 	return INVAL_RANGE, 0
 extern inline U64 met Round_float = Float
 extern inline U64 met Round_double = Double
-extern U64 met Show st:#fmt.`State
+extern U64 met Show st:#`Fmt_state
 inline U64 met Hash32 = U32
 	let lo = self.Trim_u32
 	and hi = (self >> 32).Trim_u32
@@ -1374,7 +1374,7 @@ inline Int met Intptr = Intptr
 	return self.I64.force_intptr
 extern inline Int met Round_float = Float
 extern inline Int met Round_double = Double
-extern Int met Show st:#fmt.`State
+extern Int met Show st:#`Fmt_state
 inline Int met Hash32 = U32
 	return self.I64.Hash32
 
@@ -1430,7 +1430,7 @@ inline Uint met Uintptr = Uintptr
 	return self.U64.force_uintptr
 extern inline Uint met Round_float = Float
 extern inline Uint met Round_double = Double
-extern Uint met Show st:#fmt.`State
+extern Uint met Show st:#`Fmt_state
 inline Uint met Hash32 = U32
 	return self.U64.Hash32
 
@@ -1484,7 +1484,7 @@ inline Intptr met Try_unsigned = Error_range, Uintptr
 	return INVAL_RANGE, 0
 extern inline Intptr met force_unsigned = Uintptr
 extern inline Intptr met I64 = I64
-extern Intptr met Show st:#fmt.`State
+extern Intptr met Show st:#`Fmt_state
 inline Intptr met Hash32 = U32
 	return self.I64.Hash32
 
@@ -1533,7 +1533,7 @@ inline Uintptr met Try_signed = Error_range, Intptr
 	return INVAL_RANGE, 0
 extern inline Uintptr met force_signed = Intptr
 extern inline Uintptr met U64 = U64
-extern Uintptr met Show st:#fmt.`State
+extern Uintptr met Show st:#`Fmt_state
 inline Uintptr met Hash32 = U32
 	return self.U64.Hash32
 
@@ -1572,7 +1572,7 @@ extern inline Float met Round0_i32 = I32
 extern inline Float met Round0_i64 = I64
 extern inline Float met Double = Double
 extern inline Float met Round0_int = Int
-extern Float met Show st:#fmt.`State
+extern Float met Show st:#`Fmt_state
 extern inline Float met Bitwise_u32 = U32
 inline Float met Hash32 = U32
 	return self.Bitwise_u32.Hash32
@@ -1615,7 +1615,7 @@ extern inline Double met Round0_int = Int
 -- different alternatives, enforce round-to-nearest (the x86 default)?
 -- Have a clear name to a fixed default?
 extern inline Double met Round_float = Float
-extern Double met Show st:#fmt.`State
+extern Double met Show st:#`Fmt_state
 extern inline Double met Bitwise_u64 = U64
 inline Double met Hash32 = U32
 	return self.Bitwise_u64.Hash32
@@ -1678,7 +1678,7 @@ inline Range met Last count:Uint = Range
 	return {Begin=(self.End - (Min self.Count count))
 		\ End=self.End}
 
-Range met Show st:#fmt.`State
+Range met Show st:#`Fmt_state
 	"[".Show st
 	self.Begin.Show st
 	" .. ".Show st
@@ -1773,7 +1773,7 @@ inline Error met Operator_eq other:*this = Bool
 inline Error met Operator_ne other:*this = Bool
 	return not self == other
 
-Error met Show st:#fmt.`State
+Error met Show st:#`Fmt_state
 	if self.Why?
 		"Error: ".Show st
 		self.Why.Show st
