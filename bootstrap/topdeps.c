@@ -138,9 +138,6 @@ static void record_final(struct module *mod, struct snapshot *snap) {
     if (!(member_mask & TOP_IS_EXPORT) || !(toplevel->flags & TOP_IS_EXPORT)) {
       mask &= ~TOP_IS_EXPORT;
     }
-    if (!(member_mask & TOP_IS_INLINE) || !(toplevel->flags & TOP_IS_INLINE)) {
-      mask &= ~TOP_IS_INLINE;
-    }
   }
 
   if (top->typ != NULL && typ_equal(top->typ, t)) {
