@@ -2198,6 +2198,7 @@ struct cprinter_state {
   const struct module *mod;
   size_t printed;
   void *user;
+  bool force;
 };
 
 static void print_deftype_block(FILE *out, bool header, enum forward fwd, const struct module *mod,
@@ -2271,7 +2272,7 @@ static void print_dyntable_type(FILE *out, bool header, enum forward fwd,
 
     struct cprinter_state st = {
       .out = out, .header = header, .fwd = fwd,
-      .mod = NULL, .printed = 0, .user = NULL,
+      .mod = NULL, .printed = 0, .user = NULL, .force = false,
     };
 
     if (node->which == DEFINTF) {
@@ -2414,7 +2415,7 @@ static void print_dyntable(FILE *out, bool header, enum forward fwd,
   const uint32_t filter = ISALIST_FILTEROUT_PREVENT_DYN;
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,
-      .mod = NULL, .printed = 0, .user = NULL };
+      .mod = NULL, .printed = 0, .user = NULL, .force = false, };
     error e = print_dyntable_proto_eachisalist(CONST_CAST(mod), node->typ, node->typ, NULL, &st);
     assert(!e);
     e = typ_isalist_foreach(CONST_CAST(mod), node->typ, filter,
@@ -2423,7 +2424,7 @@ static void print_dyntable(FILE *out, bool header, enum forward fwd,
     assert(!e);
   } else if ((!header || typ_generic_arity(node->typ) > 0) && fwd == FWD_DEFINE_FUNCTIONS) {
     struct cprinter_state st = { .out = out, .header = header, .fwd = fwd,
-      .mod = NULL, .printed = 0, .user = NULL };
+      .mod = NULL, .printed = 0, .user = NULL, .force = false, };
     error e = print_dyntable_eachisalist(CONST_CAST(mod), node->typ, node->typ, NULL, &st);
     assert(!e);
     e = typ_isalist_foreach(CONST_CAST(mod), node->typ, filter,
@@ -2660,10 +2661,6 @@ static void print_enumunion_functions(FILE *out, bool header, enum forward fwd,
 static void print_union_types(FILE *out, bool header, enum forward fwd,
                               const struct module *mod, const struct node *deft,
                               const struct node *ch) {
-  if (skip(header, fwd, deft)) {
-    return;
-  }
-
   if (fwd == FWD_DECLARE_TYPES) {
     if (ch != deft) {
       print_defchoice(out, mod, deft, ch);
@@ -2697,10 +2694,6 @@ static void print_union_types(FILE *out, bool header, enum forward fwd,
 static void print_union(FILE *out, bool header, enum forward fwd,
                         const struct module *mod, const struct node *deft,
                         const struct node *node, struct fintypset *printed) {
-  if (deft->which == DEFTYPE && skip(header, fwd, deft)) {
-    return;
-  }
-
   switch (fwd) {
   case FWD_DECLARE_TYPES:
     if (node == deft) {
@@ -2756,10 +2749,6 @@ static void print_union(FILE *out, bool header, enum forward fwd,
 static void print_enum(FILE *out, bool header, enum forward fwd,
                        const struct module *mod, const struct node *deft,
                        const struct node *node, struct fintypset *printed) {
-  if (deft->which == DEFTYPE && skip(header, fwd, deft)) {
-    return;
-  }
-
   if (fwd == FWD_DECLARE_TYPES) {
     if (deft == node) {
       fprintf(out, "#ifndef ");
@@ -2850,10 +2839,6 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
   }
 
   const struct node *d = DEF(typ_generic_arg_const(node->typ, 0));
-
-  if (header && !node_is_export(d)) {
-    return;
-  }
 
   if (d->which == DEFINTF) {
     if (typ_generic_arity(d->typ) > 0) {
@@ -3120,6 +3105,7 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
 
   const struct typ *t = intercept_slices(st->mod, _t);
   if (st->header
+      && !st->force
       && ((typ_is_function(t) && !(topdep_mask & TOP_IS_INLINE))
           || (topdep_mask & (TOP_IS_INLINE | TOP_IS_EXPORT)) == 0)
       && !(!is_in_topmost_module(node->typ) && (topdep_mask & TOP__TOPDEP_INLINE_STRUCT))) {
@@ -3133,8 +3119,7 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
   const struct node *d = DEF(t);
   const struct module *dmod = node_module_owner_const(d);
   print_top(st->out, st->header, st->fwd, dmod, d, printed,
-            st->fwd == FWD_DEFINE_TYPES
-            && (topdep_mask & TOP__TOPDEP_INLINE_STRUCT));
+            st->force || (topdep_mask & TOP__TOPDEP_INLINE_STRUCT));
 
   return 0;
 }
@@ -3159,6 +3144,7 @@ static void print_topdeps(FILE *out, bool header, enum forward fwd,
     .mod = mod,
     .printed = 0,
     .user = printed,
+    .force = force,
   };
 
   error e = topdeps_foreach(CONST_CAST(mod), CONST_CAST(node),
