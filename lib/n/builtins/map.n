@@ -162,8 +162,8 @@ struct Map K:`Map_key T:`Copyable =
 Map fun From_slice c:[](K, T) = r:this
 	foreach i in c.All
 		let k, v = c.[i]
-		let p = (r#Try_store k)
-		if p?
+		let added, p = r#Try_store k
+		if added
 			p# = v
 
 Map met# init ?size:?Uint
@@ -239,13 +239,11 @@ Map met# may_grow = Bool
 	assert (self.count * 32) / self.table.size <= 24
 	return true
 
-Map met# store key:*K trying:Bool = ?#T
+Map met# store key:*K = added:Bool, #T
 	self#ensure_init
 	var u, idx, hash = self!get_unit key false
 	if u?
-		if trying
-			return nil
-		return #u#val
+		return false, #u#val
 
 	-- Need to create a spot.
 	if self#may_grow
@@ -256,15 +254,14 @@ Map met# store key:*K trying:Bool = ?#T
 	let nu = self#table#set idx
 	nu#hash = hash
 	nu#key = key
-	return #nu#val
+	return true, #nu#val
 
 Map met# Store key:*K = #T
-	let loc = self#store key false
-	assert loc?
+	let _, loc = self#store key
 	return loc
 
-Map met# Try_store key:*K = ?#T
-	return self#store key true
+Map met# Try_store key:*K = added:Bool, #T
+	return self#store key
 
 -- Return true if some keys from 'other' were already in 'self'.
 Map met# Ingest other:*this = ingested_all:Bool
@@ -273,14 +270,14 @@ Map met# Ingest other:*this = ingested_all:Bool
 		let u = other#table#get pos
 		if not u.hash?
 			continue
-		let loc = self#Try_store u.key
-		if not loc?
+		let added, loc = self#Try_store u.key
+		if not added
 			ingested_all = false
 			continue
 		loc# = u.val
 	return ingested_all
 
-Map met# Try_delete key:*K = did:Bool
+Map met# Try_delete key:*K = deleted:Bool
 	if self.Count == 0
 		return false
 
@@ -348,8 +345,8 @@ struct Set T:`Map_key =
 Set fun From_slice c:[]T = r:this
 	foreach i in c.All
 		let x = c.[i]
-		let p = r!map#Try_store x
-		if p?
+		let added, p = r!map#Try_store x
+		if added
 			p# = true
 
 Set met# Clear
@@ -366,8 +363,8 @@ Set met Operator_in x:*T = Bool
 	return self.map.[x] else false
 
 Set met# Add x:*T = added:Bool
-	let p = self!map#Try_store x
-	if p?
+	let added, p = self!map#Try_store x
+	if added
 		p# = true
 		return true
 	return false
