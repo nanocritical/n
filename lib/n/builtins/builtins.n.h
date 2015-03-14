@@ -106,6 +106,12 @@ static inline void n$builtins$clean_zero(struct n$builtins$cleaner *c);
 #define NLANG_MKDYN(dyn_type, _dyntable, _obj) \
   (dyn_type){ .obj = (_obj), .dyntable = (void *)(_dyntable) }
 
+struct n$reflect$Type;
+n$builtins$Bool n$reflect$Isa(void *dyntable, struct n$reflect$Type *i);
+
+struct n$bench$Example;
+n$builtins$Void n$bench$Example$Dtor(struct n$bench$Example *);
+
 #endif
 
 #ifdef NLANG_DEFINE_FUNCTIONS

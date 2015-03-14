@@ -1341,6 +1341,8 @@ static ERROR rewrite_unary_call(struct module *mod, struct node *node, struct ty
   node_set_which(node, CALL);
   set_typ(&fun->typ, tfun);
 
+  topdeps_record(mod, tfun);
+
   const struct node *except[] = { fun, NULL };
   error e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
@@ -1395,6 +1397,10 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
   } else {
     set_typ(&node->typ, tfield);
     node->flags = tit_node_flags(field);
+
+    if (tit_which(field) == DEFNAME) {
+      topdeps_record_global(mod, tit_node_ignore_any_overlay(field));
+    }
   }
 
   if (!(node->flags & NODE_IS_TYPE)) {
@@ -2549,6 +2555,10 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
     }
   }
 
+  FOREACH_SUB(arg, node) {
+    topdeps_record(mod, arg->typ);
+  }
+
   struct typ **ft = typ_permanent_loc(fun->typ);
   e = link_wildcard_generics(mod, *ft, node);
   EXCEPT(e);
@@ -2682,6 +2692,7 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
   node->as.IDENT.def = def;
   if (def->flags & NODE_IS_GLOBAL_LET) {
     node->as.IDENT.non_local_scoper = nparent(def, 2);
+    topdeps_record_global(mod, def);
   } else if (def->which == WITHIN) {
     node->as.IDENT.non_local_scoper = def->as.WITHIN.globalenv_scoper;
   } else if (def->which == DEFCHOICE) {
@@ -2762,6 +2773,26 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
       e = mk_except(mod, node, "invalid within expression,"
                     " must point to a globalenv declaration");
       THROW(e);
+    }
+
+    if (mod->state->top_state == NULL) {
+      // We're in a toplevel within, attach the topdeps to any suitable
+      // toplevel node. If none is found, then the globalenv referenced by
+      // this within is not used.
+      FOREACH_SUB(top, mod->body) {
+        if (NM(top->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+          PUSH_STATE(mod->state->top_state);
+          mod->state->top_state->top = top;
+          mod->state->top_state->exportable = top;
+          topdeps_record_dyn(mod, def->typ);
+          topdeps_record_global(mod, def);
+          POP_STATE(mod->state->top_state);
+          break;
+        }
+      }
+    } else {
+      topdeps_record_dyn(mod, def->typ);
+      topdeps_record_global(mod, def);
     }
 
     node->as.WITHIN.globalenv_scoper = modbody->as.MODULE_BODY.globalenv_scoper;

@@ -9,8 +9,8 @@
 
 #define heap_header _$Ngen_n$builtins$Envheader$$n$builtins$_$Ni_Heap$$_$Ndyn_n$builtins$_$Ni_Heap_genN$_
 
-static struct n$mem$Sysheap sysheap;
 static struct heap_header sysheap_header;
+extern const struct _$Ndyntable_n$builtins$_$Ni_Heap n$mem$Sysheap$Dyntable__n$builtins$_$Ni_Heap;
 
 extern void n$env$Install_sys(NB(Uint) argc, NB(U8) **argv);
 extern void n$time$Install_sys(void);
@@ -20,7 +20,7 @@ extern void n$crypto$rand$Install_sys(void);
 void _$Nprelude(int *argc, char ***argv, char ***env) {
   sysheap_header.Env = NLANG_MKDYN(struct _$Ndyn_n$builtins$_$Ni_Heap,
                                    &n$mem$Sysheap$Dyntable__n$builtins$_$Ni_Heap,
-                                   (void *)&sysheap);
+                                   (void *)&n$builtins$sysheap);
   sysheap_header.Parent = NULL;
   n$builtins$Install_sysheap(&sysheap_header);
 

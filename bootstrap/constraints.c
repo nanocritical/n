@@ -44,17 +44,6 @@ HTABLE_SPARSE(tagset, cbool, ident);
 IMPLEMENT_HTABLE_SPARSE(unused__ static, tagset, cbool, ident,
                         ident_hash, ident_cmp);
 
-static uint32_t node_ptr_hash(const struct node **node) {
-  uintptr_t p = (uintptr_t) *node;
-  return hash32_hsieh(&p, sizeof(p));
-}
-
-static int node_ptr_cmp(const struct node **a, const struct node **b) {
-  uintptr_t pa = (uintptr_t) *a;
-  uintptr_t pb = (uintptr_t) *b;
-  return (pa == pb) ? 0 : ((pa < pb) ? -1 : 1);
-}
-
 // An boolean_hypothesis is additional constraints that result from a single
 // boolean condition being assumed to be true or false.
 struct hypothesis {

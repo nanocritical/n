@@ -9,7 +9,8 @@ example hashmap_basic
 	assert m.Count == 1
 	assert m.["42"] == 42
 
-	assert m#Try_store "42" === nil
+	let added, _ = m#Try_store "42"
+	assert not added
 	assert m.Count == 1
 	assert m.["42"] == 42
 
@@ -20,7 +21,7 @@ example hashmap_basic
 
 	m#Delete "42"
 	assert not m#Try_delete "42"
-	(m#Try_store "42")# = 43
+	(m#Store "42")# = 43
 	assert m.["42"] == 43
 
 	(m#Store "44")# = 44

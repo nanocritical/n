@@ -162,6 +162,21 @@ static inline use_result__ ssize_t vecnode_remove_replace_with_last(struct vecno
   }
 }
 
+static inline uint32_t node_ptr_hash(const struct node **node) {
+  uintptr_t p = (uintptr_t) *node;
+  return hash32_hsieh(&p, sizeof(p));
+}
+
+static inline int node_ptr_cmp(const struct node **a, const struct node **b) {
+  uintptr_t pa = (uintptr_t) *a;
+  uintptr_t pb = (uintptr_t) *b;
+  return (pa == pb) ? 0 : ((pa < pb) ? -1 : 1);
+}
+
+HTABLE_SPARSE(nodeset, uint32_t, struct node *);
+IMPLEMENT_HTABLE_SPARSE(static inline, nodeset, uint32_t, struct node *,
+                        node_ptr_hash, node_ptr_cmp);
+
 enum instance_which {
   INST_ENTRY,
   INST_QUERY_FINAL,
@@ -1532,5 +1547,25 @@ ERROR mk_except_call_args_count(const struct module *mod, const struct node *nod
   e = mk_except_type(mod, node, fmt, ##__VA_ARGS__); \
   GOTO_EXCEPT(e); \
 } while (0)
+
+#define DEBUG_IF_IDENT(mod, filename_suffix, node, name) if (({ \
+  size_t len = strlen((mod)->filename); \
+  size_t len_suffix = strlen(filename_suffix); \
+  len >= len_suffix && strcmp((mod)->filename + len - len_suffix, filename_suffix) == 0 \
+      && node_ident(node) == idents_add_string((mod)->gctx, name, strlen(name)); }))
+
+#define DEBUG_IF_IDENT_MATCH(mod, filename_suffix, node, name_part) if (({ \
+  size_t len = strlen((mod)->filename); \
+  size_t len_suffix = strlen(filename_suffix); \
+  len >= len_suffix && strcmp((mod)->filename + len - len_suffix, filename_suffix) == 0 \
+      && strstr(idents_value(mod->gctx, node_ident(node)), name_part) != NULL; }))
+
+#define DEBUG_IF_TYP_MATCH(mod, filename_suffix, t, name_part) if (({ \
+  size_t len = strlen((mod)->filename); \
+  size_t len_suffix = strlen(filename_suffix); \
+  char *s = pptyp(mod, t); \
+  bool r = len >= len_suffix && strcmp((mod)->filename + len - len_suffix, filename_suffix) == 0 \
+      && strstr(s, name_part) != NULL; \
+  r; }))
 
 #endif

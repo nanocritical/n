@@ -261,7 +261,7 @@ static NB(Int) SY(unlinkat)(NB(Int) dirfd, NB(U8) *pathname, NB(I32) flags) {
   return ret;
 }
 
-static NB(Int) SY(mkdirat)(NB(Int) dirfd, NB(U8) *pathname, SY(Mode) mode) {
+static NB(Int) SY(mkdirat)(NB(Int) dirfd, NB(U8) *pathname, NB(U32) mode) {
   int ret = mkdirat(dirfd, (char *) pathname, mode);
   _$Nlatestsyscallerrno = errno;
   return ret;
