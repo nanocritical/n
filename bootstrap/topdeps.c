@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "parser.h"
+#include "inference.h"
 
 // If the typ is tentative, we cannot record it yet, as its hash will
 // change. We need to keep a snapshot of the context when the topdep was
@@ -12,6 +13,7 @@ struct snapshot {
   struct node *top;
   struct node *exportable;
   bool in_fun_in_block;
+  bool for_dyn;
 };
 
 VECTOR(vecsnapshot, struct snapshot, 4);
@@ -40,10 +42,122 @@ struct topdeps {
   struct vectyp list;
   struct fintypset set;
 
+  struct vectyp list_tds;
+  struct fintypset set_tds;
+
   struct vecsnapshot tentatives;
 };
 
+static void record_final_td(struct module *mod, struct snapshot *snap) {
+  struct typ *t = *snap->loc;
+  struct node *top = snap->top;
+
+  struct node *topmost = top;
+  while (!node_is_at_top(topmost)) {
+    topmost = parent(topmost);
+  }
+
+  if (typ_is_pseudo_builtin(t)
+      // when a try_remove_unnecessary_ssa_defname() is used on a global let:
+      || topmost->which == NOOP
+      || (top->typ != NULL && typ_equal(top->typ, t))
+      || (topmost->typ != NULL && typ_equal(topmost->typ, t))) {
+    return;
+  }
+
+  uint32_t td = 0;
+
+  struct toplevel *toplevel = node_toplevel(top);
+  const uint32_t top_flags = toplevel->flags;
+
+  const bool within_exportable_field
+    = snap->exportable != NULL
+    && snap->exportable->which == DEFFIELD;
+  const bool is_intf = typ_definition_which(t) == DEFINTF;
+  const bool is_ref = typ_is_reference(t);
+  const bool is_dyn = typ_is_dyn(t);
+  const bool is_fun = typ_is_function(t);
+  const bool is_imported = typ_generic_arity(t) == 0 && typ_module_owner(t) != node_module_owner(top);
+
+  switch (top->which) {
+  case DEFTYPE:
+    if (within_exportable_field && snap->exportable->typ == t) {
+      td = (is_ref || is_intf) ? TD_TYPEBODY_NEEDS_TYPE : TD_TYPEBODY_NEEDS_TYPEBODY;
+    } else if (snap->for_dyn) {
+      td = TD_DYN_NEEDS_TYPE;
+    }
+    break;
+  case DEFINTF:
+    if (snap->for_dyn) {
+      td = TD_DYN_NEEDS_TYPE;
+    }
+    break;
+  case LET:
+    if (subs_first_const(top)->which == DEFNAME) {
+      td = is_ref ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;
+    }
+    break;
+  case DEFFUN:
+  case DEFMETHOD:
+    if (snap->in_fun_in_block) {
+      td = (is_ref || is_fun) ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;
+    } else {
+      td = (is_ref || is_fun) ? TD_FUN_NEEDS_TYPE : TD_FUN_NEEDS_TYPEBODY;
+    }
+    break;
+  default:
+    break;
+  }
+
+  if (td == 0) {
+    return;
+  }
+
+  if (toplevel->topdeps == NULL) {
+    toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
+    fintypset_fullinit(&toplevel->topdeps->set);
+    fintypset_fullinit(&toplevel->topdeps->set_tds);
+  }
+
+  uint32_t *value = fintypset_get(&toplevel->topdeps->set_tds, t);
+  if (value == NULL) {
+    fintypset_set(&toplevel->topdeps->set_tds, t, td);
+    vectyp_push(&toplevel->topdeps->list_tds, t);
+  } else {
+    *value = td;
+  }
+
+  if (is_dyn) {
+    struct typ *i = typ_generic_arg(t, 0);
+    uint32_t *value = fintypset_get(&toplevel->topdeps->set_tds, i);
+    if (value == NULL) {
+      fintypset_set(&toplevel->topdeps->set_tds, i, td);
+      vectyp_push(&toplevel->topdeps->list_tds, i);
+    } else {
+      *value = td;
+    }
+  }
+#if 0
+  if ((NM(top->which) & (NM(DEFTYPE) | NM(DEFINTF))) && typ_definition_which(t) == DEFINTF) {
+    struct tit *m = typ_definition_members(t, DEFFUN, DEFMETHOD, 0);
+    while (tit_next(m)) {
+      struct typ *mt = tit_typ(m);
+     // fprintf(stderr, "%s -> %s\n", pptyp(NULL, top->typ), pptyp(NULL, mt));
+      uint32_t *value = fintypset_get(&toplevel->topdeps->set_tds, mt);
+      if (value == NULL) {
+        fintypset_set(&toplevel->topdeps->set_tds, mt, td);
+        vectyp_push(&toplevel->topdeps->list_tds, mt);
+      } else {
+        *value = td;
+      }
+    }
+  }
+#endif
+}
+
 static void record_final(struct module *mod, struct snapshot *snap) {
+  record_final_td(mod, snap);
+
   struct typ *t = *snap->loc;
   struct node *top = snap->top;
 
@@ -147,6 +261,7 @@ static void record_final(struct module *mod, struct snapshot *snap) {
   if (toplevel->topdeps == NULL) {
     toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
     fintypset_fullinit(&toplevel->topdeps->set);
+    fintypset_fullinit(&toplevel->topdeps->set_tds);
   }
 
   uint32_t *value = fintypset_get(&toplevel->topdeps->set, t);
@@ -177,12 +292,13 @@ static void record_tentative(struct module *mod, struct snapshot *snap) {
   if (toplevel->topdeps == NULL) {
     toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
     fintypset_fullinit(&toplevel->topdeps->set);
+    fintypset_fullinit(&toplevel->topdeps->set_tds);
   }
 
   vecsnapshot_push(&toplevel->topdeps->tentatives, *snap);
 }
 
-void topdeps_record(struct module *mod, struct typ *t) {
+static void do_topdeps_record(struct module *mod, struct typ *t, bool for_dyn) {
   struct top_state *st = mod->state->top_state;
   if (st == NULL
       || typ_definition_which(t) == MODULE) {
@@ -195,6 +311,7 @@ void topdeps_record(struct module *mod, struct typ *t) {
     .top = st->top,
     .exportable = st->exportable,
     .in_fun_in_block = fun_st != NULL && fun_st->in_block,
+    .for_dyn = for_dyn,
   };
 
   if (typ_is_tentative(t) || !typ_hash_ready(t)) {
@@ -202,6 +319,45 @@ void topdeps_record(struct module *mod, struct typ *t) {
   } else {
     record_final(mod, &snap);
   }
+}
+
+void topdeps_record(struct module *mod, struct typ *t) {
+  do_topdeps_record(mod, t, false);
+}
+
+static ERROR add_dyn_topdep_each(struct module *mod, struct typ *t, struct typ *intf,
+                                 bool *stop, void *user) {
+  do_topdeps_record(mod, intf, true);
+
+  struct tit *m = typ_definition_members(t, DEFFUN, DEFMETHOD, 0);
+  while (tit_next(m)) {
+    struct typ *mt = tit_typ(m);
+    do_topdeps_record(mod, mt, true);
+  }
+
+  struct typ *r = NULL;
+  error e = reference(&r, mod, NULL, TREFDOT, intf);
+  assert(!e);
+  do_topdeps_record(mod, r, true);
+
+  e = reference(&r, mod, NULL, TREFBANG, intf);
+  assert(!e);
+  do_topdeps_record(mod, r, true);
+
+  e = reference(&r, mod, NULL, TREFSHARP, intf);
+  assert(!e);
+  do_topdeps_record(mod, r, true);
+  return 0;
+}
+
+void topdeps_record_dyn(struct module *mod, struct typ *t) {
+  if (typ_is_reference(t)) {
+    t = typ_generic_arg(t, 0);
+  }
+
+  error never = typ_isalist_foreach(mod, t, ISALIST_FILTEROUT_PREVENT_DYN,
+                                    add_dyn_topdep_each, NULL);
+  assert(!never);
 }
 
 error topdeps_foreach(struct module *mod, struct node *node,
@@ -248,6 +404,26 @@ error topdeps_foreach(struct module *mod, struct node *node,
   return 0;
 }
 
+error topdeps_foreach_td(struct module *mod, struct node *node,
+                         topdeps_each each, void *user) {
+  struct toplevel *toplevel = node_toplevel(node);
+  if (toplevel->topdeps == NULL) {
+    return 0;
+  }
+
+  struct vectyp *list = &toplevel->topdeps->list_tds;
+  struct fintypset *set = &toplevel->topdeps->set_tds;
+
+  for (size_t n = 0; n < vectyp_count(list); ++n) {
+    struct typ *t = *vectyp_get(list, n);
+    const uint32_t mask = *fintypset_get(set, t);
+    error e = each(mod, node, t, mask, user);
+    EXCEPT(e);
+  }
+
+  return 0;
+}
+
 static ERROR print_topdeps_each(struct module *mod, struct node *node,
                                 struct typ *t, uint32_t topdep_mask, void *user) {
   if (typ_was_zeroed(t)) {
@@ -266,5 +442,26 @@ void debug_print_topdeps(const struct module *mod, const struct node *node) {
   fprintf(stderr, "%s :%s @%p\n", scope_name(mod, node),
           pptyp(mod, node->typ), node->typ);
   error never = topdeps_foreach(CONST_CAST(mod), CONST_CAST(node), print_topdeps_each, NULL);
+  assert(!never);
+}
+
+static ERROR print_topdeps_each_td(struct module *mod, struct node *node,
+                                   struct typ *t, uint32_t topdep_mask, void *user) {
+  if (typ_was_zeroed(t)) {
+    return 0;
+  }
+
+  fprintf(stderr, "\t%04x %d %zu %s @%p\n",
+          topdep_mask,
+          typ_is_tentative(t),
+          node_toplevel_const(typ_definition_ignore_any_overlay_const(t))->passing,
+          pptyp(mod, t), t);
+  return 0;
+}
+
+void debug_print_topdeps_td(const struct module *mod, const struct node *node) {
+  fprintf(stderr, "%s :%s @%p\n", scope_name(mod, node),
+          pptyp(mod, node->typ), node->typ);
+  error never = topdeps_foreach_td(CONST_CAST(mod), CONST_CAST(node), print_topdeps_each_td, NULL);
   assert(!never);
 }

@@ -9,6 +9,7 @@
 #include "scope.h"
 #include "constraints.h"
 #include "reflect.h"
+#include "useorder.h"
 
 #define UNUSED "__attribute__((__unused__))"
 #define WEAK "__attribute__((__weak__))"
@@ -18,24 +19,8 @@
 
 #define DEF(t) typ_definition_ignore_any_overlay_const(t)
 
-enum forward {
-  FWD_DECLARE_TYPES,
-  FWD_DEFINE_DYNS,
-  FWD_DEFINE_TYPES,
-  FWD_DECLARE_FUNCTIONS,
-  FWD_DEFINE_FUNCTIONS,
-  FORWARD__NUM,
-};
-
-static const char *forward_guards[FORWARD__NUM] = {
-  [FWD_DECLARE_TYPES] = "NLANG_DECLARE_TYPES",
-  [FWD_DEFINE_DYNS] = "NLANG_DEFINE_DYNS",
-  [FWD_DEFINE_TYPES] = "NLANG_DEFINE_TYPES",
-  [FWD_DECLARE_FUNCTIONS] = "NLANG_DECLARE_FUNCTIONS",
-  [FWD_DEFINE_FUNCTIONS] = "NLANG_DEFINE_FUNCTIONS",
-};
-
 static bool skip(bool header, enum forward fwd, const struct node *node) {
+  return false;
   const bool function = node_is_fun(node);
   const bool let = node->which == LET;
 
@@ -2166,12 +2151,14 @@ static void print_deftype_statement(FILE *out, bool header, enum forward fwd,
         print_invariant(out, mod, node);
       }
       break;
+#if 0
     case DEFFUN:
     case DEFMETHOD:
       if (!typ_is_generic_functor(node->typ)) {
         print_top(out, header, fwd, mod, node, printed, false);
       }
       break;
+#endif
     case LET:
       print_defname(out, header, fwd, mod, subs_first_const(node));
       break;
@@ -2260,9 +2247,9 @@ static void print_dyntable_type(FILE *out, bool header, enum forward fwd,
       fprintf(out, ";\n");
     }
 
-  } else if (fwd == FWD_DEFINE_DYNS
-             && (typ_generic_arity(node->typ) > 0
-                 || header == node_is_export(node))) {
+  } else if (fwd == FWD_DEFINE_DYNS) {
+//             && (typ_generic_arity(node->typ) > 0
+//                 || header == node_is_export(node))) {
     fprintf(out, "struct _$Ndyntable_");
     bare_print_typ(out, mod, node->typ);
     fprintf(out, " {\n");
@@ -2998,6 +2985,19 @@ static void print_include(FILE *out, const char *filename, const char *postfix) 
   fprintf(out, "# include \"%s%s\"\n", filename, postfix);
 }
 
+static bool file_exists(const char *base, const char *postfix) {
+  char *fn = calloc(strlen(base) + strlen(postfix) + 1, sizeof(char));
+  strcpy(fn, base);
+  strcpy(fn + strlen(base), postfix);
+  FILE *f = fopen(fn, "r");
+  const bool r = f != NULL;
+  if (f != NULL) {
+    fclose(f);
+  }
+  free(fn);
+  return r;
+}
+
 static void print_import(FILE *out, bool header, enum forward fwd,
                          const struct module *mod, const struct node *node,
                          bool non_inline_deps) {
@@ -3019,19 +3019,6 @@ static void print_import(FILE *out, bool header, enum forward fwd,
   }
 
   print_include(out, target->as.MODULE.mod->filename, ".o.h");
-}
-
-static bool file_exists(const char *base, const char *postfix) {
-  char *fn = calloc(strlen(base) + strlen(postfix) + 1, sizeof(char));
-  strcpy(fn, base);
-  strcpy(fn + strlen(base), postfix);
-  FILE *f = fopen(fn, "r");
-  const bool r = f != NULL;
-  if (f != NULL) {
-    fclose(f);
-  }
-  free(fn);
-  return r;
 }
 
 static uint32_t track_id(bool header, enum forward fwd,
@@ -3188,7 +3175,7 @@ static void print_top(FILE *out, bool header, enum forward fwd,
   static __thread size_t prevent_infinite;
   assert(++prevent_infinite < 1000 && "FIXME When force==true, see t00/fixme10");
 
-  print_topdeps(out, header, fwd, mod, node, printed, force);
+  //print_topdeps(out, header, fwd, mod, node, printed, force);
 
   switch (node->which) {
   case DEFMETHOD:
@@ -3230,6 +3217,21 @@ static void print_top(FILE *out, bool header, enum forward fwd,
   --prevent_infinite;
 }
 
+static void print_mod_includes(FILE *out, bool header, const struct module *mod) {
+  if (header) {
+    if (file_exists(mod->filename, ".h")) {
+      print_include(out, mod->filename, ".h");
+    }
+  } else {
+    if (file_exists(mod->filename, ".h")) {
+      print_include(out, mod->filename, ".h");
+    }
+    if (file_exists(mod->filename, ".c")) {
+      print_include(out, mod->filename, ".c");
+    }
+  }
+}
+
 static void print_module(FILE *out, bool header, const struct module *mod) {
   mod->stage->printing_mod = mod;
 
@@ -3240,6 +3242,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
 
   const struct node *top = mod->body;
 
+#if 0
   const struct node *first_non_import = subs_first_const(top);
   FOREACH_SUB_CONST(node, top) {
     if (node->which != IMPORT) {
@@ -3247,6 +3250,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       break;
     }
   }
+#endif
 
   const enum forward fwd_passes[] = {
     FWD_DECLARE_TYPES, FWD_DEFINE_DYNS, FWD_DEFINE_TYPES,
@@ -3265,6 +3269,40 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       fprintf(out, "#define %s\n", forward_guards[fwd]);
     }
 
+    FOREACH_SUB_CONST(node, mod->body) {
+      if (node->which != IMPORT) {
+        break;
+      }
+      print_import(out, header, fwd, mod, node, false);
+    }
+
+    print_mod_includes(out, header, mod);
+
+    if (!header) {
+      struct useorder uorder = { 0 };
+      useorder_build(&uorder, mod, header, fwd);
+      fprintf(stderr, "%d %s\n", header, mod->filename);
+      if (!header && strcmp(mod->filename, "lib/n/crypto/rand/rand.n")==0) {
+        debug_useorder_print(&uorder);
+      }
+
+      for (size_t n = 0, count = vectyp_count(&uorder.dependencies); n < count; ++n) {
+        const struct node *node = DEF(*vectyp_get(&uorder.dependencies, n));
+        print_top(out, header, fwd, node_module_owner_const(node), node, &printed, false);
+        fprintf(out, "\n");
+      }
+
+      FOREACH_SUB_CONST(node, mod->body) {
+        if (node->which == LET && subs_first_const(node)->which == DEFNAME) {
+          print_top(out, header, fwd, mod, node, &printed, false);
+          fprintf(out, "\n");
+        }
+      }
+
+      useorder_destroy(&uorder);
+    }
+
+#if 0
     for (const struct node *node = subs_first_const(top);
          node != first_non_import; node = next_const(node)) {
       print_top(out, header, fwd, mod, node, &printed, false);
@@ -3305,6 +3343,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
         }
       }
     }
+#endif
 
     if (header) {
       fprintf(out, "\n#endif\n");

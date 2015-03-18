@@ -416,11 +416,19 @@ static ERROR step_from_number_literal_call_inference(struct module *mod, struct 
 
 
 static STEP_NM(step_dtor_call_inference,
-               NM(BLOCK));
+               NM(DEFNAME));
 static ERROR step_dtor_call_inference(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
-  // FIXME
+
+  if (!typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
+    struct tit *m = typ_definition_one_member(node->typ, ID_DTOR);
+    if (m != NULL) {
+      struct typ *mt = tit_typ(m);
+      topdeps_record(mod, mt);
+      tit_next(m);
+    }
+  }
   return 0;
 }
 
@@ -658,6 +666,9 @@ static bool need_insert_dyn(struct module *mod,
 static ERROR insert_dyn(struct node **src,
                         struct module *mod, struct node *node,
                         struct typ *target) {
+  topdeps_record_dyn(mod, (*src)->typ);
+  topdeps_record_dyn(mod, target);
+
   struct node *d = mk_node(mod, node, DYN);
   set_typ(&d->as.DYN.intf_typ, target);
 
@@ -966,37 +977,15 @@ static ERROR step_store_return_through_ref_expr(struct module *mod, struct node 
   }
 }
 
-static  error add_dyn_topdep_each(struct module *mod, struct typ *t, struct typ *intf,
-                                  bool *stop, void *user) {
-  struct typ *r = NULL;
-  error e = reference(&r, mod, NULL, TREFDOT, intf);
-  assert(!e);
-  topdeps_record(mod, r);
-
-  e = reference(&r, mod, NULL, TREFBANG, intf);
-  assert(!e);
-  topdeps_record(mod, r);
-
-  e = reference(&r, mod, NULL, TREFSHARP, intf);
-  assert(!e);
-  topdeps_record(mod, r);
-  return 0;
-}
-
 static STEP_NM(step_add_dyn_topdep,
-               NM(DEFTYPE));
+               NM(DEFTYPE) | NM(DEFINTF));
 static ERROR step_add_dyn_topdep(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
-
   if (typ_is_reference(node->typ)) {
     return 0;
   }
-
-  error never = typ_isalist_foreach(mod, node->typ, ISALIST_FILTEROUT_PREVENT_DYN,
-                                    add_dyn_topdep_each, NULL);
-  assert(!never);
-
+  topdeps_record_dyn(mod, node->typ);
   return 0;
 }
 

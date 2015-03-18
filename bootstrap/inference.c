@@ -1341,6 +1341,8 @@ static ERROR rewrite_unary_call(struct module *mod, struct node *node, struct ty
   node_set_which(node, CALL);
   set_typ(&fun->typ, tfun);
 
+  topdeps_record(mod, tfun);
+
   const struct node *except[] = { fun, NULL };
   error e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
   EXCEPT(e);
