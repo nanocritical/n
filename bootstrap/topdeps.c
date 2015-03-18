@@ -38,6 +38,21 @@ static inline use_result__ ssize_t vecsnapshot_remove_replace_with_last(struct v
   }
 }
 
+static uint32_t node_ptr_hash(const struct node **node) {
+  uintptr_t p = (uintptr_t) *node;
+  return hash32_hsieh(&p, sizeof(p));
+}
+
+static int node_ptr_cmp(const struct node **a, const struct node **b) {
+  uintptr_t pa = (uintptr_t) *a;
+  uintptr_t pb = (uintptr_t) *b;
+  return (pa == pb) ? 0 : ((pa < pb) ? -1 : 1);
+}
+
+HTABLE_SPARSE(nodeset, uint32_t, struct node *);
+IMPLEMENT_HTABLE_SPARSE(unused__ static, nodeset, uint32_t, struct node *,
+                        node_ptr_hash, node_ptr_cmp);
+
 struct topdeps {
   struct vectyp list;
   struct fintypset set;
@@ -45,8 +60,19 @@ struct topdeps {
   struct vectyp list_tds;
   struct fintypset set_tds;
 
+  struct nodeset globals;
+
   struct vecsnapshot tentatives;
 };
+
+static void topdeps_init(struct topdeps **topdeps) {
+  if (*topdeps == NULL) {
+    *topdeps = calloc(1, sizeof(**topdeps));
+    fintypset_fullinit(&(*topdeps)->set);
+    fintypset_fullinit(&(*topdeps)->set_tds);
+    nodeset_init(&(*topdeps)->globals, 0);
+  }
+}
 
 static void record_final_td(struct module *mod, struct snapshot *snap) {
   struct typ *t = *snap->loc;
@@ -111,11 +137,7 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
     return;
   }
 
-  if (toplevel->topdeps == NULL) {
-    toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
-    fintypset_fullinit(&toplevel->topdeps->set);
-    fintypset_fullinit(&toplevel->topdeps->set_tds);
-  }
+  topdeps_init(&toplevel->topdeps);
 
   uint32_t *value = fintypset_get(&toplevel->topdeps->set_tds, t);
   if (value == NULL) {
@@ -256,11 +278,7 @@ static void record_final(struct module *mod, struct snapshot *snap) {
     return;
   }
 
-  if (toplevel->topdeps == NULL) {
-    toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
-    fintypset_fullinit(&toplevel->topdeps->set);
-    fintypset_fullinit(&toplevel->topdeps->set_tds);
-  }
+  topdeps_init(&toplevel->topdeps);
 
   uint32_t *value = fintypset_get(&toplevel->topdeps->set, t);
   if (value == NULL) {
@@ -287,11 +305,7 @@ static void record_tentative(struct module *mod, struct snapshot *snap) {
   }
 
   struct toplevel *toplevel = node_toplevel(snap->top);
-  if (toplevel->topdeps == NULL) {
-    toplevel->topdeps = calloc(1, sizeof(*toplevel->topdeps));
-    fintypset_fullinit(&toplevel->topdeps->set);
-    fintypset_fullinit(&toplevel->topdeps->set_tds);
-  }
+  topdeps_init(&toplevel->topdeps);
 
   vecsnapshot_push(&toplevel->topdeps->tentatives, *snap);
 }
@@ -362,6 +376,19 @@ void topdeps_record_mkdyn(struct module *mod, struct typ *t) {
   do_topdeps_record(mod, t, TD_FUNBODY_NEEDS_DYNBODY);
 }
 
+void topdeps_record_global(struct module *mod, struct node *node) {
+  if (NM(node->which) & (NM(DEFALIAS) | NM(DEFCHOICE))) {
+    return;
+  }
+  assert(node->which == DEFNAME);
+  node = parent(node);
+  struct top_state *st = mod->state->top_state;
+  struct node *top = st->top;
+  struct toplevel *toplevel = node_toplevel(top);
+  topdeps_init(&toplevel->topdeps);
+  nodeset_set(&toplevel->topdeps->globals, node, TD_ANY_NEEDS_NODE);
+}
+
 error topdeps_foreach(struct module *mod, struct node *node,
                       topdeps_each each, void *user) {
   struct toplevel *toplevel = node_toplevel(node);
@@ -406,8 +433,20 @@ error topdeps_foreach(struct module *mod, struct node *node,
   return 0;
 }
 
+struct global_each_state {
+  struct module *mod;
+  struct node *node;
+  topdeps_td_each each;
+  void *user;
+};
+
+static int global_each(const struct node **node, uint32_t *td, void *user) {
+  struct global_each_state *st = user;
+  return st->each(st->mod, st->node, CONST_CAST(*node), *td, st->user);
+}
+
 error topdeps_foreach_td(struct module *mod, struct node *node,
-                         topdeps_each each, void *user) {
+                         topdeps_td_each each, void *user) {
   struct toplevel *toplevel = node_toplevel(node);
   if (toplevel->topdeps == NULL) {
     return 0;
@@ -419,9 +458,18 @@ error topdeps_foreach_td(struct module *mod, struct node *node,
   for (size_t n = 0; n < vectyp_count(list); ++n) {
     struct typ *t = *vectyp_get(list, n);
     const uint32_t mask = *fintypset_get(set, t);
-    error e = each(mod, node, t, mask, user);
+    error e = each(mod, node, typ_definition_ignore_any_overlay(t), mask, user);
     EXCEPT(e);
   }
+
+  struct global_each_state st = {
+    .mod = mod,
+    .node = node,
+    .each = each,
+    .user = user,
+  };
+  int never = nodeset_foreach(&toplevel->topdeps->globals, global_each, &st);
+  assert(!never);
 
   return 0;
 }
@@ -448,15 +496,17 @@ void debug_print_topdeps(const struct module *mod, const struct node *node) {
 }
 
 static ERROR print_topdeps_each_td(struct module *mod, struct node *node,
-                                   struct typ *t, uint32_t topdep_mask, void *user) {
+                                   struct node *d, uint32_t topdep_mask, void *user) {
+  struct typ *t = d->typ;
   if (typ_was_zeroed(t)) {
     return 0;
   }
 
-  fprintf(stderr, "\t%04x %d %zu %s @%p\n",
+  fprintf(stderr, "\t%04x %d %zu %s :%s @%p\n",
           topdep_mask,
           typ_is_tentative(t),
-          node_toplevel_const(typ_definition_ignore_any_overlay_const(t))->passing,
+          node_toplevel_const(d)->passing,
+          d->which == LET ? scope_name(mod, subs_first(d)) : "",
           pptyp(mod, t), t);
   return 0;
 }

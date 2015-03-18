@@ -15,7 +15,7 @@ enum forward {
 extern const char *forward_guards[];
 
 struct useorder {
-  struct vectyp dependencies;
+  struct vecnode dependencies;
   struct fintypset marks;
   const struct module *mod;
   bool header;

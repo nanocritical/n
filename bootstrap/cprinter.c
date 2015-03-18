@@ -3286,8 +3286,8 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
         debug_useorder_print(&uorder);
       }
 
-      for (size_t n = 0, count = vectyp_count(&uorder.dependencies); n < count; ++n) {
-        const struct node *node = DEF(*vectyp_get(&uorder.dependencies, n));
+      for (size_t n = 0, count = vecnode_count(&uorder.dependencies); n < count; ++n) {
+        const struct node *node = *vecnode_get(&uorder.dependencies, n);
         print_top(out, header, fwd, node_module_owner_const(node), node, &printed, false);
         fprintf(out, "\n");
       }

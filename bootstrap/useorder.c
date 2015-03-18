@@ -24,7 +24,7 @@ static void init(struct useorder *uorder, const struct module *mod) {
 }
 
 void useorder_destroy(struct useorder *uorder) {
-  vectyp_destroy(&uorder->dependencies);
+  vecnode_destroy(&uorder->dependencies);
   fintypset_destroy(&uorder->marks);
   memset(uorder, 0, sizeof(*uorder));
 }
@@ -32,13 +32,21 @@ void useorder_destroy(struct useorder *uorder) {
 static bool xxx;
 static const char spaces[80] = "                                                                                ";
 
+#define DEF(t) typ_definition_ignore_any_overlay(t)
+
 static void need(struct useorder *uorder, struct typ *t) {
   if(xxx) fprintf(stderr, "%s\n", pptyp(NULL, t));
   enum mark *mk = fintypset_get(&uorder->marks, t);
   if (mk != NULL && *mk == PERM) {
     return;
   }
-  vectyp_push(&uorder->dependencies, t);
+  vecnode_push(&uorder->dependencies, DEF(t));
+}
+
+static void need_global(struct useorder *uorder, struct node *node) {
+  assert(node->which == LET);
+  if(xxx) fprintf(stderr, "%s\n", scope_name(node_module_owner_const(node), subs_first(node)));
+  vecnode_push(&uorder->dependencies, node);
 }
 
 static void mark(struct useorder *uorder, struct typ *t, enum mark mk) {
@@ -64,17 +72,16 @@ struct mask_state {
 struct state {
   struct useorder *uorder;
 
-  topdeps_each each;
+  topdeps_td_each each;
   size_t depth;
   struct mask_state *mask_state;
 };
 
-#define DEF(t) typ_definition_ignore_any_overlay_const(t)
-
 static void descend(struct state *st, const struct node *node);
 
 static error fwd_declare_types_each(struct module *mod, struct node *node,
-                                    struct typ *t, uint32_t td, void *user) {
+                                    struct node *d, uint32_t td, void *user) {
+  struct typ *t = d->typ;
   struct state *st = user;
   td &= ~st->mask_state->inv_mask;
 
@@ -95,10 +102,8 @@ static error fwd_declare_types_each(struct module *mod, struct node *node,
 
   mark(st->uorder, t, TEMP);
 
-  const struct node *d = DEF(t);
-  const enum node_which which = d->which;
-
   bool pop_state = false;
+  const enum node_which which = d->which;
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
@@ -136,7 +141,8 @@ static error fwd_declare_types_each(struct module *mod, struct node *node,
 }
 
 static error fwd_define_dyns_each(struct module *mod, struct node *node,
-                                  struct typ *t, uint32_t td, void *user) {
+                                  struct node *d, uint32_t td, void *user) {
+  struct typ *t = d->typ;
   struct state *st = user;
 
   if (st->depth > 0
@@ -158,9 +164,7 @@ static error fwd_define_dyns_each(struct module *mod, struct node *node,
 
   mark(st->uorder, t, TEMP);
 
-  const struct node *d = DEF(t);
   const enum node_which which = d->which;
-
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
@@ -188,7 +192,8 @@ static error fwd_define_dyns_each(struct module *mod, struct node *node,
 }
 
 static error fwd_define_types_each(struct module *mod, struct node *node,
-                                   struct typ *t, uint32_t td, void *user) {
+                                   struct node *d, uint32_t td, void *user) {
+  struct typ *t = d->typ;
   struct state *st = user;
 
     if(xxx)fprintf(stderr, "%.*s %x %s, %s\n", (int)st->depth, spaces, td, pptyp(NULL, t), pptyp(NULL, node->typ));
@@ -226,9 +231,7 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
     return 0;
   }
 
-  const struct node *d = DEF(t);
   const enum node_which which = d->which;
-
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
@@ -268,15 +271,18 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
 }
 
 static error fwd_declare_functions_each(struct module *mod, struct node *node,
-                                        struct typ *t, uint32_t td, void *user) {
+                                        struct node *d, uint32_t td, void *user) {
+  const enum node_which which = d->which;
+  struct typ *t = d->typ;
   struct state *st = user;
 
-  if (!(NM(typ_definition_which(t)) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE)))) {
+  if (!(NM(which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(LET)))) {
     return 0;
   }
 
   if (st->depth > 0
-      && !(td & (TD_FUNBODY_NEEDS_TYPE | TD_DYN_NEEDS_TYPE | TD_FUNBODY_NEEDS_DYNBODY))) {
+      && !(td & (TD_FUNBODY_NEEDS_TYPE | TD_DYN_NEEDS_TYPE | TD_FUNBODY_NEEDS_DYNBODY
+                 | TD_ANY_NEEDS_NODE))) {
     return 0;
   }
 
@@ -284,20 +290,19 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
     return 0;
   }
 
-  const enum mark mk = get_mark(st->uorder, t);
-  if (mk != NONE) {
-    return 0;
+  if (which != LET) {
+    const enum mark mk = get_mark(st->uorder, t);
+    if (mk != NONE) {
+      return 0;
+    }
   }
 
   mark(st->uorder, t, TEMP);
 
-  const struct node *d = DEF(t);
-  const enum node_which which = d->which;
-
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
-    if ((st->depth == 0 || node_is_inline(d)) && (td & TD_FUNBODY_NEEDS_TYPE)) {
+    if (st->depth == 0 || (node_is_inline(d) && (td & TD_FUNBODY_NEEDS_TYPE))) {
       descend(st, d);
     } else if (td & TD_DYN_NEEDS_TYPE) {
       descend(st, d);
@@ -309,8 +314,15 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
       descend(st, d);
     }
     break;
+  case LET:
+    if (subs_first(d)->which == DEFALIAS) {
+      // noop
+    } else if (st->depth == 0 || (td & TD_ANY_NEEDS_NODE)) {
+      need_global(st->uorder, d);
+    }
+    break;
   default:
-    assert(false);
+    break;
   }
 
   need(st->uorder, t);
@@ -320,10 +332,12 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
 }
 
 static error fwd_define_functions_each(struct module *mod, struct node *node,
-                                       struct typ *t, uint32_t td, void *user) {
+                                       struct node *d, uint32_t td, void *user) {
+  const enum node_which which = d->which;
+  struct typ *t = d->typ;
   struct state *st = user;
 
-  if (!(NM(typ_definition_which(t)) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE)))) {
+  if (!(NM(which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE)))) {
     return 0;
   }
 
@@ -343,13 +357,10 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
 
   mark(st->uorder, t, TEMP);
 
-  const struct node *d = DEF(t);
-  const enum node_which which = d->which;
-
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
-    if (st->depth == 0 || node_is_inline(d)) {
+    if (st->depth == 0 || (node_is_inline(d) && (td & TD_FUNBODY_NEEDS_TYPE))) {
       descend(st, d);
       need(st->uorder, t);
     }
@@ -362,7 +373,7 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
     }
     break;
   default:
-    assert(false);
+    break;
   }
 
   mark(st->uorder, t, PERM);
@@ -415,15 +426,16 @@ void useorder_build(struct useorder *uorder, const struct module *mod,
     assert(false);
   }
 
-  FOREACH_SUB_CONST(n, mod->body) {
-    if (NM(n->which) & STEP_NM_HAS_TOPLEVEL) {
-      (void) st.each(CONST_CAST(mod), CONST_CAST(n), n->typ, node_toplevel_const(n)->flags, &st);
+  const uint64_t filter = NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD) | NM(LET);
+  FOREACH_SUB(n, mod->body) {
+    if (NM(n->which) & filter) {
+      (void) st.each(CONST_CAST(mod), n, n, 0, &st);
     }
 
     if (NM(n->which) & NM(DEFTYPE)) {
-      FOREACH_SUB_CONST(m, n) {
-        if (NM(m->which) & STEP_NM_HAS_TOPLEVEL) {
-          (void) st.each(CONST_CAST(mod), CONST_CAST(m), m->typ, node_toplevel_const(m)->flags, &st);
+      FOREACH_SUB(m, n) {
+        if (NM(m->which) & filter) {
+          (void) st.each(CONST_CAST(mod), m, m, 0, &st);
         }
       }
     }
@@ -431,12 +443,14 @@ void useorder_build(struct useorder *uorder, const struct module *mod,
 }
 
 void debug_useorder_print(struct useorder *uorder) {
-  for (size_t n = 0, count = vectyp_count(&uorder->dependencies); n < count; ++n) {
-    struct typ **t = vectyp_get(&uorder->dependencies, n);
-    if (*t != NULL) {
-      fprintf(stderr, "%s\n", pptyp(uorder->mod, *t));
+  for (size_t n = 0, count = vecnode_count(&uorder->dependencies); n < count; ++n) {
+    struct node **node = vecnode_get(&uorder->dependencies, n);
+    if (*node != NULL) {
+      fprintf(stderr, "%s :%s\n",
+              (*node)->which == LET ? scope_name(uorder->mod, subs_first(*node)) : "",
+              pptyp(uorder->mod, (*node)->typ));
     }
   }
   fprintf(stderr, "-- %s %d %s %zu\n", uorder->mod->filename, uorder->header,
-          forward_guards[uorder->fwd], vectyp_count(&uorder->dependencies));
+          forward_guards[uorder->fwd], vecnode_count(&uorder->dependencies));
 }

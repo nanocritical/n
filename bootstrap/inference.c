@@ -2688,10 +2688,12 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
   node->as.IDENT.def = def;
   if (def->flags & NODE_IS_GLOBAL_LET) {
     node->as.IDENT.non_local_scoper = nparent(def, 2);
+    topdeps_record_global(mod, def);
   } else if (def->which == WITHIN) {
     node->as.IDENT.non_local_scoper = def->as.WITHIN.globalenv_scoper;
   } else if (def->which == DEFCHOICE) {
     node->as.IDENT.non_local_scoper = typ_definition_ignore_any_overlay(def->typ);
+    topdeps_record_global(mod, def);
   }
 
   if (typ_is_function(def->typ) && node->typ != TBI__CALL_FUNCTION_SLOT) {
@@ -2769,6 +2771,8 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
                     " must point to a globalenv declaration");
       THROW(e);
     }
+
+    topdeps_record_global(mod, def);
 
     node->as.WITHIN.globalenv_scoper = modbody->as.MODULE_BODY.globalenv_scoper;
   } else if (node->which == IDENT) {
