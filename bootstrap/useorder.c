@@ -309,9 +309,10 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
-    if (st->depth == 0
-        || node_is_inline(d)
-        || (td & (TD_FUNBODY_NEEDS_TYPE | TD_DYN_NEEDS_TYPE))) {
+    if ((st->depth == 0 || node_is_inline(d))
+        && (td & TD_FUNBODY_NEEDS_TYPE)) {
+      descend(st, d);
+    } else if (td & TD_DYN_NEEDS_TYPE) {
       descend(st, d);
     }
     break;
