@@ -667,6 +667,7 @@ static ERROR insert_dyn(struct node **src,
                         struct module *mod, struct node *node,
                         struct typ *target) {
   topdeps_record_dyn(mod, (*src)->typ);
+  topdeps_record_mkdyn(mod, typ_generic_arg((*src)->typ, 0));
   topdeps_record_dyn(mod, target);
 
   struct node *d = mk_node(mod, node, DYN);

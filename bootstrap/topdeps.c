@@ -13,7 +13,7 @@ struct snapshot {
   struct node *top;
   struct node *exportable;
   bool in_fun_in_block;
-  bool for_dyn;
+  uint32_t for_dyn;
 };
 
 VECTOR(vecsnapshot, struct snapshot, 4);
@@ -66,6 +66,7 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
   }
 
   uint32_t td = 0;
+  td |= snap->for_dyn;
 
   struct toplevel *toplevel = node_toplevel(top);
   const uint32_t top_flags = toplevel->flags;
@@ -83,14 +84,10 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
   case DEFTYPE:
     if (within_exportable_field && snap->exportable->typ == t) {
       td = (is_ref || is_intf) ? TD_TYPEBODY_NEEDS_TYPE : TD_TYPEBODY_NEEDS_TYPEBODY;
-    } else if (snap->for_dyn) {
-      td = TD_DYN_NEEDS_TYPE;
+      td |= is_dyn ? TD_TYPEBODY_NEEDS_DYN : 0;
     }
     break;
   case DEFINTF:
-    if (snap->for_dyn) {
-      td = TD_DYN_NEEDS_TYPE;
-    }
     break;
   case LET:
     if (subs_first_const(top)->which == DEFNAME) {
@@ -101,6 +98,7 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
   case DEFMETHOD:
     if (snap->in_fun_in_block) {
       td = (is_ref || is_fun) ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;
+      td |= is_dyn ? TD_FUNBODY_NEEDS_DYN : 0;
     } else {
       td = (is_ref || is_fun) ? TD_FUN_NEEDS_TYPE : TD_FUN_NEEDS_TYPEBODY;
     }
@@ -298,7 +296,7 @@ static void record_tentative(struct module *mod, struct snapshot *snap) {
   vecsnapshot_push(&toplevel->topdeps->tentatives, *snap);
 }
 
-static void do_topdeps_record(struct module *mod, struct typ *t, bool for_dyn) {
+static void do_topdeps_record(struct module *mod, struct typ *t, uint32_t for_dyn) {
   struct top_state *st = mod->state->top_state;
   if (st == NULL
       || typ_definition_which(t) == MODULE) {
@@ -322,31 +320,31 @@ static void do_topdeps_record(struct module *mod, struct typ *t, bool for_dyn) {
 }
 
 void topdeps_record(struct module *mod, struct typ *t) {
-  do_topdeps_record(mod, t, false);
+  do_topdeps_record(mod, t, 0);
 }
 
 static ERROR add_dyn_topdep_each(struct module *mod, struct typ *t, struct typ *intf,
                                  bool *stop, void *user) {
-  do_topdeps_record(mod, intf, true);
+  do_topdeps_record(mod, intf, TD_DYN_NEEDS_TYPE);
 
   struct tit *m = typ_definition_members(t, DEFFUN, DEFMETHOD, 0);
   while (tit_next(m)) {
     struct typ *mt = tit_typ(m);
-    do_topdeps_record(mod, mt, true);
+    do_topdeps_record(mod, mt, TD_DYN_NEEDS_TYPE);
   }
 
   struct typ *r = NULL;
   error e = reference(&r, mod, NULL, TREFDOT, intf);
   assert(!e);
-  do_topdeps_record(mod, r, true);
+  do_topdeps_record(mod, r, TD_DYN_NEEDS_TYPE);
 
   e = reference(&r, mod, NULL, TREFBANG, intf);
   assert(!e);
-  do_topdeps_record(mod, r, true);
+  do_topdeps_record(mod, r, TD_DYN_NEEDS_TYPE);
 
   e = reference(&r, mod, NULL, TREFSHARP, intf);
   assert(!e);
-  do_topdeps_record(mod, r, true);
+  do_topdeps_record(mod, r, TD_DYN_NEEDS_TYPE);
   return 0;
 }
 
@@ -358,6 +356,10 @@ void topdeps_record_dyn(struct module *mod, struct typ *t) {
   error never = typ_isalist_foreach(mod, t, ISALIST_FILTEROUT_PREVENT_DYN,
                                     add_dyn_topdep_each, NULL);
   assert(!never);
+}
+
+void topdeps_record_mkdyn(struct module *mod, struct typ *t) {
+  do_topdeps_record(mod, t, TD_FUNBODY_NEEDS_DYNBODY);
 }
 
 error topdeps_foreach(struct module *mod, struct node *node,

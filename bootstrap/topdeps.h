@@ -11,12 +11,16 @@ enum topdep {
   TD_FUN_NEEDS_TYPEBODY = 0x10 | TD_FUN_NEEDS_TYPE,
   TD_FUNBODY_NEEDS_TYPE = 0x20,
   TD_FUNBODY_NEEDS_TYPEBODY = 0x40 | TD_FUNBODY_NEEDS_TYPE,
+  TD_TYPEBODY_NEEDS_DYN = 0x80,
+  TD_FUNBODY_NEEDS_DYN = 0x100,
+  TD_FUNBODY_NEEDS_DYNBODY = 0x200,
 };
 
 struct topdeps;
 
 void topdeps_record(struct module *mod, struct typ *t);
 void topdeps_record_dyn(struct module *mod, struct typ *t);
+void topdeps_record_mkdyn(struct module *mod, struct typ *t);
 
 typedef error (*topdeps_each)(struct module *mod, struct node *node,
                               struct typ *t, uint32_t topdep_mask, void *user);

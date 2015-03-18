@@ -29,7 +29,11 @@ void useorder_destroy(struct useorder *uorder) {
   memset(uorder, 0, sizeof(*uorder));
 }
 
+static bool xxx;
+static const char spaces[80] = "                                                                                ";
+
 static void need(struct useorder *uorder, struct typ *t) {
+  if(xxx) fprintf(stderr, "%s\n", pptyp(NULL, t));
   enum mark *mk = fintypset_get(&uorder->marks, t);
   if (mk != NULL && *mk == PERM) {
     return;
@@ -65,9 +69,6 @@ struct state {
   struct mask_state *mask_state;
 };
 
-static bool xxx;
-static const char spaces[80] = "                                                                                ";
-
 #define DEF(t) typ_definition_ignore_any_overlay_const(t)
 
 static void descend(struct state *st, const struct node *node);
@@ -94,23 +95,14 @@ static error fwd_declare_types_each(struct module *mod, struct node *node,
 
   mark(st->uorder, t, TEMP);
 
-  enum node_which which = typ_definition_which(t);
-  if (NM(which) & (NM(DEFTYPE) | NM(DEFINTF))) {
-    if(xxx) fprintf(stderr, "%.*s %s %x\n", (int)st->depth, spaces, pptyp(NULL, t), td);
-  } else {
-    if(xxx) fprintf(stderr, "%x\n", td);
-  }
+  const struct node *d = DEF(t);
+  const enum node_which which = d->which;
 
   bool pop_state = false;
-  const struct node *d = DEF(t);
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
-    if (td & TD_DYN_NEEDS_TYPE) {
-      descend(st, d);
-    } else if (st->depth == 0 || node_is_inline(d)) {
-      descend(st, d);
-    }
+    descend(st, d);
     break;
   case DEFTYPE:
     descend(st, d);
@@ -149,7 +141,8 @@ static error fwd_define_dyns_each(struct module *mod, struct node *node,
 
   if (st->depth > 0
       && !(td & (TD_DYN_NEEDS_TYPE | TD_TYPEBODY_NEEDS_TYPE
-                 | TD_FUN_NEEDS_TYPE | TD_FUNBODY_NEEDS_TYPE))) {
+                 | TD_FUN_NEEDS_TYPE | TD_FUNBODY_NEEDS_TYPE
+                 | TD_TYPEBODY_NEEDS_DYN | TD_FUNBODY_NEEDS_DYN))) {
 
     return 0;
   }
@@ -165,12 +158,8 @@ static error fwd_define_dyns_each(struct module *mod, struct node *node,
 
   mark(st->uorder, t, TEMP);
 
-  enum node_which which = typ_definition_which(t);
-  if (NM(which) & (NM(DEFTYPE) | NM(DEFINTF))) {
-    if(xxx) fprintf(stderr, "%.*s %s %x\n", (int)st->depth, spaces, pptyp(NULL, t), td);
-  } else {
-    if(xxx) fprintf(stderr, "%x\n", td);
-  }
+  const struct node *d = DEF(t);
+  const enum node_which which = d->which;
 
   switch (which) {
   case DEFFUN:
@@ -178,8 +167,10 @@ static error fwd_define_dyns_each(struct module *mod, struct node *node,
     descend(st, DEF(t));
     break;
   case DEFTYPE:
-    if (st->depth == 0 && (td & TD_DYN_NEEDS_TYPE) != td) {
-      descend(st, DEF(t));
+    if (st->depth == 0) {
+      descend(st, d);
+    } else if (td & (TD_TYPEBODY_NEEDS_TYPEBODY | TD_FUN_NEEDS_TYPEBODY | TD_FUNBODY_NEEDS_TYPEBODY)) {
+      descend(st, d);
     }
     break;
   default:
@@ -187,7 +178,8 @@ static error fwd_define_dyns_each(struct module *mod, struct node *node,
     break;
   }
 
-  if (NM(which) & (NM(DEFTYPE) | NM(DEFINTF))) {
+  if ((td & (TD_DYN_NEEDS_TYPE | TD_TYPEBODY_NEEDS_DYN | TD_FUNBODY_NEEDS_DYN))
+       && (NM(which) & (NM(DEFTYPE) | NM(DEFINTF)))) {
     need(st->uorder, t);
   }
   mark(st->uorder, t, PERM);
@@ -198,6 +190,8 @@ static error fwd_define_dyns_each(struct module *mod, struct node *node,
 static error fwd_define_types_each(struct module *mod, struct node *node,
                                    struct typ *t, uint32_t td, void *user) {
   struct state *st = user;
+
+    if(xxx)fprintf(stderr, "%.*s %x %s, %s\n", (int)st->depth, spaces, td, pptyp(NULL, t), pptyp(NULL, node->typ));
 
   if (st->mask_state->inline_typebody) {
     if (st->depth > 0
@@ -232,14 +226,9 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
     return 0;
   }
 
-  if (NM(typ_definition_which(t)) & (NM(DEFTYPE) | NM(DEFINTF))) {
-    if(xxx) fprintf(stderr, "%.*s %s %x\n", (int)st->depth, spaces, pptyp(NULL, t), td);
-  } else {
-    if(xxx) fprintf(stderr, "passing %.*s %s %x\n", (int)st->depth, spaces, pptyp(NULL, t), td);
-  }
-
   const struct node *d = DEF(t);
-  enum node_which which = d->which;
+  const enum node_which which = d->which;
+
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
@@ -270,7 +259,7 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
     POP_STATE(st->mask_state);
   }
 
-  if (NM(typ_definition_which(t)) & (NM(DEFTYPE) | NM(DEFINTF))) {
+  if (NM(which) & (NM(DEFTYPE) | NM(DEFINTF))) {
     need(st->uorder, t);
   }
   mark(st->uorder, t, PERM);
@@ -287,7 +276,7 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
   }
 
   if (st->depth > 0
-      && !(td & (TD_FUNBODY_NEEDS_TYPE | TD_DYN_NEEDS_TYPE))) {
+      && !(td & (TD_FUNBODY_NEEDS_TYPE | TD_DYN_NEEDS_TYPE | TD_FUNBODY_NEEDS_DYNBODY))) {
     return 0;
   }
 
@@ -303,14 +292,12 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
   mark(st->uorder, t, TEMP);
 
   const struct node *d = DEF(t);
-  enum node_which which = d->which;
-  if(xxx) fprintf(stderr, "%.*s %s %x\n", (int)st->depth, spaces, pptyp(NULL, t), td);
+  const enum node_which which = d->which;
 
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
-    if ((st->depth == 0 || node_is_inline(d))
-        && (td & TD_FUNBODY_NEEDS_TYPE)) {
+    if ((st->depth == 0 || node_is_inline(d)) && (td & TD_FUNBODY_NEEDS_TYPE)) {
       descend(st, d);
     } else if (td & TD_DYN_NEEDS_TYPE) {
       descend(st, d);
@@ -318,7 +305,7 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
     break;
   case DEFTYPE:
     if ((st->depth == 0 || node_is_inline(d))
-        && (td & (TD_FUNBODY_NEEDS_TYPEBODY | TD_TYPEBODY_NEEDS_TYPEBODY))) {
+        && (td & TD_FUNBODY_NEEDS_DYNBODY)) {
       descend(st, d);
     }
     break;
@@ -341,7 +328,7 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
   }
 
   if (st->depth > 0
-      && !(td & (TD_FUNBODY_NEEDS_TYPE | TD_TYPEBODY_NEEDS_TYPEBODY))) {
+      && !(td & (TD_FUNBODY_NEEDS_TYPE | TD_TYPEBODY_NEEDS_TYPEBODY | TD_FUNBODY_NEEDS_DYNBODY))) {
     return 0;
   }
 
@@ -357,10 +344,7 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
   mark(st->uorder, t, TEMP);
 
   const struct node *d = DEF(t);
-  enum node_which which = d->which;
-  if (st->depth == 0 || node_is_inline(d)) {
-    if(xxx) fprintf(stderr, "%.*s %s %x\n", (int)st->depth, spaces, pptyp(NULL, t), td);
-  }
+  const enum node_which which = d->which;
 
   switch (which) {
   case DEFFUN:
@@ -372,11 +356,10 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
     break;
   case DEFTYPE:
     if ((st->depth == 0 || node_is_inline(d))
-        && (td & (TD_FUNBODY_NEEDS_TYPEBODY | TD_TYPEBODY_NEEDS_TYPEBODY))) {
-      if(xxx) fprintf(stderr, "%.*s %s %x\n", (int)st->depth, spaces, pptyp(NULL, t), td);
+        && (td & TD_FUNBODY_NEEDS_DYNBODY)) {
       descend(st, d);
+      need(st->uorder, t);
     }
-    need(st->uorder, t);
     break;
   default:
     assert(false);

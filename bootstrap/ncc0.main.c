@@ -20,7 +20,7 @@ struct opt {
 
 static struct opt g_opt;
 
-#define CFLAGS "-Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g"
+#define CFLAGS "-Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g -Wno-unused-function"
 #define LDFLAGS CFLAGS " -Wl,--gc-sections"
 
 static ERROR sh(const char *cmd) {

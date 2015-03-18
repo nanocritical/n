@@ -2551,6 +2551,10 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
     }
   }
 
+  FOREACH_SUB(arg, node) {
+    topdeps_record(mod, arg->typ);
+  }
+
   struct typ **ft = typ_permanent_loc(fun->typ);
   e = link_wildcard_generics(mod, *ft, node);
   EXCEPT(e);
