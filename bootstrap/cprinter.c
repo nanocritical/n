@@ -3009,6 +3009,7 @@ static void print_import(FILE *out, bool header, enum forward fwd,
     return;
   }
 
+#if 0
   if (fwd == FWD_DEFINE_TYPES) {
     const bool is_inline = !!(node_toplevel_const(node)->flags & TOP_IS_INLINE);
     if (!non_inline_deps && !is_inline) {
@@ -3017,6 +3018,7 @@ static void print_import(FILE *out, bool header, enum forward fwd,
       return;
     }
   }
+#endif
 
   print_include(out, target->as.MODULE.mod->filename, ".o.h");
 }
@@ -3223,9 +3225,7 @@ static void print_mod_includes(FILE *out, bool header, const struct module *mod)
       print_include(out, mod->filename, ".h");
     }
   } else {
-    if (file_exists(mod->filename, ".h")) {
-      print_include(out, mod->filename, ".h");
-    }
+    print_include(out, mod->filename, ".o.h");
     if (file_exists(mod->filename, ".c")) {
       print_include(out, mod->filename, ".c");
     }
@@ -3282,7 +3282,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       struct useorder uorder = { 0 };
       useorder_build(&uorder, mod, header, fwd);
       fprintf(stderr, "%d %s\n", header, mod->filename);
-      if (!header && strcmp(mod->filename, "lib/n/time/time.n")==0) {
+      if (!header && strcmp(mod->filename, "lib/n/reflect/reflect.n")==0) {
         debug_useorder_print(&uorder);
       }
 
@@ -3343,7 +3343,6 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
         }
       }
     }
-#endif
 
     if (header) {
       fprintf(out, "\n#endif\n");
@@ -3365,6 +3364,12 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
         fprintf(out, "\n#  undef %s\n# endif\n", forward_guards[fwd]);
         fprintf(out, "# define %s\n#endif\n\n", forward_guards[FWD_DEFINE_FUNCTIONS]);
       }
+    } else {
+    }
+#endif
+    if (header) {
+      fprintf(out, "\n#endif\n");
+      fprintf(out, "#endif // %s\n", forward_guards[fwd]);
     } else {
       fprintf(out, "#undef %s\n", forward_guards[fwd]);
     }

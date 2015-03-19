@@ -204,6 +204,7 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
                                    struct node *d, uint32_t td, void *user) {
   struct state *st = user;
   const bool is_at_top = at_top(st, d);
+  const enum node_which which = d->which;
   struct typ *t = d->typ;
 
   if (st->mask_state->inline_typebody) {
@@ -237,16 +238,19 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
   mark(st->uorder, t, td);
 
   if (td & TD_TYPEBODY_NEEDS_TYPEBODY) {
+    // First we'll gather inline field dependencies.
     pop_state = true;
     PUSH_STATE(st->mask_state);
     st->mask_state->inline_typebody = true;
   }
 
-  const enum node_which which = d->which;
+again:
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
-    if (is_at_top || node_is_inline(d)) {
+    if (st->mask_state->inline_typebody) {
+      // noop
+    } else if (is_at_top || node_is_inline(d)) {
       descend(st, d);
     }
     break;
@@ -262,12 +266,14 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
     break;
   }
 
-  if (pop_state) {
-    POP_STATE(st->mask_state);
-  }
-
   if (NM(which) & (NM(DEFTYPE) | NM(DEFINTF))) {
     need(st->uorder, d);
+  }
+
+  if (pop_state) {
+    POP_STATE(st->mask_state);
+    pop_state = false;
+    goto again;
   }
 
   return 0;
@@ -392,7 +398,7 @@ static void descend(struct state *st, const struct node *node) {
 
 void useorder_build(struct useorder *uorder, const struct module *mod,
                     bool header, enum forward fwd) {
-  xxx = strcmp(mod->filename, "lib/n/time/time.n")==0;
+  xxx = strcmp(mod->filename, "lib/n/reflect/reflect.n")==0;
 
   init(uorder, mod);
   uorder->header = header;
