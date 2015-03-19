@@ -3,6 +3,7 @@
 #include "passes.h"
 #include "parser.h"
 #include "types.h"
+#include "topdeps.h"
 
 struct phi_tracker_state *get_phi_tracker(struct node *def) {
   switch (def->which) {
@@ -563,6 +564,8 @@ error step_ident_non_local_scope(struct module *mod, struct node *node,
 
       e = track_ident_use(mod, node);
       assert(!e);
+
+      topdeps_record_global(mod, def);
     }
   }
   return 0;

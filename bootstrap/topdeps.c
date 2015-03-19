@@ -91,8 +91,7 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
     return;
   }
 
-  uint32_t td = 0;
-  td |= snap->for_dyn;
+  uint32_t td = snap->for_dyn;
 
   struct toplevel *toplevel = node_toplevel(top);
   const uint32_t top_flags = toplevel->flags;
@@ -109,7 +108,7 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
   switch (top->which) {
   case DEFTYPE:
     if (within_exportable_field && snap->exportable->typ == t) {
-      td = (is_ref || is_intf) ? TD_TYPEBODY_NEEDS_TYPE : TD_TYPEBODY_NEEDS_TYPEBODY;
+      td |= (is_ref || is_intf) ? TD_TYPEBODY_NEEDS_TYPE : TD_TYPEBODY_NEEDS_TYPEBODY;
       td |= is_dyn ? TD_TYPEBODY_NEEDS_DYN : 0;
     }
     break;
@@ -117,16 +116,16 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
     break;
   case LET:
     if (subs_first_const(top)->which == DEFNAME) {
-      td = is_ref ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;
+      td |= is_ref ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;
     }
     break;
   case DEFFUN:
   case DEFMETHOD:
     if (snap->in_fun_in_block) {
-      td = (is_ref || is_fun) ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;
+      td |= (is_ref || is_fun) ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;
       td |= is_dyn ? TD_FUNBODY_NEEDS_DYN : 0;
     } else {
-      td = (is_ref || is_fun) ? TD_FUN_NEEDS_TYPE : TD_FUN_NEEDS_TYPEBODY;
+      td |= (is_ref || is_fun) ? TD_FUN_NEEDS_TYPE : TD_FUN_NEEDS_TYPEBODY;
     }
     break;
   default:
@@ -365,6 +364,8 @@ static ERROR add_dyn_topdep_each(struct module *mod, struct typ *t, struct typ *
 void topdeps_record_dyn(struct module *mod, struct typ *t) {
   if (typ_is_reference(t)) {
     t = typ_generic_arg(t, 0);
+
+    do_topdeps_record(mod, t, TD_DYN_NEEDS_TYPE);
   }
 
   error never = typ_isalist_foreach(mod, t, ISALIST_FILTEROUT_PREVENT_DYN,
@@ -500,6 +501,10 @@ static ERROR print_topdeps_each_td(struct module *mod, struct node *node,
   struct typ *t = d->typ;
   if (typ_was_zeroed(t)) {
     return 0;
+  }
+
+  if (d->which == LET) {
+    t = subs_first(d)->typ;
   }
 
   fprintf(stderr, "\t%04x %d %zu %s :%s @%p\n",

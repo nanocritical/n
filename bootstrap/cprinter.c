@@ -3282,7 +3282,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       struct useorder uorder = { 0 };
       useorder_build(&uorder, mod, header, fwd);
       fprintf(stderr, "%d %s\n", header, mod->filename);
-      if (!header && strcmp(mod->filename, "lib/n/crypto/rand/rand.n")==0) {
+      if (!header && strcmp(mod->filename, "lib/n/fmt/fmt.n")==0) {
         debug_useorder_print(&uorder);
       }
 

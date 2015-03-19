@@ -2693,7 +2693,6 @@ static ERROR type_inference_ident(struct module *mod, struct node *node) {
     node->as.IDENT.non_local_scoper = def->as.WITHIN.globalenv_scoper;
   } else if (def->which == DEFCHOICE) {
     node->as.IDENT.non_local_scoper = typ_definition_ignore_any_overlay(def->typ);
-    topdeps_record_global(mod, def);
   }
 
   if (typ_is_function(def->typ) && node->typ != TBI__CALL_FUNCTION_SLOT) {
@@ -2772,6 +2771,7 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
       THROW(e);
     }
 
+    topdeps_record_dyn(mod, def->typ);
     topdeps_record_global(mod, def);
 
     node->as.WITHIN.globalenv_scoper = modbody->as.MODULE_BODY.globalenv_scoper;
