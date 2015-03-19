@@ -1397,6 +1397,10 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
   } else {
     set_typ(&node->typ, tfield);
     node->flags = tit_node_flags(field);
+
+    if (tit_which(field) == DEFNAME) {
+      topdeps_record_global(mod, tit_node_ignore_any_overlay(field));
+    }
   }
 
   if (!(node->flags & NODE_IS_TYPE)) {

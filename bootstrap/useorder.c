@@ -206,8 +206,6 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
   const bool is_at_top = at_top(st, d);
   struct typ *t = d->typ;
 
-  DEBUG_IF_IDENT(mod, "fmt.n", d, "Width") debug_print_topdeps_td(mod, node);
-
   if (st->mask_state->inline_typebody) {
     if (!is_at_top
         && !(td & (TD_TYPEBODY_NEEDS_TYPEBODY))) {
@@ -394,7 +392,7 @@ static void descend(struct state *st, const struct node *node) {
 
 void useorder_build(struct useorder *uorder, const struct module *mod,
                     bool header, enum forward fwd) {
-  xxx = strcmp(mod->filename, "lib/n/fmt/fmt.n")==0;
+  xxx = strcmp(mod->filename, "lib/n/time/time.n")==0;
 
   init(uorder, mod);
   uorder->header = header;
