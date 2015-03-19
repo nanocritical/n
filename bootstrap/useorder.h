@@ -16,6 +16,7 @@ extern const char *forward_guards[];
 
 struct useorder {
   struct vecnode dependencies;
+  struct nodeset globals;
   struct fintypset marks;
   const struct module *mod;
   bool header;

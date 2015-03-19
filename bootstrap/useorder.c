@@ -17,12 +17,14 @@ enum {
 static void init(struct useorder *uorder, const struct module *mod) {
   memset(uorder, 0, sizeof(*uorder));
   fintypset_fullinit(&uorder->marks);
+  nodeset_init(&uorder->globals, 0);
   uorder->mod = mod;
 }
 
 void useorder_destroy(struct useorder *uorder) {
   vecnode_destroy(&uorder->dependencies);
   fintypset_destroy(&uorder->marks);
+  nodeset_destroy(&uorder->globals);
   memset(uorder, 0, sizeof(*uorder));
 }
 
@@ -63,7 +65,13 @@ static void need(struct useorder *uorder, struct node *d) {
 
 static void need_global(struct useorder *uorder, struct node *node) {
   assert(node->which == LET);
-  if(xxx) fprintf(stderr, "need %s\n", scope_name(node_module_owner_const(node), subs_first(node)));
+  uint32_t *has = nodeset_get(&uorder->globals, node);
+  if (has != NULL && *has) {
+    return;
+  }
+
+  if(xxx) fprintf(stderr, "need_global %s\n", scope_name(node_module_owner_const(node), subs_first(node)));
+  nodeset_set(&uorder->globals, node, 1);
   vecnode_push(&uorder->dependencies, node);
 }
 
@@ -107,7 +115,7 @@ static error fwd_declare_types_each(struct module *mod, struct node *node,
     return 0;
   }
 
-  if (fully_marked(st->uorder, t, td)) {
+  if (d->which != LET && fully_marked(st->uorder, t, td)) {
     return 0;
   }
   mark(st->uorder, t, td);
@@ -115,6 +123,13 @@ static error fwd_declare_types_each(struct module *mod, struct node *node,
   bool pop_state = false;
   const enum node_which which = d->which;
   switch (which) {
+  case LET:
+    if (is_at_top) {
+      struct node *dd = DEF(subs_first(d)->typ);
+      descend(st, dd);
+      need(st->uorder, dd);
+    }
+    break;
   case DEFFUN:
   case DEFMETHOD:
     descend(st, d);
@@ -232,7 +247,7 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
     assert(!(td & TD_TYPEBODY_NEEDS_TYPEBODY) && "cycle");
   }
 #endif
-  if (fully_marked(st->uorder, t, td)) {
+  if (d->which != LET && fully_marked(st->uorder, t, td)) {
     return 0;
   }
   mark(st->uorder, t, td);
@@ -246,6 +261,13 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
 
 again:
   switch (which) {
+  case LET:
+    if (is_at_top) {
+      struct node *dd = DEF(subs_first(d)->typ);
+      descend(st, dd);
+      need(st->uorder, dd);
+    }
+    break;
   case DEFFUN:
   case DEFMETHOD:
     if (st->mask_state->inline_typebody) {
@@ -344,12 +366,13 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
   const enum node_which which = d->which;
   struct typ *t = d->typ;
 
-  if (!(NM(which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE)))) {
+  if (!(NM(which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(LET)))) {
     return 0;
   }
 
   if (!is_at_top
-      && !(td & (TD_FUNBODY_NEEDS_TYPE | TD_TYPEBODY_NEEDS_TYPEBODY | TD_FUNBODY_NEEDS_DYNBODY))) {
+      && !(td & (TD_FUNBODY_NEEDS_TYPE | TD_TYPEBODY_NEEDS_TYPEBODY
+                 | TD_FUNBODY_NEEDS_DYNBODY | TD_ANY_NEEDS_NODE))) {
     return 0;
   }
 
@@ -376,6 +399,13 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
       need(st->uorder, d);
     }
     break;
+  case LET:
+    if (subs_first(d)->which == DEFALIAS) {
+      // noop
+    } else if (is_at_top || (td & TD_ANY_NEEDS_NODE)) {
+      need_global(st->uorder, d);
+    }
+    break;
   default:
     break;
   }
@@ -398,7 +428,7 @@ static void descend(struct state *st, const struct node *node) {
 
 void useorder_build(struct useorder *uorder, const struct module *mod,
                     bool header, enum forward fwd) {
-  xxx = strcmp(mod->filename, "lib/n/reflect/reflect.n")==0;
+  xxx = strcmp(mod->filename, "lib/n/io/io.n")==0;
 
   init(uorder, mod);
   uorder->header = header;
@@ -430,14 +460,14 @@ void useorder_build(struct useorder *uorder, const struct module *mod,
 
   const uint64_t filter = NM(DEFTYPE) | NM(DEFINTF) | NM(DEFFUN) | NM(DEFMETHOD) | NM(LET);
   FOREACH_SUB(n, mod->body) {
-    if (NM(n->which) & filter) {
+    if ((NM(n->which) & filter) && typ_is_concrete(n->typ)) {
       (void) st.each(CONST_CAST(mod), n, n, 0, &st);
-    }
 
-    if (NM(n->which) & NM(DEFTYPE)) {
-      FOREACH_SUB(m, n) {
-        if (NM(m->which) & filter) {
-          (void) st.each(CONST_CAST(mod), m, m, 0, &st);
+      if (NM(n->which) & NM(DEFTYPE)) {
+        FOREACH_SUB(m, n) {
+          if ((NM(m->which) & filter) && typ_is_concrete(m->typ)) {
+            (void) st.each(CONST_CAST(mod), m, m, 0, &st);
+          }
         }
       }
     }

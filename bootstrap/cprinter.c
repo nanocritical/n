@@ -207,9 +207,13 @@ static void print_token(FILE *out, enum token_type t) {
   fprintf(out, "%s", c_token_strings[t]);
 }
 
-static bool is_in_topmost_module(const struct typ *t) {
-  const struct module *mod = node_module_owner_const(DEF(t));
+static bool is_in_topmost_module(const struct node *node) {
+  const struct module *mod = node_module_owner_const(node);
   return mod->stage->printing_mod == mod;
+}
+
+static bool is_in_topmost_module_typ(const struct typ *t) {
+  return is_in_topmost_module(DEF(t));
 }
 
 static void bare_print_typ(FILE *out, const struct module *mod, const struct typ *typ);
@@ -1339,6 +1343,7 @@ static void forward_declare(FILE *out, const struct module *mod,
 }
 
 static void print_defname_linkage(FILE *out, bool header, enum forward fwd,
+                                  const struct module *mod,
                                   const struct node *let,
                                   const struct node *node,
                                   bool will_define) {
@@ -1434,13 +1439,14 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
 
   const struct node *par = parent_const(let);
   const bool in_gen = !node_is_at_top(let) && typ_generic_arity(par->typ) > 0;
+  const bool difft_mod = !is_in_topmost_module(let);
   const bool will_define = fwd == FWD_DEFINE_FUNCTIONS
-    && (!header || in_gen || node_is_export(let) || node_is_inline(let))
+    && (!difft_mod || in_gen || node_is_export(let) || node_is_inline(let))
     && !(node_toplevel_const(let)->flags & TOP_IS_EXTERN);
 
   const bool is_void = typ_equal(node->typ, TBI_VOID);
   if (!is_void) {
-    print_defname_linkage(out, header, fwd, let, node, will_define);
+    print_defname_linkage(out, difft_mod, fwd, mod, let, node, will_define);
 
     if (node->as.DEFNAME.may_be_unused) {
       fprintf(out, UNUSED " ");
@@ -2054,9 +2060,7 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
 
   if (fwd == FWD_DEFINE_FUNCTIONS) {
     if (node_is_extern(node)) {
-      if (header == node_is_inline(node)) {
-        print_deffun_dynwrapper(out, header, fwd, mod, node);
-      }
+      print_deffun_dynwrapper(out, header, fwd, mod, node);
       return;
     } else if (node_is_prototype(node)) {
       return;
@@ -3086,7 +3090,7 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
   if (typ_was_zeroed(_t)
       || (typ_is_reference(_t) && DEF(_t)->which == DEFINTF)
       || typ_is_generic_functor(_t)
-      || (typ_generic_arity(_t) == 0 && !is_in_topmost_module(_t)
+      || (typ_generic_arity(_t) == 0 && !is_in_topmost_module_typ(_t)
           && (typ_toplevel_flags(_t) & TOP_IS_EXPORT))
       || typ_is_tentative(_t)) {
     return 0;
@@ -3097,7 +3101,7 @@ static ERROR print_topdeps_each(struct module *mod, struct node *node,
       && !st->force
       && ((typ_is_function(t) && !(topdep_mask & TOP_IS_INLINE))
           || (topdep_mask & (TOP_IS_INLINE | TOP_IS_EXPORT)) == 0)
-      && !(!is_in_topmost_module(node->typ) && (topdep_mask & TOP__TOPDEP_INLINE_STRUCT))) {
+      && !(!is_in_topmost_module_typ(node->typ) && (topdep_mask & TOP__TOPDEP_INLINE_STRUCT))) {
     return 0;
   }
 
@@ -3282,7 +3286,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       struct useorder uorder = { 0 };
       useorder_build(&uorder, mod, header, fwd);
       fprintf(stderr, "%d %s\n", header, mod->filename);
-      if (!header && strcmp(mod->filename, "lib/n/reflect/reflect.n")==0) {
+      if (!header && strcmp(mod->filename, "lib/n/io/io.n")==0) {
         debug_useorder_print(&uorder);
       }
 
@@ -3290,13 +3294,6 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
         const struct node *node = *vecnode_get(&uorder.dependencies, n);
         print_top(out, header, fwd, node_module_owner_const(node), node, &printed, false);
         fprintf(out, "\n");
-      }
-
-      FOREACH_SUB_CONST(node, mod->body) {
-        if (node->which == LET && subs_first_const(node)->which == DEFNAME) {
-          print_top(out, header, fwd, mod, node, &printed, false);
-          fprintf(out, "\n");
-        }
       }
 
       useorder_destroy(&uorder);

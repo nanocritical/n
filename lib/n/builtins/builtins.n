@@ -1921,3 +1921,7 @@ inline fun Invariant__ cond:Bool ?_Ncodeloc:?*Codeloc
 
 fun Break
 	return
+
+let sysheap:mem.Sysheap
+fun ensure_visible_sysheap_dyn = *`Heap
+	return *sysheap
