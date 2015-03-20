@@ -1,0 +1,34 @@
+from n import *
+
+-- Internalized strings.
+--
+-- Strings are represented as a U32, the strings are copied in a stable
+-- location in Store.
+
+inline struct Istring =
+	idx	:U32
+
+inline struct Store =
+	by_idx	:(Buf Stringbuf)
+	by_s	:(Map Stringbuf U32)
+
+Store met! Add s:String = Istring
+	let tmp:Stringbuf such tmp#Cat s
+	let added, p_idx = self!by_s#Try_store tmp
+	if not added
+		return {idx=p_idx*}
+
+	assert self.by_idx.Count < U32.MAX.Uint
+	p_idx# = self.by_idx.Count.Trim_u32
+	self!by_idx#Push# = tmp
+	return {idx=p_idx*}
+
+Store met Value i:Istring = String
+	return self.by_idx.[i.idx.Uint].String
+
+example
+	var store = {}:Store
+
+	assert store#Add "test" == store#Add "test"
+	assert store#Add "test" == store#Add "test"
+	assert store#Add "test" != store#Add "test2"
