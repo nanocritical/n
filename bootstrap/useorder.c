@@ -51,7 +51,7 @@ static uint32_t get_mark(struct useorder *uorder, struct typ *t) {
 
 static bool fully_marked(struct useorder *uorder, struct typ *t, uint32_t td) {
   uint32_t *mk = fintypset_get(&uorder->marks, t);
-  return mk != NULL && ((*mk & MARK_NEEDED) || (*mk & td) == td);
+  return mk != NULL && (*mk & td) == td;
 }
 
 static void need(struct useorder *uorder, struct node *d) {
@@ -274,8 +274,6 @@ again:
     break;
   case DEFFUN:
   case DEFMETHOD:
-    DEBUG_IF_IDENT(mod, "builtins.n", d, "Cut_at")__break();
-
     if (st->mask_state->inline_typebody) {
       // noop
     } else if (is_at_top || node_is_inline(d)) {
@@ -407,6 +405,8 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
+    DEBUG_IF_IDENT_MATCH(mod, "mem.n", d, "auto_shrink") __break();
+
     if (is_at_top
         || ((NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
             && node_is_inline(d) && (td & TD_FUNBODY_NEEDS_TYPE))
@@ -454,7 +454,7 @@ static void descend(struct state *st, const struct node *node) {
 
 void useorder_build(struct useorder *uorder, const struct module *mod,
                     bool header, enum forward fwd) {
-  xxx = strcmp(mod->filename, "lib/n/builtins/builtins.n")==0;
+  xxx = strcmp(mod->filename, "lib/n/mem/mem.n")==0;
 
   init(uorder, mod);
   uorder->header = header;
