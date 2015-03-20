@@ -70,9 +70,7 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
 
   if (typ_is_pseudo_builtin(t)
       // when a try_remove_unnecessary_ssa_defname() is used on a global let:
-      || topmost->which == NOOP
-      || (top->typ != NULL && typ_equal(top->typ, t))
-      || (topmost->typ != NULL && typ_equal(topmost->typ, t))) {
+      || topmost->which == NOOP) {
     return;
   }
 
@@ -106,7 +104,6 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
     break;
   case DEFFUN:
   case DEFMETHOD:
-    DEBUG_IF_TYP_MATCH(mod, "fs.n", typ_definition_ignore_any_overlay(t), "Stack")__break();
     if (snap->in_fun_in_block) {
       if (snap->for_dyn == 0) {
         td |= (is_ref || is_fun) ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;

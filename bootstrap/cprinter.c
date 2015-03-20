@@ -1442,7 +1442,8 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
   const bool global = node->flags & NODE_IS_GLOBAL_LET;
   const bool difft_mod = !is_in_topmost_module(let);
   const bool will_define = fwd == FWD_DEFINE_FUNCTIONS
-    && (!global || !difft_mod || in_gen || node_is_export(let) || node_is_inline(let))
+    && (!global || !difft_mod)
+    && (!global || in_gen || node_is_export(let) || node_is_inline(let))
     && !(node_toplevel_const(let)->flags & TOP_IS_EXTERN);
 
   const bool is_void = typ_equal(node->typ, TBI_VOID);
@@ -3287,7 +3288,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       struct useorder uorder = { 0 };
       useorder_build(&uorder, mod, header, fwd);
       fprintf(stderr, "%d %s\n", header, mod->filename);
-      if (!header && strcmp(mod->filename, "lib/n/fs/fs.n")==0) {
+      if (!header && strcmp(mod->filename, "lib/n/builtins/builtins.n")==0) {
         debug_useorder_print(&uorder);
       }
 

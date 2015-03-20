@@ -109,7 +109,7 @@ static error fwd_declare_types_each(struct module *mod, struct node *node,
 
   if (!is_at_top
       && !(td & (TD_DYN_NEEDS_TYPE | TD_TYPEBODY_NEEDS_TYPE
-                 | TD_FUN_NEEDS_TYPE | TD_FUNBODY_NEEDS_TYPE))) {
+                 | TD_FUN_NEEDS_TYPE | TD_FUNBODY_NEEDS_TYPE | TD_FUNBODY_NEEDS_DYNBODY))) {
     return 0;
   }
 
@@ -144,7 +144,7 @@ static error fwd_declare_types_each(struct module *mod, struct node *node,
     if (td & TD_DYN_NEEDS_TYPE) {
       pop_state = true;
       PUSH_STATE(st->mask_state);
-      st->mask_state->inv_mask = ~(TD_FUN_NEEDS_TYPE | TD_DYN_NEEDS_TYPE);
+      st->mask_state->inv_mask = ~(TD_FUN_NEEDS_TYPE | TD_DYN_NEEDS_TYPE | TD_FUNBODY_NEEDS_DYNBODY);
       st->mask_state->max_depth = st->depth + 2;
       descend(st, d);
     } else {
@@ -195,22 +195,22 @@ static error fwd_define_dyns_each(struct module *mod, struct node *node,
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
-    descend(st, DEF(t));
+    descend(st, d);
     break;
   case DEFTYPE:
+  case DEFINTF:
     if (is_at_top) {
       descend(st, d);
     } else if (td & (TD_TYPEBODY_NEEDS_TYPEBODY | TD_FUN_NEEDS_TYPEBODY
-                     | TD_FUNBODY_NEEDS_TYPEBODY | TD_FUNBODY_NEEDS_DYNBODY)) {
+                     | TD_FUNBODY_NEEDS_TYPEBODY)) {
       descend(st, d);
     }
     break;
   default:
-    descend(st, DEF(t));
     break;
   }
 
-  if ((td & (TD_DYN_NEEDS_TYPE | TD_TYPEBODY_NEEDS_DYN | TD_FUNBODY_NEEDS_DYN | TD_FUNBODY_NEEDS_DYNBODY))
+  if ((td & (TD_TYPEBODY_NEEDS_DYN | TD_FUNBODY_NEEDS_DYN | TD_FUNBODY_NEEDS_DYNBODY))
        && (NM(which) & (NM(DEFTYPE) | NM(DEFINTF)))) {
     need(st->uorder, d);
   }
@@ -226,8 +226,7 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
   struct typ *t = d->typ;
 
   if (st->mask_state->inline_typebody) {
-    if (!is_at_top
-        && !(td & (TD_TYPEBODY_NEEDS_TYPEBODY))) {
+    if (!(td & (TD_TYPEBODY_NEEDS_TYPEBODY))) {
       return 0;
     }
   }
@@ -275,6 +274,8 @@ again:
     break;
   case DEFFUN:
   case DEFMETHOD:
+    DEBUG_IF_IDENT(mod, "builtins.n", d, "Cut_at")__break();
+
     if (st->mask_state->inline_typebody) {
       // noop
     } else if (is_at_top || node_is_inline(d)) {
@@ -282,7 +283,6 @@ again:
     }
     break;
   case DEFTYPE:
-    DEBUG_IF_IDENT(mod, "fs.n", d, "Stack")__break();
     if (is_at_top) {
       descend(st, d);
       need(st->uorder, d);
@@ -454,7 +454,7 @@ static void descend(struct state *st, const struct node *node) {
 
 void useorder_build(struct useorder *uorder, const struct module *mod,
                     bool header, enum forward fwd) {
-  xxx = strcmp(mod->filename, "lib/n/fs/fs.n")==0;
+  xxx = strcmp(mod->filename, "lib/n/builtins/builtins.n")==0;
 
   init(uorder, mod);
   uorder->header = header;
