@@ -1342,7 +1342,7 @@ static void forward_declare(FILE *out, const struct module *mod,
   fprintf(out, ";\n");
 }
 
-static void print_defname_linkage(FILE *out, bool header, enum forward fwd,
+static void print_defname_linkage(FILE *out, bool difft_mod, enum forward fwd,
                                   const struct module *mod,
                                   const struct node *let,
                                   const struct node *node,
@@ -1356,15 +1356,15 @@ static void print_defname_linkage(FILE *out, bool header, enum forward fwd,
   const struct toplevel *toplevel = node_toplevel_const(at_top);
   const uint32_t flags = toplevel->flags;
 
-  if (header || in_gen) {
+  if (will_define && in_gen) {
     fprintf(out, WEAK " ");
   }
 
   if (flags & TOP_IS_EXTERN) {
     fprintf(out, "extern ");
-  } else if (header && !will_define) {
+  } else if (difft_mod && !will_define) {
     fprintf(out, "extern ");
-  } else if (!header && !(flags & TOP_IS_EXPORT)) {
+  } else if (!difft_mod && !(flags & TOP_IS_EXPORT)) {
     fprintf(out, UNUSED " static ");
   }
 }
@@ -1442,8 +1442,7 @@ static void print_defname(FILE *out, bool header, enum forward fwd,
   const bool global = node->flags & NODE_IS_GLOBAL_LET;
   const bool difft_mod = !is_in_topmost_module(let);
   const bool will_define = fwd == FWD_DEFINE_FUNCTIONS
-    && (!global || !difft_mod)
-    && (!global || in_gen || node_is_export(let) || node_is_inline(let))
+    && (!global || !difft_mod || in_gen || node_is_inline(let))
     && !(node_toplevel_const(let)->flags & TOP_IS_EXTERN);
 
   const bool is_void = typ_equal(node->typ, TBI_VOID);
@@ -1963,6 +1962,7 @@ static void print_deffun_dynwrapper(FILE *out, bool header, enum forward fwd,
     return;
   }
 
+  fprintf(out, WEAK " ");
   print_fun_prototype(out, header, fwd, mod, node, false, true);
   if (fwd == FWD_DECLARE_FUNCTIONS) {
     fprintf(out, ";\n");
