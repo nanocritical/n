@@ -106,8 +106,8 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
     break;
   case DEFFUN:
   case DEFMETHOD:
+    DEBUG_IF_TYP_MATCH(mod, "fs.n", typ_definition_ignore_any_overlay(t), "Stack")__break();
     if (snap->in_fun_in_block) {
-      DEBUG_IF_IDENT(mod, "fmt.n", typ_definition_ignore_any_overlay(t), "Stringbuf")__break();
       if (snap->for_dyn == 0) {
         td |= (is_ref || is_fun) ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;
         td |= is_dyn ? TD_FUNBODY_NEEDS_DYN : 0;

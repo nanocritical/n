@@ -282,8 +282,7 @@ again:
     }
     break;
   case DEFTYPE:
-    DEBUG_IF_IDENT(mod, "fmt.n", node, "Prf")
-    DEBUG_IF_IDENT(mod, "fmt.n", d, "Stringbuf")__break();
+    DEBUG_IF_IDENT(mod, "fs.n", d, "Stack")__break();
     if (is_at_top) {
       descend(st, d);
       need(st->uorder, d);
@@ -455,7 +454,7 @@ static void descend(struct state *st, const struct node *node) {
 
 void useorder_build(struct useorder *uorder, const struct module *mod,
                     bool header, enum forward fwd) {
-  xxx = strcmp(mod->filename, "lib/n/fmt/fmt.n")==0;
+  xxx = strcmp(mod->filename, "lib/n/fs/fs.n")==0;
 
   init(uorder, mod);
   uorder->header = header;
