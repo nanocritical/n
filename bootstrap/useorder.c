@@ -102,6 +102,7 @@ static error fwd_declare_types_each(struct module *mod, struct node *node,
                                     struct node *d, uint32_t td, void *user) {
   struct state *st = user;
   const bool is_at_top = at_top(st, d);
+  const enum node_which which = d->which;
   struct typ *t = d->typ;
   td &= ~st->mask_state->inv_mask;
 
@@ -115,13 +116,14 @@ static error fwd_declare_types_each(struct module *mod, struct node *node,
     return 0;
   }
 
-  if (d->which != LET && fully_marked(st->uorder, t, td)) {
-    return 0;
+  if (which != LET) {
+    if (fully_marked(st->uorder, t, td)) {
+      return 0;
+    }
+    mark(st->uorder, t, td);
   }
-  mark(st->uorder, t, td);
 
   bool pop_state = false;
-  const enum node_which which = d->which;
   switch (which) {
   case LET:
     if (is_at_top) {
@@ -247,10 +249,12 @@ static error fwd_define_types_each(struct module *mod, struct node *node,
     assert(!(td & TD_TYPEBODY_NEEDS_TYPEBODY) && "cycle");
   }
 #endif
-  if (d->which != LET && fully_marked(st->uorder, t, td)) {
-    return 0;
+  if (which != LET) {
+    if (fully_marked(st->uorder, t, td)) {
+      return 0;
+    }
+    mark(st->uorder, t, td);
   }
-  mark(st->uorder, t, td);
 
   if (td & TD_TYPEBODY_NEEDS_TYPEBODY) {
     // First we'll gather inline field dependencies.
@@ -326,8 +330,8 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
     if (fully_marked(st->uorder, t, td)) {
       return 0;
     }
+    mark(st->uorder, t, td);
   }
-  mark(st->uorder, t, td);
 
   switch (which) {
   case DEFFUN:
@@ -347,6 +351,7 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
     if (subs_first(d)->which == DEFALIAS) {
       // noop
     } else if (is_at_top || (td & TD_ANY_NEEDS_NODE)) {
+      descend(st, d);
       need_global(st->uorder, d);
     }
     break;
@@ -380,10 +385,12 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
     return 0;
   }
 
-  if (fully_marked(st->uorder, t, td)) {
-    return 0;
+  if (which != LET) {
+    if (fully_marked(st->uorder, t, td)) {
+      return 0;
+    }
+    mark(st->uorder, t, td);
   }
-  mark(st->uorder, t, td);
 
   switch (which) {
   case DEFFUN:
@@ -403,6 +410,7 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
     if (subs_first(d)->which == DEFALIAS) {
       // noop
     } else if (is_at_top || (td & TD_ANY_NEEDS_NODE)) {
+      descend(st, d);
       need_global(st->uorder, d);
     }
     break;
@@ -428,7 +436,7 @@ static void descend(struct state *st, const struct node *node) {
 
 void useorder_build(struct useorder *uorder, const struct module *mod,
                     bool header, enum forward fwd) {
-  xxx = strcmp(mod->filename, "lib/n/io/io.n")==0;
+  xxx = strcmp(mod->filename, "lib/n/builtins/builtins.n")==0;
 
   init(uorder, mod);
   uorder->header = header;
