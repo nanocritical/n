@@ -2433,7 +2433,7 @@ static void print_reflect_type(FILE *out, bool header, enum forward fwd,
     return;
   }
 
-  if (header && fwd == FWD_DECLARE_TYPES) {
+  if (fwd == FWD_DECLARE_TYPES) {
     fprintf(out, WEAK "extern const struct __Type ");
     bare_print_typ_actual(out, mod, node->typ);
     fprintf(out, "$Reflect_type;\n");
@@ -3291,7 +3291,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       struct useorder uorder = { 0 };
       useorder_build(&uorder, mod, header, fwd);
       //fprintf(stderr, "%d %s\n", header, mod->filename);
-      if (!header && strcmp(mod->filename, "t00/skipped_relative.n")==0) {
+      if (!header && strcmp(mod->filename, "lib/n/builtins/builtins.n")==0) {
 //        debug_useorder_print(&uorder);
       }
 

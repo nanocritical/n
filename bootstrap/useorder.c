@@ -395,7 +395,7 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
   const enum node_which which = d->which;
   struct typ *t = d->typ;
 
-  if (!(NM(which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(LET)))) {
+  if (!(NM(which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(DEFINTF) | NM(LET)))) {
     return 0;
   }
 
@@ -438,6 +438,9 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
       need(st->uorder, d);
     }
     break;
+  case DEFINTF:
+    need(st->uorder, d);
+    break;
   case LET:
     if (subs_first(d)->which == DEFALIAS) {
       // noop
@@ -468,7 +471,7 @@ static void descend(struct state *st, const struct node *node) {
 
 void useorder_build(struct useorder *uorder, const struct module *mod,
                     bool header, enum forward fwd) {
-  //xxx = strcmp(mod->filename, "t00/skipped_relative.n")==0;
+//  xxx = strcmp(mod->filename, "lib/n/builtins/builtins.n")==0;
 
   init(uorder, mod);
   uorder->header = header;

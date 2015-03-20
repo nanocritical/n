@@ -248,8 +248,10 @@ opaque struct Slice t:`Any =
 	cnt	:Uint
 	cap	:Uint -- will go away
 
-inline Slice fun create_impl_instance = (Slice_impl t)
-	return {}
+inline Slice fun create_impl_instance = r:(Slice_impl t)
+	-- Ensure visibility of dyns too.
+	let d:*(`Any_slice t)
+	d = *r
 inline Slice fun From_slice c:[]t = this
 	return {}
 inline Slice met# Unsafe_wrap p:*U8 c:Uint cap:Uint
@@ -321,8 +323,9 @@ opaque struct Mutable_slice t:`Any =
 	cnt	:Uint
 	cap	:Uint
 
-inline Mutable_slice fun create_impl_instance = (Slice_impl t)
-	return {}
+inline Mutable_slice fun create_impl_instance = r:(Slice_impl t)
+	let d:*(`Any_slice t)
+	d = *r
 inline Mutable_slice fun From_slice c:[]t = this
 	return {}
 inline Mutable_slice met# Unsafe_wrap p:*U8 c:Uint cap:Uint

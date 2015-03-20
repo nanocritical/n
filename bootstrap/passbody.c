@@ -979,13 +979,26 @@ static ERROR step_store_return_through_ref_expr(struct module *mod, struct node 
 }
 
 static STEP_NM(step_add_dyn_topdep,
-               NM(DEFTYPE) | NM(DEFINTF));
+               NM(DEFTYPE) | NM(DEFINTF) | NM(BIN));
 static ERROR step_add_dyn_topdep(struct module *mod, struct node *node,
                                  void *user, bool *stop) {
   DSTEP(mod, node);
+  if (node->which == BIN) {
+    if (node->as.BIN.operator == Tisa) {
+      topdeps_record_mkdyn(mod, subs_last_const(node)->typ);
+    }
+    return 0;
+  }
+
   if (typ_is_reference(node->typ)) {
     return 0;
   }
+
+  if (node->which == DEFTYPE && node->as.DEFTYPE.newtype_expr != NULL) {
+    topdeps_record_dyn(mod, node->as.DEFTYPE.newtype_expr->typ);
+    return 0;
+  }
+
   topdeps_record_dyn(mod, node->typ);
   return 0;
 }
