@@ -2775,8 +2775,25 @@ static ERROR type_inference_within(struct module *mod, struct node *node) {
       THROW(e);
     }
 
-    topdeps_record_dyn(mod, def->typ);
-    topdeps_record_global(mod, def);
+    if (mod->state->top_state == NULL) {
+      // We're in a toplevel within, attach the topdeps to any suitable
+      // toplevel node. If none is found, then the globalenv referenced by
+      // this within is not used.
+      FOREACH_SUB(top, mod->body) {
+        if (NM(top->which) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+          PUSH_STATE(mod->state->top_state);
+          mod->state->top_state->top = top;
+          mod->state->top_state->exportable = top;
+          topdeps_record_dyn(mod, def->typ);
+          topdeps_record_global(mod, def);
+          POP_STATE(mod->state->top_state);
+          break;
+        }
+      }
+    } else {
+      topdeps_record_dyn(mod, def->typ);
+      topdeps_record_global(mod, def);
+    }
 
     node->as.WITHIN.globalenv_scoper = modbody->as.MODULE_BODY.globalenv_scoper;
   } else if (node->which == IDENT) {
