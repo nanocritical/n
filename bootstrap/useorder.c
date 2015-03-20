@@ -282,6 +282,8 @@ again:
     }
     break;
   case DEFTYPE:
+    DEBUG_IF_IDENT(mod, "fmt.n", node, "Prf")
+    DEBUG_IF_IDENT(mod, "fmt.n", d, "Stringbuf")__break();
     if (is_at_top) {
       descend(st, d);
       need(st->uorder, d);
