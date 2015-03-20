@@ -1659,7 +1659,7 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
   const struct node *retval = node_fun_retval_const(proto);
   const bool retval_throughref = !typ_isa_return_by_copy(retval->typ);
 
-  if (!as_fun_pointer) {
+  if (!as_fun_pointer && !as_dyn_fun_pointer) {
     print_fun_linkage(out, header, fwd, node);
   }
 
@@ -3287,7 +3287,7 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       struct useorder uorder = { 0 };
       useorder_build(&uorder, mod, header, fwd);
       fprintf(stderr, "%d %s\n", header, mod->filename);
-      if (!header && strcmp(mod->filename, "lib/n/builtins/builtins.n")==0) {
+      if (!header && strcmp(mod->filename, "lib/n/fmt/fmt.n")==0) {
         debug_useorder_print(&uorder);
       }
 

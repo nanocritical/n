@@ -107,8 +107,10 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
   case DEFFUN:
   case DEFMETHOD:
     if (snap->in_fun_in_block) {
-      td |= (is_ref || is_fun) ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;
-      td |= is_dyn ? TD_FUNBODY_NEEDS_DYN : 0;
+      if (snap->for_dyn == 0) {
+        td |= (is_ref || is_fun) ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;
+        td |= is_dyn ? TD_FUNBODY_NEEDS_DYN : 0;
+      }
     } else {
       td |= (is_ref || is_fun) ? TD_FUN_NEEDS_TYPE : TD_FUN_NEEDS_TYPEBODY;
     }

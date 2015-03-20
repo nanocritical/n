@@ -81,6 +81,7 @@ struct mask_state {
   uint32_t inv_mask;
   size_t max_depth;
   bool inline_typebody;
+  bool deftype_only;
 };
 
 struct state {
@@ -283,17 +284,18 @@ again:
   case DEFTYPE:
     if (is_at_top) {
       descend(st, d);
+      need(st->uorder, d);
     } else if (td & (TD_TYPEBODY_NEEDS_TYPEBODY | TD_FUN_NEEDS_TYPEBODY | TD_FUNBODY_NEEDS_TYPEBODY)) {
       descend(st, d);
+      need(st->uorder, d);
     }
+    break;
+  case DEFINTF:
+    need(st->uorder, d);
     break;
   default:
     descend(st, d);
     break;
-  }
-
-  if (NM(which) & (NM(DEFTYPE) | NM(DEFINTF))) {
-    need(st->uorder, d);
   }
 
   if (pop_state) {
@@ -313,6 +315,10 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
   struct typ *t = d->typ;
 
   if (!(NM(which) & (NM(DEFFUN) | NM(DEFMETHOD) | NM(DEFTYPE) | NM(LET)))) {
+    return 0;
+  }
+
+  if (st->mask_state->deftype_only && which != DEFTYPE) {
     return 0;
   }
 
@@ -336,15 +342,22 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
-    if (is_at_top || (node_is_inline(d) && (td & TD_FUNBODY_NEEDS_TYPE))) {
+    if (is_at_top
+        || ((NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
+            && node_is_inline(d) && (td & TD_FUNBODY_NEEDS_TYPE))) {
       descend(st, d);
-    } else if (td & TD_DYN_NEEDS_TYPE) {
+    } else if (td & (TD_DYN_NEEDS_TYPE | TD_FUNBODY_NEEDS_TYPE)) {
+      PUSH_STATE(st->mask_state);
+      st->mask_state->deftype_only = true;
       descend(st, d);
+      POP_STATE(st->mask_state);
     }
+    need(st->uorder, d);
     break;
   case DEFTYPE:
     if (td & TD_FUNBODY_NEEDS_DYNBODY) {
       descend(st, d);
+      need(st->uorder, d);
     }
     break;
   case LET:
@@ -358,8 +371,6 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
   default:
     break;
   }
-
-  need(st->uorder, d);
 
   return 0;
 }
@@ -395,7 +406,13 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
   switch (which) {
   case DEFFUN:
   case DEFMETHOD:
-    if (is_at_top || (node_is_inline(d) && (td & TD_FUNBODY_NEEDS_TYPE))) {
+    if (is_at_top
+        || ((NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
+            && node_is_inline(d) && (td & TD_FUNBODY_NEEDS_TYPE))
+        // Inline code is using a non-inline, non-exported function: so it's
+        // opaque inline by induction.
+        || ((NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
+            && !node_is_export(d) && (td & TD_FUNBODY_NEEDS_TYPE))) {
       descend(st, d);
       need(st->uorder, d);
     }
@@ -436,7 +453,7 @@ static void descend(struct state *st, const struct node *node) {
 
 void useorder_build(struct useorder *uorder, const struct module *mod,
                     bool header, enum forward fwd) {
-  xxx = strcmp(mod->filename, "lib/n/builtins/builtins.n")==0;
+  xxx = strcmp(mod->filename, "lib/n/fmt/fmt.n")==0;
 
   init(uorder, mod);
   uorder->header = header;
