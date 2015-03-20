@@ -2814,7 +2814,7 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
     if (deft == node) {
       FOREACH_SUB_CONST(s, node) {
         if (s->which == LET) {
-          print_defname(out, header, fwd, mod, subs_first_const(s));
+//          print_defname(out, header, fwd, mod, subs_first_const(s));
         }
       }
       print_enumunion_functions(out, header, fwd, mod, deft, node, printed);
@@ -2827,16 +2827,16 @@ static void print_enum(FILE *out, bool header, enum forward fwd,
 static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
                                     const struct module *mod,
                                     const struct node *node) {
-  if (fwd != FWD_DECLARE_TYPES) {
-    return;
-  }
-
   const struct node *d = DEF(typ_generic_arg_const(node->typ, 0));
 
   if (d->which == DEFINTF) {
     if (typ_generic_arity(d->typ) > 0) {
       print_defintf(out, header, fwd, mod, node);
     }
+    return;
+  }
+
+  if (fwd != FWD_DECLARE_TYPES) {
     return;
   }
 
@@ -2880,6 +2880,9 @@ static void print_deftype_reference(FILE *out, bool header, enum forward fwd,
 static void print_deftype(FILE *out, bool header, enum forward fwd,
                           const struct module *mod, const struct node *node,
                           struct fintypset *printed) {
+  DEBUG_IF_TYP_MATCH(mod->stage->printing_mod, "relative.n", node->typ, "Ref n.builtins.`Any")if(fwd==FWD_DEFINE_DYNS){
+    __break();
+  }
   if (typ_is_pseudo_builtin(node->typ)) {
     return;
   }
@@ -3288,8 +3291,8 @@ static void print_module(FILE *out, bool header, const struct module *mod) {
       struct useorder uorder = { 0 };
       useorder_build(&uorder, mod, header, fwd);
       //fprintf(stderr, "%d %s\n", header, mod->filename);
-      if (!header && strcmp(mod->filename, "lib/n/fmt/fmt.n")==0) {
-        debug_useorder_print(&uorder);
+      if (!header && strcmp(mod->filename, "t00/skipped_relative.n")==0) {
+//        debug_useorder_print(&uorder);
       }
 
       for (size_t n = 0, count = vecnode_count(&uorder.dependencies); n < count; ++n) {

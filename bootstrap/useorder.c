@@ -171,6 +171,7 @@ static error fwd_define_dyns_each(struct module *mod, struct node *node,
                                   struct node *d, uint32_t td, void *user) {
   struct state *st = user;
   const bool is_at_top = at_top(st, d);
+  const enum node_which which = d->which;
   struct typ *t = d->typ;
 
   if (!is_at_top
@@ -186,13 +187,21 @@ static error fwd_define_dyns_each(struct module *mod, struct node *node,
     return 0;
   }
 
-  if (fully_marked(st->uorder, t, td)) {
-    return 0;
+  if (which != LET) {
+    if (fully_marked(st->uorder, t, td)) {
+      return 0;
+    }
+    mark(st->uorder, t, td);
   }
-  mark(st->uorder, t, td);
 
-  const enum node_which which = d->which;
   switch (which) {
+  case LET:
+    if (is_at_top) {
+      struct node *dd = DEF(subs_first(d)->typ);
+      descend(st, dd);
+      need(st->uorder, dd);
+    }
+    break;
   case DEFFUN:
   case DEFMETHOD:
     descend(st, d);
@@ -321,7 +330,6 @@ static error fwd_declare_functions_each(struct module *mod, struct node *node,
     return 0;
   }
 
-  DEBUG_IF_TYP_MATCH(mod, "fmt.n", t, "auto_grow")__break();
   if (!is_at_top
       && !(td & (TD_FUNBODY_NEEDS_TYPE | TD_DYN_NEEDS_TYPE | TD_FUNBODY_NEEDS_DYNBODY
                  | TD_ANY_NEEDS_NODE | TD_TYPEBODY_NEEDS_DYNBODY))) {
@@ -460,7 +468,7 @@ static void descend(struct state *st, const struct node *node) {
 
 void useorder_build(struct useorder *uorder, const struct module *mod,
                     bool header, enum forward fwd) {
-  xxx = strcmp(mod->filename, "lib/n/fmt/fmt.n")==0;
+  //xxx = strcmp(mod->filename, "t00/skipped_relative.n")==0;
 
   init(uorder, mod);
   uorder->header = header;

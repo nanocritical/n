@@ -9,8 +9,8 @@ example hashmap_basic
 	assert m.Count == 1
 	assert m.["42"] == 42
 
-	let already, _ = m#Try_store "42"
-	assert already
+	let added, _ = m#Try_store "42"
+	assert not added
 	assert m.Count == 1
 	assert m.["42"] == 42
 
