@@ -1925,3 +1925,6 @@ fun Break
 let sysheap:mem.Sysheap
 fun ensure_visible_sysheap_dyn = *`Heap
 	return *sysheap
+fun Ensure_visible_example_dtor
+	let ex = {}:bench.Example
+	ex#Dtor

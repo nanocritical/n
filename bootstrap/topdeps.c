@@ -360,6 +360,12 @@ void topdeps_record_dyn(struct module *mod, struct typ *t) {
 
 void topdeps_record_mkdyn(struct module *mod, struct typ *t) {
   do_topdeps_record(mod, t, TD_FUNBODY_NEEDS_DYNBODY);
+
+  struct tit *m = typ_definition_members(t, DEFFUN, DEFMETHOD, 0);
+  while (tit_next(m)) {
+    struct typ *mt = tit_typ(m);
+    do_topdeps_record(mod, mt, TD_TYPEBODY_NEEDS_DYNBODY);
+  }
 }
 
 void topdeps_record_global(struct module *mod, struct node *node) {
