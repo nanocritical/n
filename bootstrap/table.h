@@ -457,7 +457,7 @@ void name ## _copy(struct name *hta, const struct name *htb)
 
 
 #define HTABLE_TOOFULL(ht) \
-  ( (uint64_t)(ht)->hweight * 32 / (ht)->table.size > 25 )
+  ( (uint64_t)(ht)->hweight > (ht)->table.size/2 )
 #define HTABLE_TOOEMPTY(ht) \
   ( ( (uint64_t)(ht)->hweight * 32 / (ht)->table.size < 3 ) \
     && (ht)->table.size > SPTABLE_MIN_SIZE )
