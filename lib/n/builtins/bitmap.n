@@ -1,16 +1,16 @@
 inline struct Bitmap =
 	isa `Show
 	alias Word = U32
-	let BITS_PER_WORD = 32
+	let BITS_PER_WORD = 32:Uint
 	b	:(Buf U32)
 	count	:Uint
 
-fun Bitmap_wordmask n:Uint = U32
+inline fun Bitmap_wordmask n:Uint = U32
 	return 1 ov<< n
 
-fun Bitmap_split n:Uint = word:Uint, mask:U32
-	word = n / Bitmap.BITS_PER_WORD
-	mask = Bitmap_wordmask n%Bitmap.BITS_PER_WORD
+inline fun Bitmap_split n:Uint = word:Uint, mask:U32
+	word = n / 32
+	mask = Bitmap_wordmask n%32
 
 inline Bitmap met$ Words = [$]U32
 	return self$b$Slice
@@ -23,7 +23,7 @@ inline Bitmap met Iter = r:Bitmap_iterator
 
 inline Bitmap met# Resize bits:Uint
 	self!count = bits
-	self#b#Resize <- math.Div_ceil bits this.BITS_PER_WORD
+	self#b#Resize <- math.Div_ceil bits 32
 
 inline Bitmap met# Clear
 	self#b#Clear
@@ -60,7 +60,7 @@ Bitmap met Ffs = ?Uint
 	var i = 0
 	foreach w in self.b
 		if w != 0
-			return i*Bitmap.BITS_PER_WORD + (math.Bit_ffs w) - 1
+			return i*32 + (math.Bit_ffs w) - 1
 		i += 1
 	return nil
 
@@ -73,7 +73,7 @@ Bitmap met Ffs_from n:Uint = ?Uint
 			if i == word
 				w &= ~(first_mask - 1)
 		if w != 0
-			return i*Bitmap.BITS_PER_WORD + (math.Bit_ffs w) - 1
+			return i*32 + (math.Bit_ffs w) - 1
 		i += 1
 	return nil
 
@@ -176,7 +176,7 @@ inline Bitmap_iterator met! Next = r:Uint
 	self!masked &= ~mask
 
 	if self.masked != 0
-		self!first = word*Bitmap.BITS_PER_WORD + (math.Bit_ffs self.masked) - 1
+		self!first = word*32 + (math.Bit_ffs self.masked) - 1
 		return r
 
 	let v = self.b.Words
@@ -184,7 +184,7 @@ inline Bitmap_iterator met! Next = r:Uint
 	foreach i in nxt_word+1 .. v.Count
 		let w = v.[i]
 		if w != 0
-			self!first = i*Bitmap.BITS_PER_WORD + (math.Bit_ffs w) - 1
+			self!first = i*32 + (math.Bit_ffs w) - 1
 			self!masked = w
 			return r
 
