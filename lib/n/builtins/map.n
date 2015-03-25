@@ -190,9 +190,21 @@ Map met Count = Uint
 -- Quadratic open addressing (see Knuth TAOCP 6.4 exercise 20)
 --
 -- The table must have at least one empty spot to make sure that, if the
--- table is full, the quadratic eventually stops.
+-- table is full, the quadratic search eventually stops.
+inline fun quad_open_addr size:Uint hash:U32 nth:Uint = Uint
+	return ((hash + (nth.Trim_u32 * (nth.Trim_u32+1)) / 2) & (size.Trim_u32 - 1)).Uint
+
 Map met index hash:U32 nth:Uint = Uint
-	return ((hash.Uint + (nth * (nth+1))) / 2) % self.table.size
+	return quad_open_addr self.table.size hash nth
+
+example check_bijection
+	let hash = 0xcafebabe:U32
+	let size = 4096
+	var hits = {}:Bitmap
+	hits#Resize size
+	foreach nth in 0 .. size
+		hits!Set <- quad_open_addr size hash nth
+	assert hits.Popcount == size
 
 Map shallow met$ get_unit key:*K trying:Bool = ?$this.unit_type, idx:Uint, hash:U32
 	if trying and self.Count == 0
