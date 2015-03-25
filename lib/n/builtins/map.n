@@ -241,13 +241,21 @@ Map met# may_grow = Bool
 		return false
 
 	-- Grow.
-	-- FIXME(e): use a Move.
-	let tmp = {}:this --self.
-	tmp#Copy_ctor self
-	self#Dtor
-	self#init size=2*tmp.table.size
-	let all = self#Ingest tmp
+	-- We will move tmp over self, we don't want the memory to be freed.
+	var tmp = Alloc this
+	-- Must remain a power of 2.
+	tmp#init size=2*self.table.size
+	let all = tmp#Ingest self
 	assert all
+
+	self#Dtor
+
+	-- Steal the memory owned by tmp.
+	Slice_memmove ((Cast #this #U8) self) ((Cast #this #U8) tmp) (sizeof this)
+	-- Zero tmp (to ensure its Dtor is a no-op), and free it.
+	Slice_memset ((Cast #this #U8) tmp) 0 (sizeof this)
+	Free tmp
+
 	assert self.count <= self.table.size/2
 	return true
 
