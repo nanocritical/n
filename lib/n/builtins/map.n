@@ -11,12 +11,12 @@ struct sptable T:`Copyable =
 inline let sp_m = 32
 inline let sp_min_size = 2*sp_m
 
-fun sp_num_groups size:Uint = Uint
-	return math.Div_ceil size sp_m
+fun sp_num_groups size_pow2:Uint = Uint
+	return math.Div_ceil size_pow2 sp_m
 
-sptable met# init size:Uint
+sptable met# init size_pow2:Uint
 	self!count = 0
-	self!bitmap#Resize <- Max size sp_min_size
+	self!bitmap#Resize <- Max size_pow2 sp_min_size
 	self!groups#Resize (sp_num_groups self.bitmap.Count)
 
 sptable met# Dtor
@@ -166,8 +166,8 @@ Map fun From_slice c:[](K, T) = r:this
 		if added
 			p# = v
 
-Map met# init ?size:?Uint
-	self#table#init (size else sp_min_size)
+Map met# init ?size_pow2:?Uint
+	self#table#init (size_pow2 else sp_min_size)
 
 Map met# ensure_init
 	if self.table.size < sp_min_size
@@ -244,7 +244,7 @@ Map met# may_grow = Bool
 	-- We will move tmp over self, we don't want the memory to be freed.
 	var tmp = Alloc this
 	-- Must remain a power of 2.
-	tmp#init size=2*self.table.size
+	tmp#init size_pow2=2*self.table.size
 	let all = tmp#Ingest self
 	assert all
 
