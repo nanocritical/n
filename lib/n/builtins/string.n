@@ -217,21 +217,25 @@ inline String_bytes_iterator met! Next = Uint, U8
 	self!p += 1
 	return i, self.s.[i]
 
+extern fun hash32_hsieh data:*U8 len:Uint = U32
+
+fun Hash32 b:[]U8 = U32
+	return hash32_hsieh b.Unsafe_rawdata b.Bytecount
 
 let _M0 = 2860486313:U32
 let _M1 = 3267000013:U32
 
-fun Hash b:[]U8 = U32
+fun hash32_go_string b:[]U8 = U32
 	let hash = _M0 such
 		foreach x in b
 			hash = (hash ^ x.U32) ov* _M1
 	return hash
 
-example -> assert Hash "".Bytes == _M0
-example -> assert Hash "abc".Bytes == 2407100781
+example -> assert hash32_go_string "".Bytes == _M0
+example -> assert hash32_go_string "abc".Bytes == 2407100781
 
 inline String met Hash32 = U32
-	return Hash self.bytes
+	return Hash32 self.bytes
 
 inline String met Begins_with s:String = Bool
 	if s.bytes.Count > self.bytes.Count
@@ -629,7 +633,7 @@ inline Stringbuf met Show st:#`Fmt_state
 	let _ = st#Write self.bytes
 
 inline Stringbuf met Hash32 = U32
-	return Hash self.bytes
+	return Hash32 self.bytes
 
 inline Stringbuf met# Clear
 	self!bytes = self.bytes.[.. 0]
