@@ -1000,6 +1000,8 @@ static ERROR propagate(struct module *mod, struct node *par, struct node *expr,
   switch (expr->which) {
   case IDENT:
     {
+      // FIXME(e): Do not propagate across module boundaries, unless it's an
+      // inline let.
       struct node *def = expr->as.IDENT.def;
       assert(def != NULL && def->which == DEFNAME);
       if (global || (subs_last_const(def)->flags & NODE_IS_LOCAL_STATIC_CONSTANT)) {
@@ -1142,6 +1144,8 @@ cannot:
   return 0;
 }
 
+// Simplify the expressions defining global lets by substituting the
+// expressions of other global values.
 static STEP_NM(step_global_constant_substitution,
                NM(DEFNAME));
 static ERROR step_global_constant_substitution(struct module *mod, struct node *node,

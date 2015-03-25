@@ -8,8 +8,8 @@ struct sptable T:`Copyable =
 	groups	:(Buf ?#(Buf T))
 	bitmap	:Bitmap
 
-inline let sp_m = Bitmap.BITS_PER_WORD
-inline let sp_min_size = Bitmap.BITS_PER_WORD
+inline let sp_m = 32
+inline let sp_min_size = 2*sp_m
 
 fun sp_num_groups size:Uint = Uint
 	return math.Div_ceil size sp_m
@@ -94,7 +94,7 @@ sptable_iter met Has_next = Bool
 		return true
 	if self.g+1 >= self.ng
 		return false
-	return (self.table.bitmap.Ffs_from (self.g+1)*Bitmap.BITS_PER_WORD)?
+	return (self.table.bitmap.Ffs_from (self.g+1)*32)?
 
 sptable_iter met! Next = Uint, #T
 	while self.w == 0 and self.g < self.ng
@@ -107,7 +107,7 @@ sptable_iter met! Next = Uint, #T
 	let w_nth = self.w_nth
 	self!w_nth += 1
 	let gr = self.table.groups.[self.g]*
-	return self.g*Bitmap.BITS_PER_WORD + nxt, gr![w_nth.Uint]
+	return self.g*32 + nxt, gr![w_nth.Uint]
 
 example sptable_basic
 	var t = {}:(sptable Uint)
