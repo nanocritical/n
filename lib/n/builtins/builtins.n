@@ -1097,7 +1097,7 @@ extern inline U8 met Exact_float = Float
 extern inline U8 met Exact_double = Double
 extern U8 met Show st:#`Fmt_state
 inline U8 met Hash32 = U32
-	return self.U32
+	return self.U32.Hash32
 
 extern inline struct U16 =
 	isa `Native_sized_unsigned_integer
@@ -1166,7 +1166,7 @@ extern inline U16 met Exact_float = Float
 extern inline U16 met Exact_double = Double
 extern U16 met Show st:#`Fmt_state
 inline U16 met Hash32 = U32
-	return self.U32
+	return self.U32.Hash32
 
 extern inline struct U32 =
 	isa `Native_sized_unsigned_integer
@@ -1234,7 +1234,17 @@ extern inline U32 met Round_float = Float
 extern inline U32 met Exact_double = Double
 extern U32 met Show st:#`Fmt_state
 inline U32 met Hash32 = U32
-	return self*
+	-- Bob Jenkins, full avalanching.
+	-- Public Domain.
+	-- http://burtleburtle.net/bob/hash/integer.html
+	var a = self*
+	a = (a ov+ 0x7ed55d16) ov+ (a ov<< 12)
+	a = (a ^ 0xc761c23c) ^ (a >> 19)
+	a = (a ov+ 0x165667b1) ov+ (a ov<< 5)
+	a = (a ov+ 0xd3a2646c) ^ (a ov<< 9)
+	a = (a ov+ 0xfd7046c5) ov+ (a ov<< 3)
+	a = (a ^ 0xb55a4f09) ^ (a >> 16)
+	return a
 
 extern inline struct U64 =
 	isa `Native_sized_unsigned_integer
@@ -1310,10 +1320,9 @@ extern inline U64 met Round_float = Float
 extern inline U64 met Round_double = Double
 extern U64 met Show st:#`Fmt_state
 inline U64 met Hash32 = U32
-	let lo = self.Trim_u32
-	and hi = (self >> 32).Trim_u32
-	-- So that small numbers less than 1<<32 hash to themselves.
-	return 31 ov* hi ov+ lo
+	let lo = self.Trim_u32.Hash32
+	and hi = (self >> 32).Trim_u32.Hash32
+	return hi ^ lo
 
 -- There are no Bitwise_ operations for Int and Uint* Their width is not
 -- specified and users are supposed to use explicit conversion through sized
