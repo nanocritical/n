@@ -237,7 +237,7 @@ Map shallow met$ Operator_at key:*K = ?$T
 
 Map met# may_grow = Bool
 	-- 3/4 full?
-	if (self.count * 32) / self.table.size <= 24
+	if self.count <= self.table.size/2
 		return false
 
 	-- Grow.
@@ -248,7 +248,7 @@ Map met# may_grow = Bool
 	self#init size=2*tmp.table.size
 	let all = self#Ingest tmp
 	assert all
-	assert (self.count * 32) / self.table.size <= 24
+	assert self.count <= self.table.size/2
 	return true
 
 Map met# store key:*K = added:Bool, #T
