@@ -82,7 +82,7 @@ inline Rune met Encode z:[!]U8 = [!]U8
 	return z![1 ..]
 
 inline Rune met Hash32 = U32
-	return self.Code
+	return self.Code.Hash32
 
 Rune met Buf = r:Stringbuf
 	r#Resize self.Bytecount
