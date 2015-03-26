@@ -217,7 +217,7 @@ Map shallow met$ get_unit key:*K trying:Bool = ?$this.unit_type, idx:Uint, hash:
 		nth += 1
 		if not u?
 			return nil, idx, hash
-		if not u.hash?
+		if Unlikely <- not u.hash?
 			-- Deleted
 			continue
 		if u.hash != hash
