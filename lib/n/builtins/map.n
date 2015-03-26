@@ -38,11 +38,11 @@ example
 
 sptable shallow met$ get n:Uint = ?$T
 	assert n < self.size
-	if not self.bitmap.[n]
-		return nil
-
 	let word, mask = Bitmap_split n
 	let w = self.bitmap.Words.[word]*
+	if w & mask == 0
+		return nil
+
 	let before_w = w & (maskout_after mask)
 	let count_before = math.Bit_popcount before_w
 	let gr = self.groups.[word]*
@@ -50,29 +50,28 @@ sptable shallow met$ get n:Uint = ?$T
 
 sptable met# set n:Uint = #T
 	assert n < self.size
-	if self.bitmap.[n]
-		return self!get n
-
 	let word, mask = Bitmap_split n
-	let w = self.bitmap.Words.[word]*
+	let w = self!bitmap!Words![word]
 	let before_w = w & (maskout_after mask)
 	let count_before = math.Bit_popcount before_w
-	let count_after = (math.Bit_popcount w) - count_before
-	let old_count = count_before + count_after
+	let pgr = self.groups![word]
+	var gr = pgr!
+	if w & mask != 0
+		return gr![count_before]
 
-	let gr = self.groups.[word]* such
-		if not gr?
-			gr = Alloc (Buf T)
-			self.groups![word]! = gr
-	assert old_count == gr.Count
+	w! |= mask
+	self!count += 1
+
+	if not gr?
+		gr = Alloc (Buf T)
+		pgr! = gr
+
+	let old_count = gr.Count
 	gr#Resize gr.Count+1
 
 	let src_after = gr![count_before .. old_count]
 	let dst_after = gr![count_before+1 ..]
 	dst_after!Exact_copy src_after
-
-	self!bitmap!Set n
-	self!count += 1
 	return gr![count_before]
 
 sptable met! iter = (sptable_iter T)
