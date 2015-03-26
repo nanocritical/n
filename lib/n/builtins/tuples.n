@@ -1,5 +1,5 @@
 inline struct Any_or_ptr =
-	any	:*`Any
+	any	:?*`Any
 	ptr	:Uintptr
 
 (fun t:`Any) mk_any_or_ptr x:*t = Any_or_ptr
