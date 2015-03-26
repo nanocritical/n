@@ -1815,6 +1815,12 @@ static void rtr_helpers(FILE *out, const struct module *mod,
   print_rtr_helpers(out, mod, retval, start);
 }
 
+static void print_rtr_name(FILE *out, const struct module *mod,
+                           const struct node *node) {
+  const struct node *retval = node_fun_retval_const(node);
+  fprintf(out, "%s", idents_value(mod->gctx, node_ident(retval)));
+}
+
 static void print_deffun_builtingen(FILE *out, const struct module *mod, const struct node *node) {
   const struct node *par = parent_const(node);
 
@@ -1856,6 +1862,16 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     } else {
       fprintf(out, "return self->%s;\n", idents_value(mod->gctx, ID_TAG));
     }
+    break;
+  case BG_SIZEOF:
+    fprintf(out, "return sizeof(THIS());\n");
+    break;
+  case BG_ALIGNOF:
+    fprintf(out, "return __alignof__(THIS());\n");
+    break;
+  case BG_MOVE:
+    print_rtr_name(out, mod, node);
+    fprintf(out, " = *self; memset(self, 0, sizeof(*self));\n");
     break;
   case BG__NOT:
   case BG__NUM:
@@ -2277,9 +2293,12 @@ static void print_dyntable_type(FILE *out, bool header, enum forward fwd,
                                     print_defintf_dyntable_field_eachisalist,
                                     &st);
       assert(!e);
-      e = print_defintf_dyntable_field_eachisalist(CONST_CAST(mod), node->typ,
-                                                   node->typ, NULL, &st);
-      assert(!e);
+      if (!typ_equal(node->typ, TBI_ANY)) {
+        // To prevent double-printing.
+        e = print_defintf_dyntable_field_eachisalist(CONST_CAST(mod), node->typ,
+                                                     node->typ, NULL, &st);
+        assert(!e);
+      }
     }
 
     if (st.printed == 0) {

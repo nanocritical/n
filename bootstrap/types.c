@@ -690,7 +690,8 @@ static void create_flags(struct typ *t, struct typ *tbi) {
   if (t->flags & TYPF_REF) {
     t->flags |= TYPF_TRIVIAL;
   }
-  if (tbi == TBI_TRIVIAL_CTOR
+  if (tbi == TBI_ANY
+      || tbi == TBI_TRIVIAL_CTOR
       || tbi == TBI_TRIVIAL_COPY
       || tbi == TBI_TRIVIAL_COPY_BUT_OWNED
       || tbi == TBI_TRIVIAL_COMPARE
