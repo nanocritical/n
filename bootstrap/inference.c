@@ -1600,7 +1600,6 @@ static ERROR type_inference_tuple(struct module *mod, struct node *node) {
   EXCEPT(e);
 
   set_typ(&node->typ, i);
-  node->flags |= NODE_IS_MOVED_AWAY;
 
   return 0;
 }
@@ -1631,8 +1630,6 @@ static ERROR type_inference_init_named(struct module *mod, struct node *node) {
     EXCEPT(e);
   }
 
-  node->flags |= NODE_IS_MOVED_AWAY;
-
   return 0;
 }
 
@@ -1644,8 +1641,6 @@ static ERROR type_inference_init_array(struct module *mod, struct node *node) {
                     typ_generic_arg(node->typ, 0));
     EXCEPT(e);
   }
-
-  node->flags |= NODE_IS_MOVED_AWAY;
 
   return 0;
 }
