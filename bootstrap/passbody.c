@@ -505,8 +505,6 @@ static ERROR defname_copy_call_inference(struct module *mod, struct node *node) 
 
 static ERROR arg_copy_call_inference(struct module *mod, struct node *node,
                                      struct node *expr) {
-  const bool is_stolen_by_move = NM(node->which) & (NM(INIT) | NM(TUPLE));
-
   const ident g = gensym(mod);
   GSTART();
   G0(narg, node, IDENT,
@@ -521,7 +519,6 @@ static ERROR arg_copy_call_inference(struct module *mod, struct node *node,
   G0(let, par, LET,
      G(defn, DEFNAME,
        defn->flags |= NODE_IS_TEMPORARY;
-       defn->as.DEFNAME.is_stolen_by_move = is_stolen_by_move;
        G(defni, IDENT,
          defni->as.IDENT.name = g);
        node_subs_append(defn, expr)));
@@ -543,7 +540,7 @@ static ERROR try_replace_with_copy(struct module *mod, struct node *node,
   error e = typ_check_isa(mod, expr, expr->typ, TBI_COPYABLE);
   EXCEPT(e);
 
-  if ((expr->flags & NODE_IS_TEMPORARY)) {
+  if ((node->flags | expr->flags) & (NODE_IS_TEMPORARY | NODE_IS_MOVED_AWAY)) {
     // It's OK to trivial copy temporaries: it's a move.
     return 0;
   }

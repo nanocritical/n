@@ -539,6 +539,7 @@ void name ## _copy(struct name *hta, const struct name *htb)
 }
 
 #define HTABLE_GROW__(name, ht) do { \
+  printf("Grow %u\n", (ht)->table.size); \
   struct name htmp; \
   name ## _init(&htmp, 2 * (ht)->table.size - 1); \
   htmp.delete_val = (ht)->delete_val; \

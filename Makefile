@@ -58,6 +58,10 @@ ncc0-sources := bootstrap/ncc0.main.c $(sources)
 ncc0: $(call objects-for-sources,$(ncc0-sources))
 	$Q$(CC) -g $(CFLAGS) -o $@ $^
 
+cookietable-sources := bootstrap/cookietable.main.c $(sources)
+ct: $(call objects-for-sources,$(cookietable-sources))
+	$Q$(CC) -g $(CFLAGS) -o $@ $^
+
 $(DEPS)/ $(DEPS):
 	$Qmkdir -p $(DEPS)
 

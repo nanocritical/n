@@ -28,17 +28,11 @@ Example met! Benchmark ...v:(Vararg *Standard_measures) within Heap fs.Fs time.C
 		self!active_measures |= {(m*)}
 		match m
 		| CLOCK
-			let r = Clock!Save_measurements
-			self!clock_restorer = r
-			r!disabled = true
+			self!clock_restorer = Clock!Save_measurements#Move
 		| HEAP
-			let r = Heap!Save_measurements
-			self!heap_restorer = r
-			r!disabled = true
+			self!heap_restorer = Heap!Save_measurements#Move
 		| FS
-			let r = Fs!Save_measurements
-			self!fs_restorer = r
-			r!disabled = true
+			self!fs_restorer = Fs!Save_measurements#Move
 		| NET
 			noop
 
@@ -84,15 +78,10 @@ intf `Has_restore =
 
 
 inline struct Restorer =
-	-- `disabled` allows us to pass Restorer by value without always
-	-- triggering the dtor on temporary values, and thus restoring the
-	-- context too early* TODO(e): use move= when available.
-	disabled:Bool
 	target	:!`Has_restore
 
 Restorer met# Dtor
-	if not self.disabled
-		self!target!Restore_measurements
+	self!target!Restore_measurements
 
 -- Suitable when the 'Current' measure will be updated in-place (push model).
 inline struct Stack m:`Measure =

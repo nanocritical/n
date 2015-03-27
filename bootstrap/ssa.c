@@ -155,6 +155,17 @@ struct node *find_current_statement(struct node *node) {
   return c;
 }
 
+static bool is_moved_away(struct node *node) {
+  switch (node->which) {
+  case CALL:
+  case INIT:
+  case TUPLE:
+    return true;
+  default:
+    return false;
+  }
+}
+
 static ERROR ssa_sub(struct module *mod, struct node *node, struct node *sub) {
   assert(parent(sub) == node);
   if (doesnt_need_sub(node, sub)
@@ -172,6 +183,9 @@ static ERROR ssa_sub(struct module *mod, struct node *node, struct node *sub) {
   node_subs_insert_before(statement_parent, before, let);
 
   struct node *defn = mk_node(mod, let, DEFNAME);
+  if (is_moved_away(sub)) {
+  //  defn->flags |= NODE_IS_MOVED_AWAY;
+  }
   defn->as.DEFNAME.ssa_user = sub;
   // At this point we don't know if 'sub' is a type expression (and not a
   // value) for which we should have used DEFALIAS. type_inference_ident()

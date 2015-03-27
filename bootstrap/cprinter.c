@@ -1378,7 +1378,7 @@ static void print_defname_cleanup(FILE *out, const struct module *mod,
   } else if (typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
     // Includes references.
     return;
-  } else if (node->as.DEFNAME.is_stolen_by_move) {
+  } else if (node->flags & NODE_IS_MOVED_AWAY) {
     return;
   }
 

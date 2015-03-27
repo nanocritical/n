@@ -969,6 +969,7 @@ static void print_tree_node(FILE *out, const struct module *mod,
   }
 
   fprintf(out, "%s", node_which_strings[node->which]);
+  fprintf(out, "/%x", node->flags);
   switch (node->which) {
   case BLOCK:
     fprintf(out, "(0x%zx)", node->as.BLOCK.block_id);
