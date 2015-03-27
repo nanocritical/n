@@ -414,7 +414,6 @@ static ERROR step_from_number_literal_call_inference(struct module *mod, struct 
   return 0;
 }
 
-
 static STEP_NM(step_dtor_call_inference,
                NM(DEFNAME));
 static ERROR step_dtor_call_inference(struct module *mod, struct node *node,
@@ -527,6 +526,10 @@ static ERROR arg_copy_call_inference(struct module *mod, struct node *node,
   const struct node *except[] = { expr, NULL };
   error e = catchup(mod, except, let, CATCHUP_BEFORE_CURRENT_SAME_TOP);
   EXCEPT(e);
+
+  // Now that the Copy_ctor has been inferred, the result belongs to the
+  // callee (etc.), not us. Let's make sure we don't Dtor it.
+  defn->flags |= NODE_IS_MOVED_AWAY;
 
   e = catchup(mod, NULL, narg, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
@@ -1000,6 +1003,29 @@ static ERROR step_add_dyn_topdep(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_add_arg_dtor_topdep,
+               NM(BLOCK));
+static ERROR step_add_arg_dtor_topdep(struct module *mod, struct node *node,
+                                      void *user, bool *stop) {
+  DSTEP(mod, node);
+  if (!(NM(parent_const(node)->which) & (NM(DEFFUN) | NM(DEFMETHOD)))) {
+    return 0;
+  }
+
+  const struct node *funargs = subs_at_const(parent_const(node), IDX_FUNARGS);
+  FOREACH_SUB_CONST(arg, funargs) {
+    if (next_const(arg) == NULL) {
+      break;
+    }
+    if (!typ_isa(arg->typ, TBI_TRIVIAL_DTOR) && typ_isa(arg->typ, TBI_DEFAULT_DTOR)) {
+      struct tit *it = typ_definition_one_member(arg->typ, ID_DTOR);
+      topdeps_record(mod, tit_typ(it));
+      tit_next(it);
+    }
+  }
+  return 0;
+}
+
 error passbody0(struct module *mod, struct node *root,
                 void *user, ssize_t shallow_last_up) {
   // first
@@ -1047,6 +1073,7 @@ static ERROR passbody1(struct module *mod, struct node *root,
 
     UP_STEP(step_store_return_through_ref_expr);
     UP_STEP(step_add_dyn_topdep);
+    UP_STEP(step_add_arg_dtor_topdep);
     ,
     FINALLY_STEP(step_pop_state);
     );

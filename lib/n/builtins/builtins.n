@@ -208,6 +208,8 @@ inline struct Optional t:`Copyable =
 		\ (`Inherit `Return_by_copy t)
 		\ (`Inherit `Trivial_copy t)
 		\ (`Inherit `Copyable t)
+		\ (`Inherit `Trivial_move t)
+		\ (`Inherit `Moveable t)
 		\ (`Inherit `Trivial_ctor t)
 		\ (`Inherit `Default_ctor t)
 		\ (`Inherit `Trivial_dtor t)

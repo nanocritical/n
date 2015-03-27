@@ -26,6 +26,8 @@ struct NB(Varargint) {
 
 #ifdef NLANG_DECLARE_FUNCTIONS
 
+#define NLANG_DEFER(dtor) __attribute__((__cleanup__(dtor)))
+
 #define NLANG_CLEANUP_ZERO(x) \
   __attribute__((__cleanup__(n$builtins$clean_zero))) \
   struct n$builtins$cleaner __Ncleaner_##x = { .p = (x), .sz = sizeof(*(x)) }
