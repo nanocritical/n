@@ -2848,6 +2848,20 @@ static int instance_cmp(const struct instance *a, const struct instance *b) {
       return 1;
     }
 
+    if (!typ_equal(typ_generic_functor_const(ta), typ_generic_functor_const(tb))) {
+      return 1;
+    }
+
+    if (NM(typ_definition_which(ta)) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+      struct tit *pa = typ_definition_parent(ta);
+      const struct typ *tpa = tit_typ(pa);
+      struct tit *pb = typ_definition_parent(tb);
+      const struct typ *tpb = tit_typ(pb);
+      if (!typ_equal(tpa, tpb)) {
+        return 1;
+      }
+    }
+
     for (size_t n = 0; n < typ_generic_arity(tb); ++n) {
       const struct typ *ga = typ_generic_arg_const(ta, n);
       const struct typ *gb = typ_generic_arg_const(tb, n);
@@ -2868,6 +2882,17 @@ static int instance_cmp(const struct instance *a, const struct instance *b) {
     if (typ_generic_functor_const(ta) != typ_generic_functor_const(tb)) {
       return 1;
     }
+
+    if (NM(typ_definition_which(ta)) & (NM(DEFFUN) | NM(DEFMETHOD))) {
+      struct tit *pa = typ_definition_parent(ta);
+      const struct typ *tpa = tit_typ(pa);
+      struct tit *pb = typ_definition_parent(tb);
+      const struct typ *tpb = tit_typ(pb);
+      if (tpa != tpb) {
+        return 1;
+      }
+    }
+
     for (size_t n = 0; n < typ_generic_arity(tb); ++n) {
       const struct typ *ga = typ_generic_arg_const(ta, n);
       const struct typ *gb = typ_generic_arg_const(tb, n);
