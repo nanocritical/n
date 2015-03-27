@@ -231,7 +231,7 @@ intf `Fs =
 struct linux =
 	isa `Fs
 	init		:Bool
-	dirstack	:(Buf !File)
+	dirstack	:(Buf ?!File)
 	stats		:(bench.Stack Stats)
 
 linux met! Init = Error

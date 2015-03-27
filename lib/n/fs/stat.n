@@ -1,4 +1,5 @@
 inline enum Types =
+	| UNKNOWN = 0
 	| FILE
 	| DIR
 	| SYMLINK
@@ -8,6 +9,7 @@ inline enum Types =
 	| CHARDEVICE
 
 inline enum Accessbits =
+	| NONE = 0
 	| UR
 	| UW
 	| UX
