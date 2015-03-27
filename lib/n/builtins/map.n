@@ -5,25 +5,19 @@ alias `Map_key = {`Hashable32 `Copyable `Has_equality}
 
 struct sptable T:`Copyable =
 	count	:Uint
-	groups	:(Buf ?#(Buf T))
+	groups	:(Buf (Buf T))
 	bitmap	:Bitmap
 
 inline let sp_m = 32:Uint
-inline let sp_min_size = 2*32:Uint
+inline let sp_min_size = 2*sp_m
 
 fun sp_num_groups size_pow2:Uint = Uint
 	return math.Div_ceil size_pow2 32
 
 sptable met# init size_pow2:Uint
 	self!count = 0
-	self!bitmap#Resize <- Max size_pow2 128
+	self!bitmap#Resize <- Max size_pow2 sp_min_size
 	self!groups#Resize (sp_num_groups self.bitmap.Count)
-
-sptable met# Dtor
-	foreach g in self!groups
-		Free g*
-	self#groups#Dtor
-	self#bitmap#Dtor
 
 sptable met size = Uint
 	return self.bitmap.Count
@@ -45,8 +39,8 @@ sptable shallow met$ get n:Uint = ?$T
 
 	let before_w = w & (maskout_after mask)
 	let count_before = math.Bit_popcount before_w
-	let gr = self.groups.[word]*
-	return gr$[count_before]
+	let gr = self$groups$[word]
+	return gr.Operator_at count_before
 
 sptable met# set n:Uint = #T
 	assert n < self.size
@@ -54,17 +48,12 @@ sptable met# set n:Uint = #T
 	let w = self!bitmap!Words![word]
 	let before_w = w & (maskout_after mask)
 	let count_before = math.Bit_popcount before_w
-	let pgr = self.groups![word]
-	var gr = pgr!
+	let gr = self.groups![word]
 	if w & mask != 0
 		return gr![count_before]
 
 	w! |= mask
 	self!count += 1
-
-	if not gr?
-		gr = Alloc (Buf T)
-		pgr! = gr
 
 	let old_count = gr.Count
 	gr#Resize gr.Count+1
@@ -105,7 +94,7 @@ sptable_iter met! Next = Uint, #T
 	self!w &= ~(1:U32 ov<< nxt)
 	let w_nth = self.w_nth
 	self!w_nth += 1
-	let gr = self.table.groups.[self.g]*
+	let gr = self.table.groups![self.g]
 	return self.g*32 + nxt, gr![w_nth.Uint]
 
 example sptable_basic
@@ -166,10 +155,10 @@ Map fun From_slice c:[](K, T) = r:this
 			p# = v
 
 Map met# init ?size_pow2:?Uint
-	self#table#init (size_pow2 else 0x2_000_000)
+	self#table#init (size_pow2 else sp_min_size)
 
 Map met# ensure_init
-	if self.table.size < 128
+	if self.table.size < sp_min_size
 		self#init
 
 Map met# Dtor
