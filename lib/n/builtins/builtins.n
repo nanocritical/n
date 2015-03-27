@@ -1911,7 +1911,6 @@ fun Abort
 	abort
 
 inline fun Assert__ cond:Bool ?_Ncodeloc:?*Codeloc
-	return
 	if Likely cond
 		return
 	else
