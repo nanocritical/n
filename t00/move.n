@@ -48,9 +48,15 @@ fun Main = I32 within Heap
 	(buf#Push)# = 1
 	block
 		let ctx = Heap!Save_measurements
-		let mv = foo <- foo buf#Move
-		assert buf.Count == 0
-		assert mv.Count == 2 and mv.[0] == 0 and mv.[1] == 1
+		block
+			-- Need a sub-block: the dtors that happen, and
+			-- that we want to observe, are on the return value
+			-- of the first call to foo, and the return value of
+			-- the second call to foo (which was in fact moved
+			-- from its argument temporary).
+			let mv = foo <- foo buf#Move
+			assert buf.Count == 0
+			assert mv.Count == 2 and mv.[0] == 0 and mv.[1] == 1
 		assert Heap.Measure.Allocated > 0
 		assert Heap.Measure.Freed > 0
 
