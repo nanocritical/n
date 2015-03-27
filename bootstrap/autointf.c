@@ -179,7 +179,7 @@ static void gen_on_field(struct module *mod, struct node *m,
   const struct node *funargs = subs_at_const(m, IDX_FUNARGS);
   const struct node *arg_self = subs_first_const(funargs);
 
-  if (node_ident(m) == ID_COPY_CTOR) {
+  if (node_ident(m) == ID_COPY_CTOR || node_ident(m) == ID_MOVE) {
     const struct node *arg_other = next_const(arg_self);
 
     if (typ_is_optional(f->typ)) {
@@ -197,6 +197,15 @@ static void gen_on_field(struct module *mod, struct node *m,
        assign->as.BIN.operator = TASSIGN;
        like_arg(mod, assign, arg_self, f);
        like_arg(mod, assign, arg_other, f));
+
+    if (node_ident(m) == ID_MOVE) {
+      struct node *rhs = subs_last(assign);
+      node_subs_remove(assign, rhs);
+      G0(move, assign, BIN,
+         move->as.BIN.operator = TSHARP;
+         node_subs_append(move, rhs);
+         G_IDENT(movename, "Move"));
+    }
     return;
   }
 
@@ -918,8 +927,9 @@ error step_autointf_detect_default_ctor_dtor(struct module *mod, struct node *no
 }
 
 struct inferred {
-  bool default_ctor, default_dtor, copyable, return_by_copy, equality_by_compare, ordered_by_compare;
-  bool trivial_ctor, trivial_dtor, trivial_copy_but_owned,
+  bool default_ctor, default_dtor, copyable, return_by_copy, moveable,
+       equality_by_compare, ordered_by_compare;
+  bool trivial_ctor, trivial_dtor, trivial_copy_but_owned, trivial_move,
        trivial_copy, trivial_compare, trivial_equality, trivial_order;
   bool has_equality;
 };
@@ -951,6 +961,9 @@ static void infer(struct inferred *inferred, const struct node *node) {
   if (inferred->copyable) {
     inferred->trivial_copy &= inferred->copyable &= typ_isa(node->typ, TBI_COPYABLE);
   }
+  if (inferred->moveable) {
+    inferred->trivial_move &= inferred->moveable &= typ_isa(node->typ, TBI_MOVEABLE);
+  }
   if (inferred->has_equality) {
     inferred->trivial_equality &= inferred->has_equality &= typ_isa(node->typ, TBI_HAS_EQUALITY);
   }
@@ -977,6 +990,9 @@ static void infer(struct inferred *inferred, const struct node *node) {
   if (inferred->trivial_copy) {
     inferred->trivial_copy &= typ_isa(node->typ, TBI_TRIVIAL_COPY);
   }
+  if (inferred->trivial_move) {
+    inferred->trivial_move &= typ_isa(node->typ, TBI_TRIVIAL_MOVE);
+  }
   if (inferred->trivial_compare) {
     inferred->trivial_order &= inferred->trivial_equality &= inferred->trivial_compare &=
       typ_isa(node->typ, TBI_TRIVIAL_COMPARE);
@@ -997,6 +1013,8 @@ static void infer_top(struct inferred *inferred, const struct node *node) {
   inferred->trivial_copy &= inferred->trivial_copy_but_owned &=
     inferred->trivial_dtor =
     NULL == node_get_member_const(node, ID_DTOR);
+  inferred->trivial_move =
+    NULL == node_get_member_const(node, ID_MOVE);
   inferred->trivial_order = inferred->trivial_equality = inferred->trivial_compare =
     NULL == node_get_member_const(node, ID_OPERATOR_LE)
     && NULL == node_get_member_const(node, ID_OPERATOR_LT)
@@ -1036,9 +1054,7 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
     return 0;
   }
 
-  if (!typ_is_reference(node->typ)) {
-    add_auto_isa(mod, node, TBI_ANY);
-  }
+  add_auto_isa(mod, node, TBI_ANY);
 
   if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     return 0;
@@ -1046,8 +1062,8 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
 
   struct inferred inferred = {
     true, true, true, true, true, true,
-    true, true, true, true, true, true, true,
-    true,
+    true, true, true, true, true, true, true, true,
+    true, true,
   };
 
   if (node_is_extern(node)) {
@@ -1071,6 +1087,11 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
       = inferred.trivial_copy_but_owned = inferred.copyable = false;
   } else if (immediate_isa(node, TBI_COPYABLE)) {
     inferred.trivial_copy = false;
+  }
+  if (immediate_isa(node, TBI_NOT_MOVEABLE)) {
+    inferred.trivial_move = inferred.moveable = false;
+  } else if (immediate_isa(node, TBI_MOVEABLE)) {
+    inferred.trivial_move = false;
   }
   if (immediate_isa(node, TBI_NOT_HAS_EQUALITY)) {
     inferred.equality_by_compare = inferred.trivial_equality = inferred.has_equality = false;
@@ -1118,6 +1139,11 @@ skip:
     if (inferred.copyable) {
       add_auto_isa(mod, node, TBI_COPYABLE);
     }
+  }
+  if (inferred.trivial_move || typ_isa(node->typ, TBI_TRIVIAL_MOVE)) {
+    add_auto_isa(mod, node, TBI_TRIVIAL_MOVE);
+  } else if (inferred.moveable) {
+    add_auto_isa(mod, node, TBI_MOVEABLE);
   }
   if (inferred.trivial_compare || typ_isa(node->typ, TBI_TRIVIAL_COMPARE)) {
     add_auto_isa(mod, node, TBI_TRIVIAL_COMPARE);

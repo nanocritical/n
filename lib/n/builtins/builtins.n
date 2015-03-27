@@ -30,7 +30,6 @@ extern struct __mercurial__ =
 intf `Any =
 	fun Sizeof = Uint
 	fun Alignof = Uint
-	met# Move = final
 
 -- `Prevent_dyn stops the compiler from generating a dyntable for the rest of
 -- the isa list.
@@ -45,12 +44,19 @@ intf `Copyable_but_owned =
 -- And there should be a copy_slice operation over `Trivial_copy* That's kinda
 -- the point.
 intf `Trivial_copy =
-	isa `Copyable `Trivial_dtor
+	isa `Copyable `Trivial_dtor `Trivial_move
 intf `Trivial_copy_but_owned =
 	isa `Trivial_copy -- FIXME
 intf `Return_by_copy =
 	isa `Trivial_copy
 intf `Not_return_by_copy =
+
+intf `Moveable =
+	met# Move = final
+intf `Not_moveable =
+intf `Trivial_move =
+	isa `Moveable
+
 intf `Default_ctor =
 	met# Ctor
 intf `Non_default_ctor =
