@@ -518,7 +518,6 @@ static ERROR arg_copy_call_inference(struct module *mod, struct node *node,
   struct node *par = parent(stat);
   G0(let, par, LET,
      G(defn, DEFNAME,
-       defn->flags |= NODE_IS_TEMPORARY;
        G(defni, IDENT,
          defni->as.IDENT.name = g);
        node_subs_append(defn, expr)));
@@ -540,7 +539,7 @@ static ERROR try_replace_with_copy(struct module *mod, struct node *node,
   error e = typ_check_isa(mod, expr, expr->typ, TBI_COPYABLE);
   EXCEPT(e);
 
-  if ((node->flags | expr->flags) & (NODE_IS_TEMPORARY | NODE_IS_MOVED_AWAY)) {
+  if ((node->flags | expr->flags) & NODE_IS_MOVED_AWAY) {
     // It's OK to trivial copy temporaries: it's a move.
     return 0;
   }
@@ -549,7 +548,8 @@ static ERROR try_replace_with_copy(struct module *mod, struct node *node,
     return 0;
   }
 
-  if (expr_is_return_through_ref(NULL, mod, expr)) {
+  unused__ struct node *rtr = NULL;
+  if (expr_is_return_through_ref(&rtr, mod, expr)) {
     return 0;
   }
 

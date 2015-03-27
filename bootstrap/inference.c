@@ -1404,8 +1404,7 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
   }
 
   if (!(node->flags & NODE_IS_TYPE)) {
-    if (!(node->flags & NODE_IS_TEMPORARY)
-        && !(subs_first(node)->flags & NODE_IS_DEFCHOICE)) {
+      if (!(subs_first(node)->flags & NODE_IS_DEFCHOICE)) {
       e = typ_check_deref_against_mark(mod, node, mark, rop);
       EXCEPT(e);
     }
@@ -2532,8 +2531,6 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
   if (done) {
     return 0;
   }
-
-  node->flags |= NODE_IS_TEMPORARY;
 
   if (typ_is_generic_functor(fun->typ)) {
     // Uninstantiated generic, called on values.

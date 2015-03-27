@@ -2,7 +2,9 @@ from n import *
 
 fun foo buf:(Buf Uint) = (Buf Uint)
 	assert buf.Count == 2 and buf.[0] == 0 and buf.[1] == 1
-	return buf#Move
+	-- We couldn't do "return buf#Move", arguments do not belong to us!
+	let cpy = buf
+	return cpy#Move
 
 struct t =
 	buf	:(Buf Uint)
