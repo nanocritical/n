@@ -60,30 +60,30 @@ example hashmap_collision
 	assert m.[a] == 42
 
 example hashmap_growth
-	let sp_m = Bitmap.BITS_PER_WORD
-	let two_third = 24
-
 	var m = {}:(Map Stringbuf Uint)
-	foreach i in 0 .. two_third
+
+	let before = m.table.size
+	foreach i in 0 .. 16
 		let buf = {}:Stringbuf such
 			buf#Pr i
 			(m#Store buf)# = i
 			buf#Clear
 		assert m.Count == i + 1
-	assert m.table.size == sp_m
-	foreach i in 0 .. two_third
+	assert m.table.size == before
+	foreach i in 0 .. 16
 		let buf = {}:Stringbuf such
 			buf#Pr i
 			assert m.[buf] == i
 			buf#Clear
-	foreach i in two_third .. sp_m
+
+	foreach i in 16 .. 256
 		let buf = {}:Stringbuf such
 			buf#Pr i
 			(m#Store buf)# = i
 			buf#Clear
 		assert m.Count == i + 1
-	assert m.table.size == 2*sp_m
-	foreach i in two_third .. sp_m
+	assert m.table.size > before
+	foreach i in 16 .. 256
 		let buf = {}:Stringbuf such
 			buf#Pr i
 			assert m.[buf] == i
