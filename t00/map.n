@@ -40,12 +40,19 @@ example hashmap_basic
 	var mcopy = m
 	assert mcopy.Count == m.Count
 
+struct collides =
+	isa `Hashable32
+	x	:U64
+
+collides met Hash32 = U32
+	return 0xcafe
+
 example hashmap_collision
-	let a = 31:U64
-	let b = 0x1_0000_0000:U64
+	let a = {x=31}:collides
+	let b = {x=0x1_0000_0000}:collides
 	assert a.Hash32 == b.Hash32
 
-	var m = {}:(Map U64 Uint)
+	var m = {}:(Map collides Uint)
 	(m#Store a)# = 42
 	assert m.[a] == 42
 	(m#Store b)# = 43
