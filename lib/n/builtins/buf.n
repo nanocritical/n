@@ -1,4 +1,4 @@
-inline struct Buf t:`Default_dtor =
+inline struct Buf t:{`Moveable `Trivial_ctor `Default_dtor} =
 	isa `Trivial_ctor `Copyable (`Random_container t) `Show
 	s	:[!]t	--::^Owned
 
@@ -40,7 +40,6 @@ inline Buf met# Clear
 	self#auto_shrink
 
 inline Buf met# Resize cnt:Uint
-	assert t isa `Trivial_ctor or cnt <= self.Count
 	if cnt <= self.Cap
 		self!s = self.s.[.. cnt]
 		self#auto_shrink
@@ -72,10 +71,12 @@ inline Buf met# Pop
 	self#auto_shrink
 
 inline Buf met# Append s:[]t
+	assert t isa `Copyable
 	self#auto_grow self.s.Count + s.Count
 	self#s = self!s!Append s
 
 inline Buf met# Copy s:[]t
+	assert t isa `Copyable
 	self#Reserve s.Count
 	self#s = self.s!Copy s
 	self#auto_shrink
