@@ -432,7 +432,7 @@ static ERROR step_dtor_call_inference(struct module *mod, struct node *node,
 }
 
 static bool expr_is_literal_initializer(struct node **expr, struct module *mod, struct node *node) {
-  if (node->which == INIT) {
+  if (node->which == INIT || node->which == TUPLE) {
     if (expr != NULL) {
       *expr = node;
     }
@@ -452,7 +452,9 @@ static bool expr_is_return_through_ref(struct node **expr, struct module *mod, s
   if (expr_is_literal_initializer(expr, mod, node)) {
     return true;
   } else if (node->which == CALL) {
-    *expr = node;
+    if (expr != NULL) {
+      *expr = node;
+    }
     return true;
   } else if (node->which == BLOCK) {
     return expr_is_return_through_ref(expr, mod, subs_last(node));
@@ -551,8 +553,7 @@ static ERROR try_replace_with_copy(struct module *mod, struct node *node,
     return 0;
   }
 
-  unused__ struct node *rtr = NULL;
-  if (expr_is_return_through_ref(&rtr, mod, expr)) {
+  if (expr_is_return_through_ref(NULL, mod, expr)) {
     return 0;
   }
 
