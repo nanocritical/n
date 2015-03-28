@@ -529,7 +529,9 @@ static void add_auto_member(struct module *mod,
     return;
   }
 
-  if (typ_is_trivial(inferred_intf) || typ_equal(inferred_intf, TBI_ENUM)) {
+  if (typ_is_trivial(inferred_intf)
+      || typ_equal(inferred_intf, TBI_ENUM)
+      || typ_equal(inferred_intf, TBI_UNION)) {
     enum builtingen bg = BG__NOT;
 
     switch (tit_ident(mi)) {
@@ -544,6 +546,12 @@ static void add_auto_member(struct module *mod,
       break;
     case ID_OPERATOR_COMPARE:
       bg = BG_TRIVIAL_COMPARE_OPERATOR_COMPARE;
+      break;
+    case ID_SIZEOF:
+      bg = BG_SIZEOF;
+      break;
+    case ID_ALIGNOF:
+      bg = BG_ALIGNOF;
       break;
     default:
       goto non_bg;
@@ -597,6 +605,8 @@ static bool need_auto_member(struct typ *intf, struct tit *mi) {
   case ID_CTOR:
   case ID_DTOR:
   case ID_COPY_CTOR:
+  case ID_SIZEOF:
+  case ID_ALIGNOF:
   case ID_OPERATOR_COMPARE:
   case ID_OPERATOR_EQ:
   case ID_OPERATOR_NE:
@@ -1018,8 +1028,15 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (node->as.DEFTYPE.kind == DEFTYPE_ENUM
-      || typ_equal(node->typ, TBI_VOID)) {
+  if (typ_equal(node->typ, TBI_VOID)) {
+    return 0;
+  }
+
+  if (!typ_is_reference(node->typ)) {
+    add_auto_isa(mod, node, TBI_ANY);
+  }
+
+  if (node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
     return 0;
   }
 

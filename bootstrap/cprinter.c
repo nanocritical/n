@@ -1857,6 +1857,12 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
       fprintf(out, "return self->%s;\n", idents_value(mod->gctx, ID_TAG));
     }
     break;
+  case BG_SIZEOF:
+    fprintf(out, "return sizeof(THIS());\n");
+    break;
+  case BG_ALIGNOF:
+    fprintf(out, "return __alignof__(THIS());\n");
+    break;
   case BG__NOT:
   case BG__NUM:
     assert(false);
@@ -2264,9 +2270,12 @@ static void print_dyntable_type(FILE *out, bool header, enum forward fwd,
                                     print_defintf_dyntable_field_eachisalist,
                                     &st);
       assert(!e);
-      e = print_defintf_dyntable_field_eachisalist(CONST_CAST(mod), node->typ,
-                                                   node->typ, NULL, &st);
-      assert(!e);
+      if (!typ_equal(node->typ, TBI_ANY)) {
+        // To prevent double-printing.
+        e = print_defintf_dyntable_field_eachisalist(CONST_CAST(mod), node->typ,
+                                                     node->typ, NULL, &st);
+        assert(!e);
+      }
     }
 
     if (st.printed == 0) {
