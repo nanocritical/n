@@ -1,4 +1,4 @@
-inline struct Buf t:`Any =
+inline struct Buf t:`Default_dtor =
 	isa `Trivial_ctor `Copyable (`Random_container t) `Show
 	s	:[!]t	--::^Owned
 
@@ -7,6 +7,11 @@ inline Buf fun From_slice c:[]t = r:this
 	r#Slice!Exact_copy c
 
 inline Buf met# Dtor
+	if t isa `Trivial_dtor
+		noop
+	else
+		foreach i in self.All
+			self![i]#Dtor
 	Realloc #self#s 0
 
 inline Buf met# Copy_ctor other:*this

@@ -1369,6 +1369,15 @@ static void print_defname_linkage(FILE *out, bool difft_mod, enum forward fwd,
   }
 }
 
+static void print_defer_dtor(FILE *out, const struct module *mod,
+                             struct typ *t) {
+  fprintf(out, " NLANG_DEFER(");
+  struct tit *it = typ_definition_one_member(t, ID_DTOR);
+  print_typ(out, mod, tit_typ(it));
+  tit_next(it);
+  fprintf(out, ") ");
+}
+
 static void print_defname_cleanup(FILE *out, const struct module *mod,
                                   const struct node *node) {
   if (node->flags & NODE_IS_GLOBAL_LET) {
@@ -1378,15 +1387,11 @@ static void print_defname_cleanup(FILE *out, const struct module *mod,
   } else if (typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
     // Includes references.
     return;
-  } else if (node->as.DEFNAME.is_stolen_by_move) {
+  } else if (node->flags & NODE_IS_MOVED_AWAY) {
     return;
   }
 
-  fprintf(out, " __attribute__((__cleanup__(");
-  struct tit *it = typ_definition_one_member(node->typ, ID_DTOR);
-  print_typ(out, mod, tit_typ(it));
-  tit_next(it);
-  fprintf(out, "))) ");
+  print_defer_dtor(out, mod, node->typ);
 }
 
 static void print_defname(FILE *out, bool header, enum forward fwd,
@@ -1616,7 +1621,7 @@ static void print_typeconstraint(FILE *out, const struct module *mod, const stru
 }
 
 static void print_defarg(FILE *out, const struct module *mod, const struct node *node,
-                         bool return_through_ref) {
+                         bool return_through_ref, bool dynwrapper) {
   if (return_through_ref) {
     if (DEF(node->typ)->which == DEFINTF) {
       fprintf(out, "struct _$Ndyn_");
@@ -1629,9 +1634,13 @@ static void print_defarg(FILE *out, const struct module *mod, const struct node 
   }
 
   fprintf(out, " ");
+
   if (return_through_ref) {
     fprintf(out, "*_$Nrtr_");
+  } else if (!dynwrapper && !typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
+    fprintf(out, "_$Nwilldtor_");
   }
+
   print_expr(out, mod, subs_first_const(node), T__STATEMENT);
 }
 
@@ -1650,6 +1659,7 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
                                 const struct node *node,
                                 bool as_fun_pointer,
                                 bool as_dyn_fun_pointer) {
+  const bool as_dynwrapper = !as_fun_pointer && as_dyn_fun_pointer;
   const struct node *proto = node;
   if (as_dyn_fun_pointer && node_member_from_intf(node)) {
     proto = DEF(typ_member(CONST_CAST(node_member_from_intf(node)), node_ident(node)));
@@ -1677,6 +1687,7 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
   } else {
     print_deffun_name(out, mod, node);
     if (as_dyn_fun_pointer) {
+      assert(as_dynwrapper);
       fprintf(out, "__$Ndynwrapper");
     }
   }
@@ -1703,7 +1714,7 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
     }
 
     const struct node *arg = subs_at_const(funargs, n);
-    print_defarg(out, mod, arg, false);
+    print_defarg(out, mod, arg, false, as_dynwrapper);
   }
 
   if (retval_throughref) {
@@ -1712,7 +1723,7 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
       fprintf(out, ", ");
     }
 
-    print_defarg(out, mod, retval, true);
+    print_defarg(out, mod, retval, true, as_dynwrapper);
   }
 
   if (no_args_at_all) {
@@ -1728,7 +1739,7 @@ static void print_rtr_helpers_start(FILE *out, const struct module *mod,
   const struct node *last = subs_last_const(retval);
   if (bycopy) {
     fprintf(out, UNUSED " ");
-    print_defarg(out, mod, retval, false);
+    print_defarg(out, mod, retval, false, false);
     fprintf(out, " = { 0 };\n");
   } else {
     fprintf(out, "#define ");
@@ -1815,6 +1826,12 @@ static void rtr_helpers(FILE *out, const struct module *mod,
   print_rtr_helpers(out, mod, retval, start);
 }
 
+static void print_rtr_name(FILE *out, const struct module *mod,
+                           const struct node *node) {
+  const struct node *retval = node_fun_retval_const(node);
+  fprintf(out, "%s", idents_value(mod->gctx, node_ident(retval)));
+}
+
 static void print_deffun_builtingen(FILE *out, const struct module *mod, const struct node *node) {
   const struct node *par = parent_const(node);
 
@@ -1862,6 +1879,10 @@ static void print_deffun_builtingen(FILE *out, const struct module *mod, const s
     break;
   case BG_ALIGNOF:
     fprintf(out, "return __alignof__(THIS());\n");
+    break;
+  case BG_MOVE:
+    print_rtr_name(out, mod, node);
+    fprintf(out, " = *self; memset(self, 0, sizeof(*self));\n");
     break;
   case BG__NOT:
   case BG__NUM:
@@ -2104,9 +2125,21 @@ static void print_deffun(FILE *out, bool header, enum forward fwd,
       fprintf(out, "NLANG_CLEANUP_ZERO(self);\n");
     }
 
+    const struct node *funargs = subs_at_const(node, IDX_FUNARGS);
+    FOREACH_SUB_CONST(arg, funargs) {
+      if (next_const(arg) == NULL) {
+        break;
+      }
+      if (!typ_isa(arg->typ, TBI_TRIVIAL_DTOR)) {
+        print_defer_dtor(out, mod, arg->typ);
+        print_typ(out, mod, arg->typ);
+        const char *narg = idents_value(mod->gctx, node_ident(arg));
+        fprintf(out, " %s = _$Nwilldtor_%s;\n", narg, narg);
+      }
+    }
+
     rtr_helpers(out, mod, node, true);
 
-    const struct node *funargs = subs_at_const(node, IDX_FUNARGS);
     const ssize_t first_vararg = node_fun_first_vararg(node);
     ident id_ap = ID__NONE;
     if (first_vararg >= 0) {

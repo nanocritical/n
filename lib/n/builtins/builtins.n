@@ -44,12 +44,19 @@ intf `Copyable_but_owned =
 -- And there should be a copy_slice operation over `Trivial_copy* That's kinda
 -- the point.
 intf `Trivial_copy =
-	isa `Copyable `Trivial_dtor
+	isa `Copyable `Trivial_dtor `Trivial_move
 intf `Trivial_copy_but_owned =
 	isa `Trivial_copy -- FIXME
 intf `Return_by_copy =
 	isa `Trivial_copy
 intf `Not_return_by_copy =
+
+intf `Moveable =
+	met# Move = final
+intf `Not_moveable =
+intf `Trivial_move =
+	isa `Moveable
+
 intf `Default_ctor =
 	met# Ctor
 intf `Non_default_ctor =
@@ -201,6 +208,8 @@ inline struct Optional t:`Copyable =
 		\ (`Inherit `Return_by_copy t)
 		\ (`Inherit `Trivial_copy t)
 		\ (`Inherit `Copyable t)
+		\ (`Inherit `Trivial_move t)
+		\ (`Inherit `Moveable t)
 		\ (`Inherit `Trivial_ctor t)
 		\ (`Inherit `Default_ctor t)
 		\ (`Inherit `Trivial_dtor t)
@@ -1942,3 +1951,6 @@ fun ensure_visible_sysheap_dyn = *`Heap
 fun Ensure_visible_example_dtor
 	let ex = {}:bench.Example
 	ex#Dtor
+
+fun Step x:Uint
+	noop

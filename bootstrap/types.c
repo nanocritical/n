@@ -694,6 +694,7 @@ static void create_flags(struct typ *t, struct typ *tbi) {
       || tbi == TBI_TRIVIAL_CTOR
       || tbi == TBI_TRIVIAL_COPY
       || tbi == TBI_TRIVIAL_COPY_BUT_OWNED
+      || tbi == TBI_TRIVIAL_MOVE
       || tbi == TBI_TRIVIAL_COMPARE
       || tbi == TBI_TRIVIAL_EQUALITY
       || tbi == TBI_TRIVIAL_ORDER
@@ -2247,6 +2248,8 @@ struct typ *TBI_EQUALITY_BY_COMPARE;
 struct typ *TBI_ORDERED_BY_COMPARE;
 struct typ *TBI_COPYABLE;
 struct typ *TBI_NOT_COPYABLE;
+struct typ *TBI_MOVEABLE;
+struct typ *TBI_NOT_MOVEABLE;
 struct typ *TBI_DEFAULT_CTOR;
 struct typ *TBI_NON_DEFAULT_CTOR;
 struct typ *TBI_DEFAULT_DTOR;
@@ -2254,6 +2257,7 @@ struct typ *TBI_ERROR_DTOR;
 struct typ *TBI_ARRAY_CTOR;
 struct typ *TBI_TRIVIAL_COPY;
 struct typ *TBI_TRIVIAL_COPY_BUT_OWNED;
+struct typ *TBI_TRIVIAL_MOVE;
 struct typ *TBI_TRIVIAL_CTOR;
 struct typ *TBI_TRIVIAL_DTOR;
 struct typ *TBI_TRIVIAL_COMPARE;

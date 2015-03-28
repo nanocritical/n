@@ -1,0 +1,129 @@
+from n import *
+
+fun foo buf:(Buf Uint) = (Buf Uint)
+	assert buf.Count == 2 and buf.[0] == 0 and buf.[1] == 1
+	return buf#Move
+
+struct t =
+	buf	:(Buf Uint)
+
+struct tt =
+	c	:((Buf Uint), Uint)
+
+fun bar x:tt = tt
+	assert x.c.X0.Count == 2 and x.c.X0.[0] == 0 and x.c.X0.[1] == 1
+	return x#Move
+
+fun Main = I32 within Heap
+	var buf = {}:(Buf Uint)
+	(buf#Push)# = 0
+	(buf#Push)# = 1
+
+	block
+		let ctx = Heap!Save_measurements
+		let cpy = buf
+		assert cpy.Count == 2 and cpy.[0] == 0 and cpy.[1] == 1
+		assert Heap.Measure.Allocated > 0
+		assert Heap.Measure.Freed == 0
+
+	block
+		let ctx = Heap!Save_measurements
+		let mv = buf#Move
+		assert buf.Count == 0
+		assert mv.Count == 2 and mv.[0] == 0 and mv.[1] == 1
+		assert Heap.Measure.Allocated == 0
+		assert Heap.Measure.Freed == 0
+
+	(buf#Push)# = 0
+	(buf#Push)# = 1
+	block
+		let ctx = Heap!Save_measurements
+		let mv = foo buf#Move
+		assert buf.Count == 0
+		assert mv.Count == 2 and mv.[0] == 0 and mv.[1] == 1
+		assert Heap.Measure.Allocated == 0
+		assert Heap.Measure.Freed == 0
+
+	(buf#Push)# = 0
+	(buf#Push)# = 1
+	block
+		let ctx = Heap!Save_measurements
+		block
+			-- Need a sub-block: the dtors that happen, and
+			-- that we want to observe, are on the return value
+			-- of the first call to foo, and the return value of
+			-- the second call to foo (which was in fact moved
+			-- from its argument temporary).
+			let mv = foo <- foo buf#Move
+			assert buf.Count == 0
+			assert mv.Count == 2 and mv.[0] == 0 and mv.[1] == 1
+		assert Heap.Measure.Allocated > 0
+		assert Heap.Measure.Freed > 0
+
+	(buf#Push)# = 0
+	(buf#Push)# = 1
+	block
+		let ctx = Heap!Save_measurements
+		let mv = foo <- (foo buf#Move)#Move
+		assert buf.Count == 0
+		assert mv.Count == 2 and mv.[0] == 0 and mv.[1] == 1
+		assert Heap.Measure.Allocated == 0
+		assert Heap.Measure.Freed == 0
+
+	(buf#Push)# = 0
+	(buf#Push)# = 1
+	block
+		let ctx = Heap!Save_measurements
+		let mv = foo <- (foo <- (foo buf#Move)#Move)#Move
+		assert buf.Count == 0
+		assert mv.Count == 2 and mv.[0] == 0 and mv.[1] == 1
+		assert Heap.Measure.Allocated == 0
+		assert Heap.Measure.Freed == 0
+
+	(buf#Push)# = 0
+	(buf#Push)# = 1
+	block
+		let ctx = Heap!Save_measurements
+		let r = {buf=buf#Move}:t
+		assert buf.Count == 0
+		assert r.buf.Count == 2 and r.buf.[0] == 0 and r.buf.[1] == 1
+		assert Heap.Measure.Allocated == 0
+		assert Heap.Measure.Freed == 0
+
+	(buf#Push)# = 0
+	(buf#Push)# = 1
+	block
+		let ctx = Heap!Save_measurements
+		let c = buf#Move, 0:Uint
+		assert buf.Count == 0
+		assert c.X0.Count == 2 and c.X0.[0] == 0 and c.X0.[1] == 1
+		assert Heap.Measure.Allocated == 0
+		assert Heap.Measure.Freed == 0
+
+	(buf#Push)# = 0
+	(buf#Push)# = 1
+	block
+		let ctx = Heap!Save_measurements
+		let c = buf#Move, 0:Uint
+		let r = {c=c#Move}:tt
+		let mv = bar r#Move
+		assert buf.Count == 0
+		assert mv.c.X0.Count == 2 and mv.c.X0.[0] == 0 and mv.c.X0.[1] == 1
+		assert Heap.Measure.Allocated == 0
+		assert Heap.Measure.Freed == 0
+
+-- FIXME(e): `Slice_compatible.From_slice performs copies, so the following
+-- cannot work. We need a special form to initialize from a literal slice,
+-- where a move is possible.
+--(
+	(buf#Push)# = 0
+	(buf#Push)# = 1
+	block
+		let ctx = Heap!Save_measurements
+		let v = {buf#Move}:(Buf (Buf Uint))
+		assert buf.Count == 0
+		assert v.[0].Count == 2 and v.[0].[0] == 0 and v.[0].[1] == 1
+		assert Heap.Measure.Allocated == 0
+		assert Heap.Measure.Freed == 0
+)--
+	return 0
