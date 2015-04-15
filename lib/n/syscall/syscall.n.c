@@ -3,6 +3,8 @@
 #include <sys/xattr.h>
 #include <sys/syscall.h>
 #include <sys/mman.h>
+#include <sys/socket.h>
+#include <netdb.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -427,11 +429,106 @@ static NB(Int) SY(setenv)(NB(U8) *name, NB(U8) *value, NB(I32) overwrite) {
 
 static NB(U8) *SY(mmap)(NB(Uintptr) addr, NB(Uint) length, NB(I32) prot, NB(I32) flags,
                         NB(Int) fd, NB(Uint) offset) {
-  return mmap((void *) addr, length, prot, flags, fd, offset);
+  void *ret = mmap((void *) addr, length, prot, flags, fd, offset);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
 }
 
 static NB(Int) SY(munmap)(NB(U8) *addr, NB(Uint) length) {
-  return munmap((void *) addr, length);
+  int ret = munmap((void *) addr, length);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+NB(Int) SY(_EAI_ADDRFAMILY) = EAI_ADDRFAMILY;
+NB(Int) SY(_EAI_AGAIN) = EAI_AGAIN;
+NB(Int) SY(_EAI_BADFLAGS) = EAI_BADFLAGS;
+NB(Int) SY(_EAI_FAIL) = EAI_FAIL;
+NB(Int) SY(_EAI_FAMILY) = EAI_FAMILY;
+NB(Int) SY(_EAI_MEMORY) = EAI_MEMORY;
+NB(Int) SY(_EAI_NODATA) = EAI_NODATA;
+NB(Int) SY(_EAI_NONAME) = EAI_NONAME;
+NB(Int) SY(_EAI_SERVICE) = EAI_SERVICE;
+NB(Int) SY(_EAI_SOCKTYPE) = EAI_SOCKTYPE;
+
+NB(I32) SY(AF_INET) = AF_INET;
+NB(I32) SY(AF_INET6) = AF_INET6;
+NB(I32) SY(AF_UNSPEC) = AF_UNSPEC;
+NB(I32) SY(AI_V4MAPPED) = AI_V4MAPPED;
+NB(I32) SY(AI_ADDRCONFIG) = AI_ADDRCONFIG;
+NB(I32) SY(AI_ALL) = AI_ALL;
+NB(I32) SY(AI_CANONNAME) = AI_CANONNAME;
+NB(I32) SY(AI_NUMERICHOST) = AI_NUMERICHOST;
+NB(I32) SY(AI_PASSIVE) = AI_PASSIVE;
+NB(I32) SY(SOCK_STREAM) = SOCK_STREAM;
+NB(I32) SY(SOCK_DGRAM) = SOCK_DGRAM;
+NB(I32) SY(IPPROTO_TCP) = IPPROTO_TCP;
+NB(I32) SY(IPPROTO_UDP) = IPPROTO_UDP;
+
+struct SY(Addrinfo) SY(Addrinfo$From_raw)(NB(U8) *raw) {
+  struct SY(Addrinfo) r = { 0 };
+  struct addrinfo *ai = (void *) raw;
+  r.Flags = ai->ai_flags;
+  r.Family = ai->ai_family;
+  r.Socktype = ai->ai_socktype;
+  r.Protocol = ai->ai_protocol;
+  r.Raw_addrlen = ai->ai_addrlen;
+  r.Raw_addr = (NB(U8) *) ai->ai_addr;
+  r.Canonname.bytes.dat = (NB(U8) *) ai->ai_canonname;
+  r.Canonname.bytes.cnt = strlen(ai->ai_canonname);
+  r.Canonname.bytes.cap = r.Canonname.bytes.cnt + 1;
+  r.Raw_next = (NB(U8) *) ai->ai_next;
+  return r;
+}
+
+NB(byteslice) SY(Addrinfo$Ip_bytes)(struct SY(Addrinfo) *self) {
+  NB(byteslice) ret = { 0 };
+
+  if (self->Family == SY(AF_INET)) {
+    struct sockaddr_in *addr = (void *) self->Raw_addr;
+    ret.dat = (NB(U8) *) &addr->sin_addr;
+    ret.cnt = 4;
+    ret.cap = 4;
+  } else if (self->Family == SY(AF_INET6)) {
+    struct sockaddr_in6 *addr = (void *) self->Raw_addr;
+    ret.dat = (NB(U8) *) &addr->sin6_addr;
+    ret.cnt = 16;
+    ret.cap = 16;
+  }
+
+  return ret;
+}
+
+NB(Uint) SY(Addrinfo$Ip_port)(struct SY(Addrinfo) *self) {
+  NB(Uint) ret = 0;
+
+  if (self->Family == SY(AF_INET)) {
+    struct sockaddr_in *addr = (void *) self->Raw_addr;
+    ret = addr->sin_port;
+  } else if (self->Family == SY(AF_INET6)) {
+    struct sockaddr_in6 *addr = (void *) self->Raw_addr;
+    ret = addr->sin6_port;
+  }
+
+  return ret;
+}
+
+static NB(Int) SY(getaddrinfo)(NB(U8) *node, NB(U8) *service, struct SY(Addrinfo) *hints,
+                               NB(U8) **res) {
+  struct addrinfo _hints = {
+    .ai_flags = hints->Flags,
+    .ai_family = hints->Family,
+    .ai_socktype = hints->Socktype,
+    .ai_protocol = hints->Protocol,
+    0,
+  };
+
+  int ret = getaddrinfo((char *) node, (char *) service, &_hints, (struct addrinfo **) res);
+  return ret;
+}
+
+static void SY(freeaddrinfo)(NB(U8) *res) {
+  freeaddrinfo((struct addrinfo *) res);
 }
 
 #endif

@@ -1,5 +1,6 @@
 from n import *
 import n.cstring
+import n.unsafe
 
 extern let _EPERM:I32
 extern let _ENOENT:I32
@@ -772,3 +773,94 @@ fun Munmap addr:#U8 length:Uint = Error
 	if ret >= 0
 		return OK
 	return convert_error errno
+
+
+let EAI_ADDRFAMILY = {Why=*"The specified network host does not have any network addresses in the requested address family."}:Error
+let EAI_AGAIN = {Why=*"The name server returned a temporary failure indication. Try again later."}:Error
+let EAI_BADFLAGS = {Why=*"hints.ai_flags contains invalid flags; or, hints.ai_flags included AI_CANONNAME and name was NULL."}:Error
+let EAI_FAIL = {Why=*"The name server returned a permanent failure indication."}:Error
+let EAI_FAMILY = {Why=*"The requested address family is not supported."}:Error
+let EAI_MEMORY = {Why=*"Out of memory."}:Error
+let EAI_NODATA = {Why=*"The specified network host exists, but does not have any network addresses defined."}:Error
+let EAI_NONAME = {Why=*"The node or service is not known; or both node and service are NULL; or AI_NUMERICSERV was specified in hints.ai_flags and service was not a numeric port-number string."}:Error
+let EAI_SERVICE = {Why=*"The requested service is not available for the requested socket type. "}:Error
+let EAI_SOCKTYPE = {Why=*"The requested socket type is not supported."}:Error
+
+extern let _EAI_ADDRFAMILY:Int
+extern let _EAI_AGAIN:Int
+extern let _EAI_BADFLAGS:Int
+extern let _EAI_FAIL:Int
+extern let _EAI_FAMILY:Int
+extern let _EAI_MEMORY:Int
+extern let _EAI_NODATA:Int
+extern let _EAI_NONAME:Int
+extern let _EAI_SERVICE:Int
+extern let _EAI_SOCKTYPE:Int
+
+extern let AF_INET:I32
+extern let AF_INET6:I32
+extern let AF_UNSPEC:I32
+extern let AI_V4MAPPED:I32
+extern let AI_ADDRCONFIG:I32
+extern let AI_ALL:I32
+extern let AI_CANONNAME:I32
+extern let AI_NUMERICHOST:I32
+extern let AI_PASSIVE:I32
+extern let SOCK_STREAM:I32
+extern let SOCK_DGRAM:I32
+extern let IPPROTO_TCP:I32
+extern let IPPROTO_UDP:I32
+
+struct Addrinfo =
+	Flags		:I32
+	Family		:I32
+	Socktype	:I32
+	Protocol	:I32
+	Raw_addrlen	:Int
+	Raw_addr	:?*U8
+	Canonname	:String
+	Raw_next	:?*U8
+
+extern Addrinfo fun From_raw raw:*U8 = this
+extern Addrinfo met Ip_bytes = []U8
+extern Addrinfo met Ip_port = Uint
+
+Addrinfo met Next = ?*this
+	return (unsafe.Cast ?*U8 *this) self.Raw_next
+
+extern fun getaddrinfo node:*U8 service:?*U8 hints:*Addrinfo res:##U8 = Int
+extern fun freeaddrinfo res:?#U8
+
+fun Getaddrinfo node:String service:?*String hints:*Addrinfo = Error, res:?#U8
+	let _service:?*U8 such
+		if service?
+			_service = (cstring.Mk service).Rawdata
+	res = nil
+	let ret = getaddrinfo (cstring.Mk node).Rawdata _service hints #res
+	if ret == 0
+		return OK, res
+	elif ret == _EAI_ADDRFAMILY
+		return EAI_ADDRFAMILY, nil
+	elif ret == _EAI_AGAIN
+		return EAI_AGAIN, nil
+	elif ret == _EAI_BADFLAGS
+		return EAI_BADFLAGS, nil
+	elif ret == _EAI_FAIL
+		return EAI_FAIL, nil
+	elif ret == _EAI_FAMILY
+		return EAI_FAMILY, nil
+	elif ret == _EAI_MEMORY
+		return EAI_MEMORY, nil
+	elif ret == _EAI_NODATA
+		return EAI_NODATA, nil
+	elif ret == _EAI_NONAME
+		return EAI_NONAME, nil
+	elif ret == _EAI_SERVICE
+		return EAI_SERVICE, nil
+	elif ret == _EAI_SOCKTYPE
+		return EAI_SOCKTYPE, nil
+	else
+		return (convert_error errno), nil
+
+fun Freeaddrinfo res:?#U8
+	freeaddrinfo res

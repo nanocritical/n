@@ -10,10 +10,12 @@ struct n$builtins$cleaner {
   size_t sz;
 };
 
+typedef struct _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ NB(byteslice);
+
 union NB(Varargintunion) {
   struct NB(Varargint) *ref;
   va_list valist;
-  struct _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ *s;
+  NB(byteslice) *s;
 };
 
 struct NB(Varargint) {

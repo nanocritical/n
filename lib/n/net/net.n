@@ -1,0 +1,127 @@
+-- See LICENSE for details. Originally derived from go/src/pkg/net
+-- Copyright 2009 The Go Authors. All rights reserved.
+
+from n import *
+import n.fmt
+import n.io
+
+let xdigit = "0123456789abcdef"
+
+-- FIXME(e): slow
+fun ntox n:Uint min:Int = r:Stringbuf
+	var bp = 32
+	var b = {}:Stringbuf
+	b#Resize bp
+
+	while n > 0 or min > 0
+		bp -= 1
+		b![bp]! = xdigit.[n % 16]
+		min -= 1
+		n /= 16
+
+	r#Cat b.[bp ..]
+
+example
+	assert (ntox 0 0) == ""
+	assert (ntox 0xffff 0) == "ffff"
+	assert (ntox 0xfffff 0) == "fffff"
+	assert (ntox 0 1) == "0"
+	assert (ntox 0 4) == "0000"
+	assert (ntox 0xffff 4) == "ffff"
+	assert (ntox 0xfffff 4) == "fffff"
+
+
+-- Always stored as IPv6.
+struct Ip =
+	isa `Show
+	bytes	:(Buf U8)
+
+let v4_prefix = "\0\0\0\0\0\0\0\0\0\0\xff\xff"
+
+Ip met Is_v4 = Bool
+	let prefix = self.bytes.[0 .. v4_prefix.Bytes.Count]
+	return prefix.Const == v4_prefix.Bytes
+
+Ip met Bytes = []U8
+	return self.bytes.Slice
+
+Ip met Show st:#fmt.`State
+	let p = self.Bytes
+	if self.Is_v4
+		fmt.F st "%s.%s.%s.%s" p.[12] p.[13] p.[14] p.[15]
+		return
+
+	if p.Count != 16
+		fmt.F st "?"
+		return
+
+	-- Find longest run of zeros.
+	var e0 = -1
+	var e1 = -1
+	var i = 0
+	while i < 16
+		var j = i
+		while j < 16 and p.[j] == 0 and p.[j+1] == 0
+			j += 2
+		if j > i and j-i > e1-e0
+			e0 = i
+			e1 = j
+		i += 2
+	-- The symbol "::" MUST NOT be used to shorten just one 16 bit 0 field.
+	if e1-e0 <= 2
+		e0 = -1
+		e1 = -1
+
+	-- Print with possible :: in place of run of zeros
+	i = 0
+	while i < 16
+		if i == e0
+			fmt.Cat st "::"
+			i = e1
+			if i >= 16
+				break
+		elif i > 0
+			fmt.Cat st ":"
+		fmt.Cat st <- ntox ((p.[i].U16 ov<< 8) | p.[i+1].U16).Uint 1
+		i += 2
+
+-- Accept 4 bytes (IPv4) or 16 bytes.
+Ip fun From_bytes b:[]U8 = r:this
+	assert b.Count == 4 or b.Count == 16
+	if b.Count == 4
+		r = this.V4 b.[0] b.[1] b.[2] b.[3]
+	else
+		r#bytes#Copy b
+
+Ip fun V4 a:U8 b:U8 c:U8 d:U8 = r:this
+	let p = v4_prefix.Bytes
+	r#bytes#Resize 16
+	r!bytes![0 .. p.Count]!Exact_copy p
+	r!bytes![p.Count]! = a
+	r!bytes![p.Count + 1]! = b
+	r!bytes![p.Count + 2]! = c
+	r!bytes![p.Count + 3]! = d
+
+
+fun Join_host_port r:#io.`Writer host:String port:Uint
+	if host.Index ":" >= 0 or host.Index "%" >= 0
+		fmt.Cat r "[" host "]:" port
+	else
+		fmt.Cat r host ":" port
+
+
+example basic
+	var buf:Stringbuf
+
+	let ip = Ip.V4 255 255 255 255
+	assert fmt.S ip == "255.255.255.255"
+	Join_host_port #buf (fmt.S ip).String 80
+	assert "255.255.255.255:80" == buf
+	buf#Clear
+
+	let ip6 = Ip.From_bytes {0xff 0xff 0 0 0x1 0 0 0
+		\ 0 0 0 0 0 0 0 0x1}
+	assert fmt.S ip6 == "ffff:0:100::1"
+	Join_host_port #buf (fmt.S ip6).String 80
+	assert "[ffff:0:100::1]:80" == buf
+	buf#Clear

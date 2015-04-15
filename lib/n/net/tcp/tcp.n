@@ -1,0 +1,89 @@
+from n import *
+import n.io
+import n.syscall
+import n.net
+import n.fmt
+
+struct Socket =
+	address	:Addr
+	port	:Uint
+
+Socket met Address = Addr
+Socket met Port = Uint
+
+Socket met# Listen addr:String port:Uint = Error
+
+Socket met# Accept = Error, Conn
+
+
+struct Addr =
+	isa `Show
+	Ip	:net.Ip
+	Port	:Uint
+	Zone	:Stringbuf
+
+Addr met Network = Stringbuf
+	return "tcp"
+
+Addr met Show st:#fmt.`State
+	let h:Stringbuf such
+		if self.Zone != ""
+			fmt.Cat #h self.Ip "%" self.Zone
+		else
+			fmt.Cat #h self.Ip
+	if self.Port != 0
+		net.Join_host_port st h.String self.Port
+	else
+		fmt.Cat st h
+
+fun Lookup_ip_cname name:String = Error, addrs:(Buf Addr), cname:Stringbuf
+	let hints = {Flags=syscall.AI_CANONNAME|syscall.AI_V4MAPPED|syscall.AI_ALL
+		\ Socktype=syscall.SOCK_STREAM}:syscall.Addrinfo
+
+	let except, res = syscall.Getaddrinfo name nil hints
+
+	var ai = nullable <- *<- syscall.Addrinfo.From_raw res
+
+	cname#Cat ai.Canonname
+	if cname == ""
+		cname#Cat name
+	if cname.Count > 0 and cname.Last != "."
+		cname#Cat "."
+
+	while ai?
+		if ai.Socktype != syscall.SOCK_STREAM
+			continue
+		if ai.Family != syscall.AF_INET and ai.Family != syscall.AF_INET6
+			continue
+
+		(addrs#Push)# = {Ip=(net.Ip.From_bytes ai.Ip_bytes)}
+
+		ai = ai.Next
+
+	syscall.Freeaddrinfo res
+
+fun Lookup_ip name:String = err:Error, ips:(Buf Addr)
+	err, ips, _ = Lookup_ip_cname name
+
+fun Lookup_cname name:String = err:Error, cname:Stringbuf
+	err, _, cname = Lookup_ip_cname name
+
+
+struct Conn =
+	isa io.`Reader io.`Writer --ev.`Pollable
+
+	fd		:Int
+	local_addr	:Addr
+	remote_addr	:Addr
+
+Conn met Fd = Int
+	return self.fd
+
+Conn met Local_addr = Addr
+	return self.local_addr
+
+Conn met Remote_addr = Addr
+	return self.remote_addr
+
+Conn met# Read b:[!]U8 = [!]U8, Error
+Conn met# Write b:[]U8 = []U8, Error
