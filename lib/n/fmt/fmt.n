@@ -2,6 +2,10 @@ from n import *
 import n
 import n.io
 
+---- TODO(e): Should return IO error, and possibly promises.
+-- An alternate, easy-going library "dbg" should be created with no error
+-- return, and blocking I/O.
+
 intf `State =
 	isa io.`Writer
 	met Width = ?Uint
@@ -48,7 +52,7 @@ fun F w:#io.`Writer fmt:String ...v:(Vararg ?*`Show)
 				break
 			if verb.[1] == "%"
 				_, except = io.Write_full w "%".Bytes
-			else
+			elif verb.[1] == "s"
 				if not v.Has_next
 					break
 				let s = v!Next
@@ -64,5 +68,13 @@ fun Prf fmt:String ?err:?Bool ...v:(Vararg ?*`Show)
 
 fun Pr w:#io.`Writer ?sep:?*String ...v:(Vararg ?*`Show)
 fun Prn w:#io.`Writer ?sep:?*String ...v:(Vararg ?*`Show)
-fun Cat w:#io.`Writer ?sep:?*String ...v:(Vararg *`String)
-fun Cat_all w:#io.`Writer ?sep:?*String ...v:(Vararg *[]String)
+
+fun Cat w:#io.`Writer ?sep:?*String ...v:(Vararg *`Show)
+	let st = {W=w}:State
+	try
+		for s in v
+			s.Show #st
+			if sep? and v.Count_left > 0
+				_, except = io.Write_full w sep.Bytes
+	catch _
+		noop
