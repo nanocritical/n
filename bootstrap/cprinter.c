@@ -536,12 +536,22 @@ static void print_tuple(FILE *out, const struct module *mod, const struct node *
   fprintf(out, "}");
 }
 
-static void print_call_vararg_count(FILE *out, const struct node *dfun,
+static void print_call_vararg_count(bool *did_retval_throughref,
+                                    FILE *out, const struct module *mod, const struct node *dfun,
                                     const struct node *node, const struct node *arg,
                                     size_t n) {
   const ssize_t first_vararg = node_fun_first_vararg(dfun);
   if (n != first_vararg) {
     return;
+  }
+
+  // Must print return-through-ref first.
+  if (node->as.CALL.return_through_ref_expr != NULL) {
+    *did_retval_throughref = true;
+
+    fprintf(out, "&(");
+    print_expr(out, mod, node->as.CALL.return_through_ref_expr, T__CALL);
+    fprintf(out, "), ");
   }
 
   const ssize_t count = subs_count(node) - 1 - first_vararg;
@@ -684,12 +694,13 @@ static void print_call(FILE *out, const struct module *mod,
     }
   }
 
+  bool did_retval_throughref = false;
   FOREACH_SUB_EVERY_CONST(arg, node, n, 1) {
     if (force_comma || n > 1) {
       fprintf(out, ", ");
     }
 
-    print_call_vararg_count(out, dfun, node, arg, n - 1);
+    print_call_vararg_count(&did_retval_throughref, out, mod, dfun, node, arg, n - 1);
 
     print_expr(out, mod, arg, T__CALL);
     n += 1;
@@ -702,7 +713,8 @@ static void print_call(FILE *out, const struct module *mod,
     fprintf(out, "0");
   }
 
-  if (node->as.CALL.return_through_ref_expr != NULL) {
+  if (node->as.CALL.return_through_ref_expr != NULL
+      && !did_retval_throughref) {
     if (n > 1) {
       fprintf(out, ", ");
     }
@@ -711,7 +723,7 @@ static void print_call(FILE *out, const struct module *mod,
     print_expr(out, mod, node->as.CALL.return_through_ref_expr, T__CALL);
     fprintf(out, ")");
   } else {
-    assert(typ_isa(node->typ, TBI_RETURN_BY_COPY));
+    assert(did_retval_throughref || typ_isa(node->typ, TBI_RETURN_BY_COPY));
   }
 
   fprintf(out, ")");
@@ -1657,10 +1669,21 @@ static void print_defarg(FILE *out, const struct module *mod, const struct node 
   print_expr(out, mod, subs_first_const(node), T__STATEMENT);
 }
 
-static bool print_call_vararg_proto(FILE *out, const struct node *dfun, size_t n) {
+static bool print_call_vararg_proto(bool *did_retval_throughref,
+                                    FILE *out, const struct module *mod,
+                                    const struct node *dfun, size_t n,
+                                    const struct node *retval, bool as_dynwrapper) {
   const ssize_t first_vararg = node_fun_first_vararg(dfun);
   if (n != first_vararg) {
     return false;
+  }
+
+  // Must print return-through-ref first.
+  if (!typ_isa_return_by_copy(retval->typ)) {
+    *did_retval_throughref = true;
+
+    print_defarg(out, mod, retval, true, as_dynwrapper);
+    fprintf(out, ", ");
   }
 
   fprintf(out, "n$builtins$Int _$Nvacount, ...");
@@ -1708,6 +1731,7 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
 
   bool no_args_at_all = true;
   bool force_comma = false;
+  bool did_retval_throughref = false;
 
   const struct node *funargs = subs_at_const(proto, IDX_FUNARGS);
   size_t n;
@@ -1717,7 +1741,8 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
       fprintf(out, ", ");
     }
 
-    if (print_call_vararg_proto(out, proto, n)) {
+    if (print_call_vararg_proto(&did_retval_throughref,
+                                out, mod, proto, n, retval, as_dynwrapper)) {
       break;
     }
 
@@ -1730,7 +1755,7 @@ static void print_fun_prototype(FILE *out, bool header, enum forward fwd,
     print_defarg(out, mod, arg, false, as_dynwrapper);
   }
 
-  if (retval_throughref) {
+  if (retval_throughref && !did_retval_throughref) {
     no_args_at_all = false;
     if (force_comma || n > 0) {
       fprintf(out, ", ");
