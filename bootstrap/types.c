@@ -2677,6 +2677,11 @@ bool typ_is_dyn(const struct typ *t) {
   return definition_const(a)->which == DEFINTF;
 }
 
+struct typ *typ_dyn_intf(const struct typ *t) {
+  assert(typ_is_dyn(t));
+  return typ_generic_arg_const(t, 0);
+}
+
 bool typ_is_dyn_compatible(const struct typ *t) {
   if (!typ_is_reference(t)
       || typ_generic_arity(t) == 0) {

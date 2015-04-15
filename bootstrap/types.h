@@ -159,6 +159,7 @@ bool typ_is_optional(const struct typ *t);
 
 bool typ_is_dyn(const struct typ *t);
 bool typ_is_dyn_compatible(const struct typ *t);
+struct typ *typ_dyn_intf(const struct typ *t);
 ERROR typ_check_can_deref(const struct module *mod, const struct node *for_error,
                           const struct typ *a, enum token_type operator);
 ERROR typ_check_deref_against_mark(const struct module *mod, const struct node *for_error,

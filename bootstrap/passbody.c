@@ -661,7 +661,8 @@ static ERROR step_copy_call_inference(struct module *mod, struct node *node,
 static bool need_insert_dyn(struct module *mod,
                             const struct typ *intf,
                             const struct typ *concrete) {
-  return typ_is_dyn(intf) && typ_is_dyn_compatible(concrete);
+  return (typ_is_dyn(intf) && typ_is_dyn_compatible(concrete))
+    || (typ_is_dyn(intf) && typ_is_dyn(concrete) && !typ_equal(typ_dyn_intf(intf), typ_dyn_intf(concrete)));
 }
 
 static ERROR insert_dyn(struct node **src,

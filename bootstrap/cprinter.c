@@ -908,8 +908,21 @@ static void print_ident(FILE *out, const struct module *mod, const struct node *
 static void print_dyn(FILE *out, const struct module *mod, const struct node *node) {
   const struct node *arg = subs_first_const(node);
   const struct typ *intf = typ_generic_arg_const(node->typ, 0);
-  const struct typ *concrete = typ_generic_arg_const(arg->typ, 0);
 
+  if (typ_is_dyn(arg->typ)) {
+    fprintf(out, "NLANG_MKDYN(struct _$Ndyn_");
+    bare_print_typ(out, mod, intf);
+    fprintf(out, ", n$reflect$Get_dyntable_for((void *)(");
+    print_expr(out, mod, arg, T__CALL);
+    fprintf(out, ").dyntable, (void *)&");
+    bare_print_typ_actual(out, mod, intf);
+    fprintf(out, "$Reflect_type), (");
+    print_expr(out, mod, arg, T__CALL);
+    fprintf(out, ").obj)");
+    return;
+  }
+
+  const struct typ *concrete = typ_generic_arg_const(arg->typ, 0);
   fprintf(out, "NLANG_MKDYN(struct _$Ndyn_");
   bare_print_typ(out, mod, intf);
   fprintf(out, ", &");
