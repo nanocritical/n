@@ -66,8 +66,15 @@ fun Prf fmt:String ?err:?Bool ...v:(Vararg ?*`Show)
 	F buf fmt ...v
 	n.Pr err=err buf
 
-fun Pr w:#io.`Writer ?sep:?*String ...v:(Vararg ?*`Show)
-fun Prn w:#io.`Writer ?sep:?*String ...v:(Vararg ?*`Show)
+fun Pr ?err:?Bool ?sep:?*String  ...v:(Vararg ?*`Show)
+	var buf = #{}:Stringbuf
+	Cat buf sep=sep ...v
+	n.Pr err=err buf
+
+fun Prn ?err:?Bool ?sep:?*String ...v:(Vararg ?*`Show)
+	var buf = #{}:Stringbuf
+	Cat buf sep=sep ...v
+	n.Prn err=err buf
 
 fun Cat w:#io.`Writer ?sep:?*String ...v:(Vararg *`Show)
 	let st = {W=w}:State
@@ -78,3 +85,9 @@ fun Cat w:#io.`Writer ?sep:?*String ...v:(Vararg *`Show)
 				_, except = io.Write_full w sep.Bytes
 	catch _
 		noop
+
+fun Sf fmt:String ...v:(Vararg *`Show) = r:Stringbuf
+	F #r fmt ...v
+
+fun S ?sep:?*String ...v:(Vararg *`Show) = r:Stringbuf
+	Cat #r sep=sep ...v
