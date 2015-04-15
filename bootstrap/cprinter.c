@@ -1819,7 +1819,7 @@ static void print_rtr_helpers_end(FILE *out, const struct module *mod,
   if (last->which == TUPLE) {
     FOREACH_SUB_CONST(x, last) {
       if (x->which == DEFARG) {
-        fprintf(out, "#undef ");
+        fprintf(out, "#undef _nretval_");
         print_expr(out, mod, subs_first_const(x), T__STATEMENT);
         fprintf(out, "\n");
       }
