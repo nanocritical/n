@@ -177,6 +177,10 @@ static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
       node_subs_remove(left, l);
       node_subs_remove(right, r);
 
+      if (node_ident(l) == ID_OTHERWISE) {
+        continue;
+      }
+
       G0(ass, node, BIN,
          ass->as.BIN.operator = TASSIGN;
          node_subs_append(ass, l);
@@ -198,6 +202,11 @@ static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
     struct node *l;
     while ((l = subs_first(left)) != NULL) {
       node_subs_remove(left, l);
+
+      if (node_ident(l) == ID_OTHERWISE) {
+        n += 1;
+        continue;
+      }
 
       char buf[8] = { 0 };
       snprintf(buf, ARRAY_SIZE(buf), "X%zu", n);
