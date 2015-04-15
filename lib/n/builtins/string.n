@@ -8,7 +8,7 @@ intf `String =
 	isa `String_compatible `Ordered `Hashable32 `Copyable
 		\ (`Random_container U8) `Show
 	fun From_bytes s:[]U8 = final--::(^Captures s)
-	met Bytes = []U8
+	met String = String
 	met Operator_at n:Uint = U8
 	met Operator_sub r:Range = String
 	met First = U8
@@ -112,6 +112,9 @@ inline String fun From_bytes b:[]U8 = this--::(^Captures s)
 
 inline String met All = Range
 	return self.bytes.All
+
+inline String met String = String
+	return self*
 
 inline String met Bytes = []U8
 	return self.bytes
@@ -677,19 +680,17 @@ Stringbuf met# Cat ?sep:?*String ...v:(Vararg *`String)
 	let sepcnt = sep?.Count else 0
 	for b in v
 		self#Reserve self.bytes.Count + sepcnt + b.Count
-		self#bytes = self!bytes!Append b.Bytes
+		self#bytes = self!bytes!Append b.String.Bytes
 		if sep? and v.Count_left > 0
 			self#bytes = self!bytes!Append sep.Bytes
 
 Stringbuf met# Cat_all ?sep:?*String ...v:(Vararg *[]String)
-	var n = 0:Uint
 	for b in v
 		foreach i in b.All
-			if sep? and n > 0
-				self#Cat sep
 			let s = b.[i]
 			self#Cat s
-			n += 1
+			if sep? and i > 0 and i != b.Count-1
+				self#Cat sep
 
 inline Stringbuf met# auto_grow atleast:Uint
 	let cap = self.bytes.cap

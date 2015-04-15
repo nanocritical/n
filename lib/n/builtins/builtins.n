@@ -410,6 +410,12 @@ inline Mutable_slice shallow met$ Operator_sub r:Range = [$]t
 		let _ = (s!Operator_sub r)
 		let _ = (s#Operator_sub r)
 		return {}
+-- FIXME(e): Deprecated. But ncc0 doesn't actually support wildcard slices.
+inline Mutable_slice met Const = []t
+	let s = this.create_impl_instance
+	such
+		let _ = s.Const
+	return {}
 inline Mutable_slice shallow met$ Recapped cap:Uint = this
 	let s = this.create_impl_instance
 	such
@@ -554,6 +560,9 @@ inline Slice_impl shallow met$ Operator_sub r:Range = this
 	and off = r.Begin * (sizeof t)
 	let raw = Slice_at_byte raw0 off
 	return {dat=((Cast #U8 #t) raw) cnt=r.Count cap=newcap}
+
+inline Slice_impl met Const = []t
+	return {dat=self.dat cnt=self.cnt cap=self.cap}
 
 inline Slice_impl shallow met$ Recapped cap:Uint = this
 	assert cap <= self.cap
