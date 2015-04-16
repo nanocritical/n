@@ -557,13 +557,13 @@ fun Open pathname:String flags:Open_flags mode:Mode = Error, Int
 	let fd = open (cstring.Mk pathname).Rawdata flags mode
 	if fd >= 0
 		return OK, fd
-	return convert_error errno, -1
+	return convert_error errno, fd
 
 fun Openat dirfd:Int pathname:String flags:Open_flags mode:Mode = Error, Int
 	let fd = openat dirfd (cstring.Mk pathname).Rawdata flags mode
 	if fd >= 0
 		return OK, fd
-	return convert_error errno, -1
+	return convert_error errno, fd
 
 fun Mkfifoat dirfd:Int pathname:String mode:Mode = Error, Int
 	let fd = mkfifoat dirfd (cstring.Mk pathname).Rawdata mode
@@ -808,8 +808,14 @@ extern let AI_NUMERICHOST:I32
 extern let AI_PASSIVE:I32
 extern let SOCK_STREAM:I32
 extern let SOCK_DGRAM:I32
+extern let SOCK_NONBLOCK:I32
+extern let SOCK_CLOEXEC:I32
 extern let IPPROTO_TCP:I32
 extern let IPPROTO_UDP:I32
+
+extern fun Sockaddr_ip_bytes family:I32 raw_addr:*U8 raw_addrlen:Uint = []U8
+extern fun Sockaddr_ip_port family:I32 raw_addr:*U8 raw_addrlen:Uint = Uint
+extern fun Sockaddr_ip buf:#[]U8 family:I32 ip:[]U8 port:Uint
 
 struct Addrinfo =
 	Flags		:I32
@@ -822,8 +828,10 @@ struct Addrinfo =
 	Raw_next	:?*U8
 
 extern Addrinfo fun From_raw raw:*U8 = this
-extern Addrinfo met Ip_bytes = []U8
-extern Addrinfo met Ip_port = Uint
+Addrinfo met Ip_bytes = []U8
+	return Sockaddr_ip_bytes self.Family self.Raw_addr self.Raw_addrlen.Unsigned
+Addrinfo met Ip_port = Uint
+	return Sockaddr_ip_port self.Family self.Raw_addr self.Raw_addrlen.Unsigned
 
 Addrinfo met Next = ?*this
 	return (unsafe.Cast ?*U8 *this) self.Raw_next
@@ -864,3 +872,41 @@ fun Getaddrinfo node:String service:?*String hints:*Addrinfo = Error, res:?#U8
 
 fun Freeaddrinfo res:?#U8
 	freeaddrinfo res
+
+
+extern inline fun Htonl hostlong:U32 = U32
+extern inline fun Htons hostshort:U16 = U16
+extern inline fun Ntohl netlong:U32 = U32
+extern inline fun Ntohs netshort:U16 = U16
+
+
+extern fun socket domain:I32 type:I32 protocol:I32 = Int
+extern fun bind sockfd:Int raw_addr:*U8 raw_addrlen:Uint = Int
+extern fun listen sockfd:Int backlog:Int = Int
+extern fun accept4 sockfd:Int raw_addr:#U8 raw_addrlen:#Uint flags:I32 = Int
+
+fun Socket domain:I32 type:I32 protocol:I32 = Error, Int
+	let sockfd = socket domain type protocol
+	if sockfd >= 0
+		return OK, sockfd
+	return (convert_error errno), sockfd
+
+fun Bind sockfd:Int sys_addr:[]U8 = Error
+	let ret = bind sockfd sys_addr.Unsafe_rawdata sys_addr.Bytecount
+	if ret == 0
+		return OK
+	return convert_error errno
+
+fun Listen sockfd:Int backlog:Uint = Error
+	let ret = listen sockfd backlog.Signed
+	if ret == 0
+		return OK
+	return convert_error errno
+
+fun Accept4 sockfd:Int sys_addr:#[!]U8 flags:I32 = Error, Int
+	var raw_addrlen = sys_addr.Bytecap
+	let fd = accept4 sockfd sys_addr#Unsafe_rawdata #raw_addrlen flags
+	if fd >= 0
+		sys_addr# = sys_addr![.. raw_addrlen]
+		return OK, fd
+	return convert_error errno, fd

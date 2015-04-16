@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>
+#include <arpa/inet.h>
 
 #define NB(t) n$builtins$##t
 #define SY(t) n$syscall$##t
@@ -462,6 +463,8 @@ NB(I32) SY(AI_NUMERICHOST) = AI_NUMERICHOST;
 NB(I32) SY(AI_PASSIVE) = AI_PASSIVE;
 NB(I32) SY(SOCK_STREAM) = SOCK_STREAM;
 NB(I32) SY(SOCK_DGRAM) = SOCK_DGRAM;
+NB(I32) SY(SOCK_NONBLOCK) = SOCK_NONBLOCK;
+NB(I32) SY(SOCK_CLOEXEC) = SOCK_CLOEXEC;
 NB(I32) SY(IPPROTO_TCP) = IPPROTO_TCP;
 NB(I32) SY(IPPROTO_UDP) = IPPROTO_UDP;
 
@@ -481,16 +484,16 @@ struct SY(Addrinfo) SY(Addrinfo$From_raw)(NB(U8) *raw) {
   return r;
 }
 
-NB(byteslice) SY(Addrinfo$Ip_bytes)(struct SY(Addrinfo) *self) {
+NB(byteslice) SY(Sockaddr_ip_bytes)(NB(I32) family, NB(U8) *raw_addr, NB(Uint) raw_addrlen) {
   NB(byteslice) ret = { 0 };
 
-  if (self->Family == SY(AF_INET)) {
-    struct sockaddr_in *addr = (void *) self->Raw_addr;
+  if (family == SY(AF_INET)) {
+    struct sockaddr_in *addr = (void *) raw_addr;
     ret.dat = (NB(U8) *) &addr->sin_addr;
     ret.cnt = 4;
     ret.cap = 4;
-  } else if (self->Family == SY(AF_INET6)) {
-    struct sockaddr_in6 *addr = (void *) self->Raw_addr;
+  } else if (family == SY(AF_INET6)) {
+    struct sockaddr_in6 *addr = (void *) raw_addr;
     ret.dat = (NB(U8) *) &addr->sin6_addr;
     ret.cnt = 16;
     ret.cap = 16;
@@ -499,18 +502,36 @@ NB(byteslice) SY(Addrinfo$Ip_bytes)(struct SY(Addrinfo) *self) {
   return ret;
 }
 
-NB(Uint) SY(Addrinfo$Ip_port)(struct SY(Addrinfo) *self) {
+NB(Uint) SY(Sockaddr_ip_port)(NB(I32) family, NB(U8) *raw_addr, NB(Uint) raw_addrlen) {
   NB(Uint) ret = 0;
 
-  if (self->Family == SY(AF_INET)) {
-    struct sockaddr_in *addr = (void *) self->Raw_addr;
+  if (family == SY(AF_INET)) {
+    struct sockaddr_in *addr = (void *) raw_addr;
     ret = addr->sin_port;
-  } else if (self->Family == SY(AF_INET6)) {
-    struct sockaddr_in6 *addr = (void *) self->Raw_addr;
+  } else if (family == SY(AF_INET6)) {
+    struct sockaddr_in6 *addr = (void *) raw_addr;
     ret = addr->sin6_port;
   }
 
   return ret;
+}
+
+NB(Void) SY(Sockaddr_ip)(NB(byteslice) *buf, NB(I32) family, NB(byteslice) ip, NB(Uint) port) {
+  if (family == SY(AF_INET)) {
+    struct sockaddr_in addr = { 0 };
+    addr.sin_port = port;
+    memcpy(&addr.sin_addr, ip.dat, ip.cnt);
+
+    buf->cnt = sizeof(struct sockaddr_in);
+    memcpy(buf->dat, &addr, buf->cnt);
+  } else if (family == SY(AF_INET6)) {
+    struct sockaddr_in6 addr = { 0 };
+    addr.sin6_port = port;
+    memcpy(&addr.sin6_addr, ip.dat, ip.cnt);
+
+    buf->cnt = sizeof(struct sockaddr_in6);
+    memcpy(buf->dat, &addr, buf->cnt);
+  }
 }
 
 static NB(Int) SY(getaddrinfo)(NB(U8) *node, NB(U8) *service, struct SY(Addrinfo) *hints,
@@ -524,12 +545,58 @@ static NB(Int) SY(getaddrinfo)(NB(U8) *node, NB(U8) *service, struct SY(Addrinfo
   };
 
   int ret = getaddrinfo((char *) node, (char *) service, &_hints, (struct addrinfo **) res);
+  _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
 static void SY(freeaddrinfo)(NB(U8) *res) {
   freeaddrinfo((struct addrinfo *) res);
 }
+
+
+static inline NB(U32) SY(Htonl)(NB(U32) hostlong) {
+  return htonl(hostlong);
+}
+
+static inline NB(U16) SY(Htons)(NB(U16) hostshort) {
+  return htons(hostshort);
+}
+
+static inline NB(U32) SY(Ntohl)(NB(U32) netlong) {
+  return ntohl(netlong);
+}
+
+static inline NB(U16) SY(Ntohs)(NB(U16) netshort) {
+  return ntohs(netshort);
+}
+
+
+static NB(Int) SY(socket)(NB(I32) domain, NB(I32) type, NB(I32) protocol) {
+  int ret = socket(domain, type, protocol);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(bind)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) raw_addrlen) {
+  int ret = bind(sockfd, (const struct sockaddr *) raw_addr, (socklen_t) raw_addrlen);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(listen)(NB(Int) sockfd, NB(Int) backlog) {
+  int ret = listen(sockfd, backlog);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(accept4)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) *raw_addrlen, NB(I32) flags) {
+  socklen_t addrlen = 0;
+  int ret = accept4(sockfd, (struct sockaddr *) raw_addr, &addrlen, flags);
+  _$Nlatestsyscallerrno = errno;
+  *raw_addrlen = addrlen;
+  return ret;
+}
+
 
 #endif
 
