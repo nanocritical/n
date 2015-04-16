@@ -1,5 +1,0 @@
-macro myloop c:`expr b:`block = `block
-
-macro debug x:`expr = `expr
-
-macro stringify x:`ident = `expr
