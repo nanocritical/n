@@ -29,6 +29,9 @@ fun check_diff s:Stringbuf raw:*U8 ?opt:?*Stringbuf ?opt_raw:?*U8
 fun do_noop
 	noop
 
+fun mk_pair = Stringbuf, Stringbuf
+	return "a", "b"
+
 fun Main = I32
 	assert basic == 0
 
@@ -60,5 +63,13 @@ fun Main = I32
 		do_noop
 		a
 	assert f.Bytes.Unsafe_rawdata !== a.Bytes.Unsafe_rawdata
+
+	var g:?Stringbuf
+	g = a
+	var h:?Stringbuf
+	h, _ = a, b
+	var i:?Stringbuf
+	var j:?Stringbuf
+	i, j = mk_pair
 
 	return 0
