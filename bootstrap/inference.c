@@ -721,12 +721,13 @@ static void try_insert_nonnullable_void(struct module *mod, struct node *node,
   struct node *statement = find_current_statement(node);
   struct node *statement_parent = parent(statement);
 
-  node_subs_remove(node, term);
-  node_subs_insert_before(statement_parent, statement, term);
-
   GSTART();
   G0(x, node, IDENT,
-     x->as.IDENT.name = ID_NONNIL);
+     x->as.IDENT.name = idents_add_string(mod->gctx, "Nonnil_void", 11));
+
+  node_subs_remove(node, x);
+  node_subs_replace(node, term, x);
+  node_subs_insert_before(statement_parent, statement, term);
 
   error e = catchup(mod, NULL, x, CATCHUP_BELOW_CURRENT);
   assert(!e);
@@ -745,7 +746,8 @@ static ERROR type_inference_un(struct module *mod, struct node *node) {
   struct typ *i = NULL;
 
 rewrote_op:
-  if ((rop == TPREQMARK && !(term->flags & NODE_IS_TYPE))
+  if ((rop == TPREQMARK && (!(term->flags & NODE_IS_TYPE)
+                            && !typ_equal(term->typ, TBI_VOID)))
       || rop == T__DEOPT) {
     rewrite_un_qmark(mod, node);
     return 0;
@@ -834,7 +836,6 @@ rewrote_op:
       set_typ(&node->typ, TBI_BOOL);
       break;
     case TPREQMARK:
-      assert(term->flags & NODE_IS_TYPE);
       try_insert_nonnullable_void(mod, node, term);
       term = subs_first(node); // may have been just modified
 
@@ -1666,8 +1667,6 @@ static ERROR type_inference_init_named(struct module *mod, struct node *node) {
     EXCEPT(e);
   } else if (node->as.INIT.is_optional) {
     struct node *x = subs_at(node, 1);
-    try_insert_nonnullable_void(mod, node, x);
-
     struct typ *i = NULL;
     e = optional(&i, mod, node, x->typ);
     EXCEPT(e);
