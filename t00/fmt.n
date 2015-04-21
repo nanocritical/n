@@ -8,4 +8,4 @@ fun Main = I32
 	Prn buf
 	buf#Clear
 
-	fmt.Prf "%v\n" 1:Uint
+	fmt.Prf "%s\n" 1:Uint
