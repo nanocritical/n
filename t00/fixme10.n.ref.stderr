@@ -1,4 +1,4 @@
 t00/fixme10.n.o.c:4000:22: error: field ‘x’ has incomplete type
  struct t00$fixme10$b x;
                       ^
-command exited with 1: cat /tmp/nccvhdqNu |parallel
+command exited with 1: cat /tmp/nccJNuNpT |parallel
