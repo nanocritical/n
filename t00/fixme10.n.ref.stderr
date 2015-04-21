@@ -1,1 +1,4 @@
-ncc0: bootstrap/cprinter.c:3203: print_top: Assertion `++prevent_infinite < 1000 && "FIXME When force==true, see t00/fixme10"' failed.
+t00/fixme10.n.o.c:4000:22: error: field ‘x’ has incomplete type
+ struct t00$fixme10$b x;
+                      ^
+command exited with 1: cat /tmp/nccvhdqNu |parallel
