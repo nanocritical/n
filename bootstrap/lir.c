@@ -140,6 +140,9 @@ static void rewrite_opt_acc_op(struct module *mod, struct node *node) {
          v->as.IDENT.name = gensym(mod));
        node_subs_append(defn, left)));
 
+  error e = catchup(mod, NULL, let, CATCHUP_BEFORE_CURRENT_SAME_TOP);
+  assert(!e);
+
   node_set_which(node, BLOCK);
   G0(letblock, node, BLOCK,
      G(ifisnotnil, IF,
@@ -200,6 +203,7 @@ static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
 
     G0(let, node, LET,
        G(defp, DEFPATTERN,
+         defp->as.DEFPATTERN.may_be_unused = true;
          G(tmp, IDENT,
            tmp->as.IDENT.name = gensym(mod));
          node_subs_append(defp, right)));
@@ -378,7 +382,7 @@ static ident create_globalenv_header(struct module *mod, uint32_t flags,
 
 static ERROR extract_defnames(struct module *mod, struct lir_state *st,
                               const struct toplevel *toplevel, uint32_t flags,
-                              bool is_alias, bool is_globalenv,
+                              bool is_alias, bool is_globalenv, bool may_be_unused,
                               struct node *let_block, struct node *before,
                               struct node *pattern, struct node *expr) {
   error e;
@@ -433,6 +437,7 @@ static ERROR extract_defnames(struct module *mod, struct lir_state *st,
         def->flags = flags;
         def->as.DEFNAME.is_globalenv = is_globalenv;
         def->as.DEFNAME.globalenv_header_name = globalenv_header_name;
+        def->as.DEFNAME.may_be_unused = may_be_unused;
         node_subs_append(def, pattern);
         if (expr == NULL) {
           expr = mk_node(mod, def, INIT);
@@ -468,11 +473,11 @@ static ERROR extract_defnames(struct module *mod, struct lir_state *st,
         node_subs_remove(pattern, t);
 
         if (expr == NULL) {
-          e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv,
+          e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv, may_be_unused,
                                let_block, before, t, NULL);
           EXCEPT(e);
         } else if (expr->which == TUPLE) {
-          e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv,
+          e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv, may_be_unused,
                                let_block, before, t, subs_at(expr, n));
           EXCEPT(e);
         } else {
@@ -490,7 +495,7 @@ static ERROR extract_defnames(struct module *mod, struct lir_state *st,
           snprintf(s, ARRAY_SIZE(s), "X%zu", n);
           field->as.IDENT.name = idents_add_string(mod->gctx, s, strlen(s));
 
-          e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv,
+          e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv, may_be_unused,
                                let_block, before, t, ex);
           EXCEPT(e);
         }
@@ -515,7 +520,7 @@ static ERROR extract_defnames(struct module *mod, struct lir_state *st,
       }
       node_subs_append(c, t);
 
-      e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv,
+      e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv, may_be_unused,
                            let_block, before, n, c);
       EXCEPT(e);
     }
@@ -550,8 +555,9 @@ static ERROR lir_conversion_defpattern(struct module *mod, struct lir_state *st,
 
   const bool is_alias = defp->as.DEFPATTERN.is_alias;
   const bool is_globalenv = defp->as.DEFPATTERN.is_globalenv;
+  const bool may_be_unused = defp->as.DEFPATTERN.may_be_unused;
 
-  error e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv,
+  error e = extract_defnames(mod, st, toplevel, flags, is_alias, is_globalenv, may_be_unused,
                              let_block, before, pattern, expr);
   EXCEPT(e);
 

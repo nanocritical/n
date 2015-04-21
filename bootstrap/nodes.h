@@ -425,6 +425,7 @@ struct node_defname {
 struct node_defpattern {
   bool is_alias;
   bool is_globalenv;
+  bool may_be_unused;
 };
 struct node_defarg {
   bool is_optional;

@@ -2679,7 +2679,7 @@ bool typ_is_dyn(const struct typ *t) {
 
 struct typ *typ_dyn_intf(const struct typ *t) {
   assert(typ_is_dyn(t));
-  return typ_generic_arg_const(t, 0);
+  return CONST_CAST(typ_generic_arg_const(t, 0));
 }
 
 bool typ_is_dyn_compatible(const struct typ *t) {
