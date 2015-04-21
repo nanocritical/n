@@ -2224,7 +2224,8 @@ static void print_deffield(FILE *out, const struct module *mod, const struct nod
   print_deffield_name(out, mod, node);
 }
 
-static void print_deftype_statement(FILE *out, bool header, enum forward fwd,
+static void print_deftype_statement(size_t *count_fields,
+                                    FILE *out, bool header, enum forward fwd,
                                     const struct module *mod, const struct node *node,
                                     bool do_static, struct fintypset *printed) {
   if (do_static) {
@@ -2242,6 +2243,7 @@ static void print_deftype_statement(FILE *out, bool header, enum forward fwd,
     case DEFFIELD:
       if (fwd == FWD_DEFINE_TYPES) {
         print_deffield(out, mod, node);
+        *count_fields += 1;
       }
       break;
     default:
@@ -2268,9 +2270,10 @@ static void print_deftype_block(FILE *out, bool header, enum forward fwd, const 
     fprintf(out, " {\n");
   }
 
+  size_t count_fields = 0;
   FOREACH_SUB_EVERY_CONST(statement, node, 2, 1) {
     const ssize_t prev_pos = ftell(out);
-    print_deftype_statement(out, header, fwd, mod, statement, do_static, printed);
+    print_deftype_statement(&count_fields, out, header, fwd, mod, statement, do_static, printed);
     // Hack to prevent isolated ';' when statement does not print anything.
     if (ftell(out) != prev_pos) {
       fprintf(out, ";\n");
@@ -2278,6 +2281,9 @@ static void print_deftype_block(FILE *out, bool header, enum forward fwd, const 
   }
 
   if (!do_static) {
+    if (fwd == FWD_DEFINE_TYPES && count_fields == 0) {
+      fprintf(out, "n$builtins$U8 _$Nfiller;\n");
+    }
     fprintf(out, "}\n");
   }
 }
