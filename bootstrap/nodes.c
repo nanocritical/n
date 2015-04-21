@@ -519,6 +519,11 @@ void node_move_content(struct node *dst, struct node *src) {
   }
   dst->parent = saved_dst_parent;
 
+  if (copy.typ != NULL) {
+    dst->typ = NULL;
+    set_typ(&dst->typ, copy.typ);
+  }
+
   dst->prev = prv;
   dst->next = nxt;
   dst->subs_first = subs_first(&copy);
