@@ -4,17 +4,17 @@ import n.syscall
 import n.net
 import n.fmt
 
-struct Socket =
-	address	:Addr
-	port	:Uint
 
-Socket met Address = Addr
-Socket met Port = Uint
+-- TODO(e): implement similar IPv4/IPv6 selection logic than in go's
+-- net/ipsock_posix.go
+enum Protocol =
+	| TCP4 = 0
+	| TCP6
 
-Socket met# Listen addr:String port:Uint = Error
-
-Socket met# Accept = Error, Conn
-
+Protocol met sys_family = I32
+	match self
+	| TCP4 -> return syscall.AF_INET
+	| TCP6 -> return syscall.AF_INET6
 
 struct Addr =
 	isa `Show
@@ -71,7 +71,6 @@ fun Lookup_cname name:String = err:Error, cname:Stringbuf
 
 struct Conn =
 	isa io.`Reader io.`Writer --ev.`Pollable
-
 	fd		:Int
 	local_addr	:Addr
 	remote_addr	:Addr
@@ -86,4 +85,57 @@ Conn met Remote_addr = Addr
 	return self.remote_addr
 
 Conn met# Read b:[!]U8 = [!]U8, Error
+	return syscall.Read self.fd b
+
 Conn met# Write b:[]U8 = []U8, Error
+	return syscall.Write self.fd b
+
+
+struct Socket =
+	protocol:Protocol
+	addr	:Addr
+	sockfd	:?Int
+
+Socket met Addr = Addr
+	return self.addr
+
+Socket met# create protocol:Protocol = Error
+	let except, sockfd = syscall.Socket protocol.sys_family
+		\ syscall.SOCK_STREAM|syscall.SOCK_CLOEXEC 0
+
+	except = syscall.Setsockopt_i32 sockfd syscall.SOL_SOCKET syscall.SO_REUSEADDR 1
+
+	self#sockfd = sockfd
+	self#protocol = protocol
+
+Socket met# Listen protocol:Protocol addr:Addr ?backlog:?Uint = Error
+	if not self.sockfd?
+		except = self#create protocol
+
+	var buf_addr:(Buf U8) such
+		buf_addr#Resize (syscall.Sockaddr_ip_sizeof self.protocol.sys_family)
+	let sys_addr = buf_addr![..] such
+		syscall.Sockaddr_ip #sys_addr self.protocol.sys_family addr.Ip.Bytes addr.Port
+	except = syscall.Bind self.sockfd sys_addr
+	self#addr = addr
+	except = syscall.Listen self.sockfd (backlog else 128)
+
+Socket met Accept = Error, conn:Conn
+	var buf_addr:(Buf U8) such
+		buf_addr#Resize (syscall.Sockaddr_ip_sizeof self.protocol.sys_family)
+	var sys_addr = buf_addr![..]
+
+	let except, fd = syscall.Accept4 self.sockfd #sys_addr
+		\ syscall.SOCK_CLOEXEC
+
+	conn!fd = fd
+	conn!local_addr = self.addr
+
+	let remote_ip_bytes = syscall.Sockaddr_ip_bytes self.protocol.sys_family
+		\ sys_addr.Unsafe_rawdata sys_addr.Bytecount
+	let remote_port = syscall.Sockaddr_ip_port self.protocol.sys_family
+		\ sys_addr.Unsafe_rawdata sys_addr.Bytecount
+
+	conn!remote_addr = {Ip=(net.Ip.From_bytes remote_ip_bytes)
+		\ Port=remote_port
+		\ Zone=""}

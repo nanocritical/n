@@ -164,6 +164,12 @@ inline String met Operator_ge other:*this = Bool
 inline String met Cut_at i:Uint = this, this
 	return self.[.. i], self.[i ..]
 
+inline String met Cut_around i:Uint  = this, this
+	let j = i + 1 such
+		if j >= self.Count
+			j = i
+	return self.[.. i], self.[j ..]
+
 inline String met Show st:#`Fmt_state
 	let _ = st#Write self.bytes
 

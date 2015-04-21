@@ -507,27 +507,38 @@ NB(Uint) SY(Sockaddr_ip_port)(NB(I32) family, NB(U8) *raw_addr, NB(Uint) raw_add
 
   if (family == SY(AF_INET)) {
     struct sockaddr_in *addr = (void *) raw_addr;
-    ret = addr->sin_port;
+    ret = ntohs(addr->sin_port);
   } else if (family == SY(AF_INET6)) {
     struct sockaddr_in6 *addr = (void *) raw_addr;
-    ret = addr->sin6_port;
+    ret = ntohs(addr->sin6_port);
   }
 
   return ret;
 }
 
-NB(Void) SY(Sockaddr_ip)(NB(byteslice) *buf, NB(I32) family, NB(byteslice) ip, NB(Uint) port) {
+NB(Uint) SY(Sockaddr_ip_sizeof)(NB(I32) family) {
   if (family == SY(AF_INET)) {
+    return sizeof(struct sockaddr_in);
+  } else if (family == SY(AF_INET6)) {
+    return sizeof(struct sockaddr_in6);
+  } else {
+    return 0;
+  }
+}
+
+NB(Void) SY(Sockaddr_ip)(NB(byteslice) *buf, NB(I32) family, NB(byteslice) ip6, NB(Uint) port) {
+  if (family == SY(AF_INET)) {
+    // The IP is always passed as IPv4 mapped to IPv6.
     struct sockaddr_in addr = { 0 };
-    addr.sin_port = port;
-    memcpy(&addr.sin_addr, ip.dat, ip.cnt);
+    addr.sin_port = htons(port);
+    memcpy(&addr.sin_addr, ip6.dat + 12, 4);
 
     buf->cnt = sizeof(struct sockaddr_in);
     memcpy(buf->dat, &addr, buf->cnt);
   } else if (family == SY(AF_INET6)) {
     struct sockaddr_in6 addr = { 0 };
-    addr.sin6_port = port;
-    memcpy(&addr.sin6_addr, ip.dat, ip.cnt);
+    addr.sin6_port = htons(port);
+    memcpy(&addr.sin6_addr, ip6.dat, ip6.cnt);
 
     buf->cnt = sizeof(struct sockaddr_in6);
     memcpy(buf->dat, &addr, buf->cnt);
@@ -594,6 +605,18 @@ static NB(Int) SY(accept4)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) *raw_addrl
   int ret = accept4(sockfd, (struct sockaddr *) raw_addr, &addrlen, flags);
   _$Nlatestsyscallerrno = errno;
   *raw_addrlen = addrlen;
+  return ret;
+}
+
+
+NB(I32) SY(SOL_SOCKET) = SOL_SOCKET;
+NB(I32) SY(SO_REUSEADDR) = SO_REUSEADDR;
+
+static NB(Int) SY(setsockopt)(NB(Int) sockfd, NB(I32) level, NB(I32) optname,
+                              NB(U8) *optval, NB(Uint) optlen) {
+  socklen_t _optlen = optlen;
+  int ret = setsockopt(sockfd, level, optname, optval, _optlen);
+  _$Nlatestsyscallerrno = errno;
   return ret;
 }
 

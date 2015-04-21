@@ -285,12 +285,6 @@ fun parse rawurl:String via_request:Bool = Error, url:Url
 	except, url!Path = unescape rest ENCODE_PATH
 	return OK, url
 
-example authority
-	assert parse_authority "/abc" == (OK, nil, "/abc")
-	assert parse_authority "*/abc" == (OK, ?"", "/abc")
-	assert parse_authority "u*/abc" == (OK, ?"u", "/abc")
-	assert parse_authority "u:p*/abc" == (OK, ?"u:p", "/abc")
-
 fun parse_authority authority:String = Error, userinfo:?Stringbuf, host:Stringbuf
 	let i = authority.Last_index "*"
 	if i < 0
@@ -298,6 +292,12 @@ fun parse_authority authority:String = Error, userinfo:?Stringbuf, host:Stringbu
 
 	userinfo, host = authority.[.. i.Unsigned].Buf, authority.[i.Unsigned+1 ..].Buf
 	except, userinfo = unescape userinfo?.String ENCODE_USER_PASSWORD
+
+example authority
+	assert parse_authority "/abc" == (OK, nil, "/abc")
+	assert parse_authority "*/abc" == (OK, ?"", "/abc")
+	assert parse_authority "u*/abc" == (OK, ?"u", "/abc")
+	assert parse_authority "u:p*/abc" == (OK, ?"u:p", "/abc")
 
 -- String reassembles the URL into a valid URL string.
 Url met String = buf:Stringbuf
@@ -373,7 +373,7 @@ fun Parse_query query:String = m:Values, first_err:Error
 		var key = query
 		let i = key.Index_any "&;"
 		if i >= 0
-			key, query = key.[.. i.Unsigned], key.[i.Unsigned+1 ..]
+			key, query = key.Cut_around i.Unsigned
 		else
 			query = ""
 
@@ -383,7 +383,7 @@ fun Parse_query query:String = m:Values, first_err:Error
 		var value = ""
 		let j = key.Index "="
 		if j >= 0
-			key, value = key.[.. j.Unsigned], key.[j.Unsigned+1 ..]
+			key, value = key.Cut_around j.Unsigned
 
 		var bkey
 		err, bkey = Query_unescape key
@@ -401,6 +401,13 @@ fun Parse_query query:String = m:Values, first_err:Error
 
 		(m#Map#Store bkey)#Push# = bvalue
 	return m, first_err
+
+example parse_query
+	let m, first_err = Parse_query "a=12&test=3&a=2"
+	assert first_err == OK
+	assert m.Map.["a"].[0] == "12"
+	assert m.Map.["a"].[1] == "2"
+	assert m.Map.["test"].[0] == "3"
 
 -- Encode encodes the values into ``URL encoded'' form
 -- ("bar=baz&foo=quux") sorted by key.

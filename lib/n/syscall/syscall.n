@@ -813,9 +813,11 @@ extern let SOCK_CLOEXEC:I32
 extern let IPPROTO_TCP:I32
 extern let IPPROTO_UDP:I32
 
+-- All integer values are in host byte order.
 extern fun Sockaddr_ip_bytes family:I32 raw_addr:*U8 raw_addrlen:Uint = []U8
 extern fun Sockaddr_ip_port family:I32 raw_addr:*U8 raw_addrlen:Uint = Uint
-extern fun Sockaddr_ip buf:#[]U8 family:I32 ip:[]U8 port:Uint
+extern fun Sockaddr_ip_sizeof family:I32 = Uint
+extern fun Sockaddr_ip buf:#[]U8 family:I32 ip6:[]U8 port:Uint
 
 struct Addrinfo =
 	Flags		:I32
@@ -884,6 +886,7 @@ extern fun socket domain:I32 type:I32 protocol:I32 = Int
 extern fun bind sockfd:Int raw_addr:*U8 raw_addrlen:Uint = Int
 extern fun listen sockfd:Int backlog:Int = Int
 extern fun accept4 sockfd:Int raw_addr:#U8 raw_addrlen:#Uint flags:I32 = Int
+extern fun setsockopt sockfd:Int level:I32 optname:I32 optval:*U8 optlen:Uint = Int
 
 fun Socket domain:I32 type:I32 protocol:I32 = Error, Int
 	let sockfd = socket domain type protocol
@@ -910,3 +913,14 @@ fun Accept4 sockfd:Int sys_addr:#[!]U8 flags:I32 = Error, Int
 		sys_addr# = sys_addr![.. raw_addrlen]
 		return OK, fd
 	return convert_error errno, fd
+
+extern let SOL_SOCKET:I32
+extern let SO_REUSEADDR:I32
+
+fun Setsockopt_i32 sockfd:Int level:I32 opt:I32 value:I32 = Error
+	let raw:[]U8 such
+		raw#Unsafe_wrap ((unsafe.Cast *I32 *U8) *value) (sizeof value) (sizeof value)
+	let ret = setsockopt sockfd level opt raw.Unsafe_rawdata raw.Bytecount
+	if ret == 0
+		return OK
+	return convert_error errno
