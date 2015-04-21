@@ -33,7 +33,7 @@ void _$Nprelude(int *argc, char ***argv, char ***env) {
 void _$Npostlude(int *ret) {
 }
 
-NB(Void) *NB(Nonnull_void)(void) {
+NB(Void) *NB(Nonnil_void)(void) {
   static NB(U32) dummy;
   return &dummy;
 }

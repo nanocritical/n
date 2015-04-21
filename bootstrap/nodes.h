@@ -277,6 +277,7 @@ struct node_init {
   bool is_range;
   bool is_bounds;
   bool is_defchoice_external_payload_constraint;
+  bool is_optional;
   struct node *defchoice;
   ident for_tag;
   const struct node *target_expr;
@@ -1137,6 +1138,8 @@ enum predefined_idents {
   ID_DTOR,
   ID_COPY_CTOR,
   ID_C,
+  ID_X,
+  ID_NONNIL,
   ID_OTHER,
   ID_FROM_SLICE,
   ID_FROM_STRING,

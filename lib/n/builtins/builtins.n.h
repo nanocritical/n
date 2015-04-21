@@ -408,7 +408,7 @@ static inline NB(U8) *NB(Static_array_at_byte)(NB(U8) *p, NB(Uint) off) {
 
 #ifdef NLANG_DECLARE_FUNCTIONS
 
-NB(Void) *NB(Nonnull_void)(void);
+NB(Void) *NB(Nonnil_void)(void);
 
 #endif
 

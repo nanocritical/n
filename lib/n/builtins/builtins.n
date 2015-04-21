@@ -172,7 +172,7 @@ intf `Sum_order =
 extern inline struct Void =
 	isa `Prevent_dyn `Return_by_copy `Trivial_copy `Trivial_ctor
 
-extern fun Nonnull_void = *Void
+extern fun Nonnil_void = *Void
 
 intf `Any_any_ref =
 	isa `Return_by_copy `Trivial_copy_but_owned `Trivial_dtor

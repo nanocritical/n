@@ -3,6 +3,7 @@
 #include "passes.h"
 #include "parser.h"
 #include "types.h"
+#include "ssa.h"
 
 struct lir_loop_state {
   struct lir_loop_state *prev;
@@ -128,31 +129,36 @@ static void rewrite_opt_acc_op(struct module *mod, struct node *node) {
   node_subs_remove(node, left);
   node_subs_remove(node, right);
 
-  node_set_which(node, BLOCK);
+  struct node *statement = find_current_statement(node);
+  struct node *block = parent(statement);
   GSTART();
-  G0(let, node, LET,
-     G(defp, DEFPATTERN,
+  G0(let, block, LET,
+     node_subs_remove(block, let);
+     node_subs_insert_before(block, statement, let);
+     G(defn, DEFNAME,
        G(v, IDENT,
          v->as.IDENT.name = gensym(mod));
-       node_subs_append(defp, left));
-     G(letblock, BLOCK,
-       G(ifisnotnil, IF,
-         G(isnotnil, UN,
-           isnotnil->as.UN.operator = TPOSTQMARK;
-           G(v2, IDENT,
-             v2->as.IDENT.name = node_ident(v)));
-         G(yes, BLOCK,
-           G(nillable, UN,
-             nillable->as.UN.operator = T__NULLABLE;
-             G(acc, BIN,
-               acc->as.BIN.operator = accop;
-               G(nonnillable, UN,
-                 nonnillable->as.UN.operator = T__NONNULLABLE;
-                 G(v3, IDENT,
-                   v3->as.IDENT.name = node_ident(v)));
-               node_subs_append(acc, right))));
-         G(no, BLOCK,
-           G(nil, NIL)))));
+       node_subs_append(defn, left)));
+
+  node_set_which(node, BLOCK);
+  G0(letblock, node, BLOCK,
+     G(ifisnotnil, IF,
+       G(isnotnil, UN,
+         isnotnil->as.UN.operator = TPOSTQMARK;
+         G(v2, IDENT,
+           v2->as.IDENT.name = node_ident(v)));
+       G(yes, BLOCK,
+         G(nillable, UN,
+           nillable->as.UN.operator = T__NULLABLE;
+           G(acc, BIN,
+             acc->as.BIN.operator = accop;
+             G(nonnillable, UN,
+               nonnillable->as.UN.operator = T__NONNULLABLE;
+               G(v3, IDENT,
+                 v3->as.IDENT.name = node_ident(v)));
+             node_subs_append(acc, right))));
+       G(no, BLOCK,
+         G(nil, NIL))));
 }
 
 static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
@@ -568,8 +574,8 @@ static void lir_conversion_foreach(struct module *mod, struct node *node) {
        G(expr_var, IDENT,
          expr_var->as.IDENT.name = gensym(mod));
        G(expr_var_call, CALL,
-         G_IDENT(expr_var_fun, "Take_ref_if_value__"))
-         node_subs_append(expr_var_call, orig_expr));
+         G_IDENT(expr_var_fun, "Take_ref_if_value__")
+         node_subs_append(expr_var_call, orig_expr)));
      G(it, DEFPATTERN,
        G(it_var, IDENT,
          it_var->as.IDENT.name = gensym(mod));
@@ -746,8 +752,6 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
     break;
   case TYPECONSTRAINT:
     node->flags |= subs_first_const(node)->flags & NODE_IS_LOCAL_STATIC_CONSTANT;
-    break;
-  case UN:
     break;
   case BIN:
     {

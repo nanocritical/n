@@ -675,8 +675,45 @@ static ERROR nonnullable_op(enum token_type *r,
   return 0;
 }
 
-static void try_insert_nonnullable_void(struct module *mod, struct node *node) {
-  struct node *term = subs_first(node);
+static void rewrite_un_qmark(struct module *mod, struct node *node) {
+  struct node *sub = subs_first(node);
+
+  if (node->as.UN.operator == TPREQMARK) {
+    node_set_which(node, INIT);
+    node->as.INIT.is_optional = true;
+    node_subs_remove(node, sub);
+
+    GSTART();
+    G0(x, node, IDENT,
+       x->as.IDENT.name = ID_X);
+    node_subs_append(node, sub);
+    G0(nonnill, node, IDENT,
+       nonnill->as.IDENT.name = ID_NONNIL);
+    G0(t, node, BOOL,
+       t->as.BOOL.value = true);
+  } else if (node->as.UN.operator == T__DEOPT) {
+    node_set_which(node, BIN);
+    if (node->typ == TBI__MERCURIAL) {
+      node->as.BIN.operator = TSHARP;
+    } else if (node->typ == TBI__MUTABLE) {
+      node->as.BIN.operator = TBANG;
+    } else {
+      node->as.BIN.operator = TDOT;
+    }
+    GSTART();
+    G0(x, node, IDENT,
+       x->as.IDENT.name = ID_X);
+  } else {
+    assert(false);
+  }
+
+  const struct node *except[] = { sub, NULL };
+  error e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
+  assert(!e);
+}
+
+static void try_insert_nonnullable_void(struct module *mod, struct node *node,
+                                        struct node *term) {
   if (!typ_equal(term->typ, TBI_VOID)) {
     return;
   }
@@ -689,9 +726,7 @@ static void try_insert_nonnullable_void(struct module *mod, struct node *node) {
 
   GSTART();
   G0(x, node, IDENT,
-     x->as.IDENT.name = idents_add_string(mod->gctx,
-                                          "Nonnull_void",
-                                          strlen("Nonnull_void")));
+     x->as.IDENT.name = ID_NONNIL);
 
   error e = catchup(mod, NULL, x, CATCHUP_BELOW_CURRENT);
   assert(!e);
@@ -710,6 +745,12 @@ static ERROR type_inference_un(struct module *mod, struct node *node) {
   struct typ *i = NULL;
 
 rewrote_op:
+  if ((rop == TPREQMARK && !(term->flags & NODE_IS_TYPE))
+      || rop == T__DEOPT) {
+    rewrite_un_qmark(mod, node);
+    return 0;
+  }
+
   switch (OP_KIND(rop)) {
   case OP_UN_PRIMITIVES:
     switch (rop) {
@@ -793,7 +834,8 @@ rewrote_op:
       set_typ(&node->typ, TBI_BOOL);
       break;
     case TPREQMARK:
-      try_insert_nonnullable_void(mod, node);
+      assert(term->flags & NODE_IS_TYPE);
+      try_insert_nonnullable_void(mod, node, term);
       term = subs_first(node); // may have been just modified
 
       e = optional(&i, mod, node, term->typ);
@@ -804,17 +846,11 @@ rewrote_op:
     case T__DEOPT_DEREFDOT:
       if (typ_is_reference(term->typ)) {
         rop = TDEREFDOT;
-        node->as.UN.operator = rop;
-        goto rewrote_op;
+      } else {
+        rop = T__DEOPT;
       }
-      rop = T__DEOPT;
       node->as.UN.operator = rop;
-      // fallthrough
-    case T__DEOPT:
-      assert(typ_is_optional(term->typ));
-      set_typ(&node->typ, typ_generic_arg(term->typ, 0));
-      node->flags |= term->flags & NODE__TRANSITIVE;
-      break;
+      goto rewrote_op;
     default:
       assert(false);
     }
@@ -1628,6 +1664,16 @@ static ERROR type_inference_init_named(struct module *mod, struct node *node) {
   } else if (node->as.INIT.is_bounds) {
     e = unify(mod, node, node->typ, TBI_BOUNDS);
     EXCEPT(e);
+  } else if (node->as.INIT.is_optional) {
+    struct node *x = subs_at(node, 1);
+    try_insert_nonnullable_void(mod, node, x);
+
+    struct typ *i = NULL;
+    e = optional(&i, mod, node, x->typ);
+    EXCEPT(e);
+    e = unify(mod, node, node->typ, i);
+    EXCEPT(e);
+    node->flags |= x->flags & NODE__TRANSITIVE;
   }
 
   return 0;
