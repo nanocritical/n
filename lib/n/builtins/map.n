@@ -228,7 +228,6 @@ Map met# may_grow = Bool
 	if self.count <= self.table.size/2
 		return false
 
-	Eprn "Grow" self.table.size
 	-- Grow.
 	-- We will move tmp over self, we don't want the memory to be freed.
 	var tmp = Alloc this

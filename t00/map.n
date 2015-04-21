@@ -62,13 +62,15 @@ example hashmap_collision
 example hashmap_growth
 	var m = {}:(Map Stringbuf Uint)
 
-	let before = m.table.size
+	var before
 	foreach i in 0 .. 16
 		let buf = {}:Stringbuf such
 			buf#Pr i
 			(m#Store buf)# = i
 			buf#Clear
 		assert m.Count == i + 1
+		-- We want the size after initialization.
+		before = m.table.size
 	assert m.table.size == before
 	foreach i in 0 .. 16
 		let buf = {}:Stringbuf such
