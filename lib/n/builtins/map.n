@@ -60,7 +60,7 @@ sptable met# set n:Uint = #T
 
 	let src_after = gr![count_before .. old_count]
 	let dst_after = gr![count_before+1 ..]
-	dst_after!Exact_copy src_after
+	dst_after!Exact_move src_after
 	return gr![count_before]
 
 sptable met! iter = (sptable_iter T)
@@ -136,9 +136,19 @@ example sptable_group_boundary
 	assert t.count == 2
 
 struct unit K:`Map_key T:`Copyable =
+	isa `Show
 	hash	:?U32
 	key	:K
 	val	:T
+
+unit met Show st:#`Fmt_state
+	"{".Show st
+	try_show st (self.hash else 0)
+	" ".Show st
+	try_show st self.key
+	" ".Show st
+	try_show st self.val
+	"}:unit".Show st
 
 struct Map K:`Map_key T:`Copyable =
 	isa `Show (`Slice_compatible (K, T)) `Copyable (`Collection K)

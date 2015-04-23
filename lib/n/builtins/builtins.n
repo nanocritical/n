@@ -2062,3 +2062,13 @@ fun Ensure_visible_example_dtor
 
 fun Step x:Uint
 	noop
+
+
+(fun t:`Any) try_show st:#`Fmt_state x:*t
+	if t isa `Show
+		x.Show st
+	else
+		let px = ((Cast *t Voidref) x).Uintptr
+		"<".Show st
+		px.Show st
+		">".Show st
