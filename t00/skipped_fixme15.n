@@ -1,0 +1,17 @@
+from n import *
+
+struct a t:`Any =
+	x	:t
+
+fun Main = I32
+	var b = {x="42"}:(a Stringbuf)
+	let px = #b#x
+	if px* isa `Show
+		-- FIXME(e): the expression "px*" creates an unused
+		-- temporary that is wrongly created as trivial copy of the
+		-- value pointed to by px, AND destroyed, which actually
+		-- destroys the field x in b.
+		Prn px
+	else
+		assert false
+	return 0

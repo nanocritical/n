@@ -599,7 +599,7 @@ inline Slice_impl met Show st:#`Fmt_state
 		if i != 0
 			" ".Show st
 		let x = self.[i]
-		if x* isa `Show
+		if t isa `Show
 			x.Show st
 		else
 			let px = ((Cast *t Voidref) x).Uintptr
