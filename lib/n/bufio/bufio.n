@@ -9,9 +9,8 @@ inline struct Reader =
 	R	:?#io.`Reader
 	bufr	:?#Reader -- If wrapping an already buffered reader.
 	rdy	:Bool
-	skip	:Bool
 	buf	:Stringbuf
-	pending	:[]U8
+	pending	:String
 	copier	:io.Copier
 
 Reader met# Read b:[!]U8 = [!]U8, Error
@@ -24,7 +23,7 @@ Reader met# Read b:[!]U8 = [!]U8, Error
 		return b, io.EOF
 
 	let before = b.Count
-	let result = b!Append self.pending
+	let result = b!Append self.pending.Bytes
 	let read = result.Count - before
 	self!pending = self.pending.[read ..]
 	return result, OK
@@ -46,9 +45,37 @@ Reader met# Load ?max:?Uint = Error
 	if self#bufr?
 		return self#bufr#Load max=max
 
-	self#buf#Copy self.pending
+	self#buf#Copy self.pending.Bytes
 	_, except = self!copier#Copy max=(max else buf_size)
-	self#pending = self.buf.Bytes
+	self#pending = self.buf.String
+
+-- Does not Load more data.
+-- The returned slice is valid until the next call to Load.
+Reader met! Read_slice max:Uint = []U8
+	return (self!Read_string max).Bytes
+
+-- Does not Load more data.
+-- The returned string is valid until the next call to Load.
+Reader met! Read_string max:Uint = String
+	let len = Min max self.pending.Count
+	self!pending = self.pending.[len ..]
+	return self.pending.[.. len]
+
+-- Does not Load more data.
+-- The returned slice is valid until the next call to Load.
+-- If an EOL ("\r\n" or "\n") is not reached, it returns true.
+Reader met! Read_line = partial:Bool, line:[]U8
+	let i = self.pending.Index_byte '\n'
+	if i < 0
+		line = self.pending.Bytes
+		self!pending = {}
+		partial = true
+	else
+		var eol = i.Unsigned
+		if eol > 0 and self.pending.[eol-1] == '\r'
+			eol -= 1
+		line = self.pending.[.. eol].Bytes
+		self!pending = self.pending.[i.Unsigned ..]
 
 example reader
 	let s = "This is a test"
