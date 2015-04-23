@@ -1,5 +1,5 @@
--- See LICENSE for details* Originally derived from go/src/pkg/net/url
--- Copyright 2009 The Go Authors* All rights reserved.
+-- See LICENSE for details. Originally derived from go/src/pkg/net/url
+-- Copyright 2009 The Go Authors. All rights reserved.
 
 -- Package url parses URLs and implements query escaping.
 -- See RFC 3986.
@@ -54,9 +54,9 @@ fun should_escape c:U8 mode:encoding = Bool
 		match mode
 		| ENCODE_PATH -- 3.3
 			-- The RFC allows : * & = + $ but saves / ; , for assigning
-			-- meaning to individual path segments* This package
+			-- meaning to individual path segments. This package
 			-- only manipulates the path as a whole, so we allow those
-			-- last two as well* That leaves only ? to escape.
+			-- last two as well. That leaves only ? to escape.
 			return c == '?'
 
 		| ENCODE_USER_PASSWORD -- 3.2.2
@@ -78,7 +78,7 @@ fun should_escape c:U8 mode:encoding = Bool
 
 
 -- Query_unescape does the inverse transformation of Query_escape, converting
--- %AB into the byte 0xAB and '+' into ' ' (space)* It returns an error if
+-- %AB into the byte 0xAB and '+' into ' ' (space). It returns an error if
 -- any % is not followed by two hexadecimal digits.
 fun Query_unescape s:String = Error, Stringbuf
 	return unescape s ENCODE_QUERY_COMPONENT
@@ -175,9 +175,9 @@ fun escape s:String mode:encoding = ret:Stringbuf
 --
 -- Note that the Path field is stored in decoded form: /%47%6f%2f becomes /Go/.
 -- A consequence is that it is impossible to tell which slashes in the Path were
--- slashes in the raw URL and which were %2f* This distinction is rarely important,
+-- slashes in the raw URL and which were %2f. This distinction is rarely important,
 -- but when it is a client must use other routines to parse the raw URL or construct
--- the parsed URL* For example, an HTTP server can consult req.Request_uri, and
+-- the parsed URL. For example, an HTTP server can consult req.Request_uri, and
 -- an HTTP client can use URLHost: "example.com", Opaque: "//example.com/Go%2f"
 -- instead of URLHost: "example.com", Path: "/Go/".
 inline struct Url =
@@ -236,7 +236,7 @@ fun Parse rawurl:String = err:Error, url:Url
 		return Error_parse_url, {}
 	return OK, url
 
--- Parse_request_uri parses rawurl into a URL structure*  It assumes that
+-- Parse_request_uri parses rawurl into a URL structure.  It assumes that
 -- rawurl was received in an HTTP request, so the rawurl is interpreted
 -- only as an absolute URI or an absolute path.
 -- The string rawurl is assumed not to have a #fragment suffix.
@@ -244,7 +244,7 @@ fun Parse rawurl:String = err:Error, url:Url
 fun Parse_request_uri rawurl:String = Error, Url
 	return parse rawurl true
 
--- parse parses a URL from a string in one of two contexts*  If
+-- parse parses a URL from a string in one of two contexts.  If
 -- via_request is true, the URL is assumed to have arrived via an HTTP request,
 -- in which case only absolute URLs or path-absolute relative URLs are allowed.
 -- If via_request is false, all forms of relative URLs are allowed.
@@ -337,7 +337,7 @@ inline struct Values =
 
 -- Get gets the first value associated with the given key.
 -- If there are no values associated with the key, Get returns
--- the empty string* To access multiple values, use the map
+-- the empty string. To access multiple values, use the map
 -- directly.
 Values met Get key:String = Stringbuf
 	let vs = self.Map.[key.Buf]
@@ -345,14 +345,14 @@ Values met Get key:String = Stringbuf
 		return ""
 	return vs.[0]*
 
--- Set sets the key to value* It replaces any existing
+-- Set sets the key to value. It replaces any existing
 -- values.
 Values met Set key:String value:String
 	let p = self#Map#Store key.Buf
 	p#Clear
 	p#Push# = value.Buf
 
--- Add adds the key to value* It appends to any existing
+-- Add adds the key to value. It appends to any existing
 -- values associated with key.
 Values met Add key:String value:String
 	let p = self#Map#Store key.Buf
@@ -466,18 +466,18 @@ fun resolve_path base:String ref:String = r:Stringbuf
 Url met Is_abs = Bool
 	return self.Scheme != ""
 
--- Parse parses a URL in the context of the receiver*  The provided URL
--- may be relative or absolute*  Parse returns nil, err on parse
+-- Parse parses a URL in the context of the receiver.  The provided URL
+-- may be relative or absolute.  Parse returns nil, err on parse
 -- failure, otherwise its return value is the same as Resolve_reference.
 Url met Parse ref:String = Error, Url
 	let except, refurl = Parse ref
 	return OK, self.Resolve_reference refurl
 
 -- Resolve_reference resolves a URI reference to an absolute URI from
--- an absolute base URI, per RFC 3986 Section 5.2*  The URI reference
--- may be relative or absolute*  Resolve_reference always returns a new
+-- an absolute base URI, per RFC 3986 Section 5.2.  The URI reference
+-- may be relative or absolute.  Resolve_reference always returns a new
 -- URL instance, even if the returned URL is identical to either the
--- base or reference* If ref is an absolute URL, then Resolve_reference
+-- base or reference. If ref is an absolute URL, then Resolve_reference
 -- ignores base and returns a copy of ref.
 Url met Resolve_reference ref:*Url = Url
 	var url = ref*
