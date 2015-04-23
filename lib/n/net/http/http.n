@@ -1,0 +1,15 @@
+-- See LICENSE for details. Originally derived from go/src/pkg/net/url
+-- Copyright 2009 The Go Authors. All rights reserved.
+
+from n import *
+--import n.ev
+import n.io
+import n.bufio
+import n.fmt
+import n.unsafe
+
+let crlf = "\r\n"
+let colon_space = ": "
+
+fun Main = I32
+	return 0
