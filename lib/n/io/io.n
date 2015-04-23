@@ -1,5 +1,5 @@
--- See LICENSE for details* Originally derived from go/src/pkg/io
--- Copyright 2009 The Go Authors* All rights reserved.
+-- See LICENSE for details. Originally derived from go/src/pkg/io
+-- Copyright 2009 The Go Authors. All rights reserved.
 
 from n import *
 
@@ -8,6 +8,9 @@ let SHORT_READ = {Why=*"Short read"}:Error
 let SHORT_WRITE = {Why=*"Short write"}:Error
 let SHORT_BUFFER = {Why=*"Short buffer"}:Error
 let UNEXPECTED_EOF = {Why=*"Unexpected EOF"}:Error
+let AGAIN = {Why=*"Operation would block"}:Error
+
+let chunk_size = 4096
 
 intf `Reader =
 	-- Returns a slice of b with the same origin, extended to include the
@@ -16,6 +19,7 @@ intf `Reader =
 
 intf `Writer =
 	-- Returns a slice of b with the content not yet written, if any.
+	-- Short writes must return an non-OK error.
 	met# Write b:[]U8 = []U8, Error
 
 
@@ -46,4 +50,145 @@ fun Write_at_least w:#`Writer b:[]U8 min_count:Uint = []U8, err:Error
 	return b, err
 
 fun Write_full w:#`Writer b:[]U8 = []U8, Error
-	return Write_at_least w b b.Available
+	return Write_at_least w b b.Count
+
+
+struct Bytes_reader =
+	isa `Reader
+	S	:[]U8
+
+Bytes_reader met# Read b:[!]U8 = [!]U8, Error
+	if self.S.Count == 0
+		return b, EOF
+
+	let copied = b!Free_space!Copy self.S
+	self#S = self.S.[copied.Count ..]
+	return b.[0 .. b.Count+copied.Count], OK
+
+example bytes_reader_whole
+	let s = "testabc"
+	var br = {S=s.Bytes}:Bytes_reader
+	var buf:Stringbuf
+	buf#Reserve 32
+	var b = buf!Bytes
+	b, except = br#Read b
+	assert b.Count == s.Count
+	assert b.Const == s.Bytes
+
+example bytes_reader_partial
+	let s = "testabc"
+	var br = {S=s.Bytes}:Bytes_reader
+	var buf:Stringbuf
+	buf#Reserve 4
+	var b = buf!Bytes
+
+	b, except = br#Read b
+	assert b.Const == "test".Bytes
+	b, except = br#Read b.[.. 0]
+	assert b.Const == "abc".Bytes
+
+
+-- Copy until EOF on the read side.
+--
+-- Need a struct with state: in case of a transient write error, like AGAIN, we
+-- need to keep already read data but not yet written.
+struct Copier =
+	Dst	:#`Writer
+	Src	:#`Reader
+	Max	:Uint
+	buf	:Stringbuf
+	written	:Uint
+
+Copier met# Reset dst:#`Writer src:#`Reader ?max:?Uint
+	self#Dst = dst
+	self#Src = src
+	self#Max = max else Uint.MAX
+	self#buf#Reserve chunk_size
+	self#buf#Resize 0
+	self#written = 0
+
+Copier met Total_written = Uint
+	return self.written
+
+Copier met! Copy ?max:?Uint = written:Uint, err:Error
+	-- First write any not-yet-written data left from a previous call.
+	if self.buf.Count > 0
+		let left, wr_err = self!Dst#Write self.buf.Bytes
+		written += self.buf.Count - left.Count
+		self!buf#Copy left
+		if wr_err != OK
+			self!written += written
+			return written, wr_err
+
+	let limit = max else Uint.MAX
+	var more = Min limit self.Max
+	while more > 0
+		var b, rd_err = self!buf!Bytes, OK
+		if more < b.Available
+			b = b!Recapped b.Count+more
+
+		b, rd_err = self!Src#Read b
+		self!Max -= b.Count
+		more -= b.Count
+
+		let left, wr_err = self!Dst#Write b
+		written += b.Count - left.Count
+		self!buf#Copy left
+
+		if rd_err == EOF
+			self!Max = 0
+			more = 0
+		elif rd_err != OK
+			err = rd_err
+			break
+		elif wr_err != OK
+			err = wr_err
+			break
+
+	self!written += written
+	return written, err
+
+example copier
+	let s = "This is a test"
+	let src = {S=s.Bytes}:Bytes_reader
+	var buf:Stringbuf
+	var copier:Copier
+	copier#Reset #buf #src
+	var written, except = copier!Copy
+	assert s == buf.String
+	assert written == s.Count
+	assert copier.Total_written == s.Count
+	written, except = copier!Copy
+	assert buf.String == s
+	assert written == 0
+	assert copier.Total_written == s.Count
+
+example copier_limited
+	let s = "This is a test"
+	let src = {S=s.Bytes}:Bytes_reader
+	var buf:Stringbuf
+	var copier:Copier
+	copier#Reset #buf #src max=4
+	var written, except = copier!Copy
+	assert buf.String == "This"
+	assert written == 4
+	assert copier.Total_written == 4
+	written, except = copier!Copy
+	assert buf.String == "This"
+	assert written == 0
+	assert copier.Total_written == 4
+
+example copier_incremental
+	let s = "This is a test"
+	let src = {S=s.Bytes}:Bytes_reader
+	var buf:Stringbuf
+	var copier:Copier
+	copier#Reset #buf #src
+	var written, except = copier!Copy max=5
+	assert buf.String == "This "
+	assert written == 5
+	assert copier.Total_written == 5
+	written, except = copier!Copy
+	assert buf.String == s
+	assert written == s.Count - 5
+	assert copier.Total_written == s.Count
