@@ -1,0 +1,98 @@
+from n import *
+import n.io
+import n.fmt
+
+let buf_size = 4096
+
+inline struct Reader =
+	R	:#io.`Reader
+	buf	:Stringbuf
+	pending	:[]U8
+	rdy	:Bool
+	copier	:io.Copier
+
+Reader met# Read b:[!]U8 = [!]U8, Error
+	if self.Available == 0
+		return b, io.EOF
+
+	let before = b.Count
+	let result = b!Append self.pending
+	let read = result.Count - before
+	self!pending = self.pending.[read ..]
+	return result, OK
+
+Reader met Available = Uint
+	return self.pending.Count
+
+Reader met# Load ?max:?Uint = Error
+	if not self.rdy
+		self!copier#Reset #self#buf self#R
+
+	self#buf#Copy self.pending
+	_, except = self!copier#Copy max=(max else buf_size)
+	self#pending = self.buf.Bytes
+
+example reader
+	let s = "This is a test"
+	var sr = {S=s.Bytes}:io.Bytes_reader
+	var r = {R=#sr}:Reader
+	var buf:Stringbuf
+	buf#Reserve 32
+	var b = buf!Bytes
+	var err = OK
+
+	b, err = r#Read b
+	assert b.Count == 0 and err == io.EOF
+
+	except = r#Load max=4
+	b, err = r#Read b
+	assert b.Count == 4 and err == OK and b.Const == "This".Bytes
+
+	except = r#Load
+	b, err = r#Read b![.. 0]
+	assert b.Count == s.Count-4 and err == OK and b.Const == s.Bytes.[4 ..]
+
+	b, err = r#Read b
+	assert b.Count == s.Count-4 and err == io.EOF
+
+
+-- Writes never block or return AGAIN. However, Flush may.
+-- Flushes are not automatic.
+
+inline struct Writer =
+	isa io.`Writer
+	W	:#io.`Writer
+	buf	:Stringbuf
+	pending	:[]U8
+
+Writer met# Write b:[]U8 = []U8, Error
+	_, _ = self#buf#Write b
+	self!pending = self.buf.Bytes
+	return {}, OK
+
+Writer met# Write_string s:String = Error
+	_, except = self#Write s.Bytes
+
+Writer met# Flush ?max:?Uint = Error
+	let len = max else self.pending.Count
+	let left, except = io.Write_full self.W self.pending.[.. len]
+	let copied = len - left.Count
+	self!pending = self.pending.[copied ..]
+	self#buf#Copy self.pending
+	self!pending = self.buf.Bytes
+
+example writer
+	var buf:Stringbuf
+	var w = #<- {W=#buf}:Writer
+
+	fmt.F w "This is a test."
+	assert buf == ""
+	fmt.F w " This is only a test."
+	fmt.F w " Do not leave the dancefloor."
+	assert buf == ""
+
+	except = w#Flush max=4
+	assert buf == "This"
+
+	except = w#Flush
+	assert buf == "This is a test. This is only a test. Do not leave the dancefloor."
