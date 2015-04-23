@@ -5,13 +5,21 @@ import n.fmt
 let buf_size = 4096
 
 inline struct Reader =
-	R	:#io.`Reader
+	isa io.`Reader
+	R	:?#io.`Reader
+	bufr	:?#Reader -- If wrapping an already buffered reader.
+	rdy	:Bool
+	skip	:Bool
 	buf	:Stringbuf
 	pending	:[]U8
-	rdy	:Bool
 	copier	:io.Copier
 
 Reader met# Read b:[!]U8 = [!]U8, Error
+	if not self.R?
+		return {}, OK
+	if self.bufr?
+		return self#bufr#Read b
+
 	if self.Available == 0
 		return b, io.EOF
 
@@ -22,11 +30,21 @@ Reader met# Read b:[!]U8 = [!]U8, Error
 	return result, OK
 
 Reader met Available = Uint
+	if self.bufr?
+		return self.bufr.pending.Count
 	return self.pending.Count
 
 Reader met# Load ?max:?Uint = Error
+	if not self.R?
+		return OK
 	if not self.rdy
-		self!copier#Reset #self#buf self#R
+		self#bufr = (Dyncast Reader) self#R
+		self!rdy = true
+		if not self#bufr?
+			self!copier#Reset #self#buf self#R
+
+	if self#bufr?
+		return self#bufr#Load max=max
 
 	self#buf#Copy self.pending
 	_, except = self!copier#Copy max=(max else buf_size)
@@ -61,11 +79,21 @@ example reader
 
 inline struct Writer =
 	isa io.`Writer
-	W	:#io.`Writer
+	W	:?#io.`Writer
+	bufw	:?#Writer
+	rdy	:Bool
 	buf	:Stringbuf
 	pending	:[]U8
 
 Writer met# Write b:[]U8 = []U8, Error
+	if not self.rdy
+		self#bufw = (Dyncast Writer) self#W
+		self!rdy = true
+
+	if not self.W? or not self.rdy
+		return {}, OK
+	if self.bufw?
+		return self#bufw#Write b
 	_, _ = self#buf#Write b
 	self!pending = self.buf.Bytes
 	return {}, OK
@@ -74,6 +102,11 @@ Writer met# Write_string s:String = Error
 	_, except = self#Write s.Bytes
 
 Writer met# Flush ?max:?Uint = Error
+	if not self.W?
+		return OK
+	if self.bufw?
+		return self#bufw#Flush max=max
+
 	let len = max else self.pending.Count
 	let left, except = io.Write_full self.W self.pending.[.. len]
 	let copied = len - left.Count
