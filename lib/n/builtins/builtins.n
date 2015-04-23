@@ -513,6 +513,11 @@ inline Slice_impl shallow met$ Operator_at n:Uint = r:$t
 inline Slice_impl met! Full_copy other:this = r:this
 	assert t isa `Copyable
 	assert self.cap >= other.cnt
+
+	if self.dat === other.dat
+		-- Nothing to copy, same memory.
+		return {dat=self.dat cnt=other.cnt cap=self.cap}
+
 	let dst = self!Unsafe_rawdata
 	r = {dat=((Cast #U8 #t) dst) cnt=other.cnt cap=self.cap}
 	if t isa `Trivial_copy
