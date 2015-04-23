@@ -398,6 +398,20 @@ inline Mutable_slice met! Exact_copy other:[]t
 	let s = this.create_impl_instance
 	such
 		s!Exact_copy s
+inline Mutable_slice met! Full_move other:[!]t = this
+	let s = this.create_impl_instance
+	such
+		let _ = s!Full_move s
+		return {}
+inline Mutable_slice met! Move other:[!]t = this
+	let s = this.create_impl_instance
+	such
+		let _ = s!Copy s
+		return {}
+inline Mutable_slice met! Exact_move other:[!]t
+	let s = this.create_impl_instance
+	such
+		s!Exact_move s
 inline Mutable_slice met! Append other:[]t = this
 	let s = this.create_impl_instance
 	such
@@ -540,11 +554,11 @@ inline Slice_impl met! Full_copy other:this = r:this
 		let bytecnt = other.cnt * (sizeof t)
 		if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
 			foreach i in r.All
-				if t isa `Copyable
+				if t isa `Copyable -- To appease the compiler.
 					r![i]#Copy_ctor other.[i]
 		else
 			for i in r.All.Reverse_iter
-				if t isa `Copyable
+				if t isa `Copyable -- To appease the compiler.
 					r![i]#Copy_ctor other.[i]
 	return r
 
@@ -556,6 +570,72 @@ inline Slice_impl met! Copy other:this = this
 inline Slice_impl met! Exact_copy other:this
 	assert self.cnt == other.cnt
 	let _ = self!Full_copy other
+
+-- Fall back to copy if not `Moveable, clears/dtor the source.
+inline Slice_impl met! Full_move other:this = r:this
+	if t isa `Moveable
+		assert self.cap >= other.cnt
+
+		if self.dat === other.dat
+			return {dat=self.dat cnt=other.cnt cap=self.cap}
+
+		let dst = self!Unsafe_rawdata
+		r = {dat=((Cast #U8 #t) dst) cnt=other.cnt cap=self.cap}
+		if t isa `Trivial_copy
+			-- Includes `Trivial_move case.
+			let src = other!Unsafe_rawdata
+			and bytecnt = other.cnt * (sizeof t)
+			Slice_memmove dst src bytecnt
+			Slice_memset src 0 bytecnt
+		else
+			let p_dst = ((Cast #U8 Voidref) dst).Uintptr
+			let p_src = ((Cast *U8 Voidref) other.Unsafe_rawdata).Uintptr
+			let bytecnt = other.cnt * (sizeof t)
+			if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
+				foreach i in r.All
+					if t isa `Moveable -- To appease the compiler.
+						r![i]# = other![i]#Move
+			else
+				for i in r.All.Reverse_iter
+					if t isa `Moveable -- To appease the compiler.
+						r![i]# = other![i]#Move
+		return r
+	else
+		assert t isa `Copyable
+		let dst = self!Unsafe_rawdata
+		r = {dat=((Cast #U8 #t) dst) cnt=other.cnt cap=self.cap}
+
+		let p_dst = ((Cast #U8 Voidref) dst).Uintptr
+		let p_src = ((Cast *U8 Voidref) other.Unsafe_rawdata).Uintptr
+		let bytecnt = other.cnt * (sizeof t)
+		if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
+			foreach i in r.All
+				if t isa `Copyable -- To appease the compiler.
+					r![i]#Copy_ctor other.[i]
+				if t isa `Default_dtor
+					other![i]#Dtor
+				else
+					assert false
+		else
+			for i in r.All.Reverse_iter
+				let e = r![i]
+				if t isa `Copyable -- To appease the compiler.
+					r![i]#Copy_ctor other.[i]
+				if t isa `Default_dtor
+					other![i]#Dtor
+				else
+					assert false
+
+		return r
+
+-- Move what it can, and return a slice to the result.
+inline Slice_impl met! Move other:this = this
+	let cnt = Min self.cap other.cnt
+	return self!Full_move other.[.. cnt]
+
+inline Slice_impl met! Exact_move other:this
+	assert self.cnt == other.cnt
+	let _ = self!Full_move other
 
 -- Append what it can, and return a slice to the result.
 inline Slice_impl met! Append other:this = this
