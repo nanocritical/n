@@ -677,6 +677,13 @@ inline Stringbuf met# Copy b:[]U8
 	self#Reserve b.Count
 	self#bytes = self.bytes!Copy b
 
+example stringbuf_copy_empty
+	var buf:Stringbuf
+	buf#Cat "test"
+	assert buf.Count > 0
+	buf#Copy {}:[]U8
+	assert buf.Count == 0
+
 inline Stringbuf met# Reserve atleast:Uint
 	if self.bytes.cap >= atleast
 		return
