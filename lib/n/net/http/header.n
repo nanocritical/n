@@ -1,63 +1,134 @@
-inline struct Headers =
+let MALFORMED_HEADER = {Why=*"Malformed MIME header"}:Error
+
+inline struct Header =
 	Map	:(Map Stringbuf (Buf Stringbuf))
 
 -- Get gets the first value associated with the given key.
 -- If there are no values associated with the key, Get returns
 -- the empty string. To access multiple values, use the map
 -- directly.
-Headers met Get key:String = Stringbuf
+Header met Get key:String = ?*Stringbuf
 	let normkey = key.To_lower
 	let vs = self.Map.[normkey]
 	if vs.Count == 0
-		return ""
-	return vs.[0]*
+		return nil
+	return vs.[0]
 
 -- Set sets the key to value. It replaces any existing
--- values.
-Headers met Set key:String value:String
+-- values associated with key.
+Header met# Set key:String = #Stringbuf
 	let normkey = key.To_lower
 	let p = self#Map#Store normkey
 	p#Clear
-	p#Push# = value.Buf
+	return p#Push
 
--- Add adds the key to value. It appends to any existing
+-- Add adds the valye to key. It appends to any existing
 -- values associated with key.
-Headers met Add key:String value:String
+Header met# Add key:String = #Stringbuf
 	let normkey = key.To_lower
 	let p = self#Map#Store normkey
-	p#Push#Cat value
+	return p#Push
 
 -- Del deletes the values associated with key.
-Headers met Del key:String
+Header met# Del key:String
 	let normkey = key.To_lower
 	let _ = self#Map#Try_delete normkey
 
-fun write_headers w:#io.`Writer h:*Headers = Error
+
+fun write_header w:#io.`Writer h:*Header = Error
 	if h.Map.Count == 0
 		return OK
 
 	var bufw = #{W=w}:bufio.Writer
-
 	for k, vs in h.Map.Iter
 		foreach v in vs
 			fmt.F bufw "%s: %s%s" k v crlf
-
+	fmt.F bufw "%s" crlf
 	return bufw#Flush
 
---fun read_headers h:*Headers r:#io.`Reader = Error
---	var bufr = #{R=r}:bufio.Reader
---
---	bufr#Read_line
 
-example headers
-	var h:Headers
+fun is_header_loaded r:*bufio.Reader = Bool
+	let s = r.Peek_string r.Buffered
+	let i = s.Index "\r\n\r\n"
+	return i >= 0
+
+fun trim s:String = String
+	var i = 0
+	while i < s.Count and (s.[i] == ' ' or s.[i] == '\t')
+		i += 1
+	var j = s.Count
+	while j > 0 and (s.[j-1] == ' ' or s.[j-1] == '\t')
+		j -= 1
+	return s.[i .. j]
+
+fun is_ascii_letter c:U8 = Bool
+	c |= 0x20 -- make lower case
+	return 'a' <= c and c <= 'z'
+
+fun read_continued_line val:#Stringbuf r:!bufio.Reader = last:Bool
+	while true
+		let partial, line = r!Read_line
+		assert not partial -- We preloaded the whole header.
+
+		if line.Count == 0
+			return true
+
+		val#Cat <- trim line
+
+		let peek = r.Peek_string r.Buffered
+		if peek.Count == 0 or is_ascii_letter peek.First
+			return false
+
+fun read_one h:#Header r:!bufio.Reader = Error, done:Bool
+	let s = r.Peek_string r.Buffered
+	let i = s.Index_byte ':'
+	if i < 0
+		if s.[0] == '\r' and s.[1] == '\n'
+			return OK, true
+		return MALFORMED_HEADER, false
+
+	-- Key ends at first colon; should not have spaces but they appear in
+	-- the wild, violating specs, so we remove them if present.
+	let end_key = i.Unsigned such
+		while end_key > 0 and s.[end_key-1] == ' '
+			end_key -= 1
+
+	let key = s.[.. end_key]
+	let val = h#Add key
+
+	r!Advance i.Unsigned+1
+
+	return OK, read_continued_line val r
+
+-- Use is_header_loaded first.
+fun read_header h:#Header r:!bufio.Reader = Error
+	while true
+		let except, done = read_one h r
+		if done
+			return OK
+
+example header
+	var h:Header
 	foreach e in {
 		\ ("Host", "example.com")
 		\ ("Content-Type", "text/plain")
 		\ ("Host", "x.com")}:[](String, String)
 		let k, v = e
-		h#Add k v
+		(h#Add k)#Cat v
 
 	var buf:Stringbuf
-	except = write_headers #buf h
-	assert buf == "host: example.com\r\nhost: x.com\r\ncontent-type: text/plain\r\n"
+	except = write_header #buf h
+	assert buf == "host: example.com\r\nhost: x.com\r\ncontent-type: text/plain\r\n\r\n"
+
+	var bufr = #<- bufio.Reader.Mk #<- io.Mk_string_reader buf.String
+	except = bufr#Load max=32
+	assert not is_header_loaded bufr
+
+	while true
+		except = bufr#Load
+		if is_header_loaded bufr
+			break
+
+	var rh:Header
+	except = read_header #rh bufr
+	assert h == rh
