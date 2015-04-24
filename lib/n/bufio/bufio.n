@@ -13,13 +13,16 @@ inline struct Reader =
 	pending	:String
 	copier	:io.Copier
 
+Reader fun Mk r:#io.`Reader = ret:this
+	ret#R = r
+
 Reader met# Read b:[!]U8 = [!]U8, Error
 	if not self.R?
 		return {}, OK
 	if self.bufr?
 		return self#bufr#Read b
 
-	if self.Available == 0
+	if self.Buffered == 0
 		return b, io.EOF
 
 	let before = b.Count
@@ -28,9 +31,9 @@ Reader met# Read b:[!]U8 = [!]U8, Error
 	self!pending = self.pending.[read ..]
 	return result, OK
 
-Reader met Available = Uint
+Reader met Buffered = Uint
 	if self.bufr?
-		return self.bufr.pending.Count
+		return self.bufr.Buffered
 	return self.pending.Count
 
 Reader met# Load ?max:?Uint = Error
@@ -61,26 +64,41 @@ Reader met! Read_string max:Uint = String
 	self!pending = self.pending.[len ..]
 	return self.pending.[.. len]
 
+-- Does not Load more data. Does not advance.
+-- The returned slice is valid until the next call to Load.
+Reader met Peek_slice max:Uint = []U8
+	return (self.Peek_string max).Bytes
+
+-- Does not Load more data. Does not advance.
+-- The returned string is valid until the next call to Load.
+Reader met Peek_string max:Uint = String
+	let len = Min max self.pending.Count
+	return self.pending.[.. len]
+
+Reader met! Advance cnt:Uint
+	self!pending = self.pending.[cnt ..]
+
 -- Does not Load more data.
 -- The returned slice is valid until the next call to Load.
--- If an EOL ("\r\n" or "\n") is not reached, it returns true.
-Reader met! Read_line = partial:Bool, line:[]U8
+-- If a newline ("\r\n" or "\n") is not reached, it returns true.
+-- Advances past the newline.
+Reader met! Read_line = partial:Bool, line:String
 	let i = self.pending.Index_byte '\n'
 	if i < 0
-		line = self.pending.Bytes
+		line = self.pending
 		self!pending = {}
 		partial = true
 	else
 		var eol = i.Unsigned
 		if eol > 0 and self.pending.[eol-1] == '\r'
 			eol -= 1
-		line = self.pending.[.. eol].Bytes
-		self!pending = self.pending.[i.Unsigned ..]
+		line = self.pending.[.. eol]
+		self!pending = self.pending.[i.Unsigned+1 ..]
 
 example reader
 	let s = "This is a test"
-	var sr = {S=s.Bytes}:io.Bytes_reader
-	var r = {R=#sr}:Reader
+	var sr = #<- io.Mk_string_reader s
+	var r = #<- Reader.Mk sr
 	var buf:Stringbuf
 	buf#Reserve 32
 	var b = buf!Bytes
@@ -112,6 +130,9 @@ inline struct Writer =
 	buf	:Stringbuf
 	pending	:[]U8
 
+Writer fun Mk w:#io.`Writer = ret:this
+	ret#W = w
+
 Writer met# Write b:[]U8 = []U8, Error
 	if not self.rdy
 		self#bufw = (Dyncast Writer) self#W
@@ -124,6 +145,11 @@ Writer met# Write b:[]U8 = []U8, Error
 	_, _ = self#buf#Write b
 	self!pending = self.buf.Bytes
 	return {}, OK
+
+Writer met Buffered = Uint
+	if self.bufw?
+		return self.bufw.Buffered
+	return self.pending.Count
 
 Writer met# Write_string s:String = Error
 	_, except = self#Write s.Bytes
@@ -143,7 +169,7 @@ Writer met# Flush ?max:?Uint = Error
 
 example writer
 	var buf:Stringbuf
-	var w = #<- {W=#buf}:Writer
+	var w = #<- Writer.Mk #buf
 
 	fmt.F w "This is a test."
 	assert buf == ""

@@ -53,21 +53,22 @@ fun Write_full w:#`Writer b:[]U8 = []U8, Error
 	return Write_at_least w b b.Count
 
 
+-- TODO(e): Should implement bufio.`Reader and probably be moved there.
 struct Bytes_reader =
 	isa `Reader
-	S	:[]U8
+	B	:[]U8
 
 Bytes_reader met# Read b:[!]U8 = [!]U8, Error
-	if self.S.Count == 0
+	if self.B.Count == 0
 		return b, EOF
 
-	let copied = b!Free_space!Copy self.S
-	self#S = self.S.[copied.Count ..]
+	let copied = b!Free_space!Copy self.B
+	self#B = self.B.[copied.Count ..]
 	return b.[0 .. b.Count+copied.Count], OK
 
 example bytes_reader_whole
 	let s = "testabc"
-	var br = {S=s.Bytes}:Bytes_reader
+	var br = {B=s.Bytes}:Bytes_reader
 	var buf:Stringbuf
 	buf#Reserve 32
 	var b = buf!Bytes
@@ -77,7 +78,7 @@ example bytes_reader_whole
 
 example bytes_reader_partial
 	let s = "testabc"
-	var br = {S=s.Bytes}:Bytes_reader
+	var br = {B=s.Bytes}:Bytes_reader
 	var buf:Stringbuf
 	buf#Reserve 4
 	var b = buf!Bytes
@@ -86,6 +87,10 @@ example bytes_reader_partial
 	assert b.Const == "test".Bytes
 	b, except = br#Read b.[.. 0]
 	assert b.Const == "abc".Bytes
+
+
+fun Mk_string_reader s:String = r:Bytes_reader
+	r#B = s.Bytes
 
 
 -- Copy until EOF on the read side.
@@ -150,7 +155,7 @@ Copier met! Copy ?max:?Uint = written:Uint, err:Error
 
 example copier
 	let s = "This is a test"
-	let src = {S=s.Bytes}:Bytes_reader
+	let src = Mk_string_reader s
 	var buf:Stringbuf
 	var copier:Copier
 	copier#Reset #buf #src
@@ -165,7 +170,7 @@ example copier
 
 example copier_limited
 	let s = "This is a test"
-	let src = {S=s.Bytes}:Bytes_reader
+	let src = Mk_string_reader s
 	var buf:Stringbuf
 	var copier:Copier
 	copier#Reset #buf #src max=4
@@ -180,7 +185,7 @@ example copier_limited
 
 example copier_incremental
 	let s = "This is a test"
-	let src = {S=s.Bytes}:Bytes_reader
+	let src = Mk_string_reader s
 	var buf:Stringbuf
 	var copier:Copier
 	copier#Reset #buf #src
