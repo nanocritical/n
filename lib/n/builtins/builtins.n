@@ -386,6 +386,11 @@ inline Mutable_slice shallow met$ Operator_at n:Uint = $t
 		let _ = s!Operator_at n
 		let p = s#Operator_at n
 		return s$Operator_at n
+inline Mutable_slice met! Clear
+	let s = this.create_impl_instance
+	such
+		s!Clear
+		return {}
 inline Mutable_slice met! Full_copy other:[]t = this
 	let s = this.create_impl_instance
 	such
@@ -531,6 +536,17 @@ inline Slice_impl shallow met$ Operator_at n:Uint = r:$t
 	let raw = (Cast ?*t #U8) self.dat
 	and off = n * (sizeof t)
 	return (Cast #U8 $t) <- Slice_at_byte raw off
+
+inline Slice_impl met! Clear
+	assert t isa `Default_dtor
+	if t isa `Trivial_dtor
+		let dst = self.Unsafe_rawdata
+		and bytecnt = self.cnt * (sizeof t)
+		Slice_memset dst 0 bytecnt
+	else
+		foreach i in self.All
+			if t isa `Default_dtor
+				self![i]#Dtor
 
 ---- FIXME: the copy operations are only available if the t is `Copyable* We
 -- would like that detection to be static* And we would want
