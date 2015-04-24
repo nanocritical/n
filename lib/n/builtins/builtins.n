@@ -2082,6 +2082,11 @@ inline fun Invariant__ cond:Bool ?_Ncodeloc:?*Codeloc
 		Message_at "invariant failed" _Ncodeloc
 		Abort
 
+fun Example_except name:String err:Error
+	if err == OK
+		return
+	Eprn sep="" "Failed example: " name ": " err
+
 fun Break
 	return
 

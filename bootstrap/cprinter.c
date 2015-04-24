@@ -3376,21 +3376,24 @@ static void print_runexamples(FILE *out, const struct module *mod) {
       continue;
     }
 
-    fprintf(out, "{\n");
-
     const size_t arity = typ_function_arity(ex->typ);
-    if (arity == 0) {
-      print_scope_name(out, mod, ex);
-      fprintf(out, "();\n");
-    } else if (arity == 1) {
-      fprintf(out, "NLANG_EXAMPLE_PRE;\n");
-      print_scope_name(out, mod, ex);
-      fprintf(out, "(&ex);\n");
-      fprintf(out, "NLANG_EXAMPLE_POST;\n");
-    } else {
+    if (arity > 1) {
       assert(false);
     }
 
+    fprintf(out, "{\n");
+    if (arity == 1) {
+      fprintf(out, "NLANG_EXAMPLE_PRE;\n");
+    }
+    fprintf(out, "struct n$builtins$Error err = ");
+    print_scope_name(out, mod, ex);
+    fprintf(out, "(%s);\n", arity == 1 ? "&ex" : "");
+    fprintf(out, "NLANG_EXAMPLE_EXCEPT(\"");
+    print_scope_name(out, mod, ex);
+    fprintf(out, "\", err);\n");
+    if (arity == 1) {
+      fprintf(out, "NLANG_EXAMPLE_POST;\n");
+    }
     fprintf(out, "}\n");
   }
   fprintf(out, "}\n");
