@@ -575,12 +575,12 @@ inline Slice_impl met! Exact_copy other:this
 
 -- Fall back to copy if not `Moveable, clears/dtor the source.
 inline Slice_impl met! Full_move other:this = r:this
+	assert self.cap >= other.cnt
+
+	if self.dat === other.dat
+		return {dat=self.dat cnt=other.cnt cap=self.cap}
+
 	if t isa `Moveable
-		assert self.cap >= other.cnt
-
-		if self.dat === other.dat
-			return {dat=self.dat cnt=other.cnt cap=self.cap}
-
 		let dst = self!Unsafe_rawdata
 		r = {dat=((Cast #U8 #t) dst) cnt=other.cnt cap=self.cap}
 		if t isa `Trivial_copy
@@ -588,7 +588,22 @@ inline Slice_impl met! Full_move other:this = r:this
 			let src = other!Unsafe_rawdata
 			and bytecnt = other.cnt * (sizeof t)
 			Slice_memmove dst src bytecnt
-			Slice_memset src 0 bytecnt
+
+			let p_dst = ((Cast #U8 Voidref) dst).Uintptr
+			let p_src = ((Cast *U8 Voidref) other.Unsafe_rawdata).Uintptr
+			if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
+				Slice_memset src 0 bytecnt
+			else
+				if p_src < p_dst and p_src+bytecnt.Uintptr >= p_dst
+					Slice_memset src 0 (p_dst - p_src).U64.To_uint
+				elif p_dst < p_src and p_dst+bytecnt.Uintptr >= p_src
+					let cnt_pre_overlap = p_src - p_dst
+					let end_overlap = p_dst + bytecnt.Uintptr
+					let start_zero = (Cast Voidref #U8) (Voidref.From_uintptr end_overlap)
+					let cnt_post_overlap = cnt_pre_overlap
+					Slice_memset start_zero 0 cnt_post_overlap.U64.To_uint
+				else
+					Slice_memset src 0 bytecnt
 		else
 			let p_dst = ((Cast #U8 Voidref) dst).Uintptr
 			let p_src = ((Cast *U8 Voidref) other.Unsafe_rawdata).Uintptr
@@ -627,7 +642,6 @@ inline Slice_impl met! Full_move other:this = r:this
 					other![i]#Dtor
 				else
 					assert false
-
 		return r
 
 -- Move what it can, and return a slice to the result.
