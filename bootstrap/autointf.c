@@ -224,7 +224,7 @@ static void gen_on_field(struct module *mod, struct node *m,
     return;
   }
 
-  assert(node_ident(m) == ID_OPERATOR_EQ || node_ident(m) == ID_OPERATOR_NE);
+  assert(node_ident(m) == ID_OPERATOR_EQ);
   const struct node *arg_other = next_const(arg_self);
 
   assert(!typ_is_reference(f->typ));
@@ -256,7 +256,7 @@ static void gen_on_field(struct module *mod, struct node *m,
   }
 
   G0(cmp, body, BIN,
-     cmp->as.BIN.operator = node_ident(m) == ID_OPERATOR_EQ ? TNE : TEQ;
+     cmp->as.BIN.operator = TNE;
      like_arg(mod, cmp, arg_self, f);
      like_arg(mod, cmp, arg_other, f));
 }
@@ -283,11 +283,10 @@ static void gen_on_choices_and_fields(struct module *mod,
         || node->as.DEFTYPE.kind == DEFTYPE_ENUM) {
       switch (node_ident(m)) {
       case ID_OPERATOR_EQ:
-      case ID_OPERATOR_NE:
         {
           G0(xiftag, body, IF,
              G(cmp, BIN,
-               cmp->as.BIN.operator = node_ident(m) == ID_OPERATOR_EQ ? TNE : TEQ;
+               cmp->as.BIN.operator = TNE;
                G(accself, BIN,
                  accself->as.BIN.operator = TDOT;
                  G_IDENT(s, "self");
@@ -325,7 +324,6 @@ static void gen_on_choices_and_fields(struct module *mod,
     } else {
       switch (node_ident(m)) {
       case ID_OPERATOR_EQ:
-      case ID_OPERATOR_NE:
         need_true = true;
         break;
       }
@@ -442,8 +440,6 @@ static void gen_by_compare(struct module *mod, struct node *deft,
                            struct node *m, struct node *body) {
   enum token_type op = 0;
   switch (node_ident(m)) {
-  case ID_OPERATOR_EQ: op = TEQ; break;
-  case ID_OPERATOR_NE: op = TNE; break;
   case ID_OPERATOR_LE: op = TLE; break;
   case ID_OPERATOR_LT: op = TLT; break;
   case ID_OPERATOR_GT: op = TGT; break;
@@ -583,8 +579,21 @@ non_bg:
   case ID_DTOR:
   case ID_COPY_CTOR:
   case ID_OPERATOR_EQ:
-  case ID_OPERATOR_NE:
     gen_on_choices_and_fields(mod, deft, m, body);
+    break;
+  case ID_OPERATOR_NE:
+    {
+      GSTART();
+      G0(ret, body, RETURN,
+         G(not, UN,
+           not->as.UN.operator = Tnot;
+           G(call, CALL,
+             G(f, BIN,
+               f->as.BIN.operator = TDOT;
+               G_IDENT(s, "self");
+               G_IDENT(m, "Operator_eq"));
+             G_IDENT(o, "other"))));
+    }
     break;
   case ID_OPERATOR_COMPARE:
     gen_on_choices_and_fields_lexicographic(mod, deft, NULL, m, body);

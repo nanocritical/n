@@ -260,6 +260,7 @@ opaque struct Slice t:`Any =
 	cap	:Uint -- will go away
 
 inline Slice fun create_impl_instance = r:(Slice_impl t)
+	assert false -- Better not actually get called!
 	-- Ensure visibility of dyns too.
 	let d:*(`Any_slice t)
 	d = *r
@@ -335,6 +336,7 @@ opaque struct Mutable_slice t:`Any =
 	cap	:Uint
 
 inline Mutable_slice fun create_impl_instance = r:(Slice_impl t)
+	assert false -- Better not actually get called!
 	let d:*(`Any_slice t)
 	d = *r
 inline Mutable_slice fun From_slice c:[]t = this
