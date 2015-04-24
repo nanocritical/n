@@ -4,9 +4,8 @@ intf `Hashable32 =
 alias `Map_key = {`Hashable32 `Copyable `Has_equality}
 
 struct sptable T:`Copyable =
-	count	:Uint
-	groups	:(Buf (Buf T))
 	bitmap	:Bitmap
+	groups	:(Buf (Buf T))
 
 inline let sp_m = 32:Uint
 inline let sp_min_size = 2*sp_m
@@ -15,7 +14,6 @@ fun sp_num_groups size_pow2:Uint = Uint
 	return math.Div_ceil size_pow2 32
 
 sptable met# init size_pow2:Uint
-	self!count = 0
 	self!bitmap#Resize <- Max size_pow2 sp_min_size
 	self!groups#Resize (sp_num_groups self.bitmap.Count)
 
@@ -53,7 +51,6 @@ sptable met# set n:Uint = #T
 		return gr![count_before]
 
 	w! |= mask
-	self!count += 1
 
 	let old_count = gr.Count
 	gr#Resize gr.Count+1
@@ -103,15 +100,11 @@ example sptable_basic
 	(t#set 0)# = 42
 	assert t#get 1 === nil
 	assert (t#get 0)* == 42
-	assert t.count == 1
 	(t#set 7)# = 44
-	assert t.count == 2
 	assert (t#get 7)* == 44
 	(t#set 3)# = 43
-	assert t.count == 3
 	assert (t#get 3)* == 43
 	(t#set 99)# = 45
-	assert t.count == 4
 	assert (t#get 0)* == 42
 	assert (t#get 3)* == 43
 	assert (t#get 7)* == 44
@@ -133,7 +126,6 @@ example sptable_group_boundary
 	assert t#get 1 === nil
 	assert (t#get 32)* == 43
 	assert (t#get 32-1)* == 42
-	assert t.count == 2
 
 struct unit K:`Map_key T:`Copyable =
 	isa `Show
@@ -151,7 +143,7 @@ unit met Show st:#`Fmt_state
 	"}:unit".Show st
 
 struct Map K:`Map_key T:`Copyable =
-	isa `Show (`Slice_compatible (K, T)) `Copyable (`Collection K)
+	isa `Show (`Slice_compatible (K, T)) `Copyable (`Collection K) (`Inherit `Has_equality T)
 	alias unit_type = (unit K T)
 	table	:(sptable unit_type)
 	count	:Uint
@@ -218,6 +210,8 @@ Map shallow met$ get_unit key:*K trying:Bool = ?$this.unit_type, idx:Uint, hash:
 			return nil, idx, hash
 		if Unlikely <- not u.hash?
 			-- Deleted
+			-- TODO(e): in some insert cases, we can reuse the
+			-- deleted location.
 			continue
 		if u.hash != hash
 			continue
@@ -316,6 +310,29 @@ Map shallow met$ Iter = (Map_iter this $T)
 	-- To avoid this cast, we would have to make sptable_iter more complex.
 	let mself = (Cast *this !this) self
 	return {iter=mself!table!iter}
+
+-- Because of deleted values, elements may not appear in the same order in
+-- groups, so we cannot simply compare groups.
+-- Instead of the approach below, which is O(N) in the worst case, but with
+-- not very good constants, we could compare groups one by one, taking into
+-- account the possibility of deleted values being in there.
+Map met Operator_eq other:*this = Bool
+	assert T isa `Has_equality
+	if self.count != other.count
+		return false
+
+	for k, sv in self.Iter
+		let ov = other.[k]
+		if not ov?
+			return false
+		if T isa `Has_equality -- To appease the compiler.
+			if sv != ov
+				return false
+
+	return true
+
+Map met Operator_ne other:*this = Bool
+	return not self.Operator_eq other
 
 (fun t:`Any) show_ptr st:#`Fmt_state x:*t
 	"<".Show st

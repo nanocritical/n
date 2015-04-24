@@ -18,6 +18,7 @@ example hashmap_basic
 	(m#Store "42")# = 43
 	assert m.Count == 1
 	assert m.["42"] == 43
+	var n = m
 
 	m#Delete "42"
 	assert not m#Try_delete "42"
@@ -39,6 +40,10 @@ example hashmap_basic
 
 	var mcopy = m
 	assert mcopy.Count == m.Count
+	assert mcopy.["42"] == m.["42"]
+	assert mcopy.["44"] == m.["44"]
+	assert mcopy == m
+	assert n != m
 
 struct collides =
 	isa `Hashable32
@@ -95,7 +100,7 @@ example hashset
 	var s = {0 1 2 3 4}:(Set Uint)
 	var scopy = s
 	assert s == scopy
-	var t = {0 1 2}:(Set Uint)
+	let t = {0 1 2}:(Set Uint)
 	assert t < s
 	assert t <= s
 	assert s#Remove_all t
@@ -114,6 +119,7 @@ example hashset
 	assert s.Count == 5
 	assert not s#Add_all t
 	assert s == scopy
+	assert t != s
 
 fun Main = I32
 	let m = {("42", 42) ("43", 43)}:(Map Stringbuf Uint)
