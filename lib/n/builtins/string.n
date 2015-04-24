@@ -319,7 +319,8 @@ String met naive_index sep:String = Int
 		return -1
 
 	let sep_second = sep.[1]
-	let sep_allbut2 = sep.[2 ..]
+	-- Take from 1 to avoid having to separate n==2 case and n>2 case.
+	let sep_allbut1 = sep.[1 ..]
 	var data = self*
 	var i, j
 	while true
@@ -328,7 +329,7 @@ String met naive_index sep:String = Int
 			break
 		i += j
 		data = data.[j.Unsigned ..]
-		if data.[1] == sep_second and (data.[2 .. n]) == sep_allbut2
+		if data.[1] == sep_second and n <= data.Count and data.[1 .. n] == sep_allbut1
 			return i
 		data = data.[1 ..]
 		i += 1
