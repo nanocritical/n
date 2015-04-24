@@ -2,8 +2,8 @@ inline struct Bitmap =
 	isa `Show
 	alias Word = U32
 	let BITS_PER_WORD = 32:Uint
-	b	:(Buf U32)
 	count	:Uint
+	b	:(Buf U32)
 
 inline fun Bitmap_wordmask n:Uint = U32
 	return 1 ov<< n
