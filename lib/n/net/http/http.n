@@ -1,4 +1,4 @@
--- See LICENSE for details. Originally derived from go/src/pkg/net/url
+-- See LICENSE for details. Originally derived from go/src/pkg/net/http
 -- Copyright 2009 The Go Authors. All rights reserved.
 
 from n import *
