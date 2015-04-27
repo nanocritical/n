@@ -3252,7 +3252,7 @@ ident gensym(struct module *mod) {
   mod->next_gensym += 1;
 
   char name[64] = { 0 };
-  int cnt = snprintf(name, ARRAY_SIZE(name), "_Ngensym%zx", g);
+  int cnt = snprintf(name, ARRAY_SIZE(name), "_Ng_%zx", g);
 
   return idents_add_string(mod->gctx, name, cnt);
 }
