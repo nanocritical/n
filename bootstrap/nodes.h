@@ -404,6 +404,8 @@ struct node_defalias {
 };
 struct node_defname {
   struct node *ssa_user;
+  bool ssa_only_removable_if_void;
+
   bool is_globalenv;
   ident globalenv_header_name;
 

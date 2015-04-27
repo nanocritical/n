@@ -112,6 +112,9 @@ static void defname_replace_block_like_expr(struct module *mod,
   // FIXME: when inserting an assign, its LHS is not tracked by ssa_user in
   // the DEFNAME. Which is why we cannot yet use
   // try_remove_unnecessary_ssa_defname().
+  // Not removing some subs has to be illegal, we need to learn to remove
+  // them even if they're not void.
+  defn->as.DEFNAME.ssa_only_removable_if_void = true;
 
   node_subs_remove(defn, expr);
   (void) mk_node(mod, defn, INIT);
@@ -1228,6 +1231,10 @@ bool try_remove_unnecessary_ssa_defname(struct module *mod, struct node *defn) {
   try_bypass_refof_deref_pair(mod, defn);
 
   if (defn->as.DEFNAME.ssa_user == NULL) {
+    return false;
+  }
+  if (defn->as.DEFNAME.ssa_only_removable_if_void
+      && !typ_equal(defn->typ, TBI_VOID)) {
     return false;
   }
 
