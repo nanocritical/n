@@ -507,3 +507,88 @@ example set_basic
 	assert s.Count == 1
 	assert s#Remove 0
 	assert s.Count == 0
+
+
+-- Implementation note: Does not contain degenerate elements with count 0.
+struct Multiset T:`Map_key =
+	isa `Show `Copyable
+	map	:(Map T Uint)
+
+Multiset fun From_slice c:[]T = r:this
+	foreach i in c.All
+		let x = c.[i]
+		let _, p = r!map#Try_store x
+		p# += 1
+
+Multiset met# Clear
+	self#map#Dtor
+
+Multiset met# Copy_ctor other:*this
+	self#Clear
+	for x, m in other.Iter
+		let _ = self#Add x multiple=m*
+
+Multiset met Count = Uint
+	return self.map.Count
+
+Multiset met Operator_in x:*T = Bool
+	return (self.map.[x] else 0) != 0
+
+Multiset met Multiplicity x:*T = Uint
+	return self.map.[x] else 0
+
+Multiset met# Add x:*T ?multiple:?Uint = prev_multiplicity:Uint
+	let _, p = self!map#Try_store x
+	prev_multiplicity = p*
+	p# += (multiple else 1)
+
+Multiset met# Remove x:*T ?multiple:?Uint = prev_multiplicity:Uint
+	let p = self!map![x]
+	if not p?
+		return 0
+
+	prev_multiplicity = p*
+
+	let decr_by = multiple else 1
+	if decr_by >= prev_multiplicity
+		self!map#Delete x
+		return prev_multiplicity
+
+	p# -= decr_by
+
+Multiset met Operator_eq other:*this = Bool
+	return self.map == other.map
+
+Multiset met Operator_ne other:*this = Bool
+	return not self == other
+
+Multiset met Show st:#`Fmt_state
+	self.map.Show st
+
+Multiset shallow met$ Iter = (Map_iter (Map T Uint) $Uint)
+	return self$map$Iter
+
+example multiset
+	let m = Multiset.From_slice {0:U32 1 2 0 1}
+	assert m.Count == 3
+	assert 0 in m
+	assert 1 in m
+	assert 2 in m
+	assert m.Multiplicity 0 == 2
+	assert m.Multiplicity 1 == 2
+	assert m.Multiplicity 2 == 1
+
+	assert 2 == m#Remove 0
+	assert m.Multiplicity 0 == 1
+	assert 1 == m#Remove 0 multiple=2
+	assert m.Multiplicity 0 == 0
+	assert not 0 in m
+
+	assert 1 == m#Add 2
+	assert m.Multiplicity 2 == 2
+	assert 2 == m#Add 2 multiple=3
+	assert m.Multiplicity 2 == 5
+
+	let n = m
+	assert n.Count == 2
+	assert n == m
