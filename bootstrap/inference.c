@@ -693,6 +693,7 @@ static void rewrite_un_qmark(struct module *mod, struct node *node) {
        t->as.BOOL.value = true);
   } else if (node->as.UN.operator == T__DEOPT) {
     node_set_which(node, BIN);
+    node->as.BIN.is_generated = true;
     if (node->typ == TBI__MERCURIAL) {
       node->as.BIN.operator = TSHARP;
     } else if (node->typ == TBI__MUTABLE) {
@@ -1387,12 +1388,35 @@ static ERROR rewrite_unary_call(struct module *mod, struct node *node, struct ty
   return 0;
 }
 
+static ERROR rewrite_implicit_opt_acc_op(struct module *mod, struct node *node) {
+  struct node *par = subs_first(node);
+  node_subs_remove(node, par);
+  GSTART();
+  G0(nonnillable, node, UN,
+     nonnillable->as.UN.operator = T__NONNULLABLE;
+     node_subs_append(nonnillable, par));
+
+  node_subs_remove(node, nonnillable);
+  node_subs_insert_before(node, subs_first(node), nonnillable);
+
+  const struct node *except[] = { par, NULL };
+  error e = catchup(mod, except, nonnillable, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+  return 0;
+}
+
 static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) {
+  error e;
+  if (!node->as.BIN.is_generated && typ_is_optional(subs_first(node)->typ)) {
+    e = rewrite_implicit_opt_acc_op(mod, node);
+    EXCEPT(e);
+  }
+
   const struct typ *mark = node->typ;
 
   enum token_type rop = 0;
   struct typ *rfunctor = NULL;
-  error e = try_wildcard_op(&rfunctor, &rop, mod, node);
+  e = try_wildcard_op(&rfunctor, &rop, mod, node);
   EXCEPT(e);
   node->as.BIN.operator = rop;
 
