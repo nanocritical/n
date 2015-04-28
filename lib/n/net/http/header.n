@@ -24,7 +24,7 @@ example canonical_key
 		\ ("user-agent", "User-Agent")
 		\ ("USER-AGENT", "User-Agent")
 		\ ("üser-agenT", "üser-Agent")
-		\ ("C Ontent-Transfer-Encoding", "C-Ontent-Transfer-Encoding")
+		\ ("C ontent-Transfer-Encoding", "C-Ontent-Transfer-Encoding")
 		\ ("foo bar", "Foo-Bar")}:[](String, String)
 	var s:Stringbuf
 	foreach i in pairs.All
