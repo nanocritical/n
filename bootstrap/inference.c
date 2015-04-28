@@ -2175,14 +2175,6 @@ static ERROR prepare_call_arguments(struct module *mod, struct node *node) {
 static ERROR explicit_instantiation(struct module *mod, struct node *node) {
   error e;
   struct node *what = subs_first(node);
-  if (what->which == BIN && !(subs_first(what)->flags & NODE_IS_TYPE)) {
-    e = mk_except_type(mod, what,
-                       "explicit generic instantion must use a type as functor;"
-                       " e.g. not 'self.method i32'"
-                       " but '(my_struct.method i32) self' (FIXME: remove this restriction)");
-    THROW(e);
-  }
-
   struct typ *t = what->typ;
   if (!typ_is_function(t) && !typ_is_generic_functor(t)) {
     e = mk_except_type(mod, what,
@@ -2562,7 +2554,7 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
     e = explicit_instantiation(mod, node);
     EXCEPT(e);
 
-    if (typ_is_function(node->typ) && typ_function_min_arity(node->typ) == 0
+    if ((typ_definition_which(node->typ) == DEFFUN && typ_function_min_arity(node->typ) == 0)
         && parent_const(node)->which != CALL) {
       // Combined explicit instantiation and unary call:
       //   let p = Alloc I32
@@ -2571,6 +2563,37 @@ static ERROR type_inference_call(struct module *mod, struct node *node) {
       node_move_content(moved, node);
       node_subs_append(node, moved);
       node->which = CALL;
+
+      e = type_inference_call(mod, node);
+      EXCEPT(e);
+
+    } else if ((typ_definition_which(node->typ) == DEFMETHOD && typ_function_min_arity(node->typ) == 1)
+               && parent_const(node)->which != CALL) {
+      // Combined explicit instantiation and unary call on an object.
+      struct node *self = subs_first(fun);
+      node_subs_remove(fun, self);
+
+      // Remove type arguments.
+      struct node *nxt = next(fun);
+      while (nxt != NULL) {
+        struct node *del = nxt;
+        nxt = next(nxt);
+        node_subs_remove(node, del);
+      }
+
+      GSTART();
+      G0(f, node, DIRECTDEF,
+         f->as.DIRECTDEF.flags = NODE_IS_TYPE;
+         set_typ(&f->as.DIRECTDEF.typ, node->typ));
+      node_subs_remove(node, f);
+      node_subs_replace(node, fun, f);
+      node_subs_append(node, self);
+
+      e = catchup(mod, NULL, f, CATCHUP_BELOW_CURRENT);
+      EXCEPT(e);
+
+      node_set_which(node, CALL);
+      node->flags &= ~NODE_IS_TYPE;
 
       e = type_inference_call(mod, node);
       EXCEPT(e);
