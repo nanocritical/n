@@ -1623,10 +1623,10 @@ static void bin_accessor_maybe_functor__has_effect(struct module *mod, struct no
   }
 }
 
-static bool bin_accessor_maybe_ref(struct node **parent_scope,
-                                   struct module *mod, struct node *par) {
-  if (typ_is_reference(par->typ)) {
-    *parent_scope = definition(typ_generic_arg(par->typ, 0));
+static bool bin_accessor_maybe_ref(struct typ **container,
+                                   struct module *mod) {
+  if (typ_is_reference(*container)) {
+    *container = typ_generic_arg(*container, 0);
     return true;
   }
   return false;
@@ -1659,10 +1659,14 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
   bin_accessor_maybe_literal_slice__has_effect(mod, left);
   bin_accessor_maybe_functor__has_effect(mod, left);
 
-  struct node *dcontainer = definition(left->typ);
-  if (!bin_accessor_maybe_ref(&dcontainer, mod, left)) {
+  struct typ *real_left_typ = left->typ;
+  const bool was_ref = bin_accessor_maybe_ref(&real_left_typ, mod);
+
+  struct node *dcontainer = definition(real_left_typ);
+  if (!was_ref) {
     bin_accessor_maybe_defchoice_field(&dcontainer, node, mod, left);
   }
+
   *container_is_tentative = typ_is_tentative(dcontainer->typ);
 
   struct node *name = subs_last(node);
@@ -1692,7 +1696,7 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
   }
 
   struct tit *r = calloc(1, sizeof(struct tit));
-  r->t = typ_is_reference(left->typ) ? typ_generic_arg(left->typ, 0) : left->typ;
+  r->t = real_left_typ;
   r->definition = dcontainer;
   r->just_one = true;
   r->pos = field;
