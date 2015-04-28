@@ -597,15 +597,11 @@ static void lir_conversion_foreach(struct module *mod, struct node *node) {
 
      G(let_it_block, BLOCK,
        G(loop, WHILE,
-         G(v, CALL,
-           G(vm, BIN,
-             vm->as.BIN.operator = TDOT;
-             G(vmi, IDENT,
-               vmi->as.IDENT.name = node_ident(it_var));
-             G(vmm, IDENT,
-               vmm->as.IDENT.name = ID_HAS_NEXT)));
+         G(trblock, BLOCK,
+           G(tr, BOOL,
+             tr->as.BOOL.value = true));
          G(loop_block, BLOCK,
-           G(let_var, LET,
+           G(let_idx, LET,
              G(idx, DEFPATTERN,
                G(idx_var, IDENT,
                  idx_var->as.IDENT.name = gensym(mod));
@@ -615,19 +611,33 @@ static void lir_conversion_foreach(struct module *mod, struct node *node) {
                    G(gmi, IDENT,
                      gmi->as.IDENT.name = node_ident(it_var));
                    G(gmm, IDENT,
-                     gmm->as.IDENT.name = ID_NEXT))));
-             G(var, DEFPATTERN,
-               node_subs_append(var, orig_var);
-               G(g2, CALL,
-                 G(gm2, BIN,
-                   gm2->as.BIN.operator = TDOT;
-                   G(gmi2, IDENT,
-                     gmi2->as.IDENT.name = node_ident(expr_var));
-                   G_IDENT(gmm2, "Operator_at"));
-                 G(gma2, IDENT,
-                   gma2->as.IDENT.name = node_ident(idx_var)))))))));
+                     gmm->as.IDENT.name = ID_NEXT)))));
+           G(ifnext, IF,
+             G(condblock, BLOCK,
+               G(isnil, UN,
+                 isnil->as.UN.operator = Tnot;
+                 G(nonnil, UN,
+                   nonnil->as.UN.operator = TPOSTQMARK;
+                   G(idx1, IDENT,
+                     idx1->as.IDENT.name = node_ident(idx_var)))));
+             G(yesblock, BLOCK,
+               G(br, BREAK));
+             G(noblock, BLOCK,
+               G(let_var, LET,
+                 G(var, DEFPATTERN,
+                   node_subs_append(var, orig_var);
+                   G(g2, CALL,
+                     G(gm2, BIN,
+                       gm2->as.BIN.operator = TDOT;
+                       G(gmi2, IDENT,
+                         gmi2->as.IDENT.name = node_ident(expr_var));
+                       G_IDENT(gmm2, "Operator_at"));
+                     G(gma2_deopt, UN,
+                       gma2_deopt->as.UN.operator = T__DEOPT;
+                       G(gma2, IDENT,
+                         gma2->as.IDENT.name = node_ident(idx_var)))));
+                 node_subs_append(let_var, orig_block))))))));
 
-         node_subs_append(let_var, orig_block);
 }
 
 static void lir_conversion_for(struct module *mod, struct node *node) {
@@ -651,26 +661,40 @@ static void lir_conversion_for(struct module *mod, struct node *node) {
 
      G(let_it_block, BLOCK,
        G(loop, WHILE,
-         G(v, CALL,
-           G(vm, BIN,
-             vm->as.BIN.operator = TDOT;
-             G(vmi, IDENT,
-               vmi->as.IDENT.name = node_ident(it_var));
-             G(vmm, IDENT,
-               vmm->as.IDENT.name = ID_HAS_NEXT)));
+         G(trblock, BLOCK,
+           G(tr, BOOL,
+             tr->as.BOOL.value = true));
          G(loop_block, BLOCK,
-           G(let_var, LET,
-             G(var, DEFPATTERN,
-               node_subs_append(var, orig_var);
+           G(let_next_var, LET,
+             G(next_var, DEFPATTERN,
+               G(next_vari, IDENT,
+                 next_vari->as.IDENT.name = gensym(mod));
                G(g, CALL,
                  G(gm, BIN,
                    gm->as.BIN.operator = TBANG;
                    G(gmi, IDENT,
                      gmi->as.IDENT.name = node_ident(it_var));
                    G(gmm, IDENT,
-                     gmm->as.IDENT.name = ID_NEXT)))))))));
-
-         node_subs_append(let_var, orig_block);
+                     gmm->as.IDENT.name = ID_NEXT)))));
+           G(ifnext, IF,
+             G(condblock, BLOCK,
+               G(isnil, UN,
+                 isnil->as.UN.operator = Tnot;
+                 G(nonnil, UN,
+                   nonnil->as.UN.operator = TPOSTQMARK;
+                   G(idx1, IDENT,
+                     idx1->as.IDENT.name = node_ident(next_vari)))));
+             G(yesblock, BLOCK,
+               G(br, BREAK));
+             G(noblock, BLOCK,
+               G(let_var, LET,
+                 G(var, DEFPATTERN,
+                   node_subs_append(var, orig_var);
+                   G(var_expr_deopt, UN,
+                     var_expr_deopt->as.UN.operator = T__DEOPT;
+                     G(var_expr, IDENT,
+                       var_expr->as.IDENT.name = node_ident(next_vari)))));
+               node_subs_append(noblock, orig_block)))))));
 }
 
 static ERROR lir_conversion_match(struct module *mod, struct node *node) {

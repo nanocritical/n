@@ -53,9 +53,9 @@ fun F w:#io.`Writer fmt:String ...v:(Vararg ?*`Show)
 			if verb.[1] == "%"
 				_, except = io.Write_full w "%".Bytes
 			elif verb.[1] == "s"
-				if not v.Has_next
-					break
 				let s = v!Next
+				if not s?
+					break
 				s.Show #st
 			fmt = after
 	catch _

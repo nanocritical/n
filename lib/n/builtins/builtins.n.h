@@ -94,18 +94,24 @@ static inline void n$builtins$clean_zero(struct n$builtins$cleaner *c);
    va_arg((ap)->u.valist, t); \
    })
 
-#define NLANG_BUILTINS_VARARG_NEXT(t, va) \
-  ({ \
-   struct n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
+#define NLANG_BUILTINS_VARARG_NEXT(t, rt, va) \
+  ({ struct n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
+  ( n$builtins$Varargint$Count_left(ap) == 0 ? ( (rt){ 0 } ) : \
+  ( (rt){ .X = ({ \
    (ap->vacount == NLANG_BUILTINS_VACOUNT_SLICE) ? \
    NLANG_BUILTINS_VARARG_SLICE_NTH(ap, t, \
                                    NLANG_BUILTINS_VARARG_SLICE_CNT(ap) \
                                    - ap->n--) \
-   : NLANG_BUILTINS_VARARG_NEXT_(t, ap); })
+   : NLANG_BUILTINS_VARARG_NEXT_(t, ap); \
+   }), .Nonnil = 1 } ) ); })
 
 // FIXME: dyn slices support is missing
-#define NLANG_BUILTINS_VARARG_NEXT_DYN(t, va) \
-  NLANG_BUILTINS_VARARG_NEXT_(t, NLANG_BUILTINS_VARARG_AP(va))
+#define NLANG_BUILTINS_VARARG_NEXT_DYN(t, rt, va) \
+  ({ struct n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
+  ( n$builtins$Varargint$Count_left(ap) == 0 ? ( (rt){ 0 } ) : \
+  ( (rt){ .X = ({ \
+  NLANG_BUILTINS_VARARG_NEXT_(t, NLANG_BUILTINS_VARARG_AP(va)); \
+  }), .Nonnil = 1 } ) ); })
 
 #define NLANG_MKDYN(dyn_type, _dyntable, _obj) \
   (dyn_type){ .obj = (_obj), .dyntable = (void *)(_dyntable) }

@@ -669,6 +669,8 @@ static void print_call(FILE *out, const struct module *mod,
     }
     print_typ(out, mod, typ_generic_arg_const(parentd->typ, 0));
     fprintf(out, ", ");
+    print_typ(out, mod, typ_function_return_const(subs_first_const(node)->typ));
+    fprintf(out, ", ");
     if (typ_is_reference(self->typ)) {
       fprintf(out, "*");
     }

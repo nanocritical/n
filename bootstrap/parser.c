@@ -39,7 +39,6 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_AS] = "as",
   [ID_TAG_TYPE] = "Tag_type",
   [ID_AS_TYPE] = "as_type",
-  [ID_HAS_NEXT] = "Has_next",
   [ID_NEXT] = "Next",
   [ID_CAST] = "Cast",
   [ID_DYNCAST] = "Dyncast",

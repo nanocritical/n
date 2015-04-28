@@ -78,14 +78,16 @@ Enumset met! Symmetric_difference other:*this
 Enumset met Show st:#`Fmt_state
 	"{".Show st
 	let it = self.Iter
+	var i = 0:Uint
 	for e in it
-		e.Show st
-		if it.Has_next
+		if i > 0
 			" ".Show st
+		e.Show st
+		i += 1
 	"}".Show st
 
 inline struct Enumset_iterator T:`Enum =
-	isa (`Iterator Bool)
+	isa (`Iterator T)
 	m	:(Enumset T)
 	ffs	:Uint
 
@@ -93,10 +95,9 @@ Enumset_iterator met! Internal_init m:*(Enumset T)
 	self!m = m*
 	self!ffs = math.Bit_ffs self.m.Bits
 
-Enumset_iterator met Has_next = Bool
-	return self.ffs != 0
-
-Enumset_iterator met! Next = T
+Enumset_iterator met! Next = ?T
+	if self.ffs == 0
+		return nil
 	let val = if T isa `Trivial_ctor -> self.ffs-1;; else self.ffs
 	let r = T.From_tag <- (Force_convert T.Tag_type) val
 	self!m &= ~{r}

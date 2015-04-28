@@ -203,11 +203,10 @@ inline struct String_iterator =
 	s	:String
 	p	:Uint
 
-inline String_iterator met Has_next = Bool
-	return self.p < self.s.Count
+inline String_iterator met! Next = ?(Uint, Rune)
+	if self.p >= self.s.Count
+		return nil
 
-inline String_iterator met! Next = Uint, Rune
-	assert self.Has_next
 	let i = self.p
 	self!p += 1
 	return i, Rune.From_ascii <- self.s.[i]
@@ -217,11 +216,10 @@ inline struct String_bytes_iterator =
 	s	:String
 	p	:Uint
 
-inline String_bytes_iterator met Has_next = Bool
-	return self.p < self.s.Count
+inline String_bytes_iterator met! Next = ?(Uint, U8)
+	if self.p >= self.s.Count
+		return nil
 
-inline String_bytes_iterator met! Next = Uint, U8
-	assert self.Has_next
 	let i = self.p
 	self!p += 1
 	return i, self.s.[i]

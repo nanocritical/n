@@ -9,8 +9,7 @@ intf `Random_container T:`Any =
 	met Count = Uint
 
 intf `Iterator T:`Copyable =
-	met Has_next = Bool
-	met! Next = T
+	met! Next = ?T
 
 -- We don't reach for more generality* We could have a concept of abstract
 -- sets that have no finite cardinality, are not iterable, etc* (e.g.
@@ -30,8 +29,7 @@ intf `Iterator T:`Copyable =
 --	met Iter = loc.Iterator
 --
 --intf `Iterator loc:`Locus =
---	met Has_next = Bool
---	met! Next = loc
+--	met! Next = ?loc
 
 intf `Collection T:`Any =
 	met Count = Uint

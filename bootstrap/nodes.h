@@ -996,7 +996,6 @@ enum predefined_idents {
   ID_AS,
   ID_TAG_TYPE,
   ID_AS_TYPE,
-  ID_HAS_NEXT,
   ID_NEXT,
   ID_CAST,
   ID_DYNCAST,

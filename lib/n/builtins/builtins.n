@@ -1853,10 +1853,9 @@ inline struct Index_iterator =
 	r	:Range
 	p	:Uint
 
-inline Index_iterator met Has_next = Bool
-	return self.p < self.r.End
-
-inline Index_iterator met! Next = Uint
+inline Index_iterator met! Next = ?Uint
+	if self.p >= self.r.End
+		return nil
 	let nxt = self.p
 	self!p += 1
 	return nxt
@@ -1865,11 +1864,10 @@ inline struct Reverse_index_iterator =
 	isa (`Iterator Uint) `Trivial_copy `Trivial_ctor
 	it	:Index_iterator
 
-inline Reverse_index_iterator met Has_next = Bool
-	return self.it.Has_next
-
-inline Reverse_index_iterator met! Next = Uint
+inline Reverse_index_iterator met! Next = ?Uint
 	let nxt = self!it!Next
+	if not nxt?
+		return nil
 	return self.it.r.End - 1 - nxt + self.it.r.Begin
 
 example
@@ -1964,10 +1962,7 @@ opaque struct Vararg r:`Any_any_ref =
 	isa `Trivial_copy -- FIXME: remove `Trivial_copy, needed by bootstrap
 	ap	:Varargint
 
-inline Vararg met Has_next = Bool
-	return self.Count_left > 0
-
-extern Vararg met! Next = r
+extern Vararg met! Next = ?r
 
 inline Vararg met Count_left = Uint
 	return self.ap.Count_left

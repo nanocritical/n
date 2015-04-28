@@ -67,6 +67,7 @@ sptable met! iter = (sptable_iter T)
 	return {table=self ng=self.groups.Count g=0 w=w}
 
 struct sptable_iter T:`Copyable =
+	-- FIXME(e): isa `Trivial_copy_but_owned
 	isa (`Iterator (Uint, #T))
 	table	:*(sptable T)	--::(owns self)
 	ng	:Uint
@@ -74,18 +75,14 @@ struct sptable_iter T:`Copyable =
 	w	:U32
 	w_nth	:U32
 
-sptable_iter met Has_next = Bool
-	if self.w != 0
-		return true
-	if self.g+1 >= self.ng
-		return false
-	return (self.table.bitmap.Ffs_from (self.g+1)*32)?
-
-sptable_iter met! Next = Uint, #T
-	while self.w == 0 and self.g < self.ng
+sptable_iter met! Next = ?(Uint, #T)
+	while self.w == 0 and self.g+1 < self.ng
 		self!g += 1
 		self!w = self.table.bitmap.Words.[self.g]
 		self!w_nth = 0
+
+	if self.w == 0
+		return nil
 
 	let nxt = (math.Bit_ffs self.w) - 1
 	self!w &= ~(1:U32 ov<< nxt)
@@ -311,8 +308,8 @@ Map shallow met$ Iter = (Map_iter this $T)
 	let mself = (Cast *this !this) self
 	return {iter=mself!table!iter}
 
--- Because of deleted values, elements may not appear in the same order in
--- groups, so we cannot simply compare groups.
+-- Because of deleted values, elements may not appear in the same position
+-- in groups, so we cannot simply compare groups.
 -- Instead of the approach below, which is O(N) in the worst case, but with
 -- not very good constants, we could compare groups one by one, taking into
 -- account the possibility of deleted values being in there.
@@ -363,15 +360,16 @@ Map met Show st:#`Fmt_state
 	isa (`Iterator (K, RT)) `Trivial_copy `Trivial_ctor
 	iter	:(sptable_iter H.unit_type)
 
-Map_iter met Has_next = Bool
-	return self.iter.Has_next
-
-Map_iter met! Next = K, RT
+Map_iter met! Next = ?(K, RT)
 	while true
-		let _, u = self!iter!Next
+		let p = self!iter!Next
+		if not p?
+			return nil
+		let _, u = p
 		if u.hash?
-			return u.key, #u#val
+			return u.key, (Cast #T RT) #u#val
 
+-- Implementation note: Does not contain degenerate elements with value false.
 struct Set T:`Map_key =
 	isa (`Set T) `Show `Copyable
 	map	:(Map T Bool)
@@ -399,10 +397,11 @@ Set met Operator_in x:*T = Bool
 
 Set met# Add x:*T = added:Bool
 	let added, p = self!map#Try_store x
-	if added
-		p# = true
-		return true
-	return false
+	if not added
+		return false
+
+	p# = true
+	return added
 
 Set met# Add_all other:*this = added_all:Bool
 	added_all = true
@@ -410,7 +409,7 @@ Set met# Add_all other:*this = added_all:Bool
 		added_all = self!Add x and added_all
 
 Set met# Remove x:*T = removed:Bool
-	return self!map#Try_delete x
+	return self#map#Try_delete x
 
 Set met# Remove_all other:*this = removed_all:Bool
 	removed_all = true
@@ -419,11 +418,15 @@ Set met# Remove_all other:*this = removed_all:Bool
 
 Set met# Intersect other:*this
 	-- We cannot call self#Remove while iterating.
-	-- We just set the mapping to false, which is valid.
 	-- TODO(e): rehash the set if the size has changed a lot.
-	for x, v in self.map!Iter
+
+	let to_remove:(Buf T)
+	for x, _ in self.map.Iter
 		if not x in other
-			v# = false
+			to_remove#Push# = x
+
+	foreach i in to_remove.All
+		let _ = self#Remove to_remove.[i]
 
 Set met# Symmetric_difference other:*this
 	for x in other.Iter
@@ -476,15 +479,31 @@ Set met Show st:#`Fmt_state
 		i += 1
 	"}".Show st
 
-Set met Iter = (Set_iter T)
-	return {iter=self.map.Iter}
+Set met Iter = it:(Set_iter T)
+	it#iter = self.map.Iter
 
 struct Set_iter T:`Map_key =
 	isa (`Iterator T) `Trivial_copy `Trivial_ctor
 	iter	:(Map_iter (Map T Bool) *Bool)
 
-Set_iter met Has_next = Bool
-	return self.iter.Has_next
+Set_iter met! Next = ?T
+	let r = self!iter!Next
+	return r?.X0
 
-Set_iter met! Next = T
-	return self!iter!Next.X0
+example set_basic
+	var s = {0 1 2}:(Set U32)
+	assert s.Count == 3
+	assert not <- s#Add 0
+	assert s.Count == 3
+	assert s#Add 3
+	assert s.Count == 4
+
+	var t = {0}:(Set U32)
+	s#Intersect t
+	assert t == s
+	assert s.Count == 1
+	assert not s.map.[1]?
+	assert not <- s#Remove 1
+	assert s.Count == 1
+	assert s#Remove 0
+	assert s.Count == 0
