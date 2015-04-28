@@ -1010,6 +1010,23 @@ static ERROR step_add_dyn_topdep(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_add_newtype_pretend_wrapper_topdep,
+               NM(DEFFUN) | NM(DEFMETHOD));
+static ERROR step_add_newtype_pretend_wrapper_topdep(struct module *mod, struct node *node,
+                                                     void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if ((node->which == DEFFUN && node->as.DEFFUN.is_newtype_pretend_wrapper)
+      || (node->which == DEFMETHOD && node->as.DEFMETHOD.is_newtype_pretend_wrapper)) {
+    struct tit *real = typ_definition_one_member(parent_const(node)->as.DEFTYPE.newtype_expr->typ,
+                                                 node_ident(node));
+    topdeps_record_newtype_actual(mod, tit_typ(real));
+    tit_next(real);
+  }
+
+  return 0;
+}
+
 static STEP_NM(step_add_arg_dtor_topdep,
                NM(BLOCK));
 static ERROR step_add_arg_dtor_topdep(struct module *mod, struct node *node,
@@ -1080,6 +1097,7 @@ static ERROR passbody1(struct module *mod, struct node *root,
 
     UP_STEP(step_store_return_through_ref_expr);
     UP_STEP(step_add_dyn_topdep);
+    UP_STEP(step_add_newtype_pretend_wrapper_topdep);
     UP_STEP(step_add_arg_dtor_topdep);
     ,
     FINALLY_STEP(step_pop_state);

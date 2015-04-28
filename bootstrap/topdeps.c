@@ -13,7 +13,7 @@ struct snapshot {
   struct node *top;
   struct node *exportable;
   bool in_fun_in_block;
-  uint32_t for_dyn;
+  uint32_t force_td;
 };
 
 VECTOR(vecsnapshot, struct snapshot, 4);
@@ -74,7 +74,7 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
     return;
   }
 
-  uint32_t td = snap->for_dyn;
+  uint32_t td = snap->force_td;
 
   struct toplevel *toplevel = node_toplevel(top);
   const uint32_t top_flags = toplevel->flags;
@@ -105,7 +105,7 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
   case DEFFUN:
   case DEFMETHOD:
     if (snap->in_fun_in_block) {
-      if (snap->for_dyn == 0) {
+      if (snap->force_td == 0) {
         td |= (is_ref || is_fun) ? TD_FUNBODY_NEEDS_TYPE : TD_FUNBODY_NEEDS_TYPEBODY;
         td |= is_dyn ? TD_FUNBODY_NEEDS_DYN : 0;
       }
@@ -294,7 +294,7 @@ static void record_tentative(struct module *mod, struct snapshot *snap) {
   vecsnapshot_push(&toplevel->topdeps->tentatives, *snap);
 }
 
-static void do_topdeps_record(struct module *mod, struct typ *t, uint32_t for_dyn) {
+static void do_topdeps_record(struct module *mod, struct typ *t, uint32_t force_td) {
   struct top_state *st = mod->state->top_state;
   if (st == NULL
       || typ_definition_which(t) == MODULE) {
@@ -307,7 +307,7 @@ static void do_topdeps_record(struct module *mod, struct typ *t, uint32_t for_dy
     .top = st->top,
     .exportable = st->exportable,
     .in_fun_in_block = fun_st != NULL && fun_st->in_block,
-    .for_dyn = for_dyn,
+    .force_td = force_td,
   };
 
   if (typ_is_tentative(t) || !typ_hash_ready(t)) {
@@ -319,6 +319,10 @@ static void do_topdeps_record(struct module *mod, struct typ *t, uint32_t for_dy
 
 void topdeps_record(struct module *mod, struct typ *t) {
   do_topdeps_record(mod, t, 0);
+}
+
+void topdeps_record_newtype_actual(struct module *mod, struct typ *t) {
+  do_topdeps_record(mod, t, TD_FUNBODY_NEEDS_TYPE);
 }
 
 static ERROR add_dyn_topdep_each(struct module *mod, struct typ *t, struct typ *intf,

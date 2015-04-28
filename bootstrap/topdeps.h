@@ -21,6 +21,7 @@ enum topdep {
 struct topdeps;
 
 void topdeps_record(struct module *mod, struct typ *t);
+void topdeps_record_newtype_actual(struct module *mod, struct typ *t);
 void topdeps_record_dyn(struct module *mod, struct typ *t);
 void topdeps_record_mkdyn(struct module *mod, struct typ *t);
 void topdeps_record_global(struct module *mod, struct node *node);
