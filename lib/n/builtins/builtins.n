@@ -567,8 +567,8 @@ inline Slice_impl met! Full_copy other:this = r:this
 		and bytecnt = other.cnt * (sizeof t)
 		Slice_memmove dst src bytecnt
 	else
-		let p_dst = ((Cast #U8 Voidref) dst).Uintptr
-		let p_src = ((Cast *U8 Voidref) other.Unsafe_rawdata).Uintptr
+		let p_dst = (Voidref.From_ptr dst).Uintptr
+		let p_src = (Voidref.From_ptr other.Unsafe_rawdata).Uintptr
 		let bytecnt = other.cnt * (sizeof t)
 		if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
 			foreach i in r.All
@@ -605,8 +605,8 @@ inline Slice_impl met! Full_move other:this = r:this
 			and bytecnt = other.cnt * (sizeof t)
 			Slice_memmove dst src bytecnt
 
-			let p_dst = ((Cast #U8 Voidref) dst).Uintptr
-			let p_src = ((Cast *U8 Voidref) other.Unsafe_rawdata).Uintptr
+			let p_dst = (Voidref.From_ptr dst).Uintptr
+			let p_src = (Voidref.From_ptr other.Unsafe_rawdata).Uintptr
 			if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
 				Slice_memset src 0 bytecnt
 			else
@@ -615,14 +615,14 @@ inline Slice_impl met! Full_move other:this = r:this
 				elif p_dst < p_src and p_dst+bytecnt.Uintptr >= p_src
 					let cnt_pre_overlap = p_src - p_dst
 					let end_overlap = p_dst + bytecnt.Uintptr
-					let start_zero = (Cast Voidref #U8) (Voidref.From_uintptr end_overlap)
+					let start_zero = (Voidref.From_uintptr end_overlap)#Unsafe_cast #U8
 					let cnt_post_overlap = cnt_pre_overlap
 					Slice_memset start_zero 0 cnt_post_overlap.U64.To_uint
 				else
 					Slice_memset src 0 bytecnt
 		else
-			let p_dst = ((Cast #U8 Voidref) dst).Uintptr
-			let p_src = ((Cast *U8 Voidref) other.Unsafe_rawdata).Uintptr
+			let p_dst = (Voidref.From_ptr dst).Uintptr
+			let p_src = (Voidref.From_ptr other.Unsafe_rawdata).Uintptr
 			let bytecnt = other.cnt * (sizeof t)
 			if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
 				foreach i in r.All
@@ -638,8 +638,8 @@ inline Slice_impl met! Full_move other:this = r:this
 		let dst = self!Unsafe_rawdata
 		r = {dat=((Cast #U8 #t) dst) cnt=other.cnt cap=self.cap}
 
-		let p_dst = ((Cast #U8 Voidref) dst).Uintptr
-		let p_src = ((Cast *U8 Voidref) other.Unsafe_rawdata).Uintptr
+		let p_dst = (Voidref.From_ptr dst).Uintptr
+		let p_src = (Voidref.From_ptr other.Unsafe_rawdata).Uintptr
 		let bytecnt = other.cnt * (sizeof t)
 		if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
 			foreach i in r.All
@@ -714,7 +714,7 @@ inline Slice_impl met Show st:#`Fmt_state
 		if t isa `Show
 			x.Show st
 		else
-			let px = ((Cast *t Voidref) x).Uintptr
+			let px = (Voidref.From_ptr x).Uintptr
 			"<".Show st
 			px.Show st
 			">".Show st
@@ -2100,7 +2100,7 @@ fun Step x:Uint
 	if t isa `Show
 		x.Show st
 	else
-		let px = ((Cast *t Voidref) x).Uintptr
+		let px = (Voidref.From_ptr x).Uintptr
 		"<".Show st
 		px.Show st
 		">".Show st

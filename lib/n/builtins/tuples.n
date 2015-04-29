@@ -4,9 +4,9 @@ inline struct Any_or_ptr =
 
 (fun t:`Any) mk_any_or_ptr x:*t = Any_or_ptr
 	if t isa `Any_ref
-		return {any=nil ptr=((Cast *t Voidref) x).Uintptr}
+		return {any=nil ptr=(Voidref.From_ptr x).Uintptr}
 	else
-		return {any=x ptr=((Cast *t Voidref) x).Uintptr}
+		return {any=x ptr=(Voidref.From_ptr x).Uintptr}
 
 intf `Any_tuple =
 	isa `Copyable `Show

@@ -12,3 +12,8 @@ extern inline Voidref fun From_uintptr p:Uintptr = Voidref
 extern inline Voidref met Uintptr = Uintptr
 inline Voidref met Hash32 = U32
 	return self.Uintptr.Hash32
+
+Voidref (fun r:`Any_any_ref) From_ptr p:r = Voidref
+	return (Cast r Voidref) p
+Voidref (met# r:`Any_any_ref) Unsafe_cast = r
+	return (Cast Voidref r) self
