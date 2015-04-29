@@ -6,15 +6,20 @@ let buf_size = 4096
 
 inline struct Reader =
 	isa io.`Reader
-	R	:?#io.`Reader
-	bufr	:?#Reader -- If wrapping an already buffered reader.
-	rdy	:Bool
-	buf	:Stringbuf
-	pending	:String
-	copier	:io.Copier
+	R		:?#io.`Reader
+	bufr		:?#Reader -- If wrapping an already buffered reader.
+	rdy		:Bool
+	buf		:Stringbuf
+	pending		:String
+	copier		:io.Copier
 
 Reader fun Mk r:#io.`Reader = ret:this
 	ret#R = r
+
+Reader met Count_loaded = Uint
+	if self#bufr?
+		return self.bufr.Count_loaded
+	return self.copier.Total_written
 
 Reader met# Read b:[!]U8 = [!]U8, Error
 	if not self.R?
@@ -118,20 +123,28 @@ example reader
 	b, err = r#Read b
 	assert b.Count == s.Count-4 and err == io.EOF
 
+	assert r.Count_loaded == s.Count
+
 
 -- Writes never block or return AGAIN. However, Flush may.
 -- Flushes are not automatic.
 
 inline struct Writer =
 	isa io.`Writer
-	W	:?#io.`Writer
-	bufw	:?#Writer
-	rdy	:Bool
-	buf	:Stringbuf
-	pending	:[]U8
+	W		:?#io.`Writer
+	bufw		:?#Writer
+	rdy		:Bool
+	buf		:Stringbuf
+	pending		:[]U8
+	count_flushed	:Uint
 
 Writer fun Mk w:#io.`Writer = ret:this
 	ret#W = w
+
+Writer met Count_flushed = Uint
+	if self.bufw?
+		return self.bufw.Count_flushed
+	return self.count_flushed
 
 Writer met# Write b:[]U8 = []U8, Error
 	if not self.rdy
@@ -163,6 +176,7 @@ Writer met# Flush ?max:?Uint = Error
 	let len = max else self.pending.Count
 	let left, except = io.Write_full self.W self.pending.[.. len]
 	let copied = len - left.Count
+	self!count_flushed += copied
 	self!pending = self.pending.[copied ..]
 	self#buf#Copy self.pending
 	self!pending = self.buf.Bytes
@@ -182,3 +196,5 @@ example writer
 
 	except = w#Flush
 	assert buf == "This is a test. This is only a test. Do not leave the dancefloor."
+
+	assert w.Count_flushed == buf.Count
