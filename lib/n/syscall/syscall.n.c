@@ -4,6 +4,7 @@
 #include <sys/syscall.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
+#include <sys/epoll.h>
 #include <netdb.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -616,6 +617,42 @@ static NB(Int) SY(setsockopt)(NB(Int) sockfd, NB(I32) level, NB(I32) optname,
                               NB(U8) *optval, NB(Uint) optlen) {
   socklen_t _optlen = optlen;
   int ret = setsockopt(sockfd, level, optname, optval, _optlen);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+
+NB(I32) SY(EPOLL_CLOEXEC) = EPOLL_CLOEXEC;
+
+NB(I32) SY(EPOLL_CTL_ADD) = EPOLL_CTL_ADD;
+NB(I32) SY(EPOLL_CTL_MOD) = EPOLL_CTL_MOD;
+NB(I32) SY(EPOLL_CTL_DEL) = EPOLL_CTL_DEL;
+
+NB(U32) SY(EPOLLIN) = EPOLLIN;
+NB(U32) SY(EPOLLOUT) = EPOLLOUT;
+NB(U32) SY(EPOLLRDHUP) = EPOLLRDHUP;
+NB(U32) SY(EPOLLPRI) = EPOLLPRI;
+NB(U32) SY(EPOLLERR) = EPOLLERR;
+NB(U32) SY(EPOLLHUP) = EPOLLHUP;
+NB(U32) SY(EPOLLET) = EPOLLET;
+NB(U32) SY(EPOLLONESHOT) = EPOLLONESHOT;
+NB(U32) SY(EPOLLWAKEUP) = EPOLLWAKEUP;
+
+static NB(Int) SY(epoll_create1)(NB(Int) flags) {
+  int ret = epoll_create1(flags);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(epoll_ctl)(NB(Int) epfd, NB(I32) op, NB(Int) fd, NB(U8) *raw_event) {
+  int ret = epoll_ctl(epfd, op, fd, (struct epoll_event *) raw_event);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static NB(Int) SY(epoll_pwait)(NB(Int) epfd, NB(U8) *raw_events, NB(Uint) maxevents, NB(Int) timeout,
+                               NB(U8) *raw_sigmask) {
+  int ret = epoll_pwait(epfd, (struct epoll_event *) raw_events, maxevents, timeout, (const sigset_t *) raw_sigmask);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }

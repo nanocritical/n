@@ -924,3 +924,46 @@ fun Setsockopt_i32 sockfd:Int level:I32 opt:I32 value:I32 = Error
 	if ret == 0
 		return OK
 	return convert_error errno
+
+
+struct Epoll_event =
+	events	:U32
+	raw_data:?#U8
+
+extern let EPOLL_CLOEXEC:I32
+
+extern let EPOLL_CTL_ADD:I32
+extern let EPOLL_CTL_MOD:I32
+extern let EPOLL_CTL_DEL:I32
+
+extern let EPOLLIN:U32
+extern let EPOLLOUT:U32
+extern let EPOLLRDHUP:U32
+extern let EPOLLPRI:U32
+extern let EPOLLERR:U32
+extern let EPOLLHUP:U32
+extern let EPOLLET:U32
+extern let EPOLLONESHOT:U32
+extern let EPOLLWAKEUP:U32
+
+extern fun epoll_create1 flags:Int = Int
+extern fun epoll_ctl epfd:Int op:I32 fd:Int raw_event:*U8 = Int
+extern fun epoll_pwait epfd:Int raw_events:#U8 maxevents:Uint timeout:Int raw_sigmask:?*U8 = Int
+
+fun Epoll_create1 flags:Int = Error, Int
+	let ret = epoll_create1 flags
+	if ret >= 0
+		return OK, ret
+	return convert_error errno, -1
+
+fun Epoll_ctl epfd:Int op:I32 fd:Int event:*Epoll_event = Error
+	let ret = epoll_ctl epfd op fd ((unsafe.Cast *Epoll_event *U8) event)
+	if ret == 0
+		return OK
+	return convert_error errno
+
+fun Epoll_pwait epfd:Int events:[!]Epoll_event timeout:Int raw_sigmask:?*U8 = Error, Uint
+	let ret = epoll_pwait epfd events#Unsafe_rawdata events.Count timeout raw_sigmask
+	if ret >= 0
+		return OK, ret.Unsigned
+	return convert_error errno, 0
