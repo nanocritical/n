@@ -85,7 +85,10 @@ Conn met Remote_addr = Addr
 	return self.remote_addr
 
 Conn met# Read b:[!]U8 = [!]U8, Error
-	return syscall.Read self.fd b
+	var c, err = syscall.Read self.fd b
+	if err == OK and c.Count == b.Count
+		err = io.EOF
+	return c, err
 
 Conn met# Write b:[]U8 = []U8, Error
 	return syscall.Write self.fd b

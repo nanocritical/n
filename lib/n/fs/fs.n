@@ -397,10 +397,16 @@ linux met! File_remove_xattr f:!File name:String = Error
 	return syscall.ENOSYS
 
 linux met! File_read f:!File b:[!]U8 = [!]U8, Error
-	return syscall.Read f.Fd b
+	let c, err = syscall.Read f.Fd b
+	if err == OK and c.Count == b.Count
+		return c, io.EOF
+	return c, err
 
 linux met! File_read_at f:!File b:[!]U8 off:Uint = [!]U8, Error
-	return syscall.Pread f.Fd b off
+	let c, err = syscall.Pread f.Fd b off
+	if err == OK and c.Count == b.Count
+		return c, io.EOF
+	return c, err
 
 linux met! File_write f:!File b:[]U8 = []U8, Error
 	return syscall.Write f.Fd b
