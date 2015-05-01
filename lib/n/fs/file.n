@@ -57,13 +57,13 @@ File met! Readdir buf:#(Buf Stat) ?max:?Uint = Error
 	return syscall.ENOSYS
 
 File met! Read b:[!]U8 = [!]U8, Error
-	return syscall.Read self.Fd b
+	return self.fs!File_read self b
 
 File met! Read_at b:[!]U8 off:Uint = [!]U8, Error
-	return syscall.Pread self.Fd b off
+	return self.fs!File_read_at self b off
 
 File met! Write b:[]U8 = []U8, Error
-	return syscall.Write self.Fd b
+	return self.fs!File_write self b
 
 File met! Write_at b:[]U8 off:Uint = []U8, Error
-	return syscall.Pwrite self.Fd b off
+	return self.fs!File_write_at self b off
