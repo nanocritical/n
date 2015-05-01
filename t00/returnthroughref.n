@@ -15,8 +15,34 @@ fun bar2 = r:t
 	r = bar
 	return r
 
+struct stringbuf =
+	isa `Not_copyable
+	s	:Stringbuf
+
+fun check_empty = ret:stringbuf
+	assert ret.s.Count == 0
+	ret#s#Cat "test"
+
 fun Main = I32
 	let y = bar
 	if y.x != bar2.x
 		return 1
+
+	let s = check_empty
+	assert s.s == "test"
+	s = check_empty
+	assert s.s == "test"
+
+	var t
+	t = check_empty
+	assert t.s == "test"
+	t = check_empty
+	assert t.s == "test"
+
+	var t2 = "a"
+	t2 = check_empty
+	assert t2.s == "test"
+	t2 = check_empty
+	assert t2.s == "test"
+
 	return y.xx

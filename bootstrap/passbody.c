@@ -431,6 +431,42 @@ static ERROR step_dtor_call_inference(struct module *mod, struct node *node,
   return 0;
 }
 
+// Before inserting copy ctor and before assignments may be removed for
+// return-through-ref.
+static STEP_NM(step_dtor_before_assign,
+               NM(BIN));
+static ERROR step_dtor_before_assign(struct module *mod, struct node *node,
+                                     void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  if (node->as.BIN.operator != TASSIGN) {
+    return 0;
+  }
+
+  struct node *left = subs_first(node);
+  if (typ_isa(left->typ, TBI_TRIVIAL_DTOR)
+      || !typ_isa(left->typ, TBI_DEFAULT_DTOR)) {
+    return 0;
+  }
+
+  struct node *stat = find_current_statement(node);
+  struct node *par = parent(stat);
+  struct node *new_stat = node_new_subnode(mod, par);
+  node_subs_remove(par, new_stat);
+  node_subs_insert_before(par, stat, new_stat);
+
+  struct node *left_copy = node_new_subnode(mod, new_stat);
+  node_deepcopy(mod, left_copy, left);
+  set_typ(&left_copy->typ, left->typ);
+  node_subs_remove(new_stat, left_copy);
+
+  error e = gen_operator_call(mod, new_stat, ID_DTOR, left_copy, NULL,
+                              CATCHUP_BEFORE_CURRENT_SAME_TOP);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static bool expr_is_literal_initializer(struct node **expr, struct module *mod, struct node *node) {
   if (node->which == INIT || node->which == TUPLE) {
     if (expr != NULL) {
@@ -1090,6 +1126,7 @@ static ERROR passbody1(struct module *mod, struct node *root,
     UP_STEP(step_from_string_call_inference);
     UP_STEP(step_from_number_literal_call_inference);
     UP_STEP(step_dtor_call_inference);
+    UP_STEP(step_dtor_before_assign);
     UP_STEP(step_copy_call_inference);
     UP_STEP(step_dyn_inference);
 
