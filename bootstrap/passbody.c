@@ -541,14 +541,6 @@ static ERROR arg_copy_call_inference(struct module *mod, struct node *node,
 
 static ERROR try_replace_with_copy(struct module *mod, struct node *node,
                                    struct node *expr) {
-  error e = typ_check_isa(mod, expr, expr->typ, TBI_COPYABLE);
-  EXCEPT(e);
-
-  if ((node->flags | expr->flags) & NODE_IS_MOVED_AWAY) {
-    // It's OK to trivial copy temporaries: it's a move.
-    return 0;
-  }
-
   if (typ_isa(expr->typ, TBI_TRIVIAL_COPY)) {
     return 0;
   }
@@ -556,6 +548,14 @@ static ERROR try_replace_with_copy(struct module *mod, struct node *node,
   if (expr_is_return_through_ref(NULL, mod, expr)) {
     return 0;
   }
+
+  if ((node->flags | expr->flags) & NODE_IS_MOVED_AWAY) {
+    // It's OK to trivial copy temporaries: it's a move.
+    return 0;
+  }
+
+  error e = typ_check_isa(mod, expr, expr->typ, TBI_COPYABLE);
+  EXCEPT(e);
 
   switch (node->which) {
   case BIN:
