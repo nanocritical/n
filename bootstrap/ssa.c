@@ -230,7 +230,7 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
   error e;
   switch (node->which) {
   case BIN:
-    if (OP_IS_ASSIGN(node->as.BIN.operator)) {
+    if (node->which != CALL && OP_IS_ASSIGN(node->as.BIN.operator)) {
       e = ssa_sub(mod, node, subs_last(node));
       EXCEPT(e);
       break;
@@ -356,8 +356,8 @@ error step_ssa_convert(struct module *mod, struct node *node,
   switch (par->which) {
   case BIN:
     if (OP_IS_ASSIGN(par->as.BIN.operator)) {
-      if (node == subs_last(par)
-          || (node == subs_first(par) && node->which != TUPLE)) {
+      if (node->which != CALL && (node == subs_last(par)
+                                  || (node == subs_first(par) && node->which != TUPLE))) {
         e = ssa_sub(mod, par, node);
         EXCEPT(e);
       }
