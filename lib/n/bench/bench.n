@@ -78,10 +78,10 @@ intf `Has_restore =
 
 
 inline struct Restorer =
-	target	:!`Has_restore
+	target	:?!`Has_restore
 
 Restorer met# Dtor
-	self!target!Restore_measurements
+	_ = self!target?!Restore_measurements
 
 -- Suitable when the 'Current' measure will be updated in-place (push model).
 inline struct Stack m:`Measure =
