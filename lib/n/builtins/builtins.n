@@ -2078,6 +2078,12 @@ inline fun Invariant__ cond:Bool ?_Ncodeloc:?*Codeloc
 		Message_at "invariant failed" _Ncodeloc
 		Abort
 
+fun Trace_except err:Error ?_Ncodeloc:?*Codeloc
+	Epr "except:"
+	if _Ncodeloc?
+		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ":" _Ncodeloc.Col ":"
+	Eprn "" err
+
 fun Example_except name:String err:Error
 	if err == OK
 		return

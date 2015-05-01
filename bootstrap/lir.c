@@ -261,7 +261,11 @@ static ERROR rewrite_excep(struct module *mod, struct lir_state *st,
          G(op_name, IDENT,
            op_name->as.IDENT.name = ID_OPERATOR_TEST))));
 
-  G0(yes, i, BLOCK);
+  G0(yes, i, BLOCK,
+     G(call, CALL,
+       G_IDENT(trace, "Trace_except");
+       G(trace_e, IDENT,
+         trace_e->as.IDENT.name = node_ident(expr))));
   if (st->try_state == NULL) {
     // Then except is a conditional return.
     G0(th, yes, RETURN,
@@ -1358,6 +1362,9 @@ EXAMPLE_NCC_EMPTY(lir_let) {
                     "         DIRECTDEF",
                     "        IDENT",
                     "    BLOCK",
+                    "     CALL",
+                    "      IDENT",
+                    "      IDENT",
                     "     BLOCK",
                     "      BIN",
                     "       IDENT",
@@ -1380,6 +1387,9 @@ EXAMPLE_NCC_EMPTY(lir_let) {
                     "         DIRECTDEF",
                     "        IDENT",
                     "    BLOCK",
+                    "     CALL",
+                    "      IDENT",
+                    "      IDENT",
                     "     BLOCK",
                     "      BIN",
                     "       IDENT",
