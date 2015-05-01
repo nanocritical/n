@@ -11,5 +11,10 @@ import n.unsafe
 let crlf = "\r\n"
 let colon_space = ": "
 
+let BODY_NOT_ALLOWED = {Why=*"BODY_NOT_ALLOWED: http: request method or response status code does not allow body"}:Error
+let CONTENT_LENGTH = {Why=*"CONTENT_LENGTH: wrote more than the declared Content-Length"}:Error
+let MALFORMED_HEADER = {Why=*"MALFORMED_HEADER: Malformed HTTP header"}:Error
+let MALFORMED_VERSION = {Why=*"MALFORMED_VERSION: Malformed HTTP version"}:Error
+
 fun Main = I32
 	return 0

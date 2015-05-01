@@ -3,12 +3,12 @@
 
 from n import *
 
-let EOF = {Why=*"EOF"}:Error
-let SHORT_READ = {Why=*"Short read"}:Error
-let SHORT_WRITE = {Why=*"Short write"}:Error
-let SHORT_BUFFER = {Why=*"Short buffer"}:Error
-let UNEXPECTED_EOF = {Why=*"Unexpected EOF"}:Error
-let AGAIN = {Why=*"Operation would block"}:Error
+let EOF = {Why=*"EOF: End of file"}:Error
+let SHORT_READ = {Why=*"SHORT_READ: Short read"}:Error
+let SHORT_WRITE = {Why=*"SHORT_WRITE: Short write"}:Error
+let SHORT_BUFFER = {Why=*"SHORT_BUFFER: Short buffer"}:Error
+let UNEXPECTED_EOF = {Why=*"UNEXPECTED_EOF: Unexpected EOF"}:Error
+let AGAIN = {Why=*"AGAIN: Operation would block"}:Error
 
 let chunk_size = 4096
 

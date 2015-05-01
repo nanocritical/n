@@ -1921,9 +1921,10 @@ inline struct Error =
 	Why	:?*String -- FIXME Make it ?*`Show
 
 	let OK = {}:this
-	let UNKNOWN = {Why=*"Unknown error"}:this
-	let INVAL = {Why=*"invalid value"}:this
-	let INVAL_RANGE = {Why=*"invalid value range"}:this
+	let UNKNOWN = {Why=*"UNKNOWN: Unknown error"}:this
+	let INVAL = {Why=*"INVAL: Invalid value"}:this
+	let INVAL_RANGE = {Why=*"INVAL_RANGE: Invalid value range"}:this
+	let AGAIN = {Why=*"AGAIN: Try again"}:this
 
 inline Error met Operator_test = Bool
 	return self.Why?

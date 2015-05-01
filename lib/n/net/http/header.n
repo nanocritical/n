@@ -1,5 +1,3 @@
-let MALFORMED_HEADER = {Why=*"Malformed MIME header"}:Error
-
 let to_lower = 32 -- 'a' - 'A'
 
 fun mime_canonical_header_key key:[!]U8
