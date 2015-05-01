@@ -631,7 +631,14 @@ static void print_call(FILE *out, const struct module *mod,
     fprintf(out, "(");
     print_typ(out, mod, node->typ);
     fprintf(out, ")(");
-    print_expr(out, mod, subs_at_const(node, 1), T__CALL);
+    const struct node *expr = subs_at_const(node, 1);
+    if (typ_is_dyn(expr->typ)) {
+      fprintf(out, "(");
+      print_expr(out, mod, expr, T__CALL);
+      fprintf(out, ").obj");
+    } else {
+      print_expr(out, mod, expr, T__CALL);
+    }
     fprintf(out, ")");
     return;
   } else if (name == ID_DYNCAST) {
