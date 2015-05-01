@@ -22,6 +22,9 @@ example hashmap_basic
 
 	m#Delete "42"
 	assert not m#Try_delete "42"
+
+	let added2, _ = m#Try_store "42"
+	assert added2
 	(m#Store "42")# = 43
 	assert m.["42"] == 43
 
