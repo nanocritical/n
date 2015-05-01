@@ -1522,7 +1522,7 @@ static ERROR type_inference_bin_isa(struct module *mod, struct node *node) {
   error e;
   struct node *left = subs_first(node);
   struct node *right = subs_last(node);
-  if (typ_is_dyn(left->typ)) {
+  if (!(left->flags & NODE_IS_TYPE) && typ_is_dyn(left->typ)) {
     set_typ(&node->typ, TBI_BOOL);
     return 0;
   }
