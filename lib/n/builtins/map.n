@@ -322,6 +322,8 @@ Map met Operator_eq other:*this = Bool
 		if T isa `Has_equality -- To appease the compiler.
 			if sv != ov
 				return false
+		else
+			_ = sv
 
 	return true
 
