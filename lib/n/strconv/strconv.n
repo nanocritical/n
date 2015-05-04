@@ -1,0 +1,7 @@
+-- See LICENSE for details. Originally derived from go/src/pkg/strconv
+-- Copyright 2009 The Go Authors. All rights reserved.
+
+from n import *
+
+let ERR_RANGE = {Why=*"value out of range"}:Error
+let ERR_SYNTAX = {Why=*"invalid syntax"}:Error

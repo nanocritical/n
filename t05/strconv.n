@@ -1,0 +1,8 @@
+from n import *
+
+import n.strconv
+
+fun Main = I32
+	let err, v = strconv.Parse_int "0" 0 0
+	assert err == OK and v == 0
+	return 0

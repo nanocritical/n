@@ -1,0 +1,255 @@
+-- Return the first number n such that n*base >= 1<<64
+fun cutoff64 base:Uint = U64
+	if base < 2
+		return 0
+	return U64.MAX/base.U64 + 1
+
+example
+	-- Checks that the LHS expression overflows.
+	assert (cutoff64 2) ov* 2 < (cutoff64 2)
+	assert (cutoff64 8) ov* 8 < (cutoff64 8)
+	assert (cutoff64 10) ov* 10 < (cutoff64 10)
+	assert (cutoff64 16) ov* 16 < (cutoff64 16)
+
+
+-- Parse_uint is like Parse_int but for unsigned numbers.
+--
+-- Note: Slight departure from Go: when out-of-range, return the max_val for
+-- the bit_size, not U64.MAX.
+fun Parse_uint s:String base:Uint bit_size:Uint = Error, n:U64
+	var cutoff:U64, max_val:U64
+
+	if bit_size == 0
+		bit_size = 64
+
+	if s.Count < 1
+		return ERR_SYNTAX, 0
+
+	elif 2 <= base and base <= 36
+		-- valid base; nothing to do
+		noop
+
+	elif base == 0
+		if s.[0] == '0' and s.Count > 1 and (s.[1] == 'x' or s.[1] == 'X')
+			base = 16
+			s = s.[2 ..]
+			if s.Count < 1
+				return ERR_SYNTAX, 0
+		elif s.[0] == '0'
+			base = 8
+		else
+			base = 10
+
+	else
+		return INVAL, 0
+
+	n = 0
+	cutoff = cutoff64 base
+	if bit_size == 64
+		max_val = U64.MAX
+	else
+		max_val = (1 ov<< bit_size) - 1
+
+	foreach i in s.All
+		var v:U8
+		let d = s.[i]
+		if '0' <= d and d <= '9'
+			v = d - '0'
+		elif 'a' <= d and d <= 'z'
+			v = d - 'a' + 10
+		elif 'A' <= d and d <= 'Z'
+			v = d - 'A' + 10
+		else
+			return ERR_SYNTAX, 0
+
+		if v.Uint >= base
+			return ERR_SYNTAX, 0
+		if n >= cutoff
+			-- n*base overflows
+			return ERR_RANGE, max_val
+		n *= base.U64
+
+		let n1 = n ov+ v.U64
+		if n1 < n or n1 > max_val
+			-- n+v overflows
+			return ERR_RANGE, max_val
+		n = n1
+
+	return OK, n
+
+
+-- Parse_int interprets a string s in the given base (2 to 36) and
+-- returns the corresponding value i.  If base == 0, the base is
+-- implied by the string's prefix: base 16 for "0x", base 8 for
+-- "0", and base 10 otherwise.
+--
+-- The bit_size argument specifies the integer type
+-- that the result must fit into. Bit sizes 0, 8, 16, 32, and 64
+-- correspond to Int, I8, I16, I32, and I64.
+fun Parse_int s:String base:Uint bit_size:Uint = Error, I64
+	if bit_size == 0
+		bit_size = 64
+
+	if s.Count == 0
+		return ERR_SYNTAX, 0
+
+	var neg = false
+	if s.[0] == '+'
+		s = s.[1 ..]
+	elif s.[0] == '-'
+		neg = true
+		s = s.[1 ..]
+
+	-- Convert unsigned and check range.
+	let except, un = Parse_uint s base bit_size
+	let cutoff = 1:U64 ov<< (bit_size-1)
+	if not neg and un >= cutoff
+		return ERR_RANGE, (cutoff - 1).Signed
+	if neg and un > cutoff
+		if bit_size == 64
+			return ERR_RANGE, I64.MIN
+		return ERR_RANGE, -cutoff.Signed
+
+	if neg
+		if bit_size == 64 and un == cutoff
+			return OK, I64.MIN
+		return OK, -un.Signed
+	return OK, un.Signed
+
+
+example atoui64tests
+	let tests = {
+		\ ("", 0, ERR_SYNTAX)
+		\ ("0", 0, OK)
+		\ ("1", 1, OK)
+		\ ("12345", 12345, OK)
+		\ ("012345", 12345, OK)
+		\ ("12345x", 0, ERR_SYNTAX)
+		\ ("98765432100", 98765432100, OK)
+		\ ("18446744073709551615", U64.MAX, OK)
+		\ ("18446744073709551616", U64.MAX, ERR_RANGE)
+		\ ("18446744073709551620", U64.MAX, ERR_RANGE)
+		\ }:[](String, U64, Error)
+	foreach s, val, err in tests
+		let out_err, out = Parse_uint s 10 64
+		assert out_err == err and out == val
+
+example btoui64tests
+	let tests = {
+		\ ("", 0, ERR_SYNTAX)
+		\ ("0", 0, OK)
+		\ ("1", 1, OK)
+		\ ("12345", 12345, OK)
+		\ ("012345", 012345, OK)
+		\ ("0x12345", 0x12345, OK)
+		\ ("0X12345", 0x12345, OK)
+		\ ("12345x", 0, ERR_SYNTAX)
+		\ ("98765432100", 98765432100, OK)
+		\ ("18446744073709551615", U64.MAX, OK)
+		\ ("18446744073709551616", U64.MAX, ERR_RANGE)
+		\ ("18446744073709551620", U64.MAX, ERR_RANGE)
+		\ ("0xFFFFFFFFFFFFFFFF", U64.MAX, OK)
+		\ ("0x10000000000000000", U64.MAX, ERR_RANGE)
+		\ ("01777777777777777777777", U64.MAX, OK)
+		\ ("01777777777777777777778", 0, ERR_SYNTAX)
+		\ ("02000000000000000000000", U64.MAX, ERR_RANGE)
+		\ ("0200000000000000000000", 1 ov<< 61, OK)
+		\ }:[](String, U64, Error)
+	foreach s, val, err in tests
+		let out_err, out = Parse_uint s 0 64
+		assert out_err == err and out == val
+
+example atoi64tests
+	let tests = {
+		\ ("", 0, ERR_SYNTAX)
+		\ ("0", 0, OK)
+		\ ("-0", 0, OK)
+		\ ("1", 1, OK)
+		\ ("-1", -1, OK)
+		\ ("12345", 12345, OK)
+		\ ("-12345", -12345, OK)
+		\ ("012345", 12345, OK)
+		\ ("-012345", -12345, OK)
+		\ ("98765432100", 98765432100, OK)
+		\ ("-98765432100", -98765432100, OK)
+		\ ("9223372036854775807", I64.MAX, OK)
+		\ ("-9223372036854775807", I64.MIN + 1, OK)
+		\ ("9223372036854775808", I64.MAX, ERR_RANGE)
+		\ ("-9223372036854775808", I64.MIN, OK)
+		\ ("9223372036854775809", I64.MAX, ERR_RANGE)
+		\ ("-9223372036854775809", I64.MIN, ERR_RANGE)
+		\ }:[](String, I64, Error)
+	foreach s, val, err in tests
+		let out_err, out = Parse_int s 10 64
+		assert out_err == err and out == val
+
+example btoi64tests
+	let tests = {
+		\ ("", 0, ERR_SYNTAX)
+		\ ("0", 0, OK)
+		\ ("-0", 0, OK)
+		\ ("1", 1, OK)
+		\ ("-1", -1, OK)
+		\ ("12345", 12345, OK)
+		\ ("-12345", -12345, OK)
+		\ ("012345", 012345, OK)
+		\ ("-012345", -012345, OK)
+		\ ("0x12345", 0x12345, OK)
+		\ ("-0X12345", -0x12345, OK)
+		\ ("12345x", 0, ERR_SYNTAX)
+		\ ("-12345x", 0, ERR_SYNTAX)
+		\ ("98765432100", 98765432100, OK)
+		\ ("-98765432100", -98765432100, OK)
+		\ ("9223372036854775807", I64.MAX, OK)
+		\ ("-9223372036854775807", I64.MIN + 1, OK)
+		\ ("9223372036854775808", I64.MAX, ERR_RANGE)
+		\ ("-9223372036854775808", I64.MIN, OK)
+		\ ("9223372036854775809", I64.MAX, ERR_RANGE)
+		\ ("-9223372036854775809", I64.MIN, ERR_RANGE)
+		\ }:[](String, I64, Error)
+	foreach s, val, err in tests
+		let out_err, out = Parse_int s 0 64
+		assert out_err == err and out == val
+
+
+example atoui32tests
+	let tests = {
+		\ ("", 0, ERR_SYNTAX)
+		\ ("0", 0, OK)
+		\ ("1", 1, OK)
+		\ ("12345", 12345, OK)
+		\ ("012345", 12345, OK)
+		\ ("12345x", 0, ERR_SYNTAX)
+		\ ("987654321", 987654321, OK)
+		\ ("4294967295", U32.MAX, OK)
+		\ ("4294967296", U32.MAX, ERR_RANGE)
+		\ }:[](String, U32, Error)
+	foreach s, val, err in tests
+		let out_err, out = Parse_uint s 10 32
+		assert out_err == err and out == val.U64
+
+example atoi32tests
+	let tests = {
+		\ ("", 0, ERR_SYNTAX)
+		\ ("0", 0, OK)
+		\ ("-0", 0, OK)
+		\ ("1", 1, OK)
+		\ ("-1", -1, OK)
+		\ ("12345", 12345, OK)
+		\ ("-12345", -12345, OK)
+		\ ("012345", 12345, OK)
+		\ ("-012345", -12345, OK)
+		\ ("12345x", 0, ERR_SYNTAX)
+		\ ("-12345x", 0, ERR_SYNTAX)
+		\ ("987654321", 987654321, OK)
+		\ ("-987654321", -987654321, OK)
+		\ ("2147483647", I32.MAX, OK)
+		\ ("-2147483647", I32.MIN + 1, OK)
+		\ ("2147483648", I32.MAX, ERR_RANGE)
+		\ ("-2147483648", I32.MIN, OK)
+		\ ("2147483649", I32.MAX, ERR_RANGE)
+		\ ("-2147483649", I32.MIN, ERR_RANGE)
+		\ }:[](String, I32, Error)
+	foreach s, val, err in tests
+		let out_err, out = Parse_int s 10 32
+		assert out_err == err and out == val.I64
