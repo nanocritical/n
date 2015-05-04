@@ -1,0 +1,14 @@
+from n import *
+
+-- FIXME(e): generate dispatching methods for shared interfaces, either
+-- explicitly listed or not.
+union either =
+	isa `Show
+	| i -> I32
+	| u -> U32
+
+fun Main = I32
+	let ei = 42:either.i
+	let eu = 42:either.u
+	Prn ei eu
+	return 0

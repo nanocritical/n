@@ -1,0 +1,1 @@
+t00/fixme13.n:5:6: type: type 't00.fixme13.either' isa 'n.builtins.`Show' but does not implement member 'Show'
