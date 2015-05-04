@@ -174,7 +174,13 @@ static void like_arg(struct module *mod, struct node *par,
 }
 
 static void gen_on_field(struct module *mod, struct node *m,
-                         struct node *body, struct node *f) {
+                         struct node *body, struct node *f,
+                         struct typ *ftyp) {
+  if (typ_is_reference(ftyp)) {
+    // Not deep operations.
+    return;
+  }
+
   GSTART();
   const struct node *funargs = subs_at_const(m, IDX_FUNARGS);
   const struct node *arg_self = subs_first_const(funargs);
@@ -182,7 +188,7 @@ static void gen_on_field(struct module *mod, struct node *m,
   if (node_ident(m) == ID_COPY_CTOR || node_ident(m) == ID_MOVE) {
     const struct node *arg_other = next_const(arg_self);
 
-    if (typ_is_optional(f->typ)) {
+    if (typ_is_optional(ftyp)) {
       G0(xif, body, IF,
          G(checkother, UN,
            checkother->as.BIN.operator = TPOSTQMARK;
@@ -210,7 +216,7 @@ static void gen_on_field(struct module *mod, struct node *m,
   }
 
   const struct typ *trivial = corresponding_trivial(node_ident(m));
-  if (trivial != NULL && typ_isa(f->typ, trivial)) {
+  if (trivial != NULL && typ_isa(ftyp, trivial)) {
     return;
   }
 
@@ -227,7 +233,7 @@ static void gen_on_field(struct module *mod, struct node *m,
   assert(node_ident(m) == ID_OPERATOR_EQ);
   const struct node *arg_other = next_const(arg_self);
 
-  assert(!typ_is_reference(f->typ));
+  assert(!typ_is_reference(ftyp));
 
   G0(xif, body, IF,
      G(cond, BLOCK);
@@ -239,7 +245,7 @@ static void gen_on_field(struct module *mod, struct node *m,
        G(noop, NOOP)));
   body = cond;
 
-  if (typ_is_optional(f->typ)) {
+  if (typ_is_optional(ftyp)) {
     const struct node *arg_other = next_const(arg_self);
     G0(checkand2, body, BIN,
        checkand2->as.BIN.operator = Tand;
@@ -274,7 +280,7 @@ static void gen_on_choices_and_fields(struct module *mod,
   bool need_true = false;
 
   if (node->which == DEFFIELD) {
-    gen_on_field(mod, m, body, node);
+    gen_on_field(mod, m, body, node, node->typ);
     return;
   } else if (node->which == DEFTYPE) {
     G0(noop, body, NOOP); // Ensure not empty.
@@ -337,7 +343,7 @@ static void gen_on_choices_and_fields(struct module *mod,
 
     const struct node *ext = node_defchoice_external_payload(node);
     if (ext != NULL) {
-      gen_on_field(mod, m, body, node);
+      gen_on_field(mod, m, body, node, ext->typ);
       return;
     } else if (subs_count(node) > IDX_CH_FIRST_PAYLOAD) {
       assert(false && "FIXME(e): Unsupported");
