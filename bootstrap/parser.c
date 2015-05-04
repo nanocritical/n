@@ -2500,6 +2500,11 @@ again:
   case Tinvariant:
     e = p_invariant(node, mod);
     break;
+  default:
+    if (!defchoice_parent) {
+      UNEXPECTED(mod, &tok);
+    }
+    // fallthrough
   case TIDENT:
     if (defchoice_parent) {
       struct token nxt = { 0 };
@@ -2518,8 +2523,6 @@ again:
   case TBWOR:
     e = p_defchoice(node, mod);
     break;
-  default:
-    UNEXPECTED(mod, &tok);
   }
   EXCEPT(e);
 
