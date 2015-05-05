@@ -979,6 +979,7 @@ again:
   if (operator == TASSIGN) {
     if (typ_equal(right->typ, TBI_VOID)) {
       if (left->which == IDENT
+          && left->as.IDENT.def != NULL
           && left->as.IDENT.def->which == DEFNAME
           && left->as.IDENT.def->as.DEFNAME.ssa_user != NULL) {
         // noop
