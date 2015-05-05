@@ -117,7 +117,7 @@ fun write_header w:#io.`Writer h:*Header exclude:*(Set Stringbuf) = Error
 
 
 fun is_header_loaded r:*bufio.Reader = Bool
-	let s = r.Peek_string r.Buffered
+	let s = r.Peek_string
 	let i = s.Index "\r\n\r\n"
 	return i >= 0
 
@@ -135,17 +135,17 @@ fun read_continued_line val:#Stringbuf r:!bufio.Reader = last:Bool
 
 		val#Cat <- trim line
 
-		let peek = r.Peek_string r.Buffered
+		let peek = r.Peek_string
 		if peek.Count == 0 or is_ascii_letter peek.First
 			return false
 
 fun read_one h:#Header r:!bufio.Reader = Error, done:Bool
-	let s = r.Peek_string r.Buffered
+	let s = r.Peek_string
 	let i = s.Index_byte ':'
 	if i < 0
 		if s.[0] == '\r' and s.[1] == '\n'
 			return OK, true
-		return MALFORMED_HEADER, false
+		return ERR_MALFORMED_HEADER, false
 
 	-- Key ends at first colon; should not have spaces but they appear in
 	-- the wild, violating specs, so we remove them if present.

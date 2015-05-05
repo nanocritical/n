@@ -2,19 +2,175 @@
 -- Copyright 2009 The Go Authors. All rights reserved.
 
 from n import *
---import n.ev
+import n.ev
 import n.io
 import n.bufio
 import n.fmt
+import n.strings
 import n.unsafe
+import n.syscall
+import n.strconv
+import n.net
+import n.net.tcp
+import n.net.url
 
 let crlf = "\r\n"
 let colon_space = ": "
 
-let BODY_NOT_ALLOWED = {Why=*"BODY_NOT_ALLOWED: http: request method or response status code does not allow body"}:Error
-let CONTENT_LENGTH = {Why=*"CONTENT_LENGTH: wrote more than the declared Content-Length"}:Error
-let MALFORMED_HEADER = {Why=*"MALFORMED_HEADER: Malformed HTTP header"}:Error
-let MALFORMED_VERSION = {Why=*"MALFORMED_VERSION: Malformed HTTP version"}:Error
+let ERR_BODY_NOT_ALLOWED = {Why=*"ERR_BODY_NOT_ALLOWED: http: request method or response status code does not allow body"}:Error
+let ERR_CONTENT_LENGTH = {Why=*"ERR_CONTENT_LENGTH: wrote more than the declared Content-Length"}:Error
+let ERR_MALFORMED_HEADER = {Why=*"ERR_MALFORMED_HEADER: malformed HTTP header"}:Error
+let ERR_MALFORMED_VERSION = {Why=*"ERR_MALFORMED_VERSION: malformed HTTP version"}:Error
+let ERR_MALFORMED_REQUEST_LINE = {Why=*"ERR_MALFORMED_REQUEST_LINE: malformed HTTP request line"}:Error
+let ERR_UNSUPPORTED_TRANSFER_ENCODING = {Why=*"ERR_UNSUPPORTED_TRANSFER_ENCODING: unsupported Transfer-Encoding"}:Error
+let ERR_BAD_TRAILER_KEY = {Why=*"ERR_BAD_TRAILER_KEY: bad trailer key"}:Error
+let ERR_BAD_CONTENT_LENGTH = {Why=*"ERR_BAD_TRAILER_KEY: bad Content-Length value"}:Error
+let ERR_UNEXPECTED_TRAILER = {Why=*"ERR_UNEXPECTED_TRAILER: unexpected trailer"}:Error
+let ERR_LINE_TOO_LONG = {Why=*"ERR_LINE_TOO_LONG: header line too long"}:Error
+
+
+enum Handling_state =
+	| WAITING_HEADER = 0
+	| WAITING_BODY
+	| COMPLETE
+
+
+struct Request_handler =
+	isa ev.`Handler `Not_copyable
+	state		:Handling_state
+	Conn		:#tcp.Conn
+	bufr		:bufio.Reader
+	Header		:Header
+
+	ev_read		:ev.Event
+
+Request_handler met# Init conn:#tcp.Conn
+	self#Dtor
+	self#Conn = conn
+	self#bufr = bufio.Reader.Mk self#Conn
+	self#ev_read = {Fd=self.Conn.Fd Request={READ RDHUP} Handler=self}
+
+Request_handler met# Close = err:Error
+	err = self#Conn#Close
+	if err == syscall.EBADF
+		-- Already closed
+		err = OK
+	except = err
+
+Request_handler met# On e:ev.Event = Error, nxt:ev.Event
+	Eprn self.state e
+	if READ in e.What
+		match self.state
+		| WAITING_HEADER -> except, nxt = self#waiting_header
+		| WAITING_BODY -> except, nxt =  self#waiting_body
+		| COMPLETE -> noop
+
+	if self.state == COMPLETE
+		except = self#Close
+		return OK, NONE
+
+	if RDHUP in e.What or HUP in e.What
+		self#state = COMPLETE
+		except = self#Close
+		return OK, NONE
+
+	if ERROR in e.What
+		except = UNKNOWN
+
+Request_handler met# waiting_header = Error, ev.Event
+	let rerr = self#bufr#Load
+	if rerr != io.EOF and rerr != syscall.EAGAIN
+		except = rerr
+
+	Eprn self.Conn.Fd self.bufr.Buffered "\n" self.bufr.Peek_string
+
+	if not is_header_loaded self.bufr
+		if rerr == io.EOF
+			return ERR_MALFORMED_HEADER, NONE
+		return syscall.EAGAIN, self.ev_read
+
+	except = read_header #self#Header !self!bufr
+	Eprn self.Header.Map
+	self#state = WAITING_BODY
+	return OK, NONE
+
+Request_handler met# waiting_body = Error, ev.Event
+	Eprn self.state
+	let rerr = self#bufr#Load
+	if rerr != io.EOF and rerr != syscall.EAGAIN
+		except = rerr
+
+--	if rerr != EOF and not is_body_loaded self.bufr
+--		return syscall.EAGAIN, self.ev_read
+
+--	except = read_body #self#Body self.bufr
+	self#state = COMPLETE
+	return OK, NONE
+
+
+--struct Response =
+--	isa ev.`Handler
+--	state		:Handling_state
+--	Conn		:#tcp.Conn
+--	bufw		:bufio.Writer
+--
+--Response met# Init
+--	self#Dtor
+--	self#bufw = bufio.Writer.Mk self#Conn
+--
+--Response met! On e:Event = Error, Event
+--	assert OUTPUT in e.What
+--	match self.state
+--	| WAITING_HEADER -> return self#waiting_header
+--	| WAITING_BODY -> return self#waiting_body
+--	| COMPLETE -> return OK, NONE
+--
+--Response met# waiting_header = Error, Event
+--	let rerr = self#bufr#Load
+--	if rerr != EOF and rerr != syscall.EAGAIN
+--		except = rerr
+--
+--	if rerr != EOF and not is_header_loaded self.bufr
+--		return syscall.EAGAIN, self.ev_read
+--
+--	except = read_header #self#Header self.bufr
+--	self#state = WAITING_BODY
+--	return OK, NONE
+--
+--Response met# waiting_body = Error, Event
+--	
+
+fun do = Error
+	var poll:ev.Poll
+	except = poll#Init
+
+	var so:tcp.Socket
+	except = so#Listen TCP4 {Ip=(net.Ip.V4 0 0 0 0) Port=9000}
+
+	let ev_accept = {Fd=so.Fd Request={READ}}
+	except = poll!Register ev_accept
+
+	var reqh:Request_handler, conn
+	while true
+		let wait_err, e = poll!Wait
+		if wait_err == syscall.EAGAIN
+			continue
+		except = wait_err
+
+		Eprn e
+
+		if e.Fd == so.Fd
+			except, conn = so.Accept
+			reqh#Init #conn
+			except = poll!Register reqh.ev_read
+		else
+			let err, _ = e.Handler#On e
+			if err == syscall.EAGAIN
+				continue
+			except = err
+
 
 fun Main = I32
+	let err = do
+	Eprn err
 	return 0

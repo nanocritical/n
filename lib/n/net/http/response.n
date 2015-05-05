@@ -1,0 +1,5 @@
+fun fix_pragma_cache_control header:#Header
+	let hp = header.Map.["Pragma"]
+	if hp? and hp.Count > 0 and hp.[0] == "no-cache"
+		if not header.Map.["Cache-Control"]?
+			(header#Map#Store "Cache-Control")#Push#Cat "no-cache"

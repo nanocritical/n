@@ -16,7 +16,7 @@ Protocol met sys_family = I32
 	| TCP4 -> return syscall.AF_INET
 	| TCP6 -> return syscall.AF_INET6
 
-struct Addr =
+inline struct Addr =
 	isa `Show
 	Ip	:net.Ip
 	Port	:Uint
@@ -69,7 +69,7 @@ fun Lookup_cname name:String = err:Error, cname:Stringbuf
 	err, _, cname = Lookup_ip_cname name
 
 
-struct Conn =
+inline struct Conn =
 	isa io.`Reader io.`Writer --ev.`Pollable
 	fd		:Int
 	local_addr	:Addr
@@ -77,6 +77,9 @@ struct Conn =
 
 Conn met Fd = Int
 	return self.fd
+
+Conn met# Close = Error
+	return syscall.Close self.fd
 
 Conn met Local_addr = Addr
 	return self.local_addr
@@ -99,12 +102,15 @@ struct Socket =
 	addr	:Addr
 	sockfd	:?Int
 
+Socket met Fd = Int
+	return self.sockfd
+
 Socket met Addr = Addr
 	return self.addr
 
 Socket met# create protocol:Protocol = Error
 	let except, sockfd = syscall.Socket protocol.sys_family
-		\ syscall.SOCK_STREAM|syscall.SOCK_CLOEXEC 0
+		\ syscall.SOCK_STREAM|syscall.SOCK_CLOEXEC|syscall.SOCK_NONBLOCK 0
 
 	except = syscall.Setsockopt_i32 sockfd syscall.SOL_SOCKET syscall.SO_REUSEADDR 1
 
@@ -129,7 +135,7 @@ Socket met Accept = Error, conn:Conn
 	var sys_addr = buf_addr![..]
 
 	let except, fd = syscall.Accept4 self.sockfd #sys_addr
-		\ syscall.SOCK_CLOEXEC
+		\ syscall.SOCK_CLOEXEC|syscall.SOCK_NONBLOCK
 
 	conn!fd = fd
 	conn!local_addr = self.addr

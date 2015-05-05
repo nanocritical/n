@@ -1,0 +1,264 @@
+let HTTP10 = 10:Int
+let HTTP11 = 11:Int
+
+inline struct Request =
+	Status_code	:Uint
+	Method		:Stringbuf
+	Url		:url.Url
+
+	Proto		:Stringbuf
+	Proto_version	:Int
+
+	body_impl	:body_reader
+
+	Header		:Header
+	Body		:#io.`Reader
+	Close_conn	:Bool
+
+	Content_length		:?Uint
+	Transfer_encoding	:(Buf Stringbuf)
+	Host			:Stringbuf
+
+	Trailer		:Header
+
+	Remote_addr	:tcp.Addr
+	Request_uri	:Stringbuf
+
+
+union body_reader =
+	isa io.`Reader
+	| EMPTY = 0 -> io.Bytes_reader
+	| DIRECT -> bufio.Auto_reader
+	| LIMITED -> io.Limited_reader
+	| CHUNKED -> chunked_reader
+
+body_reader met# Read b:[!]U8 = [!]U8, Error
+	match self
+	| EMPTY -> return self#EMPTY#Read b
+	| DIRECT -> return self#DIRECT#Read b
+	| LIMITED -> return self#LIMITED#Read b
+	| CHUNKED -> return self#CHUNKED#Read b
+
+
+fun Parse_http_version vers:String = Error, Int
+	if vers == "HTTP/1.1"
+		return OK, 11
+	if vers == "HTTP/1.0"
+		return OK, 10
+	-- FIXME(e): parse other versions
+	return ERR_MALFORMED_VERSION, 0
+
+fun parse_request_line line:String = Error, method:Stringbuf, request_uri:Stringbuf, proto:Stringbuf
+	let s1 = line.Index " "
+	let s2 = line.[(s1+1).Unsigned ..].Index " "
+	if s1 < 0 or s2 < 0
+		return ERR_MALFORMED_REQUEST_LINE, "", "", ""
+	s2 += s1 + 1
+	let us1 = s1.Unsigned
+	let us2 = s2.Unsigned
+	return OK, line.[.. us1].Buf, line.[us1+1 .. us2].Buf, line.[us2+1 ..].Buf
+
+-- Call with a fully loaded header.
+fun read_request_header req:#Request b:!bufio.Reader = Error
+	var partial, s = b!Read_line
+	assert partial
+
+	except, req#Method, req#Request_uri, req#Proto = parse_request_line s
+	let rawurl = req.Request_uri
+
+	except, req#Proto_version = Parse_http_version req.Proto.String
+
+	except, req#Url = url.Parse_request_uri rawurl.String
+
+	except = read_header #req#Header b
+
+	-- RFC2616: Must treat
+	--      GET /index.html HTTP/1.1
+	--      Host: www.google.com
+	-- and
+	--      GET http://www.google.com/index.html HTTP/1.1
+	--      Host: doesntmatter
+	-- the same.  In the second case, any Host line is ignored.
+	req#Host = req.Url.Host
+	if req#Host == ""
+		req#Host = req.Header.Get "Host" else ""
+	_ = req#Header#Map#Try_delete "Host"
+
+	fix_pragma_cache_control #req#Header
+
+fun is_no_body_expected method:String = Bool
+	return method == "HEAD"
+
+-- Do not start reading, but set up the right reader for this request.
+-- req.Body can then be read until EOF.
+fun prepare_request_transfer req:#Request b:#bufio.Reader = Error
+	-- Transfer semantics for Requests are exactly like those for
+	-- Responses with status code 200, responding to a GET method
+	let status_code = 200
+
+	if req.Proto_version == 0
+		req#Proto_version = 11
+
+	except, req#Transfer_encoding = fix_transfer_encoding #req#Header req.Method
+
+	let except, real_length = fix_length #req#Header
+		\ true req.Status_code req.Method req.Transfer_encoding
+
+	if req.Method == "HEAD"
+		except, req#Content_length = parse_content_length (req.Header.Get "Content-Length").String
+	else
+		req#Content_length = real_length
+
+	except, req#Trailer = fix_trailer #req#Header req.Transfer_encoding
+
+	if not real_length? and not is_chunked req.Transfer_encoding
+		\ and is_body_allowed_for_status status_code
+		-- Unbounded body.
+		req#Close_conn = true
+
+	-- Prepare body reader. Content_length === nil means chunked
+	-- encoding or close connection when finised, since multipart is not
+	-- supported yet.
+	if is_chunked req.Transfer_encoding
+		if is_no_body_expected req.Method.String
+			req#body_impl = {}:body_reader.EMPTY
+		else
+			req#body_impl = {r=b}:body_reader.CHUNKED
+	elif real_length == 0
+		req#body_impl = {}:body_reader.EMPTY
+	elif real_length > 0
+		req#body_impl = {}:body_reader.LIMITED
+		req#body_impl#LIMITED = io.Limited_reader.Mk b real_length
+	else
+		-- real_length is nil, i.e. "Content-Length" not mentioned in header
+		if req.Close_conn
+			-- Close semantics (i.e. HTTP/1.0)
+			req#body_impl = {R=b}:body_reader.DIRECT
+		else
+			-- Persistent connection (i.e. HTTP/1.1)
+			req#body_impl = {}:body_reader.EMPTY
+
+	req#Body = #req#body_impl
+
+fun is_body_allowed_for_status status:Uint = Bool
+	if status >= 100 and status <= 159
+		return false
+	elif status == 204
+		return false
+	elif status == 304
+		return false
+	return true
+
+fun is_chunked te:*(Buf Stringbuf) = Bool
+	return te.Count > 0 and te.[0] == "chunked"
+
+fun is_identity te:*(Buf Stringbuf) = Bool
+	return te.Count == 1 and te.[0] == "identity"
+
+fun fix_transfer_encoding header:#Header method:*Stringbuf = Error, te:(Buf Stringbuf)
+	let raw = header.Map.["Transfer-Encoding"]
+	if not raw?
+		return OK, {}
+
+	let encodings = raw.[0].Split ","
+	te#Resize encodings.Count
+	-- TODO: Even though we only support "identity" and "chunked"
+	-- encodings, the loop below is designed with foresight. One
+	-- invariant that must be maintained is that, if present,
+	-- chunked encoding must always come first.
+	foreach i in encodings.All
+		let encoding = (strings.Trim_spaces encodings.[i]).To_lower
+		-- "identity" encoding is not recorded
+		if encoding == "identity"
+			break
+		if encoding != "chunked"
+			return ERR_UNSUPPORTED_TRANSFER_ENCODING, {}
+		te#Push# = encoding
+
+	if te.Count > 1
+		return ERR_UNSUPPORTED_TRANSFER_ENCODING, {}
+	if te.Count > 0
+		-- Chunked encoding trumps Content-Length. See RFC 2616
+		-- Section 4.4. Currently te.Count > 0 implies chunked
+		-- encoding.
+		header#Map#Delete "Content-Length"
+
+-- Determine the expected body length, using RFC 2616 Section 4.4.
+fun fix_length header:#Header is_response:Bool status:Uint method:*Stringbuf
+	\ te:*(Buf Stringbuf) = Error, ?Uint
+	-- Logic based on response type or status
+	if is_no_body_expected method.String
+		return OK, ?0
+	if status/100 == 1
+		return OK, ?0
+	if status == 204 or status == 304
+		return OK, ?0
+
+	if is_chunked te
+		return OK, nil
+
+	let cl = strings.Trim_spaces (header.Get "Content-Length" else "").String
+	if cl != ""
+		let err, n = parse_content_length cl
+		if err != OK
+			return err, nil
+		return OK, n
+	else
+		header#Map#Delete "Content-Length"
+
+	if not is_response and method == "GET"
+		-- RFC 2616 doesn't explicitly permit nor forbid an
+		-- entity-body on a GET request so we permit one if
+		-- declared, but we default to 0 here (not nil below)
+		-- if there's no mention of a body.
+		return OK, ?0
+
+	-- Body-EOF logic based on other methods (like closing, or chunked coding)
+	return OK, nil
+
+fun should_close header:#Header proto_version:Uint = Bool
+	let connection = (header.Get "Connection")?.To_lower else ""
+	if proto_version < 10
+		return true
+	elif proto_version == 10
+		if connection.Index "keep-alive" >= 0
+			return true
+		return false
+	else
+		-- TODO: Should split on commas, toss surrouding white space,
+		-- and check each field.
+		if connection == "close"
+			header#Map#Delete "Connection"
+			return true
+	return false
+
+fun fix_trailer header:#Header te:(Buf Stringbuf) = Error, trailer:Header
+	let raw = (header.Get "Trailer") else ""
+	if raw == ""
+		return OK, {}
+
+	header#Map#Delete "Trailer"
+
+	let keys = raw.Split ","
+	foreach key in keys
+		let normkey = (strings.Trim_spaces key).Buf
+		mime_canonical_header_key normkey!Bytes
+		if normkey == "Transfer-Encoding" or normkey == "Trailer" or normkey == "Content-Length"
+			return ERR_BAD_TRAILER_KEY, {}
+		trailer#Map#Delete normkey
+
+	if trailer.Map.Count == 0
+		return OK, {}
+	if not is_chunked te
+		return ERR_UNEXPECTED_TRAILER, {}
+
+-- parse_content_length trims whitespaces from s and returns nil if no value is
+-- set, or the value if it's >= 0.
+fun parse_content_length cl:String = Error, ?Uint
+	let cl = strings.Trim_spaces cl
+	if cl == ""
+		return OK, nil
+	let err, n = strconv.Parse_uint cl 10 64
+	if err != OK
+		return ERR_BAD_CONTENT_LENGTH, nil
+	return OK, ?n.To_uint

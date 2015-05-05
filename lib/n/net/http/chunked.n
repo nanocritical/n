@@ -1,0 +1,11 @@
+let max_line_length = 4096:Uint
+
+
+struct chunked_reader =
+	isa io.`Reader
+	r	:bufio.Reader
+	left	:Uint
+	err	:Error
+
+chunked_reader met# Read b:[!]U8 = [!]U8, Error
+	return {}, io.EOF
