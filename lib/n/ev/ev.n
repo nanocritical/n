@@ -1,0 +1,121 @@
+from n import *
+import n.syscall
+import n.time
+import n.unsafe
+import n.fmt
+
+enum Events =
+	| READ
+	| WRITE
+	-- Always (try to) read first before processing any error or hang-up.
+	| ERROR
+	-- Hang up happened on the associated file descriptor.
+	| HUP
+	-- Stream socket peer closed connection, or shut down writing half of connection.
+	| RDHUP
+
+intf `Handler =
+	met# On ev:Event = Error, Event
+
+struct Event =
+	isa `Show
+	Fd	:?Int
+	Request	:(Enumset Events)
+	What	:(Enumset Events)
+	Handler	:?#`Handler
+
+	let NONE = {}:this
+
+Event met Show st:#fmt.`State
+	fmt.F st "%s on %s" self.What self.Fd
+
+inline struct Poll =
+	fds	:(Map Int ?#Event)
+	epfd	:Int
+	buf	:(Buf syscall.Epoll_event)
+	pending	:[!]syscall.Epoll_event
+
+Poll met# Init = Error
+	assert self.buf.Count == 0
+
+	except, self!epfd = syscall.Epoll_create1 0
+	self!buf#Resize 128
+
+fun events_to_sys_events r:Events = U32
+	match r
+	| READ -> return syscall.EPOLLIN
+	| WRITE -> return syscall.EPOLLOUT
+	| ERROR -> return syscall.EPOLLERR
+	| HUP -> return syscall.EPOLLHUP
+	| RDHUP -> return syscall.EPOLLRDHUP
+
+fun sys_events_to_events events:U32 = r:(Enumset Events)
+	if syscall.EPOLLIN & events != 0
+		r |= {READ}
+	if syscall.EPOLLOUT & events != 0
+		r |= {WRITE}
+	if syscall.EPOLLERR & events != 0
+		r |= {ERROR}
+	if syscall.EPOLLHUP & events != 0
+		r |= {HUP}
+	if syscall.EPOLLRDHUP & events != 0
+		r |= {RDHUP}
+
+Poll met! Register e:Event = Error
+	let added, perm_e = self!fds#Try_store e.Fd
+	and op = syscall.EPOLL_CTL_MOD such
+		if added
+			perm_e# = Alloc Event
+			op = syscall.EPOLL_CTL_ADD
+
+	let pe = perm_e#
+	pe!Fd = e.Fd
+	_ = pe#Request#Add_all e.Request
+	pe#Handler = e.Handler -- FIXME(e): only one perm_handler.
+
+	var sys_event = {}:syscall.Epoll_event
+
+	let sys_events_defaults = syscall.EPOLLERR | syscall.EPOLLHUP | syscall.EPOLLET
+	sys_event!events = sys_events_defaults
+	for f in pe.Request.Iter
+		sys_event!events |= events_to_sys_events f
+
+	sys_event!raw_data = (unsafe.Cast ?#Event ?#U8) pe
+
+	except = syscall.Epoll_ctl self.epfd op e.Fd sys_event
+
+Poll met! Unregister e:Event = Error
+	let perm_e = self!fds![e.Fd]
+	if not perm_e?
+		return INVAL
+
+	Free perm_e*
+	self!fds#Delete e.Fd
+
+Poll met! sys_wait timeout:?time.Duration = Error
+	assert self.pending.Count == 0
+	let err, cnt = syscall.Epoll_pwait self.epfd self!buf![..]
+		\ (timeout?.Millisec else -1) nil
+	if err == syscall.EINTR
+		return syscall.EAGAIN
+	self!pending = self.buf.[.. cnt]
+
+Poll met! Wait ?timeout:?time.Duration = Error, e:Event
+	if self.pending.Count == 0
+		let err = self!sys_wait timeout
+		if err == syscall.EAGAIN
+			return err, NONE
+		except = err
+
+	if self.pending.Count == 0
+		return OK, NONE
+
+	let sys_e = self.pending.[0]
+	self!pending = self.pending.[1 ..]
+
+	let perm_e = (unsafe.Cast ?#U8 ?#Event) sys_e.raw_data
+	e = perm_e*
+	e!What = sys_events_to_events sys_e.events
+
+	if HUP in e.What or RDHUP in e.What
+		except = self!Unregister e
