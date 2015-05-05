@@ -78,7 +78,7 @@ Request_handler met# On e:ev.Event = Error, nxt:ev.Event
 		except = UNKNOWN
 
 Request_handler met# waiting_header = Error, ev.Event
-	let rerr = self#bufr#Load
+	let rerr = self#bufr#Fill
 	if rerr != io.EOF and rerr != syscall.EAGAIN
 		except = rerr
 
@@ -96,13 +96,13 @@ Request_handler met# waiting_header = Error, ev.Event
 
 Request_handler met# waiting_body = Error, ev.Event
 	Eprn self.state
-	let rerr = self#bufr#Load
+	let rerr = self#bufr#Fill
 	if rerr != io.EOF and rerr != syscall.EAGAIN
 		except = rerr
 
 --	if rerr != EOF and not is_body_loaded self.bufr
---		return syscall.EAGAIN, self.ev_read
-
+--	return syscall.EAGAIN, self.ev_read
+--
 --	except = read_body #self#Body self.bufr
 	self#state = COMPLETE
 	return OK, NONE
@@ -126,7 +126,7 @@ Request_handler met# waiting_body = Error, ev.Event
 --	| COMPLETE -> return OK, NONE
 --
 --Response met# waiting_header = Error, Event
---	let rerr = self#bufr#Load
+--	let rerr = self#bufr#Fill
 --	if rerr != EOF and rerr != syscall.EAGAIN
 --		except = rerr
 --

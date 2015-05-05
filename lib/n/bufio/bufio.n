@@ -16,9 +16,9 @@ inline struct Reader =
 Reader fun Mk r:#io.`Reader = ret:this
 	ret#R = r
 
-Reader met Count_loaded = Uint
-	if self#bufr?
-		return self.bufr.Count_loaded
+Reader met Total_filled = Uint
+	if self.bufr?
+		return self.bufr.Total_filled
 	return self.copier.Total_written
 
 Reader met# Read b:[!]U8 = [!]U8, Error
@@ -41,7 +41,7 @@ Reader met Buffered = Uint
 		return self.bufr.Buffered
 	return self.pending.Count
 
-Reader met# Load ?max:?Uint = Error
+Reader met# Fill ?max:?Uint = Error
 	if not self.R?
 		return OK
 	if not self.rdy
@@ -51,44 +51,63 @@ Reader met# Load ?max:?Uint = Error
 			self!copier#Reset #self#buf self#R
 
 	if self#bufr?
-		return self#bufr#Load max=max
+		return self#bufr#Fill max=max
 
 	self#buf#Copy self.pending.Bytes
 	let _, err = self!copier#Copy max=(max else buf_size)
 	self#pending = self.buf.String
-	except = err
+	return err
 
--- Does not Load more data.
--- The returned slice is valid until the next call to Load.
+-- Does not Fill more data.
+-- The returned slice is valid until the next call to Fill.
 Reader met! Read_slice ?max:?Uint = []U8
 	return (self!Read_string max=max).Bytes
 
--- Does not Load more data.
--- The returned string is valid until the next call to Load.
+-- Does not Fill more data.
+-- The returned string is valid until the next call to Fill.
 Reader met! Read_string ?max:?Uint = String
+	if self.bufr?
+		return self!bufr!Read_string max=max
 	let len = Min (max else Uint.MAX) self.pending.Count
+	let r = self.pending.[.. len]
 	self!pending = self.pending.[len ..]
-	return self.pending.[.. len]
+	return r
 
--- Does not Load more data. Does not advance.
--- The returned slice is valid until the next call to Load.
+-- Does not Fill more data. Does not advance.
+-- The returned slice is valid until the next call to Fill.
 Reader met Peek_slice ?max:?Uint = []U8
 	return (self.Peek_string max=max).Bytes
 
--- Does not Load more data. Does not advance.
--- The returned string is valid until the next call to Load.
+-- Does not Fill more data. Does not advance.
+-- The returned string is valid until the next call to Fill.
 Reader met Peek_string ?max:?Uint = String
+	if self.bufr?
+		return self.bufr.Peek_string max=max
 	let len = Min (max else Uint.MAX) self.pending.Count
 	return self.pending.[.. len]
 
 Reader met! Advance cnt:Uint
+	if self.bufr?
+		self!bufr!Advance cnt
+		return
 	self!pending = self.pending.[cnt ..]
 
--- Does not Load more data.
--- The returned slice is valid until the next call to Load.
--- If a newline ("\r\n" or "\n") is not reached, it returns true.
+Reader met! Rewind cnt:Uint
+	if self.bufr?
+		self!bufr!Rewind cnt
+		return
+	-- pending is a sub-string of buf.
+	let cur = self.buf.Count - self.pending.Count
+	assert cur >= cnt
+	self!pending = self.buf.[cur ..]
+
+-- Does not Fill more data.
+-- The returned slice is valid until the next call to Fill.
+-- If a newline ("\r\n" or "\n") is not reached, it returns partial==true.
 -- Advances past the newline.
 Reader met! Read_line = partial:Bool, line:String
+	if self.bufr?
+		return self!bufr!Read_line
 	let i = self.pending.Index_byte '\n'
 	if i < 0
 		line = self.pending
@@ -96,10 +115,27 @@ Reader met! Read_line = partial:Bool, line:String
 		partial = true
 	else
 		var eol = i.Unsigned
-		if eol > 0 and self.pending.[eol-1] == '\r'
+		if eol > 0 and self!pending![eol-1] == '\r'
 			eol -= 1
 		line = self.pending.[.. eol]
-		self!pending = self.pending.[i.Unsigned+1 ..]
+		self!pending = self!pending![i.Unsigned+1 ..]
+
+-- Does not Fill more data.
+-- The returned slice is valid until the next call to Fill.
+-- If a newline ("\r\n" or "\n") is not reached, it returns partial==true.
+Reader met Peek_line = partial:Bool, line:String
+	if self.bufr?
+		return self!bufr!Peek_line
+	let i = self.pending.Index_byte '\n'
+	if i < 0
+		line = self.pending
+		partial = true
+	else
+		var eol = i.Unsigned
+		if eol > 0 and self!pending![eol-1] == '\r'
+			eol -= 1
+		line = self.pending.[.. eol]
+
 
 example reader
 	let s = "This is a test"
@@ -113,18 +149,19 @@ example reader
 	b, err = r#Read b
 	assert b.Count == 0 and err == io.EOF
 
-	except = r#Load max=4
+	except = r#Fill max=4
 	b, err = r#Read b
 	assert b.Count == 4 and err == OK and b.Const == "This".Bytes
 
-	except = r#Load
+	err = r#Fill
+	assert err == io.EOF
 	b, err = r#Read b![.. 0]
 	assert b.Count == s.Count-4 and err == OK and b.Const == s.Bytes.[4 ..]
 
 	b, err = r#Read b
 	assert b.Count == s.Count-4 and err == io.EOF
 
-	assert r.Count_loaded == s.Count
+	assert r.Total_filled == s.Count
 
 
 -- Writes never block or return AGAIN. However, Flush may.
@@ -175,12 +212,13 @@ Writer met# Flush ?max:?Uint = Error
 		return self#bufw#Flush max=max
 
 	let len = max else self.pending.Count
-	let left, except = io.Write_full self.W self.pending.[.. len]
+	let left, wr_err = io.Write_full self.W self.pending.[.. len]
 	let copied = len - left.Count
 	self!count_flushed += copied
 	self!pending = self.pending.[copied ..]
 	self#buf#Copy self.pending
 	self!pending = self.buf.Bytes
+	return wr_err
 
 example writer
 	var buf:Stringbuf
@@ -209,7 +247,7 @@ inline struct Auto_reader =
 Auto_reader met# Read b:[!]U8 = r:[!]U8, err:Error
 	r, err = self#R#Read b
 	if r.Count == b.Count and err == io.EOF
-		err = self#R#Load
+		err = self#R#Fill
 		if err != OK
 			return r, err
 		r, err = self#R#Read b

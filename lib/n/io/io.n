@@ -15,6 +15,7 @@ let chunk_size = 4096
 intf `Reader =
 	-- Returns a slice of b with the same origin, extended to include the
 	-- content just read.
+	-- Short reads do not need to return a non-OK error, unless they read nothing at all.
 	met# Read b:[!]U8 = [!]U8, Error
 
 intf `Writer =
@@ -98,11 +99,11 @@ fun Mk_string_reader s:String = r:Bytes_reader
 -- Need a struct with state: in case of a transient write error, like AGAIN, we
 -- need to keep already read data but not yet written.
 struct Copier =
-	Dst	:#`Writer
-	Src	:#`Reader
-	Max	:Uint
-	buf	:Stringbuf
-	written	:Uint
+	Dst		:#`Writer
+	Src		:#`Reader
+	Max		:Uint
+	buf		:Stringbuf
+	total_written	:Uint
 
 Copier met# Reset dst:#`Writer src:#`Reader ?max:?Uint
 	self#Dst = dst
@@ -110,11 +111,12 @@ Copier met# Reset dst:#`Writer src:#`Reader ?max:?Uint
 	self#Max = max else Uint.MAX
 	self#buf#Reserve chunk_size
 	self#buf#Resize 0
-	self#written = 0
+	self#total_written = 0
 
 Copier met Total_written = Uint
-	return self.written
+	return self.total_written
 
+-- Return io.EOF when done.
 Copier met! Copy ?max:?Uint = written:Uint, err:Error
 	-- First write any not-yet-written data left from a previous call.
 	if self.buf.Count > 0
@@ -122,39 +124,40 @@ Copier met! Copy ?max:?Uint = written:Uint, err:Error
 		written += self.buf.Count - left.Count
 		self!buf#Copy left
 		if wr_err != OK
-			self!written += written
+			self!total_written += written
 			return written, wr_err
 
 	let limit = max else Uint.MAX
-	var more = Min limit self.Max
+	let total_left = self.Max - self.total_written
+	var more = Min limit total_left
 	while more > 0
 		var b, rd_err = self!buf!Bytes, OK
 		if more < b.Available
 			b = b!Recapped b.Count+more
 
 		let read_before = b.Count
-		let available_before = b.Available
 
 		b, rd_err = self!Src#Read b
 		let read = b.Count - read_before
-		self!Max -= read
 		more -= read
 
 		let left, wr_err = self!Dst#Write b
+		assert left.Count == 0 or wr_err != OK -- By `Write.
 		written += b.Count - left.Count
 		self!buf#Copy left
 
-		if rd_err == EOF or read < available_before
-			self!Max = 0
-			more = 0
-		elif rd_err != OK
+		if rd_err != OK
 			err = rd_err
 			break
 		elif wr_err != OK
 			err = wr_err
 			break
 
-	self!written += written
+	self!total_written += written
+
+	if err == OK and self.total_written == self.Max
+		err = EOF
+
 	return written, err
 
 example copier
@@ -163,11 +166,13 @@ example copier
 	var buf:Stringbuf
 	var copier:Copier
 	copier#Reset #buf #src
-	var written, except = copier!Copy
+	var written, err = copier!Copy
+	assert err == EOF
 	assert s == buf.String
 	assert written == s.Count
 	assert copier.Total_written == s.Count
-	written, except = copier!Copy
+	written, err = copier!Copy
+	assert err == EOF
 	assert buf.String == s
 	assert written == 0
 	assert copier.Total_written == s.Count
@@ -178,11 +183,13 @@ example copier_limited
 	var buf:Stringbuf
 	var copier:Copier
 	copier#Reset #buf #src max=4
-	var written, except = copier!Copy
+	var written, err = copier!Copy
+	assert err == EOF
 	assert buf.String == "This"
 	assert written == 4
 	assert copier.Total_written == 4
-	written, except = copier!Copy
+	written, err = copier!Copy
+	assert err == EOF
 	assert buf.String == "This"
 	assert written == 0
 	assert copier.Total_written == 4
@@ -193,11 +200,13 @@ example copier_incremental
 	var buf:Stringbuf
 	var copier:Copier
 	copier#Reset #buf #src
-	var written, except = copier!Copy max=5
+	var written, err = copier!Copy max=5
+	assert err == OK
 	assert buf.String == "This "
 	assert written == 5
 	assert copier.Total_written == 5
-	written, except = copier!Copy
+	written, err = copier!Copy
+	assert err == EOF
 	assert buf.String == s
 	assert written == s.Count - 5
 	assert copier.Total_written == s.Count
