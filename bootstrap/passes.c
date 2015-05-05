@@ -416,13 +416,18 @@ static void debug_print_tops(struct module *mod) {
 #endif
 
 STEP_NM(step_push_state,
-        STEP_NM_HAS_TOPLEVEL | NM(BLOCK) | NM(DEFFIELD));
+        STEP_NM_HAS_TOPLEVEL | NM(BLOCK) | NM(DEFFIELD) | NM(DEFCHOICE));
 error step_push_state(struct module *mod, struct node *node,
                       void *user, bool *stop) {
   DSTEP(mod, node);
   ssize_t goal = mod->stage->state->passing;
 
   switch (node->which) {
+  case DEFCHOICE:
+    if (node_defchoice_external_payload(node) == NULL) {
+      return 0;
+    }
+    // fallthrough
   case DEFFIELD:
     assert(mod->state);
     assert(mod->state->top_state);
@@ -475,13 +480,18 @@ error step_push_state(struct module *mod, struct node *node,
 }
 
 STEP_NM(step_pop_state,
-        STEP_NM_HAS_TOPLEVEL | NM(BLOCK) | NM(DEFFIELD) | NM(NOOP));
+        STEP_NM_HAS_TOPLEVEL | NM(BLOCK) | NM(DEFFIELD) | NM(DEFCHOICE) | NM(NOOP));
 error step_pop_state(struct module *mod, struct node *node,
                      void *user, bool *stop) {
   DSTEP(mod, node);
   ssize_t goal = mod->stage->state->passing;
 
   switch (node->which) {
+  case DEFCHOICE:
+    if (node_defchoice_external_payload(node) == NULL) {
+      return 0;
+    }
+    // fallthrough
   case DEFFIELD:
     mod->state->top_state->exportable = NULL;
     return 0;

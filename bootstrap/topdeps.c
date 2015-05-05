@@ -81,7 +81,10 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
 
   const bool within_exportable_field
     = snap->exportable != NULL
-    && snap->exportable->which == DEFFIELD;
+    && (snap->exportable->which == DEFFIELD || snap->exportable->which == DEFCHOICE);
+  const struct typ *exportable_typ = !within_exportable_field ? NULL
+    : (snap->exportable->which == DEFCHOICE ? node_defchoice_external_payload(snap->exportable)->typ
+       : snap->exportable->typ);
   const bool is_intf = typ_definition_which(t) == DEFINTF;
   const bool is_ref = typ_is_reference(t);
   const bool is_dyn = typ_is_dyn(t);
@@ -90,7 +93,7 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
 
   switch (top->which) {
   case DEFTYPE:
-    if (within_exportable_field && snap->exportable->typ == t) {
+    if (within_exportable_field && exportable_typ == t) {
       td |= (is_ref || is_intf) ? TD_TYPEBODY_NEEDS_TYPE : TD_TYPEBODY_NEEDS_TYPEBODY;
       td |= is_dyn ? TD_TYPEBODY_NEEDS_DYN : 0;
     }
@@ -187,7 +190,7 @@ static void record_final(struct module *mod, struct snapshot *snap) {
   uint32_t mask = toplevel->flags & TO_KEEP;
 
   const bool within_exportable_field = snap->exportable != NULL
-    && snap->exportable->which == DEFFIELD;
+    && (snap->exportable->which == DEFFIELD || snap->exportable->which == DEFCHOICE);
   if (within_exportable_field) {
     if (!name_is_export(mod, snap->exportable)) {
       mask &= ~TOP_IS_EXPORT;
