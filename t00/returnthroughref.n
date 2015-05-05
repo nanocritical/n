@@ -23,6 +23,10 @@ fun check_empty = ret:stringbuf
 	assert ret.s.Count == 0
 	ret#s#Cat "test"
 
+fun check_empty_tuple = Error, ret:Stringbuf
+	assert ret.Count == 0
+	ret#Cat "test"
+
 fun Main = I32
 	let y = bar
 	if y.x != bar2.x
@@ -39,10 +43,15 @@ fun Main = I32
 	t = check_empty
 	assert t.s == "test"
 
-	var t2 = "a"
+	var t2 = {s="a"}
 	t2 = check_empty
 	assert t2.s == "test"
 	t2 = check_empty
 	assert t2.s == "test"
+
+	var t3 = "a"
+	var err
+	err , t3 = check_empty_tuple
+	assert err == OK and t3 == "test"
 
 	return y.xx
