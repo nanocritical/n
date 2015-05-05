@@ -2094,8 +2094,10 @@ static ERROR process_automagic_call_arguments(struct module *mod,
       e = try_insert_automagic_arg_de(&arg, mod, target, TREFDOT);
       EXCEPT(e);
 
-      e = try_insert_automagic_arg(&did_ref, &arg, mod, node, target, TREFDOT);
-      EXCEPT(e);
+      if (!did_ref) {
+        e = try_insert_automagic_arg(&did_ref, &arg, mod, node, target, TREFDOT);
+        EXCEPT(e);
+      }
     }
   }
 
@@ -2947,6 +2949,31 @@ static ERROR type_inference_try(struct module *mod, struct node *node) {
   return 0;
 }
 
+static enum token_type refop_for_typ(struct typ *r) {
+  if (!typ_is_reference(r)) {
+    return 0;
+  }
+  struct typ *r0 = typ_generic_functor(r);
+  if (r0 == NULL) {
+    return 0;
+  }
+
+  if (r0 == TBI_REF) {
+    return TREFDOT;
+  } else if (r0 == TBI_MREF) {
+    return TREFBANG;
+  } else if (r0 == TBI_MMREF) {
+    return TREFSHARP;
+  } else if (r0 == TBI_NREF) {
+    return TNULREFDOT;
+  } else if (r0 == TBI_NMREF) {
+    return TNULREFBANG;
+  } else if (r0 == TBI_NMMREF) {
+    return TNULREFSHARP;
+  }
+  return 0;
+}
+
 static ERROR type_inference_typeconstraint_defchoice_init(struct module *mod,
                                                           struct node *node) {
   error e;
@@ -2987,8 +3014,21 @@ static ERROR type_inference_typeconstraint_defchoice_init(struct module *mod,
       THROW(e);
     }
 
-    e = try_insert_automagic_de(mod, value);
+    struct typ *target = tit_typ(f);
+    const enum token_type explicit_ref = refop_for_typ(target);
+
+    bool did_ref = false;
+    e = try_insert_automagic_arg(&did_ref, &value, mod, node, target, explicit_ref);
     EXCEPT(e);
+
+    e = try_insert_automagic_arg_de(&value, mod, target, explicit_ref);
+    EXCEPT(e);
+
+    if (!did_ref) {
+      e = try_insert_automagic_arg(&did_ref, &value, mod, node, target, explicit_ref);
+      EXCEPT(e);
+    }
+
     value = next(name);
 
     e = unify(mod, value, tit_typ(f), value->typ);
