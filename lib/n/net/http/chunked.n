@@ -1,11 +1,129 @@
 let max_line_length = 4096:Uint
 
-
 struct chunked_reader =
 	isa io.`Reader
-	r	:bufio.Reader
-	left	:Uint
-	err	:Error
+	r		:#bufio.Reader
+	left_chunk	:Uint
+	left_chunk_crlf	:Bool
+	err		:Error
+	at_eof		:Bool
 
+-- It is an error if the underlying bufio.Reader has reached io.EOF and we
+-- don't make progress using the buffered data, so Fill calls should go through
+-- us so we can register this condition, and report it.
+chunked_reader met# Fill ?max:?Uint = Error
+	let err = self#r#Fill max=max
+	self!at_eof = err == io.EOF
+	return err
+
+chunked_reader met# begin_chunk
+	assert self.left_chunk == 0
+
+	if self.at_eof and self.r.Buffered == 0
+		self!err = io.EOF
+		return
+
+	let partial, line = self!r!Peek_line
+	if partial
+		Eprn partial line.Bytes
+		if self.at_eof
+			self!err = io.UNEXPECTED_EOF
+			return
+		self!err = syscall.EAGAIN
+		return
+
+	_, _ = self!r!Read_line
+	if line.Count > max_line_length
+		self!err = ERR_LINE_TOO_LONG
+		return
+
+	let number = strings.Trim_spaces line
+	var val
+	val, self!err = strconv.Parse_uint number base=16 bit_size=64
+	if self.err != OK
+		self!left_chunk = 0
+		return
+
+	self!left_chunk = val.To_uint
+	if self.left_chunk == 0
+		self!err = io.EOF
+
+	self!left_chunk_crlf = true
+
+-- Until it returns io.EOF, there is more data to read.
+-- If it returns AGAIN, you must call Fill.
 chunked_reader met# Read b:[!]U8 = [!]U8, Error
-	return {}, io.EOF
+	var total
+	while self.err == OK
+		if self.left_chunk == 0 and self.left_chunk_crlf
+			if self.r.Buffered < crlf.Count
+				if self.at_eof
+					self!err = io.UNEXPECTED_EOF
+					break
+				self!err = syscall.EAGAIN
+				break
+			let two = self.r.Read_string max=crlf.Count
+			if two != crlf
+				self!err = ERR_MALFORMED_CHUNK_ENCODING
+				break
+			self!left_chunk_crlf = false
+
+		if self.left_chunk == 0
+			if total > 0
+				let partial_chunk_header, _ = self.r.Peek_line
+				if partial_chunk_header
+					-- We've read enough. Don't potentially block
+					-- reading a new chunk header.
+					break
+			self#begin_chunk
+			continue
+
+		if b.Available == 0
+			break
+
+		let rbuf = b such
+			if rbuf.Available > self.left_chunk
+				rbuf = rbuf!Recapped rbuf.Count+self.left_chunk
+
+		var rrbuf
+		rrbuf, self!err = self!r!Read rbuf
+
+		let count = rrbuf.Count - rbuf.Count
+		total += count
+		self!left_chunk -= count
+
+		b = b![.. total]
+
+	return b, self.err
+
+example chunked_read
+	let chunks = "10\r\n0123456789abcdef\r\n1\r\n0\r\n"
+	var sr = #<- io.Mk_string_reader chunks
+	var br = #<- bufio.Reader.Mk sr
+	var cr = {r=br}:chunked_reader
+
+	assert io.EOF == cr#Fill
+
+	var buf:Stringbuf
+	buf#Reserve 5
+
+	var b, err
+	b = buf!Bytes![.. 0]
+	b, err = cr#Read b
+	assert b.Const == "01234".Bytes and err == OK
+
+	b = buf!Bytes![.. 0]
+	b, err = cr#Read b
+	assert b.Const == "56789".Bytes and err == OK
+
+	b = buf!Bytes![.. 0]
+	b, err = cr#Read b
+	assert b.Const == "abcde".Bytes and err == OK
+
+	b = buf!Bytes![.. 0]
+	b, err = cr#Read b
+	assert b.Const == "f0".Bytes and err == OK
+
+	b = buf!Bytes![.. 0]
+	b, err = cr#Read b
+	assert b.Const == "".Bytes and err == io.EOF

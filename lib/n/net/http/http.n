@@ -22,6 +22,7 @@ let ERR_CONTENT_LENGTH = {Why=*"ERR_CONTENT_LENGTH: wrote more than the declared
 let ERR_MALFORMED_HEADER = {Why=*"ERR_MALFORMED_HEADER: malformed HTTP header"}:Error
 let ERR_MALFORMED_VERSION = {Why=*"ERR_MALFORMED_VERSION: malformed HTTP version"}:Error
 let ERR_MALFORMED_REQUEST_LINE = {Why=*"ERR_MALFORMED_REQUEST_LINE: malformed HTTP request line"}:Error
+let ERR_MALFORMED_CHUNK_ENCODING = {Why=*"ERR_MALFORMED_CHUNK_ENCODING: malformed HTTP chunk encoding"}:Error
 let ERR_UNSUPPORTED_TRANSFER_ENCODING = {Why=*"ERR_UNSUPPORTED_TRANSFER_ENCODING: unsupported Transfer-Encoding"}:Error
 let ERR_BAD_TRAILER_KEY = {Why=*"ERR_BAD_TRAILER_KEY: bad trailer key"}:Error
 let ERR_BAD_CONTENT_LENGTH = {Why=*"ERR_BAD_TRAILER_KEY: bad Content-Length value"}:Error
