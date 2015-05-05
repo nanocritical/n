@@ -176,7 +176,8 @@ static void like_arg(struct module *mod, struct node *par,
 static void gen_on_field(struct module *mod, struct node *m,
                          struct node *body, struct node *f,
                          struct typ *ftyp) {
-  if (typ_is_reference(ftyp)) {
+  const ident mident = node_ident(m);
+  if ((mident == ID_CTOR || mident == ID_DTOR) && typ_is_reference(ftyp)) {
     // Not deep operations.
     return;
   }
@@ -204,7 +205,7 @@ static void gen_on_field(struct module *mod, struct node *m,
        like_arg(mod, assign, arg_self, f);
        like_arg(mod, assign, arg_other, f));
 
-    if (node_ident(m) == ID_MOVE) {
+    if (node_ident(m) == ID_MOVE && !typ_is_reference(ftyp)) {
       struct node *rhs = subs_last(assign);
       node_subs_remove(assign, rhs);
       G0(move, assign, BIN,
@@ -262,7 +263,7 @@ static void gen_on_field(struct module *mod, struct node *m,
   }
 
   G0(cmp, body, BIN,
-     cmp->as.BIN.operator = TNE;
+     cmp->as.BIN.operator = typ_is_reference(ftyp) ? TNEPTR : TNE;
      like_arg(mod, cmp, arg_self, f);
      like_arg(mod, cmp, arg_other, f));
 }
@@ -583,6 +584,7 @@ non_bg:
   switch (tit_ident(mi)) {
   case ID_CTOR:
   case ID_DTOR:
+  case ID_MOVE:
   case ID_COPY_CTOR:
   case ID_OPERATOR_EQ:
     gen_on_choices_and_fields(mod, deft, m, body);
