@@ -258,7 +258,7 @@ fun parse_content_length cl:String = Error, ?Uint
 	let cl = strings.Trim_spaces cl
 	if cl == ""
 		return OK, nil
-	let err, n = strconv.Parse_uint cl 10 64
+	let n, err = strconv.Parse_uint cl base=10 bit_size=64
 	if err != OK
 		return ERR_BAD_CONTENT_LENGTH, nil
 	return OK, ?n.To_uint
