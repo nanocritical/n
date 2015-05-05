@@ -54,30 +54,31 @@ Reader met# Load ?max:?Uint = Error
 		return self#bufr#Load max=max
 
 	self#buf#Copy self.pending.Bytes
-	_, except = self!copier#Copy max=(max else buf_size)
+	let _, err = self!copier#Copy max=(max else buf_size)
 	self#pending = self.buf.String
+	except = err
 
 -- Does not Load more data.
 -- The returned slice is valid until the next call to Load.
-Reader met! Read_slice max:Uint = []U8
-	return (self!Read_string max).Bytes
+Reader met! Read_slice ?max:?Uint = []U8
+	return (self!Read_string max=max).Bytes
 
 -- Does not Load more data.
 -- The returned string is valid until the next call to Load.
-Reader met! Read_string max:Uint = String
-	let len = Min max self.pending.Count
+Reader met! Read_string ?max:?Uint = String
+	let len = Min (max else Uint.MAX) self.pending.Count
 	self!pending = self.pending.[len ..]
 	return self.pending.[.. len]
 
 -- Does not Load more data. Does not advance.
 -- The returned slice is valid until the next call to Load.
-Reader met Peek_slice max:Uint = []U8
-	return (self.Peek_string max).Bytes
+Reader met Peek_slice ?max:?Uint = []U8
+	return (self.Peek_string max=max).Bytes
 
 -- Does not Load more data. Does not advance.
 -- The returned string is valid until the next call to Load.
-Reader met Peek_string max:Uint = String
-	let len = Min max self.pending.Count
+Reader met Peek_string ?max:?Uint = String
+	let len = Min (max else Uint.MAX) self.pending.Count
 	return self.pending.[.. len]
 
 Reader met! Advance cnt:Uint
@@ -198,3 +199,31 @@ example writer
 	assert buf == "This is a test. This is only a test. Do not leave the dancefloor."
 
 	assert w.Count_flushed == buf.Count
+
+
+-- Wraps around a bufio.Reader and automatically loads the buffer when
+-- depleted. May block.
+inline struct Auto_reader =
+	R	:#Reader
+
+Auto_reader met# Read b:[!]U8 = r:[!]U8, err:Error
+	r, err = self#R#Read b
+	if r.Count == b.Count and err == io.EOF
+		err = self#R#Load
+		if err != OK
+			return r, err
+		r, err = self#R#Read b
+
+
+-- Wraps around a bufio.Writer and automatically flushes the buffer when
+-- full. May block.
+inline struct Auto_writer =
+	W	:#Writer
+
+Auto_writer met# Write b:[]U8 = r:[]U8, err:Error
+	r, err = self#W#Write b
+	if r.Count == b.Count
+		err = self#W#Flush
+		if err != OK
+			return r, err
+		r, err = self#W#Write b

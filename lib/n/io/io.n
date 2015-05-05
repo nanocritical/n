@@ -132,15 +132,19 @@ Copier met! Copy ?max:?Uint = written:Uint, err:Error
 		if more < b.Available
 			b = b!Recapped b.Count+more
 
+		let read_before = b.Count
+		let available_before = b.Available
+
 		b, rd_err = self!Src#Read b
-		self!Max -= b.Count
-		more -= b.Count
+		let read = b.Count - read_before
+		self!Max -= read
+		more -= read
 
 		let left, wr_err = self!Dst#Write b
 		written += b.Count - left.Count
 		self!buf#Copy left
 
-		if rd_err == EOF
+		if rd_err == EOF or read < available_before
 			self!Max = 0
 			more = 0
 		elif rd_err != OK
@@ -197,3 +201,42 @@ example copier_incremental
 	assert buf.String == s
 	assert written == s.Count - 5
 	assert copier.Total_written == s.Count
+
+
+struct Limited_reader =
+	isa `Reader
+	R	:#`Reader
+	Left	:Uint
+
+Limited_reader fun Mk r:#`Reader limit:Uint = ret:this
+	ret#R = r
+	ret#Left = limit
+
+Limited_reader met# Read b:[!]U8 = rb:[!]U8, rerr:Error
+	if self.Left == 0
+		return b, EOF
+
+	var lim_b = b
+	if lim_b.Available > self.Left
+		lim_b = lim_b!Recapped lim_b.Count+self.Left
+
+	rb, rerr = self.R.Read lim_b
+	-- Return a slice with the original cap.
+	rb = b.[.. rb.Count]
+
+	self!Left -= rb.Count - b.Count
+	if self.Left == 0
+		rerr = EOF
+
+example limited_reader
+	let s = "Test"
+	let r = Mk_string_reader s
+	let lr = Limited_reader.Mk #r 3
+	var buf:Stringbuf
+	buf#Reserve 100
+	var b, err = lr#Read (buf!Bytes!Recapped 1)
+	assert err == OK and b.Count == 1 and b.Const == "T".Bytes and lr.Left == 2 and b.Cap == 1
+	b, err = lr#Read buf!Bytes![.. 1]
+	assert err == EOF and b.Count == 3 and b.Const == "Tes".Bytes and lr.Left == 0 and b.Cap == 100
+	b, err  = lr#Read b
+	assert err == EOF and b.Count == 3 and b.Const == "Tes".Bytes and lr.Left == 0 and b.Cap == 100
