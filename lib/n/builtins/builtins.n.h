@@ -20,7 +20,7 @@ union NB(Varargintunion) {
 
 struct NB(Varargint) {
   NB(Int) n; // Must be first, see Count_left below.
-  NB(I32) vacount;
+  NB(I32) vacount; // As passed in.
   union NB(Varargintunion) u;
 };
 
@@ -56,23 +56,44 @@ static inline void n$builtins$clean_zero(struct n$builtins$cleaner *c);
 
 #define NLANG_BUILTINS_VACOUNT_SLICE (-1)
 #define NLANG_BUILTINS_VACOUNT_VARARGREF (-2)
+#define NLANG_BUILTINS_VACOUNT_LAST_IS_FWD_SLICE (0x10000000)
+#define NLANG_BUILTINS_VACOUNT_LAST_IS_FWD_REF (0x20000000)
+
+#define NLANG_BUILTINS_VARARG_FWD_SLICE(va, _ap) do { \
+  /* If forwarding the last vararg, we're changing mode. */ \
+  void *_Ns = va_arg((_ap)->u.valist, void *); \
+  va_end((_ap)->u.valist); \
+  (va).ap.vacount = NLANG_BUILTINS_VACOUNT_SLICE; \
+  (va).ap.u.s = _Ns; \
+  (va).ap.n = NLANG_BUILTINS_VARARG_SLICE_CNT(&(va).ap); \
+} while (0)
+
+#define NLANG_BUILTINS_VARARG_FWD_REF(va, _ap) do { \
+  struct n$builtins$Varargint *_Nref = va_arg((_ap)->u.valist, struct n$builtins$Varargint *); \
+  va_end((_ap)->u.valist); \
+  if (_Nref->vacount == NLANG_BUILTINS_VACOUNT_VARARGREF) { \
+    _Nref = _Nref->u.ref; \
+  } \
+  /* If forwarding the last vararg, we're changing mode. */ \
+  (va).ap.vacount = NLANG_BUILTINS_VACOUNT_VARARGREF; \
+  (va).ap.u.ref = _Nref; \
+} while (0)
+
+#define NLANG_BUILTINS_VARARG_LAST_IS_FWD(ap) \
+  ( (ap)->vacount > 0 \
+    && ((ap)->vacount \
+        & (NLANG_BUILTINS_VACOUNT_LAST_IS_FWD_SLICE | NLANG_BUILTINS_VACOUNT_LAST_IS_FWD_REF)) )
 
 #define NLANG_BUILTINS_VARARG_START(va) do { \
   va_start((va).ap.u.valist, _$Nvacount); \
   (va).ap.vacount = _$Nvacount; \
   if (_$Nvacount >= 0) { \
-    (va).ap.n = _$Nvacount; \
+    (va).ap.n = _$Nvacount \
+      & ~(NLANG_BUILTINS_VACOUNT_LAST_IS_FWD_SLICE | NLANG_BUILTINS_VACOUNT_LAST_IS_FWD_REF); \
   } else if (_$Nvacount == NLANG_BUILTINS_VACOUNT_SLICE) { \
-    (va).ap.u.s = va_arg((va).ap.u.valist, void *); \
-    (va).ap.n = NLANG_BUILTINS_VARARG_SLICE_CNT(&(va).ap); \
-    va_end((va).ap.u.valist); \
+    NLANG_BUILTINS_VARARG_FWD_SLICE(va, &(va).ap); \
   } else { \
-    struct n$builtins$Varargint *ref = va_arg((va).ap.u.valist, struct n$builtins$Varargint *); \
-    va_end((va).ap.u.valist); \
-    if (ref->vacount == NLANG_BUILTINS_VACOUNT_VARARGREF) { \
-      ref = ref->u.ref; \
-    } \
-    (va).ap.u.ref = ref; \
+    NLANG_BUILTINS_VARARG_FWD_REF(va, &(va).ap); \
   } \
 } while (0)
 
@@ -81,37 +102,57 @@ static inline void n$builtins$clean_zero(struct n$builtins$cleaner *c);
    ? (va).ap.u.ref : &(va).ap)
 
 #define NLANG_BUILTINS_VARARG_END(va) do { \
-  struct n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
-  if (ap->vacount >= 0) { \
-    va_end(ap->u.valist); \
+  struct n$builtins$Varargint *_Nap = NLANG_BUILTINS_VARARG_AP(va); \
+  if (_Nap->vacount >= 0) { \
+    va_end(_Nap->u.valist); \
   } \
 } while (0)
 
-#define NLANG_BUILTINS_VARARG_NEXT_(t, ap) \
+#define NLANG_BUILTINS_VARARG_NEXT_GET(t, ap) \
   ({ \
-   n$builtins$Assert__((ap)->n != 0, NULL); \
    (ap)->n -= 1; \
    va_arg((ap)->u.valist, t); \
    })
 
-#define NLANG_BUILTINS_VARARG_NEXT(t, rt, va) \
-  ({ struct n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
-  ( n$builtins$Varargint$Count_left(ap) == 0 ? ( (rt){ 0 } ) : \
+#define NLANG_BUILTINS_VARARG_NEXT_(t, rt, ap) \
+  ({ n$builtins$Varargint$Count_left(ap) == 0 ? ( (rt){ 0 } ) : \
   ( (rt){ .X = ({ \
    (ap->vacount == NLANG_BUILTINS_VACOUNT_SLICE) ? \
    NLANG_BUILTINS_VARARG_SLICE_NTH(ap, t, \
                                    NLANG_BUILTINS_VARARG_SLICE_CNT(ap) \
                                    - ap->n--) \
-   : NLANG_BUILTINS_VARARG_NEXT_(t, ap); \
-   }), .Nonnil = 1 } ) ); })
+   : NLANG_BUILTINS_VARARG_NEXT_GET(t, ap); \
+   }), .Nonnil = 1 } ); })
+
+#define NLANG_BUILTINS_VARARG_NEXT(t, rt, va) \
+  ({ struct n$builtins$Varargint *_Nap = NLANG_BUILTINS_VARARG_AP(va); \
+  if (n$builtins$Varargint$Count_left(_Nap) == 1 && NLANG_BUILTINS_VARARG_LAST_IS_FWD(_Nap)) { \
+    if (_Nap->vacount & NLANG_BUILTINS_VACOUNT_LAST_IS_FWD_SLICE) { \
+      NLANG_BUILTINS_VARARG_FWD_SLICE(va, _Nap); \
+    } else if (_Nap->vacount & NLANG_BUILTINS_VACOUNT_LAST_IS_FWD_REF) { \
+      NLANG_BUILTINS_VARARG_FWD_REF(va, _Nap); \
+    } \
+    _Nap = NLANG_BUILTINS_VARARG_AP(va); \
+  } \
+  NLANG_BUILTINS_VARARG_NEXT_(t, rt, _Nap); })
+
+// FIXME: dyn slices support is missing
+#define NLANG_BUILTINS_VARARG_NEXT_DYN_(t, rt, ap) \
+  ({ n$builtins$Varargint$Count_left(ap) == 0 ? ( (rt){ 0 } ) : \
+  ( (rt){ .X = ({ \
+  NLANG_BUILTINS_VARARG_NEXT_GET(t, ap); \
+  }), .Nonnil = 1 } ); })
 
 // FIXME: dyn slices support is missing
 #define NLANG_BUILTINS_VARARG_NEXT_DYN(t, rt, va) \
-  ({ struct n$builtins$Varargint *ap = NLANG_BUILTINS_VARARG_AP(va); \
-  ( n$builtins$Varargint$Count_left(ap) == 0 ? ( (rt){ 0 } ) : \
-  ( (rt){ .X = ({ \
-  NLANG_BUILTINS_VARARG_NEXT_(t, NLANG_BUILTINS_VARARG_AP(va)); \
-  }), .Nonnil = 1 } ) ); })
+  ({ struct n$builtins$Varargint *_Nap = NLANG_BUILTINS_VARARG_AP(va); \
+  if (n$builtins$Varargint$Count_left(_Nap) == 1 && NLANG_BUILTINS_VARARG_LAST_IS_FWD(_Nap)) { \
+    if (_Nap->vacount & NLANG_BUILTINS_VACOUNT_LAST_IS_FWD_REF) { \
+      NLANG_BUILTINS_VARARG_FWD_REF(va, _Nap); \
+    } \
+    _Nap = NLANG_BUILTINS_VARARG_AP(va); \
+  } \
+  NLANG_BUILTINS_VARARG_NEXT_DYN_(t, rt, _Nap); })
 
 #define NLANG_MKDYN(dyn_type, _dyntable, _obj) \
   (dyn_type){ .obj = (_obj), .dyntable = (void *)(_dyntable) }

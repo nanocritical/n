@@ -536,6 +536,21 @@ static void print_tuple(FILE *out, const struct module *mod, const struct node *
   fprintf(out, "}");
 }
 
+static void arg_is_vararg_slice_or_ref(bool *fwd_slice, bool *fwd_ref,
+                                       const struct node *arg) {
+  if (arg->which == CALLNAMEDARG && arg->as.CALLNAMEDARG.is_slice_vararg) {
+    if (typ_is_reference(arg->typ)) {
+      const struct typ *va = typ_generic_arg_const(arg->typ, 0);
+      if (typ_generic_arity(va) > 0
+          && typ_equal(typ_generic_functor_const(va), TBI_VARARG)) {
+        *fwd_ref = true;
+      }
+    }
+
+    *fwd_slice = !*fwd_ref;
+  }
+}
+
 static void print_call_vararg_count(bool *did_retval_throughref,
                                     FILE *out, const struct module *mod, const struct node *dfun,
                                     const struct node *node, const struct node *arg,
@@ -555,22 +570,26 @@ static void print_call_vararg_count(bool *did_retval_throughref,
   }
 
   const ssize_t count = subs_count(node) - 1 - first_vararg;
-  if (count == 1 && arg->which == CALLNAMEDARG && arg->as.CALLNAMEDARG.is_slice_vararg) {
-    bool passdown = false;
-    if (typ_is_reference(arg->typ)) {
-      const struct typ *va = typ_generic_arg_const(arg->typ, 0);
-      if (typ_generic_arity(va) > 0
-          && typ_equal(typ_generic_functor_const(va), TBI_VARARG)) {
-        passdown = true;
-        fprintf(out, "NLANG_BUILTINS_VACOUNT_VARARGREF");
-      }
-    }
+  bool fwd_slice = false, fwd_ref = false;
+  arg_is_vararg_slice_or_ref(&fwd_slice, &fwd_ref, arg);
 
-    if (!passdown) {
+  if (count == 1 && (fwd_ref || fwd_slice)) {
+    if (fwd_slice) {
       fprintf(out, "NLANG_BUILTINS_VACOUNT_SLICE");
+    } else if (fwd_ref) {
+      fprintf(out, "NLANG_BUILTINS_VACOUNT_VARARGREF");
     }
   } else {
     fprintf(out, "%zd", count);
+
+    const struct node *last_arg = subs_last_const(node);
+    bool last_fwd_slice = false, last_fwd_ref = false;
+    arg_is_vararg_slice_or_ref(&last_fwd_slice, &last_fwd_ref, last_arg);
+    if (last_fwd_slice) {
+      fprintf(out, "|NLANG_BUILTINS_VACOUNT_LAST_IS_FWD_SLICE");
+    } else if (last_fwd_ref) {
+      fprintf(out, "|NLANG_BUILTINS_VACOUNT_LAST_IS_FWD_REF");
+    }
   }
 
   if (count != 0) {
