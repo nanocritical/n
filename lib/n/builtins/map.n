@@ -192,23 +192,26 @@ example check_bijection
 		hits!Set <- quad_open_addr size hash nth
 	assert hits.Popcount == size
 
-Map shallow met$ get_unit key:*K trying:Bool = ?$this.unit_type, idx:Uint, hash:U32
-	if trying and self.Count == 0
+Map shallow met$ get_unit key:*K just_looking:Bool = ?$this.unit_type, idx:Uint, hash:U32
+	if just_looking and self.Count == 0
 		return nil, 0, 0
 
 	hash = key.Hash32
 	var nth
+	var deleted_slot_idx:?Uint
 	while true
 		idx = self.index hash nth
 		let u = self.table$get idx
-		Eprn hash nth idx "," self.Count self.table.size
 		nth += 1
 		if not u?
+			if not just_looking and deleted_slot_idx?
+				let u = self.table$get deleted_slot_idx
+				return u, (deleted_slot_idx else 0), hash
 			return nil, idx, hash
-		if Unlikely <- not u.hash?
+		if not u.hash?
 			-- Deleted
-			-- TODO(e): in some insert cases, we can reuse the
-			-- deleted location.
+			if not just_looking and not deleted_slot_idx?
+				deleted_slot_idx = idx
 			continue
 		if u.hash != hash
 			continue
@@ -251,13 +254,20 @@ Map met# may_grow = Bool
 Map met# store key:*K = added:Bool, #T
 	self#ensure_init
 	var u, idx, hash = self!get_unit key false
-	if u?
+	if u? and u.hash?
 		return false, #u#val
+
+	if u?
+		-- Reusing deleted slot.
+		self!count += 1
+		u#hash = hash
+		u#key = key
+		return true, #u#val
 
 	-- Need to create a spot.
 	if self#may_grow
-		-- The table has changed, we need to recompute idx.
-		_, idx, _ = self!get_unit key false
+		-- The table has changed, we need to recompute idx. Let's just restart.
+		return self#store key
 
 	self!count += 1
 	self!count_inc_deleted += 1
