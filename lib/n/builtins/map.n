@@ -139,8 +139,9 @@ unit met Show st:#`Fmt_state
 struct Map K:`Map_key T:`Copyable =
 	isa `Show (`Slice_compatible (K, T)) `Copyable (`Collection K) (`Inherit `Has_equality T)
 	alias unit_type = (unit K T)
-	table	:(sptable unit_type)
-	count	:Uint
+	table			:(sptable unit_type)
+	count			:Uint
+	count_inc_deleted	:Uint
 
 -- Ignore duplicated keys.
 Map fun From_slice c:[](K, T) = r:this
@@ -163,6 +164,7 @@ Map met# Dtor
 Map met# Clear
 	self#table#Dtor
 	self!count = 0
+	self!count_inc_deleted = 0
 
 Map met# Copy_ctor other:*this
 	self#Dtor
@@ -199,6 +201,7 @@ Map shallow met$ get_unit key:*K trying:Bool = ?$this.unit_type, idx:Uint, hash:
 	while true
 		idx = self.index hash nth
 		let u = self.table$get idx
+		Eprn hash nth idx "," self.Count self.table.size
 		nth += 1
 		if not u?
 			return nil, idx, hash
@@ -223,7 +226,7 @@ Map shallow met$ Operator_at key:*K = ?$T
 
 Map met# may_grow = Bool
 	-- 3/4 full?
-	if self.count <= self.table.size/2
+	if self.count_inc_deleted <= self.table.size/2
 		return false
 
 	-- Grow.
@@ -242,7 +245,7 @@ Map met# may_grow = Bool
 	Slice_memset ((Cast #this #U8) tmp) 0 (sizeof this)
 	Free tmp
 
-	assert self.count <= self.table.size/2
+	assert self.count_inc_deleted <= self.table.size/2
 	return true
 
 Map met# store key:*K = added:Bool, #T
@@ -257,6 +260,7 @@ Map met# store key:*K = added:Bool, #T
 		_, idx, _ = self!get_unit key false
 
 	self!count += 1
+	self!count_inc_deleted += 1
 	let nu = self#table#set idx
 	nu#hash = hash
 	nu#key = key
@@ -312,7 +316,7 @@ Map shallow met$ Iter = (Map_iter this $T)
 -- account the possibility of deleted values being in there.
 Map met Operator_eq other:*this = Bool
 	assert T isa `Has_equality
-	if self.count != other.count
+	if self.Count != other.Count
 		return false
 
 	for k, sv in self.Iter
