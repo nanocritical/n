@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>
+#include <signal.h>
 #include <arpa/inet.h>
 
 #define NB(t) n$builtins$##t
@@ -612,11 +613,32 @@ static NB(Int) SY(accept4)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) *raw_addrl
 
 NB(I32) SY(SOL_SOCKET) = SOL_SOCKET;
 NB(I32) SY(SO_REUSEADDR) = SO_REUSEADDR;
+NB(I32) SY(SO_ERROR) = SO_ERROR;
+
+static NB(Int) SY(getsockopt)(NB(Int) sockfd, NB(I32) level, NB(I32) optname,
+                              NB(U8) *optval, NB(Uint) *optlen) {
+  socklen_t _optlen = *optlen;
+  int ret = getsockopt(sockfd, level, optname, optval, &_optlen);
+  *optlen = _optlen;
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
 
 static NB(Int) SY(setsockopt)(NB(Int) sockfd, NB(I32) level, NB(I32) optname,
                               NB(U8) *optval, NB(Uint) optlen) {
   socklen_t _optlen = optlen;
   int ret = setsockopt(sockfd, level, optname, optval, _optlen);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+
+NB(I32) SY(SHUT_RD) = SHUT_RD;
+NB(I32) SY(SHUT_WR) = SHUT_WR;
+NB(I32) SY(SHUT_RDWR) = SHUT_RDWR;
+
+static NB(Int) SY(shutdown)(NB(Int) sockfd, NB(I32) how) {
+  int ret = shutdown(sockfd, how);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
@@ -657,6 +679,47 @@ static NB(Int) SY(epoll_pwait)(NB(Int) epfd, NB(U8) *raw_events, NB(Uint) maxeve
   return ret;
 }
 
+
+NB(I32) SY(SIGHUP) = SIGHUP;
+NB(I32) SY(SIGINT) = SIGINT;
+NB(I32) SY(SIGQUIT) = SIGQUIT;
+NB(I32) SY(SIGILL) = SIGILL;
+NB(I32) SY(SIGABRT) = SIGABRT;
+NB(I32) SY(SIGFPE) = SIGFPE;
+NB(I32) SY(SIGKILL) = SIGKILL;
+NB(I32) SY(SIGSEGV) = SIGSEGV;
+NB(I32) SY(SIGPIPE) = SIGPIPE;
+NB(I32) SY(SIGALRM) = SIGALRM;
+NB(I32) SY(SIGTERM) = SIGTERM;
+
+NB(I32) SY(SIGUSR1) = SIGUSR1;
+NB(I32) SY(SIGUSR2) = SIGUSR2;
+NB(I32) SY(SIGCHLD) = SIGCHLD;
+NB(I32) SY(SIGCONT) = SIGCONT;
+NB(I32) SY(SIGSTOP) = SIGSTOP;
+NB(I32) SY(SIGTSTP) = SIGTSTP;
+NB(I32) SY(SIGTTIN) = SIGTTIN;
+NB(I32) SY(SIGTTOU) = SIGTTOU;
+
+NB(I32) SY(SIGTRAP) = SIGTRAP;
+
+NB(U8) *n$syscall$SIGACTION_DFL(void) {
+  static __thread struct n$syscall$Sigaction act = { 0 };
+  act.act.sa_handler = SIG_DFL;
+  return (void *)&act;
+}
+
+NB(U8) *n$syscall$SIGACTION_IGN(void) {
+  static __thread struct n$syscall$Sigaction act = { 0 };
+  act.act.sa_handler = SIG_IGN;
+  return (void *)&act;
+}
+
+static NB(Int) SY(sigaction)(NB(I32) signum, NB(U8) *raw_act, NB(U8) *raw_oldact) {
+  int ret = sigaction(signum, (const struct sigaction *)raw_act, (struct sigaction *)raw_oldact);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
 
 #endif
 

@@ -4,6 +4,7 @@
 from n import *
 import n.ev
 import n.io
+import n.io.ioutil
 import n.bufio
 import n.fmt
 import n.strings
@@ -13,6 +14,7 @@ import n.strconv
 import n.net
 import n.net.tcp
 import n.net.url
+import n.time
 
 let crlf = "\r\n"
 let colon_space = ": "
@@ -34,141 +36,236 @@ enum Handling_state =
 	| WAITING_HEADER = 0
 	| WAITING_BODY
 	| COMPLETE
+	| RECYCLE
 
 
 struct Request_handler =
 	isa ev.`Handler `Not_copyable
+	connected		:Bool
+
 	state		:Handling_state
-	Conn		:#tcp.Conn
+	conn		:#tcp.Conn -- Owner
+
 	bufr		:bufio.Reader
-	Header		:Header
+	request		:Request
+
+	bufw		:bufio.Writer
+	response	:response_writer
 
 	ev_read		:ev.Event
+	ev_close	:ev.Event
+
+Request_handler met log ...s:(Vararg ?*`Show)
+	Eprn self.conn.Fd s!Next ":" ...s
+
+Request_handler met# Dtor
+	drop = self#Close
+	Free self#conn
 
 Request_handler met# Init conn:#tcp.Conn
-	self#Dtor
-	self#Conn = conn
-	self#bufr = bufio.Reader.Mk self#Conn
-	self#ev_read = {Fd=self.Conn.Fd Request={READ RDHUP} Handler=self}
+	self#connected = true
+	self#conn = conn
+	self#bufr = bufio.Reader.Mk self#conn
+	self#bufw = bufio.Writer.Mk self#conn
+	self#ev_read = {Fd=self.conn.Fd Ask={READ RDHUP} Handler=self}
+	self#ev_close = {Fd=self.conn.Fd Ask={HUP} Handler=self}
+
+Request_handler met# recycle = Error, nxt:ev.Event
+	self.log "recycle"
+	if not self.connected
+		return INVAL, NONE
+
+	assert self#bufr#Buffered == 0
+	assert self#bufw#Buffered == 0
+	self#request#Dtor
+	self#response#Dtor
+	self#state = WAITING_HEADER
 
 Request_handler met# Close = err:Error
-	err = self#Conn#Close
+	if not self.connected
+		return OK
+
+	self.log "Close"
+
+	block
+		-- See http://blog.netherlabs.nl/articles/2009/01/18/the-ultimate-so_linger-page-or-why-is-my-tcp-not-reliable
+		-- See http://developerweb.net/viewtopic.php?id=2982
+		drop = syscall.Shutdown self.conn.Fd syscall.SHUT_RD
+
+		var buf:Stringbuf
+		buf#Reserve 4096
+		let hole = buf!Bytes
+		while true
+			let left, err = self#conn#Read hole
+			if err == io.EOF
+				break
+			if err == syscall.EAGAIN
+				-- We're not going to wait.
+				return err
+			drop = err
+			if left.Count != 0
+				self.log "Close" "read leftovers:" hole.Count-left.Count
+
+	err = self#conn#Close
+
 	if err == syscall.EBADF
 		-- Already closed
-		err = OK
+		return OK
+
+	if err == syscall.EWOULDBLOCK
+		return err
+
+	-- Give up trying to close it.
+	self#connected = false
 	except = err
 
-Request_handler met# On e:ev.Event = Error, nxt:ev.Event
-	Eprn self.state e
-	if READ in e.What
-		match self.state
-		| WAITING_HEADER -> except, nxt = self#waiting_header
-		| WAITING_BODY -> except, nxt =  self#waiting_body
-		| COMPLETE -> noop
+Request_handler met# On e:ev.Event = err:Error, nxt:ev.Event
+	self.log "On" self.state e
+
+	if ERROR in e.Got
+		err = self!conn!Pending_error
+		self.log "On" "pending error:" err
+		if not HUP in e.Got
+			nxt = self.ev_close
+
+	if READ in e.Got
+		try
+			while nxt == NONE
+				match self.state
+				| WAITING_HEADER -> except, nxt = self#waiting_header
+				| WAITING_BODY -> except, nxt =  self#waiting_body
+				| COMPLETE -> break
+				| RECYCLE -> break
+		catch err
+			if err == syscall.EPIPE
+				self.log "On" syscall.EPIPE
+				return OK, self.ev_close
+			else
+				except = err
+
+	if HUP in e.Got
+		let close_err = self#Close
+		if close_err == syscall.EWOULDBLOCK or close_err == syscall.EAGAIN
+			return OK, self.ev_close
+		Free self
+		return OK, NONE
+
+	if RDHUP in e.Got
+		-- There will be nothing more to read from the client.
+		-- We can't recycle then.
+		self#state = COMPLETE
+		-- lets try not to close
+		return OK, NONE
 
 	if self.state == COMPLETE
-		except = self#Close
-		return OK, NONE
+		nxt = self.ev_close
 
-	if RDHUP in e.What or HUP in e.What
-		self#state = COMPLETE
-		except = self#Close
-		return OK, NONE
-
-	if ERROR in e.What
-		except = UNKNOWN
+	if self.state == RECYCLE
+		return self#recycle
 
 Request_handler met# waiting_header = Error, ev.Event
 	let rerr = self#bufr#Fill
+
 	if rerr != io.EOF and rerr != syscall.EAGAIN
 		except = rerr
 
-	Eprn self.Conn.Fd self.bufr.Buffered "\n" self.bufr.Peek_string
+	if self.bufr.Buffered == 0
+		if rerr == syscall.EAGAIN
+			return rerr, self.ev_read
+		if rerr == io.EOF
+			self#state = COMPLETE
+			return OK, NONE
 
 	if not is_header_loaded self.bufr
+		self.log "waiting_header" "header not loaded, count:" self.bufr.Buffered
 		if rerr == io.EOF
 			return ERR_MALFORMED_HEADER, NONE
 		return syscall.EAGAIN, self.ev_read
 
-	except = read_header #self#Header !self!bufr
-	Eprn self.Header.Map
+	except = read_request_header #self#request !self!bufr
+
+	except = prepare_request_transfer #self#request #self#bufr #self#bufw
+	self#response#init self#conn #self#request #self#bufw
+
+	self.log "waiting_header" "got_header" self.request.Host self.request.Url self.request.Header.Map
+
 	self#state = WAITING_BODY
 	return OK, NONE
 
 Request_handler met# waiting_body = Error, ev.Event
-	Eprn self.state
-	let rerr = self#bufr#Fill
+	self.log "waiting_body" self.state
+
+	let req_content_length = self.request.Content_length else Uint.MAX
+
+	var buf:Stringbuf
+	buf#Reserve (Min 4096 req_content_length)
+	let body, rerr = self#request#Body#Read buf!Bytes
 	if rerr != io.EOF and rerr != syscall.EAGAIN
 		except = rerr
 
---	if rerr != EOF and not is_body_loaded self.bufr
---	return syscall.EAGAIN, self.ev_read
---
---	except = read_body #self#Body self.bufr
-	self#state = COMPLETE
+	(self#response#Header#Set "Content-Type")# = "text/plain"
+
+	_, except = self#response#Write body
+
+	let close_conn, except = self#response#Done
+
+	if close_conn
+		self#state = COMPLETE
+		return OK, NONE
+
+	self#state = RECYCLE
 	return OK, NONE
 
 
---struct Response =
---	isa ev.`Handler
---	state		:Handling_state
---	Conn		:#tcp.Conn
---	bufw		:bufio.Writer
---
---Response met# Init
---	self#Dtor
---	self#bufw = bufio.Writer.Mk self#Conn
---
---Response met! On e:Event = Error, Event
---	assert OUTPUT in e.What
---	match self.state
---	| WAITING_HEADER -> return self#waiting_header
---	| WAITING_BODY -> return self#waiting_body
---	| COMPLETE -> return OK, NONE
---
---Response met# waiting_header = Error, Event
---	let rerr = self#bufr#Fill
---	if rerr != EOF and rerr != syscall.EAGAIN
---		except = rerr
---
---	if rerr != EOF and not is_header_loaded self.bufr
---		return syscall.EAGAIN, self.ev_read
---
---	except = read_header #self#Header self.bufr
---	self#state = WAITING_BODY
---	return OK, NONE
---
---Response met# waiting_body = Error, Event
---	
+fun do_one_fd poll:#ev.Poll listening:#tcp.Socket = Error
+	let wait_err, e, _ = poll!Wait
+	if wait_err == syscall.EAGAIN
+		return OK
+	except = wait_err
+
+	if e.Fd == listening.Fd
+		while true
+			let conn = Alloc tcp.Conn
+			var accept_err
+			accept_err, conn# = listening.Accept
+			if accept_err == syscall.EAGAIN or accept_err == syscall.EWOULDBLOCK
+				Free conn
+				break
+
+			let reqh = Alloc Request_handler
+			reqh#Init conn
+			except = poll!Register reqh.ev_read
+	else
+		if not e.Handler?
+			return OK
+
+		let err, next = e.Handler#On e
+		except = poll!Register next
+
+		if err == syscall.EAGAIN
+			return OK
+
+		if next == NONE
+			return OK
+
+		except = err
+
 
 fun do = Error
 	var poll:ev.Poll
 	except = poll#Init
 
-	var so:tcp.Socket
-	except = so#Listen TCP4 {Ip=(net.Ip.V4 0 0 0 0) Port=9000}
+	var listening:tcp.Socket
+	except = listening#Listen TCP4 {Ip=(net.Ip.V4 0 0 0 0) Port=9000}
 
-	let ev_accept = {Fd=so.Fd Request={READ}}
+	let ev_accept = {Fd=listening.Fd Ask={READ}}
 	except = poll!Register ev_accept
 
-	var reqh:Request_handler, conn
 	while true
-		let wait_err, e = poll!Wait
-		if wait_err == syscall.EAGAIN
+		try
+			except = do_one_fd #poll #listening
+		catch _
 			continue
-		except = wait_err
-
-		Eprn e
-
-		if e.Fd == so.Fd
-			except, conn = so.Accept
-			reqh#Init #conn
-			except = poll!Register reqh.ev_read
-		else
-			let err, _ = e.Handler#On e
-			if err == syscall.EAGAIN
-				continue
-			except = err
 
 
 fun Main = I32

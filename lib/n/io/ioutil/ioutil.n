@@ -1,0 +1,9 @@
+from n import *
+import n.io
+
+struct Discard =
+	isa io.`Writer
+	noop
+
+Discard met# Write b:[]U8 = []U8, Error
+	return {}, OK

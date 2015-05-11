@@ -1,0 +1,108 @@
+-- HTTP status codes, defined in RFC 2616.
+let Status_continue = 100:Uint
+let Status_switching_protocols = 101:Uint
+
+let Status_ok = 200:Uint
+let Status_created = 201:Uint
+let Status_accepted = 202:Uint
+let Status_non_authoritative_info = 203:Uint
+let Status_no_content = 204:Uint
+let Status_reset_content = 205:Uint
+let Status_partial_content = 206:Uint
+
+let Status_multiple_choices = 300:Uint
+let Status_moved_permanently = 301:Uint
+let Status_found = 302:Uint
+let Status_see_other = 303:Uint
+let Status_not_modified = 304:Uint
+let Status_use_proxy = 305:Uint
+let Status_temporary_redirect = 307:Uint
+
+let Status_bad_request = 400:Uint
+let Status_unauthorized = 401:Uint
+let Status_payment_required = 402:Uint
+let Status_forbidden = 403:Uint
+let Status_not_found = 404:Uint
+let Status_method_not_allowed = 405:Uint
+let Status_not_acceptable = 406:Uint
+let Status_proxy_auth_required = 407:Uint
+let Status_request_timeout = 408:Uint
+let Status_conflict = 409:Uint
+let Status_gone = 410:Uint
+let Status_length_required = 411:Uint
+let Status_precondition_failed = 412:Uint
+let Status_request_entity_too_large = 413:Uint
+let Status_request_uri_too_long = 414:Uint
+let Status_unsupported_media_type = 415:Uint
+let Status_requested_range_not_satisfiable = 416:Uint
+let Status_expectation_failed = 417:Uint
+let Status_teapot = 418:Uint
+
+let Status_internal_server_error = 500:Uint
+let Status_not_implemented = 501:Uint
+let Status_bad_gateway = 502:Uint
+let Status_service_unavailable = 503:Uint
+let Status_gateway_timeout = 504:Uint
+let Status_http_version_not_supported = 505:Uint
+
+-- New HTTP status codes from RFC 6585. Not exported yet.
+-- See discussion at https://codereview.appspot.com/7678043/
+let status_precondition_required = 428:Uint
+let status_too_many_requests = 429:Uint
+let status_request_header_fields_too_large = 431:Uint
+let status_network_authentication_required = 511:Uint
+
+-- Status_text returns a text for the HTTP status code. It returns nil
+-- if the code is unknown.
+fun Status_text status_code:Uint = ?String
+	if status_code == Status_continue -> return "Continue"
+	elif status_code == Status_switching_protocols -> return "Switching Protocols"
+
+	elif status_code == Status_ok -> return "OK"
+	elif status_code == Status_created -> return "Created"
+	elif status_code == Status_accepted -> return "Accepted"
+	elif status_code == Status_non_authoritative_info -> return "Non-Authoritative Information"
+	elif status_code == Status_no_content -> return "No Content"
+	elif status_code == Status_reset_content -> return "Reset Content"
+	elif status_code == Status_partial_content -> return "Partial Content"
+
+	elif status_code == Status_multiple_choices -> return "Multiple Choices"
+	elif status_code == Status_moved_permanently -> return "Moved Permanently"
+	elif status_code == Status_found -> return "Found"
+	elif status_code == Status_see_other -> return "See Other"
+	elif status_code == Status_not_modified -> return "Not Modified"
+	elif status_code == Status_use_proxy -> return "Use Proxy"
+	elif status_code == Status_temporary_redirect -> return "Temporary Redirect"
+
+	elif status_code == Status_bad_request -> return "Bad Request"
+	elif status_code == Status_unauthorized -> return "Unauthorized"
+	elif status_code == Status_payment_required -> return "Payment Required"
+	elif status_code == Status_forbidden -> return "Forbidden"
+	elif status_code == Status_not_found -> return "Not Found"
+	elif status_code == Status_method_not_allowed -> return "Method Not Allowed"
+	elif status_code == Status_not_acceptable -> return "Not Acceptable"
+	elif status_code == Status_proxy_auth_required -> return "Proxy Authentication Required"
+	elif status_code == Status_request_timeout -> return "Request Timeout"
+	elif status_code == Status_conflict -> return "Conflict"
+	elif status_code == Status_gone -> return "Gone"
+	elif status_code == Status_length_required -> return "Length Required"
+	elif status_code == Status_precondition_failed -> return "Precondition Failed"
+	elif status_code == Status_request_entity_too_large -> return "Request Entity Too Large"
+	elif status_code == Status_request_uri_too_long -> return "Request URI Too Long"
+	elif status_code == Status_unsupported_media_type -> return "Unsupported Media Type"
+	elif status_code == Status_requested_range_not_satisfiable -> return "Requested Range Not Satisfiable"
+	elif status_code == Status_expectation_failed -> return "Expectation Failed"
+	elif status_code == Status_teapot -> return "I'm a teapot"
+
+	elif status_code == Status_internal_server_error -> return "Internal Server Error"
+	elif status_code == Status_not_implemented -> return "Not Implemented"
+	elif status_code == Status_bad_gateway -> return "Bad Gateway"
+	elif status_code == Status_service_unavailable -> return "Service Unavailable"
+	elif status_code == Status_gateway_timeout -> return "Gateway Timeout"
+	elif status_code == Status_http_version_not_supported -> return "HTTP Version Not Supported"
+
+	elif status_code == status_precondition_required -> return "Precondition Required"
+	elif status_code == status_too_many_requests -> return "Too Many Requests"
+	elif status_code == status_request_header_fields_too_large -> return "Request Header Fields Too Large"
+	elif status_code == status_network_authentication_required -> return "Network Authentication Required"
+	else -> return nil

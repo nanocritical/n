@@ -886,6 +886,7 @@ extern fun socket domain:I32 type:I32 protocol:I32 = Int
 extern fun bind sockfd:Int raw_addr:*U8 raw_addrlen:Uint = Int
 extern fun listen sockfd:Int backlog:Int = Int
 extern fun accept4 sockfd:Int raw_addr:#U8 raw_addrlen:#Uint flags:I32 = Int
+extern fun getsockopt sockfd:Int level:I32 optname:I32 optval:#U8 optlen:#Uint = Int
 extern fun setsockopt sockfd:Int level:I32 optname:I32 optval:*U8 optlen:Uint = Int
 
 fun Socket domain:I32 type:I32 protocol:I32 = Error, Int
@@ -916,6 +917,22 @@ fun Accept4 sockfd:Int sys_addr:#[!]U8 flags:I32 = Error, Int
 
 extern let SOL_SOCKET:I32
 extern let SO_REUSEADDR:I32
+extern let SO_ERROR:I32
+
+fun Getsockopt_i32 sockfd:Int level:I32 opt:I32 = Error, value:I32
+	var raw:[!]U8
+	raw#Unsafe_wrap ((unsafe.Cast #I32 #U8) #value) (sizeof value) (sizeof value)
+	var cnt = raw.Bytecount
+	let ret = getsockopt sockfd level opt raw#Unsafe_rawdata #cnt
+	if cnt != raw.Bytecount
+		return INVAL, 0
+	if ret == 0
+		return OK, value
+	return convert_error errno, 0
+
+fun Getsockopt_error sockfd:Int level:I32 = Error
+	let except, val = Getsockopt_i32 sockfd level SO_ERROR
+	return convert_error val
 
 fun Setsockopt_i32 sockfd:Int level:I32 opt:I32 value:I32 = Error
 	let raw:[]U8 such
@@ -925,10 +942,24 @@ fun Setsockopt_i32 sockfd:Int level:I32 opt:I32 value:I32 = Error
 		return OK
 	return convert_error errno
 
+extern let SHUT_RD:I32
+extern let SHUT_WR:I32
+extern let SHUT_RDWR:I32
 
-struct Epoll_event =
-	events	:U32
-	raw_data:?#U8
+extern fun shutdown sockfd:Int how:I32 = Int
+
+fun Shutdown sockfd:Int how:I32 = Error
+	let ret = shutdown sockfd how
+	if ret == 0
+		return OK
+	return convert_error errno
+
+
+extern inline struct Epoll_event =
+	isa `Trivial_copy `Trivial_dtor `Trivial_ctor
+extern inline Epoll_event fun Mk events:U32 rawdata:?#U8 = this
+extern inline Epoll_event met Events = U32
+extern inline Epoll_event met Rawdata = ?#U8
 
 extern let EPOLL_CLOEXEC:I32
 
@@ -962,8 +993,45 @@ fun Epoll_ctl epfd:Int op:I32 fd:Int event:*Epoll_event = Error
 		return OK
 	return convert_error errno
 
-fun Epoll_pwait epfd:Int events:[!]Epoll_event timeout:Int raw_sigmask:?*U8 = Error, Uint
-	let ret = epoll_pwait epfd events#Unsafe_rawdata events.Count timeout raw_sigmask
+-- Append to the events slice in the available space.
+fun Epoll_pwait epfd:Int events:[!]Epoll_event timeout:Int raw_sigmask:?*U8 = Error, [!]Epoll_event
+	let dst = events![events.Count .. events.Cap]
+	let ret = epoll_pwait epfd dst#Unsafe_rawdata dst.Count timeout raw_sigmask
 	if ret >= 0
-		return OK, ret.Unsigned
-	return convert_error errno, 0
+		return OK, events![events.Count .. events.Count + (Min ret.Unsigned dst.Count)]
+	return convert_error errno, events
+
+
+extern fun SIGACTION_DFL = act:?*U8
+extern fun SIGACTION_IGN = act:?*U8
+
+extern let SIGHUP:I32
+extern let SIGINT:I32
+extern let SIGQUIT:I32
+extern let SIGILL:I32
+extern let SIGABRT:I32
+extern let SIGFPE:I32
+extern let SIGKILL:I32
+extern let SIGSEGV:I32
+extern let SIGPIPE:I32
+extern let SIGALRM:I32
+extern let SIGTERM:I32
+
+extern let SIGUSR1:I32
+extern let SIGUSR2:I32
+extern let SIGCHLD:I32
+extern let SIGCONT:I32
+extern let SIGSTOP:I32
+extern let SIGTSTP:I32
+extern let SIGTTIN:I32
+extern let SIGTTOU:I32
+
+extern let SIGTRAP:I32
+
+extern fun sigaction signum:I32 raw_act:?*U8 raw_oldact:?#U8 = Int
+
+fun Signal signum:I32 raw_act:?*U8 raw_oldact:?#U8 = Error
+	let ret = sigaction signum raw_act raw_oldact
+	if ret >= 0
+		return OK
+	return convert_error errno

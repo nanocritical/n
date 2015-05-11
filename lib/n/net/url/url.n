@@ -5,6 +5,7 @@
 -- See RFC 3986.
 
 from n import *
+import n.fmt
 
 let Error_invalid_escape = {Why=*"invalid URL escape"}
 let Error_missing_protocol_scheme = {Why=*"missing protocol scheme"}
@@ -181,6 +182,7 @@ fun escape s:String mode:encoding = ret:Stringbuf
 -- an HTTP client can use URLHost: "example.com", Opaque: "//example.com/Go%2f"
 -- instead of URLHost: "example.com", Path: "/Go/".
 inline struct Url =
+	isa `Show
 	Scheme   	:Stringbuf
 	Opaque   	:Stringbuf -- encoded opaque data
 	Userinfo	:?Stringbuf -- not set, empty, username only, username:password
@@ -327,6 +329,9 @@ Url met String = buf:Stringbuf
 		buf#Cat <- escape self.Fragment.String ENCODE_FRAGMENT
 
 	return buf
+
+Url met Show st:#fmt.`State
+	self.String.Show st
 
 -- Values maps a string key to a list of values.
 -- It is typically used for query parameters and form values.

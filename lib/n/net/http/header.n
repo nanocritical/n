@@ -43,7 +43,7 @@ Header met Get key:String = ?*Stringbuf
 	let normkey = key.Buf
 	mime_canonical_header_key normkey!Bytes
 	let vs = self.Map.[normkey]
-	if vs.Count == 0
+	if not vs? or vs.Count == 0
 		return nil
 	return vs.[0]
 
@@ -101,19 +101,17 @@ fun trim s:String = String
 
 -- exclude must contain keys in canonical form.
 -- TODO(e): Should sort headers.
-fun write_header w:#io.`Writer h:*Header exclude:*(Set Stringbuf) = Error
+fun write_header bufw:#bufio.Writer h:*Header exclude:*(Set Stringbuf)
 	if h.Map.Count == 0
-		return OK
+		return
 
 	var tmp:Stringbuf
-	var bufw = #{W=w}:bufio.Writer
 	for k, vs in h.Map.Iter
 		if k in exclude
 			continue
 		foreach v in vs
 			fmt.F bufw "%s: %s%s" k (trim (no_newlines #tmp v.String)) crlf
 	fmt.F bufw "%s" crlf
-	return bufw#Flush
 
 
 fun is_header_loaded r:*bufio.Reader = Bool
@@ -177,7 +175,9 @@ example header
 		(h#Add k)#Cat v
 
 	var buf:Stringbuf
-	except = write_header #buf h {}
+	var bufw = #{W=#buf}:bufio.Writer
+	write_header bufw h {}
+	except = bufw#Flush
 	assert buf == "Host: example.com\r\nHost: x.com\r\nContent-Type: text/plain\r\n\r\n"
 
 	var bufr = #<- bufio.Reader.Mk #<- io.Mk_string_reader buf.String
@@ -203,3 +203,71 @@ example header
 		except = err
 	except = read_header #rh bufr
 	assert h == rh
+
+
+-- has_token reports whether token appears with v, ASCII
+-- case-insensitive, with space or comma boundaries.
+-- token must be all lowercase.
+-- v may contain mixed cased.
+fun has_token v:?String token:String = Bool
+	let v = v else ""
+	if token.Count > v.Count or token == ""
+		return false
+	if v == token
+		return true
+	foreach sp in 0 .. 1+v.Count-token.Count
+		-- Check that first character is good.
+		-- The token is ASCII, so checking only a single byte
+		-- is sufficient.  We skip this potential starting
+		-- position if both the first byte and its potential
+		-- ASCII uppercase equivalent (b|0x20) don't match.
+		-- False positives ('^' => '~') are caught by Equal_fold.
+		let b = v.[sp]
+		if b != token.[0] and (b|0x20) != token.[0]
+			continue
+		-- Check that start pos is on a valid token boundary.
+		if sp > 0 and not is_token_boundary v.[sp-1]
+			continue
+		-- Check that end pos is on a valid token boundary.
+		let end_pos = sp + token.Count
+		if end_pos != v.Count and not is_token_boundary v.[end_pos]
+			continue
+		-- The token is ASCII, we can use To_lower to normalize.
+		if v.[sp .. sp+token.Count].To_lower.String == token
+			return true
+	return false
+
+fun is_token_boundary b:U8 = Bool
+	return b == ' ' or b == ',' or b == '\t'
+
+example test_has_token
+	let tests = {
+		\ ("", "", false)
+		\ ("", "foo", false)
+		\ ("foo", "foo", true)
+		\ ("foo ", "foo", true)
+		\ (" foo", "foo", true)
+		\ (" foo ", "foo", true)
+		\ ("foo,bar", "foo", true)
+		\ ("bar,foo", "foo", true)
+		\ ("bar, foo", "foo", true)
+		\ ("bar,foo, baz", "foo", true)
+		\ ("bar, foo,baz", "foo", true)
+		\ ("bar,foo, baz", "foo", true)
+		\ ("bar, foo, baz", "foo", true)
+		\ ("FOO", "foo", true)
+		\ ("FOO ", "foo", true)
+		\ (" FOO", "foo", true)
+		\ (" FOO ", "foo", true)
+		\ ("FOO,BAR", "foo", true)
+		\ ("BAR,FOO", "foo", true)
+		\ ("BAR, FOO", "foo", true)
+		\ ("BAR,FOO, baz", "foo", true)
+		\ ("BAR, FOO,BAZ", "foo", true)
+		\ ("BAR,FOO, BAZ", "foo", true)
+		\ ("BAR, FOO, BAZ", "foo", true)
+		\ ("foobar", "foo", false)
+		\ ("barfoo ", "foo", false)
+		\ }:[](String, String, Bool)
+	foreach header, token, want in tests
+		assert want == has_token header token

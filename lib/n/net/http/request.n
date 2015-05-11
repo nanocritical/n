@@ -7,9 +7,10 @@ inline struct Request =
 	Url		:url.Url
 
 	Proto		:Stringbuf
-	Proto_version	:Int
+	Proto_version	:Uint
 
-	body_impl	:body_reader
+	body_impl		:body_reader
+	expect_continue_reader	:expect_continue_reader
 
 	Header		:Header
 	Body		:#io.`Reader
@@ -25,10 +26,41 @@ inline struct Request =
 	Request_uri	:Stringbuf
 
 
+Request met expects_continue = Bool
+	return has_token (self.Header.Get "Expect")?.String "100-continue"
+
+Request met wants_http10_keep_alive = Bool
+	if self.Proto_version != 10
+		return false
+	return has_token (self.Header.Get "Connection")?.String "keep-alive"
+
+Request met wants_close = Bool
+	return has_token (self.Header.Get "Connection")?.String "close"
+
+
+-- If the client asked for a continue status, the server sends it as a
+-- side-effect to a read on the request body. The read will most likely return
+-- AGAIN.
+struct expect_continue_reader =
+	isa io.`Reader
+	wrote_continue	:Bool
+	r		:#io.`Reader
+	w		:#bufio.Writer
+
+expect_continue_reader met# Read b:[!]U8 = [!]U8, Error
+	if not self.wrote_continue
+		_ = self#w#Write "HTTP/1.1 100 Continue\r\n\r\n".Bytes
+		let err = self!w#Flush
+		if err != OK
+			return b, err
+		self#wrote_continue = true
+	return self#r#Read b
+
+
 union body_reader =
 	isa io.`Reader
 	| EMPTY = 0 -> io.Bytes_reader
-	| DIRECT -> bufio.Auto_reader
+	| DIRECT -> #bufio.Reader
 	| LIMITED -> io.Limited_reader
 	| CHUNKED -> chunked_reader
 
@@ -40,7 +72,7 @@ body_reader met# Read b:[!]U8 = [!]U8, Error
 	| CHUNKED -> return self#CHUNKED#Read b
 
 
-fun Parse_http_version vers:String = Error, Int
+fun Parse_http_version vers:String = Error, Uint
 	if vers == "HTTP/1.1"
 		return OK, 11
 	if vers == "HTTP/1.0"
@@ -61,7 +93,7 @@ fun parse_request_line line:String = Error, method:Stringbuf, request_uri:String
 -- Call with a fully loaded header.
 fun read_request_header req:#Request b:!bufio.Reader = Error
 	var partial, s = b!Read_line
-	assert partial
+	assert not partial
 
 	except, req#Method, req#Request_uri, req#Proto = parse_request_line s
 	let rawurl = req.Request_uri
@@ -81,64 +113,13 @@ fun read_request_header req:#Request b:!bufio.Reader = Error
 	-- the same.  In the second case, any Host line is ignored.
 	req#Host = req.Url.Host
 	if req#Host == ""
-		req#Host = req.Header.Get "Host" else ""
+		req#Host#Set <- (req.Header.Get "Host")?.String else ""
 	_ = req#Header#Map#Try_delete "Host"
 
 	fix_pragma_cache_control #req#Header
 
 fun is_no_body_expected method:String = Bool
 	return method == "HEAD"
-
--- Do not start reading, but set up the right reader for this request.
--- req.Body can then be read until EOF.
-fun prepare_request_transfer req:#Request b:#bufio.Reader = Error
-	-- Transfer semantics for Requests are exactly like those for
-	-- Responses with status code 200, responding to a GET method
-	let status_code = 200
-
-	if req.Proto_version == 0
-		req#Proto_version = 11
-
-	except, req#Transfer_encoding = fix_transfer_encoding #req#Header req.Method
-
-	let except, real_length = fix_length #req#Header
-		\ true req.Status_code req.Method req.Transfer_encoding
-
-	if req.Method == "HEAD"
-		except, req#Content_length = parse_content_length (req.Header.Get "Content-Length").String
-	else
-		req#Content_length = real_length
-
-	except, req#Trailer = fix_trailer #req#Header req.Transfer_encoding
-
-	if not real_length? and not is_chunked req.Transfer_encoding
-		\ and is_body_allowed_for_status status_code
-		-- Unbounded body.
-		req#Close_conn = true
-
-	-- Prepare body reader. Content_length === nil means chunked
-	-- encoding or close connection when finised, since multipart is not
-	-- supported yet.
-	if is_chunked req.Transfer_encoding
-		if is_no_body_expected req.Method.String
-			req#body_impl = {}:body_reader.EMPTY
-		else
-			req#body_impl = {r=b}:body_reader.CHUNKED
-	elif real_length == 0
-		req#body_impl = {}:body_reader.EMPTY
-	elif real_length > 0
-		req#body_impl = {}:body_reader.LIMITED
-		req#body_impl#LIMITED = io.Limited_reader.Mk b real_length
-	else
-		-- real_length is nil, i.e. "Content-Length" not mentioned in header
-		if req.Close_conn
-			-- Close semantics (i.e. HTTP/1.0)
-			req#body_impl = {R=b}:body_reader.DIRECT
-		else
-			-- Persistent connection (i.e. HTTP/1.1)
-			req#body_impl = {}:body_reader.EMPTY
-
-	req#Body = #req#body_impl
 
 fun is_body_allowed_for_status status:Uint = Bool
 	if status >= 100 and status <= 159
@@ -181,7 +162,7 @@ fun fix_transfer_encoding header:#Header method:*Stringbuf = Error, te:(Buf Stri
 		-- Chunked encoding trumps Content-Length. See RFC 2616
 		-- Section 4.4. Currently te.Count > 0 implies chunked
 		-- encoding.
-		header#Map#Delete "Content-Length"
+		_ = header#Map#Try_delete "Content-Length"
 
 -- Determine the expected body length, using RFC 2616 Section 4.4.
 fun fix_length header:#Header is_response:Bool status:Uint method:*Stringbuf
@@ -197,14 +178,14 @@ fun fix_length header:#Header is_response:Bool status:Uint method:*Stringbuf
 	if is_chunked te
 		return OK, nil
 
-	let cl = strings.Trim_spaces (header.Get "Content-Length" else "").String
+	let cl = strings.Trim_spaces ((header.Get "Content-Length")?.String else "")
 	if cl != ""
 		let err, n = parse_content_length cl
 		if err != OK
 			return err, nil
 		return OK, n
 	else
-		header#Map#Delete "Content-Length"
+		_ = header#Map#Try_delete "Content-Length"
 
 	if not is_response and method == "GET"
 		-- RFC 2616 doesn't explicitly permit nor forbid an
@@ -233,11 +214,11 @@ fun should_close header:#Header proto_version:Uint = Bool
 	return false
 
 fun fix_trailer header:#Header te:(Buf Stringbuf) = Error, trailer:Header
-	let raw = (header.Get "Trailer") else ""
+	let raw = (header.Get "Trailer")?.String else ""
 	if raw == ""
 		return OK, {}
 
-	header#Map#Delete "Trailer"
+	_ = header#Map#Try_delete "Trailer"
 
 	let keys = raw.Split ","
 	foreach key in keys
@@ -245,7 +226,7 @@ fun fix_trailer header:#Header te:(Buf Stringbuf) = Error, trailer:Header
 		mime_canonical_header_key normkey!Bytes
 		if normkey == "Transfer-Encoding" or normkey == "Trailer" or normkey == "Content-Length"
 			return ERR_BAD_TRAILER_KEY, {}
-		trailer#Map#Delete normkey
+		_ = trailer#Map#Try_delete normkey
 
 	if trailer.Map.Count == 0
 		return OK, {}
@@ -262,3 +243,61 @@ fun parse_content_length cl:String = Error, ?Uint
 	if err != OK
 		return ERR_BAD_CONTENT_LENGTH, nil
 	return OK, ?n.To_uint
+
+-- Do not start reading, but set up the right reader for this request.
+-- req.Body can then be read until EOF.
+fun prepare_request_transfer req:#Request bufr:#bufio.Reader bufw:#bufio.Writer = Error
+	-- Transfer semantics for Requests are exactly like those for
+	-- Responses with status code 200, responding to a GET method
+	let status_code = 200
+
+	if req.Proto_version == 0
+		req#Proto_version = 11
+
+	except, req#Transfer_encoding = fix_transfer_encoding #req#Header req.Method
+
+	let except, real_length = fix_length #req#Header
+		\ true req.Status_code req.Method req.Transfer_encoding
+
+	if req.Method == "HEAD"
+		except, req#Content_length = parse_content_length
+			\ ((req.Header.Get "Content-Length")?.String else "")
+	else
+		req#Content_length = real_length
+
+	except, req#Trailer = fix_trailer #req#Header req.Transfer_encoding
+
+	if not real_length? and not is_chunked req.Transfer_encoding
+		\ and is_body_allowed_for_status status_code
+		-- Unbounded body.
+		req#Close_conn = true
+
+	-- Prepare body reader. Content_length === nil means chunked
+	-- encoding or close connection when finised, since multipart is not
+	-- supported yet.
+	if is_chunked req.Transfer_encoding
+		if is_no_body_expected req.Method.String
+			req#body_impl = {}:body_reader.EMPTY
+		else
+			req#body_impl = {r=bufr}:body_reader.CHUNKED
+	elif real_length? and real_length == 0
+		req#body_impl = {}:body_reader.EMPTY
+	elif real_length? and real_length > 0
+		req#body_impl = {}:body_reader.LIMITED
+		req#body_impl#LIMITED = io.Limited_reader.Mk bufr real_length
+	else
+		-- real_length is nil, i.e. "Content-Length" not mentioned in header
+		if req.Close_conn
+			-- Close semantics (i.e. HTTP/1.0)
+			req#body_impl = bufr:body_reader.DIRECT
+		else
+			-- Persistent connection (i.e. HTTP/1.1)
+			req#body_impl = {}:body_reader.EMPTY
+
+	req#Body = #req#body_impl
+
+	if req.expects_continue
+		if req.Proto_version >= 11
+			req#expect_continue_reader#r = req#Body
+			req#expect_continue_reader#w = bufw
+			req#Body = #req#expect_continue_reader

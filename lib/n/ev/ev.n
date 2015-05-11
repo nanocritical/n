@@ -17,29 +17,43 @@ enum Events =
 intf `Handler =
 	met# On ev:Event = Error, Event
 
-struct Event =
-	isa `Show
+inline struct Event =
+	isa `Show `Has_equality
 	Fd	:?Int
-	Request	:(Enumset Events)
-	What	:(Enumset Events)
+	-- If HUP is in Ask, the Fd will be placed on a closing list, and
+	-- closed after all polled events are done processing. In the meantime
+	-- further events on the Fd will be ignored.
+	Ask	:(Enumset Events)
+	Got	:(Enumset Events)
 	Handler	:?#`Handler
 
 	let NONE = {}:this
 
+Event met Operator_eq other:*this = Bool
+	return self.Fd == other.Fd
+		\ and self.Ask == other.Ask
+		\ and self.Got == other.Got
+		\ and self.Handler === other.Handler
+
+Event met Operator_ne other:*this = Bool
+	return not self == other
+
 Event met Show st:#fmt.`State
-	fmt.F st "%s on %s" self.What self.Fd
+	fmt.F st "%s on %s" self.Got self.Fd
+
 
 inline struct Poll =
-	fds	:(Map Int ?#Event)
-	epfd	:Int
-	buf	:(Buf syscall.Epoll_event)
-	pending	:[!]syscall.Epoll_event
+	fds		:(Map Int ?#Event)
+	hups		:(Set Int)
+	epfd		:Int
+	buf		:(Buf syscall.Epoll_event)
+	pending		:[!]syscall.Epoll_event
 
 Poll met# Init = Error
 	assert self.buf.Count == 0
 
 	except, self!epfd = syscall.Epoll_create1 0
-	self!buf#Resize 128
+	self!buf#Reserve 128
 
 fun events_to_sys_events r:Events = U32
 	match r
@@ -62,29 +76,43 @@ fun sys_events_to_events events:U32 = r:(Enumset Events)
 		r |= {RDHUP}
 
 Poll met! Register e:Event = Error
+	if e.Ask.Count == 0
+		return OK
+
+	if HUP in e.Ask
+		Eprn "register: HUP:" e
+		_ = self!hups#Add e.Fd
+
+		let just_hup = e.Ask.Count == 1
+		if just_hup
+			return OK
+
 	let added, perm_e = self!fds#Try_store e.Fd
 	and op = syscall.EPOLL_CTL_MOD such
 		if added
 			perm_e# = Alloc Event
 			op = syscall.EPOLL_CTL_ADD
+		else
+			Eprn "register: already:" e
 
 	let pe = perm_e#
 	pe!Fd = e.Fd
-	_ = pe#Request#Add_all e.Request
+	_ = pe#Ask#Add_all e.Ask
 	pe#Handler = e.Handler -- FIXME(e): only one perm_handler.
 
-	var sys_event = {}:syscall.Epoll_event
-
 	let sys_events_defaults = syscall.EPOLLERR | syscall.EPOLLHUP | syscall.EPOLLET
-	sys_event!events = sys_events_defaults
-	for f in pe.Request.Iter
-		sys_event!events |= events_to_sys_events f
+	let events = sys_events_defaults such
+		for f in pe.Ask.Iter
+			events |= events_to_sys_events f
 
-	sys_event!raw_data = (unsafe.Cast ?#Event ?#U8) pe
+	let rawdata = (unsafe.Cast ?#Event ?#U8) pe
+
+	let sys_event = syscall.Epoll_event.Mk events rawdata
 
 	except = syscall.Epoll_ctl self.epfd op e.Fd sys_event
 
-Poll met! Unregister e:Event = Error
+Poll met! Unregister_all e:Event = Error
+	Eprn "unregister:" e
 	let perm_e = self!fds![e.Fd]
 	if not perm_e?
 		return INVAL
@@ -92,30 +120,61 @@ Poll met! Unregister e:Event = Error
 	Free perm_e*
 	self!fds#Delete e.Fd
 
+	Drop <- syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL e.Fd {}
+
+Poll met! process_hups
+	Eprn "process_hups" self.hups.Count
+	for fd in self.hups.Iter
+		let pe = self.fds.[fd]
+		if not pe?
+			Eprn "Warning: process_hup: spurious fd on hups list:" fd
+			continue
+		let e = pe*
+		if e.Handler?
+			let e_hup = {Fd=e.Fd Got={HUP} Handler=e.Handler}:Event
+			let err, _ = e_hup.Handler#On e_hup
+			if err != OK
+				Eprn "Warning: process_hup:" err
+		Drop <- self!Unregister_all e
+
+	self!hups#Clear
+
 Poll met! sys_wait timeout:?time.Duration = Error
+	self!process_hups
+
+	Eprn "sys_wait"
 	assert self.pending.Count == 0
-	let err, cnt = syscall.Epoll_pwait self.epfd self!buf![..]
+	let err, res = syscall.Epoll_pwait self.epfd self!buf![..]
 		\ (timeout?.Millisec else -1) nil
 	if err == syscall.EINTR
 		return syscall.EAGAIN
-	self!pending = self.buf.[.. cnt]
 
-Poll met! Wait ?timeout:?time.Duration = Error, e:Event
+	self!pending = res
+
+	Eprn "sys_wait" res.Count self.pending
+
+Poll met! Wait ?timeout:?time.Duration = Error, e:Event, is_last:Bool
 	if self.pending.Count == 0
 		let err = self!sys_wait timeout
 		if err == syscall.EAGAIN
-			return err, NONE
+			return err, NONE, false
 		except = err
 
 	if self.pending.Count == 0
-		return OK, NONE
+		return OK, NONE, false
 
 	let sys_e = self.pending.[0]
 	self!pending = self.pending.[1 ..]
 
-	let perm_e = (unsafe.Cast ?#U8 ?#Event) sys_e.raw_data
+	let perm_e = (unsafe.Cast ?#U8 ?#Event) sys_e.Rawdata
 	e = perm_e*
-	e!What = sys_events_to_events sys_e.events
+	e!Got = sys_events_to_events sys_e.Events
 
-	if HUP in e.What or RDHUP in e.What
-		except = self!Unregister e
+	if HUP in e.Got
+		-- Something else closed it, likely the kernel.
+		-- Make sure it gets processed in the process_hups phase.
+		let e_hup = {Fd=e.Fd Ask={HUP} Handler=e.Handler}:Event
+		except = self!Register e_hup
+		_ = e!Got!Remove HUP
+
+	is_last = self.pending.Count == 0

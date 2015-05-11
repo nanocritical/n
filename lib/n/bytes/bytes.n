@@ -11,7 +11,7 @@ Bytes_reader met# Init b:[]U8
 
 Bytes_reader met# Read b:[!]U8 = []U8, Error
 	if self.pos == b.Count
-		return {}, EOF
+		return {}, io.EOF
 
 	let left = self.b.[self.pos ..]
 	let r = b![.. Min b.Cap left.Count]
@@ -20,6 +20,6 @@ Bytes_reader met# Read b:[!]U8 = []U8, Error
 	self!pos += r.Count
 
 	if self.pos == b.Count
-		return r, EOF
+		return r, io.EOF
 	else
 		return r, OK

@@ -1,0 +1,183 @@
+-- The algorithm uses at most sniff_len bytes to make its decision.
+let sniff_count = 512
+
+-- Detect_content_type implements the algorithm described
+-- at http://mimesniff.spec.whatwg.org/ to determine the
+-- Content-Type of the given data.  It considers at most the
+-- first 512 bytes of data.  Detect_content_type always returns
+-- a valid MIME type: if it cannot determine a more specific one, it
+-- returns "application/octet-stream".
+fun Detect_content_type data:[]U8 = String
+	-- Data matching the table in section 6.
+	let sniff_signatures = {
+		\ {h="<!DOCTYPE HTML"}:sig.HTML
+		\ {h="<HTML"}:sig.HTML
+		\ {h="<HEAD"}:sig.HTML
+		\ {h="<SCRIPT"}:sig.HTML
+		\ {h="<IFRAME"}:sig.HTML
+		\ {h="<H1"}:sig.HTML
+		\ {h="<DIV"}:sig.HTML
+		\ {h="<FONT"}:sig.HTML
+		\ {h="<TABLE"}:sig.HTML
+		\ {h="<A"}:sig.HTML
+		\ {h="<STYLE"}:sig.HTML
+		\ {h="<TITLE"}:sig.HTML
+		\ {h="<B"}:sig.HTML
+		\ {h="<BODY"}:sig.HTML
+		\ {h="<BR"}:sig.HTML
+		\ {h="<P"}:sig.HTML
+		\ {h="<!--"}:sig.HTML
+
+		\ {mask="\xFF\xFF\xFF\xFF\xFF" pat="<?xml" skip_ws=true ct="text/xml; charset=utf-8"}:sig.MASKED
+
+		\ {sig="%PDF-" ct="application/pdf"}:sig.EXACT
+		\ {sig="%not PS-Adobe-" ct="application/postscript"}:sig.EXACT
+
+		-- UTF BOMs.
+		\ {mask="\xFF\xFF\x00\x00" pat="\xFE\xFF\x00\x00" ct="text/plain; charset=utf-16be"}:sig.MASKED
+		\ {mask="\xFF\xFF\x00\x00" pat="\xFF\xFE\x00\x00" ct="text/plain; charset=utf-16le"}:sig.MASKED
+		\ {mask="\xFF\xFF\xFF\x00" pat="\xEF\xBB\xBF\x00" ct="text/plain; charset=utf-8"}:sig.MASKED
+
+		\ {sig="GIF87a" ct="image/gif"}:sig.EXACT
+		\ {sig="GIF89a" ct="image/gif"}:sig.EXACT
+		\ {sig="\x89\x50\x4E\x47\x0D\x0A\x1A\x0A" ct="image/png"}:sig.EXACT
+		\ {sig="\xFF\xD8\xFF" ct="image/jpeg"}:sig.EXACT
+		\ {sig="BM" ct="image/bmp"}:sig.EXACT
+		\ {
+			\ mask="\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF"
+			\ pat="RIFF\x00\x00\x00\x00WEBPVP"
+			\ ct="image/webp"}:sig.MASKED
+		\ {sig="\x00\x00\x01\x00" ct="image/vnd.microsoft.icon"}:sig.EXACT
+		\ {sig="\x4F\x67\x67\x53\x00" ct="application/ogg"}:sig.EXACT
+		\ {
+			\ mask="\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF"
+			\ pat="RIFF\x00\x00\x00\x00WAVE"
+			\ ct="audio/wave"}:sig.MASKED
+		\ {sig="\x1A\x45\xDF\xA3" ct="video/webm"}:sig.EXACT
+		\ {sig="\x52\x61\x72\x20\x1A\x07\x00" ct="application/x-rar-compressed"}:sig.EXACT
+		\ {sig="\x50\x4B\x03\x04" ct="application/zip"}:sig.EXACT
+		\ {sig="\x1F\x8B\x08" ct="application/x-gzip"}:sig.EXACT
+
+		\ {}:sig.TEXT -- should be last
+		\ }:[]sig
+
+	if data.Count > sniff_count
+		data = data.[.. sniff_count]
+
+	-- Index of the first non-whitespace byte in data.
+	let first_non_ws = 0 such
+		foreach d in data
+			if not is_ws d
+				break
+			first_non_ws += 1
+
+	foreach sig in sniff_signatures
+		let ct = sig.test data first_non_ws
+		if ct != ""
+			return ct
+
+	return "application/octet-stream" -- fallback
+
+
+fun is_ws b:U8 = Bool
+	return "\t\n\x0C\r ".Index_byte b > 0
+
+
+struct exact_sig =
+	sig	:String
+	ct	:String
+
+exact_sig met test data:[]U8 first_non_ws:Uint = String
+	let sdata = String.From_bytes data
+	if sdata.Begins_with self.sig
+		return self.ct
+	return ""
+
+struct masked_sig =
+	mask	:String
+	pat	:String
+	skip_ws	:Bool
+	ct	:String
+
+masked_sig met test data:[]U8 first_non_ws:Uint = String
+	if self.skip_ws
+		data = data.[first_non_ws ..]
+	if data.Count < self.mask.Count
+		return ""
+	foreach i in self.mask.All
+		let db = data.[i] & self.mask.[i]
+		if db != self.pat.[i]
+			return ""
+	return self.ct
+
+struct html_sig =
+	h	:String
+
+html_sig met test data:[]U8 first_non_ws:Uint = String
+	let data = data.[first_non_ws ..]
+	if data.Count < self.h.Count + 1
+		return ""
+	foreach i in self.h.All
+		let b = self.h.[i]
+		var db = data.[i]*
+		if 'A' <= b and b <= 'Z'
+			db &= 0xDF
+		if b != db
+			return ""
+	-- Next byte must be space or right angle bracket.
+	let db = data.[self.h.Count]
+	if db != ' ' and db != '>'
+		return ""
+	return "text/html; charset=utf-8"
+
+struct text_sig =
+	noop
+
+text_sig met test data:[]U8 first_non_ws:Uint = String
+	-- c.f. section 5, step 4.
+	let data = data.[first_non_ws ..]
+	foreach b in data
+		if (0x00 <= b and b <= 0x08)
+			\ or b == 0x0B
+			\ or (0x0E <= b and b <= 0x1A)
+			\ or (0x1C <= b and b <= 0x1F)
+			return ""
+	return "text/plain; charset=utf-8"
+
+union sig =
+	| HTML -> html_sig
+	| MASKED -> masked_sig
+	| EXACT -> exact_sig
+	| TEXT -> text_sig
+	-- TODO(e): MP4 when the spec is sorted out.
+
+sig met test data:[]U8 first_non_ws:Uint = String
+	match self
+	| HTML -> return self.HTML.test data first_non_ws
+	| MASKED -> return self.MASKED.test data first_non_ws
+	| EXACT -> return self.EXACT.test data first_non_ws
+	| TEXT -> return self.TEXT.test data first_non_ws
+
+
+example detect_content_type
+	let tests = {
+		-- Some nonsense.
+		\ ("Empty", "", "text/plain; charset=utf-8")
+		\ ("Binary", "\x1\x2\x3", "application/octet-stream")
+
+		\ ("HTML document #1", "<HtMl><bOdY>blah blah blah</body></html>", "text/html; charset=utf-8")
+		\ ("HTML document #2", "<HTML></HTML>", "text/html; charset=utf-8")
+		\ ("HTML document #3 (leading whitespace)", "   <!DOCTYPE HTML>...", "text/html; charset=utf-8")
+		\ ("HTML document #4 (leading CRLF)", "\r\n<html>...", "text/html; charset=utf-8")
+
+		\ ("Plain text", "This is not HTML. It has ☃ though.", "text/plain; charset=utf-8")
+
+		\ ("XML", "\n<?xml!", "text/xml; charset=utf-8")
+
+		-- Image types.
+		\ ("GIF 87a", "GIF87a", "image/gif")
+		\ ("GIF 89a", "GIF89a...", "image/gif")
+		\ }:[](String, String, String)
+	foreach tt in tests
+		let _, data, ct = tt
+		assert ct == Detect_content_type data.Bytes

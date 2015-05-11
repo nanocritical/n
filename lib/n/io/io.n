@@ -23,6 +23,9 @@ intf `Writer =
 	-- Short writes must return an non-OK error.
 	met# Write b:[]U8 = []U8, Error
 
+intf `Closer =
+	met# Close = Error
+
 
 fun Read_at_least b:[!]U8 r:#`Reader min_count:Uint = [!]U8, err:Error
 	if b.Available < min_count

@@ -2,9 +2,9 @@ from n import *
 import n
 import n.io
 
----- TODO(e): Should return IO error, and possibly promises.
+---- TODO(e): Should return IO errors.
 -- An alternate, easy-going library "dbg" should be created with no error
--- return, and blocking I/O.
+-- return.
 
 intf `State =
 	isa io.`Writer

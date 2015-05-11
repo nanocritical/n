@@ -1,0 +1,209 @@
+intf `Response_writer =
+	isa io.`Writer
+	met# Header = #Header
+	met# Write_header status:Int = Error
+	met# Flush = Error
+	met# Done = please_close_conn:Bool, Error
+
+intf `Simple_request_handler =
+	-- Will continue to be called until after req.Is_complete is true.
+	met# On_request_progress req:#Request = Error
+
+	-- Will continue to be called until Flush or Close is called on resp.
+	met# On_response_progress w:#`Response_writer = Error
+
+	met# On_error error:Error
+
+struct response_writer =
+	isa `Response_writer
+	conn			:#tcp.Conn
+	req			:#Request
+	bufw			:#bufio.Writer
+	header			:Header
+	wrote_header		:Bool
+	chunking		:Bool
+	close_after_reply	:Bool
+
+response_writer met# init conn:#tcp.Conn req:#Request bufw:#bufio.Writer
+	self#conn = conn
+	self#req = req
+	self#bufw = bufw
+
+fun write_chunk_size w:#io.`Writer cnt:Uint = Error
+	var buf:Stringbuf
+	buf#Resize 64
+
+	var x = cnt
+	var i = buf.Count - 2
+	buf![i]! = '\r'
+	buf![i + 1]! = '\n'
+
+	while x != 0
+		i -= 1
+		buf![i]! = '0' + (x % 10).Trim_u8
+		x /= 10
+	let b = buf.[i ..]
+
+	_, except = w#Write b.Bytes
+
+fun write_status_line w:#bufio.Writer proto_version:Uint status_code:Uint
+	let proto = "HTTP/1.0" such
+		if proto_version == 11
+			proto = "HTTP/1.1"
+
+	let text = Status_text status_code
+	if text?
+		fmt.F w "%s %s %s\r\n" proto status_code text
+	else
+		fmt.F w "%s %s status code %s\r\n" proto status_code status_code
+
+response_writer met# write_header status_code:Uint b:[]U8 = Error
+	if self.wrote_header
+		return OK
+
+	let header = #self#header
+
+	header#Del "Status"
+
+	let keep_alives_enabled = true
+	let is_head = self.req.Method == "HEAD"
+	let cl = header.Get "Content-Length"
+
+	-- If this was an HTTP/1.0 request with keep-alive and we sent a
+	-- Content-Length back, we can make this a keep-alive response ...
+	if keep_alives_enabled and self.req.wants_http10_keep_alive
+		let sent_length = cl?
+		let connection = header.Get "Connection"
+		if sent_length and connection? and connection == "keep-alive"
+			self!close_after_reply = false
+
+	if keep_alives_enabled and self.req.wants_http10_keep_alive and (is_head or cl?)
+		let connection = header.Get "Connection"
+		if not connection?
+			(header#Set "Connection")# = "keep-alive"
+	elif self.req.Proto_version < 11 or self.req.wants_close
+		self!close_after_reply = true
+
+	if not keep_alives_enabled
+		\ and ((header.Get "Connection") else "") == "close"
+		self!close_after_reply = true
+
+	-- FIXME(e): We should try to do something akin to what Go does here.
+	-- It's not clear how to do this if we want to support 
+	-- 
+	-- Per RFC 2616, we should consume the request body before
+	-- replying, if the handler hasn't already done so.  But we
+	-- don't want to do an unbounded amount of reading here for
+	-- DoS reasons, so we only try up to a threshold.
+	if not is_body_allowed_for_status status_code
+		-- Must not have body.
+		-- RFC 2616 section 10.3.5: "the response MUST NOT include other entity-headers"
+		header#Del "Content-Type"
+		header#Del "Content-Length"
+		header#Del "Transfer-Encoding"
+	else
+		-- If no content type, apply sniffing algorithm to body.
+		if not (header.Get "Content-Type")?
+			(header#Set "Content-Type")#Set <- Detect_content_type b
+
+	-- FIXME(e): set date
+
+	let te = header.Get "Transfer-Encoding"
+	if cl? and te? and te != "identity"
+		-- For now just ignore the Content-Length.
+		-- TODO(e): logf("http: WriteHeader called with both Transfer-Encoding of %q and a Content-Length of %d", te, w.contentLength)
+		header#Del "Content-Length"
+		cl = nil
+
+	if self.req.Method == "HEAD" or not is_body_allowed_for_status status_code
+		noop
+	elif status_code == Status_no_content
+		header#Del "Transfer-Encoding"
+	elif cl?
+		header#Del "Transfer-Encoding"
+	elif self.req.Proto_version >= 11
+		-- HTTP/1.1 or greater: use chunked transfer encoding
+		-- to avoid closing the connection at EOF.
+		-- TODO: this blows away any custom or stacked Transfer-Encoding they
+		-- might have set.  Deal with that as need arises once we have a valid
+		-- use case.
+		self!chunking = true
+		(header#Set "Transfer-Encoding")#Set <- "chunked"
+	else
+		-- HTTP version < 1.1: cannot do chunked transfer
+		-- encoding and we don't know the Content-Length so
+		-- signal EOF by closing connection.
+		self!close_after_reply = true
+		header#Del "Transfer-Encoding" -- in case already set
+
+	-- Cannot use Content-Length with non-identity Transfer-Encoding.
+	if self.chunking
+		header#Del "Content-Length"
+	if self.req.Proto_version < 10
+		return OK
+
+	if self.close_after_reply and (not keep_alives_enabled or not has_token ((header.Get "Connection")?.String else "") "close")
+		header#Del "Connection"
+		if self.req.Proto_version >= 11
+			(header#Set "Connection")#Set <- "close"
+
+	write_status_line self#bufw self.req.Proto_version status_code
+	write_header self#bufw header {}
+
+	self!wrote_header = true
+
+response_writer met# Write b:[]U8 = left:[]U8, err:Error
+	if b.Count == 0
+		-- We don't want to send an empty chunk mid-stream, it means
+		-- end-of-response.
+		return {}, OK
+
+	left = b
+
+	if not self.wrote_header
+		let err = self.write_header 200 b
+		if err != OK
+			return left, err
+
+	if self.req.Method == "HEAD"
+		-- Eat writes.
+		return {}, OK
+
+	try
+		if self.chunking
+			never = write_chunk_size self#bufw b.Count
+
+		left, err = self#bufw#Write b
+
+		if self.chunking and err == OK
+			_, never = self#bufw#Write crlf.Bytes
+
+		except = err
+
+	catch err
+		return left, err
+
+response_writer met# Header = #Header
+	return #self#header
+
+response_writer met# Write_header status_code:Uint = Error
+	return self#write_header status_code {}
+
+response_writer met# Flush = Error
+	return self#bufw#Flush
+
+response_writer met# Done = please_close_conn:Bool, Error
+	if not self.wrote_header
+		let err = self.write_header 200 {}
+		if err != OK
+			return true, err
+
+	if self.chunking
+		_, never = self#bufw#Write "0\r\n\r\n".Bytes
+
+	try
+		except = self#Flush
+	catch err
+		return true, err
+
+	return self.close_after_reply, OK
