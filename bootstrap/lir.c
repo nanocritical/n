@@ -17,6 +17,7 @@ struct lir_try_state {
 
   ident error;
   struct node *first_catch;
+  bool trying;
 };
 
 struct lir_state {
@@ -266,7 +267,7 @@ static ERROR rewrite_excep(struct module *mod, struct lir_state *st,
        G_IDENT(trace, "Trace_except");
        G(trace_e, IDENT,
          trace_e->as.IDENT.name = node_ident(expr))));
-  if (st->try_state == NULL) {
+  if (st->try_state == NULL || !st->try_state->trying) {
     // Then except is a conditional return.
     G0(th, yes, RETURN,
        th->as.RETURN.is_flexible_except = true;
@@ -286,7 +287,7 @@ static ERROR find_catch(struct node **r,
                         struct lir_state *st, ident label) {
   error e;
 
-  if (st->try_state == NULL) {
+  if (st->try_state == NULL || !st->try_state->trying) {
     e = mk_except(mod, for_error, "missing surrounding try block");
     THROW(e);
   }
@@ -926,10 +927,12 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
     break;
   case TRY:
     PUSH_STATE(st->try_state);
+    st->try_state->trying = true;
     st->try_state->error = node->as.TRY.error;
     st->try_state->first_catch = subs_at(subs_last(subs_first(node)), 1);
     break;
   case CATCH:
+    st->try_state->trying = false;
     if (node->as.CATCH.label == ID__NONE
         && next(st->try_state->first_catch) != NULL) {
       e = mk_except(mod, node, "when multiple catch blocks are present,"
