@@ -1391,6 +1391,20 @@ static void forward_declare(FILE *out, const struct module *mod,
     return;
   }
 
+  if (typ_is_reference(t)) {
+    const struct typ *tt = typ_generic_arg_const(t, 0);
+    forward_declare(out, mod, tt);
+    const struct node *dd = typ_definition_ignore_any_overlay_const(tt);
+    fprintf(out, "#ifndef _$Nref_");
+    print_deftype_name(out, mod, dd);
+    fprintf(out, "\n#define _$Nref_");
+    print_deftype_name(out, mod, dd);
+    fprintf(out, " ");
+    print_deftype_name(out, mod, dd);
+    fprintf(out, "*\n#endif\n");
+    return;
+  }
+
   print_typ(out, mod, t);
   fprintf(out, ";\n");
 }
