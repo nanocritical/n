@@ -739,6 +739,10 @@ Stringbuf met# Prn ?sep:?*String ...v:(Vararg ?*`Show)
 	self#Pr sep=sep ...v
 	self#Append "\n".Bytes
 
+Stringbuf met# Set s:String
+	self#Clear
+	self#Cat s
+
 Stringbuf met Begins_with s:String = Bool
 	return self.String.Begins_with s
 Stringbuf met Ends_with s:String = Bool
