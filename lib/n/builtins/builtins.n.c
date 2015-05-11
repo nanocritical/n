@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <signal.h>
 
 #ifdef NLANG_DEFINE_FUNCTIONS
 
@@ -23,6 +24,13 @@ void _$Nprelude(int *argc, char ***argv, char ***env) {
                                    (void *)&n$builtins$sysheap);
   sysheap_header.Parent = NULL;
   n$builtins$Install_sysheap(&sysheap_header);
+
+  {
+    // It's a pretty useless signal.
+    struct sigaction act = { 0 };
+    act.sa_handler = SIG_IGN;
+    (void)sigaction(SIGPIPE, &act, NULL);
+  }
 
   n$env$Install_sys(*argc, (NB(U8) **) *argv);
   n$time$Install_sys();
