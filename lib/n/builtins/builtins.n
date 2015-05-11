@@ -113,7 +113,7 @@ intf `Ordered_by_compare =
 	-- Compiler generates Operator_{le,lt,gt,ge}.
 	isa `Has_compare `Ordered
 intf `Trivial_order =
-	isa `Trivial_compare `Ordered
+	isa `Trivial_equality `Trivial_compare `Ordered
 intf `Additive_arithmetic =
 	met Operator_plus other:*final = final
 	met Operator_minus other:*final = final
