@@ -370,6 +370,9 @@ normal:
   "try" { R(Ttry); }
   "catch" { R(Tcatch); }
   "except" { R(Texcept); }
+  "drop" { R(Tdrop); }
+  "fatal" { R(Tfatal); }
+  "never" { R(Tnever); }
   "throw" { R(Tthrow); }
   "block" { R(Tblock); }
   "import" { R(Timport); }

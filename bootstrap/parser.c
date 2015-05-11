@@ -835,8 +835,10 @@ static ERROR p_bool(struct node *node, struct module *mod) {
   return 0;
 }
 
-static ERROR p_except(struct node *node, struct module *mod) {
+static ERROR p_except(struct node *node, struct module *mod, enum token_type tokt) {
   node_set_which(node, EXCEP);
+  node->as.EXCEP.kind = tokt;
+
   struct token tok = { 0 };
   error e = scan(&tok, mod);
   EXCEPT(e);
@@ -1576,7 +1578,10 @@ static ERROR p_expr(struct node *node, struct module *mod,
       e = p_expr(node_new_subnode(mod, node), mod, T__CALL);
       break;
     case Texcept:
-      e = p_except(node, mod);
+    case Tdrop:
+    case Tfatal:
+    case Tnever:
+      e = p_except(node, mod, tok.t);
       break;
     case TIDENT:
       back(mod, &tok);

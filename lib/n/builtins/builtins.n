@@ -2075,6 +2075,26 @@ fun Trace_except err:Error ?_Ncodeloc:?*Codeloc
 		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ":" _Ncodeloc.Col ":"
 	Eprn "" err
 
+fun Trace_drop err:Error ?_Ncodeloc:?*Codeloc
+	Epr "drop:"
+	if _Ncodeloc?
+		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ":" _Ncodeloc.Col ":"
+	Eprn "" err
+
+fun Trace_fatal err:Error ?_Ncodeloc:?*Codeloc
+	Epr "fatal:"
+	if _Ncodeloc?
+		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ":" _Ncodeloc.Col ":"
+	Eprn "" err
+	Abort
+
+fun Trace_never err:Error ?_Ncodeloc:?*Codeloc
+	Epr "never:"
+	if _Ncodeloc?
+		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ":" _Ncodeloc.Col ":"
+	Eprn "" err
+	Abort
+
 fun Example_except name:String err:Error
 	if err == OK
 		return

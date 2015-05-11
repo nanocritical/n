@@ -24,7 +24,7 @@ syn keyword nConditional and or
 syn match nDecl "^  isa" contains=nExport
 syn keyword nOperator sizeof alignof nullable isa Dyncast not in
 syn keyword nKeyword noop as declare new
-syn keyword nException except throw Drop Fatal
+syn keyword nException except throw drop fatal never Drop Fatal
 syn match nOperator ":"
 syn match nOperator "\(ov<<\|>>\|<=\|>=\|<\|>\|===\|!==\|==|\|!=|\|==\|!=\||\)"
 syn match nOperator "\(@\|&\|\(ov\)\?[+\-\*/%&|\^~]\)"

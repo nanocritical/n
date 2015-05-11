@@ -313,6 +313,7 @@ struct node_catch {
   ident label;
 };
 struct node_excep {
+  enum token_type kind;
   ident label;
 };
 struct node_throw {

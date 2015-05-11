@@ -243,6 +243,26 @@ static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
 static ERROR rewrite_excep(struct module *mod, struct lir_state *st,
                            struct node *par, struct node *before,
                            struct node *excep, struct node *expr) {
+  enum token_type kind = excep->as.EXCEP.kind;
+  const char *tracer = "";
+  bool jumps = false;
+  switch (kind) {
+  case Tdrop:
+    tracer = "Trace_drop";
+    break;
+  case Tfatal:
+    tracer = "Trace_fatal";
+    break;
+  case Tnever:
+    tracer = "Trace_never";
+    break;
+  case Texcept:
+  default:
+    tracer = "Trace_except";
+    jumps = true;
+    break;
+  }
+
   GSTART();
   G0(i, par, IF,
      i->codeloc = expr->codeloc);
@@ -264,20 +284,22 @@ static ERROR rewrite_excep(struct module *mod, struct lir_state *st,
 
   G0(yes, i, BLOCK,
      G(call, CALL,
-       G_IDENT(trace, "Trace_except");
+       G_IDENT(trace, tracer);
        G(trace_e, IDENT,
          trace_e->as.IDENT.name = node_ident(expr))));
-  if (st->try_state == NULL || !st->try_state->trying) {
-    // Then except is a conditional return.
-    G0(th, yes, RETURN,
-       th->as.RETURN.is_flexible_except = true;
-       G(e, IDENT,
-         e->as.IDENT.name = node_ident(expr)));
-  } else {
-    G0(th, yes, THROW,
-       th->as.THROW.label = excep->as.EXCEP.label;
-       G(e, IDENT,
-         e->as.IDENT.name = node_ident(expr)));
+  if (jumps) {
+    if (st->try_state == NULL || !st->try_state->trying) {
+      // Then except is a conditional return.
+      G0(th, yes, RETURN,
+         th->as.RETURN.is_flexible_except = true;
+         G(e, IDENT,
+           e->as.IDENT.name = node_ident(expr)));
+    } else {
+      G0(th, yes, THROW,
+         th->as.THROW.label = excep->as.EXCEP.label;
+         G(e, IDENT,
+           e->as.IDENT.name = node_ident(expr)));
+    }
   }
   return 0;
 }
