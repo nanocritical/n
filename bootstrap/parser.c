@@ -1937,7 +1937,7 @@ static ERROR p_statement(struct node *par, struct module *mod) {
     break;
   case Tand:
   case Tsuch:
-    if (subs_last(par)->which != LET) {
+    if (subs_last(par) == NULL || subs_last(par)->which != LET) {
       UNEXPECTED(mod, &tok);
     }
     // fallthrough
