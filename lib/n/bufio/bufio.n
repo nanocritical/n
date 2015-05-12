@@ -164,8 +164,9 @@ example reader
 	assert r.Total_filled == s.Count
 
 
--- Writes never block or return AGAIN. However, Flush may.
--- Flushes are not automatic.
+-- Write never block or return AGAIN. However, Flush may.
+-- Flushes are not automatic. The buffer has no maximum size, it will keep
+-- allocating more memory until it is flushed.
 
 inline struct Writer =
 	isa io.`Writer
@@ -212,7 +213,7 @@ Writer met# Flush ?max:?Uint = Error
 		return self#bufw#Flush max=max
 
 	let len = max else self.pending.Count
-	let left, wr_err = io.Write_full self.W self.pending.[.. len]
+	let left, wr_err = io.Write_full self#W self.pending.[.. len]
 	let copied = len - left.Count
 	self!count_flushed += copied
 	self!pending = self.pending.[copied ..]
@@ -239,9 +240,16 @@ example writer
 	assert w.Count_flushed == buf.Count
 
 
+enum Auto_mode =
+	| FULLY_BUFFERED = 0
+	| LINE_BUFFERED
+	| UNBUFFERED
+
+
 -- Wraps around a bufio.Reader and automatically loads the buffer when
 -- depleted. May block.
 inline struct Auto_reader =
+	isa io.`Reader
 	R	:#Reader
 
 Auto_reader met# Read b:[!]U8 = r:[!]U8, err:Error
@@ -253,15 +261,143 @@ Auto_reader met# Read b:[!]U8 = r:[!]U8, err:Error
 		r, err = self#R#Read b
 
 
--- Wraps around a bufio.Writer and automatically flushes the buffer when
--- full. May block.
+-- Wraps around a bufio.Writer, and automatically flushes the buffer when it
+-- contains Max bytes, or sooner according to the buffering mode.
+-- Writes may block while the buffer is flushed.
+--
+-- FULLY_BUFFERED: automatically flush blocks of exactly Max bytes, or less if
+-- flushed manually.
+--
+-- LINE_BUFFERED: automatically flush after the last newline byte in a write,
+-- or flush blocks of exactly Max bytes, or less if flushed manually.
+--
+-- UNBUFFERED: bypass the underlying bufio.Writer entirely, uses io.Write_full
+-- on the inner `Writer in the bufio.Writer.
+--
+-- Auto_writer does not assume that it is the only writer to the bufio.Writer.
 inline struct Auto_writer =
+	isa io.`Writer io.`Flusher
 	W	:#Writer
+	Mode	:Auto_mode
+	Max	:Uint
+
+-- Underlying writes will be of max bytes, or self.Max if left unspecified.
+Auto_writer met# Flush ?max:?Uint = Error
+	return self#W#Flush max=max
+
+Auto_writer met# buffered_write b:[]U8 = r:[]U8, err:Error
+	-- If someone else is writing to the bufio.Writer, try to maintain the
+	-- block flushing behavior.
+	while self.W.Buffered > self.Max
+		err = self#W#Flush max=self.Max
+		if err != OK
+			return b, err
+
+	r = b
+	while r.Count > 0
+		let room = self.Max - self.W.Buffered
+		if r.Count <= room
+			return self#W#Write r
+
+		let head, tail = r.[.. room], r.[room ..]
+		_, never = self#W#Write head
+
+		err = self#W#Flush
+		if err != OK
+			return tail, err
+
+		r = tail
 
 Auto_writer met# Write b:[]U8 = r:[]U8, err:Error
-	r, err = self#W#Write b
-	if r.Count == b.Count
+	match self.Mode
+	| FULLY_BUFFERED
+		return self#buffered_write b
+
+	| LINE_BUFFERED
+		let bs = String.From_bytes b
+		let last_nl = bs.Last_index_byte '\n'
+		if last_nl < 0
+			return self#buffered_write b
+
+		let to_flush, not_to_flush = bs.Cut_at last_nl.Unsigned+1
+
+		r, err = self#buffered_write to_flush.Bytes
+		if err != OK
+			return r, err
 		err = self#W#Flush
 		if err != OK
 			return r, err
-		r, err = self#W#Write b
+
+		return self#buffered_write not_to_flush.Bytes
+
+	| UNBUFFERED
+		return io.Write_full self#W#W b
+
+example auto_writer_fully_buffered
+	var buf:Stringbuf
+	var w = {W=#buf}:Writer
+	var aw = #{W=#w Mode=FULLY_BUFFERED Max=16}:Auto_writer
+	var left
+
+	left, except = aw#Write "abc\n".Bytes
+	assert left.Count == 0 and buf == ""
+
+	left, except = aw#Write "abcabcabcabc".Bytes -- 4 + 12 bytes, will just hit Max: no flush.
+	assert left.Count == 0 and buf == ""
+
+	left, except = aw#Write "".Bytes
+	assert left.Count == 0 and buf == ""
+	left, except = aw#Write "a".Bytes
+	assert left.Count == 0 and buf == "abc\nabcabcabcabc"
+
+	except = aw#Flush
+	assert buf == "abc\nabcabcabcabca"
+
+example auto_writer_line_buffered
+	var buf:Stringbuf
+	var w = {W=#buf}:Writer
+	var aw = #{W=#w Mode=LINE_BUFFERED Max=16}:Auto_writer
+	var left
+
+	left, except = aw#Write "abc".Bytes
+	assert left.Count == 0 and buf == ""
+
+	left, except = aw#Write "\n".Bytes
+	assert left.Count == 0 and buf == "abc\n"
+
+	left, except = aw#Write "abc\nabc".Bytes
+	assert left.Count == 0 and buf == "abc\nabc\n"
+	assert aw.W.Buffered == 3
+
+	left, except = aw#Write "abcabcabcabcd".Bytes -- 3 + 13 bytes, will just hit Max: no flush.
+	assert left.Count == 0 and buf == "abc\nabc\n"
+
+	left, except = aw#Write "e".Bytes -- Over Max: flush.
+	assert left.Count == 0 and buf == "abc\nabc\nabcabcabcabcabcd"
+
+	except = aw#Flush
+	assert buf == "abc\nabc\nabcabcabcabcabcde"
+
+	buf#Clear
+	left, except = aw#Write "a\nabcabcabcabcabcd".Bytes -- nl flush, and 16 chars.
+	assert left.Count == 0 and buf == "a\n"
+
+	except = aw#Flush
+	buf#Clear
+	left, except = aw#Write "a\nabcabcabcabcabcde".Bytes -- nl flush, and 17 chars flush.
+	assert left.Count == 0 and buf == "a\nabcabcabcabcabcd"
+
+example auto_writer_unbuffered
+	var buf:Stringbuf
+	var w = {W=#buf}:Writer
+	var aw = #{W=#w Mode=UNBUFFERED}:Auto_writer
+	var left
+
+	left, except = aw#Write "abc".Bytes
+	assert left.Count == 0 and buf == "abc"
+
+	left, except = aw#Write "\n".Bytes
+	assert left.Count == 0 and buf == "abc\n"
+
+	left, except = aw#Write "abc\nabc".Bytes
+	assert left.Count == 0 and buf == "abc\nabc\nabc"
