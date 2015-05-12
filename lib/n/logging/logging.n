@@ -1,0 +1,86 @@
+from n import *
+import n.io
+import n.bufio
+import n.syscall
+import n.fmt
+
+globalenv Log:#`Log
+
+intf `Log =
+	isa io.`Writer
+	met# Emergency format:String ...v:(Vararg ?*`Show)
+	met# Alert format:String ...v:(Vararg ?*`Show)
+	met# Critical format:String ...v:(Vararg ?*`Show)
+	met# Error format:String ...v:(Vararg ?*`Show)
+	met# Warning format:String ...v:(Vararg ?*`Show)
+	met# Notice format:String ...v:(Vararg ?*`Show)
+	met# Info format:String ...v:(Vararg ?*`Show)
+	met# Debug format:String ...v:(Vararg ?*`Show)
+
+fun Install_sys within Log
+	let s = Alloc stderr
+	s!init
+	let header = Alloc (Envheader #`Log)
+	header#Env = s
+	Globalenv_install Log header
+
+
+struct direct_stderr =
+	isa io.`Writer
+
+direct_stderr met# Write b:[]U8 = []U8, Error
+	return syscall.Write 2 b
+
+
+struct stderr =
+	isa io.`Writer `Log
+	direct	:direct_stderr
+	bufw	:bufio.Writer
+	w	:bufio.Auto_writer
+
+stderr met# Write b:[]U8 = []U8, Error
+	return self!w#Write b
+
+stderr met# init
+	self#bufw = {W=#self#direct}
+	self#w = {W=#self#bufw Mode=LINE_BUFFERED Max=1024}
+
+stderr met# Emergency format:String ...v:(Vararg ?*`Show)
+	fmt.F self "Emergency: "
+	fmt.F self format ...v
+	fmt.F self "\n"
+
+stderr met# Alert format:String ...v:(Vararg ?*`Show)
+	fmt.F self "Alert: "
+	fmt.F self format ...v
+	fmt.F self "\n"
+
+stderr met# Critical format:String ...v:(Vararg ?*`Show)
+	fmt.F self "Critical: "
+	fmt.F self format ...v
+	fmt.F self "\n"
+
+stderr met# Error format:String ...v:(Vararg ?*`Show)
+	fmt.F self "Error: "
+	fmt.F self format ...v
+	fmt.F self "\n"
+
+stderr met# Warning format:String ...v:(Vararg ?*`Show)
+	fmt.F self "Warning: "
+	fmt.F self format ...v
+	fmt.F self "\n"
+
+stderr met# Notice format:String ...v:(Vararg ?*`Show)
+	fmt.F self "Notice: "
+	fmt.F self format ...v
+	fmt.F self "\n"
+
+stderr met# Info format:String ...v:(Vararg ?*`Show)
+	fmt.F self "Info: "
+	fmt.F self format ...v
+	fmt.F self "\n"
+
+stderr met# Debug format:String ...v:(Vararg ?*`Show)
+	fmt.F self "Debug: "
+	fmt.F self format ...v
+	fmt.F self "\n"
