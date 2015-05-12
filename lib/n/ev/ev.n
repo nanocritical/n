@@ -3,6 +3,9 @@ import n.syscall
 import n.time
 import n.unsafe
 import n.fmt
+import n.logging
+
+within logging.Log
 
 enum Events =
 	| READ
@@ -80,7 +83,6 @@ Poll met! Register e:Event = Error
 		return OK
 
 	if HUP in e.Ask
-		Eprn "register: HUP:" e
 		_ = self!hups#Add e.Fd
 
 		let just_hup = e.Ask.Count == 1
@@ -92,8 +94,6 @@ Poll met! Register e:Event = Error
 		if added
 			perm_e# = Alloc Event
 			op = syscall.EPOLL_CTL_ADD
-		else
-			Eprn "register: already:" e
 
 	let pe = perm_e#
 	pe!Fd = e.Fd
@@ -112,7 +112,6 @@ Poll met! Register e:Event = Error
 	except = syscall.Epoll_ctl self.epfd op e.Fd sys_event
 
 Poll met! Unregister_all e:Event = Error
-	Eprn "unregister:" e
 	let perm_e = self!fds![e.Fd]
 	if not perm_e?
 		return INVAL
@@ -123,18 +122,17 @@ Poll met! Unregister_all e:Event = Error
 	Drop <- syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL e.Fd {}
 
 Poll met! process_hups
-	Eprn "process_hups" self.hups.Count
 	for fd in self.hups.Iter
 		let pe = self.fds.[fd]
 		if not pe?
-			Eprn "Warning: process_hup: spurious fd on hups list:" fd
+			Log#Warning "Warning: process_hup: spurious fd on hups list: %s" fd
 			continue
 		let e = pe*
 		if e.Handler?
 			let e_hup = {Fd=e.Fd Got={HUP} Handler=e.Handler}:Event
 			let err, _ = e_hup.Handler#On e_hup
 			if err != OK
-				Eprn "Warning: process_hup:" err
+				Log#Warning "Warning: process_hup: %s" err
 		Drop <- self!Unregister_all e
 
 	self!hups#Clear
@@ -142,7 +140,7 @@ Poll met! process_hups
 Poll met! sys_wait timeout:?time.Duration = Error
 	self!process_hups
 
-	Eprn "sys_wait"
+	Log#Debug "sys_wait"
 	assert self.pending.Count == 0
 	let err, res = syscall.Epoll_pwait self.epfd self!buf![..]
 		\ (timeout?.Millisec else -1) nil
@@ -151,7 +149,7 @@ Poll met! sys_wait timeout:?time.Duration = Error
 
 	self!pending = res
 
-	Eprn "sys_wait" res.Count self.pending
+	Log#Debug "sys_wait %s %s" res.Count self.pending
 
 Poll met! Wait ?timeout:?time.Duration = Error, e:Event, is_last:Bool
 	if self.pending.Count == 0

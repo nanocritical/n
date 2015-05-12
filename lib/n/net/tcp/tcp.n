@@ -91,7 +91,6 @@ Conn met# Read b:[!]U8 = [!]U8, Error
 	var c, err = syscall.Read self.fd b
 	if err == OK and c.Count == b.Count
 		err = io.EOF
-		Eprn self.fd "EOF on zero read"
 	return c, err
 
 Conn met# Write b:[]U8 = []U8, Error

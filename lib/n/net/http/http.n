@@ -15,6 +15,9 @@ import n.net
 import n.net.tcp
 import n.net.url
 import n.time
+import n.logging
+
+within logging.Log
 
 let crlf = "\r\n"
 let colon_space = ": "
@@ -55,8 +58,8 @@ struct Request_handler =
 	ev_read		:ev.Event
 	ev_close	:ev.Event
 
-Request_handler met log ...s:(Vararg ?*`Show)
-	Eprn self.conn.Fd s!Next ":" ...s
+Request_handler met debug ...s:(Vararg ?*`Show)
+	Log#Info "%s %s: %s" self.conn.Fd s!Next <- fmt.S ...s
 
 Request_handler met# Dtor
 	drop = self#Close
@@ -71,7 +74,7 @@ Request_handler met# Init conn:#tcp.Conn
 	self#ev_close = {Fd=self.conn.Fd Ask={HUP} Handler=self}
 
 Request_handler met# recycle = Error, nxt:ev.Event
-	self.log "recycle"
+	self.debug "recycle"
 	if not self.connected
 		return INVAL, NONE
 
@@ -85,7 +88,7 @@ Request_handler met# Close = err:Error
 	if not self.connected
 		return OK
 
-	self.log "Close"
+	self.debug "Close"
 
 	block
 		-- See http://blog.netherlabs.nl/articles/2009/01/18/the-ultimate-so_linger-page-or-why-is-my-tcp-not-reliable
@@ -104,7 +107,7 @@ Request_handler met# Close = err:Error
 				return err
 			drop = err
 			if left.Count != 0
-				self.log "Close" "read leftovers:" hole.Count-left.Count
+				self.debug "Close" "read leftovers:" hole.Count-left.Count
 
 	err = self#conn#Close
 
@@ -120,11 +123,11 @@ Request_handler met# Close = err:Error
 	except = err
 
 Request_handler met# On e:ev.Event = err:Error, nxt:ev.Event
-	self.log "On" self.state e
+	self.debug "On" self.state e
 
 	if ERROR in e.Got
 		err = self!conn!Pending_error
-		self.log "On" "pending error:" err
+		self.debug "On" "pending error:" err
 		if not HUP in e.Got
 			nxt = self.ev_close
 
@@ -138,7 +141,7 @@ Request_handler met# On e:ev.Event = err:Error, nxt:ev.Event
 				| RECYCLE -> break
 		catch err
 			if err == syscall.EPIPE
-				self.log "On" syscall.EPIPE
+				self.debug "On" syscall.EPIPE
 				return OK, self.ev_close
 			else
 				except = err
@@ -177,7 +180,7 @@ Request_handler met# waiting_header = Error, ev.Event
 			return OK, NONE
 
 	if not is_header_loaded self.bufr
-		self.log "waiting_header" "header not loaded, count:" self.bufr.Buffered
+		self.debug "waiting_header" "header not loaded, count:" self.bufr.Buffered
 		if rerr == io.EOF
 			return ERR_MALFORMED_HEADER, NONE
 		return syscall.EAGAIN, self.ev_read
@@ -187,13 +190,13 @@ Request_handler met# waiting_header = Error, ev.Event
 	except = prepare_request_transfer #self#request #self#bufr #self#bufw
 	self#response#init self#conn #self#request #self#bufw
 
-	self.log "waiting_header" "got_header" self.request.Host self.request.Url self.request.Header.Map
+	self.debug "waiting_header" "got_header" self.request.Host self.request.Url self.request.Header.Map
 
 	self#state = WAITING_BODY
 	return OK, NONE
 
 Request_handler met# waiting_body = Error, ev.Event
-	self.log "waiting_body" self.state
+	self.debug "waiting_body" self.state
 
 	let req_content_length = self.request.Content_length else Uint.MAX
 
@@ -270,5 +273,5 @@ fun do = Error
 
 fun Main = I32
 	let err = do
-	Eprn err
+	Log#Error "%s" err
 	return 0
