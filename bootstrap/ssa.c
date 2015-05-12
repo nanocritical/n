@@ -219,7 +219,7 @@ STEP_NM(step_ssa_convert_shallow_catchup,
 error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
-  if (mod->state->top_state->is_propagating_constant) {
+  if (mod->state->top_state != NULL && mod->state->top_state->is_propagating_constant) {
     return 0;
   }
 
@@ -338,7 +338,7 @@ STEP_NM(step_ssa_convert,
           | NM_DOESNT_EVER_NEED_SUB));
 error step_ssa_convert(struct module *mod, struct node *node,
                        void *user, bool *stop) {
-  if (mod->state->top_state->is_propagating_constant) {
+  if (mod->state->top_state != NULL && mod->state->top_state->is_propagating_constant) {
     return 0;
   }
 
