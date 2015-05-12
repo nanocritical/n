@@ -2336,10 +2336,6 @@ again:
     }
     seen_named = tok.t == TPREQMARK;
     must_be_last = tok.t == TDOTDOTDOT;
-
-    if (tok.t == TDOTDOTDOT && parent(node)->which == DEFINTF) {
-      THROW_SYNTAX(mod, &tok, "interface members cannot use vararg");
-    }
     goto again;
   default:
     assert(false);

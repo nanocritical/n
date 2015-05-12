@@ -2114,7 +2114,7 @@ static void print_deffun_dynwrapper(FILE *out, bool header, enum forward fwd,
       fprintf(out, ", ");
     }
     if (n == typ_function_first_vararg(node->typ)) {
-      fprintf(out, "NLANG_BUILTINS_VACOUNT_VARARGREF, ");
+      fprintf(out, "NLANG_BUILTINS_VACOUNT_VARARGREF, &");
     }
     print_ident(out, mod, subs_first_const(arg));
     n += 1;

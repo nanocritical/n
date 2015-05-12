@@ -48,6 +48,15 @@ fun relay4 ...v:(Vararg *I32)
 fun relay5 ...v:(Vararg *I32)
 	relay4 5 ...v
 
+intf `i =
+	met relay ...v:(Vararg *I32)
+
+struct i =
+	isa `i
+
+i met relay ...v:(Vararg *I32)
+	relay ...v
+
 fun Main = I32
 	if opts a=1 != 1
 		return 1
@@ -79,6 +88,14 @@ fun Main = I32
 	relay3 ...{4 5 6}
 	relay5 6 1 2 3
 	relay5 6 ...{1 2 3}
+
+	let xi = {}:i
+	xi.relay ...{1 2 3}
+	xi.relay 1 2 3
+	let di:*`i such
+		di = *xi
+	di.relay ...{1 2 3}
+	di.relay 1 2 3
 
 	let x = unarygen I32
 
