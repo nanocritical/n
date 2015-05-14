@@ -2028,9 +2028,7 @@ inline struct Codeloc =
 
 fun Message_at msg:String c:?*Codeloc
 	if c?
-		Epr sep=':' c.File c.Line
-		Epr sep="" " " c.Function ":"
-		Eprn ":" msg "'" c.Expr "'"
+		Eprn sep="" c.File ":" c.Line ": " c.Function ": " msg " '" c.Expr "'"
 	else
 		Eprn msg
 
