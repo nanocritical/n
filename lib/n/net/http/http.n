@@ -173,20 +173,21 @@ conn_handler met# On e:ev.Event = err:Error
 			except = self.server.poll#Register self.ev_close
 
 	if READ in e.Got
-		while true
+		var stop = false
+		while not stop
 			try
 				match self.state
 				| WAITING_HEADER -> except = self#waiting_header
-				| HANDLING -> except =  self#handling
-				| FLUSH -> except =  self#flush
+				| HANDLING -> except = self#handling
+				| FLUSH -> except = self#flush
 				| RECYCLE -> break
 				| CLOSE -> break
 			catch err
 				if err == syscall.EAGAIN
-					break
+					stop = true
 				elif err == syscall.EPIPE
 					self#state = CLOSE
-					break
+					stop = true
 				else
 					except = err
 
