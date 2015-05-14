@@ -60,7 +60,7 @@ Reader met# Fill ?max:?Uint = Error
 
 -- Does not Fill more data.
 -- The returned slice is valid until the next call to Fill.
-Reader met! Read_slice ?max:?Uint = []U8
+Reader met! Read_bytes ?max:?Uint = []U8
 	return (self!Read_string max=max).Bytes
 
 -- Does not Fill more data.
@@ -75,7 +75,7 @@ Reader met! Read_string ?max:?Uint = String
 
 -- Does not Fill more data. Does not advance.
 -- The returned slice is valid until the next call to Fill.
-Reader met Peek_slice ?max:?Uint = []U8
+Reader met Peek_bytes ?max:?Uint = []U8
 	return (self.Peek_string max=max).Bytes
 
 -- Does not Fill more data. Does not advance.
