@@ -44,8 +44,14 @@ fun write_chunk_size w:#io.`Writer cnt:Uint = Error
 
 	while x != 0
 		i -= 1
-		buf![i]! = '0' + (x % 10).Trim_u8
-		x /= 10
+		let d = (x % 16).Trim_u8
+		let c such
+			if d < 10
+				c = '0' + d
+			else
+				c = 'a' + (d - 10)
+		buf![i]! = c
+		x /= 16
 	let b = buf.[i ..]
 
 	_, except = w#Write b.Bytes
