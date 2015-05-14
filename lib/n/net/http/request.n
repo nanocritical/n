@@ -93,7 +93,7 @@ fun parse_request_line line:String = Error, method:Stringbuf, request_uri:String
 	return OK, line.[.. us1].Buf, line.[us1+1 .. us2].Buf, line.[us2+1 ..].Buf
 
 -- Call with a fully loaded header.
-fun read_request_header req:#Request b:!bufio.Reader = Error
+fun read_request_header req:#Request b:!bufio.Reader remote_addr:*tcp.Addr = Error
 	var partial, s = b!Read_line
 	assert not partial
 
@@ -119,6 +119,8 @@ fun read_request_header req:#Request b:!bufio.Reader = Error
 	_ = req#Header#Map#Try_delete "Host"
 
 	fix_pragma_cache_control #req#Header
+
+	req#Remote_addr = remote_addr
 
 fun is_no_body_expected method:String = Bool
 	return method == "HEAD"
