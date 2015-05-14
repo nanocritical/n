@@ -90,4 +90,4 @@ fun Sf fmt:String ...v:(Vararg *`Show) = r:Stringbuf
 	F #r fmt ...v
 
 fun S ?sep:?*String ...v:(Vararg *`Show) = r:Stringbuf
-	Cat #r sep=sep ...v
+	Cat #r sep=(sep else " ") ...v
