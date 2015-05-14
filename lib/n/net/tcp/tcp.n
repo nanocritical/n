@@ -17,10 +17,13 @@ Protocol met sys_family = I32
 	| TCP6 -> return syscall.AF_INET6
 
 inline struct Addr =
-	isa `Show
+	isa `Show `Hashable32
 	Ip	:net.Ip
 	Port	:Uint
 	Zone	:Stringbuf
+
+Addr met Hash32 = U32
+	return self.Ip.Hash32 ^ self.Port.Hash32 ^ self.Zone.Hash32
 
 Addr met Network = Stringbuf
 	return "tcp"

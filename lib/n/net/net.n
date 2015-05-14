@@ -32,8 +32,8 @@ example
 
 
 -- Always stored as IPv6.
-struct Ip =
-	isa `Show
+inline struct Ip =
+	isa `Show `Hashable32
 	bytes	:(Buf U8)
 
 let v4_prefix = "\0\0\0\0\0\0\0\0\0\0\xff\xff"
@@ -44,6 +44,9 @@ Ip met Is_v4 = Bool
 
 Ip met Bytes = []U8
 	return self.bytes.Slice
+
+Ip met Hash32 = U32
+	return Hash32 self.bytes.Slice
 
 Ip met Show st:#fmt.`State
 	let p = self.Bytes
