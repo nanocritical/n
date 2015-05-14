@@ -603,7 +603,7 @@ static NB(Int) SY(listen)(NB(Int) sockfd, NB(Int) backlog) {
 }
 
 static NB(Int) SY(accept4)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) *raw_addrlen, NB(I32) flags) {
-  socklen_t addrlen = 0;
+  socklen_t addrlen = *raw_addrlen;
   int ret = accept4(sockfd, (struct sockaddr *) raw_addr, &addrlen, flags);
   _$Nlatestsyscallerrno = errno;
   *raw_addrlen = addrlen;

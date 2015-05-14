@@ -1,6 +1,9 @@
 from n import *
 import n.cstring
 import n.unsafe
+import n.logging
+
+within logging.Log
 
 extern let _EPERM:I32
 extern let _ENOENT:I32
@@ -911,6 +914,11 @@ fun Accept4 sockfd:Int sys_addr:#[!]U8 flags:I32 = Error, Int
 	var raw_addrlen = sys_addr.Bytecap
 	let fd = accept4 sockfd sys_addr#Unsafe_rawdata #raw_addrlen flags
 	if fd >= 0
+		if raw_addrlen > sys_addr.Bytecap
+			Log#Critical "truncated remote address (wrong address family?), need %s bytes" raw_addrlen
+			-- Don't expose partial garbage.
+			raw_addrlen = 0
+
 		sys_addr# = sys_addr![.. raw_addrlen]
 		return OK, fd
 	return convert_error errno, fd
