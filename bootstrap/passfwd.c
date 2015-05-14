@@ -896,6 +896,18 @@ static ERROR step_type_deffuns(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_type_withins,
+               NM(WITHIN));
+static ERROR step_type_withins(struct module *mod, struct node *node,
+                               void *user, bool *stop) {
+  DSTEP(mod, node);
+
+  error e = early_typing(mod, node);
+  EXCEPT(e);
+
+  return 0;
+}
+
 static STEP_NM(step_rewrite_def_return_through_ref,
                NM(DEFFUN) | NM(DEFMETHOD));
 static ERROR step_rewrite_def_return_through_ref(struct module *mod, struct node *node,
@@ -1566,6 +1578,7 @@ static ERROR passfwd11(struct module *mod, struct node *root,
     DOWN_STEP(step_validate_genargs);
     ,
     UP_STEP(step_type_deffuns);
+    UP_STEP(step_type_withins);
     UP_STEP(step_autointf_inherit);
     UP_STEP(step_rewrite_def_return_through_ref);
     ,
