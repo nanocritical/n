@@ -1,8 +1,8 @@
 intf `Response_writer =
 	isa io.`Writer
 	met# Header = #Header
-	met# Write_header status:Int = Error
-	met# Flush = Error
+	met# Write_header status:Int
+	met# Flush ?max:?Uint = Error
 	met# Done = Error
 
 intf `Simple_request_handler =
@@ -22,8 +22,9 @@ struct response_writer =
 	header			:Header
 	wrote_header		:Bool
 	chunking		:Bool
+	finalized	:Bool
 	close_after_reply	:Bool
-	close_because_of		:Error
+	close_because_of	:Error
 	done			:Bool
 
 response_writer met# init conn:#tcp.Conn req:#Request bufw:#bufio.Writer
@@ -170,45 +171,43 @@ response_writer met# Write b:[]U8 = left:[]U8, err:Error
 		-- Eat writes.
 		return {}, OK
 
-	try
-		if self.chunking
-			never = write_chunk_size self#bufw b.Count
+	if self.chunking
+		never = write_chunk_size self#bufw b.Count
 
-		left, err = self#bufw#Write b
+	_, never = self#bufw#Write b
 
-		if self.chunking and err == OK
-			_, never = self#bufw#Write crlf.Bytes
+	if self.chunking
+		_, never = self#bufw#Write crlf.Bytes
 
-		except = err
-
-	catch err
-		return left, err
+	return {}, OK
 
 response_writer met# Header = #Header
 	return #self#header
 
-response_writer met# Write_header status_code:Uint = Error
+response_writer met# Write_header status_code:Uint
 	self#write_header status_code {}
 
-response_writer met# Flush = Error
-	return self#bufw#Flush
+response_writer met# Flush ?max:?Uint = Error
+	let err = self#bufw#Flush max=max
+	if err == syscall.EAGAIN
+		return err
+	if err != OK
+		self!close_because_of = err
+		Log#Error "will close connection because of error: %s" self.close_because_of
+		return err
 
 response_writer met# Done = Error
 	self#done = true
 	return OK
 
-response_writer met# finalize = Error
+response_writer met# finalize ?max_flush:?Uint
 	if not self.wrote_header
 		self.write_header 200 {}
 
-	if self.chunking
-		_, never = self#bufw#Write "0\r\n\r\n".Bytes
+	if not self.finalized
+		self!finalized = true
+		if self.chunking
+			_, never = self#bufw#Write "0\r\n\r\n".Bytes
 
-	let err = self#Flush
-	if err == syscall.EAGAIN
-		return err
-	if err != OK
-		self!close_because_of = err
-		return err
-
-	return OK
+response_writer met wants_close = Bool
+	return self.close_after_reply or self.close_because_of != OK

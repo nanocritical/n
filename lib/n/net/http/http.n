@@ -36,11 +36,28 @@ let ERR_LINE_TOO_LONG = {Why=*"ERR_LINE_TOO_LONG: header line too long"}:Error
 
 
 intf `Server =
-	met# On_incoming header:*Header = ?#`Handler
-	met# On_done h:#`Handler = Error
+	met# On_incoming r:*Request = ?#`Handler
+	met# On_done h:#`Handler
 
+-- The first time On is called, r is populatedr is populated, but the none of
+-- the Body may be loaded.The handler must read the request body in a
+-- non-blocking manner, by filling r#Body, a bufio.Reader.
+--
+-- The `Reponse_writer w is buffered: if the handler chooses to flush it
+-- manually, it must be capable of handling any possible AGAIN.
+--
+-- The handler must call w#Done when it has written the whole response.
+-- Once w#Done has been called, the Server will take care of flushing any
+-- remaining data in the `Response_writer.
 intf `Handler =
 	met# On w:#`Response_writer r:#Request = Error
+
+-- Unlike `Handler, the whole request body is buffered before calling On.
+-- On is called once, and it must write the whole response to the (buffered)
+-- `Response_writer. The response is then flushed automatically, and it should
+-- not be flushed manually.
+intf `Handler_buffered =
+	isa `Handler
 
 
 enum Handling_state =
@@ -65,7 +82,10 @@ struct conn_handler =
 	bufw		:bufio.Writer
 	response	:response_writer
 
-	handler		:?#`Handler
+	server_handler		:?#`Server
+	handler			:?#`Handler
+	handler_buffered	:?#`Handler_buffered
+	buffered_filling	:Bool
 
 	ev_read		:ev.Event
 	ev_close	:ev.Event
@@ -97,7 +117,10 @@ conn_handler met# recycle
 
 	self#request#Dtor
 	self#response#Dtor
+	self#server_handler = nil
 	self#handler = nil
+	self#handler_buffered = nil
+	self#buffered_filling = false
 	self#state = WAITING_HEADER
 
 conn_handler met# Close = err:Error
@@ -206,15 +229,17 @@ conn_handler met# waiting_header = Error
 
 	var handler
 	foreach server_handler in self.server.Handlers
-		handler = (server_handler*)#On_incoming self.request.Header
+		handler = (server_handler*)#On_incoming self.request
 		if handler?
+			self#server_handler = server_handler*
 			break
 	if not handler?
 		-- FIXME(e): write a 404 and recycle.
 		Log#Error "no handler found for URL: %s" self.request.Url
 		self#state = CLOSE
 		return OK
-	self!handler = handler
+	self#handler = handler
+	self#handler_buffered = (Dyncast `Handler_buffered) handler
 
 	except = prepare_request_transfer #self#request #self#bufr #self#bufw
 	self#response#init self#conn #self#request #self#bufw
@@ -223,6 +248,9 @@ conn_handler met# waiting_header = Error
 	return OK
 
 conn_handler met# handling = Error
+	if self.handler_buffered?
+		return self#handling_buffered
+
 	self.debug self.state
 
 	except = self.handler#On #self#response #self#request
@@ -231,16 +259,36 @@ conn_handler met# handling = Error
 		self#state = FLUSH
 	return OK
 
+conn_handler met# handling_buffered = Error
+	self.debug self.state
+
+	if not self.buffered_filling
+		let rerr = self#request#Body#Fill
+		if rerr == io.EOF
+			self#buffered_filling = true
+		elif rerr == syscall.EAGAIN
+			return rerr
+		else
+			except = rerr
+
+	except = self.handler#On #self#response #self#request
+	except = self#response#Done
+
+	self#state = FLUSH
+	return OK
+
+
 conn_handler met# flush = Error
-	let err = self#response#finalize
+	self#response#finalize
+
+	let err = self#response#Flush
 	if err == syscall.EAGAIN
 		return err
 	except = err
 
-	if self.response.close_because_of != OK
-		Log#Error "closing connection because of error: %s" self.response.close_because_of
-		self#state = CLOSE
-	elif self.response.close_after_reply
+	self#server_handler#On_done self.handler
+
+	if self.response.wants_close
 		self#state = CLOSE
 	else
 		self#state = RECYCLE
@@ -269,11 +317,13 @@ Server met# Listen addr:tcp.Addr = Error
 Server met# On e:ev.Event = Error
 	while true
 		let conn = Alloc tcp.Conn
-		var accept_err
-		accept_err, conn# = self.listening.Accept
-		if accept_err == syscall.EAGAIN or accept_err == syscall.EWOULDBLOCK
+		var err
+		err, conn# = self.listening.Accept
+		if err != OK
 			Free conn
-			break
+			if err != syscall.EAGAIN and err != syscall.EWOULDBLOCK
+				Log#Error "Accept failed with: %s" err
+			return err
 
 		Log#Info "Connect from %s" conn.Remote_addr
 

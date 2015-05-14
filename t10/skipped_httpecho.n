@@ -17,44 +17,27 @@ echo_server met# init poll:#ev.Poll = Error
 	self#server = http.Server.Mk poll handler=self
 	except = self#server#Listen {Ip=(net.Ip.V4 0 0 0 0) Port=8000}
 
-echo_server met# On_incoming header:*http.Header = ?#http.`Handler
+echo_server met# On_incoming r:*http.Request = ?#http.`Handler
 	return Alloc echo
 
-echo_server met# On_done h:#http.`Handler = Error
+echo_server met# On_done h:#http.`Handler
 	Free <- (Dyncast echo) h
-	return OK
 
 
 struct echo =
-	isa http.`Handler
-	rdy		:Bool
-	whole_request	:Bool
-	copier		:io.Copier
+	isa http.`Handler_buffered
 
 echo met# On w:#http.`Response_writer r:#http.Request = Error
-	if not self.rdy
-		self!rdy = true
-		let ct = r.Header.Get "Content-Type"
-		if ct?
-			(w#Header#Set "Content-Type")# = ct
+	let ct = r.Header.Get "Content-Type"
+	if ct?
+		(w#Header#Set "Content-Type")# = ct
 
-	if not self.whole_request
-		let rerr = r#Body#Fill
-		Break
-		if rerr == io.EOF
-			self#whole_request = true
-			self#copier#Reset w #r#Body
-		else
-			except = rerr
-			return syscall.EAGAIN
+	var copier:io.Copier
+	copier#Reset w #r#Body
 
-	let _, err = self#copier#Copy
-	if err == syscall.EAGAIN
-		return err
+	let _, err = copier#Copy
 	if err != io.EOF
 		except = err
-
-	except = w#Done
 	return OK
 
 
