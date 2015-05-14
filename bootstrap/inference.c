@@ -1236,9 +1236,9 @@ static void try_filling_codeloc(struct module *mod, struct node *named,
       G_IDENT(linen, "Line");
       G(line, NUMBER,
         line->flags |= NODE_IS_LOCAL_STATIC_CONSTANT);
-      G_IDENT(coln, "Col");
-      G(col, NUMBER,
-        col->flags |= NODE_IS_LOCAL_STATIC_CONSTANT);
+      G_IDENT(funn, "Function");
+      G(fun, STRING,
+        fun->flags |= NODE_IS_LOCAL_STATIC_CONSTANT);
       G_IDENT(exprn, "Expr");
       G(expr, STRING,
         expr->flags |= NODE_IS_LOCAL_STATIC_CONSTANT));
@@ -1246,17 +1246,16 @@ static void try_filling_codeloc(struct module *mod, struct node *named,
       set_typ(&t->as.DIRECTDEF.typ, TBI_CODELOC)));
 
   const char *fn = module_component_filename_at(mod, node->codeloc.pos);
-  char *vfn = calloc(strlen(fn) + 3, sizeof(char));
-  sprintf(vfn, "\"%s\"", fn);
-  file->as.STRING.value = vfn;
+  file->as.STRING.value = fn;
 
   char *vl = calloc(16, sizeof(char));
   snprintf(vl, 16, "%d", node->codeloc.line);
   line->as.NUMBER.value = vl;
 
-  char *vc = calloc(16, sizeof(char));
-  snprintf(vc, 16, "%d", node->codeloc.column);
-  col->as.NUMBER.value = vc;
+  fun->as.STRING.value = "";
+  if (mod->state->top_state != 0) {
+    fun->as.STRING.value = idents_value(mod->gctx, node_ident(mod->state->top_state->top));
+  }
 
   expr->as.STRING.value = quote_code(mod->parser.data, node->codeloc.pos);
 }

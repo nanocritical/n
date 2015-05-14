@@ -2023,12 +2023,13 @@ extern (fun t:`Any_any_ref) Globalenv_uninstall env:t
 inline struct Codeloc =
 	File	:String
 	Line	:Uint
-	Col	:Uint
+	Function:String
 	Expr	:String
 
 fun Message_at msg:String c:?*Codeloc
 	if c?
-		Epr sep=':' c.File c.Line c.Col
+		Epr sep=':' c.File c.Line
+		Epr sep="" " " c.Function ":"
 		Eprn ":" msg "'" c.Expr "'"
 	else
 		Eprn msg
@@ -2073,26 +2074,26 @@ inline fun Invariant__ cond:Bool ?_Ncodeloc:?*Codeloc
 fun Trace_except err:Error ?_Ncodeloc:?*Codeloc
 	Epr "except:"
 	if _Ncodeloc?
-		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ":" _Ncodeloc.Col ":"
+		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ": " _Ncodeloc.Function ":"
 	Eprn "" err
 
 fun Trace_drop err:Error ?_Ncodeloc:?*Codeloc
 	Epr "drop:"
 	if _Ncodeloc?
-		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ":" _Ncodeloc.Col ":"
+		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ": " _Ncodeloc.Function ":"
 	Eprn "" err
 
 fun Trace_fatal err:Error ?_Ncodeloc:?*Codeloc
 	Epr "fatal:"
 	if _Ncodeloc?
-		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ":" _Ncodeloc.Col ":"
+		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ": " _Ncodeloc.Function ":"
 	Eprn "" err
 	Abort
 
 fun Trace_never err:Error ?_Ncodeloc:?*Codeloc
 	Epr "never:"
 	if _Ncodeloc?
-		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ":" _Ncodeloc.Col ":"
+		Epr sep="" " " _Ncodeloc.File ":" _Ncodeloc.Line ": " _Ncodeloc.Function ":"
 	Eprn "" err
 	Abort
 
