@@ -49,6 +49,10 @@ Ip met Hash32 = U32
 	return Hash32 self.bytes.Slice
 
 Ip met Show st:#fmt.`State
+	if self.Bytes.Count == 0
+		fmt.F st "::"
+		return
+
 	let p = self.Bytes
 	if self.Is_v4
 		fmt.F st "%s.%s.%s.%s" p.[12] p.[13] p.[14] p.[15]
