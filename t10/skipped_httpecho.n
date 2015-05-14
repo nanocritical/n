@@ -1,0 +1,87 @@
+from n import *
+import n.ev
+import n.io
+import n.net
+import n.net.http
+import n.net.url
+import n.logging
+import n.syscall
+
+within logging.Log
+
+struct echo_server =
+	isa http.`Server
+	server		:http.Server
+
+echo_server met# init poll:#ev.Poll = Error
+	self#server = http.Server.Mk poll handler=self
+	except = self#server#Listen {Ip=(net.Ip.V4 0 0 0 0) Port=8000}
+
+echo_server met# On_incoming header:*http.Header = ?#http.`Handler
+	return Alloc echo
+
+echo_server met# On_done h:#http.`Handler = Error
+	Free <- (Dyncast echo) h
+	return OK
+
+
+struct echo =
+	isa http.`Handler
+	rdy		:Bool
+	whole_request	:Bool
+	copier		:io.Copier
+
+echo met# On w:#http.`Response_writer r:#http.Request = Error
+	if not self.rdy
+		self!rdy = true
+		let ct = r.Header.Get "Content-Type"
+		if ct?
+			(w#Header#Set "Content-Type")# = ct
+
+	if not self.whole_request
+		let rerr = r#Body#Fill
+		Break
+		if rerr == io.EOF
+			self#whole_request = true
+			self#copier#Reset w #r#Body
+		else
+			except = rerr
+			return syscall.EAGAIN
+
+	let _, err = self#copier#Copy
+	if err == syscall.EAGAIN
+		return err
+	if err != io.EOF
+		except = err
+
+	except = w#Done
+	return OK
+
+
+fun test = Error
+	var poll:ev.Poll
+	except = poll#Init
+
+	var server:echo_server
+	except = server#init #poll
+
+	-- This logic could go in a function that must be called in the form:
+	-- while true
+	--	except = poll!Loop
+	while true
+		let wait_err, e, _ = poll!Wait
+		if wait_err == syscall.EAGAIN
+			continue
+		except = wait_err
+
+		let err = e.Handler#On e
+		if err == syscall.EAGAIN
+			continue
+
+		if err != OK
+			Log#Error "%s" err
+
+fun Main = I32
+	if test != OK
+		return 1
+	return 0

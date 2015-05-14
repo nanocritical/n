@@ -18,7 +18,7 @@ enum Events =
 	| RDHUP
 
 intf `Handler =
-	met# On ev:Event = Error, Event
+	met# On ev:Event = Error
 
 inline struct Event =
 	isa `Show `Has_equality
@@ -119,7 +119,7 @@ Poll met! Unregister_all e:Event = Error
 	Free perm_e*
 	self!fds#Delete e.Fd
 
-	Drop <- syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL e.Fd {}
+	drop = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL e.Fd {}
 
 Poll met! process_hups
 	for fd in self.hups.Iter
@@ -130,10 +130,12 @@ Poll met! process_hups
 		let e = pe*
 		if e.Handler?
 			let e_hup = {Fd=e.Fd Got={HUP} Handler=e.Handler}:Event
-			let err, _ = e_hup.Handler#On e_hup
+			let err = e_hup.Handler#On e_hup
+			if err == syscall.EWOULDBLOCK or err == syscall.EAGAIN
+				continue
 			if err != OK
 				Log#Warning "Warning: process_hup: %s" err
-		Drop <- self!Unregister_all e
+		drop = self!Unregister_all e
 
 	self!hups#Clear
 

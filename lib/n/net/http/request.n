@@ -13,7 +13,7 @@ inline struct Request =
 	expect_continue_reader	:expect_continue_reader
 
 	Header		:Header
-	Body		:#io.`Reader
+	Body		:bufio.Reader
 	Close_conn	:Bool
 
 	Content_length		:?Uint
@@ -48,6 +48,9 @@ struct expect_continue_reader =
 	w		:#bufio.Writer
 
 expect_continue_reader met# Read b:[!]U8 = [!]U8, Error
+	-- FIXME(e): Ensure we've read any request body, even though it's not
+	-- allowed to be there.
+
 	if not self.wrote_continue
 		_ = self#w#Write "HTTP/1.1 100 Continue\r\n\r\n".Bytes
 		let err = self!w#Flush
@@ -58,18 +61,17 @@ expect_continue_reader met# Read b:[!]U8 = [!]U8, Error
 
 
 union body_reader =
-	isa io.`Reader
 	| EMPTY = 0 -> io.Bytes_reader
 	| DIRECT -> #bufio.Reader
 	| LIMITED -> io.Limited_reader
 	| CHUNKED -> chunked_reader
 
-body_reader met# Read b:[!]U8 = [!]U8, Error
+body_reader met# get_dyn = #io.`Reader
 	match self
-	| EMPTY -> return self#EMPTY#Read b
-	| DIRECT -> return self#DIRECT#Read b
-	| LIMITED -> return self#LIMITED#Read b
-	| CHUNKED -> return self#CHUNKED#Read b
+	| EMPTY -> return #self#EMPTY
+	| DIRECT -> return self#DIRECT
+	| LIMITED -> return #self#LIMITED
+	| CHUNKED -> return #self#CHUNKED
 
 
 fun Parse_http_version vers:String = Error, Uint
@@ -256,8 +258,9 @@ fun prepare_request_transfer req:#Request bufr:#bufio.Reader bufw:#bufio.Writer 
 
 	except, req#Transfer_encoding = fix_transfer_encoding #req#Header req.Method
 
+	let is_response = false
 	let except, real_length = fix_length #req#Header
-		\ true req.Status_code req.Method req.Transfer_encoding
+		\ is_response req.Status_code req.Method req.Transfer_encoding
 
 	if req.Method == "HEAD"
 		except, req#Content_length = parse_content_length
@@ -294,10 +297,10 @@ fun prepare_request_transfer req:#Request bufr:#bufio.Reader bufw:#bufio.Writer 
 			-- Persistent connection (i.e. HTTP/1.1)
 			req#body_impl = {}:body_reader.EMPTY
 
-	req#Body = #req#body_impl
+	req#Body = bufio.Reader.Mk req#body_impl#get_dyn
 
 	if req.expects_continue
 		if req.Proto_version >= 11
-			req#expect_continue_reader#r = req#Body
+			req#expect_continue_reader#r = req#body_impl#get_dyn
 			req#expect_continue_reader#w = bufw
-			req#Body = #req#expect_continue_reader
+			req#Body = bufio.Reader.Mk #req#expect_continue_reader

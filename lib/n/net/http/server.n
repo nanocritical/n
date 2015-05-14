@@ -3,7 +3,7 @@ intf `Response_writer =
 	met# Header = #Header
 	met# Write_header status:Int = Error
 	met# Flush = Error
-	met# Done = please_close_conn:Bool, Error
+	met# Done = Error
 
 intf `Simple_request_handler =
 	-- Will continue to be called until after req.Is_complete is true.
@@ -23,6 +23,8 @@ struct response_writer =
 	wrote_header		:Bool
 	chunking		:Bool
 	close_after_reply	:Bool
+	close_because_of		:Error
+	done			:Bool
 
 response_writer met# init conn:#tcp.Conn req:#Request bufw:#bufio.Writer
 	self#conn = conn
@@ -57,9 +59,9 @@ fun write_status_line w:#bufio.Writer proto_version:Uint status_code:Uint
 	else
 		fmt.F w "%s %s status code %s\r\n" proto status_code status_code
 
-response_writer met# write_header status_code:Uint b:[]U8 = Error
+response_writer met# write_header status_code:Uint b:[]U8
 	if self.wrote_header
-		return OK
+		return
 
 	let header = #self#header
 
@@ -81,20 +83,21 @@ response_writer met# write_header status_code:Uint b:[]U8 = Error
 		let connection = header.Get "Connection"
 		if not connection?
 			(header#Set "Connection")# = "keep-alive"
-	elif self.req.Proto_version < 11 or self.req.wants_close
+	elif self.req.Proto_version < 11 or self.req.wants_close or self.req.Close_conn
 		self!close_after_reply = true
 
 	if not keep_alives_enabled
 		\ and ((header.Get "Connection") else "") == "close"
 		self!close_after_reply = true
 
-	-- FIXME(e): We should try to do something akin to what Go does here.
-	-- It's not clear how to do this if we want to support 
+	-- FIXME(e): We should try to do something akin to what Go does here,
+	-- but it's not clear how to do this with non-blocking I/O:
 	-- 
-	-- Per RFC 2616, we should consume the request body before
-	-- replying, if the handler hasn't already done so.  But we
-	-- don't want to do an unbounded amount of reading here for
-	-- DoS reasons, so we only try up to a threshold.
+	-- 	Per RFC 2616, we should consume the request body before
+	-- 	replying, if the handler hasn't already done so.  But we
+	-- 	don't want to do an unbounded amount of reading here for
+	-- 	DoS reasons, so we only try up to a threshold.
+
 	if not is_body_allowed_for_status status_code
 		-- Must not have body.
 		-- RFC 2616 section 10.3.5: "the response MUST NOT include other entity-headers"
@@ -140,7 +143,7 @@ response_writer met# write_header status_code:Uint b:[]U8 = Error
 	if self.chunking
 		header#Del "Content-Length"
 	if self.req.Proto_version < 10
-		return OK
+		return
 
 	if self.close_after_reply and (not keep_alives_enabled or not has_token ((header.Get "Connection")?.String else "") "close")
 		header#Del "Connection"
@@ -161,9 +164,7 @@ response_writer met# Write b:[]U8 = left:[]U8, err:Error
 	left = b
 
 	if not self.wrote_header
-		let err = self.write_header 200 b
-		if err != OK
-			return left, err
+		self.write_header 200 b
 
 	if self.req.Method == "HEAD"
 		-- Eat writes.
@@ -187,23 +188,27 @@ response_writer met# Header = #Header
 	return #self#header
 
 response_writer met# Write_header status_code:Uint = Error
-	return self#write_header status_code {}
+	self#write_header status_code {}
 
 response_writer met# Flush = Error
 	return self#bufw#Flush
 
-response_writer met# Done = please_close_conn:Bool, Error
+response_writer met# Done = Error
+	self#done = true
+	return OK
+
+response_writer met# finalize = Error
 	if not self.wrote_header
-		let err = self.write_header 200 {}
-		if err != OK
-			return true, err
+		self.write_header 200 {}
 
 	if self.chunking
 		_, never = self#bufw#Write "0\r\n\r\n".Bytes
 
-	try
-		except = self#Flush
-	catch err
-		return true, err
+	let err = self#Flush
+	if err == syscall.EAGAIN
+		return err
+	if err != OK
+		self!close_because_of = err
+		return err
 
-	return self.close_after_reply, OK
+	return OK
