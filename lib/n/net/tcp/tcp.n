@@ -28,6 +28,11 @@ Addr met Hash32 = U32
 Addr met Network = Stringbuf
 	return "tcp"
 
+Addr met Needs_protocol = Protocol
+	if self.Ip.Is_v4
+		return TCP4
+	return TCP6
+
 Addr met Show st:#fmt.`State
 	let h:Stringbuf such
 		if self.Zone != ""
