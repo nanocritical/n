@@ -8,14 +8,14 @@ globalenv Log:#`Log
 
 intf `Log =
 	isa io.`Writer
-	met# Emergency format:String ...v:(Vararg ?*`Show)
-	met# Alert format:String ...v:(Vararg ?*`Show)
-	met# Critical format:String ...v:(Vararg ?*`Show)
-	met# Error format:String ...v:(Vararg ?*`Show)
-	met# Warning format:String ...v:(Vararg ?*`Show)
-	met# Notice format:String ...v:(Vararg ?*`Show)
-	met# Info format:String ...v:(Vararg ?*`Show)
-	met# Debug format:String ...v:(Vararg ?*`Show)
+	met# Emergency format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	met# Alert format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	met# Critical format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	met# Error format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	met# Warning format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	met# Notice format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	met# Info format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	met# Debug format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
 
 fun Install_sys within Log
 	let s = Alloc stderr
@@ -32,6 +32,16 @@ direct_stderr met# Write b:[]U8 = []U8, Error
 	return syscall.Write 2 b
 
 
+-- TODO(e): Make it configurable via Env: whether locations are printed at
+-- all, whether the full path is shown, etc.
+fun write_codeloc w:#io.`Writer c:?*Codeloc
+	if not c?
+		return
+
+	let last_slash = 1 + (c.File.Last_index_byte '/')
+	fmt.F w "%s:%s: %s: " c.File.[last_slash.Unsigned ..] c.Line c.Function
+
+
 struct stderr =
 	isa io.`Writer `Log
 	direct	:direct_stderr
@@ -45,42 +55,50 @@ stderr met# init
 	self#bufw = {W=#self#direct}
 	self#w = {W=#self#bufw Mode=LINE_BUFFERED Max=1024}
 
-stderr met# Emergency format:String ...v:(Vararg ?*`Show)
+stderr met# Emergency format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	write_codeloc self _Ncodeloc
 	fmt.F self "Emergency: "
 	fmt.F self format ...v
 	fmt.F self "\n"
 
-stderr met# Alert format:String ...v:(Vararg ?*`Show)
+stderr met# Alert format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	write_codeloc self _Ncodeloc
 	fmt.F self "Alert: "
 	fmt.F self format ...v
 	fmt.F self "\n"
 
-stderr met# Critical format:String ...v:(Vararg ?*`Show)
+stderr met# Critical format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	write_codeloc self _Ncodeloc
 	fmt.F self "Critical: "
 	fmt.F self format ...v
 	fmt.F self "\n"
 
-stderr met# Error format:String ...v:(Vararg ?*`Show)
+stderr met# Error format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	write_codeloc self _Ncodeloc
 	fmt.F self "Error: "
 	fmt.F self format ...v
 	fmt.F self "\n"
 
-stderr met# Warning format:String ...v:(Vararg ?*`Show)
+stderr met# Warning format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	write_codeloc self _Ncodeloc
 	fmt.F self "Warning: "
 	fmt.F self format ...v
 	fmt.F self "\n"
 
-stderr met# Notice format:String ...v:(Vararg ?*`Show)
+stderr met# Notice format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	write_codeloc self _Ncodeloc
 	fmt.F self "Notice: "
 	fmt.F self format ...v
 	fmt.F self "\n"
 
-stderr met# Info format:String ...v:(Vararg ?*`Show)
+stderr met# Info format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	write_codeloc self _Ncodeloc
 	fmt.F self "Info: "
 	fmt.F self format ...v
 	fmt.F self "\n"
 
-stderr met# Debug format:String ...v:(Vararg ?*`Show)
+stderr met# Debug format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+	write_codeloc self _Ncodeloc
 	fmt.F self "Debug: "
 	fmt.F self format ...v
 	fmt.F self "\n"
