@@ -119,25 +119,27 @@ static char *escape_string(const char *s) {
   if (len == 0) {
     return r;
   }
-  assert(len != 1 && "string should be quoted");
 
   char delim = s[0];
-  assert(delim == '\'' || delim == '"');
+  if ((delim != '\'' && delim != '"') || len == 1) {
+    delim = 0;
+  }
 
-  if (s[2] == '\0' && s[1] == delim) {
+  if (delim != 0 && s[2] == '\0' && s[1] == delim) {
     return r;
   }
 
   char *v = r;
-  for (const char *p = s + 1; p[1] != '\0'; ++p, ++v) {
-    if (p[1] == '\0' && p[0] == delim) {
+  int off = delim != 0 ? 1 : 0;
+  for (const char *p = s + off; p[off] != '\0'; ++p, ++v) {
+    if (delim != 0 && p[1] == '\0' && p[0] == delim) {
       v[0] = '\0';
     } else if (p[0] == '"') {
       v[0] = '\\';
       v[1] = '"';
       v += 1;
     } else if (p[0] == '\\') {
-      if (p[1] == delim) {
+      if (delim != 0 && p[1] == delim) {
         if (delim == '"') {
           v[0] = '\\';
           v[1] = '"';
@@ -170,6 +172,21 @@ EXAMPLE(escape_string) {
   assert(strcmp("\n", escape_string("'\n'")) == 0);
   assert(strcmp("t00/automagicref.n:76:10",
                 escape_string("\"t00/automagicref.n:76:10\"")) == 0);
+
+  // Not quoted.
+  assert(strcmp("abc", escape_string("abc")) == 0);
+  assert(strcmp("ab'c", escape_string("ab'c")) == 0);
+  assert(strcmp("abc", escape_string("'abc'")) == 0);
+  assert(strcmp(" \\\"abc", escape_string(" \"abc")) == 0);
+  assert(strcmp("", escape_string("")) == 0);
+  assert(strcmp("", escape_string("''")) == 0);
+  assert(strcmp("'", escape_string("'\\''")) == 0);
+  assert(strcmp("\\'", escape_string("\\'")) == 0);
+  assert(strcmp("\\\"", escape_string("\"")) == 0);
+  assert(strcmp("\\\\\"", escape_string("\\\"")) == 0);
+  assert(strcmp("\n", escape_string("'\n'")) == 0);
+  assert(strcmp("t00/automagicref.n:76:10",
+                escape_string("t00/automagicref.n:76:10")) == 0);
 }
 
 static void print_scope_last_name(FILE *out, const struct module *mod,
