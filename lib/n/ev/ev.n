@@ -119,8 +119,6 @@ Poll met! Unregister_all e:Event = Error
 	Free perm_e*
 	self!fds#Delete e.Fd
 
-	drop = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL e.Fd {}
-
 Poll met! process_hups
 	for fd in self.hups.Iter
 		let pe = self.fds.[fd]
