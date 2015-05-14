@@ -22,8 +22,9 @@ struct response_writer =
 	header			:Header
 	wrote_header		:Bool
 	chunking		:Bool
-	finalized	:Bool
+	finalized		:Bool
 	close_after_reply	:Bool
+	close_because_rdhup	:Bool
 	close_because_of	:Error
 	done			:Bool
 
@@ -210,4 +211,6 @@ response_writer met# finalize ?max_flush:?Uint
 			_, never = self#bufw#Write "0\r\n\r\n".Bytes
 
 response_writer met wants_close = Bool
-	return self.close_after_reply or self.close_because_of != OK
+	return self.close_after_reply
+		\ or self.close_because_rdhup
+		\ or self.close_because_of != OK

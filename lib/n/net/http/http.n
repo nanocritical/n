@@ -90,8 +90,8 @@ struct conn_handler =
 	ev_read		:ev.Event
 	ev_close	:ev.Event
 
-conn_handler met debug ...s:(Vararg ?*`Show)
-	Log#Info "%s %s: %s" self.conn.Fd <- fmt.S ...s
+conn_handler met debug ?_Ncodeloc:?Codeloc ...s:(Vararg ?*`Show)
+	Log#Debug "%s: %s" _Ncodeloc=_Ncodeloc self.conn.Fd (fmt.S ...s)
 
 conn_handler met# Init server:#Server conn:#tcp.Conn = Error
 	self#server = server
@@ -199,10 +199,12 @@ conn_handler met# On e:ev.Event = err:Error
 		return OK
 
 	if RDHUP in e.Got
-		-- There will be nothing more to read from the client.
-		-- We can't recycle then.
-		-- Lets try not to close immediately.
-		return OK
+		if self.connected
+			-- There will be nothing more to read from the client.
+			-- We can't recycle then.
+			self#response#close_because_rdhup = true
+		else
+			self#state = CLOSE
 
 	if self.state == RECYCLE
 		self#recycle
@@ -280,6 +282,8 @@ conn_handler met# handling_buffered = Error
 
 
 conn_handler met# flush = Error
+	self.debug self.state
+
 	self#response#finalize
 
 	let err = self#response#Flush
