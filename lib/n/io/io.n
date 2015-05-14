@@ -122,7 +122,8 @@ Copier met# Reset dst:#`Writer src:#`Reader ?max:?Uint
 Copier met Total_written = Uint
 	return self.total_written
 
--- Return io.EOF when done.
+-- Return io.EOF when done (either io.EOF was read, or self.Max reached).
+-- Only returns OK if this call read max bytes.
 Copier met! Copy ?max:?Uint = written:Uint, err:Error
 	-- First write any not-yet-written data left from a previous call.
 	if self.buf.Count > 0
@@ -150,9 +151,14 @@ Copier met! Copy ?max:?Uint = written:Uint, err:Error
 		let left, wr_err = self!Dst#Write b
 		assert left.Count == 0 or wr_err != OK -- By `Write.
 		written += b.Count - left.Count
+
+		-- Automatically takes into account partial reads and partial writes.
 		self!buf#Copy left
 
-		if rd_err != OK
+		if rd_err == EOF and wr_err != OK
+			err = wr_err
+			break
+		elif rd_err != OK
 			err = rd_err
 			break
 		elif wr_err != OK

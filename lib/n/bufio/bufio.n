@@ -2,8 +2,6 @@ from n import *
 import n.io
 import n.fmt
 
-let buf_size = 4096
-
 inline struct Reader =
 	isa io.`Reader
 	R		:?#io.`Reader
@@ -41,6 +39,8 @@ Reader met Buffered = Uint
 		return self.bufr.Buffered
 	return self.pending.Count
 
+-- Returns OK if max bytes were read. If unspecified, reads until io.EOF or
+-- another read or write error.
 Reader met# Fill ?max:?Uint = Error
 	if not self.R?
 		return OK
@@ -54,7 +54,7 @@ Reader met# Fill ?max:?Uint = Error
 		return self#bufr#Fill max=max
 
 	self#buf#Copy self.pending.Bytes
-	let _, err = self!copier#Copy max=(max else buf_size)
+	let _, err = self!copier#Copy max=max
 	self#pending = self.buf.String
 	return err
 
