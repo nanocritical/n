@@ -3,7 +3,7 @@ import n.syscall
 import n.path
 import n.io
 import n.time
-import n.crypto.rand
+import n.crypto.cryptorand
 import n.fs
 import n.bench
 
@@ -127,7 +127,7 @@ fun make_random_name name:#path.Path prefix:?String postfix:?String
 	name#Reserve prelen+rndlen
 	let b = name![prelen ..]!Recapped rndlen such
 		try
-			b, except = rand.Read_full b
+			b, except = cryptorand.Read_full b
 		catch err
 			Fatal err
 		foreach i in b.All

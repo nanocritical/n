@@ -24,6 +24,21 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 		assert false
 	Heap!Free_raw ((Cast #t #U8) p) (sizeof t)
 
+(fun t:`Any) Alloc_opaque = #t within Heap
+	return (Cast #U8 #t) <- Heap!Alloc_raw t.Sizeof
+
+(fun t:`Any) Free_opaque p:?#t within Heap
+	if not p?
+		return
+
+	if t isa `Trivial_dtor
+		noop
+	elif t isa `Default_dtor
+		p#Dtor
+	else
+		assert false
+	Heap!Free_raw ((Cast #t #U8) p) t.Sizeof
+
 -- If t isn't `Moveable, only two cases are supported:
 --	s.Cap == 0 or cap == 0
 (fun t:`Any) Realloc s:#[!]t cap:Uint within Heap

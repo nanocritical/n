@@ -1,6 +1,6 @@
 from n.builtins export *
 from n.containers export *
-import n.crypto.rand
+import n.crypto.cryptorand
 import n.fs
 
 fun write_buf fd:I32 s:*U8 Count:Uint
