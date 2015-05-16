@@ -14,6 +14,10 @@ t[0-9][0-9]/*.o.*
 t[0-9][0-9]/*.ref.c
 t[0-9][0-9]/*.ref.pretty
 t[0-9][0-9]/*.ref.tree
+b/*.o.*
+b/*.ref.c
+b/*.ref.pretty
+b/*.ref.tree
 lib/*/*.o.*
 lib/*/*.ref.c
 lib/*/*.ref.pretty
@@ -32,3 +36,7 @@ lib/*/*/*/*/*.ref.pretty
 lib/*/*/*/*/*.ref.tree
 .deps
 *.bundle
+ncc0
+examples
+gmon.out*
+perf.data*
