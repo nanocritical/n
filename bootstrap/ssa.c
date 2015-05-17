@@ -230,9 +230,17 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
   error e;
   switch (node->which) {
   case BIN:
-    if (node->which != CALL && OP_IS_ASSIGN(node->as.BIN.operator)) {
-      e = ssa_sub(mod, node, subs_last(node));
-      EXCEPT(e);
+    if (OP_IS_ASSIGN(node->as.BIN.operator)) {
+      if (subs_first(node)->which != TUPLE) {
+        e = ssa_sub(mod, node, subs_first(node));
+        EXCEPT(e);
+      }
+
+      if (!(NM(subs_last(node)->which) & (NM(CALL) | NM(INIT)))) {
+        e = ssa_sub(mod, node, subs_last(node));
+        EXCEPT(e);
+      }
+
       break;
     } else if (node->as.BIN.operator == Tisa) {
       break;
@@ -356,8 +364,9 @@ error step_ssa_convert(struct module *mod, struct node *node,
   switch (par->which) {
   case BIN:
     if (OP_IS_ASSIGN(par->as.BIN.operator)) {
-      if (node->which != CALL && (node == subs_last(par)
-                                  || (node == subs_first(par) && node->which != TUPLE))) {
+      if (!(NM(node->which) & (NM(CALL) | NM(INIT)))
+          && (node == subs_last(par)
+              || (node == subs_first(par) && node->which != TUPLE))) {
         e = ssa_sub(mod, par, node);
         EXCEPT(e);
       }
@@ -896,13 +905,9 @@ EXAMPLE_NCC_EMPTY(ssa_while) {
                   "         IDENT",
                   "      IDENT",
                   "     BLOCK",
-                  "      LET",
-                  "       DEFNAME",
-                  "        IDENT",
-                  "        INIT",
                   "      BIN",
                   "       IDENT",
-                  "       IDENT",
+                  "       INIT",
                   "     BLOCK",
                   "      NOOP",
                   NULL);
