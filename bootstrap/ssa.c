@@ -1262,6 +1262,11 @@ bool try_remove_unnecessary_ssa_defname(struct module *mod, struct node *defn) {
         && paruser->which == BIN
         && OP_IS_ASSIGN(paruser->as.BIN.operator)
         && subs_first(paruser) == user)
+    // We didn't know it would turn out to be a CALL during ssa rewriting:
+    || (expr->which == CALL
+        && paruser->which == BIN
+        && OP_IS_ASSIGN(paruser->as.BIN.operator)
+        && subs_last(paruser) == user)
     || ((expr->which == INIT || expr->which == CALL)
         && paruser->which == RETURN
         && !typ_isa(module_retval_get(mod)->typ, TBI_RETURN_BY_COPY))) {
