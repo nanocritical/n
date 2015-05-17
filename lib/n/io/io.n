@@ -69,7 +69,7 @@ Bytes_reader met# Read b:[!]U8 = [!]U8, Error
 	if self.B.Count == 0
 		return b, EOF
 
-	let copied = b!Free_space!Copy self.B
+	let copied = b!Available_space!Copy self.B
 	self#B = self.B.[copied.Count ..]
 	return b.[0 .. b.Count+copied.Count], OK
 
