@@ -1464,7 +1464,11 @@ static ERROR type_inference_bin_accessor(struct module *mod, struct node *node) 
     }
   }
 
-  if (!(node->flags & NODE_IS_TYPE)) {
+  if (!(node->flags & NODE_IS_TYPE)
+      // Only used for globalenv underlying variable, user code
+      // shouldn't be able to modify global constants.
+      // FIXME(e): enforce LET const.
+      && !(subs_first(node)->flags & NODE_IS_TYPE)) {
       if (!(subs_first(node)->flags & NODE_IS_DEFCHOICE)) {
       e = typ_check_deref_against_mark(mod, node, mark, rop);
       EXCEPT(e);
@@ -2458,17 +2462,19 @@ static ERROR append_globalenv_refs(struct module *mod, struct node *node,
   assert(globalenv->which == DEFNAME);
   assert(within->which == WITHIN);
 
+  struct node *p = subs_first(within);
+  const ident env_name = p->which == BIN ? node_ident(subs_last(p)) : node_ident(p);
+
   GSTART();
   G0(r, node, UN,
      r->as.UN.operator = TREFSHARP;
      G(path_header, 0));
   G0(r2, node, UN,
      r2->as.UN.operator = TREFSHARP;
-     G(path, 0));
+     G(path, IDENT,
+       path->as.IDENT.name = env_name));
 
-  struct node *p = subs_first(within);
   node_deepcopy(mod, path_header, p);
-  node_deepcopy(mod, path, p);
 
   // Build the path to get to the globalenv header, using 'p', as it gets
   // us to the globalenv itself.
@@ -2497,7 +2503,7 @@ static ERROR try_rewrite_globalenv_call(bool *yes,
   case ID_TBI_GLOBALENV_INSTALLED: internal_name = ID_INTERNAL_GLOBALENV_INSTALLED; break;
   case ID_TBI_GLOBALENV_PARENT: internal_name = ID_INTERNAL_GLOBALENV_PARENT; break;
   case ID_TBI_GLOBALENV_INSTALL: internal_name = ID_INTERNAL_GLOBALENV_INSTALL; arity = 2; break;
-  case ID_TBI_GLOBALENV_UNINSTALL: internal_name = ID_INTERNAL_GLOBALENV_UNINSTALL; arity = 2; break;
+  case ID_TBI_GLOBALENV_UNINSTALL: internal_name = ID_INTERNAL_GLOBALENV_UNINSTALL; break;
   default: *yes = false; return 0;
   }
 
