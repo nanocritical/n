@@ -1,0 +1,89 @@
+-- Reproduces usual stdin/stdout/stderr behavior.
+--
+-- These streams are related, to quote from setvbuf(3):
+--
+--   The  three  types of buffering available are unbuffered, block
+--   buffered, and line buffered.  When an output stream is unbuffered,
+--   information appears on the destination file  or  terminal  as  soon  as
+--   written;  when  it is block buffered many characters are saved up and
+--   written as a block; when it is line buffered characters are saved up
+--   until a newline is output or input is  read  from  any stream attached
+--   to  a  terminal device (typically stdin).
+from n import *
+
+import n.io
+import n.bufio
+import n.syscall
+
+globalenv Stdio:*`Stdio
+
+intf `Stdio =
+	met In = #io.`Reader
+	met Out = #io.`Writer
+	met Err = #io.`Writer
+
+
+fun Install_sys within Stdio
+	let s = Alloc stdio
+	s!init
+	let header = Alloc (Envheader #`Stdio)
+	header#Env = s
+	Globalenv_install Stdio header
+
+
+let BUFFER_SIZE = 8192
+
+
+struct stdr =
+	isa io.`Reader
+	fd	:Int
+	out	:#bufio.Writer
+
+-- Reads on stdin flush stdout, as per traditional C stdio behavior.
+stdr met# Read b:[!]U8 = r:[!]U8, err:Error
+	r, err = syscall.Read self.fd b
+	if r.Count != b.Count
+		drop = self#out#Flush
+
+
+struct stdw =
+	isa io.`Writer
+	fd	:Int
+
+stdw met# Write b:[]U8 = []U8, Error
+	return syscall.Write self.fd b
+
+
+struct stdio =
+	isa `Stdio
+	rin	:stdr
+	wout	:stdw
+	werr	:stdw
+	din	:#io.`Reader
+	dout	:#io.`Writer
+	derr	:#io.`Writer
+
+	outbuf	:bufio.Writer
+	outabuf	:bufio.Auto_writer
+
+stdio met# init
+	self#rin#fd = 0
+	self#din = #self#rin
+
+	self#wout#fd = 1
+	self#outbuf = bufio.Writer.Mk #self#wout
+	self#outabuf = {W=#self#outbuf Mode=FULLY_BUFFERED Max=BUFFER_SIZE}
+	self#dout = #self#outabuf
+	self#rin#out = #self#outbuf
+
+	self#werr#fd = 2
+	self#derr = #self#werr
+
+stdio met In = #io.`Reader
+	return self.din
+
+stdio met Out = #io.`Writer
+	return self.dout
+
+stdio met Err = #io.`Writer
+	return self.derr

@@ -13,6 +13,7 @@
 static struct heap_header sysheap_header;
 extern const struct _$Ndyntable_n$builtins$_$Ni_Heap n$mem$Sysheap$Dyntable__n$builtins$_$Ni_Heap;
 
+extern void n$stdio$Install_sys(void);
 extern void n$logging$Install_sys(void);
 extern void n$env$Install_sys(NB(Uint) argc, NB(U8) **argv);
 extern void n$time$Install_sys(void);
@@ -33,6 +34,7 @@ void _$Nprelude(int *argc, char ***argv, char ***env) {
     (void)sigaction(SIGPIPE, &act, NULL);
   }
 
+  n$stdio$Install_sys();
   n$logging$Install_sys();
   n$env$Install_sys(*argc, (NB(U8) **) *argv);
   n$time$Install_sys();

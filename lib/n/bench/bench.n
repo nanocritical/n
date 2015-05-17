@@ -3,6 +3,10 @@ from n import *
 import n.time
 import n.mem
 import n.fs
+import n.io
+import n.bufio
+import n.stdio
+import n.logging
 
 inline enum Standard_measures =
 	| CLOCK

@@ -1,0 +1,101 @@
+struct stdr =
+	isa io.`Reader
+	bin	:Stringbuf
+	rin	:io.Stringbuf_reader
+	out	:#bufio.Writer
+
+-- Reads on stdin flush stdout, as per traditional C stdio behavior.
+stdr met# Read b:[!]U8 = r:[!]U8, err:Error
+	r, err = self#rin#Read b
+	if r.Count != b.Count
+		drop = self#out#Flush
+
+
+inline struct Stdio_mock =
+	isa stdio.`Stdio
+	rin	:stdr
+	wout	:Stringbuf
+	outbuf	:bufio.Writer
+	outabuf	:bufio.Auto_writer
+	werr	:Stringbuf
+
+	din	:#io.`Reader
+	dout	:#io.`Writer
+	derr	:#io.`Writer
+
+	installed	:Bool
+
+Stdio_mock met# Dtor within stdio.Stdio
+	if self.installed
+		Globalenv_uninstall Stdio
+	self#rin#Dtor
+	self#wout#Dtor
+	self#outbuf#Dtor
+	self#outabuf#Dtor
+	self#werr#Dtor
+
+Stdio_mock met# init
+	self#rin#rin = io.Stringbuf_reader.Mk self.rin.bin
+	self#din = #self#rin
+
+	self#outbuf = bufio.Writer.Mk #self#wout
+	self#outabuf = {W=#self#outbuf Mode=FULLY_BUFFERED Max=stdio.BUFFER_SIZE}
+	self#rin#out = #self#outbuf
+	self#dout = #self#outabuf
+
+	self#derr = #self#werr
+
+Stdio_mock fun Setup ?stdin:?String = ret:this within stdio.Stdio
+	ret#init
+	if stdin?
+		ret#rin#bin#Cat stdin
+	let header = Alloc (Envheader #stdio.`Stdio)
+	header#Env = #ret
+	Globalenv_install Stdio header
+	ret#installed = true
+
+-- Check that the content of the buffers are equal to the strings provided.
+-- If left unspecified, assume the empty string.
+--
+-- TODO(e): report differences using a diff-like output.
+Stdio_mock met Check ?stdin:?String ?stdout:?String ?stderr:?String = ok:Bool within stdio.Stdio logging.Log
+	if self.installed
+		Globalenv_uninstall Stdio
+		self#installed = false
+
+	let stdin = stdin else ""
+	let stdout = stdout else ""
+	let stderr = stderr else ""
+	ok = true
+
+	let actual_stdin = self.rin.bin.[self.rin.rin.Pos ..]
+	if stdin != actual_stdin
+		Log#Debug "expected in stdin '%s', but found '%s'" stdin actual_stdin
+		ok = false
+
+	never = self#outabuf#Flush
+	if stdout != self.wout.String
+		Log#Debug "expected in stdout '%s', but found '%s'" stdout self.wout
+		ok = false
+
+	if stderr != self.werr.String
+		Log#Debug "expected in stderr '%s', but found '%s'" stderr self.werr
+		ok = false
+
+Stdio_mock met# In_buf = #Stringbuf
+	return #self#rin#bin
+
+Stdio_mock met# Out_buf = #Stringbuf
+	return #self#wout
+
+Stdio_mock met# Err_buf = #Stringbuf
+	return #self#werr
+
+Stdio_mock met In = #io.`Reader
+	return self.din
+
+Stdio_mock met Out = #io.`Writer
+	return self.dout
+
+Stdio_mock met Err = #io.`Writer
+	return self.derr

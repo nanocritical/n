@@ -1,0 +1,19 @@
+from n import *
+import n.bench
+import n.logging
+
+example within logging.Log
+	Log#Debug "test before"
+	var m = bench.Stdio_mock.Setup
+	assert m.Check
+
+	m = bench.Stdio_mock.Setup
+	Log#Debug "test"
+	assert not m.Check stdout="bench.n:11: __Nexample1: Debug: test\n" -- indeed not in stdout
+
+	m = bench.Stdio_mock.Setup
+	Log#Debug "test"
+	assert m.Check stderr="bench.n:15: __Nexample1: Debug: test\n"
+
+fun Main = I32
+	return 0
