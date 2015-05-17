@@ -132,13 +132,17 @@ static int scope_definitions_name_list_iter(const ident *key,
 
 char *scope_definitions_name_list(const struct module *mod,
                                   const struct node *scoper) {
+  if (scoper->__scope == NULL) {
+    return strdup("");
+  }
+
   struct scope_definitions_name_list_data d = {
     .mod = mod,
     .s = NULL,
     .len = 0,
   };
 
-  scope_map_foreach((struct scope_map *)&node_scope(scoper)->map,
+  scope_map_foreach((struct scope_map *)&scoper->__scope->map,
                     scope_definitions_name_list_iter, &d);
 
   return d.s;
