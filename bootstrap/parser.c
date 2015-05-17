@@ -2382,8 +2382,19 @@ static ERROR p_example(struct node *node, struct module *mod) {
   node->as.DEFFUN.example = 1 + mod->next_example;
   mod->next_example += 1;
 
+  GSTART();
+  G0(id, node, IDENT);
+  G0(genargs, node, GENARGS);
+  G0(funargs, node, FUNARGS);
+  G0(within, node, WITHIN);
+  G0(block, node, BLOCK);
+
+  bool done_within = false;
   struct token tok = { 0 };
-  error e = scan(&tok, mod);
+  error e;
+
+after_within:
+  e = scan(&tok, mod);
   EXCEPT(e);
 
   ident name = ID__NONE;
@@ -2391,16 +2402,14 @@ static ERROR p_example(struct node *node, struct module *mod) {
     back(mod, &tok);
   } else if (tok.t == TIDENT) {
     name = idents_add(mod->gctx, &tok);
+  } else if (!done_within && tok.t == Twithin) {
+    e = p_within(within, mod, true);
+    EXCEPT(e);
+    done_within = true;
+    goto after_within;
   } else {
     UNEXPECTED(mod, &tok);
   }
-
-  GSTART();
-  G0(id, node, IDENT);
-  G0(genargs, node, GENARGS);
-  G0(funargs, node, FUNARGS);
-  G0(within, node, WITHIN);
-  G0(block, node, BLOCK);
 
   if (name == ID__NONE) {
     static const char base[] = "__Nexample";
