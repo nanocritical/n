@@ -835,12 +835,6 @@ static void print_tag_init(FILE *out, const struct module *mod,
   }
 }
 
-static void print_init_expr(FILE *out, const struct module *mod,
-                            const struct node *node, ident f,
-                            const struct node *expr) {
-  print_expr(out, mod, expr, T__NOT_STATEMENT);
-}
-
 static void print_init_toplevel(FILE *out, const struct module *mod,
                                 const struct node *node) {
   if (!subs_count_atleast(node, 1)) {
@@ -857,7 +851,7 @@ static void print_init_toplevel(FILE *out, const struct module *mod,
     fprintf(out, ".");
     fprintf(out, "%s", idents_value(mod->gctx, node_ident(s)));
     fprintf(out, " = ");
-    print_init_expr(out, mod, node, node_ident(s), next_const(s)); 
+    print_expr(out, mod, next_const(s), T__NOT_STATEMENT);
     fprintf(out, ",\n");
   }
   fprintf(out, " }\n");
@@ -909,7 +903,7 @@ static void print_init(FILE *out, const struct module *mod,
     print_union_init_access_path(out, mod, node);
     fprintf(out, "%s", idents_value(mod->gctx, node_ident(s)));
     fprintf(out, " = ");
-    print_init_expr(out, mod, node, node_ident(s), next_const(s)); 
+    print_expr(out, mod, next_const(s), T__NOT_STATEMENT);
     fprintf(out, ";\n");
   }
 }
