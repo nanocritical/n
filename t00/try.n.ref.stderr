@@ -1,0 +1,6 @@
+except: t00/try.n:4: inferred: Error: UNKNOWN: Unknown error
+except: t00/try.n:4: inferred: Error: UNKNOWN: Unknown error
+except: t00/try.n:22: bar: Error: INVAL: Invalid value
+except: t00/try.n:26: bar: Error: INVAL: Invalid value
+except: t00/try.n:46: no_catch1: Error: INVAL: Invalid value
+except: t00/try.n:48: no_catch2: Error: INVAL: Invalid value

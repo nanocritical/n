@@ -1,3 +1,3 @@
-t00/bad22.n:3:18: assert failed '  false '
+t00/bad22.n:3: __Nexample1: assert failed ' false'
 command terminated by signal 6:  ./a.out.examples
 examples failed
