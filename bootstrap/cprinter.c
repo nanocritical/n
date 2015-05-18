@@ -880,6 +880,11 @@ static void print_init(FILE *out, const struct module *mod,
 
   if (par->which == DEFNAME || par->which == BLOCK) {
     fprintf(out, "= { 0 };\n");
+  } else {
+    print_expr(out, mod, node->as.INIT.target_expr, TDOT);
+    fprintf(out, " = (");
+    print_typ(out, mod, node->typ);
+    fprintf(out, "){ 0 };\n");
   }
 
   print_tag_init(out, mod, node, false);

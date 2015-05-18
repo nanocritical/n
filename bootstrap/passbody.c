@@ -444,8 +444,20 @@ static ERROR step_dtor_before_assign(struct module *mod, struct node *node,
   }
 
   struct node *left = subs_first(node);
-  if (typ_isa(left->typ, TBI_TRIVIAL_DTOR)
-      || !typ_isa(left->typ, TBI_DEFAULT_DTOR)) {
+  if (!typ_isa(left->typ, TBI_DEFAULT_DTOR)) {
+    if (typ_is_concrete(left->typ)) {
+      error e = mk_except(mod, node, "assigning to a non-`Default_ctor value is not"
+                          " allowed, as the compiler is unable to enforce the"
+                          " target location is properly destroyed first");
+      THROW(e);
+    }
+    // If not concrete, we cannot really enforce this.
+    return 0;
+  }
+
+  if (typ_isa(left->typ, TBI_TRIVIAL_DTOR)) {
+    // Codegen must make sure that the value is properly zeroed before
+    // assigning to it.
     return 0;
   }
 
