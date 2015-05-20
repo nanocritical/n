@@ -16,8 +16,6 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
-#include "system.h"
-
 /* Needed for libelf */
 #define _FILE_OFFSET_BITS 64
 
@@ -39,9 +37,7 @@
 #include <gelf.h>
 #include <dwarf.h>
 
-#include <rpm/rpmio.h>
-#include <rpm/rpmpgp.h>
-#include "tools/hashtab.h"
+#include "hashtab.h"
 
 #define DW_TAG_partial_unit 0x3c
 #define DW_FORM_sec_offset 0x17
@@ -1374,34 +1370,14 @@ error_out:
   return NULL;
 }
 
-static const pgpHashAlgo algorithms[] = { PGPHASHALGO_MD5,
-  PGPHASHALGO_SHA1, PGPHASHALGO_SHA256, PGPHASHALGO_SHA384, PGPHASHALGO_SHA512 };
-
-/* Compute a fresh build ID bit-string from the editted file contents.  */
+/* Clear the GNU_BUILD_ID as our changes invalidated it, and we don't want
+ * to recompute it ath this point.  */
 static void
 handle_build_id (DSO *dso, Elf_Data *build_id,
 		 size_t build_id_offset, size_t build_id_size)
 {
-  DIGEST_CTX ctx;
-  pgpHashAlgo algorithm;
-  int i = sizeof(algorithms)/sizeof(algorithms[0]);
-  void *digest = NULL;
-  size_t len;
-
-  while (i-- > 0)
-    {
-      algorithm = algorithms[i];
-      if (rpmDigestLength(algorithm) == build_id_size)
-	break;
-    }
-  if (i < 0)
-    {
-      fprintf (stderr, "Cannot handle %Zu-byte build ID\n", build_id_size);
-      exit (1);
-    }
-
   if (!dirty_elf)
-    goto print;
+    return;
 
   if (elf_update (dso->elf, ELF_C_NULL) < 0)
     {
@@ -1413,83 +1389,7 @@ handle_build_id (DSO *dso, Elf_Data *build_id,
   /* Clear the old bits so they do not affect the new hash.  */
   memset ((char *) build_id->d_buf + build_id_offset, 0, build_id_size);
 
-  ctx = rpmDigestInit(algorithm, 0);
-
-  /* Slurp the relevant header bits and section contents and feed them
-     into the hash function.  The only bits we ignore are the offset
-     fields in ehdr and shdrs, since the semantically identical ELF file
-     could be written differently if it doesn't change the phdr layout.
-     We always use the GElf (i.e. Elf64) formats for the bits to hash
-     since it is convenient.  It doesn't matter whether this is an Elf32
-     or Elf64 object, only that we are consistent in what bits feed the
-     hash so it comes out the same for the same file contents.  */
-  {
-    union
-    {
-      GElf_Ehdr ehdr;
-      GElf_Phdr phdr;
-      GElf_Shdr shdr;
-    } u;
-    Elf_Data x = { .d_version = EV_CURRENT, .d_buf = &u };
-
-    x.d_type = ELF_T_EHDR;
-    x.d_size = sizeof u.ehdr;
-    u.ehdr = dso->ehdr;
-    u.ehdr.e_phoff = u.ehdr.e_shoff = 0;
-    if (elf64_xlatetom (&x, &x, dso->ehdr.e_ident[EI_DATA]) == NULL)
-      {
-      bad:
-	fprintf (stderr, "Failed to compute header checksum: %s\n",
-		 elf_errmsg (elf_errno ()));
-	exit (1);
-      }
-
-    x.d_type = ELF_T_PHDR;
-    x.d_size = sizeof u.phdr;
-    for (i = 0; i < dso->ehdr.e_phnum; ++i)
-      {
-	if (gelf_getphdr (dso->elf, i, &u.phdr) == NULL)
-	  goto bad;
-	if (elf64_xlatetom (&x, &x, dso->ehdr.e_ident[EI_DATA]) == NULL)
-	  goto bad;
-	rpmDigestUpdate(ctx, x.d_buf, x.d_size);
-      }
-
-    x.d_type = ELF_T_SHDR;
-    x.d_size = sizeof u.shdr;
-    for (i = 0; i < dso->ehdr.e_shnum; ++i)
-      if (dso->scn[i] != NULL)
-	{
-	  u.shdr = dso->shdr[i];
-	  u.shdr.sh_offset = 0;
-	  if (elf64_xlatetom (&x, &x, dso->ehdr.e_ident[EI_DATA]) == NULL)
-	    goto bad;
-	  rpmDigestUpdate(ctx, x.d_buf, x.d_size);
-
-	  if (u.shdr.sh_type != SHT_NOBITS)
-	    {
-	      Elf_Data *d = elf_rawdata (dso->scn[i], NULL);
-	      if (d == NULL)
-		goto bad;
-	      rpmDigestUpdate(ctx, d->d_buf, d->d_size);
-	    }
-	}
-  }
-
-  rpmDigestFinal(ctx, &digest, &len, 0);
-  memcpy((unsigned char *)build_id->d_buf + build_id_offset, digest, build_id_size);
-  free(digest);
-
   elf_flagdata (build_id, ELF_C_SET, ELF_F_DIRTY);
-
- print:
-  /* Now format the build ID bits in hex to print out.  */
-  {
-    const uint8_t * id = (uint8_t *)build_id->d_buf + build_id_offset;
-    char *hex = pgpHexStr(id, build_id_size);
-    puts (hex);
-    free(hex);
-  }
 }
 
 int
