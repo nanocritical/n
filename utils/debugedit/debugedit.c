@@ -18,6 +18,7 @@
 
 /* Needed for libelf */
 #define _FILE_OFFSET_BITS 64
+#define _GNU_SOURCE
 
 #include <assert.h>
 #include <byteswap.h>
@@ -29,6 +30,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <alloca.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -467,6 +469,52 @@ dirty_section (unsigned int sec)
   dirty_elf = 1;
 }
 
+#define N_SRC_POSTFIX ".n.o.c"
+#define N_DST_POSTFIX ".n"
+
+static void n_debug_print_file_entry(char *beg, char *end) {
+  return;
+
+  char *p;
+  for (p = beg; *p != 0; ++p) {
+    fprintf(stderr, "%c", *p);
+  }
+  fprintf(stderr, " ");
+  for (; p != end; ++p) {
+    fprintf(stderr, "%02hhx ", *p);
+  }
+  fprintf(stderr, "\n");
+}
+
+static char *n_rewrite_file(char *n_dst_entry_beg, char *n_src_entry_beg, char *n_src_entry_end) {
+  n_debug_print_file_entry(n_src_entry_beg, n_src_entry_end);
+  const size_t src_entry_len = n_src_entry_end - n_src_entry_beg;
+  const char *file = n_src_entry_beg;
+
+  const size_t file_len = strlen(file);
+  const size_t len_src_postfix = strlen(N_SRC_POSTFIX);
+  const size_t len_dst_postfix = strlen(N_DST_POSTFIX);
+  if (file_len > len_src_postfix && strcmp(file + file_len - len_src_postfix, N_SRC_POSTFIX) == 0) {
+    const size_t loss = len_src_postfix - len_dst_postfix;
+
+    // Copy the part of the filename we want.
+    memmove(n_dst_entry_beg, file, file_len - loss);
+    // Shift the rest of the entry over to erase the part of the postfix we
+    // don't want, including the terminating '\0' after file.
+    const size_t rest_entry_len = src_entry_len - file_len;
+    memmove(n_dst_entry_beg + file_len - loss, file + file_len, rest_entry_len);
+
+    dirty_section(DEBUG_LINE);
+
+    const size_t dst_entry_len = src_entry_len - loss;
+    n_debug_print_file_entry(n_dst_entry_beg, n_dst_entry_beg+dst_entry_len);
+    return n_dst_entry_beg + dst_entry_len;
+  } else {
+    memmove(n_dst_entry_beg, n_src_entry_beg, src_entry_len);
+    return n_dst_entry_beg + src_entry_len;
+  }
+}
+
 static int
 edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
 {
@@ -543,6 +591,7 @@ edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
   ptr++;
 
   /* file table: */
+  char *n_dst_entry_beg = (char *)ptr;
   while (*ptr != 0)
     {
       char *s, *file;
@@ -592,6 +641,7 @@ edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
 	  memcpy (p + dir_len + 1, file, file_len + 1);
 	}
       canonicalize_path (s, s);
+
       if (list_file_fd != -1)
 	{
 	  char *p = NULL;
@@ -620,8 +670,32 @@ edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
 
       read_uleb128 (ptr);
       read_uleb128 (ptr);
+
+      char *n_src_entry_end = (char *)ptr;
+      n_dst_entry_beg = n_rewrite_file(n_dst_entry_beg, file, n_src_entry_end);
     }
+
   ++ptr;
+
+  // ptr is at the terminating 0 byte of the field "file_names".
+  assert(ptr[0] == 0);
+  if (n_dst_entry_beg != (char *)ptr) {
+    n_dst_entry_beg[0] = 0;
+
+    // Write a series of DW_LNS_copy opcodes after the 0 byte terminating
+    // the file_names field; they are effectively no-ops as the beginning of
+    // the line program.
+    //
+    // We haven't rewritten prologue_length: some consumers will use that to
+    // find the still-correct start of the program. Some will start right
+    // after the end of file_names, but it will work too, thanks to the
+    // noops.
+    const int DW_LNS_copy = 1;
+    const size_t entry_len = (char *)ptr - n_dst_entry_beg;
+    memset(n_dst_entry_beg + 1, DW_LNS_copy, entry_len - 1);
+
+    ptr = (unsigned char *)n_dst_entry_beg + entry_len;
+  }
 
   if (dest_dir)
     {
@@ -827,6 +901,16 @@ edit_attributes (DSO *dso, unsigned char *ptr, struct abbrev_tag *t, int phase)
 		  else
 		    comp_dir = strdup ("/");
 		}
+
+              const size_t name_len = strlen(name);
+              if (name_len > strlen(N_SRC_POSTFIX)
+                  && strcmp(name + name_len - strlen(N_SRC_POSTFIX), N_SRC_POSTFIX) == 0) {
+                // Simply zero the rest of name, it's OK to have holes in
+                // .debug_str.
+                const size_t loss = strlen(N_SRC_POSTFIX) - strlen(N_DST_POSTFIX);
+                memset(name + name_len - loss, 0, loss);
+                dirty_section (DEBUG_STR);
+              }
 
 	      if (phase == 1 && dest_dir && has_prefix (name, base_dir))
 		{
