@@ -24,7 +24,6 @@
 #include <byteswap.h>
 #include <endian.h>
 #include <errno.h>
-#include <error.h>
 #include <limits.h>
 #include <string.h>
 #include <stdlib.h>
@@ -40,6 +39,14 @@
 #include <dwarf.h>
 
 #include "hashtab.h"
+
+#include "linemap.h"
+
+#if 0
+#define n_debug(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define n_debug(...)
+#endif
 
 #define DW_TAG_partial_unit 0x3c
 #define DW_FORM_sec_offset 0x17
@@ -69,6 +76,34 @@ typedef struct
   uint32_t addend;
 } REL;
 
+#define write_uleb128(ptr, _value) do { \
+  uint32_t value = _value; \
+  do { \
+    uint8_t byte = value & 0x7f; \
+    value >>= 7; \
+    if (value != 0) { \
+      byte |= 0x80; \
+    } \
+    *ptr++ = byte; \
+  } while (value != 0); \
+} while (0)
+
+#define write_sleb128(ptr, _value) do { \
+  int32_t value = _value; \
+  int more = 1; \
+  while (more) { \
+    uint8_t byte = value & 0x7f; \
+    value >>= 7; \
+    if ((value == 0 && !(byte & 0x40)) \
+        || (value == -1 && (byte & 0x40))) { \
+      more = 0; \
+    } else { \
+      byte |= 0x80; \
+    } \
+    *ptr++ = byte; \
+  } \
+} while (0)
+
 #define read_uleb128(ptr) ({		\
   unsigned int ret = 0;			\
   unsigned int c;			\
@@ -80,14 +115,64 @@ typedef struct
       shift += 7;			\
     } while (c & 0x80);			\
 					\
-  if (shift >= 35)			\
+  if (shift > 35)			\
     ret = UINT_MAX;			\
   ret;					\
 })
 
+#define read_sleb128(ptr) ({		\
+  unsigned int ret = 0;			\
+  unsigned int c;			\
+  int shift = 0;			\
+  do					\
+    {					\
+      c = *ptr++;			\
+      ret |= (c & 0x7f) << shift;	\
+      shift += 7;			\
+    } while (c & 0x80);			\
+					\
+  if (shift < 8*sizeof(ret) && (ret & (1 << (shift-1))) != 0) \
+    ret |= -1 << shift;			\
+  ret;					\
+})
+
+static void example_leb128(void) {
+  char buf[128];
+  int32_t ex[] = { 0, 1, 2, -1, -2, 124215, 255, 256,
+    2, 127, 128, 129, 130, 12857,
+    2, -2, 127, -127, 128, -128, 129, -129 };
+
+  for (int i = 0; i < sizeof(ex)/sizeof(ex[0]); ++i) {
+    const uint32_t u = ex[i];
+    const int32_t s = ex[i];
+    char *p;
+
+    memset(buf, 0, sizeof(buf));
+    p = buf;
+    write_uleb128(p, u);
+    p = buf;
+    uint32_t ru = read_uleb128(p);
+    assert(ru == u);
+
+    memset(buf, 0, sizeof(buf));
+    p = buf;
+    write_sleb128(p, s);
+    p = buf;
+    int32_t rs = read_sleb128(p);
+    assert(rs == s);
+  }
+}
+
+static void p_error(int status, int errnum, const char *format, ...) {
+
+}
+
 static uint16_t (*do_read_16) (unsigned char *ptr);
 static uint32_t (*do_read_32) (unsigned char *ptr);
+static uint64_t (*do_read_64) (unsigned char *ptr);
+static void (*write_16) (unsigned char *ptr, uint16_t val);
 static void (*write_32) (unsigned char *ptr, GElf_Addr val);
+static void (*write_64) (unsigned char *ptr, uint64_t val);
 
 static int ptr_size;
 static int cu_version;
@@ -114,6 +199,20 @@ static inline uint32_t
 buf_read_ube32 (unsigned char *data)
 {
   return data[3] | (data[2] << 8) | (data[1] << 16) | (data[0] << 24);
+}
+
+static inline uint64_t
+buf_read_ule64 (unsigned char *data)
+{
+  return data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24)
+    | ((uint64_t)data[4] << 32) | ((uint64_t)data[5] << 40) | ((uint64_t)data[6] << 48) | ((uint64_t)data[7] << 56);
+}
+
+static inline uint64_t
+buf_read_ube64 (unsigned char *data)
+{
+  return data[7] | (data[6] << 8) | (data[5] << 16) | (data[4] << 24)
+    | ((uint64_t)data[3] << 32) | ((uint64_t)data[2] << 40) | ((uint64_t)data[1] << 48) | ((uint64_t)data[0] << 56);
 }
 
 static const char *
@@ -153,6 +252,12 @@ strptr (DSO *dso, int sec, off_t offset)
   ret;							\
 })
 
+#define read_64(ptr) ({					\
+  uint32_t ret = do_read_64 (ptr);			\
+  ptr += 8;						\
+  ret;							\
+})
+
 REL *relptr, *relend;
 int reltype;
 
@@ -180,6 +285,20 @@ int reltype;
 })
 
 static void
+dwarf2_write_le16 (unsigned char *p, uint16_t v)
+{
+  p[0] = v;
+  p[1] = v >> 8;
+}
+
+static void
+dwarf2_write_be16 (unsigned char *p, uint16_t v)
+{
+  p[1] = v;
+  p[0] = v >> 8;
+}
+
+static void
 dwarf2_write_le32 (unsigned char *p, GElf_Addr val)
 {
   uint32_t v = (uint32_t) val;
@@ -190,7 +309,6 @@ dwarf2_write_le32 (unsigned char *p, GElf_Addr val)
   p[3] = v >> 24;
 }
 
-
 static void
 dwarf2_write_be32 (unsigned char *p, GElf_Addr val)
 {
@@ -200,6 +318,32 @@ dwarf2_write_be32 (unsigned char *p, GElf_Addr val)
   p[2] = v >> 8;
   p[1] = v >> 16;
   p[0] = v >> 24;
+}
+
+static void
+dwarf2_write_le64 (unsigned char *p, uint64_t v)
+{
+  p[0] = v;
+  p[1] = v >> 8;
+  p[2] = v >> 16;
+  p[3] = v >> 24;
+  p[4] = v >> 32;
+  p[5] = v >> 40;
+  p[6] = v >> 48;
+  p[7] = v >> 56;
+}
+
+static void
+dwarf2_write_be64 (unsigned char *p, uint64_t v)
+{
+  p[7] = v;
+  p[6] = v >> 8;
+  p[5] = v >> 16;
+  p[4] = v >> 24;
+  p[3] = v >> 32;
+  p[2] = v >> 40;
+  p[1] = v >> 48;
+  p[0] = v >> 56;
 }
 
 static struct
@@ -291,7 +435,7 @@ read_abbrev (DSO *dso, unsigned char *ptr)
   if (h == NULL)
     {
 no_memory:
-      error (0, ENOMEM, "%s: Could not read .debug_abbrev", dso->filename);
+      p_error (0, ENOMEM, "%s: Could not read .debug_abbrev", dso->filename);
       if (h)
         htab_delete (h);
       return NULL;
@@ -313,7 +457,7 @@ no_memory:
         }
       if (*slot != NULL)
 	{
-	  error (0, 0, "%s: Duplicate DWARF abbreviation %d", dso->filename,
+	  p_error (0, 0, "%s: Duplicate DWARF abbreviation %d", dso->filename,
 		 t->entry);
 	  free (t);
 	  htab_delete (h);
@@ -334,7 +478,7 @@ no_memory:
 	  if (form == 2
 	      || (form > DW_FORM_flag_present && form != DW_FORM_ref_sig8))
 	    {
-	      error (0, 0, "%s: Unknown DWARF DW_FORM_%d", dso->filename, form);
+	      p_error (0, 0, "%s: Unknown DWARF DW_FORM_%d", dso->filename, form);
 	      htab_delete (h);
 	      return NULL;
 	    }
@@ -344,7 +488,7 @@ no_memory:
         }
       if (read_uleb128 (ptr) != 0)
         {
-	  error (0, 0, "%s: DWARF abbreviation does not end with 2 zeros",
+	  p_error (0, 0, "%s: DWARF abbreviation does not end with 2 zeros",
 		 dso->filename);
 	  htab_delete (h);
 	  return NULL;
@@ -469,32 +613,86 @@ dirty_section (unsigned int sec)
   dirty_elf = 1;
 }
 
+struct line_prologue {
+  uint8_t *ptr_start_sec;
+
+  uint32_t total_length;
+  uint8_t *ptr_total_length;
+  uint16_t version;
+  uint32_t header_length;
+  uint8_t *ptr_header_length;
+  uint8_t minimum_instruction_length;
+  uint8_t maximum_operations_per_instructions;
+  uint8_t default_is_stmt;
+  int8_t line_base;
+  uint8_t line_range;
+  uint8_t opcode_base;
+  uint8_t *standard_opcode_lengths;
+  uint8_t *ptr_file_names;
+  uint8_t *ptr_additional_file_names;
+  uint8_t *old_ptr_program;
+  uint8_t *old_ptr_end_program;
+  size_t old_program_length;
+
+  uint8_t *new_ptr_program;
+  uint8_t *new_ptr_end_program;
+  uint8_t *new_program;
+  size_t new_program_length;
+
+  char **dir_names;
+  struct linemap linemap;
+  // .n.o.c file, assumed to be at most 1 per CU
+  char *primary_name;
+  uint32_t primary_dir;
+  uint32_t primary_file;
+  uint32_t first_additional_n_file;
+  uint8_t *prepared_additional_file_names;
+  size_t prepared_additional_file_names_length;
+};
+
+struct line_state {
+  int32_t line;
+  uint32_t file;
+  uint64_t addr;
+};
+
 #define N_SRC_POSTFIX ".n.o.c"
 #define N_DST_POSTFIX ".n"
 
-static void n_debug_print_file_entry(char *beg, char *end) {
+static void n_debug_print_file_entry(uint8_t *beg, uint8_t *end) {
   return;
 
-  char *p;
+  uint8_t *p;
   for (p = beg; *p != 0; ++p) {
-    fprintf(stderr, "%c", *p);
+    n_debug("%c", *p);
   }
-  fprintf(stderr, " ");
+  n_debug(" ");
   for (; p != end; ++p) {
-    fprintf(stderr, "%02hhx ", *p);
+    n_debug("%02hhx ", *p);
   }
-  fprintf(stderr, "\n");
+  n_debug("\n");
 }
 
-static char *n_rewrite_file(char *n_dst_entry_beg, char *n_src_entry_beg, char *n_src_entry_end) {
+static uint8_t *n_rewrite_file(struct line_prologue *prologue, uint32_t nth,
+                            uint8_t *n_dst_entry_beg, uint8_t *n_src_entry_beg, uint8_t *n_src_entry_end,
+                            int32_t n_dirt_id) {
   n_debug_print_file_entry(n_src_entry_beg, n_src_entry_end);
   const size_t src_entry_len = n_src_entry_end - n_src_entry_beg;
-  const char *file = n_src_entry_beg;
+  const char *file = (char *)n_src_entry_beg;
 
   const size_t file_len = strlen(file);
   const size_t len_src_postfix = strlen(N_SRC_POSTFIX);
   const size_t len_dst_postfix = strlen(N_DST_POSTFIX);
   if (file_len > len_src_postfix && strcmp(file + file_len - len_src_postfix, N_SRC_POSTFIX) == 0) {
+    if (prologue->primary_name != NULL) {
+      fprintf(stderr, "Warning: more than one .n.o.c in compilation unit. Found '%s' and '%s'\n",
+              prologue->primary_name, file);
+      goto skip;
+    }
+    prologue->primary_name = strndup(file, file_len); // file will get modified
+    prologue->primary_file = nth;
+    prologue->primary_dir = n_dirt_id;
+
     const size_t loss = len_src_postfix - len_dst_postfix;
 
     // Copy the part of the filename we want.
@@ -509,15 +707,399 @@ static char *n_rewrite_file(char *n_dst_entry_beg, char *n_src_entry_beg, char *
     const size_t dst_entry_len = src_entry_len - loss;
     n_debug_print_file_entry(n_dst_entry_beg, n_dst_entry_beg+dst_entry_len);
     return n_dst_entry_beg + dst_entry_len;
-  } else {
-    memmove(n_dst_entry_beg, n_src_entry_beg, src_entry_len);
-    return n_dst_entry_beg + src_entry_len;
   }
+
+skip:
+  memmove(n_dst_entry_beg, n_src_entry_beg, src_entry_len);
+  return n_dst_entry_beg + src_entry_len;
+}
+
+static void n_prepare_additional_file_names(struct line_prologue *prologue) {
+  int ret = linemap_read(&prologue->linemap,
+                         prologue->dir_names[prologue->primary_dir],
+                         prologue->primary_name,
+                         prologue->primary_file, prologue->first_additional_n_file);
+  if (ret < 0) {
+    return;
+  }
+
+  if (prologue->first_additional_n_file == prologue->linemap.next_file_id) {
+    prologue->prepared_additional_file_names_length = 0;
+    return;
+  }
+
+  // Double to be on the safe side.
+  prologue->prepared_additional_file_names
+    = calloc(2 * prologue->linemap.file_names_needed_space, sizeof(char));
+
+  uint8_t *p = prologue->prepared_additional_file_names;
+  for (uint32_t file = prologue->first_additional_n_file;
+       file < prologue->linemap.next_file_id; ++file) {
+    char *fn = prologue->linemap.file_names[file];
+    size_t len = strlen(fn);
+    memcpy(p, fn, len + 1);
+    p += len + 1;
+    p[0] = 0; // directory
+    p[1] = 0; // time
+    p[2] = 0; // length
+    p += 3;
+  }
+
+  prologue->prepared_additional_file_names_length = p - prologue->prepared_additional_file_names;
+}
+
+static int32_t special_opcode_line_incr(struct line_prologue *prologue, uint8_t opcode) {
+  uint8_t adjusted_opcode = opcode - prologue->opcode_base;
+  return (int32_t)prologue->line_base + (int32_t)(adjusted_opcode % prologue->line_range);
+}
+
+static int32_t special_opcode_operation_advance(struct line_prologue *prologue, uint8_t opcode) {
+  uint8_t adjusted_opcode = opcode - prologue->opcode_base;
+  return (int32_t)adjusted_opcode / (int32_t)prologue->line_range;
+}
+
+static uint32_t special_opcode(struct line_prologue *prologue, int32_t line_incr, int32_t addr_incr) {
+  const int32_t special_opcode_min_line_increment
+    = (int32_t)prologue->line_base;
+  const int32_t special_opcode_max_line_increment
+    = (int32_t)prologue->line_base + (int32_t)prologue->line_range - 1;
+
+  if (line_incr < special_opcode_min_line_increment
+      || line_incr > special_opcode_max_line_increment) {
+    return 256;
+  }
+
+  int32_t op_advance = addr_incr / prologue->minimum_instruction_length;
+  return (line_incr - (int32_t)prologue->line_base)
+    + ((int32_t)prologue->line_range * op_advance)
+    + (int32_t)prologue->opcode_base;
+}
+
+static void n_rewrite_line_program(struct line_prologue *prologue) {
+  if (prologue->primary_name == NULL) {
+    return;
+  }
+
+  assert(prologue->maximum_operations_per_instructions <= 1
+         && "FIXME(e): we do not keep track of op_index");
+
+  struct line_state src_state = { .line = 1, .file = 1, .addr = 0 };
+  struct line_state dst_state = { .line = 1, .file = 1, .addr = 0 };
+
+  if (prologue->old_program_length < prologue->prepared_additional_file_names_length) {
+    fprintf(stderr, "Warning: not even room for new filenames\n");
+    goto eos;
+  }
+  prologue->new_program_length = prologue->old_program_length
+    - prologue->prepared_additional_file_names_length;
+  // We build in margin when allocating new_program so we can safely
+  // go past q_end without going past the true end of the buffer.
+  prologue->new_program = calloc(1024 + prologue->new_program_length, sizeof(uint8_t));
+
+  uint8_t *p = prologue->old_ptr_program;
+  uint8_t *q = prologue->new_program;
+  uint8_t *q_end = q + prologue->new_program_length;
+
+  // Assume we'll see an actual address via DW_LNE_set_address
+  // before we need to write one ourselves, and that we'll have the correct
+  // value.
+  uint32_t target_addr_size = 8;
+
+  int reset_src_state = 0;
+
+  while (p != prologue->old_ptr_end_program) {
+    if (q >= q_end) {
+      goto eos;
+    }
+
+    if (reset_src_state) {
+      reset_src_state = 0;
+      src_state.file = 1;
+      src_state.line = 1;
+      src_state.addr = 0;
+    }
+
+    uint8_t *src_beg = p;
+    n_debug("0x%lx = %d\t", p - prologue->ptr_start_sec, p[0]);
+    uint8_t opcode = p[0];
+    uint8_t extended_opcode = 0;
+    p += 1;
+
+    int skippable = 0;
+    int32_t src_offset = 0;
+    int32_t op_advance = 0;
+    if (opcode == DW_LNS_advance_pc) {
+      uint32_t addr_incr = read_uleb128(p);
+      src_state.addr += addr_incr * prologue->minimum_instruction_length;;
+      skippable = 1;
+      n_debug("advance_pc: %u = %lx\n", addr_incr, src_state.addr);
+
+    } else if (opcode == DW_LNS_fixed_advance_pc) {
+      uint32_t addr_incr = read_16(p);
+      src_state.addr += addr_incr;
+      skippable = 1;
+      n_debug("fixed_advance_pc: %u = %lx\n", addr_incr, src_state.addr);
+
+    } else if (opcode == DW_LNS_const_add_pc) {
+      uint32_t addr_incr = (255 - prologue->opcode_base) / prologue->line_range;
+      src_state.addr += addr_incr;
+      skippable = 1;
+      n_debug("const_add_pc: %u = %lx\n", addr_incr, src_state.addr);
+
+    } else if (opcode == DW_LNS_advance_line) {
+      src_offset = read_sleb128(p);
+      src_state.line += src_offset;
+      skippable = 1;
+      n_debug("advance_line: %d = %d\n", src_offset, src_state.line);
+
+    } else if (opcode == DW_LNS_set_file) {
+      src_state.file = read_uleb128(p);
+      skippable = 1;
+      n_debug("set_file = %d\n", src_state.file);
+
+    } else if (opcode == 0) {
+      // Extended opcode.
+      const uint32_t instruction_size = read_uleb128(p);
+      extended_opcode = p[0];
+      uint8_t *i = p + 1;
+      p += instruction_size;
+
+      if (extended_opcode == DW_LNE_end_sequence) {
+        reset_src_state = 1;
+        n_debug("extended_opcode: end_sequence\n");
+      } else if (extended_opcode == DW_LNE_set_address) {
+        target_addr_size = instruction_size - 1;
+        if (target_addr_size == 8) {
+          src_state.addr = read_64(i);
+        } else if (target_addr_size == 4) {
+          src_state.addr = read_32(i);
+        } else {
+          assert(0);
+        }
+        skippable = 1;
+
+        n_debug("extended_opcode: %d (size %d) set address to %lx\n",
+                extended_opcode, instruction_size, src_state.addr);
+      } else {
+        n_debug("extended_opcode: %d (size %d)\n", extended_opcode, instruction_size);
+      }
+
+    } else if (opcode < prologue->opcode_base) {
+      uint8_t opcode_length = prologue->standard_opcode_lengths[opcode-1];
+      p += opcode_length;
+      n_debug("other opcode: %d (size %d)\n", opcode, opcode_length);
+
+    } else {
+      src_offset = special_opcode_line_incr(prologue, opcode);
+      op_advance = special_opcode_operation_advance(prologue, opcode);
+      src_state.line += src_offset;
+      src_state.addr += op_advance;
+      n_debug("special_opcode: addr %d, line %d = 0x%lx, %d\n",
+              op_advance, src_offset, src_state.addr, src_state.line);
+      skippable = 1;
+    }
+
+    uint8_t *src_end = p;
+
+    if (src_state.file != prologue->primary_file) {
+      memmove(q, src_beg, src_end - src_beg);
+      q += src_end - src_beg;
+      continue;
+    }
+
+    if ((opcode == 0 && extended_opcode == DW_LNE_end_sequence)
+        || opcode == DW_LNS_copy) {
+      // Appends a row to the matrix: we need to write out our state now.
+      //
+      // Technically, special op codes also append a row to the matrix, but
+      // we only want to do that if there is an actual dst line change.
+
+      // fallthrough
+    } else if (!skippable) {
+      memmove(q, src_beg, src_end - src_beg);
+      q += src_end - src_beg;
+      continue;
+    } else if (src_offset == 0) {
+      // We don't have to write anything right now: no src line change means
+      // no dst line change, and no dst file change.
+      n_debug("\tskipped\n");
+      continue;
+    }
+
+    // Space conservation strategy: as we cannot grow this section, we try
+    // to use as few bytes as possible. Luckily, as N source files are
+    // typically a lot shorter than the C codegen output, we should end up
+    // encoding smaller, and fewer offsets, so we should have room to spare
+    // in the end -- although we have to switch source files more often. To
+    // be on the safe side, we use the most economical encoding for each
+    // offset.
+    //
+    // We also need to aggregate together address increments: as most line
+    // increments become 0, many operations that had to appear as multiple
+    // operations because they were incrementing both addresses and line can
+    // now be merged into a single address incremenent. We can also delay
+    // the address increment until we need to write a line increment.
+
+    uint32_t dst_file = dst_state.file;
+    const int32_t dst_line = linemap_lookup(&dst_file, &prologue->linemap, src_state.line);
+
+    if (dst_file != dst_state.file) {
+      dst_state.file = dst_file;
+
+      q[0] = DW_LNS_set_file;
+      q += 1;
+      write_uleb128(q, dst_file);
+      n_debug("\t     ->\tswitch file %d\n", dst_file);
+    }
+
+    const int32_t dst_offset = dst_line - dst_state.line;
+    const uint64_t addr_offset = src_state.addr - dst_state.addr;
+
+    // Try to use a special opcode for both.
+
+    if (dst_offset != 0 || addr_offset != 0) {
+      uint32_t try_special_opcode = special_opcode(prologue, dst_offset, addr_offset);
+      if (try_special_opcode <= 255) {
+        dst_state.line += dst_offset;
+        dst_state.addr += addr_offset;
+
+        q[0] = (uint8_t)try_special_opcode;
+        q += 1;
+        n_debug("\t     ->\twrote special_opcode %d (line %d, addr %ld)\n",
+                try_special_opcode, dst_offset, addr_offset);
+        goto add_matrix_line;
+      }
+    }
+
+    // We tried, but we will have to write them out separately.
+    if (addr_offset != 0) {
+      dst_state.addr += addr_offset;
+
+      uint32_t special_opcode_advance = special_opcode(prologue, 0, addr_offset);
+      if (special_opcode_advance <= 255) {
+        q[0] = (uint8_t)special_opcode_advance;
+        q += 1;
+        n_debug("\t     ->\twrote special_opcode %d (addr %ld)\n",
+                special_opcode_advance, addr_offset);
+
+      } else if (addr_offset / prologue->minimum_instruction_length <= 0x7f) {
+        q[0] = DW_LNS_advance_pc;
+        q += 1;
+        write_uleb128(q, addr_offset / prologue->minimum_instruction_length);
+        n_debug("\t     ->\twrote advance_pc %ld\n", addr_offset);
+
+      } else if (addr_offset <= 0xffff) {
+        q[0] = DW_LNS_fixed_advance_pc;
+        q += 1;
+        write_16(q, addr_offset);
+        q += 2;
+        n_debug("\t     ->\twrote fixed_advance_pc %ld\n", addr_offset);
+
+      } else {
+        q[0] = 0;
+        q[1] = 1 + target_addr_size;
+        q[2] = DW_LNE_set_address;
+
+        if (target_addr_size == 8) {
+          write_64(q + 3, dst_state.addr);
+        } else {
+          write_32(q + 3, dst_state.addr);
+        }
+        q += 2 + 1 + target_addr_size;
+        n_debug("\t     ->\twrote set_address %lx\n", dst_state.addr);
+      }
+    }
+
+    if (dst_offset != 0) {
+      dst_state.line += dst_offset;
+
+      uint32_t special_opcode_line = special_opcode(prologue, dst_offset, 0);
+      if (special_opcode_line <= 255) {
+        q[0] = (uint8_t)special_opcode_line;
+        q += 1;
+        n_debug("\t     ->\twrote special_opcode %d (line %d)\n",
+                special_opcode_line, dst_offset);
+
+      } else {
+        q[0] = DW_LNS_advance_line;
+        q += 1;
+        write_sleb128(q, dst_offset);
+        n_debug("\t     ->\twrote advance_line %d\n", dst_offset);
+      }
+    }
+
+add_matrix_line:
+    if (opcode == 0 && extended_opcode == DW_LNE_end_sequence) {
+      q[0] = 0;
+      q[1] = 1;
+      q[2] = DW_LNE_end_sequence;
+      q += 2 + 1;
+
+      dst_state.file = 1;
+      dst_state.line = 1;
+      dst_state.addr = 0;
+      n_debug("\t     ->\twrote end_sequence\n");
+    } else if (opcode == DW_LNS_copy) {
+      q[0] = opcode;
+      q += 1;
+      n_debug("\t     ->\twrote copy\n");
+    }
+  }
+
+  if (q - prologue->new_program > prologue->new_program_length) {
+eos:
+    fprintf(stderr, "Warning: could not rewrite some .debug_line entries to point to N source file '%s'\n",
+            prologue->linemap.file_names[src_state.file]);
+    fprintf(stderr, "Other source files in the same compilation unit could be affected:\n");
+    for (int i = 0; i < prologue->linemap.next_file_id; ++i) {
+      char *pfn = prologue->linemap.file_names[i];
+      if (pfn != NULL && *pfn != 0) {
+        fprintf(stderr, "\t%s\n", pfn);
+      }
+    }
+    return;
+  }
+
+  prologue->new_program_length = q - prologue->new_program;
+  prologue->new_ptr_end_program = prologue->new_ptr_program + prologue->new_program_length;
+}
+
+static void n_write_prepared_additional_file_names(struct line_prologue *prologue) {
+  if (prologue->primary_name == NULL) {
+    return;
+  }
+
+  assert(prologue->new_ptr_program + prologue->new_program_length <= prologue->old_ptr_end_program);
+  memcpy(prologue->new_ptr_program, prologue->new_program, prologue->new_program_length);
+  free(prologue->new_program);
+
+  uint8_t *hole = prologue->new_ptr_end_program;
+  size_t hole_len = prologue->old_ptr_end_program - prologue->new_ptr_end_program;
+  memset(hole, DW_LNS_copy, hole_len);
+  hole[0] = DW_LNS_set_file;
+  hole[1] = 1;
+  hole[hole_len-3] = 0;
+  hole[hole_len-2] = 1;
+  hole[hole_len-1] = DW_LNE_end_sequence;
+
+  // Do not update header_length field. We don't understand the values we're
+  // finding in GCC-generated DWARF. Looks like tools find the start by
+  // reading the whole prologue.
+
+  memcpy(prologue->ptr_additional_file_names,
+         prologue->prepared_additional_file_names,
+         prologue->prepared_additional_file_names_length);
+  free(prologue->prepared_additional_file_names);
+
+  uint8_t *p = prologue->new_ptr_program - 1;
+  p[0] = 0;
 }
 
 static int
 edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
 {
+  struct line_prologue prologue = { 0 };
+
   unsigned char *ptr = debug_sections[DEBUG_LINE].data, *dir;
   unsigned char **dirt;
   unsigned char *endsec = ptr + debug_sections[DEBUG_LINE].size;
@@ -527,26 +1109,30 @@ edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
   size_t comp_dir_len = !comp_dir ? 0 : strlen (comp_dir);
   size_t abs_file_cnt = 0, abs_dir_cnt = 0;
 
+  prologue.ptr_start_sec = ptr;
+
   if (phase != 0)
     return 0;
 
-  /* XXX: RhBug:929365, should we error out instead of ignoring? */
+  /* XXX: RhBug:929365, should we p_error out instead of ignoring? */
   if (ptr == NULL)
     return 0;
 
   ptr += off;
 
   endcu = ptr + 4;
-  endcu += read_32 (ptr);
+  prologue.ptr_total_length = ptr;
+  prologue.total_length = read_32 (ptr);
+  endcu += prologue.total_length;
   if (endcu == ptr + 0xffffffff)
     {
-      error (0, 0, "%s: 64-bit DWARF not supported", dso->filename);
+      p_error (0, 0, "%s: 64-bit DWARF not supported", dso->filename);
       return 1;
     }
 
   if (endcu > endsec)
     {
-      error (0, 0, "%s: .debug_line CU does not fit into section",
+      p_error (0, 0, "%s: .debug_line CU does not fit into section",
 	     dso->filename);
       return 1;
     }
@@ -554,22 +1140,32 @@ edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
   value = read_16 (ptr);
   if (value != 2 && value != 3 && value != 4)
     {
-      error (0, 0, "%s: DWARF version %d unhandled", dso->filename,
+      p_error (0, 0, "%s: DWARF version %d unhandled", dso->filename,
 	     value);
       return 1;
     }
 
   endprol = ptr + 4;
-  endprol += read_32 (ptr);
+  prologue.ptr_header_length = ptr;
+  prologue.header_length = read_32 (ptr);
+  endprol += prologue.header_length;
   if (endprol > endcu)
     {
-      error (0, 0, "%s: .debug_line CU prologue does not fit into CU",
+      p_error (0, 0, "%s: .debug_line CU prologue does not fit into CU",
 	     dso->filename);
       return 1;
     }
 
-  opcode_base = ptr[4 + (value >= 4)];
-  ptr = dir = ptr + 4 + (value >= 4) + opcode_base;
+  prologue.minimum_instruction_length = ptr[0];
+  if (value >= 4) {
+    prologue.maximum_operations_per_instructions = ptr[1];
+  }
+  prologue.line_base = ptr[2 + !!(value >= 4)];
+  prologue.line_range = ptr[3 + !!(value >= 4)];
+  prologue.opcode_base = opcode_base = ptr[4 + !!(value >= 4)];
+  prologue.standard_opcode_lengths = calloc(opcode_base, sizeof(uint8_t));
+  memcpy(prologue.standard_opcode_lengths, ptr + 4 + !!(value >=  4) + 1, opcode_base);
+  ptr = dir = ptr + 4 + !!(value >= 4) + opcode_base;
 
   /* dir table: */
   value = 1;
@@ -590,10 +1186,21 @@ edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
     }
   ptr++;
 
+  prologue.dir_names = calloc(dirt_cnt, sizeof(*prologue.dir_names));
+  for (int i = 0; i < dirt_cnt; ++i) {
+    prologue.dir_names[i] = (char *) dirt[i];
+  }
+
   /* file table: */
-  char *n_dst_entry_beg = (char *)ptr;
+  uint8_t *n_dst_entry_beg = ptr;
+  prologue.ptr_file_names = ptr;
+
+  int32_t n_dirt_id = 0;
+  uint32_t nth = 0;
   while (*ptr != 0)
     {
+      nth += 1;
+
       char *s, *file;
       size_t file_len, dir_len;
 
@@ -603,16 +1210,18 @@ edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
 
       if (value >= dirt_cnt)
 	{
-	  error (0, 0, "%s: Wrong directory table index %u",
+	  p_error (0, 0, "%s: Wrong directory table index %u",
 		 dso->filename, value);
 	  return 1;
 	}
+      n_dirt_id = value;
+
       file_len = strlen (file);
       dir_len = strlen ((char *)dirt[value]);
       s = malloc (comp_dir_len + 1 + file_len + 1 + dir_len + 1);
       if (s == NULL)
 	{
-	  error (0, ENOMEM, "%s: Reading file table", dso->filename);
+	  p_error (0, ENOMEM, "%s: Reading file table", dso->filename);
 	  return 1;
 	}
       if (*file == '/')
@@ -671,15 +1280,22 @@ edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
       read_uleb128 (ptr);
       read_uleb128 (ptr);
 
-      char *n_src_entry_end = (char *)ptr;
-      n_dst_entry_beg = n_rewrite_file(n_dst_entry_beg, file, n_src_entry_end);
+      uint8_t *n_src_entry_end = ptr;
+      n_dst_entry_beg = n_rewrite_file(&prologue, nth, n_dst_entry_beg, (uint8_t *)file, n_src_entry_end,
+                                       n_dirt_id);
     }
 
-  ++ptr;
+  prologue.first_additional_n_file = nth + 1;
+
+  n_prepare_additional_file_names(&prologue);
 
   // ptr is at the terminating 0 byte of the field "file_names".
   assert(ptr[0] == 0);
-  if (n_dst_entry_beg != (char *)ptr) {
+  prologue.ptr_additional_file_names = n_dst_entry_beg;
+  prologue.new_ptr_program = prologue.ptr_additional_file_names
+    + prologue.prepared_additional_file_names_length + 1;
+
+  if (n_dst_entry_beg != ptr) {
     n_dst_entry_beg[0] = 0;
 
     // Write a series of DW_LNS_copy opcodes after the 0 byte terminating
@@ -690,12 +1306,20 @@ edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
     // find the still-correct start of the program. Some will start right
     // after the end of file_names, but it will work too, thanks to the
     // noops.
-    const int DW_LNS_copy = 1;
-    const size_t entry_len = (char *)ptr - n_dst_entry_beg;
-    memset(n_dst_entry_beg + 1, DW_LNS_copy, entry_len - 1);
+    const size_t cnt = ptr - n_dst_entry_beg;
+    memset(n_dst_entry_beg + 1, DW_LNS_copy, cnt);
 
-    ptr = (unsigned char *)n_dst_entry_beg + entry_len;
+    assert(ptr == n_dst_entry_beg + cnt);
   }
+
+  ptr += 1;
+  prologue.old_ptr_program = ptr;
+  prologue.old_ptr_end_program = endcu;
+  prologue.old_program_length = prologue.old_ptr_end_program - prologue.old_ptr_program;
+
+  n_rewrite_line_program(&prologue);
+
+  n_write_prepared_additional_file_names(&prologue);
 
   if (dest_dir)
     {
@@ -745,7 +1369,7 @@ edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
       if (shrank > 0)
 	{
 	  if (--shrank == 0)
-	    error (EXIT_FAILURE, 0,
+	    p_error (EXIT_FAILURE, 0,
 		   "canonicalization unexpectedly shrank by one character");
 	  else
 	    {
@@ -760,7 +1384,7 @@ edit_dwarf2_line (DSO *dso, uint32_t off, char *comp_dir, int phase)
 	  size_t len = (abs_dir_cnt + abs_file_cnt) * (base_len - dest_len);
 
 	  if (len == 1)
-	    error (EXIT_FAILURE, 0, "-b arg has to be either the same length as -d arg, or more than 1 char longer");
+	    p_error (EXIT_FAILURE, 0, "-b arg has to be either the same length as -d arg, or more than 1 char longer");
 	  memset (ptr, 'X', len - 1);
 	  ptr += len - 1;
 	  *ptr++ = '\0';
@@ -991,7 +1615,7 @@ edit_attributes (DSO *dso, unsigned char *ptr, struct abbrev_tag *t, int phase)
 	      assert (len < UINT_MAX);
 	      break;
 	    default:
-	      error (0, 0, "%s: Unknown DWARF DW_FORM_%d", dso->filename,
+	      p_error (0, 0, "%s: Unknown DWARF DW_FORM_%d", dso->filename,
 		     form);
 	      return NULL;
 	    }
@@ -1082,7 +1706,7 @@ edit_dwarf2 (DSO *dso)
 	 	{
 		  if (debug_sections[j].data)
 		    {
-		      error (0, 0, "%s: Found two copies of %s section",
+		      p_error (0, 0, "%s: Found two copies of %s section",
 			     dso->filename, name);
 		      return 1;
 		    }
@@ -1102,7 +1726,7 @@ edit_dwarf2 (DSO *dso)
 
 	    if (debug_sections[j].name == NULL)
 	      {
-		error (0, 0, "%s: Unknown debugging section %s",
+		p_error (0, 0, "%s: Unknown debugging section %s",
 		       dso->filename, name);
 	      }
 	  }
@@ -1129,17 +1753,23 @@ edit_dwarf2 (DSO *dso)
     {
       do_read_16 = buf_read_ule16;
       do_read_32 = buf_read_ule32;
+      do_read_64 = buf_read_ule64;
+      write_16 = dwarf2_write_le16;
       write_32 = dwarf2_write_le32;
+      write_64 = dwarf2_write_le64;
     }
   else if (dso->ehdr.e_ident[EI_DATA] == ELFDATA2MSB)
     {
       do_read_16 = buf_read_ube16;
       do_read_32 = buf_read_ube32;
+      do_read_64 = buf_read_ube64;
+      write_16 = dwarf2_write_be16;
       write_32 = dwarf2_write_be32;
+      write_64 = dwarf2_write_be64;
     }
   else
     {
-      error (0, 0, "%s: Wrong ELF data enconding", dso->filename);
+      p_error (0, 0, "%s: Wrong ELF data enconding", dso->filename);
       return 1;
     }
 
@@ -1173,7 +1803,7 @@ edit_dwarf2 (DSO *dso)
 	  relbuf = malloc (maxndx * sizeof (REL));
 	  reltype = dso->shdr[i].sh_type;
 	  if (relbuf == NULL)
-	    error (1, errno, "%s: Could not allocate memory", dso->filename);
+	    p_error (1, errno, "%s: Could not allocate memory", dso->filename);
 
 	  symdata = elf_getdata (dso->scn[dso->shdr[i].sh_link], NULL);
 	  assert (symdata != NULL && symdata->d_buf != NULL);
@@ -1252,7 +1882,7 @@ edit_dwarf2 (DSO *dso)
 		  break;
 		default:
 		fail:
-		  error (1, 0, "%s: Unhandled relocation %d in .debug_info section",
+		  p_error (1, 0, "%s: Unhandled relocation %d in .debug_info section",
 			 dso->filename, rtype);
 		}
 	      relend->ptr = debug_sections[DEBUG_INFO].data
@@ -1279,7 +1909,7 @@ edit_dwarf2 (DSO *dso)
 	    {
 	      if (ptr + 11 > endsec)
 		{
-		  error (0, 0, "%s: .debug_info CU header too small",
+		  p_error (0, 0, "%s: .debug_info CU header too small",
 			 dso->filename);
 		  return 1;
 		}
@@ -1288,20 +1918,20 @@ edit_dwarf2 (DSO *dso)
 	      endcu += read_32 (ptr);
 	      if (endcu == ptr + 0xffffffff)
 		{
-		  error (0, 0, "%s: 64-bit DWARF not supported", dso->filename);
+		  p_error (0, 0, "%s: 64-bit DWARF not supported", dso->filename);
 		  return 1;
 		}
 
 	      if (endcu > endsec)
 		{
-		  error (0, 0, "%s: .debug_info too small", dso->filename);
+		  p_error (0, 0, "%s: .debug_info too small", dso->filename);
 		  return 1;
 		}
 
 	      cu_version = read_16 (ptr);
 	      if (cu_version != 2 && cu_version != 3 && cu_version != 4)
 		{
-		  error (0, 0, "%s: DWARF version %d unhandled", dso->filename,
+		  p_error (0, 0, "%s: DWARF version %d unhandled", dso->filename,
 			 cu_version);
 		  return 1;
 		}
@@ -1310,9 +1940,9 @@ edit_dwarf2 (DSO *dso)
 	      if (value >= debug_sections[DEBUG_ABBREV].size)
 		{
 		  if (debug_sections[DEBUG_ABBREV].data == NULL)
-		    error (0, 0, "%s: .debug_abbrev not present", dso->filename);
+		    p_error (0, 0, "%s: .debug_abbrev not present", dso->filename);
 		  else
-		    error (0, 0, "%s: DWARF CU abbrev offset too large",
+		    p_error (0, 0, "%s: DWARF CU abbrev offset too large",
 			   dso->filename);
 		  return 1;
 		}
@@ -1322,14 +1952,14 @@ edit_dwarf2 (DSO *dso)
 		  ptr_size = read_1 (ptr);
 		  if (ptr_size != 4 && ptr_size != 8)
 		    {
-		      error (0, 0, "%s: Invalid DWARF pointer size %d",
+		      p_error (0, 0, "%s: Invalid DWARF pointer size %d",
 			     dso->filename, ptr_size);
 		      return 1;
 		    }
 		}
 	      else if (read_1 (ptr) != ptr_size)
 		{
-		  error (0, 0, "%s: DWARF pointer size differs between CUs",
+		  p_error (0, 0, "%s: DWARF pointer size differs between CUs",
 			 dso->filename);
 		  return 1;
 		}
@@ -1347,7 +1977,7 @@ edit_dwarf2 (DSO *dso)
 		  t = htab_find_with_hash (abbrev, &tag, tag.entry);
 		  if (t == NULL)
 		    {
-		      error (0, 0, "%s: Could not find DWARF abbreviation %d",
+		      p_error (0, 0, "%s: Could not find DWARF abbreviation %d",
 			     dso->filename, tag.entry);
 		      htab_delete (abbrev);
 		      return 1;
@@ -1391,26 +2021,26 @@ fdopen_dso (int fd, const char *name)
   elf = elf_begin (fd, ELF_C_RDWR_MMAP, NULL);
   if (elf == NULL)
     {
-      error (0, 0, "cannot open ELF file: %s", elf_errmsg (-1));
+      p_error (0, 0, "cannot open ELF file: %s", elf_errmsg (-1));
       goto error_out;
     }
 
   if (elf_kind (elf) != ELF_K_ELF)
     {
-      error (0, 0, "\"%s\" is not an ELF file", name);
+      p_error (0, 0, "\"%s\" is not an ELF file", name);
       goto error_out;
     }
 
   if (gelf_getehdr (elf, &ehdr) == NULL)
     {
-      error (0, 0, "cannot get the ELF header: %s",
+      p_error (0, 0, "cannot get the ELF header: %s",
 	     elf_errmsg (-1));
       goto error_out;
     }
 
   if (ehdr.e_type != ET_DYN && ehdr.e_type != ET_EXEC && ehdr.e_type != ET_REL)
     {
-      error (0, 0, "\"%s\" is not a shared library", name);
+      p_error (0, 0, "\"%s\" is not a shared library", name);
       goto error_out;
     }
 
@@ -1421,7 +2051,7 @@ fdopen_dso (int fd, const char *name)
 	        + (ehdr.e_shnum + 20) * sizeof(Elf_Scn *));
   if (!dso)
     {
-      error (0, ENOMEM, "Could not open DSO");
+      p_error (0, ENOMEM, "Could not open DSO");
       goto error_out;
     }
 
@@ -1479,6 +2109,8 @@ handle_build_id (DSO *dso, Elf_Data *build_id,
 int
 main (int argc, char *argv[])
 {
+  example_leb128();
+
   DSO *dso;
   int fd, i;
   const char *file;

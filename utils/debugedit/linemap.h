@@ -28,9 +28,12 @@ struct linemap {
   size_t max_src_line;
 
   struct strmap file_ids; // keys points in `data`
-  uint32_t file_ids_count;
+  uint32_t next_file_id;
   char **file_names; // points in `data`
+  size_t file_names_needed_space;
 };
 
-int linemap_read(struct linemap *linemap, const char *fn);
+int linemap_read(struct linemap *linemap, const char *dir, const char *base_fn,
+                 uint32_t primary_file, uint32_t first_additional_n_file);
 void linemap_destroy(struct linemap *linemap);
+int32_t linemap_lookup(uint32_t *file, const struct linemap *linemap, int32_t src_line);

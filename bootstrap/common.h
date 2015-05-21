@@ -242,7 +242,9 @@ static inline uint32_t bitreverse32(uint32_t x) {
   rem ? x + mult - rem : x \
 })
 
+#ifndef strdup
 char *strdup(const char *s);
+#endif
 
 // Must free return value
 char *xdirname(const char *s);
