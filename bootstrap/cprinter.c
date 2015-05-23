@@ -2216,6 +2216,8 @@ static void print_deffun_dynwrapper(struct out *out, bool header, enum forward f
 static void print_deffun(struct out *out, bool header, enum forward fwd,
                          const struct module *mod, const struct node *node,
                          struct fintypset *printed) {
+  out->node = node;
+
   const struct node *par = parent_const(node);
   if (fwd != FWD_DECLARE_FUNCTIONS && fwd != FWD_DEFINE_FUNCTIONS) {
     return;
@@ -2344,7 +2346,7 @@ static void print_deftype_statement(size_t *count_fields,
                                     struct out *out, bool header, enum forward fwd,
                                     const struct module *mod, const struct node *node,
                                     bool do_static, struct fintypset *printed) {
-  out->node = node;
+  out->node = NULL;
 
   if (do_static) {
     switch (node->which) {
@@ -2877,7 +2879,7 @@ static void print_union_types(struct out *out, bool header, enum forward fwd,
 static void print_union(struct out *out, bool header, enum forward fwd,
                         const struct module *mod, const struct node *deft,
                         const struct node *node, struct fintypset *printed) {
-  out->node = node;
+  out->node = NULL;
 
   switch (fwd) {
   case FWD_DECLARE_TYPES:
@@ -2936,7 +2938,7 @@ static void print_union(struct out *out, bool header, enum forward fwd,
 static void print_enum(struct out *out, bool header, enum forward fwd,
                        const struct module *mod, const struct node *deft,
                        const struct node *node, struct fintypset *printed) {
-  out->node = node;
+  out->node = NULL;
 
   if (fwd == FWD_DECLARE_TYPES) {
     if (deft == node) {
@@ -3329,7 +3331,7 @@ static void print_topdeps(struct out *out, bool header, enum forward fwd,
 static void print_top(struct out *out, bool header, enum forward fwd,
                       const struct module *mod, const struct node *node,
                       struct fintypset *printed, bool force) {
-  out->node = node;
+  out->node = NULL;
 
   if ((!typ_is_concrete(node->typ) && node->which != DEFINTF)
       || (!node_is_at_top(node) && !typ_is_concrete(parent_const(node)->typ))) {
@@ -3541,6 +3543,8 @@ error printer_c(int fd, int linemap_fd, const struct module *mod) {
   if (out.linemap == NULL) {
     THROWF(errno, "Invalid linemap output file descriptor '%d'", linemap_fd);
   }
+  // Make sure the first file listed is the primary.
+  fprintf(out.linemap, "1 1 %s\n", mod->filename);
 
   print_module(&out, false, mod);
   print_runexamples(&out, mod);
