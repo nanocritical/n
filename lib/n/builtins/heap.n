@@ -12,6 +12,7 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 (fun t:`Any) Alloc = #t within Heap
 	return (Cast #U8 #t) <- Heap!Alloc_raw (sizeof t)
 
+-- FIXME(e): Free should really zero the ref.
 (fun t:`Any) Free p:?#t within Heap
 	if not p?
 		return

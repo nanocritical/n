@@ -47,23 +47,7 @@ static char *o_filename(const char *filename) {
   return o_fn;
 }
 
-static ERROR clang_cleanup(const char *c_fn) {
-  static const char *fmt = "perl -i -e 'undef $/; $_=<>; s/(;[\\s\\n]*)*;/;/mg; print' %s";
-  char *cmd = calloc(strlen(fmt) + strlen(c_fn) + 1, sizeof(char));
-  sprintf(cmd, fmt, c_fn);
-
-  error e = sh(cmd);
-  free(cmd);
-  EXCEPT(e);
-  return 0;
-}
-
 static ERROR cc(FILE *script, const char *o_fn, const char *c_fn) {
-  if (strcmp(g_opt.compiler, "clang") == 0 || strcmp(g_opt.compiler, "emcc") == 0) {
-    error e = clang_cleanup(c_fn);
-    EXCEPT(e);
-  }
-
   static const char *fmt = "%s %s " CFLAGS " %s %s -c -o %s";
   char *cmd = calloc(strlen(fmt) + strlen(g_opt.ccache)
                      + strlen(g_opt.compiler) + strlen(g_opt.cflags)
@@ -161,11 +145,21 @@ static ERROR generate(struct node *node) {
     THROWF(errno, "Cannot open output file '%s'", c_fn);
   }
 
+  char *linemap_fn = calloc(strlen(fn) + sizeof(".o.c.linemap"), sizeof(char));
+  sprintf(linemap_fn, "%s.o.c.linemap", fn);
+
+  int linemap_fd = creat(linemap_fn, 00600);
+  if (linemap_fd < 0) {
+    THROWF(errno, "Cannot open output file '%s'", linemap_fn);
+  }
+
   BEGTIMEIT(TIMEIT_GENERATE_C);
-  e = printer_c(fd, mod);
+  e = printer_c(fd, linemap_fd, mod);
   EXCEPT(e);
   ENDTIMEIT(true, TIMEIT_GENERATE_C);
 
+  close(linemap_fd);
+  free(linemap_fn);
   close(fd);
 
   char *h_fn = calloc(strlen(fn) + sizeof(".o.h"), sizeof(char));

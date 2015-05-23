@@ -58,8 +58,8 @@ fun F w:#io.`Writer fmt:String ...v:(Vararg ?*`Show)
 					break
 				s.Show #st
 			fmt = after
-	catch _
-		noop
+	catch err
+		drop = err
 
 fun Prf fmt:String ?err:?Bool ...v:(Vararg ?*`Show)
 	var buf = #{}:Stringbuf
