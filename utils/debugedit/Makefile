@@ -1,3 +1,5 @@
+default:: debugedit linemap
+
 debugedit: debugedit.c hashtab.c linemap.c ../../bootstrap/hash.c
 	ccache gcc -g -std=c99 -Wall -O2 -o $@ $^ -lelf -lpopt
 

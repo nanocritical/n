@@ -15,8 +15,9 @@ int linemap_read(struct linemap *linemap, const char *dir, const char *base_fn,
 
   memset(linemap, 0, sizeof(*linemap));
 
+  dir = dir != NULL ? dir : ".";
   char *fn = calloc(strlen(dir) + 1 + strlen(base_fn) + sizeof(".linemap"), sizeof(char));
-  if (dir != NULL && strlen(dir) > 0) {
+  if (strlen(dir) > 0) {
     sprintf(fn, "%s/%s.linemap", dir, base_fn);
   } else {
     sprintf(fn, "%s.linemap", base_fn);
@@ -148,7 +149,7 @@ int main(int argc, char **argv) {
   }
 
   struct linemap linemap = { 0 };
-  int ret = linemap_read(&linemap, argv[1], 1, 2);
+  int ret = linemap_read(&linemap, NULL, argv[1], 1, 2);
   if (ret < 0) {
     return -ret;
   }
