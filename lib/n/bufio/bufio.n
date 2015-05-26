@@ -2,6 +2,46 @@ from n import *
 import n.io
 import n.fmt
 
+
+intf `Reader =
+	isa io.`Reader
+
+	-- Perform a read of up to `max` bytes. Return any underlying error.
+	-- Like io.`Read, short reads need not return an error, unless they
+	-- read nothing at all.
+	met# Fill ?max:?Uint = Error
+
+	-- Number of buffered bytes, available to `Peek`.
+	met Buffered = Uint
+
+	-- Peek at up to `Buffered` bytes.
+	met Peek ?max:?Uint = []U8
+
+	-- Advance the buffer past the lesser of `count` or `Buffered` bytes.
+	met! Skip count:Uint
+
+inline intf `Writer =
+	isa io.`Writer
+
+	-- Perform a write of up to `max` bytes. Return any underlying error.
+	-- An incomplete flush, like a partial write, must return an error.
+	met# Flush ?max:?Uint = Error
+
+	-- Number of buffered bytes, available to `Flush`.
+	met Buffered = Uint
+
+	-- Get a buffer to write into.
+	-- The returned slice may be passed to `Write` to make the write
+	-- effective, the implementation must recognize its own, avoid a copy,
+	-- and this `Write` is guaranteed to return `OK`. If `Write` isn't
+	-- called, no write happened.
+	--
+	-- An implementation may have a preferred size for this buffer, that
+	-- lets it avoid allocation. It may also fail to return a buffer, but
+	-- cannot return a smaller buffer than requested.
+	met# Writing_buffer ?count:?Uint = Error, [!]U8
+
+
 inline struct Reader =
 	isa io.`Reader
 	R		:?#io.`Reader
@@ -63,6 +103,7 @@ Reader met# Fill ?max:?Uint = Error
 Reader met! Read_bytes ?max:?Uint = []U8
 	return (self!Read_string max=max).Bytes
 
+-- Convenience method.
 -- Does not Fill more data.
 -- The returned string is valid until the next call to Fill.
 Reader met! Read_string ?max:?Uint = String
@@ -75,9 +116,16 @@ Reader met! Read_string ?max:?Uint = String
 
 -- Does not Fill more data. Does not advance.
 -- The returned slice is valid until the next call to Fill.
-Reader met Peek_bytes ?max:?Uint = []U8
+Reader met Peek ?max:?Uint = []U8
 	return (self.Peek_string max=max).Bytes
 
+Reader met! Skip count:Uint
+	if self.bufr?
+		self!bufr!Skip count
+		return
+	self!pending = self.pending.[(Min count self.pending.Count) ..]
+
+-- Convenience method.
 -- Does not Fill more data. Does not advance.
 -- The returned string is valid until the next call to Fill.
 Reader met Peek_string ?max:?Uint = String
@@ -86,19 +134,20 @@ Reader met Peek_string ?max:?Uint = String
 	let len = Min (max else Uint.MAX) self.pending.Count
 	return self.pending.[.. len]
 
-Reader met! Advance cnt:Uint
+Reader met! Advance cnt:Uint = Error
 	if self.bufr?
-		self!bufr!Advance cnt
-		return
+		return self!bufr!Advance cnt
+	if cnt > self.pending.Count
+		return INVAL
 	self!pending = self.pending.[cnt ..]
 
-Reader met! Rewind cnt:Uint
+Reader met! Rewind cnt:Uint = Error
 	if self.bufr?
-		self!bufr!Rewind cnt
-		return
+		return self!bufr!Rewind cnt
 	-- pending is a sub-string of buf.
 	let cur = self.buf.Count - self.pending.Count
-	assert cur >= cnt
+	if cnt > cur
+		return INVAL
 	self!pending = self.buf.[cur ..]
 
 -- Does not Fill more data.
@@ -139,7 +188,7 @@ Reader met Peek_line = partial:Bool, line:String
 
 example reader
 	let s = "This is a test"
-	var sr = #<- io.Mk_string_reader s
+	var sr = #<- Mk_string_reader s
 	var r = #<- Reader.Mk sr
 	var buf:Stringbuf
 	buf#Reserve 32
@@ -174,16 +223,16 @@ inline struct Writer =
 	bufw		:?#Writer
 	rdy		:Bool
 	buf		:Stringbuf
-	pending		:[]U8
-	count_flushed	:Uint
+	pending		:[!]U8
+	total_flushed	:Uint
 
 Writer fun Mk w:#io.`Writer = ret:this
 	ret#W = w
 
-Writer met Count_flushed = Uint
+Writer met Total_flushed = Uint
 	if self.bufw?
-		return self.bufw.Count_flushed
-	return self.count_flushed
+		return self.bufw.Total_flushed
+	return self.total_flushed
 
 Writer met# Write b:[]U8 = []U8, Error
 	if not self.rdy
@@ -195,7 +244,7 @@ Writer met# Write b:[]U8 = []U8, Error
 	if self.bufw?
 		return self#bufw#Write b
 	_, _ = self#buf#Write b
-	self!pending = self.buf.Bytes
+	self!pending = self!buf!Bytes
 	return {}, OK
 
 Writer met Buffered = Uint
@@ -206,6 +255,15 @@ Writer met Buffered = Uint
 Writer met# Write_string s:String = Error
 	_, except = self#Write s.Bytes
 
+Writer met# Writing_buffer ?count:?Uint = Error, [!]U8
+	if self.bufw?
+		return self#bufw#Writing_buffer count=count
+	let count = count else self.pending.Available
+	if count > self.pending.Available
+		self#buf#Resize count
+	self!pending = self!buf!Bytes
+	return OK, self!pending![.. count]
+
 Writer met# Flush ?max:?Uint = Error
 	if not self.W?
 		return OK
@@ -215,10 +273,10 @@ Writer met# Flush ?max:?Uint = Error
 	let len = max else self.pending.Count
 	let left, wr_err = io.Write_full self#W self.pending.[.. len]
 	let copied = len - left.Count
-	self!count_flushed += copied
-	self!pending = self.pending.[copied ..]
-	self#buf#Copy self.pending
-	self!pending = self.buf.Bytes
+	self!total_flushed += copied
+	self!pending = self!pending![copied ..]
+	self#buf#Copy self!pending
+	self!pending = self!buf!Bytes
 	return wr_err
 
 example writer
@@ -237,7 +295,7 @@ example writer
 	except = w#Flush
 	assert buf == "This is a test. This is only a test. Do not leave the dancefloor."
 
-	assert w.Count_flushed == buf.Count
+	assert w.Total_flushed == buf.Count
 
 
 enum Auto_mode =

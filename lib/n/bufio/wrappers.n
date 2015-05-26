@@ -1,0 +1,189 @@
+inline struct Bytes_reader =
+	isa `Reader
+	b	:[]U8
+	cur	:[]U8
+
+Bytes_reader fun Mk b:[]U8 = ret:this
+	ret#b = b
+
+Bytes_reader met Total_filled = Uint
+	return self.b.Count
+
+Bytes_reader met Bytes = []U8
+	return self.b
+
+Bytes_reader met Buffered = Uint
+	return self.cur.Count
+
+Bytes_reader met# Fill ?max:?Uint = Error
+	return io.EOF
+
+Bytes_reader met! Read_bytes ?max:?Uint = []U8
+	let r = self.cur.[.. (Min self.cur.Count (max else Uint.MAX))]
+	self!cur = self.cur.[r.Count ..]
+	return r
+
+Bytes_reader met! Read_string ?max:?Uint = String
+	return String.From_bytes <- self!Read_bytes max=max
+
+Bytes_reader met Peek ?max:?Uint = []U8
+	return self.cur.[.. (Min self.cur.Count (max else Uint.MAX))]
+
+Bytes_reader met! Skip count:Uint
+	self!cur = self.cur.[(Min count self.cur.Count) ..]
+
+Bytes_reader met Peek_string ?max:?Uint = String
+	return String.From_bytes <- self.Peek max=max
+
+Bytes_reader met! Advance cnt:Uint = Error
+	if cnt > self.cur.Count
+		return INVAL
+	self!cur = self.cur.[cnt ..]
+
+Bytes_reader met! Rewind cnt:Uint = Error
+	let cur_beg = self.b.Count - self.cur.Count
+	if cnt > cur_beg
+		return INVAL
+	self!cur = self.b.[cur_beg - cnt ..]
+
+Bytes_reader met! Read b:[!]U8 = [!]U8, Error
+	if self.b.Count == 0
+		return b, io.EOF
+
+	let copied = b!Available_space!Copy self.b
+	self!b = self.b.[copied.Count ..]
+	return b.[.. b.Count+copied.Count], OK
+
+example bytes_reader_whole
+	let s = "testabc"
+	var br = Bytes_reader.Mk s.Bytes
+	var buf:Stringbuf
+	buf#Reserve 32
+	var b = buf!Bytes
+	b, except = br#Read b
+	assert b.Count == s.Count
+	assert b.Const == s.Bytes
+
+example bytes_reader_partial
+	let s = "testabc"
+	var br = Bytes_reader.Mk s.Bytes
+	var buf:Stringbuf
+	buf#Reserve 4
+	var b = buf!Bytes
+
+	b, except = br#Read b
+	assert b.Const == "test".Bytes
+	b, except = br#Read b.[.. 0]
+	assert b.Const == "abc".Bytes
+
+
+fun Mk_string_reader s:String = r:Bytes_reader
+	r = Bytes_reader.Mk s.Bytes
+
+
+inline struct Bytes_writer =
+	isa `Writer
+	B	:[!]U8
+
+Bytes_writer met! Write b:[]U8 = []U8, err:Error
+	if self.B.Available == 0
+		return b, io.SHORT_BUFFER
+
+	let copied = self!B!Available_space!Copy b
+	self!B = self!B![.. self.B.Count + copied.Count]
+
+	if copied.Count < b.Count
+		err = io.SHORT_BUFFER
+	return b.[copied.Count ..], err
+
+Bytes_writer met# Flush ?max:?Uint = Error
+	return OK
+
+Bytes_writer met Buffered = Uint
+	return self.B.Count
+
+Bytes_writer met Available = Uint
+	return self.B.Available
+
+Bytes_writer met! Writing_buffer ?count:?Uint = Error, [!]U8
+	let count = count else self.B.Available
+	if count <= self.B.Available
+		return OK, self!B![self.B.Count .. self.B.Count+count]
+	return NOMEM, {}
+
+Bytes_writer met! Rewind count:Uint = Error
+	if count > self.B.Count
+		return INVAL
+	let end = self.B.Count - count
+	self!B = self!B![.. end]
+
+Bytes_writer met! Advance count:Uint = Error
+	let end = self.B.Count + count
+	if end > self.B.Cap
+		return INVAL
+	self!B = self!B![.. end]
+
+example bytes_writer_short
+	var buf:Stringbuf
+	buf#Reserve 3
+	var bw = #{B=buf!Bytes}:Bytes_writer
+	var left, err = bw#Write "abcd".Bytes
+	assert left.Count == 1 and left.[0] == 'd' and err == io.SHORT_BUFFER and bw.B.Const == "abc".Bytes
+
+	never = bw#Rewind 1
+	left, err = bw#Write "d".Bytes
+	assert left.Count == 0 and err == OK and bw.B.Const == "abd".Bytes
+
+example bytes_writer
+	var buf:Stringbuf
+	buf#Reserve 4
+	var bw = #{B=buf!Bytes}:Bytes_writer
+	var left, err = bw#Write "ab".Bytes
+	assert left.Count == 0 and err == OK and bw.B.Const == "ab".Bytes
+	left, err = bw#Write "cd".Bytes
+	assert left.Count == 0 and err == OK and bw.B.Const == "abcd".Bytes
+	left, err = bw#Write "ef".Bytes
+	assert left.Count == 2 and err == io.SHORT_BUFFER and bw.B.Const == "abcd".Bytes
+
+
+-- Tolerates arbitrary changes on the underlying Stringbuf between reads.
+-- If the current value of `Pos` points past the end of `S`, read nothing
+-- and return EOF, leaving `Pos` unchanged.
+struct Stringbuf_reader =
+	isa `Reader
+	S	:*Stringbuf
+	Pos	:Uint
+
+Stringbuf_reader fun Mk s:*Stringbuf ?beg:?Uint = ret:this
+	ret#S = s
+	ret#Pos = beg else 0
+
+Stringbuf_reader met# Read b:[!]U8 = [!]U8, err:Error
+	if self.Pos >= self.S.Count
+		return {}, io.EOF
+
+	let copied = b!Available_space!Copy self.S.Bytes.[self.Pos ..]
+	self#Pos += copied.Count
+
+	if self.Pos == self.S.Count
+		err = io.EOF
+
+	return b.[.. b.Count+copied.Count], err
+
+Stringbuf_reader met# Fill ?max:?Uint = Error
+	return io.EOF
+
+Stringbuf_reader met Buffered = Uint
+	if self.Pos >= self.S.Count
+		return 0
+	return self.S.Count - self.Pos
+
+Stringbuf_reader met Peek ?max:?Uint = []U8
+	if self.Pos >= self.S.Count
+		return {}
+	return self.S.Bytes.[self.Pos .. (Min self.S.Count self.Pos+(max else 0))]
+
+Stringbuf_reader met! Skip count:Uint
+	if self.Pos >= self.S.Count
+		return
+	self!Pos += Min count self.S.Count-self.Pos

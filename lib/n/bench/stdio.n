@@ -1,7 +1,7 @@
 struct stdr =
 	isa io.`Reader
 	bin	:Stringbuf
-	rin	:io.Stringbuf_reader
+	rin	:bufio.Stringbuf_reader
 	out	:#bufio.Writer
 
 -- Reads on stdin flush stdout, as per traditional C stdio behavior.
@@ -35,7 +35,7 @@ Stdio_mock met# Dtor within stdio.Stdio
 	self#werr#Dtor
 
 Stdio_mock met# init
-	self#rin#rin = io.Stringbuf_reader.Mk self.rin.bin
+	self#rin#rin = bufio.Stringbuf_reader.Mk self.rin.bin
 	self#din = #self#rin
 
 	self#outbuf = bufio.Writer.Mk #self#wout
