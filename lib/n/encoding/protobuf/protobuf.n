@@ -1,0 +1,23 @@
+from n import *
+
+import n.io
+import n.bufio
+import n.logging
+
+-- Simple protobuf parser. Can parse messages off the wire: basically find
+-- where they start and where they end, and how many fields they contain, but
+-- that's about it.
+
+enum Wire_types =
+	| VARINT = 0
+	| BIT64 = 1
+	| LENGTH = 2
+	| STARTGROUP = 3
+	| ENDGROUP = 4
+	| BIT32 = 5
+
+
+let MAX_MESSAGE_LENGTH = 64*1024*1024:Uint
+
+let MAX_SIZE_VARINT32 = 5:Uint
+let MAX_SIZE_VARINT64 = 10:Uint

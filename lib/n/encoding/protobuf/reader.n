@@ -1,0 +1,256 @@
+-- Reads are either complete or, on error, do not happen at all.
+inline struct Reader =
+	br		:bufio.Bytes_reader
+	r		:#bufio.`Reader
+	pending_err	:Error
+	Total_count	:Uint
+
+Reader fun Mk r:#bufio.`Reader = ret:this
+	ret#r = r
+
+Reader met Pending_read_error = Error
+	return self.pending_err
+
+-- If we can complete only a partial read on the underlying reader `r`, we save
+-- the error and continue decoding with the partial read data. We have no way
+-- of knowing if the error we got is somehow "urgent", so we will keep working
+-- until we actually run out of data. This is just as the `Reader intf works:
+-- use any read data first, before processing any error. When we hit the error,
+-- we return it.
+Reader met# refresh at_least:Uint to_undo:Uint = Error within logging.Log
+	assert self.br.Buffered == 0
+
+	if self.pending_err != OK
+		never = self!br!Rewind to_undo
+		let err = self.pending_err
+		self!pending_err = OK
+		return err
+
+	-- Commit the read.
+	self#r#Skip self.br.Buffered
+
+	if self.Total_count + at_least > MAX_MESSAGE_LENGTH
+		Log#Error "A protocol message was rejected because it was larger than %s bytes"
+			\ MAX_MESSAGE_LENGTH
+		return OVERFLOW
+
+	if self.r.Buffered == 0
+		self!pending_err = self#r#Fill max=MAX_MESSAGE_LENGTH-self.Total_count
+
+		if self.r.Buffered == 0
+			let err = self.pending_err
+			self!pending_err = OK
+			return err
+
+	self#br = bufio.Bytes_reader.Mk self.r.Peek
+	self#Total_count += self.br.Buffered
+
+Reader met# Read_bytes b:[!]U8 = err:Error
+	b, err = self!br!Read b
+	if b.Available == 0
+		return err
+
+	except = self#refresh b.Available b.Count
+	_, never = self!br!Read b
+
+example read_bytes
+	noop
+
+inline Reader met# Read_le32 = Error, n:U32
+	let s = self.br.Peek
+	let err, n = (io.Read_little_endian U32) s
+	if err == OK
+		never = self!br!Advance (sizeof n)
+		return OK, n
+	return self#slow_read_le32
+
+Reader met# slow_read_le32 = Error, n:U32
+	var s = self.br.Peek
+	if s.Count == 3
+		n |= s.[0].U32
+		n |= s.[1].U32 ov<< 8
+		n |= s.[2].U32 ov<< 16
+	elif s.Count == 2
+		n |= s.[0].U32
+		n |= s.[1].U32 ov<< 8
+	elif s.Count == 1
+		n |= s.[0].U32
+	elif s.Count == 0
+		noop
+	else
+		assert false
+
+	never = self!br!Advance s.Count
+
+	let left = (sizeof n) - s.Count
+	except = self#refresh left s.Count
+
+	s = self.br.Peek
+	if left == 1
+		n |= s.[0].U32 ov<< 24
+	elif left == 2
+		n |= s![0].U32 ov<< 16
+		n |= s![1].U32 ov<< 24
+	elif left == 3
+		n |= s![0].U32 ov<< 8
+		n |= s![1].U32 ov<< 16
+		n |= s![2].U32 ov<< 24
+	elif left == 4
+		never, n = (io.Read_little_endian U32) s
+	else
+		assert false
+
+	never = self!br!Advance left
+	return OK, n
+
+
+inline Reader met# Read_le64 = Error, n:U64
+	let s = self.br.Peek
+	let err, n = (io.Read_little_endian U64) s
+	if err == OK
+		never = self!br!Advance (sizeof n)
+		return OK, n
+	return self#slow_read_le64
+
+Reader met# slow_read_le64 = Error, n:U64
+	var s = self.br.Peek
+
+	var to_undo
+	var part0, shift1
+	if s.Count >= 4
+		never, part0 = (io.Read_little_endian U32) s
+		never = self!br!Advance 4
+		to_undo = 4
+		s = self.br.Peek
+		shift1 = 32
+
+	var part1
+	var shift2 = shift1
+	if s.Count == 3
+		part1 |= s.[0].U64
+		part1 |= s.[1].U64 ov<< 8
+		part1 |= s.[2].U64 ov<< 16
+		shift2 += 24
+	elif s.Count == 2
+		part1 |= s.[0].U64
+		part1 |= s.[1].U64 ov<< 8
+		shift2 += 16
+	elif s.Count == 1
+		part1 |= s.[0].U64
+		shift2 += 8
+	elif s.Count == 0
+		noop
+	else
+		assert false
+
+	to_undo += s.Count
+	never = self!br!Advance s.Count
+
+	let left = (sizeof n) - to_undo
+	except = self#refresh left to_undo
+
+	s = self.br.Peek
+	var part2
+	var shift3 = shift2
+	if left >= 4
+		never, part2 = (io.Read_little_endian U32) s
+		never = self!br!Advance 4
+		left -= 4
+		shift3 += 32
+
+	s = self.br.Peek
+	var part3
+	if left == 1
+		part3 |= s.[0].U64 ov<< 24
+	elif left == 2
+		part3 |= s![0].U64 ov<< 16
+		part3 |= s![1].U64 ov<< 24
+	elif left == 3
+		part3 |= s![0].U64 ov<< 8
+		part3 |= s![1].U64 ov<< 16
+		part3 |= s![2].U64 ov<< 24
+	else
+		assert false
+
+	n = (part3 ov<< shift3) | (part2.U64 ov<< shift2) | (part1 ov<< shift1) | part0.U64
+
+	never = self!br!Advance left
+	return OK, n
+
+inline Reader met# Read_varint32 = Error, n:U32
+	if Likely <- MAX_SIZE_VARINT32 <= self.br.Buffered
+		var s = self.br.Peek
+		var i = 0
+		while true
+			let b = s.[i]
+			n |= (b & 0x7f).U32 ov<< (7*i)
+			i += 1
+			if b & 0x80 == 0
+				break
+			if i == MAX_SIZE_VARINT32
+				return OVERFLOW, 0
+		never = self!br!Advance i
+		return OK, n
+	return self#slow_read_varint32
+
+Reader met# slow_read_varint32 = Error, n:U32
+	var s = self.br.Peek
+	var i = 0
+	while true
+		let b = s.[i]
+		n |= (b & 0x7f).U32 ov<< (7*i)
+		i += 1
+		if b & 0x80 == 0
+			break
+
+		if i == MAX_SIZE_VARINT32
+			return OVERFLOW, 0
+		if i == s.Count
+			-- Will only hit this branch once.
+			never = self!br!Advance i
+			let max_left = MAX_SIZE_VARINT32 - i
+			let to_undo = i
+			except = self#refresh max_left to_undo
+			s = self.br.Peek
+			i = 0
+
+	never = self!br!Advance i
+
+inline Reader met# Read_varint64 = Error, n:U64
+	if Likely <- MAX_SIZE_VARINT64 <= self.br.Buffered
+		var s = self.br.Peek
+		var i = 0
+		while true
+			let b = s.[i]
+			n |= (b & 0x7f).U64 ov<< (7*i)
+			i += 1
+			if b & 0x80 == 0
+				break
+			if i == MAX_SIZE_VARINT64
+				return OVERFLOW, 0
+		never = self!br!Advance i
+		return OK, n
+	return self#slow_read_varint64
+
+Reader met# slow_read_varint64 = Error, n:U64
+	var s = self.br.Peek
+	var i = 0
+	while true
+		let b = s.[i]
+		n |= (b & 0x7f).U64 ov<< (7*i)
+		i += 1
+		if b & 0x80 == 0
+			break
+
+		if i == MAX_SIZE_VARINT64
+			return OVERFLOW, 0
+		if i == s.Count
+			-- Will only hit this branch once.
+			never = self!br!Advance i
+			let max_left = MAX_SIZE_VARINT64 - i
+			let to_undo = i
+			except = self#refresh max_left to_undo
+			s = self.br.Peek
+			i = 0
+
+	never = self!br!Advance i

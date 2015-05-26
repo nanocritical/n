@@ -1,0 +1,239 @@
+-- Writes do not fail immediately: the underlying buffer will attempt to grow
+-- to accomodate them. If the buffer cannot grow, or if MAX_MESSAGE_LENGTH is
+-- reached, `Pending_write_error` is set, additional writes are silently
+-- ignored, and the pending error is returned by the next call to `Flush`.
+-- Therefore, flushes should not be performed directly on the underlying
+-- bufio.`Writer but via the provided method.
+--
+-- The rationale for this error behavior is that the errors we may encouter in
+-- the encoding of a message are not really recoverable part-way through a
+-- message. Additionally, such errors can be made unlikely by pre-allocating
+-- enough memory and controlling message size.
+inline struct Writer =
+	bw		:bufio.Bytes_writer
+	w		:#bufio.`Writer
+	pending_err	:Error
+	Total_count	:Uint
+
+Writer fun Mk w:#bufio.`Writer = ret:this
+	ret#w = w
+
+Writer met Pending_write_error = Error
+	return self.pending_err
+
+Writer met# Flush ?max:?Uint = Error
+	if self.pending_err != OK
+		let err = self.pending_err
+		self!pending_err = OK
+		return err
+
+	return self#w#Flush max=max
+
+Writer met# refresh at_least:Uint = failed:Bool within logging.Log
+	assert self.bw.Available == 0
+
+	-- Commit the write, won't fail.
+	_, never = self#w#Write self.bw.B
+
+	if self.Total_count + at_least > MAX_MESSAGE_LENGTH
+		Log#Error "A protocol message was rejected because it was larger than %s bytes (error pending on Flush)"
+			\ MAX_MESSAGE_LENGTH
+		self!pending_err = OVERFLOW
+		return true
+
+	let left_total = MAX_MESSAGE_LENGTH - self.Total_count
+	let err, next_buf = self#w#Writing_buffer count=(Min (Max at_least 4096) left_total)
+	if err != OK
+		self!pending_err = err
+		return true
+	self#bw#B = next_buf
+	self#Total_count += next_buf.Count
+	return false
+
+Writer met# Write_bytes b:[]U8
+	let left, err = self!bw!Write b
+	if err == OK
+		return
+
+	if self#refresh left.Count
+		return
+	_, never = self!bw!Write left
+
+inline Writer met# Write_le32 n:U32
+	let err = io.Write_little_endian self!bw!B n
+	if err == OK
+		never = self!bw!Advance (sizeof n)
+		return
+	self#slow_write_le32 n
+
+Writer met# slow_write_le32 n:U32
+	var s = self!bw!B!Available_space
+	if s.Count == 3
+		s![0]! = n.Trim_u8
+		s![1]! = (n >> 8).Trim_u8
+		s![2]! = (n >> 16).Trim_u8
+		n = n >> 24
+	elif s.Count == 2
+		s![0]! = n.Trim_u8
+		s![1]! = (n >> 8).Trim_u8
+		n = n >> 16
+	elif s.Count == 1
+		s![0]! = n.Trim_u8
+		n = n >> 8
+	elif s.Count == 0
+		noop
+	else
+		assert false
+
+	never = self!bw!Advance s.Count
+
+	let left = (sizeof n) - s.Count
+	if self#refresh left
+		return
+
+	s = self!bw!B!Available_space
+	if left == 1
+		s![0]! = n.Trim_u8
+	elif left == 2
+		s![0]! = n.Trim_u8
+		s![1]! = (n >> 8).Trim_u8
+	elif left == 3
+		s![0]! = n.Trim_u8
+		s![1]! = (n >> 8).Trim_u8
+		s![2]! = (n >> 16).Trim_u8
+	elif left == 4
+		never = io.Write_little_endian self!bw!B n
+	else
+		assert false
+
+	never = self!bw!Advance left
+
+inline Writer met# Write_le64 n:U64
+	let err = io.Write_little_endian self!bw!B n
+	if err == OK
+		never = self!bw!Advance (sizeof n)
+		return
+	self#slow_write_le64 n
+
+Writer met# slow_write_le64 n:U64
+	var s = self!bw!B!Available_space
+	var so_far
+	if s.Count >= 4
+		never = io.Write_little_endian self!bw!B n.Trim_u32
+		never = self!bw!Advance 4
+		so_far = 4
+		s = self!bw!B!Available_space
+		n >>= 32
+
+	if s.Count == 3
+		s![0]! = n.Trim_u8
+		s![1]! = (n >> 8).Trim_u8
+		s![2]! = (n >> 16).Trim_u8
+		n = n >> 24
+	elif s.Count == 2
+		s![0]! = n.Trim_u8
+		s![1]! = (n >> 8).Trim_u8
+		n = n >> 16
+	elif s.Count == 1
+		s![0]! = n.Trim_u8
+		n = n >> 8
+	elif s.Count == 0
+		noop
+	else
+		assert false
+
+	so_far += s.Count
+	never = self!bw!Advance s.Count
+
+	let left = (sizeof n) - so_far
+	if self#refresh left
+		return
+
+	if left >= 4
+		never = io.Write_little_endian self!bw!B n.Trim_u32
+		never = self!bw!Advance 4
+		n >>= 32
+		left -= 4
+
+	s = self!bw!B!Available_space
+	if left == 1
+		s![0]! = n.Trim_u8
+	elif left == 2
+		s![0]! = n.Trim_u8
+		s![1]! = (n >> 8).Trim_u8
+	elif left == 3
+		s![0]! = n.Trim_u8
+		s![1]! = (n >> 8).Trim_u8
+		s![2]! = (n >> 16).Trim_u8
+	else
+		assert false
+
+	never = self!bw!Advance left
+
+inline Writer met# Write_varint32 n:U32
+	if Likely <- MAX_SIZE_VARINT32 <= self.bw.B.Available
+		let s = self!bw!B!Available_space
+		var i = 0
+		while n >= 0x80
+			s![i]! = n.Trim_u8 | 0x80
+			n >>= 7
+			i += 1
+		never = self!bw!Advance i
+		return
+	self#slow_write_varint32 n
+
+Writer met# slow_write_varint32 n:U32
+	let s = self!bw!B!Available_space
+	var i
+	while n >= 0x80
+		s![i]! = n.Trim_u8 | 0x80
+		n >>= 7
+		i += 1
+
+		if i == s.Count
+			-- Will only hit this branch once.
+			never = self!bw!Advance i
+			let max_left = MAX_SIZE_VARINT32 - i
+			if self#refresh max_left
+				return
+			s = self!bw!B!Available_space
+			i = 0
+
+	never = self!bw!Advance i
+
+inline Writer met# Write_varint64 n:U64
+	if Likely <- MAX_SIZE_VARINT64 <= self.bw.B.Available
+		let s = self!bw!B!Available_space
+		var i = 0
+		while n >= 0x80
+			s![i]! = n.Trim_u8 | 0x80
+			n >>= 7
+			i += 1
+		never = self!bw!Advance i
+		return
+	self#slow_write_varint64 n
+
+Writer met# slow_write_varint64 n:U64
+	let s = self!bw!B!Available_space
+	var i = 0
+	while n >= 0x80
+		s![i]! = n.Trim_u8 | 0x80
+		n >>= 7
+		i += 1
+
+		if i == s.Count
+			-- Will only hit this branch once.
+			never = self!bw!Advance i
+			let max_left = MAX_SIZE_VARINT64 - i
+			if self#refresh max_left
+				return
+			s = self!bw!B!Available_space
+			i = 0
+
+	never = self!bw!Advance i
+
+inline Writer met# Write_varint32_sign_extended n:I32
+	if n < 0
+		self#Write_varint64 n.Bitwise_unsigned.U64
+	else
+		self#Write_varint32 n.Bitwise_unsigned
