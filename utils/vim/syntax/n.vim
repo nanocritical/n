@@ -12,7 +12,7 @@ syn keyword nExport export
 syn keyword nSemantic unique shared pshared
 syn keyword nSemantic capturedby capturedbyret owned ownedby protected protect protecting prop claim logic
 
-syn keyword nAssert assert pre post invariant
+syn keyword nAssert assert pre post invariant never
 syn keyword nDecl example alias within globalenv
 syn keyword nDecl contract honors _honors
 
@@ -24,7 +24,7 @@ syn keyword nConditional and or
 syn match nDecl "^  isa" contains=nExport
 syn keyword nOperator sizeof alignof nullable isa Dyncast not in
 syn keyword nKeyword noop as declare new
-syn keyword nException except throw drop fatal never Drop Fatal
+syn keyword nException except throw drop fatal Drop Fatal
 syn match nOperator ":"
 syn match nOperator "\(ov<<\|>>\|<=\|>=\|<\|>\|===\|!==\|==|\|!=|\|==\|!=\||\)"
 syn match nOperator "\(@\|&\|\(ov\)\?[+\-\*/%&|\^~]\)"
