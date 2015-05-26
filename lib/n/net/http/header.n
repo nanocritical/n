@@ -154,7 +154,7 @@ fun read_one h:#Header r:!bufio.Reader = Error, done:Bool
 	let key = s.[.. end_key]
 	let val = h#Add key
 
-	r!Advance i.Unsigned+1
+	never = r!Advance i.Unsigned+1
 
 	return OK, read_continued_line val r
 
