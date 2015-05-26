@@ -2552,21 +2552,6 @@ static bool __typ_isa(bool *quickisa_used, bool *quickisa_ret,
   }
 
   if (a_ga > 0
-      && !typ_equal(intf, TBI_ANY_TUPLE)
-      && (REASON(1), rec_typ_isa(a, TBI_ANY_TUPLE))) {
-    // FIXME: only valid for certain builtin interfaces (copy, trivial...)
-    size_t n;
-    for (n = 0; n < a_ga; ++n) {
-      if (!(REASON(2), rec_typ_isa(typ_generic_arg_const(a, n), intf))) {
-        break;
-      }
-    }
-    if (n == a_ga) {
-      return true;
-    }
-  }
-
-  if (a_ga > 0
       && a_ga == typ_generic_arity(intf)
       && typ_equal(a0, typ_generic_functor_const(intf))) {
     size_t n = 0;
