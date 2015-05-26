@@ -93,6 +93,22 @@ static ERROR step_check_no_literals_left(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_check_no_definc_left,
+               NM(DEFNAME));
+static ERROR step_check_no_definc_left(struct module *mod, struct node *node,
+                                       void *user, bool *stop) {
+  if (typ_is_tentative(node->typ) && typ_definition_which(node->typ) == DEFINCOMPLETE) {
+    char *s = pptyp(mod, node->typ);
+    error e = mk_except_type(mod, node,
+                             "incomplete type '%s' for variable '%s' did not unify"
+                             " to a concrete type", s, idents_value(mod->gctx, node_ident(node)));
+    free(s);
+    THROW(e);
+  }
+
+  return 0;
+}
+
 // Finish the job from unify_with_defincomplete_entrails().
 static STEP_NM(step_init_insert_automagic,
                NM(INIT));
@@ -1130,6 +1146,7 @@ static ERROR passbody1(struct module *mod, struct node *root,
     DOWN_STEP(step_stop_marker_tbi);
     DOWN_STEP(step_type_gather_retval);
     DOWN_STEP(step_check_no_literals_left);
+    DOWN_STEP(step_check_no_definc_left);
     ,
     UP_STEP(step_init_insert_automagic);
     UP_STEP(step_operator_call_inference);
