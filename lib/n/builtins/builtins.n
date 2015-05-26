@@ -321,6 +321,11 @@ inline Slice met Operator_eq other:*this = Bool
 inline Slice met Operator_ne other:*this = Bool
 	let s = this.create_impl_instance
 	return s != s
+inline Slice met Overlap other:this = ?(Intptr, Intptr)
+	let s = this.create_impl_instance
+	such
+		let _ = s.Overlap s
+		return {}
 
 opaque struct Mutable_slice t:`Any =
 	isa (`Any_mutable_slice t) -- FIXME missing genarg
@@ -383,6 +388,11 @@ inline Mutable_slice met! Clear
 	let s = this.create_impl_instance
 	such
 		s!Clear
+		return {}
+inline Mutable_slice met Overlap other:this = ?(Intptr, Intptr)
+	let s = this.create_impl_instance
+	such
+		let _ = s.Overlap s
 		return {}
 inline Mutable_slice met! Full_copy other:[]t = this
 	let s = this.create_impl_instance
@@ -540,6 +550,42 @@ inline Slice_impl met! Clear
 		foreach i in self.All
 			if t isa `Default_dtor
 				self![i]#Dtor
+
+-- Note on the C implementation:
+--
+-- In pedantic C, pointers can only be compared if they point into the same
+-- aggregate. This means that Overlap is well-defined only if we already know
+-- something about the slices ability to overlap, which is a little besides the
+-- point.
+--
+-- Internally, we use a conversion via a Intptr and signed comparisons thereon.
+--
+-- We do want to make sure we don't get hit by undefined-behavior optimizations
+-- in the C compiler, though, so we perform the overlap computations inside a
+-- non-inline function on *U8. This is probably unnecessarily paranoid. But
+-- it's not because you're paranoid that an optimizing compiler is not trying
+-- to fuck with your code.
+extern fun Slice_overlap a:*U8 acnt:Uint acap:Uint b:*U8 bcnt:Uint bcap:Uint = Bool, Intptr, Intptr
+
+inline Slice_impl met Overlap other:this = ?(Intptr, Intptr)
+	let comparable, left, right
+		\ = Slice_overlap self.Unsafe_rawdata self.Bytecount self.Bytecap
+			\ other.Unsafe_rawdata other.Bytecount other.Bytecap
+	if not comparable
+		return nil
+	return left/(sizeof t).Signed.Intptr, right/(sizeof t).Signed.Intptr
+
+example overlap
+	let s = {0 1 2 3 4}:[]Uint
+	assert (0, 0) == s.Overlap s
+	assert (1, -1) == s.Overlap s.[1 .. 4]
+	assert (-1, 1) == s.[1 .. 4].Overlap s
+	assert (1, 1) == s.[0 .. 1].Overlap s.[1 .. 2]
+	assert (-1, -1) == s.[1 .. 2].Overlap s.[0 .. 1]
+
+	let t = {8 9}:[]Uint
+	assert not (s.Overlap t)?
+	assert not (t.Overlap s)?
 
 ---- FIXME: the copy operations are only available if the t is `Copyable* We
 -- would like that detection to be static* And we would want
@@ -1918,6 +1964,8 @@ inline struct Error =
 	let INVAL = {Why=*"INVAL: Invalid value"}:this
 	let INVAL_RANGE = {Why=*"INVAL_RANGE: Invalid value range"}:this
 	let AGAIN = {Why=*"AGAIN: Try again"}:this
+	let OVERFLOW = {Why=*"OVERFLOW: Value too large for defined data type"}:this
+	let NOMEM = {Why=*"NOMEM: Not enough space"}:this
 
 inline Error met Operator_test = Bool
 	return self.Why?

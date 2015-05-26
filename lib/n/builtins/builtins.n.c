@@ -113,6 +113,24 @@ define_from_number_literal(n$builtins$Float)
 define_from_number_literal(n$builtins$Double)
 
 
+__attribute__((__noinline__))
+struct _$Ngen_n$builtins$Tuple_3$$n$builtins$Bool$$n$builtins$Intptr$$n$builtins$Intptr_genN$_
+NB(Slice_overlap)(NB(U8) *a, NB(Uint) acnt, NB(Uint) acap, NB(U8) *b, NB(Uint) bcnt, NB(Uint) bcap) {
+  intptr_t ab = (intptr_t) a;
+  intptr_t ae = (intptr_t) (a + acnt);
+  intptr_t bb = (intptr_t) b;
+  intptr_t be = (intptr_t) (b + bcnt);
+
+  intptr_t db = bb - ab;
+  intptr_t de = be - ae;
+
+  struct _$Ngen_n$builtins$Tuple_3$$n$builtins$Bool$$n$builtins$Intptr$$n$builtins$Intptr_genN$_ ret = { 0 };
+  ret.X0 = (db >= 0 && db < acap) || (-db < bcap);
+  ret.X1 = db;
+  ret.X2 = de;
+  return ret;
+}
+
 static void native_write_buffer(struct _$Ndyn_n$fmt$_$Ni_State st, char *s, int cnt) {
   const struct _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ bytes =
     NLANG_BYTE_SLICE(s, cnt);
