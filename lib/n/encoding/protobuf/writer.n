@@ -14,10 +14,13 @@ inline struct Writer =
 	w		:#bufio.`Writer
 	pending_err	:Error
 	Total_count	:Uint
+	block_size	:Uint
 
-Writer fun Mk w:#bufio.`Writer = ret:this
+	let DEFAULT_BLOCK_SIZE = 4096:Uint
+
+Writer fun Mk w:#bufio.`Writer ?block_size:?Uint = ret:this
 	ret#w = w
-
+	ret#block_size = block_size else this.DEFAULT_BLOCK_SIZE
 
 Writer met Pending_write_error = Error
 	return self.pending_err
@@ -45,7 +48,7 @@ Writer met# refresh at_least:Uint = failed:Bool within logging.Log
 		return true
 
 	let left_total = MAX_MESSAGE_LENGTH - self.Total_count
-	let err, next_buf = self#w#Writing_buffer min=(Min (Max at_least 4096) left_total)
+	let err, next_buf = self#w#Writing_buffer min=(Min (Max at_least self.block_size) left_total)
 	if err != OK
 		self!pending_err = err
 		return true

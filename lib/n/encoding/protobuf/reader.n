@@ -4,9 +4,11 @@ inline struct Reader =
 	r		:#bufio.`Reader
 	pending_err	:Error
 	Total_count	:Uint
+	block_size	:Uint
 
-Reader fun Mk r:#bufio.`Reader = ret:this
+Reader fun Mk r:#bufio.`Reader ?block_size:?Uint = ret:this
 	ret#r = r
+	ret#block_size = block_size else Uint.MAX
 
 Reader met Pending_read_error = Error
 	return self.pending_err
@@ -35,7 +37,8 @@ Reader met# refresh at_least:Uint to_undo:Uint = Error within logging.Log
 		return OVERFLOW
 
 	if self.r.Buffered == 0
-		self!pending_err = self#r#Fill max=MAX_MESSAGE_LENGTH-self.Total_count
+		self!pending_err = self#r#Fill
+			\ max=(Min (Max at_least self.block_size) MAX_MESSAGE_LENGTH-self.Total_count)
 
 		if self.r.Buffered == 0
 			let err = self.pending_err

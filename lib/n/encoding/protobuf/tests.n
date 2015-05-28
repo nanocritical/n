@@ -1,4 +1,76 @@
+struct prevent_passthrough_reader =
+	isa io.`Reader
+	r	:#bufio.Bytes_reader
+
+prevent_passthrough_reader met# Read b:[!]U8 = [!]U8, Error
+	return self#r#Read b
+
+
+struct capped_block_writer =
+	isa bufio.`Writer
+	w		:#Stringbuf
+	block_size	:Uint
+
+capped_block_writer met# Write b:[]U8 = []U8, Error
+	return self#w#Write b
+capped_block_writer met# Flush ?max:?Uint = Error
+	return self#w#Flush max=max
+capped_block_writer met Buffered = Uint
+	return self.w.Buffered
+capped_block_writer met# Writing_buffer ?min:?Uint = Error, [!]U8
+	let err, b = self#w#Writing_buffer min=min
+	if err != OK
+		return err, b
+	return err, b!Recapped (Min self.block_size b.Cap)
+
+
+fun test_varint_read bs:Uint bytes:[]U8 value:U64 = Error
+	var br = bufio.Bytes_reader.Mk bytes
+	var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+	var coded = Reader.Mk #bufr block_size=bs
+
+	let err, res = coded#Read_varint32
+	if bytes.Count == 10 and bytes.Last & 0x80 != 0
+		assert err == OVERFLOW
+		return OK
+	else
+		assert res == value.Trim_u32
+
+	var bufw:Stringbuf
+	var codedw = Writer.Mk #({w=#bufw block_size=bs}:capped_block_writer)
+	codedw#Write_varint32 value.Trim_u32
+	except = codedw#Flush
+	if bytes.Count >= 5
+		foreach i in 0 .. 4
+			assert bufw.Bytes.[i] == bytes.[i]
+
+		-- Only the 4 bits 28 .. 32 make it in there
+		assert bufw.Bytes.[4] == bytes.[4] & 0xf
+	else
+		assert bufw.Bytes.Const == bytes
+
+
+fun test_varint_write bs:Uint bytes:[]U8 value:U64 = Error
+	var br = bufio.Bytes_reader.Mk bytes
+	var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+	var coded = Reader.Mk #bufr block_size=bs
+
+	let err, res = coded#Read_varint64
+	if bytes.Count == 10 and bytes.Last & 0x80 != 0
+		assert err == OVERFLOW
+		return OK
+	else
+		assert res == value
+
+	var bufw:Stringbuf
+	var codedw = Writer.Mk #({w=#bufw block_size=bs}:capped_block_writer)
+	codedw#Write_varint64 value
+	except = codedw#Flush
+	assert bufw.Bytes.Const == bytes
+
+
 example varint
+	let block_sizes = {1 2 3 5 7 13 32 Writer.DEFAULT_BLOCK_SIZE}:[]Uint
 	let varint_cases = {
 		\ ({0x00}, 0)
 		\ ({0x01}, 1)
@@ -18,47 +90,10 @@ example varint
 		-- 11964378330978735131 with 0x80 on high-bit: OVERFLOW expected
 		\ ({0x9b 0xa8 0xf9 0xc2 0xbb 0xd6 0x80 0x85 0xa6 0x81}, (0x1b ov<< 0) | (0x28 ov<< 7) | (0x79 ov<< 14) | (0x42 ov<< 21) | (0x3b ov<< 28) | (0x56 ov<< 35) | (0x00 ov<< 42) | (0x05 ov<< 49) | (0x26 ov<< 56) | (0x01 ov<< 63))}:[]([]U8, U64)
 
-	var br, bufr, coded
-	foreach bytes, value in varint_cases
-		br = bufio.Bytes_reader.Mk bytes
-		bufr = bufio.Reader.Mk #br
-		coded = Reader.Mk #bufr
+	foreach bs in block_sizes
+		foreach bytes, value in varint_cases
+			except = test_varint_read bs bytes value
 
-		let err, res = coded#Read_varint32
-		if bytes.Count == 10 and bytes.Last & 0x80 != 0
-			assert err == OVERFLOW
-			break
-		else
-			assert res == value.Trim_u32
-
-		var bufw:Stringbuf
-		var codedw = Writer.Mk #bufw
-		codedw#Write_varint32 value.Trim_u32
-		except = codedw#Flush
-		if bytes.Count >= 5
-			foreach i in 0 .. 4
-				assert bufw.Bytes.[i] == bytes.[i]
-
-			-- Only the 4 bits 28 .. 32 make it in there
-			assert bufw.Bytes.[4] == bytes.[4] & 0xf
-		else
-			assert bufw.Bytes.Const == bytes
-
-
-	foreach bytes, value in varint_cases
-		br = bufio.Bytes_reader.Mk bytes
-		bufr = bufio.Reader.Mk #br
-		coded = Reader.Mk #bufr
-
-		let err, res = coded#Read_varint64
-		if bytes.Count == 10 and bytes.Last & 0x80 != 0
-			assert err == OVERFLOW
-			break
-		else
-			assert res == value
-
-		var bufw:Stringbuf
-		var codedw = Writer.Mk #bufw
-		codedw#Write_varint64 value
-		except = codedw#Flush
-		assert bufw.Bytes.Const == bytes
+	foreach bs in block_sizes
+		foreach bytes, value in varint_cases
+			except = test_varint_write bs bytes value
