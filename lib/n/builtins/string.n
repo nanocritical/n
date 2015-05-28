@@ -558,7 +558,7 @@ example -> assert "0 1 2".Split " 1 " == {"0" "2"}
 
 
 inline struct Stringbuf =
-	isa `Stringbuf
+	isa `Stringbuf bufio.`Writer
 	bytes	:[!]U8	--::^Owned
 
 inline Stringbuf fun From_slice c:[]U8 = r:this
@@ -722,6 +722,16 @@ inline Stringbuf met# Write b:[]U8 = []U8, Error --[]U8::|{}, Error::|OK
 	self#Reserve self.Count + b.Count
 	self#bytes = self#bytes#Append b
 	return {}, OK
+
+Stringbuf met# Flush ?max:?Uint = Error
+	return OK
+
+Stringbuf met Buffered = Uint
+	return 0
+
+Stringbuf met# Writing_buffer ?min:?Uint = Error, [!]U8
+	self#Reserve self.Count + (min else 1024)
+	return OK, self!bytes!Available_capacity
 
 Stringbuf met# Pr ?sep:?*String ...v:(Vararg ?*`Show)
 	let separator = sep else " "

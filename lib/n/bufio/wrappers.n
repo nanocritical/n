@@ -5,9 +5,7 @@ inline struct Bytes_reader =
 
 Bytes_reader fun Mk b:[]U8 = ret:this
 	ret#b = b
-
-Bytes_reader met Total_filled = Uint
-	return self.b.Count
+	ret#cur = b
 
 Bytes_reader met Bytes = []U8
 	return self.b
@@ -47,11 +45,11 @@ Bytes_reader met! Rewind cnt:Uint = Error
 	self!cur = self.b.[cur_beg - cnt ..]
 
 Bytes_reader met! Read b:[!]U8 = [!]U8, Error
-	if self.b.Count == 0
+	if self.cur.Count == 0
 		return b, io.EOF
 
-	let copied = b!Available_elements!Copy self.b
-	self!b = self.b.[copied.Count ..]
+	let copied = b!Available_elements!Copy self.cur
+	self!cur = self.cur.[copied.Count ..]
 	return b.[.. b.Count+copied.Count], OK
 
 example bytes_reader_whole
@@ -105,11 +103,12 @@ Bytes_writer met Buffered = Uint
 Bytes_writer met Available = Uint
 	return self.B.Available
 
-Bytes_writer met! Writing_buffer ?count:?Uint = Error, [!]U8
-	let count = count else self.B.Available
-	if count <= self.B.Available
-		return OK, self!B![self.B.Count .. self.B.Count+count]
-	return NOMEM, {}
+Bytes_writer met! Writing_buffer ?min:?Uint = Error, [!]U8
+	if not min? and self.B.Available == 0
+		return NOMEM, {}
+	if min? and min > self.B.Available
+		return NOMEM, {}
+	return OK, self!B!Available_capacity
 
 Bytes_writer met! Rewind count:Uint = Error
 	if count > self.B.Count

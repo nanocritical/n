@@ -8,6 +8,7 @@ import n.logging
 import n.env
 import n.time
 import n.io
+import n.bufio
 import n.stdio
 import n.fs
 import n.bench

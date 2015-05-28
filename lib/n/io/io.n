@@ -126,6 +126,9 @@ Copier met! Copy ?max:?Uint = written:Uint, err:Error
 		elif wr_err != OK
 			err = wr_err
 			break
+		elif read == 0
+			err = EOF
+			break
 
 	self!total_written += written
 
