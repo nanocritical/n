@@ -155,7 +155,7 @@ static inline void n$builtins$clean_zero(struct n$builtins$cleaner *c);
   NLANG_BUILTINS_VARARG_NEXT_DYN_(t, rt, _Nap); })
 
 #define NLANG_MKDYN(dyn_type, _dyntable, _obj) \
-  (dyn_type){ .obj = (_obj), .dyntable = (void *)(_dyntable) }
+  (dyn_type){ .obj = (_dyntable) ? (_obj) : NULL, .dyntable = (void *)(_dyntable) }
 
 struct n$reflect$Type;
 n$builtins$Bool n$reflect$Isa(void *dyntable, struct n$reflect$Type *i);
