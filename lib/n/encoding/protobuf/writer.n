@@ -42,7 +42,7 @@ Writer met# refresh at_least:Uint = failed:Bool within logging.Log
 		return true
 
 	let left_total = MAX_MESSAGE_LENGTH - self.Total_count
-	let err, next_buf = self#w#Writing_buffer count=(Min (Max at_least 4096) left_total)
+	let err, next_buf = self#w#Writing_buffer min=(Min (Max at_least 4096) left_total)
 	if err != OK
 		self!pending_err = err
 		return true
@@ -67,7 +67,7 @@ inline Writer met# Write_le32 n:U32
 	self#slow_write_le32 n
 
 Writer met# slow_write_le32 n:U32
-	var s = self!bw!B!Available_space
+	var s = self!bw!B!Available_elements
 	if s.Count == 3
 		s![0]! = n.Trim_u8
 		s![1]! = (n >> 8).Trim_u8
@@ -91,7 +91,7 @@ Writer met# slow_write_le32 n:U32
 	if self#refresh left
 		return
 
-	s = self!bw!B!Available_space
+	s = self!bw!B!Available_elements
 	if left == 1
 		s![0]! = n.Trim_u8
 	elif left == 2
@@ -116,13 +116,13 @@ inline Writer met# Write_le64 n:U64
 	self#slow_write_le64 n
 
 Writer met# slow_write_le64 n:U64
-	var s = self!bw!B!Available_space
+	var s = self!bw!B!Available_elements
 	var so_far
 	if s.Count >= 4
 		never = io.Write_little_endian self!bw!B n.Trim_u32
 		never = self!bw!Advance 4
 		so_far = 4
-		s = self!bw!B!Available_space
+		s = self!bw!B!Available_elements
 		n >>= 32
 
 	if s.Count == 3
@@ -155,7 +155,7 @@ Writer met# slow_write_le64 n:U64
 		n >>= 32
 		left -= 4
 
-	s = self!bw!B!Available_space
+	s = self!bw!B!Available_elements
 	if left == 1
 		s![0]! = n.Trim_u8
 	elif left == 2
@@ -171,8 +171,8 @@ Writer met# slow_write_le64 n:U64
 	never = self!bw!Advance left
 
 inline Writer met# Write_varint32 n:U32
-	if Likely <- MAX_SIZE_VARINT32 <= self.bw.B.Available
-		let s = self!bw!B!Available_space
+	if Likely <- _MAX_USED_SIZE_VARINT32 <= self.bw.B.Available
+		let s = self!bw!B!Available_elements
 		var i = 0
 		while n >= 0x80
 			s![i]! = n.Trim_u8 | 0x80
@@ -183,7 +183,7 @@ inline Writer met# Write_varint32 n:U32
 	self#slow_write_varint32 n
 
 Writer met# slow_write_varint32 n:U32
-	let s = self!bw!B!Available_space
+	let s = self!bw!B!Available_elements
 	var i
 	while n >= 0x80
 		s![i]! = n.Trim_u8 | 0x80
@@ -193,17 +193,17 @@ Writer met# slow_write_varint32 n:U32
 		if i == s.Count
 			-- Will only hit this branch once.
 			never = self!bw!Advance i
-			let max_left = MAX_SIZE_VARINT32 - i
+			let max_left = _MAX_USED_SIZE_VARINT32 - i
 			if self#refresh max_left
 				return
-			s = self!bw!B!Available_space
+			s = self!bw!B!Available_elements
 			i = 0
 
 	never = self!bw!Advance i
 
 inline Writer met# Write_varint64 n:U64
-	if Likely <- MAX_SIZE_VARINT64 <= self.bw.B.Available
-		let s = self!bw!B!Available_space
+	if Likely <- MAX_SIZE_VARINT <= self.bw.B.Available
+		let s = self!bw!B!Available_elements
 		var i = 0
 		while n >= 0x80
 			s![i]! = n.Trim_u8 | 0x80
@@ -214,7 +214,7 @@ inline Writer met# Write_varint64 n:U64
 	self#slow_write_varint64 n
 
 Writer met# slow_write_varint64 n:U64
-	let s = self!bw!B!Available_space
+	let s = self!bw!B!Available_elements
 	var i = 0
 	while n >= 0x80
 		s![i]! = n.Trim_u8 | 0x80
@@ -224,10 +224,10 @@ Writer met# slow_write_varint64 n:U64
 		if i == s.Count
 			-- Will only hit this branch once.
 			never = self!bw!Advance i
-			let max_left = MAX_SIZE_VARINT64 - i
+			let max_left = MAX_SIZE_VARINT - i
 			if self#refresh max_left
 				return
-			s = self!bw!B!Available_space
+			s = self!bw!B!Available_elements
 			i = 0
 
 	never = self!bw!Advance i

@@ -19,5 +19,8 @@ enum Wire_types =
 
 let MAX_MESSAGE_LENGTH = 64*1024*1024:Uint
 
-let MAX_SIZE_VARINT32 = 5:Uint
-let MAX_SIZE_VARINT64 = 10:Uint
+-- Varint reading routines always read up to MAX_SIZE_VARINT, even if a
+-- varint32 is expected. They will silently discard extra bytes up to
+-- MAX_SIZE_VARINT.
+let _MAX_USED_SIZE_VARINT32 = 5:Uint
+let MAX_SIZE_VARINT = 10:Uint

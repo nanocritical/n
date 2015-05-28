@@ -53,9 +53,6 @@ Reader met# Read_bytes b:[!]U8 = err:Error
 	except = self#refresh b.Available b.Count
 	_, never = self!br!Read b
 
-example read_bytes
-	noop
-
 inline Reader met# Read_le32 = Error, n:U32
 	let s = self.br.Peek
 	let err, n = (io.Read_little_endian U32) s
@@ -178,17 +175,23 @@ Reader met# slow_read_le64 = Error, n:U64
 	return OK, n
 
 inline Reader met# Read_varint32 = Error, n:U32
-	if Likely <- MAX_SIZE_VARINT32 <= self.br.Buffered
+	if Likely <- MAX_SIZE_VARINT <= self.br.Buffered
 		var s = self.br.Peek
 		var i = 0
+		var shift = 0
+		var ignore = false
 		while true
 			let b = s.[i]
-			n |= (b & 0x7f).U32 ov<< (7*i)
+			if Likely <- not ignore
+				n |= (b & 0x7f).U32 ov<< shift
+				shift += 7
 			i += 1
 			if b & 0x80 == 0
 				break
-			if i == MAX_SIZE_VARINT32
+			if i == MAX_SIZE_VARINT
 				return OVERFLOW, 0
+			if i == _MAX_USED_SIZE_VARINT32
+				ignore = true
 		never = self!br!Advance i
 		return OK, n
 	return self#slow_read_varint32
@@ -196,37 +199,45 @@ inline Reader met# Read_varint32 = Error, n:U32
 Reader met# slow_read_varint32 = Error, n:U32
 	var s = self.br.Peek
 	var i = 0
+	var shift = 0
+	var ignore = false
 	while true
-		let b = s.[i]
-		n |= (b & 0x7f).U32 ov<< (7*i)
-		i += 1
-		if b & 0x80 == 0
-			break
-
-		if i == MAX_SIZE_VARINT32
-			return OVERFLOW, 0
 		if i == s.Count
 			-- Will only hit this branch once.
 			never = self!br!Advance i
-			let max_left = MAX_SIZE_VARINT32 - i
+			let max_left = MAX_SIZE_VARINT - i
 			let to_undo = i
 			except = self#refresh max_left to_undo
 			s = self.br.Peek
 			i = 0
 
+		let b = s.[i]
+		if Likely <- not ignore
+			n |= (b & 0x7f).U32 ov<< shift
+			shift += 7
+		i += 1
+		if b & 0x80 == 0
+			break
+		if i == MAX_SIZE_VARINT
+			return OVERFLOW, 0
+		if i == _MAX_USED_SIZE_VARINT32
+			ignore = true
+
 	never = self!br!Advance i
 
 inline Reader met# Read_varint64 = Error, n:U64
-	if Likely <- MAX_SIZE_VARINT64 <= self.br.Buffered
+	if Likely <- MAX_SIZE_VARINT <= self.br.Buffered
 		var s = self.br.Peek
 		var i = 0
+		var shift = 0
 		while true
 			let b = s.[i]
-			n |= (b & 0x7f).U64 ov<< (7*i)
+			n |= (b & 0x7f).U64 ov<< shift
+			shift += 7
 			i += 1
 			if b & 0x80 == 0
 				break
-			if i == MAX_SIZE_VARINT64
+			if i == MAX_SIZE_VARINT
 				return OVERFLOW, 0
 		never = self!br!Advance i
 		return OK, n
@@ -235,22 +246,25 @@ inline Reader met# Read_varint64 = Error, n:U64
 Reader met# slow_read_varint64 = Error, n:U64
 	var s = self.br.Peek
 	var i = 0
+	var shift = 0
 	while true
-		let b = s.[i]
-		n |= (b & 0x7f).U64 ov<< (7*i)
-		i += 1
-		if b & 0x80 == 0
-			break
-
-		if i == MAX_SIZE_VARINT64
-			return OVERFLOW, 0
 		if i == s.Count
 			-- Will only hit this branch once.
 			never = self!br!Advance i
-			let max_left = MAX_SIZE_VARINT64 - i
+			let max_left = MAX_SIZE_VARINT - i
 			let to_undo = i
 			except = self#refresh max_left to_undo
 			s = self.br.Peek
 			i = 0
+
+		let b = s.[i]
+		n |= (b & 0x7f).U64 ov<< shift
+		shift += 7
+		i += 1
+		if b & 0x80 == 0
+			break
+
+		if i == MAX_SIZE_VARINT
+			return OVERFLOW, 0
 
 	never = self!br!Advance i
