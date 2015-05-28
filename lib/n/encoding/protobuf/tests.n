@@ -27,8 +27,22 @@ example varint
 		let err, res = coded#Read_varint32
 		if bytes.Count == 10 and bytes.Last & 0x80 != 0
 			assert err == OVERFLOW
+			break
 		else
 			assert res == value.Trim_u32
+
+		var bufw:Stringbuf
+		var codedw = Writer.Mk #bufw
+		codedw#Write_varint32 value.Trim_u32
+		except = codedw#Flush
+		if bytes.Count >= 5
+			foreach i in 0 .. 4
+				assert bufw.Bytes.[i] == bytes.[i]
+
+			-- Only the 4 bits 28 .. 32 make it in there
+			assert bufw.Bytes.[4] == bytes.[4] & 0xf
+		else
+			assert bufw.Bytes.Const == bytes
 
 
 	foreach bytes, value in varint_cases
@@ -39,8 +53,12 @@ example varint
 		let err, res = coded#Read_varint64
 		if bytes.Count == 10 and bytes.Last & 0x80 != 0
 			assert err == OVERFLOW
+			break
 		else
 			assert res == value
 
-
-
+		var bufw:Stringbuf
+		var codedw = Writer.Mk #bufw
+		codedw#Write_varint64 value
+		except = codedw#Flush
+		assert bufw.Bytes.Const == bytes

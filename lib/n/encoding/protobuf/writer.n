@@ -18,6 +18,7 @@ inline struct Writer =
 Writer fun Mk w:#bufio.`Writer = ret:this
 	ret#w = w
 
+
 Writer met Pending_write_error = Error
 	return self.pending_err
 
@@ -27,6 +28,8 @@ Writer met# Flush ?max:?Uint = Error
 		self!pending_err = OK
 		return err
 
+	_, never = self#w#Write self.bw.B
+	self#bw#B = {}
 	return self#w#Flush max=max
 
 Writer met# refresh at_least:Uint = failed:Bool within logging.Log
@@ -174,10 +177,14 @@ inline Writer met# Write_varint32 n:U32
 	if Likely <- _MAX_USED_SIZE_VARINT32 <= self.bw.B.Available
 		let s = self!bw!B!Available_elements
 		var i = 0
-		while n >= 0x80
+		while true
+			if n < 0x80
+				break
 			s![i]! = n.Trim_u8 | 0x80
 			n >>= 7
 			i += 1
+		s![i]! = n.Trim_u8
+		i += 1
 		never = self!bw!Advance i
 		return
 	self#slow_write_varint32 n
@@ -185,11 +192,7 @@ inline Writer met# Write_varint32 n:U32
 Writer met# slow_write_varint32 n:U32
 	let s = self!bw!B!Available_elements
 	var i
-	while n >= 0x80
-		s![i]! = n.Trim_u8 | 0x80
-		n >>= 7
-		i += 1
-
+	while true
 		if i == s.Count
 			-- Will only hit this branch once.
 			never = self!bw!Advance i
@@ -199,16 +202,29 @@ Writer met# slow_write_varint32 n:U32
 			s = self!bw!B!Available_elements
 			i = 0
 
+		if n < 0x80
+			break
+		s![i]! = n.Trim_u8 | 0x80
+		n >>= 7
+		i += 1
+
+	s![i]! = n.Trim_u8
+	i += 1
+
 	never = self!bw!Advance i
 
 inline Writer met# Write_varint64 n:U64
 	if Likely <- MAX_SIZE_VARINT <= self.bw.B.Available
 		let s = self!bw!B!Available_elements
 		var i = 0
-		while n >= 0x80
+		while true
+			if n < 0x80
+				break
 			s![i]! = n.Trim_u8 | 0x80
 			n >>= 7
 			i += 1
+		s![i]! = n.Trim_u8
+		i += 1
 		never = self!bw!Advance i
 		return
 	self#slow_write_varint64 n
@@ -216,11 +232,7 @@ inline Writer met# Write_varint64 n:U64
 Writer met# slow_write_varint64 n:U64
 	let s = self!bw!B!Available_elements
 	var i = 0
-	while n >= 0x80
-		s![i]! = n.Trim_u8 | 0x80
-		n >>= 7
-		i += 1
-
+	while true
 		if i == s.Count
 			-- Will only hit this branch once.
 			never = self!bw!Advance i
@@ -229,6 +241,15 @@ Writer met# slow_write_varint64 n:U64
 				return
 			s = self!bw!B!Available_elements
 			i = 0
+
+		if n < 0x80
+			break
+		s![i]! = n.Trim_u8 | 0x80
+		n >>= 7
+		i += 1
+
+	s![i]! = n.Trim_u8
+	i += 1
 
 	never = self!bw!Advance i
 
