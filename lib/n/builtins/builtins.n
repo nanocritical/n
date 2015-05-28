@@ -445,10 +445,15 @@ inline Mutable_slice met Const = []t
 	such
 		let _ = s.Const
 	return {}
-inline Mutable_slice met! Available_space = this
+inline Mutable_slice met! Available_capacity = this
 	let s = this.create_impl_instance
 	such
-		let _ = s!Available_space
+		let _ = s!Available_capacity
+	return {}
+inline Mutable_slice met! Available_elements = this
+	let s = this.create_impl_instance
+	such
+		let _ = s!Available_elements
 	return {}
 inline Mutable_slice shallow met$ Recapped cap:Uint = this
 	let s = this.create_impl_instance
@@ -710,12 +715,12 @@ inline Slice_impl met! Exact_move other:this
 
 -- Append what it can, and return a slice to the result.
 inline Slice_impl met! Append other:this = this
-	let r = self!Available_space!Copy other
+	let r = self!Available_elements!Copy other
 	return {dat=self.dat cnt=self.cnt+r.cnt cap=self.cap}
 
 -- Append all, and return a slice to the result.
 inline Slice_impl met! Full_append other:this = this
-	let r = self!Available_space!Full_copy other
+	let r = self!Available_elements!Full_copy other
 	return {dat=self.dat cnt=self.cnt+r.cnt cap=self.cap}
 
 inline Slice_impl shallow met$ Operator_sub r:Range = this
@@ -731,8 +736,11 @@ inline Slice_impl shallow met$ Operator_sub r:Range = this
 inline Slice_impl met Const = []t
 	return {dat=self.dat cnt=self.cnt cap=self.cap}
 
-inline Slice_impl met! Available_space = this
-	return self.[self.Count ..]
+inline Slice_impl met! Available_capacity = this
+	return self.[self.Count .. self.Count]
+
+inline Slice_impl met! Available_elements = this
+	return self.[self.Count .. self.Cap]
 
 inline Slice_impl shallow met$ Recapped cap:Uint = this
 	assert cap <= self.cap
