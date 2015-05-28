@@ -1,0 +1,9 @@
+from n import *
+
+fun takes_opt_arg ?x:?Uint
+	noop
+
+fun Main = I32
+	let v = {0 1 2}:[]Uint
+	foreach x in v
+		takes_opt_arg x=x -- FIXME(e): Should know how to autoderef 'x'
