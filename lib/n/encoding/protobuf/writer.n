@@ -46,6 +46,9 @@ Writer met# refresh at_least:Uint = failed:Bool within logging.Log
 			\ MAX_MESSAGE_LENGTH
 		self!pending_err = OVERFLOW
 		return true
+	if self.Total_count + at_least > WARN_MAX_MESSAGE_LENGTH
+		Log#Warning "Writing dangerously large protocol message, larger than %s bytes (max is %s)"
+			\ WARN_MAX_MESSAGE_LENGTH MAX_MESSAGE_LENGTH
 
 	let left_total = MAX_MESSAGE_LENGTH - self.Total_count
 	let err, next_buf = self#w#Writing_buffer min=(Min (Max at_least self.block_size) left_total)

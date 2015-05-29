@@ -35,6 +35,9 @@ Reader met# refresh at_least:Uint to_undo:Uint = Error within logging.Log
 		Log#Error "A protocol message was rejected because it was larger than %s bytes"
 			\ MAX_MESSAGE_LENGTH
 		return OVERFLOW
+	if self.Total_count + at_least > WARN_MAX_MESSAGE_LENGTH
+		Log#Warning "Reading dangerously large protocol message, larger than %s bytes (max is %s)"
+			\ WARN_MAX_MESSAGE_LENGTH MAX_MESSAGE_LENGTH
 
 	if self.r.Buffered == 0
 		self!pending_err = self#r#Fill
