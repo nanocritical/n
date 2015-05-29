@@ -24,7 +24,7 @@ capped_block_writer met# Writing_buffer ?min:?Uint = Error, [!]U8
 	return err, b!Recapped (Min self.block_size b.Cap)
 
 
-fun test_varint_read bs:Uint bytes:[]U8 value:U64 = Error
+fun test_varint32 bs:Uint bytes:[]U8 value:U64 = Error
 	var br = bufio.Bytes_reader.Mk bytes
 	var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
 	var coded = Reader.Mk #bufr block_size=bs
@@ -50,7 +50,7 @@ fun test_varint_read bs:Uint bytes:[]U8 value:U64 = Error
 		assert bufw.Bytes.Const == bytes
 
 
-fun test_varint_write bs:Uint bytes:[]U8 value:U64 = Error
+fun test_varint64 bs:Uint bytes:[]U8 value:U64 = Error
 	var br = bufio.Bytes_reader.Mk bytes
 	var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
 	var coded = Reader.Mk #bufr block_size=bs
@@ -70,7 +70,6 @@ fun test_varint_write bs:Uint bytes:[]U8 value:U64 = Error
 
 
 example varint
-	let block_sizes = {1 2 3 5 7 13 32 Writer.DEFAULT_BLOCK_SIZE}:[]Uint
 	let varint_cases = {
 		\ ({0x00}, 0)
 		\ ({0x01}, 1)
@@ -90,10 +89,93 @@ example varint
 		-- 11964378330978735131 with 0x80 on high-bit: OVERFLOW expected
 		\ ({0x9b 0xa8 0xf9 0xc2 0xbb 0xd6 0x80 0x85 0xa6 0x81}, (0x1b ov<< 0) | (0x28 ov<< 7) | (0x79 ov<< 14) | (0x42 ov<< 21) | (0x3b ov<< 28) | (0x56 ov<< 35) | (0x00 ov<< 42) | (0x05 ov<< 49) | (0x26 ov<< 56) | (0x01 ov<< 63))}:[]([]U8, U64)
 
+	let block_sizes = {1 2 3 5 7 13 32 Writer.DEFAULT_BLOCK_SIZE}:[]Uint
 	foreach bs in block_sizes
 		foreach bytes, value in varint_cases
-			except = test_varint_read bs bytes value
+			except = test_varint32 bs bytes value
 
 	foreach bs in block_sizes
 		foreach bytes, value in varint_cases
-			except = test_varint_write bs bytes value
+			except = test_varint64 bs bytes value
+
+example varint_signext
+	let varint_cases = {0 1 -1 1237894 -37895138}:[]I32
+
+	foreach value in varint_cases
+		var bufw:Stringbuf
+		var codedw = Writer.Mk #bufw
+		codedw#Write_varint32_sign_extended value
+		except = codedw#Flush
+
+		var br = bufio.Bytes_reader.Mk bufw.Bytes
+		var bufr = bufio.Reader.Mk #br
+		var coded = Reader.Mk #bufr
+
+		let except, res = coded#Read_varint64
+		assert res.Bitwise_signed == value.I64
+
+example varint_error
+	let varint_cases = {
+		\ ({0x00}, OK)
+
+		-- No input data.
+		\ ({}, io.UNEXPECTED_EOF)
+
+		-- Input ends unexpectedly.
+		\ ({0xf0 0xab}, io.UNEXPECTED_EOF)
+
+		-- Input ends unexpectedly after 32 bits.
+		\ ({0xf0 0xab 0xc9 0x9a 0xf8 0xb2}, io.UNEXPECTED_EOF)
+
+		-- Longer than 10 bytes.
+		\ ({0xff 0xff 0xff 0xff 0xff 0xff 0xff 0xff 0xff 0xff 0x01}, OVERFLOW)
+		\ }:[]([]U8, Error)
+
+	let block_sizes = {1 2 3 5 7 13 32 Writer.DEFAULT_BLOCK_SIZE}:[]Uint
+	foreach bs in block_sizes
+		foreach bytes, expected_err in varint_cases
+			var br = bufio.Bytes_reader.Mk bytes
+			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+			var coded = Reader.Mk #bufr block_size=bs*
+
+			let err, _ = coded#Read_varint32
+			assert err == expected_err
+
+		foreach bytes, expected_err in varint_cases
+			var br = bufio.Bytes_reader.Mk bytes
+			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+			var coded = Reader.Mk #bufr block_size=bs*
+
+			let err, _ = coded#Read_varint64
+			assert err == expected_err
+
+
+example fixed
+	let cases_32 = {
+		\ ({0xef 0xcd 0xab 0x90}, 0x90abcdef)
+		\ ({0x12 0x34 0x56 0x78}, 0x78563412)
+		\ }:[]([]U8, U32)
+
+	let block_sizes = {1 2 3 5 7 13 32 Writer.DEFAULT_BLOCK_SIZE}:[]Uint
+	foreach bs in block_sizes
+		foreach bytes, value in cases_32
+			var br = bufio.Bytes_reader.Mk bytes
+			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+			var coded = Reader.Mk #bufr block_size=bs*
+
+			let except, res = coded#Read_le32
+			assert res == value
+
+	let cases_64 = {
+		\ ({0xef 0xcd 0xab 0x90 0x12 0x34 0x56 0x78}, 0x7856341290abcdef)
+		\ ({0x11 0x22 0x33 0x44 0x55 0x66 0x77 0x88}, 0x8877665544332211)
+		\ }:[]([]U8, U64)
+
+	foreach bs in block_sizes
+		foreach bytes, value in cases_64
+			var br = bufio.Bytes_reader.Mk bytes
+			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+			var coded = Reader.Mk #bufr block_size=bs*
+
+			let except, res = coded#Read_le64
+			assert res == value

@@ -26,6 +26,8 @@ Reader met# refresh at_least:Uint to_undo:Uint = Error within logging.Log
 		never = self!br!Rewind to_undo
 		let err = self.pending_err
 		self!pending_err = OK
+		if err == io.EOF
+			return io.UNEXPECTED_EOF
 		return err
 
 	-- Commit the read.
@@ -46,6 +48,8 @@ Reader met# refresh at_least:Uint to_undo:Uint = Error within logging.Log
 		if self.r.Buffered == 0
 			let err = self.pending_err
 			self!pending_err = OK
+			if err == io.EOF
+				return io.UNEXPECTED_EOF
 			return err
 
 	self#br = bufio.Bytes_reader.Mk self.r.Peek
@@ -163,19 +167,23 @@ Reader met# slow_read_le64 = Error, n:U64
 
 	s = self.br.Peek
 	var part3
-	if left == 1
-		part3 |= s.[0].U64 ov<< 24
+	if left == 0
+		noop
+	elif left == 1
+		part3 |= s.[0].U32 ov<< 24
 	elif left == 2
-		part3 |= s![0].U64 ov<< 16
-		part3 |= s![1].U64 ov<< 24
+		part3 |= s![0].U32 ov<< 16
+		part3 |= s![1].U32 ov<< 24
 	elif left == 3
-		part3 |= s![0].U64 ov<< 8
-		part3 |= s![1].U64 ov<< 16
-		part3 |= s![2].U64 ov<< 24
+		part3 |= s![0].U32 ov<< 8
+		part3 |= s![1].U32 ov<< 16
+		part3 |= s![2].U32 ov<< 24
+	elif left == 4
+		never, part3 = (io.Read_little_endian U32) s
 	else
 		assert false
 
-	n = (part3 ov<< shift3) | (part2.U64 ov<< shift2) | (part1 ov<< shift1) | part0.U64
+	n = (part3.U64 ov<< shift3) | (part2.U64 ov<< shift2) | (part1 ov<< shift1) | part0.U64
 
 	never = self!br!Advance left
 	return OK, n

@@ -261,6 +261,6 @@ Writer met# slow_write_varint64 n:U64
 
 inline Writer met# Write_varint32_sign_extended n:I32
 	if n < 0
-		self#Write_varint64 n.Bitwise_unsigned.U64
+		self#Write_varint64 n.I64.Bitwise_unsigned
 	else
 		self#Write_varint32 n.Bitwise_unsigned
