@@ -1,3 +1,9 @@
+-- Originally derived, in parts, from Google's Protobuf C++ implementation
+-- Protocol Buffers - Google's data interchange format
+-- Copyright 2008 Google Inc.  All rights reserved.
+-- https://developers.google.com/protocol-buffers/
+-- See LICENSE.
+
 from n import *
 
 import n.io
