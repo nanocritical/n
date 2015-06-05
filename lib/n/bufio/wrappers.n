@@ -13,9 +13,6 @@ Bytes_reader met Bytes = []U8
 Bytes_reader met Buffered = Uint
 	return self.cur.Count
 
-Bytes_reader met# Fill ?max:?Uint = Error
-	return io.EOF
-
 Bytes_reader met! Read_bytes ?max:?Uint = []U8
 	let r = self.cur.[.. (Min self.cur.Count (max else Uint.MAX))]
 	self!cur = self.cur.[r.Count ..]
@@ -27,21 +24,15 @@ Bytes_reader met! Read_string ?max:?Uint = String
 Bytes_reader met Peek ?max:?Uint = []U8
 	return self.cur.[.. (Min self.cur.Count (max else Uint.MAX))]
 
-Bytes_reader met! Skip count:Uint
+Bytes_reader met! Skip_buffered count:Uint
 	self!cur = self.cur.[(Min count self.cur.Count) ..]
 
 Bytes_reader met Peek_string ?max:?Uint = String
 	return String.From_bytes <- self.Peek max=max
 
-Bytes_reader met! Advance cnt:Uint = Error
-	if cnt > self.cur.Count
-		return INVAL
-	self!cur = self.cur.[cnt ..]
-
-Bytes_reader met! Rewind cnt:Uint = Error
+Bytes_reader met! Rewind_buffered cnt:Uint
 	let cur_beg = self.b.Count - self.cur.Count
-	if cnt > cur_beg
-		return INVAL
+	assert cnt <= cur_beg
 	self!cur = self.b.[cur_beg - cnt ..]
 
 Bytes_reader met! Read b:[!]U8 = [!]U8, Error
@@ -94,15 +85,6 @@ Bytes_writer met! Write b:[]U8 = []U8, err:Error
 		err = io.SHORT_BUFFER
 	return b.[copied.Count ..], err
 
-Bytes_writer met# Flush ?max:?Uint = Error
-	return OK
-
-Bytes_writer met Buffered = Uint
-	return self.B.Count
-
-Bytes_writer met Available = Uint
-	return self.B.Available
-
 Bytes_writer met! Writing_buffer ?min:?Uint = Error, [!]U8
 	if not min? and self.B.Available == 0
 		return NOMEM, {}
@@ -110,17 +92,16 @@ Bytes_writer met! Writing_buffer ?min:?Uint = Error, [!]U8
 		return NOMEM, {}
 	return OK, self!B!Available_capacity
 
-Bytes_writer met! Rewind count:Uint = Error
-	if count > self.B.Count
-		return INVAL
+Bytes_writer met! Rewind_buffered count:Uint
+	assert count <= self.B.Count
 	let end = self.B.Count - count
 	self!B = self!B![.. end]
 
-Bytes_writer met! Advance count:Uint = Error
+Bytes_writer met! Skip_buffered count:Uint
 	let end = self.B.Count + count
-	if end > self.B.Cap
-		return INVAL
+	assert end <= self.B.Cap
 	self!B = self!B![.. end]
+
 
 example bytes_writer_short
 	var buf:Stringbuf
@@ -129,9 +110,10 @@ example bytes_writer_short
 	var left, err = bw#Write "abcd".Bytes
 	assert left.Count == 1 and left.[0] == 'd' and err == io.SHORT_BUFFER and bw.B.Const == "abc".Bytes
 
-	never = bw#Rewind 1
+	bw#Rewind_buffered 1
 	left, err = bw#Write "d".Bytes
 	assert left.Count == 0 and err == OK and bw.B.Const == "abd".Bytes
+
 
 example bytes_writer
 	var buf:Stringbuf
@@ -169,9 +151,6 @@ Stringbuf_reader met# Read b:[!]U8 = [!]U8, err:Error
 
 	return b.[.. b.Count+copied.Count], err
 
-Stringbuf_reader met# Fill ?max:?Uint = Error
-	return io.EOF
-
 Stringbuf_reader met Buffered = Uint
 	if self.Pos >= self.S.Count
 		return 0
@@ -182,7 +161,7 @@ Stringbuf_reader met Peek ?max:?Uint = []U8
 		return {}
 	return self.S.Bytes.[self.Pos .. (Min self.S.Count self.Pos+(max else 0))]
 
-Stringbuf_reader met! Skip count:Uint
+Stringbuf_reader met! Skip_buffered count:Uint
 	if self.Pos >= self.S.Count
 		return
 	self!Pos += Min count self.S.Count-self.Pos

@@ -28,9 +28,6 @@ intf `Writer =
 intf `Closer =
 	met# Close = Error
 
-intf `Flusher =
-	met# Flush ?max:?Uint = Error
-
 
 fun Read_at_least b:[!]U8 r:#`Reader min_count:Uint = [!]U8, err:Error
 	if b.Available < min_count

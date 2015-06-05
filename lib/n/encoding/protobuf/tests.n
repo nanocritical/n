@@ -7,16 +7,16 @@ prevent_passthrough_reader met# Read b:[!]U8 = [!]U8, Error
 
 
 struct capped_block_writer =
-	isa bufio.`Writer
+	isa bufio.`Flushable_writer
 	w		:#Stringbuf
 	block_size	:Uint
 
 capped_block_writer met# Write b:[]U8 = []U8, Error
 	return self#w#Write b
 capped_block_writer met# Flush ?max:?Uint = Error
-	return self#w#Flush max=max
+	return OK
 capped_block_writer met Buffered = Uint
-	return self.w.Buffered
+	return 0
 capped_block_writer met# Writing_buffer ?min:?Uint = Error, [!]U8
 	let err, b = self#w#Writing_buffer min=min
 	if err != OK
@@ -103,7 +103,7 @@ example varint_signext
 
 	foreach value in varint_cases
 		var bufw:Stringbuf
-		var codedw = Writer.Mk #bufw
+		var codedw = Writer.Mk #(bufio.Writer.Mk #bufw)
 		codedw#Write_varint32_sign_extended value
 		except = codedw#Flush
 

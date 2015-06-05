@@ -2,14 +2,15 @@ from n import *
 import n.io
 import n.fmt
 
-
+-- bufio.`Reader has no Fill method, see bufio.`Fillable_reader.
+-- This allows for buffered readers that can be transparently filled (e.g.
+-- without blocking). This is particularly useful for wrappers where having
+-- to manually Fill would be a burden: see bufio.Bytes_reader.
+--
+-- Most implemantations should be `Fillable_reader.
+--
 intf `Reader =
 	isa io.`Reader
-
-	-- Perform a read of up to `max` bytes. Return any underlying error.
-	-- Like io.`Read, short reads need not return an error, unless they
-	-- read nothing at all.
-	met# Fill ?max:?Uint = Error
 
 	-- Number of buffered bytes, available to `Peek`.
 	met Buffered = Uint
@@ -18,21 +19,31 @@ intf `Reader =
 	met Peek ?max:?Uint = []U8
 
 	-- Advance the buffer past the lesser of `count` or `Buffered` bytes.
-	met! Skip count:Uint
+	met! Skip_buffered count:Uint
 
-inline intf `Writer =
+-- A `Fillable_reader not only provides a Fill method, but declares that calling this
+-- method is mandatory to read any data.
+intf `Fillable_reader =
+	isa `Reader
+	-- Perform a read of up to `max` bytes. Return any underlying error.
+	-- Like io.`Read, short reads need not return an error, unless they
+	-- read nothing at all.
+	met# Fill ?max:?Uint = Error
+
+
+-- bufio.`Writer has no Flush method, see bufio.`Flushable_writer.
+-- This allows for buffered writers that can be transparently flushed (e.g.
+-- without blocking). This is particularly useful for wrappers where having
+-- to manually Flush would be a burden: see bufio.Stringbuf_writer.
+--
+-- Most implemantations should be `Flushable_writer.
+--
+intf `Writer =
 	isa io.`Writer
-
-	-- Perform a write of up to `max` bytes. Return any underlying error.
-	-- An incomplete flush, like a partial write, must return an error.
-	met# Flush ?max:?Uint = Error
-
-	-- Number of buffered bytes, available to `Flush`.
-	met Buffered = Uint
 
 	-- Get a buffer to write into. The returned slice has `Count` 0, and
 	-- `Cap` at least `min`. If `min` is unspecified, return a slice
-	-- with non-zero Capacity, or return an error.
+	-- with non-zero Cap, or return an error.
 	--
 	-- The returned slice may be passed to `Write` to make the write
 	-- effective, the implementation must recognize its own, avoid a copy,
@@ -44,11 +55,23 @@ inline intf `Writer =
 	-- cannot return a smaller buffer than requested.
 	met# Writing_buffer ?min:?Uint = Error, [!]U8
 
+-- A `Flushable_writer not only provides a Flush method, but declares that calling this
+-- method is mandatory to propagate any write.
+intf `Flushable_writer =
+	isa `Writer
+	-- Propagate write of up to `max` bytes. Return any underlying error.
+	-- An incomplete flush, like a partial write, must return an error.
+	met# Flush ?max:?Uint = Error
+
+	-- Number of buffered bytes, available to `Flush`.
+	met Buffered = Uint
+
 
 inline struct Reader =
-	isa `Reader
+	isa `Fillable_reader
 	r		:#io.`Reader
 	bufr		:?#`Reader -- If wrapping an already buffered reader.
+	fillbufr	:?#`Fillable_reader -- If wrapping an already fillable buffered reader.
 	buf		:Stringbuf
 	pending		:String
 	copier		:io.Copier
@@ -56,6 +79,7 @@ inline struct Reader =
 Reader fun Mk r:#io.`Reader = ret:this
 	ret#r = r
 	ret#bufr = (Dyncast `Reader) ret#R
+	ret#fillbufr = (Dyncast `Fillable_reader) ret#R
 	if not ret#bufr?
 		ret!copier#Reset #ret#buf ret#R
 
@@ -83,8 +107,12 @@ Reader met Buffered = Uint
 -- Returns OK if max bytes were read. If unspecified, reads until io.EOF or
 -- another read or write error.
 Reader met# Fill ?max:?Uint = Error
+	if self#fillbufr?
+		return self#fillbufr#Fill max=max
 	if self#bufr?
-		return self#bufr#Fill max=max
+		-- If it's not fillable, then it's already filled.
+		-- Likely it's something like a bufio.Bytes_reader.
+		return io.EOF
 
 	self#buf#Copy self.pending.Bytes
 	let _, err = self!copier#Copy max=max
@@ -99,9 +127,9 @@ Reader met Peek ?max:?Uint = []U8
 	let len = Min (max else Uint.MAX) self.pending.Count
 	return self.pending.[.. len].Bytes
 
-Reader met! Skip count:Uint
+Reader met! Skip_buffered count:Uint
 	if self.bufr?
-		self!bufr!Skip count
+		self!bufr!Skip_buffered count
 		return
 	self!pending = self.pending.[(Min count self.pending.Count) ..]
 
@@ -124,6 +152,32 @@ Reader met Peek_line = partial:Bool, line:String
 		var eol = i.Unsigned
 		if eol > 0 and pending.[eol-1] == '\r'
 			eol -= 1
+		line = pending.[.. eol]
+
+-- Does not Fill more data.
+-- The returned slice is valid until the next call to Fill.
+-- If a newline "\n" is not reached, it returns partial==true.
+Reader met Peek_lf_line = partial:Bool, line:String
+	let pending = self.Peek_string
+	let i = pending.Index_byte '\n'
+	if i < 0
+		line = pending
+		partial = true
+	else
+		let eol = i.Unsigned
+		line = pending.[.. eol]
+
+-- Does not Fill more data.
+-- The returned slice is valid until the next call to Fill.
+-- If a newline "\r\n" is not reached, it returns partial==true.
+Reader met Peek_crlf_line = partial:Bool, line:String
+	let pending = self.Peek_string
+	let i = pending.Index '\r\n'
+	if i < 0
+		line = pending
+		partial = true
+	else
+		let eol = i.Unsigned
 		line = pending.[.. eol]
 
 
@@ -166,15 +220,17 @@ example reader
 -- allocating more memory until it is flushed.
 
 inline struct Writer =
-	isa `Writer
+	isa `Flushable_writer
 	w		:?#io.`Writer
 	bufw		:?#`Writer
+	flushbufw	:?#`Flushable_writer
 	buf		:Stringbuf
 	pending		:[!]U8
 
 Writer fun Mk w:#io.`Writer = ret:this
 	ret#w = w
 	ret#bufw = (Dyncast `Writer) ret#w
+	ret#flushbufw = (Dyncast `Flushable_writer) ret#w
 
 Writer met# W = ?#io.`Writer
 	return self#w
@@ -187,8 +243,12 @@ Writer met# Write b:[]U8 = []U8, Error
 	return {}, OK
 
 Writer met Buffered = Uint
+	if self.flushbufw?
+		return self.flushbufw.Buffered
 	if self.bufw?
-		return self.bufw.Buffered
+		-- If it's not flushable, then it's already "flushed".
+		-- Likely it's something like a Stringbuf.
+		return 0
 	return self.pending.Count
 
 Writer met# Write_string s:String = Error
@@ -203,8 +263,12 @@ Writer met# Writing_buffer ?min:?Uint = Error, [!]U8
 	return OK, self!pending!Available_capacity
 
 Writer met# Flush ?max:?Uint = Error
+	if self.flushbufw?
+		return self#flushbufw#Flush max=max
 	if self.bufw?
-		return self#bufw#Flush max=max
+		-- If it's not flushable, then it's already "flushed".
+		-- Likely it's something like a Stringbuf.
+		return OK
 
 	let len = max else self.pending.Count
 	let left, wr_err = io.Write_full self#W self.pending.[.. len]
@@ -276,7 +340,7 @@ Auto_reader met# Read b:[!]U8 = r:[!]U8, err:Error
 --
 -- Auto_writer does not assume that it is the only writer to the bufio.Writer.
 inline struct Auto_writer =
-	isa io.`Writer io.`Flusher
+	isa io.`Writer
 	W	:#Writer
 	Mode	:Auto_mode
 	Max	:Uint
@@ -284,6 +348,9 @@ inline struct Auto_writer =
 -- Underlying writes will be of max bytes, or self.Max if left unspecified.
 Auto_writer met# Flush ?max:?Uint = Error
 	return self#W#Flush max=max
+
+Auto_writer met Buffered = Uint
+	return self.W.Buffered
 
 Auto_writer met# buffered_write b:[]U8 = r:[]U8, err:Error
 	-- If someone else is writing to the bufio.Writer, try to maintain the

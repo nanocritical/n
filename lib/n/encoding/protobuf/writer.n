@@ -11,14 +11,14 @@
 -- enough memory and controlling message size.
 inline struct Writer =
 	bw		:bufio.Bytes_writer
-	w		:#bufio.`Writer
+	w		:#bufio.`Flushable_writer
 	pending_err	:Error
 	Total_count	:Uint
 	block_size	:Uint
 
 	let DEFAULT_BLOCK_SIZE = 4096:Uint
 
-Writer fun Mk w:#bufio.`Writer ?block_size:?Uint = ret:this
+Writer fun Mk w:#bufio.`Flushable_writer ?block_size:?Uint = ret:this
 	ret#w = w
 	ret#block_size = block_size else this.DEFAULT_BLOCK_SIZE
 
@@ -36,7 +36,7 @@ Writer met# Flush ?max:?Uint = Error
 	return self#w#Flush max=max
 
 Writer met# refresh at_least:Uint = failed:Bool within logging.Log
-	assert self.bw.Available == 0
+	assert self.bw.B.Available == 0
 
 	-- Commit the write, won't fail.
 	_, never = self#w#Write self.bw.B
@@ -71,7 +71,7 @@ Writer met# Write_bytes b:[]U8
 inline Writer met# Write_le32 n:U32
 	let err = io.Write_little_endian self!bw!B n
 	if err == OK
-		never = self!bw!Advance (sizeof n)
+		self!bw!Skip_buffered (sizeof n)
 		return
 	self#slow_write_le32 n
 
@@ -94,7 +94,7 @@ Writer met# slow_write_le32 n:U32
 	else
 		assert false
 
-	never = self!bw!Advance s.Count
+	self!bw!Skip_buffered s.Count
 
 	let left = (sizeof n) - s.Count
 	if self#refresh left
@@ -115,12 +115,12 @@ Writer met# slow_write_le32 n:U32
 	else
 		assert false
 
-	never = self!bw!Advance left
+	self!bw!Skip_buffered left
 
 inline Writer met# Write_le64 n:U64
 	let err = io.Write_little_endian self!bw!B n
 	if err == OK
-		never = self!bw!Advance (sizeof n)
+		self!bw!Skip_buffered (sizeof n)
 		return
 	self#slow_write_le64 n
 
@@ -129,7 +129,7 @@ Writer met# slow_write_le64 n:U64
 	var so_far
 	if s.Count >= 4
 		never = io.Write_little_endian self!bw!B n.Trim_u32
-		never = self!bw!Advance 4
+		self!bw!Skip_buffered 4
 		so_far = 4
 		s = self!bw!B!Available_elements
 		n >>= 32
@@ -152,7 +152,7 @@ Writer met# slow_write_le64 n:U64
 		assert false
 
 	so_far += s.Count
-	never = self!bw!Advance s.Count
+	self!bw!Skip_buffered s.Count
 
 	let left = (sizeof n) - so_far
 	if self#refresh left
@@ -160,7 +160,7 @@ Writer met# slow_write_le64 n:U64
 
 	if left >= 4
 		never = io.Write_little_endian self!bw!B n.Trim_u32
-		never = self!bw!Advance 4
+		self!bw!Skip_buffered 4
 		n >>= 32
 		left -= 4
 
@@ -177,7 +177,7 @@ Writer met# slow_write_le64 n:U64
 	else
 		assert false
 
-	never = self!bw!Advance left
+	self!bw!Skip_buffered left
 
 inline Writer met# Write_varint32 n:U32
 	if Likely <- _MAX_USED_SIZE_VARINT32 <= self.bw.B.Available
@@ -191,7 +191,7 @@ inline Writer met# Write_varint32 n:U32
 			i += 1
 		s![i]! = n.Trim_u8
 		i += 1
-		never = self!bw!Advance i
+		self!bw!Skip_buffered i
 		return
 	self#slow_write_varint32 n
 
@@ -201,7 +201,7 @@ Writer met# slow_write_varint32 n:U32
 	while true
 		if i == s.Count
 			-- Will only hit this branch once.
-			never = self!bw!Advance i
+			self!bw!Skip_buffered i
 			let max_left = _MAX_USED_SIZE_VARINT32 - i
 			if self#refresh max_left
 				return
@@ -217,7 +217,7 @@ Writer met# slow_write_varint32 n:U32
 	s![i]! = n.Trim_u8
 	i += 1
 
-	never = self!bw!Advance i
+	self!bw!Skip_buffered i
 
 inline Writer met# Write_varint64 n:U64
 	if Likely <- MAX_SIZE_VARINT <= self.bw.B.Available
@@ -231,7 +231,7 @@ inline Writer met# Write_varint64 n:U64
 			i += 1
 		s![i]! = n.Trim_u8
 		i += 1
-		never = self!bw!Advance i
+		self!bw!Skip_buffered i
 		return
 	self#slow_write_varint64 n
 
@@ -241,7 +241,7 @@ Writer met# slow_write_varint64 n:U64
 	while true
 		if i == s.Count
 			-- Will only hit this branch once.
-			never = self!bw!Advance i
+			self!bw!Skip_buffered i
 			let max_left = MAX_SIZE_VARINT - i
 			if self#refresh max_left
 				return
@@ -257,7 +257,7 @@ Writer met# slow_write_varint64 n:U64
 	s![i]! = n.Trim_u8
 	i += 1
 
-	never = self!bw!Advance i
+	self!bw!Skip_buffered i
 
 inline Writer met# Write_varint32_sign_extended n:I32
 	if n < 0

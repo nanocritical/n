@@ -1,12 +1,12 @@
 -- Reads are either complete or, on error, do not happen at all.
 inline struct Reader =
 	br		:bufio.Bytes_reader
-	r		:#bufio.`Reader
+	r		:#bufio.`Fillable_reader
 	pending_err	:Error
 	Total_count	:Uint
 	block_size	:Uint
 
-Reader fun Mk r:#bufio.`Reader ?block_size:?Uint = ret:this
+Reader fun Mk r:#bufio.`Fillable_reader ?block_size:?Uint = ret:this
 	ret#r = r
 	ret#block_size = block_size else Uint.MAX
 
@@ -23,7 +23,7 @@ Reader met# refresh at_least:Uint to_undo:Uint = Error within logging.Log
 	assert self.br.Buffered == 0
 
 	if self.pending_err != OK
-		never = self!br!Rewind to_undo
+		self!br!Rewind_buffered to_undo
 		let err = self.pending_err
 		self!pending_err = OK
 		if err == io.EOF
@@ -31,7 +31,7 @@ Reader met# refresh at_least:Uint to_undo:Uint = Error within logging.Log
 		return err
 
 	-- Commit the read.
-	self#r#Skip self.br.Buffered
+	self#r#Skip_buffered self.br.Buffered
 
 	if self.Total_count + at_least > MAX_MESSAGE_LENGTH
 		Log#Error "A protocol message was rejected because it was larger than %s bytes"
@@ -67,7 +67,7 @@ inline Reader met# Read_le32 = Error, n:U32
 	let s = self.br.Peek
 	let err, n = (io.Read_little_endian U32) s
 	if err == OK
-		never = self!br!Advance (sizeof n)
+		self!br!Skip_buffered (sizeof n)
 		return OK, n
 	return self#slow_read_le32
 
@@ -87,7 +87,7 @@ Reader met# slow_read_le32 = Error, n:U32
 	else
 		assert false
 
-	never = self!br!Advance s.Count
+	self!br!Skip_buffered s.Count
 
 	let left = (sizeof n) - s.Count
 	except = self#refresh left s.Count
@@ -107,7 +107,7 @@ Reader met# slow_read_le32 = Error, n:U32
 	else
 		assert false
 
-	never = self!br!Advance left
+	self!br!Skip_buffered left
 	return OK, n
 
 
@@ -115,7 +115,7 @@ inline Reader met# Read_le64 = Error, n:U64
 	let s = self.br.Peek
 	let err, n = (io.Read_little_endian U64) s
 	if err == OK
-		never = self!br!Advance (sizeof n)
+		self!br!Skip_buffered (sizeof n)
 		return OK, n
 	return self#slow_read_le64
 
@@ -126,7 +126,7 @@ Reader met# slow_read_le64 = Error, n:U64
 	var part0, shift1
 	if s.Count >= 4
 		never, part0 = (io.Read_little_endian U32) s
-		never = self!br!Advance 4
+		self!br!Skip_buffered 4
 		to_undo = 4
 		s = self.br.Peek
 		shift1 = 32
@@ -151,7 +151,7 @@ Reader met# slow_read_le64 = Error, n:U64
 		assert false
 
 	to_undo += s.Count
-	never = self!br!Advance s.Count
+	self!br!Skip_buffered s.Count
 
 	let left = (sizeof n) - to_undo
 	except = self#refresh left to_undo
@@ -161,7 +161,7 @@ Reader met# slow_read_le64 = Error, n:U64
 	var shift3 = shift2
 	if left >= 4
 		never, part2 = (io.Read_little_endian U32) s
-		never = self!br!Advance 4
+		self!br!Skip_buffered 4
 		left -= 4
 		shift3 += 32
 
@@ -185,7 +185,7 @@ Reader met# slow_read_le64 = Error, n:U64
 
 	n = (part3.U64 ov<< shift3) | (part2.U64 ov<< shift2) | (part1 ov<< shift1) | part0.U64
 
-	never = self!br!Advance left
+	self!br!Skip_buffered left
 	return OK, n
 
 inline Reader met# Read_varint32 = Error, n:U32
@@ -206,7 +206,7 @@ inline Reader met# Read_varint32 = Error, n:U32
 				return OVERFLOW, 0
 			if i == _MAX_USED_SIZE_VARINT32
 				ignore = true
-		never = self!br!Advance i
+		self!br!Skip_buffered i
 		return OK, n
 	return self#slow_read_varint32
 
@@ -218,7 +218,7 @@ Reader met# slow_read_varint32 = Error, n:U32
 	while true
 		if i == s.Count
 			-- Will only hit this branch once.
-			never = self!br!Advance i
+			self!br!Skip_buffered i
 			let max_left = MAX_SIZE_VARINT - i
 			let to_undo = i
 			except = self#refresh max_left to_undo
@@ -237,7 +237,7 @@ Reader met# slow_read_varint32 = Error, n:U32
 		if i == _MAX_USED_SIZE_VARINT32
 			ignore = true
 
-	never = self!br!Advance i
+	self!br!Skip_buffered i
 
 inline Reader met# Read_varint64 = Error, n:U64
 	if Likely <- MAX_SIZE_VARINT <= self.br.Buffered
@@ -253,7 +253,7 @@ inline Reader met# Read_varint64 = Error, n:U64
 				break
 			if i == MAX_SIZE_VARINT
 				return OVERFLOW, 0
-		never = self!br!Advance i
+		self!br!Skip_buffered i
 		return OK, n
 	return self#slow_read_varint64
 
@@ -264,7 +264,7 @@ Reader met# slow_read_varint64 = Error, n:U64
 	while true
 		if i == s.Count
 			-- Will only hit this branch once.
-			never = self!br!Advance i
+			self!br!Skip_buffered i
 			let max_left = MAX_SIZE_VARINT - i
 			let to_undo = i
 			except = self#refresh max_left to_undo
@@ -281,4 +281,4 @@ Reader met# slow_read_varint64 = Error, n:U64
 		if i == MAX_SIZE_VARINT
 			return OVERFLOW, 0
 
-	never = self!br!Advance i
+	self!br!Skip_buffered i

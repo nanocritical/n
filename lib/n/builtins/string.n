@@ -164,7 +164,7 @@ inline String met Operator_ge other:*this = Bool
 inline String met Cut_at i:Uint = this, this
 	return self.[.. i], self.[i ..]
 
-inline String met Cut_around i:Uint  = this, this
+inline String met Cut_around i:Uint = this, this
 	let j = i + 1 such
 		if j >= self.Count
 			j = i
@@ -722,12 +722,6 @@ inline Stringbuf met# Write b:[]U8 = []U8, Error --[]U8::|{}, Error::|OK
 	self#Reserve self.Count + b.Count
 	self#bytes = self#bytes#Append b
 	return {}, OK
-
-Stringbuf met# Flush ?max:?Uint = Error
-	return OK
-
-Stringbuf met Buffered = Uint
-	return 0
 
 Stringbuf met# Writing_buffer ?min:?Uint = Error, [!]U8
 	self#Reserve self.Count + (min else 1024)
