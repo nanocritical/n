@@ -189,6 +189,7 @@ static bool is_pre_space(bool *deep, const char *data, const char *cursor) {
     ['['] = true,
     ['{'] = true,
     ['='] = true,
+    [','] = true,
   };
   static const bool lut_deeper[256] = {
     ['*'] = true,
@@ -225,6 +226,7 @@ static bool is_post_space(bool *deep, const char *limit, const char *cursor) {
     [']'] = true,
     ['}'] = true,
     ['='] = true,
+    [','] = true,
   };
   static const bool lut_deeper[256] = {
     ['*'] = true,
