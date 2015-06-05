@@ -3331,6 +3331,7 @@ static void print_topdeps(struct out *out, bool header, enum forward fwd,
 static void print_top(struct out *out, bool header, enum forward fwd,
                       const struct module *mod, const struct node *node,
                       struct fintypset *printed, bool force) {
+  out->mod = mod;
   out->node = NULL;
 
   if ((!typ_is_concrete(node->typ) && node->which != DEFINTF)
@@ -3406,6 +3407,7 @@ static void print_top(struct out *out, bool header, enum forward fwd,
     assert(false);
   }
 
+  out->node = NULL;
   --prevent_infinite;
 }
 
