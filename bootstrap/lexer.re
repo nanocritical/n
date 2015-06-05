@@ -621,11 +621,7 @@ string:
     if (YYCURSOR >= YYLIMIT) {
       FAIL(EINVAL, "non-terminated string");
     }
-    if (*YYCURSOR == opening) {
-      YYCURSOR += 1; goto string;
-    } else {
-      goto string;
-    }
+    YYCURSOR += 1; goto string;
   }
   [\n] {
     FAIL(EINVAL, "string literal contains a newline");
