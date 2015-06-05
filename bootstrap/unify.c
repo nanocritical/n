@@ -502,6 +502,7 @@ static ERROR unify_literal(struct module *mod, uint32_t flags,
   return 0;
 }
 
+// Caller must ensure that the merge is possible.
 static struct typ *merge_defincomplete(struct module *mod, const struct node *for_error,
                                        const struct node *a, const struct node *b) {
   struct node *dinc = defincomplete_create(mod, for_error);
@@ -537,7 +538,16 @@ static struct typ *merge_defincomplete(struct module *mod, const struct node *fo
   }
   FOREACH_SUB_CONST(f, b) {
     if (f->which == DEFFIELD) {
-      defincomplete_add_field(mod, f, dinc, node_ident(f), f->typ);
+      bool exists = false;
+      FOREACH_SUB_CONST(fa, a) {
+        if (fa->which == DEFFIELD && node_ident(fa) == node_ident(f)) {
+          exists = true;
+          break;
+        }
+      }
+      if (!exists) {
+        defincomplete_add_field(mod, f, dinc, node_ident(f), f->typ);
+      }
     }
   }
 
