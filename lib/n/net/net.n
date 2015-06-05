@@ -4,6 +4,7 @@
 from n import *
 import n.fmt
 import n.io
+import n.strconv
 
 let xdigit = "0123456789abcdef"
 
@@ -39,6 +40,8 @@ inline struct Ip =
 let v4_prefix = "\0\0\0\0\0\0\0\0\0\0\xff\xff"
 
 Ip met Is_v4 = Bool
+	if self.Bytes.Count == 0
+		return false
 	let prefix = self.bytes.[0 .. v4_prefix.Bytes.Count]
 	return prefix.Const == v4_prefix.Bytes
 
@@ -109,6 +112,145 @@ Ip fun V4 a:U8 b:U8 c:U8 d:U8 = r:this
 	r!bytes![p.Count + 2]! = c
 	r!bytes![p.Count + 3]! = d
 
+Ip fun Zero = r:this
+	r#bytes#Resize 16
+
+
+Ip fun Parse s:String = err:Error, ret:this
+	err, ret = this.parse_v4 s
+	if err == OK
+		return OK, ret
+	err, ret, _ = this.parse_v6 s
+	return err, ret
+
+Ip fun parse_v4 s:String = Error, this
+	var p = {0 0 0 0}:[!]U8
+	var beg, end
+	foreach j in 0 .. p.Count
+		if beg >= s.Count
+			-- Missing octets.
+			return INVAL, {}
+		if j > 0
+			if s.[beg] != '.'
+				return INVAL, {}
+			beg += 1
+		let nend = s.[beg ..].Index "."
+		if nend < 0
+			end = s.Count
+		else
+			end = beg + nend.Unsigned
+
+		var n, perr = strconv.Parse_uint s.[beg .. end] base=10
+		if perr != OK or n > 0xFF
+			return INVAL, {}
+
+		p![j]! = n.Trim_u8
+
+		beg = end
+
+	if beg != s.Count
+		return INVAL, {}
+
+	return OK, this.V4 p.[0] p.[1] p.[2] p.[3]
+
+-- parse_v6 parses s as a literal IPv6 address described in RFC 4291
+-- and RFC 5952.  It can also parse a literal scoped IPv6 address with
+-- zone identifier which is described in RFC 4007 when zone_allowed is
+-- true.
+-- TODO(e): add zone parsing
+Ip fun parse_v6 s:String ?zone_allowed:?Bool = err:Error, ip:this, zone:Stringbuf
+	assert not (zone_allowed else false)
+	ip = this.Zero
+
+	var ellipsis = -1 -- position of ellipsis in p
+	var beg, end -- index in string s
+
+	-- Might have leading ellipsis
+	if s.Count >= 2 and s.[0] == ':' and s.[1] == ':'
+		ellipsis = 0
+		beg = 2
+		-- Might be only ellipsis
+		if beg == s.Count
+			return OK, ip, ""
+
+	var j = 0
+	while j < 16
+		let nend = s.[beg ..].Index_any ":."
+		if nend < 0
+			end = s.Count
+		else
+			end = beg + nend.Unsigned
+
+		-- If followed by dot, might be in trailing IPv4.
+		if end < s.Count and s.[end] == '.'
+			if ellipsis < 0 and j != 16-4
+				-- Not the right place.
+				return INVAL, {}, ""
+			if j+4 > 16
+				-- Not enough room.
+				return INVAL, {}, ""
+			let err4, ip4 = this.parse_v4 s.[beg ..]
+			if err4 != OK
+				return INVAL, {}, ""
+
+			ip!bytes![j]! = ip4.bytes.[12]
+			ip!bytes![j+1]! = ip4.bytes.[13]
+			ip!bytes![j+2]! = ip4.bytes.[14]
+			ip!bytes![j+3]! = ip4.bytes.[15]
+			beg = s.Count -- this.parse_v4 consumes the rest of s
+			j += 4
+			break
+
+		-- Hex number.
+		let n, perr = strconv.Parse_uint s.[beg .. end] base=16
+		if perr != OK or n > 0xffff
+			return INVAL, {}, ""
+
+		-- Save this 16-bit chunk.
+		ip!bytes![j]! = (n >> 8).Trim_u8
+		ip!bytes![j+1]! = n.Trim_u8
+		j += 2
+
+		-- Stop at end of string.
+		beg = end
+		if beg >= s.Count
+			break
+
+		-- Otherwise must be followed by colon and more.
+		if s.[beg] != ':' or beg+1 == s.Count
+			return INVAL, {}, ""
+		beg += 1
+
+		-- Look for ellipsis
+		if s.[beg] == ":"
+			if ellipsis >= 0 -- already have one
+				return INVAL, {}, ""
+			ellipsis = j.Signed
+			beg += 1
+			if beg == s.Count -- can be at end
+				break
+
+	-- Must have used entire string.
+	if beg != s.Count
+		return INVAL, {}, ""
+
+	-- If didn't parse enough, expand ellipsis.
+	if j < 16
+		if ellipsis < 0
+			return INVAL, {}, ""
+		let n = 16 - j
+		var k = j
+		while k >= ellipsis.Unsigned+1
+			ip!bytes![k+n-1]! = ip.bytes.[k-1]
+			k -= 1
+		k = ellipsis.Unsigned + n
+		while k >= ellipsis.Unsigned+1
+			ip!bytes![k]! = 0
+			k -= 1
+	elif ellipsis >= 0
+		-- Ellipsis must represent at least one 0 group.
+		return INVAL, {}, ""
+	return OK, ip, ""
 
 fun Join_host_port r:#io.`Writer host:String port:Uint
 	if host.Index ":" >= 0 or host.Index "%" >= 0
@@ -124,6 +266,8 @@ example basic
 	assert fmt.S ip == "255.255.255.255"
 	Join_host_port #buf (fmt.S ip).String 80
 	assert "255.255.255.255:80" == buf
+	let except, pip = Ip.Parse buf.[.. buf.Count-3]
+	assert pip == ip
 	buf#Clear
 
 	let ip6 = Ip.From_bytes {0xff 0xff 0 0 0x1 0 0 0
@@ -131,4 +275,6 @@ example basic
 	assert fmt.S ip6 == "ffff:0:100::1"
 	Join_host_port #buf (fmt.S ip6).String 80
 	assert "[ffff:0:100::1]:80" == buf
+	let except, pip6 = Ip.Parse buf.[1 .. buf.Count-4]
+	assert pip6 == ip6
 	buf#Clear
