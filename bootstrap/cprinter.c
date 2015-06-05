@@ -1527,6 +1527,8 @@ static void print_defname_cleanup(struct out *out, const struct module *mod,
     return;
   } else if (node->flags & NODE_IS_MOVED_AWAY) {
     return;
+  } else if (node_ident(node) == ID_OTHERWISE) {
+    return;
   }
 
   print_defer_dtor(out, mod, node->typ);

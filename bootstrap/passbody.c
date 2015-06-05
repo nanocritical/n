@@ -668,6 +668,9 @@ static ERROR step_copy_call_inference(struct module *mod, struct node *node,
     if (node->as.DEFNAME.ssa_user != NULL) {
       return 0;
     }
+    if (node_ident(node) == ID_OTHERWISE) {
+      return 0;
+    }
     right = subs_last(node);
     if (right != NULL && right->which != INIT) {
       break;
