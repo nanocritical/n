@@ -1253,7 +1253,7 @@ static void try_filling_codeloc(struct module *mod, struct node *named,
   line->as.NUMBER.value = vl;
 
   fun->as.STRING.value = "";
-  if (mod->state->top_state != 0) {
+  if (mod->state->top_state != NULL) {
     fun->as.STRING.value = idents_value(mod->gctx, node_ident(mod->state->top_state->top));
   }
 
@@ -1749,6 +1749,11 @@ static ERROR type_inference_init(struct module *mod, struct node *node) {
     e = type_inference_init_named(mod, node);
     EXCEPT(e);
   }
+
+  if (mod->state->fun_state == NULL && !(node->flags & NODE_IS_TYPE)) {
+    node->flags |= NODE_IS_GLOBAL_STATIC_CONSTANT;
+  }
+
   return 0;
 }
 

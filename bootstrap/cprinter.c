@@ -591,10 +591,7 @@ static void print_tuple(struct out *out, const struct module *mod, const struct 
     return;
   }
 
-  pf(out, "(");
-  print_typ(out, mod, node->typ);
-  pf(out, "){");
-
+  pf(out, "{");
   size_t n = 0;
   FOREACH_SUB_CONST(s, node) {
     if (n > 0) {
@@ -841,9 +838,7 @@ static void print_init_array(struct out *out, const struct module *mod, const st
 
   const struct node *el = subs_first_const(node);
 
-  pf(out, " = (const ");
-  print_typ(out, mod, node->typ);
-  pf(out, "){ (");
+  pf(out, "{ (");
   print_typ(out, mod, el->typ);
   pf(out, "[]){ ");
 
@@ -892,14 +887,14 @@ static void print_tag_init(struct out *out, const struct module *mod,
 static void print_init_toplevel(struct out *out, const struct module *mod,
                                 const struct node *node) {
   if (!subs_count_atleast(node, 1)) {
-    pf(out, " = { 0 }");
+    pf(out, "{ 0 }");
     return;
   }
 
   // FIXME: unions unsupported (except trivial init)
   assert(subs_count(node) == 0 || node->as.INIT.for_tag == ID__NONE);
 
-  pf(out, " = {\n");
+  pf(out, "{\n");
   print_tag_init(out, mod, node, true);
   FOREACH_SUB_EVERY_CONST(s, node, 0, 2) {
     pf(out, ".");
@@ -918,22 +913,18 @@ static void print_init(struct out *out, const struct module *mod,
     return;
   }
 
-  const struct node *par = parent_const(node);
-  const struct node *context = parent_const(parent_const(par));
-  if (par->which == DEFNAME) {
-    if ((node->flags & NODE_IS_LOCAL_STATIC_CONSTANT)
-        || (NM(context->which) & (NM(MODULE_BODY) | NM(DEFTYPE)))) {
-      print_init_toplevel(out, mod, node);
-      return;
-    }
+  if (node->flags & (NODE_IS_GLOBAL_STATIC_CONSTANT | NODE_IS_LOCAL_STATIC_CONSTANT)) {
+    print_init_toplevel(out, mod, node);
+    return;
   }
 
   if (typ_equal(node->typ, TBI_VOID)) {
     return;
   }
 
+  const struct node *par = parent_const(node);
   if (par->which == DEFNAME || par->which == BLOCK) {
-    pf(out, "= { 0 }");
+    pf(out, "{ 0 }");
   } else {
     print_expr(out, mod, node->as.INIT.target_expr, TDOT);
     pf(out, " = (");
@@ -1610,6 +1601,9 @@ static void print_defname(struct out *out, bool header, enum forward fwd,
       }
 
       if (expr->which == INIT) {
+        if (!is_void) {
+          pf(out, " = ");
+        }
         print_init(out, mod, expr);
       } else if (expr->which == CALL
                  && !typ_isa(expr->typ, TBI_RETURN_BY_COPY)) {

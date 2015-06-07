@@ -995,14 +995,16 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
 
       struct node *par = parent(node);
       struct node *before = next(node);
-      const struct toplevel toplevel = node->as.LET.toplevel;
+      const struct toplevel *toplevel = &node->as.LET.toplevel;
+      const uint32_t extra_flags =
+        (node->flags & NODE_IS_GLOBAL_LET) ? NODE_IS_GLOBAL_STATIC_CONSTANT : 0;
 
       struct node *defp = subs_first(node);
       while (defp != NULL && defp->which != BLOCK) {
         struct node *nxt = next(defp); // record next before removing defp.
 
         if (defp->which == DEFPATTERN) {
-          e = lir_conversion_defpattern(mod, st, &toplevel, node->flags,
+          e = lir_conversion_defpattern(mod, st, toplevel, node->flags | extra_flags,
                                         par, before, defp);
           EXCEPT(e);
         }

@@ -1,0 +1,74 @@
+from n import *
+
+-- Complex literals in global constants, require some care to be accepted by
+-- the C compiler.
+
+let string_array = {"a" "b" "c"}:[]String
+
+let tuple_array = {(1, 2) (3, 4)}:[](Uint, Int)
+
+let string_tuple_array = {(1, "a") (2, "b")}:[](Uint, String)
+
+struct s =
+	x	:Uint
+	y	:String
+	z	:(Uint, String)
+
+let struct_tuple_array = {({x=0 y="a" z=(0, "a")}, "a")}:[](s, String)
+
+let struct_tuple_array_array = {
+	\ { ({x=0 y="a" z=(0, "a")}, "a")
+	\   ({x=1 y="b" z=(1, "b")}, "b") }
+	\ }:[][](s, String)
+
+let struct_array_tuple_array_array = {
+	\ { ({x=0 y="a" z=(0, "a")}, "a", {{} {x=0}})
+	\   ({x=1 y="b" z=(1, "b")}, "b", {{} {x=1}}) }
+	\ }:[][](s, String, []s)
+
+fun Main = I32
+	assert string_array.[0] == "a"
+	assert string_array.[1] == "b"
+	assert string_array.[2] == "c"
+
+	assert tuple_array.[0].X0 == 1
+	assert tuple_array.[0].X1 == 2
+	assert tuple_array.[1].X0 == 3
+	assert tuple_array.[1].X1 == 4
+
+	assert string_tuple_array.[0].X0 == 1
+	assert string_tuple_array.[0].X1 == "a"
+	assert string_tuple_array.[1].X0 == 2
+	assert string_tuple_array.[1].X1 == "b"
+
+	assert struct_tuple_array.[0].X0.x == 0
+	assert struct_tuple_array.[0].X0.y == "a"
+	assert struct_tuple_array.[0].X0.z.X0 == 0
+	assert struct_tuple_array.[0].X0.z.X1 == "a"
+	assert struct_tuple_array.[0].X1 == "a"
+
+	assert struct_tuple_array_array.[0].[0].X0.x == 0
+	assert struct_tuple_array_array.[0].[0].X0.y == "a"
+	assert struct_tuple_array_array.[0].[0].X0.z.X0 == 0
+	assert struct_tuple_array_array.[0].[0].X0.z.X1 == "a"
+	assert struct_tuple_array_array.[0].[0].X1 == "a"
+	assert struct_tuple_array_array.[0].[1].X0.x == 1
+	assert struct_tuple_array_array.[0].[1].X0.y == "b"
+	assert struct_tuple_array_array.[0].[1].X0.z.X0 == 1
+	assert struct_tuple_array_array.[0].[1].X0.z.X1 == "b"
+	assert struct_tuple_array_array.[0].[1].X1 == "b"
+
+	assert struct_array_tuple_array_array.[0].[0].X0.x == 0
+	assert struct_array_tuple_array_array.[0].[0].X0.y == "a"
+	assert struct_array_tuple_array_array.[0].[0].X0.z.X0 == 0
+	assert struct_array_tuple_array_array.[0].[0].X0.z.X1 == "a"
+	assert struct_array_tuple_array_array.[0].[0].X1 == "a"
+	assert struct_array_tuple_array_array.[0].[0].X2.[0] == {}
+	assert struct_array_tuple_array_array.[0].[0].X2.[1] == {x=0}
+	assert struct_array_tuple_array_array.[0].[1].X0.x == 1
+	assert struct_array_tuple_array_array.[0].[1].X0.y == "b"
+	assert struct_array_tuple_array_array.[0].[1].X0.z.X0 == 1
+	assert struct_array_tuple_array_array.[0].[1].X0.z.X1 == "b"
+	assert struct_array_tuple_array_array.[0].[1].X1 == "b"
+	assert struct_array_tuple_array_array.[0].[1].X2.[0] == {}
+	assert struct_array_tuple_array_array.[0].[1].X2.[1] == {x=1}
