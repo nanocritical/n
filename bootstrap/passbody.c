@@ -1030,7 +1030,7 @@ static ERROR step_store_return_through_ref_expr(struct module *mod, struct node 
     }
     return 0;
   case BIN:
-    if (!OP_IS_ASSIGN(node->as.BIN.operator)) {
+    if (node->as.BIN.operator != TASSIGN) {
       return 0;
     }
     struct node *left = subs_first(node);

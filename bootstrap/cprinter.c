@@ -330,10 +330,10 @@ static void print_bin_sym(struct out *out, const struct module *mod, const struc
     } else {
       print_expr(out, mod, right, T__STATEMENT);
     }
-  } else if (OP_IS_ASSIGN(op)
-             && (right->which == INIT
-                 || (right->which == CALL
-                     && !typ_isa(right->typ, TBI_RETURN_BY_COPY)))) {
+  } else if (op == TASSIGN && right->which == INIT) {
+    print_expr(out, mod, right, T__STATEMENT);
+  } else if (op == TASSIGN && right->which == CALL
+             && !typ_isa(right->typ, TBI_RETURN_BY_COPY)) {
     print_expr(out, mod, right, T__STATEMENT);
   } else if (op == TEQPTR || op == TNEPTR) {
     if (typ_is_dyn(left->typ) && left->which != NIL) {
@@ -829,7 +829,7 @@ static void print_call(struct out *out, const struct module *mod,
 
 static void print_init_array(struct out *out, const struct module *mod, const struct node *node) {
   const struct node *par = parent_const(node);
-  if (par->which == BIN && OP_IS_ASSIGN(par->as.BIN.operator)) {
+  if (par->which == BIN && par->as.BIN.operator == TASSIGN) {
     const struct node *target = node->as.INIT.target_expr;
     print_expr(out, mod, target, T__STATEMENT);
   }
