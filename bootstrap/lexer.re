@@ -552,7 +552,17 @@ eol:
 
 escaped_eol_any:
   escaped = true;
-  spaces -= 8; // the escape makes extra tabs insignificant
+
+  switch (block_style(parser)) {
+  case BLOCK_MULTI:
+    spaces -= 8; // the escape makes extra tabs insignificant
+    break;
+  case BLOCK_SINGLE:
+    // noop: parser->indent already includes an artificial +8, added when
+    // opening a BLOCK_SINGLE.
+    break;
+  }
+
   if (spaces >= parser->indent) {
     goto normal;
   } else if (spaces < parser->indent) {
@@ -584,13 +594,6 @@ eol_any:
       FAIL(EINVAL, "cannot increase indentation by more than one tab");
     }
     parser->indent = spaces;
-
-    switch (block_style(parser)) {
-    case BLOCK_MULTI:
-      break;
-    case BLOCK_SINGLE:
-      FAIL(EINVAL, "in single line mode, further indented lines must be escaped");
-    }
 
     error e = block_down(parser, BLOCK_MULTI);
     if (e) {

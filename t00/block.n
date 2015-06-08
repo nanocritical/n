@@ -73,7 +73,35 @@ fun Main = I32
 		else
 			true
 		\ false
-		\ if true -> true;; else false
+
+		-- Either of these forms are legal:
+		\ if true ->
+		\ true;; else false;;
+		-- or:
+		\ if true ->
+			\ true;; else false;;
+
 		\ false
+
+	assert true
+		\ or false
+
+	-- Asserts are special, they introduce an implicit block, but we're
+	-- allowed to make it an implicit single-line block (by starting on
+	-- the same line, or escaping right away, which is the same thing).
+	-- Implicit single-line blocks come with a pseudo indent increment,
+	-- hence the need to indent the if...
+	assert
+		\ Prn
+		\ false
+		\ block
+			if true
+				false
+			else
+				true
+		\ false
+		\ if true -> true;; else false;;
+		\ false;
+		\ true
 
 	return 0
