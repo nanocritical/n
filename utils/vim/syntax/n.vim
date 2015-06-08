@@ -88,7 +88,7 @@ syn match	nFormat		display "%%" contained
 syn region	nString		start=+L\="+ skip=+\\\\\|\\"+ end=+"+ contains=nSpecial,nFormat,@Spell
 syn region	nString		start=+L\='+ skip=+\\\\\|\\'+ end=+'+ contains=nSpecial,nFormat,@Spell
 
-hi def link nDeclFun nDecl
+hi def link nDeclFun Function
 hi def link nDecl Structure
 hi def link nAssert Assert
 hi def link nInclude Include
