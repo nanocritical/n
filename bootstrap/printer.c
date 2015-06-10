@@ -369,9 +369,13 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     print_expr(out, mod, subs_first_const(node), parent_op);
     break;
   case BLOCK:
-    fprintf(out, "block ");
+    if (!node->as.BLOCK.is_scopeless) {
+      fprintf(out, "block ");
+    }
     print_block(out, mod, 0, node);
-    fprintf(out, ";;");
+    if (!node->as.BLOCK.is_scopeless) {
+      fprintf(out, ";;");
+    }
     break;
   case IF:
   case TRY:
@@ -973,6 +977,9 @@ static void print_tree_node(FILE *out, const struct module *mod,
   switch (node->which) {
   case BLOCK:
     fprintf(out, "(0x%zx)", node->as.BLOCK.block_id);
+    if (node->as.BLOCK.is_scopeless) {
+      fprintf(out, " scopeless");
+    }
     break;
   case JUMP:
     if (node->as.JUMP.is_break) {
