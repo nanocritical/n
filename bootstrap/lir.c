@@ -180,6 +180,7 @@ static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
     node_subs_remove(node, left);
     node_subs_remove(node, right);
     node_set_which(node, BLOCK);
+    node->as.BLOCK.is_scopeless = true;
     GSTART();
 
     struct node *l, *r;
@@ -200,6 +201,7 @@ static ERROR rewrite_tuple_assign(struct module *mod, struct node *node) {
     node_subs_remove(node, left);
     node_subs_remove(node, right);
     node_set_which(node, BLOCK);
+    node->as.BLOCK.is_scopeless = true;
     GSTART();
 
     G0(let, node, LET,
