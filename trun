@@ -20,7 +20,15 @@ ret=0
 function build_and_run() {
 	ret=0
 	$wd/ncc0 $1 2> $1.o.stderr || { ret=$?; report_crashes_only $1 "ncc0"; return; }
-	./a.out > $1.o.stdout 2>> $1.o.stderr || { ret=$?; report_crashes_only $1 "a.out"; return; }
+
+	sh_runner=$(dirname $1)/$(basename $1 .n).sh
+        if [ -x $sh_runner ]; then
+	  	./$sh_runner $1 a.out > $1.o.stdout 2>> $1.o.stderr \
+			|| { ret=$?; report_crashes_only $1 "$sh_runner a.out"; return; }
+        else
+	  	./a.out > $1.o.stdout 2>> $1.o.stderr \
+			|| { ret=$?; report_crashes_only $1 "a.out"; return; }
+	fi
 }
 
 function pretty_status() {
