@@ -27,12 +27,13 @@ fun Install_sys within Log
 
 -- TODO(e): Make it configurable via Env: whether locations are printed at
 -- all, whether the full path is shown, etc.
-fun write_codeloc w:#io.`Writer c:?*Codeloc
+fun write_header w:#io.`Writer header:String c:?*Codeloc
 	if not c?
+		fmt.F w "%s: " header
 		return
 
 	let last_slash = 1 + (c.File.Last_index_byte '/')
-	fmt.F w "%s:%s: %s: " c.File.[last_slash.Unsigned ..] c.Line c.Function
+	fmt.F w "%s [%s:%s %s]: " header c.File.[last_slash.Unsigned ..] c.Line c.Function
 
 
 struct stderr =
@@ -47,57 +48,49 @@ stderr met# flush
 	self#buf#Clear
 
 stderr met# Emergency format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
-	write_codeloc #self#buf _Ncodeloc
-	fmt.F #self#buf "Emergency: "
+	write_header #self#buf "Emergency" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
 stderr met# Alert format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
-	write_codeloc #self#buf _Ncodeloc
-	fmt.F #self#buf "Alert: "
+	write_header #self#buf "Alert" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
 stderr met# Critical format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
-	write_codeloc #self#buf _Ncodeloc
-	fmt.F #self#buf "Critical: "
+	write_header #self#buf "Critical" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
 stderr met# Error format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
-	write_codeloc #self#buf _Ncodeloc
-	fmt.F #self#buf "Error: "
+	write_header #self#buf "Error" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
 stderr met# Warning format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
-	write_codeloc #self#buf _Ncodeloc
-	fmt.F #self#buf "Warning: "
+	write_header #self#buf "Warning" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
 stderr met# Notice format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
-	write_codeloc #self#buf _Ncodeloc
-	fmt.F #self#buf "Notice: "
+	write_header #self#buf "Notice" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
 stderr met# Info format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
-	write_codeloc #self#buf _Ncodeloc
-	fmt.F #self#buf "Info: "
+	write_header #self#buf "Info" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
 stderr met# Debug format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
-	write_codeloc #self#buf _Ncodeloc
-	fmt.F #self#buf "Debug: "
+	write_header #self#buf "Debug" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
