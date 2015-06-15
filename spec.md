@@ -364,7 +364,7 @@ tags to implement matching of enum values, without however affecting the ABI.
 ## Union declaration
 
 
-## Global environment declaration
+## Environment declaration
 
 N does not have global variables. There is however a facility to manage
 globally accessible state, with a mechanism that bears ressemblance to
@@ -406,6 +406,9 @@ Without a within declaration, a global environment cannot be used.
 
 A global environment form a stack. A different implementation of an environment
 can be pushed on the stack to temporarily change its behavior.
+
+A localenv is the same concept, but each execution threads sees a separate
+instance of the environment.
 
 
 ## Function declaration
