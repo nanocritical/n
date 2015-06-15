@@ -613,3 +613,16 @@ example multiset
 	let n = m
 	assert n.Count == 2
 	assert n == m
+
+
+
+(struct T:`Any) Ref_as_key R:(`Any_nullable_ref T) =
+	isa `Map_key `Has_equality
+	Ref	:R
+
+Ref_as_key met Hash32 = U32
+	return (Voidref.From_ptr self.Ref).Hash32
+Ref_as_key met Operator_eq other:*this = Bool
+	return self.Ref === other.Ref
+Ref_as_key met Operator_ne other:*this = Bool
+	return self.Ref !== other.Ref
