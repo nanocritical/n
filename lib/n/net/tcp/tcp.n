@@ -3,6 +3,7 @@ import n.io
 import n.syscall
 import n.net
 import n.fmt
+import n.strconv
 
 
 -- TODO(e): implement similar IPv4/IPv6 selection logic than in go's
@@ -44,53 +45,79 @@ Addr met Show st:#fmt.`State
 	else
 		fmt.Cat st h
 
-fun Lookup_ip_cname name:String = Error, addrs:(Buf Addr), cname:Stringbuf
-	let hints = {Flags=syscall.AI_CANONNAME|syscall.AI_V4MAPPED|syscall.AI_ALL
-		\ Socktype=syscall.SOCK_STREAM}:syscall.Addrinfo
 
-	let except, res = syscall.Getaddrinfo name nil hints
+fun Resolve_address addr:String = err:Error, addrs:(Buf Addr)
+	var except, host, port = net.Split_host_port addr
 
-	var ai = nullable <- *<- syscall.Addrinfo.From_raw res
+	let num_port = 0 such
+		if port?
+			-- FIXME(e): handle resolution of port number by service name
+			-- (e.g. "http" -> 80).
+			num_port, except = strconv.Parse_uint port base=10
 
-	cname#Cat ai.Canonname
-	if cname == ""
-		cname#Cat name
-	if cname.Count > 0 and cname.Last != "."
-		cname#Cat "."
+	let z = host.Index "%"
+	let zone such
+		if z >= 0
+			if z.Unsigned+1 >= host.Count
+				-- Invalid zero length zone.
+				return INVAL, {}
+			host, zone = host.Cut_around z.Unsigned
 
-	while ai?
-		if ai.Socktype != syscall.SOCK_STREAM
-			continue
-		if ai.Family != syscall.AF_INET and ai.Family != syscall.AF_INET6
-			continue
-
-		(addrs#Push)# = {Ip=(net.Ip.From_bytes ai.Ip_bytes)}
-
-		ai = ai.Next
-
-	syscall.Freeaddrinfo res
-
-fun Lookup_ip name:String = err:Error, ips:(Buf Addr)
-	err, ips, _ = Lookup_ip_cname name
-
-fun Lookup_cname name:String = err:Error, cname:Stringbuf
-	err, _, cname = Lookup_ip_cname name
+	let except, ips = net.Lookup_ip host
+	foreach ip in ips
+		let addr = addrs#Push
+		addr#Ip = ip
+		addr#Port = num_port.To_uint
+		addr#Zone = zone.Buf
 
 
+fun prepare_sys_addr protocol:Protocol = buf_addr:(Buf U8)
+	buf_addr#Resize (syscall.Sockaddr_ip_sizeof protocol.sys_family)
+
+fun to_sys_addr protocol:Protocol addr:*Addr = sys_addr:(Buf U8)
+	sys_addr = prepare_sys_addr protocol
+	var sys_addr_bytes = sys_addr![..]
+	syscall.Sockaddr_ip #sys_addr_bytes protocol.sys_family addr.Ip.Bytes addr.Port
+	sys_addr#Copy sys_addr_bytes -- May only have shrunk.
+
+fun from_sys_addr protocol:Protocol sys_addr:[]U8 = addr:Addr
+	let remote_ip_bytes = syscall.Sockaddr_ip_bytes protocol.sys_family
+		\ sys_addr.Unsafe_rawdata sys_addr.Bytecount
+	let remote_port = syscall.Sockaddr_ip_port protocol.sys_family
+		\ sys_addr.Unsafe_rawdata sys_addr.Bytecount
+
+	addr = {Ip=(net.Ip.From_bytes remote_ip_bytes)
+		\ Port=remote_port
+		\ Zone=""}
+
+
+-- FIXME(e): Need Dtor, but first we need to have multiple RTR via multiple
+-- args.
 inline struct Conn =
 	isa io.`Reader io.`Writer --ev.`Pollable
-	fd		:Int
-	local_addr	:Addr
+	protocol	:Protocol
+	fd		:?Int
 	remote_addr	:Addr
 
-Conn met Fd = Int
+Conn met Fd = ?Int
 	return self.fd
 
 Conn met# Close = Error
-	return syscall.Close self.fd
+	if self.fd?
+		let err = syscall.Close self.fd
+		if err == syscall.EWOULDBLOCK
+			return err
+		self#fd = nil
+		return err
 
-Conn met Local_addr = Addr
-	return self.local_addr
+fun do_getsockname addr:#Addr protocol:Protocol sockfd:Int = Error
+	var sys_addr = prepare_sys_addr protocol
+	var sys_addr_bytes = sys_addr![..]
+	except = syscall.Getsockname sockfd #sys_addr_bytes
+	addr# = from_sys_addr protocol sys_addr_bytes
+
+Conn met Local_addr = Error, addr:Addr
+	except = do_getsockname #addr self.protocol self.fd
 
 Conn met Remote_addr = Addr
 	return self.remote_addr
@@ -104,7 +131,7 @@ Conn met# Read b:[!]U8 = [!]U8, Error
 Conn met# Write b:[]U8 = []U8, Error
 	return syscall.Write self.fd b
 
-Conn met! Pending_error = Error
+Conn met! Clear_pending_error = Error
 	return syscall.Getsockopt_error self.fd syscall.SOL_SOCKET
 
 
@@ -113,11 +140,24 @@ struct Socket =
 	addr	:Addr
 	sockfd	:?Int
 
-Socket met Fd = Int
+Socket met Fd = ?Int
 	return self.sockfd
 
 Socket met Addr = Addr
 	return self.addr
+
+Socket met# Close = Error
+	if self.sockfd?
+		let err = syscall.Close self.sockfd
+		-- In case SO_LINGER is used on a non-blocking socket. But you
+		-- probably shouldn't be doing that, right?
+		if err == syscall.EWOULDBLOCK
+			return err
+		self#sockfd = nil
+		return err
+
+Socket met! Clear_pending_error = Error
+	return syscall.Getsockopt_error self.sockfd syscall.SOL_SOCKET
 
 Socket met# create protocol:Protocol = Error
 	let except, sockfd = syscall.Socket protocol.sys_family
@@ -128,34 +168,50 @@ Socket met# create protocol:Protocol = Error
 	self#sockfd = sockfd
 	self#protocol = protocol
 
-Socket met# Listen protocol:Protocol addr:Addr ?backlog:?Uint = Error
+Socket met# Listen addr:*Addr ?backlog:?Uint = Error
 	if not self.sockfd?
-		except = self#create protocol
+		except = self#create addr.Needs_protocol
 
-	var buf_addr:(Buf U8) such
-		buf_addr#Resize (syscall.Sockaddr_ip_sizeof self.protocol.sys_family)
-	let sys_addr = buf_addr![..] such
-		syscall.Sockaddr_ip #sys_addr self.protocol.sys_family addr.Ip.Bytes addr.Port
-	except = syscall.Bind self.sockfd sys_addr
-	self#addr = addr
+	Eprn addr.Needs_protocol
+	var sys_addr = to_sys_addr self.protocol addr
+	except = syscall.Bind self.sockfd sys_addr.[..]
+
+	drop = do_getsockname #self#addr self.protocol self.sockfd
+
 	except = syscall.Listen self.sockfd (backlog else 128)
 
 Socket met Accept = Error, conn:Conn
-	var buf_addr:(Buf U8) such
-		buf_addr#Resize (syscall.Sockaddr_ip_sizeof self.protocol.sys_family)
-	var sys_addr = buf_addr![..]
-
-	let except, fd = syscall.Accept4 self.sockfd #sys_addr
+	var sys_addr = prepare_sys_addr self.protocol
+	var sys_addr_bytes = sys_addr![..]
+	let except, fd = syscall.Accept4 self.sockfd #sys_addr_bytes
 		\ syscall.SOCK_CLOEXEC|syscall.SOCK_NONBLOCK
 
 	conn!fd = fd
-	conn!local_addr = self.addr
+	conn!remote_addr = from_sys_addr self.protocol sys_addr_bytes
+	conn!protocol = self.protocol
 
-	let remote_ip_bytes = syscall.Sockaddr_ip_bytes self.protocol.sys_family
-		\ sys_addr.Unsafe_rawdata sys_addr.Bytecount
-	let remote_port = syscall.Sockaddr_ip_port self.protocol.sys_family
-		\ sys_addr.Unsafe_rawdata sys_addr.Bytecount
+-- If Connect fails, the connection is closed.
+-- On success, ownership of the socket is transferred to `conn` and Socket
+-- is destroyed.
+--
+-- If the connection has not yet completed (syscall.EINPROGRESS),
+-- conn!Complete_connection must be called once the connection has completed
+-- (once we get ev.WRITE).
+Socket met# Connect addr:*Addr = err:Error, conn:Conn
+	if not self.sockfd?
+		except = self#create addr.Needs_protocol
 
-	conn!remote_addr = {Ip=(net.Ip.From_bytes remote_ip_bytes)
-		\ Port=remote_port
-		\ Zone=""}
+	var sys_addr = to_sys_addr self.protocol addr
+	err = syscall.Connect self.sockfd sys_addr.[..]
+	if err != OK and err != syscall.EINPROGRESS
+		drop = self#Close
+		return err, {}
+
+	conn!fd = self.sockfd
+	conn!remote_addr = addr
+	conn!protocol = self.protocol
+
+	-- Transfer ownership
+	self#sockfd = nil
+	self#Dtor
+	return err, conn

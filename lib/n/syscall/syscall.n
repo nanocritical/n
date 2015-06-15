@@ -838,8 +838,11 @@ Addrinfo met Ip_bytes = []U8
 Addrinfo met Ip_port = Uint
 	return Sockaddr_ip_port self.Family self.Raw_addr self.Raw_addrlen.Unsigned
 
-Addrinfo met Next = ?*this
-	return (unsafe.Cast ?*U8 *this) self.Raw_next
+Addrinfo met# Advance_next = has_next:Bool
+	if self.Raw_next?
+		self# = this.From_raw self.Raw_next
+		return true
+	return false
 
 extern fun getaddrinfo node:*U8 service:?*U8 hints:*Addrinfo res:##U8 = Int
 extern fun freeaddrinfo res:?#U8
@@ -889,8 +892,10 @@ extern fun socket domain:I32 type:I32 protocol:I32 = Int
 extern fun bind sockfd:Int raw_addr:*U8 raw_addrlen:Uint = Int
 extern fun listen sockfd:Int backlog:Int = Int
 extern fun accept4 sockfd:Int raw_addr:#U8 raw_addrlen:#Uint flags:I32 = Int
+extern fun connect sockfd:Int raw_addr:#U8 raw_addrlen:Uint = Int
 extern fun getsockopt sockfd:Int level:I32 optname:I32 optval:#U8 optlen:#Uint = Int
 extern fun setsockopt sockfd:Int level:I32 optname:I32 optval:*U8 optlen:Uint = Int
+extern fun getsockname sockfd:Int raw_addr:#U8 raw_addrlen:#Uint = Int
 
 fun Socket domain:I32 type:I32 protocol:I32 = Error, Int
 	let sockfd = socket domain type protocol
@@ -922,6 +927,26 @@ fun Accept4 sockfd:Int sys_addr:#[!]U8 flags:I32 = Error, Int
 		sys_addr# = sys_addr![.. raw_addrlen]
 		return OK, fd
 	return convert_error errno, fd
+
+fun Connect sockfd:Int sys_addr:[!]U8 = Error
+	var raw_addrlen = sys_addr.Bytecap
+	let ret = connect sockfd sys_addr#Unsafe_rawdata raw_addrlen
+	if ret == 0
+		return OK
+	return convert_error errno
+
+fun Getsockname sockfd:Int sys_addr:#[!]U8 = Error
+	var raw_addrlen = sys_addr.Bytecap
+	let ret = getsockname sockfd sys_addr#Unsafe_rawdata #raw_addrlen
+	if ret == 0
+		if raw_addrlen > sys_addr.Bytecap
+			Log#Critical "truncated remote address (wrong address family?), need %s bytes" raw_addrlen
+			-- Don't expose partial garbage.
+			raw_addrlen = 0
+
+		sys_addr# = sys_addr![.. raw_addrlen]
+		return OK
+	return convert_error errno
 
 extern let SOL_SOCKET:I32
 extern let SO_REUSEADDR:I32

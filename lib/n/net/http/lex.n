@@ -1,0 +1,3 @@
+-- This file deals with lexical matters of HTTP
+
+extern fun is_token r:U8 = Bool

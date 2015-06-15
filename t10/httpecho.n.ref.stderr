@@ -1,0 +1,17 @@
+TCP6
+Debug [ev.n:162 sys_wait]: 
+Debug [ev.n:180 sys_wait]: 1 
+Info [server.n:512 On]: Connect from [::1]:56868
+except: lib/n/net/tcp/tcp.n:183: Accept: Error: EAGAIN: Try again
+Debug [ev.n:162 sys_wait]: 
+Debug [ev.n:180 sys_wait]: 1 
+Debug [server.n:330 On]: 7: WAITING_HEADER {READ WRITE} on 7
+Debug [server.n:438 handling_buffered]: 7: HANDLING
+Debug [server.n:464 flush]: 7: FLUSH
+Debug [server.n:242 recycle]: 7: 
+Debug [ev.n:162 sys_wait]: 
+Debug [ev.n:180 sys_wait]: 1 
+Debug [server.n:330 On]: 7: WAITING_HEADER {READ WRITE RDHUP} on 7
+Debug [ev.n:162 sys_wait]: 
+Debug [server.n:330 On]: 7: CLOSE {CLOSE} on 7
+Debug [server.n:264 Close]: 7: 

@@ -5,6 +5,7 @@ from n import *
 import n.fmt
 import n.io
 import n.strconv
+import n.syscall
 
 let xdigit = "0123456789abcdef"
 
@@ -258,6 +259,48 @@ fun Join_host_port r:#io.`Writer host:String port:Uint
 	else
 		fmt.Cat r host ":" port
 
+-- Split_host_port splits a network address of the form "host", "host:port",
+-- "[host]:port", "ipv6-host%zone", "[ipv6-host%zone]:port" into
+-- (host, nil), or (host, port), or (ipv6-host%zone, nil), or (ipv6-host%zone,
+-- port).  A literal address or host name for IPv6 must be enclosed in square
+-- brackets if a port is given, as in "[::1]:80", "[ipv6-host]:http" or
+-- "[ipv6-host%zone]:80".
+--
+-- Doesn't fully validate the format of the host or port.
+fun Split_host_port hostport:String = err:Error, host:String, port:?String
+	let last_colon = hostport.Last_index ":"
+	let last_rsqb = hostport.Last_index "]"
+
+	var no_lsqb_from, no_rsqb_from
+	if hostport.[0] == '['
+		-- There must be a port.
+		-- Expect the first ']' just before the last ':'.
+		if last_rsqb < 0
+			return INVAL, "", nil
+
+		if last_rsqb+1 != last_colon
+			-- Too many colons.
+			return INVAL, "", nil
+
+		host = hostport.[1 .. last_rsqb.Unsigned]
+		no_lsqb_from, no_rsqb_from = 1, (last_rsqb+1).Unsigned
+	elif last_colon < 0
+		-- No port.
+		return OK, hostport, nil
+	else
+		host = hostport.[.. last_colon.Unsigned]
+
+		if host.Index ":" >= 0 or host.Index "%" >= 0
+			-- More colons or a zone: this is in fact an IPv6
+			-- literal without a port (and thus no brackets).
+			return OK, hostport, nil
+
+	if host.[no_lsqb_from ..].Index "[" >= 0
+		return INVAL, "", nil
+	if host.[no_rsqb_from ..].Index "]" >= 0
+		return INVAL, "", nil
+
+	port = hostport.[last_colon.Unsigned+1 ..]
 
 example basic
 	var buf:Stringbuf
@@ -278,3 +321,56 @@ example basic
 	let except, pip6 = Ip.Parse buf.[1 .. buf.Count-4]
 	assert pip6 == ip6
 	buf#Clear
+
+example split_host_port
+	let tests = {
+		\ ("x.com", OK, "x.com", nil)
+		\ ("x.com:80", OK, "x.com", ?"80")
+		\ ("x.com:http", OK, "x.com", ?"http")
+		\ ("x.com[:80", INVAL, "", nil)
+		\ ("::", OK, "::", nil)
+		\ ("::%0", OK, "::%0", nil)
+		\ ("[::]", INVAL, "", nil)
+		\ ("[::]:80", OK, "::", ?"80")
+		\ ("[::%0]", INVAL, "", nil)
+		\ ("[::%0]:80", OK, "::%0", ?"80")
+		\ }:[](String, Error, String, ?String)
+
+	foreach input, ex_err, ex_host, ex_port in tests
+		var err, host, port = Split_host_port input
+		assert err == ex_err and host == ex_host
+			\ and ((not port? and not ex_port?) or (port? and ex_port? and port == ex_port))
+
+
+fun Lookup_ip_cname name:String = Error, ips:(Buf Ip), cname:Stringbuf
+	let hints = {Flags=syscall.AI_CANONNAME|syscall.AI_V4MAPPED|syscall.AI_ALL
+		\ Socktype=syscall.SOCK_STREAM}:syscall.Addrinfo
+
+	let except, res = syscall.Getaddrinfo name nil hints
+
+	var ai = syscall.Addrinfo.From_raw res
+
+	cname#Cat ai.Canonname
+	if cname == ""
+		cname#Cat name
+	if cname.Count > 0 and cname.Last != "."
+		cname#Cat "."
+
+	var has_next = true
+	while has_next
+		if ai.Socktype != syscall.SOCK_STREAM
+			continue
+		if ai.Family != syscall.AF_INET and ai.Family != syscall.AF_INET6
+			continue
+
+		(ips#Push)# = Ip.From_bytes ai.Ip_bytes
+
+		has_next = ai#Advance_next
+
+	syscall.Freeaddrinfo res
+
+fun Lookup_ip name:String = err:Error, ips:(Buf Ip)
+	err, ips, _ = Lookup_ip_cname name
+
+fun Lookup_cname name:String = err:Error, cname:Stringbuf
+	err, _, cname = Lookup_ip_cname name

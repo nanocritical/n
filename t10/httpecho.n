@@ -15,17 +15,17 @@ struct echo_server =
 
 echo_server met# init poll:#ev.Poll = Error
 	self#server = http.Server.Mk poll handler=self
-	except = self#server#Listen {Ip=(net.Ip.V4 0 0 0 0) Port=8000}
+	except = self#server#Listen {Port=8000}
 
-echo_server met# On_incoming r:*http.Request = ?#http.`Handler
+echo_server met# On_incoming r:*http.Request = ?#http.`Server_handler
 	return Alloc echo
 
-echo_server met# On_done h:#http.`Handler
+echo_server met# On_done h:#http.`Server_handler
 	Free <- (Dyncast echo) h
 
 
 struct echo =
-	isa http.`Handler_buffered
+	isa http.`Server_handler_buffered
 
 echo met# On w:#http.`Response_writer r:#http.Request = Error
 	let ct = r.Header.Get "Content-Type"
@@ -52,10 +52,13 @@ fun test = Error
 	-- while true
 	--	except = poll!Loop
 	while true
-		let wait_err, e, _ = poll!Wait
+		let wait_err, e = poll!Wait
 		if wait_err == syscall.EAGAIN
 			continue
 		except = wait_err
+
+		if e == NONE
+			break
 
 		let err = e.Handler#On e
 		if err == syscall.EAGAIN

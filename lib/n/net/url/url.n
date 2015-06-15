@@ -301,6 +301,14 @@ example authority
 	assert parse_authority "u*/abc" == (OK, ?"u", "/abc")
 	assert parse_authority "u:p*/abc" == (OK, ?"u:p", "/abc")
 
+-- Includes path[?query][#fragment], suitable for use in HTTP request line.
+Url met Full_path = buf:Stringbuf
+	buf#Cat self.Path
+	if self.Raw_query != ""
+		buf#Cat "?" self.Raw_query
+	if self.Fragment != ""
+		buf#Cat "#" self.Fragment
+
 -- String reassembles the URL into a valid URL string.
 Url met String = buf:Stringbuf
 	if self.Scheme != ""

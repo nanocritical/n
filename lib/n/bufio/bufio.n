@@ -16,6 +16,7 @@ intf `Reader =
 	met Buffered = Uint
 
 	-- Peek at up to `Buffered` bytes.
+	-- If max is unspecified, assume Uint.MAX.
 	met Peek ?max:?Uint = []U8
 
 	-- Advance the buffer past the lesser of `count` or `Buffered` bytes.
@@ -27,7 +28,12 @@ intf `Fillable_reader =
 	isa `Reader
 	-- Perform a read of up to `max` bytes. Return any underlying error.
 	-- Like io.`Read, short reads need not return an error, unless they
-	-- read nothing at all.
+	-- read nothing at all. If an error is returned (e.g. EOF), data may
+	-- have been read and buffered: you must read it before considering the
+	-- error.
+	--
+	-- Any error returned here will also be returned when calls to Read
+	-- reach the end of the buffered output.
 	met# Fill ?max:?Uint = Error
 
 
@@ -75,6 +81,7 @@ inline struct Reader =
 	buf		:Stringbuf
 	pending		:String
 	copier		:io.Copier
+	fill_err	:Error
 
 Reader fun Mk r:#io.`Reader = ret:this
 	ret#r = r
@@ -91,7 +98,7 @@ Reader met# Read b:[!]U8 = [!]U8, Error
 		return self#bufr#Read b
 
 	if self.Buffered == 0
-		return b, io.EOF
+		return b, self.fill_err
 
 	let before = b.Count
 	let result = b!Append self.pending.Bytes
@@ -112,12 +119,13 @@ Reader met# Fill ?max:?Uint = Error
 	if self#bufr?
 		-- If it's not fillable, then it's already filled.
 		-- Likely it's something like a bufio.Bytes_reader.
-		return io.EOF
+		self#fill_err = io.EOF
+		return self.fill_err
 
 	self#buf#Copy self.pending.Bytes
-	let _, err = self!copier#Copy max=max
+	_, self#fill_err = self!copier#Copy max=max
 	self#pending = self.buf.String
-	return err
+	return self.fill_err
 
 -- Does not Fill more data. Does not advance.
 -- The returned slice is valid until the next call to Fill.
@@ -200,7 +208,7 @@ example reader
 	var err = OK
 
 	b, err = r#Read b
-	assert b.Count == 0 and err == io.EOF
+	assert b.Count == 0 and err == OK
 
 	except = r#Fill max=4
 	b, err = r#Read b
@@ -468,3 +476,66 @@ example auto_writer_unbuffered
 
 	left, except = aw#Write "abc\nabc".Bytes
 	assert left.Count == 0 and buf == "abc\nabc\nabc"
+
+
+-- Like io.Limited_reader, but buffered.
+inline struct Limited_reader =
+	isa `Fillable_reader
+	R		:#Reader
+	Left		:Uint
+	-- left_fill <= Left
+	-- We do not fill past the limit.
+	left_fill	:Uint
+
+Limited_reader fun Mk r:#Reader limit:Uint = ret:this
+	ret#R = r
+	ret#Left = limit
+	ret#left_fill = limit - (Min limit r.Buffered)
+
+Limited_reader met Buffered = Uint
+	return Min self.Left self.R.Buffered
+
+Limited_reader met Peek ?max:?Uint = []U8
+	return self.R.Peek max=(Min self.Left (max else Uint.MAX))
+
+Limited_reader met! Skip_buffered count:Uint
+	assert count <= self.Buffered
+	return self!R!Skip_buffered count
+
+Limited_reader met# Fill ?max:?Uint = Error
+	if self.left_fill == 0
+		return io.EOF
+
+	let buffered_before = self.R.Buffered
+	let err = self#R#Fill max=(Min self.left_fill (max else Uint.MAX))
+	self!left_fill -= self.R.Buffered - buffered_before
+	return err
+
+Limited_reader met# Read b:[!]U8 = rb:[!]U8, rerr:Error
+	if self.Left == 0
+		return b, io.EOF
+
+	var lim_b = b
+	if lim_b.Available > self.Left
+		lim_b = lim_b!Recapped lim_b.Count+self.Left
+
+	rb, rerr = self.R.Read lim_b
+	-- Return a slice with the original cap.
+	rb = b.[.. rb.Count]
+
+	self!Left -= rb.Count - b.Count
+	if self.Left == 0
+		rerr = io.EOF
+
+example limited_reader
+	let s = "Test"
+	let r = Mk_string_reader s
+	let lr = Limited_reader.Mk #(Reader.Mk #r) 3
+	var buf:Stringbuf
+	buf#Reserve 100
+	var b, err = lr#Read (buf!Bytes!Recapped 1)
+	assert err == OK and b.Count == 1 and b.Const == "T".Bytes and lr.Left == 2 and b.Cap == 1
+	b, err = lr#Read buf!Bytes![.. 1]
+	assert err == io.EOF and b.Count == 3 and b.Const == "Tes".Bytes and lr.Left == 0 and b.Cap == 100
+	b, err  = lr#Read b
+	assert err == io.EOF and b.Count == 3 and b.Const == "Tes".Bytes and lr.Left == 0 and b.Cap == 100

@@ -480,8 +480,10 @@ struct SY(Addrinfo) SY(Addrinfo$From_raw)(NB(U8) *raw) {
   r.Raw_addrlen = ai->ai_addrlen;
   r.Raw_addr = (NB(U8) *) ai->ai_addr;
   r.Canonname.bytes.dat = (NB(U8) *) ai->ai_canonname;
-  r.Canonname.bytes.cnt = strlen(ai->ai_canonname);
-  r.Canonname.bytes.cap = r.Canonname.bytes.cnt + 1;
+  if (ai->ai_canonname != NULL) {
+    r.Canonname.bytes.cnt = strlen(ai->ai_canonname);
+    r.Canonname.bytes.cap = r.Canonname.bytes.cnt + 1;
+  }
   r.Raw_next = (NB(U8) *) ai->ai_next;
   return r;
 }
@@ -532,6 +534,7 @@ NB(Void) SY(Sockaddr_ip)(NB(byteslice) *buf, NB(I32) family, NB(byteslice) ip6, 
   if (family == SY(AF_INET)) {
     // The IP is always passed as IPv4 mapped to IPv6.
     struct sockaddr_in addr = { 0 };
+    addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     memcpy(&addr.sin_addr, ip6.dat + 12, 4);
 
@@ -539,6 +542,7 @@ NB(Void) SY(Sockaddr_ip)(NB(byteslice) *buf, NB(I32) family, NB(byteslice) ip6, 
     memcpy(buf->dat, &addr, buf->cnt);
   } else if (family == SY(AF_INET6)) {
     struct sockaddr_in6 addr = { 0 };
+    addr.sin6_family = AF_INET6;
     addr.sin6_port = htons(port);
     memcpy(&addr.sin6_addr, ip6.dat, ip6.cnt);
 
@@ -610,6 +614,13 @@ static NB(Int) SY(accept4)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) *raw_addrl
   return ret;
 }
 
+static NB(Int) SY(connect)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) raw_addrlen) {
+  socklen_t addrlen = raw_addrlen;
+  int ret = connect(sockfd, (struct sockaddr *) raw_addr, addrlen);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
 
 NB(I32) SY(SOL_SOCKET) = SOL_SOCKET;
 NB(I32) SY(SO_REUSEADDR) = SO_REUSEADDR;
@@ -632,6 +643,13 @@ static NB(Int) SY(setsockopt)(NB(Int) sockfd, NB(I32) level, NB(I32) optname,
   return ret;
 }
 
+static NB(Int) SY(getsockname)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) *raw_addrlen) {
+  socklen_t addrlen = *raw_addrlen;
+  int ret = getsockname(sockfd, (struct sockaddr *) raw_addr, &addrlen);
+  _$Nlatestsyscallerrno = errno;
+  *raw_addrlen = addrlen;
+  return ret;
+}
 
 NB(I32) SY(SHUT_RD) = SHUT_RD;
 NB(I32) SY(SHUT_WR) = SHUT_WR;

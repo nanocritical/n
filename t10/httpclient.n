@@ -1,0 +1,72 @@
+from n import *
+import n.ev
+import n.io
+import n.net
+import n.net.http
+import n.net.url
+import n.logging
+import n.syscall
+
+within logging.Log
+
+struct handler =
+	isa http.`Client_handler
+	state	:Uint
+	copier	:io.Copier
+	buf	:Stringbuf
+
+handler met# On r:#http.Response w:#http.`Request_writer = Error
+	if self.state == 0
+		w#Done
+		self#state += 1
+		return OK
+
+	if self.state == 1
+		self#copier#Reset #self#buf #r#Body
+		self#state += 1
+
+	var err = r#Body#Fill
+	if err != io.EOF
+		return err
+
+	_, err = self#copier#Copy
+	if err == syscall.EAGAIN
+		return err
+	if err != io.EOF
+		return err
+
+	assert self.buf.Index "I SEE MYSELF!" >= 0
+	assert (self.buf.Last_index "I SEE MY END!\n").Unsigned == self.buf.Count-"I SEE MY END!\n".Count
+
+	r#Done close=true
+
+fun test = Error
+	var poll:ev.Poll
+	except = poll#Init
+
+	var client = http.Client.Mk #poll
+
+	let never, url = url.Parse "http://127.0.0.1:8000/t10/httpclient.n"
+	except = client#Initiate_request "GET" url #{}:handler
+
+	while poll.Has_waiters
+		let wait_err, e = poll!Wait
+		if wait_err == syscall.EAGAIN
+			continue
+		except = wait_err
+
+		if e == NONE
+			break
+
+		let err = e.Handler#On e
+		if err == syscall.EAGAIN
+			continue
+
+		if err != OK
+			Log#Error "%s" err
+
+fun Main = I32
+	if test != OK
+		return 1
+	return 0
+-- I SEE MY END!

@@ -5,7 +5,7 @@ x=$2
 
 ret=0
 
-./$x &> /dev/null &
+./$x &
 sleep .1
 
 cmp <(echo -n "test") <(curl -s http://localhost:8000/ --data "test") \

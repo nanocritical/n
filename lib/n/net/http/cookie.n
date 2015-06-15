@@ -1,0 +1,610 @@
+-- This implementation is done according to RFC 6265:
+--
+--    http:--tools.ietf.org/html/rfc6265
+
+-- A Cookie represents an HTTP cookie as sent in the Set-Cookie header of an
+-- HTTP response or the Cookie header of an HTTP request.
+struct Cookie =
+	Name		:String
+	Value		:String
+	Path		:String
+	Domain		:String
+	Expires		:time.Time
+	Raw_expires	:String
+
+	-- Max_age nil means no 'Max-Age' attribute specified.
+	Max_age		:?I64
+	Secure		:Bool
+	Http_only	:Bool
+	Raw		:Stringbuf -- Others strings in self point in Raw.
+	Unparsed	:(Buf String) -- Raw text of unparsed attribute-value pairs
+
+-- Serialization of the cookie for use in a Cookie header (if only Name and
+-- Value are set) or a Set-Cookie response header (if other fields are set).
+Cookie met Show st:#fmt.`State
+	fmt.F st "%s=%s" (sanitize_cookie_name self.Name) (sanitize_cookie_value self.Value)
+	if self.Path != ""
+		fmt.F st "; Path=%s" (sanitize_cookie_path self.Path)
+
+	if self.Domain != ""
+		if valid_cookie_domain self.Domain
+			-- A self.Domain containing illegal characters is not
+			-- sanitized but simply dropped which turns the cookie
+			-- into a host-only cookie. A leading dot is okay
+			-- but won't be sent.
+			let d = self.Domain such
+				if d.[0] == '.'
+					d = d.[1 ..]
+
+			fmt.F st "; Domain=%s" d
+		else
+			Log#Warning "net/http: invalid Cookie.Domain '%s'; dropping domain attribute" self.Domain
+
+	-- FIXME(e): support once we can format time.
+	--(
+	if self.Expires.As_unix_sec > 0
+		fmt.F st "; Expires="
+		self.Expires.Format st time.RFC1123
+	)--
+
+	if self.Max_age?
+		fmt.F st "; Max-Age=%s" self.Max_age
+
+	if self.Http_only
+		fmt.F st "; Http_only"
+
+	if self.Secure
+		fmt.F st "; Secure"
+
+
+-- read_set_cookies parses all "Set-Cookie" values from
+-- the header h and returns the successfully parsed Cookies.
+fun read_set_cookies h:*Header = cookies:(Buf Cookie)
+	let lines = h.Map.["Set-Cookie"]
+	if not lines?
+		return cookies
+
+	foreach line in lines
+		var parts = (strings.Trim_spaces line.String).Split ";"
+		if parts.Count == 1 and parts.[0] == ""
+			continue
+
+		parts![0]! = strings.Trim_spaces parts.[0]
+		let j = parts.[0].Index "="
+		if j < 0
+			continue
+
+		let name, value = parts.[0].Cut_around j.Unsigned
+		if not is_cookie_name_valid name
+			continue
+
+		var success
+		value, success = parse_cookie_value value
+		if not success
+			continue
+
+		var c = cookies#Push
+		c#Raw = line
+		c#Name = name
+		c#Value = value
+
+		foreach i in 1 .. parts.Count
+			parts![i]! = strings.Trim_spaces parts.[i]
+			if parts.[i] == ""
+				continue
+
+			let attr, val = parts.[i]*, "" such
+				let j = attr.Index "="
+				if j >= 0
+					attr, val = attr.Cut_around j.Unsigned
+
+			let lower_attr = attr.To_lower
+			val, success = parse_cookie_value val expires=(lower_attr=="expires")
+			if not success
+				c#Unparsed#Push# = parts.[i]
+				continue
+
+			if lower_attr == "secure"
+				c#Secure = true
+			elif lower_attr == "httponly"
+				c#Http_only = true
+			elif lower_attr == "domain"
+				c#Domain = val
+			elif lower_attr == "max-age"
+				let secs, err = strconv.Parse_int val base=10
+				if err != OK or (secs != 0 and val.[0] == '0')
+					break
+
+				if secs < 0
+					-- Sometime interpreted to mean: delete after browser closes.
+					c#Max_age = -1
+				else
+					c#Max_age = secs
+			elif false
+			-- FIXME(e): support once time parsing is supported.
+			--( lower_attr == "expires"
+				c#Raw_expires = val
+				let exptime, err = time.Parse(time.RFC1123, val)
+				if err != nil
+					exptime, err = time.Parse("Mon, 02-Jan-2006 15:04:05 MST", val)
+					if err != nil
+						c#Expires = time.Time
+						break
+				c#Expires = exptime.UTC()
+			)--
+				noop
+			elif lower_attr == "path"
+				c#Path = val
+			else
+				c#Unparsed#Push# = parts.[i]
+
+	return cookies
+
+-- read_cookies parses all "Cookie" values from the header h and
+-- returns the successfully parsed Cookies.
+--
+-- if filter is set, only cookies of that name are returned.
+fun read_cookies h:*Header ?filter:?String = cookies:(Buf Cookie)
+	let lines = h.Map.["Cookie"]
+	if not lines?
+		return cookies
+
+	foreach line in lines
+		let parts = (strings.Trim_spaces line.String).Split ";"
+		if parts.Count == 1 and parts.[0] == ""
+			continue
+
+		-- Per-line attributes
+		foreach i in 0 .. parts.Count
+			parts![i]! = strings.Trim_spaces parts.[i]
+			if parts.[i] == ""
+				continue
+
+			let name, val = parts.[i]*, "" such
+				let j = name.Index "="
+				if j >= 0
+					name, val = name.Cut_around j.Unsigned
+
+			if not is_cookie_name_valid name
+				continue
+
+			if filter? and filter != name
+				continue
+
+			var success
+			val, success = parse_cookie_value val
+			if not success
+				continue
+
+			cookies#Push# = {Name=name Value=val}:Cookie
+	return cookies
+
+
+-- valid_cookie_domain returns wheter v is a valid cookie domain-value.
+fun valid_cookie_domain v:String = Bool
+	if is_cookie_domain_name v
+		return true
+
+	let perr, _ = net.Ip.Parse v
+	-- TODO(e): Effectively prevents IPv6 addresses, as in Go http package.
+	-- The cookie RFCs are too old to refer to IPv6 addresses, but libcurl
+	-- appears to accept them. Should we accept them?
+	if perr == OK and v.Index ":" < 0
+		return true
+
+	return false
+
+
+-- is_cookie_domain_name returns whether s is a valid domain name or a valid
+-- domain name with a leading dot '.'.  It is almost a direct copy of
+-- package net's is_domain_name.
+fun is_cookie_domain_name s:String = Bool
+	if s.Count == 0
+		return false
+	if s.Count > 255
+		return false
+
+	if s.[0] == '.'
+		-- A cookie a domain attribute may start with a leading dot.
+		s = s.[1 ..]
+
+	var last = '.':U8
+	var ok = false -- Ok once we've seen a letter.
+	var partlen = 0:Uint
+	foreach c in s
+		if 'a' <= c and c <= 'z' or 'A' <= c and c <= 'Z'
+			-- No '_' allowed here (in contrast to package net).
+			ok = true
+			partlen += 1
+		elif '0' <= c and c <= '9'
+			-- fine
+			partlen += 1
+		elif c == '-'
+			-- Byte before dash cannot be dot.
+			if last == '.'
+				return false
+
+			partlen += 1
+		elif c == '.'
+			-- Byte before dot cannot be dot, dash.
+			if last == '.' or last == '-'
+				return false
+
+			if partlen > 63 or partlen == 0
+				return false
+
+			partlen = 0
+		else
+			return false
+
+		last = c
+
+	if last == '-' or partlen > 63
+		return false
+
+	return ok
+
+fun sanitize_cookie_name n:String = r:Stringbuf
+	r#Resize n.Count
+	foreach i in 0 .. n.Count
+		let c = n.[i]
+		if c == '\n' or c == '\r'
+			r![i]! = '-'
+		else
+			r![i]! = c
+
+intf `Byte_test =
+	met Test b:U8 = Bool
+
+-- http://tools.ietf.org/html/rfc6265#section-4.1.1
+-- cookie-value      = *cookie-octet / ( DQUOTE *cookie-octet DQUOTE )
+-- cookie-octet      = %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E
+--           ; US-ASCII characters excluding CTLs,
+--           ; whitespace DQUOTE, comma, semicolon,
+--           ; and backslash
+fun sanitize_cookie_value v:String = Stringbuf
+	return sanitize_or_warn "Cookie.Value" {}:valid_cookie_value_byte v
+
+struct valid_cookie_value_byte =
+	isa `Byte_test
+	noop
+valid_cookie_value_byte met Test b:U8 = Bool
+	return 0x20 < b and b < 0x7f and b != '"' and b != ',' and b != ';' and b != '\\'
+
+-- path-av           = "Path=" path-value
+-- path-value        = <any CHAR except CTLs or ";">
+fun sanitize_cookie_path v:String = Stringbuf
+	return sanitize_or_warn "Cookie.Path" {}:valid_cookie_path_byte v
+
+struct valid_cookie_path_byte =
+	isa `Byte_test
+	noop
+valid_cookie_path_byte met Test b:U8 = Bool
+	return 0x20 <= b and b < 0x7f and b != ';'
+
+(fun T:`Byte_test) sanitize_or_warn field_name:String valid:T v:String = buf:Stringbuf
+	var ok = true
+	foreach i in 0 .. v.Count
+		if valid.Test v.[i]
+			continue
+
+		Log#Warning "n.net.http: invalid byte '%s' in %s; dropping invalid bytes" v.[i] field_name
+		ok = false
+		break
+
+	if ok
+		return v.Buf
+
+	foreach b in v
+		if valid.Test b
+			buf#Push b
+
+	return buf
+
+fun unquote_cookie_value v:String = String
+	if v.Count > 1 and v.[0] == '"' and v.[v.Count-1] == '"'
+		return v.[1 .. v.Count-1]
+	return v
+
+struct is_cookie_byte =
+	isa `Byte_test
+	noop
+is_cookie_byte met Test c:U8 = Bool
+	if (c == 0x21)
+		\ or (0x23 <= c and c <= 0x2b)
+		\ or (0x2d <= c and c <= 0x3a)
+		\ or (0x3c <= c and c <= 0x5b)
+		\ or (0x5d <= c and c <= 0x7e)
+		return true
+	return false
+
+struct is_cookie_expires_byte =
+	isa `Byte_test
+	noop
+is_cookie_expires_byte met Test c:U8 = Bool
+	return ({}:is_cookie_byte).Test c or c == ',' or c == ' '
+
+fun parse_cookie_value raw:String ?expires:?Bool = String, Bool
+	if expires else false
+		return parse_cookie_value_using raw {}:is_cookie_expires_byte
+	return parse_cookie_value_using raw {}:is_cookie_byte
+
+(fun T:`Byte_test) parse_cookie_value_using raw:String valid_byte:T = String, Bool
+	raw = unquote_cookie_value raw
+	foreach b in raw
+		if not valid_byte.Test b
+			return "", false
+	return raw, true
+
+fun is_cookie_name_valid raw:String = Bool
+	foreach b in raw
+		if not is_token b
+			return false
+	return true
+
+
+example write_set_cookies
+	let write_set_cookies_tests = {
+		\ ({Name="cookie-1" Value="v$1"}, "cookie-1=v$1", false)
+		\ ({Name="cookie-2" Value="two" Max_age=3600}, "cookie-2=two; Max-Age=3600", false)
+		\ ({Name="cookie-3" Value="three" Domain=".example.com"}, "cookie-3=three; Domain=example.com", false)
+		\ ({Name="cookie-4" Value="four" Path="/restricted/"}, "cookie-4=four; Path=/restricted/", false)
+		\ ({Name="cookie-5" Value="five" Domain="wrong;bad.abc"}, "cookie-5=five", true)
+		\ ({Name="cookie-6" Value="six" Domain="bad-.abc"}, "cookie-6=six", true)
+		\ ({Name="cookie-7" Value="seven" Domain="127.0.0.1"}, "cookie-7=seven; Domain=127.0.0.1", false)
+		\ ({Name="cookie-8" Value="eight" Domain="::1"}, "cookie-8=eight", true)
+		\ }:[](Cookie, String, Bool)
+
+	foreach tt in write_set_cookies_tests
+		let cookie, raw, dropped_domain = tt
+		var buf:Stringbuf
+		var st = {W=#buf}:fmt.State
+		var mock = bench.Stdio_mock.Setup
+		assert mock#Err_buf.Index "dropping domain attribute" < 0
+
+		cookie.Show #st
+		assert buf.String == raw
+
+		if dropped_domain
+			assert mock#Err_buf.Index "dropping domain attribute" >= 0
+
+--(
+type header_only_response_writer Header
+
+ho header_only_response_writer met Header  = Header
+	return Header(ho)
+
+
+ho header_only_response_writer met Write []byte = (int, error)
+	panic("NOIMPL")
+
+
+ho header_only_response_writer met Write_header int =
+	panic("NOIMPL")
+
+
+fun Test_set_cookie t *testing.T =
+	let m = make(Header)
+	Set_cookie(header_only_response_writer(m), &Cookie_name: "cookie-1", Value: "one", Path: "/restricted/")
+	Set_cookie(header_only_response_writer(m), &Cookie_name: "cookie-2", Value: "two", Max_age: 3600)
+	let l = len(m.["Set-Cookie"])
+	if l != 2
+		t.Fatalf("expected %d cookies, got %d", 2, l)
+
+	let g, e = m.["Set-Cookie"].[0], "cookie-1=one
+	if Path=/restricted/"; g != e
+		t.Errorf("cookie #1: want %q, got %q", e, g)
+
+	let g, e = m.["Set-Cookie"].[1], "cookie-2=two
+	if Max-Age=3600"; g != e
+		t.Errorf("cookie #2: want %q, got %q", e, g)
+
+
+
+var add_cookie_tests = []struct
+	Cookies []*Cookie
+	Raw     String
+
+
+		[]*Cookie,
+		"",
+,
+
+		[]*Cookie_name: "cookie-1", Value: "v$1",
+		"cookie-1=v$1",
+,
+
+		[]*Cookie
+Name: "cookie-1", Value: "v$1",
+Name: "cookie-2", Value: "v$2",
+Name: "cookie-3", Value: "v$3",
+,
+		"cookie-1=v$1; cookie-2=v$2; cookie-3=v$3",
+,
+
+
+fun Test_add_cookie t *testing.T =
+	let for i, tt = range add_cookie_tests
+		let req, _ = New_request("GET", "http:--example.com/", nil)
+		let for _, c = range tt.Cookies
+			req.Add_cookie(c)
+
+		let g = req.Header.Get("Cookie")
+		if g != tt.Raw
+			t.Errorf("Test %d:\nwant: %s\n got: %s\n", i, tt.Raw, g)
+			continue
+
+
+
+
+var read_set_cookies_tests = []struct
+	Header  Header
+	Cookies []*Cookie
+
+
+		Header"Set-Cookie":"Cookie-1=v$1",
+		[]*Cookie_name: "Cookie-1", Value: "v$1", Raw: "Cookie-1=v$1",
+,
+
+		Header"Set-Cookie":"NID=99=Ys_dT5i3E-CXax-; expires=Wed, 23-Nov-2011 01:05:03 GMT; path=/; domain=.google.ch; Http_only",
+		[]*Cookie
+			Name:       "NID",
+			Value:      "99=Ys_dT5i3E-CXax-",
+			Path:       "/",
+			Domain:     ".google.ch",
+			Http_only:   true,
+			Expires:    time.Date(2011, 11, 23, 1, 5, 3, 0, time.UTC),
+			Raw_expires: "Wed, 23-Nov-2011 01:05:03 GMT",
+			Raw:        "NID=99=Ys_dT5i3E-CXax-; expires=Wed, 23-Nov-2011 01:05:03 GMT; path=/; domain=.google.ch; Http_only",
+,
+,
+
+		Header"Set-Cookie":".ASPXAUTH=7E3AA; expires=Wed, 07-Mar-2012 14:25:06 GMT; path=/; Http_only",
+		[]*Cookie
+			Name:       ".ASPXAUTH",
+			Value:      "7E3AA",
+			Path:       "/",
+			Expires:    time.Date(2012, 3, 7, 14, 25, 6, 0, time.UTC),
+			Raw_expires: "Wed, 07-Mar-2012 14:25:06 GMT",
+			Http_only:   true,
+			Raw:        ".ASPXAUTH=7E3AA; expires=Wed, 07-Mar-2012 14:25:06 GMT; path=/; Http_only",
+,
+,
+
+		Header"Set-Cookie":"ASP.NET_Session_id=foo; path=/; Http_only",
+		[]*Cookie
+			Name:     "ASP.NET_Session_id",
+			Value:    "foo",
+			Path:     "/",
+			Http_only: true,
+			Raw:      "ASP.NET_Session_id=foo; path=/; Http_only",
+,
+,
+
+	-- TODO(bradfitz): users have reported seeing this in the
+	-- wild, but do browsers handle it? RFC 6265 just says "don't
+	-- do that" (section 3) and then never mentions header folding
+	-- again.
+	-- Header"Set-Cookie":"ASP.NET_Session_id=foo; path=/; Http_only, .ASPXAUTH=7E3AA; expires=Wed, 07-Mar-2012 14:25:06 GMT; path=/; Http_only",
+
+
+fun to_jSON v interface = String
+	let b, err = json.Marshal(v)
+	if err != nil
+		return fmt.Sprintf("%#v", v)
+
+	return String(b)
+
+
+fun Test_read_set_cookies t *testing.T =
+	let for i, tt = range read_set_cookies_tests
+		let for n = 0; n < 2; n += 1 -- to verify read_set_cookies doesn't mutate its input
+			let c = read_set_cookies(tt.Header)
+			if not reflect.Deep_equal(c, tt.Cookies)
+				t.Errorf("#%d read_set_cookies: have\n%s\nwant\n%s\n", i, to_jSON(c), to_jSON(tt.Cookies))
+				continue
+
+
+
+
+
+var read_cookies_tests = []struct
+	Header  Header
+	Filter  String
+	Cookies []*Cookie
+
+
+		Header"Cookie":"Cookie-1=v$1", "c2=v2",
+		"",
+		[]*Cookie
+Name: "Cookie-1", Value: "v$1",
+Name: "c2", Value: "v2",
+,
+,
+
+		Header"Cookie":"Cookie-1=v$1", "c2=v2",
+		"c2",
+		[]*Cookie
+Name: "c2", Value: "v2",
+,
+,
+
+		Header"Cookie":"Cookie-1=v$1; c2=v2",
+		"",
+		[]*Cookie
+Name: "Cookie-1", Value: "v$1",
+Name: "c2", Value: "v2",
+,
+,
+
+		Header"Cookie":"Cookie-1=v$1; c2=v2",
+		"c2",
+		[]*Cookie
+Name: "c2", Value: "v2",
+,
+,
+
+
+fun Test_read_cookies t *testing.T =
+	let for i, tt = range read_cookies_tests
+		let for n = 0; n < 2; n += 1 -- to verify read_cookies doesn't mutate its input
+			let c = read_cookies(tt.Header, tt.Filter)
+			if not reflect.Deep_equal(c, tt.Cookies)
+				t.Errorf("#%d read_cookies:\nhave: %s\nwant: %s\n", i, to_jSON(c), to_jSON(tt.Cookies))
+				continue
+
+
+
+
+
+fun Test_cookie_sanitize_value t *testing.T =
+	defer log.Set_output(os.Stderr)
+	var logbuf bytes.Buffer
+	log.Set_output(&logbuf)
+
+	let tests = []struct
+		in, want String
+
+"foo", "foo",
+"foo bar", "foobar",
+"\x00\x7e\x7f\x80", "\x7e",
+`"withquotes"`, "withquotes",
+
+	let for _, tt = range tests
+		let got = sanitize_cookie_value(tt.in)
+		if got != tt.want
+			t.Errorf("sanitize_cookie_value(%q) = %q; want %q", tt.in, got, tt.want)
+
+
+
+	let got, sub = logbuf.String(), "dropping invalid bytes"
+	if not Strings.Contains(got, sub)
+		t.Errorf("Expected sub_string %q in log output. Got:\n%s", sub, got)
+
+
+
+fun Test_cookie_sanitize_path t *testing.T =
+	defer log.Set_output(os.Stderr)
+	var logbuf bytes.Buffer
+	log.Set_output(&logbuf)
+
+	let tests = []struct
+		in, want String
+
+"/path", "/path",
+"/path with space/", "/path with space/",
+"/just;no;semicolon\x00orstuff/", "/justnosemicolonorstuff/",
+
+	let for _, tt = range tests
+		let got = sanitize_cookie_path(tt.in)
+		if got != tt.want
+			t.Errorf("sanitize_cookie_path(%q) = %q; want %q", tt.in, got, tt.want)
+
+
+
+	let got, sub = logbuf.String(), "dropping invalid bytes"
+	if not Strings.Contains(got, sub)
+		t.Errorf("Expected sub_string %q in log output. Got:\n%s", sub, got)
+
+
+)--

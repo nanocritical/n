@@ -1,114 +1,128 @@
 let max_line_length = 4096:Uint
 
 struct chunked_reader =
-	isa io.`Reader
+	isa bufio.`Fillable_reader
 	r		:#bufio.Reader
+	r_at_eof	:Bool
+	r_fill_err	:Error
+	-- Left to read in the current chunk:
 	left_chunk	:Uint
 	left_chunk_crlf	:Bool
-	err		:Error
-	at_eof		:Bool
+	copy		:Stringbuf
+	copy_skipped	:Uint
 
--- It is an error if the underlying bufio.Reader has reached io.EOF and we
--- don't make progress using the buffered data, so Fill calls should go through
--- us so we can register this condition, and report it.
-chunked_reader met# Fill ?max:?Uint = Error
-	let err = self#r#Fill max=max
-	self!at_eof = err == io.EOF
-	return err
-
-chunked_reader met# begin_chunk
+chunked_reader met# begin_chunk = Error
 	assert self.left_chunk == 0
 
-	if self.at_eof and self.r.Buffered == 0
-		self!err = io.EOF
-		return
+	if self.r_at_eof and self.r.Buffered == 0
+		return io.EOF
 
-	let partial, line = self!r!Peek_line
+	let partial, line = self.r.Peek_crlf_line
 	if partial
-		Eprn partial line.Bytes
-		if self.at_eof
-			self!err = io.UNEXPECTED_EOF
-			return
-		self!err = syscall.EAGAIN
-		return
+		if self.r_at_eof
+			return io.UNEXPECTED_EOF
+		return syscall.EAGAIN
 
-	_, _ = self!r!Read_line
+	self!r!Skip_buffered line.Count
 	if line.Count > max_line_length
-		self!err = ERR_LINE_TOO_LONG
-		return
+		return ERR_LINE_TOO_LONG
+
+	let two = self.r.Peek_string max=crlf.Count
+	self!r!Skip_buffered two.Count
+	if two != crlf
+		return ERR_MALFORMED_CHUNK_ENCODING
 
 	let number = strings.Trim_spaces line
-	var val
-	val, self!err = strconv.Parse_uint number base=16 bit_size=64
-	if self.err != OK
+	let val, err = strconv.Parse_uint number base=16 bit_size=64
+	if err != OK
 		self!left_chunk = 0
-		return
-
-	self!left_chunk = val.To_uint
-	if self.left_chunk == 0
-		self!err = io.EOF
+		return err
 
 	self!left_chunk_crlf = true
+	self!left_chunk = val.To_uint
+	if self.left_chunk == 0
+		return io.EOF
+
+chunked_reader met# make_progress = Error
+	assert self.left_chunk == 0
+	if self.left_chunk_crlf
+		if self.r.Buffered < crlf.Count
+			if self.r_at_eof
+				return io.UNEXPECTED_EOF
+			return syscall.EAGAIN
+		let two = self.r.Peek_string max=crlf.Count
+		self!r!Skip_buffered two.Count
+		if two != crlf
+			return ERR_MALFORMED_CHUNK_ENCODING
+		self!left_chunk_crlf = false
+
+	return self#begin_chunk
+
+chunked_reader met Buffered = Uint
+	return self.copy.Count - self.copy_skipped
+
+chunked_reader met! Skip_buffered count:Uint
+	assert count <= self.Buffered
+	-- Avoid mercurial effect: do not touch the buffer.
+	self!copy_skipped += count
+	return
+
+chunked_reader met# Fill ?max:?Uint = Error
+	if self.copy.Count > 0 and self.copy_skipped == self.copy.Count
+		-- We've advanced to the end of our local buffer.
+		self#copy#Clear
+		self#copy_skipped = 0
+
+	self!r_fill_err = self#r#Fill max=max
+	self!r_at_eof = self.r_fill_err == io.EOF
+
+	while true
+		if self.left_chunk == 0
+			let perr = self#make_progress
+			if perr != OK
+				return perr
+
+		let available = self.r.Peek max=self.left_chunk
+		self#copy#Append available
+		self#r#Skip_buffered available.Count
+		self#left_chunk -= available.Count
+
+		if self.left_chunk > 0
+			break
+
+	return self.r_fill_err
+
+chunked_reader met Peek ?max:?Uint = []U8
+	let end = self.copy.Count such
+		if max?
+			end = self.copy_skipped + max
+	return self.copy.[self.copy_skipped .. end].Bytes
 
 -- Until it returns io.EOF, there is more data to read.
 -- If it returns AGAIN, you must call Fill.
 chunked_reader met# Read b:[!]U8 = [!]U8, Error
-	var total
-	while self.err == OK
-		if self.left_chunk == 0 and self.left_chunk_crlf
-			if self.r.Buffered < crlf.Count
-				if self.at_eof
-					self!err = io.UNEXPECTED_EOF
-					break
-				self!err = syscall.EAGAIN
-				break
-			let two = self.r.Read_string max=crlf.Count
-			if two != crlf
-				self!err = ERR_MALFORMED_CHUNK_ENCODING
-				break
-			self!left_chunk_crlf = false
+	if self.Buffered > 0
+		let b0 = b
+		b = b#Append self.Peek
+		self!Skip_buffered b.Count-b0.Count
 
-		if self.left_chunk == 0
-			if total > 0
-				let partial_chunk_header, _ = self.r.Peek_line
-				if partial_chunk_header
-					-- We've read enough. Don't potentially block
-					-- reading a new chunk header.
-					break
-			self#begin_chunk
-			continue
-
-		if b.Available == 0
-			break
-
-		let rbuf = b such
-			if rbuf.Available > self.left_chunk
-				rbuf = rbuf!Recapped rbuf.Count+self.left_chunk
-
-		var rrbuf
-		rrbuf, self!err = self!r!Read rbuf
-
-		let count = rrbuf.Count - rbuf.Count
-		total += count
-		self!left_chunk -= count
-
-		b = b![.. total]
-
-	return b, self.err
+	if self.Buffered == 0
+		return b, self.r_fill_err
+	return b, OK
 
 example chunked_read
 	let chunks = "10\r\n0123456789abcdef\r\n1\r\n0\r\n"
-	var sr = #<- io.Mk_string_reader chunks
+	var sr = #<- bufio.Mk_string_reader chunks
 	var br = #<- bufio.Reader.Mk sr
 	var cr = {r=br}:chunked_reader
 
-	assert io.EOF == cr#Fill
+	var err = cr#Fill
+	assert err == io.EOF
 
 	var buf:Stringbuf
 	buf#Reserve 5
 
-	var b, err
-	b = buf!Bytes![.. 0]
+	var b = buf!Bytes![.. 0]
 	b, err = cr#Read b
 	assert b.Const == "01234".Bytes and err == OK
 
@@ -122,8 +136,43 @@ example chunked_read
 
 	b = buf!Bytes![.. 0]
 	b, err = cr#Read b
-	assert b.Const == "f0".Bytes and err == OK
+	assert b.Const == "f0".Bytes and err == io.EOF
 
-	b = buf!Bytes![.. 0]
-	b, err = cr#Read b
-	assert b.Const == "".Bytes and err == io.EOF
+	err = cr#Fill
+	assert err == io.EOF
+
+example chunked_read_peek
+	let chunks = "10\r\n0123456789abcdef\r\n1\r\n0\r\n"
+	var sr = #<- bufio.Mk_string_reader chunks
+	var br = #<- bufio.Reader.Mk sr
+	var cr = {r=br}:chunked_reader
+
+	var err = cr#Fill
+	assert err == io.EOF
+
+	assert cr.Peek == "0123456789abcdef0".Bytes
+	err = cr#Fill
+	assert err == io.EOF
+
+fun write_chunk_size w:#io.`Writer cnt:Uint = Error
+	var buf:Stringbuf
+	buf#Resize 64
+
+	var x = cnt
+	var i = buf.Count - 2
+	buf![i]! = '\r'
+	buf![i + 1]! = '\n'
+
+	while x != 0
+		i -= 1
+		let d = (x % 16).Trim_u8
+		let c such
+			if d < 10
+				c = '0' + d
+			else
+				c = 'a' + (d - 10)
+		buf![i]! = c
+		x /= 16
+	let b = buf.[i ..]
+
+	_, except = w#Write b.Bytes

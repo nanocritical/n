@@ -1,5 +1,87 @@
+-- For client-side use.
+inline struct Response =
+	Status_code	:Uint
+	Status_text	:Stringbuf
+
+	Method		:Stringbuf
+	Url		:url.Url
+
+	Proto		:Stringbuf
+	Proto_version	:Uint
+
+	body_impl	:body_reader
+	done		:Bool
+
+	Header		:Header
+	Body		:bufio.Reader
+	Close_conn	:Bool
+
+	Content_length		:?Uint
+	Transfer_encoding	:(Buf Stringbuf)
+
+	Trailer		:Header
+
+	Remote_addr	:tcp.Addr
+
+Response met# init method:String u:*url.Url
+	self#Method = method.Buf
+	self#Url = u
+
+Response met# Done ?close:?Bool
+	self#done = true
+	if close else false
+		self#Close_conn = true
+
+
+fun should_close header:#Header proto_version:Uint = Bool
+	let connection = (header.Get "Connection")?.To_lower else ""
+	if proto_version < 10
+		return true
+	elif proto_version == 10
+		if connection.Index "keep-alive" < 0
+			return true
+		return false
+	else
+		-- TODO: Should split on commas, toss surrouding white space,
+		-- and check each field.
+		if connection == "close"
+			header#Map#Delete "Connection"
+			return true
+	return false
+
 fun fix_pragma_cache_control header:#Header
 	let hp = header.Map.["Pragma"]
 	if hp? and hp.Count > 0 and hp.[0] == "no-cache"
 		if not header.Map.["Cache-Control"]?
 			(header#Map#Store "Cache-Control")#Push#Cat "no-cache"
+
+fun parse_status_line line:String = Error, proto:Stringbuf, status_code:Uint, status_text:Stringbuf
+	let s1 = line.Index " "
+	let s2 = line.[(s1+1).Unsigned ..].Index " "
+	if s1 < 0 or s2 < 0
+		return ERR_MALFORMED_REQUEST_LINE, "", 0, ""
+	s2 += s1 + 1
+	let us1 = s1.Unsigned
+	let us2 = s2.Unsigned
+
+	proto = line.[.. us1].To_upper
+
+	let status = line.[us1+1 .. us2].Buf
+	let status_code64, except = strconv.Parse_uint status.String base=10 bit_size=32
+	status_code = status_code64.To_uint
+	status_text = line.[us2+1 ..].Buf
+
+-- Call with a fully loaded header.
+fun read_response_header resp:#Response b:!bufio.Reader remote_addr:*tcp.Addr = Error
+	var partial, s = b!Peek_crlf_line
+	assert not partial
+	b!Skip_buffered s.Count+2
+
+	except, resp#Proto, resp#Status_code, resp#Status_text = parse_status_line s
+	except, resp#Proto_version = Parse_http_version resp.Proto.String
+
+	except = read_header #resp#Header b
+
+	fix_pragma_cache_control #resp#Header
+
+	resp#Remote_addr = remote_addr

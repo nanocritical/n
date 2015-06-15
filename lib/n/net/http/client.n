@@ -1,0 +1,534 @@
+-- HTTP client. See RFC 2616.
+
+
+-- TODO(e): Should drop host-specici caches after timeout.
+
+
+-- Url must be specified.
+inline struct Requestbuf =
+	Method		:Stringbuf -- defaults to "GET"
+	Url		:url.Url
+	Proto_version	:Uint -- defaults to 11
+	Header		:Header
+	Body		:Stringbuf
+
+inline struct Responsebuf =
+	Status_code	:Uint
+	Url		:url.Url
+	Proto		:Stringbuf
+	Proto_version	:Uint
+	Header		:Header
+	Body		:Stringbuf
+	Remote_addr	:tcp.Addr
+	Requestbuf	:*Requestbuf
+
+
+
+intf `Request_writer =
+	-- TODO(e): bufio.`Writer
+	isa io.`Writer
+	met# Header = #Header
+	met# Write_header
+	met# Flush ?max:?Uint = Error
+	met# Done
+
+
+struct request_writer =
+	isa `Request_writer
+	conn			:#tcp.Conn
+	bufw			:#bufio.Writer
+	proto_version		:Uint
+	method			:Stringbuf
+	url			:url.Url
+	header			:Header
+	wrote_header		:Bool
+	chunking		:Bool
+	finalized		:Bool
+	close_after_reply	:Bool
+	close_because_of	:Error
+	done			:Bool
+
+request_writer met# init_io conn:#tcp.Conn bufw:#bufio.Writer
+	self#conn = conn
+	self#bufw = bufw
+
+request_writer met# init method:String u:*url.Url
+	self#proto_version = 11
+	self#method = method.Buf
+	self#url = u
+
+request_writer met# Header = #Header
+	return #self#header
+
+fun write_request_line w:#bufio.Writer method:*Stringbuf u:*url.Url proto_version:Uint
+	fmt.F w "%s %s " method u.Full_path
+	Write_http_version w proto_version
+	fmt.F w crlf
+
+request_writer met# write_header b:[]U8
+	if self.wrote_header
+		return
+
+	if self.proto_version >= 11
+		self#chunking = true
+
+	if ((self.header.Get "Connection") else "") == "close"
+		self!close_after_reply = true
+
+	if not (self.header.Get "Host")?
+		(self!header#Add "Host")# = self.url.Host
+
+	write_request_line self#bufw self.method self.url self.proto_version
+	write_header self#bufw self.header {}
+
+	self!wrote_header = true
+
+request_writer met# Write b:[]U8 = left:[]U8, err:Error
+	if b.Count == 0
+		-- We don't want to send an empty chunk mid-stream, it means
+		-- end-of-response.
+		return {}, OK
+
+	left = b
+
+	if not self.wrote_header
+		self.write_header b
+
+	if self.method == "HEAD"
+		-- Eat writes.
+		return {}, OK
+
+	if self.chunking
+		never = write_chunk_size self#bufw b.Count
+
+	_, never = self#bufw#Write b
+
+	if self.chunking
+		_, never = self#bufw#Write crlf.Bytes
+
+	return {}, OK
+
+request_writer met# Write_header
+	self#write_header {}
+
+request_writer met# Flush ?max:?Uint = Error
+	let err = self#bufw#Flush max=max
+	if err == syscall.EAGAIN
+		return err
+	if err != OK
+		self!close_because_of = err
+		Log#Error "will close connection because of error: %s" self.close_because_of
+		return err
+
+request_writer met# Done
+	self#done = true
+
+request_writer met# finalize ?max_flush:?Uint
+	if not self.wrote_header
+		self.write_header {}
+
+	if not self.finalized
+		self!finalized = true
+		if self.chunking
+			_, never = self#bufw#Write "0\r\n\r\n".Bytes
+
+request_writer met wants_close = Bool
+	return self.close_after_reply
+		\ or self.close_because_of != OK
+
+
+enum client_handling_state =
+	| WAITING_CONN = 0
+	| HANDLING_REQUEST
+	| FLUSH
+	| WAITING_HEADER
+	| HANDLING_RESPONSE
+	| CLOSE
+	| RECYCLE
+
+
+struct client_conn_handler =
+	isa ev.`Handler `Not_copyable
+	coh		:!client_one_host
+
+	connected	:Bool
+
+	state		:client_handling_state
+	socket		:tcp.Socket
+	conn		:tcp.Conn
+
+	addr		:tcp.Addr
+
+	bufw		:bufio.Writer
+	request		:request_writer
+
+	bufr		:bufio.Reader
+	response	:Response
+
+	close_because_hup	:Bool
+
+	handler		:?#`Client_handler
+
+	ev_readwrite	:ev.Event
+	ev_close	:ev.Event
+
+client_conn_handler met debug ?_Ncodeloc:?Codeloc ...s:(Vararg ?*`Show)
+	Log#Debug "%s: %s" _Ncodeloc=_Ncodeloc self.conn.Fd (fmt.S ...s)
+
+client_conn_handler met# init coh:!client_one_host
+	self#coh = coh
+
+fun addr_specific_connect_error err:Error = Bool
+	return err == syscall.ECONNREFUSED
+		\ or err == syscall.EAFNOSUPPORT
+		\ or err == syscall.ENETUNREACH
+
+client_conn_handler met# ensure_connected method:String u:*url.Url h:#`Client_handler = Error
+	self#request#init method u
+	self#response#init method u
+	self#handler = h
+
+	if self.connected
+		assert self.state == HANDLING_REQUEST
+		assert self.request.url.Scheme == u.Scheme
+		assert self.request.url.Host == u.Host
+		return OK
+
+	let connect_err = self#initiate_connection
+	if connect_err == OK or connect_err == syscall.EINPROGRESS
+		return OK
+	except = connect_err
+
+client_conn_handler met# initiate_connection = Error
+	let except, addrs = tcp.Resolve_address self.request.url.Host.String
+
+	-- TODO(e): It's very challenging to try another address if this one
+	-- fails, with delayed connection errors. But it would be nice to
+	-- find a way. Or at least to allow the user to maybe specify hints
+	-- to help choose an address.
+	let addr = addrs.First
+
+	if addr.Port == 0
+		if self.request.url.Scheme == "http"
+			addr!Port = 80
+		else
+			addr!Port = 443
+
+	var connect_err
+	connect_err, self#conn = self#socket#Connect addr
+
+	if connect_err == OK or connect_err == syscall.EINPROGRESS
+		self#ev_readwrite = {Fd=self.conn.Fd Ask={READ WRITE RDHUP} Handler=self}
+		self#ev_close = {Fd=self.conn.Fd Ask={CLOSE} Handler=self}
+		except = self.coh.client.poll!Register self.ev_readwrite
+
+	if connect_err == OK
+		self#state = WAITING_CONN
+		-- Immediately complete the connection:
+		except = self#waiting_conn connect_err=OK
+		-- Note that on Linux, with non-blocking sockets,
+		-- connections appear to never complete immediately.
+		-- But, in theory, they could.
+		return OK
+	elif connect_err == syscall.EINPROGRESS
+		self#state = WAITING_CONN
+		-- Make sure we go back to wait, any event we got so
+		-- far is obsolete.
+		return connect_err
+	elif addr_specific_connect_error connect_err
+		return connect_err
+	else
+		return connect_err
+
+client_conn_handler met# complete_connection
+	self#connected = true
+	self#bufr = bufio.Reader.Mk #self#conn
+	self#bufw = bufio.Writer.Mk #self#conn
+	self#request#init_io #self#conn #self#bufw
+
+client_conn_handler met# recycle
+	self.debug
+	if not self.connected
+		self#state = CLOSE
+		return
+
+	if self#bufr#Buffered != 0 or self#bufw#Buffered != 0
+		-- We can't recycle this!
+		self#state = CLOSE
+		return
+
+	drop = self.coh.client.poll!Unregister_all self.ev_readwrite
+	self#request#Dtor
+	self#response#Dtor
+	self#handler = nil
+	self#state = HANDLING_REQUEST
+
+	self.coh!i_am_recycled self
+
+client_conn_handler met# Close = err:Error
+	if not self.conn.Fd?
+		return OK
+
+	self.debug
+
+	-- No need for a fancy closing procedure, unlike server.n. Here in the
+	-- HTTP client, we receive confirmation from the server that it got all
+	-- our request through its response. If we're closing, we're not
+	-- expecting more (or we chose to ignore it by closing).
+
+	err = self#conn#Close
+	if err == syscall.EBADF
+		-- Already closed
+		err = OK
+
+	if err == syscall.EWOULDBLOCK
+		return err
+
+	-- If other error, give up trying to close it.
+
+	self#connected = false
+	self.coh!i_am_closed self
+	except = err
+
+client_conn_handler met can_progress e:ev.Event = Bool
+	match self.state
+	| WAITING_CONN -> return WRITE in e.Got
+	| HANDLING_REQUEST -> return WRITE in e.Got
+	| FLUSH -> return WRITE in e.Got
+	| WAITING_HEADER -> return READ in e.Got
+	| HANDLING_RESPONSE -> return READ in e.Got
+	| RECYCLE -> return true
+	| CLOSE -> return true
+
+client_conn_handler met# On e:ev.Event = err:Error
+	self.debug self.state e
+
+	var pending_err:?Error
+	if ERROR in e.Got
+		pending_err = self!conn!Clear_pending_error
+		self.debug "pending error:" pending_err
+
+	var stop = false
+	while not stop and self.can_progress e
+		try
+			match self.state
+			| WAITING_CONN -> except = self#waiting_conn connect_err=pending_err
+			| HANDLING_REQUEST -> except = self#handling_request
+			| FLUSH -> except = self#flush
+			| WAITING_HEADER -> except = self#waiting_header
+			| HANDLING_RESPONSE -> except = self#handling_response
+			| RECYCLE -> stop = true
+			| CLOSE -> stop = true
+		catch err
+			stop = true
+			if err == syscall.EAGAIN
+				noop
+			elif err == syscall.EPIPE
+				self#state = CLOSE
+			else
+				Log#Error "closing in state '%s' because of error: %s"
+					\ self.state err
+				self#state = CLOSE
+
+	if RDHUP in e.Got or HUP in e.Got
+		if self.connected
+			-- There will be nothing more to read, except what
+			-- may still be in kernel buffers (!), from the
+			-- server.
+			-- So the connection cannot be recycled.
+			self#close_because_hup = true
+		else
+			self#state = CLOSE
+
+	if pending_err? and pending_err != OK
+		self#state = CLOSE
+
+	if CLOSE in e.Got
+		let close_err = self#Close
+		if close_err == syscall.EWOULDBLOCK or close_err == syscall.EAGAIN
+			return close_err
+		Free self
+		return OK
+
+	if pending_err? and pending_err != OK
+		self#state = CLOSE
+
+	if self.state == RECYCLE
+		self#recycle
+
+	if self.state == CLOSE
+		except = self.coh.client.poll#Register self.ev_close
+
+client_conn_handler met# waiting_conn connect_err:?Error = Error
+	self.debug self.state
+
+	if not connect_err?
+		-- Let's fetch the error ourselves (we may not get an ERROR
+		-- event before we get the WRITE event indicating the socket
+		-- completed the connection, possibly with an error).
+		connect_err = self!conn!Clear_pending_error
+	except = connect_err else OK
+
+	self#complete_connection
+	self#state = HANDLING_REQUEST
+
+client_conn_handler met# handling_request = Error
+	self.debug self.state
+
+	let handler_err = self.handler#On #self#response #self#request
+	if handler_err != OK
+		Log#Error "will close connection because of handler error: %s" handler_err
+		self#state = CLOSE
+		return OK
+
+	if self.request.done
+		self#state = FLUSH
+
+client_conn_handler met# flush = Error
+	self.debug self.state
+
+	self#request#finalize
+
+	let err = self#request#Flush
+	if err == syscall.EAGAIN
+		return err
+	except = err
+
+	self#state = WAITING_HEADER
+
+client_conn_handler met# waiting_header = Error
+	let rerr = self#bufr#Fill
+
+	if rerr != io.EOF and rerr != syscall.EAGAIN
+		except = rerr
+
+	if self.bufr.Buffered == 0 and rerr == io.EOF
+		self#state = CLOSE
+		return OK
+
+	if not is_header_loaded self.bufr
+		self.debug "header not loaded, count:" self.bufr.Buffered
+		if rerr == io.EOF
+			return ERR_MALFORMED_HEADER
+		return syscall.EAGAIN
+
+	except = read_response_header #self#response !self!bufr self.conn.Remote_addr
+
+	except = prepare_response_reception #self#response #self#bufr
+
+	self#state = HANDLING_RESPONSE
+
+client_conn_handler met# handling_response = Error
+	self.debug self.state
+
+	let handler_err = self.handler#On #self#response #self#request
+	if handler_err != OK
+		Log#Error "will close connection because of handler error: %s" handler_err
+		self#state = CLOSE
+		return OK
+
+	if self.response.done
+		if self.request.wants_close or self.response.Close_conn or self.close_because_hup
+			self#state = CLOSE
+		else
+			self#state = RECYCLE
+
+
+struct Client_config =
+	-- We do not limit the number of *active* connections per host.
+	Max_idle_connections_per_host	:?Uint
+	Disable_keepalive		:Bool
+
+
+-- In the spirit of the concept of "server" in HTTP/1.1, we keep state for each
+-- (url.Scheme, url.Host) pair (this include any port specification). This is
+-- so that any connection limit applies per "server".
+fun mk_hostkey u:*url.Url = r:Stringbuf
+	r#Cat "|" u.Scheme "|" u.Host
+
+
+struct client_one_host =
+	hostkey		:Stringbuf
+	config		:Client_config
+	idles		:(Set (Ref_as_key ?#client_conn_handler)) -- up to config.Max_idle_connections_per_host
+	actives		:(Set (Ref_as_key ?#client_conn_handler))
+	client		:!Client
+
+client_one_host met# Dtor
+	self#hostkey#Dtor
+	self#config#Dtor
+
+	for rconnh in self.idles.Iter
+		Free rconnh.Ref
+	self#idles#Dtor
+
+	if self.actives.Count != 0
+		Log#Warning "%s connections to host '%s' were still active"
+			\ self.actives.Count self.hostkey
+	for rconnh in self.actives.Iter
+		Free rconnh.Ref
+	self#actives#Dtor
+
+client_one_host met! i_am_recycled connh:#client_conn_handler
+	let removed = self!actives#Remove {Ref=connh}
+	assert removed
+
+client_one_host met! i_am_closed connh:#client_conn_handler
+	let removed = self!actives#Remove {Ref=connh}
+	if not removed
+		let removed_idle = self!idles#Remove {Ref=connh}
+		if not removed_idle
+			Log#Debug "i_am_closed on unknown client_conn_handler; ignored"
+
+client_one_host met! initiate_request method:String u:*url.Url h:#`Client_handler = Error
+	var connh
+	if self.idles.Count > 0
+		connh = self.idles.Any_one.Ref
+		_ = self!idles#Remove {Ref=connh}
+	else
+		connh = Alloc client_conn_handler
+		connh#init self
+
+	except = connh#ensure_connected method u h
+
+	let added = self!actives#Add {Ref=connh}
+	assert added
+
+
+struct Client =
+	default_config	:Client_config
+	poll		:#ev.Poll
+	hosts		:(Map Stringbuf ?#client_one_host)
+
+Client fun Mk poll:#ev.Poll ?default_config:?Client_config = r:this
+	r#poll = poll
+	r#default_config = default_config else {Max_idle_connections_per_host=10}
+
+Client met# Dtor
+	for _, coh in self.hosts.Iter
+		Free coh*
+	self#hosts#Dtor
+
+Client met! get_host u:*url.Url = #client_one_host
+	let hostkey = mk_hostkey u
+	let added, phost = self!hosts#Try_store hostkey
+	if not added
+		return phost*
+
+	phost# = Alloc client_one_host
+	let host = phost*
+	host#hostkey = hostkey
+	host#config = self.default_config
+	host#client = self
+	return host
+
+Client met! Initiate_request method:String u:*url.Url h:#`Client_handler = Error
+	let host = self!get_host u
+	except = host!initiate_request method u h
+
+-- Client met# Initiate_buffered_request u:*url header:*Header h:#`Client_handler_buffered = Error
+
+
+
+-- Simplified interface.
+-- Client met# Request q:Requestbuf = Error, ev.Promise Responsebuf

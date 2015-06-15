@@ -16,6 +16,7 @@ import n.net.tcp
 import n.net.url
 import n.time
 import n.logging
+import n.bench
 
 within logging.Log
 
@@ -36,11 +37,11 @@ let ERR_LINE_TOO_LONG = {Why=*"ERR_LINE_TOO_LONG: header line too long"}:Error
 
 
 intf `Server =
-	met# On_incoming r:*Request = ?#`Handler
-	met# On_done h:#`Handler
+	met# On_incoming r:*Request = ?#`Server_handler
+	met# On_done h:#`Server_handler
 
--- The first time On is called, r is populatedr is populated, but the none of
--- the Body may be loaded.The handler must read the request body in a
+-- The first time On is called, r is populated, but none of
+-- the Body may be loaded. The handler must read the request body in a
 -- non-blocking manner, by filling r#Body, a bufio.Reader.
 --
 -- The `Reponse_writer w is buffered: if the handler chooses to flush it
@@ -49,288 +50,24 @@ intf `Server =
 -- The handler must call w#Done when it has written the whole response.
 -- Once w#Done has been called, the Server will take care of flushing any
 -- remaining data in the `Response_writer.
-intf `Handler =
+intf `Server_handler =
 	met# On w:#`Response_writer r:#Request = Error
 
--- Unlike `Handler, the whole request body is buffered before calling On.
+-- Unlike `Server_handler, the whole request body is buffered before calling On.
 -- On is called once, and it must write the whole response to the (buffered)
--- `Response_writer. The response is then flushed automatically, and it should
+-- `Response_writer. The response is then flushed automatically, and it must
 -- not be flushed manually.
-intf `Handler_buffered =
-	isa `Handler
+intf `Server_handler_buffered =
+	isa `Server_handler
 
 
-enum Handling_state =
-	| WAITING_HEADER = 0
-	| HANDLING
-	| FLUSH
-	| RECYCLE
-	| CLOSE
+-- w#Done must be called before reading anything from r.
+-- r#Done must be called once. (TODO(e) remove this requirement, detect when
+-- r.Body its EOF).
+intf `Client_handler =
+	met# On r:#Response w:#`Request_writer = Error
 
-struct conn_handler =
-	isa ev.`Handler `Not_copyable
-	server		:#Server
-
-	connected	:Bool
-
-	state		:Handling_state
-	conn		:#tcp.Conn -- Owner
-
-	bufr		:bufio.Reader
-	request		:Request
-
-	bufw		:bufio.Writer
-	response	:response_writer
-
-	server_handler		:?#`Server
-	handler			:?#`Handler
-	handler_buffered	:?#`Handler_buffered
-	buffered_filling	:Bool
-
-	ev_read		:ev.Event
-	ev_close	:ev.Event
-
-conn_handler met debug ?_Ncodeloc:?Codeloc ...s:(Vararg ?*`Show)
-	Log#Debug "%s: %s" _Ncodeloc=_Ncodeloc self.conn.Fd (fmt.S ...s)
-
-conn_handler met# Init server:#Server conn:#tcp.Conn = Error
-	self#server = server
-	self#connected = true
-	self#conn = conn
-	self#bufr = bufio.Reader.Mk self#conn
-	self#bufw = bufio.Writer.Mk self#conn
-	self#ev_read = {Fd=self.conn.Fd Ask={READ RDHUP} Handler=self}
-	self#ev_close = {Fd=self.conn.Fd Ask={HUP} Handler=self}
-
-	except = self.server.poll!Register self.ev_read
-
-conn_handler met# recycle
-	self.debug
-	if not self.connected
-		self#state = CLOSE
-		return
-
-	if self#bufr#Buffered != 0 or self#bufw#Buffered != 0
-		-- We can't recycle this!
-		self#state = CLOSE
-		return
-
-	self#request#Dtor
-	self#response#Dtor
-	self#server_handler = nil
-	self#handler = nil
-	self#handler_buffered = nil
-	self#buffered_filling = false
-	self#state = WAITING_HEADER
-
-conn_handler met# Close = err:Error
-	if not self.connected
-		return OK
-
-	self.debug
-
-	block
-		-- See http://blog.netherlabs.nl/articles/2009/01/18/the-ultimate-so_linger-page-or-why-is-my-tcp-not-reliable
-		-- See http://developerweb.net/viewtopic.php?id=2982
-		drop = syscall.Shutdown self.conn.Fd syscall.SHUT_RD
-
-		var buf:Stringbuf
-		buf#Reserve 4096
-		let hole = buf!Bytes
-		while true
-			let left, err = self#conn#Read hole
-			if err == io.EOF
-				break
-			if err == syscall.EAGAIN
-				-- We're not going to wait.
-				return err
-			drop = err
-			if left.Count != 0
-				self.debug "read leftovers:" hole.Count-left.Count
-
-	err = self#conn#Close
-	Free self#conn
-	self#conn = nil
-
-	if err == syscall.EBADF
-		-- Already closed
-		return OK
-
-	if err == syscall.EWOULDBLOCK
-		return err
-
-	-- Give up trying to close it.
-	self#connected = false
-	except = err
-
-conn_handler met# On e:ev.Event = err:Error
-	self.debug self.state e
-
-	if ERROR in e.Got
-		err = self!conn!Pending_error
-		self.debug "pending error:" err
-		if not HUP in e.Got
-			except = self.server.poll#Register self.ev_close
-
-	if READ in e.Got
-		var stop = false
-		while not stop
-			try
-				match self.state
-				| WAITING_HEADER -> except = self#waiting_header
-				| HANDLING -> except = self#handling
-				| FLUSH -> except = self#flush
-				| RECYCLE -> break
-				| CLOSE -> break
-			catch err
-				if err == syscall.EAGAIN
-					stop = true
-				elif err == syscall.EPIPE
-					self#state = CLOSE
-					stop = true
-				else
-					except = err
-
-	if HUP in e.Got
-		let close_err = self#Close
-		if close_err == syscall.EWOULDBLOCK or close_err == syscall.EAGAIN
-			return close_err
-		Free self
-		return OK
-
-	if RDHUP in e.Got
-		if self.connected
-			-- There will be nothing more to read from the client.
-			-- We can't recycle then.
-			self#response#close_because_rdhup = true
-		else
-			self#state = CLOSE
-
-	if self.state == RECYCLE
-		self#recycle
-
-	if self.state == CLOSE
-		except = self.server.poll#Register self.ev_close
-
-conn_handler met# waiting_header = Error
-	let rerr = self#bufr#Fill
-
-	if rerr != io.EOF and rerr != syscall.EAGAIN
-		except = rerr
-
-	if self.bufr.Buffered == 0 and rerr == io.EOF
-		self#state = CLOSE
-		return OK
-
-	if not is_header_loaded self.bufr
-		self.debug "header not loaded, count:" self.bufr.Buffered
-		if rerr == io.EOF
-			return ERR_MALFORMED_HEADER
-		return syscall.EAGAIN
-
-	except = read_request_header #self#request !self!bufr self.conn.Remote_addr
-
-	var handler
-	foreach server_handler in self.server.Handlers
-		handler = (server_handler*)#On_incoming self.request
-		if handler?
-			self#server_handler = server_handler*
-			break
-	if not handler?
-		-- FIXME(e): write a 404 and recycle.
-		Log#Error "no handler found for URL: %s" self.request.Url
-		self#state = CLOSE
-		return OK
-	self#handler = handler
-	self#handler_buffered = (Dyncast `Handler_buffered) handler
-
-	except = prepare_request_transfer #self#request #self#bufr #self#bufw
-	self#response#init self#conn #self#request #self#bufw
-
-	self#state = HANDLING
-	return OK
-
-conn_handler met# handling = Error
-	if self.handler_buffered?
-		return self#handling_buffered
-
-	self.debug self.state
-
-	except = self.handler#On #self#response #self#request
-
-	if self.response.done
-		self#state = FLUSH
-	return OK
-
-conn_handler met# handling_buffered = Error
-	self.debug self.state
-
-	if not self.buffered_filling
-		let rerr = self#request#Body#Fill
-		if rerr == io.EOF
-			self#buffered_filling = true
-		elif rerr == syscall.EAGAIN
-			return rerr
-		else
-			except = rerr
-
-	except = self.handler#On #self#response #self#request
-	except = self#response#Done
-
-	self#state = FLUSH
-	return OK
-
-
-conn_handler met# flush = Error
-	self.debug self.state
-
-	self#response#finalize
-
-	let err = self#response#Flush
-	if err == syscall.EAGAIN
-		return err
-	except = err
-
-	self#server_handler#On_done self.handler
-
-	if self.response.wants_close
-		self#state = CLOSE
-	else
-		self#state = RECYCLE
-	return OK
-
-
-struct Server =
-	isa ev.`Handler
-	poll		:#ev.Poll
-
-	listening	:tcp.Socket
-	ev_accept	:ev.Event
-	Handlers	:(Buf ?#`Server)
-
-Server fun Mk poll:#ev.Poll ?handler:?#`Server = r:this
-	r#poll = poll
-	if handler?
-		r!Handlers#Push# = handler
-
-Server met# Listen addr:tcp.Addr = Error
-	except = self#listening#Listen addr.Needs_protocol addr
-
-	self!ev_accept = {Fd=self.listening.Fd Ask={READ} Handler=self}
-	except = self.poll!Register self.ev_accept
-
-Server met# On e:ev.Event = Error
-	while true
-		let conn = Alloc tcp.Conn
-		var err
-		err, conn# = self.listening.Accept
-		if err != OK
-			Free conn
-			if err != syscall.EAGAIN and err != syscall.EWOULDBLOCK
-				Log#Error "Accept failed with: %s" err
-			return err
-
-		Log#Info "Connect from %s" conn.Remote_addr
-
-		let connh = Alloc conn_handler
-		except = connh#Init self conn
+-- Unlike `Client_handler, the request is prepared outside the handler, and
+-- On is called once, with the entire response buffered.
+intf `Client_handler_buffered =
+	met# On r:#Response
