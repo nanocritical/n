@@ -7,7 +7,7 @@ Debug [client.n:388 flush]: 6: FLUSH
 Debug [ev.n:162 sys_wait]: 
 Debug [ev.n:180 sys_wait]: 1 
 Debug [client.n:304 On]: 6: WAITING_HEADER {READ WRITE} on 6
-Debug [client.n:410 waiting_header]: 6: header not loaded, count: 132
+Debug [client.n:410 waiting_header]: 6: header not loaded, count: 92
 except: lib/n/net/http/client.n:318: On: Error: EAGAIN: Try again
 Debug [ev.n:162 sys_wait]: 
 Debug [ev.n:180 sys_wait]: 1 

@@ -1,5 +1,5 @@
-bench.n:6: __Nexample1: Debug: test before
-stdio.n:78: Check: Debug: expected in stdout 'bench.n:11: __Nexample1: Debug: test
+Debug [bench.n:6 __Nexample1]: test before
+Debug [stdio.n:78 Check]: expected in stdout 'Debug [bench.n:11 __Nexample1]: test
 ', but found ''
-stdio.n:82: Check: Debug: expected in stderr '', but found 'bench.n:11: __Nexample1: Debug: test
+Debug [stdio.n:82 Check]: expected in stderr '', but found 'Debug [bench.n:11 __Nexample1]: test
 '

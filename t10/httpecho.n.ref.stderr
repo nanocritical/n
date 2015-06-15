@@ -1,7 +1,7 @@
 TCP6
 Debug [ev.n:162 sys_wait]: 
 Debug [ev.n:180 sys_wait]: 1 
-Info [server.n:512 On]: Connect from [::1]:56868
+Info [server.n:512 On]: Connect from [::1]:57308
 except: lib/n/net/tcp/tcp.n:183: Accept: Error: EAGAIN: Try again
 Debug [ev.n:162 sys_wait]: 
 Debug [ev.n:180 sys_wait]: 1 
