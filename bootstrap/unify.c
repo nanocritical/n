@@ -705,7 +705,7 @@ error unify_with_defincomplete_entrails(struct module *mod,
     return 0;
   }
 
-  // FIXME: if 'a' is a tentative intf, we should be adding that intf as a
+  // FIXME(e): if 'a' is a tentative intf, we should be adding that intf as a
   // restriction on 'dinc'.
 
   FOREACH_SUB_CONST(f, dinc) {
@@ -868,7 +868,7 @@ static ERROR check_reference_compatibility(struct module *mod,
 }
 
 static ERROR unify_dyn_arg(struct module *mod, const struct node *for_error,
-                           struct typ *a, struct typ *dyn) {
+                           struct typ *dyn, struct typ *a) {
   error e = typ_check_isa(mod, for_error, a, dyn);
   EXCEPT(e);
   return 0;
@@ -881,6 +881,8 @@ static ERROR unify_reforslice_arg(struct module *mod, uint32_t flags,
     return 0;
   }
 
+  const bool a_dyn = typ_is_dyn(a);
+  const bool b_dyn = typ_is_dyn(b);
   struct typ *arg_a = typ_generic_arg(a, 0);
   struct typ *arg_b = typ_generic_arg(b, 0);
   // Not tentative_or_ungenarg(), if a genarg, we want to use unify_dyn().
@@ -889,12 +891,19 @@ static ERROR unify_reforslice_arg(struct module *mod, uint32_t flags,
   const bool no_tentatives = !arg_a_tentative && !arg_b_tentative;
 
   error e;
-  if (no_tentatives && typ_is_dyn(b)) {
-    e = unify_dyn_arg(mod, for_error, arg_a, arg_b);
-    EXCEPT(e);
-  } else if (no_tentatives && typ_is_dyn(a)) {
-    e = unify_dyn_arg(mod, for_error, arg_b, arg_a);
-    EXCEPT(e);
+  if (no_tentatives && (a_dyn || b_dyn)) {
+    if ((flags & REFCOMPAT_LEFT) && a_dyn) {
+      e = unify_dyn_arg(mod, for_error, arg_a, arg_b);
+      EXCEPT(e);
+    } else if ((flags & REFCOMPAT_RIGHT) && b_dyn) {
+      e = unify_dyn_arg(mod, for_error, arg_b, arg_a);
+      EXCEPT(e);
+    } else if (typ_equal(arg_a, arg_b)) {
+      // noop
+    } else {
+      e = mk_except_type_unification(mod, for_error, a, b);
+      THROW(e);
+    }
   } else {
     e = do_unify(mod, flags, for_error, arg_a, arg_b);
     EXCEPT(e);
