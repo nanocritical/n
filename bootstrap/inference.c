@@ -15,6 +15,17 @@ static struct typ *create_tentative(struct module *mod, const struct node *for_e
   return instantiate_fully_implicit(mod, for_error, functor);
 }
 
+// Avoid the creation of a tentative typ for the interface if `t` already
+// isa the intf.
+static ERROR unify_intf(struct module *mod, const struct node *for_error,
+                        struct typ *t, struct typ *intf) {
+  if (typ_isa(t, intf)) {
+    return 0;
+  }
+
+  return unify(mod, for_error, t, create_tentative(mod, for_error, intf));
+}
+
 static void mark_subs(struct module *mod, struct node *node, struct typ *mark,
                       struct node *first, struct node *last, size_t incr) {
   if (first == NULL) {
@@ -1048,7 +1059,7 @@ again:
     case TBWAND_ASSIGN:
     case TBWOR_ASSIGN:
     case TBWXOR_ASSIGN:
-      e = typ_check_isa(mod, node, left->typ, TBI_HAS_BITWISE_OPERATORS);
+      e = unify_intf(mod, node, left->typ, TBI_HAS_BITWISE_OPERATORS);
       EXCEPT(e);
 
       set_typ(&node->typ, TBI_VOID);
@@ -1062,9 +1073,9 @@ again:
     }
     break;
   case OP_BIN_SYM_PTR:
-    e = typ_check_isa(mod, node, left->typ, TBI_ANY_ANY_REF);
+    e = unify_intf(mod, node, left->typ, TBI_ANY_ANY_REF);
     EXCEPT(e);
-    e = typ_check_isa(mod, node, right->typ, TBI_ANY_ANY_REF);
+    e = unify_intf(mod, node, right->typ, TBI_ANY_ANY_REF);
     EXCEPT(e);
     if (typ_generic_arity(left->typ) > 0 && typ_generic_arity(right->typ) > 0) {
       // The kind of reference doesn't matter.
@@ -1086,10 +1097,10 @@ again:
     case TEQ:
     case TNE:
       if (operator == TEQ || operator == TNE) {
-        e = typ_check_isa(mod, left, left->typ, TBI_HAS_EQUALITY);
+        e = unify_intf(mod, left, left->typ, TBI_HAS_EQUALITY);
         EXCEPT(e);
       } else {
-        e = typ_check_isa(mod, left, left->typ, TBI_PARTIALLY_ORDERED);
+        e = unify_intf(mod, left, left->typ, TBI_PARTIALLY_ORDERED);
         EXCEPT(e);
       }
 
@@ -1505,12 +1516,12 @@ static ERROR type_inference_bin_rhs_unsigned(struct module *mod, struct node *no
     EXCEPT(e);
     break;
   case TRSHIFT_ASSIGN:
-    e = unify(mod, node, left->typ, create_tentative(mod, node, TBI_INTEGER_ARITHMETIC));
+    e = unify_intf(mod, node, left->typ, TBI_INTEGER_ARITHMETIC);
     EXCEPT(e);
     set_typ(&node->typ, TBI_VOID);
     break;
   case TOVLSHIFT_ASSIGN:
-    e = unify(mod, node, left->typ, create_tentative(mod, node, TBI_OVERFLOW_ARITHMETIC));
+    e = unify_intf(mod, node, left->typ, TBI_OVERFLOW_ARITHMETIC);
     EXCEPT(e);
     set_typ(&node->typ, TBI_VOID);
     break;
@@ -3312,7 +3323,7 @@ error step_type_inference(struct module *mod, struct node *node,
   case WHILE:
     set_typ(&node->typ, TBI_VOID);
     struct node *cond = subs_first(node);
-    e = unify(mod, cond, cond->typ, create_tentative(mod, node, TBI_GENERALIZED_BOOLEAN));
+    e = unify_intf(mod, cond, cond->typ, TBI_GENERALIZED_BOOLEAN);
     EXCEPT(e);
     struct node *block = subs_at(node, 1);
     e = typ_check_equal(mod, block, block->typ, TBI_VOID);
