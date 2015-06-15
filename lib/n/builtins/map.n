@@ -429,6 +429,14 @@ Set met# Remove_all other:*this = removed_all:Bool
 	for x in other.Iter
 		removed_all = self!Remove x and removed_all
 
+-- Useful to perform a pop-like operation:
+--	let e = set.Any_one*
+--	_ = set#Remove e
+Set met Any_one = r:T
+	assert self.Count > 0
+	var it = self.Iter
+	r = it!Next
+
 Set met# Intersect other:*this
 	-- We cannot call self#Remove while iterating.
 	-- TODO(e): rehash the set if the size has changed a lot.
