@@ -9,11 +9,11 @@ example within logging.Log
 
 	m = bench.Stdio_mock.Setup
 	Log#Debug "test"
-	assert not m.Check stdout="bench.n:11: __Nexample1: Debug: test\n" -- indeed not in stdout
+	assert not m.Check stdout="Debug [bench.n:11 __Nexample1]: test\n" -- indeed not in stdout
 
 	m = bench.Stdio_mock.Setup
 	Log#Debug "test"
-	assert m.Check stderr="bench.n:15: __Nexample1: Debug: test\n"
+	assert m.Check stderr="Debug [bench.n:15 __Nexample1]: test\n"
 
 fun Main = I32
 	return 0
