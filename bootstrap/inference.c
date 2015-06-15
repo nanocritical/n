@@ -2742,6 +2742,11 @@ static ERROR type_inference_if(struct module *mod, struct node *node) {
   error e;
 
   struct node *cond = subs_first(node);
+  e = try_insert_automagic_de(mod, cond);
+  EXCEPT(e);
+  // may have been modified, get the new one
+  cond = subs_first(node);
+
   e = unify(mod, cond, cond->typ,
             create_tentative(mod, node, TBI_GENERALIZED_BOOLEAN));
   EXCEPT(e);
