@@ -244,7 +244,7 @@ static void do_assign_defchoice_tag(struct module *mod,
 
   node->as.DEFCHOICE.is_leaf = true;
   if (node->as.DEFCHOICE.has_tag) {
-    struct node *tag = subs_last(node);
+    struct node *tag = subs_at(node, 1);
     if (tag->which == NUMBER && strtoll(tag->as.NUMBER.value, NULL, 0) == 0) {
       struct node *top = par;
       while (top->which != DEFTYPE) {
