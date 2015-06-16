@@ -543,7 +543,8 @@ static void add_auto_member(struct module *mod,
 
   if (typ_is_trivial(inferred_intf)
       || typ_equal(inferred_intf, TBI_ENUM)
-      || typ_equal(inferred_intf, TBI_UNION)) {
+      || typ_equal(inferred_intf, TBI_UNION)
+      || typ_equal(inferred_intf, TBI_UNION_TRIVIAL_CTOR)) {
     enum builtingen bg = BG__NOT;
 
     switch (tit_ident(mi)) {
@@ -567,6 +568,12 @@ static void add_auto_member(struct module *mod,
       break;
     case ID_MOVE:
       bg = BG_MOVE;
+      break;
+    case ID_FROM_TAG:
+      bg = BG_ENUM_FROM_TAG;
+      break;
+    case ID_TAG:
+      bg = BG_ENUM_TAG;
       break;
     default:
       goto non_bg;
@@ -611,14 +618,6 @@ non_bg:
   case ID_OPERATOR_GT:
   case ID_OPERATOR_GE:
     gen_by_compare(mod, deft, m, body);
-    break;
-  case ID_FROM_TAG:
-    node_subs_remove(m, body);
-    node_toplevel(m)->builtingen = BG_ENUM_FROM_TAG;
-    break;
-  case ID_TAG:
-    node_subs_remove(m, body);
-    node_toplevel(m)->builtingen = BG_ENUM_TAG;
     break;
   case ID_SHOW:
     gen_enum_show(mod, deft, m, body);

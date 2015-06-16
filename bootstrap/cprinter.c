@@ -2011,7 +2011,12 @@ static void print_deffun_builtingen(struct out *out, const struct module *mod, c
     if (par->as.DEFTYPE.kind == DEFTYPE_ENUM) {
       pf(out, "return value;\n");
     } else {
-      pf(out, "return (");
+      if (typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
+        pf(out, "return ");
+      } else {
+        pf(out, "_nretval = ");
+      }
+      pf(out, "(");
       print_typ(out, mod, par->typ);
       pf(out, "){ .%s = value };\n", idents_value(mod->gctx, ID_TAG));
     }
